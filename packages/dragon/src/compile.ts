@@ -6665,23 +6665,58 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
   // lane / node 配置 ... preset kind に応じて切替
   const actorToNodeId = new Map<string, string>();
   if (書いた縦列に置く(kind, doc)) {
-    // **書いた縦列に置く** (#1263)。 縦列を並べるための入れ物として使う図種でだけ効く。
-    // 縦列は書かれた順に作り、同じ縦列の箱は書かれた順に積む
-    const 並び: string[] = [];
+    /*
+     * **書いた縦列に置く** (#1263)。 縦列を並べるための入れ物として使う図種でだけ効く。
+     *
+     * 縦列の並びは **`lanes:` に書いた順** を優先する (#1394)。 箱が最初に使った順で
+     * 並べていた間、`lanes:` で左から順に宣言しても箱の書き順で入れ替わっていた
+     * (実測 = 中心を先に書いた放射の図で、左端の縦列が中心の右へ回った)。
+     *
+     * `lanes:` に無い縦列は、これまでどおり箱が使った順で後ろに続ける。
+     */
+    const 使った: string[] = [];
     for (const a of doc.actors) {
       const lid = a.lane;
-      if (lid !== undefined && !並び.includes(lid)) 並び.push(lid);
+      if (lid !== undefined && !使った.includes(lid)) 使った.push(lid);
     }
+    const 書いた順 = doc.lanes ? Object.keys(doc.lanes) : [];
+    const 並び = [
+      ...書いた順.filter((lid) => 使った.includes(lid)),
+      ...使った.filter((lid) => !書いた順.includes(lid)),
+    ];
     for (const lid of 並び) {
       b.lane(lid, { width: laneWidth, ...(kind === "topology" ? { contain: true } : {}) });
     }
-    const 積んだ数 = new Map<string, number>();
+    /*
+     * 段は **書いた番号をそのまま持つ** (#1394)。
+     *
+     * 書き順で 0 から詰め直していた間、`stack: 1` と書いた箱が 0 へ落ちていた。
+     * 決定木のように「同じ高さに並ばない」 ことが図の意味そのものになる形では、
+     * 詰めた瞬間に別の図になる (実測 = 3 段の木の根が 1 段目へ上がった)。
+     *
+     * 書かなかった箱は、その縦列で **空いている一番小さい段** に置く。 単に数え上げると
+     * 書いた番号と重なり、2 つの箱が同じ段に載る。
+     */
+    const 埋まった段 = new Map<string, Set<number>>();
+    const 埋める = (lid: string, stack: number): void => {
+      const 集合 = 埋まった段.get(lid) ?? new Set<number>();
+      集合.add(stack);
+      埋まった段.set(lid, 集合);
+    };
+    for (const a of doc.actors) {
+      if (a.lane !== undefined && a.stack !== undefined) 埋める(a.lane, a.stack);
+    }
     doc.actors.forEach((a, idx) => {
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
       const lid = a.lane!;
-      const stack = 積んだ数.get(lid) ?? 0;
-      積んだ数.set(lid, stack + 1);
+      let stack = a.stack;
+      if (stack === undefined) {
+        stack = 0;
+        const 集合 = 埋まった段.get(lid);
+        while (集合?.has(stack)) stack += 1;
+        埋める(lid, stack);
+      }
       b.node(id, { lane: lid, stack, kind: a.kind, title: 箱の題(a) });
     });
   } else if (kind === "flow" || kind === "topology") {

@@ -27254,3 +27254,173 @@ export const sourceJson__supportChat = `{
     }
   ]
 }`;
+
+export const sourceYaml__decisionTree = `title: "3 段の決定木が 4 つの葉に分岐する"
+type: flow
+
+lanes:
+  root: { x: 0, width: 200 }
+  mid: { x: 240, width: 200 }
+  leaf: { x: 480, width: 240 }
+
+actors:
+  - L0P0: { kind: card, lane: root, stack: 1, subtitle: "#0 (root)" }
+  - L1P0: { kind: card, lane: mid, stack: 0, subtitle: "#1" }
+  - L1P1: { kind: card, lane: mid, stack: 2, subtitle: "#2" }
+  - L2P0: { kind: card, lane: leaf, stack: 0, subtitle: "#3" }
+  - L2P1: { kind: card, lane: leaf, stack: 1, subtitle: "#4" }
+  - L2P2: { kind: card, lane: leaf, stack: 2, subtitle: "#5" }
+  - L2P3: { kind: card, lane: leaf, stack: 3, subtitle: "#6" }
+
+flow:
+  - L0P0 -> L1P0: "yes" (success)
+  - L0P0 -> L1P1: "no" (error)
+  - L1P0 -> L2P0: "yes" (success)
+  - L1P0 -> L2P1: "no" (error)
+  - L1P1 -> L2P2: "yes" (success)
+  - L1P1 -> L2P3: "no" (error)
+
+animation:
+  - step: "入口に立つ" 1.6s
+    focus: ["L0P0"]
+    description: "一番上の分かれ道から始まる。 まだどちらにも進んでいない。"
+  - step: "1 段目で分かれる" 1.6s
+    focus: ["L0P0", "L1P0", "L1P1"]
+    description: "最初の判断で左右に分かれる。 2 つの道ができる。"
+  - step: "左の枝が分かれる" 1.6s
+    focus: ["L0P0", "L1P0", "L1P1", "L2P0", "L2P1"]
+    description: "左側だけがもう一度分かれて 2 つの葉になる。 右側はまだ 1 本のまま。"
+  - step: "右の枝も分かれる" 1.6s
+    focus: ["L0P0", "L1P0", "L1P1", "L2P0", "L2P1", "L2P2", "L2P3"]
+    description: "右側も分かれて 4 つの終点すべてに届く。 2 段の判断で 4 通りの結果になる。"
+`;
+
+export const sourceJson__decisionTree = `{
+  "title": "3 段の決定木が 4 つの葉に分岐する",
+  "type": "flow",
+  "lanes": {
+    "root": { "x": 0, "width": 200 },
+    "mid": { "x": 240, "width": 200 },
+    "leaf": { "x": 480, "width": 240 }
+  },
+  "actors": [
+    { "name": "L0P0", "kind": "card", "lane": "root", "stack": 1, "subtitle": "#0 (root)" },
+    { "name": "L1P0", "kind": "card", "lane": "mid", "stack": 0, "subtitle": "#1" },
+    { "name": "L1P1", "kind": "card", "lane": "mid", "stack": 2, "subtitle": "#2" },
+    { "name": "L2P0", "kind": "card", "lane": "leaf", "stack": 0, "subtitle": "#3" },
+    { "name": "L2P1", "kind": "card", "lane": "leaf", "stack": 1, "subtitle": "#4" },
+    { "name": "L2P2", "kind": "card", "lane": "leaf", "stack": 2, "subtitle": "#5" },
+    { "name": "L2P3", "kind": "card", "lane": "leaf", "stack": 3, "subtitle": "#6" }
+  ],
+  "flow": [
+    { "from": "L0P0", "to": "L1P0", "label": "yes", "tone": "success" },
+    { "from": "L0P0", "to": "L1P1", "label": "no", "tone": "error" },
+    { "from": "L1P0", "to": "L2P0", "label": "yes", "tone": "success" },
+    { "from": "L1P0", "to": "L2P1", "label": "no", "tone": "error" },
+    { "from": "L1P1", "to": "L2P2", "label": "yes", "tone": "success" },
+    { "from": "L1P1", "to": "L2P3", "label": "no", "tone": "error" }
+  ],
+  "animation": [
+    {
+      "step": "入口に立つ",
+      "duration": 1.6,
+      "focus": ["L0P0"],
+      "body": "一番上の分かれ道から始まる。 まだどちらにも進んでいない。"
+    },
+    {
+      "step": "1 段目で分かれる",
+      "duration": 1.6,
+      "focus": ["L0P0", "L1P0", "L1P1"],
+      "body": "最初の判断で左右に分かれる。 2 つの道ができる。"
+    },
+    {
+      "step": "左の枝が分かれる",
+      "duration": 1.6,
+      "focus": ["L0P0", "L1P0", "L1P1", "L2P0", "L2P1"],
+      "body": "左側だけがもう一度分かれて 2 つの葉になる。 右側はまだ 1 本のまま。"
+    },
+    {
+      "step": "右の枝も分かれる",
+      "duration": 1.6,
+      "focus": ["L0P0", "L1P0", "L1P1", "L2P0", "L2P1", "L2P2", "L2P3"],
+      "body": "右側も分かれて 4 つの終点すべてに届く。 2 段の判断で 4 通りの結果になる。"
+    }
+  ]
+}`;
+
+export const sourceYaml__radialHubAndSpoke = `title: "中心から放射状に 4 本が伸びる"
+type: flow
+
+lanes:
+  spokesTop: { x: -300, width: 200 }
+  hub-lane: { x: 0, width: 200 }
+  spokesBottom: { x: 300, width: 200 }
+
+actors:
+  - Hub: { kind: card, lane: hub-lane, stack: 0, subtitle: "center · 4 spoke に fan-out" }
+  - #0: { kind: card, lane: spokesTop, stack: 0, subtitle: "0°" }
+  - #1: { kind: card, lane: spokesTop, stack: 1, subtitle: "90°" }
+  - #2: { kind: card, lane: spokesBottom, stack: 0, subtitle: "180°" }
+  - #3: { kind: card, lane: spokesBottom, stack: 1, subtitle: "270°" }
+
+flow:
+  - Hub -> #0: "0°" (info)
+  - Hub -> #1: "90°" (info)
+  - Hub -> #2: "180°" (info)
+  - Hub -> #3: "270°" (info)
+
+animation:
+  - step: "中心を置く" 1.6s
+    focus: ["Hub"]
+    description: "真ん中の箱が起点。 ここから外へ伸びる。"
+  - step: "2 本伸ばす" 1.6s
+    focus: ["Hub", "#0", "#1"]
+    description: "中心から 2 本が外へ伸びる。 向きが 2 方向に分かれる。"
+  - step: "4 本に広げる" 1.6s
+    focus: ["Hub", "#0", "#1", "#2", "#3"]
+    description: "4 本すべてが放射状に広がる。 中心 1 つに対して外が 4 つ。"
+`;
+
+export const sourceJson__radialHubAndSpoke = `{
+  "title": "中心から放射状に 4 本が伸びる",
+  "type": "flow",
+  "lanes": {
+    "spokesTop": { "x": -300, "width": 200 },
+    "hub-lane": { "x": 0, "width": 200 },
+    "spokesBottom": { "x": 300, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "Hub",
+      "kind": "card",
+      "lane": "hub-lane",
+      "stack": 0,
+      "subtitle": "center · 4 spoke に fan-out"
+    },
+    { "name": "#0", "kind": "card", "lane": "spokesTop", "stack": 0, "subtitle": "0°" },
+    { "name": "#1", "kind": "card", "lane": "spokesTop", "stack": 1, "subtitle": "90°" },
+    { "name": "#2", "kind": "card", "lane": "spokesBottom", "stack": 0, "subtitle": "180°" },
+    { "name": "#3", "kind": "card", "lane": "spokesBottom", "stack": 1, "subtitle": "270°" }
+  ],
+  "flow": [
+    { "from": "Hub", "to": "#0", "label": "0°", "tone": "info" },
+    { "from": "Hub", "to": "#1", "label": "90°", "tone": "info" },
+    { "from": "Hub", "to": "#2", "label": "180°", "tone": "info" },
+    { "from": "Hub", "to": "#3", "label": "270°", "tone": "info" }
+  ],
+  "animation": [
+    { "step": "中心を置く", "duration": 1.6, "focus": ["Hub"], "body": "真ん中の箱が起点。 ここから外へ伸びる。" },
+    {
+      "step": "2 本伸ばす",
+      "duration": 1.6,
+      "focus": ["Hub", "#0", "#1"],
+      "body": "中心から 2 本が外へ伸びる。 向きが 2 方向に分かれる。"
+    },
+    {
+      "step": "4 本に広げる",
+      "duration": 1.6,
+      "focus": ["Hub", "#0", "#1", "#2", "#3"],
+      "body": "4 本すべてが放射状に広がる。 中心 1 つに対して外が 4 つ。"
+    }
+  ]
+}`;
