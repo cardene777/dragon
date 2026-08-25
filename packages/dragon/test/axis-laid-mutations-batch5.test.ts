@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import { visualValidateLaid, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { at } from "./support/at";
 
 function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
   return {
@@ -35,7 +36,8 @@ describe("Axis 5 alignment (LaidDiagram mutation で意図発火)", () => {
       edges: [],
     });
     const laid = layout(diag);
-    laid.nodes[1].cx = laid.nodes[0].cx + 100;
+    at(laid.nodes, 1, "laid.nodes").cx =
+      at(laid.nodes, 0, "laid.nodes").cx + 100;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["alignment"]).toBeGreaterThan(0);
   });
@@ -85,7 +87,7 @@ describe("Axis 13 edge-segment-orthogonality (LaidDiagram mutation で意図発�
   it("edge path を斜めに強制すると orthogonality 発火", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
-    laid.edges[0].d = "M 100 100 L 500 400";
+    at(laid.edges, 0, "laid.edges").d = "M 100 100 L 500 400";
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["edge-segment-orthogonality"]).toBeGreaterThan(0);
   });

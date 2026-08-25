@@ -13,6 +13,7 @@
 import { describe, it, expect } from "vitest";
 import { visualValidate, visualValidateLaid, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { at } from "./support/at";
 
 function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
   return {
@@ -38,8 +39,8 @@ describe("Axis 10 node-overlap (LaidDiagram mutation で意図発火)", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
     // n1 の座標を n2 と完全一致させて overlap 状態を作る
-    laid.nodes[0].cx = laid.nodes[1].cx;
-    laid.nodes[0].cy = laid.nodes[1].cy;
+    at(laid.nodes, 0, "laid.nodes").cx = at(laid.nodes, 1, "laid.nodes").cx;
+    at(laid.nodes, 0, "laid.nodes").cy = at(laid.nodes, 1, "laid.nodes").cy;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["node-overlap"]).toBeGreaterThan(0);
   });
@@ -50,7 +51,7 @@ describe("Axis 53 node-inside-viewbox (LaidDiagram mutation で意図発火)", (
     const diag = baseDiagram();
     const laid = layout(diag);
     // n1 の cx を viewBox 右端の外 + 1000px に強制シフト
-    laid.nodes[0].cx = laid.viewBox.x + laid.viewBox.w + 1000;
+    at(laid.nodes, 0, "laid.nodes").cx = laid.viewBox.x + laid.viewBox.w + 1000;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["node-inside-viewbox"]).toBeGreaterThan(0);
   });
@@ -67,8 +68,8 @@ describe("Axis 54 node-inside-lane (LaidDiagram mutation で意図発火)", () =
     });
     const laid = layout(diag);
     // n1 を contain lane の右端の外に強制 shift
-    const lane = laid.lanes[0];
-    laid.nodes[0].cx = lane.x + lane.width + 500;
+    const lane = at(laid.lanes, 0, "laid.lanes");
+    at(laid.nodes, 0, "laid.nodes").cx = lane.x + lane.width + 500;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["node-inside-lane"]).toBeGreaterThan(0);
   });
@@ -79,8 +80,8 @@ describe("Axis 1 node-visibility (LaidDiagram mutation で意図発火)", () => 
     const diag = baseDiagram();
     const laid = layout(diag);
     // n1 の w/h を 8 未満 = lifeline 扱いより大 + MIN_NODE_W/H 未満
-    laid.nodes[0].w = 30;
-    laid.nodes[0].h = 30;
+    at(laid.nodes, 0, "laid.nodes").w = 30;
+    at(laid.nodes, 0, "laid.nodes").h = 30;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["node-visibility"]).toBeGreaterThan(0);
   });

@@ -1,8 +1,17 @@
 import { describe, it, expect, vi } from "vitest";
 import { compileToCdl } from "../src/compile";
-import type { DslDocument, DslActor, DslStep, PresetType } from "../src/types";
+import type {
+  DslDocument,
+  DslActor,
+  DslStep,
+  DslLane,
+  DslGroup,
+  DslViewport,
+  PresetType,
+} from "../src/types";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { layout } from "@cardenelabs/cdl";
+import { at } from "./support/at";
 
 /**
  * compile.ts mutation-kill test。
@@ -87,6 +96,42 @@ function makeDoc(type: PresetType, over: Partial<DslDocument> = {}): DslDocument
 function compile(type: PresetType, over: Partial<DslDocument> = {}): CdlDiagram {
   return compileToCdl(makeDoc(type, over));
 }
+
+/**
+ * 手で組む縦列 / 束ね / 図全体の指定 (#1414)。
+ *
+ * この 3 つは記法の位置 (`pos`) を必須で持つ。 解析が埋める metadata で、誤りを知らせる時に
+ * 「何行目の指定か」 を出すために使う。 手で組む fixture には行が無いので `makeDoc` と同じ
+ * 置き場所 (1 行目) を埋める。
+ *
+ * `id` は鍵と重複するため書かせない。 書かせると鍵と食い違う fixture が作れてしまい、
+ * どちらが効くかが読み手に分からなくなる。
+ */
+function 縦列(
+  表: Record<string, Omit<DslLane, "id" | "pos">>,
+): NonNullable<DslDocument["lanes"]> {
+  return Object.fromEntries(
+    Object.entries(表).map(([id, v]) => [id, { id, pos: { line: 1 }, ...v }]),
+  );
+}
+
+function 束ね(
+  表: Record<
+    string,
+    Omit<DslGroup, "id" | "pos" | "lanes"> & { lanes?: string[] }
+  >,
+): NonNullable<DslDocument["groups"]> {
+  return Object.fromEntries(
+    Object.entries(表).map(([id, v]) => [
+      id,
+      { id, pos: { line: 1 }, lanes: [], ...v },
+    ]),
+  );
+}
+
+function 図全体(o: Omit<DslViewport, "pos">): DslViewport {
+  return { pos: { line: 1 }, ...o };
+}
 /**
  * merge 済のパーツの箱の左端 (実測値)。
  *
@@ -152,7 +197,9 @@ describe("compileGantt", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const d = compile("gantt", { actors: [actor("A", { subtitle: "Q1" }), actor("B")] });
     expect(d.nodes[0]!.ganttData!.map((t) => t.title)).toEqual(["A"]);
-    expect(warn.mock.calls.map((c) => String(c[0])).join(" ")).toContain("B");
+    expect(
+      warn.mock.calls.map((c) => String(at(c, 0, "c"))).join(" "),
+    ).toContain("B");
     warn.mockRestore();
   });
   it("件数が増えると高さが伸びる", () => {
@@ -441,6 +488,9 @@ describe("applyEdgeInlineOptions", () => {
 describe("applyGroupContainers", () => {
   it("doc.groups → group-{id} lane (width 800 / contain true / label)", () => {
     const d = compileToCdl(makeDoc("topology", {
+      // **`members` は `DslGroup` に無い** (正しくは `lanes`)。 この検査は「知らない項目が
+      // 混ざっても `group-{id}` の枠は作られる」 ことを見るので、わざと壊れた形を渡す。
+      // `束ね()` を通すと型が正しくなり、見たい形が作れない
       groups: { g1: { label: "G1", members: ["A"] } } as unknown as DslDocument["groups"],
     }));
     const l = lane(d, "group-g1");
@@ -559,13 +609,13 @@ describe("applyV05Extensions", () => {
   });
   it("viewport.laneWidth → 全 lane width を override", () => {
     const d = compileToCdl(makeDoc("swimlane", {
-      viewport: { laneWidth: 555 } as unknown as DslDocument["viewport"],
+      viewport: 図全体({ laneWidth: 555 }),
     }));
     for (const l of d.lanes) expect(l.width).toBe(555);
   });
   it("doc.lanes → 既存 lane に x / width / label を merge", () => {
     const d = compileToCdl(makeDoc("swimlane", {
-      lanes: { a: { x: 88, width: 777, label: "custom" } } as unknown as DslDocument["lanes"],
+      lanes: 縦列({ a: { x: 88, width: 777, label: "custom" } }),
     }));
     expect(lane(d, "a").x).toBe(88);
     expect(lane(d, "a").width).toBe(777);
@@ -573,14 +623,14 @@ describe("applyV05Extensions", () => {
   });
   it("viewport.width / height → diagram.viewport に集約", () => {
     const d = compileToCdl(makeDoc("swimlane", {
-      viewport: { width: 1600, height: 900 } as unknown as DslDocument["viewport"],
+      viewport: 図全体({ width: 1600, height: 900 }),
     }));
     expect(d.viewport?.width).toBe(1600);
     expect(d.viewport?.height).toBe(900);
   });
   it("viewport の gap / laneGap / nodeGap / labelMargin も集約", () => {
     const d = compileToCdl(makeDoc("swimlane", {
-      viewport: { gap: 10, laneGap: 20, nodeGap: 30, labelMargin: 40 } as unknown as DslDocument["viewport"],
+      viewport: 図全体({ gap: 10, laneGap: 20, nodeGap: 30, labelMargin: 40 }),
     }));
     expect(d.viewport?.gap).toBe(10);
     expect(d.viewport?.laneGap).toBe(20);
@@ -593,7 +643,7 @@ describe("applyV05Extensions", () => {
   });
   it("doc.lanes で preset にない lane を新規追加 (x default 0 / width default)", () => {
     const d = compileToCdl(makeDoc("swimlane", {
-      lanes: { extra: { width: 500, label: "Extra" } } as unknown as DslDocument["lanes"],
+      lanes: 縦列({ extra: { width: 500, label: "Extra" } }),
     }));
     expect(lane(d, "extra").width).toBe(500);
     expect(lane(d, "extra").label).toBe("Extra");
@@ -801,11 +851,23 @@ describe("applyEdgeInlineOptions isSeqLike", () => {
 // ── compileSwimlane 網羅: edge option + node stack + edge id ──
 describe("compileSwimlane 網羅", () => {
   it("edge は sub / tone / style / guard / cardinality / labelOffset を保持", () => {
-    const d = compile("swimlane", { flow: [step("A", "B", { sub: "note", tone: "success", style: "dashed", guard: "g", cardinality: "1:N", labelOffsetX: 3, labelOffsetY: 4 })] });
+    const d = compile("swimlane", {
+      flow: [
+        step("A", "B", {
+          sub: "note",
+          tone: "success",
+          style: "dotted-flow",
+          guard: "g",
+          cardinality: "1:N",
+          labelOffsetX: 3,
+          labelOffsetY: 4,
+        }),
+      ],
+    });
     const e = d.edges[0]!;
     expect(e.sub).toBe("note");
     expect(e.tone).toBe("success");
-    expect(e.style).toBe("dashed");
+    expect(e.style).toBe("dotted-flow");
     expect(e.guard).toBe("g");
     expect(e.cardinality).toBe("1:N");
     expect(e.labelOffsetX).toBe(3);
@@ -824,11 +886,15 @@ describe("型別 compiler edge option 伝播", () => {
   // (#1077)。 依存として載ることは `compileGantt` の「矢印は依存として帯に載る」 が見る
   for (const t of ["class", "c4", "topology"] as PresetType[]) {
     it(`${t} edge は sub / tone / style を保持`, () => {
-      const d = compile(t, { flow: [step("A", "B", { sub: "n", tone: "warning", style: "dashed" })] });
+      const d = compile(t, {
+        flow: [
+          step("A", "B", { sub: "n", tone: "warning", style: "dotted-flow" }),
+        ],
+      });
       const e = d.edges[0]!;
       expect(e.sub).toBe("n");
       expect(e.tone).toBe("warning");
-      expect(e.style).toBe("dashed");
+      expect(e.style).toBe("dotted-flow");
     });
   }
 });
@@ -1069,7 +1135,8 @@ describe("mergePartIntoDiagram: template rewrite / state override", () => {
 
   it("part の state が存在しない名前は rewrite しない", () => {
     const part = makeTestPart();
-    (part.nodes[0] as { subtitle?: string }).subtitle = "{unknown}%";
+    (at(part.nodes, 0, "part.nodes") as { subtitle?: string }).subtitle =
+      "{unknown}%";
     const d = compileWithPart({}, part);
     expect(node(d, "p1__top").subtitle).toBe("{unknown}%");
   });
@@ -1361,7 +1428,9 @@ describe("applyV05Extensions: underscore/全角 actor 名でも inline option �
 describe("applyV05Extensions: lanes section", () => {
   it("既存 lane の x / width / label / contain / lifeline を上書き", () => {
     const d = compile("swimlane", {
-      lanes: { a: { x: 111, width: 222, label: "L", contain: true, lifeline: true } },
+      lanes: 縦列({
+        a: { x: 111, width: 222, label: "L", contain: true, lifeline: true },
+      }),
     });
     const l = lane(d, "a");
     expect(l.x).toBe(111);
@@ -1372,14 +1441,16 @@ describe("applyV05Extensions: lanes section", () => {
   });
 
   it("preset に無い lane id は新規追加 (default x 0 / width 320)", () => {
-    const d = compile("swimlane", { lanes: { extra: {} } });
+    const d = compile("swimlane", { lanes: 縦列({ extra: {} }) });
     const l = lane(d, "extra");
     expect(l.x).toBe(0);
     expect(l.width).toBe(320);
   });
 
   it("新規追加 lane も指定値を反映", () => {
-    const d = compile("swimlane", { lanes: { extra: { x: 50, width: 400, label: "E" } } });
+    const d = compile("swimlane", {
+      lanes: 縦列({ extra: { x: 50, width: 400, label: "E" } }),
+    });
     const l = lane(d, "extra");
     expect(l.x).toBe(50);
     expect(l.width).toBe(400);
@@ -1389,13 +1460,20 @@ describe("applyV05Extensions: lanes section", () => {
 
 describe("applyV05Extensions: viewport", () => {
   it("laneWidth は全 lane の width を override", () => {
-    const d = compile("swimlane", { viewport: { laneWidth: 999 } });
+    const d = compile("swimlane", { viewport: 図全体({ laneWidth: 999 }) });
     for (const l of d.lanes) expect(l.width).toBe(999);
   });
 
   it("width / height / gap / laneGap / nodeGap / labelMargin が viewport に集約", () => {
     const d = compile("swimlane", {
-      viewport: { width: 1, height: 2, gap: 3, laneGap: 4, nodeGap: 5, labelMargin: 6 },
+      viewport: 図全体({
+        width: 1,
+        height: 2,
+        gap: 3,
+        laneGap: 4,
+        nodeGap: 5,
+        labelMargin: 6,
+      }),
     });
     expect(d.viewport).toMatchObject({ width: 1, height: 2, gap: 3, laneGap: 4, nodeGap: 5, labelMargin: 6 });
   });
@@ -1406,7 +1484,7 @@ describe("applyV05Extensions: viewport", () => {
   });
 
   it("一部 field のみ指定なら他 field は含めない", () => {
-    const d = compile("swimlane", { viewport: { width: 100 } });
+    const d = compile("swimlane", { viewport: 図全体({ width: 100 }) });
     expect(d.viewport?.width).toBe(100);
     expect(d.viewport?.height).toBeUndefined();
   });
@@ -1503,7 +1581,8 @@ describe("mergePartIntoDiagram: shape scale 条件の両分岐", () => {
 
   it("shape 内の非数値 geom field は scale されない (typeof number 判定)", () => {
     const part = makeTestPart();
-    (part.nodes[0] as { shape?: Record<string, unknown> }).shape = { kind: "arc", radius: "big", fill: "#000" };
+    const 先頭 = at(part.nodes, 0, "part.nodes") as { shape?: Record<string, unknown> };
+    先頭.shape = { kind: "arc", radius: "big", fill: "#000" };
     const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, part);
     const s = node(d, "p1__top").shape as { radius?: string };
     expect(s.radius).toBe("big");
@@ -1511,7 +1590,8 @@ describe("mergePartIntoDiagram: shape scale 条件の両分岐", () => {
 
   it("shape 内 nested object の geom field も scale される (再帰 walk)", () => {
     const part = makeTestPart();
-    (part.nodes[0] as { shape?: Record<string, unknown> }).shape = { kind: "arc", inner: { radius: 50 } };
+    const 先頭 = at(part.nodes, 0, "part.nodes") as { shape?: Record<string, unknown> };
+    先頭.shape = { kind: "arc", inner: { radius: 50 } };
     const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, part);
     const s = node(d, "p1__top").shape as { inner?: { radius?: number } };
     expect(s.inner?.radius).toBe(100); // 50 * min(2,2)
@@ -1519,7 +1599,8 @@ describe("mergePartIntoDiagram: shape scale 条件の両分岐", () => {
 
   it("shape 内 array 要素の geom field も scale される", () => {
     const part = makeTestPart();
-    (part.nodes[0] as { shape?: Record<string, unknown> }).shape = { kind: "arc", items: [{ radius: 30 }] };
+    const 先頭 = at(part.nodes, 0, "part.nodes") as { shape?: Record<string, unknown> };
+    先頭.shape = { kind: "arc", items: [{ radius: 30 }] };
     const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, part);
     const s = node(d, "p1__top").shape as { items?: Array<{ radius?: number }> };
     expect(s.items?.[0]?.radius).toBe(60);
@@ -1527,7 +1608,8 @@ describe("mergePartIntoDiagram: shape scale 条件の両分岐", () => {
 
   it("shape 内 null 値は素通し (null 判定分岐)", () => {
     const part = makeTestPart();
-    (part.nodes[0] as { shape?: Record<string, unknown> }).shape = { kind: "arc", nothing: null, radius: 20 };
+    const 先頭 = at(part.nodes, 0, "part.nodes") as { shape?: Record<string, unknown> };
+    先頭.shape = { kind: "arc", nothing: null, radius: 20 };
     const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, part);
     const s = node(d, "p1__top").shape as { nothing?: unknown; radius?: number };
     expect(s.nothing).toBeNull();
@@ -1538,7 +1620,7 @@ describe("mergePartIntoDiagram: shape scale 条件の両分岐", () => {
 describe("mergePartIntoDiagram: 座標条件の境界と両分岐", () => {
   it("part 側 node が posX を持つ場合は effectiveOffsetX を加算する (undefined 分岐の逆)", () => {
     const part = makeTestPart();
-    (part.nodes[0] as { posX?: number }).posX = 60;
+    (at(part.nodes, 0, "part.nodes") as { posX?: number }).posX = 60;
     // posX 1000 → partsLaneStartX = 800、 effectiveOffsetX = 800 - 0 = 800 → 60 + 800 = 860
     const d = compileWithPart({ posX: 1000, posY: 500 }, part);
     expect(node(d, "p1__top").posX).toBe(860);
@@ -1546,14 +1628,14 @@ describe("mergePartIntoDiagram: 座標条件の境界と両分岐", () => {
 
   it("part 側 node が posY を持つ場合は offsetY を加算する", () => {
     const part = makeTestPart();
-    (part.nodes[0] as { posY?: number }).posY = 25;
+    (at(part.nodes, 0, "part.nodes") as { posY?: number }).posY = 25;
     const d = compileWithPart({ posX: 1000, posY: 500 }, part);
     expect(node(d, "p1__top").posY).toBe(525); // 25 + 500
   });
 
   it("posY 未指定 (posX のみ) なら part 側 posY には 0 が加算される (?? 0 分岐)", () => {
     const part = makeTestPart();
-    (part.nodes[0] as { posY?: number }).posY = 25;
+    (at(part.nodes, 0, "part.nodes") as { posY?: number }).posY = 25;
     const d = compileWithPart({ posX: 1000 }, part);
     expect(node(d, "p1__top").posY).toBe(25);
   });
@@ -1604,7 +1686,9 @@ describe("mergePartIntoDiagram: 座標条件の境界と両分岐", () => {
 describe("mergePartIntoDiagram: readouts / phase merge の分岐", () => {
   it("readouts を持つ part は id prefix + source rewrite で merge", () => {
     const part = makeTestPart();
-    part.readouts = [{ id: "r1", kind: "gauge", source: "{v}", nodeId: "top" }] as CdlDiagram["readouts"];
+    part.readouts = [
+      { id: "r1", kind: "gauge", source: "{v}", nodeId: "top" },
+    ] as unknown as CdlDiagram["readouts"];
     const d = compileWithPart({}, part);
     const r = d.readouts?.find((x) => x.id === "p1__r1") as { source?: string } | undefined;
     expect(r).toBeDefined();
@@ -1613,7 +1697,7 @@ describe("mergePartIntoDiagram: readouts / phase merge の分岐", () => {
 
   it("readouts が空配列なら target.readouts を作らない (length > 0 分岐)", () => {
     const part = makeTestPart();
-    part.readouts = [] as CdlDiagram["readouts"];
+    part.readouts = [] as unknown as CdlDiagram["readouts"];
     const d = compileWithPart({}, part);
     expect(d.readouts === undefined || d.readouts.length === 0).toBe(true);
   });
@@ -1921,12 +2005,20 @@ describe("compileGenericWithAnimate: kind 別の lane 構成", () => {
   it("edge の sub / tone / style / guard / cardinality が反映される", () => {
     const d = compileToCdl(makeDoc("flow", {
       animate: animOf(),
-      flow: [step("A", "B", { sub: "s", tone: "success", style: "dashed", guard: "g", cardinality: "1:1" })],
+      flow: [
+        step("A", "B", {
+          sub: "s",
+          tone: "success",
+          style: "dotted-flow",
+          guard: "g",
+          cardinality: "1:1",
+        }),
+      ],
     }));
     const e = d.edges[0]!;
     expect(e.sub).toBe("s");
     expect(e.tone).toBe("success");
-    expect(e.style).toBe("dashed");
+    expect(e.style).toBe("dotted-flow");
     expect(e.guard).toBe("g");
     expect(e.cardinality).toBe("1:1");
   });
@@ -2171,13 +2263,16 @@ describe("compileMind: 矢印の扱いと枠 (#1177)", () => {
     const d = compileToCdl(
       makeDoc("mind", {
         actors: [actor("Root"), actor("L1"), actor("L2")],
-        flow: [step("L1", "L2", "x")],
+        flow: [step("L1", "L2", { label: "x" })],
       }),
       { onNotice: (n) => 知らせ.push(n.kind) },
     );
     expect(d.edges).toEqual([]);
     expect(知らせ.filter((k) => k === "chart-edge-dropped"), "使えた矢印を落としている").toEqual([]);
-    const 枝 = (d.nodes[0] as { mindData?: { branches?: { id: string; parent?: string }[] } }).mindData?.branches;
+    const 中心 = at(d.nodes, 0, "d.nodes") as {
+        mindData?: { branches?: { id: string; parent?: string }[] };
+      };
+      const 枝 = 中心.mindData?.branches;
     expect(枝?.find((x) => x.id === "l2")?.parent).toBe("l1");
   });
 
@@ -2287,8 +2382,8 @@ describe("mergePartsFromActors: warn 出力の内容", () => {
         flow: [step("A", "A")],
       }));
       expect(logs.length).toBeGreaterThan(0);
-      expect(logs[0]).toContain("gauge1");
-      expect(logs[0]).toContain("arc-gauge");
+      expect(at(logs, 0, "logs")).toContain("gauge1");
+      expect(at(logs, 0, "logs")).toContain("arc-gauge");
     } finally {
       console.warn = warn;
     }
@@ -2321,8 +2416,8 @@ describe("mergePartsFromActors: warn 出力の内容", () => {
         actors: [actor("A"), actor("g1", { partId: "p" }), actor("g2", { partId: "q" })],
         flow: [step("A", "A")],
       }));
-      expect(logs[0]).toContain("g1");
-      expect(logs[0]).toContain("g2");
+      expect(at(logs, 0, "logs")).toContain("g1");
+      expect(at(logs, 0, "logs")).toContain("g2");
     } finally {
       console.warn = warn;
     }
@@ -2414,7 +2509,7 @@ describe("applyV05Extensions / applyCanvasPivotPositions: id 一致経路の分�
   it("該当 node が無い actor 名は何も起きない (no-op)", () => {
     const d = compile("swimlane", {
       actors: [actor("A"), actor("B")],
-      lanes: { nonexistent: { x: 1 } },
+      lanes: 縦列({ nonexistent: { x: 1 } }),
     });
     expect(d.nodes.length).toBe(2);
   });
@@ -2566,8 +2661,8 @@ describe("矢印 regex の非貪欲性 (A→B→C で from/to の切り出しが
     // 非貪欲 (.+?) なら from="A"、 貪欲 (.+) なら from="A→B" となり別 edge を探して失敗する。
     const d = compileToCdl(makeDoc("sequence", {
       animate: animOf(["A→B→C"]),
-      actors: [actor(names[0]), actor(names[1])],
-      flow: [step(names[0], names[1])],
+      actors: [actor(at(names, 0, "names")), actor(at(names, 1, "names"))],
+        flow: [step(at(names, 0, "names"), at(names, 1, "names"))],
     }));
     const target = d.edges[0]!;
     expect(d.phases[0]!.activate).toContain(target.id);
@@ -2576,8 +2671,8 @@ describe("矢印 regex の非貪欲性 (A→B→C で from/to の切り出しが
   it("resolveHighlightGeneric: 最初の矢印で分割される", () => {
     const d = compileToCdl(makeDoc("flow", {
       animate: animOf(["A→B→C"]),
-      actors: [actor(names[0]), actor(names[1])],
-      flow: [step(names[0], names[1])],
+      actors: [actor(at(names, 0, "names")), actor(at(names, 1, "names"))],
+        flow: [step(at(names, 0, "names"), at(names, 1, "names"))],
     }));
     expect(d.phases[0]!.activate.length).toBeGreaterThan(0);
   });
@@ -2585,8 +2680,8 @@ describe("矢印 regex の非貪欲性 (A→B→C で from/to の切り出しが
   it("injectPhasesFallback: 最初の矢印で分割される", () => {
     const d = compileToCdl(makeDoc("class", {
       animate: animOf(["A→B→C"]),
-      actors: [actor(names[0]), actor(names[1])],
-      flow: [step(names[0], names[1])],
+      actors: [actor(at(names, 0, "names")), actor(at(names, 1, "names"))],
+        flow: [step(at(names, 0, "names"), at(names, 1, "names"))],
     }));
     const target = d.edges.find((e) => e.from === "a");
     expect(target).toBeDefined();
@@ -2657,7 +2752,7 @@ describe("applyEdgeInlineOptions: 非 seq-like で正しい edge に割当てる
 
 describe("applyGroupContainers: container lane 生成と重複回避", () => {
   it("groups から group-{id} lane が contain: true で作られる", () => {
-    const d = compile("topology", { groups: { g1: { label: "G1" } } });
+    const d = compile("topology", { groups: 束ね({ g1: { label: "G1" } }) });
     const l = lane(d, "group-g1");
     expect(l.contain).toBe(true);
     expect(l.width).toBe(800);
@@ -2665,14 +2760,14 @@ describe("applyGroupContainers: container lane 生成と重複回避", () => {
   });
 
   it("label 未指定なら id が label になる (?? 分岐)", () => {
-    const d = compile("topology", { groups: { g1: {} } });
+    const d = compile("topology", { groups: 束ね({ g1: {} }) });
     expect(lane(d, "group-g1").label).toBe("g1");
   });
 
   it("同名 lane が既にあれば重複追加しない", () => {
     const d = compile("topology", {
-      groups: { g1: { label: "G1" } },
-      lanes: { "group-g1": { x: 5, width: 111 } },
+      groups: 束ね({ g1: { label: "G1" } }),
+      lanes: 縦列({ "group-g1": { x: 5, width: 111 } }),
     });
     expect(d.lanes.filter((l) => l.id === "group-g1").length).toBe(1);
     // 既存 lane が保持される (push で上書きされない)
@@ -2680,13 +2775,13 @@ describe("applyGroupContainers: container lane 生成と重複回避", () => {
   });
 
   it("groups が空 object なら lane を追加しない (early return)", () => {
-    const withEmpty = compile("topology", { groups: {} });
+    const withEmpty = compile("topology", { groups: 束ね({}) });
     const without = compile("topology");
     expect(withEmpty.lanes.length).toBe(without.lanes.length);
   });
 
   it("複数 group がすべて lane 化される", () => {
-    const d = compile("topology", { groups: { g1: {}, g2: {} } });
+    const d = compile("topology", { groups: 束ね({ g1: {}, g2: {} }) });
     expect(d.lanes.some((l) => l.id === "group-g1")).toBe(true);
     expect(d.lanes.some((l) => l.id === "group-g2")).toBe(true);
   });
@@ -2926,7 +3021,9 @@ describe("mergePartIntoDiagram: target が空の diagram への merge", () => {
 
   it("shape の array 要素に null があっても壊れない (scaleGeom の null 分岐)", () => {
     const part = PART();
-    (part.nodes[0] as { shape?: Record<string, unknown> }).shape = { kind: "arc", items: [null, { radius: 10 }] };
+    (
+      at(part.nodes, 0, "part.nodes") as { shape?: Record<string, unknown> }
+    ).shape = { kind: "arc", items: [null, { radius: 10 }] };
     const d = compileToCdl(
       makeDoc("sequence", {
         actors: [actor("A"), actor("p1", { partId: "e", posX: 100, posY: 200, posW: 800, posH: 880 })],
@@ -3187,14 +3284,16 @@ describe("mergePartIntoDiagram: readouts の有無で target.readouts が切り�
 
   it("readouts を持つ part では長さ 1 の配列が生える", () => {
     const part = makeTestPart();
-    part.readouts = [{ id: "r1", kind: "gauge", source: "{v}", nodeId: "top" }] as CdlDiagram["readouts"];
+    part.readouts = [
+      { id: "r1", kind: "gauge", source: "{v}", nodeId: "top" },
+    ] as unknown as CdlDiagram["readouts"];
     const d = compileWithPart({}, part);
     expect(d.readouts?.length).toBe(1);
   });
 
   it("readouts が空配列の part でも readouts は生えない", () => {
     const part = makeTestPart();
-    part.readouts = [] as CdlDiagram["readouts"];
+    part.readouts = [] as unknown as CdlDiagram["readouts"];
     const d = compileWithPart({}, part);
     expect(d.readouts).toBeUndefined();
   });
@@ -3485,7 +3584,7 @@ describe("mergePartIntoDiagram: multi-lane part の scale で全 lane の node �
 
   it("scale 時に node.w も part bbox 幅基準の scaleX で厳密に拡張される", () => {
     // node.w は scaleX (=laneScaleX) 経路。 posW=1800 / bboxW=900 → scaleX=2。
-    // `scaleX = laneScaleX` を別値 (例 1 や lane[0] 幅基準) に mutate すると node.w が 2 倍にならず fail。
+    // `scaleX = laneScaleX` を別値 (例 1 や at(lane, 0, "lane") 幅基準) に mutate すると node.w が 2 倍にならず fail。
     const scaled = compileWithPart({ posX: 1000, posY: 500, posW: 1800, posH: 880 }, multiLanePart());
     // 元 w=80 × scaleX 2 = 160 を両 lane の node で厳密 assert (非先頭 lane も同じ scaleX)
     expect(node(scaled, "p1__n1").w).toBe(160);

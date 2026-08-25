@@ -7,6 +7,20 @@ dragon DSL の主要変更履歴。
 
 ### Fixed
 
+- **変異試験の検査群 79 件の型の誤りを直した** (#1414)
+
+  #1413 で型検査を回せるようにした 208 件のうち、変異試験の検査 9 file が持っていた分。
+
+  大半は添字の `undefined` (`noUncheckedIndexedAccess` が有効)。 `!` で潰さず、
+  **何が無かったかを残して落ちる** 道具 (`test/support/at.ts`) を通した。 `!` だと
+  `Cannot read properties of undefined` で落ち、何番目が無かったのかも並びの長さも残らない。
+
+  残りは手で組む fixture が必須項目 (`pos` / `title` / `body` / `activate`) を欠いていた形で、
+  既定を埋める helper を置いた。 併せて `EdgeStyle` に無い `"dashed"` を実在する値へ、
+  `CdlState` に無い `value` を `initial` へ直した。
+
+  天井が 208 → **129** に下がった。
+
 - **記法だけが持つ種別を書くと図が出なかったのを直した** (#1420)
 
   記法は `contract` / `eoa` のような **描画側に無い種別** を意図的に受け付ける
