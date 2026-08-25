@@ -29,7 +29,13 @@ import { ITEM_NAME_JA, ITEM_NAME_EN, itemNameJa, itemNameEn } from "./i18n";
  * 根拠があっても見つからない (実測 = 「四半期」 を持つ図に対して `Quarterly roadmap` が落ちた)。
  * どちらか一方の言い方が図にあれば根拠ありとする。
  */
-const SCENE_WORDS: Array<{ ja: string[]; en: string[]; notScene?: string[] }> = [
+// `ja` / `en` は **必ず 1 語以上持つ**。 先頭を代表として報告に使うため、
+// 空の側を書くと報告が `undefined` になる。 型で表しておくと書いた時点で落ちる
+const SCENE_WORDS: Array<{
+  ja: [string, ...string[]];
+  en: [string, ...string[]];
+  notScene?: string[];
+}> = [
   // 人物 / 役割
   { ja: ["エンジニア"], en: ["engineer"] },
   { ja: ["デザイナー"], en: ["designer"] },

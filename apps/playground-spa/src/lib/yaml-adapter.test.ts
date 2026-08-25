@@ -115,7 +115,10 @@ describe("yamlToDiagram (full pipeline)", () => {
     expect(result.diagram.id).toBeTruthy();
     expect(result.diagram.nodes.length).toBeGreaterThan(0);
     expect(result.diagram.edges.length).toBeGreaterThan(0);
+    // 上の `toBeGreaterThan(0)` が先に落ちるので、 ここへは 1 本以上ある時しか来ない
     const firstEdge = result.diagram.edges[0];
+    expect(firstEdge, "線が 1 本も無い").toBeDefined();
+    if (firstEdge === undefined) return;
     expect(firstEdge.label).toBe("login");
   });
 

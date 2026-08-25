@@ -61,7 +61,9 @@ const runが要らない = new Set(["run", "exec", "install", "add", "dlx"]);
 export function runを省いた呼出(本文: string, script名: ReadonlySet<string>): string[] {
   const 出: string[] = [];
   for (const m of 本文.matchAll(/pnpm\s+(?:(?:--filter|-F)(?:\s+|=)\S+\s+)?([a-zA-Z][\w:.-]*)/gu)) {
+    // 必須の群。 取れない形は regex と噛み合っていないので捨てる
     const 語 = m[1];
+    if (語 === undefined) continue;
     if (runが要らない.has(語)) continue;
     if (!script名.has(語)) continue;
     出.push(m[0]);

@@ -188,9 +188,14 @@ describe("boxesRightPx", () => {
       .map(() => `<g data-cdl-node="1"></g>`)
       .join("")}</svg>`;
     const svg = host.querySelector("svg")!;
-    svg.querySelectorAll("[data-cdl-node]").forEach((n, i) => {
+    // 節点は `boxes` から作っているので同じ数だけ在る。 値を持つ側から回して
+    // 節点の方を確かめる形にすると、 添字で引くのが 1 つだけになる
+    const 節点 = svg.querySelectorAll("[data-cdl-node]");
+    boxes.forEach((b, i) => {
+      const n = 節点[i];
+      if (n === undefined) return;
       (n as unknown as { getBBox: () => DOMRect }).getBBox = () =>
-        ({ x: boxes[i].x, y: 0, width: boxes[i].width, height: 10 }) as DOMRect;
+        ({ x: b.x, y: 0, width: b.width, height: 10 }) as DOMRect;
     });
     return svg as SVGSVGElement;
   };

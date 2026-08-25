@@ -36,7 +36,9 @@ export function 値の名前(yaml: string): string[] {
     }
     if (節 === null) continue;
     const m = /^\s+([A-Za-z_][A-Za-z0-9_]*)\s*:/u.exec(行);
-    if (m !== null) 名前.push(m[1]);
+    // 必須の群。 取れない形は regex と噛み合っていない
+    const 名 = m?.[1];
+    if (名 !== undefined) 名前.push(名);
   }
   return 名前;
 }
@@ -46,7 +48,12 @@ function 記法たち(src: string): Array<{ key: string; yaml: string }> {
   const out: Array<{ key: string; yaml: string }> = [];
   const 名前付き = /export const sourceYaml__(\w+)\s*=\s*`([\s\S]*?)`;/gu;
   let m: RegExpExecArray | null;
-  while ((m = 名前付き.exec(src)) !== null) out.push({ key: m[1], yaml: m[2] });
+  while ((m = 名前付き.exec(src)) !== null) {
+    // 2 つとも必須の群。 取れない形は regex と噛み合っていないので捨てる
+    const [, key, yaml] = m;
+    if (key === undefined || yaml === undefined) continue;
+    out.push({ key, yaml });
+  }
 
   // 呼出しに記法を直接書く形。 **今は 1 件も無い** (#1378 で cookbook を最後に、
   // 全ての見本が `sourceYaml__` へ分かれた) が、抽出規則は残す = 直接書く形が
@@ -54,8 +61,10 @@ function 記法たち(src: string): Array<{ key: string; yaml: string }> {
   const 直接記述 = /textDslToDiagram\(\s*`([\s\S]*?)`\s*\)/gu;
   let n = 0;
   while ((m = 直接記述.exec(src)) !== null) {
+    const yaml = m[1];
+    if (yaml === undefined) continue;
     n += 1;
-    out.push({ key: `textDslToDiagram-${n}`, yaml: m[1] });
+    out.push({ key: `textDslToDiagram-${n}`, yaml });
   }
   return out;
 }

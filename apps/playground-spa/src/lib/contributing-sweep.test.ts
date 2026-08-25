@@ -143,7 +143,12 @@ describe("残作業の数え方 (#1056)", () => {
     // `=` の前後の空白を許す = `state = Triage` と書いた固定を素通りさせない
     const state = /state\s*=\s*(\S+)/;
     expect(
-      unscoped.filter((l) => !state.test(l) || state.exec(l)![1].includes("<")).length,
+      unscoped.filter((l) => {
+        // 一致しない行は「固定されていない」 側として数える (元の `!state.test(l)` と同値)。
+        // 一致した行の群は必須なので必ず取れる
+        const 状態 = state.exec(l)?.[1];
+        return 状態 === undefined || 状態.includes("<");
+      }).length,
       `project 無しの行が特定の状態に固定されている: ${unscoped.join(" / ")}`,
     ).toBeGreaterThan(0);
 
