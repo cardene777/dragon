@@ -1,7 +1,15 @@
 {
+  // 検査 code を型検査する時だけ使う設定 (#1413)。
+  //
+  // 親 (`tsconfig.json`) は `dist-types` へ型定義を出すための設定で、`rootDir` を `src` に
+  // 縛る。 検査 code は `test/` にあり、さらに `apps/playground-spa` と `test-support` を
+  // 読むため、その縛りのままだと読む file すべてが「rootDir の外」 になる。
+  //
+  // **`rootDir` は出力の配置を決める設定** で、`noEmit` では意味を持たない。
+  // repo の根に置いて縛りを外す (消すと親の `src` を継承して同じことが起きる)。
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "../..",
     "composite": false,
     "declaration": false,
     "emitDeclarationOnly": false,
