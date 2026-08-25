@@ -1,0 +1,28 @@
+{
+  // 添字の厳しさを `packages/dragon` と揃えるための設定 (#1418)。
+  //
+  // `noUncheckedIndexedAccess` は添字で取り出した値を `T | undefined` として扱う。
+  // `packages/dragon` は持っているが `apps/playground-spa` は持っておらず、
+  // 「配列の外を引いた」 形がこちら側だけ型検査を素通りしていた。
+  //
+  // ## なぜ本体の設定に入れないか
+  //
+  // root の `tsconfig.json` は `references` で `apps/playground-spa` を含むため、
+  // 本体に 1 行足すと **その瞬間 `tsc -b` と `pnpm build` が 137 件で落ちる**。
+  // 137 件を 1 PR で直すと型注釈の追加が数百行になり、どの変更がどの誤りに効いたかが
+  // 読めなくなる (#1413 が `packages/dragon/test/` で同じ判断をしている)。
+  //
+  // **今の件数を天井として固定し、follow-up が file 群ごとに減らす**。
+  // 天井が 0 に達した時点で `noUncheckedIndexedAccess` を本体の `tsconfig.json` へ移し、
+  // この file を消す。 それが本 file の役目の終わり方。
+  //
+  // ## build 用の設定は触らない
+  //
+  // 読むのは天井を固定する検査 (`src/lib/typecheck-ratchet.test.ts`) だけ。
+  // `tsc -b` も `vite build` も本体の `tsconfig.json` を読み続けるため、
+  // 天井を下げている途中でも build は緑のまま。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true
+  }
+}
