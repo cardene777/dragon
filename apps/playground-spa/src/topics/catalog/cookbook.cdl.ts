@@ -1419,3 +1419,83 @@ export const sourceJson__healthCheck = `{
 }`;
 
 export const healthCheck = withId("health-check", textDslToDiagram(sourceYaml__healthCheck));
+
+// ─────────────────────────────────────────────────────────────
+// F. 契約 (1 例、 #1411)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * F-1. ERC-20 の送金 — `type: solidity` の見本。
+ *
+ * **`solidity` は `sequence` の別名ではない**。 箱の種別で縦列を並べ替える。
+ *
+ * | 種別 | 並び |
+ * |---|---|
+ * | `eoa` / `actor` / `multisig` / `signer` / `wallet` | 0 (左) |
+ * | `contract` / `proxy` / `library` / `interface` | 1 |
+ * | `storage` | 2 |
+ * | `event` | 3 (右) |
+ *
+ * 書いた順に関わらず「人 → 契約 → 保存 → 出来事」 で並ぶため、契約のやり取りを読む時に
+ * 左から右へ流れが揃う。
+ *
+ * **わざと逆順で書いている**。 出来事から書いても図は人から始まる = 並べ替えが働いている
+ * ことが見本そのもので分かる。 順に書くと `sequence` との違いが見えない。
+ */
+export const sourceYaml__tokenTransferSolidity = `title: "ERC-20 の送金 (種別ごとに縦列が並ぶ)"
+type: solidity
+
+actors:
+  - Transfer: { kind: event }
+  - Balances: { kind: storage }
+  - Token: { kind: contract }
+  - User: { kind: eoa }
+
+flow:
+  - User -> Token: "transfer(Bob, 100)"
+  - Token -> Balances: "残高を書き換える"
+  - Token -> Transfer: "Transfer を出す"
+  - Token -> User: "true" (success)
+
+animation:
+  - step: "呼ぶ" 1.2s
+    focus: [User, Token]
+    badge: "call"
+  - step: "書き換える" 1.2s
+    focus: [Token, Balances]
+    badge: "write"
+  - step: "知らせる" 1.2s
+    focus: [Token, Transfer]
+    badge: "event"
+  - step: "返す" 1.2s
+    focus: [Token, User]
+    badge: "return"
+`;
+
+export const sourceJson__tokenTransferSolidity = `{
+  "title": "ERC-20 の送金 (種別ごとに縦列が並ぶ)",
+  "type": "solidity",
+  "actors": [
+    { "name": "Transfer", "kind": "event" },
+    { "name": "Balances", "kind": "storage" },
+    { "name": "Token", "kind": "contract" },
+    { "name": "User", "kind": "eoa" }
+  ],
+  "flow": [
+    { "from": "User", "to": "Token", "label": "transfer(Bob, 100)" },
+    { "from": "Token", "to": "Balances", "label": "残高を書き換える" },
+    { "from": "Token", "to": "Transfer", "label": "Transfer を出す" },
+    { "from": "Token", "to": "User", "label": "true", "tone": "success" }
+  ],
+  "animation": [
+    { "step": "呼ぶ", "duration": 1.2, "focus": ["User", "Token"], "badge": "call" },
+    { "step": "書き換える", "duration": 1.2, "focus": ["Token", "Balances"], "badge": "write" },
+    { "step": "知らせる", "duration": 1.2, "focus": ["Token", "Transfer"], "badge": "event" },
+    { "step": "返す", "duration": 1.2, "focus": ["Token", "User"], "badge": "return" }
+  ]
+}`;
+
+export const tokenTransferSolidity = withId(
+  "erc20-transfer-solidity",
+  textDslToDiagram(sourceYaml__tokenTransferSolidity),
+);
