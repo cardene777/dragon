@@ -7,6 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
+import { at } from "./support/at";
 
 interface CompiledDiagram {
   phases?: Array<{
@@ -21,7 +22,7 @@ describe("iter46: 全 12 sample × animation focus dedup", () => {
       it(`phase.focus 内 dedup`, () => {
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
         for (let p = 0; p < (d.phases ?? []).length; p++) {
-          const focus = d.phases![p].focus ?? [];
+          const focus = at(d.phases!, p, "d.phases!").focus ?? [];
           const dups = focus.length - new Set(focus).size;
           expect(dups, `phase[${p}] focus dup ${focus.join(",")}`).toBe(0);
         }
@@ -30,9 +31,9 @@ describe("iter46: 全 12 sample × animation focus dedup", () => {
       it(`step.focus 内 dedup`, () => {
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
         for (let p = 0; p < (d.phases ?? []).length; p++) {
-          const steps = d.phases![p].steps ?? [];
+          const steps = at(d.phases!, p, "d.phases!").steps ?? [];
           for (let s = 0; s < steps.length; s++) {
-            const focus = steps[s].focus ?? [];
+            const focus = at(steps, s, "steps").focus ?? [];
             const dups = focus.length - new Set(focus).size;
             expect(dups, `phase[${p}].step[${s}] focus dup ${focus.join(",")}`).toBe(0);
           }

@@ -8,6 +8,7 @@
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
+import { at } from "./support/at";
 
 interface CompiledDiagram {
   phases?: Array<{
@@ -22,7 +23,7 @@ describe("iter48: 全 12 sample × phase / step focus 非空", () => {
       it(`phase.focus 存在時は非空 array (空 [] は typo signal)`, () => {
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
         for (let p = 0; p < (d.phases ?? []).length; p++) {
-          const focus = d.phases![p].focus;
+          const focus = at(d.phases!, p, "d.phases!").focus;
           if (focus !== undefined) {
             expect(focus.length, `phase[${p}] focus 空`).toBeGreaterThan(0);
           }
@@ -32,9 +33,9 @@ describe("iter48: 全 12 sample × phase / step focus 非空", () => {
       it(`step.focus 存在時は非空 array`, () => {
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
         for (let p = 0; p < (d.phases ?? []).length; p++) {
-          const steps = d.phases![p].steps ?? [];
+          const steps = at(d.phases!, p, "d.phases!").steps ?? [];
           for (let s = 0; s < steps.length; s++) {
-            const focus = steps[s].focus;
+            const focus = at(steps, s, "steps").focus;
             if (focus !== undefined) {
               expect(focus.length, `phase[${p}].step[${s}] focus 空`).toBeGreaterThan(0);
             }

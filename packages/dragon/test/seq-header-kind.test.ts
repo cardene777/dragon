@@ -19,7 +19,10 @@ import { describe, it, expect } from "vitest";
 import { textDslToDiagram, jsonToDiagram, compileToCdl, parseTextDsl, parseTextDslV05 } from "../src/index";
 // `jsonToDoc` は公開していないので実装から直接読む (JSON も他の記法と同じ規約を守るかを見る)
 import { jsonToDoc } from "../src/json-parser";
-import type { CdlDiagram, DslActor } from "../src/types";
+import type { CdlDiagram } from "@cardenelabs/cdl";
+import type { DslActor } from "../src/types";
+import type { ParseResult } from "../src/parser";
+import type { V05ParseResult } from "../src/v05";
 
 /** 上端の名札の種類を id 別に返す。 */
 function headerKinds(diagram: CdlDiagram): Record<string, string> {
@@ -83,11 +86,50 @@ const JSON_DOC = {
 };
 
 /** `Client` は種類を書かない、 `API` は `database` を書く。 記法ごとに書き方が違う。 */
+/**
+ * 解析の結果から登場人物を取り出す。
+ *
+ * `ParseResult` は `ok` で分かれる共用体で、`doc` は成功した時にしか無い。 `?.` で引くと
+ * 型が通らず、**失敗した時に `undefined` が返って検査が静かに空振りする**。
+ * 失敗をここで落として、何が起きたかを残す。
+ */
+function 登場人物(r: ParseResult | V05ParseResult): DslActor[] {
+  if (!r.ok) throw new Error(`記法を読めなかった: ${r.errors.map((e) => e.message).join(" / ")}`);
+  return r.doc.actors;
+}
+
+describe("解析の失敗は何が起きたかを残して落ちる (#1415)", () => {
+  it("読めない記法は誤りの中身を残す", () => {
+    /*
+     * `as` で通すと `Cannot read properties of undefined (reading 'actors')` で落ち、
+     * **記法のどこが読めなかったのかが残らない**。 実測で両方の形を試し、落ちること自体は
+     * 同じで、残る情報だけが違うことを確かめている。
+     *
+     * 変異試験では「落ちるかどうか」 が変わらないため、この検査が無いと `as` に戻しても
+     * 1 件も落ちない。
+     */
+    expect(() => 登場人物(parseTextDsl("!!! 読めない !!!"))).toThrow(/記法を読めなかった/);
+    expect(() => 登場人物(parseTextDsl("!!! 読めない !!!"))).toThrow(/タイトル: が見つかりません/);
+  });
+
+  it("読める記法はそのまま返す", () => {
+    expect(登場人物(parseTextDsl(V04)).length).toBeGreaterThan(0);
+  });
+});
+
 const 記法 = [
-  { name: "v0.4 括弧", diagram: () => textDslToDiagram(V04), actors: () => parseTextDsl(V04).doc?.actors },
-  { name: "v0.5 略記", diagram: () => textDslToDiagram(略記), actors: () => parseTextDslV05(略記).doc?.actors },
-  { name: "v0.5 inline mapping", diagram: () => textDslToDiagram(INLINE), actors: () => parseTextDslV05(INLINE).doc?.actors },
-  { name: "v0.5 継続行", diagram: () => textDslToDiagram(継続行), actors: () => parseTextDslV05(継続行).doc?.actors },
+  { name: "v0.4 括弧", diagram: () => textDslToDiagram(V04), actors: () => 登場人物(parseTextDsl(V04)) },
+  { name: "v0.5 略記", diagram: () => textDslToDiagram(略記), actors: () => 登場人物(parseTextDslV05(略記)) },
+  {
+    name: "v0.5 inline mapping",
+    diagram: () => textDslToDiagram(INLINE),
+    actors: () => 登場人物(parseTextDslV05(INLINE)),
+  },
+  {
+    name: "v0.5 継続行",
+    diagram: () => textDslToDiagram(継続行),
+    actors: () => 登場人物(parseTextDslV05(継続行)),
+  },
   { name: "JSON", diagram: () => jsonToDiagram(JSON_DOC), actors: () => jsonToDoc(JSON_DOC).actors },
 ];
 

@@ -7,6 +7,7 @@
 import { describe, it, expect } from "vitest";
 import * as PresetsMod from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { at } from "./support/at";
 
 function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiagram }> {
   const out: Array<{ name: string; diagram: CdlDiagram }> = [];
@@ -29,19 +30,19 @@ describe("iter52: 全 19 preset × compile behavior 網羅", () => {
 
   for (const { name, diagram } of ALL_PRESETS) {
     it(`${name}: JSON round-trip で nodes 完全一致`, () => {
-      const rt = JSON.parse(JSON.stringify(diagram));
+      const rt = JSON.parse(JSON.stringify(diagram)) as typeof diagram;
       expect(rt.nodes.length).toBe(diagram.nodes.length);
       for (let i = 0; i < diagram.nodes.length; i++) {
-        expect(rt.nodes[i].id).toBe(diagram.nodes[i].id);
+        expect(at(rt.nodes, i, "rt.nodes").id).toBe(at(diagram.nodes, i, "diagram.nodes").id);
       }
     });
 
     it(`${name}: JSON round-trip で edges 完全一致`, () => {
-      const rt = JSON.parse(JSON.stringify(diagram));
+      const rt = JSON.parse(JSON.stringify(diagram)) as typeof diagram;
       expect(rt.edges.length).toBe(diagram.edges.length);
       for (let i = 0; i < diagram.edges.length; i++) {
-        expect(rt.edges[i].from).toBe(diagram.edges[i].from);
-        expect(rt.edges[i].to).toBe(diagram.edges[i].to);
+        expect(at(rt.edges, i, "rt.edges").from).toBe(at(diagram.edges, i, "diagram.edges").from);
+        expect(at(rt.edges, i, "rt.edges").to).toBe(at(diagram.edges, i, "diagram.edges").to);
       }
     });
 

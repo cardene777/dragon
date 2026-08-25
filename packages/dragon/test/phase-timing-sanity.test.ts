@@ -13,6 +13,7 @@
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
+import { at } from "./support/at";
 
 interface Step {
   duration?: number;
@@ -52,10 +53,10 @@ describe("iter13: 全 12 EDITOR_SAMPLES × phase / step timing sanity", () => {
         const diagram = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
         const invalidSteps: Array<{ p: number; s: number; dur: unknown }> = [];
         for (let p = 0; p < (diagram.phases ?? []).length; p++) {
-          const phase = diagram.phases![p];
+          const phase = at(diagram.phases!, p, "diagram.phases!");
           const steps = phase.steps ?? [];
           for (let s = 0; s < steps.length; s++) {
-            const dur = steps[s].duration;
+            const dur = at(steps, s, "steps").duration;
             if (dur !== undefined && !isPositiveFinite(dur)) {
               invalidSteps.push({ p, s, dur });
             }
