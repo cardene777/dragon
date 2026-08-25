@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import { visualValidateLaid, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { at } from "./support/at";
 
 function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
   return {
@@ -33,8 +34,8 @@ describe("Axis 17 group-boundary-clearance (LaidDiagram mutation で意図発火
       edges: [],
     });
     const laid = layout(diag);
-    const lane = laid.lanes[0];
-    laid.nodes[0].cx = lane.x + lane.width - 20;
+    const lane = at(laid.lanes, 0, "laid.lanes");
+    at(laid.nodes, 0, "laid.nodes").cx = lane.x + lane.width - 20;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["group-boundary-clearance"]).toBeGreaterThan(0);
   });
@@ -44,8 +45,8 @@ describe("Axis 20 arrow-marker-clearance (LaidDiagram mutation で意図発火)"
   it("edge 終点を to node 中心に近づけると marker clearance 発火", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
-    const n2 = laid.nodes[1];
-    laid.edges[0].d = `M ${n2.cx} ${n2.cy} L ${n2.cx + 1} ${n2.cy + 1}`;
+    const n2 = at(laid.nodes, 1, "laid.nodes");
+    at(laid.edges, 0, "laid.edges").d = `M ${n2.cx} ${n2.cy} L ${n2.cx + 1} ${n2.cy + 1}`;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["arrow-marker-clearance"]).toBeGreaterThan(0);
   });
@@ -55,8 +56,8 @@ describe("Axis 33 subpixel-precision (LaidDiagram mutation で意図発火)", ()
   it("node cx/cy に極端な非整数値を強制すると subpixel drift 発火", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
-    laid.nodes[0].cx = 100.7777;
-    laid.nodes[0].cy = 100.3333;
+    at(laid.nodes, 0, "laid.nodes").cx = 100.7777;
+    at(laid.nodes, 0, "laid.nodes").cy = 100.3333;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["subpixel-precision"]).toBeGreaterThan(0);
   });

@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { visualValidateLaid, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { at } from "./support/at";
 
 function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
   return {
@@ -61,19 +62,20 @@ describe("Axis 21 grid-alignment (LaidDiagram mutation で意図発火)", () => 
     const diag = gridDiagram();
     const laid = layout(diag);
     // 左端 = cx - w / 2 を格子から 5 world ずらす (許容は ±2)
-    laid.nodes[0].cx = laid.nodes[0].w / 2 + 5;
-    laid.nodes[0].cy = laid.nodes[0].h / 2;
+    at(laid.nodes, 0, "laid.nodes").cx =
+      at(laid.nodes, 0, "laid.nodes").w / 2 + 5;
+    at(laid.nodes, 0, "laid.nodes").cy = at(laid.nodes, 0, "laid.nodes").h / 2;
     expect(visualValidateLaid(laid, diag).counts["grid-alignment"]).toBeGreaterThan(0);
   });
 
   it("箱の寸法を grid 16 world 倍数から外すと右下が外れて発火", () => {
     const diag = gridDiagram();
     const laid = layout(diag);
-    laid.nodes[0].cx = laid.nodes[0].w / 2;
-    laid.nodes[0].cy = laid.nodes[0].h / 2;
+    at(laid.nodes, 0, "laid.nodes").cx = at(laid.nodes, 0, "laid.nodes").w / 2;
+    at(laid.nodes, 0, "laid.nodes").cy = at(laid.nodes, 0, "laid.nodes").h / 2;
     // 左上は格子に載せたまま幅だけ 5 world 増やす
-    laid.nodes[0].w += 5;
-    laid.nodes[0].cx += 2.5;
+    at(laid.nodes, 0, "laid.nodes").w += 5;
+    at(laid.nodes, 0, "laid.nodes").cx += 2.5;
     expect(visualValidateLaid(laid, diag).counts["grid-alignment"]).toBeGreaterThan(0);
   });
 
@@ -141,7 +143,7 @@ describe("Axis 32 marker-gradient-def-integrity (LaidDiagram mutation で意図�
     const diag = baseDiagram();
     const laid = layout(diag);
     // tone 型 union を bypass して runtime string を注入 (dead ref 検知の gate 目的)
-    (laid.edges[0] as { tone: string }).tone = "unknown-tone";
+    (at(laid.edges, 0, "laid.edges") as { tone: string }).tone = "unknown-tone";
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["marker-gradient-def-integrity"]).toBeGreaterThan(0);
   });

@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import { visualValidateLaid, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { at } from "./support/at";
 
 function baseDiagram(overrides: Partial<CdlDiagram> = {}): CdlDiagram {
   return {
@@ -30,7 +31,7 @@ describe("Axis 15 lane-cx-consistency (LaidDiagram mutation で意図発火)", (
     const diag = baseDiagram();
     const laid = layout(diag);
     const laneL1 = laid.lanes.find((l) => l.id === "L1")!;
-    laid.nodes[0].cx = laneL1.x + laneL1.width + 100;
+    at(laid.nodes, 0, "laid.nodes").cx = laneL1.x + laneL1.width + 100;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["lane-cx-consistency"]).toBeGreaterThan(0);
   });
@@ -47,7 +48,10 @@ describe("Axis 18 node-vertical-clearance (LaidDiagram mutation で意図発火)
     });
     const laid = layout(diag);
     // b の cy を a のすぐ下 (gap 5px) に強制
-    laid.nodes[1].cy = laid.nodes[0].cy + laid.nodes[0].h + 5;
+    at(laid.nodes, 1, "laid.nodes").cy =
+      at(laid.nodes, 0, "laid.nodes").cy +
+      at(laid.nodes, 0, "laid.nodes").h +
+      5;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["node-vertical-clearance"]).toBeGreaterThan(0);
   });
@@ -61,16 +65,22 @@ describe("Axis 19 lane-lane-gap (LaidDiagram mutation で意図発火)", () => {
     for (const l of diag.lanes) l.contain = true;
     const laid = layout(diag);
     // L2 を L1 の右端に近づける (gap 5px)
-    laid.lanes[1].x = laid.lanes[0].x + laid.lanes[0].width + 5;
+    at(laid.lanes, 1, "laid.lanes").x =
+      at(laid.lanes, 0, "laid.lanes").x +
+      at(laid.lanes, 0, "laid.lanes").width +
+      5;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["lane-lane-gap"]).toBeGreaterThan(0);
   });
 
   it("片方だけ枠を描く 2 lane を近づけても gap 発火", () => {
     const diag = baseDiagram();
-    diag.lanes[0].contain = true;
+    at(diag.lanes, 0, "diag.lanes").contain = true;
     const laid = layout(diag);
-    laid.lanes[1].x = laid.lanes[0].x + laid.lanes[0].width + 5;
+    at(laid.lanes, 1, "laid.lanes").x =
+      at(laid.lanes, 0, "laid.lanes").x +
+      at(laid.lanes, 0, "laid.lanes").width +
+      5;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["lane-lane-gap"]).toBeGreaterThan(0);
   });
@@ -78,7 +88,10 @@ describe("Axis 19 lane-lane-gap (LaidDiagram mutation で意図発火)", () => {
   it("枠を描かない 2 lane はいくら近づけても発火しない", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
-    laid.lanes[1].x = laid.lanes[0].x + laid.lanes[0].width + 5;
+    at(laid.lanes, 1, "laid.lanes").x =
+      at(laid.lanes, 0, "laid.lanes").x +
+      at(laid.lanes, 0, "laid.lanes").width +
+      5;
     const report = visualValidateLaid(laid, diag);
     expect(report.counts["lane-lane-gap"] ?? 0).toBe(0);
   });
