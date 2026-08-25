@@ -19,6 +19,7 @@ import { describe, it, expect } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "../src/index";
 import type { PresetType } from "../src/types";
+import { PRESET_TYPES } from "../src/v05/parser";
 import { parseTextDslV05 } from "../src/v05";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
@@ -44,9 +45,16 @@ import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.
  * `sequence` / `solidity` は名札 (上端 / 下端) を `card` で作り、 段の目印も `card` なので
  * `card` だけになる。 `pie` / `gantt` は図全体を 1 つの箱で描く種類。
  *
- * **`PresetType` でキーを付ける**。 件数だけを見る形にすると、 13 番目の型を足して表への追加を
- * 忘れても件数は 12 のままで通る (Round 1 review の指摘)。 `Record<PresetType, ...>` にすれば、
- * 型を足した時点で型検査が「表に無い」 と言う。 余分なキーも同じく型検査で落ちる。
+ * **`satisfies` を覆いの根拠にしない** (#1411)。 型検査の対象は
+ * `packages/dragon/tsconfig.json` の `include` が `src/**` に限っており、`test/` は入らない。
+ * つまりこの `satisfies Readonly<Record<PresetType, ...>>` は **1 度も検証されていなかった**。
+ *
+ * その間に表は 13 型しか持たず、6 型 (`bar` / `line` / `funnel` / `journey` / `quadrant` /
+ * `tree`) が軸 1 と軸 2 を 1 度も通っていなかった。 覆いは
+ * § 表が型の一覧をすべて覆う が実行時の集合 (`PRESET_TYPES`) で見る。
+ *
+ * `satisfies` 自体は残す。 対象を `test/` へ広げた時に効き始め、それまでも読み手には
+ * 意図が伝わる。
  */
 const 型と種類 = {
   sequence: ["card"],
@@ -62,6 +70,13 @@ const 型と種類 = {
   c4: ["actor"],
   // #1177 で `mind-map` 種別に寄せた (以前は card を 3 列に並べていた)
   mind: ["mind-map"],
+  // 以下 6 型は #1411 で足した。 それまで表に無く、軸 1 と軸 2 を 1 度も通っていなかった
+  bar: ["chart-bar"],
+  line: ["chart-line"],
+  funnel: ["funnel-stages"],
+  journey: ["journey-map"],
+  quadrant: ["quadrant-matrix"],
+  tree: ["tree-hierarchy"],
 } as const satisfies Readonly<Record<PresetType, readonly string[]>>;
 
 /** 表の中身を `[型, 種類]` の並びで取り出す */
@@ -117,10 +132,24 @@ describe("軸 1 = 型の名前が約束した種類の節点を作る (#1096)", 
   }
 
   it("表が型の一覧をすべて覆う", () => {
-    // `satisfies Readonly<Record<PresetType, ...>>` が抜けと余りを型検査で落とすので、 ここでは
-    // 表が空でないことだけを見る (型検査を通った時点で網羅は保証されている)。
-    // 件数を数える形は採らない = 13 番目の型を足して表を直し忘れても件数は 12 のままで通る
-    expect(型の一覧.length, "表が空").toBeGreaterThan(0);
+    /*
+     * **`satisfies` に頼らない** (#1411)。 型検査の対象は `packages/dragon/tsconfig.json` の
+     * `include` が `src/**` に限っており、`test/` はそこに入らない。 つまり
+     * `satisfies Readonly<Record<PresetType, ...>>` は **1 度も検証されていなかった**。
+     *
+     * 実際その間に表は 13 型しか持たず、6 型 (`bar` / `line` / `funnel` / `journey` /
+     * `quadrant` / `tree`) が軸 1 と軸 2 を 1 度も通っていなかった。
+     *
+     * 型ではなく **実行時の集合** で覆いを見る。 `PRESET_TYPES` は解析が実際に受理判定へ
+     * 使う値で (`v05/parser.ts`)、記法と JSON の両入口が同じ集合を読む。 型注釈と違って
+     * 走らせれば必ず評価される。
+     */
+    const 表の型 = new Set<string>(型の一覧.map(([t]) => t));
+    expect(表の型.size, "表が空").toBeGreaterThan(0);
+
+    // 記法が受ける型を、解析が通るかどうかで確かめる。 表に無い型が通れば漏れ
+    const 漏れ = [...PRESET_TYPES].filter((t) => !表の型.has(t)).sort();
+    expect(漏れ, `記法が受けるのに表に無い型: ${漏れ.join(", ")}`).toEqual([]);
   });
 });
 
@@ -241,5 +270,60 @@ describe("一覧に載る図が 1 つ残らず対象に入っている (#1409)",
   it("対象だが一覧に無い図が無い", async () => {
     const 余り = await 差分(対象の図(), await 一覧の図());
     expect(余り, "図になる前の検査を通っているが一覧に出ない図").toEqual([]);
+  });
+});
+
+/**
+ * 記法が受ける型が 1 つ残らず見本を持つか (#1411)。
+ *
+ * 型を足しても、見本を書かなければ **書き方の例がどこにも無い** 状態になる。
+ * 実際 `solidity` が 18 型のうち 1 つだけ見本 0 件で、種別による縦列の並べ替えという
+ * 固有の機能を利用者が知る手段が無かった。
+ *
+ * ## 型の一覧は `PresetType` から導く
+ *
+ * ここに型を並べてはいけない。 並べると `PresetType` を増やした時に片方だけ直る
+ * (`rules/quality.md § 導出可能記述は人手で書かない`)。
+ *
+ * `型と種類` は `Record<PresetType, ...>` として宣言されており、既存の検査
+ * (§ 表が型の一覧をすべて覆う) が実物との一致を固定している。 その鍵を使う。
+ *
+ * ## 見本は記法から数える
+ *
+ * 組み立て API の図ではなく `sourceYaml__*` の `type:` を数える。 見たいのは
+ * 「記法でどう書くかの例があるか」 で、図があっても記法が無ければ例にならない。
+ */
+describe("記法が受ける型が 1 つ残らず見本を持つ (#1411)", () => {
+  /** 見本帳の記法に現れる型を数える */
+  const 見本の型 = (): Map<string, number> => {
+    const out = new Map<string, number>();
+    for (const [, mod] of catalog) {
+      for (const [k, v] of Object.entries(mod)) {
+        if (!k.startsWith("sourceYaml__") || typeof v !== "string") continue;
+        const m = /^type:\s*([a-z0-9-]+)/m.exec(v);
+        if (m) out.set(m[1], (out.get(m[1]) ?? 0) + 1);
+      }
+    }
+    return out;
+  };
+
+  it("記法を持つ見本を 1 件以上集められている", () => {
+    // 空振り防止。 集められていないと下の 2 件が「全型が 0 件」 と「全型が余り」 で
+    // どちらも意味を失う
+    const 数 = 見本の型();
+    expect(数.size, "見本帳の記法から型を 1 つも集められていない").toBeGreaterThan(0);
+  });
+
+  it("見本が 0 件の型が無い", () => {
+    const 数 = 見本の型();
+    const ゼロ = 型の一覧.map(([t]) => t).filter((t) => !(数.get(t) ?? 0));
+    expect(ゼロ, `記法で書けるのに見本が無い型: ${ゼロ.join(", ")}`).toEqual([]);
+  });
+
+  it("型の一覧に無い型を見本が使っていない", () => {
+    // 記法が受けない型を見本が書いていると、その見本は組み立てを通っていない
+    const 型 = new Set<string>(型の一覧.map(([t]) => t));
+    const 表外 = [...見本の型().keys()].filter((t) => !型.has(t)).sort();
+    expect(表外, `型の一覧に無い型を使う見本がある: ${表外.join(", ")}`).toEqual([]);
   });
 });

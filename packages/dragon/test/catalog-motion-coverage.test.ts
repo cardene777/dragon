@@ -200,7 +200,7 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
     expect(件数).toEqual({
       parts: 80,
       interactive: 129,
-      cookbook: 25,
+      cookbook: 26,
       patterns: 12,
       "text-dsl": 13,
       animation: 10,
