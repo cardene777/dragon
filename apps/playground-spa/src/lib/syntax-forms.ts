@@ -21,7 +21,10 @@ export type SampleSlot =
   // 読む人が動かすつまみ (#1389)
   | "inputs"
   // つまみの値から決まる値 (#1391)
-  | "formulas";
+  | "formulas"
+  // 押下などの出来事で動く仕掛けと、巻き上げに応じて進む値 (#1393)
+  | "events"
+  | "scrolls";
 
 export type Section = {
   title: string;
@@ -229,6 +232,47 @@ export const FORMS: Section[] = [
       {
         code: '  flag: "doubled >= 100 ? 1 : 0"',
         note: "比較と三項も書ける",
+      },
+    ],
+  },
+  {
+    title: "押下などの出来事 (events:)",
+    sample: {
+      slot: "events",
+      type: "flow",
+      actors: ["  - 押す: { kind: card }", "  - 受ける: { kind: card }"],
+      flow: ['  - 押す -> 受ける: "呼ぶ"'],
+    },
+    lines: [
+      {
+        code: "  - { on: click, box: 押す, handler: toggle }",
+        note: "箱を押した時に仕掛けを呼ぶ。 仕掛けの中身は画面側が持つ",
+      },
+      {
+        code: "  - { on: hover, arrow: 押す -> 受ける, handler: highlight }",
+        note: "矢印に乗せる。 他に lane (縦列) / diagram: true (図全体)",
+      },
+      {
+        code: "  - { on: keydown, diagram: true, handler: onKey }",
+        note: "他の種類 = double-click / long-press / drag / drop / focus / blur",
+      },
+    ],
+  },
+  {
+    title: "巻き上げに応じて進む値 (scrolls:)",
+    sample: {
+      slot: "scrolls",
+      type: "flow",
+      actors: ["  - 節: { kind: card }"],
+    },
+    lines: [
+      {
+        code: '  intro: { start: 0.9, end: 0.1, scrub: 1, label: "導入" }',
+        note: "画面を巻き上げた量から 0 から 1 の進み具合を作る",
+      },
+      {
+        code: "  outro: { start: 0.5, end: 0 }",
+        note: "start は進み始める位置、end は進み終わる位置 (0 が上端、1 が下端)",
       },
     ],
   },
@@ -483,6 +527,9 @@ export function buildSample(section: Section): string {
   if (slot === "readouts") out.push("readouts:", ...codes);
   // 読む人が動かすつまみ (#1389)。 値を握るものなので部品と同じ並びに置く
   if (slot === "inputs") out.push("inputs:", ...codes);
+  // 押下などの出来事と巻き上げ (#1393)。 箱と矢印を指すので、それより後ろに置く
+  if (slot === "events") out.push("events:", ...codes);
+  if (slot === "scrolls") out.push("scrolls:", ...codes);
   // つまみの値から決まる値 (#1391)。 つまみを読むので、その後ろに置く
   if (slot === "formulas") {
     out.push(

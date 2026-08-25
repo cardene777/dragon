@@ -83,6 +83,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     inputs: [{ id: "i", kind: "slider", min: 0, max: 100, defaultValue: 50 }],
     // 項目を 1 つずつ単独で測るため、別項目の inputs に依存しない式にする
     formulas: { doubled: "2" },
+    events: [{ on: "click", box: "A", handler: "toggle" }],
+    scrolls: { intro: { start: 0.9, end: 0.1 } },
   },
   actor: {
     name: "A",

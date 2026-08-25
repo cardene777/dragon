@@ -15,6 +15,7 @@ import type {
   DslLane,
   DslPhase,
   DslStep,
+  DslEventBinding,
   DslValue,
   PresetType,
 } from "./types";
@@ -125,7 +126,9 @@ export type CompileNotice = {
     // `draw:` の語がその図種と食い違う (`type: bar` に `draw: pie`、 #1314)
     | "draw-target-mismatch"
     // 式が、どこにも書かれていない名前を読んだ (#1391)
-    | "formula-unresolved";
+    | "formula-unresolved"
+    // 出来事が指す相手が図に無い (#1393)
+    | "event-target-missing";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -405,6 +408,45 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     }
     if (載せる式.length > 0) merged.formulas = 載せる式;
     else delete merged.formulas;
+  }
+  /*
+   * 押下などの出来事で動く仕掛けを図に載せる (#1393)。
+   *
+   * **相手の名前を識別子へ直す**。 記法は識別子を書けないため名前で指す。 指す先が
+   * 見つからない形は載せずに知らせる = 描画側は知らない識別子を黙って無視するため、
+   * 残すと「書いたのに押しても何も起きない」 が手掛かりなしで起きる。
+   *
+   * 識別子は書いた順に `evt-1` から振る (組み立て API と同じ)。
+   */
+  if (doc.events && doc.events.length > 0) {
+    const 載せる: NonNullable<CdlDiagram["eventBindings"]> = [...(merged.eventBindings ?? [])];
+    for (const e of doc.events) {
+      const 相手 = 出来事の相手を解く(merged, e);
+      if (相手 === undefined) {
+        opts?.onNotice?.({
+          kind: "event-target-missing",
+          actor: e.handlerId,
+          line: e.pos.line,
+          message: `出来事 "${e.handlerId}" が指す相手が見つかりません`,
+          hint: "box は箱の名前、 lane は縦列の名前、 arrow は `A -> B` で書く",
+        });
+        continue;
+      }
+      載せる.push({
+        id: `evt-${載せる.length + 1}`,
+        event: e.event,
+        target: 相手,
+        handlerId: e.handlerId,
+      });
+    }
+    if (載せる.length > 0) merged.eventBindings = 載せる;
+  }
+  // 巻き上げに応じて進む値を図に載せる (#1393)。 相手を持たないのでそのまま写す
+  if (doc.scrolls && doc.scrolls.length > 0) {
+    merged.scrollTriggers = [
+      ...(merged.scrollTriggers ?? []),
+      ...doc.scrolls.map((x) => ({ ...x })),
+    ];
   }
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
@@ -3137,6 +3179,34 @@ function applyEdgeInlineOptions(
     sourceLines?.set(target.id, s.pos.line);
     矢印へ書き写す(target, s, doc);
   });
+}
+
+/**
+ * 出来事が指す相手を、図の識別子へ直す (#1393)。 見つからなければ `undefined`。
+ *
+ * 箱と縦列は **名前から作った識別子** と **描かれる題** の両方で探す。 記法は名前で書き、
+ * 図の識別子はそこから作られるが、見本を重ねた図など識別子が名前と揃わない形もある。
+ * 矢印は両端の名前から識別子を作って突き合わせる。
+ */
+function 出来事の相手を解く(
+  diagram: CdlDiagram,
+  e: DslEventBinding,
+): NonNullable<CdlDiagram["eventBindings"]>[number]["target"] | undefined {
+  if (e.target.kind === "diagram") return { kind: "diagram" };
+  if (e.target.kind === "edge") {
+    const from = slugify(e.target.from);
+    const to = slugify(e.target.to);
+    const 矢印 = diagram.edges.find((x) => x.from === from && x.to === to);
+    return 矢印 ? { kind: "edge", id: 矢印.id } : undefined;
+  }
+  const 名 = e.target.name;
+  const slug = slugify(名);
+  if (e.target.kind === "node") {
+    const 箱 = diagram.nodes.find((n) => n.id === slug || n.id === 名 || n.title === 名);
+    return 箱 ? { kind: "node", id: 箱.id } : undefined;
+  }
+  const 列 = (diagram.lanes ?? []).find((l) => l.id === slug || l.id === 名 || l.label === 名);
+  return 列 ? { kind: "lane", id: 列.id } : undefined;
 }
 
 /** 本文に書いた矢印の指定を、対応が取れた矢印へ書き写す。 対応の取り方は呼出側が決める。 */

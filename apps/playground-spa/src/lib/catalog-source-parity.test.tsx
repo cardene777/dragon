@@ -477,6 +477,10 @@ const 図の直下の宣言: 欄の宣言 = {
     phases: "段として別に比べる",
     states: "状態として別に比べる",
   },
+  読み替える: {
+    eventBindings:
+      "出来事が指す相手の id は作り方が違う (#1393)。 読む人に見える名前へ直して比べる",
+  },
 };
 
 /**
@@ -656,9 +660,31 @@ function 状態(a: readonly 中身の欄[] | undefined, 相手: readonly 中身�
   return 比べる形(a ?? [], 相手, 状態の宣言, (_k, v) => v);
 }
 
+/**
+ * 出来事が指す相手を、読む人に見える名前へ直す (#1393)。
+ *
+ * 記法は識別子を書けないため、相手を名前で指して組み立てが識別子へ直す。 その識別子は
+ * 組み立て API 側の識別子とは作り方が違う (実測 = `btn` に対し記法は `button`)。
+ * 箱の id と同じ理由で、直接は比べられない。
+ */
+function 出来事の見える名前(d: Diagram, v: unknown): unknown {
+  if (!Array.isArray(v)) return v;
+  const 表 = 見える名前の表(d);
+  return v.map((e) => {
+    const o = e as { target?: { kind?: string; id?: string } };
+    const t = o.target;
+    if (!t || t.kind === "diagram" || typeof t.id !== "string") return e;
+    return { ...o, target: { kind: t.kind, id: 表.get(t.id) ?? `(不明:${t.id})` } };
+  });
+}
+
 /** 図の直下 (題など)。 まとまりは対象ごとに別で比べる */
 function 図の直下(d: Diagram, 相手: Diagram): string {
-  return 比べる形([d], [相手], 図の直下の宣言, (_k, v) => v)[0] ?? "";
+  return (
+    比べる形([d], [相手], 図の直下の宣言, (k, v) =>
+      k === "eventBindings" ? 出来事の見える名前(d, v) : v,
+    )[0] ?? ""
+  );
 }
 
 /**
