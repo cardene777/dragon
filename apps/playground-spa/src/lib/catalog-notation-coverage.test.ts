@@ -51,15 +51,16 @@ const 揃ったページ = [
  *
  * **`interactive` が唯一**。 記法は図を書くためのもので、図の値が動く仕掛けの一部を
  * 持たない。 #1389 でつまみ (`inputs:`)、#1392 で箱の欄 (`wBind` / `opacity` /
- * `renderOffsetX` / `renderOffsetY` / `hBind`) を足し、それだけが理由だった見本は全て埋めた。
+ * `renderOffsetX` / `renderOffsetY` / `hBind`)、#1391 で式 (`formulas:`) を足し、
+ * それだけが理由だった見本は全て埋めた。
  *
  * 残るのは以下。 **件数は書かない** (上の「数を書かない」 と同じ理由で、実物からしか
  * 正しく数えられない)。
  *
  * | まだ書けない理由 | 記法側に足りないもの |
  * |---|---|
- * | 式で値を導く | `values:` は `derived` になり `formulas` にならない |
  * | 押下 / 巻き上げに応じて動く | `eventBindings` / `scrollTriggers` を書く項目が無い |
+ * | 矢印を値に追随させる | `widthBind` / `strokeBind` / `dashOffsetBind` を書けない (`edgeFlowBind`) |
  * | 縦列の並びが箱の並びで決まる | 記法は `lanes:` の並びで決める (`radialHubAndSpoke`) |
  * | 段の番号が読み直しで詰められる | 記法は書いた段をそのまま持つ (`decisionTree`) |
  * | 値が二重引用符と単引用符の両方を含む | 逃がす書き方が無い (`supportChat`) |

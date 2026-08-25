@@ -1713,6 +1713,18 @@
           }
         ]
       }
+    },
+    "formulas": {
+      "type": "object",
+      "description": "つまみの値から決まる値。 名前を鍵、式を値に書く。 `values` とは経路が別で、式は名前を中括弧で囲わない (例 \"input * 2\")。",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      }
     }
   }
 }

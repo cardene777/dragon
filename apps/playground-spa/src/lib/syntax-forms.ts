@@ -19,7 +19,9 @@ export type SampleSlot =
   // 値を見せる部品 (#1374)
   | "readouts"
   // 読む人が動かすつまみ (#1389)
-  | "inputs";
+  | "inputs"
+  // つまみの値から決まる値 (#1391)
+  | "formulas";
 
 export type Section = {
   title: string;
@@ -205,6 +207,28 @@ export const FORMS: Section[] = [
       {
         code: "  clock: { kind: timeline, duration: 3000, speeds: [0.5, 1, 2] }",
         note: "時間を進める。 他に range (下限と上限) / multi-select / xypad",
+      },
+    ],
+  },
+  {
+    title: "つまみの値から決まる値 (formulas:)",
+    sample: {
+      slot: "formulas",
+      type: "flow",
+      actors: ['  - 処理: { kind: card, value: "{doubled}" }'],
+    },
+    lines: [
+      {
+        code: '  doubled: "input * 2"',
+        note: "つまみの値から決まる。 名前は中括弧で囲っても囲わなくてもよい",
+      },
+      {
+        code: '  clamped: "Math.min(doubled, 80)"',
+        note: "他の式も読める。 min / max / abs / floor / ceil / round",
+      },
+      {
+        code: '  flag: "doubled >= 100 ? 1 : 0"',
+        note: "比較と三項も書ける",
       },
     ],
   },
@@ -459,6 +483,15 @@ export function buildSample(section: Section): string {
   if (slot === "readouts") out.push("readouts:", ...codes);
   // 読む人が動かすつまみ (#1389)。 値を握るものなので部品と同じ並びに置く
   if (slot === "inputs") out.push("inputs:", ...codes);
+  // つまみの値から決まる値 (#1391)。 つまみを読むので、その後ろに置く
+  if (slot === "formulas") {
+    out.push(
+      "inputs:",
+      "  input: { kind: slider, min: 0, max: 100, defaultValue: 50 }",
+      "formulas:",
+      ...codes,
+    );
+  }
   if (slot === "animation") out.push("animation:", ...codes);
   return `${out.join("\n")}\n`;
 }

@@ -40,6 +40,8 @@ import {
   NODE_KINDS,
   applyDerivedValues,
   parseFormula,
+  extractIdentifiers,
+  inputDefaultValue,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS } from "./v05/parser";
@@ -121,7 +123,9 @@ export type CompileNotice = {
     // 起点から描く動きを持たない図種で段に `draw:` を書いた (#1312)
     | "draw-not-honored"
     // `draw:` の語がその図種と食い違う (`type: bar` に `draw: pie`、 #1314)
-    | "draw-target-mismatch";
+    | "draw-target-mismatch"
+    // 式が、どこにも書かれていない名前を読んだ (#1391)
+    | "formula-unresolved";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -326,6 +330,81 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       (input) => deepRewriteStrings(input, (value) => value) as typeof input,
     );
     merged.inputs = [...(merged.inputs ?? []), ...ownInputs];
+  }
+  /*
+   * つまみの値から決まる値を図に載せる (#1391)。
+   *
+   * 部品やつまみと同じく写して載せる。 式の文字列は色を塗る位置に届かないが、
+   * 入力を書き換えない形を 3 経路で揃える方が読み手に説明しやすい。
+   */
+  if (doc.formulas && doc.formulas.length > 0) {
+    const ownFormulas = doc.formulas.map((formula) => ({
+      id: formula.id,
+      expression: formula.expression,
+      line: formula.pos?.line ?? 0,
+    }));
+    /*
+     * 式が読む名前が、どこにも書かれていないことを知らせる (#1391)。
+     *
+     * engine が読める名前は、つまみと **先に宣言した式** だけ。綴り違い、状態、
+     * `values:`、後から宣言する式を渡すと、描画時に未定義参照として例外になる。
+     *
+     * **解けない式は図へ載せない**。 engine は未定義参照や input/formula の同名衝突を
+     * runtime error にするため、残すと図全体が描けない。式以外の図は出し、知らせを返す。
+     */
+    const つまみ = new Map((merged.inputs ?? []).map((input) => [input.id, input]));
+    const 先に書かれた式 = new Set((merged.formulas ?? []).map((formula) => formula.id));
+    const 載せる式 = [...(merged.formulas ?? [])];
+    for (const formula of ownFormulas) {
+      if (つまみ.has(formula.id) || 先に書かれた式.has(formula.id)) {
+        opts?.onNotice?.({
+          kind: "formula-unresolved",
+          actor: formula.id,
+          line: formula.line,
+          message: `式 "${formula.id}" の名前が、先に書かれたつまみまたは式と重なっています`,
+          hint: "`inputs:` と `formulas:` では重ならない名前を使う",
+        });
+        continue;
+      }
+      let 名前たち: Set<string>;
+      try {
+        名前たち = extractIdentifiers(parseFormula(formula.expression));
+      } catch {
+        // 読めない式は記法の読み取りが既に知らせている。 ここで二重に出さない
+        continue;
+      }
+      let 解けない = false;
+      for (const 名 of 名前たち) {
+        if (先に書かれた式.has(名)) continue;
+        const input = つまみ.get(名);
+        if (input) {
+          const 初期値 = inputDefaultValue(input);
+          if (typeof 初期値 === "number" || typeof 初期値 === "boolean") continue;
+          解けない = true;
+          opts?.onNotice?.({
+            kind: "formula-unresolved",
+            actor: formula.id,
+            line: formula.line,
+            message: `式 "${formula.id}" が、数でも真偽でもないつまみ "${名}" を読んでいます`,
+            hint: "式が読めるつまみは slider / number / stepper / timeline / toggle",
+          });
+          continue;
+        }
+        解けない = true;
+        opts?.onNotice?.({
+          kind: "formula-unresolved",
+          actor: formula.id,
+          line: formula.line,
+          message: `式 "${formula.id}" が、つまみまたは先に書かれた式ではない名前 "${名}" を読んでいます`,
+          hint: "`inputs:` に書くか、参照される式をこの式より前に書く",
+        });
+      }
+      if (解けない) continue;
+      載せる式.push({ id: formula.id, expression: formula.expression });
+      先に書かれた式.add(formula.id);
+    }
+    if (載せる式.length > 0) merged.formulas = 載せる式;
+    else delete merged.formulas;
   }
   // 図の外を指す値を、 色を塗る位置から落とす (#1004)。
   //
