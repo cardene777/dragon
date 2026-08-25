@@ -11422,7 +11422,7 @@ export const subtitle__exemplarNotificationFlow =
   "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して表示に反映";
 
 // ============================================================
-// 記法 (#1385 / #1389 / #1391 / #1392)
+// 記法 (#1385 / #1389 / #1391 / #1392 / #1396)
 // ============================================================
 //
 // catalog は `sourceYaml__<図の export 名>` の名前で記法を拾う (`lib/catalog-items.ts`)。
@@ -11432,9 +11432,9 @@ export const subtitle__exemplarNotificationFlow =
 // `jsonToDiagram` の両方に通して、元の図と骨格が一致することを確かめてから貼っている。
 //
 // **このページは全件が持つわけではない**。 #1389 でつまみ (`inputs:`)、#1392 で箱の欄
-// (`wBind` / `opacity` / `renderOffsetX` 等)、#1391 で式 (`formulas:`) を書けるように
-// したが、押下 (`eventBindings`) / 巻き上げ (`scrollTriggers`) / 矢印を値に追随させる欄
-// (`widthBind` 等) を使う図はまだ書けない。
+// (`wBind` / `opacity` / `renderOffsetX` 等)、#1391 で式 (`formulas:`)、#1396 で矢印の欄
+// (`widthBind` / `strokeBind` / `dashOffsetBind`) を書けるようにしたが、押下
+// (`eventBindings`) / 巻き上げ (`scrollTriggers`) を使う図はまだ書けない。
 // 内訳は台帳 (`lib/catalog-notation-coverage.test.ts`) の「一部のページ」 が持つ。
 
 export const sourceYaml__arrayLineChart = `title: "配列の値から面グラフを描く"
@@ -26687,6 +26687,139 @@ export const sourceJson__visualBindOpacity = `{
       "duration": 1.8,
       "focus": ["Target", "Reference"],
       "body": "固定側は束ねられていないので動かない。 2 つを並べると束ねの有無が見える。"
+    }
+  ]
+}`;
+
+export const sourceYaml__edgeFlowBind = `title: "信号で線の太さと流れる点が変わる"
+type: flow
+
+inputs:
+  flow: { kind: slider, min: 1, max: 15, defaultValue: 5, label: "Flow Width" }
+  t: { kind: timeline, duration: 2000, autoplay: true, loop: true, label: "Timeline" }
+
+formulas:
+  dash: "t * 24"
+
+lanes:
+  src: { x: 0, width: 230 }
+  pipe: { x: 270, width: 350 }
+  sink: { x: 660, width: 190 }
+
+states:
+  flow: 5
+  t: 0
+  dash: 0
+
+actors:
+  - a: { kind: card, lane: src, stack: 0, subtitle: "producer", posW: 180, title: "Source" }
+  - pipeNode: { kind: card, lane: pipe, stack: 0, subtitle: "width={flow} · dash={dash}", posW: 300, title: "Pipe" }
+  - b: { kind: card, lane: sink, stack: 0, subtitle: "consumer", posW: 140, title: "Sink" }
+
+flow:
+  - a -> pipeNode: "produce" (accent) { widthBind: "{flow}", dashOffsetBind: "{dash}" }
+  - pipeNode -> b: "consume" (accent) { widthBind: "{flow}", dashOffsetBind: "{dash}" }
+
+animation:
+  - step: "送り手を見る" 1.6s
+    focus: ["a"]
+    description: "左の箱が信号を持つ。 まだ線には出ていない。"
+  - step: "線に出る" 1.6s
+    focus: ["a", "pipeNode"]
+    description: "信号の大きさが線の太さになる。 太いほど多く流れている。"
+  - step: "受け手まで届く" 1.6s
+    focus: ["a", "pipeNode", "b"]
+    description: "線を流れる点が受け手に届く。 太さはつまみ、流れる点は時間の信号で、別々の入力が担う。"
+`;
+
+export const sourceJson__edgeFlowBind = `{
+  "title": "信号で線の太さと流れる点が変わる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "flow",
+      "kind": "slider",
+      "min": 1,
+      "max": 15,
+      "defaultValue": 5,
+      "label": "Flow Width"
+    },
+    {
+      "id": "t",
+      "kind": "timeline",
+      "duration": 2000,
+      "autoplay": true,
+      "loop": true,
+      "label": "Timeline"
+    }
+  ],
+  "formulas": { "dash": "t * 24" },
+  "lanes": {
+    "src": { "x": 0, "width": 230 },
+    "pipe": { "x": 270, "width": 350 },
+    "sink": { "x": 660, "width": 190 }
+  },
+  "actors": [
+    {
+      "name": "a",
+      "kind": "card",
+      "lane": "src",
+      "stack": 0,
+      "subtitle": "producer",
+      "posW": 180,
+      "title": "Source"
+    },
+    {
+      "name": "pipeNode",
+      "kind": "card",
+      "lane": "pipe",
+      "stack": 0,
+      "subtitle": "width={flow} · dash={dash}",
+      "posW": 300,
+      "title": "Pipe"
+    },
+    {
+      "name": "b",
+      "kind": "card",
+      "lane": "sink",
+      "stack": 0,
+      "subtitle": "consumer",
+      "posW": 140,
+      "title": "Sink"
+    }
+  ],
+  "flow": [
+    {
+      "from": "a",
+      "to": "pipeNode",
+      "label": "produce",
+      "tone": "accent",
+      "widthBind": "{flow}",
+      "dashOffsetBind": "{dash}"
+    },
+    {
+      "from": "pipeNode",
+      "to": "b",
+      "label": "consume",
+      "tone": "accent",
+      "widthBind": "{flow}",
+      "dashOffsetBind": "{dash}"
+    }
+  ],
+  "states": { "flow": 5, "t": 0, "dash": 0 },
+  "animation": [
+    { "step": "送り手を見る", "duration": 1.6, "focus": ["a"], "body": "左の箱が信号を持つ。 まだ線には出ていない。" },
+    {
+      "step": "線に出る",
+      "duration": 1.6,
+      "focus": ["a", "pipeNode"],
+      "body": "信号の大きさが線の太さになる。 太いほど多く流れている。"
+    },
+    {
+      "step": "受け手まで届く",
+      "duration": 1.6,
+      "focus": ["a", "pipeNode", "b"],
+      "body": "線を流れる点が受け手に届く。 太さはつまみ、流れる点は時間の信号で、別々の入力が担う。"
     }
   ]
 }`;

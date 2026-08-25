@@ -176,6 +176,54 @@ function 名前と中括弧に割る(行: string): [string, string] | undefined 
   return undefined;
 }
 
+/**
+ * 行の末尾にある中括弧の塊を切り出す (#1396)。
+ *
+ * **`{[^}]*}` では切れない**。 欄の値に中括弧が入る形 (`{ widthBind: "{flow}" }`) では
+ * 内側の `}` で止まってしまい、塊ごと読み落として **本文の一部として扱われる**
+ * (実測 = 矢印の説明文が `"x" { widthBind: "{flow}" }` のまま図に載った)。
+ *
+ * 箱の側は #1381 で同じ理由から深さを数える形に直してある。 矢印だけが古い形で
+ * 残っていた。
+ *
+ * 引用符の内側は数えない = `sub: "a } b"` の `}` で閉じたことにしない。
+ * 切り出せない形は `undefined` を返し、呼び手が従来どおり本文として扱う。
+ */
+function 末尾の中括弧を切り出す(rest: string): { 前: string; 中身: string } | undefined {
+  const t = rest.trimEnd();
+  if (!t.endsWith("}")) return undefined;
+  let 深さ = 0;
+  let 引用: string | null = null;
+  let 直前: string | null = null;
+  let 始 = -1;
+  for (let i = 0; i < t.length; i += 1) {
+    const c = t[i]!;
+    if (引用 !== null) {
+      if (引用 === '"' && c === "\\" && i + 1 < t.length) {
+        i += 1;
+        continue;
+      }
+      if (c === 引用) 引用 = null;
+      continue;
+    }
+    if ((c === '"' || c === "'") && (直前 === null || ":,{[".includes(直前))) {
+      引用 = c;
+      直前 = c;
+      continue;
+    }
+    if (c === "{") {
+      if (深さ === 0) 始 = i;
+      深さ += 1;
+    } else if (c === "}") {
+      深さ -= 1;
+      // 閉じた位置が末尾なら、そこが探していた塊
+      if (深さ === 0 && i === t.length - 1) return { 前: t.slice(0, 始), 中身: t.slice(始 + 1, i) };
+    }
+    if (!/\s/u.test(c)) 直前 = c;
+  }
+  return undefined;
+}
+
 function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
   return (TOP_LEVEL_KEYS as readonly string[]).includes(key);
 }
@@ -2640,6 +2688,12 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
  * 持つ一覧が実装と drift する = 欄を足しても誰も気付けない。 表を唯一の出どころにして、
  * `FLOW_INLINE_KEYS` から一覧を導けるようにする。
  */
+const EDGE_BIND_INLINE_READERS = {
+  widthBind: (v: string | undefined) => v,
+  strokeBind: (v: string | undefined) => v,
+  dashOffsetBind: (v: string | undefined) => v,
+} as const;
+
 const FLOW_INLINE_READERS = {
   sub: (v: string | undefined) => v,
   guard: (v: string | undefined) => v,
@@ -2649,6 +2703,13 @@ const FLOW_INLINE_READERS = {
     v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
       ? (v as "top" | "right" | "bottom" | "left")
       : undefined,
+  /*
+   * 矢印を値に追随させる 3 欄 (#1396)。 箱の `wBind` (#1392) と同じく文字列だけを取る。
+   *
+   * ここでは字をそのまま通し、空かどうかは呼出側が知らせる (表の読み手は行番号を
+   * 持たないため、知らせを出せる場所で見る)。
+   */
+  ...EDGE_BIND_INLINE_READERS,
   // 数と真偽の欄は `FLOW_INLINE_VALUE_KINDS` の表が読む (#1306)。 ここでは名前だけを持つ =
   // 読める欄の一覧 (`FLOW_INLINE_KEYS`) は本表から導くため、載せないと欄ごと消える
   labelOffsetX: null,
@@ -2861,10 +2922,20 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   // 欄は `FLOW_INLINE_READERS` の表から読む。 個別に並べると一覧が実装と drift する
   const 中括弧: Partial<Record<keyof typeof FLOW_INLINE_READERS, unknown>> = {};
   // inline option (`{ ... }`) を末尾から抽出
-  const mapMatch = rest.match(/\s*\{([^}]*)\}\s*$/);
+  const 塊 = 末尾の中括弧を切り出す(rest);
   let 数と真偽: 読んだ結果<typeof FLOW_INLINE_VALUE_KINDS> | undefined;
-  if (mapMatch) {
-    const opts = parseInlineMapping(mapMatch[1]!);
+  if (塊) {
+    const opts = parseInlineMapping(塊.中身);
+    // `parseInlineMapping` は値が 1 文字もない `widthBind:` を拾わない。 3 欄は空を
+    // 「書かなかった」扱いにせず知らせる契約なので、書かれた値を空も含めて上書きする。
+    // 同じ欄を複数回書いた時は通常の mapping と同じく後勝ちにする。
+    for (const field of splitInlineFields(塊.中身)) {
+      const idx = field.indexOf(":");
+      if (idx < 0) continue;
+      const key = field.slice(0, idx).trim();
+      if (!Object.hasOwn(EDGE_BIND_INLINE_READERS, key)) continue;
+      opts[key] = stripQuotes(field.slice(idx + 1).trim());
+    }
     // 文字列の欄はそのまま入れ、数と真偽の欄は表が読んで読めない値を知らせる (#1306)
     for (const k of FLOW_INLINE_KEYS) {
       const 読み手 = FLOW_INLINE_READERS[k];
@@ -2879,12 +2950,32 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
       });
     }
     数と真偽 = 表で読む(FLOW_INLINE_VALUE_KINDS, opts, "矢印の ", line.no, errors);
-    rest = rest.slice(0, mapMatch.index ?? 0).trim();
+    rest = 塊.前.trim();
   }
   const sub = 中括弧.sub as string | undefined;
   const guard = 中括弧.guard as string | undefined;
   const cardinality = 中括弧.cardinality as string | undefined;
   const side = 中括弧.side as "top" | "right" | "bottom" | "left" | undefined;
+  // 値に追随する 3 欄 (#1396)。 空は捨てずに知らせる = 描画側は空文字を既定値へ落とさず
+  // そのまま置換に使うため、書き忘れが「線が消えた」 形で出る
+  const widthBind = 追随する大きさとして読む(
+    中括弧.widthBind as string | undefined,
+    "矢印の widthBind ",
+    line.no,
+    errors,
+  );
+  const strokeBind = 追随する大きさとして読む(
+    中括弧.strokeBind as string | undefined,
+    "矢印の strokeBind ",
+    line.no,
+    errors,
+  );
+  const dashOffsetBind = 追随する大きさとして読む(
+    中括弧.dashOffsetBind as string | undefined,
+    "矢印の dashOffsetBind ",
+    line.no,
+    errors,
+  );
   const labelOffsetX = 数と真偽?.labelOffsetX;
   const labelOffsetY = 数と真偽?.labelOffsetY;
   const overlay = 数と真偽?.overlay;
@@ -2945,6 +3036,9 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     guard,
     cardinality,
     side,
+    widthBind,
+    strokeBind,
+    dashOffsetBind,
     labelOffsetX,
     labelOffsetY,
     overlay,

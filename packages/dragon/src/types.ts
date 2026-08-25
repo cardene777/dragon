@@ -343,6 +343,15 @@ export type DslStep = {
   /** v0.5+ inline option */
   guard?: string;
   cardinality?: string;
+  /**
+   * 矢印を値に追随させる欄 (`widthBind:` / `strokeBind:` / `dashOffsetBind:`、 #1396)。
+   *
+   * 箱の `wBind` (#1392) と同じ形で、状態やつまみの名前を `{名前}` で書く。
+   * 太さ / 色 / 破線の位置がその値に合わせて動く。 通り道そのものは動かない。
+   */
+  widthBind?: string;
+  strokeBind?: string;
+  dashOffsetBind?: string;
   /** 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ */
   side?: "top" | "right" | "bottom" | "left";
   labelOffsetX?: number;
