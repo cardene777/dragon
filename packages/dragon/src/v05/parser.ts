@@ -56,6 +56,7 @@ import type {
   DslAxes,
   DslDocument,
   DslActor,
+  DslNodeKind,
   DslDynShape,
   DslReadout,
   DslInput,
@@ -262,10 +263,13 @@ const NODE_KIND_DEFAULT: NodeKind = "actor";
  * 記法だけが持つ種類。 描画側には無いが、 図種ごとの組み立てで意味を持つ。
  *
  * `contract` / `eoa` / `multisig` / `proxy` / `library` / `interface` は Solidity 図の
- * 役割分けに、 `entity` / `state` は ER 図と状態遷移図に使う。 組み立ての段階で描画できる
- * 種類に置き換わるため、 そのまま描画側に渡ることはない。
+ * 役割分けに、 `entity` / `state` は ER 図と状態遷移図に使う。
+ *
+ * **描画側へ渡す前に必ず読み替える** (`compile.ts` の `描ける種別`)。 読み替えを通さずに渡すと
+ * 図の組み立てが落ちる = 描画側は知らない種類の大きさを引けない (#1420 で実測、
+ * `Cannot read properties of undefined (reading 'h')`)。
  */
-const DSL_ONLY_KINDS = [
+export const DSL_ONLY_KINDS = [
   "entity",
   "state",
   "contract",
@@ -275,6 +279,9 @@ const DSL_ONLY_KINDS = [
   "library",
   "interface",
 ] as const;
+
+/** 記法だけが持つ種類。 描画側の `NodeKind` には含まれない */
+export type DslOnlyKind = (typeof DSL_ONLY_KINDS)[number];
 
 /**
  * AWS などの固有名を、 同じ役割を表す汎用の種類に読み替える表。
@@ -1082,15 +1089,16 @@ function classifyValues(values: string[], line: number, errors: DslError[]): Act
 }
 
 /**
- * 書かれた種類名を、 描画できる種類に解決する。
+ * 書かれた種類名を、 記法が扱う種類に解決する。
  *
- * 固有名 (`lambda` / `rds` 等) は読み替え表を通す。 それ以外はそのまま返す。
+ * 固有名 (`lambda` / `rds` 等) は読み替え表を通す。 記法だけが持つ種類はそのまま返し、
+ * 描画側へ渡す時に `compile.ts` の `描ける種別` が読み替える。
  */
-export function resolveNodeKind(raw: string): NodeKind {
+export function resolveNodeKind(raw: string): DslNodeKind {
   if (raw === "") return NODE_KIND_DEFAULT;
   // `Object.hasOwn` で引く。 素の添字だと `toString` 等の既定の持ち物が引けてしまい、
   // 種類として関数が返る。 呼ぶ前に受理集合で弾いてはいるが、 表を引く側でも閉じておく。
-  return Object.hasOwn(INFRA_KIND_ALIAS, raw) ? INFRA_KIND_ALIAS[raw]! : (raw as NodeKind);
+  return Object.hasOwn(INFRA_KIND_ALIAS, raw) ? INFRA_KIND_ALIAS[raw]! : (raw as DslNodeKind);
 }
 
 function numberOrUndef(s: string | undefined): number | undefined {

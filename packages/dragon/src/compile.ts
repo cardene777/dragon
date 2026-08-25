@@ -25,6 +25,7 @@ import type {
   ErRelationCardinality,
   FormulaAst,
   LaidDiagram,
+  NodeKind,
 } from "@cardenelabs/cdl";
 import {
   sequence,
@@ -45,7 +46,7 @@ import {
   inputDefaultValue,
 } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
-import { DRAW_TARGETS } from "./v05/parser";
+import { DRAW_TARGETS, DSL_ONLY_KINDS } from "./v05/parser";
 import { isColorValue, pointsOutside, stripExternalPaint } from "./color";
 import {
   MAX_INPUT_ELEMENTS,
@@ -59,6 +60,56 @@ import {
   type AnchorBox,
   type RelativeDirection,
 } from "./relative-pos";
+
+/**
+ * 記法だけが持つ種類を、描画できる種類へ読み替える (#1420)。
+ *
+ * 記法は `contract` / `eoa` のような **描画側に無い種類** を受け付ける
+ * (`v05/parser.ts` の `DSL_ONLY_KINDS`)。 図種ごとの役割分け (`solidity` の縦列の並べ替え
+ * など) に使うためで、記法としては正しい。
+ *
+ * **そのまま描画側へ渡すと図の組み立てが落ちる**。 描画側は知らない種類の大きさを引けず、
+ * `Cannot read properties of undefined (reading 'h')` で止まる (実測)。
+ *
+ * `solidity` と `er` は組み立ての中で別の種類に置き換えていたが、`flow` / `swimlane` /
+ * `state` / `topology` は `a.kind` をそのまま渡していた。 記法が受ける値で図が出ない状態
+ * だったので、渡す手前で必ず通す。
+ *
+ * ## 読み替え先
+ *
+ * | 種類 | 読み替え先 | なぜ |
+ * |---|---|---|
+ * | `entity` | `storage` | 表を持つ = ER 図の実体 |
+ * | `state` | `card` | 状態は札で表す |
+ * | `contract` / `proxy` / `library` / `interface` | `card` | 契約は札で表す (`solidity` の置き換え先に合わせた) |
+ * | `eoa` | `person` | 人が持つ財布 |
+ * | `multisig` | `signer` | 複数人で署名する (`solidity` の置き換え先に合わせた) |
+ *
+ * **表は `DSL_ONLY_KINDS` を鍵にして書く**。 種類を足した時に読み替え先が無いと
+ * 型検査が落ちるので、足し忘れが残らない。
+ */
+const 記法だけの種類の読み替え: Readonly<
+  Record<(typeof DSL_ONLY_KINDS)[number], NodeKind>
+> = {
+  entity: "storage",
+  state: "card",
+  contract: "card",
+  proxy: "card",
+  library: "card",
+  interface: "card",
+  eoa: "person",
+  multisig: "signer",
+};
+
+/** 描画側へ渡せる種類にする。 記法だけの種類はここで読み替わる (#1420) */
+function 描ける種別(kind: string | undefined): NodeKind {
+  if (kind === undefined) return "actor";
+  const 読み替え先 = (
+    記法だけの種類の読み替え as Record<string, NodeKind | undefined>
+  )[kind];
+  return 読み替え先 ?? (kind as NodeKind);
+}
+
 
 export interface CompileToCdlOpts {
   /**
@@ -5330,7 +5381,7 @@ function compileC4(doc: DslDocument): CdlDiagram {
     b.node(x.id, {
       lane: lid,
       stack,
-      kind: x.actor.kind,
+      kind: 描ける種別(x.actor.kind),
       title: x.actor.name,
     });
   }
@@ -6384,7 +6435,7 @@ function compileFlow(doc: DslDocument): CdlDiagram {
     flowBuilder.step(
       {
         id: slugify(a.name) || `n${i}`,
-        kind: a.kind,
+        kind: 描ける種別(a.kind),
         title: 箱の題(a),
       },
       edgeLabel,
@@ -6423,7 +6474,7 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
       swim.node(nodeId, {
         lane: laneId,
         stack,
-        kind: actor?.kind ?? "actor",
+        kind: 描ける種別(actor?.kind),
         title: actorName,
       });
       laneStackCount.set(laneId, stack + 1);
@@ -6454,7 +6505,7 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
       swim.node(slugify(a.name) || `n${i}`, {
         lane: swim.laneId(a.name),
         stack: 0,
-        kind: a.kind ?? "actor",
+        kind: 描ける種別(a.kind),
         title: 箱の題(a),
       });
     });
@@ -6577,7 +6628,7 @@ function compileTopology(doc: DslDocument): CdlDiagram {
   for (const a of doc.actors) {
     groupBuilder.add({
       id: slugify(a.name) || a.name,
-      kind: a.kind,
+      kind: 描ける種別(a.kind),
       title: 箱の題(a),
     });
   }
@@ -6717,7 +6768,12 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
         while (集合?.has(stack)) stack += 1;
         埋める(lid, stack);
       }
-      b.node(id, { lane: lid, stack, kind: a.kind, title: 箱の題(a) });
+      b.node(id, {
+        lane: lid,
+        stack,
+        kind: 描ける種別(a.kind),
+        title: 箱の題(a),
+      });
     });
   } else if (kind === "flow" || kind === "topology") {
     // 1 lane に全 actor を縦 stack
@@ -6730,7 +6786,12 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
     doc.actors.forEach((a, idx) => {
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
-      b.node(id, { lane: lid, stack: idx, kind: a.kind, title: 箱の題(a) });
+      b.node(id, {
+        lane: lid,
+        stack: idx,
+        kind: 描ける種別(a.kind),
+        title: 箱の題(a),
+      });
     });
   } else {
     // swimlane / er / state ... actor ごとに 1 lane (横並び)
@@ -6755,7 +6816,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
       b.node(id, {
         lane: lid,
         stack: 0,
-        kind: a.kind,
+        kind: 描ける種別(a.kind),
         title: 箱の題(a),
         ...(isInitial ? { eyebrow: "初期" } : {}),
         ...(isFinal ? { eyebrow: "最終" } : {}),
