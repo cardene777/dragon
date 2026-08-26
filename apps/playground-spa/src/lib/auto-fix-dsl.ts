@@ -136,7 +136,10 @@ export function parseEdgeLine(line: string): ParsedEdgeLine | null {
   const m = head.match(/^\s*-\s+(.+?)\s*->\s*([^:]+?)\s*(?::\s*(.*))?$/);
   if (!m) return null;
   const strip = (s: string): string => s.trim().replace(/^["']|["']$/g, "");
-  return { from: strip(m[1]), to: strip(m[2]), label: strip(m[3] ?? "") };
+  // `from` / `to` は必須の群。 一致した以上必ず取れる (`label` は任意なので `?? ""`)
+  const [, from, to, label] = m;
+  if (from === undefined || to === undefined) return null;
+  return { from: strip(from), to: strip(to), label: strip(label ?? "") };
 }
 
 /** DSL に書かれた名前から node の id を引く表を作る。 名前は title と id の両方を受ける。 */

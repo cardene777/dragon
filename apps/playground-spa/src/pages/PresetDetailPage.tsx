@@ -29,6 +29,9 @@ export function PresetDetailPage(): React.ReactElement {
     const currentIdx = PRESETS.findIndex((p) => p.slug === preset.slug);
     const prevPreset = PRESETS[(currentIdx - 1 + PRESETS.length) % PRESETS.length];
     const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length];
+    // `preset` は `PRESETS` から引いた要素なので添字は必ず範囲に収まる。 一覧が空なら
+    // そもそも `preset` が見つからず、上で既に返している
+    if (prevPreset === undefined || nextPreset === undefined) return;
 
     const onKey = (e: KeyboardEvent): void => {
       const target = e.target as HTMLElement | null;
@@ -73,6 +76,11 @@ export function PresetDetailPage(): React.ReactElement {
   const currentIdx = PRESETS.findIndex((p) => p.slug === preset.slug);
   const prevPreset = PRESETS[(currentIdx - 1 + PRESETS.length) % PRESETS.length];
   const nextPreset = PRESETS[(currentIdx + 1) % PRESETS.length];
+  // 添字が範囲に収まる根拠は上の効果と同じ。 ここは描く側なので、引けない形は
+  // **その場で落とす** = 落ちる場所を原因から離さないため
+  if (prevPreset === undefined || nextPreset === undefined) {
+    throw new Error(`前後の見本を引けない (一覧 ${PRESETS.length} 件、 現在 ${currentIdx})`);
+  }
 
   const onShare = async (): Promise<void> => {
     try {

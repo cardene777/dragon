@@ -569,7 +569,12 @@ for (const s of PIE_SLICES) pieBuilder.datum({ id: s.id, label: s.label, value: 
 export const presetChartPie = withSteps(
   bindFirstNode(pieBuilder.build(), (n) => ({
     ...n,
-    chartData: n.chartData?.map((c, i) => ({ ...c, value: `{${PIE_SLICES[i].id}}` })),
+    // `chartData` は `PIE_SLICES` を回す `for` で 1:1 に作るので長さは常に一致する。
+    // 型はそれを知らないので、引けない形は値を触らずそのまま返す
+    chartData: n.chartData?.map((c, i) => {
+      const s = PIE_SLICES[i];
+      return s === undefined ? c : { ...c, value: `{${s.id}}` };
+    }),
   })),
   [
     {
@@ -607,7 +612,11 @@ for (const p of LINE_POINTS) lineBuilder.datum({ id: p.id, label: p.label, value
 export const presetChartLine = withSteps(
   bindFirstNode(lineBuilder.build(), (n) => ({
     ...n,
-    chartData: n.chartData?.map((c, i) => ({ ...c, value: `{${LINE_POINTS[i].id}}` })),
+    // `chartData` は `LINE_POINTS` を回す `for` で 1:1 に作るので長さは常に一致する
+    chartData: n.chartData?.map((c, i) => {
+      const p = LINE_POINTS[i];
+      return p === undefined ? c : { ...c, value: `{${p.id}}` };
+    }),
   })),
   [
     {
