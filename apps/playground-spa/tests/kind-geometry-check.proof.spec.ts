@@ -67,7 +67,11 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
           for (let i = 0; i < tokens.length; i++) {
             const t = tokens[i];
             if (t === "M" || t === "L") {
-              pts.push({ x: parseFloat(tokens[i + 1]), y: parseFloat(tokens[i + 2]) });
+              // 続く 2 つが無い = 並びの終わり
+              const xs = tokens[i + 1];
+              const ys = tokens[i + 2];
+              if (xs === undefined || ys === undefined) break;
+              pts.push({ x: parseFloat(xs), y: parseFloat(ys) });
               i += 2;
             }
           }
@@ -118,7 +122,10 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
         });
         const violations: string[] = [];
         for (let i = 1; i < w.length; i++) {
-          if (w[i] > w[i - 1] + 0.5) violations.push(`stage[${i}] w=${w[i]} > stage[${i - 1}] w=${w[i - 1]}`);
+          const 今 = w[i];
+          const 前 = w[i - 1];
+          if (今 === undefined || 前 === undefined) continue;
+          if (今 > 前 + 0.5) violations.push(`stage[${i}] w=${今} > stage[${i - 1}] w=${前}`);
         }
         return violations;
       });

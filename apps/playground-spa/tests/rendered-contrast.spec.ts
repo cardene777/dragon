@@ -380,8 +380,7 @@ test.describe("edge label の描画対比 (#977)", () => {
             `${target.id} の宣言された大きさ`,
           ).toEqual([...target.expectedDeclaredPx]);
 
-          for (let i = 0; i < labels.length; i++) {
-            const l = labels[i];
+          for (const [i, l] of labels.entries()) {
             const shot = await shootWhenStill(page, target.id, i, l.box);
             if (shot === null) {
               failures.push(
@@ -432,11 +431,16 @@ test.describe("edge label の描画対比 (#977)", () => {
         const 規則 = readFileSync(join(styles, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
         if (!規則.includes("data-cdl-role") && !規則.includes(".cdl-ip-")) return false;
         // 目印を含む規則の塊を取り出し、 その中に色の指定があるかを見る
-        return [...規則.matchAll(/([^{}]*)\{([^{}]*)\}/g)].some(
-          ([, sel, body]) =>
+        return [...規則.matchAll(/([^{}]*)\{([^{}]*)\}/g)].some((m) => {
+          // 2 つとも必須の群。 一致した以上必ず取れる
+          const sel = m[1];
+          const body = m[2];
+          if (sel === undefined || body === undefined) return false;
+          return (
             (sel.includes("data-cdl-role") || sel.includes(".cdl-ip-")) &&
-            /(^|[;\s])(color|background|background-color|fill|stroke|border-color)\s*:/.test(body),
-        );
+            /(^|[;\s])(color|background|background-color|fill|stroke|border-color)\s*:/.test(body)
+          );
+        });
       })
       .sort();
 
@@ -460,8 +464,9 @@ test.describe("edge label の描画対比 (#977)", () => {
       // 値を実際に解決させれば、 色関数の種類も名前の一覧も知らなくてよい。
       // **property を選ばない**。 一覧を持つと漏れる (実測 = `border-left` が抜けていた)。
       // 全ての宣言の値を渡し、 色かどうかはブラウザに判定させる。
-      const 宣言 = [...規則だけ.matchAll(/(?:^|[;{])\s*[a-z-]+\s*:\s*([^;{}]*)/gi)].map(
-        ([, 値]) => 値,
+      // 必須の群。 一致した以上必ず取れる
+      const 宣言 = [...規則だけ.matchAll(/(?:^|[;{])\s*[a-z-]+\s*:\s*([^;{}]*)/gi)].flatMap((m) =>
+        m[1] === undefined ? [] : [m[1]],
       );
       const 直書き = await 固定色を取り出す(page, 宣言);
       if (直書き.length > 0) {
@@ -507,8 +512,7 @@ test.describe("edge label の描画対比 (#977)", () => {
 
     const labels = await collectLabels(page, target.id);
     const failures: string[] = [];
-    for (let i = 0; i < labels.length; i++) {
-      const l = labels[i];
+    for (const [i, l] of labels.entries()) {
       await setLabelsHidden(page, target.id, true, i);
       const bg = await shoot(page, l.box);
       await setLabelsHidden(page, target.id, false, i);
@@ -546,10 +550,14 @@ test.describe("edge label の描画対比 (#977)", () => {
     // 本番側の判定を壊しても変異試験が通り続ける。
     const failures: string[] = [];
     let ok = 0;
-    for (let i = 0; i < fresh.length; i++) {
-      const m = measure(fgShots[i], bgShots[i]);
+    for (const [i, l] of fresh.entries()) {
+      const fg = fgShots[i];
+      const bg = bgShots[i];
+      // 3 つの並びは `fresh` から同じ数だけ作っているので必ず揃う
+      if (fg === undefined || bg === undefined) continue;
+      const m = measure(fg, bg);
       if (m.kind === "ok") ok++;
-      const f = judge(fresh[i], m);
+      const f = judge(l, m);
       if (f !== null) failures.push(f);
     }
     expect(ok, "測れた label がある").toBeGreaterThan(0);

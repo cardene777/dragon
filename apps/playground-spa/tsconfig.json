@@ -6,6 +6,15 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "strict": true,
+    // 添字で取り出した値を `T | undefined` として扱う (#1418 → #1426)。
+    //
+    // `packages/dragon` だけが持っていた設定で、無い側では「配列の外を引いた」 形が
+    // 型検査を素通りしていた。 溜まっていた 137 件を 3 群に分けて片付け
+    // (#1427 / #1428 / #1426)、0 件になったのでここへ移した。
+    //
+    // 移すまでの間は `tsconfig.strict.json` が読む形にして build を緑に保っていた。
+    // その file と天井を固定する検査は役目を終えたので消した。
+    "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "isolatedModules": true,
     "esModuleInterop": true,

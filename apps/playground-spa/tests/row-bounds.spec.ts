@@ -143,6 +143,9 @@ test.describe("行の文字が枠に収まっている (cdl#390)", () => {
     // のいずれも同じ高さ)。 canvas の ink 実寸でしか差が出ないため、 本 test は実装が ink を
     // 見ていることの証明も兼ねる。
     const target = TARGETS[0];
+    // 一覧が空だと以下の検査は何も見ずに通る。 引けない形はここで落とす
+    expect(target, "対象の見本が 1 件も無い (検査が空振りしている)").toBeDefined();
+    if (target === undefined) return;
     await openDiagram(page, target.slug, target.diagram.id);
 
     const sel = `[data-cdl-diagram="${target.diagram.id}"] [data-cdl-node] [data-cdl-role="node-row"]`;
@@ -185,6 +188,9 @@ test.describe("行の文字が枠に収まっている (cdl#390)", () => {
     // 下と対で押さえる。 下だけだと `ascent` を 0 にする変異や、 上の判定を消す変異が
     // 通ってしまう。
     const target = TARGETS[0];
+    // 一覧が空だと以下の検査は何も見ずに通る。 引けない形はここで落とす
+    expect(target, "対象の見本が 1 件も無い (検査が空振りしている)").toBeDefined();
+    if (target === undefined) return;
     await openDiagram(page, target.slug, target.diagram.id);
     const sel = `[data-cdl-diagram="${target.diagram.id}"] [data-cdl-node] [data-cdl-role="node-row"]`;
 
