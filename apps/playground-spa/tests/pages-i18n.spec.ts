@@ -36,7 +36,7 @@ const SECTIONS = [".features", ".quickstart", ".examples", ".closing-cta"];
 
 test.describe("HomePage の言語切替 (#386)", () => {
   test("英語で開くと日本語が出ない", async ({ page }) => {
-    await page.goto("/?lang=en", { waitUntil: "networkidle" });
+    await page.goto("?lang=en", { waitUntil: "networkidle" });
     await page.waitForSelector(".features", { timeout: 15000 });
     for (const sel of SECTIONS) {
       const jp = await japaneseTexts(page, sel);
@@ -46,7 +46,7 @@ test.describe("HomePage の言語切替 (#386)", () => {
 
   test("英語で開くと図の説明文 (aria-label) も英語になる", async ({ page }) => {
     // text node だけを見ると属性が漏れる。 読み上げだけ日本語になる回帰を別に見る。
-    await page.goto("/?lang=en", { waitUntil: "networkidle" });
+    await page.goto("?lang=en", { waitUntil: "networkidle" });
     const label = await page.getAttribute('.hero-demo svg[role="img"]', "aria-label");
     expect(label, "図の説明文が無い").toBeTruthy();
     expect(/[\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Han}]/u.test(label ?? ""),
@@ -55,7 +55,7 @@ test.describe("HomePage の言語切替 (#386)", () => {
 
   test("日本語で開くと日本語が出る", async ({ page }) => {
     // 上の test だけだと「section が描かれていない」 状態でも通る。 出ることを別に見る。
-    await page.goto("/?lang=ja", { waitUntil: "networkidle" });
+    await page.goto("?lang=ja", { waitUntil: "networkidle" });
     await page.waitForSelector(".features", { timeout: 15000 });
     for (const sel of SECTIONS) {
       const jp = await japaneseTexts(page, sel);
@@ -66,14 +66,14 @@ test.describe("HomePage の言語切替 (#386)", () => {
 
 test.describe("404 page の言語切替 (#386 段階 2)", () => {
   test("英語で開くと日本語が出ない", async ({ page }) => {
-    await page.goto("/__no_such_page__?lang=en", { waitUntil: "networkidle" });
+    await page.goto("__no_such_page__?lang=en", { waitUntil: "networkidle" });
     await page.waitForSelector(".v4-404", { timeout: 15000 });
     expect(await japaneseTexts(page, ".v4-404"), "404 page に日本語が残っている").toEqual([]);
   });
 
   test("日本語で開くと日本語が出る", async ({ page }) => {
     // 上の test だけだと page が描かれていない状態でも通る。
-    await page.goto("/__no_such_page__?lang=ja", { waitUntil: "networkidle" });
+    await page.goto("__no_such_page__?lang=ja", { waitUntil: "networkidle" });
     await page.waitForSelector(".v4-404", { timeout: 15000 });
     expect((await japaneseTexts(page, ".v4-404")).length, "404 page に日本語が 1 件も無い").toBeGreaterThan(0);
   });

@@ -37,7 +37,7 @@ async function 矢印が出るまで待つ(page: import("@playwright/test").Page
 
 test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
+    await page.goto("catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
   });
 

@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-import { DEV_URL } from "./ports";
+import { DEV_URL, PREVIEW_BASE_URL } from "./ports";
 
 /**
  * Playwright config。
@@ -48,7 +48,31 @@ import { DEV_URL } from "./ports";
 const 重ねない検査 = /(editor-initial-animation|rendered-contrast|muted-text-symmetry)\.spec\.ts$/;
 
 /**
- * 見に行く server。 既定は `pnpm dev` の port (`ports.ts` の `DEV_PORT`)。
+ * 開発時のみの頁 (`/__render`) を使う検査。
+ *
+ * この頁は `main.tsx` が `import.meta.env.DEV` の時だけ繋ぐため、build 済の画面には route が
+ * 無い。 向けると `waitForSelector` が時間切れになるので、ここだけ開発 server に残す。
+ *
+ * 代償 = この 3 件は実行中の編集で作り直される側に残り続ける。 壊れた時に「要素が現れない」
+ * としか読めない形で落ちないよう、待ちには上限を付ける (#1438)。
+ */
+const 開発serverの検査 = /row-bounds-offset\.spec\.ts$/;
+
+/**
+ * 見に行く server。 既定は **build 済の画面** (`pnpm preview` が配る `PREVIEW_BASE_URL`)。
+ *
+ * 開発 server を見ていた間、実行中に file を編集すると Vite が繋いでいる画面を全再読み込みし、
+ * **走行中の検査が巻き添えで落ちていた** (#1438 で 2 回の実行から計 4 件を実測)。 落ち方は
+ * 「要素が現れず 30 秒で時間切れ」 のように読めるため flake と区別が付かない。 build 済の
+ * 画面は編集で作り直されないので、この経路が消える。
+ *
+ * 副産物として、移した spec が **subpath 配信 (`/dragon/`) の検証も同時に得る**。 開発 server は
+ * root 配信なので、これまで subpath は本番用の spec しか通っていなかった。
+ *
+ * **spec は先頭 `/` を付けずに書く**。 `new URL(path, base)` は先頭 `/` を「origin 直下」 と
+ * 読んで base を捨てるため、`goto("/editor")` は base の外 (origin 直下の `/editor`) を開き、
+ * 画面が出ないまま落ちる (Phase 1 で 291 件が同じ形で落ちた)。 `spec-base-url.test.ts` が
+ * 先頭 `/` の literal を検出する。
  *
  * `SPA_URL` で差し替えられるようにするのは、依存の版を上げた直後に **動いている server が
  * 古い版を配り続ける** ため (Vite は起動時に依存を抱え込む)。 別 port に立て直した server へ
@@ -58,7 +82,7 @@ const 重ねない検査 = /(editor-initial-animation|rendered-contrast|muted-te
  * 検査が 2 つの server に分かれ、片方が古いことに気付けなかった (#1318 で踏んだ)。
  */
 const 共通 = {
-  baseURL: process.env.SPA_URL ?? DEV_URL,
+  baseURL: process.env.SPA_URL ?? PREVIEW_BASE_URL,
   trace: "on-first-retry",
 } as const;
 
@@ -70,8 +94,18 @@ export default defineConfig({
   projects: [
     {
       name: "default",
-      testIgnore: [/html-canvas-motion\.spec\.ts$/, 重ねない検査],
+      testIgnore: [/html-canvas-motion\.spec\.ts$/, 重ねない検査, 開発serverの検査],
       use: 共通,
+    },
+    {
+      // 開発時のみの頁を使うので build 済ではなく開発 server を見る。 `default` とは別の
+      // server を相手にするだけで負荷の話ではないため、後ろに回さず同時に走らせる。
+      //
+      // 差し替えを `SPA_URL` と分けるのは、この project だけ相手が違うため。 1 つにすると
+      // 立て直した server へ向けた時に、こちらが古い server に残って気付けない (#1318 の形)
+      name: "dev",
+      testMatch: 開発serverの検査,
+      use: { ...共通, baseURL: process.env.DEV_SPA_URL ?? DEV_URL },
     },
     {
       // `default` の後に 1 件ずつ回す (同時に走ると標本を取り損ねる / 他を落とす)

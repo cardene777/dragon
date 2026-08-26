@@ -15,7 +15,7 @@ const OUT_DIR = "/Users/cardene/Desktop/projects/dragon/.context/verify/multi-pa
 async function setup(page: Page) {
   mkdirSync(OUT_DIR, { recursive: true });
   page.on("dialog", (d) => { void d.accept(); });
-  await page.goto("/editor", { waitUntil: "networkidle" });
+  await page.goto("editor", { waitUntil: "networkidle" });
   await page.waitForSelector(".v4-editor-preview svg[data-cdl-stage]", { timeout: 10000 });
   await page.waitForTimeout(600);
 }

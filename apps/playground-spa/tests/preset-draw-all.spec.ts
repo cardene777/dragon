@@ -21,7 +21,7 @@ type Page = import("@playwright/test").Page;
 
 /** 見本を開く */
 async function 開く(page: Page, 名前: string): Promise<void> {
-  await page.goto("/catalog/presets", { waitUntil: "networkidle" });
+  await page.goto("catalog/presets", { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page.getByText(名前, { exact: true }).first().click();
   await page.waitForTimeout(300);

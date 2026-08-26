@@ -19,17 +19,25 @@ import { test, expect } from "@playwright/test";
 
 /** `main.tsx` の `<Route>` が持つ経路。 動的な部分は実在する値を入れる。 */
 const 経路 = [
-  "/",
-  "/catalog",
-  "/catalog/presets",
-  "/catalog/ethereum",
-  "/editor",
-  "/docs",
-  "/preset/swimlane",
-  "/release-notes",
-  "/contribute",
-  "/does-not-exist",
+  "",
+  "catalog",
+  "catalog/presets",
+  "catalog/ethereum",
+  "editor",
+  "docs",
+  "preset/swimlane",
+  "release-notes",
+  "contribute",
+  "does-not-exist",
 ] as const;
+
+/**
+ * test の名前と、落ちた時に出す画面の名前。
+ *
+ * 経路は base 相対で書くため、トップだけ空文字になる (#1438)。 そのまま出すと
+ * 「幅 375px の  が横にはみ出さない」 のように、名前に穴が空く。
+ */
+const 画面名 = (path: string): string => path || "トップ";
 
 /** 携帯の幅。 375 = iPhone SE / 390 = iPhone 14。 */
 const 幅一覧 = [375, 390] as const;
@@ -39,7 +47,7 @@ test("広い画面のカードの並びは変わらない", async ({ page }) => 
   // 実測値 = 1280px でカード 339px が 3 枚 / 1 行。
   // 作り直しの前は 598px の 2 行だった (#1110 で 3 枚が 1 行に収まる幅になった)。
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/contribute");
+  await page.goto("contribute");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(1200);
   const m = await page.evaluate(() => {
@@ -57,7 +65,7 @@ test("広い画面のカードの並びは変わらない", async ({ page }) => 
 
 for (const 幅 of 幅一覧) {
   for (const path of 経路) {
-    test(`幅 ${幅}px の ${path} が横にはみ出さない`, async ({ page }) => {
+    test(`幅 ${幅}px の ${画面名(path)} が横にはみ出さない`, async ({ page }) => {
       await page.setViewportSize({ width: 幅, height: 780 });
       await page.goto(path);
       await page.waitForLoadState("networkidle");
@@ -87,11 +95,11 @@ for (const 幅 of 幅一覧) {
       });
 
       // 真っ白な画面は横スクロールが 0 になる。 中身が出ていることを先に見る
-      expect(m.文字数, `${path} の本文が空 (検査が空振りしている)`).toBeGreaterThan(20);
+      expect(m.文字数, `${画面名(path)} の本文が空 (検査が空振りしている)`).toBeGreaterThan(20);
       // 数 px の誤差は許容 (scrollbar 分)
       expect(
         m.はみ出し,
-        `${path} が ${m.はみ出し}px はみ出している: ${m.外.join(", ")}`,
+        `${画面名(path)} が ${m.はみ出し}px はみ出している: ${m.外.join(", ")}`,
       ).toBeLessThan(20);
     });
   }

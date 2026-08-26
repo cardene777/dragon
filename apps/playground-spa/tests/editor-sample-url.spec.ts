@@ -20,7 +20,7 @@ import { EDITOR_SAMPLES } from "../src/data/editor-samples";
 
 async function 開いた題(page: import("@playwright/test").Page, slug: string) {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/editor#preset=${slug}`);
+  await page.goto(`editor#preset=${slug}`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
   return page.evaluate(() => ({
@@ -48,7 +48,7 @@ test("一覧の目印が見本ごとに分かれている (#1092)", async ({ pag
   // 変更前は `sequence` の 2 件が同じ `data-testid` を持ち、 画面に同じ目印が 2 つ出ていた。
   // 目印で 1 件を選べない状態は、 検査からも人からも「どちらか」 を指せないことを意味する
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
 

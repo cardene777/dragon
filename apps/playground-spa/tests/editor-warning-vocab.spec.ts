@@ -13,7 +13,7 @@ import { test, expect } from "@playwright/test";
 /** 記法を編集画面に載せる。 共有 URL の経路 (`#s=<符号化>`) を使う */
 const 記法を開く = async (page: import("@playwright/test").Page, src: string): Promise<void> => {
   const encoded = await page.evaluate((s) => btoa(unescape(encodeURIComponent(s))), src);
-  await page.goto(`/editor#s=${encoded}`);
+  await page.goto(`editor#s=${encoded}`);
   await page.waitForSelector('[data-testid="editor-preview-stage"]');
   await page.waitForTimeout(1200);
 };

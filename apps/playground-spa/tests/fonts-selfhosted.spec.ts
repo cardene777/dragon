@@ -39,7 +39,7 @@ function 外部要求を見張る(page: Page): string[] {
 test("外部の配信元へ字を取りに行かない", async ({ page }) => {
   const 記録 = 外部要求を見張る(page);
   // 字を最も多く使う 2 画面を通す。 頁ごとに css が分かれているため 1 画面では足りない
-  for (const path of ["/", "/editor"]) {
+  for (const path of ["", "editor"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
     await page.evaluate(() => document.fonts.ready);
@@ -48,7 +48,7 @@ test("外部の配信元へ字を取りに行かない", async ({ page }) => {
 });
 
 test("同梱した字が読み込まれている", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("");
   await page.waitForLoadState("networkidle");
   await page.evaluate(() => document.fonts.ready);
 
@@ -67,7 +67,7 @@ test("同梱した字が読み込まれている", async ({ page }) => {
 test("同梱した字で実際に描かれている", async ({ page }) => {
   // **`font-family` に書いてあるだけでは足りない**。 名前が違えば system の字で描かれ、
   // 見た目も寸法も変わる。 `document.fonts.check` で「その字で描けるか」 を直接聞く。
-  await page.goto("/");
+  await page.goto("");
   await page.waitForLoadState("networkidle");
   await page.evaluate(() => document.fonts.ready);
 
@@ -93,7 +93,7 @@ test("網を切っても同じ字で描かれる", async ({ page, context }) => 
   //
   // 同じ文字列を同じ指定で描いて幅を比べる。 system の字に落ちれば幅が変わる。
   const 幅を測る = async (): Promise<Record<string, number>> => {
-    await page.goto("/");
+    await page.goto("");
     await page.waitForLoadState("networkidle");
     await page.evaluate(() => document.fonts.ready);
     return await page.evaluate((系統) => {

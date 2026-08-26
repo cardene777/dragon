@@ -22,7 +22,7 @@ import { test, expect } from "@playwright/test";
 
 async function 開く(page: import("@playwright/test").Page, hash = ""): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/editor${hash}`);
+  await page.goto(`editor${hash}`);
   await page.waitForLoadState("networkidle");
   await page.waitForSelector(".v4-editor-stage svg", { timeout: 30000 });
   await page.waitForTimeout(1500);

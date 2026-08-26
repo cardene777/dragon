@@ -99,13 +99,13 @@ async function 名札を測る(
 }
 
 async function 記法を開く(page: import("@playwright/test").Page, src: string): Promise<void> {
-  await page.goto(`/editor#s=${share(src)}`);
+  await page.goto(`editor#s=${share(src)}`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(1500);
 }
 
 test("エディタの既定サンプルで名札の文字が箱に収まる", async ({ page }) => {
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
 
@@ -122,7 +122,7 @@ test("エディタの既定サンプルで名札の文字が箱に収まる", as
 
 test("カタログでも名札の文字が箱に収まる", async ({ page }) => {
   // エディタだけを見ると、 別経路で組み立てた図の崩れを取り逃がす
-  await page.goto("/catalog/patterns");
+  await page.goto("catalog/patterns");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
 

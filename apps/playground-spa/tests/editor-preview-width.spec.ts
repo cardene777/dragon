@@ -22,7 +22,7 @@ import { 下限 as 文字の下限 } from "./readable-floor";
 /** 画面の外に出ている箱の名前 */
 async function 画面外の箱(page: import("@playwright/test").Page, slug: string) {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/editor#preset=${slug}`);
+  await page.goto(`editor#preset=${slug}`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2200);
   return page.evaluate(() => {
@@ -56,7 +56,7 @@ test("絵の枠が記法欄より広い (#1100)", async ({ page }) => {
   // 割り当てを戻すと絵の枠が 688px に縮み、 上の 4 件が画面外に戻る。 枠の幅そのものを見て
   // おくと、 割り当てが変わった時にどちらが原因かすぐ分かる
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
 
@@ -83,7 +83,7 @@ test("絵の枠が記法欄より広い (#1100)", async ({ page }) => {
 for (const 窓 of [1440, 1366, 1280, 1201]) {
   test(`窓 ${窓}px で記法欄が 340px を保つ (#1100)`, async ({ page }) => {
     await page.setViewportSize({ width: 窓, height: 900 });
-    await page.goto("/editor");
+    await page.goto("editor");
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(1800);
 
@@ -105,7 +105,7 @@ test("記法欄の横に欠ける量が見本の最長行を大きく超えな�
   // 絵の枠 635px で変更前より狭くなる。 変更前も `er` は 54px 欠けていた (実測) ので、
   // 欠けないことは目標にしない。 **欠ける量が最長行から決まる範囲に収まっているか** を見る
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor#preset=er");
+  await page.goto("editor#preset=er");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2200);
 
@@ -161,7 +161,7 @@ for (const { slug, 理由 } of 見る見本) {
   const 下限 = 文字の下限(slug);
   test(`見本 ${slug} の画面上の最小文字が ${下限}px (#1102)`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`/editor#preset=${slug}`);
+    await page.goto(`editor#preset=${slug}`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2400);
 

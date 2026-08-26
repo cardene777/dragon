@@ -10,7 +10,7 @@ import { test, expect } from "@playwright/test";
  */
 
 const openEditor = async (page: import("@playwright/test").Page): Promise<void> => {
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForSelector('[data-testid="editor-preview-stage"]');
   await page.waitForTimeout(600);
 };
@@ -23,7 +23,7 @@ const openEditor = async (page: import("@playwright/test").Page): Promise<void> 
  */
 const setDsl = async (page: import("@playwright/test").Page, src: string): Promise<void> => {
   const encoded = await page.evaluate((s) => btoa(unescape(encodeURIComponent(s))), src);
-  await page.goto(`/editor#s=${encoded}`);
+  await page.goto(`editor#s=${encoded}`);
   await page.waitForSelector('[data-testid="editor-preview-stage"]');
   await page.waitForTimeout(900);
 };

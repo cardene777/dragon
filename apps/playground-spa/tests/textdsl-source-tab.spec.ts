@@ -12,7 +12,7 @@ import { test, expect } from "@playwright/test";
 type Page = import("@playwright/test").Page;
 
 async function 開く(page: Page, 名前: string): Promise<void> {
-  await page.goto("/catalog/text-dsl", { waitUntil: "networkidle" });
+  await page.goto("catalog/text-dsl", { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page.locator("aside.catalog-sidebar").getByText(名前, { exact: false }).first().click();
   await page.waitForTimeout(300);
@@ -75,7 +75,7 @@ test.describe("Text DSL のページで記法が読める (#1365)", () => {
      * 見る。 片方だけ記法を持つ形は台帳が実在のデータで許さないため、ページを何枚埋めても
      * 成立しなくなることがない。
      */
-    await page.goto("/catalog/text-dsl", { waitUntil: "networkidle" });
+    await page.goto("catalog/text-dsl", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
 
     const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");

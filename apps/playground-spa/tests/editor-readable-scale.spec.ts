@@ -130,7 +130,7 @@ async function 測れた(page: import("@playwright/test").Page) {
 for (const slug of SAMPLES) {
   test(`見本 ${slug} を開くと文字が ${下限(slug)}px 以上で出る (#1084)`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`/editor#preset=${slug}`);
+    await page.goto(`editor#preset=${slug}`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2500);
     await 見本が開けたことを確かめる(page, slug);
@@ -181,7 +181,7 @@ for (const slug of SAMPLES) {
 test("収めるを押した後も文字が読める大きさに戻る (#1084)", async ({ page }) => {
   // 下限は開いた時だけでなく「収める」 経路そのものに入っている。 縮めてから押し直しても効く
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor#preset=swimlane");
+  await page.goto("editor#preset=swimlane");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
   await 見本が開けたことを確かめる(page, "swimlane");
@@ -216,7 +216,7 @@ test("画面に出ていない文字は下限を決めない (#1084)", async ({ 
   // `#1102` で `er` は譲った下限 (8px) 側に落ちたが、 下限が倍率を決める点は変わらないため
   // この見本のままでよい。 見る値だけ 8px 基準に直した
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor#preset=er");
+  await page.goto("editor#preset=er");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
   await 見本が開けたことを確かめる(page, "er");
@@ -236,7 +236,7 @@ test("枠に余裕がある図では倍率を上げない (#1084)", async ({ pag
   // 下限は「小さすぎるのを止める」 床であって、 実寸より大きく見せる仕組みではない。
   // 縦長で元から読める見本 (トリガー) は、 下限を入れる前と同じ倍率のままになる
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor#preset=flow");
+  await page.goto("editor#preset=flow");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
   await 見本が開けたことを確かめる(page, "flow");
@@ -331,7 +331,7 @@ test(`全 ${見本.length} 見本で描画側の文字が下限の計算に載�
 
   for (const [slug, 見える下限] of 見本) {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`/editor#preset=${slug}`);
+    await page.goto(`editor#preset=${slug}`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(待ち時間);
     await 見本が開けたことを確かめる(page, slug);

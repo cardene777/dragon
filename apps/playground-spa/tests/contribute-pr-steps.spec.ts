@@ -24,7 +24,7 @@ const 読む = (rel: string): string => readFileSync(fileURLToPath(new URL(rel, 
 
 async function 開く(page: Page, 言語: "ja" | "en"): Promise<void> {
   await page.addInitScript((l) => localStorage.setItem("dragon-locale", l), 言語);
-  await page.goto("/contribute");
+  await page.goto("contribute");
   await page.waitForLoadState("networkidle");
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(600);

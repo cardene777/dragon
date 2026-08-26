@@ -28,7 +28,7 @@ test.describe("preset 詳細の見出し (#1047)", () => {
   test("言語を切り替えると見出しの名前が実名で変わる", async ({ page }) => {
     // **名前の部分だけを実名で照合する**。 見出し全体で比べると、添えの語
     // (プリセット / preset) が変わっただけでも通ってしまう
-    await page.goto("/preset/state-machine-2", { waitUntil: "networkidle" });
+    await page.goto("preset/state-machine-2", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
     expect(await headingName(page), "日本語表示で日本語名が出ない").toBe("拡張ステート図");
 
@@ -38,7 +38,7 @@ test.describe("preset 詳細の見出し (#1047)", () => {
 
   test("識別子とは違う名前が出る", async ({ page }) => {
     // 形ではなく値で見る。 直す前は `stateMachine2` (= 図の識別子) が出ていた
-    await page.goto("/preset/mind", { waitUntil: "networkidle" });
+    await page.goto("preset/mind", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
     const name = await headingName(page);
     for (const identifier of ["mindMap", "mind", "presetMindMap"]) {
@@ -50,7 +50,7 @@ test.describe("preset 詳細の見出し (#1047)", () => {
   test("見出しに識別子がそのまま出ない", async ({ page }) => {
     // 直す前は `stateMachine2 プリセット` のように識別子が出ていた
     for (const slug of ["state-machine-2", "mind", "swimlane"]) {
-      await page.goto(`/preset/${slug}`, { waitUntil: "networkidle" });
+      await page.goto(`preset/${slug}`, { waitUntil: "networkidle" });
       await page.waitForTimeout(500);
       const words = (await heading(page)).split(/\s+/).filter(Boolean);
       const identifiers = words.filter((w) => IDENTIFIER_LIKE.test(w));
@@ -59,7 +59,7 @@ test.describe("preset 詳細の見出し (#1047)", () => {
   });
 
   test("見出しの添えの語が言語で変わる", async ({ page }) => {
-    await page.goto("/preset/swimlane", { waitUntil: "networkidle" });
+    await page.goto("preset/swimlane", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
     expect(await heading(page), "日本語表示で日本語の添えが出ない").toContain("プリセット");
 
@@ -70,7 +70,7 @@ test.describe("preset 詳細の見出し (#1047)", () => {
   });
 
   test("前へ / 次へ の名前も識別子のままにならない", async ({ page }) => {
-    await page.goto("/preset/swimlane", { waitUntil: "networkidle" });
+    await page.goto("preset/swimlane", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
 
     const labels = (await page.locator(".nm-preset-detail-nav-btn .font-semibold").allTextContents())

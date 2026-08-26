@@ -18,7 +18,7 @@ async function コードの秒数(page: import("@playwright/test").Page): Promis
 
 /** 折れ線の見本を開く */
 async function 折れ線を開く(page: import("@playwright/test").Page): Promise<void> {
-  await page.goto("/catalog/presets", { waitUntil: "networkidle" });
+  await page.goto("catalog/presets", { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page.getByText("折れ線グラフ", { exact: true }).first().click();
   await page.waitForTimeout(400);

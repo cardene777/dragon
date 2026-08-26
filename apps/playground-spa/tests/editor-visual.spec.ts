@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function openEditorStable(page: import("@playwright/test").Page): Promise<void> {
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
   await page.addStyleTag({ content: "* { animation-duration: 0s !important; animation-delay: 0s !important; transition-duration: 0s !important; }" });

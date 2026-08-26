@@ -19,7 +19,7 @@ import { test, expect, type Page } from "@playwright/test";
 const WIDGET_VIEWBOX = "0 0 120 120";
 
 async function setup(page: Page): Promise<void> {
-  await page.goto("/editor", { waitUntil: "networkidle" });
+  await page.goto("editor", { waitUntil: "networkidle" });
   await page.waitForSelector(".v4-editor-stage svg[data-cdl-stage]", { timeout: 15000 });
   await page.waitForTimeout(600);
 }
@@ -344,7 +344,7 @@ flow:
     /** 重ねたパーツの中の箱を、画面上の幅で測る。 */
     const measure = async (src: string): Promise<number> => {
       const encoded = await page.evaluate((s) => btoa(unescape(encodeURIComponent(s))), src);
-      await page.goto(`/editor#s=${encoded}`);
+      await page.goto(`editor#s=${encoded}`);
       await page.waitForSelector('[data-testid="editor-preview-stage"]');
       await page.waitForTimeout(1800);
       return await page.evaluate(() => {
@@ -397,7 +397,7 @@ flow:
     /** 重ねたパーツの中の箱を、画面上の幅で測る。 */
     const measure = async (src: string): Promise<number> => {
       const encoded = await page.evaluate((s) => btoa(unescape(encodeURIComponent(s))), src);
-      await page.goto(`/editor#s=${encoded}`);
+      await page.goto(`editor#s=${encoded}`);
       await page.waitForSelector('[data-testid="editor-preview-stage"]');
       await page.waitForTimeout(1800);
       return await page.evaluate(() => {
@@ -446,7 +446,7 @@ flow:
 
     const measure = async (src: string): Promise<number> => {
       const encoded = await page.evaluate((s) => btoa(unescape(encodeURIComponent(s))), src);
-      await page.goto(`/editor#s=${encoded}`);
+      await page.goto(`editor#s=${encoded}`);
       await page.waitForSelector('[data-testid="editor-preview-stage"]');
       await page.waitForTimeout(1800);
       return await page.evaluate(() => {
@@ -531,7 +531,7 @@ flow:
       "",
     ].join("\n");
     const encoded = Buffer.from(src, "utf8").toString("base64");
-    await page.goto(`/editor#s=${encoded}`);
+    await page.goto(`editor#s=${encoded}`);
     await page.waitForSelector('[data-testid="editor-preview-stage"]');
     await page.waitForTimeout(2500);
 
@@ -559,7 +559,7 @@ flow:
       "",
     ].join("\n");
     const encoded = Buffer.from(src, "utf8").toString("base64");
-    await page.goto(`/editor#s=${encoded}`);
+    await page.goto(`editor#s=${encoded}`);
     await page.waitForSelector('[data-testid="editor-preview-stage"]');
     await page.waitForTimeout(2500);
 
@@ -596,7 +596,7 @@ flow:
       "",
     ].join("\n");
     const encoded = Buffer.from(src, "utf8").toString("base64");
-    await page.goto(`/editor#s=${encoded}`);
+    await page.goto(`editor#s=${encoded}`);
     await page.waitForSelector('[data-testid="editor-preview-stage"]');
     await page.waitForTimeout(4000);
 

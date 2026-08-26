@@ -15,7 +15,7 @@ import { test, expect } from "@playwright/test";
 type Page = import("@playwright/test").Page;
 
 async function 開く(page: Page, ページ: string, 名前: string): Promise<void> {
-  await page.goto(`/catalog/${ページ}`, { waitUntil: "networkidle" });
+  await page.goto(`catalog/${ページ}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page.locator("aside.catalog-sidebar").getByText(名前, { exact: false }).first().click();
   await page.waitForTimeout(300);
@@ -70,7 +70,7 @@ test.describe("動きの豊かな見本で記法が読める (#1374)", () => {
 
   test("2 ページの全件でコードのタブが押せる", async ({ page }) => {
     for (const ページ of ["animation", "ethereum"]) {
-      await page.goto(`/catalog/${ページ}`, { waitUntil: "networkidle" });
+      await page.goto(`catalog/${ページ}`, { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
 
       const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");
@@ -99,7 +99,7 @@ test.describe("動きの豊かな見本で記法が読める (#1374)", () => {
      * 見る。 片方だけ記法を持つ形は台帳が実在のデータで許さないため、ページを何枚埋めても
      * 成立しなくなることがない。
      */
-    await page.goto("/catalog/animation", { waitUntil: "networkidle" });
+    await page.goto("catalog/animation", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
 
     const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");

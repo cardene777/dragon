@@ -55,7 +55,7 @@ async function setYamlSrc(page: Page, text: string): Promise<void> {
 test.describe("CAR-1678 editor YAML tab", () => {
   test.describe("AC 1 = URL param + 拡張子で YAML tab active", () => {
     test("URL `?format=yaml` で YAML tab が active state で起動する", async ({ page }) => {
-      await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
+      await page.goto("editor?format=yaml", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await expect(page.getByTestId("editor-tab-yaml")).toHaveAttribute("aria-selected", "true");
       await expect(page.getByTestId("editor-tab-cdl")).toHaveAttribute("aria-selected", "false");
@@ -65,7 +65,7 @@ test.describe("CAR-1678 editor YAML tab", () => {
     test("拡張子 `.yml` / `.yaml` の場所を開くと YAML 欄で始まる", async ({ page }) => {
       // 判定関数だけを test すると通るが、 route を通らないと 404 に落ちて画面が出ない。
       // 実 URL で開いて、 画面が出ることと欄が選ばれることの両方を見る。
-      for (const path of ["/editor/diagram.yml", "/editor/diagram.yaml"]) {
+      for (const path of ["editor/diagram.yml", "editor/diagram.yaml"]) {
         await page.goto(path, { waitUntil: "networkidle" });
         await page.waitForTimeout(800);
         await expect(page.getByTestId("editor-tab-yaml"), `${path} で画面が出ない`).toHaveAttribute(
@@ -77,13 +77,13 @@ test.describe("CAR-1678 editor YAML tab", () => {
     });
 
     test("拡張子が付かない場所は本文欄で始まる", async ({ page }) => {
-      await page.goto("/editor/diagram.txt", { waitUntil: "networkidle" });
+      await page.goto("editor/diagram.txt", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       expect(await getActiveTab(page)).toBe("cdl");
     });
 
     test("URL param なし = CDL tab default で起動する (regression 防止)", async ({ page }) => {
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await expect(page.getByTestId("editor-tab-cdl")).toHaveAttribute("aria-selected", "true");
       await expect(page.getByTestId("editor-tab-yaml")).toHaveAttribute("aria-selected", "false");
@@ -93,7 +93,7 @@ test.describe("CAR-1678 editor YAML tab", () => {
 
   test.describe("AC 2 = tab 切替時の unsaved change confirm", () => {
     test("unsaved change なし = 即切替 (confirm dialog 出ない)", async ({ page }) => {
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       let dialogSeen = false;
       page.on("dialog", (d) => {
@@ -107,7 +107,7 @@ test.describe("CAR-1678 editor YAML tab", () => {
     });
 
     test("CDL tab で unsaved change あり = 切替時 confirm dialog、 cancel で切替中止", async ({ page }) => {
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       // CDL 側 buffer を意図的に編集して dirty state を作る
       await page.locator('[data-testid="editor-code-body-cdl"] .cm-content').click();
@@ -129,7 +129,7 @@ test.describe("CAR-1678 editor YAML tab", () => {
     });
 
     test("confirm accept で切替される", async ({ page }) => {
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await page.locator('[data-testid="editor-code-body-cdl"] .cm-content').click();
       await page.keyboard.press("End");
@@ -153,7 +153,7 @@ test.describe("CAR-1678 editor YAML tab", () => {
     });
 
     test("AC 3 = YAML 有効編集で preview SVG が render される", async ({ page }) => {
-      await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
+      await page.goto("editor?format=yaml", { waitUntil: "networkidle" });
       await page.waitForTimeout(1000);
       expect(await getActiveTab(page)).toBe("yaml");
       // default YAML template で render 済 = SVG が存在するはず
@@ -190,7 +190,7 @@ flow:
     });
 
     test("AC 4 = parse error で error banner 表示、 前回 render は消えない", async ({ page }) => {
-      await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
+      await page.goto("editor?format=yaml", { waitUntil: "networkidle" });
       await page.waitForTimeout(1000);
       // 前回 render が存在することを確認
       await expect(page.locator(".v4-editor-preview svg[data-cdl-stage]")).toBeVisible();
@@ -216,7 +216,7 @@ actors:
     test("形は読めるが図にできない YAML でも前の図が残る", async ({ page }) => {
       // 誤りの経路は 3 つある (読めない / 図の形に合わない / 組み立てに失敗する)。
       // 2 つ目を通しても前の図が消えないことを見る
-      await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
+      await page.goto("editor?format=yaml", { waitUntil: "networkidle" });
       await page.waitForTimeout(1000);
       const before = await previewFingerprint(page);
       expect(before).not.toBe("");
@@ -240,7 +240,7 @@ actors:
     test("本文欄で置いたパーツは YAML 欄の図に重ならない", async ({ page }) => {
       // パーツは本文欄の記述から取り出したもので、 YAML 欄の図はそれを持たない。
       // 残したままだと、 その図に無い部品が乗って見える。
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await page.getByTestId("editor-parts-tab").click();
       await page.waitForTimeout(400);
@@ -261,7 +261,7 @@ actors:
 
     test("本文欄の位置の札は YAML 欄に出ない", async ({ page }) => {
       // 札を押すと本文欄の記述に座標を書く。 YAML 欄で出すと、 映していない方が書き換わる。
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await page.getByTestId("editor-toggle-positions").click();
       await page.waitForTimeout(600);
@@ -291,7 +291,7 @@ actors:
     ];
 
     test("本文欄では押せて、 YAML 欄では押せない", async ({ page }) => {
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       for (const id of CDL_ONLY) {
         await expect(page.getByTestId(id), `${id} が本文欄で押せない`).toBeEnabled();
@@ -308,7 +308,7 @@ actors:
 
     test("見本とパーツも YAML 欄では押せない", async ({ page }) => {
       page.on("dialog", (d) => void d.accept());
-      await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
+      await page.goto("editor?format=yaml", { waitUntil: "networkidle" });
       await page.waitForTimeout(900);
       await expect(page.getByTestId("editor-sample-sequence").first()).toBeDisabled();
 
@@ -320,7 +320,7 @@ actors:
     test("YAML 欄で本文欄の中身が変わらない", async ({ page }) => {
       // 押せないことの裏を取る = 実際に本文欄が保たれている
       page.on("dialog", (d) => void d.accept());
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       const cdlBefore = await page.evaluate(() => {
         const w = window as unknown as { __cdlEditorSrc?: string };
@@ -360,7 +360,7 @@ flow:
     test("正しい YAML → 壊れた YAML → 元に戻すと誤りの帯が消える", async ({ page }) => {
       // 覚えてあるのは組み立てに成功した結果だけ。 戻った時に前の失敗の帯が残ると、
       // 図は正しいのに直っていないように見える
-      await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
+      await page.goto("editor?format=yaml", { waitUntil: "networkidle" });
       await page.waitForTimeout(1000);
 
       const good = `title: "ok"
@@ -403,7 +403,7 @@ flow:
 
     test("本文欄だけ使った時は読み込まれない", async ({ page }) => {
       const seen = watchAdapterRequests(page);
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(1200);
       // 本文欄で書き換えても読み込まない
       await page.locator('[data-testid="editor-code-body-cdl"] .cm-content').click();
@@ -423,7 +423,7 @@ flow:
       page.on("dialog", (d) => void d.accept());
       await page.route(/yaml-adapter/, (route) => route.abort("failed"));
 
-      await page.goto("/editor?format=yaml", { waitUntil: "domcontentloaded" });
+      await page.goto("editor?format=yaml", { waitUntil: "domcontentloaded" });
       const banner = page.getByTestId("editor-yaml-error");
       await expect(banner).toBeVisible({ timeout: 8000 });
       const text = await banner.textContent();
@@ -434,7 +434,7 @@ flow:
     test("YAML 欄を開くと読み込まれ、 図が描かれる", async ({ page }) => {
       page.on("dialog", (d) => void d.accept());
       const seen = watchAdapterRequests(page);
-      await page.goto("/editor?format=yaml", { waitUntil: "networkidle" });
+      await page.goto("editor?format=yaml", { waitUntil: "networkidle" });
       await page.waitForTimeout(1500);
       expect(seen.length, "読み込まれていない").toBeGreaterThan(0);
       // 遅れて届いた後も図は描かれる
@@ -460,7 +460,7 @@ flow:
         await route.continue();
       });
 
-      await page.goto("/editor?format=yaml", { waitUntil: "domcontentloaded" });
+      await page.goto("editor?format=yaml", { waitUntil: "domcontentloaded" });
       await expect.poll(() => gate.requested, { timeout: 8000 }).toBe(true);
 
       // 1. `first` を書いて待機を明けさせる = この内容で callback が登録される
@@ -505,7 +505,7 @@ flow:
   test.describe("regression = CDL tab 経路は無変更", () => {
     test("CDL tab で見本を選ぶと本文と図が入れ替わる", async ({ page }) => {
       page.on("dialog", (d) => void d.accept());
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await expect(page.locator(".v4-editor-preview svg[data-cdl-stage]")).toBeVisible({ timeout: 5000 });
       const before = await previewFingerprint(page);
@@ -530,7 +530,7 @@ flow:
     });
 
     test("CDL tab で parts 一覧が開く", async ({ page }) => {
-      await page.goto("/editor", { waitUntil: "networkidle" });
+      await page.goto("editor", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await page.getByTestId("editor-parts-tab").click();
       await expect(page.getByTestId("editor-part-item-parts-wave-gauge")).toBeVisible({ timeout: 5000 });

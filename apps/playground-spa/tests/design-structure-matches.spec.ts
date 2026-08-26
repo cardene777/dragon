@@ -70,20 +70,24 @@ const 節の大きさ = 24;
  */
 const 数字だけ = (s: string): boolean => /^v?[\d.]+x?$/u.test(s);
 
-/** 画面ごとの対応。 `設計` は `.pen` の frame 名から `/ Light` を除いたもの。 */
+/**
+ * 画面ごとの対応。 `設計` は `.pen` の frame 名から `/ Light` を除いたもの。
+ *
+ * `path` は base 相対で書く (先頭 `/` を付けると base が落ちる、 #1438)。 トップは空文字。
+ */
 const 画面 = [
-  { 設計: "01 トップ", path: "/" },
-  { 設計: "02 カタログ一覧", path: "/catalog" },
+  { 設計: "01 トップ", path: "" },
+  { 設計: "02 カタログ一覧", path: "catalog" },
   // 設計が描いているのは「アニメーション」 の分類。 `#1128` はここを `/catalog/presets` に
   // 向けたまま「実装は既定のプリセットだから違う」 と読み、 分類名を除外に宣言していた。
   // 実装は分類ごとに経路を持つ (`/catalog/:slug`) ので、 描かれている分類に向ける (#1132)。
-  { 設計: "03 カタログの分類", path: "/catalog/animation" },
-  { 設計: "04 エディタ", path: "/editor" },
-  { 設計: "05 ドキュメント", path: "/docs" },
-  { 設計: "06 見本の詳細", path: "/preset/sequence" },
-  { 設計: "07 更新履歴", path: "/release-notes" },
-  { 設計: "08 参加方法", path: "/contribute" },
-  { 設計: "09 見つからない頁", path: "/no-such-page" },
+  { 設計: "03 カタログの分類", path: "catalog/animation" },
+  { 設計: "04 エディタ", path: "editor" },
+  { 設計: "05 ドキュメント", path: "docs" },
+  { 設計: "06 見本の詳細", path: "preset/sequence" },
+  { 設計: "07 更新履歴", path: "release-notes" },
+  { 設計: "08 参加方法", path: "contribute" },
+  { 設計: "09 見つからない頁", path: "no-such-page" },
 ] as const;
 
 /**
@@ -436,7 +440,7 @@ test("状態違いの frame は元と同じ節を持つ", () => {
 const 節以外の照合 = [
   {
     名: "トップの説明文",
-    path: "/",
+    path: "",
     選ぶ: ".hero .lead",
     /** `.pen` の中の id (明暗 2 枚)。 名前では引けないので id で指す */
     id: ["XI97C", "kt70p"],
@@ -453,7 +457,7 @@ const 節以外の照合 = [
   // 札が 2 枚あること自体は下の「枚数も見る」 が引き続き見るため、札を 1 枚消す変更は落ちる。
   {
     名: "トップの 2 枚目の札",
-    path: "/",
+    path: "",
     選ぶ: ".hero-eyebrow .chip:nth-of-type(2)",
     id: ["nMqGO", "x8nMs"],
   },
@@ -523,7 +527,7 @@ test("節ではないが揃えると決めた字が一致する", async ({ page 
     const 実装側 = await page.$$eval(x.選ぶ, (els) =>
       els.map((e) => (e.textContent ?? "").trim()),
     );
-    expect(実装側.length, `${x.path} に ${x.選ぶ} が無い`).toBe(1);
+    expect(実装側.length, `${x.path || "トップ"} に ${x.選ぶ} が無い`).toBe(1);
     // 上の `toBe(1)` が先に落ちるので、ここへは 1 件ある時しか来ない
     const 先頭 = 実装側[0];
     if (先頭 === undefined) continue;
@@ -566,7 +570,7 @@ test("節ではないが揃えると決めた字が一致する", async ({ page 
     });
     expect(new Set(設計の枚数).size, `${x.selector} の枚数が明暗で違う`).toBe(1);
 
-    await page.goto("/");
+    await page.goto("");
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(400);
     const 実装の枚数 = await page.$$eval(x.selector, (els) => els.length);
@@ -591,7 +595,7 @@ test("設計の節が実装にある (除外は宣言したものだけ)", async
     const 見出し = (await 実装の見出し(page, path)).map(正規化);
     expect(
       見出し.length,
-      `${path} から見出しを 1 つも読めていない (設計は節を ${節!.length} 件持つ)`,
+      `${名} から見出しを 1 つも読めていない (設計は節を ${節!.length} 件持つ)`,
     ).toBeGreaterThan(0);
 
     // 同じ節が 2 つあっても実装との照合は 1 回でよい (重複は明暗の比較側が見る)

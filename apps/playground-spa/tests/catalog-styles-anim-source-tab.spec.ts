@@ -17,7 +17,7 @@ import { test, expect } from "@playwright/test";
 type Page = import("@playwright/test").Page;
 
 async function 開く(page: Page, ページ: string, 名前: string): Promise<void> {
-  await page.goto(`/catalog/${ページ}`, { waitUntil: "networkidle" });
+  await page.goto(`catalog/${ページ}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page.locator("aside.catalog-sidebar").getByText(名前, { exact: false }).first().click();
   await page.waitForTimeout(300);
@@ -46,7 +46,7 @@ test.describe("見た目の見本で記法が読める (#1373)", () => {
   });
 
   test("一覧の全件でコードが空にならない", async ({ page }) => {
-    await page.goto("/catalog/styles", { waitUntil: "networkidle" });
+    await page.goto("catalog/styles", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
 
     const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");

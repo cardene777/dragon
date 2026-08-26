@@ -90,7 +90,7 @@ async function surfaces(page: import("@playwright/test").Page) {
 }
 
 async function openDark(page: import("@playwright/test").Page): Promise<void> {
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.evaluate(() => document.documentElement.classList.add("dark"));
   await page.waitForTimeout(2200);
@@ -139,7 +139,7 @@ test("暗い画面で図の中の面の色が揃っている", async ({ page }) 
   //
   // 3 系統が出る 2 画面を見る。
   // `/preset/topology` = 本体 4 / 子図形 5、 `/catalog/presets` = `chart-line` (変数経由)
-  for (const path of ["/preset/topology", "/catalog/presets"]) {
+  for (const path of ["preset/topology", "catalog/presets"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
     await page.evaluate(() => document.documentElement.classList.add("dark"));
@@ -234,9 +234,9 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
   // そのため catalog 向けの命綱の色を変えても、この検査は落ちない。 到達する入力を作れない
   // 防御的な指定として残してある (`cdl-theme.css` の `lane-lifeline`)。
   for (const [場所, path] of [
-    ["editor (暗い紙)", "/editor"],
-    ["catalog (cream の紙)", "/catalog/patterns"],
-    ["catalog (cream の紙・枠)", "/preset/topology"],
+    ["editor (暗い紙)", "editor"],
+    ["catalog (cream の紙)", "catalog/patterns"],
+    ["catalog (cream の紙・枠)", "preset/topology"],
   ] as const) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
@@ -304,7 +304,7 @@ test("明るい画面は変えていない", async ({ page }) => {
   //
   // **色を literal で固定しない**。 固定すると将来の正当な配色更新まで落ちる。
   // 「面が分かれて見えるか」 と「その上の文字が読めるか」 の不変条件で見る。
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2200);
   const s = await surfaces(page);

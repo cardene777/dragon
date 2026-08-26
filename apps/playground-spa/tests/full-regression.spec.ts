@@ -4,23 +4,23 @@ import { mkdirSync } from "node:fs";
 const OUT = "test-results/regression";
 mkdirSync(OUT, { recursive: true });
 
-// 全 10 route + 404
+// 全 10 route + 404。 経路は base 相対で書く (先頭 `/` を付けると base が落ちる、 #1438)
 const ROUTES: Array<{ path: string; slug: string; expectSelector?: string }> = [
-  { path: "/", slug: "home", expectSelector: "h1" },
-  { path: "/docs", slug: "docs", expectSelector: "h1" },
-  { path: "/editor", slug: "editor", expectSelector: ".v4-editor, main" },
-  { path: "/catalog", slug: "catalog-index", expectSelector: "h1" },
-  { path: "/catalog/presets", slug: "catalog-presets", expectSelector: "h1" },
-  { path: "/catalog/cookbook", slug: "catalog-cookbook", expectSelector: "h1" },
-  { path: "/catalog/patterns", slug: "catalog-patterns", expectSelector: "h1" },
-  { path: "/catalog/primitives", slug: "catalog-primitives", expectSelector: "h1" },
-  { path: "/catalog/animation", slug: "catalog-animation", expectSelector: "h1" },
-  { path: "/catalog/styles", slug: "catalog-styles", expectSelector: "h1" },
-  { path: "/catalog/text-dsl", slug: "catalog-text-dsl", expectSelector: "h1" },
-  { path: "/preset/swimlane", slug: "preset-swimlane", expectSelector: "h1" },
-  { path: "/release-notes", slug: "release-notes", expectSelector: "h1" },
-  { path: "/contribute", slug: "contribute", expectSelector: "h1" },
-  { path: "/does-not-exist", slug: "404", expectSelector: ".v4-404-code" },
+  { path: "", slug: "home", expectSelector: "h1" },
+  { path: "docs", slug: "docs", expectSelector: "h1" },
+  { path: "editor", slug: "editor", expectSelector: ".v4-editor, main" },
+  { path: "catalog", slug: "catalog-index", expectSelector: "h1" },
+  { path: "catalog/presets", slug: "catalog-presets", expectSelector: "h1" },
+  { path: "catalog/cookbook", slug: "catalog-cookbook", expectSelector: "h1" },
+  { path: "catalog/patterns", slug: "catalog-patterns", expectSelector: "h1" },
+  { path: "catalog/primitives", slug: "catalog-primitives", expectSelector: "h1" },
+  { path: "catalog/animation", slug: "catalog-animation", expectSelector: "h1" },
+  { path: "catalog/styles", slug: "catalog-styles", expectSelector: "h1" },
+  { path: "catalog/text-dsl", slug: "catalog-text-dsl", expectSelector: "h1" },
+  { path: "preset/swimlane", slug: "preset-swimlane", expectSelector: "h1" },
+  { path: "release-notes", slug: "release-notes", expectSelector: "h1" },
+  { path: "contribute", slug: "contribute", expectSelector: "h1" },
+  { path: "does-not-exist", slug: "404", expectSelector: ".v4-404-code" },
 ];
 
 for (const r of ROUTES) {
