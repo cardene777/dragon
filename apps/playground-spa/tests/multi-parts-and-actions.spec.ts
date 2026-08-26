@@ -27,21 +27,6 @@ async function addParts(page: Page, partId: string): Promise<void> {
   await page.waitForTimeout(1200);
 }
 
-async function getAllPartsRects(page: Page): Promise<Array<{ id: string; alias: string; x: number; right: number; y: number; bottom: number }>> {
-  return await page.evaluate(() => {
-    const svg = document.querySelector(".v4-editor-preview svg[data-cdl-stage]");
-    if (!svg) return [];
-    return Array.from(svg.querySelectorAll('[data-cdl-node]'))
-      .filter((el) => (el.getAttribute("data-cdl-node") ?? "").includes("__"))
-      .map((el) => {
-        const id = el.getAttribute("data-cdl-node") ?? "";
-        const alias = id.split("__")[0] ?? "";
-        const r = el.getBoundingClientRect();
-        return { id, alias, x: r.x, right: r.right, y: r.y, bottom: r.bottom };
-      });
-  });
-}
-
 test.describe("複数 parts / share URL / undo / zoom 極値 網羅", () => {
   test.beforeEach(async ({ page }) => {
     await setup(page);

@@ -83,32 +83,3 @@ for (const { type, label } of TYPES) {
     expect(await font(), `${type} の文字`).toBeGreaterThan(b);
   });
 }
-
-
-
-/**
- * 図全体を拡大した時、 canvas に置いた部品 (overlay parts) も一緒に拡大する。
- *
- * 部品は cdl の図と同じ world 座標に置かれるが、 cdl の SVG は 1 world unit = 倍率 k px で
- * 描かれる。 部品側に k を掛けないと図だけが伸びて部品がその場に取り残される。
- *
- * 倍率が画面上で何も変えなかった間は、 この不整合は起こりようがなかった (どちらも動かない)。
- * 倍率が効くようになって初めて表に出る。
- */
-
-/** 部品を 1 つ canvas に置く。 */
-async function dropPart(page: import("@playwright/test").Page): Promise<void> {
-  await page.goto("/editor");
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2500);
-  await page.locator('[data-testid="editor-parts-tab"]').click();
-  await page.waitForTimeout(400);
-  const stage = page.locator('[data-testid="editor-preview-stage"]');
-  await page.locator('[data-testid="editor-part-item-parts-achievement"]').dragTo(stage, {
-    targetPosition: { x: 300, y: 300 },
-  });
-  await page.waitForTimeout(1000);
-}
-
-
-

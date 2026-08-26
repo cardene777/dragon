@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import { readFile } from "node:fs/promises";
 import {
   extractPartsFromSrc,
-  splitTopLevelFields,
-  readTopLevelField,
   appendActorLine,
   placeParts,
   partWorldSize,

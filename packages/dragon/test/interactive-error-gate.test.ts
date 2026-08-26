@@ -117,7 +117,8 @@ function curveMidY(d: string): number {
       // 任意の群 (`(?:...)?`) は一致しなければ `undefined` になるのが正常なので
       // `at()` を通さない (`at()` は「無い = 前提が崩れた」 として落とす道具)
     } else if (m[4] !== undefined) {
-      const [cx, cy] = [parseFloat(m[2]!), parseFloat(m[3]!)];
+      // 制御点は y しか使わない (求めるのが `ys` のため)
+      const cy = parseFloat(m[3]!);
       const next: [number, number] = [parseFloat(m[4]!), parseFloat(m[5]!)];
       // 二次曲線を 16 分割して通る点の平均を取る
       for (let i = 1; i <= 16; i++) {
