@@ -80,6 +80,14 @@ const セルに割る = (行: string): string[] => {
  * 見つからない / 形が違う場合は空配列を返す。 呼出側が件数を検査するので、 黙って 0 件で通る
  * ことはない。
  */
+/**
+ * 表の n 列目。 その列を持たない行は空文字にする。
+ *
+ * 表の形が違う場合は、呼ぶ前の「表を読めていない」 の検査か、後の突き合わせが落ちる =
+ * 空文字が黙って通ることはない。
+ */
+const 列 = (r: string[], n: number): string => r[n] ?? "";
+
 function 表を読む(見出し: string): string[][] {
   const 行 = 仕様書().split("\n");
   const 始まり = 行.findIndex((l) => l.trim() === 見出し);
@@ -90,7 +98,9 @@ function 表を読む(見出し: string): string[][] {
   let 表の中 = false;
   const 続き = 行.slice(始まり + 1);
   for (let i = 0; i < 続き.length; i++) {
-    const t = 続き[i].trim();
+    const 生 = 続き[i];
+    if (生 === undefined) break;
+    const t = 生.trim();
     // 次の節 (`## ` / `### `) に入ったら打ち切る。 別の節の表を拾わない
     if (/^#{2,6}\s/u.test(t)) break;
     if (!t.startsWith("|")) {
@@ -220,13 +230,17 @@ test("上部の帯の行き先が実装と揃っている", async ({ page }) => 
   const 中央 = 表.find((r) => r[0] === "中央");
   expect(中央, "上部の帯の表に「中央」 の行が無い").toBeDefined();
 
-  const m = /行き先 (\d+) つ = (.+)$/u.exec(中央![1]);
+  const m = /行き先 (\d+) つ = (.+)$/u.exec(中央?.[1] ?? "");
   expect(m, "「中央」 の行が『行き先 N つ = A / B / ...』 の形になっていない").not.toBeNull();
+  // 2 つとも必須の群。 一致した以上必ず取れる
+  const 数 = m?.[1];
+  const 列挙 = m?.[2];
+  if (数 === undefined || 列挙 === undefined) return;
 
-  const 仕様 = m![2].split(" / ").map((s) => 正規化(s));
+  const 仕様 = 列挙.split(" / ").map((s) => 正規化(s));
   // 数の主張と列挙の数が食い違う形を落とす (「6 つ」 と書いて 5 つ並べていた、 #1135)
-  expect(仕様.length, `「行き先 ${m![1]} つ」 と書いて ${仕様.length} つしか並べていない`).toBe(
-    Number(m![1]),
+  expect(仕様.length, `「行き先 ${数} つ」 と書いて ${仕様.length} つしか並べていない`).toBe(
+    Number(数),
   );
 
   await page.goto("/");
@@ -244,7 +258,7 @@ test("カタログの分類が実装と揃っている", async ({ page }) => {
   const 表 = 表を読む(節.カタログ);
   expect(表.length, "カタログ一覧の表を読めていない").toBeGreaterThan(0);
 
-  const 仕様 = 表.map((r) => 正規化(r[0]));
+  const 仕様 = 表.map((r) => 正規化(列(r, 0)));
   const 実装 = (await 実装の見出し(page, "/catalog", "h2")).map(正規化);
   expect(実装.length, "/catalog から見出しを 1 つも読めていない").toBeGreaterThan(0);
   expect(仕様, "仕様書の分類と実装の分類が違う").toEqual(実装);
@@ -254,7 +268,7 @@ test("ドキュメントの節が実装と揃っている", async ({ page }) => 
   const 表 = 表を読む(節.ドキュメント);
   expect(表.length, "ドキュメントの節の表を読めていない").toBeGreaterThan(0);
 
-  const 仕様 = 表.map((r) => 正規化(r[0]));
+  const 仕様 = 表.map((r) => 正規化(列(r, 0)));
   const 実装 = (await 実装の見出し(page, "/docs", "h2")).map(正規化);
   expect(実装.length, "/docs から見出しを 1 つも読めていない").toBeGreaterThan(0);
   // 並び順は問わない = 仕様書は読む順、 実装は画面上の配置順で、 どちらも正しい
@@ -268,7 +282,7 @@ test("参加方法の項目が実装と揃っている", async ({ page }) => {
   const 手順 = 表を読む(節.手順);
   expect(手順.length, "参加方法の手順の表を読めていない").toBeGreaterThan(0);
 
-  const 仕様 = [...手段, ...手順].map((r) => 正規化(r[0]));
+  const 仕様 = [...手段, ...手順].map((r) => 正規化(列(r, 0)));
   const 実装 = (await 実装の見出し(page, "/contribute", "h3")).map(正規化);
   expect(実装.length, "/contribute から見出しを 1 つも読めていない").toBeGreaterThan(0);
   expect([...仕様].sort(), "仕様書の参加方法の項目と実装の項目が違う").toEqual([...実装].sort());
@@ -353,7 +367,10 @@ function 実装の経路(src: string): string[] {
         `route の path を字として読めない (式や変数で渡さず literal で書くこと): ${断片.trim()}`,
       );
     }
-    out.push(p[1] ?? p[2]);
+    // どちらか一方の群が必ず一致する (`null` は上で弾いている)
+    const path = p[1] ?? p[2];
+    if (path === undefined) continue;
+    out.push(path);
   }
   return out;
 }
@@ -376,7 +393,7 @@ test("画面の経路が実装の route と揃っている", () => {
   expect(表.length, "描く範囲の表を読めていない").toBeGreaterThan(0);
 
   const 仕様 = 表.map((r) => {
-    const 生 = r[2].replace(/`/gu, "").trim();
+    const 生 = 列(r, 2).replace(/`/gu, "").trim();
     return 経路の言い換え.get(生) ?? 生;
   });
 

@@ -498,7 +498,8 @@ test("節ではないが揃えると決めた字が一致する", async ({ page 
         // `ref` 自身の id で指した場合、 差し替えた字が 1 つだけならそれを返す
         if (c.type === "ref" && c.id === id && c.descendants !== undefined) {
           const 差し替え = Object.values(c.descendants).map((d) => String(d.content ?? ""));
-          if (差し替え.length === 1) 見つけた = 差し替え[0];
+          // 1 件だけの時に入るので必ず引ける
+          if (差し替え.length === 1) 見つけた = 差し替え[0] ?? null;
         }
         歩く(c);
       }
@@ -523,7 +524,10 @@ test("節ではないが揃えると決めた字が一致する", async ({ page 
       els.map((e) => (e.textContent ?? "").trim()),
     );
     expect(実装側.length, `${x.path} に ${x.選ぶ} が無い`).toBe(1);
-    expect(正規化(実装側[0]), `${x.名} が設計と実装で違う`).toBe(設計側[0]);
+    // 上の `toBe(1)` が先に落ちるので、ここへは 1 件ある時しか来ない
+    const 先頭 = 実装側[0];
+    if (先頭 === undefined) continue;
+    expect(正規化(先頭), `${x.名} が設計と実装で違う`).toBe(設計側[0]);
   }
 
   // **枚数も見る**。 位置ごとの照合は「その位置に何があるか」 しか言わないので、
@@ -545,7 +549,9 @@ test("節ではないが揃えると決めた字が一致する", async ({ page 
     歩く(doc as Node);
     if (当たり.length === 0) return { 理由: `id=${id} が設計に無い` };
     if (当たり.length > 1) return { 理由: `id=${id} が設計に ${当たり.length} 件ある` };
+    // 上で 0 件と 2 件以上を弾いているので必ず引ける
     const 入れ物 = 当たり[0];
+    if (入れ物 === undefined) return { 理由: `id=${id} を設計から取り出せない` };
     if (入れ物.type !== "frame") return { 理由: `id=${id} が frame でない (${入れ物.type})` };
     return { n: (入れ物.children ?? []).filter((c) => c.type === "ref" && c.ref === 部品).length };
   };

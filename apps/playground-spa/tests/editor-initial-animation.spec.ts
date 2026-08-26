@@ -43,7 +43,9 @@ test("editor の初期表示で線が最後まで伸びる (#381)", async ({ pag
     // 直近 5 回が同じなら落ち着いたとみなす。
     if (n >= 12) {
       const tail = series.slice(-10).map((s) => JSON.stringify(s));
-      if (tail.every((s) => s === tail[0]) && !series[n - 1].includes(null)) break;
+      // `n >= 12` の枝なので直近の 1 件は必ず引ける
+      const 直近 = series[n - 1];
+      if (tail.every((s) => s === tail[0]) && 直近 !== undefined && !直近.includes(null)) break;
     }
     await page.waitForTimeout(40);
   }

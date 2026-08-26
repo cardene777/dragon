@@ -111,6 +111,22 @@ async function 測る(page: import("@playwright/test").Page) {
   });
 }
 
+/**
+ * 測った結果を、使える形になっていることを確かめてから返す。
+ *
+ * 図が無い形と、文字を 1 つも測れていない形はここで落とす。 呼ぶ側が `!` を並べずに済み、
+ * **落ちる場所が原因に近くなる** = `最小` が無い時に「最小が小さすぎる」 ではなく
+ * 「1 つも測れていない」 で止まる。
+ */
+async function 測れた(page: import("@playwright/test").Page) {
+  const m = await 測る(page);
+  expect(m, "図が画面に無い").not.toBeNull();
+  const 最小 = m?.最小;
+  expect(最小, "文字を 1 つも測れていない (検査が空振りしている)").toBeDefined();
+  if (m === null || 最小 === undefined) throw new Error("図か文字を測れていない");
+  return { ...m, 最小 };
+}
+
 for (const slug of SAMPLES) {
   test(`見本 ${slug} を開くと文字が ${下限(slug)}px 以上で出る (#1084)`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -119,13 +135,13 @@ for (const slug of SAMPLES) {
     await page.waitForTimeout(2500);
     await 見本が開けたことを確かめる(page, slug);
 
-    const m = await 測る(page);
+    const m = await 測れた(page);
     expect(m, "図が画面に無い").not.toBeNull();
     // 件数を見ないと、 文字を 1 つも測れていない状態で「最小は無い」 として通る
-    expect(m!.件数, "文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(m.件数, "文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
     expect(
-      m!.最小.px,
-      `文字が小さすぎる: ${m!.最小.s} が ${m!.最小.px}px (倍率 ${m!.倍率})`,
+      m.最小.px,
+      `文字が小さすぎる: ${m.最小.s} が ${m.最小.px}px (倍率 ${m.倍率})`,
     ).toBeGreaterThanOrEqual(下限(slug));
     // **譲る側に入れてよいかを、譲る理由そのもので見る** (#1320)。
     //
@@ -135,9 +151,9 @@ for (const slug of SAMPLES) {
     //
     // 判定の条件は `readable-floor.ts` が書いているとおり「10px にすると箱が枠から出る」。
     // いまの最小文字を 10px にする倍率を求め、その時の箱の幅を枠と比べる。
-    expect(m!.箱数, "箱を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
-    const 十pxにする倍率 = MIN_PX / m!.最小.px;
-    const 十px時の箱幅 = m!.箱幅 * 十pxにする倍率;
+    expect(m.箱数, "箱を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
+    const 十pxにする倍率 = MIN_PX / m.最小.px;
+    const 十px時の箱幅 = m.箱幅 * 十pxにする倍率;
     if (下限(slug) < MIN_PX) {
       // **2 つは別の壊れ方を見る**。 こちらは「譲った結果が実際に効いているか」 で、
       // 描画側が譲る下限を無視して 10px まで拡げた形を捕まえる。
@@ -146,18 +162,18 @@ for (const slug of SAMPLES) {
       // 自体が小さく描く原因なので、足せば自動的に満たされる (`pie` で実測)。 そちらは
       // 下の「10px にすると箱が枠から出るか」 が見る。
       expect(
-        m!.最小.px,
+        m.最小.px,
         `譲る側なのに通常下限 ${MIN_PX}px のまま描かれている`,
       ).toBeLessThan(MIN_PX);
       expect(
         十px時の箱幅,
-        `譲る側に入れているが ${MIN_PX}px でも箱が枠に収まる (箱 ${Math.round(十px時の箱幅)} vs 枠 ${m!.枠幅})`,
-      ).toBeGreaterThan(m!.枠幅);
+        `譲る側に入れているが ${MIN_PX}px でも箱が枠に収まる (箱 ${Math.round(十px時の箱幅)} vs 枠 ${m.枠幅})`,
+      ).toBeGreaterThan(m.枠幅);
     } else {
       expect(
         十px時の箱幅,
-        `${MIN_PX}px では箱が枠から出るのに譲る側に入っていない (箱 ${Math.round(十px時の箱幅)} vs 枠 ${m!.枠幅})`,
-      ).toBeLessThanOrEqual(m!.枠幅);
+        `${MIN_PX}px では箱が枠から出るのに譲る側に入っていない (箱 ${Math.round(十px時の箱幅)} vs 枠 ${m.枠幅})`,
+      ).toBeLessThanOrEqual(m.枠幅);
     }
   });
 }
@@ -173,17 +189,17 @@ test("収めるを押した後も文字が読める大きさに戻る (#1084)", 
   await page.locator('[data-testid="editor-zoom-out"]').click();
   await page.locator('[data-testid="editor-zoom-out"]').click();
   await page.waitForTimeout(400);
-  const 縮めた後 = await 測る(page);
-  expect(縮めた後!.最小.px, "縮める操作が効いていない (検査が空振りしている)").toBeLessThan(
+  const 縮めた後 = await 測れた(page);
+  expect(縮めた後.最小.px, "縮める操作が効いていない (検査が空振りしている)").toBeLessThan(
     下限("swimlane"),
   );
 
   await page.locator('[data-testid="editor-fit"]').click();
   await page.waitForTimeout(600);
-  const 戻した後 = await 測る(page);
+  const 戻した後 = await 測れた(page);
   expect(
-    戻した後!.最小.px,
-    `収めた後も文字が小さい: ${戻した後!.最小.px}px (倍率 ${戻した後!.倍率})`,
+    戻した後.最小.px,
+    `収めた後も文字が小さい: ${戻した後.最小.px}px (倍率 ${戻した後.倍率})`,
   ).toBeGreaterThanOrEqual(下限("swimlane"));
 });
 
@@ -205,15 +221,15 @@ test("画面に出ていない文字は下限を決めない (#1084)", async ({ 
   await page.waitForTimeout(2500);
   await 見本が開けたことを確かめる(page, "er");
 
-  const m = await 測る(page);
-  expect(m!.件数, "文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
+  const m = await 測れた(page);
+  expect(m.件数, "文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
   // 下限が倍率を決めているので、 見えている最小文字はちょうど 8px に張り付く。
   // 隠れた 20 の文字を数えると下限が 36.4% → 40% に上がり、 文字は 8.8px になる
   expect(
-    m!.最小.px,
-    `下限より大きく描かれている (隠れた文字を数えた疑い): ${m!.最小.px}px (倍率 ${m!.倍率})`,
+    m.最小.px,
+    `下限より大きく描かれている (隠れた文字を数えた疑い): ${m.最小.px}px (倍率 ${m.倍率})`,
   ).toBeLessThan(8.7);
-  expect(m!.最小.px, `文字が小さすぎる: ${m!.最小.px}px`).toBeGreaterThanOrEqual(8);
+  expect(m.最小.px, `文字が小さすぎる: ${m.最小.px}px`).toBeGreaterThanOrEqual(8);
 });
 
 test("枠に余裕がある図では倍率を上げない (#1084)", async ({ page }) => {
@@ -225,9 +241,9 @@ test("枠に余裕がある図では倍率を上げない (#1084)", async ({ pag
   await page.waitForTimeout(2500);
   await 見本が開けたことを確かめる(page, "flow");
 
-  const m = await 測る(page);
-  expect(m!.倍率, `倍率が動いた: ${m!.倍率}`).toBeGreaterThan(0.55);
-  expect(m!.倍率, `倍率が上がった: ${m!.倍率}`).toBeLessThan(0.65);
+  const m = await 測れた(page);
+  expect(m.倍率, `倍率が動いた: ${m.倍率}`).toBeGreaterThan(0.55);
+  expect(m.倍率, `倍率が上がった: ${m.倍率}`).toBeLessThan(0.65);
 });
 
 // **ここは手で並べる**。 各見本の「読める下限」 は実測した数で、 見本ごとに違うため導けない。

@@ -205,13 +205,18 @@ test.describe("局面の表示 (#1143)", () => {
         const L = (c: string): number => {
           const m = /rgba?\(([^)]+)\)/u.exec(c);
           if (m === null) return Number.NaN;
-          const [r, g, bb] = m[1].split(",").map((v) => Number(v.trim()) / 255);
+          // 必須の群。 一致した以上必ず取れる
+          const 成分 = (m[1] ?? "").split(",").map((v) => Number(v.trim()) / 255);
+          const r = 成分[0] ?? Number.NaN;
+          const g = 成分[1] ?? Number.NaN;
+          const bb = 成分[2] ?? Number.NaN;
           const 直線 = (v: number): number =>
             v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
           return 0.2126 * 直線(r) + 0.7152 * 直線(g) + 0.0722 * 直線(bb);
         };
-        const [x, y] = [L(a), L(b)].sort((p, q) => q - p);
-        return (x + 0.05) / (y + 0.05);
+        const la = L(a);
+        const lb = L(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
       };
 
       // 閾値は `dark-ground-step.spec.ts` が箱に課しているものと同じ 4.61 を使う

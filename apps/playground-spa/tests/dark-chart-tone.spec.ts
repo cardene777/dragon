@@ -51,7 +51,10 @@ const huesOf = (page: Page, id: string) =>
           vals.push(raw);
           continue;
         }
-        const def = document.getElementById(u[1]);
+        // 必須の群。 一致した以上必ず取れる
+        const id = u[1];
+        if (id === undefined) continue;
+        const def = document.getElementById(id);
         if (!def) continue;
         for (const st of Array.from(def.querySelectorAll("stop"))) {
           vals.push(getComputedStyle(st).stopColor);
@@ -98,15 +101,19 @@ const contrastsOf = (page: Page, id: string) =>
       const g = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(v ?? "");
       if (g) return [Number(g[1]), Number(g[2]), Number(g[3]), g[4] === undefined ? 1 : Number(g[4])];
       const h = /^#([0-9a-f]{6})$/i.exec(v ?? "");
-      if (h) {
+      // 必須の群。 一致した以上必ず取れる
+      if (h?.[1] !== undefined) {
         const n = parseInt(h[1], 16);
         return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 1];
       }
       return null;
     };
-    const tones = Object.keys(DEF).map(
-      (t) => cs0.getPropertyValue(`--cdl-tone-${t}`).trim().toLowerCase() || DEF[t],
-    );
+    const tones = Object.keys(DEF).flatMap((t) => {
+      // 既定の表は `DEF` の key で回すので必ず引ける
+      const 既定 = DEF[t];
+      const v = cs0.getPropertyValue(`--cdl-tone-${t}`).trim().toLowerCase() || 既定;
+      return v === undefined ? [] : [v];
+    });
     const toneRgb = tones.map(parse).filter(Boolean) as Array<[number, number, number, number]>;
     const near = (a: [number, number, number], b: [number, number, number]) =>
       Math.abs(a[0] - b[0]) < 3 && Math.abs(a[1] - b[1]) < 3 && Math.abs(a[2] - b[2]) < 3;
@@ -117,8 +124,9 @@ const contrastsOf = (page: Page, id: string) =>
     };
     const lum = (c: [number, number, number]) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
     const contrast = (a: [number, number, number], b: [number, number, number]) => {
-      const [l1, l2] = [lum(a), lum(b)].sort((x, y) => y - x);
-      return (l1 + 0.05) / (l2 + 0.05);
+      const la = lum(a);
+      const lb = lum(b);
+      return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
     };
 
     /** 祖先まで遡って `opacity` を掛け合わせる。 自分の値だけ見ると group 側の薄さが落ちる。 */
@@ -153,7 +161,7 @@ const contrastsOf = (page: Page, id: string) =>
         // `url(#id)` は gradient の定義を指す。 stop を辿って実際に出る色で測る。
         const u = /^url\(["']?#([^"')]+)["']?\)/.exec(cs[prop] ?? "");
         const raws: string[] = [];
-        if (u) {
+        if (u?.[1] !== undefined) {
           const def = document.getElementById(u[1]);
           for (const st of Array.from(def?.querySelectorAll("stop") ?? [])) {
             raws.push(getComputedStyle(st).stopColor);
@@ -204,20 +212,27 @@ const contrastsOf = (page: Page, id: string) =>
         // 自分と同じ色の図形の上に乗る飾り (枝線の上の接合点等) は対比を持ちようがない。
         // 明色でも同じ形で 1.00 になるので、 dark 固有の劣化ではない。
         if (selfColored) continue;
-        let acc = layers[layers.length - 1].c;
+        // 3 つ組は添字で回さず 1 つずつ書く。 添字で回すと組の要素が `undefined` を
+        // 含む型になり、`as` で潰すしかなくなる
+        const 重ねる = (
+          c: [number, number, number],
+          a: number,
+          下: [number, number, number],
+        ): [number, number, number] => [
+          Math.round(c[0] * a + 下[0] * (1 - a)),
+          Math.round(c[1] * a + 下[1] * (1 - a)),
+          Math.round(c[2] * a + 下[2] * (1 - a)),
+        ];
+        const 最下 = layers[layers.length - 1];
+        // `layers.length === 0` は上で弾いているので必ず引ける
+        if (最下 === undefined) continue;
+        let acc = 最下.c;
         for (let k = layers.length - 2; k >= 0; k--) {
           const l = layers[k];
-          acc = [0, 1, 2].map((j) => Math.round(l.c[j] * l.a + acc[j] * (1 - l.a))) as [
-            number,
-            number,
-            number,
-          ];
+          if (l === undefined) continue;
+          acc = 重ねる(l.c, l.a, acc);
         }
-        const eff = [0, 1, 2].map((j) => Math.round(rgb[j] * alpha + acc[j] * (1 - alpha))) as [
-          number,
-          number,
-          number,
-        ];
+        const eff = 重ねる(rgb, alpha, acc);
         out.push({
           tag: el.tagName,
           role,

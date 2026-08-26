@@ -28,8 +28,13 @@ function parsePath(d: string): Array<{ x: number; y: number }> {
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (t === "M" || t === "L") {
-      const x = parseFloat(tokens[i + 1]);
-      const y = parseFloat(tokens[i + 2]);
+      // 続く 2 つが無い = 並びの終わり。 元の形も `parseFloat(undefined)` が NaN になり
+      // push されず、その後に読むものが無いので同じ結果になる
+      const xs = tokens[i + 1];
+      const ys = tokens[i + 2];
+      if (xs === undefined || ys === undefined) break;
+      const x = parseFloat(xs);
+      const y = parseFloat(ys);
       if (Number.isFinite(x) && Number.isFinite(y)) points.push({ x, y });
       i += 2;
     }
@@ -126,8 +131,11 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
         for (let i = 0; i < tokens.length; i++) {
           const t = tokens[i];
           if (t === "M" || t === "L") {
-            const x = parseFloat(tokens[i + 1]);
-            const y = parseFloat(tokens[i + 2]);
+            const xs = tokens[i + 1];
+            const ys = tokens[i + 2];
+            if (xs === undefined || ys === undefined) break;
+            const x = parseFloat(xs);
+            const y = parseFloat(ys);
             if (Number.isFinite(x) && Number.isFinite(y)) pts.push({ x, y });
             i += 2;
           }
@@ -172,7 +180,11 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
     });
     expect(widths.length, "funnel-stage が 2 件以上").toBeGreaterThanOrEqual(2);
     for (let i = 1; i < widths.length; i++) {
-      expect(widths[i], `stage[${i}] 幅 (${widths[i]}) <= stage[${i - 1}] 幅 (${widths[i - 1]})`).toBeLessThanOrEqual(widths[i - 1] + 0.5);
+      const 今 = widths[i];
+      const 前 = widths[i - 1];
+      // 上の `toBeGreaterThanOrEqual(2)` が先に落ちるので、ここへは 2 件以上ある時しか来ない
+      if (今 === undefined || 前 === undefined) continue;
+      expect(今, `stage[${i}] 幅 (${今}) <= stage[${i - 1}] 幅 (${前})`).toBeLessThanOrEqual(前 + 0.5);
     }
   });
 
@@ -184,7 +196,9 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
       const svg = document.querySelector('svg[role="img"]');
       if (!svg) return null;
       const view = svg.getAttribute("viewBox")?.split(/\s+/).map(Number) ?? [0, 0, 0, 0];
-      const [, , w, h] = view;
+      // 4 つ揃わない形は上の `?? [0, 0, 0, 0]` と同じく 0 に落とす (元の挙動と揃える)
+      const w = view[2] ?? 0;
+      const h = view[3] ?? 0;
       const texts = Array.from(svg.querySelectorAll("text")).filter((t) => t.textContent === "Project");
       if (texts.length === 0) return null;
       const bbox = (texts[0] as SVGGraphicsElement).getBBox();

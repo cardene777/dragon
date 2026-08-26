@@ -27,7 +27,10 @@ function 箱を読む(記法: string): Array<{ 名前: string; 補足: string }>
     // 次の最上位の項目 (`states:` 等) に当たったら終わり
     if (x.trim() !== "" && !x.startsWith(" ")) break;
     const m = /^ {2}- ([^:]+): "([^"]*)"\s*$/u.exec(x);
-    if (m) 出.push({ 名前: m[1].trim(), 補足: m[2] });
+    // 2 つとも必須の群。 一致した以上必ず取れる
+    const 名前 = m?.[1];
+    const 補足 = m?.[2];
+    if (名前 !== undefined && 補足 !== undefined) 出.push({ 名前: 名前.trim(), 補足 });
   }
   return 出;
 }
@@ -38,10 +41,14 @@ function 値を読む(記法: string, 欄: "初期" | "行き先"): Map<string, 
   for (const x of 記法.split("\n")) {
     if (欄 === "行き先") {
       const m = /^\s+(\w+):\s*[\d.]+\s*->\s*([\d.]+)\s*$/u.exec(x);
-      if (m) 出.set(m[1], m[2]);
+      const k = m?.[1];
+      const v = m?.[2];
+      if (k !== undefined && v !== undefined) 出.set(k, v);
     } else {
       const m = /^ {2}(\w+):\s*([\d.]+)\s*$/u.exec(x);
-      if (m) 出.set(m[1], m[2]);
+      const k = m?.[1];
+      const v = m?.[2];
+      if (k !== undefined && v !== undefined) 出.set(k, v);
     }
   }
   return 出;
@@ -170,7 +177,11 @@ test.describe("放射図の名前と補足が箱に収まる (#1332)", () => {
   ] as const) {
     test(`${見出し} — 名前と補足がそのまま出る`, async ({ page }) => {
       await 開く(page);
-      const { 文字 } = await 落ち着くまで待つ(page, 段の並び[番]);
+      const 段 = 段の並び[番];
+      // 上の `toBeGreaterThanOrEqual(2)` が先に落ちるので、ここへは 2 段以上ある時しか来ない
+      expect(段, `段 ${番} を記法から読めていない (検査が空振りしている)`).toBeDefined();
+      if (段 === undefined) return;
+      const { 文字 } = await 落ち着くまで待つ(page, 段);
 
       expect(文字.length, "図の文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
       expect(
@@ -181,7 +192,10 @@ test.describe("放射図の名前と補足が箱に収まる (#1332)", () => {
 
     test(`${見出し} — 箱に収まる`, async ({ page }) => {
       await 開く(page);
-      const { 文字, 箱数 } = await 落ち着くまで待つ(page, 段の並び[番]);
+      const 段 = 段の並び[番];
+      expect(段, `段 ${番} を記法から読めていない (検査が空振りしている)`).toBeDefined();
+      if (段 === undefined) return;
+      const { 文字, 箱数 } = await 落ち着くまで待つ(page, 段);
 
       expect(文字.length, "図の文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
       expect(箱数, "箱を記法の数だけ測れていない (検査が空振りしている)").toBe(箱.length);
