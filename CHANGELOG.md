@@ -5,6 +5,19 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Fixed
+
+- **呼ばれていない宣言 5 件を消し、`lint` の errors を 0 にした** (#1435)
+
+  `no-unused-vars` の 5 件。 helper 2 件 (`dropPart` / `getAllPartsRects`) は #923 が
+  部品の drag drop ごと機能を外した際の置き去りで、使う側の検査はあの PR で既に消えていた。
+
+  `dropPart` に付いていた説明文は #1436 に原文で切り出した。 「図全体を拡大した時、
+  canvas に置いた部品も一緒に拡大する」 という主張で、部品を DSL から置く今も成り立つが、
+  倍率の検査は **図の SVG しか測っていない** ためどの検査も見ていない。 消すと主張ごと消える。
+
+  公開物 (`packages/dragon/src/`) は触っていない。
+
 予定 ... feedback を反映した patch / minor。
 
 ## [0.15.0] - 2026-08-26
