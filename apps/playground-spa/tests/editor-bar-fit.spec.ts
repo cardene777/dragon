@@ -37,7 +37,7 @@ const 幅一覧 = [1440, 1280, 1200, 1100, 1024, 960, 901];
 
 async function openEditor(page: import("@playwright/test").Page, width: number): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(1800);
 }

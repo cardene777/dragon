@@ -29,8 +29,8 @@ async function 札(page: Page): Promise<string> {
 }
 
 const 画面 = [
-  { 名: "カタログの分類", path: "/catalog/animation", 寄せ: "is-right", 舞台: ".catalog-preview-stage" },
-  { 名: "見本の詳細", path: "/preset/sequence", 寄せ: "is-left", 舞台: ".nm-preset-detail-stage" },
+  { 名: "カタログの分類", path: "catalog/animation", 寄せ: "is-right", 舞台: ".catalog-preview-stage" },
+  { 名: "見本の詳細", path: "preset/sequence", 寄せ: "is-left", 舞台: ".nm-preset-detail-stage" },
 ] as const;
 
 for (const s of 画面) {
@@ -88,7 +88,7 @@ test.describe("段が 1 つ以下の図 (#1239)", () => {
   test("札も帯も出さない", async ({ page }) => {
     // `styles` の先頭 (`アクティブ状態のedge`) は段を 1 つしか持たない。 段が 1 つ以下では
     // 進み具合を示す先が無く、1/1 の帯が常に満杯で意味を持たない
-    await 開く(page, "/catalog/styles");
+    await 開く(page, "catalog/styles");
 
     // **図が出ていることを先に確かめる**。 頁が壊れて何も描けていない状態でも
     // 「札が無い」 は成り立ってしまう
@@ -101,7 +101,7 @@ test.describe("段が 1 つ以下の図 (#1239)", () => {
   test("段が 2 つ以上の分類では出る (陰性対照)", async ({ page }) => {
     // 上が「この画面では元から出ない」 のではなく、段の数で分かれていることを示す。
     // 同じ経路 (`/catalog/:slug` の図の面) で出る分類を 1 つ通す
-    await 開く(page, "/catalog/patterns");
+    await 開く(page, "catalog/patterns");
     await expect(page.locator(".cdl-phase-chip")).toHaveCount(1);
   });
 });

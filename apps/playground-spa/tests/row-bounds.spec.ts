@@ -85,7 +85,7 @@ const rowCount = (d: CdlDiagram): number =>
 
 /** 見本を id で名指しして開き、 font の読込と描画を待つ。 */
 async function openDiagram(page: Page, slug: string, id: string): Promise<void> {
-  await page.goto(`/catalog/${slug}`);
+  await page.goto(`catalog/${slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
   await page.locator(".catalog-list-item").filter({ hasText: id }).first().click();
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });

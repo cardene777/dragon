@@ -35,7 +35,7 @@ function 表示名(id: string): string {
 }
 
 async function openDiagram(page: import("@playwright/test").Page, id: string): Promise<void> {
-  await page.goto("/catalog/ethereum");
+  await page.goto("catalog/ethereum");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
   const name = 表示名(id);
@@ -48,7 +48,7 @@ async function openDiagram(page: import("@playwright/test").Page, id: string): P
 }
 
 test("カタログに 4 図が並ぶ", async ({ page }) => {
-  await page.goto("/catalog/ethereum");
+  await page.goto("catalog/ethereum");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
   const names = (await page.locator(".catalog-list-item-name").allTextContents()).map((s) => s.trim());

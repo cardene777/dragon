@@ -17,13 +17,13 @@ function shareHash(dsl: string): string {
 
 /** 図が出ない本文 (誤りを見る場合) はこちらで開く。 */
 async function openRaw(page: Page, dsl: string): Promise<void> {
-  await page.goto(`/editor#s=${shareHash(dsl)}`);
+  await page.goto(`editor#s=${shareHash(dsl)}`);
   await page.waitForSelector(".v4-editor-code-body", { timeout: 20000 });
   await page.waitForTimeout(900);
 }
 
 async function openWith(page: Page, dsl: string): Promise<void> {
-  await page.goto(`/editor#s=${shareHash(dsl)}`);
+  await page.goto(`editor#s=${shareHash(dsl)}`);
   await page.waitForSelector(".v4-editor-stage svg", { timeout: 20000 });
   // 入力の debounce (300ms) と再描画を待つ
   await expect

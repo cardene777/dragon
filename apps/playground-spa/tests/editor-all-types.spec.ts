@@ -12,7 +12,7 @@ test.use({ viewport: { width: 1920, height: 1080 } });
 
 /** sidebar の「サンプル」 tab から slug 指定で開く。 */
 async function openSample(page: import("@playwright/test").Page, slug: string): Promise<void> {
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
   await page.getByRole("tab", { name: "サンプル" }).click();

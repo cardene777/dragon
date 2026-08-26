@@ -5,8 +5,8 @@ const OUT = "test-results/sweep";
 mkdirSync(OUT, { recursive: true });
 
 const PAGES: Array<{ path: string; slug: string }> = [
-  { path: "/editor", slug: "editor" },
-  { path: "/docs", slug: "docs" },
+  { path: "editor", slug: "editor" },
+  { path: "docs", slug: "docs" },
 ];
 
 for (const p of PAGES) {

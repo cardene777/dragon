@@ -33,7 +33,7 @@ const 広い画面 = [
 
 async function openEditor(page: import("@playwright/test").Page, width: number): Promise<void> {
   await page.setViewportSize({ width, height: 780 });
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(1500);
 }

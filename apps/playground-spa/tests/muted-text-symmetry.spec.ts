@@ -188,6 +188,14 @@ async function 動きを止める(page: Page): Promise<void> {
   });
 }
 
+/**
+ * 落ちた時に出す画面の名前。
+ *
+ * 経路は base 相対で書くため、トップだけ空文字になる (#1438)。 そのまま出すと
+ * 「 で薄い文字を 1 つも測れていない」 のように、どの画面の話か読めない形になる。
+ */
+const 画面名 = (path: string): string => path || "トップ";
+
 async function 開く(page: Page, path: string, 暗い: boolean, 部品?: string): Promise<void> {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(path);
@@ -207,7 +215,7 @@ async function 開く(page: Page, path: string, 暗い: boolean, 部品?: string
       (札 as HTMLElement).click();
       return true;
     }, 部品);
-    expect(押せた, `${path} に ${部品} が見つからない (一覧の中身が変わった)`).toBe(true);
+    expect(押せた, `${画面名(path)} に ${部品} が見つからない (一覧の中身が変わった)`).toBe(true);
     await page.waitForTimeout(2000);
   }
   await 動きを止める(page);
@@ -290,12 +298,13 @@ async function 測る(page: Page): Promise<{ 測れた: 結果[]; 測れず: 測
  * 入れると件数条件を満たせない。
  */
 const 画面 = [
-  { path: "/", 部品: undefined }, // 35 件
-  { path: "/catalog/presets", 部品: undefined }, // 26 件
-  { path: "/editor", 部品: undefined }, // 90 件
-  { path: "/contribute", 部品: undefined }, // 5 件
-  { path: "/catalog/interactive", 部品: "interactive-dynamic-readouts" }, // 135 件
+  { path: "", 部品: undefined }, // 35 件
+  { path: "catalog/presets", 部品: undefined }, // 26 件
+  { path: "editor", 部品: undefined }, // 90 件
+  { path: "contribute", 部品: undefined }, // 5 件
+  { path: "catalog/interactive", 部品: "interactive-dynamic-readouts" }, // 135 件
 ] as const;
+
 
 for (const 暗い of [false, true]) {
   const 名 = 暗い ? "暗い" : "明るい";
@@ -303,15 +312,15 @@ for (const 暗い of [false, true]) {
     for (const { path, 部品 } of 画面) {
       await 開く(page, path, 暗い, 部品);
       const { 測れた: 件, 測れず } = await 測る(page);
-      expect(件.length, `${path} で薄い文字を 1 つも測れていない (選択子が実装とずれた)`).toBeGreaterThan(0);
+      expect(件.length, `${画面名(path)} で薄い文字を 1 つも測れていない (選択子が実装とずれた)`).toBeGreaterThan(0);
       expect(
         測れず.map((x: 測れず) => `「${x.文}」 ${x.px}px (${x.理由})`),
-        `${名}画面 ${path} に読めることを確かめられない薄い文字がある`,
+        `${名}画面 ${画面名(path)} に読めることを確かめられない薄い文字がある`,
       ).toEqual([]);
       for (const { 文, 比, 要, px, 地 } of 件) {
         expect(
           比,
-          `${名}画面 ${path} の「${文}」 が地に溶ける (${px}px / 地 ${地} / 対比 ${比.toFixed(2)} / 要 ${要})`,
+          `${名}画面 ${画面名(path)} の「${文}」 が地に溶ける (${px}px / 地 ${地} / 対比 ${比.toFixed(2)} / 要 ${要})`,
         ).toBeGreaterThanOrEqual(要);
       }
     }
@@ -323,7 +332,7 @@ test("薄い文字の読みやすさが明暗で揃っている", async ({ page 
   //
   // **地が明暗で違うので色そのものは比べられない**。 地に対する対比で比べる。
   const 代表 = async (暗い: boolean): Promise<number> => {
-    await 開く(page, "/catalog/presets", 暗い);
+    await 開く(page, "catalog/presets", 暗い);
     const { 測れた: 件 } = await 測る(page);
     expect(件.length, `${暗い ? "暗い" : "明るい"}側で薄い文字を測れていない`).toBeGreaterThan(0);
     // 面の上に乗るものが多数派なので中央値を採る (端の 1 件に引きずられない)

@@ -63,7 +63,7 @@ async function 矢印が出るまで待つ(page: import("@playwright/test").Page
 
 test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
+    await page.goto("catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
   });
 

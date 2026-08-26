@@ -21,7 +21,7 @@ const 釦 = "editor-toggle-grid";
 
 async function 開く(page: import("@playwright/test").Page): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(1800);
 }

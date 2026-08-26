@@ -249,7 +249,7 @@ const contrastsOf = (page: Page, id: string) =>
 
 /** 図を id で名指しして開く。 */
 async function open(page: Page, id: string): Promise<void> {
-  await page.goto("/catalog/presets", { waitUntil: "networkidle" });
+  await page.goto("catalog/presets", { waitUntil: "networkidle" });
   await page.waitForTimeout(1200);
   await page.locator(".catalog-list-item").filter({ hasText: id }).first().click();
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });

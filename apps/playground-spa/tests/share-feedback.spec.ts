@@ -20,7 +20,7 @@ const 知らせ = (page: import("@playwright/test").Page) =>
 test("上端の帯の共有を押すと知らせが出る (#1082)", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
 
@@ -39,7 +39,7 @@ test("上端の帯の共有を押すと知らせが出る (#1082)", async ({ pag
 test("エディタの共有を押すと知らせが出て絵が残る (#1082)", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
 
@@ -69,7 +69,7 @@ test("写す口が無い環境でも失敗の知らせが出る (#1082)", async 
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
     window.prompt = () => null;
   });
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
 
@@ -92,7 +92,7 @@ test("写せなかった時は失敗の知らせが出る (#1082)", async ({ pag
     // 失敗時の逃げ道 (URL を出す窓) は試験を止めるので黙らせる
     window.prompt = () => null;
   });
-  await page.goto("/editor");
+  await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
 

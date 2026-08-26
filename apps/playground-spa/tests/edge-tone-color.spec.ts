@@ -166,8 +166,8 @@ async function open(page: Page, path: string, dark: boolean): Promise<void> {
 }
 
 const SCREENS = [
-  { name: "catalog", path: "/catalog/interactive" },
-  { name: "editor", path: "/editor" },
+  { name: "catalog", path: "catalog/interactive" },
+  { name: "editor", path: "editor" },
 ] as const;
 
 test.use({ viewport: { width: 1500, height: 1000 } });
@@ -255,7 +255,7 @@ for (const screen of SCREENS) {
 
 test("実在する edge も tone の色で描かれる (複製ではなく本物で確かめる)", async ({ page }) => {
   // interactive-ab-test = info (対照群へ) と success (処理群へ) の 2 本を持つ図。
-  await open(page, "/catalog/interactive", false);
+  await open(page, "catalog/interactive", false);
   const seen = await page.evaluate(() => {
     const out: Array<{ tone: string; stroke: string; opacity: number; head: string | null }> = [];
     for (const g of document.querySelectorAll("[data-cdl-edge]")) {

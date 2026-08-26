@@ -243,7 +243,7 @@ test("上部の帯の行き先が実装と揃っている", async ({ page }) => 
     Number(数),
   );
 
-  await page.goto("/");
+  await page.goto("");
   await page.waitForLoadState("networkidle");
   const 実装 = (
     await page.$$eval(".v4-nav-links a", (els) => els.map((e) => (e.textContent ?? "").trim()))
@@ -259,7 +259,7 @@ test("カタログの分類が実装と揃っている", async ({ page }) => {
   expect(表.length, "カタログ一覧の表を読めていない").toBeGreaterThan(0);
 
   const 仕様 = 表.map((r) => 正規化(列(r, 0)));
-  const 実装 = (await 実装の見出し(page, "/catalog", "h2")).map(正規化);
+  const 実装 = (await 実装の見出し(page, "catalog", "h2")).map(正規化);
   expect(実装.length, "/catalog から見出しを 1 つも読めていない").toBeGreaterThan(0);
   expect(仕様, "仕様書の分類と実装の分類が違う").toEqual(実装);
 });
@@ -269,7 +269,7 @@ test("ドキュメントの節が実装と揃っている", async ({ page }) => 
   expect(表.length, "ドキュメントの節の表を読めていない").toBeGreaterThan(0);
 
   const 仕様 = 表.map((r) => 正規化(列(r, 0)));
-  const 実装 = (await 実装の見出し(page, "/docs", "h2")).map(正規化);
+  const 実装 = (await 実装の見出し(page, "docs", "h2")).map(正規化);
   expect(実装.length, "/docs から見出しを 1 つも読めていない").toBeGreaterThan(0);
   // 並び順は問わない = 仕様書は読む順、 実装は画面上の配置順で、 どちらも正しい
   expect([...仕様].sort(), "仕様書のドキュメントの節と実装の節が違う").toEqual([...実装].sort());
@@ -283,7 +283,7 @@ test("参加方法の項目が実装と揃っている", async ({ page }) => {
   expect(手順.length, "参加方法の手順の表を読めていない").toBeGreaterThan(0);
 
   const 仕様 = [...手段, ...手順].map((r) => 正規化(列(r, 0)));
-  const 実装 = (await 実装の見出し(page, "/contribute", "h3")).map(正規化);
+  const 実装 = (await 実装の見出し(page, "contribute", "h3")).map(正規化);
   expect(実装.length, "/contribute から見出しを 1 つも読めていない").toBeGreaterThan(0);
   expect([...仕様].sort(), "仕様書の参加方法の項目と実装の項目が違う").toEqual([...実装].sort());
 });
@@ -303,7 +303,7 @@ test("トップの版の札が package.json と一致する", async ({ page }) =
   expect(pkg.version, "package.json に version が無い").toBeDefined();
   const 期待 = `v${pkg.version!.split(".").slice(0, 2).join(".")}`;
 
-  await page.goto("/");
+  await page.goto("");
   await page.waitForLoadState("networkidle");
   const 札 = await page.$$eval(".hero-eyebrow .chip", (els) =>
     els.map((e) => (e.textContent ?? "").trim()),

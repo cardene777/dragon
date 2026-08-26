@@ -120,29 +120,46 @@ pnpm typecheck                                   # tsc -b 全 workspace
 **server を 2 つ立ててから回す**。 立てずに回すと、見に行く先が無い検査がまとめて落ちる。
 
 ```bash
-# 1. 開発 server (記法を書く画面を配る)
-pnpm dev
-
-# 2. 本番 build の preview (base path が付いた形を配る、別の terminal で)
+# 1. 本番 build の preview (ほぼ全ての検査がここを見る)
 pnpm build
 cd apps/playground-spa && pnpm preview
+
+# 2. 開発 server (`/__render` を使う spec だけがここを見る、別の terminal で)
+pnpm dev
 
 # 3. 検査を回す (さらに別の terminal で)
 pnpm --filter dragon-playground-spa test:e2e
 ```
 
-2 つ要るのは、本番 build が dev と別の経路だから。 `base: "/dragon/"` が付き、chunk が
-分かれ、変数名が変わる。 dev で動いても本番で壊れることがあるため、`prod-check` /
-`a11y-check` / `final-check` の 3 spec だけは preview を見に行く。
+**検査は build 済の画面を見る**。 開発 server を見ていた間、実行中に file を編集すると
+Vite が繋いでいる画面を全再読み込みし、走行中の検査が巻き添えで落ちていた (#1438)。
+落ち方が「要素が現れず時間切れ」 に見えるため flake と区別が付かない。 build 済の画面は
+編集で作り直されないので、この経路が消える。
+
+代償として **画面を直したら `pnpm build` を回し直す**。 preview が配るのは build の成果物で、
+`src/` の編集は自動では反映されない。
+
+開発 server が要るのは `row-bounds-offset.spec.ts` だけ。 図を流し込む頁 (`/__render`) が
+`import.meta.env.DEV` の時しか繋がらず、build 済には route が無いため。 対象は
+`playwright.config.ts` の `開発serverの検査` が持つ。
+
+`prod-check` / `a11y-check` / `final-check` の 3 spec は従来どおり `PROD_BASE_URL` から
+自分で絶対 URL を組んで preview を見る。
 
 port は `apps/playground-spa/ports.ts` が持つ。 開発と preview で別の port を使うので、
 2 つを同時に立てたままにできる。
+
+**spec の `goto` は先頭 `/` を付けずに書く**。 build 済は `/dragon/` の下に配られ、
+`new URL(path, base)` は先頭 `/` を「origin 直下」 と読んで base を捨てる = `goto("/editor")`
+は base の外を開き、画面が出ないまま落ちる。 `src/lib/spec-base-url.test.ts` が literal の
+先頭 `/` を検出する。
 
 見に行く先は環境変数で差し替えられる。
 
 | 変数 | 差し替える先 | 既定 |
 | --- | --- | --- |
-| `SPA_URL` | 開発 server を見る検査 | `ports.ts` の `DEV_URL` |
+| `SPA_URL` | build 済を見る検査 (大半) | `ports.ts` の `PREVIEW_BASE_URL` |
+| `DEV_SPA_URL` | 開発 server を見る spec | `ports.ts` の `DEV_URL` |
 | `PROD_BASE_URL` | 本番 build を見る 3 spec | `ports.ts` の `PREVIEW_URL` |
 
 **依存の版を上げた直後は server を立て直す**。 Vite は起動時に依存を抱え込むため、

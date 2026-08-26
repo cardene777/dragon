@@ -2,7 +2,14 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { DEV_PORT, DEV_URL, PREVIEW_PORT, PREVIEW_BASE_PATH, PREVIEW_URL } from "../../ports";
+import {
+  DEV_PORT,
+  DEV_URL,
+  PREVIEW_PORT,
+  PREVIEW_BASE_PATH,
+  PREVIEW_BASE_URL,
+  PREVIEW_URL,
+} from "../../ports";
 
 /**
  * 画面を配る port が 1 箇所から導かれることの検証 (#1326)。
@@ -36,6 +43,16 @@ describe("画面を配る port (#1326)", () => {
   it("URL が port と base から組まれる", () => {
     expect(DEV_URL).toBe(`http://localhost:${DEV_PORT}`);
     expect(PREVIEW_URL).toBe(`http://localhost:${PREVIEW_PORT}${PREVIEW_BASE_PATH}`);
+  });
+
+  it("検査が見に行く先が base 相対の解決で subpath を落とさない", () => {
+    // 末尾 `/` が無いと `URL()` は base の最後の一区画を捨てる。 実際に踏んだ = 49 spec を
+    // subpath 配信へ向けた 1 回目が、根こそぎ「画面が出ない」 形で落ちた (#1438)
+    expect(new URL("editor", PREVIEW_BASE_URL).pathname).toBe(`${PREVIEW_BASE_PATH}/editor`);
+    expect(new URL("", PREVIEW_BASE_URL).pathname).toBe(`${PREVIEW_BASE_PATH}/`);
+    // 対照 = 末尾 `/` を落とすと base ごと消える。 これが無いと「末尾 `/` が要る」 の
+    // 主張が恒真になる (どちらでも通る形に気付けない)
+    expect(new URL("editor", PREVIEW_URL).pathname).toBe("/editor");
   });
 
   it("設定が宣言どおりの port を配る", async () => {

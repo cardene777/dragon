@@ -62,7 +62,7 @@ async function 扇の切り抜き(page: import("@playwright/test").Page): Promis
 
 test.describe("棒を横軸から伸ばす (#1314)", () => {
   test("`draw: bar` を書いた見本では倍率が付き、動く", async ({ page }) => {
-    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+    await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("棒グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -92,7 +92,7 @@ test.describe("棒を横軸から伸ばす (#1314)", () => {
      * preset 側に棒グラフの見本が無いため (`presets.ts` は円と折れ線だけ)、別の図を
      * 対照に取れない。 同じ図の段で対照を取る方が、図の違いによる差も入らない
      */
-    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+    await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("棒グラフ", { exact: true }).first().click();
 
@@ -112,7 +112,7 @@ test.describe("棒を横軸から伸ばす (#1314)", () => {
 
 test.describe("扇を 12 時から開く (#1314)", () => {
   test("`draw: pie` を書いた見本では切り抜きが付き、形が変わる", async ({ page }) => {
-    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+    await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("円グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -146,7 +146,7 @@ test.describe("扇を 12 時から開く (#1314)", () => {
      * #1357 より前はこの図が丸ごと `draw` を持たず、図そのものを対照にしていた。 図に
      * `draw` を入れた時点でその対照は消えるため、段で取り直した (折れ線と同じ形)。
      */
-    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
+    await page.goto("catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("円グラフ", { exact: true }).first().click();
 
@@ -185,7 +185,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
 
   for (const [見本, _sel] of Object.entries(観測)) {
     test(`${見本}: 枝や線の残りが動く`, async ({ page }) => {
-      await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+      await page.goto("catalog/charts", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await page.getByText(見本, { exact: true }).first().click();
 
@@ -207,7 +207,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
   }
 
   test("工程表: 帯の倍率が動く", async ({ page }) => {
-    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+    await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("工程表", { exact: true }).first().click();
 
@@ -226,7 +226,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
   });
 
   test("絞り込み図: 切り抜きの高さが動く", async ({ page }) => {
-    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+    await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("絞り込み図", { exact: true }).first().click();
 
@@ -245,7 +245,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
 
 test.describe("折れ線を左から伸ばす (#1312)", () => {
   test("`draw: line` を書いた見本では dash が付き、残りが動く", async ({ page }) => {
-    await page.goto("/catalog/charts", { waitUntil: "networkidle" });
+    await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
@@ -284,7 +284,7 @@ test.describe("折れ線を左から伸ばす (#1312)", () => {
      * #1351 より前はこの図が丸ごと `draw` を持たず、図そのものを対照にしていた。 図に
      * `draw` を入れた時点でその対照は消えるため、段で取り直した (棒グラフと同じ形)。
      */
-    await page.goto("/catalog/presets", { waitUntil: "networkidle" });
+    await page.goto("catalog/presets", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("折れ線グラフ", { exact: true }).first().click();
 

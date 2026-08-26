@@ -30,7 +30,7 @@ const endsOf = (page: import("@playwright/test").Page) =>
   }));
 
 test("editor の初期表示で線が最後まで伸びる (#381)", async ({ page }) => {
-  await page.goto("/editor");
+  await page.goto("editor");
   // SVG の path は fill が無いと visible 判定にならないので attached で待つ。
   await page.waitForSelector('.v4-editor-stage svg[data-cdl-stage] [data-cdl-role="edge-line"]', { state: "attached", timeout: 20000 });
 

@@ -17,7 +17,7 @@ import { test, expect } from "@playwright/test";
 
 async function openSample(page: import("@playwright/test").Page, slug: string): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/editor#preset=${slug}`);
+  await page.goto(`editor#preset=${slug}`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
 }
@@ -101,7 +101,7 @@ test("タスクが多いガントでも帯が箱に収まる (#1077)", async ({ 
     `    focus: [タスク1]`,
   ].join("\n");
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/editor#s=${Buffer.from(src, "utf8").toString("base64")}`);
+  await page.goto(`editor#s=${Buffer.from(src, "utf8").toString("base64")}`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
 

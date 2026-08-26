@@ -46,7 +46,7 @@ const 静止図 = (type: string): string =>
 for (const type of TYPES) {
   test(`type: ${type} を animation 無しで書いても図が出る (#1086)`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`/editor#s=${Buffer.from(静止図(type), "utf8").toString("base64")}`);
+    await page.goto(`editor#s=${Buffer.from(静止図(type), "utf8").toString("base64")}`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2200);
 
@@ -89,7 +89,7 @@ test("animation を書いた図では段の数が変わらない (#1086)", async
     `    focus: [B]`,
   ].join("\n");
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/editor#s=${Buffer.from(src, "utf8").toString("base64")}`);
+  await page.goto(`editor#s=${Buffer.from(src, "utf8").toString("base64")}`);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2200);
 
@@ -120,7 +120,7 @@ test("見本「プロジェクト構想」 に日本語の名前が出る (#1090
   // 変更前は `- root: { title: "新プロジェクト" }` と書かれており、 `title` は読める項目では
   // ないため黙って捨てられ、 識別子 (`root` / `features` 等) が箱に出ていた
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/editor#preset=mind");
+  await page.goto("editor#preset=mind");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
 

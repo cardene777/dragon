@@ -23,7 +23,7 @@ async function コードの描く段(page: Page): Promise<boolean[]> {
 }
 
 async function 開く(page: Page, 名前: string): Promise<void> {
-  await page.goto("/catalog/presets", { waitUntil: "networkidle" });
+  await page.goto("catalog/presets", { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page.getByText(名前, { exact: true }).first().click();
   await page.waitForTimeout(400);

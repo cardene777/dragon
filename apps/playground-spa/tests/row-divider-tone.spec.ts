@@ -23,7 +23,7 @@ import type { Page } from "@playwright/test";
 import { shoot, measure, type Box } from "./helpers/pixel-contrast";
 
 /** 区切り線を持つ画面。 実体の名前と列の間に横線が入る。 */
-const 対象 = "/preset/er";
+const 対象 = "preset/er";
 
 const 役割 = '[data-cdl-role="node-row-divider"]';
 

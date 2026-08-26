@@ -11,7 +11,7 @@ import { test, expect, type Page, type Locator } from "@playwright/test";
 const ITEM_LABEL = "イベントハンドラ5種の組合せ";
 
 async function open(page: Page): Promise<Locator> {
-  await page.goto("/catalog/interactive", { waitUntil: "networkidle" });
+  await page.goto("catalog/interactive", { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
   await page.locator("aside.catalog-sidebar").getByText(ITEM_LABEL, { exact: false }).first().click();
   await page.waitForTimeout(500);

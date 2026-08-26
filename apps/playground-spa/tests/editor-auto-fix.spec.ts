@@ -34,7 +34,7 @@ flow:
 
 /** editor を開いて本文が届くまで待つ。 */
 async function open(page: Page, dsl: string): Promise<void> {
-  await page.goto(`/editor#s=${shareHash(dsl)}`);
+  await page.goto(`editor#s=${shareHash(dsl)}`);
   await page.waitForSelector(".v4-editor-code-body", { timeout: 20000 });
   await expect
     .poll(async () => await page.evaluate(() => (window as { __cdlEditorSrc?: string }).__cdlEditorSrc ?? ""), {
