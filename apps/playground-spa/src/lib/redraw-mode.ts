@@ -43,7 +43,10 @@ export function 描き方を選べる(diagram: CdlDiagram): boolean {
  */
 export function 図の描き方を変える(diagram: CdlDiagram, 描き方: 描き方): CdlDiagram {
   if (描き方 !== "描き直す" || !描き方を選べる(diagram)) return diagram;
-  const 写す = diagram.phases[0].draw ?? [];
+  // `描き方を選べる` が 1 段目の `draw` を見ているので必ず引ける
+  const 一段目 = diagram.phases[0];
+  if (一段目 === undefined) return diagram;
+  const 写す = 一段目.draw ?? [];
   return {
     ...diagram,
     phases: diagram.phases.map((p, i) => (i === 0 ? p : { ...p, draw: [...写す] })),
@@ -74,10 +77,14 @@ function yamlの描き方を変える(source: string): string {
   if (位置.length < 2) return source;
 
   const 段 = 位置で割る(source, 位置);
-  const draw行 = /^([ \t]*)draw:[ \t]*(\S+)[ \t]*$/m.exec(段[0]);
-  if (!draw行) return source;
-  const 字下げ = draw行[1];
-  const 語 = draw行[2];
+  // `位置` は 2 件以上あるので先頭は必ず引ける
+  const 先頭 = 段[0];
+  if (先頭 === undefined) return source;
+  const draw行 = /^([ \t]*)draw:[ \t]*(\S+)[ \t]*$/m.exec(先頭);
+  // 2 つとも必須の群。 一致した以上必ず取れる
+  const 字下げ = draw行?.[1];
+  const 語 = draw行?.[2];
+  if (字下げ === undefined || 語 === undefined) return source;
 
   const 直した = 段.map((本体, i) => {
     if (i === 0 || /^[ \t]*draw:/m.test(本体)) return 本体;
@@ -111,7 +118,10 @@ function jsonの描き方を変える(source: string): string {
 
   const 直した = 段.map((本体, i) => {
     if (i === 0 || /"draw"\s*:/.test(本体)) return 本体;
-    const 見出しの長さ = 見出し[i][0].length;
+    // `段` は `見出し` から作った位置で割っているので同じ数だけ在る
+    const この見出し = 見出し[i];
+    if (この見出し === undefined) return 本体;
+    const 見出しの長さ = この見出し[0].length;
     const 頭 = 本体.slice(0, 見出しの長さ);
     const 残り = 本体.slice(見出しの長さ);
     // 直後が改行なら同じ字下げで次の行に、そうでなければ空白 1 つで続ける

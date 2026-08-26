@@ -56,7 +56,7 @@ const TSC = join(REPO, "node_modules", ".bin", "tsc");
  *
  * **減らしたらこの数も下げる**。 下げないとこの検査が落ちて教えてくれる。
  */
-const 天井 = 114;
+const 天井 = 86;
 
 /** 型検査を回して誤りの行だけを返す */
 function 誤りの行(): string[] {

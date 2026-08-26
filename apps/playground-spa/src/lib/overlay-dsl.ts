@@ -498,6 +498,20 @@ export function extractPartsFromSrc(
     baseLines.push(line);
     lineMap.push(srcIdx + 1);
   };
+  /**
+   * block の行をまとめて base 側に戻す。
+   *
+   * `lines` と `srcIdx` は同じ場所で 1 つずつ push しているので必ず同じ長さになる。
+   * **揃わない形は組立て側の誤りなので落とす** = 黙って捨てると、書いた行が図からも
+   * 本文からも消える。
+   */
+  const keepBlock = (block: { lines: string[]; srcIdx: number[] }): void => {
+    block.lines.forEach((l, i) => {
+      const idx = block.srcIdx[i];
+      if (idx === undefined) throw new Error(`block の行番号が欠けている: ${l}`);
+      keep(l, idx);
+    });
+  };
   const parts: OverlayPartParsed[] = [];
   // パーツを抜き出すのは `actors:` の中だけ。 全文を走ると、 別の項目の下に並ぶ行
   // (`notes:` の下の `- fake: achievement` 等) までパーツとして図から消える (実測)
@@ -540,7 +554,7 @@ export function extractPartsFromSrc(
     // 知らせが消える (実測 = `位置: Web の右 -200` の「間隔に負の数は書けません」 が出なくなった)。
     // 抜かずに残せば、普通の箱に書いた時と同じ経路で知らせが出る
     if (hasUnreadableItem(body)) {
-      block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
+      keepBlock(block);
       return;
     }
     // 名前の行で見本と決まっている場合は、続く行を上書きとして重ねる
@@ -552,7 +566,7 @@ export function extractPartsFromSrc(
       if (rewritten !== null) {
         const item = partKindSet.has(rewritten) ? findItem(rewritten) : undefined;
         if (!item) {
-          block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
+          keepBlock(block);
           return;
         }
         parts.push(applyBlockOverrides({ ...block.head, kind: rewritten, item }, body));
@@ -567,7 +581,7 @@ export function extractPartsFromSrc(
     const kindValue = readKindFromBlock(block.lines) ?? undefined;
     const item = kindValue && partKindSet.has(kindValue) ? findItem(kindValue) : undefined;
     if (!kindValue || !item) {
-      block.lines.forEach((l, i) => keep(l, block.srcIdx[i]));
+      keepBlock(block);
       return;
     }
     // 図には overlay として描くので、 図の中に箱は要らない。 block ごと落とす

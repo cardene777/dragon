@@ -70,7 +70,7 @@ function findPaintedShape(div: Element): SVGGraphicsElement | null {
   return best;
 }
 
-import { EDITOR_SAMPLES } from "@/data/editor-samples";
+import { EDITOR_SAMPLES, type EditorSample } from "@/data/editor-samples";
 // 誤りの型と整形だけを静的に読む。 読み取りの実装 (`js-yaml` を含む) は YAML 欄を開いた時に
 // 初めて読み込む (#1007)。 整形までその到着を待つと、 誤りの帯が 1 拍遅れて出る
 import { formatYamlError, type YamlAdapterError } from "@/lib/yaml-error";
@@ -160,8 +160,10 @@ function encodeShare(src: string): string {
 function decodeShare(hash: string): string | null {
   try {
     const match = hash.match(/[#&]s=([^&]+)/);
-    if (!match) return null;
-    return decodeURIComponent(escape(atob(match[1])));
+    // 必須の群。 取れない形は regex と噛み合っていない
+    const 本体 = match?.[1];
+    if (本体 === undefined) return null;
+    return decodeURIComponent(escape(atob(本体)));
   } catch {
     return null;
   }
@@ -618,16 +620,17 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   }, [search]);
 
   const categorize = (label: string): string => {
-    const m = label.match(/\(([^)]+)\)/);
-    return m ? m[1] : "other";
+    // 必須の群。 一致しなければ分類なし
+    return label.match(/\(([^)]+)\)/)?.[1] ?? "other";
   };
 
   const groupedSamples = useMemo(() => {
-    const groups: Record<string, typeof SAMPLES> = {};
+    // 束ねた後の並びは空から始まるので、`SAMPLES` の「必ず 1 件以上」 とは別の型で持つ
+    const groups: Record<string, EditorSample[]> = {};
     for (const s of filteredSamples) {
       const cat = categorize(s.label);
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(s);
+      const 束 = (groups[cat] ??= []);
+      束.push(s);
     }
     return groups;
   }, [filteredSamples]);
@@ -827,8 +830,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
 
     try {
       const presetMatch = hash.match(/^#preset=(.+)$/);
-      if (presetMatch) {
-        const targetSlug = decodeURIComponent(presetMatch[1]);
+      // 必須の群。 一致した以上必ず取れる
+      const presetSlug = presetMatch?.[1];
+      if (presetSlug !== undefined) {
+        const targetSlug = decodeURIComponent(presetSlug);
         const sample = SAMPLES.find((s) => s.slug === targetSlug);
         if (sample) {
           // hash 経路 = URL 遷移 = user 意図確定と扱い confirm skip、 lastLoadedSrcRef のみ更新

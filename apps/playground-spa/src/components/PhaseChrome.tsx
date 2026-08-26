@@ -89,6 +89,9 @@ export function PhaseChrome({
   // 題名と長さが `undefined` になるので、最後の段に丸める
   const 今 = Math.min(idx, 一覧.length - 1);
   const 段 = 一覧[今];
+  // `idx` は 0 以上に丸めてあり、上は `一覧.length - 1` で抑えているので必ず引ける。
+  // 引けない形は札を出さない = 出す下限を満たさない時と同じ扱い
+  if (段 === undefined) return null;
 
   return (
     // 掴む操作を邪魔しない。エディタの舞台はここを掴んで動かすので、重ねたものは受け取らない

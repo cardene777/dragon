@@ -14,7 +14,9 @@ export interface EditorSample {
   code: string;
 }
 
-export const EDITOR_SAMPLES: EditorSample[] = [
+// **必ず 1 件以上持つ**。 編集画面は先頭を初期値に使うため、空にすると本文も名前も
+// `undefined` になる。 型で表しておくと空にした時点で落ちる
+export const EDITOR_SAMPLES: [EditorSample, ...EditorSample[]] = [
   {
     label: "ログインAPI呼び出し (sequence)",
     slug: "sequence",
