@@ -67,6 +67,9 @@ function 誤りの行(): string[] {
     // 誤りがあると `tsc` は非 0 で終わる。 その時の出力が本体
     const err = e as { stdout?: string; stderr?: string };
     出力 = `${err.stdout ?? ""}${err.stderr ?? ""}`;
+    // 天井が 0 では、起動失敗や内部 error も「型の誤り 0 件」に見えてしまう。
+    // 型の誤りを 1 件も返さない非 0 終了は数に変換せず、検査自体を失敗させる
+    if (!/ error TS\d+: /.test(出力)) throw e;
   }
   return 出力.split("\n").filter((l) => / error TS\d+: /.test(l));
 }

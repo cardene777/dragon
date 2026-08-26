@@ -71,6 +71,10 @@ function 誤りの行(): string[] {
     // 誤りがあると `tsc` は非 0 で終わる。 その時の出力が本体
     const err = e as { stdout?: string; stderr?: string };
     出力 = `${err.stdout ?? ""}${err.stderr ?? ""}`;
+    // 型の誤りを 1 件も返さない非 0 終了 (起動失敗 / 設定の誤り / 内部 error) は
+    // 数に変換せず、検査自体を失敗させる。 天井が 0 に達すると「0 件」 と
+    // 見分けが付かなくなるため (検査 code 側で review の指摘、 #1428)
+    if (!/ error TS\d+: /.test(出力)) throw e;
   }
   return 出力.split("\n").filter((l) => / error TS\d+: /.test(l));
 }
