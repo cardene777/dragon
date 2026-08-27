@@ -78,9 +78,6 @@ const 型と種類 = {
   journey: ["journey-map"],
   quadrant: ["quadrant-matrix"],
   tree: ["tree-hierarchy"],
-  // 以下 2 型は #1446 で足した。 値を描く群で、`pie` / `bar` / `line` と同じ組み立てを通る
-  gauge: ["chart-gauge"],
-  radial: ["chart-radial"],
 } as const satisfies Readonly<Record<PresetType, readonly string[]>>;
 
 /** 表の中身を `[型, 種類]` の並びで取り出す */
