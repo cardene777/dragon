@@ -327,6 +327,52 @@ animation:
 `,
   },
   {
+    label: "今月の解約率 (stat)",
+    slug: "stat",
+    code: `title: "今月の解約率"
+type: stat
+
+actors:
+  - 解約率: { value: "24", previous: "38" }
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [解約率]
+`,
+  },
+  {
+    label: "対応済みの問い合わせ (waffle)",
+    slug: "waffle",
+    code: `title: "対応済みの問い合わせ"
+type: waffle
+
+actors:
+  - 対応済: "62"
+  - 対応中: "23"
+  - 未着手: "15"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [対応済, 対応中, 未着手]
+`,
+  },
+  {
+    label: "契約の内訳 (stacked)",
+    slug: "stacked",
+    code: `title: "契約の内訳"
+type: stacked
+
+actors:
+  - 新規: { value: "320", previous: "280" }
+  - 継続: { value: "180", previous: "210" }
+  - 乗換: { value: "140", previous: "90" }
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [新規, 継続, 乗換]
+`,
+  },
+  {
     label: "週ごとの応答時間 (line)",
     slug: "line",
     code: `title: "週ごとの応答時間"

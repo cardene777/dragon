@@ -66,7 +66,7 @@ describe("一覧の名前 (#1030)", () => {
     const expected: Record<string, number> = {
       interactive: 129, cookbook: 26, patterns: 12, primitives: 89,
       "primitives-extra": 21, animation: 10, styles: 10, presets: 19,
-      ethereum: 4, "text-dsl": 13, parts: 80, charts: 11,
+      ethereum: 4, "text-dsl": 13, parts: 80, charts: 14,
     };
     const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));
     expect(actual, "図の数が変わっている (足したら期待値も更新する)").toEqual(expected);

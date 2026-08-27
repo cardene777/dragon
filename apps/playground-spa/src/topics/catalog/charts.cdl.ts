@@ -667,3 +667,152 @@ export const sourceJson__chartRadial = `{
 }`;
 
 export const chartRadial = textDslToDiagram(sourceYaml__chartRadial);
+
+// ============================================================
+// 12. 値 1 つを大きく示す
+//
+// **前の時点の値を書くと差が出る** (`previous`)。 書かない図は数字だけになる。
+// 段の `draw` は書かない = 描画側が「起点から描く」 動きを持たない。
+// ============================================================
+export const sourceYaml__chartStat = `title: "今月の解約率"
+type: stat
+
+actors:
+  - 解約率: { value: "{now}", previous: "38" }
+
+states:
+  now: 24
+
+animation:
+  - step: "先月" 1.2s
+    description: "先月は 38 件だった"
+  - step: "今月" 1.2s
+    tween:
+      now: 24 -> 19
+    description: "施策の後に 19 件まで下がる"
+`;
+
+export const sourceJson__chartStat = `{
+  "title": "今月の解約率",
+  "type": "stat",
+  "actors": [
+    { "name": "解約率", "value": "{now}", "previous": "38" }
+  ],
+  "flow": [],
+  "states": { "now": 24 },
+  "animation": [
+    { "step": "先月", "duration": 1.2, "body": "先月は 38 件だった" },
+    {
+      "step": "今月",
+      "duration": 1.2,
+      "body": "施策の後に 19 件まで下がる",
+      "tween": { "now": [24, 19] }
+    }
+  ]
+}`;
+
+export const chartStat = textDslToDiagram(sourceYaml__chartStat);
+
+// ============================================================
+// 13. 割合を 100 個の印で示す
+//
+// **合計を 100 に揃える**。 揃えないと印の数が実際の割合と食い違う。
+// ============================================================
+export const sourceYaml__chartWaffle = `title: "対応済みの問い合わせ"
+type: waffle
+
+actors:
+  - 対応済: "{done}"
+  - 対応中: "{doing}"
+  - 未着手: "{todo}"
+
+states:
+  done: 62
+  doing: 23
+  todo: 15
+
+animation:
+  - step: "朝" 1.2s
+    description: "100 件のうち 62 件が対応済"
+  - step: "夕方" 1.2s
+    tween:
+      done: 62 -> 84
+      doing: 23 -> 11
+      todo: 15 -> 5
+    description: "未着手が減り対応済が 84 件になる"
+`;
+
+export const sourceJson__chartWaffle = `{
+  "title": "対応済みの問い合わせ",
+  "type": "waffle",
+  "actors": [
+    { "name": "対応済", "subtitle": "{done}" },
+    { "name": "対応中", "subtitle": "{doing}" },
+    { "name": "未着手", "subtitle": "{todo}" }
+  ],
+  "flow": [],
+  "states": { "done": 62, "doing": 23, "todo": 15 },
+  "animation": [
+    { "step": "朝", "duration": 1.2, "body": "100 件のうち 62 件が対応済" },
+    {
+      "step": "夕方",
+      "duration": 1.2,
+      "body": "未着手が減り対応済が 84 件になる",
+      "tween": { "done": [62, 84], "doing": [23, 11], "todo": [15, 5] }
+    }
+  ]
+}`;
+
+export const chartWaffle = textDslToDiagram(sourceYaml__chartWaffle);
+
+// ============================================================
+// 14. 内訳と時点間の変化を帯で示す
+//
+// **`previous` を書くと帯が 2 本になる**。 書かない図は 1 本のままで、
+// 内訳だけを示す図として使える。
+// ============================================================
+export const sourceYaml__chartStackedBar = `title: "契約の内訳"
+type: stacked
+
+actors:
+  - 新規: { value: "{shinki}", previous: "280" }
+  - 継続: { value: "{keizoku}", previous: "210" }
+  - 乗換: { value: "{norikae}", previous: "90" }
+
+states:
+  shinki: 320
+  keizoku: 180
+  norikae: 140
+
+animation:
+  - step: "前期との比較" 1.2s
+    description: "上が前期、下が今期。 新規が伸び継続が減った"
+  - step: "見込みを足す" 1.2s
+    tween:
+      shinki: 320 -> 380
+      norikae: 140 -> 200
+    description: "見込みを足すと新規と乗換が伸びる"
+`;
+
+export const sourceJson__chartStackedBar = `{
+  "title": "契約の内訳",
+  "type": "stacked",
+  "actors": [
+    { "name": "新規", "value": "{shinki}", "previous": "280" },
+    { "name": "継続", "value": "{keizoku}", "previous": "210" },
+    { "name": "乗換", "value": "{norikae}", "previous": "90" }
+  ],
+  "flow": [],
+  "states": { "shinki": 320, "keizoku": 180, "norikae": 140 },
+  "animation": [
+    { "step": "前期との比較", "duration": 1.2, "body": "上が前期、下が今期。 新規が伸び継続が減った" },
+    {
+      "step": "見込みを足す",
+      "duration": 1.2,
+      "body": "見込みを足すと新規と乗換が伸びる",
+      "tween": { "shinki": [320, 380], "norikae": [140, 200] }
+    }
+  ]
+}`;
+
+export const chartStackedBar = textDslToDiagram(sourceYaml__chartStackedBar);

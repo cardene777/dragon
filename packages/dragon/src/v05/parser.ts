@@ -251,6 +251,9 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "line",
   "gauge",
   "radial",
+  "stat",
+  "waffle",
+  "stacked",
   "funnel",
   "tree",
   "journey",
@@ -2378,6 +2381,11 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "値":
         out.value = stripQuotes(raw);
         break;
+      // 前の時点の値 (#1450)。 内訳を帯で示す図と値 1 つを大きく示す図が読む
+      case "previous":
+      case "前の値":
+        out.previous = stripQuotes(raw);
+        break;
       case "shape":
       case "図形":
         out.shape = 図形として読む(raw, ln.no, errors);
@@ -2574,6 +2582,9 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "補足",
   "value",
   "値",
+  // 前の時点の値 (#1450)。 内訳の変化を帯で示す図と、値 1 つを大きく示す図が読む
+  "previous",
+  "前の値",
   "rows",
   "行",
   // 箱の中に描く図形 (#1374)
@@ -2738,6 +2749,7 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "subtitle",
   "eyebrow",
   "value",
+  "previous",
   "rows",
   "lane",
   "stack",
@@ -2890,6 +2902,7 @@ export const INLINE_ACTOR_ALIASES: Record<string, string> = {
   種類: "kind",
   補足: "subtitle",
   値: "value",
+  前の値: "previous",
   行: "rows",
 };
 
@@ -2912,6 +2925,7 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "subtitle",
   "eyebrow",
   "value",
+  "previous",
   "rows",
   "lane",
   "stack",
@@ -3082,6 +3096,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       owner: isPart ? undefined : opts.owner,
       end: isPart ? undefined : opts.end,
       value: opts.value,
+      previous: opts.previous,
       rows: opts.rows
         ? opts.rows
             .replace(/^\[|\]$/g, "")
