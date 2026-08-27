@@ -81,6 +81,10 @@ const 型と種類 = {
   // 以下 2 型は #1446 で足した。 値を描く群で、`pie` / `bar` / `line` と同じ組み立てを通る
   gauge: ["chart-gauge"],
   radial: ["chart-radial"],
+  // 以下 3 型は #1450 で足した
+  stat: ["chart-stat"],
+  waffle: ["chart-waffle"],
+  stacked: ["chart-stacked-bar"],
 } as const satisfies Readonly<Record<PresetType, readonly string[]>>;
 
 /** 表の中身を `[型, 種類]` の並びで取り出す */

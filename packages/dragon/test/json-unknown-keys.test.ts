@@ -92,6 +92,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     subtitle: "補足",
     eyebrow: "分類",
     value: "42",
+    previous: "38",
     rows: ["ア"],
     lane: "L1",
     stack: 1,

@@ -212,6 +212,13 @@ export interface JsonActor {
   subtitle?: string;
   eyebrow?: string;
   value?: string;
+  /**
+   * 前の時点の値 (#1450)。 記法の `{ value: "320", previous: "280" }` と同じ。
+   *
+   * 内訳の変化を帯で示す図 (`type: stacked`) が 2 本目の帯として描き、
+   * 値 1 つを大きく示す図 (`type: stat`) が差として出す。 書かない図は 1 本のまま。
+   */
+  previous?: string;
   rows?: string[];
   lane?: string;
   stack?: number;
@@ -451,6 +458,8 @@ export const ACCEPTED_KEYS = {
     "subtitle",
     "eyebrow",
     "value",
+    // 前の時点の値 (#1450)。 内訳の変化を帯で示す図と、値 1 つを大きく示す図が読む
+    "previous",
     "rows",
     "lane",
     "stack",
@@ -590,6 +599,7 @@ export const 欄の型表 = {
     subtitle: "文字列",
     eyebrow: "文字列",
     value: "文字列",
+    previous: "文字列",
     rows: "文字列の並び",
     lane: "文字列",
     stack: "数",
@@ -2169,6 +2179,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       subtitle: a.subtitle,
       eyebrow: a.eyebrow,
       value: a.value,
+      previous: a.previous,
       rows: a.rows,
       lane: a.lane,
       stack: a.stack,

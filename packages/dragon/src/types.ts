@@ -73,6 +73,9 @@ export type PresetType =
   | "line"
   | "gauge"
   | "radial"
+  | "stat"
+  | "waffle"
+  | "stacked"
   | "funnel"
   | "tree"
   | "journey"
@@ -216,6 +219,16 @@ export type DslActor = {
   subtitle?: string;
   eyebrow?: string;
   value?: string;
+  /**
+   * 前の時点の値 (#1450)。
+   *
+   * 内訳の変化を帯で示す図 (`type: stacked`) が 2 本目の帯として描き、値 1 つを大きく示す図
+   * (`type: stat`) が差として出す。 書かない図は 1 本のまま (従来と同じ)。
+   *
+   * **3 時点以上は持たない**。 描画側が 2 時点で設計されており (`cdl#551`)、足すなら欄の形ごと
+   * 決め直すことになる。
+   */
+  previous?: string;
   rows?: string[];
   /**
    * 箱の中に描く図形 (`shape:`、 #1374)。 水位や角度を状態で動かせる。

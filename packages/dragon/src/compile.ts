@@ -261,6 +261,15 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "radial":
       diagram = compileValueChart(doc, "radial", "chart-radial", opts?.onNotice);
       break;
+    case "stat":
+      diagram = compileValueChart(doc, "stat", "chart-stat", opts?.onNotice);
+      break;
+    case "waffle":
+      diagram = compileValueChart(doc, "waffle", "chart-waffle", opts?.onNotice);
+      break;
+    case "stacked":
+      diagram = compileValueChart(doc, "stacked", "chart-stacked-bar", opts?.onNotice);
+      break;
     case "funnel":
       diagram = compileFunnel(doc, opts?.onNotice);
       break;
@@ -708,6 +717,9 @@ const 図種の作り: Record<PresetType, "登場人物ごとに箱" | "図全�
   line: "図全体を 1 箱",
   gauge: "図全体を 1 箱",
   radial: "図全体を 1 箱",
+  stat: "図全体を 1 箱",
+  waffle: "図全体を 1 箱",
+  stacked: "図全体を 1 箱",
   funnel: "図全体を 1 箱",
   tree: "図全体を 1 箱",
   journey: "図全体を 1 箱",
@@ -1072,6 +1084,9 @@ const 空の形の逃げ先: Record<PresetType, string[]> = {
   line: [],
   gauge: [],
   radial: [],
+  stat: [],
+  waffle: [],
+  stacked: [],
   funnel: [],
   tree: [],
   journey: [],
@@ -4601,8 +4616,16 @@ function 参照する名前(value: number | string | null): string | null {
  */
 function compileValueChart(
   doc: DslDocument,
-  型: "pie" | "bar" | "line" | "gauge" | "radial",
-  kind: "chart-pie" | "chart-bar" | "chart-line" | "chart-gauge" | "chart-radial",
+  型: "pie" | "bar" | "line" | "gauge" | "radial" | "stat" | "waffle" | "stacked",
+  kind:
+    | "chart-pie"
+    | "chart-bar"
+    | "chart-line"
+    | "chart-gauge"
+    | "chart-radial"
+    | "chart-stat"
+    | "chart-waffle"
+    | "chart-stacked-bar",
   onNotice?: (notice: CompileNotice) => void,
 ): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
@@ -4612,12 +4635,17 @@ function compileValueChart(
   // 切り上げないと下端が格子から外れ、 全図で位置の警告が出る (review 指摘)
   // 半円と弧は縦を使わないので円と同じ 320。 描画側 (`cdl` の `chart()` preset) が
   // `pie` / `gauge` / `radial` を 320、棒と折れ線を 360 とし、16 の倍数へ切り上げる
-  const 低い型 = 型 === "pie" || 型 === "gauge" || 型 === "radial";
+  // 縦に余白が要らない型。 描画側 (`cdl` の `chart()` preset) と揃える。
+  // 半円 / 弧 / 割合の印 は縦を使わず、値 1 つを大きく示す図も縦に伸びない
+  const 低い型 =
+    型 === "pie" || 型 === "gauge" || 型 === "radial" || 型 === "waffle" || 型 === "stat";
   const CHART_H = 低い型 ? 320 : 368;
   b.lane("chart", { width: CHART_W + 64 });
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
   const 読めない: string[] = [];
+  const 前が読めない: string[] = [];
+  let 前が読めない行 = 0;
   const 未宣言: string[] = [];
   let 未宣言行 = 0;
   const 参照できる = 数の欄から参照できる名前(doc);
@@ -4644,21 +4672,37 @@ function compileValueChart(
       continue;
     }
     // 色はそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
-    data.push({ label: 箱の題(a), value, ...(a.tone !== undefined ? { tone: a.tone } : {}) });
+    // 前の時点の値 (#1450)。 読めない形は黙って捨てず知らせる = 書いたのに 2 本目の帯が
+    // 出ない状態になり、手掛かりが残らない
+    const 前 = a.previous === undefined ? null : parseChartValue(a.previous);
+    if (a.previous !== undefined && 前 === null) {
+      if (前が読めない.length === 0) 前が読めない行 = a.pos?.line ?? 0;
+      前が読めない.push(a.name);
+    }
+    data.push({
+      label: 箱の題(a),
+      value,
+      ...(前 === null ? {} : { previous: 前 }),
+      ...(a.tone !== undefined ? { tone: a.tone } : {}),
+    });
   }
   // 案内の言葉は型ごとに変える。 共通化した時に `pie` の「割合 / 円 / 45%」 が「値 / 図 / 45」 に
   // 薄まり、 既存の案内が後退した (review 指摘)。 何を書けばよいかは型ごとに違う
   // 何を書けばよいかは型ごとに違う。 まとめると「割合 / 円 / 45%」 が「値 / 図 / 45」 に薄まる
-  const 語 =
-    型 === "pie"
-      ? { 量: "割合", 図: "円", 例: '"45%"' }
-      : 型 === "bar"
-        ? { 量: "値", 図: "棒", 例: '"420"' }
-        : 型 === "gauge"
-          ? { 量: "値", 図: "半円", 例: '"680"' }
-          : 型 === "radial"
-            ? { 量: "値", 図: "弧", 例: '"72"' }
-            : { 量: "値", 図: "折れ線", 例: '"180"' };
+  //
+  // **表で持つ**。 三項の連鎖にすると、型が増えるたびに深さが増え、最後の枝が
+  // 「それ以外」 になるため型検査が新しい型の漏れを教えてくれない
+  const 語の表: Record<typeof 型, { 量: string; 図: string; 例: string }> = {
+    pie: { 量: "割合", 図: "円", 例: '"45%"' },
+    bar: { 量: "値", 図: "棒", 例: '"420"' },
+    line: { 量: "値", 図: "折れ線", 例: '"180"' },
+    gauge: { 量: "値", 図: "半円", 例: '"680"' },
+    radial: { 量: "値", 図: "弧", 例: '"72"' },
+    stat: { 量: "値", 図: "大きな数字", 例: '"1200"' },
+    waffle: { 量: "割合", 図: "100 個の印", 例: '"45%"' },
+    stacked: { 量: "内訳の値", 図: "帯", 例: '"320"' },
+  };
+  const 語 = 語の表[型];
 
   /**
    * 利用者に伝える。 **`console.warn` だけにしない**。 エディタは受け取った notice を画面に
@@ -4685,6 +4729,15 @@ function compileValueChart(
       `type: ${型} で数にならない値を参照した項目があります (${語.図}に載せません): ${未宣言.join(", ")}。` +
         ` \`states:\` にその名前を数で書いてください`,
       未宣言行,
+    );
+  }
+  if (前が読めない.length > 0) {
+    伝える(
+      "chart-value-unreadable",
+      前が読めない[0]!,
+      `type: ${型} で前の時点の値を読めない項目があります (前の値を使いません): ${前が読めない.join(", ")}。` +
+        " `- 名前: { value: " + 語.例 + ", previous: " + 語.例 + " }` の形で書いてください",
+      前が読めない行,
     );
   }
   if (doc.flow.length > 0) {
@@ -5511,6 +5564,8 @@ type 放射で描けない欄 =
   | "stack"
   | "initial"
   | "final"
+  // 前の時点の値 (#1450)。 放射の枝は 1 時点しか描かない = 2 本目の帯に当たるものが無い
+  | "previous"
   | "colorHex"
   | "stateOverride"
   | "posX"
@@ -5574,6 +5629,7 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   stack: "積む順",
   initial: "始まり / 終わり の印",
   final: "始まり / 終わり の印",
+  previous: "前の時点の値",
   colorHex: "色番号",
   stateOverride: "状態の上書き",
   // 位置は「登場人物ごとの箱をどこに置くか」 の指定で、 箱が 1 つの図では置く先が無い

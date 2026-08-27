@@ -35,6 +35,7 @@ const 対応表: Record<string, 対応> = {
   subtitle: { 記法: 'subtitle: "補足"', json: { subtitle: "補足" } },
   eyebrow: { 記法: 'eyebrow: "分類"', json: { eyebrow: "分類" } },
   value: { 記法: 'value: "42"', json: { value: "42" } },
+  previous: { 記法: 'previous: "38"', json: { previous: "38" } },
   rows: { 記法: "rows: [ア, イ]", json: { rows: ["ア", "イ"] } },
   lane: { 記法: "lane: L1", json: { lane: "L1" } },
   stack: { 記法: "stack: 2", json: { stack: 2 } },
@@ -84,6 +85,7 @@ const 記法だけの別名: Record<string, string> = {
   種類: "kind",
   補足: "subtitle",
   値: "value",
+  前の値: "previous",
   行: "rows",
 };
 
