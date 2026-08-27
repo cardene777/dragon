@@ -1,5 +1,5 @@
 /**
- * 全 80 parts × 全 21 EDITOR_SAMPLES × 究極 cross matrix (iter19、 2026-07-19)。
+ * 全 80 parts × 全 19 EDITOR_SAMPLES × 究極 cross matrix (iter19、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter19。
  * iter8 (5 sample types × 80 parts = 400) を「実 15 sample 全て」 に拡張。
@@ -52,10 +52,10 @@ function injectPartsIntoSampleDsl(sampleDsl: string, alias: string, kind: string
   return [...before, injectLine, ...after].join("\n");
 }
 
-describe("iter19: 全 80 parts × 全 21 EDITOR_SAMPLES cross matrix (1520 test)", () => {
-  it(`parts count >= 60 + samples count = 21`, () => {
+describe("iter19: 全 80 parts × 全 19 EDITOR_SAMPLES cross matrix (1520 test)", () => {
+  it(`parts count >= 60 + samples count = 19`, () => {
     expect(ALL_PARTS.length).toBeGreaterThanOrEqual(60);
-    expect(EDITOR_SAMPLES.length).toBe(21);
+    expect(EDITOR_SAMPLES.length).toBe(19);
   });
 
   for (const sample of EDITOR_SAMPLES) {

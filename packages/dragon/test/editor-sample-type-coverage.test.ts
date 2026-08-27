@@ -128,9 +128,6 @@ describe("値で描く型の直し (#1154)", () => {
     // 揃えないと、 同じ値を同じ図種で描いても catalog と記法で高さが変わる
     const 高さ = (t: string) => textDslToDiagram(記法(t, `  - A: "10"\n`)).nodes[0]?.h;
     expect(高さ("pie")).toBe(320);
-    // 半円と弧は円と同じく縦に余白が要らない (#1446)
-    expect(高さ("gauge")).toBe(320);
-    expect(高さ("radial")).toBe(320);
     // 360 は 16 で割り切れないので 368 へ切り上げる (格子に載せる)
     expect(高さ("bar")).toBe(368);
     expect(高さ("line")).toBe(368);
