@@ -294,6 +294,39 @@ animation:
 `,
   },
   {
+    label: "今期の売上進捗 (gauge)",
+    slug: "gauge",
+    code: `title: "今期の売上進捗"
+type: gauge
+
+actors:
+  - 契約済: "680"
+  - 商談中: "240"
+  - 未着手: "180"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [契約済, 商談中, 未着手]
+`,
+  },
+  {
+    label: "機能ごとの利用率 (radial)",
+    slug: "radial",
+    code: `title: "機能ごとの利用率"
+type: radial
+
+actors:
+  - 検索: "72"
+  - 保存: "45"
+  - 共有: "28"
+  - 書き出し: "12"
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [検索, 保存, 共有, 書き出し]
+`,
+  },
+  {
     label: "週ごとの応答時間 (line)",
     slug: "line",
     code: `title: "週ごとの応答時間"

@@ -249,6 +249,8 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "pie",
   "bar",
   "line",
+  "gauge",
+  "radial",
   "funnel",
   "tree",
   "journey",
@@ -3512,7 +3514,10 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
       continue;
     }
     if (key === "draw") {
-      const 語 = stripQuotes(value).trim();
+      // `draw: line 0.4` = 語の後ろに「描き終えるまでに段の何割を使うか」 を書ける (#1441)。
+      // 割合を別の項目にすると「割合だけ書いて `draw` が無い段」 が書けてしまい、
+      // 何も起きない指定になる。 同じ行なら書けない
+      const [語 = "", 割合の文字, ...余り] = stripQuotes(value).trim().split(/\s+/);
       // **読めない語を黙って捨てない** (#1304 / #1306 と同じ扱い)。 受ける語は 1 つだけで、
       // 書き間違いはその段が何も描かない形になって手掛かりが残らない
       if (!DRAW_WORDS.has(語)) {
@@ -3521,9 +3526,29 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
           message: `draw に書けない語です: "${語}"`,
           hint: `使える語 = ${[...DRAW_WORDS].join(", ")}`,
         });
+      } else if (余り.length > 0) {
+        errors.push({
+          line: ln.no,
+          message: `draw に書ける項目は語と割合の 2 つまでです: "${stripQuotes(value).trim()}"`,
+          hint: "use `draw: line 0.4`",
+        });
       } else {
         phase.draw = 語;
         phase.drawPos = { line: ln.no };
+        if (割合の文字 !== undefined) {
+          const 割合 = Number(割合の文字);
+          // 範囲外を黙って捨てない。 描画側は 1 に落として図を出すため、
+          // 知らせが無いと「書いたのに速さが変わらない」 が手掛かりなしで起きる
+          if (!Number.isFinite(割合) || 割合 <= 0 || 割合 > 1) {
+            errors.push({
+              line: ln.no,
+              message: `draw の割合が範囲外です: "${割合の文字}"`,
+              hint: "0 より大きく 1 以下で書きます (例 `draw: line 0.4`)",
+            });
+          } else {
+            phase.drawRatio = 割合;
+          }
+        }
       }
       i += 1;
       continue;

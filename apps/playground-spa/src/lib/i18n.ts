@@ -214,10 +214,12 @@ export const ITEM_NAME_JA: Record<string, string> = {
   // === composite exemplar (dragon-diagram skill 生成) ===
   richLayeredPriorityFee: "3層優先度手数料",
 
-  // === charts = 図表系 10 種 (#1152) ===
+  // === charts = 図表系 12 種 (#1152 / #1446) ===
   chartBar: "棒グラフ",
   chartLine: "折れ線グラフ",
   chartPie: "円グラフ",
+  chartGauge: "半円ゲージ",
+  chartRadial: "同心の弧",
   funnelStages: "絞り込み図",
   ganttTimeline: "工程表",
   journeyMap: "体験の道筋",
@@ -861,6 +863,8 @@ export const ITEM_NAME_EN: Record<string, string> = {
   chartBar: "Bar chart",
   chartLine: "Line chart",
   chartPie: "Pie chart",
+  chartGauge: "Half-circle gauge",
+  chartRadial: "Concentric arcs",
   funnelStages: "Funnel",
   ganttTimeline: "Gantt chart",
   journeyMap: "Journey map",

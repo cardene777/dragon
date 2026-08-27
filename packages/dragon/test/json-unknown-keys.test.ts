@@ -153,6 +153,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     tween: { v: [0, 1] },
     set: { v: 2 },
     draw: "line",
+    drawRatio: 0.4,
   },
   viewport: {
     width: 800,
