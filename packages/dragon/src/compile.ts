@@ -255,6 +255,12 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "line":
       diagram = compileValueChart(doc, "line", "chart-line", opts?.onNotice);
       break;
+    case "gauge":
+      diagram = compileValueChart(doc, "gauge", "chart-gauge", opts?.onNotice);
+      break;
+    case "radial":
+      diagram = compileValueChart(doc, "radial", "chart-radial", opts?.onNotice);
+      break;
     case "funnel":
       diagram = compileFunnel(doc, opts?.onNotice);
       break;
@@ -700,6 +706,8 @@ const 図種の作り: Record<PresetType, "登場人物ごとに箱" | "図全�
   pie: "図全体を 1 箱",
   bar: "図全体を 1 箱",
   line: "図全体を 1 箱",
+  gauge: "図全体を 1 箱",
+  radial: "図全体を 1 箱",
   funnel: "図全体を 1 箱",
   tree: "図全体を 1 箱",
   journey: "図全体を 1 箱",
@@ -1062,6 +1070,8 @@ const 空の形の逃げ先: Record<PresetType, string[]> = {
   pie: [],
   bar: [],
   line: [],
+  gauge: [],
+  radial: [],
   funnel: [],
   tree: [],
   journey: [],
@@ -4591,8 +4601,8 @@ function 参照する名前(value: number | string | null): string | null {
  */
 function compileValueChart(
   doc: DslDocument,
-  型: "pie" | "bar" | "line",
-  kind: "chart-pie" | "chart-bar" | "chart-line",
+  型: "pie" | "bar" | "line" | "gauge" | "radial",
+  kind: "chart-pie" | "chart-bar" | "chart-line" | "chart-gauge" | "chart-radial",
   onNotice?: (notice: CompileNotice) => void,
 ): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title });
@@ -4600,7 +4610,10 @@ function compileValueChart(
   // **高さは型で違い、 格子に載せる**。 描画側 (`cdl` の `chart()` preset) は `pie` を 320、
   // 棒と折れ線を 360 とした上で **16 の倍数へ切り上げる** (360 は 16 で割り切れないので 368)。
   // 切り上げないと下端が格子から外れ、 全図で位置の警告が出る (review 指摘)
-  const CHART_H = 型 === "pie" ? 320 : 368;
+  // 半円と弧は縦を使わないので円と同じ 320。 描画側 (`cdl` の `chart()` preset) が
+  // `pie` / `gauge` / `radial` を 320、棒と折れ線を 360 とし、16 の倍数へ切り上げる
+  const 低い型 = 型 === "pie" || 型 === "gauge" || 型 === "radial";
+  const CHART_H = 低い型 ? 320 : 368;
   b.lane("chart", { width: CHART_W + 64 });
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
@@ -4635,12 +4648,17 @@ function compileValueChart(
   }
   // 案内の言葉は型ごとに変える。 共通化した時に `pie` の「割合 / 円 / 45%」 が「値 / 図 / 45」 に
   // 薄まり、 既存の案内が後退した (review 指摘)。 何を書けばよいかは型ごとに違う
+  // 何を書けばよいかは型ごとに違う。 まとめると「割合 / 円 / 45%」 が「値 / 図 / 45」 に薄まる
   const 語 =
     型 === "pie"
       ? { 量: "割合", 図: "円", 例: '"45%"' }
       : 型 === "bar"
         ? { 量: "値", 図: "棒", 例: '"420"' }
-        : { 量: "値", 図: "折れ線", 例: '"180"' };
+        : 型 === "gauge"
+          ? { 量: "値", 図: "半円", 例: '"680"' }
+          : 型 === "radial"
+            ? { 量: "値", 図: "弧", 例: '"72"' }
+            : { 量: "値", 図: "折れ線", 例: '"180"' };
 
   /**
    * 利用者に伝える。 **`console.warn` だけにしない**。 エディタは受け取った notice を画面に

@@ -71,6 +71,8 @@ export type PresetType =
   | "pie"
   | "bar"
   | "line"
+  | "gauge"
+  | "radial"
   | "funnel"
   | "tree"
   | "journey"

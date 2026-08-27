@@ -249,6 +249,8 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "pie",
   "bar",
   "line",
+  "gauge",
+  "radial",
   "funnel",
   "tree",
   "journey",
