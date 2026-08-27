@@ -146,16 +146,30 @@ describe("記法の 2 段目以降に描く指定が写る (#1359)", () => {
     expect(記法の描き方を変える(x.json!, 既定の描き方, "json")).toBe(x.json);
   });
 
-  it("段の秒数と本文は変わらない", () => {
+  const 秒を読む = (s: string): string[] =>
+    // 必須の群。 取れない形は regex と噛み合っていないので捨てる
+    [...s.matchAll(/^[ \t]*-[ \t]*step:[ \t]*"[^"]*"[ \t]+(\d+(?:\.\d+)?)s[ \t]*$/gm)].flatMap(
+      (m) => (m[1] === undefined ? [] : [m[1]]),
+    );
+
+  it("本文は変わらない", () => {
     const x = 折れ線();
     const 後 = 記法の描き方を変える(x.yaml!, "描き直す", "yaml");
-    const 秒 = (s: string): string[] =>
-      // 必須の群。 取れない形は regex と噛み合っていないので捨てる
-      [...s.matchAll(/^[ \t]*-[ \t]*step:[ \t]*"[^"]*"[ \t]+(\d+(?:\.\d+)?)s[ \t]*$/gm)].flatMap(
-        (m) => (m[1] === undefined ? [] : [m[1]]),
-      );
-    expect(秒(後)).toEqual(秒(x.yaml!));
     expect(後.split("body:").length, "本文の数が変わっている").toBe(x.yaml!.split("body:").length);
+  });
+
+  it("段の秒数が 1 段目に揃う (#1444)", () => {
+    // #1440 まで秒数は変わらない契約だった。 揃える処理を見本側から写す側へ移したので、
+    // 記法の表示でも切替が入の時だけ揃う (`preset-draw-duration.test.ts` が全見本で見る)
+    const x = 折れ線();
+    const 前 = 秒を読む(x.yaml!);
+    expect(前.length, "段が 2 つ以上ある").toBeGreaterThan(1);
+    expect(new Set(前).size, "元から揃っていると揃えた効果が見えない").toBeGreaterThan(1);
+
+    const 後 = 秒を読む(記法の描き方を変える(x.yaml!, "描き直す", "yaml"));
+    expect(後.length, "段の数が変わっている").toBe(前.length);
+    expect(new Set(後).size, `揃っていない: ${JSON.stringify(後)}`).toBe(1);
+    expect(後[0], "1 段目の秒数と違う値に揃っている").toBe(前[0]);
   });
 });
 

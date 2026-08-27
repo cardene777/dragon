@@ -407,8 +407,6 @@ export const presetTree = withSteps(
       body: "開発の責任者を Eng Manager と呼んでいる。",
     },
     {
-      // 描き直しの速さを 1 段目に揃える (#1440、 理由は `DRAW_DURATION`)
-      duration: DRAW_DURATION,
       body: "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。",
       sets: [{ id: "eng", value: "VP of Engineering" }],
     },
@@ -451,8 +449,6 @@ export const presetUserJourney = withSteps(
       sets: [{ id: "form_mood", value: "frustrated" }],
     },
     {
-      // 描き直しの速さを 1 段目に揃える (#1440、 理由は `DRAW_DURATION`)
-      duration: DRAW_DURATION,
       body: "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。",
       sets: [{ id: "form_mood", value: "happy" }],
     },
@@ -491,8 +487,6 @@ export const presetMindMap = withSteps(
       body: "中心はまだ Project のまま。",
     },
     {
-      // 描き直しの速さを 1 段目に揃える (#1440、 理由は `DRAW_DURATION`)
-      duration: DRAW_DURATION,
       body: "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。",
       sets: [{ id: "theme", value: "認証と課金の刷新" }],
     },
@@ -527,8 +521,6 @@ export const presetFunnel = withSteps(
       body: "訪問 8200 から申込み 130 まで絞られる。",
     },
     {
-      // 描き直しの速さを 1 段目に揃える (#1440、 理由は `DRAW_DURATION`)
-      duration: DRAW_DURATION,
       body: "今月は訪問 10000 / 申込み 200。 段の人数を状態から取るので、同じ図が別の月を映す。",
       tweens: FUNNEL_STAGES.map((s) => ({ id: s.id, from: s.last, to: s.now })),
     },
@@ -611,8 +603,6 @@ export const presetChartPie = withSteps(
       body: "Web 45 / Mobile 35 / API 20。",
     },
     {
-      // 描き直しの速さを 1 段目に揃える (#1440、 理由は `DRAW_DURATION`)
-      duration: DRAW_DURATION,
       body: "今年は Mobile が 45 まで伸びる。 扇の大きさを状態から取っている。",
       tweens: PIE_SLICES.map((s) => ({ id: s.id, from: s.last, to: s.now })),
     },
@@ -656,8 +646,6 @@ export const presetChartLine = withSteps(
       body: "四半期ごとの見込みを引いた線。 左から順に引かれる。",
     },
     {
-      // 描き直しの速さを 1 段目に揃える (#1440、 理由は `DRAW_DURATION`)
-      duration: DRAW_DURATION,
       body: "実績に置き換えると 2 月以降が計画を上回る。 点の高さを状態から取っている。",
       tweens: LINE_POINTS.map((p) => ({ id: p.id, from: p.plan, to: p.actual })),
     },
@@ -697,8 +685,6 @@ export const presetGantt = withSteps(
       body: "Build は Q2 で終わる想定。",
     },
     {
-      // 描き直しの速さを 1 段目に揃える (#1440、 理由は `DRAW_DURATION`)
-      duration: DRAW_DURATION,
       body: "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。",
       tweens: [{ id: "build_end", from: 1, to: 2 }],
     },
@@ -1076,7 +1062,7 @@ animation:
     focus: [Web]
     draw: pie
     body: "Web 45 / Mobile 35 / API 20。"
-  - step: "全体に対する内訳の割合を示す円グラフ" 2.4s
+  - step: "全体に対する内訳の割合を示す円グラフ" 0.9s
     badge: "pie"
     focus: [Web]
     tween:
@@ -1108,7 +1094,7 @@ export const sourceJson__presetChartPie = `{
     },
     {
       "step": "全体に対する内訳の割合を示す円グラフ",
-      "duration": 2.4,
+      "duration": 0.9,
       "focus": ["Web"],
       "body": "今年は Mobile が 45 まで伸びる。 扇の大きさを状態から取っている。",
       "badge": "pie",
@@ -1139,7 +1125,7 @@ animation:
     focus: [Jan]
     draw: line
     body: "四半期ごとの見込みを引いた線。 左から順に引かれる。"
-  - step: "時系列データの推移を線で示す折れ線グラフ" 2.4s
+  - step: "時系列データの推移を線で示す折れ線グラフ" 0.9s
     badge: "line"
     focus: [Jan]
     tween:
@@ -1173,7 +1159,7 @@ export const sourceJson__presetChartLine = `{
     },
     {
       "step": "時系列データの推移を線で示す折れ線グラフ",
-      "duration": 2.4,
+      "duration": 0.9,
       "focus": ["Jan"],
       "body": "実績に置き換えると 2 月以降が計画を上回る。 点の高さを状態から取っている。",
       "badge": "line",
@@ -1212,7 +1198,7 @@ animation:
     focus: [Visit]
     draw: funnel
     body: "訪問 8200 から申込み 130 まで絞られる。"
-  - step: "各段階での離脱率を示す絞込みの図" 2.4s
+  - step: "各段階での離脱率を示す絞込みの図" 0.9s
     badge: "funnel"
     focus: [Visit]
     tween:
@@ -1247,7 +1233,7 @@ export const sourceJson__presetFunnel = `{
     },
     {
       "step": "各段階での離脱率を示す絞込みの図",
-      "duration": 2.4,
+      "duration": 0.9,
       "focus": ["Visit"],
       "body": "今月は訪問 10000 / 申込み 200。 段の人数を状態から取るので、同じ図が別の月を映す。",
       "badge": "funnel",
@@ -1290,7 +1276,7 @@ animation:
     focus: [CEO]
     draw: tree
     body: "開発の責任者を Eng Manager と呼んでいる。"
-  - step: "親子関係を縦階層で示す組織図・木構造" 2.4s
+  - step: "親子関係を縦階層で示す組織図・木構造" 0.9s
     badge: "tree"
     focus: [CEO]
     set:
@@ -1328,7 +1314,7 @@ export const sourceJson__presetTree = `{
     },
     {
       "step": "親子関係を縦階層で示す組織図・木構造",
-      "duration": 2.4,
+      "duration": 0.9,
       "focus": ["CEO"],
       "body": "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。",
       "badge": "tree",
@@ -1365,7 +1351,7 @@ animation:
     focus: [Features]
     draw: mind
     body: "中心はまだ Project のまま。"
-  - step: "中心の主題から発想を放射状に広げる図" 2.4s
+  - step: "中心の主題から発想を放射状に広げる図" 0.9s
     badge: "mindmap"
     focus: [Features]
     set:
@@ -1402,7 +1388,7 @@ export const sourceJson__presetMindMap = `{
     },
     {
       "step": "中心の主題から発想を放射状に広げる図",
-      "duration": 2.4,
+      "duration": 0.9,
       "focus": ["Features"],
       "body": "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。",
       "badge": "mindmap",
@@ -1435,7 +1421,7 @@ animation:
     set:
       form_mood: "不満"
     body: "申込みの入力で気持ちが落ちる。"
-  - step: "ユーザー体験の感情変化をステップ順に示す図" 2.4s
+  - step: "ユーザー体験の感情変化をステップ順に示す図" 0.9s
     badge: "journey"
     focus: ["Land on /"]
     set:
@@ -1473,7 +1459,7 @@ export const sourceJson__presetUserJourney = `{
     },
     {
       "step": "ユーザー体験の感情変化をステップ順に示す図",
-      "duration": 2.4,
+      "duration": 0.9,
       "focus": ["Land on /"],
       "body": "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。",
       "badge": "journey",
@@ -1574,7 +1560,7 @@ animation:
     focus: [Design]
     draw: gantt
     body: "Build は Q2 で終わる想定。"
-  - step: "タスクの期間と依存関係を横棒で示す進捗図" 2.4s
+  - step: "タスクの期間と依存関係を横棒で示す進捗図" 0.9s
     badge: "gantt"
     focus: [Design]
     tween:
@@ -1609,7 +1595,7 @@ export const sourceJson__presetGantt = `{
     },
     {
       "step": "タスクの期間と依存関係を横棒で示す進捗図",
-      "duration": 2.4,
+      "duration": 0.9,
       "focus": ["Design"],
       "body": "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。",
       "badge": "gantt",
