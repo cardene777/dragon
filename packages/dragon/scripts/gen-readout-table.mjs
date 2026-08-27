@@ -18,8 +18,10 @@
  *
  * `--check` は検査 (`readout-table-generated.test.ts`) が使う。 ずれていれば非 0 で終わる。
  */
-import { readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+
+import { 型定義を1つ探す } from "./lib/type-def-lookup.mjs";
 import { fileURLToPath } from "node:url";
 
 const ここ = dirname(fileURLToPath(import.meta.url));
@@ -34,20 +36,12 @@ const 出力先 = join(ここ, "../src/v05/readout-table.generated.ts");
  *
  * 見つからない / 2 つ以上ある形はどちらも誤りとして止める = 1 つに決まらないまま進むと、
  * どの定義から出したのかが後から辿れない。
+ *
+ * **件数で原因が違う** ので案内も分ける (#1454)。 絞り込みと文面は
+ * `lib/type-def-lookup.mjs` が持ち、もう 1 つの段と同じものを使う。
  */
 function 型定義を探す() {
-  const dist = join(ここ, "../node_modules/@cardenelabs/cdl/dist");
-  const 当たり = readdirSync(dist)
-    .filter((f) => f.endsWith(".d.ts"))
-    .map((f) => join(dist, f))
-    .filter((p) => readFileSync(p, "utf8").includes("type CdlReadout = {"));
-  if (当たり.length !== 1) {
-    throw new Error(
-      `部品の型定義を持つ file が 1 つに決まりません (${当たり.length} 件)。 ` +
-        `描画側の作り方が変わった可能性があります: ${当たり.join(", ")}`,
-    );
-  }
-  return 当たり[0];
+  return 型定義を1つ探す(join(ここ, "../node_modules/@cardenelabs/cdl/dist"), "type CdlReadout = {", "部品");
 }
 
 /** `type CdlReadout = { ... } | { ... }` の全体を取る */
