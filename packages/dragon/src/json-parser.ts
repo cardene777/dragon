@@ -355,6 +355,13 @@ export interface JsonPhase {
    */
   draw?: string;
   /**
+   * 描き終えるまでに段の何割を使うか (#1441)。 記法の `draw: line 0.4` の後半と同じ。
+   *
+   * 0 より大きく 1 以下。 書かなければ段の終わりに描き終わる。 `draw` が無い段に書いても
+   * 何も起きない (描く相手が決まらないため、写す時に外す)。
+   */
+  drawRatio?: number;
+  /**
    * 段の中で値を動かす (#1186)。 記法の `tween: name 100 -> 90` と同じ。
    *
    * 足すまで JSON の入口は `states:` で初期値を書けても **動かす手段が無かった** ため、
@@ -496,7 +503,7 @@ export const ACCEPTED_KEYS = {
     "overlay",
     "pos",
   ],
-  phase: ["step", "duration", "focus", "body", "badge", "tween", "set", "draw"],
+  phase: ["step", "duration", "focus", "body", "badge", "tween", "set", "draw", "drawRatio"],
   viewport: ["width", "height", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
   lane: ["x", "width", "label", "contain", "lifeline", "pos"],
   group: ["label", "lanes"],
@@ -644,6 +651,7 @@ export const 欄の型表 = {
     tween: "object",
     set: "object",
     draw: "描くもの",
+    drawRatio: "数",
   },
   viewport: {
     width: "数",
@@ -2286,6 +2294,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     badge: p.badge,
     // 書いた段だけが欄を持つ。 空文字を置くと「書いた」 と「書いていない」 が同じ形になる
     ...(p.draw !== undefined ? { draw: p.draw, drawPos: p0 } : {}),
+    // 割合は `draw` がある段にだけ写す。 単独で書いても描く相手が決まらず何も起きないので、
+    // 記法側 (同じ行に書かせる形) と同じ状態に揃える
+    ...(p.draw !== undefined && p.drawRatio !== undefined ? { drawRatio: p.drawRatio } : {}),
     // 段の中で動かす分 (#1186)。 記法側の `tweens` / `sets` と同じ形に写す。
     // 空の配列を置かないのは、記法側が「無ければ field ごと持たない」 形だから
     ...(p.tween && Object.keys(p.tween).length > 0

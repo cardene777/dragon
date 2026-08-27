@@ -1,5 +1,5 @@
 /**
- * state-holding parts × 全 19 sample × state override 網羅 (iter21、 2026-07-19)。
+ * state-holding parts × 全 21 sample × state override 網羅 (iter21、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter21。
  * state を持つ 57 parts × 15 sample = 684 test で「state override が実 sample 環境で有効」
@@ -51,10 +51,10 @@ function injectPartsIntoSampleDsl(sampleDsl: string, alias: string, kind: string
   return [...before, `  - ${alias}: { kind: ${kind}${overrides ? `, ${overrides}` : ""} }`, ...after].join("\n");
 }
 
-describe("iter21: 全 state-holding parts × 全 19 sample × state override 網羅", () => {
+describe("iter21: 全 state-holding parts × 全 21 sample × state override 網羅", () => {
   it(`state parts 数 + samples 数 sanity`, () => {
     expect(STATE_PARTS.length).toBeGreaterThan(0);
-    expect(EDITOR_SAMPLES.length).toBe(19);
+    expect(EDITOR_SAMPLES.length).toBe(21);
   });
 
   for (const sample of EDITOR_SAMPLES) {

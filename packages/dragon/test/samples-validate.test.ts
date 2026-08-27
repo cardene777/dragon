@@ -1,9 +1,9 @@
 /**
- * Editor SAMPLES 19 diagram の cdl validate check (CAR-1659)。
+ * Editor SAMPLES 21 diagram の cdl validate check (CAR-1659)。
  *
  * user report = 「サンプルで cdl validate failed: phase が 0 件です」 error が出るものがある。
  * 15 sample の text DSL を textDslToDiagram + compile で machine check、 error 出す sample を
- * 特定する。 fix 後は「全 19 sample が validate pass」 assert で regression 検知。
+ * 特定する。 fix 後は「全 21 sample が validate pass」 assert で regression 検知。
  *
  * codex-review CAR-1659 MINOR fix = SAMPLES を `apps/playground-spa/src/data/editor-samples.ts`
  * (shared SSOT) から import し、 CdlEditor.tsx と本 test の drift を構造的に排除。 sample 追加 /
@@ -14,9 +14,9 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import { compile } from "@cardenelabs/cdl";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
-describe("editor SAMPLES 19 diagram validate", () => {
-  it("SAMPLES count が 19 (期待値、 CdlEditor.tsx 側と drift しない SSOT check)", () => {
-    expect(EDITOR_SAMPLES.length).toBe(19);
+describe("editor SAMPLES 21 diagram validate", () => {
+  it("SAMPLES count が 21 (期待値、 CdlEditor.tsx 側と drift しない SSOT check)", () => {
+    expect(EDITOR_SAMPLES.length).toBe(21);
   });
 
   for (const s of EDITOR_SAMPLES) {
