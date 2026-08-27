@@ -93,6 +93,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   textDslMind: "テキストDSLのマインドマップ",
   textDslCode: "テキストDSLのコード",
   textDslValues: "テキストDSLの値どうしの関係",
+  textDslStateMarks: "テキストDSLの始点終点の印",
 
   // === shape-driven basement 8 = 基本形状 ===
   shapeFile: "ドッグイア形ファイル",
@@ -624,6 +625,7 @@ export const ITEM_NAME_EN: Record<string, string> = {
   textDslMind: "Text DSL mind map",
   textDslCode: "Text DSL code",
   textDslValues: "Text DSL derived values",
+  textDslStateMarks: "Text DSL start/end marks",
   kindActor: "External actor",
   kindFunction: "Function call",
   kindStorage: "Stored data",

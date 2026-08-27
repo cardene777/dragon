@@ -6647,9 +6647,35 @@ function 始まりと終わりの決め方(doc: DslDocument): {
   };
 }
 
+/** 状態の図で `stateMachine` preset が全ての箱に使う種類 */
+const 状態の図の既定の種類: NodeKind = "card";
+
+/**
+ * 状態の図で、既定と違う種類を書いた登場人物がいるか (#1450)。
+ *
+ * `stateMachine` preset は全ての状態を `card` で描くため、書いた `kind:` が黙って消える。
+ * 始点終点の印 (`mark-start` / `mark-end`) を書けるようにするには、書いた形を効かせる必要がある。
+ *
+ * **「書いたか」 だけでは広すぎる**。 記法だけの種類 (`kind: state` 等) は `card` に読み替わり、
+ * preset の出す形と同じになる = 書いても何も変わらないので経路を切り替える理由が無い。
+ * 切り替えると既存の図の id と枠の作りが変わる (実測で golden 8 件が落ちた)。
+ *
+ * 読み替えた後の種類が既定と違う時だけ切り替える。 こうすると「書いたのに効かない」 は消え、
+ * 「書いたが結果が同じ」 は従来の経路に留まる。
+ */
+function 既定と違う種類を書いた(doc: DslDocument): boolean {
+  return doc.actors.some(
+    (a) => a.kindWritten === true && 描ける種別(a.kind) !== 状態の図の既定の種類,
+  );
+}
+
 function compileState(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (各 state を lane で配置、 transition を edge)
-  if (doc.animate && doc.animate.phases.length > 0) {
+  //
+  // **種類を書いた形は動きの有無に関わらず generic 経路へ** (#1450、 #1263 と同じ理由)。
+  // 動く図だけで効かせると、同じ記法でも静止図では指定が黙って消える
+  // (実測 = `kind: mark-start` を書いた箱が `card` になり知らせも出ない)
+  if ((doc.animate && doc.animate.phases.length > 0) || 既定と違う種類を書いた(doc)) {
     return compileGenericWithAnimate(doc, { kind: "state", laneWidth: 360 });
   }
   // stateMachine preset ... actors を state に、 流れ を transition に

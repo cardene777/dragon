@@ -1248,3 +1248,83 @@ export const sourceJson__textDslValues = `{
     }
   ]
 }`;
+
+// ============================================================
+// 始点終点の印を置く状態の図 (#1450)
+//
+// 状態の図は既定で全ての箱を同じ形で描くが、`kind:` を書くとその種類で描く。
+// `mark-start` (塗りつぶした丸) と `mark-end` (輪の中に丸) は、
+// 「ここから」「ここまで」 を状態そのものと分けて示すための印。
+//
+// **書いた形は動きの有無を問わず効く**。 動く図だけで効かせると、
+// 同じ記法でも静止図では指定が黙って消える。
+// ============================================================
+export const sourceYaml__textDslStateMarks = `title: "注文の状態"
+type: state
+
+actors:
+  - 始: { kind: mark-start }
+  - 受付: "注文を受け取った"
+  - 発送準備: "在庫を引き当てた"
+  - 発送済: "配送業者へ渡した"
+  - 終: { kind: mark-end }
+
+flow:
+  - 始 -> 受付: "注文が入る"
+  - 受付 -> 発送準備: "在庫あり"
+  - 発送準備 -> 発送済: "集荷"
+  - 発送済 -> 終: "受取完了"
+
+animation:
+  - step: "受け付ける" 1.4s
+    focus: [始, 受付]
+    description: "印から始まり、最初の状態へ入る"
+
+  - step: "発送する" 1.4s
+    focus: [発送準備, 発送済]
+    description: "在庫を引き当てて配送業者へ渡す"
+
+  - step: "終わる" 1.4s
+    focus: [発送済, 終]
+    description: "受取が済むと終わりの印へ入る"
+`;
+
+export const textDslStateMarks = textDslToDiagram(sourceYaml__textDslStateMarks);
+
+export const sourceJson__textDslStateMarks = `{
+  "title": "注文の状態",
+  "type": "state",
+  "actors": [
+    { "name": "始", "kind": "mark-start" },
+    { "name": "受付", "subtitle": "注文を受け取った" },
+    { "name": "発送準備", "subtitle": "在庫を引き当てた" },
+    { "name": "発送済", "subtitle": "配送業者へ渡した" },
+    { "name": "終", "kind": "mark-end" }
+  ],
+  "flow": [
+    { "from": "始", "to": "受付", "label": "注文が入る" },
+    { "from": "受付", "to": "発送準備", "label": "在庫あり" },
+    { "from": "発送準備", "to": "発送済", "label": "集荷" },
+    { "from": "発送済", "to": "終", "label": "受取完了" }
+  ],
+  "animation": [
+    {
+      "step": "受け付ける",
+      "duration": 1.4,
+      "focus": ["始", "受付"],
+      "body": "印から始まり、最初の状態へ入る"
+    },
+    {
+      "step": "発送する",
+      "duration": 1.4,
+      "focus": ["発送準備", "発送済"],
+      "body": "在庫を引き当てて配送業者へ渡す"
+    },
+    {
+      "step": "終わる",
+      "duration": 1.4,
+      "focus": ["発送済", "終"],
+      "body": "受取が済むと終わりの印へ入る"
+    }
+  ]
+}`;
