@@ -162,8 +162,6 @@ export type CompileNotice = {
     | "flow-actor-missing"
     // きっかけ形の値を段に畳めなかった (段が無い / 相手が境目を通らない / 段からはみ出す、 #1161)
     | "value-trigger-unresolved"
-    // 矢印の両端が同じ登場人物だった (#1227)
-    | "flow-self-loop"
     // 箱に `lane:` を書いたが、 縦列は図種が決めるため効かなかった (#1246)
     | "lane-not-honored"
     // `lanes:` に書いた縦列に箱が 1 つも入らなかった (#1241)
@@ -208,9 +206,6 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 解決できない矢印を組み立てから外す (#1219)。 残すと、 存在しない箱や枠を指す図ができて
   // 描画の直前で落ちる (実測 = 8 図種)
   doc = dropUnresolvedFlow(doc);
-  // 自分へ戻る矢印を組み立てから外す (#1227)。 残すと描画側の検査が図ごと落とし、
-  // 本文のどの行が原因かも出ない
-  doc = dropSelfLoopFlow(doc);
 
   // 名前から作る id が重なる分を解く (#1220)。 **矢印を落とした後**に見る = 落とした矢印の
   // 端にしか出てこない名前で id を分けても、 その箱は作られない
@@ -309,7 +304,6 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 矢印が指す名前が actors に居るかを確かめる。 図種ごとの解決より前に、 記述だけで決まる
   reportMissingFlowActors(書いたまま, opts?.onNotice);
   // 両端が同じ矢印を伝える (#1227)。 落とす前の `flow` を見る
-  reportSelfLoopFlow(書いたまま, opts?.onNotice);
   // 静止した `type: flow` で書いた矢印の端が使われないことを伝える (#1269)。
   // 自分へ戻る形と居ない名前を指す形は既に落ちた後の `doc` を見る = 上の 2 件と重ねない
   reportFlowEndpointNotHonored(doc, 分けた.元の名前, opts?.onNotice);
@@ -741,56 +735,6 @@ function dropUnresolvedFlow(doc: DslDocument): DslDocument {
 }
 
 /**
- * 自分へ戻る矢印を落とした `flow` を返す (#1227)。
- *
- * 描画側は両端が同じ矢印を受けない (`validate` が `self-loop` で落とす)。 記法の側は通すため、
- * 書けてしまって描画の直前で図ごと落ちていた。 本文のどの行が原因かも出ない。
- *
- * `#1219` が「解決できない矢印は組み立てから外し、 知らせは元の `flow` を見る」 という形を
- * 決めているので、 それに揃える。 落とすのは **組み立てに渡す分だけ** で、 書いた人には
- * `reportSelfLoopFlow` が行番号付きで伝える。
- *
- * ## `type: state` の自己遷移をどう扱うか
- *
- * 矢印としては描けない。 描画側に自分へ戻る矢印を足すのは別 repo の判断で、 本 repo の
- * 記法から決められない。 代わりに 2 通りの書き方が残る = 途中の箱を 1 つ足して 2 本の矢印に
- * 分けるか、 段 (`animation`) で状態が変わる様子として見せる。 知らせの `hint` がこの 2 つを
- * 案内する。
- *
- * 図全体を 1 箱で描く種別は矢印を作らないため対象にしない (本数を数えて別に伝えている)。
- */
-function dropSelfLoopFlow(doc: DslDocument): DslDocument {
-  if (図種の作り[doc.type] === "図全体を 1 箱") return doc;
-  const flow = doc.flow.filter((s) => s.from !== s.to);
-  return flow.length === doc.flow.length ? doc : { ...doc, flow };
-}
-
-/**
- * 自分へ戻る矢印を書いた人に伝える (#1227)。
- *
- * **落とす前の `flow` を見る**。 落とした後を渡すと、 図が壊れないように外した矢印が
- * 書いた人に届かない (`reportMissingFlowActors` と同じ理由)。
- *
- * 同じ登場人物に何本書いても 1 件にまとめる = 本数だけ知らせが並んでも直し方は変わらない。
- */
-function reportSelfLoopFlow(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
-  if (!onNotice) return;
-  if (図種の作り[doc.type] === "図全体を 1 箱") return;
-  const 知らせた = new Set<string>();
-  for (const s of doc.flow) {
-    if (s.from !== s.to || 知らせた.has(s.from)) continue;
-    知らせた.add(s.from);
-    onNotice({
-      kind: "flow-self-loop",
-      actor: s.from,
-      line: s.pos.line,
-      message: `"${truncateForMessage(s.from)}" から自分へ戻る矢印は描けません (組み立てから外しました)`,
-      hint: "途中の箱を 1 つ足して 2 本に分けるか、 段 (animation) で状態が変わる様子として見せる",
-    });
-  }
-}
-
-/**
  * 図全体を 1 箱にする図種で、 その箱の上に出す小見出しを渡す (#1247)。
  *
  * 書かなければ何も渡さない = 従来どおり小見出しは付かない。 `undefined` を明示して渡すと、
@@ -913,8 +857,10 @@ function reportLaneMixed(doc: DslDocument, onNotice: (n: CompileNotice) => void)
  *
  * ## 既に落ちた行は見ない
  *
- * 自分へ戻る形 (`flow-self-loop`) と居ない名前を指す形 (`flow-actor-missing`) は
- * 別の知らせが担う。 落とした後の `doc` を見ることで、同じ 1 行に知らせが 2 件並ぶのを避ける。
+ * 居ない名前を指す形 (`flow-actor-missing`) は別の知らせが担う。 落とした後の `doc` を
+ * 見ることで、同じ 1 行に知らせが 2 件並ぶのを避ける。
+ *
+ * 自分へ戻る形は #1462 で落とさなくなった (描画側が輪として描ける)。
  */
 function reportFlowEndpointNotHonored(
   doc: DslDocument,
@@ -3340,6 +3286,11 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   }
   // 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ
   if (s.side !== undefined) target.side = s.side;
+  // 矢印の先の形 (#1462)。 書かない矢印には値を入れない = 既存の図が変わらない。
+  //
+  // **矢印を作る 9 図種すべてがここを通る**。 図種ごとの組み立てにも同じ形を置いたが、
+  // 外しても 9 図種とも渡っていた (変異試験で実測) = 余分だったので消した
+  if (s.head !== undefined) target.head = s.head;
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
   if (s.overlay !== undefined) target.overlay = s.overlay;
@@ -4527,6 +4478,7 @@ function compileClass(doc: DslDocument): CdlDiagram {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
+
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -5464,6 +5416,7 @@ function compileC4(doc: DslDocument): CdlDiagram {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
+
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -6277,6 +6230,7 @@ function compileSequence(doc: DslDocument): CdlDiagram {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
+
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -6345,6 +6299,7 @@ function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
+
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -6564,6 +6519,7 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
+
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -6740,6 +6696,7 @@ function compileTopology(doc: DslDocument): CdlDiagram {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
+
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });
@@ -6958,6 +6915,7 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
         : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
+
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
     });

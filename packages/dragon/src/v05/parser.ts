@@ -41,8 +41,8 @@
  * 出力は v0.4 と同じ DslDocument。 既存 compile.ts で CdlDiagram に変換できる。
  */
 
-import type { NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
-import { TONES, NODE_KINDS, parseFormula } from "@cardenelabs/cdl";
+import type { NodeKind, Tone, EdgeStyle, EdgeHead } from "@cardenelabs/cdl";
+import { TONES, NODE_KINDS, EDGE_HEADS, parseFormula } from "@cardenelabs/cdl";
 import { TONE_ALIAS, NODE_KIND_ALIAS } from "../keywords";
 import { parseRelativePos, orderByDependency } from "../relative-pos";
 import {
@@ -82,6 +82,13 @@ export type V05ParseResult = { ok: true; doc: DslDocument } | { ok: false; error
 
 /** 矢印を出す辺。 Text DSL / JSON validator / 公開 schema の 3 経路で同じ 4 値を使う。 */
 export const EDGE_SIDE_VALUES = ["top", "right", "bottom", "left"] as const;
+
+/**
+ * 矢印の先の形として書ける語 (#1462)。
+ *
+ * **描画側から導く**。 手で並べると、描画側が形を増やした時に書けないままになる。
+ */
+export const EDGE_HEAD_VALUES: readonly string[] = EDGE_HEADS;
 
 /**
  * 記法が受ける top-level の項目 (#1190)。
@@ -2989,6 +2996,9 @@ const FLOW_INLINE_READERS = {
     v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
       ? (v as "top" | "right" | "bottom" | "left")
       : undefined,
+  // 矢印の先の形 (#1462)。 書かなければ描画側の既定 (塗った三角) になる
+  head: (v: string | undefined) =>
+    v !== undefined && EDGE_HEAD_VALUES.includes(v) ? (v as EdgeHead) : undefined,
   /*
    * 矢印を値に追随させる 3 欄 (#1396)。 箱の `wBind` (#1392) と同じく文字列だけを取る。
    *
@@ -3236,6 +3246,15 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
         hint: `使える値 = ${EDGE_SIDE_VALUES.join(", ")}`,
       });
     }
+    // 読めない語を黙って捨てない (#1462)。 捨てると「書いたのに端の形が変わらない」 が
+    // 手掛かりなしで起きる
+    if (opts.head !== undefined && 中括弧.head === undefined) {
+      errors.push({
+        line: line.no,
+        message: `矢印の head が読めません: "${opts.head}"`,
+        hint: `使える値 = ${EDGE_HEAD_VALUES.join(", ")}`,
+      });
+    }
     数と真偽 = 表で読む(FLOW_INLINE_VALUE_KINDS, opts, "矢印の ", line.no, errors);
     rest = 塊.前.trim();
   }
@@ -3243,6 +3262,7 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   const guard = 中括弧.guard as string | undefined;
   const cardinality = 中括弧.cardinality as string | undefined;
   const side = 中括弧.side as "top" | "right" | "bottom" | "left" | undefined;
+  const head = 中括弧.head as EdgeHead | undefined;
   // 値に追随する 3 欄 (#1396)。 空は捨てずに知らせる = 描画側は空文字を既定値へ落とさず
   // そのまま置換に使うため、書き忘れが「線が消えた」 形で出る
   const widthBind = 追随する大きさとして読む(
@@ -3323,6 +3343,7 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     guard,
     cardinality,
     side,
+    head,
     widthBind,
     strokeBind,
     dashOffsetBind,

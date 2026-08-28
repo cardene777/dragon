@@ -473,6 +473,11 @@
             "enum": ["top", "right", "bottom", "left"],
             "description": "矢印がどの辺から出るか。 書かなければ描画側が自動で選ぶ。"
           },
+          "head": {
+            "type": "string",
+            "enum": ["triangle", "diamond", "open", "crow"],
+            "description": "矢印の先の形。 端の形で関係の種類を示す = triangle (継ぐ) / diamond (持つ) / open (使う) / crow (多)。 書かなければ塗った三角になる。"
+          },
           "labelOffsetX": {
             "type": "number",
             "description": "ラベル位置 x 調整"

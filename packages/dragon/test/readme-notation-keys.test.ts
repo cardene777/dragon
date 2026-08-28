@@ -182,6 +182,7 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       cardinality: { 書く: '"1:N"', 期待: "1:N" },
       // 矢印がどの辺から出るか (#1385)
       side: { 書く: "left", 期待: "left" },
+      head: { 書く: "triangle", 期待: "triangle" },
       labelOffsetX: { 書く: "3", 期待: 3 },
       labelOffsetY: { 書く: "-8", 期待: -8 },
       // 矢印を値に追随させる 3 欄 (#1396)

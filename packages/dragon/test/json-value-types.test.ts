@@ -35,7 +35,7 @@ import {
   jsonToDiagram,
   type 欄の型,
 } from "../src/json-parser";
-import { EDGE_SIDE_VALUES, STYLE_VALID, 書ける色名 } from "../src/v05/parser";
+import { EDGE_SIDE_VALUES, EDGE_HEAD_VALUES, STYLE_VALID, 書ける色名 } from "../src/v05/parser";
 import { 図, 欄に値を置く, 欄のpath } from "./support/json-field-input";
 
 type 階層 = keyof typeof ACCEPTED_KEYS;
@@ -64,6 +64,7 @@ const 型ごとの値: Record<string, { 誤り: unknown; 他の誤り?: unknown[
   色: { 誤り: "bogus", 正しい: "success" },
   線種: { 誤り: "bogus", 正しい: "solid" },
   辺: { 誤り: "diagonal", 正しい: EDGE_SIDE_VALUES[0] },
+  端の形: { 誤り: "nope", 正しい: EDGE_HEAD_VALUES[0] },
   描くもの: { 誤り: "bogus", 他の誤り: ["", "LINE", " line"], 正しい: "line" },
   色か色番号: { 誤り: "bogus", 正しい: "#f59e0b" },
   必須の図種: { 誤り: "bogus", 正しい: "flow" },

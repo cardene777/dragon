@@ -49,8 +49,8 @@ function fingerprint(src: string) {
 
 // ─── sequence preset (15 件) ─────
 describe("golden: sequence preset", () => {
-  it("S01 minimal 1 actor + 自分宛ては落ちる (#1227)", () => {
-    // 描画側が自己ループを受けないため矢印は組み立てから外れる。 箱と図枠が残ることを固定する
+  it("S01 minimal 1 actor + 自分宛ては輪として残る (#1227 → #1462)", () => {
+    // 描画側が輪として描けるようになった (`cdl#560`、0.15.0)。 矢印が残ることを固定する
     expect(
       fingerprint(`
 title: "S01"
@@ -951,7 +951,7 @@ flow:
     ).toMatchSnapshot();
   });
 
-  it("L14 single lane 自己ループは落ちる (#1227)", () => {
+  it("L14 single lane 自己ループは輪として残る (#1227 → #1462)", () => {
     expect(
       fingerprint(`
 title: "L14"
@@ -1331,7 +1331,7 @@ animation:
     ).toMatchSnapshot();
   });
 
-  it("E09 自己参照は落ちる (#1227)", () => {
+  it("E09 自己参照は輪として残る (#1227 → #1462)", () => {
     expect(
       fingerprint(`
 title: "E09"
@@ -1534,7 +1534,7 @@ flow:
     ).toMatchSnapshot();
   });
 
-  it("M09 自己遷移は落ちる (#1227)", () => {
+  it("M09 自己遷移は輪として残る (#1227 → #1462)", () => {
     expect(
       fingerprint(`
 title: "M09"

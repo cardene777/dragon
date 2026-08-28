@@ -127,6 +127,7 @@ flow:
 | `strokeBind`     | 線の色を値に追随させる (`widthBind` と同じ読み方)                   |
 | `dashOffsetBind` | 破線の位置を値に追随させる (流れているように見せる)                 |
 | `side`           | 矢印がどの辺から出るか (`top` / `right` / `bottom` / `left`)        |
+| `head`           | 矢印の先の形 (`triangle` 継ぐ / `diamond` 持つ / `open` 使う / `crow` 多) |
 | `labelOffsetX`   | 説明文の位置を横にずらす                                            |
 | `labelOffsetY`   | 説明文の位置を縦にずらす                                            |
 | `overlay`        | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用)              |
