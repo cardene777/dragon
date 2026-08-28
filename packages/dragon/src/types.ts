@@ -3,7 +3,7 @@
  * docs/cdl/text-dsl-spec.md の文法を AST に変換した中間表現
  */
 
-import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
+import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
 
 /**
@@ -159,6 +159,13 @@ export type DslDocument = {
    * 分けたい図だけ書く = どこで手が空くかは言づての並びからは決まらない。
    */
   bands?: DslBand[];
+  /**
+   * 矢印をいつ出すか (`reveal:`、 #1470)。
+   *
+   * 既定 (`phase`) は「段が名指しする矢印は、その段が来るまで描かない」。 `all` と書くと
+   * 段に関わらず最初から全部描く。 描き手の `CdlDiagram.edgeReveal` にそのまま渡る。
+   */
+  reveal?: EdgeReveal;
   groups?: Record<string, DslGroup>;
   /**
    * 値を見せる部品 (`readouts:`、 #1374)。 割合の輪や数え上げを図の脇に出す。

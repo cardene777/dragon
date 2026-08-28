@@ -26,7 +26,9 @@ export type SampleSlot =
   | "events"
   | "scrolls"
   // 順序図で面が動いている間の帯 (#1466)
-  | "bands";
+  | "bands"
+  // 矢印をいつ出すか (#1470)
+  | "reveal";
 
 export type Section = {
   title: string;
@@ -118,6 +120,20 @@ export const FORMS: Section[] = [
       { code: '  - Client -> API: "要求"', note: "矢印と説明" },
       { code: '  - API -> DB: "検索" 成功', note: "矢印の色" },
       { code: '  - DB -> API: "結果" 成功 dotted-flow', note: "色と線の種類" },
+    ],
+  },
+  {
+    title: "矢印をいつ出すか (reveal:)",
+    // 段が矢印を名指しする図でだけ意味を持つ。 例文も段を持つ形にする
+    sample: {
+      slot: "reveal",
+      type: "topology",
+      actors: ["  - Web", "  - API"],
+      flow: ['  - Web -> API: "頼む"'],
+    },
+    lines: [
+      { code: "reveal: phase", note: "段が来るまで矢印を出さない (既定)" },
+      { code: "reveal: all", note: "段に関わらず最初から全部出す" },
     ],
   },
   {
@@ -523,7 +539,8 @@ export const FORMS: Section[] = [
 export function buildSample(section: Section): string {
   const { slot, actors = [], flow = [], states = [] } = section.sample;
   const codes = section.lines.map((l) => l.code);
-  const rootLines = slot === "root" ? codes : [];
+  // `reveal` は最上位に 1 行で書く語なので、`root` と同じ場所へ置く (#1470)
+  const rootLines = slot === "root" || slot === "reveal" ? codes : [];
   // 題名と図種は例文に必ず要る。 一覧側で書いている時は重ねて書かない (後に書いた方が効く)
   const head = [
     ...(rootLines.some((l) => /^title\s*:/.test(l)) ? [] : ['title: "見本"']),

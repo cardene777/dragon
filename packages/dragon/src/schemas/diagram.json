@@ -1796,6 +1796,11 @@
         "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
       }
     },
+    "reveal": {
+      "type": "string",
+      "enum": ["phase", "all"],
+      "description": "矢印をいつ出すか。 phase (既定) = 段が名指しする矢印はその段が来るまで描かない。 all = 段に関わらず最初から全部描く。"
+    },
     "bands": {
       "type": "array",
       "description": "順序図で面が動いている間の帯。 書かなければ面ごとに「最初に関わった段から最後まで」 の 1 本になる。",

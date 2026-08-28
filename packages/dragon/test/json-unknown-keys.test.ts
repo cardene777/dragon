@@ -87,6 +87,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     scrolls: { intro: { start: 0.9, end: 0.1 } },
     // 順序図で面が動いている間の帯 (#1466)
     bands: [{ actor: "A", from: 0, to: 0 }],
+    // 矢印をいつ出すか (#1470)
+    reveal: "all",
   },
   actor: {
     name: "A",
