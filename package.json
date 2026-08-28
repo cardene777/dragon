@@ -16,6 +16,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "test": "vitest run",
+    "verify:deps": "node packages/dragon/scripts/verify-dep-integrity.mjs",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:sweep": "vitest run visual-validate-sweep",
