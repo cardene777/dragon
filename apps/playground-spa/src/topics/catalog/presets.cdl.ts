@@ -298,7 +298,10 @@ export const presetStateMachine = withSteps(
     .transition({ from: "idle", to: "loading", trigger: "submit" })
     .transition({ from: "loading", to: "done", trigger: "success", tone: "success" })
     .transition({ from: "loading", to: "error", trigger: "fail", tone: "error" })
-    .transition({ from: "error", to: "idle", trigger: "retry", guard: "if attempts < 3" })
+    // 自分へ戻る輪 (#1464)。 描画側が輪として描けるようになった (`cdl#560`、0.15.0)。
+    // 再試行のように「同じ状態に留まる」 遷移は設計が自己遷移で表すと決めている
+    .transition({ from: "error", to: "error", trigger: "retry", guard: "attempts < 3" })
+    .transition({ from: "error", to: "idle", trigger: "reset" })
     .build(),
   [
     { ids: ["idle"], title: "1. Idle", body: "何も起きていない初期状態。" },
@@ -308,11 +311,14 @@ export const presetStateMachine = withSteps(
       body: "送信を受けて処理中になる。",
     },
     {
-      ids: ["done", "t1-loading-done"],
-      title: "3. success で Done",
-      body: "成功して終わりの状態へ。",
+      ids: ["error", "t2-loading-error", "t3-error-error"],
+      title: "3. fail で Error、 自分へ戻って再試行",
+      body: "自分へ戻る輪が再試行。 3 回まで同じ状態に留まる。",
     },
-    { ids: ["error", "t2-loading-error", "t3-error-idle"] },
+    {
+      ids: ["done", "t1-loading-done", "t4-error-idle"],
+      body: "自分へ戻る輪 (再試行) を含む全体。",
+    },
   ],
 );
 
@@ -1623,7 +1629,8 @@ flow:
   - Idle -> Loading: "submit" (accent, solid)
   - Loading -> Done: "success" (success, solid)
   - Loading -> Error: "fail" (error, solid)
-  - Error -> Idle: "retry" (accent, solid) { sub: "if attempts < 3" }
+  - Error -> Error: "retry" (accent, solid) { sub: "attempts < 3" }
+  - Error -> Idle: "reset" (accent, solid)
 
 animation:
   - step: "1. Idle" 0.9s
@@ -1634,14 +1641,14 @@ animation:
     badge: "fsm"
     focus: [Idle, Loading, "Idle -> Loading"]
     body: "送信を受けて処理中になる。"
-  - step: "3. success で Done" 0.9s
+  - step: "3. fail で Error、 自分へ戻って再試行" 0.9s
     badge: "fsm"
-    focus: [Idle, Loading, Done, "Idle -> Loading", "Loading -> Done"]
-    body: "成功して終わりの状態へ。"
+    focus: [Idle, Loading, Error, "Idle -> Loading", "Loading -> Error", "Error -> Error"]
+    body: "自分へ戻る輪が再試行。 3 回まで同じ状態に留まる。"
   - step: "状態と遷移条件を示す図" 0.9s
     badge: "fsm"
-    focus: [Idle, Loading, Done, Error, "Idle -> Loading", "Loading -> Done", "Loading -> Error", "Error -> Idle"]
-    body: "FSM の全 state + transition を visible 化。"
+    focus: [Idle, Loading, Done, Error, "Idle -> Loading", "Loading -> Done", "Loading -> Error", "Error -> Error", "Error -> Idle"]
+    body: "自分へ戻る輪 (再試行) を含む全体。"
 `;
 
 export const sourceJson__presetStateMachine = `{
@@ -1665,12 +1672,13 @@ export const sourceJson__presetStateMachine = `{
     { "from": "Loading", "to": "Error", "label": "fail", "tone": "error", "style": "solid" },
     {
       "from": "Error",
-      "to": "Idle",
+      "to": "Error",
       "label": "retry",
-      "sub": "if attempts < 3",
+      "sub": "attempts < 3",
       "tone": "accent",
       "style": "solid"
-    }
+    },
+    { "from": "Error", "to": "Idle", "label": "reset", "tone": "accent", "style": "solid" }
   ],
   "animation": [
     {
@@ -1688,26 +1696,21 @@ export const sourceJson__presetStateMachine = `{
       "badge": "fsm"
     },
     {
-      "step": "3. success で Done",
+      "step": "3. fail で Error、 自分へ戻って再試行",
       "duration": 0.9,
-      "focus": ["Idle", "Loading", "Done", "Idle -> Loading", "Loading -> Done"],
-      "body": "成功して終わりの状態へ。",
+      "focus": ["Idle", "Loading", "Error", "Idle -> Loading", "Loading -> Error", "Error -> Error"],
+      "body": "自分へ戻る輪が再試行。 3 回まで同じ状態に留まる。",
       "badge": "fsm"
     },
     {
       "step": "状態と遷移条件を示す図",
       "duration": 0.9,
       "focus": [
-        "Idle",
-        "Loading",
-        "Done",
-        "Error",
-        "Idle -> Loading",
-        "Loading -> Done",
-        "Loading -> Error",
-        "Error -> Idle"
+        "Idle", "Loading", "Done", "Error",
+        "Idle -> Loading", "Loading -> Done", "Loading -> Error",
+        "Error -> Error", "Error -> Idle"
       ],
-      "body": "FSM の全 state + transition を visible 化。",
+      "body": "自分へ戻る輪 (再試行) を含む全体。",
       "badge": "fsm"
     }
   ]
@@ -1911,8 +1914,8 @@ actors:
   - Order: { eyebrow: "クラス", rows: ["+id: number", "+total: number", "───", "+pay(): void"] }
 
 flow:
-  - Admin -> User: "extends" (info, solid)
-  - Admin -> Order: "aggregates" (info, solid) { sub: "1..*" }
+  - Admin -> User: "extends" (info, solid) { head: triangle }
+  - Admin -> Order: "aggregates" (info, solid) { sub: "1..*", head: diamond }
 
 animation:
   - step: "1. User" 0.9s
@@ -1950,14 +1953,22 @@ export const sourceJson__presetClassDiagram = `{
     }
   ],
   "flow": [
-    { "from": "Admin", "to": "User", "label": "extends", "tone": "info", "style": "solid" },
+    {
+      "from": "Admin",
+      "to": "User",
+      "label": "extends",
+      "tone": "info",
+      "style": "solid",
+      "head": "triangle"
+    },
     {
       "from": "Admin",
       "to": "Order",
       "label": "aggregates",
       "sub": "1..*",
       "tone": "info",
-      "style": "solid"
+      "style": "solid",
+      "head": "diamond"
     }
   ],
   "animation": [
