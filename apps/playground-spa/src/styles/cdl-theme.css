@@ -26,8 +26,10 @@
  * 参照先の `--d-*` が差し替わると、 ここも自動で追随する。
  * ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  --cdl-canvas-bg: var(--d-surface);
-  --cdl-stage-bg: var(--d-surface);
+  /* 図の紙は暖かい地 (#1468)。 箱を白にして、地の上に紙が乗る形にする。
+     逆 (紙が白 / 箱が砂) だと、箱の方が濁って見えて図全体が沈む */
+  --cdl-canvas-bg: var(--d-bg);
+  --cdl-stage-bg: var(--d-bg);
   --cdl-node-fill: var(--d-surface-2);
   --cdl-fill: var(--d-surface-3);
   --cdl-label-bg: var(--d-surface);
@@ -61,6 +63,9 @@
   /* 図の中で意味を描き分ける 6 色。
      `--d-accent` を割り当てない。 site の主役色は赤橙で、 `--d-err` (赤) と色相が近く
      実測で ΔE 3.8 まで潰れた (見分けられる下限は 15)。 意味の色は系統色から取る。 */
+  /* 「いまどこか」 の色 (#1468)。 意味の 6 色とは役割が違い、強調した箱の枠と同じ主役色を使う。
+     順序図の板が引く。 ここを意味の色 (青) にすると、同じ「いま」 が図種で別の色になる */
+  --cdl-now: var(--d-accent);
   --cdl-tone-accent: var(--d-dg-1);
   --cdl-tone-accent-deep: var(--d-dg-1);
   --cdl-tone-teal: var(--d-dg-6);
@@ -92,7 +97,10 @@
  * ───────────────────────────────────────────────────────────────────────────── */
 
 /* 子の図形にも同じ塗りを当てる。 kind によって `rect` / `path` / `ellipse` と形が変わり、
-   包む要素だけに当てると中身が既定色のまま残る */
+   包む要素だけに当てると中身が既定色のまま残る。
+
+   面は `--d-surface` (#1468)。 `-3` / `-2` はどちらも面が濁って見え、行頭の印や型の字と
+   灰色が競合していた。 図の紙を暖かい地に下げたので、白の箱がその上に乗る形になる */
 [data-cdl-role="node-body"],
 [data-cdl-role="node-body"] > rect,
 [data-cdl-role="node-body"] > path,
@@ -102,7 +110,7 @@
 [data-cdl-role="node-body"] > g > path,
 [data-cdl-role="node-body"] > g > ellipse,
 [data-cdl-role="node-body"] > g > circle {
-  fill: var(--d-surface-3) !important;
+  fill: var(--d-surface) !important;
   stroke: var(--d-text-secondary) !important;
   stroke-width: 1.75 !important;
 }
@@ -249,10 +257,12 @@
 [id^="cdl-arrow-warning"] { --dragon-edge-tone: var(--d-warn); }
 [id^="cdl-arrow-info"] { --dragon-edge-tone: var(--d-dg-4); }
 
-/* 線に添える札 */
+/* 線に添える札。
+   面は箱と同じ `--d-surface-2` (#1468)。 箱を 1 段明るくした後もここだけ `-3` のままだと、
+   小さな札が箱より重く見えて読む順序が逆さになる。 線の上に乗るので枠は残す */
 [data-cdl-role="edge-label-bg"] {
-  fill: var(--d-surface-3) !important;
-  stroke: var(--d-text-muted) !important;
+  fill: var(--d-surface-2) !important;
+  stroke: var(--d-border-strong) !important;
   stroke-width: 1 !important;
 }
 
