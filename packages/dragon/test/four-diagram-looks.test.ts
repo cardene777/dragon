@@ -24,6 +24,7 @@ import { describe, it, expect } from "vitest";
 
 import { textDslToDiagram, jsonToDiagram } from "../src/index";
 import { EDGE_HEAD_VALUES } from "../src/v05/parser";
+import { EDGE_HEADS } from "@cardenelabs/cdl";
 import { parseTextDslV05 } from "../src/v05";
 import type { CompileNotice } from "../src/index";
 
@@ -37,10 +38,10 @@ describe("端の形が描画側へ渡る (#1462)", () => {
   it("受ける語を描画側から導いている", () => {
     // 手で並べると、描画側が形を増やした時に書けないままになる
     expect(EDGE_HEAD_VALUES.length, "受ける語が 0 件").toBeGreaterThan(0);
-    expect([...EDGE_HEAD_VALUES].sort()).toEqual(["crow", "diamond", "open", "triangle"]);
+    expect([...EDGE_HEAD_VALUES].sort(), "描画側の一覧と食い違う").toEqual([...EDGE_HEADS].sort());
   });
 
-  it("4 種すべてが渡る", () => {
+  it("受ける語すべてが渡る", () => {
     let 測れた = 0;
     for (const 形 of EDGE_HEAD_VALUES) {
       const e = 矢印("class", `  - A -> B: "関係" { head: ${形} }\n`);
@@ -55,7 +56,10 @@ describe("端の形が描画側へ渡る (#1462)", () => {
     //
     // **欄の有無では見ない**。 組み立ては矢印の欄を一律に並べるので、書かない欄も
     // `undefined` として存在する (`side` / `guard` も同じ)。 見るのは値
-    const e = 矢印("class", `  - A -> B: "関係"\n`);
+    //
+    // 図種は `topology` を使う。 `class` は #1466 で関係の語ごとに端の形が決まる
+    // (`relation` を書かなければ `associates` = 開いた矢) ため、書かなくても値が入る
+    const e = 矢印("topology", `  - A -> B: "関係"\n`);
     expect(e.length, "矢印を 1 本も作れていない (検査が空振りしている)").toBeGreaterThan(0);
     expect(e[0]?.head).toBeUndefined();
   });
@@ -73,13 +77,30 @@ describe("端の形が描画側へ渡る (#1462)", () => {
     // 図種ごとの組み立てが分かれているので、1 図種だけ見ると別の図種で落ちたままになる。
     // 実際に図種ごとの組み立てにも同じ形を置いたが、外しても全図種が渡っていた
     // (欄を写す 1 箇所を全図種が通る) ため余分だった
+    //
+    // 順序図系 (`sequence` / `solidity`) は #1466 で 1 枚の板になり、言づては矢印ではなく
+    // 板の中の行になった = 端の形を載せる矢印が無い。 板が言づてを持つことを別に見る
+    const 矢印を作る図種 = ["swimlane", "er", "state", "topology", "class", "c4", "flow"];
     let 測れた = 0;
-    for (const 型 of ["sequence", "swimlane", "er", "state", "topology", "solidity", "class", "c4", "flow"]) {
+    for (const 型 of 矢印を作る図種) {
       const e = 矢印(型, `  - A -> B: "関係" { head: diamond }\n`);
       expect(e.map((x) => x.head).filter(Boolean), `${型} で渡っていない`).toContain("diamond");
       測れた += 1;
     }
-    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(9);
+    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(矢印を作る図種.length);
+  });
+
+  it("順序図系は矢印を持たず、言づてが板の行になる", () => {
+    // 上のループから外した 2 図種を放置すると、板が言づてを落としても誰も気付かない
+    let 測れた = 0;
+    for (const 型 of ["sequence", "solidity"]) {
+      const d = textDslToDiagram(記法(型, `  - A -> B: "関係"\n`));
+      expect(d.edges, `${型} に矢印が残っている`).toEqual([]);
+      const 板 = d.nodes.find((n) => n.kind === "sequence-board");
+      expect(板?.sequenceData?.messages.map((m) => m.label), `${型} の言づてが板に無い`).toEqual(["関係"]);
+      測れた += 1;
+    }
+    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(2);
   });
 
   it("JSON からも同じ値が渡る (書き方で変わらない)", () => {
@@ -97,13 +118,23 @@ describe("自己参照が矢印として残る (#1462)", () => {
   it("書いた矢印を使う図種では残る", () => {
     // 設計は 3 図で使う = 状態の自己遷移 / シーケンスの自分宛て / ER の自己関係。
     // `class` も同じ経路なので併せて見る
+    //
+    // `sequence` は #1466 で板になり自分宛ては板の行になった (`from` と `to` が同じ言づて)。
+    // 矢印としては残らないので、ここでは見ずに下の検査が板の側で見る
     let 測れた = 0;
-    for (const 型 of ["state", "sequence", "er", "class"]) {
+    for (const 型 of ["state", "er", "class"]) {
       const e = 矢印(型, `  - A -> A: "自分"\n`);
       expect(e.some((x) => x.from === x.to), `${型} で自己参照が消えている`).toBe(true);
       測れた += 1;
     }
-    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(4);
+    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(3);
+  });
+
+  it("順序図では自分宛てが板の行として残る", () => {
+    const d = textDslToDiagram(記法("sequence", `  - A -> A: "自分"\n`));
+    const 言づて = d.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.messages ?? [];
+    expect(言づて.length, "言づてを 1 つも作れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(言づて.some((m) => m.from === m.to), "自分宛てが消えている").toBe(true);
   });
 
   it("`type: flow` の静止図は鎖状に組むので対象外", () => {

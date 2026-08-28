@@ -39,6 +39,8 @@ const 箱の値: Record<string, unknown> = {
   value: "42",
   previous: "38",
   rows: ["ア"],
+  // 行頭の印 (#1466)。 行と同じ数だけ並べる
+  marks: ["pk"],
   lane: "L1",
   stack: 1,
   initial: true,

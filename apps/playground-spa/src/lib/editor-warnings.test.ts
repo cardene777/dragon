@@ -207,12 +207,14 @@ flow:
  * **実際の検証結果で確かめる**。 文面を手で書くと、cdl が本当にその形で id を書くかが
  * 分からず、読み替えの正規表現がずれても気付けない。
  */
+// 図種は `topology` (#1466)。 順序図は 1 枚の板になり、面ごとの箱と `{名前}-header` の id が
+// 無くなった = id を名前へ読み替える経路の下敷きにできない
 const 落ちる説明 = `title: "t"
-type: sequence
+type: topology
 
 actors:
-  - A: { kind: contract, subtitle: "説明" }
-  - B
+  - A: { kind: card, subtitle: "説明", posX: 0, posY: 0, posW: 140, posH: 72 }
+  - B: { title: "" }
 
 flow:
   - A -> B: "x"
@@ -223,14 +225,14 @@ describe("書き手の名前で読める (#1324)", () => {
     const { compile, visualValidateLaid } = await import("@cardenelabs/cdl");
     const d = textDslToDiagram(落ちる説明);
     const 元 = visualValidateLaid(compile(d), d).violations;
-    const 対象 = 元.filter((v) => v.detail.includes('node "a-header"'));
+    const 対象 = 元.filter((v) => v.detail.includes('node "a"'));
     expect(対象.length, "id を含む指摘が 1 件も出ていない (検査が空振りしている)").toBeGreaterThan(0);
 
     const 読める = visibleWarnings(元, d);
     const 直った = 読める.filter((v) => v.detail.includes('名札 "A"'));
     expect(直った.length, "id が名前に変わっていない").toBe(対象.length);
     expect(
-      読める.filter((v) => v.detail.includes("a-header")),
+      読める.filter((v) => /node "a"/.test(v.detail)),
       "組み立てが作った id が残っている",
     ).toEqual([]);
   });
@@ -240,7 +242,7 @@ describe("書き手の名前で読める (#1324)", () => {
     // 書き手が書いた語を消すことになる
     const d = textDslToDiagram(落ちる説明);
     const 出た = 書き手の名前で読める(
-      'node "a-header" (shape-smart-contract, 140x72) は書いた 説明 が描かれない',
+      'node "a" (shape-smart-contract, 140x72) は書いた 説明 が描かれない',
       d,
     );
     expect(出た, "種別名まで読み替えている").toContain("shape-smart-contract");

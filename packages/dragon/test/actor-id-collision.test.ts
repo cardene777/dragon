@@ -16,9 +16,13 @@ import { compile } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "../src/index";
 import type { CdlDiagram, CompileNotice } from "../src/index";
 
-/** 登場人物ごとに箱を作る 9 図種 = id が名前から決まる群 */
+/**
+ * 登場人物ごとに箱を作る図種 = id が名前から決まる群。
+ *
+ * `sequence` / `solidity` は #1466 で 1 枚の板になり、面ごとの箱を作らなくなった = 名前から
+ * id が決まらないので重なりようがない。 板が箱を作らないことは別の検査で見る。
+ */
 const 箱を作る図種 = [
-  "sequence",
   "flow",
   "swimlane",
   "er",
@@ -211,7 +215,7 @@ describe("見本 (parts) を重ねた登場人物は数えない", () => {
   it("素の名前と見本の別名が同じ slug でも、 別名を変えない", () => {
     // 見本の中身は `別名__元の id` の形で名前空間を持つため、 素の名前と id が重ならない。
     // 数えると別名が変わり、 見本の id が総入れ替えになる
-    const src = 記法("sequence", ["A", "a: { kind: badge }"], ['A -> A: "x"']);
+    const src = 記法("swimlane", ["A", "a: { kind: badge }"], ['A -> A: "x"']);
     const 図 = textDslToDiagram(src, { partsCatalog: 図録 });
     expect(図.nodes.some((n) => n.id.startsWith("a__")), "見本の別名が変わっている").toBe(true);
   });
@@ -230,13 +234,13 @@ describe("cdl 側の規則でだけ重なる名前 (Round 1 r1-f1)", () => {
   }
 
   it("それぞれ別の箱になり、 題は書いた名前のまま", () => {
-    const { 図 } = 組む(記法("sequence", 片方だけ重なる2人, ['a_b -> a-b: "x"']));
+    const { 図 } = 組む(記法("swimlane", 片方だけ重なる2人, ['a_b -> a-b: "x"']));
     const 題 = 図.nodes.map((n) => n.title).filter((t) => t !== "");
     expect(new Set(題)).toEqual(new Set(["a_b", "a-b"]));
   });
 
   it("dragon の規則だけで重なる名前も引き続き通る", () => {
-    const { 図 } = 組む(記法("sequence", ["foo-bar", "Foo Bar"], ['foo-bar -> Foo Bar: "x"']));
+    const { 図 } = 組む(記法("swimlane", ["foo-bar", "Foo Bar"], ['foo-bar -> Foo Bar: "x"']));
     expect(() => compile(図)).not.toThrow();
   });
 });
@@ -276,7 +280,8 @@ describe("見本と素の登場人物が重なる時 (Round 1 r1-f3)", () => {
     },
   };
   const 組む見本 = (actors: string[], flow: string[] = []): CdlDiagram =>
-    textDslToDiagram(記法("sequence", actors, flow), { partsCatalog: 図録 });
+    // 縦列ではなく箱を見る検査なので、登場人物が箱になる図種で測る
+    textDslToDiagram(記法("topology", actors, flow), { partsCatalog: 図録 });
 
   it("素の登場人物の箱が消えない", () => {
     // 仮置きの id を共有すると、 見本を片付ける時に素の登場人物の箱まで消える
@@ -303,7 +308,7 @@ describe("表示を戻す相手を取り違えない (Round 1 r1-f4)", () => {
     // 出口で題の文字だけを見て戻すと、 見本の中の箱がたまたま同じ題を持っていた時に
     // その表示まで書き換える。 組み立て直後に控えた箱だけを戻す
     const 作り替え後の題 = (): string => {
-      const { 図 } = 組む(記法("sequence", 衝突する2人, ['foo-bar -> Foo Bar: "x"']));
+      const { 図 } = 組む(記法("swimlane", 衝突する2人, ['foo-bar -> Foo Bar: "x"']));
       // 作り替えた名前は表示に出ないので、 図録側から同じ文字を作って渡す
       return 図.nodes.map((n) => n.title).join("");
     };
@@ -322,7 +327,7 @@ describe("表示を戻す相手を取り違えない (Round 1 r1-f4)", () => {
       },
     };
     const 図 = textDslToDiagram(
-      記法("sequence", [...衝突する2人, "見本1: { kind: badge }"], ['foo-bar -> Foo Bar: "x"']),
+      記法("swimlane", [...衝突する2人, "見本1: { kind: badge }"], ['foo-bar -> Foo Bar: "x"']),
       { partsCatalog: 図録 },
     );
     const 見本の箱 = 図.nodes.find((n) => n.id.includes("__mark"));
@@ -386,8 +391,8 @@ describe("枠の名札も控えた相手だけ戻す (Round 1 r1-f4)", () => {
 describe("cdl 側の逃げ先と重なる名前 (Round 2)", () => {
   // cdl は形が空になった時に並びの位置へ逃げる (`lane-<位置>` / `actor-<位置>`)。
   // 逃げ先と同じ名前の登場人物が居ると重なる
-  it("sequence で 😀 と actor-0 が重ならない", () => {
-    const { 図 } = 組む(記法("sequence", ["😀", "actor-0"], ['😀 -> actor-0: "x"']));
+  it("swimlane で 😀 と actor-0 が重ならない", () => {
+    const { 図 } = 組む(記法("swimlane", ["😀", "actor-0"], ['😀 -> actor-0: "x"']));
     expect(() => compile(図)).not.toThrow();
   });
 
@@ -408,7 +413,7 @@ describe("cdl 側の逃げ先と重なる名前 (Round 2)", () => {
         phases: [],
       },
     };
-    const 図 = textDslToDiagram(記法("sequence", ["😀: { kind: badge }", "actor-0", "B"], ['actor-0 -> B: "x"']), {
+    const 図 = textDslToDiagram(記法("swimlane", ["😀: { kind: badge }", "actor-0", "B"], ['actor-0 -> B: "x"']), {
       partsCatalog: 図録,
     });
     expect(図.nodes.some((n) => n.title === "actor-0"), "素の登場人物の箱が消えている").toBe(true);
@@ -462,11 +467,16 @@ describe("逃げ先は図種ごとに違う (Round 3)", () => {
     return 図.lanes.find((l) => l.label === "😀")?.id ?? 図.nodes.find((n) => n.title === "😀")?.id;
   };
 
-  it("sequence は actor- に逃げるので actor-0 とだけ重なる", () => {
-    // 重なる方は作り替える
-    expect(絵文字のid("sequence", "actor-0")).not.toBe("actor-0");
-    // 重ならない方は触らない
-    expect(絵文字のid("sequence", "lane-0")).toBe("actor-0");
+  it("順序図の板は面ごとの箱を持たないので重なりようがない", () => {
+    /*
+     * #1466 で順序図は 1 枚の板になった。 面は板の中の見出しに並ぶだけで、名前から id が
+     * 決まる箱も縦列も作らない = 逃げ先そのものが無い。
+     */
+    for (const 型 of ["sequence", "solidity"]) {
+      const { 図 } = 組む(記法(型, ["😀", "actor-0"], ['😀 -> actor-0: "x"']));
+      expect(図.nodes.filter((n) => n.title === "😀"), `${型} に面の箱が残っている`).toEqual([]);
+      expect(図.lanes.filter((l) => l.label === "😀"), `${型} に面の縦列が残っている`).toEqual([]);
+    }
   });
 
   it("swimlane は lane- に逃げるので lane-0 とだけ重なる", () => {
@@ -497,8 +507,7 @@ describe("逃げ先は図種ごとに違う (Round 3)", () => {
       const { 図 } = { 図: textDslToDiagram(src) };
       return 図.lanes.find((l) => l.label === "😀")?.id ?? 図.nodes.find((n) => n.title === "😀")?.id;
     };
-    expect(動きつき("sequence", "actor-0"), "sequence で作り替えている").toBe("n");
-    expect(動きつき("solidity", "actor-0"), "solidity で作り替えている").toBe("n");
+    // `sequence` / `solidity` は板になり面の箱を作らない (#1466) ので、この経路の対象外
     expect(動きつき("swimlane", "lane-0"), "swimlane で作り替えている").toBe("lane-n");
   });
 

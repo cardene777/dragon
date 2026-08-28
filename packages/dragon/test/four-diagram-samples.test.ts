@@ -46,10 +46,44 @@ describe("クラス図が端の形で関係を分ける (#1464)", () => {
     expect(形.size, "端の形が 1 種類しかない").toBeGreaterThan(1);
   });
 
-  it("継ぐは三角、持つは菱", () => {
-    const 引く = (語: string) => d().edges.find((e) => e.label?.includes(語))?.head;
-    expect(引く("extends")).toBe("triangle");
-    expect(引く("aggregates")).toBe("diamond");
+  /**
+   * 設計 (「箱と行と関係」) が決めた 6 種と、両端の形 / 塗り / 線の種類。
+   *
+   * **印が付く側が種類で違う**。 継ぐ / 満たす は着き先 (親) に三角、持つ / 抱える は
+   * 出どころ (全体) に菱、使う / 結ぶ は着き先に開いた矢。 同じ形どうしは線の種類か塗りで
+   * 分かれる = 6 種が 6 通りの見た目になる。
+   */
+  const 設計の6種: readonly [語: string, 端: string, 塗り: string, 線: string][] = [
+    ["EXTENDS", "head:triangle", "hollow", "solid"],
+    ["IMPLEMENTS", "head:triangle", "hollow", "dashed"],
+    ["HAS", "tail:diamond", "hollow", "solid"],
+    ["OWNS", "tail:diamond", "solid", "solid"],
+    ["LINKS", "head:open", "solid", "solid"],
+    ["USES", "head:open", "solid", "dashed"],
+  ];
+
+  it("設計の6種が全て図にあり、決めた見た目で出る", () => {
+    // 語で引くのは、組み立て済みの図が種類 (`ClassRelationType`) を残さないため。
+    // 説明の語だけが読み手に届く手掛かりになる
+    const 引く = (語: string) => {
+      const e = d().edges.find((x) => x.label === 語);
+      if (e === undefined) return undefined;
+      // 印が立つ側と、その側の塗りを組で返す = 片側だけ見ると、印が反対側に付いても通る
+      const 端 = e.tailHead !== undefined && e.tailHead !== "none" ? `tail:${e.tailHead}` : `head:${e.head}`;
+      const 塗り = 端.startsWith("tail:") ? (e.tailHeadFill ?? "solid") : (e.headFill ?? "solid");
+      return [端, 塗り, e.style ?? "solid"];
+    };
+    const 実物 = 設計の6種.map(([語]) => [語, ...(引く(語) ?? [])]);
+    expect(実物, "設計の6種と食い違う").toEqual(設計の6種.map(([語, 端, 塗り, 線]) => [語, 端, 塗り, 線]));
+  });
+
+  it("6 種が 6 通りの見た目になる (2 つが同じ絵にならない)", () => {
+    // 形だけで分けると 3 通りに畳まる。 塗りと線の種類まで含めて初めて 6 種が分かれる
+    const 見た目 = d()
+      .edges.filter((e) => 設計の6種.some(([語]) => 語 === e.label))
+      .map((e) => `${e.tailHead ?? "none"}/${e.tailHeadFill ?? "solid"}|${e.head}/${e.headFill ?? "solid"}|${e.style ?? "solid"}`);
+    expect(見た目.length, "関係を 1 本も測れていない (検査が空振りしている)").toBe(6);
+    expect(new Set(見た目).size, "同じ絵になる関係がある").toBe(6);
   });
 });
 

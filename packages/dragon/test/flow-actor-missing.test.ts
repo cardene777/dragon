@@ -87,8 +87,8 @@ animation:
     expect(未知.map((n) => n.actor).sort()).toEqual(["c", "v"]);
     expect(d.edges).toEqual([]);
     expect(() => compile(d)).not.toThrow();
-    // lane は actors の分だけ。 存在しない lane を作っていない
-    expect(d.lanes.map((l) => l.id).sort()).toEqual(["検証", "変換"].map((n) => n).sort());
+    // 縦列は板を置く 1 本だけ (#1466)。 存在しない名前の縦列を作っていない
+    expect(d.lanes.map((l) => l.id)).toEqual(["seq"]);
   });
 
   it("動きを書いた図では、 解決できない矢印を落とす", () => {

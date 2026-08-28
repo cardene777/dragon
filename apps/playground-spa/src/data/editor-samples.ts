@@ -32,7 +32,7 @@ flow:
   - Client -> API: "ログイン要求"
   - API -> DB: "Client検索"
   - DB -> API: "結果"
-  - API -> Client: "認証成功" (success)
+  - API -> Client: "認証成功" { kind: return }
 
 animation:
   - step: "call" 1.4s
@@ -59,7 +59,7 @@ actors:
 flow:
   - Client -> Cart: "商品追加"
   - Cart -> Payment: "課金"
-  - Payment -> Client: "領収書" (success)
+  - Payment -> Client: "領収書" { kind: return }
 
 animation:
   - step: "add" 1.2s

@@ -26,6 +26,7 @@ import type {
   FormulaAst,
   LaidDiagram,
   NodeKind,
+  RowMark,
 } from "@cardenelabs/cdl";
 import {
   sequence,
@@ -33,13 +34,12 @@ import {
   swimlane,
   er,
   stateMachine,
+  classDiagram,
+  FSM_ACTION_MARK,
+  sequenceStepId,
   topology,
   diagram,
   layout,
-  rendersRows,
-  requiredRowsHeight,
-  requiredRowsWidth,
-  NODE_KINDS,
   applyDerivedValues,
   parseFormula,
   extractIdentifiers,
@@ -177,7 +177,13 @@ export type CompileNotice = {
     // 式が、どこにも書かれていない名前を読んだ (#1391)
     | "formula-unresolved"
     // 出来事が指す相手が図に無い (#1393)
-    | "event-target-missing";
+    | "event-target-missing"
+    // 順序図で面に種類を書いたが、板は名前と呼び名しか描かない (#1466)
+    | "actor-kind-not-honored"
+    // 箱の中の小さな箱に位置を書いたが、その名前の箱が図に無かった (#1466)
+    | "sub-node-not-found"
+    // 順序図の言づてに、板が描かない飾り (色味 / 添え字 / 寄せ) を書いた (#1466)
+    | "message-option-not-honored";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -308,6 +314,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 自分へ戻る形と居ない名前を指す形は既に落ちた後の `doc` を見る = 上の 2 件と重ねない
   reportFlowEndpointNotHonored(doc, 分けた.元の名前, opts?.onNotice);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
+  reportActorKindNotHonored(書いたまま, opts?.onNotice);
+  reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
@@ -315,7 +323,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
-  applyCanvasPivotPositions(diagram, placed);
+  applyCanvasPivotPositions(diagram, placed, opts?.onNotice);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const 追加した縦列: DslLane[] = [];
   const extended = applyV05Extensions(diagram, placed, 追加した縦列);
@@ -917,12 +925,83 @@ function reportFlowEndpointNotHonored(
  * (`compileMind` の「名前と副題 / 値、 枝の色しか描けません」)、 そこに `枠の指定` が既に
  * 入っている。 二重に伝えると同じ 1 行について知らせが 2 件並ぶ。
  */
+/**
+ * 順序図で面に書いた飾りが使われないことを伝える (#1466)。
+ *
+ * 順序図は 1 つの板が図を丸ごと描く形になり、面は上端の見出しに **名前と呼び名だけ** で並ぶ。
+ * 面ごとの箱が無いので、種類 / 大きさ / 位置 / 行 / 色 / 小見出し / 値 / 図形を載せる先も無い。
+ * 黙って落とすと、書いた側は効いていると思い込む。
+ *
+ * 見本 (`parts`) を重ねた面は対象外 = 見本は別経路で図に取り込まれ、板の見出しには並ばない。
+ */
+/**
+ * 順序図の言づてに書いた飾りが使われないことを伝える (#1466)。
+ *
+ * 板は言づてを **語と向きと種類** で描く。 色味 (`tone`) / 添え字 (`sub`) / 寄せ (`side`) を
+ * 載せる場所が無い = 矢印だった頃はその 3 つが矢印に付いていたが、板では行になった。
+ * 黙って落とすと、書いた側は効いていると思い込む。
+ */
+function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.type !== "sequence" && doc.type !== "solidity") return;
+  for (const s of doc.flow) {
+    const 効かない = [
+      s.tone !== undefined ? "色味" : "",
+      s.sub !== undefined ? "添え字" : "",
+      s.side !== undefined ? "寄せ" : "",
+    ].filter((x) => x !== "");
+    if (効かない.length === 0) continue;
+    onNotice({
+      kind: "message-option-not-honored",
+      actor: s.from,
+      line: s.pos?.line ?? 0,
+      message: `"${truncateForMessage(s.label)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} の板は語と向きと種類だけを描きます)`,
+      hint: "板には矢印が無いため飾りを載せる先がありません。 言づての種類 (kind: call / return / fire) で描き分けてください",
+    });
+  }
+}
+
+function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.type !== "sequence" && doc.type !== "solidity") return;
+  for (const a of doc.actors) {
+    if (a.partId !== undefined) continue;
+    const 効かない = [
+      /*
+       * 種類は `sequence` でだけ落ちる。
+       *
+       * `solidity` は種類で **面の並びを決める** (`compileSolidity`) ので、絵にならなくても
+       * 書いた意味は figure に出ている。 落ちたと伝えると、正しく効いている指定に毎回鳴る。
+       *
+       * 記法を通すと既定の `actor` が必ず入るため、値ではなく書いたかどうかの印で見る。
+       * 記法を通さず直接組み立てた場合はこの印が無いので、種類を置いたこと自体を「書いた」 とみなす
+       */
+      doc.type === "sequence" && a.kindWritten !== false && a.kind !== undefined ? "種類" : "",
+      a.posW !== undefined || a.posH !== undefined ? "大きさ" : "",
+      a.posX !== undefined || a.posY !== undefined || a.posRel !== undefined ? "位置" : "",
+      a.rows !== undefined ? "行" : "",
+      a.tone !== undefined ? "色" : "",
+      a.eyebrow !== undefined ? "小見出し" : "",
+      a.value !== undefined ? "値" : "",
+      a.shape !== undefined ? "図形" : "",
+    ].filter((x) => x !== "");
+    if (効かない.length === 0) continue;
+    onNotice({
+      kind: "actor-kind-not-honored",
+      actor: a.name,
+      line: a.pos?.line ?? 0,
+      message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} の板は名前と呼び名だけを描きます)`,
+      hint: "板には面ごとの箱が無いため飾りを載せる先がありません。 呼び名 (subtitle) に書くか、箱を持つ図種を使ってください",
+    });
+  }
+}
+
 function reportLaneNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
   if (doc.type === "mind") return;
   // 縦列を選べる図種では、全ての箱が書いていれば効く (#1263)。 効く形では知らせない
-  const 効く図種 = 縦列を選べる図種.has(doc.type as GenericKind);
-  if (効く図種 && 書いた縦列に置く(doc.type as GenericKind, doc)) return;
+  const 効く図種 = 縦列を選べる図種.has(doc.type);
+  if (効く図種 && 書いた縦列に置く(doc.type, doc)) return;
   if (効く図種) {
     reportLaneMixed(doc, onNotice);
     return;
@@ -1655,7 +1734,12 @@ function applyNodeTones(diagram: CdlDiagram, doc: DslDocument): void {
  * slugify で actor 名 → lane id / node id の逆引き、 posX/Y set 済 actor に対応する lane / node に
  * 座標を書込む。 未指定 actor は従来 auto layout 経路そのまま。
  */
-function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void {
+function applyCanvasPivotPositions(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  // 下見 (`probe`) の呼出では渡さない = 同じ知らせが 2 度出る
+  onNotice?: (notice: CompileNotice) => void,
+): void {
   for (const actor of doc.actors) {
     if (actor.partId !== undefined) continue; // parts actor は別経路 (mergePartsFromActors) で処理
     const aliasSlug = slugify(actor.name);
@@ -1689,13 +1773,31 @@ function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void 
     if (actor.nodes) {
       for (const [subKey, override] of Object.entries(actor.nodes)) {
         if (override.posX === undefined || override.posY === undefined) continue;
+        let 当たった = 0;
         for (const node of diagram.nodes) {
           if (node.id === `${aliasSlug}-${subKey}` || node.id === `${subKey}-${aliasSlug}`) {
             node.posX = override.posX;
             node.posY = override.posY;
             if (override.posW !== undefined) node.posW = override.posW;
             if (override.posH !== undefined) node.posH = override.posH;
+            当たった += 1;
           }
+        }
+        /*
+         * **当たらなかったことを伝える** (#1466)。
+         *
+         * この経路が動くのは、図種が 1 人につき複数の箱を作る時だけ。 順序図が名札 / 余白 /
+         * 足を作っていた頃はそこに当たっていたが、板になって作らなくなった = いまはどの図種も
+         * この形の箱を作らない。 黙って落とすと、書いた側は効いていると思い込む。
+         */
+        if (当たった === 0) {
+          onNotice?.({
+            kind: "sub-node-not-found",
+            actor: actor.name,
+            line: actor.pos?.line ?? 0,
+            message: `"${truncateForMessage(actor.name)}" の nodes に書いた "${truncateForMessage(subKey)}" に当たる箱が図にありません`,
+            hint: "1 人に複数の箱を作る図種でだけ効きます。 箱そのものの位置は actor 側の 位置: に書いてください",
+          });
         }
       }
     }
@@ -2476,9 +2578,24 @@ function cleanupPlaceholderActor(
   for (const n of target.nodes) {
     if (ownedLaneIds.has(n.lane)) ownedNodeIds.add(n.id);
   }
+  /*
+   * 素の登場人物が持つ id は消さない (#1466)。
+   *
+   * 下の頭一致は、見本のために作られた仮の箱 (`a-header` / `s0-a`) を拾うためのもの。
+   * ところが名前が重なった素の登場人物は `重なりを解く` 側で `a-c40bf6` のような id に
+   * 作り替えられるため、同じ頭で始まり **本体の箱まで巻き込む**。
+   *
+   * 見本と重なる名前を書いた図で、素の箱が黙って消えていた (実測で `flow` / `swimlane` /
+   * `er` / `state` / `topology` / `class` / `c4` の 7 図種すべて)。 順序図だけは面ごとの
+   * 縦列で引けたため免れており、#1466 で板になって縦列が無くなると同じ穴に落ちる。
+   */
+  const 素の箱のid = new Set(
+    doc.actors.filter((x) => x.partId === undefined).map((x) => slugify(x.name)),
+  );
   // actor 専用 lane を引き当てられない経路 (flow / topology 等の共有 lane preset) は従来どおり dragon
   // slug の prefix match に fallback する。 これらは 1 actor = 1 node (id = slug) の生成規則。
   const matchesAliasSlug = (id: string): boolean => {
+    if (素の箱のid.has(id)) return false;
     if (id === aliasSlug) return true;
     if (id.startsWith(`${aliasSlug}-`)) return true;
     // sequence step anchor = `s{N}-{aliasSlug}` pattern
@@ -2511,15 +2628,24 @@ function cleanupPlaceholderActor(
   // (`_`/全角の扱い等)、 aliasSlug (dragon slugify) と lane.id が不一致になる actor 名がある。 lane.label
   // は両経路とも a.name 生値なので slug 差の影響を受けず確実に一致する。 id === aliasSlug は
   // label 未設定 preset への fallback (exact match のみ、 prefix は false match risk のため付けない)。
-  if (doc.type === "sequence" || doc.type === "solidity") {
-    target.lanes = target.lanes.filter((l) => {
-      // 明示 lane mapping (a.lane) 先は part の張替え先なので保持する。
-      if (a.lane !== undefined && l.id === a.lane) return true;
-      if (l.label === a.name) return false;
-      if (l.id === aliasSlug) return false;
-      return true;
-    });
-  }
+  /*
+   * **図種で分けない** (#1466)。 以前は順序図系だけを掃除していたが、順序図が板になって
+   * 面ごとの縦列を作らなくなり、この分岐は誰も通らなくなった。 一方で縦列を作る他の図種
+   * (`swimlane` 等) では見本の仮の縦列が空のまま残っていた (実測)。
+   *
+   * **中身が残っている縦列は消さない**。 1 本の縦列を全員で共有する図種 (`flow` / `topology`)
+   * では、その縦列の名札がたまたま登場人物の名前と一致することがある。 消すと本体の箱が
+   * 行き場を失う。
+   */
+  const 残る箱を持つ = new Set(target.nodes.map((n) => n.lane));
+  target.lanes = target.lanes.filter((l) => {
+    // 明示 lane mapping (a.lane) 先は part の張替え先なので保持する。
+    if (a.lane !== undefined && l.id === a.lane) return true;
+    if (残る箱を持つ.has(l.id)) return true;
+    if (l.label === a.name) return false;
+    if (l.id === aliasSlug) return false;
+    return true;
+  });
   // 削除された node / edge を activate 参照している既存 phase の cleanup (node 削除と同じ判定経路
   // = 取りこぼすと存在しない id が activate に残り dangling 参照になる、 #873)
   for (const phase of target.phases) {
@@ -3197,23 +3323,14 @@ function applyEdgeInlineOptions(
     return;
   }
   const used = new Set<string>();
-  // sequence preset では actor 名 が lane id、 edge.from は `s{stepIdx}-{laneId}` 形式。
-  // solidity は sorted-actor を sequence preset 経由するため sequence と同形。
-  // それ以外 (flow / swimlane / er / state / topology / gantt / class / pie / c4 / mind) は
-  // edge.from / edge.to が plain slug (slugify(actor 名))。
-  const isSeqLike = doc.type === "sequence" || doc.type === "solidity";
-  doc.flow.forEach((s, stepIdx) => {
+  // edge.from / edge.to は plain slug (slugify(actor 名))。
+  //
+  // 順序図系 (`sequence` / `solidity`) はここに来ない = #1466 で板になり矢印を作らない。
+  doc.flow.forEach((s) => {
     const fromId = slugify(s.from);
     const toId = slugify(s.to);
     const target = diagram.edges.find((e) => {
       if (used.has(e.id)) return false;
-      if (isSeqLike) {
-        // edge.from / edge.to は `s{stepIdx}-{laneId}` 命名規則
-        return (
-          (e.from === `s${stepIdx}-${fromId}` || e.from === fromId) &&
-          (e.to === `s${stepIdx}-${toId}` || e.from === e.to)
-        );
-      }
       return e.from === fromId && e.to === toId;
     });
     if (!target) return;
@@ -3291,6 +3408,10 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   // **矢印を作る 9 図種すべてがここを通る**。 図種ごとの組み立てにも同じ形を置いたが、
   // 外しても 9 図種とも渡っていた (変異試験で実測) = 余分だったので消した
   if (s.head !== undefined) target.head = s.head;
+  // 端の残り 3 欄 (#1466)。 出どころ側の印と、両端の塗り。 ER は端ごとに違う個数を示す
+  if (s.tailHead !== undefined) target.tailHead = s.tailHead;
+  if (s.headFill !== undefined) target.headFill = s.headFill;
+  if (s.tailHeadFill !== undefined) target.tailHeadFill = s.tailHeadFill;
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
   if (s.overlay !== undefined) target.overlay = s.overlay;
@@ -3327,34 +3448,6 @@ function 鎖のどの行から来たか(doc: DslDocument, edgeIndex: number): Ds
   if (to === undefined) return undefined;
   return doc.flow.find((s) => s.to === to.name);
 }
-
-/**
- * 描画側が大きさを持つ種別。
- *
- * 記法の `kind` は描画の種別より広い。 そのまま渡すと大きさを引けずに描画が落ちる
- * (実測 = solidity の golden 4 件が `Cannot read properties of undefined`)。
- */
-const DRAWABLE_KINDS: ReadonlySet<string> = new Set(NODE_KINDS);
-
-/**
- * 描画側に無い記法の種別を、 意味の近い描画の種別に読み替える。
- *
- * Solidity の記法は `eoa` / `contract` のように領域固有の語を使う。 描画側に同じ名前は無いが、
- * 意味の対応する形はある (`shape-wallet` / `shape-smart-contract`)。 読み替えないと名札が
- * 一律 `card` になり、 「書いたとおりの形になる」 が Solidity の図だけ成立しない。
- *
- * 並び順 (`compileSolidity` の `kindOrder`) はこの読み替えの前の値で決まる = 読み替えても
- * 縦線の並びは変わらない。
- */
-const KIND_ALIAS: Readonly<Record<string, string>> = {
-  eoa: "shape-wallet",
-  wallet: "shape-wallet",
-  multisig: "signer",
-  contract: "shape-smart-contract",
-  proxy: "shape-smart-contract",
-  library: "shape-code-block",
-  interface: "shape-code-block",
-};
 
 /**
  * 記法の `values:` を図に載せる (#1162)。
@@ -3859,6 +3952,7 @@ const VALUE_NOTICE_HINT: Readonly<Record<string, string>> = {
   "invalid-id": "名前に使えるのは英数字と _ だけ",
 };
 
+
 /**
  * 図全体を 1 つの箱で描く種別。
  *
@@ -3887,253 +3981,6 @@ const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
   "journey-map",
 ]);
 
-/** 記法の種別を描画の種別に直す。 描けない種別のままなら `undefined`。 */
-function drawableKind(kind: string | undefined): string | undefined {
-  if (kind === undefined) return undefined;
-  const mapped = KIND_ALIAS[kind] ?? kind;
-  return DRAWABLE_KINDS.has(mapped) ? mapped : undefined;
-}
-
-/**
- * 順序図の名札 (lifeline 上端 / 下端) の高さを揃える。
- *
- * `kind` を書いたとおりに載せると、 種別ごとに要る高さが変わる (行を持つ storage は 206、
- * card は 72)。 揃えないと縦線の始まる位置がばらけ、 「同じ高さから下りる」 読み方が崩れる。
- *
- * 上端は最も高いものに合わせる。 下端も同じ値にする = 上下で形が違うと、 同じ登場人物が
- * 別物に見える。
- */
-function alignSeqHeaderHeights(diagram: CdlDiagram, doc: DslDocument): void {
-  if (doc.type !== "sequence" && doc.type !== "solidity") return;
-  // 名札の id は `{laneId}-header` / `{laneId}-footer` の構造。 末尾の一致だけで見ると、
-  // 登場人物名が `Auth Header` の時に step の目印 `s0-auth-header` を拾い、 見えない 2px の
-  // 箱を名札の高さまで広げてしまう (#883 と同根)。
-  const isEnd = (n: CdlDiagram["nodes"][number]): boolean =>
-    n.id === `${n.lane}-header` || n.id === `${n.lane}-footer`;
-  const ends = diagram.nodes.filter(isEnd);
-  if (ends.length === 0) return;
-  // `posH` を書いた名札は揃えの外に置く。 「その名札だけを指定の大きさにし、 他には影響させない」
-  // という指定なので (`types.ts` の `nodes` override)、 値を変えるのも、 他の名札を引きずるのも
-  // 契約に反する (実測 = `posH: 400` を 1 つ書くと、 無関係な名札まで 72 → 400 になった)。
-  const auto = ends.filter((n) => n.posH === undefined);
-  if (auto.length === 0) return;
-  const tallest = Math.max(...auto.map((n) => n.h ?? 0));
-  if (tallest <= 0) return;
-  for (const n of auto) n.h = tallest;
-}
-
-/**
- * 名札に載せるのに要る高さ (world 単位)。
- *
- * 絵が箱の外に出る `shape-` のうち、 **高さを上げれば下のはみ出しが消える** 4 種だけを持つ。
- *
- * `actor` / `function` / `storage` / `event` の 4 種は `#1066` までここに載っていた。 描画側が
- * 名前を箱の高さに関係なく固定の位置に置いていたため、 名札 (高さ 72) に載せると名前が下端を
- * またいだ。 `cardene777/cdl#416` が小型用の配置を足して収まるようになったので外した
- * (実測 = 名札の高さで下へ 52.3 から 63.8 の余裕、 目印がある場合でも 9.5 以上)。
- *
- * 値は実測 = 高さを 1 ずつ変えて描き、 絵の下端が箱の下端を越えなくなる最小の整数を取った
- * (`type: flow` で `大きさ:` を書いて掃いた)。 **絵を変えたら測り直す**。
- * 表が実際の描画と合っているかは `apps/playground-spa/tests/node-label-fit.spec.ts` が
- * 両側 (この高さで収まる / 2 低いとはみ出す) を実 render で測って見る。
- */
-const LABEL_MIN_H: Readonly<Record<string, number>> = {
-  // `shape-` のうち、 高さを上げれば下のはみ出しが消える 4 種 (#1067)。 値は「収まる最小の高さ」
-  // で、 1 手前 (値 - 1) では 0.9-1 はみ出すことを実測した
-  "shape-person": 228, // 名札 72 で下へ 155.9
-  "shape-server-rack": 166, // 94
-  "shape-website": 98, // 26
-  "shape-warehouse": 79, // 7
-};
-
-/**
- * 名札の高さをどれだけ上げても収まらない種別 (#1067)。
- *
- * `shape-` を名札に書くと絵が箱の外に描かれる。 49 種すべてを実測したところ、 完全に収まるのは
- * 5 種 (`shape-cloud` / `shape-window` / `shape-message-bubble` / `shape-token` /
- * `shape-online-shop`) だけだった。
- *
- * ## 分ける基準は「名前が読めるか」 (#1106 で変わった)
- *
- * | 向き | 実害 | 扱い |
- * |---|---|---|
- * | 下 | 縦線が絵を貫く | 落とす |
- * | 左右 | 隣の本とぶつかる (`shape-code-block` は右へ 132) | 落とす |
- * | 上のみ | 何ともぶつからず図の外にも出ない | **原則残すが例外あり** |
- *
- * `#1067` は向きだけで分け、 上だけのはみ出しは 10 種すべて残した。 実測で viewBox の内側に
- * 収まることを確かめており (最大の `shape-robot-arm` は上へ 129 だが余裕が 23)、 箱から出ても
- * 読み手には壊れて見えないと判断したため。
- *
- * **その判断が実機で崩れた**。 `shape-wallet` は上へ 12.1 しか出ないのに、 絵が小さく潰れて
- * 名前と重なり `EOA` が読めない状態だった。 はみ出し量では説明できない = 12.1 の
- * `shape-wallet` を落とし、 129 の `shape-robot-arm` を残す。
- *
- * したがって **基準は「名前が読めるか」** で、 向きは目安にすぎない。 上だけに出る 10 種のうち
- * 残るのは 9 種で、 分ける根拠は目視のみ (機械的な基準は無い)。
- *
- * ## ここに載るのは「高さで直らない」 種別だけ
- *
- * 下のはみ出しは高さで直ることがある。 4 種は `LABEL_MIN_H` に最小の高さを持たせ、 `rows` 等で
- * 名札が高くなった図では書いたとおりの形で載る (`#1061` の「収まる高さがある時は書いたとおりに
- * 載せる」 と同じ扱い)。
- *
- * こちらに載るのは 3 種類。 **左右にはみ出す 24 種** は横幅が高さで変わらないため直らない
- * (実測 = `shape-smart-contract` は h=72 でも h=430 でも右へ 15.2)。 **下のはみ出しが高さに
- * 依らない 6 種** は h を 72 から 600 まで上げても値が変わらない (実測 = `shape-stack` は
- * 常に 36、 `shape-cylinder` は 150 以上で常に 1)。 **`shape-wallet`** は上のはみ出しが
- * 高さで変わらず、 絵が潰れて名前と重なる (#1106)。
- *
- * ## 失うもの
- *
- * Solidity の読み替え (`#975`) 4 組のうち 3 組がここに入るため、 名札では `card` になる
- * (`contract` / `proxy` → `shape-smart-contract`、 `library` / `interface` →
- * `shape-code-block`、 `eoa` / `wallet` → `shape-wallet`)。 名札で形が残るのは
- * `multisig` → `signer` だけ。
- */
-const LABEL_NEVER_FITS: ReadonlySet<string> = new Set([
-  // 左右にはみ出す 24 種。 横幅は高さで変わらないため直らない
-  "shape-api-gateway",
-  "shape-atm",
-  "shape-auditor",
-  "shape-bank",
-  "shape-bitcoin-chain",
-  "shape-blockchain",
-  "shape-blockchain-block",
-  "shape-blockchain-node",
-  "shape-brokerage",
-  "shape-code-block",
-  "shape-customer-service",
-  "shape-ethereum-chain",
-  "shape-hexagon",
-  "shape-kanban-card",
-  "shape-lawyer",
-  "shape-network-node",
-  "shape-nft",
-  "shape-notary",
-  "shape-regulator",
-  "shape-satellite",
-  "shape-smart-contract",
-  "shape-terminal",
-  "shape-trader",
-  "shape-trust-bank",
-  // 下のはみ出しが高さに依らない 6 種
-  "shape-cylinder",
-  "shape-diamond",
-  "shape-file",
-  "shape-folder",
-  "shape-mobile-device",
-  "shape-stack",
-  // 上へ出る絵が名札の大きさでは読めない。 `#1067` では「上は何ともぶつからない」 として残したが、
-  // 実際には絵が小さく潰れて名前と重なり、 横に並べた時も 1 本だけ頭が浮く (user 実機確認)
-  "shape-wallet",
-]);
-
-/**
- * 名札が、 小型の `card` では描かれない文字を持つか。
- *
- * 小型の `card` (`h < 100`) が描くのは名前だけ。 `subtitle` と `eyebrow` は分岐で外れ、
- * `value` は `card` が元から描かない。 `rows` を描くのは種別が限られる。
- * どれか 1 つでも持つ名札を `card` に落とすと、 著者が書いた文字が画面から消える。
- */
-function hasAuthoredText(n: CdlDiagram["nodes"][number]): boolean {
-  if (n.subtitle !== undefined || n.eyebrow !== undefined || n.value !== undefined) return true;
-  return rendersRows(n.kind) && (n.rows?.length ?? 0) > 0;
-}
-
-/**
- * 絵が箱に収まらない `shape-` を名札から外す (#1061 / #1067)。
- *
- * `#975` が「書いた種別を名札に載せる」 挙動を入れ、 `#1058` が「書かなかった時は載せない」
- * を直した。 残っていたのは **書いた時にはみ出す** 側で、 名札は小型の箱 (`h: 72`) なのに
- * `shape-` は絵を自分の大きさで描くため、 絵が箱の外に出て縦線に貫かれる。
- *
- * `actor` / `function` / `storage` / `event` は `#1066` まで対象だった (名前を固定位置に置く
- * ため名前が下端をまたいだ = actor 21.6 / function 21.6 / storage 13.6 / event 24.2 world px)。
- * 描画側 (`cardene777/cdl#416`) が小さい箱で名前を中央に置くようになったので外した。
- * **いま落とす理由は絵のはみ出しだけ**。
- *
- * **収まる高さがある時は書いたとおりに載せる**。 `rows` を書いた名札は
- * `requiredRowsHeight` で 206 以上になり、 揃え (`alignSeqHeaderHeights`) がその高さを
- * 全本に配る。 判定を揃えの後に置くのはこのため。
- *
- * ただし **揃えで届くのは表の値が 206 以下の種別だけ**。 `shape-warehouse` (79) /
- * `shape-website` (98) / `shape-server-rack` (166) は収まるが、 `shape-person` (228) は
- * 届かず `card` に落ちる (`rows` 1 件では 206 まで)。
- *
- * **著者が書いた文字を持つ名札は落とさない**。 小型の `card` は名前しか描かない
- * (`subtitle` / `eyebrow` は `h < 100` の分岐で外れ、 `value` は元から描かない)。 落とすと
- * 書いた文字が画面から消える = 絵がはみ出すより悪い。 `rows` と同じ扱いにする。
- *
- * 落とす時に失うものは、 種別ごとの絵と、 既定の配色での枠線の色。 本 app の配色は枠線の色を
- * 上書きするため見た目は変わらないが、 既定の配色で使う利用者には差が出る。
- * それでも落とすのは、 絵が箱の外に出る方が読み手に与える誤りが大きいため。
- *
- * 高さを上げる方向は採らない。 名札の高さは全本で揃える規約があるため 1 本の指定が全体に
- * 伝播し、 全名札が 2-3 倍になる (`#1058` で実測、 golden 25 件が変化)。
- *
- * **判定は上下 1 組でする**。 `nodes` override で上端だけ大きさを書くと (`posH: 120`)、
- * 上端は収まり下端 (72) は収まらないため、 1 つずつ見ると同じ登場人物の上下で形が変わる。
- * 上下で形が違うと別物に見えるので、 どちらかが収まらなければ両方落とす。
- *
- * ## `shape-` も対象に含める (#1067)
- *
- * 当初は対象外にしていた。 これらは名前を箱ではなく自分の絵に対して置くため、 箱を基準に測ると
- * 収まっていないように見えるだけだと考えたため。 49 種を実測すると **絵そのものが箱の外に出て
- * 縦線に貫かれ、 隣の本ともぶつかって** いた。 どの種別をどう扱うかは `LABEL_NEVER_FITS` の
- * 説明が SSOT。
- *
- * ## 覆っていない範囲
- *
- * **上だけにはみ出す `shape-` は 9 種を残す**。 何ともぶつからず図の外にも出ないため
- * (`LABEL_NEVER_FITS` の説明を参照)。 箱の外に絵があること自体は直っておらず、 縦線が絵を貫く。
- * 縦線の終点は描画側が箱の下端で決めており、 組み立て側からは変えられない。
- *
- * 10 種のうち `shape-wallet` だけは落とす (#1106)。 上へ 12.1 しか出ないのに絵が潰れて名前と
- * 重なるため = 分ける基準ははみ出し量ではなく「名前が読めるか」。
- *
- * **著者が文字を書いた名札は落とさない**。 小型の `card` は名前しか描かないため、 落とすと
- * 書いた文字が画面から消える。 この保護によって `shape-` は落ちずに残るが、 描画側が絵を箱に
- * 収めるようになったので **下と左右には出ない** (`#1105`、 49 種を実測して 0)。 残るのは上だけで、
- * 上の扱いはこの節の 1 つ目と同じ。
- *
- * `actor` / `function` / `storage` / `event` は `#1066` まで落とす対象だった。 描画側
- * (`cardene777/cdl#416`) が小さい箱で名前を中央に置くようになったので外した = 名前がはみ出す
- * 理由で落とす経路はもう無い。 いま落とすのは `shape-` だけで、 理由は絵のはみ出し。
- */
-function dropUnfittableEndKinds(diagram: CdlDiagram, doc: DslDocument): void {
-  if (doc.type !== "sequence" && doc.type !== "solidity") return;
-  const ends = new Map<string, CdlDiagram["nodes"]>();
-  for (const n of diagram.nodes) {
-    if (n.id !== `${n.lane}-header` && n.id !== `${n.lane}-footer`) continue;
-    const pair = ends.get(n.lane);
-    if (pair === undefined) ends.set(n.lane, [n]);
-    else pair.push(n);
-  }
-  for (const pair of ends.values()) {
-    // 著者が書いた文字を持つ名札は落とさない。 小型の `card` は名前しか描かないため、
-    // 落とすと書いた文字が画面から消える (`#387` と同じ壊れ方になる)。 これらは上端にしか
-    // 載らないため 1 組で見る。
-    if (pair.some(hasAuthoredText)) continue;
-    const 収まらない = pair.some((n) => {
-      // 高さを上げても直らない種別 (#1067)。 高さを見ずに落とす
-      if (LABEL_NEVER_FITS.has(n.kind)) return true;
-      const need = LABEL_MIN_H[n.kind];
-      if (need === undefined) return false;
-      // 描画で使う高さを見る。 `posH` が効くのは `posX` と `posY` が揃った node だけ
-      // (`layout/nodes.ts`)。 揃っていない node の `posH` を見ると、 描画では使われない値で
-      // 判定することになる。
-      const h = (n.posX !== undefined && n.posY !== undefined ? n.posH : undefined) ?? n.h;
-      // 高さを書いていない名札は描画側の既定 (`NODE_SIZE`、 4 種とも 170 以上) で描かれるので
-      // 収まる。 名札は必ず高さを持つため通常ここには来ない。
-      return h !== undefined && h < need;
-    });
-    if (!収まらない) continue;
-    for (const n of pair) {
-      if (LABEL_NEVER_FITS.has(n.kind) || LABEL_MIN_H[n.kind] !== undefined) n.kind = "card";
-    }
-  }
-}
 
 /**
  * `(from, to)` の一致では取れない preset について、 edge と DSL の行の対応を埋める。
@@ -4446,45 +4293,78 @@ function compileGantt(doc: DslDocument): CdlDiagram {
  * 矢印は継承や保有を表す (`extends` / `aggregates` 等を書き手が説明に書く)。
  */
 function compileClass(doc: DslDocument): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
-  const CLASS_W = 400;
-  // 縦列の幅は箱より広く取る。 組立て API 側の値に揃える (#1263)
-  const CLASS_LANE_W = 450;
+  /*
+   * **組み立て器 (`classDiagram`) に渡す** (#1466)。
+   *
+   * 以前は箱と矢印を直に組んでいたため、行頭の印・端の塗り・印が付く側・段の配置が
+   * 1 つも出なかった = 画面の図と記法の図が別物になっていた。 組み立て器へ渡せば、
+   * 意匠の決まり (`CLASS_RELATION_LOOK`) を 1 箇所から引ける。
+   */
+  const b = classDiagram({ id: slugify(doc.title), topic: doc.title });
   // 登場人物が 0 人なら枠も作らない。 先に作ると中身の無い枠が 1 つ残る (#1096)
-  if (doc.actors.length === 0) return b.build();
+  if (doc.actors.length === 0) return diagram(slugify(doc.title), { topic: doc.title }).build();
 
-  // **クラスごとに縦列を 1 本作る** (#1263)。 組立て API 側がそう並べており、1 本にまとめると
-  // 同じ内容でも横並びが縦並びになる (実測 = 見本は 3 縦列 450 幅、記法は 1 縦列に縦積み)。
-  //
-  // 縦列に見出しは付けない。 クラスの名前は箱が既に描いており、縦列は並べるための入れ物
-  // (`er` / `state` と同じ扱い、#1241)
-  doc.actors.forEach((a, idx) => {
-    const nodeId = slugify(a.name) || `c${idx}`;
-    const laneId = `lane-${nodeId}`;
-    b.lane(laneId, { width: CLASS_LANE_W });
-    b.node(nodeId, {
-      lane: laneId,
-      stack: 0,
-      kind: "storage",
+  /*
+   * 縦列は `lane:` の順、段は `stack:` で決まる (#1466)。
+   *
+   * 書かない図は宣言した順に横 1 列 = 従来どおり。 1 つでも書けば格子に置く =
+   * **箱の 1 つの辺には関係を 1 本まで** を守るには段が要る。
+   */
+  const 列番号 = new Map<string, number>();
+  for (const a of doc.actors) {
+    if (a.lane === undefined) continue;
+    if (!列番号.has(a.lane)) 列番号.set(a.lane, 列番号.size);
+  }
+
+  for (const a of doc.actors) {
+    /*
+     * 行を持ち物と振る舞いに割る (#1466)。 **1 行ずつ括弧の有無で見る**。
+     *
+     * 区切りの行 (`───`) の位置では割らない = 振る舞いしか持たない箱は区切りを書けず、
+     * 全部が持ち物に落ちる (実測 = `Auditable` の `audit()` が四角の印で出た)。
+     * 区切りの行そのものは、組み立て器が群の間を空の行で作るので捨てる。
+     */
+    const rows = (a.rows ?? []).filter((r) => !/^[─-]+$/.test(r.trim()));
+    const 振る舞い = (r: string): boolean => r.includes("(");
+    const attributes = rows.filter((r) => !振る舞い(r));
+    const methods = rows.filter(振る舞い);
+    b.class({
+      id: slugify(a.name),
       title: 箱の題(a),
-      w: CLASS_W,
-    });
-  });
-
-  for (const s of doc.flow) {
-    const fromId = slugify(s.from);
-    const toId = slugify(s.to);
-    b.edge(fromId, toId, {
-      label: s.label,
-      ...(s.sub ? { sub: s.sub } : {}),
-      ...(s.side ? { side: s.side } : {}),
-
-      ...(s.tone ? { tone: s.tone } : {}),
-      ...(s.style ? { style: s.style } : {}),
+      ...(attributes.length > 0 ? { attributes: [...attributes] } : {}),
+      ...(methods.length > 0 ? { methods: [...methods] } : {}),
+      ...(a.eyebrow ? { stereotype: a.eyebrow } : {}),
+      ...(a.lane !== undefined ? { col: 列番号.get(a.lane) ?? 0 } : {}),
+      ...(a.stack !== undefined ? { row: a.stack } : {}),
     });
   }
 
-  return b.build();
+  for (const s2 of doc.flow) {
+    b.relation({
+      from: slugify(s2.from),
+      to: slugify(s2.to),
+      // 種類を書かない矢印は「使う」 扱い = 端が開いた矢になり、線と印の組が最も素直
+      type: s2.relation ?? "uses",
+      ...(s2.label ? { label: s2.label } : {}),
+      ...(s2.sub ? { cardinality: s2.sub } : {}),
+      ...(s2.tone ? { tone: s2.tone } : {}),
+      ...(s2.style ? { style: s2.style } : {}),
+      ...(s2.head ? { head: s2.head } : {}),
+      ...(s2.headFill ? { headFill: s2.headFill } : {}),
+      ...(s2.tailHead ? { tailHead: s2.tailHead } : {}),
+    });
+  }
+
+  const built = b.build();
+  /*
+   * 記法が段を書いた図では、組み立て器が作る 1 つの段を捨てる (#1466)。
+   *
+   * 段の注入 (`injectPhasesFallback`) は「段が 1 つも無い」 図にだけ効く。 組み立て器へ
+   * 渡すようにしたことで自動の段が 1 つ付き、書いた段が届かなくなった (実測 = 6 段書いた
+   * 図が 1 段で出た)。
+   */
+  const 書いた段がある = (doc.animate?.phases.length ?? 0) > 0;
+  return 書いた段がある ? { ...built, phases: [] } : built;
 }
 
 /**
@@ -5499,9 +5379,99 @@ type 放射で描ける欄 =
  *
  * 名前は図の中で 1 つに決まる必要がある (`focus:` と `flow:` が名前で指す) 一方、題は
  * 重なってよい。 同じ題の箱を並べる図と、題を持たない箱は、名前と切り離さないと書けない。
+ *
+ * **始まりと終わりの印は題を持たない** (#1466)。 塗った丸と輪で描くもので、名前を出す場所が
+ * 無い。 名前は矢印の端として指すために要るので、名前をそのまま題にすると `begin` の字が
+ * 丸の上に乗る (組み立て API 側の `.mark()` は題を空で作る)。 書いた題があればそれを使う。
  */
+const 題を持たない種類: ReadonlySet<string> = new Set(["mark-start", "mark-end"]);
+
 function 箱の題(a: DslActor): string {
+  if (a.title === undefined && a.kind !== undefined && 題を持たない種類.has(a.kind)) return "";
   return a.title ?? a.name;
+}
+
+/**
+ * 行を組み立て器が加工する図の種類 (#1466)。
+ *
+ * ここに載る種類では、記法に書いた行をそのまま箱へ載せ直さない = 組み立て器が行頭の印に
+ * 合わせて字を落としているため。
+ */
+function 行を組み立て器が持つ(type: DslDocument["type"]): boolean {
+  return type === "class";
+}
+
+/**
+ * 書いた語を行頭の印に読み替える (#1466)。
+ *
+ * **軸の意味は図の種類が決める**。 印そのものは 形 (四角 / 山形) × 塗り (塗る / 中空) の
+ * 2 軸で共通だが、その軸が何を指すかは種類ごとに違う。
+ *
+ * | 種類 | 山形 | 塗り |
+ * |---|---|---|
+ * | `er` | 外を指す列 (`fk`) | 空にできない (`opt` を書かない) |
+ * | `state` | 出入りの瞬間 (`entry` / `exit`) | 続く・入る側 (`entry` / `do`) |
+ *
+ * ER の `pk` は印の 2 軸とは別の段 (名前の下線) に載るので、`fk` と重ねて書ける。
+ *
+ * 語を 1 つも知らない図の種類では `null` を返す = 印を付けない。
+ */
+/**
+ * 行と印を組む (#1466)。 群の分け方は図の種類が決める。
+ *
+ * ER は **鍵の群を上にまとめ、間を空の行 1 つで開ける** (組み立て器 `er()` と同じ形)。
+ * 記法に空の行を書かせないのは、`rows` が空の要素を捨てるため = 書いても消える。
+ * 状態遷移は群を分けないので、書いた並びのまま。
+ */
+function 行と印を組む(
+  type: DslDocument["type"],
+  rows: readonly string[],
+  marks: readonly string[],
+): { rows: string[]; rowMarks: (RowMark | null)[] } | null {
+  const 印 = 行頭の印にする(type, marks);
+  if (印 === null) return null;
+  if (type !== "er") {
+    return { rows: [...rows], rowMarks: rows.map((_, i) => 印[i] ?? null) };
+  }
+  const 鍵: number[] = [];
+  const 値: number[] = [];
+  rows.forEach((_, i) => ((印[i]?.underline === true ? 鍵 : 値).push(i)));
+  const 並び = 鍵.length > 0 && 値.length > 0 ? [...鍵, -1, ...値] : [...鍵, ...値];
+  return {
+    rows: 並び.map((i) => (i < 0 ? "" : (rows[i] ?? ""))),
+    rowMarks: 並び.map((i) => (i < 0 ? null : (印[i] ?? null))),
+  };
+}
+
+function 行頭の印にする(
+  type: DslDocument["type"],
+  marks: readonly string[],
+): (RowMark | null)[] | null {
+  if (type === "er") {
+    return marks.map((m) => {
+      const 語 = m.trim().split(/\s+/).filter(Boolean);
+      /*
+       * **語を書かない行は「ただの値」**。 印を付けない行にはしない (#1466)。
+       *
+       * ER の印は 2 軸とも既定を持つ = 四角 (外を指さない) で塗る (空にできない)。
+       * 印なしにすると、書かなかった列だけ行頭が空いて群の間と見分けが付かなくなる。
+       */
+      return {
+        shape: 語.includes("fk") ? ("chevron" as const) : ("square" as const),
+        filled: !語.includes("opt"),
+        ...(語.includes("pk") ? { underline: true } : {}),
+      };
+    });
+  }
+  if (type === "state") {
+    return marks.map((m) => {
+      const 語 = m.trim();
+      if (語 === "") return null;
+      const 表 = FSM_ACTION_MARK as Record<string, RowMark>;
+      return 表[語] ?? null;
+    });
+  }
+  return null;
 }
 
 /** 放射では描けない欄。 書かれていたら伝える */
@@ -5513,6 +5483,7 @@ type 放射で描けない欄 =
   | "owner"
   | "end"
   | "rows"
+  | "marks"
   | "lane"
   | "stack"
   | "initial"
@@ -5578,6 +5549,7 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   owner: "担当 (工程の並びの欄)",
   end: "終わる時期 (工程の並びの欄)",
   rows: "行",
+  marks: "印",
   lane: "枠の指定",
   stack: "積む順",
   initial: "始まり / 終わり の印",
@@ -5880,54 +5852,20 @@ function applyV05Extensions(
   // seq-like の非 animate 経路は実 node id を CDL preset 側 slugify (`_` → `-` 置換 + 全角正規化) で
   // 生成する。 dragon slugify (`_` / 全角 保持) で `{slug}-header` を決め打つと、 actor `A_B` の
   // primaryNodeId `a_b-header` が実 node `a-b-header` と食い違い、 inline option (subtitle / eyebrow /
-  // value / rows) が drop する (#881、 #873 / #877 と同根の dragon⇔CDL slug 不一致)。 lane.label は
-  // 両 slug 経路とも actor.name の生値なので (#877)、 actor 専用 lane を label 一致で引き当て、 その
-  // lane 内の `-header` node を権威 primary として回収する。 slug 決め打ちを廃して実装差を構造的に吸収。
+  // value / rows) が drop する (#881、 #873 / #877 と同根の dragon⇔CDL slug 不一致)。
   //
-  // 経路を preset 種別 (isSeqLike) で分け、 かつ lane.label / node id を actor.name の exact 一致で
-  // 引くことで、 actor 名 "A Header" の slug `a-header` が actor "A" の node に漏れる cross-actor leak
-  // (#879) も同時に断つ。
-  const isSeqLike = doc.type === "sequence" || doc.type === "solidity";
+  // **順序図系はここを通らない** (#1466)。 `sequence` / `solidity` は 1 枚の板になり、面ごとの
+  // 箱も縦列も作らなくなった = 書いた欄を写す相手が無い。 面に書いた内容が効かないことは
+  // `reportActorKindNotHonored` が伝える。
   // actor inline option → node merge
   for (const a of doc.actors) {
     const dragonSlug = slugify(a.name);
-    let primaryNodes: CdlDiagram["nodes"];
-    if (isSeqLike) {
-      const ownedLaneIds = new Set(
-        diagram.lanes.filter((l) => l.label === a.name).map((l) => l.id),
-      );
-      // lane.label で actor 専用 lane を引けた場合はその lane の header node を回収する。 引けない
-      // (label 未設定等の) preset は従来どおり dragon slug の `{slug}-header` 決め打ちに fallback する。
-      //
-      // header node id は `{laneId}-header` の構造。 `endsWith("-header")` で判定すると step box
-      // `s{idx}-{laneId}` が actor 名末尾 "Header" (slug `...-header`) で誤マッチし、 option が invisible
-      // な step anchor にも copy される (cc-codex #883 MAJOR)。 lane id との構造 exact 一致で header だけを
-      // 引くことで step box / spacer / footer を排除する。
-      primaryNodes =
-        ownedLaneIds.size > 0
-          ? diagram.nodes.filter((n) => ownedLaneIds.has(n.lane) && n.id === `${n.lane}-header`)
-          : diagram.nodes.filter((n) => n.id === `${dragonSlug}-header`);
-    } else {
-      // 非 seq preset は 1 actor = 1 node (id = dragon slug) で node id と dragon slug が一致する。
-      primaryNodes = diagram.nodes.filter((n) => n.id === dragonSlug);
-    }
+    // 1 actor = 1 node (id = dragon slug) で node id と dragon slug が一致する。
+    const primaryNodes = diagram.nodes.filter((n) => n.id === dragonSlug);
     for (const node of primaryNodes) {
       // 識別に使う名前と、箱に出す題を分ける (#1381)。 preset が actor 名で
       // node を作る経路 (sequence / solidity / swimlane / c4) もここで書き換える。
-      if (a.title !== undefined) {
-        node.title = a.title;
-        if (isSeqLike) {
-          const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
-          if (footer) footer.title = a.title;
-
-          // 名前で決めた preset の幅を題に合わせる。 明示の大きさは後段が優先する。
-          if (a.posW === undefined) {
-            const titleW = Math.max(140, a.title.length * 22 + 52);
-            node.w = titleW;
-            if (footer) footer.w = titleW;
-          }
-        }
-      }
+      if (a.title !== undefined) node.title = a.title;
       // `type: c4` では説明の先頭に段の目印 (`L1` / `L2` / `L3`) を書く。 目印は組み立てに
       // 段を伝えるためのもので読む人に意味を持たず、 段の名前は枠のラベルが既に出している。
       // ここで落とさないと、 組み立てが読み取った目印がそのまま箱の説明として出る (#1098)
@@ -5935,74 +5873,42 @@ function applyV05Extensions(
       if (説明 !== undefined) node.subtitle = 説明;
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
-      if (a.rows !== undefined) node.rows = a.rows;
+      /*
+       * 行は **組み立て器が持つ図では上書きしない** (#1466)。
+       *
+       * クラス図は行頭の印を出すために、公開の記号 (`+` / `-`) と呼び出しの括弧を字から
+       * 落とし、群の区切り (`───`) を空の行に置き換える。 書いた字をそのまま載せ直すと
+       * その加工が消え、印と字が同じことを 2 度言う形に戻る (実測)。
+       */
+      if (a.rows !== undefined && !行を組み立て器が持つ(doc.type)) node.rows = a.rows;
+      // 行頭の印 (#1466)。 書いた語を図の種類ごとの意味で読み、群の分け方も種類が決める
+      if (a.marks !== undefined && a.rows !== undefined) {
+        const 組 = 行と印を組む(doc.type, a.rows, a.marks);
+        if (組 !== null) {
+          node.rows = 組.rows;
+          node.rowMarks = 組.rowMarks;
+        }
+      }
+      /*
+       * **行を持たない状態でも欄を置く** (#1466)。
+       *
+       * 描き手は `rowMarks` の有無で新しい意匠かどうかを決める (`storage.tsx`)。 行の無い箱で
+       * 欄ごと省くと、その箱だけ従来の意匠に落ちて呼び名が消える (組み立て API 側の
+       * `stateMachine` は同じ理由で空の欄を置いている)。
+       */
+      if (doc.type === "state" && node.kind === "storage" && node.rowMarks === undefined) {
+        node.rows = a.rows ?? [];
+        node.rowMarks = [];
+      }
       // 箱の大きさを反映する (#1259)。 **animation の有無に関係なく** = 動く図専用の
       // 組み立てだけで渡すと、同じ記法でも静止図では指定が消える。
-      //
-      // 順序図は名札 / 余白 / 足を組で作り、大きさが縦線の並びと結びつくため対象外。
       //
       // **幅が図に出るかは縦列との大小で決まる**。 縦列に収まれば箱だけが変わり、
       // 縦列より広ければ縦列ごと押し広げる (実測 = ステート図の 320 は縦列 370 に収まって
       // 図が変わらないが、拡張ステート図の 280 に対し既定 640 は縦列 330 を押し広げた)。
       // #1260 で 1 件だけ見て「見た目に出ない」 と判断し配線を外した = 同じ誤りを繰り返さない
-      if (!isSeqLike) {
-        if (a.posW !== undefined) node.w = a.posW;
-        if (a.posH !== undefined) node.h = a.posH;
-      }
-      // seq-like preset の header / footer は kind を card 固定で作る。 書いた kind を載せる
-      // (#975)。 載せないと「書いたのに効かない項目」 が残り、 `rows` を書いた時は行が card に
-      // 付いて画面から消える (#387、 cdl 側 Axis 67 rows-not-rendered が検知する)。
-      //
-      // 以前は「行を描く kind かつ rows あり」 に絞っていた。 header の見た目を kind ごとに
-      // 変えると読み方が変わることを懸念したためだが、 **書いたとおりにならない方が読み手を
-      // 惑わせる**。 見本 412 図で影響を受けるのは 1 図 (4 actor) だけと実測した。
-      // 書いた種別を名札に載せる。 描画側に無い語は意味の近い形に読み替える (#975)。
-      //
-      // **書いた時だけ載せる** (#1058)。 `kind` は書かなくても既定の `actor` が入るため、
-      // 値だけを見ると「書かなかった」 が「`actor` と書いた」 に化ける。 名札は小型の箱
-      // (`h: 72`) で作られ、 描画側は `card` に小型用の分岐を持つが `actor` には無い。
-      // 既定値で上書きすると小型の分岐が外れ、 名前の文字が箱の下端をはみ出す。
-      //
-      // 判定は `!== false` で行う。 記法の parse は書かなかった時に `false` を明示するので
-      // これで区別できる。 `=== true` にすると、 **記法を通さず `DslActor` を直接組み立てて
-      // `compileToCdl()` を呼ぶ経路** (公開 API) が既定の `undefined` で全て「書かなかった」
-      // に倒れ、 書いた種類が消える (#975 の挙動が壊れる)。
-      const drawn = isSeqLike && a.kindWritten !== false ? drawableKind(a.kind) : undefined;
-      if (drawn !== undefined) {
-        node.kind = drawn as typeof node.kind;
-        // 下端の名札も同じ形にする。 上下で形が違うと、 同じ登場人物が別物に見える。
-        // `rows` は上端にだけ載る (`primaryNodes` が上端しか拾わない) ので、 行は 2 度出ない。
-        const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
-        if (footer) footer.kind = drawn as typeof node.kind;
-      }
-      // 行を書いた時は枠に収まる高さと幅にする。 header は w / h を固定値で作られ、 cdl 側は
-      // `n.w` / `n.h` を明示した node の自動拡張を尊重する (著者指定を壊さない) 設計なので、
-      // preset が置いた固定値がそのまま残る。
-      //
-      // 必要な寸法は cdl の SSOT (`requiredRowsHeight` / `requiredRowsWidth`) から引く。
-      // 式を dragon 側に写すと、 描画を変えた時に片方だけ古くなる。
-      if (isSeqLike && a.rows !== undefined && a.rows.length > 0 && rendersRows(a.kind)) {
-        node.h = Math.max(node.h ?? 0, requiredRowsHeight(a.kind, a.rows.length) ?? 0);
-        // **種別も渡す**。 省くと cdl 側は「どちらで描かれるか分からない」 として広い方を返す
-        // ため、 実際に描かれる書式より名札が広くなる。 高さと同じく種別を渡す。
-        //
-        // 差が出るのは比例の書式の方が広くなる行 = 比例は 1 字の最大が字の大きさの 1.038 倍
-        // (`W`) で 18 なら 18.7、 等幅の 26 は 1 字 15.6。 実測 = `W` を 10 個並べた行を持つ
-        // `storage` の名札が、 種別なしで 268 / 種別あり で 256。
-        node.w = Math.max(node.w ?? 0, requiredRowsWidth(a.rows, a.kind));
-      }
-      // 名札の大きさも書いたとおりにする (#975)。 縦線の位置は `位置:` の x が lane に効く
-      // (実測) が、 大きさはどこにも載っていなかった。
-      //
-      // 高さは指定をそのまま使わず、 揃える側 (`alignSeqHeaderHeights`) に渡す候補にする。
-      // 1 本だけ高い名札を作ると、 縦線の始まる位置がばらける。
-      if (isSeqLike) {
-        // 書いた値をそのまま使う。 大きい方を採ると、 縮める指定 (`大きさ: 80,60`) が効かない。
-        if (a.posW !== undefined) node.w = a.posW;
-        if (a.posH !== undefined) node.h = a.posH;
-        const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
-        if (footer && a.posW !== undefined) footer.w = a.posW;
-      }
+      if (a.posW !== undefined) node.w = a.posW;
+      if (a.posH !== undefined) node.h = a.posH;
       // 箱の中に描く図形 (#1374)。 renderer が shape を描くのは dyn-* kind だけなので、
       // shape 自身を SSOT にして対応する kind へ揃える。 card 等のまま shape だけ渡すと、指定を
       // 保持しているのに画面には何も出ない。 paint 検査が入力を mutate しないよう object も写す。
@@ -6010,29 +5916,13 @@ function applyV05Extensions(
         const dynamicKind = `dyn-${a.shape.kind}` as typeof node.kind;
         node.kind = dynamicKind;
         node.shape = { ...a.shape };
-        if (isSeqLike) {
-          const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
-          if (footer) {
-            footer.kind = dynamicKind;
-            footer.shape = { ...a.shape };
-          }
-        }
       }
-      // その箱を出すかどうかの条件 (#1381)。 名札と足にも同じ条件を渡す = 片方だけ隠すと
-      // 順序図で縦線の頭と足が食い違う
-      if (a.visibleIf !== undefined) {
-        node.visibleIf = a.visibleIf;
-        if (isSeqLike) {
-          const footer = diagram.nodes.find((n) => n.id === `${node.lane}-footer`);
-          if (footer) footer.visibleIf = a.visibleIf;
-        }
-      }
+      // その箱を出すかどうかの条件 (#1381)
+      if (a.visibleIf !== undefined) node.visibleIf = a.visibleIf;
       /*
        * 値に追随する 5 欄 (#1392)。
        *
-       * **名札と足へは渡さない**。 `visibleIf` は片方だけ隠すと順序図の縦線の頭と足が
-       * 食い違うため揃えるが、こちらは見た目の大きさ / 濃さ / ずらしで、名札まで同じだけ
-       * 動かすと縦線の頭が本体から離れる。 書いた箱にだけ効かせる。
+       * 見た目の大きさ / 濃さ / ずらしを、書いた箱にだけ効かせる。
        */
       if (a.wBind !== undefined) node.wBind = a.wBind;
       if (a.hBind !== undefined) node.hBind = a.hBind;
@@ -6041,13 +5931,6 @@ function applyV05Extensions(
       if (a.renderOffsetY !== undefined) node.renderOffsetY = a.renderOffsetY;
     }
   }
-  // 名札の高さを揃える。 kind ごとに高さが変わると縦線の始まる位置がばらけ、 順序図の
-  // 「同じ高さから下りる」 読み方が崩れる (実測 = 行を持つ名札だけ 134px 下にずれた)。
-  alignSeqHeaderHeights(diagram, doc);
-  // 揃えた後の高さで、 絵が箱に収まらない `shape-` を名札から外す (#1061 / #1067、 #1066 で
-  // 4 種を対象から外した)。 揃えは高さを上げる方向にしか動かないので、 ここで見れば
-  // 「行を書いた図では書いた種別が残る」 が成立する。
-  dropUnfittableEndKinds(diagram, doc);
   // v0.5+ animation phase 後段注入 (CAR-1657 fix、 元 dragon PR #413 report user)。
   // preset (class / pie / c4 / mind / gantt) が doc.animate を無視して build するケースを補償。
   // 既に preset が phase を生成済 (sequence / flow / swimlane / er / state / topology 経由 = compileGenericWithAnimate) なら skip。
@@ -6214,14 +6097,23 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
 function compileSequence(doc: DslDocument): CdlDiagram {
   // v0.3 ... アニメーション 有無で経路を分岐。
   // 有り = builder 直接経路で state / 複数 phase を注入。
-  // 無し = v0.2 と同じく sequence preset の標準 phase を採用。
-  if (doc.animate && doc.animate.phases.length > 0) {
-    return compileSequenceWithAnimate(doc);
-  }
+  /*
+   * **段があっても組み立て器へ渡す** (#1466)。
+   *
+   * 順序図は 1 つの箱が図を丸ごと描く形になり、言づては箱の中の行になった。 段ごとに
+   * 別経路で箱と縦線を組む形 (`compileSequenceWithAnimate`) では、その骨格が出ない。
+   */
   const seqBuilder = sequence({
     id: slugify(doc.title),
     topic: doc.title,
-    actors: doc.actors.map((a) => a.name),
+    /*
+     * 見出しに出すのは **書いた題** (#1466)。 名前は矢印の端として指すためのもので、
+     * `title:` を書いたらそちらを出す (`箱の題`)。 板でも他の図種と同じ規約にする。
+     */
+    actors: doc.actors.map((a) =>
+      a.subtitle ? { name: 箱の題(a), subtitle: a.subtitle } : 箱の題(a),
+    ),
+    ...(doc.bands && doc.bands.length > 0 ? { bands: doc.bands } : {}),
   });
   for (const s of doc.flow) {
     seqBuilder.step({
@@ -6230,196 +6122,54 @@ function compileSequence(doc: DslDocument): CdlDiagram {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
-
       ...(s.tone ? { tone: s.tone } : {}),
       ...(s.style ? { style: s.style } : {}),
+      ...(s.msgKind ? { kind: s.msgKind } : {}),
     });
   }
-  return seqBuilder.build();
-}
-
-/**
- * v0.3 ... アニメーション full compile (sequence 向け)。
- * sequence preset と同じ構造 (lane / header / spacer / step box / footer) を builder 直接で組み立て、
- * 標準の 1 phase を DSL の複数 phase に置き換える。
- *
- * 標準 phase 1 個 → DSL phases N 個に展開。
- * state / tween / set / badge / body / highlight 全反映。
- */
-function compileSequenceWithAnimate(doc: DslDocument): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
-  const laneW = 340;
-
-  // actor 名 → lane id / header / footer / spacer の slug 生成 (sequence preset と整合)
-  const actorIds = new Map<string, string>();
-  const headerNodeIds: string[] = [];
-  doc.actors.forEach((a, i) => {
-    const id = slugify(a.name) || `actor-${i}`;
-    actorIds.set(a.name, id);
-    actorIds.set(id, id);
-    // canvas pivot 新 spec = actor.posX/posY set 済なら CDL layout skip 経路に流す。
-    // sequence preset の lane はここで生成、 posW/posH は lane 全体の rect を上書き。
-    const laneOpts: Parameters<typeof b.lane>[1] = { width: laneW, label: a.name, lifeline: true };
-    if (a.posX !== undefined && a.posY !== undefined) {
-      laneOpts.posX = a.posX;
-      laneOpts.posY = a.posY;
-      if (a.posW !== undefined) laneOpts.posW = a.posW;
-      if (a.posH !== undefined) laneOpts.posH = a.posH;
-    }
-    b.lane(id, laneOpts);
-    const headerId = `${id}-header`;
-    // header/footer 幅を title 長に応じて auto-size (text-readability warning 解消)。
-    // formula = 22px/char + 52px padding (visualValidate text-readability と完全一致)、 min 140 で従来 sample 互換維持。
-    const actorW = Math.max(140, 箱の題(a).length * 22 + 52);
-    b.node(headerId, { lane: id, stack: 0, kind: "card", title: 箱の題(a), w: actorW, h: 72 });
-    headerNodeIds.push(headerId);
-    const spacerId = `${id}-spacer`;
-    b.node(spacerId, { lane: id, stack: 1, kind: "card", title: "", w: 2, h: 40 });
-  });
-
-  // step boxes (sequence preset と同じ命名 ... `s${idx}-${laneId}` / `e${idx}-${from}-${to}`)
-  // step ごとに DSL flow item に対応、 actor 名 → lane id の slugify を活用。
-  const stepEdgeIds: string[] = [];
-  doc.flow.forEach((s, idx) => {
-    // 解決できない名前の矢印は落とす (#1209)。 以前は名前をそのまま lane id として使い、
-    // 存在しない lane に箱を置いた図ができていた
-    const fromLaneId = actorIds.get(s.from);
-    const toLaneId = actorIds.get(s.to);
-    if (fromLaneId === undefined || toLaneId === undefined) return;
-    const stack = idx + 2;
-    const fromBoxId = `s${idx}-${fromLaneId}`;
-    const toBoxId = `s${idx}-${toLaneId}`;
-    b.node(fromBoxId, { lane: fromLaneId, stack, kind: "card", title: "", w: 2, h: 2 });
-    if (fromLaneId !== toLaneId) {
-      b.node(toBoxId, { lane: toLaneId, stack, kind: "card", title: "", w: 2, h: 2 });
-    }
-    const edgeId = `e${idx}-${fromLaneId}-${toLaneId}`;
-    b.edge(fromBoxId, fromLaneId === toLaneId ? fromBoxId : toBoxId, {
-      id: edgeId,
-      label: s.label,
-      ...(s.sub ? { sub: s.sub } : {}),
-      ...(s.side ? { side: s.side } : {}),
-
-      ...(s.tone ? { tone: s.tone } : {}),
-      ...(s.style ? { style: s.style } : {}),
-    });
-    stepEdgeIds.push(edgeId);
-  });
-
-  // footer (sequence preset と整合)
-  const footerStack = doc.flow.length + 2;
-  doc.actors.forEach((a) => {
-    const laneId = actorIds.get(a.name) ?? slugify(a.name);
-    const footerId = `${laneId}-footer`;
-    const actorW = Math.max(140, 箱の題(a).length * 22 + 52);
-    // `role` を付ける (#1273)。 付けないと生命線の終わりが footer より 100 下まで伸びる
-    // (実測 = 組立て API は `y2=848`、記法は `y2=948`)。 枠の大きさは同じなので
-    // 描いた図の大きさの比較では捕まらない
-    b.node(footerId, {
-      lane: laneId,
-      stack: footerStack,
-      kind: "card",
-      title: 箱の題(a),
-      w: actorW,
-      h: 72,
-      role: "lifeline-footer",
-    });
-  });
-
-  // state を builder に登録
-  for (const st of doc.animate?.states ?? []) {
-    b.state(st.name, { initial: st.initial });
-  }
-
-  // phase を順次注入 ... highlight / tween / set / badge / body 全反映
-  for (const p of doc.animate?.phases ?? []) {
-    b.phase(
-      slugify(p.name) || p.name,
-      {
+  const built = seqBuilder.build();
+  const 段 = doc.animate?.phases ?? [];
+  if (段.length === 0) return built;
+  /*
+   * 書いた段を「今どの言づてか」 に読み替える (#1466)。
+   *
+   * 記法は段ごとに光らせる矢印を並べる (`focus: [A -> B, ...]`) が、言づては矢印ではなく
+   * 箱の中の行になった = 光らせる先が無い。 代わりに **その段までに出た言づての番号** を
+   * 状態へ書き、箱がそこまでを描く。
+   */
+  const 番号 = new Map<string, number>();
+  doc.flow.forEach((f, i) => 番号.set(`${slugify(f.from)} -> ${slugify(f.to)}`, i));
+  const 状態名 = sequenceStepId();
+  return {
+    ...built,
+    states: [...built.states, { id: 状態名, initial: "0" }],
+    phases: 段.map((p, i) => {
+      const 番 = Math.max(
+        0,
+        ...(p.highlight ?? []).map(
+          (f) => 番号.get(f.split("->").map((x) => slugify(x.trim())).join(" -> ")) ?? -1,
+        ),
+      );
+      return {
+        id: `p${i}`,
         duration: p.durationMs,
         title: p.name,
         body: p.body ?? "",
-      },
-      (pb) => {
-        // highlight ... DSL の name (actor 名 or "from→to") を実 id に解決
-        const activateIds = resolveHighlight(p, doc, actorIds, stepEdgeIds);
-        if (activateIds.length > 0) {
-          pb.activate(...activateIds);
-        }
-        // tween
-        for (const t of p.tweens ?? []) {
-          pb.tween(t.state, t.from, t.to);
-        }
-        // set
-        for (const s of p.sets ?? []) {
-          pb.set(s.state, s.value);
-        }
-        // badge
-        if (p.badge) {
-          pb.badge(p.badge);
-        }
-        return pb;
-      },
-    );
-  }
-
-  return b.build();
+        activate: [slugify(doc.title)],
+        ...(p.badge ? { badge: p.badge } : {}),
+        /*
+         * **書いた状態の動きも一緒に運ぶ** (#1466)。 板の段は「今どの言づてか」 を状態に
+         * 書くが、記法は同じ段に `遷移:` / `切替:` も書ける。 板の分だけを載せると、
+         * 書いた動きが黙って落ちる (実測で `tweens` が 0 件になっていた)。
+         */
+        sets: [...(p.sets ?? []).map((x) => ({ stateId: x.state, value: x.value })), { stateId: 状態名, value: 番 }],
+        tweens: (p.tweens ?? []).map((t) => ({ stateId: t.state, from: t.from, to: t.to })),
+      };
+    }),
+  };
 }
 
-/**
- * DSL の highlight item (actor 名 or "A→B" or "A-B" 等) を実 node/edge id に解決する。
- */
-function resolveHighlight(
-  phase: DslPhase,
-  doc: DslDocument,
-  actorIds: Map<string, string>,
-  _stepEdgeIds: string[],
-): string[] {
-  const out: string[] = [];
-  const knownNames = new Set(actorIds.keys());
-  for (const raw of phase.highlight ?? []) {
-    const entry = parseFocusEntry(raw, knownNames);
-    // 矢印つき → 該当 step edge を全部探して active
-    if (entry.kind === "edge") {
-      const fromLaneId = actorIds.get(entry.from) ?? slugify(entry.from);
-      const toLaneId = actorIds.get(entry.to) ?? slugify(entry.to);
-      // 該当 edge を flow から検索
-      doc.flow.forEach((s, idx) => {
-        const sFromId = actorIds.get(s.from) ?? slugify(s.from);
-        const sToId = actorIds.get(s.to) ?? slugify(s.to);
-        if (sFromId === fromLaneId && sToId === toLaneId) {
-          out.push(`e${idx}-${fromLaneId}-${toLaneId}`);
-        }
-      });
-      // 関連する step box も active 化
-      const stackIdx = doc.flow.findIndex((s) => {
-        const sFromId = actorIds.get(s.from) ?? slugify(s.from);
-        const sToId = actorIds.get(s.to) ?? slugify(s.to);
-        return sFromId === fromLaneId && sToId === toLaneId;
-      });
-      if (stackIdx >= 0) {
-        out.push(`s${stackIdx}-${fromLaneId}`);
-        if (fromLaneId !== toLaneId) out.push(`s${stackIdx}-${toLaneId}`);
-      }
-      continue;
-    }
-    // actor 名 → header + footer + 全 step box を active
-    const laneId = actorIds.get(entry.name) ?? slugLookup(actorIds, entry.name);
-    if (laneId) {
-      out.push(`${laneId}-header`);
-      out.push(`${laneId}-footer`);
-      // この lane の全 step box
-      doc.flow.forEach((s, idx) => {
-        const sFromId = actorIds.get(s.from) ?? slugify(s.from);
-        const sToId = actorIds.get(s.to) ?? slugify(s.to);
-        if (sFromId === laneId || sToId === laneId) {
-          out.push(`s${idx}-${laneId}`);
-        }
-      });
-    }
-  }
-  return out;
-}
+
 
 /**
  * 名前が見つからない時に、 slug の形でも探す。
@@ -6749,10 +6499,20 @@ function 後ろへ戻る矢印か(
  * 縦列を **箱を並べるための入れ物** として使う図種だけを許す。 順序図と solidity は
  * 縦列がそのまま生命線として描かれる骨格なので許さない (#1248 の判断はこちらに当たる)。
  *
- * `er` / `state` / `class` は「1 縦列 1 箱」 が図の読み方そのもの (表 / 状態 / クラスが
- * 横に並ぶ) なので、2 つの箱を同じ縦列へ入れられる形にはしない。
+ * `er` は「1 縦列 1 箱」 が図の読み方そのもの (表が横に並ぶ) なので、2 つの箱を同じ縦列へ
+ * 入れられる形にはしない。
+ *
+ * **クラス図と状態遷移図は外した** (#1466)。 設計が格子に置く形になり (クラス 3 列 3 段 /
+ * 状態 2 列 5 段)、「箱の 1 つの辺には関係を 1 本まで」 を守るには 1 つの縦列に複数の箱が要る。
+ * 「1 縦列 1 箱」 が読み方だった前提はここで崩れている。
  */
-const 縦列を選べる図種: ReadonlySet<GenericKind> = new Set(["flow", "topology", "swimlane"]);
+const 縦列を選べる図種: ReadonlySet<PresetType> = new Set<PresetType>([
+  "flow",
+  "topology",
+  "swimlane",
+  "class",
+  "state",
+]);
 
 /**
  * 書いた縦列に箱を置く形か (#1263)。
@@ -6763,7 +6523,7 @@ const 縦列を選べる図種: ReadonlySet<GenericKind> = new Set(["flow", "top
  *
  * 見本 (parts) は縦列を張替え先として使うため、この判定からは外す。
  */
-function 書いた縦列に置く(kind: GenericKind, doc: DslDocument): boolean {
+function 書いた縦列に置く(kind: PresetType, doc: DslDocument): boolean {
   if (!縦列を選べる図種.has(kind)) return false;
   const 対象 = doc.actors.filter((a) => a.partId === undefined);
   return 対象.length > 0 && 対象.every((a) => a.lane !== undefined);

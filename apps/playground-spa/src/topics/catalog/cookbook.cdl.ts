@@ -45,7 +45,7 @@ type: sequence
 
 actors:
   - Client
-  - Handler: function
+  - Handler
   - DB
 
 flow:
@@ -71,7 +71,7 @@ export const sourceJson__apiCall = `{
   "type": "sequence",
   "actors": [
     { "name": "Client" },
-    { "name": "Handler", "kind": "function" },
+    { "name": "Handler" },
     { "name": "DB" }
   ],
   "flow": [
@@ -155,7 +155,7 @@ type: sequence
 actors:
   - User
   - App
-  - AuthServer: function
+  - AuthServer
   - API
 
 flow:
@@ -189,7 +189,7 @@ export const sourceJson__oauthFlow = `{
   "actors": [
     { "name": "User" },
     { "name": "App" },
-    { "name": "AuthServer", "kind": "function" },
+    { "name": "AuthServer" },
     { "name": "API" }
   ],
   "flow": [
@@ -223,9 +223,9 @@ type: sequence
 
 actors:
   - Client
-  - Limiter: function
+  - Limiter
   - API
-  - Bucket: storage
+  - Bucket
 
 states:
   remaining: 5
@@ -254,9 +254,9 @@ export const sourceJson__rateLimit = `{
   "type": "sequence",
   "actors": [
     { "name": "Client" },
-    { "name": "Limiter", "kind": "function" },
+    { "name": "Limiter" },
     { "name": "API" },
-    { "name": "Bucket", "kind": "storage" }
+    { "name": "Bucket" }
   ],
   "flow": [
     { "from": "Client", "to": "Limiter", "label": "request" },
@@ -288,7 +288,7 @@ type: sequence
 actors:
   - Browser
   - Server
-  - Session: storage
+  - Session
 
 flow:
   - Browser -> Server: "GET form"
@@ -316,7 +316,7 @@ export const sourceJson__csrfToken = `{
   "actors": [
     { "name": "Browser" },
     { "name": "Server" },
-    { "name": "Session", "kind": "storage" }
+    { "name": "Session" }
   ],
   "flow": [
     { "from": "Browser", "to": "Server", "label": "GET form" },
@@ -350,9 +350,9 @@ type: sequence
 
 actors:
   - Client
-  - Handler: function
+  - Handler
   - DB
-  - Table: storage
+  - Table
 
 flow:
   - Client -> Handler: "POST json body"
@@ -377,9 +377,9 @@ export const sourceJson__crudCreate = `{
   "type": "sequence",
   "actors": [
     { "name": "Client" },
-    { "name": "Handler", "kind": "function" },
+    { "name": "Handler" },
     { "name": "DB" },
-    { "name": "Table", "kind": "storage" }
+    { "name": "Table" }
   ],
   "flow": [
     { "from": "Client", "to": "Handler", "label": "POST json body" },
@@ -458,7 +458,7 @@ type: sequence
 actors:
   - Client
   - API
-  - Cache: storage
+  - Cache
   - DB
 
 flow:
@@ -488,7 +488,7 @@ export const sourceJson__cacheReadThrough = `{
   "actors": [
     { "name": "Client" },
     { "name": "API" },
-    { "name": "Cache", "kind": "storage" },
+    { "name": "Cache" },
     { "name": "DB" }
   ],
   "flow": [
@@ -524,7 +524,7 @@ type: sequence
 actors:
   - Client
   - API
-  - Index: storage
+  - Index
 
 flow:
   - Client -> API: "GET search q=foo"
@@ -550,7 +550,7 @@ export const sourceJson__searchQuery = `{
   "actors": [
     { "name": "Client" },
     { "name": "API" },
-    { "name": "Index", "kind": "storage" }
+    { "name": "Index" }
   ],
   "flow": [
     { "from": "Client", "to": "API", "label": "GET search q=foo" },
@@ -680,7 +680,7 @@ type: sequence
 actors:
   - Browser
   - API
-  - ObjectStorage: storage
+  - ObjectStorage
 
 flow:
   - Browser -> API: "POST multipart"
@@ -706,7 +706,7 @@ export const sourceJson__fileUpload = `{
   "actors": [
     { "name": "Browser" },
     { "name": "API" },
-    { "name": "ObjectStorage", "kind": "storage" }
+    { "name": "ObjectStorage" }
   ],
   "flow": [
     { "from": "Browser", "to": "API", "label": "POST multipart" },
@@ -844,7 +844,7 @@ type: sequence
 
 actors:
   - App
-  - PushService: function
+  - PushService
   - Device
 
 flow:
@@ -869,7 +869,7 @@ export const sourceJson__notification = `{
   "type": "sequence",
   "actors": [
     { "name": "App" },
-    { "name": "PushService", "kind": "function" },
+    { "name": "PushService" },
     { "name": "Device" }
   ],
   "flow": [
@@ -1006,7 +1006,7 @@ type: sequence
 
 actors:
   - Source
-  - Dispatcher: function
+  - Dispatcher
   - Consumer
 
 flow:
@@ -1031,7 +1031,7 @@ export const sourceJson__webhook = `{
   "type": "sequence",
   "actors": [
     { "name": "Source" },
-    { "name": "Dispatcher", "kind": "function" },
+    { "name": "Dispatcher" },
     { "name": "Consumer" }
   ],
   "flow": [
@@ -1157,7 +1157,7 @@ type: sequence
 actors:
   - Admin
   - API
-  - AuditStore: storage
+  - AuditStore
 
 flow:
   - Admin -> API: "delete user"
@@ -1182,7 +1182,7 @@ export const sourceJson__auditLog = `{
   "actors": [
     { "name": "Admin" },
     { "name": "API" },
-    { "name": "AuditStore", "kind": "storage" }
+    { "name": "AuditStore" }
   ],
   "flow": [
     { "from": "Admin", "to": "API", "label": "delete user" },
@@ -1204,8 +1204,8 @@ type: sequence
 
 actors:
   - App
-  - MailQueue: storage
-  - MailProvider: function
+  - MailQueue
+  - MailProvider
   - Inbox
 
 flow:
@@ -1230,8 +1230,8 @@ export const sourceJson__emailNotification = `{
   "type": "sequence",
   "actors": [
     { "name": "App" },
-    { "name": "MailQueue", "kind": "storage" },
-    { "name": "MailProvider", "kind": "function" },
+    { "name": "MailQueue" },
+    { "name": "MailProvider" },
     { "name": "Inbox" }
   ],
   "flow": [
@@ -1259,7 +1259,7 @@ actors:
   - Client
   - API
   - DB
-  - ObjectStorage: storage
+  - ObjectStorage
 
 flow:
   - Client -> API: "POST export"
@@ -1290,7 +1290,7 @@ export const sourceJson__exportData = `{
     { "name": "Client" },
     { "name": "API" },
     { "name": "DB" },
-    { "name": "ObjectStorage", "kind": "storage" }
+    { "name": "ObjectStorage" }
   ],
   "flow": [
     { "from": "Client", "to": "API", "label": "POST export" },
@@ -1372,9 +1372,9 @@ export const sourceYaml__healthCheck = `title: "Health check"
 type: sequence
 
 actors:
-  - LoadBalancer: function
-  - AppInstance: function
-  - StatusBoard: storage
+  - LoadBalancer
+  - AppInstance
+  - StatusBoard
 
 flow:
   - LoadBalancer -> AppInstance: "GET health"
@@ -1397,9 +1397,9 @@ export const sourceJson__healthCheck = `{
   "title": "Health check",
   "type": "sequence",
   "actors": [
-    { "name": "LoadBalancer", "kind": "function" },
-    { "name": "AppInstance", "kind": "function" },
-    { "name": "StatusBoard", "kind": "storage" }
+    { "name": "LoadBalancer" },
+    { "name": "AppInstance" },
+    { "name": "StatusBoard" }
   ],
   "flow": [
     { "from": "LoadBalancer", "to": "AppInstance", "label": "GET health" },
@@ -1446,16 +1446,16 @@ export const sourceYaml__tokenTransferSolidity = `title: "ERC-20 の送金 (種�
 type: solidity
 
 actors:
-  - Transfer: { kind: event }
-  - Balances: { kind: storage }
-  - Token: { kind: contract }
-  - User: { kind: eoa }
+  - Transfer
+  - Balances
+  - Token
+  - User
 
 flow:
   - User -> Token: "transfer(Bob, 100)"
   - Token -> Balances: "残高を書き換える"
   - Token -> Transfer: "Transfer を出す"
-  - Token -> User: "true" (success)
+  - Token -> User: "true"
 
 animation:
   - step: "呼ぶ" 1.2s
@@ -1476,16 +1476,16 @@ export const sourceJson__tokenTransferSolidity = `{
   "title": "ERC-20 の送金 (種別ごとに縦列が並ぶ)",
   "type": "solidity",
   "actors": [
-    { "name": "Transfer", "kind": "event" },
-    { "name": "Balances", "kind": "storage" },
-    { "name": "Token", "kind": "contract" },
-    { "name": "User", "kind": "eoa" }
+    { "name": "Transfer" },
+    { "name": "Balances" },
+    { "name": "Token" },
+    { "name": "User" }
   ],
   "flow": [
     { "from": "User", "to": "Token", "label": "transfer(Bob, 100)" },
     { "from": "Token", "to": "Balances", "label": "残高を書き換える" },
     { "from": "Token", "to": "Transfer", "label": "Transfer を出す" },
-    { "from": "Token", "to": "User", "label": "true", "tone": "success" }
+    { "from": "Token", "to": "User", "label": "true" }
   ],
   "animation": [
     { "step": "呼ぶ", "duration": 1.2, "focus": ["User", "Token"], "badge": "call" },

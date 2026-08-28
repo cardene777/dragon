@@ -20,8 +20,10 @@ import {
   type YamlAdapterError,
 } from "./yaml-adapter";
 
+// 図種は `topology` (#1466)。 順序図は 1 枚の板になり矢印を作らないため、矢印まで見る
+// この検査の下敷きにはできない
 const VALID_YAML = `title: "YAML tab demo"
-type: sequence
+type: topology
 actors:
   - User
   - API
@@ -47,7 +49,7 @@ describe("yamlToObject (parse layer)", () => {
     if (!result.ok) return;
     const obj = result.value as Record<string, unknown>;
     expect(obj.title).toBe("YAML tab demo");
-    expect(obj.type).toBe("sequence");
+    expect(obj.type).toBe("topology");
     expect(Array.isArray(obj.actors)).toBe(true);
     expect((obj.actors as unknown[]).length).toBe(2);
   });
@@ -174,8 +176,10 @@ flow:
   it("部品の一覧を渡すと図に取り込まれる (渡さないと仮の箱に落ちる)", () => {
     // 渡す経路を落としても throw しないため、 「通った」 だけでは検知できない。
     // 渡した時と渡さない時で図の中身が変わることを両方見る。
+    // 図種は `topology`。 順序図は #1466 で 1 枚の板になり、面が 0 人でも板の箱を 1 つ作る =
+    // 部品だけを見るこの検査では、部品と板が混ざって「取り込まれたか」 が読めない
     const yaml = `title: "with parts"
-type: sequence
+type: topology
 actors:
   - name: gauge1
     kind: demo-part
@@ -192,12 +196,8 @@ flow: []
     const without = yamlToDiagram(yaml);
     expect(without.ok).toBe(true);
     if (!without.ok) return;
-    // 解決できないと仮の箱 3 つになる = 渡す経路を落とせば必ずここで差が出る
-    expect(without.diagram.nodes.map((n) => n.id)).toEqual([
-      "gauge1-header",
-      "gauge1-spacer",
-      "gauge1-footer",
-    ]);
+    // 解決できないと仮の箱のまま残る = 渡す経路を落とせば必ずここで差が出る
+    expect(without.diagram.nodes.map((n) => n.id)).toEqual(["gauge1"]);
   });
 
   it("大きすぎる本文は読み取る前に誤りにする (#1005)", () => {

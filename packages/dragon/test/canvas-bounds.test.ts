@@ -66,7 +66,9 @@ describe("computeDiagramBoundingBox — 実 diagram を layout して padding �
   function buildDiagram(): CdlDiagram {
     const src = [
       "タイトル: 境界テスト",
-      "種類: sequence",
+      // 図種は topology (#1466)。 順序図は 1 枚の板になり、板が左の桁を持つぶん
+      // viewBox の原点が正になる = 原点が 0 以下であることを見るこの検査の下敷きにできない
+      "種類: topology",
       "",
       "登場人物:",
       "  - ユーザー",

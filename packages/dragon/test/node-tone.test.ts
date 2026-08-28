@@ -48,11 +48,15 @@ const TYPES = [
   "topology", "solidity", "gantt", "class", "pie", "c4", "mind",
 ] as const;
 
+/** 順序図系は #1466 で 1 枚の板になり、面ごとの箱を持たない = 色を載せる先が無い。 */
+const 板になる図種 = new Set(["sequence", "solidity"]);
+
 describe("登場人物の色が箱に届く", () => {
   for (const type of TYPES) {
     // 円グラフ / ガント / 放射は図全体を 1 箱で描くので、 箱ごとの色を持たない。
     // 放射は #1177 で `mind-map` 種別に寄せた時にこちら側へ移った (枝の色は下の専用 test で見る)
     if (type === "pie" || type === "gantt" || type === "mind") continue;
+    if (板になる図種.has(type)) continue;
     it(`${type} で色が載る`, () => {
       const diagram = build(type, `- Client: { kind: service, tone: error }`);
       // 「1 つ以上に載った」 では、 意図しない箱だけが染まっても通る。 対象の登場人物を
@@ -86,11 +90,34 @@ describe("登場人物の色が箱に届く", () => {
     ]);
   });
 
-  it("順序図では見える箱だけに載る", () => {
-    // 1 人が header / spacer / footer / 手順ごとの anchor に分かれる。 間隔用と anchor は
-    // 幅 2 の不可視要素なので色を持っても見えない。
-    const diagram = build("sequence", `- Client: { kind: service, tone: error }`);
-    expect(tonedNodes(diagram).map(([id]) => id).sort()).toEqual(["client-footer", "client-header"]);
+  it("順序図の板は色を受けず、効かないことを伝える", () => {
+    /*
+     * #1466 で順序図は 1 枚の板になり、面ごとの箱が消えた = 色を載せる先が無い。
+     * 板そのものを染めると図全体の色が変わるので、書いた面の色は落とし、落ちたことを伝える。
+     */
+    const src = [
+      `title: "t"`,
+      `type: sequence`,
+      ``,
+      `actors:`,
+      `  - Client: { kind: service, tone: error }`,
+      `  - API`,
+      ``,
+      `flow:`,
+      `  - Client -> API: "call"`,
+    ].join("\n");
+    const parsed = parseTextDslV05(src);
+    if (!parsed.ok) throw new Error("parse 失敗");
+    const 出た: string[] = [];
+    const diagram = compileToCdl(parsed.doc, {
+      onNotice: (n) => {
+        if (n.kind === "actor-kind-not-honored") 出た.push(n.message);
+      },
+    });
+    // 板は組み立てが決めた色のまま = 書いた色に染まらない
+    expect(tonedNodes(diagram).map(([, t]) => t), "書いた色が板に載っている").not.toContain("error");
+    expect(出た.length, "色が黙って落ちている").toBe(1);
+    expect(出た[0]).toContain("色");
   });
 
   it("色を書かなかった登場人物には載らない", () => {
@@ -138,8 +165,8 @@ describe("登場人物の色が箱に届く", () => {
 
   it("記号を含む名前でも色が届く", () => {
     // id は名前を slug に変換して作るが、 変換規則が dragon と cdl で違う。 `A_B` は
-    // dragon 側が `a_b`、 cdl 側が `a-b` になる。 id で対応付けると順序図で色が消えた。
-    const diagram = build("sequence", `- A_B: { kind: service, tone: error }`);
+    // dragon 側が `a_b`、 cdl 側が `a-b` になる。 id で対応付けると色が消えた。
+    const diagram = build("topology", `- A_B: { kind: service, tone: error }`);
     const toned = tonedNodes(diagram);
     expect(toned.length, "記号入りの名前で色が消えた").toBeGreaterThan(0);
     for (const [, tone] of toned) expect(tone).toBe("error");

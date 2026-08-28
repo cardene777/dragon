@@ -98,7 +98,8 @@ describe("縦列が骨格の図種では効かない (陰性対照)", () => {
   }
 
   // 1 縦列 1 箱が図の読み方そのものの図種。 2 つの箱を同じ縦列へ入れる形にはしない
-  for (const type of ["er", "state", "class"]) {
+  // `state` / `class` は #1466 で縦列を選べるようになったため対象外
+  for (const type of ["er"]) {
     it(`${type} では書いた縦列に入らない`, () => {
       expect(配置(記法(三人, type)).縦列, "書いた縦列が作られている").not.toContain("left");
     });

@@ -321,19 +321,17 @@ animation:
     expect(d.nodes[0]!.title).toBe("A } B");
   });
 
-  it("静的な sequence / solidity でも上下の名札に題が出る", () => {
+  it("静的な sequence / solidity でも板の見出しに題が出る", () => {
+    // #1466 で順序図は 1 枚の板になり、面は板の見出しに並ぶ。 名前は矢印の端として指すための
+    // もので、書いた題があればそちらを出す
     for (const type of ["sequence", "solidity"] as const) {
       const d = textDslToDiagram(`title: "t"
 type: ${type}
 actors:
   - internal: { title: "Shown" }
 `);
-      expect(
-        d.nodes
-          .filter((n) => n.id.endsWith("-header") || n.id.endsWith("-footer"))
-          .map((n) => n.title),
-        type,
-      ).toEqual(["Shown", "Shown"]);
+      const 面 = d.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.actors ?? [];
+      expect(面.map((a) => a.name), type).toEqual(["Shown"]);
     }
   });
 

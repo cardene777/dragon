@@ -24,7 +24,9 @@ export type SampleSlot =
   | "formulas"
   // 押下などの出来事で動く仕掛けと、巻き上げに応じて進む値 (#1393)
   | "events"
-  | "scrolls";
+  | "scrolls"
+  // 順序図で面が動いている間の帯 (#1466)
+  | "bands";
 
 export type Section = {
   title: string;
@@ -116,6 +118,21 @@ export const FORMS: Section[] = [
       { code: '  - Client -> API: "要求"', note: "矢印と説明" },
       { code: '  - API -> DB: "検索" 成功', note: "矢印の色" },
       { code: '  - DB -> API: "結果" 成功 dotted-flow', note: "色と線の種類" },
+    ],
+  },
+  {
+    title: "動いている間の帯 (bands:)",
+    // 帯は順序図だけの項目。 面が動いている段の範囲を書く = 書かなければ
+    // 「最初に関わった段から最後まで」 の 1 本になる
+    sample: {
+      slot: "bands",
+      type: "sequence",
+      actors: ["  - Browser", "  - API", "  - DB"],
+      flow: ['  - Browser -> API: "頼む"', '  - API -> DB: "引く"', '  - DB -> API: "返す"'],
+    },
+    lines: [
+      { code: "  - Browser: 0..2", note: "面と、動いている段の範囲" },
+      { code: "  - DB: 1..1", note: "途中で手が空く面は区間を分けて書く" },
     ],
   },
   {
@@ -512,7 +529,9 @@ export function buildSample(section: Section): string {
     ...(rootLines.some((l) => /^title\s*:/.test(l)) ? [] : ['title: "見本"']),
     ...(rootLines.some((l) => /^type\s*:/.test(l))
       ? []
-      : [`type: ${section.sample.type ?? "sequence"}`]),
+      // 既定は `topology` (#1466)。 順序図は 1 枚の板になり、面に書いた種類 / 大きさ / 位置 /
+      // 行 / 色が効かなくなった = 例文の下敷きにすると「書いても効かない」 見本になる
+      : [`type: ${section.sample.type ?? "topology"}`]),
     ...rootLines,
   ];
   const out = [...head, "actors:", ...actors, ...(slot === "actors" ? codes : [])];
@@ -530,6 +549,8 @@ export function buildSample(section: Section): string {
   // 押下などの出来事と巻き上げ (#1393)。 箱と矢印を指すので、それより後ろに置く
   if (slot === "events") out.push("events:", ...codes);
   if (slot === "scrolls") out.push("scrolls:", ...codes);
+  // 動いている間の帯 (#1466)。 面と段を指すので、その両方より後ろに置く
+  if (slot === "bands") out.push("bands:", ...codes);
   // つまみの値から決まる値 (#1391)。 つまみを読むので、その後ろに置く
   if (slot === "formulas") {
     out.push(

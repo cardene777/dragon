@@ -400,9 +400,9 @@ describe("compileSolidity", () => {
       actors: [actor("Evt", { kind: "event" }), actor("Ctr", { kind: "contract" }), actor("Usr", { kind: "actor" })],
       flow: [step("Usr", "Ctr")],
     });
-    // sequence preset の lane は sorted actor 順 (eoa/actor=0 → contract=1 → event=3)、 完全一致で検証
-    const laneIds = d.lanes.map((l) => l.id).filter((id) => ["usr", "ctr", "evt"].includes(id));
-    expect(laneIds).toEqual(["usr", "ctr", "evt"]);
+    // 板の見出しは並べ替えた順に並ぶ (#1466 で面ごとの縦列は無くなった)
+    const 面 = d.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.actors ?? [];
+    expect(面.map((a) => a.name)).toEqual(["Usr", "Ctr", "Evt"]);
   });
 });
 
@@ -430,26 +430,6 @@ describe("compileFlow / compileSwimlane / compileTopology", () => {
 });
 
 // ── compileSequenceWithAnimate: header 寸法 actorW = max(140, len*22+52)、 animate 経路で検証 ──
-describe("compileSequenceWithAnimate header 寸法", () => {
-  const SEQ_ANIM = { states: [], phases: [{ name: "p", durationMs: 1000, highlight: [], pos: { line: 1 } }], pos: { line: 1 } } as unknown as DslDocument["animate"];
-  it("短い actor 名は最小幅 140 / h 72 (animate 経路)", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM, actors: [actor("A"), actor("B")], flow: [step("A", "B")] }));
-    expect(node(d, "a-header").w).toBe(140);
-    expect(node(d, "a-header").h).toBe(72);
-  });
-  it("種類を書かない名札は card のまま 72", () => {
-    // 書かない側は `card` に残るので、 小型用の描き方 (h < 100 で中央揃え) で文字が収まる。
-    // 書いた側の高さは #1058 の scope 外 (`#1061` で扱う)
-    const bare = (name: string): DslActor => ({ name, kind: "actor", kindWritten: false, pos: { line: 1 } });
-    const d = compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM, actors: [bare("A"), bare("B")], flow: [step("A", "B")] }));
-    expect(node(d, "a-header").h).toBe(72);
-    expect(node(d, "a-header").kind).toBe("card");
-  });
-  it("長い actor 名は len*22+52 で auto-size (13 文字 → 338)", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM, actors: [actor("LongActorName"), actor("B")], flow: [step("LongActorName", "B")] }));
-    expect(node(d, "longactorname-header").w).toBe(338);
-  });
-});
 
 // ── slugify: node id 生成 (小文字化 + 非英数を - に) ──
 describe("slugify 経由 node id", () => {
@@ -564,7 +544,7 @@ describe("injectPhasesFallback", () => {
 describe("parts merge", () => {
   function partsCompile() {
     const partDiagram = compile("flow");
-    return compileToCdl(makeDoc("sequence", {
+    return compileToCdl(makeDoc("swimlane", {
       actors: [actor("widget", { partId: "flow" }), actor("B")],
       flow: [step("widget", "B")],
     }), { partsCatalog: { flow: partDiagram } });
@@ -574,10 +554,10 @@ describe("parts merge", () => {
     expect(d.nodes.some((n) => n.id === "widget__a")).toBe(true);
     expect(d.nodes.some((n) => n.id === "widget__b")).toBe(true);
   });
-  it("part actor 由来の sequence node (widget-header 等) は削除される", () => {
+  it("見本のために作った仮の箱と縦列は削除される", () => {
     const d = partsCompile();
-    expect(d.nodes.some((n) => n.id === "widget-header")).toBe(false);
-    expect(d.nodes.some((n) => n.id.startsWith("widget-"))).toBe(false);
+    expect(d.nodes.some((n) => n.id === "widget"), "仮の箱が残っている").toBe(false);
+    expect(d.lanes.some((l) => l.id === "widget"), "仮の縦列が残っている").toBe(false);
   });
   it("part は格子の 1 番目 (左端) に配置", () => {
     // 以前は既存 lane の右端 + 300 に置いていたが、 折り返しが無く図が右へ伸び続けた。
@@ -651,16 +631,6 @@ describe("applyV05Extensions", () => {
 });
 
 // ── applyCanvasPivotPositions: actor.nodes[subKey] の sub-node override ──
-describe("applyCanvasPivotPositions sub-node override", () => {
-  it("actor.nodes[subKey] の posX/posY を {alias}-{subKey} node に反映", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      actors: [actor("A", { nodes: { header: { posX: 111, posY: 222 } } }), actor("B")],
-      flow: [step("A", "B")],
-    }));
-    expect(node(d, "a-header").posX).toBe(111);
-    expect(node(d, "a-header").posY).toBe(222);
-  });
-});
 
 // ── compileMind 詳細: 枝の並びと id の重なり (#1177 で 3 列の配置から payload に変わった) ──
 describe("compileMind 詳細", () => {
@@ -704,59 +674,9 @@ describe("applyEdgeInlineOptions er cardinality label", () => {
 });
 
 // ── compileSequenceWithAnimate: sequence + animate の全構造 (第1弾は header 寸法のみ) ──
-const SEQ_ANIM_FULL = {
-  states: [{ name: "bal", initial: 100, pos: { line: 1 } }],
-  phases: [
-    { name: "送金", durationMs: 1500, highlight: ["A"], tweens: [{ state: "bal", from: 100, to: 90, pos: { line: 1 } }], sets: [{ state: "bal", value: 0, pos: { line: 1 } }], body: "説明", badge: "NEW", pos: { line: 1 } },
-    { name: "確認", durationMs: 1000, highlight: ["A→B"], pos: { line: 1 } },
-  ],
-  pos: { line: 1 },
-} as unknown as DslDocument["animate"];
 
-function seqAnimDoc(): CdlDiagram {
-  return compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM_FULL, actors: [actor("A"), actor("B")], flow: [step("A", "B")] }));
-}
-
-describe("compileSequenceWithAnimate 構造", () => {
-  it("header / spacer / step box / footer node を生成", () => {
-    const ids = seqAnimDoc().nodes.map((n) => n.id);
-    for (const id of ["a-header", "a-spacer", "s0-a", "s0-b", "a-footer", "b-footer"]) {
-      expect(ids).toContain(id);
-    }
-  });
-  it("spacer は kind card / w 2 / h 40", () => {
-    const n = node(seqAnimDoc(), "a-spacer");
-    expect(n.kind).toBe("card");
-    expect(n.w).toBe(2);
-    expect(n.h).toBe(40);
-  });
-  it("phase の id / duration / title / body / badge", () => {
-    const p = seqAnimDoc().phases[0]!;
-    expect(p.id).toBe("送金");
-    expect(p.duration).toBe(1500);
-    expect(p.title).toBe("送金");
-    expect(p.body).toBe("説明");
-    expect(p.badge).toBe("NEW");
-  });
-  it("state id / initial", () => {
-    expect(seqAnimDoc().states.find((s) => s.id === "bal")?.initial).toBe(100);
-  });
-  it("tween stateId/from/to + set stateId/value", () => {
-    const p = seqAnimDoc().phases[0]!;
-    expect(p.tweens?.[0]).toMatchObject({ stateId: "bal", from: 100, to: 90 });
-    expect(p.sets?.[0]).toMatchObject({ stateId: "bal", value: 0 });
-  });
-});
 
 // ── resolveHighlight (sequence): actor 名 / 矢印記法の focus id 解決 ──
-describe("resolveHighlight (sequence)", () => {
-  it("actor 名 highlight → header / footer / step box を activate", () => {
-    expect(seqAnimDoc().phases[0]!.activate).toEqual(["a-header", "a-footer", "s0-a"]);
-  });
-  it("矢印記法 A→B highlight → edge + 両端 step box を activate", () => {
-    expect(seqAnimDoc().phases[1]!.activate).toEqual(["e0-a-b", "s0-a", "s0-b"]);
-  });
-});
 
 // ── compileGenericWithAnimate 網羅 (er/state/swimlane + animate) ──
 const GEN_ANIM = {
@@ -839,14 +759,6 @@ describe("compileMind 枠と大きさ", () => {
 });
 
 // ── applyEdgeInlineOptions 網羅: sequence (isSeqLike) の edge 検索 ──
-describe("applyEdgeInlineOptions isSeqLike", () => {
-  it("sequence (isSeqLike) で labelOffset を e0-a-b edge に反映", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: SEQ_ANIM_FULL, actors: [actor("A"), actor("B")], flow: [step("A", "B", { labelOffsetX: 7, labelOffsetY: -3 })] }));
-    const e = d.edges.find((x) => x.id === "e0-a-b")!;
-    expect(e.labelOffsetX).toBe(7);
-    expect(e.labelOffsetY).toBe(-3);
-  });
-});
 
 // ── compileSwimlane 網羅: edge option + node stack + edge id ──
 describe("compileSwimlane 網羅", () => {
@@ -1152,25 +1064,28 @@ describe("mergePartIntoDiagram: template rewrite / state override", () => {
   });
 });
 
-// ── resolveHighlight (sequence animate): 矢印記法 / actor 名 の分岐を値検証 ──
+// ── 光らせる相手の解決: 矢印記法 / actor 名 の分岐を値検証 ──
+//
+// 下敷きは `topology` (#1466)。 順序図は 1 枚の板になり矢印も面の箱も作らないため、
+// 光らせる相手が板 1 つに畳まれて分岐を突けない。 矢印記法を読む部分 (`parseFocusEntry`) は
+// 両経路で共通なので、矢印を作る図種で見れば同じ分岐を通る。
 
-/** highlight を持つ animate phase 1 個を組んで sequence を compile する。 */
+/** highlight を持つ animate phase 1 個を組んで compile する。 */
 function compileSeqHighlight(highlight: string[], over: Partial<DslDocument> = {}): CdlDiagram {
   const animate = {
     states: [],
     phases: [{ name: "p", durationMs: 1000, highlight, pos: { line: 1 } }],
     pos: { line: 1 },
   } as unknown as DslDocument["animate"];
-  return compileToCdl(makeDoc("sequence", { animate, ...over }));
+  return compileToCdl(makeDoc("topology", { animate, ...over }));
 }
 
-describe("resolveHighlight: 矢印記法 (A→B)", () => {
-  it("矢印 highlight は該当 edge id と両端 step box を activate", () => {
+describe("光らせる相手: 矢印記法 (A→B)", () => {
+  it("矢印 highlight は該当 edge を activate", () => {
     const d = compileSeqHighlight(["A→B"]);
-    const act = d.phases[0]!.activate;
-    expect(act).toContain("e0-a-b");
-    expect(act).toContain("s0-a");
-    expect(act).toContain("s0-b");
+    const 相手 = d.edges.find((e) => e.from === "a" && e.to === "b");
+    expect(相手, "矢印を 1 本も作れていない (検査が空振りしている)").toBeDefined();
+    expect(d.phases[0]!.activate).toContain(相手!.id);
   });
 
   it("ASCII 矢印 (->) も同じ経路で解決", () => {
@@ -1203,23 +1118,20 @@ describe("resolveHighlight: 矢印記法 (A→B)", () => {
   });
 });
 
-describe("resolveHighlight: actor 名", () => {
-  it("actor 名 highlight は header / footer と関与 step box を activate", () => {
+describe("光らせる相手: actor 名", () => {
+  it("actor 名 highlight はその箱を activate", () => {
     const d = compileSeqHighlight(["A"]);
-    const act = d.phases[0]!.activate;
-    expect(act).toContain("a-header");
-    expect(act).toContain("a-footer");
-    expect(act).toContain("s0-a");
+    expect(d.phases[0]!.activate).toContain("a");
   });
 
-  it("関与しない step box は activate しない", () => {
+  it("書かなかった箱は activate しない", () => {
     const d = compileSeqHighlight(["A"], {
       actors: [actor("A"), actor("B"), actor("C")],
       flow: [step("A", "B"), step("B", "C")],
     });
     const act = d.phases[0]!.activate;
-    expect(act).toContain("s0-a");   // A → B に関与
-    expect(act).not.toContain("s1-a"); // B → C は無関係
+    expect(act).toContain("a");
+    expect(act).not.toContain("c");
   });
 
   it("未知 actor 名は何も activate しない", () => {
@@ -1261,72 +1173,6 @@ describe("resolveHighlightGeneric: flow preset 経路", () => {
   });
 });
 
-describe("compileSequenceWithAnimate: header / footer / spacer / step box 生成", () => {
-  const ANIM = {
-    states: [],
-    phases: [{ name: "p", durationMs: 1000, highlight: [], pos: { line: 1 } }],
-    pos: { line: 1 },
-  } as unknown as DslDocument["animate"];
-
-  it("actor ごとに header / spacer / footer が生成される", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: ANIM }));
-    for (const id of ["a-header", "a-spacer", "a-footer", "b-header", "b-spacer", "b-footer"]) {
-      expect(d.nodes.some((n) => n.id === id), `${id} が生成される`).toBe(true);
-    }
-  });
-
-  it("header は title = actor 名 / kind は書いたとおり / stack 0", () => {
-    // #975 で「書いた kind を名札に載せる」 に変えた。 載せない実装に戻すと `card` になって
-    // この assertion が落ちる。
-    //
-    // 種類は `database` を使う。 helper の既定 (`kind: "actor"`) は名札の高さ (72) では名前が
-    // 箱からはみ出すため `card` に落ちる (#1061) = 載せる経路を消しても同じ `card` になり、
-    // この検査が何も守らなくなる。
-    const d = compileToCdl(
-      makeDoc("sequence", { animate: ANIM, actors: [actor("A", { kind: "database" }), actor("B")] }),
-    );
-    const h = node(d, "a-header");
-    expect(h.title).toBe("A");
-    expect(h.kind).toBe("database");
-    expect(h.stack).toBe(0);
-  });
-
-  it("footer は title = actor 名で header と同じ lane", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: ANIM }));
-    expect(node(d, "a-footer").title).toBe("A");
-    expect(node(d, "a-footer").lane).toBe(node(d, "a-header").lane);
-  });
-
-  it("step box は s{N}-{slug} 形式で flow の各 step に生成", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: ANIM,
-      actors: [actor("A"), actor("B"), actor("C")],
-      flow: [step("A", "B"), step("B", "C")],
-    }));
-    expect(d.nodes.some((n) => n.id === "s0-a")).toBe(true);
-    expect(d.nodes.some((n) => n.id === "s0-b")).toBe(true);
-    expect(d.nodes.some((n) => n.id === "s1-b")).toBe(true);
-    expect(d.nodes.some((n) => n.id === "s1-c")).toBe(true);
-  });
-
-  it("lane は actor ごとに 1 本で label = actor 名 / lifeline 有効", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: ANIM }));
-    expect(d.lanes.filter((l) => l.id === "a").length).toBe(1);
-    expect(lane(d, "a").label).toBe("A");
-    expect(lane(d, "a").lifeline).toBe(true);
-  });
-
-  it("edge は e{idx}-{from}-{to} 形式で flow 順に生成", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: ANIM,
-      actors: [actor("A"), actor("B"), actor("C")],
-      flow: [step("A", "B"), step("B", "C")],
-    }));
-    expect(d.edges.some((e) => e.id === "e0-a-b")).toBe(true);
-    expect(d.edges.some((e) => e.id === "e1-b-c")).toBe(true);
-  });
-});
-
 // ── applyV05Extensions: actor option merge / lanes / viewport ──
 
 describe("applyV05Extensions: actor inline option の node merge", () => {
@@ -1347,18 +1193,6 @@ describe("applyV05Extensions: actor inline option の node merge", () => {
     expect(node(d, "a").eyebrow).toBeUndefined();
   });
 
-  it("header 付き node (sequence animate) にも merge される", () => {
-    const animate = {
-      states: [],
-      phases: [{ name: "p", durationMs: 1000, highlight: [], pos: { line: 1 } }],
-      pos: { line: 1 },
-    } as unknown as DslDocument["animate"];
-    const d = compileToCdl(makeDoc("sequence", {
-      animate,
-      actors: [actor("A", { subtitle: "hdr" }), actor("B")],
-    }));
-    expect(node(d, "a-header").subtitle).toBe("hdr");
-  });
 });
 
 // ── #881: underscore / 全角 actor 名で sequence の inline option が drop する ──
@@ -1367,61 +1201,44 @@ describe("applyV05Extensions: actor inline option の node merge", () => {
 // 生成されるが、 applyV05Extensions が dragon slugify (`_` / 全角 保持) で `{slug}-header` を決め打つと
 // primaryNodeId が実 node id と食い違い option が drop していた。 lane.label 一致で actor 専用 lane を
 // 引き当て、 その lane の `-header` node を権威 primary として回収する fix を検証する。
-describe("applyV05Extensions: underscore/全角 actor 名でも inline option が正しい node に merge (#881)", () => {
-  it("非 animate sequence の underscore actor `A_B` の subtitle/eyebrow/value/rows が実 node a-b-header に merge", () => {
-    const d = compile("sequence", {
+describe("applyV05Extensions: 珍しい名前でも inline option が正しい箱に載る (#881 → #1466)", () => {
+  /*
+   * `#881` は順序図の名札で、書いた欄が落ちる形を直した (dragon 側の slug と描画側の slug が
+   * 食い違い、`A_B` の名札 id が `a-b-header` になっていた)。 板になって名札が無くなったので、
+   * 同じ不一致は起きない。 残す価値があるのは **珍しい名前でも書いた欄が箱に載る** ことなので、
+   * 1 人 = 1 箱の図種で見る。
+   */
+  it("下線を含む名前の subtitle / eyebrow / value / rows が載る", () => {
+    const d = compile("topology", {
       actors: [actor("A_B", { subtitle: "sub", eyebrow: "eye", value: "val", rows: ["r1", "r2"] }), actor("C")],
       flow: [step("A_B", "C")],
     });
-    // 実 node id は CDL slug (`_` → `-`) 経路の `a-b-header`。 dragon slug 決め打ち `a_b-header` では drop した。
-    const n = node(d, "a-b-header");
+    const n = node(d, "a_b");
     expect(n.subtitle).toBe("sub");
     expect(n.eyebrow).toBe("eye");
     expect(n.value).toBe("val");
     expect(n.rows).toEqual(["r1", "r2"]);
   });
 
-  it("全角 actor `ゲージ` の eyebrow/value/rows が実 node ゲージ-header に merge", () => {
-    const d = compile("sequence", {
+  it("全角の名前でも載る", () => {
+    const d = compile("topology", {
       actors: [actor("ゲージ", { eyebrow: "全角eye", value: "80%", rows: ["a"] }), actor("C")],
       flow: [step("ゲージ", "C")],
     });
-    const n = node(d, "ゲージ-header");
-    expect(n.eyebrow).toBe("全角eye");
-    expect(n.value).toBe("80%");
-    expect(n.rows).toEqual(["a"]);
+    const n = d.nodes.find((x) => x.title === "ゲージ");
+    expect(n, "全角の名前の箱が無い (検査が空振りしている)").toBeDefined();
+    expect(n!.eyebrow).toBe("全角eye");
+    expect(n!.value).toBe("80%");
+    expect(n!.rows).toEqual(["a"]);
   });
 
-  it("ASCII actor 名の header merge は従来どおり (regression 維持)", () => {
-    const d = compile("sequence", {
-      actors: [actor("A", { subtitle: "hdrA" }), actor("B")],
-      flow: [step("A", "B")],
-    });
-    expect(node(d, "a-header").subtitle).toBe("hdrA");
-    expect(node(d, "b-header").subtitle).toBeUndefined();
-  });
-
-  it("underscore actor の option が別 actor の header に漏れない (cross-actor leak 防止 #879 維持)", () => {
-    const d = compile("sequence", {
+  it("書いた欄が別の箱に漏れない (cross-actor leak 防止 #879 維持)", () => {
+    const d = compile("topology", {
       actors: [actor("A_B", { subtitle: "onlyAB" }), actor("C_D")],
       flow: [step("A_B", "C_D")],
     });
-    expect(node(d, "a-b-header").subtitle).toBe("onlyAB");
-    expect(node(d, "c-d-header").subtitle).toBeUndefined();
-  });
-
-  it("actor 名末尾が Header でも option が step box に漏れず header だけに付く (cc-codex #883 MAJOR)", () => {
-    // "Auth Header" は slug `auth-header`。 step box `s0-auth-header` も `-header` で終わるため
-    // endsWith 判定では誤マッチしていた。 header node id `{lane}-header` の構造 exact 一致で防ぐ。
-    const d = compile("sequence", {
-      actors: [actor("Auth Header", { subtitle: "onlyHdr" }), actor("C")],
-      flow: [step("Auth Header", "C")],
-    });
-    expect(node(d, "auth-header-header").subtitle).toBe("onlyHdr");
-    // step box (invisible 2x2 anchor) には漏れない
-    expect(node(d, "s0-auth-header").subtitle).toBeUndefined();
-    expect(node(d, "auth-header-spacer").subtitle).toBeUndefined();
-    expect(node(d, "auth-header-footer").subtitle).toBeUndefined();
+    expect(node(d, "a_b").subtitle).toBe("onlyAB");
+    expect(node(d, "c_d").subtitle).toBeUndefined();
   });
 });
 
@@ -1747,23 +1564,17 @@ describe("mergePartIntoDiagram: readouts / phase merge の分岐", () => {
 // ── 第 4 弾 (c): applyEdgeInlineOptions / mergePartsFromActors の条件を両分岐で突く ──
 
 describe("applyEdgeInlineOptions: edge 検索条件の分岐", () => {
-  it("seq-like (sequence) は s{idx}-{slug} 命名の edge に guard を反映", () => {
-    const d = compile("sequence", { flow: [step("A", "B", { guard: "g1" })] });
-    expect(d.edges.find((e) => e.id === "e0-a-b")?.guard).toBe("g1");
-  });
-
-  it("solidity も seq-like 経路で解決される", () => {
-    const d = compile("solidity", { flow: [step("A", "B", { guard: "g2" })] });
-    expect(d.edges.some((e) => e.guard === "g2")).toBe(true);
-  });
-
-  it("非 seq-like (flow) は plain slug 一致で解決", () => {
+  /*
+   * `sequence` / `solidity` は #1466 で 1 枚の板になり矢印を作らない = この経路に来ない。
+   * 下敷きには矢印が出る図種を使う。
+   */
+  it("plain slug 一致で解決", () => {
     const d = compile("flow", { flow: [step("A", "B", { guard: "g3" })] });
     expect(d.edges.some((e) => e.guard === "g3")).toBe(true);
   });
 
   it("同一 from/to の step が複数あっても used で別 edge に割当てる", () => {
-    const d = compile("sequence", {
+    const d = compile("topology", {
       flow: [step("A", "B", { guard: "first" }), step("A", "B", { guard: "second" })],
     });
     const guards = d.edges.map((e) => e.guard).filter(Boolean);
@@ -1779,7 +1590,7 @@ describe("applyEdgeInlineOptions: edge 検索条件の分岐", () => {
   });
 
   it("state 以外の preset は sub に guard を同期しない", () => {
-    const d = compile("sequence", { flow: [step("A", "B", { guard: "cond" })] });
+    const d = compile("topology", { flow: [step("A", "B", { guard: "cond" })] });
     expect(d.edges.find((e) => e.guard === "cond")?.sub).toBeUndefined();
   });
 
@@ -1796,28 +1607,29 @@ describe("applyEdgeInlineOptions: edge 検索条件の分岐", () => {
   });
 
   it("er 以外は cardinality を label に併記しない", () => {
-    const d = compile("sequence", { flow: [step("A", "B", { label: "call", cardinality: "1:N" })] });
+    const d = compile("topology", { flow: [step("A", "B", { label: "call", cardinality: "1:N" })] });
     const e = d.edges.find((x) => x.cardinality === "1:N");
     expect(e?.label).toBe("call");
   });
 
   it("labelOffsetX / labelOffsetY が edge に反映される", () => {
-    const d = compile("sequence", { flow: [step("A", "B", { labelOffsetX: 12, labelOffsetY: -8 })] });
-    const e = d.edges.find((x) => x.id === "e0-a-b");
+    const d = compile("topology", { flow: [step("A", "B", { labelOffsetX: 12, labelOffsetY: -8 })] });
+    const e = d.edges.find((x) => x.from === "a" && x.to === "b");
     expect(e?.labelOffsetX).toBe(12);
     expect(e?.labelOffsetY).toBe(-8);
   });
 
   it("inline option 未指定なら edge に field が生えない", () => {
-    const d = compile("sequence", { flow: [step("A", "B")] });
-    const e = d.edges.find((x) => x.id === "e0-a-b");
+    const d = compile("topology", { flow: [step("A", "B")] });
+    const e = d.edges.find((x) => x.from === "a" && x.to === "b");
+    expect(e, "矢印を 1 本も作れていない (検査が空振りしている)").toBeDefined();
     expect(e?.guard).toBeUndefined();
-    expect(e?.labelOffsetX).toBeUndefined();
+    expect(e?.side).toBeUndefined();
   });
 
   it("自己 edge (A→A) にも inline option が載る (#1227 → #1462)", () => {
     // 矢印として残るようになったので、書いた項目もその矢印に載る
-    const d = compile("sequence", { flow: [step("A", "A", { guard: "self" })] });
+    const d = compile("topology", { flow: [step("A", "A", { guard: "self" })] });
     expect(d.edges.filter((e) => e.from === e.to), "自己 edge が消えている").toHaveLength(1);
     expect(d.edges.some((e) => e.guard === "self"), "書いた項目が載っていない").toBe(true);
   });
@@ -1835,7 +1647,7 @@ describe("mergePartsFromActors: guard 条件の分岐", () => {
     const warn = console.warn;
     console.warn = () => {};
     try {
-      const d = compileToCdl(makeDoc("sequence", {
+      const d = compileToCdl(makeDoc("swimlane", {
         actors: [actor("A"), actor("p1", { partId: "x" })],
         flow: [step("A", "A")],
       }));
@@ -1851,7 +1663,7 @@ describe("mergePartsFromActors: guard 条件の分岐", () => {
     console.warn = () => {};
     try {
       const d = compileToCdl(
-        makeDoc("sequence", { actors: [actor("A"), actor("p1", { partId: "" })], flow: [step("A", "A")] }),
+        makeDoc("swimlane", { actors: [actor("A"), actor("p1", { partId: "" })], flow: [step("A", "A")] }),
         { partsCatalog: { x: PART() } },
       );
       expect(d.nodes.some((n) => n.id.startsWith("p1__"))).toBe(false);
@@ -1895,19 +1707,21 @@ describe("mergePartsFromActors: guard 条件の分岐", () => {
 
   it("actor.lane 指定時は張替え先 lane を削除しない", () => {
     const d = compileToCdl(
-      makeDoc("sequence", { actors: [actor("A"), actor("p1", { partId: "x", lane: "a" })], flow: [step("A", "A")] }),
+      makeDoc("swimlane", { actors: [actor("A"), actor("p1", { partId: "x", lane: "a" })], flow: [step("A", "A")] }),
       { partsCatalog: { x: PART() } },
     );
     expect(d.lanes.some((l) => l.id === "a")).toBe(true);
     expect(node(d, "p1__n").lane).toBe("a");
   });
 
-  it("step anchor (s{N}-{slug}) も parts actor 由来なら削除される", () => {
+  it("見本へ向かう矢印も一緒に削除される", () => {
     const d = compileToCdl(
-      makeDoc("sequence", { actors: [actor("A"), actor("p1", { partId: "x" })], flow: [step("A", "p1")] }),
+      makeDoc("swimlane", { actors: [actor("A"), actor("p1", { partId: "x" })], flow: [step("A", "p1")] }),
       { partsCatalog: { x: PART() } },
     );
-    expect(d.nodes.some((n) => n.id === "s0-p1")).toBe(false);
+    expect(d.nodes.some((n) => n.id === "p1"), "仮の箱が残っている").toBe(false);
+    expect(d.edges.some((e) => e.to === "p1"), "仮の箱へ向かう矢印が残っている").toBe(false);
+    expect(d.nodes.some((n) => n.id === "p1__n"), "見本の中身が入っていない").toBe(true);
   });
 
   it("parts actor が 0 個なら diagram は素通し (early return)", () => {
@@ -2029,60 +1843,6 @@ describe("compileGenericWithAnimate: kind 別の lane 構成", () => {
   });
 });
 
-describe("compileSequenceWithAnimate: posX/posY/posW/posH の lane 反映", () => {
-  it("posX/posY 両方指定で lane に反映される", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(), actors: [actor("A", { posX: 11, posY: 22 }), actor("B")],
-    }));
-    expect(lane(d, "a").posX).toBe(11);
-    expect(lane(d, "a").posY).toBe(22);
-  });
-
-  it("posX のみ (posY なし) では lane に反映しない (&& 条件)", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(), actors: [actor("A", { posX: 11 }), actor("B")],
-    }));
-    expect(lane(d, "a").posX).toBeUndefined();
-  });
-
-  it("posW / posH は posX/posY 指定時のみ反映", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(), actors: [actor("A", { posX: 1, posY: 2, posW: 33, posH: 44 }), actor("B")],
-    }));
-    expect(lane(d, "a").posW).toBe(33);
-    expect(lane(d, "a").posH).toBe(44);
-  });
-
-  it("posW 未指定なら lane.posW は生えない", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(), actors: [actor("A", { posX: 1, posY: 2 }), actor("B")],
-    }));
-    expect(lane(d, "a").posW).toBeUndefined();
-  });
-
-  it("header 幅は max(140, 名前長 * 22 + 52) の下限側", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: animOf() }));
-    expect(node(d, "a-header").w).toBe(140);
-  });
-
-  it("header 幅は長い名前で上限側 (計算式が効く)", () => {
-    const name = "ABCDEFGHIJ"; // 10 文字 → 10*22+52 = 272
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(), actors: [actor(name), actor("B")], flow: [step(name, "B")],
-    }));
-    expect(node(d, `${name.toLowerCase()}-header`).w).toBe(272);
-  });
-
-  it("edge の labelOffsetX / labelOffsetY が反映される (sequence animate)", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(), flow: [step("A", "B", { labelOffsetX: 5, labelOffsetY: 6 })],
-    }));
-    const e = d.edges.find((x) => x.id === "e0-a-b")!;
-    expect(e.labelOffsetX).toBe(5);
-    expect(e.labelOffsetY).toBe(6);
-  });
-});
-
 describe("compileSwimlane: actor 属性の伝播", () => {
   it("actor kind が node に反映される", () => {
     const d = compile("swimlane", { actors: [actor("A", { kind: "database" }), actor("B")] });
@@ -2159,9 +1919,9 @@ describe("applyCanvasPivotPositions: 反映条件の分岐", () => {
 // ── 第 4 弾 (e): 矢印 regex の各要素と compileMind の暗黙 edge 分岐 ──
 
 describe("矢印 regex の要素 (空白許容 / 非貪欲 / 記号バリエーション)", () => {
-  /** sequence animate の highlight で resolveHighlight を通す。 */
+  /** 動く図の highlight で矢印記法の読み取りを通す (#1466 で下敷きを `topology` に移した)。 */
   const seqHl = (h: string, over: Partial<DslDocument> = {}) =>
-    compileToCdl(makeDoc("sequence", {
+    compileToCdl(makeDoc("topology", {
       animate: {
         states: [], phases: [{ name: "p", durationMs: 1000, highlight: [h], pos: { line: 1 } }], pos: { line: 1 },
       } as unknown as DslDocument["animate"],
@@ -2186,12 +1946,12 @@ describe("矢印 regex の要素 (空白許容 / 非貪欲 / 記号バリエー�
 
   it("矢印を含まない単純 actor 名は actor 経路に落ちる", () => {
     const act = seqHl("A").phases[0]!.activate;
-    expect(act).toContain("a-header");
-    expect(act.some((id) => id.startsWith("e0-"))).toBe(false);
+    expect(act).toContain("a");
+    expect(act.some((id) => id.includes("-a-b"))).toBe(false);
   });
 
   it("空 highlight 配列なら activate は空", () => {
-    const d = compileToCdl(makeDoc("sequence", {
+    const d = compileToCdl(makeDoc("topology", {
       animate: {
         states: [], phases: [{ name: "p", durationMs: 1000, highlight: [], pos: { line: 1 } }], pos: { line: 1 },
       } as unknown as DslDocument["animate"],
@@ -2426,64 +2186,6 @@ describe("mergePartsFromActors: warn 出力の内容", () => {
 
 // ── 第 4 弾 (g): sub-node override / actor 名一致経路 / activate 空分岐 ──
 
-describe("applyCanvasPivotPositions: actor.nodes sub-node override", () => {
-  it("{alias}-{subKey} 形式の sub-node に座標が反映される", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(),
-      actors: [actor("A", { nodes: { header: { posX: 12, posY: 34 } } }), actor("B")],
-    }));
-    expect(node(d, "a-header").posX).toBe(12);
-    expect(node(d, "a-header").posY).toBe(34);
-  });
-
-  it("{subKey}-{alias} 形式 (step box) の sub-node にも反映される", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(),
-      actors: [actor("A", { nodes: { s0: { posX: 56, posY: 78 } } }), actor("B")],
-    }));
-    expect(node(d, "s0-a").posX).toBe(56);
-    expect(node(d, "s0-a").posY).toBe(78);
-  });
-
-  it("posX のみの override は skip される (|| 条件)", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(),
-      actors: [actor("A", { nodes: { header: { posX: 12 } } }), actor("B")],
-    }));
-    expect(node(d, "a-header").posX).toBeUndefined();
-  });
-
-  it("posY のみの override も skip される", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(),
-      actors: [actor("A", { nodes: { header: { posY: 34 } } }), actor("B")],
-    }));
-    expect(node(d, "a-header").posY).toBeUndefined();
-  });
-
-  it("sub-node override の posW / posH も反映される", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(),
-      actors: [actor("A", { nodes: { header: { posX: 1, posY: 2, posW: 300, posH: 400 } } }), actor("B")],
-    }));
-    expect(node(d, "a-header").posW).toBe(300);
-    expect(node(d, "a-header").posH).toBe(400);
-  });
-
-  it("別 actor の同名 sub-node には漏れない (alias 接頭辞判定)", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(),
-      actors: [actor("A", { nodes: { header: { posX: 12, posY: 34 } } }), actor("B")],
-    }));
-    expect(node(d, "b-header").posX).toBeUndefined();
-  });
-
-  it("actor.nodes 未指定なら sub-node 座標は付かない", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: animOf() }));
-    expect(node(d, "a-header").posX).toBeUndefined();
-  });
-});
-
 describe("applyV05Extensions / applyCanvasPivotPositions: id 一致経路の分岐", () => {
   it("actor 名がそのまま node id の preset (swimlane) で座標反映", () => {
     const d = compile("swimlane", { actors: [actor("A", { posX: 7, posY: 8 }), actor("B")] });
@@ -2515,44 +2217,6 @@ describe("applyV05Extensions / applyCanvasPivotPositions: id 一致経路の分�
   });
 });
 
-describe("compileSequenceWithAnimate: activate 空分岐", () => {
-  it("highlight 空なら activate は空配列 (length > 0 の false 側)", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: animOf([]) }));
-    expect(d.phases[0]!.activate).toEqual([]);
-  });
-
-  it("highlight ありなら activate に id が入る (true 側)", () => {
-    const d = compileToCdl(makeDoc("sequence", { animate: animOf(["A"]) }));
-    expect(d.phases[0]!.activate.length).toBeGreaterThan(0);
-  });
-
-  it("tween は phase に反映される", () => {
-    const animate = {
-      states: [{ name: "v", initial: 0 }],
-      phases: [{
-        name: "p", durationMs: 1000, highlight: [],
-        tweens: [{ state: "v", from: 0, to: 100 }], pos: { line: 1 },
-      }],
-      pos: { line: 1 },
-    } as unknown as DslDocument["animate"];
-    const d = compileToCdl(makeDoc("sequence", { animate }));
-    expect(d.phases[0]!.tweens.some((t) => t.stateId === "v" && t.to === 100)).toBe(true);
-  });
-
-  it("sets は phase に反映される", () => {
-    const animate = {
-      states: [{ name: "v", initial: 0 }],
-      phases: [{
-        name: "p", durationMs: 1000, highlight: [],
-        sets: [{ state: "v", value: 42 }], pos: { line: 1 },
-      }],
-      pos: { line: 1 },
-    } as unknown as DslDocument["animate"];
-    const d = compileToCdl(makeDoc("sequence", { animate }));
-    expect(d.phases[0]!.sets.some((s) => s.stateId === "v")).toBe(true);
-  });
-});
-
 // ── 第 4 弾 (h): animate guard (phases 空) と lane guard の両分岐 ──
 // `doc.animate && doc.animate.phases.length > 0` は phases が空の時に非 animate 経路へ落ちる。
 // 各 preset で「非 animate 経路に固有の出力」 を assert し、 guard が緩む mutant を kill する。
@@ -2570,9 +2234,10 @@ describe("animate guard: phases 空なら非 animate 経路を通る", () => {
     expect(d.lanes.map((l) => l.id)).toEqual(["a", "b"]);
   });
 
-  it("sequence は preset 由来 edge (style 付き) を生成", () => {
+  it("順序図は板 1 枚になり矢印を作らない (#1466)", () => {
     const d = compileToCdl(makeDoc("sequence", { animate: EMPTY_ANIM }));
-    expect(d.edges[0]!.style).toBe("solid");
+    expect(d.edges).toEqual([]);
+    expect(d.nodes.filter((n) => n.kind === "sequence-board"), "板が無い").toHaveLength(1);
   });
 
   it("er は lane label 無しの preset 出力になる", () => {
@@ -2592,9 +2257,13 @@ describe("animate guard: phases 空なら非 animate 経路を通る", () => {
 
   it("独自 layout preset (class) では phases 空なら fallback 注入も走らない", () => {
     // 書いた段が 0 件なら、 書いた段に由来する段は入らない。 代わりに動かない図として
-    // 扱われ、 出口で段が 1 つ入る (#1086)。 段が 1 件も無い図は描画側が弾くため
+    // 扱われ、 段が 1 つだけ残る (#1086)。 段が 1 件も無い図は描画側が弾くため。
+    //
+    // 段の id は組み立て器が決める (#1466 でクラス図は自前の段を持つようになった)。
+    // 名前を写すと描画側を直した時に片方だけ古くなる
     const d = compileToCdl(makeDoc("class", { animate: EMPTY_ANIM }));
-    expect(d.phases.map((p) => p.id)).toEqual(["static"]);
+    expect(d.phases).toHaveLength(1);
+    expect(d.phases[0]!.tweens, "動かない図なのに動きが入っている").toEqual([]);
   });
 
   it("phases が 1 個以上なら animate 経路に入る (guard の true 側)", () => {
@@ -2613,7 +2282,8 @@ describe("mergePartsFromActors: actor.lane が自身の lane と一致する場�
 
   /** parts actor 自身の slug を lane 指定した doc (guard が実際に効く唯一の形)。 */
   const compileSelfLane = () => compileToCdl(
-    makeDoc("sequence", {
+    // 縦列の張替えを見るので、面ごとに縦列を作る図種を使う (#1466 で順序図は板になった)
+    makeDoc("swimlane", {
       actors: [actor("A"), actor("p1", { partId: "g", lane: "p1" })],
       flow: [step("A", "A")],
     }),
@@ -2637,13 +2307,12 @@ describe("mergePartsFromActors: actor.lane が自身の lane と一致する場�
 
   it("通常 actor の lane / node は保持される", () => {
     const d = compileSelfLane();
-    expect(d.lanes.some((l) => l.id === "a")).toBe(true);
-    expect(d.nodes.some((n) => n.id === "a-header")).toBe(true);
+    expect(d.nodes.some((n) => n.id === "a")).toBe(true);
   });
 
   it("lane 指定なしなら parts actor の lane は削除され part 専用 lane が作られる", () => {
     const d = compileToCdl(
-      makeDoc("sequence", { actors: [actor("A"), actor("p1", { partId: "g" })], flow: [step("A", "A")] }),
+      makeDoc("swimlane", { actors: [actor("A"), actor("p1", { partId: "g" })], flow: [step("A", "A")] }),
       { partsCatalog: { g: PART() } },
     );
     expect(d.lanes.some((l) => l.id === "p1")).toBe(false);
@@ -2657,18 +2326,8 @@ describe("矢印 regex の非貪欲性 (A→B→C で from/to の切り出しが
   /** 3 段矢印の actor 名を持つ doc で from 側の非貪欲マッチを検証する。 */
   const names = ["A", "B→C"] as const;
 
-  it("resolveHighlight: 最初の矢印で分割される (from=A / to=B→C)", () => {
+  it("最初の矢印で分割される", () => {
     // 非貪欲 (.+?) なら from="A"、 貪欲 (.+) なら from="A→B" となり別 edge を探して失敗する。
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(["A→B→C"]),
-      actors: [actor(at(names, 0, "names")), actor(at(names, 1, "names"))],
-        flow: [step(at(names, 0, "names"), at(names, 1, "names"))],
-    }));
-    const target = d.edges[0]!;
-    expect(d.phases[0]!.activate).toContain(target.id);
-  });
-
-  it("resolveHighlightGeneric: 最初の矢印で分割される", () => {
     const d = compileToCdl(makeDoc("flow", {
       animate: animOf(["A→B→C"]),
       actors: [actor(at(names, 0, "names")), actor(at(names, 1, "names"))],
@@ -2710,13 +2369,6 @@ describe("applyV05Extensions: actor option が他 actor に漏れない", () => 
     expect(node(d, "b").rows).toBeUndefined();
   });
 
-  it("header 付き preset でも他 actor の header に漏れない", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(), actors: [actor("A", { subtitle: "onlyA" }), actor("B")],
-    }));
-    expect(node(d, "a-header").subtitle).toBe("onlyA");
-    expect(node(d, "b-header").subtitle).toBeUndefined();
-  });
 });
 
 describe("applyEdgeInlineOptions: 非 seq-like で正しい edge に割当てる", () => {
@@ -2740,13 +2392,13 @@ describe("applyEdgeInlineOptions: 非 seq-like で正しい edge に割当てる
     expect(withGuard[0]!.to).toBe("b");
   });
 
-  it("seq-like でも後段だけの guard が前段に漏れない", () => {
-    const d = compile("sequence", {
+  it("後段だけの guard が前段に漏れない", () => {
+    const d = compile("topology", {
       actors: [actor("A"), actor("B"), actor("C")],
       flow: [step("A", "B"), step("B", "C", { guard: "g2" })],
     });
-    expect(d.edges.find((e) => e.id === "e0-a-b")?.guard).toBeUndefined();
-    expect(d.edges.find((e) => e.id === "e1-b-c")?.guard).toBe("g2");
+    expect(d.edges.find((e) => e.from === "a" && e.to === "b")?.guard).toBeUndefined();
+    expect(d.edges.find((e) => e.from === "b" && e.to === "c")?.guard).toBe("g2");
   });
 });
 
@@ -3079,29 +2731,6 @@ describe("mergePartIntoDiagram: scale 時も lane 中心と node 中心が drop 
   });
 });
 
-describe("applyV05Extensions: actor slug が -header 終端でも他 actor に漏れない", () => {
-  it("actor 名 \"A Header\" の option が actor \"A\" の node に漏れない", () => {
-    // slugify("A Header") = "a-header"。 旧実装の第 3 項 (actorId.replace(/-header$/,"")) は
-    // "a" に一致して actor "A" の node に option を書込む cross-actor leak を起こしていた。
-    const d = compile("swimlane", {
-      actors: [actor("A"), actor("A Header", { subtitle: "leak?" })],
-      flow: [step("A", "A Header")],
-    });
-    expect(node(d, "a").subtitle).toBeUndefined();
-    expect(node(d, "a-header").subtitle).toBe("leak?");
-  });
-
-  it("actor 名 \"A Header\" 自身の node には正しく反映される", () => {
-    const d = compile("swimlane", {
-      actors: [actor("A"), actor("A Header", { eyebrow: "eb", value: "v" })],
-      flow: [step("A", "A Header")],
-    });
-    expect(node(d, "a-header").eyebrow).toBe("eb");
-    expect(node(d, "a-header").value).toBe("v");
-    expect(node(d, "a").eyebrow).toBeUndefined();
-  });
-});
-
 describe("mergePartsFromActors: actor.lane 指定時は slug fallback 経路に入る", () => {
   const PART = (): CdlDiagram => ({
     id: "parts-sa", topic: "t",
@@ -3110,46 +2739,29 @@ describe("mergePartsFromActors: actor.lane 指定時は slug fallback 経路に�
     edges: [], states: [], phases: [] as CdlDiagram["phases"],
   });
 
-  it("sequence + actor.lane === 自身 slug で step anchor (s{N}-{slug}) が削除される", () => {
-    // actor.lane 指定で自身の lane が ownedLaneIds から除外され、 exact set 経路ではなく
-    // matchesAliasSlug fallback を通る。 その時 step anchor 判定が実際に効く。
-    const d = compileToCdl(
-      makeDoc("sequence", {
-        actors: [actor("A"), actor("p1", { partId: "sa", lane: "p1" })],
-        flow: [step("A", "p1")],
-      }),
-      { partsCatalog: { sa: PART() } },
-    );
-    expect(d.nodes.some((n) => n.id === "s0-p1")).toBe(false);
-    expect(d.nodes.some((n) => n.id === "p1-header")).toBe(false);
-    expect(d.nodes.some((n) => n.id === "p1__n")).toBe(true);
+  /** 自身の縦列を張替え先に書いた見本 (名前一致の経路ではなく頭一致の fallback を通る形)。 */
+  const 組む = () => compileToCdl(
+    makeDoc("swimlane", {
+      actors: [actor("A"), actor("p1", { partId: "sa", lane: "p1" })],
+      flow: [step("A", "p1")],
+    }),
+    { partsCatalog: { sa: PART() } },
+  );
+
+  it("見本の仮の箱が消えて中身が入る", () => {
+    const d = 組む();
+    expect(d.nodes.some((n) => n.id === "p1"), "仮の箱が残っている").toBe(false);
+    expect(d.nodes.some((n) => n.id === "p1__n"), "見本の中身が入っていない").toBe(true);
   });
 
-  it("同経路で通常 actor の step anchor は保持される", () => {
-    const d = compileToCdl(
-      makeDoc("sequence", {
-        actors: [actor("A"), actor("p1", { partId: "sa", lane: "p1" })],
-        flow: [step("A", "p1")],
-      }),
-      { partsCatalog: { sa: PART() } },
-    );
-    expect(d.nodes.some((n) => n.id === "s0-a")).toBe(true);
-    expect(d.nodes.some((n) => n.id === "a-header")).toBe(true);
+  it("同経路で素の登場人物の箱は保持される", () => {
+    expect(組む().nodes.some((n) => n.id === "a"), "素の箱が消えている").toBe(true);
   });
 });
 
 describe("矢印 regex: 複数文字 actor 名で 1 文字 match に縮退しない", () => {
-  it("resolveHighlight は複数文字 actor 名を丸ごと from として扱う", () => {
+  it("複数文字 actor 名を丸ごと from として扱う", () => {
     // (.+?) → (.) に縮退すると from が 1 文字目だけになり edge を引き当てられない。
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(["Alpha→Beta"]),
-      actors: [actor("Alpha"), actor("Beta")],
-      flow: [step("Alpha", "Beta")],
-    }));
-    expect(d.phases[0]!.activate).toContain("e0-alpha-beta");
-  });
-
-  it("resolveHighlightGeneric も複数文字 actor 名を扱える", () => {
     const d = compileToCdl(makeDoc("flow", {
       animate: animOf(["Alpha→Beta"]),
       actors: [actor("Alpha"), actor("Beta")],
@@ -3339,46 +2951,6 @@ describe("mergePartIntoDiagram: 明示 posX を持つ node も scale 時に中�
   });
 });
 
-describe("applyV05Extensions: sequence でも actor slug と別 actor header が衝突しない", () => {
-  it("actor \"A Header\" の option が actor \"A\" の header に漏れない (sequence)", () => {
-    // slugify("A Header") = "a-header" は actor "A" の header node id と同一。
-    // header 帰属を footer の対存在で判定することで本人にのみ merge される。
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(),
-      actors: [actor("A"), actor("A Header", { subtitle: "leak?" })],
-      flow: [step("A", "A Header")],
-    }));
-    expect(node(d, "a-header").subtitle).toBeUndefined();
-    expect(node(d, "a-header-header").subtitle).toBe("leak?");
-  });
-
-  it("非 animate sequence でも同様に漏れない", () => {
-    const d = compile("sequence", {
-      actors: [actor("A"), actor("A Header", { eyebrow: "eb" })],
-      flow: [step("A", "A Header")],
-    });
-    expect(node(d, "a-header").eyebrow).toBeUndefined();
-    expect(node(d, "a-header-header").eyebrow).toBe("eb");
-  });
-
-  it("通常 actor の option は自身の header に正しく付く", () => {
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(), actors: [actor("A", { subtitle: "mine" }), actor("B")],
-    }));
-    expect(node(d, "a-header").subtitle).toBe("mine");
-    expect(node(d, "b-header").subtitle).toBeUndefined();
-  });
-
-  it("header/footer を持たない preset (swimlane) では id 一致で判定する", () => {
-    const d = compile("swimlane", {
-      actors: [actor("A"), actor("A Header", { subtitle: "own" })],
-      flow: [step("A", "A Header")],
-    });
-    expect(node(d, "a-header").subtitle).toBe("own");
-    expect(node(d, "a").subtitle).toBeUndefined();
-  });
-});
-
 describe("mergePartIntoDiagram: stack が 0 始まりでない part の中心合わせ", () => {
   /** stack 2/3 の part = minStack > 0 で partCenterStack が 0 にならない。 */
   function partStackFrom2(): CdlDiagram {
@@ -3488,53 +3060,6 @@ describe("mergePartIntoDiagram: lane.x != 0 でも明示 posX と auto-layout �
   });
 });
 
-describe("applyV05Extensions: actor 'A Footer' 共存でも header 帰属が誤爆しない", () => {
-  it("sequence で actor 'A' / 'A Header' / 'A Footer' 共存でも option が正しい node に付く", () => {
-    // "A Footer" の slug = a-footer は actor "A" の footer node id と衝突しうる。
-    // preset 種別 (seq-like) で primaryNodeId を {slug}-header に固定するため、 footer 存在に依存しない。
-    const d = compileToCdl(makeDoc("sequence", {
-      animate: animOf(),
-      actors: [
-        actor("A", { subtitle: "sub-A" }),
-        actor("A Header", { subtitle: "sub-AH" }),
-        actor("A Footer", { subtitle: "sub-AF" }),
-      ],
-      flow: [step("A", "A Header"), step("A Header", "A Footer")],
-    }));
-    expect(node(d, "a-header").subtitle).toBe("sub-A");
-    expect(node(d, "a-header-header").subtitle).toBe("sub-AH");
-    expect(node(d, "a-footer-header").subtitle).toBe("sub-AF");
-  });
-
-  it("非 sequence preset (swimlane) で 'A' / 'A Footer' 共存でも漏れない", () => {
-    // swimlane は header/footer を持たず node id = slug。 "A Footer" の a-footer は
-    // actor "A" の node "a" と別 id なので衝突しない (preset 種別で id 一致に統一)。
-    const d = compile("swimlane", {
-      actors: [actor("A", { subtitle: "own-A" }), actor("A Footer", { subtitle: "own-AF" })],
-      flow: [step("A", "A Footer")],
-    });
-    expect(node(d, "a").subtitle).toBe("own-A");
-    expect(node(d, "a-footer").subtitle).toBe("own-AF");
-  });
-
-  it("class preset (footer 無し) でも actor option が自身の node に付く", () => {
-    const d = compileToCdl(makeDoc("class", {
-      animate: animOf(), actors: [actor("A", { eyebrow: "eb-A" }), actor("B")],
-    }));
-    expect(node(d, "a").eyebrow).toBe("eb-A");
-    expect(node(d, "b").eyebrow).toBeUndefined();
-  });
-
-  it("solidity も seq-like として {slug}-header に merge する", () => {
-    const d = compileToCdl(makeDoc("solidity", {
-      animate: animOf(),
-      actors: [actor("A", { kind: "eoa", subtitle: "sol-A" }), actor("B", { kind: "contract" })],
-      flow: [step("A", "B")],
-    }));
-    expect(node(d, "a-header").subtitle).toBe("sol-A");
-  });
-});
-
 // ── #880: multi-lane part を scale した時に非先頭 lane の node 中心がずれる ──
 
 describe("mergePartIntoDiagram: multi-lane part の scale で全 lane の node が自 lane 中心に乗る (#880)", () => {
@@ -3591,3 +3116,36 @@ describe("mergePartIntoDiagram: multi-lane part の scale で全 lane の node �
     expect(node(scaled, "p1__n2").w).toBe(160);
   });
 })
+
+describe("actor.nodes に書いた小さな箱 (#1466)", () => {
+  /*
+   * この経路が効くのは、図種が 1 人につき複数の箱を作る時だけ。 順序図が名札 / 余白 / 足を
+   * 作っていた頃はそこに当たっていたが、板になって作らなくなった = いまはどの図種も
+   * `{名前}-{小名}` / `{小名}-{名前}` の形の箱を作らない。
+   *
+   * 反映そのものは当たる箱が無いと測れないため、ここでは **黙って落ちない** ことを見る。
+   */
+  const 知らせ = (over: Partial<DslDocument>): string[] => {
+    const 出た: string[] = [];
+    compileToCdl(makeDoc("topology", over), {
+      onNotice: (n) => {
+        if (n.kind === "sub-node-not-found") 出た.push(n.actor);
+      },
+    });
+    return 出た;
+  };
+
+  it("当たる箱が無いことを伝える", () => {
+    expect(知らせ({ actors: [actor("A", { nodes: { header: { posX: 12, posY: 34 } } }), actor("B")] })).toEqual(["A"]);
+  });
+
+  it("位置を片方しか書かない指定は対象にしない (|| 条件)", () => {
+    // 反映しない指定で知らせを出すと、書き途中の記法が毎回鳴る
+    expect(知らせ({ actors: [actor("A", { nodes: { header: { posX: 12 } } }), actor("B")] })).toEqual([]);
+    expect(知らせ({ actors: [actor("A", { nodes: { header: { posY: 34 } } }), actor("B")] })).toEqual([]);
+  });
+
+  it("nodes を書かなければ何も伝えない", () => {
+    expect(知らせ({ actors: [actor("A"), actor("B")] })).toEqual([]);
+  });
+});

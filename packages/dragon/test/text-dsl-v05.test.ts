@@ -189,9 +189,9 @@ flow:
     if (!r.ok) throw new Error("parse failed");
     const diagram = compileToCdl(r.doc);
     expect(diagram).toBeDefined();
-    expect(diagram.lanes.length).toBeGreaterThanOrEqual(2);
-    expect(diagram.nodes.some((n) => n.title === "Alice")).toBe(true);
-    expect(diagram.nodes.some((n) => n.title === "Bob")).toBe(true);
+    // 順序図は 1 枚の板で描く (#1466)。 面は板の見出しに並ぶ
+    const 面 = diagram.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.actors ?? [];
+    expect(面.map((a) => a.name)).toEqual(["Alice", "Bob"]);
   });
 });
 
@@ -366,16 +366,10 @@ flow:
 `);
     if (!r.ok) throw new Error("parse failed");
     const diagram = compileToCdl(r.doc);
-    const laneIds = diagram.lanes.map((l) => l.id);
-    // sequence preset 経由なので lane id は actor 名 slugify
-    // sort 後の順序: eoa (Alice) -> contract (Token) -> storage (balances) -> event (logs)
-    const idxAlice = laneIds.indexOf("alice");
-    const idxToken = laneIds.indexOf("token");
-    const idxBalances = laneIds.indexOf("balances");
-    const idxLogs = laneIds.indexOf("logs");
-    expect(idxAlice).toBeLessThan(idxToken);
-    expect(idxToken).toBeLessThan(idxBalances);
-    expect(idxBalances).toBeLessThan(idxLogs);
+    // 並びは板の見出しが持つ (#1466 で面ごとの縦列は無くなった)。
+    // 並べ替え後: eoa (Alice) -> contract (Token) -> storage (balances) -> event (logs)
+    const 面 = diagram.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.actors ?? [];
+    expect(面.map((a) => a.name)).toEqual(["Alice", "Token", "balances", "logs"]);
   });
 
   it("kind: multisig / proxy / library / interface も受理", () => {
@@ -563,9 +557,16 @@ flow:
     // 全 actor は storage kind に強制 (UML class box 表示)
     expect(diagram.nodes.every((n) => n.kind === "storage")).toBe(true);
     expect(diagram.nodes).toHaveLength(2);
-    // rows が User node に反映 (applyV05Extensions 経由)
+    // rows が User node に反映 (applyV05Extensions 経由)。
+    //
+    // **字は加工される** (#1466)。 公開の記号 (`+` / `-`) は行頭の印が担い、呼び出しの括弧は
+    // 印の形 (山) が担うため、字からは落とす = 印と字が同じことを 2 度言わない
     const userNode = diagram.nodes.find((n) => n.id === "user");
-    expect(userNode?.rows).toEqual(["+login(): void", "+logout(): void"]);
+    expect(userNode?.rows).toEqual(["login: void", "logout: void"]);
+    expect(userNode?.rowMarks?.map((m) => m && `${m.shape}/${m.filled}`)).toEqual([
+      "chevron/true",
+      "chevron/true",
+    ]);
     // 継承 edge が描かれる
     expect(diagram.edges).toHaveLength(1);
     expect(diagram.edges[0]!.label).toBe("extends");
@@ -1057,10 +1058,11 @@ flow:
     const compiled = compileToCdl(r.doc);
     const userNode = compiled.nodes.find((n) => n.id === "user");
     expect(userNode).toBeDefined();
-    expect(userNode!.w).toBe(400);
+    // 行の字が大きくなった (#1466) ので、長い行に合わせて箱も広がる
+    expect(userNode!.w).toBe(630);
     expect(userNode!.rows).toEqual([
-      "+veryLongMethodNameHere(): Promise<void>",
-      "+short(): void",
+      "veryLongMethodNameHere: Promise<void>",
+      "short: void",
     ]);
   });
 

@@ -112,7 +112,9 @@ describe("Text DSL のページは記法を持つ (#1365)", () => {
     const yamlDiagram = textDslToDiagram(textDsl.sourceYaml__textDslCode);
     const jsonDiagram = jsonToDiagram(JSON.parse(textDsl.sourceJson__textDslCode) as unknown);
     for (const diagram of [yamlDiagram, jsonDiagram]) {
-      expect(diagram.nodes.find((node) => node.title === "OrderCreated")?.subtitle).toBe(
+      // 順序図は #1466 で 1 枚の板になり、面は板の見出しに並ぶ
+      const 面 = diagram.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.actors ?? [];
+      expect(面.find((a) => a.name === "OrderCreated")?.subtitle).toBe(
         "orderId, total",
       );
     }

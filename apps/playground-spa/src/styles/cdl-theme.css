@@ -48,6 +48,12 @@
   /* 表の区切り線。 箱の塗り (`--d-surface-2`) の上で対比 3.25 (明) / 3.40 (暗)。
      既定のままだと cdl の灰色 `#7e848e` が出て、 暗い画面で紙に沈む */
   --cdl-row-divider: var(--d-text-muted);
+  /* 行の右端に置く型の色 (cdl#578)。 読み手が探すのは名前なので、型は一段薄く引く。
+     既定のままだと cdl の灰色 `#7e848e` が出て、暗い画面で紙に沈む */
+  --cdl-text-dim: var(--d-text-muted);
+  /* 済んだ言づての色 (cdl#578)。 **薄めるのではなく墨へ移す** ので、読める濃さを保つ。
+     `--cdl-text-dim` より 1 段濃い = あちらは「読まなくてよい」、こちらは「読める」 */
+  --cdl-text-2: var(--d-text-secondary);
 
   --cdl-note-fill: var(--d-warn-soft);
   --cdl-note-text: var(--d-warn);
@@ -99,6 +105,32 @@
   fill: var(--d-surface-3) !important;
   stroke: var(--d-text-secondary) !important;
   stroke-width: 1.75 !important;
+}
+
+/* 流れの始まりと終わりの印 (cdl#578)。
+ *
+ * **箱の規則から外す**。 上の規則は「面 + 枠」 の箱を前提に塗りと枠を当てるが、始まりは
+ * 塗った丸、終わりは輪で囲んだ丸で、面と枠という作りをしていない。 当てると始まりの丸が
+ * 面の色で塗られて消える (実測)。
+ *
+ * 色は墨で描く。 意味の色 (`--dragon-edge-tone`) を使うと「この印にも種類がある」 と読めるが、
+ * 表しているのは「ここで始まる / 終わる」 の 1 つだけ。 */
+[data-cdl-role="node-body"][data-cdl-mark="start"],
+[data-cdl-active="true"] [data-cdl-role="node-body"][data-cdl-mark="start"] {
+  fill: var(--d-text-primary) !important;
+  stroke: none !important;
+}
+
+[data-cdl-role="node-body"][data-cdl-mark="end"],
+[data-cdl-active="true"] [data-cdl-role="node-body"][data-cdl-mark="end"] {
+  fill: var(--d-surface) !important;
+  stroke: var(--d-text-primary) !important;
+}
+
+/* 終わりの印の中身。 輪と同じ色で描く = 別の色にすると 2 つの意味を持つ印に見える */
+[data-cdl-role="node-inner"] {
+  fill: var(--d-text-primary) !important;
+  stroke: none !important;
 }
 
 /* 今の局面に関わる箱だけ枠を変える (#1143)。
@@ -168,9 +200,31 @@
   stroke-width: 2.25 !important;
 }
 
+/* 塗る印 (三角 / 菱 の塗った側) */
 [data-cdl-role="edge-arrowhead"] {
   fill: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
   stroke: none !important;
+}
+
+/* 白抜きの印。 面を紙の色にして輪郭に色を置く (cdl#578)。
+   面を透かさないのは、線が印の中を素通りして見えるため */
+[data-cdl-role="edge-arrowhead"][data-cdl-edge-head-fill="hollow"] {
+  fill: var(--d-surface) !important;
+  stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
+  stroke-width: 1.4 !important;
+}
+
+/* 元から輪郭しか無い形。 塗ると「閉じた矢」 と見分けが付かなくなる = 開いた矢は
+   閉じないことで「返事を待たない」 を示し、三又は開いた側で「多」 を示す */
+[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="open"],
+[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="crow"],
+[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="one"],
+[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="zero-one"],
+[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="many"],
+[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="zero-many"] {
+  fill: none !important;
+  stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
+  stroke-width: 1.6 !important;
 }
 
 /* 意味ごとの色。 cdl は `data-cdl-tone` で意味だけを渡し、 色は dragon が決める */
@@ -182,19 +236,18 @@
 [data-cdl-tone="info"] { --dragon-edge-tone: var(--d-dg-4); }
 
 /* 矢頭は `<defs>` の中にあり、 線を包む要素の子ではないので上の変数を継げない。
-   矢頭自身に置く。 大小 2 種あるので両方に当てる */
-#cdl-arrow-accent,
-#cdl-arrow-accent-sm { --dragon-edge-tone: var(--d-dg-1); }
-#cdl-arrow-teal,
-#cdl-arrow-teal-sm { --dragon-edge-tone: var(--d-dg-6); }
-#cdl-arrow-success,
-#cdl-arrow-success-sm { --dragon-edge-tone: var(--d-dg-2); }
-#cdl-arrow-error,
-#cdl-arrow-error-sm { --dragon-edge-tone: var(--d-err); }
-#cdl-arrow-warning,
-#cdl-arrow-warning-sm { --dragon-edge-tone: var(--d-warn); }
-#cdl-arrow-info,
-#cdl-arrow-info-sm { --dragon-edge-tone: var(--d-dg-4); }
+   矢頭自身に置く。
+
+   **id の前方一致で当てる**。 矢頭の名前は `cdl-arrow-<意味>` に、大小 (`-sm`) と
+   端の形 (`-diamond` 等) と塗り (`-hollow`) が付く (`edgeHeadMarkerId`)。 名前を 1 つずつ
+   並べると、形や塗りが増えるたびにここが取り残されて色が既定の灰色に落ちる
+   (実測 = `cdl#574` で形を足した後、菱と開いた矢が意味の色を持っていなかった) */
+[id^="cdl-arrow-accent"] { --dragon-edge-tone: var(--d-dg-1); }
+[id^="cdl-arrow-teal"] { --dragon-edge-tone: var(--d-dg-6); }
+[id^="cdl-arrow-success"] { --dragon-edge-tone: var(--d-dg-2); }
+[id^="cdl-arrow-error"] { --dragon-edge-tone: var(--d-err); }
+[id^="cdl-arrow-warning"] { --dragon-edge-tone: var(--d-warn); }
+[id^="cdl-arrow-info"] { --dragon-edge-tone: var(--d-dg-4); }
 
 /* 線に添える札 */
 [data-cdl-role="edge-label-bg"] {

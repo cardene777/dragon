@@ -7,6 +7,11 @@
 
 import { describe, it, expect } from "vitest";
 import { parseTextDsl, textDslToDiagram } from "@cardenelabs/dragon";
+import type { CdlDiagram } from "@cardenelabs/cdl";
+
+/** 順序図の板が持つ言づて (#1466 で矢印から板の行になった)。 */
+const 言づて = (d: CdlDiagram) =>
+  d.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.messages ?? [];
 
 describe("Text DSL integration ... 公開品質保証", () => {
   describe("realistic example ... 実用シナリオ", () => {
@@ -46,10 +51,10 @@ describe("Text DSL integration ... 公開品質保証", () => {
       const diag = textDslToDiagram(src);
       // 3 phase 全注入
       expect(diag.phases.length).toBe(3);
-      // state 1 個
-      expect(diag.states.length).toBe(1);
-      // edge 4 個 (sequence preset で生成)
-      expect(diag.edges.length).toBe(4);
+      // 書いた state 1 個 + 板が持つ「どこまで描くか」 の 1 個 (#1466)
+      expect(diag.states.length).toBe(2);
+      // 言づて 4 個 (板の行として)
+      expect(言づて(diag).length).toBe(4);
       // 最後の phase に tween + badge
       expect(diag.phases[2]!.tweens[0]!.to).toBe(100);
       expect(diag.phases[2]!.badge).toBe("approved");
@@ -120,8 +125,9 @@ describe("Text DSL integration ... 公開品質保証", () => {
 `,
         { onNotice: (n) => 知らせ.push(n) },
       );
-      // #1462 で自分へ戻る矢印を落とさなくなった = 輪として残り、知らせも出ない
-      expect(diag.edges.filter((e) => e.from === e.to), "自己参照が消えている").toHaveLength(1);
+      // #1462 で自分へ戻る矢印を落とさなくなり、#1466 で板の行になった = 行として残り、知らせも出ない
+      const 自分宛て = 言づて(diag).filter((m) => m.from === m.to);
+      expect(自分宛て, "自己参照が消えている").toHaveLength(1);
       expect(知らせ.filter((n) => n.message.includes("自分へ戻る矢印"))).toHaveLength(0);
     });
 
@@ -140,7 +146,7 @@ ${actors}
 ${steps}
 `;
       const diag = textDslToDiagram(src);
-      expect(diag.edges.length).toBe(20);
+      expect(言づて(diag).length).toBe(20);
     });
 
     it("日本語 actor + 矢印 4 種類混在", () => {
@@ -157,7 +163,7 @@ ${steps}
   3. 結果 => ユーザー: 3
   4. ユーザー >> サーバー: 4
 `);
-      expect(diag.edges.length).toBe(4);
+      expect(言づて(diag).length).toBe(4);
     });
 
     it("コメント (#) を様々な位置に混在", () => {
@@ -189,10 +195,9 @@ ${steps}
   1. First → Second: msg1
   2. Second → Third: msg2
 `);
-      // sequence preset では lane が actor 順に配置される
-      const laneIds = diag.lanes.map((l) => l.label);
-      expect(laneIds.indexOf("First")).toBeLessThan(laneIds.indexOf("Second"));
-      expect(laneIds.indexOf("Second")).toBeLessThan(laneIds.indexOf("Third"));
+      // 板の見出しが書いた順に並ぶ (#1466 で面ごとの縦列は無くなった)
+      const 面 = diag.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.actors ?? [];
+      expect(面.map((a) => a.name)).toEqual(["First", "Second", "Third"]);
     });
 
     it("animation parse + compile 結果 deterministic", () => {
@@ -254,7 +259,8 @@ animate:
     切替: n: 100
     切替: s: 完了
 `);
-      const sets = diag.phases[0]!.sets;
+      // 板は自分の進み具合も同じ段に書く (#1466)。 書いた切替だけを見る
+      const sets = diag.phases[0]!.sets.filter((x) => x.stateId === "n" || x.stateId === "s");
       expect(sets.length).toBe(2);
       const nSet = sets.find((s) => s.stateId === "n");
       const sSet = sets.find((s) => s.stateId === "s");
@@ -336,7 +342,7 @@ flow:
       try {
         // throw せず compile 完走 = v0.5 parser に正しく流れた証拠。
         const diag = textDslToDiagram(src);
-        expect(diag.edges.length).toBeGreaterThanOrEqual(2);
+        expect(言づて(diag).length).toBeGreaterThanOrEqual(2);
         // v0.4 deprecation warning が出ていない = v0.5 routing 成功
         const deprecationWarnings = warnings.filter((w) => w.includes("v0.4"));
         expect(deprecationWarnings.length).toBe(0);

@@ -15,12 +15,12 @@ type: sequence
 
 actors:
   - Client
-  - "API": function
-  - DB: storage
+  - "API"
+  - DB
 
 flow:
-  - Client -> "API": "GET /items" (info)
-  - "API" -> DB: "SELECT" (success)
+  - Client -> "API": "GET /items"
+  - "API" -> DB: "SELECT"
 
 states:
   request_count: 0
@@ -52,26 +52,22 @@ export const sourceJson__textDslSequence = `{
       "name": "Client"
     },
     {
-      "name": "API",
-      "kind": "function"
+      "name": "API"
     },
     {
-      "name": "DB",
-      "kind": "storage"
+      "name": "DB"
     }
   ],
   "flow": [
     {
       "from": "Client",
       "to": "API",
-      "label": "GET /items",
-      "tone": "info"
+      "label": "GET /items"
     },
     {
       "from": "API",
       "to": "DB",
-      "label": "SELECT",
-      "tone": "success"
+      "label": "SELECT"
     }
   ],
   "states": {
@@ -988,18 +984,18 @@ title: "Service call + write + emit"
 type: sequence
 
 actors:
-  - Client: { kind: actor, subtitle: "request" }
-  - Server: { kind: function, subtitle: "handler" }
-  - DB: { kind: storage, rows: ["count: {count}"] }
-  - OrderCreated: event "orderId, total"
+  - Client: { subtitle: "request" }
+  - Server: { subtitle: "handler" }
+  - DB
+  - OrderCreated: { subtitle: "orderId, total" }
 
 states:
   count: 100
 
 flow:
   - Client -> Server: "POST /orders"
-  - Server -> DB: "UPDATE count -= 1" (info)
-  - Server -> OrderCreated: "emit" (success)
+  - Server -> DB: "UPDATE count -= 1"
+  - Server -> OrderCreated: "emit"
 
 animation:
   - step: "call" 1.2s
@@ -1023,24 +1019,17 @@ export const sourceJson__textDslCode = `{
   "actors": [
     {
       "name": "Client",
-      "kind": "actor",
       "subtitle": "request"
     },
     {
       "name": "Server",
-      "kind": "function",
       "subtitle": "handler"
     },
     {
-      "name": "DB",
-      "kind": "storage",
-      "rows": [
-        "count: {count}"
-      ]
+      "name": "DB"
     },
     {
       "name": "OrderCreated",
-      "kind": "event",
       "subtitle": "orderId, total"
     }
   ],
@@ -1053,14 +1042,12 @@ export const sourceJson__textDslCode = `{
     {
       "from": "Server",
       "to": "DB",
-      "label": "UPDATE count -= 1",
-      "tone": "info"
+      "label": "UPDATE count -= 1"
     },
     {
       "from": "Server",
       "to": "OrderCreated",
-      "label": "emit",
-      "tone": "success"
+      "label": "emit"
     }
   ],
   "states": {

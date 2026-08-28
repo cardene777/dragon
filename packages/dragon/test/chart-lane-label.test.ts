@@ -28,13 +28,14 @@ const 一箱の図種 = [
  * ため、 緩い条件だと外し過ぎに気付けない。 実測した値をそのまま固定する。
  */
 const 箱ごとの図種: readonly (readonly [string, readonly (string | null | undefined)[]])[] = [
-  ["sequence", ["A", "B"]],
+  // #1466 で順序図は 1 枚の板になり、面ごとの縦列を作らなくなった (縦列は板を置く 1 本だけ)
+  ["sequence", [undefined]],
   ["flow", [undefined]],
   ["swimlane", ["A", "B"]],
   ["er", [undefined, undefined]],
   ["state", [undefined, undefined]],
   ["topology", ["図の題"]],
-  ["solidity", ["A", "B"]],
+  ["solidity", [undefined]],
   // #1263 でクラスごとに 1 縦列へ変更。 縦列は並べるための入れ物で見出しを持たない
   ["class", [undefined, undefined]],
   ["c4", ["System Context"]],

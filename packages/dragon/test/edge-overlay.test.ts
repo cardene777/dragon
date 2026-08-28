@@ -46,12 +46,12 @@ const 矢印 = (yaml: string): { label: string; overlay?: boolean }[] => {
 
 describe("矢印の overlay (#1267)", () => {
   describe("文字の記法", () => {
-    // 4 経路の代表。 `swimlane` と `flow` は段の有無で組み立てが分かれ、
-    // `sequence` は専用の組み立てを持ち、段の無い図は cdl の組み立てを通る。
+    // 経路の代表。 `swimlane` と `flow` は段の有無で組み立てが分かれる。
+    // `sequence` は #1466 で 1 枚の板になり矢印を作らない = この経路を通らない
     for (const [名, type, 動きあり] of [
       ["段のある swimlane", "swimlane", true],
       ["段のない swimlane", "swimlane", false],
-      ["段のある sequence", "sequence", true],
+      ["段のある topology", "topology", true],
       ["段のない flow", "flow", false],
     ] as const) {
       it(`${名} で overlay が矢印に届く`, () => {
