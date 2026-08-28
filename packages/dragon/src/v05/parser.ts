@@ -42,7 +42,8 @@
  */
 
 import type { NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
-import { TONES, NODE_KINDS, EDGE_HEADS, EDGE_HEAD_FILLS, EDGE_STYLES, CLASS_RELATION_LOOK, SEQUENCE_MESSAGE_LOOK, parseFormula } from "@cardenelabs/cdl";
+import { TONES, NODE_KINDS, EDGE_HEADS, EDGE_HEAD_FILLS, EDGE_STYLES, EDGE_REVEALS, CLASS_RELATION_LOOK, SEQUENCE_MESSAGE_LOOK, parseFormula } from "@cardenelabs/cdl";
+import type { EdgeReveal } from "@cardenelabs/cdl";
 import { TONE_ALIAS, NODE_KIND_ALIAS } from "../keywords";
 import { parseRelativePos, orderByDependency } from "../relative-pos";
 import {
@@ -138,6 +139,8 @@ export const TOP_LEVEL_KEYS = [
   "scrolls",
   // 動いている間の帯 (#1466)。 順序図だけが読む
   "bands",
+  // 矢印をいつ出すか (#1470)
+  "reveal",
 ] as const;
 
 /**
@@ -422,6 +425,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let type: PresetType | null = null;
   let eyebrow: string | null = null;
   let eyebrowLine = 0;
+  let reveal: EdgeReveal | null = null;
   let axes: DslAxes | undefined = undefined;
   let axesLine = 0;
   let actors: DslActor[] = [];
@@ -461,6 +465,29 @@ export function parseTextDslV05(src: string): V05ParseResult {
       title = head.value ?? null;
       if (!title) {
         errors.push({ line: line.no, message: "title is required", hint: 'use `title: "..."`' });
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "reveal") {
+      /*
+       * 矢印をいつ出すか (#1470)。
+       *
+       * 既定 (`phase`) は「段が名指しする矢印は、その段が来るまで描かない」。 段を進めるごとに
+       * 関係が増える図で、全ての矢印が 1 段目から見えていたことへの対処 (`cdl#582`)。
+       * `all` と書くと段に関わらず最初から全部描く。
+       */
+      const v = (head.value ?? "").trim();
+      if (v.length > 0) {
+        if ((EDGE_REVEALS as readonly string[]).includes(v)) {
+          reveal = v as EdgeReveal;
+        } else {
+          errors.push({
+            line: line.no,
+            message: `reveal が読めません (書いた値: ${v})`,
+            hint: `使える語 = ${EDGE_REVEALS.join(" / ")}`,
+          });
+        }
       }
       i += 1;
       continue;
@@ -938,6 +965,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       title: title!,
       type: type!,
       ...(eyebrow !== null ? { eyebrow, eyebrowPos: { line: eyebrowLine } } : {}),
+      ...(reveal !== null ? { reveal } : {}),
       ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),
       actors,
       flow,

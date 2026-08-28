@@ -372,6 +372,13 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 書いた状態を図に載せる (#1162)。 段を書かない図でも値が届くようにする。
   // **値を載せるより先に呼ぶ**。 状態が空のまま式を解くと、参照が全て「無い名前」 になる。
   materializeStates(merged, doc);
+  /*
+   * 矢印をいつ出すか (#1470)。 描き手がそのまま読む欄なので、書いた語を素通しする。
+   *
+   * **出口で 1 度だけ載せる**。 図の種類ごとに組み立てが分かれており、経路ごとに書くと
+   * どれかを見落とす (`injectStaticPhase` / `materializeStates` と同じ理由)。
+   */
+  if (doc.reveal !== undefined) merged.edgeReveal = doc.reveal;
   // 語の欄が状態を読むとき、その状態には記法の語が入っている。 図の語へ直す (#1201)
   語の状態を図の語へ直す(merged);
   // きっかけ形の値を段の時計を読む式へ畳む (#1161 段 2)。 **値を載せるより先に呼ぶ** =

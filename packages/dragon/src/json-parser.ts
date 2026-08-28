@@ -44,6 +44,7 @@ import type {
   EdgeStyle,
   EdgeHead,
   EdgeHeadFill,
+  EdgeReveal,
   ClassRelationType,
   SequenceMessageKind,
 } from "@cardenelabs/cdl";
@@ -184,6 +185,8 @@ export interface DragonJson {
   >;
   /** 順序図で面が動いている間の帯 (#1466)。 記法の最上位 `bands:` と同じ */
   bands?: { actor: string; from: number; to: number }[];
+  /** 矢印をいつ出すか (#1470)。 記法の最上位 `reveal:` と同じ */
+  reveal?: EdgeReveal;
 }
 
 export interface JsonActor {
@@ -482,6 +485,8 @@ export const ACCEPTED_KEYS = {
     "scrolls",
     // 順序図で面が動いている間の帯 (#1466)
     "bands",
+    // 矢印をいつ出すか (#1470)
+    "reveal",
   ],
   actor: [
     "name",
@@ -636,6 +641,8 @@ export const 欄の型表 = {
     scrolls: "object",
     // 順序図で面が動いている間の帯 (#1466)
     bands: "並び",
+    // 矢印をいつ出すか (#1470)
+    reveal: "非空の文字列",
   },
   actor: {
     name: "必須の非空文字列",
@@ -2485,6 +2492,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     scrolls,
     // 順序図で面が動いている間の帯 (#1466)
     bands: json.bands,
+    // 矢印をいつ出すか (#1470)
+    reveal: json.reveal,
     pos: p0,
   };
 }
