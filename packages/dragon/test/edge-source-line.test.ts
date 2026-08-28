@@ -57,8 +57,9 @@ flow:
   });
 
   it("step から直接 edge を作る preset でも対応が取れる", () => {
-    const dsl = `title: "順序図"
-type: sequence
+    // 図種は `topology`。 順序図は #1466 で 1 枚の板になり矢印を作らない = この経路を通らない
+    const dsl = `title: "つながり"
+type: topology
 actors:
   - user: actor
   - api: service
@@ -96,8 +97,8 @@ flow:
   });
 
   it("同じ相手への step が複数あっても別々の行に対応する", () => {
-    const dsl = `title: "順序図で 2 回"
-type: sequence
+    const dsl = `title: "2 回書く"
+type: topology
 actors:
   - user: actor
   - api: service

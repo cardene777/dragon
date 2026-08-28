@@ -172,7 +172,8 @@ describe("不正な値が図に届かない (#1304)", () => {
   // 書いた値がそのまま届く図種で測る
   const 矢印 = (extra: Record<string, unknown>) => ({
     title: "t",
-    type: "sequence",
+    // 順序図は #1466 で板になり矢印を作らない。 書いた値がそのまま届く図種で測る
+    type: "topology",
     actors: [{ name: "Alpha" }, { name: "Beta" }],
     flow: [{ from: "Alpha", to: "Beta", label: "x", ...extra }],
   });

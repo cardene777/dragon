@@ -432,8 +432,9 @@ actors:
       // parts actor `a_b` の lane id は `a-b` (cdl slug)。 prefix match で sweep すると通常 actor
       // `a-b-c` の `a-b-c-header` / `-footer` / step anchor / edge まで誤削除し、 activate に dangling
       // 参照が残る。 exact set (node.lane 由来) 方式で巻き込みゼロを保証する。
+      // 図種は `swimlane`。 順序図は #1466 で 1 枚の板になり、面ごとの箱と縦列を作らない
       const src = `title: "test"
-type: sequence
+type: swimlane
 
 actors:
   - Client
@@ -444,15 +445,12 @@ flow:
   - Client -> a-b-c: "呼出"
 `;
       const diagram = textDslToDiagram(src, { partsCatalog: CATALOG });
-      // 通常 actor a-b-c の node が全て残る (header / spacer / footer)
-      const abcNodes = diagram.nodes.filter((n) => n.lane === "a-b-c");
-      expect(abcNodes.length).toBeGreaterThan(0);
-      expect(diagram.nodes.some((n) => n.id === "a-b-c-header")).toBe(true);
-      expect(diagram.nodes.some((n) => n.id === "a-b-c-footer")).toBe(true);
+      // 通常 actor a-b-c の箱が残る
+      expect(diagram.nodes.some((n) => n.id === "a-b-c"), "素の箱が消えている").toBe(true);
       // a-b-c lane も残る
       expect(diagram.lanes.some((l) => l.id === "a-b-c")).toBe(true);
       // Client -> a-b-c の edge が残る (parts actor と無関係な flow)
-      expect(diagram.edges.some((e) => e.from.endsWith("-client") && e.to.endsWith("-a-b-c"))).toBe(true);
+      expect(diagram.edges.some((e) => e.from === "client" && e.to === "a-b-c")).toBe(true);
       // parts actor a_b 由来 node は削除される
       expect(diagram.nodes.some((n) => n.id === "a-b-header" || n.id === "a-b-footer")).toBe(false);
       // phase.activate に存在しない id (dangling) が残らない

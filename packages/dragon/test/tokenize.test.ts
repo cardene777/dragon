@@ -13,6 +13,7 @@
  * | 重なり | 返す並びが互いに重ならない (使う側が解決を持たなくてよい) |
  */
 import { describe, it, expect } from "vitest";
+import { EDGE_STYLES } from "@cardenelabs/cdl";
 import { TONES } from "@cardenelabs/cdl";
 import { 記法を分解する, JSONを分解する, 区間に広げる, type トークン } from "../src/tokenize";
 import { TONE_ALIAS, ARROW_PATTERNS } from "../src/keywords";
@@ -110,18 +111,22 @@ describe("語彙は keywords.ts から導く (#1310)", () => {
     expect(落ちた, "矢印として分解できない書き方がある").toEqual([]);
   });
 
-  it("線種の一覧が parser の受理集合と一致する", () => {
-    // 分解器は parser 全体を引き込まないため線種を持ち直している。 2 箇所に分かれるので
-    // ここで突き合わせる (片方だけ増えた形を落とす)
+  it("線種の一覧が描画側と一致する", () => {
+    // 分解器も parser も描画側 (`EDGE_STYLES`) から導く (#1466)。 手で並べていた頃は
+    // 3 箇所のうち 2 箇所が古いままになっていた
     const 通る = (語: string): boolean => {
       const src = `flow:\n  - A -> B: "x" (${語})`;
       return 記法を分解する(src).some(
         (t) => t.種類 === "色名" && src.slice(t.開始, t.終わり) === 語,
       );
     };
-    expect(通る("solid"), "solid を線種として分解できない").toBe(true);
-    expect(通る("dotted-flow"), "dotted-flow を線種として分解できない").toBe(true);
-    expect(通る("dashed"), "受けない線種を分解している").toBe(false);
+    let 測れた = 0;
+    for (const 語 of EDGE_STYLES) {
+      expect(通る(語), `${語} を線種として分解できない`).toBe(true);
+      測れた += 1;
+    }
+    expect(測れた, "線種を 1 つも測れていない (検査が空振りしている)").toBe(EDGE_STYLES.length);
+    expect(通る("dotted"), "描画側に無い語を分解している").toBe(false);
   });
 
   it("箱の種類は色分けしない (箱の名前と衝突するため)", () => {

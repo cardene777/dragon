@@ -69,6 +69,7 @@ flow:
 | `formulas`  | つまみの値から決まる値 (式。 `values` は段が動かす状態を読み、こちらはつまみを読む)                                                        |
 | `events`    | 押下などの出来事で動く仕掛け (相手は名前で指す)                                                                                            |
 | `scrolls`   | 巻き上げに応じて進む値 (画面を巻き上げた量から 0 から 1 を作る)                                                                            |
+| `bands`     | 動いている間の帯 (順序図。 `- DB: 1..2` の形で段の番号の区間を書く)                                                                        |
 
 <!-- notation:top-level:end -->
 
@@ -86,6 +87,7 @@ flow:
 | `value`         | 箱に出す値 (`値` とも書ける)                                                   |
 | `previous`      | 前の時点の値 (`前の値` とも書ける)。 `type: stacked` が 2 本目の帯として描く   |
 | `rows`          | 箱の中に並べる行 (`行` とも書ける)                                             |
+| `marks`         | 行頭の印 (`印` とも書ける。 `rows` と同じ並び。 ER は `pk` / `fk` / `opt`、状態は `entry` / `exit` / `do` / `internal`) |
 | `lane`          | どの縦列に置くか                                                               |
 | `stack`         | 縦列の中の何段目に置くか                                                       |
 | `initial`       | 状態遷移図で始まりの状態か                                                     |
@@ -127,7 +129,12 @@ flow:
 | `strokeBind`     | 線の色を値に追随させる (`widthBind` と同じ読み方)                   |
 | `dashOffsetBind` | 破線の位置を値に追随させる (流れているように見せる)                 |
 | `side`           | 矢印がどの辺から出るか (`top` / `right` / `bottom` / `left`)        |
-| `head`           | 矢印の先の形 (`triangle` 継ぐ / `diamond` 持つ / `open` 使う / `crow` 多) |
+| `head`           | 矢印の先の形 (`triangle` 継ぐ / `diamond` 持つ / `open` 使う / `crow` 多 / `one` `zero-one` `many` `zero-many` ER の端 / `none` 描かない) |
+| `tailHead`       | 出どころ側の端の形 (ER は端ごとに違う個数を示すので両端に要る) |
+| `headFill`       | 端の印の塗り (`solid` 塗る / `hollow` 白抜き) |
+| `tailHeadFill`   | 出どころ側の印の塗り |
+| `relation`       | クラス図の関係の種類 (`extends` 継ぐ / `implements` 満たす / `aggregates` 持つ / `composes` 抱える / `associates` 結ぶ / `uses` 使う)。 書くと線と端の形と塗りと付く側がまとめて決まる |
+| `kind`           | 順序図の言づての種類 (`call` 呼ぶ / `return` 返す / `fire` 投げる) |
 | `labelOffsetX`   | 説明文の位置を横にずらす                                            |
 | `labelOffsetY`   | 説明文の位置を縦にずらす                                            |
 | `overlay`        | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用)              |

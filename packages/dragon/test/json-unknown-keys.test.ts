@@ -85,6 +85,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     formulas: { doubled: "2" },
     events: [{ on: "click", box: "A", handler: "toggle" }],
     scrolls: { intro: { start: 0.9, end: 0.1 } },
+    // 順序図で面が動いている間の帯 (#1466)
+    bands: [{ actor: "A", from: 0, to: 0 }],
   },
   actor: {
     name: "A",
@@ -94,6 +96,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     value: "42",
     previous: "38",
     rows: ["ア"],
+    // 行頭の印 (#1466)。 行と同じ数だけ並べる
+    marks: ["pk"],
     lane: "L1",
     stack: 1,
     initial: true,
@@ -140,6 +144,12 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     // 矢印がどの辺から出るか (#1385)
     side: "left",
     head: "triangle",
+    // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
+    tailHead: "diamond",
+    headFill: "hollow",
+    tailHeadFill: "solid",
+    relation: "extends",
+    kind: "call",
     cardinality: "1..N",
     labelOffsetX: 1,
     labelOffsetY: 2,

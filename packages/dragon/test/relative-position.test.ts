@@ -289,7 +289,9 @@ flow:
    */
   // `mind` は #1177 で `mind-map` 種別 (図全体を 1 箱で描く) に寄せたため外した。 登場人物ごとの
   // 箱が無く、 相対の位置を測る相手が居ない = `pie` / `gantt` / `journey` と同じ扱いになる
-  const TYPES = ["sequence", "flow", "state", "er", "class", "topology", "c4"] as const;
+  // `sequence` / `solidity` は #1466 で 1 枚の板になり、面ごとの箱が無い = 相対の位置を
+  // 測る相手が居ない。 書いた位置が効かないことは `§ 効かなかった時` が知らせで見る
+  const TYPES = ["flow", "state", "er", "class", "topology", "c4"] as const;
   for (const type of TYPES) {
     it(`${type}: 書いた間隔がそのまま空く`, () => {
       const b = boxesOf(`title: "t"
@@ -347,44 +349,26 @@ flow:
   - Web -> API: "a"
   - API -> DB: "b"
 `;
-  const seqAuto = `title: "t"
-type: sequence
-actors:
-  - Web: service
-  - API: service
-  - DB: database
-flow:
-  - Web -> API: "a"
-  - API -> DB: "b"
-`;
 
-  it("効かない指定は自動配置に戻す (基準に重ねない)", () => {
-    const b = boxesOf(seqDown);
-    const auto = boxesOf(seqAuto);
-    expect(b.get("API")!.cx).toBeCloseTo(auto.get("API")!.cx, 0);
-    expect(b.get("API")!.cy).toBeCloseTo(auto.get("API")!.cy, 0);
-  });
-
-  it("戻した時に基準と重ならない", () => {
-    const b = boxesOf(seqDown);
-    const web = b.get("Web")!;
-    const api = b.get("API")!;
-    const overlapX = Math.abs(api.cx - web.cx) < (api.w + web.w) / 2;
-    const overlapY = Math.abs(api.cy - web.cy) < (api.h + web.h) / 2;
-    expect(overlapX && overlapY, "API が Web に重なっている").toBe(false);
+  it("効かない指定でも図は組み上がる", () => {
+    // #1466 で順序図は 1 枚の板になり、面ごとの箱が無い = 位置を測る相手が居ない。
+    // 図そのものは落ちずに出る
+    const d = textDslToDiagram(seqDown);
+    expect(d.nodes.filter((n) => n.kind === "sequence-board"), "板が無い").toHaveLength(1);
+    expect(d.nodes.filter((n) => n.title === "API"), "面ごとの箱が残っている").toEqual([]);
   });
 
   it("効かなかったことを行番号付きで知らせる", () => {
+    /*
+     * 相手の箱が無い図種なので、伝えるのは「相対の指定が効かない」 ではなく
+     * 「面に書いた位置そのものが効かない」 (#1466)。 どちらも黙って落とさない点は同じ。
+     */
     const notices: CompileNotice[] = [];
     textDslToDiagram(seqDown, { onNotice: (n) => notices.push(n) });
-    expect(notices).toHaveLength(1);
-    expect(notices[0]!.kind).toBe("relative-position-ignored");
-    expect(notices[0]!.actor).toBe("API");
-    expect(notices[0]!.line).toBeGreaterThan(0);
-    // 何が効かなかったかを、 書いた言葉に近い形で返す
-    expect(notices[0]!.message).toContain("Web");
-    expect(notices[0]!.message).toContain("下");
-    expect(notices[0]!.hint).toContain("位置: 300,200");
+    const 出た = notices.filter((n) => n.kind === "actor-kind-not-honored" && n.actor === "API");
+    expect(出た, "書いた位置が黙って落ちている").toHaveLength(1);
+    expect(出た[0]!.line).toBeGreaterThan(0);
+    expect(出た[0]!.message).toContain("位置");
   });
 
   it("効いた指定では知らせを出さない", () => {

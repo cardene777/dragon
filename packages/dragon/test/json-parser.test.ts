@@ -20,7 +20,9 @@ describe("jsonToDiagram (LLM 向け JSON DSL)", () => {
   it("Issue #208 AC 1 = 最小 example が有効 CdlDiagram を返す", () => {
     const diagram = jsonToDiagram({
       title: "test",
-      type: "sequence",
+      // 順序図は #1466 で 1 枚の板になり矢印を持たない。 本検査は JSON が図を作れることを
+      // 見るもので図種に依らないため、矢印が出る図種で測る
+      type: "topology",
       actors: ["a", "b"],
       flow: [{ from: "a", to: "b", label: "x" }],
     });
@@ -35,13 +37,13 @@ describe("jsonToDiagram (LLM 向け JSON DSL)", () => {
   it("actor は文字列 or object の両方を受け入れる (name / subtitle 反映)", () => {
     const diagram = jsonToDiagram({
       title: "mixed",
-      type: "sequence",
+      // 順序図の板は面ごとの箱を持たない (#1466)。 箱の題と呼び名を見る検査なので箱が出る図種で測る
+      type: "topology",
       actors: ["User", { name: "DB", subtitle: "Postgres" }],
       flow: [{ from: "User", to: "DB", label: "query" }],
     });
     const dbNode = diagram.nodes.find((n) => n.title === "DB");
     expect(dbNode).toBeDefined();
-    // sequence preset は actor kind を固定 (card / spacer) するので、 kind の override は topology で確認。
     // 本 test は「object 形式の actor が name / subtitle を反映すること」 のみ検証。
     expect(dbNode?.subtitle).toBe("Postgres");
   });
@@ -72,7 +74,7 @@ describe("jsonToDiagram (LLM 向け JSON DSL)", () => {
     // 「届いた」 ことだけを見ると、届いても何も起きない値を通す形を検査が固定してしまう
     const diagram = jsonToDiagram({
       title: "toned",
-      type: "sequence",
+      type: "topology",
       actors: ["A", "B"],
       flow: [{ from: "A", to: "B", label: "ok", tone: "success", style: "dotted-flow" }],
     });
@@ -82,28 +84,28 @@ describe("jsonToDiagram (LLM 向け JSON DSL)", () => {
   });
 
   it("描画側が持たない線種は誤りになる (#1304)", () => {
-    // `dashed` / `dotted` は schema が宣言していたが実装は受けない = 書いても線が変わらず、
-    // 知らせも出なかった
+    // `dotted` は schema が宣言していたが実装は受けない = 書いても線が変わらず、知らせも出なかった。
+    // `dashed` は #1466 で描画側が分岐を持つようになったため、いまは通る側にある
     expect(() =>
       jsonToDiagram({
         title: "toned",
-        type: "sequence",
+        type: "topology",
         actors: ["A", "B"],
-        flow: [{ from: "A", to: "B", label: "ok", style: "dashed" }],
+        flow: [{ from: "A", to: "B", label: "ok", style: "dotted" }],
       }),
-    ).toThrow(/step\.style must be one of: solid, dotted-flow/);
+    ).toThrow(/step\.style must be one of: /);
   });
 
   it("YAML と JSON で同じ diagram が生成される (1:1 対応)", () => {
     const jsonDiagram = jsonToDiagram({
       title: "compare",
-      type: "sequence",
+      type: "topology",
       actors: ["User", "API"],
       flow: [{ from: "User", to: "API", label: "login" }],
     });
     const yamlDiagram = textDslToDiagram(`
 title: "compare"
-type: sequence
+type: topology
 actors:
   - User
   - API

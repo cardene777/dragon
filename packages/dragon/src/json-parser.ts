@@ -37,7 +37,16 @@ import {
   type 図形の定義,
 } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
-import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead } from "@cardenelabs/cdl";
+import type {
+  CdlDiagram,
+  NodeKind,
+  Tone,
+  EdgeStyle,
+  EdgeHead,
+  EdgeHeadFill,
+  ClassRelationType,
+  SequenceMessageKind,
+} from "@cardenelabs/cdl";
 import { extractIdentifiers, parseFormula } from "@cardenelabs/cdl";
 import type {
   DslDocument,
@@ -173,6 +182,8 @@ export interface DragonJson {
       lanes: string[];
     }
   >;
+  /** 順序図で面が動いている間の帯 (#1466)。 記法の最上位 `bands:` と同じ */
+  bands?: { actor: string; from: number; to: number }[];
 }
 
 export interface JsonActor {
@@ -295,6 +306,8 @@ export interface JsonActor {
    * 読めない項目名として知らせる)。
    */
   scale?: number;
+  /** 行頭の印 (#1466)。 行と対で読む。 語の意味は図の種類が決める */
+  marks?: string[];
 }
 
 /** 2 軸で仕分ける図の軸の名前 (#1294)。 記法の `axes:` と同じ形 */
@@ -325,6 +338,14 @@ export interface JsonStep {
    * 書かなければ従来どおり塗った三角になる。
    */
   head?: EdgeHead;
+  /** 出どころ側の端の形と、両端の塗り (#1466)。 記法の `{ tailHead: diamond }` 等と同じ */
+  tailHead?: EdgeHead;
+  headFill?: EdgeHeadFill;
+  tailHeadFill?: EdgeHeadFill;
+  /** クラス図の関係の語 (#1466)。 書くと端の形 / 塗り / 線種がまとめて決まる */
+  relation?: ClassRelationType;
+  /** 順序図の言づての種類 (#1466)。 `call` / `return` / `fire` */
+  kind?: SequenceMessageKind;
   /**
    * 矢印の色 (#1304)。 記法の `(成功)` と同じく別名 (`成功` / `neutral` 等) も受ける。
    *
@@ -459,6 +480,8 @@ export const ACCEPTED_KEYS = {
     // 押下などの出来事で動く仕掛けと、巻き上げに応じて進む値 (#1393)
     "events",
     "scrolls",
+    // 順序図で面が動いている間の帯 (#1466)
+    "bands",
   ],
   actor: [
     "name",
@@ -499,6 +522,8 @@ export const ACCEPTED_KEYS = {
     "opacity",
     "renderOffsetX",
     "renderOffsetY",
+    // 行頭の印 (#1466)。 行ごとに 1 つ、図の種類ごとの語で書く
+    "marks",
   ],
   step: [
     "from",
@@ -509,6 +534,12 @@ export const ACCEPTED_KEYS = {
     "side",
     // 矢印の先の形 (#1462)
     "head",
+    // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
+    "tailHead",
+    "headFill",
+    "tailHeadFill",
+    "relation",
+    "kind",
     "tone",
     "style",
     "guard",
@@ -603,6 +634,8 @@ export const 欄の型表 = {
     // 押下と巻き上げ (#1393)。 中身は下の検査が 1 件ずつ見る
     events: "並び",
     scrolls: "object",
+    // 順序図で面が動いている間の帯 (#1466)
+    bands: "並び",
   },
   actor: {
     name: "必須の非空文字列",
@@ -642,6 +675,8 @@ export const 欄の型表 = {
     opacity: "数か文字列",
     renderOffsetX: "数か文字列",
     renderOffsetY: "数か文字列",
+    // 行頭の印 (#1466)
+    marks: "文字列の並び",
   },
   step: {
     from: "必須の文字列",
@@ -651,6 +686,12 @@ export const 欄の型表 = {
     // 矢印がどの辺から出るか (#1385)
     side: "辺",
     head: "端の形",
+    // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
+    tailHead: "端の形",
+    headFill: "非空の文字列",
+    tailHeadFill: "非空の文字列",
+    relation: "非空の文字列",
+    kind: "非空の文字列",
     tone: "色",
     style: "線種",
     guard: "文字列",
@@ -1226,6 +1267,40 @@ function 表で中身を検査する(
  * 委ねる作りなので (`checkFieldType` の `case "並び"`)、ここで見ないと `readouts: 1` が
  * 素通りする。
  */
+/**
+ * 順序図の帯の並びを検査する (#1466)。
+ *
+ * **外側の形もここで見る**。 `欄の型表` は「並び」 とだけ宣言し、中身の検査は専用の検査に
+ * 委ねる作りなので、ここで見ないと `bands: 1` が素通りする。
+ */
+function validateBands(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!Array.isArray(v)) {
+    errors.push({
+      path: "$.bands",
+      message: "bands must be an array of band objects",
+      hint: `got ${v === null ? "null" : typeof v}`,
+    });
+    return;
+  }
+  v.forEach((b, i) => {
+    const path = `$.bands[${i}]`;
+    if (typeof b !== "object" || b === null || Array.isArray(b)) {
+      errors.push({ path, message: "band must be an object", hint: "{ actor, from, to } の形で書く" });
+      return;
+    }
+    const o = b as Record<string, unknown>;
+    if (typeof o.actor !== "string" || o.actor === "") {
+      errors.push({ path: `${path}.actor`, message: "band.actor must be a non-empty string" });
+    }
+    for (const k of ["from", "to"] as const) {
+      if (typeof o[k] !== "number" || !Number.isInteger(o[k]) || (o[k] as number) < 0) {
+        errors.push({ path: `${path}.${k}`, message: `band.${k} must be a non-negative integer` });
+      }
+    }
+  });
+}
+
 function validateReadouts(v: unknown, errors: JsonDslError[]): void {
   if (v === undefined) return;
   if (!Array.isArray(v)) {
@@ -1903,6 +1978,7 @@ function validateJson(
   checkUnknownKeys(j, "root", "$", errors);
   // 値を見せる部品の中身を、記法と同じ表で見る (#1374)
   validateReadouts(j.readouts, errors);
+  validateBands(j.bands, errors);
   // 読む人が動かすつまみの中身も、記法と同じ表で見る (#1389)
   validateInputs(j.inputs, errors);
   // 式は描画側の parser に通す (#1391)
@@ -2205,6 +2281,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       value: a.value,
       previous: a.previous,
       rows: a.rows,
+      // 行頭の印 (#1466)。 行と対で読む
+      marks: a.marks,
       lane: a.lane,
       stack: a.stack,
       initial: a.initial,
@@ -2266,6 +2344,12 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     side: s.side as "top" | "right" | "bottom" | "left" | undefined,
     // 矢印の先の形 (#1462)。 読めない語は組み立てが落とす
     head: s.head,
+    // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
+    tailHead: s.tailHead,
+    headFill: s.headFill,
+    tailHeadFill: s.tailHeadFill,
+    relation: s.relation,
+    msgKind: s.kind,
     // 箱と同じ読み替えを通す (#1304)。 通さないと `tone: "成功"` が色名として解決されないまま
     // 図に届き、同じ値が箱では色になり矢印では色にならない
     tone: resolveTone(s.tone),
@@ -2399,6 +2483,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     formulas,
     events,
     scrolls,
+    // 順序図で面が動いている間の帯 (#1466)
+    bands: json.bands,
     pos: p0,
   };
 }

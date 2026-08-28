@@ -157,26 +157,24 @@ flow:
     expect(d.nodes[0]?.shape).toEqual({ kind: "polygon", sides: 6, radius: 40 });
   });
 
-  it("順序図では上下の名札を同じ動的図形に揃える", () => {
-    // sequence は actor を header / footer の対で作る。主 node だけを見る検査では、下端への
-    // kind / shape の伝播が外れても通るため、対を直接固定する。
-    const d = textDslToDiagram(`title: "六角の順序"
+  it("順序図では図形が効かないことを伝える", () => {
+    // #1466 で順序図は 1 枚の板になり、面ごとの箱が消えた = 図形を描く先が無い。
+    // 黙って落とすと、書いた側は効いていると思い込む
+    const 出た: string[] = [];
+    const d = textDslToDiagram(
+      `title: "六角の順序"
 type: sequence
 actors:
   - 六角: { kind: card, shape: { kind: polygon, sides: 6, radius: 40 } }
   - 相手
 flow:
   - 六角 -> 相手
-`);
-    const 六角の名札 = d.nodes.filter(
-      (node) => node.id === "六角-header" || node.id === "六角-footer",
+`,
+      { onNotice: (n) => { if (n.kind === "actor-kind-not-honored") 出た.push(n.message); } },
     );
-    expect(六角の名札).toHaveLength(2);
-    expect(六角の名札.map((node) => node.kind)).toEqual(["dyn-polygon", "dyn-polygon"]);
-    expect(六角の名札.map((node) => node.shape)).toEqual([
-      { kind: "polygon", sides: 6, radius: 40 },
-      { kind: "polygon", sides: 6, radius: 40 },
-    ]);
+    expect(d.nodes.filter((n) => n.shape !== undefined), "板に図形が載っている").toEqual([]);
+    expect(出た.length, "図形が黙って落ちている").toBe(1);
+    expect(出た[0]).toContain("図形");
   });
 
   it("rect の向きは描画側が受ける 4 値に限る", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseTextDsl, textDslToDiagram } from "@cardenelabs/dragon";
+import { parseTextDsl, textDslToDiagram, compileToCdl } from "@cardenelabs/dragon";
 
 describe("Text DSL parser (v0.1)", () => {
   it("最小 sequence ... 日本語 keyword + 矢印 →", () => {
@@ -136,14 +136,15 @@ describe("Text DSL compiler (v0.1, sequence preset)", () => {
 `;
     const diag = textDslToDiagram(src);
     expect(diag.topic).toBe("Login");
-    // sequence preset は lifeline + header + footer + step ごとに node 生成
-    // 3 actor × (header + spacer + footer) + 4 step × 2 actor box = 18+ node
-    expect(diag.nodes.length).toBeGreaterThan(10);
-    // edge は step 数と一致
-    expect(diag.edges.length).toBe(4);
+    // 順序図は 1 枚の板で描く (#1466)。 言づては板の中の行になり、矢印は作らない
+    const 板 = diag.nodes.find((n) => n.kind === "sequence-board");
+    expect(板, "板が無い").toBeDefined();
+    expect(板!.sequenceData?.actors.map((a) => a.name)).toEqual(["User", "API", "DB"]);
+    expect(板!.sequenceData?.messages.map((m) => m.label)).toEqual(["login", "SELECT", "rows", "200 OK"]);
+    expect(diag.edges).toEqual([]);
   });
 
-  it("compile: tone (成功) が edge.tone に反映", () => {
+  it("compile: tone (成功) は板では効かないと伝える", () => {
     const src = `
 タイトル: T
 種類: sequence
@@ -153,8 +154,14 @@ describe("Text DSL compiler (v0.1, sequence preset)", () => {
 流れ:
   1. A → B: hello (成功)
 `;
-    const diag = textDslToDiagram(src);
-    expect(diag.edges[0]!.tone).toBe("success");
+    // 板は語と向きと種類だけを描く (#1466)。 書いた色味は落ちるので、落ちたことを伝える
+    const r = parseTextDsl(src);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const 出た: string[] = [];
+    compileToCdl(r.doc, { onNotice: (n) => { if (n.kind === "message-option-not-honored") 出た.push(n.message); } });
+    expect(出た.length, "色味が黙って落ちている").toBe(1);
+    expect(出た[0]).toContain("色味");
   });
 
   it("compile: 不正 DSL → throw", () => {

@@ -33,7 +33,7 @@
  * 分割して返す = 参照だけ別の色にできる。
  */
 import { TONE_ALIAS, ARROW_PATTERNS } from "./keywords";
-import { TONES } from "@cardenelabs/cdl";
+import { TONES, EDGE_STYLES } from "@cardenelabs/cdl";
 import type { Tone } from "@cardenelabs/cdl";
 
 /** 分解した部分の種類 (#1310) */
@@ -49,12 +49,12 @@ export type トークン = {
 };
 
 /**
- * 線種の一覧 (#1310)。 `v05/parser.ts` の `STYLE_VALID` と同じ値を持つ。
+ * 線種の一覧 (#1310 → #1466)。
  *
- * あちらを import すると parser 全体を引き込むため、分解器では持ち直す。 **2 箇所に
- * 分かれるので検査で突き合わせる** (`tokenize.test.ts`)。
+ * 描画側 (`EDGE_STYLES`) から導く。 手で並べると、描画側が線種を増やした時に書けないままになる
+ * (実測 = `dashed` を足した時に 3 箇所のうち 2 箇所が古いままだった)。
  */
-const 線種 = ["solid", "dotted-flow"] as const;
+const 線種 = EDGE_STYLES;
 
 /** 色名として読める語 (小文字で引く)。 正規の色名と別名の両方 */
 const 色名の表 = new Map<string, Tone>([

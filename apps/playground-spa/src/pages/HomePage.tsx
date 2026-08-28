@@ -26,15 +26,15 @@ const DEMO_SRC = `title: ログイン処理
 type: sequence
 
 actors:
-  - User
-  - API: service
-  - DB: database
+  - User: { subtitle: "画面" }
+  - API: { subtitle: "受付" }
+  - DB: { subtitle: "台帳" }
 
 flow:
-  - User -> API: "POST /login"
-  - API -> DB: "SELECT user"
-  - DB -> API: "row" (success)
-  - API -> User: "200 OK" (success)
+  - User -> API: "POST /login" { kind: call }
+  - API -> DB: "SELECT user" { kind: call }
+  - DB -> API: "row" { kind: return }
+  - API -> User: "200 OK" { kind: return }
 
 animation:
   - step: "1. 認証要求" 0.6s

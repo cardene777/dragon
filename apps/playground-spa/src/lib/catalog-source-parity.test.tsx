@@ -52,7 +52,14 @@ import { 一覧の記法つき, 差分 } from "./catalog-scope";
  * `t0-idle-loading` だが、`animation:` を足すと `e0-idle-loading` になる)。 段を合わせるには
  * `animation:` が要るため、その図種は id 一致を諦めて骨格の一致で見る。
  */
-const id完全一致: readonly string[] = ["presetSequence"];
+/**
+ * **今は 1 件も無い** (cdl#578)。
+ *
+ * `presetSequence` を載せていたが、順序図は 1 つの箱が図を丸ごと描く形になり、その箱の id が
+ * 組み立て API では書いた値 (`seq-demo`)、記法では題から導いた値になる = 一致しようがない。
+ * 偶然一致していた縦線や名札の id も、その形ごと消えた。
+ */
+const id完全一致: readonly string[] = [];
 
 /**
  * 縦列の見出しが合わないと分かっている preset。 1 件ずつ理由を書く。
@@ -81,20 +88,11 @@ const 光らせ分けられない矢印: Record<string, readonly string[]> = {
 };
 
 const 光らせる先の既知の差: Record<string, readonly string[]> = {
-  // 順序図の縦線 (`user-header` 等) は `focus:` が受け付けない (`focus.ts` が縦列の id を
-  // 意図的に拒否する)。 組み立て API は最初の段から縦線を光らせて「誰の時間軸か」 を
-  // 読ませているが、記法には書く手段が無い。 ここに挙げた対象だけを組立側から除いて比べる。
-  presetSequence: [
-    "user-header",
-    "user-spacer",
-    "api-header",
-    "api-spacer",
-    "db-header",
-    "db-spacer",
-    "user-footer",
-    "api-footer",
-    "db-footer",
-  ],
+  // **今は 1 件も無い** (cdl#578)。
+  //
+  // 順序図は縦線と足元の箱を持たなくなった = 図が 1 つの箱になり、言づては箱の中の行に
+  // なった。 `focus:` が受け付けない縦列の id を光らせる経路そのものが消えたので、
+  // 宣言する差も無い。
 };
 
 type Diagram = CdlDiagram;
@@ -226,8 +224,10 @@ const 描く先 = (d: Diagram): string[][] => {
 };
 
 describe("矢印と段の表示要素への読み替え", () => {
-  it("題のない順序図の箱でも、矢印の向きを区別する", () => {
-    const 元 = Presets.presetSequence;
+  it("題のない箱でも、矢印の向きを区別する", () => {
+    // **順序図では確かめられなくなった** (cdl#578)。 言づてが箱の中の行になり矢印を持たない。
+    // 題を持たない箱を含む図として、格子に置いたクラス図で見る
+    const 元 = Presets.presetClassDiagram;
     const 反転 = {
       ...元,
       edges: 元.edges.map((e, i) => (i === 0 ? { ...e, from: e.to, to: e.from } : e)),
@@ -265,14 +265,12 @@ describe("矢印と段の表示要素への読み替え", () => {
     expect(光らせる先(取違え), "同じ説明の矢印を区別できていない").not.toEqual(光らせる先(二本));
   });
 
-  it("題のない順序図の箱でも、段が光らせる位置を区別する", () => {
-    const 元 = Presets.presetSequence;
+  it("題のない箱でも、段が光らせる位置を区別する", () => {
+    const 元 = Presets.presetClassDiagram;
     const 取違え = {
       ...元,
       phases: 元.phases.map((p, i) =>
-        i === 0
-          ? { ...p, activate: p.activate.map((id) => (id === "s0-user" ? "s1-api" : id)) }
-          : p,
+        i === 0 ? { ...p, activate: p.activate.map((id) => (id === "User" ? "Sku" : id)) } : p,
       ),
     };
     expect(光らせる先(取違え)).not.toEqual(光らせる先(元));

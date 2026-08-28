@@ -74,7 +74,9 @@ describe("光らせる相手の読み方", () => {
 });
 
 describe("名前に `-` を含む箱が光る (図種で割れない)", () => {
-  for (const type of ["sequence", "flow"]) {
+  // 順序図は #1466 で 1 枚の板になり、面ごとの箱を持たない = 光らせる相手が板 1 つに畳まれる。
+  // 板がどこまで描くかは段の状態が持つので、別の describe が見る
+  for (const type of ["topology", "flow"]) {
     it(`${type}: 普通の名前が光る`, () => {
       const ids = activated(type, "API", "Client, API");
       expect(ids.some((id) => id.includes("api")), JSON.stringify(ids)).toBe(true);

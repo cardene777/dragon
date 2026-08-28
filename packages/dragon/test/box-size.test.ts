@@ -80,31 +80,46 @@ describe("幅が図に出るかは縦列との大小で決まる (実測)", () =
   });
 });
 
-describe("順序図は別の経路で大きさを受ける (変異試験で判明)", () => {
-  // 本 file が足した反映は順序図を対象外にしているが、**順序図でも幅は届く**。
-  // 絶対配置の後処理 (`applyCanvasPivotPositions`) が `posW` を先に反映するため。
-  //
-  // そのため対象外にする判定を外しても検査は落ちない (二重に書くだけで結果が同じ)。
-  // ここで実測を固定しておき、どちらかの経路が変わったら気付けるようにする。
+describe("順序図の板は面ごとの大きさを受けない (#1466)", () => {
+  /*
+   * 順序図は 1 枚の板になり、面ごとの箱が無くなった = 大きさを載せる先が無い。
+   * 黙って落とすと書いた側は効いていると思い込むので、落ちたことを伝える。
+   */
   const 順序図 = (欄: string) => {
     const src = `title: "T"\ntype: sequence\n\nactors:\n  - Client${欄}\n  - API\n` +
       `flow:\n  - Client -> API: "req"\n`;
     const r = parseTextDslV05(src);
     if (!r.ok) throw new Error(r.errors.map((e) => e.message).join(" / "));
-    return compileToCdl(r.doc).nodes;
+    const 出た: string[] = [];
+    const d = compileToCdl(r.doc, {
+      onNotice: (n) => {
+        if (n.kind === "actor-kind-not-honored") 出た.push(n.message);
+      },
+    });
+    return { 出た, nodes: d.nodes };
   };
 
-  it("名札の幅が届く", () => {
-    expect(順序図(": { posW: 280 }").find((n) => n.id === "client-header")?.w).toBe(280);
+  it("書いた大きさが効かないことを伝える", () => {
+    const { 出た } = 順序図(": { posW: 280 }");
+    expect(出た.length, "大きさが黙って落ちている").toBe(1);
+    expect(出た[0]).toContain("大きさ");
   });
 
-  it("書かなければ組み立てが決めた幅のまま", () => {
-    // 「常に 280」 の実装と区別できない状態にしない
-    expect(順序図("").find((n) => n.id === "client-header")?.w).toBe(184);
+  it("書かなければ何も伝えない", () => {
+    expect(順序図("").出た).toEqual([]);
   });
 
-  it("書いた登場人物の縦線にだけ効く", () => {
-    const n = 順序図(": { posW: 280 }");
-    expect(n.find((x) => x.id === "api-header")?.w, "書いていない縦線にも効いている").toBe(140);
+  it("板の大きさは中身から決まる", () => {
+    // 「常に同じ」 の実装と区別できない状態にしない = 面を増やせば板も広がる
+    const 狭い = 順序図("").nodes.find((n) => n.kind === "sequence-board")?.w ?? 0;
+    const 広い = (() => {
+      const src = `title: "T"\ntype: sequence\n\nactors:\n  - Client\n  - API\n  - DB\n  - Cache\n` +
+        `flow:\n  - Client -> API: "req"\n`;
+      const r = parseTextDslV05(src);
+      if (!r.ok) throw new Error("parse failed");
+      return compileToCdl(r.doc).nodes.find((n) => n.kind === "sequence-board")?.w ?? 0;
+    })();
+    expect(狭い, "板の幅を測れていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(広い).toBeGreaterThan(狭い);
   });
 });

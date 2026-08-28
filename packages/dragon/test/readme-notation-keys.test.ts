@@ -38,6 +38,7 @@ import {
   FLOW_INLINE_KEYS,
 } from "../src/v05/parser";
 import { parseTextDslV05 } from "../src/v05";
+import type { CdlDiagram } from "@cardenelabs/cdl";
 import { compileToCdl } from "../src/compile";
 import { at } from "./support/at";
 
@@ -175,8 +176,17 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       "README から 1 件も読み取れていない (検査が空振りしている)",
     ).toBeGreaterThan(0);
 
-    /** 欄ごとの試す値。 README に欄を足したらここにも足す (足さないと下の検査が落ちる) */
-    const 試す値: Record<string, { 書く: string; 期待: unknown }> = {
+    /**
+     * 欄ごとの試す値。 README に欄を足したらここにも足す (足さないと下の検査が落ちる)。
+     *
+     * **届き方が 2 通りある**。 多くの欄は同じ名前で矢印に載るが、種類をまとめて書く欄
+     * (`relation` / `kind`) は線と端の形と塗りに展開される = 名前のまま載らない。
+     * その 2 つは `型` (どの図で書くか) と `確かめる` (何を見るか) を持つ。
+     */
+    const 試す値: Record<
+      string,
+      { 書く: string; 期待?: unknown; 型?: string; 確かめる?: (d: CdlDiagram) => void }
+    > = {
       sub: { 書く: '"補足"', 期待: "補足" },
       guard: { 書く: '"g"', 期待: "g" },
       cardinality: { 書く: '"1:N"', 期待: "1:N" },
@@ -190,6 +200,38 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       strokeBind: { 書く: '"{hue}"', 期待: "{hue}" },
       dashOffsetBind: { 書く: '"{dash}"', 期待: "{dash}" },
       overlay: { 書く: "true", 期待: true },
+      // 出どころ側の端と両端の塗り (#1466)。 名前のまま矢印に載る
+      tailHead: { 書く: "diamond", 期待: "diamond" },
+      headFill: { 書く: "hollow", 期待: "hollow" },
+      tailHeadFill: { 書く: "hollow", 期待: "hollow" },
+      /*
+       * 関係の種類 (#1466)。 クラス図でだけ効き、**4 つに展開される**。
+       * 「継ぐ」 は 実線 + 白抜きの三角が行き先に立ち、出どころには何も描かない
+       */
+      relation: {
+        書く: "extends",
+        型: "class",
+        確かめる: (d) => {
+          const e = d.edges[0]!;
+          expect(e.head, "relation から端の形が決まっていない").toBe("triangle");
+          expect(e.headFill, "relation から塗りが決まっていない").toBe("hollow");
+          expect(e.tailHead, "relation から出どころ側が決まっていない").toBe("none");
+          expect(e.style, "relation から線の種類が決まっていない").toBe("solid");
+        },
+      },
+      /*
+       * 言づての種類 (#1466)。 順序図でだけ効く。 **矢印には載らない** = 言づては
+       * 箱の中の行なので、図を丸ごと持つ箱の中身を見る
+       */
+      kind: {
+        書く: "return",
+        型: "sequence",
+        確かめる: (d) => {
+          const 中身 = d.nodes[0]?.sequenceData;
+          expect(中身, "順序図の箱が中身を持っていない").toBeDefined();
+          expect(中身!.messages[0]?.kind, "kind が言づてに届いていない").toBe("return");
+        },
+      },
     };
 
     const 値が無い欄 = 書いた.filter((k) => !(k in 試す値));
@@ -197,8 +239,9 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
 
     for (const 欄 of 書いた) {
       const v = 試す値[欄]!;
+      const 型 = v.型 ?? "flow";
       const r = parseTextDslV05(`title: "t"
-type: flow
+type: ${型}
 
 actors:
   - A: { kind: card }
@@ -208,7 +251,12 @@ flow:
   - A -> B: "x" { ${欄}: ${v.書く} }
 `);
       if (!r.ok) throw new Error(`${欄} を書いた記法が読めない: ${JSON.stringify(r.errors)}`);
-      const 矢印 = compileToCdl(r.doc).edges[0];
+      const 図 = compileToCdl(r.doc);
+      if (v.確かめる) {
+        v.確かめる(図);
+        continue;
+      }
+      const 矢印 = 図.edges[0];
       expect(矢印, `${欄} を書いた記法で矢印が出来ない (検査が空振りしている)`).toBeDefined();
       expect((矢印 as unknown as Record<string, unknown>)[欄], `${欄} が矢印に届いていない`).toBe(
         v.期待,

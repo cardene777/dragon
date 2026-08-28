@@ -197,48 +197,86 @@ export const presetFlow = withSteps(
   ],
 );
 
-// sequence preset ... actor 列 × 時系列 row、 UML sequence diagram 風
-// 縦線 (見出し / 余白 / 足元) は最初の段から出したままにする。 1 つずつ光らせると
-// 「誰の時間軸か」 が読めないまま最初の遣り取りが始まる。
-const SEQ_LIFELINES = [
-  "user-header",
-  "user-spacer",
-  "api-header",
-  "api-spacer",
-  "db-header",
-  "db-spacer",
-  "user-footer",
-  "api-footer",
-  "db-footer",
-] as const;
-
+// sequence preset ... 時系列のやり取り (設計「箱と行と関係」 の意匠)
+//
+// **ここだけ骨格が違う**。 他の 3 図は「箱 + 行 + 関係」 だが、こちらは縦が時間で箱を持たない。
+// 言づてを行にして、語を左の桁に縦に並べる。 参加者の糸は残す = x の位置が「誰」 で、
+// 縦の連なりが「その参加者を時間で追う」 手段になる。
+//
+// 教科書の縦形 (箱 + 寿命線 + 線の上の札) は 3 版まで詰めて却下されている。 骨格の選び方の
+// 問題ではなく、時間を位置に畳んでいたのが原因だった。
+//
+// **段が進むと濃さが移る**。 済んだ言づては薄く残り、今の 1 本だけが濃い。 全部同じ濃さで
+// 残すと、どこを見ているのか判らなくなる。
 export const presetSequence = withSteps(
   sequence({
     id: "seq-demo",
     topic: "時系列のやり取りを縦の時間軸で並べる図",
-    actors: ["User", "API", "DB"],
-    defaultTone: "accent",
-    defaultStyle: "solid",
+    actors: [
+      { name: "Browser", subtitle: "画面" },
+      { name: "API", subtitle: "受付" },
+      { name: "DB", subtitle: "台帳" },
+      { name: "Queue", subtitle: "待ち行列" },
+    ],
+    // 動いている間の帯。 台帳は途中で手が空くので区間が 2 つに分かれる
+    bands: [
+      { actor: "Browser", from: 0, to: 5 },
+      { actor: "API", from: 0, to: 5 },
+      { actor: "DB", from: 1, to: 2 },
+      { actor: "DB", from: 6, to: 6 },
+      { actor: "Queue", from: 4, to: 6 },
+    ],
   })
-    .step({ from: "User", to: "API", label: "POST /login", sub: "email + password" })
-    .step({ from: "API", to: "DB", label: "SELECT credentials" })
-    .step({ from: "DB", to: "API", label: "rows", tone: "success", style: "dotted-flow" })
-    .step({ from: "API", to: "User", label: "200 OK", sub: "JWT token", tone: "success" })
+    // 呼ぶ = 相手にやらせて待つ (実線 + 塗った矢)
+    .step({ from: "Browser", to: "API", label: "注文を出す", kind: "call" })
+    .step({ from: "API", to: "DB", label: "在庫を押さえる", kind: "call" })
+    // 返す = 呼ばれた側から戻る。 新しい仕事ではないので線が切れる
+    .step({ from: "DB", to: "API", label: "押さえた", kind: "return" })
+    // 自分宛て。 控えを書くだけで相手がいない
+    .step({ from: "API", to: "API", label: "控えを書く", kind: "call" })
+    // 投げる = 返事を待たない。 実線だが矢を閉じない
+    .step({ from: "API", to: "Queue", label: "発送を頼む", kind: "fire" })
+    .step({ from: "API", to: "Browser", label: "受け付けた", kind: "return" })
+    .step({ from: "Queue", to: "DB", label: "引当を確定", kind: "call" })
     .build(),
   [
     {
-      ids: [...SEQ_LIFELINES, "s0-user", "s0-api", "e0-user-api"],
-      title: "1. POST /login",
-      body: "User が API に送る。",
+      ids: ["seq-demo"],
+      title: "1. 注文を出す",
+      body: "実線に塗った矢。 相手にやらせて待つ。 左の点が出どころ。",
+      sets: [{ id: "seq_step", value: 0 }],
     },
     {
-      ids: ["s1-api", "s1-db", "e1-api-db"],
-      title: "2. SELECT credentials",
-      body: "API が DB に問い合わせる。",
+      title: "2. 在庫を押さえる",
+      body: "受付が台帳に問い合わせる。 動いている間だけ帯が伸びる。",
+      sets: [{ id: "seq_step", value: 1 }],
     },
-    { ids: ["s2-db", "s2-api", "e2-db-api"], title: "3. rows", body: "DB が結果を返す。" },
-    { ids: ["s3-api", "s3-user", "e3-api-user"] },
+    {
+      title: "3. 押さえた",
+      body: "破線に開いた矢。 新しい仕事ではないので線が切れる。",
+      sets: [{ id: "seq_step", value: 2 }],
+    },
+    {
+      title: "4. 控えを書く",
+      body: "自分宛ての言づて。 相手がいない仕事。",
+      sets: [{ id: "seq_step", value: 3 }],
+    },
+    {
+      title: "5. 発送を頼む",
+      body: "実線に開いた矢。 矢を閉じないことで返事を待たないと示す。",
+      sets: [{ id: "seq_step", value: 4 }],
+    },
+    {
+      title: "6. 受け付けた",
+      body: "待ち行列の返事を待たずに画面へ返す。",
+      sets: [{ id: "seq_step", value: 5 }],
+    },
+    {
+      body: "台帳は途中で手が空く。 帯が途切れることでそれと判る。",
+      sets: [{ id: "seq_step", value: 6 }],
+    },
   ],
+  [{ id: "seq_step", initial: "0" }],
 );
 
 // topology preset ... 構成図 / deployment diagram、 group で container を囲む
@@ -267,57 +305,171 @@ export const presetTopology = withSteps(topo.build(), [
   { ids: ["rds", "c2-ecs-rds"] },
 ]);
 
-// er preset ... ER 図 (User → Order の 1:N 関係)
+// er preset ... ER 図 (設計「箱と行と関係」 の意匠)
+//
+// `users` が `orders` を出し、`orders` が `order_items` を抱える。 `users` は自分自身を
+// 上司として持つ (上司も利用者なので `manager_id` は `users` を指す)。
+//
+// **端の印は両端に付く**。 クラス図の印は「どちらが親か」 のような関係そのものの性質を指す
+// ので 1 つで足りるが、ER の印が指すのは端ごとに違う個数なので両端に要る。
+// 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か (棒 = 必須 / 丸 = 任意)。
 export const presetEr = withSteps(
   er({ id: "er-demo", topic: "テーブル間の関係を表す図", defaultTone: "info" })
     .entity({
-      id: "user",
-      title: "User",
-      rows: ["id: PK", "email: string", "createdAt: timestamp"],
+      id: "users",
+      title: "users",
+      subtitle: "利用者",
+      columns: [
+        { name: "id", type: "bigint", pk: true },
+        { name: "email", type: "text" },
+        { name: "manager_id", type: "bigint", fk: true, optional: true },
+        { name: "created_at", type: "timestamptz" },
+      ],
     })
     .entity({
-      id: "order",
-      title: "Order",
-      rows: ["id: PK", "userId: FK", "total: number", "status: enum"],
+      id: "orders",
+      title: "orders",
+      subtitle: "注文",
+      columns: [
+        { name: "id", type: "bigint", pk: true },
+        { name: "user_id", type: "bigint", fk: true },
+        { name: "total", type: "numeric" },
+        { name: "placed_at", type: "timestamptz" },
+      ],
     })
-    .relation({ from: "user", to: "order", cardinality: "1:N", label: "places" })
+    .entity({
+      id: "order_items",
+      title: "order_items",
+      subtitle: "注文の明細",
+      columns: [
+        // 親の鍵が自分の鍵に入る = 識別する関係の子側。 山形 + 下線で重ねて示す
+        { name: "order_id", type: "bigint", pk: true, fk: true },
+        { name: "product_id", type: "bigint", pk: true, fk: true },
+        { name: "qty", type: "int" },
+      ],
+    })
+    // 識別しない = 破線。 子は自分の鍵を持ち、親はただの参照先。 1 人が 0 件以上を出す
+    .relation({
+      from: "users",
+      to: "orders",
+      label: "PLACES",
+      style: "dashed",
+      tailHead: "one",
+      head: "zero-many",
+    })
+    // 識別する = 実線。 親の鍵が子の鍵に入るので、親なしでは子を名指せない
+    .relation({
+      from: "orders",
+      to: "order_items",
+      label: "CONTAINS",
+      tailHead: "one",
+      head: "many",
+    })
+    // 自分への関係。 0 か 1 人の上司が 0 人以上の部下を持つ
+    .relation({
+      from: "users",
+      to: "users",
+      label: "REPORTS TO",
+      style: "dashed",
+      tailHead: "zero-one",
+      head: "zero-many",
+    })
     .build(),
   [
-    { ids: ["user"], title: "1. User 表", body: "利用者 1 行が主キーを持つ。" },
-    { ids: ["order", "rel-0-user-order"] },
+    { ids: ["users"], title: "1. users 表", body: "主キーは名前に下線。 印は形 × 塗りの 2 軸。" },
+    {
+      ids: ["orders", "rel-0-users-orders"],
+      title: "2. 注文を出す",
+      body: "破線は識別しない関係。 1 人が 0 件以上を出す。",
+    },
+    {
+      ids: ["order_items", "rel-1-orders-order_items"],
+      title: "3. 明細を抱える",
+      body: "実線は識別する関係。 親の鍵が子の鍵に入る。",
+    },
+    {
+      ids: ["rel-2-users-users"],
+      title: "4. 自分への関係",
+      body: "上司も利用者。 manager_id は同じ表を指す。",
+    },
   ],
 );
 
-// stateMachine preset ... FSM (Auth フロー、 initial → loading → done/error → retry の workflow)
+// stateMachine preset ... 状態遷移図 (設計「箱と行と関係」 の意匠)
+//
+// 注文が下書きから受付済へ進み、支払いを経て終わる。 受付済からは取り消せる。
+//
+// **遷移の種類は 1 つしかない**。 クラス図 6 種、ER 図は端 4 種 × 線 2 種に対して、
+// 状態遷移の線は実線 + 開いた矢の 1 種だけ。 違いは語の中 (きっかけ / きっかけ + 条件) に入る。
+//
+// **始まりと終わりは箱ではない**。 行も名前も持たないので、箱にすると題も呼び名も空で
+// 寸法が出せない。 塗った丸と輪で別に置く。
 export const presetStateMachine = withSteps(
   stateMachine({ id: "fsm-demo", topic: "状態と遷移条件を示す図" })
-    .state({ id: "idle", title: "Idle", initial: true })
-    .state({ id: "loading", title: "Loading" })
-    .state({ id: "done", title: "Done", final: true })
-    .state({ id: "error", title: "Error" })
-    .transition({ from: "idle", to: "loading", trigger: "submit" })
-    .transition({ from: "loading", to: "done", trigger: "success", tone: "success" })
-    .transition({ from: "loading", to: "error", trigger: "fail", tone: "error" })
-    // 自分へ戻る輪 (#1464)。 描画側が輪として描けるようになった (`cdl#560`、0.15.0)。
-    // 再試行のように「同じ状態に留まる」 遷移は設計が自己遷移で表すと決めている
-    .transition({ from: "error", to: "error", trigger: "retry", guard: "attempts < 3" })
-    .transition({ from: "error", to: "idle", trigger: "reset" })
+    .mark({ id: "begin", kind: "start", col: 0, row: 0 })
+    .state({ id: "draft", title: "Draft", subtitle: "下書き", col: 0, row: 1, initial: true })
+    .state({
+      id: "placed",
+      title: "Placed",
+      subtitle: "受付済",
+      col: 0,
+      row: 2,
+      // 入る時に 1 度だけ / きっかけを受けるが状態は変わらない
+      actions: [
+        { when: "entry", label: "在庫を押さえる" },
+        { when: "internal", label: "督促を送る", note: "7 日ごと" },
+      ],
+    })
+    .state({
+      id: "paid",
+      title: "Paid",
+      subtitle: "支払済",
+      col: 0,
+      row: 3,
+      final: true,
+      actions: [{ when: "do", label: "出荷を待つ" }],
+    })
+    .mark({ id: "done", kind: "end", col: 0, row: 4 })
+    .state({
+      id: "cancelled",
+      title: "Cancelled",
+      subtitle: "取消済",
+      col: 1,
+      row: 2,
+      final: true,
+      actions: [{ when: "exit", label: "押さえを解く" }],
+    })
+    .mark({ id: "closed", kind: "end", col: 1, row: 3 })
+    .transition({ from: "begin", to: "draft", trigger: "" })
+    .transition({ from: "draft", to: "placed", trigger: "出す" })
+    .transition({ from: "placed", to: "paid", trigger: "支払う" })
+    .transition({ from: "paid", to: "done", trigger: "受け取る" })
+    .transition({ from: "placed", to: "cancelled", trigger: "取り消す" })
+    .transition({ from: "cancelled", to: "closed", trigger: "" })
+    // 自分へ戻る輪 (#1464)。 受付済のまま督促を繰り返す = 状態は変わらない
+    .transition({ from: "placed", to: "placed", trigger: "催促する" })
     .build(),
   [
-    { ids: ["idle"], title: "1. Idle", body: "何も起きていない初期状態。" },
+    { ids: ["begin", "draft", "t0-begin-draft"], title: "1. Draft", body: "塗った丸が始まり。" },
     {
-      ids: ["loading", "t0-idle-loading"],
-      title: "2. submit で Loading",
-      body: "送信を受けて処理中になる。",
+      ids: ["placed", "t1-draft-placed"],
+      title: "2. 出して Placed",
+      body: "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。",
     },
     {
-      ids: ["error", "t2-loading-error", "t3-error-error"],
-      title: "3. fail で Error、 自分へ戻って再試行",
-      body: "自分へ戻る輪が再試行。 3 回まで同じ状態に留まる。",
+      ids: ["t6-placed-placed"],
+      title: "3. 受付済のまま催促する",
+      body: "自分へ戻る輪。 7 日ごとに督促を送っても状態は変わらない。",
     },
     {
-      ids: ["done", "t1-loading-done", "t4-error-idle"],
-      body: "自分へ戻る輪 (再試行) を含む全体。",
+      ids: ["paid", "done", "t2-placed-paid", "t3-paid-done"],
+      title: "4. 支払って終わる",
+      body: "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。",
+    },
+    {
+      ids: ["cancelled", "closed", "t4-placed-cancelled", "t5-cancelled-closed"],
+      title: "5. 取り消して終わる",
+      body: "山形の外枠だけは出る瞬間に 1 度だけ。",
     },
   ],
 );
@@ -348,42 +500,108 @@ export const presetInfrastructure = withSteps(
   ],
 );
 
-// classDiagram preset ... UML クラス図
+// classDiagram preset ... UML クラス図 (設計「箱と行と関係」 の意匠)
+//
+// **6 種すべてを 1 枚で使う**。 見本にあって図に無い記法は、読み手が確かめられない決まりに
+// なる。 並べ方の決まりは 1 つで、**箱の 1 つの辺には関係を 1 本しか載せない** = 同じ辺から
+// 2 本出すと、どちらも辺の芯から出るので重なる。 7 箱を 3 列 3 段に置いて、6 本が
+// 上 / 下 / 左 / 右 に散るようにしてある。
+//
+//   段 0   User        Auditable
+//   段 1   Admin ──持つ── Order ──使う── Receipt
+//   段 2               Line ──結ぶ── Sku
 export const presetClassDiagram = withSteps(
   classDiagram({ id: "class-demo", topic: "クラスの継承・保有関係を示す UML 図" })
     .class({
       id: "User",
       title: "User",
+      col: 0,
+      row: 0,
       attributes: ["+name: string", "+email: string"],
-      methods: ["+login(): void", "+logout(): void"],
+      methods: ["+login(): Session"],
+    })
+    .class({
+      id: "Auditable",
+      title: "Auditable",
+      col: 1,
+      row: 0,
+      methods: ["+audit(): Log[]"],
     })
     .class({
       id: "Admin",
       title: "Admin",
+      col: 0,
+      row: 1,
       attributes: ["+permissions: string[]"],
       methods: ["+banUser(): void"],
     })
     .class({
       id: "Order",
       title: "Order",
+      col: 1,
+      row: 1,
       attributes: ["+id: number", "+total: number"],
-      methods: ["+pay(): void"],
+      methods: ["+pay(): Receipt"],
     })
-    .relation({ from: "Admin", to: "User", type: "extends" })
-    // CAR-492 SSOT ... aggregates edge を Admin → Order に変更 (旧 User → Order は Admin が
-    // 直線経路を塞ぐため上方 detour Y=78 まで大迂回、 label Y=104 で diagram 全体より上方に浮遊)。
-    // Admin → Order は adjacent 隣接で直接水平 path、 label が edge 中央近傍に密着する。
-    // semantic 的にも Admin が Order を管理する関係の方が UML 表現として妥当。
-    .relation({ from: "Admin", to: "Order", type: "aggregates", cardinality: "1..*" })
+    .class({
+      id: "Receipt",
+      title: "Receipt",
+      col: 2,
+      row: 1,
+      attributes: ["+no: string", "+amount: number"],
+    })
+    .class({
+      id: "Line",
+      title: "Line",
+      col: 1,
+      row: 2,
+      attributes: ["+qty: number", "+price: number"],
+    })
+    .class({
+      id: "Sku",
+      title: "Sku",
+      col: 2,
+      row: 2,
+      attributes: ["+code: string", "+name: string"],
+    })
+    // 線 / 印の形 / 印の塗り / 印が付く側 は種類から決まる (`CLASS_RELATION_LOOK`)。
+    // 継ぐ = 実線 + 白抜きの三角が親の側 / 満たす = 破線 + 白抜きの三角 /
+    // 持つ = 実線 + 白抜きの菱が持ち主の側 / 抱える = 菱を塗る /
+    // 結ぶ = 実線 + 開いた矢 / 使う = 破線 + 開いた矢
+    .relation({ from: "Admin", to: "User", type: "extends", label: "EXTENDS" })
+    .relation({ from: "Order", to: "Auditable", type: "implements", label: "IMPLEMENTS" })
+    .relation({ from: "Admin", to: "Order", type: "aggregates", label: "HAS", cardinality: "1..*" })
+    .relation({ from: "Order", to: "Receipt", type: "uses", label: "USES" })
+    .relation({ from: "Order", to: "Line", type: "composes", label: "OWNS", cardinality: "1..*" })
+    .relation({ from: "Line", to: "Sku", type: "associates", label: "LINKS" })
     .build(),
   [
     { ids: ["User"], title: "1. User", body: "基になるクラス。" },
     {
       ids: ["Admin", "cr-0-Admin-User"],
-      title: "2. Admin が継承",
-      body: "User を継ぎ、権限を足す。",
+      title: "2. 継ぐ",
+      body: "実線に白抜きの三角。 三角は親の側に付く。",
     },
-    { ids: ["Order", "cr-1-Admin-Order"] },
+    {
+      ids: ["Auditable", "Order", "cr-1-Order-Auditable"],
+      title: "3. 満たす",
+      body: "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。",
+    },
+    {
+      ids: ["cr-2-Admin-Order"],
+      title: "4. 持つ",
+      body: "実線に白抜きの菱。 菱は持ち主の側に付く。 相手は単独でも生きる。",
+    },
+    {
+      ids: ["Line", "cr-4-Order-Line"],
+      title: "5. 抱える",
+      body: "菱を塗ると命が同じになる。 持ち主が消えると中身も消える。",
+    },
+    {
+      ids: ["Sku", "Receipt", "cr-5-Line-Sku", "cr-3-Order-Receipt"],
+      title: "6. 結ぶ・使う",
+      body: "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。",
+    },
   ],
 );
 
@@ -791,84 +1009,124 @@ export const presetStateMachine2 = withSteps(
 
 export const sourceYaml__presetSequence = `title: "時系列のやり取りを縦の時間軸で並べる図"
 type: sequence
+
 actors:
-  - User
-  - API
-  - DB
+  - Browser: { subtitle: "画面" }
+  - API: { subtitle: "受付" }
+  - DB: { subtitle: "台帳" }
+  - Queue: { subtitle: "待ち行列" }
+
+# 動いている間の帯。 台帳は途中で手が空くので区間が 2 つに分かれる
+bands:
+  - Browser: 0..5
+  - API: 0..5
+  - DB: 1..2
+  - DB: 6..6
+  - Queue: 4..6
+
+# kind を書くと線と矢の形がまとめて決まる
 flow:
-  - User -> API: "POST /login" (solid) { sub: "email + password" }
-  - API -> DB: "SELECT credentials" (solid)
-  - DB -> API: "rows" (success, dotted-flow)
-  - API -> User: "200 OK" (success, solid) { sub: "JWT token" }
+  - Browser -> API: "注文を出す" { kind: call }
+  - API -> DB: "在庫を押さえる" { kind: call }
+  - DB -> API: "押さえた" { kind: return }
+  - API -> API: "控えを書く" { kind: call }
+  - API -> Queue: "発送を頼む" { kind: fire }
+  - API -> Browser: "受け付けた" { kind: return }
+  - Queue -> DB: "引当を確定" { kind: call }
+
 animation:
-  - step: "1. POST /login" 0.9s
-    focus: [User -> API]
+  - step: "1. 注文を出す" 0.9s
+    focus: ["Browser -> API"]
     badge: "sequence"
-    body: "User が API に送る。"
-  - step: "2. SELECT credentials" 0.9s
-    focus: [User -> API, API -> DB]
+    body: "実線に塗った矢。 相手にやらせて待つ。 左の点が出どころ。"
+  - step: "2. 在庫を押さえる" 0.9s
+    focus: ["API -> DB"]
     badge: "sequence"
-    body: "API が DB に問い合わせる。"
-  - step: "3. rows" 0.9s
-    focus: [User -> API, API -> DB, DB -> API]
+    body: "受付が台帳に問い合わせる。 動いている間だけ帯が伸びる。"
+  - step: "3. 押さえた" 0.9s
+    focus: ["DB -> API"]
     badge: "sequence"
-    body: "DB が結果を返す。"
+    body: "破線に開いた矢。 新しい仕事ではないので線が切れる。"
+  - step: "4. 控えを書く" 0.9s
+    focus: ["API -> API"]
+    badge: "sequence"
+    body: "自分宛ての言づて。 相手がいない仕事。"
+  - step: "5. 発送を頼む" 0.9s
+    focus: ["API -> Queue"]
+    badge: "sequence"
+    body: "実線に開いた矢。 矢を閉じないことで返事を待たないと示す。"
+  - step: "6. 受け付けた" 0.9s
+    focus: ["API -> Browser"]
+    badge: "sequence"
+    body: "待ち行列の返事を待たずに画面へ返す。"
   - step: "時系列のやり取りを縦の時間軸で並べる図" 0.9s
-    focus: [User -> API, API -> DB, DB -> API, API -> User]
+    focus: ["Queue -> DB"]
     badge: "sequence"
-    body: "sequence の全 message を時系列展開。"
+    body: "台帳は途中で手が空く。 帯が途切れることでそれと判る。"
 `;
 
 export const sourceJson__presetSequence = `{
   "title": "時系列のやり取りを縦の時間軸で並べる図",
   "type": "sequence",
-  "actors": [{"name": "User"}, {"name": "API"}, {"name": "DB"}],
+  "actors": [{"name": "Browser", "subtitle": "画面"}, {"name": "API", "subtitle": "受付"}, {"name": "DB", "subtitle": "台帳"}, {"name": "Queue", "subtitle": "待ち行列"}],
+  "bands": [{"actor": "Browser", "from": 0, "to": 5}, {"actor": "API", "from": 0, "to": 5}, {"actor": "DB", "from": 1, "to": 2}, {"actor": "DB", "from": 6, "to": 6}, {"actor": "Queue", "from": 4, "to": 6}],
   "flow": [
-    {
-      "from": "User",
-      "to": "API",
-      "label": "POST /login",
-      "sub": "email + password",
-      "style": "solid"
-    },
-    { "from": "API", "to": "DB", "label": "SELECT credentials", "style": "solid" },
-    { "from": "DB", "to": "API", "label": "rows", "tone": "success", "style": "dotted-flow" },
-    {
-      "from": "API",
-      "to": "User",
-      "label": "200 OK",
-      "sub": "JWT token",
-      "tone": "success",
-      "style": "solid"
-    }
+    { "from": "Browser", "to": "API", "label": "注文を出す", "kind": "call" },
+    { "from": "API", "to": "DB", "label": "在庫を押さえる", "kind": "call" },
+    { "from": "DB", "to": "API", "label": "押さえた", "kind": "return" },
+    { "from": "API", "to": "API", "label": "控えを書く", "kind": "call" },
+    { "from": "API", "to": "Queue", "label": "発送を頼む", "kind": "fire" },
+    { "from": "API", "to": "Browser", "label": "受け付けた", "kind": "return" },
+    { "from": "Queue", "to": "DB", "label": "引当を確定", "kind": "call" }
   ],
   "animation": [
     {
-      "step": "1. POST /login",
+      "step": "1. 注文を出す",
       "duration": 0.9,
-      "focus": ["User -> API"],
-      "body": "User が API に送る。",
+      "focus": ["Browser -> API"],
+      "body": "実線に塗った矢。 相手にやらせて待つ。 左の点が出どころ。",
       "badge": "sequence"
     },
     {
-      "step": "2. SELECT credentials",
+      "step": "2. 在庫を押さえる",
       "duration": 0.9,
-      "focus": ["User -> API", "API -> DB"],
-      "body": "API が DB に問い合わせる。",
+      "focus": ["API -> DB"],
+      "body": "受付が台帳に問い合わせる。 動いている間だけ帯が伸びる。",
       "badge": "sequence"
     },
     {
-      "step": "3. rows",
+      "step": "3. 押さえた",
       "duration": 0.9,
-      "focus": ["User -> API", "API -> DB", "DB -> API"],
-      "body": "DB が結果を返す。",
+      "focus": ["DB -> API"],
+      "body": "破線に開いた矢。 新しい仕事ではないので線が切れる。",
+      "badge": "sequence"
+    },
+    {
+      "step": "4. 控えを書く",
+      "duration": 0.9,
+      "focus": ["API -> API"],
+      "body": "自分宛ての言づて。 相手がいない仕事。",
+      "badge": "sequence"
+    },
+    {
+      "step": "5. 発送を頼む",
+      "duration": 0.9,
+      "focus": ["API -> Queue"],
+      "body": "実線に開いた矢。 矢を閉じないことで返事を待たないと示す。",
+      "badge": "sequence"
+    },
+    {
+      "step": "6. 受け付けた",
+      "duration": 0.9,
+      "focus": ["API -> Browser"],
+      "body": "待ち行列の返事を待たずに画面へ返す。",
       "badge": "sequence"
     },
     {
       "step": "時系列のやり取りを縦の時間軸で並べる図",
       "duration": 0.9,
-      "focus": ["User -> API", "API -> DB", "DB -> API", "API -> User"],
-      "body": "sequence の全 message を時系列展開。",
+      "focus": ["Queue -> DB"],
+      "body": "台帳は途中で手が空く。 帯が途切れることでそれと判る。",
       "badge": "sequence"
     }
   ]
@@ -876,62 +1134,133 @@ export const sourceJson__presetSequence = `{
 
 export const sourceYaml__presetEr = `title: "テーブル間の関係を表す図"
 type: er
+
+# 幅は組み立て API 側が行の長さから導く。 記法は導けないので書く。
+# 書いた値がずれたら catalog-source-parity が落ちる
+lanes:
+  lane-users: { width: 462 }
+  lane-orders: { width: 450 }
+  lane-order_items: { width: 450 }
+
+# 印は行ごとに書く。 pk は名前の下線、fk は山形、opt は中空 = 形 × 塗り の 2 軸
 actors:
-  - User: { kind: storage, eyebrow: "エンティティ", rows: ["id: PK", "email: string", "createdAt: timestamp"] }
-  - Order: { kind: storage, eyebrow: "エンティティ", rows: ["id: PK", "userId: FK", "total: number", "status: enum"] }
+  - users: { kind: storage, subtitle: "利用者", posW: 412, rows: ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"], marks: ["pk", "", "fk opt", ""] }
+  - orders: { kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"], marks: ["pk", "fk", "", ""] }
+  - order_items: { kind: storage, subtitle: "注文の明細", rows: ["order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk fk", "pk fk", ""] }
+
+# 端の印は両端に立つ。 箱に近い側が個数、その外側が任意か
 flow:
-  - User -> Order: "places" (info, solid) { sub: "1:N" }
+  - users -> orders: "PLACES" (info, dashed) { tailHead: one, head: zero-many }
+  - orders -> order_items: "CONTAINS" (info, solid) { tailHead: one, head: many }
+  - users -> users: "REPORTS TO" (info, dashed) { tailHead: zero-one, head: zero-many }
+
 animation:
-  - step: "1. User 表" 0.9s
-    focus: [User]
+  - step: "1. users 表" 0.9s
+    focus: [users]
     badge: "er"
-    body: "利用者 1 行が主キーを持つ。"
-  - step: "テーブル間の関係を表す図" 0.9s
-    focus: [User, Order, "User -> Order"]
+    body: "主キーは名前に下線。 印は形 × 塗りの 2 軸。"
+  - step: "2. 注文を出す" 0.9s
+    focus: [users, orders, "users -> orders"]
     badge: "er"
-    body: "ER 図の全 entity + relation を visible 化。"
+    body: "破線は識別しない関係。 1 人が 0 件以上を出す。"
+  - step: "3. 明細を抱える" 0.9s
+    focus: [users, orders, order_items, "users -> orders", "orders -> order_items"]
+    badge: "er"
+    body: "実線は識別する関係。 親の鍵が子の鍵に入る。"
+  - step: "4. 自分への関係" 0.9s
+    focus: [users, orders, order_items, "users -> orders", "orders -> order_items", "users -> users"]
+    badge: "er"
+    body: "上司も利用者。 manager_id は同じ表を指す。"
 `;
 
 export const sourceJson__presetEr = `{
   "title": "テーブル間の関係を表す図",
   "type": "er",
+  "lanes": {
+    "lane-users": { "width": 462 },
+    "lane-orders": { "width": 450 },
+    "lane-order_items": { "width": 450 }
+  },
   "actors": [
     {
-      "name": "User",
+      "name": "users",
       "kind": "storage",
-      "eyebrow": "エンティティ",
-      "rows": ["id: PK", "email: string", "createdAt: timestamp"]
+      "subtitle": "利用者",
+      "posW": 412,
+      "rows": ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"],
+      "marks": ["pk", "", "fk opt", ""]
     },
     {
-      "name": "Order",
+      "name": "orders",
       "kind": "storage",
-      "eyebrow": "エンティティ",
-      "rows": ["id: PK", "userId: FK", "total: number", "status: enum"]
+      "subtitle": "注文",
+      "rows": ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"],
+      "marks": ["pk", "fk", "", ""]
+    },
+    {
+      "name": "order_items",
+      "kind": "storage",
+      "subtitle": "注文の明細",
+      "rows": ["order_id: bigint", "product_id: bigint", "qty: int"],
+      "marks": ["pk fk", "pk fk", ""]
     }
   ],
   "flow": [
     {
-      "from": "User",
-      "to": "Order",
-      "label": "places",
-      "sub": "1:N",
+      "from": "users",
+      "to": "orders",
+      "label": "PLACES",
       "tone": "info",
-      "style": "solid"
+      "style": "dashed",
+      "tailHead": "one",
+      "head": "zero-many"
+    },
+    {
+      "from": "orders",
+      "to": "order_items",
+      "label": "CONTAINS",
+      "tone": "info",
+      "style": "solid",
+      "tailHead": "one",
+      "head": "many"
+    },
+    {
+      "from": "users",
+      "to": "users",
+      "label": "REPORTS TO",
+      "tone": "info",
+      "style": "dashed",
+      "tailHead": "zero-one",
+      "head": "zero-many"
     }
   ],
   "animation": [
     {
-      "step": "1. User 表",
+      "step": "1. users 表",
       "duration": 0.9,
-      "focus": ["User"],
-      "body": "利用者 1 行が主キーを持つ。",
+      "focus": ["users"],
+      "body": "主キーは名前に下線。 印は形 × 塗りの 2 軸。",
       "badge": "er"
     },
     {
-      "step": "テーブル間の関係を表す図",
+      "step": "2. 注文を出す",
       "duration": 0.9,
-      "focus": ["User", "Order", "User -> Order"],
-      "body": "ER 図の全 entity + relation を visible 化。",
+      "focus": ["users", "orders", "users -> orders"],
+      "body": "破線は識別しない関係。 1 人が 0 件以上を出す。",
+      "badge": "er"
+    },
+    {
+      "step": "3. 明細を抱える",
+      "duration": 0.9,
+      "focus": ["users", "orders", "order_items", "users -> orders", "orders -> order_items"],
+      "body": "実線は識別する関係。 親の鍵が子の鍵に入る。",
+      "badge": "er"
+    },
+    {
+      "step": "4. 自分への関係",
+      "duration": 0.9,
+      "focus": ["users", "orders", "order_items", "users -> orders", "orders -> order_items", "users -> users"],
+      "body": "上司も利用者。 manager_id は同じ表を指す。",
       "badge": "er"
     }
   ]
@@ -1613,104 +1942,112 @@ export const sourceJson__presetGantt = `{
 export const sourceYaml__presetStateMachine = `title: "状態と遷移条件を示す図"
 type: state
 
+# 幅は組み立て API 側が行の長さから導く。 記法は導けないので書く。
+# 書いた値がずれたら catalog-source-parity が落ちる
 lanes:
-  lane-idle: { width: 370 }
-  lane-loading: { width: 370 }
-  lane-done: { width: 370 }
-  lane-error: { width: 370 }
+  c0: { width: 478 }
+  c1: { width: 370 }
 
+# 大きさも組み立て API 側が行の長さから導く。 記法は導けないので書く
+# 縦列は lane、段は stack。 始まりと終わりは箱ではないので種類で書く
 actors:
-  - Idle: { kind: card, eyebrow: "初期" }
-  - Loading: { kind: card, eyebrow: "状態" }
-  - Done: { kind: card, eyebrow: "最終" }
-  - Error: { kind: card, eyebrow: "状態" }
+  - begin: { kind: mark-start, lane: c0, stack: 0, posW: 96, posH: 96 }
+  - Draft: { kind: storage, lane: c0, stack: 1, posW: 320, subtitle: "下書き" }
+  - Placed: { kind: storage, lane: c0, stack: 2, posW: 428, subtitle: "受付済", rows: ["在庫を押さえる", "督促を送る: 7 日ごと"], marks: ["entry", "internal"] }
+  - Paid: { kind: storage, lane: c0, stack: 3, posW: 320, subtitle: "支払済", rows: ["出荷を待つ"], marks: ["do"] }
+  - done: { kind: mark-end, lane: c0, stack: 4, posW: 96, posH: 96 }
+  - Cancelled: { kind: storage, lane: c1, stack: 2, posW: 320, subtitle: "取消済", rows: ["押さえを解く"], marks: ["exit"] }
+  - closed: { kind: mark-end, lane: c1, stack: 3, posW: 96, posH: 96 }
 
+# 遷移は実線に開いた矢の 1 種だけ。 違いは語の中に入る
 flow:
-  - Idle -> Loading: "submit" (accent, solid)
-  - Loading -> Done: "success" (success, solid)
-  - Loading -> Error: "fail" (error, solid)
-  - Error -> Error: "retry" (accent, solid) { sub: "attempts < 3" }
-  - Error -> Idle: "reset" (accent, solid)
+  - begin -> Draft: "" (accent, solid) { head: open }
+  - Draft -> Placed: "出す" (accent, solid) { head: open }
+  - Placed -> Paid: "支払う" (accent, solid) { head: open }
+  - Paid -> done: "受け取る" (accent, solid) { head: open }
+  - Placed -> Cancelled: "取り消す" (accent, solid) { head: open }
+  - Cancelled -> closed: "" (accent, solid) { head: open }
+  - Placed -> Placed: "催促する" (accent, solid) { head: open }
 
 animation:
-  - step: "1. Idle" 0.9s
+  - step: "1. Draft" 0.9s
     badge: "fsm"
-    focus: [Idle]
-    body: "何も起きていない初期状態。"
-  - step: "2. submit で Loading" 0.9s
+    focus: [begin, Draft, "begin -> Draft"]
+    body: "塗った丸が始まり。"
+  - step: "2. 出して Placed" 0.9s
     badge: "fsm"
-    focus: [Idle, Loading, "Idle -> Loading"]
-    body: "送信を受けて処理中になる。"
-  - step: "3. fail で Error、 自分へ戻って再試行" 0.9s
+    focus: [begin, Draft, Placed, "begin -> Draft", "Draft -> Placed"]
+    body: "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。"
+  - step: "3. 受付済のまま催促する" 0.9s
     badge: "fsm"
-    focus: [Idle, Loading, Error, "Idle -> Loading", "Loading -> Error", "Error -> Error"]
-    body: "自分へ戻る輪が再試行。 3 回まで同じ状態に留まる。"
-  - step: "状態と遷移条件を示す図" 0.9s
+    focus: [begin, Draft, Placed, "begin -> Draft", "Draft -> Placed", "Placed -> Placed"]
+    body: "自分へ戻る輪。 7 日ごとに督促を送っても状態は変わらない。"
+  - step: "4. 支払って終わる" 0.9s
     badge: "fsm"
-    focus: [Idle, Loading, Done, Error, "Idle -> Loading", "Loading -> Done", "Loading -> Error", "Error -> Error", "Error -> Idle"]
-    body: "自分へ戻る輪 (再試行) を含む全体。"
+    focus: [begin, Draft, Placed, Paid, done, "begin -> Draft", "Draft -> Placed", "Placed -> Placed", "Placed -> Paid", "Paid -> done"]
+    body: "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。"
+  - step: "5. 取り消して終わる" 0.9s
+    badge: "fsm"
+    focus: [begin, Draft, Placed, Paid, done, Cancelled, closed, "begin -> Draft", "Draft -> Placed", "Placed -> Placed", "Placed -> Paid", "Paid -> done", "Placed -> Cancelled", "Cancelled -> closed"]
+    body: "山形の外枠だけは出る瞬間に 1 度だけ。"
 `;
 
 export const sourceJson__presetStateMachine = `{
   "title": "状態と遷移条件を示す図",
   "type": "state",
-  "lanes": {
-    "lane-idle": { "width": 370 },
-    "lane-loading": { "width": 370 },
-    "lane-done": { "width": 370 },
-    "lane-error": { "width": 370 }
-  },
+  "lanes": { "c0": { "width": 478 }, "c1": { "width": 370 } },
   "actors": [
-    { "name": "Idle", "kind": "card", "eyebrow": "初期" },
-    { "name": "Loading", "kind": "card", "eyebrow": "状態" },
-    { "name": "Done", "kind": "card", "eyebrow": "最終" },
-    { "name": "Error", "kind": "card", "eyebrow": "状態" }
+    { "name": "begin", "kind": "mark-start", "lane": "c0", "stack": 0, "posW": 96, "posH": 96 },
+    { "name": "Draft", "kind": "storage", "posW": 320, "lane": "c0", "stack": 1, "subtitle": "下書き" },
+    { "name": "Placed", "kind": "storage", "posW": 428, "lane": "c0", "stack": 2, "subtitle": "受付済", "rows": ["在庫を押さえる", "督促を送る: 7 日ごと"], "marks": ["entry", "internal"] },
+    { "name": "Paid", "kind": "storage", "posW": 320, "lane": "c0", "stack": 3, "subtitle": "支払済", "rows": ["出荷を待つ"], "marks": ["do"] },
+    { "name": "done", "kind": "mark-end", "lane": "c0", "stack": 4, "posW": 96, "posH": 96 },
+    { "name": "Cancelled", "kind": "storage", "posW": 320, "lane": "c1", "stack": 2, "subtitle": "取消済", "rows": ["押さえを解く"], "marks": ["exit"] },
+    { "name": "closed", "kind": "mark-end", "lane": "c1", "stack": 3, "posW": 96, "posH": 96 }
   ],
   "flow": [
-    { "from": "Idle", "to": "Loading", "label": "submit", "tone": "accent", "style": "solid" },
-    { "from": "Loading", "to": "Done", "label": "success", "tone": "success", "style": "solid" },
-    { "from": "Loading", "to": "Error", "label": "fail", "tone": "error", "style": "solid" },
-    {
-      "from": "Error",
-      "to": "Error",
-      "label": "retry",
-      "sub": "attempts < 3",
-      "tone": "accent",
-      "style": "solid"
-    },
-    { "from": "Error", "to": "Idle", "label": "reset", "tone": "accent", "style": "solid" }
+    { "from": "begin", "to": "Draft", "label": "", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "Draft", "to": "Placed", "label": "出す", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "Placed", "to": "Paid", "label": "支払う", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "Paid", "to": "done", "label": "受け取る", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "Placed", "to": "Cancelled", "label": "取り消す", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "Cancelled", "to": "closed", "label": "", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "Placed", "to": "Placed", "label": "催促する", "tone": "accent", "style": "solid", "head": "open" }
   ],
   "animation": [
     {
-      "step": "1. Idle",
+      "step": "1. Draft",
       "duration": 0.9,
-      "focus": ["Idle"],
-      "body": "何も起きていない初期状態。",
+      "focus": ["begin", "Draft", "begin -> Draft"],
+      "body": "塗った丸が始まり。",
       "badge": "fsm"
     },
     {
-      "step": "2. submit で Loading",
+      "step": "2. 出して Placed",
       "duration": 0.9,
-      "focus": ["Idle", "Loading", "Idle -> Loading"],
-      "body": "送信を受けて処理中になる。",
+      "focus": ["begin", "Draft", "Placed", "begin -> Draft", "Draft -> Placed"],
+      "body": "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。",
       "badge": "fsm"
     },
     {
-      "step": "3. fail で Error、 自分へ戻って再試行",
+      "step": "3. 受付済のまま催促する",
       "duration": 0.9,
-      "focus": ["Idle", "Loading", "Error", "Idle -> Loading", "Loading -> Error", "Error -> Error"],
-      "body": "自分へ戻る輪が再試行。 3 回まで同じ状態に留まる。",
+      "focus": ["begin", "Draft", "Placed", "begin -> Draft", "Draft -> Placed", "Placed -> Placed"],
+      "body": "自分へ戻る輪。 7 日ごとに督促を送っても状態は変わらない。",
       "badge": "fsm"
     },
     {
-      "step": "状態と遷移条件を示す図",
+      "step": "4. 支払って終わる",
       "duration": 0.9,
-      "focus": [
-        "Idle", "Loading", "Done", "Error",
-        "Idle -> Loading", "Loading -> Done", "Loading -> Error",
-        "Error -> Error", "Error -> Idle"
-      ],
-      "body": "自分へ戻る輪 (再試行) を含む全体。",
+      "focus": ["begin", "Draft", "Placed", "Paid", "done", "begin -> Draft", "Draft -> Placed", "Placed -> Placed", "Placed -> Paid", "Paid -> done"],
+      "body": "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。",
+      "badge": "fsm"
+    },
+    {
+      "step": "5. 取り消して終わる",
+      "duration": 0.9,
+      "focus": ["begin", "Draft", "Placed", "Paid", "done", "Cancelled", "closed", "begin -> Draft", "Draft -> Placed", "Placed -> Placed", "Placed -> Paid", "Paid -> done", "Placed -> Cancelled", "Cancelled -> closed"],
+      "body": "山形の外枠だけは出る瞬間に 1 度だけ。",
       "badge": "fsm"
     }
   ]
@@ -1908,28 +2245,50 @@ export const sourceJson__presetSwimlane = `{
 export const sourceYaml__presetClassDiagram = `title: "クラスの継承・保有関係を示す UML 図"
 type: class
 
+# 縦列は lane の並び、段は stack。 箱の 1 つの辺には関係を 1 本しか載せない
 actors:
-  - User: { eyebrow: "クラス", rows: ["+name: string", "+email: string", "───", "+login(): void", "+logout(): void"] }
-  - Admin: { eyebrow: "クラス", rows: ["+permissions: string[]", "───", "+banUser(): void"] }
-  - Order: { eyebrow: "クラス", rows: ["+id: number", "+total: number", "───", "+pay(): void"] }
+  - User: { lane: c0, stack: 0, rows: ["+name: string", "+email: string", "───", "+login(): Session"] }
+  - Auditable: { lane: c1, stack: 0, rows: ["+audit(): Log[]"] }
+  - Admin: { lane: c0, stack: 1, rows: ["+permissions: string[]", "───", "+banUser(): void"] }
+  - Order: { lane: c1, stack: 1, rows: ["+id: number", "+total: number", "───", "+pay(): Receipt"] }
+  - Receipt: { lane: c2, stack: 1, rows: ["+no: string", "+amount: number"] }
+  - Line: { lane: c1, stack: 2, rows: ["+qty: number", "+price: number"] }
+  - Sku: { lane: c2, stack: 2, rows: ["+code: string", "+name: string"] }
 
+# relation を書くと 線 / 端の形 / 塗り / 付く側 がまとめて決まる
 flow:
-  - Admin -> User: "extends" (info, solid) { head: triangle }
-  - Admin -> Order: "aggregates" (info, solid) { sub: "1..*", head: diamond }
+  - Admin -> User: "EXTENDS" (info) { relation: extends }
+  - Order -> Auditable: "IMPLEMENTS" (info) { relation: implements }
+  - Admin -> Order: "HAS" (info) { relation: aggregates, sub: "1..*" }
+  - Order -> Receipt: "USES" (info) { relation: uses }
+  - Order -> Line: "OWNS" (info) { relation: composes, sub: "1..*" }
+  - Line -> Sku: "LINKS" (info) { relation: associates }
 
 animation:
   - step: "1. User" 0.9s
     badge: "class"
     focus: [User]
     body: "基になるクラス。"
-  - step: "2. Admin が継承" 0.9s
+  - step: "2. 継ぐ" 0.9s
     badge: "class"
     focus: [User, Admin, "Admin -> User"]
-    body: "User を継ぎ、権限を足す。"
-  - step: "クラスの継承・保有関係を示す UML 図" 0.9s
+    body: "実線に白抜きの三角。 三角は親の側に付く。"
+  - step: "3. 満たす" 0.9s
     badge: "class"
-    focus: [User, Admin, "Admin -> User", Order, "Admin -> Order"]
-    body: "UML class 全 class + relation を visible 化。"
+    focus: [User, Admin, Auditable, Order, "Admin -> User", "Order -> Auditable"]
+    body: "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。"
+  - step: "4. 持つ" 0.9s
+    badge: "class"
+    focus: [User, Admin, Auditable, Order, "Admin -> User", "Order -> Auditable", "Admin -> Order"]
+    body: "実線に白抜きの菱。 菱は持ち主の側に付く。 相手は単独でも生きる。"
+  - step: "5. 抱える" 0.9s
+    badge: "class"
+    focus: [User, Admin, Auditable, Order, Line, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line"]
+    body: "菱を塗ると命が同じになる。 持ち主が消えると中身も消える。"
+  - step: "6. 結ぶ・使う" 0.9s
+    badge: "class"
+    focus: [User, Admin, Auditable, Order, Line, Sku, Receipt, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"]
+    body: "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。"
 `;
 
 export const sourceJson__presetClassDiagram = `{
@@ -1938,37 +2297,91 @@ export const sourceJson__presetClassDiagram = `{
   "actors": [
     {
       "name": "User",
-      "eyebrow": "クラス",
-      "rows": ["+name: string", "+email: string", "───", "+login(): void", "+logout(): void"]
+      "lane": "c0",
+      "stack": 0,
+      "rows": ["+name: string", "+email: string", "───", "+login(): Session"]
+    },
+    {
+      "name": "Auditable",
+      "lane": "c1",
+      "stack": 0,
+      "rows": ["+audit(): Log[]"]
     },
     {
       "name": "Admin",
-      "eyebrow": "クラス",
+      "lane": "c0",
+      "stack": 1,
       "rows": ["+permissions: string[]", "───", "+banUser(): void"]
     },
     {
       "name": "Order",
-      "eyebrow": "クラス",
-      "rows": ["+id: number", "+total: number", "───", "+pay(): void"]
+      "lane": "c1",
+      "stack": 1,
+      "rows": ["+id: number", "+total: number", "───", "+pay(): Receipt"]
+    },
+    {
+      "name": "Receipt",
+      "lane": "c2",
+      "stack": 1,
+      "rows": ["+no: string", "+amount: number"]
+    },
+    {
+      "name": "Line",
+      "lane": "c1",
+      "stack": 2,
+      "rows": ["+qty: number", "+price: number"]
+    },
+    {
+      "name": "Sku",
+      "lane": "c2",
+      "stack": 2,
+      "rows": ["+code: string", "+name: string"]
     }
   ],
   "flow": [
     {
       "from": "Admin",
       "to": "User",
-      "label": "extends",
+      "label": "EXTENDS",
       "tone": "info",
-      "style": "solid",
-      "head": "triangle"
+      "relation": "extends"
+    },
+    {
+      "from": "Order",
+      "to": "Auditable",
+      "label": "IMPLEMENTS",
+      "tone": "info",
+      "relation": "implements"
     },
     {
       "from": "Admin",
       "to": "Order",
-      "label": "aggregates",
+      "label": "HAS",
       "sub": "1..*",
       "tone": "info",
-      "style": "solid",
-      "head": "diamond"
+      "relation": "aggregates"
+    },
+    {
+      "from": "Order",
+      "to": "Receipt",
+      "label": "USES",
+      "tone": "info",
+      "relation": "uses"
+    },
+    {
+      "from": "Order",
+      "to": "Line",
+      "label": "OWNS",
+      "sub": "1..*",
+      "tone": "info",
+      "relation": "composes"
+    },
+    {
+      "from": "Line",
+      "to": "Sku",
+      "label": "LINKS",
+      "tone": "info",
+      "relation": "associates"
     }
   ],
   "animation": [
@@ -1980,17 +2393,38 @@ export const sourceJson__presetClassDiagram = `{
       "badge": "class"
     },
     {
-      "step": "2. Admin が継承",
+      "step": "2. 継ぐ",
       "duration": 0.9,
       "focus": ["User", "Admin", "Admin -> User"],
-      "body": "User を継ぎ、権限を足す。",
+      "body": "実線に白抜きの三角。 三角は親の側に付く。",
       "badge": "class"
     },
     {
-      "step": "クラスの継承・保有関係を示す UML 図",
+      "step": "3. 満たす",
       "duration": 0.9,
-      "focus": ["User", "Admin", "Admin -> User", "Order", "Admin -> Order"],
-      "body": "UML class 全 class + relation を visible 化。",
+      "focus": ["User", "Admin", "Auditable", "Order", "Admin -> User", "Order -> Auditable"],
+      "body": "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。",
+      "badge": "class"
+    },
+    {
+      "step": "4. 持つ",
+      "duration": 0.9,
+      "focus": ["User", "Admin", "Auditable", "Order", "Admin -> User", "Order -> Auditable", "Admin -> Order"],
+      "body": "実線に白抜きの菱。 菱は持ち主の側に付く。 相手は単独でも生きる。",
+      "badge": "class"
+    },
+    {
+      "step": "5. 抱える",
+      "duration": 0.9,
+      "focus": ["User", "Admin", "Auditable", "Order", "Line", "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line"],
+      "body": "菱を塗ると命が同じになる。 持ち主が消えると中身も消える。",
+      "badge": "class"
+    },
+    {
+      "step": "6. 結ぶ・使う",
+      "duration": 0.9,
+      "focus": ["User", "Admin", "Auditable", "Order", "Line", "Sku", "Receipt", "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"],
+      "body": "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。",
       "badge": "class"
     }
   ]

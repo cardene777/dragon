@@ -14,6 +14,8 @@
  * 書いた順に関わらず「人 → 契約 → 保存 → 出来事」 で並ぶため、契約のやり取りを読む時に
  * 左から右へ流れが揃う。
  *
+ * #1466 で順序図は 1 枚の板になり、面ごとの縦列は無くなった。 並びは板の見出しが持つ。
+ *
  * ## なぜ検査が要るか
  *
  * この機能は #1411 まで **見本が 1 件も無く、検査も無かった**。 壊れても誰も気付かない。
@@ -22,10 +24,19 @@ import { describe, it, expect } from "vitest";
 
 import { textDslToDiagram } from "../src";
 
-type 図 = { lanes?: { id: string }[]; nodes: { id: string; kind?: string }[] };
+type 図 = {
+  lanes?: { id: string }[];
+  nodes: { id: string; kind?: string; sequenceData?: { actors: { name: string }[] } }[];
+};
 
 const 記法 = (中身: string) => textDslToDiagram(中身) as unknown as 図;
-const 縦列 = (d: 図) => (d.lanes ?? []).map((l) => l.id);
+/** 板の見出しに並ぶ面の名前 (小文字にして、旧 縦列 id と同じ読み方にする)。 */
+const 並び = (d: 図) => {
+  const 板 = d.nodes.find((n) => n.kind === "sequence-board");
+  const 面 = 板?.sequenceData?.actors ?? [];
+  if (面.length === 0) throw new Error("板の見出しを 1 つも読めていない (検査が空振りしている)");
+  return 面.map((a) => a.name.toLowerCase());
+};
 
 describe("solidity は種別で縦列を並べ替える (#1411)", () => {
   it("書いた順が逆でも 人 → 契約 → 保存 → 出来事 で並ぶ", () => {
@@ -43,7 +54,7 @@ actors:
 flow:
   - User -> Token: "call"
 `);
-    expect(縦列(d)).toEqual(["user", "token", "store", "ev"]);
+    expect(並び(d)).toEqual(["user", "token", "store", "ev"]);
   });
 
   it("同じ優先度どうしは書いた順を保つ", () => {
@@ -60,7 +71,7 @@ actors:
 flow:
   - User -> Proxy: "call"
 `);
-    expect(縦列(d)).toEqual(["user", "proxy", "impl", "lib"]);
+    expect(並び(d)).toEqual(["user", "proxy", "impl", "lib"]);
   });
 
   it("表に無い種別は一番後ろに回る", () => {
@@ -76,7 +87,7 @@ actors:
 flow:
   - User -> Store: "write"
 `);
-    expect(縦列(d)).toEqual(["user", "store", "unknown"]);
+    expect(並び(d)).toEqual(["user", "store", "unknown"]);
   });
 
   it("`sequence` は並べ替えない (違いを固定する)", () => {
@@ -97,6 +108,6 @@ actors:
 flow:
   - User -> Token: "call"
 `);
-    expect(縦列(d)).toEqual(["ev", "store", "token", "user"]);
+    expect(並び(d)).toEqual(["ev", "store", "token", "user"]);
   });
 });

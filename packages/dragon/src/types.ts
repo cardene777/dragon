@@ -3,7 +3,7 @@
  * docs/cdl/text-dsl-spec.md の文法を AST に変換した中間表現
  */
 
-import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead } from "@cardenelabs/cdl";
+import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
 
 /**
@@ -152,6 +152,13 @@ export type DslDocument = {
   /** v0.5+ 拡張 ... viewport / lanes / groups */
   viewport?: DslViewport;
   lanes?: Record<string, DslLane>;
+  /**
+   * 動いている間の帯 (#1466)。 順序図だけが読む。
+   *
+   * 書かなければ面ごとに「最初に関わった段から最後まで」 の 1 本。 途中で手が空く面を
+   * 分けたい図だけ書く = どこで手が空くかは言づての並びからは決まらない。
+   */
+  bands?: DslBand[];
   groups?: Record<string, DslGroup>;
   /**
    * 値を見せる部品 (`readouts:`、 #1374)。 割合の輪や数え上げを図の脇に出す。
@@ -230,6 +237,14 @@ export type DslActor = {
    */
   previous?: string;
   rows?: string[];
+  /**
+   * 行頭の印 (#1466)。 `rows` と同じ並びで、空文字はその行に印を付けない。
+   *
+   * **語の意味は図の種類が決める**。 ER は `pk` / `fk` / `opt`、状態遷移は
+   * `entry` / `exit` / `do` / `internal`。 印の 2 軸 (形 × 塗り) は共通だが、その軸が
+   * 何を指すかは種類ごとに違う。
+   */
+  marks?: string[];
   /**
    * 箱の中に描く図形 (`shape:`、 #1374)。 水位や角度を状態で動かせる。
    *
@@ -427,6 +442,25 @@ export type DslStep = {
    * 受ける語は描画側の `EDGE_HEADS` から導く = 描画側が増やせば書けるようになる。
    */
   head?: EdgeHead;
+  /** 出どころ側の端の形 (#1466)。 ER は端ごとに違う個数を示すので両端に要る */
+  tailHead?: EdgeHead;
+  /** 端の印の塗り (#1466)。 白抜きの菱が「持つ」、塗った菱が「抱える」 */
+  headFill?: EdgeHeadFill;
+  /** 出どころ側の印の塗り (#1466) */
+  tailHeadFill?: EdgeHeadFill;
+  /**
+   * クラス図の関係の種類 (#1466)。 書くと線と端の形と塗りと付く側がまとめて決まる。
+   *
+   * 4 つを個別に書かせないのは、組合せが 6 通りしか無く、1 つでも書き違えると読み手に
+   * 別の意味で伝わるため (菱を逆に置くと持ち主が入れ替わる)。
+   */
+  relation?: ClassRelationType;
+  /**
+   * 言づての種類 (#1466)。 順序図で線と矢の形がまとめて決まる。
+   *
+   * `kind` にしないのは、箱の種類 (`DslActor.kind`) と同じ語が別の意味を持つため。
+   */
+  msgKind?: SequenceMessageKind;
   labelOffsetX?: number;
   labelOffsetY?: number;
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
@@ -551,6 +585,9 @@ export type DslValue = {
 );
 
 /** ステップ (phase) */
+/** 動いている間の帯 (#1466)。 順序図で、面がいつ動いているかを段の番号で持つ */
+export type DslBand = { actor: string; from: number; to: number };
+
 export type DslPhase = {
   name: string;
   durationMs: number;

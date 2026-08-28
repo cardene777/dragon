@@ -123,6 +123,13 @@
                 },
                 "description": "storage 内の column 列 (kind: storage 用)"
               },
+              "marks": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "行頭の印。 rows と同じ数だけ並べる。 語の意味は図の種類が決める = er は pk / fk / opt、class は + / - と () の有無、state は entry / do / exit / internal"
+              },
               "lane": {
                 "type": "string",
                 "description": "swimlane / topology で属する lane id"
@@ -457,7 +464,7 @@
           },
           "style": {
             "type": "string",
-            "enum": ["solid", "dotted-flow"],
+            "enum": ["solid", "dotted-flow", "dashed"],
             "description": "矢印の線種"
           },
           "guard": {
@@ -475,8 +482,33 @@
           },
           "head": {
             "type": "string",
-            "enum": ["triangle", "diamond", "open", "crow"],
-            "description": "矢印の先の形。 端の形で関係の種類を示す = triangle (継ぐ) / diamond (持つ) / open (使う) / crow (多)。 書かなければ塗った三角になる。"
+            "enum": ["none", "triangle", "diamond", "open", "crow", "one", "zero-one", "many", "zero-many"],
+            "description": "着き先側の端の形。 端の形で関係の種類を示す = triangle (継ぐ) / diamond (持つ) / open (使う) / crow (多) / one / zero-one / many / zero-many (個数)。 書かなければ塗った三角になる。"
+          },
+          "tailHead": {
+            "type": "string",
+            "enum": ["none", "triangle", "diamond", "open", "crow", "one", "zero-one", "many", "zero-many"],
+            "description": "出どころ側の端の形。 両端に別々の印を立てる時に書く。"
+          },
+          "headFill": {
+            "type": "string",
+            "enum": ["solid", "hollow"],
+            "description": "着き先側の端の塗り。 中空は「弱い関係」 を表す。"
+          },
+          "tailHeadFill": {
+            "type": "string",
+            "enum": ["solid", "hollow"],
+            "description": "出どころ側の端の塗り。"
+          },
+          "relation": {
+            "type": "string",
+            "enum": ["extends", "implements", "aggregates", "composes", "associates", "uses"],
+            "description": "クラス図の関係の語。 書くと端の形 / 塗り / 線種がまとめて決まる。"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["call", "return", "fire"],
+            "description": "順序図の言づての種類。 call (返事を待つ) / return (返し) / fire (返事を待たない)。"
           },
           "labelOffsetX": {
             "type": "number",
@@ -1762,6 +1794,20 @@
       },
       "propertyNames": {
         "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      }
+    },
+    "bands": {
+      "type": "array",
+      "description": "順序図で面が動いている間の帯。 書かなければ面ごとに「最初に関わった段から最後まで」 の 1 本になる。",
+      "items": {
+        "type": "object",
+        "required": ["actor", "from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "actor": { "type": "string", "description": "帯を出す面の名前" },
+          "from": { "type": "integer", "minimum": 0, "description": "始まりの言づての番号 (0 起点)" },
+          "to": { "type": "integer", "minimum": 0, "description": "終わりの言づての番号 (0 起点)" }
+        }
       }
     },
     "events": {

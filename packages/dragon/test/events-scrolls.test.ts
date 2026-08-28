@@ -96,7 +96,10 @@ describe("押下が記法から図に届く (#1393)", () => {
     expect(d.eventBindings?.map((e) => e.id)).toEqual(["evt-1", "evt-2"]);
   });
 
-  it("sequence の矢印も図の識別子へ直る", () => {
+  it("順序図では指す矢印が無く、相手を解けないことを伝える", () => {
+    // #1466 で順序図は 1 枚の板になり、言づては矢印ではなく板の中の行になった =
+    // `arrow:` で指す相手が図に無い
+    const 出た: string[] = [];
     const d = textDslToDiagram(`title: "t"
 type: sequence
 events:
@@ -108,8 +111,9 @@ flow:
   - A -> B: "呼ぶ"
 animation:
   - step: "p" 1s
-`) as unknown as 図;
-    expect(d.eventBindings?.[0]?.target).toEqual({ kind: "edge", id: "e0-a-b" });
+`, { onNotice: (n) => 出た.push(n.kind) }) as unknown as 図;
+    expect(d.eventBindings?.[0]?.target, "指せない相手を解いている").toBeUndefined();
+    expect(出た, "相手を解けないことを伝えていない").toContain("event-target-missing");
   });
 
   it("名前から作る識別子が重なっても箱と矢印を指せる", () => {

@@ -43,8 +43,8 @@ import { at } from "./support/at";
  * 作らなくなったことを検知できない (`type: pie` が `card` を並べていた時、 実装から導く検査は
  * 通っていた)。 実測して表に書く。
  *
- * `sequence` / `solidity` は名札 (上端 / 下端) を `card` で作り、 段の目印も `card` なので
- * `card` だけになる。 `pie` / `gantt` は図全体を 1 つの箱で描く種類。
+ * `sequence` / `solidity` は #1466 で 1 枚の板 (`sequence-board`) になった。
+ * `pie` / `gantt` は図全体を 1 つの箱で描く種類。
  *
  * **`satisfies` を覆いの根拠にしない** (#1411)。 型検査の対象は
  * `packages/dragon/tsconfig.json` の `include` が `src/**` に限っており、`test/` は入らない。
@@ -58,13 +58,13 @@ import { at } from "./support/at";
  * 意図が伝わる。
  */
 const 型と種類 = {
-  sequence: ["card"],
+  sequence: ["sequence-board"],
   flow: ["actor"],
   swimlane: ["actor"],
   er: ["storage"],
   state: ["card"],
   topology: ["actor"],
-  solidity: ["card"],
+  solidity: ["sequence-board"],
   gantt: ["gantt-timeline"],
   class: ["storage"],
   pie: ["chart-pie"],

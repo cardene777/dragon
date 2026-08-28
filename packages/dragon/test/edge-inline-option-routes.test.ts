@@ -44,11 +44,11 @@ const 最初の矢印 = (yaml: string) => {
 };
 
 describe("矢印の指定が種別を問わず届く (#1268)", () => {
-  // 組み立ての経路は 3 つある。 段を持つ形は `compileSequenceWithAnimate` /
-  // `compileGenericWithAnimate` へ、 段を持たない形は種別ごとの cdl 組み立てへ回る。
-  // どれも `applyEdgeInlineOptions` を通るので同じ結果になるべき。
+  // 組み立ての経路は 2 つある。 段を持つ形は `compileGenericWithAnimate` へ、 段を持たない形は
+  // 種別ごとの cdl 組み立てへ回る。 どれも `applyEdgeInlineOptions` を通るので同じ結果になるべき。
+  //
+  // `sequence` は #1466 で 1 枚の板になり矢印を作らない = この経路を通らない
   for (const [名, type, 動きあり] of [
-    ["段のある sequence", "sequence", true],
     ["段のある swimlane", "swimlane", true],
     ["段のない swimlane", "swimlane", false],
     ["段のある flow", "flow", true],

@@ -2,13 +2,14 @@
  * canvas pivot UX 修正 (B1 individual node isolation) の unit test。
  *
  * DSL `- ユーザー: { nodes: { header: { posX: 100, posY: 50, posW: 200, posH: 60 } } }`
- * 形式を parse し、 compile 経路で対応 CDL node (id = `{slug}-header`) の posX/Y/W/H に反映される
- * ことを assert する。 actor 全体 (lane) には反映されない = 他 sub-node (spacer / footer / s{N}) の
- * auto layout は保持される (= B1 fail 解消の core spec)。
+ * 形式を parse し、対応する箱があればその posX/Y/W/H に反映する。
+ *
+ * `#1466` で順序図が 1 枚の板になり、`{名前}-{小名}` の形の箱を作る図種は無くなった =
+ * いま反映する先は無い。 記法は読めるので、**当たる箱が無いことを伝える** ところまでを見る。
  */
 import { describe, it, expect } from "vitest";
 import { parseTextDslV05 } from "../src/v05/parser";
-import { textDslToDiagram } from "../src/index";
+import { compileToCdl } from "../src/index";
 
 describe("actor.nodes override (canvas pivot UX 修正 B1)", () => {
   describe("parser 経路", () => {
@@ -88,99 +89,64 @@ flow:
     });
   });
 
-  describe("compile 経路 (sequence preset で `{slug}-header` に per-node 座標反映)", () => {
-    it("nodes.header の posX/Y/W/H が対応 CDL node に個別反映される", () => {
-      const src = `title: "test"
-type: sequence
+  describe("compile 経路 (当たる箱が無いことを伝える)", () => {
+    /*
+     * `#1466` で順序図は 1 枚の板になり、面ごとの箱 (名札 / 余白 / 足 / 段の箱) が消えた。
+     * `{名前}-{小名}` / `{小名}-{名前}` の形の箱を作る図種はいま 1 つも無い = 反映する先が
+     * 無い。 黙って落とすと、書いた側は効いていると思い込む。
+     */
+    const 知らせ = (src: string): string[] => {
+      const r = parseTextDslV05(src);
+      if (!r.ok) throw new Error(r.errors.map((e) => e.message).join(" / "));
+      const 出た: string[] = [];
+      compileToCdl(r.doc, {
+        onNotice: (n) => {
+          if (n.kind === "sub-node-not-found") 出た.push(n.message);
+        },
+      });
+      return 出た;
+    };
+
+    it("当たる箱が無いことを伝える", () => {
+      const 出た = 知らせ(`title: "t"
+type: topology
 
 actors:
-  - user: { nodes: { header: { posX: 400, posY: 100, posW: 200, posH: 50 } } }
-  - api
+  - User: { nodes: { header: { posX: 100, posY: 50 } } }
+  - API
 
 flow:
-  - user -> api: "call"
-`;
-      const diagram = textDslToDiagram(src);
-      const headerNode = diagram.nodes.find((n) => n.id === "user-header");
-      expect(headerNode, `user-header node が存在 (nodes=${diagram.nodes.map((n) => n.id).join(",")})`).toBeDefined();
-      expect(headerNode!.posX).toBe(400);
-      expect(headerNode!.posY).toBe(100);
-      expect(headerNode!.posW).toBe(200);
-      expect(headerNode!.posH).toBe(50);
+  - User -> API: "req"
+`);
+      expect(出た.length, "書いた位置が黙って落ちている").toBe(1);
+      expect(出た[0]).toContain("header");
     });
 
-    it("nodes 単独指定時、 対応 lane 側は posX/Y 未反映 (actor.posX 未指定なら)", () => {
-      const src = `title: "test"
-type: sequence
+    it("nodes を書かなければ何も伝えない", () => {
+      expect(知らせ(`title: "t"
+type: topology
 
 actors:
-  - user: { nodes: { header: { posX: 400, posY: 100 } } }
-  - api
+  - User
+  - API
 
 flow:
-  - user -> api: "call"
-`;
-      const diagram = textDslToDiagram(src);
-      const userLane = diagram.lanes.find((l) => l.id === "user");
-      expect(userLane).toBeDefined();
-      expect(userLane!.posX, "actor.posX 未指定なら lane は auto layout 継続").toBeUndefined();
-      expect(userLane!.posY).toBeUndefined();
+  - User -> API: "req"
+`)).toEqual([]);
     });
 
-    it("subagent review MAJOR-1 = 別 actor が保有する同名 id node に座標が漏れない (cross-actor pollution 防止)", () => {
-      // actor A に nodes: { orders: {...} } を書いた時、 別 actor B が保有する id=orders の CDL node に
-      // A の座標が漏れる silent bug の regression 防止。 pattern は `{aliasSlug}-{subKey}` /
-      // `{subKey}-{aliasSlug}` の 2 経路に限定、 完全 id 一致 fallback は削除済 (compile.ts §
-      // applyCanvasPivotPositions)。
-      const src = `title: "test"
-type: flow
+    it("位置を片方しか書かない指定は対象にしない", () => {
+      // 反映しない指定で知らせを出すと、書き途中の記法が毎回鳴る
+      expect(知らせ(`title: "t"
+type: topology
 
 actors:
-  - orders: storage
-  - user: { nodes: { orders: { posX: 999, posY: 888, posW: 100, posH: 50 } } }
-`;
-      const diagram = textDslToDiagram(src);
-      // flow preset で actor "orders" が生成する node の id
-      const ordersNode = diagram.nodes.find((n) => n.id === "orders");
-      expect(ordersNode, `orders node が存在 (nodes=${diagram.nodes.map((n) => n.id).join(",")})`).toBeDefined();
-      // user actor の nodes.orders は user-orders / orders-user pattern に該当しないため反映されない
-      expect(ordersNode!.posX, "actor 'orders' の CDL node は user.nodes.orders の影響を受けない").toBeUndefined();
-      expect(ordersNode!.posY).toBeUndefined();
-    });
-
-    it("nodes.header 個別 resize しても spacer / footer の auto layout は不変", () => {
-      const srcA = `title: "test"
-type: sequence
-
-actors:
-  - user
-  - api
+  - User: { nodes: { header: { posX: 100 } } }
+  - API
 
 flow:
-  - user -> api: "call"
-`;
-      const srcB = `title: "test"
-type: sequence
-
-actors:
-  - user: { nodes: { header: { posX: 400, posY: 100, posW: 200, posH: 50 } } }
-  - api
-
-flow:
-  - user -> api: "call"
-`;
-      const dA = textDslToDiagram(srcA);
-      const dB = textDslToDiagram(srcB);
-      // spacer / footer は override 未指定なので B 側でも A 側と同じ auto layout の node 定義になる
-      const spacerA = dA.nodes.find((n) => n.id === "user-spacer");
-      const spacerB = dB.nodes.find((n) => n.id === "user-spacer");
-      expect(spacerA).toBeDefined();
-      expect(spacerB).toBeDefined();
-      expect(spacerB!.posX, "spacer は override 未指定なので auto layout 継続").toBeUndefined();
-      expect(spacerB!.posY).toBeUndefined();
-      const footerB = dB.nodes.find((n) => n.id === "user-footer");
-      expect(footerB!.posX).toBeUndefined();
-      expect(footerB!.posY).toBeUndefined();
+  - User -> API: "req"
+`)).toEqual([]);
     });
   });
 });

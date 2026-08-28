@@ -80,7 +80,9 @@ flow:
 `;
     expect(() => textDslToDiagram(dsl)).not.toThrow();
     const d = textDslToDiagram(dsl);
-    expect(d.nodes.length).toBeGreaterThanOrEqual(30);
+    // 順序図は 1 枚の板で描く (#1466)。 面は板の見出しに並ぶので、そちらの数で見る
+    const 面 = d.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.actors ?? [];
+    expect(面.length).toBe(30);
   });
 
   it("極端長 label (200 char)", () => {

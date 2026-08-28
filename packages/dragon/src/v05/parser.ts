@@ -41,8 +41,8 @@
  * 出力は v0.4 と同じ DslDocument。 既存 compile.ts で CdlDiagram に変換できる。
  */
 
-import type { NodeKind, Tone, EdgeStyle, EdgeHead } from "@cardenelabs/cdl";
-import { TONES, NODE_KINDS, EDGE_HEADS, parseFormula } from "@cardenelabs/cdl";
+import type { NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
+import { TONES, NODE_KINDS, EDGE_HEADS, EDGE_HEAD_FILLS, EDGE_STYLES, CLASS_RELATION_LOOK, SEQUENCE_MESSAGE_LOOK, parseFormula } from "@cardenelabs/cdl";
 import { TONE_ALIAS, NODE_KIND_ALIAS } from "../keywords";
 import { parseRelativePos, orderByDependency } from "../relative-pos";
 import {
@@ -74,6 +74,7 @@ import type {
   DslError,
   PresetType,
   DslLane,
+  DslBand,
   DslGroup,
   DslViewport,
 } from "../types";
@@ -89,6 +90,19 @@ export const EDGE_SIDE_VALUES = ["top", "right", "bottom", "left"] as const;
  * **描画側から導く**。 手で並べると、描画側が形を増やした時に書けないままになる。
  */
 export const EDGE_HEAD_VALUES: readonly string[] = EDGE_HEADS;
+
+/** 端の印の塗り方 (#1466)。 描画側の一覧から導く = 描画側が増やせば書ける */
+export const EDGE_HEAD_FILL_VALUES: readonly string[] = EDGE_HEAD_FILLS;
+
+/**
+ * クラス図の関係の種類 (#1466)。 描画側の表 (`CLASS_RELATION_LOOK`) の key から導く。
+ *
+ * 手で並べると、描画側が種類を足した時にここだけ取り残されて書けないままになる。
+ */
+export const CLASS_RELATION_VALUES: readonly string[] = Object.keys(CLASS_RELATION_LOOK);
+
+/** 順序図の言づての種類 (#1466)。 描画側の表から導く */
+export const SEQ_MESSAGE_VALUES: readonly string[] = Object.keys(SEQUENCE_MESSAGE_LOOK);
 
 /**
  * 記法が受ける top-level の項目 (#1190)。
@@ -122,6 +136,8 @@ export const TOP_LEVEL_KEYS = [
   "events",
   // 巻き上げに応じて進む値 (#1393)
   "scrolls",
+  // 動いている間の帯 (#1466)。 順序図だけが読む
+  "bands",
 ] as const;
 
 /**
@@ -342,11 +358,14 @@ export const NODE_KIND_VALID: ReadonlySet<string> = new Set<string>([
 const TONE_VALID: ReadonlySet<string> = new Set<string>(TONES);
 
 /**
- * 受理する線種。 `EdgeStyle` は型だけで実体を持たないため、 実行時の一覧はここが唯一の出どころ。
+ * 受理する線種。 **描画側の一覧から導く** (#1466)。
  *
- * JSON 経路も同じ集合を読む (#1304)。 別に持つと、 線種が増えた時に片方だけ取り残される。
+ * 以前は手で並べており、描画側が `dashed` を足した時にここだけ取り残されて「線種が
+ * 読めません」 で落ちた (実測)。 色名 (`TONE_VALID`) と同じく描画側を出どころにする。
+ *
+ * JSON 経路も同じ集合を読む (#1304)。 別に持つと、線種が増えた時に片方だけ取り残される。
  */
-export const STYLE_VALID: ReadonlySet<string> = new Set<string>(["solid", "dotted-flow"]);
+export const STYLE_VALID: ReadonlySet<string> = new Set<string>(EDGE_STYLES);
 
 /**
  * 色の名前として書ける語の一覧 (#1304)。 知らせの `hint` に出す。
@@ -411,6 +430,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
   const values: DslValue[] = [];
   let viewport: DslViewport | undefined = undefined;
   let lanesMap: Record<string, DslLane> | undefined = undefined;
+  // 動いている間の帯 (#1466)。 順序図だけが読む
+  let bands: DslBand[] | undefined = undefined;
   let readoutsList: DslReadout[] | undefined = undefined;
   let inputsList: DslInput[] | undefined = undefined;
   let formulasList: DslFormula[] | undefined = undefined;
@@ -649,6 +670,31 @@ export function parseTextDslV05(src: string): V05ParseResult {
       // 1 本も読めなかった形は「書かなかった」 と同じにする。 空の軸を渡すと、
       // 書いていない側の名前が空文字で描かれる
       axes = 組み立て.x !== undefined || 組み立て.y !== undefined ? 組み立て : undefined;
+      i = next;
+      continue;
+    }
+    if (head.key === "bands") {
+      /*
+       * 動いている間の帯 (#1466)。 `- DB: 1..2` の形で、段の番号の区間を書く。
+       *
+       * 面ごとに 2 行以上書ける = 途中で手が空く面はそこで切れる。 書かない図は
+       * 組み立て器が「最初に関わった段から最後まで」 の 1 本にする。
+       */
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      bands = [];
+      for (const it of items) {
+        // 一覧の読み手が先頭の `- ` を落とす形と落とさない形の両方を受ける
+        const m = it.trimmed.match(/^(?:-\s*)?(.+?)\s*:\s*(\d+)\s*\.\.\s*(\d+)\s*$/);
+        if (!m) {
+          errors.push({
+            line: it.no,
+            message: `帯の書き方が読めません: "${it.trimmed}"`,
+            hint: "use `- DB: 1..2` (面の名前と、段の番号の区間)",
+          });
+          continue;
+        }
+        bands.push({ actor: m[1]!, from: Number(m[2]), to: Number(m[3]) });
+      }
       i = next;
       continue;
     }
@@ -899,6 +945,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(values.length > 0 ? { values } : {}),
       viewport,
       lanes: lanesMap,
+      ...(bands && bands.length > 0 ? { bands } : {}),
       readouts: readoutsList,
       inputs: inputsList,
       formulas: formulasList,
@@ -2430,6 +2477,22 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
           .map((x) => stripQuotes(x.trim()))
           .filter(Boolean);
         break;
+      /*
+       * 行頭の印 (#1466)。 `rows` と同じ並びで、空文字はその行に印を付けない。
+       *
+       * **語の意味は図の種類が決める**。 ER は `pk` / `fk` / `opt`、状態遷移は
+       * `entry` / `exit` / `do` / `internal`。 印の 2 軸 (形 × 塗り) は共通だが、その軸が
+       * 何を指すかは種類ごとに違う = 1 つの語彙に畳むと、どの図でも意味が合わない語が残る。
+       *
+       * 空の要素を捨てない (`filter(Boolean)` を掛けない) = 並びが `rows` とずれる。
+       */
+      case "marks":
+      case "印":
+        out.marks = raw
+          .replace(/^\[|\]$/g, "")
+          .split(/,(?![^[]*\])/)
+          .map((x) => stripQuotes(x.trim()));
+        break;
       case "位置":
       case "pos": {
         // `位置: 300,200` の形。 posX と posY は両方揃わないと効かないので、 1 つの項目に
@@ -2594,6 +2657,9 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "前の値",
   "rows",
   "行",
+  // 行頭の印 (#1466)。 `rows` と同じ並びで、形 × 塗り の 2 軸を語で書く
+  "marks",
+  "印",
   // 箱の中に描く図形 (#1374)
   "shape",
   "図形",
@@ -2758,6 +2824,7 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "value",
   "previous",
   "rows",
+  "marks",
   "lane",
   "stack",
   "initial",
@@ -2911,6 +2978,7 @@ export const INLINE_ACTOR_ALIASES: Record<string, string> = {
   値: "value",
   前の値: "previous",
   行: "rows",
+  印: "marks",
 };
 
 /** 中括弧に書かれた日本語の項目名を、同じ意味の英語名に寄せる (#1301) */
@@ -2934,6 +3002,7 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "value",
   "previous",
   "rows",
+  "marks",
   "lane",
   "stack",
   "initial",
@@ -2999,6 +3068,30 @@ const FLOW_INLINE_READERS = {
   // 矢印の先の形 (#1462)。 書かなければ描画側の既定 (塗った三角) になる
   head: (v: string | undefined) =>
     v !== undefined && EDGE_HEAD_VALUES.includes(v) ? (v as EdgeHead) : undefined,
+  // 出どころ側の端の形 (#1466)。 ER は端ごとに違う個数を示すので両端に要る
+  tailHead: (v: string | undefined) =>
+    v !== undefined && EDGE_HEAD_VALUES.includes(v) ? (v as EdgeHead) : undefined,
+  // 端の印の塗り (#1466)。 白抜きの菱が「持つ」、塗った菱が「抱える」
+  headFill: (v: string | undefined) =>
+    v !== undefined && EDGE_HEAD_FILL_VALUES.includes(v) ? (v as EdgeHeadFill) : undefined,
+  tailHeadFill: (v: string | undefined) =>
+    v !== undefined && EDGE_HEAD_FILL_VALUES.includes(v) ? (v as EdgeHeadFill) : undefined,
+  /*
+   * クラス図の関係の種類 (#1466)。 書くと **線と端の形と塗りと付く側** がまとめて決まる
+   * (`CLASS_RELATION_LOOK`)。
+   *
+   * 4 つを個別に書かせない = 組合せは 6 通りしか無く、1 つでも書き違えると読み手に別の意味で
+   * 伝わる (菱を逆に置くと持ち主が入れ替わる)。 種類で書けばその 6 通りから外れない。
+   */
+  relation: (v: string | undefined) =>
+    v !== undefined && CLASS_RELATION_VALUES.includes(v) ? (v as ClassRelationType) : undefined,
+  /*
+   * 順序図の言づての種類 (#1466)。 書くと線と矢の形がまとめて決まる。
+   *
+   * 呼ぶ (実線 + 塗った矢) / 返す (破線 + 開いた矢) / 投げる (実線 + 開いた矢) の 3 つ。
+   */
+  kind: (v: string | undefined) =>
+    v !== undefined && SEQ_MESSAGE_VALUES.includes(v) ? (v as SequenceMessageKind) : undefined,
   /*
    * 矢印を値に追随させる 3 欄 (#1396)。 箱の `wBind` (#1392) と同じく文字列だけを取る。
    *
@@ -3113,6 +3206,13 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
             .split(/,(?![^[]*\])/)
             .map((x) => stripQuotes(x.trim()))
             .filter(Boolean)
+        : undefined,
+      // 行頭の印 (#1466)。 `rows` と同じ並びなので **空の要素を捨てない**
+      marks: opts.marks
+        ? opts.marks
+            .replace(/^\[|\]$/g, "")
+            .split(/,(?![^[]*\])/)
+            .map((x) => stripQuotes(x.trim()))
         : undefined,
       lane: opts.lane,
       // 箱の中に描く図形 (#1374)。 パーツでは状態の上書きとして意味を持つため横取りしない
@@ -3248,12 +3348,23 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     }
     // 読めない語を黙って捨てない (#1462)。 捨てると「書いたのに端の形が変わらない」 が
     // 手掛かりなしで起きる
-    if (opts.head !== undefined && 中括弧.head === undefined) {
-      errors.push({
-        line: line.no,
-        message: `矢印の head が読めません: "${opts.head}"`,
-        hint: `使える値 = ${EDGE_HEAD_VALUES.join(", ")}`,
-      });
+    // 読めない語を黙って捨てない (#1462 / #1466)。 捨てると「書いたのに見た目が変わらない」 が
+    // 手掛かりなしで起きる。 端の 3 欄と関係の種類を同じ形で見る
+    for (const [欄, 使える] of [
+      ["head", EDGE_HEAD_VALUES],
+      ["tailHead", EDGE_HEAD_VALUES],
+      ["headFill", EDGE_HEAD_FILL_VALUES],
+      ["tailHeadFill", EDGE_HEAD_FILL_VALUES],
+      ["relation", CLASS_RELATION_VALUES],
+      ["kind", SEQ_MESSAGE_VALUES],
+    ] as const) {
+      if (opts[欄] !== undefined && 中括弧[欄] === undefined) {
+        errors.push({
+          line: line.no,
+          message: `矢印の ${欄} が読めません: "${opts[欄]}"`,
+          hint: `使える値 = ${使える.join(", ")}`,
+        });
+      }
     }
     数と真偽 = 表で読む(FLOW_INLINE_VALUE_KINDS, opts, "矢印の ", line.no, errors);
     rest = 塊.前.trim();
@@ -3263,6 +3374,11 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   const cardinality = 中括弧.cardinality as string | undefined;
   const side = 中括弧.side as "top" | "right" | "bottom" | "left" | undefined;
   const head = 中括弧.head as EdgeHead | undefined;
+  const tailHead = 中括弧.tailHead as EdgeHead | undefined;
+  const headFill = 中括弧.headFill as EdgeHeadFill | undefined;
+  const tailHeadFill = 中括弧.tailHeadFill as EdgeHeadFill | undefined;
+  const relation = 中括弧.relation as ClassRelationType | undefined;
+  const msgKind = 中括弧.kind as SequenceMessageKind | undefined;
   // 値に追随する 3 欄 (#1396)。 空は捨てずに知らせる = 描画側は空文字を既定値へ落とさず
   // そのまま置換に使うため、書き忘れが「線が消えた」 形で出る
   const widthBind = 追随する大きさとして読む(
@@ -3344,6 +3460,11 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     cardinality,
     side,
     head,
+    tailHead,
+    headFill,
+    tailHeadFill,
+    relation,
+    msgKind,
     widthBind,
     strokeBind,
     dashOffsetBind,
