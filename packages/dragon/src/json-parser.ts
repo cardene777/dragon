@@ -21,6 +21,7 @@
 import {
   DRAW_WORDS,
   EDGE_SIDE_VALUES,
+  EDGE_HEAD_VALUES,
   NODE_KIND_VALID,
   PRESET_TYPES,
   STYLE_VALID,
@@ -36,7 +37,7 @@ import {
   type 図形の定義,
 } from "./v05/parser";
 import type { CompileToCdlOpts } from "./compile";
-import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
+import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead } from "@cardenelabs/cdl";
 import { extractIdentifiers, parseFormula } from "@cardenelabs/cdl";
 import type {
   DslDocument,
@@ -318,6 +319,13 @@ export interface JsonStep {
   /** 矢印がどの辺から出るか (#1385)。 記法の `side:` と同じ */
   side?: "top" | "right" | "bottom" | "left";
   /**
+   * 矢印の先の形 (#1462)。 記法の `{ head: triangle }` と同じ。
+   *
+   * 三角 (継ぐ) / 菱 (持つ) / 開いた矢 (使う) / 鳥の足 (多)。
+   * 書かなければ従来どおり塗った三角になる。
+   */
+  head?: EdgeHead;
+  /**
    * 矢印の色 (#1304)。 記法の `(成功)` と同じく別名 (`成功` / `neutral` 等) も受ける。
    *
    * `string & {}` は箱の `tone` と同じ idiom = 正規の色名を補完に出しつつ別名も通す。
@@ -499,6 +507,8 @@ export const ACCEPTED_KEYS = {
     "sub",
     // 矢印がどの辺から出るか (#1385)
     "side",
+    // 矢印の先の形 (#1462)
+    "head",
     "tone",
     "style",
     "guard",
@@ -561,6 +571,7 @@ export type 欄の型 =
   | "色"
   | "線種"
   | "辺"
+  | "端の形"
   | "色か色番号"
   | "描くもの"
   | "必須の図種"
@@ -639,6 +650,7 @@ export const 欄の型表 = {
     sub: "文字列",
     // 矢印がどの辺から出るか (#1385)
     side: "辺",
+    head: "端の形",
     tone: "色",
     style: "線種",
     guard: "文字列",
@@ -886,6 +898,18 @@ function 値を検査(
         errors.push({
           path,
           message: `${名前} must be one of: ${EDGE_SIDE_VALUES.join(", ")}`,
+          hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
+        });
+      }
+      return;
+    case "端の形":
+      if (v === undefined) return;
+      // 受ける語は記法と同じ一覧を見る (`EDGE_HEAD_VALUES`)。 写すと描画側が形を増やした時に
+      // 片方だけ古くなる
+      if (typeof v !== "string" || !EDGE_HEAD_VALUES.includes(v)) {
+        errors.push({
+          path,
+          message: `${名前} must be one of: ${EDGE_HEAD_VALUES.join(", ")}`,
           hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
         });
       }
@@ -2240,6 +2264,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     label: s.label,
     sub: s.sub,
     side: s.side as "top" | "right" | "bottom" | "left" | undefined,
+    // 矢印の先の形 (#1462)。 読めない語は組み立てが落とす
+    head: s.head,
     // 箱と同じ読み替えを通す (#1304)。 通さないと `tone: "成功"` が色名として解決されないまま
     // 図に届き、同じ値が箱では色になり矢印では色にならない
     tone: resolveTone(s.tone),

@@ -105,10 +105,10 @@ describe("Text DSL integration ... 公開品質保証", () => {
       expect(r.ok).toBe(false);
     });
 
-    it("1 actor のみ + self-loop edge は矢印を落として知らせる (#1227)", () => {
-      // 描画側が図種を問わず自己ループを受けないため、組み立てから外す。
+    it("1 actor のみ + self-loop edge は輪として残る (#1227 → #1462)", () => {
+      // 描画側が輪として描けるようになった (`cdl#560`、0.15.0)。
       // 落ちずに図が返ること自体がこの edge case の要点
-      const 知らせ: { kind: string }[] = [];
+      const 知らせ: { kind: string; message: string }[] = [];
       const diag = textDslToDiagram(
         `
 タイトル: Self
@@ -120,8 +120,9 @@ describe("Text DSL integration ... 公開品質保証", () => {
 `,
         { onNotice: (n) => 知らせ.push(n) },
       );
-      expect(diag.edges.length).toBe(0);
-      expect(知らせ.filter((n) => n.kind === "flow-self-loop")).toHaveLength(1);
+      // #1462 で自分へ戻る矢印を落とさなくなった = 輪として残り、知らせも出ない
+      expect(diag.edges.filter((e) => e.from === e.to), "自己参照が消えている").toHaveLength(1);
+      expect(知らせ.filter((n) => n.message.includes("自分へ戻る矢印"))).toHaveLength(0);
     });
 
     it("10 actor + 20 step (large diagram)", () => {

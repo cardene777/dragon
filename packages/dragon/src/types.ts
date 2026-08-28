@@ -3,7 +3,7 @@
  * docs/cdl/text-dsl-spec.md の文法を AST に変換した中間表現
  */
 
-import type { CdlDiagram, NodeKind, Tone, EdgeStyle } from "@cardenelabs/cdl";
+import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
 
 /**
@@ -417,6 +417,16 @@ export type DslStep = {
   dashOffsetBind?: string;
   /** 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ */
   side?: "top" | "right" | "bottom" | "left";
+  /**
+   * 矢印の先の形 (#1462)。 書かなければ従来どおり塗った三角。
+   *
+   * 4 図の設計は **端の形で関係の種類を示す** = 三角 (継ぐ) / 菱 (持つ) /
+   * 開いた矢 (使う) / 鳥の足 (多)。 書けないと 4 種とも同じ三角になり、
+   * 線の種類 (実線 / 点線) だけで 6 種の関係を区別することになる。
+   *
+   * 受ける語は描画側の `EDGE_HEADS` から導く = 描画側が増やせば書けるようになる。
+   */
+  head?: EdgeHead;
   labelOffsetX?: number;
   labelOffsetY?: number;
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */

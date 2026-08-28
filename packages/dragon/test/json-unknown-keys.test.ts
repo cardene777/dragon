@@ -139,6 +139,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     dashOffsetBind: "{dash}",
     // 矢印がどの辺から出るか (#1385)
     side: "left",
+    head: "triangle",
     cardinality: "1..N",
     labelOffsetX: 1,
     labelOffsetY: 2,

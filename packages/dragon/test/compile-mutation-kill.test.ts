@@ -1178,12 +1178,12 @@ describe("resolveHighlight: 矢印記法 (A→B)", () => {
     expect(d.phases[0]!.activate).toContain("e0-a-b");
   });
 
-  it("自己 edge (A→A) は矢印ごと落ちるので何も activate しない (#1227)", () => {
-    // 描画側が自己ループを受けないため、組み立てに渡す前に外す。 光らせる相手も残らない
+  it("自己 edge (A→A) も光らせる相手になる (#1227 → #1462)", () => {
+    // 描画側が輪として描けるようになった (`cdl#560`、0.15.0) ので、矢印として残る。
+    // 残る以上、`A→A` と書いた段はその矢印を光らせる
     const d = compileSeqHighlight(["A→A"], { flow: [step("A", "A")] });
     const act = d.phases[0]!.activate;
-    expect(act.filter((id) => id === "s0-a")).toHaveLength(0);
-    expect(act.some((id) => id.endsWith("-a-a"))).toBe(false);
+    expect(act.some((id) => id.endsWith("-a-a")), "自己 edge を光らせていない").toBe(true);
   });
 
   it("同一 from/to の flow が複数あれば全 edge を activate", () => {
@@ -1815,11 +1815,11 @@ describe("applyEdgeInlineOptions: edge 検索条件の分岐", () => {
     expect(e?.labelOffsetX).toBeUndefined();
   });
 
-  it("自己 edge (A→A) は矢印ごと落ちるので edge が作られない (#1227)", () => {
-    // 落とす前に inline option を解決しても、その edge 自体が図に載らない
+  it("自己 edge (A→A) にも inline option が載る (#1227 → #1462)", () => {
+    // 矢印として残るようになったので、書いた項目もその矢印に載る
     const d = compile("sequence", { flow: [step("A", "A", { guard: "self" })] });
-    expect(d.edges.some((e) => e.guard === "self")).toBe(false);
-    expect(d.edges.filter((e) => e.from === e.to)).toHaveLength(0);
+    expect(d.edges.filter((e) => e.from === e.to), "自己 edge が消えている").toHaveLength(1);
+    expect(d.edges.some((e) => e.guard === "self"), "書いた項目が載っていない").toBe(true);
   });
 });
 
