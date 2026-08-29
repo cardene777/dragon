@@ -5,6 +5,18 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Changed
+
+- **見本 6 件の回避を外した** (#1502)
+
+  `@cardenelabs/cdl` を `^0.20.1` から `^0.21.0` へ上げた。 説明どうしの近接を engine が
+  解消するようになり、#1498 で見本に書いた高さの指定が要らなくなった。
+
+  `interactive-kpi-dashboard` の指定は残す。 engine は world unit で間隔を確保するが検査は
+  px に投影して測るため、この図 (viewBox 2511) だけ engine 側で解消できない。
+
+  `infra-demo` に書いた小見出しと説明も残す = 中身として妥当で、外す理由が無い。
+
 ## [0.18.0] - 2026-08-29
 
 ### Changed
