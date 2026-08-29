@@ -146,6 +146,8 @@ export type CompileNotice = {
     | "external-paint-dropped"
     // 図の中に描く部品を持たない見本を重ねた (#1017)
     | "part-not-drawn"
+    // 向きが効かない形で `向き:` を書いた (#1494)
+    | "direction-not-honored"
     // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)
     | "scale-reserved"
     // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
@@ -317,6 +319,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportActorKindNotHonored(書いたまま, opts?.onNotice);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
+  reportDirectionNotHonored(書いたまま, opts?.onNotice);
   reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
   reportAxesNotHonored(書いたまま, opts?.onNotice);
@@ -6215,7 +6218,13 @@ function compileFlow(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路で複数 phase 注入
   // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
   // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
-  if ((doc.animate && doc.animate.phases.length > 0) || 書いた縦列に置く("flow", doc)) {
+  // **向きを書いた形も generic 経路へ** (#1494)。 静止図の経路は並びを固定で持つので、
+  // ここを通さないと書いた向きが黙って消える (縦列を書いた形と同じ理由)
+  if (
+    (doc.animate && doc.animate.phases.length > 0) ||
+    書いた縦列に置く("flow", doc) ||
+    doc.direction !== undefined
+  ) {
     return compileGenericWithAnimate(doc, { kind: "flow", laneId: "main", laneWidth: 400 });
   }
   // 登場人物が 0 人なら枠も作らない。 描画側の `flow()` は枠を必ず 1 つ作るため、 そのまま
@@ -6251,7 +6260,13 @@ function compileSwimlane(doc: DslDocument): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路 (各 actor 別 lane で配置)
   // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
   // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
-  if ((doc.animate && doc.animate.phases.length > 0) || 書いた縦列に置く("swimlane", doc)) {
+  // **向きを書いた形も generic 経路へ** (#1494)。 静止図の経路は並びを固定で持つので、
+  // ここを通さないと書いた向きが黙って消える (縦列を書いた形と同じ理由)
+  if (
+    (doc.animate && doc.animate.phases.length > 0) ||
+    書いた縦列に置く("swimlane", doc) ||
+    doc.direction !== undefined
+  ) {
     return compileGenericWithAnimate(doc, { kind: "swimlane", laneWidth: 400 });
   }
   // swimlane preset は lane 配置 + 自由 node/edge。
@@ -6515,6 +6530,65 @@ function 後ろへ戻る矢印か(
 }
 
 /**
+ * 向きを選べる図種 (#1494)。
+ *
+ * **並び方そのものが読み方を担う図種は外す**。 表の図は「1 縦列 1 表」、クラス図と状態の図は
+ * 設計が格子に置く形、順序図は 1 枚の板で、どれも向きを入れ替えると図の意味が変わる。
+ *
+ * `topology` も外す = 入れ物 (`contain`) を持つ図で、縦列の中に箱を囲む作りが向きと結びついている。
+ */
+const 向きを選べる図種: ReadonlySet<PresetType> = new Set<PresetType>(["flow", "swimlane"]);
+
+/** その図種の既定の向き。 書かなかった時は今までどおりの並びになる。 */
+function 既定の向き(kind: PresetType): "縦" | "横" {
+  return kind === "flow" || kind === "topology" ? "縦" : "横";
+}
+
+/**
+ * 実際に使う向き (#1494)。
+ *
+ * 書いていない図と、効かない図種に書いた図は既定のまま = **書かない図の並びは 1 つも動かない**。
+ */
+function 並べる向き(kind: PresetType, doc: DslDocument): "縦" | "横" {
+  if (doc.direction === undefined) return 既定の向き(kind);
+  if (!向きを選べる図種.has(kind)) return 既定の向き(kind);
+  return doc.direction;
+}
+
+/**
+ * 書いた向きが効かない時に伝える (#1494)。
+ *
+ * 効かない形は 2 つある。 向きを選べない図種に書いた形と、全ての箱が縦列を書いた形。
+ * 後者は書いた縦列が勝つので、向きだけが黙って捨てられる。
+ *
+ * 黙って捨てると「書いたのに変わらない」 が手掛かりなしで起きる。
+ */
+function reportDirectionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.direction === undefined) return;
+  const 行 = doc.directionPos?.line ?? doc.pos?.line ?? 0;
+  if (!向きを選べる図種.has(doc.type)) {
+    onNotice({
+      kind: "direction-not-honored",
+      actor: doc.title,
+      line: 行,
+      message: `書いた direction は効きません (type: ${doc.type} は並び方そのものが読み方を決めます)`,
+      hint: `direction を書けるのは ${[...向きを選べる図種].join(" / ")} です`,
+    });
+    return;
+  }
+  if (書いた縦列に置く(doc.type, doc)) {
+    onNotice({
+      kind: "direction-not-honored",
+      actor: doc.title,
+      line: 行,
+      message: "書いた direction は効きません (全ての箱が縦列を書いているので、そちらが優先されます)",
+      hint: "direction で並べたい時は箱の `lane` を外してください",
+    });
+  }
+}
+
+/**
  * 縦列を選べる図種 (#1263)。
  *
  * 縦列を **箱を並べるための入れ物** として使う図種だけを許す。 順序図と solidity は
@@ -6616,12 +6690,18 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
         title: 箱の題(a),
       });
     });
-  } else if (kind === "flow" || kind === "topology") {
+  } else if (並べる向き(kind, doc) === "縦") {
     // 1 lane に全 actor を縦 stack
     const lid = opts.laneId ?? "main";
     b.lane(lid, {
       width: laneWidth,
-      label: doc.title,
+      /*
+       * **見出しは自然に縦へ積む図種だけ** (#1494)。
+       *
+       * `direction: 縦` を書いた泳法図がここへ来るようになった。 その図に題を渡すと、図の題が
+       * 縦列の見出しとしてもう 1 度出る (実測 = 「認証の流れ」 が題と見出しの 2 箇所に並んだ)。
+       */
+      ...(kind === "flow" || kind === "topology" ? { label: doc.title } : {}),
       ...(kind === "topology" ? { contain: true } : {}),
     });
     doc.actors.forEach((a, idx) => {
@@ -6635,7 +6715,8 @@ function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiag
       });
     });
   } else {
-    // swimlane / er / state ... actor ごとに 1 lane (横並び)
+    // actor ごとに 1 lane (横並び)。 `swimlane` / `er` / `state` の既定と、
+    // `向き: 横` を書いた流れ図がここに来る (#1494)
     //
     // **見出しを付けるのは `swimlane` だけ** (#1241)。 3 図種とも箱を 1 つずつ持ち、
     // その箱が既に名前を描く。 縦列にも同じ名前を渡すと **同じ字が縦に 2 つ並ぶ**

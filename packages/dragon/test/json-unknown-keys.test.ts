@@ -89,6 +89,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     bands: [{ actor: "A", from: 0, to: 0 }],
     // 矢印をいつ出すか (#1470)
     reveal: "all",
+    direction: "horizontal",
   },
   actor: {
     name: "A",

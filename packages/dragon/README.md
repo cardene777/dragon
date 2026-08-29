@@ -71,6 +71,7 @@ flow:
 | `scrolls`   | 巻き上げに応じて進む値 (画面を巻き上げた量から 0 から 1 を作る)                                                                            |
 | `bands`     | 動いている間の帯 (順序図。 `- DB: 1..2` の形で段の番号の区間を書く)                                                                        |
 | `reveal`    | 矢印をいつ出すか (`phase` = 段が名指しする矢印はその段まで描かない (既定) / `all` = 最初から全部描く)                                      |
+| `direction` | 図の並ぶ向き (`縦` / `横`、英語なら `vertical` / `horizontal`)。 効くのは `flow` と `swimlane` だけ |
 
 <!-- notation:top-level:end -->
 

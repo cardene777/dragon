@@ -17,6 +17,34 @@ export const HEADERS = {
 /** preset 名 */
 export const PRESET_NAMES = ["sequence", "flow", "swimlane", "er", "state", "topology"] as const;
 
+/**
+ * 図の並ぶ向き (`direction:`、 #1494)。
+ *
+ * 縦列 (`lane`) は横、段 (`stack`) は縦に置かれるので、向きは「1 つの縦列に積む」 か
+ * 「1 人ずつ縦列を作る」 かの選択になる。 どちらも組み立て側に既にある経路で、
+ * 記法から名指しできる言葉が無かった。
+ */
+export const DIRECTIONS = ["縦", "横"] as const;
+export type DslDirection = (typeof DIRECTIONS)[number];
+
+/**
+ * 向きの別名。 色 (`色` / `color` / `tone`) と同じく日本語と英語の両方で書ける。
+ *
+ * 正規の語を鍵にも入れておく = 引く側が別名かどうかを気にせず 1 度で解決できる。
+ */
+export const DIRECTION_ALIAS: Record<string, DslDirection> = {
+  縦: "縦",
+  横: "横",
+  vertical: "縦",
+  horizontal: "横",
+};
+
+/** 書いた向きを正規の語に直す。 読めない語は `null`。 */
+export function resolveDirection(s: string): DslDirection | null {
+  const k = s.trim().toLowerCase();
+  return Object.hasOwn(DIRECTION_ALIAS, k) ? DIRECTION_ALIAS[k]! : null;
+}
+
 /** NodeKind 別名 (日本語 → English) */
 export const NODE_KIND_ALIAS: Record<string, NodeKind> = {
   // 日本語

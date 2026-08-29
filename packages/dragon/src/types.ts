@@ -5,6 +5,7 @@
 
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
+import type { DslDirection } from "./keywords";
 
 /**
  * 記法が書ける箱の種類 (#1420)。
@@ -166,6 +167,17 @@ export type DslDocument = {
    * 段に関わらず最初から全部描く。 描き手の `CdlDiagram.edgeReveal` にそのまま渡る。
    */
   reveal?: EdgeReveal;
+  /**
+   * 図の並ぶ向き (`direction:`、 #1494)。
+   *
+   * `縦` は 1 つの縦列に積み、`横` は 1 人ずつ縦列を作る。 効くのは流れ図と泳法図だけで、
+   * 他の図種は並び方そのものが読み方を担うため書いても効かない (知らせを出す)。
+   *
+   * 全ての箱が縦列を書いた形では、書いた縦列が勝つ (同じく知らせを出す)。
+   */
+  direction?: DslDirection;
+  /** `direction:` を書いた行。 効かない時の知らせで、書いた場所を指すために持つ */
+  directionPos?: { line: number };
   groups?: Record<string, DslGroup>;
   /**
    * 値を見せる部品 (`readouts:`、 #1374)。 割合の輪や数え上げを図の脇に出す。

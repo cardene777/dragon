@@ -187,6 +187,8 @@ export interface DragonJson {
   bands?: { actor: string; from: number; to: number }[];
   /** 矢印をいつ出すか (#1470)。 記法の最上位 `reveal:` と同じ */
   reveal?: EdgeReveal;
+  /** 図の並ぶ向き (#1494)。 記法の最上位 `direction:` と同じ。 JSON は英語の語で書く */
+  direction?: "vertical" | "horizontal";
 }
 
 export interface JsonActor {
@@ -487,6 +489,8 @@ export const ACCEPTED_KEYS = {
     "bands",
     // 矢印をいつ出すか (#1470)
     "reveal",
+    // 図の並ぶ向き (#1494)
+    "direction",
   ],
   actor: [
     "name",
@@ -643,6 +647,8 @@ export const 欄の型表 = {
     bands: "並び",
     // 矢印をいつ出すか (#1470)
     reveal: "非空の文字列",
+    // 図の並ぶ向き (#1494)
+    direction: "非空の文字列",
   },
   actor: {
     name: "必須の非空文字列",
@@ -2494,6 +2500,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     bands: json.bands,
     // 矢印をいつ出すか (#1470)
     reveal: json.reveal,
+    // 図の並ぶ向き (#1494)。 JSON は英語で書くので、記法と同じ語に直してから渡す
+    ...(json.direction !== undefined ? { direction: json.direction === "horizontal" ? ("横" as const) : ("縦" as const) } : {}),
     pos: p0,
   };
 }

@@ -44,7 +44,8 @@
 import type { NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import { TONES, NODE_KINDS, EDGE_HEADS, EDGE_HEAD_FILLS, EDGE_STYLES, EDGE_REVEALS, CLASS_RELATION_LOOK, SEQUENCE_MESSAGE_LOOK, parseFormula } from "@cardenelabs/cdl";
 import type { EdgeReveal } from "@cardenelabs/cdl";
-import { TONE_ALIAS, NODE_KIND_ALIAS } from "../keywords";
+import { TONE_ALIAS, NODE_KIND_ALIAS, DIRECTIONS, resolveDirection } from "../keywords";
+import type { DslDirection } from "../keywords";
 import { parseRelativePos, orderByDependency } from "../relative-pos";
 import {
   checkValueExpression,
@@ -141,6 +142,17 @@ export const TOP_LEVEL_KEYS = [
   "bands",
   // 矢印をいつ出すか (#1470)
   "reveal",
+  /*
+   * 図の並ぶ向き (#1494)。
+   *
+   * **最上位の語は英語にする**。 日本語の見出し (`タイトル:` / `種類:` 等) は v0.4 の
+   * 書き方で、2026-12-31 に廃止する側にある。 ここで日本語の語を足すと、消す予定の形を
+   * 増やすことになる。
+   *
+   * 値は日本語と英語の両方を受ける。 箱の項目 (`色` / `種類` / `位置` / `大きさ`) は v0.5 でも
+   * 日本語で書けるので、書き手が自然に言う語 (`縦` / `横`) を残せる。
+   */
+  "direction",
 ] as const;
 
 /**
@@ -426,6 +438,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let eyebrow: string | null = null;
   let eyebrowLine = 0;
   let reveal: EdgeReveal | null = null;
+  let direction: DslDirection | null = null;
+  let directionLine = 0;
   let axes: DslAxes | undefined = undefined;
   let axesLine = 0;
   let actors: DslActor[] = [];
@@ -486,6 +500,32 @@ export function parseTextDslV05(src: string): V05ParseResult {
             line: line.no,
             message: `reveal が読めません (書いた値: ${v})`,
             hint: `使える語 = ${EDGE_REVEALS.join(" / ")}`,
+          });
+        }
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "direction") {
+      /*
+       * 図の並ぶ向き (#1494)。
+       *
+       * `縦` は 1 つの縦列に積み、`横` は 1 人ずつ縦列を作る。 どちらも組み立て側に既にある
+       * 経路で、ここで足すのは名指しする言葉だけ。
+       *
+       * **書いた行を覚える**。 効かない図種に書いた時の知らせが、書いた場所を指せるようにする。
+       */
+      const v = (head.value ?? "").trim();
+      if (v.length > 0) {
+        const 解けた = resolveDirection(v);
+        if (解けた !== null) {
+          direction = 解けた;
+          directionLine = line.no;
+        } else {
+          errors.push({
+            line: line.no,
+            message: `direction が読めません (書いた値: ${v})`,
+            hint: `使える語 = ${DIRECTIONS.join(" / ")} / vertical / horizontal`,
           });
         }
       }
@@ -966,6 +1006,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       type: type!,
       ...(eyebrow !== null ? { eyebrow, eyebrowPos: { line: eyebrowLine } } : {}),
       ...(reveal !== null ? { reveal } : {}),
+      ...(direction !== null ? { direction, directionPos: { line: directionLine } } : {}),
       ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),
       actors,
       flow,
