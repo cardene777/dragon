@@ -205,7 +205,7 @@ export function CategoryPage(): React.ReactElement {
   const [速さ, set速さ] = useState<速さ>(既定の速さ);
   // 2 段目以降を描き直すか (#1359)。 速さと同じく、見ている 1 件だけに効く
   const [描き方, set描き方] = useState<描き方>(既定の描き方);
-  // 局面の表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
+  // シーンの表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
   const [modalStageEl, setModalStageEl] = useState<HTMLElement | null>(null);
 

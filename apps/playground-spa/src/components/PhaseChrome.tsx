@@ -1,11 +1,11 @@
 /**
- * 図に重ねる局面の表示 (#1143 でエディタに作り、#1239 で画面をまたげる形へ出した)。
+ * 図に重ねるシーンの表示 (#1143 でエディタに作り、#1239 で画面をまたげる形へ出した)。
  *
  * 設計 (`docs/design/app.pen`) は図を見せる画面すべてに 2 つを描いている。
  *
  * | 出すもの | 中身 |
  * |---|---|
- * | 局面の札 | いま何段目 / 全体で何段 / その段の題 |
+ * | シーンの札 | いま何段目 / 全体で何段 / その段の題 |
  * | 進み具合の帯 | 段の数だけ区切り、過ぎた段を塗る |
  *
  * ## なぜ engine の表示を使わないか
@@ -99,7 +99,7 @@ export function PhaseChrome({
       <div className={`cdl-phase-chip is-${align}`}>
         <span className="cdl-phase-dot" />
         <span>
-          局面 {今 + 1} / {一覧.length}
+          シーン {今 + 1} / {一覧.length}
         </span>
         {段.title !== "" && <span className="cdl-phase-title">· {段.title}</span>}
       </div>

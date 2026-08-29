@@ -19,7 +19,7 @@ export function PresetDetailPage(): React.ReactElement {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [locale] = useLocale();
-  // 局面の表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
+  // シーンの表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
 
   const preset = PRESETS.find((p) => p.slug === params.id);

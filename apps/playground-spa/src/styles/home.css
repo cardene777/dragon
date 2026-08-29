@@ -342,7 +342,7 @@
   background: var(--d-accent);
 }
 
-/* 図の中身。 局面は 4 つ、 1 周 5.6 秒を 4 等分して切替える */
+/* 図の中身。 シーンは 4 つ、 1 周 5.6 秒を 4 等分して切替える */
 .lifeline {
   stroke: var(--d-border);
   stroke-width: 1;

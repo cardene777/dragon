@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 /**
- * 図に重ねる局面の表示の検査 (#1239)。
+ * 図に重ねるシーンの表示の検査 (#1239)。
  *
  * `#1143` でエディタに作った表示を、画面をまたげる部品へ出した時に足した。 エディタ側の
  * 振る舞い (実画面での見え方 / 掴んで動かせるか) は `tests/editor-phase-chrome.spec.ts` が
@@ -65,14 +65,14 @@ describe("札と帯の中身 (#1239)", () => {
   it("札に今の段と全体の数と題が出る", () => {
     render(<PhaseChrome stage={null} phases={[段("p1", "受付"), 段("p2", "検査"), 段("p3", "完了")]} />);
     const chip = document.querySelector(".cdl-phase-chip");
-    expect(chip?.textContent).toContain("局面 1 / 3");
+    expect(chip?.textContent).toContain("シーン 1 / 3");
     expect(chip?.textContent).toContain("受付");
   });
 
   it("題が空なら題だけ出さない", () => {
     render(<PhaseChrome stage={null} phases={[段("p1", ""), 段("p2", "二")]} />);
     expect(document.querySelector(".cdl-phase-title")).toBeNull();
-    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("局面 1 / 2");
+    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("シーン 1 / 2");
   });
 
   it("帯は段の数だけ区切られる", () => {
@@ -112,7 +112,7 @@ describe("段の進行に追随する (#1239)", () => {
   it("属性が変わると札と帯が追随する", async () => {
     const stage = 舞台を作る(0);
     render(<PhaseChrome stage={stage} phases={[段("p1", "受付"), 段("p2", "検査"), 段("p3", "完了")]} />);
-    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("局面 1 / 3");
+    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("シーン 1 / 3");
 
     // engine と同じく React の外で属性を書き換える
     await act(async () => {
@@ -121,7 +121,7 @@ describe("段の進行に追随する (#1239)", () => {
       await Promise.resolve();
     });
 
-    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("局面 3 / 3");
+    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("シーン 3 / 3");
     const segs = [...document.querySelectorAll(".cdl-phase-seg")];
     expect(segs.map((s) => s.className.includes("is-done"))).toEqual([true, true, true]);
   });
@@ -137,7 +137,7 @@ describe("段の進行に追随する (#1239)", () => {
       await Promise.resolve();
     });
 
-    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("局面 2 / 2");
+    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("シーン 2 / 2");
   });
 
   it("数でない属性は 0 段目に倒す", async () => {
@@ -149,7 +149,7 @@ describe("段の進行に追随する (#1239)", () => {
       await Promise.resolve();
     });
 
-    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("局面 1 / 2");
+    expect(document.querySelector(".cdl-phase-chip")?.textContent).toContain("シーン 1 / 2");
   });
 });
 
@@ -163,6 +163,6 @@ describe("画面に出す形 (#1239)", () => {
   it("読み上げから外す", () => {
     // 段は 1 秒ごとに変わる。 読み上げに載せると図の説明が流れ続けて読めなくなる
     render(<PhaseChrome stage={null} phases={[段("p1", "一"), 段("p2", "二")]} />);
-    expect(screen.queryByText(/局面 1 \/ 2/)?.closest("[aria-hidden='true']")).not.toBeNull();
+    expect(screen.queryByText(/シーン 1 \/ 2/)?.closest("[aria-hidden='true']")).not.toBeNull();
   });
 });

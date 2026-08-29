@@ -61,7 +61,7 @@ export const CATEGORIES: CategoryMeta[] = [
     slug: "animation",
     label: "アニメーション",
     eyebrow: "時間軸の物語",
-    desc: "動く図の書き方。 phase で状態が推移 / 数値が滑らか補間 / 即時切替 / badge で局面表示 の 4 要素を組合せて時間軸の物語を作る。 静止図では伝わらない「変化」 「順序」 を語りたい時に。",
+    desc: "動く図の書き方。 phase で状態が推移 / 数値が滑らか補間 / 即時切替 / badge でシーン表示 の 4 要素を組合せて時間軸の物語を作る。 静止図では伝わらない「変化」 「順序」 を語りたい時に。",
     items: ["補間", "切替", "バッジ", "併用"],
     cluster: "extended",
   },

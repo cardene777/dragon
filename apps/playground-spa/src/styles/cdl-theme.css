@@ -141,9 +141,9 @@
   stroke: none !important;
 }
 
-/* 今の局面に関わる箱だけ枠を変える (#1143)。
+/* 今のシーンに関わる箱だけ枠を変える (#1143)。
  *
- * engine は局面ごとに `data-cdl-active` を付け替え、 箱の枠を描き分けている
+ * engine はシーンごとに `data-cdl-active` を付け替え、 箱の枠を描き分けている
  * (`CardNode` = `stroke={active ? accent : divider}` / `strokeWidth={active ? 3 : 1.25}`)。
  * 上の規則が `!important` で全部の箱に同じ枠を当てるため、 その描き分けが消えていた
  * (実測 = `active=true` の `api-header` と `false` の `db-header` が

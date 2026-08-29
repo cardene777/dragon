@@ -1,5 +1,5 @@
 /**
- * 図を見せる画面に局面の表示が出ることの検証 (#1239)。
+ * 図を見せる画面にシーンの表示が出ることの検証 (#1239)。
  *
  * 設計 (`docs/design/app.pen`) は図を見せる画面すべてに札と帯を描いているが、実装は
  * エディタ (`04`) だけが持ち、`03 カタログの分類` と `06 見本の詳細` は何も出していなかった。
@@ -34,17 +34,17 @@ const 画面 = [
 ] as const;
 
 for (const s of 画面) {
-  test.describe(`局面の表示 — ${s.名} (#1239)`, () => {
+  test.describe(`シーンの表示 — ${s.名} (#1239)`, () => {
     test("札に今の段と全体の数が出る", async ({ page }) => {
       await 開く(page, s.path);
       await expect(page.locator(".cdl-phase-chip")).toHaveCount(1);
-      // 「局面 N / M」 の形。 数が入っていることまで見る = 固定文字なら落ちる
-      expect(await 札(page)).toMatch(/局面 \d+ \/ \d+/u);
+      // 「シーン N / M」 の形。 数が入っていることまで見る = 固定文字なら落ちる
+      expect(await 札(page)).toMatch(/シーン \d+ \/ \d+/u);
     });
 
     test("帯が段の数だけ区切られる", async ({ page }) => {
       await 開く(page, s.path);
-      const 全体 = Number((await 札(page)).match(/局面 \d+ \/ (\d+)/u)?.[1] ?? "0");
+      const 全体 = Number((await 札(page)).match(/シーン \d+ \/ (\d+)/u)?.[1] ?? "0");
       expect(全体, "札から全体の段数を読めない").toBeGreaterThan(1);
       await expect(page.locator(".cdl-phase-seg")).toHaveCount(全体);
     });
