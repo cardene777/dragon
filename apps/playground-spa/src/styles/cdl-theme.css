@@ -57,6 +57,15 @@
      `--cdl-text-dim` より 1 段濃い = あちらは「読まなくてよい」、こちらは「読める」 */
   --cdl-text-2: var(--d-text-secondary);
 
+  /* 図表の系列色 (#1480)。 描画側は `var(--cdl-chart-N, <既定>)` の形で読むので、
+     ここを定義しないと明暗のどちらでも既定色が出る = 暗い画面で色が入れ替わらない。 */
+  --cdl-chart-1: var(--d-chart-1);
+  --cdl-chart-2: var(--d-chart-2);
+  --cdl-chart-3: var(--d-chart-3);
+  --cdl-chart-4: var(--d-chart-4);
+  --cdl-chart-5: var(--d-chart-5);
+  --cdl-chart-6: var(--d-chart-6);
+
   --cdl-note-fill: var(--d-warn-soft);
   --cdl-note-text: var(--d-warn);
 

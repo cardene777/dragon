@@ -655,7 +655,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "形を選び置き場所を決め局面ごとに動かす。 型に合わせて諦めていた図が、 文章のまま組み上がる。",
+                  "content": "形を選び置き場所を決めシーンごとに動かす。 型に合わせて諦めていた図が、 文章のまま組み上がる。",
                   "lineHeight": 1.95,
                   "textAlign": "center",
                   "fontFamily": "$font-body",
@@ -2591,7 +2591,7 @@
                 {
                   "type": "frame",
                   "id": "zJdEj",
-                  "name": "Feature 局面ごとに動き出す",
+                  "name": "Feature シーンごとに動き出す",
                   "width": "fill_container",
                   "layout": "vertical",
                   "children": [
@@ -2634,7 +2634,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面ごとに動き出す",
+                          "content": "シーンごとに動き出す",
                           "fontFamily": "$font-display",
                           "fontSize": 19,
                           "fontWeight": "600"
@@ -2646,7 +2646,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面を切り替えると図そのものが推移する。 数値は補間され、 順序と因果が目に見える。",
+                          "content": "シーンを切り替えると図そのものが推移する。 数値は補間され、 順序と因果が目に見える。",
                           "lineHeight": 1.85,
                           "fontFamily": "$font-body",
                           "fontSize": 14,
@@ -3000,7 +3000,7 @@
                       "fill": "$text-secondary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "右の実況表示に、 局面ごとに動く図が出る。 場所を指す文字列で共有もでき、 持ち出しもできる。",
+                      "content": "右の実況表示に、 シーンごとに動く図が出る。 場所を指す文字列で共有もでき、 持ち出しもできる。",
                       "lineHeight": 1.85,
                       "fontFamily": "$font-body",
                       "fontSize": 14,
@@ -4187,7 +4187,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "形を選び置き場所を決め局面ごとに動かす。 型に合わせて諦めていた図が、 文章のまま組み上がる。",
+                  "content": "形を選び置き場所を決めシーンごとに動かす。 型に合わせて諦めていた図が、 文章のまま組み上がる。",
                   "lineHeight": 1.95,
                   "textAlign": "center",
                   "fontFamily": "$font-body",
@@ -6123,7 +6123,7 @@
                 {
                   "type": "frame",
                   "id": "kzE2I",
-                  "name": "Feature 局面ごとに動き出す",
+                  "name": "Feature シーンごとに動き出す",
                   "width": "fill_container",
                   "layout": "vertical",
                   "children": [
@@ -6166,7 +6166,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面ごとに動き出す",
+                          "content": "シーンごとに動き出す",
                           "fontFamily": "$font-display",
                           "fontSize": 19,
                           "fontWeight": "600"
@@ -6178,7 +6178,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面を切り替えると図そのものが推移する。 数値は補間され、 順序と因果が目に見える。",
+                          "content": "シーンを切り替えると図そのものが推移する。 数値は補間され、 順序と因果が目に見える。",
                           "lineHeight": 1.85,
                           "fontFamily": "$font-body",
                           "fontSize": 14,
@@ -6532,7 +6532,7 @@
                       "fill": "$text-secondary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "右の実況表示に、 局面ごとに動く図が出る。 場所を指す文字列で共有もでき、 持ち出しもできる。",
+                      "content": "右の実況表示に、 シーンごとに動く図が出る。 場所を指す文字列で共有もでき、 持ち出しもできる。",
                       "lineHeight": 1.85,
                       "fontFamily": "$font-body",
                       "fontSize": 14,
@@ -8147,7 +8147,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "動く図の書き方。 局面での推移、 数値の補間、 即時の切替、 名札での局面表示。",
+                          "content": "動く図の書き方。 シーンでの推移、 数値の補間、 即時の切替、 名札でのシーン表示。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -8530,7 +8530,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "つまみを動かす、 巻き取りで局面が進む、 押して切り替わる等の仕組み。",
+                          "content": "つまみを動かす、 巻き取りでシーンが進む、 押して切り替わる等の仕組み。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -9134,7 +9134,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "動く図の書き方。 局面での推移、 数値の補間、 即時の切替、 名札での局面表示。",
+                          "content": "動く図の書き方。 シーンでの推移、 数値の補間、 即時の切替、 名札でのシーン表示。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -9517,7 +9517,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "つまみを動かす、 巻き取りで局面が進む、 押して切り替わる等の仕組み。",
+                          "content": "つまみを動かす、 巻き取りでシーンが進む、 押して切り替わる等の仕組み。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -9677,7 +9677,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "動く図の書き方をまとめた分類。 局面での推移、 数値の補間、 即時の切替、 名札での局面表示 の 4 経路を集めてある。",
+                  "content": "動く図の書き方をまとめた分類。 シーンでの推移、 数値の補間、 即時の切替、 名札でのシーン表示 の 4 経路を集めてある。",
                   "lineHeight": 1.9,
                   "fontFamily": "$font-body",
                   "fontSize": 15,
@@ -9757,7 +9757,7 @@
                     {
                       "type": "frame",
                       "id": "KjeyW",
-                      "name": "Row 局面での推移",
+                      "name": "Row シーンでの推移",
                       "width": "fill_container",
                       "fill": "$accent-soft",
                       "cornerRadius": 3,
@@ -9775,7 +9775,7 @@
                           "fill": "$accent",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面での推移",
+                          "content": "シーンでの推移",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -9914,7 +9914,7 @@
                     {
                       "type": "frame",
                       "id": "Q4P77u",
-                      "name": "Row 名札での局面表示",
+                      "name": "Row 名札でのシーン表示",
                       "width": "fill_container",
                       "cornerRadius": 3,
                       "layout": "vertical",
@@ -9931,7 +9931,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "名札での局面表示",
+                          "content": "名札でのシーン表示",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -10214,7 +10214,7 @@
                                   "id": "d0X9he",
                                   "name": "Title",
                                   "fill": "$text-primary",
-                                  "content": "局面での推移",
+                                  "content": "シーンでの推移",
                                   "fontFamily": "$font-display",
                                   "fontSize": 24,
                                   "fontWeight": "600",
@@ -10242,7 +10242,7 @@
                                   "fill": "$text-secondary",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
-                                  "content": "局面を切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
+                                  "content": "シーンを切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
                                   "lineHeight": 1.85,
                                   "fontFamily": "$font-body",
                                   "fontSize": 14,
@@ -10891,7 +10891,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "動く図の書き方をまとめた分類。 局面での推移、 数値の補間、 即時の切替、 名札での局面表示 の 4 経路を集めてある。",
+                  "content": "動く図の書き方をまとめた分類。 シーンでの推移、 数値の補間、 即時の切替、 名札でのシーン表示 の 4 経路を集めてある。",
                   "lineHeight": 1.9,
                   "fontFamily": "$font-body",
                   "fontSize": 15,
@@ -10971,7 +10971,7 @@
                     {
                       "type": "frame",
                       "id": "ARjDv",
-                      "name": "Row 局面での推移",
+                      "name": "Row シーンでの推移",
                       "width": "fill_container",
                       "fill": "$accent-soft",
                       "cornerRadius": 3,
@@ -10989,7 +10989,7 @@
                           "fill": "$accent",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面での推移",
+                          "content": "シーンでの推移",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -11128,7 +11128,7 @@
                     {
                       "type": "frame",
                       "id": "IfnUf",
-                      "name": "Row 名札での局面表示",
+                      "name": "Row 名札でのシーン表示",
                       "width": "fill_container",
                       "cornerRadius": 3,
                       "layout": "vertical",
@@ -11145,7 +11145,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "名札での局面表示",
+                          "content": "名札でのシーン表示",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -11428,7 +11428,7 @@
                                   "id": "LbBR2",
                                   "name": "Title",
                                   "fill": "$text-primary",
-                                  "content": "局面での推移",
+                                  "content": "シーンでの推移",
                                   "fontFamily": "$font-display",
                                   "fontSize": 24,
                                   "fontWeight": "600",
@@ -11456,7 +11456,7 @@
                                   "fill": "$text-secondary",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
-                                  "content": "局面を切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
+                                  "content": "シーンを切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
                                   "lineHeight": 1.85,
                                   "fontFamily": "$font-body",
                                   "fontSize": 14,
@@ -12099,7 +12099,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "動く図の書き方をまとめた分類。 局面での推移、 数値の補間、 即時の切替、 名札での局面表示 の 4 経路を集めてある。",
+                  "content": "動く図の書き方をまとめた分類。 シーンでの推移、 数値の補間、 即時の切替、 名札でのシーン表示 の 4 経路を集めてある。",
                   "lineHeight": 1.9,
                   "fontFamily": "$font-body",
                   "fontSize": 15,
@@ -12179,7 +12179,7 @@
                     {
                       "type": "frame",
                       "id": "ja8K0",
-                      "name": "Row 局面での推移",
+                      "name": "Row シーンでの推移",
                       "width": "fill_container",
                       "fill": "$accent-soft",
                       "cornerRadius": 3,
@@ -12197,7 +12197,7 @@
                           "fill": "$accent",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面での推移",
+                          "content": "シーンでの推移",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -12336,7 +12336,7 @@
                     {
                       "type": "frame",
                       "id": "sI40K",
-                      "name": "Row 名札での局面表示",
+                      "name": "Row 名札でのシーン表示",
                       "width": "fill_container",
                       "cornerRadius": 3,
                       "layout": "vertical",
@@ -12353,7 +12353,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "名札での局面表示",
+                          "content": "名札でのシーン表示",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -12636,7 +12636,7 @@
                                   "id": "i068L",
                                   "name": "Title",
                                   "fill": "$text-primary",
-                                  "content": "局面での推移",
+                                  "content": "シーンでの推移",
                                   "fontFamily": "$font-display",
                                   "fontSize": 24,
                                   "fontWeight": "600",
@@ -12664,7 +12664,7 @@
                                   "fill": "$text-secondary",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
-                                  "content": "局面を切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
+                                  "content": "シーンを切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
                                   "lineHeight": 1.85,
                                   "fontFamily": "$font-body",
                                   "fontSize": 14,
@@ -13237,7 +13237,7 @@
                       "id": "mffe4",
                       "name": "Title",
                       "fill": "$text-primary",
-                      "content": "局面での推移",
+                      "content": "シーンでの推移",
                       "fontFamily": "$font-display",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -13805,7 +13805,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "動く図の書き方をまとめた分類。 局面での推移、 数値の補間、 即時の切替、 名札での局面表示 の 4 経路を集めてある。",
+                  "content": "動く図の書き方をまとめた分類。 シーンでの推移、 数値の補間、 即時の切替、 名札でのシーン表示 の 4 経路を集めてある。",
                   "lineHeight": 1.9,
                   "fontFamily": "$font-body",
                   "fontSize": 15,
@@ -13885,7 +13885,7 @@
                     {
                       "type": "frame",
                       "id": "h25cAu",
-                      "name": "Row 局面での推移",
+                      "name": "Row シーンでの推移",
                       "width": "fill_container",
                       "fill": "$accent-soft",
                       "cornerRadius": 3,
@@ -13903,7 +13903,7 @@
                           "fill": "$accent",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面での推移",
+                          "content": "シーンでの推移",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -14042,7 +14042,7 @@
                     {
                       "type": "frame",
                       "id": "tNfQ9",
-                      "name": "Row 名札での局面表示",
+                      "name": "Row 名札でのシーン表示",
                       "width": "fill_container",
                       "cornerRadius": 3,
                       "layout": "vertical",
@@ -14059,7 +14059,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "名札での局面表示",
+                          "content": "名札でのシーン表示",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -14342,7 +14342,7 @@
                                   "id": "i7IOmA",
                                   "name": "Title",
                                   "fill": "$text-primary",
-                                  "content": "局面での推移",
+                                  "content": "シーンでの推移",
                                   "fontFamily": "$font-display",
                                   "fontSize": 24,
                                   "fontWeight": "600",
@@ -14370,7 +14370,7 @@
                                   "fill": "$text-secondary",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
-                                  "content": "局面を切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
+                                  "content": "シーンを切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
                                   "lineHeight": 1.85,
                                   "fontFamily": "$font-body",
                                   "fontSize": 14,
@@ -14943,7 +14943,7 @@
                       "id": "zj8Az",
                       "name": "Title",
                       "fill": "$text-primary",
-                      "content": "局面での推移",
+                      "content": "シーンでの推移",
                       "fontFamily": "$font-display",
                       "fontSize": 16,
                       "fontWeight": "600"
@@ -18106,7 +18106,7 @@
                               "id": "o41k0R",
                               "name": "Sub",
                               "fill": "$text-muted",
-                              "content": "400 前後だと局面が追いやすい",
+                              "content": "400 前後だとシーンが追いやすい",
                               "fontFamily": "$font-body",
                               "fontSize": 11.5,
                               "fontWeight": "normal"
@@ -21852,7 +21852,7 @@
                               "id": "kMCUN",
                               "name": "Sub",
                               "fill": "$text-muted",
-                              "content": "400 前後だと局面が追いやすい",
+                              "content": "400 前後だとシーンが追いやすい",
                               "fontFamily": "$font-body",
                               "fontSize": 11.5,
                               "fontWeight": "normal"
@@ -23932,7 +23932,7 @@
                               "id": "sVLJ5",
                               "name": "T",
                               "fill": "$text-primary",
-                              "content": "再生を押すと、 局面が順に進む",
+                              "content": "再生を押すと、 シーンが順に進む",
                               "fontFamily": "$font-body",
                               "fontSize": 14,
                               "fontWeight": "normal"
@@ -23989,7 +23989,7 @@
                       "fill": "$text-secondary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "左に書いた 4 行が、 右の図のどこに対応するかを見る。 節点は箱に、 辺は矢印に、 局面は色の変化になる。 対応さえ掴めれば、 あとは書く量を増やすだけで図が育つ。",
+                      "content": "左に書いた 4 行が、 右の図のどこに対応するかを見る。 節点は箱に、 辺は矢印に、 シーンは色の変化になる。 対応さえ掴めれば、 あとは書く量を増やすだけで図が育つ。",
                       "lineHeight": 1.95,
                       "fontFamily": "$font-body",
                       "fontSize": 14.5,
@@ -27812,7 +27812,7 @@
                               "id": "VBPOd",
                               "name": "T",
                               "fill": "$text-primary",
-                              "content": "再生を押すと、 局面が順に進む",
+                              "content": "再生を押すと、 シーンが順に進む",
                               "fontFamily": "$font-body",
                               "fontSize": 14,
                               "fontWeight": "normal"
@@ -27869,7 +27869,7 @@
                       "fill": "$text-secondary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "左に書いた 4 行が、 右の図のどこに対応するかを見る。 節点は箱に、 辺は矢印に、 局面は色の変化になる。 対応さえ掴めれば、 あとは書く量を増やすだけで図が育つ。",
+                      "content": "左に書いた 4 行が、 右の図のどこに対応するかを見る。 節点は箱に、 辺は矢印に、 シーンは色の変化になる。 対応さえ掴めれば、 あとは書く量を増やすだけで図が育つ。",
                       "lineHeight": 1.95,
                       "fontFamily": "$font-body",
                       "fontSize": 14.5,
@@ -30800,7 +30800,7 @@
                           "id": "DwQYh",
                           "name": "M",
                           "fill": "$text-muted",
-                          "content": "局面 3",
+                          "content": "シーン 3",
                           "fontFamily": "$font-mono",
                           "fontSize": 11.5,
                           "fontWeight": "normal"
@@ -32506,7 +32506,7 @@
                           "id": "bznN5",
                           "name": "M",
                           "fill": "$text-muted",
-                          "content": "局面 3",
+                          "content": "シーン 3",
                           "fontFamily": "$font-mono",
                           "fontSize": 11.5,
                           "fontWeight": "normal"
@@ -34206,7 +34206,7 @@
                           "id": "yOLQk",
                           "name": "M",
                           "fill": "$text-muted",
-                          "content": "局面 3",
+                          "content": "シーン 3",
                           "fontFamily": "$font-mono",
                           "fontSize": 11.5,
                           "fontWeight": "normal"
@@ -35909,7 +35909,7 @@
                           "id": "e0gzFs",
                           "name": "M",
                           "fill": "$text-muted",
-                          "content": "局面 3",
+                          "content": "シーン 3",
                           "fontFamily": "$font-mono",
                           "fontSize": 11.5,
                           "fontWeight": "normal"
@@ -38371,7 +38371,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面ごとの名札表示 (badge)",
+                          "content": "シーンごとの名札表示 (badge)",
                           "lineHeight": 1.75,
                           "fontFamily": "$font-body",
                           "fontSize": 14,
@@ -39989,7 +39989,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面ごとの名札表示 (badge)",
+                          "content": "シーンごとの名札表示 (badge)",
                           "lineHeight": 1.75,
                           "fontFamily": "$font-body",
                           "fontSize": 14,
@@ -45774,7 +45774,7 @@
                               "id": "o8hw1",
                               "name": "Sub",
                               "fill": "$text-muted",
-                              "content": "400 前後だと局面が追いやすい",
+                              "content": "400 前後だとシーンが追いやすい",
                               "fontFamily": "$font-body",
                               "fontSize": 11.5,
                               "fontWeight": "normal"
@@ -49539,7 +49539,7 @@
                               "id": "zWQf3",
                               "name": "Sub",
                               "fill": "$text-muted",
-                              "content": "400 前後だと局面が追いやすい",
+                              "content": "400 前後だとシーンが追いやすい",
                               "fontFamily": "$font-body",
                               "fontSize": 11.5,
                               "fontWeight": "normal"
@@ -51386,7 +51386,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "動く図の書き方をまとめた分類。 局面での推移、 数値の補間、 即時の切替、 名札での局面表示 の 4 経路を集めてある。",
+                  "content": "動く図の書き方をまとめた分類。 シーンでの推移、 数値の補間、 即時の切替、 名札でのシーン表示 の 4 経路を集めてある。",
                   "lineHeight": 1.9,
                   "fontFamily": "$font-body",
                   "fontSize": 15,
@@ -51466,7 +51466,7 @@
                     {
                       "type": "frame",
                       "id": "DP9NR",
-                      "name": "Row 局面での推移",
+                      "name": "Row シーンでの推移",
                       "width": "fill_container",
                       "fill": "$accent-soft",
                       "cornerRadius": 3,
@@ -51484,7 +51484,7 @@
                           "fill": "$accent",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面での推移",
+                          "content": "シーンでの推移",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -51623,7 +51623,7 @@
                     {
                       "type": "frame",
                       "id": "jn3HW",
-                      "name": "Row 名札での局面表示",
+                      "name": "Row 名札でのシーン表示",
                       "width": "fill_container",
                       "cornerRadius": 3,
                       "layout": "vertical",
@@ -51640,7 +51640,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "名札での局面表示",
+                          "content": "名札でのシーン表示",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -51923,7 +51923,7 @@
                                   "id": "lpa12",
                                   "name": "Title",
                                   "fill": "$text-primary",
-                                  "content": "局面での推移",
+                                  "content": "シーンでの推移",
                                   "fontFamily": "$font-display",
                                   "fontSize": 24,
                                   "fontWeight": "600",
@@ -51951,7 +51951,7 @@
                                   "fill": "$text-secondary",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
-                                  "content": "局面を切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
+                                  "content": "シーンを切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
                                   "lineHeight": 1.85,
                                   "fontFamily": "$font-body",
                                   "fontSize": 14,
@@ -52810,7 +52810,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "動く図の書き方をまとめた分類。 局面での推移、 数値の補間、 即時の切替、 名札での局面表示 の 4 経路を集めてある。",
+                  "content": "動く図の書き方をまとめた分類。 シーンでの推移、 数値の補間、 即時の切替、 名札でのシーン表示 の 4 経路を集めてある。",
                   "lineHeight": 1.9,
                   "fontFamily": "$font-body",
                   "fontSize": 15,
@@ -52890,7 +52890,7 @@
                     {
                       "type": "frame",
                       "id": "pjTwQ",
-                      "name": "Row 局面での推移",
+                      "name": "Row シーンでの推移",
                       "width": "fill_container",
                       "fill": "$accent-soft",
                       "cornerRadius": 3,
@@ -52908,7 +52908,7 @@
                           "fill": "$accent",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "局面での推移",
+                          "content": "シーンでの推移",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -53047,7 +53047,7 @@
                     {
                       "type": "frame",
                       "id": "Wsawz",
-                      "name": "Row 名札での局面表示",
+                      "name": "Row 名札でのシーン表示",
                       "width": "fill_container",
                       "cornerRadius": 3,
                       "layout": "vertical",
@@ -53064,7 +53064,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "名札での局面表示",
+                          "content": "名札でのシーン表示",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -53347,7 +53347,7 @@
                                   "id": "iQukg",
                                   "name": "Title",
                                   "fill": "$text-primary",
-                                  "content": "局面での推移",
+                                  "content": "シーンでの推移",
                                   "fontFamily": "$font-display",
                                   "fontSize": 24,
                                   "fontWeight": "600",
@@ -53375,7 +53375,7 @@
                                   "fill": "$text-secondary",
                                   "textGrowth": "fixed-width",
                                   "width": "fill_container",
-                                  "content": "局面を切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
+                                  "content": "シーンを切り替えると、 節点と辺の状態がまとめて次の姿へ移る。 いま到達している場所と、 まだ来ていない場所が同時に読める。",
                                   "lineHeight": 1.85,
                                   "fontFamily": "$font-body",
                                   "fontSize": 14,
@@ -54477,6 +54477,108 @@
         },
         {
           "value": "#E883A6",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "chart-1": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#4338CA",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#818CF8",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "chart-2": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#0D9488",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#2DD4BF",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "chart-3": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#F59E0B",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#FBBF24",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "chart-4": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#BE185D",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#F472B6",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "chart-5": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#4D7C0F",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#A3E635",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "chart-6": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#0369A1",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#38BDF8",
           "theme": {
             "mode": "dark"
           }
