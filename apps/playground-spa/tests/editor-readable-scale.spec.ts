@@ -246,12 +246,55 @@ test("枠に余裕がある図では倍率を上げない (#1084)", async ({ pag
   expect(m.倍率, `倍率が上がった: ${m.倍率}`).toBeLessThan(0.65);
 });
 
+/**
+ * 1 周のうち矢印が出そろうまで見る回数と間隔 (#1477)。
+ *
+ * 実測で最も遅い図 (状態の図) が 15 回目に出そろう。 段の数が多い図ほど遅く、
+ * 記録に届いた時点で止めるので、届く図はこの回数を使い切らない。
+ */
+const 見回す回数 = 18;
+const 見回す間隔 = 700;
+
+/** 画面に出ている文字の数と、その中でいちばん小さい大きさ。 */
+async function 文字を数える(
+  page: import("@playwright/test").Page,
+): Promise<{ 読めない: number; 最小: number; 測った: number; 見える: number } | null> {
+  return page.evaluate(() => {
+    const svg = document.querySelector<SVGSVGElement>(".v4-editor-preview svg[data-cdl-stage]");
+    if (!svg) return null;
+    const k = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+    let 読めない = 0;
+    let 最小 = Number.POSITIVE_INFINITY;
+    let 測った = 0;
+    let 見える = 0;
+    for (const t of svg.querySelectorAll("text")) {
+      if ((t.textContent ?? "").trim().length === 0) continue;
+      const cs = getComputedStyle(t);
+      if (cs.display === "none" || cs.visibility === "hidden") continue;
+      見える += 1;
+      const size = Number.parseFloat(cs.fontSize);
+      // 大きさを計算値から読めない文字。 `smallestFontWorld` はこれを飛ばすので、
+      // 下限の計算に載らないまま画面に出る
+      if (!Number.isFinite(size) || size <= 0) {
+        読めない += 1;
+        continue;
+      }
+      測った += 1;
+      最小 = Math.min(最小, size * k);
+    }
+    return { 読めない, 最小: Number.isFinite(最小) ? Math.round(最小 * 10) / 10 : -1, 測った, 見える };
+  });
+}
+
 // **ここは手で並べる**。 各見本の「読める下限」 は実測した数で、 見本ごとに違うため導けない。
 //
 // 代わりに、 一覧から漏れていないことを別の検査 (`editor-sample-coverage.spec.ts`) が見る。
 // 漏れると新しい見本の読みやすさが 1 度も確かめられない (`#1154` の review 指摘)。
 const 見本: ReadonlyArray<readonly [string, number]> = [
-  ["sequence", 10], ["sequence-checkout", 9], ["flow", 7], ["swimlane", 6],
+  // `#1466` で順序図が 1 枚の板になり、人物ごとの箱に出ていた名前が板の行に移った。
+  // 板は名前と呼び名だけを描くので、書かれていた言葉のうち画面に出る数が減る
+  // (#1477 で実測 = 順序図 10 → 7、買い物の順序図 9 → 6)。 **言葉が消えた回帰ではない**。
+  ["sequence", 7], ["sequence-checkout", 6], ["flow", 7], ["swimlane", 6],
   ["topology", 11], ["er", 25], ["state-machine", 8], ["class", 19],
   ["gantt", 8], ["mind", 5], ["pie", 8], ["c4", 11],
   // `#1154` で足した 8 型のうち、 `radial` を外した残り 7 型 (`#1170`)。
@@ -274,7 +317,9 @@ const 見本: ReadonlyArray<readonly [string, number]> = [
   //
   // **文字が消えた回帰ではない**。 隠れているのは図の題と重複する名前で、 描画側が意図して
   // 隠している。 記録を下げるのは実測に合わせる訂正で、 見落としを許す緩和ではない。
-  ["solidity", 9], ["bar", 13], ["line", 15], ["funnel", 11],
+  // `solidity` は順序図と同じ板で描かれる (`compile.ts` が `sequence` と同じ枝に載せる)。
+  // `#1466` で板になった分、画面に出る言葉が 9 → 6 に減った (#1477 で実測)。
+  ["solidity", 6], ["bar", 13], ["line", 15], ["funnel", 11],
   ["tree", 5], ["journey", 17], ["quadrant", 16],
 ];
 
@@ -287,7 +332,7 @@ const 待ち時間 = 1600;
  * `goto` + `networkidle` + 見本が開けたことの確認 + 描画側の測定の合計。 実測 (2026-08-17) で
  * 1 見本 700-900ms だったので、 余裕を見て 1200 を置く。
  */
-const 見本あたりの処理時間 = 1200;
+const 見本あたりの処理時間 = 1200 + 見回す回数 * 見回す間隔;
 
 /** 立ち上げ (browser 起動 + 初回 goto) の見積り (ms)。 */
 const 立ち上げ時間 = 10_000;
@@ -336,31 +381,21 @@ test(`全 ${見本.length} 見本で描画側の文字が下限の計算に載�
     await page.waitForTimeout(待ち時間);
     await 見本が開けたことを確かめる(page, slug);
 
-    const m = await page.evaluate(() => {
-      const svg = document.querySelector<SVGSVGElement>(".v4-editor-preview svg[data-cdl-stage]");
-      if (!svg) return null;
-      const k = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
-      let 読めない = 0;
-      let 最小 = Number.POSITIVE_INFINITY;
-      let 測った = 0;
-      let 見える = 0;
-      for (const t of svg.querySelectorAll("text")) {
-        if ((t.textContent ?? "").trim().length === 0) continue;
-        const cs = getComputedStyle(t);
-        if (cs.display === "none" || cs.visibility === "hidden") continue;
-        見える += 1;
-        const size = Number.parseFloat(cs.fontSize);
-        // 大きさを計算値から読めない文字。 `smallestFontWorld` はこれを飛ばすので、
-        // 下限の計算に載らないまま画面に出る
-        if (!Number.isFinite(size) || size <= 0) {
-          読めない += 1;
-          continue;
-        }
-        測った += 1;
-        最小 = Math.min(最小, size * k);
-      }
-      return { 読めない, 最小: Number.isFinite(最小) ? Math.round(最小 * 10) / 10 : -1, 測った, 見える };
-    });
+    /*
+     * **1 周のどこかで数える** (#1477)。
+     *
+     * `#1470` で矢印が段に合わせて出るようになり、開いた直後は矢印の説明文がまだ画面に無い。
+     * 1 度読むだけだと、その瞬間に何段目かで数が変わる (実測 = 流れ図 5-7 / 構成図 9-11 /
+     * 泳法図 4-6 が同じ図で行き来する)。 数える回を増やして、その中の最大を採る。
+     *
+     * 記録に届いた時点で止める。 届かない図だけが待つので、全体の時間はほとんど増えない。
+     */
+    let m = await 文字を数える(page);
+    for (let i = 0; i < 見回す回数 && (m?.見える ?? 0) < 見える下限; i++) {
+      await page.waitForTimeout(見回す間隔);
+      const 次 = await 文字を数える(page);
+      if (次 !== null && (m === null || 次.見える > m.見える)) m = 次;
+    }
 
     if (m === null) {
       問題.push(`${slug}: 図が画面に無い`);

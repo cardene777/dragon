@@ -19,6 +19,7 @@
  * 出ていても色が動かなければ進み具合は伝わらない。 中身と色の変化を直接見る。
  */
 import { test, expect } from "@playwright/test";
+import { 箱と矢印の記法 } from "./box-and-edge-figure";
 
 async function 開く(page: import("@playwright/test").Page, hash = ""): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -137,7 +138,10 @@ test.describe("シーンの表示 (#1143)", () => {
   });
 
   test("今のシーンに関わる名札だけ枠が変わる", async ({ page }) => {
-    await 開く(page);
+    // **既定の見本には依らない** (#1477)。 既定は順序図で、`#1466` から 1 枚の板として
+    // 描かれる = 箱が 1 つも出ないため「名札が 1 つも無い」 で落ちていた。
+    // 枠の切り替わりは図種に依らないので、箱が在る図を開く。
+    await 開く(page, 共有(箱と矢印の記法));
 
     const 枠 = await page.evaluate(() => {
       const out: { id: string; active: string | null; stroke: string; width: string }[] = [];
@@ -179,7 +183,7 @@ test.describe("シーンの表示 (#1143)", () => {
       // **明暗の両方で見る**。 面の色 (`--d-accent-face`) は明暗で必要な向きが逆で、
       // 片方だけ見ていると気付けない (実測 = 明で `--d-accent-soft` を使うと 4.17)。
       await page.emulateMedia({ colorScheme: 明暗 });
-      await 開く(page);
+      await 開く(page, 共有(箱と矢印の記法));
 
       const 色 = await page.evaluate(() => {
         // `data-cdl-active` は箱以外 (矢印 / 印) にも付く。 箱と文字を両方持つものを選ぶ

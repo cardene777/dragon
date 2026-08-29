@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { 記法をURLに載せる, 箱と矢印の記法 } from "./box-and-edge-figure";
 
 /**
  * GH #889 = edge の tone が線の色に出ることを画面で確かめる。
@@ -165,9 +166,16 @@ async function open(page: Page, path: string, dark: boolean): Promise<void> {
   await page.waitForTimeout(1500);
 }
 
+/**
+ * 線の色を測る画面。
+ *
+ * **エディタ側は図を名指しする** (#1477)。 既定の見本は順序図で、`#1466` から 1 枚の板として
+ * 描かれる = 矢印が 1 本も出ないため、10 件が「edge が 1 本も無い」 で落ちていた。
+ * 線の色は図種に依らないので、矢印が在る図を開いて同じことを測る。
+ */
 const SCREENS = [
   { name: "catalog", path: "catalog/interactive" },
-  { name: "editor", path: "editor" },
+  { name: "editor", path: `editor#s=${記法をURLに載せる(箱と矢印の記法)}` },
 ] as const;
 
 test.use({ viewport: { width: 1500, height: 1000 } });

@@ -18,8 +18,20 @@ import { test, expect, type Page } from "@playwright/test";
 
 const WIDGET_VIEWBOX = "0 0 120 120";
 
+/**
+ * 見る見本 (#1477)。
+ *
+ * **既定の見本には依らない**。 既定は順序図で、`#1466` から 1 枚の板になり、枠に対して
+ * 余裕を持って収まるようになった = 収めても文字が下限に張り付かない (実測 14.7px)。
+ * この検査は「下限に張り付いているか」 で図を基準にしたかを見分けるので、張り付かない図では
+ * 判別そのものが成り立たない。
+ *
+ * 表の図は箱が枠から出るので下限まで譲る側に落ちる (`readable-floor.ts` が 8px と記録)。
+ */
+const 見本 = "editor#preset=er";
+
 async function setup(page: Page): Promise<void> {
-  await page.goto("editor", { waitUntil: "networkidle" });
+  await page.goto(見本, { waitUntil: "networkidle" });
   await page.waitForSelector(".v4-editor-stage svg[data-cdl-stage]", { timeout: 15000 });
   await page.waitForTimeout(600);
 }
@@ -97,21 +109,30 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     // 条件にすると正しい状態を落とす。
     //
     // 収めた後の倍率は「枠に収まる倍率」 と「文字が下限になる倍率」 の大きい方で決まる。
-    // 既定の見本 (1772×1032、 最小文字 20) では後者が決め手になり、 最小文字は下限に張り付く。
-    // widget (120 角) を基準にすると図の縦で決まってしまい 14.3px になる (実測)。
+    // 表の図では後者が決め手になり、 最小文字は下限に張り付く。
+    // widget (120 角) を基準にすると図の縦で決まってしまい、 下限から外れる (実測)。
     //
-    // `#1102` で下限は 1 つではなくなった = 箱が枠から出る図は 8px まで譲る。 この検査の枠は
-    // 595px と狭く、 既定の見本は譲る側に落ちて 8px になる (実測、 倍率 0.400)。 判別に使うのは
+    // `#1102` で下限は 1 つではなくなった = 箱が枠から出る図は 8px まで譲る。 表の図は
+    // 譲る側に落ちて 8px になる。 判別に使うのは
     // 「下限に張り付いているか」 なので、 見る値を 8px に直せば #985 の意図はそのまま残る。
     expect(box!.最小文字, "図の文字を測れていない (検査が空振りしている)").toBeGreaterThan(0);
     expect(
       box!.最小文字,
       `文字が読める下限に張り付いていない: ${box!.最小文字}px (倍率 ${box!.k})`,
     ).toBeGreaterThanOrEqual(8);
+    /*
+     * 上を 11 に置く (#1477)。
+     *
+     * 表の図はこの枠 (595px) で 10.0px に張り付く (実測)。 下限は図と枠の組で決まるので、
+     * `readable-floor.ts` が記録する 8px (枠 1440px での値) とは一致しない。
+     *
+     * 見分けたいのは **図ではないものを基準にした形** で、その時の値は 14px 台になる
+     * (widget は 120 角で、図より縦横比が 10 倍以上違う)。 8-11 の帯はそれを外に置く。
+     */
     expect(
       box!.最小文字,
       `図より大きいものを基準にした疑い: 文字 ${box!.最小文字}px (倍率 ${box!.k})`,
-    ).toBeLessThan(9);
+    ).toBeLessThan(11);
     // 倍率だけでは「図が 1px しか無い」 形が通るので、 実寸の下限も置く。
     expect(box!.sw, "図が preview に対して小さすぎる").toBeGreaterThan(box!.pw * 0.3);
   });
@@ -126,10 +147,10 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
     const box = await stageBox(page);
     expect(box).not.toBeNull();
     // フィットと同じ理由で、 幅の収まりではなく画面上の文字の大きさで見る (#1084)。
-    // 下限が 8px なのはフィット側と同じ理由 (#1102、 この検査の枠 595px では譲る側に落ちる)
+    // 帯の取り方もフィット側と同じ (#1477)
     expect(box!.最小文字, "図の文字を測れていない (検査が空振りしている)").toBeGreaterThan(0);
     expect(box!.最小文字, `文字が読める下限に張り付いていない: ${box!.最小文字}px`).toBeGreaterThanOrEqual(8);
-    expect(box!.最小文字, `図より大きいものを基準にした疑い: ${box!.最小文字}px`).toBeLessThan(9);
+    expect(box!.最小文字, `図より大きいものを基準にした疑い: ${box!.最小文字}px`).toBeLessThan(11);
     expect(box!.sw).toBeGreaterThan(0);
   });
 
