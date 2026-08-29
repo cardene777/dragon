@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { 記法をURLに載せる, 矢印が伸びる記法 } from "./box-and-edge-figure";
 
 /**
  * `/editor` の初期表示で線が最後まで描かれることを固定する (#381)。
@@ -30,7 +31,10 @@ const endsOf = (page: import("@playwright/test").Page) =>
   }));
 
 test("editor の初期表示で線が最後まで伸びる (#381)", async ({ page }) => {
-  await page.goto("editor");
+  // **既定の見本には依らない** (#1488)。 既定は順序図で、`#1466` から 1 枚の板として
+  // 描かれる = 矢印が 1 本も出ないため、線を 1 つも測れない。
+  // 伸びる動きは図種に依らないので、矢印を名指しする段を持つ図を開く。
+  await page.goto(`editor#s=${記法をURLに載せる(矢印が伸びる記法)}`);
   // SVG の path は fill が無いと visible 判定にならないので attached で待つ。
   await page.waitForSelector('.v4-editor-stage svg[data-cdl-stage] [data-cdl-role="edge-line"]', { state: "attached", timeout: 20000 });
 

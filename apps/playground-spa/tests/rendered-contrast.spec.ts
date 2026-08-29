@@ -48,7 +48,16 @@ const MODES = ["light", "dark"] as const;
 const TARGETS = [
   // main 22px + sub 19px の 2 行。 sub 行の対比を測る唯一の経路なので件数を固定する。
   { slug: "patterns", id: "pattern-passthrough", expectedLabels: 2, expectedDeclaredPx: [22, 19] },
-  { slug: "cookbook", id: "oauth-flow", expectedLabels: 8, expectedDeclaredPx: [22] },
+  /*
+   * **`oauth-flow` から差し替えた** (#1488)。
+   *
+   * `oauth-flow` は順序図で、`#1466` から 1 枚の板として描かれる。 言づては矢印ではなく板の
+   * 中の行 (`sequence-label`) になったので、矢印の札は 1 つも出ない (実測 = 12 秒見て 0 件)。
+   *
+   * 矢印の札を 5 件持つ図に替える。 板の中の行の対比は別の役割なので、この検査の対象外
+   * (`#1488` に残した)。
+   */
+  { slug: "patterns", id: "pattern-fan-in", expectedLabels: 5, expectedDeclaredPx: [22] },
 ] as const;
 
 type Label = { key: string; box: Box; px: number; weight: number; text: string; declaredPx: number };
@@ -101,6 +110,43 @@ const STILL_ATTEMPTS = 5;
  * 撮り直しても駄目なら `null` を返す = 呼出側が理由付きで失敗させる。 動いた画面の色を
  * 対比として報告しない。
  */
+/**
+ * 札が出そろうまで待ってから、画面を止める (#1488)。
+ *
+ * `#1470` で矢印が段に合わせて出るようになり、札は段が進むと現れて次の周で消える
+ * (実測 = `pattern-passthrough` は 12 秒のうち 5 秒しか 2 件出ていない)。 決め打ちの待ち時間で
+ * 数えると 0 件になり、その先の測定が丸ごと空振りする。
+ *
+ * **数えた後に止める**。 待つだけだと、1 件ずつ撮っている途中で段が進んで札が消える。
+ * 段の進みは `requestAnimationFrame` と timer が回すので、両方を止めれば DOM が固定される。
+ */
+async function 札が出そろうまで待って止める(page: Page, id: string, 期待: number): Promise<void> {
+  await page
+    .waitForFunction(
+      ({ id, n }) =>
+        document.querySelectorAll(`[data-cdl-diagram="${id}"] [data-cdl-role="edge-label"]`).length === n,
+      { id, n: 期待 },
+      { timeout: 30000 },
+    )
+    .catch(() => {
+      throw new Error(`${id} の edge label が ${期待} 件になる瞬間が 30 秒の間に来ない`);
+    });
+  await page.evaluate(() => {
+    const w = window as unknown as {
+      requestAnimationFrame: (cb: FrameRequestCallback) => number;
+      setTimeout: typeof setTimeout;
+    };
+    w.requestAnimationFrame = () => 0;
+    const maxId = Number(w.setTimeout(() => {}, 0));
+    for (let i = 0; i <= maxId; i += 1) {
+      clearInterval(i);
+      clearTimeout(i);
+    }
+  });
+  // 止めた直後は最後の 1 コマが描き終わっていない
+  await page.waitForTimeout(300);
+}
+
 async function shootWhenStill(
   page: Page,
   id: string,
@@ -371,6 +417,7 @@ test.describe("edge label の描画対比 (#977)", () => {
 
         for (const target of TARGETS) {
           await open(page, target, mode);
+          await 札が出そろうまで待って止める(page, target.id, target.expectedLabels);
           const labels = await collectLabels(page, target.id);
           // **target ごとに** 件数を固定する。 合計だけだと、 `pattern-passthrough` の sub が
           // 消えて `oauth-flow` が 1 件増える形で合計が変わらず、 sub 行の検査を失う。
@@ -505,6 +552,7 @@ test.describe("edge label の描画対比 (#977)", () => {
     // 一括で対比を落とす変異 (下の test) は 3:1 も割るので、 両者を区別しない。
     const target = TARGETS[0];
     await open(page, target, "light");
+    await 札が出そろうまで待って止める(page, target.id, target.expectedLabels);
     await page.addStyleTag({
       content: `html body [data-cdl-role="edge-label"] { fill: #a66a3d !important; }`,
     });
@@ -528,6 +576,7 @@ test.describe("edge label の描画対比 (#977)", () => {
     // 本 test の存在理由。 実際に閾値を割る配色を当てて、 検知できることを確かめる。
     const target = TARGETS[0];
     await open(page, target, "light");
+    await 札が出そろうまで待って止める(page, target.id, target.expectedLabels);
     const labels = await collectLabels(page, target.id);
     expect(labels.length).toBeGreaterThan(0);
 
