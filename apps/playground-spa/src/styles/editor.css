@@ -788,11 +788,16 @@
     flex-direction: column;
     min-width: 0;
   }
+  /* 舞台の地はカタログと揃える (#1480)。
+     `--d-surface` は #1468 で図の箱の面になった。 舞台も同じ変数を使っていたため、暗い画面で
+     舞台と箱がまったく同じ色になり箱が紙に沈んでいた (実測 = どちらも `#2e2c28`)。
+     カタログ側の紙は `--cdl-stage-bg` (= `--d-bg`) なので、そちらに揃えると
+     エディタとカタログで図の見え方も同じになる。 */
   .v4-editor-stage {
     flex: 1;
     overflow: hidden;
     position: relative;
-    background: var(--d-surface);
+    background: var(--d-bg);
     cursor: grab;
     user-select: none;
   }
