@@ -355,8 +355,10 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
       .filter((v) => v.axis === "edge-label-proximity")
       .map((v) => /edge "([^"]+)"/.exec(v.detail)?.[1] ?? "?")
       .sort();
+    // 箱の高さを中身から決めるようにして (#1498) 束の積み方が動き、外側に出る 2 本が
+    // `client-consent` から `code-exchange` に入れ替わった。 本数 (2) と warn 止まりは変わらない
     expect(far, "自分の弧から離れている label の顔ぶれが変わった").toEqual([
-      "client-consent",
+      "code-exchange",
       "token-issue",
     ]);
     // 破綻していない = 全て warn 止まり

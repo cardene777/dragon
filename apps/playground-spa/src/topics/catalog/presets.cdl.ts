@@ -478,13 +478,15 @@ export const presetStateMachine = withSteps(
 
 // infrastructure preset ... cloud / system 構成図 (col + row grid)
 export const presetInfrastructure = withSteps(
+  // 小見出しと説明を書く (#1498)。 cdl 0.20.0 で名前だけの箱は 54 まで縮み、段が近づいて
+  // `GET/SET` の説明が隣の線に 1 かぶった。 中身を足せば箱が中身ぶんの高さに戻る
   infrastructure({ id: "infra-demo", topic: "クラウド・ネットワーク構成を階層で示す図" })
-    .node({ id: "user", kind: "person", title: "User", col: 0, row: 0 })
-    .node({ id: "cdn", kind: "cdn", title: "CloudFront", col: 1, row: 0 })
-    .node({ id: "alb", kind: "service", title: "ALB", col: 2, row: 0 })
-    .node({ id: "app", kind: "service", title: "App", col: 2, row: 1 })
-    .node({ id: "db", kind: "database", title: "RDS", col: 3, row: 0 })
-    .node({ id: "cache", kind: "cache", title: "Redis", col: 3, row: 1 })
+    .node({ id: "user", kind: "person", title: "User", eyebrow: "利用者", subtitle: "ブラウザ", col: 0, row: 0 })
+    .node({ id: "cdn", kind: "cdn", title: "CloudFront", eyebrow: "配信", subtitle: "静的配信", col: 1, row: 0 })
+    .node({ id: "alb", kind: "service", title: "ALB", eyebrow: "振り分け", subtitle: "負荷分散", col: 2, row: 0 })
+    .node({ id: "app", kind: "service", title: "App", eyebrow: "処理", subtitle: "アプリ", col: 2, row: 1 })
+    .node({ id: "db", kind: "database", title: "RDS", eyebrow: "保存", subtitle: "永続化", col: 3, row: 0 })
+    .node({ id: "cache", kind: "cache", title: "Redis", eyebrow: "一時保存", subtitle: "高速化", col: 3, row: 1 })
     .connect({ from: "user", to: "cdn", label: "HTTPS" })
     .connect({ from: "cdn", to: "alb", label: "origin" })
     .connect({ from: "alb", to: "app", label: "route" })
@@ -2794,12 +2796,12 @@ lanes:
   col-3: { width: 380 }
 
 actors:
-  - User: { kind: person, lane: col-0 }
-  - CloudFront: { kind: cdn, lane: col-1 }
-  - ALB: { kind: service, lane: col-2 }
-  - App: { kind: service, lane: col-2 }
-  - RDS: { kind: database, lane: col-3 }
-  - Redis: { kind: cache, lane: col-3 }
+  - User: { kind: person, lane: col-0, eyebrow: "利用者", subtitle: "ブラウザ" }
+  - CloudFront: { kind: cdn, lane: col-1, eyebrow: "配信", subtitle: "静的配信" }
+  - ALB: { kind: service, lane: col-2, eyebrow: "振り分け", subtitle: "負荷分散" }
+  - App: { kind: service, lane: col-2, eyebrow: "処理", subtitle: "アプリ" }
+  - RDS: { kind: database, lane: col-3, eyebrow: "保存", subtitle: "永続化" }
+  - Redis: { kind: cache, lane: col-3, eyebrow: "一時保存", subtitle: "高速化" }
 
 flow:
   - User -> CloudFront: "HTTPS" (accent, solid)
@@ -2841,12 +2843,12 @@ export const sourceJson__presetInfrastructure = `{
     "col-3": { "width": 380 }
   },
   "actors": [
-    { "name": "User", "kind": "person", "lane": "col-0" },
-    { "name": "CloudFront", "kind": "cdn", "lane": "col-1" },
-    { "name": "ALB", "kind": "service", "lane": "col-2" },
-    { "name": "App", "kind": "service", "lane": "col-2" },
-    { "name": "RDS", "kind": "database", "lane": "col-3" },
-    { "name": "Redis", "kind": "cache", "lane": "col-3" }
+    { "name": "User", "kind": "person", "lane": "col-0", "eyebrow": "利用者", "subtitle": "ブラウザ" },
+    { "name": "CloudFront", "kind": "cdn", "lane": "col-1", "eyebrow": "配信", "subtitle": "静的配信" },
+    { "name": "ALB", "kind": "service", "lane": "col-2", "eyebrow": "振り分け", "subtitle": "負荷分散" },
+    { "name": "App", "kind": "service", "lane": "col-2", "eyebrow": "処理", "subtitle": "アプリ" },
+    { "name": "RDS", "kind": "database", "lane": "col-3", "eyebrow": "保存", "subtitle": "永続化" },
+    { "name": "Redis", "kind": "cache", "lane": "col-3", "eyebrow": "一時保存", "subtitle": "高速化" }
   ],
   "flow": [
     { "from": "User", "to": "CloudFront", "label": "HTTPS", "tone": "accent", "style": "solid" },

@@ -3268,28 +3268,40 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   .node("revCard", {
     lane: "revenue",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     title: "Revenue",
     subtitle: "${revenueInput}k / month",
   })
   .node("usersCard", {
     lane: "users",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     title: "Users",
     subtitle: "{users} active",
   })
   .node("churnCard", {
     lane: "churn",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     title: "Churn",
     subtitle: "{churn}% / month",
   })
   .node("npsCard", {
     lane: "nps",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     title: "NPS",
     subtitle: "{nps} score",
   })
@@ -4013,6 +4025,9 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
     lane: "col1",
     stack: 0,
     kind: "card",
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 斜めの線の説明と下の段の説明が近く、縮むと 33 しか離れない (要る間隔は 36)
+    h: 150,
     w: 160,
     title: "Visit",
     subtitle: "漏斗の入口",
@@ -4021,6 +4036,9 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
     lane: "col2",
     stack: 0,
     kind: "card",
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 斜めの線の説明と下の段の説明が近く、縮むと 33 しか離れない (要る間隔は 36)
+    h: 150,
     w: 180,
     title: "Signup",
     subtitle: "登録に進む段",
@@ -4029,6 +4047,9 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
     lane: "col1",
     stack: 1,
     kind: "card",
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 斜めの線の説明と下の段の説明が近く、縮むと 33 しか離れない (要る間隔は 36)
+    h: 150,
     w: 170,
     title: "Trial",
     subtitle: "試用に進む段",
@@ -4037,6 +4058,9 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
     lane: "col2",
     stack: 1,
     kind: "card",
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 斜めの線の説明と下の段の説明が近く、縮むと 33 しか離れない (要る間隔は 36)
+    h: 150,
     w: 220,
     title: "Paid",
     subtitle: "購入に至る段",
@@ -4107,7 +4131,10 @@ export const projectGantt = diagram("interactive-project-gantt", {
   .node("designNode", {
     lane: "col1",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 200,
     title: "Design",
     subtitle: "day 0-3 (3 day)",
@@ -4115,7 +4142,10 @@ export const projectGantt = diagram("interactive-project-gantt", {
   .node("implNode", {
     lane: "col2",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 280,
     title: "Impl",
     subtitle: "day 3-8 (5 day, largest)",
@@ -4123,7 +4153,10 @@ export const projectGantt = diagram("interactive-project-gantt", {
   .node("testNode", {
     lane: "col1",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 320,
     title: "Test",
     subtitle: "day 6-9 (3 day, overlap w/ impl)",
@@ -4131,7 +4164,10 @@ export const projectGantt = diagram("interactive-project-gantt", {
   .node("shipNode", {
     lane: "col2",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 210,
     title: "Ship",
     subtitle: "day 9-10 (1 day)",
@@ -4308,30 +4344,42 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
   .node("search", {
     lane: "src",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     title: "Search",
     subtitle: "検索からの流入",
   })
   .node("social", {
     lane: "src",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     title: "Social",
     subtitle: "SNS からの流入",
   })
-  .node("direct", { lane: "src", stack: 2, kind: "card", title: "Direct", subtitle: "直接の流入" })
-  .node("home", { lane: "land", stack: 0, kind: "card", title: "Home", subtitle: "入口ページ" })
+  .node("direct", { lane: "src", stack: 2, kind: "card", title: "Direct", subtitle: "直接の流入", h: 150 })
+  .node("home", { lane: "land", stack: 0, kind: "card", title: "Home", subtitle: "入口ページ", h: 150 })
   .node("product", {
     lane: "land",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     title: "Product",
     subtitle: "商品ページ",
   })
   .node("checkout", {
     lane: "cv",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     title: "Checkout",
     subtitle: "成果ページ",
   })
@@ -7760,7 +7808,10 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .node("packedNode", {
     lane: "col1",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 250,
     title: "📦 Packed",
     subtitle: "梱包完了",
@@ -7768,7 +7819,10 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .node("shippedNode", {
     lane: "col2",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 270,
     title: "🚚 Shipped",
     subtitle: "配送開始",
@@ -7776,7 +7830,10 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .node("deliveryNode", {
     lane: "col1",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 290,
     title: "🏠 Delivery",
     subtitle: "配達中 (現在地)",
@@ -7784,7 +7841,10 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   .node("deliveredNode", {
     lane: "col2",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 290,
     title: "✅ Delivered",
     subtitle: "配達完了",
@@ -8615,7 +8675,10 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
   .node("homeNode", {
     lane: "col1",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 190,
     title: "Home",
     subtitle: "最上位の階層",
@@ -8623,7 +8686,10 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
   .node("docsNode", {
     lane: "col2",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 140,
     title: "Docs",
     subtitle: "Home の下にある階層",
@@ -8631,7 +8697,10 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
   .node("apiNode", {
     lane: "col1",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 220,
     title: "API",
     subtitle: "Reference の上にある階層",
@@ -8639,7 +8708,10 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
   .node("refNode", {
     lane: "col2",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 250,
     title: "Reference",
     subtitle: "最も深い階層",
@@ -9087,7 +9159,10 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
   .node("draftNode", {
     lane: "col1",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 190,
     title: "Draft",
     subtitle: "最初の工程",
@@ -9095,7 +9170,10 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
   .node("reviewNode", {
     lane: "col2",
     stack: 0,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 190,
     title: "Review",
     subtitle: "Draft の次の工程",
@@ -9103,7 +9181,10 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
   .node("approveNode", {
     lane: "col1",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 250,
     title: "Approve",
     subtitle: "Publish の直前の工程",
@@ -9111,7 +9192,10 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
   .node("publishNode", {
     lane: "col2",
     stack: 1,
+    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
+    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
+    h: 150,
     w: 220,
     title: "Publish",
     subtitle: "最後の工程",
@@ -13058,10 +13142,10 @@ states:
   stages: '[["Visit",1000],["Signup",400],["Trial",150],["Paid",40]]'
 
 actors:
-  - Visit: { kind: card, lane: col1, stack: 0, subtitle: "漏斗の入口", posW: 160 }
-  - Signup: { kind: card, lane: col2, stack: 0, subtitle: "登録に進む段", posW: 180 }
-  - Trial: { kind: card, lane: col1, stack: 1, subtitle: "試用に進む段", posW: 170 }
-  - Paid: { kind: card, lane: col2, stack: 1, subtitle: "購入に至る段", posW: 220 }
+  - Visit: { kind: card, lane: col1, stack: 0, subtitle: "漏斗の入口", posW: 160, posH: 150 }
+  - Signup: { kind: card, lane: col2, stack: 0, subtitle: "登録に進む段", posW: 180, posH: 150 }
+  - Trial: { kind: card, lane: col1, stack: 1, subtitle: "試用に進む段", posW: 170, posH: 150 }
+  - Paid: { kind: card, lane: col2, stack: 1, subtitle: "購入に至る段", posW: 220, posH: 150 }
 
 flow:
   - Visit -> Signup: "登録へ" (info)
@@ -13112,7 +13196,8 @@ export const sourceJson__salesFunnel = `{
       "lane": "col1",
       "stack": 0,
       "subtitle": "漏斗の入口",
-      "posW": 160
+      "posW": 160,
+      "posH": 150
     },
     {
       "name": "Signup",
@@ -13120,7 +13205,8 @@ export const sourceJson__salesFunnel = `{
       "lane": "col2",
       "stack": 0,
       "subtitle": "登録に進む段",
-      "posW": 180
+      "posW": 180,
+      "posH": 150
     },
     {
       "name": "Trial",
@@ -13128,7 +13214,8 @@ export const sourceJson__salesFunnel = `{
       "lane": "col1",
       "stack": 1,
       "subtitle": "試用に進む段",
-      "posW": 170
+      "posW": 170,
+      "posH": 150
     },
     {
       "name": "Paid",
@@ -13136,7 +13223,8 @@ export const sourceJson__salesFunnel = `{
       "lane": "col2",
       "stack": 1,
       "subtitle": "購入に至る段",
-      "posW": 220
+      "posW": 220,
+      "posH": 150
     }
   ],
   "flow": [
@@ -13184,10 +13272,10 @@ states:
   tasks: '[["Design",0,3],["Impl",3,5],["Test",6,3],["Ship",9,1]]'
 
 actors:
-  - Design: { kind: card, lane: col1, stack: 0, subtitle: "day 0-3 (3 day)", posW: 200 }
-  - Impl: { kind: card, lane: col2, stack: 0, subtitle: "day 3-8 (5 day, largest)", posW: 280 }
-  - Test: { kind: card, lane: col1, stack: 1, subtitle: "day 6-9 (3 day, overlap w/ impl)", posW: 320 }
-  - Ship: { kind: card, lane: col2, stack: 1, subtitle: "day 9-10 (1 day)", posW: 210 }
+  - Design: { kind: card, lane: col1, stack: 0, subtitle: "day 0-3 (3 day)", posW: 200 , posH: 150 }
+  - Impl: { kind: card, lane: col2, stack: 0, subtitle: "day 3-8 (5 day, largest)", posW: 280 , posH: 150 }
+  - Test: { kind: card, lane: col1, stack: 1, subtitle: "day 6-9 (3 day, overlap w/ impl)", posW: 320 , posH: 150 }
+  - Ship: { kind: card, lane: col2, stack: 1, subtitle: "day 9-10 (1 day)", posW: 210 , posH: 150 }
 
 flow:
   - Design -> Impl: "handover" (info)
@@ -13239,7 +13327,8 @@ export const sourceJson__projectGantt = `{
       "lane": "col1",
       "stack": 0,
       "subtitle": "day 0-3 (3 day)",
-      "posW": 200
+      "posW": 200,
+      "posH": 150
     },
     {
       "name": "Impl",
@@ -13247,7 +13336,8 @@ export const sourceJson__projectGantt = `{
       "lane": "col2",
       "stack": 0,
       "subtitle": "day 3-8 (5 day, largest)",
-      "posW": 280
+      "posW": 280,
+      "posH": 150
     },
     {
       "name": "Test",
@@ -13255,7 +13345,8 @@ export const sourceJson__projectGantt = `{
       "lane": "col1",
       "stack": 1,
       "subtitle": "day 6-9 (3 day, overlap w/ impl)",
-      "posW": 320
+      "posW": 320,
+      "posH": 150
     },
     {
       "name": "Ship",
@@ -13263,7 +13354,8 @@ export const sourceJson__projectGantt = `{
       "lane": "col2",
       "stack": 1,
       "subtitle": "day 9-10 (1 day)",
-      "posW": 210
+      "posW": 210,
+      "posH": 150
     }
   ],
   "flow": [
@@ -13419,12 +13511,12 @@ states:
   flows: '[["Search","Home",40],["Search","Product",30],["Social","Home",25],["Social","Product",15],["Direct","Home",20],["Direct","Product",10]]'
 
 actors:
-  - Search: { kind: card, lane: src, stack: 0, subtitle: "検索からの流入" }
-  - Social: { kind: card, lane: src, stack: 1, subtitle: "SNS からの流入" }
-  - Direct: { kind: card, lane: src, stack: 2, subtitle: "直接の流入" }
-  - Home: { kind: card, lane: land, stack: 0, subtitle: "入口ページ" }
-  - Product: { kind: card, lane: land, stack: 1, subtitle: "商品ページ" }
-  - Checkout: { kind: card, lane: cv, stack: 0, subtitle: "成果ページ" }
+  - Search: { kind: card, lane: src, stack: 0, subtitle: "検索からの流入" , posH: 150 }
+  - Social: { kind: card, lane: src, stack: 1, subtitle: "SNS からの流入" , posH: 150 }
+  - Direct: { kind: card, lane: src, stack: 2, subtitle: "直接の流入" , posH: 150 }
+  - Home: { kind: card, lane: land, stack: 0, subtitle: "入口ページ" , posH: 150 }
+  - Product: { kind: card, lane: land, stack: 1, subtitle: "商品ページ" , posH: 150 }
+  - Checkout: { kind: card, lane: cv, stack: 0, subtitle: "成果ページ" , posH: 150 }
 
 flow:
   - Search -> Home: "40" (success)
@@ -13473,12 +13565,12 @@ export const sourceJson__trafficSankey = `{
     "cv": { "x": 520, "width": 180 }
   },
   "actors": [
-    { "name": "Search", "kind": "card", "lane": "src", "stack": 0, "subtitle": "検索からの流入" },
-    { "name": "Social", "kind": "card", "lane": "src", "stack": 1, "subtitle": "SNS からの流入" },
-    { "name": "Direct", "kind": "card", "lane": "src", "stack": 2, "subtitle": "直接の流入" },
-    { "name": "Home", "kind": "card", "lane": "land", "stack": 0, "subtitle": "入口ページ" },
-    { "name": "Product", "kind": "card", "lane": "land", "stack": 1, "subtitle": "商品ページ" },
-    { "name": "Checkout", "kind": "card", "lane": "cv", "stack": 0, "subtitle": "成果ページ" }
+    { "name": "Search", "kind": "card", "lane": "src", "stack": 0, "subtitle": "検索からの流入" , "posH": 150 },
+    { "name": "Social", "kind": "card", "lane": "src", "stack": 1, "subtitle": "SNS からの流入" , "posH": 150 },
+    { "name": "Direct", "kind": "card", "lane": "src", "stack": 2, "subtitle": "直接の流入" , "posH": 150 },
+    { "name": "Home", "kind": "card", "lane": "land", "stack": 0, "subtitle": "入口ページ" , "posH": 150 },
+    { "name": "Product", "kind": "card", "lane": "land", "stack": 1, "subtitle": "商品ページ" , "posH": 150 },
+    { "name": "Checkout", "kind": "card", "lane": "cv", "stack": 0, "subtitle": "成果ページ" , "posH": 150 }
   ],
   "flow": [
     { "from": "Search", "to": "Home", "label": "40", "tone": "success" },
@@ -16668,10 +16760,10 @@ states:
   cur: 2
 
 actors:
-  - Home: { kind: card, lane: col1, stack: 0, subtitle: "最上位の階層", posW: 190 }
-  - Docs: { kind: card, lane: col2, stack: 0, subtitle: "Home の下にある階層", posW: 140 }
-  - API: { kind: card, lane: col1, stack: 1, subtitle: "Reference の上にある階層", posW: 220 }
-  - Reference: { kind: card, lane: col2, stack: 1, subtitle: "最も深い階層", posW: 250 }
+  - Home: { kind: card, lane: col1, stack: 0, subtitle: "最上位の階層", posW: 190 , posH: 150 }
+  - Docs: { kind: card, lane: col2, stack: 0, subtitle: "Home の下にある階層", posW: 140 , posH: 150 }
+  - API: { kind: card, lane: col1, stack: 1, subtitle: "Reference の上にある階層", posW: 220 , posH: 150 }
+  - Reference: { kind: card, lane: col2, stack: 1, subtitle: "最も深い階層", posW: 250 , posH: 150 }
 
 flow:
   - Home -> Docs: "→" (info)
@@ -16720,7 +16812,8 @@ export const sourceJson__docsBreadcrumb = `{
       "lane": "col1",
       "stack": 0,
       "subtitle": "最上位の階層",
-      "posW": 190
+      "posW": 190,
+      "posH": 150
     },
     {
       "name": "Docs",
@@ -16728,7 +16821,8 @@ export const sourceJson__docsBreadcrumb = `{
       "lane": "col2",
       "stack": 0,
       "subtitle": "Home の下にある階層",
-      "posW": 140
+      "posW": 140,
+      "posH": 150
     },
     {
       "name": "API",
@@ -16736,7 +16830,8 @@ export const sourceJson__docsBreadcrumb = `{
       "lane": "col1",
       "stack": 1,
       "subtitle": "Reference の上にある階層",
-      "posW": 220
+      "posW": 220,
+      "posH": 150
     },
     {
       "name": "Reference",
@@ -16744,7 +16839,8 @@ export const sourceJson__docsBreadcrumb = `{
       "lane": "col2",
       "stack": 1,
       "subtitle": "最も深い階層",
-      "posW": 250
+      "posW": 250,
+      "posH": 150
     }
   ],
   "flow": [
@@ -17289,10 +17385,10 @@ states:
   cur: 2
 
 actors:
-  - Draft: { kind: card, lane: col1, stack: 0, subtitle: "最初の工程", posW: 190 }
-  - Review: { kind: card, lane: col2, stack: 0, subtitle: "Draft の次の工程", posW: 190 }
-  - Approve: { kind: card, lane: col1, stack: 1, subtitle: "Publish の直前の工程", posW: 250 }
-  - Publish: { kind: card, lane: col2, stack: 1, subtitle: "最後の工程", posW: 220 }
+  - Draft: { kind: card, lane: col1, stack: 0, subtitle: "最初の工程", posW: 190 , posH: 150 }
+  - Review: { kind: card, lane: col2, stack: 0, subtitle: "Draft の次の工程", posW: 190 , posH: 150 }
+  - Approve: { kind: card, lane: col1, stack: 1, subtitle: "Publish の直前の工程", posW: 250 , posH: 150 }
+  - Publish: { kind: card, lane: col2, stack: 1, subtitle: "最後の工程", posW: 220 , posH: 150 }
 
 flow:
   - Draft -> Review: "submit" (success)
@@ -17341,7 +17437,8 @@ export const sourceJson__publishWorkflowSteps = `{
       "lane": "col1",
       "stack": 0,
       "subtitle": "最初の工程",
-      "posW": 190
+      "posW": 190,
+      "posH": 150
     },
     {
       "name": "Review",
@@ -17349,7 +17446,8 @@ export const sourceJson__publishWorkflowSteps = `{
       "lane": "col2",
       "stack": 0,
       "subtitle": "Draft の次の工程",
-      "posW": 190
+      "posW": 190,
+      "posH": 150
     },
     {
       "name": "Approve",
@@ -17357,7 +17455,8 @@ export const sourceJson__publishWorkflowSteps = `{
       "lane": "col1",
       "stack": 1,
       "subtitle": "Publish の直前の工程",
-      "posW": 250
+      "posW": 250,
+      "posH": 150
     },
     {
       "name": "Publish",
@@ -17365,7 +17464,8 @@ export const sourceJson__publishWorkflowSteps = `{
       "lane": "col2",
       "stack": 1,
       "subtitle": "最後の工程",
-      "posW": 220
+      "posW": 220,
+      "posH": 150
     }
   ],
   "flow": [
@@ -24609,10 +24709,10 @@ states:
   steps: '["Packed","Shipped","Out for delivery","Delivered"]'
 
 actors:
-  - 📦 Packed: { kind: card, lane: col1, stack: 0, subtitle: "梱包完了", posW: 250 }
-  - 🚚 Shipped: { kind: card, lane: col2, stack: 0, subtitle: "配送開始", posW: 270 }
-  - 🏠 Delivery: { kind: card, lane: col1, stack: 1, subtitle: "配達中 (現在地)", posW: 290 }
-  - ✅ Delivered: { kind: card, lane: col2, stack: 1, subtitle: "配達完了", posW: 290 }
+  - 📦 Packed: { kind: card, lane: col1, stack: 0, subtitle: "梱包完了", posW: 250 , posH: 150 }
+  - 🚚 Shipped: { kind: card, lane: col2, stack: 0, subtitle: "配送開始", posW: 270 , posH: 150 }
+  - 🏠 Delivery: { kind: card, lane: col1, stack: 1, subtitle: "配達中 (現在地)", posW: 290 , posH: 150 }
+  - ✅ Delivered: { kind: card, lane: col2, stack: 1, subtitle: "配達完了", posW: 290 , posH: 150 }
 
 flow:
   - 📦 Packed -> 🚚 Shipped: "handover" (success)
@@ -24666,7 +24766,8 @@ export const sourceJson__shippingOrderStatus = `{
       "lane": "col1",
       "stack": 0,
       "subtitle": "梱包完了",
-      "posW": 250
+      "posW": 250,
+      "posH": 150
     },
     {
       "name": "🚚 Shipped",
@@ -24674,7 +24775,8 @@ export const sourceJson__shippingOrderStatus = `{
       "lane": "col2",
       "stack": 0,
       "subtitle": "配送開始",
-      "posW": 270
+      "posW": 270,
+      "posH": 150
     },
     {
       "name": "🏠 Delivery",
@@ -24682,7 +24784,8 @@ export const sourceJson__shippingOrderStatus = `{
       "lane": "col1",
       "stack": 1,
       "subtitle": "配達中 (現在地)",
-      "posW": 290
+      "posW": 290,
+      "posH": 150
     },
     {
       "name": "✅ Delivered",
@@ -24690,7 +24793,8 @@ export const sourceJson__shippingOrderStatus = `{
       "lane": "col2",
       "stack": 1,
       "subtitle": "配達完了",
-      "posW": 290
+      "posW": 290,
+      "posH": 150
     }
   ],
   "flow": [
@@ -25627,10 +25731,10 @@ states:
   nps: 80
 
 actors:
-  - revCard: { kind: card, lane: revenue, stack: 0, subtitle: "\${revenueInput}k / month", title: "Revenue" }
-  - usersCard: { kind: card, lane: users, stack: 0, subtitle: "{users} active", title: "Users" }
-  - churnCard: { kind: card, lane: churn, stack: 0, subtitle: "{churn}% / month", title: "Churn" }
-  - npsCard: { kind: card, lane: nps, stack: 0, subtitle: "{nps} score", title: "NPS" }
+  - revCard: { kind: card, lane: revenue, stack: 0, subtitle: "\${revenueInput}k / month", title: "Revenue", posH: 150 }
+  - usersCard: { kind: card, lane: users, stack: 0, subtitle: "{users} active", title: "Users", posH: 150 }
+  - churnCard: { kind: card, lane: churn, stack: 0, subtitle: "{churn}% / month", title: "Churn", posH: 150 }
+  - npsCard: { kind: card, lane: nps, stack: 0, subtitle: "{nps} score", title: "NPS", posH: 150 }
 
 flow:
   - revCard -> usersCard: "×8" (info) { sub: "acquisition" }
@@ -25701,7 +25805,8 @@ export const sourceJson__kpiDashboard = `{
       "lane": "revenue",
       "stack": 0,
       "subtitle": "\${revenueInput}k / month",
-      "title": "Revenue"
+      "title": "Revenue",
+      "posH": 150
     },
     {
       "name": "usersCard",
@@ -25709,7 +25814,8 @@ export const sourceJson__kpiDashboard = `{
       "lane": "users",
       "stack": 0,
       "subtitle": "{users} active",
-      "title": "Users"
+      "title": "Users",
+      "posH": 150
     },
     {
       "name": "churnCard",
@@ -25717,7 +25823,8 @@ export const sourceJson__kpiDashboard = `{
       "lane": "churn",
       "stack": 0,
       "subtitle": "{churn}% / month",
-      "title": "Churn"
+      "title": "Churn",
+      "posH": 150
     },
     {
       "name": "npsCard",
@@ -25725,7 +25832,8 @@ export const sourceJson__kpiDashboard = `{
       "lane": "nps",
       "stack": 0,
       "subtitle": "{nps} score",
-      "title": "NPS"
+      "title": "NPS",
+      "posH": 150
     }
   ],
   "flow": [

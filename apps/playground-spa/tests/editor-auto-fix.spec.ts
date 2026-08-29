@@ -19,15 +19,22 @@ function shareHash(dsl: string): string {
  * 自動修正の対象になる警告を出す本文。
  *
  * `b` を右に大きく離して線を長くすると、 label の箱が線から離れて `edge-label-proximity` が出る
- * (実測 = 120px 離れ、 閾値 80px)。 この軸は `FIXABLE_WARNING_AXES` に含まれる。
+ * (実測 = 110px 離れ、 閾値 80px)。 この軸は `FIXABLE_WARNING_AXES` に含まれる。
+ *
+ * **箱の大きさを書く** (#1498)。 cdl 0.20.0 から高さは書いた段の数で決まり、名前だけの
+ * `service` は 54 になる。 箱が低いと label は箱の上端から 32 空ければよく、線からの距離が
+ * 77 に縮んで閾値 (80) を下回る = 警告が 1 件も出ず、この検査が何も通せなくなる。
  */
 const DSL = `title: "自動修正の見本"
 type: flow
 actors:
-  - a: service
+  - a:
+      kind: service
+      大きさ: 320,116
   - b:
       kind: service
       位置: a の右 400
+      大きさ: 320,116
 flow:
   - a -> b: とてもとてもながいラベルの文字列テスト
 `;
