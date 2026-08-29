@@ -3268,40 +3268,28 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   .node("revCard", {
     lane: "revenue",
     stack: 0,
-    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
-    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
-    h: 150,
     title: "Revenue",
     subtitle: "${revenueInput}k / month",
   })
   .node("usersCard", {
     lane: "users",
     stack: 0,
-    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
-    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
-    h: 150,
     title: "Users",
     subtitle: "{users} active",
   })
   .node("churnCard", {
     lane: "churn",
     stack: 0,
-    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
-    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
-    h: 150,
     title: "Churn",
     subtitle: "{churn}% / month",
   })
   .node("npsCard", {
     lane: "nps",
     stack: 0,
-    // 箱の高さを書く (#1498)。 cdl 0.20.0 で説明だけの箱は 102 まで縮むが、この図は
-    // 線の説明どうしが近く、縮むと 33 しか離れない (要る間隔は 36)
     kind: "card",
-    h: 150,
     title: "NPS",
     subtitle: "{nps} score",
   })
@@ -25639,10 +25627,10 @@ states:
   nps: 80
 
 actors:
-  - revCard: { kind: card, lane: revenue, stack: 0, subtitle: "\${revenueInput}k / month", title: "Revenue", posH: 150 }
-  - usersCard: { kind: card, lane: users, stack: 0, subtitle: "{users} active", title: "Users", posH: 150 }
-  - churnCard: { kind: card, lane: churn, stack: 0, subtitle: "{churn}% / month", title: "Churn", posH: 150 }
-  - npsCard: { kind: card, lane: nps, stack: 0, subtitle: "{nps} score", title: "NPS", posH: 150 }
+  - revCard: { kind: card, lane: revenue, stack: 0, subtitle: "\${revenueInput}k / month", title: "Revenue" }
+  - usersCard: { kind: card, lane: users, stack: 0, subtitle: "{users} active", title: "Users" }
+  - churnCard: { kind: card, lane: churn, stack: 0, subtitle: "{churn}% / month", title: "Churn" }
+  - npsCard: { kind: card, lane: nps, stack: 0, subtitle: "{nps} score", title: "NPS" }
 
 flow:
   - revCard -> usersCard: "×8" (info) { sub: "acquisition" }
@@ -25713,8 +25701,7 @@ export const sourceJson__kpiDashboard = `{
       "lane": "revenue",
       "stack": 0,
       "subtitle": "\${revenueInput}k / month",
-      "title": "Revenue",
-      "posH": 150
+      "title": "Revenue"
     },
     {
       "name": "usersCard",
@@ -25722,8 +25709,7 @@ export const sourceJson__kpiDashboard = `{
       "lane": "users",
       "stack": 0,
       "subtitle": "{users} active",
-      "title": "Users",
-      "posH": 150
+      "title": "Users"
     },
     {
       "name": "churnCard",
@@ -25731,8 +25717,7 @@ export const sourceJson__kpiDashboard = `{
       "lane": "churn",
       "stack": 0,
       "subtitle": "{churn}% / month",
-      "title": "Churn",
-      "posH": 150
+      "title": "Churn"
     },
     {
       "name": "npsCard",
@@ -25740,8 +25725,7 @@ export const sourceJson__kpiDashboard = `{
       "lane": "nps",
       "stack": 0,
       "subtitle": "{nps} score",
-      "title": "NPS",
-      "posH": 150
+      "title": "NPS"
     }
   ],
   "flow": [
