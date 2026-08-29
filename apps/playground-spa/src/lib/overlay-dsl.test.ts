@@ -13,7 +13,7 @@ import {
   type OverlayPartParsed,
 } from "./overlay-dsl";
 import { diagram } from "@cardenelabs/cdl";
-import { partRenderSize, partsGridCenters } from "@cardenelabs/dragon";
+import { partRenderSize, partsBaseRows, partsGridCenters } from "@cardenelabs/dragon";
 import type { CatalogItem } from "@/lib/catalog-items";
 
 const catalog: Record<string, unknown> = {
@@ -444,6 +444,29 @@ describe("パーツの置き場所 (placeParts)", () => {
         expect(overlap, `${placed[i]!.id} と ${placed[j]!.id} が重なる`).toBe(false);
       }
     }
+  });
+
+  it("図を 1 つの箱で描く種別でも、その高さぶん下に置く (#1481)", () => {
+    /*
+     * 箱の数で段を数えると、図を丸ごと 1 つの箱で描く種別 (順序図の板) が 1 段に潰れて
+     * パーツが図に重なる。 高さを持つ箱はその高さから段数を出す。
+     *
+     * **同じ高さを 1 箱で持つ図と、段を積んだ図で置き場所が揃うことを見る**。 値そのものを
+     * 書くと、段の高さを変えた時に検査だけが古くなる。
+     */
+    const 板 = partsBaseRows([{ h: 840 }]);
+    const 積んだ = partsBaseRows([{}, {}, {}]);
+    expect(板, "高さ 840 の箱 1 つが 3 段ぶんと数えられていない").toBe(積んだ);
+
+    const 板の位置 = placeParts([part({ id: "a" })], boxes, size, 板)[0]!;
+    const 数で数えた位置 = placeParts([part({ id: "a" })], boxes, size, 1)[0]!;
+    expect(板の位置.posY, "板の下に置けていない").toBeGreaterThan(数で数えた位置.posY);
+  });
+
+  it("高さを持たない箱は今までどおり 1 段 (#1481)", () => {
+    // 高さを書かない図の並び方を変えていないことを見る。 変わると既存の図でパーツが動く
+    expect(partsBaseRows([{}, {}, {}, {}])).toBe(4);
+    expect(partsBaseRows([]), "箱が無い図は 0 段").toBe(0);
   });
 
   it("実寸が大きいパーツでも重ならない (送り幅を実寸から出す)", () => {

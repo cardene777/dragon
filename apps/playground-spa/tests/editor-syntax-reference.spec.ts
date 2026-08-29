@@ -157,7 +157,15 @@ test("パーツを足すと入れ子なしの行が入る", async ({ page }) => 
   expect(block[0]!.trim(), `1 件目に番号が付いている: ${block[0]}`).toBe("- achievement:");
   expect(block[1]).toBe("      kind: achievement");
   expect(block[2], "色が出ていない").toMatch(/^\s+色: "#[0-9a-fA-F]{6}"$/);
-  expect(added, "入れ子が残っている").not.toContain("{ kind:");
+  /*
+   * **足した行だけを見る** (#1481)。
+   *
+   * 元は本文の全体から `{ kind:` を探していた。 見ているのは「画面が足す行が入れ子の形に
+   * なっていないか」 なのに、本文の他の場所に同じ書き方があるだけで落ちる。
+   * 実際 `#1466` で既定の見本に `{ kind: return }` が入り、パーツの行は正しく縦に並んで
+   * いるのに落ちていた。
+   */
+  expect(block.join("\n"), "入れ子が残っている").not.toContain("{ kind:");
   expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
   expect(await page.locator("[data-overlay-part]").count(), "図に出ていない").toBe(1);
 });

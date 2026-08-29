@@ -2331,6 +2331,20 @@ const PARTS_GAP = 120;
 const STACK_PITCH = 280;
 
 /**
+ * 既存の図が縦に何段ぶんを占めるかの目安 (#1481)。
+ *
+ * **箱の数では数えない**。 数で数えると、図を丸ごと 1 つの箱で描く種別が 1 段に潰れる。
+ * 順序図は `#1466` で 1 枚の板になり、高さ 432 の箱 1 つになった = 1 段 (280) と見積もられ、
+ * その下に置いたパーツが板に 31px 重なっていた (実測)。
+ *
+ * 大きさを自分で持つ箱は、その高さから段数を出す。 持たない箱は今までどおり 1 段と数えるので、
+ * 高さを書かない図の並び方は変わらない。
+ */
+export function partsBaseRows(nodes: ReadonlyArray<{ h?: number }>): number {
+  return nodes.reduce((acc, n) => acc + Math.max(1, Math.ceil(positiveOr(n.h, 0) / STACK_PITCH)), 0);
+}
+
+/**
  * 位置を書かなかったパーツを格子に並べた時の、 矩形の中心。
  *
  * 組み立て側 (`mergePartsFromActors`) と画面側 (playground の overlay) の両方から呼ぶ。
@@ -2340,17 +2354,17 @@ const STACK_PITCH = 280;
  * 隣と重なる (実測 = 400 の次に 200 を置くと 280 重なった)。 段の高さも段内の最大高で揃える。
  * 縦は自分の高さの半分だけ段の上端から下げて、 段内で上端を揃える。
  *
- * @param baseNodeCount パーツ以外の箱の数。 既存の図の下から並べ始めるために使う
+ * @param baseRows 既存の図が占める段数の目安 (`partsBaseRows`)。 図の下から並べ始めるために使う
  */
 export function partsGridCenters(
-  baseNodeCount: number,
+  baseRows: number,
   items: ReadonlyArray<{ id: string; w: number; h: number }>,
 ): Map<string, { cx: number; cy: number }> {
   const out = new Map<string, { cx: number; cy: number }>();
   if (items.length === 0) return out;
   // 公開している関数なので、 呼出側が渡す値を入口で閉じる。 数でない箱の数や桁溢れを
   // そのまま計算に入れると、 描けない座標を返すことになる
-  const safeCount = Number.isSafeInteger(baseNodeCount) && baseNodeCount >= 0 ? baseNodeCount : 0;
+  const safeCount = Number.isSafeInteger(baseRows) && baseRows >= 0 ? baseRows : 0;
   const top = safeCount * STACK_PITCH + PARTS_GAP * 2;
   // 同じ名前が 2 度来たら先の方だけを見る。 後の分を残すと、 どちらを指したか決められない
   // まま列の送り幅にも影響する
@@ -2498,7 +2512,7 @@ function partGridCenters(
     extents.set(a.name, partFrameExtent(part, t.w, t.h));
   }
   const centers = partsGridCenters(
-    baseNodes.length,
+    partsBaseRows(baseNodes),
     placedActors.map((a) => ({ id: a.name, ...extents.get(a.name)! })),
   );
   // merge に渡すのは段の中心。 矩形の中心とのずれを引く。 引かないと、 段ごとに箱の高さが
