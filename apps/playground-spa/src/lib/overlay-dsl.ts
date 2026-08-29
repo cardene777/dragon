@@ -175,6 +175,7 @@ export function partBoxRect(part: OverlayPartParsed): {
  * 目的なので、 描く大きさそのものが要る)。
  *
  * @param sizeOf パーツ 1 個の図枠の大きさ。 格子に並べる時の場所の確保に使う
+ * @param baseRows 既存の図が占める段数の目安 (`partsBaseRows`)。 箱の数ではない (#1481)
  * @param boxes 基準にできる要素の位置。 図の組み立て結果から測ったもの
  * @param boxOf パーツ 1 個の見えている箱。 座標と間隔を解くのに使う (既定は `partBoxRect`)
  */
@@ -182,7 +183,7 @@ export function placeParts(
   parsed: OverlayPartParsed[],
   boxes: ReadonlyMap<string, AnchorBox>,
   sizeOf: (part: OverlayPartParsed) => { w: number; h: number },
-  baseNodeCount: number,
+  baseRows: number,
   onNotice?: (notice: PartPlacementNotice) => void,
   boxOf: (part: OverlayPartParsed) => {
     w: number;
@@ -241,7 +242,7 @@ export function placeParts(
   const autoIds = parsed
     .filter((p) => !(p.posX !== undefined && p.posY !== undefined) && !resolved.has(p.id))
     .map((p) => ({ id: p.id, ...sizes.get(p.id)! }));
-  const grid = partsGridCenters(baseNodeCount, autoIds);
+  const grid = partsGridCenters(baseRows, autoIds);
 
   return parsed.map((p) => {
     const s = sizes.get(p.id)!;

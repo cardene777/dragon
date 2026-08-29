@@ -76,6 +76,7 @@ export {
   MAX_PART_SCALE,
   partDrawsInDiagram,
   partIsMeasurable,
+  partsBaseRows,
   partsGridCenters,
 } from "./compile";
 // 色として読めるかの判定と、 図の外を指す値かの判定。 状態の上書きを受け取る側 / 画面が色欄を
