@@ -1796,6 +1796,11 @@
         "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
       }
     },
+    "direction": {
+      "type": "string",
+      "enum": ["vertical", "horizontal"],
+      "description": "図の並ぶ向き。 vertical = 1 つの縦列に積む。 horizontal = 1 人ずつ縦列を作る。 効くのは flow と swimlane だけ。"
+    },
     "reveal": {
       "type": "string",
       "enum": ["phase", "all"],

@@ -28,7 +28,9 @@ export type SampleSlot =
   // 順序図で面が動いている間の帯 (#1466)
   | "bands"
   // 矢印をいつ出すか (#1470)
-  | "reveal";
+  | "reveal"
+  // 図の並ぶ向き (#1494)
+  | "direction";
 
 export type Section = {
   title: string;
@@ -134,6 +136,21 @@ export const FORMS: Section[] = [
     lines: [
       { code: "reveal: phase", note: "段が来るまで矢印を出さない (既定)" },
       { code: "reveal: all", note: "段に関わらず最初から全部出す" },
+    ],
+  },
+  {
+    title: "図の並ぶ向き (direction:)",
+    // 流れ図と泳法図でだけ効く。 例文は既定と逆の向きを書いて、変わることが読めるようにする
+    sample: {
+      slot: "direction",
+      type: "flow",
+      actors: ["  - Web", "  - API"],
+      flow: ['  - Web -> API: "頼む"'],
+    },
+    lines: [
+      { code: "direction: 横", note: "1 人ずつ縦列を作る (流れ図の既定は縦)" },
+      { code: "direction: 縦", note: "1 つの縦列に積む (泳法図の既定は横)" },
+      { code: "direction: horizontal", note: "英語でも書ける (vertical / horizontal)" },
     ],
   },
   {
@@ -540,7 +557,8 @@ export function buildSample(section: Section): string {
   const { slot, actors = [], flow = [], states = [] } = section.sample;
   const codes = section.lines.map((l) => l.code);
   // `reveal` は最上位に 1 行で書く語なので、`root` と同じ場所へ置く (#1470)
-  const rootLines = slot === "root" || slot === "reveal" ? codes : [];
+  // 最上位に 1 行で書く項目は、頭の並びにそのまま足す (`reveal` / `direction`)
+  const rootLines = slot === "root" || slot === "reveal" || slot === "direction" ? codes : [];
   // 題名と図種は例文に必ず要る。 一覧側で書いている時は重ねて書かない (後に書いた方が効く)
   const head = [
     ...(rootLines.some((l) => /^title\s*:/.test(l)) ? [] : ['title: "見本"']),
