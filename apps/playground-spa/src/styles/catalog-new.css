@@ -389,7 +389,7 @@
 }
 
 .catalog-preview-stage {
-  /* 局面の表示を重ねる基準 (#1239)。 これが無いと札が頁の左上へ飛ぶ */
+  /* シーンの表示を重ねる基準 (#1239)。 これが無いと札が頁の左上へ飛ぶ */
   position: relative;
   display: grid;
   place-items: center;
@@ -720,7 +720,7 @@
 }
 
 .cdl-modal-body {
-  /* 局面の表示を重ねる基準 (#1239) */
+  /* シーンの表示を重ねる基準 (#1239) */
   position: relative;
   flex: 1;
   min-height: 0;

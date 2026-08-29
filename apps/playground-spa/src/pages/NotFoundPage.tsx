@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 /**
  * 見つからない頁。 見た目の SSOT = docs/design/app.pen の 09 見つからない頁、
  * class の中身は src/styles/home.css の .v4-404-*。
- * 局面の目盛りを空のまま置くのは、 「まだ何も書かれていない」 ことを図の言葉で言うため。
+ * シーンの目盛りを空のまま置くのは、 「まだ何も書かれていない」 ことを図の言葉で言うため。
  */
 export function NotFoundPage(): React.ReactElement {
   const [locale] = useLocale();

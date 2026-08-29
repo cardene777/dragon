@@ -270,7 +270,7 @@
 /* ── 実物 ── */
 
 .nm-preset-detail-stage {
-  /* 局面の表示を重ねる基準 (#1239) */
+  /* シーンの表示を重ねる基準 (#1239) */
   position: relative;
   display: grid;
   place-items: center;

@@ -1,21 +1,21 @@
 /**
- * 舞台に重ねる局面の表示の検証 (#1143)。
+ * 舞台に重ねるシーンの表示の検証 (#1143)。
  *
  * 表示そのものは `#1239` で画面をまたげる部品 (`PhaseChrome`、 class は `cdl-phase-*`) へ
  * 出したため、 選択子は共有側の名前を見る。 検査の中身 (中身と色の変化を直接見る) は変えていない。
  *
  * 設計 (`docs/design/app.pen` の `04 エディタ`) は 3 つを描いているが、 実装は 1 つも持って
- * いなかった。 図がどの局面を見せているのか、 あと何段あるのか、 どの速さで回っているのかが
+ * いなかった。 図がどのシーンを見せているのか、 あと何段あるのか、 どの速さで回っているのかが
  * 画面から一切分からない状態だった。
  *
- * 4 つ目 (今の局面に関わる名札を橙で塗る) は engine 側で動いていたが、 `cdl-theme.css` の
+ * 4 つ目 (今のシーンに関わる名札を橙で塗る) は engine 側で動いていたが、 `cdl-theme.css` の
  * `!important` が全部の箱に同じ枠を当てて打ち消していた (実測 = `active=true` の
  * `api-header` と `false` の `db-header` が `stroke: rgb(196,189,179)` /
  * `strokeWidth: 1.75px` で完全一致)。
  *
  * ## 検査の作り
  *
- * **要素の有無では守れない**。 札が出ていても中身が固定文字なら局面は伝わらないし、 バーが
+ * **要素の有無では守れない**。 札が出ていても中身が固定文字ならシーンは伝わらないし、 バーが
  * 出ていても色が動かなければ進み具合は伝わらない。 中身と色の変化を直接見る。
  */
 import { test, expect } from "@playwright/test";
@@ -33,8 +33,8 @@ function 共有(src: string): string {
   return `#s=${Buffer.from(unescape(encodeURIComponent(src)), "binary").toString("base64")}`;
 }
 
-/** 局面を持たない図。 既定の見本はすべて `animation:` を持つので、 自分で書く */
-const 局面なし = `title: "単発"
+/** シーンを持たない図。 既定の見本はすべて `animation:` を持つので、 自分で書く */
+const シーンなし = `title: "単発"
 type: sequence
 actors:
   - A
@@ -43,17 +43,17 @@ flow:
   - A -> B: "x"
 `;
 
-test.describe("局面の表示 (#1143)", () => {
-  test("札に今の局面と全体の数と題名が出る", async ({ page }) => {
+test.describe("シーンの表示 (#1143)", () => {
+  test("札に今のシーンと全体の数と題名が出る", async ({ page }) => {
     await 開く(page);
     const 札 = page.locator(".cdl-phase-chip");
     await expect(札).toBeVisible();
-    // 既定の見本は 4 局面 (`call` / `query` / `return` / `ok`)
-    await expect(札).toContainText(/局面 [1-4] \/ 4/u);
+    // 既定の見本は 4 シーン (`call` / `query` / `return` / `ok`)
+    await expect(札).toContainText(/シーン [1-4] \/ 4/u);
     await expect(札).toContainText("·");
   });
 
-  test("局面が進むと札の数字とバーが追随する", async ({ page }) => {
+  test("シーンが進むと札の数字とバーが追随する", async ({ page }) => {
     await 開く(page);
     const 札 = page.locator(".cdl-phase-chip");
     const 済 = page.locator(".cdl-phase-seg.is-done");
@@ -61,16 +61,16 @@ test.describe("局面の表示 (#1143)", () => {
     const 前文 = (await 札.textContent()) ?? "";
     const 前済 = await 済.count();
 
-    // 1 局面は 1.4s + 静止 2s。 5s あれば必ず 1 つ以上進む
+    // 1 シーンは 1.4s + 静止 2s。 5s あれば必ず 1 つ以上進む
     await page.waitForTimeout(5200);
 
     const 後文 = (await 札.textContent()) ?? "";
     const 後済 = await 済.count();
-    expect(後文, `局面が進んでも札が ${前文} のまま`).not.toBe(前文);
-    expect(後済, `局面が進んでもバーが ${前済} 本のまま`).not.toBe(前済);
+    expect(後文, `シーンが進んでも札が ${前文} のまま`).not.toBe(前文);
+    expect(後済, `シーンが進んでもバーが ${前済} 本のまま`).not.toBe(前済);
   });
 
-  test("バーは局面の数だけ区切られる", async ({ page }) => {
+  test("バーはシーンの数だけ区切られる", async ({ page }) => {
     await 開く(page);
     await expect(page.locator(".cdl-phase-seg")).toHaveCount(4);
 
@@ -95,8 +95,8 @@ test.describe("局面の表示 (#1143)", () => {
     await expect(page.locator(".cdl-phase-meta")).toHaveText(/^\d+ms · 繰り返し$/u);
   });
 
-  test("局面を持たない図では何も出さない", async ({ page }) => {
-    await 開く(page, 共有(局面なし));
+  test("シーンを持たない図では何も出さない", async ({ page }) => {
+    await 開く(page, 共有(シーンなし));
     await expect(page.locator(".cdl-phase-chip")).toHaveCount(0);
     await expect(page.locator(".cdl-phase-seg")).toHaveCount(0);
   });
@@ -136,7 +136,7 @@ test.describe("局面の表示 (#1143)", () => {
     expect(後?.width).toBeCloseTo(前?.width ?? -1, 0);
   });
 
-  test("今の局面に関わる名札だけ枠が変わる", async ({ page }) => {
+  test("今のシーンに関わる名札だけ枠が変わる", async ({ page }) => {
     await 開く(page);
 
     const 枠 = await page.evaluate(() => {
@@ -157,7 +157,7 @@ test.describe("局面の表示 (#1143)", () => {
 
     const 有 = 枠.filter((n) => n.active === "true");
     const 無 = 枠.filter((n) => n.active === "false");
-    expect(有.length, "今の局面に関わる名札が 1 つも無い").toBeGreaterThan(0);
+    expect(有.length, "今のシーンに関わる名札が 1 つも無い").toBeGreaterThan(0);
     expect(無.length, "関わらない名札が 1 つも無い").toBeGreaterThan(0);
 
     // 枠の色で見分ける。 面も一緒に変わるが、 面は舞台とほぼ同じ明るさなので分離は枠が担う
