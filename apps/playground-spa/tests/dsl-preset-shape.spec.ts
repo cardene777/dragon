@@ -28,7 +28,14 @@ test("見本「言語シェア」 で円が描かれる (#1076)", async ({ page 
   const m = await page.evaluate(() => {
     const g = document.querySelector('[data-cdl-kind="chart-pie"]');
     if (!g) return null;
-    const 扇 = [...g.querySelectorAll("path")].map((p) => {
+    /*
+     * **扇だけを数える** (#1479)。
+     *
+     * 元は箱の中の `path` を全部数えていた。 描画側が名札への引出線を足したため、
+     * 同じ 4 項目の図で `path` が 8 本になり「扇の数が違う」 で落ちていた
+     * (実測 = 扇 4 + 引出線 4)。 数えたいのは扇なので、役割で絞る。
+     */
+    const 扇 = [...g.querySelectorAll('[data-cdl-role="chart-pie-slice"]')].map((p) => {
       const r = p.getBoundingClientRect();
       return { w: Math.round(r.width), h: Math.round(r.height), d: (p.getAttribute("d") ?? "").slice(0, 8) };
     });
@@ -46,8 +53,11 @@ test("見本「言語シェア」 で円が描かれる (#1076)", async ({ page 
     expect(s.w, `扇が潰れている (${JSON.stringify(s)})`).toBeGreaterThan(20);
     expect(s.h, `扇が潰れている (${JSON.stringify(s)})`).toBeGreaterThan(20);
   }
-  // 割合が画面に出る (箱の説明文ではなく凡例として)
-  expect(m!.文字.join(" "), "割合が出ていない").toContain("45.0%");
+  // 割合が画面に出る (箱の説明文ではなく凡例として)。
+  // **小数点以下は書かない** (#1479)。 描画側が `45.0%` から `45%` に変えたので実物に合わせる。
+  // 割り切れない値まで整数に丸める形なら別の見本 (合計 3 等分) で落ちるが、この見本は
+  // 4 項目とも整数なので、ここで見るのは「割合が凡例に出ているか」 に留まる
+  expect(m!.文字.join(" "), "割合が出ていない").toContain("45%");
   expect(m!.文字.join(" "), "項目名が出ていない").toContain("TypeScript");
 });
 

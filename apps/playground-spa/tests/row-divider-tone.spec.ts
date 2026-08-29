@@ -22,8 +22,18 @@ import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { shoot, measure, type Box } from "./helpers/pixel-contrast";
 
-/** 区切り線を持つ画面。 実体の名前と列の間に横線が入る。 */
-const 対象 = "preset/er";
+/**
+ * 区切り線を持つ画面。 名前と行の間に横線が入る。
+ *
+ * **表の図 (`preset/er`) は使えない** (#1479)。 `#1466` で ER の行が印 (主キーの丸、
+ * 外部キーの山形) と主キーの下線で分かれるようになり、描画側は印で分ける図に横線を引かない
+ * (`storage.tsx` の `rows.length > 0 && !印で分ける`)。 下に印が並ぶので線が二重になるためで、
+ * 意図した変更。 実測でも `preset/er` の区切り線は 0 本。
+ *
+ * 印を持たない `storage` の見本に移す。 「区切り線が明暗のどちらでも見える」 という決まりは
+ * 図種に依らないので、線が在る画面で同じことを測る。
+ */
+const 対象 = "catalog/primitives";
 
 const 役割 = '[data-cdl-role="node-row-divider"]';
 
@@ -36,6 +46,18 @@ async function 開く(page: Page, 暗い: boolean): Promise<void> {
   if (暗い) await page.evaluate(() => document.documentElement.classList.add("dark"));
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(1800);
+  /*
+   * 線を画面の中へ入れる (#1479)。
+   *
+   * 下の写しは枠の左上から 1280×720 を撮り、線の位置は `getBoundingClientRect` で取る =
+   * どちらも画面を基準にしているので、線が下にあると写しの外に出て測れない
+   * (実測 = 移す前の画面で y=829)。
+   *
+   * 写しを縦に伸ばす形は採らない。 大きい写しは同時に走る寸法の検査を落とす
+   * (`playwright.config.ts` § 他と重ねない検査)。
+   */
+  await page.locator(役割).first().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
 }
 
 /** 写しの範囲。 区切り線がこの外に出たら測れないので、 その形も落とす。 */

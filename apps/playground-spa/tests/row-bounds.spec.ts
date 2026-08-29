@@ -64,14 +64,26 @@ const hasRows = (d: CdlDiagram): boolean =>
  * 対象が減ったことを検知できない。 現在の値を固定して、 増減を必ず気付く形にする。
  */
 const EXPECTED: Array<{ slug: string; id: string; rows: number }> = [
-  { slug: "presets", id: "class-demo", rows: 12 },
-  { slug: "presets", id: "er-demo", rows: 7 },
+  /*
+   * `#1466` で 4 図を設計どおりに書き直した分を反映した (#1479 で実測)。
+   *
+   * | 見本 | 変更前 | 変更後 | 何が変わったか |
+   * |---|---|---|---|
+   * | `class-demo` | 12 | 18 | 属性と操作を設計どおりに並べ直して行が増えた |
+   * | `er-demo` | 7 | 14 | 列を印 (主キー / 外部キー) 付きで並べ直して行が増えた |
+   * | `fsm-demo` | (無) | 4 | 状態に `actions` を書けるようになり、行を持つ側に入った |
+   * | `service-call-write-emit` | 1 | (無) | 行を持っていた `DB: storage` を見本から外した |
+   *
+   * **行が消えた回帰ではない**。 4 件とも `#1466` の書き直しと 1 対 1 で対応する。
+   */
+  { slug: "presets", id: "class-demo", rows: 18 },
+  { slug: "presets", id: "er-demo", rows: 14 },
+  { slug: "presets", id: "fsm-demo", rows: 4 },
   { slug: "patterns", id: "pattern-call-rw", rows: 1 },
   { slug: "patterns", id: "pattern-rollback", rows: 1 },
   { slug: "patterns", id: "pattern-validate-process", rows: 1 },
   // #1196 で「行数: {v}」 の行が増えて 3 になった。 一覧を直していなかったため落ちていた
   { slug: "primitives", id: "kind-storage", rows: 3 },
-  { slug: "text-dsl", id: "service-call-write-emit", rows: 1 },
 ];
 
 /** 行を持つ見本だけを `{slug, diagram}` に展開する。 */

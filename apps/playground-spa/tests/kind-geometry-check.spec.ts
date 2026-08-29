@@ -288,7 +288,18 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
 
   test("edge-line: fill は none (fill:#XXX bug 回帰なし)", async ({ page }) => {
     await page.getByText("フローチャート", { exact: true }).first().click();
-    await page.waitForTimeout(1000);
+    /*
+     * **線が出るまで待つ** (#1479)。
+     *
+     * `#1470` で矢印が段に合わせて出るようになり、開いた直後は 1 本も描かれていない。
+     * 決め打ちの待ち時間だと、何段目で読むかによって 0 件になる (実測 = 1 秒では 0 件)。
+     * 出た時点で先へ進むので、待ち時間を延ばす形より速くて確実。
+     *
+     * **見えているかは待たない** (`state: "attached"`)。 線は段の進みで長さが 0 になる瞬間が
+     * あり、既定の「見えるまで」 だとその瞬間に当たった回が時間切れになる (実測)。
+     * ここで読むのは塗りの指定なので、DOM に在れば足りる。
+     */
+    await page.waitForSelector('[data-cdl-role="edge-line"]', { state: "attached", timeout: 15_000 });
 
     const fills = await page.evaluate(() => {
       const list: string[] = [];
