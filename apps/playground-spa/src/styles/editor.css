@@ -727,12 +727,15 @@
     border-color: var(--d-accent);
     color: var(--d-accent);
   }
+  /* 押せない状態は色と枠と cursor で示す。 **不透明度は掛けない** (#1488)。
+     `--d-text-muted` は知らせの地 (`--d-warn-soft`) の上で 4.78 (明) / 4.82 (暗) あるが、
+     0.65 を掛けると 2.51 / 2.95 まで落ちて下限 4.5 を割る (実測)。
+     押せないことは枠の色と `not-allowed` が伝えるので、字まで薄くする必要が無い。 */
   .v4-editor-warnings-apply:disabled {
     background: transparent;
     border-color: var(--d-border);
     color: var(--d-text-muted);
     cursor: not-allowed;
-    opacity: 0.65;
   }
   .v4-editor-warnings-apply:disabled:hover {
     background: transparent;
