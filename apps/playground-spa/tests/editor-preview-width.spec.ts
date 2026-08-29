@@ -143,18 +143,61 @@ test("収まらない見本が 1 件も無い (#1102)", async ({ page }) => {
   expect(収まらない.sort(), "画面の外に出ている見本がある").toEqual([]);
 });
 
+/** 図の中で画面上いちばん小さい文字の大きさ。 表示倍率を掛けた実寸で返す。 */
+async function 最小の文字(
+  page: import("@playwright/test").Page,
+): Promise<{ 最小: number; 数えた: number } | null> {
+  return page.evaluate(() => {
+    const svg = document
+      .querySelector(".v4-editor-stage")
+      ?.querySelector<SVGSVGElement>("svg[data-cdl-stage]");
+    if (!svg) return null;
+    const 幅 = svg.getBoundingClientRect().width;
+    const vb = svg.viewBox?.baseVal?.width ?? 0;
+    if (!(幅 > 0) || !(vb > 0)) return null;
+    const k = 幅 / vb;
+    let 最小 = Number.POSITIVE_INFINITY;
+    let 数えた = 0;
+    for (const t of svg.querySelectorAll("text")) {
+      if ((t.textContent ?? "").trim().length === 0) continue;
+      const cs = getComputedStyle(t);
+      if (cs.display === "none") continue;
+      if (cs.visibility === "hidden" || cs.visibility === "collapse") continue;
+      if (Number.parseFloat(cs.opacity) === 0) continue;
+      const world = Number.parseFloat(cs.fontSize);
+      if (!Number.isFinite(world) || world <= 0) continue;
+      数えた += 1;
+      最小 = Math.min(最小, world * k);
+    }
+    return 数えた > 0 ? { 最小: Math.round(最小 * 10) / 10, 数えた } : null;
+  });
+}
+
 // `#1102` で 8px まで譲るのは、 好ましい下限 10px では箱が枠から出る図に限る。 譲る図と譲らない
 // 図の両方を押さえておかないと、 一律に下げる変更が入っても緑のまま通る。
 //
 // どの見本がどちらに落ちるかは `readable-floor.ts` (共有の期待値) が持つ。 同じ分類を
 // `editor-readable-scale.spec.ts` も使うため、 片方だけ直しても両方が通る形を避ける
 const 見る見本 = [
-  { slug: "sequence", 理由: "箱が枠に収まるので譲らない (図の外枠は 886px で枠を超える)" },
-  { slug: "sequence-checkout", 理由: "同上" },
-  { slug: "gantt", 理由: "同上" },
+  { slug: "gantt", 理由: "箱が枠に収まるので譲らない" },
   { slug: "swimlane", 理由: "10px では箱が枠から出る" },
   { slug: "state-machine", 理由: "同上" },
   { slug: "er", 理由: "同上" },
+] as const;
+
+/**
+ * 縮める必要が無い見本 (#1477)。
+ *
+ * `#1466` で順序図が 1 枚の板になり、枠に対して余裕を持って収まるようになった =
+ * 倍率が下限に当たらない (実測 = 順序図 18.2px / 買い物の順序図 17.7px、どちらも下限 10px)。
+ *
+ * **下限ちょうどで止まる形では見られない**。 当たらないものに「ちょうど」 を課すと、
+ * 板の大きさを変えるたびに落ちる。 代わりに **下限を下回らない** ことを見る。
+ * 枠から出ていないことは上の「収まらない見本が 1 件も無い」 が全見本について見ている。
+ */
+const 縮まない見本 = [
+  { slug: "sequence", 理由: "板が枠に収まるので縮まない" },
+  { slug: "sequence-checkout", 理由: "同上" },
 ] as const;
 
 for (const { slug, 理由 } of 見る見本) {
@@ -165,30 +208,7 @@ for (const { slug, 理由 } of 見る見本) {
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2400);
 
-    const m = await page.evaluate(() => {
-      const svg = document
-        .querySelector(".v4-editor-stage")
-        ?.querySelector<SVGSVGElement>("svg[data-cdl-stage]");
-      if (!svg) return null;
-      const 幅 = svg.getBoundingClientRect().width;
-      const vb = svg.viewBox?.baseVal?.width ?? 0;
-      if (!(幅 > 0) || !(vb > 0)) return null;
-      const k = 幅 / vb;
-      let 最小 = Number.POSITIVE_INFINITY;
-      let 数えた = 0;
-      for (const t of svg.querySelectorAll("text")) {
-        if ((t.textContent ?? "").trim().length === 0) continue;
-        const cs = getComputedStyle(t);
-        if (cs.display === "none") continue;
-        if (cs.visibility === "hidden" || cs.visibility === "collapse") continue;
-        if (Number.parseFloat(cs.opacity) === 0) continue;
-        const world = Number.parseFloat(cs.fontSize);
-        if (!Number.isFinite(world) || world <= 0) continue;
-        数えた += 1;
-        最小 = Math.min(最小, world * k);
-      }
-      return 数えた > 0 ? { 最小: Math.round(最小 * 10) / 10, 数えた } : null;
-    });
+    const m = await 最小の文字(page);
 
     expect(m, "図の文字が取れない").not.toBeNull();
     expect(m!.数えた, "文字が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
@@ -196,5 +216,20 @@ for (const { slug, 理由 } of 見る見本) {
     // 0.3px にすると `gantt` の変異後の値 (9.7px) が許容に隠れて変異を見逃す (実測)
     expect(m!.最小, `${理由} / 実測 ${m!.最小}px`).toBeGreaterThanOrEqual(下限 - 0.2);
     expect(m!.最小, `${理由} / 実測 ${m!.最小}px`).toBeLessThan(下限 + 0.2);
+  });
+}
+
+for (const { slug, 理由 } of 縮まない見本) {
+  const 下限 = 文字の下限(slug);
+  test(`見本 ${slug} の画面上の最小文字が ${下限}px を下回らない (#1477)`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`editor#preset=${slug}`);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(2400);
+
+    const m = await 最小の文字(page);
+    expect(m, "図の文字が取れない").not.toBeNull();
+    expect(m!.数えた, "文字が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+    expect(m!.最小, `${理由} / 実測 ${m!.最小}px`).toBeGreaterThan(下限);
   });
 }

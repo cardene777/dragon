@@ -136,10 +136,19 @@ flow:
     await expect(notices).toBeVisible();
     await expect(notices).toContainText("API");
     await expect(notices).toContainText("効きません");
-    // 重なりを作らずに自動配置へ戻る
+    /*
+     * 板には置き場所が 1 つも無い (#1477)。
+     *
+     * 元は「重なりを作らずに自動配置へ戻る」 を、`Web` と `API` の印の左右で見ていた。
+     * `#1466` で順序図が 1 枚の板になり、登場人物は板の中の行になったので、
+     * 人物ごとの置き場所という概念自体が消えた = 比べる 2 点が作れない。
+     *
+     * 代わりに **印が 1 つも出ないこと** を見る。 書いた位置が効かないまま人物ごとの箱が
+     * 戻れば印が出るので、この形でも「効かない指定が黙って効く」 は落とせる。
+     */
     await page.getByTestId("editor-toggle-positions").click();
     const m = await marks(page);
-    expect(m.API!.x).toBeGreaterThan(m.Web!.x);
+    expect(Object.keys(m), "板に人物ごとの置き場所が出ている").toEqual([]);
   });
 
   test("書き方が読めない位置は誤りとして出す", async ({ page }) => {

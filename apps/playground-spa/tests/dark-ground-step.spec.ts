@@ -13,6 +13,7 @@
  * 明暗差が大きい組 (箱と文字 / 箱と枠) は従来どおり対比比で測る。
  */
 import { test, expect } from "@playwright/test";
+import { 箱と矢印を開く } from "./box-and-edge-figure";
 
 /** sRGB → 相対輝度 (WCAG)。 */
 function luminance(rgb: number[]): number {
@@ -89,11 +90,17 @@ async function surfaces(page: import("@playwright/test").Page) {
   }, 既定の箱);
 }
 
+/**
+ * エディタで箱と矢印が在る図を暗い画面で開く。
+ *
+ * **既定の見本には依らない** (#1477)。 既定は順序図で、`#1466` から 1 枚の板として描かれる =
+ * 箱も線も 1 つも出ないため、下の 4 件が測る対象を失っていた。 面の色は図種に依らないので、
+ * 測るものが在る図を名指しする。
+ */
 async function openDark(page: import("@playwright/test").Page): Promise<void> {
-  await page.goto("editor");
-  await page.waitForLoadState("networkidle");
+  await 箱と矢印を開く(page, 2200);
   await page.evaluate(() => document.documentElement.classList.add("dark"));
-  await page.waitForTimeout(2200);
+  await page.waitForTimeout(600);
 }
 
 /**
@@ -226,15 +233,17 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
   // **半透明で置くと、宣言した色と見える色がずれる**。 以前は gold を半透明で明暗どちらの紙にも
   // 当てており、 catalog の cream の紙では重ねた後が対比 1.38 で溶けていた (実測)。
   // 意味を持つ非文字要素の下限は 3:1。
-  // 命綱は順序図に、枠は topology / swimlane に出る。 どちらか片方の画面だけでは
-  // もう一方の役割に届かない (実測 = `/editor` は命綱 3 / 枠 0、 `/catalog/patterns` は
-  // 命綱 0 / 枠 1)。 紙が暗い側と cream 側の両方を通す。
+  // 枠は topology / c4 に出る。 紙が暗い側と cream 側の両方を通す。
   //
-  // **cream の紙に命綱が出る画面は現状 1 つも無い** (実測 = カタログ側 5 画面すべて命綱 0)。
-  // そのため catalog 向けの命綱の色を変えても、この検査は落ちない。 到達する入力を作れない
-  // 防御的な指定として残してある (`cdl-theme.css` の `lane-lifeline`)。
+  // **命綱 (`lane-lifeline`) が出る画面は現状 1 つも無い** (#1477 で実測 = エディタと
+  // カタログの全画面で 0 件)。 順序図が 1 枚の板になった (`#1466`) ため、縦の点線を引く
+  // 主が居なくなった。 到達する入力を作れない防御的な指定として役割の一覧には残す
+  // (`cdl-theme.css` の `lane-lifeline` も同じ理由で残している)。
+  //
+  // **エディタ側は図を名指しする** (#1477)。 既定の見本は順序図で、板には枠も命綱も無い =
+  // 補助線を 1 つも測れない。 枠を持つ見本を開く。
   for (const [場所, path] of [
-    ["editor (暗い紙)", "editor"],
+    ["editor (暗い紙)", "editor#preset=topology"],
     ["catalog (cream の紙)", "catalog/patterns"],
     ["catalog (cream の紙・枠)", "preset/topology"],
   ] as const) {
@@ -304,9 +313,7 @@ test("明るい画面は変えていない", async ({ page }) => {
   //
   // **色を literal で固定しない**。 固定すると将来の正当な配色更新まで落ちる。
   // 「面が分かれて見えるか」 と「その上の文字が読めるか」 の不変条件で見る。
-  await page.goto("editor");
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2200);
+  await 箱と矢印を開く(page, 2200);
   const s = await surfaces(page);
   expect(s.紙, "明るい画面の紙を測れていない").not.toBeNull();
 

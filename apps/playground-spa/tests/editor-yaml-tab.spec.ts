@@ -7,6 +7,7 @@
  * 前提 = dev server が起動していること (port は `ports.ts` の `DEV_PORT` が SSOT)。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 記法をURLに載せる, 箱と矢印の記法 } from "./box-and-edge-figure";
 
 async function getActiveTab(page: Page): Promise<string> {
   return await page.evaluate(() => {
@@ -261,7 +262,10 @@ actors:
 
     test("本文欄の位置の札は YAML 欄に出ない", async ({ page }) => {
       // 札を押すと本文欄の記述に座標を書く。 YAML 欄で出すと、 映していない方が書き換わる。
-      await page.goto("editor", { waitUntil: "networkidle" });
+      //
+      // **既定の見本には依らない** (#1477)。 既定は順序図で、`#1466` から 1 枚の板として
+      // 描かれる = 人物ごとの置き場所が無く、札が 1 つも出ない。 箱が在る図を開く。
+      await page.goto(`editor#s=${記法をURLに載せる(箱と矢印の記法)}`, { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       await page.getByTestId("editor-toggle-positions").click();
       await page.waitForTimeout(600);
