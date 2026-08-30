@@ -66,6 +66,11 @@ export default [
       // sandbox 内 file は tsconfig include 外で type-aware rule が parser service を得られず
       // eslint が crash するため lint 対象から除外する。
       "**/.stryker-tmp/**",
+      // `docs/design/notation/**/source.cdl.ts` = 意匠帳に納めた記法の抜粋。
+      // 単体で成り立つ module ではなく (宣言のかたまりをそのまま写している)、
+      // tsconfig の対象外なので type-aware rule が parser service を得られず落ちる。
+      // 読むための写しなので lint の対象にしない。
+      "docs/design/notation/**",
       // `.mts` script (apps/playground-spa/scripts/*.mts) = tsconfig include 外の開発 script。
       // type-aware rule (await-thenable 等) が parser service を得られず eslint が crash するため除外。
       "**/*.mts",
