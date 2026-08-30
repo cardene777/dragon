@@ -38,6 +38,9 @@ user 明示起動のみ。
 1 つは詰めるための頁 `.context/design/<図>/look.html`。
 明暗 2 面 / 段の自動再生 / 実測した寸法 / 使っている色 / 記法 を持ち、そのまま Artifact に publish する。
 
+図を押すと覆いが開き、その面のまま画面いっぱいで見られる。
+覆いの中の図も段の書き換え先に入るので、開いている間も止まらない。
+
 もう 1 つは納める entry `docs/design/notation/<群>/<図>/`。
 `source.cdl.ts` (記法) と `look.svg` (決めた時の見た目) と `note.md` (決めたこと / 見送ったこと) の 3 file で、
 併せて `docs/design/notation/index.html` を作り直す。

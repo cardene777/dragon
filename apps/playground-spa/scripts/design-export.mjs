@@ -264,6 +264,21 @@ ${varBlock(dark)}
   summary { cursor: pointer; padding: 11px 14px; font-weight: 500; }
   summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   pre { margin: 0; padding: 0 14px 14px; overflow-x: auto; font-family: "JetBrains Mono", monospace; font-size: 12.5px; line-height: 1.7; color: var(--ink-mid); }
+  .stage { cursor: zoom-in; }
+  .stage:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .hint-zoom { font-size: 11px; color: var(--ink-dim); }
+
+  dialog.zoom { width: 96vw; max-width: 96vw; height: 92vh; padding: 0; border: 1px solid var(--edge);
+    border-radius: 6px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+  dialog.zoom::backdrop { background: rgba(20, 18, 16, .6); }
+  .zoom-head { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 10px 14px; border-bottom: 1px solid var(--edge-soft);
+    font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-mid); }
+  .zoom-body { height: calc(92vh - 45px); overflow: auto; padding: 14px; }
+  .zoom-body svg { display: block; width: 100%; height: auto; }
+  .zoom-body.light-face { background: var(--cdl-stage-bg, #faf9f6); }
+  .zoom-body.dark-face { background: var(--cdl-stage-bg, #23211e); }
+
   @media (prefers-reduced-motion: reduce) { button { transition: none; } }
 
   /* ── 図の色 (apps/playground-spa/src/styles/cdl-theme.css を面の下に閉じ込めたもの) ── */
@@ -288,12 +303,12 @@ ${themeDark.css}
     <div class="face-eyebrow"><b>明暗を同じ段で並べる</b><span>片側だけ直すと必ずずれる</span></div>
     <div class="pair">
       <figure class="face light-face" style="margin:0">
-        <figcaption><span>明るい側</span><span>--cdl-stage-bg ${light["--cdl-stage-bg"] ?? ""}</span></figcaption>
-        <div class="stagewrap"><div class="stage" id="stageLight"></div></div>
+        <figcaption><span>明るい側 <span class="hint-zoom">押すと大きく</span></span><span>--cdl-stage-bg ${light["--cdl-stage-bg"] ?? ""}</span></figcaption>
+        <div class="stagewrap"><div class="stage" id="stageLight" role="button" tabindex="0" aria-label="明るい側の図を大きく見る"></div></div>
       </figure>
       <figure class="face dark-face" style="margin:0">
-        <figcaption><span>暗い側</span><span>--cdl-stage-bg ${dark["--cdl-stage-bg"] ?? ""}</span></figcaption>
-        <div class="stagewrap"><div class="stage" id="stageDark"></div></div>
+        <figcaption><span>暗い側 <span class="hint-zoom">押すと大きく</span></span><span>--cdl-stage-bg ${dark["--cdl-stage-bg"] ?? ""}</span></figcaption>
+        <div class="stagewrap"><div class="stage" id="stageDark" role="button" tabindex="0" aria-label="暗い側の図を大きく見る"></div></div>
       </figure>
     </div>
   </section>
@@ -330,6 +345,14 @@ ${spec.map(([k, v, why]) => `          <tr><td>${escHtml(k)}</td><td class="num"
     </details>
   </section>
 </div>
+
+<dialog class="zoom" id="zoom">
+  <div class="zoom-head">
+    <span id="zoomTitle">明るい側</span>
+    <button id="zoomClose">閉じる</button>
+  </div>
+  <div class="zoom-body" id="zoomBody"></div>
+</dialog>
 
 ${shots.map((s, i) => `<template data-phase="${i}" data-id="${s.phase}">${s.svg}</template>`).join("\n")}
 
@@ -434,8 +457,7 @@ ${shots.map((s, i) => `<template data-phase="${i}" data-id="${s.phase}">${s.svg}
     }
   }
 
-  function makeFace(hostId, tag) {
-    var host = document.getElementById(hostId);
+  function makeFace(host, tag) {
     var frames = templates.map(function (t) {
       var holder = document.createElement("div");
       holder.appendChild(t.content.cloneNode(true));
@@ -446,12 +468,58 @@ ${shots.map((s, i) => `<template data-phase="${i}" data-id="${s.phase}">${s.svg}
     return { svg: host.querySelector("svg"), frames: frames };
   }
 
-  var faces = [makeFace("stageLight", "l"), makeFace("stageDark", "d")];
+  var faces = [
+    makeFace(document.getElementById("stageLight"), "l"),
+    makeFace(document.getElementById("stageDark"), "d"),
+  ];
+
+  // 覆い ... 押した側の図をもう 1 枚組んで、書き換え先に加える。
+  // 加えないと開いている間だけ止まって見える
+  var dlg = document.getElementById("zoom");
+  var zoomBody = document.getElementById("zoomBody");
+  var zoomTitle = document.getElementById("zoomTitle");
+  var zoomFace = null;
+  var zoomKind = null;
+
+  function zoomLabel() {
+    return (zoomKind === "light" ? "明るい側" : "暗い側") + " ・ 段 " + (idx + 1) + " / " + templates.length;
+  }
+
+  function openZoom(kind) {
+    if (zoomFace) return;
+    zoomKind = kind;
+    zoomBody.className = "zoom-body " + (kind === "light" ? "light-face" : "dark-face");
+    zoomTitle.textContent = zoomLabel();
+    zoomFace = makeFace(zoomBody, "z" + kind);
+    morph(zoomFace.svg, zoomFace.frames[idx]);
+    faces.push(zoomFace);
+    dlg.showModal();
+  }
+
+  function shutZoom() {
+    if (!zoomFace) return;
+    faces = faces.filter(function (f) { return f !== zoomFace; });
+    zoomFace = null;
+    zoomKind = null;
+    zoomBody.replaceChildren();
+  }
+
+  dlg.addEventListener("close", shutZoom);
+  document.getElementById("zoomClose").addEventListener("click", function () { dlg.close(); });
+
+  [["stageLight", "light"], ["stageDark", "dark"]].forEach(function (pair) {
+    var el = document.getElementById(pair[0]);
+    el.addEventListener("click", function () { openZoom(pair[1]); });
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openZoom(pair[1]); }
+    });
+  });
 
   function show(n) {
     idx = (n + templates.length) % templates.length;
     faces.forEach(function (f) { morph(f.svg, f.frames[idx]); });
     chip.textContent = "段 " + (idx + 1) + " / " + templates.length;
+    if (zoomFace) zoomTitle.textContent = zoomLabel();
     var bs = stepsBox.querySelectorAll("button");
     for (var i = 0; i < bs.length; i++) bs[i].className = i === idx ? "on" : "";
   }
