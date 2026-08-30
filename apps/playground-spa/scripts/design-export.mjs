@@ -16,6 +16,7 @@ import { chromium } from "playwright";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { findNestedAtRules, scopeThemeCss } from "../../../packages/dragon/scripts/design-theme-css.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "../../..");
@@ -162,6 +163,21 @@ const spec = [
   ["線の動き", "stroke 280ms / stroke-width 280ms", "engine が線に付けている時間"],
 ];
 
+// 図の色は cdl ではなく dragon 側の規則が当てる。 markup だけ控えると色が抜ける (#1520)
+const THEME_CSS_PATH = resolve(REPO, "apps/playground-spa/src/styles/cdl-theme.css");
+const themeCssRaw = readFileSync(THEME_CSS_PATH, "utf8");
+const nested = findNestedAtRules(themeCssRaw);
+if (nested.length > 0) {
+  console.warn(`⚠ 入れ子の規則を落とした ... ${nested.join(" / ")}`);
+  console.warn("  変換が入れ子を扱えないので、その中の色は意匠帳に出ない");
+}
+const themeLight = scopeThemeCss(themeCssRaw, ".light-face");
+const themeDark = scopeThemeCss(themeCssRaw, ".dark-face");
+if (themeLight.count === 0) {
+  console.error("色の規則を 1 件も読めなかった。 cdl-theme.css の場所か中身を確かめる");
+  process.exit(1);
+}
+
 const escHtml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const varBlock = (obj) => Object.entries(obj).map(([k, v]) => `      ${k}: ${v};`).join("\n");
 const swatches = Object.keys(light)
@@ -244,6 +260,10 @@ ${varBlock(dark)}
   summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   pre { margin: 0; padding: 0 14px 14px; overflow-x: auto; font-family: "JetBrains Mono", monospace; font-size: 12.5px; line-height: 1.7; color: var(--ink-mid); }
   @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+  /* ── 図の色 (apps/playground-spa/src/styles/cdl-theme.css を面の下に閉じ込めたもの) ── */
+${themeLight.css}
+${themeDark.css}
 </style>
 
 <div class="wrap">
