@@ -268,13 +268,15 @@ ${varBlock(dark)}
   .stage:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .hint-zoom { font-size: 11px; color: var(--ink-dim); }
 
-  dialog.zoom { width: 96vw; max-width: 96vw; height: 92vh; padding: 0; border: 1px solid var(--edge);
+  /* height は書かない = dialog の既定 fit-content が中身に合わせる。
+     auto にすると上下が固定された箱として扱われ、画面いっぱいに伸びる (#1526) */
+  dialog.zoom { width: 96vw; max-width: 96vw; max-height: 92vh; padding: 0; border: 1px solid var(--edge);
     border-radius: 6px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
   dialog.zoom::backdrop { background: rgba(20, 18, 16, .6); }
   .zoom-head { display: flex; justify-content: space-between; align-items: center; gap: 12px;
     padding: 10px 14px; border-bottom: 1px solid var(--edge-soft);
     font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-mid); }
-  .zoom-body { height: calc(92vh - 45px); overflow: auto; padding: 14px; }
+  .zoom-body { max-height: calc(92vh - 45px); overflow: auto; padding: 14px; }
   .zoom-body svg { display: block; width: 100%; height: auto; }
   .zoom-body.light-face { background: var(--cdl-stage-bg, #faf9f6); }
   .zoom-body.dark-face { background: var(--cdl-stage-bg, #23211e); }
