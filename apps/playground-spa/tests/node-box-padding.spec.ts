@@ -46,6 +46,7 @@ type 実測 = {
   下: number;
   絵: number;
   名前を中央に置く: boolean;
+  字: number;
 };
 
 /**
@@ -101,6 +102,7 @@ async function 余白を測る(page: import("@playwright/test").Page): Promise<�
         上: 世界(字上 - B.top),
         下: 世界(B.bottom - 字下),
         絵: Number.isFinite(絵上) ? 世界(絵下 - 絵上) : 0,
+        字: 世界(字下 - 字上),
       });
     }
     return out;
@@ -171,3 +173,51 @@ for (const 形 of 書き方) {
     expect(偏り, `上と下の余白が ${許す差} より離れている。 ${内訳}`).toEqual([]);
   });
 }
+
+/**
+ * 伸びた箱でも上下の余白が揃う (#1516)。
+ *
+ * 段の高さは行内の最大値で決まるので、行に高い箱が 1 つあると同じ行の箱も伸びる。
+ * 字は上から置かれるため、伸びたぶんが下に空く形が起きうる (実測 = cdl 0.21.x で
+ * 240 の箱に 67 ぶんの字が上端に貼り付いていた)。
+ *
+ * **上の検査では出ない形**。 あちらは 1 種別ずつ同じ中身で測るので、箱が伸びない。
+ * 中身の量が違う箱を同じ段に並べて初めて出る。
+ */
+test("伸びた箱でも上と下の余白が揃っている (#1516)", async ({ page }) => {
+  test.setTimeout(120_000);
+
+  // `direction: 横` は 1 人ずつ縦列を作るので、3 箱が同じ段に並ぶ。
+  // 3 段を書いた箱が段の高さを決め、名前だけの 2 箱が伸びる
+  const 記法 = `title: "伸びた箱"
+type: flow
+direction: 横
+
+actors:
+  - A: { kind: card, eyebrow: "小見出し", subtitle: "説明の行" }
+  - B: { kind: card }
+  - C: { kind: actor }
+
+flow:
+  - A -> B: ""
+  - B -> C: ""
+`;
+  await page.goto("about:blank");
+  await page.goto(`editor#s=${記法をURLに載せる(記法)}`);
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(2600);
+
+  const 測れた = await 余白を測る(page);
+  expect(測れた.length, "箱を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(1);
+
+  // **伸びていることを先に確かめる**。 高さが揃った図を渡すと、この検査は何も見ない
+  const 高さ = [...new Set(測れた.map((x) => x.h))];
+  expect(高さ.length, `箱が 1 つも伸びていない (高さ ${高さ.join(" / ")})`).toBe(1);
+  const 中身の量 = new Set(測れた.map((x) => x.字));
+  expect(中身の量.size, "中身の量が同じ箱しか無い (伸びる形になっていない)").toBeGreaterThan(1);
+
+  const 偏り = 測れた
+    .filter((x) => Math.abs(x.上 - x.下) > 許す差)
+    .map((x) => `${x.kind}(高さ ${x.h} / 上 ${x.上} / 下 ${x.下})`);
+  expect(偏り, `伸びた箱で上と下の余白が ${許す差} より離れている`).toEqual([]);
+});
