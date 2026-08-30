@@ -97,6 +97,20 @@ const readVars = () =>
     return out;
   });
 
+// 寸法も画面から測る。 markup の属性は cdl-theme.css に上書きされる (#1520 と同根)
+const drawn = await page.evaluate(() => {
+  const svg = Array.from(document.querySelectorAll("main svg")).sort(
+    (a, b) => b.outerHTML.length - a.outerHTML.length,
+  )[0];
+  const px = (v) => Math.round(parseFloat(v) * 100) / 100;
+  const boxes = Array.from(svg.querySelectorAll('[data-cdl-role="node-body"]')).map((el) => {
+    const cs = getComputedStyle(el);
+    return { w: px(cs.width), h: px(cs.height), rx: px(cs.rx), sw: px(cs.strokeWidth) };
+  });
+  const vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
+  return { boxes, vb };
+});
+
 const light = await readVars();
 await page.evaluate(() => document.documentElement.classList.add("dark"));
 await page.waitForTimeout(500);
@@ -141,22 +155,13 @@ const shots = [...seen.entries()]
   .map(([phase, svg]) => ({ phase, svg: prep(svg) }))
   .sort((a, b) => a.phase.localeCompare(b.phase, "en", { numeric: true }));
 
-/** 描いた結果から寸法を拾う。 宣言値ではなく実際に出た値を見る */
-export function measure(svg) {
-  const rects = [...svg.matchAll(/<rect data-cdl-role="node-body"[^>]*>/g)].map((m) => m[0]);
-  const grab = (s, k) => Number(s.match(new RegExp(`${k}="([\\d.]+)"`))?.[1] ?? NaN);
-  const boxes = rects.map((r) => ({ w: grab(r, "width"), h: grab(r, "height"), rx: grab(r, "rx"), sw: grab(r, "stroke-width") }));
-  const vb = svg.match(/viewBox="([-\d.\s]+)"/)?.[1]?.split(/\s+/).map(Number) ?? [];
-  return { boxes, vb };
-}
-
-const m0 = measure(shots[0].svg);
+const m0 = drawn;
 const uniq = (a) => [...new Set(a.filter((n) => Number.isFinite(n)))].sort((x, y) => x - y);
 const spec = [
   ["箱の幅", uniq(m0.boxes.map((b) => b.w)).join(" / ") || "—", "選ばれている箱は枠のぶん膨らむ"],
   ["箱の高さ", uniq(m0.boxes.map((b) => b.h)).join(" / ") || "—", "中の行数で決まる"],
   ["角の丸み", uniq(m0.boxes.map((b) => b.rx)).join(" / ") || "—", "全ての箱で同じ"],
-  ["枠の太さ", uniq(m0.boxes.map((b) => b.sw)).join(" / ") || "—", "太い方が今光っている箱"],
+  ["枠の太さ", uniq(m0.boxes.map((b) => b.sw)).join(" / ") || "—", "太い方が今光っている箱。 画面で測った値"],
   ["図の枠", m0.vb.length === 4 ? `${m0.vb[2]} × ${m0.vb[3]}` : "—", m0.vb.length === 4 ? `原点 ${m0.vb[0]} , ${m0.vb[1]}` : ""],
   ["段の数", String(shots.length), "段ごとに光る要素が増える"],
   ["箱の動き", "opacity 120ms / transform 200ms", "engine が箱に付けている時間"],
