@@ -36,7 +36,7 @@
     .relation({
       from: "users",
       to: "orders",
-      label: "PLACES",
+      label: "注文する",
       style: "dashed",
       tailHead: "one",
       head: "zero-many",
@@ -45,7 +45,7 @@
     .relation({
       from: "orders",
       to: "order_items",
-      label: "CONTAINS",
+      label: "明細を持つ",
       tailHead: "one",
       head: "many",
     })
@@ -53,7 +53,7 @@
     .relation({
       from: "users",
       to: "users",
-      label: "REPORTS TO",
+      label: "上司",
       style: "dashed",
       tailHead: "zero-one",
       head: "zero-many",

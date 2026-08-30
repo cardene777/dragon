@@ -270,7 +270,10 @@
    面は箱と同じ `--d-surface-2` (#1468)。 箱を 1 段明るくした後もここだけ `-3` のままだと、
    小さな札が箱より重く見えて読む順序が逆さになる。 線の上に乗るので枠は残す */
 [data-cdl-role="edge-label-bg"] {
-  fill: var(--d-surface-2) !important;
+  /* 箱と同じ面 (#1522)。 `--d-surface-2` は台との上下が明暗で逆になり
+     (明 = 台より暗い / 暗 = 台より明るい)、明るい側だけ灰色の札に見えていた。
+     箱と同じにすると図の中の紙が 1 種類になり、明暗どちらでも台より明るい側に来る */
+  fill: var(--d-surface) !important;
   stroke: var(--d-border-strong) !important;
   stroke-width: 1 !important;
 }

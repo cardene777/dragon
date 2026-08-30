@@ -352,7 +352,7 @@ export const presetEr = withSteps(
     .relation({
       from: "users",
       to: "orders",
-      label: "PLACES",
+      label: "注文する",
       style: "dashed",
       tailHead: "one",
       head: "zero-many",
@@ -361,7 +361,7 @@ export const presetEr = withSteps(
     .relation({
       from: "orders",
       to: "order_items",
-      label: "CONTAINS",
+      label: "明細を持つ",
       tailHead: "one",
       head: "many",
     })
@@ -369,7 +369,7 @@ export const presetEr = withSteps(
     .relation({
       from: "users",
       to: "users",
-      label: "REPORTS TO",
+      label: "上司",
       style: "dashed",
       tailHead: "zero-one",
       head: "zero-many",
@@ -1152,9 +1152,9 @@ actors:
 
 # 端の印は両端に立つ。 箱に近い側が個数、その外側が任意か
 flow:
-  - users -> orders: "PLACES" (info, dashed) { tailHead: one, head: zero-many }
-  - orders -> order_items: "CONTAINS" (info, solid) { tailHead: one, head: many }
-  - users -> users: "REPORTS TO" (info, dashed) { tailHead: zero-one, head: zero-many }
+  - users -> orders: "注文する" (info, dashed) { tailHead: one, head: zero-many }
+  - orders -> order_items: "明細を持つ" (info, solid) { tailHead: one, head: many }
+  - users -> users: "上司" (info, dashed) { tailHead: zero-one, head: zero-many }
 
 animation:
   - step: "1. users 表" 0.9s
@@ -1211,7 +1211,7 @@ export const sourceJson__presetEr = `{
     {
       "from": "users",
       "to": "orders",
-      "label": "PLACES",
+      "label": "注文する",
       "tone": "info",
       "style": "dashed",
       "tailHead": "one",
@@ -1220,7 +1220,7 @@ export const sourceJson__presetEr = `{
     {
       "from": "orders",
       "to": "order_items",
-      "label": "CONTAINS",
+      "label": "明細を持つ",
       "tone": "info",
       "style": "solid",
       "tailHead": "one",
@@ -1229,7 +1229,7 @@ export const sourceJson__presetEr = `{
     {
       "from": "users",
       "to": "users",
-      "label": "REPORTS TO",
+      "label": "上司",
       "tone": "info",
       "style": "dashed",
       "tailHead": "zero-one",
