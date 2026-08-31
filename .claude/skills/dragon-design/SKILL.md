@@ -85,6 +85,13 @@ dev server が動いているか、id が一覧に出ているかを確かめて
 
 publish の前に `artifact-design` skill を読む。
 
+**生かすのは 1 枚だけ**。
+いま詰めている図の artifact を 1 枚持ち、別の図に移る前に前の図のものを捨てる。
+
+artifact は作業台で、記録の場所ではない。
+URL は repo に書けず (外部 link 禁止)、消えることがあり、群でも名前でも並ばない。
+図は catalog に 280 件あるので、1 図 1 枚を残していくと探せなくなる。
+
 ### Step 3. 往復する
 
 user の指示で直す時は、直す先を間違えない。
@@ -105,6 +112,9 @@ mkdir -p docs/design/notation/<群>/<図>
 cp .context/design/<図>/phase-<最後>-<段>.svg docs/design/notation/<群>/<図>/look.svg
 cp .context/design/<図>/source.cdl.ts        docs/design/notation/<群>/<図>/source.cdl.ts
 ```
+
+納め終えたら、その図の artifact は捨てる。
+中身は 3 file と一覧に入っているので、消えても失うものは無い。
 
 `note.md` は会話から書く。
 artifact に打ち込む欄は置かない = 決めたことは往復の中に出ているので、user に二度書かせない。
