@@ -17,6 +17,7 @@ import {
   flowchart,
   network,
   stateMachine2,
+  diagram,
 } from "@cardenelabs/cdl";
 import type { CdlDiagram, PhaseBuilder } from "@cardenelabs/cdl";
 
@@ -2915,3 +2916,388 @@ export const sourceJson__presetInfrastructure = `{
     }
   ]
 }`;
+
+// er-shop ... 実際の大きさの ER 図 (7 表 8 関係)。 線の見た目を判定するための図
+//
+// er preset は実体 1 つを 1 lane の stack 0 に置くので、 表は必ず横 1 列に並ぶ。
+// 離れた表どうしを繋ぐ関係は、 間の箱を避けて上下へ逃げる。
+export const presetErShop = er({
+  id: "er-shop",
+  topic: "買い物の表と表の繋がり",
+  defaultTone: "info",
+})
+  .entity({
+    id: "users",
+    title: "users",
+    subtitle: "利用者",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "email", type: "text" },
+      { name: "manager_id", type: "bigint", fk: true, optional: true },
+    ],
+  })
+  .entity({
+    id: "orders",
+    title: "orders",
+    subtitle: "注文",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "user_id", type: "bigint", fk: true },
+      { name: "address_id", type: "bigint", fk: true },
+      { name: "placed_at", type: "timestamptz" },
+    ],
+  })
+  .entity({
+    id: "order_items",
+    title: "order_items",
+    subtitle: "注文の明細",
+    columns: [
+      { name: "order_id", type: "bigint", pk: true, fk: true },
+      { name: "product_id", type: "bigint", pk: true, fk: true },
+      { name: "qty", type: "int" },
+    ],
+  })
+  .entity({
+    id: "products",
+    title: "products",
+    subtitle: "商品",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "category_id", type: "bigint", fk: true },
+      { name: "price", type: "numeric" },
+    ],
+  })
+  .entity({
+    id: "categories",
+    title: "categories",
+    subtitle: "分類",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "name", type: "text" },
+    ],
+  })
+  .entity({
+    id: "addresses",
+    title: "addresses",
+    subtitle: "届け先",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "user_id", type: "bigint", fk: true },
+      { name: "city", type: "text" },
+    ],
+  })
+  .entity({
+    id: "payments",
+    title: "payments",
+    subtitle: "支払い",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "order_id", type: "bigint", fk: true },
+      { name: "paid_at", type: "timestamptz" },
+    ],
+  })
+  .relation({ from: "users", to: "orders", label: "注文する", style: "dashed", tailHead: "one", head: "zero-many" })
+  .relation({ from: "orders", to: "order_items", label: "明細を持つ", tailHead: "one", head: "many" })
+  .relation({ from: "products", to: "order_items", label: "並ぶ", style: "dashed", tailHead: "one", head: "many" })
+  .relation({ from: "categories", to: "products", label: "分類する", style: "dashed", tailHead: "one", head: "zero-many" })
+  .relation({ from: "users", to: "addresses", label: "届け先を持つ", style: "dashed", tailHead: "one", head: "zero-many" })
+  .relation({ from: "addresses", to: "orders", label: "送り先", style: "dashed", tailHead: "zero-one", head: "zero-many" })
+  .relation({ from: "orders", to: "payments", label: "支払う", tailHead: "one", head: "one" })
+  .relation({ from: "users", to: "users", label: "上司", style: "dashed", tailHead: "zero-one", head: "zero-many" })
+  .build();
+
+
+/**
+ * 並べ方だけを変えた ER 図の比較 (probe)。
+ *
+ * `er()` は実体 1 つにつき帯を 1 本作り `stack: 0` に固定するので、表は必ず横 1 列に並ぶ。
+ * ここでは同じ 7 表 8 関係を、帯と段を明示して置き直す。 中身と関係は 4 図とも同一で、
+ * 変えたのは lane (列) と stack (段) の割当だけ。
+ */
+
+type Col = { name: string; type: string; pk?: boolean; fk?: boolean; optional?: boolean };
+type Tbl = { id: string; title: string; subtitle: string; cols: Col[] };
+type Rel = {
+  from: string;
+  to: string;
+  label: string;
+  dashed?: boolean;
+  tail: "one" | "zero-one" | "many" | "zero-many";
+  head: "one" | "zero-one" | "many" | "zero-many";
+};
+
+const BOX_W = 400;
+const LANE_W = 450;
+
+const TABLES: Tbl[] = [
+  {
+    id: "users", title: "users", subtitle: "利用者",
+    cols: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "email", type: "text" },
+      { name: "manager_id", type: "bigint", fk: true, optional: true },
+    ],
+  },
+  {
+    id: "orders", title: "orders", subtitle: "注文",
+    cols: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "user_id", type: "bigint", fk: true },
+      { name: "address_id", type: "bigint", fk: true },
+      { name: "placed_at", type: "timestamptz" },
+    ],
+  },
+  {
+    id: "order_items", title: "order_items", subtitle: "注文の明細",
+    cols: [
+      { name: "order_id", type: "bigint", pk: true, fk: true },
+      { name: "product_id", type: "bigint", pk: true, fk: true },
+      { name: "qty", type: "int" },
+    ],
+  },
+  {
+    id: "products", title: "products", subtitle: "商品",
+    cols: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "category_id", type: "bigint", fk: true },
+      { name: "price", type: "numeric" },
+    ],
+  },
+  {
+    id: "categories", title: "categories", subtitle: "分類",
+    cols: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "name", type: "text" },
+    ],
+  },
+  {
+    id: "addresses", title: "addresses", subtitle: "届け先",
+    cols: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "user_id", type: "bigint", fk: true },
+      { name: "city", type: "text" },
+    ],
+  },
+  {
+    id: "payments", title: "payments", subtitle: "支払い",
+    cols: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "order_id", type: "bigint", fk: true },
+      { name: "paid_at", type: "timestamptz" },
+    ],
+  },
+];
+
+const RELATIONS: Rel[] = [
+  { from: "users", to: "orders", label: "注文する", dashed: true, tail: "one", head: "zero-many" },
+  { from: "orders", to: "order_items", label: "明細を持つ", tail: "one", head: "many" },
+  { from: "products", to: "order_items", label: "並ぶ", dashed: true, tail: "one", head: "many" },
+  { from: "categories", to: "products", label: "分類する", dashed: true, tail: "one", head: "zero-many" },
+  { from: "users", to: "addresses", label: "届け先を持つ", dashed: true, tail: "one", head: "zero-many" },
+  { from: "addresses", to: "orders", label: "送り先", dashed: true, tail: "zero-one", head: "zero-many" },
+  { from: "orders", to: "payments", label: "支払う", tail: "one", head: "one" },
+  { from: "users", to: "users", label: "上司", dashed: true, tail: "zero-one", head: "zero-many" },
+];
+
+/** 鍵を上へ寄せる。 群の区切りは行頭の印が持つので空行は入れない (cdl #606 と同じ組み方) */
+function rowsOf(t: Tbl): { rows: string[]; marks: ({ shape: "square" | "chevron"; filled: boolean; underline?: true } | null)[] } {
+  const rows: string[] = [];
+  const marks: ({ shape: "square" | "chevron"; filled: boolean; underline?: true } | null)[] = [];
+  const push = (c: Col): void => {
+    rows.push(`${c.name}: ${c.type}`);
+    marks.push({
+      shape: c.fk === true ? "chevron" : "square",
+      filled: c.optional !== true,
+      ...(c.pk === true ? { underline: true as const } : {}),
+    });
+  };
+  const 鍵 = t.cols.filter((c) => c.pk === true);
+  const 値 = t.cols.filter((c) => c.pk !== true);
+  鍵.forEach(push);
+  値.forEach(push);
+  return { rows, marks };
+}
+
+/** 帯と段の割当を受けて 1 図を組む。 中身と関係は共通、変えるのは置き場所だけ */
+function build(meta: { id: string; topic: string }, place: Record<string, [number, number]>): CdlDiagram {
+  const b = diagram(meta.id, { topic: meta.topic });
+  const laneIds = new Set<number>();
+  for (const [lane] of Object.values(place)) laneIds.add(lane);
+  for (const lane of [...laneIds].sort((a, z) => a - z)) b.lane(`col-${lane}`, { width: LANE_W });
+  for (const t of TABLES) {
+    const at = place[t.id];
+    if (!at) continue;
+    const { rows, marks } = rowsOf(t);
+    b.node(t.id, {
+      lane: `col-${at[0]}`,
+      stack: at[1],
+      kind: "storage",
+      w: BOX_W,
+      title: t.title,
+      subtitle: t.subtitle,
+      rows,
+      rowMarks: marks,
+    });
+  }
+  const ids: string[] = TABLES.map((t) => t.id);
+  RELATIONS.forEach((r, i) => {
+    const edgeId = `rel-${i}-${r.from}-${r.to}`;
+    b.edge(r.from, r.to, {
+      id: edgeId,
+      label: r.label,
+      tone: "info",
+      style: r.dashed === true ? "dashed" : "solid",
+      head: r.head,
+      tailHead: r.tail,
+    });
+    ids.push(edgeId);
+  });
+  b.phase("all", { duration: 2400, title: meta.topic, body: "全ての表と繋がりを出す。" }, (p) =>
+    p.activate(...ids).badge("er"),
+  );
+  return b.build();
+}
+
+/** A ... いまの形。 宣言順に横 1 列 (er preset と同じ置き方) */
+export const erRowDeclared = build({ id: "er-row-declared", topic: "1 列 / 宣言順" }, {
+  users: [0, 0], orders: [1, 0], order_items: [2, 0], products: [3, 0],
+  categories: [4, 0], addresses: [5, 0], payments: [6, 0],
+});
+
+/** B ... 1 列のまま、飛び越しが最小になる並べ替え */
+export const erRowSorted = build({ id: "er-row-sorted", topic: "1 列 / 飛び越し最小" }, {
+  categories: [0, 0], products: [1, 0], order_items: [2, 0], orders: [3, 0],
+  users: [4, 0], addresses: [5, 0], payments: [6, 0],
+});
+
+/** C ... orderNodes (cdl #600) が返す割当。 4 列 × 2 段 */
+export const erOrderNodes = build({ id: "er-order-nodes", topic: "算法の割当 / 4 列 2 段" }, {
+  users: [0, 0], categories: [0, 1], products: [1, 0], addresses: [1, 1],
+  orders: [2, 0], order_items: [3, 0], payments: [3, 1],
+});
+
+/** D ... 親子の流れを横に、枝を下段へ落とす手組み */
+export const erTwoRows = build({ id: "er-two-rows", topic: "手組み / 流れと枝" }, {
+  categories: [0, 0], products: [1, 0], order_items: [2, 0], orders: [3, 0], users: [4, 0],
+  payments: [3, 1], addresses: [4, 1],
+});
+
+
+// 形の違う ER 図 4 つ (probe)。 表の数と繋がり方を変えて、同じ置き方の規則が効くか見る。
+// 置き場所は cdl #600 の orderNodes が返した割当をそのまま使う。
+function build2(
+  meta: { id: string; topic: string },
+  tables: Tbl[],
+  relations: Rel[],
+  place: Record<string, [number, number]>,
+): CdlDiagram {
+  const b = diagram(meta.id, { topic: meta.topic });
+  const laneIds = new Set<number>();
+  for (const [lane] of Object.values(place)) laneIds.add(lane);
+  for (const lane of [...laneIds].sort((a, z) => a - z)) b.lane(`col-${lane}`, { width: LANE_W });
+  for (const t of tables) {
+    const at = place[t.id];
+    if (!at) continue;
+    const { rows, marks } = rowsOf(t);
+    b.node(t.id, {
+      lane: `col-${at[0]}`, stack: at[1], kind: "storage", w: BOX_W,
+      title: t.title, subtitle: t.subtitle, rows, rowMarks: marks,
+    });
+  }
+  const ids: string[] = tables.map((t) => t.id);
+  relations.forEach((r, i) => {
+    const edgeId = `rel-${i}-${r.from}-${r.to}`;
+    b.edge(r.from, r.to, {
+      id: edgeId, label: r.label, tone: "info",
+      style: r.dashed === true ? "dashed" : "solid", head: r.head, tailHead: r.tail,
+    });
+    ids.push(edgeId);
+  });
+  b.phase("all", { duration: 2400, title: meta.topic, body: "全ての表と繋がりを出す。" }, (p) =>
+    p.activate(...ids).badge("er"),
+  );
+  return b.build();
+}
+
+/** 小さい図 / 3 表 2 関係 */
+export const erSmall = build2(
+  { id: "er-small", topic: "小さい図 / 3 表 2 関係" },
+  [
+    { id: "users", title: "users", subtitle: "利用者", cols: [{ name: "id", type: "bigint", pk: true }, { name: "email", type: "text" }] },
+    { id: "orders", title: "orders", subtitle: "注文", cols: [{ name: "id", type: "bigint", pk: true }, { name: "user_id", type: "bigint", fk: true }, { name: "total", type: "numeric" }] },
+    { id: "order_items", title: "order_items", subtitle: "注文の明細", cols: [{ name: "order_id", type: "bigint", pk: true, fk: true }, { name: "product_id", type: "bigint", pk: true, fk: true }, { name: "qty", type: "int" }] },
+  ],
+  [
+    { from: "users", to: "orders", label: "注文する", dashed: true, tail: "one", head: "zero-many" },
+    { from: "orders", to: "order_items", label: "明細を持つ", tail: "one", head: "many" },
+  ],
+  { users: [0, 0], orders: [1, 0], order_items: [2, 0] },
+);
+
+/** 1 表に集まる形 / 6 表 5 関係 */
+export const erHub = build2(
+  { id: "er-hub", topic: "1 表に集まる形 / 6 表 5 関係" },
+  [
+    { id: "users", title: "users", subtitle: "利用者", cols: [{ name: "id", type: "bigint", pk: true }, { name: "email", type: "text" }] },
+    { id: "orders", title: "orders", subtitle: "注文", cols: [{ name: "id", type: "bigint", pk: true }, { name: "user_id", type: "bigint", fk: true }] },
+    { id: "addresses", title: "addresses", subtitle: "届け先", cols: [{ name: "id", type: "bigint", pk: true }, { name: "user_id", type: "bigint", fk: true }] },
+    { id: "sessions", title: "sessions", subtitle: "接続", cols: [{ name: "id", type: "bigint", pk: true }, { name: "user_id", type: "bigint", fk: true }, { name: "expires_at", type: "timestamptz" }] },
+    { id: "reviews", title: "reviews", subtitle: "感想", cols: [{ name: "id", type: "bigint", pk: true }, { name: "user_id", type: "bigint", fk: true }, { name: "score", type: "int" }] },
+    { id: "payments", title: "payments", subtitle: "支払い", cols: [{ name: "id", type: "bigint", pk: true }, { name: "order_id", type: "bigint", fk: true }] },
+  ],
+  [
+    { from: "users", to: "orders", label: "注文する", dashed: true, tail: "one", head: "zero-many" },
+    { from: "users", to: "addresses", label: "届け先を持つ", dashed: true, tail: "one", head: "zero-many" },
+    { from: "users", to: "sessions", label: "つなぐ", dashed: true, tail: "one", head: "zero-many" },
+    { from: "users", to: "reviews", label: "書く", dashed: true, tail: "one", head: "zero-many" },
+    { from: "orders", to: "payments", label: "支払う", tail: "one", head: "one" },
+  ],
+  { users: [0, 0], orders: [1, 0], addresses: [1, 1], sessions: [1, 2], reviews: [1, 3], payments: [2, 0] },
+);
+
+/** 一直線に連なる形 / 6 表 5 関係 */
+export const erChain = build2(
+  { id: "er-chain", topic: "一直線に連なる形 / 6 表 5 関係" },
+  [
+    { id: "tenants", title: "tenants", subtitle: "契約", cols: [{ name: "id", type: "bigint", pk: true }, { name: "name", type: "text" }] },
+    { id: "projects", title: "projects", subtitle: "案件", cols: [{ name: "id", type: "bigint", pk: true }, { name: "tenant_id", type: "bigint", fk: true }] },
+    { id: "boards", title: "boards", subtitle: "板", cols: [{ name: "id", type: "bigint", pk: true }, { name: "project_id", type: "bigint", fk: true }] },
+    { id: "cards", title: "cards", subtitle: "札", cols: [{ name: "id", type: "bigint", pk: true }, { name: "board_id", type: "bigint", fk: true }] },
+    { id: "comments", title: "comments", subtitle: "書き込み", cols: [{ name: "id", type: "bigint", pk: true }, { name: "card_id", type: "bigint", fk: true }] },
+    { id: "attachments", title: "attachments", subtitle: "添え物", cols: [{ name: "id", type: "bigint", pk: true }, { name: "comment_id", type: "bigint", fk: true }] },
+  ],
+  [
+    { from: "tenants", to: "projects", label: "持つ", dashed: true, tail: "one", head: "zero-many" },
+    { from: "projects", to: "boards", label: "並べる", dashed: true, tail: "one", head: "zero-many" },
+    { from: "boards", to: "cards", label: "抱える", tail: "one", head: "many" },
+    { from: "cards", to: "comments", label: "付く", dashed: true, tail: "one", head: "zero-many" },
+    { from: "comments", to: "attachments", label: "添える", dashed: true, tail: "one", head: "zero-many" },
+  ],
+  { tenants: [0, 0], projects: [1, 0], boards: [2, 0], cards: [3, 0], comments: [4, 0], attachments: [5, 0] },
+);
+
+/** 多対多が 2 組 / 8 表 8 関係 */
+export const erMesh = build2(
+  { id: "er-mesh", topic: "多対多が 2 組 / 8 表 8 関係" },
+  [
+    { id: "roles", title: "roles", subtitle: "役割", cols: [{ name: "id", type: "bigint", pk: true }, { name: "name", type: "text" }] },
+    { id: "users", title: "users", subtitle: "利用者", cols: [{ name: "id", type: "bigint", pk: true }, { name: "email", type: "text" }] },
+    { id: "teams", title: "teams", subtitle: "組", cols: [{ name: "id", type: "bigint", pk: true }, { name: "name", type: "text" }] },
+    { id: "tags", title: "tags", subtitle: "札", cols: [{ name: "id", type: "bigint", pk: true }, { name: "name", type: "text" }] },
+    { id: "projects", title: "projects", subtitle: "案件", cols: [{ name: "id", type: "bigint", pk: true }, { name: "team_id", type: "bigint", fk: true }, { name: "owner_id", type: "bigint", fk: true }] },
+    { id: "user_roles", title: "user_roles", subtitle: "役割の割当", cols: [{ name: "user_id", type: "bigint", pk: true, fk: true }, { name: "role_id", type: "bigint", pk: true, fk: true }] },
+    { id: "team_members", title: "team_members", subtitle: "組の一員", cols: [{ name: "team_id", type: "bigint", pk: true, fk: true }, { name: "user_id", type: "bigint", pk: true, fk: true }] },
+    { id: "project_tags", title: "project_tags", subtitle: "案件の札", cols: [{ name: "project_id", type: "bigint", pk: true, fk: true }, { name: "tag_id", type: "bigint", pk: true, fk: true }] },
+  ],
+  [
+    { from: "users", to: "user_roles", label: "持つ", tail: "one", head: "many" },
+    { from: "roles", to: "user_roles", label: "割り当てる", tail: "one", head: "many" },
+    { from: "users", to: "team_members", label: "入る", tail: "one", head: "many" },
+    { from: "teams", to: "team_members", label: "集める", tail: "one", head: "many" },
+    { from: "teams", to: "projects", label: "抱える", dashed: true, tail: "one", head: "zero-many" },
+    { from: "projects", to: "project_tags", label: "付ける", tail: "one", head: "many" },
+    { from: "tags", to: "project_tags", label: "貼る", tail: "one", head: "many" },
+    { from: "users", to: "projects", label: "受け持つ", dashed: true, tail: "one", head: "zero-many" },
+  ],
+  { roles: [0, 0], users: [0, 1], teams: [0, 2], tags: [0, 3], projects: [1, 0], user_roles: [1, 1], team_members: [1, 2], project_tags: [2, 0] },
+);
