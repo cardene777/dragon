@@ -533,8 +533,8 @@ const resolved = resolve(collectedByMode);
 describe("札の配色 (cdl#388)", () => {
   it("明暗の変数表を取り出す", () => {
     // 表が空だと全ての `var()` が解けず、 範囲外の検査だけが落ちて原因が見えなくなる。
-    expect(VARS.light.get("--d-text-primary")).toBe("#191714");
-    expect(VARS.dark.get("--d-text-primary")).toBe("#f3f1ec");
+    expect(VARS.light.get("--d-text-primary")).toBe("#2a231d");
+    expect(VARS.dark.get("--d-text-primary")).toBe("#f3ece0");
     // 暗い表は明るい表を土台にする = 上書きの無い変数は明るい値のまま効く。
     expect(VARS.dark.get("--d-r-1")).toBe(VARS.light.get("--d-r-1"));
   });

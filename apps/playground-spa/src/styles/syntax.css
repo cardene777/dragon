@@ -15,14 +15,13 @@
    出どころは `cdl-theme.css` の `--cdl-tone-*` で、図の描画が使うものと同一。
    ここで別の色を作らない = 作ると本文と図がずれる。
 
-   ## warning だけ明で暗く派生させる
+   ## 派生はしない (#1531)
 
-   `--d-code-bg` (#f5f4ef) の上で測ると `--d-warn` (#9a6b1f) は 4.24 で基準を割る
-   (他 5 色は 4.74-6.34)。 90% に暗くして 5.03 にする。
+   かつては `warning` だけ明で 90% に暗くしていた。 `--d-code-bg` (#f5f4ef) の上で
+   `--d-warn` (#9a6b1f) が 4.24 と基準を割っていたため。
 
-   派生は **この file の中だけ**で行う。 `globals.css` の `:root` に新しい変数を足すと
-   `palette-matches-pen.spec.ts` が `docs/design/app.pen` との一致を求めるため、
-   設計 file の更新を伴う。 色の追加ではなく既存色の調整として扱う。
+   #1531 で色を紙と茶墨の 1 組に揃えた際、 `--d-warn` は #6d5626 になり、
+   記述欄の地 (#f2ecdd) の上で 5.92 を満たすようになった。 派生が要らなくなったので外した。
    ══════════════════════════════════════════════════════════════ */
 
 /* ── 5 種 + 注記 ── */
@@ -71,14 +70,6 @@
 }
 .tok-色名[data-tone="info"] {
   color: var(--cdl-tone-info);
-}
-
-/* 明では 4.24 と基準を割るため 90% に暗くする (5.03)。 暗はそのままで 7.97 */
-.tok-色名[data-tone="warning"] {
-  color: color-mix(in srgb, var(--cdl-tone-warning) 90%, black);
-}
-html.dark .tok-色名[data-tone="warning"] {
-  color: var(--cdl-tone-warning);
 }
 
 /* 線種 (`solid` / `dotted-flow`) は色を持たない語なので、色名と同じ枠で中立色にする */

@@ -82,20 +82,6 @@ function 構文色の対応(): Map<string, string> {
   return out;
 }
 
-/**
- * `syntax.css` が `warning` に当てている暗くする割合を読む。
- *
- * **検査の中に数を書かない**。 書くと CSS 側で派生をやめても検査が通る (実測で
- * 変異が生き残った)。 CSS を読んで、実際に当たっている割合で測る。
- */
-function 暗くする割合(): number | undefined {
-  const src = 読む("../styles/syntax.css");
-  const m = src.match(
-    /\.tok-色名\[data-tone="warning"\][^{]*\{[^}]*color-mix\(in srgb,\s*var\(--cdl-tone-warning\)\s*(\d+)%,\s*black\)/,
-  );
-  return m === null ? undefined : Number(m[1]) / 100;
-}
-
 const 表 = 変数表();
 const 地 = 表.get("code-bg");
 
@@ -124,43 +110,21 @@ describe("記述の色が読める明るさになっている (#1310)", () => {
     expect(落ちた, "地の上で読めない構文色がある").toEqual([]);
   });
 
-  it("色名がすべて明暗とも対比 4.5 以上 (`warning` は暗く派生させた分を見る)", () => {
+  it("色名がすべて明暗とも対比 4.5 以上", () => {
     const 対応 = 色名の対応();
     expect(対応.size, "色名の対応を 1 つも導けていない (検査が空振りしている)").toBeGreaterThan(0);
     const 落ちた: string[] = [];
     for (const [tone, 変数] of 対応) {
       const c = 表.get(変数);
       if (c === undefined) continue;
-      // `warning` だけ構文色で暗く派生させている。 割合は CSS から読む
-      const 割合 = 暗くする割合();
-      const 明の色 = tone === "warning" && 割合 !== undefined ? 暗くする(c.明, 割合) : c.明;
-      const 明 = 対比(明の色, 地!.明);
+      const 明 = 対比(c.明, 地!.明);
       const 暗 = 対比(c.暗, 地!.暗);
       if (明 < 4.5 || 暗 < 4.5) 落ちた.push(`${tone} (--d-${変数}): 明 ${明.toFixed(2)} / 暗 ${暗.toFixed(2)}`);
     }
     expect(落ちた, "地の上で読めない色名がある").toEqual([]);
   });
 
-  it("`warning` の派生が CSS に書かれている", () => {
-    // 割合を検査の中に書くと、CSS 側で派生をやめても通ってしまう (実測で変異が生き残った)
-    const 割合 = 暗くする割合();
-    expect(割合, "syntax.css に warning の派生が無い").toBeDefined();
-    expect(割合!, "派生の割合が 1 以上 (暗くなっていない)").toBeLessThan(1);
-  });
-
-  it("`warning` は派生させないと基準を割る (派生が要ることの裏取り)", () => {
-    // 派生なしで通るなら、そもそも派生が要らない = 記述と実装が食い違っている
-    const 変数 = 色名の対応().get("warning");
-    expect(変数, "warning の対応を導けていない").toBeDefined();
-    const c = 表.get(変数!);
-    expect(対比(c!.明, 地!.明), "派生なしで基準を満たしている (記述が古い)").toBeLessThan(4.5);
-  });
+  // #1531 で `warning` の派生をやめたので、 派生の有無を見る 2 件を落とした。
+  // 色を紙と茶墨の 1 組に揃えた際に `--d-warn` が記述欄の地の上で 5.92 を満たし、
+  // 派生が要らなくなったため (派生が要ることの裏取りが、 逆に「要らない」 を示していた)。
 });
-
-/** `color-mix(in srgb, <色> N%, black)` と同じ計算 */
-function 暗くする(hex: string, 割合: number): string {
-  const h = hex.replace("#", "");
-  return `#${[0, 2, 4]
-    .map((i) => Math.round(parseInt(h.slice(i, i + 2), 16) * 割合).toString(16).padStart(2, "0"))
-    .join("")}`;
-}
