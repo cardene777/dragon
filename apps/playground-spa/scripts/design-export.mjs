@@ -17,6 +17,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findNestedAtRules, scopeThemeCss } from "../../../packages/dragon/scripts/design-theme-css.mjs";
+import { SPEC_ROLES, buildSpec, mergeMeasured } from "../../../packages/dragon/scripts/design-spec.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "../../..");
@@ -97,19 +98,77 @@ const readVars = () =>
     return out;
   });
 
-// 寸法も画面から測る。 markup の属性は cdl-theme.css に上書きされる (#1520 と同根)
-const drawn = await page.evaluate(() => {
+// 寸法も画面から測る。 markup の属性は cdl-theme.css に上書きされる (#1520 と同根)。
+// 測る対象は役割で決める = 図の作りが違えば在る役割も違うので、決め打ちすると値が取れない (#1540)
+const measureRoles = () => page.evaluate((roles) => {
   const svg = Array.from(document.querySelectorAll("main svg")).sort(
     (a, b) => b.outerHTML.length - a.outerHTML.length,
   )[0];
-  const px = (v) => Math.round(parseFloat(v) * 100) / 100;
-  const boxes = Array.from(svg.querySelectorAll('[data-cdl-role="node-body"]')).map((el) => {
-    const cs = getComputedStyle(el);
-    return { w: px(cs.width), h: px(cs.height), rx: px(cs.rx), sw: px(cs.strokeWidth) };
-  });
+  const px = (v) => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
+  };
+  const areaOf = (el) => {
+    try {
+      const b = el.getBBox();
+      return b.width * b.height;
+    } catch {
+      return 0;
+    }
+  };
+  /**
+   * 寸法を持たない要素 (`g` で組む箱) は、中で実際に描いている図形まで降りて測る。
+   *
+   * 降りる先は **最も大きい図形**。 先頭の子を取ると、箱の中に置いた 24 角の絵記号を
+   * 箱の寸法として拾う (`infra-demo` の 6 件中 1 件が実際にそうなった)
+   */
+  const outlineOf = (el) => {
+    if (px(getComputedStyle(el).width) !== null) return el;
+    let best = null;
+    let bestArea = 0;
+    for (const d of el.querySelectorAll("*")) {
+      const a = areaOf(d);
+      if (a > bestArea) {
+        bestArea = a;
+        best = d;
+      }
+    }
+    return best;
+  };
+  const measure = (el) => {
+    const own = getComputedStyle(el);
+    const shape = outlineOf(el);
+    const cs = shape ? getComputedStyle(shape) : own;
+    let w = px(cs.width);
+    let h = px(cs.height);
+    if (w === null || h === null) {
+      // 線のように width / height を持たない要素は、描かれた矩形で測る
+      try {
+        const b = el.getBBox();
+        w = w ?? px(b.width);
+        h = h ?? px(b.height);
+      } catch {
+        // 描かれていない要素は測れない。 null のまま返して「測れなかった」 と出す
+      }
+    }
+    return {
+      w,
+      h,
+      rx: px(cs.rx),
+      sw: px(own.strokeWidth) ?? px(cs.strokeWidth),
+      r: px(cs.r),
+      fs: px(own.fontSize),
+      x: px(el.getAttribute("x1")) ?? px(el.getAttribute("x")) ?? px(cs.x),
+    };
+  };
+  const measured = {};
+  for (const role of roles) {
+    const els = Array.from(svg.querySelectorAll(`[data-cdl-role="${role}"]`));
+    measured[role] = { found: els.length, items: els.map(measure) };
+  }
   const vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
-  return { boxes, vb };
-});
+  return { measured, vb };
+}, SPEC_ROLES);
 
 const light = await readVars();
 await page.evaluate(() => document.documentElement.classList.add("dark"));
@@ -118,8 +177,11 @@ const dark = await readVars();
 await page.evaluate(() => document.documentElement.classList.remove("dark"));
 await page.waitForTimeout(500);
 
-// 段は時間で進むので、新しい段が出なくなるまで控える
+// 段は時間で進むので、新しい段が出なくなるまで控える。
+// 寸法は段ごとに測る = 段が進むと要素が増えるため、最初の段だけ見ると後から出る線を 1 本も
+// 測れない (`er-demo` の繋がり 6 本が実際にそうなった、#1540)
 const seen = new Map();
+const measuredByPhase = [];
 let idle = 0;
 for (let i = 0; i < 120 && idle < 24; i += 1) {
   const snap = await page.evaluate(() => {
@@ -132,6 +194,10 @@ for (let i = 0; i < 120 && idle < 24; i += 1) {
   });
   if (snap?.svg && !seen.has(snap.phase)) {
     seen.set(snap.phase, snap.svg);
+    // 動きが終わるまで待ってから測る。 engine の transition は最長 280ms で、
+    // 途中で測ると太さが 1.75 と 2.5 の間の値になる
+    await page.waitForTimeout(320);
+    measuredByPhase.push(await measureRoles());
     idle = 0;
   } else {
     idle += 1;
@@ -155,18 +221,12 @@ const shots = [...seen.entries()]
   .map(([phase, svg]) => ({ phase, svg: prep(svg) }))
   .sort((a, b) => a.phase.localeCompare(b.phase, "en", { numeric: true }));
 
-const m0 = drawn;
-const uniq = (a) => [...new Set(a.filter((n) => Number.isFinite(n)))].sort((x, y) => x - y);
-const spec = [
-  ["箱の幅", uniq(m0.boxes.map((b) => b.w)).join(" / ") || "—", "選ばれている箱は枠のぶん膨らむ"],
-  ["箱の高さ", uniq(m0.boxes.map((b) => b.h)).join(" / ") || "—", "中の行数で決まる"],
-  ["角の丸み", uniq(m0.boxes.map((b) => b.rx)).join(" / ") || "—", "全ての箱で同じ"],
-  ["枠の太さ", uniq(m0.boxes.map((b) => b.sw)).join(" / ") || "—", "太い方が今光っている箱。 画面で測った値"],
-  ["図の枠", m0.vb.length === 4 ? `${m0.vb[2]} × ${m0.vb[3]}` : "—", m0.vb.length === 4 ? `原点 ${m0.vb[0]} , ${m0.vb[1]}` : ""],
-  ["段の数", String(shots.length), "段ごとに光る要素が増える"],
-  ["箱の動き", "opacity 120ms / transform 200ms", "engine が箱に付けている時間"],
-  ["線の動き", "stroke 280ms / stroke-width 280ms", "engine が線に付けている時間"],
-];
+const drawn = mergeMeasured(measuredByPhase);
+const spec = buildSpec(drawn.measured, { viewBox: drawn.vb, phaseCount: shots.length });
+const 寸法行 = spec.filter(([, v]) => /^[\d.]/.test(v));
+if (寸法行.length === 0) {
+  console.warn("  寸法を 1 件も測れなかった。 図の役割が変わっているか、画面が描き終わる前に測っている");
+}
 
 // 図の色は cdl ではなく dragon 側の規則が当てる。 markup だけ控えると色が抜ける (#1520)
 const THEME_CSS_PATH = resolve(REPO, "apps/playground-spa/src/styles/cdl-theme.css");
