@@ -67,7 +67,8 @@
     "overrides": {
       "brace-expansion@1": "1.1.18",
       "dompurify": "3.4.13",
-      "qs": "6.15.2"
+      "qs": "6.15.2",
+      "esbuild": "0.28.1"
     }
   }
 }
