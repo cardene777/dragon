@@ -339,6 +339,44 @@ pnpm build
 pnpm verify   # typecheck + vitest
 ```
 
+### 依存の脆弱性を確かめる
+
+`osv-scanner` が `pnpm-lock.yaml` を読んで、既知の脆弱性を持つ版が残っていないかを見る。
+
+```sh
+osv-scanner scan source -r .
+```
+
+**期待は 0 件**。 1 件でも出たら、まず `pnpm install` で lockfile を入れ直す。
+
+**大半はそれで直る**。 検出は「いま脆弱」 を言うだけで、「固定が要る」 とは言っていない。
+`#1528` では 41 件のうち 9 package が、入れ直すだけで安全な版に解決された。
+
+入れ直しても残る package だけを `package.json` の `pnpm.overrides` に書く。
+
+書いた後は **1 つずつ外して測る**。 外しても 0 件のままなら、その `overrides` は効いていない。
+
+```sh
+# その override を消して入れ直し、再走査して件数を見る
+pnpm install && osv-scanner scan source -r . | grep -c '^| https'
+```
+
+効いていない `overrides` を残さないのは、`overrides` が下限であると同時に **上限** でもあるため。
+上流が新しい patch を出しても、書いた版に固定され続ける。
+
+`overrides` で上げるのは推移依存だけで、直接依存の major は上げない。
+major を上げると API が変わり、上げた理由 (脆弱性) と別の理由で壊れる。
+
+同じ package が major 違いで 2 つ入っている時は `package@major` の形で分けて書く。
+まとめて 1 行にすると、片方の major に存在しない版へ倒そうとして解決が落ちる。
+
+上げた後は `pnpm build` と `pnpm test` に加えて **`pnpm dev` も起動する**。
+build が通っても開発 server だけが落ちることがある = 開発 server は依存を別に束ね直すので、
+変換の対応範囲が build と違う (`#1528` で `esbuild` を上げた時に踏んだ)。
+
+壊れた package があれば、package 名と失敗したコマンドと理由を Issue に書いて別 Issue に
+切り出す。 その package の `overrides` は書かず、残った脆弱性の CVSS を記録する。
+
 ## 検知システム / 修正システム
 
 **役割分離** = 開発陣向け「検知」 と author 向け「修正」 は完全に別、 両方 LLM 不使用の pure rule / geometry ベース。
