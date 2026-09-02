@@ -1,3 +1,50 @@
+const STEP_DURATION = 900;
+
+/**
+ * 組み上がった図に段を組み直す (#1194)。
+ *
+ * preset の builder は `.phase()` を持たない (`swimlane` だけが `DiagramBuilder` を返す) ため、
+ * 段は `build()` の後に足す。 preset が自動で作る段は 1 つだけで、全要素を光らせて終わるので、
+ * そのままでは開いても静止画と区別が付かない。
+ *
+ * 題と説明を省いた段は、preset が自動で作った段のものを引き継ぐ。 図の型そのものの説明は
+ * 最後の段に残したいので、最後の段で省くのが既定の使い方になる。
+ */
+function withSteps(
+  d: CdlDiagram,
+  steps: readonly Step[],
+  states: readonly State[] = [],
+): CdlDiagram {
+  const auto = d.phases[0];
+  const lit: string[] = [];
+  const phases: Phase[] = steps.map((s, i) => {
+    for (const id of s.ids ?? []) if (!lit.includes(id)) lit.push(id);
+    return {
+      id: `p${i + 1}`,
+      duration: s.duration ?? STEP_DURATION,
+      title: s.title ?? auto?.title ?? "",
+      body: s.body ?? auto?.body ?? "",
+      activate: [...lit],
+      // 空なら欄ごと置かない (#1351)。 置くと `draw` を使わない見本の JSON の形が変わる =
+      // 描画側の `builder.ts` も同じ扱いをしている
+      ...((s.draw ?? []).length > 0 ? { draw: [...(s.draw ?? [])] } : {}),
+      tweens: (s.tweens ?? []).map((t) => ({ stateId: t.id, from: t.from, to: t.to })),
+      sets: (s.sets ?? []).map((v) => ({ stateId: v.id, value: v.value })),
+      badge: auto?.badge,
+    };
+  });
+  return { ...d, states: [...(d.states ?? []), ...states], phases };
+}
+
+// er preset ... ER 図 (設計「箱と行と関係」 の意匠)
+//
+// `users` が `orders` を出し、`orders` が `order_items` を抱える。 `users` は自分自身を
+// 上司として持つ (上司も利用者なので `manager_id` は `users` を指す)。
+//
+// **端の印は両端に付く**。 クラス図の印は「どちらが親か」 のような関係そのものの性質を指す
+// ので 1 つで足りるが、ER の印が指すのは端ごとに違う個数なので両端に要る。
+// 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か (棒 = 必須 / 丸 = 任意)。
+export const presetEr = withSteps(
   er({ id: "er-demo", topic: "テーブル間の関係を表す図", defaultTone: "info" })
     .entity({
       id: "users",
@@ -78,13 +125,3 @@
     },
   ],
 );
-
-// stateMachine preset ... 状態遷移図 (設計「箱と行と関係」 の意匠)
-//
-// 注文が下書きから受付済へ進み、支払いを経て終わる。 受付済からは取り消せる。
-//
-// **遷移の種類は 1 つしかない**。 クラス図 6 種、ER 図は端 4 種 × 線 2 種に対して、
-// 状態遷移の線は実線 + 開いた矢の 1 種だけ。 違いは語の中 (きっかけ / きっかけ + 条件) に入る。
-//
-// **始まりと終わりは箱ではない**。 行も名前も持たないので、箱にすると題も呼び名も空で
-// 寸法が出せない。 塗った丸と輪で別に置く。
