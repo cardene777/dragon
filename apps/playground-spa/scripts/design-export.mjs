@@ -18,6 +18,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findNestedAtRules, scopeThemeCss } from "../../../packages/dragon/scripts/design-theme-css.mjs";
 import { SPEC_ROLES, buildSpec, mergeMeasured } from "../../../packages/dragon/scripts/design-spec.mjs";
+import { 受け取れるか } from "../../../packages/dragon/scripts/design-capture.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "../../..");
@@ -34,6 +35,9 @@ if (!id) {
   process.exit(2);
 }
 const BASE = flag("url", "http://localhost:4323");
+/** 引き終わりを待つ 1 回ぶんの間隔 (ms) と、諦めるまでの回数 */
+const SETTLE_STEP_MS = Number(flag("settle", "300"));
+const SETTLE_TRIES = Number(flag("settle-tries", "8"));
 const OUT = resolve(REPO, ".context/design", id);
 
 /** 群は catalog の file 名から取る。 名前を新しく考えない */
@@ -183,8 +187,9 @@ await page.waitForTimeout(500);
 const seen = new Map();
 const measuredByPhase = [];
 let idle = 0;
-for (let i = 0; i < 120 && idle < 24; i += 1) {
-  const snap = await page.evaluate(() => {
+/** いま画面に出ている段の id と markup */
+const 今の段 = () =>
+  page.evaluate(() => {
     const svg = Array.from(document.querySelectorAll("main svg")).sort(
       (a, b) => b.outerHTML.length - a.outerHTML.length,
     )[0];
@@ -192,13 +197,33 @@ for (let i = 0; i < 120 && idle < 24; i += 1) {
     const holder = document.querySelector("[data-cdl-phase-id]");
     return { phase: holder?.getAttribute("data-cdl-phase-id") ?? "p0", svg: svg.outerHTML };
   });
+
+for (let i = 0; i < 120 && idle < 24; i += 1) {
+  const snap = await 今の段();
   if (snap?.svg && !seen.has(snap.phase)) {
-    seen.set(snap.phase, snap.svg);
-    // 動きが終わるまで待ってから測る。 engine の transition は最長 280ms で、
-    // 途中で測ると太さが 1.75 と 2.5 の間の値になる
-    await page.waitForTimeout(320);
-    measuredByPhase.push(await measureRoles());
-    idle = 0;
+    // **引き終わってから控える** (#1543)。 段が変わった直後は線がまだ引かれている途中で、
+    // 線は伸びかけの短い path、その下の光だけが全長で出る = 矢の先に光だけの棒が残る。
+    // 意匠帳の `look.svg` はこの markup を焼き付けるので、途中の絵が永久に残る。
+    //
+    // 待つ長さを決め打ちにしない = 段の長さは engine が DOM に出しておらず、記法から辿っても
+    // 段の id と対応が付かない。 markup を読み直して引き終わりを確かめる。
+    let 判定 = { 受け取る: false, なぜ: "まだ読み直していない" };
+    let 落ち着き = null;
+    for (let t = 0; t < SETTLE_TRIES; t += 1) {
+      await page.waitForTimeout(SETTLE_STEP_MS);
+      落ち着き = await 今の段();
+      判定 = 受け取れるか(snap, 落ち着き);
+      if (判定.受け取る || 判定.なぜ.startsWith("待つ間に")) break;
+    }
+    // 控えるのは **判定を通したその markup**。 読み直すと、その間にまた段が進みうる
+    if (判定.受け取る && 落ち着き) {
+      seen.set(snap.phase, 落ち着き.svg);
+      measuredByPhase.push(await measureRoles());
+      idle = 0;
+    } else {
+      // 諦めたことを黙らせない。 段が欠けた時に、待ちが足りなかったのか段が無いのかを分ける
+      console.warn(`  ${snap.phase} を控えなかった ... ${判定.なぜ}`);
+    }
   } else {
     idle += 1;
   }
