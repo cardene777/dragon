@@ -59,4 +59,19 @@ export default defineConfig(({ command, mode }) => ({
     sourcemap: false,
     target: "es2022",
   },
+  /**
+   * 開発 server が依存を束ね直す時の変換先 (#1535)。
+   *
+   * **`build.target` は届かない**。 build は rollup が束ね、開発 server は esbuild が別に
+   * 束ね直すので、変換先も別に決まる。 書かないと vite の既定 (`chrome87` / `es2020` 等) が
+   * 効き、esbuild 0.28 以降で分割代入を変換できずに落ちる (実測で 1055 件)。
+   *
+   * `build.target` と同じ `es2022` にする = 開発と本番で同じ構文の範囲を見る。
+   * 別の値にすると、開発で通った構文が本番で落ちる (または逆) 形が生まれる。
+   */
+  optimizeDeps: {
+    esbuildOptions: {
+      target: "es2022",
+    },
+  },
 }));
