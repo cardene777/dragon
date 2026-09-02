@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { findNestedAtRules, scopeThemeCss } from "../../../packages/dragon/scripts/design-theme-css.mjs";
 import { SPEC_ROLES, buildSpec, mergeMeasured } from "../../../packages/dragon/scripts/design-spec.mjs";
 import { 受け取れるか } from "../../../packages/dragon/scripts/design-capture.mjs";
+import { 抜き出す, 落ちた名前 } from "../../../packages/dragon/scripts/design-source.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "../../..");
@@ -50,16 +51,14 @@ export function findGroup(catalogDir, diagramId) {
   return null;
 }
 
-/** 記法の抜粋。 id を含む宣言のかたまりを丸ごと取る */
+/**
+ * 記法の抜粋。 図を出すのに要る宣言の塊を、記法の並び順で取る。
+ *
+ * 行を数える形では切れない (#1545)。 宣言が複数に分かれる図では途中だけを拾い、
+ * 次の塊に前置きが付く図では他人のコメントまで含めていた。 切り方は `design-source.mjs`。
+ */
 export function extractSource(text, diagramId) {
-  const lines = text.split("\n");
-  const at = lines.findIndex((l) => l.includes(`id: "${diagramId}"`));
-  if (at < 0) return "";
-  let start = at;
-  while (start > 0 && !/^(export )?const |^\s*er\(|^\s*swimlane\(/.test(lines[start])) start -= 1;
-  let end = at + 1;
-  while (end < lines.length && !/^(export )?const |^\/\/ ───/.test(lines[end])) end += 1;
-  return lines.slice(start, end).join("\n").replace(/\s+$/, "");
+  return 抜き出す(text, diagramId);
 }
 
 const found = findGroup(CATALOG, id);
@@ -68,7 +67,13 @@ if (!found) {
   process.exit(2);
 }
 const { group, file } = found;
-const source = extractSource(readFileSync(join(CATALOG, file), "utf8"), id);
+const catalogText = readFileSync(join(CATALOG, file), "utf8");
+const source = extractSource(catalogText, id);
+// 写しても動かない記法を納めない。 黙って落とすと、意匠帳の 3 file のうち 1 つが役割を失う
+const 欠け = 落ちた名前(catalogText, id);
+if (欠け.length > 0) {
+  console.warn(`  記法から落ちた名前が ${欠け.length} 件 ... ${欠け.join(" ")}`);
+}
 
 mkdirSync(OUT, { recursive: true });
 
