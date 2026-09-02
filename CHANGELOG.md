@@ -3,8 +3,24 @@
 dragon DSL の主要変更履歴。
 [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) format + [Semantic Versioning](https://semver.org/lang/ja/) 準拠。
 
+## [Unreleased]
 
 ### Added
+
+- **線の手当てを決めた ER 図を意匠帳に納めた** (#1549)
+
+  09-01 に ER 図の線の手当てを 7 つ決め、6 つを cdl に入れた。 判断の材料にした図
+  (`er-mesh`、8 表 8 関係、多対多が 2 組) が意匠帳に無く、下見の絵は残っていない。
+
+  `/dragon-design` は「納めたら artifact を捨てる」 と決めているが、09-01 は engine への
+  実装だけ進めて納めていない。 捨てる約束だけが働いた。
+
+  `docs/design/notation/er/er-mesh/` に 3 file を置いた。 群を `er` にしたのは、
+  この図が catalog に無く、線の手当てを測るために組んだものだから。
+
+  「決めたこと」 には 09-01 に詰めた 6 手当てを、「見送ったこと」 には同日に却下した
+  3 案 (弓の幅を札に合わせる / 手当てを 2 本に分ける / 1 本にまとめる) を書いた。
+  いずれも判断の記録に理由が残っている。
 
 - **意匠帳に時系列 / 構成 / 図表の 3 図を足した** (#1541)
 
@@ -29,7 +45,6 @@ dragon DSL の主要変更履歴。
   併せて `er-demo` の `source.cdl.ts` を取り直した (`#1545` の直しで 90 行 -> 127 行)。
   `look.svg` は決めた日の記録なので据え置く。
 
-## [Unreleased]
 
 ### Fixed
 
