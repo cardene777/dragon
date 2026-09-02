@@ -60,20 +60,20 @@
  * 直す」 を認めると、 `.pen` を正とする原則が基準側に置き換わる。
  * ================================================================ */
 :root {
-  --d-bg: #faf9f6;
-  --d-surface: #ffffff;
-  --d-surface-2: #f2f1ec;
-  --d-surface-3: #e8e6df;
-  --d-border: #e3e0d8;
-  --d-border-strong: #c7c3b8;
-  --d-text-primary: #191714;
-  --d-text-secondary: #57534b;
+  --d-bg: #f6f1e6;
+  --d-surface: #fffdf7;
+  --d-surface-2: #fffdf7;
+  --d-surface-3: #efe8d8;
+  --d-border: #e6dfcd;
+  --d-border-strong: #cfc4a9;
+  --d-text-primary: #2a231d;
+  --d-text-secondary: #5e5446;
   /* 白地で対比 5.47。 暗い側の #a8a199 (面の上で 5.46) と揃える。
    * 旧値は #8a857a (対比 3.67)。 暗い側を #1112 で持ち上げた際に明るい側が取り残され、
    * 同じ役割の文字が明暗で倍近く開いていた。 */
-  --d-text-muted: #6d6960;
-  --d-accent: #c8442a;
-  --d-accent-soft: #fbeae4;
+  --d-text-muted: #6a5f50;
+  --d-accent: #c0421f;
+  --d-accent-soft: #f7e5da;
   /* 強調した箱の面 (#1143)。 **`--d-accent-soft` とは別に持つ**。
      箱の枠は `--d-accent` で描き、 この repo は箱の枠に対比 4.61 を課している
      (`dark-ground-step.spec.ts`)。 明では `--d-accent-soft` (#fbeae4) との対比が 4.17 で
@@ -81,34 +81,34 @@
      4.82 で満たすので、 そちらをそのまま使う。 明暗で必要な向きが逆なので 1 色にできない。 */
   --d-accent-face: #ffffff;
   --d-on-accent: #ffffff;
-  --d-code-bg: #f5f4ef;
+  --d-code-bg: #f2ecdd;
 
-  --d-err: #be3b2a;
-  --d-warn: #9a6b1f;
-  --d-hint: #2c68ae;
-  --d-err-soft: #fbe9e5;
-  --d-warn-soft: #f8efdc;
-  --d-hint-soft: #e8eff8;
+  --d-err: #8a3d2b;
+  --d-warn: #6d5626;
+  --d-hint: #3d312a;
+  --d-err-soft: #f6e4dd;
+  --d-warn-soft: #f3ead2;
+  --d-hint-soft: #eee8db;
 
   /* 図表の系列色 6 色 (#1480)。
      `--d-dg-*` (図の中で意味を描き分ける色) とは役割が違う = こちらは円グラフや帯グラフの
      **並んだ系列** を見分けるためで、色そのものに意味は無い。 描画側が既定値を持つが、
      変数を定義しないと明暗のどちらでも同じ色が出る。
      明るい側は描画側の既定と同じ値を書き写す = ここを定義したことで見た目が変わらないようにする。 */
-  --d-chart-1: #4338ca;
-  --d-chart-2: #0d9488;
-  --d-chart-3: #f59e0b;
-  --d-chart-4: #be185d;
-  --d-chart-5: #4d7c0f;
-  --d-chart-6: #0369a1;
+  --d-chart-1: #3c3833;
+  --d-chart-2: #2f6f8f;
+  --d-chart-3: #b1622a;
+  --d-chart-4: #3f7a58;
+  --d-chart-5: #8a4a7a;
+  --d-chart-6: #6a6f2e;
 
   /* 図の中で系統を描き分けるための 6 色 */
-  --d-dg-1: #2c68ae;
-  --d-dg-2: #2a7a57;
-  --d-dg-3: #9a6b1f;
-  --d-dg-4: #65499f;
-  --d-dg-5: #a93a5e;
-  --d-dg-6: #1f7178;
+  --d-dg-1: #221811;
+  --d-dg-2: #52674f;
+  --d-dg-3: #7a5a24;
+  --d-dg-4: #4f4339;
+  --d-dg-5: #7a3f52;
+  --d-dg-6: #1f3937;
 
   /* 重ね窓の背後を覆う色。 明暗どちらでも同じ濃さで敷く */
   --d-scrim: #100e0cb8;
@@ -137,7 +137,7 @@
      (実測 = `--d-surface-3` にした時に 12.5px の色 5 種が 3.26-4.45 で下限割れ)。
      判定は「選ぶ前より読みにくくならないこと」 = 通常の地に対する対比を基準にし、
      どの構文色も 1 割以上落ちない値を選んだ。 */
-  --d-code-selection-bg: #e8eef7;
+  --d-code-selection-bg: #efe6d3;
 
   /* 角は一貫して浅い。 部品 3px / 面 5px / 窓 6px の 3 段だけ使う */
   --d-r-1: 3px;
@@ -207,29 +207,29 @@
  * 面の段を 6 ずつ空けて、 地 12.9 / 面 18.1 / 一段上 23.7 / 箱 29.5 に置き直した。
  * 図の紙 (`--d-surface`) と箱 (`--d-surface-3`) の差は 11.4 になる。 */
 html.dark {
-  --d-bg: #23211e;
-  --d-surface: #2e2c28;
-  --d-surface-2: #3b3834;
-  --d-surface-3: #494540;
-  --d-border: #54504a;
-  --d-border-strong: #6e6860;
-  --d-text-primary: #f3f1ec;
-  --d-text-secondary: #c4bdb3;
+  --d-bg: #1a1611;
+  --d-surface: #241f18;
+  --d-surface-2: #2f2920;
+  --d-surface-3: #3b3328;
+  --d-border: #453d31;
+  --d-border-strong: #5c5244;
+  --d-text-primary: #f3ece0;
+  --d-text-secondary: #c9bda6;
   /* 面を明るくしたぶん、 薄い文字も上げないと箱の上で沈む (旧値は箱に対して 1.97) */
-  --d-text-muted: #a8a199;
-  --d-accent: #f2704c;
+  --d-text-muted: #a89b86;
+  --d-accent: #ee6b3f;
   /* 強調色の文字が乗るので、 面より一段落とす (#4a2a20 だと 4.38 で下限を割る) */
-  --d-accent-soft: #41241b;
-  --d-accent-face: #41241b;
-  --d-on-accent: #1c0f09;
-  --d-code-bg: #1f1d1b;
+  --d-accent-soft: #3d2116;
+  --d-accent-face: #3d2116;
+  --d-on-accent: #1a0e07;
+  --d-code-bg: #201b15;
 
-  --d-err: #f0806c;
-  --d-warn: #e0a94f;
-  --d-hint: #6fa8e8;
-  --d-err-soft: #4a2620;
-  --d-warn-soft: #40331a;
-  --d-hint-soft: #22304a;
+  --d-err: #e08a76;
+  --d-warn: #cfae72;
+  --d-hint: #d0c3ae;
+  --d-err-soft: #452520;
+  --d-warn-soft: #3d3119;
+  --d-hint-soft: #332c22;
 
   /* 面が明るいぶん、 薄めて描かれる枝と縁が沈む (実測 = 0.85 でも紫が 2.94)。
      暗い側だけ 0.92 に揃える。 明るい側は上の既定 (cdl の値) がそのまま効く。 */
@@ -239,7 +239,7 @@ html.dark {
 
   /* 選んだ範囲の地。 構文の色 (12.5px) が乗るので、 記述欄の地 (`--d-code-bg`) に対する
      対比が 1 割以上落ちない値にする (`#2a2622` は 10.65% 落ちて条件を満たさなかった)。 */
-  --d-code-selection-bg: #292521;
+  --d-code-selection-bg: #2a231a;
 
   /* 図表の系列色 6 色の暗い側 (#1480)。
      明るい側の値をそのまま出すと、暗い箱 (`--d-surface`) の上で 6 色中 3 色が下限 3.0 を割る
@@ -256,19 +256,19 @@ html.dark {
 
      もう 1 段明るい案 (対比 6.99 以上) は色どうしが近づく = 見分けの隔たりが 44.6 から 28.8 に
      落ちる。 対比と隔たりの両方に余裕があるこちらを採った。 */
-  --d-chart-1: #818cf8;
-  --d-chart-2: #2dd4bf;
-  --d-chart-3: #fbbf24;
-  --d-chart-4: #f472b6;
-  --d-chart-5: #a3e635;
-  --d-chart-6: #38bdf8;
+  --d-chart-1: #cdc5b8;
+  --d-chart-2: #6fb0d4;
+  --d-chart-3: #e0995c;
+  --d-chart-4: #74c095;
+  --d-chart-5: #cf8bbd;
+  --d-chart-6: #b7bd6a;
 
-  --d-dg-1: #6fa8e8;
-  --d-dg-2: #5fc496;
-  --d-dg-3: #e0a94f;
-  --d-dg-4: #a98de8;
-  --d-dg-5: #e883a6;
-  --d-dg-6: #5fc2c7;
+  --d-dg-1: #ecdfc9;
+  --d-dg-2: #a0c9b0;
+  --d-dg-3: #d5b071;
+  --d-dg-4: #baac96;
+  --d-dg-5: #d59aab;
+  --d-dg-6: #7eabae;
 }
 
 @theme {
