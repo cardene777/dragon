@@ -24,6 +24,28 @@ const isDir = (p) => existsSync(p) && statSync(p).isDirectory();
  * 図の説明を note.md から 1 行だけ取る。
  * 見出しと箇条書きの記号は落とし、最初の本文行を返す。
  */
+/**
+ * 決めた日を `note.md` の frontmatter から読む (#1538)。
+ *
+ * **file の更新日は使わない**。 綴りの直しや別の figure の作業でも動くため、
+ * 「いつ決めたか」 を表さない。 書き手が書いた値だけを見る。
+ *
+ * 書かれていなければ `null`。 古い note には無いので、無い形も一覧に出す。
+ */
+export function decidedOn(noteText) {
+  if (!noteText) return null;
+  const lines = noteText.split("\n");
+  let at = 0;
+  while (at < lines.length && !lines[at].trim()) at += 1;
+  if (lines[at]?.trim() !== "---") return null;
+  at += 1;
+  for (; at < lines.length && lines[at].trim() !== "---"; at += 1) {
+    const m = /^decided:\s*(\d{4}-\d{2}-\d{2})\s*$/.exec(lines[at].trim());
+    if (m) return m[1];
+  }
+  return null;
+}
+
 export function summaryOf(noteText) {
   if (!noteText) return "";
   const lines = noteText.split("\n");
@@ -90,11 +112,13 @@ export function collectEntries(root) {
         continue;
       }
       const notePath = join(dir, "note.md");
+      const noteText = existsSync(notePath) ? readFileSync(notePath, "utf8") : "";
       entries.push({
         group,
         name,
         svg: readFileSync(look, "utf8"),
-        summary: existsSync(notePath) ? summaryOf(readFileSync(notePath, "utf8")) : "",
+        summary: noteText ? summaryOf(noteText) : "",
+        decided: decidedOn(noteText),
         hasSource: existsSync(join(dir, "source.cdl.ts")),
         hasNote: existsSync(notePath),
       });
@@ -114,8 +138,12 @@ export function buildIndexHtml(entries, problems = []) {
       if (!e.hasSource) missing.push("source.cdl.ts");
       if (!e.hasNote) missing.push("note.md");
       const warn = missing.length ? `<p class="warn">${esc(missing.join(" / "))} が無い</p>` : "";
+      // 決めた日を出す = この絵がいつの記録かを、読む前に分かるようにする (#1538)
+      const decided = e.decided
+        ? `<time class="decided" datetime="${esc(e.decided)}">${esc(e.decided)} に決めた</time>`
+        : `<span class="decided undated">決めた日が書かれていない</span>`;
       return `      <article class="card" data-entry="${esc(e.group)}/${esc(e.name)}">
-        <header><span class="group">${esc(e.group)}</span><h2>${esc(e.name)}</h2></header>
+        <header><span class="group">${esc(e.group)}</span><h2>${esc(e.name)}</h2>${decided}</header>
         <div class="look">${prefixIds(e.svg, `e${i}`)}</div>
         <p class="summary">${esc(e.summary || "決めたことがまだ書かれていない")}</p>
         ${warn}
@@ -156,12 +184,21 @@ export function buildIndexHtml(entries, problems = []) {
   .warn { margin: 0; padding: 0 14px 14px; color: var(--accent); font-size: 13px; }
   .problems { margin-top: 40px; border-top: 1px solid var(--edge); padding-top: 16px; color: var(--accent); }
   .count { font-family: ui-monospace, monospace; color: var(--ink-mid); }
+  .note { margin: 0 0 32px; padding: 12px 14px; border: 1px solid var(--edge); border-radius: 4px;
+          color: var(--ink-mid); font-size: 14px; }
+  .note strong { color: var(--ink); font-weight: 700; }
+  .note code { font-family: ui-monospace, monospace; font-size: 13px; }
+  .decided { margin-left: auto; font-size: 12px; color: var(--ink-mid); font-family: ui-monospace, monospace; }
+  .decided.undated { color: var(--accent); }
 </style>
 </head>
 <body>
   <div class="wrap">
     <h1>dragon 記法の意匠帳</h1>
     <p class="lede">決めた見た目を図ごとに 1 件ずつ貯めた一覧。 <span class="count">${entries.length} 件</span></p>
+    <p class="note">ここにある絵と色は <strong>決めた日の記録</strong>で、今の見た目ではない。
+      engine の色や形を後から変えても、この絵は追随しない。
+      <br>今どう描かれるかは <strong>catalog</strong> (<code>pnpm dev</code> の <code>/catalog</code>) を見る。</p>
     <div class="grid">
 ${cards}
     </div>

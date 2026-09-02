@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 // @ts-expect-error -- 検査対象は .mjs で型宣言を持たない
-import { buildIndexHtml, collectEntries, prefixIds, summaryOf, writeIndex } from "../scripts/design-index.mjs";
+import { buildIndexHtml, collectEntries, decidedOn, prefixIds, summaryOf, writeIndex } from "../scripts/design-index.mjs";
 
-type Entry = { group: string; name: string; svg: string; summary: string; hasSource: boolean; hasNote: boolean };
+type Entry = { group: string; name: string; svg: string; summary: string; decided: string | null; hasSource: boolean; hasNote: boolean };
 type Problem = { path: string; why: string };
 
 const SVG = (id: string) =>
@@ -165,5 +165,70 @@ describe("書き出し", () => {
     expect(r.out).toBe(join(root, "index.html"));
     expect(r.count).toBe(1);
     expect(readFileSync(r.out, "utf8")).toContain('data-entry="presets/er-demo"');
+  });
+});
+
+/**
+ * #1538 ... 意匠帳が「決めた日の記録」 だと読める形にする。
+ *
+ * `look.svg` は engine の色や形が変わっても追随しない。 いつの記録かが出ないと、
+ * 読み手が古い決定を今の見た目だと読む (`#1531` で配色を変えた時に実際に起きた)。
+ */
+describe("決めた日を出す (#1538)", () => {
+  it("frontmatter の decided を読む", () => {
+    expect(decidedOn("---\ndecided: 2026-08-30\n---\n\n# a\n")).toBe("2026-08-30");
+  });
+
+  it("frontmatter が無ければ null", () => {
+    expect(decidedOn("# a\n\n決めたこと\n")).toBeNull();
+  });
+
+  it("frontmatter に decided が無ければ null", () => {
+    expect(decidedOn("---\ntitle: a\n---\n\n# a\n")).toBeNull();
+  });
+
+  it("日付の形でなければ読まない", () => {
+    // 「先月」 のような書き方を日付として拾うと、一覧に意味の無い値が並ぶ
+    expect(decidedOn("---\ndecided: 先月\n---\n")).toBeNull();
+    expect(decidedOn("---\ndecided: 2026-8-3\n---\n")).toBeNull();
+  });
+
+  it("本文中の decided は読まない", () => {
+    // frontmatter の外は説明文。 そこの語を判定材料にすると、書いた覚えのない日が出る
+    expect(decidedOn("# a\n\ndecided: 2026-08-30\n")).toBeNull();
+  });
+
+  it("走査した entry が決めた日を持つ", () => {
+    put("presets", "a", { note: "---\ndecided: 2026-08-30\n---\n\n# a\n\n説明。\n" });
+    put("presets", "b", { note: "# b\n\n説明。\n" });
+    const { entries } = collectEntries(root) as { entries: Entry[] };
+    expect(entries.map((e) => [e.name, e.decided])).toEqual([
+      ["a", "2026-08-30"],
+      ["b", null],
+    ]);
+  });
+
+  it("一覧に決めた日が出る", () => {
+    const html = buildIndexHtml([
+      { group: "presets", name: "a", svg: SVG("x"), summary: "説明", decided: "2026-08-30", hasSource: true, hasNote: true },
+    ] as Entry[]);
+    expect(html).toContain('datetime="2026-08-30"');
+    expect(html).toContain("2026-08-30 に決めた");
+  });
+
+  it("決めた日が無い図は、無いことを出す (黙って空欄にしない)", () => {
+    const html = buildIndexHtml([
+      { group: "presets", name: "a", svg: SVG("x"), summary: "説明", decided: null, hasSource: true, hasNote: true },
+    ] as Entry[]);
+    expect(html).toContain("決めた日が書かれていない");
+  });
+
+  it("冒頭に、今の見た目の在り処が出る", () => {
+    // ここが無いと、読み手が古い絵を今の見た目だと読む
+    const html = buildIndexHtml([
+      { group: "presets", name: "a", svg: SVG("x"), summary: "説明", decided: "2026-08-30", hasSource: true, hasNote: true },
+    ] as Entry[]);
+    expect(html).toContain("決めた日の記録");
+    expect(html).toContain("catalog");
   });
 });
