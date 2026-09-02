@@ -110,15 +110,18 @@
 
    面は `--d-surface` (#1468)。 `-3` / `-2` はどちらも面が濁って見え、行頭の印や型の字と
    灰色が競合していた。 図の紙を暖かい地に下げたので、白の箱がその上に乗る形になる */
-[data-cdl-role="node-body"],
-[data-cdl-role="node-body"] > rect,
-[data-cdl-role="node-body"] > path,
-[data-cdl-role="node-body"] > ellipse,
-[data-cdl-role="node-body"] > circle,
-[data-cdl-role="node-body"] > g > rect,
-[data-cdl-role="node-body"] > g > path,
-[data-cdl-role="node-body"] > g > ellipse,
-[data-cdl-role="node-body"] > g > circle {
+/* 見せ方を持つ箱は外す (cdl#620)。 cdl 0.24.0 は `look` を書いた kind に
+   `data-cdl-look` を出す。 その箱は engine が面と枠を決めているので、ここで上書きすると
+   5 通り (外にある / 通り道 / ここが働く / 消えては困る / 作り直せる) が 1 通りに潰れる */
+[data-cdl-role="node-body"]:not([data-cdl-look]),
+[data-cdl-role="node-body"]:not([data-cdl-look]) > rect,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > path,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > ellipse,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > circle,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > g > rect,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > g > path,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > g > ellipse,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > g > circle {
   fill: var(--d-surface) !important;
   stroke: var(--d-text-secondary) !important;
   stroke-width: 1.75 !important;
@@ -180,10 +183,15 @@
   stroke-width: 2.5 !important;
 }
 
+/* 見せ方を持つ箱の中の字は engine が決める (cdl#620)。 墨のベタの上では紙の色で抜くので、
+   ここで文字色を上書きすると黒地に黒で消える。 書体と太さは揃えたいので色だけ外す */
 [data-cdl-role="node-label"] {
-  fill: var(--d-text-primary) !important;
   font-family: var(--d-body) !important;
   font-weight: 600 !important;
+}
+
+[data-cdl-node]:not(:has([data-cdl-look])) [data-cdl-role="node-label"] {
+  fill: var(--d-text-primary) !important;
 }
 
 /* 3 つ目の属性を持たせて、 上の子要素の規則より強くする。

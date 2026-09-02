@@ -4,7 +4,12 @@
   "title": "Dragon DSL Diagram",
   "description": "LLM 向け Dragon DSL の JSON Schema。 Anthropic Claude tool use / OpenAI GPT structured output の schema field に注入して使う。 生成された JSON は jsonToDiagram() に渡して CdlDiagram に変換する。",
   "type": "object",
-  "required": ["title", "type", "actors", "flow"],
+  "required": [
+    "title",
+    "type",
+    "actors",
+    "flow"
+  ],
   "additionalProperties": false,
   "properties": {
     "title": {
@@ -88,7 +93,9 @@
           },
           {
             "type": "object",
-            "required": ["name"],
+            "required": [
+              "name"
+            ],
             "additionalProperties": false,
             "properties": {
               "name": {
@@ -151,7 +158,11 @@
                 "type": "object",
                 "description": "parts の状態の上書き。 kind に parts identifier を指定した時だけ使える。",
                 "additionalProperties": {
-                  "type": ["number", "string", "boolean"]
+                  "type": [
+                    "number",
+                    "string",
+                    "boolean"
+                  ]
                 }
               },
               "tone": {
@@ -259,7 +270,10 @@
                 "type": "object",
                 "additionalProperties": false,
                 "description": "auto layout の結果からずらす幅 (dx, dy)。 絶対座標は posX / posY で書く。",
-                "required": ["x", "y"],
+                "required": [
+                  "x",
+                  "y"
+                ],
                 "properties": {
                   "x": {
                     "type": "number"
@@ -280,27 +294,49 @@
               "shape": {
                 "type": "object",
                 "description": "箱の中に描く図形。 水位 / 角度 / 半径を状態で動かせる。 kind ごとに書ける欄が違う (rect / circle / arc / wave / polygon)。",
-                "required": ["kind"],
+                "required": [
+                  "kind"
+                ],
                 "properties": {
                   "kind": {
                     "type": "string",
-                    "enum": ["rect", "circle", "arc", "wave", "polygon"]
+                    "enum": [
+                      "rect",
+                      "circle",
+                      "arc",
+                      "wave",
+                      "polygon"
+                    ]
                   },
                   "source": {
-                    "type": ["number", "string"]
+                    "type": [
+                      "number",
+                      "string"
+                    ]
                   },
                   "fillMax": {
                     "type": "number"
                   },
                   "orient": {
                     "type": "string",
-                    "enum": ["up", "down", "left", "right"]
+                    "enum": [
+                      "up",
+                      "down",
+                      "left",
+                      "right"
+                    ]
                   },
                   "radius": {
-                    "type": ["number", "string"]
+                    "type": [
+                      "number",
+                      "string"
+                    ]
                   },
                   "fillProgress": {
-                    "type": ["number", "string"]
+                    "type": [
+                      "number",
+                      "string"
+                    ]
                   },
                   "innerRadius": {
                     "type": "number"
@@ -312,13 +348,19 @@
                     "type": "number"
                   },
                   "angle": {
-                    "type": ["number", "string"]
+                    "type": [
+                      "number",
+                      "string"
+                    ]
                   },
                   "sweepMax": {
                     "type": "number"
                   },
                   "level": {
-                    "type": ["number", "string"]
+                    "type": [
+                      "number",
+                      "string"
+                    ]
                   },
                   "amplitude": {
                     "type": "number"
@@ -333,7 +375,10 @@
                     "type": "number"
                   },
                   "rotation": {
-                    "type": ["number", "string"]
+                    "type": [
+                      "number",
+                      "string"
+                    ]
                   },
                   "fill": {
                     "type": "string"
@@ -347,41 +392,61 @@
                   {
                     "properties": {
                       "kind": {
-                        "enum": ["rect"]
+                        "enum": [
+                          "rect"
+                        ]
                       }
                     },
-                    "required": ["source", "fillMax"]
+                    "required": [
+                      "source",
+                      "fillMax"
+                    ]
                   },
                   {
                     "properties": {
                       "kind": {
-                        "enum": ["circle"]
+                        "enum": [
+                          "circle"
+                        ]
                       }
                     }
                   },
                   {
                     "properties": {
                       "kind": {
-                        "enum": ["arc"]
+                        "enum": [
+                          "arc"
+                        ]
                       }
                     },
-                    "required": ["angle"]
+                    "required": [
+                      "angle"
+                    ]
                   },
                   {
                     "properties": {
                       "kind": {
-                        "enum": ["wave"]
+                        "enum": [
+                          "wave"
+                        ]
                       }
                     },
-                    "required": ["level", "amplitude"]
+                    "required": [
+                      "level",
+                      "amplitude"
+                    ]
                   },
                   {
                     "properties": {
                       "kind": {
-                        "enum": ["polygon"]
+                        "enum": [
+                          "polygon"
+                        ]
                       }
                     },
-                    "required": ["sides"]
+                    "required": [
+                      "sides"
+                    ]
                   }
                 ]
               },
@@ -398,19 +463,28 @@
                 "description": "箱の高さを値に追随させる。 wBind と同じ読み方"
               },
               "opacity": {
-                "type": ["number", "string"],
+                "type": [
+                  "number",
+                  "string"
+                ],
                 "minLength": 1,
                 "pattern": "\\S",
                 "description": "箱の濃さ。 0 から 1 の数か、状態の名前。 書かなければ完全に見える"
               },
               "renderOffsetX": {
-                "type": ["number", "string"],
+                "type": [
+                  "number",
+                  "string"
+                ],
                 "minLength": 1,
                 "pattern": "\\S",
                 "description": "描く時だけ箱を横へずらす量。 配置計算と矢印はずらす前の位置を使う"
               },
               "renderOffsetY": {
-                "type": ["number", "string"],
+                "type": [
+                  "number",
+                  "string"
+                ],
                 "minLength": 1,
                 "pattern": "\\S",
                 "description": "描く時だけ箱を縦へずらす量。 renderOffsetX と同じ読み方"
@@ -425,7 +499,11 @@
       "description": "step の配列 (矢印で actor 間を繋ぐ)。 sequence では順序が意味を持つ。",
       "items": {
         "type": "object",
-        "required": ["from", "to", "label"],
+        "required": [
+          "from",
+          "to",
+          "label"
+        ],
         "additionalProperties": false,
         "properties": {
           "from": {
@@ -464,7 +542,11 @@
           },
           "style": {
             "type": "string",
-            "enum": ["solid", "dotted-flow", "dashed"],
+            "enum": [
+              "solid",
+              "dotted-flow",
+              "dashed"
+            ],
             "description": "矢印の線種"
           },
           "guard": {
@@ -477,37 +559,90 @@
           },
           "side": {
             "type": "string",
-            "enum": ["top", "right", "bottom", "left"],
+            "enum": [
+              "top",
+              "right",
+              "bottom",
+              "left"
+            ],
             "description": "矢印がどの辺から出るか。 書かなければ描画側が自動で選ぶ。"
           },
           "head": {
             "type": "string",
-            "enum": ["none", "triangle", "diamond", "open", "crow", "one", "zero-one", "many", "zero-many"],
+            "enum": [
+              "none",
+              "triangle",
+              "diamond",
+              "open",
+              "crow",
+              "one",
+              "zero-one",
+              "many",
+              "zero-many"
+            ],
             "description": "着き先側の端の形。 端の形で関係の種類を示す = triangle (継ぐ) / diamond (持つ) / open (使う) / crow (多) / one / zero-one / many / zero-many (個数)。 書かなければ塗った三角になる。"
           },
           "tailHead": {
             "type": "string",
-            "enum": ["none", "triangle", "diamond", "open", "crow", "one", "zero-one", "many", "zero-many"],
+            "enum": [
+              "none",
+              "triangle",
+              "diamond",
+              "open",
+              "crow",
+              "one",
+              "zero-one",
+              "many",
+              "zero-many"
+            ],
             "description": "出どころ側の端の形。 両端に別々の印を立てる時に書く。"
           },
           "headFill": {
             "type": "string",
-            "enum": ["solid", "hollow"],
+            "enum": [
+              "solid",
+              "hollow"
+            ],
             "description": "着き先側の端の塗り。 中空は「弱い関係」 を表す。"
           },
           "tailHeadFill": {
             "type": "string",
-            "enum": ["solid", "hollow"],
+            "enum": [
+              "solid",
+              "hollow"
+            ],
             "description": "出どころ側の端の塗り。"
           },
           "relation": {
             "type": "string",
-            "enum": ["extends", "implements", "aggregates", "composes", "associates", "uses"],
+            "enum": [
+              "extends",
+              "implements",
+              "aggregates",
+              "composes",
+              "associates",
+              "uses"
+            ],
             "description": "クラス図の関係の語。 書くと端の形 / 塗り / 線種がまとめて決まる。"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "main"
+            ],
+            "description": "辺の役目。 main を書いた辺だけ「いま」 の色で引く。 主となる 1 本 (または 1 続き) にだけ書く"
+          },
+          "labelPlate": {
+            "type": "boolean",
+            "description": "説明文の下地を敷くか。 false で外す。 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える"
           },
           "kind": {
             "type": "string",
-            "enum": ["call", "return", "fire"],
+            "enum": [
+              "call",
+              "return",
+              "fire"
+            ],
             "description": "順序図の言づての種類。 call (返事を待つ) / return (返し) / fire (返事を待たない)。"
           },
           "labelOffsetX": {
@@ -526,7 +661,10 @@
             "type": "object",
             "additionalProperties": false,
             "description": "矢印の説明文をずらす幅 (dx, dy)。",
-            "required": ["x", "y"],
+            "required": [
+              "x",
+              "y"
+            ],
             "properties": {
               "x": {
                 "type": "number"
@@ -563,7 +701,10 @@
       "additionalProperties": false,
       "patternProperties": {
         "^[a-zA-Z_][a-zA-Z0-9_]*$": {
-          "type": ["number", "string"],
+          "type": [
+            "number",
+            "string"
+          ],
           "description": "初期値。 数か文字列。 名前は英字か _ で始め、 英数字と _ だけを使う"
         }
       },
@@ -597,7 +738,9 @@
       "description": "アニメーション phase 配列。 各 phase で focus 対象を highlight し、 tween / set で states の値を動かす。 optional。",
       "items": {
         "type": "object",
-        "required": ["step"],
+        "required": [
+          "step"
+        ],
         "additionalProperties": false,
         "properties": {
           "step": {
@@ -627,7 +770,16 @@
           },
           "draw": {
             "type": "string",
-            "enum": ["line", "bar", "pie", "journey", "mind", "tree", "gantt", "funnel"],
+            "enum": [
+              "line",
+              "bar",
+              "pie",
+              "journey",
+              "mind",
+              "tree",
+              "gantt",
+              "funnel"
+            ],
             "description": "この phase で起点から描くもの。 語は図種と揃える。 line / journey = 線が左端から右へ伸びる / bar = 棒が横軸から上へ伸びる / pie = 扇が 12 時から時計回りに開く / mind = 枝が中心から外へ伸びる / tree = 枝が根から下へ伸びる / gantt = 帯が各始端から右へ伸びる / funnel = 段が上端から順に積まれる"
           },
           "drawRatio": {
@@ -657,7 +809,10 @@
             "additionalProperties": false,
             "patternProperties": {
               "^[a-zA-Z_][a-zA-Z0-9_]*$": {
-                "type": ["number", "string"]
+                "type": [
+                  "number",
+                  "string"
+                ]
               }
             }
           }
@@ -730,7 +885,10 @@
             "type": "object",
             "additionalProperties": false,
             "description": "縦列をずらす幅 (dx, dy)。",
-            "required": ["x", "y"],
+            "required": [
+              "x",
+              "y"
+            ],
             "properties": {
               "x": {
                 "type": "number"
@@ -748,7 +906,9 @@
       "description": "topology で使う group 宣言。 key = group id、 value = { label, lanes }。",
       "additionalProperties": {
         "type": "object",
-        "required": ["lanes"],
+        "required": [
+          "lanes"
+        ],
         "additionalProperties": false,
         "properties": {
           "label": {
@@ -769,7 +929,10 @@
       "description": "値を見せる部品。 状態の値を割合の輪 / 数え上げ / 目盛りで出す。 箱ではないので縦列に載らず、図全体に 1 つの並びとして持つ。",
       "items": {
         "type": "object",
-        "required": ["id", "kind"],
+        "required": [
+          "id",
+          "kind"
+        ],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -959,7 +1122,10 @@
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["status", "color"],
+              "required": [
+                "status",
+                "color"
+              ],
               "additionalProperties": false,
               "properties": {
                 "status": {
@@ -1099,7 +1265,10 @@
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["value", "color"],
+              "required": [
+                "value",
+                "color"
+              ],
               "additionalProperties": false,
               "properties": {
                 "value": {
@@ -1230,130 +1399,207 @@
           {
             "properties": {
               "kind": {
-                "enum": ["bar"]
+                "enum": [
+                  "bar"
+                ]
               }
             },
-            "required": ["source", "min", "max"]
+            "required": [
+              "source",
+              "min",
+              "max"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["gauge"]
+                "enum": [
+                  "gauge"
+                ]
               }
             },
-            "required": ["source", "min", "max"]
+            "required": [
+              "source",
+              "min",
+              "max"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["stat"]
+                "enum": [
+                  "stat"
+                ]
               }
             },
-            "required": ["source"]
+            "required": [
+              "source"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["sparkline"]
+                "enum": [
+                  "sparkline"
+                ]
               }
             },
-            "required": ["source"]
+            "required": [
+              "source"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["countup"]
+                "enum": [
+                  "countup"
+                ]
               }
             },
-            "required": ["source"]
+            "required": [
+              "source"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["typewriter"]
+                "enum": [
+                  "typewriter"
+                ]
               }
             },
-            "required": ["source"]
+            "required": [
+              "source"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["delta"]
+                "enum": [
+                  "delta"
+                ]
               }
             },
-            "required": ["source"]
+            "required": [
+              "source"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["percent-ring"]
+                "enum": [
+                  "percent-ring"
+                ]
               }
             },
-            "required": ["source", "max"]
+            "required": [
+              "source",
+              "max"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["heat-cell"]
+                "enum": [
+                  "heat-cell"
+                ]
               }
             },
-            "required": ["source", "min", "max"]
+            "required": [
+              "source",
+              "min",
+              "max"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["donut"]
+                "enum": [
+                  "donut"
+                ]
               }
             },
-            "required": ["source"]
+            "required": [
+              "source"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["radar"]
+                "enum": [
+                  "radar"
+                ]
               }
             },
-            "required": ["source", "max"]
+            "required": [
+              "source",
+              "max"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["step-progress"]
+                "enum": [
+                  "step-progress"
+                ]
               }
             },
-            "required": ["source", "stepsSource"]
+            "required": [
+              "source",
+              "stepsSource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["status-dot"]
+                "enum": [
+                  "status-dot"
+                ]
               }
             },
-            "required": ["source", "map"]
+            "required": [
+              "source",
+              "map"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["notification"]
+                "enum": [
+                  "notification"
+                ]
               }
             },
-            "required": ["kindSource", "titleSource"]
+            "required": [
+              "kindSource",
+              "titleSource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["kpi-card"]
+                "enum": [
+                  "kpi-card"
+                ]
               }
             },
-            "required": ["source", "historySource", "comparisonSource"]
+            "required": [
+              "source",
+              "historySource",
+              "comparisonSource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["status-timeline"]
+                "enum": [
+                  "status-timeline"
+                ]
               }
             },
-            "required": ["source"]
+            "required": [
+              "source"
+            ]
           },
           {
             "properties": {
@@ -1425,19 +1671,26 @@
                 ]
               }
             },
-            "required": ["source"]
+            "required": [
+              "source"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["badge"]
+                "enum": [
+                  "badge"
+                ]
               },
               "map": {
                 "type": "array",
                 "minItems": 1,
                 "items": {
                   "type": "object",
-                  "required": ["value", "color"],
+                  "required": [
+                    "value",
+                    "color"
+                  ],
                   "additionalProperties": false,
                   "properties": {
                     "value": {
@@ -1450,7 +1703,9 @@
                 }
               }
             },
-            "required": ["source"]
+            "required": [
+              "source"
+            ]
           },
           {
             "properties": {
@@ -1469,119 +1724,210 @@
                 ]
               }
             },
-            "required": ["source", "min", "max"]
+            "required": [
+              "source",
+              "min",
+              "max"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["attendance-grid"]
+                "enum": [
+                  "attendance-grid"
+                ]
               }
             },
-            "required": ["source", "membersSource"]
+            "required": [
+              "source",
+              "membersSource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["bubble-chart"]
+                "enum": [
+                  "bubble-chart"
+                ]
               }
             },
-            "required": ["source", "xMin", "xMax", "yMin", "yMax", "rMin", "rMax"]
+            "required": [
+              "source",
+              "xMin",
+              "xMax",
+              "yMin",
+              "yMax",
+              "rMin",
+              "rMax"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["bullet-chart"]
+                "enum": [
+                  "bullet-chart"
+                ]
               }
             },
-            "required": ["source", "targetSource", "max"]
+            "required": [
+              "source",
+              "targetSource",
+              "max"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["calendar-heatmap", "polar-area", "progress-group"]
+                "enum": [
+                  "calendar-heatmap",
+                  "polar-area",
+                  "progress-group"
+                ]
               }
             },
-            "required": ["source", "max"]
+            "required": [
+              "source",
+              "max"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["diff-counter"]
+                "enum": [
+                  "diff-counter"
+                ]
               }
             },
-            "required": ["additionsSource", "deletionsSource"]
+            "required": [
+              "additionsSource",
+              "deletionsSource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["kpi-trend-tile"]
+                "enum": [
+                  "kpi-trend-tile"
+                ]
               }
             },
-            "required": ["source", "prevSource", "historySource"]
+            "required": [
+              "source",
+              "prevSource",
+              "historySource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["map-pin"]
+                "enum": [
+                  "map-pin"
+                ]
               }
             },
-            "required": ["source", "xMin", "xMax", "yMin", "yMax"]
+            "required": [
+              "source",
+              "xMin",
+              "xMax",
+              "yMin",
+              "yMax"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["media-player"]
+                "enum": [
+                  "media-player"
+                ]
               }
             },
-            "required": ["source", "durationSource", "playingSource"]
+            "required": [
+              "source",
+              "durationSource",
+              "playingSource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["mini-map"]
+                "enum": [
+                  "mini-map"
+                ]
               }
             },
-            "required": ["source", "canvasW", "canvasH"]
+            "required": [
+              "source",
+              "canvasW",
+              "canvasH"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["order-status", "step-indicator"]
+                "enum": [
+                  "order-status",
+                  "step-indicator"
+                ]
               }
             },
-            "required": ["source", "stepsSource"]
+            "required": [
+              "source",
+              "stepsSource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["path-progress"]
+                "enum": [
+                  "path-progress"
+                ]
               }
             },
-            "required": ["source", "pathD"]
+            "required": [
+              "source",
+              "pathD"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["price-tag"]
+                "enum": [
+                  "price-tag"
+                ]
               }
             },
-            "required": ["oldSource", "newSource"]
+            "required": [
+              "oldSource",
+              "newSource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["spinner"]
+                "enum": [
+                  "spinner"
+                ]
               }
             },
-            "required": ["source", "textSource"]
+            "required": [
+              "source",
+              "textSource"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["stacked-bar"]
+                "enum": [
+                  "stacked-bar"
+                ]
               }
             },
-            "required": ["sourceA", "sourceB", "min", "max"]
+            "required": [
+              "sourceA",
+              "sourceB",
+              "min",
+              "max"
+            ]
           }
         ]
       }
@@ -1591,7 +1937,10 @@
       "description": "読む人が動かすつまみ。 値を握り、箱の文字や部品がその値を追いかける。 箱ではないので縦列に載らず、図全体に 1 つの並びとして持つ。",
       "items": {
         "type": "object",
-        "required": ["id", "kind"],
+        "required": [
+          "id",
+          "kind"
+        ],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -1630,7 +1979,11 @@
             "type": "number"
           },
           "defaultValue": {
-            "type": ["boolean", "number", "string"]
+            "type": [
+              "boolean",
+              "number",
+              "string"
+            ]
           },
           "defaultValues": {
             "type": "array",
@@ -1697,89 +2050,142 @@
           {
             "properties": {
               "kind": {
-                "enum": ["color", "datetime", "text"]
+                "enum": [
+                  "color",
+                  "datetime",
+                  "text"
+                ]
               },
               "defaultValue": {
                 "type": "string"
               }
             },
-            "required": ["defaultValue"]
+            "required": [
+              "defaultValue"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["dropdown", "radio", "tabs"]
+                "enum": [
+                  "dropdown",
+                  "radio",
+                  "tabs"
+                ]
               },
               "defaultValue": {
                 "type": "string"
               }
             },
-            "required": ["options", "defaultValue"]
+            "required": [
+              "options",
+              "defaultValue"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["multi-select"]
+                "enum": [
+                  "multi-select"
+                ]
               }
             },
-            "required": ["options", "defaultValues"]
+            "required": [
+              "options",
+              "defaultValues"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["number", "stepper"]
+                "enum": [
+                  "number",
+                  "stepper"
+                ]
               },
               "defaultValue": {
                 "type": "number"
               }
             },
-            "required": ["defaultValue"]
+            "required": [
+              "defaultValue"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["range"]
+                "enum": [
+                  "range"
+                ]
               }
             },
-            "required": ["min", "max", "defaultLo", "defaultHi"]
+            "required": [
+              "min",
+              "max",
+              "defaultLo",
+              "defaultHi"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["slider"]
+                "enum": [
+                  "slider"
+                ]
               },
               "defaultValue": {
                 "type": "number"
               }
             },
-            "required": ["min", "max", "defaultValue"]
+            "required": [
+              "min",
+              "max",
+              "defaultValue"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["timeline"]
+                "enum": [
+                  "timeline"
+                ]
               }
             },
-            "required": ["duration"]
+            "required": [
+              "duration"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["toggle"]
+                "enum": [
+                  "toggle"
+                ]
               },
               "defaultValue": {
                 "type": "boolean"
               }
             },
-            "required": ["defaultValue"]
+            "required": [
+              "defaultValue"
+            ]
           },
           {
             "properties": {
               "kind": {
-                "enum": ["xypad"]
+                "enum": [
+                  "xypad"
+                ]
               }
             },
-            "required": ["xMin", "xMax", "yMin", "yMax", "defaultX", "defaultY"]
+            "required": [
+              "xMin",
+              "xMax",
+              "yMin",
+              "yMax",
+              "defaultX",
+              "defaultY"
+            ]
           }
         ]
       }
@@ -1798,12 +2204,18 @@
     },
     "direction": {
       "type": "string",
-      "enum": ["vertical", "horizontal"],
+      "enum": [
+        "vertical",
+        "horizontal"
+      ],
       "description": "図の並ぶ向き。 vertical = 1 つの縦列に積む。 horizontal = 1 人ずつ縦列を作る。 効くのは flow と swimlane だけ。"
     },
     "reveal": {
       "type": "string",
-      "enum": ["phase", "all"],
+      "enum": [
+        "phase",
+        "all"
+      ],
       "description": "矢印をいつ出すか。 phase (既定) = 段が名指しする矢印はその段が来るまで描かない。 all = 段に関わらず最初から全部描く。"
     },
     "bands": {
@@ -1811,12 +2223,27 @@
       "description": "順序図で面が動いている間の帯。 書かなければ面ごとに「最初に関わった段から最後まで」 の 1 本になる。",
       "items": {
         "type": "object",
-        "required": ["actor", "from", "to"],
+        "required": [
+          "actor",
+          "from",
+          "to"
+        ],
         "additionalProperties": false,
         "properties": {
-          "actor": { "type": "string", "description": "帯を出す面の名前" },
-          "from": { "type": "integer", "minimum": 0, "description": "始まりの言づての番号 (0 起点)" },
-          "to": { "type": "integer", "minimum": 0, "description": "終わりの言づての番号 (0 起点)" }
+          "actor": {
+            "type": "string",
+            "description": "帯を出す面の名前"
+          },
+          "from": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "始まりの言づての番号 (0 起点)"
+          },
+          "to": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "終わりの言づての番号 (0 起点)"
+          }
         }
       }
     },
@@ -1825,7 +2252,10 @@
       "description": "押下などの出来事で動く仕掛け。 相手は名前で指す (box / lane / arrow / diagram のどれか 1 つ)。",
       "items": {
         "type": "object",
-        "required": ["on", "handler"],
+        "required": [
+          "on",
+          "handler"
+        ],
         "additionalProperties": false,
         "properties": {
           "on": {
@@ -1870,16 +2300,24 @@
         },
         "oneOf": [
           {
-            "required": ["box"]
+            "required": [
+              "box"
+            ]
           },
           {
-            "required": ["lane"]
+            "required": [
+              "lane"
+            ]
           },
           {
-            "required": ["arrow"]
+            "required": [
+              "arrow"
+            ]
           },
           {
-            "required": ["diagram"]
+            "required": [
+              "diagram"
+            ]
           }
         ]
       }

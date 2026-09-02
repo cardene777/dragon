@@ -480,6 +480,10 @@ export type DslStep = {
    * `kind` にしないのは、箱の種類 (`DslActor.kind`) と同じ語が別の意味を持つため。
    */
   msgKind?: SequenceMessageKind;
+  /** 辺の役目 (cdl#618)。 `main` を書いた辺だけ「いま」 の色で引く */
+  role?: "main";
+  /** 名前の下地を敷くか (cdl#618)。 書かなければ敷く */
+  labelPlate?: boolean;
   labelOffsetX?: number;
   labelOffsetY?: number;
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */

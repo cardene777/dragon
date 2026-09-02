@@ -347,6 +347,14 @@ export interface JsonStep {
   tailHead?: EdgeHead;
   headFill?: EdgeHeadFill;
   tailHeadFill?: EdgeHeadFill;
+  /**
+   * 辺の役目 (cdl#618)。 記法の `{ role: main }` と同じ。
+   *
+   * `main` を書いた辺だけ「いま」 の色で引く。 主となる 1 本 (または 1 続き) にだけ書く。
+   */
+  role?: "main";
+  /** 名前の下地を敷くか (cdl#618)。 記法の `{ labelPlate: false }` と同じ。 既定は敷く */
+  labelPlate?: boolean;
   /** クラス図の関係の語 (#1466)。 書くと端の形 / 塗り / 線種がまとめて決まる */
   relation?: ClassRelationType;
   /** 順序図の言づての種類 (#1466)。 `call` / `return` / `fire` */
@@ -548,6 +556,9 @@ export const ACCEPTED_KEYS = {
     "headFill",
     "tailHeadFill",
     "relation",
+    // 辺の役目と名前の下地 (cdl#618)
+    "role",
+    "labelPlate",
     "kind",
     "tone",
     "style",
@@ -704,6 +715,9 @@ export const 欄の型表 = {
     headFill: "非空の文字列",
     tailHeadFill: "非空の文字列",
     relation: "非空の文字列",
+    // 辺の役目と名前の下地 (cdl#618)
+    role: "非空の文字列",
+    labelPlate: "真偽",
     kind: "非空の文字列",
     tone: "色",
     style: "線種",
@@ -2362,6 +2376,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     headFill: s.headFill,
     tailHeadFill: s.tailHeadFill,
     relation: s.relation,
+    // 辺の役目と名前の下地 (cdl#618)
+    role: s.role,
+    labelPlate: s.labelPlate,
     msgKind: s.kind,
     // 箱と同じ読み替えを通す (#1304)。 通さないと `tone: "成功"` が色名として解決されないまま
     // 図に届き、同じ値が箱では色になり矢印では色にならない

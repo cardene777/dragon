@@ -152,6 +152,9 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     headFill: "hollow",
     tailHeadFill: "solid",
     relation: "extends",
+    // 辺の役目と名前の下地 (cdl#618)
+    role: "main",
+    labelPlate: false,
     kind: "call",
     cardinality: "1..N",
     labelOffsetX: 1,

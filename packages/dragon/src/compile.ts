@@ -3436,6 +3436,10 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.tailHead !== undefined) target.tailHead = s.tailHead;
   if (s.headFill !== undefined) target.headFill = s.headFill;
   if (s.tailHeadFill !== undefined) target.tailHeadFill = s.tailHeadFill;
+  // 辺の役目と名前の下地 (cdl#618)。 主となる道を朱で引き、丸い下地を外せる。
+  // 書かない辺には値を入れない = 既存の図が変わらない
+  if (s.role !== undefined) target.role = s.role;
+  if (s.labelPlate !== undefined) target.labelPlate = s.labelPlate;
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
   if (s.overlay !== undefined) target.overlay = s.overlay;

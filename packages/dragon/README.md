@@ -137,6 +137,8 @@ flow:
 | `tailHeadFill`   | 出どころ側の印の塗り |
 | `relation`       | クラス図の関係の種類 (`extends` 継ぐ / `implements` 満たす / `aggregates` 持つ / `composes` 抱える / `associates` 結ぶ / `uses` 使う)。 書くと線と端の形と塗りと付く側がまとめて決まる |
 | `kind`           | 順序図の言づての種類 (`call` 呼ぶ / `return` 返す / `fire` 投げる) |
+| `role`           | 辺の役目 (`main` 主となる道)。 書いた辺だけ「いま」 の色で引く。 主となる 1 本 (または 1 続き) にだけ書く |
+| `labelPlate`     | 説明文の下地を敷くか (`false` で外す)。 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える |
 | `labelOffsetX`   | 説明文の位置を横にずらす                                            |
 | `labelOffsetY`   | 説明文の位置を縦にずらす                                            |
 | `overlay`        | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用)              |

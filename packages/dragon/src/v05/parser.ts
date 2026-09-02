@@ -3129,6 +3129,20 @@ const FLOW_INLINE_READERS = {
   sub: (v: string | undefined) => v,
   guard: (v: string | undefined) => v,
   cardinality: (v: string | undefined) => v,
+  /*
+   * 辺の役目 (cdl#618)。 `main` を書いた辺だけ「いま」 の色で引く。
+   *
+   * 図の中に道が 2 種 (主となる 1 本と、そこから枝分かれする先) ある時、どちらも同じ色だと
+   * どこから読むかが決まらない。 主となる 1 本 (または 1 続き) にだけ書く。
+   */
+  role: (v: string | undefined) => (v === "main" ? ("main" as const) : undefined),
+  /*
+   * 名前の下地を敷くか (cdl#618)。 書かなければ敷く。
+   *
+   * 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える。
+   */
+  labelPlate: (v: string | undefined) =>
+    v === undefined ? undefined : v !== "false" && v !== "なし",
   // 矢印がどの辺から出るか (#1385)。 描画側は 4 方向を取り、書かなければ自動で選ぶ
   side: (v: string | undefined) =>
     v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
@@ -3448,6 +3462,9 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   const tailHeadFill = 中括弧.tailHeadFill as EdgeHeadFill | undefined;
   const relation = 中括弧.relation as ClassRelationType | undefined;
   const msgKind = 中括弧.kind as SequenceMessageKind | undefined;
+  // 辺の役目と名前の下地 (cdl#618)
+  const role = 中括弧.role as "main" | undefined;
+  const labelPlate = 中括弧.labelPlate as boolean | undefined;
   // 値に追随する 3 欄 (#1396)。 空は捨てずに知らせる = 描画側は空文字を既定値へ落とさず
   // そのまま置換に使うため、書き忘れが「線が消えた」 形で出る
   const widthBind = 追随する大きさとして読む(
@@ -3534,6 +3551,8 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     tailHeadFill,
     relation,
     msgKind,
+    role,
+    labelPlate,
     widthBind,
     strokeBind,
     dashOffsetBind,
