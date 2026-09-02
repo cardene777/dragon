@@ -75,9 +75,18 @@ const EXPECTED: Array<{ slug: string; id: string; rows: number }> = [
    * | `service-call-write-emit` | 1 | (無) | 行を持っていた `DB: storage` を見本から外した |
    *
    * **行が消えた回帰ではない**。 4 件とも `#1466` の書き直しと 1 対 1 で対応する。
+   *
+   * `#1533` で cdl 0.23.0 を取り込み、群を分ける空行をやめた分だけ減った (cdl `#606`)。
+   *
+   * | 見本 | 変更前 | 変更後 | 何が変わったか |
+   * |---|---|---|---|
+   * | `class-demo` | 18 | 15 | 持ち物と振る舞いを分ける空行 3 つが消えた |
+   * | `er-demo` | 14 | 11 | 鍵と値を分ける空行 3 つが消えた |
+   *
+   * 群の区切りは行頭の印が持っているので、空行は 2 つ目の手掛かりだった。
    */
-  { slug: "presets", id: "class-demo", rows: 18 },
-  { slug: "presets", id: "er-demo", rows: 14 },
+  { slug: "presets", id: "class-demo", rows: 15 },
+  { slug: "presets", id: "er-demo", rows: 11 },
   { slug: "presets", id: "fsm-demo", rows: 4 },
   { slug: "patterns", id: "pattern-call-rw", rows: 1 },
   { slug: "patterns", id: "pattern-rollback", rows: 1 },

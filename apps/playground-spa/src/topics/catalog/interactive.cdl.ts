@@ -4344,7 +4344,13 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
     // 90 で解消する。
     labelOffsetX: 90,
   })
-  .edge("social", "home", { label: "25", tone: "info" })
+  .edge("social", "home", {
+    label: "25",
+    tone: "info",
+    // 縦に降りる区間 (x=412) の中点に置くと、 direct → home の縦区間 (x=438) と 26 しか
+    // 離れず pill が貫く (cdl 0.23.0 で通り道が 26 ずれた結果)。 左へ寄せて 2 本の間から外す。
+    labelOffsetX: -40,
+  })
   .edge("social", "product", { label: "15", tone: "info" })
   .edge("direct", "home", { label: "20", tone: "accent" })
   .edge("direct", "product", { label: "10", tone: "accent" })
@@ -13429,7 +13435,7 @@ actors:
 flow:
   - Search -> Home: "40" (success)
   - Search -> Product: "30" (success) { labelOffsetX: 90 }
-  - Social -> Home: "25" (info)
+  - Social -> Home: "25" (info) { labelOffsetX: -40 }
   - Social -> Product: "15" (info)
   - Direct -> Home: "20" (accent)
   - Direct -> Product: "10" (accent)
@@ -13483,7 +13489,7 @@ export const sourceJson__trafficSankey = `{
   "flow": [
     { "from": "Search", "to": "Home", "label": "40", "tone": "success" },
     { "from": "Search", "to": "Product", "label": "30", "tone": "success", "labelOffsetX": 90 },
-    { "from": "Social", "to": "Home", "label": "25", "tone": "info" },
+    { "from": "Social", "to": "Home", "label": "25", "tone": "info", "labelOffsetX": -40 },
     { "from": "Social", "to": "Product", "label": "15", "tone": "info" },
     { "from": "Direct", "to": "Home", "label": "20", "tone": "accent" },
     { "from": "Direct", "to": "Product", "label": "10", "tone": "accent" },
