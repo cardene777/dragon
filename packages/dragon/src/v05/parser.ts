@@ -98,6 +98,14 @@ export const EDGE_HEAD_VALUES: readonly string[] = EDGE_HEADS;
 export const EDGE_HEAD_FILL_VALUES: readonly string[] = EDGE_HEAD_FILLS;
 
 /**
+ * 辺の役目として書ける語 (#1559)。
+ *
+ * 読み手と公開 schema の両方がここを見る。 語を 2 か所に書くと、記法では通るのに JSON では
+ * 弾かれる (逆も) 形が黙って生まれる。
+ */
+export const EDGE_ROLE_VALUES = ["main"] as const;
+
+/**
  * クラス図の関係の種類 (#1466)。 描画側の表 (`CLASS_RELATION_LOOK`) の key から導く。
  *
  * 手で並べると、描画側が種類を足した時にここだけ取り残されて書けないままになる。
@@ -3170,7 +3178,10 @@ const FLOW_INLINE_READERS = {
    * 図の中に道が 2 種 (主となる 1 本と、そこから枝分かれする先) ある時、どちらも同じ色だと
    * どこから読むかが決まらない。 主となる 1 本 (または 1 続き) にだけ書く。
    */
-  role: (v: string | undefined) => (v === "main" ? ("main" as const) : undefined),
+  role: (v: string | undefined) =>
+    v !== undefined && (EDGE_ROLE_VALUES as readonly string[]).includes(v)
+      ? (v as "main")
+      : undefined,
   /*
    * 名前の下地を敷くか (cdl#618)。 書かなければ敷く。
    *
