@@ -87,6 +87,8 @@ const EXPECTED: Array<{ slug: string; id: string; rows: number }> = [
    */
   { slug: "presets", id: "class-demo", rows: 15 },
   { slug: "presets", id: "er-demo", rows: 11 },
+  // 8 表 8 関係の ER 図 (#1573)。 中継表 3 つを含めて 17 行
+  { slug: "text-dsl", id: "多対多が-2-組-8-表-8-関係", rows: 17 },
   { slug: "presets", id: "fsm-demo", rows: 4 },
   { slug: "patterns", id: "pattern-call-rw", rows: 1 },
   { slug: "patterns", id: "pattern-rollback", rows: 1 },
