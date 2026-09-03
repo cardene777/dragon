@@ -202,7 +202,7 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
       interactive: 129,
       cookbook: 26,
       patterns: 12,
-      "text-dsl": 14,
+      "text-dsl": 15,
       animation: 10,
       ethereum: 4,
     });
