@@ -519,7 +519,10 @@ export const presetInfrastructure = withSteps(
 //   段 1   Admin ──持つ── Order ──使う── Receipt
 //   段 2               Line ──結ぶ── Sku
 export const presetClassDiagram = withSteps(
-  classDiagram({ id: "class-demo", topic: "クラスの継承・保有関係を示す UML 図" })
+  // 配色は生成りに茶 (#1567)。 クラス図の箱は ER 図と同じ作り (行頭の印 + 左に名前 +
+  // 右に型) で、名前と型が離れて並ぶ。 縞の色は配色から取るので、書かないと縞が箱の面と
+  // 同じ色になって出ない
+  classDiagram({ id: "class-demo", topic: "クラスの継承・保有関係を示す UML 図", palette: "kinari" })
     .class({
       id: "User",
       title: "User",
@@ -2252,6 +2255,7 @@ export const sourceJson__presetSwimlane = `{
 
 export const sourceYaml__presetClassDiagram = `title: "クラスの継承・保有関係を示す UML 図"
 type: class
+palette: kinari
 
 # 縦列は lane の並び、段は stack。 箱の 1 つの辺には関係を 1 本しか載せない
 actors:
@@ -2302,6 +2306,7 @@ animation:
 export const sourceJson__presetClassDiagram = `{
   "title": "クラスの継承・保有関係を示す UML 図",
   "type": "class",
+  "palette": "kinari",
   "actors": [
     {
       "name": "User",
