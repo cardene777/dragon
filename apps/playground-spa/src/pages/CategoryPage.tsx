@@ -26,6 +26,13 @@ import {
   既定の描き方,
   type 描き方,
 } from "@/lib/redraw-mode";
+import {
+  図の配色を変える,
+  配色を選べる,
+  配色の選択肢,
+  既定の配色,
+  type 配色,
+} from "@/lib/palette-switch";
 
 import { SyntaxCode } from "../components/SyntaxCode";
 /** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
@@ -205,6 +212,8 @@ export function CategoryPage(): React.ReactElement {
   const [速さ, set速さ] = useState<速さ>(既定の速さ);
   // 2 段目以降を描き直すか (#1359)。 速さと同じく、見ている 1 件だけに効く
   const [描き方, set描き方] = useState<描き方>(既定の描き方);
+  // 図の色味 (#1569)。 速さと同じく、見ている 1 件だけに効く
+  const [配色, set配色] = useState<配色>(既定の配色);
   // シーンの表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
   const [modalStageEl, setModalStageEl] = useState<HTMLElement | null>(null);
@@ -274,23 +283,30 @@ export function CategoryPage(): React.ReactElement {
   useEffect(() => {
     set速さ(既定の速さ);
     set描き方(既定の描き方);
+    set配色(既定の配色);
   }, [見ている項目]);
 
   // 段の長さに倍率を掛けた図。 既定 (1 倍) では元の object がそのまま返るので、
   // 速さを触っていない図は描き直されない
   const 図 = useMemo(
     () =>
-      currentItem ? 図の速さを変える(図の描き方を変える(currentItem.diagram, 描き方), 速さ) : null,
-    [currentItem, 速さ, 描き方],
+      currentItem
+        ? 図の配色を変える(図の速さを変える(図の描き方を変える(currentItem.diagram, 描き方), 速さ), 配色)
+        : null,
+    [currentItem, 速さ, 描き方, 配色],
   );
   // 拡大表示も同じ速さで出す。 開く元が今見ている項目なので、別の速さになると混乱する
   const 拡大の図 = useMemo(
     () =>
-      modalItem ? 図の速さを変える(図の描き方を変える(modalItem.diagram, 描き方), 速さ) : null,
-    [modalItem, 速さ, 描き方],
+      modalItem
+        ? 図の配色を変える(図の速さを変える(図の描き方を変える(modalItem.diagram, 描き方), 速さ), 配色)
+        : null,
+    [modalItem, 速さ, 描き方, 配色],
   );
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
   const 描き方を選べるか = currentItem ? 描き方を選べる(currentItem.diagram) : false;
+  // 配色を書かない図では切替を出さない (押すと着せ替えになる、 #1569)
+  const 配色を選べるか = currentItem ? 配色を選べる(currentItem.diagram) : false;
 
   const hasSource = 記法を持つか(currentItem);
   // 記法を持たない図では図の側へ倒す。 選んだままにすると、項目を選び直した先で
@@ -463,6 +479,28 @@ export function CategoryPage(): React.ReactElement {
                           className={`catalog-speed-btn ${描き方 === v ? "is-active" : ""}`}
                           onClick={() => set描き方(v)}
                           title={`2 段目以降を${v}`}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/*
+                    図の色味 (#1569)。 配色を持つ図でだけ出す = 持たない図で名前を足すと、
+                    site の色で描かれていた図が急に別の色みになり「見比べる」 ではなく
+                    「着せ替える」 道具になる。
+                  */}
+                  {配色を選べるか && (
+                    <div className="catalog-redraw" role="radiogroup" aria-label="図の色味">
+                      {配色の選択肢.map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          role="radio"
+                          aria-checked={配色 === v}
+                          className={`catalog-speed-btn ${配色 === v ? "is-active" : ""}`}
+                          onClick={() => set配色(v)}
+                          title={`図の色味を${v}にする`}
                         >
                           {v}
                         </button>
