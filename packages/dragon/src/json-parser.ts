@@ -2377,6 +2377,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       pos: p0,
     };
   });
+  // 図の配色 (#1553)。 解くのは 1 度だけにする
+  const 配色 = json.palette === undefined ? null : resolvePalette(json.palette);
+
   const flow: DslStep[] = json.flow.map((s, i) => ({
     no: i + 1,
     from: s.from,
@@ -2534,10 +2537,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     reveal: json.reveal,
     // 図の並ぶ向き (#1494)。 JSON は英語で書くので、記法と同じ語に直してから渡す
     ...(json.direction !== undefined ? { direction: json.direction === "horizontal" ? ("横" as const) : ("縦" as const) } : {}),
-    // 図の配色 (#1553)。 記法と同じ語なので、読めた時だけそのまま渡す
-    ...(json.palette !== undefined && resolvePalette(json.palette) !== null
-      ? { palette: resolvePalette(json.palette)! }
-      : {}),
+    // 図の配色 (#1553)。 記法と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方がずれない。
+    // 読めない語は渡さない = 上流の型検査が語を絞っているので、ここに来るのは書き間違いだけ
+    ...(配色 !== null ? { palette: 配色 } : {}),
     pos: p0,
   };
 }
