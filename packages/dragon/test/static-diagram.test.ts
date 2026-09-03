@@ -80,16 +80,24 @@ describe("動かない図に段が 1 つ入る (#1086)", () => {
     });
   }
 
-  it("入れた段が節点と線の両方を光らせる", () => {
-    // 光らせない段を入れても描かれはするが、 全要素が主役でない状態 (薄い表示) になり
-    // 動かない図として読めない
+  it("入れた段が線だけを載せる", () => {
+    /*
+     * **契約を変えた** (#1557)。
+     *
+     * 変更前 = 段に節点と線の両方を載せる。 静止した図の全ての箱が「いま」 になり、
+     * 止まっている箱の枠が 1 度も出なかった (実測 = ER 図 3 箱 / 流れ図 2 箱とも主役色)。
+     * 変更後 = 線だけを載せる。 線は載せないと描かれない (`edgeReveal: "phase"` の既定) が、
+     * 箱は載せなくても描かれる = 変わるのは「いま」 かどうかだけ。
+     *
+     * 全部を強調するのと何も強調しないのは、どちらも「区別が無い」 状態。 後者の方が落ち着く。
+     */
     const d = compileToCdl(静止図("swimlane"));
     expect(d.phases).toHaveLength(1);
     const activate = new Set(d.phases[0]!.activate);
     expect(d.nodes.length, "節点が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
     expect(d.edges.length, "線が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
-    for (const n of d.nodes) expect(activate.has(n.id), `節点が光らない: ${n.id}`).toBe(true);
-    for (const e of d.edges) expect(activate.has(e.id), `線が光らない: ${e.id}`).toBe(true);
+    for (const n of d.nodes) expect(activate.has(n.id), `節点が「いま」 になっている: ${n.id}`).toBe(false);
+    for (const e of d.edges) expect(activate.has(e.id), `線が描かれない: ${e.id}`).toBe(true);
   });
 
   it("段の見出しは図の題になる", () => {
@@ -148,5 +156,54 @@ describe("既に段がある図には入れない (#1086)", () => {
     const d = compileToCdl(doc);
     expect(d.phases).toHaveLength(1);
     expect(d.phases[0]!.title).toBe("ひとつ");
+  });
+});
+
+/**
+ * 段を書かない図では、どの箱も「いま」 にしない (#1557)。
+ *
+ * 段は書かなくても 1 つ作られる。 作るのは 2 経路あり、cdl の組み立て器が図種ごとに 1 段を
+ * 作る経路と、どちらも作らない図種に dragon が 1 段を足す経路 (`injectStaticPhase`)。
+ * 前者は上の検査が届かない = 検査は後者しか通らないため、ここで両方を見る。
+ */
+describe("段を書かない図では箱が「いま」 にならない (#1557)", () => {
+  /** 段を書いた図。 退行の陰性対照に使う */
+  const 段あり = (type: PresetType): DslDocument => ({
+    ...静止図(type),
+    animate: {
+      pos: { line: 1 },
+      states: [],
+      phases: [段({ name: "ひとつ", durationMs: 900, highlight: ["A"] })],
+    },
+  });
+
+  for (const type of ["er", "swimlane", "flow", "topology"] as const) {
+    it(`type: ${type} で箱が 1 つも「いま」 にならない`, () => {
+      const d = compileToCdl(静止図(type));
+      const 載った = new Set(d.phases.flatMap((p) => p.activate));
+      expect(d.nodes.length, `箱が 1 つも無い (検査が空振りしている): ${type}`).toBeGreaterThan(0);
+      for (const n of d.nodes) {
+        expect(載った.has(n.id), `箱が「いま」 になっている: ${type} / ${n.id}`).toBe(false);
+      }
+    });
+
+    it(`type: ${type} で線は段に載ったまま`, () => {
+      // 線は載せないと描かれない (`edgeReveal: "phase"` の既定)。 箱と一緒に外すと
+      // 静止した図から線が 1 本も出なくなる
+      const d = compileToCdl(静止図(type));
+      const 載った = new Set(d.phases.flatMap((p) => p.activate));
+      expect(d.edges.length, `線が 1 つも無い (検査が空振りしている): ${type}`).toBeGreaterThan(0);
+      for (const e of d.edges) {
+        expect(載った.has(e.id), `線が描かれない: ${type} / ${e.id}`).toBe(true);
+      }
+    });
+  }
+
+  it("段を書いた図では焦点が残る (退行の陰性対照)", () => {
+    // 段なしだけを見ると、全ての図から「いま」 を消す変異でも通る
+    const d = compileToCdl(段あり("swimlane"));
+    const 載った = new Set(d.phases.flatMap((p) => p.activate));
+    const 焦点 = d.nodes.filter((n) => 載った.has(n.id));
+    expect(焦点.length, "段を書いたのに焦点が 1 つも無い").toBeGreaterThan(0);
   });
 });
