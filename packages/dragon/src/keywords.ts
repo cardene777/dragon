@@ -45,6 +45,39 @@ export function resolveDirection(s: string): DslDirection | null {
   return Object.hasOwn(DIRECTION_ALIAS, k) ? DIRECTION_ALIAS[k]! : null;
 }
 
+/**
+ * 図の配色 (`palette:`、 #1553)。
+ *
+ * cdl は色を持たない (形だけを描く)。 名前を `data-cdl-palette` として markup に出すので、
+ * dragon の `cdl-theme.css` がその名前を見て 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線)
+ * に色を当てる。
+ *
+ * **名前を自由文字列にしない**。 書き間違えると既定の色みのまま出るので、書き手には
+ * 「効かない」 としか見えない。 語を絞れば読めない語をその場で知らせられる。
+ */
+export const PALETTES = ["kinari", "celadon"] as const;
+export type DslPalette = (typeof PALETTES)[number];
+
+/**
+ * 配色の別名。 向きと同じく日本語と英語の両方で書ける。
+ *
+ * `kinari` = 生成りに茶 (ER 図の既定)、 `celadon` = 青磁に墨。
+ */
+export const PALETTE_ALIAS: Record<string, DslPalette> = {
+  kinari: "kinari",
+  celadon: "celadon",
+  生成り: "kinari",
+  生成りに茶: "kinari",
+  青磁: "celadon",
+  青磁に墨: "celadon",
+};
+
+/** 書いた配色を正規の語に直す。 読めない語は `null`。 */
+export function resolvePalette(s: string): DslPalette | null {
+  const k = s.trim().toLowerCase();
+  return Object.hasOwn(PALETTE_ALIAS, k) ? PALETTE_ALIAS[k]! : null;
+}
+
 /** NodeKind 別名 (日本語 → English) */
 export const NODE_KIND_ALIAS: Record<string, NodeKind> = {
   // 日本語

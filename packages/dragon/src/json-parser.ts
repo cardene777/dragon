@@ -36,6 +36,10 @@ import {
   EVENT_KINDS,
   type 図形の定義,
 } from "./v05/parser";
+// 図の配色 (#1553)。 記法の読み手と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方が
+// 記法と JSON でずれない
+import { resolvePalette } from "./keywords";
+import type { DslPalette } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
   CdlDiagram,
@@ -189,6 +193,13 @@ export interface DragonJson {
   reveal?: EdgeReveal;
   /** 図の並ぶ向き (#1494)。 記法の最上位 `direction:` と同じ。 JSON は英語の語で書く */
   direction?: "vertical" | "horizontal";
+  /**
+   * 図の配色 (#1553)。 記法の最上位 `palette:` と同じ。
+   *
+   * 名前だけを図に載せる = cdl は色を持たず、値は `cdl-theme.css` が決める。
+   * ER 図は書かなくても `kinari` になる。
+   */
+  palette?: DslPalette;
 }
 
 export interface JsonActor {
@@ -347,6 +358,14 @@ export interface JsonStep {
   tailHead?: EdgeHead;
   headFill?: EdgeHeadFill;
   tailHeadFill?: EdgeHeadFill;
+  /**
+   * 辺の役目 (cdl#618)。 記法の `{ role: main }` と同じ。
+   *
+   * `main` を書いた辺だけ「いま」 の色で引く。 主となる 1 本 (または 1 続き) にだけ書く。
+   */
+  role?: "main";
+  /** 名前の下地を敷くか (cdl#618)。 記法の `{ labelPlate: false }` と同じ。 既定は敷く */
+  labelPlate?: boolean;
   /** クラス図の関係の語 (#1466)。 書くと端の形 / 塗り / 線種がまとめて決まる */
   relation?: ClassRelationType;
   /** 順序図の言づての種類 (#1466)。 `call` / `return` / `fire` */
@@ -491,6 +510,8 @@ export const ACCEPTED_KEYS = {
     "reveal",
     // 図の並ぶ向き (#1494)
     "direction",
+    // 図の配色 (#1553)
+    "palette",
   ],
   actor: [
     "name",
@@ -548,6 +569,9 @@ export const ACCEPTED_KEYS = {
     "headFill",
     "tailHeadFill",
     "relation",
+    // 辺の役目と名前の下地 (cdl#618)
+    "role",
+    "labelPlate",
     "kind",
     "tone",
     "style",
@@ -649,6 +673,8 @@ export const 欄の型表 = {
     reveal: "非空の文字列",
     // 図の並ぶ向き (#1494)
     direction: "非空の文字列",
+    // 図の配色 (#1553)
+    palette: "非空の文字列",
   },
   actor: {
     name: "必須の非空文字列",
@@ -704,6 +730,9 @@ export const 欄の型表 = {
     headFill: "非空の文字列",
     tailHeadFill: "非空の文字列",
     relation: "非空の文字列",
+    // 辺の役目と名前の下地 (cdl#618)
+    role: "非空の文字列",
+    labelPlate: "真偽",
     kind: "非空の文字列",
     tone: "色",
     style: "線種",
@@ -2348,6 +2377,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       pos: p0,
     };
   });
+  // 図の配色 (#1553)。 解くのは 1 度だけにする
+  const 配色 = json.palette === undefined ? null : resolvePalette(json.palette);
+
   const flow: DslStep[] = json.flow.map((s, i) => ({
     no: i + 1,
     from: s.from,
@@ -2362,6 +2394,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     headFill: s.headFill,
     tailHeadFill: s.tailHeadFill,
     relation: s.relation,
+    // 辺の役目と名前の下地 (cdl#618)
+    role: s.role,
+    labelPlate: s.labelPlate,
     msgKind: s.kind,
     // 箱と同じ読み替えを通す (#1304)。 通さないと `tone: "成功"` が色名として解決されないまま
     // 図に届き、同じ値が箱では色になり矢印では色にならない
@@ -2502,6 +2537,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     reveal: json.reveal,
     // 図の並ぶ向き (#1494)。 JSON は英語で書くので、記法と同じ語に直してから渡す
     ...(json.direction !== undefined ? { direction: json.direction === "horizontal" ? ("横" as const) : ("縦" as const) } : {}),
+    // 図の配色 (#1553)。 記法と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方がずれない。
+    // 読めない語は渡さない = 上流の型検査が語を絞っているので、ここに来るのは書き間違いだけ
+    ...(配色 !== null ? { palette: 配色 } : {}),
     pos: p0,
   };
 }

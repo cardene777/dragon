@@ -314,7 +314,10 @@ export const presetTopology = withSteps(topo.build(), [
 // ので 1 つで足りるが、ER の印が指すのは端ごとに違う個数なので両端に要る。
 // 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か (棒 = 必須 / 丸 = 任意)。
 export const presetEr = withSteps(
-  er({ id: "er-demo", topic: "テーブル間の関係を表す図", defaultTone: "info" })
+  // 配色は生成りに茶 (#1553)。 ER 図は小さい字が密に並ぶので、他の図種と同じ色みだと行を
+  // 追えない。 記法から作った ER 図は `compileToCdl` が同じ名前を既定で入れるので、ここは
+  // 組み立て API から作る図をそれに揃える手当て
+  er({ id: "er-demo", topic: "テーブル間の関係を表す図", defaultTone: "info", palette: "kinari" })
     .entity({
       id: "users",
       title: "users",
@@ -487,11 +490,14 @@ export const presetInfrastructure = withSteps(
     .node({ id: "app", kind: "service", title: "App", eyebrow: "処理", subtitle: "アプリ", col: 2, row: 1 })
     .node({ id: "db", kind: "database", title: "RDS", eyebrow: "保存", subtitle: "永続化", col: 3, row: 0 })
     .node({ id: "cache", kind: "cache", title: "Redis", eyebrow: "一時保存", subtitle: "高速化", col: 3, row: 1 })
-    .connect({ from: "user", to: "cdn", label: "HTTPS" })
-    .connect({ from: "cdn", to: "alb", label: "origin" })
-    .connect({ from: "alb", to: "app", label: "route" })
-    .connect({ from: "app", to: "db", label: "SQL" })
-    .connect({ from: "app", to: "cache", label: "GET/SET" })
+    // 順路 = 要求が通る 1 本道。 朱で引き、名前の下地を外す (cdl#618)。
+    // 預け先の 2 本は順路の続きではないので墨のまま = どちらも同じ色だと、
+    // どこから読むかが決まらない
+    .connect({ from: "user", to: "cdn", label: "HTTPS", role: "main", labelPlate: false })
+    .connect({ from: "cdn", to: "alb", label: "origin", role: "main", labelPlate: false })
+    .connect({ from: "alb", to: "app", label: "route", role: "main", labelPlate: false })
+    .connect({ from: "app", to: "db", label: "SQL", labelPlate: false })
+    .connect({ from: "app", to: "cache", label: "GET/SET", labelPlate: false })
     .build(),
   [
     { ids: ["user"], title: "1. User", body: "利用者から始まる。" },
@@ -2804,11 +2810,11 @@ actors:
   - Redis: { kind: cache, lane: col-3, eyebrow: "一時保存", subtitle: "高速化" }
 
 flow:
-  - User -> CloudFront: "HTTPS" (accent, solid)
-  - CloudFront -> ALB: "origin" (accent, solid)
-  - ALB -> App: "route" (accent, solid)
-  - App -> RDS: "SQL" (accent, solid)
-  - App -> Redis: "GET/SET" (accent, solid)
+  - User -> CloudFront: "HTTPS" (accent, solid) { role: main, labelPlate: false }
+  - CloudFront -> ALB: "origin" (accent, solid) { role: main, labelPlate: false }
+  - ALB -> App: "route" (accent, solid) { role: main, labelPlate: false }
+  - App -> RDS: "SQL" (accent, solid) { labelPlate: false }
+  - App -> Redis: "GET/SET" (accent, solid) { labelPlate: false }
 
 animation:
   - step: "1. User" 0.9s
@@ -2851,11 +2857,11 @@ export const sourceJson__presetInfrastructure = `{
     { "name": "Redis", "kind": "cache", "lane": "col-3", "eyebrow": "一時保存", "subtitle": "高速化" }
   ],
   "flow": [
-    { "from": "User", "to": "CloudFront", "label": "HTTPS", "tone": "accent", "style": "solid" },
-    { "from": "CloudFront", "to": "ALB", "label": "origin", "tone": "accent", "style": "solid" },
-    { "from": "ALB", "to": "App", "label": "route", "tone": "accent", "style": "solid" },
-    { "from": "App", "to": "RDS", "label": "SQL", "tone": "accent", "style": "solid" },
-    { "from": "App", "to": "Redis", "label": "GET/SET", "tone": "accent", "style": "solid" }
+    { "from": "User", "to": "CloudFront", "label": "HTTPS", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
+    { "from": "CloudFront", "to": "ALB", "label": "origin", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
+    { "from": "ALB", "to": "App", "label": "route", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
+    { "from": "App", "to": "RDS", "label": "SQL", "tone": "accent", "style": "solid", "labelPlate": false },
+    { "from": "App", "to": "Redis", "label": "GET/SET", "tone": "accent", "style": "solid", "labelPlate": false }
   ],
   "animation": [
     {

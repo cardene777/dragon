@@ -44,7 +44,8 @@
 import type { NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import { TONES, NODE_KINDS, EDGE_HEADS, EDGE_HEAD_FILLS, EDGE_STYLES, EDGE_REVEALS, CLASS_RELATION_LOOK, SEQUENCE_MESSAGE_LOOK, parseFormula } from "@cardenelabs/cdl";
 import type { EdgeReveal } from "@cardenelabs/cdl";
-import { TONE_ALIAS, NODE_KIND_ALIAS, DIRECTIONS, resolveDirection } from "../keywords";
+import { TONE_ALIAS, NODE_KIND_ALIAS, DIRECTIONS, resolveDirection, PALETTES, resolvePalette } from "../keywords";
+import type { DslPalette } from "../keywords";
 import type { DslDirection } from "../keywords";
 import { parseRelativePos, orderByDependency } from "../relative-pos";
 import {
@@ -153,6 +154,15 @@ export const TOP_LEVEL_KEYS = [
    * 日本語で書けるので、書き手が自然に言う語 (`縦` / `横`) を残せる。
    */
   "direction",
+  /*
+   * 図の配色 (#1553)。
+   *
+   * cdl は色を持たないので、名前だけを図に載せる。 消費側 (`cdl-theme.css`) が名前を見て
+   * 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線) に色を当てる。
+   *
+   * ER 図は書かなくても `kinari` になる = 別の色みにしたい時だけ書く。
+   */
+  "palette",
 ] as const;
 
 /**
@@ -440,6 +450,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let reveal: EdgeReveal | null = null;
   let direction: DslDirection | null = null;
   let directionLine = 0;
+  let palette: DslPalette | null = null;
   let axes: DslAxes | undefined = undefined;
   let axesLine = 0;
   let actors: DslActor[] = [];
@@ -526,6 +537,29 @@ export function parseTextDslV05(src: string): V05ParseResult {
             line: line.no,
             message: `direction が読めません (書いた値: ${v})`,
             hint: `使える語 = ${DIRECTIONS.join(" / ")} / vertical / horizontal`,
+          });
+        }
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "palette") {
+      /*
+       * 図の配色 (#1553)。
+       *
+       * 読めない語はその場で知らせる。 黙って既定に落とすと、書き手には「書いたのに効かない」
+       * としか見えず、書き間違いか未対応かを分けられない。
+       */
+      const v = (head.value ?? "").trim();
+      if (v.length > 0) {
+        const 解けた = resolvePalette(v);
+        if (解けた !== null) {
+          palette = 解けた;
+        } else {
+          errors.push({
+            line: line.no,
+            message: `palette が読めません (書いた値: ${v})`,
+            hint: `使える語 = ${PALETTES.join(" / ")} / 生成り / 青磁`,
           });
         }
       }
@@ -1007,6 +1041,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(eyebrow !== null ? { eyebrow, eyebrowPos: { line: eyebrowLine } } : {}),
       ...(reveal !== null ? { reveal } : {}),
       ...(direction !== null ? { direction, directionPos: { line: directionLine } } : {}),
+      ...(palette !== null ? { palette } : {}),
       ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),
       actors,
       flow,
@@ -3129,6 +3164,20 @@ const FLOW_INLINE_READERS = {
   sub: (v: string | undefined) => v,
   guard: (v: string | undefined) => v,
   cardinality: (v: string | undefined) => v,
+  /*
+   * 辺の役目 (cdl#618)。 `main` を書いた辺だけ「いま」 の色で引く。
+   *
+   * 図の中に道が 2 種 (主となる 1 本と、そこから枝分かれする先) ある時、どちらも同じ色だと
+   * どこから読むかが決まらない。 主となる 1 本 (または 1 続き) にだけ書く。
+   */
+  role: (v: string | undefined) => (v === "main" ? ("main" as const) : undefined),
+  /*
+   * 名前の下地を敷くか (cdl#618)。 書かなければ敷く。
+   *
+   * 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える。
+   */
+  labelPlate: (v: string | undefined) =>
+    v === undefined ? undefined : v !== "false" && v !== "なし",
   // 矢印がどの辺から出るか (#1385)。 描画側は 4 方向を取り、書かなければ自動で選ぶ
   side: (v: string | undefined) =>
     v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
@@ -3448,6 +3497,9 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   const tailHeadFill = 中括弧.tailHeadFill as EdgeHeadFill | undefined;
   const relation = 中括弧.relation as ClassRelationType | undefined;
   const msgKind = 中括弧.kind as SequenceMessageKind | undefined;
+  // 辺の役目と名前の下地 (cdl#618)
+  const role = 中括弧.role as "main" | undefined;
+  const labelPlate = 中括弧.labelPlate as boolean | undefined;
   // 値に追随する 3 欄 (#1396)。 空は捨てずに知らせる = 描画側は空文字を既定値へ落とさず
   // そのまま置換に使うため、書き忘れが「線が消えた」 形で出る
   const widthBind = 追随する大きさとして読む(
@@ -3534,6 +3586,8 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     tailHeadFill,
     relation,
     msgKind,
+    role,
+    labelPlate,
     widthBind,
     strokeBind,
     dashOffsetBind,

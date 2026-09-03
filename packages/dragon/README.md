@@ -72,6 +72,7 @@ flow:
 | `bands`     | 動いている間の帯 (順序図。 `- DB: 1..2` の形で段の番号の区間を書く)                                                                        |
 | `reveal`    | 矢印をいつ出すか (`phase` = 段が名指しする矢印はその段まで描かない (既定) / `all` = 最初から全部描く)                                      |
 | `direction` | 図の並ぶ向き (`縦` / `横`、英語なら `vertical` / `horizontal`)。 効くのは `flow` と `swimlane` だけ |
+| `palette`   | 図の配色 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨、日本語なら `生成り` / `青磁`)。 ER 図は書かなくても `kinari` になる |
 
 <!-- notation:top-level:end -->
 
@@ -137,6 +138,8 @@ flow:
 | `tailHeadFill`   | 出どころ側の印の塗り |
 | `relation`       | クラス図の関係の種類 (`extends` 継ぐ / `implements` 満たす / `aggregates` 持つ / `composes` 抱える / `associates` 結ぶ / `uses` 使う)。 書くと線と端の形と塗りと付く側がまとめて決まる |
 | `kind`           | 順序図の言づての種類 (`call` 呼ぶ / `return` 返す / `fire` 投げる) |
+| `role`           | 辺の役目 (`main` 主となる道)。 書いた辺だけ「いま」 の色で引く。 主となる 1 本 (または 1 続き) にだけ書く |
+| `labelPlate`     | 説明文の下地を敷くか (`false` で外す)。 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える |
 | `labelOffsetX`   | 説明文の位置を横にずらす                                            |
 | `labelOffsetY`   | 説明文の位置を縦にずらす                                            |
 | `overlay`        | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用)              |

@@ -190,6 +190,9 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       sub: { 書く: '"補足"', 期待: "補足" },
       guard: { 書く: '"g"', 期待: "g" },
       cardinality: { 書く: '"1:N"', 期待: "1:N" },
+      // 辺の役目と名前の下地 (cdl#618)
+      role: { 書く: "main", 期待: "main" },
+      labelPlate: { 書く: "false", 期待: false },
       // 矢印がどの辺から出るか (#1385)
       side: { 書く: "left", 期待: "left" },
       head: { 書く: "triangle", 期待: "triangle" },

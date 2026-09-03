@@ -5,7 +5,7 @@
 
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
-import type { DslDirection } from "./keywords";
+import type { DslDirection, DslPalette } from "./keywords";
 
 /**
  * 記法が書ける箱の種類 (#1420)。
@@ -178,6 +178,13 @@ export type DslDocument = {
   direction?: DslDirection;
   /** `direction:` を書いた行。 効かない時の知らせで、書いた場所を指すために持つ */
   directionPos?: { line: number };
+  /**
+   * 図の配色 (`palette:`、 #1553)。
+   *
+   * 名前だけを持つ。 実際の色は消費側 (`cdl-theme.css`) が決めるので、ここには値を書かない。
+   * ER 図は書かなくても `kinari` (生成りに茶) になる = 別の色みにしたい時だけ書く。
+   */
+  palette?: DslPalette;
   groups?: Record<string, DslGroup>;
   /**
    * 値を見せる部品 (`readouts:`、 #1374)。 割合の輪や数え上げを図の脇に出す。
@@ -480,6 +487,10 @@ export type DslStep = {
    * `kind` にしないのは、箱の種類 (`DslActor.kind`) と同じ語が別の意味を持つため。
    */
   msgKind?: SequenceMessageKind;
+  /** 辺の役目 (cdl#618)。 `main` を書いた辺だけ「いま」 の色で引く */
+  role?: "main";
+  /** 名前の下地を敷くか (cdl#618)。 書かなければ敷く */
+  labelPlate?: boolean;
   labelOffsetX?: number;
   labelOffsetY?: number;
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
