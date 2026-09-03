@@ -544,7 +544,40 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 作り替えた名前を表示だけ戻す (#1220)。 **図への追加を全て終えた後**に戻す = 途中で戻すと、
   // 後続の処理が名前で引く時に作り替え前と後が混ざる
   restoreActorNames(merged, 分けた.元の名前, 作り替えた対象);
+  // 配色と行の縞は **図への追加を全て終えた後**に当てる (#1553)。 図種ごとの組み立ては
+  // 20 か所以上あり、そのどれに足しても残りが取り残される
+  配色と縞を当てる(merged, doc);
   return merged;
+}
+
+/**
+ * 図の配色と、表の箱の行の縞を当てる (#1553)。
+ *
+ * ## 配色
+ *
+ * cdl は色を持たない。 名前だけを `data-cdl-palette` として markup に出し、消費側
+ * (`cdl-theme.css`) が名前を見て 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線) に色を当てる。
+ *
+ * ER 図は書かなくても `kinari` (生成りに茶) になる。 ER 図は小さい字が密に並ぶので、他の図種と
+ * 同じ色みだと行を追えない = 既定を持たせて「作れば必ずその色みになる」 形にする。
+ * 書き手が `palette:` を書いた時はそちらが勝つ。
+ *
+ * ## 行の縞
+ *
+ * cdl の `er()` 組み立て器は縞を既定で敷くが、**動きを持つ ER 図はその経路を通らない**
+ * (`compileGenericWithAnimate` が箱を直に組む)。 同じ図が動きの有無で縞を持ったり持たなかったり
+ * しないよう、出口で揃える。
+ *
+ * 縞を描くのは表の箱 (`storage`) だけ。 他の種別の箱に書いても描画側が読まないので、
+ * ここで対象を絞って「書いたのに出ない」 欄を残さない。
+ */
+function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
+  const 配色 = doc.palette ?? (doc.type === "er" ? "kinari" : undefined);
+  if (配色 !== undefined) diagram.palette = 配色;
+  if (doc.type !== "er") return;
+  for (const node of diagram.nodes) {
+    if (node.kind === "storage") node.rowStripe = true;
+  }
 }
 
 /**
@@ -3436,6 +3469,10 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.tailHead !== undefined) target.tailHead = s.tailHead;
   if (s.headFill !== undefined) target.headFill = s.headFill;
   if (s.tailHeadFill !== undefined) target.tailHeadFill = s.tailHeadFill;
+  // 辺の役目と名前の下地 (cdl#618)。 主となる道を朱で引き、丸い下地を外せる。
+  // 書かない辺には値を入れない = 既存の図が変わらない
+  if (s.role !== undefined) target.role = s.role;
+  if (s.labelPlate !== undefined) target.labelPlate = s.labelPlate;
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
   if (s.overlay !== undefined) target.overlay = s.overlay;

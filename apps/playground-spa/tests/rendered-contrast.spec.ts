@@ -495,10 +495,43 @@ test.describe("edge label の描画対比 (#977)", () => {
     expect(対象.length, "図に色を当てる CSS が 1 件も見つからない").toBeGreaterThan(0);
 
     const 違反: string[] = [];
+    /** 名前を書いて選ぶ配色の塊 (`[data-cdl-palette="kinari"]` 等)。 名前 → 明暗 → 口 */
+    const 配色: Map<string, Map<string, Set<string>>> = new Map();
     for (const 名 of 対象) {
       const css = readFileSync(join(styles, 名), "utf8");
       // 説明文に書くのは構わない (規約そのものを書いてある)。 見るのは規則の側だけ。
-      const 規則だけ = css.replace(/\/\*[\s\S]*?\*\//g, "");
+      const 規則だけ全部 = css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+      /*
+       * 名前を書いて選ぶ配色 (#1553) の塊だけは、色を直に書き明暗も 2 面で書く。
+       *
+       * 上の規約 (明暗を 1 箇所で決める) の狙いは「変数を変えても図だけ古い色のまま残る」 を
+       * 防ぐこと = 図の色が `--d-*` から流れてくることが前提にある。 本節の色は `--d-*` から
+       * 来ない。 意匠帳 (`docs/design/er/note.md`) が図のために決めた別の組で、入れ替わる
+       * 上流を持たない。
+       *
+       * **代わりに別の縛りを掛ける**。 穴を空けるだけにすると、明るい側だけ直して暗い側を
+       * 忘れる形が通る。 下で「どの名前も明暗の両方で同じ 7 つを定義していること」 を見る。
+       */
+      const 塊 = [...規則だけ全部.matchAll(/([^{}]*)\{([^{}]*)\}/g)];
+      for (const m of 塊) {
+        const sel = m[1] ?? "";
+        const body = m[2] ?? "";
+        const 名前 = /\[data-cdl-palette="([^"]+)"\]/.exec(sel);
+        if (!名前) continue;
+        const 明暗 = sel.includes("html.dark") ? "暗" : "明";
+        const 口 = new Set(
+          [...body.matchAll(/--er-([a-z-]+)\s*:/g)].flatMap((x) => (x[1] === undefined ? [] : [x[1]])),
+        );
+        // 必須の群。 一致した以上必ず取れる
+        const 表 = 配色.get(名前[1]!) ?? new Map<string, Set<string>>();
+        表.set(明暗, 口);
+        配色.set(名前[1]!, 表);
+      }
+      const 規則だけ = 塊
+        .filter((m) => !/\[data-cdl-palette="[^"]+"\]/.test(m[1] ?? ""))
+        .map((m) => m[0])
+        .join("\n");
       const n = (規則だけ.match(/html\.dark/g) ?? []).length;
       if (n > 0) 違反.push(`${名} に html.dark が ${n} 件`);
 
@@ -521,6 +554,23 @@ test.describe("edge label の描画対比 (#977)", () => {
       }
       if (!/var\(--d-/.test(規則だけ)) 違反.push(`${名} が変数を参照していない`);
     }
+
+    /*
+     * 名前を書いて選ぶ配色は、明暗の両方で同じ口を埋める (#1553)。
+     *
+     * 上で色の直書きを許した分の埋め合わせ。 片側だけ直すと、その画面でだけ既定の色が出る。
+     */
+    const 口の一覧 = ["ground", "face", "stripe", "frame", "ink", "type", "line"].sort();
+    // 0 件だと下の照合が「対象なし」 で素通りする
+    expect(配色.size, "名前を書いて選ぶ配色が 1 つも見つからない (検査が空振りしている)").toBeGreaterThan(0);
+    for (const [名前, 表] of 配色) {
+      for (const 明暗 of ["明", "暗"]) {
+        expect([...(表.get(明暗) ?? [])].sort(), `配色 ${名前} の ${明暗} が 7 つの口を埋めていない`).toEqual(
+          口の一覧,
+        );
+      }
+    }
+
     expect(違反, "図の配色が明暗を 2 箇所以上で決めている").toEqual([]);
   });
 

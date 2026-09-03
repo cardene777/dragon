@@ -90,6 +90,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     // 矢印をいつ出すか (#1470)
     reveal: "all",
     direction: "horizontal",
+    // 図の配色 (#1553)
+    palette: "celadon",
   },
   actor: {
     name: "A",
@@ -152,6 +154,9 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     headFill: "hollow",
     tailHeadFill: "solid",
     relation: "extends",
+    // 辺の役目と名前の下地 (cdl#618)
+    role: "main",
+    labelPlate: false,
     kind: "call",
     cardinality: "1..N",
     labelOffsetX: 1,

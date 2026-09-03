@@ -110,15 +110,18 @@
 
    面は `--d-surface` (#1468)。 `-3` / `-2` はどちらも面が濁って見え、行頭の印や型の字と
    灰色が競合していた。 図の紙を暖かい地に下げたので、白の箱がその上に乗る形になる */
-[data-cdl-role="node-body"],
-[data-cdl-role="node-body"] > rect,
-[data-cdl-role="node-body"] > path,
-[data-cdl-role="node-body"] > ellipse,
-[data-cdl-role="node-body"] > circle,
-[data-cdl-role="node-body"] > g > rect,
-[data-cdl-role="node-body"] > g > path,
-[data-cdl-role="node-body"] > g > ellipse,
-[data-cdl-role="node-body"] > g > circle {
+/* 見せ方を持つ箱は外す (cdl#620)。 cdl 0.24.0 は `look` を書いた kind に
+   `data-cdl-look` を出す。 その箱は engine が面と枠を決めているので、ここで上書きすると
+   5 通り (外にある / 通り道 / ここが働く / 消えては困る / 作り直せる) が 1 通りに潰れる */
+[data-cdl-role="node-body"]:not([data-cdl-look]),
+[data-cdl-role="node-body"]:not([data-cdl-look]) > rect,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > path,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > ellipse,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > circle,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > g > rect,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > g > path,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > g > ellipse,
+[data-cdl-role="node-body"]:not([data-cdl-look]) > g > circle {
   fill: var(--d-surface) !important;
   stroke: var(--d-text-secondary) !important;
   stroke-width: 1.75 !important;
@@ -180,10 +183,15 @@
   stroke-width: 2.5 !important;
 }
 
+/* 見せ方を持つ箱の中の字は engine が決める (cdl#620)。 墨のベタの上では紙の色で抜くので、
+   ここで文字色を上書きすると黒地に黒で消える。 書体と太さは揃えたいので色だけ外す */
 [data-cdl-role="node-label"] {
-  fill: var(--d-text-primary) !important;
   font-family: var(--d-body) !important;
   font-weight: 600 !important;
+}
+
+[data-cdl-node]:not(:has([data-cdl-look])) [data-cdl-role="node-label"] {
+  fill: var(--d-text-primary) !important;
 }
 
 /* 3 つ目の属性を持たせて、 上の子要素の規則より強くする。
@@ -332,3 +340,152 @@
 [data-cdl-role="tree-edge"] { stroke-opacity: var(--d-tree-edge-opacity) !important; }
 [data-cdl-role="mind-edge"] { stroke-opacity: var(--d-mind-edge-opacity) !important; }
 [data-cdl-role="journey-chip"] { stroke-opacity: var(--d-journey-chip-opacity) !important; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 図の配色 (#1553)
+ *
+ * cdl は色を持たない。 `palette:` に書いた名前が `data-cdl-palette` として舞台 (`svg`) に
+ * 出るので、ここで名前を見て色を当てる。
+ *
+ * **この節だけ `html.dark` を書く**。 冒頭は「明暗の切替は書かない」 と決めているが、その理由は
+ * 図の色が `--d-*` から流れてくることにある = 上流が入れ替われば図も追随するので、ここで
+ * 明暗を書くと決める場所が 2 つになる。 本節の色は `--d-*` から来ない = 意匠帳
+ * (`docs/design/er/note.md`) が図のために決めた別の組で、入れ替わる上流が無い。 ここが唯一の
+ * 決め場所になる。
+ *
+ * ## 色を置く口は 7 つ
+ *
+ * | 口 | 何に出るか |
+ * |---|---|
+ * | 台 | 図の紙。 舞台の背景 |
+ * | 行の面 | 表の箱の中 |
+ * | 縞 | 1 行おきの帯と、線に添える札の面 |
+ * | 枠 | 箱の輪郭 |
+ * | 字 | 表の名前 / 列の名前 / 鍵の下線 / 行頭の印 |
+ * | 型名 | 列の型と箱の副題。 読み手が探すものではないので一段薄い |
+ * | 線 | 関係の線と、札の枠と札の字 |
+ *
+ * ## 台と行の面は必ず離す
+ *
+ * 同じにすると箱の輪郭だけが浮いて、面が消えて見える。 明るい側で 8.2、暗い側で 7.9 離してある
+ * (CIE L* の差)。 字 / 枠 / 線は面に対して対比 4.61 以上を保つ (`dark-ground-step.spec.ts` が
+ * 課している下限と同じ)。
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* 生成りに茶。 ER 図は `palette:` を書かなくてもこれになる */
+svg[data-cdl-stage][data-cdl-palette="kinari"] {
+  --er-ground: #ece5d8;
+  --er-face: #fffdf8;
+  --er-stripe: #f5efe4;
+  --er-frame: #3a2f20;
+  --er-ink: #241d14;
+  --er-type: #6f6455;
+  --er-line: #7d5c31;
+}
+
+html.dark svg[data-cdl-stage][data-cdl-palette="kinari"] {
+  --er-ground: #221a0e;
+  --er-face: #342a1a;
+  --er-stripe: #413524;
+  --er-frame: #d6c6a6;
+  --er-ink: #f5efe2;
+  --er-type: #b3a692;
+  --er-line: #cbb488;
+}
+
+/* 青磁に墨。 書き手が `palette: celadon` と書いた図だけがこれになる */
+svg[data-cdl-stage][data-cdl-palette="celadon"] {
+  --er-ground: #dee6e4;
+  --er-face: #ffffff;
+  --er-stripe: #eaf1ef;
+  --er-frame: #1e3230;
+  --er-ink: #132220;
+  --er-type: #5a6b69;
+  --er-line: #2d6b62;
+}
+
+html.dark svg[data-cdl-stage][data-cdl-palette="celadon"] {
+  --er-ground: #1a201f;
+  --er-face: #293130;
+  --er-stripe: #343d3c;
+  --er-frame: #c9dbd7;
+  --er-ink: #edf3f1;
+  --er-type: #9aaba8;
+  --er-line: #7ccdbe;
+}
+
+/*
+ * 7 色を実際の口に流す。 配色の名前ごとに書かない = 名前が増えるたびにここを写すことになり、
+ * 片方だけ直して食い違う。 名前が決めるのは上の 7 値だけで、流し先は 1 か所で持つ。
+ *
+ * **`--d-*` も舞台の中だけ差し替える**。 箱の面や枠は上の規則群が `!important` で
+ * `--d-surface` / `--d-text-secondary` に固定しているので、同じ強さで書き直す代わりに
+ * 読み先の値を入れ替える。 差し替えは舞台の中に閉じるので、画面の他の場所には届かない。
+ */
+svg[data-cdl-stage][data-cdl-palette] {
+  background: var(--er-ground);
+
+  /* cdl が属性で直に読む口 */
+  --cdl-canvas-bg: var(--er-ground);
+  --cdl-stage-bg: var(--er-ground);
+  --cdl-node-fill: var(--er-face);
+  --cdl-row-stripe: var(--er-stripe);
+  --cdl-label-bg: var(--er-stripe);
+  --cdl-text: var(--er-ink);
+  --cdl-text-2: var(--er-ink);
+  --cdl-text-dim: var(--er-type);
+  --cdl-text-mute: var(--er-type);
+  --cdl-line: var(--er-line);
+  --cdl-line-mute: var(--er-line);
+  --cdl-divider: var(--er-frame);
+  --cdl-row-divider: var(--er-frame);
+  --cdl-tone-accent: var(--er-frame);
+  --cdl-tone-info: var(--er-line);
+
+  /* 上の `!important` 群が読む先 */
+  --d-surface: var(--er-face);
+  --d-surface-2: var(--er-face);
+  --d-surface-3: var(--er-stripe);
+  --d-text-primary: var(--er-ink);
+  --d-text-secondary: var(--er-frame);
+  --d-text-muted: var(--er-type);
+  --d-border: var(--er-frame);
+  --d-border-strong: var(--er-line);
+  /* 関係の線は「意味」 の色 (`info`) で引かれる。 ER 図の既定の色みがこれ */
+  --d-dg-4: var(--er-line);
+  /* 意味を書かなかった線の落ち先。 意味を書いた線は自分の色で上書きする */
+  --dragon-edge-tone: var(--er-line);
+
+  /*
+   * 「いま」 の箱も 7 色の中に収める。
+   *
+   * 画面の主役色 (赤橙) のままにすると、図の中に決めた組と site の組の 2 系統が並ぶ。
+   * 実測すると beige の台の上で朱の枠だけが浮き、どの箱を読むかより先に色の違いが目に入った。
+   *
+   * 枠だけを線の色に変え、面は行の面のまま置く = 止まっていない箱 (枠 = 墨) との違いは
+   * 色相と太さで出す。 対比は行の面の上で 5.99 (明) / 6.99 (暗) で、この repo が箱の枠に
+   * 課す 4.61 を満たす。
+   *
+   * **面を縞の色にしない**。 面と縞が同じ色になり、いま読んでいる箱でだけ縞が消える
+   * (実測)。 行を追う目印が要るのはまさにその箱なので、逆の向きに効く。
+   */
+  --d-accent: var(--er-line);
+  --d-accent-face: var(--er-face);
+  --cdl-now: var(--er-line);
+  --cdl-text-accent: var(--er-line);
+}
+
+/*
+ * 線に添える札。 面は縞と同じで、枠と字は線と同じ (#1553)。
+ *
+ * 変数の差し替えでは届かない = 札の面は `--d-surface` (行の面) を読んでおり、箱と同じ色になる。
+ * 図の中で面が 2 種類 (箱 / 札) あるのは意匠帳の決めた形で、札は縞と同じ側に置く。
+ */
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-label-bg"] {
+  fill: var(--er-stripe) !important;
+  stroke: var(--er-line) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-label"] {
+  fill: var(--er-line) !important;
+}

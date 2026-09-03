@@ -30,7 +30,9 @@ export type SampleSlot =
   // 矢印をいつ出すか (#1470)
   | "reveal"
   // 図の並ぶ向き (#1494)
-  | "direction";
+  | "direction"
+  // 図の配色 (#1553)
+  | "palette";
 
 export type Section = {
   title: string;
@@ -151,6 +153,25 @@ export const FORMS: Section[] = [
       { code: "direction: 横", note: "1 人ずつ縦列を作る (流れ図の既定は縦)" },
       { code: "direction: 縦", note: "1 つの縦列に積む (泳法図の既定は横)" },
       { code: "direction: horizontal", note: "英語でも書ける (vertical / horizontal)" },
+    ],
+  },
+  {
+    title: "図の配色 (palette:)",
+    // 色の値は図が持たない。 名前だけが図に載り、画面側が名前を見て色を当てる。
+    // 例文は ER 図にする = 既定を持つ唯一の図種で、書き換えたことが絵で読める
+    sample: {
+      slot: "palette",
+      type: "er",
+      actors: [
+        '  - users: { kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }',
+        '  - orders: { kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint"], marks: ["pk", "fk"] }',
+      ],
+      flow: ['  - users -> orders: "注文する"'],
+    },
+    lines: [
+      { code: "palette: kinari", note: "生成りに茶。 ER 図は書かなくてもこれになる" },
+      { code: "palette: celadon", note: "青磁に墨" },
+      { code: "palette: 青磁", note: "日本語でも書ける (生成り / 青磁)" },
     ],
   },
   {
@@ -558,7 +579,8 @@ export function buildSample(section: Section): string {
   const codes = section.lines.map((l) => l.code);
   // `reveal` は最上位に 1 行で書く語なので、`root` と同じ場所へ置く (#1470)
   // 最上位に 1 行で書く項目は、頭の並びにそのまま足す (`reveal` / `direction`)
-  const rootLines = slot === "root" || slot === "reveal" || slot === "direction" ? codes : [];
+  const rootLines =
+    slot === "root" || slot === "reveal" || slot === "direction" || slot === "palette" ? codes : [];
   // 題名と図種は例文に必ず要る。 一覧側で書いている時は重ねて書かない (後に書いた方が効く)
   const head = [
     ...(rootLines.some((l) => /^title\s*:/.test(l)) ? [] : ['title: "見本"']),
