@@ -23,6 +23,8 @@ import {
   compileToCdl,
   MAX_INPUT_ELEMENTS,
 } from "../src/index";
+// 向きの語は 1 か所で決める (#1561)。 検査が語を直に書くと、実装から離れても落ちない
+import { SHAPE_ORIENT_VALUES } from "../src/v05/parser";
 
 const 波の記法 = `title: "波"
 type: flow
@@ -175,6 +177,32 @@ flow:
     expect(d.nodes.filter((n) => n.shape !== undefined), "板に図形が載っている").toEqual([]);
     expect(出た.length, "図形が黙って落ちている").toBe(1);
     expect(出た[0]).toContain("図形");
+  });
+
+  it("rect の向きは決めた語を全て受ける", () => {
+    /*
+     * **通る側も見る** (#1561)。 読めない語を弾く検査だけだと、読み手が受ける語を減らしても
+     * 落ちない (実測 = `right` を読み手から外しても 22511 件が全て通った)。
+     *
+     * 語は `SHAPE_ORIENT_VALUES` から取る。 ここに並べ直すと、実装から離れても落ちない。
+     */
+    expect(SHAPE_ORIENT_VALUES.length, "向きの語が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+    for (const 向き of SHAPE_ORIENT_VALUES) {
+      const y = 波の記法.replace(
+        /^ {2}- 検証: \{.*$/m,
+        `  - 検証: { kind: card, shape: { kind: rect, source: 50, fillMax: 100, orient: ${向き} } }`,
+      );
+      const r = parseTextDslV05(y);
+      expect(r.ok, `決めた向きが弾かれた: ${向き}`).toBe(true);
+
+      const v = validateDragonJson({
+        ...波のJSON,
+        actors: [
+          { name: "A", shape: { kind: "rect", source: 50, fillMax: 100, orient: 向き } },
+        ],
+      });
+      expect(v.ok, `JSON だけ決めた向きを弾いている: ${向き}`).toBe(true);
+    }
   });
 
   it("rect の向きは描画側が受ける 4 値に限る", () => {
@@ -410,7 +438,7 @@ describe("公開 schema は実際の受理条件と揃う (#1374)", () => {
     const shape = actor.properties.shape;
     expect(種類別の必須(shape, "rect")).toEqual(["source", "fillMax"]);
     expect(種類別の必須(shape, "wave")).toEqual(["level", "amplitude"]);
-    expect(shape.properties.orient.enum).toEqual(["up", "down", "left", "right"]);
+    expect(shape.properties.orient.enum).toEqual([...SHAPE_ORIENT_VALUES]);
   });
 
   it("readout の種類別必須欄を宣言する", () => {

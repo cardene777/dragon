@@ -30,6 +30,7 @@ import {
   EDGE_HEAD_VALUES,
   EDGE_HEAD_FILL_VALUES,
   EDGE_ROLE_VALUES,
+  SHAPE_ORIENT_VALUES,
   CLASS_RELATION_VALUES,
   SEQ_MESSAGE_VALUES,
   EVENT_KINDS,
@@ -91,41 +92,39 @@ function 分岐の目印か(path: string, 全部: ReadonlySet<string>): boolean 
 /**
  * schemaの語の一覧と、それを決めている実装の一覧の対応。
  *
- * `実装` を書いた行は値まで突き合わせる。 `理由` を書いた行は照合しない = 対応する一覧が
- * 実装に無いことを明示する逃げ道で、**理由を書かせることで無自覚な素通りを止める**。
+ * **逃げ道を置かない** (#1561)。 初版は「対応する一覧が実装に無い」 を理由付きで外せる欄を
+ * 持っていたが、外した 1 件 (`shape.orient`) を調べると読み手は在り、値を 2 か所に直に
+ * 書いていただけだった。 理由の欄は「調べずに外す」 を許す形なので消す。
+ *
+ * 突き合わせる一覧が本当に無い語が出たら、まず実装側に定数を切り出す。 切り出せないなら
+ * その語は記法として受けていないので、schema から外す。
  */
-type 対応 = { readonly 実装: readonly string[] } | { readonly 理由: string };
-
-const 対応表: Record<string, 対応> = {
-  type: { 実装: [...PRESET_TYPES] },
-  direction: {
-    // JSON は英語で書く。 正規の語 (`縦` / `横`) を除いた別名がそのまま JSON の語になる
-    実装: Object.keys(DIRECTION_ALIAS).filter((k) => !(DIRECTIONS as readonly string[]).includes(k)),
-  },
-  palette: { 実装: [...PALETTES] },
-  reveal: { 実装: [...EDGE_REVEALS] },
-  "flow[].tone": { 実装: 書ける色名() },
-  "flow[].style": { 実装: [...STYLE_VALID] },
-  "flow[].side": { 実装: [...EDGE_SIDE_VALUES] },
-  "flow[].head": { 実装: [...EDGE_HEAD_VALUES] },
-  "flow[].tailHead": { 実装: [...EDGE_HEAD_VALUES] },
-  "flow[].headFill": { 実装: [...EDGE_HEAD_FILL_VALUES] },
-  "flow[].tailHeadFill": { 実装: [...EDGE_HEAD_FILL_VALUES] },
-  "flow[].relation": { 実装: [...CLASS_RELATION_VALUES] },
-  "flow[].kind": { 実装: [...SEQ_MESSAGE_VALUES] },
-  "flow[].role": { 実装: [...EDGE_ROLE_VALUES] },
-  "animation[].draw": { 実装: [...DRAW_WORDS] },
-  "events[].on": { 実装: [...EVENT_KINDS] },
-  "readouts[].kind": { 実装: Object.keys(部品の表) },
-  "inputs[].kind": { 実装: Object.keys(つまみの表) },
-  "actors[].oneOf[1].tone": { 実装: 書ける色名() },
-  "actors[].oneOf[1].color.anyOf[0]": { 実装: 書ける色名() },
-  "actors[].oneOf[1].shape.kind": { 実装: Object.keys(図形の表) },
-  "actors[].oneOf[1].shape.orient": {
-    理由:
-      "図形の向き 4 値。 記法側に読み手が無く (`図形の表` は欄の名前だけを持つ)、" +
-      "描画側の型が持つ値を schema が直に書いている。 突き合わせる一覧が実装に無い",
-  },
+const 対応表: Record<string, readonly string[]> = {
+  type: [...PRESET_TYPES],
+  // JSON は英語で書く。 正規の語 (`縦` / `横`) を除いた別名がそのまま JSON の語になる
+  direction: Object.keys(DIRECTION_ALIAS).filter(
+    (k) => !(DIRECTIONS as readonly string[]).includes(k),
+  ),
+  palette: [...PALETTES],
+  reveal: [...EDGE_REVEALS],
+  "flow[].tone": 書ける色名(),
+  "flow[].style": [...STYLE_VALID],
+  "flow[].side": [...EDGE_SIDE_VALUES],
+  "flow[].head": [...EDGE_HEAD_VALUES],
+  "flow[].tailHead": [...EDGE_HEAD_VALUES],
+  "flow[].headFill": [...EDGE_HEAD_FILL_VALUES],
+  "flow[].tailHeadFill": [...EDGE_HEAD_FILL_VALUES],
+  "flow[].relation": [...CLASS_RELATION_VALUES],
+  "flow[].kind": [...SEQ_MESSAGE_VALUES],
+  "flow[].role": [...EDGE_ROLE_VALUES],
+  "animation[].draw": [...DRAW_WORDS],
+  "events[].on": [...EVENT_KINDS],
+  "readouts[].kind": Object.keys(部品の表),
+  "inputs[].kind": Object.keys(つまみの表),
+  "actors[].oneOf[1].tone": 書ける色名(),
+  "actors[].oneOf[1].color.anyOf[0]": 書ける色名(),
+  "actors[].oneOf[1].shape.kind": Object.keys(図形の表),
+  "actors[].oneOf[1].shape.orient": [...SHAPE_ORIENT_VALUES],
 };
 
 const 並べ = (x: Iterable<string>): string[] => [...new Set(x)].sort();
@@ -165,10 +164,10 @@ describe("公開 schemaの語の一覧が実装と一致する (#1559)", () => {
     let 照合した = 0;
     for (const e of 対象) {
       const 対応 = 対応表[e.path];
-      if (対応 === undefined || "理由" in 対応) continue; // 別の検査が落とす / 照合しない行
+      if (対応 === undefined) continue; // 載っていない行は別の検査が落とす
       照合した += 1;
       const 帳 = 並べ(e.values);
-      const 実 = 並べ(対応.実装);
+      const 実 = 並べ(対応);
       const schemaにだけ = 帳.filter((v) => !実.includes(v));
       const 実装にだけ = 実.filter((v) => !帳.includes(v));
       if (schemaにだけ.length > 0 || 実装にだけ.length > 0) {
@@ -178,7 +177,7 @@ describe("公開 schemaの語の一覧が実装と一致する (#1559)", () => {
       }
     }
     // 照合した数を必ず見る。 0 件は「一致した」 ではなく「測っていない」
-    const 照合するはず = Object.values(対応表).filter((v) => "実装" in v).length;
+    const 照合するはず = Object.keys(対応表).length;
     expect(照合した, "1 件も照合していない (検査が空振りしている)").toBe(照合するはず);
     expect(ずれ, "公開 schema と実装で語が食い違う").toEqual([]);
   });

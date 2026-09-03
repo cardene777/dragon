@@ -106,6 +106,14 @@ export const EDGE_HEAD_FILL_VALUES: readonly string[] = EDGE_HEAD_FILLS;
 export const EDGE_ROLE_VALUES = ["main"] as const;
 
 /**
+ * 図形の向きとして書ける語 (#1561)。
+ *
+ * 読み手と、読めなかった時の案内と、公開 schema の 3 か所がここを見る。 値を直に書くと、
+ * 語を足した時にどれかが取り残される (実測 = 読み手と案内で同じ 4 語を 2 度書いていた)。
+ */
+export const SHAPE_ORIENT_VALUES = ["up", "down", "left", "right"] as const;
+
+/**
  * クラス図の関係の種類 (#1466)。 描画側の表 (`CLASS_RELATION_LOOK`) の key から導く。
  *
  * 手で並べると、描画側が種類を足した時にここだけ取り残されて書けないままになる。
@@ -1698,12 +1706,12 @@ function 表に従って読む(
         });
       }
     } else if (形 === "向き") {
-      if (["up", "down", "left", "right"].includes(値)) out[欄] = 値;
+      if ((SHAPE_ORIENT_VALUES as readonly string[]).includes(値)) out[欄] = 値;
       else {
         errors.push({
           line,
           message: `${接頭}${欄} の向きが読めません: "${値}"`,
-          hint: "使える値 = up, down, left, right",
+          hint: `使える値 = ${SHAPE_ORIENT_VALUES.join(", ")}`,
         });
       }
     } else {
