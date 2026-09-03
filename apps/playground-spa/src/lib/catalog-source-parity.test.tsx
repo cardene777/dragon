@@ -95,6 +95,25 @@ const 光らせる先の既知の差: Record<string, readonly string[]> = {
   // 宣言する差も無い。
 };
 
+/**
+ * 差を宣言する一覧を 1 つに束ねる (#1563)。
+ *
+ * **鍵の実在を見る検査はここから導く**。 一覧を手で並べていた間、4 つのうち
+ * `光らせ分けられない矢印` だけ検査を持っていなかった (実測)。 手で並べる形は、
+ * 宣言を足したときに検査へ足すのを忘れても落ちない。
+ *
+ * 宣言を足す = この object に欄を足すことなので、検査は自動で追随する。
+ *
+ * **引く側もここを通す**。 素の定数から引いたままだと、束ねから欄を落としても呼出側が
+ * 生きたままになり、検査だけが静かに消える。 束ね経由にすれば、落とした時点で型検査が落ちる。
+ */
+const 差の宣言 = {
+  光らせる先の既知の差,
+  縦列の見出しの既知の差,
+  光らせ分けられない矢印,
+  id完全一致,
+} as const;
+
 type Diagram = CdlDiagram;
 
 /**
@@ -996,7 +1015,7 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // **図ごと飛ばすと、その図だけ描画の比較が丸ごと抜ける** (Round 1 の指摘)。
         // 宣言した id を光らせる先から外してから比べれば、光らせ方以外は見られる。
         // 光らせ方の差そのものは `段が光らせる先が一致する` が宣言付きで見る
-        const 外す = new Set(光らせる先の既知の差[t.key] ?? []);
+        const 外す = new Set(差の宣言.光らせる先の既知の差[t.key] ?? []);
         expect(見た目(記法), "描いた図が違う").toBe(見た目(t.built, 外す));
       });
 
@@ -1034,7 +1053,7 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // 縦列の見出しは画面に出る字なので、そこまで比べる。 id は名前から導かれるため見ない
         const 見出し = (a: readonly { label?: string }[] | undefined): string[] =>
           (a ?? []).map((x) => x.label ?? "");
-        if (t.key in 縦列の見出しの既知の差) {
+        if (t.key in 差の宣言.縦列の見出しの既知の差) {
           // 見出しは違っても **数は合わせる** = 縦列が増減したら画面の配置が変わる
           expect((記法.lanes ?? []).length).toBe((t.built.lanes ?? []).length);
           // 宣言した差が解消したら落とす = 宣言が古くなったまま残らない
@@ -1066,7 +1085,7 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // **数だけを比べても足りない** (Round 1 の指摘)。 `User` の代わりに `Order` を
         // 光らせても数が同じなら通っていた。 読む人に見える名前へ読み替えて比べる
         // 記法で光らせ分けられない矢印は **両側から** 外す (#1371)
-        const 外す説明 = 光らせ分けられない矢印[t.key] ?? [];
+        const 外す説明 = 差の宣言.光らせ分けられない矢印[t.key] ?? [];
         const 説明が合う矢印 = (d: Diagram): Set<string> =>
           new Set(d.edges.filter((e) => 外す説明.includes(e.label ?? "")).map((e) => e.id));
         const 記法から外す = 説明が合う矢印(記法);
@@ -1086,8 +1105,8 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
           ).not.toEqual(光らせる先(t.built));
         }
         const 記法側 = 光らせる先(記法, 記法から外す);
-        if (t.key in 光らせる先の既知の差) {
-          const 既知の差 = new Set(光らせる先の既知の差[t.key]);
+        if (t.key in 差の宣言.光らせる先の既知の差) {
+          const 既知の差 = new Set(差の宣言.光らせる先の既知の差[t.key]);
           const 組立側の全対象 = new Set(t.built.phases.flatMap((p) => p.activate));
           const 宣言したが光らない対象 = [...既知の差].filter((id) => !組立側の全対象.has(id));
           expect(
@@ -1123,7 +1142,7 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         expect(注意, `${t.key} の記法が注意を出している`).toEqual([]);
       });
 
-      if (id完全一致.includes(t.key)) {
+      if (差の宣言.id完全一致.includes(t.key)) {
         it("id まで完全に一致する", () => {
           expect(ids(記法.nodes)).toEqual(ids(t.built.nodes));
           expect(ids(記法.edges)).toEqual(ids(t.built.edges));
@@ -1133,19 +1152,28 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
     });
   }
 
-  it("宣言が全て実在する preset を指す", () => {
-    const 実在2 = new Set(対象.map((t) => t.key));
-    const 幽霊2 = Object.keys(光らせる先の既知の差).filter((k) => !実在2.has(k));
-    expect(幽霊2, "光らせる先の既知の差に宣言されているが記法を持たない preset").toEqual([]);
-    const 幽霊4 = Object.keys(縦列の見出しの既知の差).filter((k) => !実在2.has(k));
-    expect(幽霊4, "縦列の見出しの既知の差に宣言されているが記法を持たない preset").toEqual([]);
-  });
+  /** 宣言 1 つ分の鍵。 並びはそのまま、表は鍵の集まり */
+  const 宣言の鍵 = (v: Record<string, unknown> | readonly string[]): readonly string[] =>
+    Array.isArray(v) ? v : Object.keys(v as Record<string, unknown>);
 
-  it("id 完全一致の宣言が全て実在する preset を指す", () => {
+  it("宣言が全て実在する preset を指す", () => {
     // 宣言だけ残って対象が消えた形を落とす
     const 実在 = new Set(対象.map((t) => t.key));
-    const 幽霊 = id完全一致.filter((k) => !実在.has(k));
-    expect(幽霊, "id 完全一致に宣言されているが記法を持たない preset").toEqual([]);
+    // 0 件だと下の照合が「対象なし」 で素通りする
+    expect(実在.size, "記法を持つ preset が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
+    const 並び = Object.entries(差の宣言);
+    expect(並び.length, "差の宣言が 1 つも無い (束ねが空)").toBeGreaterThan(0);
+    // 全部が空だと、鍵を見る経路が 1 度も走らない
+    expect(
+      並び.reduce((n, [, v]) => n + 宣言の鍵(v).length, 0),
+      "宣言が 1 件も無い (鍵を見る経路が走っていない)",
+    ).toBeGreaterThan(0);
+
+    const 幽霊: string[] = [];
+    for (const [名, v] of 並び) {
+      for (const k of 宣言の鍵(v)) if (!実在.has(k)) 幽霊.push(`${名}: ${k}`);
+    }
+    expect(幽霊, "宣言されているが記法を持たない preset").toEqual([]);
   });
 });
 
