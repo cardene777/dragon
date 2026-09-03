@@ -77,8 +77,9 @@ describe("箱に書いた縦列が効かないことを伝える (#1246)", () =>
   // `mind` は自分でまとめて伝えるため別扱い (下の describe)。
   // `flow` / `topology` / `swimlane` は #1263 で、`class` / `state` は #1466 で選べるように
   // なったため別扱い (下の describe)
+  // `er` は #1571 で選べるようになったため別扱い (下の describe)
   for (const type of [
-    "sequence", "er", "solidity", "c4",
+    "sequence", "solidity", "c4",
     "gantt", "pie", "bar", "line", "funnel", "tree", "journey", "quadrant",
   ]) {
     it(`${type} でも知らせが出る`, () => {
@@ -92,7 +93,8 @@ describe("箱に書いた縦列が効かないことを伝える (#1246)", () =>
 describe("縦列を選べる図種では中身が違う (#1263)", () => {
   // **知らせが出るかどうかだけを見ると気付けない**。 一部の箱だけ縦列を書いた形でも
   // 知らせは出るが、中身は「効かない」 ではなく「全部に書け」 になる (変異試験で判明)
-  for (const type of ["flow", "topology", "swimlane", "class", "state"]) {
+  // `er` は #1571 で足した。 1 列に並べると関係を 4 本持つ実体で 2 本が隣を飛び越すため
+  for (const type of ["flow", "topology", "swimlane", "class", "state", "er"]) {
     it(`${type} は全部に書けと伝える`, () => {
       const 出た = 縦列の知らせ(記法(二人("lane: ui"), type));
       expect(出た).toHaveLength(1);
