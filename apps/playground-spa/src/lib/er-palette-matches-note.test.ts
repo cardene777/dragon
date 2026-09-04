@@ -31,6 +31,8 @@ const 役と口 = {
   字: "ink",
   型名: "type",
   線: "line",
+  所有: "own",
+  向きだけ: "link",
 } as const;
 
 /** 意匠帳の見出しと、実装の配色の名前の対応 */
@@ -112,13 +114,13 @@ describe("ER 図の配色が意匠帳と実装で一致する (#1553)", () => {
     expect([...実.keys()].sort(), "意匠帳と実装で色みの名前が違う").toEqual([...帳.keys()].sort());
   });
 
-  it("どの色みも 7 つの口を両方で持っている", () => {
+  it("どの色みも全ての口を両方で持っている", () => {
     const 口 = Object.values(役と口).sort();
     for (const [名前, 表] of 意匠帳の配色()) {
-      expect([...表.keys()].sort(), `意匠帳の ${名前} が 7 つの口を埋めていない`).toEqual(口);
+      expect([...表.keys()].sort(), `意匠帳の ${名前} が ${口.length} つの口を埋めていない`).toEqual(口);
     }
     for (const [名前, 表] of 実装の配色()) {
-      expect([...表.keys()].sort(), `実装の ${名前} が 7 つの口を埋めていない`).toEqual(口);
+      expect([...表.keys()].sort(), `実装の ${名前} が ${口.length} つの口を埋めていない`).toEqual(口);
     }
   });
 

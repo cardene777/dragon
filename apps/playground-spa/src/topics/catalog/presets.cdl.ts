@@ -516,6 +516,8 @@ export const presetInfrastructure = withSteps(
 // 上 / 下 / 左 / 右 に散るようにしてある。
 // 描き手は元から種類の札を持つが、見本帳では 1 度も使っていなかった。 `interface` と
 // `abstract` の異なる 2 値を出し、札が種類を分ける入口だと読めるようにする。
+// **関係に色みを書かない** (#1583)。 描き手が種類から 3 群の色みを決めるので、書くとそちらが
+// 勝って 6 本とも同じ色になる。 記法 3 形とも書かない形で揃える。
 //
 //   段 0   User        Auditable
 //   段 1   Admin ──持つ── Order ──使う── Receipt
@@ -2273,12 +2275,12 @@ actors:
 
 # relation を書くと 線 / 端の形 / 塗り / 付く側 がまとめて決まる
 flow:
-  - Admin -> User: "EXTENDS" (info) { relation: extends }
-  - Order -> Auditable: "IMPLEMENTS" (info) { relation: implements }
-  - Admin -> Order: "HAS" (info) { relation: aggregates, sub: "1..*" }
-  - Order -> Receipt: "USES" (info) { relation: uses }
-  - Order -> Line: "OWNS" (info) { relation: composes, sub: "1..*" }
-  - Line -> Sku: "LINKS" (info) { relation: associates }
+  - Admin -> User: "EXTENDS" { relation: extends }
+  - Order -> Auditable: "IMPLEMENTS" { relation: implements }
+  - Admin -> Order: "HAS" { relation: aggregates, sub: "1..*" }
+  - Order -> Receipt: "USES" { relation: uses }
+  - Order -> Line: "OWNS" { relation: composes, sub: "1..*" }
+  - Line -> Sku: "LINKS" { relation: associates }
 
 animation:
   - step: "1. User" 0.9s
@@ -2362,14 +2364,12 @@ export const sourceJson__presetClassDiagram = `{
       "from": "Admin",
       "to": "User",
       "label": "EXTENDS",
-      "tone": "info",
       "relation": "extends"
     },
     {
       "from": "Order",
       "to": "Auditable",
       "label": "IMPLEMENTS",
-      "tone": "info",
       "relation": "implements"
     },
     {
@@ -2377,14 +2377,12 @@ export const sourceJson__presetClassDiagram = `{
       "to": "Order",
       "label": "HAS",
       "sub": "1..*",
-      "tone": "info",
       "relation": "aggregates"
     },
     {
       "from": "Order",
       "to": "Receipt",
       "label": "USES",
-      "tone": "info",
       "relation": "uses"
     },
     {
@@ -2392,14 +2390,12 @@ export const sourceJson__presetClassDiagram = `{
       "to": "Line",
       "label": "OWNS",
       "sub": "1..*",
-      "tone": "info",
       "relation": "composes"
     },
     {
       "from": "Line",
       "to": "Sku",
       "label": "LINKS",
-      "tone": "info",
       "relation": "associates"
     }
   ],

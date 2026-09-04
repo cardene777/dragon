@@ -353,7 +353,7 @@
  * (`docs/design/er/note.md`) が図のために決めた別の組で、入れ替わる上流が無い。 ここが唯一の
  * 決め場所になる。
  *
- * ## 色を置く口は 7 つ
+ * ## 色を置く口は 9 つ
  *
  * | 口 | 何に出るか |
  * |---|---|
@@ -363,7 +363,17 @@
  * | 枠 | 箱の輪郭 |
  * | 字 | 表の名前 / 列の名前 / 鍵の下線 / 行頭の印 |
  * | 型名 | 列の型と箱の副題。 読み手が探すものではないので一段薄い |
- * | 線 | 関係の線と、札の枠と札の字 |
+ * | 線 | 関係の線と、札の枠と札の字。 クラス図では縦の関係 (継ぐ / 満たす) の線 |
+ * | 所有 | クラス図の所有の線 (持つ / 抱える) |
+ * | 向きだけ | クラス図の向きだけの線 (結ぶ / 使う) |
+ *
+ * ## 関係の色は 3 群まで (#1583)
+ *
+ * クラス図の関係は 6 種あるが、色を置くのは 3 群まで。 群の中の 2 種は既に線 (実線 / 破線) か
+ * 印の塗り (白抜き / 塗る) で分かれているので、色まで足すと同じことを 2 回言うことになる。
+ *
+ * 縦の関係は既にある「線」 の色を使う = 増えるのは 2 口。 ER 図と状態遷移図は関係が
+ * 1 種類なので「線」 だけを使い、増やした 2 口は読まない。
  *
  * ## 台と行の面は必ず離す
  *
@@ -381,6 +391,8 @@ svg[data-cdl-stage][data-cdl-palette="kinari"] {
   --er-ink: #241d14;
   --er-type: #6f6455;
   --er-line: #7d5c31;
+  --er-own: #2c6158;
+  --er-link: #3f6b1f;
 }
 
 html.dark svg[data-cdl-stage][data-cdl-palette="kinari"] {
@@ -391,6 +403,8 @@ html.dark svg[data-cdl-stage][data-cdl-palette="kinari"] {
   --er-ink: #f5efe2;
   --er-type: #b3a692;
   --er-line: #cbb488;
+  --er-own: #7ecbbc;
+  --er-link: #a8cf72;
 }
 
 /* 青磁に墨。 書き手が `palette: celadon` と書いた図だけがこれになる */
@@ -402,6 +416,8 @@ svg[data-cdl-stage][data-cdl-palette="celadon"] {
   --er-ink: #132220;
   --er-type: #5a6b69;
   --er-line: #2d6b62;
+  --er-own: #7a4a2a;
+  --er-link: #2f4f7a;
 }
 
 html.dark svg[data-cdl-stage][data-cdl-palette="celadon"] {
@@ -412,6 +428,8 @@ html.dark svg[data-cdl-stage][data-cdl-palette="celadon"] {
   --er-ink: #edf3f1;
   --er-type: #9aaba8;
   --er-line: #7ccdbe;
+  --er-own: #dcae83;
+  --er-link: #93b6e0;
 }
 
 /*
@@ -453,6 +471,22 @@ svg[data-cdl-stage][data-cdl-palette] {
   --d-border-strong: var(--er-line);
   /* 関係の線は「意味」 の色 (`info`) で引かれる。 ER 図の既定の色みがこれ */
   --d-dg-4: var(--er-line);
+  /*
+   * クラス図の 3 群 (#1583)。 描き手が関係の種類から色みを決めるので、その落ち先を配色に流す。
+   *
+   * | 色み | 群 | 種類 |
+   * |---|---|---|
+   * | `accent` | 縦の関係 | 継ぐ / 満たす |
+   * | `teal` | 所有 | 持つ / 抱える |
+   * | `success` | 向きだけ | 結ぶ / 使う |
+   *
+   * 縦の関係は既にある「線」 の色を使う = 増やした口は 2 つだけ。
+   * `[data-cdl-tone="<色み>"]` が `--d-dg-*` を読んで `--dragon-edge-tone` に流すので、
+   * ここでは読み先の値を入れ替える。
+   */
+  --d-dg-1: var(--er-line);
+  --d-dg-6: var(--er-own);
+  --d-dg-2: var(--er-link);
   /* 意味を書かなかった線の落ち先。 意味を書いた線は自分の色で上書きする */
   --dragon-edge-tone: var(--er-line);
 
