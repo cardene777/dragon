@@ -514,6 +514,8 @@ export const presetInfrastructure = withSteps(
 // なる。 並べ方の決まりは 1 つで、**箱の 1 つの辺には関係を 1 本しか載せない** = 同じ辺から
 // 2 本出すと、どちらも辺の芯から出るので重なる。 7 箱を 3 列 3 段に置いて、6 本が
 // 上 / 下 / 左 / 右 に散るようにしてある。
+// 描き手は元から種類の札を持つが、見本帳では 1 度も使っていなかった。 `interface` と
+// `abstract` の異なる 2 値を出し、札が種類を分ける入口だと読めるようにする。
 //
 //   段 0   User        Auditable
 //   段 1   Admin ──持つ── Order ──使う── Receipt
@@ -526,6 +528,7 @@ export const presetClassDiagram = withSteps(
     .class({
       id: "User",
       title: "User",
+      stereotype: "abstract",
       col: 0,
       row: 0,
       attributes: ["+name: string", "+email: string"],
@@ -534,6 +537,7 @@ export const presetClassDiagram = withSteps(
     .class({
       id: "Auditable",
       title: "Auditable",
+      stereotype: "interface",
       col: 1,
       row: 0,
       methods: ["+audit(): Log[]"],
@@ -2259,8 +2263,8 @@ palette: kinari
 
 # 縦列は lane の並び、段は stack。 箱の 1 つの辺には関係を 1 本しか載せない
 actors:
-  - User: { lane: c0, stack: 0, rows: ["+name: string", "+email: string", "───", "+login(): Session"] }
-  - Auditable: { lane: c1, stack: 0, rows: ["+audit(): Log[]"] }
+  - User: { eyebrow: "abstract", lane: c0, stack: 0, rows: ["+name: string", "+email: string", "───", "+login(): Session"] }
+  - Auditable: { eyebrow: "interface", lane: c1, stack: 0, rows: ["+audit(): Log[]"] }
   - Admin: { lane: c0, stack: 1, rows: ["+permissions: string[]", "───", "+banUser(): void"] }
   - Order: { lane: c1, stack: 1, rows: ["+id: number", "+total: number", "───", "+pay(): Receipt"] }
   - Receipt: { lane: c2, stack: 1, rows: ["+no: string", "+amount: number"] }
@@ -2310,12 +2314,14 @@ export const sourceJson__presetClassDiagram = `{
   "actors": [
     {
       "name": "User",
+      "eyebrow": "abstract",
       "lane": "c0",
       "stack": 0,
       "rows": ["+name: string", "+email: string", "───", "+login(): Session"]
     },
     {
       "name": "Auditable",
+      "eyebrow": "interface",
       "lane": "c1",
       "stack": 0,
       "rows": ["+audit(): Log[]"]
