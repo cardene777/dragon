@@ -394,7 +394,8 @@
   display: grid;
   place-items: center;
   min-height: 264px;
-  padding: 20px;
+  padding: max(20px, var(--cdl-phase-chrome-top-space)) 20px
+    max(20px, var(--cdl-phase-chrome-bottom-space));
   background: var(--d-surface);
   border-top: 1px solid var(--d-border);
 }

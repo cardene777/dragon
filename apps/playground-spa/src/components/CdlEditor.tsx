@@ -29,6 +29,7 @@ import { fitBounds } from "@/lib/fit-bounds";
 import { boxesRightPx, readableScaleForFrame, smallestFontWorld } from "@/lib/readable-scale";
 import { axisOffset } from "@/lib/fit-anchor";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
+import { PHASE_CHROME_BOTTOM_SPACE_PX, PHASE_CHROME_TOP_SPACE_PX } from "@/lib/phase-chrome-space";
 import { stagePaperColor } from "@/lib/stage-paper";
 import {
   IconShare, IconExport, IconList, IconTextDown, IconTextUp, IconShrink, IconGrow,
@@ -1267,8 +1268,22 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const currentScale = transformRef.current.scale > 0 ? transformRef.current.scale : 1;
     const wrapUnscaled = wrapPx / currentScale;
     const headerUnscaled = Math.max(0, wrapUnscaled - px.h);
+    const phaseChromeStyle = getComputedStyle(previewRef.current);
+    const topSpace = Number.parseFloat(
+      phaseChromeStyle.getPropertyValue("--cdl-phase-chrome-top-space"),
+    );
+    const bottomSpace = Number.parseFloat(
+      phaseChromeStyle.getPropertyValue("--cdl-phase-chrome-bottom-space"),
+    );
+    // 上下は覆いが求める量を下限にする。大きい方を両側に使えば、中央配置を保ったまま
+    // 札と足のどちらにも必要な空きを確保できる。
+    const verticalPadding = Math.max(
+      previewRect.height * PADDING_RATIO,
+      Number.isFinite(topSpace) ? topSpace : PHASE_CHROME_TOP_SPACE_PX,
+      Number.isFinite(bottomSpace) ? bottomSpace : PHASE_CHROME_BOTTOM_SPACE_PX,
+    );
     const availableW = previewRect.width * (1 - PADDING_RATIO * 2);
-    const availableH = previewRect.height * (1 - PADDING_RATIO * 2);
+    const availableH = previewRect.height - verticalPadding * 2;
     // 図の外に置いたパーツも視野に入れる。 パーツは cdl の図とは別に重ねて描くので、
     // 図の枠だけを見ると画面の外に出たまま戻せない (実測 = 自動配置のパーツが画面の下に出た)
     //
