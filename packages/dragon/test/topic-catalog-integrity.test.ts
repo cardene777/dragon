@@ -65,7 +65,7 @@ describe("iter16: topic catalog integrity", () => {
 
   describe("presets.cdl.ts", () => {
     it(`preset export 数 = 19`, () => {
-      expect(ALL_PRESETS.length).toBe(19);
+      expect(ALL_PRESETS.length).toBe(21);
     });
 
     it(`全 preset の id が一意`, () => {
