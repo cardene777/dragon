@@ -4269,7 +4269,7 @@ function 終わる位置(
 }
 
 function compileGantt(doc: DslDocument): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: "gantt" });
   const CHART_W = 720;
   b.lane("gantt", { width: CHART_W });
 
@@ -4406,7 +4406,8 @@ function compileClass(doc: DslDocument): CdlDiagram {
    */
   const b = classDiagram({ id: slugify(doc.title), topic: doc.title });
   // 登場人物が 0 人なら枠も作らない。 先に作ると中身の無い枠が 1 つ残る (#1096)
-  if (doc.actors.length === 0) return diagram(slugify(doc.title), { topic: doc.title }).build();
+  if (doc.actors.length === 0)
+    return diagram(slugify(doc.title), { topic: doc.title, type: "class" }).build();
 
   /*
    * 縦列は `lane:` の順、段は `stack:` で決まる (#1466)。
@@ -4564,7 +4565,7 @@ function compileValueChart(
     | "chart-stacked-bar",
   onNotice?: (notice: CompileNotice) => void,
 ): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: "chart" });
   const CHART_W = 640;
   // **高さは型で違い、 格子に載せる**。 描画側 (`cdl` の `chart()` preset) は `pie` を 320、
   // 棒と折れ線を 360 とした上で **16 の倍数へ切り上げる** (360 は 16 で割り切れないので 368)。
@@ -4906,7 +4907,7 @@ function 語の状態を図の語へ直す(diagram: CdlDiagram): void {
 }
 
 function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: "funnel" });
   const { w: W, h: H } = 図表の大きさ.funnel;
   b.lane("chart", { width: W + 64 });
   const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
@@ -5033,7 +5034,7 @@ function 矢印から親を決める(
 }
 
 function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: "tree" });
   const { w: W, h: H } = 図表の大きさ.tree;
   b.lane("chart", { width: W + 64 });
   // **同じ slug になる名前を先に見る**。 違う名前が同じ id に潰れると、 自分を親にしたと
@@ -5142,7 +5143,7 @@ function reportChartFieldsNotHonored(
 }
 
 function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: "journey" });
   const { w: W, h: H } = 図表の大きさ.journey;
   b.lane("chart", { width: W + 64 });
   const data: NonNullable<CdlDiagram["nodes"][number]["journeyData"]> = [];
@@ -5256,7 +5257,7 @@ function reportAxesNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
 }
 
 function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: "quadrant" });
   const { w: W, h: H } = 図表の大きさ.quadrant;
   b.lane("chart", { width: W + 64 });
   const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
@@ -5355,7 +5356,7 @@ function 段を読み取る(subtitle: string | undefined): { 段: number; 説明
  * flow ... actor 間の関係を edge で表現。
  */
 function compileC4(doc: DslDocument): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: "infrastructure" });
   const LANE_W = 400;
   const LANE_GAP = 80;
   const 段の名前: Record<number, string> = { 1: "System Context", 2: "Container", 3: "Component" };
@@ -5716,7 +5717,7 @@ function 放射に出す文字(a: DslActor): { title: string; subtitle?: string 
 }
 
 function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: "mindmap" });
   const { w: W, h: H } = 図表の大きさ.mind;
 
   const 伝える = (kind: CompileNotice["kind"], 名: string, message: string, line = 0): void => {
@@ -6315,7 +6316,7 @@ function compileFlow(doc: DslDocument): CdlDiagram {
   // 通すと中身の無い枠が残る (実測 = `title` と `type` だけの本文で枠 `flow` が空)。
   // 枠を持たない図として返す = `swimlane` / `c4` が 0 人で枠 0 になるのと揃う
   if (doc.actors.length === 0) {
-    return diagram(slugify(doc.title), { topic: doc.title }).build();
+    return diagram(slugify(doc.title), { topic: doc.title, type: "flow" }).build();
   }
   // flow preset は actors を順に step として配置、 step 間に edge auto
   const flowBuilder = flow({
@@ -6544,7 +6545,7 @@ function compileTopology(doc: DslDocument): CdlDiagram {
   // 登場人物が 0 人なら枠も作らない。 描画側の `topology()` は枠を必ず 1 つ作るため、 そのまま
   // 通すと中身の無い枠が残る (#1096)
   if (doc.actors.length === 0) {
-    return diagram(slugify(doc.title), { topic: doc.title }).build();
+    return diagram(slugify(doc.title), { topic: doc.title, type: "topology" }).build();
   }
   // topology preset ... actors を 1 つの group 内 container として配置
   // v0.3 で「group」 ブロックを追加して複数 group 対応検討
@@ -6720,8 +6721,8 @@ function 書いた縦列に置く(kind: PresetType, doc: DslDocument): boolean {
 }
 
 function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title });
   const { kind, laneWidth } = opts;
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: kind });
 
   // lane / node 配置 ... preset kind に応じて切替
   const actorToNodeId = new Map<string, string>();

@@ -29,18 +29,8 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
-import * as Patterns from "@/topics/catalog/patterns.cdl";
-import * as Styles from "@/topics/catalog/styles.cdl";
-import * as Animation from "@/topics/catalog/animation.cdl";
-import * as Primitives from "@/topics/catalog/primitives.cdl";
-import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
-import * as Cookbook from "@/topics/catalog/cookbook.cdl";
-import * as Ethereum from "@/topics/catalog/ethereum.cdl";
-import * as Parts from "@/topics/catalog/parts.cdl";
-import * as Interactive from "@/topics/catalog/interactive.cdl";
-import * as Charts from "@/topics/catalog/charts.cdl";
-import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
 import { 一覧の記法つき, 差分 } from "./catalog-scope";
+import { 記法つき, 記法を持つ見本帳 } from "./catalog-source-cases";
 
 /**
  * id まで完全に一致する preset。
@@ -95,6 +85,35 @@ const 光らせる先の既知の差: Record<string, readonly string[]> = {
   // 宣言する差も無い。
 };
 
+type 図種の差 = {
+  見本: string;
+  記法経路: string;
+  組み立て器経路: string;
+  理由: string;
+};
+
+/** dragon の記法に同名の図種が無く、組み立て器と一致させられない見本。 */
+const 図種の既知の差: Record<string, 図種の差> = {
+  presetFlowchart: {
+    見本: "presetFlowchart",
+    記法経路: "swimlane",
+    組み立て器経路: "flowchart",
+    理由: "dragon の記法に flowchart が無く、swimlane として書くため",
+  },
+  presetNetwork: {
+    見本: "presetNetwork",
+    記法経路: "flow",
+    組み立て器経路: "network",
+    理由: "dragon の記法に network が無く、flow として書くため",
+  },
+  presetInfrastructure: {
+    見本: "presetInfrastructure",
+    記法経路: "flow",
+    組み立て器経路: "infrastructure",
+    理由: "dragon の記法に infrastructure が無く、flow として書くため",
+  },
+};
+
 /**
  * 差を宣言する一覧を 1 つに束ねる (#1563)。
  *
@@ -108,6 +127,7 @@ const 光らせる先の既知の差: Record<string, readonly string[]> = {
  * 生きたままになり、検査だけが静かに消える。 束ね経由にすれば、落とした時点で型検査が落ちる。
  */
 const 差の宣言 = {
+  図種の既知の差,
   光らせる先の既知の差,
   縦列の見出しの既知の差,
   光らせ分けられない矢印,
@@ -115,62 +135,6 @@ const 差の宣言 = {
 } as const;
 
 type Diagram = CdlDiagram;
-
-/**
- * 記法を併記した見本を持つ module。
- *
- * **1 つずつ足す**。 module を動的に集める形にすると、記法を持たない module まで拾って
- * 別の壊れ方をするため、ここは手で並べる。
- *
- * 足し忘れは「検査が増えない」 という形で残り、通っている件数だけが減る = 気付けない。
- * 実際 `charts` と `text-dsl` が一覧に載りながら本 file の対象から漏れていた (#1403)。
- * **漏れは § 一覧に載る記法が 1 つ残らず対象に入っている が落とす**。
- *
- * 見本が記法を持つかどうか (網羅) は別の検査が見る
- * (`catalog-notation-coverage.test.ts`)。 あちらは「ページが記法を揃えたか」 を見るだけで、
- * **その記法が本 file の対象に入っているかは見ない**。 2 つは別の問いなので両方要る。
- */
-const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
-  ["presets", Presets],
-  ["patterns", Patterns],
-  ["styles", Styles],
-  ["animation", Animation],
-  ["primitives", Primitives],
-  ["primitives-extra", PrimitivesExtra],
-  // **図が記法から組み立つページ** (#1378)。 他は組み立て API の図と記法を突き合わせるが、
-  // ここは同じ source なので骨格は必ず一致する。 それでも入れるのは、記法の組み立てが
-  // 注意を出さないことと、図の側だけを書き換えた変更を落とすため
-  ["cookbook", Cookbook],
-  ["ethereum", Ethereum],
-  ["parts", Parts],
-  ["interactive", Interactive],
-  ["charts", Charts],
-  ["text-dsl", TextDsl],
-];
-
-/** `sourceYaml__<key>` を持つ見本を集める */
-function 記法つき(): { key: string; yaml: string; built: Diagram }[] {
-  const out: { key: string; yaml: string; built: Diagram }[] = [];
-  const 既出の名前 = new Set<string>();
-  for (const [名, mod] of 記法を持つ見本帳) {
-    for (const [k, v] of Object.entries(mod)) {
-      if (!k.startsWith("sourceYaml__") || typeof v !== "string") continue;
-      const key = k.slice("sourceYaml__".length);
-      const built = mod[key];
-      // 記法だけあって図が無い形を落とす。 通すと「比べる相手が無いのに通った」 になる
-      if (built === null || typeof built !== "object") {
-        throw new Error(`${名}: sourceYaml__${key} に対応する図の export が無い`);
-      }
-      // **key の重複を落とす**。 宣言 (既知の差 / id 完全一致) は key で引くため、
-      // 別 module に同名があると宣言が意図しない図に効く
-      if (既出の名前.has(key))
-        throw new Error(`見本の名前 "${key}" がページをまたいで重複している`);
-      既出の名前.add(key);
-      out.push({ key, yaml: v, built: built as Diagram });
-    }
-  }
-  return out;
-}
 
 const 対象 = 記法つき();
 
@@ -373,7 +337,11 @@ function 時刻を止めて描く<T>(描く: () => T): T {
   }
 }
 
-function 見た目(d: Diagram, 光らせる先から外す: ReadonlySet<string> = new Set()): string {
+function 見た目(
+  d: Diagram,
+  光らせる先から外す: ReadonlySet<string> = new Set(),
+  図種を外す = false,
+): string {
   const 対象 =
     光らせる先から外す.size === 0
       ? d
@@ -388,11 +356,12 @@ function 見た目(d: Diagram, 光らせる先から外す: ReadonlySet<string> 
   const 始 = s.indexOf("<svg");
   const 終 = s.lastIndexOf("</svg>");
   if (始 < 0 || 終 <= 始) throw new Error("図が描かれていない");
+  const svg = s
+    .slice(始, 終 + 6)
+    .replace(落とす式, "")
+    .replace(/url\(#[^)]*\)/g, "url(#)");
   return 粒子の参照を読み替える(
-    s
-      .slice(始, 終 + 6)
-      .replace(落とす式, "")
-      .replace(/url\(#[^)]*\)/g, "url(#)"),
+    図種を外す ? svg.replace(/ data-cdl-type="[^"]*"/, "") : svg,
     見える名前の表(d),
   );
 }
@@ -705,9 +674,18 @@ function 出来事の見える名前(d: Diagram, v: unknown): unknown {
 }
 
 /** 図の直下 (題など)。 まとまりは対象ごとに別で比べる */
-function 図の直下(d: Diagram, 相手: Diagram): string {
+function 図の直下(d: Diagram, 相手: Diagram, 図種を外す = false): string {
+  const 宣言: 欄の宣言 = 図種を外す
+    ? {
+        ...図の直下の宣言,
+        比べない: {
+          ...図の直下の宣言.比べない,
+          type: "組み立て器が図種を持つ見本は専用検査で比べる",
+        },
+      }
+    : 図の直下の宣言;
   return (
-    比べる形([d], [相手], 図の直下の宣言, (k, v) =>
+    比べる形([d], [相手], 宣言, (k, v) =>
       k === "eventBindings" ? 出来事の見える名前(d, v) : v,
     )[0] ?? ""
   );
@@ -1016,7 +994,12 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // 宣言した id を光らせる先から外してから比べれば、光らせ方以外は見られる。
         // 光らせ方の差そのものは `段が光らせる先が一致する` が宣言付きで見る
         const 外す = new Set(差の宣言.光らせる先の既知の差[t.key] ?? []);
-        expect(見た目(記法), "描いた図が違う").toBe(見た目(t.built, 外す));
+        // 組み立て器が図種を持たない見本と、記法に同じ図種が無い見本は、SVG の属性だけを
+        // 外す。図種そのものの契約は下の専用検査と catalog-diagram-type が分担して見る
+        const 図種を外す = t.built.type == null || t.key in 差の宣言.図種の既知の差;
+        expect(見た目(記法, new Set(), 図種を外す), "描いた図が違う").toBe(
+          見た目(t.built, 外す, 図種を外す),
+        );
       });
 
       it("描いた図の大きさが一致する", () => {
@@ -1068,7 +1051,28 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
       it("図の直下が一致する", () => {
         // 題 (`topic`) は画面の見出しに出るのに比較対象から漏れていた (#1273)。
         // まとまり (箱 / 矢印 / 縦列 / 段 / 状態) は対象ごとに別で比べる
-        expect(図の直下(記法, t.built)).toBe(図の直下(t.built, 記法));
+        // 汎用の `diagram()` は図種を持たないため相手がある時だけ比べる。両経路が図種を
+        // 持つのに一致しない 3 件だけは、下の差の宣言を通して外す
+        const 図種を外す = t.built.type == null || t.key in 差の宣言.図種の既知の差;
+        expect(図の直下(記法, t.built, 図種を外す)).toBe(図の直下(t.built, 記法, 図種を外す));
+      });
+
+      it("組み立て器が種類を持つ時は、記法経路の種類と一致する (既知の差は宣言したものだけ)", () => {
+        const 図種の差 = 差の宣言.図種の既知の差[t.key];
+        if (図種の差 !== undefined) {
+          expect(t.key, "図種の差に書いた見本名が鍵と違う").toBe(図種の差.見本);
+          expect(記法.type, `${t.key} の記法経路の種類が宣言と違う`).toBe(図種の差.記法経路);
+          expect(t.built.type, `${t.key} の組み立て器経路の種類が宣言と違う`).toBe(
+            図種の差.組み立て器経路,
+          );
+          expect(記法.type, `${t.key} の図種差が解消している。 宣言から外すこと`).not.toBe(
+            t.built.type,
+          );
+          return;
+        }
+        if (t.built.type != null) {
+          expect(記法.type, `${t.key} の図の種類が違う`).toBe(t.built.type);
+        }
       });
 
       it("段の中身が並びごと一致する", () => {
