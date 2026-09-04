@@ -2216,7 +2216,7 @@
         "kinari",
         "celadon"
       ],
-      "description": "図の配色。 kinari = 生成りに茶 (ER 図の既定)。 celadon = 青磁に墨。 名前だけが図に載り、色の値は消費側が決める。"
+      "description": "図の配色 (`kinari` = 生成りに茶、`celadon` = 青磁に墨) で、ER 図とクラス図は書かなくても `kinari` になり、書いた `palette` が優先され、名前だけが図に載って色の値は消費側が決める。"
     },
     "reveal": {
       "type": "string",

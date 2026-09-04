@@ -72,7 +72,7 @@ flow:
 | `bands`     | 動いている間の帯 (順序図。 `- DB: 1..2` の形で段の番号の区間を書く)                                                                        |
 | `reveal`    | 矢印をいつ出すか (`phase` = 段が名指しする矢印はその段まで描かない (既定) / `all` = 最初から全部描く)                                      |
 | `direction` | 図の並ぶ向き (`縦` / `横`、英語なら `vertical` / `horizontal`)。 効くのは `flow` と `swimlane` だけ |
-| `palette`   | 図の配色 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨、日本語なら `生成り` / `青磁`)。 ER 図は書かなくても `kinari` になる |
+| `palette`   | 図の配色 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨、日本語なら `生成り` / `青磁`) で、ER 図とクラス図は書かなくても `kinari` になり、書いた `palette:` が優先される |
 
 <!-- notation:top-level:end -->
 

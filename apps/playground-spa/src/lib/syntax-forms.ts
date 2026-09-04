@@ -158,7 +158,7 @@ export const FORMS: Section[] = [
   {
     title: "図の配色 (palette:)",
     // 色の値は図が持たない。 名前だけが図に載り、画面側が名前を見て色を当てる。
-    // 例文は ER 図にする = 既定を持つ唯一の図種で、書き換えたことが絵で読める
+    // 例文は ER 図にする = 既定を持つ図種の一つで、書き換えたことが絵で読める
     sample: {
       slot: "palette",
       type: "er",
@@ -169,7 +169,7 @@ export const FORMS: Section[] = [
       flow: ['  - users -> orders: "注文する"'],
     },
     lines: [
-      { code: "palette: kinari", note: "生成りに茶。 ER 図は書かなくてもこれになる" },
+      { code: "palette: kinari", note: "ER 図とクラス図は書かなくても生成りに茶になる" },
       { code: "palette: celadon", note: "青磁に墨" },
       { code: "palette: 青磁", note: "日本語でも書ける (生成り / 青磁)" },
     ],

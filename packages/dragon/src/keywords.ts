@@ -61,7 +61,12 @@ export type DslPalette = (typeof PALETTES)[number];
 /**
  * 配色の別名。 向きと同じく日本語と英語の両方で書ける。
  *
- * `kinari` = 生成りに茶 (ER 図の既定)、 `celadon` = 青磁に墨。
+ * `kinari` = 生成りに茶、 `celadon` = 青磁に墨。
+ *
+ * ER 図とクラス図は書かなくても `kinari` (生成りに茶) になる。 どちらも箱の作りが同じ
+ * (行頭の印 + 左に名前 + 右に型) で、名前と型が離れて並ぶため、行を横に追う目印
+ * (行の縞) が要る。 縞の色は配色からしか来ないので、既定が無いと縞が箱の面と同じ色に
+ * 落ちて 1 本も出ない。 書き手が `palette:` を書いた時はそちらが勝つ。
  */
 export const PALETTE_ALIAS: Record<string, DslPalette> = {
   kinari: "kinari",
