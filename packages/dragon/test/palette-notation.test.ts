@@ -51,6 +51,21 @@ const 流れ = (配色?: string): string =>
     "",
   ].join("\n");
 
+/** 表の箱を 1 つ持つ最小のつながり図。 配色と行の縞が既定で付かないことを見る。 */
+const つながり = (): string =>
+  [
+    'title: "確かめ"',
+    "type: topology",
+    "",
+    "actors:",
+    '  - DB: { kind: storage, rows: ["id: bigint", "name: text"] }',
+    "  - App",
+    "",
+    "flow:",
+    '  - App -> DB: "読む"',
+    "",
+  ].join("\n");
+
 describe("図の配色 (#1553)", () => {
   it("ER 図は書かなくても生成りに茶になる", () => {
     // 「作れば必ずその色みになる」 のが決めた形。 書き忘れた図だけ別の色みになると、
@@ -67,10 +82,13 @@ describe("図の配色 (#1553)", () => {
     expect(textDslToDiagram(ER("生成り")).palette).toBe("kinari");
   });
 
-  it("既定を持つ 2 図種の外では書かなければ持たない", () => {
+  it("`flow` 図と `topology` 図は書かなければ配色を持たない", () => {
     // 既定は行の縞を必要とする 2 図種だけ。 それ以外まで配ると、配色を前提にしない図にも
     // 画面の色みと図の色みが二重に載る
-    expect(textDslToDiagram(流れ()).palette).toBeUndefined();
+    expect([textDslToDiagram(流れ()).palette, textDslToDiagram(つながり()).palette]).toEqual([
+      undefined,
+      undefined,
+    ]);
   });
 
   it("ER 以外でも書けば載る", () => {
@@ -135,19 +153,7 @@ describe("行の縞 (#1553)", () => {
   it("ER 図とクラス図以外の表の箱には敷かない", () => {
     // 縞は「行を横に追う」 ための目印。 行を持たない図種の箱に付けても描き手が読まないので、
     // 書いたのに出ない欄を残さない
-    const src = [
-      'title: "確かめ"',
-      "type: topology",
-      "",
-      "actors:",
-      '  - DB: { kind: storage, rows: ["id: bigint", "name: text"] }',
-      "  - App",
-      "",
-      "flow:",
-      '  - App -> DB: "読む"',
-      "",
-    ].join("\n");
-    const d = textDslToDiagram(src);
+    const d = textDslToDiagram(つながり());
     const 表 = d.nodes.filter((n) => n.kind === "storage");
     expect(表.length, "表の箱が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
     for (const n of 表) expect(n.rowStripe).toBeUndefined();
