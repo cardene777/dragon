@@ -7,6 +7,13 @@
  * 置く側は親に `position: relative` を持たせる。
  * ================================================================ */
 
+:root {
+  /* 札と足は字の行高を含むため、必要量は配置値だけでなく実際に描かれた高さで決まる。
+     上は 14 + 23 + 8、下は 12 + 26 + 8。字の寸法とずれると図の最初か最後の行が隠れる。 */
+  --cdl-phase-chrome-top-space: 45px;
+  --cdl-phase-chrome-bottom-space: 46px;
+}
+
 .cdl-phase {
   position: absolute;
   inset: 0;
