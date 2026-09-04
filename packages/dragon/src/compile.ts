@@ -583,6 +583,8 @@ function 静止した図の焦点を外す(diagram: CdlDiagram, doc: DslDocument
   }
 }
 
+const 既定の配色を持つ図種: ReadonlySet<DslDocument["type"]> = new Set(["er", "class"]);
+
 /**
  * 図の配色と、表の箱の行の縞を当てる (#1553)。
  *
@@ -591,9 +593,13 @@ function 静止した図の焦点を外す(diagram: CdlDiagram, doc: DslDocument
  * cdl は色を持たない。 名前だけを `data-cdl-palette` として markup に出し、消費側
  * (`cdl-theme.css`) が名前を見て 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線) に色を当てる。
  *
- * ER 図は書かなくても `kinari` (生成りに茶) になる。 ER 図は小さい字が密に並ぶので、他の図種と
- * 同じ色みだと行を追えない = 既定を持たせて「作れば必ずその色みになる」 形にする。
+ * ER 図とクラス図は書かなくても `kinari` (生成りに茶) になる。
+ * どちらも箱の作りが同じ (行頭の印 + 左に名前 + 右に型) で、名前と型が離れて並ぶため、
+ * 行を横に追う目印 (行の縞) が要る。
+ * 縞の色は配色からしか来ないので、既定が無いと縞が箱の面と同じ色に落ちて 1 本も出ない。
  * 書き手が `palette:` を書いた時はそちらが勝つ。
+ *
+ * クラス図の意匠は `docs/design/class/note.md` が持つ。
  *
  * ## 行の縞
  *
@@ -605,7 +611,7 @@ function 静止した図の焦点を外す(diagram: CdlDiagram, doc: DslDocument
  * ここで対象を絞って「書いたのに出ない」 欄を残さない。
  */
 function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
-  const 配色 = doc.palette ?? (doc.type === "er" ? "kinari" : undefined);
+  const 配色 = doc.palette ?? (既定の配色を持つ図種.has(doc.type) ? "kinari" : undefined);
   if (配色 !== undefined) diagram.palette = 配色;
   if (doc.type !== "er") return;
   for (const node of diagram.nodes) {
