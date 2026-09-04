@@ -1,5 +1,5 @@
 /**
- * 20 preset metadata + CdlDiagram export。
+ * 21 preset metadata + CdlDiagram export。
  * SPA なので client/server 分割不要、 1 file で完結。
  */
 import type { CdlDiagram } from "@cardenelabs/cdl";
@@ -10,9 +10,11 @@ import {
   presetSequence,
   presetTopology,
   presetEr,
+  presetErComplex,
   presetStateMachine,
   presetInfrastructure,
   presetClassDiagram,
+  presetClassComplex,
   presetTree,
   presetUserJourney,
   presetMindMap,
@@ -68,9 +70,11 @@ export const PRESETS: PresetMetadata[] = [
   { id: "sequence", slug: "sequence", eyebrow: "SEQUENCE / UML", subtitle: "actor 列 × 時系列 row。 UML sequence diagram 風、 return 動作あり。", tags: ["actor", "UML"], diagram: presetSequence },
   { id: "topology", slug: "topology", eyebrow: "TOPOLOGY / DEPLOY", subtitle: "group + container 配置。 構成図 / deployment diagram 風。", tags: ["group", "container"], diagram: presetTopology },
   { id: "er", slug: "er", eyebrow: "ER / DB SCHEMA", subtitle: "entity + cardinality。 ER 図 / DB schema 風、 relation 表現。", tags: ["entity", "relation"], diagram: presetEr },
+  { id: "erComplex", slug: "er-complex", eyebrow: "ER / DB SCHEMA", subtitle: "12 表 × 14 関係。 多対多、自己参照、必須・任意を含む商取引の構造。", tags: ["12 tables", "many-to-many"], diagram: presetErComplex },
   { id: "stateMachine", slug: "state-machine", eyebrow: "STATE / FSM", subtitle: "state + transition trigger。 FSM / workflow 図風。", tags: ["state", "transition"], diagram: presetStateMachine },
   { id: "infrastructure", slug: "infrastructure", eyebrow: "INFRA / ARCHITECTURE", subtitle: "SaaS architecture、 web + api + db + cache の tier 構成。", tags: ["saas", "arch"], diagram: presetInfrastructure },
   { id: "classDiagram", slug: "class", eyebrow: "CLASS / UML", subtitle: "class + attribute + relation。 UML クラス図風、 aggregates / extends。", tags: ["class", "UML"], diagram: presetClassDiagram },
+  { id: "classComplex", slug: "class-complex", eyebrow: "CLASS / UML", subtitle: "12 class × 14 関係。 抽象・実装・組み立てと 6 種の関係を含む支払いの仕組み。", tags: ["12 classes", "6 relations"], diagram: presetClassComplex },
   { id: "tree", slug: "tree", eyebrow: "TREE / ORG CHART", subtitle: "組織図 / hierarchy tree。 root → branch 縦展開。", tags: ["hierarchy", "org"], diagram: presetTree },
   { id: "userJourney", slug: "user-journey", eyebrow: "USER JOURNEY", subtitle: "Signup / Onboarding 等の step 別 emotion / touchpoint。", tags: ["ux", "journey"], diagram: presetUserJourney },
   { id: "mindMap", slug: "mind", eyebrow: "MIND MAP / IDEA", subtitle: "root + branch 放射。 idea / brain storm 図風。", tags: ["mind map", "brain storm"], diagram: presetMindMap },

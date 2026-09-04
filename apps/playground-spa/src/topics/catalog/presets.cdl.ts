@@ -130,6 +130,50 @@ function withSteps(
 }
 
 /**
+ * ER 図を複数の縦列へ置き直す。
+ *
+ * `er()` は表ごとに縦列を作るため、表が多い見本では横一列になり、線が途中の表をまたぐ。
+ * 出来上がった箱の幅は保ちつつ、指定した格子へ集めれば、行の長さから求めた寸法を捨てずに
+ * 関係の近い表を上下左右へ置ける。
+ */
+function placeErOnGrid(
+  d: CdlDiagram,
+  positions: readonly { id: string; col: number; row: number }[],
+): CdlDiagram {
+  const byId = new Map(positions.map((position) => [position.id, position]));
+  const missing = d.nodes.filter((node) => !byId.has(node.id)).map((node) => node.id);
+  if (missing.length > 0) throw new Error(`ER 図の格子位置が無い表: ${missing.join(", ")}`);
+
+  const cols = [...new Set(positions.map((position) => position.col))].sort((a, b) => a - b);
+  const lanes = cols.map((col) => {
+    const widths = d.nodes
+      .filter((node) => byId.get(node.id)?.col === col)
+      .map((node) => node.w ?? 400);
+    return { id: `er-col-${col}`, width: Math.max(...widths) + 50 };
+  });
+
+  return {
+    ...d,
+    lanes,
+    nodes: d.nodes.map((node) => {
+      const position = byId.get(node.id)!;
+      return { ...node, lane: `er-col-${position.col}`, stack: position.row };
+    }),
+  };
+}
+
+/** 数字で指定した列と、出来上がった縦列の左右順を一致させる。 */
+function orderGridColumns(d: CdlDiagram): CdlDiagram {
+  return {
+    ...d,
+    // 組み立て器は最初に現れた順で縦列を作るため、層ごとに宣言すると数字の左右順が崩れる。
+    lanes: [...d.lanes].sort(
+      (a, b) => Number(a.id.replace("col-", "")) - Number(b.id.replace("col-", "")),
+    ),
+  };
+}
+
+/**
  * 図表の箱の中身に状態を通す (#1194)。
  *
  * 図表の中身 (`chartData` / `funnelData` / `ganttData` / `quadrantData` / `journeyData`) は
@@ -398,6 +442,272 @@ export const presetEr = withSteps(
   ],
 );
 
+const erComplex = er({
+  id: "er-complex-demo",
+  topic: "商取引の表と必須・任意の関係を表す ER 図",
+  defaultTone: "info",
+  palette: "kinari",
+})
+  .entity({
+    id: "users",
+    title: "users",
+    subtitle: "利用者",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "email", type: "text" },
+    ],
+  })
+  .entity({
+    id: "addresses",
+    title: "addresses",
+    subtitle: "住所",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "user_id", type: "bigint", fk: true },
+      { name: "line", type: "text" },
+    ],
+  })
+  .entity({
+    id: "roles",
+    title: "roles",
+    subtitle: "役割",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "name", type: "text" },
+    ],
+  })
+  .entity({
+    id: "user_roles",
+    title: "user_roles",
+    subtitle: "役割の割当",
+    columns: [
+      { name: "user_id", type: "bigint", pk: true, fk: true },
+      { name: "role_id", type: "bigint", pk: true, fk: true },
+    ],
+  })
+  .entity({
+    id: "orders",
+    title: "orders",
+    subtitle: "注文",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "user_id", type: "bigint", fk: true },
+      { name: "billing_address_id", type: "bigint", fk: true },
+      { name: "total", type: "numeric" },
+    ],
+  })
+  .entity({
+    id: "order_items",
+    title: "order_items",
+    subtitle: "注文の明細",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "order_id", type: "bigint", fk: true },
+      { name: "product_id", type: "bigint", fk: true },
+      { name: "qty", type: "int" },
+    ],
+  })
+  .entity({
+    id: "payments",
+    title: "payments",
+    subtitle: "支払",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "order_id", type: "bigint", fk: true },
+      { name: "method", type: "text" },
+    ],
+  })
+  .entity({
+    id: "shipments",
+    title: "shipments",
+    subtitle: "配送",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "order_id", type: "bigint", fk: true },
+      { name: "address_id", type: "bigint", fk: true },
+      { name: "status", type: "text" },
+    ],
+  })
+  .entity({
+    id: "products",
+    title: "products",
+    subtitle: "商品",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "sku", type: "text" },
+      { name: "price", type: "numeric" },
+    ],
+  })
+  .entity({
+    id: "categories",
+    title: "categories",
+    subtitle: "分類",
+    columns: [
+      { name: "id", type: "bigint", pk: true },
+      { name: "parent_id", type: "bigint", fk: true, optional: true },
+      { name: "name", type: "text" },
+    ],
+  })
+  .entity({
+    id: "product_categories",
+    title: "product_categories",
+    subtitle: "商品の分類",
+    columns: [
+      { name: "product_id", type: "bigint", pk: true, fk: true },
+      { name: "category_id", type: "bigint", pk: true, fk: true },
+    ],
+  })
+  .entity({
+    id: "inventory",
+    title: "inventory",
+    subtitle: "在庫",
+    columns: [
+      { name: "product_id", type: "bigint", pk: true, fk: true },
+      { name: "qty", type: "int" },
+    ],
+  })
+  .relation({
+    from: "users",
+    to: "addresses",
+    label: "住む",
+    style: "dashed",
+    tailHead: "one",
+    head: "zero-many",
+  })
+  .relation({ from: "users", to: "orders", label: "注文する", tailHead: "one", head: "many" })
+  .relation({ from: "users", to: "user_roles", label: "持つ", tailHead: "one", head: "many" })
+  .relation({ from: "roles", to: "user_roles", label: "割り当てる", tailHead: "one", head: "many" })
+  .relation({ from: "orders", to: "order_items", label: "並べる", tailHead: "one", head: "many" })
+  .relation({
+    from: "orders",
+    to: "payments",
+    label: "支払う",
+    style: "dashed",
+    tailHead: "one",
+    head: "zero-one",
+  })
+  .relation({
+    from: "orders",
+    to: "shipments",
+    label: "送る",
+    style: "dashed",
+    tailHead: "one",
+    head: "zero-one",
+  })
+  .relation({
+    from: "addresses",
+    to: "shipments",
+    label: "届け先",
+    style: "dashed",
+    tailHead: "one",
+    head: "zero-many",
+  })
+  .relation({
+    from: "addresses",
+    to: "orders",
+    label: "請求先",
+    style: "dashed",
+    tailHead: "one",
+    head: "zero-many",
+  })
+  .relation({ from: "products", to: "order_items", label: "売る", tailHead: "one", head: "many" })
+  .relation({ from: "products", to: "inventory", label: "数える", tailHead: "one", head: "one" })
+  .relation({
+    from: "products",
+    to: "product_categories",
+    label: "属す",
+    tailHead: "one",
+    head: "many",
+  })
+  .relation({
+    from: "categories",
+    to: "product_categories",
+    label: "束ねる",
+    tailHead: "one",
+    head: "many",
+  })
+  .relation({
+    from: "categories",
+    to: "categories",
+    label: "親を持つ",
+    style: "dashed",
+    tailHead: "one",
+    head: "zero-many",
+  })
+  .build();
+
+export const presetErComplex = withSteps(
+  placeErOnGrid(erComplex, [
+    { id: "roles", col: 0, row: 0 },
+    { id: "user_roles", col: 0, row: 1 },
+    { id: "users", col: 0, row: 2 },
+    { id: "addresses", col: 0, row: 3 },
+    { id: "payments", col: 1, row: 3 },
+    { id: "orders", col: 1, row: 2 },
+    { id: "order_items", col: 1, row: 1 },
+    { id: "shipments", col: 1, row: 4 },
+    { id: "categories", col: 2, row: 0 },
+    { id: "product_categories", col: 2, row: 1 },
+    { id: "products", col: 2, row: 2 },
+    { id: "inventory", col: 2, row: 3 },
+  ]),
+  [
+    {
+      ids: [
+        "users",
+        "addresses",
+        "roles",
+        "orders",
+        "order_items",
+        "payments",
+        "shipments",
+        "products",
+        "categories",
+        "inventory",
+      ],
+      title: "1. 商取引の実体",
+      body: "利用者から商品、注文、配送まで、取引を成り立たせる表を先に読む。",
+    },
+    {
+      ids: ["user_roles", "product_categories"],
+      title: "2. 中継表",
+      body: "2 つの鍵を持つ表が、実体どうしを結ぶ準備をする。",
+    },
+    {
+      ids: [
+        "rel-2-users-user_roles",
+        "rel-3-roles-user_roles",
+        "rel-11-products-product_categories",
+        "rel-12-categories-product_categories",
+      ],
+      title: "3. 多対多の 2 組",
+      body: "利用者と役割、商品と分類を、それぞれ中継表越しに読む。",
+    },
+    {
+      ids: [
+        "rel-1-users-orders",
+        "rel-4-orders-order_items",
+        "rel-9-products-order_items",
+        "rel-10-products-inventory",
+      ],
+      title: "4. 必須の関係",
+      body: "実線と端の棒で、取引に欠かせない結び付きを追う。",
+    },
+    {
+      ids: [
+        "rel-0-users-addresses",
+        "rel-5-orders-payments",
+        "rel-6-orders-shipments",
+        "rel-7-addresses-shipments",
+        "rel-8-addresses-orders",
+        "rel-13-categories-categories",
+      ],
+      title: "5. 任意の関係",
+      body: "破線と丸い端で、未登録や未処理を許す関係と分類の自己参照を読む。",
+    },
+  ],
+);
+
 // stateMachine preset ... 状態遷移図 (設計「箱と行と関係」 の意匠)
 //
 // 注文が下書きから受付済へ進み、支払いを経て終わる。 受付済からは取り消せる。
@@ -618,6 +928,173 @@ export const presetClassDiagram = withSteps(
       ids: ["Sku", "Receipt", "cr-5-Line-Sku", "cr-3-Order-Receipt"],
       title: "6. 結ぶ・使う",
       body: "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。",
+    },
+  ],
+);
+
+export const presetClassComplex = withSteps(
+  orderGridColumns(
+    classDiagram({
+      id: "class-complex-demo",
+      topic: "支払いの抽象・実装・組み立てを示す UML クラス図",
+      palette: "kinari",
+    })
+      .class({
+        id: "CardPayment",
+        title: "CardPayment",
+        col: 0,
+        row: 1,
+        attributes: ["+token: string", "+brand: string"],
+        methods: ["+authorize(): Result", "+capture(): Result"],
+      })
+      .class({
+        id: "PaymentMethod",
+        title: "PaymentMethod",
+        stereotype: "abstract",
+        col: 1,
+        row: 0,
+        attributes: ["+methodId: string", "+enabled: boolean"],
+        methods: ["+authorize(): Result", "+capture(): Result"],
+      })
+      .class({
+        id: "Auditable",
+        title: "Auditable",
+        stereotype: "interface",
+        col: 2,
+        row: 0,
+        attributes: ["+auditId: string"],
+        methods: ["+audit(): AuditLog"],
+      })
+      .class({
+        id: "Retryable",
+        title: "Retryable",
+        stereotype: "interface",
+        col: 3,
+        row: 0,
+        attributes: ["+maxAttempts: number"],
+        methods: ["+retry(): Result"],
+      })
+      .class({
+        id: "BankTransfer",
+        title: "BankTransfer",
+        col: 1,
+        row: 1,
+        attributes: ["+bankCode: string", "+reference: string"],
+        methods: ["+authorize(): Result", "+reconcile(): Result"],
+      })
+      .class({
+        id: "Receipt",
+        title: "Receipt",
+        col: 0,
+        row: 3,
+        attributes: ["+number: string", "+issuedAt: Date"],
+        methods: ["+render(): Document"],
+      })
+      .class({
+        id: "LedgerEntry",
+        title: "LedgerEntry",
+        col: 1,
+        row: 3,
+        attributes: ["+account: string", "+amount: Money"],
+        methods: ["+post(): void"],
+      })
+      .class({
+        id: "WalletPayment",
+        title: "WalletPayment",
+        col: 2,
+        row: 1,
+        attributes: ["+walletId: string", "+balance: Money"],
+        methods: ["+authorize(): Result", "+debit(): Result"],
+      })
+      .class({
+        id: "Transaction",
+        title: "Transaction",
+        col: 1,
+        row: 2,
+        attributes: ["+id: string", "+amount: Money", "+status: Status"],
+        methods: ["+settle(): Receipt", "+cancel(): Result"],
+      })
+      .class({
+        id: "PaymentGateway",
+        title: "PaymentGateway",
+        col: 3,
+        row: 1,
+        attributes: ["+endpoint: string", "+attempts: number"],
+        methods: ["+charge(): Transaction", "+retry(): Result"],
+      })
+      .class({
+        id: "RiskCheck",
+        title: "RiskCheck",
+        col: 3,
+        row: 2,
+        attributes: ["+score: number", "+decision: Decision"],
+        methods: ["+evaluate(): Decision", "+audit(): AuditLog"],
+      })
+      .class({
+        id: "Notification",
+        title: "Notification",
+        col: 2,
+        row: 3,
+        attributes: ["+channel: Channel", "+recipient: string"],
+        methods: ["+send(): Result"],
+      })
+      .relation({ from: "BankTransfer", to: "PaymentMethod", type: "extends", label: "継ぐ" })
+      .relation({ from: "CardPayment", to: "PaymentMethod", type: "extends", label: "継ぐ" })
+      .relation({ from: "WalletPayment", to: "PaymentMethod", type: "extends", label: "継ぐ" })
+      .relation({ from: "PaymentGateway", to: "Auditable", type: "implements", label: "満たす" })
+      .relation({ from: "WalletPayment", to: "Auditable", type: "implements", label: "満たす" })
+      .relation({ from: "RiskCheck", to: "Notification", type: "uses", label: "使う" })
+      .relation({ from: "PaymentGateway", to: "Retryable", type: "implements", label: "満たす" })
+      .relation({ from: "Transaction", to: "Receipt", type: "aggregates", label: "持つ" })
+      .relation({ from: "Transaction", to: "LedgerEntry", type: "composes", label: "抱える" })
+      .relation({ from: "PaymentGateway", to: "Transaction", type: "composes", label: "抱える" })
+      .relation({ from: "Transaction", to: "CardPayment", type: "associates", label: "結ぶ" })
+      .relation({ from: "Receipt", to: "LedgerEntry", type: "associates", label: "結ぶ" })
+      .relation({ from: "PaymentGateway", to: "RiskCheck", type: "uses", label: "使う" })
+      .relation({ from: "Transaction", to: "Notification", type: "uses", label: "使う" })
+      .build(),
+  ),
+  [
+    {
+      ids: ["PaymentMethod", "Auditable", "Retryable"],
+      title: "1. 抽象の約束",
+      body: "支払い方法の共通部分と、監査・再試行の約束を先に読む。",
+    },
+    {
+      ids: ["BankTransfer", "CardPayment", "WalletPayment", "PaymentGateway"],
+      title: "2. 支払いの実装",
+      body: "カード、振込、財布と、それらを呼び出す門口を並べる。",
+    },
+    {
+      ids: ["Transaction", "Receipt", "LedgerEntry", "RiskCheck", "Notification"],
+      title: "3. 取引の組み立て",
+      body: "取引から証明書、台帳、危険判定、通知へ役割を広げる。",
+    },
+    {
+      ids: [
+        "cr-0-BankTransfer-PaymentMethod",
+        "cr-1-CardPayment-PaymentMethod",
+        "cr-2-WalletPayment-PaymentMethod",
+        "cr-3-PaymentGateway-Auditable",
+        "cr-4-WalletPayment-Auditable",
+        "cr-5-RiskCheck-Notification",
+        "cr-6-PaymentGateway-Retryable",
+      ],
+      title: "4. 継ぐ・満たす",
+      body: "実線と破線の白抜き三角で、実装がどの抽象へ従うかを読む。",
+    },
+    {
+      ids: [
+        "cr-7-Transaction-Receipt",
+        "cr-8-Transaction-LedgerEntry",
+        "cr-9-PaymentGateway-Transaction",
+        "cr-10-Transaction-CardPayment",
+        "cr-11-Receipt-LedgerEntry",
+        "cr-12-PaymentGateway-RiskCheck",
+        "cr-13-Transaction-Notification",
+      ],
+      title: "5. 持つ・抱える・結ぶ・使う",
+      body: "菱の塗りと線の切れ目を見比べ、残る 4 種の関係を読み分ける。",
     },
   ],
 );
@@ -1282,6 +1759,120 @@ export const sourceJson__presetEr = `{
     }
   ]
 }`;
+
+export const sourceYaml__presetErComplex = `title: "商取引の表と必須・任意の関係を表す ER 図"
+type: er
+palette: kinari
+
+lanes:
+  er-col-0: { width: 450 }
+  er-col-1: { width: 524 }
+  er-col-2: { width: 450 }
+
+actors:
+  - users: { kind: storage, subtitle: "利用者", lane: er-col-0, stack: 2, rows: ["id: bigint", "email: text"], marks: ["pk", ""] }
+  - addresses: { kind: storage, subtitle: "住所", lane: er-col-0, stack: 3, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["pk", "fk", ""] }
+  - roles: { kind: storage, subtitle: "役割", lane: er-col-0, stack: 0, rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
+  - user_roles: { kind: storage, subtitle: "役割の割当", lane: er-col-0, stack: 1, rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] }
+  - orders: { kind: storage, subtitle: "注文", lane: er-col-1, stack: 2, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["pk", "fk", "fk", ""] }
+  - order_items: { kind: storage, subtitle: "注文の明細", lane: er-col-1, stack: 1, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk", "fk", "fk", ""] }
+  - payments: { kind: storage, subtitle: "支払", lane: er-col-1, stack: 3, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["pk", "fk", ""] }
+  - shipments: { kind: storage, subtitle: "配送", lane: er-col-1, stack: 4, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["pk", "fk", "fk", ""] }
+  - products: { kind: storage, subtitle: "商品", lane: er-col-2, stack: 2, rows: ["id: bigint", "sku: text", "price: numeric"], marks: ["pk", "", ""] }
+  - categories: { kind: storage, subtitle: "分類", lane: er-col-2, stack: 0, rows: ["id: bigint", "parent_id: bigint", "name: text"], marks: ["pk", "fk opt", ""] }
+  - product_categories: { kind: storage, subtitle: "商品の分類", lane: er-col-2, stack: 1, rows: ["product_id: bigint", "category_id: bigint"], marks: ["pk fk", "pk fk"] }
+  - inventory: { kind: storage, subtitle: "在庫", lane: er-col-2, stack: 3, rows: ["product_id: bigint", "qty: int"], marks: ["pk fk", ""] }
+
+flow:
+  - users -> addresses: "住む" (info, dashed) { tailHead: one, head: zero-many }
+  - users -> orders: "注文する" (info, solid) { tailHead: one, head: many }
+  - users -> user_roles: "持つ" (info, solid) { tailHead: one, head: many }
+  - roles -> user_roles: "割り当てる" (info, solid) { tailHead: one, head: many }
+  - orders -> order_items: "並べる" (info, solid) { tailHead: one, head: many }
+  - orders -> payments: "支払う" (info, dashed) { tailHead: one, head: zero-one }
+  - orders -> shipments: "送る" (info, dashed) { tailHead: one, head: zero-one }
+  - addresses -> shipments: "届け先" (info, dashed) { tailHead: one, head: zero-many }
+  - addresses -> orders: "請求先" (info, dashed) { tailHead: one, head: zero-many }
+  - products -> order_items: "売る" (info, solid) { tailHead: one, head: many }
+  - products -> inventory: "数える" (info, solid) { tailHead: one, head: one }
+  - products -> product_categories: "属す" (info, solid) { tailHead: one, head: many }
+  - categories -> product_categories: "束ねる" (info, solid) { tailHead: one, head: many }
+  - categories -> categories: "親を持つ" (info, dashed) { tailHead: one, head: zero-many }
+
+animation:
+  - step: "1. 商取引の実体" 0.9s
+    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory]
+    badge: "er"
+    body: "利用者から商品、注文、配送まで、取引を成り立たせる表を先に読む。"
+  - step: "2. 中継表" 0.9s
+    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory, user_roles, product_categories]
+    badge: "er"
+    body: "2 つの鍵を持つ表が、実体どうしを結ぶ準備をする。"
+  - step: "3. 多対多の 2 組" 0.9s
+    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory, user_roles, product_categories, "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories"]
+    badge: "er"
+    body: "利用者と役割、商品と分類を、それぞれ中継表越しに読む。"
+  - step: "4. 必須の関係" 0.9s
+    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory, user_roles, product_categories, "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories", "users -> orders", "orders -> order_items", "products -> order_items", "products -> inventory"]
+    badge: "er"
+    body: "実線と端の棒で、取引に欠かせない結び付きを追う。"
+  - step: "5. 任意の関係" 0.9s
+    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory, user_roles, product_categories, "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories", "users -> orders", "orders -> order_items", "products -> order_items", "products -> inventory", "users -> addresses", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders", "categories -> categories"]
+    badge: "er"
+    body: "破線と丸い端で、未登録や未処理を許す関係と分類の自己参照を読む。"
+`;
+
+export const sourceJson__presetErComplex = JSON.stringify(
+  {
+    title: "商取引の表と必須・任意の関係を表す ER 図",
+    type: "er",
+    palette: "kinari",
+    lanes: {
+      "er-col-0": { width: 450 },
+      "er-col-1": { width: 524 },
+      "er-col-2": { width: 450 },
+    },
+    actors: [
+      { name: "users", kind: "storage", subtitle: "利用者", lane: "er-col-0", stack: 2, rows: ["id: bigint", "email: text"], marks: ["pk", ""] },
+      { name: "addresses", kind: "storage", subtitle: "住所", lane: "er-col-0", stack: 3, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["pk", "fk", ""] },
+      { name: "roles", kind: "storage", subtitle: "役割", lane: "er-col-0", stack: 0, rows: ["id: bigint", "name: text"], marks: ["pk", ""] },
+      { name: "user_roles", kind: "storage", subtitle: "役割の割当", lane: "er-col-0", stack: 1, rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] },
+      { name: "orders", kind: "storage", subtitle: "注文", lane: "er-col-1", stack: 2, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["pk", "fk", "fk", ""] },
+      { name: "order_items", kind: "storage", subtitle: "注文の明細", lane: "er-col-1", stack: 1, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk", "fk", "fk", ""] },
+      { name: "payments", kind: "storage", subtitle: "支払", lane: "er-col-1", stack: 3, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["pk", "fk", ""] },
+      { name: "shipments", kind: "storage", subtitle: "配送", lane: "er-col-1", stack: 4, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["pk", "fk", "fk", ""] },
+      { name: "products", kind: "storage", subtitle: "商品", lane: "er-col-2", stack: 2, rows: ["id: bigint", "sku: text", "price: numeric"], marks: ["pk", "", ""] },
+      { name: "categories", kind: "storage", subtitle: "分類", lane: "er-col-2", stack: 0, rows: ["id: bigint", "parent_id: bigint", "name: text"], marks: ["pk", "fk opt", ""] },
+      { name: "product_categories", kind: "storage", subtitle: "商品の分類", lane: "er-col-2", stack: 1, rows: ["product_id: bigint", "category_id: bigint"], marks: ["pk fk", "pk fk"] },
+      { name: "inventory", kind: "storage", subtitle: "在庫", lane: "er-col-2", stack: 3, rows: ["product_id: bigint", "qty: int"], marks: ["pk fk", ""] },
+    ],
+    flow: [
+      { from: "users", to: "addresses", label: "住む", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
+      { from: "users", to: "orders", label: "注文する", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "users", to: "user_roles", label: "持つ", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "roles", to: "user_roles", label: "割り当てる", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "orders", to: "order_items", label: "並べる", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "orders", to: "payments", label: "支払う", tone: "info", style: "dashed", tailHead: "one", head: "zero-one" },
+      { from: "orders", to: "shipments", label: "送る", tone: "info", style: "dashed", tailHead: "one", head: "zero-one" },
+      { from: "addresses", to: "shipments", label: "届け先", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
+      { from: "addresses", to: "orders", label: "請求先", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
+      { from: "products", to: "order_items", label: "売る", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "products", to: "inventory", label: "数える", tone: "info", style: "solid", tailHead: "one", head: "one" },
+      { from: "products", to: "product_categories", label: "属す", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "categories", to: "product_categories", label: "束ねる", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "categories", to: "categories", label: "親を持つ", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
+    ],
+    animation: [
+      { step: "1. 商取引の実体", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory"], badge: "er", body: "利用者から商品、注文、配送まで、取引を成り立たせる表を先に読む。" },
+      { step: "2. 中継表", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory", "user_roles", "product_categories"], badge: "er", body: "2 つの鍵を持つ表が、実体どうしを結ぶ準備をする。" },
+      { step: "3. 多対多の 2 組", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory", "user_roles", "product_categories", "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories"], badge: "er", body: "利用者と役割、商品と分類を、それぞれ中継表越しに読む。" },
+      { step: "4. 必須の関係", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory", "user_roles", "product_categories", "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories", "users -> orders", "orders -> order_items", "products -> order_items", "products -> inventory"], badge: "er", body: "実線と端の棒で、取引に欠かせない結び付きを追う。" },
+      { step: "5. 任意の関係", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory", "user_roles", "product_categories", "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories", "users -> orders", "orders -> order_items", "products -> order_items", "products -> inventory", "users -> addresses", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders", "categories -> categories"], badge: "er", body: "破線と丸い端で、未登録や未処理を許す関係と分類の自己参照を読む。" },
+    ],
+  },
+  null,
+  2,
+);
 
 export const sourceYaml__presetFlow = `title: "処理の順番を上から下へ 1 本の流れで示す図"
 type: flow
@@ -2444,6 +3035,409 @@ export const sourceJson__presetClassDiagram = `{
     }
   ]
 }`;
+
+export const sourceYaml__presetClassComplex = `title: "支払いの抽象・実装・組み立てを示す UML クラス図"
+type: class
+palette: kinari
+
+actors:
+  - CardPayment: { lane: c0, stack: 1, rows: ["+token: string", "+brand: string", "───", "+authorize(): Result", "+capture(): Result"] }
+  - PaymentMethod: { eyebrow: "abstract", lane: c1, stack: 0, rows: ["+methodId: string", "+enabled: boolean", "───", "+authorize(): Result", "+capture(): Result"] }
+  - Auditable: { eyebrow: "interface", lane: c2, stack: 0, rows: ["+auditId: string", "───", "+audit(): AuditLog"] }
+  - Retryable: { eyebrow: "interface", lane: c3, stack: 0, rows: ["+maxAttempts: number", "───", "+retry(): Result"] }
+  - BankTransfer: { lane: c1, stack: 1, rows: ["+bankCode: string", "+reference: string", "───", "+authorize(): Result", "+reconcile(): Result"] }
+  - Receipt: { lane: c0, stack: 3, rows: ["+number: string", "+issuedAt: Date", "───", "+render(): Document"] }
+  - LedgerEntry: { lane: c1, stack: 3, rows: ["+account: string", "+amount: Money", "───", "+post(): void"] }
+  - WalletPayment: { lane: c2, stack: 1, rows: ["+walletId: string", "+balance: Money", "───", "+authorize(): Result", "+debit(): Result"] }
+  - Transaction: { lane: c1, stack: 2, rows: ["+id: string", "+amount: Money", "+status: Status", "───", "+settle(): Receipt", "+cancel(): Result"] }
+  - PaymentGateway: { lane: c3, stack: 1, rows: ["+endpoint: string", "+attempts: number", "───", "+charge(): Transaction", "+retry(): Result"] }
+  - RiskCheck: { lane: c3, stack: 2, rows: ["+score: number", "+decision: Decision", "───", "+evaluate(): Decision", "+audit(): AuditLog"] }
+  - Notification: { lane: c2, stack: 3, rows: ["+channel: Channel", "+recipient: string", "───", "+send(): Result"] }
+flow:
+  - BankTransfer -> PaymentMethod: "継ぐ" { relation: extends }
+  - CardPayment -> PaymentMethod: "継ぐ" { relation: extends }
+  - WalletPayment -> PaymentMethod: "継ぐ" { relation: extends }
+  - PaymentGateway -> Auditable: "満たす" { relation: implements }
+  - WalletPayment -> Auditable: "満たす" { relation: implements }
+  - RiskCheck -> Notification: "使う" { relation: uses }
+  - PaymentGateway -> Retryable: "満たす" { relation: implements }
+  - Transaction -> Receipt: "持つ" { relation: aggregates }
+  - Transaction -> LedgerEntry: "抱える" { relation: composes }
+  - PaymentGateway -> Transaction: "抱える" { relation: composes }
+  - Transaction -> CardPayment: "結ぶ" { relation: associates }
+  - Receipt -> LedgerEntry: "結ぶ" { relation: associates }
+  - PaymentGateway -> RiskCheck: "使う" { relation: uses }
+  - Transaction -> Notification: "使う" { relation: uses }
+animation:
+  - step: "1. 抽象の約束" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable]
+    badge: "class"
+    body: "支払い方法の共通部分と、監査・再試行の約束を先に読む。"
+  - step: "2. 支払いの実装" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, CardPayment, BankTransfer, WalletPayment, PaymentGateway]
+    badge: "class"
+    body: "カード、振込、財布と、それらを呼び出す門口を並べる。"
+  - step: "3. 取引の組み立て" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, CardPayment, BankTransfer, WalletPayment, PaymentGateway, Transaction, Receipt, LedgerEntry, RiskCheck, Notification]
+    badge: "class"
+    body: "取引から証明書、台帳、危険判定、通知へ役割を広げる。"
+  - step: "4. 継ぐ・満たす" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, CardPayment, BankTransfer, WalletPayment, PaymentGateway, Transaction, Receipt, LedgerEntry, RiskCheck, Notification, "CardPayment -> PaymentMethod", "BankTransfer -> PaymentMethod", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway -> Auditable", "RiskCheck -> Notification", "PaymentGateway -> Retryable"]
+    badge: "class"
+    body: "実線と破線の白抜き三角で、実装がどの抽象へ従うかを読む。"
+  - step: "5. 持つ・抱える・結ぶ・使う" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, CardPayment, BankTransfer, WalletPayment, PaymentGateway, Transaction, Receipt, LedgerEntry, RiskCheck, Notification, "CardPayment -> PaymentMethod", "BankTransfer -> PaymentMethod", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway -> Auditable", "RiskCheck -> Notification", "PaymentGateway -> Retryable", "Transaction -> Receipt", "Transaction -> LedgerEntry", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", "Transaction -> Notification"]
+    badge: "class"
+    body: "菱の塗りと線の切れ目を見比べ、残る 4 種の関係を読み分ける。"
+`;
+
+export const sourceJson__presetClassComplex = JSON.stringify(
+  {
+    "title": "支払いの抽象・実装・組み立てを示す UML クラス図",
+    "type": "class",
+    "palette": "kinari",
+    "actors": [
+      {
+        "name": "CardPayment",
+        "lane": "c0",
+        "stack": 1,
+        "rows": [
+          "+token: string",
+          "+brand: string",
+          "───",
+          "+authorize(): Result",
+          "+capture(): Result"
+        ]
+      },
+      {
+        "name": "PaymentMethod",
+        "eyebrow": "abstract",
+        "lane": "c1",
+        "stack": 0,
+        "rows": [
+          "+methodId: string",
+          "+enabled: boolean",
+          "───",
+          "+authorize(): Result",
+          "+capture(): Result"
+        ]
+      },
+      {
+        "name": "Auditable",
+        "eyebrow": "interface",
+        "lane": "c2",
+        "stack": 0,
+        "rows": [
+          "+auditId: string",
+          "───",
+          "+audit(): AuditLog"
+        ]
+      },
+      {
+        "name": "Retryable",
+        "eyebrow": "interface",
+        "lane": "c3",
+        "stack": 0,
+        "rows": [
+          "+maxAttempts: number",
+          "───",
+          "+retry(): Result"
+        ]
+      },
+      {
+        "name": "BankTransfer",
+        "lane": "c1",
+        "stack": 1,
+        "rows": [
+          "+bankCode: string",
+          "+reference: string",
+          "───",
+          "+authorize(): Result",
+          "+reconcile(): Result"
+        ]
+      },
+      {
+        "name": "Receipt",
+        "lane": "c0",
+        "stack": 3,
+        "rows": [
+          "+number: string",
+          "+issuedAt: Date",
+          "───",
+          "+render(): Document"
+        ]
+      },
+      {
+        "name": "LedgerEntry",
+        "lane": "c1",
+        "stack": 3,
+        "rows": [
+          "+account: string",
+          "+amount: Money",
+          "───",
+          "+post(): void"
+        ]
+      },
+      {
+        "name": "WalletPayment",
+        "lane": "c2",
+        "stack": 1,
+        "rows": [
+          "+walletId: string",
+          "+balance: Money",
+          "───",
+          "+authorize(): Result",
+          "+debit(): Result"
+        ]
+      },
+      {
+        "name": "Transaction",
+        "lane": "c1",
+        "stack": 2,
+        "rows": [
+          "+id: string",
+          "+amount: Money",
+          "+status: Status",
+          "───",
+          "+settle(): Receipt",
+          "+cancel(): Result"
+        ]
+      },
+      {
+        "name": "PaymentGateway",
+        "lane": "c3",
+        "stack": 1,
+        "rows": [
+          "+endpoint: string",
+          "+attempts: number",
+          "───",
+          "+charge(): Transaction",
+          "+retry(): Result"
+        ]
+      },
+      {
+        "name": "RiskCheck",
+        "lane": "c3",
+        "stack": 2,
+        "rows": [
+          "+score: number",
+          "+decision: Decision",
+          "───",
+          "+evaluate(): Decision",
+          "+audit(): AuditLog"
+        ]
+      },
+      {
+        "name": "Notification",
+        "lane": "c2",
+        "stack": 3,
+        "rows": [
+          "+channel: Channel",
+          "+recipient: string",
+          "───",
+          "+send(): Result"
+        ]
+      }
+    ],
+    "flow": [
+      {
+        "from": "BankTransfer",
+        "to": "PaymentMethod",
+        "label": "継ぐ",
+        "relation": "extends"
+      },
+      {
+        "from": "CardPayment",
+        "to": "PaymentMethod",
+        "label": "継ぐ",
+        "relation": "extends"
+      },
+      {
+        "from": "WalletPayment",
+        "to": "PaymentMethod",
+        "label": "継ぐ",
+        "relation": "extends"
+      },
+      {
+        "from": "PaymentGateway",
+        "to": "Auditable",
+        "label": "満たす",
+        "relation": "implements"
+      },
+      {
+        "from": "WalletPayment",
+        "to": "Auditable",
+        "label": "満たす",
+        "relation": "implements"
+      },
+      {
+        "from": "RiskCheck",
+        "to": "Notification",
+        "label": "使う",
+        "relation": "uses"
+      },
+      {
+        "from": "PaymentGateway",
+        "to": "Retryable",
+        "label": "満たす",
+        "relation": "implements"
+      },
+      {
+        "from": "Transaction",
+        "to": "Receipt",
+        "label": "持つ",
+        "relation": "aggregates"
+      },
+      {
+        "from": "Transaction",
+        "to": "LedgerEntry",
+        "label": "抱える",
+        "relation": "composes"
+      },
+      {
+        "from": "PaymentGateway",
+        "to": "Transaction",
+        "label": "抱える",
+        "relation": "composes"
+      },
+      {
+        "from": "Transaction",
+        "to": "CardPayment",
+        "label": "結ぶ",
+        "relation": "associates"
+      },
+      {
+        "from": "Receipt",
+        "to": "LedgerEntry",
+        "label": "結ぶ",
+        "relation": "associates"
+      },
+      {
+        "from": "PaymentGateway",
+        "to": "RiskCheck",
+        "label": "使う",
+        "relation": "uses"
+      },
+      {
+        "from": "Transaction",
+        "to": "Notification",
+        "label": "使う",
+        "relation": "uses"
+      }
+    ],
+    "animation": [
+      {
+        "step": "1. 抽象の約束",
+        "duration": 0.9,
+        "focus": [
+          "PaymentMethod",
+          "Auditable",
+          "Retryable"
+        ],
+        "badge": "class",
+        "body": "支払い方法の共通部分と、監査・再試行の約束を先に読む。"
+      },
+      {
+        "step": "2. 支払いの実装",
+        "duration": 0.9,
+        "focus": [
+          "PaymentMethod",
+          "Auditable",
+          "Retryable",
+          "CardPayment",
+          "BankTransfer",
+          "WalletPayment",
+          "PaymentGateway"
+        ],
+        "badge": "class",
+        "body": "カード、振込、財布と、それらを呼び出す門口を並べる。"
+      },
+      {
+        "step": "3. 取引の組み立て",
+        "duration": 0.9,
+        "focus": [
+          "PaymentMethod",
+          "Auditable",
+          "Retryable",
+          "CardPayment",
+          "BankTransfer",
+          "WalletPayment",
+          "PaymentGateway",
+          "Transaction",
+          "Receipt",
+          "LedgerEntry",
+          "RiskCheck",
+          "Notification"
+        ],
+        "badge": "class",
+        "body": "取引から証明書、台帳、危険判定、通知へ役割を広げる。"
+      },
+      {
+        "step": "4. 継ぐ・満たす",
+        "duration": 0.9,
+        "focus": [
+          "PaymentMethod",
+          "Auditable",
+          "Retryable",
+          "CardPayment",
+          "BankTransfer",
+          "WalletPayment",
+          "PaymentGateway",
+          "Transaction",
+          "Receipt",
+          "LedgerEntry",
+          "RiskCheck",
+          "Notification",
+          "CardPayment -> PaymentMethod",
+          "BankTransfer -> PaymentMethod",
+          "WalletPayment -> PaymentMethod",
+          "WalletPayment -> Auditable",
+          "PaymentGateway -> Auditable",
+          "RiskCheck -> Notification",
+          "PaymentGateway -> Retryable"
+        ],
+        "badge": "class",
+        "body": "実線と破線の白抜き三角で、実装がどの抽象へ従うかを読む。"
+      },
+      {
+        "step": "5. 持つ・抱える・結ぶ・使う",
+        "duration": 0.9,
+        "focus": [
+          "PaymentMethod",
+          "Auditable",
+          "Retryable",
+          "CardPayment",
+          "BankTransfer",
+          "WalletPayment",
+          "PaymentGateway",
+          "Transaction",
+          "Receipt",
+          "LedgerEntry",
+          "RiskCheck",
+          "Notification",
+          "CardPayment -> PaymentMethod",
+          "BankTransfer -> PaymentMethod",
+          "WalletPayment -> PaymentMethod",
+          "WalletPayment -> Auditable",
+          "PaymentGateway -> Auditable",
+          "RiskCheck -> Notification",
+          "PaymentGateway -> Retryable",
+          "Transaction -> Receipt",
+          "Transaction -> LedgerEntry",
+          "PaymentGateway -> Transaction",
+          "Transaction -> CardPayment",
+          "Receipt -> LedgerEntry",
+          "PaymentGateway -> RiskCheck",
+          "Transaction -> Notification"
+        ],
+        "badge": "class",
+        "body": "菱の塗りと線の切れ目を見比べ、残る 4 種の関係を読み分ける。"
+      }
+    ]
+  },
+  null,
+  2,
+);
 
 export const sourceYaml__presetTopology = `title: "システムの構成要素と接続を配置で示す図"
 type: topology

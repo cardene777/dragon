@@ -21,9 +21,9 @@ function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiag
 
 const ALL_PRESETS = collectAllPresets(PresetsMod);
 
-describe("iter94: 全 19 preset × property details", () => {
-  it(`preset 数 = 19`, () => {
-    expect(ALL_PRESETS.length).toBe(19);
+describe("iter94: 全 21 preset × property details", () => {
+  it(`preset 数 = 21`, () => {
+    expect(ALL_PRESETS.length).toBe(21);
   });
 
   for (const { name, diagram } of ALL_PRESETS) {

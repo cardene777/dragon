@@ -2,7 +2,7 @@
  * preset animation basic 網羅 (iter63、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter63。
- * 全 19 preset の animation 関連 property を verify。
+ * 全 21 preset の animation 関連 property を verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PresetsMod from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
@@ -22,9 +22,9 @@ function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiag
 
 const ALL_PRESETS = collectAllPresets(PresetsMod);
 
-describe("iter63: 全 19 preset × animation property verify", () => {
-  it(`preset 数 = 19`, () => {
-    expect(ALL_PRESETS.length).toBe(19);
+describe("iter63: 全 21 preset × animation property verify", () => {
+  it(`preset 数 = 21`, () => {
+    expect(ALL_PRESETS.length).toBe(21);
   });
 
   for (const { name, diagram } of ALL_PRESETS) {

@@ -2,7 +2,7 @@
  * preset compile behavior 網羅 (iter52、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter52。
- * 全 19 preset を JSON round-trip + compile 後の invariant を verify。
+ * 全 21 preset を JSON round-trip + compile 後の invariant を verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PresetsMod from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
@@ -23,9 +23,9 @@ function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiag
 
 const ALL_PRESETS = collectAllPresets(PresetsMod);
 
-describe("iter52: 全 19 preset × compile behavior 網羅", () => {
+describe("iter52: 全 21 preset × compile behavior 網羅", () => {
   it(`preset 数`, () => {
-    expect(ALL_PRESETS.length).toBe(19);
+    expect(ALL_PRESETS.length).toBe(21);
   });
 
   for (const { name, diagram } of ALL_PRESETS) {
