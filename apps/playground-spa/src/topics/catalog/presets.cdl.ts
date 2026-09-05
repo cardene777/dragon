@@ -929,6 +929,12 @@ export const presetClassDiagram = withSteps(
   ],
 );
 
+// 同じ辺に 2 本以上の関係が付くと、@cardenelabs/cdl が全ての線を辺の中点へ寄せる
+// (`layout/edges.ts` の offset 0) ため、辺から最初の折れまでが必ず重なる。
+// 5 本の関係を持つ Transaction は 4 辺へ割り振れないので、同色の「結ぶ」と「使う」を
+// 1 辺へ寄せ、残る 3 本を上・左・下へ散らしている。
+// 上 2 段の 7200 通りと下 2 段の 3024 通りを数え上げ、色違いの重なりと cdl の視覚検査の
+// error が共に 0 になる配置を探した。4 列では両立せず、5 列 5 段でだけ両立した。
 export const presetClassComplex = withSteps(
   orderGridColumns(
     classDiagram({
@@ -937,21 +943,53 @@ export const presetClassComplex = withSteps(
       palette: "kinari",
     })
       .class({
-        id: "CardPayment",
-        title: "CardPayment",
+        id: "RiskCheck",
+        title: "RiskCheck",
         col: 0,
-        row: 1,
-        attributes: ["+token: string", "+brand: string"],
-        methods: ["+authorize(): Result", "+capture(): Result"],
+        row: 2,
+        attributes: ["+score: number", "+decision: Decision"],
+        methods: ["+evaluate(): Decision", "+audit(): AuditLog"],
       })
       .class({
-        id: "PaymentMethod",
-        title: "PaymentMethod",
-        stereotype: "abstract",
+        id: "Notification",
+        title: "Notification",
+        col: 0,
+        row: 3,
+        attributes: ["+channel: Channel", "+recipient: string"],
+        methods: ["+send(): Result"],
+      })
+      .class({
+        id: "Retryable",
+        title: "Retryable",
+        stereotype: "interface",
         col: 1,
         row: 0,
-        attributes: ["+methodId: string", "+enabled: boolean"],
-        methods: ["+authorize(): Result", "+capture(): Result"],
+        attributes: ["+maxAttempts: number"],
+        methods: ["+retry(): Result"],
+      })
+      .class({
+        id: "PaymentGateway",
+        title: "PaymentGateway",
+        col: 1,
+        row: 1,
+        attributes: ["+endpoint: string", "+attempts: number"],
+        methods: ["+charge(): Transaction", "+retry(): Result"],
+      })
+      .class({
+        id: "Transaction",
+        title: "Transaction",
+        col: 1,
+        row: 3,
+        attributes: ["+id: string", "+amount: Money", "+status: Status"],
+        methods: ["+settle(): Receipt", "+cancel(): Result"],
+      })
+      .class({
+        id: "LedgerEntry",
+        title: "LedgerEntry",
+        col: 1,
+        row: 4,
+        attributes: ["+account: string", "+amount: Money"],
+        methods: ["+post(): void"],
       })
       .class({
         id: "Auditable",
@@ -963,77 +1001,45 @@ export const presetClassComplex = withSteps(
         methods: ["+audit(): AuditLog"],
       })
       .class({
-        id: "Retryable",
-        title: "Retryable",
-        stereotype: "interface",
-        col: 3,
-        row: 0,
-        attributes: ["+maxAttempts: number"],
-        methods: ["+retry(): Result"],
-      })
-      .class({
-        id: "BankTransfer",
-        title: "BankTransfer",
-        col: 1,
+        id: "CardPayment",
+        title: "CardPayment",
+        col: 2,
         row: 1,
-        attributes: ["+bankCode: string", "+reference: string"],
-        methods: ["+authorize(): Result", "+reconcile(): Result"],
+        attributes: ["+token: string", "+brand: string"],
+        methods: ["+authorize(): Result", "+capture(): Result"],
       })
       .class({
         id: "Receipt",
         title: "Receipt",
-        col: 0,
-        row: 3,
+        col: 2,
+        row: 4,
         attributes: ["+number: string", "+issuedAt: Date"],
         methods: ["+render(): Document"],
       })
       .class({
-        id: "LedgerEntry",
-        title: "LedgerEntry",
-        col: 1,
-        row: 3,
-        attributes: ["+account: string", "+amount: Money"],
-        methods: ["+post(): void"],
+        id: "PaymentMethod",
+        title: "PaymentMethod",
+        stereotype: "abstract",
+        col: 3,
+        row: 0,
+        attributes: ["+methodId: string", "+enabled: boolean"],
+        methods: ["+authorize(): Result", "+capture(): Result"],
       })
       .class({
         id: "WalletPayment",
         title: "WalletPayment",
-        col: 2,
+        col: 3,
         row: 1,
         attributes: ["+walletId: string", "+balance: Money"],
         methods: ["+authorize(): Result", "+debit(): Result"],
       })
       .class({
-        id: "Transaction",
-        title: "Transaction",
-        col: 1,
-        row: 2,
-        attributes: ["+id: string", "+amount: Money", "+status: Status"],
-        methods: ["+settle(): Receipt", "+cancel(): Result"],
-      })
-      .class({
-        id: "PaymentGateway",
-        title: "PaymentGateway",
-        col: 3,
+        id: "BankTransfer",
+        title: "BankTransfer",
+        col: 4,
         row: 1,
-        attributes: ["+endpoint: string", "+attempts: number"],
-        methods: ["+charge(): Transaction", "+retry(): Result"],
-      })
-      .class({
-        id: "RiskCheck",
-        title: "RiskCheck",
-        col: 3,
-        row: 2,
-        attributes: ["+score: number", "+decision: Decision"],
-        methods: ["+evaluate(): Decision", "+audit(): AuditLog"],
-      })
-      .class({
-        id: "Notification",
-        title: "Notification",
-        col: 2,
-        row: 3,
-        attributes: ["+channel: Channel", "+recipient: string"],
-        methods: ["+send(): Result"],
+        attributes: ["+bankCode: string", "+reference: string"],
+        methods: ["+authorize(): Result", "+reconcile(): Result"],
       })
       .relation({ from: "BankTransfer", to: "PaymentMethod", type: "extends", label: "継ぐ" })
       .relation({ from: "CardPayment", to: "PaymentMethod", type: "extends", label: "継ぐ" })
@@ -3074,18 +3080,18 @@ type: class
 palette: kinari
 
 actors:
-  - CardPayment: { lane: c0, stack: 1, rows: ["+token: string", "+brand: string", "───", "+authorize(): Result", "+capture(): Result"] }
-  - PaymentMethod: { eyebrow: "abstract", lane: c1, stack: 0, rows: ["+methodId: string", "+enabled: boolean", "───", "+authorize(): Result", "+capture(): Result"] }
+  - RiskCheck: { lane: c0, stack: 2, rows: ["+score: number", "+decision: Decision", "───", "+evaluate(): Decision", "+audit(): AuditLog"] }
+  - Notification: { lane: c0, stack: 3, rows: ["+channel: Channel", "+recipient: string", "───", "+send(): Result"] }
+  - Retryable: { eyebrow: "interface", lane: c1, stack: 0, rows: ["+maxAttempts: number", "───", "+retry(): Result"] }
+  - PaymentGateway: { lane: c1, stack: 1, rows: ["+endpoint: string", "+attempts: number", "───", "+charge(): Transaction", "+retry(): Result"] }
+  - Transaction: { lane: c1, stack: 3, rows: ["+id: string", "+amount: Money", "+status: Status", "───", "+settle(): Receipt", "+cancel(): Result"] }
+  - LedgerEntry: { lane: c1, stack: 4, rows: ["+account: string", "+amount: Money", "───", "+post(): void"] }
   - Auditable: { eyebrow: "interface", lane: c2, stack: 0, rows: ["+auditId: string", "───", "+audit(): AuditLog"] }
-  - Retryable: { eyebrow: "interface", lane: c3, stack: 0, rows: ["+maxAttempts: number", "───", "+retry(): Result"] }
-  - BankTransfer: { lane: c1, stack: 1, rows: ["+bankCode: string", "+reference: string", "───", "+authorize(): Result", "+reconcile(): Result"] }
-  - Receipt: { lane: c0, stack: 3, rows: ["+number: string", "+issuedAt: Date", "───", "+render(): Document"] }
-  - LedgerEntry: { lane: c1, stack: 3, rows: ["+account: string", "+amount: Money", "───", "+post(): void"] }
-  - WalletPayment: { lane: c2, stack: 1, rows: ["+walletId: string", "+balance: Money", "───", "+authorize(): Result", "+debit(): Result"] }
-  - Transaction: { lane: c1, stack: 2, rows: ["+id: string", "+amount: Money", "+status: Status", "───", "+settle(): Receipt", "+cancel(): Result"] }
-  - PaymentGateway: { lane: c3, stack: 1, rows: ["+endpoint: string", "+attempts: number", "───", "+charge(): Transaction", "+retry(): Result"] }
-  - RiskCheck: { lane: c3, stack: 2, rows: ["+score: number", "+decision: Decision", "───", "+evaluate(): Decision", "+audit(): AuditLog"] }
-  - Notification: { lane: c2, stack: 3, rows: ["+channel: Channel", "+recipient: string", "───", "+send(): Result"] }
+  - CardPayment: { lane: c2, stack: 1, rows: ["+token: string", "+brand: string", "───", "+authorize(): Result", "+capture(): Result"] }
+  - Receipt: { lane: c2, stack: 4, rows: ["+number: string", "+issuedAt: Date", "───", "+render(): Document"] }
+  - PaymentMethod: { eyebrow: "abstract", lane: c3, stack: 0, rows: ["+methodId: string", "+enabled: boolean", "───", "+authorize(): Result", "+capture(): Result"] }
+  - WalletPayment: { lane: c3, stack: 1, rows: ["+walletId: string", "+balance: Money", "───", "+authorize(): Result", "+debit(): Result"] }
+  - BankTransfer: { lane: c4, stack: 1, rows: ["+bankCode: string", "+reference: string", "───", "+authorize(): Result", "+reconcile(): Result"] }
 flow:
   - BankTransfer -> PaymentMethod: "継ぐ" { relation: extends }
   - CardPayment -> PaymentMethod: "継ぐ" { relation: extends }
@@ -3143,28 +3149,73 @@ export const sourceJson__presetClassComplex = JSON.stringify(
     "palette": "kinari",
     "actors": [
       {
-        "name": "CardPayment",
+        "name": "RiskCheck",
         "lane": "c0",
-        "stack": 1,
+        "stack": 2,
         "rows": [
-          "+token: string",
-          "+brand: string",
+          "+score: number",
+          "+decision: Decision",
           "───",
-          "+authorize(): Result",
-          "+capture(): Result"
+          "+evaluate(): Decision",
+          "+audit(): AuditLog"
         ]
       },
       {
-        "name": "PaymentMethod",
-        "eyebrow": "abstract",
+        "name": "Notification",
+        "lane": "c0",
+        "stack": 3,
+        "rows": [
+          "+channel: Channel",
+          "+recipient: string",
+          "───",
+          "+send(): Result"
+        ]
+      },
+      {
+        "name": "Retryable",
+        "eyebrow": "interface",
         "lane": "c1",
         "stack": 0,
         "rows": [
-          "+methodId: string",
-          "+enabled: boolean",
+          "+maxAttempts: number",
           "───",
-          "+authorize(): Result",
-          "+capture(): Result"
+          "+retry(): Result"
+        ]
+      },
+      {
+        "name": "PaymentGateway",
+        "lane": "c1",
+        "stack": 1,
+        "rows": [
+          "+endpoint: string",
+          "+attempts: number",
+          "───",
+          "+charge(): Transaction",
+          "+retry(): Result"
+        ]
+      },
+      {
+        "name": "Transaction",
+        "lane": "c1",
+        "stack": 3,
+        "rows": [
+          "+id: string",
+          "+amount: Money",
+          "+status: Status",
+          "───",
+          "+settle(): Receipt",
+          "+cancel(): Result"
+        ]
+      },
+      {
+        "name": "LedgerEntry",
+        "lane": "c1",
+        "stack": 4,
+        "rows": [
+          "+account: string",
+          "+amount: Money",
+          "───",
+          "+post(): void"
         ]
       },
       {
@@ -3179,32 +3230,21 @@ export const sourceJson__presetClassComplex = JSON.stringify(
         ]
       },
       {
-        "name": "Retryable",
-        "eyebrow": "interface",
-        "lane": "c3",
-        "stack": 0,
-        "rows": [
-          "+maxAttempts: number",
-          "───",
-          "+retry(): Result"
-        ]
-      },
-      {
-        "name": "BankTransfer",
-        "lane": "c1",
+        "name": "CardPayment",
+        "lane": "c2",
         "stack": 1,
         "rows": [
-          "+bankCode: string",
-          "+reference: string",
+          "+token: string",
+          "+brand: string",
           "───",
           "+authorize(): Result",
-          "+reconcile(): Result"
+          "+capture(): Result"
         ]
       },
       {
         "name": "Receipt",
-        "lane": "c0",
-        "stack": 3,
+        "lane": "c2",
+        "stack": 4,
         "rows": [
           "+number: string",
           "+issuedAt: Date",
@@ -3213,19 +3253,21 @@ export const sourceJson__presetClassComplex = JSON.stringify(
         ]
       },
       {
-        "name": "LedgerEntry",
-        "lane": "c1",
-        "stack": 3,
+        "name": "PaymentMethod",
+        "eyebrow": "abstract",
+        "lane": "c3",
+        "stack": 0,
         "rows": [
-          "+account: string",
-          "+amount: Money",
+          "+methodId: string",
+          "+enabled: boolean",
           "───",
-          "+post(): void"
+          "+authorize(): Result",
+          "+capture(): Result"
         ]
       },
       {
         "name": "WalletPayment",
-        "lane": "c2",
+        "lane": "c3",
         "stack": 1,
         "rows": [
           "+walletId: string",
@@ -3236,51 +3278,15 @@ export const sourceJson__presetClassComplex = JSON.stringify(
         ]
       },
       {
-        "name": "Transaction",
-        "lane": "c1",
-        "stack": 2,
-        "rows": [
-          "+id: string",
-          "+amount: Money",
-          "+status: Status",
-          "───",
-          "+settle(): Receipt",
-          "+cancel(): Result"
-        ]
-      },
-      {
-        "name": "PaymentGateway",
-        "lane": "c3",
+        "name": "BankTransfer",
+        "lane": "c4",
         "stack": 1,
         "rows": [
-          "+endpoint: string",
-          "+attempts: number",
+          "+bankCode: string",
+          "+reference: string",
           "───",
-          "+charge(): Transaction",
-          "+retry(): Result"
-        ]
-      },
-      {
-        "name": "RiskCheck",
-        "lane": "c3",
-        "stack": 2,
-        "rows": [
-          "+score: number",
-          "+decision: Decision",
-          "───",
-          "+evaluate(): Decision",
-          "+audit(): AuditLog"
-        ]
-      },
-      {
-        "name": "Notification",
-        "lane": "c2",
-        "stack": 3,
-        "rows": [
-          "+channel: Channel",
-          "+recipient: string",
-          "───",
-          "+send(): Result"
+          "+authorize(): Result",
+          "+reconcile(): Result"
         ]
       }
     ],
