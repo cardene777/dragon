@@ -636,16 +636,23 @@ const erComplex = er({
   })
   .build();
 
+/**
+ * 同じ辺へ 2 本の関係が入ると `@cardenelabs/cdl` が取付位置を上下へ散らすため、まっすぐ進める線にも
+ * 段差が生まれ、28px と 1px の角ができていた。5 本の関係を持つ `orders` は 4 辺だけでは収まらないので、
+ * 2 本とも元から折れる側へ重複する辺を寄せ、散らしても段差を増やさない。
+ * 列の割当と列内の上下順を保って間隔だけを 3375 通り数え、5 段以内では `addresses → orders` が
+ * `payments` を貫くため 6 段にした。
+ */
 export const presetErComplex = withSteps(
   placeErOnGrid(erComplex, [
     { id: "roles", col: 0, row: 0 },
     { id: "user_roles", col: 0, row: 1 },
     { id: "users", col: 0, row: 2 },
-    { id: "addresses", col: 0, row: 3 },
-    { id: "payments", col: 1, row: 3 },
-    { id: "orders", col: 1, row: 2 },
-    { id: "order_items", col: 1, row: 1 },
-    { id: "shipments", col: 1, row: 4 },
+    { id: "addresses", col: 0, row: 4 },
+    { id: "payments", col: 1, row: 4 },
+    { id: "orders", col: 1, row: 3 },
+    { id: "order_items", col: 1, row: 2 },
+    { id: "shipments", col: 1, row: 5 },
     { id: "categories", col: 2, row: 0 },
     { id: "product_categories", col: 2, row: 1 },
     { id: "products", col: 2, row: 2 },
@@ -1790,13 +1797,13 @@ lanes:
 
 actors:
   - users: { kind: storage, subtitle: "利用者", lane: er-col-0, stack: 2, rows: ["id: bigint", "email: text"], marks: ["pk", ""] }
-  - addresses: { kind: storage, subtitle: "住所", lane: er-col-0, stack: 3, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["pk", "fk", ""] }
+  - addresses: { kind: storage, subtitle: "住所", lane: er-col-0, stack: 4, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["pk", "fk", ""] }
   - roles: { kind: storage, subtitle: "役割", lane: er-col-0, stack: 0, rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
   - user_roles: { kind: storage, subtitle: "役割の割当", lane: er-col-0, stack: 1, rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] }
-  - orders: { kind: storage, subtitle: "注文", lane: er-col-1, stack: 2, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["pk", "fk", "fk", ""] }
-  - order_items: { kind: storage, subtitle: "注文の明細", lane: er-col-1, stack: 1, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk", "fk", "fk", ""] }
-  - payments: { kind: storage, subtitle: "支払", lane: er-col-1, stack: 3, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["pk", "fk", ""] }
-  - shipments: { kind: storage, subtitle: "配送", lane: er-col-1, stack: 4, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["pk", "fk", "fk", ""] }
+  - orders: { kind: storage, subtitle: "注文", lane: er-col-1, stack: 3, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["pk", "fk", "fk", ""] }
+  - order_items: { kind: storage, subtitle: "注文の明細", lane: er-col-1, stack: 2, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk", "fk", "fk", ""] }
+  - payments: { kind: storage, subtitle: "支払", lane: er-col-1, stack: 4, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["pk", "fk", ""] }
+  - shipments: { kind: storage, subtitle: "配送", lane: er-col-1, stack: 5, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["pk", "fk", "fk", ""] }
   - products: { kind: storage, subtitle: "商品", lane: er-col-2, stack: 2, rows: ["id: bigint", "sku: text", "price: numeric"], marks: ["pk", "", ""] }
   - categories: { kind: storage, subtitle: "分類", lane: er-col-2, stack: 0, rows: ["id: bigint", "parent_id: bigint", "name: text"], marks: ["pk", "fk opt", ""] }
   - product_categories: { kind: storage, subtitle: "商品の分類", lane: er-col-2, stack: 1, rows: ["product_id: bigint", "category_id: bigint"], marks: ["pk fk", "pk fk"] }
@@ -1869,13 +1876,13 @@ export const sourceJson__presetErComplex = JSON.stringify(
     },
     actors: [
       { name: "users", kind: "storage", subtitle: "利用者", lane: "er-col-0", stack: 2, rows: ["id: bigint", "email: text"], marks: ["pk", ""] },
-      { name: "addresses", kind: "storage", subtitle: "住所", lane: "er-col-0", stack: 3, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["pk", "fk", ""] },
+      { name: "addresses", kind: "storage", subtitle: "住所", lane: "er-col-0", stack: 4, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["pk", "fk", ""] },
       { name: "roles", kind: "storage", subtitle: "役割", lane: "er-col-0", stack: 0, rows: ["id: bigint", "name: text"], marks: ["pk", ""] },
       { name: "user_roles", kind: "storage", subtitle: "役割の割当", lane: "er-col-0", stack: 1, rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] },
-      { name: "orders", kind: "storage", subtitle: "注文", lane: "er-col-1", stack: 2, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["pk", "fk", "fk", ""] },
-      { name: "order_items", kind: "storage", subtitle: "注文の明細", lane: "er-col-1", stack: 1, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk", "fk", "fk", ""] },
-      { name: "payments", kind: "storage", subtitle: "支払", lane: "er-col-1", stack: 3, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["pk", "fk", ""] },
-      { name: "shipments", kind: "storage", subtitle: "配送", lane: "er-col-1", stack: 4, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["pk", "fk", "fk", ""] },
+      { name: "orders", kind: "storage", subtitle: "注文", lane: "er-col-1", stack: 3, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["pk", "fk", "fk", ""] },
+      { name: "order_items", kind: "storage", subtitle: "注文の明細", lane: "er-col-1", stack: 2, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk", "fk", "fk", ""] },
+      { name: "payments", kind: "storage", subtitle: "支払", lane: "er-col-1", stack: 4, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["pk", "fk", ""] },
+      { name: "shipments", kind: "storage", subtitle: "配送", lane: "er-col-1", stack: 5, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["pk", "fk", "fk", ""] },
       { name: "products", kind: "storage", subtitle: "商品", lane: "er-col-2", stack: 2, rows: ["id: bigint", "sku: text", "price: numeric"], marks: ["pk", "", ""] },
       { name: "categories", kind: "storage", subtitle: "分類", lane: "er-col-2", stack: 0, rows: ["id: bigint", "parent_id: bigint", "name: text"], marks: ["pk", "fk opt", ""] },
       { name: "product_categories", kind: "storage", subtitle: "商品の分類", lane: "er-col-2", stack: 1, rows: ["product_id: bigint", "category_id: bigint"], marks: ["pk fk", "pk fk"] },
