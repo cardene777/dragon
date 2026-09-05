@@ -653,57 +653,54 @@ export const presetErComplex = withSteps(
   ]),
   [
     {
+      ids: ["users", "orders", "rel-1-users-orders"],
+      title: "1. 利用者が注文する",
+      body: "1 人が 1 件以上を出す。 端の棒と鳥の足で数を読む。",
+    },
+    {
+      ids: ["order_items", "products", "rel-4-orders-order_items", "rel-9-products-order_items"],
+      title: "2. 明細に商品が並ぶ",
+      body: "実線は識別する関係。 親の鍵が子の鍵に入る。",
+    },
+    {
+      ids: ["inventory", "rel-10-products-inventory"],
+      title: "3. 在庫を数える",
+      body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。",
+    },
+    {
       ids: [
-        "users",
-        "addresses",
-        "roles",
-        "orders",
-        "order_items",
-        "payments",
-        "shipments",
-        "products",
         "categories",
-        "inventory",
-      ],
-      title: "1. 商取引の実体",
-      body: "利用者から商品、注文、配送まで、取引を成り立たせる表を先に読む。",
-    },
-    {
-      ids: ["user_roles", "product_categories"],
-      title: "2. 中継表",
-      body: "2 つの鍵を持つ表が、実体どうしを結ぶ準備をする。",
-    },
-    {
-      ids: [
-        "rel-2-users-user_roles",
-        "rel-3-roles-user_roles",
+        "product_categories",
         "rel-11-products-product_categories",
         "rel-12-categories-product_categories",
       ],
-      title: "3. 多対多の 2 組",
-      body: "利用者と役割、商品と分類を、それぞれ中継表越しに読む。",
+      title: "4. 分類で束ねる",
+      body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。",
     },
     {
-      ids: [
-        "rel-1-users-orders",
-        "rel-4-orders-order_items",
-        "rel-9-products-order_items",
-        "rel-10-products-inventory",
-      ],
-      title: "4. 必須の関係",
-      body: "実線と端の棒で、取引に欠かせない結び付きを追う。",
+      ids: ["roles", "rel-13-categories-categories"],
+      title: "5. 分類が分類を指す",
+      body: "破線で同じ表へ戻る。 親を持たない分類もある。",
     },
     {
-      ids: [
-        "rel-0-users-addresses",
-        "rel-5-orders-payments",
-        "rel-6-orders-shipments",
-        "rel-7-addresses-shipments",
-        "rel-8-addresses-orders",
-        "rel-13-categories-categories",
-      ],
-      title: "5. 任意の関係",
-      body: "破線と丸い端で、未登録や未処理を許す関係と分類の自己参照を読む。",
+      ids: ["user_roles", "rel-2-users-user_roles", "rel-3-roles-user_roles"],
+      title: "6. 役割を割り当てる",
+      body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。",
+    },
+    {
+      ids: ["addresses", "rel-0-users-addresses"],
+      title: "7. 住所を持つ",
+      body: "破線は識別しない関係。 丸い端が 0 件を許す。",
+    },
+    {
+      ids: ["payments", "shipments", "rel-5-orders-payments", "rel-6-orders-shipments"],
+      title: "8. 支払と配送",
+      body: "丸い端は 0 か 1。 未払いも未発送もありうる。",
+    },
+    {
+      ids: ["rel-7-addresses-shipments", "rel-8-addresses-orders"],
+      title: "9. 住所を指す 2 本",
+      body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。",
     },
   ],
 );
@@ -1057,44 +1054,60 @@ export const presetClassComplex = withSteps(
   [
     {
       ids: ["PaymentMethod", "Auditable", "Retryable"],
-      title: "1. 抽象の約束",
+      title: "1. 約束を先に置く",
       body: "支払い方法の共通部分と、監査・再試行の約束を先に読む。",
     },
     {
-      ids: ["BankTransfer", "CardPayment", "WalletPayment", "PaymentGateway"],
-      title: "2. 支払いの実装",
-      body: "カード、振込、財布と、それらを呼び出す門口を並べる。",
-    },
-    {
-      ids: ["Transaction", "Receipt", "LedgerEntry", "RiskCheck", "Notification"],
-      title: "3. 取引の組み立て",
-      body: "取引から証明書、台帳、危険判定、通知へ役割を広げる。",
-    },
-    {
       ids: [
+        "BankTransfer",
+        "CardPayment",
         "cr-0-BankTransfer-PaymentMethod",
         "cr-1-CardPayment-PaymentMethod",
-        "cr-2-WalletPayment-PaymentMethod",
-        "cr-3-PaymentGateway-Auditable",
-        "cr-4-WalletPayment-Auditable",
-        "cr-5-RiskCheck-Notification",
-        "cr-6-PaymentGateway-Retryable",
       ],
-      title: "4. 継ぐ・満たす",
-      body: "実線と破線の白抜き三角で、実装がどの抽象へ従うかを読む。",
+      title: "2. 振込とカードが継ぐ",
+      body: "実線に白抜きの三角。 三角は親の側に付く。",
     },
     {
       ids: [
-        "cr-7-Transaction-Receipt",
-        "cr-8-Transaction-LedgerEntry",
+        "WalletPayment",
+        "cr-2-WalletPayment-PaymentMethod",
+        "cr-4-WalletPayment-Auditable",
+      ],
+      title: "3. 財布は継いで、満たす",
+      body: "1 つの箱が親を継ぎ、別の約束も満たす。 線が切れている側が約束。",
+    },
+    {
+      ids: [
+        "PaymentGateway",
+        "cr-3-PaymentGateway-Auditable",
+        "cr-6-PaymentGateway-Retryable",
+      ],
+      title: "4. 門口が 2 つの約束を満たす",
+      body: "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。",
+    },
+    {
+      ids: [
+        "Transaction",
         "cr-9-PaymentGateway-Transaction",
         "cr-10-Transaction-CardPayment",
-        "cr-11-Receipt-LedgerEntry",
-        "cr-12-PaymentGateway-RiskCheck",
-        "cr-13-Transaction-Notification",
       ],
-      title: "5. 持つ・抱える・結ぶ・使う",
-      body: "菱の塗りと線の切れ目を見比べ、残る 4 種の関係を読み分ける。",
+      title: "5. 取引を抱える",
+      body: "塗った菱は命が同じ。 門口が消えると取引も消える。 開いた矢はたどれるだけ。",
+    },
+    {
+      ids: ["Receipt", "LedgerEntry", "cr-7-Transaction-Receipt", "cr-8-Transaction-LedgerEntry"],
+      title: "6. 証明書と台帳",
+      body: "白抜きの菱は持つだけで、相手は単独でも生きる。 塗ると命が同じになる。",
+    },
+    {
+      ids: ["RiskCheck", "cr-11-Receipt-LedgerEntry", "cr-12-PaymentGateway-RiskCheck"],
+      title: "7. 台帳へ結び、危険を見る",
+      body: "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。",
+    },
+    {
+      ids: ["Notification", "cr-5-RiskCheck-Notification", "cr-13-Transaction-Notification"],
+      title: "8. 知らせる",
+      body: "2 つの箱が同じ相手を使う。 破線に開いた矢が 2 本入る。",
     },
   ],
 );
@@ -1800,26 +1813,42 @@ flow:
   - categories -> categories: "親を持つ" (info, dashed) { tailHead: one, head: zero-many }
 
 animation:
-  - step: "1. 商取引の実体" 0.9s
-    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory]
+  - step: "1. 利用者が注文する" 0.9s
+    focus: [users, orders, "users -> orders"]
     badge: "er"
-    body: "利用者から商品、注文、配送まで、取引を成り立たせる表を先に読む。"
-  - step: "2. 中継表" 0.9s
-    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory, user_roles, product_categories]
+    body: "1 人が 1 件以上を出す。 端の棒と鳥の足で数を読む。"
+  - step: "2. 明細に商品が並ぶ" 0.9s
+    focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items"]
     badge: "er"
-    body: "2 つの鍵を持つ表が、実体どうしを結ぶ準備をする。"
-  - step: "3. 多対多の 2 組" 0.9s
-    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory, user_roles, product_categories, "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories"]
+    body: "実線は識別する関係。 親の鍵が子の鍵に入る。"
+  - step: "3. 在庫を数える" 0.9s
+    focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory"]
     badge: "er"
-    body: "利用者と役割、商品と分類を、それぞれ中継表越しに読む。"
-  - step: "4. 必須の関係" 0.9s
-    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory, user_roles, product_categories, "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories", "users -> orders", "orders -> order_items", "products -> order_items", "products -> inventory"]
+    body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。"
+  - step: "4. 分類で束ねる" 0.9s
+    focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories"]
     badge: "er"
-    body: "実線と端の棒で、取引に欠かせない結び付きを追う。"
-  - step: "5. 任意の関係" 0.9s
-    focus: [users, addresses, roles, orders, order_items, payments, shipments, products, categories, inventory, user_roles, product_categories, "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories", "users -> orders", "orders -> order_items", "products -> order_items", "products -> inventory", "users -> addresses", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders", "categories -> categories"]
+    body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。"
+  - step: "5. 分類が分類を指す" 0.9s
+    focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories"]
     badge: "er"
-    body: "破線と丸い端で、未登録や未処理を許す関係と分類の自己参照を読む。"
+    body: "破線で同じ表へ戻る。 親を持たない分類もある。"
+  - step: "6. 役割を割り当てる" 0.9s
+    focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles"]
+    badge: "er"
+    body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。"
+  - step: "7. 住所を持つ" 0.9s
+    focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles", addresses, "users -> addresses"]
+    badge: "er"
+    body: "破線は識別しない関係。 丸い端が 0 件を許す。"
+  - step: "8. 支払と配送" 0.9s
+    focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles", addresses, "users -> addresses", payments, shipments, "orders -> payments", "orders -> shipments"]
+    badge: "er"
+    body: "丸い端は 0 か 1。 未払いも未発送もありうる。"
+  - step: "9. 住所を指す 2 本" 0.9s
+    focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles", addresses, "users -> addresses", payments, shipments, "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders"]
+    badge: "er"
+    body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。"
 `;
 
 export const sourceJson__presetErComplex = JSON.stringify(
@@ -1863,11 +1892,15 @@ export const sourceJson__presetErComplex = JSON.stringify(
       { from: "categories", to: "categories", label: "親を持つ", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
     ],
     animation: [
-      { step: "1. 商取引の実体", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory"], badge: "er", body: "利用者から商品、注文、配送まで、取引を成り立たせる表を先に読む。" },
-      { step: "2. 中継表", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory", "user_roles", "product_categories"], badge: "er", body: "2 つの鍵を持つ表が、実体どうしを結ぶ準備をする。" },
-      { step: "3. 多対多の 2 組", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory", "user_roles", "product_categories", "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories"], badge: "er", body: "利用者と役割、商品と分類を、それぞれ中継表越しに読む。" },
-      { step: "4. 必須の関係", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory", "user_roles", "product_categories", "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories", "users -> orders", "orders -> order_items", "products -> order_items", "products -> inventory"], badge: "er", body: "実線と端の棒で、取引に欠かせない結び付きを追う。" },
-      { step: "5. 任意の関係", duration: 0.9, focus: ["users", "addresses", "roles", "orders", "order_items", "payments", "shipments", "products", "categories", "inventory", "user_roles", "product_categories", "users -> user_roles", "roles -> user_roles", "products -> product_categories", "categories -> product_categories", "users -> orders", "orders -> order_items", "products -> order_items", "products -> inventory", "users -> addresses", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders", "categories -> categories"], badge: "er", body: "破線と丸い端で、未登録や未処理を許す関係と分類の自己参照を読む。" },
+      { step: "1. 利用者が注文する", duration: 0.9, focus: ["users", "orders", "users -> orders"], badge: "er", body: "1 人が 1 件以上を出す。 端の棒と鳥の足で数を読む。" },
+      { step: "2. 明細に商品が並ぶ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items"], badge: "er", body: "実線は識別する関係。 親の鍵が子の鍵に入る。" },
+      { step: "3. 在庫を数える", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory"], badge: "er", body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。" },
+      { step: "4. 分類で束ねる", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories"], badge: "er", body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。" },
+      { step: "5. 分類が分類を指す", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories"], badge: "er", body: "破線で同じ表へ戻る。 親を持たない分類もある。" },
+      { step: "6. 役割を割り当てる", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles"], badge: "er", body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。" },
+      { step: "7. 住所を持つ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses"], badge: "er", body: "破線は識別しない関係。 丸い端が 0 件を許す。" },
+      { step: "8. 支払と配送", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments"], badge: "er", body: "丸い端は 0 か 1。 未払いも未発送もありうる。" },
+      { step: "9. 住所を指す 2 本", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders"], badge: "er", body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。" },
     ],
   },
   null,
@@ -3069,26 +3102,38 @@ flow:
   - PaymentGateway -> RiskCheck: "使う" { relation: uses }
   - Transaction -> Notification: "使う" { relation: uses }
 animation:
-  - step: "1. 抽象の約束" 0.9s
+  - step: "1. 約束を先に置く" 0.9s
     focus: [PaymentMethod, Auditable, Retryable]
     badge: "class"
     body: "支払い方法の共通部分と、監査・再試行の約束を先に読む。"
-  - step: "2. 支払いの実装" 0.9s
-    focus: [PaymentMethod, Auditable, Retryable, CardPayment, BankTransfer, WalletPayment, PaymentGateway]
+  - step: "2. 振込とカードが継ぐ" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod"]
     badge: "class"
-    body: "カード、振込、財布と、それらを呼び出す門口を並べる。"
-  - step: "3. 取引の組み立て" 0.9s
-    focus: [PaymentMethod, Auditable, Retryable, CardPayment, BankTransfer, WalletPayment, PaymentGateway, Transaction, Receipt, LedgerEntry, RiskCheck, Notification]
+    body: "実線に白抜きの三角。 三角は親の側に付く。"
+  - step: "3. 財布は継いで、満たす" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable"]
     badge: "class"
-    body: "取引から証明書、台帳、危険判定、通知へ役割を広げる。"
-  - step: "4. 継ぐ・満たす" 0.9s
-    focus: [PaymentMethod, Auditable, Retryable, CardPayment, BankTransfer, WalletPayment, PaymentGateway, Transaction, Receipt, LedgerEntry, RiskCheck, Notification, "CardPayment -> PaymentMethod", "BankTransfer -> PaymentMethod", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway -> Auditable", "RiskCheck -> Notification", "PaymentGateway -> Retryable"]
+    body: "1 つの箱が親を継ぎ、別の約束も満たす。 線が切れている側が約束。"
+  - step: "4. 門口が 2 つの約束を満たす" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable"]
     badge: "class"
-    body: "実線と破線の白抜き三角で、実装がどの抽象へ従うかを読む。"
-  - step: "5. 持つ・抱える・結ぶ・使う" 0.9s
-    focus: [PaymentMethod, Auditable, Retryable, CardPayment, BankTransfer, WalletPayment, PaymentGateway, Transaction, Receipt, LedgerEntry, RiskCheck, Notification, "CardPayment -> PaymentMethod", "BankTransfer -> PaymentMethod", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway -> Auditable", "RiskCheck -> Notification", "PaymentGateway -> Retryable", "Transaction -> Receipt", "Transaction -> LedgerEntry", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", "Transaction -> Notification"]
+    body: "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。"
+  - step: "5. 取引を抱える" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment"]
     badge: "class"
-    body: "菱の塗りと線の切れ目を見比べ、残る 4 種の関係を読み分ける。"
+    body: "塗った菱は命が同じ。 門口が消えると取引も消える。 開いた矢はたどれるだけ。"
+  - step: "6. 証明書と台帳" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry"]
+    badge: "class"
+    body: "白抜きの菱は持つだけで、相手は単独でも生きる。 塗ると命が同じになる。"
+  - step: "7. 台帳へ結び、危険を見る" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry", RiskCheck, "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck"]
+    badge: "class"
+    body: "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。"
+  - step: "8. 知らせる" 0.9s
+    focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry", RiskCheck, "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", Notification, "RiskCheck -> Notification", "Transaction -> Notification"]
+    badge: "class"
+    body: "2 つの箱が同じ相手を使う。 破線に開いた矢が 2 本入る。"
 `;
 
 export const sourceJson__presetClassComplex = JSON.stringify(
@@ -3327,111 +3372,60 @@ export const sourceJson__presetClassComplex = JSON.stringify(
     ],
     "animation": [
       {
-        "step": "1. 抽象の約束",
+        "step": "1. 約束を先に置く",
         "duration": 0.9,
-        "focus": [
-          "PaymentMethod",
-          "Auditable",
-          "Retryable"
-        ],
+        "focus": ["PaymentMethod", "Auditable", "Retryable"],
         "badge": "class",
         "body": "支払い方法の共通部分と、監査・再試行の約束を先に読む。"
       },
       {
-        "step": "2. 支払いの実装",
+        "step": "2. 振込とカードが継ぐ",
         "duration": 0.9,
-        "focus": [
-          "PaymentMethod",
-          "Auditable",
-          "Retryable",
-          "CardPayment",
-          "BankTransfer",
-          "WalletPayment",
-          "PaymentGateway"
-        ],
+        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod"],
         "badge": "class",
-        "body": "カード、振込、財布と、それらを呼び出す門口を並べる。"
+        "body": "実線に白抜きの三角。 三角は親の側に付く。"
       },
       {
-        "step": "3. 取引の組み立て",
+        "step": "3. 財布は継いで、満たす",
         "duration": 0.9,
-        "focus": [
-          "PaymentMethod",
-          "Auditable",
-          "Retryable",
-          "CardPayment",
-          "BankTransfer",
-          "WalletPayment",
-          "PaymentGateway",
-          "Transaction",
-          "Receipt",
-          "LedgerEntry",
-          "RiskCheck",
-          "Notification"
-        ],
+        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable"],
         "badge": "class",
-        "body": "取引から証明書、台帳、危険判定、通知へ役割を広げる。"
+        "body": "1 つの箱が親を継ぎ、別の約束も満たす。 線が切れている側が約束。"
       },
       {
-        "step": "4. 継ぐ・満たす",
+        "step": "4. 門口が 2 つの約束を満たす",
         "duration": 0.9,
-        "focus": [
-          "PaymentMethod",
-          "Auditable",
-          "Retryable",
-          "CardPayment",
-          "BankTransfer",
-          "WalletPayment",
-          "PaymentGateway",
-          "Transaction",
-          "Receipt",
-          "LedgerEntry",
-          "RiskCheck",
-          "Notification",
-          "CardPayment -> PaymentMethod",
-          "BankTransfer -> PaymentMethod",
-          "WalletPayment -> PaymentMethod",
-          "WalletPayment -> Auditable",
-          "PaymentGateway -> Auditable",
-          "RiskCheck -> Notification",
-          "PaymentGateway -> Retryable"
-        ],
+        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable"],
         "badge": "class",
-        "body": "実線と破線の白抜き三角で、実装がどの抽象へ従うかを読む。"
+        "body": "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。"
       },
       {
-        "step": "5. 持つ・抱える・結ぶ・使う",
+        "step": "5. 取引を抱える",
         "duration": 0.9,
-        "focus": [
-          "PaymentMethod",
-          "Auditable",
-          "Retryable",
-          "CardPayment",
-          "BankTransfer",
-          "WalletPayment",
-          "PaymentGateway",
-          "Transaction",
-          "Receipt",
-          "LedgerEntry",
-          "RiskCheck",
-          "Notification",
-          "CardPayment -> PaymentMethod",
-          "BankTransfer -> PaymentMethod",
-          "WalletPayment -> PaymentMethod",
-          "WalletPayment -> Auditable",
-          "PaymentGateway -> Auditable",
-          "RiskCheck -> Notification",
-          "PaymentGateway -> Retryable",
-          "Transaction -> Receipt",
-          "Transaction -> LedgerEntry",
-          "PaymentGateway -> Transaction",
-          "Transaction -> CardPayment",
-          "Receipt -> LedgerEntry",
-          "PaymentGateway -> RiskCheck",
-          "Transaction -> Notification"
-        ],
+        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment"],
         "badge": "class",
-        "body": "菱の塗りと線の切れ目を見比べ、残る 4 種の関係を読み分ける。"
+        "body": "塗った菱は命が同じ。 門口が消えると取引も消える。 開いた矢はたどれるだけ。"
+      },
+      {
+        "step": "6. 証明書と台帳",
+        "duration": 0.9,
+        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry"],
+        "badge": "class",
+        "body": "白抜きの菱は持つだけで、相手は単独でも生きる。 塗ると命が同じになる。"
+      },
+      {
+        "step": "7. 台帳へ結び、危険を見る",
+        "duration": 0.9,
+        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck"],
+        "badge": "class",
+        "body": "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。"
+      },
+      {
+        "step": "8. 知らせる",
+        "duration": 0.9,
+        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", "Notification", "RiskCheck -> Notification", "Transaction -> Notification"],
+        "badge": "class",
+        "body": "2 つの箱が同じ相手を使う。 破線に開いた矢が 2 本入る。"
       }
     ]
   },
