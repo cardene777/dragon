@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { layout } from "@cardenelabs/cdl";
+import { layout, visualValidateAll } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as 見本帳の定義 from "./presets.cdl";
 
@@ -129,6 +129,70 @@ function 対象の見本を配置する(): Array<{ id: string; 関係列: 配置
   }
 }
 
+/** 走査対象の図そのものを集める。 札の重なりは配置前の図を cdl に渡して測る。 */
+function 対象の見本を集める(): CdlDiagram[] {
+  return Object.values(見本帳の定義).filter(
+    (候補): 候補 is CdlDiagram =>
+      typeof 候補 === "object" && 候補 !== null && "id" in 候補 && 対象の図id.has(候補.id),
+  );
+}
+
+/**
+ * 札が別の関係の線に乗っている件数を数える (#1608)。
+ *
+ * 上の 4 つの検査は線と線しか見ておらず、 札と線は 1 つも見ていなかった。
+ * そのため取り込み前にここが緑でも、 `packages/dragon` の sweep だけが落ちる状態が作れた。
+ * 実測 = クラス図 (複雑) で 2 件 (継ぐ の札と 満たす の札が互いの線に乗っていた)。
+ *
+ * 測り方を自前で組み直さず cdl の判定をそのまま呼ぶ。 sweep が門にしている軸と同じものを
+ * 見るためで、 別の式で近似すると片方だけが通る状態に戻る。
+ */
+function 札と線の重なりを数える(図列: CdlDiagram[]): string[] {
+  const 警告を黙らせる = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  const 記録を黙らせる = vi.spyOn(console, "log").mockImplementation(() => undefined);
+  try {
+    const 結果 = visualValidateAll(図列, { profile: "catalog" });
+    return 結果.reports.flatMap((報告) =>
+      報告.violations
+        .filter((違反) => 違反.severity === "error" && 違反.axis === "edge-label-overlap")
+        .map((違反) => `${報告.diagramId}: ${違反.detail}`),
+    );
+  } finally {
+    警告を黙らせる.mockRestore();
+    記録を黙らせる.mockRestore();
+  }
+}
+
+/** 箱を別の縦列・別の段へ移した図を作る。 植え込み対照で取り込み前の配置を作り直すのに使う。 */
+function 箱を動かす(
+  図: CdlDiagram,
+  位置: Readonly<Record<string, { 列: number; 段: number }>>,
+): CdlDiagram {
+  const 未知 = Object.keys(位置).filter((id) => !図.nodes.some((箱) => 箱.id === id));
+  if (未知.length > 0) throw new Error(`図 "${図.id}" に無い箱を動かそうとした: ${未知.join(", ")}`);
+  return {
+    ...図,
+    nodes: 図.nodes.map((箱) => {
+      const 先 = 位置[箱.id];
+      return 先 ? { ...箱, lane: `col-${先.列}`, stack: 先.段 } : 箱;
+    }),
+  };
+}
+
+/**
+ * #1608 で直す前の配置。 植え込み対照に使う。
+ *
+ * カード払いと財布払いが互いの親の真下に入れ替わって置かれ、 継ぐ線と満たす線が
+ * 同じ区画で交差していた。 その区画の真ん中に両方の札が載る。
+ */
+const 直す前の配置 = {
+  CardPayment: { 列: 2, 段: 1 },
+  WalletPayment: { 列: 3, 段: 1 },
+  Transaction: { 列: 1, 段: 3 },
+  LedgerEntry: { 列: 1, 段: 4 },
+  Receipt: { 列: 2, 段: 4 },
+} as const;
+
 describe("見本帳の関係線の幾何 (#1600)", () => {
   it("4 見本すべてで色違いの線が重ならない", () => {
     const 色違いの重なり = 対象の見本を配置する().flatMap(({ id, 関係列 }) =>
@@ -174,6 +238,40 @@ describe("見本帳の関係線の幾何 (#1600)", () => {
     expect(dどうしの最大重なりpx("M 425 786 L 562 786", "M 562 786 L 425 786")).toBe(137);
     expect(dどうしの最大重なりpx("M 0 100 L 50 100", "M 80 100 L 130 100")).toBe(0);
     expect(dどうしの最大重なりpx("M 0 0 L 100 0", "M 50 -50 L 50 50")).toBe(0);
+  });
+
+  it("4 見本すべてで札が別の関係の線に乗らない", () => {
+    const 図列 = 対象の見本を集める();
+    expect(図列.length, "検査が空振りしている: 走査できた見本が 4 件ではない").toBe(4);
+    const 重なり = 札と線の重なりを数える(図列);
+    expect(重なり, `札が線に乗っている: ${重なり.join("、")}`).toHaveLength(0);
+  });
+
+  it("直す前の配置に当てると札の重なりを見つける", () => {
+    // 「0 件」 を期待する検査なので、 見つけられることを別に確かめる (植え込み対照)。
+    // 探し方は本番と同じ関数を使う。 2 度書くと片方だけ直って気付けなくなる。
+    const 複雑 = 対象の見本を集める().find((図) => 図.id === "class-complex-demo")!;
+    const 重なり = 札と線の重なりを数える([箱を動かす(複雑, 直す前の配置)]);
+    expect(
+      重なり.length,
+      "検査が恒真になっている: 取り込み前の配置でも札の重なりを 1 件も見つけられない",
+    ).toBeGreaterThan(0);
+  });
+
+  it("直す前の配置でも線と線の重なりは 0 件だった", () => {
+    // 上の 4 検査が緑のまま札の重なりだけが残せたことを、 実物で示す。
+    // ここが 0 でなくなったら、 札の検査を足した理由の説明が実物と食い違っている。
+    const 複雑 = 対象の見本を集める().find((図) => 図.id === "class-complex-demo")!;
+    const 警告を黙らせる = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const 関係列 = (() => {
+      try {
+        return layout(箱を動かす(複雑, 直す前の配置)).edges;
+      } finally {
+        警告を黙らせる.mockRestore();
+      }
+    })();
+    const 色違い = 重なりを測る(関係列).filter(({ 一本目, 二本目 }) => 一本目.tone !== 二本目.tone);
+    expect(色違い, `色違いの重なり: ${重なりの説明(色違い)}`).toHaveLength(0);
   });
 
   it("手組みの d で短い区間を測れる", () => {
