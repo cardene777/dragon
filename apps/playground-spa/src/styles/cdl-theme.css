@@ -222,7 +222,7 @@
 /* 既定は控えめな色。 意味を持つ線は下の tone で上書きされる */
 [data-cdl-role="edge-line"] {
   stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
-  stroke-width: 2.25 !important;
+  stroke-width: 7 !important;
 }
 
 /* 塗る印 (三角 / 菱 の塗った側) */
@@ -236,7 +236,7 @@
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head-fill="hollow"] {
   fill: var(--d-surface) !important;
   stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
-  stroke-width: 1.4 !important;
+  stroke-width: 4.36 !important;
 }
 
 /* 元から輪郭しか無い形。 塗ると「閉じた矢」 と見分けが付かなくなる = 開いた矢は
@@ -249,28 +249,7 @@
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="zero-many"] {
   fill: none !important;
   stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
-  stroke-width: 1.6 !important;
-}
-
-/* #1583 で 6 種の関係が 3 群の色に分かれ、色が意味を持つようになったのはクラス図だけ。
-   細い線では色が薄く見えて群の見分けが効きにくい。 関係が 1 種類の ER 図と状態遷移図には
-   同じ理由が当たらないため、クラス図の線と印だけを同じ比で太くする */
-svg[data-cdl-type="class"] [data-cdl-role="edge-line"] {
-  stroke-width: 3.5 !important;
-}
-
-svg[data-cdl-type="class"]
-  [data-cdl-role="edge-arrowhead"][data-cdl-edge-head-fill="hollow"] {
-  stroke-width: 2.18 !important;
-}
-
-svg[data-cdl-type="class"] [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="open"],
-svg[data-cdl-type="class"] [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="crow"],
-svg[data-cdl-type="class"] [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="one"],
-svg[data-cdl-type="class"] [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="zero-one"],
-svg[data-cdl-type="class"] [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="many"],
-svg[data-cdl-type="class"] [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="zero-many"] {
-  stroke-width: 2.49 !important;
+  stroke-width: 4.98 !important;
 }
 
 /* 意味ごとの色。 cdl は `data-cdl-tone` で意味だけを渡し、 色は dragon が決める */

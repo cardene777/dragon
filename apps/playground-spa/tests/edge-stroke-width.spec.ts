@@ -1,3 +1,12 @@
+/**
+ * 関係の線の太さを画面で測る (#1597)。
+ *
+ * CSS の文字列ではなく **画面で解決された値** を読む。 太さは `!important` の
+ * 重なりで決まるので、規則を読んだだけでは実際に効く値が判らない。
+ *
+ * 3 つの図種を見るのは、図の種類で値が分かれていないことを固定するため。
+ * 以前はクラス図だけ別の値だった (#1587) が、#1597 で全ての図が同じ値になった。
+ */
 import { test, expect, type Page } from "@playwright/test";
 
 import { 記法をURLに載せる } from "./box-and-edge-figure";
@@ -54,7 +63,7 @@ async function 線幅を測る(page: Page, 図種: string): Promise<number[]> {
     .evaluateAll((線) => 線.map((要素) => Number.parseFloat(getComputedStyle(要素).strokeWidth)));
 }
 
-test("クラス図の関係の線幅は 3.5", async ({ page }) => {
+test("クラス図の関係の線幅は 7", async ({ page }) => {
   await 図を開く(page, クラス図の記法);
   const 太さ = await 線幅を測る(page, "class");
 
@@ -63,11 +72,11 @@ test("クラス図の関係の線幅は 3.5", async ({ page }) => {
     "クラス図の関係の線を 1 本も測れていない (検査が空振りしている)",
   ).toBeGreaterThan(0);
   expect(new Set(太さ), `クラス図の線幅が揃っていない: ${太さ.join(" / ")}`).toEqual(
-    new Set([3.5]),
+    new Set([7]),
   );
 });
 
-test("ER 図の関係の線幅は 2.25 のまま", async ({ page }) => {
+test("ER 図の関係の線幅も 7", async ({ page }) => {
   await 図を開く(page, ER図の記法);
   const 太さ = await 線幅を測る(page, "er");
 
@@ -75,10 +84,10 @@ test("ER 図の関係の線幅は 2.25 のまま", async ({ page }) => {
     太さ.length,
     "ER 図の関係の線を 1 本も測れていない (検査が空振りしている)",
   ).toBeGreaterThan(0);
-  expect(new Set(太さ), `ER 図の線幅が揃っていない: ${太さ.join(" / ")}`).toEqual(new Set([2.25]));
+  expect(new Set(太さ), `ER 図の線幅が揃っていない: ${太さ.join(" / ")}`).toEqual(new Set([7]));
 });
 
-test("流れ図の関係の線幅は 2.25 のまま", async ({ page }) => {
+test("流れ図の関係の線幅も 7", async ({ page }) => {
   await 図を開く(page, 流れ図の記法);
   const 太さ = await 線幅を測る(page, "flow");
 
@@ -86,7 +95,7 @@ test("流れ図の関係の線幅は 2.25 のまま", async ({ page }) => {
     太さ.length,
     "流れ図の関係の線を 1 本も測れていない (検査が空振りしている)",
   ).toBeGreaterThan(0);
-  expect(new Set(太さ), `流れ図の線幅が揃っていない: ${太さ.join(" / ")}`).toEqual(new Set([2.25]));
+  expect(new Set(太さ), `流れ図の線幅が揃っていない: ${太さ.join(" / ")}`).toEqual(new Set([7]));
 });
 
 test('クラス図の絵の根は data-cdl-type="class" を持つ', async ({ page }) => {
@@ -97,7 +106,7 @@ test('クラス図の絵の根は data-cdl-type="class" を持つ', async ({ pag
   ).toHaveAttribute("data-cdl-type", "class");
 });
 
-test("クラス図の白抜きの印と開いた矢の輪郭も線と同じ比で太くなる", async ({ page }) => {
+test("白抜きの印と開いた矢の輪郭も線と同じ比で太くなる", async ({ page }) => {
   await 図を開く(page, クラス図の記法);
   const 印 = await page
     .locator(
@@ -130,12 +139,12 @@ test("クラス図の白抜きの印と開いた矢の輪郭も線と同じ比�
     0,
   );
   expect(new Set(白抜き), `白抜きの印の輪郭が揃っていない: ${白抜き.join(" / ")}`).toEqual(
-    new Set([2.18]),
+    new Set([4.36]),
   );
   expect(開いた矢.length, "開いた矢を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(
     0,
   );
   expect(new Set(開いた矢), `開いた矢の輪郭が揃っていない: ${開いた矢.join(" / ")}`).toEqual(
-    new Set([2.49]),
+    new Set([4.98]),
   );
 });
