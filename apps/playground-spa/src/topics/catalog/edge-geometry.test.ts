@@ -99,6 +99,19 @@ function 重なりの説明(重なり列: 重なり[]): string {
     .join("、");
 }
 
+function 短い直線区間を測る(d: string): number[] {
+  const 点列 = dから点列を読む(d);
+  const 長さ列: number[] = [];
+  for (let i = 1; i < 点列.length; i += 1) {
+    const 始点 = 点列[i - 1]!;
+    const 終点 = 点列[i]!;
+    const 長さ = Math.max(Math.abs(終点.x - 始点.x), Math.abs(終点.y - 始点.y));
+    // Q の終点の直前は半径 14px の角丸なので、14px ちょうどの区間は数えない。
+    if (長さ > 0 && 長さ < 30 && Math.abs(長さ - 14) > 0.5) 長さ列.push(長さ);
+  }
+  return 長さ列;
+}
+
 /** export 全体を走査して対象 id の図を集める。export の追加・削除で検査対象が黙って変わらないようにする。 */
 function 対象の見本を配置する(): Array<{ id: string; 関係列: 配置済みの関係[] }> {
   const 図列 = Object.values(見本帳の定義).filter(
@@ -141,6 +154,16 @@ describe("見本帳の関係線の幾何 (#1600)", () => {
     expect(折れの数, `class-complex-demo の折れが ${折れの数} 個ある`).toBeLessThanOrEqual(32);
   });
 
+  it("4 見本すべてで 30px 未満の直線区間が無い", () => {
+    const 短い区間 = 対象の見本を配置する().flatMap(({ id: 図id, 関係列 }) =>
+      関係列.flatMap(({ id: 線id, d }) => 短い直線区間を測る(d).map((長さ) => ({ 図id, 線id, 長さ }))),
+    );
+    expect(
+      短い区間,
+      `短い直線区間: ${短い区間.map(({ 図id, 線id, 長さ }) => `${図id} の ${線id} が ${長さ}px`).join("、")}`,
+    ).toHaveLength(0);
+  });
+
   it("4 件を走査し、指定された id の集合と一致する", () => {
     const 見本id = 対象の見本を配置する().map(({ id }) => id).sort();
     expect(見本id.length, "検査が空振りしている: 走査できた見本が 4 件ではない").toBe(4);
@@ -151,5 +174,11 @@ describe("見本帳の関係線の幾何 (#1600)", () => {
     expect(dどうしの最大重なりpx("M 425 786 L 562 786", "M 562 786 L 425 786")).toBe(137);
     expect(dどうしの最大重なりpx("M 0 100 L 50 100", "M 80 100 L 130 100")).toBe(0);
     expect(dどうしの最大重なりpx("M 0 0 L 100 0", "M 50 -50 L 50 50")).toBe(0);
+  });
+
+  it("手組みの d で短い区間を測れる", () => {
+    expect(短い直線区間を測る("M 425 1317 L 711 1317 L 711 1289 L 751 1289")).toEqual([28]);
+    expect(短い直線区間を測る("M 0 0 L 100 0 Q 114 0, 114 14 L 114 114")).toHaveLength(0);
+    expect(短い直線区間を測る("M 0 0 L 100 0 L 100 100")).toHaveLength(0);
   });
 });
