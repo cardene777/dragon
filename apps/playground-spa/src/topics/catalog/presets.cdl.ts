@@ -940,8 +940,21 @@ export const presetClassDiagram = withSteps(
 // (`layout/edges.ts` の offset 0) ため、辺から最初の折れまでが必ず重なる。
 // 5 本の関係を持つ Transaction は 4 辺へ割り振れないので、同色の「結ぶ」と「使う」を
 // 1 辺へ寄せ、残る 3 本を上・左・下へ散らしている。
-// 上 2 段の 7200 通りと下 2 段の 3024 通りを数え上げ、色違いの重なりと cdl の視覚検査の
-// error が共に 0 になる配置を探した。4 列では両立せず、5 列 5 段でだけ両立した。
+//
+// 箱の置き場所は数え上げで決めた。 満たすべきは 5 つで、いずれも `edge-geometry.test.ts` が
+// 見ている (色違いの線が重ならない / 同色の重なりが 2 件以下 / 折れが 32 個以下 /
+// 30px 未満の直線区間が無い / 札が別の関係の線に乗らない)。
+//
+// **札の条件は後から足した** (#1608)。 先に入れた配置 (カード払いを c2、財布払いを c3 に
+// 置いた形) は線と線しか見ておらず、カード払いが継ぐ線と財布払いが満たす線が同じ区画で
+// 交差して、両方の札が互いの線に乗っていた。 それを見ていたのは `packages/dragon` の
+// sweep だけで、この file の隣にある検査は緑のままだった。
+//
+// 段は崩せない。 段 0 に約束、段 1 に実装、段 2 以降に動くものを置く形を外すと、
+// 数値だけは満たせる配置が出るが、子が親の上に来たり同じ親を継ぐ 3 つが散ったりして
+// 段の筋書きが読めなくなる。 その形を保ったまま列を 6 本まで広げて全通り (2592 通り)
+// 数えると、上 2 段だけでは 5 つを同時に満たす置き方が 1 つも無かった。
+// 下段も 1 列ずつ右へ寄せて初めて両立する。
 export const presetClassComplex = withSteps(
   orderGridColumns(
     classDiagram({
@@ -983,22 +996,6 @@ export const presetClassComplex = withSteps(
         methods: ["+charge(): Transaction", "+retry(): Result"],
       })
       .class({
-        id: "Transaction",
-        title: "Transaction",
-        col: 1,
-        row: 3,
-        attributes: ["+id: string", "+amount: Money", "+status: Status"],
-        methods: ["+settle(): Receipt", "+cancel(): Result"],
-      })
-      .class({
-        id: "LedgerEntry",
-        title: "LedgerEntry",
-        col: 1,
-        row: 4,
-        attributes: ["+account: string", "+amount: Money"],
-        methods: ["+post(): void"],
-      })
-      .class({
         id: "Auditable",
         title: "Auditable",
         stereotype: "interface",
@@ -1008,20 +1005,28 @@ export const presetClassComplex = withSteps(
         methods: ["+audit(): AuditLog"],
       })
       .class({
-        id: "CardPayment",
-        title: "CardPayment",
+        id: "WalletPayment",
+        title: "WalletPayment",
         col: 2,
         row: 1,
-        attributes: ["+token: string", "+brand: string"],
-        methods: ["+authorize(): Result", "+capture(): Result"],
+        attributes: ["+walletId: string", "+balance: Money"],
+        methods: ["+authorize(): Result", "+debit(): Result"],
       })
       .class({
-        id: "Receipt",
-        title: "Receipt",
+        id: "Transaction",
+        title: "Transaction",
+        col: 2,
+        row: 3,
+        attributes: ["+id: string", "+amount: Money", "+status: Status"],
+        methods: ["+settle(): Receipt", "+cancel(): Result"],
+      })
+      .class({
+        id: "LedgerEntry",
+        title: "LedgerEntry",
         col: 2,
         row: 4,
-        attributes: ["+number: string", "+issuedAt: Date"],
-        methods: ["+render(): Document"],
+        attributes: ["+account: string", "+amount: Money"],
+        methods: ["+post(): void"],
       })
       .class({
         id: "PaymentMethod",
@@ -1033,12 +1038,20 @@ export const presetClassComplex = withSteps(
         methods: ["+authorize(): Result", "+capture(): Result"],
       })
       .class({
-        id: "WalletPayment",
-        title: "WalletPayment",
+        id: "CardPayment",
+        title: "CardPayment",
         col: 3,
         row: 1,
-        attributes: ["+walletId: string", "+balance: Money"],
-        methods: ["+authorize(): Result", "+debit(): Result"],
+        attributes: ["+token: string", "+brand: string"],
+        methods: ["+authorize(): Result", "+capture(): Result"],
+      })
+      .class({
+        id: "Receipt",
+        title: "Receipt",
+        col: 3,
+        row: 4,
+        attributes: ["+number: string", "+issuedAt: Date"],
+        methods: ["+render(): Document"],
       })
       .class({
         id: "BankTransfer",
@@ -3091,13 +3104,13 @@ actors:
   - Notification: { lane: c0, stack: 3, rows: ["+channel: Channel", "+recipient: string", "───", "+send(): Result"] }
   - Retryable: { eyebrow: "interface", lane: c1, stack: 0, rows: ["+maxAttempts: number", "───", "+retry(): Result"] }
   - PaymentGateway: { lane: c1, stack: 1, rows: ["+endpoint: string", "+attempts: number", "───", "+charge(): Transaction", "+retry(): Result"] }
-  - Transaction: { lane: c1, stack: 3, rows: ["+id: string", "+amount: Money", "+status: Status", "───", "+settle(): Receipt", "+cancel(): Result"] }
-  - LedgerEntry: { lane: c1, stack: 4, rows: ["+account: string", "+amount: Money", "───", "+post(): void"] }
   - Auditable: { eyebrow: "interface", lane: c2, stack: 0, rows: ["+auditId: string", "───", "+audit(): AuditLog"] }
-  - CardPayment: { lane: c2, stack: 1, rows: ["+token: string", "+brand: string", "───", "+authorize(): Result", "+capture(): Result"] }
-  - Receipt: { lane: c2, stack: 4, rows: ["+number: string", "+issuedAt: Date", "───", "+render(): Document"] }
+  - WalletPayment: { lane: c2, stack: 1, rows: ["+walletId: string", "+balance: Money", "───", "+authorize(): Result", "+debit(): Result"] }
+  - Transaction: { lane: c2, stack: 3, rows: ["+id: string", "+amount: Money", "+status: Status", "───", "+settle(): Receipt", "+cancel(): Result"] }
+  - LedgerEntry: { lane: c2, stack: 4, rows: ["+account: string", "+amount: Money", "───", "+post(): void"] }
   - PaymentMethod: { eyebrow: "abstract", lane: c3, stack: 0, rows: ["+methodId: string", "+enabled: boolean", "───", "+authorize(): Result", "+capture(): Result"] }
-  - WalletPayment: { lane: c3, stack: 1, rows: ["+walletId: string", "+balance: Money", "───", "+authorize(): Result", "+debit(): Result"] }
+  - CardPayment: { lane: c3, stack: 1, rows: ["+token: string", "+brand: string", "───", "+authorize(): Result", "+capture(): Result"] }
+  - Receipt: { lane: c3, stack: 4, rows: ["+number: string", "+issuedAt: Date", "───", "+render(): Document"] }
   - BankTransfer: { lane: c4, stack: 1, rows: ["+bankCode: string", "+reference: string", "───", "+authorize(): Result", "+reconcile(): Result"] }
 flow:
   - BankTransfer -> PaymentMethod: "継ぐ" { relation: extends }
@@ -3202,8 +3215,31 @@ export const sourceJson__presetClassComplex = JSON.stringify(
         ]
       },
       {
+        "name": "Auditable",
+        "eyebrow": "interface",
+        "lane": "c2",
+        "stack": 0,
+        "rows": [
+          "+auditId: string",
+          "───",
+          "+audit(): AuditLog"
+        ]
+      },
+      {
+        "name": "WalletPayment",
+        "lane": "c2",
+        "stack": 1,
+        "rows": [
+          "+walletId: string",
+          "+balance: Money",
+          "───",
+          "+authorize(): Result",
+          "+debit(): Result"
+        ]
+      },
+      {
         "name": "Transaction",
-        "lane": "c1",
+        "lane": "c2",
         "stack": 3,
         "rows": [
           "+id: string",
@@ -3216,47 +3252,13 @@ export const sourceJson__presetClassComplex = JSON.stringify(
       },
       {
         "name": "LedgerEntry",
-        "lane": "c1",
+        "lane": "c2",
         "stack": 4,
         "rows": [
           "+account: string",
           "+amount: Money",
           "───",
           "+post(): void"
-        ]
-      },
-      {
-        "name": "Auditable",
-        "eyebrow": "interface",
-        "lane": "c2",
-        "stack": 0,
-        "rows": [
-          "+auditId: string",
-          "───",
-          "+audit(): AuditLog"
-        ]
-      },
-      {
-        "name": "CardPayment",
-        "lane": "c2",
-        "stack": 1,
-        "rows": [
-          "+token: string",
-          "+brand: string",
-          "───",
-          "+authorize(): Result",
-          "+capture(): Result"
-        ]
-      },
-      {
-        "name": "Receipt",
-        "lane": "c2",
-        "stack": 4,
-        "rows": [
-          "+number: string",
-          "+issuedAt: Date",
-          "───",
-          "+render(): Document"
         ]
       },
       {
@@ -3273,15 +3275,26 @@ export const sourceJson__presetClassComplex = JSON.stringify(
         ]
       },
       {
-        "name": "WalletPayment",
+        "name": "CardPayment",
         "lane": "c3",
         "stack": 1,
         "rows": [
-          "+walletId: string",
-          "+balance: Money",
+          "+token: string",
+          "+brand: string",
           "───",
           "+authorize(): Result",
-          "+debit(): Result"
+          "+capture(): Result"
+        ]
+      },
+      {
+        "name": "Receipt",
+        "lane": "c3",
+        "stack": 4,
+        "rows": [
+          "+number: string",
+          "+issuedAt: Date",
+          "───",
+          "+render(): Document"
         ]
       },
       {
