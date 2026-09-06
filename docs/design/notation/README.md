@@ -41,10 +41,14 @@ docs/design/notation/
   index.html                走査して作る一覧。 手で書かない
   <群>/
     <図>/
-      source.cdl.ts         その見た目を出す記法
+      source.cdl.ts         組立て API で書いた図を再現する宣言
+      source.cdl            記法から組む図の YAML
       look.svg              決めた日の見た目 (今の見た目ではない)
       note.md               決めたこと / 見送ったこと
 ```
+
+`source.cdl.ts` と `source.cdl` はどちらか一方を置く。
+前者は catalog の宣言を写して動かす図、後者は記法そのものを写して動かす図に使う。
 
 `note.md` の先頭に決めた日を書く。 一覧がこれを読んで、いつの記録かを card に出す。
 

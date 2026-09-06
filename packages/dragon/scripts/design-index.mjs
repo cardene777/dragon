@@ -113,13 +113,17 @@ export function collectEntries(root) {
       }
       const notePath = join(dir, "note.md");
       const noteText = existsSync(notePath) ? readFileSync(notePath, "utf8") : "";
+      const hasSource = existsSync(join(dir, "source.cdl.ts")) || existsSync(join(dir, "source.cdl"));
+      if (!hasSource) {
+        problems.push({ path: `${group}/${name}`, why: "source.cdl.ts / source.cdl が無い" });
+      }
       entries.push({
         group,
         name,
         svg: readFileSync(look, "utf8"),
         summary: noteText ? summaryOf(noteText) : "",
         decided: decidedOn(noteText),
-        hasSource: existsSync(join(dir, "source.cdl.ts")),
+        hasSource,
         hasNote: existsSync(notePath),
       });
     }
@@ -135,7 +139,7 @@ export function buildIndexHtml(entries, problems = []) {
   const cards = entries
     .map((e, i) => {
       const missing = [];
-      if (!e.hasSource) missing.push("source.cdl.ts");
+      if (!e.hasSource) missing.push("source.cdl.ts / source.cdl");
       if (!e.hasNote) missing.push("note.md");
       const warn = missing.length ? `<p class="warn">${esc(missing.join(" / "))} が無い</p>` : "";
       // 決めた日を出す = この絵がいつの記録かを、読む前に分かるようにする (#1538)

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 // @ts-expect-error -- 検査対象は .mjs で型宣言を持たない
-import { 図の塊, 塊に切る, 抜き出す, 落ちた名前 } from "../scripts/design-source.mjs";
+import { 図の塊, 塊に切る, 抜き出す, 記法を抜き出す, 落ちた名前 } from "../scripts/design-source.mjs";
 
 type 塊 = { name: string; exported: boolean; start: number; end: number; text: string };
 
@@ -140,6 +140,38 @@ describe("図に要る塊を集める", () => {
     expect(名前(cs)).toContain("STEP_LONG");
     // `STEP_LONG` は文字として `STEP` を含む。 語で見ないと要らない塊まで付いてくる
     expect(名前(cs)).not.toContain("STEP");
+  });
+});
+
+describe("記法から組む図を抜き出す", () => {
+  it("画面に出た記法と同じ sourceYaml の中身だけを返す", () => {
+    const 合成 = [
+      'export const sourceYaml__weekly = `title: "週ごとの応答時間"',
+      "type: line",
+      "`;",
+      "",
+      'export const sourceYaml__other = `title: "別の図"',
+      "type: bar",
+      "`;",
+      "",
+      "export const weekly = textDslToDiagram(sourceYaml__weekly);",
+      "export const other = textDslToDiagram(sourceYaml__other);",
+    ].join("\n");
+    const 画面の記法 = 'title: "週ごとの応答時間"\ntype: line\n';
+
+    expect(記法を抜き出す(合成, 画面の記法)).toBe(画面の記法);
+  });
+
+  it("textDslToDiagram に渡していない sourceYaml は返さない (陰性対照)", () => {
+    const 合成 = [
+      'export const sourceYaml__weekly = `title: "週ごとの応答時間"',
+      "type: line",
+      "`;",
+      "",
+      "export const weekly = buildDiagram(sourceYaml__weekly);",
+    ].join("\n");
+
+    expect(記法を抜き出す(合成, 'title: "週ごとの応答時間"\ntype: line\n')).toBe("");
   });
 });
 

@@ -91,6 +91,44 @@ function 語として含む(text, name) {
   return new RegExp(`(^|[^\\w$])${name.replace(/\$/g, "\\$")}([^\\w$]|$)`).test(text);
 }
 
+/** 改行の違いと末尾の空白だけを揃える。 記法の本文は書かれた形を保つ */
+function 比べる形(text) {
+  return String(text ?? "").replace(/\r\n/g, "\n").trimEnd();
+}
+
+/**
+ * 記法から組む export が使う `sourceYaml__<key>` の中身を集める。
+ *
+ * source 宣言が在るだけでは候補にしない。 同じ key の export が実際に
+ * `textDslToDiagram` へ渡しているものだけを見る。
+ */
+function 記法から組む図(text) {
+  const sources = [];
+  const uses = /export\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*textDslToDiagram\s*\(\s*sourceYaml__\1\s*[,)]/g;
+  for (const use of String(text ?? "").matchAll(uses)) {
+    const key = use[1];
+    if (!key) continue;
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const declaration = new RegExp(
+      `export\\s+const\\s+sourceYaml__${escaped}\\s*=\\s*\\\`([\\s\\S]*?)\\\`;`,
+    ).exec(text);
+    const source = declaration?.[1];
+    if (source !== undefined) sources.push(source);
+  }
+  return sources;
+}
+
+/**
+ * 画面で選んだ図の YAML と一致する、記法から組む図の source を返す。
+ *
+ * `id` の作り方は持たない。 画面が出した YAML を照合に使い、catalog に書かれた本文を返す。
+ */
+export function 記法を抜き出す(text, shownSource) {
+  const shown = 比べる形(shownSource);
+  if (!shown) return "";
+  return 記法から組む図(text).find((source) => 比べる形(source) === shown) ?? "";
+}
+
 /**
  * 図 1 つを出すのに要る塊を、記法の並び順で返す。
  *
