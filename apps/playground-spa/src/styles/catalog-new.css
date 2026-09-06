@@ -477,6 +477,11 @@
   margin-left: 6px;
 }
 
+/* 折れ線では描き方と見せ方が並ぶ。 2 つ以上並ぶ時に寄せるのは左端の 1 つだけ (#1624) */
+.catalog-redraw ~ .catalog-redraw {
+  margin-left: 6px;
+}
+
 /* 描き方の切替が出ない図では、速さが右端に来る */
 .catalog-preview-tabs > .catalog-speed:not(.catalog-redraw + .catalog-speed) {
   margin-left: auto;
