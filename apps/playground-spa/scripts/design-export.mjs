@@ -19,7 +19,8 @@ import { fileURLToPath } from "node:url";
 import { findNestedAtRules, scopeThemeCss } from "../../../packages/dragon/scripts/design-theme-css.mjs";
 import { SPEC_ROLES, buildSpec, mergeMeasured } from "../../../packages/dragon/scripts/design-spec.mjs";
 import { 受け取れるか } from "../../../packages/dragon/scripts/design-capture.mjs";
-import { 抜き出す, 落ちた名前 } from "../../../packages/dragon/scripts/design-source.mjs";
+import { 記法の群候補 } from "../../../packages/dragon/scripts/design-catalog.mjs";
+import { 抜き出す, 記法を抜き出す, 落ちた名前 } from "../../../packages/dragon/scripts/design-source.mjs";
 import { prep } from "./design-export-prep.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -53,6 +54,31 @@ export function findGroup(catalogDir, diagramId) {
 }
 
 /**
+ * source に id が無い記法図の群を、catalog 画面に出た id から探す。
+ *
+ * 開く群は `textDslToDiagram` を含む file に限る。 候補の絞り込みは browser を持たない
+ * `design-catalog.mjs` に置き、ここでは画面との照合だけを担う。
+ */
+export async function findGroupFromPage(page, catalogDir, diagramId, baseUrl) {
+  const files = readdirSync(catalogDir)
+    .filter((file) => file.endsWith(".cdl.ts"))
+    .map((file) => ({ file, text: readFileSync(join(catalogDir, file), "utf8") }));
+  for (const candidate of 記法の群候補(files)) {
+    await page.goto(`${baseUrl}/catalog/${candidate.group}`, { waitUntil: "networkidle" });
+    const sidebar = page.locator("aside.catalog-sidebar");
+    if ((await sidebar.count()) === 0) continue;
+    await page.waitForFunction(
+      () => document.querySelectorAll(".catalog-list-item-id").length > 0,
+      undefined,
+      { timeout: 5000 },
+    );
+    const ids = await sidebar.locator(".catalog-list-item-id").allTextContents();
+    if (ids.some((listedId) => listedId.trim() === diagramId)) return candidate;
+  }
+  return null;
+}
+
+/**
  * 記法の抜粋。 図を出すのに要る宣言の塊を、記法の並び順で取る。
  *
  * 行を数える形では切れない (#1545)。 宣言が複数に分かれる図では途中だけを拾い、
@@ -62,28 +88,41 @@ export function extractSource(text, diagramId) {
   return 抜き出す(text, diagramId);
 }
 
-const found = findGroup(CATALOG, id);
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+const found = findGroup(CATALOG, id) ?? (await findGroupFromPage(page, CATALOG, id, BASE));
 if (!found) {
+  await browser.close();
   console.error(`catalog に ${id} が無い。 id の綴りを確かめる`);
   process.exit(2);
 }
 const { group, file } = found;
 const catalogText = readFileSync(join(CATALOG, file), "utf8");
-const source = extractSource(catalogText, id);
-// 写しても動かない記法を納めない。 黙って落とすと、意匠帳の 3 file のうち 1 つが役割を失う
-const 欠け = 落ちた名前(catalogText, id);
-if (欠け.length > 0) {
-  console.warn(`  記法から落ちた名前が ${欠け.length} 件 ... ${欠け.join(" ")}`);
-}
-
-mkdirSync(OUT, { recursive: true });
-
-const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 await page.goto(`${BASE}/catalog/${group}`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
 await page.locator("aside.catalog-sidebar").getByText(id, { exact: false }).first().click();
 await page.waitForTimeout(2500);
+
+const sourceCode = page.locator('.catalog-source-code[data-lang="yaml"]');
+const shownSource = (await sourceCode.count()) > 0 ? await sourceCode.textContent() : "";
+const notationSource = 記法を抜き出す(catalogText, shownSource);
+const source = notationSource || extractSource(catalogText, id);
+if (!source.trim()) {
+  await browser.close();
+  console.error(`${id} の記法を catalog から抜き出せなかった`);
+  process.exit(2);
+}
+const sourceFile = notationSource ? "source.cdl" : "source.cdl.ts";
+
+// 写しても動かない組立て API の記法を納めない。 記法図は YAML そのものなのでこの照合は要らない
+if (!notationSource) {
+  const 欠け = 落ちた名前(catalogText, id);
+  if (欠け.length > 0) {
+    console.warn(`  記法から落ちた名前が ${欠け.length} 件 ... ${欠け.join(" ")}`);
+  }
+}
+
+mkdirSync(OUT, { recursive: true });
 
 const readVars = () =>
   page.evaluate(() => {
@@ -425,7 +464,7 @@ ${spec.map(([k, v, why]) => `          <tr><td>${escHtml(k)}</td><td class="num"
   </section>
 
   <section>
-    <div class="face-eyebrow"><b>この見た目を出す記法</b><span>納める時はこのまま source.cdl.ts になる</span></div>
+    <div class="face-eyebrow"><b>この見た目を出す記法</b><span>納める時はこのまま ${sourceFile} になる</span></div>
     <details>
       <summary>${escHtml(id)} の書き方を開く</summary>
       <pre>${escHtml(source)}</pre>
@@ -657,7 +696,7 @@ writeFileSync(
   JSON.stringify({ id, group, phases: shots.map((s, i) => ({ index: i, phase: s.phase })), spec, light, dark }, null, 2),
 );
 writeFileSync(join(OUT, "look.html"), html);
-writeFileSync(join(OUT, "source.cdl.ts"), `${source}\n`);
+writeFileSync(join(OUT, sourceFile), `${source}\n`);
 
 console.log(`吸い出した ... ${OUT}`);
 console.log(`  群 ${group} / 段 ${shots.length} / 色変数 ${Object.keys(light).length}`);

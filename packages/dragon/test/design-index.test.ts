@@ -15,11 +15,16 @@ const SVG = (id: string) =>
 let root: string;
 
 /** 図 1 件を納める。 何を欠かすかを呼出側が選べる形にして、欠けを検知できるか確かめる */
-function put(group: string, name: string, opts: { look?: boolean; source?: boolean; note?: string } = {}) {
+function put(
+  group: string,
+  name: string,
+  opts: { look?: boolean; source?: boolean; notationSource?: boolean; note?: string } = {},
+) {
   const dir = join(root, group, name);
   mkdirSync(dir, { recursive: true });
   if (opts.look !== false) writeFileSync(join(dir, "look.svg"), SVG("cdl-arrow"));
   if (opts.source !== false) writeFileSync(join(dir, "source.cdl.ts"), "// 記法\n");
+  if (opts.notationSource === true) writeFileSync(join(dir, "source.cdl"), 'title: "記法の図"\n');
   if (opts.note !== undefined) writeFileSync(join(dir, "note.md"), opts.note);
   return dir;
 }
@@ -69,6 +74,26 @@ describe("意匠帳の一覧", () => {
     expect(bare?.hasSource).toBe(false);
     expect(bare?.hasNote).toBe(false);
     expect(entries.find((e) => e.name === "full-demo")?.hasNote).toBe(true);
+  });
+
+  it("source.cdl だけを持つ dir は揃っているとみなす", () => {
+    put("charts", "weekly", { source: false, notationSource: true, note: "記法の図。\n" });
+
+    const { entries, problems } = collectEntries(root) as { entries: Entry[]; problems: Problem[] };
+
+    expect(entries.find((e) => e.name === "weekly")?.hasSource).toBe(true);
+    expect(problems).toEqual([]);
+  });
+
+  it("source.cdl.ts と source.cdl の両方が無い dir を拾えなかったものとして返す", () => {
+    put("charts", "missing-source", { source: false, note: "source が無い。\n" });
+
+    const { problems } = collectEntries(root) as { entries: Entry[]; problems: Problem[] };
+
+    expect(problems).toContainEqual({
+      path: "charts/missing-source",
+      why: "source.cdl.ts / source.cdl が無い",
+    });
   });
 
   it("走査先が無い時は 0 件で済ませず、理由を返す", () => {
