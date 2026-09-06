@@ -70,7 +70,53 @@ const 役割ラベル = new Set((SPEC_ROWS as { label: string }[]).map((r) => r.
 const 寸法行 = (rows: Row[]) => rows.filter(([k]) => 役割ラベル.has(k));
 const ラベル = (rows: Row[]) => rows.map(([k]) => k);
 
+const 追加行 = [
+  ["chart-pie-slice", "扇の間隔", "sw", 2.01],
+  ["chart-bar", "棒の幅", "w", 2.02],
+  ["chart-bar", "棒の角の丸み", "rx", 2.03],
+  ["chart-gauge-arc", "弧の太さ", "sw", 2.04],
+  ["chart-stat-track", "輪の半径", "r", 2.05],
+  ["chart-stat-track", "輪の太さ", "sw", 2.06],
+  ["chart-stat-arc", "進みの弧の太さ", "sw", 2.07],
+  ["chart-stat-value", "大きな数字の字", "fs", 2.08],
+  ["chart-stat-label", "名前の字", "fs", 2.09],
+  ["chart-stat-share", "割合の字", "fs", 2.1],
+  ["chart-waffle-cell", "印の大きさ", "w", 2.11],
+  ["chart-waffle-cell", "印の角の丸み", "rx", 2.12],
+  ["chart-waffle-count", "数の字", "fs", 2.13],
+  ["chart-stacked-bar-slice", "区画の高さ", "h", 2.14],
+  ["chart-stacked-bar-slice-text", "区画の名前の字", "fs", 2.15],
+  ["chart-stacked-bar-slice-value", "区画の値の字", "fs", 2.16],
+  ["chart-stacked-bar-period", "期間の字", "fs", 2.17],
+  ["funnel-stage", "段の枠の太さ", "sw", 2.18],
+  ["gantt-bar", "帯の高さ", "h", 2.19],
+  ["gantt-bar", "帯の角の丸み", "rx", 2.2],
+  ["gantt-grid", "目盛線の太さ", "sw", 2.21],
+  ["gantt-tick", "日付の字", "fs", 2.22],
+  ["journey-band", "感情の帯の高さ", "h", 2.23],
+  ["journey-chip", "札の高さ", "h", 2.24],
+  ["journey-chip", "札の角の丸み", "rx", 2.25],
+  ["journey-line", "道筋の線の太さ", "sw", 2.26],
+  ["mind-edge", "枝の線の太さ", "sw", 2.27],
+] as const satisfies readonly (readonly [string, string, keyof Item, number])[];
+
+const 追加役割 = [...new Set(追加行.map(([role]) => role))];
+const 追加ラベル: ReadonlySet<string> = new Set(追加行.map(([, label]) => label));
+
 describe("意匠帳に写す表", () => {
+  it.each(追加行)("%s の「%s」は %s の測定値から数値を組み立てる", (role, label, key, value) => {
+    const rows = buildSpec({ [role]: 役割([{ [key]: value }]) }, 枠) as Row[];
+
+    expect(rows.find(([got]) => got === label)?.[1]).toBe(String(value));
+  });
+
+  it("対象が 0 件の追加役割は行を出さない", () => {
+    const measured = Object.fromEntries(追加役割.map((role) => [role, { found: 0, items: [] }]));
+    const rows = buildSpec(measured, 枠) as Row[];
+
+    expect(rows.filter(([label]) => 追加ラベル.has(label))).toEqual([]);
+  });
+
   it("図に在る役割の行だけを出す", () => {
     const rows = buildSpec(図の作り["seq-demo"], 枠) as Row[];
 
@@ -165,6 +211,20 @@ describe("段ごとの測り直し", () => {
 });
 
 describe("役割の一覧", () => {
+  it("追加した役割を 1 つ以上走査している", () => {
+    expect(追加役割.length, "追加役割が空 (検査が空振りしている)").toBeGreaterThan(0);
+    for (const role of 追加役割) {
+      expect(SPEC_ROLES, `${role} を測る行が無い`).toContain(role);
+    }
+  });
+
+  it("d しか持たない radial の役割は表に加えない", () => {
+    const 表の役割 = (SPEC_ROWS as { role: string }[]).map(({ role }) => role);
+
+    expect(表の役割).not.toContain("chart-radial-arc");
+    expect(表の役割).not.toContain("chart-radial-track");
+  });
+
   it("表に出す役割を重複なく渡す", () => {
     expect(SPEC_ROWS.length, "行の定義が空 (検査が空振りしている)").toBeGreaterThan(0);
     expect(SPEC_ROLES.length, "測る役割が空 (検査が空振りしている)").toBeGreaterThan(0);
