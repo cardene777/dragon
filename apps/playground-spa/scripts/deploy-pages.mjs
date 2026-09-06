@@ -37,8 +37,14 @@ import ghpages from "gh-pages";
  *
  * `dist` に無いものを全て消す形にする = 公開されるのは `dist` の中身だけになる。
  * `.git` は clone の管理情報なので残す。
+ *
+ * `globby` は否定の pattern を指定された `cwd` ではなく `process.cwd()` に対して stat する。
+ * `!.git\/**` では起動場所の `.git` が file になる worktree で `ENOTDIR` を投げる。
+ * `!**\/.git\/**` は先頭の `**\/` により dir の展開判定に入らないため stat されない。
+ * この形では入れ子の `.git` も掃除の対象から外れるが、配信 clone に現れるのは `dist` に
+ * 紛れ込んだ時だけであり、その場合も消さないほうが安全。
  */
-export const 掃除の対象 = ["**/*", "**/.*", "**/.*/**", "!.git", "!.git/**"];
+export const 掃除の対象 = ["**/*", "**/.*", "**/.*/**", "!.git", "!**/.git/**"];
 
 /** 配信する branch */
 export const 配信先branch = "gh-pages";

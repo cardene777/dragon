@@ -34,6 +34,7 @@ import { 掃除の対象 } from "../../scripts/deploy-pages.mjs";
 
 /** 配信の clone を模した一時 dir を作る (repo の dotfile と `.git` を含む) */
 const 一時dirs = new Set<string>();
+const 元の作業dir = process.cwd();
 
 function 模したclone(): string {
   const d = mkdtempSync(join(tmpdir(), "deploy-payload-"));
@@ -64,6 +65,7 @@ const 掃除される = (pattern: readonly string[]): string[] =>
   globby.sync([...pattern], { cwd: 模したclone() }).sort();
 
 afterEach(() => {
+  process.chdir(元の作業dir);
   for (const d of 一時dirs) rmSync(d, { recursive: true, force: true });
   一時dirs.clear();
 });
@@ -127,5 +129,41 @@ describe("配信の掃除が dotfile に届く (#1347)", () => {
     const 消える = 掃除される(["."]);
     expect(消える, "既定でも dotfile が消えている (前提が変わっている)").not.toContain(".npmrc");
     expect(消える, "既定で成果物が消えない").toContain("index.html");
+  });
+
+  it(".git が file の場所からも掃除の対象を走らせられる", () => {
+    // Given: worktree と同じく `.git` が file の起動場所
+    const 起動場所 = 模したclone();
+    rmSync(join(起動場所, ".git"), { recursive: true });
+    writeFileSync(join(起動場所, ".git"), "gitdir: /tmp/worktree-git");
+
+    // When: globby が否定 pattern を起動場所に対して stat する
+    process.chdir(起動場所);
+
+    // Then: worktree でも掃除の対象は例外を投げない
+    expect(() => 掃除される(掃除の対象)).not.toThrow();
+  });
+
+  it(".git が dir の場所では従来どおり .git を掃除しない", () => {
+    // Given: 通常の repository と同じく `.git` が dir の起動場所
+    const 起動場所 = 模したclone();
+
+    // When: 掃除の対象を走らせる
+    process.chdir(起動場所);
+
+    // Then: clone の管理情報は対象外のまま
+    expect(掃除される(掃除の対象)).not.toContain(".git/HEAD");
+  });
+
+  it(".git が無い場所からも掃除の対象を走らせられる", () => {
+    // Given: `.git` を持たない起動場所
+    const 起動場所 = mkdtempSync(join(tmpdir(), "deploy-payload-cwd-"));
+    一時dirs.add(起動場所);
+
+    // When: 掃除の対象を走らせる
+    process.chdir(起動場所);
+
+    // Then: 起動場所に `.git` がなくても例外を投げない
+    expect(() => 掃除される(掃除の対象)).not.toThrow();
   });
 });
