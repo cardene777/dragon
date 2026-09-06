@@ -106,14 +106,14 @@ export default function setup(): void {
     );
   }
 
-  // 画面が使う依存の束ねが古くないかも見る (#1460)。
+  // 画面が使う依存の束ねが、いま解決される依存を指しているかも見る (#1636)。
   //
   // `dist` の古さと分けて出す = 直し方が違う (片方は build、もう片方は server の入れ直し)。
   // まとめると、どちらを直せばよいか読み手が決められない
-  const { stale } = staleBundles(ROOT);
-  if (stale.length > 0) {
+  const bundles = staleBundles(ROOT);
+  if (bundles.stale.length > 0) {
     throw new Error(
-      `画面が使う依存の束ねが古い。\n\n${staleBundleReport(stale)}\n\n` +
+      `画面が使う依存の束ねが古い。\n\n${staleBundleReport(bundles.stale)}\n\n` +
         `一時的に外すなら SKIP_DIST_FRESHNESS=1 を付ける。`,
     );
   }
