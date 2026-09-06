@@ -20,6 +20,7 @@ import { findNestedAtRules, scopeThemeCss } from "../../../packages/dragon/scrip
 import { SPEC_ROLES, buildSpec, mergeMeasured } from "../../../packages/dragon/scripts/design-spec.mjs";
 import { 受け取れるか } from "../../../packages/dragon/scripts/design-capture.mjs";
 import { 抜き出す, 落ちた名前 } from "../../../packages/dragon/scripts/design-source.mjs";
+import { prep } from "./design-export-prep.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "../../..");
@@ -240,12 +241,6 @@ if (seen.size === 0) {
   console.error("段を 1 つも控えられなかった。 dev server が動いているか、id が一覧に出ているかを確かめる");
   process.exit(1);
 }
-
-const prep = (svg) =>
-  svg
-    .replace(/\swidth="[\d.]+"/, "")
-    .replace(/\sheight="[\d.]+"/, "")
-    .replace(/<svg /, '<svg preserveAspectRatio="xMidYMid meet" ');
 
 const shots = [...seen.entries()]
   .map(([phase, svg]) => ({ phase, svg: prep(svg) }))
