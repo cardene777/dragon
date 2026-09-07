@@ -12,12 +12,9 @@ import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import { CATALOG_ITEMS } from "./catalog-items";
+import { 字幅 } from "./text-width-estimate";
 
 type 箱 = { x0: number; x1: number; y0: number; y1: number; 文: string };
-
-/** 字幅の見積り。 描画側と同じ比で出す (全角は級ぶん、半角は 6 割) */
-const 字幅 = (文: string, 級: number): number =>
-  [...文].reduce((w, c) => w + (c.charCodeAt(0) < 0x100 ? 級 * 0.55 : 級), 0);
 
 /** 名札 (引き出し線 1 + 起点の点 1 + 字 2 の群) の字が墨を置く矩形 */
 function 名札の箱たち(svg: string): 箱[] {
