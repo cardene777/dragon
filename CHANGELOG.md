@@ -35,6 +35,16 @@ dragon DSL の主要変更履歴。
 
 ### Changed
 
+- **見本帳と公開 package の描画エンジンを `0.34.0` に揃えた** (#1649)
+
+  `apps/playground-spa` と `packages/dragon` の `@cardenelabs/cdl` を `^0.33.0` から
+  `^0.34.0` にした。
+
+  傾き図の名札が変わる。 軸の脇に置く値と、その外に置く系列の名前が別の役割になり、
+  値だけに字体を当てられる。 1 つの役割にまとめていた形をやめた。
+
+  傾き図を持たない図の絵は 1 byte も変わらない。
+
 - **見本帳と公開 package の描画エンジンを `0.32.0` に揃えた** (#1643)
 
   `apps/playground-spa` と `packages/dragon` の `@cardenelabs/cdl` を `^0.31.1` から
