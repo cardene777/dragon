@@ -7,6 +7,17 @@ dragon DSL の主要変更履歴。
 
 ### Changed
 
+- **見本帳と公開 package の描画エンジンを `0.36.0` に揃えた** (#1657)
+
+  `apps/playground-spa` と `packages/dragon` の `@cardenelabs/cdl` を `^0.35.0` から
+  `^0.36.0` にした。
+
+  傾き図に見せ方の欄 `chartSlopeForm` が足され、`delta` を書くと右の列が今の値ではなく
+  増減 (`+40` / `-90`) になる。
+
+  この取り込みでは欄を 1 つも書かないので、見本帳の絵は 1 文字も変わらない。
+  画面から切り替えられるようにするのは別の取り込みで行う。
+
 - **見本帳と公開 package の描画エンジンを `0.35.0` に揃えた** (#1655)
 
   `apps/playground-spa` と `packages/dragon` の `@cardenelabs/cdl` を `^0.34.0` から
