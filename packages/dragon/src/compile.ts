@@ -907,7 +907,7 @@ function reportDrawNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
  * 段の `draw:` が効く図種 (#1312 / #1314 / #1318)。
  *
  * **語と図種の対応表から導く** (`DRAW_TARGETS`)。 一覧を写すと、語を足した時に片方だけ
- * 古いまま残る。 描画側 (`cdl` の `CdlPhase.draw`) が対応する 8 種と一致する。
+ * 古いまま残る。 描画側 (`cdl` の `DRAW_KINDS`) が対応する種別と一致する。
  */
 const DRAWABLE_DOC_TYPES: ReadonlySet<PresetType> = new Set<PresetType>(DRAW_TARGETS.values());
 
@@ -4077,6 +4077,16 @@ const VALUE_NOTICE_HINT: Readonly<Record<string, string>> = {
  * `mind-map` は engine 側でその性質を持ち続けており、 記法が到達しないのは当時の
  * `compileMind` の実装によるものだった。 `#1177` で `compileMind` を `mind-map` に寄せたため、
  * **今は記法からも到達する** (一覧へ戻す作業が要らなかったのはこのため)。
+ *
+ * ## 図表の種別は 1 つ残らず載せる (#1668)
+ *
+ * 弧と帯で量を表す 3 種 (`chart-gauge` / `chart-radial` / `chart-stacked-bar`) と、
+ * 値 1 つを大きく示す 2 種 (`chart-stat` / `chart-waffle`) が抜けていた。 5 種とも中身を
+ * payload で受け取って 1 箱で描く = この一覧が言う性質をそのまま持つ。
+ *
+ * 抜けている間、段の `draw:` を書いても指す先が引けず **書けるのに動かない** 状態になる
+ * (`draw` の解決は「1 箱で描く箱がちょうど 1 つ」 を条件にしている)。 `focus:` で登場人物の
+ * 名前を書いた時に何も光らないのも同じ穴で、載せると図の箱が光るようになる。
  */
 const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
   "chart-pie",
@@ -4090,6 +4100,14 @@ const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
   "journey-map",
   // 2 時点を直線でつなぐ図も 1 箱で全体を描く (#1647)
   "chart-slope",
+  // 弧と帯で量を表す 3 種も 1 箱で全体を描く (#1668)
+  "chart-gauge",
+  "chart-radial",
+  "chart-stacked-bar",
+  // 値 1 つを大きく示す図と、1 個 = 1% の印を埋める図も同じ (#1668)。
+  // 段の `draw:` は受けない (描画側が起点から描く動きを持たない) が、性質は同じなので載せる
+  "chart-stat",
+  "chart-waffle",
 ]);
 
 
@@ -6190,7 +6208,7 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
   for (const p of doc.animate.phases) {
     const activateIds: string[] = [...resolveIds(p.highlight ?? [])];
     // `draw:` を描画側の欄へ写す (#1312 / #1314 / #1318)。 相手は 1 箱で図全体を描く
-    // 対象 8 種の箱で、必ず 1 つに決まるため名前を書かせずに引ける。
+    // 対象の箱で、必ず 1 つに決まるため名前を書かせずに引ける。
     //
     // **`activate` と兼ねない**。 描画側は焦点と別集合で持つ (`cdl#512`) = 焦点が当たり
     // 続ける図で毎段引き直しになるため。 書いた段だけが欄を持つ
