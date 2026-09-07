@@ -732,6 +732,9 @@ export const chartStat = textDslToDiagram(sourceYaml__chartStat);
 // 13. 割合を 100 個の印で示す
 //
 // **合計を 100 に揃える**。 揃えないと印の数が実際の割合と食い違う。
+//
+// **`draw: waffle` で印が読む向きに 1 個ずつ埋まる** (`cdl#719`)。 左の一覧は最初から出る =
+// この図は「数えて確かめられる」 ことが存在理由で、一覧はその答え合わせの表になる。
 // ============================================================
 export const sourceYaml__chartWaffle = `title: "対応済みの問い合わせ"
 type: waffle
@@ -748,7 +751,8 @@ states:
 
 animation:
   - step: "朝" 1.2s
-    description: "100 件のうち 62 件が対応済"
+    draw: waffle
+    description: "印が読む向きに埋まる。 100 件のうち 62 件が対応済"
   - step: "夕方" 1.2s
     tween:
       done: 62 -> 84
@@ -768,7 +772,12 @@ export const sourceJson__chartWaffle = `{
   "flow": [],
   "states": { "done": 62, "doing": 23, "todo": 15 },
   "animation": [
-    { "step": "朝", "duration": 1.2, "body": "100 件のうち 62 件が対応済" },
+    {
+      "step": "朝",
+      "duration": 1.2,
+      "draw": "waffle",
+      "body": "印が読む向きに埋まる。 100 件のうち 62 件が対応済"
+    },
     {
       "step": "夕方",
       "duration": 1.2,

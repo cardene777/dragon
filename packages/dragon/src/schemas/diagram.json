@@ -783,9 +783,10 @@
               "slope",
               "gauge",
               "radial",
-              "stacked"
+              "stacked",
+              "waffle"
             ],
-            "description": "この phase で起点から描くもの。 語は図種と揃える。 line / journey = 線が左端から右へ伸びる / bar = 棒が横軸から上へ伸びる / pie = 扇が 12 時から時計回りに開く / mind = 枝が中心から外へ伸びる / tree = 枝が根から下へ伸びる / gantt = 帯が各始端から右へ伸びる / funnel = 段が上端から順に積まれる / slope = 線が左の軸から右の軸へ伸びる / gauge = 弧が 9 時から上を通って 3 時へ伸びる / radial = 各輪が 12 時から時計回りに開く / stacked = 帯が左端から右へ伸びる"
+            "description": "この phase で起点から描くもの。 語は図種と揃える。 line / journey = 線が左端から右へ伸びる / bar = 棒が横軸から上へ伸びる / pie = 扇が 12 時から時計回りに開く / mind = 枝が中心から外へ伸びる / tree = 枝が根から下へ伸びる / gantt = 帯が各始端から右へ伸びる / funnel = 段が上端から順に積まれる / slope = 線が左の軸から右の軸へ伸びる / gauge = 弧が 9 時から上を通って 3 時へ伸びる / radial = 各輪が 12 時から時計回りに開く / stacked = 帯が左端から右へ伸びる / waffle = 印が左上から読む向きに 1 個ずつ埋まる"
           },
           "drawRatio": {
             "type": "number",
