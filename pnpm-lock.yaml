@@ -102,8 +102,8 @@ importers:
   apps/playground-spa:
     dependencies:
       '@cardenelabs/cdl':
-        specifier: ^0.40.5
-        version: 0.40.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^0.40.6
+        version: 0.40.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@cardenelabs/dragon':
         specifier: workspace:*
         version: link:../../packages/dragon
@@ -211,8 +211,8 @@ importers:
   packages/dragon:
     dependencies:
       '@cardenelabs/cdl':
-        specifier: ^0.40.5
-        version: 0.40.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^0.40.6
+        version: 0.40.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
@@ -427,8 +427,8 @@ packages:
     resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
     hasBin: true
 
-  '@cardenelabs/cdl@0.40.5':
-    resolution: {integrity: sha512-hvaaxlN6Cin/bRGnipE1VKK0jJ3mrLr5PCjdnz0+/spldBqQcG9ZuMDYTOQj6fflyVgX1HomiAiydp8IYpCf4w==}
+  '@cardenelabs/cdl@0.40.6':
+    resolution: {integrity: sha512-Nsumq/0Cfyy7OfztwTsxmF2ROoyRn1ZmA0lVfAzp2eUVRItdVZNC5dZlYqx6NliprLawulRs61MVmkoOrcaZAg==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^19.0.0
@@ -4204,7 +4204,7 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
-  '@cardenelabs/cdl@0.40.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@cardenelabs/cdl@0.40.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
