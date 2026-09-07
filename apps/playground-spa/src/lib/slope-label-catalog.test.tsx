@@ -49,7 +49,8 @@ function 段の終わりの図(diagram: CdlDiagram, 段の数: number): CdlDiagr
       draw: undefined,
       tweens: [],
     })),
-  } as CdlDiagram;
+    // 元の図の残りの項目は綴じ込みで運ぶ。 綴じ込み元が `object` なので型は素通りしない
+  } as unknown as CdlDiagram;
 }
 
 /** 描いた絵から、役割ごとの名札の `x` と `y` を読む */
