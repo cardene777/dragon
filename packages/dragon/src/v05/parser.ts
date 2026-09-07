@@ -3959,12 +3959,14 @@ function 段の項目のヒント(書いた名前: string): string {
  * | `gauge` | `gauge` | 9 時から上を通って 3 時へ弧が伸びる |
  * | `radial` | `radial` | 各輪が 12 時から時計回りに開く |
  * | `stacked` | `stacked` | 左端から右へ帯が伸びる |
+ * | `waffle` | `waffle` | 左上から読む向きに印が 1 個ずつ埋まる |
  *
  * `quadrant` は入れない。 4 つの区画に項目を置く図で **項目に順序が無く**、起点を決められない
  * (順番を書いた順で決めると、動きが図の意味を持たない)。
  *
- * `stat` / `waffle` も入れない。 値 1 つを大きく示す図と、1 個 = 1% の印を埋める図で、
- * どちらも描画側が起点から描く動きを持たない (`cdl` の `DRAW_KINDS`)。
+ * `stat` も入れない。 値 1 つを大きく示す図で、描画側が起点から描く動きを持たない
+ * (`cdl` の `DRAW_KINDS`)。 `waffle` は 1 個 = 1% の印を読む向きに埋める動きを
+ * 持つようになったので入れた (cdl#719)。
  *
  * いまは語と図種が同じ綴りだが、**同じものとして扱わない**。 語は書き手が書く名前で、
  * 図種は `type:` が取る値。 片方だけ別名を足したくなった時に、対応が表に残っている形にする。
@@ -3982,6 +3984,7 @@ export const DRAW_TARGETS: ReadonlyMap<string, PresetType> = new Map<string, Pre
   ["gauge", "gauge"],
   ["radial", "radial"],
   ["stacked", "stacked"],
+  ["waffle", "waffle"],
 ]);
 
 /** `draw:` に書ける語。 表から導く (#1314) */
