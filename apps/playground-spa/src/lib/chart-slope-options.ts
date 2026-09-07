@@ -1,11 +1,11 @@
 import type { CdlDiagram, ChartSlopeForm } from "@cardenelabs/cdl";
 
 /**
- * 見本帳から、傾き図の右の列に何を出すかを切り替えられるようにする (#1659)。
+ * 見本帳から、傾き図の見せ方を切り替えられるようにする (#1659 / #1664)。
  *
- * 描画エンジンは同じ 2 時点の値を 2 つの形で描ける (cdl#702)。 右に今の値を出す形と、
- * 増減 (`+40` / `-90`) を出す形。 記法を手で書き換えないと見比べられないので、画面から
- * 選べるようにする。
+ * 描画エンジンは同じ 2 時点の値を 3 つの形で描ける。 右に今の値を出す形と、増減
+ * (`+40` / `-90`) を出す形 (cdl#702) と、縦の位置そのものを順位の段にする形 (cdl#707)。
+ * 記法を手で書き換えないと見比べられないので、画面から選べるようにする。
  *
  * **傾き図は増減を読ませる図**なのに、差はどこにも字になっていない。 増減の形はそれを字に
  * するが、engine の既定ではない = 見本帳から出せないと「使えるが誰も見ない」 まま残る。
@@ -16,7 +16,7 @@ import type { CdlDiagram, ChartSlopeForm } from "@cardenelabs/cdl";
  * **既定では元の object をそのまま返す**。 新しい object を返すと図が最初から描き直される
  * (`palette-switch.ts` と同じ理由)。
  *
- * 円グラフ (`chart-pie-options.ts`) と同じ形。 2 つは互いに排他なので、画面の並びは
+ * 円グラフ (`chart-pie-options.ts`) と同じ形。 互いに排他なので、画面の並びは
  * 押した状態を持つ `group` ではなく `radiogroup` にする。
  */
 
@@ -24,15 +24,19 @@ import type { CdlDiagram, ChartSlopeForm } from "@cardenelabs/cdl";
  * 図に書く値と、表に出す名前の対応。
  *
  * **値の側を key にする**。 `Record<ChartSlopeForm, string>` を満たす形にしてあるので、
- * engine が 3 つ目の見せ方を足した時に `tsc` が落ちる = 選択肢から黙って漏れない。
+ * engine が見せ方を足した時に `tsc` が落ちる = 選択肢から黙って漏れない。
  * 名前の側を key にすると部分集合でも通り、漏れが検査まで届かない。
+ *
+ * 実際に効いた = engine を `0.37.0` へ上げた時 (#1664) に、この行が
+ * `Property 'rank' is missing` で落ちて `rank` の漏れを止めた。
  */
 const 値と表 = {
   values: "今の値",
   delta: "増減",
+  rank: "順位",
 } as const satisfies Record<ChartSlopeForm, string>;
 
-/** 表に出す順は、値を並べた順に従う (今の値 → 増減) */
+/** 表に出す順は、値を並べた順に従う (今の値 → 増減 → 順位) */
 export const 傾きの見せ方の選択肢 = Object.values(値と表);
 export type 傾きの見せ方 = (typeof 傾きの見せ方の選択肢)[number];
 

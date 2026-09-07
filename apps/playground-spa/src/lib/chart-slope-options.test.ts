@@ -1,11 +1,11 @@
 /**
- * 傾き図の見せ方の切替 (#1659)。
+ * 傾き図の見せ方の切替 (#1659 / #1664)。
  *
  * 押せる図の判定と、傾き図 node だけへ値を書き込む変換を見る。既定では同じ object を
  * 返し、触っていない図を描き直さないこともここで固定する。
  *
  * 選択肢が engine の型を覆っているかは **engine の型宣言から導いて** 突き合わせる。
- * 手で数を書くと、engine が 3 つ目を足した時に検査が黙って通る。
+ * 手で数を書くと、engine が見せ方を足した時に検査が黙って通る。
  */
 import { createRequire } from "node:module";
 import { readdirSync, readFileSync } from "node:fs";
@@ -87,10 +87,10 @@ describe("見せ方を選べる図の判定 (#1659)", () => {
 });
 
 describe("選んだ見せ方が node の欄に届く (#1659)", () => {
-  it("2 つとも傾き図 node に書かれる", () => {
+  it("どの見せ方も傾き図 node に書かれる", () => {
     // Given
     const 元 = 傾きの図();
-    const 期待 = { 今の値: "values", 増減: "delta" } as const;
+    const 期待 = { 今の値: "values", 増減: "delta", 順位: "rank" } as const;
 
     // When / Then
     for (const 見せ方 of 傾きの見せ方の選択肢) {
