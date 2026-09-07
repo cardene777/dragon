@@ -54,7 +54,7 @@ function injectPartsIntoSampleDsl(sampleDsl: string, alias: string, kind: string
 describe("iter21: 全 state-holding parts × 全 21 sample × state override 網羅", () => {
   it(`state parts 数 + samples 数 sanity`, () => {
     expect(STATE_PARTS.length).toBeGreaterThan(0);
-    expect(EDITOR_SAMPLES.length).toBe(24);
+    expect(EDITOR_SAMPLES.length).toBe(25);
   });
 
   for (const sample of EDITOR_SAMPLES) {

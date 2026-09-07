@@ -77,6 +77,7 @@ export type PresetType =
   | "stat"
   | "waffle"
   | "stacked"
+  | "slope"
   | "funnel"
   | "tree"
   | "journey"

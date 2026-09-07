@@ -85,6 +85,8 @@ const 型と種類 = {
   stat: ["chart-stat"],
   waffle: ["chart-waffle"],
   stacked: ["chart-stacked-bar"],
+  // #1647 で足した。 2 時点を直線でつなぐ図
+  slope: ["chart-slope"],
 } as const satisfies Readonly<Record<PresetType, readonly string[]>>;
 
 /** 表の中身を `[型, 種類]` の並びで取り出す */

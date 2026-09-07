@@ -18,8 +18,8 @@ function hash(s: string): string {
 }
 
 describe("iter64: EDITOR_SAMPLES 一意性 verify", () => {
-  it("count = 24", () => {
-    expect(EDITOR_SAMPLES.length).toBe(24);
+  it("count = 25", () => {
+    expect(EDITOR_SAMPLES.length).toBe(25);
   });
 
   it("全 label 一意 (labels unique)", () => {
