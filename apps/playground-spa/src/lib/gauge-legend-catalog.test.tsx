@@ -18,16 +18,7 @@ import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import { CATALOG_ITEMS } from "./catalog-items";
-
-/** 字 1 つが級に対して占める幅。 広い字 / 細い字 / その他の ASCII / ASCII の外 */
-const 広い = "W@%Mm";
-const 細い = "ijlI.,:;'! ";
-const 字幅 = (文: string, 級: number): number =>
-  [...文].reduce((w, c) => {
-    if (細い.includes(c)) return w + 0.37 * 級;
-    if (広い.includes(c)) return w + 1.04 * 級;
-    return w + ((c.codePointAt(0) ?? 0) < 128 ? 0.86 : 1.04) * 級;
-  }, 0);
+import { 字幅 } from "./text-width-estimate";
 
 type 箱 = { x0: number; x1: number; y0: number; y1: number; 文: string };
 type 内訳 = { 段y: number; 印x: number; 箱たち: 箱[]; 文たち: string[] };
