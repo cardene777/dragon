@@ -47,6 +47,13 @@ import {
   既定の円の見せ方,
   type 円の見せ方,
 } from "@/lib/chart-pie-options";
+import {
+  図の傾きの見せ方を変える,
+  傾きの見せ方を選べる,
+  傾きの見せ方の選択肢,
+  既定の傾きの見せ方,
+  type 傾きの見せ方,
+} from "@/lib/chart-slope-options";
 
 import { SyntaxCode } from "../components/SyntaxCode";
 /** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
@@ -232,6 +239,8 @@ export function CategoryPage(): React.ReactElement {
   const [折れ線, set折れ線] = useState<折れ線の指定>(既定の折れ線の指定);
   // 円グラフの見せ方 (#1645)。 3 つは互いに排他なので 1 つの値で持つ
   const [円, set円] = useState<円の見せ方>(既定の円の見せ方);
+  // 傾き図の右の列に何を出すか (#1659)。 2 つは互いに排他なので 1 つの値で持つ
+  const [傾き, set傾き] = useState<傾きの見せ方>(既定の傾きの見せ方);
   // シーンの表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
   const [modalStageEl, setModalStageEl] = useState<HTMLElement | null>(null);
@@ -304,6 +313,7 @@ export function CategoryPage(): React.ReactElement {
     set配色(既定の配色);
     set折れ線(既定の折れ線の指定);
     set円(既定の円の見せ方);
+    set傾き(既定の傾きの見せ方);
   }, [見ている項目]);
 
   // 段の長さに倍率を掛けた図。 既定 (1 倍) では元の object がそのまま返るので、
@@ -311,35 +321,41 @@ export function CategoryPage(): React.ReactElement {
   const 図 = useMemo(
     () =>
       currentItem
-        ? 図の円の見せ方を変える(
-            図の折れ線の見せ方を変える(
-              図の配色を変える(
-                図の速さを変える(図の描き方を変える(currentItem.diagram, 描き方), 速さ),
-                配色,
+        ? 図の傾きの見せ方を変える(
+            図の円の見せ方を変える(
+              図の折れ線の見せ方を変える(
+                図の配色を変える(
+                  図の速さを変える(図の描き方を変える(currentItem.diagram, 描き方), 速さ),
+                  配色,
+                ),
+                折れ線,
               ),
-              折れ線,
+              円,
             ),
-            円,
+            傾き,
           )
         : null,
-    [currentItem, 速さ, 描き方, 配色, 折れ線, 円],
+    [currentItem, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
   );
   // 拡大表示も同じ速さで出す。 開く元が今見ている項目なので、別の速さになると混乱する
   const 拡大の図 = useMemo(
     () =>
       modalItem
-        ? 図の円の見せ方を変える(
-            図の折れ線の見せ方を変える(
-              図の配色を変える(
-                図の速さを変える(図の描き方を変える(modalItem.diagram, 描き方), 速さ),
-                配色,
+        ? 図の傾きの見せ方を変える(
+            図の円の見せ方を変える(
+              図の折れ線の見せ方を変える(
+                図の配色を変える(
+                  図の速さを変える(図の描き方を変える(modalItem.diagram, 描き方), 速さ),
+                  配色,
+                ),
+                折れ線,
               ),
-              折れ線,
+              円,
             ),
-            円,
+            傾き,
           )
         : null,
-    [modalItem, 速さ, 描き方, 配色, 折れ線, 円],
+    [modalItem, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
   );
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
   const 描き方を選べるか = currentItem ? 描き方を選べる(currentItem.diagram) : false;
@@ -349,6 +365,8 @@ export function CategoryPage(): React.ReactElement {
   const 折れ線を選べるか = currentItem ? 折れ線を選べる(currentItem.diagram) : false;
   // 円グラフ以外では見せ方の欄が効かないため、切替を出さない (#1645)
   const 円を選べるか = currentItem ? 円の見せ方を選べる(currentItem.diagram) : false;
+  // 傾き図以外では見せ方の欄が効かないため、切替を出さない (#1659)
+  const 傾きを選べるか = currentItem ? 傾きの見せ方を選べる(currentItem.diagram) : false;
 
   const hasSource = 記法を持つか(currentItem);
   // 記法を持たない図では図の側へ倒す。 選んだままにすると、項目を選び直した先で
@@ -585,6 +603,27 @@ export function CategoryPage(): React.ReactElement {
                           className={`catalog-speed-btn ${円 === v ? "is-active" : ""}`}
                           onClick={() => set円(v)}
                           title={`円グラフを${v}で描く`}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/*
+                    傾き図の見せ方 (#1659)。 傾き図を持つ図でだけ出す = 他の図では欄が
+                    効かず「効かない操作」 になる。 2 つは互いに排他なので `radiogroup` にする。
+                  */}
+                  {傾きを選べるか && (
+                    <div className="catalog-redraw" role="radiogroup" aria-label="傾き図の見せ方">
+                      {傾きの見せ方の選択肢.map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          role="radio"
+                          aria-checked={傾き === v}
+                          className={`catalog-speed-btn ${傾き === v ? "is-active" : ""}`}
+                          onClick={() => set傾き(v)}
+                          title={`傾き図の右の列に${v}を出す`}
                         >
                           {v}
                         </button>

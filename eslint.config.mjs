@@ -76,7 +76,11 @@ export default [
       "**/*.mts",
       // `.context/` = 一時 scratch / verify 系 (一発 probe / 手元 shot script)、 lint 対象外。
       // 追跡外 dir を lint すると tsconfig include に含まれず parsing error になる。
-      ".context/**",
+      //
+      // **`**/` を付ける** (#1659)。 `.context/**` は repo 直下の 1 つしか外さないため、
+      // workspace ごとの `.context/` (`apps/playground-spa/.context/` 等) が漏れる。
+      // 実測で `pnpm lint` が手元の probe script 2 件で落ちていた。
+      "**/.context/**",
       "apps/web/src/env.d.ts",
       // `.cdl.d.ts` = tsc build 生成の宣言 file、 lint 対象外 (source は `.cdl.ts`)。
       "apps/playground-spa/src/topics/**/*.cdl.d.ts",
