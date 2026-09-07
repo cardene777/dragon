@@ -138,3 +138,72 @@ describe("見本帳の半円ゲージは内訳がくっつかない (#1676)", ()
     expect(重なる組(置いた)).toEqual(['"あ" と "い"']);
   });
 });
+
+/**
+ * 内訳が多い半円ゲージで合計が主役のままであることの検査 (#1682)。
+ *
+ * 段を折り返すようにした後 (`0.40.3`)、件数が増えると弧に残る高さが尽き、
+ * **合計の字が内訳の名前より小さくなっていた** (`cdl#735`)。 描画側が段の数に上限を置き、
+ * 入り切らない件を 1 件に畳むようになったので、版を上げた見本帳でも同じことを測る。
+ */
+
+/** 合計の字 (内訳の外にある数字のうち級が最大のもの) */
+function 合計の字(svg: string): { 文: string; 級: number; y: number } {
+  const 外 = svg.replace(/<g data-cdl-role="chart-gauge-item">.*?<\/g>/gs, "");
+  const 候補 = [...外.matchAll(/<text[^>]*y="([-\d.]+)"[^>]*font-size="([\d.]+)"[^>]*>([^<]*)</g)]
+    .map((m) => ({ y: Number(m[1]), 級: Number(m[2]), 文: m[3] ?? "" }))
+    .filter((t) => /^[\d,]+$/.test(t.文));
+  expect(候補.length, "合計の字を読めていない (検査が空振りしている)").toBeGreaterThan(0);
+  return 候補.reduce((a, b) => (b.級 > a.級 ? b : a));
+}
+
+/** 弧の内側の穴。 描画側は外半径の 0.62 倍を内半径にする */
+function 穴(svg: string): { r: number; cy: number } {
+  const m = /data-cdl-role="chart-gauge-arc"[^>]*d="M [-\d.]+ ([-\d.]+) A ([\d.]+)/.exec(svg);
+  expect(m, "弧の経路を読めない (検査が空振りしている)").not.toBeNull();
+  return { cy: Number(m![1]), r: Number(m![2]) * 0.62 };
+}
+
+/** 内訳の名前の級 (1 件目の 1 つ目の字) */
+const 名前の級 = (svg: string): number => {
+  const m = /<g data-cdl-role="chart-gauge-item">.*?<text[^>]*font-size="([\d.]+)"/s.exec(svg);
+  expect(m, "内訳の名前を読めない (検査が空振りしている)").not.toBeNull();
+  return Number(m![1]);
+};
+
+describe("内訳が多くても合計が主役のまま (#1682)", () => {
+  it.each([22, 30, 40])("記法から組んだ件数 %i で合計が内訳の名前より大きい", (n) => {
+    const svg = 描く(textDslToDiagram(記法(n)));
+    expect(合計の字(svg).級).toBeGreaterThan(名前の級(svg));
+  });
+
+  it.each([22, 30, 40])("記法から組んだ件数 %i で合計が弧の穴に収まる", (n) => {
+    const svg = 描く(textDslToDiagram(記法(n)));
+    const 合計 = 合計の字(svg);
+    const { r, cy } = 穴(svg);
+    // 字の上の角が穴の円に入るか。 上端は置く高さ + 字の高さぶん上
+    const 角 = Math.hypot(字幅(合計.文, 合計.級) / 2, cy - (合計.y - 合計.級 * 0.75));
+    expect(角, `合計 "${合計.文}" が穴からはみ出している`).toBeLessThanOrEqual(r);
+  });
+
+  it("件数 30 では入り切らない件が 1 件に畳まれる", () => {
+    const 一覧 = 内訳たち(描く(textDslToDiagram(記法(30))));
+    expect(一覧.length).toBeLessThan(30);
+    expect(一覧[一覧.length - 1]!.文たち[0]).toBe("その他");
+  });
+
+  it("見本の半円ゲージは畳まれない", () => {
+    // 陰性対照。 常に畳む実装なら、崩れていない見本まで内訳が「その他」 に置き換わる
+    const 一覧 = Object.values(CATALOG_ITEMS)
+      .flat()
+      .filter(({ diagram }) => diagram.nodes.some((n) => n.kind === "chart-gauge"));
+    let 測れた = 0;
+    for (const { diagram } of 一覧) {
+      const 内訳 = 内訳たち(描く(diagram));
+      if (内訳.length === 0) continue;
+      測れた += 1;
+      expect(内訳.flatMap((x) => x.文たち)).not.toContain("その他");
+    }
+    expect(測れた, "内訳を持つ見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
+  });
+});
