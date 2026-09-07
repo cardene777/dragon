@@ -1,0 +1,45 @@
+# 既知の脆弱性のうち、版を動かせないものだけをここに記録する (#1642)。
+#
+# **書かない判断も残す**。 記録が無いと「見落とした」 と「更新できないと決めた」 が
+# 区別できず、毎回の監査で同じ検出を理由なしに繰り返すことになる。
+#
+# 記録してよいのは **実際に版を動かせないと測った** ものだけ。
+# `pnpm update -r --depth Infinity <package>` で解消するものは記録せず更新する。
+#
+# 走らせ方と、この記録の見直し方は `README.md` の「依存関係の監査」 を見る。
+#
+# `ignoreUntil` は再確認の期限で、過ぎると osv-scanner が記録を無視して再び検出する。
+# 期限が来たら上流が動いたかを見て、動いていれば更新して記録ごと消す。
+
+[[IgnoredVulns]]
+id = "GHSA-4mjr-xmp4-gh2g"
+ignoreUntil = 2026-12-07
+reason = """
+qs 6.15.2 の `parse` が、攻撃者の与えた入力で処理を止められる (CVSS 6.3)。
+
+版を動かせない = 直す版は 6.16.0 だが、この repo が qs を引く経路は
+`@stryker-mutator/core@9.6.1` → `typed-rest-client@2.3.1` で、typed-rest-client が
+`qs: "6.15.1"` と 1 点で固定している。 上流も動いていない = typed-rest-client の最新 3.1.0 が
+`qs: "6.15.3"` を固定し、stryker の最新 10.0.0 が `typed-rest-client: "~2.3.0"` を固定する。
+
+届かない = 弱点は `qs.parse` にあり、typed-rest-client は `qs.stringify` しか呼んでいない
+(`Util.js` の 1 箇所のみ)。 さらに stryker が typed-rest-client を読み込むのは
+`stryker init` と `dashboard` reporter の 2 経路で、この repo は前者を使わず、
+reporter も `clear-text` / `progress` / `json` の 3 つだけを設定している (`stryker.conf.json`)。
+
+期限に見るもの = stryker が `qs` 6.16 系に届く typed-rest-client を引く版を出したか。
+出ていれば上げてこの記録を消す。
+"""
+
+[[IgnoredVulns]]
+id = "GHSA-x5fp-wj9c-mxmx"
+ignoreUntil = 2026-12-07
+reason = """
+qs 6.15.2 の `parse` が、角括弧の中の読点で件数の上限をすり抜ける (CVSS 6.3)。
+
+版を動かせない理由と、届かない理由は `GHSA-4mjr-xmp4-gh2g` と同じ。
+経路は `@stryker-mutator/core@9.6.1` → `typed-rest-client@2.3.1` の 1 本だけで、
+typed-rest-client は `qs.stringify` しか呼んでいない。
+
+期限に見るもの = 上と同じ。
+"""
