@@ -373,6 +373,22 @@ animation:
 `,
   },
   {
+    label: "経路別の申込み (slope)",
+    slug: "slope",
+    code: `title: "経路別の申込み"
+type: slope
+
+actors:
+  - 検索: { value: "420", previous: "380" }
+  - SNS: { value: "310", previous: "190" }
+  - メール: { value: "180", previous: "240" }
+
+animation:
+  - step: "reveal" 2.0s
+    focus: [検索, SNS, メール]
+`,
+  },
+  {
     label: "週ごとの応答時間 (line)",
     slug: "line",
     code: `title: "週ごとの応答時間"

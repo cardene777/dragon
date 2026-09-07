@@ -273,6 +273,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "stacked":
       diagram = compileValueChart(doc, "stacked", "chart-stacked-bar", opts?.onNotice);
       break;
+    case "slope":
+      diagram = compileValueChart(doc, "slope", "chart-slope", opts?.onNotice);
+      break;
     case "funnel":
       diagram = compileFunnel(doc, opts?.onNotice);
       break;
@@ -808,6 +811,7 @@ const 図種の作り: Record<PresetType, "登場人物ごとに箱" | "図全�
   stat: "図全体を 1 箱",
   waffle: "図全体を 1 箱",
   stacked: "図全体を 1 箱",
+  slope: "図全体を 1 箱",
   funnel: "図全体を 1 箱",
   tree: "図全体を 1 箱",
   journey: "図全体を 1 箱",
@@ -1198,6 +1202,7 @@ const 空の形の逃げ先: Record<PresetType, string[]> = {
   stat: [],
   waffle: [],
   stacked: [],
+  slope: [],
   funnel: [],
   tree: [],
   journey: [],
@@ -4083,6 +4088,8 @@ const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
   "quadrant-matrix",
   "tree-hierarchy",
   "journey-map",
+  // 2 時点を直線でつなぐ図も 1 箱で全体を描く (#1647)
+  "chart-slope",
 ]);
 
 
@@ -4553,7 +4560,7 @@ function 参照する名前(value: number | string | null): string | null {
  */
 function compileValueChart(
   doc: DslDocument,
-  型: "pie" | "bar" | "line" | "gauge" | "radial" | "stat" | "waffle" | "stacked",
+  型: "pie" | "bar" | "line" | "gauge" | "radial" | "stat" | "waffle" | "stacked" | "slope",
   kind:
     | "chart-pie"
     | "chart-bar"
@@ -4562,7 +4569,8 @@ function compileValueChart(
     | "chart-radial"
     | "chart-stat"
     | "chart-waffle"
-    | "chart-stacked-bar",
+    | "chart-stacked-bar"
+    | "chart-slope",
   onNotice?: (notice: CompileNotice) => void,
 ): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "chart" });
@@ -4592,10 +4600,13 @@ function compileValueChart(
     // 値の置き場所は記法で 2 通りある。 略記 (`- TypeScript: "45%"`) は説明文に、
     // 縦書きの map (`- SliceA: { kind: card, value: "30%" }`) は値に入る。 両方を読む
     const value = parseChartValue(a.value ?? a.subtitle);
-    // **負を受けるのは折れ線だけ**。 増減を追う図なので気温や損益のように 0 を跨ぐ値が来る。
-    // 円は取り分、 棒は高さで、 どちらも負に意味が無い (review 指摘)。
+    // **負を受けるのは折れ線と傾き図だけ**。 どちらも増減を追う図なので、気温や損益のように
+    // 0 を跨ぐ値が来る。 円は取り分、 棒は高さで、 どちらも負に意味が無い (review 指摘)。
     // 状態を読む欄 (`{名前}`) は書いた時点で符号が決まらないため、この検査を通す
-    if (value === null || (typeof value === "number" && value < 0 && 型 !== "line")) {
+    if (
+      value === null ||
+      (typeof value === "number" && value < 0 && 型 !== "line" && 型 !== "slope")
+    ) {
       // `pos` を持たない経路がある (JSON 経路で組み立てた actor)。 無ければ 0 のまま
       if (読めない.length === 0) 読めない行 = a.pos?.line ?? 0;
       読めない.push(a.name);
@@ -4638,6 +4649,7 @@ function compileValueChart(
     stat: { 量: "値", 図: "大きな数字", 例: '"1200"' },
     waffle: { 量: "割合", 図: "100 個の印", 例: '"45%"' },
     stacked: { 量: "内訳の値", 図: "帯", 例: '"320"' },
+    slope: { 量: "値", 図: "傾き図", 例: '"320"' },
   };
   const 語 = 語の表[型];
 

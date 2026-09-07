@@ -816,3 +816,58 @@ export const sourceJson__chartStackedBar = `{
 }`;
 
 export const chartStackedBar = textDslToDiagram(sourceYaml__chartStackedBar);
+
+export const sourceYaml__chartSlope = `title: "経路別の申込み"
+type: slope
+
+actors:
+  - 検索: { value: "{kensaku}", previous: "380" }
+  - SNS: { value: "{sns}", previous: "190" }
+  - メール: { value: "{mail}", previous: "240" }
+  - 紹介: { value: "{shokai}", previous: "60" }
+
+states:
+  kensaku: 420
+  sns: 310
+  mail: 180
+  shokai: 90
+
+animation:
+  - step: "前期と今期" 1.2s
+    draw: slope
+    description: "左が前期、右が今期。 SNS が伸びてメールを追い越した"
+  - step: "見込みを足す" 1.2s
+    tween:
+      sns: 310 -> 400
+      mail: 180 -> 150
+    description: "見込みを足すと SNS が検索に迫る"
+`;
+
+export const sourceJson__chartSlope = `{
+  "title": "経路別の申込み",
+  "type": "slope",
+  "actors": [
+    { "name": "検索", "value": "{kensaku}", "previous": "380" },
+    { "name": "SNS", "value": "{sns}", "previous": "190" },
+    { "name": "メール", "value": "{mail}", "previous": "240" },
+    { "name": "紹介", "value": "{shokai}", "previous": "60" }
+  ],
+  "flow": [],
+  "states": { "kensaku": 420, "sns": 310, "mail": 180, "shokai": 90 },
+  "animation": [
+    {
+      "step": "前期と今期",
+      "duration": 1.2,
+      "draw": "slope",
+      "body": "左が前期、右が今期。 SNS が伸びてメールを追い越した"
+    },
+    {
+      "step": "見込みを足す",
+      "duration": 1.2,
+      "body": "見込みを足すと SNS が検索に迫る",
+      "tween": { "sns": [310, 400], "mail": [180, 150] }
+    }
+  ]
+}`;
+
+export const chartSlope = textDslToDiagram(sourceYaml__chartSlope);

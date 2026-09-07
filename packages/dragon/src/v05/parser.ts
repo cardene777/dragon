@@ -321,6 +321,7 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "stat",
   "waffle",
   "stacked",
+  "slope",
   "funnel",
   "tree",
   "journey",
@@ -3970,6 +3971,7 @@ export const DRAW_TARGETS: ReadonlyMap<string, PresetType> = new Map<string, Pre
   ["tree", "tree"],
   ["gantt", "gantt"],
   ["funnel", "funnel"],
+  ["slope", "slope"],
 ]);
 
 /** `draw:` に書ける語。 表から導く (#1314) */
