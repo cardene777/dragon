@@ -155,7 +155,7 @@ describe("語と図種の対応を 1 つの表から導く (#1314)", () => {
     expect([...en].sort()).toEqual([...DRAW_TARGETS.keys()].sort());
   });
 
-  it("表の 9 組が語と図種の対で固定されている", () => {
+  it("表の 12 組が語と図種の対で固定されている", () => {
     /*
      * **手で並べる**。 実装から導くと恒真になる (下の `it.each` も同じ表から出る)。
      *
@@ -167,11 +167,14 @@ describe("語と図種の対応を 1 つの表から導く (#1314)", () => {
       ["bar", "bar"],
       ["funnel", "funnel"],
       ["gantt", "gantt"],
+      ["gauge", "gauge"],
       ["journey", "journey"],
       ["line", "line"],
       ["mind", "mind"],
       ["pie", "pie"],
+      ["radial", "radial"],
       ["slope", "slope"],
+      ["stacked", "stacked"],
       ["tree", "tree"],
     ]);
   });

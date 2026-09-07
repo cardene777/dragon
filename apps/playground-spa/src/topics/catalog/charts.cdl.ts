@@ -554,9 +554,8 @@ export const treeHierarchy = textDslToDiagram(sourceYaml__treeHierarchy);
 // ============================================================
 // 10. 合計を半円で示す
 //
-// **段の `draw` を書かない**。 描画側は半円と弧に「起点から描く」 動きを持たないため
-// (`cdl#549` / `cdl#550` で対象外にした)、書いても効かない。
-// 書いたのに効かない項目を見本に残さない。
+// **`draw: gauge` で 9 時から弧が伸びる** (`cdl#715`)。 伸びる向きは弧の向きそのもの。
+// 合計の字と内訳の段は最初から出る = 合計はこの図の主役なので、左から半分ずつ現れると読めない。
 // ============================================================
 export const sourceYaml__chartGauge = `title: "今期の売上進捗"
 type: gauge
@@ -573,7 +572,8 @@ states:
 
 animation:
   - step: "期の初め" 1.2s
-    description: "合計 1,100 のうち契約済が 680"
+    draw: gauge
+    description: "弧が 9 時から伸びる。 合計 1,100 のうち契約済が 680"
   - step: "期の半ば" 1.2s
     tween:
       signed: 680 -> 820
@@ -593,7 +593,12 @@ export const sourceJson__chartGauge = `{
   "flow": [],
   "states": { "signed": 680, "talking": 240, "untouched": 180 },
   "animation": [
-    { "step": "期の初め", "duration": 1.2, "body": "合計 1,100 のうち契約済が 680" },
+    {
+      "step": "期の初め",
+      "duration": 1.2,
+      "draw": "gauge",
+      "body": "弧が 9 時から伸びる。 合計 1,100 のうち契約済が 680"
+    },
     {
       "step": "期の半ば",
       "duration": 1.2,
@@ -611,6 +616,10 @@ export const chartGauge = textDslToDiagram(sourceYaml__chartGauge);
 
 // ============================================================
 // 11. 弧の長さで比べる
+//
+// **`draw: radial` で各輪が 12 時から開く** (`cdl#715`)。 円グラフと起点を揃えている。
+// 軌道 (全周の薄い輪) と一覧は最初から出る = 軌道は「あとどれだけで一周か」 を示す枠なので、
+// 一緒に伸ばすと比べる相手が無いまま弧だけが伸びる。
 // ============================================================
 export const sourceYaml__chartRadial = `title: "機能ごとの利用率"
 type: radial
@@ -629,7 +638,8 @@ states:
 
 animation:
   - step: "先月" 1.2s
-    description: "検索が 72 で最も高い"
+    draw: radial
+    description: "各輪が 12 時から開く。 検索が 72 で最も高い"
   - step: "今月" 1.2s
     tween:
       search: 72 -> 78
@@ -651,7 +661,12 @@ export const sourceJson__chartRadial = `{
   "flow": [],
   "states": { "search": 72, "save": 45, "share": 28, "export": 12 },
   "animation": [
-    { "step": "先月", "duration": 1.2, "body": "検索が 72 で最も高い" },
+    {
+      "step": "先月",
+      "duration": 1.2,
+      "draw": "radial",
+      "body": "各輪が 12 時から開く。 検索が 72 で最も高い"
+    },
     {
       "step": "今月",
       "duration": 1.2,
@@ -770,6 +785,9 @@ export const chartWaffle = textDslToDiagram(sourceYaml__chartWaffle);
 //
 // **`previous` を書くと帯が 2 本になる**。 書かない図は 1 本のままで、
 // 内訳だけを示す図として使える。
+//
+// **`draw: stacked` で左から帯が伸びる** (`cdl#715`)。 帯が 2 本あっても同時に伸びる =
+// 上下で同じ位置を見比べる図なので、片方だけ先に出ると比べる相手がいない時間ができる。
 // ============================================================
 export const sourceYaml__chartStackedBar = `title: "契約の内訳"
 type: stacked
@@ -786,7 +804,8 @@ states:
 
 animation:
   - step: "前期との比較" 1.2s
-    description: "上が前期、下が今期。 新規が伸び継続が減った"
+    draw: stacked
+    description: "帯が左から伸びる。 上が前期、下が今期。 新規が伸び継続が減った"
   - step: "見込みを足す" 1.2s
     tween:
       shinki: 320 -> 380
@@ -805,7 +824,12 @@ export const sourceJson__chartStackedBar = `{
   "flow": [],
   "states": { "shinki": 320, "keizoku": 180, "norikae": 140 },
   "animation": [
-    { "step": "前期との比較", "duration": 1.2, "body": "上が前期、下が今期。 新規が伸び継続が減った" },
+    {
+      "step": "前期との比較",
+      "duration": 1.2,
+      "draw": "stacked",
+      "body": "帯が左から伸びる。 上が前期、下が今期。 新規が伸び継続が減った"
+    },
     {
       "step": "見込みを足す",
       "duration": 1.2,
