@@ -19,7 +19,7 @@ function 引く(m: Measured, role: string) {
 }
 
 /**
- * 実際に吸い出した 4 図の作り。
+ * 実際に吸い出した図の作り。
  *
  * 役割の集合を実物から取っている = 手で並べた役割だけを検査すると、engine が使う役割を
  * 1 つ取りこぼしても検査は緑のまま通る。
@@ -57,6 +57,19 @@ const 図の作り: Record<string, Measured> = {
     "chart-line": 役割([{ sw: 2.5 }]),
     "chart-line-value": 役割([{ fs: 11 }]),
   },
+  // 傾き図 (2 本の縦軸 + 系列ごとの線 + 両端の点 + 3 種の字)
+  //
+  // 見本帳の「経路別の申込み」 を実際に測った値。 字は 3 段 (時点 12 / 値 14 / 名前 13) に
+  // 分かれる = 役割を 1 つにまとめていると、この 3 つが 1 行に潰れて意匠として引けない
+  "chart-slope-demo": {
+    "node-body": 役割([{ w: 640, h: 368, rx: 16, sw: 1.75 }]),
+    "chart-slope-line": 役割([{ sw: 2.5 }, { sw: 2.5 }, { sw: 2.5 }, { sw: 2.5 }]),
+    "chart-slope-dot": 役割([{ r: 4 }, { r: 4 }, { r: 4 }, { r: 4 }, { r: 4 }, { r: 4 }, { r: 4 }, { r: 4 }]),
+    "chart-slope-axis": 役割([{ sw: 1 }, { sw: 1 }]),
+    "chart-slope-period": 役割([{ fs: 12 }, { fs: 12 }]),
+    "chart-slope-value": 役割([{ fs: 14 }, { fs: 14 }, { fs: 14 }, { fs: 14 }, { fs: 14 }, { fs: 14 }, { fs: 14 }, { fs: 14 }]),
+    "chart-slope-name": 役割([{ fs: 13 }, { fs: 13 }, { fs: 13 }, { fs: 13 }, { fs: 13 }, { fs: 13 }, { fs: 13 }, { fs: 13 }]),
+  },
 };
 
 const 枠 = { viewBox: [0, 0, 100, 200], phaseCount: 3 };
@@ -88,6 +101,12 @@ const 追加行 = [
   ["chart-stacked-bar-slice-text", "区画の名前の字", "fs", 2.15],
   ["chart-stacked-bar-slice-value", "区画の値の字", "fs", 2.16],
   ["chart-stacked-bar-period", "期間の字", "fs", 2.17],
+  ["chart-slope-line", "傾きの線の太さ", "sw", 2.28],
+  ["chart-slope-dot", "節の丸の半径", "r", 2.29],
+  ["chart-slope-axis", "軸の線の太さ", "sw", 2.3],
+  ["chart-slope-period", "時点の字", "fs", 2.31],
+  ["chart-slope-value", "軸の脇の値の字", "fs", 2.32],
+  ["chart-slope-name", "系列の名前の字", "fs", 2.33],
   ["funnel-stage", "段の枠の太さ", "sw", 2.18],
   ["gantt-bar", "帯の高さ", "h", 2.19],
   ["gantt-bar", "帯の角の丸み", "rx", 2.2],
@@ -128,7 +147,7 @@ describe("意匠帳に写す表", () => {
     expect(ラベル(rows)).not.toContain("箱の動き");
   });
 
-  it("4 図すべてで寸法の行が 1 件以上出る", () => {
+  it("どの図でも寸法の行が 1 件以上出る", () => {
     const 図 = Object.entries(図の作り);
     expect(図.length, "図を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(0);
 
@@ -137,6 +156,20 @@ describe("意匠帳に写す表", () => {
       expect(寸法行(rows).length, `${id} の寸法が 1 件も出ていない`).toBeGreaterThan(0);
       // `—` は「該当なし」 と「測れなかった」 を潰す。 どの図でも出してはいけない
       expect(rows.filter(([, v]) => v === "—" || v === ""), `${id} に値の無い行が残っている`).toEqual([]);
+    }
+  });
+
+  it("1 つの図に同じ名前の行を 2 つ出さない", () => {
+    // 名前が重なると、表のどの行がどの値か引けない。 傾き図の値の字を「値の字」、
+    // 名前の字を「名前の字」 と付けると、折れ線と進捗の輪が持つ行と衝突する
+    const 図 = Object.entries(図の作り);
+    expect(図.length, "図を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(0);
+
+    for (const [id, m] of 図) {
+      const 名前 = ラベル(buildSpec(m, 枠) as Row[]);
+      expect(名前.length, `${id} の行が 1 つも出ていない`).toBeGreaterThan(0);
+      const 重なり = 名前.filter((k, i) => 名前.indexOf(k) !== i);
+      expect([...new Set(重なり)], `${id} に同じ名前の行が 2 つある`).toEqual([]);
     }
   });
 
@@ -231,7 +264,7 @@ describe("役割の一覧", () => {
     expect(SPEC_ROLES.length).toBe(new Set(SPEC_ROLES).size);
   });
 
-  it("4 図が使う役割を 1 つも取りこぼさない", () => {
+  it("実物の図が使う役割を 1 つも取りこぼさない", () => {
     const 使う役割 = new Set(Object.values(図の作り).flatMap((m) => Object.keys(m)));
 
     expect(使う役割.size, "役割を 1 つも集めていない (検査が空振りしている)").toBeGreaterThan(0);
