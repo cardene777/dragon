@@ -135,18 +135,26 @@ flow:
   test("行順と edge 順が食い違っても正しい行に入る", async ({ page }) => {
     // `type: flow` の preset は actor を宣言順に鎖状に繋ぐ = `a -> c` と書いても `a -> b` の
     // edge になる。 組み立て側が返す行番号 (#998) を使わないと別の行を書き換える。
+    //
+    // **箱の大きさを書く** (#1709)。 上の見本と同じ理由 (#1498) で、名前だけの `service` は
+    // 高さ 54 になり label が線から 80px 以内に収まる = 直せる警告が 1 件も出ず、button が
+    // 押せないまま落ちる。 大きさを書くと 110px / 86px 離れて 2 件出る (実測)。
     await open(
       page,
       `title: "行順と edge 順が違う"
 type: flow
 actors:
-  - a: service
+  - a:
+      kind: service
+      大きさ: 320,116
   - b:
       kind: service
       位置: a の右 500
+      大きさ: 320,116
   - c:
       kind: service
       位置: a の右 250
+      大きさ: 320,116
 flow:
   - a -> c: とてもとてもながいラベルの文字列テストです
   - c -> b: みじかい
@@ -176,13 +184,17 @@ type: flow
 actors:
   - g:
       kind: arc-gauge
-  - a: service
+  - a:
+      kind: service
+      大きさ: 320,116
   - b:
       kind: service
       位置: a の右 500
+      大きさ: 320,116
   - c:
       kind: service
       位置: a の右 250
+      大きさ: 320,116
 flow:
   - a -> c: とてもとてもながいラベルの文字列テストです
   - c -> b: みじかい

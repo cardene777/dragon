@@ -83,6 +83,44 @@ animation:
     focus: [B]
 `;
 
+/**
+ * 6 つの色味を **1 枚に全部描く** 図の記法 (#1709)。
+ *
+ * 描画エンジンは矢頭の飾りを **使う分だけ** `<defs>` に出す。 描かれていない色味の矢頭は
+ * 画面のどこにも無いので、1 本の矢印を複製して色味だけ差し替える読み方は成立しない
+ * (実測 = 見本帳の画面に出るのは 2 色ぶんだけ)。 6 本すべてを実際に描いて本物を読む。
+ *
+ * 段は箱だけを名指しする。 矢印を名指しすると光ってしまい、光っていない線の
+ * 不透明度を測れなくなる。
+ */
+export const 六色の記法 = `title: "6 つの色味の見本"
+type: flow
+reveal: all
+
+actors:
+  - A
+  - B
+  - C
+  - D
+  - E
+  - F
+  - G
+
+flow:
+  - A -> B: "accent" (accent)
+  - B -> C: "teal" (teal)
+  - C -> D: "success" (success)
+  - D -> E: "error" (error)
+  - E -> F: "warning" (warning)
+  - F -> G: "info" (info)
+
+animation:
+  - step: "1 進む" 1.2s
+    focus: [A, B]
+  - step: "2 戻る" 1.2s
+    focus: [F, G]
+`;
+
 /** 記法を URL に載せてエディタへ渡す (`CdlEditor.tsx` の `#s=<base64>`)。 */
 export const 記法をURLに載せる = (src: string): string => Buffer.from(src, "utf8").toString("base64");
 
