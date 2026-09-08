@@ -953,6 +953,60 @@ describe("中身を持つ節が見せる形を見本帳が見せているか (#1
       "宣言が 1 件も無い (検査が空振りしている)",
     ).toBeGreaterThan(0);
   });
+
+  /**
+   * 棒の変種が、前が今より高い件を 1 件以上持つ (#1724)。
+   *
+   * 縦軸の天井を今の値だけで決めると、前の破線が枠の外へ出て「下がった」 が読めない。
+   * 描画エンジンは天井を前まで含めて取るようにしたが (`cdl#767`)、**その形を通す見本が
+   * 無ければ画面の検査は 1 度もその道を通らない**。
+   *
+   * 見本の `previous` を下げると破線は当然枠の中に入るので、画面の検査
+   * (`catalog-pattern-switch.spec.ts` の「棒の破線は縦軸の枠に収まる」) は緑のまま
+   * 主張だけが空になる (`rules/quality.md § 検査の母集団が守りたい集合と同じことを確認済`)。
+   *
+   * **数は書き写さない**。 変種の図から値を引いて数える。 引けなければ落とす =
+   * 変種の名前を変えた時に空振りしない。
+   */
+  it("棒の変種は、前が今より高い件を 1 件以上持つ (#1724)", () => {
+    const 鍵 = "pattern__chartBar__前の値つき";
+    const 変種 = Object.values(CATALOG_ITEMS)
+      .flat()
+      .flatMap((item) => item.patterns ?? [])
+      .find((p) => p.鍵 === 鍵);
+    expect(変種, `変種を引けない: ${鍵} (名前を変えたなら検査も直す)`).toBeDefined();
+
+    const d = 変種!.diagram;
+    const 初期 = new Map<string, unknown>((d.states ?? []).map((s) => [s.id, s.initial]));
+    /**
+     * `{名前}` は段が動かす値なので初期値を引く。 素の数はそのまま読む。
+     *
+     * 数に落ちない値は `undefined` を返す = 語の欄を 0 と読むと、書いていない件が
+     * 「前が高い」 に数えられる
+     */
+    const 数 = (v: unknown): number | undefined => {
+      const 素 = typeof v === "string" && /^\{(.+)\}$/.test(v) ? 初期.get(v.slice(1, -1)) : v;
+      if (typeof 素 === "number") return Number.isFinite(素) ? 素 : undefined;
+      if (typeof 素 !== "string") return undefined;
+      const n = Number(素);
+      return Number.isFinite(n) ? n : undefined;
+    };
+
+    const 件 =
+      (d.nodes[0] as unknown as { chartData?: Array<{ value?: unknown; previous?: unknown }> })
+        .chartData ?? [];
+    expect(件.length, "変種の中身が空 (検査が空振りしている)").toBeGreaterThan(0);
+
+    const 前が高い = 件.filter((x) => {
+      const 今 = 数(x.value);
+      const 前 = 数(x.previous);
+      return 今 !== undefined && 前 !== undefined && 前 > 今;
+    });
+    expect(
+      前が高い.length,
+      "前が今より高い件が無い。 天井を前まで含めて取る道を、見本が 1 度も通らない",
+    ).toBeGreaterThan(0);
+  });
 });
 
 /**
