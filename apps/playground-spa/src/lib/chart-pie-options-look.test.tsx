@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS } from "./catalog-items";
-import { 図の円の見せ方を変える, 既定の円の見せ方 } from "./chart-pie-options";
+import { 図の円の見せ方を変える, 円の見せ方を選べる, 既定の円の見せ方 } from "./chart-pie-options";
 
 function 円の図(): CdlDiagram {
   const items = CATALOG_ITEMS.presets;
@@ -107,5 +107,93 @@ describe("円グラフの見せ方を描いた絵で見る (#1645)", () => {
 
     // Then = 3 つとも互いに違う。 同じなら切替が届いていない
     expect(new Set(絵).size, "見せ方を変えても絵が変わっていない").toBe(3);
+  });
+});
+
+/**
+ * 前の時点を持つ図では見せ方の切替を出さない (#1702)。
+ *
+ * ## 判定材料を実装と同じ式にしない
+ *
+ * 「`previous` が書いてあるか」 を両側で見ると、同じ式を 2 度書いて突き合わせることになり、
+ * 実装が変わると検査も一緒にずれる。
+ *
+ * ここは **engine の描画結果** を材料にする。 内側の輪 (`chart-pie-slice-previous`) が
+ * 出るかどうかが「engine が前の値を使っている」 ことの実物で、切替を出してよいかは
+ * その裏返しになる。
+ */
+describe("前の時点を持つ円グラフでは見せ方を選べない (#1702)", () => {
+  /** 見本帳に出ている全部の図 (変種を含む)。 変種は一覧の行を持たないので `patterns` も辿る */
+  const 全部の図 = (): CdlDiagram[] =>
+    Object.values(CATALOG_ITEMS)
+      .flat()
+      .flatMap((item) =>
+        item.patterns && item.patterns.length > 0
+          ? item.patterns.map((p) => p.diagram)
+          : [item.diagram],
+      );
+
+  /** 円グラフを持つ図を、内側の輪を描くかで 2 つに分ける */
+  const 円の図たち = () => {
+    const 円あり = 全部の図().filter((d) => d.nodes.some((n) => n.kind === "chart-pie"));
+    const 内輪あり: CdlDiagram[] = [];
+    const 内輪なし: CdlDiagram[] = [];
+    for (const d of 円あり)
+      (roleの数(描く(d), "chart-pie-slice-previous") > 0 ? 内輪あり : 内輪なし).push(d);
+    return { 内輪あり, 内輪なし };
+  };
+
+  it("両方の図を 1 件以上拾えている", () => {
+    // 空振り検知。 片側が 0 件だと下の 2 件のどちらかが何も見ずに通る
+    const { 内輪あり, 内輪なし } = 円の図たち();
+    expect(内輪あり.length, "内側の輪を描く図が 1 件も無い").toBeGreaterThan(0);
+    expect(内輪なし.length, "内側の輪を描かない円グラフが 1 件も無い").toBeGreaterThan(0);
+  });
+
+  it("内側の輪を描く図では選べない", () => {
+    // engine は `輪` 以外の形へ前の値を渡さないので、切り替えると内側の輪が黙って消える
+    for (const d of 円の図たち().内輪あり)
+      expect(円の見せ方を選べる(d), `${d.id} で選べてしまう`).toBe(false);
+  });
+
+  it("内側の輪を描かない円グラフでは選べる (陰性対照)", () => {
+    // 「円グラフなら一律で出さない」 に倒れていれば、ここが落ちる
+    for (const d of 円の図たち().内輪なし)
+      expect(円の見せ方を選べる(d), `${d.id} で選べない`).toBe(true);
+  });
+
+  it("1 件だけ前の時点を持つ図でも選べない", () => {
+    /*
+     * engine は `data.some((d) => d.previous !== undefined)` で輪を 2 つにする。
+     * 画面側を「全件が持つか」 で見ると、engine が内側の輪を描いている図を
+     * 「持っていない」 と判定して切替を出してしまう。
+     *
+     * 見本は 4 件とも前の時点を書いているので、`some` と `every` の差が出ない。
+     * **差の出る入力をここで作る** = 1 件だけ書いた図を組む。
+     */
+    const 元 = 全部の図().find(
+      (d) => d.nodes.some((n) => n.kind === "chart-pie") && roleの数(描く(d), "chart-pie-slice-previous") === 0,
+    );
+    expect(元, "前の時点を持たない円グラフの見本が無い").toBeDefined();
+
+    const 一件だけ: CdlDiagram = {
+      ...元!,
+      nodes: 元!.nodes.map((n) =>
+        n.kind === "chart-pie"
+          ? {
+              ...n,
+              chartData: (n.chartData ?? []).map((d, i) => (i === 0 ? { ...d, previous: 5 } : d)),
+            }
+          : n,
+      ),
+    };
+
+    // 前提 = この図で engine は実際に内側の輪を描く (組み方が効いていることの確認)
+    expect(
+      roleの数(描く(一件だけ), "chart-pie-slice-previous"),
+      "1 件だけ書いた図で内側の輪が出ていない (組み方が効いていない)",
+    ).toBeGreaterThan(0);
+
+    expect(円の見せ方を選べる(一件だけ), "1 件だけ前の時点を持つ図で選べてしまう").toBe(false);
   });
 });
