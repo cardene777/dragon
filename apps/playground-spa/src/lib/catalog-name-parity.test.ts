@@ -45,9 +45,14 @@ const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
  *
  * 判定は production (`catalog-items.ts` の `moduleToItems`) と**同じ式**にする。
  * 厳しくすると production が一覧に出す図を test が見落とし、緩くすると図でない export を数える。
+ *
+ * `pattern__` で始まる export は一覧の行にならない変種なので外す (#1696)。 名前は切替の
+ * 札 (export 名の末尾) から出るため、この表に entry を持たない。 外さないと下の
+ * 「名前の表と図の集合が双方向で一致する」 が、出ない名前を要求することになる。
  */
 function diagramKeys(mod: Record<string, unknown>): string[] {
   return Object.entries(mod)
+    .filter(([key]) => !key.startsWith("pattern__"))
     .filter(([, value]) => {
       if (!value || typeof value !== "object") return false;
       const d = value as { id?: unknown; nodes?: unknown };
@@ -66,7 +71,7 @@ describe("一覧の名前 (#1030)", () => {
     const expected: Record<string, number> = {
       interactive: 129, cookbook: 26, patterns: 12, primitives: 89,
       "primitives-extra": 21, animation: 10, styles: 10, presets: 21,
-      ethereum: 4, "text-dsl": 15, parts: 80, charts: 16,
+      ethereum: 4, "text-dsl": 15, parts: 80, charts: 15,
     };
     const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));
     expect(actual, "図の数が変わっている (足したら期待値も更新する)").toEqual(expected);

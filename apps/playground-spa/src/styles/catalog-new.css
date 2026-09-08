@@ -468,23 +468,34 @@
   background: var(--d-surface-2, rgba(0, 0, 0, 0.04));
 }
 
-/* 右端に寄せるのは左側の 1 つだけ。 2 つとも寄せると間が開く */
-.catalog-redraw {
+/*
+  切替は オプション と パターン の 2 群に分かれる (#1696)。
+
+  間は `gap` で開ける。 個々の切替に `margin-left` を振る形だと、並ぶ数と順番で
+  「左端の 1 つだけ寄せる」 の条件が変わり、切替を 1 つ足すたびに条件が増える
+  (実際に 4 本の規則に育っていた)。
+*/
+.catalog-toggle-groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
   margin-left: auto;
 }
 
-.catalog-redraw + .catalog-speed {
-  margin-left: 6px;
+.catalog-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* 折れ線では描き方と見せ方が並ぶ。 2 つ以上並ぶ時に寄せるのは左端の 1 つだけ (#1624) */
-.catalog-redraw ~ .catalog-redraw {
-  margin-left: 6px;
-}
-
-/* 描き方の切替が出ない図では、速さが右端に来る */
-.catalog-preview-tabs > .catalog-speed:not(.catalog-redraw + .catalog-speed) {
-  margin-left: auto;
+/* 群の名前。 押せる見た目にしない = 押す物ではなく、隣の切替が何を変えるかの札 */
+.catalog-toggle-group-label {
+  font-family: var(--d-body);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--d-text-secondary);
+  white-space: nowrap;
 }
 
 .catalog-speed-btn {
