@@ -13,6 +13,10 @@
  * | 棒幅 対 隙間 | 126.5px 対 10px = 12.7 : 1 | 88.6px 対 40.3px = 2.2 : 1 |
  * | 棒の色 | 1 種類 | いちばん大きい棒だけ濃い |
  * | 角丸 | 2 (幅 126.5px に対して) | 棒幅の 6% |
+ *
+ * **陰性対照はここに無い** (#1704)。 「棒グラフを持たない見本に棒が出ない」 は
+ * `catalog-kind-role-isolation.test.tsx` が種別 9 種すべてについて見る。 ここと
+ * `catalog-axis-text` が同じ全図を別々に描いており、全件走査で時間切れになっていた。
  */
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -104,15 +108,5 @@ describe("見本帳の棒グラフが人の読む形になる (#1686)", () => {
       expect(濃さたち.filter((v) => v === 最大).length, `濃い棒が ${濃さたち.join(" / ")}`).toBe(1);
     }
     expect(測れた, "棒を 1 本も測れていない (検査が空振りしている)").toBeGreaterThan(0);
-  });
-
-  it("棒グラフを持たない見本には棒が 1 本も出ない", () => {
-    // 陰性対照。 拾い方が図の種類を見ずに何でも拾っていたらここが落ちる
-    const 棒でない = Object.values(CATALOG_ITEMS)
-      .flat()
-      .filter(({ diagram }) => diagram.nodes.every((n) => n.kind !== "chart-bar"))
-      .map(({ diagram }) => diagram);
-    expect(棒でない.length, "棒グラフでない見本が 1 件も無い").toBeGreaterThan(0);
-    for (const d of 棒でない) expect(棒たち(描く(d))).toEqual([]);
   });
 });
