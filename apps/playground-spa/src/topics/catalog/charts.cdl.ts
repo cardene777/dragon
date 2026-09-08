@@ -984,7 +984,8 @@ export const chartRadial = textDslToDiagram(sourceYaml__chartRadial);
 // **割合は件が 2 つ以上の図でだけ出る** (`cdl#759`)。 件が 1 つだと分母が自分自身になり
 // 必ず 100% になるため、割合の字と弧を描かない。 2 つの形を別々の見本で見せる。
 // 段の `draw` は書かない = 描画側が「起点から描く」 動きを持たない。
-// **`previous` は書かない** = この種別は読んでいないので、書くと効かない指定の見本になる。
+// **`previous` は下の `パターン` が見せる** (`cdl#763` で描かれるようになった)。 ここでは
+// 書かない側を持ち、押すと前の時点を添えた側に入れ替わる。
 // ============================================================
 export const sourceYaml__chartStat = `title: "今月の解約率"
 type: stat
@@ -1085,6 +1086,57 @@ export const sourceJson__pattern__chartStat__複数 = `{
 }`;
 
 export const pattern__chartStat__複数 = textDslToDiagram(sourceYaml__pattern__chartStat__複数);
+
+// ------------------------------------------------------------
+// 12c. 前の時点を添える (`パターン` の切替で選ぶ、 #1711)
+//
+// `previous` を書くと、数値の下に前の時点が 1 行出る (`cdl#763`)。 書かない図では
+// 1 行も出ないので、**同じ見本の切替で両側を見せる** = 押して見比べれば「書くと何が
+// 増えるか」 が 1 画面で読める。
+//
+// 前の値は段で動かさない。 動かすと「前の時点」 が段ごとに変わり、今の値との差が
+// 読み手の記憶に頼ることになる。
+// ------------------------------------------------------------
+export const sourceYaml__pattern__chartStat__前の値つき = `title: "前の月と比べた解約率"
+type: stat
+
+actors:
+  - 解約率: { value: "{now}", previous: "38" }
+
+states:
+  now: 24
+
+animation:
+  - step: "先月" 1.2s
+    description: "前の時点は 38 件。 いまは 24 件"
+  - step: "今月" 1.2s
+    tween:
+      now: 24 -> 19
+    description: "施策の後に 19 件まで下がる。 前の時点は 38 件のまま"
+`;
+
+export const sourceJson__pattern__chartStat__前の値つき = `{
+  "title": "前の月と比べた解約率",
+  "type": "stat",
+  "actors": [
+    { "name": "解約率", "value": "{now}", "previous": "38" }
+  ],
+  "flow": [],
+  "states": { "now": 24 },
+  "animation": [
+    { "step": "先月", "duration": 1.2, "body": "前の時点は 38 件。 いまは 24 件" },
+    {
+      "step": "今月",
+      "duration": 1.2,
+      "body": "施策の後に 19 件まで下がる。 前の時点は 38 件のまま",
+      "tween": { "now": [24, 19] }
+    }
+  ]
+}`;
+
+export const pattern__chartStat__前の値つき = textDslToDiagram(
+  sourceYaml__pattern__chartStat__前の値つき,
+);
 
 // ============================================================
 // 13. 割合を 100 個の印で示す
