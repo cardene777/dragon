@@ -10,6 +10,10 @@
  * | 折れ線の値札 / 横軸の名前 | 11 / 12 | 12 / 11 |
  * | 折れ線の目盛りの役割名 | なし | chart-line-tick |
  * | 折れ線の横軸の名前の役割名 | なし | chart-line-label |
+ *
+ * **陰性対照はここに無い** (#1704)。 「軸を持たない見本に軸の役割名が出ない」 は
+ * `catalog-kind-role-isolation.test.tsx` が種別 9 種すべてについて見る。 ここと
+ * `catalog-bar-look` が同じ全図を別々に描いており、全件走査で時間切れになっていた。
  */
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -86,21 +90,5 @@ describe("見本帳の軸を持つ図の字 (#1688)", () => {
       expect(v, `${名} を拾えない (検査が空振りしている)`).toBeDefined();
     expect(線の値).toBe(棒の値);
     expect(線の名).toBe(棒の名);
-  });
-
-  it("軸を持たない見本には軸の役割名が出ない", () => {
-    // 陰性対照。 拾い方が図の種類を見ずに何でも拾うなら、円グラフなどが混ざって落ちる
-    const 軸でない = Object.values(CATALOG_ITEMS)
-      .flat()
-      .filter(({ diagram }) =>
-        diagram.nodes.every((n) => n.kind !== "chart-bar" && n.kind !== "chart-line"),
-      )
-      .map(({ diagram }) => diagram);
-    expect(軸でない.length, "軸を持たない見本が 1 件も無い").toBeGreaterThan(0);
-    for (const d of 軸でない) {
-      const svg = 描く(d);
-      for (const 役 of ["chart-bar-tick", "chart-bar-label", "chart-line-tick", "chart-line-label"])
-        expect(役の字(svg, 役), `${役} が出た`).toEqual([]);
-    }
   });
 });
