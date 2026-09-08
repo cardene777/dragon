@@ -87,6 +87,17 @@ const EXPECTED: Array<{ slug: string; id: string; rows: number }> = [
    */
   { slug: "presets", id: "class-demo", rows: 15 },
   { slug: "presets", id: "er-demo", rows: 11 },
+  /*
+   * 込み入った 2 図が見本に足された分 (#1709 で実測)。 一覧を直していなかったため
+   * 落ちたまま積み上がっていた。
+   *
+   * | 見本 | 行数 | 中身 |
+   * |---|---|---|
+   * | `er-complex-demo` | 34 | 12 表 × 14 関係 |
+   * | `class-complex-demo` | 42 | 12 クラス × 14 関係 |
+   */
+  { slug: "presets", id: "er-complex-demo", rows: 34 },
+  { slug: "presets", id: "class-complex-demo", rows: 42 },
   // 8 表 8 関係の ER 図 (#1573)。 中継表 3 つを含めて 17 行
   { slug: "text-dsl", id: "多対多が-2-組-8-表-8-関係", rows: 17 },
   { slug: "presets", id: "fsm-demo", rows: 4 },

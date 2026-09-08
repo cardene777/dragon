@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { 記法をURLに載せる, 箱と矢印の記法 } from "./box-and-edge-figure";
+import { 記法をURLに載せる, 六色の記法 } from "./box-and-edge-figure";
 
 /**
  * GH #889 = edge の tone が線の色に出ることを画面で確かめる。
@@ -112,19 +112,22 @@ function deltaE(a: Rgb, b: Rgb): number {
 }
 
 /**
- * 画面上の edge を tone ごとに複製して、 CSS が解決する色を読む。
+ * 画面に **実際に描かれた** 矢印から、色味ごとの線と矢頭の色を読む (#1709)。
  *
- * 1 つの図に 6 tone 全部が出ることは無いため、 実在する edge を複製して tone だけ差し替える。
- * CSS の selector は theme の祖先と `[data-cdl-tone]` で決まるので、 同じ SVG 内に複製すれば
- * 本番と同じ経路で解決される。
+ * 以前は 1 本を複製して色味だけ差し替えていたが、描画エンジンが矢頭の飾りを
+ * **使う分だけ** `<defs>` に出すようになったため成立しなくなった (実測 = 見本帳の画面に
+ * 出るのは 2 色ぶんで、複製した色味の矢頭はどこにも無い)。 複製をやめて、その画面が
+ * 描いた矢印だけを読む。 6 色すべてを見るのは 六色の記法 を開いたエディタ側が担う。
+ *
+ * 矢頭は `<defs><marker>` の中にあり矢印の子孫ではないので、`marker-end` から実物を辿る。
  */
 async function readToneColors(
   page: Page,
 ): Promise<{ paper: string; tones: Record<string, { stroke: string; head: string }> }> {
-  return page.evaluate((tones) => {
-    const src = document.querySelector("[data-cdl-edge]");
-    if (!src) throw new Error("edge が 1 本も無い");
-    let el: HTMLElement | null = src.closest("svg")?.parentElement ?? null;
+  const 読めた = await page.evaluate(() => {
+    const 先頭 = document.querySelector("[data-cdl-edge]");
+    if (!先頭) throw new Error("edge が 1 本も無い");
+    let el: HTMLElement | null = 先頭.closest("svg")?.parentElement ?? null;
     let paper: string | null = null;
     while (el && !paper) {
       const c = getComputedStyle(el).backgroundColor;
@@ -133,30 +136,27 @@ async function readToneColors(
     }
     if (!paper) throw new Error("紙の色が読めない");
     const out: Record<string, { stroke: string; head: string }> = {};
-    for (const tone of tones) {
-      const clone = src.cloneNode(true) as Element;
-      clone.setAttribute("data-cdl-tone", tone);
-      clone.setAttribute("data-cdl-active", "false");
-      src.parentElement!.appendChild(clone);
-      const line = clone.querySelector('[data-cdl-role="edge-line"]');
-      if (!line) throw new Error(`${tone} の線が無い`);
-      // 矢頭は `<defs><marker>` の中にあり clone には含まれない。 `marker-end` から実物を辿る。
-      // ただし `marker-end` は cdl が描画時に固定の属性として書くので、 clone の tone を変えても
-      // 元 edge の marker を指したまま。 元の tone を差し替えて、 その tone の marker を指させる。
-      const srcTone = src.getAttribute("data-cdl-tone") ?? "";
-      const srcRef = (line.getAttribute("marker-end") ?? "").replace(/^url\(#|\)$/g, "");
-      const ref = srcRef.replace(new RegExp(`^cdl-arrow-${srcTone}(-sm)?$`), `cdl-arrow-${tone}$1`);
-      if (ref === srcRef && srcTone !== tone) throw new Error(`marker id を差し替えられない: ${srcRef}`);
-      line.setAttribute("marker-end", `url(#${ref})`);
+    for (const g of document.querySelectorAll("[data-cdl-edge]")) {
+      const tone = g.getAttribute("data-cdl-tone");
+      const line = g.querySelector('[data-cdl-role="edge-line"]');
+      if (!tone || !line) continue;
+      const ref = (line.getAttribute("marker-end") ?? "").replace(/^url\(#|\)$/g, "");
       const marker = ref ? document.getElementById(ref) : null;
-      if (!marker) throw new Error(`${tone} の矢頭 marker (${ref}) が無い`);
-      const head = marker.querySelector('[data-cdl-role="edge-arrowhead"]');
-      if (!head) throw new Error(`${tone} の矢頭が無い`);
-      out[tone] = { stroke: getComputedStyle(line).stroke, head: getComputedStyle(head).fill };
-      clone.remove();
+      const head = marker?.querySelector('[data-cdl-role="edge-arrowhead"]');
+      if (!head) throw new Error(`${tone} の矢頭 (${ref || "指定なし"}) が引けない`);
+      out[tone] = {
+        stroke: getComputedStyle(line).stroke,
+        head: getComputedStyle(head).fill,
+      };
     }
     return { paper, tones: out };
-  }, TONES as unknown as string[]);
+  });
+  // 空振り検知 = 1 色も読めていないなら、実装ではなく検査の側が壊れている
+  expect(
+    Object.keys(読めた.tones).length,
+    "色味を 1 つも読めていない (検査が空振りしている)",
+  ).toBeGreaterThan(0);
+  return 読めた;
 }
 
 async function open(page: Page, path: string, dark: boolean): Promise<void> {
@@ -174,8 +174,8 @@ async function open(page: Page, path: string, dark: boolean): Promise<void> {
  * 線の色は図種に依らないので、矢印が在る図を開いて同じことを測る。
  */
 const SCREENS = [
-  { name: "catalog", path: "catalog/interactive" },
-  { name: "editor", path: `editor#s=${記法をURLに載せる(箱と矢印の記法)}` },
+  { name: "catalog", path: "catalog/interactive", 全色: false },
+  { name: "editor", path: `editor#s=${記法をURLに載せる(六色の記法)}`, 全色: true },
 ] as const;
 
 test.use({ viewport: { width: 1500, height: 1000 } });
@@ -193,15 +193,39 @@ async function readInactiveOpacity(page: Page): Promise<number> {
   return v;
 }
 
+/**
+ * 測る対象は **その画面が描いた色味** に絞る (#1709)。
+ *
+ * 見本帳の画面は 2 色しか描かないので、6 色を要求すると測れない色まで数えることになる。
+ * 6 色そろっているかはエディタ側 (`全色: true`) で別に確かめ、見本帳側は
+ * 描いた色が同じ規則で塗られているかを見る。
+ */
+function 測れた色味(tones: Record<string, { stroke: string; head: string }>): string[] {
+  return TONES.filter((t) => tones[t] !== undefined);
+}
+
 for (const screen of SCREENS) {
   for (const dark of [false, true]) {
     const label = `${screen.name} / ${dark ? "暗い画面" : "明るい画面"}`;
 
-    test(`${label}: 6 tone が別々の色になる`, async ({ page }) => {
+    if (screen.全色) {
+      test(`${label}: 6 つの色味が全部描かれている (検査の母集団)`, async ({ page }) => {
+        // 下の 4 本は「描かれた色味」 を数える。 母集団がやせても落ちないので、
+        // 6 色そろっていること自体をここで固定する。
+        await open(page, screen.path, dark);
+        const { tones } = await readToneColors(page);
+        expect(測れた色味(tones).sort(), `描かれた色味: ${Object.keys(tones).join(" / ")}`).toEqual(
+          [...TONES].sort(),
+        );
+      });
+    }
+
+    test(`${label}: 描かれた色味が別々の色になる`, async ({ page }) => {
       await open(page, screen.path, dark);
       const { tones } = await readToneColors(page);
-      const strokes = TONES.map((t) => tones[t]!.stroke);
-      expect(new Set(strokes).size, `色が重複している: ${strokes.join(" / ")}`).toBe(TONES.length);
+      const 色味 = 測れた色味(tones);
+      const strokes = 色味.map((t) => tones[t]!.stroke);
+      expect(new Set(strokes).size, `色が重複している: ${strokes.join(" / ")}`).toBe(色味.length);
     });
 
     test(`${label}: 紙に対する対比が ${MIN_CONTRAST}:1 以上 (丸めの最悪値で)`, async ({ page }) => {
@@ -210,7 +234,7 @@ for (const screen of SCREENS) {
       const alpha = await readInactiveOpacity(page);
       const bg = parseRgb(paper);
       const low: string[] = [];
-      for (const t of TONES) {
+      for (const t of 測れた色味(tones)) {
         const eff = applyOpacity(parseRgb(tones[t]!.stroke), bg, alpha);
         const r = Math.min(...quantized(eff).map((q) => contrast(q, bg)));
         if (r < MIN_CONTRAST) low.push(`${t} ${r.toFixed(2)} (${tones[t]!.stroke} on ${paper}, 不透明度 ${alpha})`);
@@ -226,11 +250,12 @@ for (const screen of SCREENS) {
       const alpha = await readInactiveOpacity(page);
       const bg = parseRgb(paper);
       const eff = (t: string) => quantized(applyOpacity(parseRgb(tones[t]!.stroke), bg, alpha));
+      const 色味 = 測れた色味(tones);
       const close: string[] = [];
-      for (let i = 0; i < TONES.length; i++) {
-        for (let j = i + 1; j < TONES.length; j++) {
-          const a = TONES[i]!;
-          const b = TONES[j]!;
+      for (let i = 0; i < 色味.length; i++) {
+        for (let j = i + 1; j < 色味.length; j++) {
+          const a = 色味[i]!;
+          const b = 色味[j]!;
           let worst = Infinity;
           for (const qa of eff(a)) for (const qb of eff(b)) worst = Math.min(worst, deltaE(qa, qb));
           if (worst < MIN_DELTA_E) close.push(`${a} / ${b} ΔE ${worst.toFixed(1)}`);
@@ -245,7 +270,7 @@ for (const screen of SCREENS) {
       await open(page, screen.path, dark);
       const { tones } = await readToneColors(page);
       const mismatch: string[] = [];
-      for (const t of TONES) {
+      for (const t of 測れた色味(tones)) {
         const v = tones[t]!;
         if (v.head !== v.stroke) mismatch.push(`${t}: 線 ${v.stroke} / 矢頭 ${v.head}`);
       }
@@ -254,7 +279,7 @@ for (const screen of SCREENS) {
 
     test(`${label}: 光っていない線の不透明度が 0.9 以上`, async ({ page }) => {
       // 対比は色と不透明度の積で決まる。 色を濃くしても不透明度で潰せてしまうため、 実物の値を
-      // 直接見る。 0.9 未満に戻ると上の対比検査が clone 側の値で通ってしまう穴を塞ぐ。
+      // 直接見る。 0.9 未満に戻ると上の対比検査が薄い色でも通ってしまう穴を塞ぐ。
       await open(page, screen.path, dark);
       expect(await readInactiveOpacity(page)).toBeGreaterThanOrEqual(0.9);
     });
