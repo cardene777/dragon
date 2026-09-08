@@ -684,23 +684,25 @@ export const sourceJson__chartRadial = `{
 export const chartRadial = textDslToDiagram(sourceYaml__chartRadial);
 
 // ============================================================
-// 12. 値 1 つを大きく示す
+// 12. 値を大きく示す
 //
-// **前の時点の値を書くと差が出る** (`previous`)。 書かない図は数字だけになる。
+// **割合は件が 2 つ以上の図でだけ出る** (`cdl#759`)。 件が 1 つだと分母が自分自身になり
+// 必ず 100% になるため、割合の字と弧を描かない。 2 つの形を別々の見本で見せる。
 // 段の `draw` は書かない = 描画側が「起点から描く」 動きを持たない。
+// **`previous` は書かない** = この種別は読んでいないので、書くと効かない指定の見本になる。
 // ============================================================
 export const sourceYaml__chartStat = `title: "今月の解約率"
 type: stat
 
 actors:
-  - 解約率: { value: "{now}", previous: "38" }
+  - 解約率: "{now}"
 
 states:
   now: 24
 
 animation:
   - step: "先月" 1.2s
-    description: "先月は 38 件だった"
+    description: "先月の解約は 24 件"
   - step: "今月" 1.2s
     tween:
       now: 24 -> 19
@@ -711,12 +713,12 @@ export const sourceJson__chartStat = `{
   "title": "今月の解約率",
   "type": "stat",
   "actors": [
-    { "name": "解約率", "value": "{now}", "previous": "38" }
+    { "name": "解約率", "value": "{now}" }
   ],
   "flow": [],
   "states": { "now": 24 },
   "animation": [
-    { "step": "先月", "duration": 1.2, "body": "先月は 38 件だった" },
+    { "step": "先月", "duration": 1.2, "body": "先月の解約は 24 件" },
     {
       "step": "今月",
       "duration": 1.2,
@@ -727,6 +729,63 @@ export const sourceJson__chartStat = `{
 }`;
 
 export const chartStat = textDslToDiagram(sourceYaml__chartStat);
+
+// ------------------------------------------------------------
+// 12b. 数を並べて取り分も見せる
+//
+// 件が 2 つ以上あると分母が全件の合計になり、割合の字と弧が出る (`cdl#759`)。
+// 1 件の見本と並べると、同じ種別が持つ 2 つの形を見比べられる。
+// ------------------------------------------------------------
+export const sourceYaml__chartStatMulti = `title: "問い合わせの内訳"
+type: stat
+
+actors:
+  - 対応済み: "{done}"
+  - 対応中: "{doing}"
+  - 未着手: "{todo}"
+
+states:
+  done: 128
+  doing: 46
+  todo: 18
+
+animation:
+  - step: "先週" 1.2s
+    description: "対応済みが 128 件で全体の 66.7%"
+  - step: "今週" 1.2s
+    tween:
+      done: 128 -> 152
+      doing: 46 -> 31
+      todo: 18 -> 9
+    description: "未着手が 9 件まで減り、対応済みの取り分が伸びる"
+`;
+
+export const sourceJson__chartStatMulti = `{
+  "title": "問い合わせの内訳",
+  "type": "stat",
+  "actors": [
+    { "name": "対応済み", "value": "{done}" },
+    { "name": "対応中", "value": "{doing}" },
+    { "name": "未着手", "value": "{todo}" }
+  ],
+  "flow": [],
+  "states": { "done": 128, "doing": 46, "todo": 18 },
+  "animation": [
+    {
+      "step": "先週",
+      "duration": 1.2,
+      "body": "対応済みが 128 件で全体の 66.7%"
+    },
+    {
+      "step": "今週",
+      "duration": 1.2,
+      "body": "未着手が 9 件まで減り、対応済みの取り分が伸びる",
+      "tween": { "done": [128, 152], "doing": [46, 31], "todo": [18, 9] }
+    }
+  ]
+}`;
+
+export const chartStatMulti = textDslToDiagram(sourceYaml__chartStatMulti);
 
 // ============================================================
 // 13. 割合を 100 個の印で示す
