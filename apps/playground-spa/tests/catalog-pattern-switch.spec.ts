@@ -33,18 +33,48 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
     await expect(群.nth(1).locator(".catalog-toggle-group-label")).toHaveText("パターン");
   });
 
-  test("パターンが 2 つ出ていて、既定は 1 件", async ({ page }) => {
+  test("パターンが 3 つ出ていて、既定は 1 件", async ({ page }) => {
     await 開く(page, "大きな数字");
     const 群 = page.getByRole("radiogroup", { name: "パターン" });
     await expect(群).toBeVisible();
-    await expect(群.getByRole("radio")).toHaveCount(2);
+    await expect(群.getByRole("radio")).toHaveCount(3);
     await expect(群.getByRole("radio", { name: "1 件" })).toHaveAttribute("aria-checked", "true");
     await expect(群.getByRole("radio", { name: "複数" })).toHaveAttribute("aria-checked", "false");
+    await expect(群.getByRole("radio", { name: "前の値つき" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  });
+
+  test("前の値つき を選ぶと数値の下に前の時点が出る (#1711)", async ({ page }) => {
+    // 記法は `previous` を書けるのに、engine がこの種別だけ読んでいなかった (`cdl#763`)。
+    // 押した結果が絵に出ること、戻すと消えることを役割の数で見る
+    const 前 = page.locator('.catalog-preview-stage [data-cdl-role="chart-stat-previous"]');
+    await 開く(page, "大きな数字");
+    await expect(前).toHaveCount(0);
+
+    await page.getByRole("radio", { name: "前の値つき" }).click();
+    await expect(前).toHaveCount(1);
+    await expect(前).toHaveText("前 38");
+
+    await page.getByRole("radio", { name: "1 件" }).click();
+    await expect(前).toHaveCount(0);
+  });
+
+  test("前の値つき を選ぶとコードも入れ替わる (#1711)", async ({ page }) => {
+    await 開く(page, "大きな数字");
+    await page.getByRole("tab", { name: "コード" }).click();
+    await page.waitForTimeout(300);
+    await expect(page.locator(".catalog-source-code").first()).not.toContainText("previous");
+
+    await page.getByRole("radio", { name: "前の値つき" }).click();
+    await page.waitForTimeout(500);
+    await expect(page.locator(".catalog-source-code").first()).toContainText("previous");
   });
 
   test("変種を持たない図ではパターンの群が出ない (陰性対照)", async ({ page }) => {
     /*
-     * 「どの図でも出る」 形なら、上の 2 件は通っても意味を持たない。
+     * 「どの図でも出る」 形なら、上の 4 件は通っても意味を持たない。
      * 折れ線では出ないこと、そして オプション の群は出たままであることを見る。
      *
      * 折れ線を選ぶのは、engine が中身の違う形を持たない種別だから (#1698)。
