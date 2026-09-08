@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView, chart, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram, ChartType } from "@cardenelabs/cdl";
-import { CATALOG_ITEMS } from "./catalog-items";
+import { CATALOG_ITEMS, type CatalogItem } from "./catalog-items";
 
 /** 描いた結果に出てくる役割名の集合 */
 function 役割名(d: CdlDiagram): Set<string> {
@@ -37,21 +37,34 @@ function 組む(kind: string, 件数: number): CdlDiagram {
   return b.build();
 }
 
+/**
+ * 見本 1 つが持つ図 (#1696)。
+ *
+ * **変種も数える**。 中身が違う見本は一覧の行を持たず `パターン` の切替に入るので
+ * (`catalog-items.ts` の `patterns`)、元の図だけ見ると母集団から落ちる。 落ちると
+ * 「件 2 以上の見本が無い」 で落ち、直す先を見誤る。
+ *
+ * 変種の並びは先頭が元の図なので、変種を持つ見本では並びだけを見れば重複しない。
+ */
+const 図たち = (item: CatalogItem): CdlDiagram[] =>
+  item.patterns && item.patterns.length > 0 ? item.patterns.map((p) => p.diagram) : [item.diagram];
+
+/** 見本帳に出ている図 (変種を含む) */
+const 全部の図 = (): CdlDiagram[] => Object.values(CATALOG_ITEMS).flat().flatMap(図たち);
+
 /** 見本帳に出ている図表の種別 */
 const 見本の種別 = (): string[] => [
   ...new Set(
-    Object.values(CATALOG_ITEMS)
-      .flat()
-      .flatMap(({ diagram }) => diagram.nodes.map((n) => n.kind))
+    全部の図()
+      .flatMap((d) => d.nodes.map((n) => n.kind))
       .filter((k) => k.startsWith("chart-")),
   ),
 ];
 
 /** その種別の見本が持つ件数の一覧 */
 const 見本の件数 = (kind: string): number[] =>
-  Object.values(CATALOG_ITEMS)
-    .flat()
-    .flatMap(({ diagram }) => diagram.nodes.filter((n) => n.kind === kind))
+  全部の図()
+    .flatMap((d) => d.nodes.filter((n) => n.kind === kind))
     .map((n) => (n.chartData ?? []).length)
     .filter((n) => n > 0);
 

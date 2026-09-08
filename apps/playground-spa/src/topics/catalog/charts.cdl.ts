@@ -731,12 +731,16 @@ export const sourceJson__chartStat = `{
 export const chartStat = textDslToDiagram(sourceYaml__chartStat);
 
 // ------------------------------------------------------------
-// 12b. 数を並べて取り分も見せる
+// 12b. 数を並べて取り分も見せる (`パターン` の切替で選ぶ、 #1696)
 //
 // 件が 2 つ以上あると分母が全件の合計になり、割合の字と弧が出る (`cdl#759`)。
-// 1 件の見本と並べると、同じ種別が持つ 2 つの形を見比べられる。
+// **一覧の別行にはしない** = 一覧は「この記法でこう描ける」 の目録で、同じ記法の
+// 中身違いが行を持つと項目の数と記法の型の数がずれる。 `pattern__<元>__<名前>` で
+// export すると図の上の `パターン` の切替に並び、押すと中身が入れ替わる。
 // ------------------------------------------------------------
-export const sourceYaml__chartStatMulti = `title: "問い合わせの内訳"
+export const patternBase__chartStat = "1 件";
+
+export const sourceYaml__pattern__chartStat__複数 = `title: "問い合わせの内訳"
 type: stat
 
 actors:
@@ -760,7 +764,7 @@ animation:
     description: "未着手が 9 件まで減り、対応済みの取り分が伸びる"
 `;
 
-export const sourceJson__chartStatMulti = `{
+export const sourceJson__pattern__chartStat__複数 = `{
   "title": "問い合わせの内訳",
   "type": "stat",
   "actors": [
@@ -785,7 +789,7 @@ export const sourceJson__chartStatMulti = `{
   ]
 }`;
 
-export const chartStatMulti = textDslToDiagram(sourceYaml__chartStatMulti);
+export const pattern__chartStat__複数 = textDslToDiagram(sourceYaml__pattern__chartStat__複数);
 
 // ============================================================
 // 13. 割合を 100 個の印で示す

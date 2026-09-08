@@ -48,6 +48,33 @@ export interface CatalogItem {
   /** 人 / LLM 向け source 記法 (optional、 dragon package の 2 記法を dogfood 提示するため) */
   sourceYaml?: string;
   sourceJson?: string;
+  /**
+   * 同じ種別の中で **中身そのものが違う見本** (#1696)。
+   *
+   * 切替には性質の違う 2 種類がある。 見せ方 (`折れ線の見せ方` 等) は 1 つの記法を変換する
+   * 操作で、押しても図に載る項目と値は変わらない。 こちらは **複数の記法から選ぶ** 操作で、
+   * 押すと中身が入れ替わる。 変換では作れない (件を足す変換は記法の見本にならない)。
+   *
+   * 一覧の別行にはしない = 一覧は「この記法でこう描ける」 の目録なので、変種が行を持つと
+   * 項目の数と記法の型の数がずれる。
+   */
+  patterns?: CatalogPattern[];
+}
+
+/** 同じ種別の中の変種 1 つ (#1696) */
+export interface CatalogPattern {
+  /** 切替に出す名前 */
+  名: string;
+  /**
+   * この見本の export 名 (元は `<key>`、変種は `pattern__<key>__<名>`)。
+   *
+   * **持たせる**。 記法の一致を見る検査は export 名で対象を引くので、名前から組み立て直すと
+   * 組み立て方が 2 箇所に分かれる。
+   */
+  鍵: string;
+  diagram: CdlDiagram;
+  sourceYaml?: string;
+  sourceJson?: string;
 }
 
 /**
@@ -70,20 +97,48 @@ function ensurePhase(d: CdlDiagram): CdlDiagram {
  *
  * `topic` は図の題名で 60 字以内に収める (cdl の seo-metadata-quality が SEO title として見る)。
  * 一覧に出したい長い説明は `subtitle__<key>` に置く。
+ *
+ * **検査から呼べるように export する** (#1696)。 変種の読み取りは実在の見本帳を経由すると
+ * 「今そう書いてあるか」 しか見られず、書き方そのもの (名前が無い変種を弾く 等) を
+ * 確かめられない。 検査が自分で module の形を組み立てられるようにする。
  */
-function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
+export function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
   const out: CatalogItem[] = [];
   // source 記法は `sourceYaml__<key>` / `sourceJson__<key>` の suffix pair convention で検出
   const sourceYamlMap = new Map<string, string>();
   const sourceJsonMap = new Map<string, string>();
   const subtitleMap = new Map<string, string>();
+  const patternBaseMap = new Map<string, string>();
   for (const [k, v] of Object.entries(mod)) {
     if (typeof v !== "string") continue;
     if (k.startsWith("sourceYaml__")) sourceYamlMap.set(k.slice("sourceYaml__".length), v);
     if (k.startsWith("sourceJson__")) sourceJsonMap.set(k.slice("sourceJson__".length), v);
     if (k.startsWith("subtitle__")) subtitleMap.set(k.slice("subtitle__".length), v);
+    if (k.startsWith("patternBase__")) patternBaseMap.set(k.slice("patternBase__".length), v);
   }
+  // 変種は `pattern__<元の見本>__<名前>` で export する (#1696)。 一覧の行にはせず、
+  // 元の見本に束ねる。 記法は今までどおり同じ鍵 (`sourceYaml__pattern__...`) で引く
+  const patternMap = new Map<string, CatalogPattern[]>();
   for (const [key, value] of Object.entries(mod)) {
+    if (!key.startsWith("pattern__")) continue;
+    if (!value || typeof value !== "object") continue;
+    const d = value as CdlDiagram;
+    if (!d.id || !d.nodes) continue;
+    const [, 元, 名] = key.split("__");
+    if (!元 || !名) continue;
+    const 束 = patternMap.get(元) ?? [];
+    束.push({
+      名,
+      鍵: key,
+      diagram: ensurePhase(d),
+      sourceYaml: sourceYamlMap.get(key),
+      sourceJson: sourceJsonMap.get(key),
+    });
+    patternMap.set(元, 束);
+  }
+
+  for (const [key, value] of Object.entries(mod)) {
+    if (key.startsWith("pattern__")) continue;
     if (!value || typeof value !== "object") continue;
     const d = value as CdlDiagram;
     if (!d.id || !d.nodes) continue;
@@ -96,9 +151,77 @@ function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
       diagram: withPhase,
       sourceYaml: sourceYamlMap.get(key),
       sourceJson: sourceJsonMap.get(key),
+      ...変種を束ねる({
+        key,
+        元の図: withPhase,
+        sourceYamlMap,
+        sourceJsonMap,
+        patternBaseMap,
+        変種: patternMap.get(key),
+      }),
     });
   }
   return out;
+}
+
+/**
+ * 元の見本と変種を 1 本の並びにする (#1696)。
+ *
+ * **元の見本も並びの 1 つとして入れる**。 切替は「元 + 変種」 から選ぶ操作で、
+ * 元を並びの外に置くと「元へ戻る」 を押せる場所が無くなる。
+ *
+ * 元の名前は `patternBase__<元の見本>` で書く。 **既定値を置かない** = 名前が無いまま
+ * 変種だけ足すと、押す先の名前が実物と違う切替が黙って出る。 落ちれば見本を書いた
+ * 時点で気付ける (`rules/quality.md § 判定できなかったことを値に潰さない`)。
+ */
+function 変種を束ねる(引数: {
+  key: string;
+  元の図: CdlDiagram;
+  sourceYamlMap: Map<string, string>;
+  sourceJsonMap: Map<string, string>;
+  patternBaseMap: Map<string, string>;
+  変種: CatalogPattern[] | undefined;
+}): { patterns?: CatalogPattern[] } {
+  const { key, 元の図, sourceYamlMap, sourceJsonMap, patternBaseMap, 変種 } = 引数;
+  if (変種 === undefined || 変種.length === 0) return {};
+  const 元の名 = patternBaseMap.get(key);
+  if (!元の名) {
+    throw new Error(`変種を持つ見本 ${key} に patternBase__${key} (元の見本の名前) が無い`);
+  }
+  return {
+    patterns: [
+      {
+        名: 元の名,
+        鍵: key,
+        diagram: 元の図,
+        sourceYaml: sourceYamlMap.get(key),
+        sourceJson: sourceJsonMap.get(key),
+      },
+      ...変種,
+    ],
+  };
+}
+
+/** 画面に出している見本 1 つ (元の見本か、選ばれた変種) */
+export type 見せている見本 = Pick<CatalogItem, "diagram" | "sourceYaml" | "sourceJson">;
+
+/**
+ * 選んだ名前の見本を返す (#1696)。
+ *
+ * **変種を持たない見本は元をそのまま返す**。 呼び出し側で分けると、変種を持たない図の
+ * 経路だけ書き忘れて そこだけ画面が落ちる (`記法を持つか` が同じ理由で `null` を受ける)。
+ *
+ * 名前が並びに無い時は先頭 (= 元の見本) に落とす。 項目を選び直した直後は前の図の
+ * 名前が残っており、そのまま引くと何も出ない。
+ */
+export function 選んだ見本(
+  item: CatalogItem | null | undefined,
+  名: string | null,
+): 見せている見本 | null {
+  if (!item) return null;
+  const 並び = item.patterns;
+  if (!並び || 並び.length === 0) return item;
+  return 並び.find((p) => p.名 === 名) ?? 並び[0]!;
 }
 
 export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {

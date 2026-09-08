@@ -4,7 +4,12 @@ import { CdlDiagramView } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
-import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
+import {
+  CATALOG_ITEMS,
+  loadPartsItems,
+  選んだ見本,
+  type CatalogItem,
+} from "@/lib/catalog-items";
 import { CATALOG_HANDLERS } from "@/lib/catalog-handlers";
 import { itemName, itemNameEn, itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
@@ -123,7 +128,8 @@ export function SourceTabs({
   速さ,
   描き方,
 }: {
-  item: CatalogItem;
+  /** 変種を選んでいる時はその記法を出す (#1696)。 元の見本の記法とは中身が違う */
+  item: Pick<CatalogItem, "sourceYaml" | "sourceJson">;
   hidden?: boolean;
   /** 画面で選んだ再生速度 (#1355)。 出す秒数をこれに合わせる */
   速さ: 速さ;
@@ -227,6 +233,8 @@ export function CategoryPage(): React.ReactElement {
   const params = useParams<{ slug: string }>();
   const [locale] = useLocale();
   const [modalItem, setModalItem] = useState<CatalogItem | null>(null);
+  // 選んでいるパターンの名前 (#1696)。 `null` は「まだ押していない」 = 元の見本
+  const [パターン, setパターン] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewTab, setPreviewTab] = useState<PreviewTab>("diagram");
@@ -308,7 +316,17 @@ export function CategoryPage(): React.ReactElement {
 
   // 項目を選び直したら速さを既定へ戻す (#1355)。 残すと、次の図が遅い理由を見失う
   const 見ている項目 = currentItem?.id ?? null;
-  // 描き方の初期値だけは図ごとに違う (#1690)。 弧は継ぎ足すと起点を見失うので描き直しから始める
+  /**
+   * 画面に出している見本 (#1696)。 パターンを選んでいればその中身、無ければ元の見本。
+   * 図もコードも拡大もここから引く = 引く先が分かれると、選んだものと違う中身が出る。
+   */
+  const 見本 = 選んだ見本(currentItem, パターン);
+  /**
+   * 描き方の初期値だけは図ごとに違う (#1690)。 弧は継ぎ足すと起点を見失うので描き直しから始める。
+   *
+   * **元の見本から導く** (`見本` ではない)。 下の reset がこの値を見ているので、選んだ
+   * パターンから導くと パターンを押す → 値が変わる → reset が走って選択が消える、になる。
+   */
   const この図の描き方 = currentItem ? 図ごとの既定の描き方(currentItem.diagram) : 既定の描き方;
   useEffect(() => {
     set速さ(既定の速さ);
@@ -317,18 +335,19 @@ export function CategoryPage(): React.ReactElement {
     set折れ線(既定の折れ線の指定);
     set円(既定の円の見せ方);
     set傾き(既定の傾きの見せ方);
+    setパターン(null);
   }, [見ている項目, この図の描き方]);
 
   // 段の長さに倍率を掛けた図。 既定 (1 倍) では元の object がそのまま返るので、
   // 速さを触っていない図は描き直されない
   const 図 = useMemo(
     () =>
-      currentItem
+      見本
         ? 図の傾きの見せ方を変える(
             図の円の見せ方を変える(
               図の折れ線の見せ方を変える(
                 図の配色を変える(
-                  図の速さを変える(図の描き方を変える(currentItem.diagram, 描き方), 速さ),
+                  図の速さを変える(図の描き方を変える(見本.diagram, 描き方), 速さ),
                   配色,
                 ),
                 折れ線,
@@ -338,17 +357,18 @@ export function CategoryPage(): React.ReactElement {
             傾き,
           )
         : null,
-    [currentItem, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
+    [見本, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
   );
   // 拡大表示も同じ速さで出す。 開く元が今見ている項目なので、別の速さになると混乱する
+  // 拡大も選んだパターンの中身を出す (#1696)。 元に戻すと、押した図と違うものが開く
   const 拡大の図 = useMemo(
     () =>
-      modalItem
+      modalItem && 見本
         ? 図の傾きの見せ方を変える(
             図の円の見せ方を変える(
               図の折れ線の見せ方を変える(
                 図の配色を変える(
-                  図の速さを変える(図の描き方を変える(modalItem.diagram, 描き方), 速さ),
+                  図の速さを変える(図の描き方を変える(見本.diagram, 描き方), 速さ),
                   配色,
                 ),
                 折れ線,
@@ -358,20 +378,23 @@ export function CategoryPage(): React.ReactElement {
             傾き,
           )
         : null,
-    [modalItem, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
+    [modalItem, 見本, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
   );
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
-  const 切替を出すか = currentItem ? 描き方の切替を出すか(currentItem.diagram) : false;
+  const 切替を出すか = 見本 ? 描き方の切替を出すか(見本.diagram) : false;
   // 配色を書かない図では切替を出さない (押すと着せ替えになる、 #1569)
-  const 配色を選べるか = currentItem ? 配色を選べる(currentItem.diagram) : false;
+  const 配色を選べるか = 見本 ? 配色を選べる(見本.diagram) : false;
   // 折れ線以外では 3 つの欄が効かないため、切替を出さない (#1624)
-  const 折れ線を選べるか = currentItem ? 折れ線を選べる(currentItem.diagram) : false;
+  const 折れ線を選べるか = 見本 ? 折れ線を選べる(見本.diagram) : false;
   // 円グラフ以外では見せ方の欄が効かないため、切替を出さない (#1645)
-  const 円を選べるか = currentItem ? 円の見せ方を選べる(currentItem.diagram) : false;
+  const 円を選べるか = 見本 ? 円の見せ方を選べる(見本.diagram) : false;
   // 傾き図以外では見せ方の欄が効かないため、切替を出さない (#1659)
-  const 傾きを選べるか = currentItem ? 傾きの見せ方を選べる(currentItem.diagram) : false;
+  const 傾きを選べるか = 見本 ? 傾きの見せ方を選べる(見本.diagram) : false;
+  // 中身が違う見本を持つ図でだけ パターン の群を出す (#1696)
+  const パターンの並び = currentItem?.patterns ?? [];
+  const 選んでいるパターン = パターンの並び.find((p) => p.名 === パターン) ?? パターンの並び[0];
 
-  const hasSource = 記法を持つか(currentItem);
+  const hasSource = 記法を持つか(見本);
   // 記法を持たない図では図の側へ倒す。 選んだままにすると、項目を選び直した先で
   // 空のコード欄が出て「壊れている」 ように見える
   const showSource = previewTab === "source" && hasSource;
@@ -528,125 +551,170 @@ export function CategoryPage(): React.ReactElement {
                     として別に名前を付ける (支援技術に 4 つ目のタブとして読ませない)。
                   */}
                   {/*
-                    2 段目以降の描き方 (#1359)。 起点から描ける図でだけ出す = 描けない図では
-                    押しても何も変わらないため、置くと「効かない操作」 になる。
+                    切替は 2 群に分かれる (#1696)。
+
+                    `オプション` は **1 つの記法を変換する** 操作で、押しても図に載る項目と
+                    値は変わらない。 `パターン` は **複数の記法から選ぶ** 操作で、押すと中身が
+                    入れ替わる。 混ぜて並べると、押す前に どちらが起きるか読めない。
+
+                    群の名前は見出しではなく札にする = `role="tablist"` の中なので、
+                    見出しにすると支援技術がタブの並びを見出しで割ることになる。
                   */}
-                  {切替を出すか && (
-                    <div className="catalog-redraw" role="radiogroup" aria-label="2 段目以降">
-                      {描き方の選択肢.map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          role="radio"
-                          aria-checked={描き方 === v}
-                          className={`catalog-speed-btn ${描き方 === v ? "is-active" : ""}`}
-                          onClick={() => set描き方(v)}
-                          title={`2 段目以降を${v}`}
-                        >
-                          {v}
-                        </button>
-                      ))}
+                  <div className="catalog-toggle-groups">
+                    <div className="catalog-toggle-group">
+                      <span className="catalog-toggle-group-label" aria-hidden="true">
+                        オプション
+                      </span>
+                      {/*
+                        2 段目以降の描き方 (#1359)。 起点から描ける図でだけ出す = 描けない図では
+                        押しても何も変わらないため、置くと「効かない操作」 になる。
+                      */}
+                      {切替を出すか && (
+                        <div className="catalog-redraw" role="radiogroup" aria-label="2 段目以降">
+                          {描き方の選択肢.map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              role="radio"
+                              aria-checked={描き方 === v}
+                              className={`catalog-speed-btn ${描き方 === v ? "is-active" : ""}`}
+                              onClick={() => set描き方(v)}
+                              title={`2 段目以降を${v}`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {/*
+                        図の色味 (#1569)。 配色を持つ図でだけ出す = 持たない図で名前を足すと、
+                        site の色で描かれていた図が急に別の色みになり「見比べる」 ではなく
+                        「着せ替える」 道具になる。
+                      */}
+                      {配色を選べるか && (
+                        <div className="catalog-redraw" role="radiogroup" aria-label="図の色味">
+                          {配色の選択肢.map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              role="radio"
+                              aria-checked={配色 === v}
+                              className={`catalog-speed-btn ${配色 === v ? "is-active" : ""}`}
+                              onClick={() => set配色(v)}
+                              title={`図の色味を${v}にする`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {/*
+                        折れ線の見せ方 (#1624)。 折れ線を持つ図でだけ出す = 他の図では 3 つの
+                        指定が効かず「効かない操作」 になる。 互いに排他ではなく個別に入り切り
+                        するため、 `radiogroup` ではなく押した状態を持つ 1 つの `group` にする。
+                      */}
+                      {折れ線を選べるか && (
+                        <div className="catalog-redraw" role="group" aria-label="折れ線の見せ方">
+                          {折れ線の見せ方の選択肢.map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              aria-pressed={折れ線[v]}
+                              className={`catalog-speed-btn ${折れ線[v] ? "is-active" : ""}`}
+                              onClick={() => set折れ線({ ...折れ線, [v]: !折れ線[v] })}
+                              title={`折れ線の${v}を${折れ線[v] ? "切る" : "入れる"}`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {/*
+                        円グラフの見せ方 (#1645)。 円グラフを持つ図でだけ出す = 他の図では欄が
+                        効かず「効かない操作」 になる。 3 つは互いに排他なので `radiogroup` にする。
+                      */}
+                      {円を選べるか && (
+                        <div className="catalog-redraw" role="radiogroup" aria-label="円グラフの見せ方">
+                          {円の見せ方の選択肢.map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              role="radio"
+                              aria-checked={円 === v}
+                              className={`catalog-speed-btn ${円 === v ? "is-active" : ""}`}
+                              onClick={() => set円(v)}
+                              title={`円グラフを${v}で描く`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {/*
+                        傾き図の見せ方 (#1659)。 傾き図を持つ図でだけ出す = 他の図では欄が
+                        効かず「効かない操作」 になる。 2 つは互いに排他なので `radiogroup` にする。
+                      */}
+                      {傾きを選べるか && (
+                        <div className="catalog-redraw" role="radiogroup" aria-label="傾き図の見せ方">
+                          {傾きの見せ方の選択肢.map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              role="radio"
+                              aria-checked={傾き === v}
+                              className={`catalog-speed-btn ${傾き === v ? "is-active" : ""}`}
+                              onClick={() => set傾き(v)}
+                              title={`傾き図の右の列に${v}を出す`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="catalog-speed" role="radiogroup" aria-label="再生速度">
+                        {速さの選択肢.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            role="radio"
+                            aria-checked={速さ === v}
+                            className={`catalog-speed-btn ${速さ === v ? "is-active" : ""}`}
+                            onClick={() => set速さ(v)}
+                            title={`再生速度 ${v}x`}
+                          >
+                            {v}x
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  )}
-                  {/*
-                    図の色味 (#1569)。 配色を持つ図でだけ出す = 持たない図で名前を足すと、
-                    site の色で描かれていた図が急に別の色みになり「見比べる」 ではなく
-                    「着せ替える」 道具になる。
-                  */}
-                  {配色を選べるか && (
-                    <div className="catalog-redraw" role="radiogroup" aria-label="図の色味">
-                      {配色の選択肢.map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          role="radio"
-                          aria-checked={配色 === v}
-                          className={`catalog-speed-btn ${配色 === v ? "is-active" : ""}`}
-                          onClick={() => set配色(v)}
-                          title={`図の色味を${v}にする`}
-                        >
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {/*
-                    折れ線の見せ方 (#1624)。 折れ線を持つ図でだけ出す = 他の図では 3 つの
-                    指定が効かず「効かない操作」 になる。 互いに排他ではなく個別に入り切り
-                    するため、 `radiogroup` ではなく押した状態を持つ 1 つの `group` にする。
-                  */}
-                  {折れ線を選べるか && (
-                    <div className="catalog-redraw" role="group" aria-label="折れ線の見せ方">
-                      {折れ線の見せ方の選択肢.map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          aria-pressed={折れ線[v]}
-                          className={`catalog-speed-btn ${折れ線[v] ? "is-active" : ""}`}
-                          onClick={() => set折れ線({ ...折れ線, [v]: !折れ線[v] })}
-                          title={`折れ線の${v}を${折れ線[v] ? "切る" : "入れる"}`}
-                        >
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {/*
-                    円グラフの見せ方 (#1645)。 円グラフを持つ図でだけ出す = 他の図では欄が
-                    効かず「効かない操作」 になる。 3 つは互いに排他なので `radiogroup` にする。
-                  */}
-                  {円を選べるか && (
-                    <div className="catalog-redraw" role="radiogroup" aria-label="円グラフの見せ方">
-                      {円の見せ方の選択肢.map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          role="radio"
-                          aria-checked={円 === v}
-                          className={`catalog-speed-btn ${円 === v ? "is-active" : ""}`}
-                          onClick={() => set円(v)}
-                          title={`円グラフを${v}で描く`}
-                        >
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {/*
-                    傾き図の見せ方 (#1659)。 傾き図を持つ図でだけ出す = 他の図では欄が
-                    効かず「効かない操作」 になる。 2 つは互いに排他なので `radiogroup` にする。
-                  */}
-                  {傾きを選べるか && (
-                    <div className="catalog-redraw" role="radiogroup" aria-label="傾き図の見せ方">
-                      {傾きの見せ方の選択肢.map((v) => (
-                        <button
-                          key={v}
-                          type="button"
-                          role="radio"
-                          aria-checked={傾き === v}
-                          className={`catalog-speed-btn ${傾き === v ? "is-active" : ""}`}
-                          onClick={() => set傾き(v)}
-                          title={`傾き図の右の列に${v}を出す`}
-                        >
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div className="catalog-speed" role="radiogroup" aria-label="再生速度">
-                    {速さの選択肢.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        role="radio"
-                        aria-checked={速さ === v}
-                        className={`catalog-speed-btn ${速さ === v ? "is-active" : ""}`}
-                        onClick={() => set速さ(v)}
-                        title={`再生速度 ${v}x`}
-                      >
-                        {v}x
-                      </button>
-                    ))}
+                    {/*
+                      中身が違う見本を持つ図でだけ出す。 持たない図で空の群を出すと、
+                      押す先が無い札だけが並ぶ。
+                    */}
+                    {パターンの並び.length > 0 && (
+                      <div className="catalog-toggle-group">
+                        <span className="catalog-toggle-group-label" aria-hidden="true">
+                          パターン
+                        </span>
+                        <div className="catalog-redraw" role="radiogroup" aria-label="パターン">
+                          {パターンの並び.map((p) => (
+                            <button
+                              key={p.名}
+                              type="button"
+                              role="radio"
+                              aria-checked={選んでいるパターン?.名 === p.名}
+                              className={`catalog-speed-btn ${
+                                選んでいるパターン?.名 === p.名 ? "is-active" : ""
+                              }`}
+                              onClick={() => setパターン(p.名)}
+                              title={`${p.名}の見本を出す`}
+                            >
+                              {p.名}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="catalog-preview-stage" hidden={showSource} ref={setStageEl}>
@@ -662,7 +730,7 @@ export function CategoryPage(): React.ReactElement {
                   >
                     <CdlDiagramView
                       hideMiniPhaseIndicator
-                      diagram={図 ?? currentItem.diagram}
+                      diagram={図 ?? 見本?.diagram ?? currentItem.diagram}
                       hideHeader
                       interactiveHandlers={CATALOG_HANDLERS}
                     />
@@ -670,11 +738,11 @@ export function CategoryPage(): React.ReactElement {
                   {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
                   <PhaseChrome
                     stage={stageEl}
-                    phases={(図 ?? currentItem.diagram).phases}
+                    phases={(図 ?? 見本?.diagram ?? currentItem.diagram).phases}
                     align="right"
                   />
                 </div>
-                <SourceTabs item={currentItem} hidden={!showSource} 速さ={速さ} 描き方={描き方} />
+                <SourceTabs item={見本 ?? currentItem} hidden={!showSource} 速さ={速さ} 描き方={描き方} />
                 <footer className="catalog-preview-foot">
                   {/*
                     **記法を持つ図だけ開ける**。 `#preset=<id>` はエディタの見本から slug を
@@ -683,9 +751,9 @@ export function CategoryPage(): React.ReactElement {
 
                     無い図は押せる見た目にしない = 「押したのに何も起きない」 を残さない。
                   */}
-                  {catalogEditorHash(currentItem) ? (
+                  {catalogEditorHash(見本 ?? currentItem) ? (
                     <Link
-                      to={`/editor${catalogEditorHash(currentItem)}`}
+                      to={`/editor${catalogEditorHash(見本 ?? currentItem)}`}
                       className="catalog-preview-link"
                     >
                       エディタで開く →
