@@ -12,8 +12,8 @@ import { test, expect } from "@playwright/test";
 
 type Page = import("@playwright/test").Page;
 
-async function 開く(page: Page, 名前: string): Promise<void> {
-  await page.goto("catalog/charts", { waitUntil: "networkidle" });
+async function 開く(page: Page, 名前: string, 分類 = "charts"): Promise<void> {
+  await page.goto(`catalog/${分類}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page.getByText(名前, { exact: true }).first().click();
   await page.waitForTimeout(400);
@@ -160,5 +160,90 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
     await page.getByRole("radio", { name: "前と今" }).click();
     await page.waitForTimeout(500);
     await expect(page.locator(".catalog-source-code").first()).toContainText("previous");
+  });
+});
+
+/**
+ * 中身を持つ図の切替 (#1706)。
+ *
+ * 図表 (`chartData`) 以外にも中身を持つ節が 7 つある。 書くと絵が変わる欄があるのに、
+ * **両側が別々の行に分かれていて見比べられなかった**。 同じ見本の切替にする。
+ *
+ * 待ちは `toHaveCount` の再試行に任せる = 図は段を進めながら描くので、押した直後には
+ * まだ出ていない。
+ */
+test.describe("中身つきの図でも切替で両側を見せる (#1706)", () => {
+  test("階層図で 説明つき を選ぶと箱に説明が出る", async ({ page }) => {
+    await 開く(page, "階層図");
+    const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="tree-node-subtitle"]');
+    await expect(
+      page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio"),
+    ).toHaveCount(2);
+    await expect(page.getByRole("radio", { name: "見出しだけ" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(説明).toHaveCount(0);
+
+    await page.getByRole("radio", { name: "説明つき" }).click();
+    await expect(説明).not.toHaveCount(0);
+  });
+
+  test("工程表で 帯だけ を選ぶと前後の矢印が消える", async ({ page }) => {
+    await 開く(page, "工程表");
+    const 矢印 = page.locator('.catalog-preview-stage [data-cdl-role="gantt-arrow"]');
+    await expect(page.getByRole("radio", { name: "前後つき" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(矢印).not.toHaveCount(0);
+
+    await page.getByRole("radio", { name: "帯だけ" }).click();
+    await expect(矢印).toHaveCount(0);
+  });
+
+  test("体験の道筋で 接点つき を選ぶと接点の札が出る", async ({ page }) => {
+    await 開く(page, "体験の道筋");
+    const 札 = page.locator('.catalog-preview-stage [data-cdl-role="journey-chip"]');
+    await expect(page.getByRole("radio", { name: "気持ちだけ" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(札).toHaveCount(0);
+
+    await page.getByRole("radio", { name: "接点つき" }).click();
+    await expect(札).not.toHaveCount(0);
+  });
+
+  test("枝分かれ図で 見出しだけ を選ぶと説明が消える", async ({ page }) => {
+    await 開く(page, "枝分かれ図");
+    const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="mind-node-subtitle"]');
+    await expect(page.getByRole("radio", { name: "説明つき" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(説明).not.toHaveCount(0);
+
+    await page.getByRole("radio", { name: "見出しだけ" }).click();
+    await expect(説明).toHaveCount(0);
+  });
+
+  test("時系列のやり取りで 説明つき を選ぶと面に説明が出る", async ({ page }) => {
+    await 開く(page, "テキストDSLのシーケンス", "text-dsl");
+    const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="sequence-actor-subtitle"]');
+    await expect(page.getByRole("radio", { name: "名前だけ" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(説明).toHaveCount(0);
+
+    await page.getByRole("radio", { name: "説明つき" }).click();
+    await expect(説明).not.toHaveCount(0);
+  });
+
+  test("変種を持たない図ではパターンの群が出ない (陰性対照)", async ({ page }) => {
+    // 「どの図でも出る」 形なら上の 5 件は通っても意味を持たない
+    await 開く(page, "絞り込み図");
+    await expect(page.getByRole("radiogroup", { name: "パターン" })).toHaveCount(0);
   });
 });

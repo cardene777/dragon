@@ -37,9 +37,9 @@ const 記法 = (mod: Record<string, unknown>, key: string): string | undefined =
 describe("Text DSL のページは記法を持つ (#1365)", () => {
   const 図 = 図の一覧(textDsl as Record<string, unknown>);
 
-  it("図を 15 件集められている", () => {
+  it("図を 16 件集められている", () => {
     // 件数を固定する = 図が増えた時に、記法を足す前に気付ける
-    expect(図.map((x) => x.key).sort()).toHaveLength(15);
+    expect(図.map((x) => x.key).sort()).toHaveLength(16);
   });
 
   it("phases の無い catalog の図も走査対象に含める", () => {
@@ -69,7 +69,7 @@ describe("Text DSL のページは記法を持つ (#1365)", () => {
         diagram,
       );
     }
-    expect(照合した, "1 件も照合していない (検査が空振りしている)").toBe(15);
+    expect(照合した, "1 件も照合していない (検査が空振りしている)").toBe(16);
   });
 
   it("13 件すべてが JSON の記法も持つ", () => {
@@ -101,7 +101,7 @@ describe("Text DSL のページは記法を持つ (#1365)", () => {
         diagram,
       );
     }
-    expect(照合した, "1 件も照合していない (検査が空振りしている)").toBe(15);
+    expect(照合した, "1 件も照合していない (検査が空振りしている)").toBe(16);
   });
 
   it("引用符の中のカンマを補足の一部として保つ", () => {

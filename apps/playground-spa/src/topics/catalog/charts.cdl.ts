@@ -18,24 +18,26 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
  * `sourceYaml__<key>` は一覧が拾う約束の名前 (`moduleToItems`)。 これがあると画面にコードの
  * タブが出て、 「エディタで開く」 が中身を渡せるようになる。
  *
- * ## 組立て API 版から情報が落ちている
+ * ## 記法にまだ書けない項目
  *
- * 記法に書ける項目が少ないため、 **9 種すべてで何かが落ちている**。 記法の穴がそのまま出た形で、
- * 組立て API に戻すと「エディタで開けない」 に逆戻りするので、 穴として残す。
+ * 記法に書ける項目が組立て API より少なく、 その分が見本から落ちる。 組立て API に戻すと
+ * 「エディタで開けない」 に逆戻りするので、 落ちたまま残して記法側を直す
+ * (`cardene777/dragon#1160`)。
  *
- * | 見本 | 落ちたもの |
- * |---|---|
- * | `quadrant` | **軸の名前と区画の名前**。 「手間 × 効き」 「すぐやる / やらない」 が「小さい / 大きい」 「左上 / 右下」 になり、 何を判断する図か読めない |
- * | `mind` | **穴は塞がった** (`#1177` / `#1251`)。 記法の `mind` も `mind-map` 種別を作り、 枝の親も矢印で書ける |
- * | `gantt` | 期間。 開始しか書けず各工程が 1 コマ幅になる |
- * | `tree` | 段の深さ。 7 要素 → 5 要素 (孫を書く形が無い) |
- * | `journey` | 接点と改善の余地 (`touchpoint` / `opportunity`) |
- * | `funnel` | 各段の率 (`subtitle`) |
- * | `bar` / `pie` / `line` | 色 (`tone`) |
+ * | 見本 | 落ちたもの | 実測 |
+ * |---|---|---|
+ * | `quadrant` | **軸の名前と区画の名前**。 何を判断する図か読めない | `xAxis` が「小さい / 大きい」、 区画が「左上 / 右下」 のまま |
+ * | `gantt` | 期間。 開始しか書けず各工程が 1 コマ幅になる | 全工程が `startIdx === endIdx` |
+ * | `bar` / `pie` / `line` | 色 (`tone`) | 記法で書いた見本が 1 件も無い |
  *
- * 一番重いのは `quadrant`。 軸の名前が書けないと図の意味そのものが消える。
+ * **この表に書くのは「記法で書けない」 ものだけ** (#1706)。 「記法では書けるが engine が
+ * 描かない」 欄 (漏斗の段の説明 等) は別物で、 見本を足しても見えるものが無い。 そちらは
+ * `src/lib/catalog-payload-coverage.test.tsx` の `描かない欄` が理由付きで持ち、 engine が
+ * 描き始めたら落ちる。
  *
- * 記法側を直す話で、 `cardene777/dragon#1160` で扱う。
+ * **手で並べた表は実物とずれる**。 `mind` の枝 (`#1177` / `#1251`)、 `tree` の孫、
+ * `journey` の接点と改善の余地 (`touchpoint` / `opportunity`) はいずれも書けるようになって
+ * いたのに、 表には落ちたままだと書いてあった。 いまはどれも記法で書いた見本がある。
  */
 
 // ============================================================
@@ -398,6 +400,54 @@ export const sourceJson__ganttTimeline = `{
 
 export const ganttTimeline = textDslToDiagram(sourceYaml__ganttTimeline);
 
+/**
+ * 前後の矢印を書かない形 (#1706)。
+ *
+ * `dependsOn` を書くと `gantt-arrow` が出る。 見本帳の工程表は 3 件とも前後を書いており、
+ * **矢印の無い段取りがどこにも出ていなかった**。 期日だけを並べる使い方はよくあるので、
+ * 同じ見本の切替で見比べられるようにする。
+ */
+export const patternBase__ganttTimeline = "前後つき";
+
+export const sourceYaml__pattern__ganttTimeline__帯だけ = `title: "四半期ごとの持ち場"
+type: gantt
+
+actors:
+  - 調査: "1月"
+  - 試作: "2月"
+  - 検証: "4月"
+  - 公開: "5月"
+
+animation:
+  - step: "帯を引く" 1.2s
+    draw: gantt
+    description: "前後の矢印は出ず、帯だけが始まりから右へ伸びる"
+`;
+
+export const sourceJson__pattern__ganttTimeline__帯だけ = `{
+  "title": "四半期ごとの持ち場",
+  "type": "gantt",
+  "actors": [
+    { "name": "調査", "subtitle": "1月" },
+    { "name": "試作", "subtitle": "2月" },
+    { "name": "検証", "subtitle": "4月" },
+    { "name": "公開", "subtitle": "5月" }
+  ],
+  "flow": [],
+  "animation": [
+    {
+      "step": "帯を引く",
+      "duration": 1.2,
+      "draw": "gantt",
+      "body": "前後の矢印は出ず、帯だけが始まりから右へ伸びる"
+    }
+  ]
+}`;
+
+export const pattern__ganttTimeline__帯だけ = textDslToDiagram(
+  sourceYaml__pattern__ganttTimeline__帯だけ,
+);
+
 // ============================================================
 // 6. 体験の起伏
 // ============================================================
@@ -448,6 +498,70 @@ export const sourceJson__journeyMap = `{
 }`;
 
 export const journeyMap = textDslToDiagram(sourceYaml__journeyMap);
+
+/**
+ * 段ごとの接点を書く形 (#1706)。
+ *
+ * `touchpoint` を書くと `journey-chip` が出て、どこで起きた出来事かが図に載る。
+ * 見本帳では組立て API の見本 (`presets`) だけが書いており、記法の見本は書いていなかった。
+ * **別の行に分かれていると見比べられない** ので、同じ見本の切替にする。
+ */
+export const patternBase__journeyMap = "気持ちだけ";
+
+export const sourceYaml__pattern__journeyMap__接点つき = `title: "初めて使うまでの接点"
+type: journey
+
+actors:
+  - 知る: { value: "普通", touchpoint: "紹介記事" }
+  - 登録: { value: "{signup}", touchpoint: "申込みフォーム" }
+  - 設定: { value: "{setup}", touchpoint: "設定画面" }
+  - 初回の成功: { value: "最高", touchpoint: "作った図" }
+
+states:
+  signup: "不満"
+  setup: "満足"
+
+animation:
+  - step: "改善前" 1.2s
+    draw: journey
+    description: "起伏の下に、その気持ちが起きた場所が並ぶ"
+  - step: "改善後" 1.2s
+    set:
+      signup: "満足"
+      setup: "最高"
+    description: "接点はそのままで、山だけが上がる"
+`;
+
+export const sourceJson__pattern__journeyMap__接点つき = `{
+  "title": "初めて使うまでの接点",
+  "type": "journey",
+  "actors": [
+    { "name": "知る", "subtitle": "普通", "touchpoint": "紹介記事" },
+    { "name": "登録", "subtitle": "{signup}", "touchpoint": "申込みフォーム" },
+    { "name": "設定", "subtitle": "{setup}", "touchpoint": "設定画面" },
+    { "name": "初回の成功", "subtitle": "最高", "touchpoint": "作った図" }
+  ],
+  "flow": [],
+  "states": { "signup": "不満", "setup": "満足" },
+  "animation": [
+    {
+      "step": "改善前",
+      "duration": 1.2,
+      "draw": "journey",
+      "body": "起伏の下に、その気持ちが起きた場所が並ぶ"
+    },
+    {
+      "step": "改善後",
+      "duration": 1.2,
+      "body": "接点はそのままで、山だけが上がる",
+      "set": { "signup": "満足", "setup": "最高" }
+    }
+  ]
+}`;
+
+export const pattern__journeyMap__接点つき = textDslToDiagram(
+  sourceYaml__pattern__journeyMap__接点つき,
+);
 
 // ============================================================
 // 7. 枝分かれで広げる
@@ -513,6 +627,56 @@ export const sourceJson__mindMap = `{
 }`;
 
 export const mindMap = textDslToDiagram(sourceYaml__mindMap);
+
+/**
+ * 根にも枝にも説明を書かない形 (#1706)。
+ *
+ * 説明 (`rootSubtitle` / 枝の `subtitle`) を書くと `mind-node-subtitle` が出る。
+ * 見本帳の発想の枝は 3 件とも数字を添えており、**見出しだけで広げる形が出ていなかった**。
+ * 考えを広げる段階では数字を持たないことのほうが多いので、切替で両方を見せる。
+ */
+export const patternBase__mindMap = "説明つき";
+
+export const sourceYaml__pattern__mindMap__見出しだけ = `title: "速くする手立てを並べる"
+type: mind
+
+actors:
+  - 速くする手立て
+  - 描く量を減らす
+  - 計算を減らす
+  - 見えない所を省く
+  - 結果を覚える
+
+animation:
+  - step: "枝を広げる" 1.2s
+    draw: mind
+    description: "根から 4 本の枝が伸びる。 数字は載せず、試すことだけを並べる"
+`;
+
+export const sourceJson__pattern__mindMap__見出しだけ = `{
+  "title": "速くする手立てを並べる",
+  "type": "mind",
+  "actors": [
+    { "name": "速くする手立て" },
+    { "name": "描く量を減らす" },
+    { "name": "計算を減らす" },
+    { "name": "見えない所を省く" },
+    { "name": "結果を覚える" }
+  ],
+  "flow": [],
+  "animation": [
+    {
+      "step": "枝を広げる",
+      "duration": 1.2,
+      "draw": "mind",
+      "body": "根から 4 本の枝が伸びる。 数字は載せず、試すことだけを並べる"
+    }
+  ]
+}`;
+
+export const pattern__mindMap__見出しだけ = textDslToDiagram(
+  sourceYaml__pattern__mindMap__見出しだけ,
+);
 
 // ============================================================
 // 8. 2 軸で分ける
@@ -616,6 +780,67 @@ export const sourceJson__treeHierarchy = `{
 }`;
 
 export const treeHierarchy = textDslToDiagram(sourceYaml__treeHierarchy);
+
+/**
+ * 節に説明を添える形 (#1706)。
+ *
+ * `subtitle` を書くと `tree-node-subtitle` が出る。 見本帳の系統樹は 2 件とも名前だけで、
+ * **説明を添えた形がどこにも出ていなかった**。 構成を人に見せる時は名前だけでは伝わらない
+ * ことが多いので、切替で両方を見せる。
+ */
+export const patternBase__treeHierarchy = "見出しだけ";
+
+export const sourceYaml__pattern__treeHierarchy__説明つき = `title: "配布物の構成と役割"
+type: tree
+
+actors:
+  - dragon: "配る単位"
+  - 記法: "書く形"
+  - 描画: "絵にする"
+  - 読み取り: "文を読む"
+  - 配置: "位置を決める"
+
+flow:
+  - dragon -> 記法: ""
+  - dragon -> 描画: ""
+  - 記法 -> 読み取り: ""
+  - 描画 -> 配置: ""
+
+animation:
+  - step: "構成と役割を辿る" 1.2s
+    draw: tree
+    description: "枝が根から段ごとに伸び、箱には名前の下に役割が出る"
+`;
+
+export const sourceJson__pattern__treeHierarchy__説明つき = `{
+  "title": "配布物の構成と役割",
+  "type": "tree",
+  "actors": [
+    { "name": "dragon", "subtitle": "配る単位" },
+    { "name": "記法", "subtitle": "書く形" },
+    { "name": "描画", "subtitle": "絵にする" },
+    { "name": "読み取り", "subtitle": "文を読む" },
+    { "name": "配置", "subtitle": "位置を決める" }
+  ],
+  "flow": [
+    { "from": "dragon", "to": "記法", "label": "" },
+    { "from": "dragon", "to": "描画", "label": "" },
+    { "from": "記法", "to": "読み取り", "label": "" },
+    { "from": "描画", "to": "配置", "label": "" }
+  ],
+  "animation": [
+    {
+      "step": "構成と役割を辿る",
+      "duration": 1.2,
+      "draw": "tree",
+      "body": "枝が根から段ごとに伸び、箱には名前の下に役割が出る"
+    }
+  ]
+}`;
+
+export const pattern__treeHierarchy__説明つき = textDslToDiagram(
+  sourceYaml__pattern__treeHierarchy__説明つき,
+);
 
 // ============================================================
 // 10. 合計を半円で示す

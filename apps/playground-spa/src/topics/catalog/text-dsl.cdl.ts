@@ -110,6 +110,75 @@ export const sourceJson__textDslSequence = `{
   ]
 }`;
 
+/**
+ * 面に説明を添える形 (#1706)。
+ *
+ * 面 (`actors`) に説明を書くと `sequence-actor-subtitle` が出て、その面が何なのかが
+ * 図に載る。 時系列のやり取りの見本は 29 件あるが、記法で書いた側は名前だけで、
+ * **説明つきの形は組立て API の見本にしか無かった**。 別の行に分かれていると見比べられない
+ * ので、同じ見本の切替にする。
+ */
+export const patternBase__textDslSequence = "名前だけ";
+
+export const sourceYaml__pattern__textDslSequence__説明つき = `
+title: "面に説明を添えた時系列のやり取り"
+type: sequence
+
+actors:
+  - Client: "利用者の画面"
+  - "API": "受け口"
+  - DB: "保管先"
+
+flow:
+  - Client -> "API": "GET /items"
+  - "API" -> DB: "SELECT"
+
+animation:
+  - step: "request" 1.5s
+    focus: [Client, "API"]
+    badge: "request"
+    description: "Client が API を呼出"
+
+  - step: "fetch" 1.5s
+    focus: ["API", DB]
+    badge: "fetched"
+    description: "DB から 20 行取得"
+`;
+
+export const sourceJson__pattern__textDslSequence__説明つき = `{
+  "title": "面に説明を添えた時系列のやり取り",
+  "type": "sequence",
+  "actors": [
+    { "name": "Client", "subtitle": "利用者の画面" },
+    { "name": "API", "subtitle": "受け口" },
+    { "name": "DB", "subtitle": "保管先" }
+  ],
+  "flow": [
+    { "from": "Client", "to": "API", "label": "GET /items" },
+    { "from": "API", "to": "DB", "label": "SELECT" }
+  ],
+  "animation": [
+    {
+      "step": "request",
+      "duration": 1.5,
+      "focus": ["Client", "API"],
+      "body": "Client が API を呼出",
+      "badge": "request"
+    },
+    {
+      "step": "fetch",
+      "duration": 1.5,
+      "focus": ["API", "DB"],
+      "body": "DB から 20 行取得",
+      "badge": "fetched"
+    }
+  ]
+}`;
+
+export const pattern__textDslSequence__説明つき = textDslToDiagram(
+  sourceYaml__pattern__textDslSequence__説明つき,
+);
+
 // ─── flow + animation (認証フロー) ─────
 export const sourceYaml__textDslFlow = `
 title: "認証フロー (DSL)"
