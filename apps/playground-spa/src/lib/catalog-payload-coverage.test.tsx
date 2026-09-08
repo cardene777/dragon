@@ -77,7 +77,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram, CdlEdge, CdlNode } from "@cardenelabs/cdl";
-import { CATALOG_ITEMS, type CatalogItem } from "./catalog-items";
+import { CATALOG_ITEMS, type CatalogItem, type CatalogPattern } from "./catalog-items";
 
 /** 中身を持つ節の欄。 engine が `*Data` を足すと下の `satisfies` が落ちる */
 type 中身の欄 = Extract<keyof CdlNode, `${string}Data`>;
@@ -422,6 +422,62 @@ const 描く = (d: CdlDiagram): string =>
   renderToStaticMarkup(
     <CdlDiagramView diagram={layout(d)} focusPhaseId={d.phases?.[d.phases.length - 1]?.id} />,
   );
+
+/** 変種 1 件分の中身を、比べられる形に直したもの (#1726) */
+interface 変種の件 {
+  /** 解決した今の値。 数に落ちなければ `undefined` */
+  今?: number;
+  /** 解決した前の値。 同上 */
+  前?: number;
+  /** 前の値を動かす段があるか */
+  前が動く: boolean;
+}
+
+/** 変種を export 名で引く。 引けなければ `undefined` (呼び出し側が落とす) */
+const 変種を引く = (鍵: string): CatalogPattern | undefined =>
+  Object.values(CATALOG_ITEMS)
+    .flat()
+    .flatMap((item) => item.patterns ?? [])
+    .find((p) => p.鍵 === 鍵);
+
+/**
+ * 変種の中身を読む (#1726)。
+ *
+ * `value` / `previous` は `{名前}` の形で段の値を指せるので、初期値へ解決する。
+ * **数に落ちない値は `undefined` にする** = 語の欄を 0 と読むと、書いていない件が
+ * 「前が高い」 に数えられる。
+ */
+function 変種の件たち(d: CdlDiagram): 変種の件[] {
+  const 初期 = new Map<string, unknown>((d.states ?? []).map((s) => [s.id, s.initial]));
+  const 動く値 = new Set<string>(
+    d.phases.flatMap((p) => [
+      ...p.tweens.map((t) => t.stateId),
+      ...p.sets.map((s) => s.stateId),
+    ]),
+  );
+  const 元の名 = (v: unknown): string | undefined =>
+    typeof v === "string" && /^\{(.+)\}$/.test(v) ? v.slice(1, -1) : undefined;
+  const 数 = (v: unknown): number | undefined => {
+    const 名 = 元の名(v);
+    const 素 = 名 === undefined ? v : 初期.get(名);
+    if (typeof 素 === "number") return Number.isFinite(素) ? 素 : undefined;
+    if (typeof 素 !== "string") return undefined;
+    const n = Number(素);
+    return Number.isFinite(n) ? n : undefined;
+  };
+
+  const 中身 =
+    (d.nodes[0] as unknown as { chartData?: Array<{ value?: unknown; previous?: unknown }> })
+      .chartData ?? [];
+  return 中身.map((x) => {
+    const 前の元 = 元の名(x.previous);
+    return {
+      今: 数(x.value),
+      前: 数(x.previous),
+      前が動く: 前の元 !== undefined && 動く値.has(前の元),
+    };
+  });
+}
 
 /** 描いた結果に出てくる役割名の集合 */
 const 役割名 = (svg: string): Set<string> =>
@@ -955,57 +1011,87 @@ describe("中身を持つ節が見せる形を見本帳が見せているか (#1
   });
 
   /**
-   * 棒の変種が、前が今より高い件を 1 件以上持つ (#1724)。
+   * 変種が意図して持たせた性質 (#1724 / #1726)。
    *
-   * 縦軸の天井を今の値だけで決めると、前の破線が枠の外へ出て「下がった」 が読めない。
-   * 描画エンジンは天井を前まで含めて取るようにしたが (`cdl#767`)、**その形を通す見本が
-   * 無ければ画面の検査は 1 度もその道を通らない**。
+   * **鍵は変種の export 名、値は性質の説明と、実物から数える判定**。
    *
-   * 見本の `previous` を下げると破線は当然枠の中に入るので、画面の検査
+   * ## なぜ要るか
+   *
+   * 「この形でしか主張が成り立たない」 見本がある。 棒の前の値つきは検索を前 520 / 今 420 と
+   * 前のほうが高くしてあり、**その形でだけ「天井を前まで含めて取る」 道を通る**。
+   * 見本の数を下げると破線は当然枠の中に入るので、画面の検査
    * (`catalog-pattern-switch.spec.ts` の「棒の破線は縦軸の枠に収まる」) は緑のまま
    * 主張だけが空になる (`rules/quality.md § 検査の母集団が守りたい集合と同じことを確認済`)。
    *
-   * **数は書き写さない**。 変種の図から値を引いて数える。 引けなければ落とす =
-   * 変種の名前を変えた時に空振りしない。
+   * 変種 11 群の説明文を読んで分けた結果、この形は 3 件だった。 残る 8 群は engine の性質か、
+   * 変種を足した理由 (足す前の実測) で、見本の数を書き換えても主張が空にならない。
+   *
+   * ## 何を置くか
+   *
+   * 記法の説明文が **見本の作り** を述べているものだけを置く。 engine の性質
+   * (外周が動かない / 内と外で色が対応する) は描画エンジン側の検査が持つ。
+   *
+   * **説明文から機械で読み取らない** (`rules/quality.md § 散文の語を判定材料にしない`)。
+   * 変種に性質を持たせた人がここへ 1 行足す。 表に無い変種は落とさない = 性質を持たない
+   * 変種のほうが多い。
+   *
+   * ## 数は書き写さない
+   *
+   * 判定は変種の図から値を引く。 期待値に 520 / 420 を書くと二重管理になる。
    */
-  it("棒の変種は、前が今より高い件を 1 件以上持つ (#1724)", () => {
-    const 鍵 = "pattern__chartBar__前の値つき";
-    const 変種 = Object.values(CATALOG_ITEMS)
-      .flat()
-      .flatMap((item) => item.patterns ?? [])
-      .find((p) => p.鍵 === 鍵);
-    expect(変種, `変種を引けない: ${鍵} (名前を変えたなら検査も直す)`).toBeDefined();
+  const 変種に持たせた性質: Array<{
+    鍵: string;
+    性質: string;
+    判定: (件: 変種の件[]) => boolean;
+  }> = [
+    {
+      鍵: "pattern__chartBar__前の値つき",
+      性質: "前が今より高い件が 1 件以上ある (天井を前まで含めて取る道を通す)",
+      判定: (件) => 件.some((x) => x.今 !== undefined && x.前 !== undefined && x.前 > x.今),
+    },
+    {
+      鍵: "pattern__chartRadial__前の値つき",
+      性質: "前より増えた件と減った件が両方ある (印が前後どちらでも読めることを見せる)",
+      判定: (件) => {
+        const 差 = 件
+          .filter((x) => x.今 !== undefined && x.前 !== undefined)
+          .map((x) => x.今! - x.前!);
+        return 差.some((d) => d > 0) && 差.some((d) => d < 0);
+      },
+    },
+    {
+      鍵: "pattern__chartStat__前の値つき",
+      性質: "前の値が段で動く値を指していない (段ごとに前が変わると差が記憶頼りになる)",
+      // 前を 1 件も書いていない図では素通りするので、書いてあることも併せて見る
+      判定: (件) => 件.some((x) => x.前 !== undefined) && 件.every((x) => !x.前が動く),
+    },
+  ];
 
-    const d = 変種!.diagram;
-    const 初期 = new Map<string, unknown>((d.states ?? []).map((s) => [s.id, s.initial]));
-    /**
-     * `{名前}` は段が動かす値なので初期値を引く。 素の数はそのまま読む。
-     *
-     * 数に落ちない値は `undefined` を返す = 語の欄を 0 と読むと、書いていない件が
-     * 「前が高い」 に数えられる
-     */
-    const 数 = (v: unknown): number | undefined => {
-      const 素 = typeof v === "string" && /^\{(.+)\}$/.test(v) ? 初期.get(v.slice(1, -1)) : v;
-      if (typeof 素 === "number") return Number.isFinite(素) ? 素 : undefined;
-      if (typeof 素 !== "string") return undefined;
-      const n = Number(素);
-      return Number.isFinite(n) ? n : undefined;
-    };
+  it("性質の表が空でない (検査が空振りしていない) (#1726)", () => {
+    expect(変種に持たせた性質.length, "性質を 1 件も見ていない").toBeGreaterThan(0);
+  });
 
-    const 件 =
-      (d.nodes[0] as unknown as { chartData?: Array<{ value?: unknown; previous?: unknown }> })
-        .chartData ?? [];
-    expect(件.length, "変種の中身が空 (検査が空振りしている)").toBeGreaterThan(0);
+  it("性質の表の鍵は、全て実物から引ける (#1726)", () => {
+    const 引けない = 変種に持たせた性質
+      .filter(({ 鍵 }) => 変種を引く(鍵) === undefined)
+      .map((x) => x.鍵);
+    expect(引けない, "変種を引けない (名前を変えたなら表も直す)").toEqual([]);
+  });
 
-    const 前が高い = 件.filter((x) => {
-      const 今 = 数(x.value);
-      const 前 = 数(x.previous);
-      return 今 !== undefined && 前 !== undefined && 前 > 今;
-    });
-    expect(
-      前が高い.length,
-      "前が今より高い件が無い。 天井を前まで含めて取る道を、見本が 1 度も通らない",
-    ).toBeGreaterThan(0);
+  it("変種に持たせた性質は、今も実物で成り立つ (#1726)", () => {
+    const 崩れた: string[] = [];
+    let 測れた = 0;
+    for (const { 鍵, 性質, 判定 } of 変種に持たせた性質) {
+      const 変種 = 変種を引く(鍵);
+      if (!変種) continue; // 引けないことは上の検査が落とす
+      const 件 = 変種の件たち(変種.diagram);
+      // 中身が空だと `every` の側が素通りする。 行ごとに下限を課す
+      expect(件.length, `${鍵} の中身が空 (検査が空振りしている)`).toBeGreaterThan(0);
+      測れた += 1;
+      if (!判定(件)) 崩れた.push(`${鍵} (${性質})`);
+    }
+    expect(崩れた, `見本が性質を失っている:\n  ${崩れた.join("\n  ")}`).toEqual([]);
+    expect(測れた, "1 件も測れていない (検査が空振りしている)").toBe(変種に持たせた性質.length);
   });
 });
 
