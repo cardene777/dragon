@@ -1,7 +1,12 @@
 import { textDslToDiagram } from "@cardenelabs/dragon";
 
 /**
- * Catalog - Charts ... 図表 9 種の見本 (#1152 / #1159)。
+ * Catalog - Charts ... 図表の見本 (#1152 / #1159)。
+ *
+ * **種別の数はここに書かない**。 実物 (`nodes[0].kind`) が SSOT で、写すと種別を足すたびに
+ * 片方だけ古くなる (実測で `9 種` と名乗ったまま 15 種になっていた)。
+ * 下の節番号は読む順を示すためのもので、種別の数を数えるためのものではない
+ * (枝番 `12b` / `12c` / `14b` は変種を指す)。
  *
  * **記法で書く**。 図は記法から組み立てる。
  *
@@ -1322,6 +1327,9 @@ export const pattern__chartStackedBar__今だけ = textDslToDiagram(
   sourceYaml__pattern__chartStackedBar__今だけ,
 );
 
+// ------------------------------------------------------------
+// 15. 2 時点を線で結んで増減を見る
+// ------------------------------------------------------------
 export const sourceYaml__chartSlope = `title: "経路別の申込み"
 type: slope
 
