@@ -20,7 +20,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { CategoryPage } from "./CategoryPage";
-import { CATALOG_ITEMS } from "@/lib/catalog-items";
+import { CATALOG_ITEMS, 選んだ見本 } from "@/lib/catalog-items";
+import type { CatalogItem, CatalogPattern } from "@/lib/catalog-items";
 import { ToastProvider } from "@/components/Toast";
 import {
   drive as driveIntersection,
@@ -79,10 +80,20 @@ function 操作できる画面(slug: string): ReturnType<typeof render> {
  * **記法は 2 種類ある** (yaml / json)。 タブが押せるかは画面側で
  * `Boolean(sourceYaml || sourceJson)` と決まるため、片方だけを見ると json だけ持つ図を
  * 「記法なし」 として選んでしまう。
+ *
+ * **変種を先に解決してから見る** (#1722)。 画面は `選んだ見本` を通してから記法の有無を
+ * 決めるので、項目そのものの欄だけを見ると判定が画面とずれる。 棒グラフに変種を足した時、
+ * 項目の欄だけを消した対照が「記法なし」 と判定され、画面ではタブが押せる状態で通っていた。
  */
-function 記法を持たない(item: { sourceYaml?: string; sourceJson?: string } | undefined): boolean {
-  return item !== undefined && item.sourceYaml === undefined && item.sourceJson === undefined;
+function 記法を持たない(item: Partial<CatalogItem> | undefined): boolean {
+  if (item === undefined) return false;
+  const 見せる = 選んだ見本(item as CatalogItem, null);
+  return 見せる?.sourceYaml === undefined && 見せる?.sourceJson === undefined;
 }
+
+/** 判定の規則だけを見るための変種 1 つ。 図は引かないので中身は空でよい */
+const 変種 = (sourceYaml?: string): CatalogPattern =>
+  ({ 名: "元", 鍵: "pattern__x__元", diagram: {}, sourceYaml }) as unknown as CatalogPattern;
 
 describe("陰性対照の選び方 (Round 1 の指摘)", () => {
   // 今の一覧に json だけ持つ図は無いため、選び方の規則を直接確かめる。
@@ -92,6 +103,8 @@ describe("陰性対照の選び方 (Round 1 の指摘)", () => {
     ["yaml を持つ", { sourceYaml: "x" }, false],
     ["json を持つ", { sourceJson: "x" }, false],
     ["両方持つ", { sourceYaml: "x", sourceJson: "x" }, false],
+    ["欄は空だが変種の先頭が yaml を持つ", { patterns: [変種("x")] }, false],
+    ["変種の先頭も記法を持たない", { patterns: [変種(undefined)] }, true],
   ])("%s 図を %s と判定する", (_name, item, 期待) => {
     expect(記法を持たない(item)).toBe(期待);
   });
@@ -140,7 +153,14 @@ describe("図とコードを切り替えられる (#1236)", () => {
     if (!元) throw new Error("合成 fixture の元にする catalog item が無い");
     const 元の一覧 = CATALOG_ITEMS.charts;
     if (元の一覧 === undefined) throw new Error("charts の一覧が無い");
-    const 対照 = { ...元, id: "negative-control", sourceYaml: undefined, sourceJson: undefined };
+    // 変種も落とす。 残すと画面が変種の記法を拾い、タブが押せてしまう (#1722)
+    const 対照 = {
+      ...元,
+      id: "negative-control",
+      sourceYaml: undefined,
+      sourceJson: undefined,
+      patterns: undefined,
+    };
     expect(記法を持たない(対照), "合成 fixture が記法を持っている").toBe(true);
 
     CATALOG_ITEMS.charts = [対照];

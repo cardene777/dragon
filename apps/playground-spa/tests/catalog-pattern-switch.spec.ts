@@ -277,3 +277,79 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
     await expect(page.getByRole("radiogroup", { name: "パターン" })).toHaveCount(0);
   });
 });
+
+/**
+ * 棒 / 弧 / 半円 の前の時点 (#1722)。
+ *
+ * 記法は `previous` を書けて組み立ても渡していたのに、この 3 種だけが読んでいなかった
+ * (`cdl#767`)。 直った側を取り込んだので、書いた図と書かない図を切替で見比べられる。
+ *
+ * **3 種を 1 つの表で回す**。 出かたは違う (破線 / 帯を横切る印 / 内側の輪) が、
+ * 「押すと出て、戻すと消える」 という主張は同じ。 1 種ずつ書くと片方だけ直して drift する。
+ */
+test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)", () => {
+  const 種別 = [
+    { 名: "棒グラフ", 役割: "chart-bar-previous", 件数: 4 },
+    { 名: "同心の弧", 役割: "chart-radial-previous", 件数: 4 },
+    { 名: "半円ゲージ", 役割: "chart-gauge-previous", 件数: 3 },
+  ] as const;
+
+  for (const { 名, 役割, 件数 } of 種別) {
+    test(`${名} で 前の値つき を選ぶと前の時点が出る`, async ({ page }) => {
+      await 開く(page, 名);
+      const 前 = page.locator(`.catalog-preview-stage [data-cdl-role="${役割}"]`);
+      await expect(
+        page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio"),
+      ).toHaveCount(2);
+      await expect(page.getByRole("radio", { name: "今だけ" })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      await expect(前).toHaveCount(0);
+
+      await page.getByRole("radio", { name: "前の値つき" }).click();
+      await expect(前).toHaveCount(件数);
+
+      // 戻すと消える = 押した側だけを見ると、常に出る実装でも通る
+      await page.getByRole("radio", { name: "今だけ" }).click();
+      await expect(前).toHaveCount(0);
+    });
+
+    test(`${名} で 前の値つき を選ぶとコードも入れ替わる`, async ({ page }) => {
+      // 図だけ替わって記法が元のままだと、写したコードが画面と違う図を描く
+      await 開く(page, 名);
+      await page.getByRole("tab", { name: "コード" }).click();
+      await page.waitForTimeout(300);
+      await expect(page.locator(".catalog-source-code").first()).not.toContainText("previous");
+
+      await page.getByRole("radio", { name: "前の値つき" }).click();
+      await page.waitForTimeout(500);
+      await expect(page.locator(".catalog-source-code").first()).toContainText("previous");
+    });
+  }
+
+  test("棒の破線は縦軸の枠に収まる", async ({ page }) => {
+    /*
+     * 検索は前 520 で今 420 と、前のほうが高い。 天井を今の値だけで決めると破線が枠の
+     * 外へ出て「下がった」 が読めなくなる (`cdl#767` で天井を前まで含めて取るようにした)。
+     *
+     * 画面で見るのは、破線が図の枠の中にあることまで。 天井の取り方そのものは engine 側の
+     * 検査が持つ。
+     */
+    await 開く(page, "棒グラフ");
+    await page.getByRole("radio", { name: "前の値つき" }).click();
+    const 前 = page.locator('.catalog-preview-stage [data-cdl-role="chart-bar-previous"]');
+    await expect(前).toHaveCount(4);
+
+    const 枠 = await page.locator(".catalog-preview-stage svg").first().boundingBox();
+    expect(枠, "図の枠を測れていない").not.toBeNull();
+    for (let i = 0; i < 4; i += 1) {
+      const 線 = await 前.nth(i).boundingBox();
+      expect(線, `${i} 本目の破線を測れていない`).not.toBeNull();
+      expect(線!.y, `${i} 本目の破線が枠の上へ出ている`).toBeGreaterThanOrEqual(枠!.y);
+      expect(線!.y + 線!.height, `${i} 本目の破線が枠の下へ出ている`).toBeLessThanOrEqual(
+        枠!.y + 枠!.height,
+      );
+    }
+  });
+});
