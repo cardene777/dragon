@@ -6,7 +6,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
  * **種別の数はここに書かない**。 実物 (`nodes[0].kind`) が SSOT で、写すと種別を足すたびに
  * 片方だけ古くなる (実測で `9 種` と名乗ったまま 15 種になっていた)。
  * 下の節番号は読む順を示すためのもので、種別の数を数えるためのものではない
- * (枝番 `12b` / `12c` / `14b` は変種を指す)。
+ * (`b` / `c` を付けた枝番は変種を指す)。
  *
  * **記法で書く**。 図は記法から組み立てる。
  *
@@ -108,6 +108,76 @@ export const sourceJson__chartBar = `{
 }`;
 
 export const chartBar = textDslToDiagram(sourceYaml__chartBar);
+
+// ------------------------------------------------------------
+// 1b. 前の時点を破線で横切らせる (`パターン` の切替で選ぶ、 #1722)
+//
+// `previous` を書くと、棒 1 本ごとに前の時点の高さで破線が 1 本入る (`cdl#767`)。
+// 書かない図では 1 本も入らないので、**同じ見本の切替で両側を見せる**。
+//
+// **縦軸は前の時点まで含めて決まる**。 検索は前 520 で今 420 と、前のほうが高い =
+// 前だけが枠の外へ出ると「下がった」 が読めないので、天井を前と今の大きいほうで取る。
+//
+// 破線は棒より少し左右にはみ出す。 棒の縁と重なると、どちらが前の高さか読めなくなる。
+// ------------------------------------------------------------
+export const patternBase__chartBar = "今だけ";
+
+export const sourceYaml__pattern__chartBar__前の値つき = `title: "先月と比べた経路別の流入"
+type: bar
+
+actors:
+  - 検索: { value: "{search}", previous: "520" }
+  - SNS: { value: "{sns}", previous: "260" }
+  - 直接: { value: "{direct}", previous: "210" }
+  - 紹介: { value: "{referral}", previous: "60" }
+
+states:
+  search: 420
+  sns: 310
+  direct: 180
+  referral: 90
+
+animation:
+  - step: "今月" 1.2s
+    draw: bar
+    description: "破線が先月の高さ。 検索だけが 520 から 420 へ下がっている"
+  - step: "来月の見込み" 1.2s
+    tween:
+      search: 420 -> 680
+      referral: 90 -> 240
+    description: "検索が破線を越えて戻る。 破線は先月のまま動かない"
+`;
+
+export const sourceJson__pattern__chartBar__前の値つき = `{
+  "title": "先月と比べた経路別の流入",
+  "type": "bar",
+  "actors": [
+    { "name": "検索", "value": "{search}", "previous": "520" },
+    { "name": "SNS", "value": "{sns}", "previous": "260" },
+    { "name": "直接", "value": "{direct}", "previous": "210" },
+    { "name": "紹介", "value": "{referral}", "previous": "60" }
+  ],
+  "flow": [],
+  "states": { "search": 420, "sns": 310, "direct": 180, "referral": 90 },
+  "animation": [
+    {
+      "step": "今月",
+      "duration": 1.2,
+      "draw": "bar",
+      "body": "破線が先月の高さ。 検索だけが 520 から 420 へ下がっている"
+    },
+    {
+      "step": "来月の見込み",
+      "duration": 1.2,
+      "body": "検索が破線を越えて戻る。 破線は先月のまま動かない",
+      "tween": { "search": [420, 680], "referral": [90, 240] }
+    }
+  ]
+}`;
+
+export const pattern__chartBar__前の値つき = textDslToDiagram(
+  sourceYaml__pattern__chartBar__前の値つき,
+);
 
 // ============================================================
 // 2. 線で追う
@@ -914,6 +984,78 @@ export const sourceJson__chartGauge = `{
 
 export const chartGauge = textDslToDiagram(sourceYaml__chartGauge);
 
+// ------------------------------------------------------------
+// 10b. 前の内訳を内側の輪に重ねる (`パターン` の切替で選ぶ、 #1722)
+//
+// `previous` を書くと、半円の内側に前の内訳の輪が 1 本入る (`cdl#767`)。
+// 書かない図では入らないので、**同じ見本の切替で両側を見せる**。
+//
+// **今の弧は内側へ寄らずに細くなる**。 前の輪を足すために外側の帯を分け合う形で、
+// 外周そのものは動かない = 切替を押しても図の大きさが変わらない。
+//
+// 前の輪は今の弧と同じ順で同じ色を使う。 順を変えると、内と外で同じ色が別の項目を指す。
+// ------------------------------------------------------------
+export const patternBase__chartGauge = "今だけ";
+
+export const sourceYaml__pattern__chartGauge__前の値つき = `title: "前期と比べた売上進捗"
+type: gauge
+
+actors:
+  - 契約済: { value: "{signed}", previous: "520" }
+  - 商談中: { value: "{talking}", previous: "300" }
+  - 未着手: { value: "{untouched}", previous: "280" }
+
+states:
+  signed: 680
+  talking: 240
+  untouched: 180
+
+animation:
+  - step: "期の初め" 1.2s
+    draw: gauge
+    description: "内が前期、外が今期。 契約済が 520 から 680 へ増えた"
+  - step: "期の半ば" 1.2s
+    tween:
+      signed: 680 -> 820
+      talking: 240 -> 160
+      untouched: 180 -> 120
+    description: "外の弧だけが動く。 内の輪は前期のまま動かない"
+`;
+
+export const sourceJson__pattern__chartGauge__前の値つき = `{
+  "title": "前期と比べた売上進捗",
+  "type": "gauge",
+  "actors": [
+    { "name": "契約済", "value": "{signed}", "previous": "520" },
+    { "name": "商談中", "value": "{talking}", "previous": "300" },
+    { "name": "未着手", "value": "{untouched}", "previous": "280" }
+  ],
+  "flow": [],
+  "states": { "signed": 680, "talking": 240, "untouched": 180 },
+  "animation": [
+    {
+      "step": "期の初め",
+      "duration": 1.2,
+      "draw": "gauge",
+      "body": "内が前期、外が今期。 契約済が 520 から 680 へ増えた"
+    },
+    {
+      "step": "期の半ば",
+      "duration": 1.2,
+      "body": "外の弧だけが動く。 内の輪は前期のまま動かない",
+      "tween": {
+        "signed": [680, 820],
+        "talking": [240, 160],
+        "untouched": [180, 120]
+      }
+    }
+  ]
+}`;
+
+export const pattern__chartGauge__前の値つき = textDslToDiagram(
+  sourceYaml__pattern__chartGauge__前の値つき,
+);
+
 // ============================================================
 // 11. 弧の長さで比べる
 //
@@ -982,6 +1124,76 @@ export const sourceJson__chartRadial = `{
 }`;
 
 export const chartRadial = textDslToDiagram(sourceYaml__chartRadial);
+
+// ------------------------------------------------------------
+// 11b. 前の時点を帯の上の印で示す (`パターン` の切替で選ぶ、 #1722)
+//
+// `previous` を書くと、輪 1 本ごとに前の時点の角度で印が 1 つ入る (`cdl#767`)。
+// 書かない図では入らないので、**同じ見本の切替で両側を見せる**。
+//
+// **印は帯を横切る短い線**。 弧を重ねると今の弧に隠れるか、前が小さい時に外から見えない =
+// 帯の幅いっぱいを横切って少しはみ出す形にすることで、前後どちらが大きくても読める。
+//
+// 共有は前 12 で今 28、書き出しは前 14 で今 12。 増えた側と減った側の両方を置いている。
+// ------------------------------------------------------------
+export const patternBase__chartRadial = "今だけ";
+
+export const sourceYaml__pattern__chartRadial__前の値つき = `title: "先月と比べた機能ごとの利用率"
+type: radial
+
+actors:
+  - 検索: { value: "{search}", previous: "65" }
+  - 保存: { value: "{save}", previous: "50" }
+  - 共有: { value: "{share}", previous: "12" }
+  - 書き出し: { value: "{export}", previous: "14" }
+
+states:
+  search: 72
+  save: 45
+  share: 28
+  export: 12
+
+animation:
+  - step: "今月" 1.2s
+    draw: radial
+    description: "印が先月の位置。 共有だけが 12 から 28 へ伸びた"
+  - step: "来月の見込み" 1.2s
+    tween:
+      share: 28 -> 41
+      export: 12 -> 15
+    description: "共有がさらに伸びる。 印は先月のまま動かない"
+`;
+
+export const sourceJson__pattern__chartRadial__前の値つき = `{
+  "title": "先月と比べた機能ごとの利用率",
+  "type": "radial",
+  "actors": [
+    { "name": "検索", "value": "{search}", "previous": "65" },
+    { "name": "保存", "value": "{save}", "previous": "50" },
+    { "name": "共有", "value": "{share}", "previous": "12" },
+    { "name": "書き出し", "value": "{export}", "previous": "14" }
+  ],
+  "flow": [],
+  "states": { "search": 72, "save": 45, "share": 28, "export": 12 },
+  "animation": [
+    {
+      "step": "今月",
+      "duration": 1.2,
+      "draw": "radial",
+      "body": "印が先月の位置。 共有だけが 12 から 28 へ伸びた"
+    },
+    {
+      "step": "来月の見込み",
+      "duration": 1.2,
+      "body": "共有がさらに伸びる。 印は先月のまま動かない",
+      "tween": { "share": [28, 41], "export": [12, 15] }
+    }
+  ]
+}`;
+
+export const pattern__chartRadial__前の値つき = textDslToDiagram(
+  sourceYaml__pattern__chartRadial__前の値つき,
+);
 
 // ============================================================
 // 12. 値を大きく示す

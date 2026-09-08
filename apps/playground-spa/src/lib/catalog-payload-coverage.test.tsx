@@ -401,14 +401,8 @@ const 描かない欄: Record<string, string> = {
  * 決めて読まない側だった (#1720)。
  */
 const この種別だけ描かない組: Record<string, string> = {
-  "chart-bar/件/previous":
-    "棒は 1 件ごとに 1 本を引く。 前の時点を置くなら影の棒を重ねる形になるが engine が読んでいない (`cdl#767`)",
   "chart-line/件/previous":
     "折れ線は横軸そのものが時の流れ。 点ごとの前の時点は線の中に既にあり、置くと同じ値が 2 通りの意味を持つ",
-  "chart-gauge/件/previous":
-    "半円は合計 1 つを指す針。 前の時点を置くなら 2 本目の針になるが engine が読んでいない (`cdl#767`)",
-  "chart-radial/件/previous":
-    "弧は 1 件ごとに 1 本を巻く。 前の時点を置くなら薄い弧を重ねる形になるが engine が読んでいない (`cdl#767`)",
   "chart-waffle/件/previous":
     "100 個の印は割合を面で見せる。 前の時点を置くと印が 200 個になり、100 個で読む前提が崩れる",
   "chart-bar/件/tone":
