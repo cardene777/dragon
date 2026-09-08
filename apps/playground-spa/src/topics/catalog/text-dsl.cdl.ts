@@ -371,8 +371,9 @@ actors:
 
 flow:
   - Idle -> Loading: "submit"
-  - Loading -> Done: "success" (success)
+  - Loading -> Done: "success" (success) { guard: "入力が正しい" }
   - Loading -> Error: "fail" (error)
+  - Error -> Idle: "retry"
 
 states:
   counter: 0
@@ -420,13 +421,19 @@ export const sourceJson__textDslStateMachine = `{
       "from": "Loading",
       "to": "Done",
       "label": "success",
-      "tone": "success"
+      "tone": "success",
+      "guard": "入力が正しい"
     },
     {
       "from": "Loading",
       "to": "Error",
       "label": "fail",
       "tone": "error"
+    },
+    {
+      "from": "Error",
+      "to": "Idle",
+      "label": "retry"
     }
   ],
   "states": {
@@ -553,7 +560,7 @@ actors:
   - Order
 
 flow:
-  - User -> Order: "places" (info)
+  - User -> Order: "places" (info) { cardinality: "1:N" }
 
 animation:
   - step: "片方" 1s
@@ -585,7 +592,8 @@ export const sourceJson__textDslEr = `{
       "from": "User",
       "to": "Order",
       "label": "places",
-      "tone": "info"
+      "tone": "info",
+      "cardinality": "1:N"
     }
   ],
   "animation": [

@@ -266,7 +266,7 @@ export const subtitle__clickToggle =
  * slider を drag すると bar node の SVG width が実際に伸縮、 subtitle だけでなく図形が動く。
  */
 export const visualBindBar = diagram("interactive-visual-bar", {
-  topic: "信号の値が棒の実際の幅に反映される",
+  topic: "信号の値が棒の実際の幅と高さに反映される",
 })
   .lane("signal", { x: 0, width: 200 })
   .lane("bar-lane", { x: 240, width: 340 })
@@ -289,6 +289,15 @@ export const visualBindBar = diagram("interactive-visual-bar", {
     w: 160,
     wBind: "{barW}",
   })
+  .node("barTall", {
+    lane: "bar-lane",
+    stack: 1,
+    kind: "card",
+    title: "Tall bar",
+    subtitle: "hBind = {barW}px",
+    h: 96,
+    hBind: "{barW}",
+  })
   .node("readoutNode", {
     lane: "readout",
     stack: 0,
@@ -297,6 +306,7 @@ export const visualBindBar = diagram("interactive-visual-bar", {
     subtitle: "readout.bar が signal を同時追随",
   })
   .edge("signalNode", "bar", { label: "wBind", tone: "info" })
+  .edge("signalNode", "barTall", { label: "hBind", tone: "warning" })
   .edge("signalNode", "readoutNode", { label: "readout", tone: "success" })
   .readout.bar("barMon", { source: "barW", min: 40, max: 320, label: "Width readout" })
   .phase(
@@ -313,9 +323,9 @@ export const visualBindBar = diagram("interactive-visual-bar", {
     {
       duration: 1800,
       title: "棒に届く",
-      body: "信号が棒の幅として束ねられている。 つまみを動かすとこの棒が追いかける。",
+      body: "同じ信号が、上の棒では幅に、下の棒では高さになる。 つまみを動かすと両方が追いかける。",
     },
-    (p: PhaseBuilder) => p.activate("signalNode", "bar"),
+    (p: PhaseBuilder) => p.activate("signalNode", "bar", "barTall"),
   )
   .phase(
     "p3",
@@ -324,11 +334,11 @@ export const visualBindBar = diagram("interactive-visual-bar", {
       title: "数でも読む",
       body: "右の表示が同じ信号を数で出す。 図形と数が 1 つの信号を別の形で見ている。",
     },
-    (p: PhaseBuilder) => p.activate("signalNode", "bar", "readoutNode"),
+    (p: PhaseBuilder) => p.activate("signalNode", "bar", "barTall", "readoutNode"),
   )
   .build();
 export const subtitle__visualBindBar =
-  "wBind visual binding を 3-lane (Signal source / Dynamic bar / Bar readout) + 2 edge、 signal → 実 SVG width の反映経路を可視化";
+  "wBind / hBind visual binding を 3-lane (Signal source / Dynamic bar / Bar readout) + 3 edge、 signal → 実 SVG width と height の反映経路を可視化";
 
 /**
  * 6. visual binding = slider → node opacity で fade in/out。
@@ -1555,17 +1565,23 @@ export const subtitle__timelineDrive =
  * 20. edge signal binding = 太さ / 色 / dashoffset を signal 追随、 chain の流れを animate。
  */
 export const edgeFlowBind = diagram("interactive-edge-flow", {
-  topic: "信号で線の太さと流れる点が変わる",
+  topic: "信号で線の太さと色と流れる点が変わる",
 })
   .lane("src", { x: 0, width: 230 })
   .lane("pipe", { x: 270, width: 350 })
   .lane("sink", { x: 660, width: 190 })
   .input.slider("flow", { min: 1, max: 15, defaultValue: 5, label: "Flow Width" })
   .input.timeline("t", { duration: 2000, autoplay: true, loop: true, label: "Timeline" })
+  .input.dropdown("flowColor", {
+    options: ["#38bdf8", "#f472b6", "#facc15"],
+    defaultValue: "#38bdf8",
+    label: "線の色",
+  })
   .formula("dash", "t * 24")
   .state("flow", { initial: 5 })
   .state("t", { initial: 0 })
   .state("dash", { initial: 0 })
+  .state("flowColor", { initial: "#38bdf8" })
   .node("a", { lane: "src", stack: 0, kind: "card", w: 180, title: "Source", subtitle: "producer" })
   .node("pipeNode", {
     lane: "pipe",
@@ -1573,11 +1589,21 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
     kind: "card",
     w: 300,
     title: "Pipe",
-    subtitle: "width={flow} · dash={dash}",
+    subtitle: "width={flow} · dash={dash} · stroke={flowColor}",
   })
   .node("b", { lane: "sink", stack: 0, kind: "card", w: 140, title: "Sink", subtitle: "consumer" })
-  .edge("a", "pipeNode", { label: "produce", widthBind: "{flow}", dashOffsetBind: "{dash}" })
-  .edge("pipeNode", "b", { label: "consume", widthBind: "{flow}", dashOffsetBind: "{dash}" })
+  .edge("a", "pipeNode", {
+    label: "produce",
+    widthBind: "{flow}",
+    strokeBind: "{flowColor}",
+    dashOffsetBind: "{dash}",
+  })
+  .edge("pipeNode", "b", {
+    label: "consume",
+    widthBind: "{flow}",
+    strokeBind: "{flowColor}",
+    dashOffsetBind: "{dash}",
+  })
   .phase(
     "p1",
     {
@@ -1592,7 +1618,7 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
     {
       duration: 1600,
       title: "線に出る",
-      body: "信号の大きさが線の太さになる。 太いほど多く流れている。",
+      body: "信号の大きさが線の太さになり、選んだ色が線の色になる。 太いほど多く流れている。",
     },
     (p: PhaseBuilder) => p.activate("a", "pipeNode"),
   )
@@ -1607,7 +1633,7 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
   )
   .build();
 export const subtitle__edgeFlowBind =
-  "edge signal bind (太さ/dashoffset) を 3-lane (Source / Pipe / Sink) 分散、 Source→Sink flow を横断 edge で animate";
+  "edge signal bind (太さ/色/dashoffset) を 3-lane (Source / Pipe / Sink) 分散、 Source→Sink flow を横断 edge で animate";
 
 /**
  * 21. new input widgets = range / multi-select / tabs / text の合わせ技。
@@ -25187,7 +25213,7 @@ export const sourceJson__renderOffsetDrift = `{
   ]
 }`;
 
-export const sourceYaml__visualBindBar = `title: "信号の値が棒の実際の幅に反映される"
+export const sourceYaml__visualBindBar = `title: "信号の値が棒の実際の幅と高さに反映される"
 type: flow
 
 inputs:
@@ -25207,10 +25233,12 @@ states:
 actors:
   - signalNode: { kind: card, lane: signal, stack: 0, subtitle: "barW = {barW}", title: "Signal" }
   - bar: { kind: card, lane: bar-lane, stack: 0, subtitle: "wBind = {barW}px", wBind: "{barW}", posW: 160, title: "Bar" }
+  - barTall: { kind: card, lane: bar-lane, stack: 1, subtitle: "hBind = {barW}px", hBind: "{barW}", posH: 96, title: "Tall bar" }
   - readoutNode: { kind: card, lane: readout, stack: 0, subtitle: "readout.bar が signal を同時追随", title: "Bar readout" }
 
 flow:
   - signalNode -> bar: "wBind" (info)
+  - signalNode -> barTall: "hBind" (warning)
   - signalNode -> readoutNode: "readout" (success)
 
 animation:
@@ -25218,15 +25246,15 @@ animation:
     focus: ["signalNode"]
     description: "左の箱が信号の値を持つ。 幅はつまみで決まるので、ここでは持ち主だけを見る。"
   - step: "棒に届く" 1.8s
-    focus: ["signalNode", "bar"]
-    description: "信号が棒の幅として束ねられている。 つまみを動かすとこの棒が追いかける。"
+    focus: ["signalNode", "bar", "barTall"]
+    description: "同じ信号が、上の棒では幅に、下の棒では高さになる。 つまみを動かすと両方が追いかける。"
   - step: "数でも読む" 1.8s
-    focus: ["signalNode", "bar", "readoutNode"]
+    focus: ["signalNode", "bar", "barTall", "readoutNode"]
     description: "右の表示が同じ信号を数で出す。 図形と数が 1 つの信号を別の形で見ている。"
 `;
 
 export const sourceJson__visualBindBar = `{
-  "title": "信号の値が棒の実際の幅に反映される",
+  "title": "信号の値が棒の実際の幅と高さに反映される",
   "type": "flow",
   "inputs": [
     {
@@ -25273,6 +25301,16 @@ export const sourceJson__visualBindBar = `{
       "title": "Bar"
     },
     {
+      "name": "barTall",
+      "kind": "card",
+      "lane": "bar-lane",
+      "stack": 1,
+      "subtitle": "hBind = {barW}px",
+      "hBind": "{barW}",
+      "posH": 96,
+      "title": "Tall bar"
+    },
+    {
       "name": "readoutNode",
       "kind": "card",
       "lane": "readout",
@@ -25283,6 +25321,7 @@ export const sourceJson__visualBindBar = `{
   ],
   "flow": [
     { "from": "signalNode", "to": "bar", "label": "wBind", "tone": "info" },
+    { "from": "signalNode", "to": "barTall", "label": "hBind", "tone": "warning" },
     { "from": "signalNode", "to": "readoutNode", "label": "readout", "tone": "success" }
   ],
   "states": { "barW": 160 },
@@ -25296,13 +25335,13 @@ export const sourceJson__visualBindBar = `{
     {
       "step": "棒に届く",
       "duration": 1.8,
-      "focus": ["signalNode", "bar"],
-      "body": "信号が棒の幅として束ねられている。 つまみを動かすとこの棒が追いかける。"
+      "focus": ["signalNode", "bar", "barTall"],
+      "body": "同じ信号が、上の棒では幅に、下の棒では高さになる。 つまみを動かすと両方が追いかける。"
     },
     {
       "step": "数でも読む",
       "duration": 1.8,
-      "focus": ["signalNode", "bar", "readoutNode"],
+      "focus": ["signalNode", "bar", "barTall", "readoutNode"],
       "body": "右の表示が同じ信号を数で出す。 図形と数が 1 つの信号を別の形で見ている。"
     }
   ]
@@ -26696,12 +26735,13 @@ export const sourceJson__visualBindOpacity = `{
   ]
 }`;
 
-export const sourceYaml__edgeFlowBind = `title: "信号で線の太さと流れる点が変わる"
+export const sourceYaml__edgeFlowBind = `title: "信号で線の太さと色と流れる点が変わる"
 type: flow
 
 inputs:
   flow: { kind: slider, min: 1, max: 15, defaultValue: 5, label: "Flow Width" }
   t: { kind: timeline, duration: 2000, autoplay: true, loop: true, label: "Timeline" }
+  flowColor: { kind: dropdown, options: ["#38bdf8", "#f472b6", "#facc15"], defaultValue: "#38bdf8", label: "線の色" }
 
 formulas:
   dash: "t * 24"
@@ -26715,15 +26755,16 @@ states:
   flow: 5
   t: 0
   dash: 0
+  flowColor: "#38bdf8"
 
 actors:
   - a: { kind: card, lane: src, stack: 0, subtitle: "producer", posW: 180, title: "Source" }
-  - pipeNode: { kind: card, lane: pipe, stack: 0, subtitle: "width={flow} · dash={dash}", posW: 300, title: "Pipe" }
+  - pipeNode: { kind: card, lane: pipe, stack: 0, subtitle: "width={flow} · dash={dash} · stroke={flowColor}", posW: 300, title: "Pipe" }
   - b: { kind: card, lane: sink, stack: 0, subtitle: "consumer", posW: 140, title: "Sink" }
 
 flow:
-  - a -> pipeNode: "produce" (accent) { widthBind: "{flow}", dashOffsetBind: "{dash}" }
-  - pipeNode -> b: "consume" (accent) { widthBind: "{flow}", dashOffsetBind: "{dash}" }
+  - a -> pipeNode: "produce" (accent) { widthBind: "{flow}", strokeBind: "{flowColor}", dashOffsetBind: "{dash}" }
+  - pipeNode -> b: "consume" (accent) { widthBind: "{flow}", strokeBind: "{flowColor}", dashOffsetBind: "{dash}" }
 
 animation:
   - step: "送り手を見る" 1.6s
@@ -26731,14 +26772,14 @@ animation:
     description: "左の箱が信号を持つ。 まだ線には出ていない。"
   - step: "線に出る" 1.6s
     focus: ["a", "pipeNode"]
-    description: "信号の大きさが線の太さになる。 太いほど多く流れている。"
+    description: "信号の大きさが線の太さになり、選んだ色が線の色になる。 太いほど多く流れている。"
   - step: "受け手まで届く" 1.6s
     focus: ["a", "pipeNode", "b"]
     description: "線を流れる点が受け手に届く。 太さはつまみ、流れる点は時間の信号で、別々の入力が担う。"
 `;
 
 export const sourceJson__edgeFlowBind = `{
-  "title": "信号で線の太さと流れる点が変わる",
+  "title": "信号で線の太さと色と流れる点が変わる",
   "type": "flow",
   "inputs": [
     {
@@ -26756,6 +26797,13 @@ export const sourceJson__edgeFlowBind = `{
       "autoplay": true,
       "loop": true,
       "label": "Timeline"
+    },
+    {
+      "id": "flowColor",
+      "kind": "dropdown",
+      "options": ["#38bdf8", "#f472b6", "#facc15"],
+      "defaultValue": "#38bdf8",
+      "label": "線の色"
     }
   ],
   "formulas": { "dash": "t * 24" },
@@ -26779,7 +26827,7 @@ export const sourceJson__edgeFlowBind = `{
       "kind": "card",
       "lane": "pipe",
       "stack": 0,
-      "subtitle": "width={flow} · dash={dash}",
+      "subtitle": "width={flow} · dash={dash} · stroke={flowColor}",
       "posW": 300,
       "title": "Pipe"
     },
@@ -26800,6 +26848,7 @@ export const sourceJson__edgeFlowBind = `{
       "label": "produce",
       "tone": "accent",
       "widthBind": "{flow}",
+      "strokeBind": "{flowColor}",
       "dashOffsetBind": "{dash}"
     },
     {
@@ -26808,17 +26857,18 @@ export const sourceJson__edgeFlowBind = `{
       "label": "consume",
       "tone": "accent",
       "widthBind": "{flow}",
+      "strokeBind": "{flowColor}",
       "dashOffsetBind": "{dash}"
     }
   ],
-  "states": { "flow": 5, "t": 0, "dash": 0 },
+  "states": { "flow": 5, "t": 0, "dash": 0, "flowColor": "#38bdf8" },
   "animation": [
     { "step": "送り手を見る", "duration": 1.6, "focus": ["a"], "body": "左の箱が信号を持つ。 まだ線には出ていない。" },
     {
       "step": "線に出る",
       "duration": 1.6,
       "focus": ["a", "pipeNode"],
-      "body": "信号の大きさが線の太さになる。 太いほど多く流れている。"
+      "body": "信号の大きさが線の太さになり、選んだ色が線の色になる。 太いほど多く流れている。"
     },
     {
       "step": "受け手まで届く",

@@ -391,7 +391,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   // === styles 実業務シナリオ ===
 
   // === interactive primitive tour (追加分、 DSL機能デモ) ===
-  visualBindBar: "スライダーで矩形の幅が変わる",
+  visualBindBar: "スライダーで矩形の幅と高さが変わる",
   visualBindOpacity: "スライダーで矩形の透明度が変わる",
   xypadNavigate: "XYパッドで4象限を選ぶ",
   stepperControl: "ステッパーでフェーズ相当を調整",
@@ -747,7 +747,7 @@ export const ITEM_NAME_EN: Record<string, string> = {
   formulaTextBind: "Formula updates text",
   scrollNarrative: "Scroll-driven phase progress",
   clickToggle: "Click toggles state",
-  visualBindBar: "Slider changes bar width",
+  visualBindBar: "Slider changes bar width and height",
   visualBindOpacity: "Slider changes opacity",
   xypadNavigate: "XY pad picks one of four quadrants",
   stepperControl: "Stepper adjusts the phase",
