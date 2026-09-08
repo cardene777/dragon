@@ -117,7 +117,11 @@ export function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
     if (k.startsWith("patternBase__")) patternBaseMap.set(k.slice("patternBase__".length), v);
   }
   // 変種は `pattern__<元の見本>__<名前>` で export する (#1696)。 一覧の行にはせず、
-  // 元の見本に束ねる。 記法は今までどおり同じ鍵 (`sourceYaml__pattern__...`) で引く
+  // 元の見本に束ねる。 記法は今までどおり同じ鍵 (`sourceYaml__pattern__...`) で引く。
+  //
+  // **変種の名前に空白は置けない** = export 名の末尾がそのまま切替の札になるので、
+  // 識別子に置ける形へ言い換える (「前と今」 / 「今だけ」)。 単位付きの名前 (「1 件」) を
+  // 書けるのは元の見本の側 (`patternBase__<key>` は文字列) だけ。
   const patternMap = new Map<string, CatalogPattern[]>();
   for (const [key, value] of Object.entries(mod)) {
     if (!key.startsWith("pattern__")) continue;

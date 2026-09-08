@@ -162,11 +162,15 @@ describe("見本帳の 大きな数字 が 2 つのパターンを持つ (#1696)
     expect(選んだ見本(大きな数字, "複数")!.sourceYaml).toContain("問い合わせの内訳");
   });
 
-  it("円グラフは変種を持たない (陰性対照)", () => {
-    // 「どの図でも並びが付く」 形なら、上の検査は通っても意味を持たない
-    const 円 = charts.find((i) => i.title === "chartPie");
-    expect(円, "円グラフの見本が見つからない").toBeDefined();
-    expect(円!.patterns).toBeUndefined();
+  it("折れ線は変種を持たない (陰性対照)", () => {
+    // 「どの図でも並びが付く」 形なら、上の検査は通っても意味を持たない。
+    //
+    // 折れ線を選ぶのは、engine が中身の違う形を持たない種別だから (#1698 で実測)。
+    // node から読む欄は `chartData` と 見せ方 3 つだけで、押すと中身が入れ替わる
+    // 変種の作りようがない
+    const 折れ線 = charts.find((i) => i.title === "chartLine");
+    expect(折れ線, "折れ線の見本が見つからない").toBeDefined();
+    expect(折れ線!.patterns).toBeUndefined();
   });
 });
 

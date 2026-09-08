@@ -45,9 +45,11 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
   test("変種を持たない図ではパターンの群が出ない (陰性対照)", async ({ page }) => {
     /*
      * 「どの図でも出る」 形なら、上の 2 件は通っても意味を持たない。
-     * 円グラフでは出ないこと、そして オプション の群は出たままであることを見る。
+     * 折れ線では出ないこと、そして オプション の群は出たままであることを見る。
+     *
+     * 折れ線を選ぶのは、engine が中身の違う形を持たない種別だから (#1698)。
      */
-    await 開く(page, "円グラフ");
+    await 開く(page, "折れ線グラフ");
     await expect(page.getByRole("radiogroup", { name: "パターン" })).toHaveCount(0);
     await expect(page.locator(".catalog-toggle-group")).toHaveCount(1);
     await expect(page.getByRole("radiogroup", { name: "再生速度" })).toBeVisible();
@@ -86,12 +88,58 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
     await page.getByRole("radio", { name: "複数" }).click();
     await page.waitForTimeout(400);
 
-    await page.getByText("円グラフ", { exact: true }).first().click();
+    await page.getByText("折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(400);
     await page.getByText("大きな数字", { exact: true }).first().click();
     await page.waitForTimeout(400);
 
     await expect(page.getByRole("radio", { name: "1 件" })).toHaveAttribute("aria-checked", "true");
     expect(await 割合の数(page)).toBe(0);
+  });
+});
+
+/**
+ * 前の時点を書いた図と書かない図 (#1698)。
+ *
+ * `previous` を書くと円グラフは輪が 2 つになり (`cdl#679`)、内訳の帯は帯が 2 本になる
+ * (`cdl#551`)。 どちらも見本は片側しか無かった。
+ */
+test.describe("前の時点の有無をパターンで選べる (#1698)", () => {
+  test("円グラフで 前と今 を選ぶと内側の輪が出る", async ({ page }) => {
+    await 開く(page, "円グラフ");
+    const 内側 = page.locator(
+      '.catalog-preview-stage [data-cdl-role="chart-pie-slice-previous"]',
+    );
+    await expect(page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio")).toHaveCount(2);
+    await expect(page.getByRole("radio", { name: "今だけ" })).toHaveAttribute("aria-checked", "true");
+    expect(await 内側.count()).toBe(0);
+
+    await page.getByRole("radio", { name: "前と今" }).click();
+    await page.waitForTimeout(900);
+    expect(await 内側.count()).toBeGreaterThanOrEqual(2);
+  });
+
+  test("内訳の帯で 今だけ を選ぶと帯が 1 本になる", async ({ page }) => {
+    await 開く(page, "内訳の帯");
+    const 時点 = page.locator(
+      '.catalog-preview-stage [data-cdl-role="chart-stacked-bar-period"]',
+    );
+    await expect(page.getByRole("radio", { name: "前と今" })).toHaveAttribute("aria-checked", "true");
+    expect(await 時点.count()).toBeGreaterThanOrEqual(2);
+
+    await page.getByRole("radio", { name: "今だけ" }).click();
+    await page.waitForTimeout(900);
+    expect(await 時点.count()).toBe(0);
+  });
+
+  test("パターンを押すとコードも入れ替わる", async ({ page }) => {
+    await 開く(page, "円グラフ");
+    await page.getByRole("tab", { name: "コード" }).click();
+    await page.waitForTimeout(300);
+    await expect(page.locator(".catalog-source-code").first()).not.toContainText("previous");
+
+    await page.getByRole("radio", { name: "前と今" }).click();
+    await page.waitForTimeout(500);
+    await expect(page.locator(".catalog-source-code").first()).toContainText("previous");
   });
 });

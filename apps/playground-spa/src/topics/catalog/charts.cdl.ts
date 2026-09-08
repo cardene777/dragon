@@ -223,6 +223,72 @@ export const sourceJson__chartPie = `{
 
 export const chartPie = textDslToDiagram(sourceYaml__chartPie);
 
+// ------------------------------------------------------------
+// 3b. 前の時点を内側の輪に重ねる (`パターン` の切替で選ぶ、 #1698)
+//
+// **`previous` を書くと輪が 2 つになる** (`cdl#679`)。 内が前、外が今で、
+// 同じ色が内外で対応する。 書かない図は輪 1 つのまま。
+//
+// **効くのは `輪` の見せ方だけ**。 `積層の弧` と `銘板` は内側の輪を描かないので、
+// この変種を選んだまま見せ方を変えると前の時点は消える。
+// ------------------------------------------------------------
+export const patternBase__chartPie = "今だけ";
+
+export const sourceYaml__pattern__chartPie__前と今 = `title: "前期と比べた費用の内訳"
+type: pie
+
+actors:
+  - 計算: { value: "{compute}", previous: "52" }
+  - 保存: { value: "{storage}", previous: "18" }
+  - 通信: { value: "{network}", previous: "22" }
+  - その他: { value: "{other}", previous: "8" }
+
+states:
+  compute: 45
+  storage: 25
+  network: 20
+  other: 10
+
+animation:
+  - step: "前期と今期" 1.2s
+    draw: pie
+    description: "内が前期、外が今期。 計算が 52% から 45% へ下がった"
+  - step: "今期の見込み" 1.2s
+    tween:
+      compute: 45 -> 30
+      storage: 25 -> 35
+    description: "保存が伸びて最大になる。 内側の輪は前期のまま動かない"
+`;
+
+export const sourceJson__pattern__chartPie__前と今 = `{
+  "title": "前期と比べた費用の内訳",
+  "type": "pie",
+  "actors": [
+    { "name": "計算", "value": "{compute}", "previous": "52" },
+    { "name": "保存", "value": "{storage}", "previous": "18" },
+    { "name": "通信", "value": "{network}", "previous": "22" },
+    { "name": "その他", "value": "{other}", "previous": "8" }
+  ],
+  "flow": [],
+  "states": { "compute": 45, "storage": 25, "network": 20, "other": 10 },
+  "animation": [
+    {
+      "step": "前期と今期",
+      "duration": 1.2,
+      "draw": "pie",
+      "body": "内が前期、外が今期。 計算が 52% から 45% へ下がった"
+    },
+    {
+      "step": "今期の見込み",
+      "duration": 1.2,
+      "body": "保存が伸びて最大になる。 内側の輪は前期のまま動かない",
+      "tween": { "compute": [45, 30], "storage": [25, 35] }
+    }
+  ]
+}`;
+
+export const pattern__chartPie__前と今 = textDslToDiagram(sourceYaml__pattern__chartPie__前と今);
+
 // ============================================================
 // 4. 絞り込みで減る
 // ============================================================
@@ -912,6 +978,68 @@ export const sourceJson__chartStackedBar = `{
 }`;
 
 export const chartStackedBar = textDslToDiagram(sourceYaml__chartStackedBar);
+
+// ------------------------------------------------------------
+// 14b. 今の内訳だけを 1 本の帯で示す (`パターン` の切替で選ぶ、 #1698)
+//
+// **`previous` を書かない図は帯が 1 本のまま** (`cdl#551`)。 時点を比べず、
+// 今の内訳だけを見せる図になる。 上の節が言う「1 本のまま使える」 形がこれ。
+// ------------------------------------------------------------
+export const patternBase__chartStackedBar = "前と今";
+
+export const sourceYaml__pattern__chartStackedBar__今だけ = `title: "今期の契約の内訳"
+type: stacked
+
+actors:
+  - 新規: "{shinki}"
+  - 継続: "{keizoku}"
+  - 乗換: "{norikae}"
+
+states:
+  shinki: 320
+  keizoku: 180
+  norikae: 140
+
+animation:
+  - step: "今期の内訳" 1.2s
+    draw: stacked
+    description: "帯が左から伸びる。 新規が最も長い"
+  - step: "見込みを足す" 1.2s
+    tween:
+      shinki: 320 -> 380
+      norikae: 140 -> 200
+    description: "見込みを足すと新規と乗換が伸びる"
+`;
+
+export const sourceJson__pattern__chartStackedBar__今だけ = `{
+  "title": "今期の契約の内訳",
+  "type": "stacked",
+  "actors": [
+    { "name": "新規", "value": "{shinki}" },
+    { "name": "継続", "value": "{keizoku}" },
+    { "name": "乗換", "value": "{norikae}" }
+  ],
+  "flow": [],
+  "states": { "shinki": 320, "keizoku": 180, "norikae": 140 },
+  "animation": [
+    {
+      "step": "今期の内訳",
+      "duration": 1.2,
+      "draw": "stacked",
+      "body": "帯が左から伸びる。 新規が最も長い"
+    },
+    {
+      "step": "見込みを足す",
+      "duration": 1.2,
+      "body": "見込みを足すと新規と乗換が伸びる",
+      "tween": { "shinki": [320, 380], "norikae": [140, 200] }
+    }
+  ]
+}`;
+
+export const pattern__chartStackedBar__今だけ = textDslToDiagram(
+  sourceYaml__pattern__chartStackedBar__今だけ,
+);
 
 export const sourceYaml__chartSlope = `title: "経路別の申込み"
 type: slope
