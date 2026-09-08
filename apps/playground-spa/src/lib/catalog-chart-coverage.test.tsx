@@ -1,5 +1,5 @@
 /**
- * 図表の種別が持つ形を、見本帳が全て見せているかを数える検査 (#1694 / #1698)。
+ * 図表の種別が持つ形を、見本帳が全て見せているかを数える検査 (#1694 / #1698 / #1700)。
  *
  * ## なぜ要るか
  *
@@ -11,14 +11,19 @@
  * (`cdl#679`)、内訳の帯は帯が 2 本になる (`cdl#551`)。 どちらも見本は片側だけだった。
  * 件数の軸しか数えていなかったので、この ずれ も人が見つけた (#1698)。
  *
- * ## 種別の一覧も、軸ごとの判定も engine に聞く
+ * ## 軸も種別も engine から出す
  *
- * 「この軸で形が変わる種別」 を手で並べると、新しい種別が増えた時に一覧の更新を忘れて
- * 無検査で通る (`rules/quality.md § 導出可能記述は人手で書かない`)。
+ * #1698 まで **軸そのものは手で並べていた**。 種別の一覧を導いても、軸が手書きなら
+ * 導いた範囲は軸の数で頭打ちになる (`rules/quality.md § 導出可能記述は人手で書かない`)。
  *
- * 代わりに **engine を実際に描く**。 同じ種別を軸の両側で組み立てて描き、増えた役割名から
- * その種別の名前そのもの (図の主役の印) を除いてもまだ残るなら「その軸で形が変わる種別」
- * と判定する。 判定材料が実装そのものなので、engine 側で形が増えれば検査が自動で追随する。
+ * 軸の候補は `chartData` の 1 件が持つ **任意の欄** から出す (#1700)。 書くか書かないかで
+ * 形が変わりうるのはこの欄だけで、engine が欄を 1 つ足すと `satisfies` が `tsc` を落とす。
+ *
+ * **どの欄が軸として効くかは人が決めない**。 engine を実際に描いて、形が変わらない欄
+ * (`tone` = 色しか変わらない) は 0 種別と判定され、どの見本も要求しない。
+ *
+ * 種別ごとの判定も同じで、両側を組み立てて描き、増えた役割名からその種別の名前そのもの
+ * (図の主役の印) を除いてもまだ残るなら「その軸で形が変わる種別」 と判定する。
  *
  * ## 覆えない組は理由を書いて残す
  *
@@ -26,20 +31,65 @@
  * こういう組は `覆えない組` に理由付きで置く。 **表に無い組は落ち、表にあるのに engine が
  * 形の差を返さなくなった組も落ちる** = 直った後に理由だけが残らない。
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView, chart, layout } from "@cardenelabs/cdl";
-import type { CdlDiagram, ChartType } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlNode, ChartType } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS, type CatalogItem } from "./catalog-items";
+
+/** 図表の節が持つ欄 (`chart` で始まるもの)。 engine が足すと `satisfies` が落ちる */
+type 図表の欄 = Extract<keyof CdlNode, `chart${string}`>;
+
+/** 見本 1 件 (`chartData` の要素) */
+type 見本の欄 = NonNullable<CdlNode["chartData"]>[number];
+
+/**
+ * 見本 1 件の **任意の欄**。 書くか書かないかで形が変わりうるのはここだけ。
+ *
+ * `label` / `value` は必須なので「書かない図」 を作れず、軸にならない。
+ */
+type 任意の見本の欄 = {
+  [K in keyof 見本の欄]-?: undefined extends 見本の欄[K] ? K : never;
+}[keyof 見本の欄];
+
+/**
+ * 軸を組む時に欄へ入れる値。 **`satisfies` で閉じる** = engine が任意の欄を足すと
+ * ここが埋まっていない限り `tsc` が落ちる。
+ *
+ * 値そのものに意味は無く、「書いた図」 を作れれば足りる。 効く欄かどうかは engine を
+ * 描いて判定するので、ここで人が選り分けない。
+ */
+const 欄の見本値 = {
+  previous: 8,
+  tone: "accent",
+} satisfies Record<任意の見本の欄, unknown>;
+
+/**
+ * 図表の節の欄を、何が覆っているか。 **`satisfies` で閉じる**。
+ *
+ * `中身` は図に載せる値そのもので、見せ方では変えられない (件数と任意の欄が軸になる)。
+ * それ以外は画面の `オプション` の切替が覆っており、押せば両方の形を見られるので
+ * 見本を 2 つ持つ必要が無い。
+ *
+ * 値は **その切替を実装している file の path**。 名前だけ書いて実は触っていない形を
+ * 残さないため、下の検査がその file が欄の名前を持つことを確かめる。
+ */
+const 節の欄の扱い = {
+  chartData: "中身",
+  chartFillUnder: "src/lib/chart-line-options.ts",
+  chartValueRise: "src/lib/chart-line-options.ts",
+  chartTrace: "src/lib/chart-line-options.ts",
+  chartPieForm: "src/lib/chart-pie-options.ts",
+  chartSlopeForm: "src/lib/chart-slope-options.ts",
+} satisfies Record<図表の欄, string>;
 
 /** 描いた結果に出てくる役割名の集合 */
 function 役割名(d: CdlDiagram): Set<string> {
   const svg = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />);
   return new Set([...svg.matchAll(/data-cdl-role="([^"]+)"/g)].map((m) => m[1]!));
 }
-
-/** 種別名から記法の型名を出す (`chart-stacked-bar` → `stacked-bar`) */
-const 型名 = (kind: string): ChartType => kind.replace(/^chart-/, "") as ChartType;
 
 /**
  * 見本 1 つが持つ図 (#1696)。
@@ -66,47 +116,58 @@ const 見本の種別 = (): string[] => [
 ];
 
 /** その種別の見本が持つ節 (図表の中身を持つ node) */
-const 見本の節 = (kind: string): Array<{ chartData?: Array<{ previous?: unknown }> }> =>
+const 見本の節 = (kind: string): Array<{ chartData?: Array<Record<string, unknown>> }> =>
   全部の図()
     .flatMap((d) => d.nodes.filter((n) => n.kind === kind))
     .filter((n) => (n.chartData ?? []).length > 0);
 
-/**
- * 形が 2 通りに分かれる軸。
- *
- * `組む` が軸の両側の図を作り、`見本の側` が実物の見本をどちらの側に数えるかを決める。
- * 2 つは同じことを別の入口から見ている = engine 側 (組んで描く) と見本帳側 (書いてある
- * 中身を読む) で、片方だけ直すとずれる。
- */
-const 軸たち = [
-  {
-    名: "件数",
-    側: ["件 1", "件 2 以上"] as const,
-    組む: (kind: string, 側: 0 | 1): CdlDiagram => 組む(kind, 側 === 0 ? 1 : 3, false),
-    見本の側: (n: { chartData?: unknown[] }): 0 | 1 => ((n.chartData ?? []).length === 1 ? 0 : 1),
-  },
-  {
-    名: "前の時点",
-    側: ["書かない", "書く"] as const,
-    組む: (kind: string, 側: 0 | 1): CdlDiagram => 組む(kind, 3, 側 === 1),
-    見本の側: (n: { chartData?: Array<{ previous?: unknown }> }): 0 | 1 =>
-      (n.chartData ?? []).some((d) => d.previous !== undefined) ? 1 : 0,
-  },
-] as const;
-
-/** その種別を件数ぶんの datum で組み立てる */
-function 組む(kind: string, 件数: number, previous: boolean): CdlDiagram {
-  const type = 型名(kind);
+/** その種別を件数ぶんの datum で組み立てる。 `欄` を渡すとその欄を書いた図になる */
+function 組む(kind: string, 件数: number, 欄: 任意の見本の欄 | null): CdlDiagram {
+  // 種別名から `chart-` を落とすと記法の型名になる (`chart-stacked-bar` → `stacked-bar`)
+  const type = kind.replace(/^chart-/, "") as ChartType;
   let b = chart({ id: `probe-${type}`, topic: "確認", type });
   for (let i = 0; i < 件数; i += 1)
     b = b.datum({
       id: `d${i}`,
       label: `d${i}`,
       value: (i + 1) * 10,
-      ...(previous ? { previous: (i + 1) * 8 } : {}),
+      ...(欄 === null ? {} : { [欄]: 欄の見本値[欄] }),
     });
   return b.build();
 }
+
+/** 形が 2 通りに分かれる軸 */
+interface 軸 {
+  名: string;
+  /** 甲 (書かない / 少ない) と 乙 (書く / 多い) の呼び名 */
+  側: readonly [string, string];
+  組む: (kind: string, 側: 0 | 1) => CdlDiagram;
+  /** 実物の見本をどちらの側に数えるか */
+  見本の側: (n: { chartData?: Array<Record<string, unknown>> }) => 0 | 1;
+}
+
+/**
+ * 軸の一覧。
+ *
+ * 件数だけ手で持つ = これは欄ではなく **`chartData` が配列であること** から来る構造の軸で、
+ * 欄の型からは出ない。 残りは任意の欄から機械的に組む。
+ */
+const 軸たち: 軸[] = [
+  {
+    名: "件数",
+    側: ["件 1", "件 2 以上"],
+    組む: (kind, 側) => 組む(kind, 側 === 0 ? 1 : 3, null),
+    見本の側: (n) => ((n.chartData ?? []).length === 1 ? 0 : 1),
+  },
+  ...(Object.keys(欄の見本値) as 任意の見本の欄[]).map(
+    (欄): 軸 => ({
+      名: 欄,
+      側: ["書かない", "書く"],
+      組む: (kind, 側) => 組む(kind, 3, 側 === 0 ? null : 欄),
+      見本の側: (n) => ((n.chartData ?? []).some((d) => d[欄] !== undefined) ? 1 : 0),
+    }),
+  ),
+];
 
 /**
  * 片側が図として成立しない組。 **鍵は `<種別>/<軸>`、値はなぜ覆えないか**。
@@ -116,7 +177,7 @@ function 組む(kind: string, 件数: number, previous: boolean): CdlDiagram {
  * (`rules/quality.md § 判定できなかったことを値に潰さない` の系)。
  */
 const 覆えない組: Record<string, string> = {
-  "chart-slope/前の時点":
+  "chart-slope/previous":
     "前の時点を書かないと線を引く相手がいない (`chart-slope-line` が 1 本も出ない) = 形が 2 通りあるのではなく図として成立していない。 点が 1 つの折れ線と同じ",
 };
 
@@ -135,7 +196,7 @@ const 覆えない組: Record<string, string> = {
  * **`unknown` として別に数える**。 「変わらない」 に潰すと、判定していないことが
  * 「該当なし」 と同じに見える (`rules/quality.md § 判定できなかったことを値に潰さない`)。
  */
-function 軸で変わるか(kind: string, 軸: (typeof 軸たち)[number]): boolean | "unknown" {
+function 軸で変わるか(kind: string, 軸: 軸): boolean | "unknown" {
   try {
     const 甲 = 役割名(軸.組む(kind, 0));
     const 乙 = 役割名(軸.組む(kind, 1));
@@ -147,7 +208,7 @@ function 軸で変わるか(kind: string, 軸: (typeof 軸たち)[number]): bool
   }
 }
 
-describe("図表の種別が持つ形を見本帳が見せているか (#1694 / #1698)", () => {
+describe("図表の種別が持つ形を見本帳が見せているか (#1694 / #1698 / #1700)", () => {
   const 種別 = 見本の種別();
 
   it("見本帳の図表の種別を 1 つ以上走査できている", () => {
@@ -155,9 +216,11 @@ describe("図表の種別が持つ形を見本帳が見せているか (#1694 / 
     expect(種別.length, "図表の種別が 1 つも無い").toBeGreaterThan(0);
   });
 
-  it("軸を 1 つ以上持っている", () => {
-    // 空振り検知。 軸が 0 本だと下の 2 件は何も回さずに通る
-    expect(軸たち.length, "軸が 1 本も無い").toBeGreaterThan(0);
+  it("軸を型から 1 本以上導けている", () => {
+    // 空振り検知。 欄の型が読めないと軸が件数だけになり、下の検査が痩せたことに気付けない
+    const 欄から = 軸たち.filter((a) => a.名 !== "件数");
+    console.log(`[軸] ${軸たち.map((a) => a.名).join(" / ")}`);
+    expect(欄から.length, "見本の任意の欄から軸を 1 本も導けていない").toBeGreaterThan(0);
   });
 
   it("どの軸でも形が変わる種別を 1 つ以上見分けられている", () => {
@@ -213,5 +276,35 @@ describe("図表の種別が持つ形を見本帳が見せているか (#1694 / 
       if (軸で変わるか(k!, 軸) !== true) 死んだ理由.push(`${鍵} (engine が形の差を返さない)`);
     }
     expect(死んだ理由, `覆えない組に死んだ理由が残っている: ${死んだ理由.join(", ")}`).toEqual([]);
+  });
+});
+
+describe("図表の節の欄が、中身か見せ方の切替に割り当たっている (#1700)", () => {
+  const 欄たち = Object.entries(節の欄の扱い) as Array<[図表の欄, string]>;
+
+  it("節の欄を 1 つ以上走査できている", () => {
+    // 空振り検知。 型から欄が取れないと 0 件になり、下の検査が何も見ずに通る
+    console.log(`[節の欄] ${欄たち.map(([k]) => k).join(" / ")}`);
+    expect(欄たち.length, "節の欄が 1 つも無い").toBeGreaterThan(0);
+  });
+
+  it("見せ方に割り当てた欄は、その file が実際にその欄を触っている", () => {
+    // 名前だけ書いて実は触っていない、を残さない。 切替が別の欄へ移ったらここで落ちる
+    let 測れた = 0;
+    for (const [欄, 扱い] of 欄たち) {
+      if (扱い === "中身") continue;
+      測れた += 1;
+      // `import.meta.url` は jsdom 環境で file 形式にならないので、作業 dir から辿る
+      const 中身 = readFileSync(resolve(process.cwd(), "apps/playground-spa", 扱い), "utf8");
+      expect(中身.includes(欄), `${扱い} が ${欄} を触っていない`).toBe(true);
+    }
+    expect(測れた, "見せ方に割り当てた欄が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+  });
+
+  it("中身に割り当てた欄は、軸として数えている", () => {
+    // `chartData` を「中身」 と書いておきながら軸が 1 本も無いなら、この欄は誰も見ていない
+    const 中身の欄 = 欄たち.filter(([, 扱い]) => 扱い === "中身").map(([k]) => k);
+    expect(中身の欄, "中身に割り当てた欄が無い").toEqual(["chartData"]);
+    expect(軸たち.length, "chartData を見る軸が 1 本も無い").toBeGreaterThan(0);
   });
 });
