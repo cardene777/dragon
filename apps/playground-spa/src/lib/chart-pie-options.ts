@@ -42,9 +42,31 @@ const 表と値 = Object.fromEntries(
 /** 既定。 engine が欄を書かない図をどう描くかに揃える */
 export const 既定の円の見せ方: 円の見せ方 = 値と表.ring;
 
-/** その図に、見せ方を切り替えられる円グラフがあるか */
+/**
+ * 前の時点を持つ円グラフの節か (#1702)。
+ *
+ * 判定は **engine と同じ条件** にする。 `chart-pie.tsx` は
+ * `data.some((d) => d.previous !== undefined)` で輪を 2 つにするので、1 件でも書いてあれば
+ * 前の時点を持つ図。 「全件が書いてあるか」 で見ると、engine が輪を 2 つ描いている図を
+ * 画面側が「持っていない」 と判定する。
+ */
+const 前の時点を持つ = (n: { chartData?: Array<{ previous?: unknown }> }): boolean =>
+  (n.chartData ?? []).some((d) => d.previous !== undefined);
+
+/**
+ * その図に、見せ方を切り替えられる円グラフがあるか。
+ *
+ * **前の時点を持つ図では選べない** (#1702)。 engine が前の値を渡すのは `輪` だけで
+ * (`chart-pie.tsx` の `形 !== "ring"` で分岐する時点で前の値は落ちる)、`積層の弧` と
+ * `銘板` へ切り替えると **内側の輪が黙って消える**。
+ *
+ * これは engine の誤りではない = `積層の弧` は系列の長さを比べる形、`銘板` は今の値を読む
+ * 表として設計されており、前の時点を足すと形の狙いが変わる。 見せられない形の切替を
+ * 出している画面側が誤り。 見本帳の他の切替と同じく「効かない操作は出さない」 に揃える。
+ */
 export function 円の見せ方を選べる(diagram: CdlDiagram): boolean {
-  return diagram.nodes.some((n) => n.kind === "chart-pie");
+  const 円 = diagram.nodes.filter((n) => n.kind === "chart-pie");
+  return 円.length > 0 && !円.some(前の時点を持つ);
 }
 
 /** 円グラフ node の見せ方を、画面で選んだ値に揃える */

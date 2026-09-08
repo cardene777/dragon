@@ -132,6 +132,25 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
     expect(await 時点.count()).toBe(0);
   });
 
+  test("前と今 を選ぶと円グラフの見せ方の切替が消える", async ({ page }) => {
+    /*
+     * engine が前の値を渡すのは `輪` だけで、`積層の弧` と `銘板` へ切り替えると
+     * 内側の輪が黙って消える (#1702)。 見せられない形の切替は出さない。
+     */
+    await 開く(page, "円グラフ");
+    const 見せ方 = page.getByRole("radiogroup", { name: "円グラフの見せ方" });
+    await expect(見せ方.getByRole("radio")).toHaveCount(3);
+
+    await page.getByRole("radio", { name: "前と今" }).click();
+    await page.waitForTimeout(600);
+    await expect(見せ方).toHaveCount(0);
+
+    // 戻すと出る = 消えたままにならない
+    await page.getByRole("radio", { name: "今だけ" }).click();
+    await page.waitForTimeout(600);
+    await expect(見せ方.getByRole("radio")).toHaveCount(3);
+  });
+
   test("パターンを押すとコードも入れ替わる", async ({ page }) => {
     await 開く(page, "円グラフ");
     await page.getByRole("tab", { name: "コード" }).click();
