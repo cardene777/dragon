@@ -21,8 +21,8 @@ import {
 import {
   図ごとの既定の描き方,
   図の描き方を変える,
+  描き方の切替を出すか,
   記法の描き方を変える,
-  描き方を選べる,
   描き方の選択肢,
   既定の描き方,
   type 描き方,
@@ -361,7 +361,7 @@ export function CategoryPage(): React.ReactElement {
     [modalItem, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
   );
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
-  const 描き方を選べるか = currentItem ? 描き方を選べる(currentItem.diagram) : false;
+  const 切替を出すか = currentItem ? 描き方の切替を出すか(currentItem.diagram) : false;
   // 配色を書かない図では切替を出さない (押すと着せ替えになる、 #1569)
   const 配色を選べるか = currentItem ? 配色を選べる(currentItem.diagram) : false;
   // 折れ線以外では 3 つの欄が効かないため、切替を出さない (#1624)
@@ -531,7 +531,7 @@ export function CategoryPage(): React.ReactElement {
                     2 段目以降の描き方 (#1359)。 起点から描ける図でだけ出す = 描けない図では
                     押しても何も変わらないため、置くと「効かない操作」 になる。
                   */}
-                  {描き方を選べるか && (
+                  {切替を出すか && (
                     <div className="catalog-redraw" role="radiogroup" aria-label="2 段目以降">
                       {描き方の選択肢.map((v) => (
                         <button

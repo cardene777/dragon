@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import {
   図ごとの既定の描き方,
+  描き方の切替を出すか,
   図の描き方を変える,
   記法の描き方を変える,
   描き方を選べる,
@@ -155,6 +156,47 @@ describe("図ごとの描き方の初期値 (#1690)", () => {
     expect(弧でない.length, "弧を持たない見本が 1 件も無い").toBeGreaterThan(0);
     for (const x of 弧でない)
       expect(図ごとの既定の描き方(x.diagram), `${x.id} が描き直すになった`).toBe("動かすだけ");
+  });
+});
+
+describe("描き方の切替を画面に出すか (#1692)", () => {
+  it("弧の見本では切替を出さない", () => {
+    let 測れた = 0;
+    for (const x of 種別で集める("chart-radial")) {
+      expect(描き方の切替を出すか(x.diagram), `${x.id} で切替が出てしまう`).toBe(false);
+      測れた += 1;
+    }
+    expect(測れた, "1 件も測れていない (検査が空振りしている)").toBeGreaterThan(0);
+  });
+
+  it("弧でも描き直すは写り続ける", () => {
+    // 切替を消すために `描き方を選べる` を false へ倒すと、初期値ごと効かなくなる
+    const 弧 = 種別で集める("chart-radial")[0];
+    expect(弧, "弧の見本が見つからない").toBeDefined();
+    if (弧 === undefined) return;
+    expect(描き方を選べる(弧.diagram), "写せる判定まで false になっている").toBe(true);
+    expect(描く段(図の描き方を変える(弧.diagram, "描き直す")).every(Boolean)).toBe(true);
+  });
+
+  it("棒と折れ線では切替を出す", () => {
+    const 対象 = [...種別で集める("chart-bar"), ...種別で集める("chart-line")];
+    expect(対象.length, "棒と折れ線の見本が 1 件も無い").toBeGreaterThan(0);
+    for (const x of 対象)
+      expect(描き方の切替を出すか(x.diagram), `${x.id} で切替が消えている`).toBe(true);
+  });
+
+  it("起点から描けない図では弧でなくても出さない", () => {
+    const 描けない = 見本().find((x) => (x.diagram.phases[0]?.draw ?? []).length === 0);
+    expect(描けない, "描けない見本が見つからない").toBeDefined();
+    expect(描き方の切替を出すか(描けない!.diagram)).toBe(false);
+  });
+
+  it("弧を持たない見本では従来の判定と 1 件残らず一致する", () => {
+    // 陰性対照。 判定が種別を見ずに何でも閉じていれば、ここで落ちる
+    const 弧でない = 見本().filter((x) => !x.diagram.nodes.some((n) => n.kind === "chart-radial"));
+    expect(弧でない.length, "弧を持たない見本が 1 件も無い").toBeGreaterThan(0);
+    for (const x of 弧でない)
+      expect(描き方の切替を出すか(x.diagram), `${x.id} で判定がずれた`).toBe(描き方を選べる(x.diagram));
   });
 });
 
