@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import {
+  図ごとの既定の描き方,
   図の描き方を変える,
   記法の描き方を変える,
   描き方を選べる,
@@ -108,6 +109,52 @@ describe("図の 2 段目以降に描く指定が写る (#1359)", () => {
     const 描けない = 見本().find((x) => (x.diagram.phases[0]?.draw ?? []).length === 0);
     expect(描けない, "描けない見本が見つからない").toBeDefined();
     expect(図の描き方を変える(描けない!.diagram, "描き直す")).toBe(描けない!.diagram);
+  });
+});
+
+/** その種別の節を持つ見本を集める */
+const 種別で集める = (kind: string): { id: string; diagram: CdlDiagram }[] =>
+  見本().filter((x) => x.diagram.nodes.some((n) => n.kind === kind));
+
+describe("図ごとの描き方の初期値 (#1690)", () => {
+  it("弧の見本を 1 件以上走査できている", () => {
+    // 空振り検知。 0 件だと下の 2 件は何も見ずに通る
+    expect(種別で集める("chart-radial").length, "弧の見本が 1 件も無い").toBeGreaterThan(0);
+  });
+
+  it("弧の見本は描き直すから始まる", () => {
+    let 測れた = 0;
+    for (const x of 種別で集める("chart-radial")) {
+      expect(図ごとの既定の描き方(x.diagram), `${x.id} が描き直すにならない`).toBe("描き直す");
+      測れた += 1;
+    }
+    expect(測れた, "1 件も測れていない (検査が空振りしている)").toBeGreaterThan(0);
+  });
+
+  it("棒と折れ線は動かすだけから始まる", () => {
+    // 弧だけを見ているかの確認。 種別を見ずに図表全部を拾っていれば、ここで落ちる
+    const 対象 = [...種別で集める("chart-bar"), ...種別で集める("chart-line")];
+    expect(対象.length, "棒と折れ線の見本が 1 件も無い").toBeGreaterThan(0);
+    for (const x of 対象)
+      expect(図ごとの既定の描き方(x.diagram), `${x.id} が動かすだけにならない`).toBe("動かすだけ");
+  });
+
+  it("段が 1 つしかない弧は動かすだけのまま", () => {
+    // 切替が出ない図。 押しても効かない値を図ごとに変えると、画面に出ない状態が増える
+    const 元 = 種別で集める("chart-radial")[0];
+    expect(元, "弧の見本が見つからない").toBeDefined();
+    if (元 === undefined) return;
+    const 一段だけ: CdlDiagram = { ...元.diagram, phases: 元.diagram.phases.slice(0, 1) };
+    expect(描き方を選べる(一段だけ), "段を削っても切替が出せてしまう").toBe(false);
+    expect(図ごとの既定の描き方(一段だけ)).toBe("動かすだけ");
+  });
+
+  it("弧を持たない見本は 1 件も描き直すにならない", () => {
+    // 陰性対照。 判定が種別を見ずに何でも拾っていれば、ここで落ちる
+    const 弧でない = 見本().filter((x) => !x.diagram.nodes.some((n) => n.kind === "chart-radial"));
+    expect(弧でない.length, "弧を持たない見本が 1 件も無い").toBeGreaterThan(0);
+    for (const x of 弧でない)
+      expect(図ごとの既定の描き方(x.diagram), `${x.id} が描き直すになった`).toBe("動かすだけ");
   });
 });
 
