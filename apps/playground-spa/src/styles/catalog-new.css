@@ -368,6 +368,13 @@
   color: var(--d-text-muted);
 }
 
+.catalog-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .catalog-expand-btn {
   display: inline-flex;
   align-items: center;
@@ -407,6 +414,30 @@
 .catalog-preview-stage-inner svg {
   max-width: 100%;
   height: auto;
+}
+
+/* ── 並べて見る側で倍率を指定した時 (#1749) ──
+ *
+ * 既定は幅に合わせる = 広い図は縮み (実測 53 枚が箱の題 12px 未満)、細い図は伸びる
+ * (実測 39 枚が高さ 1200px 超、最長 2292px)。 倍率を指定すると viewBox の 1 world を
+ * 1px として数えた幅を与え、はみ出す分は巻き取る。
+ *
+ * **巻き取りは内側に持たせる**。 台 (`.catalog-preview-stage`) は札 (`PhaseChrome`) を
+ * 置く基準なので、台に持たせると札も図と一緒に流れて位置が崩れる。
+ */
+.catalog-preview-stage[data-cdl-zoom="on"] .catalog-preview-stage-inner {
+  overflow: auto;
+  /* 台からはみ出す図は左上から見せる。 中央寄せのままだと左端が巻き取りの外へ出る */
+  display: grid;
+  justify-items: start;
+}
+
+/* 図自身は `style="max-width: 100%"` を行内に持つ。 **行内指定は `!important` でないと外せない** =
+ * 外さないと、幅を与えても器の幅で頭打ちになる (実測 = 3285px を与えて 874px のままだった)。 */
+.catalog-preview-stage[data-cdl-zoom="on"] .catalog-preview-stage-inner svg {
+  width: var(--cdl-zoom-width) !important;
+  max-width: none !important;
+  height: auto !important;
 }
 
 .catalog-preview-loading {
@@ -738,7 +769,10 @@
   flex-shrink: 0;
 }
 
-.cdl-modal-zoom {
+/* 倍率の操作 (#1745 / #1749)。 **拡大表示と並べて見る側の両方で使う** ので、
+ * 選択子に場所を書かない。 置き場所ごとの見た目の差は親側 (`.cdl-modal-actions` /
+ * `.catalog-preview-actions`) の並べ方で吸収する。 */
+.cdl-zoom {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -748,8 +782,8 @@
   background: var(--d-surface);
 }
 
-.cdl-modal-zoom-btn,
-.cdl-modal-zoom-fit {
+.cdl-zoom-btn,
+.cdl-zoom-fit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -765,18 +799,18 @@
   cursor: pointer;
 }
 
-.cdl-modal-zoom-btn:hover:not(:disabled),
-.cdl-modal-zoom-fit:hover:not(:disabled) {
+.cdl-zoom-btn:hover:not(:disabled),
+.cdl-zoom-fit:hover:not(:disabled) {
   background: var(--d-surface-2);
 }
 
-.cdl-modal-zoom-btn:disabled,
-.cdl-modal-zoom-fit:disabled {
+.cdl-zoom-btn:disabled,
+.cdl-zoom-fit:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
-.cdl-modal-zoom-value {
+.cdl-zoom-value {
   min-width: 52px;
   padding: 0 4px;
   color: var(--d-text-secondary);
