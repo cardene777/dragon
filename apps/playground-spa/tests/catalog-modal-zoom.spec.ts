@@ -52,10 +52,12 @@ async function 拡大を開く(page: Page, 分類: string, 名前: string): Prom
   await page.waitForTimeout(600);
 }
 
-const 上げる = (page: Page) => page.getByRole("button", { name: "倍率を上げる" });
-const 下げる = (page: Page) => page.getByRole("button", { name: "倍率を下げる" });
-const 表示 = (page: Page) => page.locator(".cdl-modal-zoom-value");
-const 収める = (page: Page) => page.getByRole("button", { name: "収める", exact: true });
+const 上げる = (page: Page) => page.locator(拡大).getByRole("button", { name: "倍率を上げる" });
+const 下げる = (page: Page) => page.locator(拡大).getByRole("button", { name: "倍率を下げる" });
+/** 拡大表示の中の倍率の表示。 **並べて見る側も同じ部品を持つ** ので拡大表示の中に限る (#1749) */
+const 表示 = (page: Page) => page.locator(`${拡大} .cdl-zoom-value`);
+const 収める = (page: Page) =>
+  page.locator(拡大).getByRole("button", { name: "収める", exact: true });
 
 test.describe("拡大表示の倍率 (#1745)", () => {
   test("既定は収める = 図が器に収まっている", async ({ page }) => {
