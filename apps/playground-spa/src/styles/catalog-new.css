@@ -731,6 +731,60 @@
   cursor: pointer;
 }
 
+.cdl-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cdl-modal-zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--d-border);
+  border-radius: var(--d-r-2);
+  background: var(--d-surface);
+}
+
+.cdl-modal-zoom-btn,
+.cdl-modal-zoom-fit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--d-r-1);
+  background: transparent;
+  color: var(--d-text-primary);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cdl-modal-zoom-btn:hover:not(:disabled),
+.cdl-modal-zoom-fit:hover:not(:disabled) {
+  background: var(--d-surface-2);
+}
+
+.cdl-modal-zoom-btn:disabled,
+.cdl-modal-zoom-fit:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cdl-modal-zoom-value {
+  min-width: 52px;
+  padding: 0 4px;
+  color: var(--d-text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .cdl-modal-close:hover {
   border-color: var(--d-accent);
   color: var(--d-accent);
@@ -758,6 +812,31 @@
   height: auto !important;
   max-height: calc(90vh - 180px) !important;
   display: block;
+}
+
+/* ── 倍率を指定した時 (#1745) ──
+ *
+ * 収める側は上の規則が器の高さで頭打ちにする = 大きい図ほど小さく描かれ、
+ * `er-complex-demo` は箱の題が 4.8px まで縮む。 器を広げる余地は 6px しか無い (#1740 で実測)。
+ *
+ * 倍率を指定した時は頭打ちを外し、viewBox の 1 world を 1px として数えた幅を与える。
+ * 器に収まらない分は本体 (`overflow: auto`) が巻き取る。
+ * 幅は画面から渡す = 図ごとに違い、CSS だけでは出せない。
+ */
+.cdl-modal-body[data-cdl-zoom="on"] {
+  /* 収まらない図の左上から見せる。 中央寄せのままだと上と左が巻き取りの外へ出る */
+  place-items: start start;
+}
+
+.cdl-modal-body[data-cdl-zoom="on"] > * {
+  width: max-content;
+}
+
+.cdl-modal-body[data-cdl-zoom="on"] svg {
+  width: var(--cdl-zoom-width) !important;
+  max-width: none !important;
+  height: auto !important;
+  max-height: none !important;
 }
 
 /* ── 狭い画面 ── */

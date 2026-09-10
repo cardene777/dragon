@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
-import { CdlDiagramView } from "@cardenelabs/cdl";
+import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, Copy, Maximize2, Search, X } from "lucide-react";
+import { Check, Copy, Maximize2, Minus, Plus, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import {
   CATALOG_ITEMS,
@@ -60,6 +60,15 @@ import {
   既定の傾きの見せ方,
   type 傾きの見せ方,
 } from "@/lib/chart-slope-options";
+
+import {
+  収める,
+  次の倍率,
+  端か,
+  倍率の表示,
+  svgの幅,
+  type 倍率の指定,
+} from "@/lib/modal-zoom";
 
 import { SyntaxCode } from "../components/SyntaxCode";
 /** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
@@ -380,6 +389,30 @@ export function CategoryPage(): React.ReactElement {
         : null,
     [modalItem, 見本, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
   );
+  // 拡大表示の倍率 (#1745)。 器に収めると大きい図ほど小さく描かれるため、実寸まで拡げられるようにする
+  //
+  // **どの図に対する倍率かを一緒に持つ**。 別の図を開いたら収める側へ戻す必要があり、
+  // 効果で戻すと開くたびに描き直しが 1 回増える。 描くときに読み替えれば戻し忘れも起きない。
+  const [倍率の状態, set倍率の状態] = useState<{ 図: string | null; 値: 倍率の指定 }>({
+    図: null,
+    値: 収める,
+  });
+  const 開いている図 = modalItem?.id ?? null;
+  const 倍率 = 倍率の状態.図 === 開いている図 ? 倍率の状態.値 : 収める;
+  const 倍率を動かす = (向き: "上げる" | "下げる"): void =>
+    set倍率の状態({ 図: 開いている図, 値: 次の倍率(倍率, 向き) });
+  // 実寸は画面の実測でなく viewBox から取る。 描けない図では倍率を指定できない
+  const 拡大のviewBox幅 = useMemo(() => {
+    const d = 拡大の図 ?? modalItem?.diagram;
+    if (!d) return undefined;
+    try {
+      return layout(d).viewBox.w;
+    } catch {
+      return undefined;
+    }
+  }, [拡大の図, modalItem]);
+  const 指定した幅 = svgの幅(倍率, 拡大のviewBox幅);
+
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
   const 切替を出すか = 見本 ? 描き方の切替を出すか(見本.diagram) : false;
   // 配色を書かない図では切替を出さない (押すと着せ替えになる、 #1569)
@@ -791,13 +824,56 @@ export function CategoryPage(): React.ReactElement {
                 {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す (#1053) */}
                 {modalItem && <p className="cdl-modal-motion">{modalItem.motionNote}</p>}
               </div>
-              <Dialog.Close asChild>
-                <button type="button" aria-label="閉じる" className="cdl-modal-close">
-                  <X size={20} />
-                </button>
-              </Dialog.Close>
+              <div className="cdl-modal-actions">
+                {/* 倍率の操作 (#1745)。 器に収めると 4.8px まで縮む図があるため、実寸まで拡げられるようにする */}
+                <div className="cdl-modal-zoom" role="group" aria-label="表示の倍率">
+                  <button
+                    type="button"
+                    className="cdl-modal-zoom-btn"
+                    aria-label="倍率を下げる"
+                    disabled={拡大のviewBox幅 === undefined || 端か(倍率, "下げる")}
+                    onClick={() => 倍率を動かす("下げる")}
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <span className="cdl-modal-zoom-value" aria-live="polite">
+                    {倍率の表示(倍率)}
+                  </span>
+                  <button
+                    type="button"
+                    className="cdl-modal-zoom-btn"
+                    aria-label="倍率を上げる"
+                    disabled={拡大のviewBox幅 === undefined || 端か(倍率, "上げる")}
+                    onClick={() => 倍率を動かす("上げる")}
+                  >
+                    <Plus size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="cdl-modal-zoom-fit"
+                    disabled={倍率 === 収める}
+                    onClick={() => set倍率の状態({ 図: 開いている図, 値: 収める })}
+                  >
+                    収める
+                  </button>
+                </div>
+                <Dialog.Close asChild>
+                  <button type="button" aria-label="閉じる" className="cdl-modal-close">
+                    <X size={20} />
+                  </button>
+                </Dialog.Close>
+              </div>
             </div>
-            <div className="cdl-modal-body" ref={setModalStageEl}>
+            <div
+              className="cdl-modal-body"
+              ref={setModalStageEl}
+              data-cdl-zoom={指定した幅 === undefined ? undefined : "on"}
+              style={
+                指定した幅 === undefined
+                  ? undefined
+                  : ({ "--cdl-zoom-width": `${指定した幅}px` } as React.CSSProperties)
+              }
+            >
               {modalItem && (
                 <CdlDiagramView
                   hideMiniPhaseIndicator
