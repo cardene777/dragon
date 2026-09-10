@@ -466,8 +466,14 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
 export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
   topic: "EC注文状態遷移 (受注→決済→発送→配達→完了)",
 })
+  // 帯の間隔を書いておく理由 (cdl#789)。
+  // engine は「名札 1 枚が入る隙間」 しか確保しない。 この図は 1 つの隙間に名札を 2 枚以上
+  // 置くので元から足りておらず、engine が余分に広げていた分がそれを隠していた。
+  // その余分が無くなったので、必要な間隔をここで書く。
+  // 422 は engine が `0.42.0` まで実際に取っていた間隔で、図の幅も当時と同じ 687 になる。
+  // 210 のままだと `e34` の名札が `e23` の経路を跨ぐ (`edge-label-overlap`)。
   .lane("col1", { x: 0, width: 170 })
-  .lane("col2", { x: 210, width: 170 })
+  .lane("col2", { x: 422, width: 170 })
   .state("f1", { initial: 0 })
   .state("f2", { initial: 0 })
   .state("f3", { initial: 0 })
@@ -1643,7 +1649,7 @@ type: flow
 
 lanes:
   col1: { x: 0, width: 170 }
-  col2: { x: 210, width: 170 }
+  col2: { x: 422, width: 170 }
 
 states:
   f1: 0
@@ -1714,7 +1720,7 @@ export const sourceJson__richOrderStatusFlow = `{
   "type": "flow",
   "lanes": {
     "col1": { "x": 0, "width": 170 },
-    "col2": { "x": 210, "width": 170 }
+    "col2": { "x": 422, "width": 170 }
   },
   "actors": [
     {

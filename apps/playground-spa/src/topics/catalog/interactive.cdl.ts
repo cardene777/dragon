@@ -4320,9 +4320,17 @@ export const subtitle__resourceTreemap =
 export const trafficSankey = diagram("interactive-traffic-sankey", {
   topic: "流入 3 経路が 1 つの成果に合流する",
 })
+  // 帯の間隔を書いておく理由 (cdl#789)。
+  // engine は「名札 1 枚が入る隙間」 しか確保しない。 この図は 3 本の流入が 2 つの行き先へ
+  // 合流し、1 つの隙間に名札を 3 枚並べるので元から足りておらず、engine が余分に広げていた分が
+  // それを隠していた。 その余分が無くなったので、必要な間隔をここで書く。
+  // 392 刻みは engine が `0.42.0` まで実際に取っていた間隔 (582) に戻す値で、
+  // 図の幅も当時と同じ 1656 になる。 260 のままだと 3 件出る =
+  // `search-product` と `social-product` の名札が 476 重なり、`search-product` の名札が
+  // 線から 85px 離れ (閾値 80px)、経路の交差が 3 件になる。
   .lane("src", { x: 0, width: 180 })
-  .lane("land", { x: 260, width: 180 })
-  .lane("cv", { x: 520, width: 180 })
+  .lane("land", { x: 392, width: 180 })
+  .lane("cv", { x: 784, width: 180 })
   .arraySignal("flows", [
     ["Search", "Home", 40],
     ["Search", "Product", 30],
@@ -13444,8 +13452,8 @@ readouts:
 
 lanes:
   src: { x: 0, width: 180 }
-  land: { x: 260, width: 180 }
-  cv: { x: 520, width: 180 }
+  land: { x: 392, width: 180 }
+  cv: { x: 784, width: 180 }
 
 states:
   flows: '[["Search","Home",40],["Search","Product",30],["Social","Home",25],["Social","Product",15],["Direct","Home",20],["Direct","Product",10]]'
@@ -13501,8 +13509,8 @@ export const sourceJson__trafficSankey = `{
   ],
   "lanes": {
     "src": { "x": 0, "width": 180 },
-    "land": { "x": 260, "width": 180 },
-    "cv": { "x": 520, "width": 180 }
+    "land": { "x": 392, "width": 180 },
+    "cv": { "x": 784, "width": 180 }
   },
   "actors": [
     { "name": "Search", "kind": "card", "lane": "src", "stack": 0, "subtitle": "検索からの流入"  },
