@@ -99,19 +99,121 @@ function isCdlDiagram(v: unknown): v is CdlDiagram {
 // cdl routing v6 (PR #44) + shift v5 (PR #45) + baseline (PR #46) + 空 label bbox guard (PR #48)
 // の 4 段改良で border case は全て engine 側で解消済、 手作業 labelOffset は sample DSL から全撤廃。
 //
-// 除外は下の 2 diagram の edge-node-cross のみで、 それ以外の severity=error は全て gating する。
-// 「線が node を貫く」 のが図の意図そのものである 2 例だけを名指しで除いている。
+// 除外は下の表が持つ。 それ以外の severity=error は全て gating する。
+
+/**
+ * 落とさない組。 「線が箱を貫く」 ことが図の意図そのものである図を名指しで除く。
+ *
+ * **表にした上で実物と突き合わせる** (#1730)。 元は `if` の中に 2 図を直接書いており、
+ * うち `pattern-hook` は **何にも当たっていなかった**。 図が
+ * 「送り手 → 関数」 と「関数 → 受け側の実装」 の 2 本だけになり、 取り決めが書く
+ * 「a → hook → c」 の形を持たなくなっていたため。
+ *
+ * 当たらない除外が残ると、 **その図だけ検知が消えたことに誰も気付けない**。
+ * 下の § 名指しした組は実物で裏を取る が、 当たらなくなった組を落とす。
+ */
+interface 見逃す組 {
+  /** 図の id */
+  readonly diagramId: string;
+  /** 落とさない軸 */
+  readonly axis: string;
+  /** なぜ意図どおりなのか */
+  readonly 理由: string;
+}
+
+const 見逃す組の一覧: readonly 見逃す組[] = [
+  {
+    diagramId: "pattern-passthrough",
+    axis: "edge-node-cross",
+    理由: "「a → router → c」 の通過を見せる図で、 router を貫くこと自体が意図",
+  },
+];
+
 function isGatingViolation(v: Violation & { diagramId?: string }): boolean {
   if (v.severity !== "error") return false;
-  // pattern-passthrough は「a → router → c」 の意図的な通過設計、 edge-node-cross は design 通り。
-  // pattern-hook は「a → hook → c」 の hook 割込み design、 同様に intentional 交差。
-  if (
-    (v.diagramId === "pattern-passthrough" || v.diagramId === "pattern-hook") &&
-    v.axis === "edge-node-cross"
-  ) {
-    return false;
+  return !見逃す組の一覧.some((x) => x.diagramId === v.diagramId && x.axis === v.axis);
+}
+
+// group-boundary-clearance / lane-lane-gap / node-vertical-clearance sample 3 件
+/** `warn` のうち中身まで出す軸。 `error` は重さで決めるのでこの一覧に依らない (#1730) */
+const interestingAxes = new Set([
+  "group-boundary-clearance",
+  "lane-lane-gap",
+  "node-vertical-clearance",
+  "arrow-marker-clearance",
+  "responsive-viewport",
+  "grid-alignment",
+  "phase-layout-stability",
+  "accessibility-basics",
+  "animation-frame-integrity",
+  "i18n-cjk-detection",
+  "contrast-basics",
+  "print-media-compat",
+  "color-blind-safety",
+  "marker-gradient-def-integrity",
+  "subpixel-precision",
+  "dom-complexity-budget",
+  "reduced-motion-compat",
+  "touch-target-size",
+  "row-content-typing",
+  "terminal-safe-text",
+  "gpu-layer-efficiency",
+  "memory-budget",
+  "svg-injection-safety",
+  "seo-metadata-quality",
+  "bidi-hyphenation",
+  "structured-data-extraction",
+  "diagram-version-semver",
+  "migration-path-consistency",
+  "axis-coverage-meta",
+  "axis-documentation-completeness",
+  "fixture-drift-detection",
+  "locale-parity",
+  "validate-performance-budget",
+]);
+
+/** `error` を何件まで並べるか。 超えた分は件数だけ残す */
+const ERROR_DUMP_MAX = 10;
+
+/**
+ * stderr に流す抜粋を組み立てる (#1730)。
+ *
+ * **`error` は軸の一覧に依らず必ず中身を出す**。 抜粋の対象を `interestingAxes` という
+ * 手書きの一覧で決めていたため、 そこに無い軸は `err(edge-node-cross=1)` と数だけ出て
+ * **どの図か辿れなかった**。 `error` は落とすべき重さなので、 数が出た時点で中身も出す。
+ *
+ * `warn` は従来どおり一覧で絞る。 件数が多く、 全部出すと読めなくなるため。
+ *
+ * 書き出しと組み立てを分けてあるのは、 **出ることを機械で確かめられるようにする** ため。
+ * `process.stderr` に直接書くと、 出たかどうかを検査から見られない。
+ */
+function 違反の抜粋(
+  reports: VisualValidationReport[],
+  interestingAxes: ReadonlySet<string>,
+): string[] {
+  const lines: string[] = [];
+  const withId = (sev: Violation["severity"]) =>
+    reports.flatMap((r) =>
+      r.violations.filter((v) => v.severity === sev).map((v) => ({ ...v, diagramId: r.diagramId })),
+    );
+
+  const errors = withId("error");
+  for (const e of errors.slice(0, ERROR_DUMP_MAX)) {
+    lines.push(`  error: ${e.axis} — ${e.detail} (diag=${e.diagramId})`);
   }
-  return true;
+  // **黙って打ち切らない**。 出し切れなかった件数を残す
+  if (errors.length > ERROR_DUMP_MAX) {
+    lines.push(
+      `  error: 残り ${errors.length - ERROR_DUMP_MAX} 件は出力していない (全 ${errors.length} 件)`,
+    );
+  }
+
+  for (const s of withId("warn")
+    .filter((v) => interestingAxes.has(v.axis))
+    .slice(0, 3)) {
+    lines.push(`  sample: ${s.axis} — ${s.detail} (diag=${s.diagramId})`);
+  }
+  return lines;
 }
 
 function formatReport(reports: VisualValidationReport[]): string {
@@ -188,60 +290,122 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
         process.stderr.write(
           `[visual-validate-sweep ${name}] err(${eSummary || "-"}) warn(${wSummary || "-"})\n`,
         );
-        // group-boundary-clearance / lane-lane-gap / node-vertical-clearance sample 3 件
-        const interestingAxes = new Set([
-          "group-boundary-clearance",
-          "lane-lane-gap",
-          "node-vertical-clearance",
-          "arrow-marker-clearance",
-          "responsive-viewport",
-          "grid-alignment",
-          "phase-layout-stability",
-          "accessibility-basics",
-          "animation-frame-integrity",
-          "i18n-cjk-detection",
-          "contrast-basics",
-          "print-media-compat",
-          "color-blind-safety",
-          "marker-gradient-def-integrity",
-          "subpixel-precision",
-          "dom-complexity-budget",
-          "reduced-motion-compat",
-          "touch-target-size",
-          "row-content-typing",
-          "terminal-safe-text",
-          "gpu-layer-efficiency",
-          "memory-budget",
-          "svg-injection-safety",
-          "seo-metadata-quality",
-          "bidi-hyphenation",
-          "structured-data-extraction",
-          "diagram-version-semver",
-          "migration-path-consistency",
-          "axis-coverage-meta",
-          "axis-documentation-completeness",
-          "fixture-drift-detection",
-          "locale-parity",
-          "validate-performance-budget",
-        ]);
         // Axis 47/48 = SweepReport.metaViolations 経由の meta 判定を stderr dump
         if (report.metaViolations.length > 0) {
           for (const m of report.metaViolations.slice(0, 5)) {
             process.stderr.write(`  meta: ${m.axis} — ${m.detail}\n`);
           }
         }
-        const samples = report.reports
-          .flatMap((r) => r.violations.filter((v) => interestingAxes.has(v.axis)))
-          .slice(0, 3);
-        for (const s of samples) {
-          process.stderr.write(
-            `  sample: ${s.axis} — ${s.detail} (diag=${(s as any).diagramId ?? "?"})\n`,
-          );
+        for (const line of 違反の抜粋(report.reports, interestingAxes)) {
+          process.stderr.write(`${line}\n`);
         }
       }
       expect(gatingViolations, `\n${detail}`).toEqual([]);
     });
   }
+});
+
+/**
+ * 名指しした組は実物で裏を取る (#1730)。
+ *
+ * ## なぜ要るか
+ *
+ * 見逃す組は「いま実際に貫いている図」 に対して書いたはずのものだが、 **図が変われば
+ * 当たらなくなる**。 当たらなくなっても表からは消えないため、 その図だけ検知が消えたことに
+ * 誰も気付けない。
+ *
+ * 実際に `pattern-hook` がこの形だった。 表には「a → hook → c」 の割込みと書いてあるのに、
+ * 図は「送り手 → 関数」 と「関数 → 受け側の実装」 の 2 本だけで、 貫く線を 1 本も持たない。
+ * `edge-node-cross` の違反を 1 件も出さないので、 除外は何も除外していなかった。
+ *
+ * ## どう見るか
+ *
+ * 名指しした組ごとに、 **その軸の違反が実物で 1 件以上出る** ことを求める。 出ない組は
+ * 落として、 表から消させる。 期待する件数が「1 件以上」 なので収容対照の向きになる
+ * (`rules/quality.md § 期待する件数で対照の向きが変わる`)。
+ *
+ * 走査は sweep 本体と同じ `sources` を回す。 対象を別に持つと、 本体が見ている図と
+ * 裏取りが見ている図がずれる。
+ *
+ * **表が空の時に通らないようにする**。 空なら「1 件も当たらない」 が真になり、 検査が
+ * 空振りしたまま緑になる。
+ */
+describe("名指しした見逃しが実物で当たっている (#1730)", () => {
+  /** 全 source を 1 度だけ通し、 `図の id + 軸` の組を数える */
+  function 違反の組(): Map<string, number> {
+    const 数 = new Map<string, number>();
+    for (const { name, mod } of sources) {
+      const report = visualValidateAll(collectDiagrams(mod, name), { profile: "catalog" });
+      for (const r of report.reports) {
+        for (const v of r.violations) {
+          if (v.severity !== "error") continue;
+          const key = `${r.diagramId}\u0000${v.axis}`;
+          数.set(key, (数.get(key) ?? 0) + 1);
+        }
+      }
+    }
+    return 数;
+  }
+
+  it("見逃す組を 1 件以上持っている (空振り防止)", () => {
+    expect(
+      見逃す組の一覧.length,
+      "見逃す組が 1 件も無い。 下の検査は空の表に対して必ず通るので、 表を消すなら本検査ごと消す",
+    ).toBeGreaterThan(0);
+  });
+
+  it("error の違反は軸の一覧に依らず中身まで出す", () => {
+    /*
+     * **出るかどうかを機械で確かめる** (#1730)。
+     *
+     * 元は `interestingAxes` に載る軸だけを抜粋していたため、 載っていない軸は
+     * 件数だけが出て中身が 1 行も出なかった。 手で直しても、 次に同じ形へ戻す変更を
+     * 止められない。
+     *
+     * 見本は fixture ではなく **実物** から採る。 名指しした見逃しが実物で当たっている
+     * ことは上の検査が固定しているので、 error は必ず 1 件以上ある。
+     */
+    const 実物 = sources
+      .map(({ name, mod }) => visualValidateAll(collectDiagrams(mod, name), { profile: "catalog" }))
+      .find((r) => r.reports.some((x) => x.violations.some((v) => v.severity === "error")));
+    expect(実物, "error を持つ群が 1 つも無い (検査が空振りしている)").toBeDefined();
+
+    const 行 = 違反の抜粋(実物!.reports, interestingAxes);
+    const errorLines = 行.filter((l) => l.startsWith("  error: "));
+    expect(errorLines.length, "error の違反があるのに中身の行が 1 本も出ていない").toBeGreaterThan(0);
+
+    // 軸 / 中身 / 図の名前 の 3 つが揃っていること。 どれが欠けても辿れない
+    const 見本 = 実物!.reports.flatMap((r) =>
+      r.violations.filter((v) => v.severity === "error").map((v) => ({ v, id: r.diagramId })),
+    )[0]!;
+    expect(errorLines[0]).toContain(見本.v.axis);
+    expect(errorLines[0]).toContain(見本.v.detail);
+    expect(errorLines[0]).toContain(見本.id);
+
+    // 一覧に載っていない軸でも出ること = 手書きの一覧に戻したら落ちる
+    const 一覧外 = 実物!.reports.flatMap((r) =>
+      r.violations.filter((v) => v.severity === "error" && !interestingAxes.has(v.axis)),
+    );
+    expect(
+      一覧外.length,
+      "一覧外の error が 1 件も無い。 この検査は一覧に戻す変更を止められていない",
+    ).toBeGreaterThan(0);
+  });
+
+  it("名指しした組が実物でその軸の違反を出している", () => {
+    const 数 = 違反の組();
+    // 空振り防止 = 走査そのものが 1 件も違反を拾えていないなら、 下の判定は測れていない
+    expect(数.size, "error の違反を 1 件も拾えていない (裏取りが空振りしている)").toBeGreaterThan(
+      0,
+    );
+    const 当たらない = 見逃す組の一覧
+      .filter((x) => (数.get(`${x.diagramId}\u0000${x.axis}`) ?? 0) === 0)
+      .map((x) => `${x.diagramId} / ${x.axis} (理由: ${x.理由})`);
+    expect(
+      当たらない,
+      "名指ししたのに実物が違反を出さない組。 図が変わって見逃しが不要になっているので表から消す",
+    ).toEqual([]);
+  });
 });
 
 /**
