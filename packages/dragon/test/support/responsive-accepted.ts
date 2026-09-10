@@ -64,6 +64,12 @@ export const 全図: CdlDiagram[] = [
 ].flatMap((m) => Object.values(m as Record<string, unknown>).filter(図か));
 
 /**
+ * 画面の実測に使う基準の画面 (px)。 `#1740` 以降の実測は全てこの大きさで取っている
+ * (下の `一覧の器` の 874px も同じ画面で測った)。
+ */
+export const 基準の画面 = { width: 1440, height: 900 } as const;
+
+/**
  * 一覧に並べた枠の内寸 (px)。 `.catalog-preview-stage` の 914px から左右の余白 20px を
  * 引いた実測値。 **高さは持たない** = 縦は巻き取るので上限が無く、大きな数で代用すると
  * 「上限が無い」 と「とても高い」 が同じ値になる。
@@ -222,3 +228,137 @@ export const 受け入れた図の名 = (器: 器): string[] =>
     .filter((d) => d.器.includes(器))
     .map((d) => d.id)
     .sort();
+
+/**
+ * 一覧の台に描かれる高さ (px)。
+ *
+ * 台は幅に合わせて図を伸ばす (`w-full h-auto`、高さの頭打ちなし) ので、
+ * 高さは縦横比で決まる。 画面の実測と一致する
+ * (`parts-traffic-light-stack` の viewBox 305 × 800 は画面で 874 × 2292px)。
+ */
+export const 一覧で描かれる高さ = (viewBox: { w: number; h: number }): number =>
+  (一覧の器.width * viewBox.h) / viewBox.w;
+
+/**
+ * 縦に長すぎるとみなす線 (px)。 **基準の画面の高さ**に引く (#1753)。
+ *
+ * ここより長い図は、どの位置まで巻き上げても 1 画面に入り切らない。
+ *
+ * 巻き上げずに見える高さ (実測 338px = 900 − 台の上端 562px) には引かない =
+ * その線ではほぼ全枚数が引っかかる。 一覧は元々巻き上げて見る面で、
+ * 1 画面に収まることを求めていない。
+ */
+export const 縦に長い線 = 基準の画面.height;
+
+/** 縦に長いことを受け入れた図の群。 理由は群ごとに書く。 */
+export interface 縦に長い群 {
+  /** 何でまとまっているか */
+  readonly 群: string;
+  /** なぜ長いままでよいか */
+  readonly 理由: string;
+  /** その群に属する図の id */
+  readonly 図: readonly string[];
+}
+
+/**
+ * 一覧の台で `縦に長い線` を超えて描かれる図。 **実物から作らず手で書く**。
+ *
+ * 伸ばすのをやめる道 (台に伸びの上限を入れる / 高さの頭打ちを入れる) は採らなかった =
+ * 444 枚中 238 枚の見え方が変わる一方、読み手には倍率の操作があって縮められる (#1749)。
+ * 詳細は #1753 の判断の記録。
+ */
+export const 縦に長い一覧: readonly 縦に長い群[] = [
+  {
+    群: "帯 1 本に 3 段を積む場面の図",
+    理由:
+      "30 枚とも同じ組み方で、細長い viewBox を幅に合わせると 1.6-1.8 " +
+      "倍に伸びる。 一部だけ直すと一族の中で組み方が割れる",
+    図: [
+      "scene-audit-chain",
+      "scene-audit-flow",
+      "scene-banking-flow",
+      "scene-bitcoin-tx",
+      "scene-checkout",
+      "scene-compliance",
+      "scene-consensus",
+      "scene-crypto-transfer",
+      "scene-defi-lending",
+      "scene-devops",
+      "scene-ec-order",
+      "scene-edge-compute",
+      "scene-factory-line",
+      "scene-iot-onchain",
+      "scene-legal-notarization",
+      "scene-mobile-api",
+      "scene-network-path",
+      "scene-nft-marketplace",
+      "scene-nft-mint",
+      "scene-notification",
+      "scene-payment-settlement",
+      "scene-satellite-chain",
+      "scene-stock-trading",
+      "scene-support-flow",
+      "scene-task-flow",
+      "scene-token-bridge",
+      "scene-token-deploy",
+      "scene-trust-asset",
+      "scene-version-deploy",
+      "scene-web-infra",
+    ],
+  },
+  {
+    群: "部品を縦に積む見本",
+    理由:
+      "部品を上下に並べて見せる図で、幅が狭いぶん伸びが大きい (最大 2.87 倍)。" +
+      " 横に並べ替えると何を積んでいるかが読めなくなる",
+    図: [
+      "parts-battery-level",
+      "parts-bind-cascade-3",
+      "parts-bind-split-fill",
+      "parts-bookmark",
+      "parts-rainbow-stack",
+      "parts-rating-stars",
+      "parts-stacked-layer",
+      "parts-thermometer",
+      "parts-traffic-light-stack",
+    ],
+  },
+  {
+    群: "記法の見本",
+    理由:
+      "書き方を見せる図で、段の数がそのまま記法の説明になっている。" +
+      " 段を減らすと見本の中身が減る",
+    図: [
+      "c4-dsl",
+      "system-dsl",
+      "uml-class-dsl",
+      "値どうしの関係を書く例",
+      "多対多が-2-組-8-表-8-関係",
+      "認証フロ-dsl",
+    ],
+  },
+  {
+    群: "触れる部品を縦に積む対話の見本",
+    理由: "触れる部品と、その結果を出す欄を縦に並べる。 横に並べると操作と結果の対応が読めなくなる",
+    図: [
+      "interactive-activity-polar",
+      "interactive-array-signal",
+      "interactive-price-candlestick",
+      "interactive-reviewer-stack",
+    ],
+  },
+  {
+    群: "縦に大きい関係と流れの図",
+    理由:
+      "段を減らすか横に並べ替えれば縮むが、" +
+      "どちらも図の意味が変わる。 大きい図が書けること自体が見本の中身",
+    図: [
+      "animation-rich-order-status-flow",
+      "er-complex-demo",
+      "flow-demo",
+    ],
+  },
+];
+
+/** 縦に長いことを受け入れた図の id (並べ替え済) */
+export const 縦に長い図の名 = (): string[] => 縦に長い一覧.flatMap((g) => g.図).sort();
