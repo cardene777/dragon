@@ -99,9 +99,9 @@ describe("Axis 21 grid-alignment (LaidDiagram mutation で意図発火)", () => 
 });
 
 describe("Axis 23 responsive-viewport (LaidDiagram mutation で意図発火)", () => {
-  // cdl#353 で幅の下限判定を外した。 図は親幅いっぱいに伸びるため幅が小さいほど拡大されて
-  // 読みやすくなり、 「幅が小さい = 識別不能」 は成り立たない。 代わりに縦横比と、
-  // 描画できない寸法を見る。
+  // 判定は「器に収めた倍率の下限」 を見る (`cdl#793`)。 図は `xMidYMid meet` で器に収まる
+  // よう中で縮むため、効く倍率は幅と高さの小さい方で決まる。 幅が小さいほど拡大される
+  // というのは横が効く時だけの話で、縦が足りなければ縦が決める。
   it("viewBox を極端に横長にすると responsive-viewport 発火", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
@@ -111,25 +111,47 @@ describe("Axis 23 responsive-viewport (LaidDiagram mutation で意図発火)", (
     expect(report.counts["responsive-viewport"]).toBeGreaterThan(0);
   });
 
-  it("viewBox を極端に縦長にしても発火しない (幅が小さいので字は拡大される)", () => {
+  it("viewBox を極端に縦長にすると発火する (`cdl#793` で拾うようになった側)", () => {
     /*
-     * `cdl#785` で判定が縦横比から viewBox 幅の上限へ移った。
+     * `cdl#793` で判定が viewBox 幅の上限から **器に収めた倍率の下限** へ移った。
      *
-     * 縦長の図は親の幅いっぱいに伸ばすと横が親幅、縦がその比のぶん長くなるだけで、
-     * 字は幅の比で拡大される。 読みにくさが出るとすれば縦の巻き取りの量で、字の大きさではない。
-     * 元はここで比 11.1 として発火することを見ていた。
+     * 図は `xMidYMid meet` で器に収まるよう中で縮むため、横が余っていても縦が足りなければ
+     * 縦が倍率を決める。 幅だけを見ていた頃は、この形を「幅が小さいので字は拡大される」 と
+     * 読んで 0 件にしていた。
+     *
+     * **幅だけの判定では拾えない形を入力にする** = 幅 270 は上限のはるか内側で、
+     * 幅しか見ない判定なら 0 件になる。 それでも発火することを見る。
      */
     const diag = baseDiagram();
     const laid = layout(diag);
     laid.viewBox.w = 270;
     laid.viewBox.h = 3000;
-    const 縦横比 = Math.max(laid.viewBox.w / laid.viewBox.h, laid.viewBox.h / laid.viewBox.w);
-    expect(縦横比, "縦横比が旧判定の境の内側だと、比で拾わないことの対照にならない").toBeGreaterThan(6);
+    const 幅だけで足りるか = visualValidateLaid(
+      { ...laid, viewBox: { ...laid.viewBox, h: 270 } },
+      diag,
+    ).counts["responsive-viewport"];
+    expect(
+      幅だけで足りるか ?? 0,
+      "同じ幅で縦を縮めた形が発火するなら、幅で拾えている証拠にならない",
+    ).toBe(0);
     const report = visualValidateLaid(laid, diag);
-    expect(report.counts["responsive-viewport"]).toBe(0);
+    expect(report.counts["responsive-viewport"]).toBeGreaterThan(0);
   });
 
-  it("viewBox width を 400 world 未満にしても縦横比が保たれていれば発火しない", () => {
+  it("縦が長くても器に収まれば発火しない", () => {
+    /*
+     * 上と同じ幅で高さだけを器の内側に収めた形。 縦が効くこと自体は発火の条件ではない
+     * ことを押さえる = これが無いと「縦が長ければ何でも発火する」 判定と区別が付かない。
+     */
+    const diag = baseDiagram();
+    const laid = layout(diag);
+    laid.viewBox.w = 270;
+    laid.viewBox.h = 1100;
+    const report = visualValidateLaid(laid, diag);
+    expect(report.counts["responsive-viewport"] ?? 0).toBe(0);
+  });
+
+  it("viewBox width を 400 world 未満にしても器に収まっていれば発火しない", () => {
     const diag = baseDiagram();
     const laid = layout(diag);
     laid.viewBox.w = 300;
