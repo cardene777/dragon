@@ -96,36 +96,25 @@ describe("編集画面の指摘の選び方", () => {
     expect(visibleWarnings(fake, d)).toHaveLength(2);
   });
 
-  it("描画の滲みはどちらでも出さない", () => {
-    for (const src of [auto, manual]) {
-      const d = textDslToDiagram(src);
-      const fake = [
-        { axis: "subpixel-precision" as const, diagramId: d.id, detail: "x", severity: "warn" as const },
-      ];
-      expect(visibleWarnings(fake, d)).toEqual([]);
-    }
-  });
-
-  it("隠す軸でも error なら出す", () => {
-    // 隠す理由は「書く人が直せない滲み」 で、 図の破綻を伏せる意図ではない。 軸だけで
-    // 隠すと、 その軸が将来 `error` を出すようになった時に「位置関係 NG」 の badge ごと
-    // 黙って消える。
-    for (const src of [auto, manual]) {
-      const d = textDslToDiagram(src);
-      const fake = [
-        { axis: "subpixel-precision" as const, diagramId: d.id, detail: "x", severity: "error" as const },
-      ];
-      expect(visibleWarnings(fake, d)).toHaveLength(1);
-    }
-  });
-
-  it("同じ軸で warn と error が混ざれば error だけ残す", () => {
-    const d = textDslToDiagram(auto);
+  it("整列以外の軸は、 手で置いた図でも軸の名前だけで隠さない", () => {
+    /*
+     * 軸の単位で丸ごと隠す仕組みは持たない (`cdl#783`)。 外す判断は「その指摘が指す箱を
+     * 手で置いたか」 だけで決まる。 整列の軸に当たらない指摘は、 手で置いた図でも残す。
+     *
+     * 元はここに「描画の滲みは隠す」「隠す軸でも error なら出す」 の 2 件があった。
+     * 隠していた唯一の軸 (`subpixel-precision`) が描画側から外れて一覧が空になったため、
+     * ふるい分けごと外している。
+     */
+    const d = textDslToDiagram(manual);
     const fake = [
-      { axis: "subpixel-precision" as const, diagramId: d.id, detail: "warn 側", severity: "warn" as const },
-      { axis: "subpixel-precision" as const, diagramId: d.id, detail: "error 側", severity: "error" as const },
+      { axis: "touch-target-size" as const, diagramId: d.id, detail: "x", severity: "warn" as const },
+      { axis: "contrast-basics" as const, diagramId: d.id, detail: "y", severity: "warn" as const },
     ];
-    expect(visibleWarnings(fake, d).map((v) => v.detail)).toEqual(["error 側"]);
+    expect(
+      AUTO_LAYOUT_ALIGNMENT_AXES.has("touch-target-size"),
+      "整列の軸に入っていると、 別の理由で残っただけになる",
+    ).toBe(false);
+    expect(visibleWarnings(fake, d)).toHaveLength(2);
   });
 });
 
