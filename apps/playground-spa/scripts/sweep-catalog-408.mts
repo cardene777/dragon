@@ -5,12 +5,13 @@
  *         styles / cookbook / text-dsl / interactive) 全 diagram。
  *
  * 出力 = axis 別 warning 分布 + severity=error item list + severity=warn item list。
- * subpixel-precision は CdlEditor UI filter に準じて除外 (非致命)。
+ *
+ * **除外する軸は持たない** (`cdl#783`)。 元は編集画面の隠す軸に合わせて
+ * `subpixel-precision` を落としていたが、 その軸が描画側から外れ、 編集画面の隠す仕組みも
+ * 一緒に外れた。
  */
 import { visualValidate, compile } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS, loadPartsItems } from "../src/lib/catalog-items";
-
-const HIDDEN_AXES = new Set(["subpixel-precision"]);
 
 type ItemResult = {
   category: string;
@@ -41,7 +42,7 @@ async function main() {
         const laid = compile(item.diagram);
         // 見本の集計。 SEO の軸は見本に課さない (#887)。
         const report = visualValidate(laid, { profile: "catalog" });
-        const filtered = report.violations.filter((v) => !HIDDEN_AXES.has(v.axis));
+        const filtered = report.violations;
         const errors = filtered.filter((v) => v.severity === "error");
         const warns = filtered.filter((v) => v.severity === "warn");
         results.push({

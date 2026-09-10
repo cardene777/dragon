@@ -111,13 +111,22 @@ describe("Axis 23 responsive-viewport (LaidDiagram mutation で意図発火)", (
     expect(report.counts["responsive-viewport"]).toBeGreaterThan(0);
   });
 
-  it("viewBox を極端に縦長にしても responsive-viewport 発火", () => {
+  it("viewBox を極端に縦長にしても発火しない (幅が小さいので字は拡大される)", () => {
+    /*
+     * `cdl#785` で判定が縦横比から viewBox 幅の上限へ移った。
+     *
+     * 縦長の図は親の幅いっぱいに伸ばすと横が親幅、縦がその比のぶん長くなるだけで、
+     * 字は幅の比で拡大される。 読みにくさが出るとすれば縦の巻き取りの量で、字の大きさではない。
+     * 元はここで比 11.1 として発火することを見ていた。
+     */
     const diag = baseDiagram();
     const laid = layout(diag);
     laid.viewBox.w = 270;
     laid.viewBox.h = 3000;
+    const 縦横比 = Math.max(laid.viewBox.w / laid.viewBox.h, laid.viewBox.h / laid.viewBox.w);
+    expect(縦横比, "縦横比が旧判定の境の内側だと、比で拾わないことの対照にならない").toBeGreaterThan(6);
     const report = visualValidateLaid(laid, diag);
-    expect(report.counts["responsive-viewport"]).toBeGreaterThan(0);
+    expect(report.counts["responsive-viewport"]).toBe(0);
   });
 
   it("viewBox width を 400 world 未満にしても縦横比が保たれていれば発火しない", () => {

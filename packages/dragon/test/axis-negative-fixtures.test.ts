@@ -255,7 +255,6 @@ describe("axis 発火 count field (列挙した軸で counts field 存在)", () 
       "print-media-compat",
       "color-blind-safety",
       "marker-gradient-def-integrity",
-      "subpixel-precision",
       "dom-complexity-budget",
       "reduced-motion-compat",
       "touch-target-size",

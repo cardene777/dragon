@@ -52,13 +52,22 @@ describe("Axis 20 arrow-marker-clearance (LaidDiagram mutation で意図発火)"
   });
 });
 
-describe("Axis 33 subpixel-precision (LaidDiagram mutation で意図発火)", () => {
-  it("node cx/cy に極端な非整数値を強制すると subpixel drift 発火", () => {
+describe("Axis 23 responsive-viewport (LaidDiagram mutation で意図発火)", () => {
+  it("図を横に広げると発火する (縦横比は境の内側のまま)", () => {
+    /*
+     * 元は軸 33 (`subpixel-precision`) の発火を見ていたが、 軸は `cdl#783` で外れた。
+     * 同じ release で判定を差し替えた軸 23 に置き換える。
+     *
+     * **入力は旧判定が拾えない形にする**。 旧判定は縦横比 6:1 を境にしていたので、
+     * 縦横比を 6:1 の内側に保ったまま幅だけを境の外へ出す。 面積で測る形に戻したら
+     * この検査が落ちる。
+     */
     const diag = baseDiagram();
     const laid = layout(diag);
-    at(laid.nodes, 0, "laid.nodes").cx = 100.7777;
-    at(laid.nodes, 0, "laid.nodes").cy = 100.3333;
+    laid.viewBox = { x: 0, y: 0, w: 3000, h: 2000 };
+    const 縦横比 = Math.max(laid.viewBox.w / laid.viewBox.h, laid.viewBox.h / laid.viewBox.w);
+    expect(縦横比, "縦横比が旧判定の境を超えていると、幅で拾えている証拠にならない").toBeLessThan(6);
     const report = visualValidateLaid(laid, diag);
-    expect(report.counts["subpixel-precision"]).toBeGreaterThan(0);
+    expect(report.counts["responsive-viewport"]).toBeGreaterThan(0);
   });
 });

@@ -113,7 +113,7 @@ CI 実行順 = unit → e2e → (visual は user 手動起動)、 CI 総所要�
 | TC-013 | 正常系 drop 成功後の hint message 表示 | パーツ tab active | drop 経由 REPLACE | `.v4-editor-drop-hint` visible + parts title 含む | P1 | yes | live | /editor |
 | TC-014 | 状態遷移 drop overlay の on/off | dragover 中 | drop 実行 | drop-overlay 非表示 (drop event で setDropOver(false)) | P1 | yes | live | /editor |
 | TC-015 | 正常系 marker text で preview SVG render | wave-gauge click | 800ms 待機 | `.v4-editor-preview svg` visible | P0 | yes | live | /editor |
-| TC-016 | 正常系 visualValidate warnings 数値化 | wave-gauge click | 800ms 待機 → warnings 取得 | HIDDEN_WARNING_AXES filter 後の `.v4-editor-warning-item` count が 0 (wave-gauge 単体 shape で validation error なし)、 throw なし | P2 | yes | live | /editor |
+| TC-016 | 正常系 visualValidate warnings 数値化 | wave-gauge click | 800ms 待機 → warnings 取得 | `.v4-editor-warning-item` count が 0 (wave-gauge 単体 shape で validation error なし)、 throw なし | P2 | yes | live | /editor |
 | TC-017 | 回帰 SAMPLES tab 既存動作 | samples tab active | SAMPLES[1] `注文チェックアウト (sequence)` を click | CodeMirror text が sequence YAML DSL に切替 + preview render | P0 | yes | live | /editor |
 | TC-018 | 回帰 URL hash `#preset=<slug>` 経路 | `/editor#preset=sequence` goto | 1500ms 待機 | SAMPLES から slug=sequence 一致 sample の code が load | P0 | yes | live | /editor#preset=sequence |
 | TC-019 | 異常系 破損 marker text の error 表示 | 手動 setSrc(`#!parts\n{ invalid`) | 400ms 待機 | error panel に「JSON が invalid」 message 表示 | P1 | yes | live | /editor |

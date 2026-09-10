@@ -151,7 +151,6 @@ const interestingAxes = new Set([
   "print-media-compat",
   "color-blind-safety",
   "marker-gradient-def-integrity",
-  "subpixel-precision",
   "dom-complexity-budget",
   "reduced-motion-compat",
   "touch-target-size",
