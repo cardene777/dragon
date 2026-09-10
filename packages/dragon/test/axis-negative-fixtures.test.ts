@@ -221,8 +221,8 @@ describe("Axis 集約検証 (fixture-driven, 真の defect あり catalog)", () 
   });
 });
 
-describe("axis 発火 count field (列挙した 53 axis で counts field 存在)", () => {
-  it("visualValidate report.counts に列挙した 53 axis 分の field が存在", () => {
+describe("axis 発火 count field (列挙した軸で counts field 存在)", () => {
+  it("visualValidate report.counts に列挙した軸の field が存在", () => {
     const report = visualValidate(baseDiagram());
     const expectedAxes = [
       "node-visibility",
@@ -262,7 +262,6 @@ describe("axis 発火 count field (列挙した 53 axis で counts field 存在)
       "row-content-typing",
       "terminal-safe-text",
       "gpu-layer-efficiency",
-      "memory-budget",
       "svg-injection-safety",
       "seo-metadata-quality",
       "bidi-hyphenation",
@@ -283,8 +282,13 @@ describe("axis 発火 count field (列挙した 53 axis で counts field 存在)
       expect(report.counts).toHaveProperty(axis);
       expect(typeof report.counts[axis as keyof typeof report.counts]).toBe("number");
     }
-    // 列挙した 55 axis が全て存在する (cdl#366 で mermaid-parity を削除して 56 → 55)
-    expect(expectedAxes.length).toBe(53);
+    // **数を literal で書かない** (`rules/quality.md § 導出可能記述は人手で書かない`)。
+    // 軸は増減するので必ずずれる = 実際にこの直前の comment は 55、assert は 53 と
+    // 食い違っていた (cdl#366 で 1 つ、cdl#775 で 1 つ消えている)。
+    //
+    // 見るのは空振り防止だけにする。 「列挙した名前が engine に在る」 は上の loop が
+    // 1 件ずつ見ており、消えた軸の名前が残れば そこで落ちる。
+    expect(expectedAxes.length, "列挙が空 (検査が空振りしている)").toBeGreaterThan(0);
   });
 });
 

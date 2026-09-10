@@ -158,7 +158,6 @@ const interestingAxes = new Set([
   "row-content-typing",
   "terminal-safe-text",
   "gpu-layer-efficiency",
-  "memory-budget",
   "svg-injection-safety",
   "seo-metadata-quality",
   "bidi-hyphenation",

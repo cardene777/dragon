@@ -1,8 +1,10 @@
 /**
  * visualValidateLaid API での real defect assertion (8th batch)。
  * Axis 37 (row-content-typing) /
- * 38 (terminal-safe-text) / 39 (gpu-layer-efficiency) / 40 (memory-budget) を追加、
+ * 38 (terminal-safe-text) / 39 (gpu-layer-efficiency) / 34 (dom-complexity-budget) を追加、
  * 位置関係 core 32 → 37 に拡張。
+ *
+ * 軸 40 (memory-budget) は cardene777/cdl#775 で削除され、軸 34 へ差し替えた。
  *
  * 発火 logic の一次 source は cdl packages/cdl/src/visual-validate.ts SSOT、
  * 本 test は mutation で「意図的に破綻させて発火」 を確認する negative fixture 経路。
@@ -87,16 +89,42 @@ describe("Axis 39 gpu-layer-efficiency (CdlDiagram input mutation で意図発�
   });
 });
 
-describe("Axis 40 memory-budget (LaidDiagram mutation で意図発火)", () => {
-  it("nodes の w×h を極端に大きくすると memory unit BUDGET 10^6 超過で発火", () => {
-    const diag = baseDiagram();
+/**
+ * 軸 40 (`memory-budget`) の検査は cardene777/cdl#775 で軸ごと削除されたため差し替えた。
+ *
+ * 軸は「図が大きすぎる」 を **箱の面積の合計** で測っており、順位が実物と逆だった
+ * (箱 1 つ・描く物 5 個の縦長の図が超過し、線の折れが 44 ある図が通っていた)。
+ * 描く物の数は軸 34 (`dom-complexity-budget`) が見るので、保証をそちらへ移す。
+ *
+ * **面積では発火しない入力で書く**。 面積で測る形に戻した時に落ちるようにするため、
+ * 箱を小さくして数だけを増やす。
+ */
+describe("Axis 34 dom-complexity-budget (LaidDiagram mutation で意図発火)", () => {
+  it("描く物を境の外まで増やすと発火する (面積は境の内側のまま)", () => {
+    const 箱数 = 420;
+    const diag = baseDiagram({
+      nodes: Array.from({ length: 箱数 }, (_, i) => ({
+        id: `n${i}`,
+        lane: i % 2 === 0 ? "L1" : "L2",
+        stack: Math.floor(i / 2),
+        kind: "card" as const,
+        title: `N${i}`,
+        w: 10,
+        h: 10,
+      })),
+      edges: [],
+    });
     const laid = layout(diag);
-    // node 2 個 × w=1000 × h=1000 = 2×10^6 で BUDGET 10^6 超過
     for (const n of laid.nodes) {
-      n.w = 1000;
-      n.h = 1000;
+      n.w = 10;
+      n.h = 10;
     }
+    // 面積の合計は旧軸 40 の境 (10^6) の内側 = 面積で測る形に戻すと発火しない
+    const 面積 = laid.nodes.reduce((a, n) => a + n.w * n.h, 0);
+    expect(面積, "面積が旧軸の境を超えていると、数で拾えている証拠にならない").toBeLessThan(
+      1_000_000,
+    );
     const report = visualValidateLaid(laid, diag);
-    expect(report.counts["memory-budget"]).toBeGreaterThan(0);
+    expect(report.counts["dom-complexity-budget"]).toBeGreaterThan(0);
   });
 });
