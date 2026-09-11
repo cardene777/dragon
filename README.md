@@ -64,7 +64,7 @@ return <CdlDiagramView diagram={diagram} />;
 
 ## catalog SPA (実例集)
 
-playground SPA (本 repo `apps/playground-spa/`) で 380+ の実例を閲覧。 9 カテゴリ (プリセット / レシピ集 / パターン / 基本要素 / テキスト DSL / アニメーション / パーツ / スタイル / インタラクティブ) で「いつ何のために使うか」 を探索できる。 local 起動 = `pnpm run dev` (http://localhost:4323)。
+playground SPA (本 repo `apps/playground-spa/`) で実例を閲覧。 分類 (プリセット / レシピ集 / パターン / 基本要素 / テキスト記法 / アニメーション / イーサリアム / 図表 / パーツ / スタイル / インタラクティブ) で「いつ何のために使うか」 を探索できる。 local 起動 = `pnpm run dev` (http://localhost:4323)。
 
 ## 思想 (dragon の存在理由)
 
@@ -124,7 +124,7 @@ detail は本 repo `docs/diagram-skills/dragon-diagram-forge/` の各 reference 
 | 層 | dragon (本 repo) | cdl ([リポジトリ](https://github.com/cardene777/cdl)) |
 |---|---|---|
 | **役割** | 記法層 = 人 / LLM 向け DSL parser + catalog SPA | engine = shape 描画 + builder API + layout + render |
-| **提供物** | YAML DSL (人向け) / JSON DSL (LLM 向け) / catalog 380+ 実例 | 49 shape kind / TypeScript builder / layout engine / animation runtime |
+| **提供物** | YAML DSL (人向け) / JSON DSL (LLM 向け) / catalog の実例 | 49 shape kind / TypeScript builder / layout engine / animation runtime |
 | **書く主体** | 人 / LLM が書く | dragon が裏で呼ぶ (人 / LLM は直接触らない前提) |
 | **npm package** | `@cardenelabs/dragon` | `@cardenelabs/cdl` / `@cardenelabs/anim` |
 
@@ -140,7 +140,7 @@ detail は本 repo `docs/diagram-skills/dragon-diagram-forge/` の各 reference 
 - **人向け YAML DSL parser** ... `packages/dragon/src/parser.ts` (現行 v0.4 / v0.5)
 - **LLM 向け JSON DSL** ... `jsonToDiagram` / `validateDragonJson` / `diagramJsonSchema` (JSON Schema Draft 7) を提供、 Claude / GPT の structured output で確実に diagram を生成できる
 - **compile 層** ... YAML / JSON AST → cdl builder call 変換 (`compile.ts`)
-- **catalog SPA** ... 380+ 実例で「どう書けば何が描けるか」 見本 (`apps/playground-spa/`)
+- **catalog SPA** ... 実例で「どう書けば何が描けるか」 見本 (`apps/playground-spa/`)
 - **notation lint** ... 記法 error / 冗長 / 未定義参照 診断 (`notation-lint.ts`)
 
 **cdl 側の SSOT 責任 (dragon は触らない)**。
@@ -172,7 +172,7 @@ animation:
     focus: [API, データベース, "API -> データベース"]
 ```
 
-catalog SPA で 380+ 実例を確認可能、 コピペして応用する使い方が標準。
+catalog SPA で実例を確認可能、 コピペして応用する使い方が標準。
 
 ### 登場人物の書き方
 
@@ -299,7 +299,7 @@ flow:
   - 本 repo が `@cardenelabs/cdl` として consume する engine
 - **dragon** (本 repo)
   - `packages/dragon/` = text DSL parser (`textDslToDiagram`)
-  - `apps/playground-spa/` = Vite + React SPA playground (9 category catalog + editor + preset detail + docs)
+  - `apps/playground-spa/` = Vite + React SPA playground (分類ごとの catalog + editor + preset detail + docs)
 
 ## 構成
 
@@ -312,7 +312,7 @@ dragon/
 │   └── playground-spa/        ... Vite + React 19 + Tailwind 4 SPA
 │       ├── src/
 │       │   ├── pages/         ... HomePage / CategoryPage / EditorPage / PresetDetailPage / DocsPage
-│       │   ├── topics/catalog ... 9 category × 380+ diagram (presets / cookbook / patterns / primitives / text-dsl / animation / parts / styles / interactive)
+│       │   ├── topics/catalog ... 分類ごとの diagram (presets / cookbook / patterns / primitives / text-dsl / animation / ethereum / charts / parts / styles / interactive)
 │       │   ├── lib/           ... CATEGORIES + CATALOG_ITEMS SSOT
 │       │   └── components/    ... CdlEditor / InViewMount / SiteHeader / SvgDefs / Toast
 │       └── tests/             ... Playwright E2E (home / catalog / editor)
