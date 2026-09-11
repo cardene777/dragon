@@ -127,18 +127,6 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     axis: "edge-node-cross",
     理由: "「a → router → c」 の通過を見せる図で、 router を貫くこと自体が意図",
   },
-  {
-    diagramId: "interactive-oauth-flow",
-    axis: "clearance",
-    理由:
-      "名前が 4 枚縦に積まれた列を、 下を回る線が横切る形。" +
-      " 列は 72 world 間隔で積まれ、 線はその 3 枚目の 9 world 上を通る (要求 14)。" +
-      " 名前を下げると隣との隙間 (要求 36) を割り、 上げると線に近づくため engine が動かせない。" +
-      " 試作で隣ごと下げると、 巻き込んだ 4 枚目が自分の弧から 166px 離れて別の破綻 (上限 160px) に変わった。" +
-      " 直すのは engine 側で、 cdl#805 が持つ。" +
-      " cdl#802 (角の丸めの向き) が入るまでは線の突起が名前に重なっており、" +
-      " この軸ではなく別の扱いになっていて表に出ていなかった = 隙間 9 自体は前からある。",
-  },
 ];
 
 function isGatingViolation(v: Violation & { diagramId?: string }): boolean {

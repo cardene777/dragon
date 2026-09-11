@@ -67,10 +67,13 @@ import { at } from "./support/at";
  *     分離していることを座標で固定する (side:"left" に戻すと本 assert が fail する)。
  */
 /**
- * 受け入れている error 1 件 (#1755)。
+ * 受け入れている error の欄 (#1755)。 **今は 1 件も無い**。
  *
  * 「今は 0 件にできない」 ことを書き残す欄で、 **消すのも増やすのも落ちる** 形にする =
  * 直ったのに書き残しが残ると、 その図だけ検知が消える。
+ *
+ * `interactive-oauth-flow` の `clearance` 1 件をここに置いていたが、
+ * 描画エンジン (`cdl#805`) が札の列の積み方を直したので外した (`0.48.0`)。
  *
  * 軸と図の組で照合し、 文面そのものは見ない (数値は engine の版で動く)。
  */
@@ -91,20 +94,7 @@ const FIXED: Array<{ name: string; diagram: CdlDiagram; 受け入れ?: readonly 
   //     cdl#374、 dragon#968)。 lane 間隔は効かない = cdl が label 幅に合わせて自動で広げる
   //   - traffic-sankey ... 縦区間 2 本の間に挟まれた label を横へ 90 逃がす (4 → 0)
   //   - notification-flow ... 同じ高さに並んだ label を縦区間の上へ 120 逃がす (1 → 0)
-  {
-    name: "interactive-oauth-flow",
-    diagram: interactiveOauthFlow,
-    受け入れ: [
-      {
-        axis: "clearance",
-        理由:
-          "4 枚の名前が 72 world 間隔で縦に積まれ、 下を回る線がその 3 枚目の 9 world 上を通る" +
-          " (要求 14)。 名前を下げると隣との隙間 (要求 36) を割り、 上げると線に近づくため" +
-          " engine が動かせない。 試作で隣ごと下げると、 巻き込んだ 4 枚目が自分の弧から" +
-          " 166px 離れて別の破綻 (上限 160px) に変わった。 直すのは engine 側で cdl#805 が持つ。",
-      },
-    ],
-  },
+  { name: "interactive-oauth-flow", diagram: interactiveOauthFlow },
   { name: "interactive-traffic-sankey", diagram: trafficSankey },
   { name: "interactive-exemplar-notification-flow", diagram: exemplarNotificationFlow },
 ];
@@ -382,19 +372,21 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     expect(byLabel).toEqual(byPath);
   });
 
-  it("oauth-flow = 自分の弧から離れているのは束の両端 2 本だけ", () => {
-    // 4 本を 1 列に積むと、 束の外側に出る 2 本は弧から離れる。 1 行 pill (36) にしたことで
-    // 離れる量は 86 に収まり、 破綻 (160 超) にはならない (#376)。 `sub` を戻すと 2 行 pill
-    // (68) になり、 外側が 222 まで離れて破綻する。
+  it("oauth-flow = 自分の弧から離れている札の顔ぶれが変わっていない", () => {
+    // 4 本を 1 列に積むと、 束の外側に出る札は弧から離れる。 1 行 pill (36) にしたことで
+    // 離れる量は破綻 (160 超) に届かない (#376)。 `sub` を戻すと 2 行 pill (68) になり、
+    // 外側が 222 まで離れて破綻する。
     const far = visualValidateAll([interactiveOauthFlow], { profile: "catalog" })
       .reports.flatMap((r) => r.violations)
       .filter((v) => v.axis === "edge-label-proximity")
       .map((v) => /edge "([^"]+)"/.exec(v.detail)?.[1] ?? "?")
       .sort();
-    // 箱の高さを中身から決めるようにして (#1498) 束の積み方が動き、外側に出る 2 本が
-    // `client-consent` から `code-exchange` に入れ替わった。 本数 (2) と warn 止まりは変わらない
+    // 描画エンジンが札の列の積み方を直し (cdl#805、 `0.48.0`)、 4 枚の分かれ方が
+    // 上 1 枚 / 下 3 枚 から 上 2 枚 / 下 2 枚 になった。 80 を越える札は 2 枚から 3 枚に
+    // 増えたが、 最も遠い札は 158 から 130 に縮んでいる (超過量の合計は 116 から 70)。
     expect(far, "自分の弧から離れている label の顔ぶれが変わった").toEqual([
-      "code-exchange",
+      "client-consent",
+      "consent-client",
       "token-issue",
     ]);
     // 破綻していない = 全て warn 止まり
@@ -444,9 +436,9 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     // ±45 では 0 件だが `2. consent screen` に 1 文字足すと 5 件戻った。 文言の修正や翻訳で
     // 崩れる配置は「たまたま今の文字数で成立している」 だけなので、 1 文字分の余裕を固定する。
     //
-    // **基準は 0 件ではなく「いまの顔ぶれ」** (#1755)。 engine の角の直し (cdl#802) で
-    // `clearance` 1 件を受け入れているため、 0 件を求めると 1 文字と無関係に落ちる。
-    // 顔ぶれの一致で見れば、 1 文字で増える形は今までどおり落ちる。
+    // **基準は「いまの顔ぶれ」** (#1755)。 受け入れた error があると 0 件は 1 文字と
+    // 無関係に落ちるため、 顔ぶれの一致で見る。 受け入れが空の今は 0 件と同じ意味になり、
+    // 受け入れが増えた時も 1 文字で増える形だけを拾う。
     const 軸 = (d: CdlDiagram): string[] =>
       (visualValidateAll([d], { profile: "catalog" }).reports[0]?.violations ?? [])
         .filter((v) => v.severity === "error")
