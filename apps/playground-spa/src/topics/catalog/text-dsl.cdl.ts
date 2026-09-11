@@ -10,7 +10,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 
 // ─── sequence + animation (API call フロー) ─────
 export const sourceYaml__textDslSequence = `
-title: "時系列のやり取りを Text DSL で書く例"
+title: "時系列のやり取りを書く例"
 type: sequence
 
 actors:
@@ -45,7 +45,7 @@ animation:
 export const textDslSequence = textDslToDiagram(sourceYaml__textDslSequence);
 
 export const sourceJson__textDslSequence = `{
-  "title": "時系列のやり取りを Text DSL で書く例",
+  "title": "時系列のやり取りを書く例",
   "type": "sequence",
   "actors": [
     {
@@ -181,7 +181,7 @@ export const pattern__textDslSequence__説明つき = textDslToDiagram(
 
 // ─── flow + animation (認証フロー) ─────
 export const sourceYaml__textDslFlow = `
-title: "認証フロー (DSL)"
+title: "認証の流れ"
 type: flow
 
 actors:
@@ -213,7 +213,7 @@ animation:
 export const textDslFlow = textDslToDiagram(sourceYaml__textDslFlow);
 
 export const sourceJson__textDslFlow = `{
-  "title": "認証フロー (DSL)",
+  "title": "認証の流れ",
   "type": "flow",
   "actors": [
     {
@@ -281,7 +281,7 @@ export const sourceJson__textDslFlow = `{
 
 // ─── swimlane + animation (並列処理) ─────
 export const sourceYaml__textDslSwimlane = `
-title: "並列処理 (DSL)"
+title: "同時に走らせる処理"
 type: swimlane
 
 actors:
@@ -306,7 +306,7 @@ animation:
 export const textDslSwimlane = textDslToDiagram(sourceYaml__textDslSwimlane);
 
 export const sourceJson__textDslSwimlane = `{
-  "title": "並列処理 (DSL)",
+  "title": "同時に走らせる処理",
   "type": "swimlane",
   "actors": [
     {
@@ -360,7 +360,7 @@ export const sourceJson__textDslSwimlane = `{
 
 // ─── state + animation (FSM) ─────
 export const sourceYaml__textDslStateMachine = `
-title: "認証 FSM (DSL)"
+title: "認証の状態遷移"
 type: state
 
 actors:
@@ -395,7 +395,7 @@ animation:
 export const textDslStateMachine = textDslToDiagram(sourceYaml__textDslStateMachine);
 
 export const sourceJson__textDslStateMachine = `{
-  "title": "認証 FSM (DSL)",
+  "title": "認証の状態遷移",
   "type": "state",
   "actors": [
     {
@@ -475,7 +475,7 @@ export const sourceJson__textDslStateMachine = `{
 
 // ─── topology + animation (システム構成) ─────
 export const sourceYaml__textDslTopology = `
-title: "System (DSL)"
+title: "系の構成"
 type: topology
 
 actors:
@@ -500,7 +500,7 @@ animation:
 export const textDslTopology = textDslToDiagram(sourceYaml__textDslTopology);
 
 export const sourceJson__textDslTopology = `{
-  "title": "System (DSL)",
+  "title": "系の構成",
   "type": "topology",
   "actors": [
     {
@@ -552,7 +552,7 @@ export const sourceJson__textDslTopology = `{
 
 // ─── er + animation (ER 図) ─────
 export const sourceYaml__textDslEr = `
-title: "スキーマ (DSL)"
+title: "表と関係の設計"
 type: er
 # 順番を持たない図なので、触れた箱の関係を光らせる (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
@@ -581,7 +581,7 @@ animation:
 export const textDslEr = textDslToDiagram(sourceYaml__textDslEr);
 
 export const sourceJson__textDslEr = `{
-  "title": "スキーマ (DSL)",
+  "title": "表と関係の設計",
   "type": "er",
   "relations": "hover",
   "reveal": "all",
@@ -791,7 +791,7 @@ export const sourceJson__textDslErMesh = `{
 
 // ─── gantt preset (Q1-Q3 ロードマップ) ─────
 export const sourceYaml__textDslGantt = `
-title: "四半期ロードマップを Text DSL で書く例"
+title: "四半期の計画を書く例"
 type: gantt
 
 actors:
@@ -825,7 +825,7 @@ animation:
 export const textDslGantt = textDslToDiagram(sourceYaml__textDslGantt);
 
 export const sourceJson__textDslGantt = `{
-  "title": "四半期ロードマップを Text DSL で書く例",
+  "title": "四半期の計画を書く例",
   "type": "gantt",
   "actors": [
     {
@@ -896,7 +896,7 @@ export const sourceJson__textDslGantt = `{
 
 // ─── class preset (UML class diagram 風) ─────
 export const sourceYaml__textDslClass = `
-title: "UML class (DSL)"
+title: "クラスの関係"
 type: flow
 
 actors:
@@ -921,7 +921,7 @@ animation:
 export const textDslClass = textDslToDiagram(sourceYaml__textDslClass);
 
 export const sourceJson__textDslClass = `{
-  "title": "UML class (DSL)",
+  "title": "クラスの関係",
   "type": "flow",
   "actors": [
     {
@@ -973,7 +973,7 @@ export const sourceJson__textDslClass = `{
 
 // ─── pie preset (シェア円グラフ) ─────
 export const sourceYaml__textDslPie = `
-title: "内訳の割合を Text DSL で書く例"
+title: "内訳の割合を書く例"
 type: pie
 
 actors:
@@ -998,7 +998,7 @@ animation:
 export const textDslPie = textDslToDiagram(sourceYaml__textDslPie);
 
 export const sourceJson__textDslPie = `{
-  "title": "内訳の割合を Text DSL で書く例",
+  "title": "内訳の割合を書く例",
   "type": "pie",
   "actors": [
     {
@@ -1048,7 +1048,7 @@ export const sourceJson__textDslPie = `{
 
 // ─── c4 preset (system context) ─────
 export const sourceYaml__textDslC4 = `
-title: "C4 (DSL)"
+title: "C4 の系統図"
 type: c4
 
 actors:
@@ -1074,7 +1074,7 @@ animation:
 export const textDslC4 = textDslToDiagram(sourceYaml__textDslC4);
 
 export const sourceJson__textDslC4 = `{
-  "title": "C4 (DSL)",
+  "title": "C4 の系統図",
   "type": "c4",
   "actors": [
     {
@@ -1139,7 +1139,7 @@ export const sourceJson__textDslC4 = `{
 
 // ─── mind preset (放射状 mind map) ─────
 export const sourceYaml__textDslMind = `
-title: "アイデア DSL (中心 + 放射の枝)"
+title: "思いつきの枝分かれ"
 type: mind
 
 states:
@@ -1170,7 +1170,7 @@ animation:
 export const textDslMind = textDslToDiagram(sourceYaml__textDslMind);
 
 export const sourceJson__textDslMind = `{
-  "title": "アイデア DSL (中心 + 放射の枝)",
+  "title": "思いつきの枝分かれ",
   "type": "mind",
   "actors": [
     {
