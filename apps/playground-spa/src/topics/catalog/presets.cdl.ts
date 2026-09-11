@@ -572,7 +572,7 @@ const erComplex = er({
   .relation({
     from: "users",
     to: "addresses",
-    label: "住む",
+    label: "登録する",
     style: "dashed",
     tailHead: "one",
     head: "zero-many",
@@ -1842,7 +1842,7 @@ actors:
   - inventory: { kind: storage, subtitle: "在庫", lane: er-col-2, stack: 3, rows: ["product_id: bigint", "qty: int"], marks: ["pk fk", ""] }
 
 flow:
-  - users -> addresses: "住む" (info, dashed) { tailHead: one, head: zero-many }
+  - users -> addresses: "登録する" (info, dashed) { tailHead: one, head: zero-many }
   - users -> orders: "注文する" (info, solid) { tailHead: one, head: many }
   - users -> user_roles: "持つ" (info, solid) { tailHead: one, head: many }
   - roles -> user_roles: "割り当てる" (info, solid) { tailHead: one, head: many }
@@ -1923,7 +1923,7 @@ export const sourceJson__presetErComplex = JSON.stringify(
       { name: "inventory", kind: "storage", subtitle: "在庫", lane: "er-col-2", stack: 3, rows: ["product_id: bigint", "qty: int"], marks: ["pk fk", ""] },
     ],
     flow: [
-      { from: "users", to: "addresses", label: "住む", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
+      { from: "users", to: "addresses", label: "登録する", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
       { from: "users", to: "orders", label: "注文する", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "users", to: "user_roles", label: "持つ", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "roles", to: "user_roles", label: "割り当てる", tone: "info", style: "solid", tailHead: "one", head: "many" },
