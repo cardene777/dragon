@@ -219,6 +219,17 @@
   color: var(--d-text-secondary);
 }
 
+/* 説明文の中の行き先 (#1806)。 地の文と同じ見た目だと押せることが伝わらない */
+.nm-preset-subtitle a {
+  color: var(--d-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.nm-preset-subtitle a:hover {
+  text-decoration-thickness: 2px;
+}
+
 .nm-preset-card-foot {
   display: flex;
   align-items: center;
