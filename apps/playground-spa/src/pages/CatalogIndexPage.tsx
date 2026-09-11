@@ -29,7 +29,7 @@ export function CatalogIndexPage(): React.ReactElement {
           </nav>
           <h1 className="catalog-title">カタログ</h1>
           <p className="catalog-desc">
-            dragon DSL の各要素を {CATEGORIES.length} カテゴリで整理。 各カテゴリのページで検索 + プレビュー + エディタで開く操作ができる。
+            dragon のテキスト記法の各要素を {CATEGORIES.length} カテゴリで整理。 各カテゴリのページで検索 + プレビュー + エディタで開く操作ができる。
             合計 {totalItems} 件の要素 + {CATEGORIES.length} カテゴリ。
           </p>
         </div>

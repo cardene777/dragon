@@ -14,8 +14,13 @@
  * 字を直に書いた札しか見ない検査からは候補ごと消える。 消えた分だけ検査は素通りするので、
  * 切り替えの形も拾って日本語の側を見る。
  *
- * 式で書かれていて読めない札は未解決として数え、件数と中身を出す。 いま 1 件あり、
- * 見本帳の分類名 (`PresetDetailPage.tsx` の `{preset.eyebrow}`) で、`presets.test.ts` が見ている。
+ * 式で書かれていて読めない札は未解決として数え、件数と中身を検査が出す。 **件数をここに書かない** =
+ * 札が増減するたびにずれる (#1806 で 1 件増えた時、ここは 1 件のままだった)。
+ * 読めない札はそれぞれ別の検査が値を見ており、分類名は `presets.test.ts`、
+ * 見本の数は `release-notes-count.test.tsx` が持つ。
+ *
+ * 文の側は差し込み (`{件数}`) を **文の一部** として読む (#1809)。 切れ目として扱うと、
+ * 差し込みの後ろに続く字が候補から丸ごと外れる。
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -127,56 +132,126 @@ export function コメントと見本を外す(src: string): string {
 }
 
 /**
+ * 差し込み (`{件数}` / `{isJa ? "あ" : "い"}`)。 入れ子は 1 段まで取る。
+ *
+ * 逆引用符を含む差し込みは `コメントと見本を外す` が先に中身を空にするので、
+ * ここでは中括弧の対だけを見れば足りる。
+ */
+const 差し込み = /\{(?:[^{}]|\{[^{}]*\})*\}/;
+
+/**
+ * `>` から `<` までの区間。 **差し込みを含む文も 1 つの区間として取る** (#1809)。
+ *
+ * 差し込みを区間の切れ目として扱うと、差し込みの後ろに続く字が候補から丸ごと外れる。
+ * 実測で 11 件の文がこの形で外れており、その 1 つが英語を残したまま通っていた。
+ */
+const 要素の中身 = />((?:[^<>{}]|\{(?:[^{}]|\{[^{}]*\})*\})+)</g;
+
+/**
  * 画面に出る日本語の文を拾う。
  *
  * **class の一覧を手で並べない**。 並べた時の数が上限になり、後から足した文が無防備に増える。
  * 中身から導く = 日本語を含む字はすべて画面に出る文とみなす。
+ *
+ * 差し込みそのものは値が入る所なので字としては読まず、前後の地の字に割る。
  */
-export function 日本語の文を拾う(src: string): { 文: string[]; コード風: number } {
+export function 日本語の文を拾う(src: string): {
+  文: string[];
+  コード風: number;
+  差し込み入り: number;
+} {
   const s = コメントと見本を外す(src);
   const 素: string[] = [];
-  for (const m of s.matchAll(/>([^<>{}]+)</g)) 素.push(m[1]!.trim());
+  let 差し込み入り = 0;
+  for (const m of s.matchAll(要素の中身)) {
+    const 中身 = m[1]!;
+    if (差し込み.test(中身)) 差し込み入り += 1;
+    for (const 片 of 中身.split(差し込み)) 素.push(片.trim());
+  }
   for (const m of s.matchAll(/"([^"\\\n]*)"/g)) 素.push(m[1]!.trim());
   const 日本語を含む = 素.filter((t) => 日本語の字.test(t));
   // 型の指定 (`useState<string | null>(null)`) が `>` と `<` に挟まれて拾われる。
-  // 打ち終わりか代入を含む字はコードとみなして外し、外した件数を出す
-  const 文 = 日本語を含む.filter((t) => !/[;=]/.test(t));
-  return { 文, コード風: 日本語を含む.length - 文.length };
+  // 打ち終わりを含む字はコードとみなして外し、外した件数を出す。
+  //
+  // **等号は外す理由にしない** (#1809)。 画面に出る字にも等号は出る
+  // (`1 PR = 1 つの主題` / `hash に #d=<base64url> が無い` の 2 件が黙って落ちていた)。
+  // 等号を条件から外してもコードは 1 件も漏れない (実測)
+  const 文 = 日本語を含む.filter((t) => !/;/.test(t));
+  return { 文, コード風: 日本語を含む.length - 文.length, 差し込み入り };
 }
 
 // ─── 走査 ───
 
-function 画面のfile一覧(): string[] {
-  return readdirSync(画面の置き場).filter((f) => f.endsWith(".tsx") && !f.includes(".test."));
+/** 経路を並べている file。 どの画面が公開ビルドに出るかはここが決める */
+const 経路のfile = fileURLToPath(new URL("../main.tsx", import.meta.url));
+
+/**
+ * 開発時だけ登録される画面の file 名を、経路の並びから導く (#1809)。
+ *
+ * **file 名を手で並べない**。 並べると、後から足した開発用の画面が候補に残って
+ * 「画面の字に英語がある」 と読める形で落ちる。
+ *
+ * 探す形は `import.meta.env.DEV` と同じ行に書かれた経路で、その要素の名前を file 名にする。
+ */
+export function 開発時だけの画面(経路: string): string[] {
+  return [...経路.matchAll(/import\.meta\.env\.DEV[^\n]*<Route[^\n]*element=\{<(\w+)\s*\/>\}/g)].map(
+    (m) => `${m[1]!}.tsx`,
+  );
 }
 
-function 全画面の添え字(): { list: 添え字[]; file数: number } {
-  const files = 画面のfile一覧();
+interface 走査の内訳 {
+  対象: number;
+  走査: number;
+  除外: string[];
+}
+
+function 画面のfile一覧(): { files: string[]; 内訳: 走査の内訳 } {
+  const 全部 = readdirSync(画面の置き場).filter(
+    (f) => f.endsWith(".tsx") && !f.includes(".test."),
+  );
+  const 外す = new Set(開発時だけの画面(readFileSync(経路のfile, "utf8")));
+  const files = 全部.filter((f) => !外す.has(f));
+  return {
+    files,
+    内訳: { 対象: 全部.length, 走査: files.length, 除外: 全部.filter((f) => 外す.has(f)) },
+  };
+}
+
+function 全画面の添え字(): { list: 添え字[]; 内訳: 走査の内訳 } {
+  const { files, 内訳 } = 画面のfile一覧();
   const list = files.flatMap((f) => 添え字を拾う(readFileSync(画面の置き場 + f, "utf8"), f));
-  return { list, file数: files.length };
+  return { list, 内訳 };
 }
 
-function 全画面の文(): { 文: { file: string; 字: string }[]; file数: number; コード風: number } {
-  const files = 画面のfile一覧();
+function 全画面の文(): {
+  文: { file: string; 字: string }[];
+  内訳: 走査の内訳;
+  コード風: number;
+  差し込み入り: number;
+} {
+  const { files, 内訳 } = 画面のfile一覧();
   const 文: { file: string; 字: string }[] = [];
   let コード風 = 0;
+  let 差し込み入り = 0;
   for (const f of files) {
     const r = 日本語の文を拾う(readFileSync(画面の置き場 + f, "utf8"));
     for (const 字 of r.文) 文.push({ file: f, 字 });
     コード風 += r.コード風;
+    差し込み入り += r.差し込み入り;
   }
-  return { 文, file数: files.length, コード風 };
+  return { 文, 内訳, コード風, 差し込み入り };
 }
 
 describe("画面の分類名と札 (#1785)", () => {
   it("拾えた添え字の内訳を出す", () => {
-    const { list, file数 } = 全画面の添え字();
-    expect(file数, "画面 file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(5);
+    const { list, 内訳 } = 全画面の添え字();
+    expect(内訳.走査, "画面 file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(5);
     const 読めた = list.filter((a) => a.字 !== null);
     const 未解決 = list.filter((a) => a.字 === null);
     // 内訳を出さないと、候補から消えた札が「該当なし」 と同じに見える
     console.log(
-      `[添え字] file=${file数} 拾えた=${list.length} 読めた=${読めた.length} 未解決=${未解決.length}` +
+      `[添え字] 対象=${内訳.対象} 走査=${内訳.走査} 除外=${内訳.除外.join(",") || "なし"}` +
+        ` 拾えた=${list.length} 読めた=${読めた.length} 未解決=${未解決.length}` +
         (未解決.length > 0 ? `\n  未解決: ${未解決.map((a) => `${a.file}: ${a.生}`).join(" / ")}` : ""),
     );
     expect(list.length, "添え字を 1 件も拾えていない (検査が空振りしている)").toBeGreaterThan(20);
@@ -215,12 +290,20 @@ describe("画面の分類名と札 (#1785)", () => {
 
 describe("画面の日本語の文 (#1787)", () => {
   it("拾えた文の内訳を出す", () => {
-    const { 文, file数, コード風 } = 全画面の文();
-    expect(file数, "画面 file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(5);
-    console.log(`[日本語の文] file=${file数} 拾えた=${文.length} 外した(コード風)=${コード風}`);
+    const { 文, 内訳, コード風, 差し込み入り } = 全画面の文();
+    expect(内訳.走査, "画面 file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(5);
+    // 除外は「開発時だけ登録する画面」 で、公開ビルドに出ないため読み手が見る字を持たない。
+    // 名前を手で並べず経路 (`main.tsx`) から導くので、足しても消しても内訳が追従する
+    console.log(
+      `[日本語の文] 対象=${内訳.対象} 走査=${内訳.走査} 除外=${内訳.除外.join(",") || "なし"}` +
+        ` 拾えた=${文.length} 外した(コード風)=${コード風} 差し込み入りの区間=${差し込み入り}`,
+    );
     // 下限は空振りを止めるための値で、今の件数ではない (実数は上の行に出す)。
     // 今の件数に合わせると、字を変数に替えただけの変更で「拾えていない」 と読める形で落ちる (#1805)
     expect(文.length, "日本語の文を 1 件も拾えていない (検査が空振りしている)").toBeGreaterThan(100);
+    // 差し込みを含む区間を 1 つも拾えていないなら、#1809 で直した経路が死んでいる。
+    // 件数ではなく「その形を見ているか」 を見るので、下限は 1 に置く
+    expect(差し込み入り, "差し込みを含む区間を 1 つも拾えていない (#1809 の経路が死んでいる)").toBeGreaterThan(0);
   });
 
   it("日本語の文に英語の語が残っていない", () => {
@@ -254,6 +337,62 @@ describe("画面の日本語の文 (#1787)", () => {
     expect(外した, "塊のコメントを外せていない").not.toContain("命令は実物に合わせる");
     const { 文 } = 日本語の文を拾う(src);
     expect(文, "画面に出る字まで外している").toContain("参加のしかた · みんなで作る");
+  });
+
+  it("除外する画面を経路から導けている (#1809)", () => {
+    const { 内訳 } = 全画面の文();
+    // 除外した名前が実在しなければ、導き方が何にも当たっていない
+    const 実在 = readdirSync(画面の置き場);
+    for (const f of 内訳.除外) expect(実在, `除外した画面が無い: ${f}`).toContain(f);
+    expect(内訳.対象 - 内訳.走査, "除外の数と内訳が合わない").toBe(内訳.除外.length);
+
+    // 植え込み対照 = 開発時の分岐を持つ経路から名前を取れる
+    expect(
+      開発時だけの画面(`{import.meta.env.DEV && <Route path="/__x" element={<XPage />} />}`),
+    ).toEqual(["XPage.tsx"]);
+    // 対象外の対照 = 分岐を持たない経路は外さない
+    expect(開発時だけの画面(`<Route path="/docs" element={<DocsPage />} />`)).toEqual([]);
+  });
+
+  it("等号を含む画面の字を母集団に残す (収容対照、#1809)", () => {
+    // 等号だけでコードとみなすと、画面に出る字が黙って候補から消える
+    const { 文 } = 全画面の文();
+    const 該当 = 文.filter((t) => t.字 === "1 PR = 1 つの主題");
+    expect(該当, "等号を含む画面の字が母集団から消えている").toHaveLength(1);
+    // 打ち終わりを持つコードは今までどおり外す
+    expect(日本語の文を拾う(`const 件数 = 1;`).文).toEqual([]);
+  });
+
+  it("差し込みを含む文を拾える (植え込み対照、#1809)", () => {
+    // 差し込みを切れ目として扱うと、後ろに続く字が丸ごと候補から消えて検査が素通りする
+    const 元 = `<p className="d">dragon の記法を {N} 分類で整理。 各分類の頁で開ける。</p>`;
+    expect(日本語の文を拾う(元).文, "差し込みの前後を拾えていない").toEqual([
+      "dragon の記法を",
+      "分類で整理。 各分類の頁で開ける。",
+    ]);
+    expect(日本語の文を拾う(元).差し込み入り, "差し込みを含む区間を数えていない").toBe(1);
+
+    // 差し込みの後ろに英語が残っていれば拾える
+    const 英語 = `<p className="d">dragon DSL を {N} 分類で整理。 各分類は merge できる。</p>`;
+    const 残る = 日本語の文を拾う(英語).文.flatMap((t) => 残る英単語(t));
+    expect(残る).toEqual(["DSL", "merge"]);
+  });
+
+  it("差し込みを含まない文の拾い方は変わらない (対象外の対照、#1809)", () => {
+    const 元 = `<p className="d">差し込みを持たない文。</p>`;
+    expect(日本語の文を拾う(元).文).toEqual(["差し込みを持たない文。"]);
+    expect(日本語の文を拾う(元).差し込み入り).toBe(0);
+    // 型の指定は `<` と `>` の向きが逆なので区間にならない。 打ち終わりを持つ字も外す
+    const コード = `const [倍率, set倍率] = useState<string | null>(null);\nconst 件数 = 1;`;
+    expect(日本語の文を拾う(コード).文, "コードを画面の文として拾っている").toEqual([]);
+  });
+
+  it("直した文が母集団に残る (収容対照、#1809)", () => {
+    // 直すと候補から消える探し方だと、直した file を 1 件も見ていないのと同じになる
+    const { 文 } = 全画面の文();
+    const 該当 = 文.filter((t) => t.字.startsWith("dragon のテキスト記法の各要素を"));
+    expect(該当, "英語を直した文が母集団から消えている").toHaveLength(1);
+    expect(残る英単語(該当[0]!.字), "直した文に英語が残っている").toEqual([]);
   });
 
   it("英語の混ざる文を拾える (植え込み対照)", () => {
