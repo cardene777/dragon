@@ -3241,7 +3241,7 @@ const FLOW_INLINE_READERS = {
   // 出どころ側の端の形 (#1466)。 ER は端ごとに違う個数を示すので両端に要る
   tailHead: (v: string | undefined) =>
     v !== undefined && EDGE_HEAD_VALUES.includes(v) ? (v as EdgeHead) : undefined,
-  // 端の印の塗り (#1466)。 白抜きの菱が「持つ」、塗った菱が「抱える」
+  // 端の印の塗り (#1466)。 白抜きの菱が集約、塗った菱がコンポジション
   headFill: (v: string | undefined) =>
     v !== undefined && EDGE_HEAD_FILL_VALUES.includes(v) ? (v as EdgeHeadFill) : undefined,
   tailHeadFill: (v: string | undefined) =>

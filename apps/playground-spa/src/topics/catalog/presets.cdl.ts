@@ -352,7 +352,7 @@ export const presetTopology = withSteps(topo.build(), [
 
 // er preset ... ER 図 (設計「箱と行と関係」 の意匠)
 //
-// `users` が `orders` を出し、`orders` が `order_items` を抱える。 `users` は自分自身を
+// `users` が `orders` を注文し、`orders` が `order_items` を明細として持つ。 `users` は自分自身を
 // 上司として持つ (上司も利用者なので `manager_id` は `users` を指す)。
 //
 // **端の印は両端に付く**。 クラス図の印は「どちらが親か」 のような関係そのものの性質を指す
@@ -396,7 +396,7 @@ const presetErSteps = withSteps(
         { name: "qty", type: "int" },
       ],
     })
-    // 識別しない = 破線。 子は自分の鍵を持ち、親はただの参照先。 1 人が 0 件以上を出す
+    // 識別しない = 破線。 子は自分の鍵を持ち、親はただの参照先。 1 人の利用者が 0 件以上の注文をする
     .relation({
       from: "users",
       to: "orders",
@@ -427,12 +427,12 @@ const presetErSteps = withSteps(
     { ids: ["users"], title: "1. users 表", body: "主キーは名前に下線。 印は形 × 塗りの 2 軸。" },
     {
       ids: ["orders", "rel-0-users-orders"],
-      title: "2. 注文を出す",
-      body: "破線は識別しない関係。 1 人が 0 件以上を出す。",
+      title: "2. 注文する",
+      body: "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。",
     },
     {
       ids: ["order_items", "rel-1-orders-order_items"],
-      title: "3. 明細を抱える",
+      title: "3. 明細を持つ",
       body: "実線は識別する関係。 親の鍵が子の鍵に入る。",
     },
     {
@@ -578,7 +578,7 @@ const erComplex = er({
     head: "zero-many",
   })
   .relation({ from: "users", to: "orders", label: "注文する", tailHead: "one", head: "many" })
-  .relation({ from: "users", to: "user_roles", label: "持つ", tailHead: "one", head: "many" })
+  .relation({ from: "users", to: "user_roles", label: "役割を持つ", tailHead: "one", head: "many" })
   .relation({ from: "roles", to: "user_roles", label: "割り当てる", tailHead: "one", head: "many" })
   .relation({ from: "orders", to: "order_items", label: "含む", tailHead: "one", head: "many" })
   .relation({
@@ -592,7 +592,7 @@ const erComplex = er({
   .relation({
     from: "orders",
     to: "shipments",
-    label: "送る",
+    label: "発送する",
     style: "dashed",
     tailHead: "one",
     head: "zero-one",
@@ -613,26 +613,26 @@ const erComplex = er({
     tailHead: "one",
     head: "zero-many",
   })
-  .relation({ from: "products", to: "order_items", label: "明細に載る", tailHead: "one", head: "many" })
+  .relation({ from: "products", to: "order_items", label: "注文される", tailHead: "one", head: "many" })
   .relation({ from: "products", to: "inventory", label: "在庫を持つ", tailHead: "one", head: "one" })
   .relation({
     from: "products",
     to: "product_categories",
-    label: "属す",
+    label: "属する",
     tailHead: "one",
     head: "many",
   })
   .relation({
     from: "categories",
     to: "product_categories",
-    label: "束ねる",
+    label: "商品を含む",
     tailHead: "one",
     head: "many",
   })
   .relation({
     from: "categories",
     to: "categories",
-    label: "親を持つ",
+    label: "下位分類を持つ",
     style: "dashed",
     tailHead: "one",
     head: "zero-many",
@@ -665,7 +665,7 @@ const presetErComplexSteps = withSteps(
     {
       ids: ["users", "orders", "rel-1-users-orders"],
       title: "1. 利用者が注文する",
-      body: "1 人が 1 件以上を出す。 端の棒と鳥の足で数を読む。",
+      body: "1 人の利用者が 1 件以上の注文をする。 端の棒と鳥の足で数を読む。",
     },
     {
       ids: ["order_items", "products", "rel-4-orders-order_items", "rel-9-products-order_items"],
@@ -684,13 +684,13 @@ const presetErComplexSteps = withSteps(
         "rel-11-products-product_categories",
         "rel-12-categories-product_categories",
       ],
-      title: "4. 分類で束ねる",
+      title: "4. 商品を分類する",
       body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。",
     },
     {
       ids: ["roles", "rel-13-categories-categories"],
-      title: "5. 分類が分類を指す",
-      body: "破線で同じ表へ戻る。 親を持たない分類もある。",
+      title: "5. 分類の親子",
+      body: "破線で同じ表へ戻る。 親を持たない最上位の分類もある。",
     },
     {
       ids: ["user_roles", "rel-2-users-user_roles", "rel-3-roles-user_roles"],
@@ -699,7 +699,7 @@ const presetErComplexSteps = withSteps(
     },
     {
       ids: ["addresses", "rel-0-users-addresses"],
-      title: "7. 住所を持つ",
+      title: "7. 住所を登録する",
       body: "破線は識別しない関係。 丸い端が 0 件を許す。",
     },
     {
@@ -839,13 +839,13 @@ export const presetInfrastructure = withSteps(
 // 勝って 6 本とも同じ色になる。 記法 3 形とも書かない形で揃える。
 //
 //   段 0   User        Auditable
-//   段 1   Admin ──持つ── Order ──使う── Receipt
-//   段 2               Line ──結ぶ── Sku
+//   段 1   Admin ──集約── Order ──依存── Receipt
+//   段 2               Line ──関連── Sku
 const presetClassDiagramSteps = withSteps(
   // 配色は生成りに茶 (#1567)。 クラス図の箱は ER 図と同じ作り (行頭の印 + 左に名前 +
   // 右に型) で、名前と型が離れて並ぶ。 縞の色は配色から取るので、書かないと縞が箱の面と
   // 同じ色になって出ない
-  classDiagram({ id: "class-demo", topic: "クラスの継承・保有関係を示す UML 図", palette: "kinari" })
+  classDiagram({ id: "class-demo", topic: "クラスどうしの 6 種の関係を示す UML クラス図", palette: "kinari" })
     .class({
       id: "User",
       title: "User",
@@ -901,42 +901,42 @@ const presetClassDiagramSteps = withSteps(
       attributes: ["+code: string", "+name: string"],
     })
     // 線 / 印の形 / 印の塗り / 印が付く側 は種類から決まる (`CLASS_RELATION_LOOK`)。
-    // 継ぐ = 実線 + 白抜きの三角が親の側 / 満たす = 破線 + 白抜きの三角 /
-    // 持つ = 実線 + 白抜きの菱が持ち主の側 / 抱える = 菱を塗る /
-    // 結ぶ = 実線 + 開いた矢 / 使う = 破線 + 開いた矢
-    .relation({ from: "Admin", to: "User", type: "extends", label: "継ぐ" })
-    .relation({ from: "Order", to: "Auditable", type: "implements", label: "満たす" })
-    .relation({ from: "Admin", to: "Order", type: "aggregates", label: "持つ", cardinality: "1..*", tailCardinality: "1" })
-    .relation({ from: "Order", to: "Receipt", type: "uses", label: "使う" })
-    .relation({ from: "Order", to: "Line", type: "composes", label: "抱える", cardinality: "1..*", tailCardinality: "1" })
-    .relation({ from: "Line", to: "Sku", type: "associates", label: "結ぶ" })
+    // 継承 = 実線 + 白抜きの三角が親の側 / 実装 = 破線 + 白抜きの三角 /
+    // 集約 = 実線 + 白抜きの菱が全体の側 / コンポジション = 菱を塗る /
+    // 関連 = 実線 + 開いた矢 / 依存 = 破線 + 開いた矢
+    .relation({ from: "Admin", to: "User", type: "extends", label: "継承" })
+    .relation({ from: "Order", to: "Auditable", type: "implements", label: "実装" })
+    .relation({ from: "Admin", to: "Order", type: "aggregates", label: "集約", cardinality: "1..*", tailCardinality: "1" })
+    .relation({ from: "Order", to: "Receipt", type: "uses", label: "依存" })
+    .relation({ from: "Order", to: "Line", type: "composes", label: "コンポジション", cardinality: "1..*", tailCardinality: "1" })
+    .relation({ from: "Line", to: "Sku", type: "associates", label: "関連" })
     .build(),
   [
-    { ids: ["User"], title: "1. User", body: "基になるクラス。" },
+    { ids: ["User"], title: "1. User", body: "抽象クラス。 直接は作らず、Admin が継承して使う。" },
     {
       ids: ["Admin", "cr-0-Admin-User"],
-      title: "2. 継ぐ",
-      body: "実線に白抜きの三角。 三角は親の側に付く。",
+      title: "2. 継承",
+      body: "実線に白抜きの三角。 三角は親クラスの側に付く。",
     },
     {
       ids: ["Auditable", "Order", "cr-1-Order-Auditable"],
-      title: "3. 満たす",
-      body: "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。",
+      title: "3. 実装",
+      body: "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。",
     },
     {
       ids: ["cr-2-Admin-Order"],
-      title: "4. 持つ",
-      body: "実線に白抜きの菱。 菱は持ち主の側に付く。 相手は単独でも生きる。",
+      title: "4. 集約",
+      body: "実線に白抜きの菱。 菱は全体の側に付く。 部分は全体が無くなっても残る。",
     },
     {
       ids: ["Line", "cr-4-Order-Line"],
-      title: "5. 抱える",
-      body: "菱を塗ると命が同じになる。 持ち主が消えると中身も消える。",
+      title: "5. コンポジション",
+      body: "菱を塗る。 部分の寿命は全体と同じで、全体を消すと部分も消える。",
     },
     {
       ids: ["Sku", "Receipt", "cr-5-Line-Sku", "cr-3-Order-Receipt"],
-      title: "6. 結ぶ・使う",
-      body: "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。",
+      title: "6. 関連と依存",
+      body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。",
     },
   ],
 );
@@ -945,7 +945,7 @@ export const presetClassDiagram = 触れて読む(presetClassDiagramSteps);
 
 // 同じ辺に 2 本以上の関係が付くと、@cardenelabs/cdl が全ての線を辺の中点へ寄せる
 // (`layout/edges.ts` の offset 0) ため、辺から最初の折れまでが必ず重なる。
-// 5 本の関係を持つ Transaction は 4 辺へ割り振れないので、同色の「結ぶ」と「使う」を
+// 5 本の関係を持つ Transaction は 4 辺へ割り振れないので、同色の「関連」と「依存」を
 // 1 辺へ寄せ、残る 3 本を上・左・下へ散らしている。
 //
 // 箱の置き場所は数え上げで決めた。 満たすべきは 5 つで、いずれも `edge-geometry.test.ts` が
@@ -953,12 +953,12 @@ export const presetClassDiagram = 触れて読む(presetClassDiagramSteps);
 // 30px 未満の直線区間が無い / 札が別の関係の線に乗らない)。
 //
 // **札の条件は後から足した** (#1608)。 先に入れた配置 (カード払いを c2、財布払いを c3 に
-// 置いた形) は線と線しか見ておらず、カード払いが継ぐ線と財布払いが満たす線が同じ区画で
+// 置いた形) は線と線しか見ておらず、カード払いの継承の線と財布払いの実装の線が同じ区画で
 // 交差して、両方の札が互いの線に乗っていた。 それを見ていたのは `packages/dragon` の
 // sweep だけで、この file の隣にある検査は緑のままだった。
 //
 // 段は崩せない。 段 0 に約束、段 1 に実装、段 2 以降に動くものを置く形を外すと、
-// 数値だけは満たせる配置が出るが、子が親の上に来たり同じ親を継ぐ 3 つが散ったりして
+// 数値だけは満たせる配置が出るが、子が親の上に来たり同じ親を継承する 3 つが散ったりして
 // 段の筋書きが読めなくなる。 その形を保ったまま列を 6 本まで広げて全通り (2592 通り)
 // 数えると、上 2 段だけでは 5 つを同時に満たす置き方が 1 つも無かった。
 // 下段も 1 列ずつ右へ寄せて初めて両立する。
@@ -966,7 +966,7 @@ const presetClassComplexSteps = withSteps(
   orderGridColumns(
     classDiagram({
       id: "class-complex-demo",
-      topic: "支払いの抽象・実装・組み立てを示す UML クラス図",
+      topic: "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
       palette: "kinari",
     })
       .class({
@@ -1068,27 +1068,27 @@ const presetClassComplexSteps = withSteps(
         attributes: ["+bankCode: string", "+reference: string"],
         methods: ["+authorize(): Result", "+reconcile(): Result"],
       })
-      .relation({ from: "BankTransfer", to: "PaymentMethod", type: "extends", label: "継ぐ" })
-      .relation({ from: "CardPayment", to: "PaymentMethod", type: "extends", label: "継ぐ" })
-      .relation({ from: "WalletPayment", to: "PaymentMethod", type: "extends", label: "継ぐ" })
-      .relation({ from: "PaymentGateway", to: "Auditable", type: "implements", label: "満たす" })
-      .relation({ from: "WalletPayment", to: "Auditable", type: "implements", label: "満たす" })
-      .relation({ from: "RiskCheck", to: "Notification", type: "uses", label: "使う" })
-      .relation({ from: "PaymentGateway", to: "Retryable", type: "implements", label: "満たす" })
-      .relation({ from: "Transaction", to: "Receipt", type: "aggregates", label: "持つ" })
-      .relation({ from: "Transaction", to: "LedgerEntry", type: "composes", label: "抱える" })
-      .relation({ from: "PaymentGateway", to: "Transaction", type: "composes", label: "抱える" })
-      .relation({ from: "Transaction", to: "CardPayment", type: "associates", label: "結ぶ" })
-      .relation({ from: "Receipt", to: "LedgerEntry", type: "associates", label: "結ぶ" })
-      .relation({ from: "PaymentGateway", to: "RiskCheck", type: "uses", label: "使う" })
-      .relation({ from: "Transaction", to: "Notification", type: "uses", label: "使う" })
+      .relation({ from: "BankTransfer", to: "PaymentMethod", type: "extends", label: "継承" })
+      .relation({ from: "CardPayment", to: "PaymentMethod", type: "extends", label: "継承" })
+      .relation({ from: "WalletPayment", to: "PaymentMethod", type: "extends", label: "継承" })
+      .relation({ from: "PaymentGateway", to: "Auditable", type: "implements", label: "実装" })
+      .relation({ from: "WalletPayment", to: "Auditable", type: "implements", label: "実装" })
+      .relation({ from: "RiskCheck", to: "Notification", type: "uses", label: "依存" })
+      .relation({ from: "PaymentGateway", to: "Retryable", type: "implements", label: "実装" })
+      .relation({ from: "Transaction", to: "Receipt", type: "aggregates", label: "集約" })
+      .relation({ from: "Transaction", to: "LedgerEntry", type: "composes", label: "コンポジション" })
+      .relation({ from: "PaymentGateway", to: "Transaction", type: "composes", label: "コンポジション" })
+      .relation({ from: "Transaction", to: "CardPayment", type: "associates", label: "関連" })
+      .relation({ from: "Receipt", to: "LedgerEntry", type: "associates", label: "関連" })
+      .relation({ from: "PaymentGateway", to: "RiskCheck", type: "uses", label: "依存" })
+      .relation({ from: "Transaction", to: "Notification", type: "uses", label: "依存" })
       .build(),
   ),
   [
     {
       ids: ["PaymentMethod", "Auditable", "Retryable"],
-      title: "1. 約束を先に置く",
-      body: "支払い方法の共通部分と、監査・再試行の約束を先に読む。",
+      title: "1. 抽象クラスとインターフェース",
+      body: "支払い方法の抽象クラスと、監査・再試行のインターフェースを先に読む。",
     },
     {
       ids: [
@@ -1097,8 +1097,8 @@ const presetClassComplexSteps = withSteps(
         "cr-0-BankTransfer-PaymentMethod",
         "cr-1-CardPayment-PaymentMethod",
       ],
-      title: "2. 振込とカードが継ぐ",
-      body: "実線に白抜きの三角。 三角は親の側に付く。",
+      title: "2. 振込とカードの継承",
+      body: "実線に白抜きの三角。 三角は親クラスの側に付く。",
     },
     {
       ids: [
@@ -1106,8 +1106,8 @@ const presetClassComplexSteps = withSteps(
         "cr-2-WalletPayment-PaymentMethod",
         "cr-4-WalletPayment-Auditable",
       ],
-      title: "3. 財布は継いで、満たす",
-      body: "1 つの箱が親を継ぎ、別の約束も満たす。 線が切れている側が約束。",
+      title: "3. 財布の継承と実装",
+      body: "1 つのクラスが親クラスを継承し、別のインターフェースも実装する。 破線の先がインターフェース。",
     },
     {
       ids: [
@@ -1115,8 +1115,8 @@ const presetClassComplexSteps = withSteps(
         "cr-3-PaymentGateway-Auditable",
         "cr-6-PaymentGateway-Retryable",
       ],
-      title: "4. 門口が 2 つの約束を満たす",
-      body: "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。",
+      title: "4. ゲートウェイの実装",
+      body: "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。",
     },
     {
       ids: [
@@ -1124,23 +1124,23 @@ const presetClassComplexSteps = withSteps(
         "cr-9-PaymentGateway-Transaction",
         "cr-10-Transaction-CardPayment",
       ],
-      title: "5. 取引を抱える",
-      body: "塗った菱は命が同じ。 門口が消えると取引も消える。 開いた矢はたどれるだけ。",
+      title: "5. 取引のコンポジション",
+      body: "塗った菱。 取引の寿命はゲートウェイと同じで、ゲートウェイが消えると取引も消える。 実線に開いた矢は関連で、取引はカード払いを参照する。",
     },
     {
       ids: ["Receipt", "LedgerEntry", "cr-7-Transaction-Receipt", "cr-8-Transaction-LedgerEntry"],
-      title: "6. 証明書と台帳",
-      body: "白抜きの菱は持つだけで、相手は単独でも生きる。 塗ると命が同じになる。",
+      title: "6. 領収書と仕訳",
+      body: "白抜きの菱は集約で、領収書は取引が無くなっても残る。 塗った菱はコンポジションで、仕訳は取引と一緒に消える。",
     },
     {
       ids: ["RiskCheck", "cr-11-Receipt-LedgerEntry", "cr-12-PaymentGateway-RiskCheck"],
-      title: "7. 台帳へ結び、危険を見る",
-      body: "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。",
+      title: "7. 仕訳の参照とリスク判定",
+      body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。",
     },
     {
       ids: ["Notification", "cr-5-RiskCheck-Notification", "cr-13-Transaction-Notification"],
-      title: "8. 知らせる",
-      body: "2 つの箱が同じ相手を使う。 破線に開いた矢が 2 本入る。",
+      title: "8. 通知への依存",
+      body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。",
     },
   ],
 );
@@ -1705,11 +1705,11 @@ animation:
     focus: [users]
     badge: "er"
     body: "主キーは名前に下線。 印は形 × 塗りの 2 軸。"
-  - step: "2. 注文を出す" 0.9s
+  - step: "2. 注文する" 0.9s
     focus: [users, orders, "users -> orders"]
     badge: "er"
-    body: "破線は識別しない関係。 1 人が 0 件以上を出す。"
-  - step: "3. 明細を抱える" 0.9s
+    body: "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。"
+  - step: "3. 明細を持つ" 0.9s
     focus: [users, orders, order_items, "users -> orders", "orders -> order_items"]
     badge: "er"
     body: "実線は識別する関係。 親の鍵が子の鍵に入る。"
@@ -1791,14 +1791,14 @@ export const sourceJson__presetEr = `{
       "badge": "er"
     },
     {
-      "step": "2. 注文を出す",
+      "step": "2. 注文する",
       "duration": 0.9,
       "focus": ["users", "orders", "users -> orders"],
-      "body": "破線は識別しない関係。 1 人が 0 件以上を出す。",
+      "body": "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。",
       "badge": "er"
     },
     {
-      "step": "3. 明細を抱える",
+      "step": "3. 明細を持つ",
       "duration": 0.9,
       "focus": ["users", "orders", "order_items", "users -> orders", "orders -> order_items"],
       "body": "実線は識別する関係。 親の鍵が子の鍵に入る。",
@@ -1844,24 +1844,24 @@ actors:
 flow:
   - users -> addresses: "登録する" (info, dashed) { tailHead: one, head: zero-many }
   - users -> orders: "注文する" (info, solid) { tailHead: one, head: many }
-  - users -> user_roles: "持つ" (info, solid) { tailHead: one, head: many }
+  - users -> user_roles: "役割を持つ" (info, solid) { tailHead: one, head: many }
   - roles -> user_roles: "割り当てる" (info, solid) { tailHead: one, head: many }
   - orders -> order_items: "含む" (info, solid) { tailHead: one, head: many }
   - orders -> payments: "支払う" (info, dashed) { tailHead: one, head: zero-one }
-  - orders -> shipments: "送る" (info, dashed) { tailHead: one, head: zero-one }
+  - orders -> shipments: "発送する" (info, dashed) { tailHead: one, head: zero-one }
   - addresses -> shipments: "届け先" (info, dashed) { tailHead: one, head: zero-many }
   - addresses -> orders: "請求先" (info, dashed) { tailHead: one, head: zero-many }
-  - products -> order_items: "明細に載る" (info, solid) { tailHead: one, head: many }
+  - products -> order_items: "注文される" (info, solid) { tailHead: one, head: many }
   - products -> inventory: "在庫を持つ" (info, solid) { tailHead: one, head: one }
-  - products -> product_categories: "属す" (info, solid) { tailHead: one, head: many }
-  - categories -> product_categories: "束ねる" (info, solid) { tailHead: one, head: many }
-  - categories -> categories: "親を持つ" (info, dashed) { tailHead: one, head: zero-many }
+  - products -> product_categories: "属する" (info, solid) { tailHead: one, head: many }
+  - categories -> product_categories: "商品を含む" (info, solid) { tailHead: one, head: many }
+  - categories -> categories: "下位分類を持つ" (info, dashed) { tailHead: one, head: zero-many }
 
 animation:
   - step: "1. 利用者が注文する" 0.9s
     focus: [users, orders, "users -> orders"]
     badge: "er"
-    body: "1 人が 1 件以上を出す。 端の棒と鳥の足で数を読む。"
+    body: "1 人の利用者が 1 件以上の注文をする。 端の棒と鳥の足で数を読む。"
   - step: "2. 明細に商品が並ぶ" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items"]
     badge: "er"
@@ -1870,19 +1870,19 @@ animation:
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory"]
     badge: "er"
     body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。"
-  - step: "4. 分類で束ねる" 0.9s
+  - step: "4. 商品を分類する" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories"]
     badge: "er"
     body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。"
-  - step: "5. 分類が分類を指す" 0.9s
+  - step: "5. 分類の親子" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories"]
     badge: "er"
-    body: "破線で同じ表へ戻る。 親を持たない分類もある。"
+    body: "破線で同じ表へ戻る。 親を持たない最上位の分類もある。"
   - step: "6. 役割を割り当てる" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles"]
     badge: "er"
     body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。"
-  - step: "7. 住所を持つ" 0.9s
+  - step: "7. 住所を登録する" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles", addresses, "users -> addresses"]
     badge: "er"
     body: "破線は識別しない関係。 丸い端が 0 件を許す。"
@@ -1925,27 +1925,27 @@ export const sourceJson__presetErComplex = JSON.stringify(
     flow: [
       { from: "users", to: "addresses", label: "登録する", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
       { from: "users", to: "orders", label: "注文する", tone: "info", style: "solid", tailHead: "one", head: "many" },
-      { from: "users", to: "user_roles", label: "持つ", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "users", to: "user_roles", label: "役割を持つ", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "roles", to: "user_roles", label: "割り当てる", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "orders", to: "order_items", label: "含む", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "orders", to: "payments", label: "支払う", tone: "info", style: "dashed", tailHead: "one", head: "zero-one" },
-      { from: "orders", to: "shipments", label: "送る", tone: "info", style: "dashed", tailHead: "one", head: "zero-one" },
+      { from: "orders", to: "shipments", label: "発送する", tone: "info", style: "dashed", tailHead: "one", head: "zero-one" },
       { from: "addresses", to: "shipments", label: "届け先", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
       { from: "addresses", to: "orders", label: "請求先", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
-      { from: "products", to: "order_items", label: "明細に載る", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "products", to: "order_items", label: "注文される", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "products", to: "inventory", label: "在庫を持つ", tone: "info", style: "solid", tailHead: "one", head: "one" },
-      { from: "products", to: "product_categories", label: "属す", tone: "info", style: "solid", tailHead: "one", head: "many" },
-      { from: "categories", to: "product_categories", label: "束ねる", tone: "info", style: "solid", tailHead: "one", head: "many" },
-      { from: "categories", to: "categories", label: "親を持つ", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
+      { from: "products", to: "product_categories", label: "属する", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "categories", to: "product_categories", label: "商品を含む", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "categories", to: "categories", label: "下位分類を持つ", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
     ],
     animation: [
-      { step: "1. 利用者が注文する", duration: 0.9, focus: ["users", "orders", "users -> orders"], badge: "er", body: "1 人が 1 件以上を出す。 端の棒と鳥の足で数を読む。" },
+      { step: "1. 利用者が注文する", duration: 0.9, focus: ["users", "orders", "users -> orders"], badge: "er", body: "1 人の利用者が 1 件以上の注文をする。 端の棒と鳥の足で数を読む。" },
       { step: "2. 明細に商品が並ぶ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items"], badge: "er", body: "実線は識別する関係。 親の鍵が子の鍵に入る。" },
       { step: "3. 在庫を持つ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory"], badge: "er", body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。" },
-      { step: "4. 分類で束ねる", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories"], badge: "er", body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。" },
-      { step: "5. 分類が分類を指す", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories"], badge: "er", body: "破線で同じ表へ戻る。 親を持たない分類もある。" },
+      { step: "4. 商品を分類する", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories"], badge: "er", body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。" },
+      { step: "5. 分類の親子", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories"], badge: "er", body: "破線で同じ表へ戻る。 親を持たない最上位の分類もある。" },
       { step: "6. 役割を割り当てる", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles"], badge: "er", body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。" },
-      { step: "7. 住所を持つ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses"], badge: "er", body: "破線は識別しない関係。 丸い端が 0 件を許す。" },
+      { step: "7. 住所を登録する", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses"], badge: "er", body: "破線は識別しない関係。 丸い端が 0 件を許す。" },
       { step: "8. 支払と配送", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments"], badge: "er", body: "丸い端は 0 か 1。 未払いも未発送もありうる。" },
       { step: "9. 住所を指す 2 本", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders"], badge: "er", body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。" },
     ],
@@ -2930,7 +2930,7 @@ export const sourceJson__presetSwimlane = `{
   ]
 }`;
 
-export const sourceYaml__presetClassDiagram = `title: "クラスの継承・保有関係を示す UML 図"
+export const sourceYaml__presetClassDiagram = `title: "クラスどうしの 6 種の関係を示す UML クラス図"
 type: class
 palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
@@ -2950,42 +2950,42 @@ actors:
 
 # relation を書くと 線 / 端の形 / 塗り / 付く側 がまとめて決まる
 flow:
-  - Admin -> User: "継ぐ" { relation: extends }
-  - Order -> Auditable: "満たす" { relation: implements }
-  - Admin -> Order: "持つ" { relation: aggregates, sub: "1..*", tailSub: "1" }
-  - Order -> Receipt: "使う" { relation: uses }
-  - Order -> Line: "抱える" { relation: composes, sub: "1..*", tailSub: "1" }
-  - Line -> Sku: "結ぶ" { relation: associates }
+  - Admin -> User: "継承" { relation: extends }
+  - Order -> Auditable: "実装" { relation: implements }
+  - Admin -> Order: "集約" { relation: aggregates, sub: "1..*", tailSub: "1" }
+  - Order -> Receipt: "依存" { relation: uses }
+  - Order -> Line: "コンポジション" { relation: composes, sub: "1..*", tailSub: "1" }
+  - Line -> Sku: "関連" { relation: associates }
 
 animation:
   - step: "1. User" 0.9s
     badge: "class"
     focus: [User]
-    body: "基になるクラス。"
-  - step: "2. 継ぐ" 0.9s
+    body: "抽象クラス。 直接は作らず、Admin が継承して使う。"
+  - step: "2. 継承" 0.9s
     badge: "class"
     focus: [User, Admin, "Admin -> User"]
-    body: "実線に白抜きの三角。 三角は親の側に付く。"
-  - step: "3. 満たす" 0.9s
+    body: "実線に白抜きの三角。 三角は親クラスの側に付く。"
+  - step: "3. 実装" 0.9s
     badge: "class"
     focus: [User, Admin, Auditable, Order, "Admin -> User", "Order -> Auditable"]
-    body: "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。"
-  - step: "4. 持つ" 0.9s
+    body: "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。"
+  - step: "4. 集約" 0.9s
     badge: "class"
     focus: [User, Admin, Auditable, Order, "Admin -> User", "Order -> Auditable", "Admin -> Order"]
-    body: "実線に白抜きの菱。 菱は持ち主の側に付く。 相手は単独でも生きる。"
-  - step: "5. 抱える" 0.9s
+    body: "実線に白抜きの菱。 菱は全体の側に付く。 部分は全体が無くなっても残る。"
+  - step: "5. コンポジション" 0.9s
     badge: "class"
     focus: [User, Admin, Auditable, Order, Line, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line"]
-    body: "菱を塗ると命が同じになる。 持ち主が消えると中身も消える。"
-  - step: "6. 結ぶ・使う" 0.9s
+    body: "菱を塗る。 部分の寿命は全体と同じで、全体を消すと部分も消える。"
+  - step: "6. 関連と依存" 0.9s
     badge: "class"
     focus: [User, Admin, Auditable, Order, Line, Sku, Receipt, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"]
-    body: "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。"
+    body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
 `;
 
 export const sourceJson__presetClassDiagram = `{
-  "title": "クラスの継承・保有関係を示す UML 図",
+  "title": "クラスどうしの 6 種の関係を示す UML クラス図",
   "type": "class",
   "palette": "kinari",
   "relations": "hover",
@@ -3040,19 +3040,19 @@ export const sourceJson__presetClassDiagram = `{
     {
       "from": "Admin",
       "to": "User",
-      "label": "継ぐ",
+      "label": "継承",
       "relation": "extends"
     },
     {
       "from": "Order",
       "to": "Auditable",
-      "label": "満たす",
+      "label": "実装",
       "relation": "implements"
     },
     {
       "from": "Admin",
       "to": "Order",
-      "label": "持つ",
+      "label": "集約",
       "sub": "1..*",
       "tailSub": "1",
       "relation": "aggregates"
@@ -3060,13 +3060,13 @@ export const sourceJson__presetClassDiagram = `{
     {
       "from": "Order",
       "to": "Receipt",
-      "label": "使う",
+      "label": "依存",
       "relation": "uses"
     },
     {
       "from": "Order",
       "to": "Line",
-      "label": "抱える",
+      "label": "コンポジション",
       "sub": "1..*",
       "tailSub": "1",
       "relation": "composes"
@@ -3074,7 +3074,7 @@ export const sourceJson__presetClassDiagram = `{
     {
       "from": "Line",
       "to": "Sku",
-      "label": "結ぶ",
+      "label": "関連",
       "relation": "associates"
     }
   ],
@@ -3083,48 +3083,48 @@ export const sourceJson__presetClassDiagram = `{
       "step": "1. User",
       "duration": 0.9,
       "focus": ["User"],
-      "body": "基になるクラス。",
+      "body": "抽象クラス。 直接は作らず、Admin が継承して使う。",
       "badge": "class"
     },
     {
-      "step": "2. 継ぐ",
+      "step": "2. 継承",
       "duration": 0.9,
       "focus": ["User", "Admin", "Admin -> User"],
-      "body": "実線に白抜きの三角。 三角は親の側に付く。",
+      "body": "実線に白抜きの三角。 三角は親クラスの側に付く。",
       "badge": "class"
     },
     {
-      "step": "3. 満たす",
+      "step": "3. 実装",
       "duration": 0.9,
       "focus": ["User", "Admin", "Auditable", "Order", "Admin -> User", "Order -> Auditable"],
-      "body": "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。",
+      "body": "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。",
       "badge": "class"
     },
     {
-      "step": "4. 持つ",
+      "step": "4. 集約",
       "duration": 0.9,
       "focus": ["User", "Admin", "Auditable", "Order", "Admin -> User", "Order -> Auditable", "Admin -> Order"],
-      "body": "実線に白抜きの菱。 菱は持ち主の側に付く。 相手は単独でも生きる。",
+      "body": "実線に白抜きの菱。 菱は全体の側に付く。 部分は全体が無くなっても残る。",
       "badge": "class"
     },
     {
-      "step": "5. 抱える",
+      "step": "5. コンポジション",
       "duration": 0.9,
       "focus": ["User", "Admin", "Auditable", "Order", "Line", "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line"],
-      "body": "菱を塗ると命が同じになる。 持ち主が消えると中身も消える。",
+      "body": "菱を塗る。 部分の寿命は全体と同じで、全体を消すと部分も消える。",
       "badge": "class"
     },
     {
-      "step": "6. 結ぶ・使う",
+      "step": "6. 関連と依存",
       "duration": 0.9,
       "focus": ["User", "Admin", "Auditable", "Order", "Line", "Sku", "Receipt", "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"],
-      "body": "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。",
+      "body": "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。",
       "badge": "class"
     }
   ]
 }`;
 
-export const sourceYaml__presetClassComplex = `title: "支払いの抽象・実装・組み立てを示す UML クラス図"
+export const sourceYaml__presetClassComplex = `title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図"
 type: class
 palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
@@ -3146,58 +3146,58 @@ actors:
   - Receipt: { lane: c3, stack: 4, rows: ["+number: string", "+issuedAt: Date", "───", "+render(): Document"] }
   - BankTransfer: { lane: c4, stack: 1, rows: ["+bankCode: string", "+reference: string", "───", "+authorize(): Result", "+reconcile(): Result"] }
 flow:
-  - BankTransfer -> PaymentMethod: "継ぐ" { relation: extends }
-  - CardPayment -> PaymentMethod: "継ぐ" { relation: extends }
-  - WalletPayment -> PaymentMethod: "継ぐ" { relation: extends }
-  - PaymentGateway -> Auditable: "満たす" { relation: implements }
-  - WalletPayment -> Auditable: "満たす" { relation: implements }
-  - RiskCheck -> Notification: "使う" { relation: uses }
-  - PaymentGateway -> Retryable: "満たす" { relation: implements }
-  - Transaction -> Receipt: "持つ" { relation: aggregates }
-  - Transaction -> LedgerEntry: "抱える" { relation: composes }
-  - PaymentGateway -> Transaction: "抱える" { relation: composes }
-  - Transaction -> CardPayment: "結ぶ" { relation: associates }
-  - Receipt -> LedgerEntry: "結ぶ" { relation: associates }
-  - PaymentGateway -> RiskCheck: "使う" { relation: uses }
-  - Transaction -> Notification: "使う" { relation: uses }
+  - BankTransfer -> PaymentMethod: "継承" { relation: extends }
+  - CardPayment -> PaymentMethod: "継承" { relation: extends }
+  - WalletPayment -> PaymentMethod: "継承" { relation: extends }
+  - PaymentGateway -> Auditable: "実装" { relation: implements }
+  - WalletPayment -> Auditable: "実装" { relation: implements }
+  - RiskCheck -> Notification: "依存" { relation: uses }
+  - PaymentGateway -> Retryable: "実装" { relation: implements }
+  - Transaction -> Receipt: "集約" { relation: aggregates }
+  - Transaction -> LedgerEntry: "コンポジション" { relation: composes }
+  - PaymentGateway -> Transaction: "コンポジション" { relation: composes }
+  - Transaction -> CardPayment: "関連" { relation: associates }
+  - Receipt -> LedgerEntry: "関連" { relation: associates }
+  - PaymentGateway -> RiskCheck: "依存" { relation: uses }
+  - Transaction -> Notification: "依存" { relation: uses }
 animation:
-  - step: "1. 約束を先に置く" 0.9s
+  - step: "1. 抽象クラスとインターフェース" 0.9s
     focus: [PaymentMethod, Auditable, Retryable]
     badge: "class"
-    body: "支払い方法の共通部分と、監査・再試行の約束を先に読む。"
-  - step: "2. 振込とカードが継ぐ" 0.9s
+    body: "支払い方法の抽象クラスと、監査・再試行のインターフェースを先に読む。"
+  - step: "2. 振込とカードの継承" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod"]
     badge: "class"
-    body: "実線に白抜きの三角。 三角は親の側に付く。"
-  - step: "3. 財布は継いで、満たす" 0.9s
+    body: "実線に白抜きの三角。 三角は親クラスの側に付く。"
+  - step: "3. 財布の継承と実装" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable"]
     badge: "class"
-    body: "1 つの箱が親を継ぎ、別の約束も満たす。 線が切れている側が約束。"
-  - step: "4. 門口が 2 つの約束を満たす" 0.9s
+    body: "1 つのクラスが親クラスを継承し、別のインターフェースも実装する。 破線の先がインターフェース。"
+  - step: "4. ゲートウェイの実装" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable"]
     badge: "class"
-    body: "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。"
-  - step: "5. 取引を抱える" 0.9s
+    body: "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。"
+  - step: "5. 取引のコンポジション" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment"]
     badge: "class"
-    body: "塗った菱は命が同じ。 門口が消えると取引も消える。 開いた矢はたどれるだけ。"
-  - step: "6. 証明書と台帳" 0.9s
+    body: "塗った菱。 取引の寿命はゲートウェイと同じで、ゲートウェイが消えると取引も消える。 実線に開いた矢は関連で、取引はカード払いを参照する。"
+  - step: "6. 領収書と仕訳" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry"]
     badge: "class"
-    body: "白抜きの菱は持つだけで、相手は単独でも生きる。 塗ると命が同じになる。"
-  - step: "7. 台帳へ結び、危険を見る" 0.9s
+    body: "白抜きの菱は集約で、領収書は取引が無くなっても残る。 塗った菱はコンポジションで、仕訳は取引と一緒に消える。"
+  - step: "7. 仕訳の参照とリスク判定" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry", RiskCheck, "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck"]
     badge: "class"
-    body: "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。"
-  - step: "8. 知らせる" 0.9s
+    body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
+  - step: "8. 通知への依存" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry", RiskCheck, "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", Notification, "RiskCheck -> Notification", "Transaction -> Notification"]
     badge: "class"
-    body: "2 つの箱が同じ相手を使う。 破線に開いた矢が 2 本入る。"
+    body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。"
 `;
 
 export const sourceJson__presetClassComplex = JSON.stringify(
   {
-    "title": "支払いの抽象・実装・組み立てを示す UML クラス図",
+    "title": "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
     "type": "class",
     "palette": "kinari",
     "relations": "hover",
@@ -3349,144 +3349,144 @@ export const sourceJson__presetClassComplex = JSON.stringify(
       {
         "from": "BankTransfer",
         "to": "PaymentMethod",
-        "label": "継ぐ",
+        "label": "継承",
         "relation": "extends"
       },
       {
         "from": "CardPayment",
         "to": "PaymentMethod",
-        "label": "継ぐ",
+        "label": "継承",
         "relation": "extends"
       },
       {
         "from": "WalletPayment",
         "to": "PaymentMethod",
-        "label": "継ぐ",
+        "label": "継承",
         "relation": "extends"
       },
       {
         "from": "PaymentGateway",
         "to": "Auditable",
-        "label": "満たす",
+        "label": "実装",
         "relation": "implements"
       },
       {
         "from": "WalletPayment",
         "to": "Auditable",
-        "label": "満たす",
+        "label": "実装",
         "relation": "implements"
       },
       {
         "from": "RiskCheck",
         "to": "Notification",
-        "label": "使う",
+        "label": "依存",
         "relation": "uses"
       },
       {
         "from": "PaymentGateway",
         "to": "Retryable",
-        "label": "満たす",
+        "label": "実装",
         "relation": "implements"
       },
       {
         "from": "Transaction",
         "to": "Receipt",
-        "label": "持つ",
+        "label": "集約",
         "relation": "aggregates"
       },
       {
         "from": "Transaction",
         "to": "LedgerEntry",
-        "label": "抱える",
+        "label": "コンポジション",
         "relation": "composes"
       },
       {
         "from": "PaymentGateway",
         "to": "Transaction",
-        "label": "抱える",
+        "label": "コンポジション",
         "relation": "composes"
       },
       {
         "from": "Transaction",
         "to": "CardPayment",
-        "label": "結ぶ",
+        "label": "関連",
         "relation": "associates"
       },
       {
         "from": "Receipt",
         "to": "LedgerEntry",
-        "label": "結ぶ",
+        "label": "関連",
         "relation": "associates"
       },
       {
         "from": "PaymentGateway",
         "to": "RiskCheck",
-        "label": "使う",
+        "label": "依存",
         "relation": "uses"
       },
       {
         "from": "Transaction",
         "to": "Notification",
-        "label": "使う",
+        "label": "依存",
         "relation": "uses"
       }
     ],
     "animation": [
       {
-        "step": "1. 約束を先に置く",
+        "step": "1. 抽象クラスとインターフェース",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable"],
         "badge": "class",
-        "body": "支払い方法の共通部分と、監査・再試行の約束を先に読む。"
+        "body": "支払い方法の抽象クラスと、監査・再試行のインターフェースを先に読む。"
       },
       {
-        "step": "2. 振込とカードが継ぐ",
+        "step": "2. 振込とカードの継承",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod"],
         "badge": "class",
-        "body": "実線に白抜きの三角。 三角は親の側に付く。"
+        "body": "実線に白抜きの三角。 三角は親クラスの側に付く。"
       },
       {
-        "step": "3. 財布は継いで、満たす",
+        "step": "3. 財布の継承と実装",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable"],
         "badge": "class",
-        "body": "1 つの箱が親を継ぎ、別の約束も満たす。 線が切れている側が約束。"
+        "body": "1 つのクラスが親クラスを継承し、別のインターフェースも実装する。 破線の先がインターフェース。"
       },
       {
-        "step": "4. 門口が 2 つの約束を満たす",
+        "step": "4. ゲートウェイの実装",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable"],
         "badge": "class",
-        "body": "破線に白抜きの三角。 中身ではなく約束だけを受け継ぐので線が切れる。"
+        "body": "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。"
       },
       {
-        "step": "5. 取引を抱える",
+        "step": "5. 取引のコンポジション",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment"],
         "badge": "class",
-        "body": "塗った菱は命が同じ。 門口が消えると取引も消える。 開いた矢はたどれるだけ。"
+        "body": "塗った菱。 取引の寿命はゲートウェイと同じで、ゲートウェイが消えると取引も消える。 実線に開いた矢は関連で、取引はカード払いを参照する。"
       },
       {
-        "step": "6. 証明書と台帳",
+        "step": "6. 領収書と仕訳",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry"],
         "badge": "class",
-        "body": "白抜きの菱は持つだけで、相手は単独でも生きる。 塗ると命が同じになる。"
+        "body": "白抜きの菱は集約で、領収書は取引が無くなっても残る。 塗った菱はコンポジションで、仕訳は取引と一緒に消える。"
       },
       {
-        "step": "7. 台帳へ結び、危険を見る",
+        "step": "7. 仕訳の参照とリスク判定",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck"],
         "badge": "class",
-        "body": "実線に開いた矢はたどれるだけ。 破線に開いた矢はその場で使うだけ。"
+        "body": "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
       },
       {
-        "step": "8. 知らせる",
+        "step": "8. 通知への依存",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", "Notification", "RiskCheck -> Notification", "Transaction -> Notification"],
         "badge": "class",
-        "body": "2 つの箱が同じ相手を使う。 破線に開いた矢が 2 本入る。"
+        "body": "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。"
       }
     ]
   },

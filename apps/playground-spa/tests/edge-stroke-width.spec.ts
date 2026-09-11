@@ -21,8 +21,8 @@ actors:
   - Peer: { lane: c1, stack: 1 }
 
 flow:
-  - Child -> Parent: "継ぐ" { relation: extends }
-  - Child -> Peer: "結ぶ" { relation: associates }
+  - Child -> Parent: "継承" { relation: extends }
+  - Child -> Peer: "関連" { relation: associates }
 `;
 
 const ER図の記法 = `title: "ER 図の線幅"

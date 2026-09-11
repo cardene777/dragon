@@ -49,17 +49,17 @@ describe("クラス図が端の形で関係を分ける (#1464)", () => {
   /**
    * 設計 (「箱と行と関係」) が決めた 6 種と、両端の形 / 塗り / 線の種類。
    *
-   * **印が付く側が種類で違う**。 継ぐ / 満たす は着き先 (親) に三角、持つ / 抱える は
-   * 出どころ (全体) に菱、使う / 結ぶ は着き先に開いた矢。 同じ形どうしは線の種類か塗りで
+   * **印が付く側が種類で違う**。 継承 / 実装 は着き先 (親) に三角、集約 / コンポジション は
+   * 出どころ (全体) に菱、関連 / 依存 は着き先に開いた矢。 同じ形どうしは線の種類か塗りで
    * 分かれる = 6 種が 6 通りの見た目になる。
    */
   const 設計の6種: readonly [語: string, 端: string, 塗り: string, 線: string][] = [
-    ["継ぐ", "head:triangle", "hollow", "solid"],
-    ["満たす", "head:triangle", "hollow", "dashed"],
-    ["持つ", "tail:diamond", "hollow", "solid"],
-    ["抱える", "tail:diamond", "solid", "solid"],
-    ["結ぶ", "head:open", "solid", "solid"],
-    ["使う", "head:open", "solid", "dashed"],
+    ["継承", "head:triangle", "hollow", "solid"],
+    ["実装", "head:triangle", "hollow", "dashed"],
+    ["集約", "tail:diamond", "hollow", "solid"],
+    ["コンポジション", "tail:diamond", "solid", "solid"],
+    ["関連", "head:open", "solid", "solid"],
+    ["依存", "head:open", "solid", "dashed"],
   ];
 
   it("設計の6種が全て図にあり、決めた見た目で出る", () => {

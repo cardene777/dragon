@@ -134,11 +134,11 @@ flow:
 | `strokeBind`     | 線の色を値に追随させる (`widthBind` と同じ読み方)                   |
 | `dashOffsetBind` | 破線の位置を値に追随させる (流れているように見せる)                 |
 | `side`           | 矢印がどの辺から出るか (`top` / `right` / `bottom` / `left`)        |
-| `head`           | 矢印の先の形 (`triangle` 継ぐ / `diamond` 持つ / `open` 使う / `crow` 多 / `one` `zero-one` `many` `zero-many` ER の端 / `none` 描かない) |
+| `head`           | 矢印の先の形 (`triangle` 継承・実装 / `diamond` 集約・コンポジション / `open` 関連・依存 / `crow` 多 / `one` `zero-one` `many` `zero-many` ER の端 / `none` 描かない) |
 | `tailHead`       | 出どころ側の端の形 (ER は端ごとに違う個数を示すので両端に要る) |
 | `headFill`       | 端の印の塗り (`solid` 塗る / `hollow` 白抜き) |
 | `tailHeadFill`   | 出どころ側の印の塗り |
-| `relation`       | クラス図の関係の種類 (`extends` 継ぐ / `implements` 満たす / `aggregates` 持つ / `composes` 抱える / `associates` 結ぶ / `uses` 使う)。 書くと線と端の形と塗りと付く側がまとめて決まる |
+| `relation`       | クラス図の関係の種類 (`extends` 継承 / `implements` 実装 / `aggregates` 集約 / `composes` コンポジション / `associates` 関連 / `uses` 依存)。 書くと線と端の形と塗りと付く側がまとめて決まる |
 | `kind`           | 順序図の言づての種類 (`call` 呼ぶ / `return` 返す / `fire` 投げる) |
 | `role`           | 辺の役目 (`main` 主となる道)。 書いた辺だけ「いま」 の色で引く。 主となる 1 本 (または 1 続き) にだけ書く |
 | `labelPlate`     | 説明文の下地を敷くか (`false` で外す)。 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える |
