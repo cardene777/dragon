@@ -18,8 +18,13 @@ import { fileURLToPath } from "node:url";
 
 const 見本帳の置き場 = fileURLToPath(new URL(".", import.meta.url));
 
-/** 記法の本文 (`title: "..."`) と組立て済み (`"title": "..."`) の両方の形を拾う */
-const 題の書き方 = /"?title"?\s*:\s*"([^"]*)"/g;
+/**
+ * 記法の本文 (`title: "..."`) と組立て済み (`"title": "..."`) の両方の形を拾う。
+ *
+ * **副題 (`subtitle`) も網に入る** = 末尾が `title` で一致するため。 意図して残している
+ * (副題に `DSL` が出るのも同じく直す対象で、0 件を期待する検査なので広い側に倒す)。
+ */
+const 題の書き方 = /"?(?:sub)?title"?\s*:\s*"([^"]*)"/g;
 
 function 見本帳のfile一覧(): string[] {
   return readdirSync(見本帳の置き場).filter((f) => f.endsWith(".cdl.ts"));
@@ -30,6 +35,18 @@ function 見本帳のfile一覧(): string[] {
  */
 export function 題を取り出す(src: string): string[] {
   return [...src.matchAll(題の書き方)].map((m) => m[1]!);
+}
+
+/**
+ * 図そのものの題だけを拾う (副題を含めない)。 対応を見る側はこちらを使う。
+ *
+ * 副題まで混ぜると、副題が先に書かれた見本で「本文の題」 と「組立ての副題」 を
+ * 突き合わせることになり、食い違いを見落とす。
+ */
+const 図の題の書き方 = /(?:^|[^a-z"])"?title"?\s*:\s*"([^"]*)"/;
+
+function 図の題を取る(src: string): string | null {
+  return 図の題の書き方.exec(src)?.[1] ?? null;
 }
 
 /** `export const <名> = ` から次の `export const` までを切り出す */
@@ -50,7 +67,7 @@ function 本文と組立ての対(): { file: string; 鍵: string; yaml: string |
       const y = 宣言の区間(src, `sourceYaml__${鍵}`);
       const j = 宣言の区間(src, `sourceJson__${鍵}`);
       if (!y || !j) continue;
-      out.push({ file: f, 鍵, yaml: 題を取り出す(y)[0] ?? null, json: 題を取り出す(j)[0] ?? null });
+      out.push({ file: f, 鍵, yaml: 図の題を取る(y), json: 図の題を取る(j) });
     }
   }
   return out;
@@ -68,6 +85,8 @@ describe("図の題の言葉 (#1792)", () => {
         if (t.includes("DSL")) 残る.push(`${f}: ${t}`);
       }
     }
+    // 走査した数を出す。 0 件が「該当なし」 か「測っていない」 かを読み手が分けられるようにする
+    console.log(`[図の題] file=${files.length} 題と副題=${題の数} DSL が残る=${残る.length}`);
     expect(題の数, "題を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(500);
     expect(残る, `図の題に DSL が残る:\n${残る.join("\n")}`).toEqual([]);
   });
@@ -78,10 +97,20 @@ describe("図の題の言葉 (#1792)", () => {
     expect(題を取り出す(元).filter((t) => t.includes("DSL"))).toEqual([]);
     const 植え = `title: "認証フロー (DSL)"\n  "title": "C4 (DSL)"`;
     expect(題を取り出す(植え).filter((t) => t.includes("DSL"))).toHaveLength(2);
+    // 副題も網に入ることを固定する (広い側に倒している理由が消えたら落ちる)
+    expect(題を取り出す(`  "subtitle": "受け口 (DSL)"`).filter((t) => t.includes("DSL"))).toHaveLength(1);
+  });
+
+  it("対応を見る側は副題を題と取り違えない (植え込み対照)", () => {
+    // 副題が題より先に書かれた形。 混ぜると「本文の題」 と「組立ての副題」 を突き合わせる
+    expect(図の題を取る(`  "subtitle": "受け口"\n  "title": "系の構成"`)).toBe("系の構成");
+    expect(図の題を取る(`title: "系の構成"`)).toBe("系の構成");
+    expect(図の題を取る(`  "subtitle": "受け口"`)).toBeNull();
   });
 
   it("記法の本文と組立て済みの題が一致する", () => {
     const 対 = 本文と組立ての対();
+    console.log(`[題の対応] 対=${対.length} 題を読めない=${対.filter((p) => !p.yaml).length}`);
     expect(対.length, "本文と組立ての対を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(400);
     const 食い違う = 対
       .filter((p) => p.yaml !== p.json)
