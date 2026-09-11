@@ -15,7 +15,7 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
   cookbook: "レシピ集",
   patterns: "パターン",
   primitives: "基本要素",
-  "text-dsl": "テキスト DSL",
+  "text-dsl": "テキスト記法",
   animation: "アニメーション",
   parts: "パーツ",
   styles: "スタイル",

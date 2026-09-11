@@ -109,7 +109,7 @@ describe("記法の有無でタブの押せる側が変わる (#1383)", () => {
     const html = renderToStaticMarkup(
       <SourceTabs item={見本({ json: JSON_ })} 速さ={1} 描き方="動かすだけ" />,
     );
-    expect(html, "初期に選ぶのは yaml のはず").toContain("(この記法の source は未登録です)");
+    expect(html, "初期に選ぶのは yaml のはず").toContain("(この図の記法はまだ登録されていません)");
   });
 });
 

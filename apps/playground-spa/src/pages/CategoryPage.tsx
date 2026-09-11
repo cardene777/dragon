@@ -158,7 +158,7 @@ export function SourceTabs({
       ? undefined
       : 記法の速さを変える(記法の描き方を変える(元, 描き方, tab), 速さ, tab);
   return (
-    <section className="catalog-source-section" aria-label="この diagram の記法" hidden={hidden}>
+    <section className="catalog-source-section" aria-label="この図の記法" hidden={hidden}>
       <div className="catalog-source-tabs" role="tablist">
         <button
           role="tab"
@@ -186,7 +186,7 @@ export function SourceTabs({
       </div>
       {activeSource === undefined ? (
         <pre className="catalog-source-code" data-lang={tab}>
-          <code>(この記法の source は未登録です)</code>
+          <code>(この図の記法はまだ登録されていません)</code>
         </pre>
       ) : (
         // 色は分解器と `styles/syntax.css` が持つ (#1310)。 ここでは種別だけを渡す
@@ -214,7 +214,7 @@ const CATEGORY_JA_LABEL: Record<string, string> = {
   cookbook: "レシピ集",
   patterns: "パターン",
   primitives: "基本要素",
-  "text-dsl": "テキスト DSL",
+  "text-dsl": "テキスト記法",
   animation: "アニメーション",
   parts: "パーツ",
   styles: "スタイル",
