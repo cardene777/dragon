@@ -283,6 +283,8 @@ const 見た目を決めない欄 = [
   "data-cdl-from",
   "data-cdl-to",
   "data-cdl-edge-label-for",
+  // 行き先の端の字が載る矢印 (#1769)。 字の位置は矢印の形から決まるので、別の矢印に載れば座標で差が出る
+  "data-cdl-edge-end-label-for",
   "data-cdl-edge-label",
   "data-cdl-edge-sub",
   "id",

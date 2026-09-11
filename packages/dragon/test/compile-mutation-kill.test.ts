@@ -804,7 +804,13 @@ describe("型別 compiler edge option 伝播", () => {
         ],
       });
       const e = d.edges[0]!;
-      expect(e.sub).toBe("n");
+      // クラス図の `sub` は多重度なので、札の下の行ではなく行き先の端の字に入る (#1769)
+      if (t === "class") {
+        expect(e.sub).toBeUndefined();
+        expect(e.headLabel).toBe("n");
+      } else {
+        expect(e.sub).toBe("n");
+      }
       expect(e.tone).toBe("warning");
       expect(e.style).toBe("dotted-flow");
     });
