@@ -42,8 +42,8 @@
  */
 
 import type { NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
-import { TONES, NODE_KINDS, EDGE_HEADS, EDGE_HEAD_FILLS, EDGE_STYLES, EDGE_REVEALS, CLASS_RELATION_LOOK, SEQUENCE_MESSAGE_LOOK, parseFormula } from "@cardenelabs/cdl";
-import type { EdgeReveal } from "@cardenelabs/cdl";
+import { TONES, NODE_KINDS, EDGE_HEADS, EDGE_HEAD_FILLS, EDGE_STYLES, EDGE_REVEALS, RELATION_FOCUSES, CLASS_RELATION_LOOK, SEQUENCE_MESSAGE_LOOK, parseFormula } from "@cardenelabs/cdl";
+import type { EdgeReveal, RelationFocus } from "@cardenelabs/cdl";
 import { TONE_ALIAS, NODE_KIND_ALIAS, DIRECTIONS, resolveDirection, PALETTES, resolvePalette } from "../keywords";
 import type { DslPalette } from "../keywords";
 import type { DslDirection } from "../keywords";
@@ -159,6 +159,8 @@ export const TOP_LEVEL_KEYS = [
   "bands",
   // 矢印をいつ出すか (#1470)
   "reveal",
+  // 箱に触れると関係する線だけを光らせるか (#1757)
+  "relations",
   /*
    * 図の並ぶ向き (#1494)。
    *
@@ -468,6 +470,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let eyebrow: string | null = null;
   let eyebrowLine = 0;
   let reveal: EdgeReveal | null = null;
+  let relations: RelationFocus | null = null;
   let direction: DslDirection | null = null;
   let directionLine = 0;
   let palette: DslPalette | null = null;
@@ -531,6 +534,29 @@ export function parseTextDslV05(src: string): V05ParseResult {
             line: line.no,
             message: `reveal が読めません (書いた値: ${v})`,
             hint: `使える語 = ${EDGE_REVEALS.join(" / ")}`,
+          });
+        }
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "relations") {
+      /*
+       * 箱に触れると関係する線だけを光らせるか (#1757)。
+       *
+       * クラス図と ER 図は順番を持たない図で、段を追う見せ方は読み手の問い
+       * (この箱はどこと繋がっているか) に答えない。 `hover` と書くと、箱に触れた時に
+       * その箱 ・ 繋がる線 ・ 相手の箱だけが光る (`cdl#806`)。
+       */
+      const v = (head.value ?? "").trim();
+      if (v.length > 0) {
+        if ((RELATION_FOCUSES as readonly string[]).includes(v)) {
+          relations = v as RelationFocus;
+        } else {
+          errors.push({
+            line: line.no,
+            message: `relations が読めません (書いた値: ${v})`,
+            hint: `使える語 = ${RELATION_FOCUSES.join(" / ")}`,
           });
         }
       }
@@ -1060,6 +1086,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       type: type!,
       ...(eyebrow !== null ? { eyebrow, eyebrowPos: { line: eyebrowLine } } : {}),
       ...(reveal !== null ? { reveal } : {}),
+      ...(relations !== null ? { relations } : {}),
       ...(direction !== null ? { direction, directionPos: { line: directionLine } } : {}),
       ...(palette !== null ? { palette } : {}),
       ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),

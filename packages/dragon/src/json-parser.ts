@@ -49,6 +49,7 @@ import type {
   EdgeHead,
   EdgeHeadFill,
   EdgeReveal,
+  RelationFocus,
   ClassRelationType,
   SequenceMessageKind,
 } from "@cardenelabs/cdl";
@@ -191,6 +192,8 @@ export interface DragonJson {
   bands?: { actor: string; from: number; to: number }[];
   /** 矢印をいつ出すか (#1470)。 記法の最上位 `reveal:` と同じ */
   reveal?: EdgeReveal;
+  /** 箱に触れると関係する線だけを光らせるか (#1757)。 記法の最上位 `relations:` と同じ */
+  relations?: RelationFocus;
   /** 図の並ぶ向き (#1494)。 記法の最上位 `direction:` と同じ。 JSON は英語の語で書く */
   direction?: "vertical" | "horizontal";
   /**
@@ -511,6 +514,8 @@ export const ACCEPTED_KEYS = {
     "bands",
     // 矢印をいつ出すか (#1470)
     "reveal",
+    // 箱に触れると関係する線だけを光らせるか (#1757)
+    "relations",
     // 図の並ぶ向き (#1494)
     "direction",
     // 図の配色 (#1553)
@@ -674,6 +679,8 @@ export const 欄の型表 = {
     bands: "並び",
     // 矢印をいつ出すか (#1470)
     reveal: "非空の文字列",
+    // 箱に触れると関係する線だけを光らせるか (#1757)
+    relations: "非空の文字列",
     // 図の並ぶ向き (#1494)
     direction: "非空の文字列",
     // 図の配色 (#1553)
@@ -2538,6 +2545,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     bands: json.bands,
     // 矢印をいつ出すか (#1470)
     reveal: json.reveal,
+    // 箱に触れると関係する線だけを光らせるか (#1757)
+    relations: json.relations,
     // 図の並ぶ向き (#1494)。 JSON は英語で書くので、記法と同じ語に直してから渡す
     ...(json.direction !== undefined ? { direction: json.direction === "horizontal" ? ("横" as const) : ("縦" as const) } : {}),
     // 図の配色 (#1553)。 記法と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方がずれない。

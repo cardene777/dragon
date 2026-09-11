@@ -3,7 +3,7 @@
  * docs/cdl/text-dsl-spec.md の文法を AST に変換した中間表現
  */
 
-import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
+import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
 import type { DslDirection, DslPalette } from "./keywords";
 
@@ -168,6 +168,16 @@ export type DslDocument = {
    * 段に関わらず最初から全部描く。 描き手の `CdlDiagram.edgeReveal` にそのまま渡る。
    */
   reveal?: EdgeReveal;
+  /**
+   * 箱に触れると関係する線だけを光らせるか (`relations:`、 #1757)。
+   *
+   * 既定 (`off`) は何もしない。 `hover` と書くと、箱に触れた時に その箱 ・ 繋がる線 ・
+   * 相手の箱だけが光り、他が沈む。 描き手の `CdlDiagram.relationFocus` にそのまま渡る。
+   *
+   * クラス図と ER 図は **順番を持たない** 図で、段を追う見せ方は「どの順で読ませるか」 しか
+   * 運ばない。 触れた箱の関係を光らせれば、読み手の問いにその場で答えられる。
+   */
+  relations?: RelationFocus;
   /**
    * 図の並ぶ向き (`direction:`、 #1494)。
    *

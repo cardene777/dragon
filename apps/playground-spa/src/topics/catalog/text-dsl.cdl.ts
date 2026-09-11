@@ -554,6 +554,10 @@ export const sourceJson__textDslTopology = `{
 export const sourceYaml__textDslEr = `
 title: "スキーマ (DSL)"
 type: er
+# 順番を持たない図なので、触れた箱の関係を光らせる (#1757)。
+# 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
+relations: hover
+reveal: all
 
 actors:
   - User
@@ -579,6 +583,8 @@ export const textDslEr = textDslToDiagram(sourceYaml__textDslEr);
 export const sourceJson__textDslEr = `{
   "title": "スキーマ (DSL)",
   "type": "er",
+  "relations": "hover",
+  "reveal": "all",
   "actors": [
     {
       "name": "User"
@@ -632,6 +638,10 @@ export const sourceJson__textDslEr = `{
 export const sourceYaml__textDslErMesh = `title: "多対多が 2 組 / 8 表 8 関係"
 type: er
 palette: kinari
+# 順番を持たない図なので、触れた箱の関係を光らせる (#1757)。
+# 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
+relations: hover
+reveal: all
 
 # 表を 3 列の格子に置く (#1571)。 全ての箱に縦列を書くと書いたとおりに置かれる。
 # 書かないと 1 箱 1 縦列で横一列になり、関係を 4 本持つ実体で 2 本が隣を飛び越す
@@ -683,6 +693,8 @@ export const textDslErMesh = textDslToDiagram(sourceYaml__textDslErMesh);
 export const sourceJson__textDslErMesh = `{
   "title": "多対多が 2 組 / 8 表 8 関係",
   "type": "er",
+  "relations": "hover",
+  "reveal": "all",
   "palette": "kinari",
   "lanes": { "c0": { "width": 470 }, "c1": { "width": 470 } },
   "actors": [

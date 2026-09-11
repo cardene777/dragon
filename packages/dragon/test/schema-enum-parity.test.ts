@@ -41,7 +41,7 @@ import {
   書ける色名,
 } from "../src/v05/parser";
 import { PALETTES, DIRECTIONS, DIRECTION_ALIAS } from "../src/keywords";
-import { EDGE_REVEALS } from "@cardenelabs/cdl";
+import { EDGE_REVEALS, RELATION_FOCUSES } from "@cardenelabs/cdl";
 
 /** schema の中の 1 つの語の一覧 */
 interface 語の一覧 {
@@ -107,6 +107,7 @@ const 対応表: Record<string, readonly string[]> = {
   ),
   palette: [...PALETTES],
   reveal: [...EDGE_REVEALS],
+  relations: [...RELATION_FOCUSES],
   "flow[].tone": 書ける色名(),
   "flow[].style": [...STYLE_VALID],
   "flow[].side": [...EDGE_SIDE_VALUES],
