@@ -3209,6 +3209,8 @@ const EDGE_BIND_INLINE_READERS = {
 
 const FLOW_INLINE_READERS = {
   sub: (v: string | undefined) => v,
+  // クラス図の出どころ側の多重度 (#1771)。 `sub` (行き先の端) と対
+  tailSub: (v: string | undefined) => v,
   guard: (v: string | undefined) => v,
   cardinality: (v: string | undefined) => v,
   /*
@@ -3538,6 +3540,7 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     rest = 塊.前.trim();
   }
   const sub = 中括弧.sub as string | undefined;
+  const tailSub = 中括弧.tailSub as string | undefined;
   const guard = 中括弧.guard as string | undefined;
   const cardinality = 中括弧.cardinality as string | undefined;
   const side = 中括弧.side as "top" | "right" | "bottom" | "left" | undefined;
@@ -3627,6 +3630,7 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     tone,
     style,
     sub,
+    tailSub,
     guard,
     cardinality,
     side,

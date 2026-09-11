@@ -523,6 +523,10 @@
             "type": "string",
             "description": "ラベル下の補足"
           },
+          "tailSub": {
+            "type": "string",
+            "description": "クラス図の出どころ側の多重度 (例 \"1\")。 sub が行き先の端の多重度。 クラス図でだけ効く"
+          },
           "tone": {
             "type": "string",
             "enum": [

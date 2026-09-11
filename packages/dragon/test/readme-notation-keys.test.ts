@@ -188,6 +188,14 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       { 書く: string; 期待?: unknown; 型?: string; 確かめる?: (d: CdlDiagram) => void }
     > = {
       sub: { 書く: '"補足"', 期待: "補足" },
+      // クラス図の出どころ側の多重度 (#1771)。 名前のまま載らず、出どころの端の字になる
+      tailSub: {
+        書く: '"1"',
+        型: "class",
+        確かめる: (d) => {
+          expect(d.edges[0]?.tailLabel, "tailSub が出どころの端の字に届いていない").toBe("1");
+        },
+      },
       guard: { 書く: '"g"', 期待: "g" },
       cardinality: { 書く: '"1:N"', 期待: "1:N" },
       // 辺の役目と名前の下地 (cdl#618)

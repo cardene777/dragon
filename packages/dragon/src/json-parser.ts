@@ -364,6 +364,8 @@ export interface JsonStep {
   tailHead?: EdgeHead;
   headFill?: EdgeHeadFill;
   tailHeadFill?: EdgeHeadFill;
+  /** クラス図の出どころ側の多重度 (#1771)。 記法の `{ tailSub: "1" }` と同じ */
+  tailSub?: string;
   /**
    * 辺の役目 (cdl#618)。 記法の `{ role: main }` と同じ。
    *
@@ -576,6 +578,8 @@ export const ACCEPTED_KEYS = {
     "tailHead",
     "headFill",
     "tailHeadFill",
+    // クラス図の出どころ側の多重度 (#1771)
+    "tailSub",
     "relation",
     // 辺の役目と名前の下地 (cdl#618)
     "role",
@@ -739,6 +743,8 @@ export const 欄の型表 = {
     tailHead: "端の形",
     headFill: "非空の文字列",
     tailHeadFill: "非空の文字列",
+    // クラス図の出どころ側の多重度 (#1771)
+    tailSub: "文字列",
     relation: "非空の文字列",
     // 辺の役目と名前の下地 (cdl#618)
     role: "非空の文字列",
@@ -2403,6 +2409,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     tailHead: s.tailHead,
     headFill: s.headFill,
     tailHeadFill: s.tailHeadFill,
+    // クラス図の出どころ側の多重度 (#1771)
+    tailSub: s.tailSub,
     relation: s.relation,
     // 辺の役目と名前の下地 (cdl#618)
     role: s.role,
