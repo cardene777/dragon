@@ -385,6 +385,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
    * どれかを見落とす (`injectStaticPhase` / `materializeStates` と同じ理由)。
    */
   if (doc.reveal !== undefined) merged.edgeReveal = doc.reveal;
+  if (doc.relations !== undefined) merged.relationFocus = doc.relations;
   // 語の欄が状態を読むとき、その状態には記法の語が入っている。 図の語へ直す (#1201)
   語の状態を図の語へ直す(merged);
   // きっかけ形の値を段の時計を読む式へ畳む (#1161 段 2)。 **値を載せるより先に呼ぶ** =

@@ -19,6 +19,7 @@ import {
   stateMachine2,
 } from "@cardenelabs/cdl";
 import type { CdlDiagram, PhaseBuilder } from "@cardenelabs/cdl";
+import { 触れて読む } from "./relation-focus";
 
 /**
  * Catalog - Presets ... 高位 API (swimlane / flow) の demo。
@@ -357,7 +358,7 @@ export const presetTopology = withSteps(topo.build(), [
 // **端の印は両端に付く**。 クラス図の印は「どちらが親か」 のような関係そのものの性質を指す
 // ので 1 つで足りるが、ER の印が指すのは端ごとに違う個数なので両端に要る。
 // 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か (棒 = 必須 / 丸 = 任意)。
-export const presetEr = withSteps(
+const presetErSteps = withSteps(
   // 配色は生成りに茶 (#1553)。 ER 図は小さい字が密に並ぶので、他の図種と同じ色みだと行を
   // 追えない。 記法から作った ER 図は `compileToCdl` が同じ名前を既定で入れるので、ここは
   // 組み立て API から作る図をそれに揃える手当て
@@ -441,6 +442,8 @@ export const presetEr = withSteps(
     },
   ],
 );
+/** 順番を持たない図なので触れて読む形にする (#1757) */
+export const presetEr = 触れて読む(presetErSteps);
 
 const erComplex = er({
   id: "er-complex-demo",
@@ -643,7 +646,7 @@ const erComplex = er({
  * 列の割当と列内の上下順を保って間隔だけを 3375 通り数え、5 段以内では `addresses → orders` が
  * `payments` を貫くため 6 段にした。
  */
-export const presetErComplex = withSteps(
+const presetErComplexSteps = withSteps(
   placeErOnGrid(erComplex, [
     { id: "roles", col: 0, row: 0 },
     { id: "user_roles", col: 0, row: 1 },
@@ -711,6 +714,8 @@ export const presetErComplex = withSteps(
     },
   ],
 );
+/** 順番を持たない図なので触れて読む形にする (#1757) */
+export const presetErComplex = 触れて読む(presetErComplexSteps);
 
 // stateMachine preset ... 状態遷移図 (設計「箱と行と関係」 の意匠)
 //
@@ -836,7 +841,7 @@ export const presetInfrastructure = withSteps(
 //   段 0   User        Auditable
 //   段 1   Admin ──持つ── Order ──使う── Receipt
 //   段 2               Line ──結ぶ── Sku
-export const presetClassDiagram = withSteps(
+const presetClassDiagramSteps = withSteps(
   // 配色は生成りに茶 (#1567)。 クラス図の箱は ER 図と同じ作り (行頭の印 + 左に名前 +
   // 右に型) で、名前と型が離れて並ぶ。 縞の色は配色から取るので、書かないと縞が箱の面と
   // 同じ色になって出ない
@@ -935,6 +940,8 @@ export const presetClassDiagram = withSteps(
     },
   ],
 );
+/** 順番を持たない図なので触れて読む形にする (#1757) */
+export const presetClassDiagram = 触れて読む(presetClassDiagramSteps);
 
 // 同じ辺に 2 本以上の関係が付くと、@cardenelabs/cdl が全ての線を辺の中点へ寄せる
 // (`layout/edges.ts` の offset 0) ため、辺から最初の折れまでが必ず重なる。
@@ -955,7 +962,7 @@ export const presetClassDiagram = withSteps(
 // 段の筋書きが読めなくなる。 その形を保ったまま列を 6 本まで広げて全通り (2592 通り)
 // 数えると、上 2 段だけでは 5 つを同時に満たす置き方が 1 つも無かった。
 // 下段も 1 列ずつ右へ寄せて初めて両立する。
-export const presetClassComplex = withSteps(
+const presetClassComplexSteps = withSteps(
   orderGridColumns(
     classDiagram({
       id: "class-complex-demo",
@@ -1137,6 +1144,8 @@ export const presetClassComplex = withSteps(
     },
   ],
 );
+/** 順番を持たない図なので触れて読む形にする (#1757) */
+export const presetClassComplex = 触れて読む(presetClassComplexSteps);
 
 // tree preset ... 組織図 / file tree / class 階層
 // 名前を状態から取り、組織の呼び方が変わる様子を見せる (cdl 0.7.0 で名前が状態を読む)。
@@ -1667,6 +1676,10 @@ export const sourceJson__presetSequence = `{
 
 export const sourceYaml__presetEr = `title: "テーブル間の関係を表す図"
 type: er
+# 順番を持たない図なので触れて読む形にする (#1757)。
+# 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
+relations: hover
+reveal: all
 
 # 幅は組み立て API 側が行の長さから導く。 記法は導けないので書く。
 # 書いた値がずれたら catalog-source-parity が落ちる
@@ -1709,6 +1722,8 @@ animation:
 export const sourceJson__presetEr = `{
   "title": "テーブル間の関係を表す図",
   "type": "er",
+  "relations": "hover",
+  "reveal": "all",
   "lanes": {
     "lane-users": { "width": 462 },
     "lane-orders": { "width": 450 },
@@ -1802,6 +1817,10 @@ export const sourceJson__presetEr = `{
 export const sourceYaml__presetErComplex = `title: "商取引の表と必須・任意の関係を表す ER 図"
 type: er
 palette: kinari
+# 順番を持たない図なので触れて読む形にする (#1757)。
+# 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
+relations: hover
+reveal: all
 
 lanes:
   er-col-0: { width: 450 }
@@ -1882,6 +1901,8 @@ export const sourceJson__presetErComplex = JSON.stringify(
     title: "商取引の表と必須・任意の関係を表す ER 図",
     type: "er",
     palette: "kinari",
+    relations: "hover",
+    reveal: "all",
     lanes: {
       "er-col-0": { width: 450 },
       "er-col-1": { width: 524 },
@@ -2912,6 +2933,10 @@ export const sourceJson__presetSwimlane = `{
 export const sourceYaml__presetClassDiagram = `title: "クラスの継承・保有関係を示す UML 図"
 type: class
 palette: kinari
+# 順番を持たない図なので触れて読む形にする (#1757)。
+# 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
+relations: hover
+reveal: all
 
 # 縦列は lane の並び、段は stack。 箱の 1 つの辺には関係を 1 本しか載せない
 actors:
@@ -2963,6 +2988,8 @@ export const sourceJson__presetClassDiagram = `{
   "title": "クラスの継承・保有関係を示す UML 図",
   "type": "class",
   "palette": "kinari",
+  "relations": "hover",
+  "reveal": "all",
   "actors": [
     {
       "name": "User",
@@ -3098,6 +3125,10 @@ export const sourceJson__presetClassDiagram = `{
 export const sourceYaml__presetClassComplex = `title: "支払いの抽象・実装・組み立てを示す UML クラス図"
 type: class
 palette: kinari
+# 順番を持たない図なので触れて読む形にする (#1757)。
+# 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
+relations: hover
+reveal: all
 
 actors:
   - RiskCheck: { lane: c0, stack: 2, rows: ["+score: number", "+decision: Decision", "───", "+evaluate(): Decision", "+audit(): AuditLog"] }
@@ -3167,6 +3198,8 @@ export const sourceJson__presetClassComplex = JSON.stringify(
     "title": "支払いの抽象・実装・組み立てを示す UML クラス図",
     "type": "class",
     "palette": "kinari",
+    "relations": "hover",
+    "reveal": "all",
     "actors": [
       {
         "name": "RiskCheck",

@@ -29,6 +29,8 @@ export type SampleSlot =
   | "bands"
   // 矢印をいつ出すか (#1470)
   | "reveal"
+  // 箱に触れると関係する線だけを光らせるか (#1757)
+  | "relations"
   // 図の並ぶ向き (#1494)
   | "direction"
   // 図の配色 (#1553)
@@ -138,6 +140,25 @@ export const FORMS: Section[] = [
     lines: [
       { code: "reveal: phase", note: "段が来るまで矢印を出さない (既定)" },
       { code: "reveal: all", note: "段に関わらず最初から全部出す" },
+    ],
+  },
+  {
+    title: "触れた箱の関係を光らせるか (relations:)",
+    /*
+     * 順番を持たない図でだけ意味を持つ。 例文も関係の図 (ER) にする。
+     *
+     * クラス図と ER 図は箱と箱の関係が同時に成り立っている = 線を引く順番は作り手の
+     * 読ませ方でしかなく、読み手の問い (この箱はどこと繋がっているか) には答えない。
+     */
+    sample: {
+      slot: "relations",
+      type: "er",
+      actors: ["  - 注文", "  - 明細"],
+      flow: ['  - 注文 -> 明細: "持つ"'],
+    },
+    lines: [
+      { code: "relations: off", note: "何もしない (既定)" },
+      { code: "relations: hover", note: "触れた箱と繋がる線と相手の箱だけが光る" },
     ],
   },
   {
@@ -578,9 +599,9 @@ export function buildSample(section: Section): string {
   const { slot, actors = [], flow = [], states = [] } = section.sample;
   const codes = section.lines.map((l) => l.code);
   // `reveal` は最上位に 1 行で書く語なので、`root` と同じ場所へ置く (#1470)
-  // 最上位に 1 行で書く項目は、頭の並びにそのまま足す (`reveal` / `direction`)
-  const rootLines =
-    slot === "root" || slot === "reveal" || slot === "direction" || slot === "palette" ? codes : [];
+  // 最上位に 1 行で書く項目は、頭の並びにそのまま足す (`reveal` / `relations` / `direction`)
+  const 最上位に置く: readonly SampleSlot[] = ["root", "reveal", "relations", "direction", "palette"];
+  const rootLines = 最上位に置く.includes(slot) ? codes : [];
   // 題名と図種は例文に必ず要る。 一覧側で書いている時は重ねて書かない (後に書いた方が効く)
   const head = [
     ...(rootLines.some((l) => /^title\s*:/.test(l)) ? [] : ['title: "見本"']),
