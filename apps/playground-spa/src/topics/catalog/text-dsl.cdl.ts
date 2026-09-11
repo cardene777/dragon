@@ -564,7 +564,7 @@ actors:
   - Order
 
 flow:
-  - User -> Order: "places" (info) { cardinality: "1:N" }
+  - User -> Order: "注文する" (info) { cardinality: "1:N" }
 
 animation:
   - step: "片方" 1s
@@ -572,7 +572,7 @@ animation:
     badge: "User"
   - step: "つながり" 1s
     focus: ["User -> Order"]
-    badge: "places"
+    badge: "注文する"
   - step: "全体" 1s
     focus: [User, Order]
     badge: "1:N"
@@ -597,7 +597,7 @@ export const sourceJson__textDslEr = `{
     {
       "from": "User",
       "to": "Order",
-      "label": "places",
+      "label": "注文する",
       "tone": "info",
       "cardinality": "1:N"
     }
@@ -617,7 +617,7 @@ export const sourceJson__textDslEr = `{
       "focus": [
         "User -> Order"
       ],
-      "badge": "places"
+      "badge": "注文する"
     },
     {
       "step": "全体",
@@ -653,23 +653,23 @@ lanes:
 actors:
   - roles: { lane: c0, stack: 0, kind: storage, subtitle: "役割", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
   - users: { lane: c0, stack: 1, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }
-  - teams: { lane: c0, stack: 2, kind: storage, subtitle: "組", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
-  - tags: { lane: c0, stack: 3, kind: storage, subtitle: "札", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
+  - teams: { lane: c0, stack: 2, kind: storage, subtitle: "チーム", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
+  - tags: { lane: c0, stack: 3, kind: storage, subtitle: "タグ", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
   - projects: { lane: c1, stack: 2, kind: storage, subtitle: "案件", rows: ["id: bigint", "team_id: bigint", "owner_id: bigint"], marks: ["pk", "fk", "fk"] }
   - user_roles: { lane: c1, stack: 0, kind: storage, subtitle: "役割の割当", rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] }
-  - team_members: { lane: c1, stack: 1, kind: storage, subtitle: "組の一員", rows: ["team_id: bigint", "user_id: bigint"], marks: ["pk fk", "pk fk"] }
-  - project_tags: { lane: c1, stack: 3, kind: storage, subtitle: "案件の札", rows: ["project_id: bigint", "tag_id: bigint"], marks: ["pk fk", "pk fk"] }
+  - team_members: { lane: c1, stack: 1, kind: storage, subtitle: "チームの所属", rows: ["team_id: bigint", "user_id: bigint"], marks: ["pk fk", "pk fk"] }
+  - project_tags: { lane: c1, stack: 3, kind: storage, subtitle: "案件のタグ", rows: ["project_id: bigint", "tag_id: bigint"], marks: ["pk fk", "pk fk"] }
 
 # 端の印は両端に立つ。 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か
 flow:
-  - users -> user_roles: "持つ" (info, solid) { tailHead: one, head: many }
+  - users -> user_roles: "役割を持つ" (info, solid) { tailHead: one, head: many }
   - roles -> user_roles: "割り当てる" (info, solid) { tailHead: one, head: many }
-  - users -> team_members: "入る" (info, solid) { tailHead: one, head: many }
-  - teams -> team_members: "集める" (info, solid) { tailHead: one, head: many }
-  - teams -> projects: "抱える" (info, dashed) { tailHead: one, head: zero-many }
-  - projects -> project_tags: "付ける" (info, solid) { tailHead: one, head: many }
-  - tags -> project_tags: "貼る" (info, solid) { tailHead: one, head: many }
-  - users -> projects: "受け持つ" (info, dashed) { tailHead: one, head: zero-many }
+  - users -> team_members: "所属する" (info, solid) { tailHead: one, head: many }
+  - teams -> team_members: "メンバーを持つ" (info, solid) { tailHead: one, head: many }
+  - teams -> projects: "担当する" (info, dashed) { tailHead: one, head: zero-many }
+  - projects -> project_tags: "タグを持つ" (info, solid) { tailHead: one, head: many }
+  - tags -> project_tags: "案件に付く" (info, solid) { tailHead: one, head: many }
+  - users -> projects: "責任者になる" (info, dashed) { tailHead: one, head: zero-many }
 
 # 線も段に載せる。 段が名指ししていない線は「光っていない合図」 として刻まれるので、
 # 載せないと実線で書いた関係が破線に見える
@@ -682,10 +682,10 @@ animation:
     badge: "鍵だけの 3 表"
   - step: "3. 多対多の 2 組" 1.4s
     focus: [users, user_roles, roles, teams, team_members, users -> user_roles, roles -> user_roles, users -> team_members, teams -> team_members]
-    badge: "役割と組"
-  - step: "4. 案件と札" 1.4s
+    badge: "役割とチーム"
+  - step: "4. 案件とタグ" 1.4s
     focus: [projects, project_tags, tags, teams, users, projects -> project_tags, tags -> project_tags, teams -> projects, users -> projects]
-    badge: "案件と札"
+    badge: "案件とタグ"
 `;
 
 export const textDslErMesh = textDslToDiagram(sourceYaml__textDslErMesh);
@@ -721,7 +721,7 @@ export const sourceJson__textDslErMesh = `{
       "lane": "c0",
       "stack": 2,
       "kind": "storage",
-      "subtitle": "組",
+      "subtitle": "チーム",
       "rows": ["id: bigint", "name: text"],
       "marks": ["pk", ""]
     },
@@ -730,7 +730,7 @@ export const sourceJson__textDslErMesh = `{
       "lane": "c0",
       "stack": 3,
       "kind": "storage",
-      "subtitle": "札",
+      "subtitle": "タグ",
       "rows": ["id: bigint", "name: text"],
       "marks": ["pk", ""]
     },
@@ -757,7 +757,7 @@ export const sourceJson__textDslErMesh = `{
       "lane": "c1",
       "stack": 1,
       "kind": "storage",
-      "subtitle": "組の一員",
+      "subtitle": "チームの所属",
       "rows": ["team_id: bigint", "user_id: bigint"],
       "marks": ["pk fk", "pk fk"]
     },
@@ -766,26 +766,26 @@ export const sourceJson__textDslErMesh = `{
       "lane": "c1",
       "stack": 3,
       "kind": "storage",
-      "subtitle": "案件の札",
+      "subtitle": "案件のタグ",
       "rows": ["project_id: bigint", "tag_id: bigint"],
       "marks": ["pk fk", "pk fk"]
     }
   ],
   "flow": [
-    { "from": "users", "to": "user_roles", "label": "持つ", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
+    { "from": "users", "to": "user_roles", "label": "役割を持つ", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
     { "from": "roles", "to": "user_roles", "label": "割り当てる", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
-    { "from": "users", "to": "team_members", "label": "入る", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
-    { "from": "teams", "to": "team_members", "label": "集める", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
-    { "from": "teams", "to": "projects", "label": "抱える", "tone": "info", "style": "dashed", "tailHead": "one", "head": "zero-many" },
-    { "from": "projects", "to": "project_tags", "label": "付ける", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
-    { "from": "tags", "to": "project_tags", "label": "貼る", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
-    { "from": "users", "to": "projects", "label": "受け持つ", "tone": "info", "style": "dashed", "tailHead": "one", "head": "zero-many" }
+    { "from": "users", "to": "team_members", "label": "所属する", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
+    { "from": "teams", "to": "team_members", "label": "メンバーを持つ", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
+    { "from": "teams", "to": "projects", "label": "担当する", "tone": "info", "style": "dashed", "tailHead": "one", "head": "zero-many" },
+    { "from": "projects", "to": "project_tags", "label": "タグを持つ", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
+    { "from": "tags", "to": "project_tags", "label": "案件に付く", "tone": "info", "style": "solid", "tailHead": "one", "head": "many" },
+    { "from": "users", "to": "projects", "label": "責任者になる", "tone": "info", "style": "dashed", "tailHead": "one", "head": "zero-many" }
   ],
   "animation": [
     { "step": "1. 実体の表", "duration": 1.2, "focus": ["roles", "users", "teams", "tags"], "badge": "5 つの実体" },
     { "step": "2. 中継表", "duration": 1.2, "focus": ["user_roles", "team_members", "project_tags"], "badge": "鍵だけの 3 表" },
-    { "step": "3. 多対多の 2 組", "duration": 1.4, "focus": ["users", "user_roles", "roles", "teams", "team_members", "users -> user_roles", "roles -> user_roles", "users -> team_members", "teams -> team_members"], "badge": "役割と組" },
-    { "step": "4. 案件と札", "duration": 1.4, "focus": ["projects", "project_tags", "tags", "teams", "users", "projects -> project_tags", "tags -> project_tags", "teams -> projects", "users -> projects"], "badge": "案件と札" }
+    { "step": "3. 多対多の 2 組", "duration": 1.4, "focus": ["users", "user_roles", "roles", "teams", "team_members", "users -> user_roles", "roles -> user_roles", "users -> team_members", "teams -> team_members"], "badge": "役割とチーム" },
+    { "step": "4. 案件とタグ", "duration": 1.4, "focus": ["projects", "project_tags", "tags", "teams", "users", "projects -> project_tags", "tags -> project_tags", "teams -> projects", "users -> projects"], "badge": "案件とタグ" }
   ]
 }`;
 

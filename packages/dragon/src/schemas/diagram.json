@@ -585,7 +585,7 @@
               "many",
               "zero-many"
             ],
-            "description": "着き先側の端の形。 端の形で関係の種類を示す = triangle (継ぐ) / diamond (持つ) / open (使う) / crow (多) / one / zero-one / many / zero-many (個数)。 書かなければ塗った三角になる。"
+            "description": "着き先側の端の形。 端の形で関係の種類を示す = triangle (継承・実装) / diamond (集約・コンポジション) / open (関連・依存) / crow (多) / one / zero-one / many / zero-many (個数)。 書かなければ塗った三角になる。"
           },
           "tailHead": {
             "type": "string",

@@ -181,7 +181,7 @@ const クラス = (配色?: string, 動きを書く = false): string =>
     '  - Admin: { lane: c0, stack: 1, rows: ["+permissions: string[]", "+banUser(): void"] }',
     "",
     "flow:",
-    '  - Admin -> User: "継ぐ" (info) { relation: extends }',
+    '  - Admin -> User: "継承" (info) { relation: extends }',
     ...(動きを書く
       ? ["", "animation:", '  - step: "1" 0.9s', "    focus: [User]"]
       : []),
@@ -197,7 +197,7 @@ const JSONのクラス = (配色?: string) => ({
     { name: "User", lane: "c0", stack: 0, rows: ["+name: string", "+login(): Session"] },
     { name: "Admin", lane: "c0", stack: 1, rows: ["+permissions: string[]", "+banUser(): void"] },
   ],
-  flow: [{ from: "Admin", to: "User", label: "継ぐ", tone: "info", relation: "extends" }],
+  flow: [{ from: "Admin", to: "User", label: "継承", tone: "info", relation: "extends" }],
 });
 
 describe("クラス図の配色と行の縞", () => {
