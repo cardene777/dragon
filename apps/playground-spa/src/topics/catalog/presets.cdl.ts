@@ -580,7 +580,7 @@ const erComplex = er({
   .relation({ from: "users", to: "orders", label: "注文する", tailHead: "one", head: "many" })
   .relation({ from: "users", to: "user_roles", label: "持つ", tailHead: "one", head: "many" })
   .relation({ from: "roles", to: "user_roles", label: "割り当てる", tailHead: "one", head: "many" })
-  .relation({ from: "orders", to: "order_items", label: "並べる", tailHead: "one", head: "many" })
+  .relation({ from: "orders", to: "order_items", label: "含む", tailHead: "one", head: "many" })
   .relation({
     from: "orders",
     to: "payments",
@@ -613,8 +613,8 @@ const erComplex = er({
     tailHead: "one",
     head: "zero-many",
   })
-  .relation({ from: "products", to: "order_items", label: "売る", tailHead: "one", head: "many" })
-  .relation({ from: "products", to: "inventory", label: "数える", tailHead: "one", head: "one" })
+  .relation({ from: "products", to: "order_items", label: "明細に載る", tailHead: "one", head: "many" })
+  .relation({ from: "products", to: "inventory", label: "在庫を持つ", tailHead: "one", head: "one" })
   .relation({
     from: "products",
     to: "product_categories",
@@ -674,7 +674,7 @@ const presetErComplexSteps = withSteps(
     },
     {
       ids: ["inventory", "rel-10-products-inventory"],
-      title: "3. 在庫を数える",
+      title: "3. 在庫を持つ",
       body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。",
     },
     {
@@ -904,12 +904,12 @@ const presetClassDiagramSteps = withSteps(
     // 継ぐ = 実線 + 白抜きの三角が親の側 / 満たす = 破線 + 白抜きの三角 /
     // 持つ = 実線 + 白抜きの菱が持ち主の側 / 抱える = 菱を塗る /
     // 結ぶ = 実線 + 開いた矢 / 使う = 破線 + 開いた矢
-    .relation({ from: "Admin", to: "User", type: "extends", label: "EXTENDS" })
-    .relation({ from: "Order", to: "Auditable", type: "implements", label: "IMPLEMENTS" })
-    .relation({ from: "Admin", to: "Order", type: "aggregates", label: "HAS", cardinality: "1..*" })
-    .relation({ from: "Order", to: "Receipt", type: "uses", label: "USES" })
-    .relation({ from: "Order", to: "Line", type: "composes", label: "OWNS", cardinality: "1..*" })
-    .relation({ from: "Line", to: "Sku", type: "associates", label: "LINKS" })
+    .relation({ from: "Admin", to: "User", type: "extends", label: "継ぐ" })
+    .relation({ from: "Order", to: "Auditable", type: "implements", label: "満たす" })
+    .relation({ from: "Admin", to: "Order", type: "aggregates", label: "持つ", cardinality: "1..*" })
+    .relation({ from: "Order", to: "Receipt", type: "uses", label: "使う" })
+    .relation({ from: "Order", to: "Line", type: "composes", label: "抱える", cardinality: "1..*" })
+    .relation({ from: "Line", to: "Sku", type: "associates", label: "結ぶ" })
     .build(),
   [
     { ids: ["User"], title: "1. User", body: "基になるクラス。" },
@@ -1846,13 +1846,13 @@ flow:
   - users -> orders: "注文する" (info, solid) { tailHead: one, head: many }
   - users -> user_roles: "持つ" (info, solid) { tailHead: one, head: many }
   - roles -> user_roles: "割り当てる" (info, solid) { tailHead: one, head: many }
-  - orders -> order_items: "並べる" (info, solid) { tailHead: one, head: many }
+  - orders -> order_items: "含む" (info, solid) { tailHead: one, head: many }
   - orders -> payments: "支払う" (info, dashed) { tailHead: one, head: zero-one }
   - orders -> shipments: "送る" (info, dashed) { tailHead: one, head: zero-one }
   - addresses -> shipments: "届け先" (info, dashed) { tailHead: one, head: zero-many }
   - addresses -> orders: "請求先" (info, dashed) { tailHead: one, head: zero-many }
-  - products -> order_items: "売る" (info, solid) { tailHead: one, head: many }
-  - products -> inventory: "数える" (info, solid) { tailHead: one, head: one }
+  - products -> order_items: "明細に載る" (info, solid) { tailHead: one, head: many }
+  - products -> inventory: "在庫を持つ" (info, solid) { tailHead: one, head: one }
   - products -> product_categories: "属す" (info, solid) { tailHead: one, head: many }
   - categories -> product_categories: "束ねる" (info, solid) { tailHead: one, head: many }
   - categories -> categories: "親を持つ" (info, dashed) { tailHead: one, head: zero-many }
@@ -1866,7 +1866,7 @@ animation:
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items"]
     badge: "er"
     body: "実線は識別する関係。 親の鍵が子の鍵に入る。"
-  - step: "3. 在庫を数える" 0.9s
+  - step: "3. 在庫を持つ" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory"]
     badge: "er"
     body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。"
@@ -1927,13 +1927,13 @@ export const sourceJson__presetErComplex = JSON.stringify(
       { from: "users", to: "orders", label: "注文する", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "users", to: "user_roles", label: "持つ", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "roles", to: "user_roles", label: "割り当てる", tone: "info", style: "solid", tailHead: "one", head: "many" },
-      { from: "orders", to: "order_items", label: "並べる", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "orders", to: "order_items", label: "含む", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "orders", to: "payments", label: "支払う", tone: "info", style: "dashed", tailHead: "one", head: "zero-one" },
       { from: "orders", to: "shipments", label: "送る", tone: "info", style: "dashed", tailHead: "one", head: "zero-one" },
       { from: "addresses", to: "shipments", label: "届け先", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
       { from: "addresses", to: "orders", label: "請求先", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
-      { from: "products", to: "order_items", label: "売る", tone: "info", style: "solid", tailHead: "one", head: "many" },
-      { from: "products", to: "inventory", label: "数える", tone: "info", style: "solid", tailHead: "one", head: "one" },
+      { from: "products", to: "order_items", label: "明細に載る", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "products", to: "inventory", label: "在庫を持つ", tone: "info", style: "solid", tailHead: "one", head: "one" },
       { from: "products", to: "product_categories", label: "属す", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "categories", to: "product_categories", label: "束ねる", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "categories", to: "categories", label: "親を持つ", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
@@ -1941,7 +1941,7 @@ export const sourceJson__presetErComplex = JSON.stringify(
     animation: [
       { step: "1. 利用者が注文する", duration: 0.9, focus: ["users", "orders", "users -> orders"], badge: "er", body: "1 人が 1 件以上を出す。 端の棒と鳥の足で数を読む。" },
       { step: "2. 明細に商品が並ぶ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items"], badge: "er", body: "実線は識別する関係。 親の鍵が子の鍵に入る。" },
-      { step: "3. 在庫を数える", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory"], badge: "er", body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。" },
+      { step: "3. 在庫を持つ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory"], badge: "er", body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。" },
       { step: "4. 分類で束ねる", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories"], badge: "er", body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。" },
       { step: "5. 分類が分類を指す", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories"], badge: "er", body: "破線で同じ表へ戻る。 親を持たない分類もある。" },
       { step: "6. 役割を割り当てる", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles"], badge: "er", body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。" },
@@ -2950,12 +2950,12 @@ actors:
 
 # relation を書くと 線 / 端の形 / 塗り / 付く側 がまとめて決まる
 flow:
-  - Admin -> User: "EXTENDS" { relation: extends }
-  - Order -> Auditable: "IMPLEMENTS" { relation: implements }
-  - Admin -> Order: "HAS" { relation: aggregates, sub: "1..*" }
-  - Order -> Receipt: "USES" { relation: uses }
-  - Order -> Line: "OWNS" { relation: composes, sub: "1..*" }
-  - Line -> Sku: "LINKS" { relation: associates }
+  - Admin -> User: "継ぐ" { relation: extends }
+  - Order -> Auditable: "満たす" { relation: implements }
+  - Admin -> Order: "持つ" { relation: aggregates, sub: "1..*" }
+  - Order -> Receipt: "使う" { relation: uses }
+  - Order -> Line: "抱える" { relation: composes, sub: "1..*" }
+  - Line -> Sku: "結ぶ" { relation: associates }
 
 animation:
   - step: "1. User" 0.9s
@@ -3040,39 +3040,39 @@ export const sourceJson__presetClassDiagram = `{
     {
       "from": "Admin",
       "to": "User",
-      "label": "EXTENDS",
+      "label": "継ぐ",
       "relation": "extends"
     },
     {
       "from": "Order",
       "to": "Auditable",
-      "label": "IMPLEMENTS",
+      "label": "満たす",
       "relation": "implements"
     },
     {
       "from": "Admin",
       "to": "Order",
-      "label": "HAS",
+      "label": "持つ",
       "sub": "1..*",
       "relation": "aggregates"
     },
     {
       "from": "Order",
       "to": "Receipt",
-      "label": "USES",
+      "label": "使う",
       "relation": "uses"
     },
     {
       "from": "Order",
       "to": "Line",
-      "label": "OWNS",
+      "label": "抱える",
       "sub": "1..*",
       "relation": "composes"
     },
     {
       "from": "Line",
       "to": "Sku",
-      "label": "LINKS",
+      "label": "結ぶ",
       "relation": "associates"
     }
   ],

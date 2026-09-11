@@ -54,12 +54,12 @@ describe("クラス図が端の形で関係を分ける (#1464)", () => {
    * 分かれる = 6 種が 6 通りの見た目になる。
    */
   const 設計の6種: readonly [語: string, 端: string, 塗り: string, 線: string][] = [
-    ["EXTENDS", "head:triangle", "hollow", "solid"],
-    ["IMPLEMENTS", "head:triangle", "hollow", "dashed"],
-    ["HAS", "tail:diamond", "hollow", "solid"],
-    ["OWNS", "tail:diamond", "solid", "solid"],
-    ["LINKS", "head:open", "solid", "solid"],
-    ["USES", "head:open", "solid", "dashed"],
+    ["継ぐ", "head:triangle", "hollow", "solid"],
+    ["満たす", "head:triangle", "hollow", "dashed"],
+    ["持つ", "tail:diamond", "hollow", "solid"],
+    ["抱える", "tail:diamond", "solid", "solid"],
+    ["結ぶ", "head:open", "solid", "solid"],
+    ["使う", "head:open", "solid", "dashed"],
   ];
 
   it("設計の6種が全て図にあり、決めた見た目で出る", () => {
