@@ -51,8 +51,8 @@ export const CATEGORIES: CategoryMeta[] = [
   },
   {
     slug: "text-dsl",
-    label: "テキストDSL",
-    eyebrow: "テキスト記法",
+    label: "テキスト記法",
+    eyebrow: "箇条書きで図を書く",
     desc: "TypeScript を書かず箇条書きだけで図を書く経路。 markdown 感覚の 5 ブロックで済むので、 メモから起こしたい / 非エンジニアにも書かせたい時の入口。",
     items: ["シーケンス", "フロー", "スイムレーン", "ステート", "トポロジー", "ER"],
     cluster: "extended",
