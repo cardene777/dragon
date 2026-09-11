@@ -19,7 +19,7 @@ export function ReleaseNotesPage(): React.ReactElement {
             <span aria-hidden="true">›</span>
             <span className="cur">リリースノート</span>
           </nav>
-          <span className="nm-eyebrow">RELEASE · v0.5 CURRENT</span>
+          <span className="nm-eyebrow">公開の記録 · v0.5 が最新</span>
           <h1 className="nm-hero-title">
             リリース<span className="nm-gradient-accent">ノート</span>
           </h1>
@@ -57,7 +57,7 @@ export function ReleaseNotesPage(): React.ReactElement {
           <article className="nm-preset-card">
             <header className="nm-preset-card-head">
               <div className="nm-preset-id">v0.5</div>
-              <span className="nm-preset-eyebrow">TEXT DSL × SVG ANIMATION</span>
+              <span className="nm-preset-eyebrow">テキスト記法 × 動く SVG</span>
               <h3 className="nm-preset-title">v0.5 (最新)</h3>
               <p className="nm-preset-subtitle">
                 Text DSL parser + 12 プリセット (sequence / flow / topology / er / state / class / mind / pie / c4 / gantt / code / chart) + 明暗 2 通りの表示。

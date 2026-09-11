@@ -19,7 +19,7 @@ export function DocsPage(): React.ReactElement {
       <SiteHeader />
       <main className="docs-hero-shell">
         <section className="docs-hero">
-          <div className="docs-hero-eyebrow">docs · v0.5</div>
+          <div className="docs-hero-eyebrow">使い方の案内 · v0.5</div>
           <h1 className="docs-hero-title">ドキュメント</h1>
           <p className="docs-hero-lead">
             書き方の全体像を 1 枚にまとめた読み物。 最初の 5 分で動かし、 次の 30 分で 5 つの基本要素と
