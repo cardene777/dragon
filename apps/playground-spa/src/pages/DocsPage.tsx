@@ -27,10 +27,10 @@ export function DocsPage(): React.ReactElement {
           </p>
           <div className="docs-hero-cta">
             <Link to="/editor" className="docs-hero-cta-primary">
-              Quickstart (5 分) →
+              5 分で始める →
             </Link>
             <Link to="/catalog" className="docs-hero-cta-secondary">
-              Catalog で見本を見る
+              カタログで見本を見る
             </Link>
           </div>
         </section>
@@ -104,7 +104,7 @@ const hello = diagram("hello", { topic: "Hello world" })
 export const App = () => <CdlDiagramView diagram={hello} />;`}</code>
           </pre>
           <Link to="/editor" className="docs-hero-cta-primary docs-hero-snippet-cta">
-            続き → Quickstart
+            続き → 5 分で始める
           </Link>
         </section>
       </main>

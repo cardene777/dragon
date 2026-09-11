@@ -16,25 +16,25 @@ const PR_STEPS = [
   {
     id: "branch",
     cmd: "git switch -c feature/128-er-labels",
-    ja: { title: "branch を切る", desc: "branch 名は feature/<番号>-<短い説明> で揃える。" },
+    ja: { title: "作業用の枝を切る", desc: "枝の名前は feature/<番号>-<短い説明> で揃える。" },
     en: { title: "Cut a branch", desc: "Name it feature/<number>-<short-slug>." },
   },
   {
     id: "write",
     cmd: null,
-    ja: { title: "test を先に書く", desc: "動作証明のないコードは merge の対象外。 1 つの PR で 1 つの話題に絞る。" },
+    ja: { title: "テストを先に書く", desc: "動くことを示せていないコードは取り込まない。 1 つの PR で 1 つの話題に絞る。" },
     en: { title: "Write the test first", desc: "Code without proof of behavior is not merged. Keep one PR to one concern." },
   },
   {
     id: "verify",
     cmd: "pnpm verify",
-    ja: { title: "検査を通す", desc: "型検査と test がどちらも通ること。 build も緑にする。" },
+    ja: { title: "検査を通す", desc: "型検査とテストがどちらも通ること。 組み立ても通す。" },
     en: { title: "Make the checks pass", desc: "Both typecheck and tests must pass. Keep the build green too." },
   },
   {
     id: "describe",
     cmd: "Closes #128",
-    ja: { title: "説明文を書く", desc: "何を変えたか、 なぜそうしたかを分けて書く。 起票番号を必ず結ぶ。" },
+    ja: { title: "説明文を書く", desc: "何を変えたか、 なぜそうしたかを分けて書く。 起票番号を必ず書き添える。" },
     en: { title: "Write the description", desc: "Separate what changed from why. Always link the issue number." },
   },
   {
@@ -66,7 +66,7 @@ export function ContributePage(): React.ReactElement {
             <span className="nm-gradient-accent">dragon</span> にコントリビュートする
           </h1>
           <p className="nm-hero-subtitle">
-            dragon は MIT License の OSS プロジェクト。 バグ報告 / 機能提案 / PR は GitHub Issues と Pull Request 経由で歓迎する。 開発ガイドライン (test / commit / branch / review) は CONTRIBUTING.md で SSOT。
+            dragon は MIT ライセンスで公開している。 不具合の報告・機能の提案・直したものを送ることのいずれも GitHub 上で受け付けている。 進め方の決まり (テストの書き方、記録の残し方、枝の切り方、見直しの仕方) は CONTRIBUTING.md にまとめてある。
           </p>
           <div className="nm-hero-actions">
             <a
@@ -93,7 +93,7 @@ export function ContributePage(): React.ReactElement {
           <div className="nm-section-head">
             <h2 className="nm-section-title">コントリビュート方法</h2>
             <p className="nm-section-desc">
-              3 経路で貢献可能 (バグ報告 / 機能提案 / PR)。 詳細は CONTRIBUTING.md SSOT を参照。
+              関わり方は 3 通り (不具合の報告・機能の提案・直したものを送る)。 くわしくは CONTRIBUTING.md を読んでほしい。
             </p>
           </div>
           <div className="nm-preset-grid">
@@ -103,7 +103,7 @@ export function ContributePage(): React.ReactElement {
                 <span className="nm-preset-eyebrow">見つけたら伝える</span>
                 <h3 className="nm-preset-title">バグ報告</h3>
                 <p className="nm-preset-subtitle">
-                  再現手順 + 期待動作 + 実際の挙動 を GitHub Issue (bug template) で起票。 最小再現コードが付いていれば maintainer は素早く対応できる。
+                  再現の手順・期待した動き・実際に起きたことの 3 つを、GitHub の Issue (不具合の型) で起票する。 いちばん短い再現用のコードが付いていれば、直す側はすぐ動ける。
                 </p>
               </header>
               <footer className="nm-preset-card-foot">
@@ -129,7 +129,7 @@ export function ContributePage(): React.ReactElement {
                 <span className="nm-preset-eyebrow">欲しいものを出す</span>
                 <h3 className="nm-preset-title">機能提案</h3>
                 <p className="nm-preset-subtitle">
-                  新 DSL 構文 / 新プリセット / アニメーション機能などの提案。 用途 + 期待動作を feature template で提出。 議論 → 合意 → 実装 → PR の順で進む。
+                  新しい記法・新しい見本・動きの機能などの提案。 何に使いたいかと期待する動きを、提案の型で出す。 話し合い → 合意 → 実装 → 取り込み依頼 の順で進む。
                 </p>
               </header>
               <footer className="nm-preset-card-foot">
@@ -155,7 +155,7 @@ export function ContributePage(): React.ReactElement {
                 <span className="nm-preset-eyebrow">直したものを送る</span>
                 <h3 className="nm-preset-title">Pull Request</h3>
                 <p className="nm-preset-subtitle">
-                  テスト先行 (TDD 推奨、 動作証明なし PR は merge 対象外) + typecheck / build 緑必須 + 1 PR = 1 concern。 詳細は CONTRIBUTING.md § Pull request SSOT。
+                  テストを先に書く (動くことを示せていない変更は取り込まない)。 型検査と組み立てがどちらも通っていること。 1 つの PR で扱う主題は 1 つに絞る。 くわしくは CONTRIBUTING.md の取り込み依頼の節を読んでほしい。
                 </p>
               </header>
               <footer className="nm-preset-card-foot">
@@ -185,7 +185,7 @@ export function ContributePage(): React.ReactElement {
             </h2>
             <p className="nm-section-desc">
               {locale === "ja"
-                ? "上の 3 経路のうち PR は手を動かす人向け。 branch を切ってから出すまでを順に置いた。 詳細は CONTRIBUTING.md § 開発フロー。"
+                ? "上の 3 通りのうち、直したものを送る道は手を動かす人向け。 枝を切ってから出すまでを順に置いた。 くわしくは CONTRIBUTING.md の開発の流れの節。"
                 : "Of the three routes above, a PR is the hands-on one. Here is the path from branching to opening it. See CONTRIBUTING.md for details."}
             </p>
           </div>

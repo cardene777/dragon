@@ -24,7 +24,7 @@ export function ReleaseNotesPage(): React.ReactElement {
             リリース<span className="nm-gradient-accent">ノート</span>
           </h1>
           <p className="nm-hero-subtitle">
-            dragon DSL のリリースごとの主要変更を要約表示。 詳細なリリースノートは GitHub 上の CHANGELOG.md を参照。
+            dragon の版ごとの主な変更を要約して並べる。 くわしい記録は GitHub 上の CHANGELOG.md にある。
           </p>
           <div className="nm-hero-actions">
             <a
@@ -33,7 +33,7 @@ export function ReleaseNotesPage(): React.ReactElement {
               rel="noopener noreferrer"
               className="nm-hero-btn nm-hero-btn-primary"
             >
-              <span>CHANGELOG を GitHub で見る</span>
+              <span>変更の記録を GitHub で見る</span>
               <span className="nm-hero-btn-arrow" aria-hidden="true">↗</span>
             </a>
             <a
@@ -51,7 +51,7 @@ export function ReleaseNotesPage(): React.ReactElement {
           <div className="nm-section-head">
             <h2 className="nm-section-title">最新リリース</h2>
             <p className="nm-section-desc">
-              現時点の最新リリースは v0.5 (Text DSL × SVG アニメーション)。 個別リリースノートは GitHub 経由で参照する。
+              いまの最新は v0.5 (テキスト記法と動く SVG)。 版ごとの記録は GitHub で読む。
             </p>
           </div>
           <article className="nm-preset-card">
@@ -60,7 +60,7 @@ export function ReleaseNotesPage(): React.ReactElement {
               <span className="nm-preset-eyebrow">テキスト記法 × 動く SVG</span>
               <h3 className="nm-preset-title">v0.5 (最新)</h3>
               <p className="nm-preset-subtitle">
-                Text DSL parser + 12 プリセット (sequence / flow / topology / er / state / class / mind / pie / c4 / gantt / code / chart) + 明暗 2 通りの表示。
+                テキスト記法の読み取りと、12 種類の見本 (シーケンス図・フロー・トポロジー図・ER図・ステート図・クラス図・マインドマップ・円グラフ・C4 図・ガントチャート・コード・グラフ)、明暗 2 通りの表示。
               </p>
             </header>
             <footer className="nm-preset-card-foot">
@@ -74,7 +74,7 @@ export function ReleaseNotesPage(): React.ReactElement {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="nm-preset-docs"
-                aria-label="v0.5 の CHANGELOG を GitHub で読む"
+                aria-label="v0.5 の変更の記録を GitHub で読む"
               >
                 <span>GitHub で読む</span>
                 <span className="nm-preset-docs-arrow" aria-hidden="true">↗</span>

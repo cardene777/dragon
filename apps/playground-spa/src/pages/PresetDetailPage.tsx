@@ -94,7 +94,7 @@ export function PresetDetailPage(): React.ReactElement {
       toast({
         type: "error",
         title: "コピーできませんでした",
-        description: "この画面では clipboard に触れない",
+        description: "この画面からは書き写し先に触れません",
       });
     }
   };
