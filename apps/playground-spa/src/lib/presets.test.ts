@@ -26,6 +26,24 @@ function 英語の混ざる所(p: PresetMetadata): string[] {
   return out;
 }
 
+/**
+ * 分類名 (`eyebrow`) のうち、直っていないもの。 本番と植え込み対照が同じ関数を使う。
+ *
+ * 分類名は名前のすぐ上に出るため、名前や札の言い換えだと同じことを 2 度読ませる。
+ * 英字が残っていないことと、名前・札をなぞっていないことの両方を見る。
+ */
+function 分類名の難あり(p: PresetMetadata): string[] {
+  const out: string[] = [];
+  if (/[A-Za-z]/.test(p.eyebrow)) out.push(`${p.id}.eyebrow に英字: ${p.eyebrow}`);
+  if (!日本語の字.test(p.eyebrow)) out.push(`${p.id}.eyebrow に日本語が無い: ${p.eyebrow}`);
+  const 名前 = [presetName(p, "ja"), presetName(p, "en")];
+  for (const 語 of p.eyebrow.split("/").map((s) => s.trim())) {
+    if (名前.includes(語)) out.push(`${p.id}.eyebrow が図の名前と同じ: ${語}`);
+    if (p.tags.includes(語)) out.push(`${p.id}.eyebrow が札と同じ: ${語}`);
+  }
+  return out;
+}
+
 /** 説明文が書く数の形。 箱と線の数 (ER 図とクラス図) と、レーンの数 */
 const 箱と線の数 = /(\d+) (?:表|クラス) × (\d+) 関係/;
 const レーンの数 = /(\d+) レーン/;
@@ -128,10 +146,23 @@ describe("詳細画面の説明文と札 (#1777)", () => {
     expect(英語の混ざる所({ ...元, subtitle: "UML の図。", tags: ["UML"] })).toEqual([]);
   });
 
-  it("見出しの上の分類名に日本語が混ざらない", () => {
-    // 分類名はサイト全体で大文字の英語に揃えている (`STATE / FSM 拡張` が 1 件だけ外れていた)
-    const 混ざる = PRESETS.filter((p) => 日本語の字.test(p.eyebrow)).map((p) => `${p.id}: ${p.eyebrow}`);
-    expect(混ざる, `分類名に日本語が混ざる: ${混ざる.join(", ")}`).toEqual([]);
+  it("見出しの上の分類名が日本語で、名前や札をなぞらない (#1783)", () => {
+    // 直す前は `SWIMLANE / LAYOUT` のような英語の大文字で、名前と説明文の間に
+    // 英語の 1 行だけが挟まっていた
+    const 走査 = PRESETS.map(分類名の難あり);
+    expect(走査.length, "分類名を 1 件も見ていない (検査が空振りしている)").toBe(PRESETS.length);
+    const 難あり = 走査.flat();
+    expect(難あり, `分類名が直っていない:\n${難あり.join("\n")}`).toEqual([]);
+  });
+
+  it("分類名の難を拾える (植え込み対照)", () => {
+    // 探し方が何にも当たらない形に壊れていると、上は必ず通る。 4 つの難を 1 つずつ植える
+    const 元 = PRESETS.find((p) => p.id === "swimlane")!;
+    expect(分類名の難あり(元), "直したままの分類名を難と読む").toEqual([]);
+    expect(分類名の難あり({ ...元, eyebrow: "SWIMLANE / LAYOUT" })).toHaveLength(2);
+    expect(分類名の難あり({ ...元, eyebrow: "スイムレーン / 担当の切り分け" })).toHaveLength(1);
+    expect(分類名の難あり({ ...元, eyebrow: "流れの図 / レーン" })).toHaveLength(1);
+    expect(分類名の難あり({ ...元, eyebrow: "123 / 456" })).toHaveLength(1);
   });
 
   it("説明文に書いた数が図の数と合う", () => {
