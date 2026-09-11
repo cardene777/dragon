@@ -40,7 +40,7 @@ async function 状態の種類(page: Page, 読む: () => Promise<string[]>): Pro
 
 test.describe("Text DSL の見本も起点から描かれる (#1363)", () => {
   test("ガント: 帯の倍率が動く", async ({ page }) => {
-    await 開く(page, "テキストDSLのガント");
+    await 開く(page, "テキスト記法のガント");
     const 値 = await 状態の種類(page, () =>
       page.evaluate(() =>
         Array.from(document.querySelectorAll('[data-cdl-role="gantt-bar"]'))
@@ -52,7 +52,7 @@ test.describe("Text DSL の見本も起点から描かれる (#1363)", () => {
   });
 
   test("円グラフ: 切り抜きの形が変わる", async ({ page }) => {
-    await 開く(page, "テキストDSLの円グラフ");
+    await 開く(page, "テキスト記法の円グラフ");
     const 値 = await 状態の種類(page, () =>
       page.evaluate(() => {
         const clip = document.querySelector('clipPath[id^="cdl-pie-draw-"]');
@@ -63,7 +63,7 @@ test.describe("Text DSL の見本も起点から描かれる (#1363)", () => {
   });
 
   test("マインドマップ: 枝の残りが動く", async ({ page }) => {
-    await 開く(page, "テキストDSLのマインドマップ");
+    await 開く(page, "テキスト記法のマインドマップ");
     const 値 = await 状態の種類(page, () =>
       page.evaluate(() =>
         Array.from(document.querySelectorAll('[data-cdl-role="mind-edge"]'))
@@ -79,7 +79,7 @@ test.describe("Text DSL の見本も起点から描かれる (#1363)", () => {
      * 「このページの図はどれも何か動いている」 形なら、上の 3 件は通っても意味を持たない。
      * 起点から描けない種別 (順序図) では、起点から描く印が 1 つも付かないことを見る。
      */
-    await 開く(page, "テキストDSLのシーケンス");
+    await 開く(page, "テキスト記法のシーケンス");
     await page.waitForTimeout(600);
     const 印 = await page.evaluate(() => ({
       残り: document.querySelectorAll("[stroke-dashoffset]").length,
