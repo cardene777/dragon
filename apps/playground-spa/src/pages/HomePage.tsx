@@ -227,7 +227,7 @@ export function HomePage(): React.ReactElement {
 
       <section className="quickstart">
         <div className="section-head">
-          <span className="eyebrow">3 steps</span>
+          <span className="eyebrow">{isJa ? "3 手順" : "3 steps"}</span>
           <h2>{isJa ? "1 分で走り出す。" : "Up and running in a minute."}</h2>
         </div>
         <div className="steps">
@@ -258,7 +258,7 @@ export function HomePage(): React.ReactElement {
 
       <section className="examples">
         <div className="section-head">
-          <span className="eyebrow">use case</span>
+          <span className="eyebrow">{isJa ? "使いどころ" : "use case"}</span>
           <h2>{isJa ? "こんな図が書ける。" : "Diagrams you can write."}</h2>
         </div>
         <div className="examples-grid">
@@ -267,7 +267,7 @@ export function HomePage(): React.ReactElement {
               <CdlDiagramView hideMiniPhaseIndicator diagram={presetSequence} hideHeader />
             </div>
             <div className="example-body">
-              <span className="example-tag tag-seq">sequence</span>
+              <span className="example-tag tag-seq">{isJa ? "シーケンス図" : "sequence"}</span>
               <h3>{isJa ? "API 呼び出しの流れ" : "How an API call flows"}</h3>
               <p>{isJa ? "登場人物どうしのやりとりを時間軸で並べる。 認証や API 連携の説明に。" : "Lay out interactions between actors on a timeline. Ideal for explaining authentication and API integrations."}</p>
             </div>
@@ -277,7 +277,7 @@ export function HomePage(): React.ReactElement {
               <CdlDiagramView hideMiniPhaseIndicator diagram={presetTopology} hideHeader />
             </div>
             <div className="example-body">
-              <span className="example-tag tag-topo">topology</span>
+              <span className="example-tag tag-topo">{isJa ? "トポロジー図" : "topology"}</span>
               <h3>{isJa ? "システム構成図" : "System topology"}</h3>
               <p>{isJa ? "部品の配置と、 要求がどこを通るかを同時に描く。" : "Show component placement and request paths in a single diagram."}</p>
             </div>
@@ -287,7 +287,7 @@ export function HomePage(): React.ReactElement {
               <CdlDiagramView hideMiniPhaseIndicator diagram={presetEr} hideHeader />
             </div>
             <div className="example-body">
-              <span className="example-tag tag-er">er</span>
+              <span className="example-tag tag-er">{isJa ? "ER図" : "er"}</span>
               <h3>{isJa ? "データベースの構造" : "DB schema"}</h3>
               <p>{isJa ? "実体と関係を順番に見せる。 構造の見直しや引き継ぎに。" : "Reveal entities and relationships step by step. For schema review and onboarding."}</p>
             </div>

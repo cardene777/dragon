@@ -61,7 +61,7 @@ export function ContributePage(): React.ReactElement {
             <span aria-hidden="true">›</span>
             <span className="cur">コントリビュート</span>
           </nav>
-          <span className="nm-eyebrow">CONTRIBUTE · OPEN SOURCE</span>
+          <span className="nm-eyebrow">参加のしかた · みんなで作る</span>
           <h1 className="nm-hero-title">
             <span className="nm-gradient-accent">dragon</span> にコントリビュートする
           </h1>
@@ -99,8 +99,8 @@ export function ContributePage(): React.ReactElement {
           <div className="nm-preset-grid">
             <article className="nm-preset-card">
               <header className="nm-preset-card-head">
-                <div className="nm-preset-id">1. bug</div>
-                <span className="nm-preset-eyebrow">BUG REPORT</span>
+                <div className="nm-preset-id">1. 不具合</div>
+                <span className="nm-preset-eyebrow">見つけたら伝える</span>
                 <h3 className="nm-preset-title">バグ報告</h3>
                 <p className="nm-preset-subtitle">
                   再現手順 + 期待動作 + 実際の挙動 を GitHub Issue (bug template) で起票。 最小再現コードが付いていれば maintainer は素早く対応できる。
@@ -108,8 +108,8 @@ export function ContributePage(): React.ReactElement {
               </header>
               <footer className="nm-preset-card-foot">
                 <div className="nm-preset-tags">
-                  <span className="nm-preset-tag">issue</span>
-                  <span className="nm-preset-tag">reproduction</span>
+                  <span className="nm-preset-tag">起票</span>
+                  <span className="nm-preset-tag">再現手順</span>
                 </div>
                 <a
                   href="https://github.com/cardene777/dragon/issues/new?template=bug-report.yml"
@@ -125,8 +125,8 @@ export function ContributePage(): React.ReactElement {
 
             <article className="nm-preset-card">
               <header className="nm-preset-card-head">
-                <div className="nm-preset-id">2. feature</div>
-                <span className="nm-preset-eyebrow">FEATURE REQUEST</span>
+                <div className="nm-preset-id">2. 提案</div>
+                <span className="nm-preset-eyebrow">欲しいものを出す</span>
                 <h3 className="nm-preset-title">機能提案</h3>
                 <p className="nm-preset-subtitle">
                   新 DSL 構文 / 新プリセット / アニメーション機能などの提案。 用途 + 期待動作を feature template で提出。 議論 → 合意 → 実装 → PR の順で進む。
@@ -134,8 +134,8 @@ export function ContributePage(): React.ReactElement {
               </header>
               <footer className="nm-preset-card-foot">
                 <div className="nm-preset-tags">
-                  <span className="nm-preset-tag">feature</span>
-                  <span className="nm-preset-tag">discussion</span>
+                  <span className="nm-preset-tag">機能の追加</span>
+                  <span className="nm-preset-tag">話し合い</span>
                 </div>
                 <a
                   href="https://github.com/cardene777/dragon/issues/new?template=feature-request.yml"
@@ -152,7 +152,7 @@ export function ContributePage(): React.ReactElement {
             <article className="nm-preset-card">
               <header className="nm-preset-card-head">
                 <div className="nm-preset-id">3. PR</div>
-                <span className="nm-preset-eyebrow">PULL REQUEST</span>
+                <span className="nm-preset-eyebrow">直したものを送る</span>
                 <h3 className="nm-preset-title">Pull Request</h3>
                 <p className="nm-preset-subtitle">
                   テスト先行 (TDD 推奨、 動作証明なし PR は merge 対象外) + typecheck / build 緑必須 + 1 PR = 1 concern。 詳細は CONTRIBUTING.md § Pull request SSOT。
@@ -160,8 +160,8 @@ export function ContributePage(): React.ReactElement {
               </header>
               <footer className="nm-preset-card-foot">
                 <div className="nm-preset-tags">
-                  <span className="nm-preset-tag">test</span>
-                  <span className="nm-preset-tag">1 PR = 1 concern</span>
+                  <span className="nm-preset-tag">テスト</span>
+                  <span className="nm-preset-tag">1 PR = 1 つの主題</span>
                 </div>
                 <a
                   href="https://github.com/cardene777/dragon/pulls"
@@ -179,7 +179,7 @@ export function ContributePage(): React.ReactElement {
 
         <section className="pr-steps" aria-label={locale === "ja" ? "PR を出すまでの 5 手順" : "Five steps to a pull request"}>
           <div className="nm-section-head">
-            <span className="nm-eyebrow">PULL REQUEST</span>
+            <span className="nm-eyebrow">{locale === "ja" ? "変更を届ける" : "PULL REQUEST"}</span>
             <h2 className="nm-section-title">
               {locale === "ja" ? "PR を出すまでの 5 手順" : "Five steps to a pull request"}
             </h2>
