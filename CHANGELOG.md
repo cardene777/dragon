@@ -66,6 +66,20 @@ dragon DSL の主要変更履歴。
 
 ### Changed
 
+- **描画エンジンを `0.49.0` へ上げ、走査の error 一覧に直せなかった理由を並べる** (#1761)
+
+  描画エンジン (`@cardenelabs/cdl`) を `^0.48.0` から `^0.49.0` へ上げた。
+  engine は `clearance` の違反に、なぜ直せなかったかを添える欄 (`reason`) を持つようになった (`cdl#810`)。
+
+  見本帳の走査 (`visual-validate-sweep.test.ts`) が error を出す時の一覧 2 種 (抜粋と図ごとの一覧) に、
+  違反が理由を持つ時だけ行の末尾へ足す。 理由を持たない違反の行は変わらない。
+
+  ```
+  error: clearance — edge-label:code-exchange ↔ edge-path:api-client gap=10.0px (need 14px) (diag=...) 逃げ場なし: 上=edge-label:consent-client (36→0) / 下=edge-label:token-issue (36→28) / ...
+  ```
+
+  見本帳 444 枚には今 `clearance` の error が無いので、図の見た目と走査の件数は変わらない。
+
 - **一覧の台に描かれる高さも機械で数えるようにした** (#1753)
 
   `#1751` は一覧の枠 (幅 874px) で **文字が小さくなる側** を測った。 同じ枠には逆向きの

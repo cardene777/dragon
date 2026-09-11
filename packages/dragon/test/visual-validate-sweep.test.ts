@@ -185,6 +185,16 @@ const ERROR_DUMP_MAX = 10;
  * 書き出しと組み立てを分けてあるのは、 **出ることを機械で確かめられるようにする** ため。
  * `process.stderr` に直接書くと、 出たかどうかを検査から見られない。
  */
+/**
+ * engine がなぜ直せなかったかを行の末尾に足す (cdl#810、 `Violation.reason`)。
+ *
+ * `detail` に混ぜずに末尾へ置く = 行の `detail` までの形を読む側を崩さない。
+ * 理由を持たない違反は従来の行のまま。
+ */
+function 理由を添える(v: Violation): string {
+  return v.reason !== undefined ? ` ${v.reason}` : "";
+}
+
 function 違反の抜粋(
   reports: VisualValidationReport[],
   interestingAxes: ReadonlySet<string>,
@@ -197,7 +207,7 @@ function 違反の抜粋(
 
   const errors = withId("error");
   for (const e of errors.slice(0, ERROR_DUMP_MAX)) {
-    lines.push(`  error: ${e.axis} — ${e.detail} (diag=${e.diagramId})`);
+    lines.push(`  error: ${e.axis} — ${e.detail} (diag=${e.diagramId})${理由を添える(e)}`);
   }
   // **黙って打ち切らない**。 出し切れなかった件数を残す
   if (errors.length > ERROR_DUMP_MAX) {
@@ -230,7 +240,7 @@ function formatReport(reports: VisualValidationReport[]): string {
     for (const [axis, vs] of byAxis) {
       lines.push(`    ${axis} ... ${vs.length} 件`);
       for (const v of vs) {
-        lines.push(`      - ${v.detail}`);
+        lines.push(`      - ${v.detail}${理由を添える(v)}`);
       }
     }
   }
@@ -388,6 +398,34 @@ describe("名指しした見逃しが実物で当たっている (#1730)", () =>
       一覧外.length,
       "一覧外の error が 1 件も無い。 この検査は一覧に戻す変更を止められていない",
     ).toBeGreaterThan(0);
+  });
+
+  it("error の行に engine が直せなかった理由を足す (理由を持たない違反は従来の行のまま)", () => {
+    /*
+     * 見本帳には今 `clearance` の error が無く、 実物からは理由を持つ違反を採れない。
+     * 報告を自分で組む (母集団は下の 2 件で固定)。
+     */
+    const 理由 = "逃げ場なし: 上=edge-label:c (36→0) / 下=edge-label:d (36→28)";
+    const 報告 = {
+      diagramId: "d",
+      ok: false,
+      profile: "catalog",
+      counts: {},
+      skippedAxes: [],
+      violations: [
+        { axis: "clearance", diagramId: "d", severity: "error", detail: "edge-label:a ↔ edge-path:b gap=10.0px (need 14px)", reason: 理由 },
+        { axis: "clearance", diagramId: "d", severity: "error", detail: "node:n1 ↔ node:n2 gap=6.0px (need 70px)" },
+      ],
+    } as unknown as VisualValidationReport;
+
+    expect(違反の抜粋([報告], new Set()).filter((l) => l.startsWith("  error: "))).toEqual([
+      `  error: clearance — edge-label:a ↔ edge-path:b gap=10.0px (need 14px) (diag=d) ${理由}`,
+      "  error: clearance — node:n1 ↔ node:n2 gap=6.0px (need 70px) (diag=d)",
+    ]);
+    expect(formatReport([報告]).split("\n").filter((l) => l.startsWith("      - "))).toEqual([
+      `      - edge-label:a ↔ edge-path:b gap=10.0px (need 14px) ${理由}`,
+      "      - node:n1 ↔ node:n2 gap=6.0px (need 70px)",
+    ]);
   });
 
   it("名指しした組が実物でその軸の違反を出している", () => {
