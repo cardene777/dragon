@@ -66,7 +66,22 @@ import { at } from "./support/at";
  *     green を検知できないため、 下記「crest Y 実分離」 assert で 2 detour edge の主水平区間 Y が実際に
  *     分離していることを座標で固定する (side:"left" に戻すと本 assert が fail する)。
  */
-const FIXED: Array<{ name: string; diagram: CdlDiagram }> = [
+/**
+ * 受け入れている error 1 件 (#1755)。
+ *
+ * 「今は 0 件にできない」 ことを書き残す欄で、 **消すのも増やすのも落ちる** 形にする =
+ * 直ったのに書き残しが残ると、 その図だけ検知が消える。
+ *
+ * 軸と図の組で照合し、 文面そのものは見ない (数値は engine の版で動く)。
+ */
+interface 受け入れた違反 {
+  /** 軸の名前 */
+  readonly axis: string;
+  /** なぜ今は 0 にできないか */
+  readonly 理由: string;
+}
+
+const FIXED: Array<{ name: string; diagram: CdlDiagram; 受け入れ?: readonly 受け入れた違反[] }> = [
   { name: "interactive-timeline-drive", diagram: timelineDrive },
   { name: "interactive-kpi-dashboard", diagram: kpiDashboard },
   // stage 3 (#892) = exemplar 3 件。 いずれも「label を置く場所が足りない」 が原因で、 layout の
@@ -76,7 +91,20 @@ const FIXED: Array<{ name: string; diagram: CdlDiagram }> = [
   //     cdl#374、 dragon#968)。 lane 間隔は効かない = cdl が label 幅に合わせて自動で広げる
   //   - traffic-sankey ... 縦区間 2 本の間に挟まれた label を横へ 90 逃がす (4 → 0)
   //   - notification-flow ... 同じ高さに並んだ label を縦区間の上へ 120 逃がす (1 → 0)
-  { name: "interactive-oauth-flow", diagram: interactiveOauthFlow },
+  {
+    name: "interactive-oauth-flow",
+    diagram: interactiveOauthFlow,
+    受け入れ: [
+      {
+        axis: "clearance",
+        理由:
+          "4 枚の名前が 72 world 間隔で縦に積まれ、 下を回る線がその 3 枚目の 9 world 上を通る" +
+          " (要求 14)。 名前を下げると隣との隙間 (要求 36) を割り、 上げると線に近づくため" +
+          " engine が動かせない。 試作で隣ごと下げると、 巻き込んだ 4 枚目が自分の弧から" +
+          " 166px 離れて別の破綻 (上限 160px) に変わった。 直すのは engine 側で cdl#805 が持つ。",
+      },
+    ],
+  },
   { name: "interactive-traffic-sankey", diagram: trafficSankey },
   { name: "interactive-exemplar-notification-flow", diagram: exemplarNotificationFlow },
 ];
@@ -154,15 +182,23 @@ function mainCrestY(d: string): number {
 describe("#401 interactive error-0 gate", () => {
   const report = visualValidateAll(FIXED.map((f) => f.diagram), { profile: "catalog" });
 
-  for (const { name } of FIXED) {
-    it(`${name} は visualValidate error 0 件`, () => {
+  for (const { name, 受け入れ } of FIXED) {
+    const 受け入れた軸 = (受け入れ ?? []).map((x) => x.axis).sort();
+    const 題 = 受け入れた軸.length === 0
+      ? `${name} は visualValidate error 0 件`
+      : `${name} の visualValidate error は受け入れた ${受け入れた軸.join(" / ")} だけ`;
+    it(題, () => {
       const r = report.reports.find((rep) => rep.diagramId === name);
       expect(r, `report for ${name} が見つからない`).toBeDefined();
       const errors = r!.violations.filter((v) => v.severity === "error");
+      /*
+       * **受け入れた軸を「以下」 ではなく「一致」 で見る**。 `filter` で除くと、 受け入れた
+       * 違反が engine 側で直った日に検査が緑のまま通り、 書き残しだけが残る。
+       */
       expect(
-        errors.map((v) => `${v.axis}: ${v.detail}`),
-        `${name} に error 残存`,
-      ).toEqual([]);
+        errors.map((v) => v.axis).sort(),
+        `${name} の error が受け入れた一覧と違う:\n${errors.map((v) => `${v.axis}: ${v.detail}`).join("\n")}`,
+      ).toEqual(受け入れた軸);
     });
   }
 
@@ -404,9 +440,19 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     expect(gapOf(a, b), "2 label が近すぎる").toBeGreaterThanOrEqual(LABEL_MIN);
   });
 
-  it("oauth-flow = label を 1 文字伸ばしても error 0 のまま (余裕がある配置)", () => {
+  it("oauth-flow = label を 1 文字伸ばしても error が増えない (余裕がある配置)", () => {
     // ±45 では 0 件だが `2. consent screen` に 1 文字足すと 5 件戻った。 文言の修正や翻訳で
     // 崩れる配置は「たまたま今の文字数で成立している」 だけなので、 1 文字分の余裕を固定する。
+    //
+    // **基準は 0 件ではなく「いまの顔ぶれ」** (#1755)。 engine の角の直し (cdl#802) で
+    // `clearance` 1 件を受け入れているため、 0 件を求めると 1 文字と無関係に落ちる。
+    // 顔ぶれの一致で見れば、 1 文字で増える形は今までどおり落ちる。
+    const 軸 = (d: CdlDiagram): string[] =>
+      (visualValidateAll([d], { profile: "catalog" }).reports[0]?.violations ?? [])
+        .filter((v) => v.severity === "error")
+        .map((v) => v.axis)
+        .sort();
+    const 基準 = 軸(interactiveOauthFlow);
     const ids = ["client-consent", "consent-client", "code-exchange", "token-issue"];
     const broke: string[] = [];
     for (const target of [...ids, "(全部)"]) {
@@ -416,8 +462,10 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
         const e = d.edges.find((x) => x.id === id) as { label: string };
         e.label = `${e.label}X`;
       }
-      const errs = (visualValidateAll([d], { profile: "catalog" }).reports[0]?.violations ?? []).filter((v) => v.severity === "error");
-      if (errs.length > 0) broke.push(`${target} を 1 文字伸ばすと ${errs.length} 件: ${errs.map((v) => v.axis).join(",")}`);
+      const 出た = 軸(d);
+      if (出た.join(",") !== 基準.join(",")) {
+        broke.push(`${target} を 1 文字伸ばすと ${出た.join(",") || "(なし)"} (基準 ${基準.join(",") || "(なし)"})`);
+      }
     }
     expect(broke, `1 文字で崩れる:\n${broke.join("\n")}`).toHaveLength(0);
   });
