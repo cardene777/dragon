@@ -906,9 +906,9 @@ const presetClassDiagramSteps = withSteps(
     // 結ぶ = 実線 + 開いた矢 / 使う = 破線 + 開いた矢
     .relation({ from: "Admin", to: "User", type: "extends", label: "継ぐ" })
     .relation({ from: "Order", to: "Auditable", type: "implements", label: "満たす" })
-    .relation({ from: "Admin", to: "Order", type: "aggregates", label: "持つ", cardinality: "1..*" })
+    .relation({ from: "Admin", to: "Order", type: "aggregates", label: "持つ", cardinality: "1..*", tailCardinality: "1" })
     .relation({ from: "Order", to: "Receipt", type: "uses", label: "使う" })
-    .relation({ from: "Order", to: "Line", type: "composes", label: "抱える", cardinality: "1..*" })
+    .relation({ from: "Order", to: "Line", type: "composes", label: "抱える", cardinality: "1..*", tailCardinality: "1" })
     .relation({ from: "Line", to: "Sku", type: "associates", label: "結ぶ" })
     .build(),
   [
@@ -2952,9 +2952,9 @@ actors:
 flow:
   - Admin -> User: "継ぐ" { relation: extends }
   - Order -> Auditable: "満たす" { relation: implements }
-  - Admin -> Order: "持つ" { relation: aggregates, sub: "1..*" }
+  - Admin -> Order: "持つ" { relation: aggregates, sub: "1..*", tailSub: "1" }
   - Order -> Receipt: "使う" { relation: uses }
-  - Order -> Line: "抱える" { relation: composes, sub: "1..*" }
+  - Order -> Line: "抱える" { relation: composes, sub: "1..*", tailSub: "1" }
   - Line -> Sku: "結ぶ" { relation: associates }
 
 animation:
@@ -3054,6 +3054,7 @@ export const sourceJson__presetClassDiagram = `{
       "to": "Order",
       "label": "持つ",
       "sub": "1..*",
+      "tailSub": "1",
       "relation": "aggregates"
     },
     {
@@ -3067,6 +3068,7 @@ export const sourceJson__presetClassDiagram = `{
       "to": "Line",
       "label": "抱える",
       "sub": "1..*",
+      "tailSub": "1",
       "relation": "composes"
     },
     {

@@ -140,6 +140,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     to: "B",
     label: "x",
     sub: "s",
+    // クラス図の出どころ側の多重度 (#1771)
+    tailSub: "1",
     tone: "success",
     style: "solid",
     guard: "g",

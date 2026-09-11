@@ -9,6 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { compileToCdl } from "../src/compile";
+import { jsonToDiagram } from "../src/json-parser";
 import type { DslActor, DslDocument, DslStep, PresetType } from "../src/types";
 
 const actor = (name: string): DslActor => ({ name, kind: "actor", pos: { line: 1 } });
@@ -48,5 +49,35 @@ describe("クラス図の `sub` (#1769)", () => {
     expect(d.edges.length, "矢印が 1 本も無い (検査が空振りしている)").toBeGreaterThan(0);
     expect(d.edges.map((e) => e.sub)).toContain("/validate");
     expect(d.edges.every((e) => e.headLabel === undefined)).toBe(true);
+  });
+});
+
+describe("クラス図の `tailSub` (#1771)", () => {
+  it("出どころ側の多重度は、出どころの端の字に入る", () => {
+    const d = compileToCdl(
+      文書("class", [step("Admin", "Order", { relation: "aggregates", sub: "1..*", tailSub: "1" })]),
+    );
+    expect(d.edges, "矢印が 1 本も無い (検査が空振りしている)").toHaveLength(1);
+    expect(d.edges[0]!.tailLabel).toBe("1");
+    expect(d.edges[0]!.headLabel).toBe("1..*");
+    expect(d.edges[0]!.sub).toBeUndefined();
+  });
+
+  it("JSON の `tailSub` も記法と同じ矢印になる", () => {
+    const d = jsonToDiagram({
+      title: "T",
+      type: "class",
+      actors: [{ name: "Admin" }, { name: "Order" }],
+      flow: [{ from: "Admin", to: "Order", label: "持つ", relation: "aggregates", sub: "1..*", tailSub: "1" }],
+    } as never);
+    expect(d.edges, "矢印が 1 本も無い (検査が空振りしている)").toHaveLength(1);
+    expect(d.edges[0]!.tailLabel).toBe("1");
+    expect(d.edges[0]!.headLabel).toBe("1..*");
+  });
+
+  it("陰性対照: クラス図でない図は `tailSub` を読まない (関係の語と同じ)", () => {
+    const d = compileToCdl(文書("flow", [step("Admin", "Order", { tailSub: "1" })]));
+    expect(d.edges.length, "矢印が 1 本も無い (検査が空振りしている)").toBeGreaterThan(0);
+    expect(d.edges.every((e) => e.tailLabel === undefined)).toBe(true);
   });
 });

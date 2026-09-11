@@ -290,6 +290,8 @@ const 矢印の欄の扱い = {
   cardinality: "記法",
   // クラス図の `sub` が多重度として行き先の端に入る (cdl#821 / #1769)
   headLabel: "記法",
+  // クラス図の `tailSub` が出どころ側の多重度として入る (cdl#825 / #1771)
+  tailLabel: "記法",
   routing: "記法",
   overlay: "記法",
 } satisfies Record<矢印の任意の欄, string>;
