@@ -75,19 +75,19 @@ export function SiteHeader(): React.ReactElement {
         title: locale === "ja" ? "コピーできませんでした" : "Could not copy the URL",
         description:
           locale === "ja"
-            ? "この画面では clipboard に触れない"
+            ? "この画面では写し取れない"
             : "This page cannot reach the clipboard",
       });
     }
   };
 
   const openEditorLabel = locale === "ja" ? "エディタを開く →" : "open editor →";
-  const shareLabel = locale === "ja" ? "この page を共有" : "Share this page";
+  const shareLabel = locale === "ja" ? "この画面を共有" : "Share this page";
   const themeLabel =
     locale === "ja"
       ? isDark
-        ? "light mode に切替"
-        : "dark mode に切替"
+        ? "明るい配色に切り替える"
+        : "暗い配色に切り替える"
       : isDark
         ? "Switch to light mode"
         : "Switch to dark mode";

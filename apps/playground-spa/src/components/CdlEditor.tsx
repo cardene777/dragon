@@ -179,7 +179,7 @@ const ZOOM_STEP = 0.2;
  * 未 register axis の default action guidance (SSOT 統一のため module-scope const 化)。
  * unfixableAxisHint / handleAutoFix message の 2 箇所で同一値を参照する。
  */
-const UNFIXABLE_AXIS_FALLBACK = "DSL 側で調整";
+const UNFIXABLE_AXIS_FALLBACK = "記法の側で直す";
 
 /**
  * 非 auto-fix axis 向けの action guidance (hint text 生成用)。
@@ -189,10 +189,10 @@ const UNFIXABLE_AXIS_FALLBACK = "DSL 側で調整";
  * layout engine 側 fix 待ち guidance を明示する。
  */
 const UNFIXABLE_AXIS_HINT: Record<string, string> = {
-  "text-readability": "title 短縮 or node w 明示指定",
-  "fan-origin-single-point": "同一 node fan の out edge Y を DSL で揃える (layout engine の auto-align 待ち)",
-  "marker-gradient-def-integrity": "edge tone を TONE_COLORS 定義済 value に修正",
-  "dom-complexity-budget": "diagram を分割 or 不要 node/edge 削減",
+  "text-readability": "題を短くするか、箱の幅を明示する",
+  "fan-origin-single-point": "同じ箱から出る線の高さを記法で揃える (配置の自動調整は未対応)",
+  "marker-gradient-def-integrity": "線の色味を、決められた呼び名のどれかに直す",
+  "dom-complexity-budget": "図を分けるか、要らない箱と線を減らす",
 };
 
 /**
@@ -428,12 +428,12 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const unfixableAxes = Array.from(
       new Set(warnings.filter((w) => !FIXABLE_WARNING_AXES.has(w.axis)).map((w) => w.axis)),
     );
-    if (unfixableAxes.length === 0) return "対応可 0 件";
+    if (unfixableAxes.length === 0) return "自動で直せるものはありません";
     const parts = unfixableAxes.map((ax) => {
       const action = UNFIXABLE_AXIS_HINT[ax] ?? UNFIXABLE_AXIS_FALLBACK;
       return `${ax} = ${action}`;
     });
-    return `対応可 0 件 (${parts.join("、 ")})`;
+    return `自動で直せるものはありません (${parts.join("、 ")})`;
   }, [warnings]);
   const [search, setSearch] = useState("");
   const [activeSample, setActiveSample] = useState(SAMPLES[0].label);
@@ -849,7 +849,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 対応 sample なし = user 通知 (silently default load を明示的に伝える)
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setAutoFixMessage(
-          `プリセット「${targetSlug}」 に対応する編集可能サンプルは未登録です。 default サンプル (${SAMPLES[0].label}) で開きます。`,
+          `プリセット「${targetSlug}」 に対応する編集可能サンプルは未登録です。 既定のサンプル (${SAMPLES[0].label}) で開きます。`,
         );
         window.setTimeout(() => setAutoFixMessage(null), 8000);
       }
@@ -897,7 +897,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         return `${ax} = ${action}`;
       });
       const suffix = actions.length > 0 ? ` (${actions.join("、 ")})` : "";
-      setAutoFixMessage(`自動修正対応外です。 一括反映は edge-label offset (overlap / clearance / proximity) のみ、 他 axis は DSL 側対応が必要${suffix}。`);
+      setAutoFixMessage(`自動では直せません。 まとめて直せるのは線の名札の位置 (重なり / 間隔 / 近さ) だけで、他の軸は記法の側で直す必要があります${suffix}。`);
       window.setTimeout(() => setAutoFixMessage(null), 10000);
       return;
     }
@@ -914,8 +914,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const failed = result.unmatched.length;
     setAutoFixMessage(
       failed === 0
-        ? `${result.applied.length} 件の edge-label offset を DSL に反映しました。`
-        : `${result.applied.length} 件を DSL に反映しました。 ${failed} 件は本文の該当行が見つからず反映できていません (記法を書き換えた直後は再描画を待ってから押してください)。`,
+        ? `${result.applied.length} 件の線の名札の位置を記法に書き戻しました。`
+        : `${result.applied.length} 件を記法に書き戻しました。 ${failed} 件は本文の該当行が見つからず書き戻せていません (記法を書き換えた直後は再描画を待ってから押してください)。`,
     );
     window.setTimeout(() => setAutoFixMessage(null), failed === 0 ? 6000 : 10000);
   }, [warnings, diagram, src, edgeSource]);
@@ -1072,7 +1072,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         if (isPartsMarker(src)) {
           const part = deserializePart(src);
           if (!part) {
-            setError(`${PARTS_MARKER} marker があるが JSON が invalid です。 marker を消して text DSL に戻すか、 JSON を修正してください。`);
+            setError(`${PARTS_MARKER} の印はあるが JSON が壊れています。 印を消して記法に戻すか、 JSON を直してください。`);
             return;
           }
           // 記法を通らないので要素数の上限も効かない。 図の側で数えて止める (#1005)
@@ -1801,7 +1801,7 @@ animation:
             {!partsLoading && filteredParts.length === 0 && (
               <div className="v4-editor-side-loading">
                 {partsItems.length === 0
-                  ? "初回 load 待ち…"
+                  ? "最初の読み込みを待っています…"
                   : "検索条件に一致するパーツがありません。"}
               </div>
             )}
@@ -1863,7 +1863,7 @@ animation:
                       setSrc(replaceSrc);
                       lastLoadedSrcRef.current = replaceSrc;
                       setActiveSample(p.title);
-                      setDropHintWithReset(`parts "${p.title}" を新規 diagram として読み込みました。`, 4000);
+                      setDropHintWithReset(`部品「${p.title}」 を新しい図として読み込みました。`, 4000);
                     }
                   }}
                 >
@@ -1960,11 +1960,11 @@ animation:
               </button>
               <button type="button" onClick={handleExportStaticSvg} disabled={!diagram}>
                 <strong>静止 SVG</strong>
-                <span>現 phase の静止 1 frame / Keynote / PDF</span>
+                <span>今の段の静止 1 こま / Keynote / PDF</span>
               </button>
               <button type="button" onClick={() => void handleExportPng()} disabled={!diagram}>
                 <strong>PNG</strong>
-                <span>ラスター 2x DPR / Slack / Twitter</span>
+                <span>点で描く 2 倍の密度 / Slack / Twitter</span>
               </button>
             </div>
           </div>
@@ -2024,12 +2024,12 @@ animation:
             <div className="v4-editor-warnings-head">
               <span className="v4-editor-warnings-badge">
                 {warnings.filter((w) => w.severity === "error").length > 0
-                  ? "位置関係NG"
+                  ? "位置の関係が崩れている"
                   : `位置関係の警告 ${warnings.length}件`}
               </span>
               <span className="v4-editor-warnings-hint">
                 {fixableWarningCount > 0
-                  ? `DSLの labelOffsetX/Y でnodeとの位置を調整できます (対応可 ${fixableWarningCount} 件)`
+                  ? `記法の labelOffsetX / labelOffsetY で箱との位置を調整できます (自動で直せるもの ${fixableWarningCount} 件)`
                   : unfixableAxisHint}
               </span>
               <button
@@ -2044,11 +2044,11 @@ animation:
                   cdlWriteDisabled
                     ? cdlOnlyHint
                     : fixableWarningCount > 0
-                      ? `${fixableWarningCount} 件の edge-label offset を DSL に一括反映`
-                      : "対応可 warning がありません"
+                      ? `${fixableWarningCount} 件の名札の位置を記法にまとめて書き戻す`
+                      : "自動で直せる注意はありません"
                 }
               >
-                {fixableWarningCount > 0 ? `一括反映 (${fixableWarningCount}) ✨` : "対応可なし"}
+                {fixableWarningCount > 0 ? `一括反映 (${fixableWarningCount}) ✨` : "直せるものなし"}
               </button>
             </div>
             {autoFixMessage && (
