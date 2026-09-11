@@ -7,6 +7,27 @@ dragon DSL の主要変更履歴。
 
 ### Fixed
 
+- **クラス図の英大文字の札と、ER 図の読めない関係名を中身どおりの語に直した** (#1765)
+
+  クラス図 (`class-demo`) の札が `EXTENDS` / `IMPLEMENTS` / `HAS` / `USES` / `OWNS` / `LINKS` の英大文字で、
+  `HAS` と `OWNS` の下に多重度 `1..*` が小さく付くため「HAS1」 「OWNS1」 と読めた。
+  もう 1 つのクラス図 (`class-complex-demo`) と同じ語にそろえた。
+
+  | 種類 | 直す前 | 直した後 |
+  |---|---|---|
+  | `extends` | EXTENDS | 継ぐ |
+  | `implements` | IMPLEMENTS | 満たす |
+  | `aggregates` | HAS | 持つ |
+  | `uses` | USES | 使う |
+  | `composes` | OWNS | 抱える |
+  | `associates` | LINKS | 結ぶ |
+
+  ER 図 (`er-complex-demo`) は、左の表を主語にして読むと意味の通らない 3 つを直した。
+  `orders` → `order_items` を「並べる」 から「含む」、`products` → `order_items` を「売る」 から「明細に載る」、
+  `products` → `inventory` を「数える」 から「在庫を持つ」 にし、段の題も「3. 在庫を持つ」 にした。
+
+  どちらも組み立て / 文章 / JSON の 3 つの形をそろえて直した。
+
 - **ER 図の利用者と住所の関係名を「住む」 から「登録する」 に直した** (#1763)
 
   複雑な ER 図 (`er-complex-demo`) の `users` → `addresses` は 利用者 1 人 : 住所 0 件以上 の関係で、
