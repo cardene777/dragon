@@ -259,7 +259,7 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
   });
 
   test("時系列のやり取りで 説明つき を選ぶと面に説明が出る", async ({ page }) => {
-    await 開く(page, "テキストDSLのシーケンス", "text-dsl");
+    await 開く(page, "テキスト記法のシーケンス", "text-dsl");
     const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="sequence-actor-subtitle"]');
     await expect(page.getByRole("radio", { name: "名前だけ" })).toHaveAttribute(
       "aria-checked",
