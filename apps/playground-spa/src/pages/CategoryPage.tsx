@@ -208,19 +208,6 @@ export function SourceTabs({
  * UI 全日本語化 (breadcrumb / stat / button / label)。
  */
 
-/** category slug から日本語 label に変換 (SSOT) */
-const CATEGORY_JA_LABEL: Record<string, string> = {
-  presets: "プリセット",
-  cookbook: "レシピ集",
-  patterns: "パターン",
-  primitives: "基本要素",
-  "text-dsl": "テキスト記法",
-  animation: "アニメーション",
-  parts: "パーツ",
-  styles: "スタイル",
-  interactive: "インタラクティブ",
-};
-
 /**
  * catalog の図をエディタで開く時の hash。 記法が無ければ `null`。
  *
@@ -468,7 +455,8 @@ export function CategoryPage(): React.ReactElement {
     );
   }
 
-  const jaLabel = CATEGORY_JA_LABEL[category.slug] ?? category.label;
+  // 呼び名の出どころは `CATEGORIES[].label` 1 つ (#1788)。 画面側で上書きしない
+  const jaLabel = category.label;
 
   return (
     <div>

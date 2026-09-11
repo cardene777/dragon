@@ -10,18 +10,6 @@ import { useLocale } from "@/lib/useLocale";
  * ページ本体 root `/` は HomePage 側。
  */
 
-const CATEGORY_JA_LABEL: Record<string, string> = {
-  presets: "プリセット",
-  cookbook: "レシピ集",
-  patterns: "パターン",
-  primitives: "基本要素",
-  "text-dsl": "テキスト記法",
-  animation: "アニメーション",
-  parts: "パーツ",
-  styles: "スタイル",
-  interactive: "インタラクティブ",
-};
-
 export function CatalogIndexPage(): React.ReactElement {
   const [locale] = useLocale();
   // parts は CATALOG_ITEMS で空 placeholder (CAR-1613 dynamic import)、 集計時に estimate を加算
@@ -48,7 +36,6 @@ export function CatalogIndexPage(): React.ReactElement {
 
         <div className="catalog-index-grid">
           {CATEGORIES.map((c, i) => {
-            const jaLabel = CATEGORY_JA_LABEL[c.slug] ?? c.label;
             // parts は dynamic import で空 placeholder、 index page では estimate 表示
             const itemCount =
               c.slug === "parts"
@@ -64,7 +51,8 @@ export function CatalogIndexPage(): React.ReactElement {
                     </span>
                     <span className="catalog-index-card-count">{itemCount} 件</span>
                   </div>
-                  <h2 className="catalog-index-card-title">{jaLabel}</h2>
+                  {/* 呼び名の出どころは `CATEGORIES[].label` 1 つ (#1788)。 画面側で上書きしない */}
+                  <h2 className="catalog-index-card-title">{c.label}</h2>
                   <p className="catalog-index-card-desc">{c.desc}</p>
                 </div>
                 <div className="catalog-index-card-foot">
