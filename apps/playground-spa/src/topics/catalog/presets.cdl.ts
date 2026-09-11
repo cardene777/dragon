@@ -193,31 +193,31 @@ function bindFirstNode(d: CdlDiagram, patch: (n: Node) => Node): CdlDiagram {
 const swim = swimlane({
   id: "swim-demo",
   topic: "処理を役割ごとに縦レーン分けして流れを示す図",
-  lanes: ["Client", "Service", "Event"],
+  lanes: ["クライアント", "サービス", "イベント"],
   laneWidth: 520,
 });
-const lSrc = swim.laneId("Client");
-const lCt = swim.laneId("Service");
-const lOut = swim.laneId("Event");
+const lSrc = swim.laneId("クライアント");
+const lCt = swim.laneId("サービス");
+const lOut = swim.laneId("イベント");
 swim
-  .node("user", { lane: lSrc, stack: 0, kind: "actor", title: "User" })
-  .node("fn", { lane: lCt, stack: 0, kind: "function", title: "handler(...)" })
-  .node("ev", { lane: lOut, stack: 0, kind: "event", title: "Processed" })
-  .edge("user", "fn", { id: "call", label: "call", tone: "accent", style: "dotted-flow" })
-  .edge("fn", "ev", { id: "emit", label: "emit", tone: "success", style: "dotted-flow" })
+  .node("user", { lane: lSrc, stack: 0, kind: "actor", title: "利用者" })
+  .node("fn", { lane: lCt, stack: 0, kind: "function", title: "注文の処理" })
+  .node("ev", { lane: lOut, stack: 0, kind: "event", title: "注文済み" })
+  .edge("user", "fn", { id: "call", label: "呼び出す", tone: "accent", style: "dotted-flow" })
+  .edge("fn", "ev", { id: "emit", label: "発行する", tone: "success", style: "dotted-flow" })
   .phase(
     "p",
     {
       duration: 2400,
-      title: "swimlane",
-      body: "swimlane preset で 3 lane を 1 行宣言、 lane.x auto-layout。",
+      title: "処理を役割ごとに縦レーン分けして流れを示す図",
+      body: "処理が済むと、結果をイベントとして発行する。",
     },
     (p: PhaseBuilder) => p.activate("user", "fn", "ev", "call", "emit").badge("preset"),
   );
 
 export const presetSwimlane = withSteps(swim.build(), [
-  { ids: ["user"], title: "1. Client の User", body: "外から呼ぶ人が最初の縦列に立つ。" },
-  { ids: ["fn", "call"], title: "2. Service の handler", body: "呼び出しが隣の縦列に渡る。" },
+  { ids: ["user"], title: "1. クライアントの利用者", body: "外から呼ぶ人が最初の縦列に立つ。" },
+  { ids: ["fn", "call"], title: "2. サービスの処理", body: "呼び出しが隣の縦列に渡る。" },
   { ids: ["ev", "emit"] },
 ]);
 
@@ -226,19 +226,19 @@ export const presetFlow = withSteps(
   flow({
     id: "flow-demo",
     topic: "処理の順番を上から下へ 1 本の流れで示す図",
-    laneLabel: "Authentication Flow",
+    laneLabel: "ログインの流れ",
     defaultTone: "teal",
   })
-    .step({ id: "user", kind: "person", title: "User", eyebrow: "ユーザー" })
+    .step({ id: "user", kind: "person", title: "利用者", eyebrow: "人" })
     .step({ id: "api", kind: "api", title: "POST /login", eyebrow: "API" }, "ログイン要求")
-    .step({ id: "auth", kind: "service", title: "AuthService", eyebrow: "サービス" }, "認証処理")
-    .step({ id: "db", kind: "database", title: "users 表", eyebrow: "DB" }, "credential 検証")
+    .step({ id: "auth", kind: "service", title: "認証サービス", eyebrow: "サービス" }, "認証処理")
+    .step({ id: "db", kind: "database", title: "利用者の表", eyebrow: "DB" }, "パスワードの照合")
     .build(),
   [
-    { ids: ["user"], title: "1. User", body: "ログインしようとする人から始まる。" },
+    { ids: ["user"], title: "1. 利用者", body: "ログインしようとする人から始まる。" },
     { ids: ["api", "e-user-api"], title: "2. POST /login", body: "ログイン要求を受け取る。" },
-    { ids: ["auth", "e-api-auth"], title: "3. AuthService", body: "認証の処理に渡す。" },
-    { ids: ["db", "e-auth-db"] },
+    { ids: ["auth", "e-api-auth"], title: "3. 認証サービス", body: "認証の処理に渡す。" },
+    { ids: ["db", "e-auth-db"], body: "認証サービスが利用者の表でパスワードを照合する。" },
   ],
 );
 
@@ -258,31 +258,31 @@ export const presetSequence = withSteps(
     id: "seq-demo",
     topic: "時系列のやり取りを縦の時間軸で並べる図",
     actors: [
-      { name: "Browser", subtitle: "画面" },
+      { name: "ブラウザ", subtitle: "画面" },
       { name: "API", subtitle: "受付" },
       { name: "DB", subtitle: "台帳" },
-      { name: "Queue", subtitle: "待ち行列" },
+      { name: "キュー", subtitle: "待ち行列" },
     ],
     // 動いている間の帯。 台帳は途中で手が空くので区間が 2 つに分かれる
     bands: [
-      { actor: "Browser", from: 0, to: 5 },
+      { actor: "ブラウザ", from: 0, to: 5 },
       { actor: "API", from: 0, to: 5 },
       { actor: "DB", from: 1, to: 2 },
       { actor: "DB", from: 6, to: 6 },
-      { actor: "Queue", from: 4, to: 6 },
+      { actor: "キュー", from: 4, to: 6 },
     ],
   })
     // 呼ぶ = 相手にやらせて待つ (実線 + 塗った矢)
-    .step({ from: "Browser", to: "API", label: "注文を出す", kind: "call" })
+    .step({ from: "ブラウザ", to: "API", label: "注文を出す", kind: "call" })
     .step({ from: "API", to: "DB", label: "在庫を押さえる", kind: "call" })
     // 返す = 呼ばれた側から戻る。 新しい仕事ではないので線が切れる
     .step({ from: "DB", to: "API", label: "押さえた", kind: "return" })
     // 自分宛て。 控えを書くだけで相手がいない
     .step({ from: "API", to: "API", label: "控えを書く", kind: "call" })
     // 投げる = 返事を待たない。 実線だが矢を閉じない
-    .step({ from: "API", to: "Queue", label: "発送を頼む", kind: "fire" })
-    .step({ from: "API", to: "Browser", label: "受け付けた", kind: "return" })
-    .step({ from: "Queue", to: "DB", label: "引当を確定", kind: "call" })
+    .step({ from: "API", to: "キュー", label: "発送を頼む", kind: "fire" })
+    .step({ from: "API", to: "ブラウザ", label: "受け付けた", kind: "return" })
+    .step({ from: "キュー", to: "DB", label: "引当を確定", kind: "call" })
     .build(),
   [
     {
@@ -331,23 +331,23 @@ const topo = topology({
   defaultTone: "teal",
 });
 topo
-  .group("client", { label: "Client" })
-  .add({ id: "browser", kind: "frontend", title: "Browser" });
+  .group("client", { label: "利用者側" })
+  .add({ id: "browser", kind: "frontend", title: "ブラウザ" });
 topo
   .group("aws", { label: "AWS" })
-  .add({ id: "alb", kind: "service", title: "ALB", eyebrow: "Load Balancer" })
-  .add({ id: "ecs", kind: "service", title: "ECS Task", eyebrow: "Container" })
-  .add({ id: "rds", kind: "database", title: "RDS", eyebrow: "Postgres" });
+  .add({ id: "alb", kind: "service", title: "ALB", eyebrow: "負荷分散" })
+  .add({ id: "ecs", kind: "service", title: "ECS のタスク", eyebrow: "コンテナ" })
+  .add({ id: "rds", kind: "database", title: "RDS", eyebrow: "PostgreSQL" });
 topo
   .connect("browser", "alb", { label: "HTTPS", sub: "TLS 1.3" })
-  .connect("alb", "ecs", { label: "round-robin" })
-  .connect("ecs", "rds", { label: "TCP 5432", sub: "pgbouncer", tone: "success" });
+  .connect("alb", "ecs", { label: "ラウンドロビン" })
+  .connect("ecs", "rds", { label: "TCP 5432", sub: "PgBouncer 経由", tone: "success" });
 
 export const presetTopology = withSteps(topo.build(), [
-  { ids: ["browser"], title: "1. Browser", body: "利用者側の入口。" },
+  { ids: ["browser"], title: "1. ブラウザ", body: "利用者側の入口。" },
   { ids: ["alb", "c0-browser-alb"], title: "2. ALB", body: "HTTPS を受けて振り分ける。" },
-  { ids: ["ecs", "c1-alb-ecs"], title: "3. ECS Task", body: "container が処理する。" },
-  { ids: ["rds", "c2-ecs-rds"] },
+  { ids: ["ecs", "c1-alb-ecs"], title: "3. ECS のタスク", body: "コンテナが処理する。" },
+  { ids: ["rds", "c2-ecs-rds"], body: "コンテナが PgBouncer を経て PostgreSQL に繋がる。" },
 ]);
 
 // er preset ... ER 図 (設計「箱と行と関係」 の意匠)
@@ -729,11 +729,10 @@ export const presetErComplex = 触れて読む(presetErComplexSteps);
 export const presetStateMachine = withSteps(
   stateMachine({ id: "fsm-demo", topic: "状態と遷移条件を示す図" })
     .mark({ id: "begin", kind: "start", col: 0, row: 0 })
-    .state({ id: "draft", title: "Draft", subtitle: "下書き", col: 0, row: 1, initial: true })
+    .state({ id: "draft", title: "下書き", col: 0, row: 1, initial: true })
     .state({
       id: "placed",
-      title: "Placed",
-      subtitle: "受付済",
+      title: "受付済",
       col: 0,
       row: 2,
       // 入る時に 1 度だけ / きっかけを受けるが状態は変わらない
@@ -744,8 +743,7 @@ export const presetStateMachine = withSteps(
     })
     .state({
       id: "paid",
-      title: "Paid",
-      subtitle: "支払済",
+      title: "支払済",
       col: 0,
       row: 3,
       final: true,
@@ -754,8 +752,7 @@ export const presetStateMachine = withSteps(
     .mark({ id: "done", kind: "end", col: 0, row: 4 })
     .state({
       id: "cancelled",
-      title: "Cancelled",
-      subtitle: "取消済",
+      title: "取消済",
       col: 1,
       row: 2,
       final: true,
@@ -772,10 +769,10 @@ export const presetStateMachine = withSteps(
     .transition({ from: "placed", to: "placed", trigger: "催促する" })
     .build(),
   [
-    { ids: ["begin", "draft", "t0-begin-draft"], title: "1. Draft", body: "塗った丸が始まり。" },
+    { ids: ["begin", "draft", "t0-begin-draft"], title: "1. 下書き", body: "塗った丸が始まり。" },
     {
       ids: ["placed", "t1-draft-placed"],
-      title: "2. 出して Placed",
+      title: "2. 出して受付済へ",
       body: "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。",
     },
     {
@@ -803,27 +800,27 @@ export const presetInfrastructure = withSteps(
   // 小見出しと説明を書く (#1498)。 cdl 0.20.0 で名前だけの箱は 54 まで縮み、段が近づいて
   // `GET/SET` の説明が隣の線に 1 かぶった。 中身を足せば箱が中身ぶんの高さに戻る
   infrastructure({ id: "infra-demo", topic: "クラウド・ネットワーク構成を階層で示す図" })
-    .node({ id: "user", kind: "person", title: "User", eyebrow: "利用者", subtitle: "ブラウザ", col: 0, row: 0 })
+    .node({ id: "user", kind: "person", title: "ブラウザ", eyebrow: "利用者", subtitle: "利用者の画面", col: 0, row: 0 })
     .node({ id: "cdn", kind: "cdn", title: "CloudFront", eyebrow: "配信", subtitle: "静的配信", col: 1, row: 0 })
     .node({ id: "alb", kind: "service", title: "ALB", eyebrow: "振り分け", subtitle: "負荷分散", col: 2, row: 0 })
-    .node({ id: "app", kind: "service", title: "App", eyebrow: "処理", subtitle: "アプリ", col: 2, row: 1 })
+    .node({ id: "app", kind: "service", title: "アプリ", eyebrow: "処理", subtitle: "注文の処理", col: 2, row: 1 })
     .node({ id: "db", kind: "database", title: "RDS", eyebrow: "保存", subtitle: "永続化", col: 3, row: 0 })
     .node({ id: "cache", kind: "cache", title: "Redis", eyebrow: "一時保存", subtitle: "高速化", col: 3, row: 1 })
     // 順路 = 要求が通る 1 本道。 朱で引き、名前の下地を外す (cdl#618)。
     // 預け先の 2 本は順路の続きではないので墨のまま = どちらも同じ色だと、
     // どこから読むかが決まらない
     .connect({ from: "user", to: "cdn", label: "HTTPS", role: "main", labelPlate: false })
-    .connect({ from: "cdn", to: "alb", label: "origin", role: "main", labelPlate: false })
-    .connect({ from: "alb", to: "app", label: "route", role: "main", labelPlate: false })
+    .connect({ from: "cdn", to: "alb", label: "オリジン", role: "main", labelPlate: false })
+    .connect({ from: "alb", to: "app", label: "転送", role: "main", labelPlate: false })
     .connect({ from: "app", to: "db", label: "SQL", labelPlate: false })
     .connect({ from: "app", to: "cache", label: "GET/SET", labelPlate: false })
     .build(),
   [
-    { ids: ["user"], title: "1. User", body: "利用者から始まる。" },
+    { ids: ["user"], title: "1. ブラウザ", body: "利用者から始まる。" },
     { ids: ["cdn", "i0-user-cdn"], title: "2. CloudFront", body: "HTTPS を受ける。" },
-    { ids: ["alb", "i1-cdn-alb"], title: "3. ALB", body: "origin へ振り分ける。" },
-    { ids: ["app", "i2-alb-app"], title: "4. App", body: "処理を担う。" },
-    { ids: ["db", "cache", "i3-app-db", "i4-app-cache"] },
+    { ids: ["alb", "i1-cdn-alb"], title: "3. ALB", body: "CloudFront はオリジンの ALB へ要求を渡す。" },
+    { ids: ["app", "i2-alb-app"], title: "4. アプリ", body: "処理を担う。" },
+    { ids: ["db", "cache", "i3-app-db", "i4-app-cache"], body: "アプリは RDS に SQL で書き込み、Redis に一時保存する。" },
   ],
 );
 
@@ -1152,11 +1149,11 @@ export const presetClassComplex = 触れて読む(presetClassComplexSteps);
 export const presetTree = withSteps(
   bindFirstNode(
     tree({ id: "tree-demo", topic: "親子関係を縦階層で示す組織図・木構造" })
-      .node({ id: "ceo", title: "CEO" })
-      .node({ id: "cto", title: "CTO", parent: "ceo" })
-      .node({ id: "cfo", title: "CFO", parent: "ceo" })
-      .node({ id: "eng", title: "Eng Manager", parent: "cto" })
-      .node({ id: "ops", title: "Ops Manager", parent: "cto" })
+      .node({ id: "ceo", title: "社長" })
+      .node({ id: "cto", title: "技術責任者", parent: "ceo" })
+      .node({ id: "cfo", title: "財務責任者", parent: "ceo" })
+      .node({ id: "eng", title: "開発部長", parent: "cto" })
+      .node({ id: "ops", title: "運用部長", parent: "cto" })
       .build(),
     (n) => ({
       ...n,
@@ -1170,14 +1167,14 @@ export const presetTree = withSteps(
       draw: ["tree-demo-tree"],
       duration: DRAW_DURATION,
       title: "組織を作った時",
-      body: "開発の責任者を Eng Manager と呼んでいる。",
+      body: "開発の責任者を開発部長と呼んでいる。",
     },
     {
       body: "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。",
-      sets: [{ id: "eng", value: "VP of Engineering" }],
+      sets: [{ id: "eng", value: "開発本部長" }],
     },
   ],
-  [{ id: "eng", initial: "Eng Manager" }],
+  [{ id: "eng", initial: "開発部長" }],
 );
 
 // userJourney preset ... step + emotion + touchpoint
@@ -1186,16 +1183,16 @@ export const presetTree = withSteps(
 export const presetUserJourney = withSteps(
   bindFirstNode(
     userJourney({ id: "journey-demo", topic: "ユーザー体験の感情変化をステップ順に示す図" })
-      .step({ id: "land", title: "Land on /", emotion: "neutral", touchpoint: "Website" })
+      .step({ id: "land", title: "サイトを訪れる", emotion: "neutral", touchpoint: "サイト" })
       .step({
         id: "form",
-        title: "Fill signup form",
+        title: "登録の入力",
         emotion: "frustrated",
-        touchpoint: "Form",
-        opportunity: "input UX 改善",
+        touchpoint: "入力画面",
+        opportunity: "入力のしやすさを直す",
       })
-      .step({ id: "verify", title: "Email verify", emotion: "happy", touchpoint: "Email" })
-      .step({ id: "done", title: "Dashboard", emotion: "delighted", touchpoint: "Dashboard" })
+      .step({ id: "verify", title: "メールの確認", emotion: "happy", touchpoint: "メール" })
+      .step({ id: "done", title: "管理画面を開く", emotion: "delighted", touchpoint: "管理画面" })
       .build(),
     (n) => ({
       ...n,
@@ -1211,7 +1208,7 @@ export const presetUserJourney = withSteps(
       draw: ["journey-demo-journey"],
       duration: DRAW_DURATION,
       title: "改善前",
-      body: "申込みの入力で気持ちが落ちる。",
+      body: "登録の入力で気持ちが落ちる。",
       sets: [{ id: "form_mood", value: "frustrated" }],
     },
     {
@@ -1230,13 +1227,13 @@ export const presetMindMap = withSteps(
       id: "mind-demo",
       topic: "中心の主題から発想を放射状に広げる図",
       rootId: "root",
-      rootTitle: "Project",
+      rootTitle: "新しい企画",
     })
-      .branch({ id: "feat", title: "Features", parent: "root" })
-      .branch({ id: "ui", title: "UI design", parent: "root" })
-      .branch({ id: "launch", title: "Launch", parent: "root" })
-      .branch({ id: "auth", title: "Auth", parent: "feat" })
-      .branch({ id: "billing", title: "Billing", parent: "feat" })
+      .branch({ id: "feat", title: "機能", parent: "root" })
+      .branch({ id: "ui", title: "画面の設計", parent: "root" })
+      .branch({ id: "launch", title: "公開", parent: "root" })
+      .branch({ id: "auth", title: "認証", parent: "feat" })
+      .branch({ id: "billing", title: "課金", parent: "feat" })
       .build(),
     (n) => ({
       ...n,
@@ -1250,23 +1247,23 @@ export const presetMindMap = withSteps(
       draw: ["mind-demo-mind"],
       duration: DRAW_DURATION,
       title: "書き出した時",
-      body: "中心はまだ Project のまま。",
+      body: "中心はまだ「新しい企画」 のまま。",
     },
     {
       body: "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。",
       sets: [{ id: "theme", value: "認証と課金の刷新" }],
     },
   ],
-  [{ id: "theme", initial: "Project" }],
+  [{ id: "theme", initial: "新しい企画" }],
 );
 
 // funnel preset ... Sales / marketing funnel
 // 段の人数を状態から取り、先月と今月を同じ図で見る。
 const FUNNEL_STAGES = [
-  { id: "visit", title: "Visit", last: 8200, now: 10000 },
-  { id: "signup", title: "Sign up", last: 1100, now: 1500 },
-  { id: "trial", title: "Trial", last: 520, now: 800 },
-  { id: "paid", title: "Paid", last: 130, now: 200 },
+  { id: "visit", title: "訪問", last: 8200, now: 10000 },
+  { id: "signup", title: "登録", last: 1100, now: 1500 },
+  { id: "trial", title: "試用", last: 520, now: 800 },
+  { id: "paid", title: "有料", last: 130, now: 200 },
 ] as const;
 
 const funnelBuilder = funnel({ id: "funnel-demo", topic: "各段階での離脱率を示す絞込みの図" });
@@ -1284,10 +1281,10 @@ export const presetFunnel = withSteps(
       draw: ["funnel-demo-funnel"],
       duration: DRAW_DURATION,
       title: "先月",
-      body: "訪問 8200 から申込み 130 まで絞られる。",
+      body: "訪問 8200 から有料 130 まで絞られる。",
     },
     {
-      body: "今月は訪問 10000 / 申込み 200。 段の人数を状態から取るので、同じ図が別の月を映す。",
+      body: "今月は訪問 10000 / 有料 200。 段の人数を状態から取るので、同じ図が別の月を映す。",
       tweens: FUNNEL_STAGES.map((s) => ({ id: s.id, from: s.last, to: s.now })),
     },
   ],
@@ -1301,13 +1298,13 @@ export const presetQuadrant = withSteps(
     quadrant({
       id: "quad-demo",
       topic: "2 つの軸で 4 象限に分けて配置する優先度マトリクス",
-      xAxis: { left: "Low effort", right: "High effort" },
-      yAxis: { bottom: "Low value", top: "High value" },
+      xAxis: { left: "労力が小さい", right: "労力が大きい" },
+      yAxis: { bottom: "価値が低い", top: "価値が高い" },
     })
-      .item({ id: "qw", title: "Quick win", quadrant: "topLeft" })
-      .item({ id: "mp", title: "Major project", quadrant: "topRight" })
-      .item({ id: "fi", title: "Fill in", quadrant: "bottomLeft" })
-      .item({ id: "tt", title: "Thankless", quadrant: "bottomRight" })
+      .item({ id: "qw", title: "文言の直し", quadrant: "topLeft" })
+      .item({ id: "mp", title: "決済の作り直し", quadrant: "topRight" })
+      .item({ id: "fi", title: "検索の絞り込み", quadrant: "bottomLeft" })
+      .item({ id: "tt", title: "古い画面の移行", quadrant: "bottomRight" })
       .build(),
     (n) => ({
       ...n,
@@ -1323,11 +1320,11 @@ export const presetQuadrant = withSteps(
     {
       ids: ["quad-demo-quadrant"],
       title: "見直し前",
-      body: "Fill in は価値も労力も低い枠に置いてある。",
+      body: "検索の絞り込みは、価値も労力も低い枠に置いてある。",
       sets: [{ id: "fill_in_at", value: "bottomLeft" }],
     },
     {
-      body: "見直しで Fill in を価値の高い枠へ移す。 どの枠に居るかを状態から取っている。",
+      body: "見直しで検索の絞り込みを価値の高い枠へ移す。 どの枠に居るかを状態から取っている。",
       sets: [{ id: "fill_in_at", value: "topLeft" }],
     },
   ],
@@ -1337,8 +1334,8 @@ export const presetQuadrant = withSteps(
 // chart preset (pie) ... 統計チャート
 // 扇の大きさを状態から取り、昨年と今年の内訳を同じ図で見る。
 const PIE_SLICES = [
-  { id: "pie_web", label: "Web", last: 45, now: 30 },
-  { id: "pie_mobile", label: "Mobile", last: 35, now: 45 },
+  { id: "pie_web", label: "ウェブ", last: 45, now: 30 },
+  { id: "pie_mobile", label: "アプリ", last: 35, now: 45 },
   { id: "pie_api", label: "API", last: 20, now: 25 },
 ] as const;
 
@@ -1366,10 +1363,10 @@ export const presetChartPie = withSteps(
       draw: ["chart-pie-demo-chart"],
       duration: DRAW_DURATION,
       title: "昨年の内訳",
-      body: "Web 45 / Mobile 35 / API 20。",
+      body: "ウェブ 45 / アプリ 35 / API 20。",
     },
     {
-      body: "今年は Mobile が 45 まで伸びる。 扇の大きさを状態から取っている。",
+      body: "今年はアプリが 45 まで伸びる。 扇の大きさを状態から取っている。",
       tweens: PIE_SLICES.map((s) => ({ id: s.id, from: s.last, to: s.now })),
     },
   ],
@@ -1379,10 +1376,10 @@ export const presetChartPie = withSteps(
 // chart preset (line) ... 時系列
 // 折れ線の高さを状態から取り、計画と実績を同じ図で見る。
 const LINE_POINTS = [
-  { id: "line_jan", label: "Jan", plan: 1000, actual: 900 },
-  { id: "line_feb", label: "Feb", plan: 1300, actual: 1400 },
-  { id: "line_mar", label: "Mar", plan: 1100, actual: 1250 },
-  { id: "line_apr", label: "Apr", plan: 1600, actual: 1750 },
+  { id: "line_jan", label: "1月", plan: 1000, actual: 900 },
+  { id: "line_feb", label: "2月", plan: 1300, actual: 1400 },
+  { id: "line_mar", label: "3月", plan: 1100, actual: 1250 },
+  { id: "line_apr", label: "4月", plan: 1600, actual: 1750 },
 ] as const;
 
 const lineBuilder = chart({
@@ -1409,7 +1406,7 @@ export const presetChartLine = withSteps(
       // 描く段は伸ばす (#1353)。 既定の 0.9 秒では引かれる様子を追う前に引き終わる
       duration: DRAW_DURATION,
       title: "計画",
-      body: "四半期ごとの見込みを引いた線。 左から順に引かれる。",
+      body: "月ごとの見込みを引いた線。 左から順に引かれる。",
     },
     {
       body: "実績に置き換えると 2 月以降が計画を上回る。 点の高さを状態から取っている。",
@@ -1424,17 +1421,17 @@ export const presetChartLine = withSteps(
 export const presetGantt = withSteps(
   bindFirstNode(
     gantt({ id: "gantt-demo", topic: "タスクの期間と依存関係を横棒で示す進捗図" })
-      .task({ id: "design", title: "Design", start: "Q1", end: "Q1", owner: "Designer" })
+      .task({ id: "design", title: "設計", start: "Q1", end: "Q1", owner: "デザイナー" })
       .task({
         id: "build",
-        title: "Build",
+        title: "実装",
         start: "Q2",
         end: "Q2",
-        owner: "Eng",
+        owner: "開発",
         dependsOn: "design",
       })
-      .task({ id: "test", title: "Test", start: "Q3", end: "Q3", owner: "QA", dependsOn: "build" })
-      .task({ id: "ship", title: "Ship", start: "Q4", end: "Q4", owner: "PM", dependsOn: "test" })
+      .task({ id: "test", title: "検証", start: "Q3", end: "Q3", owner: "品質保証", dependsOn: "build" })
+      .task({ id: "ship", title: "公開", start: "Q4", end: "Q4", owner: "企画", dependsOn: "test" })
       .build(),
     (n) => ({
       ...n,
@@ -1448,7 +1445,7 @@ export const presetGantt = withSteps(
       draw: ["gantt-demo-gantt"],
       duration: DRAW_DURATION,
       title: "当初の計画",
-      body: "Build は Q2 で終わる想定。",
+      body: "実装は Q2 で終わる想定。",
     },
     {
       body: "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。",
@@ -1463,78 +1460,78 @@ export const presetFlowchart = withSteps(
   flowchart({
     id: "flowchart-demo",
     topic: "分岐や判定を含む処理の流れを示す図",
-    lanes: ["User", "Manager"],
+    lanes: ["申請者", "承認者"],
   })
-    .node({ id: "submit", title: "Submit request", shape: "start", lane: "User" })
-    .node({ id: "review", title: "Review", shape: "decision", lane: "Manager" })
-    .node({ id: "approve", title: "Approved", shape: "end", lane: "Manager" })
-    .node({ id: "revise", title: "Revise", shape: "process", lane: "User" })
+    .node({ id: "submit", title: "申請を出す", shape: "start", lane: "申請者" })
+    .node({ id: "review", title: "審査", shape: "decision", lane: "承認者" })
+    .node({ id: "approve", title: "承認", shape: "end", lane: "承認者" })
+    .node({ id: "revise", title: "直して出し直す", shape: "process", lane: "申請者" })
     .edge({ from: "submit", to: "review" })
-    .edge({ from: "review", to: "approve", label: "true", tone: "success" })
-    .edge({ from: "review", to: "revise", label: "false", tone: "warning" })
+    .edge({ from: "review", to: "approve", label: "はい", tone: "success" })
+    .edge({ from: "review", to: "revise", label: "いいえ", tone: "warning" })
     .build(),
   [
-    { ids: ["submit"], title: "1. Submit request", body: "User が申請を出す。" },
-    { ids: ["review", "fc-0-submit-review"], title: "2. Review", body: "Manager が判定する。" },
+    { ids: ["submit"], title: "1. 申請を出す", body: "申請者が申請を出す。" },
+    { ids: ["review", "fc-0-submit-review"], title: "2. 審査", body: "承認者が審査して判断する。" },
     {
       ids: ["approve", "fc-1-review-approve"],
-      title: "3. true なら Approved",
+      title: "3. はいなら承認",
       body: "承認して終わる枝。",
     },
-    { ids: ["revise", "fc-2-review-revise"] },
+    { ids: ["revise", "fc-2-review-revise"], body: "いいえなら申請者に差し戻し、直して出し直す。" },
   ],
 );
 
 // network preset ... NW topology
 export const presetNetwork = withSteps(
   network({ id: "network-demo", topic: "ネットワーク機器とセグメントの接続関係を示す図" })
-    .device({ id: "fw", title: "Firewall", kind: "firewall", col: 0, row: 0, segment: "DMZ" })
-    .device({ id: "sw1", title: "Switch A", kind: "switch", col: 1, row: 0, segment: "LAN" })
-    .device({ id: "srv", title: "App Server", kind: "server", col: 2, row: 0 })
-    .device({ id: "db", title: "DB Server", kind: "server", col: 2, row: 1 })
+    .device({ id: "fw", title: "外部との境界", kind: "firewall", col: 0, row: 0, segment: "DMZ" })
+    .device({ id: "sw1", title: "スイッチ A", kind: "switch", col: 1, row: 0, segment: "LAN" })
+    .device({ id: "srv", title: "アプリのサーバー", kind: "server", col: 2, row: 0 })
+    .device({ id: "db", title: "DB のサーバー", kind: "server", col: 2, row: 1 })
     .link({ from: "fw", to: "sw1", protocol: "VLAN 10" })
     .link({ from: "sw1", to: "srv", protocol: "TCP 22" })
     .link({ from: "sw1", to: "db", protocol: "TCP 5432" })
     .build(),
   [
-    { ids: ["fw"], title: "1. Firewall", body: "DMZ の入口。" },
-    { ids: ["sw1", "nl-0-fw-sw1"], title: "2. Switch A", body: "VLAN 10 で LAN に流す。" },
-    { ids: ["srv", "nl-1-sw1-srv"], title: "3. App Server", body: "TCP 22 で繋がる。" },
-    { ids: ["db", "nl-2-sw1-db"] },
+    { ids: ["fw"], title: "1. 外部との境界", body: "DMZ の入口。" },
+    { ids: ["sw1", "nl-0-fw-sw1"], title: "2. スイッチ A", body: "VLAN 10 で LAN に流す。" },
+    { ids: ["srv", "nl-1-sw1-srv"], title: "3. アプリのサーバー", body: "TCP 22 で繋がる。" },
+    { ids: ["db", "nl-2-sw1-db"], body: "DB のサーバーへは TCP 5432 で繋がる。" },
   ],
 );
 
 // stateMachine2 preset ... 拡張 FSM (nested + action)
 // 箱の既定幅 320 のままだと 4 状態を横に並べた図が幅 2439 world / 縦横比 6.04 になり、
 // 親幅に収めた時に帯状に潰れて中身が読めない。 状態の幅を 280 に絞って 5.64 に収める
-// (280 は最も長い題名 "Loading" が切れない下限 198 に余裕を持たせた値、 cdl#357)。
+// (280 は題名と入る時・出る時の処理が切れない幅に余裕を持たせた値、 cdl#357)。
 export const presetStateMachine2 = withSteps(
   stateMachine2({
     id: "sm2-demo",
     topic: "階層状態や遷移アクションを持つ拡張ステート図",
     stateWidth: 280,
   })
-    .state({ id: "idle", title: "Idle", initial: true, entry: "clearForm" })
-    .state({ id: "active", title: "Active" })
+    .state({ id: "idle", title: "待機", initial: true, entry: "入力を空にする" })
+    .state({ id: "active", title: "処理中" })
     .state({
       id: "loading",
-      title: "Loading",
+      title: "読み込み",
       parent: "active",
-      entry: "startSpinner",
-      exit: "stopSpinner",
+      entry: "印を出す",
+      exit: "印を消す",
     })
-    .state({ id: "done", title: "Done", final: true })
-    .transition({ from: "idle", to: "loading", trigger: "submit", action: "validate" })
-    .transition({ from: "loading", to: "done", trigger: "success", tone: "success" })
+    .state({ id: "done", title: "完了", final: true })
+    .transition({ from: "idle", to: "loading", trigger: "送信", action: "入力を確かめる" })
+    .transition({ from: "loading", to: "done", trigger: "成功", tone: "success" })
     .build(),
   [
-    { ids: ["idle"], title: "1. Idle", body: "clearForm を実行して待つ。" },
+    { ids: ["idle"], title: "1. 待機", body: "入力を空にして待つ。" },
     {
       ids: ["active", "loading", "sm2-0-idle-loading"],
-      title: "2. Active の中の Loading",
-      body: "submit で入れ子の状態に入る。",
+      title: "2. 処理中の中の読み込み",
+      body: "送信で入れ子の状態に入る。",
     },
-    { ids: ["done", "sm2-1-loading-done"] },
+    { ids: ["done", "sm2-1-loading-done"], body: "成功で完了に移る。" },
   ],
 );
 
@@ -1553,32 +1550,32 @@ export const sourceYaml__presetSequence = `title: "時系列のやり取りを�
 type: sequence
 
 actors:
-  - Browser: { subtitle: "画面" }
+  - ブラウザ: { subtitle: "画面" }
   - API: { subtitle: "受付" }
   - DB: { subtitle: "台帳" }
-  - Queue: { subtitle: "待ち行列" }
+  - キュー: { subtitle: "待ち行列" }
 
 # 動いている間の帯。 台帳は途中で手が空くので区間が 2 つに分かれる
 bands:
-  - Browser: 0..5
+  - ブラウザ: 0..5
   - API: 0..5
   - DB: 1..2
   - DB: 6..6
-  - Queue: 4..6
+  - キュー: 4..6
 
 # kind を書くと線と矢の形がまとめて決まる
 flow:
-  - Browser -> API: "注文を出す" { kind: call }
+  - ブラウザ -> API: "注文を出す" { kind: call }
   - API -> DB: "在庫を押さえる" { kind: call }
   - DB -> API: "押さえた" { kind: return }
   - API -> API: "控えを書く" { kind: call }
-  - API -> Queue: "発送を頼む" { kind: fire }
-  - API -> Browser: "受け付けた" { kind: return }
-  - Queue -> DB: "引当を確定" { kind: call }
+  - API -> キュー: "発送を頼む" { kind: fire }
+  - API -> ブラウザ: "受け付けた" { kind: return }
+  - キュー -> DB: "引当を確定" { kind: call }
 
 animation:
   - step: "1. 注文を出す" 0.9s
-    focus: ["Browser -> API"]
+    focus: ["ブラウザ -> API"]
     badge: "sequence"
     body: "実線に塗った矢。 相手にやらせて待つ。 左の点が出どころ。"
   - step: "2. 在庫を押さえる" 0.9s
@@ -1594,15 +1591,15 @@ animation:
     badge: "sequence"
     body: "自分宛ての言づて。 相手がいない仕事。"
   - step: "5. 発送を頼む" 0.9s
-    focus: ["API -> Queue"]
+    focus: ["API -> キュー"]
     badge: "sequence"
     body: "実線に開いた矢。 矢を閉じないことで返事を待たないと示す。"
   - step: "6. 受け付けた" 0.9s
-    focus: ["API -> Browser"]
+    focus: ["API -> ブラウザ"]
     badge: "sequence"
     body: "待ち行列の返事を待たずに画面へ返す。"
   - step: "時系列のやり取りを縦の時間軸で並べる図" 0.9s
-    focus: ["Queue -> DB"]
+    focus: ["キュー -> DB"]
     badge: "sequence"
     body: "台帳は途中で手が空く。 帯が途切れることでそれと判る。"
 `;
@@ -1610,22 +1607,22 @@ animation:
 export const sourceJson__presetSequence = `{
   "title": "時系列のやり取りを縦の時間軸で並べる図",
   "type": "sequence",
-  "actors": [{"name": "Browser", "subtitle": "画面"}, {"name": "API", "subtitle": "受付"}, {"name": "DB", "subtitle": "台帳"}, {"name": "Queue", "subtitle": "待ち行列"}],
-  "bands": [{"actor": "Browser", "from": 0, "to": 5}, {"actor": "API", "from": 0, "to": 5}, {"actor": "DB", "from": 1, "to": 2}, {"actor": "DB", "from": 6, "to": 6}, {"actor": "Queue", "from": 4, "to": 6}],
+  "actors": [{"name": "ブラウザ", "subtitle": "画面"}, {"name": "API", "subtitle": "受付"}, {"name": "DB", "subtitle": "台帳"}, {"name": "キュー", "subtitle": "待ち行列"}],
+  "bands": [{"actor": "ブラウザ", "from": 0, "to": 5}, {"actor": "API", "from": 0, "to": 5}, {"actor": "DB", "from": 1, "to": 2}, {"actor": "DB", "from": 6, "to": 6}, {"actor": "キュー", "from": 4, "to": 6}],
   "flow": [
-    { "from": "Browser", "to": "API", "label": "注文を出す", "kind": "call" },
+    { "from": "ブラウザ", "to": "API", "label": "注文を出す", "kind": "call" },
     { "from": "API", "to": "DB", "label": "在庫を押さえる", "kind": "call" },
     { "from": "DB", "to": "API", "label": "押さえた", "kind": "return" },
     { "from": "API", "to": "API", "label": "控えを書く", "kind": "call" },
-    { "from": "API", "to": "Queue", "label": "発送を頼む", "kind": "fire" },
-    { "from": "API", "to": "Browser", "label": "受け付けた", "kind": "return" },
-    { "from": "Queue", "to": "DB", "label": "引当を確定", "kind": "call" }
+    { "from": "API", "to": "キュー", "label": "発送を頼む", "kind": "fire" },
+    { "from": "API", "to": "ブラウザ", "label": "受け付けた", "kind": "return" },
+    { "from": "キュー", "to": "DB", "label": "引当を確定", "kind": "call" }
   ],
   "animation": [
     {
       "step": "1. 注文を出す",
       "duration": 0.9,
-      "focus": ["Browser -> API"],
+      "focus": ["ブラウザ -> API"],
       "body": "実線に塗った矢。 相手にやらせて待つ。 左の点が出どころ。",
       "badge": "sequence"
     },
@@ -1653,21 +1650,21 @@ export const sourceJson__presetSequence = `{
     {
       "step": "5. 発送を頼む",
       "duration": 0.9,
-      "focus": ["API -> Queue"],
+      "focus": ["API -> キュー"],
       "body": "実線に開いた矢。 矢を閉じないことで返事を待たないと示す。",
       "badge": "sequence"
     },
     {
       "step": "6. 受け付けた",
       "duration": 0.9,
-      "focus": ["API -> Browser"],
+      "focus": ["API -> ブラウザ"],
       "body": "待ち行列の返事を待たずに画面へ返す。",
       "badge": "sequence"
     },
     {
       "step": "時系列のやり取りを縦の時間軸で並べる図",
       "duration": 0.9,
-      "focus": ["Queue -> DB"],
+      "focus": ["キュー -> DB"],
       "body": "台帳は途中で手が空く。 帯が途切れることでそれと判る。",
       "badge": "sequence"
     }
@@ -1957,48 +1954,48 @@ export const sourceJson__presetErComplex = JSON.stringify(
 export const sourceYaml__presetFlow = `title: "処理の順番を上から下へ 1 本の流れで示す図"
 type: flow
 lanes:
-  main: { label: "Authentication Flow" }
+  main: { label: "ログインの流れ" }
 actors:
-  - User: { kind: person, eyebrow: "ユーザー" }
+  - 利用者: { kind: person, eyebrow: "人" }
   - POST /login: { kind: api, eyebrow: "API" }
-  - AuthService: { kind: service, eyebrow: "サービス" }
-  - users 表: { kind: database, eyebrow: "DB" }
+  - 認証サービス: { kind: service, eyebrow: "サービス" }
+  - 利用者の表: { kind: database, eyebrow: "DB" }
 flow:
-  - User -> POST /login: "ログイン要求" (teal, dotted-flow)
-  - POST /login -> AuthService: "認証処理" (teal, dotted-flow)
-  - AuthService -> users 表: "credential 検証" (teal, dotted-flow)
+  - 利用者 -> POST /login: "ログイン要求" (teal, dotted-flow)
+  - POST /login -> 認証サービス: "認証処理" (teal, dotted-flow)
+  - 認証サービス -> 利用者の表: "パスワードの照合" (teal, dotted-flow)
 animation:
-  - step: "1. User" 0.9s
+  - step: "1. 利用者" 0.9s
     badge: "flow"
-    focus: [User]
+    focus: [利用者]
     body: "ログインしようとする人から始まる。"
   - step: "2. POST /login" 0.9s
     badge: "flow"
-    focus: [User, "POST /login", "User -> POST /login"]
+    focus: [利用者, "POST /login", "利用者 -> POST /login"]
     body: "ログイン要求を受け取る。"
-  - step: "3. AuthService" 0.9s
+  - step: "3. 認証サービス" 0.9s
     badge: "flow"
-    focus: [User, "POST /login", AuthService, "User -> POST /login", "POST /login -> AuthService"]
+    focus: [利用者, "POST /login", 認証サービス, "利用者 -> POST /login", "POST /login -> 認証サービス"]
     body: "認証の処理に渡す。"
   - step: "処理の順番を上から下へ 1 本の流れで示す図" 0.9s
     badge: "flow"
-    focus: [User, "POST /login", AuthService, "users 表", "User -> POST /login", "POST /login -> AuthService", "AuthService -> users 表"]
-    body: "全 step 順次実行。"
+    focus: [利用者, "POST /login", 認証サービス, "利用者の表", "利用者 -> POST /login", "POST /login -> 認証サービス", "認証サービス -> 利用者の表"]
+    body: "認証サービスが利用者の表でパスワードを照合する。"
 `;
 
 export const sourceJson__presetFlow = `{
   "title": "処理の順番を上から下へ 1 本の流れで示す図",
   "type": "flow",
-  "lanes": { "main": {"label": "Authentication Flow"} },
+  "lanes": { "main": {"label": "ログインの流れ"} },
   "actors": [
-    { "name": "User", "kind": "person", "eyebrow": "ユーザー" },
+    { "name": "利用者", "kind": "person", "eyebrow": "人" },
     { "name": "POST /login", "kind": "api", "eyebrow": "API" },
-    { "name": "AuthService", "kind": "service", "eyebrow": "サービス" },
-    { "name": "users 表", "kind": "database", "eyebrow": "DB" }
+    { "name": "認証サービス", "kind": "service", "eyebrow": "サービス" },
+    { "name": "利用者の表", "kind": "database", "eyebrow": "DB" }
   ],
   "flow": [
     {
-      "from": "User",
+      "from": "利用者",
       "to": "POST /login",
       "label": "ログイン要求",
       "tone": "teal",
@@ -2006,43 +2003,43 @@ export const sourceJson__presetFlow = `{
     },
     {
       "from": "POST /login",
-      "to": "AuthService",
+      "to": "認証サービス",
       "label": "認証処理",
       "tone": "teal",
       "style": "dotted-flow"
     },
     {
-      "from": "AuthService",
-      "to": "users 表",
-      "label": "credential 検証",
+      "from": "認証サービス",
+      "to": "利用者の表",
+      "label": "パスワードの照合",
       "tone": "teal",
       "style": "dotted-flow"
     }
   ],
   "animation": [
     {
-      "step": "1. User",
+      "step": "1. 利用者",
       "duration": 0.9,
-      "focus": ["User"],
+      "focus": ["利用者"],
       "body": "ログインしようとする人から始まる。",
       "badge": "flow"
     },
     {
       "step": "2. POST /login",
       "duration": 0.9,
-      "focus": ["User", "POST /login", "User -> POST /login"],
+      "focus": ["利用者", "POST /login", "利用者 -> POST /login"],
       "body": "ログイン要求を受け取る。",
       "badge": "flow"
     },
     {
-      "step": "3. AuthService",
+      "step": "3. 認証サービス",
       "duration": 0.9,
       "focus": [
-        "User",
+        "利用者",
         "POST /login",
-        "AuthService",
-        "User -> POST /login",
-        "POST /login -> AuthService"
+        "認証サービス",
+        "利用者 -> POST /login",
+        "POST /login -> 認証サービス"
       ],
       "body": "認証の処理に渡す。",
       "badge": "flow"
@@ -2051,15 +2048,15 @@ export const sourceJson__presetFlow = `{
       "step": "処理の順番を上から下へ 1 本の流れで示す図",
       "duration": 0.9,
       "focus": [
-        "User",
+        "利用者",
         "POST /login",
-        "AuthService",
-        "users 表",
-        "User -> POST /login",
-        "POST /login -> AuthService",
-        "AuthService -> users 表"
+        "認証サービス",
+        "利用者の表",
+        "利用者 -> POST /login",
+        "POST /login -> 認証サービス",
+        "認証サービス -> 利用者の表"
       ],
-      "body": "全 step 順次実行。",
+      "body": "認証サービスが利用者の表でパスワードを照合する。",
       "badge": "flow"
     }
   ]
@@ -2070,8 +2067,8 @@ eyebrow: "pie"
 type: pie
 
 actors:
-  - Web: "{pie_web}"
-  - Mobile: "{pie_mobile}"
+  - ウェブ: "{pie_web}"
+  - アプリ: "{pie_mobile}"
   - API: "{pie_api}"
 
 states:
@@ -2082,17 +2079,17 @@ states:
 animation:
   - step: "昨年の内訳" 2.4s
     badge: "pie"
-    focus: [Web]
+    focus: [ウェブ]
     draw: pie
-    body: "Web 45 / Mobile 35 / API 20。"
+    body: "ウェブ 45 / アプリ 35 / API 20。"
   - step: "全体に対する内訳の割合を示す円グラフ" 0.9s
     badge: "pie"
-    focus: [Web]
+    focus: [ウェブ]
     tween:
       pie_web: 45 -> 30
       pie_mobile: 35 -> 45
       pie_api: 20 -> 25
-    body: "今年は Mobile が 45 まで伸びる。 扇の大きさを状態から取っている。"
+    body: "今年はアプリが 45 まで伸びる。 扇の大きさを状態から取っている。"
 `;
 
 export const sourceJson__presetChartPie = `{
@@ -2100,8 +2097,8 @@ export const sourceJson__presetChartPie = `{
   "type": "pie",
   "eyebrow": "pie",
   "actors": [
-    { "name": "Web", "subtitle": "{pie_web}" },
-    { "name": "Mobile", "subtitle": "{pie_mobile}" },
+    { "name": "ウェブ", "subtitle": "{pie_web}" },
+    { "name": "アプリ", "subtitle": "{pie_mobile}" },
     { "name": "API", "subtitle": "{pie_api}" }
   ],
   "flow": [],
@@ -2110,16 +2107,16 @@ export const sourceJson__presetChartPie = `{
     {
       "step": "昨年の内訳",
       "duration": 2.4,
-      "focus": ["Web"],
+      "focus": ["ウェブ"],
       "draw": "pie",
-      "body": "Web 45 / Mobile 35 / API 20。",
+      "body": "ウェブ 45 / アプリ 35 / API 20。",
       "badge": "pie"
     },
     {
       "step": "全体に対する内訳の割合を示す円グラフ",
       "duration": 0.9,
-      "focus": ["Web"],
-      "body": "今年は Mobile が 45 まで伸びる。 扇の大きさを状態から取っている。",
+      "focus": ["ウェブ"],
+      "body": "今年はアプリが 45 まで伸びる。 扇の大きさを状態から取っている。",
       "badge": "pie",
       "tween": { "pie_web": [45, 30], "pie_mobile": [35, 45], "pie_api": [20, 25] }
     }
@@ -2131,10 +2128,10 @@ eyebrow: "line"
 type: line
 
 actors:
-  - Jan: "{line_jan}"
-  - Feb: "{line_feb}"
-  - Mar: "{line_mar}"
-  - Apr: "{line_apr}"
+  - 1月: "{line_jan}"
+  - 2月: "{line_feb}"
+  - 3月: "{line_mar}"
+  - 4月: "{line_apr}"
 
 states:
   line_jan: 1000
@@ -2145,12 +2142,12 @@ states:
 animation:
   - step: "計画" 2.4s
     badge: "line"
-    focus: [Jan]
+    focus: [1月]
     draw: line
-    body: "四半期ごとの見込みを引いた線。 左から順に引かれる。"
+    body: "月ごとの見込みを引いた線。 左から順に引かれる。"
   - step: "時系列データの推移を線で示す折れ線グラフ" 0.9s
     badge: "line"
-    focus: [Jan]
+    focus: [1月]
     tween:
       line_jan: 1000 -> 900
       line_feb: 1300 -> 1400
@@ -2164,10 +2161,10 @@ export const sourceJson__presetChartLine = `{
   "type": "line",
   "eyebrow": "line",
   "actors": [
-    { "name": "Jan", "subtitle": "{line_jan}" },
-    { "name": "Feb", "subtitle": "{line_feb}" },
-    { "name": "Mar", "subtitle": "{line_mar}" },
-    { "name": "Apr", "subtitle": "{line_apr}" }
+    { "name": "1月", "subtitle": "{line_jan}" },
+    { "name": "2月", "subtitle": "{line_feb}" },
+    { "name": "3月", "subtitle": "{line_mar}" },
+    { "name": "4月", "subtitle": "{line_apr}" }
   ],
   "flow": [],
   "states": { "line_jan": 1000, "line_feb": 1300, "line_mar": 1100, "line_apr": 1600 },
@@ -2175,15 +2172,15 @@ export const sourceJson__presetChartLine = `{
     {
       "step": "計画",
       "duration": 2.4,
-      "focus": ["Jan"],
+      "focus": ["1月"],
       "draw": "line",
-      "body": "四半期ごとの見込みを引いた線。 左から順に引かれる。",
+      "body": "月ごとの見込みを引いた線。 左から順に引かれる。",
       "badge": "line"
     },
     {
       "step": "時系列データの推移を線で示す折れ線グラフ",
       "duration": 0.9,
-      "focus": ["Jan"],
+      "focus": ["1月"],
       "body": "実績に置き換えると 2 月以降が計画を上回る。 点の高さを状態から取っている。",
       "badge": "line",
       "tween": {
@@ -2204,10 +2201,10 @@ lanes:
   chart: { width: 624 }
 
 actors:
-  - Visit: "{visit}"
-  - Sign up: "{signup}"
-  - Trial: "{trial}"
-  - Paid: "{paid}"
+  - 訪問: "{visit}"
+  - 登録: "{signup}"
+  - 試用: "{trial}"
+  - 有料: "{paid}"
 
 states:
   visit: 8200
@@ -2218,18 +2215,18 @@ states:
 animation:
   - step: "先月" 2.4s
     badge: "funnel"
-    focus: [Visit]
+    focus: [訪問]
     draw: funnel
-    body: "訪問 8200 から申込み 130 まで絞られる。"
+    body: "訪問 8200 から有料 130 まで絞られる。"
   - step: "各段階での離脱率を示す絞込みの図" 0.9s
     badge: "funnel"
-    focus: [Visit]
+    focus: [訪問]
     tween:
       visit: 8200 -> 10000
       signup: 1100 -> 1500
       trial: 520 -> 800
       paid: 130 -> 200
-    body: "今月は訪問 10000 / 申込み 200。 段の人数を状態から取るので、同じ図が別の月を映す。"
+    body: "今月は訪問 10000 / 有料 200。 段の人数を状態から取るので、同じ図が別の月を映す。"
 `;
 
 export const sourceJson__presetFunnel = `{
@@ -2238,10 +2235,10 @@ export const sourceJson__presetFunnel = `{
   "eyebrow": "funnel",
   "lanes": { "chart": {"width": 624} },
   "actors": [
-    { "name": "Visit", "subtitle": "{visit}" },
-    { "name": "Sign up", "subtitle": "{signup}" },
-    { "name": "Trial", "subtitle": "{trial}" },
-    { "name": "Paid", "subtitle": "{paid}" }
+    { "name": "訪問", "subtitle": "{visit}" },
+    { "name": "登録", "subtitle": "{signup}" },
+    { "name": "試用", "subtitle": "{trial}" },
+    { "name": "有料", "subtitle": "{paid}" }
   ],
   "flow": [],
   "states": { "visit": 8200, "signup": 1100, "trial": 520, "paid": 130 },
@@ -2249,16 +2246,16 @@ export const sourceJson__presetFunnel = `{
     {
       "step": "先月",
       "duration": 2.4,
-      "focus": ["Visit"],
+      "focus": ["訪問"],
       "draw": "funnel",
-      "body": "訪問 8200 から申込み 130 まで絞られる。",
+      "body": "訪問 8200 から有料 130 まで絞られる。",
       "badge": "funnel"
     },
     {
       "step": "各段階での離脱率を示す絞込みの図",
       "duration": 0.9,
-      "focus": ["Visit"],
-      "body": "今月は訪問 10000 / 申込み 200。 段の人数を状態から取るので、同じ図が別の月を映す。",
+      "focus": ["訪問"],
+      "body": "今月は訪問 10000 / 有料 200。 段の人数を状態から取るので、同じ図が別の月を映す。",
       "badge": "funnel",
       "tween": {
         "visit": [8200, 10000],
@@ -2278,32 +2275,32 @@ lanes:
   chart: { width: 720 }
 
 actors:
-  - CEO
-  - CTO
-  - CFO
+  - 社長
+  - 技術責任者
+  - 財務責任者
   - "{eng}"
-  - Ops Manager
+  - 運用部長
 
 states:
-  eng: "Eng Manager"
+  eng: "開発部長"
 
 flow:
-  - CEO -> CTO: ""
-  - CEO -> CFO: ""
-  - CTO -> "{eng}": ""
-  - CTO -> Ops Manager: ""
+  - 社長 -> 技術責任者: ""
+  - 社長 -> 財務責任者: ""
+  - 技術責任者 -> "{eng}": ""
+  - 技術責任者 -> 運用部長: ""
 
 animation:
   - step: "組織を作った時" 2.4s
     badge: "tree"
-    focus: [CEO]
+    focus: [社長]
     draw: tree
-    body: "開発の責任者を Eng Manager と呼んでいる。"
+    body: "開発の責任者を開発部長と呼んでいる。"
   - step: "親子関係を縦階層で示す組織図・木構造" 0.9s
     badge: "tree"
-    focus: [CEO]
+    focus: [社長]
     set:
-      eng: "VP of Engineering"
+      eng: "開発本部長"
     body: "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。"
 `;
 
@@ -2313,35 +2310,35 @@ export const sourceJson__presetTree = `{
   "eyebrow": "tree",
   "lanes": { "chart": {"width": 720} },
   "actors": [
-    { "name": "CEO" },
-    { "name": "CTO" },
-    { "name": "CFO" },
+    { "name": "社長" },
+    { "name": "技術責任者" },
+    { "name": "財務責任者" },
     { "name": "{eng}" },
-    { "name": "Ops Manager" }
+    { "name": "運用部長" }
   ],
   "flow": [
-    { "from": "CEO", "to": "CTO", "label": "" },
-    { "from": "CEO", "to": "CFO", "label": "" },
-    { "from": "CTO", "to": "{eng}", "label": "" },
-    { "from": "CTO", "to": "Ops Manager", "label": "" }
+    { "from": "社長", "to": "技術責任者", "label": "" },
+    { "from": "社長", "to": "財務責任者", "label": "" },
+    { "from": "技術責任者", "to": "{eng}", "label": "" },
+    { "from": "技術責任者", "to": "運用部長", "label": "" }
   ],
-  "states": { "eng": "Eng Manager" },
+  "states": { "eng": "開発部長" },
   "animation": [
     {
       "step": "組織を作った時",
       "duration": 2.4,
-      "focus": ["CEO"],
+      "focus": ["社長"],
       "draw": "tree",
-      "body": "開発の責任者を Eng Manager と呼んでいる。",
+      "body": "開発の責任者を開発部長と呼んでいる。",
       "badge": "tree"
     },
     {
       "step": "親子関係を縦階層で示す組織図・木構造",
       "duration": 0.9,
-      "focus": ["CEO"],
+      "focus": ["社長"],
       "body": "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。",
       "badge": "tree",
-      "set": { "eng": "VP of Engineering" }
+      "set": { "eng": "開発本部長" }
     }
   ]
 }`;
@@ -2355,28 +2352,28 @@ lanes:
 
 actors:
   - "{theme}"
-  - Features
-  - UI design
-  - Launch
-  - Auth
-  - Billing
+  - 機能
+  - 画面の設計
+  - 公開
+  - 認証
+  - 課金
 
 states:
-  theme: "Project"
+  theme: "新しい企画"
 
 flow:
-  - Features -> Auth: ""
-  - Features -> Billing: ""
+  - 機能 -> 認証: ""
+  - 機能 -> 課金: ""
 
 animation:
   - step: "書き出した時" 2.4s
     badge: "mindmap"
-    focus: [Features]
+    focus: [機能]
     draw: mind
-    body: "中心はまだ Project のまま。"
+    body: "中心はまだ「新しい企画」 のまま。"
   - step: "中心の主題から発想を放射状に広げる図" 0.9s
     badge: "mindmap"
-    focus: [Features]
+    focus: [機能]
     set:
       theme: "認証と課金の刷新"
     body: "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。"
@@ -2389,30 +2386,30 @@ export const sourceJson__presetMindMap = `{
   "lanes": { "chart": {"width": 720} },
   "actors": [
     { "name": "{theme}" },
-    { "name": "Features" },
-    { "name": "UI design" },
-    { "name": "Launch" },
-    { "name": "Auth" },
-    { "name": "Billing" }
+    { "name": "機能" },
+    { "name": "画面の設計" },
+    { "name": "公開" },
+    { "name": "認証" },
+    { "name": "課金" }
   ],
   "flow": [
-    { "from": "Features", "to": "Auth", "label": "" },
-    { "from": "Features", "to": "Billing", "label": "" }
+    { "from": "機能", "to": "認証", "label": "" },
+    { "from": "機能", "to": "課金", "label": "" }
   ],
-  "states": { "theme": "Project" },
+  "states": { "theme": "新しい企画" },
   "animation": [
     {
       "step": "書き出した時",
       "duration": 2.4,
-      "focus": ["Features"],
+      "focus": ["機能"],
       "draw": "mind",
-      "body": "中心はまだ Project のまま。",
+      "body": "中心はまだ「新しい企画」 のまま。",
       "badge": "mindmap"
     },
     {
       "step": "中心の主題から発想を放射状に広げる図",
       "duration": 0.9,
-      "focus": ["Features"],
+      "focus": ["機能"],
       "body": "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。",
       "badge": "mindmap",
       "set": { "theme": "認証と課金の刷新" }
@@ -2428,10 +2425,10 @@ lanes:
   chart: { width: 720 }
 
 actors:
-  - Land on /: { value: "普通", touchpoint: "Website" }
-  - Fill signup form: { value: "{form_mood}", touchpoint: "Form", opportunity: "input UX 改善" }
-  - Email verify: { value: "満足", touchpoint: "Email" }
-  - Dashboard: { value: "最高", touchpoint: "Dashboard" }
+  - サイトを訪れる: { value: "普通", touchpoint: "サイト" }
+  - 登録の入力: { value: "{form_mood}", touchpoint: "入力画面", opportunity: "入力のしやすさを直す" }
+  - メールの確認: { value: "満足", touchpoint: "メール" }
+  - 管理画面を開く: { value: "最高", touchpoint: "管理画面" }
 
 states:
   form_mood: "不満"
@@ -2439,14 +2436,14 @@ states:
 animation:
   - step: "改善前" 2.4s
     badge: "journey"
-    focus: ["Land on /"]
+    focus: ["サイトを訪れる"]
     draw: journey
     set:
       form_mood: "不満"
-    body: "申込みの入力で気持ちが落ちる。"
+    body: "登録の入力で気持ちが落ちる。"
   - step: "ユーザー体験の感情変化をステップ順に示す図" 0.9s
     badge: "journey"
-    focus: ["Land on /"]
+    focus: ["サイトを訪れる"]
     set:
       form_mood: "満足"
     body: "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。"
@@ -2458,15 +2455,15 @@ export const sourceJson__presetUserJourney = `{
   "eyebrow": "userJourney",
   "lanes": { "chart": {"width": 720} },
   "actors": [
-    { "name": "Land on /", "value": "普通", "touchpoint": "Website" },
+    { "name": "サイトを訪れる", "value": "普通", "touchpoint": "サイト" },
     {
-      "name": "Fill signup form",
+      "name": "登録の入力",
       "value": "{form_mood}",
-      "touchpoint": "Form",
-      "opportunity": "input UX 改善"
+      "touchpoint": "入力画面",
+      "opportunity": "入力のしやすさを直す"
     },
-    { "name": "Email verify", "value": "満足", "touchpoint": "Email" },
-    { "name": "Dashboard", "value": "最高", "touchpoint": "Dashboard" }
+    { "name": "メールの確認", "value": "満足", "touchpoint": "メール" },
+    { "name": "管理画面を開く", "value": "最高", "touchpoint": "管理画面" }
   ],
   "flow": [],
   "states": { "form_mood": "不満" },
@@ -2474,16 +2471,16 @@ export const sourceJson__presetUserJourney = `{
     {
       "step": "改善前",
       "duration": 2.4,
-      "focus": ["Land on /"],
+      "focus": ["サイトを訪れる"],
       "draw": "journey",
-      "body": "申込みの入力で気持ちが落ちる。",
+      "body": "登録の入力で気持ちが落ちる。",
       "badge": "journey",
       "set": { "form_mood": "不満" }
     },
     {
       "step": "ユーザー体験の感情変化をステップ順に示す図",
       "duration": 0.9,
-      "focus": ["Land on /"],
+      "focus": ["サイトを訪れる"],
       "body": "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。",
       "badge": "journey",
       "set": { "form_mood": "満足" }
@@ -2496,14 +2493,14 @@ eyebrow: "quadrant"
 type: quadrant
 
 axes:
-  x: { left: "Low effort", right: "High effort" }
-  y: { bottom: "Low value", top: "High value" }
+  x: { left: "労力が小さい", right: "労力が大きい" }
+  y: { bottom: "価値が低い", top: "価値が高い" }
 
 actors:
-  - Quick win: "左上"
-  - Major project: "右上"
-  - Fill in: "{fill_in_at}"
-  - Thankless: "右下"
+  - 文言の直し: "左上"
+  - 決済の作り直し: "右上"
+  - 検索の絞り込み: "{fill_in_at}"
+  - 古い画面の移行: "右下"
 
 states:
   fill_in_at: "左下"
@@ -2511,16 +2508,16 @@ states:
 animation:
   - step: "見直し前" 0.9s
     badge: "quadrant"
-    focus: ["Quick win"]
+    focus: ["文言の直し"]
     set:
       fill_in_at: "左下"
-    body: "Fill in は価値も労力も低い枠に置いてある。"
+    body: "検索の絞り込みは、価値も労力も低い枠に置いてある。"
   - step: "2 つの軸で 4 象限に分けて配置する優先度マトリクス" 0.9s
     badge: "quadrant"
-    focus: ["Quick win"]
+    focus: ["文言の直し"]
     set:
       fill_in_at: "左上"
-    body: "見直しで Fill in を価値の高い枠へ移す。 どの枠に居るかを状態から取っている。"
+    body: "見直しで検索の絞り込みを価値の高い枠へ移す。 どの枠に居るかを状態から取っている。"
 `;
 
 export const sourceJson__presetQuadrant = `{
@@ -2528,14 +2525,14 @@ export const sourceJson__presetQuadrant = `{
   "type": "quadrant",
   "eyebrow": "quadrant",
   "axes": {
-    "x": { "left": "Low effort", "right": "High effort" },
-    "y": { "bottom": "Low value", "top": "High value" }
+    "x": { "left": "労力が小さい", "right": "労力が大きい" },
+    "y": { "bottom": "価値が低い", "top": "価値が高い" }
   },
   "actors": [
-    { "name": "Quick win", "subtitle": "左上" },
-    { "name": "Major project", "subtitle": "右上" },
-    { "name": "Fill in", "subtitle": "{fill_in_at}" },
-    { "name": "Thankless", "subtitle": "右下" }
+    { "name": "文言の直し", "subtitle": "左上" },
+    { "name": "決済の作り直し", "subtitle": "右上" },
+    { "name": "検索の絞り込み", "subtitle": "{fill_in_at}" },
+    { "name": "古い画面の移行", "subtitle": "右下" }
   ],
   "flow": [],
   "states": { "fill_in_at": "左下" },
@@ -2543,16 +2540,16 @@ export const sourceJson__presetQuadrant = `{
     {
       "step": "見直し前",
       "duration": 0.9,
-      "focus": ["Quick win"],
-      "body": "Fill in は価値も労力も低い枠に置いてある。",
+      "focus": ["文言の直し"],
+      "body": "検索の絞り込みは、価値も労力も低い枠に置いてある。",
       "badge": "quadrant",
       "set": { "fill_in_at": "左下" }
     },
     {
       "step": "2 つの軸で 4 象限に分けて配置する優先度マトリクス",
       "duration": 0.9,
-      "focus": ["Quick win"],
-      "body": "見直しで Fill in を価値の高い枠へ移す。 どの枠に居るかを状態から取っている。",
+      "focus": ["文言の直し"],
+      "body": "見直しで検索の絞り込みを価値の高い枠へ移す。 どの枠に居るかを状態から取っている。",
       "badge": "quadrant",
       "set": { "fill_in_at": "左上" }
     }
@@ -2564,28 +2561,28 @@ eyebrow: "gantt"
 type: gantt
 
 actors:
-  - Design: { value: "Q1", owner: "Designer", tone: teal }
-  - Build: { value: "Q2", owner: "Eng", tone: teal, end: "{build_end}" }
-  - Test: { value: "Q3", owner: "QA", tone: teal }
-  - Ship: { value: "Q4", owner: "PM", tone: teal }
+  - 設計: { value: "Q1", owner: "デザイナー", tone: teal }
+  - 実装: { value: "Q2", owner: "開発", tone: teal, end: "{build_end}" }
+  - 検証: { value: "Q3", owner: "品質保証", tone: teal }
+  - 公開: { value: "Q4", owner: "企画", tone: teal }
 
 states:
   build_end: 1
 
 flow:
-  - Design -> Build: ""
-  - Build -> Test: ""
-  - Test -> Ship: ""
+  - 設計 -> 実装: ""
+  - 実装 -> 検証: ""
+  - 検証 -> 公開: ""
 
 animation:
   - step: "当初の計画" 2.4s
     badge: "gantt"
-    focus: [Design]
+    focus: [設計]
     draw: gantt
-    body: "Build は Q2 で終わる想定。"
+    body: "実装は Q2 で終わる想定。"
   - step: "タスクの期間と依存関係を横棒で示す進捗図" 0.9s
     badge: "gantt"
-    focus: [Design]
+    focus: [設計]
     tween:
       build_end: 1 -> 2
     body: "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。"
@@ -2596,30 +2593,30 @@ export const sourceJson__presetGantt = `{
   "type": "gantt",
   "eyebrow": "gantt",
   "actors": [
-    { "name": "Design", "value": "Q1", "tone": "teal", "owner": "Designer" },
-    { "name": "Build", "value": "Q2", "tone": "teal", "owner": "Eng", "end": "{build_end}" },
-    { "name": "Test", "value": "Q3", "tone": "teal", "owner": "QA" },
-    { "name": "Ship", "value": "Q4", "tone": "teal", "owner": "PM" }
+    { "name": "設計", "value": "Q1", "tone": "teal", "owner": "デザイナー" },
+    { "name": "実装", "value": "Q2", "tone": "teal", "owner": "開発", "end": "{build_end}" },
+    { "name": "検証", "value": "Q3", "tone": "teal", "owner": "品質保証" },
+    { "name": "公開", "value": "Q4", "tone": "teal", "owner": "企画" }
   ],
   "flow": [
-    { "from": "Design", "to": "Build", "label": "" },
-    { "from": "Build", "to": "Test", "label": "" },
-    { "from": "Test", "to": "Ship", "label": "" }
+    { "from": "設計", "to": "実装", "label": "" },
+    { "from": "実装", "to": "検証", "label": "" },
+    { "from": "検証", "to": "公開", "label": "" }
   ],
   "states": { "build_end": 1 },
   "animation": [
     {
       "step": "当初の計画",
       "duration": 2.4,
-      "focus": ["Design"],
+      "focus": ["設計"],
       "draw": "gantt",
-      "body": "Build は Q2 で終わる想定。",
+      "body": "実装は Q2 で終わる想定。",
       "badge": "gantt"
     },
     {
       "step": "タスクの期間と依存関係を横棒で示す進捗図",
       "duration": 0.9,
-      "focus": ["Design"],
+      "focus": ["設計"],
       "body": "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。",
       "badge": "gantt",
       "tween": { "build_end": [1, 2] }
@@ -2640,43 +2637,43 @@ lanes:
 # 縦列は lane、段は stack。 始まりと終わりは箱ではないので種類で書く
 actors:
   - begin: { kind: mark-start, lane: c0, stack: 0, posW: 96, posH: 96 }
-  - Draft: { kind: storage, lane: c0, stack: 1, posW: 320, subtitle: "下書き" }
-  - Placed: { kind: storage, lane: c0, stack: 2, posW: 428, subtitle: "受付済", rows: ["在庫を押さえる", "督促を送る: 7 日ごと"], marks: ["entry", "internal"] }
-  - Paid: { kind: storage, lane: c0, stack: 3, posW: 320, subtitle: "支払済", rows: ["出荷を待つ"], marks: ["do"] }
+  - 下書き: { kind: storage, lane: c0, stack: 1, posW: 320 }
+  - 受付済: { kind: storage, lane: c0, stack: 2, posW: 428, rows: ["在庫を押さえる", "督促を送る: 7 日ごと"], marks: ["entry", "internal"] }
+  - 支払済: { kind: storage, lane: c0, stack: 3, posW: 320, rows: ["出荷を待つ"], marks: ["do"] }
   - done: { kind: mark-end, lane: c0, stack: 4, posW: 96, posH: 96 }
-  - Cancelled: { kind: storage, lane: c1, stack: 2, posW: 320, subtitle: "取消済", rows: ["押さえを解く"], marks: ["exit"] }
+  - 取消済: { kind: storage, lane: c1, stack: 2, posW: 320, rows: ["押さえを解く"], marks: ["exit"] }
   - closed: { kind: mark-end, lane: c1, stack: 3, posW: 96, posH: 96 }
 
 # 遷移は実線に開いた矢の 1 種だけ。 違いは語の中に入る
 flow:
-  - begin -> Draft: "" (accent, solid) { head: open }
-  - Draft -> Placed: "出す" (accent, solid) { head: open }
-  - Placed -> Paid: "支払う" (accent, solid) { head: open }
-  - Paid -> done: "受け取る" (accent, solid) { head: open }
-  - Placed -> Cancelled: "取り消す" (accent, solid) { head: open }
-  - Cancelled -> closed: "" (accent, solid) { head: open }
-  - Placed -> Placed: "催促する" (accent, solid) { head: open }
+  - begin -> 下書き: "" (accent, solid) { head: open }
+  - 下書き -> 受付済: "出す" (accent, solid) { head: open }
+  - 受付済 -> 支払済: "支払う" (accent, solid) { head: open }
+  - 支払済 -> done: "受け取る" (accent, solid) { head: open }
+  - 受付済 -> 取消済: "取り消す" (accent, solid) { head: open }
+  - 取消済 -> closed: "" (accent, solid) { head: open }
+  - 受付済 -> 受付済: "催促する" (accent, solid) { head: open }
 
 animation:
-  - step: "1. Draft" 0.9s
+  - step: "1. 下書き" 0.9s
     badge: "fsm"
-    focus: [begin, Draft, "begin -> Draft"]
+    focus: [begin, 下書き, "begin -> 下書き"]
     body: "塗った丸が始まり。"
-  - step: "2. 出して Placed" 0.9s
+  - step: "2. 出して受付済へ" 0.9s
     badge: "fsm"
-    focus: [begin, Draft, Placed, "begin -> Draft", "Draft -> Placed"]
+    focus: [begin, 下書き, 受付済, "begin -> 下書き", "下書き -> 受付済"]
     body: "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。"
   - step: "3. 受付済のまま催促する" 0.9s
     badge: "fsm"
-    focus: [begin, Draft, Placed, "begin -> Draft", "Draft -> Placed", "Placed -> Placed"]
+    focus: [begin, 下書き, 受付済, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済"]
     body: "自分へ戻る輪。 7 日ごとに督促を送っても状態は変わらない。"
   - step: "4. 支払って終わる" 0.9s
     badge: "fsm"
-    focus: [begin, Draft, Placed, Paid, done, "begin -> Draft", "Draft -> Placed", "Placed -> Placed", "Placed -> Paid", "Paid -> done"]
+    focus: [begin, 下書き, 受付済, 支払済, done, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done"]
     body: "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。"
   - step: "5. 取り消して終わる" 0.9s
     badge: "fsm"
-    focus: [begin, Draft, Placed, Paid, done, Cancelled, closed, "begin -> Draft", "Draft -> Placed", "Placed -> Placed", "Placed -> Paid", "Paid -> done", "Placed -> Cancelled", "Cancelled -> closed"]
+    focus: [begin, 下書き, 受付済, 支払済, done, 取消済, closed, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"]
     body: "山形の外枠だけは出る瞬間に 1 度だけ。"
 `;
 
@@ -2686,55 +2683,55 @@ export const sourceJson__presetStateMachine = `{
   "lanes": { "c0": { "width": 478 }, "c1": { "width": 370 } },
   "actors": [
     { "name": "begin", "kind": "mark-start", "lane": "c0", "stack": 0, "posW": 96, "posH": 96 },
-    { "name": "Draft", "kind": "storage", "posW": 320, "lane": "c0", "stack": 1, "subtitle": "下書き" },
-    { "name": "Placed", "kind": "storage", "posW": 428, "lane": "c0", "stack": 2, "subtitle": "受付済", "rows": ["在庫を押さえる", "督促を送る: 7 日ごと"], "marks": ["entry", "internal"] },
-    { "name": "Paid", "kind": "storage", "posW": 320, "lane": "c0", "stack": 3, "subtitle": "支払済", "rows": ["出荷を待つ"], "marks": ["do"] },
+    { "name": "下書き", "kind": "storage", "posW": 320, "lane": "c0", "stack": 1 },
+    { "name": "受付済", "kind": "storage", "posW": 428, "lane": "c0", "stack": 2, "rows": ["在庫を押さえる", "督促を送る: 7 日ごと"], "marks": ["entry", "internal"] },
+    { "name": "支払済", "kind": "storage", "posW": 320, "lane": "c0", "stack": 3, "rows": ["出荷を待つ"], "marks": ["do"] },
     { "name": "done", "kind": "mark-end", "lane": "c0", "stack": 4, "posW": 96, "posH": 96 },
-    { "name": "Cancelled", "kind": "storage", "posW": 320, "lane": "c1", "stack": 2, "subtitle": "取消済", "rows": ["押さえを解く"], "marks": ["exit"] },
+    { "name": "取消済", "kind": "storage", "posW": 320, "lane": "c1", "stack": 2, "rows": ["押さえを解く"], "marks": ["exit"] },
     { "name": "closed", "kind": "mark-end", "lane": "c1", "stack": 3, "posW": 96, "posH": 96 }
   ],
   "flow": [
-    { "from": "begin", "to": "Draft", "label": "", "tone": "accent", "style": "solid", "head": "open" },
-    { "from": "Draft", "to": "Placed", "label": "出す", "tone": "accent", "style": "solid", "head": "open" },
-    { "from": "Placed", "to": "Paid", "label": "支払う", "tone": "accent", "style": "solid", "head": "open" },
-    { "from": "Paid", "to": "done", "label": "受け取る", "tone": "accent", "style": "solid", "head": "open" },
-    { "from": "Placed", "to": "Cancelled", "label": "取り消す", "tone": "accent", "style": "solid", "head": "open" },
-    { "from": "Cancelled", "to": "closed", "label": "", "tone": "accent", "style": "solid", "head": "open" },
-    { "from": "Placed", "to": "Placed", "label": "催促する", "tone": "accent", "style": "solid", "head": "open" }
+    { "from": "begin", "to": "下書き", "label": "", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "下書き", "to": "受付済", "label": "出す", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "受付済", "to": "支払済", "label": "支払う", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "支払済", "to": "done", "label": "受け取る", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "受付済", "to": "取消済", "label": "取り消す", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "取消済", "to": "closed", "label": "", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "受付済", "to": "受付済", "label": "催促する", "tone": "accent", "style": "solid", "head": "open" }
   ],
   "animation": [
     {
-      "step": "1. Draft",
+      "step": "1. 下書き",
       "duration": 0.9,
-      "focus": ["begin", "Draft", "begin -> Draft"],
+      "focus": ["begin", "下書き", "begin -> 下書き"],
       "body": "塗った丸が始まり。",
       "badge": "fsm"
     },
     {
-      "step": "2. 出して Placed",
+      "step": "2. 出して受付済へ",
       "duration": 0.9,
-      "focus": ["begin", "Draft", "Placed", "begin -> Draft", "Draft -> Placed"],
+      "focus": ["begin", "下書き", "受付済", "begin -> 下書き", "下書き -> 受付済"],
       "body": "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。",
       "badge": "fsm"
     },
     {
       "step": "3. 受付済のまま催促する",
       "duration": 0.9,
-      "focus": ["begin", "Draft", "Placed", "begin -> Draft", "Draft -> Placed", "Placed -> Placed"],
+      "focus": ["begin", "下書き", "受付済", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済"],
       "body": "自分へ戻る輪。 7 日ごとに督促を送っても状態は変わらない。",
       "badge": "fsm"
     },
     {
       "step": "4. 支払って終わる",
       "duration": 0.9,
-      "focus": ["begin", "Draft", "Placed", "Paid", "done", "begin -> Draft", "Draft -> Placed", "Placed -> Placed", "Placed -> Paid", "Paid -> done"],
+      "focus": ["begin", "下書き", "受付済", "支払済", "done", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done"],
       "body": "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。",
       "badge": "fsm"
     },
     {
       "step": "5. 取り消して終わる",
       "duration": 0.9,
-      "focus": ["begin", "Draft", "Placed", "Paid", "done", "Cancelled", "closed", "begin -> Draft", "Draft -> Placed", "Placed -> Placed", "Placed -> Paid", "Paid -> done", "Placed -> Cancelled", "Cancelled -> closed"],
+      "focus": ["begin", "下書き", "受付済", "支払済", "done", "取消済", "closed", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"],
       "body": "山形の外枠だけは出る瞬間に 1 度だけ。",
       "badge": "fsm"
     }
@@ -2745,94 +2742,94 @@ export const sourceYaml__presetStateMachine2 = `title: "階層状態や遷移ア
 type: state
 
 lanes:
-  lane-idle: { width: 330 }
-  lane-active: { width: 330 }
-  lane-loading: { width: 330 }
-  lane-done: { width: 330 }
+  lane-待機: { width: 330 }
+  lane-処理中: { width: 330 }
+  lane-読み込み: { width: 330 }
+  lane-完了: { width: 330 }
 
 actors:
-  - Idle: { kind: card, eyebrow: "初期", subtitle: "entry: clearForm", posW: 280 }
-  - Active: { kind: card, eyebrow: "状態", posW: 280 }
-  - Loading: { kind: card, eyebrow: "状態 / nested in active", subtitle: "entry: startSpinner / exit: stopSpinner", posW: 280 }
-  - Done: { kind: card, eyebrow: "最終", posW: 280 }
+  - 待機: { kind: card, eyebrow: "初期", subtitle: "入る時: 入力を空にする", posW: 280 }
+  - 処理中: { kind: card, eyebrow: "状態", posW: 280 }
+  - 読み込み: { kind: card, eyebrow: "状態 / 処理中の中", subtitle: "入る時: 印を出す / 出る時: 印を消す", posW: 280 }
+  - 完了: { kind: card, eyebrow: "最終", posW: 280 }
 
 flow:
-  - Idle -> Loading: "submit" (accent, solid) { sub: "/validate" }
-  - Loading -> Done: "success" (success, solid)
+  - 待機 -> 読み込み: "送信" (accent, solid) { sub: "/入力を確かめる" }
+  - 読み込み -> 完了: "成功" (success, solid)
 
 animation:
-  - step: "1. Idle" 0.9s
+  - step: "1. 待機" 0.9s
     badge: "statemachine2"
-    focus: [Idle]
-    body: "clearForm を実行して待つ。"
-  - step: "2. Active の中の Loading" 0.9s
+    focus: [待機]
+    body: "入力を空にして待つ。"
+  - step: "2. 処理中の中の読み込み" 0.9s
     badge: "statemachine2"
-    focus: [Idle, Active, Loading, "Idle -> Loading"]
-    body: "submit で入れ子の状態に入る。"
+    focus: [待機, 処理中, 読み込み, "待機 -> 読み込み"]
+    body: "送信で入れ子の状態に入る。"
   - step: "階層状態や遷移アクションを持つ拡張ステート図" 0.9s
     badge: "statemachine2"
-    focus: [Idle, Active, Loading, Done, "Idle -> Loading", "Loading -> Done"]
-    body: "拡張 FSM (nested + action) を visible 化。"
+    focus: [待機, 処理中, 読み込み, 完了, "待機 -> 読み込み", "読み込み -> 完了"]
+    body: "成功で完了に移る。"
 `;
 
 export const sourceJson__presetStateMachine2 = `{
   "title": "階層状態や遷移アクションを持つ拡張ステート図",
   "type": "state",
   "lanes": {
-    "lane-idle": { "width": 330 },
-    "lane-active": { "width": 330 },
-    "lane-loading": { "width": 330 },
-    "lane-done": { "width": 330 }
+    "lane-待機": { "width": 330 },
+    "lane-処理中": { "width": 330 },
+    "lane-読み込み": { "width": 330 },
+    "lane-完了": { "width": 330 }
   },
   "actors": [
     {
-      "name": "Idle",
+      "name": "待機",
       "kind": "card",
-      "subtitle": "entry: clearForm",
+      "subtitle": "入る時: 入力を空にする",
       "eyebrow": "初期",
       "posW": 280
     },
-    { "name": "Active", "kind": "card", "eyebrow": "状態", "posW": 280 },
+    { "name": "処理中", "kind": "card", "eyebrow": "状態", "posW": 280 },
     {
-      "name": "Loading",
+      "name": "読み込み",
       "kind": "card",
-      "subtitle": "entry: startSpinner / exit: stopSpinner",
-      "eyebrow": "状態 / nested in active",
+      "subtitle": "入る時: 印を出す / 出る時: 印を消す",
+      "eyebrow": "状態 / 処理中の中",
       "posW": 280
     },
-    { "name": "Done", "kind": "card", "eyebrow": "最終", "posW": 280 }
+    { "name": "完了", "kind": "card", "eyebrow": "最終", "posW": 280 }
   ],
   "flow": [
     {
-      "from": "Idle",
-      "to": "Loading",
-      "label": "submit",
-      "sub": "/validate",
+      "from": "待機",
+      "to": "読み込み",
+      "label": "送信",
+      "sub": "/入力を確かめる",
       "tone": "accent",
       "style": "solid"
     },
-    { "from": "Loading", "to": "Done", "label": "success", "tone": "success", "style": "solid" }
+    { "from": "読み込み", "to": "完了", "label": "成功", "tone": "success", "style": "solid" }
   ],
   "animation": [
     {
-      "step": "1. Idle",
+      "step": "1. 待機",
       "duration": 0.9,
-      "focus": ["Idle"],
-      "body": "clearForm を実行して待つ。",
+      "focus": ["待機"],
+      "body": "入力を空にして待つ。",
       "badge": "statemachine2"
     },
     {
-      "step": "2. Active の中の Loading",
+      "step": "2. 処理中の中の読み込み",
       "duration": 0.9,
-      "focus": ["Idle", "Active", "Loading", "Idle -> Loading"],
-      "body": "submit で入れ子の状態に入る。",
+      "focus": ["待機", "処理中", "読み込み", "待機 -> 読み込み"],
+      "body": "送信で入れ子の状態に入る。",
       "badge": "statemachine2"
     },
     {
       "step": "階層状態や遷移アクションを持つ拡張ステート図",
       "duration": 0.9,
-      "focus": ["Idle", "Active", "Loading", "Done", "Idle -> Loading", "Loading -> Done"],
-      "body": "拡張 FSM (nested + action) を visible 化。",
+      "focus": ["待機", "処理中", "読み込み", "完了", "待機 -> 読み込み", "読み込み -> 完了"],
+      "body": "成功で完了に移る。",
       "badge": "statemachine2"
     }
   ]
@@ -2842,89 +2839,89 @@ export const sourceYaml__presetSwimlane = `title: "処理を役割ごとに縦�
 type: swimlane
 
 lanes:
-  lane-user: { width: 520, label: "Client" }
-  lane-handler: { width: 520, label: "Service" }
-  lane-processed: { width: 520, label: "Event" }
+  lane-利用者: { width: 520, label: "クライアント" }
+  lane-注文の処理: { width: 520, label: "サービス" }
+  lane-注文済み: { width: 520, label: "イベント" }
 
 actors:
-  - User: { kind: actor }
-  - handler(...): { kind: function }
-  - Processed: { kind: event }
+  - 利用者: { kind: actor }
+  - 注文の処理: { kind: function }
+  - 注文済み: { kind: event }
 
 flow:
-  - User -> handler(...): "call" (accent, dotted-flow)
-  - handler(...) -> Processed: "emit" (success, dotted-flow)
+  - 利用者 -> 注文の処理: "呼び出す" (accent, dotted-flow)
+  - 注文の処理 -> 注文済み: "発行する" (success, dotted-flow)
 
 animation:
-  - step: "1. Client の User" 0.9s
+  - step: "1. クライアントの利用者" 0.9s
     badge: "preset"
-    focus: [User]
+    focus: [利用者]
     body: "外から呼ぶ人が最初の縦列に立つ。"
-  - step: "2. Service の handler" 0.9s
+  - step: "2. サービスの処理" 0.9s
     badge: "preset"
-    focus: [User, "handler(...)", "User -> handler(...)"]
+    focus: [利用者, "注文の処理", "利用者 -> 注文の処理"]
     body: "呼び出しが隣の縦列に渡る。"
-  - step: "swimlane" 0.9s
+  - step: "処理を役割ごとに縦レーン分けして流れを示す図" 0.9s
     badge: "preset"
-    focus: [User, "handler(...)", Processed, "User -> handler(...)", "handler(...) -> Processed"]
-    body: "swimlane preset で 3 lane を 1 行宣言、 lane.x auto-layout。"
+    focus: [利用者, "注文の処理", 注文済み, "利用者 -> 注文の処理", "注文の処理 -> 注文済み"]
+    body: "処理が済むと、結果をイベントとして発行する。"
 `;
 
 export const sourceJson__presetSwimlane = `{
   "title": "処理を役割ごとに縦レーン分けして流れを示す図",
   "type": "swimlane",
   "lanes": {
-    "lane-user": { "width": 520, "label": "Client" },
-    "lane-handler": { "width": 520, "label": "Service" },
-    "lane-processed": { "width": 520, "label": "Event" }
+    "lane-利用者": { "width": 520, "label": "クライアント" },
+    "lane-注文の処理": { "width": 520, "label": "サービス" },
+    "lane-注文済み": { "width": 520, "label": "イベント" }
   },
   "actors": [
-    { "name": "User", "kind": "actor" },
-    { "name": "handler(...)", "kind": "function" },
-    { "name": "Processed", "kind": "event" }
+    { "name": "利用者", "kind": "actor" },
+    { "name": "注文の処理", "kind": "function" },
+    { "name": "注文済み", "kind": "event" }
   ],
   "flow": [
     {
-      "from": "User",
-      "to": "handler(...)",
-      "label": "call",
+      "from": "利用者",
+      "to": "注文の処理",
+      "label": "呼び出す",
       "tone": "accent",
       "style": "dotted-flow"
     },
     {
-      "from": "handler(...)",
-      "to": "Processed",
-      "label": "emit",
+      "from": "注文の処理",
+      "to": "注文済み",
+      "label": "発行する",
       "tone": "success",
       "style": "dotted-flow"
     }
   ],
   "animation": [
     {
-      "step": "1. Client の User",
+      "step": "1. クライアントの利用者",
       "duration": 0.9,
-      "focus": ["User"],
+      "focus": ["利用者"],
       "body": "外から呼ぶ人が最初の縦列に立つ。",
       "badge": "preset"
     },
     {
-      "step": "2. Service の handler",
+      "step": "2. サービスの処理",
       "duration": 0.9,
-      "focus": ["User", "handler(...)", "User -> handler(...)"],
+      "focus": ["利用者", "注文の処理", "利用者 -> 注文の処理"],
       "body": "呼び出しが隣の縦列に渡る。",
       "badge": "preset"
     },
     {
-      "step": "swimlane",
+      "step": "処理を役割ごとに縦レーン分けして流れを示す図",
       "duration": 0.9,
       "focus": [
-        "User",
-        "handler(...)",
-        "Processed",
-        "User -> handler(...)",
-        "handler(...) -> Processed"
+        "利用者",
+        "注文の処理",
+        "注文済み",
+        "利用者 -> 注文の処理",
+        "注文の処理 -> 注文済み"
       ],
-      "body": "swimlane preset で 3 lane を 1 行宣言、 lane.x auto-layout。",
+      "body": "処理が済むと、結果をイベントとして発行する。",
       "badge": "preset"
     }
   ]
@@ -3498,55 +3495,55 @@ export const sourceYaml__presetTopology = `title: "システムの構成要素�
 type: topology
 
 lanes:
-  client: { width: 460, label: "Client" }
+  client: { width: 460, label: "利用者側" }
   aws: { width: 460, label: "AWS" }
 
 actors:
-  - Browser: { kind: frontend, lane: client }
-  - ALB: { kind: service, eyebrow: "Load Balancer", lane: aws }
-  - ECS Task: { kind: service, eyebrow: "Container", lane: aws }
-  - RDS: { kind: database, eyebrow: "Postgres", lane: aws }
+  - ブラウザ: { kind: frontend, lane: client }
+  - ALB: { kind: service, eyebrow: "負荷分散", lane: aws }
+  - ECS のタスク: { kind: service, eyebrow: "コンテナ", lane: aws }
+  - RDS: { kind: database, eyebrow: "PostgreSQL", lane: aws }
 
 flow:
-  - Browser -> ALB: "HTTPS" (teal, solid) { sub: "TLS 1.3" }
-  - ALB -> ECS Task: "round-robin" (teal, solid)
-  - ECS Task -> RDS: "TCP 5432" (success, solid) { sub: "pgbouncer" }
+  - ブラウザ -> ALB: "HTTPS" (teal, solid) { sub: "TLS 1.3" }
+  - ALB -> ECS のタスク: "ラウンドロビン" (teal, solid)
+  - ECS のタスク -> RDS: "TCP 5432" (success, solid) { sub: "PgBouncer 経由" }
 
 animation:
-  - step: "1. Browser" 0.9s
+  - step: "1. ブラウザ" 0.9s
     badge: "topology"
-    focus: [Browser]
+    focus: [ブラウザ]
     body: "利用者側の入口。"
   - step: "2. ALB" 0.9s
     badge: "topology"
-    focus: [Browser, ALB, "Browser -> ALB"]
+    focus: [ブラウザ, ALB, "ブラウザ -> ALB"]
     body: "HTTPS を受けて振り分ける。"
-  - step: "3. ECS Task" 0.9s
+  - step: "3. ECS のタスク" 0.9s
     badge: "topology"
-    focus: [Browser, ALB, "Browser -> ALB", "ECS Task", "ALB -> ECS Task"]
-    body: "container が処理する。"
+    focus: [ブラウザ, ALB, "ブラウザ -> ALB", "ECS のタスク", "ALB -> ECS のタスク"]
+    body: "コンテナが処理する。"
   - step: "システムの構成要素と接続を配置で示す図" 0.9s
     badge: "topology"
-    focus: [Browser, ALB, "Browser -> ALB", "ECS Task", "ALB -> ECS Task", RDS, "ECS Task -> RDS"]
-    body: "topology の全 container + connection を visible 化。"
+    focus: [ブラウザ, ALB, "ブラウザ -> ALB", "ECS のタスク", "ALB -> ECS のタスク", RDS, "ECS のタスク -> RDS"]
+    body: "コンテナが PgBouncer を経て PostgreSQL に繋がる。"
 `;
 
 export const sourceJson__presetTopology = `{
   "title": "システムの構成要素と接続を配置で示す図",
   "type": "topology",
   "lanes": {
-    "client": { "width": 460, "label": "Client" },
+    "client": { "width": 460, "label": "利用者側" },
     "aws": { "width": 460, "label": "AWS" }
   },
   "actors": [
-    { "name": "Browser", "kind": "frontend", "lane": "client" },
-    { "name": "ALB", "kind": "service", "eyebrow": "Load Balancer", "lane": "aws" },
-    { "name": "ECS Task", "kind": "service", "eyebrow": "Container", "lane": "aws" },
-    { "name": "RDS", "kind": "database", "eyebrow": "Postgres", "lane": "aws" }
+    { "name": "ブラウザ", "kind": "frontend", "lane": "client" },
+    { "name": "ALB", "kind": "service", "eyebrow": "負荷分散", "lane": "aws" },
+    { "name": "ECS のタスク", "kind": "service", "eyebrow": "コンテナ", "lane": "aws" },
+    { "name": "RDS", "kind": "database", "eyebrow": "PostgreSQL", "lane": "aws" }
   ],
   "flow": [
     {
-      "from": "Browser",
+      "from": "ブラウザ",
       "to": "ALB",
       "label": "HTTPS",
       "sub": "TLS 1.3",
@@ -3555,55 +3552,55 @@ export const sourceJson__presetTopology = `{
     },
     {
       "from": "ALB",
-      "to": "ECS Task",
-      "label": "round-robin",
+      "to": "ECS のタスク",
+      "label": "ラウンドロビン",
       "tone": "teal",
       "style": "solid"
     },
     {
-      "from": "ECS Task",
+      "from": "ECS のタスク",
       "to": "RDS",
       "label": "TCP 5432",
-      "sub": "pgbouncer",
+      "sub": "PgBouncer 経由",
       "tone": "success",
       "style": "solid"
     }
   ],
   "animation": [
     {
-      "step": "1. Browser",
+      "step": "1. ブラウザ",
       "duration": 0.9,
-      "focus": ["Browser"],
+      "focus": ["ブラウザ"],
       "body": "利用者側の入口。",
       "badge": "topology"
     },
     {
       "step": "2. ALB",
       "duration": 0.9,
-      "focus": ["Browser", "ALB", "Browser -> ALB"],
+      "focus": ["ブラウザ", "ALB", "ブラウザ -> ALB"],
       "body": "HTTPS を受けて振り分ける。",
       "badge": "topology"
     },
     {
-      "step": "3. ECS Task",
+      "step": "3. ECS のタスク",
       "duration": 0.9,
-      "focus": ["Browser", "ALB", "Browser -> ALB", "ECS Task", "ALB -> ECS Task"],
-      "body": "container が処理する。",
+      "focus": ["ブラウザ", "ALB", "ブラウザ -> ALB", "ECS のタスク", "ALB -> ECS のタスク"],
+      "body": "コンテナが処理する。",
       "badge": "topology"
     },
     {
       "step": "システムの構成要素と接続を配置で示す図",
       "duration": 0.9,
       "focus": [
-        "Browser",
+        "ブラウザ",
         "ALB",
-        "Browser -> ALB",
-        "ECS Task",
-        "ALB -> ECS Task",
+        "ブラウザ -> ALB",
+        "ECS のタスク",
+        "ALB -> ECS のタスク",
         "RDS",
-        "ECS Task -> RDS"
+        "ECS のタスク -> RDS"
       ],
-      "body": "topology の全 container + connection を visible 化。",
+      "body": "コンテナが PgBouncer を経て PostgreSQL に繋がる。",
       "badge": "topology"
     }
   ]
@@ -3613,73 +3610,73 @@ export const sourceYaml__presetFlowchart = `title: "分岐や判定を含む処�
 type: swimlane
 
 lanes:
-  user: { width: 380, label: "User" }
-  manager: { width: 380, label: "Manager" }
+  user: { width: 380, label: "申請者" }
+  manager: { width: 380, label: "承認者" }
 
 actors:
-  - Submit request: { kind: event, eyebrow: "start", lane: user }
-  - Review: { kind: card, eyebrow: "decision", lane: manager }
-  - Approved: { kind: event, eyebrow: "end", lane: manager }
-  - Revise: { kind: function, eyebrow: "process", lane: user }
+  - 申請を出す: { kind: event, eyebrow: "開始", lane: user }
+  - 審査: { kind: card, eyebrow: "判断", lane: manager }
+  - 承認: { kind: event, eyebrow: "終了", lane: manager }
+  - 直して出し直す: { kind: function, eyebrow: "処理", lane: user }
 
 flow:
-  - Submit request -> Review: "" (accent, solid) { overlay: false }
-  - Review -> Approved: "true" (success, solid) { overlay: true }
-  - Review -> Revise: "false" (warning, solid) { overlay: true }
+  - 申請を出す -> 審査: "" (accent, solid) { overlay: false }
+  - 審査 -> 承認: "はい" (success, solid) { overlay: true }
+  - 審査 -> 直して出し直す: "いいえ" (warning, solid) { overlay: true }
 
 animation:
-  - step: "1. Submit request" 0.9s
+  - step: "1. 申請を出す" 0.9s
     badge: "flowchart"
-    focus: ["Submit request"]
-    body: "User が申請を出す。"
-  - step: "2. Review" 0.9s
+    focus: ["申請を出す"]
+    body: "申請者が申請を出す。"
+  - step: "2. 審査" 0.9s
     badge: "flowchart"
-    focus: ["Submit request", Review, "Submit request -> Review"]
-    body: "Manager が判定する。"
-  - step: "3. true なら Approved" 0.9s
+    focus: ["申請を出す", 審査, "申請を出す -> 審査"]
+    body: "承認者が審査して判断する。"
+  - step: "3. はいなら承認" 0.9s
     badge: "flowchart"
-    focus: ["Submit request", Review, "Submit request -> Review", Approved, "Review -> Approved"]
+    focus: ["申請を出す", 審査, "申請を出す -> 審査", 承認, "審査 -> 承認"]
     body: "承認して終わる枝。"
   - step: "分岐や判定を含む処理の流れを示す図" 0.9s
     badge: "flowchart"
-    focus: ["Submit request", Review, "Submit request -> Review", Approved, "Review -> Approved", Revise, "Review -> Revise"]
-    body: "flowchart 全 node + edge を visible 化、 swimlane + decision を表現。"
+    focus: ["申請を出す", 審査, "申請を出す -> 審査", 承認, "審査 -> 承認", 直して出し直す, "審査 -> 直して出し直す"]
+    body: "いいえなら申請者に差し戻し、直して出し直す。"
 `;
 
 export const sourceJson__presetFlowchart = `{
   "title": "分岐や判定を含む処理の流れを示す図",
   "type": "swimlane",
   "lanes": {
-    "user": { "width": 380, "label": "User" },
-    "manager": { "width": 380, "label": "Manager" }
+    "user": { "width": 380, "label": "申請者" },
+    "manager": { "width": 380, "label": "承認者" }
   },
   "actors": [
-    { "name": "Submit request", "kind": "event", "eyebrow": "start", "lane": "user" },
-    { "name": "Review", "kind": "card", "eyebrow": "decision", "lane": "manager" },
-    { "name": "Approved", "kind": "event", "eyebrow": "end", "lane": "manager" },
-    { "name": "Revise", "kind": "function", "eyebrow": "process", "lane": "user" }
+    { "name": "申請を出す", "kind": "event", "eyebrow": "開始", "lane": "user" },
+    { "name": "審査", "kind": "card", "eyebrow": "判断", "lane": "manager" },
+    { "name": "承認", "kind": "event", "eyebrow": "終了", "lane": "manager" },
+    { "name": "直して出し直す", "kind": "function", "eyebrow": "処理", "lane": "user" }
   ],
   "flow": [
     {
-      "from": "Submit request",
-      "to": "Review",
+      "from": "申請を出す",
+      "to": "審査",
       "label": "",
       "tone": "accent",
       "style": "solid",
       "overlay": false
     },
     {
-      "from": "Review",
-      "to": "Approved",
-      "label": "true",
+      "from": "審査",
+      "to": "承認",
+      "label": "はい",
       "tone": "success",
       "style": "solid",
       "overlay": true
     },
     {
-      "from": "Review",
-      "to": "Revise",
-      "label": "false",
+      "from": "審査",
+      "to": "直して出し直す",
+      "label": "いいえ",
       "tone": "warning",
       "style": "solid",
       "overlay": true
@@ -3687,28 +3684,28 @@ export const sourceJson__presetFlowchart = `{
   ],
   "animation": [
     {
-      "step": "1. Submit request",
+      "step": "1. 申請を出す",
       "duration": 0.9,
-      "focus": ["Submit request"],
-      "body": "User が申請を出す。",
+      "focus": ["申請を出す"],
+      "body": "申請者が申請を出す。",
       "badge": "flowchart"
     },
     {
-      "step": "2. Review",
+      "step": "2. 審査",
       "duration": 0.9,
-      "focus": ["Submit request", "Review", "Submit request -> Review"],
-      "body": "Manager が判定する。",
+      "focus": ["申請を出す", "審査", "申請を出す -> 審査"],
+      "body": "承認者が審査して判断する。",
       "badge": "flowchart"
     },
     {
-      "step": "3. true なら Approved",
+      "step": "3. はいなら承認",
       "duration": 0.9,
       "focus": [
-        "Submit request",
-        "Review",
-        "Submit request -> Review",
-        "Approved",
-        "Review -> Approved"
+        "申請を出す",
+        "審査",
+        "申請を出す -> 審査",
+        "承認",
+        "審査 -> 承認"
       ],
       "body": "承認して終わる枝。",
       "badge": "flowchart"
@@ -3717,15 +3714,15 @@ export const sourceJson__presetFlowchart = `{
       "step": "分岐や判定を含む処理の流れを示す図",
       "duration": 0.9,
       "focus": [
-        "Submit request",
-        "Review",
-        "Submit request -> Review",
-        "Approved",
-        "Review -> Approved",
-        "Revise",
-        "Review -> Revise"
+        "申請を出す",
+        "審査",
+        "申請を出す -> 審査",
+        "承認",
+        "審査 -> 承認",
+        "直して出し直す",
+        "審査 -> 直して出し直す"
       ],
-      "body": "flowchart 全 node + edge を visible 化、 swimlane + decision を表現。",
+      "body": "いいえなら申請者に差し戻し、直して出し直す。",
       "badge": "flowchart"
     }
   ]
@@ -3740,33 +3737,33 @@ lanes:
   n-col-2: { width: 320 }
 
 actors:
-  - Firewall: { kind: service, eyebrow: "firewall / DMZ", lane: n-col-0 }
-  - Switch A: { kind: service, eyebrow: "switch / LAN", lane: n-col-1 }
-  - App Server: { kind: backend, eyebrow: "server", lane: n-col-2 }
-  - DB Server: { kind: backend, eyebrow: "server", lane: n-col-2 }
+  - 外部との境界: { kind: service, eyebrow: "ファイアウォール / DMZ", lane: n-col-0 }
+  - スイッチ A: { kind: service, eyebrow: "スイッチ / LAN", lane: n-col-1 }
+  - アプリのサーバー: { kind: backend, eyebrow: "サーバー", lane: n-col-2 }
+  - DB のサーバー: { kind: backend, eyebrow: "サーバー", lane: n-col-2 }
 
 flow:
-  - Firewall -> Switch A: "VLAN 10" (info, solid)
-  - Switch A -> App Server: "TCP 22" (info, solid)
-  - Switch A -> DB Server: "TCP 5432" (info, solid)
+  - 外部との境界 -> スイッチ A: "VLAN 10" (info, solid)
+  - スイッチ A -> アプリのサーバー: "TCP 22" (info, solid)
+  - スイッチ A -> DB のサーバー: "TCP 5432" (info, solid)
 
 animation:
-  - step: "1. Firewall" 0.9s
+  - step: "1. 外部との境界" 0.9s
     badge: "network"
-    focus: [Firewall]
+    focus: [外部との境界]
     body: "DMZ の入口。"
-  - step: "2. Switch A" 0.9s
+  - step: "2. スイッチ A" 0.9s
     badge: "network"
-    focus: [Firewall, "Switch A", "Firewall -> Switch A"]
+    focus: [外部との境界, "スイッチ A", "外部との境界 -> スイッチ A"]
     body: "VLAN 10 で LAN に流す。"
-  - step: "3. App Server" 0.9s
+  - step: "3. アプリのサーバー" 0.9s
     badge: "network"
-    focus: [Firewall, "Switch A", "Firewall -> Switch A", "App Server", "Switch A -> App Server"]
+    focus: [外部との境界, "スイッチ A", "外部との境界 -> スイッチ A", "アプリのサーバー", "スイッチ A -> アプリのサーバー"]
     body: "TCP 22 で繋がる。"
   - step: "ネットワーク機器とセグメントの接続関係を示す図" 0.9s
     badge: "network"
-    focus: [Firewall, "Switch A", "Firewall -> Switch A", "App Server", "Switch A -> App Server", "DB Server", "Switch A -> DB Server"]
-    body: "network 全 device + link を visible 化。"
+    focus: [外部との境界, "スイッチ A", "外部との境界 -> スイッチ A", "アプリのサーバー", "スイッチ A -> アプリのサーバー", "DB のサーバー", "スイッチ A -> DB のサーバー"]
+    body: "DB のサーバーへは TCP 5432 で繋がる。"
 `;
 
 export const sourceJson__presetNetwork = `{
@@ -3774,29 +3771,29 @@ export const sourceJson__presetNetwork = `{
   "type": "flow",
   "lanes": { "n-col-0": {"width": 320}, "n-col-1": {"width": 320}, "n-col-2": {"width": 320} },
   "actors": [
-    { "name": "Firewall", "kind": "service", "eyebrow": "firewall / DMZ", "lane": "n-col-0" },
-    { "name": "Switch A", "kind": "service", "eyebrow": "switch / LAN", "lane": "n-col-1" },
-    { "name": "App Server", "kind": "backend", "eyebrow": "server", "lane": "n-col-2" },
-    { "name": "DB Server", "kind": "backend", "eyebrow": "server", "lane": "n-col-2" }
+    { "name": "外部との境界", "kind": "service", "eyebrow": "ファイアウォール / DMZ", "lane": "n-col-0" },
+    { "name": "スイッチ A", "kind": "service", "eyebrow": "スイッチ / LAN", "lane": "n-col-1" },
+    { "name": "アプリのサーバー", "kind": "backend", "eyebrow": "サーバー", "lane": "n-col-2" },
+    { "name": "DB のサーバー", "kind": "backend", "eyebrow": "サーバー", "lane": "n-col-2" }
   ],
   "flow": [
     {
-      "from": "Firewall",
-      "to": "Switch A",
+      "from": "外部との境界",
+      "to": "スイッチ A",
       "label": "VLAN 10",
       "tone": "info",
       "style": "solid"
     },
     {
-      "from": "Switch A",
-      "to": "App Server",
+      "from": "スイッチ A",
+      "to": "アプリのサーバー",
       "label": "TCP 22",
       "tone": "info",
       "style": "solid"
     },
     {
-      "from": "Switch A",
-      "to": "DB Server",
+      "from": "スイッチ A",
+      "to": "DB のサーバー",
       "label": "TCP 5432",
       "tone": "info",
       "style": "solid"
@@ -3804,28 +3801,28 @@ export const sourceJson__presetNetwork = `{
   ],
   "animation": [
     {
-      "step": "1. Firewall",
+      "step": "1. 外部との境界",
       "duration": 0.9,
-      "focus": ["Firewall"],
+      "focus": ["外部との境界"],
       "body": "DMZ の入口。",
       "badge": "network"
     },
     {
-      "step": "2. Switch A",
+      "step": "2. スイッチ A",
       "duration": 0.9,
-      "focus": ["Firewall", "Switch A", "Firewall -> Switch A"],
+      "focus": ["外部との境界", "スイッチ A", "外部との境界 -> スイッチ A"],
       "body": "VLAN 10 で LAN に流す。",
       "badge": "network"
     },
     {
-      "step": "3. App Server",
+      "step": "3. アプリのサーバー",
       "duration": 0.9,
       "focus": [
-        "Firewall",
-        "Switch A",
-        "Firewall -> Switch A",
-        "App Server",
-        "Switch A -> App Server"
+        "外部との境界",
+        "スイッチ A",
+        "外部との境界 -> スイッチ A",
+        "アプリのサーバー",
+        "スイッチ A -> アプリのサーバー"
       ],
       "body": "TCP 22 で繋がる。",
       "badge": "network"
@@ -3834,15 +3831,15 @@ export const sourceJson__presetNetwork = `{
       "step": "ネットワーク機器とセグメントの接続関係を示す図",
       "duration": 0.9,
       "focus": [
-        "Firewall",
-        "Switch A",
-        "Firewall -> Switch A",
-        "App Server",
-        "Switch A -> App Server",
-        "DB Server",
-        "Switch A -> DB Server"
+        "外部との境界",
+        "スイッチ A",
+        "外部との境界 -> スイッチ A",
+        "アプリのサーバー",
+        "スイッチ A -> アプリのサーバー",
+        "DB のサーバー",
+        "スイッチ A -> DB のサーバー"
       ],
-      "body": "network 全 device + link を visible 化。",
+      "body": "DB のサーバーへは TCP 5432 で繋がる。",
       "badge": "network"
     }
   ]
@@ -3858,41 +3855,41 @@ lanes:
   col-3: { width: 380 }
 
 actors:
-  - User: { kind: person, lane: col-0, eyebrow: "利用者", subtitle: "ブラウザ" }
+  - ブラウザ: { kind: person, lane: col-0, eyebrow: "利用者", subtitle: "利用者の画面" }
   - CloudFront: { kind: cdn, lane: col-1, eyebrow: "配信", subtitle: "静的配信" }
   - ALB: { kind: service, lane: col-2, eyebrow: "振り分け", subtitle: "負荷分散" }
-  - App: { kind: service, lane: col-2, eyebrow: "処理", subtitle: "アプリ" }
+  - アプリ: { kind: service, lane: col-2, eyebrow: "処理", subtitle: "注文の処理" }
   - RDS: { kind: database, lane: col-3, eyebrow: "保存", subtitle: "永続化" }
   - Redis: { kind: cache, lane: col-3, eyebrow: "一時保存", subtitle: "高速化" }
 
 flow:
-  - User -> CloudFront: "HTTPS" (accent, solid) { role: main, labelPlate: false }
-  - CloudFront -> ALB: "origin" (accent, solid) { role: main, labelPlate: false }
-  - ALB -> App: "route" (accent, solid) { role: main, labelPlate: false }
-  - App -> RDS: "SQL" (accent, solid) { labelPlate: false }
-  - App -> Redis: "GET/SET" (accent, solid) { labelPlate: false }
+  - ブラウザ -> CloudFront: "HTTPS" (accent, solid) { role: main, labelPlate: false }
+  - CloudFront -> ALB: "オリジン" (accent, solid) { role: main, labelPlate: false }
+  - ALB -> アプリ: "転送" (accent, solid) { role: main, labelPlate: false }
+  - アプリ -> RDS: "SQL" (accent, solid) { labelPlate: false }
+  - アプリ -> Redis: "GET/SET" (accent, solid) { labelPlate: false }
 
 animation:
-  - step: "1. User" 0.9s
+  - step: "1. ブラウザ" 0.9s
     badge: "infrastructure"
-    focus: [User]
+    focus: [ブラウザ]
     body: "利用者から始まる。"
   - step: "2. CloudFront" 0.9s
     badge: "infrastructure"
-    focus: [User, CloudFront, "User -> CloudFront"]
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront"]
     body: "HTTPS を受ける。"
   - step: "3. ALB" 0.9s
     badge: "infrastructure"
-    focus: [User, CloudFront, "User -> CloudFront", ALB, "CloudFront -> ALB"]
-    body: "origin へ振り分ける。"
-  - step: "4. App" 0.9s
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", ALB, "CloudFront -> ALB"]
+    body: "CloudFront はオリジンの ALB へ要求を渡す。"
+  - step: "4. アプリ" 0.9s
     badge: "infrastructure"
-    focus: [User, CloudFront, "User -> CloudFront", ALB, "CloudFront -> ALB", App, "ALB -> App"]
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", ALB, "CloudFront -> ALB", アプリ, "ALB -> アプリ"]
     body: "処理を担う。"
   - step: "クラウド・ネットワーク構成を階層で示す図" 0.9s
     badge: "infrastructure"
-    focus: [User, CloudFront, "User -> CloudFront", ALB, "CloudFront -> ALB", App, "ALB -> App", RDS, Redis, "App -> RDS", "App -> Redis"]
-    body: "infrastructure 全 node + connection を visible 化。"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", ALB, "CloudFront -> ALB", アプリ, "ALB -> アプリ", RDS, Redis, "アプリ -> RDS", "アプリ -> Redis"]
+    body: "アプリは RDS に SQL で書き込み、Redis に一時保存する。"
 `;
 
 export const sourceJson__presetInfrastructure = `{
@@ -3905,53 +3902,53 @@ export const sourceJson__presetInfrastructure = `{
     "col-3": { "width": 380 }
   },
   "actors": [
-    { "name": "User", "kind": "person", "lane": "col-0", "eyebrow": "利用者", "subtitle": "ブラウザ" },
+    { "name": "ブラウザ", "kind": "person", "lane": "col-0", "eyebrow": "利用者", "subtitle": "利用者の画面" },
     { "name": "CloudFront", "kind": "cdn", "lane": "col-1", "eyebrow": "配信", "subtitle": "静的配信" },
     { "name": "ALB", "kind": "service", "lane": "col-2", "eyebrow": "振り分け", "subtitle": "負荷分散" },
-    { "name": "App", "kind": "service", "lane": "col-2", "eyebrow": "処理", "subtitle": "アプリ" },
+    { "name": "アプリ", "kind": "service", "lane": "col-2", "eyebrow": "処理", "subtitle": "注文の処理" },
     { "name": "RDS", "kind": "database", "lane": "col-3", "eyebrow": "保存", "subtitle": "永続化" },
     { "name": "Redis", "kind": "cache", "lane": "col-3", "eyebrow": "一時保存", "subtitle": "高速化" }
   ],
   "flow": [
-    { "from": "User", "to": "CloudFront", "label": "HTTPS", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
-    { "from": "CloudFront", "to": "ALB", "label": "origin", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
-    { "from": "ALB", "to": "App", "label": "route", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
-    { "from": "App", "to": "RDS", "label": "SQL", "tone": "accent", "style": "solid", "labelPlate": false },
-    { "from": "App", "to": "Redis", "label": "GET/SET", "tone": "accent", "style": "solid", "labelPlate": false }
+    { "from": "ブラウザ", "to": "CloudFront", "label": "HTTPS", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
+    { "from": "CloudFront", "to": "ALB", "label": "オリジン", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
+    { "from": "ALB", "to": "アプリ", "label": "転送", "tone": "accent", "style": "solid", "role": "main", "labelPlate": false },
+    { "from": "アプリ", "to": "RDS", "label": "SQL", "tone": "accent", "style": "solid", "labelPlate": false },
+    { "from": "アプリ", "to": "Redis", "label": "GET/SET", "tone": "accent", "style": "solid", "labelPlate": false }
   ],
   "animation": [
     {
-      "step": "1. User",
+      "step": "1. ブラウザ",
       "duration": 0.9,
-      "focus": ["User"],
+      "focus": ["ブラウザ"],
       "body": "利用者から始まる。",
       "badge": "infrastructure"
     },
     {
       "step": "2. CloudFront",
       "duration": 0.9,
-      "focus": ["User", "CloudFront", "User -> CloudFront"],
+      "focus": ["ブラウザ", "CloudFront", "ブラウザ -> CloudFront"],
       "body": "HTTPS を受ける。",
       "badge": "infrastructure"
     },
     {
       "step": "3. ALB",
       "duration": 0.9,
-      "focus": ["User", "CloudFront", "User -> CloudFront", "ALB", "CloudFront -> ALB"],
-      "body": "origin へ振り分ける。",
+      "focus": ["ブラウザ", "CloudFront", "ブラウザ -> CloudFront", "ALB", "CloudFront -> ALB"],
+      "body": "CloudFront はオリジンの ALB へ要求を渡す。",
       "badge": "infrastructure"
     },
     {
-      "step": "4. App",
+      "step": "4. アプリ",
       "duration": 0.9,
       "focus": [
-        "User",
+        "ブラウザ",
         "CloudFront",
-        "User -> CloudFront",
+        "ブラウザ -> CloudFront",
         "ALB",
         "CloudFront -> ALB",
-        "App",
-        "ALB -> App"
+        "アプリ",
+        "ALB -> アプリ"
       ],
       "body": "処理を担う。",
       "badge": "infrastructure"
@@ -3960,19 +3957,19 @@ export const sourceJson__presetInfrastructure = `{
       "step": "クラウド・ネットワーク構成を階層で示す図",
       "duration": 0.9,
       "focus": [
-        "User",
+        "ブラウザ",
         "CloudFront",
-        "User -> CloudFront",
+        "ブラウザ -> CloudFront",
         "ALB",
         "CloudFront -> ALB",
-        "App",
-        "ALB -> App",
+        "アプリ",
+        "ALB -> アプリ",
         "RDS",
         "Redis",
-        "App -> RDS",
-        "App -> Redis"
+        "アプリ -> RDS",
+        "アプリ -> Redis"
       ],
-      "body": "infrastructure 全 node + connection を visible 化。",
+      "body": "アプリは RDS に SQL で書き込み、Redis に一時保存する。",
       "badge": "infrastructure"
     }
   ]
