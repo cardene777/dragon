@@ -80,6 +80,7 @@ import { stageSvgOf } from "@/lib/stage-svg";
 import { useToast } from "@/components/Toast";
 import { applyOffsetsToFlow, toSourceLines, usableEdgeLines } from "@/lib/auto-fix-dsl";
 import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from "@/lib/auto-fix-offsets";
+import { 直せない軸の案内, まとめて直せない案内 } from "@/lib/axis-names";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -175,25 +176,10 @@ const MIN_SCALE = 0.25;
 const MAX_SCALE = 8;
 const ZOOM_STEP = 0.2;
 
-/**
- * 未 register axis の default action guidance (SSOT 統一のため module-scope const 化)。
- * unfixableAxisHint / handleAutoFix message の 2 箇所で同一値を参照する。
+/*
+ * 自動で直せない軸の案内文は `lib/axis-names` が組み立てる (#1796)。
+ * 軸の呼び名と直し方を同じ場所に置き、画面は組み上がった 1 文を出すだけにする。
  */
-const UNFIXABLE_AXIS_FALLBACK = "記法の側で直す";
-
-/**
- * 非 auto-fix axis 向けの action guidance (hint text 生成用)。
- * key = axis 名、 value = 「対応可 0 件」 時に user に示す 1 文の action guidance。
- * 未 register axis は UNFIXABLE_AXIS_FALLBACK に fallback。
- * fan-origin-single-point 等 layout auto-fix 対象は別 Issue で解消予定、 現状は DSL 調整 or
- * layout engine 側 fix 待ち guidance を明示する。
- */
-const UNFIXABLE_AXIS_HINT: Record<string, string> = {
-  "text-readability": "題を短くするか、箱の幅を明示する",
-  "fan-origin-single-point": "同じ箱から出る線の高さを記法で揃える (配置の自動調整は未対応)",
-  "marker-gradient-def-integrity": "線の色味を、決められた呼び名のどれかに直す",
-  "dom-complexity-budget": "図を分けるか、要らない箱と線を減らす",
-};
 
 /**
  * CAR-1657 = src YAML の actors: block から既存 actor 名を全 collect する helper。
@@ -419,22 +405,17 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const fixableWarningCount = useMemo(() => countFixableWarnings(warnings), [warnings]);
 
   /**
-   * 対応可 0 件時の hint text を、 実際に active な非 fixable axis で dynamic 生成する。
-   * 従来は「text-readability = title 短縮」 の固定文言だったが、 fan-origin-single-point 等
-   * 別 axis の warning 時に misleading になる問題 (#394 sweep で検出)。 unique axis 群を
-   * UNFIXABLE_AXIS_HINT map で lookup し、 「axis = action」 の並列で 1 文にまとめる。
+   * 自動で直せるものが 0 件の時の案内を、実際に出ている直せない軸から組み立てる。
+   * 固定文言にすると、別の軸の指摘が出ている時に的外れな直し方を示す (#394 sweep で検出)。
+   * 文の組み立ては `lib/axis-names` が持つ (#1796)。
    */
-  const unfixableAxisHint = useMemo(() => {
-    const unfixableAxes = Array.from(
-      new Set(warnings.filter((w) => !FIXABLE_WARNING_AXES.has(w.axis)).map((w) => w.axis)),
-    );
-    if (unfixableAxes.length === 0) return "自動で直せるものはありません";
-    const parts = unfixableAxes.map((ax) => {
-      const action = UNFIXABLE_AXIS_HINT[ax] ?? UNFIXABLE_AXIS_FALLBACK;
-      return `${ax} = ${action}`;
-    });
-    return `自動で直せるものはありません (${parts.join("、 ")})`;
-  }, [warnings]);
+  const unfixableAxisHint = useMemo(
+    () =>
+      直せない軸の案内(
+        Array.from(new Set(warnings.filter((w) => !FIXABLE_WARNING_AXES.has(w.axis)).map((w) => w.axis))),
+      ),
+    [warnings],
+  );
   const [search, setSearch] = useState("");
   const [activeSample, setActiveSample] = useState(SAMPLES[0].label);
   const [isDark, setIsDark] = useState(false);
@@ -892,12 +873,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       const unsupportedAxes = Array.from(
         new Set(warnings.filter((w) => !FIXABLE_WARNING_AXES.has(w.axis)).map((w) => w.axis)),
       );
-      const actions = unsupportedAxes.map((ax) => {
-        const action = UNFIXABLE_AXIS_HINT[ax] ?? UNFIXABLE_AXIS_FALLBACK;
-        return `${ax} = ${action}`;
-      });
-      const suffix = actions.length > 0 ? ` (${actions.join("、 ")})` : "";
-      setAutoFixMessage(`自動では直せません。 まとめて直せるのは線の名札の位置 (重なり / 間隔 / 近さ) だけで、他の軸は記法の側で直す必要があります${suffix}。`);
+      setAutoFixMessage(まとめて直せない案内(unsupportedAxes));
       window.setTimeout(() => setAutoFixMessage(null), 10000);
       return;
     }
