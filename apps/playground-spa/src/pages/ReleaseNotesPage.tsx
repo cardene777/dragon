@@ -1,7 +1,11 @@
 import { Link } from "react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useLocale } from "@/lib/useLocale";
+import { CATEGORIES } from "@/lib/catalog";
 import "@/styles/compare.css";
+
+/** 版の札が指す分類の呼び名 (#1805)。 出どころは `CATEGORIES[].label` 1 つ (#1788) */
+const 分類の呼び名 = CATEGORIES.find((c) => c.slug === "presets")?.label ?? "";
 
 /**
  * /release-notes = 旧 release-notes.astro placeholder。 旧版は CHANGELOG.md parse で
@@ -66,7 +70,7 @@ export function ReleaseNotesPage(): React.ReactElement {
             <footer className="nm-preset-card-foot">
               <div className="nm-preset-tags">
                 <span className="nm-preset-tag">v0.5</span>
-                <span className="nm-preset-tag">12 プリセット</span>
+                <span className="nm-preset-tag">12 {分類の呼び名}</span>
                 <span className="nm-preset-tag">明暗 2 表示</span>
               </div>
               <a

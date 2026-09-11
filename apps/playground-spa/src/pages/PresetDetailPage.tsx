@@ -3,12 +3,21 @@ import { Link, useNavigate, useParams } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import { ChevronLeft, ExternalLink, Share2 } from "lucide-react";
 import { PRESETS, presetName } from "@/lib/presets";
+import { CATEGORIES } from "@/lib/catalog";
 import { motionNote } from "@/lib/catalog-motion";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useToast } from "@/components/Toast";
 import { useLocale } from "@/lib/useLocale";
 import { PhaseChrome } from "@/components/PhaseChrome";
 import "@/styles/compare.css";
+
+/**
+ * この画面が属する分類の呼び名 (#1805)。
+ *
+ * 出どころは `CATEGORIES[].label` 1 つ (#1788)。 画面側に字で持つと、呼び名を変えた日に
+ * 見本の詳細だけが古い呼び名で分類を指す。
+ */
+const 分類の呼び名 = CATEGORIES.find((c) => c.slug === "presets")?.label ?? "";
 
 /**
  * /preset/:slug = 単一 preset の detail page (Neumorphism style)。
@@ -60,13 +69,13 @@ export function PresetDetailPage(): React.ReactElement {
         <SiteHeader />
         <div className="flex min-h-[calc(100vh-60px)] flex-col items-center justify-center gap-4 px-6">
           <p className="text-[16px] text-[var(--d-text-secondary)]">
-            プリセットが見つかりません
+            {分類の呼び名}が見つかりません
           </p>
           <Link
             to="/catalog/presets"
             className="text-[14px] text-[var(--d-accent)] underline"
           >
-            プリセット一覧に戻る →
+            {分類の呼び名}の一覧に戻る →
           </Link>
         </div>
       </div>
@@ -109,7 +118,7 @@ export function PresetDetailPage(): React.ReactElement {
             <span aria-hidden="true">›</span>
             <Link to="/catalog">カタログ</Link>
             <span aria-hidden="true">›</span>
-            <Link to="/catalog/presets">プリセット</Link>
+            <Link to="/catalog/presets">{分類の呼び名}</Link>
             <span aria-hidden="true">›</span>
             <span className="cur">{preset.slug}</span>
           </nav>
@@ -118,7 +127,7 @@ export function PresetDetailPage(): React.ReactElement {
           <h1 className="nm-hero-title">
             {/* 名前だけを別要素にする = 検査が添えの語と分けて実名で照合できる (#1047) */}
             <span className="nm-hero-title-name">{presetName(preset, locale)}</span>{" "}
-            <span className="nm-gradient-accent">{locale === "ja" ? "プリセット" : "preset"}</span>
+            <span className="nm-gradient-accent">{locale === "ja" ? 分類の呼び名 : "preset"}</span>
           </h1>
           <p className="nm-hero-subtitle">{preset.subtitle}</p>
           {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す (#1053) */}
