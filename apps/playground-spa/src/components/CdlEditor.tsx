@@ -19,6 +19,7 @@ import {
 } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
+import { CATEGORIES } from "@/lib/catalog";
 import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
@@ -151,6 +152,9 @@ const v4EditorThemeDark = EditorView.theme(CODE_THEME_RULES, { dark: true });
  *
  *  実体は `@/data/editor-samples.ts` に移設済 (CAR-1659、 samples-validate test との drift 回避で shared SSOT 化)。 */
 const SAMPLES = EDITOR_SAMPLES;
+
+/** 知らせの中で分類を指す時の呼び名 (#1805)。 出どころは `CATEGORIES[].label` 1 つ (#1788) */
+const 分類の呼び名 = CATEGORIES.find((c) => c.slug === "presets")?.label ?? "";
 
 function encodeShare(src: string): string {
   try {
@@ -830,7 +834,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 対応 sample なし = user 通知 (silently default load を明示的に伝える)
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setAutoFixMessage(
-          `プリセット「${targetSlug}」 に対応する編集可能サンプルは未登録です。 既定のサンプル (${SAMPLES[0].label}) で開きます。`,
+          `${分類の呼び名}「${targetSlug}」 に対応する編集可能サンプルは未登録です。 既定のサンプル (${SAMPLES[0].label}) で開きます。`,
         );
         window.setTimeout(() => setAutoFixMessage(null), 8000);
       }

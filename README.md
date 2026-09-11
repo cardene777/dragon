@@ -64,7 +64,7 @@ return <CdlDiagramView diagram={diagram} />;
 
 ## catalog SPA (実例集)
 
-playground SPA (本 repo `apps/playground-spa/`) で実例を閲覧。 分類 (プリセット / レシピ集 / パターン / 基本要素 / テキスト記法 / アニメーション / イーサリアム / 図表 / パーツ / スタイル / インタラクティブ) で「いつ何のために使うか」 を探索できる。 local 起動 = `pnpm run dev` (http://localhost:4323)。
+playground SPA (本 repo `apps/playground-spa/`) で実例を閲覧。 分類 (ひな形 / 実用例 / 組み方の型 / 基本要素 / テキスト記法 / 動く図 / イーサリアム / 図表 / 部品 / 線と色 / 操作で動く) で「いつ何のために使うか」 を探索できる。 local 起動 = `pnpm run dev` (http://localhost:4323)。
 
 ## 思想 (dragon の存在理由)
 
