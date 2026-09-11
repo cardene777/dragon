@@ -1,5 +1,5 @@
 /**
- * 7 category catalog SSOT。
+ * 見本帳の分類の SSOT。 分類の数はこの一覧が決めるので、数を書き写さない。
  *
  * 各 category は route (/catalog/:slug) + 個別 topic diagram を持つ。
  * category diagram の実 export は src/lib/catalog-diagrams.ts SSOT。
