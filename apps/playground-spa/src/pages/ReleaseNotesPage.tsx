@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useLocale } from "@/lib/useLocale";
 import { CATEGORIES } from "@/lib/catalog";
+import { PRESETS } from "@/lib/presets";
 import "@/styles/compare.css";
 
 /** 版の札が指す分類の呼び名 (#1805)。 出どころは `CATEGORIES[].label` 1 つ (#1788) */
@@ -63,14 +64,19 @@ export function ReleaseNotesPage(): React.ReactElement {
               <div className="nm-preset-id">v0.5</div>
               <span className="nm-preset-eyebrow">テキスト記法 × 動く SVG</span>
               <h3 className="nm-preset-title">v0.5 (最新)</h3>
+              {/* 描ける図の種類は一覧が持つ (#1806)。 ここに名前を並べると、図を足した日から古くなる */}
               <p className="nm-preset-subtitle">
-                テキスト記法の読み取りと、12 種類の見本 (シーケンス図・フロー・トポロジー図・ER図・ステート図・クラス図・マインドマップ・円グラフ・C4 図・ガントチャート・コード・グラフ)、明暗 2 通りの表示。
+                テキスト記法の読み取りと、明暗 2 通りの表示。 どんな図が描けるかは{" "}
+                <Link to="/catalog/presets">{分類の呼び名}の一覧</Link> で確かめられる。
               </p>
             </header>
             <footer className="nm-preset-card-foot">
               <div className="nm-preset-tags">
                 <span className="nm-preset-tag">v0.5</span>
-                <span className="nm-preset-tag">12 {分類の呼び名}</span>
+                {/* 数は実物から出す (#1806)。 字で書くと見本を足した日から古くなる */}
+                <span className="nm-preset-tag">
+                  {PRESETS.length} {分類の呼び名}
+                </span>
                 <span className="nm-preset-tag">明暗 2 表示</span>
               </div>
               <a
