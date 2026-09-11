@@ -174,6 +174,16 @@ describe("分類の呼び名の出どころ (#1788)", () => {
     expect(なぞる, `分類名が呼び名と同じ: ${なぞる.join(", ")}`).toEqual([]);
   });
 
+  it("説明文が呼び名をなぞって始まっていない (#1805)", () => {
+    // 呼び名のすぐ下に説明文が出る。 呼び名で始めると、1 行目が呼び名を読み直すだけになる。
+    // 呼び名を日本語に開くと、説明文が既に使っていた語と重なりやすい (`動く図` で実際に起きた)
+    expect(CATEGORIES.length, "分類を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(10);
+    const なぞる = CATEGORIES.filter((c) => c.desc.startsWith(c.label)).map(
+      (c) => `${c.slug}: ${c.desc.slice(0, 24)}…`,
+    );
+    expect(なぞる, `説明文が呼び名で始まっている:\n${なぞる.join("\n")}`).toEqual([]);
+  });
+
   it("呼び名に日本語へ開いていないカタカナが無い (#1805)", () => {
     expect(CATEGORIES.length, "分類を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(10);
     const 残る = CATEGORIES.flatMap((c) =>
