@@ -3494,7 +3494,11 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   // **書いた補足が勝つ** (#1275)。 ここで写さないと 2 つ落ちる。 静止した `type: flow` は
   // 鎖を作る時に説明文しか渡さないため補足が消え、`er` は見本が多重度から作った補足が
   // 残って書いた値が無視される (どちらも実測)
-  if (s.sub !== undefined) target.sub = s.sub;
+  //
+  // **クラス図の `sub` は多重度なので写さない** (#1769)。 クラス図の組み立てが既に `cardinality` として
+  // 渡し、engine が行き先の端に添える (cdl#821)。 ここで札の下の行にも写すと、`1..*` が札と端の
+  // 2 か所に出て、組み立て器で書いた同じ図と食い違う (実測 = 記法の見本が組み立て器の見本と一致しなくなった)
+  if (s.sub !== undefined && doc.type !== "class") target.sub = s.sub;
   if (s.guard !== undefined) {
     target.guard = s.guard;
     // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
