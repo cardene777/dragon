@@ -154,11 +154,41 @@ const 記法が知るか = ((): ((語: string) => boolean) => {
   };
 })();
 
+/**
+ * 横棒 (`-`) で繋いだ英字の塊 (#1867)。
+ *
+ * 記法は横棒を値の一部として持つ (`dotted-flow` / `merkle-tree`) 一方、`語の並び()` は
+ * 横棒を区切りとして扱う。 その食い違いで記法が知る値が断片に割れるので、塊を先に見る。
+ */
+const 横棒繋ぎの形 = /[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+/g;
+
+/**
+ * 記法が横棒で繋いだ値として知っている塊を、字から外す (#1867)。
+ *
+ * **横棒を語の一部にするだけでは足りない** = `Sign-up` のような記法と無関係な綴りまで
+ * 1 語になり、断片ごとに数えていた従来の結果が変わる。 外すのは記法が知る塊だけ。
+ *
+ * **塊の一部が記法の値でも、全体を知らなければ外さない** = `user-alice` を外すと
+ * `alice` まで消える。
+ */
+function 記法の塊を外す(t: string): string {
+  return t.replace(横棒繋ぎの形, (塊) => (記法が知るか(塊) ? " " : 塊));
+}
+
+/** 字に現れる、記法が知っている横棒繋ぎの塊。 検査が母集団を実物から導くのに使う (#1867) */
+function 記法が知る横棒繋ぎ(字: readonly string[]): string[] {
+  const 出た = new Set<string>();
+  for (const t of 字) {
+    for (const m of t.matchAll(横棒繋ぎの形)) if (記法が知るか(m[0])) 出た.add(m[0]);
+  }
+  return [...出た].sort();
+}
+
 /** 字の並びから、 残してよい語と記法の綴りと `許す語` を除いた英語の語を拾う */
 function 英語の語(字: readonly string[], 許す語: ReadonlySet<string> = new Set()): string[] {
   const 見つけた = new Set<string>();
   for (const t of 字) {
-    for (const 語 of 語の並び(t)) {
+    for (const 語 of 語の並び(記法の塊を外す(t))) {
       if (語 in 残してよい語 || 許す語.has(語) || 記法が知るか(語)) continue;
       見つけた.add(`${語} (「${t}」)`);
     }
@@ -188,6 +218,18 @@ function 経路と重なる語(一覧: readonly string[]): string[] {
 }
 
 /**
+ * 見本帳の図から、判定が見る字を全部集める (#1867)。
+ *
+ * 識別子を見せる図は箱の字を見ない、という除外を **1 箇所に持つ**。
+ * 走査を書き足すたびに同じ分岐を写すと、片方だけ直って母集団が食い違う。
+ */
+function 見本帳の字(): string[] {
+  return 見本帳の図().件.flatMap((r) =>
+    r.鍵 in 識別子を見せる図 ? 段の字(r.図) : [...描いた字(r.図), ...段の字(r.図)],
+  );
+}
+
+/**
  * 図の字に実際に出ている、記法が知る綴り (#1865)。
  *
  * 経路の専有を測る相手。 **記法の一覧をそのまま渡さない** = 記法は数千の綴りを配っており、
@@ -195,10 +237,7 @@ function 経路と重なる語(一覧: readonly string[]): string[] {
  */
 function 図に出る記法の綴り(): string[] {
   const 集 = new Set<string>();
-  for (const r of 見本帳の図().件) {
-    const 字 = r.鍵 in 識別子を見せる図 ? 段の字(r.図) : [...描いた字(r.図), ...段の字(r.図)];
-    for (const t of 字) for (const 語 of 語の並び(t)) if (記法が知るか(語)) 集.add(語);
-  }
+  for (const t of 見本帳の字()) for (const 語 of 語の並び(t)) if (記法が知るか(語)) 集.add(語);
   return [...集];
 }
 
@@ -247,8 +286,9 @@ function 見本帳の図(): { 件: { file: string; 鍵: string; 図: CdlDiagram 
  * `charts.cdl.ts` の 3 種のように 0 に近い file がある。 外す / 入れるの 2 値にすると
  * こういう file が手付かずの file と同じ扱いになるので、数で持つ。
  *
- * **#1865 で 12 file すべての天井が下がった**。 記法の綴り (`fill` / `readout` / `dotted`) を
- * 照合で落としたため、数え方が変わって減っただけで、図の字は 1 文字も直していない。
+ * **#1865 と #1867 で天井が下がった分は、数え方が変わっただけ**。 #1865 で記法の綴り
+ * (`fill` / `readout`) を照合で落とし、#1867 で横棒繋ぎの値 (`dotted-flow` / `merkle-tree`) が
+ * 断片に割れるのを止めた。 どちらも図の字は 1 文字も直していない。
  * 実物を直して減らした回 (#1861 の `charts.cdl.ts`) と混ぜて読まない。
  */
 const 図の字の天井: Record<string, { 図: number; 語: number; 延べ: number }> = {
@@ -256,13 +296,13 @@ const 図の字の天井: Record<string, { 図: number; 語: number; 延べ: num
   "charts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "cookbook.cdl.ts": { 図: 26, 語: 149, 延べ: 262 },
   "ethereum.cdl.ts": { 図: 2, 語: 11, 延べ: 13 },
-  "interactive.cdl.ts": { 図: 113, 語: 685, 延べ: 1311 },
+  "interactive.cdl.ts": { 図: 113, 語: 683, 延べ: 1297 },
   "parts.cdl.ts": { 図: 14, 語: 17, 延べ: 18 },
   "patterns.cdl.ts": { 図: 12, 語: 73, 延べ: 132 },
   "presets.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "primitives-extra.cdl.ts": { 図: 20, 語: 54, 延べ: 65 },
+  "primitives-extra.cdl.ts": { 図: 20, 語: 50, 延べ: 50 },
   "primitives.cdl.ts": { 図: 85, 語: 450, 延べ: 973 },
-  "styles.cdl.ts": { 図: 10, 語: 7, 延べ: 24 },
+  "styles.cdl.ts": { 図: 10, 語: 6, 延べ: 22 },
   "text-dsl.cdl.ts": { 図: 13, 語: 57, 延べ: 78 },
 };
 
@@ -392,6 +432,41 @@ describe("見本帳の図に残る英語の歯止め (#1859)", () => {
     expect(見本.length).toBe(
       見本帳の図().件.filter((r) => 零.includes(r.file)).length,
     );
+  });
+});
+
+describe("横棒で繋いだ記法の値を割らない (#1867)", () => {
+  it("記法が知る塊を、断片に割って数えない", () => {
+    // **塊だけを含む字を作って通す** = 他の語の影響を受けない。 同じ綴りが単独で別の図に
+    // 出ている時の判定 (従来どおり数える / 通す) は、この検査の対象外
+    const 塊たち = 記法が知る横棒繋ぎ(見本帳の字());
+    expect(塊たち.length, "横棒繋ぎの塊が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
+    // 集めた塊が本当に横棒を含むこと。 塊の形が横棒を落とすと、記法が知る普通の語が
+    // 塊として集まり、下の判定が素通りする (天井の検査だけが捕まえる形になる)
+    for (const 塊 of 塊たち) {
+      expect(塊, "横棒を含まない綴りが塊として集まっている").toContain("-");
+    }
+    console.log(`[横棒繋ぎ] 記法が知る塊 ${塊たち.length} 種 = ${塊たち.join(" ")}`);
+    const 残る = 塊たち.filter((塊) => 英語の語([塊]).length > 0);
+    expect(残る, "記法が知る塊が断片に割れて数えられている").toEqual([]);
+  });
+
+  it("記法が知らない横棒繋ぎは、従来どおり断片ごとに数える (植え込み対照)", () => {
+    // 0 件を期待する上の検査が恒真でないことを、逆向きの入力で見る
+    // 塊も断片も記法が知らない形を選ぶ (片方が記法の値だと、断片ごとに数えたことを示せない)
+    for (const 語 of ["Alice-Bob", "Alice", "Bob"]) {
+      expect(記法が知るか(語), `${語} を記法が知っている (対照の前提が崩れた)`).toBe(false);
+    }
+    expect(英語の語(["Alice-Bob"])).toEqual(["Alice (「Alice-Bob」)", "Bob (「Alice-Bob」)"]);
+  });
+
+  it("塊の一部だけが記法の値の形は、塊として飛ばさない", () => {
+    // `user-alice` の全体を記法は知らない。 `user` が記法の値でも、
+    // 塊ごと飛ばすと `alice` まで消える
+    expect(記法が知るか("user-alice"), "user-alice を記法が知っている (対照の前提が崩れた)").toBe(
+      false,
+    );
+    expect(英語の語(["user-alice"]).map((s) => s.slice(0, s.indexOf(" (")))).toContain("alice");
   });
 });
 
