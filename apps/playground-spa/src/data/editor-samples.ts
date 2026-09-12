@@ -130,19 +130,19 @@ animation:
 type: topology
 
 actors:
-  - LB: cloud "ロードバランサー"
+  - 負荷分散: cloud "ロードバランサー"
   - Web: service "APIサーバー"
   - キャッシュ: cache "Redis"
   - DB: database "Postgres"
 
 flow:
-  - LB -> Web: "振り分け"
+  - 負荷分散 -> Web: "振り分け"
   - Web -> キャッシュ: "参照"
   - Web -> DB: "問い合わせ"
 
 animation:
   - step: "ingress" 1.2s
-    focus: [LB, Web, "LB -> Web"]
+    focus: [負荷分散, Web, "負荷分散 -> Web"]
   - step: "cache" 1.2s
     focus: [Web, キャッシュ, "Web -> キャッシュ"]
   - step: "fallback" 1.5s
@@ -395,15 +395,15 @@ animation:
 type: line
 
 actors:
-  - W1: "180"
-  - W2: "240"
-  - W3: "210"
-  - W4: "120"
-  - W5: "95"
+  - 1週: "180"
+  - 2週: "240"
+  - 3週: "210"
+  - 4週: "120"
+  - 5週: "95"
 
 animation:
   - step: "reveal" 2.0s
-    focus: [W1, W2, W3, W4, W5]
+    focus: [1週, 2週, 3週, 4週, 5週]
 `,
   },
   {
@@ -414,19 +414,19 @@ type: solidity
 
 actors:
   - 有権者: actor
-  - Ballot: contract
+  - 投票箱: contract
   - 集計: function
 
 flow:
-  - 有権者 -> Ballot: "vote(id)"
-  - Ballot -> 集計: "tally()"
+  - 有権者 -> 投票箱: "vote(id)"
+  - 投票箱 -> 集計: "tally()"
   - 集計 -> 有権者: "結果"
 
 animation:
   - step: "投票" 1.5s
-    focus: [有権者, Ballot]
+    focus: [有権者, 投票箱]
   - step: "集計" 1.5s
-    focus: [Ballot, 集計]
+    focus: [投票箱, 集計]
 `,
   },
   {
