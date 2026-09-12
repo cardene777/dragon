@@ -1852,7 +1852,7 @@ animation:
               ))}
             </div>
             <div className="v4-editor-side-hint">
-              クリックで actors: に 1 行追加します。 位置は自動で決まるので、 変えたい時は DSL に posX / posY を書きます。
+              クリックで actors: に 1 行追加します。 位置は自動で決まるので、 変えたい時は記法に posX / posY を書きます。
             </div>
           </div>
         )}
