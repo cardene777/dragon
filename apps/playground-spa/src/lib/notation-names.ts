@@ -18,13 +18,48 @@ import { dirname } from "node:path";
 import * as 記法 from "@cardenelabs/dragon";
 
 /**
+ * 配られた型宣言の中身を、読んだ順に返す (#1863)。
+ *
+ * 引き手は **対照を組む検査** だけ。 覚書の中にしか無い名前を通していないかを見る時、
+ * 検査の側が生の字を読めないと「その語が本当に覚書の中にあるのか」 を確かめられず、
+ * 対照が古くなっても気付けない。
+ *
+ * 配られる file 名は hash を含む (`render-Cp41meYv.d.ts`) ので名前で名指しせず、
+ * 入口の dir を走査する。
+ */
+export function 型宣言の中身(): string[] {
+  const require_ = createRequire(import.meta.url);
+  const dist = dirname(require_.resolve("@cardenelabs/cdl"));
+  return readdirSync(dist)
+    .filter((f) => f.endsWith(".d.ts"))
+    .map((f) => readFileSync(`${dist}/${f}`, "utf8"));
+}
+
+/**
+ * 書き手の覚書 (JSDoc) を外す (#1863)。
+ *
+ * **覚書の中の例示は記法の綴りではない**。 配られる型宣言はほぼ全行に説明が付いており、
+ * その中に `.step({ id: "user", title: "User" })` のような作り話の名前が書かれている。
+ * 外さずに拾うと `User` / `Browser` / `Admin` が「記法が知る綴り」 として照合を通り、
+ * 画面にその字が残っていても開く対象から外れる (実測で 151 語が覚書の中にしか無かった)。
+ *
+ * **`//` の形の注記は外さない**。 型宣言は TypeScript が書き出す file で、書き出す時に
+ * 残るのは `/** *` の形だけ。 実測でも 3 file に `//` の行は 0 件で、外す分岐を足しても
+ * 何も落ちなかった (変異で確かめた = 外す形にしても検査が 1 件も動かない)。
+ * 動かない分岐を置くと、壊れても気付けない守りが 1 つ増える。
+ */
+function 覚書を外す(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, " ");
+}
+
+/**
  * 記法が知っている名前。 **4 経路** (#1825 で 2 つ、#1827 で 2 つ足した)。
  *
  * | 経路 | 何を集めるか |
  * |---|---|
  * | `cdl が配る名前` | `Object.keys(cdl)` |
  * | `cdl の型の項目` | `dist/*.d.ts` の項目 (`name?: T`) と method (`name(...)`) の宣言 |
- * | `cdl の型の値` | 同じ file の文字列 (`"heat-cell"` のような値の union) |
+ * | `cdl の型の値` | 同じ file の文字列 (`"heat-cell"` のような値の union)。 **覚書の中は見ない** (#1863) |
  * | `記法が配る一覧` | `@cardenelabs/dragon` が配る一覧 (`TOP_LEVEL_KEYS` 等) の中身 |
  *
  * **組み立て口 (`diagram()` が返す物の名前) は入れない** = 実測で 150 件を集めたが、
@@ -37,20 +72,15 @@ import * as 記法 from "@cardenelabs/dragon";
  *
  * 型まで見るのは、箱や図に渡す指定が **実行時の名前として 1 度も現れない** ため。
  * 受け取る側の型にしか綴りが無い。
- *
- * 配られる file 名は hash を含む (`render-Cp41meYv.d.ts`) ので名前で名指しせず、
- * 入口の dir を走査する。
  */
 export function 記法が知る名前(): { 経路: Map<string, Set<string>>; 型file: number } {
   const require_ = createRequire(import.meta.url);
-  const dist = dirname(require_.resolve("@cardenelabs/cdl"));
   const 型の項目 = new Set<string>();
   const 型の値 = new Set<string>();
   let 型file = 0;
-  for (const f of readdirSync(dist)) {
-    if (!f.endsWith(".d.ts")) continue;
+  for (const 生 of 型宣言の中身()) {
     型file += 1;
-    const s = readFileSync(`${dist}/${f}`, "utf8");
+    const s = 覚書を外す(生);
     for (const m of s.matchAll(/^\s*(?:readonly\s+)?([A-Za-z][A-Za-z0-9]*)\??\s*[:(]/gm)) {
       型の項目.add(m[1]!);
     }
