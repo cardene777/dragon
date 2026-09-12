@@ -157,7 +157,7 @@ test("見本「C4コンテキスト」 で空の枠が残らない (#1078)", asy
   expect(m.length, "枠が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
   const 空枠 = m.filter((l) => l.箱 === 0);
   expect(空枠, `中身のない枠が残っている: ${空枠.map((l) => l.id).join(", ")}`).toEqual([]);
-  // 見本は L1 に 2 件 (Client / システム) と L2 に 2 件 (API / DB)
+  // 見本は L1 に 2 件 (利用者 / システム) と L2 に 2 件 (API / DB)
   expect(m.map((l) => l.id).sort(), "段の振り分けが効いていない").toEqual(["c4-l1", "c4-l2"]);
 });
 

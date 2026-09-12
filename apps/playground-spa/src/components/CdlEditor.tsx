@@ -1298,7 +1298,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const fitScale = Math.min(availableW / bounds.width, availableH / bounds.height);
     // 収める倍率が文字を潰す所まで下がったら、 読める大きさで止める (#1084)。
     // 横長の図では幅が上限を決めるため、 縦の空白を残したまま極端に縮む (実測 = 見本
-    // 「Client登録」 が 23%、 枠の高さ 840 のうち 97 しか使わず文字が 4.6px)。
+    // 「利用者登録」 が 23%、 枠の高さ 840 のうち 97 しか使わず文字が 4.6px)。
     //
     // 下限 10px で箱が枠から出る図に限り 8px まで譲る (#1102)。 譲っても収まらないなら譲らない
     // = 文字が小さくなるだけで見えない箱は見えないままになる。 判定の詳細は
@@ -1314,7 +1314,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     });
     // 位置決めは軸ごとに独立して決める (#1088)。 収まる軸は中央、 収まらない軸は始点に寄せる。
     // 読める下限 (#1084) で収まらなくなった図を中央に置くと左右が同じだけ隠れ、 図の始まりが
-    // 見えない (実測 = 見本「Client登録」 で左右 343px ずつ)。 読む人は左から読む
+    // 見えない (実測 = 見本「利用者登録」 で左右 343px ずつ)。 読む人は左から読む
     const tx = axisOffset({
       frame: previewRect.width,
       content: bounds.width * scale,

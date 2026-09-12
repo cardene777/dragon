@@ -13,7 +13,7 @@ import {
 
 describe("readableFloorScale", () => {
   it("世界座標の文字が大きいほど下限は低い", () => {
-    // 見本「Client登録」 の実測値 (最小文字 20 世界座標、 図の倍率 1)
+    // 見本「利用者登録」 の実測値 (最小文字 20 世界座標、 図の倍率 1)
     expect(readableFloorScale(20, 1)).toBeCloseTo(0.5, 5);
     // 文字を大きく持つ図はもっと縮めても読める
     expect(readableFloorScale(40, 1)).toBeCloseTo(0.25, 5);
@@ -44,7 +44,7 @@ describe("readableFloorScale", () => {
 
 describe("applyReadableFloor", () => {
   it("収める倍率が下限を下回るなら下限を採る", () => {
-    // 見本「Client登録」 = 収める 0.23 に対し下限 0.5
+    // 見本「利用者登録」 = 収める 0.23 に対し下限 0.5
     expect(applyReadableFloor(0.23, 0.5)).toBeCloseTo(0.5, 5);
   });
 
@@ -104,7 +104,7 @@ describe("readableScaleForFrame", () => {
 
   it("譲っても収まらないなら譲らない", () => {
     // 文字が小さくなるだけで見えない箱は見えないまま = 損しかしない。
-    // 見本「Client登録」 を減らす前がここに落ちる
+    // 見本「利用者登録」 を減らす前がここに落ちる
     expect(readableScaleForFrame({ ...素, boxesRight: 3000 })).toBeCloseTo(0.5, 5);
   });
 

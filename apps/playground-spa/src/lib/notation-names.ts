@@ -9,7 +9,7 @@
  *
  * | 引き手 | 何を照合するか |
  * |---|---|
- * | `lib/screen-words.test.ts` | 画面に残す記法の綴り 16 語 (#1825) と、記法の説明文 66 種 (#1827) |
+ * | `lib/screen-words.test.ts` | 画面に残す記法の綴り 16 語 (#1825) と、記法の説明文 66 種 (#1827)、編集画面の見本の英語 (#1842) |
  * | `topics/subtitle-words.test.ts` | 図の説明に残る英語が増えていないか (#1830) |
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -68,6 +68,24 @@ export function 記法が知る名前(): { 経路: Map<string, Set<string>>; 型
     ]),
     型file,
   };
+}
+
+/**
+ * 記法が配る **図の型** の一覧 (#1842)。
+ *
+ * `記法が知る名前()` の 4 経路では型の名前を引けない。 経路は `Object.entries()` で
+ * 中身を数える形なので、集合 (`Set`) で配られた一覧が 1 件も入らない
+ * (実測 = `mind` / `stacked` / `solidity` / `journey` / `c4` が 4 経路のどれにも無く、
+ * `flow` が当たっていたのは同名の関数を配っているという偶然だった)。
+ *
+ * **4 経路を広げず、型の一覧だけを別に配る**。 経路を広げると `NODE_KIND_VALID` の
+ * 117 件まで一緒に入り、記法の綴りの照合が「何でも通る」 方へ緩む。
+ *
+ * 引き手は編集画面の見本 (`data/editor-samples.ts`) を見る検査だけ。 その file の英語は
+ * 見本の名前の括弧の中 (`ログインAPI呼び出し (sequence)`) で、中身が図の型そのもの。
+ */
+export function 記法が配る図の型(): Set<string> {
+  return new Set(記法.PRESET_TYPES);
 }
 
 /**

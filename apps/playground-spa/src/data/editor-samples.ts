@@ -24,25 +24,25 @@ export const EDITOR_SAMPLES: [EditorSample, ...EditorSample[]] = [
 type: sequence
 
 actors:
-  - Client
+  - 利用者
   - API
   - DB
 
 flow:
-  - Client -> API: "ログイン要求"
-  - API -> DB: "Client検索"
+  - 利用者 -> API: "ログイン要求"
+  - API -> DB: "利用者検索"
   - DB -> API: "結果"
-  - API -> Client: "認証成功" { kind: return }
+  - API -> 利用者: "認証成功" { kind: return }
 
 animation:
   - step: "call" 1.4s
-    focus: [Client, API, "Client -> API"]
+    focus: [利用者, API, "利用者 -> API"]
   - step: "query" 1.4s
     focus: [API, DB, "API -> DB"]
   - step: "return" 1.4s
     focus: [API, DB, "DB -> API"]
   - step: "ok" 1.4s
-    focus: [Client, API, "API -> Client"]
+    focus: [利用者, API, "API -> 利用者"]
 `,
   },
   {
@@ -52,22 +52,22 @@ animation:
 type: sequence
 
 actors:
-  - Client
-  - Cart
-  - Payment
+  - 利用者
+  - 買い物かご
+  - 支払い
 
 flow:
-  - Client -> Cart: "商品追加"
-  - Cart -> Payment: "課金"
-  - Payment -> Client: "領収書" { kind: return }
+  - 利用者 -> 買い物かご: "商品追加"
+  - 買い物かご -> 支払い: "課金"
+  - 支払い -> 利用者: "領収書" { kind: return }
 
 animation:
   - step: "add" 1.2s
-    focus: [Client, Cart, "Client -> Cart"]
+    focus: [利用者, 買い物かご, "利用者 -> 買い物かご"]
   - step: "charge" 1.5s
-    focus: [Cart, Payment, "Cart -> Payment"]
+    focus: [買い物かご, 支払い, "買い物かご -> 支払い"]
   - step: "receipt" 1.2s
-    focus: [Client, Payment, "Payment -> Client"]
+    focus: [利用者, 支払い, "支払い -> 利用者"]
 `,
   },
   {
@@ -77,19 +77,19 @@ animation:
 type: flow
 
 actors:
-  - Push: event
+  - プッシュ: event
   - ビルド: function
   - テスト: function
   - デプロイ: function
 
 flow:
-  - Push -> ビルド: "トリガー"
+  - プッシュ -> ビルド: "トリガー"
   - ビルド -> テスト: "成果物"
   - テスト -> デプロイ: "合格" (success)
 
 animation:
   - step: "trigger" 1.2s
-    focus: [Push, ビルド, "Push -> ビルド"]
+    focus: [プッシュ, ビルド, "プッシュ -> ビルド"]
   - step: "build" 1.5s
     focus: [ビルド, テスト, "ビルド -> テスト"]
   - step: "test" 1.5s
@@ -99,28 +99,28 @@ animation:
 `,
   },
   {
-    label: "Client登録 (swimlane)",
+    label: "利用者登録 (swimlane)",
     slug: "swimlane",
-    code: `title: "Client登録"
+    code: `title: "利用者登録"
 type: swimlane
 
 actors:
-  - Client
+  - 利用者
   - 認証: service
   - メール: service
 
 flow:
-  - Client -> 認証: "登録要求"
+  - 利用者 -> 認証: "登録要求"
   - 認証 -> メール: "歓迎メール送信"
-  - メール -> Client: "メール到着"
+  - メール -> 利用者: "メール到着"
 
 animation:
   - step: "register" 1.4s
-    focus: [Client, 認証, "Client -> 認証"]
+    focus: [利用者, 認証, "利用者 -> 認証"]
   - step: "notify" 1.4s
     focus: [認証, メール, "認証 -> メール"]
   - step: "deliver" 1.4s
-    focus: [メール, Client, "メール -> Client"]
+    focus: [メール, 利用者, "メール -> 利用者"]
 `,
   },
   {
@@ -150,27 +150,27 @@ animation:
 `,
   },
   {
-    label: "Client・投稿・コメントのスキーマ (er)",
+    label: "利用者・投稿・コメントのスキーマ (er)",
     slug: "er",
-    code: `title: "Client・投稿・コメントのスキーマ"
+    code: `title: "利用者・投稿・コメントのスキーマ"
 type: er
 
 actors:
-  - Client: storage ["id: PK", "email: string", "name: string"]
+  - 利用者: storage ["id: PK", "email: string", "name: string"]
   - 投稿: storage ["id: PK", "userId: FK", "title: string", "body: text"]
   - コメント: storage ["id: PK", "postId: FK", "body: text"]
 
 flow:
-  - Client -> 投稿: "投稿する" { cardinality: "1:N" }
+  - 利用者 -> 投稿: "投稿する" { cardinality: "1:N" }
   - 投稿 -> コメント: "コメント持つ" { cardinality: "1:N" }
 
 animation:
   - step: "reveal" 2.0s
-    focus: [Client, 投稿, コメント, "Client -> 投稿", "投稿 -> コメント"]
+    focus: [利用者, 投稿, コメント, "利用者 -> 投稿", "投稿 -> コメント"]
 `,
   },
   {
-    label: "認証状態遷移 (state-machine)",
+    label: "認証状態遷移 (state)",
     slug: "state-machine",
     code: `title: "認証状態遷移"
 type: state
@@ -219,9 +219,9 @@ animation:
 `,
   },
   {
-    label: "Q1-Q4ロードマップ (gantt)",
+    label: "四半期ロードマップ (gantt)",
     slug: "gantt",
-    code: `title: "Q1-Q4ロードマップ"
+    code: `title: "四半期ロードマップ"
 type: gantt
 
 actors:
@@ -502,19 +502,19 @@ actors:
 type: c4
 
 actors:
-  - Client: person "L1 図を使う人"
+  - 利用者: person "L1 図を使う人"
   - システム: service "L1 対象のシステム全体"
   - API: service "L2 要求を受ける入口"
   - DB: database "L2 データを保つ"
 
 flow:
-  - Client -> システム: "利用"
+  - 利用者 -> システム: "利用"
   - システム -> API: "要求"
   - API -> DB: "問い合わせ"
 
 animation:
   - step: "use" 1.2s
-    focus: [Client, システム, "Client -> システム"]
+    focus: [利用者, システム, "利用者 -> システム"]
   - step: "request" 1.2s
     focus: [システム, API, "システム -> API"]
   - step: "query" 1.2s
