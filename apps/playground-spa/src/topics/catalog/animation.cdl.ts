@@ -9,13 +9,13 @@ import type { PhaseBuilder } from "@cardenelabs/cdl";
 export const tweenSimple = diagram("tween-simple", { topic: "tween: 数値線形補間" })
   .lane("l", { x: 0, width: 400 })
   .state("counter", { initial: 0 })
-  .node("a", { lane: "l", stack: 0, kind: "actor", title: "Counter", value: "{counter}" })
+  .node("a", { lane: "l", stack: 0, kind: "actor", title: "数え上げ", value: "{counter}" })
   .phase(
     "p",
     {
       duration: 2500,
-      title: "Counter を滑らかに進行 (0 → 100)",
-      body: "phase 内で counter を 0 から 100 へ滑らかに変化。",
+      title: "数え上げを滑らかに進める (0 → 100)",
+      body: "1 つの段の中で値を 0 から 100 へ滑らかに変える。",
     },
     (p: PhaseBuilder) => p.activate("a").tween("counter", 0, 100).badge("tween 中"),
   )
@@ -25,7 +25,7 @@ export const tweenSimple = diagram("tween-simple", { topic: "tween: 数値線形
 export const tweenChain = diagram("tween-chain", { topic: "tween: 連続 phase で累積" })
   .lane("l", { x: 0, width: 400 })
   .state("n", { initial: 0 })
-  .node("a", { lane: "l", stack: 0, kind: "actor", title: "Sum", value: "{n}" })
+  .node("a", { lane: "l", stack: 0, kind: "actor", title: "合計", value: "{n}" })
   .phase(
     "p1",
     { duration: 2000, title: "初動 (0 → 10)", body: "1 phase 目の tween。" },
@@ -41,7 +41,7 @@ export const tweenChain = diagram("tween-chain", { topic: "tween: 連続 phase �
     {
       duration: 2000,
       title: "完了 (50 → 100)",
-      body: "最終 phase で 100 まで。 hold で静止表示。",
+      body: "最後の段で 100 まで。 そのまま静止して見せる。",
     },
     (p: PhaseBuilder) => p.activate("a").tween("n", 50, 100).badge("p3"),
   )
@@ -50,52 +50,52 @@ export const tweenChain = diagram("tween-chain", { topic: "tween: 連続 phase �
 /** 3. set (即時切替) */
 export const setSwitch = diagram("set-switch", { topic: "set: 即時切替 (lerp なし)" })
   .lane("l", { x: 0, width: 500 })
-  .state("status", { initial: "idle" })
+  .state("status", { initial: "待機" })
   .node("a", {
     lane: "l",
     stack: 0,
     kind: "function",
-    title: "Process",
-    subtitle: "status: {status}",
+    title: "処理",
+    subtitle: "状態: {status}",
   })
   .phase(
     "p1",
     {
       duration: 2000,
-      title: "idle → running",
+      title: "待機 → 実行中",
       body: "set で文字列 state を即時切替。 phase 開始の瞬間に値が変わる。",
     },
-    (p: PhaseBuilder) => p.activate("a").set("status", "running").badge("running"),
+    (p: PhaseBuilder) => p.activate("a").set("status", "実行中").badge("実行中"),
   )
   .phase(
     "p2",
     {
       duration: 2000,
-      title: "running → done",
-      body: "次 phase で done に切替。 tween と違い段階的でなく瞬間遷移。",
+      title: "実行中 → 完了",
+      body: "次の段で完了に切り替える。 tween と違い段階を踏まず一瞬で移る。",
     },
-    (p: PhaseBuilder) => p.activate("a").set("status", "done").badge("done"),
+    (p: PhaseBuilder) => p.activate("a").set("status", "完了").badge("完了"),
   )
   .build();
 
 /** 4. badge 動作 */
 export const badgePerPhase = diagram("badge-per-phase", { topic: "badge: phase ごと切替" })
   .lane("l", { x: 0, width: 400 })
-  .node("a", { lane: "l", stack: 0, kind: "actor", title: "Step" })
+  .node("a", { lane: "l", stack: 0, kind: "actor", title: "手順" })
   .phase(
     "p1",
-    { duration: 1500, title: "準備中", body: "header に badge='preparing' を表示。" },
-    (p: PhaseBuilder) => p.activate("a").badge("preparing"),
+    { duration: 1500, title: "準備中", body: "見出しの札に「準備中」 を出す。" },
+    (p: PhaseBuilder) => p.activate("a").badge("準備中"),
   )
   .phase(
     "p2",
-    { duration: 1500, title: "処理中", body: "header の badge を 'processing' に切替。" },
-    (p: PhaseBuilder) => p.activate("a").badge("processing"),
+    { duration: 1500, title: "処理中", body: "見出しの札を「処理中」 に切り替える。" },
+    (p: PhaseBuilder) => p.activate("a").badge("処理中"),
   )
   .phase(
     "p3",
-    { duration: 1500, title: "完了", body: "最終 phase で badge='completed'、 step 完了示唆。" },
-    (p: PhaseBuilder) => p.activate("a").badge("completed"),
+    { duration: 1500, title: "完了", body: "最後の段の札を「完了」 にして、手順の終わりを示す。" },
+    (p: PhaseBuilder) => p.activate("a").badge("完了"),
   )
   .build();
 
@@ -103,13 +103,13 @@ export const badgePerPhase = diagram("badge-per-phase", { topic: "badge: phase �
 export const mixedTweenSet = diagram("mixed-tween-set", { topic: "tween + set 併用" })
   .lane("l", { x: 0, width: 500 })
   .state("amount", { initial: 0 })
-  .state("phase", { initial: "init" })
+  .state("phase", { initial: "初期" })
   .node("a", {
     lane: "l",
     stack: 0,
     kind: "function",
-    title: "Operation",
-    subtitle: "phase: {phase}",
+    title: "操作",
+    subtitle: "段階: {phase}",
     value: "{amount}",
   })
   .phase(
@@ -120,13 +120,13 @@ export const mixedTweenSet = diagram("mixed-tween-set", { topic: "tween + set �
       body: "tween で数値、 set で文字列を同時更新。 1 phase 内で複数 state を制御可能。",
     },
     (p: PhaseBuilder) =>
-      p.activate("a").tween("amount", 0, 50).set("phase", "loading").badge("loading"),
+      p.activate("a").tween("amount", 0, 50).set("phase", "読込中").badge("読込中"),
   )
   .phase(
     "p2",
     { duration: 2400, title: "完了 (状態 + 進捗を仕上げ)", body: "次 phase で完了状態へ。" },
     (p: PhaseBuilder) =>
-      p.activate("a").tween("amount", 50, 100).set("phase", "done").badge("done"),
+      p.activate("a").tween("amount", 50, 100).set("phase", "完了").badge("完了"),
   )
   .build();
 
@@ -658,7 +658,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
     color: "#22c55e",
     label: "平均命中率 %",
   })
-  .phase("r1", { duration: 2000, title: "Round 1 (拮抗)", body: "" }, (p: PhaseBuilder) =>
+  .phase("r1", { duration: 2000, title: "第 1 戦 (拮抗)", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("pl1", "pl2", "pl3", "pl4")
       .tween("p1", 20, 35)
@@ -669,7 +669,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
       .tween("avgAcc", 40, 52)
       .badge("R1 拮抗"),
   )
-  .phase("r2", { duration: 2000, title: "Round 2 (山田様 lead)", body: "" }, (p: PhaseBuilder) =>
+  .phase("r2", { duration: 2000, title: "第 2 戦 (山田様が先行)", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("pl1", "pl2", "pl3", "pl4")
       .tween("p1", 35, 48)
@@ -678,11 +678,11 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
       .tween("p4", 30, 40)
       .tween("totalKill", 12, 28)
       .tween("avgAcc", 52, 58)
-      .badge("R2 山田様 lead"),
+      .badge("第 2 戦 山田様が先行"),
   )
   .phase(
     "r3",
-    { duration: 2000, title: "Round 3 (佐藤様 追い上げ)", body: "" },
+    { duration: 2000, title: "第 3 戦 (佐藤様 追い上げ)", body: "" },
     (p: PhaseBuilder) =>
       p
         .activate("pl1", "pl2", "pl3", "pl4")
@@ -694,7 +694,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
         .tween("avgAcc", 58, 64)
         .badge("R3 佐藤様 追上げ"),
   )
-  .phase("r4", { duration: 2000, title: "Round 4 (佐藤様 優勝)", body: "" }, (p: PhaseBuilder) =>
+  .phase("r4", { duration: 2000, title: "第 4 戦 (佐藤様 優勝)", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("pl1", "pl2", "pl3", "pl4")
       .tween("p1", 55, 62)
@@ -806,7 +806,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
       fill: "#f97316",
     },
   })
-  .phase("p1", { duration: 1800, title: "空 block", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1800, title: "空のブロック", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("capL", "tipL", "baseL", "effC", "congA")
       .tween("baseFee", 10, 15)
@@ -814,7 +814,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
       .tween("capFee", 8, 12)
       .tween("effectiveGwei", 12, 18)
       .tween("congestion", 15, 28)
-      .badge("空 block"),
+      .badge("空のブロック"),
   )
   .phase("p2", { duration: 1800, title: "平常", body: "" }, (p: PhaseBuilder) =>
     p
@@ -872,17 +872,17 @@ states:
   counter: 0
 
 actors:
-  - Counter: { kind: actor, lane: l, value: "{counter}" }
+  - 数え上げ: { kind: actor, lane: l, value: "{counter}" }
 
 flow:
 
 animation:
-  - step: "Counter を滑らかに進行 (0 → 100)" 2.5s
-    focus: ["Counter"]
+  - step: "数え上げを滑らかに進める (0 → 100)" 2.5s
+    focus: ["数え上げ"]
     tween:
       counter: 0 -> 100
     badge: "tween 中"
-    description: "phase 内で counter を 0 から 100 へ滑らかに変化。"
+    description: "1 つの段の中で値を 0 から 100 へ滑らかに変える。"
 `;
 
 export const sourceJson__tweenSimple = `{
@@ -892,16 +892,16 @@ export const sourceJson__tweenSimple = `{
     "l": { "x": 0, "width": 400 }
   },
   "actors": [
-    { "name": "Counter", "kind": "actor", "lane": "l", "value": "{counter}" }
+    { "name": "数え上げ", "kind": "actor", "lane": "l", "value": "{counter}" }
   ],
   "flow": [],
   "states": { "counter": 0 },
   "animation": [
     {
-      "step": "Counter を滑らかに進行 (0 → 100)",
+      "step": "数え上げを滑らかに進める (0 → 100)",
       "duration": 2.5,
-      "focus": ["Counter"],
-      "body": "phase 内で counter を 0 から 100 へ滑らかに変化。",
+      "focus": ["数え上げ"],
+      "body": "1 つの段の中で値を 0 から 100 へ滑らかに変える。",
       "tween": { "counter": [0, 100] },
       "badge": "tween 中"
     }
@@ -918,29 +918,29 @@ states:
   n: 0
 
 actors:
-  - Sum: { kind: actor, lane: l, value: "{n}" }
+  - 合計: { kind: actor, lane: l, value: "{n}" }
 
 flow:
 
 animation:
   - step: "初動 (0 → 10)" 2s
-    focus: ["Sum"]
+    focus: ["合計"]
     tween:
       n: 0 -> 10
     badge: "p1"
     description: "1 phase 目の tween。"
   - step: "加速 (10 → 50)" 2s
-    focus: ["Sum"]
+    focus: ["合計"]
     tween:
       n: 10 -> 50
     badge: "p2"
     description: "前 phase の終端値から続けて tween。"
   - step: "完了 (50 → 100)" 2s
-    focus: ["Sum"]
+    focus: ["合計"]
     tween:
       n: 50 -> 100
     badge: "p3"
-    description: "最終 phase で 100 まで。 hold で静止表示。"
+    description: "最後の段で 100 まで。 そのまま静止して見せる。"
 `;
 
 export const sourceJson__tweenChain = `{
@@ -950,7 +950,7 @@ export const sourceJson__tweenChain = `{
     "l": { "x": 0, "width": 400 }
   },
   "actors": [
-    { "name": "Sum", "kind": "actor", "lane": "l", "value": "{n}" }
+    { "name": "合計", "kind": "actor", "lane": "l", "value": "{n}" }
   ],
   "flow": [],
   "states": { "n": 0 },
@@ -958,7 +958,7 @@ export const sourceJson__tweenChain = `{
     {
       "step": "初動 (0 → 10)",
       "duration": 2,
-      "focus": ["Sum"],
+      "focus": ["合計"],
       "body": "1 phase 目の tween。",
       "tween": { "n": [0, 10] },
       "badge": "p1"
@@ -966,7 +966,7 @@ export const sourceJson__tweenChain = `{
     {
       "step": "加速 (10 → 50)",
       "duration": 2,
-      "focus": ["Sum"],
+      "focus": ["合計"],
       "body": "前 phase の終端値から続けて tween。",
       "tween": { "n": [10, 50] },
       "badge": "p2"
@@ -974,8 +974,8 @@ export const sourceJson__tweenChain = `{
     {
       "step": "完了 (50 → 100)",
       "duration": 2,
-      "focus": ["Sum"],
-      "body": "最終 phase で 100 まで。 hold で静止表示。",
+      "focus": ["合計"],
+      "body": "最後の段で 100 まで。 そのまま静止して見せる。",
       "tween": { "n": [50, 100] },
       "badge": "p3"
     }
@@ -989,26 +989,26 @@ lanes:
   l: { x: 0, width: 500 }
 
 states:
-  status: "idle"
+  status: "待機"
 
 actors:
-  - Process: { kind: function, lane: l, subtitle: "status: {status}" }
+  - 処理: { kind: function, lane: l, subtitle: "状態: {status}" }
 
 flow:
 
 animation:
-  - step: "idle → running" 2s
-    focus: ["Process"]
+  - step: "待機 → 実行中" 2s
+    focus: ["処理"]
     set:
-      status: "running"
-    badge: "running"
+      status: "実行中"
+    badge: "実行中"
     description: "set で文字列 state を即時切替。 phase 開始の瞬間に値が変わる。"
-  - step: "running → done" 2s
-    focus: ["Process"]
+  - step: "実行中 → 完了" 2s
+    focus: ["処理"]
     set:
-      status: "done"
-    badge: "done"
-    description: "次 phase で done に切替。 tween と違い段階的でなく瞬間遷移。"
+      status: "完了"
+    badge: "完了"
+    description: "次の段で完了に切り替える。 tween と違い段階を踏まず一瞬で移る。"
 `;
 
 export const sourceJson__setSwitch = `{
@@ -1018,26 +1018,26 @@ export const sourceJson__setSwitch = `{
     "l": { "x": 0, "width": 500 }
   },
   "actors": [
-    { "name": "Process", "kind": "function", "lane": "l", "subtitle": "status: {status}" }
+    { "name": "処理", "kind": "function", "lane": "l", "subtitle": "状態: {status}" }
   ],
   "flow": [],
-  "states": { "status": "idle" },
+  "states": { "status": "待機" },
   "animation": [
     {
-      "step": "idle → running",
+      "step": "待機 → 実行中",
       "duration": 2,
-      "focus": ["Process"],
+      "focus": ["処理"],
       "body": "set で文字列 state を即時切替。 phase 開始の瞬間に値が変わる。",
-      "set": { "status": "running" },
-      "badge": "running"
+      "set": { "status": "実行中" },
+      "badge": "実行中"
     },
     {
-      "step": "running → done",
+      "step": "実行中 → 完了",
       "duration": 2,
-      "focus": ["Process"],
-      "body": "次 phase で done に切替。 tween と違い段階的でなく瞬間遷移。",
-      "set": { "status": "done" },
-      "badge": "done"
+      "focus": ["処理"],
+      "body": "次の段で完了に切り替える。 tween と違い段階を踏まず一瞬で移る。",
+      "set": { "status": "完了" },
+      "badge": "完了"
     }
   ]
 }`;
@@ -1049,23 +1049,23 @@ lanes:
   l: { x: 0, width: 400 }
 
 actors:
-  - Step: { kind: actor, lane: l }
+  - 手順: { kind: actor, lane: l }
 
 flow:
 
 animation:
   - step: "準備中" 1.5s
-    focus: ["Step"]
-    badge: "preparing"
-    description: "header に badge='preparing' を表示。"
+    focus: ["手順"]
+    badge: "準備中"
+    description: "見出しの札に「準備中」 を出す。"
   - step: "処理中" 1.5s
-    focus: ["Step"]
-    badge: "processing"
-    description: "header の badge を 'processing' に切替。"
+    focus: ["手順"]
+    badge: "処理中"
+    description: "見出しの札を「処理中」 に切り替える。"
   - step: "完了" 1.5s
-    focus: ["Step"]
-    badge: "completed"
-    description: "最終 phase で badge='completed'、 step 完了示唆。"
+    focus: ["手順"]
+    badge: "完了"
+    description: "最後の段の札を「完了」 にして、手順の終わりを示す。"
 `;
 
 export const sourceJson__badgePerPhase = `{
@@ -1075,30 +1075,30 @@ export const sourceJson__badgePerPhase = `{
     "l": { "x": 0, "width": 400 }
   },
   "actors": [
-    { "name": "Step", "kind": "actor", "lane": "l" }
+    { "name": "手順", "kind": "actor", "lane": "l" }
   ],
   "flow": [],
   "animation": [
     {
       "step": "準備中",
       "duration": 1.5,
-      "focus": ["Step"],
-      "body": "header に badge='preparing' を表示。",
-      "badge": "preparing"
+      "focus": ["手順"],
+      "body": "見出しの札に「準備中」 を出す。",
+      "badge": "準備中"
     },
     {
       "step": "処理中",
       "duration": 1.5,
-      "focus": ["Step"],
-      "body": "header の badge を 'processing' に切替。",
-      "badge": "processing"
+      "focus": ["手順"],
+      "body": "見出しの札を「処理中」 に切り替える。",
+      "badge": "処理中"
     },
     {
       "step": "完了",
       "duration": 1.5,
-      "focus": ["Step"],
-      "body": "最終 phase で badge='completed'、 step 完了示唆。",
-      "badge": "completed"
+      "focus": ["手順"],
+      "body": "最後の段の札を「完了」 にして、手順の終わりを示す。",
+      "badge": "完了"
     }
   ]
 }`;
@@ -1111,29 +1111,29 @@ lanes:
 
 states:
   amount: 0
-  phase: "init"
+  phase: "初期"
 
 actors:
-  - Operation: { kind: function, lane: l, subtitle: "phase: {phase}", value: "{amount}" }
+  - 操作: { kind: function, lane: l, subtitle: "段階: {phase}", value: "{amount}" }
 
 flow:
 
 animation:
   - step: "読込開始 (状態 + 進捗を併走)" 2.4s
-    focus: ["Operation"]
+    focus: ["操作"]
     tween:
       amount: 0 -> 50
     set:
-      phase: "loading"
-    badge: "loading"
+      phase: "読込中"
+    badge: "読込中"
     description: "tween で数値、 set で文字列を同時更新。 1 phase 内で複数 state を制御可能。"
   - step: "完了 (状態 + 進捗を仕上げ)" 2.4s
-    focus: ["Operation"]
+    focus: ["操作"]
     tween:
       amount: 50 -> 100
     set:
-      phase: "done"
-    badge: "done"
+      phase: "完了"
+    badge: "完了"
     description: "次 phase で完了状態へ。"
 `;
 
@@ -1145,33 +1145,33 @@ export const sourceJson__mixedTweenSet = `{
   },
   "actors": [
     {
-      "name": "Operation",
+      "name": "操作",
       "kind": "function",
       "lane": "l",
-      "subtitle": "phase: {phase}",
+      "subtitle": "段階: {phase}",
       "value": "{amount}"
     }
   ],
   "flow": [],
-  "states": { "amount": 0, "phase": "init" },
+  "states": { "amount": 0, "phase": "初期" },
   "animation": [
     {
       "step": "読込開始 (状態 + 進捗を併走)",
       "duration": 2.4,
-      "focus": ["Operation"],
+      "focus": ["操作"],
       "body": "tween で数値、 set で文字列を同時更新。 1 phase 内で複数 state を制御可能。",
       "tween": { "amount": [0, 50] },
-      "set": { "phase": "loading" },
-      "badge": "loading"
+      "set": { "phase": "読込中" },
+      "badge": "読込中"
     },
     {
       "step": "完了 (状態 + 進捗を仕上げ)",
       "duration": 2.4,
-      "focus": ["Operation"],
+      "focus": ["操作"],
       "body": "次 phase で完了状態へ。",
       "tween": { "amount": [50, 100] },
-      "set": { "phase": "done" },
-      "badge": "done"
+      "set": { "phase": "完了" },
+      "badge": "完了"
     }
   ]
 }`;
@@ -1865,7 +1865,7 @@ actors:
   - 森様: { kind: dyn-circle, lane: l4, stack: 0, subtitle: "score {p4}", posW: 160, posH: 180, shape: { kind: circle, radius: "{p4}", fill: "#8b7ffa" } }
 
 animation:
-  - step: "Round 1 (拮抗)" 2s
+  - step: "第 1 戦 (拮抗)" 2s
     focus: ["岸田様", "山田様", "佐藤様", "森様"]
     tween:
       p1: 20 -> 35
@@ -1875,7 +1875,7 @@ animation:
       totalKill: 0 -> 12
       avgAcc: 40 -> 52
     badge: "R1 拮抗"
-  - step: "Round 2 (山田様 lead)" 2s
+  - step: "第 2 戦 (山田様が先行)" 2s
     focus: ["岸田様", "山田様", "佐藤様", "森様"]
     tween:
       p1: 35 -> 48
@@ -1884,8 +1884,8 @@ animation:
       p4: 30 -> 40
       totalKill: 12 -> 28
       avgAcc: 52 -> 58
-    badge: "R2 山田様 lead"
-  - step: "Round 3 (佐藤様 追い上げ)" 2s
+    badge: "第 2 戦 山田様が先行"
+  - step: "第 3 戦 (佐藤様 追い上げ)" 2s
     focus: ["岸田様", "山田様", "佐藤様", "森様"]
     tween:
       p1: 48 -> 55
@@ -1895,7 +1895,7 @@ animation:
       totalKill: 28 -> 48
       avgAcc: 58 -> 64
     badge: "R3 佐藤様 追上げ"
-  - step: "Round 4 (佐藤様 優勝)" 2s
+  - step: "第 4 戦 (佐藤様 優勝)" 2s
     focus: ["岸田様", "山田様", "佐藤様", "森様"]
     tween:
       p1: 55 -> 62
@@ -1981,7 +1981,7 @@ export const sourceJson__richScoreLeaderboard = `{
   ],
   "animation": [
     {
-      "step": "Round 1 (拮抗)",
+      "step": "第 1 戦 (拮抗)",
       "duration": 2,
       "focus": ["岸田様", "山田様", "佐藤様", "森様"],
       "tween": {
@@ -1995,7 +1995,7 @@ export const sourceJson__richScoreLeaderboard = `{
       "badge": "R1 拮抗"
     },
     {
-      "step": "Round 2 (山田様 lead)",
+      "step": "第 2 戦 (山田様が先行)",
       "duration": 2,
       "focus": ["岸田様", "山田様", "佐藤様", "森様"],
       "tween": {
@@ -2006,10 +2006,10 @@ export const sourceJson__richScoreLeaderboard = `{
         "totalKill": [12, 28],
         "avgAcc": [52, 58]
       },
-      "badge": "R2 山田様 lead"
+      "badge": "第 2 戦 山田様が先行"
     },
     {
-      "step": "Round 3 (佐藤様 追い上げ)",
+      "step": "第 3 戦 (佐藤様 追い上げ)",
       "duration": 2,
       "focus": ["岸田様", "山田様", "佐藤様", "森様"],
       "tween": {
@@ -2023,7 +2023,7 @@ export const sourceJson__richScoreLeaderboard = `{
       "badge": "R3 佐藤様 追上げ"
     },
     {
-      "step": "Round 4 (佐藤様 優勝)",
+      "step": "第 4 戦 (佐藤様 優勝)",
       "duration": 2,
       "focus": ["岸田様", "山田様", "佐藤様", "森様"],
       "tween": {
@@ -2061,7 +2061,7 @@ actors:
   - 混雑度: { kind: dyn-arc, lane: stat, stack: 1, subtitle: "{congestion}%", posW: 280, posH: 220, shape: { kind: arc, angle: "{congestion}", sweepMax: 100, outerRadius: 90, innerRadius: 62, fill: "#f97316" } }
 
 animation:
-  - step: "空 block" 1.8s
+  - step: "空のブロック" 1.8s
     focus: ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"]
     tween:
       baseFee: 10 -> 15
@@ -2069,7 +2069,7 @@ animation:
       capFee: 8 -> 12
       effectiveGwei: 12 -> 18
       congestion: 15 -> 28
-    badge: "空 block"
+    badge: "空のブロック"
   - step: "平常" 1.8s
     focus: ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"]
     tween:
@@ -2189,7 +2189,7 @@ export const sourceJson__richLayeredPriorityFee = `{
   "states": { "baseFee": 10, "tipFee": 2, "capFee": 8, "effectiveGwei": 12, "congestion": 15 },
   "animation": [
     {
-      "step": "空 block",
+      "step": "空のブロック",
       "duration": 1.8,
       "focus": ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"],
       "tween": {
@@ -2199,7 +2199,7 @@ export const sourceJson__richLayeredPriorityFee = `{
         "effectiveGwei": [12, 18],
         "congestion": [15, 28]
       },
-      "badge": "空 block"
+      "badge": "空のブロック"
     },
     {
       "step": "平常",
