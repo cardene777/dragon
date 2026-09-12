@@ -88,7 +88,9 @@ test.describe("自動修正の button (#992)", () => {
   test("反映した件数を知らせる", async ({ page }) => {
     await open(page, DSL);
     await page.locator(".v4-editor-warnings-apply").click();
-    await expect(page.getByRole("status")).toContainText("DSL に反映しました");
+    // 件数は差し込みで入るので、知らせのうち字で書かれている所を見る
+    // (`CdlEditor.tsx` の 2 通りの文がどちらも持つ部分、#1834)
+    await expect(page.getByRole("status")).toContainText("記法に書き戻しました");
   });
 
   test("2 回押しても値が積み上がらない", async ({ page }) => {
@@ -129,7 +131,7 @@ flow:
     const button = page.locator(".v4-editor-warnings-apply");
     await expect(button).toBeVisible();
     await expect(button).toBeDisabled();
-    await expect(button).toContainText("対応可なし");
+    await expect(button).toContainText("直せるものなし");
   });
 
   test("行順と edge 順が食い違っても正しい行に入る", async ({ page }) => {

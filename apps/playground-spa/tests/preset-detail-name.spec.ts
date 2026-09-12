@@ -6,9 +6,18 @@
  * preset 詳細は別の入れ物 (`PRESETS`) を持つため届いていなかった。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { CATEGORIES } from "../src/lib/catalog";
 
 /** 識別子風 = 先頭が小文字で空白を持たない英数字の並び。 */
 const IDENTIFIER_LIKE = /^[a-z][A-Za-z0-9]*$/;
+
+/**
+ * 見出しの添えの語。 **画面と同じ出どころから引く** (#1834)。
+ *
+ * 字で持っていた間、分類の呼び名が `プリセット` から `ひな形` に変わった日 (#1805 / #1807)
+ * からこの検査は赤いままだった。 画面は `CATEGORIES[].label` を引くので、検査も引く。
+ */
+const 添えの語 = CATEGORIES.find((c) => c.slug === "presets")?.label ?? "";
 
 async function heading(page: Page): Promise<string> {
   return ((await page.locator("h1.nm-hero-title").first().textContent()) ?? "").trim();
@@ -61,11 +70,12 @@ test.describe("preset 詳細の見出し (#1047)", () => {
   test("見出しの添えの語が言語で変わる", async ({ page }) => {
     await page.goto("preset/swimlane", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
-    expect(await heading(page), "日本語表示で日本語の添えが出ない").toContain("プリセット");
+    expect(添えの語.length, "添えの語を分類の一覧から引けていない").toBeGreaterThan(0);
+    expect(await heading(page), "日本語表示で日本語の添えが出ない").toContain(添えの語);
 
     await switchLocale(page);
     const en = await heading(page);
-    expect(en, "英語表示でも日本語の添えが残る").not.toContain("プリセット");
+    expect(en, "英語表示でも日本語の添えが残る").not.toContain(添えの語);
     expect(en, "英語表示で英語の添えが出ない").toContain("preset");
   });
 

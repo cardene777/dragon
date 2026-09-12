@@ -9,6 +9,24 @@
  * 更新 / event 発火 / progress 反映) は cdl 側 unit test でカバー済み (別 test suite)。
  */
 import { test, expect } from "@playwright/test";
+import { ITEM_NAME_JA } from "../src/lib/i18n";
+
+/**
+ * 見る 4 例の識別子。 **画面に出る名前は書かない** (#1834)。
+ *
+ * 名前を literal で持っていた間、`スクロール駆動のフェーズ進行` が
+ * `スクロール駆動の段進行` に変わった日 (#1821) からこの検査は赤いままだった。
+ * 名前は画面と同じ出どころ (`ITEM_NAME_JA`) から引く。
+ */
+const 例の識別子 = ["inputSliderBar", "formulaTextBind", "scrollNarrative", "clickToggle"] as const;
+
+function 例の名前(): string[] {
+  return 例の識別子.map((id) => {
+    const 名 = ITEM_NAME_JA[id];
+    if (名 === undefined || 名 === "") throw new Error(`見本 ${id} の日本語名が一覧に無い`);
+    return 名;
+  });
+}
 
 test.describe("interactive catalog category (CAR #231)", () => {
   test("interactive category が catalog top に表示される", async ({ page }) => {
@@ -24,7 +42,9 @@ test.describe("interactive catalog category (CAR #231)", () => {
     await page.goto("catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     // 4 diagram の title 相当 label が表示 (JA)
-    for (const label of ["スライダー入力が説明欄に反映", "計算式でテキストが自動更新", "スクロール駆動のフェーズ進行", "クリックで状態切替"]) {
+    const 名前 = 例の名前();
+    expect(名前.length, "見る名前が 1 つも無い (検査が空振りしている)").toBe(例の識別子.length);
+    for (const label of 名前) {
       await expect(page.getByText(label).first()).toBeVisible();
     }
   });
@@ -34,7 +54,8 @@ test.describe("interactive catalog category (CAR #231)", () => {
     await page.waitForTimeout(800);
 
     // 各 example を sidebar で選択して preview area の SVG を verify する
-    const examples = ["スライダー入力が説明欄に反映", "計算式でテキストが自動更新", "スクロール駆動のフェーズ進行", "クリックで状態切替"];
+    const examples = 例の名前();
+    expect(examples.length, "見る名前が 1 つも無い (検査が空振りしている)").toBe(例の識別子.length);
     const preview = page.locator("main.catalog-preview");
     for (const label of examples) {
       // sidebar 側の該当 item を click
