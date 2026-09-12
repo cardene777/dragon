@@ -127,6 +127,53 @@ test("載っている色が実際に効く", async ({ page }) => {
   await expect(node, "色を指定した箱に印が付く").toHaveAttribute("data-cdl-tone", tone);
 });
 
+test("載っている向きが実際に効き、別名も同じ図になる (#1850)", async ({ page }) => {
+  await openEditor(page);
+  await page.locator('[data-testid="editor-syntax-tab"]').click();
+  const 正式 = await page
+    .locator('[data-testid="editor-syntax-directions"] .v4-editor-syntax-code')
+    .allTextContents();
+  const 別名 = await page
+    .locator('[data-testid="editor-syntax-directions"] .v4-editor-syntax-note')
+    .allTextContents();
+  expect(正式.length, "向きが 2 つ以上").toBeGreaterThan(1);
+  expect(別名.length, "別名の欄が正式な語と同じ数だけ無い").toBe(正式.length);
+
+  /**
+   * その向きで組んだ時の縦列の数。
+   *
+   * 向きは「1 つの縦列に積む」 か「1 人ずつ縦列を作る」 かを決めるので、
+   * 効いていれば縦列の数が変わる。 組み立てに失敗していないことも併せて見る =
+   * 図が出ないまま数が同じになる形と区別する。
+   */
+  const 縦列の数 = async (値: string): Promise<number> => {
+    await setDsl(
+      page,
+      `title: "t"\ntype: flow\ndirection: ${値}\n\nactors:\n  - Web\n  - API\n\nflow:\n  - Web -> API: "頼む"\n\nanimation:\n  - step: "s" 1.0s\n    focus: [Web, API]\n`,
+    );
+    expect(await page.locator(".v4-editor-error").count(), `${値} で組み立てに失敗した`).toBe(0);
+    return page.locator("[data-cdl-lane][data-cdl-lane-w]").count();
+  };
+
+  const 数 = new Map<string, number>();
+  for (const d of 正式) 数.set(d, await 縦列の数(d));
+  expect(
+    new Set(数.values()).size,
+    `向きを変えても縦列の数が動かない: ${[...数].map(([d, n]) => `${d}=${n}`).join(" ")}`,
+  ).toBeGreaterThan(1);
+
+  // 一覧が並べた別名が本当に通る。 「別名なし」 の行は確かめる相手が無いので飛ばす
+  let 確かめた = 0;
+  for (const [i, 語] of 正式.entries()) {
+    for (const a of (別名[i] ?? "").split(" / ")) {
+      if (a === "" || a === "別名なし") continue;
+      expect(await 縦列の数(a), `別名 ${a} が ${語} と違う図になる`).toBe(数.get(語)!);
+      確かめた += 1;
+    }
+  }
+  expect(確かめた, "別名を 1 つも確かめていない (検査が空振りしている)").toBeGreaterThan(0);
+});
+
 test("例をクリックすると入力欄に足される", async ({ page }) => {
   await openEditor(page);
   const before = await dsl(page);
