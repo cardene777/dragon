@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { CATEGORIES } from "@/lib/catalog";
+import { カタカナの連なり } from "@/lib/screen-words";
 import { PRESETS } from "@/lib/presets";
 import { ToastProvider } from "@/components/Toast";
 import { CatalogIndexPage } from "./CatalogIndexPage";
@@ -79,11 +80,17 @@ const 呼び名に残してよい語: Record<string, string> = {
   イーサリアム: "製品の名前",
 };
 
-/** 呼び名の中の、残してよい語を外したカタカナの連なり。 本番と植え込み対照が同じ関数を使う */
+/**
+ * 呼び名の中の、残してよい語を外したカタカナの連なり。 本番と植え込み対照が同じ関数を使う。
+ *
+ * **何をカタカナ語と読むかは `lib/screen-words.ts` が持つ** (#1855)。 画面の字の天井を
+ * 見る検査も同じ形を引く = 2 度書くと片方だけ直って食い違う。 許す語の一覧だけが
+ * こちら側の持ち物で、見る相手が違うので寄せない。
+ */
 export function 開いていないカタカナ(呼び名: string): string[] {
   let 残り = 呼び名;
   for (const 語 of Object.keys(呼び名に残してよい語)) 残り = 残り.split(語).join(" ");
-  return [...残り.matchAll(/[ァ-ヴー]{2,}/g)].map((m) => m[0]);
+  return カタカナの連なり(残り);
 }
 
 function 画面のfile一覧(): string[] {
