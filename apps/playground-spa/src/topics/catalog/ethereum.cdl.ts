@@ -43,7 +43,7 @@ export const erc20Transfer = diagram("eth-erc20-transfer", {
     lane: "l1",
     stack: 0,
     kind: "dyn-wave",
-    title: "Alice",
+    title: "太郎",
     subtitle: "{balA} TKN",
     w: 160,
     h: 220,
@@ -69,7 +69,7 @@ export const erc20Transfer = diagram("eth-erc20-transfer", {
     lane: "l3",
     stack: 0,
     kind: "dyn-wave",
-    title: "Bob",
+    title: "花子",
     subtitle: "{balB} TKN",
     w: 160,
     h: 220,
@@ -90,7 +90,7 @@ export const erc20Transfer = diagram("eth-erc20-transfer", {
     {
       duration: 2200,
       title: "① 送金を申し込む",
-      body: "Alice が契約に「Bob へ 250 送って」 と伝える。 この時点ではまだ何も動いていない。",
+      body: "太郎が契約に「花子へ 250 送って」 と伝える。 この時点ではまだ何も動いていない。",
     },
     (p: PhaseBuilder) => p.activate("alice").activate("token").badge("申込"),
   )
@@ -99,7 +99,7 @@ export const erc20Transfer = diagram("eth-erc20-transfer", {
     {
       duration: 2400,
       title: "② 残高が足りるか確かめる",
-      body: "契約は残高表を見て、 Alice が 250 以上持っているかを確認する。 足りなければここで失敗して終わる。",
+      body: "契約は残高表を見て、 太郎が 250 以上持っているかを確認する。 足りなければここで失敗して終わる。",
     },
     (p: PhaseBuilder) => p.activate("token").badge("残高を確認"),
   )
@@ -558,25 +558,25 @@ readouts:
   cu: { kind: countup, source: moved, decimals: 0, unit: " TKN", label: "動いた量" }
 
 actors:
-  - Alice: { kind: dyn-wave, lane: l1, stack: 0, subtitle: "{balA} TKN", posW: 160, posH: 220, shape: { kind: wave, level: "{balA}", amplitude: 1000, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } }
+  - 太郎: { kind: dyn-wave, lane: l1, stack: 0, subtitle: "{balA} TKN", posW: 160, posH: 220, shape: { kind: wave, level: "{balA}", amplitude: 1000, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } }
   - トークン契約: { kind: shape-smart-contract, lane: l2, stack: 0, subtitle: "残高表を持つ", posW: 200, posH: 220 }
-  - Bob: { kind: dyn-wave, lane: l3, stack: 0, subtitle: "{balB} TKN", posW: 160, posH: 220, shape: { kind: wave, level: "{balB}", amplitude: 1000, frequency: 2, waveHeight: 6, fill: "#22c55e" } }
+  - 花子: { kind: dyn-wave, lane: l3, stack: 0, subtitle: "{balB} TKN", posW: 160, posH: 220, shape: { kind: wave, level: "{balB}", amplitude: 1000, frequency: 2, waveHeight: 6, fill: "#22c55e" } }
 
 flow:
-  - Alice -> トークン契約: "250 送りたい" (info)
-  - トークン契約 -> Bob: "残高を加算" (success)
+  - 太郎 -> トークン契約: "250 送りたい" (info)
+  - トークン契約 -> 花子: "残高を加算" (success)
 
 animation:
   - step: "① 送金を申し込む" 2.2s
-    focus: ["Alice", "トークン契約"]
+    focus: ["太郎", "トークン契約"]
     badge: "申込"
-    description: "Alice が契約に「Bob へ 250 送って」 と伝える。 この時点ではまだ何も動いていない。"
+    description: "太郎が契約に「花子へ 250 送って」 と伝える。 この時点ではまだ何も動いていない。"
   - step: "② 残高が足りるか確かめる" 2.4s
     focus: ["トークン契約"]
     badge: "残高を確認"
-    description: "契約は残高表を見て、 Alice が 250 以上持っているかを確認する。 足りなければここで失敗して終わる。"
+    description: "契約は残高表を見て、 太郎が 250 以上持っているかを確認する。 足りなければここで失敗して終わる。"
   - step: "③ 数字を付け替える" 3s
-    focus: ["Alice", "Bob"]
+    focus: ["太郎", "花子"]
     tween:
       balA: 1000 -> 750
       balB: 0 -> 250
@@ -584,7 +584,7 @@ animation:
     badge: "書き換え"
     description: "送り手から 250 を引き、 受け手に 250 を足す。 トークンという物が移動するのではなく、 契約が持つ表の数字が同時に書き換わるだけ。 2 人の合計は 1000 のまま変わらない。"
   - step: "④ 記録を残す" 2s
-    focus: ["トークン契約", "Bob"]
+    focus: ["トークン契約", "花子"]
     badge: "完了"
     description: "Transfer という記録を残して完了。 外部のアプリはこの記録を読んで残高の変化を知る。"
 `;
@@ -599,7 +599,7 @@ export const sourceJson__erc20Transfer = `{
   },
   "actors": [
     {
-      "name": "Alice",
+      "name": "太郎",
       "kind": "dyn-wave",
       "lane": "l1",
       "stack": 0,
@@ -625,7 +625,7 @@ export const sourceJson__erc20Transfer = `{
       "posH": 220
     },
     {
-      "name": "Bob",
+      "name": "花子",
       "kind": "dyn-wave",
       "lane": "l3",
       "stack": 0,
@@ -643,8 +643,8 @@ export const sourceJson__erc20Transfer = `{
     }
   ],
   "flow": [
-    { "from": "Alice", "to": "トークン契約", "label": "250 送りたい", "tone": "info" },
-    { "from": "トークン契約", "to": "Bob", "label": "残高を加算", "tone": "success" }
+    { "from": "太郎", "to": "トークン契約", "label": "250 送りたい", "tone": "info" },
+    { "from": "トークン契約", "to": "花子", "label": "残高を加算", "tone": "success" }
   ],
   "states": { "balA": 1000, "balB": 0, "moved": 0 },
   "readouts": [
@@ -661,21 +661,21 @@ export const sourceJson__erc20Transfer = `{
     {
       "step": "① 送金を申し込む",
       "duration": 2.2,
-      "focus": ["Alice", "トークン契約"],
+      "focus": ["太郎", "トークン契約"],
       "badge": "申込",
-      "body": "Alice が契約に「Bob へ 250 送って」 と伝える。 この時点ではまだ何も動いていない。"
+      "body": "太郎が契約に「花子へ 250 送って」 と伝える。 この時点ではまだ何も動いていない。"
     },
     {
       "step": "② 残高が足りるか確かめる",
       "duration": 2.4,
       "focus": ["トークン契約"],
       "badge": "残高を確認",
-      "body": "契約は残高表を見て、 Alice が 250 以上持っているかを確認する。 足りなければここで失敗して終わる。"
+      "body": "契約は残高表を見て、 太郎が 250 以上持っているかを確認する。 足りなければここで失敗して終わる。"
     },
     {
       "step": "③ 数字を付け替える",
       "duration": 3,
-      "focus": ["Alice", "Bob"],
+      "focus": ["太郎", "花子"],
       "tween": { "balA": [1000, 750], "balB": [0, 250], "moved": [0, 250] },
       "badge": "書き換え",
       "body": "送り手から 250 を引き、 受け手に 250 を足す。 トークンという物が移動するのではなく、 契約が持つ表の数字が同時に書き換わるだけ。 2 人の合計は 1000 のまま変わらない。"
@@ -683,7 +683,7 @@ export const sourceJson__erc20Transfer = `{
     {
       "step": "④ 記録を残す",
       "duration": 2,
-      "focus": ["トークン契約", "Bob"],
+      "focus": ["トークン契約", "花子"],
       "badge": "完了",
       "body": "Transfer という記録を残して完了。 外部のアプリはこの記録を読んで残高の変化を知る。"
     }
