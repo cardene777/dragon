@@ -302,7 +302,7 @@ const 図の字の天井: Record<string, { 図: number; 語: number; 延べ: num
   "presets.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "primitives-extra.cdl.ts": { 図: 20, 語: 50, 延べ: 50 },
   "primitives.cdl.ts": { 図: 85, 語: 450, 延べ: 973 },
-  "styles.cdl.ts": { 図: 10, 語: 6, 延べ: 22 },
+  "styles.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "text-dsl.cdl.ts": { 図: 13, 語: 57, 延べ: 78 },
 };
 

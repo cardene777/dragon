@@ -10,8 +10,8 @@ function smallPair(id: string, style: EdgeStyle, tone: Tone, label: string, topi
   return diagram(id, { topic: topicOverride })
     .lane("l1", { x: 0, width: 280 })
     .lane("l2", { x: 600, width: 280 })
-    .node("a", { lane: "l1", stack: 0, kind: "actor", title: "From" })
-    .node("b", { lane: "l2", stack: 0, kind: "actor", title: "To" })
+    .node("a", { lane: "l1", stack: 0, kind: "actor", title: "始点" })
+    .node("b", { lane: "l2", stack: 0, kind: "actor", title: "終点" })
     .edge("a", "b", { id: "e", label, sub, tone, style })
     .phase("p", { duration: 1800, title: `${style} / ${tone}`, body: "edge style と tone の組み合わせを確認。" }, (p: PhaseBuilder) => p.activate("a", "b", "e").badge(tone))
     .build();
@@ -30,22 +30,22 @@ export const toneWarning = smallPair("tone-warning", "solid", "warning", "warnin
 export const toneInfo = smallPair("tone-info", "solid", "info", "info", "info tone (light blue、 情報表示)");
 
 /** 3. Inactive vs Active */
-export const stateActive = diagram("state-active", { topic: "edge: active 状態" })
+export const stateActive = diagram("state-active", { topic: "edge: 動いている状態" })
   .lane("l1", { x: 0, width: 280 })
   .lane("l2", { x: 600, width: 280 })
   .node("a", { lane: "l1", stack: 0, kind: "actor", title: "A" })
   .node("b", { lane: "l2", stack: 0, kind: "function", title: "B" })
-  .edge("a", "b", { id: "e", label: "active", tone: "accent", style: "solid" })
-  .phase("p", { duration: 1800, title: "active 状態", body: "phase で activate された edge は太く + 色付きで visible。" }, (p: PhaseBuilder) => p.activate("a", "b", "e").badge("active"))
+  .edge("a", "b", { id: "e", label: "動作中", tone: "accent", style: "solid" })
+  .phase("p", { duration: 1800, title: "動いている状態", body: "phase で activate された edge は太く + 色付きで見える。" }, (p: PhaseBuilder) => p.activate("a", "b", "e").badge("動作中"))
   .build();
 
-export const stateInactive = diagram("state-inactive", { topic: "edge: inactive 状態" })
+export const stateInactive = diagram("state-inactive", { topic: "edge: 止まっている状態" })
   .lane("l1", { x: 0, width: 280 })
   .lane("l2", { x: 600, width: 280 })
   .node("a", { lane: "l1", stack: 0, kind: "actor", title: "A" })
   .node("b", { lane: "l2", stack: 0, kind: "function", title: "B" })
-  .edge("a", "b", { id: "e", label: "inactive", tone: "accent", style: "solid" })
-  .phase("p", { duration: 1800, title: "inactive 状態", body: "activate されていない edge は薄い灰色 + dash で静的表示。" }, (p: PhaseBuilder) => p.activate("a", "b").badge("edge は inactive"))
+  .edge("a", "b", { id: "e", label: "停止中", tone: "accent", style: "solid" })
+  .phase("p", { duration: 1800, title: "止まっている状態", body: "activate されていない edge は薄い灰色 + 破線で静かに出る。" }, (p: PhaseBuilder) => p.activate("a", "b").badge("矢印は停止中"))
   .build();
 
 // ============================================================
@@ -72,15 +72,15 @@ lanes:
   l2: { x: 600, width: 280 }
 
 actors:
-  - From: { kind: actor, lane: l1 }
-  - To: { kind: actor, lane: l2 }
+  - 始点: { kind: actor, lane: l1 }
+  - 終点: { kind: actor, lane: l2 }
 
 flow:
-  - From -> To: "solid" (accent, solid) { sub: "実線 + 矢頭" }
+  - 始点 -> 終点: "solid" (accent, solid) { sub: "実線 + 矢頭" }
 
 animation:
   - step: "solid / accent" 1.8s
-    focus: ["From", "To", "From -> To"]
+    focus: ["始点", "終点", "始点 -> 終点"]
     badge: "accent"
     description: "edge style と tone の組み合わせを確認。"
 `;
@@ -93,13 +93,13 @@ export const sourceJson__styleSolid = `{
     "l2": { "x": 600, "width": 280 }
   },
   "actors": [
-    { "name": "From", "kind": "actor", "lane": "l1" },
-    { "name": "To", "kind": "actor", "lane": "l2" }
+    { "name": "始点", "kind": "actor", "lane": "l1" },
+    { "name": "終点", "kind": "actor", "lane": "l2" }
   ],
   "flow": [
     {
-      "from": "From",
-      "to": "To",
+      "from": "始点",
+      "to": "終点",
       "label": "solid",
       "sub": "実線 + 矢頭",
       "tone": "accent",
@@ -110,7 +110,7 @@ export const sourceJson__styleSolid = `{
     {
       "step": "solid / accent",
       "duration": 1.8,
-      "focus": ["From", "To", "From -> To"],
+      "focus": ["始点", "終点", "始点 -> 終点"],
       "body": "edge style と tone の組み合わせを確認。",
       "badge": "accent"
     }
@@ -125,15 +125,15 @@ lanes:
   l2: { x: 600, width: 280 }
 
 actors:
-  - From: { kind: actor, lane: l1 }
-  - To: { kind: actor, lane: l2 }
+  - 始点: { kind: actor, lane: l1 }
+  - 終点: { kind: actor, lane: l2 }
 
 flow:
-  - From -> To: "dotted-flow" (accent, dotted-flow) { sub: "点線 + 粒子" }
+  - 始点 -> 終点: "dotted-flow" (accent, dotted-flow) { sub: "点線 + 粒子" }
 
 animation:
   - step: "dotted-flow / accent" 1.8s
-    focus: ["From", "To", "From -> To"]
+    focus: ["始点", "終点", "始点 -> 終点"]
     badge: "accent"
     description: "edge style と tone の組み合わせを確認。"
 `;
@@ -146,13 +146,13 @@ export const sourceJson__styleDottedFlow = `{
     "l2": { "x": 600, "width": 280 }
   },
   "actors": [
-    { "name": "From", "kind": "actor", "lane": "l1" },
-    { "name": "To", "kind": "actor", "lane": "l2" }
+    { "name": "始点", "kind": "actor", "lane": "l1" },
+    { "name": "終点", "kind": "actor", "lane": "l2" }
   ],
   "flow": [
     {
-      "from": "From",
-      "to": "To",
+      "from": "始点",
+      "to": "終点",
       "label": "dotted-flow",
       "sub": "点線 + 粒子",
       "tone": "accent",
@@ -163,7 +163,7 @@ export const sourceJson__styleDottedFlow = `{
     {
       "step": "dotted-flow / accent",
       "duration": 1.8,
-      "focus": ["From", "To", "From -> To"],
+      "focus": ["始点", "終点", "始点 -> 終点"],
       "body": "edge style と tone の組み合わせを確認。",
       "badge": "accent"
     }
@@ -178,15 +178,15 @@ lanes:
   l2: { x: 600, width: 280 }
 
 actors:
-  - From: { kind: actor, lane: l1 }
-  - To: { kind: actor, lane: l2 }
+  - 始点: { kind: actor, lane: l1 }
+  - 終点: { kind: actor, lane: l2 }
 
 flow:
-  - From -> To: "accent" (accent, solid)
+  - 始点 -> 終点: "accent" (accent, solid)
 
 animation:
   - step: "solid / accent" 1.8s
-    focus: ["From", "To", "From -> To"]
+    focus: ["始点", "終点", "始点 -> 終点"]
     badge: "accent"
     description: "edge style と tone の組み合わせを確認。"
 `;
@@ -199,17 +199,17 @@ export const sourceJson__toneAccent = `{
     "l2": { "x": 600, "width": 280 }
   },
   "actors": [
-    { "name": "From", "kind": "actor", "lane": "l1" },
-    { "name": "To", "kind": "actor", "lane": "l2" }
+    { "name": "始点", "kind": "actor", "lane": "l1" },
+    { "name": "終点", "kind": "actor", "lane": "l2" }
   ],
   "flow": [
-    { "from": "From", "to": "To", "label": "accent", "tone": "accent", "style": "solid" }
+    { "from": "始点", "to": "終点", "label": "accent", "tone": "accent", "style": "solid" }
   ],
   "animation": [
     {
       "step": "solid / accent",
       "duration": 1.8,
-      "focus": ["From", "To", "From -> To"],
+      "focus": ["始点", "終点", "始点 -> 終点"],
       "body": "edge style と tone の組み合わせを確認。",
       "badge": "accent"
     }
@@ -224,15 +224,15 @@ lanes:
   l2: { x: 600, width: 280 }
 
 actors:
-  - From: { kind: actor, lane: l1 }
-  - To: { kind: actor, lane: l2 }
+  - 始点: { kind: actor, lane: l1 }
+  - 終点: { kind: actor, lane: l2 }
 
 flow:
-  - From -> To: "teal" (teal, solid)
+  - 始点 -> 終点: "teal" (teal, solid)
 
 animation:
   - step: "solid / teal" 1.8s
-    focus: ["From", "To", "From -> To"]
+    focus: ["始点", "終点", "始点 -> 終点"]
     badge: "teal"
     description: "edge style と tone の組み合わせを確認。"
 `;
@@ -245,17 +245,17 @@ export const sourceJson__toneTeal = `{
     "l2": { "x": 600, "width": 280 }
   },
   "actors": [
-    { "name": "From", "kind": "actor", "lane": "l1" },
-    { "name": "To", "kind": "actor", "lane": "l2" }
+    { "name": "始点", "kind": "actor", "lane": "l1" },
+    { "name": "終点", "kind": "actor", "lane": "l2" }
   ],
   "flow": [
-    { "from": "From", "to": "To", "label": "teal", "tone": "teal", "style": "solid" }
+    { "from": "始点", "to": "終点", "label": "teal", "tone": "teal", "style": "solid" }
   ],
   "animation": [
     {
       "step": "solid / teal",
       "duration": 1.8,
-      "focus": ["From", "To", "From -> To"],
+      "focus": ["始点", "終点", "始点 -> 終点"],
       "body": "edge style と tone の組み合わせを確認。",
       "badge": "teal"
     }
@@ -270,15 +270,15 @@ lanes:
   l2: { x: 600, width: 280 }
 
 actors:
-  - From: { kind: actor, lane: l1 }
-  - To: { kind: actor, lane: l2 }
+  - 始点: { kind: actor, lane: l1 }
+  - 終点: { kind: actor, lane: l2 }
 
 flow:
-  - From -> To: "success" (success, solid)
+  - 始点 -> 終点: "success" (success, solid)
 
 animation:
   - step: "solid / success" 1.8s
-    focus: ["From", "To", "From -> To"]
+    focus: ["始点", "終点", "始点 -> 終点"]
     badge: "success"
     description: "edge style と tone の組み合わせを確認。"
 `;
@@ -291,17 +291,17 @@ export const sourceJson__toneSuccess = `{
     "l2": { "x": 600, "width": 280 }
   },
   "actors": [
-    { "name": "From", "kind": "actor", "lane": "l1" },
-    { "name": "To", "kind": "actor", "lane": "l2" }
+    { "name": "始点", "kind": "actor", "lane": "l1" },
+    { "name": "終点", "kind": "actor", "lane": "l2" }
   ],
   "flow": [
-    { "from": "From", "to": "To", "label": "success", "tone": "success", "style": "solid" }
+    { "from": "始点", "to": "終点", "label": "success", "tone": "success", "style": "solid" }
   ],
   "animation": [
     {
       "step": "solid / success",
       "duration": 1.8,
-      "focus": ["From", "To", "From -> To"],
+      "focus": ["始点", "終点", "始点 -> 終点"],
       "body": "edge style と tone の組み合わせを確認。",
       "badge": "success"
     }
@@ -316,15 +316,15 @@ lanes:
   l2: { x: 600, width: 280 }
 
 actors:
-  - From: { kind: actor, lane: l1 }
-  - To: { kind: actor, lane: l2 }
+  - 始点: { kind: actor, lane: l1 }
+  - 終点: { kind: actor, lane: l2 }
 
 flow:
-  - From -> To: "error" (error, solid)
+  - 始点 -> 終点: "error" (error, solid)
 
 animation:
   - step: "solid / error" 1.8s
-    focus: ["From", "To", "From -> To"]
+    focus: ["始点", "終点", "始点 -> 終点"]
     badge: "error"
     description: "edge style と tone の組み合わせを確認。"
 `;
@@ -337,17 +337,17 @@ export const sourceJson__toneError = `{
     "l2": { "x": 600, "width": 280 }
   },
   "actors": [
-    { "name": "From", "kind": "actor", "lane": "l1" },
-    { "name": "To", "kind": "actor", "lane": "l2" }
+    { "name": "始点", "kind": "actor", "lane": "l1" },
+    { "name": "終点", "kind": "actor", "lane": "l2" }
   ],
   "flow": [
-    { "from": "From", "to": "To", "label": "error", "tone": "error", "style": "solid" }
+    { "from": "始点", "to": "終点", "label": "error", "tone": "error", "style": "solid" }
   ],
   "animation": [
     {
       "step": "solid / error",
       "duration": 1.8,
-      "focus": ["From", "To", "From -> To"],
+      "focus": ["始点", "終点", "始点 -> 終点"],
       "body": "edge style と tone の組み合わせを確認。",
       "badge": "error"
     }
@@ -362,15 +362,15 @@ lanes:
   l2: { x: 600, width: 280 }
 
 actors:
-  - From: { kind: actor, lane: l1 }
-  - To: { kind: actor, lane: l2 }
+  - 始点: { kind: actor, lane: l1 }
+  - 終点: { kind: actor, lane: l2 }
 
 flow:
-  - From -> To: "warning" (warning, solid)
+  - 始点 -> 終点: "warning" (warning, solid)
 
 animation:
   - step: "solid / warning" 1.8s
-    focus: ["From", "To", "From -> To"]
+    focus: ["始点", "終点", "始点 -> 終点"]
     badge: "warning"
     description: "edge style と tone の組み合わせを確認。"
 `;
@@ -383,17 +383,17 @@ export const sourceJson__toneWarning = `{
     "l2": { "x": 600, "width": 280 }
   },
   "actors": [
-    { "name": "From", "kind": "actor", "lane": "l1" },
-    { "name": "To", "kind": "actor", "lane": "l2" }
+    { "name": "始点", "kind": "actor", "lane": "l1" },
+    { "name": "終点", "kind": "actor", "lane": "l2" }
   ],
   "flow": [
-    { "from": "From", "to": "To", "label": "warning", "tone": "warning", "style": "solid" }
+    { "from": "始点", "to": "終点", "label": "warning", "tone": "warning", "style": "solid" }
   ],
   "animation": [
     {
       "step": "solid / warning",
       "duration": 1.8,
-      "focus": ["From", "To", "From -> To"],
+      "focus": ["始点", "終点", "始点 -> 終点"],
       "body": "edge style と tone の組み合わせを確認。",
       "badge": "warning"
     }
@@ -408,15 +408,15 @@ lanes:
   l2: { x: 600, width: 280 }
 
 actors:
-  - From: { kind: actor, lane: l1 }
-  - To: { kind: actor, lane: l2 }
+  - 始点: { kind: actor, lane: l1 }
+  - 終点: { kind: actor, lane: l2 }
 
 flow:
-  - From -> To: "info" (info, solid)
+  - 始点 -> 終点: "info" (info, solid)
 
 animation:
   - step: "solid / info" 1.8s
-    focus: ["From", "To", "From -> To"]
+    focus: ["始点", "終点", "始点 -> 終点"]
     badge: "info"
     description: "edge style と tone の組み合わせを確認。"
 `;
@@ -429,24 +429,24 @@ export const sourceJson__toneInfo = `{
     "l2": { "x": 600, "width": 280 }
   },
   "actors": [
-    { "name": "From", "kind": "actor", "lane": "l1" },
-    { "name": "To", "kind": "actor", "lane": "l2" }
+    { "name": "始点", "kind": "actor", "lane": "l1" },
+    { "name": "終点", "kind": "actor", "lane": "l2" }
   ],
   "flow": [
-    { "from": "From", "to": "To", "label": "info", "tone": "info", "style": "solid" }
+    { "from": "始点", "to": "終点", "label": "info", "tone": "info", "style": "solid" }
   ],
   "animation": [
     {
       "step": "solid / info",
       "duration": 1.8,
-      "focus": ["From", "To", "From -> To"],
+      "focus": ["始点", "終点", "始点 -> 終点"],
       "body": "edge style と tone の組み合わせを確認。",
       "badge": "info"
     }
   ]
 }`;
 
-export const sourceYaml__stateActive = `title: "edge: active 状態"
+export const sourceYaml__stateActive = `title: "edge: 動いている状態"
 type: flow
 
 lanes:
@@ -458,17 +458,17 @@ actors:
   - B: { kind: function, lane: l2 }
 
 flow:
-  - A -> B: "active" (accent, solid)
+  - A -> B: "動作中" (accent, solid)
 
 animation:
-  - step: "active 状態" 1.8s
+  - step: "動いている状態" 1.8s
     focus: ["A", "B", "A -> B"]
-    badge: "active"
-    description: "phase で activate された edge は太く + 色付きで visible。"
+    badge: "動作中"
+    description: "phase で activate された edge は太く + 色付きで見える。"
 `;
 
 export const sourceJson__stateActive = `{
-  "title": "edge: active 状態",
+  "title": "edge: 動いている状態",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },
@@ -479,20 +479,20 @@ export const sourceJson__stateActive = `{
     { "name": "B", "kind": "function", "lane": "l2" }
   ],
   "flow": [
-    { "from": "A", "to": "B", "label": "active", "tone": "accent", "style": "solid" }
+    { "from": "A", "to": "B", "label": "動作中", "tone": "accent", "style": "solid" }
   ],
   "animation": [
     {
-      "step": "active 状態",
+      "step": "動いている状態",
       "duration": 1.8,
       "focus": ["A", "B", "A -> B"],
-      "body": "phase で activate された edge は太く + 色付きで visible。",
-      "badge": "active"
+      "body": "phase で activate された edge は太く + 色付きで見える。",
+      "badge": "動作中"
     }
   ]
 }`;
 
-export const sourceYaml__stateInactive = `title: "edge: inactive 状態"
+export const sourceYaml__stateInactive = `title: "edge: 止まっている状態"
 type: flow
 
 lanes:
@@ -504,17 +504,17 @@ actors:
   - B: { kind: function, lane: l2 }
 
 flow:
-  - A -> B: "inactive" (accent, solid)
+  - A -> B: "停止中" (accent, solid)
 
 animation:
-  - step: "inactive 状態" 1.8s
+  - step: "止まっている状態" 1.8s
     focus: ["A", "B"]
-    badge: "edge は inactive"
-    description: "activate されていない edge は薄い灰色 + dash で静的表示。"
+    badge: "矢印は停止中"
+    description: "activate されていない edge は薄い灰色 + 破線で静かに出る。"
 `;
 
 export const sourceJson__stateInactive = `{
-  "title": "edge: inactive 状態",
+  "title": "edge: 止まっている状態",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },
@@ -525,15 +525,15 @@ export const sourceJson__stateInactive = `{
     { "name": "B", "kind": "function", "lane": "l2" }
   ],
   "flow": [
-    { "from": "A", "to": "B", "label": "inactive", "tone": "accent", "style": "solid" }
+    { "from": "A", "to": "B", "label": "停止中", "tone": "accent", "style": "solid" }
   ],
   "animation": [
     {
-      "step": "inactive 状態",
+      "step": "止まっている状態",
       "duration": 1.8,
       "focus": ["A", "B"],
-      "body": "activate されていない edge は薄い灰色 + dash で静的表示。",
-      "badge": "edge は inactive"
+      "body": "activate されていない edge は薄い灰色 + 破線で静かに出る。",
+      "badge": "矢印は停止中"
     }
   ]
 }`;
