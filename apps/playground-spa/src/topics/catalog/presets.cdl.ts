@@ -212,7 +212,9 @@ swim
       title: "処理を役割ごとに縦レーン分けして流れを示す図",
       body: "処理が済むと、結果をイベントとして発行する。",
     },
-    (p: PhaseBuilder) => p.activate("user", "fn", "ev", "call", "emit").badge("preset"),
+    // 札は図の型を出す。 他の見本は記法が自動で付けており (`withSteps()` が引き継ぐ)、
+    // この図だけ手書きなので綴りが揃っていなかった (#1870)
+    (p: PhaseBuilder) => p.activate("user", "fn", "ev", "call", "emit").badge("swimlane"),
   );
 
 export const presetSwimlane = withSteps(swim.build(), [
@@ -2854,15 +2856,15 @@ flow:
 
 animation:
   - step: "1. クライアントの利用者" 0.9s
-    badge: "preset"
+    badge: "swimlane"
     focus: [利用者]
     body: "外から呼ぶ人が最初の縦列に立つ。"
   - step: "2. サービスの処理" 0.9s
-    badge: "preset"
+    badge: "swimlane"
     focus: [利用者, "注文の処理", "利用者 -> 注文の処理"]
     body: "呼び出しが隣の縦列に渡る。"
   - step: "処理を役割ごとに縦レーン分けして流れを示す図" 0.9s
-    badge: "preset"
+    badge: "swimlane"
     focus: [利用者, "注文の処理", 注文済み, "利用者 -> 注文の処理", "注文の処理 -> 注文済み"]
     body: "処理が済むと、結果をイベントとして発行する。"
 `;
@@ -2902,14 +2904,14 @@ export const sourceJson__presetSwimlane = `{
       "duration": 0.9,
       "focus": ["利用者"],
       "body": "外から呼ぶ人が最初の縦列に立つ。",
-      "badge": "preset"
+      "badge": "swimlane"
     },
     {
       "step": "2. サービスの処理",
       "duration": 0.9,
       "focus": ["利用者", "注文の処理", "利用者 -> 注文の処理"],
       "body": "呼び出しが隣の縦列に渡る。",
-      "badge": "preset"
+      "badge": "swimlane"
     },
     {
       "step": "処理を役割ごとに縦レーン分けして流れを示す図",
@@ -2922,7 +2924,7 @@ export const sourceJson__presetSwimlane = `{
         "注文の処理 -> 注文済み"
       ],
       "body": "処理が済むと、結果をイベントとして発行する。",
-      "badge": "preset"
+      "badge": "swimlane"
     }
   ]
 }`;
