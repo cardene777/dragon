@@ -178,7 +178,7 @@ export const 見本が使う記法の印: Record<string, string> = {
  * **宣言は古くなる**。 説明文から識別子が消えた日に宣言だけが残ると、その見本は永久に
  * 判定の外になる。 宣言した見本が `名前: 型` の形の説明文を実際に持つことを検査が見る。
  *
- * 同じ考え方を見本の図の側が既に持つ (`preset-diagram-words.test.tsx` の
+ * 同じ考え方を見本の図の側が既に持つ (`diagram-words.test.tsx` の
  * `識別子を見せる図`)。 あちらは段の説明を図に描いた字と照らす形で、相手が違う。
  */
 export const 識別子を見せる見本: Record<string, string> = {
@@ -252,7 +252,7 @@ export const 残してよい語: Record<string, string> = {
   API: "定着した略語",
   URL: "定着した略語",
   ID: "定着した略語",
-  DB: "データを保つ所を指す定着した略語。 見本の図でも `preset-diagram-words.test.tsx` が同じ理由で通している",
+  DB: "データを保つ所を指す定着した略語。 見本の図でも `diagram-words.test.tsx` が同じ理由で通している",
   LLM: "大きな言語モデルを指す定着した略語",
   PR: "変更の取り込み依頼を指す呼び名として定着している",
   Issue: "GitHub で起票したものの呼び名",
