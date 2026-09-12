@@ -14,7 +14,7 @@ const LINKS: Array<{ to: string; ja: string; en: string }> = [
   { to: "/catalog", ja: "カタログ", en: "catalog" },
   { to: "/editor", ja: "エディタ", en: "editor" },
   { to: "/docs", ja: "ドキュメント", en: "docs" },
-  { to: "/release-notes", ja: "リリースノート", en: "releases" },
+  { to: "/release-notes", ja: "更新履歴", en: "releases" },
 ];
 
 const REPO_URL = "https://github.com/cardene777/dragon";

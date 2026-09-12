@@ -22,11 +22,11 @@ export function ReleaseNotesPage(): React.ReactElement {
           <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
-            <span className="cur">リリースノート</span>
+            <span className="cur">更新履歴</span>
           </nav>
           <span className="nm-eyebrow">公開の記録 · v0.5 が最新</span>
           <h1 className="nm-hero-title">
-            リリース<span className="nm-gradient-accent">ノート</span>
+            更新<span className="nm-gradient-accent">履歴</span>
           </h1>
           <p className="nm-hero-subtitle">
             dragon の版ごとの主な変更を要約して並べる。 くわしい記録は GitHub 上の CHANGELOG.md にある。
