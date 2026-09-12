@@ -58,6 +58,9 @@ const 残してよい語: Record<string, string> = {
   DB: "データベースの略語",
   POST: "HTTP の要求の種類",
   login: "`POST /login` の道筋の一部",
+  SNS: "交流サイトの定着した略語。 日本語の文でもこの綴りで書く (#1861)",
+  ms: "時間の単位の記号。 単位は綴りが決まっている (`ミリ秒` は読みであって単位ではない、#1861)",
+  dragon: "この製品の名前 (#1861)",
 };
 
 /**
@@ -180,14 +183,14 @@ function 見本帳の図(): { 件: { file: string; 鍵: string; 図: CdlDiagram 
  */
 const 図の字の天井: Record<string, { 図: number; 語: number; 延べ: number }> = {
   "animation.cdl.ts": { 図: 7, 語: 26, 延べ: 50 },
-  "charts.cdl.ts": { 図: 7, 語: 3, 延べ: 11 },
+  "charts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "cookbook.cdl.ts": { 図: 26, 語: 172, 延べ: 304 },
   "ethereum.cdl.ts": { 図: 2, 語: 12, 延べ: 14 },
-  "interactive.cdl.ts": { 図: 113, 語: 814, 延べ: 1788 },
+  "interactive.cdl.ts": { 図: 113, 語: 812, 延べ: 1778 },
   "parts.cdl.ts": { 図: 23, 語: 29, 延べ: 32 },
   "patterns.cdl.ts": { 図: 12, 語: 90, 延べ: 161 },
   "presets.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "primitives-extra.cdl.ts": { 図: 21, 語: 81, 延べ: 158 },
+  "primitives-extra.cdl.ts": { 図: 21, 語: 80, 延べ: 156 },
   "primitives.cdl.ts": { 図: 89, 語: 532, 延べ: 1226 },
   "styles.cdl.ts": { 図: 10, 語: 20, 延べ: 77 },
   "text-dsl.cdl.ts": { 図: 13, 語: 69, 延べ: 99 },
