@@ -10,12 +10,16 @@ import { test, expect } from "@playwright/test";
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
-/** sidebar の「サンプル」 tab から slug 指定で開く。 */
+/**
+ * 脇の一覧の「見本」 の見出しから slug 指定で開く。
+ *
+ * **字ではなく目印で掴む** (#1811)。 字で掴むと呼び名を直した日に検査が落ちる。
+ */
 async function openSample(page: import("@playwright/test").Page, slug: string): Promise<void> {
   await page.goto("editor");
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
-  await page.getByRole("tab", { name: "サンプル" }).click();
+  await page.locator(`[data-testid="editor-samples-tab"]`).click();
   await page.waitForTimeout(300);
   const btn = page.locator(`[data-testid="editor-sample-${slug}"]`).first();
   if ((await btn.count()) === 0) throw new Error(`sample not found: ${slug}`);

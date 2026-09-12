@@ -156,6 +156,14 @@ const SAMPLES = EDITOR_SAMPLES;
 /** 知らせの中で分類を指す時の呼び名 (#1805)。 出どころは `CATEGORIES[].label` 1 つ (#1788) */
 const 分類の呼び名 = CATEGORIES.find((c) => c.slug === "presets")?.label ?? "";
 
+/**
+ * 図に重ねる小部品の呼び名 (#1811)。 出どころは同じく `CATEGORIES[].label` 1 つ。
+ *
+ * この画面は一覧の見出しと知らせで 5 箇所この語を出す。 字で書くと、#1805 のように
+ * 見本帳の側だけ呼び名が変わった時に、この画面だけ古い呼び名が残る。
+ */
+const 部品の呼び名 = CATEGORIES.find((c) => c.slug === "parts")?.label ?? "";
+
 function encodeShare(src: string): string {
   try {
     return btoa(unescape(encodeURIComponent(src)));
@@ -565,7 +573,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 失敗しても editor 本体は動かす、 sidebar のみ空表示 + hint 出す + 失敗 flag を立てて再試行禁止
         console.error("[CdlEditor] parts load failed", e);
         setPartsLoadFailed(true);
-        setDropHintWithReset("見本を読み込めませんでした。 パーツ一覧を開き直すと再試行します。", 8000);
+        setDropHintWithReset(
+          `見本を読み込めませんでした。 ${部品の呼び名}の一覧を開き直すと再試行します。`,
+          8000,
+        );
       })
       .finally(() => setPartsLoading(false));
   }, [sidebarTab, needsPartsForSrc, partsItems.length, partsLoading, partsLoadFailed, setDropHintWithReset]);
@@ -834,7 +845,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 対応 sample なし = user 通知 (silently default load を明示的に伝える)
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setAutoFixMessage(
-          `${分類の呼び名}「${targetSlug}」 に対応する編集可能サンプルは未登録です。 既定のサンプル (${SAMPLES[0].label}) で開きます。`,
+          `${分類の呼び名}「${targetSlug}」 に対応する編集できる見本は未登録です。 既定の見本 (${SAMPLES[0].label}) で開きます。`,
         );
         window.setTimeout(() => setAutoFixMessage(null), 8000);
       }
@@ -1698,8 +1709,9 @@ animation:
             aria-selected={sidebarTab === "samples"}
             className={`v4-editor-side-tab ${sidebarTab === "samples" ? "active" : ""}`}
             onClick={() => setSidebarTab("samples")}
+            data-testid="editor-samples-tab"
           >
-            サンプル
+            見本
           </button>
           <button
             type="button"
@@ -1709,7 +1721,7 @@ animation:
             onClick={() => setSidebarTab("parts")}
             data-testid="editor-parts-tab"
           >
-            パーツ
+            {部品の呼び名}
           </button>
           <button
             type="button"
@@ -1782,7 +1794,7 @@ animation:
               <div className="v4-editor-side-loading">
                 {partsItems.length === 0
                   ? "最初の読み込みを待っています…"
-                  : "検索条件に一致するパーツがありません。"}
+                  : `検索条件に一致する${部品の呼び名}がありません。`}
               </div>
             )}
             {/* 説明 (`subtitle`) を出す画面は、導いた動きの一文も併せて出す (#1053)。
@@ -1867,10 +1879,10 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon v4-editor-side-toggle"
             ref={sideToggleRef}
             onClick={() => setSideOpen((v) => !v)}
-            aria-label="見本とパーツの一覧"
+            aria-label={`見本と${部品の呼び名}の一覧`}
             aria-expanded={sideOpen}
             aria-controls="editor-side"
-            title="見本とパーツの一覧を出す"
+            title={`見本と${部品の呼び名}の一覧を出す`}
             data-testid="editor-side-toggle"
           >
             <IconList />

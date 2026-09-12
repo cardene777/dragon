@@ -32,7 +32,7 @@ const dsl = async (page: import("@playwright/test").Page): Promise<string> =>
 test("通し: 図種を切り替えても壊れない", async ({ page }) => {
   const errors = collectErrors(page);
   await openEditor(page);
-  await page.getByRole("tab", { name: "サンプル" }).click();
+  await page.locator(`[data-testid="editor-samples-tab"]`).click();
   await page.waitForTimeout(300);
 
   // 3 種を順に開いて、 毎回図が出ることを確認する

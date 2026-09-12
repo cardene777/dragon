@@ -21,6 +21,7 @@ import { PRESETS } from "@/lib/presets";
 import { ToastProvider } from "@/components/Toast";
 import { CatalogIndexPage } from "./CatalogIndexPage";
 import { CategoryPage } from "./CategoryPage";
+import { EditorPage } from "./EditorPage";
 import { PresetDetailPage } from "./PresetDetailPage";
 import {
   installIntersectionObserverStub,
@@ -111,6 +112,29 @@ function 見本の詳細の画面(slug: string): string {
       </MemoryRouter>
     </ToastProvider>,
   );
+}
+
+function 編集の画面(): string {
+  return renderToStaticMarkup(
+    <ToastProvider>
+      <MemoryRouter initialEntries={["/editor"]}>
+        <Routes>
+          <Route path="/editor" element={<EditorPage />} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
+  );
+}
+
+/** 描いた画面から、一覧を切り替える見出しの字を順に取り出す */
+export function 一覧の見出し(html: string): string[] {
+  return [...html.matchAll(/<button[^>]*role="tab"[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]!);
+}
+
+/** 描いた画面から、その目印を持つ要素の中身を取り出す */
+export function 目印の字(html: string, 目印: string): string | null {
+  const m = html.match(new RegExp(`<button[^>]*data-testid="${目印}"[^>]*>([^<]*)</button>`));
+  return m ? m[1]! : null;
 }
 
 function 分類の画面(slug: string): string {
@@ -225,6 +249,20 @@ describe("分類の呼び名の出どころ (#1788)", () => {
     expect(字.length, "分類へ送るリンクを 1 つも読めていない (検査が空振りしている)").toBe(2);
     const 合わない = 字.filter((s) => !s.startsWith(分類!.label));
     expect(合わない, `見本の詳細が分類を別の呼び名で呼んでいる: ${合わない.join(" / ")}`).toEqual([]);
+  });
+
+  it("編集画面の一覧の見出しが CATEGORIES の呼び名から出る (#1811)", () => {
+    const 分類 = CATEGORIES.find((c) => c.slug === "parts");
+    expect(分類, "parts の分類が無い (検査が空振りしている)").toBeDefined();
+    const html = 編集の画面();
+    const 見出し = 一覧の見出し(html);
+    // 見出しを 1 つも読めていないと、下の突き合わせは通って当然になる。
+    // 下限は空振りを止めるための値で、今の件数ではない (実数は下の行に出す)
+    expect(見出し.length, "一覧の見出しを 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(2);
+    console.log(`[編集画面の一覧] 見出し=${見出し.join(" / ")}`);
+    const 部品の見出し = 目印の字(html, "editor-parts-tab");
+    expect(部品の見出し, "部品の一覧の見出しを読めていない (検査が空振りしている)").not.toBeNull();
+    expect(部品の見出し, "見出しが分類の呼び名と違う").toBe(分類!.label);
   });
 
   it("見本の詳細の見出しの添えが CATEGORIES の呼び名と一致する (#1805)", () => {
