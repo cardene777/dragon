@@ -1,14 +1,15 @@
 /**
  * 画面に出る字に英語が残っていないことの検証 (#1785 / #1787)。
  *
- * 2 つの役を見る。
+ * 3 つの役を見る。
  *
  * | 役 | 中身 | 直した Issue |
  * |---|---|---|
  * | 分類名と札 | 見出しの上の前置き、札、通し番号 | #1785 |
  * | 日本語の文 | 説明文、釦の字、読み上げの字、知らせの字 | #1787 |
+ * | 材料の字 | 画面が差し込みで出す字の実物 (`lib/` の一覧) | #1815 |
  *
- * 残してよい語の一覧は 2 つの役で 1 つだけ持つ。 役ごとに分けると片方だけ直して食い違う。
+ * 残してよい語の一覧は 3 つの役で 1 つだけ持つ。 役ごとに分けると片方だけ直して食い違う。
  *
  * **言語の切り替えを足した札を候補から外さない**。 直す時に `{isJa ? "…" : "…"}` の形にすると、
  * 字を直に書いた札しか見ない検査からは候補ごと消える。 消えた分だけ検査は素通りするので、
@@ -21,6 +22,9 @@
  *
  * 文の側は差し込み (`{件数}`) を **文の一部** として読む (#1809)。 切れ目として扱うと、
  * 差し込みの後ろに続く字が候補から丸ごと外れる。
+ *
+ * 母集団は画面 file だけでなく **画面へ字を渡す材料 file** も見る (#1815)。 画面 file の側が
+ * 差し込み (`{c.desc}`) しか持たない字は、材料を見ないと 1 文字も読まないまま通る。
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -54,6 +58,11 @@ const 残してよい語: Record<string, string> = {
   Issue: "GitHub で起票したものの呼び名",
   ER: "実体と関係の図を指す呼び名。 日本語でも `ER図` と呼ぶ",
   type: "記法の項目の名前。 画面に出す記法と同じ綴りで書く必要がある",
+  UML: "図の記法の規格の名前。 日本語の呼び名が無い",
+  TypeScript: "プログラミング言語の名前",
+  ERC: "イーサリアムの規格の名前。 番号と組で 1 つの固有名詞になる (`ERC-20`)",
+  EIP: "イーサリアムの改善提案の名前。 同じく番号と組で 1 つの固有名詞 (`EIP-1559`)",
+  teal: "色の名前。 6 色のうちこれだけ記法が日本語の別名を持たない (`TONE_ALIAS`)",
 };
 
 /** file 名 (`CONTRIBUTING.md`)。 語に割らずそのまま通す */
@@ -242,6 +251,89 @@ function 全画面の文(): {
   return { 文, 内訳, コード風, 差し込み入り };
 }
 
+// ─── 役 3 = 画面へ字を渡す材料 (#1815) ───
+
+/** 材料 file の置き場所。 画面に出る字の実物はここにある */
+const 材料の置き場 = fileURLToPath(new URL("../lib/", import.meta.url));
+
+/**
+ * 材料 file から画面へ渡る字を拾う。 **引用符の中身だけを見る**。
+ *
+ * 画面 file と同じ探し方 (`>` から `<` までの区間) を当てると、型の指定 (`as Record<K, V>`)
+ * や矢印の関数が区間として拾われ、コードが字に混ざる (実測 3 件)。
+ * 材料 file は組み立てを持たないので、引用符の中身だけで足りる。
+ */
+export function 材料の文を拾う(src: string): string[] {
+  return [...コメントと見本を外す(src).matchAll(/"([^"\\\n]*)"/g)]
+    .map((m) => m[1]!.trim())
+    .filter((t) => 日本語の字.test(t) && !/;/.test(t));
+}
+
+/** 材料を引く側の置き場所。 どの材料が画面へ届くかはここから導く */
+const 引く側の置き場 = [画面の置き場, fileURLToPath(new URL("../components/", import.meta.url))];
+
+/**
+ * 母集団から外す材料 file。 **1 件ごとに理由と行き先を書く**。
+ *
+ * 理由を別の場所に書くと片方だけ直して食い違う。 名前だけ並べると、
+ * 一覧に 1 行足すだけで検査を黙らせられる形になる。
+ */
+const 外す材料: Record<string, string> = {
+  "syntax-forms.ts":
+    "記法の項目の名前 (`posW:` / `visibleIf:`) を説明文の中に綴りのまま置く。 打ち込む字なので訳せず、残してよい語の仕分けが別に要る (#1815 の範囲外)",
+  "i18n.ts":
+    "画面の言語切り替えの表で、英語の側も同じ file が持つ。 日本語の側だけを見る探し方が別に要る (#1815 の範囲外)",
+};
+
+/**
+ * 引く側が `@/lib/<名前>` の形で名指ししている材料の file 名を導く。
+ *
+ * **材料の file 名を手で並べない**。 並べた時の数が上限になり、後から足した材料が
+ * 無防備なまま画面へ字を渡す。
+ */
+export function 引いている材料(src: string): string[] {
+  return [...src.matchAll(/from\s+"@\/lib\/([\w.-]+)"/g)].map((m) => `${m[1]!}.ts`);
+}
+
+function 材料のfile一覧(): { files: string[]; 内訳: 走査の内訳 } {
+  const 引かれた = new Set<string>();
+  for (const 置き場 of 引く側の置き場) {
+    for (const f of readdirSync(置き場).filter((f) => /\.tsx?$/.test(f) && !f.includes(".test."))) {
+      for (const 名 of 引いている材料(readFileSync(置き場 + f, "utf8"))) 引かれた.add(名);
+    }
+  }
+  const 実在 = new Set(
+    readdirSync(材料の置き場).filter((f) => f.endsWith(".ts") && !f.includes(".test.")),
+  );
+  // 日本語の字を 1 つも持たない材料は画面へ字を渡していない。
+  // 判定は引用符の中身で行う = 日本語の識別子 (`選んだ見本`) を持つだけの file を混ぜないため
+  const 字を持つ = [...引かれた]
+    .filter((f) => 実在.has(f))
+    .filter((f) => 材料の文を拾う(readFileSync(材料の置き場 + f, "utf8")).length > 0)
+    .sort();
+  const files = 字を持つ.filter((f) => !(f in 外す材料));
+  return {
+    files,
+    内訳: { 対象: 字を持つ.length, 走査: files.length, 除外: 字を持つ.filter((f) => f in 外す材料) },
+  };
+}
+
+function 全材料の文(): { 文: { file: string; 字: string }[]; 内訳: 走査の内訳 } {
+  const { files, 内訳 } = 材料のfile一覧();
+  const 文: { file: string; 字: string }[] = [];
+  for (const f of files) {
+    for (const 字 of 材料の文を拾う(readFileSync(材料の置き場 + f, "utf8"))) {
+      文.push({ file: `lib/${f}`, 字 });
+    }
+  }
+  return { 文, 内訳 };
+}
+
+/** 画面 file と材料 file を合わせた、画面に出る字の全体 */
+function 画面に出る文(): { file: string; 字: string }[] {
+  return [...全画面の文().文, ...全材料の文().文];
+}
+
 describe("画面の分類名と札 (#1785)", () => {
   it("拾えた添え字の内訳を出す", () => {
     const { list, 内訳 } = 全画面の添え字();
@@ -307,7 +399,7 @@ describe("画面の日本語の文 (#1787)", () => {
   });
 
   it("日本語の文に英語の語が残っていない", () => {
-    const { 文 } = 全画面の文();
+    const 文 = 画面に出る文();
     const 残る = 文
       .map((t) => ({ ...t, 語: 残る英単語(t.字) }))
       .filter((t) => t.語.length > 0)
@@ -318,7 +410,7 @@ describe("画面の日本語の文 (#1787)", () => {
   it("残してよい語が実際に画面で使われている", () => {
     // 使わない語を並べておくと、一覧がそのまま英語を通す抜け道になる
     const { list } = 全画面の添え字();
-    const { 文 } = 全画面の文();
+    const 文 = 画面に出る文();
     const 使った = new Set(
       [...list.map((a) => a.字 ?? ""), ...文.map((t) => t.字)].flatMap((s) =>
         [...s.matchAll(/[A-Za-z]+/g)].map((m) => m[0]),
@@ -405,5 +497,72 @@ describe("画面の日本語の文 (#1787)", () => {
     expect(残る英単語("図は SVG として書き出せる。")).toEqual([]);
     // 語の区切りに使う斜線 (前後に空白) は「打ち込む名前」 とみなさない
     expect(残る英単語("不具合の報告 / feature の提案")).toEqual(["feature"]);
+  });
+});
+
+describe("画面へ字を渡す材料 (#1815)", () => {
+  it("拾えた材料の内訳を出す", () => {
+    const { 文, 内訳 } = 全材料の文();
+    console.log(
+      `[材料] 対象=${内訳.対象} 走査=${内訳.走査} 除外=${内訳.除外.join(",") || "なし"}` +
+        ` 拾えた=${文.length}`,
+    );
+    expect(内訳.走査, "材料 file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(5);
+    // 下限は空振りを止めるための値で、今の件数ではない (実数は上の行に出す)
+    expect(文.length, "材料の字を 1 件も拾えていない (検査が空振りしている)").toBeGreaterThan(50);
+  });
+
+  it("材料を引き方から導けている (植え込み対照 + 対象外の対照)", () => {
+    // 引き方を何にも当たらない形にすると母集団が空になり、検査が黙って素通りする
+    expect(引いている材料(`import { CATEGORIES } from "@/lib/catalog";`)).toEqual(["catalog.ts"]);
+    expect(引いている材料(`import { PRESETS } from "@/lib/presets";\nimport { FORMS } from "@/lib/syntax-forms";`)).toEqual([
+      "presets.ts",
+      "syntax-forms.ts",
+    ]);
+    // 材料でない引き先は拾わない
+    expect(引いている材料(`import { CdlEditor } from "@/components/CdlEditor";`)).toEqual([]);
+    expect(引いている材料(`import type { CdlDiagram } from "@cardenelabs/cdl";`)).toEqual([]);
+  });
+
+  it("外した材料が実在し、理由を持っている", () => {
+    const { 内訳 } = 材料のfile一覧();
+    const 実在 = readdirSync(材料の置き場);
+    for (const f of Object.keys(外す材料)) {
+      expect(実在, `外した材料が無い: ${f}`).toContain(f);
+      expect((外す材料[f] ?? "").length, `外した理由が短すぎる: ${f}`).toBeGreaterThan(30);
+    }
+    // 外した名前を書いただけで母集団から消えるのでは、一覧が検査を黙らせる口になる。
+    // 実際に引かれていて字を持つ file だけが除外に数えられることを見る
+    expect(内訳.除外.slice().sort(), "外した材料が母集団に届いていない").toEqual(
+      Object.keys(外す材料).slice().sort(),
+    );
+    expect(内訳.対象 - 内訳.走査, "除外の数と内訳が合わない").toBe(内訳.除外.length);
+  });
+
+  it("材料の字が母集団に入る (収容対照)", () => {
+    // 画面 file の側は差し込み (`{c.desc}`) しか持たないので、材料を見ないと 1 文字も読まない
+    const { 文 } = 全材料の文();
+    const 該当 = 文.filter((t) => t.字.startsWith("「シーケンス図が欲しい」"));
+    expect(該当, "見本帳の説明文が母集団から消えている").toHaveLength(1);
+    expect(該当[0]!.file, "材料の出どころを file 名で示していない").toBe("lib/catalog.ts");
+    expect(残る英単語(該当[0]!.字), "直した説明文に英語が残っている").toEqual([]);
+  });
+
+  it("材料に混ざる英語を拾える (植え込み対照)", () => {
+    // 探し方は本番と同じ関数を使う。 2 度書くと片方だけ直して食い違う
+    const 元 = `export const M = [{ desc: "箱と矢印の最小の部品を確かめる場。" }]`;
+    expect(材料の文を拾う(元), "土台から字を拾えない").toEqual(["箱と矢印の最小の部品を確かめる場。"]);
+    expect(材料の文を拾う(元).flatMap(残る英単語), "土台に英語が混ざっている").toEqual([]);
+    const 英語 = `export const M = [{ desc: "dragon DSL の最小構成要素 (lane / node) を確かめる場。" }]`;
+    expect(材料の文を拾う(英語).flatMap(残る英単語)).toEqual(["DSL", "lane", "node"]);
+  });
+
+  it("材料の組み立てを字として拾わない (対象外の対照)", () => {
+    // 画面 file の探し方を当てると、型の指定や矢印の関数が区間として拾われてコードが混ざる
+    const 型 = `const 表 = Object.fromEntries(並び.map((値) => [表記, 値])) as Record<string, number>`;
+    expect(材料の文を拾う(型), "型の指定を字として拾っている").toEqual([]);
+    expect(日本語の文を拾う(型).文, "画面の探し方は同じ字を拾ってしまう").not.toEqual([]);
+    // 英語だけの引用符も画面の字ではない
+    expect(材料の文を拾う(`const 種別 = "sequence"`)).toEqual([]);
   });
 });
