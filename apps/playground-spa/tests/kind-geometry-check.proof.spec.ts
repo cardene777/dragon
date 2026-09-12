@@ -15,6 +15,7 @@
  * LLM 不要、 pure DOM inspection + assertion。
  */
 import { test, expect } from "@playwright/test";
+import { 折れ線の印, 折れ線の札の下限 } from "./helpers/figure-marks";
 
 /**
  * gantt の依存の矢印が出るまで待つ (#1357)。
@@ -160,21 +161,19 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
     await page.getByText("折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
+    // 札は役割の印で選ぶ (#1838)。 名前は `helpers/figure-marks.ts` に 1 度だけ置き、
+    // 本番の検査と同じ字を使う
     const checkOverlap = async () => {
-      return await page.evaluate(() => {
+      return await page.evaluate((印) => {
         const svg = document.querySelector('svg[role="img"]');
-        if (!svg) return [];
-        const valueLabels: Array<{ x: number; y: number; w: number; h: number; t: string }> = [];
-        const axisLabels: Array<{ x: number; y: number; w: number; h: number; t: string }> = [];
-        svg.querySelectorAll("text").forEach((t) => {
-          const bb = (t as SVGGraphicsElement).getBBox();
-          const content = t.textContent ?? "";
-          if (/^[\d,]+$/.test(content) && content.includes(",")) {
-            valueLabels.push({ x: bb.x, y: bb.y, w: bb.width, h: bb.height, t: content });
-          } else if (/^(Jan|Feb|Mar|Apr)$/.test(content)) {
-            axisLabels.push({ x: bb.x, y: bb.y, w: bb.width, h: bb.height, t: content });
-          }
-        });
+        if (!svg) return { overlaps: [] as string[], 値の札: 0, 軸の札: 0 };
+        const 測る = (役割: string) =>
+          Array.from(svg.querySelectorAll(`[data-cdl-role="${役割}"]`)).map((e) => {
+            const bb = (e as SVGGraphicsElement).getBBox();
+            return { x: bb.x, y: bb.y, w: bb.width, h: bb.height, t: e.textContent ?? "" };
+          });
+        const valueLabels = 測る(印.値の札);
+        const axisLabels = 測る(印.軸の札);
         const overlaps: string[] = [];
         for (const v of valueLabels) {
           for (const a of axisLabels) {
@@ -183,32 +182,38 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
             }
           }
         }
-        return overlaps;
-      });
+        return { overlaps, 値の札: valueLabels.length, 軸の札: axisLabels.length };
+      }, 折れ線の印);
     };
 
     const clean = await checkOverlap();
-    expect(clean, "clean 状態で重なり 0").toHaveLength(0);
+    // 集めた件数の下限。 0 件なら重なりも 0 件になるので、空振りと clean を分ける
+    expect(
+      clean.値の札,
+      `値の札 (${折れ線の印.値の札}) を 1 つも集めていない (検査が空振りしている)`,
+    ).toBeGreaterThanOrEqual(折れ線の札の下限);
+    expect(
+      clean.軸の札,
+      `軸の札 (${折れ線の印.軸の札}) を 1 つも集めていない (検査が空振りしている)`,
+    ).toBeGreaterThanOrEqual(折れ線の札の下限);
+    expect(clean.overlaps, "clean 状態で重なり 0").toHaveLength(0);
 
     // 全 value label を強制的に axis 位置 (canvas 下端) に移動 = overlap 誘発
-    await page.evaluate(() => {
+    await page.evaluate((印) => {
       const svg = document.querySelector('svg[role="img"]');
       if (!svg) return;
-      const janText = Array.from(svg.querySelectorAll("text")).find((t) => t.textContent === "Jan");
-      if (!janText) return;
-      const janY = janText.getAttribute("y") ?? "0";
-      svg.querySelectorAll("text").forEach((t) => {
-        const content = t.textContent ?? "";
-        if (/^[\d,]+$/.test(content) && content.includes(",")) {
-          t.setAttribute("y", janY);
-          const janX = janText.getAttribute("x") ?? "0";
-          t.setAttribute("x", janX);
-        }
+      const 軸 = svg.querySelector(`[data-cdl-role="${印.軸の札}"]`);
+      if (!軸) return;
+      const 軸のy = 軸.getAttribute("y") ?? "0";
+      const 軸のx = 軸.getAttribute("x") ?? "0";
+      svg.querySelectorAll(`[data-cdl-role="${印.値の札}"]`).forEach((t) => {
+        t.setAttribute("y", 軸のy);
+        t.setAttribute("x", 軸のx);
       });
-    });
+    }, 折れ線の印);
 
     const injected = await checkOverlap();
-    expect(injected.length, `bug 注入後 重なり >= 1`).toBeGreaterThanOrEqual(1);
+    expect(injected.overlaps.length, `bug 注入後 重なり >= 1`).toBeGreaterThanOrEqual(1);
   });
 
   test("[proof] card text overflow axis = subtitle を極端に長く設定すると検知される", async ({ page }) => {

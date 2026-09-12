@@ -15,6 +15,7 @@
  * LLM 不要、 pure geometry。 修正提案なし、 検出のみ (発見 → 開発者が cdl kind 側修正)。
  */
 import { test, expect } from "@playwright/test";
+import { 折れ線の印, 折れ線の札の下限, 見本の根の名前 } from "./helpers/figure-marks";
 
 type EdgeInspection = {
   d: string;
@@ -192,19 +193,21 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
     await page.getByText("マインドマップ", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
-    const info = await page.evaluate(() => {
+    // 根の名前は図の定義から導く (#1838)。 字で書くと、見本を開いた日から噛み合わなくなる
+    const 根の名 = 見本の根の名前();
+    const info = await page.evaluate((名) => {
       const svg = document.querySelector('svg[role="img"]');
       if (!svg) return null;
       const view = svg.getAttribute("viewBox")?.split(/\s+/).map(Number) ?? [0, 0, 0, 0];
       // 4 つ揃わない形は上の `?? [0, 0, 0, 0]` と同じく 0 に落とす (元の挙動と揃える)
       const w = view[2] ?? 0;
       const h = view[3] ?? 0;
-      const texts = Array.from(svg.querySelectorAll("text")).filter((t) => t.textContent === "Project");
+      const texts = Array.from(svg.querySelectorAll("text")).filter((t) => t.textContent === 名);
       if (texts.length === 0) return null;
       const bbox = (texts[0] as SVGGraphicsElement).getBBox();
       return { canvasW: w, canvasH: h, cx: bbox.x + bbox.width / 2, cy: bbox.y + bbox.height / 2 };
-    });
-    expect(info, "mindMap root text が存在").not.toBeNull();
+    }, 根の名);
+    expect(info, `mindMap root text ("${根の名}") が存在`).not.toBeNull();
     if (info) {
       const centerX = info.canvasW / 2;
       const centerY = info.canvasH / 2;
@@ -233,25 +236,30 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
     await page.getByText("折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
-    const info = await page.evaluate(() => {
+    // 札は役割の印で選ぶ (#1838)。 字の形で探すと、見本を日本語に開いた日から 1 件も当たらず
+    // 「重なり 0 件」 が空振りのまま緑になる
+    const info = await page.evaluate((印) => {
       const svg = document.querySelector('svg[role="img"]');
       if (!svg) return null;
-      const texts = Array.from(svg.querySelectorAll("text"));
-      const valueLabels: Array<{ x: number; y: number; w: number; h: number; t: string }> = [];
-      const axisLabels: Array<{ x: number; y: number; w: number; h: number; t: string }> = [];
-      texts.forEach((t) => {
-        const bb = (t as SVGGraphicsElement).getBBox();
-        const content = t.textContent ?? "";
-        if (/^[\d,]+$/.test(content) && content.includes(",")) {
-          valueLabels.push({ x: bb.x, y: bb.y, w: bb.width, h: bb.height, t: content });
-        } else if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$/.test(content)) {
-          axisLabels.push({ x: bb.x, y: bb.y, w: bb.width, h: bb.height, t: content });
-        }
-      });
-      return { valueLabels, axisLabels };
-    });
+      const 測る = (役割: string) =>
+        Array.from(svg.querySelectorAll(`[data-cdl-role="${役割}"]`)).map((e) => {
+          const bb = (e as SVGGraphicsElement).getBBox();
+          return { x: bb.x, y: bb.y, w: bb.width, h: bb.height, t: e.textContent ?? "" };
+        });
+      return { valueLabels: 測る(印.値の札), axisLabels: 測る(印.軸の札) };
+    }, 折れ線の印);
     expect(info, "chart-line labels が存在").not.toBeNull();
     if (info) {
+      // 集めた件数の下限。 重なり 0 件は母集団が空でも成り立つので、別に数える
+      expect(
+        info.valueLabels.length,
+        `値の札 (${折れ線の印.値の札}) を 1 つも集めていない (検査が空振りしている)`,
+      ).toBeGreaterThanOrEqual(折れ線の札の下限);
+      expect(
+        info.axisLabels.length,
+        `軸の札 (${折れ線の印.軸の札}) を 1 つも集めていない (検査が空振りしている)`,
+      ).toBeGreaterThanOrEqual(折れ線の札の下限);
+
       const overlaps: string[] = [];
       for (const v of info.valueLabels) {
         for (const a of info.axisLabels) {
