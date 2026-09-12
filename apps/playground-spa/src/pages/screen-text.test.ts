@@ -457,15 +457,19 @@ describe("画面へ字を渡す材料 (#1815)", () => {
 
   it("外した材料が実在し、理由を持っている", () => {
     const { 内訳 } = 材料のfile一覧();
-    const 実在 = readdirSync(材料の置き場);
-    for (const f of Object.keys(外す材料)) {
-      expect(実在, `外した材料が無い: ${f}`).toContain(f);
+    // **宣言は 2 つの判定で分け合う** (#1842)。 こちらの母集団は `lib/` の材料だけなので、
+    // 別の置き場を外した宣言 (`data/editor-samples.ts`) はここに 1 件も現れない。
+    // 宣言した file が `src/` のどこかに実在するかは `lib/screen-words.test.ts` が全域で見る
+    const 実在 = new Set(readdirSync(材料の置き場));
+    const この置き場の = Object.keys(外す材料).filter((f) => 実在.has(f));
+    expect(この置き場の.length, "この置き場の外した材料が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
+    for (const f of この置き場の) {
       expect((外す材料[f] ?? "").length, `外した理由が短すぎる: ${f}`).toBeGreaterThan(30);
     }
     // 外した名前を書いただけで母集団から消えるのでは、一覧が検査を黙らせる口になる。
     // 実際に引かれていて字を持つ file だけが除外に数えられることを見る
     expect(内訳.除外.slice().sort(), "外した材料が母集団に届いていない").toEqual(
-      Object.keys(外す材料).slice().sort(),
+      この置き場の.slice().sort(),
     );
     expect(内訳.対象 - 内訳.走査, "除外の数と内訳が合わない").toBe(内訳.除外.length);
   });

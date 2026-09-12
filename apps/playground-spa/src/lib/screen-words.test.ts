@@ -23,19 +23,22 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { file一覧 } from "./walk-files";
-import { 記法が知る名前, 綴りの照合, 経路ごとの専有 } from "./notation-names";
+import { 記法が知る名前, 記法が配る図の型, 綴りの照合, 経路ごとの専有 } from "./notation-names";
 import {
   残してよい語,
   残る英単語,
   番号を落とす,
   日本語の字,
   外す材料,
+  外す置き場,
   揃える呼び名,
   二通りの呼び名,
   記法の名前,
   記法が一覧を配らない綴り,
+  見本が使う記法の印,
 } from "./screen-words";
 import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
+import { EDITOR_SAMPLES } from "../data/editor-samples";
 import { TONE_ALIAS } from "@cardenelabs/dragon";
 
 const src根 = fileURLToPath(new URL("../", import.meta.url));
@@ -99,6 +102,11 @@ function 意匠の字(path: string): { 直接: string[]; 使い回し: string[] 
 }
 
 
+/** 書き手どうしの覚書。 画面へは出ないので、どの母集団からも外す */
+function コメントを外す(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/gm, "$1");
+}
+
 /**
  * コメントと記法の見本を外す。
  *
@@ -107,10 +115,7 @@ function 意匠の字(path: string): { 直接: string[]; 使い回し: string[] 
  * つきの文) なので残す。 全部外すと、その形で書いた字が母集団から丸ごと消える。
  */
 function コメントと見本を外す(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/[^\n]*/gm, "$1")
-    .replace(/`[^`]*`/g, (m) => (m.includes("\n") ? " " : m));
+  return コメントを外す(src).replace(/`[^`]*`/g, (m) => (m.includes("\n") ? " " : m));
 }
 
 const 差し込み = /\{(?:[^{}]|\{[^{}]*\})*\}/;
@@ -184,6 +189,43 @@ export function 色調の照合(表: Record<string, string>): {
   };
 }
 
+/**
+ * 編集画面の見本 (`data/editor-samples.ts`) の字と、そこに出る英単語 (#1842)。
+ *
+ * **行をまたぐ `` ` `` を外さない**。 一般の判定はそこを記法の見本とみなして捨てるが、
+ * この file ではその中身こそが画面に出る図そのもの (見本の題 / 登場人物 / 矢印の札)。
+ * 捨てると母集団が見本の名前 25 件だけになり、**外した先が無防備にならないための
+ * 検査が、外す前より狭い範囲しか見ない** ことになる。
+ *
+ * **引用符の外の名前は見ない**。 記法の登場人物は `- 利用者` のように引用符なしで書くので、
+ * その名前が図の札としてだけ出る見本では母集団に入らない (実測 = `DB` がこの形)。
+ * 一般の判定と同じ穴で、塞ぐには記法を読んで札の在り処を知る必要がある。
+ *
+ * 走査した件数と、日本語を含む件数を分けて返す = 0 件が「英語が無い」 か
+ * 「1 件も拾えていない」 かを読み手が分けられるようにする。
+ */
+function 編集画面の見本(): { 文: string[]; 語: string[]; 走査: number } {
+  const src = readFileSync(src根 + "data/editor-samples.ts", "utf8");
+  const 全部: string[] = [];
+  for (const m of コメントを外す(src).matchAll(/"([^"\\\n]*)"/g)) 全部.push(m[1]!.trim());
+  const 文 = 全部.filter((t) => t !== "" && 日本語の字.test(t));
+  const 語 = new Set<string>();
+  for (const t of 文) {
+    for (const w of 残る英単語(t)) 語.add(w);
+  }
+  return { 文, 語: [...語], 走査: 全部.length };
+}
+
+/** 見本の名前の括弧の中 (`ログインAPI呼び出し (sequence)` の `sequence`) */
+function 名前の括弧(label: string): string | undefined {
+  return /\(([^()]*)\)\s*$/.exec(label)?.[1];
+}
+
+/** 見本の記法に書かれた図の型 (`type: sequence` の `sequence`) */
+function 記法の図の型(code: string): string | undefined {
+  return /^type:\s*(\S+)/m.exec(code)?.[1];
+}
+
 /** `記法の名前` の表を、照合に渡す形へ開く (#1825) */
 function 表の綴り(表: typeof 記法の名前): { 元: string; 綴り: string }[] {
   return Object.entries(表).flatMap(([語, { 綴り }]) => 綴り.map((s) => ({ 元: 語, 綴り: s })));
@@ -234,19 +276,44 @@ function 見本の名前(): string[] {
  *
  * 歯止めの外に置くのは見本の名前だけ (`見本の名前()`、 理由は上)。
  */
-function 画面のfile(): string[] {
-  return [
-    ...file一覧(src根 + "pages/", /\.tsx?$/, false),
-    ...file一覧(src根 + "components/", /\.tsx?$/, false),
-    ...file一覧(src根 + "lib/", /\.ts$/, false).filter((f) => {
-      const 名 = f.slice(f.lastIndexOf("/") + 1);
-      return !(名 in 外す材料) && !決まりのfile.test(名);
-    }),
-  ];
+/**
+ * `src/` にある画面の材料を全部返す (#1842)。
+ *
+ * **置き場を手で並べない**。 並べる形は書き手が思い付いた置き場が上限になり、
+ * 新しい置き場を足した日にそこだけ黙って外れる (実測で 76 file 中 16 file が外にあった)。
+ * 同じ file の `判定を使う検査()` が #1830 で先に直した形をこちらにも当てる。
+ *
+ * 外すのは決まりそのものを書いた file だけ = 判定の持ち主なので、自前の一覧を持っているのが正しい。
+ */
+function src全域のfile(): string[] {
+  return file一覧(src根, /\.tsx?$/, false).filter(
+    (f) => !決まりのfile.test(f.slice(f.lastIndexOf("/") + 1)),
+  );
 }
 
-function 画面に出る字たち(): { 字: string[]; 走査: number; 除外: string[] } {
-  const files = 画面のfile();
+/** 相対 path が、宣言した置き場の下にあるか */
+function 外した置き場の下(f: string): boolean {
+  const 相対 = f.slice(src根.length);
+  return Object.keys(外す置き場).some((d) => 相対.startsWith(d));
+}
+
+/**
+ * 英語の判定が見る file。 宣言した置き場と材料を外す。
+ *
+ * 呼び名の判定はこちらを使わない = 外した置き場にも 2 通りの呼び名は 0 件なので、
+ * 外す理由が無い (`外す置き場` の理由に書いた通り)。
+ */
+function 画面のfile(): string[] {
+  return src全域のfile().filter(
+    (f) => !外した置き場の下(f) && !(f.slice(f.lastIndexOf("/") + 1) in 外す材料),
+  );
+}
+
+function 画面に出る字たち(files: string[] = 画面のfile()): {
+  字: string[];
+  走査: number;
+  除外: string[];
+} {
   const 字: string[] = [];
   for (const f of files) {
     const s = コメントと見本を外す(readFileSync(f, "utf8"));
@@ -258,7 +325,7 @@ function 画面に出る字たち(): { 字: string[]; 走査: number; 除外: st
   return {
     字: [...字.filter((t) => t !== "" && 日本語の字.test(t)), ...見本の名前()],
     走査: files.length,
-    除外: Object.keys(外す材料),
+    除外: [...Object.keys(外す材料), ...Object.keys(外す置き場)],
   };
 }
 
@@ -307,9 +374,11 @@ const 母集団の出どころ = [
 ] as const;
 
 function 呼び名の母集団(): { 字: { 出どころ: string; 文: string }[]; 内訳: string[] } {
+  // **呼び名は `src/` の全域を見る** (#1842)。 外した置き場 (`topics/`) にも 2 通りの呼び名は
+  // 0 件なので、英語の判定と同じ除外を当てる理由が無い
   const out: { 出どころ: string; 文: string }[] = [];
-  for (const 文 of 画面に出る字たち().字) out.push({ 出どころ: "画面", 文 });
-  for (const f of 画面のfile()) {
+  for (const 文 of 画面に出る字たち(src全域のfile()).字) out.push({ 出どころ: "画面", 文 });
+  for (const f of src全域のfile()) {
     for (const t of 札をまたぐ字(readFileSync(f, "utf8"))) {
       if (t !== "" && 日本語の字.test(t)) out.push({ 出どころ: "画面(札をまたぐ)", 文: t });
     }
@@ -435,10 +504,40 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
   });
 
   it("外した材料が実在し、理由を持っている", () => {
-    const 実在 = readdirSync(src根 + "lib/");
+    // **探すのは `src/` の全域** (#1842)。 置き場を決め打ちすると、別の置き場の file を
+    // 外した日に「実在しない」 と落ちる (実測で `data/editor-samples.ts` がそうなった)
+    const 実在 = new Set(src全域のfile().map((f) => f.slice(f.lastIndexOf("/") + 1)));
+    expect(実在.size, "file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(20);
     for (const [f, 理由] of Object.entries(外す材料)) {
-      expect(実在, `外した材料が無い: ${f}`).toContain(f);
+      expect([...実在], `外した材料が無い: ${f}`).toContain(f);
       expect(理由.length, `外した理由が短すぎる: ${f}`).toBeGreaterThan(30);
+    }
+  });
+
+  it("外した置き場が実在し、理由を持っている (#1842)", () => {
+    const 置き場 = Object.entries(外す置き場);
+    expect(置き場.length, "外した置き場が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
+    for (const [d, 理由] of 置き場) {
+      expect(d.endsWith("/"), `置き場は末尾に / を付ける: ${d}`).toBe(true);
+      expect(
+        src全域のfile().filter((f) => f.slice(src根.length).startsWith(d)).length,
+        `外した置き場に file が 1 つも無い: ${d}`,
+      ).toBeGreaterThan(0);
+      expect(理由.length, `外した理由が短すぎる: ${d}`).toBeGreaterThan(30);
+    }
+  });
+
+  it("外した置き場を戻すと判定が赤くなる (宣言が古くなる形、#1842)", () => {
+    // 外した理由が解消した日に宣言だけが残ると、その置き場は永久に母集団の外になる。
+    // **戻して赤くならない置き場は、外す理由をもう持っていない**
+    for (const d of Object.keys(外す置き場)) {
+      const files = src全域のfile().filter((f) => f.slice(src根.length).startsWith(d));
+      const 残る = 画面に出る字たち(files).字.flatMap((s) => 残る英単語(s));
+      console.log(`[外した置き場] ${d} file=${files.length} 残る英語=${new Set(残る).size} 種`);
+      expect(
+        new Set(残る).size,
+        `${d} を母集団へ戻しても判定が赤くならない (外す理由が残っていない。 宣言を消す)`,
+      ).toBeGreaterThan(0);
     }
   });
 
@@ -686,6 +785,73 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
     const { 経路 } = 記法が知る名前();
     const 引ける = 綴りの照合(表.map(([w]) => ({ 元: w, 綴り: w })), 経路).対象.map((r) => r.綴り);
     expect(引ける, `記法から引ける綴りを表に置いている: ${引ける.join(", ")}`).toEqual([]);
+  });
+
+  it("編集画面の見本に残る英語が、記法の配る図の型に実在する (#1842)", () => {
+    // `editor-samples.ts` は母集団から外れている 2 つ目の file。 外した先が無防備に
+    // ならないよう、この検査が見本の英語を 1 語ずつ図の型と照合する。
+    // **`残してよい語` には足さない** = `line` / `class` / `state` のような一般語が
+    // 混ざっており、一覧に足すと画面のどこでもその語が通る
+    const 型 = 記法が配る図の型();
+    const 印 = new Set(Object.keys(見本が使う記法の印));
+    const { 文, 語, 走査 } = 編集画面の見本();
+    const 残る = 語.filter((w) => !型.has(w) && !印.has(w));
+    console.log(
+      `[編集画面の見本] 走査=${走査} 日本語を含む=${文.length} 英単語=${語.length} 種` +
+        ` / 記法の図の型=${型.size} 記法の印=${印.size} どちらでもない=${残る.length}`,
+    );
+    expect(走査, "見本の字を 1 件も拾えていない (検査が空振りしている)").toBeGreaterThan(150);
+    expect(文.length, "日本語を含む字が 1 件も無い (検査が空振りしている)").toBeGreaterThan(80);
+    expect(語.length, "英単語を 1 種も拾えていない (検査が空振りしている)").toBeGreaterThan(15);
+    expect(型.size, "記法が図の型を 1 つも配っていない (照合が空振りしている)").toBeGreaterThan(15);
+    expect(残る, `記法の図の型でも印でもない英語が見本に出る: ${残る.join(" ")}`).toEqual([]);
+  });
+
+  it("見本の照合が図の型でない綴りを見つける (植え込み対照、#1842)", () => {
+    // 0 件を期待する検査なので、探し方が本当に見つけるかを植え込みで確かめる。
+    // **本番と同じ照合に別の表を渡す** = 探し方を 2 度書くと片方だけ直って drift する
+    const 型 = 記法が配る図の型();
+    const 印 = new Set(Object.keys(見本が使う記法の印));
+    const { 語 } = 編集画面の見本();
+    const 植える = [...語, "Client", "state-machine"];
+    expect(
+      植える.filter((w) => !型.has(w) && !印.has(w)),
+      "図の型でない綴りを見逃している",
+    ).toEqual(["Client", "state-machine"]);
+    // 収容対照 = 直した後の綴り (`state`) は型なので候補から消える
+    expect(型.has("state"), "直した後の綴りが図の型に無い").toBe(true);
+  });
+
+  it("見本が使う記法の印が、理由を持ち実際に見本で使われている (#1842)", () => {
+    // 理由を書けない印は、日本語へ開ける語。 一覧に足すこと自体が「直さない」 の言い換えになる
+    const 表 = Object.entries(見本が使う記法の印);
+    const { 語 } = 編集画面の見本();
+    expect(表.length, "表が空 (検査が空振りしている)").toBeGreaterThan(0);
+    const 理由なし = 表.filter(([, 理由]) => 理由.trim().length < 20).map(([w]) => w);
+    expect(理由なし, `理由を書いていない印: ${理由なし.join(", ")}`).toEqual([]);
+    const 使わない = 表.map(([w]) => w).filter((w) => !語.includes(w));
+    expect(使わない, `表に挙げたが見本で使っていない: ${使わない.join(", ")}`).toEqual([]);
+    // 収容対照 = 図の型から引ける綴りが表に紛れ込んでいないこと
+    const 型 = 記法が配る図の型();
+    const 引ける = 表.map(([w]) => w).filter((w) => 型.has(w));
+    expect(引ける, `図の型から引ける綴りを表に置いている: ${引ける.join(", ")}`).toEqual([]);
+  });
+
+  it("見本の名前の括弧の中が、その見本の図の型と揃っている (#1842)", () => {
+    // 括弧の中は **その見本自身の記法から引ける**。 手で並べた一覧と照らすと、
+    // 図の型を変えた日に一覧だけ古くなる。 実測で `認証状態遷移 (state-machine)` が
+    // `type: state` と食い違っており、走査を広げて初めて出た
+    const ずれ = EDITOR_SAMPLES.map((s) => ({
+      label: s.label,
+      括弧: 名前の括弧(s.label),
+      型: 記法の図の型(s.code),
+    })).filter((r) => r.括弧 !== r.型);
+    console.log(`[見本の名前] 走査=${EDITOR_SAMPLES.length} 件 ずれ=${ずれ.length}`);
+    expect(EDITOR_SAMPLES.length, "見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(20);
+    expect(
+      ずれ.map((r) => `${r.label}: 括弧=${r.括弧} 型=${r.型}`),
+      "見本の名前の括弧と図の型が食い違っている",
+    ).toEqual([]);
   });
 
   it("残してよい語が記法の名前の表から組み立てられている (#1825)", () => {

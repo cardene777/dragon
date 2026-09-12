@@ -215,7 +215,7 @@ test("長い名前が狭い画面で省略記号付きで切れる", async ({ pa
   const 記法欄 = () => page.locator(".v4-editor-bar").first().locator(".v4-editor-bar-file-name");
 
   // 見本を切り替えて長い名前にする (見本の名前が file 名になる)
-  const 長い見本 = page.getByRole("button", { name: /Clientと投稿のスキーマ|システム構成|スプリントロードマップ/ }).first();
+  const 長い見本 = page.getByRole("button", { name: /利用者・投稿・コメントのスキーマ|システム構成|スプリントロードマップ/ }).first();
   if (await 長い見本.count()) {
     await 長い見本.click();
     await page.waitForTimeout(900);

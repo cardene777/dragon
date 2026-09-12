@@ -8,7 +8,7 @@ describe("axisOffset", () => {
   });
 
   it("収まらないなら始点を枠の左端に合わせる", () => {
-    // 枠 688 に図 1374 (見本「Client登録」 の実測)。 中央だと左右 343 ずつ隠れる
+    // 枠 688 に図 1374 (見本「利用者登録」 の実測)。 中央だと左右 343 ずつ隠れる
     expect(axisOffset({ frame: 688, content: 1374, origin: 0 })).toBeCloseTo(0, 5);
   });
 

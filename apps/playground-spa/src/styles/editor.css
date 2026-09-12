@@ -36,8 +36,8 @@
    *
    * 340px を選んだのは、 絵の枠をほぼ保ったまま (852 → 840) 狭い窓での潰れを止められる点。
    * 横スクロールは無くならない = 見本で最も長い行 (`er` の
-   * `title: "Client・投稿・コメントのスキーマ"`) は 545px あり、 完全に収めると記法欄 545px /
-   * 絵の枠 635px で変更前より狭くなる。 横スクロールはエディタとして普通の挙動で、 変更前も
+   * `title: "利用者・投稿・コメントのスキーマ"`) は 521px あり、 完全に収めると記法欄 521px /
+   * 絵の枠 659px で変更前より狭くなる。 横スクロールはエディタとして普通の挙動で、 変更前も
    * `er` は 54px 欠けていた (実測) ため目標にしない。 */
   .v4-editor {
     display: grid;
@@ -824,7 +824,7 @@
     cursor: grabbing;
   }
   /* editor では lane label (sequence preset の各 lane 上部に float する actor 名 text =
-     「Client」「alarmclock1」「API」「DB」 等) を非表示にする。 user から複数回の指摘あり
+     「利用者」「alarmclock1」「API」「DB」 等) を非表示にする。 user から複数回の指摘あり
      (「常にこの文字ある」 = 掴む対象 (actor header box) が既に actor 名を大きく表示済のため
      lane label が視覚 noise + 重複表示)。 CdlDiagramView 側に hideLaneLabel prop が無いため
      CSS で hide、 catalog 側 (.catalog-preview-*) は残す = catalog は spec を正確に render する場所。
