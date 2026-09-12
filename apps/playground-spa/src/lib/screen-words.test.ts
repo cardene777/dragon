@@ -18,7 +18,9 @@
  * 見た目の札を外し、材料は引用符の中身だけを見る。 組み立ての形が違うので検査ごとに持つ。
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { file一覧 } from "./walk-files";
 import { 記法が知る名前, 綴りの照合, 経路ごとの専有 } from "./notation-names";
@@ -47,6 +49,54 @@ const src根 = fileURLToPath(new URL("../", import.meta.url));
 const 設計の仕様書 = fileURLToPath(
   new URL("../../../../docs/design/specs/screens.md", import.meta.url),
 );
+
+/**
+ * 意匠 file。 画面の字をそのまま描いた相手なので、呼び名の母集団に入れる (#1840)。
+ *
+ * 入れないと、画面と仕様書だけ直して意匠が古い呼び名のまま残る形を誰も見ない
+ * (実測で `シーン` 56 箇所 / `パーツ` 4 箇所 が 3 つの改名に追い付いていなかった)。
+ *
+ * 意匠と実装の照合 (`design-structure-matches.spec.ts`) は **節の見出し (24px 以上) しか
+ * 見ない**。 残っていたのは説明文と札で 13〜15.5px なので、その閾値の下にあった。
+ * 閾値の下は名指しの一覧で 1 件ずつ見る形になっているが、**改名は名指しでは追えない**
+ * (改名するたびに 60 行足すことになる)。 呼び名の表で見るのが正しい経路。
+ */
+const 意匠 = fileURLToPath(new URL("../../../../docs/design/app.pen", import.meta.url));
+
+/** 意匠 file の node。 字は `content` と、部品を使い回した時の差し替えの 2 箇所に入る */
+type 意匠のnode = {
+  content?: string;
+  descendants?: Record<string, { content?: string } | undefined>;
+  children?: 意匠のnode[];
+};
+
+/**
+ * 意匠 file が持つ字を全部集める。 **2 通りに分けて返す**。
+ *
+ * 部品を使い回した node は自分の `content` を持たず、差し替え (`descendants`) の側にしか
+ * 字が無い。 片方だけだと使い回しの字が丸ごと母集団から落ちる。
+ *
+ * 分けて返すのは、合計だけでは落ちたことに気付けないため = 実測で `content` が 2127 件、
+ * 差し替えが 39 件で、差し替えを落としても合計はほとんど動かない。
+ * 出どころを分ければ「片方が 0 件」 として検査に出る (画面を 2 通りで読むのと同じ形)。
+ *
+ * **読む先を引数で受ける** = 植え込み対照が同じ探し方を仮の意匠へ当てるため。
+ * 対照側に探し方を書き直すと、片方だけ直して食い違う。
+ */
+function 意匠の字(path: string): { 直接: string[]; 使い回し: string[] } {
+  const 直接: string[] = [];
+  const 使い回し: string[] = [];
+  const 降りる = (n: 意匠のnode | undefined): void => {
+    if (n === undefined || n === null || typeof n !== "object") return;
+    if (typeof n.content === "string" && n.content !== "") 直接.push(n.content);
+    for (const d of Object.values(n.descendants ?? {})) {
+      if (typeof d?.content === "string" && d.content !== "") 使い回し.push(d.content);
+    }
+    for (const c of n.children ?? []) 降りる(c);
+  };
+  降りる(JSON.parse(readFileSync(path, "utf8")) as 意匠のnode);
+  return { 直接, 使い回し };
+}
 
 
 /**
@@ -248,6 +298,14 @@ function 札をまたぐ字(src: string): string[] {
  * 札を外してつないだ行も足す。 内訳を分けて出すのは、どちらが何件を持ち込んだかが
  * 見えないと「つないだ側が 0 件でも通る」 形に気付けないため。
  */
+const 母集団の出どころ = [
+  "画面",
+  "画面(札をまたぐ)",
+  "設計",
+  "意匠",
+  "意匠(使い回し)",
+] as const;
+
 function 呼び名の母集団(): { 字: { 出どころ: string; 文: string }[]; 内訳: string[] } {
   const out: { 出どころ: string; 文: string }[] = [];
   for (const 文 of 画面に出る字たち().字) out.push({ 出どころ: "画面", 文 });
@@ -260,7 +318,14 @@ function 呼び名の母集団(): { 字: { 出どころ: string; 文: string }[]
     const t = ln.trim();
     if (t !== "" && 日本語の字.test(t)) out.push({ 出どころ: "設計", 文: t });
   }
-  const 内訳 = ["画面", "画面(札をまたぐ)", "設計"].map(
+  const 意匠から = 意匠の字(意匠);
+  for (const t of 意匠から.直接) {
+    if (日本語の字.test(t)) out.push({ 出どころ: "意匠", 文: t });
+  }
+  for (const t of 意匠から.使い回し) {
+    if (日本語の字.test(t)) out.push({ 出どころ: "意匠(使い回し)", 文: t });
+  }
+  const 内訳 = 母集団の出どころ.map(
     (k) => `${k}=${out.filter((r) => r.出どころ === k).length}`,
   );
   return { 字: out, 内訳 };
@@ -661,7 +726,7 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
       .flatMap(({ 出どころ, 文 }) => 二通りの呼び名(文).map((印) => `${出どころ}: ${文.slice(0, 50)} [${印}]`));
     console.log(`[呼び名] 走査した字=${字.length} (${内訳.join(" ")}) 対=${揃える呼び名.length} 残る=${残る.length}`);
     expect(字.length, "字を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(200);
-    for (const k of ["画面", "画面(札をまたぐ)", "設計"]) {
+    for (const k of 母集団の出どころ) {
       expect(
         字.some((r) => r.出どころ === k),
         `${k} の字を 1 件も読めていない (母集団が片側に寄っている)`,
@@ -728,6 +793,43 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
     expect(二通りの呼び名("形を選び置き場所を決め段ごとに動かす。")).toEqual([]);
     expect(二通りの呼び名("道筋は `概要 › 更新履歴`。")).toEqual([]);
     expect(二通りの呼び名("dragon に参加する")).toEqual([]);
+  });
+
+  it("意匠 file の字を 2 通りとも集める (植え込み対照 + 収容対照、#1840)", () => {
+    // **本番と同じ探し方**を、仮の意匠へ当てる。 探し方を書き直すと片方だけ直って食い違う
+    const 仮の意匠 = join(mkdtempSync(join(tmpdir(), "pen-words-")), "app.pen");
+    writeFileSync(
+      仮の意匠,
+      JSON.stringify({
+        children: [
+          {
+            // 直接の字。 古い呼び名を 1 件置く (植え込み対照)
+            content: "シーンでの推移",
+            children: [
+              // 直した形。 母集団に残ることを見る (収容対照)
+              { content: "段での推移" },
+              {
+                // 部品の使い回し = 自分の字を持たず、差し替えの側にしか無い形
+                ref: "card",
+                descendants: { "0:1": { content: "パーツ分類" } },
+              },
+            ],
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    const 集めた = 意匠の字(仮の意匠);
+    // 植え込み対照 = 古い呼び名を見つける
+    expect(集めた.直接).toContain("シーンでの推移");
+    expect(集めた.使い回し, "差し替えの側の字を集めていない").toContain("パーツ分類");
+    // 収容対照 = 直した形も母集団に残る (直すと候補から消える形になっていない)
+    expect(集めた.直接, "直した字が母集団から消えている").toContain("段での推移");
+    // 2 通りを混ぜない = 混ぜると片方が 0 件でも合計で隠れる
+    expect(集めた.使い回し).not.toContain("シーンでの推移");
+
+    rmSync(dirname(仮の意匠), { recursive: true, force: true });
   });
 
   it("揃える呼び名が理由を持っている (#1811)", () => {
