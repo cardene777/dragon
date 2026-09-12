@@ -7,6 +7,25 @@ dragon DSL の主要変更履歴。
 
 ### Fixed
 
+- **種別の見本の英語 52 語を日本語にして、21 図を厳しい判定に回した** (#1884)
+
+  種別の見本 (`primitives-extra.cdl.ts`) は箱の種別 21 種を 1 図ずつ見せる。 天井が
+  `図=21 語=52 延べ=92` で、21 図すべてが厳しい判定 (#1859) から外れていた。
+
+  **延べ 92 のうち 42 は組み立ての helper の 2 行**から来ていた (`badge("active")` /
+  `badge("running")` を全 21 図に付ける)。 `動作中` / `値が動く` に直して 42 が消えた。
+
+  残りは箱の題と小見出しと副題の例示 (`User` / `AuthService` / `in-memory store`)。
+  箱の題は記法では節の名前なので、記法の鍵と `focus:` の参照も揃えた。
+
+  製品名と規格名と単位の 11 語 (`Kafka` / `Cloudflare` / `Express` / `Bull` / `SQS` /
+  `HMAC` / `REST` / `CDN` / `GB` / `CPU` / `users`) は日本語に開く先が無いため、理由付きで
+  `残してよい語` に載せた。 一覧は 12 file すべてに効くので `cookbook` / `interactive` /
+  `primitives` / `text-dsl` の天井も下がっている。
+
+  **`Next.js App` だけは製品名を外した**。 綴りに点を含むため語が `Next` と `js` に割れ、
+  どちらも普通の英単語なので一覧に載せると他の file の仮置きを見逃す。
+
 - **動きの見本の英語 19 語を日本語にして、10 図を厳しい判定に回した** (#1881)
 
   動きの見本 (`animation.cdl.ts`) は箱の題 (`Counter` / `Sum` / `Process` / `Step` /

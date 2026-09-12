@@ -112,6 +112,17 @@ const 残してよい語: Record<string, string> = {
   dragon: "この製品の名前 (#1861)",
   Transfer: "送金を知らせる Solidity の出来事の名前。 コードに書く識別子で、訳すと実物と対応しなくなる (#1876)",
   gwei: "イーサリアムの手数料の単位。 単位は綴りが決まっている (#1881)",
+  Kafka: "分散メッセージ配送の製品名 (#1884)",
+  Cloudflare: "配信網の事業者名 (#1884)",
+  Express: "サーバ側の枠組みの製品名 (#1884)",
+  Bull: "待ち行列の製品名 (#1884)",
+  SQS: "AWS の待ち行列の製品名 (#1884)",
+  HMAC: "鍵付きハッシュの規格名 (#1884)",
+  REST: "通信の設計様式の名前 (#1884)",
+  CDN: "配信網の略語 (#1884)",
+  GB: "情報量の単位の記号 (#1884)",
+  CPU: "演算装置の略語 (#1884)",
+  users: "`POST /users` の道筋の一部 (#1884)",
 };
 
 /**
@@ -426,6 +437,7 @@ function 見本帳の図(): { 件: { file: string; 鍵: string; 図: CdlDiagram 
  * | #1876 | 下がる | 分散台帳の見本の人名 2 語を日本語にし、Solidity の出来事の名前を一覧に載せた |
  * | #1879 | 下がる | `parts.cdl.ts` の段の題 26 件を日本語に開いた (80 図が厳しい判定へ) |
  * | #1881 | 下がる | `animation.cdl.ts` の 19 語を日本語に開き、単位の `gwei` を一覧に載せた |
+ * | #1884 | 下がる | `primitives-extra.cdl.ts` の 52 語を日本語に開き、製品名と規格名と単位 11 語を一覧に載せた |
  *
  * **手書きの一覧に 1 語足すと、その語を持つ file すべてが下がる** (#1861 / #1876 で実測)。
  * 一覧は 12 file に効くので、足した回は全 file の数を測り直す。
@@ -433,16 +445,16 @@ function 見本帳の図(): { 件: { file: string; 鍵: string; 図: CdlDiagram 
 const 図の字の天井: Record<string, { 図: number; 語: number; 延べ: number }> = {
   "animation.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "charts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "cookbook.cdl.ts": { 図: 26, 語: 152, 延べ: 287 },
+  "cookbook.cdl.ts": { 図: 26, 語: 151, 延べ: 286 },
   "ethereum.cdl.ts": { 図: 2, 語: 6, 延べ: 7 },
-  "interactive.cdl.ts": { 図: 114, 語: 692, 延べ: 1314 },
+  "interactive.cdl.ts": { 図: 114, 語: 690, 延べ: 1311 },
   "parts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "patterns.cdl.ts": { 図: 12, 語: 75, 延べ: 140 },
   "presets.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "primitives-extra.cdl.ts": { 図: 21, 語: 52, 延べ: 92 },
-  "primitives.cdl.ts": { 図: 89, 語: 448, 延べ: 981 },
+  "primitives-extra.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
+  "primitives.cdl.ts": { 図: 89, 語: 444, 延べ: 970 },
   "styles.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "text-dsl.cdl.ts": { 図: 13, 語: 59, 延べ: 83 },
+  "text-dsl.cdl.ts": { 図: 13, 語: 58, 延べ: 82 },
 };
 
 /** file ごとに、英語が残る図の数と語の種類と延べを数える */
