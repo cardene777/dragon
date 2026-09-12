@@ -30,6 +30,7 @@ import {
   二通りの呼び名,
 } from "./screen-words";
 import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
+import { TONE_ALIAS } from "@cardenelabs/dragon";
 
 const src根 = fileURLToPath(new URL("../", import.meta.url));
 
@@ -81,6 +82,65 @@ const 要素の中身 = />((?:[^<>{}]|\{(?:[^{}]|\{[^{}]*\})*\})+)</g;
  * この file は画面へ字を渡さないので、外しても守る範囲は変わらない。
  */
 const 決まりのfile = /^screen-words(\.test)?\.tsx?$/;
+
+/**
+ * 記法が持つ、色の日本語の別名 (#1823)。 色 → 別名 の向きで返す。
+ *
+ * `TONE_ALIAS` は **別名 → 色** の向きで、1 つの色に別名が複数付く
+ * (`accent` には `中立` / `neutral` / `accent` の 3 つ)。 逆に引く時は
+ * **日本語を含む別名だけを採る** = 英字の別名を採ると `accent` が返り、
+ * 「英語が残っている名前」 を正しいと判定してしまう。
+ */
+function 色の別名(): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const [別名, 色] of Object.entries(TONE_ALIAS) as [string, string][]) {
+    if (日本語の字.test(別名)) out.set(色, 別名);
+  }
+  return out;
+}
+
+/**
+ * 色調の見本の鍵から、記法の色を導く (`toneAccent` → `accent`)。
+ *
+ * 鍵の形が違うものは `null` を返して対象から外す。 外れた件数は検査が出す =
+ * 鍵の形が変わった日に「対象 0 件」 で黙って通るのを防ぐ。
+ */
+function 鍵から色(鍵: string): string | null {
+  const m = 鍵.match(/^tone([A-Z]\w*)$/);
+  return m === null ? null : m[1]!.charAt(0).toLowerCase() + m[1]!.slice(1);
+}
+
+/**
+ * 色調の見本の名前が、記法の別名で始まっているか (#1823)。
+ *
+ * **値そのものは生成しない**。 名前は「別名 + 何の色か」 の組 (`中立の主張色`) で、
+ * 後半を `TONE_ALIAS` は持たない。 生成すると後半を別の表に持つことになり、
+ * 二重管理が場所を移るだけになる。 先頭の照合に留める。
+ */
+export function 色調の照合(表: Record<string, string>): {
+  対象: { 鍵: string; 値: string; 色: string; 別名: string }[];
+  対象外: { 鍵: string; 色: string; 理由: string }[];
+  外れる: string[];
+} {
+  const 別名表 = 色の別名();
+  const 対象: { 鍵: string; 値: string; 色: string; 別名: string }[] = [];
+  const 対象外: { 鍵: string; 色: string; 理由: string }[] = [];
+  for (const [鍵, 値] of Object.entries(表)) {
+    const 色 = 鍵から色(鍵);
+    if (色 === null) continue;
+    const 別名 = 別名表.get(色);
+    if (別名 === undefined) {
+      対象外.push({ 鍵, 色, 理由: "記法が日本語の別名を持たない色" });
+      continue;
+    }
+    対象.push({ 鍵, 値, 色, 別名 });
+  }
+  return {
+    対象,
+    対象外,
+    外れる: 対象.filter((r) => !r.値.startsWith(r.別名)).map((r) => `${r.鍵}: ${r.値} (期待 ${r.別名}…)`),
+  };
+}
 
 /**
  * 見本の一覧に出る名前 432 件 (#1821)。
@@ -255,10 +315,11 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
     // #1815 はこれを見落として `i18n.ts` を file ごと外し、日本語の側 432 件を道連れにした。
     // 前提が崩れた日に「英語の側 432 件が英語だ」 と大量に落ちるのではなく、
     // ここが「英語の側に日本語が混ざった」 と 1 件で知らせる
-    const 混ざる = Object.entries(ITEM_NAME_EN)
-      .filter(([, v]) => 日本語の字.test(v))
-      .map(([k, v]) => `${k}: ${v}`);
-    expect(Object.keys(ITEM_NAME_EN).length, "英語の側を 1 件も見ていない").toBeGreaterThan(400);
+    const 英語 = Object.entries(ITEM_NAME_EN);
+    const 混ざる = 英語.filter(([, v]) => 日本語の字.test(v)).map(([k, v]) => `${k}: ${v}`);
+    // **母数を出す** = 0 件が「混ざっていない」 か「1 件も見ていない」 かを読み手が分ける (#1823)
+    console.log(`[英語の側] 走査=${英語.length} 日本語が混ざる=${混ざる.length}`);
+    expect(英語.length, "英語の側を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(400);
     expect(混ざる, `英語の側に日本語が混ざる:\n${混ざる.join("\n")}`).toEqual([]);
   });
 
@@ -289,6 +350,70 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
       .filter((r) => r.w.length > 0)
       .map((r) => `${r.k}: ${r.v} → ${r.w.join(", ")}`);
     expect(残る, `見本の名前に英語が残る:\n${残る.join("\n")}`).toEqual([]);
+  });
+
+  it("色調の見本の名前が記法の別名で始まる (#1823)", () => {
+    // 英語が残っていないことを見るだけでは、`中立の主張色` を `目立つ色` に書き換えても通る。
+    // **出どころ (`TONE_ALIAS`) との結び付き** はこの検査だけが守る
+    const { 対象, 対象外, 外れる } = 色調の照合(ITEM_NAME_JA);
+    console.log(
+      `[色調] 対象=${対象.length} 対象外=${対象外.length}` +
+        ` (${対象外.map((r) => `${r.色}=${r.理由}`).join(",") || "なし"})` +
+        ` 外れる=${外れる.length}`,
+    );
+    expect(対象.length, "色調の名前を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(3);
+    expect(
+      対象外.length,
+      "対象外が 1 件も無い = 別名を持たない色が消えており、下の対象外の対照が空振りする",
+    ).toBeGreaterThan(0);
+    expect(外れる, `記法の別名で始まらない色調の名前:\n${外れる.join("\n")}`).toEqual([]);
+  });
+
+  it("色調の照合が別名でない字を見つける (植え込み対照 + 対象外の対照、#1823)", () => {
+    // 探し方を本番と 2 度書かない = 同じ関数に別の表を渡す
+    const 元 = { toneAccent: "中立の主張色", toneSuccess: "成功の緑" };
+    expect(色調の照合(元).外れる, "土台が外れている").toEqual([]);
+    expect(色調の照合(元).対象, "土台を 1 件も見ていない").toHaveLength(2);
+
+    // 別名でない日本語に書き換えると見つかる (英語は 1 文字も混ざっていない形)
+    const 植え = { toneAccent: "目立つ色", toneSuccess: "成功の緑" };
+    expect(色調の照合(植え).外れる).toEqual(["toneAccent: 目立つ色 (期待 中立…)"]);
+
+    // 別名を持たない色は対象外に落ちる (落とさないと `teal青緑` が毎回外れる)
+    const 別名なし = { toneTeal: "teal青緑" };
+    expect(色調の照合(別名なし).外れる, "別名を持たない色を咎めている").toEqual([]);
+    expect(色調の照合(別名なし).対象外.map((r) => r.色)).toEqual(["teal"]);
+
+    // 鍵の形が違うものは対象にしない
+    expect(色調の照合({ presetFlow: "フロー" }).対象).toEqual([]);
+    expect(色調の照合({ presetFlow: "フロー" }).対象外).toEqual([]);
+  });
+
+  it("色の別名を逆に引く時、英字の別名を採らない (境界、#1823)", () => {
+    // `TONE_ALIAS` は 1 つの色に別名を複数持つ (`accent` = 中立 / neutral / accent)。
+    // 英字の別名を採ると `accent主張色` が「別名で始まる」 と判定され、
+    // #1821 で直した英語がそのまま通る
+    const { 対象 } = 色調の照合({ toneAccent: "中立の主張色" });
+    expect(対象).toHaveLength(1);
+    expect(対象[0]!.別名, "英字の別名を採っている").toBe("中立");
+    expect(色調の照合({ toneAccent: "accent主張色" }).外れる).toHaveLength(1);
+  });
+
+  it("出どころが決まっている名前の内訳を出す (#1823)", () => {
+    // 色調 5 件のほかに、記法の機能の名前を含む名前がある。 **導く形にするのは範囲外** で、
+    // ここは次に何が残っているかを見える形にするだけ
+    const 機能 = Object.entries(残してよい語)
+      .filter(([, 理由]) => 理由.startsWith("記法の機能の名前"))
+      .map(([w]) => w);
+    const 含む = Object.entries(ITEM_NAME_JA)
+      .map(([k, v]) => ({ k, v, w: 機能.filter((f) => v.includes(f)) }))
+      .filter((r) => r.w.length > 0);
+    console.log(
+      `[出どころ] 色調=${色調の照合(ITEM_NAME_JA).対象.length} 件 (導く形にした)` +
+        ` / 記法の機能=${含む.length} 件 (${機能.length} 語、まだ導いていない)`,
+    );
+    expect(機能.length, "記法の機能の名前が 1 語も無い (検査が空振りしている)").toBeGreaterThan(5);
+    expect(含む.length, "機能の名前を含む見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(5);
   });
 
   it("判定を使う検査が、自前の許す語の一覧を持っていない", () => {
