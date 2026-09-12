@@ -274,7 +274,7 @@ describe("compileC4", () => {
     const d = compile("c4", {
       actors: [actor("A", { subtitle: "L1" }), actor("B", { subtitle: "L2" }), actor("C", { subtitle: "L3" })],
     });
-    expect(d.lanes.map((l) => l.label)).toEqual(["System Context", "Container", "Component"]);
+    expect(d.lanes.map((l) => l.label)).toEqual(["全体の見取り図", "動かす単位", "部品"]);
   });
   it("subtitle L2 / L3 で lane 振り分け、 それ以外は l1", () => {
     const d = compile("c4", { actors: [actor("A", { subtitle: "L2" }), actor("B", { subtitle: "L3" }), actor("C", { subtitle: "other" })] });

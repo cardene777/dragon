@@ -123,6 +123,11 @@ const 残してよい語: Record<string, string> = {
   GB: "情報量の単位の記号 (#1884)",
   CPU: "演算装置の略語 (#1884)",
   users: "`POST /users` の道筋の一部 (#1884)",
+  GET: "HTTP の要求の種類。 既にある `POST` と同じ (#1886)",
+  SELECT: "表から読み出す SQL の命令。 命令は綴りが決まっている (#1886)",
+  UPDATE: "表を書き換える SQL の命令。 命令は綴りが決まっている (#1886)",
+  orders: "`POST /orders` と `UPDATE orders` の道筋と表の名前 (#1886)",
+  OrderCreated: "注文ができたことを知らせる出来事の名前。 コードに書く識別子 (#1886)",
 };
 
 /**
@@ -154,6 +159,9 @@ const 識別子を見せる図: Record<string, string> = {
   presetErComplex: "表の名前と列の名前と型は SQL に書く識別子",
   presetClassDiagram: "クラスの名前と型はコードに書く識別子",
   presetClassComplex: "クラスの名前と型はコードに書く識別子",
+  textDslEr: "表の名前と列の名前は SQL に書く識別子 (#1886)",
+  textDslErMesh: "表の名前と列の名前と型は SQL に書く識別子 (#1886)",
+  textDslClass: "クラスの名前と持ち物はコードに書く識別子 (#1886)",
 };
 
 const 描く時刻 = new Date("2026-01-01T00:00:00Z");
@@ -438,6 +446,7 @@ function 見本帳の図(): { 件: { file: string; 鍵: string; 図: CdlDiagram 
  * | #1879 | 下がる | `parts.cdl.ts` の段の題 26 件を日本語に開いた (80 図が厳しい判定へ) |
  * | #1881 | 下がる | `animation.cdl.ts` の 19 語を日本語に開き、単位の `gwei` を一覧に載せた |
  * | #1884 | 下がる | `primitives-extra.cdl.ts` の 52 語を日本語に開き、製品名と規格名と単位 11 語を一覧に載せた |
+ * | #1886 | 下がる | `text-dsl.cdl.ts` の仮置きの役名を日本語に開き、表と型を見せる 3 図を識別子の側へ回した |
  *
  * **手書きの一覧に 1 語足すと、その語を持つ file すべてが下がる** (#1861 / #1876 で実測)。
  * 一覧は 12 file に効くので、足した回は全 file の数を測り直す。
@@ -445,16 +454,16 @@ function 見本帳の図(): { 件: { file: string; 鍵: string; 図: CdlDiagram 
 const 図の字の天井: Record<string, { 図: number; 語: number; 延べ: number }> = {
   "animation.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "charts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "cookbook.cdl.ts": { 図: 26, 語: 151, 延べ: 286 },
+  "cookbook.cdl.ts": { 図: 26, 語: 149, 延べ: 272 },
   "ethereum.cdl.ts": { 図: 2, 語: 6, 延べ: 7 },
-  "interactive.cdl.ts": { 図: 114, 語: 690, 延べ: 1311 },
+  "interactive.cdl.ts": { 図: 114, 語: 688, 延べ: 1309 },
   "parts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "patterns.cdl.ts": { 図: 12, 語: 75, 延べ: 140 },
+  "patterns.cdl.ts": { 図: 12, 語: 74, 延べ: 139 },
   "presets.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "primitives-extra.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "primitives.cdl.ts": { 図: 89, 語: 444, 延べ: 970 },
+  "primitives.cdl.ts": { 図: 89, 語: 440, 延べ: 963 },
   "styles.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "text-dsl.cdl.ts": { 図: 13, 語: 58, 延べ: 82 },
+  "text-dsl.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
 };
 
 /** file ごとに、英語が残る図の数と語の種類と延べを数える */

@@ -214,9 +214,9 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       { id: "export-data", 器: ["一覧"] },
       { id: "network-demo", 器: ["一覧"] },
       { id: "oauth-flow", 器: ["一覧"] },
-      { id: "service-call-write-emit", 器: ["一覧"] },
       { id: "swim-demo", 器: ["一覧"] },
       { id: "同時に走らせる処理", 器: ["一覧"] },
+      { id: "呼び出しと書き込みと出来事", 器: ["一覧"] },
     ],
   },
 ];
