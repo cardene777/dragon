@@ -59,11 +59,11 @@ export function ContributePage(): React.ReactElement {
           <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
-            <span className="cur">コントリビュート</span>
+            <span className="cur">参加方法</span>
           </nav>
           <span className="nm-eyebrow">参加のしかた · みんなで作る</span>
           <h1 className="nm-hero-title">
-            <span className="nm-gradient-accent">dragon</span> にコントリビュートする
+            <span className="nm-gradient-accent">dragon</span> に参加する
           </h1>
           <p className="nm-hero-subtitle">
             dragon は MIT ライセンスで公開している。 不具合の報告・機能の提案・直したものを送ることのいずれも GitHub 上で受け付けている。 進め方の決まり (テストの書き方、記録の残し方、枝の切り方、見直しの仕方) は CONTRIBUTING.md にまとめてある。
@@ -89,9 +89,9 @@ export function ContributePage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="nm-presets-section" aria-label="コントリビュート方法">
+        <section className="nm-presets-section" aria-label="参加方法">
           <div className="nm-section-head">
-            <h2 className="nm-section-title">コントリビュート方法</h2>
+            <h2 className="nm-section-title">参加方法</h2>
             <p className="nm-section-desc">
               関わり方は 3 通り (不具合の報告・機能の提案・直したものを送る)。 くわしくは CONTRIBUTING.md を読んでほしい。
             </p>
