@@ -14,6 +14,24 @@
  * 見る人にとっては直っていない。
  */
 import { test, expect } from "@playwright/test";
+import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+
+/**
+ * ガントの見本から、段の名前と時期の札を取り出す (#1846)。
+ *
+ * **札を検査に literal で書かない**。 見本の字を日本語へ開いた日に、この spec だけが
+ * 古い綴りを持って落ちる (実測 = `Q1` / `Q4` と書いていて `1期` / `4期` に開いた回で落ちた)。
+ *
+ * 見るのは `actors:` の塊だけ。 段の指定 (`- step: "..."`) は行頭から始まる別の塊にあり、
+ * 字下げの無い行で切れる。
+ */
+function ガントの札(): { 名前: string[]; 時期: string[] } {
+  const code = EDITOR_SAMPLES.find((s) => s.slug === "gantt")?.code ?? "";
+  const 頭 = code.indexOf("\nactors:");
+  const 塊 = 頭 < 0 ? "" : (code.slice(頭 + "\nactors:".length).split(/\n(?=\S)/)[0] ?? "");
+  const 行 = [...塊.matchAll(/^\s*-\s*([^:\n]+):\s*"([^"]*)"/gm)];
+  return { 名前: 行.map((m) => m[1]!.trim()), 時期: 行.map((m) => m[2]!.trim()) };
+}
 
 async function openSample(page: import("@playwright/test").Page, slug: string): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -61,7 +79,7 @@ test("見本「言語シェア」 で円が描かれる (#1076)", async ({ page 
   expect(m!.文字.join(" "), "項目名が出ていない").toContain("TypeScript");
 });
 
-test("見本「スプリントロードマップ」 で帯と目盛りが描かれる (#1077)", async ({ page }) => {
+test("見本「四半期ロードマップ」 で帯と目盛りが描かれる (#1077)", async ({ page }) => {
   // 変更前は帯も目盛りも無く、 小さな箱が階段状に 4 つ散らばっていた
   await openSample(page, "gantt");
 
@@ -87,8 +105,11 @@ test("見本「スプリントロードマップ」 で帯と目盛りが描か�
   expect(m!.帯.length, `帯の数が違う: ${JSON.stringify(m!.帯)}`).toBe(4);
   // 時期がずれていれば x も動く = 4 本が同じ位置に重なっていないことを見る
   expect(new Set(m!.帯.map((b) => b.x)).size, "帯が同じ位置に重なっている").toBe(4);
-  // 目盛りとタスク名が出る
-  for (const 語 of ["Q1", "Q4", "設計", "リリース"]) {
+  // 目盛りとタスク名が出る。 **札は見本から引く** (#1846、理由は `ガントの札()`)
+  const { 名前, 時期 } = ガントの札();
+  expect(名前.length, "見本から段の名前を取り出せていない (検査が空振りしている)").toBe(4);
+  expect(時期.length, "見本から時期の札を取り出せていない (検査が空振りしている)").toBe(4);
+  for (const 語 of [時期[0]!, 時期.at(-1)!, 名前[0]!, 名前.at(-1)!]) {
     expect(m!.文言.join(" "), `${語} が出ていない`).toContain(語);
   }
   // 変更前は幅 1400 の帯を敷いていたため、 画面に合わせると文字が読めない大きさになっていた
