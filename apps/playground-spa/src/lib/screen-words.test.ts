@@ -19,6 +19,8 @@
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   残してよい語,
@@ -28,6 +30,7 @@ import {
   外す材料,
   揃える呼び名,
   二通りの呼び名,
+  記法の名前,
 } from "./screen-words";
 import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
 import { TONE_ALIAS } from "@cardenelabs/dragon";
@@ -140,6 +143,71 @@ export function 色調の照合(表: Record<string, string>): {
     対象外,
     外れる: 対象.filter((r) => !r.値.startsWith(r.別名)).map((r) => `${r.鍵}: ${r.値} (期待 ${r.別名}…)`),
   };
+}
+
+/**
+ * 記法が知っている名前を集める。 **2 経路の和集合** (#1825)。
+ *
+ * | 経路 | そこでしか覆えない綴り |
+ * |---|---|
+ * | 記法が配る名前 (`Object.keys`) | `signal` |
+ * | 記法の型 (`dist/*.d.ts`) | `renderOffsetX` / `renderOffsetY` と項目の名前 6 語 |
+ *
+ * **組み立て口 (`diagram()` が返す物の名前) は入れない** = 実測で 150 件を集めたが、
+ * そこでしか覆えない綴りが 0 件だった (8 語を覆う一方、その 8 語は型も覆う)。
+ * 経路を増やしても守りが増えないので落とした。
+ *
+ * 型まで見るのは、箱や図に渡す指定が **実行時の名前として 1 度も現れない** ため。
+ * 受け取る側の型にしか綴りが無い。
+ *
+ * 配られる file 名は hash を含む (`render-Cp41meYv.d.ts`) ので名前で名指しせず、
+ * 入口の dir を走査する。
+ */
+function 記法が知る名前(): { 配る: Set<string>; 型: Set<string>; 型file: number } {
+  const require_ = createRequire(import.meta.url);
+  const dist = dirname(require_.resolve("@cardenelabs/cdl"));
+  const 配る = new Set(Object.keys(require_("@cardenelabs/cdl") as Record<string, unknown>));
+  const 型 = new Set<string>();
+  let 型file = 0;
+  for (const f of readdirSync(dist)) {
+    if (!f.endsWith(".d.ts")) continue;
+    型file += 1;
+    const s = readFileSync(`${dist}/${f}`, "utf8");
+    // 項目の宣言 (`name?: T` / `name: T`) と method の宣言 (`name(...)`)
+    for (const m of s.matchAll(/^\s*(?:readonly\s+)?([A-Za-z][A-Za-z0-9]*)\??\s*[:(]/gm)) {
+      型.add(m[1]!);
+    }
+  }
+  return { 配る, 型, 型file };
+}
+
+/**
+ * 記法の名前が、記法に実在するかを照合する (#1825)。
+ *
+ * **前置き一致にしない**。 `renderOffset` が `renderOffsetX` の前置きだからといって
+ * 緩めると、2 文字の語を足した日に記法の適当な名前に当たって素通りする
+ * (`si` が `signal` に当たる形)。 画面の字と実物のずれは表の `綴り` に書く。
+ *
+ * 知っている名前を引数で受けるのは、**探し方を本番と対照で 2 度書かない** ため。
+ * 経路を 1 つずつ空にした対照は、同じ関数に別の集合を渡して作る。
+ */
+export function 記法の綴りの照合(
+  表: typeof 記法の名前,
+  知る: { 配る: Set<string>; 型: Set<string> },
+): { 対象: { 語: string; 綴り: string; 経路: string[] }[]; 無い: string[] } {
+  const 対象: { 語: string; 綴り: string; 経路: string[] }[] = [];
+  const 無い: string[] = [];
+  for (const [語, { 綴り }] of Object.entries(表)) {
+    for (const s of 綴り) {
+      const 経路 = [
+        ...(知る.配る.has(s) ? ["配る"] : []),
+        ...(知る.型.has(s) ? ["型"] : []),
+      ];
+      if (経路.length === 0) 無い.push(`${語}: ${s}`);
+      else 対象.push({ 語, 綴り: s, 経路 });
+    }
+  }
+  return { 対象, 無い };
 }
 
 /**
@@ -400,20 +468,85 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
   });
 
   it("出どころが決まっている名前の内訳を出す (#1823)", () => {
-    // 色調 5 件のほかに、記法の機能の名前を含む名前がある。 **導く形にするのは範囲外** で、
-    // ここは次に何が残っているかを見える形にするだけ
-    const 機能 = Object.entries(残してよい語)
-      .filter(([, 理由]) => 理由.startsWith("記法の機能の名前"))
+    // 色調 5 件のほかに、記法の機能の名前を含む名前がある。 一覧は `記法の名前` が持つ (#1825)
+    const 機能 = Object.entries(記法の名前)
+      .filter(([, r]) => r.分け === "機能")
       .map(([w]) => w);
     const 含む = Object.entries(ITEM_NAME_JA)
       .map(([k, v]) => ({ k, v, w: 機能.filter((f) => v.includes(f)) }))
       .filter((r) => r.w.length > 0);
     console.log(
-      `[出どころ] 色調=${色調の照合(ITEM_NAME_JA).対象.length} 件 (導く形にした)` +
-        ` / 記法の機能=${含む.length} 件 (${機能.length} 語、まだ導いていない)`,
+      `[出どころ] 色調=${色調の照合(ITEM_NAME_JA).対象.length} 件 (記法の別名から導いた)` +
+        ` / 記法の機能=${含む.length} 件 (${機能.length} 語)`,
     );
     expect(機能.length, "記法の機能の名前が 1 語も無い (検査が空振りしている)").toBeGreaterThan(5);
     expect(含む.length, "機能の名前を含む見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(5);
+  });
+
+  it("記法の名前が記法に実在する (#1825)", () => {
+    // 一覧に語を並べるだけでは、記法が機能を消しても名前を変えても古いまま残り、
+    // 検査は通り続ける。 **記法との結び付き** はこの検査だけが守る
+    const 知る = 記法が知る名前();
+    const { 対象, 無い } = 記法の綴りの照合(記法の名前, 知る);
+    const 分け = (k: "項目" | "機能"): number =>
+      Object.values(記法の名前).filter((r) => r.分け === k).length;
+    console.log(
+      `[記法の名前] 語=${Object.keys(記法の名前).length} (項目=${分け("項目")} 機能=${分け("機能")})` +
+        ` 綴り=${対象.length + 無い.length} 実在=${対象.length}` +
+        ` / 記法が配る名前=${知る.配る.size} 型=${知る.型.size} (${知る.型file} file)`,
+    );
+    expect(知る.配る.size, "記法が配る名前を 1 件も読めていない (検査が空振りしている)").toBeGreaterThan(50);
+    expect(知る.型file, "記法の型を 1 file も読めていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(知る.型.size, "記法の型から名前を 1 件も拾えていない (検査が空振りしている)").toBeGreaterThan(200);
+    expect(対象.length, "照合できた綴りが 1 件も無い (検査が空振りしている)").toBeGreaterThan(10);
+    expect(無い, `記法に無い綴りを一覧に書いている:\n${無い.join("\n")}`).toEqual([]);
+  });
+
+  it("記法に無い綴りを見つける (植え込み対照 + 経路の対照、#1825)", () => {
+    const 知る = 記法が知る名前();
+    // 植え込み対照 = 記法に無い綴りを 1 件置いて、照合が見つけること
+    const 植える = { ...記法の名前, 架空の口: { 綴り: ["radialBoxes"], 分け: "機能" as const, 説明: "実在しない" } };
+    expect(記法の綴りの照合(植える, 知る).無い, "記法に無い綴りを見逃している").toEqual([
+      "架空の口: radialBoxes",
+    ]);
+
+    // 経路の対照 = 各経路を 1 つずつ空にして、そこでしか覆えない綴りが落ちること。
+    // 落ちなければ、その経路は守りを 1 つも足していない
+    const 配るだけ = 記法の綴りの照合(記法の名前, { 配る: 知る.配る, 型: new Set() }).無い;
+    const 型だけ = 記法の綴りの照合(記法の名前, { 配る: new Set(), 型: 知る.型 }).無い;
+    console.log(
+      `[経路の対照] 型を空に→${配るだけ.length} 件が落ちる / 配る名前を空に→${型だけ.length} 件が落ちる`,
+    );
+    expect(配るだけ.length, "型の経路が守りを 1 つも足していない").toBeGreaterThan(0);
+    expect(型だけ, "記法が配る名前の経路が守りを 1 つも足していない").toEqual(["signal: signal"]);
+  });
+
+  it("綴りの照合が前置き一致になっていない (境界、#1825)", () => {
+    // `renderOffset` が `renderOffsetX` の前置きなので、緩めたくなる形。 緩めると
+    // 2 文字の語を足した日に記法の適当な名前に当たって素通りする
+    const 知る = 記法が知る名前();
+    expect(知る.配る.has("signal"), "土台が外れている (記法が `signal` を配っていない)").toBe(true);
+    const 短い = { si: { 綴り: ["si"], 分け: "機能" as const, 説明: "実在しない" } };
+    expect(記法の綴りの照合(短い, 知る).無い, "前置き一致で素通りしている").toEqual(["si: si"]);
+    // 逆向き = 記法の名前を前置きに持つ綴りも通さない
+    const 長い = { x: { 綴り: ["signalXyz"], 分け: "機能" as const, 説明: "実在しない" } };
+    expect(記法の綴りの照合(長い, 知る).無い).toEqual(["x: signalXyz"]);
+  });
+
+  it("残してよい語が記法の名前の表から組み立てられている (#1825)", () => {
+    // 語を 2 箇所に書くと片方だけ直って食い違う。 **`残してよい語` に literal で
+    // 書き戻されていないこと** を字で見る
+    const src = readFileSync(src根 + "lib/screen-words.ts", "utf8");
+    const 頭 = src.indexOf("export const 残してよい語");
+    expect(頭, "残してよい語が見つからない (検査が空振りしている)").toBeGreaterThan(0);
+    const 中身 = src.slice(頭);
+    const 語 = Object.keys(記法の名前);
+    expect(語.length, "記法の名前が 1 語も無い (検査が空振りしている)").toBeGreaterThan(10);
+    const 二重 = 語.filter((w) => new RegExp(`^\\s+${w}:`, "m").test(中身));
+    expect(二重, `残してよい語に literal で書き戻している: ${二重.join(", ")}`).toEqual([]);
+    // 収容対照 = 表から組み立てた 16 語が、実際に一覧へ入っていること
+    const 入っていない = 語.filter((w) => !(w in 残してよい語));
+    expect(入っていない, `表にあるが一覧に入っていない: ${入っていない.join(", ")}`).toEqual([]);
   });
 
   it("判定を使う検査が、自前の許す語の一覧を持っていない", () => {
