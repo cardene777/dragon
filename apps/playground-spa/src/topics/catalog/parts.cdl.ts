@@ -162,7 +162,7 @@ export const partsHorizontalBar = diagram("parts-horizontal-bar", {
       radius: 6,
     },
   })
-  .phase("p", { duration: 4000, title: "fill 進行", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "満ちていく", body: "" }, (p: PhaseBuilder) =>
     p.activate("bar").tween("pv", 0, 100),
   )
   .build();
@@ -193,7 +193,7 @@ export const partsArcGauge = diagram("parts-arc-gauge", {
       fill: "#4e9dc4",
     },
   })
-  .phase("p", { duration: 4000, title: "sweep 進行", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "弧が伸びる", body: "" }, (p: PhaseBuilder) =>
     p.activate("arc").tween("v", 0, 95),
   )
   .build();
@@ -325,7 +325,7 @@ export const partsPercentRing = diagram("parts-percent-ring", {
   .state("v", { initial: 0 })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
   .readout.percentRing("ring", { source: "v", max: 100, label: "percent ring" })
-  .phase("p", { duration: 4000, title: "ring 進行", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "輪が回る", body: "" }, (p: PhaseBuilder) =>
     p.tween("v", 0, 100),
   )
   .build();
@@ -390,7 +390,7 @@ export const partsEdgeChain = diagram("parts-edge-chain", {
   })
   .edge("nA", "nB", { id: "e12", label: "→", tone: "info" })
   .edge("nB", "nC", { id: "e23", label: "→", tone: "success" })
-  .phase("p", { duration: 4000, title: "flow 通過", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "流れが通る", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("nA", "nB", "nC", "e12", "e23")
       .tween("n1", 0, 100)
@@ -446,7 +446,7 @@ export const partsSparkline = diagram("parts-sparkline", {
     color: "#4e9dc4",
     label: "trend sparkline",
   })
-  .phase("p", { duration: 4000, title: "trend 描画", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "推移を描く", body: "" }, (p: PhaseBuilder) =>
     p.tween("v", 10, 80),
   )
   .build();
@@ -478,7 +478,7 @@ export const partsRadar = diagram("parts-radar", {
   .state("dims", { initial: "[3, 3, 3, 3, 3]" })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
   .readout.radar("rdr", { source: "dims", max: 10, color: "#4e9dc4", label: "5 軸 radar" })
-  .phase("p", { duration: 3000, title: "balance 表示", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 3000, title: "釣り合いを見せる", body: "" }, (p: PhaseBuilder) =>
     p.set("dims", "[8, 3, 5, 2, 7]"),
   )
   .build();
@@ -500,7 +500,7 @@ export const partsStepProgress = diagram("parts-step-progress", {
     color: "#22c55e",
     label: "wizard 4 step",
   })
-  .phase("p", { duration: 3000, title: "step 表示", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 3000, title: "段取りを見せる", body: "" }, (p: PhaseBuilder) =>
     p.set("cur", 1),
   )
   .build();
@@ -524,7 +524,7 @@ export const partsStatusDot = diagram("parts-status-dot", {
     ] as const,
     label: "status dot",
   })
-  .phase("p", { duration: 3000, title: "state 表示", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 3000, title: "状態を見せる", body: "" }, (p: PhaseBuilder) =>
     p.set("st", "online"),
   )
   .build();
@@ -571,7 +571,7 @@ export const partsKpiCard = diagram("parts-kpi-card", {
     unit: " 件",
     label: "KPI 売上件数",
   })
-  .phase("p", { duration: 3500, title: "KPI 上昇", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 3500, title: "指標が上がる", body: "" }, (p: PhaseBuilder) =>
     p.tween("cur", 1000, 1500).tween("hist", 500, 1200).set("prev", 1000),
   )
   .build();
@@ -589,7 +589,7 @@ export const partsTimelineStrip = diagram("parts-timeline-strip", {
   })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
   .readout.statusTimeline("stl", { source: "evt", max: 8, label: "timeline 4 event" })
-  .phase("p", { duration: 3000, title: "timeline 表示", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 3000, title: "時間の並びを見せる", body: "" }, (p: PhaseBuilder) =>
     p.set("evt", '[["00:00","active"],["01:00","warning"],["02:00","error"],["03:00","active"]]'),
   )
   .build();
@@ -810,7 +810,7 @@ export const partsToggleSwitch = diagram("parts-toggle-switch", {
       radius: 80,
     },
   })
-  .phase("p", { duration: 3000, title: "off から on へ", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 3000, title: "切から入へ", body: "" }, (p: PhaseBuilder) =>
     p.activate("track").tween("on", 0, 100),
   )
   .build();
@@ -896,7 +896,7 @@ export const partsPulseIndicator = diagram("parts-pulse-indicator", {
       fill: "#8b5cf6",
     },
   })
-  .phase("p", { duration: 4000, title: "rate 上昇", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "毎秒の件数が増える", body: "" }, (p: PhaseBuilder) =>
     p.activate("pulse").tween("rate", 5, 85),
   )
   .build();
@@ -1071,7 +1071,7 @@ export const partsUserAvatar = diagram("parts-user-avatar", {
     h: 340,
     shape: { kind: "circle", radius: "{r}", fill: "{bg}" },
   })
-  .phase("p", { duration: 3000, title: "avatar が現れる", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 3000, title: "人物の絵が現れる", body: "" }, (p: PhaseBuilder) =>
     p.activate("avatar").tween("r", 40, 150),
   )
   .build();
@@ -1309,7 +1309,7 @@ export const partsProgressLong = diagram("parts-progress-long", {
     color: "#22c55e",
     label: "6 stage wizard",
   })
-  .phase("p", { duration: 4000, title: "step 進行", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "段取りが進む", body: "" }, (p: PhaseBuilder) =>
     p.tween("cur", 3, 6),
   )
   .build();
@@ -1429,7 +1429,7 @@ export const partsRainbowStack = diagram("parts-rainbow-stack", {
     h: 90,
     shape: { kind: "rect", source: "{t5}", fillMax: 30, orient: "up", fill: "#8b5cf6", radius: 4 },
   })
-  .phase("p", { duration: 4000, title: "全 tier active", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "全ての段が動く", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("tier1", "tier2", "tier3", "tier4", "tier5")
       .tween("t1", 20, 28)
@@ -1665,7 +1665,7 @@ export const partsExpBar = diagram("parts-exp-bar", {
       radius: 60,
     },
   })
-  .phase("p", { duration: 4500, title: "XP 上昇", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4500, title: "経験値が上がる", body: "" }, (p: PhaseBuilder) =>
     p.activate("bar").tween("xp", 20, 95),
   )
   .build();
@@ -2032,7 +2032,7 @@ export const partsBindTemplateChain = diagram("parts-bind-template-chain", {
       radius: 12,
     },
   })
-  .phase("p", { duration: 4000, title: "template 更新", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "ひな形の差し替え", body: "" }, (p: PhaseBuilder) =>
     p.activate("card").tween("rate", 42, 88),
   )
   .build();
@@ -2144,7 +2144,7 @@ export const partsBindGrid4 = diagram("parts-bind-grid-4", {
     h: 180,
     shape: { kind: "rect", source: "{q4}", fillMax: 100, orient: "up", fill: "#dc2626", radius: 8 },
   })
-  .phase("p", { duration: 4000, title: "全 tile 同時", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 4000, title: "全ての枡が同時に動く", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("t1", "t2", "t3", "t4")
       .tween("q1", 20, 95)
@@ -2178,7 +2178,7 @@ export const partsBindCountdown = diagram("parts-bind-countdown", {
       fill: "#dc2626",
     },
   })
-  .phase("p", { duration: 5000, title: "countdown", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 5000, title: "残り時間が減る", body: "" }, (p: PhaseBuilder) =>
     p.activate("clock").tween("sec", 60, 0),
   )
   .build();
@@ -2321,7 +2321,7 @@ export const partsBindEqualizer5 = diagram("parts-bind-equalizer-5", {
     h: 300,
     shape: { kind: "rect", source: "{e5}", fillMax: 100, orient: "up", fill: "#dc2626", radius: 4 },
   })
-  .phase("p", { duration: 3500, title: "EQ 波", body: "" }, (p: PhaseBuilder) =>
+  .phase("p", { duration: 3500, title: "音の帯が揺れる", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("bar1", "bar2", "bar3", "bar4", "bar5")
       .tween("e1", 30, 80)
@@ -2349,13 +2349,13 @@ export const partsBindColorState = diagram("parts-bind-color-state", {
     h: 340,
     shape: { kind: "rect", source: 100, fillMax: 100, orient: "up", fill: "{bg}", radius: 12 },
   })
-  .phase("p1", { duration: 1500, title: "warning", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1500, title: "注意", body: "" }, (p: PhaseBuilder) =>
     p.activate("tile").set("bg", "#f59e0b"),
   )
-  .phase("p2", { duration: 1500, title: "critical", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1500, title: "危険", body: "" }, (p: PhaseBuilder) =>
     p.activate("tile").set("bg", "#dc2626"),
   )
-  .phase("p3", { duration: 1500, title: "back to ok", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1500, title: "正常に戻る", body: "" }, (p: PhaseBuilder) =>
     p.activate("tile").set("bg", "#22c55e"),
   )
   .build();
@@ -2512,10 +2512,10 @@ export const partsBindModeToggle = diagram("parts-bind-mode-toggle", {
     h: 340,
     shape: { kind: "rect", source: 100, fillMax: 100, orient: "up", fill: "{bg}", radius: 12 },
   })
-  .phase("p1", { duration: 1500, title: "→ dark", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1500, title: "暗い配色へ", body: "" }, (p: PhaseBuilder) =>
     p.activate("card").set("bg", "#1a1408").set("txt", "dark mode"),
   )
-  .phase("p2", { duration: 1500, title: "→ light", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1500, title: "明るい配色へ", body: "" }, (p: PhaseBuilder) =>
     p.activate("card").set("bg", "#fcf8ee").set("txt", "light mode"),
   )
   .build();
@@ -2664,21 +2664,21 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
     h: 380,
     shape: { kind: "rect", source: "{net}", fillMax: 100, orient: "up", fill: "{netC}", radius: 8 },
   })
-  .phase("p1", { duration: 1200, title: "load 上昇", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "負荷が上がる", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("cpuG", "memG", "netG")
       .tween("cpu", 15, 60)
       .tween("mem", 30, 55)
       .tween("net", 5, 40),
   )
-  .phase("p2", { duration: 1200, title: "warning", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "注意", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("cpuG", "memG", "netG")
       .tween("cpu", 60, 82)
       .set("cpuC", "#f59e0b")
       .set("status", "warning"),
   )
-  .phase("p3", { duration: 1200, title: "critical", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1200, title: "危険", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("cpuG", "memG", "netG")
       .tween("cpu", 82, 95)
@@ -2934,7 +2934,7 @@ actors:
   - 進捗バー: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{pv}%", posW: 580, posH: 100, shape: { kind: rect, source: "{pv}", fillMax: 100, orient: right, fill: "#22c55e", radius: 6 } }
 
 animation:
-  - step: "fill 進行" 4s
+  - step: "満ちていく" 4s
     focus: ["進捗バー"]
     tween:
       pv: 0 -> 100
@@ -2969,7 +2969,7 @@ export const sourceJson__partsHorizontalBar = `{
   "states": { "pv": 0 },
   "animation": [
     {
-      "step": "fill 進行",
+      "step": "満ちていく",
       "duration": 4,
       "focus": ["進捗バー"],
       "tween": { "pv": [0, 100] }
@@ -2990,7 +2990,7 @@ actors:
   - アークゲージ: { kind: dyn-arc, lane: l, stack: 0, subtitle: "{v}%", posW: 360, posH: 380, shape: { kind: arc, angle: "{v}", sweepMax: 100, outerRadius: 140, innerRadius: 100, fill: "#4e9dc4" } }
 
 animation:
-  - step: "sweep 進行" 4s
+  - step: "弧が伸びる" 4s
     focus: ["アークゲージ"]
     tween:
       v: 0 -> 95
@@ -3025,7 +3025,7 @@ export const sourceJson__partsArcGauge = `{
   "states": { "v": 0 },
   "animation": [
     {
-      "step": "sweep 進行",
+      "step": "弧が伸びる",
       "duration": 4,
       "focus": ["アークゲージ"],
       "tween": { "v": [0, 95] }
@@ -3253,7 +3253,7 @@ actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
 
 animation:
-  - step: "ring 進行" 4s
+  - step: "輪が回る" 4s
     tween:
       v: 0 -> 100
 `;
@@ -3283,7 +3283,7 @@ export const sourceJson__partsPercentRing = `{
   "states": { "v": 0 },
   "animation": [
     {
-      "step": "ring 進行",
+      "step": "輪が回る",
       "duration": 4,
       "tween": { "v": [0, 100] }
     }
@@ -3373,7 +3373,7 @@ flow:
   - step 2 -> step 3: "→" (success)
 
 animation:
-  - step: "flow 通過" 4s
+  - step: "流れが通る" 4s
     focus: ["step 1", "step 2", "step 3", "step 1 -> step 2", "step 2 -> step 3"]
     tween:
       n1: 0 -> 100
@@ -3449,7 +3449,7 @@ export const sourceJson__partsEdgeChain = `{
   "states": { "n1": 0, "n2": 0, "n3": 0 },
   "animation": [
     {
-      "step": "flow 通過",
+      "step": "流れが通る",
       "duration": 4,
       "focus": ["step 1", "step 2", "step 3", "step 1 -> step 2", "step 2 -> step 3"],
       "tween": { "n1": [0, 100], "n2": [0, 100], "n3": [0, 100] }
@@ -3529,7 +3529,7 @@ actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
 
 animation:
-  - step: "trend 描画" 4s
+  - step: "推移を描く" 4s
     tween:
       v: 10 -> 80
 `;
@@ -3566,7 +3566,7 @@ export const sourceJson__partsSparkline = `{
   "states": { "v": 10 },
   "animation": [
     {
-      "step": "trend 描画",
+      "step": "推移を描く",
       "duration": 4,
       "tween": { "v": [10, 80] }
     }
@@ -3642,7 +3642,7 @@ actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
 
 animation:
-  - step: "balance 表示" 3s
+  - step: "釣り合いを見せる" 3s
     set:
       dims: "[8, 3, 5, 2, 7]"
 `;
@@ -3679,7 +3679,7 @@ export const sourceJson__partsRadar = `{
   "states": { "dims": "[3, 3, 3, 3, 3]" },
   "animation": [
     {
-      "step": "balance 表示",
+      "step": "釣り合いを見せる",
       "duration": 3,
       "set": { "dims": "[8, 3, 5, 2, 7]" }
     }
@@ -3703,7 +3703,7 @@ actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
 
 animation:
-  - step: "step 表示" 3s
+  - step: "段取りを見せる" 3s
     set:
       cur: 1
 `;
@@ -3740,7 +3740,7 @@ export const sourceJson__partsStepProgress = `{
   "states": { "cur": 1, "steps": "[\\"入力\\", \\"確認\\", \\"決済\\", \\"完了\\"]" },
   "animation": [
     {
-      "step": "step 表示",
+      "step": "段取りを見せる",
       "duration": 3,
       "set": { "cur": 1 }
     }
@@ -3763,7 +3763,7 @@ actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
 
 animation:
-  - step: "state 表示" 3s
+  - step: "状態を見せる" 3s
     set:
       st: "online"
 `;
@@ -3803,7 +3803,7 @@ export const sourceJson__partsStatusDot = `{
   "states": { "st": "online" },
   "animation": [
     {
-      "step": "state 表示",
+      "step": "状態を見せる",
       "duration": 3,
       "set": { "st": "online" }
     }
@@ -3890,7 +3890,7 @@ actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
 
 animation:
-  - step: "KPI 上昇" 3.5s
+  - step: "指標が上がる" 3.5s
     tween:
       cur: 1000 -> 1500
       hist: 500 -> 1200
@@ -3931,7 +3931,7 @@ export const sourceJson__partsKpiCard = `{
   "states": { "cur": 1000, "prev": 800, "hist": 500 },
   "animation": [
     {
-      "step": "KPI 上昇",
+      "step": "指標が上がる",
       "duration": 3.5,
       "tween": { "cur": [1000, 1500], "hist": [500, 1200] },
       "set": { "prev": 1000 }
@@ -3955,7 +3955,7 @@ actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
 
 animation:
-  - step: "timeline 表示" 3s
+  - step: "時間の並びを見せる" 3s
     set:
       evt: '[["00:00","active"],["01:00","warning"],["02:00","error"],["03:00","active"]]'
 `;
@@ -3993,7 +3993,7 @@ export const sourceJson__partsTimelineStrip = `{
   },
   "animation": [
     {
-      "step": "timeline 表示",
+      "step": "時間の並びを見せる",
       "duration": 3,
       "set": {
         "evt": "[[\\"00:00\\",\\"active\\"],[\\"01:00\\",\\"warning\\"],[\\"02:00\\",\\"error\\"],[\\"03:00\\",\\"active\\"]]"
@@ -4390,7 +4390,7 @@ actors:
   - track: { kind: dyn-rect, lane: l, stack: 0, subtitle: "ON", posW: 320, posH: 160, shape: { kind: rect, source: "{on}", fillMax: 100, orient: right, fill: "{bg}", radius: 80 }, title: "" }
 
 animation:
-  - step: "off から on へ" 3s
+  - step: "切から入へ" 3s
     focus: ["track"]
     tween:
       on: 0 -> 100
@@ -4426,7 +4426,7 @@ export const sourceJson__partsToggleSwitch = `{
   "states": { "bg": "#22c55e", "on": 0 },
   "animation": [
     {
-      "step": "off から on へ",
+      "step": "切から入へ",
       "duration": 3,
       "focus": ["track"],
       "tween": { "on": [0, 100] }
@@ -4552,7 +4552,7 @@ actors:
   - レート: { kind: dyn-wave, lane: l, stack: 0, subtitle: "{rate} req/s", posW: 380, posH: 380, shape: { kind: wave, level: "{rate}", amplitude: 50, frequency: 3, waveHeight: 15, fill: "#8b5cf6" } }
 
 animation:
-  - step: "rate 上昇" 4s
+  - step: "毎秒の件数が増える" 4s
     focus: ["レート"]
     tween:
       rate: 5 -> 85
@@ -4587,7 +4587,7 @@ export const sourceJson__partsPulseIndicator = `{
   "states": { "rate": 5 },
   "animation": [
     {
-      "step": "rate 上昇",
+      "step": "毎秒の件数が増える",
       "duration": 4,
       "focus": ["レート"],
       "tween": { "rate": [5, 85] }
@@ -4881,7 +4881,7 @@ actors:
   - JD: { kind: dyn-circle, lane: l, stack: 0, subtitle: "John Doe", posW: 340, posH: 340, shape: { kind: circle, radius: "{r}", fill: "{bg}" } }
 
 animation:
-  - step: "avatar が現れる" 3s
+  - step: "人物の絵が現れる" 3s
     focus: ["JD"]
     tween:
       r: 40 -> 150
@@ -4909,7 +4909,7 @@ export const sourceJson__partsUserAvatar = `{
   "states": { "bg": "#4e9dc4", "r": 40 },
   "animation": [
     {
-      "step": "avatar が現れる",
+      "step": "人物の絵が現れる",
       "duration": 3,
       "focus": ["JD"],
       "tween": { "r": [40, 150] }
@@ -5402,7 +5402,7 @@ actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
 
 animation:
-  - step: "step 進行" 4s
+  - step: "段取りが進む" 4s
     tween:
       cur: 3 -> 6
 `;
@@ -5439,7 +5439,7 @@ export const sourceJson__partsProgressLong = `{
   "states": { "cur": 3, "steps": "[\\"受付\\", \\"審査\\", \\"承認\\", \\"処理\\", \\"配送\\", \\"完了\\"]" },
   "animation": [
     {
-      "step": "step 進行",
+      "step": "段取りが進む",
       "duration": 4,
       "tween": { "cur": [3, 6] }
     }
@@ -5586,7 +5586,7 @@ actors:
   - Tier 5: { kind: dyn-rect, lane: l, stack: 4, subtitle: "D", posW: 320, posH: 90, shape: { kind: rect, source: "{t5}", fillMax: 30, orient: up, fill: "#8b5cf6", radius: 4 } }
 
 animation:
-  - step: "全 tier active" 4s
+  - step: "全ての段が動く" 4s
     focus: ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"]
     tween:
       t1: 20 -> 28
@@ -5693,7 +5693,7 @@ export const sourceJson__partsRainbowStack = `{
   "states": { "t1": 20, "t2": 20, "t3": 20, "t4": 20, "t5": 20 },
   "animation": [
     {
-      "step": "全 tier active",
+      "step": "全ての段が動く",
       "duration": 4,
       "focus": ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"],
       "tween": { "t1": [20, 28], "t2": [20, 28], "t3": [20, 28], "t4": [20, 28], "t5": [20, 28] }
@@ -6139,7 +6139,7 @@ actors:
   - EXP Lv.12: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{xp}/100 to Lv.13", posW: 680, posH: 120, shape: { kind: rect, source: "{xp}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 60 } }
 
 animation:
-  - step: "XP 上昇" 4.5s
+  - step: "経験値が上がる" 4.5s
     focus: ["EXP Lv.12"]
     tween:
       xp: 20 -> 95
@@ -6174,7 +6174,7 @@ export const sourceJson__partsExpBar = `{
   "states": { "xp": 20 },
   "animation": [
     {
-      "step": "XP 上昇",
+      "step": "経験値が上がる",
       "duration": 4.5,
       "focus": ["EXP Lv.12"],
       "tween": { "xp": [20, 95] }
@@ -6842,7 +6842,7 @@ actors:
   - 成長率 {rate}%: { kind: dyn-rect, lane: l, stack: 0, subtitle: "現在 {rate}", posW: 380, posH: 300, shape: { kind: rect, source: "{rate}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 12 } }
 
 animation:
-  - step: "template 更新" 4s
+  - step: "ひな形の差し替え" 4s
     focus: ["成長率 {rate}%"]
     tween:
       rate: 42 -> 88
@@ -6877,7 +6877,7 @@ export const sourceJson__partsBindTemplateChain = `{
   "states": { "rate": 42 },
   "animation": [
     {
-      "step": "template 更新",
+      "step": "ひな形の差し替え",
       "duration": 4,
       "focus": ["成長率 {rate}%"],
       "tween": { "rate": [42, 88] }
@@ -7030,7 +7030,7 @@ actors:
   - Q4: { kind: dyn-rect, lane: lb, stack: 1, subtitle: "{q4}", posW: 180, posH: 180, shape: { kind: rect, source: "{q4}", fillMax: 100, orient: up, fill: "#dc2626", radius: 8 } }
 
 animation:
-  - step: "全 tile 同時" 4s
+  - step: "全ての枡が同時に動く" 4s
     focus: ["Q1", "Q2", "Q3", "Q4"]
     tween:
       q1: 20 -> 95
@@ -7120,7 +7120,7 @@ export const sourceJson__partsBindGrid4 = `{
   "states": { "q1": 20, "q2": 40, "q3": 60, "q4": 80 },
   "animation": [
     {
-      "step": "全 tile 同時",
+      "step": "全ての枡が同時に動く",
       "duration": 4,
       "focus": ["Q1", "Q2", "Q3", "Q4"],
       "tween": { "q1": [20, 95], "q2": [40, 85], "q3": [60, 75], "q4": [80, 65] }
@@ -7141,7 +7141,7 @@ actors:
   - 残り: { kind: dyn-arc, lane: l, stack: 0, subtitle: "{sec} 秒", posW: 340, posH: 340, shape: { kind: arc, angle: "{sec}", sweepMax: 60, outerRadius: 140, innerRadius: 95, fill: "#dc2626" } }
 
 animation:
-  - step: "countdown" 5s
+  - step: "残り時間が減る" 5s
     focus: ["残り"]
     tween:
       sec: 60 -> 0
@@ -7176,7 +7176,7 @@ export const sourceJson__partsBindCountdown = `{
   "states": { "sec": 60 },
   "animation": [
     {
-      "step": "countdown",
+      "step": "残り時間が減る",
       "duration": 5,
       "focus": ["残り"],
       "tween": { "sec": [60, 0] }
@@ -7341,7 +7341,7 @@ actors:
   - bar5: { kind: dyn-rect, lane: l5, stack: 0, subtitle: "", posW: 80, posH: 300, shape: { kind: rect, source: "{e5}", fillMax: 100, orient: up, fill: "#dc2626", radius: 4 }, title: "" }
 
 animation:
-  - step: "EQ 波" 3.5s
+  - step: "音の帯が揺れる" 3.5s
     focus: ["bar1", "bar2", "bar3", "bar4", "bar5"]
     tween:
       e1: 30 -> 80
@@ -7457,7 +7457,7 @@ export const sourceJson__partsBindEqualizer5 = `{
   "states": { "e1": 30, "e2": 60, "e3": 90, "e4": 60, "e5": 30 },
   "animation": [
     {
-      "step": "EQ 波",
+      "step": "音の帯が揺れる",
       "duration": 3.5,
       "focus": ["bar1", "bar2", "bar3", "bar4", "bar5"],
       "tween": { "e1": [30, 80], "e2": [60, 40], "e3": [90, 20], "e4": [60, 70], "e5": [30, 95] }
@@ -7478,15 +7478,15 @@ actors:
   - status: { kind: dyn-rect, lane: l, stack: 0, subtitle: "healthy", posW: 340, posH: 340, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "{bg}", radius: 12 } }
 
 animation:
-  - step: "warning" 1.5s
+  - step: "注意" 1.5s
     focus: ["status"]
     set:
       bg: "#f59e0b"
-  - step: "critical" 1.5s
+  - step: "危険" 1.5s
     focus: ["status"]
     set:
       bg: "#dc2626"
-  - step: "back to ok" 1.5s
+  - step: "正常に戻る" 1.5s
     focus: ["status"]
     set:
       bg: "#22c55e"
@@ -7521,19 +7521,19 @@ export const sourceJson__partsBindColorState = `{
   "states": { "bg": "#22c55e" },
   "animation": [
     {
-      "step": "warning",
+      "step": "注意",
       "duration": 1.5,
       "focus": ["status"],
       "set": { "bg": "#f59e0b" }
     },
     {
-      "step": "critical",
+      "step": "危険",
       "duration": 1.5,
       "focus": ["status"],
       "set": { "bg": "#dc2626" }
     },
     {
-      "step": "back to ok",
+      "step": "正常に戻る",
       "duration": 1.5,
       "focus": ["status"],
       "set": { "bg": "#22c55e" }
@@ -7844,12 +7844,12 @@ actors:
   - theme: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{txt}", posW: 340, posH: 340, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "{bg}", radius: 12 } }
 
 animation:
-  - step: "→ dark" 1.5s
+  - step: "暗い配色へ" 1.5s
     focus: ["theme"]
     set:
       bg: "#1a1408"
       txt: "dark mode"
-  - step: "→ light" 1.5s
+  - step: "明るい配色へ" 1.5s
     focus: ["theme"]
     set:
       bg: "#fcf8ee"
@@ -7885,13 +7885,13 @@ export const sourceJson__partsBindModeToggle = `{
   "states": { "bg": "#fcf8ee", "txt": "light mode" },
   "animation": [
     {
-      "step": "→ dark",
+      "step": "暗い配色へ",
       "duration": 1.5,
       "focus": ["theme"],
       "set": { "bg": "#1a1408", "txt": "dark mode" }
     },
     {
-      "step": "→ light",
+      "step": "明るい配色へ",
       "duration": 1.5,
       "focus": ["theme"],
       "set": { "bg": "#fcf8ee", "txt": "light mode" }
@@ -8125,20 +8125,20 @@ actors:
   - NET: { kind: dyn-rect, lane: lc, stack: 0, subtitle: "{net} Mbps", posW: 240, posH: 380, shape: { kind: rect, source: "{net}", fillMax: 100, orient: up, fill: "{netC}", radius: 8 } }
 
 animation:
-  - step: "load 上昇" 1.2s
+  - step: "負荷が上がる" 1.2s
     focus: ["CPU", "MEM", "NET"]
     tween:
       cpu: 15 -> 60
       mem: 30 -> 55
       net: 5 -> 40
-  - step: "warning" 1.2s
+  - step: "注意" 1.2s
     focus: ["CPU", "MEM", "NET"]
     tween:
       cpu: 60 -> 82
     set:
       cpuC: "#f59e0b"
       status: "warning"
-  - step: "critical" 1.2s
+  - step: "危険" 1.2s
     focus: ["CPU", "MEM", "NET"]
     tween:
       cpu: 82 -> 95
@@ -8234,20 +8234,20 @@ export const sourceJson__partsBindComprehensive = `{
   },
   "animation": [
     {
-      "step": "load 上昇",
+      "step": "負荷が上がる",
       "duration": 1.2,
       "focus": ["CPU", "MEM", "NET"],
       "tween": { "cpu": [15, 60], "mem": [30, 55], "net": [5, 40] }
     },
     {
-      "step": "warning",
+      "step": "注意",
       "duration": 1.2,
       "focus": ["CPU", "MEM", "NET"],
       "tween": { "cpu": [60, 82] },
       "set": { "cpuC": "#f59e0b", "status": "warning" }
     },
     {
-      "step": "critical",
+      "step": "危険",
       "duration": 1.2,
       "focus": ["CPU", "MEM", "NET"],
       "tween": { "cpu": [82, 95] },
