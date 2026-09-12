@@ -5351,7 +5351,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
  * 段の目印を読み取る。 目印と、 それを落とした残りの説明を返す (#1098)。
  *
  * 目印 (`L1` / `L2` / `L3`) は「どの段に置くか」 を組み立てに伝えるためのもので、 読む人には
- * 意味を持たない。 段の名前は枠のラベル (`System Context` 等) が出すので二重でもある。
+ * 意味を持たない。 段の名前は枠のラベル (`全体の見取り図` 等) が出すので二重でもある。
  * 読み取ったら説明から落とす = 書いた人が説明として書いた部分だけが箱に出る。
  *
  * | 書いた文字 | 段 | 残る説明 |
@@ -5381,9 +5381,9 @@ function 段を読み取る(subtitle: string | undefined): { 段: number; 説明
  * C4 preset (C4 model 階層 system context 専用 layout)
  *
  * 設計 ... actor.subtitle の先頭に "L1" / "L2" / "L3" を置き、 階層 lane を生成。
- * - L1 = System Context
- * - L2 = Container
- * - L3 = Component
+ * - L1 = 全体の見取り図 (C4 model の System Context)
+ * - L2 = 動かす単位 (同 Container = 単体で動かす application や保管庫)
+ * - L3 = 部品 (同 Component)
  *
  * 実装 ... **中身のある段だけ** lane を作り、 使う段を左から順に詰めて横並び (contain: true で
  * 囲む) 配置する。 3 lane を常に作ると中身のない枠が画面に残り、 描かれ損ねたように見える (#1078)。
@@ -5396,7 +5396,9 @@ function compileC4(doc: DslDocument): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "infrastructure" });
   const LANE_W = 400;
   const LANE_GAP = 80;
-  const 段の名前: Record<number, string> = { 1: "System Context", 2: "Container", 3: "Component" };
+  // 段の名前は **枠に描く字** で、記法に打ち込む識別子ではない (#1886)。 打ち込む字は目印
+  // (`L1` / `L2` / `L3`) の側で、そちらは綴りを変えない
+  const 段の名前: Record<number, string> = { 1: "全体の見取り図", 2: "動かす単位", 3: "部品" };
 
   // 段は **先頭一致** で読み、 読んだ目印は説明から落とす (`段を読み取る` の説明を参照)
   const 割当 = doc.actors.map((a, idx) => {

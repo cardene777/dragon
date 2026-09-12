@@ -14,12 +14,12 @@ title: "時系列のやり取りを書く例"
 type: sequence
 
 actors:
-  - Client
+  - 利用者側
   - "API"
   - DB
 
 flow:
-  - Client -> "API": "GET /items"
+  - 利用者側 -> "API": "GET /items"
   - "API" -> DB: "SELECT"
 
 states:
@@ -27,18 +27,18 @@ states:
   row_count: 0
 
 animation:
-  - step: "request" 1.5s
-    focus: [Client, "API"]
+  - step: "要求" 1.5s
+    focus: [利用者側, "API"]
     tween:
       request_count: 0 -> 1
-    badge: "request"
-    description: "Client が API を呼出"
+    badge: "要求"
+    description: "利用者側 が API を呼出"
 
-  - step: "fetch" 1.5s
+  - step: "取得" 1.5s
     focus: ["API", DB]
     tween:
       row_count: 0 -> 20
-    badge: "fetched"
+    badge: "取得済"
     description: "DB から 20 行取得"
 `;
 
@@ -49,7 +49,7 @@ export const sourceJson__textDslSequence = `{
   "type": "sequence",
   "actors": [
     {
-      "name": "Client"
+      "name": "利用者側"
     },
     {
       "name": "API"
@@ -60,7 +60,7 @@ export const sourceJson__textDslSequence = `{
   ],
   "flow": [
     {
-      "from": "Client",
+      "from": "利用者側",
       "to": "API",
       "label": "GET /items"
     },
@@ -76,14 +76,14 @@ export const sourceJson__textDslSequence = `{
   },
   "animation": [
     {
-      "step": "request",
+      "step": "要求",
       "duration": 1.5,
       "focus": [
-        "Client",
+        "利用者側",
         "API"
       ],
-      "body": "Client が API を呼出",
-      "badge": "request",
+      "body": "利用者側 が API を呼出",
+      "badge": "要求",
       "tween": {
         "request_count": [
           0,
@@ -92,14 +92,14 @@ export const sourceJson__textDslSequence = `{
       }
     },
     {
-      "step": "fetch",
+      "step": "取得",
       "duration": 1.5,
       "focus": [
         "API",
         "DB"
       ],
       "body": "DB から 20 行取得",
-      "badge": "fetched",
+      "badge": "取得済",
       "tween": {
         "row_count": [
           0,
@@ -125,23 +125,23 @@ title: "面に説明を添えた時系列のやり取り"
 type: sequence
 
 actors:
-  - Client: "利用者の画面"
+  - 利用者側: "利用者の画面"
   - "API": "受け口"
   - DB: "保管先"
 
 flow:
-  - Client -> "API": "GET /items"
+  - 利用者側 -> "API": "GET /items"
   - "API" -> DB: "SELECT"
 
 animation:
-  - step: "request" 1.5s
-    focus: [Client, "API"]
-    badge: "request"
-    description: "Client が API を呼出"
+  - step: "要求" 1.5s
+    focus: [利用者側, "API"]
+    badge: "要求"
+    description: "利用者側 が API を呼出"
 
-  - step: "fetch" 1.5s
+  - step: "取得" 1.5s
     focus: ["API", DB]
-    badge: "fetched"
+    badge: "取得済"
     description: "DB から 20 行取得"
 `;
 
@@ -149,28 +149,28 @@ export const sourceJson__pattern__textDslSequence__説明つき = `{
   "title": "面に説明を添えた時系列のやり取り",
   "type": "sequence",
   "actors": [
-    { "name": "Client", "subtitle": "利用者の画面" },
+    { "name": "利用者側", "subtitle": "利用者の画面" },
     { "name": "API", "subtitle": "受け口" },
     { "name": "DB", "subtitle": "保管先" }
   ],
   "flow": [
-    { "from": "Client", "to": "API", "label": "GET /items" },
+    { "from": "利用者側", "to": "API", "label": "GET /items" },
     { "from": "API", "to": "DB", "label": "SELECT" }
   ],
   "animation": [
     {
-      "step": "request",
+      "step": "要求",
       "duration": 1.5,
-      "focus": ["Client", "API"],
-      "body": "Client が API を呼出",
-      "badge": "request"
+      "focus": ["利用者側", "API"],
+      "body": "利用者側 が API を呼出",
+      "badge": "要求"
     },
     {
-      "step": "fetch",
+      "step": "取得",
       "duration": 1.5,
       "focus": ["API", "DB"],
       "body": "DB から 20 行取得",
-      "badge": "fetched"
+      "badge": "取得済"
     }
   ]
 }`;
@@ -185,26 +185,26 @@ title: "認証の流れ"
 type: flow
 
 actors:
-  - Start: event
-  - Verify: function
-  - Done: event
+  - 開始: event
+  - 確認: function
+  - 完了: event
 
 flow:
-  - Start -> Verify: "入力"
-  - Verify -> Done: "OK" (success)
+  - 開始 -> 確認: "入力"
+  - 確認 -> 完了: "はい" (success)
 
 states:
   progress: 0
 
 animation:
   - step: "処理中" 1s
-    focus: [Start, Verify]
+    focus: [開始, 確認]
     tween:
       progress: 0 -> 50
     badge: "進行中"
 
   - step: "完了" 1s
-    focus: [Verify, Done]
+    focus: [確認, 完了]
     tween:
       progress: 50 -> 100
     badge: "完了"
@@ -217,28 +217,28 @@ export const sourceJson__textDslFlow = `{
   "type": "flow",
   "actors": [
     {
-      "name": "Start",
+      "name": "開始",
       "kind": "event"
     },
     {
-      "name": "Verify",
+      "name": "確認",
       "kind": "function"
     },
     {
-      "name": "Done",
+      "name": "完了",
       "kind": "event"
     }
   ],
   "flow": [
     {
-      "from": "Start",
-      "to": "Verify",
+      "from": "開始",
+      "to": "確認",
       "label": "入力"
     },
     {
-      "from": "Verify",
-      "to": "Done",
-      "label": "OK",
+      "from": "確認",
+      "to": "完了",
+      "label": "はい",
       "tone": "success"
     }
   ],
@@ -250,8 +250,8 @@ export const sourceJson__textDslFlow = `{
       "step": "処理中",
       "duration": 1,
       "focus": [
-        "Start",
-        "Verify"
+        "開始",
+        "確認"
       ],
       "badge": "進行中",
       "tween": {
@@ -265,8 +265,8 @@ export const sourceJson__textDslFlow = `{
       "step": "完了",
       "duration": 1,
       "focus": [
-        "Verify",
-        "Done"
+        "確認",
+        "完了"
       ],
       "badge": "完了",
       "tween": {
@@ -285,21 +285,21 @@ title: "同時に走らせる処理"
 type: swimlane
 
 actors:
-  - ServiceA: service
-  - ServiceB: service
-  - ServiceC: service
+  - 役務 A: service
+  - 役務 B: service
+  - 役務 C: service
 
 flow:
-  - ServiceA -> ServiceB: "dispatch" (info)
-  - ServiceB -> ServiceC: "forward" (success)
+  - 役務 A -> 役務 B: "振り分け" (info)
+  - 役務 B -> 役務 C: "転送" (success)
 
 animation:
-  - step: "dispatch" 1.5s
-    focus: [ServiceA, ServiceB]
+  - step: "振り分け" 1.5s
+    focus: ["役務 A", "役務 B"]
     badge: "A → B"
 
-  - step: "forward" 1.5s
-    focus: [ServiceB, ServiceC]
+  - step: "転送" 1.5s
+    focus: ["役務 B", "役務 C"]
     badge: "B → C"
 `;
 
@@ -310,48 +310,48 @@ export const sourceJson__textDslSwimlane = `{
   "type": "swimlane",
   "actors": [
     {
-      "name": "ServiceA",
+      "name": "役務 A",
       "kind": "service"
     },
     {
-      "name": "ServiceB",
+      "name": "役務 B",
       "kind": "service"
     },
     {
-      "name": "ServiceC",
+      "name": "役務 C",
       "kind": "service"
     }
   ],
   "flow": [
     {
-      "from": "ServiceA",
-      "to": "ServiceB",
-      "label": "dispatch",
+      "from": "役務 A",
+      "to": "役務 B",
+      "label": "振り分け",
       "tone": "info"
     },
     {
-      "from": "ServiceB",
-      "to": "ServiceC",
-      "label": "forward",
+      "from": "役務 B",
+      "to": "役務 C",
+      "label": "転送",
       "tone": "success"
     }
   ],
   "animation": [
     {
-      "step": "dispatch",
+      "step": "振り分け",
       "duration": 1.5,
       "focus": [
-        "ServiceA",
-        "ServiceB"
+        "役務 A",
+        "役務 B"
       ],
       "badge": "A → B"
     },
     {
-      "step": "forward",
+      "step": "転送",
       "duration": 1.5,
       "focus": [
-        "ServiceB",
-        "ServiceC"
+        "役務 B",
+        "役務 C"
       ],
       "badge": "B → C"
     }
@@ -364,29 +364,29 @@ title: "認証の状態遷移"
 type: state
 
 actors:
-  - Idle
-  - Loading
-  - Done
-  - Error
+  - 待機
+  - 読込中
+  - 完了
+  - 異常
 
 flow:
-  - Idle -> Loading: "submit"
-  - Loading -> Done: "success" (success) { guard: "入力が正しい" }
-  - Loading -> Error: "fail" (error)
-  - Error -> Idle: "retry"
+  - 待機 -> 読込中: "送信"
+  - 読込中 -> 完了: "成功" (success) { guard: "入力が正しい" }
+  - 読込中 -> 異常: "失敗" (error)
+  - 異常 -> 待機: "再試行"
 
 states:
   counter: 0
 
 animation:
-  - step: "submit" 1s
-    focus: [Idle, Loading]
+  - step: "送信" 1s
+    focus: [待機, 読込中]
     tween:
       counter: 0 -> 1
     badge: "送信"
 
-  - step: "success" 1s
-    focus: [Loading, Done]
+  - step: "成功" 1s
+    focus: [読込中, 完了]
     tween:
       counter: 1 -> 2
     badge: "完了"
@@ -399,41 +399,41 @@ export const sourceJson__textDslStateMachine = `{
   "type": "state",
   "actors": [
     {
-      "name": "Idle"
+      "name": "待機"
     },
     {
-      "name": "Loading"
+      "name": "読込中"
     },
     {
-      "name": "Done"
+      "name": "完了"
     },
     {
-      "name": "Error"
+      "name": "異常"
     }
   ],
   "flow": [
     {
-      "from": "Idle",
-      "to": "Loading",
-      "label": "submit"
+      "from": "待機",
+      "to": "読込中",
+      "label": "送信"
     },
     {
-      "from": "Loading",
-      "to": "Done",
-      "label": "success",
+      "from": "読込中",
+      "to": "完了",
+      "label": "成功",
       "tone": "success",
       "guard": "入力が正しい"
     },
     {
-      "from": "Loading",
-      "to": "Error",
-      "label": "fail",
+      "from": "読込中",
+      "to": "異常",
+      "label": "失敗",
       "tone": "error"
     },
     {
-      "from": "Error",
-      "to": "Idle",
-      "label": "retry"
+      "from": "異常",
+      "to": "待機",
+      "label": "再試行"
     }
   ],
   "states": {
@@ -441,11 +441,11 @@ export const sourceJson__textDslStateMachine = `{
   },
   "animation": [
     {
-      "step": "submit",
+      "step": "送信",
       "duration": 1,
       "focus": [
-        "Idle",
-        "Loading"
+        "待機",
+        "読込中"
       ],
       "badge": "送信",
       "tween": {
@@ -456,11 +456,11 @@ export const sourceJson__textDslStateMachine = `{
       }
     },
     {
-      "step": "success",
+      "step": "成功",
       "duration": 1,
       "focus": [
-        "Loading",
-        "Done"
+        "読込中",
+        "完了"
       ],
       "badge": "完了",
       "tween": {
@@ -479,20 +479,20 @@ title: "系の構成"
 type: topology
 
 actors:
-  - Browser: service
+  - 閲覧ソフト: service
   - API: service
   - DB: database
 
 flow:
-  - Browser -> API: "HTTPS"
+  - 閲覧ソフト -> API: "HTTPS"
   - API -> DB: "SQL"
 
 animation:
-  - step: "request" 1s
-    focus: [Browser, API]
+  - step: "要求" 1s
+    focus: [閲覧ソフト, API]
     badge: "要求中"
 
-  - step: "query" 1s
+  - step: "問い合わせ" 1s
     focus: [API, DB]
     badge: "問合中"
 `;
@@ -504,7 +504,7 @@ export const sourceJson__textDslTopology = `{
   "type": "topology",
   "actors": [
     {
-      "name": "Browser",
+      "name": "閲覧ソフト",
       "kind": "service"
     },
     {
@@ -518,7 +518,7 @@ export const sourceJson__textDslTopology = `{
   ],
   "flow": [
     {
-      "from": "Browser",
+      "from": "閲覧ソフト",
       "to": "API",
       "label": "HTTPS"
     },
@@ -530,16 +530,16 @@ export const sourceJson__textDslTopology = `{
   ],
   "animation": [
     {
-      "step": "request",
+      "step": "要求",
       "duration": 1,
       "focus": [
-        "Browser",
+        "閲覧ソフト",
         "API"
       ],
       "badge": "要求中"
     },
     {
-      "step": "query",
+      "step": "問い合わせ",
       "duration": 1,
       "focus": [
         "API",
@@ -795,13 +795,13 @@ title: "四半期の計画を書く例"
 type: gantt
 
 actors:
-  - task1: { kind: card, subtitle: "Q1" }
-  - task2: { kind: card, subtitle: "Q2" }
-  - task3: { kind: card, subtitle: "Q3" }
+  - 作業 1: { kind: card, subtitle: "Q1" }
+  - 作業 2: { kind: card, subtitle: "Q2" }
+  - 作業 3: { kind: card, subtitle: "Q3" }
 
 flow:
-  - task1 -> task2: "depends"
-  - task2 -> task3: "depends"
+  - 作業 1 -> 作業 2: "前提"
+  - 作業 2 -> 作業 3: "前提"
 
 states:
   task1_progress: 0
@@ -809,14 +809,14 @@ states:
 
 animation:
   - step: "Q1 進行" 2.4s
-    focus: [task1]
+    focus: ["作業 1"]
     draw: gantt
     tween:
       task1_progress: 0 -> 100
     badge: "Q1 完了"
 
   - step: "Q2 開始" 1.2s
-    focus: [task1, task2]
+    focus: ["作業 1", "作業 2"]
     tween:
       task2_progress: 0 -> 50
     badge: "Q2 進行中"
@@ -829,31 +829,31 @@ export const sourceJson__textDslGantt = `{
   "type": "gantt",
   "actors": [
     {
-      "name": "task1",
+      "name": "作業 1",
       "kind": "card",
       "subtitle": "Q1"
     },
     {
-      "name": "task2",
+      "name": "作業 2",
       "kind": "card",
       "subtitle": "Q2"
     },
     {
-      "name": "task3",
+      "name": "作業 3",
       "kind": "card",
       "subtitle": "Q3"
     }
   ],
   "flow": [
     {
-      "from": "task1",
-      "to": "task2",
-      "label": "depends"
+      "from": "作業 1",
+      "to": "作業 2",
+      "label": "前提"
     },
     {
-      "from": "task2",
-      "to": "task3",
-      "label": "depends"
+      "from": "作業 2",
+      "to": "作業 3",
+      "label": "前提"
     }
   ],
   "states": {
@@ -865,7 +865,7 @@ export const sourceJson__textDslGantt = `{
       "step": "Q1 進行",
       "duration": 2.4,
       "focus": [
-        "task1"
+        "作業 1"
       ],
       "draw": "gantt",
       "badge": "Q1 完了",
@@ -880,8 +880,8 @@ export const sourceJson__textDslGantt = `{
       "step": "Q2 開始",
       "duration": 1.2,
       "focus": [
-        "task1",
-        "task2"
+        "作業 1",
+        "作業 2"
       ],
       "badge": "Q2 進行中",
       "tween": {
@@ -1052,21 +1052,21 @@ title: "C4 の系統図"
 type: c4
 
 actors:
-  - User: { kind: person, subtitle: "End user" }
-  - Web: { kind: service, subtitle: "Frontend" }
-  - API: { kind: api, subtitle: "Backend" }
+  - 利用者: { kind: person, subtitle: "末端の利用者" }
+  - 画面: { kind: service, subtitle: "画面側" }
+  - API: { kind: api, subtitle: "処理側" }
   - DB: { kind: database, subtitle: "PostgreSQL" }
 
 flow:
-  - User -> Web: "uses"
-  - Web -> API: "calls"
-  - API -> DB: "reads"
+  - 利用者 -> 画面: "使う"
+  - 画面 -> API: "呼ぶ"
+  - API -> DB: "読む"
 
 animation:
-  - step: "request" 1s
-    focus: [User, Web]
+  - step: "要求" 1s
+    focus: [利用者, 画面]
     badge: "アクセス"
-  - step: "fetch" 1s
+  - step: "取得" 1s
     focus: [API, DB]
     badge: "DB 参照"
 `;
@@ -1078,19 +1078,19 @@ export const sourceJson__textDslC4 = `{
   "type": "c4",
   "actors": [
     {
-      "name": "User",
+      "name": "利用者",
       "kind": "person",
-      "subtitle": "End user"
+      "subtitle": "末端の利用者"
     },
     {
-      "name": "Web",
+      "name": "画面",
       "kind": "service",
-      "subtitle": "Frontend"
+      "subtitle": "画面側"
     },
     {
       "name": "API",
       "kind": "api",
-      "subtitle": "Backend"
+      "subtitle": "処理側"
     },
     {
       "name": "DB",
@@ -1100,33 +1100,33 @@ export const sourceJson__textDslC4 = `{
   ],
   "flow": [
     {
-      "from": "User",
-      "to": "Web",
-      "label": "uses"
+      "from": "利用者",
+      "to": "画面",
+      "label": "使う"
     },
     {
-      "from": "Web",
+      "from": "画面",
       "to": "API",
-      "label": "calls"
+      "label": "呼ぶ"
     },
     {
       "from": "API",
       "to": "DB",
-      "label": "reads"
+      "label": "読む"
     }
   ],
   "animation": [
     {
-      "step": "request",
+      "step": "要求",
       "duration": 1,
       "focus": [
-        "User",
-        "Web"
+        "利用者",
+        "画面"
       ],
       "badge": "アクセス"
     },
     {
-      "step": "fetch",
+      "step": "取得",
       "duration": 1,
       "focus": [
         "API",
@@ -1146,9 +1146,9 @@ states:
   stage: "下書き"
 
 actors:
-  - Core
-  - Idea1
-  - Idea2
+  - 中心
+  - 案 1
+  - 案 2
   - "決め手 {stage}"
 
 animation:
@@ -1174,13 +1174,13 @@ export const sourceJson__textDslMind = `{
   "type": "mind",
   "actors": [
     {
-      "name": "Core"
+      "name": "中心"
     },
     {
-      "name": "Idea1"
+      "name": "案 1"
     },
     {
-      "name": "Idea2"
+      "name": "案 2"
     },
     {
       "name": "決め手 {stage}"
@@ -1221,74 +1221,74 @@ export const sourceJson__textDslMind = `{
 
 // ─── code preset (関数呼出 + DB write + event emit) ─────
 export const sourceYaml__textDslCode = `
-title: "Service call + write + emit"
+title: "呼び出しと書き込みと出来事"
 type: sequence
 
 actors:
-  - Client: { subtitle: "request" }
-  - Server: { subtitle: "handler" }
+  - 利用者側: { subtitle: "要求" }
+  - 処理側: { subtitle: "受け口" }
   - DB
-  - OrderCreated: { subtitle: "orderId, total" }
+  - OrderCreated: { subtitle: "注文の番号, 金額" }
 
 states:
   count: 100
 
 flow:
-  - Client -> Server: "POST /orders"
-  - Server -> DB: "UPDATE count -= 1"
-  - Server -> OrderCreated: "emit"
+  - 利用者側 -> 処理側: "POST /orders"
+  - 処理側 -> DB: "UPDATE orders 残数 -1"
+  - 処理側 -> OrderCreated: "出来事を出す"
 
 animation:
-  - step: "call" 1.2s
-    focus: [Client, Server]
-    badge: "request"
-  - step: "write" 1.5s
-    focus: [Server, DB]
+  - step: "呼び出し" 1.2s
+    focus: [利用者側, 処理側]
+    badge: "要求"
+  - step: "書き込み" 1.5s
+    focus: [処理側, DB]
     tween:
       count: 100 -> 99
-    badge: "DB update"
-  - step: "emit" 0.8s
-    focus: [Server, OrderCreated]
+    badge: "DB を更新"
+  - step: "出来事" 0.8s
+    focus: [処理側, OrderCreated]
     badge: "OrderCreated"
 `;
 
 export const textDslCode = textDslToDiagram(sourceYaml__textDslCode);
 
 export const sourceJson__textDslCode = `{
-  "title": "Service call + write + emit",
+  "title": "呼び出しと書き込みと出来事",
   "type": "sequence",
   "actors": [
     {
-      "name": "Client",
-      "subtitle": "request"
+      "name": "利用者側",
+      "subtitle": "要求"
     },
     {
-      "name": "Server",
-      "subtitle": "handler"
+      "name": "処理側",
+      "subtitle": "受け口"
     },
     {
       "name": "DB"
     },
     {
       "name": "OrderCreated",
-      "subtitle": "orderId, total"
+      "subtitle": "注文の番号, 金額"
     }
   ],
   "flow": [
     {
-      "from": "Client",
-      "to": "Server",
+      "from": "利用者側",
+      "to": "処理側",
       "label": "POST /orders"
     },
     {
-      "from": "Server",
+      "from": "処理側",
       "to": "DB",
-      "label": "UPDATE count -= 1"
+      "label": "UPDATE orders 残数 -1"
     },
     {
-      "from": "Server",
+      "from": "処理側",
       "to": "OrderCreated",
-      "label": "emit"
+      "label": "出来事を出す"
     }
   ],
   "states": {
@@ -1296,22 +1296,22 @@ export const sourceJson__textDslCode = `{
   },
   "animation": [
     {
-      "step": "call",
+      "step": "呼び出し",
       "duration": 1.2,
       "focus": [
-        "Client",
-        "Server"
+        "利用者側",
+        "処理側"
       ],
-      "badge": "request"
+      "badge": "要求"
     },
     {
-      "step": "write",
+      "step": "書き込み",
       "duration": 1.5,
       "focus": [
-        "Server",
+        "処理側",
         "DB"
       ],
-      "badge": "DB update",
+      "badge": "DB を更新",
       "tween": {
         "count": [
           100,
@@ -1320,10 +1320,10 @@ export const sourceJson__textDslCode = `{
       }
     },
     {
-      "step": "emit",
+      "step": "出来事",
       "duration": 0.8,
       "focus": [
-        "Server",
+        "処理側",
         "OrderCreated"
       ],
       "badge": "OrderCreated"
