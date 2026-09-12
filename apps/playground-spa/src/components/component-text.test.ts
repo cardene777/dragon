@@ -14,37 +14,9 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { 残る英単語, 日本語の字 } from "@/lib/screen-words";
 
 const 置き場 = fileURLToPath(new URL(".", import.meta.url));
-
-/**
- * 日本語の文に残してよい語と、その理由。
- *
- * **理由を 1 語ずつ書く** = 理由を書けない語は開ける語で、一覧に足すこと自体が
- * 「直さない」 の言い換えになる。
- */
-const 残してよい語: Record<string, string> = {
-  URL: "定着した略語",
-  SVG: "画像の形式の名前。 日本語の呼び名が無い",
-  PNG: "画像の形式の名前。 日本語の呼び名が無い",
-  PDF: "書類の形式の名前。 日本語の呼び名が無い",
-  YAML: "記法の形式の名前。 日本語の呼び名が無い",
-  JSON: "記法の形式の名前。 日本語の呼び名が無い",
-  CDL: "この記法の名前",
-  Esc: "鍵盤に刻まれている字そのもの",
-  actors: "記法の項目の名前。 画面に出す記法と同じ綴りで書く必要がある",
-  labelOffsetX: "記法の項目の名前。 画面に出す記法と同じ綴りで書く必要がある",
-  labelOffsetY: "記法の項目の名前。 画面に出す記法と同じ綴りで書く必要がある",
-  posX: "記法の項目の名前。 画面に出す記法と同じ綴りで書く必要がある",
-  posY: "記法の項目の名前。 画面に出す記法と同じ綴りで書く必要がある",
-  ms: "時間の単位の記号。 数の直後に付けて書く形 (`320ms`) で、間に字を挟めない",
-  GitHub: "起票と取り込み依頼を受け付けている場所の名前",
-  Notion: "書き置き場の名前",
-  Keynote: "発表資料を作る道具の名前",
-  Slack: "やり取りする場所の名前",
-  Twitter: "やり取りする場所の名前",
-  README: "取り決めで決まっている file の名前",
-};
 
 /**
  * 同じものを 2 通りに呼んでいる所と、揃える先 (#1811)。
@@ -66,8 +38,6 @@ const 揃える呼び名: { 直す: string; 揃える先: string; 理由: string
   },
 ];
 
-const 日本語の字 = /[ぁ-んァ-ヶ一-龯]/;
-const 英単語 = /[A-Za-z][A-Za-z0-9_-]{1,}/g;
 
 /** 画面に出ない文字列。 見た目の札 (`className`) と検査の目印 (`data-testid`) */
 const 画面に出ない = /(?:className|class|classList|data-testid)\s*=\s*$/;
@@ -107,10 +77,14 @@ export function 見本を外す(src: string): { 字: string; 外した: number }
   return { 字, 外した };
 }
 
-/** 日本語の文に混じる、残してよい語以外の英単語を返す */
+/**
+ * 日本語の文に混じる、残してよい語以外の英単語を返す。
+ *
+ * 判定そのものは `lib/screen-words.ts` が 1 つだけ持つ (#1817)。 ここが足すのは
+ * 「日本語を含む字だけを見る」 という枠の側の決まりで、英語だけの札は枠の文言ではない。
+ */
 export function 開ける英単語(文: string): string[] {
-  if (!日本語の字.test(文)) return [];
-  return [...new Set(文.match(英単語) ?? [])].filter((w) => !(w in 残してよい語));
+  return 日本語の字.test(文) ? 残る英単語(文) : [];
 }
 
 /**
@@ -294,20 +268,6 @@ describe("画面の枠の文言 (#1795)", () => {
     expect(開ける英単語(該当[0]!), "直した字に開ける英語が残っている").toEqual([]);
   });
 
-  it("残してよい語が実際に画面で使われている (#1812)", () => {
-    // 使わない語を並べておくと、一覧がそのまま英語を通す抜け道になる
-    const files = 画面のfile一覧(/\.tsx?$/);
-    const 使った = new Set<string>();
-    for (const f of files) {
-      const 字 = 見本を外す(コメントを外す(readFileSync(f, "utf8"))).字;
-      for (const 文 of [...引用符の文言(字), ...地の文(字).文]) {
-        for (const w of 文.match(英単語) ?? []) 使った.add(w);
-      }
-    }
-    const 使わない = Object.keys(残してよい語).filter((w) => !使った.has(w));
-    expect(使わない, `残してよい語に挙げたが画面で使っていない: ${使わない.join(", ")}`).toEqual([]);
-  });
-
   it("英語が混じる文言を拾える (植え込み対照)", () => {
     // 探し方が何にも当たらない形に壊れていると、上の 2 件は必ず通る
     const 元 = `  title="記法の側で直す"\n      <span>今の段の静止 1 こま</span>`;
@@ -380,12 +340,5 @@ describe("画面の枠の文言 (#1795)", () => {
   it("揃える呼び名が理由を持っている (#1811)", () => {
     const 理由なし = 揃える呼び名.filter((対) => 対.理由.trim().length < 5).map((対) => 対.直す);
     expect(理由なし, `理由を書いていない対: ${理由なし.join(", ")}`).toEqual([]);
-  });
-
-  it("残してよい語が理由を持っている", () => {
-    const 語 = Object.entries(残してよい語);
-    expect(語.length, "残してよい語が 1 つも無い (検査が空振りしている)").toBeGreaterThan(5);
-    const 理由なし = 語.filter(([, 理由]) => 理由.trim().length < 5).map(([w]) => w);
-    expect(理由なし, `理由を書いていない語: ${理由なし.join(", ")}`).toEqual([]);
   });
 });
