@@ -38,33 +38,40 @@ const 対象 = [
 ] as const;
 
 /**
- * 種別の説明。 **値を足す前と同じであることを固定する** (#1172 の完了条件)。
+ * 種別の説明。 **意図しない書き換えを止める** (#1172 の完了条件)。
  *
  * 値の欄を足す作業で説明を潰すと、種別の見本としての役割が失われる。 表にして固定すれば、
  * 書き換えた時にどれが変わったかが検査の出力に出る。
+ *
+ * **この表は意図した書き換えの時だけ直す**。 #1884 で 21 種の説明を日本語に開いた時、
+ * この検査が 1 件落ちて書き換えた全件を出した = 意図しない潰しと意図した書き換えを
+ * 見分けるのは人で、検査は「変わった」 ことだけを知らせる。
+ *
+ * 製品名 (`PostgreSQL` / `Redis` / `AWS` / `Kafka` / `Cloudflare` / `Express`) と
+ * 道筋 (`POST /users`) は英語のまま残す。 訳すと実物と対応しなくなる。
  */
 const 説明: Record<string, [eyebrow: string, title: string, subtitle: string]> = {
-  kPerson: ["個人", "User", "外部の 1 ユーザー"],
-  kUserGroup: ["複数ユーザー", "Users", "team / コミュニティ"],
-  kAdmin: ["管理者", "Admin", "権限保有者"],
-  kDeveloper: ["開発者", "Developer", "コード書く人"],
-  kExternalUser: ["外部ユーザー", "External", "別 system から来訪"],
-  kDatabase: ["DB", "PostgreSQL", "primary database"],
-  kCache: ["キャッシュ", "Redis", "in-memory store"],
-  kQueue: ["キュー", "Job Queue", "Bull / SQS"],
-  kMessageBus: ["メッセージバス", "Kafka", "topic / partition"],
-  kCloud: ["クラウド", "AWS", "cloud service"],
-  kCdn: ["CDN", "Cloudflare", "edge network"],
-  kService: ["サービス", "AuthService", "business logic"],
-  kApi: ["API", "POST /users", "REST endpoint"],
-  kFrontend: ["フロント", "Next.js App", "browser UI"],
-  kBackend: ["バックエンド", "Express", "server runtime"],
-  kWebhook: ["Webhook", "POST callback", "incoming event"],
-  kMicroservice: ["マイクロサービス", "Order Service", "1 機能 1 サービス"],
-  kSigner: ["署名者", "Signer", "HMAC / 公開鍵署名"],
-  kOracle: ["Oracle", "Feature flag service", "外部設定の取込"],
-  kMerkleTree: ["Merkle Tree", "Hash tree", "ハッシュ二分木"],
-  kDecision: ["判定分岐", "if/else", "条件分岐"],
+  kPerson: ["個人", "利用者", "外部の 1 ユーザー"],
+  kUserGroup: ["複数ユーザー", "利用者の集まり", "組や共同体"],
+  kAdmin: ["管理者", "運用の管理者", "権限保有者"],
+  kDeveloper: ["開発者", "開発する人", "コード書く人"],
+  kExternalUser: ["外部ユーザー", "外部の利用者", "別の仕組みから来訪"],
+  kDatabase: ["DB", "PostgreSQL", "主データベース"],
+  kCache: ["キャッシュ", "Redis", "メモリ上の保管"],
+  kQueue: ["キュー", "仕事の待ち行列", "Bull / SQS"],
+  kMessageBus: ["メッセージバス", "Kafka", "話題と区画で配る"],
+  kCloud: ["クラウド", "AWS", "クラウドの役務"],
+  kCdn: ["CDN", "Cloudflare", "配信網の末端"],
+  kService: ["サービス", "認証の役務", "業務の処理"],
+  kApi: ["API", "POST /users", "REST の口"],
+  kFrontend: ["フロント", "画面側のアプリ", "閲覧ソフトで動く"],
+  kBackend: ["バックエンド", "Express", "サーバの実行環境"],
+  kWebhook: ["呼び返し", "POST の呼び返し", "入ってくる出来事"],
+  kMicroservice: ["マイクロサービス", "注文の役務", "1 機能 1 サービス"],
+  kSigner: ["署名者", "署名する側", "HMAC / 公開鍵署名"],
+  kOracle: ["外部の取り込み", "機能の切替を配る役務", "外部設定の取込"],
+  kMerkleTree: ["マークル木", "ハッシュの木", "ハッシュ二分木"],
+  kDecision: ["判定分岐", "条件で分かれる", "真なら片方、偽ならもう片方"],
 };
 
 const mod = PrimExt as unknown as Record<string, CdlDiagram>;

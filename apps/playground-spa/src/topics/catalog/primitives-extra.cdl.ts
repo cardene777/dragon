@@ -53,105 +53,105 @@ function single(id: string, spec: Spec) {
       ...(nodeW ? { w: nodeW } : {}),
     })
     .phase("p", { duration: 1500, title: kind, body: `${kind} kind の見た目。` }, (p: PhaseBuilder) =>
-      p.activate("n").badge("active"),
+      p.activate("n").badge("動作中"),
     )
     .phase(
       "p2",
       { duration: 1500, title: `${kind} が動く`, body: "箱の値が段の中で動く。" },
-      (p: PhaseBuilder) => p.activate("n").tween("v", metric.from, metric.to).badge("running"),
+      (p: PhaseBuilder) => p.activate("n").tween("v", metric.from, metric.to).badge("値が動く"),
     )
     .build();
 }
 
 // 人系 5
 export const kPerson = single("k-person", {
-  kind: "person", eyebrow: "個人", title: "User", subtitle: "外部の 1 ユーザー",
+  kind: "person", eyebrow: "個人", title: "利用者", subtitle: "外部の 1 ユーザー",
   metric: { value: "{v} 操作", from: 3, to: 18 },
 });
 export const kUserGroup = single("k-user-group", {
-  kind: "user-group", eyebrow: "複数ユーザー", title: "Users", subtitle: "team / コミュニティ",
+  kind: "user-group", eyebrow: "複数ユーザー", title: "利用者の集まり", subtitle: "組や共同体",
   metric: { value: "{v} 人", from: 4, to: 32 },
 });
 export const kAdmin = single("k-admin", {
-  kind: "admin", eyebrow: "管理者", title: "Admin", subtitle: "権限保有者",
+  kind: "admin", eyebrow: "管理者", title: "運用の管理者", subtitle: "権限保有者",
   metric: { value: "承認 {v}", from: 0, to: 7 },
 });
 export const kDeveloper = single("k-developer", {
-  kind: "developer", eyebrow: "開発者", title: "Developer", subtitle: "コード書く人",
-  metric: { value: "{v} commit", from: 1, to: 12 },
+  kind: "developer", eyebrow: "開発者", title: "開発する人", subtitle: "コード書く人",
+  metric: { value: "{v} 件の変更", from: 1, to: 12 },
 });
 export const kExternalUser = single("k-external-user", {
-  kind: "external-user", eyebrow: "外部ユーザー", title: "External", subtitle: "別 system から来訪",
+  kind: "external-user", eyebrow: "外部ユーザー", title: "外部の利用者", subtitle: "別の仕組みから来訪",
   metric: { value: "{v} 人/分", from: 2, to: 40 },
 });
 
 // インフラ 6
 export const kDatabase = single("k-database", {
-  kind: "database", eyebrow: "DB", title: "PostgreSQL", subtitle: "primary database",
+  kind: "database", eyebrow: "DB", title: "PostgreSQL", subtitle: "主データベース",
   metric: { value: "{v} 行/s", from: 120, to: 980 },
 });
 export const kCache = single("k-cache", {
-  kind: "cache", eyebrow: "キャッシュ", title: "Redis", subtitle: "in-memory store",
+  kind: "cache", eyebrow: "キャッシュ", title: "Redis", subtitle: "メモリ上の保管",
   metric: { value: "命中 {v}%", from: 62, to: 97 },
 });
 export const kQueue = single("k-queue", {
-  kind: "queue", eyebrow: "キュー", title: "Job Queue", subtitle: "Bull / SQS",
+  kind: "queue", eyebrow: "キュー", title: "仕事の待ち行列", subtitle: "Bull / SQS",
   metric: { value: "待ち {v}", from: 8, to: 120 },
 });
 export const kMessageBus = single("k-message-bus", {
-  kind: "message-bus", eyebrow: "メッセージバス", title: "Kafka", subtitle: "topic / partition",
+  kind: "message-bus", eyebrow: "メッセージバス", title: "Kafka", subtitle: "話題と区画で配る",
   metric: { value: "{v} 件/s", from: 40, to: 620 },
 });
 export const kCloud = single("k-cloud", {
-  kind: "cloud", eyebrow: "クラウド", title: "AWS", subtitle: "cloud service",
+  kind: "cloud", eyebrow: "クラウド", title: "AWS", subtitle: "クラウドの役務",
   metric: { value: "{v} 台", from: 2, to: 16 },
 });
 export const kCdn = single("k-cdn", {
-  kind: "cdn", eyebrow: "CDN", title: "Cloudflare", subtitle: "edge network",
+  kind: "cdn", eyebrow: "CDN", title: "Cloudflare", subtitle: "配信網の末端",
   metric: { value: "{v} GB/h", from: 5, to: 88 },
 });
 
 // アプリ系 6
 export const kService = single("k-service", {
-  kind: "service", eyebrow: "サービス", title: "AuthService", subtitle: "business logic",
+  kind: "service", eyebrow: "サービス", title: "認証の役務", subtitle: "業務の処理",
   metric: { value: "{v} 件/s", from: 30, to: 450 },
 });
 export const kApi = single("k-api", {
-  kind: "api", eyebrow: "API", title: "POST /users", subtitle: "REST endpoint",
+  kind: "api", eyebrow: "API", title: "POST /users", subtitle: "REST の口",
   metric: { value: "{v} ms", from: 240, to: 45 },
 });
 export const kFrontend = single("k-frontend", {
-  kind: "frontend", eyebrow: "フロント", title: "Next.js App", subtitle: "browser UI",
+  kind: "frontend", eyebrow: "フロント", title: "画面側のアプリ", subtitle: "閲覧ソフトで動く",
   metric: { value: "描画 {v} ms", from: 180, to: 60 },
 });
 export const kBackend = single("k-backend", {
-  kind: "backend", eyebrow: "バックエンド", title: "Express", subtitle: "server runtime",
+  kind: "backend", eyebrow: "バックエンド", title: "Express", subtitle: "サーバの実行環境",
   metric: { value: "CPU {v}%", from: 12, to: 74 },
 });
 export const kWebhook = single("k-webhook", {
-  kind: "webhook", eyebrow: "Webhook", title: "POST callback", subtitle: "incoming event", nodeW: 338,
+  kind: "webhook", eyebrow: "呼び返し", title: "POST の呼び返し", subtitle: "入ってくる出来事", nodeW: 338,
   metric: { value: "受信 {v}", from: 0, to: 26 },
 });
 export const kMicroservice = single("k-microservice", {
-  kind: "microservice", eyebrow: "マイクロサービス", title: "Order Service", subtitle: "1 機能 1 サービス", nodeW: 338,
+  kind: "microservice", eyebrow: "マイクロサービス", title: "注文の役務", subtitle: "1 機能 1 サービス", nodeW: 338,
   metric: { value: "{v} 件/分", from: 15, to: 210 },
 });
 
 // データ / 判定 4
 export const kSigner = single("k-signer", {
-  kind: "signer", eyebrow: "署名者", title: "Signer", subtitle: "HMAC / 公開鍵署名",
+  kind: "signer", eyebrow: "署名者", title: "署名する側", subtitle: "HMAC / 公開鍵署名",
   metric: { value: "署名 {v}", from: 1, to: 34 },
 });
 export const kOracle = single("k-oracle", {
-  kind: "oracle", eyebrow: "Oracle", title: "Feature flag service", subtitle: "外部設定の取込", nodeW: 492,
+  kind: "oracle", eyebrow: "外部の取り込み", title: "機能の切替を配る役務", subtitle: "外部設定の取込", nodeW: 492,
   metric: { value: "取込 {v}", from: 3, to: 48 },
 });
 export const kMerkleTree = single("k-merkle-tree", {
-  kind: "merkle-tree", eyebrow: "Merkle Tree", title: "Hash tree", subtitle: "ハッシュ二分木",
+  kind: "merkle-tree", eyebrow: "マークル木", title: "ハッシュの木", subtitle: "ハッシュ二分木",
   metric: { value: "葉 {v}", from: 4, to: 64 },
 });
 export const kDecision = single("k-decision", {
-  kind: "decision", eyebrow: "判定分岐", title: "if/else", subtitle: "条件分岐",
+  kind: "decision", eyebrow: "判定分岐", title: "条件で分かれる", subtitle: "真なら片方、偽ならもう片方",
   metric: { value: "真 {v}%", from: 20, to: 85 },
 });
 
@@ -185,18 +185,18 @@ states:
   v: 3
 
 actors:
-  - User: { kind: person, lane: l, stack: 0, eyebrow: "個人", subtitle: "外部の 1 ユーザー", value: "{v} 操作" }
+  - 利用者: { kind: person, lane: l, stack: 0, eyebrow: "個人", subtitle: "外部の 1 ユーザー", value: "{v} 操作" }
 
 animation:
   - step: "person" 1.5s
-    focus: ["User"]
-    badge: "active"
+    focus: ["利用者"]
+    badge: "動作中"
     description: "person kind の見た目。"
   - step: "person が動く" 1.5s
-    focus: ["User"]
+    focus: ["利用者"]
     tween:
       v: 3 -> 18
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -208,7 +208,7 @@ export const sourceJson__kPerson = `{
   },
   "actors": [
     {
-      "name": "User",
+      "name": "利用者",
       "kind": "person",
       "lane": "l",
       "stack": 0,
@@ -223,16 +223,16 @@ export const sourceJson__kPerson = `{
     {
       "step": "person",
       "duration": 1.5,
-      "focus": ["User"],
-      "badge": "active",
+      "focus": ["利用者"],
+      "badge": "動作中",
       "body": "person kind の見た目。"
     },
     {
       "step": "person が動く",
       "duration": 1.5,
-      "focus": ["User"],
+      "focus": ["利用者"],
       "tween": { "v": [3, 18] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -248,18 +248,18 @@ states:
   v: 4
 
 actors:
-  - Users: { kind: user-group, lane: l, stack: 0, eyebrow: "複数ユーザー", subtitle: "team / コミュニティ", value: "{v} 人" }
+  - 利用者の集まり: { kind: user-group, lane: l, stack: 0, eyebrow: "複数ユーザー", subtitle: "組や共同体", value: "{v} 人" }
 
 animation:
   - step: "user-group" 1.5s
-    focus: ["Users"]
-    badge: "active"
+    focus: ["利用者の集まり"]
+    badge: "動作中"
     description: "user-group kind の見た目。"
   - step: "user-group が動く" 1.5s
-    focus: ["Users"]
+    focus: ["利用者の集まり"]
     tween:
       v: 4 -> 32
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -271,12 +271,12 @@ export const sourceJson__kUserGroup = `{
   },
   "actors": [
     {
-      "name": "Users",
+      "name": "利用者の集まり",
       "kind": "user-group",
       "lane": "l",
       "stack": 0,
       "eyebrow": "複数ユーザー",
-      "subtitle": "team / コミュニティ",
+      "subtitle": "組や共同体",
       "value": "{v} 人"
     }
   ],
@@ -286,16 +286,16 @@ export const sourceJson__kUserGroup = `{
     {
       "step": "user-group",
       "duration": 1.5,
-      "focus": ["Users"],
-      "badge": "active",
+      "focus": ["利用者の集まり"],
+      "badge": "動作中",
       "body": "user-group kind の見た目。"
     },
     {
       "step": "user-group が動く",
       "duration": 1.5,
-      "focus": ["Users"],
+      "focus": ["利用者の集まり"],
       "tween": { "v": [4, 32] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -311,18 +311,18 @@ states:
   v: 0
 
 actors:
-  - Admin: { kind: admin, lane: l, stack: 0, eyebrow: "管理者", subtitle: "権限保有者", value: "承認 {v}" }
+  - 運用の管理者: { kind: admin, lane: l, stack: 0, eyebrow: "管理者", subtitle: "権限保有者", value: "承認 {v}" }
 
 animation:
   - step: "admin" 1.5s
-    focus: ["Admin"]
-    badge: "active"
+    focus: ["運用の管理者"]
+    badge: "動作中"
     description: "admin kind の見た目。"
   - step: "admin が動く" 1.5s
-    focus: ["Admin"]
+    focus: ["運用の管理者"]
     tween:
       v: 0 -> 7
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -334,7 +334,7 @@ export const sourceJson__kAdmin = `{
   },
   "actors": [
     {
-      "name": "Admin",
+      "name": "運用の管理者",
       "kind": "admin",
       "lane": "l",
       "stack": 0,
@@ -349,16 +349,16 @@ export const sourceJson__kAdmin = `{
     {
       "step": "admin",
       "duration": 1.5,
-      "focus": ["Admin"],
-      "badge": "active",
+      "focus": ["運用の管理者"],
+      "badge": "動作中",
       "body": "admin kind の見た目。"
     },
     {
       "step": "admin が動く",
       "duration": 1.5,
-      "focus": ["Admin"],
+      "focus": ["運用の管理者"],
       "tween": { "v": [0, 7] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -374,18 +374,18 @@ states:
   v: 1
 
 actors:
-  - Developer: { kind: developer, lane: l, stack: 0, eyebrow: "開発者", subtitle: "コード書く人", value: "{v} commit" }
+  - 開発する人: { kind: developer, lane: l, stack: 0, eyebrow: "開発者", subtitle: "コード書く人", value: "{v} 件の変更" }
 
 animation:
   - step: "developer" 1.5s
-    focus: ["Developer"]
-    badge: "active"
+    focus: ["開発する人"]
+    badge: "動作中"
     description: "developer kind の見た目。"
   - step: "developer が動く" 1.5s
-    focus: ["Developer"]
+    focus: ["開発する人"]
     tween:
       v: 1 -> 12
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -397,13 +397,13 @@ export const sourceJson__kDeveloper = `{
   },
   "actors": [
     {
-      "name": "Developer",
+      "name": "開発する人",
       "kind": "developer",
       "lane": "l",
       "stack": 0,
       "eyebrow": "開発者",
       "subtitle": "コード書く人",
-      "value": "{v} commit"
+      "value": "{v} 件の変更"
     }
   ],
   "flow": [],
@@ -412,16 +412,16 @@ export const sourceJson__kDeveloper = `{
     {
       "step": "developer",
       "duration": 1.5,
-      "focus": ["Developer"],
-      "badge": "active",
+      "focus": ["開発する人"],
+      "badge": "動作中",
       "body": "developer kind の見た目。"
     },
     {
       "step": "developer が動く",
       "duration": 1.5,
-      "focus": ["Developer"],
+      "focus": ["開発する人"],
       "tween": { "v": [1, 12] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -437,18 +437,18 @@ states:
   v: 2
 
 actors:
-  - External: { kind: external-user, lane: l, stack: 0, eyebrow: "外部ユーザー", subtitle: "別 system から来訪", value: "{v} 人/分" }
+  - 外部の利用者: { kind: external-user, lane: l, stack: 0, eyebrow: "外部ユーザー", subtitle: "別の仕組みから来訪", value: "{v} 人/分" }
 
 animation:
   - step: "external-user" 1.5s
-    focus: ["External"]
-    badge: "active"
+    focus: ["外部の利用者"]
+    badge: "動作中"
     description: "external-user kind の見た目。"
   - step: "external-user が動く" 1.5s
-    focus: ["External"]
+    focus: ["外部の利用者"]
     tween:
       v: 2 -> 40
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -460,12 +460,12 @@ export const sourceJson__kExternalUser = `{
   },
   "actors": [
     {
-      "name": "External",
+      "name": "外部の利用者",
       "kind": "external-user",
       "lane": "l",
       "stack": 0,
       "eyebrow": "外部ユーザー",
-      "subtitle": "別 system から来訪",
+      "subtitle": "別の仕組みから来訪",
       "value": "{v} 人/分"
     }
   ],
@@ -475,16 +475,16 @@ export const sourceJson__kExternalUser = `{
     {
       "step": "external-user",
       "duration": 1.5,
-      "focus": ["External"],
-      "badge": "active",
+      "focus": ["外部の利用者"],
+      "badge": "動作中",
       "body": "external-user kind の見た目。"
     },
     {
       "step": "external-user が動く",
       "duration": 1.5,
-      "focus": ["External"],
+      "focus": ["外部の利用者"],
       "tween": { "v": [2, 40] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -500,18 +500,18 @@ states:
   v: 120
 
 actors:
-  - PostgreSQL: { kind: database, lane: l, stack: 0, eyebrow: "DB", subtitle: "primary database", value: "{v} 行/s" }
+  - PostgreSQL: { kind: database, lane: l, stack: 0, eyebrow: "DB", subtitle: "主データベース", value: "{v} 行/s" }
 
 animation:
   - step: "database" 1.5s
     focus: ["PostgreSQL"]
-    badge: "active"
+    badge: "動作中"
     description: "database kind の見た目。"
   - step: "database が動く" 1.5s
     focus: ["PostgreSQL"]
     tween:
       v: 120 -> 980
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -528,7 +528,7 @@ export const sourceJson__kDatabase = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "DB",
-      "subtitle": "primary database",
+      "subtitle": "主データベース",
       "value": "{v} 行/s"
     }
   ],
@@ -539,7 +539,7 @@ export const sourceJson__kDatabase = `{
       "step": "database",
       "duration": 1.5,
       "focus": ["PostgreSQL"],
-      "badge": "active",
+      "badge": "動作中",
       "body": "database kind の見た目。"
     },
     {
@@ -547,7 +547,7 @@ export const sourceJson__kDatabase = `{
       "duration": 1.5,
       "focus": ["PostgreSQL"],
       "tween": { "v": [120, 980] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -563,18 +563,18 @@ states:
   v: 62
 
 actors:
-  - Redis: { kind: cache, lane: l, stack: 0, eyebrow: "キャッシュ", subtitle: "in-memory store", value: "命中 {v}%" }
+  - Redis: { kind: cache, lane: l, stack: 0, eyebrow: "キャッシュ", subtitle: "メモリ上の保管", value: "命中 {v}%" }
 
 animation:
   - step: "cache" 1.5s
     focus: ["Redis"]
-    badge: "active"
+    badge: "動作中"
     description: "cache kind の見た目。"
   - step: "cache が動く" 1.5s
     focus: ["Redis"]
     tween:
       v: 62 -> 97
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -591,7 +591,7 @@ export const sourceJson__kCache = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "キャッシュ",
-      "subtitle": "in-memory store",
+      "subtitle": "メモリ上の保管",
       "value": "命中 {v}%"
     }
   ],
@@ -602,7 +602,7 @@ export const sourceJson__kCache = `{
       "step": "cache",
       "duration": 1.5,
       "focus": ["Redis"],
-      "badge": "active",
+      "badge": "動作中",
       "body": "cache kind の見た目。"
     },
     {
@@ -610,7 +610,7 @@ export const sourceJson__kCache = `{
       "duration": 1.5,
       "focus": ["Redis"],
       "tween": { "v": [62, 97] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -626,18 +626,18 @@ states:
   v: 8
 
 actors:
-  - Job Queue: { kind: queue, lane: l, stack: 0, eyebrow: "キュー", subtitle: "Bull / SQS", value: "待ち {v}" }
+  - 仕事の待ち行列: { kind: queue, lane: l, stack: 0, eyebrow: "キュー", subtitle: "Bull / SQS", value: "待ち {v}" }
 
 animation:
   - step: "queue" 1.5s
-    focus: ["Job Queue"]
-    badge: "active"
+    focus: ["仕事の待ち行列"]
+    badge: "動作中"
     description: "queue kind の見た目。"
   - step: "queue が動く" 1.5s
-    focus: ["Job Queue"]
+    focus: ["仕事の待ち行列"]
     tween:
       v: 8 -> 120
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -649,7 +649,7 @@ export const sourceJson__kQueue = `{
   },
   "actors": [
     {
-      "name": "Job Queue",
+      "name": "仕事の待ち行列",
       "kind": "queue",
       "lane": "l",
       "stack": 0,
@@ -664,16 +664,16 @@ export const sourceJson__kQueue = `{
     {
       "step": "queue",
       "duration": 1.5,
-      "focus": ["Job Queue"],
-      "badge": "active",
+      "focus": ["仕事の待ち行列"],
+      "badge": "動作中",
       "body": "queue kind の見た目。"
     },
     {
       "step": "queue が動く",
       "duration": 1.5,
-      "focus": ["Job Queue"],
+      "focus": ["仕事の待ち行列"],
       "tween": { "v": [8, 120] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -689,18 +689,18 @@ states:
   v: 40
 
 actors:
-  - Kafka: { kind: message-bus, lane: l, stack: 0, eyebrow: "メッセージバス", subtitle: "topic / partition", value: "{v} 件/s" }
+  - Kafka: { kind: message-bus, lane: l, stack: 0, eyebrow: "メッセージバス", subtitle: "話題と区画で配る", value: "{v} 件/s" }
 
 animation:
   - step: "message-bus" 1.5s
     focus: ["Kafka"]
-    badge: "active"
+    badge: "動作中"
     description: "message-bus kind の見た目。"
   - step: "message-bus が動く" 1.5s
     focus: ["Kafka"]
     tween:
       v: 40 -> 620
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -717,7 +717,7 @@ export const sourceJson__kMessageBus = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "メッセージバス",
-      "subtitle": "topic / partition",
+      "subtitle": "話題と区画で配る",
       "value": "{v} 件/s"
     }
   ],
@@ -728,7 +728,7 @@ export const sourceJson__kMessageBus = `{
       "step": "message-bus",
       "duration": 1.5,
       "focus": ["Kafka"],
-      "badge": "active",
+      "badge": "動作中",
       "body": "message-bus kind の見た目。"
     },
     {
@@ -736,7 +736,7 @@ export const sourceJson__kMessageBus = `{
       "duration": 1.5,
       "focus": ["Kafka"],
       "tween": { "v": [40, 620] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -752,18 +752,18 @@ states:
   v: 2
 
 actors:
-  - AWS: { kind: cloud, lane: l, stack: 0, eyebrow: "クラウド", subtitle: "cloud service", value: "{v} 台" }
+  - AWS: { kind: cloud, lane: l, stack: 0, eyebrow: "クラウド", subtitle: "クラウドの役務", value: "{v} 台" }
 
 animation:
   - step: "cloud" 1.5s
     focus: ["AWS"]
-    badge: "active"
+    badge: "動作中"
     description: "cloud kind の見た目。"
   - step: "cloud が動く" 1.5s
     focus: ["AWS"]
     tween:
       v: 2 -> 16
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -780,7 +780,7 @@ export const sourceJson__kCloud = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "クラウド",
-      "subtitle": "cloud service",
+      "subtitle": "クラウドの役務",
       "value": "{v} 台"
     }
   ],
@@ -791,7 +791,7 @@ export const sourceJson__kCloud = `{
       "step": "cloud",
       "duration": 1.5,
       "focus": ["AWS"],
-      "badge": "active",
+      "badge": "動作中",
       "body": "cloud kind の見た目。"
     },
     {
@@ -799,7 +799,7 @@ export const sourceJson__kCloud = `{
       "duration": 1.5,
       "focus": ["AWS"],
       "tween": { "v": [2, 16] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -815,18 +815,18 @@ states:
   v: 5
 
 actors:
-  - Cloudflare: { kind: cdn, lane: l, stack: 0, eyebrow: "CDN", subtitle: "edge network", value: "{v} GB/h" }
+  - Cloudflare: { kind: cdn, lane: l, stack: 0, eyebrow: "CDN", subtitle: "配信網の末端", value: "{v} GB/h" }
 
 animation:
   - step: "cdn" 1.5s
     focus: ["Cloudflare"]
-    badge: "active"
+    badge: "動作中"
     description: "cdn kind の見た目。"
   - step: "cdn が動く" 1.5s
     focus: ["Cloudflare"]
     tween:
       v: 5 -> 88
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -843,7 +843,7 @@ export const sourceJson__kCdn = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "CDN",
-      "subtitle": "edge network",
+      "subtitle": "配信網の末端",
       "value": "{v} GB/h"
     }
   ],
@@ -854,7 +854,7 @@ export const sourceJson__kCdn = `{
       "step": "cdn",
       "duration": 1.5,
       "focus": ["Cloudflare"],
-      "badge": "active",
+      "badge": "動作中",
       "body": "cdn kind の見た目。"
     },
     {
@@ -862,7 +862,7 @@ export const sourceJson__kCdn = `{
       "duration": 1.5,
       "focus": ["Cloudflare"],
       "tween": { "v": [5, 88] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -878,18 +878,18 @@ states:
   v: 30
 
 actors:
-  - AuthService: { kind: service, lane: l, stack: 0, eyebrow: "サービス", subtitle: "business logic", value: "{v} 件/s" }
+  - 認証の役務: { kind: service, lane: l, stack: 0, eyebrow: "サービス", subtitle: "業務の処理", value: "{v} 件/s" }
 
 animation:
   - step: "service" 1.5s
-    focus: ["AuthService"]
-    badge: "active"
+    focus: ["認証の役務"]
+    badge: "動作中"
     description: "service kind の見た目。"
   - step: "service が動く" 1.5s
-    focus: ["AuthService"]
+    focus: ["認証の役務"]
     tween:
       v: 30 -> 450
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -901,12 +901,12 @@ export const sourceJson__kService = `{
   },
   "actors": [
     {
-      "name": "AuthService",
+      "name": "認証の役務",
       "kind": "service",
       "lane": "l",
       "stack": 0,
       "eyebrow": "サービス",
-      "subtitle": "business logic",
+      "subtitle": "業務の処理",
       "value": "{v} 件/s"
     }
   ],
@@ -916,16 +916,16 @@ export const sourceJson__kService = `{
     {
       "step": "service",
       "duration": 1.5,
-      "focus": ["AuthService"],
-      "badge": "active",
+      "focus": ["認証の役務"],
+      "badge": "動作中",
       "body": "service kind の見た目。"
     },
     {
       "step": "service が動く",
       "duration": 1.5,
-      "focus": ["AuthService"],
+      "focus": ["認証の役務"],
       "tween": { "v": [30, 450] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -941,18 +941,18 @@ states:
   v: 240
 
 actors:
-  - POST /users: { kind: api, lane: l, stack: 0, eyebrow: "API", subtitle: "REST endpoint", value: "{v} ms" }
+  - POST /users: { kind: api, lane: l, stack: 0, eyebrow: "API", subtitle: "REST の口", value: "{v} ms" }
 
 animation:
   - step: "api" 1.5s
     focus: ["POST /users"]
-    badge: "active"
+    badge: "動作中"
     description: "api kind の見た目。"
   - step: "api が動く" 1.5s
     focus: ["POST /users"]
     tween:
       v: 240 -> 45
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -969,7 +969,7 @@ export const sourceJson__kApi = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "API",
-      "subtitle": "REST endpoint",
+      "subtitle": "REST の口",
       "value": "{v} ms"
     }
   ],
@@ -980,7 +980,7 @@ export const sourceJson__kApi = `{
       "step": "api",
       "duration": 1.5,
       "focus": ["POST /users"],
-      "badge": "active",
+      "badge": "動作中",
       "body": "api kind の見た目。"
     },
     {
@@ -988,7 +988,7 @@ export const sourceJson__kApi = `{
       "duration": 1.5,
       "focus": ["POST /users"],
       "tween": { "v": [240, 45] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -1004,18 +1004,18 @@ states:
   v: 180
 
 actors:
-  - Next.js App: { kind: frontend, lane: l, stack: 0, eyebrow: "フロント", subtitle: "browser UI", value: "描画 {v} ms" }
+  - 画面側のアプリ: { kind: frontend, lane: l, stack: 0, eyebrow: "フロント", subtitle: "閲覧ソフトで動く", value: "描画 {v} ms" }
 
 animation:
   - step: "frontend" 1.5s
-    focus: ["Next.js App"]
-    badge: "active"
+    focus: ["画面側のアプリ"]
+    badge: "動作中"
     description: "frontend kind の見た目。"
   - step: "frontend が動く" 1.5s
-    focus: ["Next.js App"]
+    focus: ["画面側のアプリ"]
     tween:
       v: 180 -> 60
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -1027,12 +1027,12 @@ export const sourceJson__kFrontend = `{
   },
   "actors": [
     {
-      "name": "Next.js App",
+      "name": "画面側のアプリ",
       "kind": "frontend",
       "lane": "l",
       "stack": 0,
       "eyebrow": "フロント",
-      "subtitle": "browser UI",
+      "subtitle": "閲覧ソフトで動く",
       "value": "描画 {v} ms"
     }
   ],
@@ -1042,16 +1042,16 @@ export const sourceJson__kFrontend = `{
     {
       "step": "frontend",
       "duration": 1.5,
-      "focus": ["Next.js App"],
-      "badge": "active",
+      "focus": ["画面側のアプリ"],
+      "badge": "動作中",
       "body": "frontend kind の見た目。"
     },
     {
       "step": "frontend が動く",
       "duration": 1.5,
-      "focus": ["Next.js App"],
+      "focus": ["画面側のアプリ"],
       "tween": { "v": [180, 60] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -1067,18 +1067,18 @@ states:
   v: 12
 
 actors:
-  - Express: { kind: backend, lane: l, stack: 0, eyebrow: "バックエンド", subtitle: "server runtime", value: "CPU {v}%" }
+  - Express: { kind: backend, lane: l, stack: 0, eyebrow: "バックエンド", subtitle: "サーバの実行環境", value: "CPU {v}%" }
 
 animation:
   - step: "backend" 1.5s
     focus: ["Express"]
-    badge: "active"
+    badge: "動作中"
     description: "backend kind の見た目。"
   - step: "backend が動く" 1.5s
     focus: ["Express"]
     tween:
       v: 12 -> 74
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -1095,7 +1095,7 @@ export const sourceJson__kBackend = `{
       "lane": "l",
       "stack": 0,
       "eyebrow": "バックエンド",
-      "subtitle": "server runtime",
+      "subtitle": "サーバの実行環境",
       "value": "CPU {v}%"
     }
   ],
@@ -1106,7 +1106,7 @@ export const sourceJson__kBackend = `{
       "step": "backend",
       "duration": 1.5,
       "focus": ["Express"],
-      "badge": "active",
+      "badge": "動作中",
       "body": "backend kind の見た目。"
     },
     {
@@ -1114,7 +1114,7 @@ export const sourceJson__kBackend = `{
       "duration": 1.5,
       "focus": ["Express"],
       "tween": { "v": [12, 74] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -1130,18 +1130,18 @@ states:
   v: 0
 
 actors:
-  - POST callback: { kind: webhook, lane: l, stack: 0, eyebrow: "Webhook", subtitle: "incoming event", value: "受信 {v}", posW: 338 }
+  - POST の呼び返し: { kind: webhook, lane: l, stack: 0, eyebrow: "呼び返し", subtitle: "入ってくる出来事", value: "受信 {v}", posW: 338 }
 
 animation:
   - step: "webhook" 1.5s
-    focus: ["POST callback"]
-    badge: "active"
+    focus: ["POST の呼び返し"]
+    badge: "動作中"
     description: "webhook kind の見た目。"
   - step: "webhook が動く" 1.5s
-    focus: ["POST callback"]
+    focus: ["POST の呼び返し"]
     tween:
       v: 0 -> 26
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -1153,12 +1153,12 @@ export const sourceJson__kWebhook = `{
   },
   "actors": [
     {
-      "name": "POST callback",
+      "name": "POST の呼び返し",
       "kind": "webhook",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "Webhook",
-      "subtitle": "incoming event",
+      "eyebrow": "呼び返し",
+      "subtitle": "入ってくる出来事",
       "value": "受信 {v}",
       "posW": 338
     }
@@ -1169,16 +1169,16 @@ export const sourceJson__kWebhook = `{
     {
       "step": "webhook",
       "duration": 1.5,
-      "focus": ["POST callback"],
-      "badge": "active",
+      "focus": ["POST の呼び返し"],
+      "badge": "動作中",
       "body": "webhook kind の見た目。"
     },
     {
       "step": "webhook が動く",
       "duration": 1.5,
-      "focus": ["POST callback"],
+      "focus": ["POST の呼び返し"],
       "tween": { "v": [0, 26] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -1194,18 +1194,18 @@ states:
   v: 15
 
 actors:
-  - Order Service: { kind: microservice, lane: l, stack: 0, eyebrow: "マイクロサービス", subtitle: "1 機能 1 サービス", value: "{v} 件/分", posW: 338 }
+  - 注文の役務: { kind: microservice, lane: l, stack: 0, eyebrow: "マイクロサービス", subtitle: "1 機能 1 サービス", value: "{v} 件/分", posW: 338 }
 
 animation:
   - step: "microservice" 1.5s
-    focus: ["Order Service"]
-    badge: "active"
+    focus: ["注文の役務"]
+    badge: "動作中"
     description: "microservice kind の見た目。"
   - step: "microservice が動く" 1.5s
-    focus: ["Order Service"]
+    focus: ["注文の役務"]
     tween:
       v: 15 -> 210
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -1217,7 +1217,7 @@ export const sourceJson__kMicroservice = `{
   },
   "actors": [
     {
-      "name": "Order Service",
+      "name": "注文の役務",
       "kind": "microservice",
       "lane": "l",
       "stack": 0,
@@ -1233,16 +1233,16 @@ export const sourceJson__kMicroservice = `{
     {
       "step": "microservice",
       "duration": 1.5,
-      "focus": ["Order Service"],
-      "badge": "active",
+      "focus": ["注文の役務"],
+      "badge": "動作中",
       "body": "microservice kind の見た目。"
     },
     {
       "step": "microservice が動く",
       "duration": 1.5,
-      "focus": ["Order Service"],
+      "focus": ["注文の役務"],
       "tween": { "v": [15, 210] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -1258,18 +1258,18 @@ states:
   v: 1
 
 actors:
-  - Signer: { kind: signer, lane: l, stack: 0, eyebrow: "署名者", subtitle: "HMAC / 公開鍵署名", value: "署名 {v}" }
+  - 署名する側: { kind: signer, lane: l, stack: 0, eyebrow: "署名者", subtitle: "HMAC / 公開鍵署名", value: "署名 {v}" }
 
 animation:
   - step: "signer" 1.5s
-    focus: ["Signer"]
-    badge: "active"
+    focus: ["署名する側"]
+    badge: "動作中"
     description: "signer kind の見た目。"
   - step: "signer が動く" 1.5s
-    focus: ["Signer"]
+    focus: ["署名する側"]
     tween:
       v: 1 -> 34
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -1281,7 +1281,7 @@ export const sourceJson__kSigner = `{
   },
   "actors": [
     {
-      "name": "Signer",
+      "name": "署名する側",
       "kind": "signer",
       "lane": "l",
       "stack": 0,
@@ -1296,16 +1296,16 @@ export const sourceJson__kSigner = `{
     {
       "step": "signer",
       "duration": 1.5,
-      "focus": ["Signer"],
-      "badge": "active",
+      "focus": ["署名する側"],
+      "badge": "動作中",
       "body": "signer kind の見た目。"
     },
     {
       "step": "signer が動く",
       "duration": 1.5,
-      "focus": ["Signer"],
+      "focus": ["署名する側"],
       "tween": { "v": [1, 34] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -1321,18 +1321,18 @@ states:
   v: 3
 
 actors:
-  - Feature flag service: { kind: oracle, lane: l, stack: 0, eyebrow: "Oracle", subtitle: "外部設定の取込", value: "取込 {v}", posW: 492 }
+  - 機能の切替を配る役務: { kind: oracle, lane: l, stack: 0, eyebrow: "外部の取り込み", subtitle: "外部設定の取込", value: "取込 {v}", posW: 492 }
 
 animation:
   - step: "oracle" 1.5s
-    focus: ["Feature flag service"]
-    badge: "active"
+    focus: ["機能の切替を配る役務"]
+    badge: "動作中"
     description: "oracle kind の見た目。"
   - step: "oracle が動く" 1.5s
-    focus: ["Feature flag service"]
+    focus: ["機能の切替を配る役務"]
     tween:
       v: 3 -> 48
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -1344,11 +1344,11 @@ export const sourceJson__kOracle = `{
   },
   "actors": [
     {
-      "name": "Feature flag service",
+      "name": "機能の切替を配る役務",
       "kind": "oracle",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "Oracle",
+      "eyebrow": "外部の取り込み",
       "subtitle": "外部設定の取込",
       "value": "取込 {v}",
       "posW": 492
@@ -1360,16 +1360,16 @@ export const sourceJson__kOracle = `{
     {
       "step": "oracle",
       "duration": 1.5,
-      "focus": ["Feature flag service"],
-      "badge": "active",
+      "focus": ["機能の切替を配る役務"],
+      "badge": "動作中",
       "body": "oracle kind の見た目。"
     },
     {
       "step": "oracle が動く",
       "duration": 1.5,
-      "focus": ["Feature flag service"],
+      "focus": ["機能の切替を配る役務"],
       "tween": { "v": [3, 48] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -1385,18 +1385,18 @@ states:
   v: 4
 
 actors:
-  - Hash tree: { kind: merkle-tree, lane: l, stack: 0, eyebrow: "Merkle Tree", subtitle: "ハッシュ二分木", value: "葉 {v}" }
+  - ハッシュの木: { kind: merkle-tree, lane: l, stack: 0, eyebrow: "マークル木", subtitle: "ハッシュ二分木", value: "葉 {v}" }
 
 animation:
   - step: "merkle-tree" 1.5s
-    focus: ["Hash tree"]
-    badge: "active"
+    focus: ["ハッシュの木"]
+    badge: "動作中"
     description: "merkle-tree kind の見た目。"
   - step: "merkle-tree が動く" 1.5s
-    focus: ["Hash tree"]
+    focus: ["ハッシュの木"]
     tween:
       v: 4 -> 64
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -1408,11 +1408,11 @@ export const sourceJson__kMerkleTree = `{
   },
   "actors": [
     {
-      "name": "Hash tree",
+      "name": "ハッシュの木",
       "kind": "merkle-tree",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "Merkle Tree",
+      "eyebrow": "マークル木",
       "subtitle": "ハッシュ二分木",
       "value": "葉 {v}"
     }
@@ -1423,16 +1423,16 @@ export const sourceJson__kMerkleTree = `{
     {
       "step": "merkle-tree",
       "duration": 1.5,
-      "focus": ["Hash tree"],
-      "badge": "active",
+      "focus": ["ハッシュの木"],
+      "badge": "動作中",
       "body": "merkle-tree kind の見た目。"
     },
     {
       "step": "merkle-tree が動く",
       "duration": 1.5,
-      "focus": ["Hash tree"],
+      "focus": ["ハッシュの木"],
       "tween": { "v": [4, 64] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
@@ -1448,18 +1448,18 @@ states:
   v: 20
 
 actors:
-  - if/else: { kind: decision, lane: l, stack: 0, eyebrow: "判定分岐", subtitle: "条件分岐", value: "真 {v}%" }
+  - 条件で分かれる: { kind: decision, lane: l, stack: 0, eyebrow: "判定分岐", subtitle: "真なら片方、偽ならもう片方", value: "真 {v}%" }
 
 animation:
   - step: "decision" 1.5s
-    focus: ["if/else"]
-    badge: "active"
+    focus: ["条件で分かれる"]
+    badge: "動作中"
     description: "decision kind の見た目。"
   - step: "decision が動く" 1.5s
-    focus: ["if/else"]
+    focus: ["条件で分かれる"]
     tween:
       v: 20 -> 85
-    badge: "running"
+    badge: "値が動く"
     description: "箱の値が段の中で動く。"
 `;
 
@@ -1471,12 +1471,12 @@ export const sourceJson__kDecision = `{
   },
   "actors": [
     {
-      "name": "if/else",
+      "name": "条件で分かれる",
       "kind": "decision",
       "lane": "l",
       "stack": 0,
       "eyebrow": "判定分岐",
-      "subtitle": "条件分岐",
+      "subtitle": "真なら片方、偽ならもう片方",
       "value": "真 {v}%"
     }
   ],
@@ -1486,16 +1486,16 @@ export const sourceJson__kDecision = `{
     {
       "step": "decision",
       "duration": 1.5,
-      "focus": ["if/else"],
-      "badge": "active",
+      "focus": ["条件で分かれる"],
+      "badge": "動作中",
       "body": "decision kind の見た目。"
     },
     {
       "step": "decision が動く",
       "duration": 1.5,
-      "focus": ["if/else"],
+      "focus": ["条件で分かれる"],
       "tween": { "v": [20, 85] },
-      "badge": "running",
+      "badge": "値が動く",
       "body": "箱の値が段の中で動く。"
     }
   ]
