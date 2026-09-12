@@ -1,5 +1,5 @@
 /**
- * 図を見せる画面にシーンの表示が出ることの検証 (#1239)。
+ * 図を見せる画面に段の表示が出ることの検証 (#1239)。
  *
  * 設計 (`docs/design/app.pen`) は図を見せる画面すべてに札と帯を描いているが、実装は
  * エディタ (`04`) だけが持ち、`03 カタログの分類` と `06 見本の詳細` は何も出していなかった。
@@ -13,6 +13,7 @@
  * いなければ進み具合にならない。 中身と数を直接見る。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 段の呼び名 } from "../src/components/PhaseChrome";
 
 /** 図が組み上がって段が回り始めるまで待つ */
 async function 開く(page: Page, path: string): Promise<void> {
@@ -34,17 +35,17 @@ const 画面 = [
 ] as const;
 
 for (const s of 画面) {
-  test.describe(`シーンの表示 — ${s.名} (#1239)`, () => {
+  test.describe(`段の表示 — ${s.名} (#1239)`, () => {
     test("札に今の段と全体の数が出る", async ({ page }) => {
       await 開く(page, s.path);
       await expect(page.locator(".cdl-phase-chip")).toHaveCount(1);
-      // 「シーン N / M」 の形。 数が入っていることまで見る = 固定文字なら落ちる
-      expect(await 札(page)).toMatch(/シーン \d+ \/ \d+/u);
+      // 「段 N / M」 の形。 数が入っていることまで見る = 固定文字なら落ちる
+      expect(await 札(page)).toMatch(new RegExp(`${段の呼び名} \\d+ / \\d+`, "u"));
     });
 
     test("帯が段の数だけ区切られる", async ({ page }) => {
       await 開く(page, s.path);
-      const 全体 = Number((await 札(page)).match(/シーン \d+ \/ (\d+)/u)?.[1] ?? "0");
+      const 全体 = Number((await 札(page)).match(new RegExp(`${段の呼び名} \\d+ / (\\d+)`, "u"))?.[1] ?? "0");
       expect(全体, "札から全体の段数を読めない").toBeGreaterThan(1);
       await expect(page.locator(".cdl-phase-seg")).toHaveCount(全体);
     });
