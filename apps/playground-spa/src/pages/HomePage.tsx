@@ -43,7 +43,7 @@ animation:
     focus: [API, DB]
 `;
 
-/** いま光らせる行 (1 始まり)。 右の図のシーンと対になる */
+/** いま光らせる行 (1 始まり)。 右の図の段と対になる */
 const DEMO_HIGHLIGHT_LINE = 11;
 
 /** 3 手順の 2 つ目に添える短い記述 */
@@ -78,7 +78,7 @@ export function HomePage(): React.ReactElement {
         </h1>
         <p className="lead">
           {isJa
-            ? "形を選び置き場所を決めシーンごとに動かす。 型に合わせて諦めていた図が、 文章のまま組み上がる。"
+            ? "形を選び置き場所を決め段ごとに動かす。 型に合わせて諦めていた図が、 文章のまま組み上がる。"
             : "Pick the shape, place it where you want, move it phase by phase. Diagrams you gave up on—because the template could not hold them—now build themselves from plain text."}
         </p>
         <div className="hero-cta">
@@ -212,8 +212,8 @@ export function HomePage(): React.ReactElement {
             <div className="feature-icon">
               <Play size={20} />
             </div>
-            <h3>{isJa ? "シーンごとに動き出す" : "Motion, phase by phase"}</h3>
-            <p>{isJa ? "シーンを切り替えると図そのものが推移する。 数値は補間され、 順序と因果が目に見える。" : "Switch phases and the diagram itself transitions. Values interpolate, and order and causality become visible."}</p>
+            <h3>{isJa ? "段ごとに動き出す" : "Motion, phase by phase"}</h3>
+            <p>{isJa ? "段を切り替えると図そのものが推移する。 数値は補間され、 順序と因果が目に見える。" : "Switch phases and the diagram itself transitions. Values interpolate, and order and causality become visible."}</p>
           </div>
           <div className="feature">
             <div className="feature-icon">
@@ -251,7 +251,7 @@ export function HomePage(): React.ReactElement {
           <div className="step">
             <div className="step-num">03</div>
             <h3>{isJa ? "SVG が動き出す" : "The SVG starts moving"}</h3>
-            <p>{isJa ? "右の実況表示に、 シーンごとに動く図が出る。 場所を指す文字列で共有もでき、 持ち出しもできる。" : "The live view on the right shows a diagram that moves phase by phase. Share it by URL, or take it with you."}</p>
+            <p>{isJa ? "右の実況表示に、 段ごとに動く図が出る。 場所を指す文字列で共有もでき、 持ち出しもできる。" : "The live view on the right shows a diagram that moves phase by phase. Share it by URL, or take it with you."}</p>
           </div>
         </div>
       </section>

@@ -1,11 +1,11 @@
 /**
- * 図に重ねるシーンの表示 (#1143 でエディタに作り、#1239 で画面をまたげる形へ出した)。
+ * 図に重ねる段の表示 (#1143 でエディタに作り、#1239 で画面をまたげる形へ出した)。
  *
  * 設計 (`docs/design/app.pen`) は図を見せる画面すべてに 2 つを描いている。
  *
  * | 出すもの | 中身 |
  * |---|---|
- * | シーンの札 | いま何段目 / 全体で何段 / その段の題 |
+ * | 段の札 | いま何段目 / 全体で何段 / その段の題 |
  * | 進み具合の帯 | 段の数だけ区切り、過ぎた段を塗る |
  *
  * ## なぜ engine の表示を使わないか
@@ -22,6 +22,14 @@
  */
 import { useEffect, useState, type JSX } from "react";
 import type { CdlPhase } from "@cardenelabs/cdl";
+
+/**
+ * 札の頭に出す、図が切り替わる単位の呼び名 (#1819)。
+ *
+ * **検査もここから引く**。 字で書いた検査は、呼び名を直した日にまとめて落ちる
+ * (#1811 で編集画面の見出しを直した時に実ブラウザの検査 2 件が落ちた)。
+ */
+export const 段の呼び名 = "段";
 
 /** 段が 1 つ以下の図では何も出さない。進み具合を示す先が無い。 */
 const 出す下限 = 2;
@@ -99,7 +107,7 @@ export function PhaseChrome({
       <div className={`cdl-phase-chip is-${align}`}>
         <span className="cdl-phase-dot" />
         <span>
-          シーン {今 + 1} / {一覧.length}
+          {段の呼び名} {今 + 1} / {一覧.length}
         </span>
         {段.title !== "" && <span className="cdl-phase-title">· {段.title}</span>}
       </div>

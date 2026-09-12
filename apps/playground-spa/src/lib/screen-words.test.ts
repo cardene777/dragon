@@ -20,9 +20,27 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { 残してよい語, 残る英単語, 番号を落とす, 日本語の字, 外す材料 } from "./screen-words";
+import {
+  残してよい語,
+  残る英単語,
+  番号を落とす,
+  日本語の字,
+  外す材料,
+  揃える呼び名,
+  二通りの呼び名,
+} from "./screen-words";
 
 const src根 = fileURLToPath(new URL("../", import.meta.url));
+
+/**
+ * 設計の仕様書。 画面の字と同じ呼び名で書く相手なので、呼び名の母集団に入れる (#1819)。
+ *
+ * 入れないと、実装だけ直して仕様書が古い呼び名のまま残る形を誰も見ない
+ * (実測で同じ 1 文を仕様書が `局面`、実装が `シーン` と書いていた)。
+ */
+const 設計の仕様書 = fileURLToPath(
+  new URL("../../../../docs/design/specs/screens.md", import.meta.url),
+);
 
 function file一覧(dir: string, 拡張子: RegExp, 検査を含む: boolean): string[] {
   const out: string[] = [];
@@ -55,6 +73,15 @@ const 差し込み = /\{(?:[^{}]|\{[^{}]*\})*\}/;
 const 要素の中身 = />((?:[^<>{}]|\{(?:[^{}]|\{[^{}]*\})*\})+)</g;
 
 /**
+ * 決まりそのものを書いた file。 母集団から外す。
+ *
+ * 入れると **表に書いた「直す前の語」 をその表が咎める** = 検査が自分を見て落ちる
+ * (実測で `シーン` 2 件と `局面` 1 件が表の行から拾われた)。
+ * この file は画面へ字を渡さないので、外しても守る範囲は変わらない。
+ */
+const 決まりのfile = /^screen-words(\.test)?\.tsx?$/;
+
+/**
  * 画面に出る字を **粗く** 集める。 一覧の死蔵を見るためだけに使う。
  *
  * 検査ごとの拾い方より粗いのは、ここが見るのが「その語をどこかで使っているか」 だけだから。
@@ -65,9 +92,10 @@ function 画面に出る字たち(): { 字: string[]; 走査: number; 除外: st
   const files = [
     ...file一覧(src根 + "pages/", /\.tsx?$/, false),
     ...file一覧(src根 + "components/", /\.tsx?$/, false),
-    ...file一覧(src根 + "lib/", /\.ts$/, false).filter(
-      (f) => !(f.slice(f.lastIndexOf("/") + 1) in 外す材料),
-    ),
+    ...file一覧(src根 + "lib/", /\.ts$/, false).filter((f) => {
+      const 名 = f.slice(f.lastIndexOf("/") + 1);
+      return !(名 in 外す材料) && !決まりのfile.test(名);
+    }),
   ];
   const 字: string[] = [];
   for (const f of files) {
@@ -82,6 +110,25 @@ function 画面に出る字たち(): { 字: string[]; 走査: number; 除外: st
     走査: files.length,
     除外: Object.keys(外す材料),
   };
+}
+
+/**
+ * 呼び名を見る母集団。 画面 / 枠 / 材料 に **設計の仕様書** を足した 4 つ (#1819)。
+ *
+ * 仕様書は行ごとに読む。 表と箇条書きが混ざるので段落にまとめず、
+ * 日本語を含む行をそのまま 1 件として数える。
+ */
+function 呼び名の母集団(): { 字: { 出どころ: string; 文: string }[]; 内訳: string[] } {
+  const out: { 出どころ: string; 文: string }[] = [];
+  for (const 文 of 画面に出る字たち().字) out.push({ 出どころ: "画面", 文 });
+  for (const ln of readFileSync(設計の仕様書, "utf8").split("\n")) {
+    const t = ln.trim();
+    if (t !== "" && 日本語の字.test(t)) out.push({ 出どころ: "設計", 文: t });
+  }
+  const 内訳 = ["画面", "設計"].map(
+    (k) => `${k}=${out.filter((r) => r.出どころ === k).length}`,
+  );
+  return { 字: out, 内訳 };
 }
 
 /**
@@ -194,6 +241,52 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
       .map((f) => ({ f: f.slice(src根.length), n: 自前の許す語(readFileSync(f, "utf8")) }))
       .filter((r) => r.n >= 5);
     expect(自前.map((r) => `${r.f} (${r.n} 行)`), "判定を引きながら自前の一覧も持っている").toEqual([]);
+  });
+
+  it("同じものを 2 通りに呼んでいない (#1811 / #1819)", () => {
+    const { 字, 内訳 } = 呼び名の母集団();
+    const 残る = 字
+      .flatMap(({ 出どころ, 文 }) => 二通りの呼び名(文).map((印) => `${出どころ}: ${文.slice(0, 50)} [${印}]`));
+    console.log(`[呼び名] 走査した字=${字.length} (${内訳.join(" ")}) 対=${揃える呼び名.length} 残る=${残る.length}`);
+    expect(字.length, "字を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(200);
+    for (const k of ["画面", "設計"]) {
+      expect(
+        字.some((r) => r.出どころ === k),
+        `${k} の字を 1 件も読めていない (母集団が片側に寄っている)`,
+      ).toBe(true);
+    }
+    expect(残る, `同じものを 2 通りに呼んでいる:\n${残る.join("\n")}`).toEqual([]);
+  });
+
+  it("揃える先が実際に使われている (#1811)", () => {
+    // 揃え終わった語を一覧に残すと、行だけが増えて何も守らなくなる
+    const { 字 } = 呼び名の母集団();
+    const 出ない = 揃える呼び名
+      .filter((対) => !字.some((r) => r.文.includes(対.揃える先)))
+      .map((対) => `${対.直す} → ${対.揃える先}`);
+    expect(出ない, `揃える先が 1 度も出ていない: ${出ない.join(", ")}`).toEqual([]);
+  });
+
+  it("2 通りの呼び名を拾える (植え込み対照 + 対象外の対照、#1811)", () => {
+    // **植え込む字を表から作らない**。 表から作ると表を壊しても落ちない = 恒真になる
+    // (実測 = `パーツ` を `ぱーつ` に書き換える変異が 0 件 FAIL だった)。
+    // ここに書く字は、直す前に実物が出していた字そのもの
+    expect(二通りの呼び名("見本を読み込めませんでした。 パーツ一覧を開き直すと再試行します。")).toEqual([
+      "パーツ → 部品",
+    ]);
+    expect(二通りの呼び名("既定のサンプル (…) で開きます。")).toEqual(["サンプル → 見本"]);
+    expect(二通りの呼び名("形を選び置き場所を決めシーンごとに動かす。")).toEqual(["シーン → 段"]);
+    expect(二通りの呼び名("説明文は「形を選び置き場所を決め局面ごとに動かす。")).toEqual(["局面 → 段"]);
+    // 揃えた後の字は拾わない
+    expect(二通りの呼び名("見本を読み込めませんでした。 部品の一覧を開き直すと再試行します。")).toEqual([]);
+    expect(二通りの呼び名("既定の見本 (…) で開きます。")).toEqual([]);
+    expect(二通りの呼び名("形を選び置き場所を決め段ごとに動かす。")).toEqual([]);
+  });
+
+  it("揃える呼び名が理由を持っている (#1811)", () => {
+    expect(揃える呼び名.length, "対が 1 つも無い (検査が空振りしている)").toBeGreaterThan(2);
+    const 理由なし = 揃える呼び名.filter((対) => 対.理由.trim().length < 5).map((対) => 対.直す);
+    expect(理由なし, `理由を書いていない対: ${理由なし.join(", ")}`).toEqual([]);
   });
 
   it("自前の一覧を見つけられる (植え込み対照 + 対象外の対照)", () => {
