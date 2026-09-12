@@ -18,8 +18,9 @@
  * 見た目の札を外し、材料は引用符の中身だけを見る。 組み立ての形が違うので検査ごとに持つ。
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { file一覧 } from "./walk-files";
 import { 記法が知る名前, 綴りの照合, 経路ごとの専有 } from "./notation-names";
 import {
   残してよい語,
@@ -47,18 +48,6 @@ const 設計の仕様書 = fileURLToPath(
   new URL("../../../../docs/design/specs/screens.md", import.meta.url),
 );
 
-function file一覧(dir: string, 拡張子: RegExp, 検査を含む: boolean): string[] {
-  const out: string[] = [];
-  const 降りる = (d: string): void => {
-    for (const e of readdirSync(d)) {
-      const p = d + e;
-      if (statSync(p).isDirectory()) 降りる(p + "/");
-      else if (拡張子.test(e) && (検査を含む || !e.includes(".test."))) out.push(p);
-    }
-  };
-  降りる(dir);
-  return out;
-}
 
 /**
  * コメントと記法の見本を外す。
