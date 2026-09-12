@@ -173,7 +173,9 @@ export const FORMS: Section[] = [
     lines: [
       { code: "direction: 横", note: "1 人ずつ縦列を作る (流れ図の既定は縦)" },
       { code: "direction: 縦", note: "1 つの縦列に積む (泳法図の既定は横)" },
-      { code: "direction: horizontal", note: "英語でも書ける (vertical / horizontal)" },
+      // 別名は同じ画面の「向き」 の区画が記法から引いて並べる (#1850)。
+      // ここに綴りを書くと、同じ値を 2 箇所に置くことになる
+      { code: "direction: horizontal", note: "英語でも書ける" },
     ],
   },
   {
