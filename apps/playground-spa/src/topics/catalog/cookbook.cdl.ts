@@ -15,6 +15,9 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * 設計指針:
  * - DSL 本体は v0.5 Text DSL (英語 keyword) で記述
  * - actor 名は simple identifier (空白 / colon / slash 不使用) で lane id 生成 hazard を避ける
+ * - actor 名と矢印と段の字は日本語で書く (#1890)。 HTTP の要求の種類 (`GET` / `POST` / `PUT`) と
+ *   SQL の命令 (`SELECT` / `INSERT` / `ORDER BY`) と規格の名前 (`JWT` / `transfer`) は綴りが
+ *   決まっているので残す。 残した語は `lib/diagram-words.test.tsx` の `残してよい語` に理由付きで載る
  * - title は WebApp 文脈で簡潔に
  * - 全 thumbnail で card サイズ統一 (catalog.astro grid 上の見え方)
  *
@@ -44,25 +47,25 @@ export const sourceYaml__apiCall = `title: "REST API GET (Handler → DB SELECT 
 type: sequence
 
 actors:
-  - Client
-  - Handler
+  - 利用者側
+  - 受け口
   - DB
 
 flow:
-  - Client -> Handler: "GET /users/:id"
-  - Handler -> DB: "SELECT"
-  - DB -> Handler: "row"
-  - Handler -> Client: "200 JSON"
+  - 利用者側 -> 受け口: "GET /users/:id"
+  - 受け口 -> DB: "SELECT"
+  - DB -> 受け口: "行"
+  - 受け口 -> 利用者側: "200 JSON"
 
 animation:
-  - step: "request" 1.2s
-    focus: [Client, Handler]
+  - step: "要求" 1.2s
+    focus: [利用者側, 受け口]
     badge: "GET"
-  - step: "query" 1.2s
-    focus: [Handler, DB]
+  - step: "照会" 1.2s
+    focus: [受け口, DB]
     badge: "SELECT"
-  - step: "respond" 1.2s
-    focus: [DB, Handler, Client]
+  - step: "返す" 1.2s
+    focus: [DB, 受け口, 利用者側]
     badge: "200"
 `;
 
@@ -70,20 +73,20 @@ export const sourceJson__apiCall = `{
   "title": "REST API GET (Handler → DB SELECT → 200 JSON)",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
-    { "name": "Handler" },
+    { "name": "利用者側" },
+    { "name": "受け口" },
     { "name": "DB" }
   ],
   "flow": [
-    { "from": "Client", "to": "Handler", "label": "GET /users/:id" },
-    { "from": "Handler", "to": "DB", "label": "SELECT" },
-    { "from": "DB", "to": "Handler", "label": "row" },
-    { "from": "Handler", "to": "Client", "label": "200 JSON" }
+    { "from": "利用者側", "to": "受け口", "label": "GET /users/:id" },
+    { "from": "受け口", "to": "DB", "label": "SELECT" },
+    { "from": "DB", "to": "受け口", "label": "行" },
+    { "from": "受け口", "to": "利用者側", "label": "200 JSON" }
   ],
   "animation": [
-    { "step": "request", "duration": 1.2, "focus": ["Client", "Handler"], "badge": "GET" },
-    { "step": "query", "duration": 1.2, "focus": ["Handler", "DB"], "badge": "SELECT" },
-    { "step": "respond", "duration": 1.2, "focus": ["DB", "Handler", "Client"], "badge": "200" }
+    { "step": "要求", "duration": 1.2, "focus": ["利用者側", "受け口"], "badge": "GET" },
+    { "step": "照会", "duration": 1.2, "focus": ["受け口", "DB"], "badge": "SELECT" },
+    { "step": "返す", "duration": 1.2, "focus": ["DB", "受け口", "利用者側"], "badge": "200" }
   ]
 }`;
 
@@ -94,27 +97,27 @@ export const sourceYaml__jwtAuth = `title: "JWT auth (login → JWT issue → Be
 type: sequence
 
 actors:
-  - User
-  - Login
+  - 利用者
+  - 認証窓口
   - API
   - DB
 
 flow:
-  - User -> Login: "POST credentials"
-  - Login -> DB: "verify"
-  - Login -> User: "issue JWT"
-  - User -> API: "Bearer token"
-  - API -> User: "200 data"
+  - 利用者 -> 認証窓口: "POST 認証情報"
+  - 認証窓口 -> DB: "照合"
+  - 認証窓口 -> 利用者: "JWT を発行"
+  - 利用者 -> API: "JWT を添えて呼ぶ"
+  - API -> 利用者: "200 中身"
 
 animation:
-  - step: "credentials-verify" 1.5s
-    focus: [User, Login, DB]
-    badge: "verify"
-  - step: "issue-token" 1.0s
-    focus: [Login, User]
+  - step: "照合" 1.5s
+    focus: [利用者, 認証窓口, DB]
+    badge: "照合"
+  - step: "発行" 1.0s
+    focus: [認証窓口, 利用者]
     badge: "JWT"
-  - step: "bearer-access" 1.5s
-    focus: [User, API]
+  - step: "鍵で呼ぶ" 1.5s
+    focus: [利用者, API]
     badge: "200"
 `;
 
@@ -122,27 +125,27 @@ export const sourceJson__jwtAuth = `{
   "title": "JWT auth (login → JWT issue → Bearer で API アクセス)",
   "type": "sequence",
   "actors": [
-    { "name": "User" },
-    { "name": "Login" },
+    { "name": "利用者" },
+    { "name": "認証窓口" },
     { "name": "API" },
     { "name": "DB" }
   ],
   "flow": [
-    { "from": "User", "to": "Login", "label": "POST credentials" },
-    { "from": "Login", "to": "DB", "label": "verify" },
-    { "from": "Login", "to": "User", "label": "issue JWT" },
-    { "from": "User", "to": "API", "label": "Bearer token" },
-    { "from": "API", "to": "User", "label": "200 data" }
+    { "from": "利用者", "to": "認証窓口", "label": "POST 認証情報" },
+    { "from": "認証窓口", "to": "DB", "label": "照合" },
+    { "from": "認証窓口", "to": "利用者", "label": "JWT を発行" },
+    { "from": "利用者", "to": "API", "label": "JWT を添えて呼ぶ" },
+    { "from": "API", "to": "利用者", "label": "200 中身" }
   ],
   "animation": [
     {
-      "step": "credentials-verify",
+      "step": "照合",
       "duration": 1.5,
-      "focus": ["User", "Login", "DB"],
-      "badge": "verify"
+      "focus": ["利用者", "認証窓口", "DB"],
+      "badge": "照合"
     },
-    { "step": "issue-token", "duration": 1, "focus": ["Login", "User"], "badge": "JWT" },
-    { "step": "bearer-access", "duration": 1.5, "focus": ["User", "API"], "badge": "200" }
+    { "step": "発行", "duration": 1, "focus": ["認証窓口", "利用者"], "badge": "JWT" },
+    { "step": "鍵で呼ぶ", "duration": 1.5, "focus": ["利用者", "API"], "badge": "200" }
   ]
 }`;
 
@@ -153,65 +156,65 @@ export const sourceYaml__oauthFlow = `title: "OAuth code flow"
 type: sequence
 
 actors:
-  - User
-  - App
-  - AuthServer
+  - 利用者
+  - 本体
+  - 認可窓口
   - API
 
 flow:
-  - User -> App: "click login"
-  - App -> AuthServer: "redirect"
-  - AuthServer -> User: "consent"
-  - User -> AuthServer: "allow"
-  - AuthServer -> App: "code"
-  - App -> AuthServer: "exchange code"
-  - AuthServer -> App: "access_token"
-  - App -> API: "Bearer access_token"
+  - 利用者 -> 本体: "認証を始める"
+  - 本体 -> 認可窓口: "転送"
+  - 認可窓口 -> 利用者: "同意の確認"
+  - 利用者 -> 認可窓口: "許可"
+  - 認可窓口 -> 本体: "認可の番号"
+  - 本体 -> 認可窓口: "番号を鍵に替える"
+  - 認可窓口 -> 本体: "利用の鍵"
+  - 本体 -> API: "鍵を添えて呼ぶ"
 
 animation:
-  - step: "redirect" 1.2s
-    focus: [User, App, AuthServer]
-    badge: "redirect"
-  - step: "consent" 1.5s
-    focus: [AuthServer, User]
-    badge: "consent"
-  - step: "exchange" 1.2s
-    focus: [App, AuthServer]
-    badge: "code"
-  - step: "access" 1.0s
-    focus: [App, API]
-    badge: "token"
+  - step: "転送" 1.2s
+    focus: [利用者, 本体, 認可窓口]
+    badge: "転送"
+  - step: "同意の確認" 1.5s
+    focus: [認可窓口, 利用者]
+    badge: "同意の確認"
+  - step: "引き換え" 1.2s
+    focus: [本体, 認可窓口]
+    badge: "認可の番号"
+  - step: "利用" 1.0s
+    focus: [本体, API]
+    badge: "鍵"
 `;
 
 export const sourceJson__oauthFlow = `{
   "title": "OAuth code flow",
   "type": "sequence",
   "actors": [
-    { "name": "User" },
-    { "name": "App" },
-    { "name": "AuthServer" },
+    { "name": "利用者" },
+    { "name": "本体" },
+    { "name": "認可窓口" },
     { "name": "API" }
   ],
   "flow": [
-    { "from": "User", "to": "App", "label": "click login" },
-    { "from": "App", "to": "AuthServer", "label": "redirect" },
-    { "from": "AuthServer", "to": "User", "label": "consent" },
-    { "from": "User", "to": "AuthServer", "label": "allow" },
-    { "from": "AuthServer", "to": "App", "label": "code" },
-    { "from": "App", "to": "AuthServer", "label": "exchange code" },
-    { "from": "AuthServer", "to": "App", "label": "access_token" },
-    { "from": "App", "to": "API", "label": "Bearer access_token" }
+    { "from": "利用者", "to": "本体", "label": "認証を始める" },
+    { "from": "本体", "to": "認可窓口", "label": "転送" },
+    { "from": "認可窓口", "to": "利用者", "label": "同意の確認" },
+    { "from": "利用者", "to": "認可窓口", "label": "許可" },
+    { "from": "認可窓口", "to": "本体", "label": "認可の番号" },
+    { "from": "本体", "to": "認可窓口", "label": "番号を鍵に替える" },
+    { "from": "認可窓口", "to": "本体", "label": "利用の鍵" },
+    { "from": "本体", "to": "API", "label": "鍵を添えて呼ぶ" }
   ],
   "animation": [
     {
-      "step": "redirect",
+      "step": "転送",
       "duration": 1.2,
-      "focus": ["User", "App", "AuthServer"],
-      "badge": "redirect"
+      "focus": ["利用者", "本体", "認可窓口"],
+      "badge": "転送"
     },
-    { "step": "consent", "duration": 1.5, "focus": ["AuthServer", "User"], "badge": "consent" },
-    { "step": "exchange", "duration": 1.2, "focus": ["App", "AuthServer"], "badge": "code" },
-    { "step": "access", "duration": 1, "focus": ["App", "API"], "badge": "token" }
+    { "step": "同意の確認", "duration": 1.5, "focus": ["認可窓口", "利用者"], "badge": "同意の確認" },
+    { "step": "引き換え", "duration": 1.2, "focus": ["本体", "認可窓口"], "badge": "認可の番号" },
+    { "step": "利用", "duration": 1, "focus": ["本体", "API"], "badge": "鍵" }
   ]
 }`;
 
@@ -222,30 +225,30 @@ export const sourceYaml__rateLimit = `title: "Rate limit"
 type: sequence
 
 actors:
-  - Client
-  - Limiter
+  - 利用者側
+  - 流量制限
   - API
-  - Bucket
+  - 残り枠
 
 states:
   remaining: 5
 
 flow:
-  - Client -> Limiter: "request"
-  - Limiter -> Bucket: "decrement"
-  - Limiter -> API: "ok"
-  - API -> Client: "200"
-  - Client -> Limiter: "6th request"
-  - Limiter -> Client: "429 Retry-After"
+  - 利用者側 -> 流量制限: "要求"
+  - 流量制限 -> 残り枠: "1 減らす"
+  - 流量制限 -> API: "正常"
+  - API -> 利用者側: "200"
+  - 利用者側 -> 流量制限: "6 回目の要求"
+  - 流量制限 -> 利用者側: "429 待ってから再送"
 
 animation:
-  - step: "allow" 1.2s
-    focus: [Client, Limiter, API]
+  - step: "許可" 1.2s
+    focus: [利用者側, 流量制限, API]
     tween:
       remaining: 5 -> 4
-    badge: "allow"
-  - step: "exceed" 1.2s
-    focus: [Client, Limiter]
+    badge: "許可"
+  - step: "超過" 1.2s
+    focus: [利用者側, 流量制限]
     badge: "429"
 `;
 
@@ -253,29 +256,29 @@ export const sourceJson__rateLimit = `{
   "title": "Rate limit",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
-    { "name": "Limiter" },
+    { "name": "利用者側" },
+    { "name": "流量制限" },
     { "name": "API" },
-    { "name": "Bucket" }
+    { "name": "残り枠" }
   ],
   "flow": [
-    { "from": "Client", "to": "Limiter", "label": "request" },
-    { "from": "Limiter", "to": "Bucket", "label": "decrement" },
-    { "from": "Limiter", "to": "API", "label": "ok" },
-    { "from": "API", "to": "Client", "label": "200" },
-    { "from": "Client", "to": "Limiter", "label": "6th request" },
-    { "from": "Limiter", "to": "Client", "label": "429 Retry-After" }
+    { "from": "利用者側", "to": "流量制限", "label": "要求" },
+    { "from": "流量制限", "to": "残り枠", "label": "1 減らす" },
+    { "from": "流量制限", "to": "API", "label": "正常" },
+    { "from": "API", "to": "利用者側", "label": "200" },
+    { "from": "利用者側", "to": "流量制限", "label": "6 回目の要求" },
+    { "from": "流量制限", "to": "利用者側", "label": "429 待ってから再送" }
   ],
   "states": { "remaining": 5 },
   "animation": [
     {
-      "step": "allow",
+      "step": "許可",
       "duration": 1.2,
-      "focus": ["Client", "Limiter", "API"],
+      "focus": ["利用者側", "流量制限", "API"],
       "tween": { "remaining": [5, 4] },
-      "badge": "allow"
+      "badge": "許可"
     },
-    { "step": "exceed", "duration": 1.2, "focus": ["Client", "Limiter"], "badge": "429" }
+    { "step": "超過", "duration": 1.2, "focus": ["利用者側", "流量制限"], "badge": "429" }
   ]
 }`;
 
@@ -286,54 +289,54 @@ export const sourceYaml__csrfToken = `title: "CSRF token"
 type: sequence
 
 actors:
-  - Browser
-  - Server
-  - Session
+  - 閲覧ソフト
+  - 処理側
+  - 利用中の記録
 
 flow:
-  - Browser -> Server: "GET form"
-  - Server -> Session: "store token"
-  - Server -> Browser: "form + token"
-  - Browser -> Server: "POST form + token"
-  - Server -> Session: "verify"
-  - Server -> Browser: "200"
+  - 閲覧ソフト -> 処理側: "GET 入力欄"
+  - 処理側 -> 利用中の記録: "鍵を保管"
+  - 処理側 -> 閲覧ソフト: "入力欄 + 鍵"
+  - 閲覧ソフト -> 処理側: "POST 入力欄 + 鍵"
+  - 処理側 -> 利用中の記録: "照合"
+  - 処理側 -> 閲覧ソフト: "200"
 
 animation:
-  - step: "issue" 1.2s
-    focus: [Browser, Server]
-    badge: "issue"
-  - step: "store" 1.2s
-    focus: [Server, Session]
-    badge: "store"
-  - step: "submit" 1.5s
-    focus: [Browser, Server, Session]
-    badge: "verify"
+  - step: "発行" 1.2s
+    focus: [閲覧ソフト, 処理側]
+    badge: "発行"
+  - step: "保管" 1.2s
+    focus: [処理側, 利用中の記録]
+    badge: "保管"
+  - step: "送信" 1.5s
+    focus: [閲覧ソフト, 処理側, 利用中の記録]
+    badge: "照合"
 `;
 
 export const sourceJson__csrfToken = `{
   "title": "CSRF token",
   "type": "sequence",
   "actors": [
-    { "name": "Browser" },
-    { "name": "Server" },
-    { "name": "Session" }
+    { "name": "閲覧ソフト" },
+    { "name": "処理側" },
+    { "name": "利用中の記録" }
   ],
   "flow": [
-    { "from": "Browser", "to": "Server", "label": "GET form" },
-    { "from": "Server", "to": "Session", "label": "store token" },
-    { "from": "Server", "to": "Browser", "label": "form + token" },
-    { "from": "Browser", "to": "Server", "label": "POST form + token" },
-    { "from": "Server", "to": "Session", "label": "verify" },
-    { "from": "Server", "to": "Browser", "label": "200" }
+    { "from": "閲覧ソフト", "to": "処理側", "label": "GET 入力欄" },
+    { "from": "処理側", "to": "利用中の記録", "label": "鍵を保管" },
+    { "from": "処理側", "to": "閲覧ソフト", "label": "入力欄 + 鍵" },
+    { "from": "閲覧ソフト", "to": "処理側", "label": "POST 入力欄 + 鍵" },
+    { "from": "処理側", "to": "利用中の記録", "label": "照合" },
+    { "from": "処理側", "to": "閲覧ソフト", "label": "200" }
   ],
   "animation": [
-    { "step": "issue", "duration": 1.2, "focus": ["Browser", "Server"], "badge": "issue" },
-    { "step": "store", "duration": 1.2, "focus": ["Server", "Session"], "badge": "store" },
+    { "step": "発行", "duration": 1.2, "focus": ["閲覧ソフト", "処理側"], "badge": "発行" },
+    { "step": "保管", "duration": 1.2, "focus": ["処理側", "利用中の記録"], "badge": "保管" },
     {
-      "step": "submit",
+      "step": "送信",
       "duration": 1.5,
-      "focus": ["Browser", "Server", "Session"],
-      "badge": "verify"
+      "focus": ["閲覧ソフト", "処理側", "利用中の記録"],
+      "badge": "照合"
     }
   ]
 }`;
@@ -349,26 +352,26 @@ export const sourceYaml__crudCreate = `title: "CRUD create"
 type: sequence
 
 actors:
-  - Client
-  - Handler
+  - 利用者側
+  - 受け口
   - DB
-  - Table
+  - 表
 
 flow:
-  - Client -> Handler: "POST json body"
-  - Handler -> DB: "INSERT"
-  - DB -> Table: "row"
-  - Handler -> Client: "201 Created"
+  - 利用者側 -> 受け口: "POST 本文 (JSON)"
+  - 受け口 -> DB: "INSERT"
+  - DB -> 表: "行"
+  - 受け口 -> 利用者側: "201 作成済み"
 
 animation:
-  - step: "post" 1.2s
-    focus: [Client, Handler]
+  - step: "送る" 1.2s
+    focus: [利用者側, 受け口]
     badge: "POST"
-  - step: "insert" 1.2s
-    focus: [Handler, DB, Table]
+  - step: "書き込み" 1.2s
+    focus: [受け口, DB, 表]
     badge: "INSERT"
-  - step: "respond" 1.0s
-    focus: [Handler, Client]
+  - step: "返す" 1.0s
+    focus: [受け口, 利用者側]
     badge: "201"
 `;
 
@@ -376,26 +379,26 @@ export const sourceJson__crudCreate = `{
   "title": "CRUD create",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
-    { "name": "Handler" },
+    { "name": "利用者側" },
+    { "name": "受け口" },
     { "name": "DB" },
-    { "name": "Table" }
+    { "name": "表" }
   ],
   "flow": [
-    { "from": "Client", "to": "Handler", "label": "POST json body" },
-    { "from": "Handler", "to": "DB", "label": "INSERT" },
-    { "from": "DB", "to": "Table", "label": "row" },
-    { "from": "Handler", "to": "Client", "label": "201 Created" }
+    { "from": "利用者側", "to": "受け口", "label": "POST 本文 (JSON)" },
+    { "from": "受け口", "to": "DB", "label": "INSERT" },
+    { "from": "DB", "to": "表", "label": "行" },
+    { "from": "受け口", "to": "利用者側", "label": "201 作成済み" }
   ],
   "animation": [
-    { "step": "post", "duration": 1.2, "focus": ["Client", "Handler"], "badge": "POST" },
+    { "step": "送る", "duration": 1.2, "focus": ["利用者側", "受け口"], "badge": "POST" },
     {
-      "step": "insert",
+      "step": "書き込み",
       "duration": 1.2,
-      "focus": ["Handler", "DB", "Table"],
+      "focus": ["受け口", "DB", "表"],
       "badge": "INSERT"
     },
-    { "step": "respond", "duration": 1, "focus": ["Handler", "Client"], "badge": "201" }
+    { "step": "返す", "duration": 1, "focus": ["受け口", "利用者側"], "badge": "201" }
   ]
 }`;
 
@@ -406,46 +409,46 @@ export const sourceYaml__pagination = `title: "Cursor pagination"
 type: sequence
 
 actors:
-  - Client
+  - 利用者側
   - API
   - DB
 
 flow:
-  - Client -> API: "GET items cursor=null"
+  - 利用者側 -> API: "GET 一覧 (続きの印なし)"
   - API -> DB: "LIMIT 20"
-  - DB -> API: "20 rows + next_cursor"
-  - API -> Client: "page 1 + cursor"
-  - Client -> API: "GET items cursor=X"
-  - API -> Client: "page 2"
+  - DB -> API: "20 行 + 次の印"
+  - API -> 利用者側: "最初の 20 件 + 続きの印"
+  - 利用者側 -> API: "GET 一覧 (続きの印つき)"
+  - API -> 利用者側: "次の 20 件"
 
 animation:
-  - step: "page1" 1.5s
-    focus: [Client, API, DB]
-    badge: "page 1"
-  - step: "page2" 1.2s
-    focus: [Client, API]
-    badge: "page 2"
+  - step: "最初の 20 件" 1.5s
+    focus: [利用者側, API, DB]
+    badge: "最初の 20 件"
+  - step: "次の 20 件" 1.2s
+    focus: [利用者側, API]
+    badge: "次の 20 件"
 `;
 
 export const sourceJson__pagination = `{
   "title": "Cursor pagination",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
+    { "name": "利用者側" },
     { "name": "API" },
     { "name": "DB" }
   ],
   "flow": [
-    { "from": "Client", "to": "API", "label": "GET items cursor=null" },
+    { "from": "利用者側", "to": "API", "label": "GET 一覧 (続きの印なし)" },
     { "from": "API", "to": "DB", "label": "LIMIT 20" },
-    { "from": "DB", "to": "API", "label": "20 rows + next_cursor" },
-    { "from": "API", "to": "Client", "label": "page 1 + cursor" },
-    { "from": "Client", "to": "API", "label": "GET items cursor=X" },
-    { "from": "API", "to": "Client", "label": "page 2" }
+    { "from": "DB", "to": "API", "label": "20 行 + 次の印" },
+    { "from": "API", "to": "利用者側", "label": "最初の 20 件 + 続きの印" },
+    { "from": "利用者側", "to": "API", "label": "GET 一覧 (続きの印つき)" },
+    { "from": "API", "to": "利用者側", "label": "次の 20 件" }
   ],
   "animation": [
-    { "step": "page1", "duration": 1.5, "focus": ["Client", "API", "DB"], "badge": "page 1" },
-    { "step": "page2", "duration": 1.2, "focus": ["Client", "API"], "badge": "page 2" }
+    { "step": "最初の 20 件", "duration": 1.5, "focus": ["利用者側", "API", "DB"], "badge": "最初の 20 件" },
+    { "step": "次の 20 件", "duration": 1.2, "focus": ["利用者側", "API"], "badge": "次の 20 件" }
   ]
 }`;
 
@@ -456,29 +459,29 @@ export const sourceYaml__cacheReadThrough = `title: "Cache read-through"
 type: sequence
 
 actors:
-  - Client
+  - 利用者側
   - API
-  - Cache
+  - 一時置き場
   - DB
 
 flow:
-  - Client -> API: "GET key"
-  - API -> Cache: "lookup"
-  - Cache -> API: "miss"
+  - 利用者側 -> API: "GET 値を引く"
+  - API -> 一時置き場: "探す"
+  - 一時置き場 -> API: "無い"
   - API -> DB: "SELECT"
-  - DB -> API: "row"
-  - API -> Cache: "set TTL=60s"
-  - API -> Client: "200"
+  - DB -> API: "行"
+  - API -> 一時置き場: "60 秒だけ置く"
+  - API -> 利用者側: "200"
 
 animation:
-  - step: "miss" 1.5s
-    focus: [Client, API, Cache, DB]
-    badge: "miss"
-  - step: "fill" 1.2s
-    focus: [API, Cache]
-    badge: "set"
-  - step: "respond" 1.0s
-    focus: [API, Client]
+  - step: "無い" 1.5s
+    focus: [利用者側, API, 一時置き場, DB]
+    badge: "無い"
+  - step: "埋める" 1.2s
+    focus: [API, 一時置き場]
+    badge: "置く"
+  - step: "返す" 1.0s
+    focus: [API, 利用者側]
     badge: "200"
 `;
 
@@ -486,29 +489,29 @@ export const sourceJson__cacheReadThrough = `{
   "title": "Cache read-through",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
+    { "name": "利用者側" },
     { "name": "API" },
-    { "name": "Cache" },
+    { "name": "一時置き場" },
     { "name": "DB" }
   ],
   "flow": [
-    { "from": "Client", "to": "API", "label": "GET key" },
-    { "from": "API", "to": "Cache", "label": "lookup" },
-    { "from": "Cache", "to": "API", "label": "miss" },
+    { "from": "利用者側", "to": "API", "label": "GET 値を引く" },
+    { "from": "API", "to": "一時置き場", "label": "探す" },
+    { "from": "一時置き場", "to": "API", "label": "無い" },
     { "from": "API", "to": "DB", "label": "SELECT" },
-    { "from": "DB", "to": "API", "label": "row" },
-    { "from": "API", "to": "Cache", "label": "set TTL=60s" },
-    { "from": "API", "to": "Client", "label": "200" }
+    { "from": "DB", "to": "API", "label": "行" },
+    { "from": "API", "to": "一時置き場", "label": "60 秒だけ置く" },
+    { "from": "API", "to": "利用者側", "label": "200" }
   ],
   "animation": [
     {
-      "step": "miss",
+      "step": "無い",
       "duration": 1.5,
-      "focus": ["Client", "API", "Cache", "DB"],
-      "badge": "miss"
+      "focus": ["利用者側", "API", "一時置き場", "DB"],
+      "badge": "無い"
     },
-    { "step": "fill", "duration": 1.2, "focus": ["API", "Cache"], "badge": "set" },
-    { "step": "respond", "duration": 1, "focus": ["API", "Client"], "badge": "200" }
+    { "step": "埋める", "duration": 1.2, "focus": ["API", "一時置き場"], "badge": "置く" },
+    { "step": "返す", "duration": 1, "focus": ["API", "利用者側"], "badge": "200" }
   ]
 }`;
 
@@ -522,46 +525,46 @@ export const sourceYaml__searchQuery = `title: "Search full-text"
 type: sequence
 
 actors:
-  - Client
+  - 利用者側
   - API
-  - Index
+  - 索引
 
 flow:
-  - Client -> API: "GET search q=foo"
-  - API -> Index: "tokenize + score"
-  - Index -> API: "ranked hits"
-  - API -> Client: "results"
+  - 利用者側 -> API: "GET 検索 q=りんご"
+  - API -> 索引: "語に分けて点数付け"
+  - 索引 -> API: "順位付きの当たり"
+  - API -> 利用者側: "結果"
 
 animation:
-  - step: "query" 1.2s
-    focus: [Client, API]
-    badge: "q=foo"
-  - step: "score" 1.5s
-    focus: [API, Index]
-    badge: "rank"
-  - step: "respond" 1.0s
-    focus: [API, Client]
-    badge: "hits"
+  - step: "照会" 1.2s
+    focus: [利用者側, API]
+    badge: "q=りんご"
+  - step: "点数付け" 1.5s
+    focus: [API, 索引]
+    badge: "順位付け"
+  - step: "返す" 1.0s
+    focus: [API, 利用者側]
+    badge: "当たり"
 `;
 
 export const sourceJson__searchQuery = `{
   "title": "Search full-text",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
+    { "name": "利用者側" },
     { "name": "API" },
-    { "name": "Index" }
+    { "name": "索引" }
   ],
   "flow": [
-    { "from": "Client", "to": "API", "label": "GET search q=foo" },
-    { "from": "API", "to": "Index", "label": "tokenize + score" },
-    { "from": "Index", "to": "API", "label": "ranked hits" },
-    { "from": "API", "to": "Client", "label": "results" }
+    { "from": "利用者側", "to": "API", "label": "GET 検索 q=りんご" },
+    { "from": "API", "to": "索引", "label": "語に分けて点数付け" },
+    { "from": "索引", "to": "API", "label": "順位付きの当たり" },
+    { "from": "API", "to": "利用者側", "label": "結果" }
   ],
   "animation": [
-    { "step": "query", "duration": 1.2, "focus": ["Client", "API"], "badge": "q=foo" },
-    { "step": "score", "duration": 1.5, "focus": ["API", "Index"], "badge": "rank" },
-    { "step": "respond", "duration": 1, "focus": ["API", "Client"], "badge": "hits" }
+    { "step": "照会", "duration": 1.2, "focus": ["利用者側", "API"], "badge": "q=りんご" },
+    { "step": "点数付け", "duration": 1.5, "focus": ["API", "索引"], "badge": "順位付け" },
+    { "step": "返す", "duration": 1, "focus": ["API", "利用者側"], "badge": "当たり" }
   ]
 }`;
 
@@ -572,25 +575,25 @@ export const sourceYaml__sortFilter = `title: "Sort + Filter"
 type: sequence
 
 actors:
-  - Client
+  - 利用者側
   - API
   - DB
 
 flow:
-  - Client -> API: "GET status=active sort=-created"
+  - 利用者側 -> API: "GET 状態=有効 並び=新しい順"
   - API -> DB: "WHERE + ORDER BY DESC"
-  - DB -> API: "filtered rows"
-  - API -> Client: "200"
+  - DB -> API: "絞った行"
+  - API -> 利用者側: "200"
 
 animation:
-  - step: "request" 1.0s
-    focus: [Client, API]
-    badge: "filter"
-  - step: "query" 1.5s
+  - step: "要求" 1.0s
+    focus: [利用者側, API]
+    badge: "絞り込み"
+  - step: "照会" 1.5s
     focus: [API, DB]
     badge: "ORDER BY"
-  - step: "respond" 1.0s
-    focus: [API, Client]
+  - step: "返す" 1.0s
+    focus: [API, 利用者側]
     badge: "200"
 `;
 
@@ -598,20 +601,20 @@ export const sourceJson__sortFilter = `{
   "title": "Sort + Filter",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
+    { "name": "利用者側" },
     { "name": "API" },
     { "name": "DB" }
   ],
   "flow": [
-    { "from": "Client", "to": "API", "label": "GET status=active sort=-created" },
+    { "from": "利用者側", "to": "API", "label": "GET 状態=有効 並び=新しい順" },
     { "from": "API", "to": "DB", "label": "WHERE + ORDER BY DESC" },
-    { "from": "DB", "to": "API", "label": "filtered rows" },
-    { "from": "API", "to": "Client", "label": "200" }
+    { "from": "DB", "to": "API", "label": "絞った行" },
+    { "from": "API", "to": "利用者側", "label": "200" }
   ],
   "animation": [
-    { "step": "request", "duration": 1, "focus": ["Client", "API"], "badge": "filter" },
-    { "step": "query", "duration": 1.5, "focus": ["API", "DB"], "badge": "ORDER BY" },
-    { "step": "respond", "duration": 1, "focus": ["API", "Client"], "badge": "200" }
+    { "step": "要求", "duration": 1, "focus": ["利用者側", "API"], "badge": "絞り込み" },
+    { "step": "照会", "duration": 1.5, "focus": ["API", "DB"], "badge": "ORDER BY" },
+    { "step": "返す", "duration": 1, "focus": ["API", "利用者側"], "badge": "200" }
   ]
 }`;
 
@@ -626,48 +629,48 @@ export const sourceYaml__formSubmit = `title: "Form submit"
 type: sequence
 
 actors:
-  - User
-  - Form
-  - Server
+  - 利用者
+  - 入力欄
+  - 処理側
 
 flow:
-  - User -> Form: "fill fields"
-  - User -> Form: "submit"
-  - Form -> Server: "POST form"
-  - Server -> Form: "200"
-  - Form -> User: "success toast"
+  - 利用者 -> 入力欄: "項目を埋める"
+  - 利用者 -> 入力欄: "送信"
+  - 入力欄 -> 処理側: "POST 入力欄"
+  - 処理側 -> 入力欄: "200"
+  - 入力欄 -> 利用者: "成功の知らせ"
 
 animation:
-  - step: "fill" 1.0s
-    focus: [User, Form]
-    badge: "fill"
-  - step: "submit" 1.2s
-    focus: [Form, Server]
+  - step: "埋める" 1.0s
+    focus: [利用者, 入力欄]
+    badge: "埋める"
+  - step: "送信" 1.2s
+    focus: [入力欄, 処理側]
     badge: "POST"
-  - step: "ack" 1.0s
-    focus: [Form, User]
-    badge: "ok"
+  - step: "受け取った" 1.0s
+    focus: [入力欄, 利用者]
+    badge: "正常"
 `;
 
 export const sourceJson__formSubmit = `{
   "title": "Form submit",
   "type": "sequence",
   "actors": [
-    { "name": "User" },
-    { "name": "Form" },
-    { "name": "Server" }
+    { "name": "利用者" },
+    { "name": "入力欄" },
+    { "name": "処理側" }
   ],
   "flow": [
-    { "from": "User", "to": "Form", "label": "fill fields" },
-    { "from": "User", "to": "Form", "label": "submit" },
-    { "from": "Form", "to": "Server", "label": "POST form" },
-    { "from": "Server", "to": "Form", "label": "200" },
-    { "from": "Form", "to": "User", "label": "success toast" }
+    { "from": "利用者", "to": "入力欄", "label": "項目を埋める" },
+    { "from": "利用者", "to": "入力欄", "label": "送信" },
+    { "from": "入力欄", "to": "処理側", "label": "POST 入力欄" },
+    { "from": "処理側", "to": "入力欄", "label": "200" },
+    { "from": "入力欄", "to": "利用者", "label": "成功の知らせ" }
   ],
   "animation": [
-    { "step": "fill", "duration": 1, "focus": ["User", "Form"], "badge": "fill" },
-    { "step": "submit", "duration": 1.2, "focus": ["Form", "Server"], "badge": "POST" },
-    { "step": "ack", "duration": 1, "focus": ["Form", "User"], "badge": "ok" }
+    { "step": "埋める", "duration": 1, "focus": ["利用者", "入力欄"], "badge": "埋める" },
+    { "step": "送信", "duration": 1.2, "focus": ["入力欄", "処理側"], "badge": "POST" },
+    { "step": "受け取った", "duration": 1, "focus": ["入力欄", "利用者"], "badge": "正常" }
   ]
 }`;
 
@@ -678,46 +681,46 @@ export const sourceYaml__fileUpload = `title: "File upload"
 type: sequence
 
 actors:
-  - Browser
+  - 閲覧ソフト
   - API
-  - ObjectStorage
+  - 保管庫
 
 flow:
-  - Browser -> API: "POST multipart"
-  - API -> ObjectStorage: "PUT object"
-  - ObjectStorage -> API: "etag + url"
-  - API -> Browser: "201 + url"
+  - 閲覧ソフト -> API: "POST 分割の本文"
+  - API -> 保管庫: "PUT 中身"
+  - 保管庫 -> API: "版の印 + 置き場所"
+  - API -> 閲覧ソフト: "201 + 置き場所"
 
 animation:
-  - step: "upload" 1.5s
-    focus: [Browser, API]
-    badge: "multipart"
-  - step: "store" 1.2s
-    focus: [API, ObjectStorage]
+  - step: "送り込み" 1.5s
+    focus: [閲覧ソフト, API]
+    badge: "分割"
+  - step: "保管" 1.2s
+    focus: [API, 保管庫]
     badge: "PUT"
-  - step: "respond" 1.0s
-    focus: [API, Browser]
-    badge: "url"
+  - step: "返す" 1.0s
+    focus: [API, 閲覧ソフト]
+    badge: "置き場所"
 `;
 
 export const sourceJson__fileUpload = `{
   "title": "File upload",
   "type": "sequence",
   "actors": [
-    { "name": "Browser" },
+    { "name": "閲覧ソフト" },
     { "name": "API" },
-    { "name": "ObjectStorage" }
+    { "name": "保管庫" }
   ],
   "flow": [
-    { "from": "Browser", "to": "API", "label": "POST multipart" },
-    { "from": "API", "to": "ObjectStorage", "label": "PUT object" },
-    { "from": "ObjectStorage", "to": "API", "label": "etag + url" },
-    { "from": "API", "to": "Browser", "label": "201 + url" }
+    { "from": "閲覧ソフト", "to": "API", "label": "POST 分割の本文" },
+    { "from": "API", "to": "保管庫", "label": "PUT 中身" },
+    { "from": "保管庫", "to": "API", "label": "版の印 + 置き場所" },
+    { "from": "API", "to": "閲覧ソフト", "label": "201 + 置き場所" }
   ],
   "animation": [
-    { "step": "upload", "duration": 1.5, "focus": ["Browser", "API"], "badge": "multipart" },
-    { "step": "store", "duration": 1.2, "focus": ["API", "ObjectStorage"], "badge": "PUT" },
-    { "step": "respond", "duration": 1, "focus": ["API", "Browser"], "badge": "url" }
+    { "step": "送り込み", "duration": 1.5, "focus": ["閲覧ソフト", "API"], "badge": "分割" },
+    { "step": "保管", "duration": 1.2, "focus": ["API", "保管庫"], "badge": "PUT" },
+    { "step": "返す", "duration": 1, "focus": ["API", "閲覧ソフト"], "badge": "置き場所" }
   ]
 }`;
 
@@ -728,57 +731,57 @@ export const sourceYaml__sseStream = `title: "SSE stream"
 type: sequence
 
 actors:
-  - Browser
-  - Server
+  - 閲覧ソフト
+  - 処理側
 
 flow:
-  - Browser -> Server: "GET events"
-  - Server -> Browser: "event 1"
-  - Server -> Browser: "event 2"
-  - Server -> Browser: "event 3"
+  - 閲覧ソフト -> 処理側: "GET 出来事の流れ"
+  - 処理側 -> 閲覧ソフト: "出来事 1"
+  - 処理側 -> 閲覧ソフト: "出来事 2"
+  - 処理側 -> 閲覧ソフト: "出来事 3"
 
 animation:
-  - step: "open" 1.0s
-    focus: ["Browser -> Server"]
-    badge: "open"
-  - step: "event1" 0.8s
-    focus: ["Server -> Browser"]
-    badge: "event 1"
-  - step: "event2" 0.8s
-    focus: ["Server -> Browser", Browser]
-    badge: "event 2"
-  - step: "event3" 0.8s
-    focus: ["Server -> Browser", Browser, Server]
-    badge: "event 3"
+  - step: "開く" 1.0s
+    focus: ["閲覧ソフト -> 処理側"]
+    badge: "開く"
+  - step: "出来事 1" 0.8s
+    focus: ["処理側 -> 閲覧ソフト"]
+    badge: "出来事 1"
+  - step: "出来事 2" 0.8s
+    focus: ["処理側 -> 閲覧ソフト", 閲覧ソフト]
+    badge: "出来事 2"
+  - step: "出来事 3" 0.8s
+    focus: ["処理側 -> 閲覧ソフト", 閲覧ソフト, 処理側]
+    badge: "出来事 3"
 `;
 
 export const sourceJson__sseStream = `{
   "title": "SSE stream",
   "type": "sequence",
   "actors": [
-    { "name": "Browser" },
-    { "name": "Server" }
+    { "name": "閲覧ソフト" },
+    { "name": "処理側" }
   ],
   "flow": [
-    { "from": "Browser", "to": "Server", "label": "GET events" },
-    { "from": "Server", "to": "Browser", "label": "event 1" },
-    { "from": "Server", "to": "Browser", "label": "event 2" },
-    { "from": "Server", "to": "Browser", "label": "event 3" }
+    { "from": "閲覧ソフト", "to": "処理側", "label": "GET 出来事の流れ" },
+    { "from": "処理側", "to": "閲覧ソフト", "label": "出来事 1" },
+    { "from": "処理側", "to": "閲覧ソフト", "label": "出来事 2" },
+    { "from": "処理側", "to": "閲覧ソフト", "label": "出来事 3" }
   ],
   "animation": [
-    { "step": "open", "duration": 1, "focus": ["Browser -> Server"], "badge": "open" },
-    { "step": "event1", "duration": 0.8, "focus": ["Server -> Browser"], "badge": "event 1" },
+    { "step": "開く", "duration": 1, "focus": ["閲覧ソフト -> 処理側"], "badge": "開く" },
+    { "step": "出来事 1", "duration": 0.8, "focus": ["処理側 -> 閲覧ソフト"], "badge": "出来事 1" },
     {
-      "step": "event2",
+      "step": "出来事 2",
       "duration": 0.8,
-      "focus": ["Server -> Browser", "Browser"],
-      "badge": "event 2"
+      "focus": ["処理側 -> 閲覧ソフト", "閲覧ソフト"],
+      "badge": "出来事 2"
     },
     {
-      "step": "event3",
+      "step": "出来事 3",
       "duration": 0.8,
-      "focus": ["Server -> Browser", "Browser", "Server"],
-      "badge": "event 3"
+      "focus": ["処理側 -> 閲覧ソフト", "閲覧ソフト", "処理側"],
+      "badge": "出来事 3"
     }
   ]
 }`;
@@ -790,48 +793,48 @@ export const sourceYaml__websocket = `title: "WebSocket"
 type: sequence
 
 actors:
-  - Client
-  - Server
+  - 利用者側
+  - 処理側
 
 flow:
-  - Client -> Server: "ws handshake"
-  - Server -> Client: "101 Switching"
-  - Client -> Server: "send msg"
-  - Server -> Client: "broadcast"
+  - 利用者側 -> 処理側: "接続の確立"
+  - 処理側 -> 利用者側: "101 切り替え"
+  - 利用者側 -> 処理側: "文面を送る"
+  - 処理側 -> 利用者側: "全員へ送る"
 
 animation:
-  - step: "handshake" 1.0s
-    focus: ["Client -> Server"]
-    badge: "ws"
-  - step: "send" 1.0s
-    focus: ["Client -> Server", Client]
-    badge: "msg"
-  - step: "broadcast" 1.0s
-    focus: ["Server -> Client", Client, Server]
-    badge: "recv"
+  - step: "接続の確立" 1.0s
+    focus: ["利用者側 -> 処理側"]
+    badge: "接続"
+  - step: "送る" 1.0s
+    focus: ["利用者側 -> 処理側", 利用者側]
+    badge: "文面"
+  - step: "全員へ送る" 1.0s
+    focus: ["処理側 -> 利用者側", 利用者側, 処理側]
+    badge: "受け取る"
 `;
 
 export const sourceJson__websocket = `{
   "title": "WebSocket",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
-    { "name": "Server" }
+    { "name": "利用者側" },
+    { "name": "処理側" }
   ],
   "flow": [
-    { "from": "Client", "to": "Server", "label": "ws handshake" },
-    { "from": "Server", "to": "Client", "label": "101 Switching" },
-    { "from": "Client", "to": "Server", "label": "send msg" },
-    { "from": "Server", "to": "Client", "label": "broadcast" }
+    { "from": "利用者側", "to": "処理側", "label": "接続の確立" },
+    { "from": "処理側", "to": "利用者側", "label": "101 切り替え" },
+    { "from": "利用者側", "to": "処理側", "label": "文面を送る" },
+    { "from": "処理側", "to": "利用者側", "label": "全員へ送る" }
   ],
   "animation": [
-    { "step": "handshake", "duration": 1, "focus": ["Client -> Server"], "badge": "ws" },
-    { "step": "send", "duration": 1, "focus": ["Client -> Server", "Client"], "badge": "msg" },
+    { "step": "接続の確立", "duration": 1, "focus": ["利用者側 -> 処理側"], "badge": "接続" },
+    { "step": "送る", "duration": 1, "focus": ["利用者側 -> 処理側", "利用者側"], "badge": "文面" },
     {
-      "step": "broadcast",
+      "step": "全員へ送る",
       "duration": 1,
-      "focus": ["Server -> Client", "Client", "Server"],
-      "badge": "recv"
+      "focus": ["処理側 -> 利用者側", "利用者側", "処理側"],
+      "badge": "受け取る"
     }
   ]
 }`;
@@ -843,44 +846,44 @@ export const sourceYaml__notification = `title: "Notification"
 type: sequence
 
 actors:
-  - App
-  - PushService
-  - Device
+  - 本体
+  - 通知の配達
+  - 端末
 
 flow:
-  - App -> PushService: "send payload"
-  - PushService -> Device: "deliver"
-  - Device -> App: "tap"
+  - 本体 -> 通知の配達: "中身を送る"
+  - 通知の配達 -> 端末: "届ける"
+  - 端末 -> 本体: "押す"
 
 animation:
-  - step: "send" 1.2s
-    focus: [App, PushService]
-    badge: "send"
-  - step: "deliver" 1.2s
-    focus: [PushService, Device]
-    badge: "push"
-  - step: "tap" 1.0s
-    focus: [Device, App]
-    badge: "open"
+  - step: "送る" 1.2s
+    focus: [本体, 通知の配達]
+    badge: "送る"
+  - step: "届ける" 1.2s
+    focus: [通知の配達, 端末]
+    badge: "通知"
+  - step: "押す" 1.0s
+    focus: [端末, 本体]
+    badge: "開く"
 `;
 
 export const sourceJson__notification = `{
   "title": "Notification",
   "type": "sequence",
   "actors": [
-    { "name": "App" },
-    { "name": "PushService" },
-    { "name": "Device" }
+    { "name": "本体" },
+    { "name": "通知の配達" },
+    { "name": "端末" }
   ],
   "flow": [
-    { "from": "App", "to": "PushService", "label": "send payload" },
-    { "from": "PushService", "to": "Device", "label": "deliver" },
-    { "from": "Device", "to": "App", "label": "tap" }
+    { "from": "本体", "to": "通知の配達", "label": "中身を送る" },
+    { "from": "通知の配達", "to": "端末", "label": "届ける" },
+    { "from": "端末", "to": "本体", "label": "押す" }
   ],
   "animation": [
-    { "step": "send", "duration": 1.2, "focus": ["App", "PushService"], "badge": "send" },
-    { "step": "deliver", "duration": 1.2, "focus": ["PushService", "Device"], "badge": "push" },
-    { "step": "tap", "duration": 1, "focus": ["Device", "App"], "badge": "open" }
+    { "step": "送る", "duration": 1.2, "focus": ["本体", "通知の配達"], "badge": "送る" },
+    { "step": "届ける", "duration": 1.2, "focus": ["通知の配達", "端末"], "badge": "通知" },
+    { "step": "押す", "duration": 1, "focus": ["端末", "本体"], "badge": "開く" }
   ]
 }`;
 
@@ -896,24 +899,24 @@ type: sequence
 
 actors:
   - API
-  - Queue
-  - Worker
+  - 待ち行列
+  - 働き手
 
 flow:
-  - API -> Queue: "enqueue job"
-  - Queue -> Worker: "deliver"
-  - Worker -> Queue: "ack"
+  - API -> 待ち行列: "仕事を積む"
+  - 待ち行列 -> 働き手: "届ける"
+  - 働き手 -> 待ち行列: "受け取った"
 
 animation:
-  - step: "enqueue" 1.2s
-    focus: [API, Queue]
-    badge: "enqueue"
-  - step: "process" 1.5s
-    focus: [Queue, Worker]
-    badge: "process"
-  - step: "ack" 1.0s
-    focus: [Worker, Queue]
-    badge: "ack"
+  - step: "積む" 1.2s
+    focus: [API, 待ち行列]
+    badge: "積む"
+  - step: "処理" 1.5s
+    focus: [待ち行列, 働き手]
+    badge: "処理"
+  - step: "受け取った" 1.0s
+    focus: [働き手, 待ち行列]
+    badge: "受け取った"
 `;
 
 export const sourceJson__backgroundJob = `{
@@ -921,18 +924,18 @@ export const sourceJson__backgroundJob = `{
   "type": "sequence",
   "actors": [
     { "name": "API" },
-    { "name": "Queue" },
-    { "name": "Worker" }
+    { "name": "待ち行列" },
+    { "name": "働き手" }
   ],
   "flow": [
-    { "from": "API", "to": "Queue", "label": "enqueue job" },
-    { "from": "Queue", "to": "Worker", "label": "deliver" },
-    { "from": "Worker", "to": "Queue", "label": "ack" }
+    { "from": "API", "to": "待ち行列", "label": "仕事を積む" },
+    { "from": "待ち行列", "to": "働き手", "label": "届ける" },
+    { "from": "働き手", "to": "待ち行列", "label": "受け取った" }
   ],
   "animation": [
-    { "step": "enqueue", "duration": 1.2, "focus": ["API", "Queue"], "badge": "enqueue" },
-    { "step": "process", "duration": 1.5, "focus": ["Queue", "Worker"], "badge": "process" },
-    { "step": "ack", "duration": 1, "focus": ["Worker", "Queue"], "badge": "ack" }
+    { "step": "積む", "duration": 1.2, "focus": ["API", "待ち行列"], "badge": "積む" },
+    { "step": "処理", "duration": 1.5, "focus": ["待ち行列", "働き手"], "badge": "処理" },
+    { "step": "受け取った", "duration": 1, "focus": ["働き手", "待ち行列"], "badge": "受け取った" }
   ]
 }`;
 
@@ -943,26 +946,26 @@ export const sourceYaml__retryBackoff = `title: "Retry + backoff"
 type: sequence
 
 actors:
-  - Client
+  - 利用者側
   - API
 
 flow:
-  - Client -> API: "attempt 1"
-  - API -> Client: "500"
-  - Client -> API: "attempt 2 wait 1s"
-  - API -> Client: "500"
-  - Client -> API: "attempt 3 wait 2s"
-  - API -> Client: "200"
+  - 利用者側 -> API: "1 回目"
+  - API -> 利用者側: "500"
+  - 利用者側 -> API: "2 回目 (1 秒待つ)"
+  - API -> 利用者側: "500"
+  - 利用者側 -> API: "3 回目 (2 秒待つ)"
+  - API -> 利用者側: "200"
 
 animation:
-  - step: "attempt1" 1.0s
-    focus: ["Client -> API"]
+  - step: "1 回目" 1.0s
+    focus: ["利用者側 -> API"]
     badge: "500"
-  - step: "attempt2" 1.2s
-    focus: ["Client -> API", Client]
-    badge: "wait 1s"
-  - step: "attempt3" 1.2s
-    focus: ["API -> Client", Client, API]
+  - step: "2 回目" 1.2s
+    focus: ["利用者側 -> API", 利用者側]
+    badge: "1 秒待つ"
+  - step: "3 回目" 1.2s
+    focus: ["API -> 利用者側", 利用者側, API]
     badge: "200"
 `;
 
@@ -970,29 +973,29 @@ export const sourceJson__retryBackoff = `{
   "title": "Retry + backoff",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
+    { "name": "利用者側" },
     { "name": "API" }
   ],
   "flow": [
-    { "from": "Client", "to": "API", "label": "attempt 1" },
-    { "from": "API", "to": "Client", "label": "500" },
-    { "from": "Client", "to": "API", "label": "attempt 2 wait 1s" },
-    { "from": "API", "to": "Client", "label": "500" },
-    { "from": "Client", "to": "API", "label": "attempt 3 wait 2s" },
-    { "from": "API", "to": "Client", "label": "200" }
+    { "from": "利用者側", "to": "API", "label": "1 回目" },
+    { "from": "API", "to": "利用者側", "label": "500" },
+    { "from": "利用者側", "to": "API", "label": "2 回目 (1 秒待つ)" },
+    { "from": "API", "to": "利用者側", "label": "500" },
+    { "from": "利用者側", "to": "API", "label": "3 回目 (2 秒待つ)" },
+    { "from": "API", "to": "利用者側", "label": "200" }
   ],
   "animation": [
-    { "step": "attempt1", "duration": 1, "focus": ["Client -> API"], "badge": "500" },
+    { "step": "1 回目", "duration": 1, "focus": ["利用者側 -> API"], "badge": "500" },
     {
-      "step": "attempt2",
+      "step": "2 回目",
       "duration": 1.2,
-      "focus": ["Client -> API", "Client"],
-      "badge": "wait 1s"
+      "focus": ["利用者側 -> API", "利用者側"],
+      "badge": "1 秒待つ"
     },
     {
-      "step": "attempt3",
+      "step": "3 回目",
       "duration": 1.2,
-      "focus": ["API -> Client", "Client", "API"],
+      "focus": ["API -> 利用者側", "利用者側", "API"],
       "badge": "200"
     }
   ]
@@ -1005,24 +1008,24 @@ export const sourceYaml__webhook = `title: "Webhook"
 type: sequence
 
 actors:
-  - Source
-  - Dispatcher
-  - Consumer
+  - 出どころ
+  - 配り手
+  - 受け手
 
 flow:
-  - Source -> Dispatcher: "event"
-  - Dispatcher -> Consumer: "POST payload + sig"
-  - Consumer -> Dispatcher: "200"
+  - 出どころ -> 配り手: "出来事"
+  - 配り手 -> 受け手: "POST 中身 + 署名"
+  - 受け手 -> 配り手: "200"
 
 animation:
-  - step: "trigger" 1.2s
-    focus: [Source, Dispatcher]
-    badge: "event"
-  - step: "deliver" 1.5s
-    focus: [Dispatcher, Consumer]
+  - step: "起動" 1.2s
+    focus: [出どころ, 配り手]
+    badge: "出来事"
+  - step: "届ける" 1.5s
+    focus: [配り手, 受け手]
     badge: "POST"
-  - step: "ack" 1.0s
-    focus: [Consumer, Dispatcher]
+  - step: "受け取った" 1.0s
+    focus: [受け手, 配り手]
     badge: "200"
 `;
 
@@ -1030,19 +1033,19 @@ export const sourceJson__webhook = `{
   "title": "Webhook",
   "type": "sequence",
   "actors": [
-    { "name": "Source" },
-    { "name": "Dispatcher" },
-    { "name": "Consumer" }
+    { "name": "出どころ" },
+    { "name": "配り手" },
+    { "name": "受け手" }
   ],
   "flow": [
-    { "from": "Source", "to": "Dispatcher", "label": "event" },
-    { "from": "Dispatcher", "to": "Consumer", "label": "POST payload + sig" },
-    { "from": "Consumer", "to": "Dispatcher", "label": "200" }
+    { "from": "出どころ", "to": "配り手", "label": "出来事" },
+    { "from": "配り手", "to": "受け手", "label": "POST 中身 + 署名" },
+    { "from": "受け手", "to": "配り手", "label": "200" }
   ],
   "animation": [
-    { "step": "trigger", "duration": 1.2, "focus": ["Source", "Dispatcher"], "badge": "event" },
-    { "step": "deliver", "duration": 1.5, "focus": ["Dispatcher", "Consumer"], "badge": "POST" },
-    { "step": "ack", "duration": 1, "focus": ["Consumer", "Dispatcher"], "badge": "200" }
+    { "step": "起動", "duration": 1.2, "focus": ["出どころ", "配り手"], "badge": "出来事" },
+    { "step": "届ける", "duration": 1.5, "focus": ["配り手", "受け手"], "badge": "POST" },
+    { "step": "受け取った", "duration": 1, "focus": ["受け手", "配り手"], "badge": "200" }
   ]
 }`;
 
@@ -1053,46 +1056,46 @@ export const sourceYaml__polling = `title: "Long polling"
 type: sequence
 
 actors:
-  - Client
-  - Server
+  - 利用者側
+  - 処理側
   - DB
 
 flow:
-  - Client -> Server: "GET poll"
-  - Server -> DB: "wait for update"
-  - DB -> Server: "new data"
-  - Server -> Client: "200 + data"
+  - 利用者側 -> 処理側: "GET 問い合わせ"
+  - 処理側 -> DB: "更新を待つ"
+  - DB -> 処理側: "新しい中身"
+  - 処理側 -> 利用者側: "200 + 中身"
 
 animation:
-  - step: "request" 1.0s
-    focus: [Client, Server]
-    badge: "poll"
-  - step: "wait" 1.5s
-    focus: [Server, DB]
-    badge: "wait"
-  - step: "respond" 1.0s
-    focus: [Server, Client]
-    badge: "data"
+  - step: "要求" 1.0s
+    focus: [利用者側, 処理側]
+    badge: "問い合わせ"
+  - step: "待つ" 1.5s
+    focus: [処理側, DB]
+    badge: "待つ"
+  - step: "返す" 1.0s
+    focus: [処理側, 利用者側]
+    badge: "中身"
 `;
 
 export const sourceJson__polling = `{
   "title": "Long polling",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
-    { "name": "Server" },
+    { "name": "利用者側" },
+    { "name": "処理側" },
     { "name": "DB" }
   ],
   "flow": [
-    { "from": "Client", "to": "Server", "label": "GET poll" },
-    { "from": "Server", "to": "DB", "label": "wait for update" },
-    { "from": "DB", "to": "Server", "label": "new data" },
-    { "from": "Server", "to": "Client", "label": "200 + data" }
+    { "from": "利用者側", "to": "処理側", "label": "GET 問い合わせ" },
+    { "from": "処理側", "to": "DB", "label": "更新を待つ" },
+    { "from": "DB", "to": "処理側", "label": "新しい中身" },
+    { "from": "処理側", "to": "利用者側", "label": "200 + 中身" }
   ],
   "animation": [
-    { "step": "request", "duration": 1, "focus": ["Client", "Server"], "badge": "poll" },
-    { "step": "wait", "duration": 1.5, "focus": ["Server", "DB"], "badge": "wait" },
-    { "step": "respond", "duration": 1, "focus": ["Server", "Client"], "badge": "data" }
+    { "step": "要求", "duration": 1, "focus": ["利用者側", "処理側"], "badge": "問い合わせ" },
+    { "step": "待つ", "duration": 1.5, "focus": ["処理側", "DB"], "badge": "待つ" },
+    { "step": "返す", "duration": 1, "focus": ["処理側", "利用者側"], "badge": "中身" }
   ]
 }`;
 
@@ -1103,44 +1106,44 @@ export const sourceYaml__scheduledTask = `title: "Scheduled task"
 type: sequence
 
 actors:
-  - Cron
-  - Scheduler
-  - Job
+  - 定時の合図
+  - 割り当て
+  - 仕事
 
 flow:
-  - Cron -> Scheduler: "tick 5min"
-  - Scheduler -> Job: "trigger"
-  - Job -> Scheduler: "result"
+  - 定時の合図 -> 割り当て: "5 分ごとに刻む"
+  - 割り当て -> 仕事: "起動"
+  - 仕事 -> 割り当て: "結果"
 
 animation:
-  - step: "tick" 1.0s
-    focus: [Cron, Scheduler]
-    badge: "tick"
-  - step: "run" 1.5s
-    focus: [Scheduler, Job]
-    badge: "run"
-  - step: "result" 1.0s
-    focus: [Job, Scheduler]
-    badge: "ok"
+  - step: "刻む" 1.0s
+    focus: [定時の合図, 割り当て]
+    badge: "刻む"
+  - step: "実行" 1.5s
+    focus: [割り当て, 仕事]
+    badge: "実行"
+  - step: "結果" 1.0s
+    focus: [仕事, 割り当て]
+    badge: "正常"
 `;
 
 export const sourceJson__scheduledTask = `{
   "title": "Scheduled task",
   "type": "sequence",
   "actors": [
-    { "name": "Cron" },
-    { "name": "Scheduler" },
-    { "name": "Job" }
+    { "name": "定時の合図" },
+    { "name": "割り当て" },
+    { "name": "仕事" }
   ],
   "flow": [
-    { "from": "Cron", "to": "Scheduler", "label": "tick 5min" },
-    { "from": "Scheduler", "to": "Job", "label": "trigger" },
-    { "from": "Job", "to": "Scheduler", "label": "result" }
+    { "from": "定時の合図", "to": "割り当て", "label": "5 分ごとに刻む" },
+    { "from": "割り当て", "to": "仕事", "label": "起動" },
+    { "from": "仕事", "to": "割り当て", "label": "結果" }
   ],
   "animation": [
-    { "step": "tick", "duration": 1, "focus": ["Cron", "Scheduler"], "badge": "tick" },
-    { "step": "run", "duration": 1.5, "focus": ["Scheduler", "Job"], "badge": "run" },
-    { "step": "result", "duration": 1, "focus": ["Job", "Scheduler"], "badge": "ok" }
+    { "step": "刻む", "duration": 1, "focus": ["定時の合図", "割り当て"], "badge": "刻む" },
+    { "step": "実行", "duration": 1.5, "focus": ["割り当て", "仕事"], "badge": "実行" },
+    { "step": "結果", "duration": 1, "focus": ["仕事", "割り当て"], "badge": "正常" }
   ]
 }`;
 
@@ -1155,24 +1158,24 @@ export const sourceYaml__auditLog = `title: "Audit log"
 type: sequence
 
 actors:
-  - Admin
+  - 管理者
   - API
-  - AuditStore
+  - 監査の記録
 
 flow:
-  - Admin -> API: "delete user"
-  - API -> AuditStore: "log entry"
-  - API -> Admin: "200"
+  - 管理者 -> API: "利用者を消す"
+  - API -> 監査の記録: "記録を残す"
+  - API -> 管理者: "200"
 
 animation:
-  - step: "action" 1.2s
-    focus: [Admin, API]
-    badge: "delete"
-  - step: "log" 1.2s
-    focus: [API, AuditStore]
-    badge: "log"
-  - step: "ack" 1.0s
-    focus: [API, Admin]
+  - step: "操作" 1.2s
+    focus: [管理者, API]
+    badge: "削除"
+  - step: "記録" 1.2s
+    focus: [API, 監査の記録]
+    badge: "記録"
+  - step: "受け取った" 1.0s
+    focus: [API, 管理者]
     badge: "200"
 `;
 
@@ -1180,19 +1183,19 @@ export const sourceJson__auditLog = `{
   "title": "Audit log",
   "type": "sequence",
   "actors": [
-    { "name": "Admin" },
+    { "name": "管理者" },
     { "name": "API" },
-    { "name": "AuditStore" }
+    { "name": "監査の記録" }
   ],
   "flow": [
-    { "from": "Admin", "to": "API", "label": "delete user" },
-    { "from": "API", "to": "AuditStore", "label": "log entry" },
-    { "from": "API", "to": "Admin", "label": "200" }
+    { "from": "管理者", "to": "API", "label": "利用者を消す" },
+    { "from": "API", "to": "監査の記録", "label": "記録を残す" },
+    { "from": "API", "to": "管理者", "label": "200" }
   ],
   "animation": [
-    { "step": "action", "duration": 1.2, "focus": ["Admin", "API"], "badge": "delete" },
-    { "step": "log", "duration": 1.2, "focus": ["API", "AuditStore"], "badge": "log" },
-    { "step": "ack", "duration": 1, "focus": ["API", "Admin"], "badge": "200" }
+    { "step": "操作", "duration": 1.2, "focus": ["管理者", "API"], "badge": "削除" },
+    { "step": "記録", "duration": 1.2, "focus": ["API", "監査の記録"], "badge": "記録" },
+    { "step": "受け取った", "duration": 1, "focus": ["API", "管理者"], "badge": "200" }
   ]
 }`;
 
@@ -1203,46 +1206,46 @@ export const sourceYaml__emailNotification = `title: "Email notification"
 type: sequence
 
 actors:
-  - App
-  - MailQueue
-  - MailProvider
-  - Inbox
+  - 本体
+  - 送信待ち
+  - 配信業者
+  - 受信箱
 
 flow:
-  - App -> MailQueue: "enqueue mail"
-  - MailQueue -> MailProvider: "send"
-  - MailProvider -> Inbox: "deliver"
+  - 本体 -> 送信待ち: "メールを積む"
+  - 送信待ち -> 配信業者: "送る"
+  - 配信業者 -> 受信箱: "届ける"
 
 animation:
-  - step: "enqueue" 1.0s
-    focus: [App, MailQueue]
-    badge: "enqueue"
-  - step: "send" 1.2s
-    focus: [MailQueue, MailProvider]
-    badge: "send"
-  - step: "deliver" 1.0s
-    focus: [MailProvider, Inbox]
-    badge: "deliver"
+  - step: "積む" 1.0s
+    focus: [本体, 送信待ち]
+    badge: "積む"
+  - step: "送る" 1.2s
+    focus: [送信待ち, 配信業者]
+    badge: "送る"
+  - step: "届ける" 1.0s
+    focus: [配信業者, 受信箱]
+    badge: "届ける"
 `;
 
 export const sourceJson__emailNotification = `{
   "title": "Email notification",
   "type": "sequence",
   "actors": [
-    { "name": "App" },
-    { "name": "MailQueue" },
-    { "name": "MailProvider" },
-    { "name": "Inbox" }
+    { "name": "本体" },
+    { "name": "送信待ち" },
+    { "name": "配信業者" },
+    { "name": "受信箱" }
   ],
   "flow": [
-    { "from": "App", "to": "MailQueue", "label": "enqueue mail" },
-    { "from": "MailQueue", "to": "MailProvider", "label": "send" },
-    { "from": "MailProvider", "to": "Inbox", "label": "deliver" }
+    { "from": "本体", "to": "送信待ち", "label": "メールを積む" },
+    { "from": "送信待ち", "to": "配信業者", "label": "送る" },
+    { "from": "配信業者", "to": "受信箱", "label": "届ける" }
   ],
   "animation": [
-    { "step": "enqueue", "duration": 1, "focus": ["App", "MailQueue"], "badge": "enqueue" },
-    { "step": "send", "duration": 1.2, "focus": ["MailQueue", "MailProvider"], "badge": "send" },
-    { "step": "deliver", "duration": 1, "focus": ["MailProvider", "Inbox"], "badge": "deliver" }
+    { "step": "積む", "duration": 1, "focus": ["本体", "送信待ち"], "badge": "積む" },
+    { "step": "送る", "duration": 1.2, "focus": ["送信待ち", "配信業者"], "badge": "送る" },
+    { "step": "届ける", "duration": 1, "focus": ["配信業者", "受信箱"], "badge": "届ける" }
   ]
 }`;
 
@@ -1256,54 +1259,54 @@ export const sourceYaml__exportData = `title: "Export CSV"
 type: sequence
 
 actors:
-  - Client
+  - 利用者側
   - API
   - DB
-  - ObjectStorage
+  - 保管庫
 
 flow:
-  - Client -> API: "POST export"
-  - API -> DB: "stream rows"
-  - DB -> API: "rows"
-  - API -> ObjectStorage: "PUT csv"
-  - API -> Client: "200 + url"
+  - 利用者側 -> API: "POST 書き出し"
+  - API -> DB: "行を流す"
+  - DB -> API: "行"
+  - API -> 保管庫: "PUT CSV"
+  - API -> 利用者側: "200 + 置き場所"
 
 animation:
-  - step: "request" 1.0s
-    focus: [Client, API]
-    badge: "export"
-  - step: "stream" 1.5s
+  - step: "要求" 1.0s
+    focus: [利用者側, API]
+    badge: "書き出し"
+  - step: "流す" 1.5s
     focus: [API, DB]
-    badge: "rows"
-  - step: "store" 1.2s
-    focus: [API, ObjectStorage]
+    badge: "行"
+  - step: "保管" 1.2s
+    focus: [API, 保管庫]
     badge: "PUT"
-  - step: "respond" 1.0s
-    focus: [API, Client]
-    badge: "url"
+  - step: "返す" 1.0s
+    focus: [API, 利用者側]
+    badge: "置き場所"
 `;
 
 export const sourceJson__exportData = `{
   "title": "Export CSV",
   "type": "sequence",
   "actors": [
-    { "name": "Client" },
+    { "name": "利用者側" },
     { "name": "API" },
     { "name": "DB" },
-    { "name": "ObjectStorage" }
+    { "name": "保管庫" }
   ],
   "flow": [
-    { "from": "Client", "to": "API", "label": "POST export" },
-    { "from": "API", "to": "DB", "label": "stream rows" },
-    { "from": "DB", "to": "API", "label": "rows" },
-    { "from": "API", "to": "ObjectStorage", "label": "PUT csv" },
-    { "from": "API", "to": "Client", "label": "200 + url" }
+    { "from": "利用者側", "to": "API", "label": "POST 書き出し" },
+    { "from": "API", "to": "DB", "label": "行を流す" },
+    { "from": "DB", "to": "API", "label": "行" },
+    { "from": "API", "to": "保管庫", "label": "PUT CSV" },
+    { "from": "API", "to": "利用者側", "label": "200 + 置き場所" }
   ],
   "animation": [
-    { "step": "request", "duration": 1, "focus": ["Client", "API"], "badge": "export" },
-    { "step": "stream", "duration": 1.5, "focus": ["API", "DB"], "badge": "rows" },
-    { "step": "store", "duration": 1.2, "focus": ["API", "ObjectStorage"], "badge": "PUT" },
-    { "step": "respond", "duration": 1, "focus": ["API", "Client"], "badge": "url" }
+    { "step": "要求", "duration": 1, "focus": ["利用者側", "API"], "badge": "書き出し" },
+    { "step": "流す", "duration": 1.5, "focus": ["API", "DB"], "badge": "行" },
+    { "step": "保管", "duration": 1.2, "focus": ["API", "保管庫"], "badge": "PUT" },
+    { "step": "返す", "duration": 1, "focus": ["API", "利用者側"], "badge": "置き場所" }
   ]
 }`;
 
@@ -1314,54 +1317,54 @@ export const sourceYaml__importData = `title: "Import CSV"
 type: sequence
 
 actors:
-  - User
+  - 利用者
   - API
-  - Validator
+  - 検証役
   - DB
 
 flow:
-  - User -> API: "POST csv"
-  - API -> Validator: "validate rows"
-  - Validator -> API: "ok rows + errors"
-  - API -> DB: "INSERT ok rows"
-  - API -> User: "summary report"
+  - 利用者 -> API: "POST CSV"
+  - API -> 検証役: "行を検証"
+  - 検証役 -> API: "正しい行 + 誤り"
+  - API -> DB: "正しい行を INSERT"
+  - API -> 利用者: "結果のまとめ"
 
 animation:
-  - step: "upload" 1.2s
-    focus: [User, API]
-    badge: "upload"
-  - step: "validate" 1.5s
-    focus: [API, Validator]
-    badge: "validate"
-  - step: "insert" 1.2s
+  - step: "送り込み" 1.2s
+    focus: [利用者, API]
+    badge: "送り込み"
+  - step: "検証" 1.5s
+    focus: [API, 検証役]
+    badge: "検証"
+  - step: "書き込み" 1.2s
     focus: [API, DB]
     badge: "INSERT"
-  - step: "summary" 1.0s
-    focus: [API, User]
-    badge: "report"
+  - step: "まとめ" 1.0s
+    focus: [API, 利用者]
+    badge: "報告"
 `;
 
 export const sourceJson__importData = `{
   "title": "Import CSV",
   "type": "sequence",
   "actors": [
-    { "name": "User" },
+    { "name": "利用者" },
     { "name": "API" },
-    { "name": "Validator" },
+    { "name": "検証役" },
     { "name": "DB" }
   ],
   "flow": [
-    { "from": "User", "to": "API", "label": "POST csv" },
-    { "from": "API", "to": "Validator", "label": "validate rows" },
-    { "from": "Validator", "to": "API", "label": "ok rows + errors" },
-    { "from": "API", "to": "DB", "label": "INSERT ok rows" },
-    { "from": "API", "to": "User", "label": "summary report" }
+    { "from": "利用者", "to": "API", "label": "POST CSV" },
+    { "from": "API", "to": "検証役", "label": "行を検証" },
+    { "from": "検証役", "to": "API", "label": "正しい行 + 誤り" },
+    { "from": "API", "to": "DB", "label": "正しい行を INSERT" },
+    { "from": "API", "to": "利用者", "label": "結果のまとめ" }
   ],
   "animation": [
-    { "step": "upload", "duration": 1.2, "focus": ["User", "API"], "badge": "upload" },
-    { "step": "validate", "duration": 1.5, "focus": ["API", "Validator"], "badge": "validate" },
-    { "step": "insert", "duration": 1.2, "focus": ["API", "DB"], "badge": "INSERT" },
-    { "step": "summary", "duration": 1, "focus": ["API", "User"], "badge": "report" }
+    { "step": "送り込み", "duration": 1.2, "focus": ["利用者", "API"], "badge": "送り込み" },
+    { "step": "検証", "duration": 1.5, "focus": ["API", "検証役"], "badge": "検証" },
+    { "step": "書き込み", "duration": 1.2, "focus": ["API", "DB"], "badge": "INSERT" },
+    { "step": "まとめ", "duration": 1, "focus": ["API", "利用者"], "badge": "報告" }
   ]
 }`;
 
@@ -1372,48 +1375,48 @@ export const sourceYaml__healthCheck = `title: "Health check"
 type: sequence
 
 actors:
-  - LoadBalancer
-  - AppInstance
-  - StatusBoard
+  - 振り分け役
+  - 稼働中の本体
+  - 状態の掲示板
 
 flow:
-  - LoadBalancer -> AppInstance: "GET health"
-  - AppInstance -> LoadBalancer: "200 ok"
-  - LoadBalancer -> StatusBoard: "mark healthy"
+  - 振り分け役 -> 稼働中の本体: "GET 稼働の確認"
+  - 稼働中の本体 -> 振り分け役: "200 正常"
+  - 振り分け役 -> 状態の掲示板: "正常と記す"
 
 animation:
-  - step: "probe" 1.0s
-    focus: [LoadBalancer, AppInstance]
+  - step: "確かめる" 1.0s
+    focus: [振り分け役, 稼働中の本体]
     badge: "GET"
-  - step: "ack" 1.0s
-    focus: [AppInstance, LoadBalancer]
+  - step: "受け取った" 1.0s
+    focus: [稼働中の本体, 振り分け役]
     badge: "200"
-  - step: "record" 1.0s
-    focus: [LoadBalancer, StatusBoard]
-    badge: "healthy"
+  - step: "記す" 1.0s
+    focus: [振り分け役, 状態の掲示板]
+    badge: "正常"
 `;
 
 export const sourceJson__healthCheck = `{
   "title": "Health check",
   "type": "sequence",
   "actors": [
-    { "name": "LoadBalancer" },
-    { "name": "AppInstance" },
-    { "name": "StatusBoard" }
+    { "name": "振り分け役" },
+    { "name": "稼働中の本体" },
+    { "name": "状態の掲示板" }
   ],
   "flow": [
-    { "from": "LoadBalancer", "to": "AppInstance", "label": "GET health" },
-    { "from": "AppInstance", "to": "LoadBalancer", "label": "200 ok" },
-    { "from": "LoadBalancer", "to": "StatusBoard", "label": "mark healthy" }
+    { "from": "振り分け役", "to": "稼働中の本体", "label": "GET 稼働の確認" },
+    { "from": "稼働中の本体", "to": "振り分け役", "label": "200 正常" },
+    { "from": "振り分け役", "to": "状態の掲示板", "label": "正常と記す" }
   ],
   "animation": [
-    { "step": "probe", "duration": 1, "focus": ["LoadBalancer", "AppInstance"], "badge": "GET" },
-    { "step": "ack", "duration": 1, "focus": ["AppInstance", "LoadBalancer"], "badge": "200" },
+    { "step": "確かめる", "duration": 1, "focus": ["振り分け役", "稼働中の本体"], "badge": "GET" },
+    { "step": "受け取った", "duration": 1, "focus": ["稼働中の本体", "振り分け役"], "badge": "200" },
     {
-      "step": "record",
+      "step": "記す",
       "duration": 1,
-      "focus": ["LoadBalancer", "StatusBoard"],
-      "badge": "healthy"
+      "focus": ["振り分け役", "状態の掲示板"],
+      "badge": "正常"
     }
   ]
 }`;
@@ -1447,29 +1450,29 @@ type: solidity
 
 actors:
   - Transfer
-  - Balances
-  - Token
-  - User
+  - 残高表
+  - トークン契約
+  - 利用者
 
 flow:
-  - User -> Token: "transfer(Bob, 100)"
-  - Token -> Balances: "残高を書き換える"
-  - Token -> Transfer: "Transfer を出す"
-  - Token -> User: "true"
+  - 利用者 -> トークン契約: "transfer(花子, 100)"
+  - トークン契約 -> 残高表: "残高を書き換える"
+  - トークン契約 -> Transfer: "Transfer を出す"
+  - トークン契約 -> 利用者: "成功を返す"
 
 animation:
   - step: "呼ぶ" 1.2s
-    focus: [User, Token]
-    badge: "call"
+    focus: [利用者, トークン契約]
+    badge: "呼び出し"
   - step: "書き換える" 1.2s
-    focus: [Token, Balances]
-    badge: "write"
+    focus: [トークン契約, 残高表]
+    badge: "書き込み"
   - step: "知らせる" 1.2s
-    focus: [Token, Transfer]
-    badge: "event"
+    focus: [トークン契約, Transfer]
+    badge: "出来事"
   - step: "返す" 1.2s
-    focus: [Token, User]
-    badge: "return"
+    focus: [トークン契約, 利用者]
+    badge: "戻り値"
 `;
 
 export const sourceJson__tokenTransferSolidity = `{
@@ -1477,21 +1480,21 @@ export const sourceJson__tokenTransferSolidity = `{
   "type": "solidity",
   "actors": [
     { "name": "Transfer" },
-    { "name": "Balances" },
-    { "name": "Token" },
-    { "name": "User" }
+    { "name": "残高表" },
+    { "name": "トークン契約" },
+    { "name": "利用者" }
   ],
   "flow": [
-    { "from": "User", "to": "Token", "label": "transfer(Bob, 100)" },
-    { "from": "Token", "to": "Balances", "label": "残高を書き換える" },
-    { "from": "Token", "to": "Transfer", "label": "Transfer を出す" },
-    { "from": "Token", "to": "User", "label": "true" }
+    { "from": "利用者", "to": "トークン契約", "label": "transfer(花子, 100)" },
+    { "from": "トークン契約", "to": "残高表", "label": "残高を書き換える" },
+    { "from": "トークン契約", "to": "Transfer", "label": "Transfer を出す" },
+    { "from": "トークン契約", "to": "利用者", "label": "成功を返す" }
   ],
   "animation": [
-    { "step": "呼ぶ", "duration": 1.2, "focus": ["User", "Token"], "badge": "call" },
-    { "step": "書き換える", "duration": 1.2, "focus": ["Token", "Balances"], "badge": "write" },
-    { "step": "知らせる", "duration": 1.2, "focus": ["Token", "Transfer"], "badge": "event" },
-    { "step": "返す", "duration": 1.2, "focus": ["Token", "User"], "badge": "return" }
+    { "step": "呼ぶ", "duration": 1.2, "focus": ["利用者", "トークン契約"], "badge": "呼び出し" },
+    { "step": "書き換える", "duration": 1.2, "focus": ["トークン契約", "残高表"], "badge": "書き込み" },
+    { "step": "知らせる", "duration": 1.2, "focus": ["トークン契約", "Transfer"], "badge": "出来事" },
+    { "step": "返す", "duration": 1.2, "focus": ["トークン契約", "利用者"], "badge": "戻り値" }
   ]
 }`;
 

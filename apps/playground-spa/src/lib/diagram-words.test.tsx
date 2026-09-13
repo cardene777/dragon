@@ -137,6 +137,17 @@ const 残してよい語: Record<string, string> = {
   yup: "入力の形を確かめる枠組みの製品名 (#1888)",
   TLS: "通信を暗号にする取り決めの名前。 `TLS 1.3` のように版と組で書く (#1888)",
   SET: "鍵と値の保管庫へ書き込む命令。 読み出しの `GET` と対で `GET/SET` と書く (#1888)",
+  PUT: "HTTP の要求の種類。 既にある `GET` / `POST` と同じ (#1890)",
+  INSERT: "表へ行を足す SQL の命令。 命令は綴りが決まっている (#1890)",
+  WHERE: "行を絞る SQL の句。 句は綴りが決まっている (#1890)",
+  ORDER: "並べ替えを書く SQL の句 `ORDER BY` の前半 (#1890)",
+  BY: "並べ替えを書く SQL の句 `ORDER BY` の後半 (#1890)",
+  DESC: "`ORDER BY` で大きい順に並べる指定 (#1890)",
+  LIMIT: "取り出す行の数を決める SQL の句 (#1890)",
+  JSON: "データを文字で書く書式の名前 (#1890)",
+  CSV: "表を文字で書く書式の名前。 カンマで列を区切る (#1890)",
+  JWT: "署名付きの鍵の書式の名前 (#1890)",
+  transfer: "ERC-20 の送金の関数名。 規格で決まった識別子で、出来事の `Transfer` と対になる (#1890)",
 };
 
 /**
@@ -175,7 +186,26 @@ const 識別子を見せる図: Record<string, string> = {
 
 const 描く時刻 = new Date("2026-01-01T00:00:00Z");
 
+/**
+ * 描いた字を図ごとに覚えておく (#1890)。
+ *
+ * 見本帳を走査する検査は、それぞれが 444 図を描き直していた。 混んだ機械では 1 本が
+ * 5 秒の上限を超えた (実測 = 負荷平均 100 を超えた時に `経路の専有` が打ち切られ、
+ * 単独で回すと 225ms だった)。 同じ図を同じ時刻で描くので、覚えた字と描き直した字は変わらない。
+ *
+ * 鍵は図の object そのもの。 植え込み対照は毎回新しい図を作るので、覚えた字を引かない。
+ */
+const 描いた字の控え = new WeakMap<CdlDiagram, string[]>();
+
 function 描いた字(d: CdlDiagram): string[] {
+  const 控え = 描いた字の控え.get(d);
+  if (控え) return 控え;
+  const 字 = 描き直した字(d);
+  描いた字の控え.set(d, 字);
+  return 字;
+}
+
+function 描き直した字(d: CdlDiagram): string[] {
   vi.useFakeTimers();
   vi.setSystemTime(描く時刻);
   let s: string;
@@ -462,6 +492,7 @@ function 見本帳の図(): { 件: { file: string; 鍵: string; 図: CdlDiagram 
  * | #1886 | 下がる | `text-dsl.cdl.ts` の仮置きの役名を日本語に開き、表と型を見せる 3 図を識別子の側へ回した |
  * | #1888 | 下がる | `patterns.cdl.ts` の仮置きの役名と段の説明の地の文を日本語に開いた |
  * | #1888 | **上がる** | 矢印の札 (`label` / `sub`) を母集団に足した (最初の段で光らない矢印の札を見ていなかった)。 増えた `TLS` / `SET` は一覧に載せたので天井は動かない |
+ * | #1890 | 下がる | `cookbook.cdl.ts` の仮置きの役名と矢印と段の字を日本語に開き、HTTP と SQL の綴りと書式の名前 11 語を一覧に載せた (`interactive` / `primitives` も下がった) |
  *
  * **手書きの一覧に 1 語足すと、その語を持つ file すべてが下がる** (#1861 / #1876 で実測)。
  * 一覧は 12 file に効くので、足した回は全 file の数を測り直す。
@@ -469,14 +500,14 @@ function 見本帳の図(): { 件: { file: string; 鍵: string; 図: CdlDiagram 
 const 図の字の天井: Record<string, { 図: number; 語: number; 延べ: number }> = {
   "animation.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "charts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "cookbook.cdl.ts": { 図: 26, 語: 149, 延べ: 272 },
+  "cookbook.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "ethereum.cdl.ts": { 図: 2, 語: 5, 延べ: 5 },
-  "interactive.cdl.ts": { 図: 114, 語: 687, 延べ: 1308 },
+  "interactive.cdl.ts": { 図: 114, 語: 686, 延べ: 1304 },
   "parts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "patterns.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "presets.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "primitives-extra.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
-  "primitives.cdl.ts": { 図: 89, 語: 439, 延べ: 956 },
+  "primitives.cdl.ts": { 図: 89, 語: 438, 延べ: 953 },
   "styles.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "text-dsl.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
 };
@@ -671,6 +702,24 @@ describe("矢印の札も判定に入る (#1888)", () => {
 
   it("矢印の札と添え書きが日本語なら拾わない (陰性対照)", () => {
     expect(英語の残り("後から光る矢印", 後から光る矢印("送る", "下書き"))).toEqual([]);
+  });
+});
+
+describe("描いた字の控え (#1890)", () => {
+  it("覚えた字と、描き直した字が一致する", () => {
+    const 件 = 見本帳の図().件.slice(0, 30);
+    expect(件.length, "図を 1 件も見つけていない (検査が空振りしている)").toBeGreaterThan(0);
+    for (const r of 件) expect(描いた字(r.図), `${r.鍵} の覚えた字が描き直した字と違う`).toEqual(描き直した字(r.図));
+  });
+
+  it("id が同じでも別の図は別に描く (植え込み対照)", () => {
+    // 土台の図は id がどれも `土台`。 id を鍵にして覚えると、後の図に前の図の字が返る
+    const 甲 = 土台("申請の受付");
+    const 乙 = 土台("審査の窓口");
+    expect(甲.id).toBe(乙.id);
+    expect(描いた字(甲).join("\n")).toContain("申請の受付");
+    expect(描いた字(乙).join("\n")).toContain("審査の窓口");
+    expect(描いた字(乙).join("\n")).not.toContain("申請の受付");
   });
 });
 
