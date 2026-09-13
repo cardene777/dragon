@@ -39,6 +39,7 @@ import {
   既定の配色,
   type 配色,
 } from "@/lib/palette-switch";
+import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 import {
   図の折れ線の見せ方を変える,
   折れ線を選べる,
@@ -344,7 +345,7 @@ export function CategoryPage(): React.ReactElement {
             図の円の見せ方を変える(
               図の折れ線の見せ方を変える(
                 図の配色を変える(
-                  図の速さを変える(図の描き方を変える(見本.diagram, 描き方), 速さ),
+                  図の速さを変える(図の描き方を変える(図に画面の言語を当てる(見本.diagram, locale), 描き方), 速さ),
                   配色,
                 ),
                 折れ線,
@@ -354,7 +355,7 @@ export function CategoryPage(): React.ReactElement {
             傾き,
           )
         : null,
-    [見本, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
+    [見本, locale, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
   );
   // 拡大表示も同じ速さで出す。 開く元が今見ている項目なので、別の速さになると混乱する
   // 拡大も選んだパターンの中身を出す (#1696)。 元に戻すと、押した図と違うものが開く
@@ -365,7 +366,7 @@ export function CategoryPage(): React.ReactElement {
             図の円の見せ方を変える(
               図の折れ線の見せ方を変える(
                 図の配色を変える(
-                  図の速さを変える(図の描き方を変える(見本.diagram, 描き方), 速さ),
+                  図の速さを変える(図の描き方を変える(図に画面の言語を当てる(見本.diagram, locale), 描き方), 速さ),
                   配色,
                 ),
                 折れ線,
@@ -375,7 +376,7 @@ export function CategoryPage(): React.ReactElement {
             傾き,
           )
         : null,
-    [modalItem, 見本, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
+    [modalItem, 見本, locale, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
   );
   // 拡大表示の倍率 (#1745)。 器に収めると大きい図ほど小さく描かれるため、実寸まで拡げられるようにする
   //

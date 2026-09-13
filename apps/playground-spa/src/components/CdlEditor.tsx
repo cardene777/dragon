@@ -87,6 +87,8 @@ import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { 記法の色分け } from "@/lib/syntax-decoration";
+import { useLocale } from "@/lib/useLocale";
+import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 
 // 記述の色分け。 値は globals.css の変数から取るので、 明暗の切替は html.dark 1 本で済む。
 // 鍵は dg-1、 値と文字列は dg-2、 区切りと注記は控えめな色、 という 04 エディタの割り当てに合わせる。
@@ -222,9 +224,11 @@ function collectActorNamesFromSrc(src: string): Set<string> {
  * 終わってもやり直さず、 パーツが空の箱のまま残る (実測 = 共有 URL でパーツ入りの本文を開くと、
  * 一覧を開いた後も箱のままだった)。
  */
-function buildKey(tab: "cdl" | "yaml", src: string, yamlSrc: string, partsCount: number): string {
+function buildKey(tab: "cdl" | "yaml", src: string, yamlSrc: string, partsCount: number, locale: string): string {
   // 長さを持つ形で繋ぐ。 区切り文字で繋ぐと、 その文字が本文に出た時に別の中身が同じ鍵になる
-  return JSON.stringify([tab, partsCount, tab === "yaml" ? yamlSrc : src]);
+  // 画面の言語も混ぜる (#1910)。 形の絵の中の字が言語で変わるので、切り替えたのに覚えてある
+  // 別の言語の図を戻すと、画面と違う言語の字が残る
+  return JSON.stringify([tab, partsCount, locale, tab === "yaml" ? yamlSrc : src]);
 }
 
 /**
@@ -298,6 +302,9 @@ export interface CdlEditorProps {
 export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const location = useLocation();
   const { toast } = useToast();
+  // 図を画面の言語で描く (#1910)。 配置 (`buildAndValidate`) の前に当てる = 配置の結果が
+  // 言語を持ち越して形の部品に届けるので、配置の後に当てても形の字は変わらない
+  const [locale] = useLocale();
   const [src, setSrcRaw] = useState<string>(SAMPLES[0].code);
   // keydown handler から最新 src を同期的に読むための mirror
   const srcRef = useRef(src);
@@ -951,7 +958,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
    */
   const commitBuilt = useCallback((d: CdlDiagram, built: BuildResult, notices: CompileNotice[]): void => {
     buildCacheRef.current[activeTab] = {
-      key: buildKey(activeTab, src, yamlSrc, partsItems.length),
+      key: buildKey(activeTab, src, yamlSrc, partsItems.length, locale),
       diagram: d,
       laid: built.laid,
       warnings: built.warnings,
@@ -961,14 +968,15 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     setDiagram(d);
     setWarnings(built.warnings);
     setCompileNotices(notices);
-  }, [activeTab, src, yamlSrc, partsItems.length]);
+  }, [activeTab, src, yamlSrc, partsItems.length, locale]);
 
   /** 組み立てて載せるまでを 1 度に済ませる経路 (測った配置を途中で使わない入口向け) */
   // **集めた知らせをそのまま渡す**。 空配列を渡していたため、 YAML 欄で集めた知らせが捨てられ
   // ていた (review 指摘)。 呼出側が集めていないなら空でよいが、 集めたなら渡す
   const applyDiagram = useCallback((d: CdlDiagram, notices: CompileNotice[] = []): void => {
-    commitBuilt(d, buildAndValidate(d), notices);
-  }, [commitBuilt]);
+    const 言語を当てた図 = 図に画面の言語を当てる(d, locale);
+    commitBuilt(言語を当てた図, buildAndValidate(言語を当てた図), notices);
+  }, [commitBuilt, locale]);
 
   // src 変更時 debounce (CDL = 300ms 従来通り、 YAML = 500ms spec AC 3) で parse + render
   useEffect(() => {
@@ -979,7 +987,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     if (activeTab === "yaml") void loadYamlAdapter().catch(() => undefined);
     // 欄を切り替えただけで中身が変わっていないなら、 覚えてある図を戻すだけにする (#1006)。
     // 組み立ては図の規模に比例して重く、 往復のたびに計算し直すと画面が止まる
-    const key = buildKey(activeTab, src, yamlSrc, partsItems.length);
+    const key = buildKey(activeTab, src, yamlSrc, partsItems.length, locale);
     const cached = buildCacheRef.current[activeTab];
     if (cached && cached.key === key) {
       setLaid(cached.laid);
@@ -1093,11 +1101,14 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // edge が本文のどの行から来たかを受け取る (#998)。 preset によっては書いた step と
         // 生成される edge が一致しないため、 これが無いと自動修正が別の行を書き換える。
         const edgeLines = new Map<string, number>();
-        const d = textDslToDiagram(baseSrc, {
-          partsCatalog,
-          onNotice: (n) => notices.push(n),
-          onEdgeSource: (id, line) => edgeLines.set(id, line),
-        });
+        const d = 図に画面の言語を当てる(
+          textDslToDiagram(baseSrc, {
+            partsCatalog,
+            onNotice: (n) => notices.push(n),
+            onEdgeSource: (id, line) => edgeLines.set(id, line),
+          }),
+          locale,
+        );
         // 組み立て側が返すのはパーツの行を抜いた本文の座標。 元の本文に戻してから持つ。
         setEdgeSource({ src, lines: toSourceLines(edgeLines, lineMap) });
         // パーツの置き場所は図が組み上がってから決まる。 相対で書いたパーツは基準の実座標が
@@ -1165,7 +1176,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     // パーツ一覧は遅延して読み込まれる。 本文だけを見ていると、 読み込みが終わっても
     // 抽出をやり直さないため、 パーツが図の中の空の箱のまま残る (実測 = 共有 URL で
     // パーツ入りの本文を開くと、 一覧を開いた後も箱のままだった)
-  }, [src, yamlSrc, activeTab, partsCatalog, partsItems]);
+  }, [src, yamlSrc, activeTab, partsCatalog, partsItems, locale, applyDiagram]);
 
   /**
    * 図の world 座標の原点が、 画面上のどこに来るか。
@@ -2299,7 +2310,7 @@ animation:
                         userSelect: "none",
                       }}
                     >
-                      <CdlDiagramView hideMiniPhaseIndicator diagram={p.item.diagram} hideHeader emitGeometryWarn={false} />
+                      <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(p.item.diagram, locale)} hideHeader emitGeometryWarn={false} />
                     </div>
                   );
                 })}
