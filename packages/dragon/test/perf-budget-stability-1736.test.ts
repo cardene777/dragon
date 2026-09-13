@@ -2,7 +2,7 @@
  * 速さの判定が、同じ入力なら周ごとに変わらないことを見る (#1736)。
  *
  * 描画エンジンの軸 `validate-performance-budget` は、`0.41.0` まで **1 枚ごとの壁時計**
- * を境と比べていた。 壁時計は図の性質ではなく機械の都合で動く。 見本帳 444 枚を同じ
+ * を境と比べていた。 壁時計は図の性質ではなく機械の都合で動く。 カタログ 444 枚を同じ
  * process で 3 周した実測。
  *
  * | 図 | 1 周目 | 2 周目 | 3 周目 |
@@ -59,7 +59,7 @@ const 図か = (v: unknown): v is CdlDiagram =>
   Array.isArray((v as CdlDiagram).nodes) &&
   Array.isArray((v as CdlDiagram).lanes);
 
-/** 見本帳の全図。 枚数は増えるので書かない (`rules/quality.md § 導出可能記述は人手で書かない`)。 */
+/** カタログの全図。 枚数は増えるので書かない (`rules/quality.md § 導出可能記述は人手で書かない`)。 */
 const 全図: CdlDiagram[] = 束.flatMap((m) => Object.values(m).filter(図か));
 
 /** 3 周を 1 度だけ回して使い回す (444 枚 × 3 周を検査ごとに繰り返さない)。 */
@@ -74,8 +74,8 @@ const 周: ReadonlyArray<{ 件数: number; 文面: string[]; 軸がある: boole
 });
 
 describe("速さの判定が周ごとに変わらない (#1736)", () => {
-  it("見本帳の図を 1 枚以上集められている (空振り防止)", () => {
-    expect(全図.length, "見本帳の図を 1 枚も集められていない (検査が空振りしている)").toBeGreaterThan(
+  it("カタログの図を 1 枚以上集められている (空振り防止)", () => {
+    expect(全図.length, "カタログの図を 1 枚も集められていない (検査が空振りしている)").toBeGreaterThan(
       0,
     );
   });

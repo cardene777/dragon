@@ -30,7 +30,7 @@ import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
 import { 一覧の記法つき, 差分 } from "./catalog-scope";
-import { 記法つき, 記法を持つ見本帳 } from "./catalog-source-cases";
+import { 記法つき, 記法を持つカタログ } from "./catalog-source-cases";
 
 /**
  * id まで完全に一致する preset。
@@ -918,7 +918,7 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
 
     // **module ごとに 1 件以上見ている**。 全体の件数だけだと、片方の module の import を
     // 落としても残り側の件数で通ってしまう (実測で patterns を外しても通った)
-    for (const [名, mod] of 記法を持つ見本帳) {
+    for (const [名, mod] of 記法を持つカタログ) {
       const 件数 = Object.keys(mod).filter((k) => k.startsWith("sourceYaml__")).length;
       expect(件数, `${名} に記法つきの見本が 1 件も無い (検査が空振りしている)`).toBeGreaterThan(0);
     }
@@ -1187,7 +1187,7 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
 /**
  * 一覧に載る記法が 1 つ残らず対象に入っているか (#1403)。
  *
- * 対象 (`記法を持つ見本帳`) は手で並べるため、ページを足した時に **ここへ足し忘れる**。
+ * 対象 (`記法を持つカタログ`) は手で並べるため、ページを足した時に **ここへ足し忘れる**。
  * 忘れても本 file は通る = 検査の件数が減るだけで、何も落ちない。
  *
  * 実際 `charts` と `text-dsl` が一覧に載りながら漏れており、記法から作った図が組み立ての

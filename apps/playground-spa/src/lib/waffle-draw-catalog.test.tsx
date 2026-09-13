@@ -1,5 +1,5 @@
 /**
- * 100 個の印が、見本帳で読む向きに埋まることの検査 (#1670)。
+ * 100 個の印が、カタログで読む向きに埋まることの検査 (#1670)。
  *
  * 記法の `draw: waffle` → 組み立て (`compile.ts`) → 描画 (`cdl` の塗り) の 3 層を通す。
  * どこか 1 つでも欠けると「書けるのに動かない」 状態に戻るため、実際に描いた SVG で見る。
@@ -37,7 +37,7 @@ function 描き切った図(diagram: CdlDiagram): CdlDiagram {
   return { ...diagram, phases: diagram.phases?.map(({ draw: _draw, ...残り }) => 残り) };
 }
 
-describe("100 個の印が見本帳で読む向きに埋まる (#1670)", () => {
+describe("100 個の印がカタログで読む向きに埋まる (#1670)", () => {
   it("見本の 1 段目が箱を指す", () => {
     const 図 = 印の図();
     const 箱 = 図.nodes.find((n) => n.kind === "chart-waffle");

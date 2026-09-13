@@ -143,7 +143,7 @@ describe("autoFix — topic 変換", () => {
     expect(autoFix(diagram({ topic: "flow preset (詳細)" })).topic).toBe("処理の順番を示すフロー");
   });
 
-  it("sequence 始まり → 見本帳の名前 `シーケンス図` で終わる", () => {
+  it("sequence 始まり → カタログの名前 `シーケンス図` で終わる", () => {
     expect(autoFix(diagram({ topic: "sequence の例" })).topic).toBe("要素どうしのやり取りの順番を示すシーケンス図");
   });
 

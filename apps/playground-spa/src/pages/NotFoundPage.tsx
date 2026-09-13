@@ -42,7 +42,7 @@ export function NotFoundPage(): React.ReactElement {
             {isJa ? "編集画面を開く →" : "open editor →"}
           </Link>
           <Link to="/catalog" className="v4-btn-secondary">
-            {isJa ? "見本帳を見る" : "browse catalog"}
+            {isJa ? "カタログを見る" : "browse catalog"}
           </Link>
           <Link to="/docs" className="v4-btn-secondary">
             {isJa ? "使い方を読む" : "read docs"}

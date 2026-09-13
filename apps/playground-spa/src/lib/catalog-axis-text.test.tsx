@@ -1,5 +1,5 @@
 /**
- * 見本帳の軸を持つ図で、字の大きさの順と役割名を確かめる検査 (#1688)。
+ * カタログの軸を持つ図で、字の大きさの順と役割名を確かめる検査 (#1688)。
  *
  * 描画側 (`cdl#753` / `cdl#755`) が折れ線の値札を軸の名前より大きくし、
  * 縦軸の目盛りと横軸の名前に役割名を足した。 **版を上げただけでは効かない** ので、
@@ -34,14 +34,14 @@ function 役の字(svg: string, role: string): { 文: string; 級: number }[] {
   return 出た;
 }
 
-/** 見本帳から、その種別の節を持つ図を集める */
+/** カタログから、その種別の節を持つ図を集める */
 const 見本 = (kind: string): CdlDiagram[] =>
   Object.values(CATALOG_ITEMS)
     .flat()
     .filter(({ diagram }) => diagram.nodes.some((n) => n.kind === kind))
     .map(({ diagram }) => diagram);
 
-describe("見本帳の軸を持つ図の字 (#1688)", () => {
+describe("カタログの軸を持つ図の字 (#1688)", () => {
   it("棒と折れ線の見本をどちらも 1 件以上走査できている", () => {
     // 空振り検知。 片方でも 0 件なら、下の比べ合いは何も見ていない
     expect(見本("chart-bar").length, "棒グラフの見本が 1 件も無い").toBeGreaterThan(0);

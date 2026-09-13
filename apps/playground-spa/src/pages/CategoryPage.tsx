@@ -471,7 +471,7 @@ export function CategoryPage(): React.ReactElement {
           >
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
-            <Link to="/catalog">見本帳</Link>
+            <Link to="/catalog">カタログ</Link>
             <span aria-hidden="true">›</span>
             <span className="cur">{jaLabel}</span>
           </nav>
@@ -826,7 +826,7 @@ export function CategoryPage(): React.ReactElement {
                       interactiveHandlers={CATALOG_HANDLERS}
                     />
                   </InViewMount>
-                  {/* 設計 (`03 見本帳の分類`) は札を右上に描いている (#1239) */}
+                  {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
                   <PhaseChrome
                     stage={stageEl}
                     phases={(図 ?? 見本?.diagram ?? currentItem.diagram).phases}

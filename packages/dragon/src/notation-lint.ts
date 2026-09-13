@@ -88,16 +88,16 @@ export function autoFix(d: CdlDiagram): CdlDiagram {
 /**
  * 図の型ごとに、 自動修正が書く説明「{shows}を示す{name}」 の 2 つの部品。
  *
- * `name` は見本帳が同じ型の見本に付けた名前 (`apps/playground-spa/src/lib/i18n.ts` の
+ * `name` はカタログが同じ型の見本に付けた名前 (`apps/playground-spa/src/lib/i18n.ts` の
  * `ITEM_NAME_JA` の `preset*`) と同じ字にする。 利用者は自動修正で書き換わった説明の名前で
- * 見本帳を探すため、 呼び名が割れると同じ型の見本に辿り着けない。 照らす検査は画面側の
+ * カタログを探すため、 呼び名が割れると同じ型の見本に辿り着けない。 照らす検査は画面側の
  * `lint-topic-names.test.ts` が持つ (この package は画面側の file を読まない)。
  *
  * 説明の末尾を型の名前にするのは、 名前の多くが `図` で終わるため。 旧い文型
  * 「{名前} を示す図」 のまま名前を差し替えると `工程表 を示す図` / `状態遷移図 を示す図` の
- * ように図が重なる。 見本帳の見本の説明 (`全体に対する内訳の割合を示す円グラフ`) と同じ並びにした。
+ * ように図が重なる。 カタログの見本の説明 (`全体に対する内訳の割合を示す円グラフ`) と同じ並びにした。
  *
- * `chart` と `bar chart` は見本帳に同じ型の見本が無いので、 図表の日常語で呼ぶ。
+ * `chart` と `bar chart` はカタログに同じ型の見本が無いので、 図表の日常語で呼ぶ。
  */
 const KIND_TO_JA: Record<string, { shows: string; name: string }> = {
   chart: { shows: "項目ごとの数値", name: "グラフ" },
@@ -311,7 +311,7 @@ function ruleQuadrantMissingItems(d: CdlDiagram): LintIssue[] {
  * その場合ここでは値が決まらないので、**数どうしの組だけを比べる** (#1194)。
  *
  * 素通しで比べると文字列の大小比較になり、`{trial}` が `{signup}` より大きいという理由で
- * 発火する。 実際に見本帳の funnel を状態から取る形にした時、その偽発火が出た。
+ * 発火する。 実際にカタログの funnel を状態から取る形にした時、その偽発火が出た。
  */
 function ruleFunnelMonotonicCount(d: CdlDiagram): LintIssue[] {
   const out: LintIssue[] = [];

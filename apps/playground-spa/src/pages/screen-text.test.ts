@@ -478,7 +478,7 @@ describe("画面へ字を渡す材料 (#1815)", () => {
     // 画面 file の側は差し込み (`{c.desc}`) しか持たないので、材料を見ないと 1 文字も読まない
     const { 文 } = 全材料の文();
     const 該当 = 文.filter((t) => t.字.startsWith("「シーケンス図が欲しい」"));
-    expect(該当, "見本帳の説明文が母集団から消えている").toHaveLength(1);
+    expect(該当, "カタログの説明文が母集団から消えている").toHaveLength(1);
     expect(該当[0]!.file, "材料の出どころを file 名で示していない").toBe("lib/catalog.ts");
     expect(残る英単語(該当[0]!.字), "直した説明文に英語が残っている").toEqual([]);
   });

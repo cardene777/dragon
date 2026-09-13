@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { layout, visualValidateAll } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import * as 見本帳の定義 from "./presets.cdl";
+import * as カタログの定義 from "./presets.cdl";
 
 type 点 = { x: number; y: number };
 type 区間 = { 始点: 点; 終点: 点 };
@@ -114,7 +114,7 @@ function 短い直線区間を測る(d: string): number[] {
 
 /** export 全体を走査して対象 id の図を集める。export の追加・削除で検査対象が黙って変わらないようにする。 */
 function 対象の見本を配置する(): Array<{ id: string; 関係列: 配置済みの関係[] }> {
-  const 図列 = Object.values(見本帳の定義).filter(
+  const 図列 = Object.values(カタログの定義).filter(
     (候補): 候補 is CdlDiagram =>
       typeof 候補 === "object" && 候補 !== null && "id" in 候補 && 対象の図id.has((候補).id),
   );
@@ -131,7 +131,7 @@ function 対象の見本を配置する(): Array<{ id: string; 関係列: 配置
 
 /** 走査対象の図そのものを集める。 札の重なりは配置前の図を cdl に渡して測る。 */
 function 対象の見本を集める(): CdlDiagram[] {
-  return Object.values(見本帳の定義).filter(
+  return Object.values(カタログの定義).filter(
     (候補): 候補 is CdlDiagram =>
       typeof 候補 === "object" && 候補 !== null && "id" in 候補 && 対象の図id.has(候補.id),
   );
@@ -193,7 +193,7 @@ const 直す前の配置 = {
   Receipt: { 列: 2, 段: 4 },
 } as const;
 
-describe("見本帳の関係線の幾何 (#1600)", () => {
+describe("カタログの関係線の幾何 (#1600)", () => {
   it("4 見本すべてで色違いの線が重ならない", () => {
     const 色違いの重なり = 対象の見本を配置する().flatMap(({ id, 関係列 }) =>
       重なりを測る(関係列)

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * 見本帳の式が名札を持ち、名札を書かない形も切替で見比べられること (#1916)。
+ * カタログの式が名札を持ち、名札を書かない形も切替で見比べられること (#1916)。
  *
  * 描画側は式の `label` を操作部の名前に描き、中身の名前も名札を持つ入力欄と式だけ名札に置き換える
  * (cdl#853)。 名札を書かない式は名前 (`doubled` など) を英語のまま描く。
@@ -9,10 +9,10 @@
  *
  * | 問い | 相手 |
  * |---|---|
- * | 見本帳の式が 3 つの書き方 (組み立て関数 / `YAML` / `JSON`) で名札を持つか | 式を持つ見本の全部 |
+ * | カタログの式が 3 つの書き方 (組み立て関数 / `YAML` / `JSON`) で名札を持つか | 式を持つ見本の全部 |
  * | 名札を書かない形を見比べられるか | `formulaTextBind` の変種 |
  *
- * **式を持つ見本は見本帳から導く** = 手で並べると、式を足した見本が名札を持たないまま通る。
+ * **式を持つ見本はカタログから導く** = 手で並べると、式を足した見本が名札を持たないまま通る。
  */
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -26,7 +26,7 @@ const 名札を書かない変種 = "pattern__formulaTextBind__名前のまま�
 
 type 書き方 = { 名: string; 図: CdlDiagram };
 
-/** 見本帳の図のうち、式を持つもの。 元の見本と変種を 1 件ずつ並べる */
+/** カタログの図のうち、式を持つもの。 元の見本と変種を 1 件ずつ並べる */
 function 式を持つ見本(): { 鍵: string; 図: CdlDiagram; yaml?: string; json?: string }[] {
   return Object.values(CATALOG_ITEMS)
     .flat()
@@ -56,7 +56,7 @@ function 式の行(d: CdlDiagram): { 目印: string; 名前: string; 中身: str
   }));
 }
 
-describe("見本帳の式の名札 (#1916)", () => {
+describe("カタログの式の名札 (#1916)", () => {
   const 見本 = 式を持つ見本();
 
   it("式を持つ見本を見つけ、名札を書かない変種もその中にいる", () => {

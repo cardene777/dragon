@@ -25,9 +25,9 @@ export function CatalogIndexPage(): React.ReactElement {
           <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="catalog-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
-            <span className="cur">見本帳</span>
+            <span className="cur">カタログ</span>
           </nav>
-          <h1 className="catalog-title">見本帳</h1>
+          <h1 className="catalog-title">カタログ</h1>
           <p className="catalog-desc">
             dragon のテキスト記法の各要素を {CATEGORIES.length} の分類で整理。 各分類のページで検索 + 図の表示 + 編集画面で開く操作ができる。
             合計 {totalItems} 件の要素 + {CATEGORIES.length} 分類。

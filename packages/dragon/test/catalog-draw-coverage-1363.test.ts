@@ -16,7 +16,7 @@ import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cd
 import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
 
 /**
- * 見本帳の全ページで「起点から描ける図は描く指定を持つ」 ことの検査 (#1363)。
+ * カタログの全ページで「起点から描ける図は描く指定を持つ」 ことの検査 (#1363)。
  *
  * `charts` は #1318、`presets` は #1358 で埋めたが、`text-dsl` の 3 件が対象から漏れていた。
  * ページを 1 つずつ直す形だと、**次にページが増えた時にまた漏れる**。 全ページを走査して
@@ -97,7 +97,7 @@ const 描ける箱か = (diagram: CdlDiagram, 箱id: string): boolean => {
 const 描ける箱 = (d: CdlDiagram): string[] =>
   d.phases.length === 0 ? [] : d.nodes.filter((n) => 描ける箱か(d, n.id)).map((n) => n.id);
 
-describe("見本帳の全ページで、起点から描ける図は描く指定を持つ (#1363)", () => {
+describe("カタログの全ページで、起点から描ける図は描く指定を持つ (#1363)", () => {
   const 見本 = 全見本();
 
   it("catalog の全ページを走査対象にしている", () => {

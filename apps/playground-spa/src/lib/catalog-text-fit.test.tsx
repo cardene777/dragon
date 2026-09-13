@@ -84,7 +84,7 @@ function 描かれた文字ら(図: CdlDiagram): string[] {
     .filter((s) => s !== "");
 }
 
-/** 見本を全部集める。 見本帳と記法の見本の両方を見る */
+/** 見本を全部集める。 カタログと記法の見本の両方を見る */
 async function 見本を集める(): Promise<図の組[]> {
   const 全部: 図の組[] = [];
   for (const [分類, items] of Object.entries(CATALOG_ITEMS)) {
@@ -93,7 +93,7 @@ async function 見本を集める(): Promise<図の組[]> {
   // `parts` は後から読む形なので `CATALOG_ITEMS` に載らない。 別経路で読む
   for (const it of await loadPartsItems())
     全部.push({ 出所: "parts", 名: it.title, 図: it.diagram });
-  // 記法の見本。 `#1332` で実際に切られていたのはこちらで、見本帳だけ見ると同じ見落としが再発する
+  // 記法の見本。 `#1332` で実際に切られていたのはこちらで、カタログだけ見ると同じ見落としが再発する
   for (const sm of EDITOR_SAMPLES) {
     全部.push({ 出所: "editor", 名: sm.slug, 図: textDslToDiagram(sm.code) });
   }

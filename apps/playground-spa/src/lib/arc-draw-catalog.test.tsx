@@ -1,5 +1,5 @@
 /**
- * 弧と帯で量を表す 3 種が、見本帳で起点から現れることの検査 (#1668)。
+ * 弧と帯で量を表す 3 種が、カタログで起点から現れることの検査 (#1668)。
  *
  * 記法の `draw:` → 組み立て (`compile.ts`) → 描画 (`cdl` の切り抜き) の 3 層を通す。
  * どこか 1 つでも欠けると「書けるのに動かない」 状態に戻るため、実際に描いた SVG で見る。
@@ -37,7 +37,7 @@ function 描き切った図(diagram: CdlDiagram): CdlDiagram {
   return { ...diagram, phases: diagram.phases?.map(({ draw: _draw, ...残り }) => 残り) };
 }
 
-describe("弧と帯で量を表す 3 種が見本帳で起点から現れる (#1668)", () => {
+describe("弧と帯で量を表す 3 種がカタログで起点から現れる (#1668)", () => {
   it.each(三種)("%s の見本が 1 段目で箱を指す", (_語, kind) => {
     const 図 = 見本の図(kind);
     const 箱 = 図.nodes.find((n) => n.kind === kind);

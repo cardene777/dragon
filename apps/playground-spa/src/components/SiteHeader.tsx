@@ -11,7 +11,7 @@ import { useToast } from "@/components/Toast";
  */
 const LINKS: Array<{ to: string; ja: string; en: string }> = [
   { to: "/", ja: "概要", en: "home" },
-  { to: "/catalog", ja: "見本帳", en: "catalog" },
+  { to: "/catalog", ja: "カタログ", en: "catalog" },
   { to: "/editor", ja: "編集画面", en: "editor" },
   { to: "/docs", ja: "使い方", en: "docs" },
   { to: "/release-notes", ja: "更新履歴", en: "releases" },

@@ -29,7 +29,7 @@ async function 開く(page: Page, path: string): Promise<void> {
   await page.waitForLoadState("networkidle");
 }
 
-async function 見本帳で図を選ぶ(page: Page): Promise<void> {
+async function カタログで図を選ぶ(page: Page): Promise<void> {
   await 開く(page, "catalog/presets");
   const 項目 = page.locator(".catalog-list-item").filter({ hasText: 見本.一覧の識別子 }).first();
   await expect(項目, `${見本.一覧の識別子} を一覧から選べない`).toBeVisible();
@@ -80,9 +80,9 @@ async function 被りを測る(page: Page, 画面: string, 舞台: string): Prom
   return 測定;
 }
 
-test("見本帳の一覧で段の表示が図に被らない", async ({ page }) => {
-  await 見本帳で図を選ぶ(page);
-  await 被りを測る(page, "見本帳の一覧", ".catalog-preview-stage");
+test("カタログの一覧で段の表示が図に被らない", async ({ page }) => {
+  await カタログで図を選ぶ(page);
+  await 被りを測る(page, "カタログの一覧", ".catalog-preview-stage");
 });
 
 test("見本の詳細で段の表示が図に被らない", async ({ page }) => {

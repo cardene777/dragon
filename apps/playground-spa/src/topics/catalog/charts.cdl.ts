@@ -482,7 +482,7 @@ export const ganttTimeline = textDslToDiagram(sourceYaml__ganttTimeline);
 /**
  * 前後の矢印を書かない形 (#1706)。
  *
- * `dependsOn` を書くと `gantt-arrow` が出る。 見本帳の工程表は 3 件とも前後を書いており、
+ * `dependsOn` を書くと `gantt-arrow` が出る。 カタログの工程表は 3 件とも前後を書いており、
  * **矢印の無い段取りがどこにも出ていなかった**。 期日だけを並べる使い方はよくあるので、
  * 同じ見本の切替で見比べられるようにする。
  */
@@ -582,7 +582,7 @@ export const journeyMap = textDslToDiagram(sourceYaml__journeyMap);
  * 段ごとの接点を書く形 (#1706)。
  *
  * `touchpoint` を書くと `journey-chip` が出て、どこで起きた出来事かが図に載る。
- * 見本帳では組立て API の見本 (`presets`) だけが書いており、記法の見本は書いていなかった。
+ * カタログでは組立て API の見本 (`presets`) だけが書いており、記法の見本は書いていなかった。
  * **別の行に分かれていると見比べられない** ので、同じ見本の切替にする。
  */
 export const patternBase__journeyMap = "気持ちだけ";
@@ -711,7 +711,7 @@ export const mindMap = textDslToDiagram(sourceYaml__mindMap);
  * 根にも枝にも説明を書かない形 (#1706)。
  *
  * 説明 (`rootSubtitle` / 枝の `subtitle`) を書くと `mind-node-subtitle` が出る。
- * 見本帳の発想の枝は 3 件とも数字を添えており、**見出しだけで広げる形が出ていなかった**。
+ * カタログの発想の枝は 3 件とも数字を添えており、**見出しだけで広げる形が出ていなかった**。
  * 考えを広げる段階では数字を持たないことのほうが多いので、切替で両方を見せる。
  */
 export const patternBase__mindMap = "説明つき";
@@ -863,7 +863,7 @@ export const treeHierarchy = textDslToDiagram(sourceYaml__treeHierarchy);
 /**
  * 節に説明を添える形 (#1706)。
  *
- * `subtitle` を書くと `tree-node-subtitle` が出る。 見本帳の系統樹は 2 件とも名前だけで、
+ * `subtitle` を書くと `tree-node-subtitle` が出る。 カタログの系統樹は 2 件とも名前だけで、
  * **説明を添えた形がどこにも出ていなかった**。 構成を人に見せる時は名前だけでは伝わらない
  * ことが多いので、切替で両方を見せる。
  */
