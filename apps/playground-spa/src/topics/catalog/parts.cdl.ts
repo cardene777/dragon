@@ -2414,7 +2414,7 @@ export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", 
   )
   .build();
 export const subtitle__partsBindLevelColorCombo =
-  "bind: level+color combo — 水位 state と fill 色 state を同 wave shape に併用";
+  "水位の値と塗る色の値の 2 つを、1 つの波の絵に当てる";
 
 // parts 74: bind pattern = 3 phase escalation (state 段階昇順、 各 phase で set)
 export const partsBindEscalation3 = diagram("parts-bind-escalation-3", {
@@ -2446,7 +2446,7 @@ export const partsBindEscalation3 = diagram("parts-bind-escalation-3", {
   .build();
 // 動きの種類 (段階か連続か) は図から導いて画面に出るため、説明では言わない (#1043)
 export const subtitle__partsBindEscalation3 =
-  "bind: escalation 3 — 3 phase で state を段階ごとに set";
+  "警報の段階の値を段ごとに 1 → 2 → 3 と置き、段階の数と色を切り替える";
 
 // parts 75: bind pattern = tween chain 4-hop (0→25→50→75→100 の 4 phase)
 export const partsBindTweenChain4 = diagram("parts-bind-tween-chain-4", {
