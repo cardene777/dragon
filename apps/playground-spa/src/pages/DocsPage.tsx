@@ -4,7 +4,7 @@ import { Blocks, BookOpen, Gift, Repeat, ScanEye, Timer } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 
 /**
- * ドキュメントの入口。 見た目の SSOT = docs/design/app.pen の 05 ドキュメント、
+ * 使い方の入口。 見た目の SSOT = docs/design/app.pen の 05 使い方、
  * class の中身は src/styles/docs-site.css。
  * 要点は枠で囲わず、 頭の罫線だけで区切る。
  * CSS selectors は `body.docs-body` を前提とするため、 mount 時に document.body に class 付与。
@@ -20,7 +20,7 @@ export function DocsPage(): React.ReactElement {
       <main className="docs-hero-shell">
         <section className="docs-hero">
           <div className="docs-hero-eyebrow">使い方の案内 · v0.5</div>
-          <h1 className="docs-hero-title">ドキュメント</h1>
+          <h1 className="docs-hero-title">使い方</h1>
           <p className="docs-hero-lead">
             書き方の全体像を 1 枚にまとめた読み物。 最初の 5 分で動かし、 次の 30 分で 5 つの基本要素と
             6 種類の高位 API を掴む。 Mermaid からの移行と、 「目」 による自動検証もここで扱う。
@@ -30,7 +30,7 @@ export function DocsPage(): React.ReactElement {
               5 分で始める →
             </Link>
             <Link to="/catalog" className="docs-hero-cta-secondary">
-              カタログで見本を見る
+              見本帳で図を見る
             </Link>
           </div>
         </section>

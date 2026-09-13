@@ -232,7 +232,9 @@ test("見本「C4コンテキストモデル」 の箱に段の目印が出な�
       })),
       枠のラベル: [...svg.querySelectorAll("text")]
         .map((t) => (t.textContent ?? "").trim())
-        .filter((s) => /System Context|Container|Component/.test(s)),
+        // 段の名前は #1886 で枠に描く日本語にした (`compile.ts` の `段の名前`)。 字の一部で探すと
+        // 箱の題に同じ語が入った時に拾うので、名前と完全に一致する字だけを数える
+        .filter((s) => ["全体の見取り図", "動かす単位", "部品"].includes(s)),
     };
   });
 
@@ -248,5 +250,5 @@ test("見本「C4コンテキストモデル」 の箱に段の目印が出な�
   expect(説明なし, `説明が消えた箱がある: ${説明なし.map((x) => x.題).join(", ")}`).toEqual([]);
 
   // 段の名前は枠のラベルが出す (箱の説明と二重にしない)
-  expect(m!.枠のラベル.sort(), "枠のラベルが出ていない").toEqual(["Container", "System Context"]);
+  expect(m!.枠のラベル.sort(), "枠のラベルが出ていない").toEqual(["全体の見取り図", "動かす単位"].sort());
 });

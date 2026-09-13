@@ -45,6 +45,9 @@ import {
   識別子を見せる見本,
   記法が日本語の別名を持たない色,
   カタカナの連なり,
+  残してよいカタカナ語,
+  カタカナの判定を待つ材料,
+  残るカタカナ語,
 } from "./screen-words";
 import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
 import { EDITOR_SAMPLES } from "../data/editor-samples";
@@ -466,7 +469,10 @@ function 画面のfile(): string[] {
  */
 const 見本の名前のfile = "i18n.ts";
 
-function 画面に出る字たち(files: string[] = 画面のfile()): {
+function 画面に出る字たち(
+  files: string[] = 画面のfile(),
+  { 見本の名前を足す = true }: { 見本の名前を足す?: boolean } = {},
+): {
   字: string[];
   走査: number;
   除外: string[];
@@ -477,7 +483,8 @@ function 画面に出る字たち(files: string[] = 画面のfile()): {
   const 差し引く名前 = new Map<string, number>();
   for (const n of 見本の名前()) 差し引く名前.set(n, (差し引く名前.get(n) ?? 0) + 1);
   for (const f of files) {
-    const 名前のfile = f.slice(f.lastIndexOf("/") + 1) === 見本の名前のfile;
+    // 名前を足さない時は差し引かない = 差し引くのは足す分と重なるからで、足さなければ重ならない
+    const 名前のfile = 見本の名前を足す && f.slice(f.lastIndexOf("/") + 1) === 見本の名前のfile;
     const 拾う = (t: string): void => {
       const 残り = 名前のfile ? (差し引く名前.get(t) ?? 0) : 0;
       if (残り > 0) {
@@ -493,7 +500,7 @@ function 画面に出る字たち(files: string[] = 画面のfile()): {
     }
   }
   return {
-    字: [...字.filter((t) => t !== "" && 日本語の字.test(t)), ...見本の名前()],
+    字: [...字.filter((t) => t !== "" && 日本語の字.test(t)), ...(見本の名前を足す ? 見本の名前() : [])],
     走査: files.length,
     除外: [...Object.keys(外す材料), ...Object.keys(外す置き場)],
   };
@@ -502,17 +509,21 @@ function 画面に出る字たち(files: string[] = 画面のfile()): {
 /**
  * 画面の字に残るカタカナ語の天井 (#1855)。
  *
- * 開く先は実測で決まらない (記法の型の名前 / 実装が既に日本語を使う語 / 候補が複数ある語 の
- * 3 区分に割れる) ので、開く判断そのものは #1854 が持つ。 **待っている間に増えても
+ * 開く判断の基準は #1854 で決めた (同じものを実装が日本語で呼ぶなら開く / 図の型と技術の名前は残す)。
+ * 基準をまだ当てていない材料 (`カタカナの判定を待つ材料`、#1929 / #1930) は **待っている間に増えても
  * 誰も気付かない** ので、いまの数を天井として置く。
  *
- * **減った時も落とす** = 下回ったまま通すと、#1854 で一度開いた分がまた増えても
+ * **減った時も落とす** = 下回ったまま通すと、一度開いた分がまた増えても
  * 気付けない。 落ちた時の文で下げる先の数を出す。
  *
  * **#1927 で下がった** (字 710 → 430、延べ 820 → 503)。 見本の名前を 2 度数えていたのを
  * 1 回にしただけで、開いた語は無い (語の種類は 251 のまま)。
+ *
+ * **#1854 で下がった** (字 430 → 390、語 251 → 236、延べ 503 → 453)。 画面の枠の語を開き、
+ * 残す語は `残してよいカタカナ語` に載せた。 画面の枠はそちらの検査が 0 件で見るので、
+ * この天井が抑えているのは判定を待つ材料 (`カタカナの判定を待つ材料`) の分だけになる。
  */
-const カタカナの天井 = { 字: 430, 語: 251, 延べ: 503 };
+const カタカナの天井 = { 字: 390, 語: 236, 延べ: 453 };
 
 /**
  * 画面の字のカタカナ語を数える (#1855)。
@@ -1571,7 +1582,7 @@ describe("画面の字に残るカタカナ語の歯止め (#1855)", () => {
     ] as const) {
       expect(
         いま,
-        `${名} が天井を超えた。 開くか、開けない理由を #1854 に足す (${上} → ${いま})`,
+        `${名} が天井を超えた。 増えた語を #1854 の基準で開く (判定を待つ材料の語は #1929 / #1930 が片付ける) (${上} → ${いま})`,
       ).toBeLessThanOrEqual(上);
       expect(いま, `減ったので天井を下げる (${名}: ${上} → ${いま})`).toBeGreaterThanOrEqual(上);
     }
@@ -1697,5 +1708,91 @@ describe("画面の字に残るカタカナ語の歯止め (#1855)", () => {
     expect(カタカナの連なり("グラフとチャート")).toEqual(["グラフ", "チャート"]);
     // ひらがな・漢字・英字は拾わない
     expect(カタカナの連なり("ひらがなと漢字と english")).toEqual([]);
+  });
+});
+
+/** 相対 path が、カタカナ語の判定を待つ材料か */
+function 判定を待つ材料(f: string): boolean {
+  return Object.hasOwn(カタカナの判定を待つ材料, f.slice(f.lastIndexOf("/") + 1));
+}
+
+/**
+ * 画面の枠の字に残る、残してよいカタカナ語の外の語 (#1854)。
+ *
+ * 母集団は英語の判定と同じ file から、カタカナ語の判定を待つ材料を外したもの。
+ * **見本の名前は足さない** = 名前は判定を待っている (#1930)。
+ *
+ * 語ごとに出た字を 1 つ添えて返す = 落ちた時にどこを直すかを読み手が探さずに済む。
+ */
+function 画面の枠に残るカタカナ語(files: string[] = 画面のfile().filter((f) => !判定を待つ材料(f))): {
+  語: { 語: string; 字: string }[];
+  走査: number;
+  全字: string[];
+} {
+  const { 字, 走査 } = 画面に出る字たち(files, { 見本の名前を足す: false });
+  const 最初の字 = new Map<string, string>();
+  for (const s of 字) {
+    for (const w of 残るカタカナ語(s)) if (!最初の字.has(w)) 最初の字.set(w, s);
+  }
+  return { 語: [...最初の字].map(([語, s]) => ({ 語, 字: s })), 走査, 全字: 字 };
+}
+
+describe("画面の枠に残してよいカタカナ語の外の語を出さない (#1854)", () => {
+  it("残してよいカタカナ語の外の語が 1 つも無い", () => {
+    const { 語, 走査, 全字 } = 画面の枠に残るカタカナ語();
+    console.log(`[画面の枠のカタカナ] file=${走査} 字=${全字.length} 残る語=${語.length} 種`);
+    // 0 件を期待するので、母集団が空でも通る。 走査の下限を先に確かめる
+    expect(走査, "画面の枠の file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(20);
+    expect(全字.length, "画面の枠の字を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(300);
+    expect(
+      語.map((x) => `${x.語} (「${x.字}」)`),
+      "画面の枠にカタカナ語が残っている。 同じものを実装が日本語で呼んでいればその語に開き、" +
+        "図の型・技術の名前・定着した操作の名前なら理由を付けて `残してよいカタカナ語` に載せる",
+    ).toEqual([]);
+  });
+
+  it("残してよいカタカナ語が画面の枠で使われている (死蔵が無い)", () => {
+    const { 全字 } = 画面の枠に残るカタカナ語();
+    const 出た = new Set(全字.flatMap((s) => カタカナの連なり(s)));
+    const 語 = Object.keys(残してよいカタカナ語);
+    expect(語.length, "残してよいカタカナ語が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+    expect(語.filter((w) => !出た.has(w)), "画面の枠に出ない語が一覧に残っている").toEqual([]);
+    for (const [w, 理由] of Object.entries(残してよいカタカナ語)) {
+      expect(理由.length, `残す理由が短すぎる: ${w}`).toBeGreaterThan(15);
+    }
+  });
+
+  it("一覧の外のカタカナ語を置くと見つけ、一覧の語は咎めない (植え込み対照 + 対象外の対照)", () => {
+    const 置き場 = mkdtempSync(join(tmpdir(), "chrome-katakana-"));
+    try {
+      const 書く = (file: string, 中身: string): string[] => {
+        const p = join(置き場, file);
+        writeFileSync(p, 中身);
+        return [p];
+      };
+      const 植えた = 画面の枠に残るカタカナ語(書く("Planted.tsx", 'const a = "ズヴァイクを開く";'));
+      expect(植えた.語.map((x) => x.語), "一覧の外のカタカナ語を見つけていない").toEqual(["ズヴァイク"]);
+      const 残す語 = Object.keys(残してよいカタカナ語)[0]!;
+      const 一覧の語 = 画面の枠に残るカタカナ語(書く("Listed.tsx", `const a = "${残す語}の札";`));
+      expect(一覧の語.語, `一覧に載せた語 (${残す語}) を咎めている`).toEqual([]);
+    } finally {
+      rmSync(置き場, { recursive: true, force: true });
+    }
+  });
+
+  it("判定を待つ材料が実在し、理由を持ち、戻すと判定が赤くなる (宣言が古くなる形)", () => {
+    const 待つ = Object.entries(カタカナの判定を待つ材料);
+    expect(待つ.length, "判定を待つ材料が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
+    for (const [file, 理由] of 待つ) {
+      const files = 画面のfile().filter((f) => f.slice(f.lastIndexOf("/") + 1) === file);
+      expect(files.length, `判定を待つ材料が画面の file に無い: ${file}`).toBe(1);
+      expect(理由, `待つ理由が Issue の番号を持たない: ${file}`).toMatch(/#\d+/);
+      // 名前の file は名前を足した形で戻す = 名前は走査ではなく `見本の名前()` から入る
+      const 戻した = file === 見本の名前のfile
+        ? 画面に出る字たち(files).字.flatMap((s) => 残るカタカナ語(s))
+        : 画面の枠に残るカタカナ語(files).語.map((x) => x.語);
+      console.log(`[判定を待つ材料] ${file} 戻すと残る語=${new Set(戻した).size} 種`);
+      expect(戻した.length, `${file} を戻しても判定が赤くならない (待つ理由が残っていない。 宣言を消す)`).toBeGreaterThan(0);
+    }
   });
 });

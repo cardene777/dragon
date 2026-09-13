@@ -91,7 +91,7 @@ import { useLocale } from "@/lib/useLocale";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 
 // 記述の色分け。 値は globals.css の変数から取るので、 明暗の切替は html.dark 1 本で済む。
-// 鍵は dg-1、 値と文字列は dg-2、 区切りと注記は控えめな色、 という 04 エディタの割り当てに合わせる。
+// 鍵は dg-1、 値と文字列は dg-2、 区切りと注記は控えめな色、 という 04 編集画面の割り当てに合わせる。
 const CODE_TAG_COLORS = [
   { tag: [t.atom, t.bool, t.keyword, t.propertyName], color: "var(--d-dg-1)", fontWeight: "500" },
   { tag: [t.string, t.special(t.string)], color: "var(--d-dg-2)" },
@@ -1137,7 +1137,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
             actor: p.id,
             line: 0,
             message: `"${p.id}" (${p.kind}) は図の中に描く部品を持たないため、重ねても図には出ません。`,
-            hint: "操作パネルの部品として使う見本です",
+            hint: "操作盤の部品として使う見本です",
           });
         }
         // 先に組み立てて配置を得る。 パーツの置き場所を測る `measureActorBoxes` も配置を要るので、
@@ -1875,7 +1875,7 @@ animation:
               ))}
             </div>
             <div className="v4-editor-side-hint">
-              クリックで actors: に 1 行追加します。 位置は自動で決まるので、 変えたい時は記法に posX / posY を書きます。
+              押すと actors: に 1 行追加します。 位置は自動で決まるので、 変えたい時は記法に posX / posY を書きます。
             </div>
           </div>
         )}
@@ -1949,7 +1949,7 @@ animation:
               type="button"
               className="v4-editor-bar-btn v4-editor-bar-btn-icon v4-editor-bar-btn-primary"
               disabled={!diagram}
-              aria-label="エクスポート"
+              aria-label="書き出す"
               aria-haspopup="menu"
               data-testid="editor-export"
               title="画像として書き出す (SVG / PNG)"
@@ -1958,7 +1958,7 @@ animation:
             </button>
             <div className="v4-editor-export-menu">
               <button type="button" onClick={handleExportAnimatedSvg} disabled={!diagram}>
-                <strong>アニメーション SVG</strong>
+                <strong>動く SVG</strong>
                 <span>単一ファイルで動く / GitHub README / Notion</span>
               </button>
               <button type="button" onClick={handleExportStaticSvg} disabled={!diagram}>
@@ -2091,7 +2091,7 @@ animation:
           <span className="v4-editor-bar-file">
             <span className="v4-editor-live" />
             {/* 名前は span で包む (#1063)。 裸の文字だと縮まず、 狭い画面で 55px を占め続ける */}
-            <span className="v4-editor-bar-file-name">ライブプレビュー</span>
+            <span className="v4-editor-bar-file-name">実況表示</span>
           </span>
           <span className="v4-editor-bar-gap" />
           {/* 2026-07-27 CAR-2160 = 図そのものの拡大縮小。
@@ -2174,7 +2174,7 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-fit"
             onClick={handleFit}
-            aria-label="フィット"
+            aria-label="枠に合わせる"
             title="図が枠に収まるように表示を合わせる"
           >
             <IconFit />
@@ -2184,7 +2184,7 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-reset"
             onClick={handleReset}
-            aria-label="リセット"
+            aria-label="表示を戻す"
             title="表示を最初の状態に戻す (Esc)"
           >
             <IconReset />

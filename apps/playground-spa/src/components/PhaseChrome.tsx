@@ -84,7 +84,7 @@ export function PhaseChrome({
   phases: readonly CdlPhase[] | undefined;
   /**
    * 札を寄せる側。設計が画面ごとに違う場所へ描いているため引数で受ける
-   * (`04 エディタ` と `06 見本の詳細` は左上、`03 カタログの分類` は右上)。
+   * (`04 編集画面` と `06 見本の詳細` は左上、`03 見本帳の分類` は右上)。
    */
   align?: "left" | "right";
 }): JSX.Element | null {

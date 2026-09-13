@@ -95,7 +95,7 @@
                   "id": "F5nl8",
                   "name": "Label",
                   "fill": "$text-secondary",
-                  "content": "トップ",
+                  "content": "概要",
                   "fontFamily": "$font-body",
                   "fontSize": 13,
                   "fontWeight": "normal"
@@ -133,7 +133,7 @@
                   "id": "SX0qe",
                   "name": "Label",
                   "fill": "$text-secondary",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-body",
                   "fontSize": 13,
                   "fontWeight": "normal"
@@ -171,7 +171,7 @@
                   "id": "Ir4gM",
                   "name": "Label",
                   "fill": "$text-secondary",
-                  "content": "エディタ",
+                  "content": "編集画面",
                   "fontFamily": "$font-body",
                   "fontSize": 13,
                   "fontWeight": "normal"
@@ -209,7 +209,7 @@
                   "id": "pbKFz",
                   "name": "Label",
                   "fill": "$text-secondary",
-                  "content": "ドキュメント",
+                  "content": "使い方",
                   "fontFamily": "$font-body",
                   "fontSize": 13,
                   "fontWeight": "normal"
@@ -425,7 +425,7 @@
                   "id": "C3S9Dv",
                   "name": "CTA Label",
                   "fill": "$on-accent",
-                  "content": "エディタを開く →",
+                  "content": "編集画面を開く →",
                   "fontFamily": "$font-body",
                   "fontSize": 12.5,
                   "fontWeight": "600"
@@ -464,7 +464,7 @@
               "id": "wujFp",
               "name": "Label",
               "fill": "$on-accent",
-              "content": "エディタを開く →",
+              "content": "編集画面を開く →",
               "fontFamily": "$font-body",
               "fontSize": 13.5,
               "fontWeight": "600"
@@ -491,7 +491,7 @@
               "id": "DjtFl",
               "name": "Label",
               "fill": "$text-primary",
-              "content": "ドキュメントを読む",
+              "content": "使い方を読む",
               "fontFamily": "$font-body",
               "fontSize": 13.5,
               "fontWeight": "500"
@@ -529,7 +529,7 @@
       "id": "f6f3L9",
       "x": 0,
       "y": 302,
-      "name": "01 トップ / Light",
+      "name": "01 概要 / Light",
       "metadata": {
         "type": "screen"
       },
@@ -678,7 +678,7 @@
                   "name": "Primary",
                   "descendants": {
                     "wujFp": {
-                      "content": "エディタを開く →"
+                      "content": "編集画面を開く →"
                     }
                   }
                 },
@@ -689,7 +689,7 @@
                   "name": "Secondary",
                   "descendants": {
                     "DjtFl": {
-                      "content": "ドキュメントを読む"
+                      "content": "使い方を読む"
                     }
                   }
                 }
@@ -2808,7 +2808,7 @@
                       "fill": "$text-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "エディタを開く",
+                      "content": "編集画面を開く",
                       "fontFamily": "$font-display",
                       "fontSize": 19,
                       "fontWeight": "600"
@@ -3946,7 +3946,7 @@
                   "id": "NMtWy",
                   "name": "Label",
                   "fill": "$accent",
-                  "content": "図のカタログを見る →",
+                  "content": "見本帳で図を見る →",
                   "fontFamily": "$font-body",
                   "fontSize": 14,
                   "fontWeight": "600"
@@ -4029,7 +4029,7 @@
                   "name": "Primary",
                   "descendants": {
                     "wujFp": {
-                      "content": "エディタを開く →"
+                      "content": "編集画面を開く →"
                     }
                   }
                 },
@@ -4055,7 +4055,7 @@
       "id": "r5U6R",
       "x": 1600,
       "y": 302,
-      "name": "01 トップ / Dark",
+      "name": "01 概要 / Dark",
       "theme": {
         "mode": "dark"
       },
@@ -4210,7 +4210,7 @@
                   "name": "Primary",
                   "descendants": {
                     "wujFp": {
-                      "content": "エディタを開く →"
+                      "content": "編集画面を開く →"
                     }
                   }
                 },
@@ -4221,7 +4221,7 @@
                   "name": "Secondary",
                   "descendants": {
                     "DjtFl": {
-                      "content": "ドキュメントを読む"
+                      "content": "使い方を読む"
                     }
                   }
                 }
@@ -6340,7 +6340,7 @@
                       "fill": "$text-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "エディタを開く",
+                      "content": "編集画面を開く",
                       "fontFamily": "$font-display",
                       "fontSize": 19,
                       "fontWeight": "600"
@@ -7478,7 +7478,7 @@
                   "id": "pQ9Ee",
                   "name": "Label",
                   "fill": "$accent",
-                  "content": "図のカタログを見る →",
+                  "content": "見本帳で図を見る →",
                   "fontFamily": "$font-body",
                   "fontSize": 14,
                   "fontWeight": "600"
@@ -7561,7 +7561,7 @@
                   "name": "Primary",
                   "descendants": {
                     "wujFp": {
-                      "content": "エディタを開く →"
+                      "content": "編集画面を開く →"
                     }
                   }
                 },
@@ -7587,7 +7587,7 @@
       "id": "wAwPv",
       "x": 0,
       "y": 3719,
-      "name": "02 カタログ一覧 / Light",
+      "name": "02 見本帳の一覧 / Light",
       "metadata": {
         "type": "screen"
       },
@@ -7657,7 +7657,7 @@
                   "id": "Jf27o",
                   "name": "Seg カタログ",
                   "fill": "$text-secondary",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -7669,7 +7669,7 @@
               "id": "rbneX",
               "name": "H1",
               "fill": "$text-primary",
-              "content": "カタログ",
+              "content": "見本帳",
               "fontFamily": "$font-display",
               "fontSize": 46,
               "fontWeight": "700",
@@ -7761,7 +7761,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "プリセット",
+                          "content": "ひな形",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -8568,7 +8568,7 @@
       "id": "CbXQl",
       "x": 1600,
       "y": 3719,
-      "name": "02 カタログ一覧 / Dark",
+      "name": "02 見本帳の一覧 / Dark",
       "theme": {
         "mode": "dark"
       },
@@ -8644,7 +8644,7 @@
                   "id": "KztFG",
                   "name": "Seg カタログ",
                   "fill": "$text-secondary",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -8656,7 +8656,7 @@
               "id": "GCl3U",
               "name": "H1",
               "fill": "$text-primary",
-              "content": "カタログ",
+              "content": "見本帳",
               "fontFamily": "$font-display",
               "fontSize": 46,
               "fontWeight": "700",
@@ -8748,7 +8748,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "プリセット",
+                          "content": "ひな形",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -9555,7 +9555,7 @@
       "id": "FMiCK",
       "x": 0,
       "y": 5211,
-      "name": "03 カタログの分類 / Light",
+      "name": "03 見本帳の分類 / Light",
       "metadata": {
         "type": "screen"
       },
@@ -9625,7 +9625,7 @@
                   "id": "exwjp",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -10743,7 +10743,7 @@
                           "id": "N8H1x7",
                           "name": "L",
                           "fill": "$accent",
-                          "content": "エディタで開く →",
+                          "content": "編集画面で開く →",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -10763,7 +10763,7 @@
       "id": "MRvc1",
       "x": 1600,
       "y": 5211,
-      "name": "03 カタログの分類 / Dark",
+      "name": "03 見本帳の分類 / Dark",
       "theme": {
         "mode": "dark"
       },
@@ -10839,7 +10839,7 @@
                   "id": "H9Av38",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -11957,7 +11957,7 @@
                           "id": "UXXbe",
                           "name": "L",
                           "fill": "$accent",
-                          "content": "エディタで開く →",
+                          "content": "編集画面で開く →",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -11977,7 +11977,7 @@
       "id": "gjhot",
       "x": 3200,
       "y": 5211,
-      "name": "03b カタログの分類 重ね窓 / Light",
+      "name": "03b 見本帳の分類 重ね窓 / Light",
       "metadata": {
         "type": "screen"
       },
@@ -12047,7 +12047,7 @@
                   "id": "uU7AS",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -13165,7 +13165,7 @@
                           "id": "v941JJ",
                           "name": "L",
                           "fill": "$accent",
-                          "content": "エディタで開く →",
+                          "content": "編集画面で開く →",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -13677,7 +13677,7 @@
       "id": "p5Txw",
       "x": 4800,
       "y": 5211,
-      "name": "03b カタログの分類 重ね窓 / Dark",
+      "name": "03b 見本帳の分類 重ね窓 / Dark",
       "theme": {
         "mode": "dark"
       },
@@ -13753,7 +13753,7 @@
                   "id": "k0QT6",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -14871,7 +14871,7 @@
                           "id": "j8AvuJ",
                           "name": "L",
                           "fill": "$accent",
-                          "content": "エディタで開く →",
+                          "content": "編集画面で開く →",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -15383,7 +15383,7 @@
       "id": "z1He1S",
       "x": 0,
       "y": 7970,
-      "name": "04 エディタ / Light",
+      "name": "04 編集画面 / Light",
       "metadata": {
         "type": "screen"
       },
@@ -19123,7 +19123,7 @@
       "id": "QYg77",
       "x": 1600,
       "y": 7970,
-      "name": "04 エディタ / Dark",
+      "name": "04 編集画面 / Dark",
       "theme": {
         "mode": "dark"
       },
@@ -22869,7 +22869,7 @@
       "id": "Dsu6C",
       "x": 0,
       "y": 9034,
-      "name": "05 ドキュメント / Light",
+      "name": "05 使い方 / Light",
       "metadata": {
         "type": "screen"
       },
@@ -22923,7 +22923,7 @@
               "id": "SBirN",
               "name": "H1",
               "fill": "$text-primary",
-              "content": "ドキュメント",
+              "content": "使い方",
               "fontFamily": "$font-display",
               "fontSize": 46,
               "fontWeight": "700",
@@ -22971,7 +22971,7 @@
                   "name": "To Editor",
                   "descendants": {
                     "wujFp": {
-                      "content": "エディタで試す →"
+                      "content": "編集画面で試す →"
                     }
                   }
                 },
@@ -22982,7 +22982,7 @@
                   "name": "To Catalog",
                   "descendants": {
                     "DjtFl": {
-                      "content": "カタログを見る"
+                      "content": "見本帳を見る"
                     }
                   }
                 }
@@ -23574,7 +23574,7 @@
                       "fill": "$text-secondary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "導入作業は要らない。 エディタを開き、 下の 6 行を貼り、 再生を押す。 それだけで動く図が 1 つ手に入る。 保存も配布も、 場所を指す文字列 1 本で済む。",
+                      "content": "導入作業は要らない。 編集画面を開き、 下の 6 行を貼り、 再生を押す。 それだけで動く図が 1 つ手に入る。 保存も配布も、 場所を指す文字列 1 本で済む。",
                       "lineHeight": 1.95,
                       "fontFamily": "$font-body",
                       "fontSize": 14.5,
@@ -23846,7 +23846,7 @@
                               "id": "J8EFpZ",
                               "name": "T",
                               "fill": "$text-primary",
-                              "content": "エディタを開く (導入作業なし)",
+                              "content": "編集画面を開く (導入作業なし)",
                               "fontFamily": "$font-body",
                               "fontSize": 14,
                               "fontWeight": "normal"
@@ -26743,7 +26743,7 @@
       "id": "wilh7",
       "x": 1600,
       "y": 9034,
-      "name": "05 ドキュメント / Dark",
+      "name": "05 使い方 / Dark",
       "theme": {
         "mode": "dark"
       },
@@ -26803,7 +26803,7 @@
               "id": "KLsxc",
               "name": "H1",
               "fill": "$text-primary",
-              "content": "ドキュメント",
+              "content": "使い方",
               "fontFamily": "$font-display",
               "fontSize": 46,
               "fontWeight": "700",
@@ -26851,7 +26851,7 @@
                   "name": "To Editor",
                   "descendants": {
                     "wujFp": {
-                      "content": "エディタで試す →"
+                      "content": "編集画面で試す →"
                     }
                   }
                 },
@@ -26862,7 +26862,7 @@
                   "name": "To Catalog",
                   "descendants": {
                     "DjtFl": {
-                      "content": "カタログを見る"
+                      "content": "見本帳を見る"
                     }
                   }
                 }
@@ -27454,7 +27454,7 @@
                       "fill": "$text-secondary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "導入作業は要らない。 エディタを開き、 下の 6 行を貼り、 再生を押す。 それだけで動く図が 1 つ手に入る。 保存も配布も、 場所を指す文字列 1 本で済む。",
+                      "content": "導入作業は要らない。 編集画面を開き、 下の 6 行を貼り、 再生を押す。 それだけで動く図が 1 つ手に入る。 保存も配布も、 場所を指す文字列 1 本で済む。",
                       "lineHeight": 1.95,
                       "fontFamily": "$font-body",
                       "fontSize": 14.5,
@@ -27726,7 +27726,7 @@
                               "id": "K3NPrC",
                               "name": "T",
                               "fill": "$text-primary",
-                              "content": "エディタを開く (導入作業なし)",
+                              "content": "編集画面を開く (導入作業なし)",
                               "fontFamily": "$font-body",
                               "fontSize": 14,
                               "fontWeight": "normal"
@@ -30693,7 +30693,7 @@
                   "id": "OanbB",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -30713,7 +30713,7 @@
                   "id": "nOV0X",
                   "name": "Seg",
                   "fill": "$text-secondary",
-                  "content": "プリセット",
+                  "content": "ひな形",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -30833,7 +30833,7 @@
                       "name": "Open In Editor",
                       "descendants": {
                         "wujFp": {
-                          "content": "エディタで開く →"
+                          "content": "編集画面で開く →"
                         }
                       }
                     },
@@ -32399,7 +32399,7 @@
                   "id": "HWMkR",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -32419,7 +32419,7 @@
                   "id": "yEGqK",
                   "name": "Seg",
                   "fill": "$text-secondary",
-                  "content": "プリセット",
+                  "content": "ひな形",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -32539,7 +32539,7 @@
                       "name": "Open In Editor",
                       "descendants": {
                         "wujFp": {
-                          "content": "エディタで開く →"
+                          "content": "編集画面で開く →"
                         }
                       }
                     },
@@ -34099,7 +34099,7 @@
                   "id": "E7rwNO",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -34119,7 +34119,7 @@
                   "id": "RpvwC",
                   "name": "Seg",
                   "fill": "$text-secondary",
-                  "content": "プリセット",
+                  "content": "ひな形",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -34239,7 +34239,7 @@
                       "name": "Open In Editor",
                       "descendants": {
                         "wujFp": {
-                          "content": "エディタで開く →"
+                          "content": "編集画面で開く →"
                         }
                       }
                     },
@@ -35802,7 +35802,7 @@
                   "id": "zunte",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -35822,7 +35822,7 @@
                   "id": "HXZSR",
                   "name": "Seg",
                   "fill": "$text-secondary",
-                  "content": "プリセット",
+                  "content": "ひな形",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -35942,7 +35942,7 @@
                       "name": "Open In Editor",
                       "descendants": {
                         "wujFp": {
-                          "content": "エディタで開く →"
+                          "content": "編集画面で開く →"
                         }
                       }
                     },
@@ -40901,7 +40901,7 @@
                       "fill": "$text-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "バグ報告",
+                      "content": "不具合の報告",
                       "fontFamily": "$font-display",
                       "fontSize": 20,
                       "fontWeight": "600"
@@ -40940,7 +40940,7 @@
                       "id": "yRJ74",
                       "name": "L",
                       "fill": "$text-primary",
-                      "content": "バグを起票 →",
+                      "content": "不具合を起票 →",
                       "fontFamily": "$font-body",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -41878,7 +41878,7 @@
                       "fill": "$text-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "バグ報告",
+                      "content": "不具合の報告",
                       "fontFamily": "$font-display",
                       "fontSize": 20,
                       "fontWeight": "600"
@@ -41917,7 +41917,7 @@
                       "id": "SA8XX",
                       "name": "L",
                       "fill": "$text-primary",
-                      "content": "バグを起票 →",
+                      "content": "不具合を起票 →",
                       "fontFamily": "$font-body",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -42777,7 +42777,7 @@
                   "name": "To Editor",
                   "descendants": {
                     "wujFp": {
-                      "content": "エディタ →"
+                      "content": "編集画面 →"
                     }
                   }
                 },
@@ -42788,7 +42788,7 @@
                   "name": "To Catalog",
                   "descendants": {
                     "DjtFl": {
-                      "content": "カタログ"
+                      "content": "見本帳"
                     }
                   }
                 },
@@ -42799,7 +42799,7 @@
                   "name": "To Docs",
                   "descendants": {
                     "DjtFl": {
-                      "content": "ドキュメント"
+                      "content": "使い方"
                     }
                   }
                 }
@@ -43004,7 +43004,7 @@
                   "name": "To Editor",
                   "descendants": {
                     "wujFp": {
-                      "content": "エディタ →"
+                      "content": "編集画面 →"
                     }
                   }
                 },
@@ -43015,7 +43015,7 @@
                   "name": "To Catalog",
                   "descendants": {
                     "DjtFl": {
-                      "content": "カタログ"
+                      "content": "見本帳"
                     }
                   }
                 },
@@ -43026,7 +43026,7 @@
                   "name": "To Docs",
                   "descendants": {
                     "DjtFl": {
-                      "content": "ドキュメント"
+                      "content": "使い方"
                     }
                   }
                 }
@@ -43051,7 +43051,7 @@
       "id": "s28WXa",
       "x": 1600,
       "y": 18548,
-      "name": "04b エディタ 点の方眼 / Light",
+      "name": "04b 編集画面 点の方眼 / Light",
       "metadata": {
         "type": "screen"
       },
@@ -46810,7 +46810,7 @@
       "id": "hZxNI",
       "x": 1600,
       "y": 19552,
-      "name": "04b エディタ 点の方眼 / Dark",
+      "name": "04b 編集画面 点の方眼 / Dark",
       "theme": {
         "mode": "dark"
       },
@@ -50640,7 +50640,7 @@
                   "id": "wI70C",
                   "name": "Where",
                   "fill": "$text-muted",
-                  "content": "03 カタログの分類 · 部品分類",
+                  "content": "03 見本帳の分類 · 部品分類",
                   "fontFamily": "$font-body",
                   "fontSize": 11.5,
                   "fontWeight": "normal"
@@ -50701,7 +50701,7 @@
                   "id": "pP8Nn",
                   "name": "Where",
                   "fill": "$text-muted",
-                  "content": "03 カタログの分類 · 部品分類",
+                  "content": "03 見本帳の分類 · 部品分類",
                   "fontFamily": "$font-body",
                   "fontSize": 11.5,
                   "fontWeight": "normal"
@@ -50770,7 +50770,7 @@
                   "id": "WsAsP",
                   "name": "Where",
                   "fill": "$text-muted",
-                  "content": "03 カタログの分類 · 絞り込みの結果",
+                  "content": "03 見本帳の分類 · 絞り込みの結果",
                   "fontFamily": "$font-body",
                   "fontSize": 11.5,
                   "fontWeight": "normal"
@@ -50831,7 +50831,7 @@
                   "id": "YXjOV",
                   "name": "Where",
                   "fill": "$text-muted",
-                  "content": "03 カタログの分類 · プレビュー",
+                  "content": "03 見本帳の分類 · 図の表示",
                   "fontFamily": "$font-body",
                   "fontSize": 11.5,
                   "fontWeight": "normal"
@@ -50900,7 +50900,7 @@
                   "id": "BKhVZ",
                   "name": "Where",
                   "fill": "$text-muted",
-                  "content": "03 カタログの分類 · 06 見本の詳細",
+                  "content": "03 見本帳の分類 · 06 見本の詳細",
                   "fontFamily": "$font-body",
                   "fontSize": 11.5,
                   "fontWeight": "normal"
@@ -50961,7 +50961,7 @@
                   "id": "rx5Y9",
                   "name": "Where",
                   "fill": "$text-muted",
-                  "content": "03 カタログの分類",
+                  "content": "03 見本帳の分類",
                   "fontFamily": "$font-body",
                   "fontSize": 11.5,
                   "fontWeight": "normal"
@@ -50988,7 +50988,7 @@
                       "fill": "$text-secondary",
                       "textGrowth": "fixed-width",
                       "width": 520,
-                      "content": "カテゴリが見つかりません",
+                      "content": "分類が見つかりません",
                       "textAlign": "center",
                       "fontFamily": "$font-body",
                       "fontSize": 13,
@@ -51057,7 +51057,7 @@
                       "fill": "$text-secondary",
                       "textGrowth": "fixed-width",
                       "width": 520,
-                      "content": "プリセットが見つかりません",
+                      "content": "ひな形が見つかりません",
                       "textAlign": "center",
                       "fontFamily": "$font-body",
                       "fontSize": 13,
@@ -51264,7 +51264,7 @@
       "id": "uuB7s",
       "x": 6400,
       "y": 5211,
-      "name": "03c カタログの分類 コード / Light",
+      "name": "03c 見本帳の分類 コード / Light",
       "metadata": {
         "type": "screen"
       },
@@ -51334,7 +51334,7 @@
                   "id": "gCAyr",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -52662,7 +52662,7 @@
                           "id": "YxnIt",
                           "name": "L",
                           "fill": "$accent",
-                          "content": "エディタで開く →",
+                          "content": "編集画面で開く →",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -52682,7 +52682,7 @@
       "id": "mHaiF",
       "x": 8000,
       "y": 5211,
-      "name": "03c カタログの分類 コード / Dark",
+      "name": "03c 見本帳の分類 コード / Dark",
       "theme": {
         "mode": "dark"
       },
@@ -52758,7 +52758,7 @@
                   "id": "quLCS",
                   "name": "Seg",
                   "fill": "$text-muted",
-                  "content": "カタログ",
+                  "content": "見本帳",
                   "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -54086,7 +54086,7 @@
                           "id": "LUlDn",
                           "name": "L",
                           "fill": "$accent",
-                          "content": "エディタで開く →",
+                          "content": "編集画面で開く →",
                           "fontFamily": "$font-body",
                           "fontSize": 13,
                           "fontWeight": "600"

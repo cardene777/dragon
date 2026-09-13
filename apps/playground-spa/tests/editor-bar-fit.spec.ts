@@ -18,15 +18,15 @@ import { test, expect } from "@playwright/test";
 /** 操作列に並ぶ 13 個。 id が変わると e2e が壊れるので、ここを唯一の一覧にする。 */
 const 操作 = [
   { id: "editor-share", 名: "共有URL" },
-  { id: "editor-export", 名: "エクスポート" },
+  { id: "editor-export", 名: "書き出す" },
   { id: "editor-font-scale-down", 名: "文字を小さく" },
   { id: "editor-font-scale-up", 名: "文字を大きく" },
   { id: "editor-diagram-scale-down", 名: "図を縮小" },
   { id: "editor-diagram-scale-up", 名: "図を拡大" },
   { id: "editor-toggle-positions", 名: "位置を表示" },
   { id: "editor-toggle-grid", 名: "方眼を表示" },
-  { id: "editor-fit", 名: "フィット" },
-  { id: "editor-reset", 名: "リセット" },
+  { id: "editor-fit", 名: "枠に合わせる" },
+  { id: "editor-reset", 名: "表示を戻す" },
   { id: "editor-actual-size", 名: "等倍表示" },
   { id: "editor-zoom-out", 名: "縮小" },
   { id: "editor-zoom-in", 名: "拡大" },

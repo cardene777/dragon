@@ -8,7 +8,7 @@ import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 
 import { 区間, 区間のspan } from "@/components/SyntaxCode";
 /**
- * dragon の入口。 見た目の SSOT = docs/design/app.pen の 01 トップ、
+ * dragon の入口。 見た目の SSOT = docs/design/app.pen の 01 概要、
  * class の中身は src/styles/home.css。
  * 6 段構成 = 名乗り / 実物の窓 / 3 つの強み / 3 手順 / 用途 3 例 / 締めの誘い。
  */
@@ -84,10 +84,10 @@ export function HomePage(): React.ReactElement {
         </p>
         <div className="hero-cta">
           <Link className="btn-primary" to="/editor">
-            {isJa ? "エディタを開く →" : "Open the editor →"}
+            {isJa ? "編集画面を開く →" : "Open the editor →"}
           </Link>
           <Link className="btn-secondary" to="/docs">
-            {isJa ? "ドキュメントを読む" : "Read the docs"}
+            {isJa ? "使い方を読む" : "Read the docs"}
           </Link>
         </div>
       </section>
@@ -234,8 +234,8 @@ export function HomePage(): React.ReactElement {
         <div className="steps">
           <div className="step">
             <div className="step-num">01</div>
-            <h3>{isJa ? "エディタを開く" : "Open the editor"}</h3>
-            <p>{isJa ? "ブラウザで /editor にアクセスする。 導入作業は要らない。" : "Visit /editor in your browser. Nothing to install."}</p>
+            <h3>{isJa ? "編集画面を開く" : "Open the editor"}</h3>
+            <p>{isJa ? "ブラウザで /editor を開く。 導入作業は要らない。" : "Visit /editor in your browser. Nothing to install."}</p>
           </div>
           <div className="step">
             <div className="step-num">02</div>
@@ -296,7 +296,7 @@ export function HomePage(): React.ReactElement {
         </div>
         <div className="examples-more">
           <Link className="link-accent" to="/catalog">
-            {isJa ? "図のカタログを見る →" : "Browse the catalog →"}
+            {isJa ? "見本帳で図を見る →" : "Browse the catalog →"}
           </Link>
         </div>
       </section>
@@ -307,7 +307,7 @@ export function HomePage(): React.ReactElement {
           <p>{isJa ? "YAML を 1 つ書くだけ。 動く図を 1 分後に手に入れる。" : "One YAML file is all it takes. A moving diagram is yours a minute later."}</p>
           <div className="closing-cta-buttons">
             <Link className="btn-primary" to="/editor">
-              {isJa ? "エディタを開く →" : "Open the editor →"}
+              {isJa ? "編集画面を開く →" : "Open the editor →"}
             </Link>
             <a
               className="btn-secondary"

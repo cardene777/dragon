@@ -19,7 +19,7 @@ export function ReleaseNotesPage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
+          <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
             <span className="cur">更新履歴</span>
