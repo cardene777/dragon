@@ -7,6 +7,33 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- **記法で選択肢と切り替えに見せる名前を書けるようにし、見本帳の状態の値を日本語で描くようにした** (#1920)
+
+  `dropdown` / `radio` / `tabs` / `multi-select` の `options:` に、文字列のほかに `{ value, label }` の組を
+  書ける。 名前を書いた選択肢は、操作部の選択肢と箱の字に差し込む値を名前で描く (`状態: {status}` が
+  `状態: green` ではなく `状態: 成功` になる)。 状態に入る値は綴りのままなので、表示の出し分けと、値を綴りで
+  読む読み出し (信号の色 / 優先度の札 / 知らせの種類) は変わらない。 `toggle` は `onLabel` / `offLabel` で
+  真偽の名前を書ける。
+
+  ```yaml
+  inputs:
+    status: { kind: dropdown, options: [{ value: red, label: "失敗" }, green], defaultValue: green }
+    pressed: { kind: toggle, defaultValue: false, onLabel: "押した", offLabel: "押していない" }
+  ```
+
+  `JSON` も同じ形を受け、記法の定義 (`schemas/diagram.json`) と構文の手引きにも載せた。 組の `value` か
+  `label` が無い / 空、知らない項目名は、`YAML` は行番号を、`JSON` は場所を付けて知らせる。 組の `value` に
+  書いた外部参照は、文字列の選択肢と同じく出口で落とす。
+
+  描画エンジン (`@cardenelabs/cdl`) を `^0.60.0` から `^0.61.0` へ上げた (`cdl#855` = 選択肢と切り替えを
+  名前で描く)。 値を綴りで読む見本帳の 5 図 (`alertNotification` / `deploySpinner` / `issuePriorityBadge` /
+  `buildStatusTrafficLight` / `clickToggle`) は、組み立て関数 / `YAML` / `JSON` の 3 つとも名前を持つ。
+  `buildStatusTrafficLight` と `clickToggle` は名前を書かない変種 (`値のまま描く`) を切替で持ち、値が英語の
+  まま出る形と見比べられる。
+
+  英語が残る操作できる図は 7 図から 3 図に減った。 残るのは稼働の状態の略記 / 在席の値 / 共有ボタンの鍵で、
+  描画エンジンの次の件で扱う。
+
 - **記法で式に名札を書けるようにし、見本帳の式の名前を日本語で描くようにした** (#1916)
 
   `formulas:` の値に、式の文字列のほかに `{ expression, label }` の組を書ける。 名札を書いた式は、操作部が

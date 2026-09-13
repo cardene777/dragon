@@ -1622,6 +1622,60 @@ function 組の並びとして読む(raw: string): Record<string, string>[] | un
   return 出;
 }
 
+/** 選択肢の組が持てる項目。 描画側の `CdlInputOption` の組と同じ 2 つ */
+const 選択肢の組の項目 = ["value", "label"] as const;
+
+/**
+ * `["green", { value: "red", label: "失敗" }]` の形を選択肢の並びに読む (#1920)。
+ *
+ * 要素は文字列 (値と名前を兼ねる) か、`value` と `label` を持つ組。 2 つを混ぜて書ける。
+ * 割るのは `splitInlineFields` = 引用符と括弧の中の `,` を区切りと取り違えない
+ * (`並びとして読む` は組の中の `,` で割るので使えない)。
+ *
+ * 組の誤り (項目の欠け / 知らない項目 / 空の値) は行番号付きで知らせ、並びごと落とす。
+ * 読めた組だけを渡すと選択肢の数が変わり、既定値が選択肢に無い図になる。
+ */
+function 選択肢の並びとして読む(
+  値: string,
+  名: string,
+  line: number,
+  errors: DslError[],
+): (string | { value: string; label: string })[] | undefined {
+  const 中身 = 値.trim();
+  if (!中身.startsWith("[") || !中身.endsWith("]")) {
+    errors.push({ line, message: `${名} の並びが読めません: "${値}"`, hint: '`["green", { value: "red", label: "失敗" }]` の形で書く' });
+    return undefined;
+  }
+  const 出: (string | { value: string; label: string })[] = [];
+  const 誤りの数 = errors.length;
+  splitInlineFields(中身.slice(1, -1)).forEach((生, i) => {
+    const 要素 = 生.trim();
+    if (!要素.startsWith("{")) {
+      const 文字列 = stripQuotes(要素);
+      if (文字列 !== "") 出.push(文字列);
+      return;
+    }
+    if (!要素.endsWith("}")) {
+      errors.push({ line, message: `${名}[${i}] の組が読めません: "${要素}"`, hint: '`{ value: "red", label: "失敗" }` の形で書く' });
+      return;
+    }
+    const 組 = parseInlineMapping(要素.slice(1, -1));
+    for (const k of Object.keys(組)) {
+      if ((選択肢の組の項目 as readonly string[]).includes(k)) continue;
+      errors.push({ line, message: `${名}[${i}] の項目名が読めません: "${k}"`, hint: `使える項目 = ${選択肢の組の項目.join(", ")}` });
+    }
+    for (const k of 選択肢の組の項目) {
+      if (組[k] === undefined) {
+        errors.push({ line, message: `${名}[${i}].${k} は必ず書きます`, hint: `必須の項目 = ${選択肢の組の項目.join(", ")}` });
+      } else if (組[k] === "") {
+        errors.push({ line, message: `${名}[${i}].${k} が空です`, hint: k === "label" ? "名前を書かないなら文字列だけを並べる" : "値を 1 文字以上書く" });
+      }
+    }
+    if (組.value && 組.label) 出.push({ value: 組.value, label: 組.label });
+  });
+  return errors.length === 誤りの数 ? 出 : undefined;
+}
+
 function 部品の組を検査する(
   kind: string,
   読めた: Record<string, unknown>,
@@ -1715,6 +1769,9 @@ function 表に従って読む(
       } else {
         out[欄] = 数;
       }
+    } else if (形 === "選択肢の並び") {
+      const 選択肢 = 選択肢の並びとして読む(値, `${接頭}${欄}`, line, errors);
+      if (選択肢 !== undefined) out[欄] = 選択肢;
     } else if (形 === "組の並び") {
       const 組 = 組の並びとして読む(値);
       if (組 !== undefined) out[欄] = 組;

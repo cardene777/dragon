@@ -122,6 +122,9 @@ function 欄を並べる(中身, 字下げ) {
  *
  * `数の並び` は本 Issue で足した形。 `timeline` の再生速度の候補がこの形で、それまでの
  * 7 形では書けなかった。
+ *
+ * `選択肢の並び` は選択肢を持つ入力欄の `options` (#1920)。 描画側は選択肢を文字列か
+ * `{ value, label }` の組で受ける (`CdlInputOption`、cdl#855)。
  */
 const 形の表 = {
   string: "文字列",
@@ -129,6 +132,7 @@ const 形の表 = {
   boolean: "真偽",
   "readonly string[]": "文字列の並び",
   "readonly number[]": "数の並び",
+  "readonly CdlInputOption[]": "選択肢の並び",
 };
 
 function 形にする(型) {

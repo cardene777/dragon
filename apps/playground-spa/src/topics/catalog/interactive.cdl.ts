@@ -206,70 +206,85 @@ export const subtitle__scrollNarrative =
 
 /**
  * 4. click → toggle (event handler + hover)。
+ *
+ * 切り替えの名前 (`onLabel` / `offLabel`) の有無を変種で見比べる (#1920)。 名前を書くと箱の
+ * `{active}` を `押していない` / `押した` と描き、書かないと値 (`false` / `true`) をそのまま描く。
+ * 名前の有無のほかは同じ図なので、組み立てを 1 本にして 2 度書かない。
  */
-export const clickToggle = diagram("interactive-click-toggle", {
-  topic: "クリックが handler を通って状態に届く",
-})
-  .lane("col1", { x: 0, width: 360 })
-  .lane("col2", { x: 400, width: 370 })
-  // 押した状態は入力欄が持つ。 別に `state` を置いても入力欄の初期値が勝ち、その値は画面に出ない
-  .input.toggle("active", { defaultValue: false, label: "押した状態" })
-  .node("btn", {
-    lane: "col1",
-    stack: 0,
-    kind: "card",
-    w: 180,
-    title: "ボタン",
-    subtitle: "押す先",
-  })
-  .node("handlerNode", {
-    lane: "col2",
-    stack: 0,
-    kind: "card",
-    w: 320,
-    title: "受け取り手",
-    subtitle: "押した時と触れた時に呼ばれる",
-  })
-  .node("signalNode", {
-    lane: "col1",
-    stack: 1,
-    kind: "card",
-    w: 310,
-    title: "値の状態",
-    subtitle: "押した状態 = {active}",
-  })
-  .edge("btn", "handlerNode", { label: "押す / 触れる", tone: "info" })
-  .edge("handlerNode", "signalNode", { label: "切り替え", tone: "success" })
-  .on.click({ kind: "node", id: "btn" }, "toggle-active")
-  .on.hover({ kind: "node", id: "btn" }, "hover-state")
-  .phase(
-    "p1",
-    {
-      duration: 1600,
-      title: "押す前",
-      body: "ボタンだけがある状態。 まだ何も起きていない。",
-    },
-    (p: PhaseBuilder) => p.activate("btn"),
-  )
-  .phase(
-    "p2",
-    {
-      duration: 1600,
-      title: "受け取り手を決める",
-      body: "押した時に呼ぶ受け取り手を決める。 受け取り手の中身は使う側が渡す。",
-    },
-    (p: PhaseBuilder) => p.activate("btn", "handlerNode"),
-  )
-  .phase(
-    "p3",
-    {
-      duration: 1600,
-      title: "押すと値が変わる",
-      body: "受け取り手が値を書き換える。 左上の箱を実際に押すと下の箱の値が入れ替わり、もう一度押すと戻る。",
-    },
-    (p: PhaseBuilder) => p.activate("btn", "handlerNode", "signalNode"),
-  )
-  .build();
+function 押すと切り替わる図(id: string, 名前: boolean) {
+  return (
+    diagram(id, {
+      topic: "クリックが handler を通って状態に届く",
+    })
+      .lane("col1", { x: 0, width: 360 })
+      .lane("col2", { x: 400, width: 370 })
+      // 押した状態は入力欄が持つ。 別に `state` を置いても入力欄の初期値が勝ち、その値は画面に出ない
+      .input.toggle("active", {
+        defaultValue: false,
+        label: "押した状態",
+        ...(名前 ? { onLabel: "押した", offLabel: "押していない" } : {}),
+      })
+      .node("btn", {
+        lane: "col1",
+        stack: 0,
+        kind: "card",
+        w: 180,
+        title: "ボタン",
+        subtitle: "押す先",
+      })
+      .node("handlerNode", {
+        lane: "col2",
+        stack: 0,
+        kind: "card",
+        w: 320,
+        title: "受け取り手",
+        subtitle: "押した時と触れた時に呼ばれる",
+      })
+      .node("signalNode", {
+        lane: "col1",
+        stack: 1,
+        kind: "card",
+        w: 310,
+        title: "値の状態",
+        subtitle: "押した状態 = {active}",
+      })
+      .edge("btn", "handlerNode", { label: "押す / 触れる", tone: "info" })
+      .edge("handlerNode", "signalNode", { label: "切り替え", tone: "success" })
+      .on.click({ kind: "node", id: "btn" }, "toggle-active")
+      .on.hover({ kind: "node", id: "btn" }, "hover-state")
+      .phase(
+        "p1",
+        {
+          duration: 1600,
+          title: "押す前",
+          body: "ボタンだけがある状態。 まだ何も起きていない。",
+        },
+        (p: PhaseBuilder) => p.activate("btn"),
+      )
+      .phase(
+        "p2",
+        {
+          duration: 1600,
+          title: "受け取り手を決める",
+          body: "押した時に呼ぶ受け取り手を決める。 受け取り手の中身は使う側が渡す。",
+        },
+        (p: PhaseBuilder) => p.activate("btn", "handlerNode"),
+      )
+      .phase(
+        "p3",
+        {
+          duration: 1600,
+          title: "押すと値が変わる",
+          body: "受け取り手が値を書き換える。 左上の箱を実際に押すと下の箱の値が入れ替わり、もう一度押すと戻る。",
+        },
+        (p: PhaseBuilder) => p.activate("btn", "handlerNode", "signalNode"),
+      )
+      .build()
+  );
+}
+export const clickToggle = 押すと切り替わる図("interactive-click-toggle", true);
+export const patternBase__clickToggle = "名前で描く";
+export const pattern__clickToggle__値のまま描く = 押すと切り替わる図("interactive-click-toggle-bare", false);
 export const subtitle__clickToggle =
   "click event flow を 3 区画 (Trigger button / Event handler / Signal state) 2 列 2 段 + 2 edge、 click→handler→signal の 3 step dataflow";
 
@@ -4892,81 +4907,95 @@ export const subtitle__playerLeaderboard =
 
 /**
  * 57. traffic-light = 3-color status、 dropdown で red/yellow/green 選択 → active dot が glow 表示。
+ *
+ * 選択肢の名前 (`label`) の有無を変種で見比べる (#1920)。 名前を書くと選択肢と箱の `{status}` を
+ * `失敗` / `実行中` / `成功` と描き、書かないと値 (`red` / `yellow` / `green`) をそのまま描く。
+ * 信号の灯りはどちらも値を綴りで読むので、同じ灯りが点く。
+ * 名前の有無のほかは同じ図なので、組み立てを 1 本にして 2 度書かない。
  */
-export const buildStatusTrafficLight = diagram("interactive-build-traffic-light", {
-  topic: "ビルド状態を信号機の 3 色で見せる",
-})
-  .lane("red", { x: 0, width: 200 })
-  .lane("yellow", { x: 240, width: 200 })
-  .lane("green", { x: 480, width: 200 })
-  .input.dropdown("status", {
-    options: ["red", "yellow", "green"],
-    defaultValue: "green",
-    label: "ビルドの状態",
+function ビルドの信号の図(id: string, 名前: boolean) {
+  const 選択肢 = (value: string, label: string) => (名前 ? { value, label } : value);
+  return diagram(id, {
+    topic: "ビルド状態を信号機の 3 色で見せる",
   })
-  .state("status", { initial: "green" })
-  .node("redNode", {
-    lane: "red",
-    stack: 0,
-    kind: "card",
-    title: "● 赤",
-    subtitle: "ビルド失敗 · 要修正",
-  })
-  .node("yellowNode", {
-    lane: "yellow",
-    stack: 0,
-    kind: "card",
-    title: "● 黄",
-    subtitle: "ビルド実行中 · 待機",
-  })
-  .node("greenNode", {
-    lane: "green",
-    stack: 0,
-    kind: "card",
-    title: "● 緑",
-    subtitle: "ビルド成功 · 配備できる",
-  })
-  .node("currentCI", {
-    lane: "green",
-    stack: 1,
-    kind: "card",
-    title: "◆ いまのビルド",
-    subtitle: "状態: {status}",
-  })
-  .readout.trafficLight("tl", {
-    source: "status",
-    viewW: 70,
-    viewH: 180,
-    label: "状態 (3 色の灯り)",
-  })
-  .phase(
-    "p1",
-    {
-      duration: 1800,
-      title: "赤を見る",
-      body: "止まっている時に点く色。 3 色のうち 1 つ目で、状態はつまみで選ぶ。",
-    },
-    (p: PhaseBuilder) => p.activate("redNode"),
-  )
-  .phase(
-    "p2",
-    {
-      duration: 1800,
-      title: "黄を見る",
-      body: "走っている間の色。 選んだ状態に応じて 1 つだけが点く。",
-    },
-    (p: PhaseBuilder) => p.activate("redNode", "yellowNode"),
-  )
-  .phase(
-    "p3",
-    {
-      duration: 1800,
-      title: "緑を見る",
-      body: "通った時の色。 3 色で状態を読み分ける形になっている。",
-    },
-    (p: PhaseBuilder) => p.activate("redNode", "yellowNode", "greenNode", "currentCI"),
-  )
-  .build();
+    .lane("red", { x: 0, width: 200 })
+    .lane("yellow", { x: 240, width: 200 })
+    .lane("green", { x: 480, width: 200 })
+    .input.dropdown("status", {
+      options: [選択肢("red", "失敗"), 選択肢("yellow", "実行中"), 選択肢("green", "成功")],
+      defaultValue: "green",
+      label: "ビルドの状態",
+    })
+    .state("status", { initial: "green" })
+    .node("redNode", {
+      lane: "red",
+      stack: 0,
+      kind: "card",
+      title: "● 赤",
+      subtitle: "ビルド失敗 · 要修正",
+    })
+    .node("yellowNode", {
+      lane: "yellow",
+      stack: 0,
+      kind: "card",
+      title: "● 黄",
+      subtitle: "ビルド実行中 · 待機",
+    })
+    .node("greenNode", {
+      lane: "green",
+      stack: 0,
+      kind: "card",
+      title: "● 緑",
+      subtitle: "ビルド成功 · 配備できる",
+    })
+    .node("currentCI", {
+      lane: "green",
+      stack: 1,
+      kind: "card",
+      title: "◆ いまのビルド",
+      subtitle: "状態: {status}",
+    })
+    .readout.trafficLight("tl", {
+      source: "status",
+      viewW: 70,
+      viewH: 180,
+      label: "状態 (3 色の灯り)",
+    })
+    .phase(
+      "p1",
+      {
+        duration: 1800,
+        title: "赤を見る",
+        body: "止まっている時に点く色。 3 色のうち 1 つ目で、状態はつまみで選ぶ。",
+      },
+      (p: PhaseBuilder) => p.activate("redNode"),
+    )
+    .phase(
+      "p2",
+      {
+        duration: 1800,
+        title: "黄を見る",
+        body: "走っている間の色。 選んだ状態に応じて 1 つだけが点く。",
+      },
+      (p: PhaseBuilder) => p.activate("redNode", "yellowNode"),
+    )
+    .phase(
+      "p3",
+      {
+        duration: 1800,
+        title: "緑を見る",
+        body: "通った時の色。 3 色で状態を読み分ける形になっている。",
+      },
+      (p: PhaseBuilder) => p.activate("redNode", "yellowNode", "greenNode", "currentCI"),
+    )
+    .build();
+}
+export const buildStatusTrafficLight = ビルドの信号の図("interactive-build-traffic-light", true);
+export const patternBase__buildStatusTrafficLight = "名前で描く";
+export const pattern__buildStatusTrafficLight__値のまま描く = ビルドの信号の図(
+  "interactive-build-traffic-light-bare",
+  false,
+);
 export const subtitle__buildStatusTrafficLight =
   "build status 3 state (red/yellow/green) を 3-lane 分散、 各 state 個別 card + current indicator、 trafficLight readout 併存";
 
@@ -5271,7 +5300,13 @@ export const alertNotification = diagram("interactive-alert-notification", {
   .lane("error", { x: 380, width: 170 })
   .lane("success", { x: 570, width: 170 })
   .input.dropdown("kind", {
-    options: ["info", "warn", "error", "success"],
+    // 値は通知の色を綴りで選ぶので英語のまま。 選択肢と箱の {kind} は名前で描く (#1920)
+    options: [
+      { value: "info", label: "情報" },
+      { value: "warn", label: "注意" },
+      { value: "error", label: "異常" },
+      { value: "success", label: "成功" },
+    ],
     defaultValue: "warn",
     label: "種類",
   })
@@ -5810,7 +5845,12 @@ export const deploySpinner = diagram("interactive-deploy-spinner", {
   .lane("done", { x: 260, width: 220 })
   .lane("error", { x: 520, width: 220 })
   .input.dropdown("status", {
-    options: ["running", "done", "error"],
+    // 値は回る印を綴りで選ぶので英語のまま。 選択肢と箱の {status} は名前で描く (#1920)
+    options: [
+      { value: "running", label: "実行中" },
+      { value: "done", label: "完了" },
+      { value: "error", label: "失敗" },
+    ],
     defaultValue: "running",
     label: "状態",
   })
@@ -6737,7 +6777,12 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
   .lane("med", { x: 240, width: 200 })
   .lane("low", { x: 480, width: 200 })
   .input.dropdown("prio", {
-    options: ["high", "med", "low"],
+    // 値は優先度の札が綴りで読むので英語のまま。 選択肢と箱の {prio} は名前で描く (#1920)
+    options: [
+      { value: "high", label: "高" },
+      { value: "med", label: "中" },
+      { value: "low", label: "低" },
+    ],
     defaultValue: "high",
     label: "優先度",
   })
@@ -20413,7 +20458,7 @@ export const sourceYaml__alertNotification = `title: "通知 4 種を情報 / �
 type: flow
 
 inputs:
-  kind: { kind: dropdown, options: ["info", "warn", "error", "success"], defaultValue: "warn", label: "種類" }
+  kind: { kind: dropdown, options: [{ value: "info", label: "情報" }, { value: "warn", label: "注意" }, { value: "error", label: "異常" }, { value: "success", label: "成功" }], defaultValue: "warn", label: "種類" }
 
 readouts:
   nt: { kind: notification, kindSource: "kind", titleSource: "title", bodySource: "alertBody", label: "通知 (色と記号)" }
@@ -20456,7 +20501,12 @@ export const sourceJson__alertNotification = `{
     {
       "id": "kind",
       "kind": "dropdown",
-      "options": ["info", "warn", "error", "success"],
+      "options": [
+        { "value": "info", "label": "情報" },
+        { "value": "warn", "label": "注意" },
+        { "value": "error", "label": "異常" },
+        { "value": "success", "label": "成功" }
+      ],
       "defaultValue": "warn",
       "label": "種類"
     }
@@ -20799,7 +20849,7 @@ export const sourceYaml__buildStatusTrafficLight = `title: "ビルド状態を�
 type: flow
 
 inputs:
-  status: { kind: dropdown, options: ["red", "yellow", "green"], defaultValue: "green", label: "ビルドの状態" }
+  status: { kind: dropdown, options: [{ value: "red", label: "失敗" }, { value: "yellow", label: "実行中" }, { value: "green", label: "成功" }], defaultValue: "green", label: "ビルドの状態" }
 
 readouts:
   tl: { kind: traffic-light, source: "status", viewW: 70, viewH: 180, label: "状態 (3 色の灯り)" }
@@ -20831,6 +20881,130 @@ animation:
 `;
 
 export const sourceJson__buildStatusTrafficLight = `{
+  "title": "ビルド状態を信号機の 3 色で見せる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "status",
+      "kind": "dropdown",
+      "options": [
+        { "value": "red", "label": "失敗" },
+        { "value": "yellow", "label": "実行中" },
+        { "value": "green", "label": "成功" }
+      ],
+      "defaultValue": "green",
+      "label": "ビルドの状態"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "tl",
+      "kind": "traffic-light",
+      "source": "status",
+      "viewW": 70,
+      "viewH": 180,
+      "label": "状態 (3 色の灯り)"
+    }
+  ],
+  "lanes": {
+    "red": { "x": 0, "width": 200 },
+    "yellow": { "x": 240, "width": 200 },
+    "green": { "x": 480, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "redNode",
+      "kind": "card",
+      "lane": "red",
+      "stack": 0,
+      "subtitle": "ビルド失敗 · 要修正",
+      "title": "● 赤"
+    },
+    {
+      "name": "yellowNode",
+      "kind": "card",
+      "lane": "yellow",
+      "stack": 0,
+      "subtitle": "ビルド実行中 · 待機",
+      "title": "● 黄"
+    },
+    {
+      "name": "greenNode",
+      "kind": "card",
+      "lane": "green",
+      "stack": 0,
+      "subtitle": "ビルド成功 · 配備できる",
+      "title": "● 緑"
+    },
+    {
+      "name": "currentCI",
+      "kind": "card",
+      "lane": "green",
+      "stack": 1,
+      "subtitle": "状態: {status}",
+      "title": "◆ いまのビルド"
+    }
+  ],
+  "flow": [],
+  "states": { "status": "green" },
+  "animation": [
+    {
+      "step": "赤を見る",
+      "duration": 1.8,
+      "focus": ["redNode"],
+      "body": "止まっている時に点く色。 3 色のうち 1 つ目で、状態はつまみで選ぶ。"
+    },
+    {
+      "step": "黄を見る",
+      "duration": 1.8,
+      "focus": ["redNode", "yellowNode"],
+      "body": "走っている間の色。 選んだ状態に応じて 1 つだけが点く。"
+    },
+    {
+      "step": "緑を見る",
+      "duration": 1.8,
+      "focus": ["redNode", "yellowNode", "greenNode", "currentCI"],
+      "body": "通った時の色。 3 色で状態を読み分ける形になっている。"
+    }
+  ]
+}`;
+
+export const sourceYaml__pattern__buildStatusTrafficLight__値のまま描く = `title: "ビルド状態を信号機の 3 色で見せる"
+type: flow
+
+inputs:
+  status: { kind: dropdown, options: ["red", "yellow", "green"], defaultValue: "green", label: "ビルドの状態" }
+
+readouts:
+  tl: { kind: traffic-light, source: "status", viewW: 70, viewH: 180, label: "状態 (3 色の灯り)" }
+
+lanes:
+  red: { x: 0, width: 200 }
+  yellow: { x: 240, width: 200 }
+  green: { x: 480, width: 200 }
+
+states:
+  status: "green"
+
+actors:
+  - redNode: { kind: card, lane: red, stack: 0, subtitle: "ビルド失敗 · 要修正", title: "● 赤" }
+  - yellowNode: { kind: card, lane: yellow, stack: 0, subtitle: "ビルド実行中 · 待機", title: "● 黄" }
+  - greenNode: { kind: card, lane: green, stack: 0, subtitle: "ビルド成功 · 配備できる", title: "● 緑" }
+  - currentCI: { kind: card, lane: green, stack: 1, subtitle: "状態: {status}", title: "◆ いまのビルド" }
+
+animation:
+  - step: "赤を見る" 1.8s
+    focus: ["redNode"]
+    description: "止まっている時に点く色。 3 色のうち 1 つ目で、状態はつまみで選ぶ。"
+  - step: "黄を見る" 1.8s
+    focus: ["redNode", "yellowNode"]
+    description: "走っている間の色。 選んだ状態に応じて 1 つだけが点く。"
+  - step: "緑を見る" 1.8s
+    focus: ["redNode", "yellowNode", "greenNode", "currentCI"]
+    description: "通った時の色。 3 色で状態を読み分ける形になっている。"
+`;
+
+export const sourceJson__pattern__buildStatusTrafficLight__値のまま描く = `{
   "title": "ビルド状態を信号機の 3 色で見せる",
   "type": "flow",
   "inputs": [
@@ -21291,7 +21465,7 @@ export const sourceYaml__deploySpinner = `title: "配備状態を実行中 / 完
 type: flow
 
 inputs:
-  status: { kind: dropdown, options: ["running", "done", "error"], defaultValue: "running", label: "状態" }
+  status: { kind: dropdown, options: [{ value: "running", label: "実行中" }, { value: "done", label: "完了" }, { value: "error", label: "失敗" }], defaultValue: "running", label: "状態" }
   msg: { kind: text, defaultValue: "本番用に組み立てています", placeholder: "状態の説明", maxLength: 60, label: "知らせる文" }
 
 readouts:
@@ -21332,7 +21506,11 @@ export const sourceJson__deploySpinner = `{
     {
       "id": "status",
       "kind": "dropdown",
-      "options": ["running", "done", "error"],
+      "options": [
+        { "value": "running", "label": "実行中" },
+        { "value": "done", "label": "完了" },
+        { "value": "error", "label": "失敗" }
+      ],
       "defaultValue": "running",
       "label": "状態"
     },
@@ -22503,7 +22681,7 @@ export const sourceYaml__issuePriorityBadge = `title: "課題の優先度を高 
 type: flow
 
 inputs:
-  prio: { kind: dropdown, options: ["high", "med", "low"], defaultValue: "high", label: "優先度" }
+  prio: { kind: dropdown, options: [{ value: "high", label: "高" }, { value: "med", label: "中" }, { value: "low", label: "低" }], defaultValue: "high", label: "優先度" }
   desc: { kind: text, defaultValue: "起動で落ちる不具合", placeholder: "課題の説明", maxLength: 60, label: "説明" }
 
 readouts:
@@ -22544,7 +22722,11 @@ export const sourceJson__issuePriorityBadge = `{
     {
       "id": "prio",
       "kind": "dropdown",
-      "options": ["high", "med", "low"],
+      "options": [
+        { "value": "high", "label": "高" },
+        { "value": "med", "label": "中" },
+        { "value": "low", "label": "低" }
+      ],
       "defaultValue": "high",
       "label": "優先度"
     },
@@ -27016,7 +27198,7 @@ export const sourceYaml__clickToggle = `title: "クリックが handler を通�
 type: flow
 
 inputs:
-  active: { kind: toggle, defaultValue: false, label: "押した状態" }
+  active: { kind: toggle, defaultValue: false, onLabel: "押した", offLabel: "押していない", label: "押した状態" }
 
 lanes:
   col1: { x: 0, width: 360 }
@@ -27048,6 +27230,109 @@ animation:
 `;
 
 export const sourceJson__clickToggle = `{
+  "title": "クリックが handler を通って状態に届く",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "active",
+      "kind": "toggle",
+      "defaultValue": false,
+      "onLabel": "押した",
+      "offLabel": "押していない",
+      "label": "押した状態"
+    }
+  ],
+  "lanes": {
+    "col1": { "x": 0, "width": 360 },
+    "col2": { "x": 400, "width": 370 }
+  },
+  "actors": [
+    {
+      "name": "ボタン",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "押す先",
+      "posW": 180
+    },
+    {
+      "name": "受け取り手",
+      "kind": "card",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "押した時と触れた時に呼ばれる",
+      "posW": 320
+    },
+    {
+      "name": "値の状態",
+      "kind": "card",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "押した状態 = {active}",
+      "posW": 310
+    }
+  ],
+  "flow": [
+    { "from": "ボタン", "to": "受け取り手", "label": "押す / 触れる", "tone": "info" },
+    { "from": "受け取り手", "to": "値の状態", "label": "切り替え", "tone": "success" }
+  ],
+  "events": [
+    { "on": "click", "box": "ボタン", "handler": "toggle-active" },
+    { "on": "hover", "box": "ボタン", "handler": "hover-state" }
+  ],
+  "animation": [
+    { "step": "押す前", "duration": 1.6, "focus": ["ボタン"], "body": "ボタンだけがある状態。 まだ何も起きていない。" },
+    {
+      "step": "受け取り手を決める",
+      "duration": 1.6,
+      "focus": ["ボタン", "受け取り手"],
+      "body": "押した時に呼ぶ受け取り手を決める。 受け取り手の中身は使う側が渡す。"
+    },
+    {
+      "step": "押すと値が変わる",
+      "duration": 1.6,
+      "focus": ["ボタン", "受け取り手", "値の状態"],
+      "body": "受け取り手が値を書き換える。 左上の箱を実際に押すと下の箱の値が入れ替わり、もう一度押すと戻る。"
+    }
+  ]
+}`;
+
+export const sourceYaml__pattern__clickToggle__値のまま描く = `title: "クリックが handler を通って状態に届く"
+type: flow
+
+inputs:
+  active: { kind: toggle, defaultValue: false, label: "押した状態" }
+
+lanes:
+  col1: { x: 0, width: 360 }
+  col2: { x: 400, width: 370 }
+
+actors:
+  - ボタン: { kind: card, lane: col1, stack: 0, subtitle: "押す先", posW: 180 }
+  - 受け取り手: { kind: card, lane: col2, stack: 0, subtitle: "押した時と触れた時に呼ばれる", posW: 320 }
+  - 値の状態: { kind: card, lane: col1, stack: 1, subtitle: "押した状態 = {active}", posW: 310 }
+
+flow:
+  - ボタン -> 受け取り手: "押す / 触れる" (info)
+  - 受け取り手 -> 値の状態: "切り替え" (success)
+
+events:
+  - { on: click, box: "ボタン", handler: "toggle-active" }
+  - { on: hover, box: "ボタン", handler: "hover-state" }
+
+animation:
+  - step: "押す前" 1.6s
+    focus: ["ボタン"]
+    description: "ボタンだけがある状態。 まだ何も起きていない。"
+  - step: "受け取り手を決める" 1.6s
+    focus: ["ボタン", "受け取り手"]
+    description: "押した時に呼ぶ受け取り手を決める。 受け取り手の中身は使う側が渡す。"
+  - step: "押すと値が変わる" 1.6s
+    focus: ["ボタン", "受け取り手", "値の状態"]
+    description: "受け取り手が値を書き換える。 左上の箱を実際に押すと下の箱の値が入れ替わり、もう一度押すと戻る。"
+`;
+
+export const sourceJson__pattern__clickToggle__値のまま描く = `{
   "title": "クリックが handler を通って状態に届く",
   "type": "flow",
   "inputs": [

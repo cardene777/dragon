@@ -298,8 +298,16 @@ export const FORMS: Section[] = [
         note: "選択肢から 1 つ。 他に radio / tabs (見た目が違うだけ)",
       },
       {
+        code: '  status: { kind: dropdown, options: [{ value: red, label: "失敗" }, green], defaultValue: green }',
+        note: "組は値と見せる名前を分ける。 選択肢と箱の {status} は名前で描き、値は綴りのまま",
+      },
+      {
         code: "  on: { kind: toggle, defaultValue: true }",
         note: "入り切り。 他に color (色) / text (文字) / datetime (日時)",
+      },
+      {
+        code: '  pressed: { kind: toggle, defaultValue: false, onLabel: "押した", offLabel: "押していない" }',
+        note: "箱に差し込む切り替えの値を、真偽の字でなく名前で描く",
       },
       {
         code: "  clock: { kind: timeline, duration: 3000, speeds: [0.5, 1, 2] }",

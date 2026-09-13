@@ -1241,6 +1241,54 @@ function validateViewport(v: unknown, errors: JsonDslError[]): void {
  * 記法は値が全て文字列で届くため読み替えが要るが、JSON は型のまま届く。 ここでは
  * 「知らない種類」 「知らない欄」 「足りない必須の欄」 「欄の型違い」 の 4 つを見る。
  */
+/**
+ * 選択肢の並び (`["green", { "value": "red", "label": "失敗" }]`) を要素ごとに検査する (#1920)。
+ *
+ * 要素は文字列か、`value` と `label` の 2 項目を持つ組。 誤りは要素の場所 (`options[1].label`) で
+ * 返す = 並び全体の型違いとして返すと、どの組のどの項目を直せばよいかが読み手に届かない。
+ */
+function 選択肢の並びを検査する(値: unknown, path: string, errors: JsonDslError[]): void {
+  if (!Array.isArray(値)) {
+    errors.push({
+      path,
+      message: "options must be 選択肢の並び",
+      hint: `got ${値 === null ? "null" : typeof 値}`,
+    });
+    return;
+  }
+  値.forEach((x, i) => {
+    const here = `${path}[${i}]`;
+    if (typeof x === "string") return;
+    if (typeof x !== "object" || x === null || Array.isArray(x)) {
+      errors.push({
+        path: here,
+        message: "option must be a string or { value, label }",
+        hint: `got ${Array.isArray(x) ? "array" : x === null ? "null" : typeof x}`,
+      });
+      return;
+    }
+    const 組 = x as Record<string, unknown>;
+    for (const k of Object.keys(組)) {
+      if (k === "value" || k === "label") continue;
+      errors.push({ path: `${here}.${k}`, message: `unknown key "${k}"`, hint: "使える項目 = value, label" });
+    }
+    for (const k of ["value", "label"] as const) {
+      const v = 組[k];
+      if (v === undefined) {
+        errors.push({ path: `${here}.${k}`, message: `${k} is required`, hint: "必須の項目 = value, label" });
+      } else if (typeof v !== "string") {
+        errors.push({ path: `${here}.${k}`, message: `${k} must be 文字列`, hint: `got ${v === null ? "null" : typeof v}` });
+      } else if (v === "") {
+        errors.push({
+          path: `${here}.${k}`,
+          message: `${k} must not be empty`,
+          hint: k === "label" ? "名前を書かないなら文字列だけを並べる" : "値を 1 文字以上書く",
+        });
+      }
+    }
+  });
+}
+
 function 表で中身を検査する(
   o: Record<string, unknown>,
   表: Record<string, 図形の定義>,
@@ -1272,6 +1320,10 @@ function 表で中身を検査する(
         message: `unknown key "${欄}"`,
         hint: `使える項目 = ${Object.keys(定義.欄).join(", ")}`,
       });
+      continue;
+    }
+    if (形 === "選択肢の並び") {
+      選択肢の並びを検査する(値, `${path}.${欄}`, errors);
       continue;
     }
     const 型が合う =
