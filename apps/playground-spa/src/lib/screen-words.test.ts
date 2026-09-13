@@ -18,7 +18,7 @@
  * 見た目の札を外し、材料は引用符の中身だけを見る。 組み立ての形が違うので検査ごとに持つ。
  */
 import { describe, it, expect } from "vitest";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -454,17 +454,42 @@ function 画面のfile(): string[] {
   );
 }
 
+/**
+ * 見本の名前を定義する file (#1927)。
+ *
+ * この file を走査すると名前の字を拾うが、名前は `見本の名前()` が全件足すので、
+ * **走査で拾った分から名前を差し引く**。 差し引かないと日本語を含む名前 430 件が 2 回ずつ入り、
+ * 字の件数と延べを数えるカタカナ語の天井が実数より多く出る (延べ 820 のうち 317 回が重なりだった)。
+ *
+ * 鍵は file 名だけ (`外す材料` と同じ形) = 植え込み対照が一時 dir に同じ名前の file を置いて、
+ * 本番と同じ差し引き方を通すため。
+ */
+const 見本の名前のfile = "i18n.ts";
+
 function 画面に出る字たち(files: string[] = 画面のfile()): {
   字: string[];
   走査: number;
   除外: string[];
 } {
   const 字: string[] = [];
+  // 名前ごとの残り件数。 **件数で差し引く** = 同じ字の名前が 2 件あれば 2 回まで差し引き、
+  // 名前ではない同じ字が file に余分にあればそちらは残す
+  const 差し引く名前 = new Map<string, number>();
+  for (const n of 見本の名前()) 差し引く名前.set(n, (差し引く名前.get(n) ?? 0) + 1);
   for (const f of files) {
+    const 名前のfile = f.slice(f.lastIndexOf("/") + 1) === 見本の名前のfile;
+    const 拾う = (t: string): void => {
+      const 残り = 名前のfile ? (差し引く名前.get(t) ?? 0) : 0;
+      if (残り > 0) {
+        差し引く名前.set(t, 残り - 1);
+        return;
+      }
+      字.push(t);
+    };
     const s = コメントと見本を外す(readFileSync(f, "utf8"));
-    for (const m of s.matchAll(/"([^"\\\n]*)"|`([^`\\\n]*)`/g)) 字.push((m[1] ?? m[2]!).trim());
+    for (const m of s.matchAll(/"([^"\\\n]*)"|`([^`\\\n]*)`/g)) 拾う((m[1] ?? m[2]!).trim());
     for (const m of s.matchAll(要素の中身)) {
-      for (const 片 of m[1]!.split(差し込み)) 字.push(片.trim());
+      for (const 片 of m[1]!.split(差し込み)) 拾う(片.trim());
     }
   }
   return {
@@ -483,8 +508,11 @@ function 画面に出る字たち(files: string[] = 画面のfile()): {
  *
  * **減った時も落とす** = 下回ったまま通すと、#1854 で一度開いた分がまた増えても
  * 気付けない。 落ちた時の文で下げる先の数を出す。
+ *
+ * **#1927 で下がった** (字 710 → 430、延べ 820 → 503)。 見本の名前を 2 度数えていたのを
+ * 1 回にしただけで、開いた語は無い (語の種類は 251 のまま)。
  */
-const カタカナの天井 = { 字: 710, 語: 251, 延べ: 820 };
+const カタカナの天井 = { 字: 430, 語: 251, 延べ: 503 };
 
 /**
  * 画面の字のカタカナ語を数える (#1855)。
@@ -1576,6 +1604,55 @@ describe("画面の字に残るカタカナ語の歯止め (#1855)", () => {
         戻した.延べ,
         `${d} を母集団へ戻してもカタカナが 1 語も増えない (天井が外した先を数えていない)`,
       ).toBeGreaterThan(素.延べ);
+    }
+  });
+
+  it("見本の名前を 1 回だけ数える (#1927)", () => {
+    // `lib/i18n.ts` を走査に入れても外しても、名前の字の出現回数が変わらない =
+    // 名前は `見本の名前()` の 1 回分だけが入っている
+    const 全file = 画面のfile();
+    const 名前を持たない = 全file.filter((f) => f.slice(f.lastIndexOf("/") + 1) !== 見本の名前のfile);
+    expect(全file.length - 名前を持たない.length, `${見本の名前のfile} を走査していない (検査が空振りしている)`).toBe(1);
+    const 数える = (字: string[]): Map<string, number> => {
+      const m = new Map<string, number>();
+      for (const t of 字) m.set(t, (m.get(t) ?? 0) + 1);
+      return m;
+    };
+    const 入れた = 数える(画面に出る字たち(全file).字);
+    const 外した = 数える(画面に出る字たち(名前を持たない).字);
+    const 名前 = [...new Set(見本の名前().filter((n) => 日本語の字.test(n)))];
+    console.log(`[見本の名前の重なり] 日本語を含む名前=${名前.length} 種`);
+    expect(名前.length, "日本語を含む名前を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(400);
+    const ずれ = 名前
+      .filter((n) => 入れた.get(n) !== 外した.get(n))
+      .map((n) => `${n}: ${見本の名前のfile} を入れると ${入れた.get(n)} 回 / 外すと ${外した.get(n)} 回`);
+    expect(ずれ, "見本の名前を 2 度数えている").toEqual([]);
+  });
+
+  it("名前を差し引くのは名前の file の中の、名前の件数分だけ (植え込み対照 + 対象外の対照)", () => {
+    const 置き場 = mkdtempSync(join(tmpdir(), "item-names-"));
+    try {
+      const 名 = 見本の名前().find((n) => 日本語の字.test(n) && !n.includes('"'))!;
+      const 件数 = 見本の名前().filter((n) => n === 名).length;
+      const 回数 = (files: string[]): number => 画面に出る字たち(files).字.filter((t) => t === 名).length;
+      const 書く = (dir: string, file: string, 中身: string): string[] => {
+        const d = join(置き場, dir);
+        mkdirSync(d, { recursive: true });
+        const p = join(d, file);
+        writeFileSync(p, 中身);
+        return [p];
+      };
+      // 名前の file に 1 回だけ書いた字は、`見本の名前()` の分と重なるので差し引く
+      expect(回数(書く("a", 見本の名前のfile, `const a = "${名}";`)), "名前の file の名前を差し引いていない").toBe(件数);
+      // 名前の件数を超えて同じ字を書いた分は、名前ではない字として残す
+      expect(
+        回数(書く("b", 見本の名前のfile, `const a = "${名}";\nconst b = "${名}";`)),
+        "名前の件数を超えて差し引いている",
+      ).toBe(件数 + 1);
+      // 名前の file ではない画面に同じ字があれば、そちらは画面の字として残す
+      expect(回数(書く("c", "Page.tsx", `const a = "${名}";`)), "名前の file の外まで差し引いている").toBe(件数 + 1);
+    } finally {
+      rmSync(置き場, { recursive: true, force: true });
     }
   });
 
