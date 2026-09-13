@@ -658,6 +658,8 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
     expect(残る英単語("同一 node fan の out edge Y を記法で揃える")).toEqual(["node", "fan", "out", "edge"]);
     // 1 字の語は咎めない (`Y` は図の軸の名前で、訳す先が無い)
     expect(残る英単語("同一 node fan の out edge Y を記法で揃える")).not.toContain("Y");
+    // object が元から持つ名前も咎める (一覧を `in` で照らすと、一覧に載っている扱いになって通っていた、#1922)
+    expect(残る英単語("constructor と toString を呼ぶ")).toEqual(["constructor", "toString"]);
   });
 
   it("残してよい語を咎めない (対象外の対照)", () => {
@@ -1299,7 +1301,7 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
     const 二重 = 語.filter((w) => new RegExp(`^\\s+${w}:`, "m").test(中身));
     expect(二重, `残してよい語に literal で書き戻している: ${二重.join(", ")}`).toEqual([]);
     // 収容対照 = 表から組み立てた 16 語が、実際に一覧へ入っていること
-    const 入っていない = 語.filter((w) => !(w in 残してよい語));
+    const 入っていない = 語.filter((w) => !Object.hasOwn(残してよい語, w));
     expect(入っていない, `表にあるが一覧に入っていない: ${入っていない.join(", ")}`).toEqual([]);
   });
 
@@ -1318,7 +1320,7 @@ describe("画面の字の英語を見る判定 (#1817)", () => {
     expect(色.length, "記法が色を 1 つも配っていない (検査が空振りしている)").toBeGreaterThan(3);
     expect(別名あり.length, "日本語の別名を持つ色が 1 つも無い (導き方が壊れている)").toBeGreaterThan(3);
     // 収容対照 = 導いた色が実際に一覧へ入っている
-    const 入っていない = 別名なし.filter((c) => !(c in 残してよい語));
+    const 入っていない = 別名なし.filter((c) => !Object.hasOwn(残してよい語, c));
     expect(入っていない, `導いたが一覧に入っていない: ${入っていない.join(", ")}`).toEqual([]);
     // 対象外の対照 = 日本語の別名を持つ色は導かれない
     const 混入 = 別名あり.filter((c) => 別名なし.includes(c));

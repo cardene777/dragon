@@ -448,6 +448,19 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
       { re: /中ほど/, want: "middle" },
       { re: /最も(少な|小さ|低|寒)/, want: "min" },
     ] as const;
+    /**
+     * 題に行の文字列を書かない箱と、対応する行の鍵 (#1922)。
+     *
+     * 共有ボタンの行の鍵 (`tw` など) は描画側が色と印を選ぶ綴りで、読み手に見せる字ではない。 題に括弧で
+     * 残すと画面に英語が出るので、題は呼び名だけにして対応をここに書く。 宣言した箱は **行の先頭の鍵だけ**
+     * で対応を取り、題では探さない (呼び名が別の行の字に部分一致して吸われないように)。
+     */
+    const 題と行の対応: Record<string, string> = {
+      "socialShareButtons/twCard": "tw",
+      "socialShareButtons/fbCard": "fb",
+      "socialShareButtons/liCard": "li",
+      "socialShareButtons/rdCard": "rd",
+    };
     const bad: string[] = [];
     // 題に対応する行が 1 度も見つからない箱 (綴り違い) を、段ごとの判定とは別に拾う
     const everMatched = new Map<string, boolean>();
@@ -491,8 +504,10 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
             // **最も長く一致した行を選ぶ**。 最初に一致した行を取ると、複数の行が共有する
             // 短い文字 (天気の `☀` 等) で別の行に吸われる (実測 = 題 `☀ Fri` が `Mon` の行に一致した)
             const title = n.title.toLowerCase();
+            const 宣言した鍵 = Object.hasOwn(題と行の対応, `${k}/${n.id}`) ? 題と行の対応[`${k}/${n.id}`] : undefined;
             const score = (r: unknown): number => {
               if (!Array.isArray(r)) return 0;
+              if (宣言した鍵 !== undefined) return r[0] === 宣言した鍵 ? 宣言した鍵.length : 0;
               let best = 0;
               for (const v of r) {
                 if (typeof v !== "string" || v.length === 0) continue;
@@ -532,6 +547,10 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
     }
     for (const [key, hit] of everMatched) {
       if (!hit) bad.push(`${key}: 題に対応する行がどの段にも無い`);
+    }
+    // 宣言した箱が順位を語る箱として見つからないなら、宣言が残骸になっている (箱の id を変えた / 副題を変えた)
+    for (const key of Object.keys(題と行の対応)) {
+      if (!everMatched.has(key)) bad.push(`${key}: 題と行の対応を宣言したが、順位を語る箱として見つからない`);
     }
     expect(bad, `順位の説明が値と合わない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
   });

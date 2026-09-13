@@ -354,11 +354,17 @@ export function 番号を落とす(語: string): string {
  *
  * 日本語を含むかどうかは見ない = 呼ぶ側が「画面に出る字」 を決めてから渡す
  * (英語だけの札を咎める検査もこの関数を使う)。
+ *
+ * 一覧は自前の鍵で照らす。 `in` で照らすと `constructor` / `toString` のような object が元から持つ名前まで
+ * 一覧に載っている扱いになり、画面に出ても咎めない (#1922)。
  */
 export function 残る英単語(字: string): string[] {
   const 素 = 字.replace(file名, " ").replace(斜線を含む名, " ").replace(版の番号, " ");
   return [...new Set(素.match(英単語) ?? [])].filter(
-    (w) => w.length >= 2 && !(w in 残してよい語) && !(番号を落とす(w) in 残してよい語),
+    (w) =>
+      w.length >= 2 &&
+      !Object.hasOwn(残してよい語, w) &&
+      !Object.hasOwn(残してよい語, 番号を落とす(w)),
   );
 }
 
