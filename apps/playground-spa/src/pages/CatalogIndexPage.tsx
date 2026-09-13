@@ -22,15 +22,15 @@ export function CatalogIndexPage(): React.ReactElement {
       <SiteHeader />
       <div className="catalog-page">
         <div className="catalog-hero">
-          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="catalog-crumb">
+          <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="catalog-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
-            <span className="cur">カタログ</span>
+            <span className="cur">見本帳</span>
           </nav>
-          <h1 className="catalog-title">カタログ</h1>
+          <h1 className="catalog-title">見本帳</h1>
           <p className="catalog-desc">
-            dragon のテキスト記法の各要素を {CATEGORIES.length} カテゴリで整理。 各カテゴリのページで検索 + プレビュー + エディタで開く操作ができる。
-            合計 {totalItems} 件の要素 + {CATEGORIES.length} カテゴリ。
+            dragon のテキスト記法の各要素を {CATEGORIES.length} の分類で整理。 各分類のページで検索 + 図の表示 + 編集画面で開く操作ができる。
+            合計 {totalItems} 件の要素 + {CATEGORIES.length} 分類。
           </p>
         </div>
 

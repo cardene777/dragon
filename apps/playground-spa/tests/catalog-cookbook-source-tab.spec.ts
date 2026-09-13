@@ -63,10 +63,10 @@ test.describe("手引きの見本で記法が読める (#1378)", () => {
     }
   });
 
-  test("エディタで開くが押せる", async ({ page }) => {
+  test("編集画面で開くが押せる", async ({ page }) => {
     await 開く(page, "api-call");
-    const 開くリンク = page.getByRole("link", { name: /エディタで開く/ });
-    await expect(開くリンク, "エディタで開くが出ていない").toBeVisible();
+    const 開くリンク = page.getByRole("link", { name: /編集画面で開く/ });
+    await expect(開くリンク, "編集画面で開くが出ていない").toBeVisible();
     const href = await 開くリンク.getAttribute("href");
     expect(href ?? "", "エディタへ渡す中身が空").toContain("#");
   });

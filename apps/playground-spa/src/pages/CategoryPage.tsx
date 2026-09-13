@@ -450,7 +450,7 @@ export function CategoryPage(): React.ReactElement {
       <div>
         <SiteHeader />
         <div className="flex min-h-[calc(100vh-60px)] items-center justify-center">
-          <p className="text-[15px] text-[var(--d-text-secondary)]">カテゴリが見つかりません</p>
+          <p className="text-[15px] text-[var(--d-text-secondary)]">分類が見つかりません</p>
         </div>
       </div>
     );
@@ -466,12 +466,12 @@ export function CategoryPage(): React.ReactElement {
         {/* breadcrumb + hero (簡潔) */}
         <div className="catalog-hero">
           <nav
-            aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"}
+            aria-label={locale === "ja" ? "道筋" : "Breadcrumb"}
             className="catalog-crumb"
           >
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
-            <Link to="/catalog">カタログ</Link>
+            <Link to="/catalog">見本帳</Link>
             <span aria-hidden="true">›</span>
             <span className="cur">{jaLabel}</span>
           </nav>
@@ -505,7 +505,7 @@ export function CategoryPage(): React.ReactElement {
                   type="button"
                   className="catalog-search-clear"
                   onClick={() => setQuery("")}
-                  aria-label="検索をクリア"
+                  aria-label="検索語を消す"
                 >
                   <X size={12} />
                 </button>
@@ -541,7 +541,7 @@ export function CategoryPage(): React.ReactElement {
             </div>
           </aside>
 
-          <main className="catalog-preview" aria-label="プレビュー">
+          <main className="catalog-preview" aria-label="図の表示">
             {currentItem ? (
               <article className="catalog-preview-card">
                 <header className="catalog-preview-head">
@@ -826,7 +826,7 @@ export function CategoryPage(): React.ReactElement {
                       interactiveHandlers={CATALOG_HANDLERS}
                     />
                   </InViewMount>
-                  {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
+                  {/* 設計 (`03 見本帳の分類`) は札を右上に描いている (#1239) */}
                   <PhaseChrome
                     stage={stageEl}
                     phases={(図 ?? 見本?.diagram ?? currentItem.diagram).phases}
@@ -847,7 +847,7 @@ export function CategoryPage(): React.ReactElement {
                       to={`/editor${catalogEditorHash(見本 ?? currentItem)}`}
                       className="catalog-preview-link"
                     >
-                      エディタで開く →
+                      編集画面で開く →
                     </Link>
                   ) : (
                     <span className="catalog-preview-note" aria-disabled="true">

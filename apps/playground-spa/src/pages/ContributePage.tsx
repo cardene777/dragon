@@ -56,7 +56,7 @@ export function ContributePage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
+          <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
             <span className="cur">参加方法</span>
@@ -101,7 +101,7 @@ export function ContributePage(): React.ReactElement {
               <header className="nm-preset-card-head">
                 <div className="nm-preset-id">1. 不具合</div>
                 <span className="nm-preset-eyebrow">見つけたら伝える</span>
-                <h3 className="nm-preset-title">バグ報告</h3>
+                <h3 className="nm-preset-title">不具合の報告</h3>
                 <p className="nm-preset-subtitle">
                   再現の手順・期待した動き・実際に起きたことの 3 つを、GitHub の Issue (不具合の型) で起票する。 いちばん短い再現用のコードが付いていれば、直す側はすぐ動ける。
                 </p>
@@ -117,7 +117,7 @@ export function ContributePage(): React.ReactElement {
                   rel="noopener noreferrer"
                   className="nm-preset-docs"
                 >
-                  <span>バグを起票</span>
+                  <span>不具合を起票</span>
                   <span className="nm-preset-docs-arrow" aria-hidden="true">↗</span>
                 </a>
               </footer>

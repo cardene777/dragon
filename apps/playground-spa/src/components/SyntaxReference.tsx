@@ -49,7 +49,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
               key={l.code}
               type="button"
               className="v4-editor-syntax-row"
-              title={onInsert ? "クリックで入力欄の末尾に足す" : undefined}
+              title={onInsert ? "押すと入力欄の末尾に足す" : undefined}
               onClick={onInsert ? () => onInsert(l.code) : undefined}
               data-syntax-code={l.code}
             >

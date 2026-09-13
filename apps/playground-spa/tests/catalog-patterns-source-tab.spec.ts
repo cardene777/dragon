@@ -2,7 +2,7 @@
  * 構成の見本のページでコードのタブが押せることの検査 (#1371)。
  *
  * このページの 12 件は組み立て API だけで書かれていて、記法が画面に出ていなかった =
- * 「コード」 のタブが押せず「エディタで開く」 も出なかった。
+ * 「コード」 のタブが押せず「編集画面で開く」 も出なかった。
  *
  * 記法と組み立て API が同じ図になることは `src/lib/catalog-source-parity.test.tsx` が見る。
  * ここでは **画面から読めるか** を見る。
@@ -74,11 +74,11 @@ test.describe("構成の見本で記法が読める (#1371)", () => {
     }
   });
 
-  test("エディタで開くが押せる", async ({ page }) => {
+  test("編集画面で開くが押せる", async ({ page }) => {
     // 記法があると図をエディタへ渡せる。 記法を足した目的の 1 つがこれ
     await 開く(page, "pattern-fan-out");
-    const 開くリンク = page.getByRole("link", { name: /エディタで開く/ });
-    await expect(開くリンク, "エディタで開くが出ていない").toBeVisible();
+    const 開くリンク = page.getByRole("link", { name: /編集画面で開く/ });
+    await expect(開くリンク, "編集画面で開くが出ていない").toBeVisible();
     const href = await 開くリンク.getAttribute("href");
     expect(href ?? "", "エディタへ渡す中身が空").toContain("#");
   });

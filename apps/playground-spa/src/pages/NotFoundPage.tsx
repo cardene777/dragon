@@ -39,13 +39,13 @@ export function NotFoundPage(): React.ReactElement {
         </p>
         <div className="v4-404-cta">
           <Link to="/editor" className="v4-btn-primary">
-            {isJa ? "エディタを開く →" : "open editor →"}
+            {isJa ? "編集画面を開く →" : "open editor →"}
           </Link>
           <Link to="/catalog" className="v4-btn-secondary">
-            {isJa ? "カタログを見る" : "browse catalog"}
+            {isJa ? "見本帳を見る" : "browse catalog"}
           </Link>
           <Link to="/docs" className="v4-btn-secondary">
-            {isJa ? "ドキュメントを読む" : "read docs"}
+            {isJa ? "使い方を読む" : "read docs"}
           </Link>
         </div>
         <p className="v4-404-path">{location.pathname}</p>

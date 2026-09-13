@@ -10,10 +10,10 @@ import { useToast } from "@/components/Toast";
  * 明暗は html 要素の dark class 1 本で切替わり、 その値は localStorage に残る。
  */
 const LINKS: Array<{ to: string; ja: string; en: string }> = [
-  { to: "/", ja: "トップ", en: "home" },
-  { to: "/catalog", ja: "カタログ", en: "catalog" },
-  { to: "/editor", ja: "エディタ", en: "editor" },
-  { to: "/docs", ja: "ドキュメント", en: "docs" },
+  { to: "/", ja: "概要", en: "home" },
+  { to: "/catalog", ja: "見本帳", en: "catalog" },
+  { to: "/editor", ja: "編集画面", en: "editor" },
+  { to: "/docs", ja: "使い方", en: "docs" },
   { to: "/release-notes", ja: "更新履歴", en: "releases" },
 ];
 
@@ -81,7 +81,7 @@ export function SiteHeader(): React.ReactElement {
     }
   };
 
-  const openEditorLabel = locale === "ja" ? "エディタを開く →" : "open editor →";
+  const openEditorLabel = locale === "ja" ? "編集画面を開く →" : "open editor →";
   const shareLabel = locale === "ja" ? "この画面を共有" : "Share this page";
   const themeLabel =
     locale === "ja"
@@ -106,7 +106,7 @@ export function SiteHeader(): React.ReactElement {
           <span className="v4-nav-sub">— animated diagram dsl</span>
         </div>
       </Link>
-      <nav className="v4-nav-links" aria-label={locale === "ja" ? "メインナビゲーション" : "Main navigation"}>
+      <nav className="v4-nav-links" aria-label={locale === "ja" ? "行き先" : "Main navigation"}>
         {LINKS.map((link) => {
           const active =
             link.to === "/"

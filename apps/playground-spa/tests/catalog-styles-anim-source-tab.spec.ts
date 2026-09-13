@@ -78,7 +78,8 @@ test.describe("動きの見本で記法が読める (#1373 / #1374)", () => {
     await page.waitForTimeout(300);
 
     const yaml = await page.locator(".catalog-source-code").first().innerText();
-    expect(yaml, "文字列の状態が出ていない").toContain('status: "idle"');
+    // 見本の状態の値は #1881 で日本語にした (`idle` → `待機`)
+    expect(yaml, "文字列の状態が出ていない").toContain('status: "待機"');
     expect(yaml, "即時切替が出ていない").toContain("set:");
   });
 

@@ -2,7 +2,7 @@
  * 基本パーツの見本でコードのタブが押せることの検査 (#1376)。
  *
  * このページは 110 件あり、記法を持つのは 30 件だけだった。 残る 80 件はコードのタブが
- * 押せず、「エディタで開く」 も出なかった。
+ * 押せず、「編集画面で開く」 も出なかった。
  *
  * **先にあった 30 件も図とずれていた**。 縦列の幅と見出し、箱の上の小見出し、段の札が
  * 落ちていて、コードのタブに別の図になる記法が出ていた。 110 件とも出し直した。
@@ -55,8 +55,9 @@ test.describe("基本パーツの見本で記法が読める (#1376)", () => {
     await page.waitForTimeout(300);
 
     const yaml = await page.locator(".catalog-source-code").first().innerText();
-    expect(yaml, "箱の上の小見出しが落ちている").toContain('eyebrow: "wallet"');
-    expect(yaml, "段の札が落ちている").toContain('badge: "wallet"');
+    // 見本の仮置きの字は #1894 で日本語にした (`wallet` → `財布`)
+    expect(yaml, "箱の上の小見出しが落ちている").toContain('eyebrow: "財布"');
+    expect(yaml, "段の札が落ちている").toContain('badge: "財布"');
     expect(yaml, "縦列の幅が書かれていない").toContain("width: 440");
   });
 

@@ -114,10 +114,10 @@ export function PresetDetailPage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label={locale === "ja" ? "パンくずリスト" : "Breadcrumb"} className="nm-crumb">
+          <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
-            <Link to="/catalog">カタログ</Link>
+            <Link to="/catalog">見本帳</Link>
             <span aria-hidden="true">›</span>
             <Link to="/catalog/presets">{分類の呼び名}</Link>
             <span aria-hidden="true">›</span>
@@ -135,7 +135,7 @@ export function PresetDetailPage(): React.ReactElement {
           <p className="nm-hero-motion">{motionNote(preset.diagram)}</p>
           <div className="nm-hero-actions">
             <Link to={`/editor#preset=${preset.slug}`} className="nm-hero-btn nm-hero-btn-primary">
-              <span>エディタで開く</span>
+              <span>編集画面で開く</span>
               <span className="nm-hero-btn-arrow" aria-hidden="true">
                 <ExternalLink size={14} />
               </span>
