@@ -28,9 +28,12 @@ export type LintIssue = {
   severity: LintSeverity;
   /** 該当対象 (node id / edge id / diagram id) */
   target: string;
-  /** 人間向けメッセージ */
+  /**
+   * 書き手向けの指摘の文。 書き手が打ち込む識別子と書き手の値は `` ` `` で囲み、 残りは日本語で書く
+   * (画面側の `lint-message-words.test.ts` が全規則の文を判定に通す)
+   */
   message: string;
-  /** 修正案 (自動修正可能なら適用後の値、 手動修正必要なら null) */
+  /** 修正案。 自動修正できる指摘は自動修正が書く値そのもの、 できない指摘は直し方の文 */
   suggestion?: string;
   /** autoFix() が本 issue を自動解消できるか */
   autoFixable: boolean;
@@ -43,11 +46,21 @@ export type LintReport = {
   autoFixableCount: number;
 };
 
+/**
+ * 図の説明に入り込んだ実装の書き方と、 読む人に何が伝わらないか。
+ *
+ * 文は理由だけを持ち、 直し方の例を書かない。 直し方は修正案 (`suggestion`) が自動修正の
+ * 出力から作る。 例を字で書くと、 自動修正の出力を変えた日に例だけが古い文型で残る
+ * (実測 = #1934 で出力を変えた後も `「〜 を示す図」 のように` が残っていた、 #1940)。
+ */
 const REDUNDANT_TOPIC_PATTERNS: Array<{ pattern: RegExp; hint: string }> = [
-  { pattern: /\bpreset\s*\(/i, hint: "「〜 preset (詳細)」 は実装表現、 「〜 を示す図」 のように読者向け説明に" },
-  { pattern: /render\s*未実装/, hint: "「render 未実装」 は開発者向け内部メモ、 catalog 表示では省く" },
-  { pattern: /SVG\s+(polyline|arc|rect|path)/i, hint: "「SVG polyline / arc / rect / path」 は実装詳細、 「〜 を示す図」 に置換" },
-  { pattern: /\bpolygon\b/i, hint: "「polygon」 は実装用語、 図の意味を説明する自然文に置換" },
+  { pattern: /\bpreset\s*\(/i, hint: "`preset (…)` は作り手の書き方で、 読む人には何を示す図かが伝わらない" },
+  { pattern: /render\s*未実装/, hint: "`render 未実装` は作り手向けの控えで、 カタログに出す説明には要らない" },
+  {
+    pattern: /SVG\s+(polyline|arc|rect|path)/i,
+    hint: "`SVG` の描き方の名前 (`polyline` / `arc` / `rect` / `path`) は実装の詳細で、 何を示す図かが伝わらない",
+  },
+  { pattern: /\bpolygon\b/i, hint: "`polygon` は実装の言葉で、 何を示す図かが伝わらない" },
 ];
 
 /**
@@ -146,21 +159,31 @@ function applyTopicAutoFix(topic: string): string {
   return out;
 }
 
+/**
+ * 図の説明に実装の書き方が入っていないかを見る。
+ *
+ * **自動修正で消えるかは、 直した後の説明にもう 1 度当てて決める** (#1940)。 自動修正が消すのは
+ * 先頭の型の名前と、 括弧の中の実装の言葉だけで、 括弧の外の `SVG polyline を使う` は字が変わらない。
+ * 当てずに「直せる」 と返すと、 道具が直せる数に入れ、 直したはずの指摘が次の検査でまた出る。
+ *
+ * 修正案は、 直せる時は自動修正が書く値そのもの (`LintIssue.suggestion` の約束)、 直せない時は
+ * 直し方の文にする。 文の例は書き換え先の表から作り、 字で書かない。
+ */
 function ruleTopicRedundancy(d: CdlDiagram): LintIssue[] {
-  const out: LintIssue[] = [];
-  for (const { pattern, hint } of REDUNDANT_TOPIC_PATTERNS) {
-    if (pattern.test(d.topic)) {
-      out.push({
-        rule: "topic-redundant-implementation-detail",
-        severity: "warn",
-        target: d.id,
-        message: `topic に実装詳細が含まれる: "${d.topic}"`,
-        suggestion: hint,
-        autoFixable: true,
-      });
-    }
-  }
-  return out;
+  const 当たる = REDUNDANT_TOPIC_PATTERNS.filter(({ pattern }) => pattern.test(d.topic));
+  if (当たる.length === 0) return [];
+  const 直した後 = applyTopicAutoFix(d.topic);
+  const 直せる = !REDUNDANT_TOPIC_PATTERNS.some(({ pattern }) => pattern.test(直した後));
+  const 例 = KIND_TO_JA.gantt!;
+  const 手で直す = `何を示す図かを文で書き直す (「${例.shows}を示す${例.name}」 のように)`;
+  return 当たる.map(({ hint }) => ({
+    rule: "topic-redundant-implementation-detail",
+    severity: "warn",
+    target: d.id,
+    message: `図の説明 \`${d.topic}\` に実装の書き方が入っている。 ${hint}`,
+    suggestion: 直せる ? 直した後 : 手で直す,
+    autoFixable: 直せる,
+  }));
 }
 
 function ruleEmptyChartData(d: CdlDiagram): LintIssue[] {
@@ -173,8 +196,8 @@ function ruleEmptyChartData(d: CdlDiagram): LintIssue[] {
           rule: "chart-empty-datum",
           severity: "warn",
           target: n.id,
-          message: `chart node "${n.id}" が datum 0 件、 chart は非表示になる`,
-          suggestion: `.datum({ id: ..., label: ..., value: ... }) を 1 件以上追加`,
+          message: `図表 \`${n.id}\` に値 (\`datum\`) が 1 件も無く、 図表が描かれない`,
+          suggestion: `\`.datum({ id, label, value })\` で値を 1 件以上足す`,
           autoFixable: false,
         });
       }
@@ -183,8 +206,8 @@ function ruleEmptyChartData(d: CdlDiagram): LintIssue[] {
           rule: "chart-single-datum",
           severity: "info",
           target: n.id,
-          message: `chart node "${n.id}" が datum 1 件、 比較 / 推移として意味が薄い`,
-          suggestion: `2 件以上の datum を推奨 (line 系は 3 件以上で trend が見える)`,
+          message: `図表 \`${n.id}\` の値 (\`datum\`) が 1 件だけで、 比べることも移り変わりを追うこともできない`,
+          suggestion: `値を 2 件以上にする (折れ線グラフは 3 件以上で傾きが読める)`,
           autoFixable: false,
         });
       }
@@ -205,8 +228,8 @@ function ruleGanttUnknownDependsOn(d: CdlDiagram): LintIssue[] {
             rule: "gantt-unknown-depends-on",
             severity: "warn",
             target: t.id,
-            message: `task "${t.id}" が未定義 task "${t.dependsOn}" に dependsOn 参照`,
-            suggestion: `参照先 id を修正 or dependsOn を除去`,
+            message: `作業 \`${t.id}\` の \`dependsOn\` が、 無い作業 \`${t.dependsOn}\` を指している`,
+            suggestion: `\`dependsOn\` を既にある作業の \`id\` に直すか、 \`dependsOn\` を外す`,
             autoFixable: false,
           });
         }
@@ -240,8 +263,8 @@ function ruleMindMapParentReference(d: CdlDiagram): LintIssue[] {
             rule: "mindmap-unknown-parent",
             severity: "warn",
             target: b.id,
-            message: `branch "${b.id}" が未定義 parent "${b.parent}" を参照`,
-            suggestion: `parent を rootId ("${n.mindData.rootId}") または既存 branch id に修正`,
+            message: `枝 \`${b.id}\` の \`parent\` が、 無い枝 \`${b.parent}\` を指している`,
+            suggestion: `\`parent\` を中心 (\`${n.mindData.rootId}\`) か、 既にある枝の \`id\` に直す`,
             autoFixable: false,
           });
         }
@@ -262,8 +285,8 @@ function ruleTreeParentReference(d: CdlDiagram): LintIssue[] {
             rule: "tree-unknown-parent",
             severity: "warn",
             target: t.id,
-            message: `tree node "${t.id}" が未定義 parent "${t.parent}" を参照`,
-            suggestion: `parent id を既存 tree node に修正 or parent 除去 (root にする)`,
+            message: `階層図の項目 \`${t.id}\` の \`parent\` が、 無い項目 \`${t.parent}\` を指している`,
+            suggestion: `\`parent\` を既にある項目の \`id\` に直すか、 \`parent\` を外して一番上の項目にする`,
             autoFixable: false,
           });
         }
@@ -283,8 +306,8 @@ function ruleQuadrantMissingItems(d: CdlDiagram): LintIssue[] {
           rule: "quadrant-empty",
           severity: "warn",
           target: n.id,
-          message: `quadrant "${n.id}" が item 0 件、 軸のみ表示される`,
-          suggestion: `.item({ id: ..., title: ..., quadrant: "topLeft" | ... }) を 1 件以上追加`,
+          message: `四象限図 \`${n.id}\` に項目 (\`item\`) が 1 件も無く、 軸だけが描かれる`,
+          suggestion: `\`.item({ id, title, quadrant })\` で項目を 1 件以上足す (\`quadrant\` は \`topLeft\` などの 4 区画から選ぶ)`,
           autoFixable: false,
         });
       }
@@ -294,8 +317,8 @@ function ruleQuadrantMissingItems(d: CdlDiagram): LintIssue[] {
           rule: "quadrant-single-quadrant",
           severity: "info",
           target: n.id,
-          message: `quadrant "${n.id}" の item が 1 象限に集中、 マトリクスの意味が薄い`,
-          suggestion: `2 象限以上に item を分散 (SWOT / Priority matrix 等は 4 象限 balanced を推奨)`,
+          message: `四象限図 \`${n.id}\` の項目がすべて 1 つの区画に集まり、 4 つに分けた意味が薄い`,
+          suggestion: `項目を 2 つ以上の区画に分ける。 強みと弱みを並べる分析 (\`SWOT\`) や優先度を決める図は、 4 つの区画に散らして使う`,
           autoFixable: false,
         });
       }
@@ -305,7 +328,7 @@ function ruleQuadrantMissingItems(d: CdlDiagram): LintIssue[] {
 }
 
 /**
- * 段の人数が減っていくことを見る。
+ * 段階の人数が減っていくことを見る。
  *
  * 人数の欄は `{名前}` を書ける (状態から取る形、 cdl の `render/payload-binding.ts` が解く)。
  * その場合ここでは値が決まらないので、**数どうしの組だけを比べる** (#1194)。
@@ -327,8 +350,8 @@ function ruleFunnelMonotonicCount(d: CdlDiagram): LintIssue[] {
             rule: "funnel-increasing-count",
             severity: "warn",
             target: stages[i]!.id,
-            message: `stage "${stages[i]!.id}" (${stages[i]!.count}) が前段 (${stages[i - 1]!.count}) より増加、 funnel は単調減少が期待される`,
-            suggestion: `stage 順を再確認、 増加 pattern なら別 preset (chart-line 等) を検討`,
+            message: `段階 \`${stages[i]!.id}\` の数 (${今}) が前の段階 (${前}) より多い。 絞り込み図は段階が進むほど数が減る`,
+            suggestion: `段階の順番を確かめる。 数が増える流れを示すなら、 折れ線グラフ (\`chart-line\`) などの別の図にする`,
             autoFixable: false,
           });
         }
