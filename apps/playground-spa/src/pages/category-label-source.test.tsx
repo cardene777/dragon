@@ -93,6 +93,32 @@ export function 開いていないカタカナ(呼び名: string): string[] {
   return カタカナの連なり(残り);
 }
 
+/**
+ * 分類の表の欄のうち、描いた画面に値が出ない欄を `slug.欄` の形で返す (#1932)。
+ * 本番と植え込み対照が同じ関数を使う。
+ *
+ * **欄は表の実物から導く** = 手で並べると、足した欄が黙って検査の外に落ちる。
+ *
+ * 「出る」 は 2 通りに限る。 字の中身 (要素の間の字) が値を含むか、行き先 (`href`) の
+ * 区切り 1 つが値と同じか。 markup 全体に対する部分一致にすると、`basic` のような短い値が
+ * class の名前に紛れて「出る」 と読まれる。
+ */
+export function 画面に出ない欄(分類たち: readonly object[], 画面: readonly string[]): string[] {
+  const 戻す = (s: string): string =>
+    s.replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+  const 字 = 画面.flatMap((html) => [...html.matchAll(/>([^<]+)</g)].map((m) => 戻す(m[1]!)));
+  const 区切り = new Set(
+    画面.flatMap((html) => [...html.matchAll(/href="([^"]*)"/g)].flatMap((m) => 戻す(m[1]!).split("/"))),
+  );
+  const 出る = (v: unknown): boolean =>
+    typeof v === "string" && v !== "" && (区切り.has(v) || 字.some((s) => s.includes(v)));
+  const 欄 = [...new Set(分類たち.flatMap((c) => Object.keys(c)))];
+  return 分類たち.flatMap((c) => {
+    const r = c as Record<string, unknown>;
+    return 欄.filter((k) => !出る(r[k])).map((k) => `${String(r.slug)}.${k}`);
+  });
+}
+
 function 画面のfile一覧(): string[] {
   return readdirSync(画面の置き場).filter((f) => f.endsWith(".tsx") && !f.includes(".test."));
 }
@@ -197,12 +223,27 @@ describe("分類の呼び名の出どころ (#1788)", () => {
     expect(違う, `分類の画面の呼び名が CATEGORIES と違う:\n${違う.join("\n")}`).toEqual([]);
   });
 
-  it("分類名が呼び名の言い換えになっていない", () => {
-    // 呼び名のすぐ上に分類名が出るため、同じ字だと同じことを 2 度読ませる (#1783 と同じ決まり)
-    const なぞる = CATEGORIES.filter((c) => c.eyebrow === c.label).map(
-      (c) => `${c.slug}: ${c.eyebrow}`,
-    );
-    expect(なぞる, `分類名が呼び名と同じ: ${なぞる.join(", ")}`).toEqual([]);
+  it("分類の表の欄がどれも画面に出る (#1932)", () => {
+    // 以前はここで前置き (`eyebrow`) が呼び名と同じ字でないことを見ていたが、前置きは #188 で
+    // 画面から消えていた。 画面に出ない字を「出る」 前提で確かめる形を作らないよう、欄ごと外し、
+    // 表の欄が描いた画面に出ることを見る
+    const 画面 = [一覧の画面(), ...CATEGORIES.map((c) => 分類の画面(c.slug))];
+    const 欄 = new Set(CATEGORIES.flatMap((c) => Object.keys(c)));
+    console.log(`[分類の表の欄] 分類=${CATEGORIES.length} 欄=${[...欄].join(" / ")} 画面=${画面.length}`);
+    expect(欄.size, "分類の表の欄を 1 つも見ていない (検査が空振りしている)").toBeGreaterThanOrEqual(3);
+    expect(画面に出ない欄(CATEGORIES, 画面), "画面が読まない欄が分類の表に残っている").toEqual([]);
+  });
+
+  it("画面に出ない欄を見つけ、出る欄は咎めない (植え込み対照 + 対象外の対照、#1932)", () => {
+    const 画面 = [一覧の画面(), ...CATEGORIES.map((c) => 分類の画面(c.slug))];
+    // 対象外の対照 = 画面に出る 3 つの欄だけの表は咎めない
+    expect(画面に出ない欄(CATEGORIES, 画面)).toEqual([]);
+    // 植え込み対照 = 画面に描かれない字の欄を 1 つ足すと、全分類ぶん見つける
+    const 前置きつき = CATEGORIES.map((c) => ({ ...c, eyebrow: `${c.label}の前置き` }));
+    expect(画面に出ない欄(前置きつき, 画面)).toEqual(CATEGORIES.map((c) => `${c.slug}.eyebrow`));
+    // 字が画面のどこか (class の名前) に紛れても、字の中身か行き先の区切りに出なければ見つける
+    const 群れつき = CATEGORIES.map((c) => ({ ...c, cluster: "catalog-index-card" }));
+    expect(画面に出ない欄(群れつき, 画面)).toHaveLength(CATEGORIES.length);
   });
 
   it("説明文が呼び名をなぞって始まっていない (#1805)", () => {
