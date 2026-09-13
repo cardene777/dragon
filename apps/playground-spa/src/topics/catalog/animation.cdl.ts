@@ -324,7 +324,7 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
     lane: "l1",
     stack: 0,
     kind: "dyn-arc",
-    title: "srv-1",
+    title: "サーバー 1",
     subtitle: "{cpu1}%",
     w: 180,
     h: 180,
@@ -341,7 +341,7 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
     lane: "l2",
     stack: 0,
     kind: "dyn-arc",
-    title: "srv-2",
+    title: "サーバー 2",
     subtitle: "{cpu2}%",
     w: 180,
     h: 180,
@@ -358,7 +358,7 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
     lane: "l3",
     stack: 0,
     kind: "dyn-arc",
-    title: "srv-3",
+    title: "サーバー 3",
     subtitle: "{cpu3}%",
     w: 180,
     h: 180,
@@ -375,7 +375,7 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
     lane: "l4",
     stack: 0,
     kind: "dyn-arc",
-    title: "srv-4",
+    title: "サーバー 4",
     subtitle: "{cpu4}%",
     w: 180,
     h: 180,
@@ -610,7 +610,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
     stack: 0,
     kind: "dyn-circle",
     title: "岸田様",
-    subtitle: "score {p1}",
+    subtitle: "得点 {p1}",
     w: 160,
     h: 180,
     shape: { kind: "circle", radius: "{p1}", fill: "#4e9dc4" },
@@ -620,7 +620,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
     stack: 0,
     kind: "dyn-circle",
     title: "山田様",
-    subtitle: "score {p2}",
+    subtitle: "得点 {p2}",
     w: 160,
     h: 180,
     shape: { kind: "circle", radius: "{p2}", fill: "#f97316" },
@@ -630,7 +630,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
     stack: 0,
     kind: "dyn-circle",
     title: "佐藤様",
-    subtitle: "score {p3}",
+    subtitle: "得点 {p3}",
     w: 160,
     h: 180,
     shape: { kind: "circle", radius: "{p3}", fill: "#22c55e" },
@@ -640,7 +640,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
     stack: 0,
     kind: "dyn-circle",
     title: "森様",
-    subtitle: "score {p4}",
+    subtitle: "得点 {p4}",
     w: 160,
     h: 180,
     shape: { kind: "circle", radius: "{p4}", fill: "#8b7ffa" },
@@ -710,7 +710,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
 /**
  * 10. richLayeredPriorityFee = 「3 層優先度手数料」 composite exemplar (dragon-diagram skill pilot、 2026-07-15)。
  *
- * theme = Ethereum EIP-1559 gas fee の 3 層構成 (base burn / priority tip / max cap) を混雑度で追跡。
+ * theme = Ethereum EIP-1559 gas fee の 3 層構成 (基本手数料 (焼却) / 優先手数料 / 上限手数料) を混雑度で追跡。
  *
  * uses parts:
  *   - 縦積み層バー (partsStackedLayer 経路) = 3 dyn-rect stacked layer で「重ね張り」 metaphor
@@ -720,7 +720,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
  * story arc = 空 block → 平常 → 混雑 → 極混雑 の 4 phase で 3 層が同時変動。
  */
 export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-fee", {
-  topic: "3層優先度手数料 — 混雑度で base / tip / cap が同時に動く",
+  topic: "3層優先度手数料 — 混雑度で基本 / 優先 / 上限の手数料が同時に動く",
 })
   .lane("bar", { x: 0, width: 320 })
   .lane("stat", { x: 380, width: 320 })
@@ -733,7 +733,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
     lane: "bar",
     stack: 0,
     kind: "dyn-rect",
-    title: "max cap",
+    title: "上限手数料",
     subtitle: "+{capFee} gwei",
     w: 300,
     h: 140,
@@ -750,7 +750,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
     lane: "bar",
     stack: 1,
     kind: "dyn-rect",
-    title: "priority tip",
+    title: "優先手数料",
     subtitle: "+{tipFee} gwei",
     w: 316,
     h: 100,
@@ -767,7 +767,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
     lane: "bar",
     stack: 2,
     kind: "dyn-rect",
-    title: "base fee (burn)",
+    title: "基本手数料 (焼却)",
     subtitle: "{baseFee} gwei",
     w: 382,
     h: 180,
@@ -1436,14 +1436,14 @@ readouts:
   uptimeCU: { kind: countup, source: uptimeHour, decimals: 0, unit: " 時", label: "稼働時間" }
 
 actors:
-  - srv-1: { kind: dyn-arc, lane: l1, stack: 0, subtitle: "{cpu1}%", posW: 180, posH: 180, shape: { kind: arc, angle: "{cpu1}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#4e9dc4" } }
-  - srv-2: { kind: dyn-arc, lane: l2, stack: 0, subtitle: "{cpu2}%", posW: 180, posH: 180, shape: { kind: arc, angle: "{cpu2}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#4e9dc4" } }
-  - srv-3: { kind: dyn-arc, lane: l3, stack: 0, subtitle: "{cpu3}%", posW: 180, posH: 180, shape: { kind: arc, angle: "{cpu3}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#f97316" } }
-  - srv-4: { kind: dyn-arc, lane: l4, stack: 0, subtitle: "{cpu4}%", posW: 180, posH: 180, shape: { kind: arc, angle: "{cpu4}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#22c55e" } }
+  - サーバー 1: { kind: dyn-arc, lane: l1, stack: 0, subtitle: "{cpu1}%", posW: 180, posH: 180, shape: { kind: arc, angle: "{cpu1}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#4e9dc4" } }
+  - サーバー 2: { kind: dyn-arc, lane: l2, stack: 0, subtitle: "{cpu2}%", posW: 180, posH: 180, shape: { kind: arc, angle: "{cpu2}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#4e9dc4" } }
+  - サーバー 3: { kind: dyn-arc, lane: l3, stack: 0, subtitle: "{cpu3}%", posW: 180, posH: 180, shape: { kind: arc, angle: "{cpu3}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#f97316" } }
+  - サーバー 4: { kind: dyn-arc, lane: l4, stack: 0, subtitle: "{cpu4}%", posW: 180, posH: 180, shape: { kind: arc, angle: "{cpu4}", sweepMax: 100, outerRadius: 70, innerRadius: 52, fill: "#22c55e" } }
 
 animation:
   - step: "朝ピーク (7:00)" 2s
-    focus: ["srv-1", "srv-2", "srv-3", "srv-4"]
+    focus: ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"]
     tween:
       cpu1: 0 -> 85
       cpu2: 0 -> 88
@@ -1453,7 +1453,7 @@ animation:
       uptimeHour: 0 -> 7
     badge: "朝ピーク"
   - step: "昼安定 (12:00)" 2s
-    focus: ["srv-1", "srv-2", "srv-3", "srv-4"]
+    focus: ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"]
     tween:
       cpu1: 85 -> 55
       cpu2: 88 -> 58
@@ -1463,7 +1463,7 @@ animation:
       uptimeHour: 7 -> 12
     badge: "昼安定"
   - step: "夜スケールダウン (20:00)" 2s
-    focus: ["srv-1", "srv-2", "srv-3", "srv-4"]
+    focus: ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"]
     tween:
       cpu1: 55 -> 30
       cpu2: 58 -> 32
@@ -1473,7 +1473,7 @@ animation:
       uptimeHour: 12 -> 20
     badge: "スケールダウン"
   - step: "深夜アイドル (2:00)" 2s
-    focus: ["srv-1", "srv-2", "srv-3", "srv-4"]
+    focus: ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"]
     tween:
       cpu1: 30 -> 8
       cpu2: 32 -> 10
@@ -1495,7 +1495,7 @@ export const sourceJson__richServerLoadDashboard = `{
   },
   "actors": [
     {
-      "name": "srv-1",
+      "name": "サーバー 1",
       "kind": "dyn-arc",
       "lane": "l1",
       "stack": 0,
@@ -1512,7 +1512,7 @@ export const sourceJson__richServerLoadDashboard = `{
       }
     },
     {
-      "name": "srv-2",
+      "name": "サーバー 2",
       "kind": "dyn-arc",
       "lane": "l2",
       "stack": 0,
@@ -1529,7 +1529,7 @@ export const sourceJson__richServerLoadDashboard = `{
       }
     },
     {
-      "name": "srv-3",
+      "name": "サーバー 3",
       "kind": "dyn-arc",
       "lane": "l3",
       "stack": 0,
@@ -1546,7 +1546,7 @@ export const sourceJson__richServerLoadDashboard = `{
       }
     },
     {
-      "name": "srv-4",
+      "name": "サーバー 4",
       "kind": "dyn-arc",
       "lane": "l4",
       "stack": 0,
@@ -1588,7 +1588,7 @@ export const sourceJson__richServerLoadDashboard = `{
     {
       "step": "朝ピーク (7:00)",
       "duration": 2,
-      "focus": ["srv-1", "srv-2", "srv-3", "srv-4"],
+      "focus": ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"],
       "tween": {
         "cpu1": [0, 85],
         "cpu2": [0, 88],
@@ -1602,7 +1602,7 @@ export const sourceJson__richServerLoadDashboard = `{
     {
       "step": "昼安定 (12:00)",
       "duration": 2,
-      "focus": ["srv-1", "srv-2", "srv-3", "srv-4"],
+      "focus": ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"],
       "tween": {
         "cpu1": [85, 55],
         "cpu2": [88, 58],
@@ -1616,7 +1616,7 @@ export const sourceJson__richServerLoadDashboard = `{
     {
       "step": "夜スケールダウン (20:00)",
       "duration": 2,
-      "focus": ["srv-1", "srv-2", "srv-3", "srv-4"],
+      "focus": ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"],
       "tween": {
         "cpu1": [55, 30],
         "cpu2": [58, 32],
@@ -1630,7 +1630,7 @@ export const sourceJson__richServerLoadDashboard = `{
     {
       "step": "深夜アイドル (2:00)",
       "duration": 2,
-      "focus": ["srv-1", "srv-2", "srv-3", "srv-4"],
+      "focus": ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"],
       "tween": {
         "cpu1": [30, 8],
         "cpu2": [32, 10],
@@ -1859,10 +1859,10 @@ readouts:
   accG: { kind: gauge, source: avgAcc, min: 0, max: 100, color: "#22c55e", label: "平均命中率 %" }
 
 actors:
-  - 岸田様: { kind: dyn-circle, lane: l1, stack: 0, subtitle: "score {p1}", posW: 160, posH: 180, shape: { kind: circle, radius: "{p1}", fill: "#4e9dc4" } }
-  - 山田様: { kind: dyn-circle, lane: l2, stack: 0, subtitle: "score {p2}", posW: 160, posH: 180, shape: { kind: circle, radius: "{p2}", fill: "#f97316" } }
-  - 佐藤様: { kind: dyn-circle, lane: l3, stack: 0, subtitle: "score {p3}", posW: 160, posH: 180, shape: { kind: circle, radius: "{p3}", fill: "#22c55e" } }
-  - 森様: { kind: dyn-circle, lane: l4, stack: 0, subtitle: "score {p4}", posW: 160, posH: 180, shape: { kind: circle, radius: "{p4}", fill: "#8b7ffa" } }
+  - 岸田様: { kind: dyn-circle, lane: l1, stack: 0, subtitle: "得点 {p1}", posW: 160, posH: 180, shape: { kind: circle, radius: "{p1}", fill: "#4e9dc4" } }
+  - 山田様: { kind: dyn-circle, lane: l2, stack: 0, subtitle: "得点 {p2}", posW: 160, posH: 180, shape: { kind: circle, radius: "{p2}", fill: "#f97316" } }
+  - 佐藤様: { kind: dyn-circle, lane: l3, stack: 0, subtitle: "得点 {p3}", posW: 160, posH: 180, shape: { kind: circle, radius: "{p3}", fill: "#22c55e" } }
+  - 森様: { kind: dyn-circle, lane: l4, stack: 0, subtitle: "得点 {p4}", posW: 160, posH: 180, shape: { kind: circle, radius: "{p4}", fill: "#8b7ffa" } }
 
 animation:
   - step: "第 1 戦 (拮抗)" 2s
@@ -1922,7 +1922,7 @@ export const sourceJson__richScoreLeaderboard = `{
       "kind": "dyn-circle",
       "lane": "l1",
       "stack": 0,
-      "subtitle": "score {p1}",
+      "subtitle": "得点 {p1}",
       "posW": 160,
       "posH": 180,
       "shape": { "kind": "circle", "radius": "{p1}", "fill": "#4e9dc4" }
@@ -1932,7 +1932,7 @@ export const sourceJson__richScoreLeaderboard = `{
       "kind": "dyn-circle",
       "lane": "l2",
       "stack": 0,
-      "subtitle": "score {p2}",
+      "subtitle": "得点 {p2}",
       "posW": 160,
       "posH": 180,
       "shape": { "kind": "circle", "radius": "{p2}", "fill": "#f97316" }
@@ -1942,7 +1942,7 @@ export const sourceJson__richScoreLeaderboard = `{
       "kind": "dyn-circle",
       "lane": "l3",
       "stack": 0,
-      "subtitle": "score {p3}",
+      "subtitle": "得点 {p3}",
       "posW": 160,
       "posH": 180,
       "shape": { "kind": "circle", "radius": "{p3}", "fill": "#22c55e" }
@@ -1952,7 +1952,7 @@ export const sourceJson__richScoreLeaderboard = `{
       "kind": "dyn-circle",
       "lane": "l4",
       "stack": 0,
-      "subtitle": "score {p4}",
+      "subtitle": "得点 {p4}",
       "posW": 160,
       "posH": 180,
       "shape": { "kind": "circle", "radius": "{p4}", "fill": "#8b7ffa" }
@@ -2039,7 +2039,7 @@ export const sourceJson__richScoreLeaderboard = `{
   ]
 }`;
 
-export const sourceYaml__richLayeredPriorityFee = `title: "3層優先度手数料 — 混雑度で base / tip / cap が同時に動く"
+export const sourceYaml__richLayeredPriorityFee = `title: "3層優先度手数料 — 混雑度で基本 / 優先 / 上限の手数料が同時に動く"
 type: flow
 
 lanes:
@@ -2054,15 +2054,15 @@ states:
   congestion: 15
 
 actors:
-  - max cap: { kind: dyn-rect, lane: bar, stack: 0, subtitle: "+{capFee} gwei", posW: 300, posH: 140, shape: { kind: rect, source: "{capFee}", fillMax: 60, orient: "up", fill: "#a08870", radius: 4 } }
-  - priority tip: { kind: dyn-rect, lane: bar, stack: 1, subtitle: "+{tipFee} gwei", posW: 316, posH: 100, shape: { kind: rect, source: "{tipFee}", fillMax: 50, orient: "up", fill: "#22c55e", radius: 4 } }
-  - base fee (burn): { kind: dyn-rect, lane: bar, stack: 2, subtitle: "{baseFee} gwei", posW: 382, posH: 180, shape: { kind: rect, source: "{baseFee}", fillMax: 160, orient: "up", fill: "#dc2626", radius: 4 } }
+  - 上限手数料: { kind: dyn-rect, lane: bar, stack: 0, subtitle: "+{capFee} gwei", posW: 300, posH: 140, shape: { kind: rect, source: "{capFee}", fillMax: 60, orient: "up", fill: "#a08870", radius: 4 } }
+  - 優先手数料: { kind: dyn-rect, lane: bar, stack: 1, subtitle: "+{tipFee} gwei", posW: 316, posH: 100, shape: { kind: rect, source: "{tipFee}", fillMax: 50, orient: "up", fill: "#22c55e", radius: 4 } }
+  - 基本手数料 (焼却): { kind: dyn-rect, lane: bar, stack: 2, subtitle: "{baseFee} gwei", posW: 382, posH: 180, shape: { kind: rect, source: "{baseFee}", fillMax: 160, orient: "up", fill: "#dc2626", radius: 4 } }
   - 有効総額: { kind: actor, lane: stat, stack: 0, subtitle: "{effectiveGwei} gwei", posW: 280, posH: 180 }
   - 混雑度: { kind: dyn-arc, lane: stat, stack: 1, subtitle: "{congestion}%", posW: 280, posH: 220, shape: { kind: arc, angle: "{congestion}", sweepMax: 100, outerRadius: 90, innerRadius: 62, fill: "#f97316" } }
 
 animation:
   - step: "空のブロック" 1.8s
-    focus: ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"]
+    focus: ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"]
     tween:
       baseFee: 10 -> 15
       tipFee: 2 -> 3
@@ -2071,7 +2071,7 @@ animation:
       congestion: 15 -> 28
     badge: "空のブロック"
   - step: "平常" 1.8s
-    focus: ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"]
+    focus: ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"]
     tween:
       baseFee: 15 -> 45
       tipFee: 3 -> 6
@@ -2080,7 +2080,7 @@ animation:
       congestion: 28 -> 58
     badge: "平常"
   - step: "混雑" 1.8s
-    focus: ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"]
+    focus: ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"]
     tween:
       baseFee: 45 -> 95
       tipFee: 6 -> 18
@@ -2089,7 +2089,7 @@ animation:
       congestion: 58 -> 88
     badge: "混雑"
   - step: "極混雑" 1.8s
-    focus: ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"]
+    focus: ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"]
     tween:
       baseFee: 95 -> 140
       tipFee: 18 -> 42
@@ -2100,7 +2100,7 @@ animation:
 `;
 
 export const sourceJson__richLayeredPriorityFee = `{
-  "title": "3層優先度手数料 — 混雑度で base / tip / cap が同時に動く",
+  "title": "3層優先度手数料 — 混雑度で基本 / 優先 / 上限の手数料が同時に動く",
   "type": "flow",
   "lanes": {
     "bar": { "x": 0, "width": 320 },
@@ -2108,7 +2108,7 @@ export const sourceJson__richLayeredPriorityFee = `{
   },
   "actors": [
     {
-      "name": "max cap",
+      "name": "上限手数料",
       "kind": "dyn-rect",
       "lane": "bar",
       "stack": 0,
@@ -2125,7 +2125,7 @@ export const sourceJson__richLayeredPriorityFee = `{
       }
     },
     {
-      "name": "priority tip",
+      "name": "優先手数料",
       "kind": "dyn-rect",
       "lane": "bar",
       "stack": 1,
@@ -2142,7 +2142,7 @@ export const sourceJson__richLayeredPriorityFee = `{
       }
     },
     {
-      "name": "base fee (burn)",
+      "name": "基本手数料 (焼却)",
       "kind": "dyn-rect",
       "lane": "bar",
       "stack": 2,
@@ -2191,7 +2191,7 @@ export const sourceJson__richLayeredPriorityFee = `{
     {
       "step": "空のブロック",
       "duration": 1.8,
-      "focus": ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"],
+      "focus": ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"],
       "tween": {
         "baseFee": [10, 15],
         "tipFee": [2, 3],
@@ -2204,7 +2204,7 @@ export const sourceJson__richLayeredPriorityFee = `{
     {
       "step": "平常",
       "duration": 1.8,
-      "focus": ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"],
+      "focus": ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"],
       "tween": {
         "baseFee": [15, 45],
         "tipFee": [3, 6],
@@ -2217,7 +2217,7 @@ export const sourceJson__richLayeredPriorityFee = `{
     {
       "step": "混雑",
       "duration": 1.8,
-      "focus": ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"],
+      "focus": ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"],
       "tween": {
         "baseFee": [45, 95],
         "tipFee": [6, 18],
@@ -2230,7 +2230,7 @@ export const sourceJson__richLayeredPriorityFee = `{
     {
       "step": "極混雑",
       "duration": 1.8,
-      "focus": ["max cap", "priority tip", "base fee (burn)", "有効総額", "混雑度"],
+      "focus": ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"],
       "tween": {
         "baseFee": [95, 140],
         "tipFee": [18, 42],
