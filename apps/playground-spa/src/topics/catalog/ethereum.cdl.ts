@@ -44,7 +44,7 @@ export const erc20Transfer = diagram("eth-erc20-transfer", {
     stack: 0,
     kind: "dyn-wave",
     title: "太郎",
-    subtitle: "{balA} TKN",
+    subtitle: "{balA} トークン",
     w: 160,
     h: 220,
     shape: {
@@ -70,7 +70,7 @@ export const erc20Transfer = diagram("eth-erc20-transfer", {
     stack: 0,
     kind: "dyn-wave",
     title: "花子",
-    subtitle: "{balB} TKN",
+    subtitle: "{balB} トークン",
     w: 160,
     h: 220,
     shape: {
@@ -84,7 +84,7 @@ export const erc20Transfer = diagram("eth-erc20-transfer", {
   })
   .edge("alice", "token", { id: "e1", label: "250 送りたい", tone: "info" })
   .edge("token", "bob", { id: "e2", label: "残高を加算", tone: "success" })
-  .readout.countup("cu", { source: "moved", unit: " TKN", label: "動いた量", decimals: 0 })
+  .readout.countup("cu", { source: "moved", unit: " トークン", label: "動いた量", decimals: 0 })
   .phase(
     "p1",
     {
@@ -555,12 +555,12 @@ states:
   moved: 0
 
 readouts:
-  cu: { kind: countup, source: moved, decimals: 0, unit: " TKN", label: "動いた量" }
+  cu: { kind: countup, source: moved, decimals: 0, unit: " トークン", label: "動いた量" }
 
 actors:
-  - 太郎: { kind: dyn-wave, lane: l1, stack: 0, subtitle: "{balA} TKN", posW: 160, posH: 220, shape: { kind: wave, level: "{balA}", amplitude: 1000, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } }
+  - 太郎: { kind: dyn-wave, lane: l1, stack: 0, subtitle: "{balA} トークン", posW: 160, posH: 220, shape: { kind: wave, level: "{balA}", amplitude: 1000, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } }
   - トークン契約: { kind: shape-smart-contract, lane: l2, stack: 0, subtitle: "残高表を持つ", posW: 200, posH: 220 }
-  - 花子: { kind: dyn-wave, lane: l3, stack: 0, subtitle: "{balB} TKN", posW: 160, posH: 220, shape: { kind: wave, level: "{balB}", amplitude: 1000, frequency: 2, waveHeight: 6, fill: "#22c55e" } }
+  - 花子: { kind: dyn-wave, lane: l3, stack: 0, subtitle: "{balB} トークン", posW: 160, posH: 220, shape: { kind: wave, level: "{balB}", amplitude: 1000, frequency: 2, waveHeight: 6, fill: "#22c55e" } }
 
 flow:
   - 太郎 -> トークン契約: "250 送りたい" (info)
@@ -603,7 +603,7 @@ export const sourceJson__erc20Transfer = `{
       "kind": "dyn-wave",
       "lane": "l1",
       "stack": 0,
-      "subtitle": "{balA} TKN",
+      "subtitle": "{balA} トークン",
       "posW": 160,
       "posH": 220,
       "shape": {
@@ -629,7 +629,7 @@ export const sourceJson__erc20Transfer = `{
       "kind": "dyn-wave",
       "lane": "l3",
       "stack": 0,
-      "subtitle": "{balB} TKN",
+      "subtitle": "{balB} トークン",
       "posW": 160,
       "posH": 220,
       "shape": {
@@ -653,7 +653,7 @@ export const sourceJson__erc20Transfer = `{
       "kind": "countup",
       "source": "moved",
       "decimals": 0,
-      "unit": " TKN",
+      "unit": " トークン",
       "label": "動いた量"
     }
   ],
