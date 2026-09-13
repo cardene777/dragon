@@ -8257,28 +8257,28 @@ export const monthCalendarView = diagram("interactive-month-calendar", {
   .lane("w3", { x: 340, width: 150 })
   .lane("w4", { x: 510, width: 200 })
   .arraySignal("days", generateCalendarDays())
-  .node("w1Card", { lane: "w1", stack: 0, kind: "card", title: "Week 1", subtitle: "月の最初の週" })
-  .node("w2Card", { lane: "w2", stack: 0, kind: "card", title: "Week 2", subtitle: "今日を含む週" })
-  .node("w3Card", { lane: "w3", stack: 0, kind: "card", title: "Week 3", subtitle: "月の半ばの週" })
+  .node("w1Card", { lane: "w1", stack: 0, kind: "card", title: "第 1 週", subtitle: "月の最初の週" })
+  .node("w2Card", { lane: "w2", stack: 0, kind: "card", title: "第 2 週", subtitle: "今日を含む週" })
+  .node("w3Card", { lane: "w3", stack: 0, kind: "card", title: "第 3 週", subtitle: "月の半ばの週" })
   .node("w4Card", {
     lane: "w4",
     stack: 0,
     kind: "card",
-    title: "Week 4-5",
+    title: "第 4〜5 週",
     subtitle: "月の終わりの週",
   })
   .node("monthSummary", {
     lane: "w4",
     stack: 1,
     kind: "card",
-    title: "Month total",
+    title: "月の合計",
     subtitle: "月ぜんたいのまとめ",
   })
   .readout.calendarMonth("cm", {
     source: "days",
-    monthName: "January 2026",
+    monthName: "2026 年 1 月",
     color: "#2563eb",
-    label: "Month view (7 column grid)",
+    label: "1 か月 (7 列の升目)",
   })
   .phase(
     "p1",
@@ -8330,54 +8330,54 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
   .arraySignal("cmds", [
     [
       "$",
-      "ls -la",
-      "total 42\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\n-rw-r--r--  1 user 1240 Jan 13 07:55 README.md",
+      "ls -1",
+      "作業場\n見本\nメモ",
     ],
-    ["$", "cd projects", ""],
-    ["$", "git status", "On branch main\nnothing to commit, working tree clean"],
-    ["$", "pnpm test", "Test Files  114 passed\nTests  1649 passed"],
-    ["$", "docker ps", "CONTAINER ID   IMAGE\n8f3a2b1c9d   nginx:latest"],
+    ["$", "cd 作業場", ""],
+    ["$", "git diff", "-古い説明\n+新しい説明"],
+    ["$", "pnpm -v", "9.15.0"],
+    ["$", "wc -l メモ", "2 メモ"],
   ] as unknown as (string | number)[])
   .node("lsNode", {
     lane: "fs",
     stack: 0,
     kind: "card",
-    title: "ls -la",
-    subtitle: "file を見る · 出力が長い",
+    title: "ls -1",
+    subtitle: "中身を並べる · 出力が長い",
   })
   .node("cdNode", {
     lane: "fs",
     stack: 1,
     kind: "card",
-    title: "cd projects",
+    title: "cd 作業場",
     subtitle: "場所を移る · 出力が無い",
   })
   .node("gitStatusNode", {
     lane: "git",
     stack: 0,
     kind: "card",
-    title: "git status",
-    subtitle: "履歴の状態を見る",
+    title: "git diff",
+    subtitle: "変更の差分を見る",
   })
   .node("pnpmNode", {
     lane: "dev",
     stack: 0,
     kind: "card",
-    title: "pnpm test",
-    subtitle: "検査を回す",
+    title: "pnpm -v",
+    subtitle: "道具の版を見る",
   })
   .node("dockerNode", {
     lane: "dev",
     stack: 1,
     kind: "card",
-    title: "docker ps",
-    subtitle: "動いている入れ物を見る",
+    title: "wc -l メモ",
+    subtitle: "行の数を数える",
   })
   .readout.terminal("tm", {
     source: "cmds",
     max: 10,
     color: "var(--d-dg-2)",
-    label: "Session (CLI window)",
+    label: "端末の画面",
   })
   .phase(
     "p1",
@@ -8391,7 +8391,7 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
         .activate("lsNode")
         .set(
           "cmds",
-          '[["$","ls -la","total 42\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\\n-rw-r--r--  1 user 1240 Jan 13 07:55 README.md"]]',
+          '[["$","ls -1","作業場\\n見本\\nメモ"]]',
         ),
   )
   .phase(
@@ -8406,7 +8406,7 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
         .activate("lsNode", "cdNode", "gitStatusNode")
         .set(
           "cmds",
-          '[["$","ls -la","total 42\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 ."],["$","cd projects",""],["$","git status","On branch main\\nnothing to commit, working tree clean"]]',
+          '[["$","ls -1","作業場\\n見本"],["$","cd 作業場",""],["$","git diff","-古い説明\\n+新しい説明"]]',
         ),
   )
   .phase(
@@ -8421,7 +8421,7 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
         .activate("lsNode", "cdNode", "gitStatusNode", "pnpmNode", "dockerNode")
         .set(
           "cmds",
-          '[["$","ls -la","total 42\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 ."],["$","cd projects",""],["$","git status","On branch main\\nnothing to commit, working tree clean"],["$","pnpm test","Test Files  114 passed\\nTests  1649 passed"],["$","docker ps","CONTAINER ID   IMAGE\\n8f3a2b1c9d   nginx:latest"]]',
+          '[["$","ls -1","作業場\\n見本"],["$","cd 作業場",""],["$","git diff","-古い説明\\n+新しい説明"],["$","pnpm -v","9.15.0"],["$","wc -l メモ","2 メモ"]]',
         ),
   )
   .build();
@@ -8439,7 +8439,7 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
   .lane("whitePawn", { x: 700, width: 340 })
   .lane("whiteBack", { x: 1060, width: 320 })
   .arraySignal("pieces", [
-    // Black back rank (rank 8)
+    // 黒の奥の列 (8 段目)
     ["a", 8, "♜"],
     ["b", 8, "♞"],
     ["c", 8, "♝"],
@@ -8448,7 +8448,7 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
     ["f", 8, "♝"],
     ["g", 8, "♞"],
     ["h", 8, "♜"],
-    // Black pawns (rank 7)
+    // 黒の手前の列 (7 段目)
     ["a", 7, "♟"],
     ["b", 7, "♟"],
     ["c", 7, "♟"],
@@ -8457,7 +8457,7 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
     ["f", 7, "♟"],
     ["g", 7, "♟"],
     ["h", 7, "♟"],
-    // White pawns (rank 2)
+    // 白の手前の列 (2 段目)
     ["a", 2, "♙"],
     ["b", 2, "♙"],
     ["c", 2, "♙"],
@@ -8466,7 +8466,7 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
     ["f", 2, "♙"],
     ["g", 2, "♙"],
     ["h", 2, "♙"],
-    // White back rank (rank 1)
+    // 白の奥の列 (1 段目)
     ["a", 1, "♖"],
     ["b", 1, "♘"],
     ["c", 1, "♗"],
@@ -8481,34 +8481,34 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
     stack: 0,
     kind: "card",
     w: 270,
-    title: "Black back",
-    subtitle: "黒の奥の列 (♜♞♝♛♚♝♞♜)",
+    title: "黒の奥の列",
+    subtitle: "ポーン以外 (♜♞♝♛♚♝♞♜)",
   })
   .node("blackPawnNode", {
     lane: "blackPawn",
     stack: 0,
     kind: "card",
     w: 290,
-    title: "Black pawns",
-    subtitle: "黒の手前の列 (♟)",
+    title: "黒の手前の列",
+    subtitle: "ポーンだけの列 (♟)",
   })
   .node("whitePawnNode", {
     lane: "whitePawn",
     stack: 0,
     kind: "card",
     w: 290,
-    title: "White pawns",
-    subtitle: "白の手前の列 (♙)",
+    title: "白の手前の列",
+    subtitle: "ポーンだけの列 (♙)",
   })
   .node("whiteBackNode", {
     lane: "whiteBack",
     stack: 0,
     kind: "card",
     w: 270,
-    title: "White back",
-    subtitle: "白の奥の列 (♖♘♗♕♔♗♘♖)",
+    title: "白の奥の列",
+    subtitle: "ポーン以外 (♖♘♗♕♔♗♘♖)",
   })
-  .readout.chessBoard("cb", { source: "pieces", cellSize: 28, label: "Position (8×8 board)" })
+  .readout.chessBoard("cb", { source: "pieces", cellSize: 28, label: "盤面 (8×8)" })
   .phase(
     "p1",
     {
@@ -8569,29 +8569,29 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
   .lane("inprogress", { x: 260, width: 220 })
   .lane("done", { x: 520, width: 220 })
   .arraySignal("tasks", [
-    ["todo", "Design API schema", "high"],
-    ["todo", "Write docs", "low"],
-    ["inprogress", "Impl auth flow", "high"],
-    ["inprogress", "Migration script", "med"],
-    ["done", "Setup CI", "med"],
-    ["done", "Repo bootstrap", "low"],
+    ["todo", "API の型を設計する", "high"],
+    ["todo", "文書を書く", "low"],
+    ["inprogress", "認証の流れを作る", "high"],
+    ["inprogress", "移行の手順を書く", "med"],
+    ["done", "自動検査を整える", "med"],
+    ["done", "リポジトリを用意する", "low"],
   ] as unknown as (string | number)[])
   .node("todoCard", {
     lane: "todo",
     stack: 0,
     kind: "card",
-    title: "Todo",
+    title: "未着手",
     subtitle: "まだ手を付けていない列",
   })
   .node("inprogressCard", {
     lane: "inprogress",
     stack: 0,
     kind: "card",
-    title: "In Progress",
+    title: "進行中",
     subtitle: "いま進めている列",
   })
-  .node("doneCard", { lane: "done", stack: 0, kind: "card", title: "Done", subtitle: "終わった列" })
-  .readout.kanbanBoard("kb", { source: "tasks", columnWidth: 140, max: 5, label: "Sprint kanban" })
+  .node("doneCard", { lane: "done", stack: 0, kind: "card", title: "完了", subtitle: "終わった列" })
+  .readout.kanbanBoard("kb", { source: "tasks", columnWidth: 140, max: 5, label: "今期のかんばん" })
   .phase(
     "p1",
     {
@@ -8604,7 +8604,7 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
         .activate("todoCard")
         .set(
           "tasks",
-          '[["todo","Design API schema","high"],["todo","Write docs","low"],["todo","Impl auth flow","high"],["todo","Migration script","med"],["todo","Setup CI","med"],["todo","Repo bootstrap","low"]]',
+          '[["todo","API の型を設計する","high"],["todo","文書を書く","low"],["todo","認証の流れを作る","high"],["todo","移行の手順を書く","med"],["todo","自動検査を整える","med"],["todo","リポジトリを用意する","low"]]',
         ),
   )
   .phase(
@@ -8619,7 +8619,7 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
         .activate("todoCard", "inprogressCard")
         .set(
           "tasks",
-          '[["todo","Design API schema","high"],["todo","Write docs","low"],["inprogress","Impl auth flow","high"],["inprogress","Migration script","med"],["done","Setup CI","med"],["todo","Repo bootstrap","low"]]',
+          '[["todo","API の型を設計する","high"],["todo","文書を書く","low"],["inprogress","認証の流れを作る","high"],["inprogress","移行の手順を書く","med"],["done","自動検査を整える","med"],["todo","リポジトリを用意する","low"]]',
         ),
   )
   .phase(
@@ -8634,7 +8634,7 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
         .activate("todoCard", "inprogressCard", "doneCard")
         .set(
           "tasks",
-          '[["todo","Design API schema","high"],["inprogress","Write docs","low"],["inprogress","Impl auth flow","high"],["done","Migration script","med"],["done","Setup CI","med"],["done","Repo bootstrap","low"]]',
+          '[["todo","API の型を設計する","high"],["inprogress","文書を書く","low"],["inprogress","認証の流れを作る","high"],["done","移行の手順を書く","med"],["done","自動検査を整える","med"],["done","リポジトリを用意する","low"]]',
         ),
   )
   .build();
@@ -8650,14 +8650,14 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
 })
   .lane("col1", { x: 0, width: 270 })
   .lane("col2", { x: 310, width: 300 })
-  .arraySignal("path", ["Home", "Docs", "API", "Reference"])
+  .arraySignal("path", ["トップ", "文書", "API", "参照"])
   .state("cur", { initial: 2 })
   .node("homeNode", {
     lane: "col1",
     stack: 0,
     kind: "card",
     w: 190,
-    title: "Home",
+    title: "トップ",
     subtitle: "最上位の階層",
   })
   .node("docsNode", {
@@ -8665,8 +8665,8 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
     stack: 0,
     kind: "card",
     w: 140,
-    title: "Docs",
-    subtitle: "Home の下にある階層",
+    title: "文書",
+    subtitle: "トップの下にある階層",
   })
   .node("apiNode", {
     lane: "col1",
@@ -8674,14 +8674,14 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
     kind: "card",
     w: 220,
     title: "API",
-    subtitle: "Reference の上にある階層",
+    subtitle: "参照の上にある階層",
   })
   .node("refNode", {
     lane: "col2",
     stack: 1,
     kind: "card",
     w: 250,
-    title: "Reference",
+    title: "参照",
     subtitle: "最も深い階層",
   })
   .edge("homeNode", "docsNode", { label: "→", tone: "info" })
@@ -8691,7 +8691,7 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
     source: "path",
     currentSource: "cur",
     color: "#2563eb",
-    label: "Path",
+    label: "現在地",
   })
   .phase(
     "p1",
@@ -8735,38 +8735,38 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
   .lane("afternoon", { x: 280, width: 240 })
   .lane("evening", { x: 560, width: 240 })
   .arraySignal("events", [
-    ["09:00", "Standup", "team sync"],
-    ["10:30", "Design review", "3 proposals"],
-    ["14:00", "Deploy staging", "v1.2.0"],
-    ["16:00", "1-on-1", "career discussion"],
-    ["19:30", "Retrospective", "sprint 42 close"],
+    ["09:00", "朝会", "進み具合を合わせる"],
+    ["10:30", "設計の確認", "3 案を比べる"],
+    ["14:00", "試験環境へ配備", "v1.2.0"],
+    ["16:00", "1 対 1 の面談", "これからの仕事の話"],
+    ["19:30", "振り返り", "第 42 期の締め"],
   ] as unknown as (string | number)[])
   .node("morningCard", {
     lane: "morning",
     stack: 0,
     kind: "card",
-    title: "Morning",
-    subtitle: "午前の時間帯",
+    title: "午前",
+    subtitle: "9 時から 12 時まで",
   })
   .node("afternoonCard", {
     lane: "afternoon",
     stack: 0,
     kind: "card",
-    title: "Afternoon",
-    subtitle: "午後の時間帯",
+    title: "午後",
+    subtitle: "12 時から 18 時まで",
   })
   .node("eveningCard", {
     lane: "evening",
     stack: 0,
     kind: "card",
-    title: "Evening",
-    subtitle: "夜の時間帯",
+    title: "夜",
+    subtitle: "18 時から後",
   })
   .readout.timelineVertical("tv", {
     source: "events",
     color: "#2563eb",
     max: 8,
-    label: "Day events",
+    label: "1 日の予定",
   })
   .phase(
     "p1",
@@ -8778,7 +8778,7 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
     (p: PhaseBuilder) =>
       p
         .activate("morningCard")
-        .set("events", '[["09:00","Standup","team sync"],["10:30","Design review","3 proposals"]]'),
+        .set("events", '[["09:00","朝会","進み具合を合わせる"],["10:30","設計の確認","3 案を比べる"]]'),
   )
   .phase(
     "p2",
@@ -8792,7 +8792,7 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
         .activate("morningCard", "afternoonCard")
         .set(
           "events",
-          '[["09:00","Standup","team sync"],["10:30","Design review","3 proposals"],["14:00","Deploy staging"],["16:00","1-on-1","career discussion"]]',
+          '[["09:00","朝会","進み具合を合わせる"],["10:30","設計の確認","3 案を比べる"],["14:00","試験環境へ配備"],["16:00","1 対 1 の面談","これからの仕事の話"]]',
         ),
   )
   .phase(
@@ -8807,7 +8807,7 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
         .activate("morningCard", "afternoonCard", "eveningCard")
         .set(
           "events",
-          '[["09:00","Standup","team sync"],["10:30","Design review","3 proposals"],["14:00","Deploy staging","v1.2.0"],["16:00","1-on-1","career discussion"],["19:30","Retrospective","sprint 42 close"]]',
+          '[["09:00","朝会","進み具合を合わせる"],["10:30","設計の確認","3 案を比べる"],["14:00","試験環境へ配備","v1.2.0"],["16:00","1 対 1 の面談","これからの仕事の話"],["19:30","振り返り","第 42 期の締め"]]',
         ),
   )
   .build();
@@ -8836,24 +8836,24 @@ export const serverUptimeStatus = diagram("interactive-server-uptime", {
     lane: "active",
     stack: 0,
     kind: "card",
-    title: "Active",
+    title: "稼働",
     subtitle: "稼働している区間 (緑)",
   })
   .node("idleCard", {
     lane: "idle",
     stack: 0,
     kind: "card",
-    title: "Idle",
+    title: "待機",
     subtitle: "待機している区間 (灰)",
   })
   .node("errorCard", {
     lane: "error",
     stack: 0,
     kind: "card",
-    title: "Error",
+    title: "異常",
     subtitle: "異常が出た区間 (赤)",
   })
-  .readout.statusTimeline("st", { source: "events", max: 8, label: "Server status" })
+  .readout.statusTimeline("st", { source: "events", max: 8, label: "サーバの状態" })
   .phase(
     "p1",
     {
@@ -8912,20 +8912,20 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
   .lane("sat", { x: 975, width: 160 })
   .lane("sun", { x: 1160, width: 160 })
   .arraySignal("week", [
-    ["Mon", true, false],
-    ["Tue", false, false],
-    ["Wed", true, true],
-    ["Thu", false, false],
-    ["Fri", true, false],
-    ["Sat", false, false],
-    ["Sun", false, false],
+    ["月", true, false],
+    ["火", false, false],
+    ["水", true, true],
+    ["木", false, false],
+    ["金", true, false],
+    ["土", false, false],
+    ["日", false, false],
   ] as unknown as (string | number)[])
   .node("monNode", {
     lane: "mon",
     stack: 0,
     kind: "card",
     w: 110,
-    title: "Mon",
+    title: "月曜",
     subtitle: "予定を持つ日",
   })
   .node("tueNode", {
@@ -8933,7 +8933,7 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
     stack: 0,
     kind: "card",
     w: 110,
-    title: "Tue",
+    title: "火曜",
     subtitle: "予定を持たない日",
   })
   .node("wedNode", {
@@ -8941,7 +8941,7 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
     stack: 0,
     kind: "card",
     w: 160,
-    title: "Wed",
+    title: "水曜",
     subtitle: "予定を持つ日",
   })
   .node("thuNode", {
@@ -8949,7 +8949,7 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
     stack: 0,
     kind: "card",
     w: 110,
-    title: "Thu",
+    title: "木曜",
     subtitle: "予定を持たない日",
   })
   .node("friNode", {
@@ -8957,7 +8957,7 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
     stack: 0,
     kind: "card",
     w: 110,
-    title: "Fri",
+    title: "金曜",
     subtitle: "予定を持つ日",
   })
   .node("satNode", {
@@ -8965,22 +8965,22 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
     stack: 0,
     kind: "card",
     w: 110,
-    title: "Sat",
-    subtitle: "予定を持たない日 (週末)",
+    title: "土曜",
+    subtitle: "予定のない週末",
   })
   .node("sunNode", {
     lane: "sun",
     stack: 0,
     kind: "card",
     w: 110,
-    title: "Sun",
-    subtitle: "予定を持たない日 (週明け前)",
+    title: "日曜",
+    subtitle: "週明け前の休日",
   })
   .readout.calendarWeek("cw", {
     source: "week",
     cellSize: 40,
     color: "#2563eb",
-    label: "This week",
+    label: "今週",
   })
   .phase(
     "p1",
@@ -8994,7 +8994,7 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
         .activate("monNode")
         .set(
           "week",
-          '[["Mon",true,true],["Tue",false,false],["Wed",true,false],["Thu",false,false],["Fri",true,false],["Sat",false,false],["Sun",false,false]]',
+          '[["月",true,true],["火",false,false],["水",true,false],["木",false,false],["金",true,false],["土",false,false],["日",false,false]]',
         ),
   )
   .phase(
@@ -9009,7 +9009,7 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
         .activate("monNode", "wedNode")
         .set(
           "week",
-          '[["Mon",true,false],["Tue",false,false],["Wed",true,true],["Thu",false,false],["Fri",true,false],["Sat",false,false],["Sun",false,false]]',
+          '[["月",true,false],["火",false,false],["水",true,true],["木",false,false],["金",true,false],["土",false,false],["日",false,false]]',
         ),
   )
   .phase(
@@ -9024,7 +9024,7 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
         .activate("monNode", "wedNode", "friNode", "satNode", "sunNode")
         .set(
           "week",
-          '[["Mon",true,false],["Tue",false,false],["Wed",true,false],["Thu",false,false],["Fri",true,true],["Sat",false,false],["Sun",false,false]]',
+          '[["月",true,false],["火",false,false],["水",true,false],["木",false,false],["金",true,true],["土",false,false],["日",false,false]]',
         ),
   )
   .build();
@@ -9040,35 +9040,35 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
   .lane("teamA", { x: 0, width: 340 })
   .lane("teamB", { x: 380, width: 340 })
   .arraySignal("teams", [
-    ["Team A", 82],
-    ["Team B", 65],
+    ["チーム A", 82],
+    ["チーム B", 65],
   ] as unknown as (string | number)[])
   .node("aCard", {
     lane: "teamA",
     stack: 0,
     kind: "card",
-    title: "Team A",
+    title: "チーム A",
     subtitle: "上の帯 (青)",
   })
   .node("aDetail", {
     lane: "teamA",
     stack: 1,
     kind: "card",
-    title: "Velocity",
+    title: "進む速さ",
     subtitle: "上の帯が表す量",
   })
   .node("bCard", {
     lane: "teamB",
     stack: 0,
     kind: "card",
-    title: "Team B",
+    title: "チーム B",
     subtitle: "下の帯 (橙)",
   })
   .node("bDetail", {
     lane: "teamB",
     stack: 1,
     kind: "card",
-    title: "Velocity",
+    title: "進む速さ",
     subtitle: "下の帯が表す量",
   })
   .edge("aCard", "bCard", { label: "差", tone: "warning" })
@@ -9077,7 +9077,7 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
     max: 100,
     colorA: "#2563eb",
     colorB: "#f97316",
-    label: "Score compare",
+    label: "成績の比較",
   })
   .phase(
     "p1",
@@ -9086,7 +9086,7 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
       title: "差が大きい",
       body: "2 本の帯の長さが大きく違う。 帯は上限を基準に伸びるため、差がそのまま長さに出る。",
     },
-    (p: PhaseBuilder) => p.activate("aCard", "bCard").set("teams", '[["Team A",82],["Team B",41]]'),
+    (p: PhaseBuilder) => p.activate("aCard", "bCard").set("teams", '[["チーム A",82],["チーム B",41]]'),
   )
   .phase(
     "p2",
@@ -9096,7 +9096,7 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
       body: "下の帯が伸びる。 上の帯は変わらないため、差が縮まったことが並べて読める。",
     },
     (p: PhaseBuilder) =>
-      p.activate("aCard", "aDetail", "bCard").set("teams", '[["Team A",82],["Team B",65]]'),
+      p.activate("aCard", "aDetail", "bCard").set("teams", '[["チーム A",82],["チーム B",65]]'),
   )
   .phase(
     "p3",
@@ -9108,7 +9108,7 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
     (p: PhaseBuilder) =>
       p
         .activate("aCard", "aDetail", "bCard", "bDetail")
-        .set("teams", '[["Team A",84],["Team B",80]]'),
+        .set("teams", '[["チーム A",84],["チーム B",80]]'),
   )
   .build();
 export const subtitle__teamKpiComparison =
@@ -9122,14 +9122,14 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
 })
   .lane("col1", { x: 0, width: 300 })
   .lane("col2", { x: 340, width: 270 })
-  .arraySignal("steps", ["Draft", "Review", "Approve", "Publish"])
+  .arraySignal("steps", ["下書き", "確認", "承認", "公開"])
   .state("cur", { initial: 2 })
   .node("draftNode", {
     lane: "col1",
     stack: 0,
     kind: "card",
     w: 190,
-    title: "Draft",
+    title: "下書き",
     subtitle: "最初の工程",
   })
   .node("reviewNode", {
@@ -9137,33 +9137,33 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
     stack: 0,
     kind: "card",
     w: 190,
-    title: "Review",
-    subtitle: "Draft の次の工程",
+    title: "確認",
+    subtitle: "下書きの次の工程",
   })
   .node("approveNode", {
     lane: "col1",
     stack: 1,
     kind: "card",
     w: 250,
-    title: "Approve",
-    subtitle: "Publish の直前の工程",
+    title: "承認",
+    subtitle: "公開の直前の工程",
   })
   .node("publishNode", {
     lane: "col2",
     stack: 1,
     kind: "card",
     w: 220,
-    title: "Publish",
+    title: "公開",
     subtitle: "最後の工程",
   })
-  .edge("draftNode", "reviewNode", { label: "submit", tone: "success" })
-  .edge("reviewNode", "approveNode", { label: "reviewed", tone: "info" })
-  .edge("approveNode", "publishNode", { label: "publish", tone: "accent" })
+  .edge("draftNode", "reviewNode", { label: "出す", tone: "success" })
+  .edge("reviewNode", "approveNode", { label: "確かめた", tone: "info" })
+  .edge("approveNode", "publishNode", { label: "公開する", tone: "accent" })
   .readout.stepProgress("sp", {
     source: "cur",
     stepsSource: "steps",
     color: "#2563eb",
-    label: "Workflow",
+    label: "公開の手順",
   })
   .phase(
     "p1",
@@ -9207,48 +9207,48 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
   .lane("away", { x: 280, width: 240 })
   .lane("offline", { x: 560, width: 240 })
   .arraySignal("team", [
-    ["Alice", "online"],
-    ["Bob", "away"],
-    ["Carol", "online"],
-    ["Dan", "offline"],
-    ["Eve", "online"],
+    ["佐藤", "online"],
+    ["鈴木", "away"],
+    ["高橋", "online"],
+    ["田中", "offline"],
+    ["伊藤", "online"],
   ] as unknown as (string | number)[])
   .node("aliceCard", {
     lane: "online",
     stack: 0,
     kind: "card",
-    title: "Alice",
+    title: "佐藤",
     subtitle: "在席の人 (緑の丸)",
   })
   .node("carolCard", {
     lane: "online",
     stack: 1,
     kind: "card",
-    title: "Carol",
+    title: "高橋",
     subtitle: "在席の人 (緑の丸)",
   })
   .node("eveCard", {
     lane: "online",
     stack: 2,
     kind: "card",
-    title: "Eve",
+    title: "伊藤",
     subtitle: "在席の人 (緑の丸)",
   })
   .node("bobCard", {
     lane: "away",
     stack: 0,
     kind: "card",
-    title: "Bob",
+    title: "鈴木",
     subtitle: "離席の人 (黄の丸)",
   })
   .node("danCard", {
     lane: "offline",
     stack: 0,
     kind: "card",
-    title: "Dan",
+    title: "田中",
     subtitle: "不在の人 (灰の丸)",
   })
-  .readout.userPresence("up", { source: "team", max: 6, label: "Team status" })
+  .readout.userPresence("up", { source: "team", max: 6, label: "チームの在席" })
   .phase(
     "p1",
     {
@@ -9261,7 +9261,7 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
         .activate("danCard")
         .set(
           "team",
-          '[["Alice","offline"],["Bob","offline"],["Carol","offline"],["Dan","offline"],["Eve","offline"]]',
+          '[["佐藤","offline"],["鈴木","offline"],["高橋","offline"],["田中","offline"],["伊藤","offline"]]',
         ),
   )
   .phase(
@@ -9276,7 +9276,7 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
         .activate("aliceCard", "bobCard", "danCard")
         .set(
           "team",
-          '[["Alice","online"],["Bob","away"],["Carol","offline"],["Dan","offline"],["Eve","online"],["Frank","online"]]',
+          '[["佐藤","online"],["鈴木","away"],["高橋","offline"],["田中","offline"],["伊藤","online"],["渡辺","online"]]',
         ),
   )
   .phase(
@@ -9291,7 +9291,7 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
         .activate("aliceCard", "carolCard", "eveCard", "bobCard", "danCard")
         .set(
           "team",
-          '[["Alice","online"],["Bob","away"],["Carol","offline"],["Dan","offline"],["Eve","online"],["Frank","online"],["Grace","away"]]',
+          '[["佐藤","online"],["鈴木","away"],["高橋","offline"],["田中","offline"],["伊藤","online"],["渡辺","online"],["山本","away"]]',
         ),
   )
   .build();
@@ -9311,28 +9311,28 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
     lane: "up",
     stack: 0,
     kind: "card",
-    title: "▲ Up votes",
+    title: "▲ 賛成票",
     subtitle: "帯の緑の側を決める票",
   })
   .node("upDetail", {
     lane: "up",
     stack: 1,
     kind: "card",
-    title: "Positive",
+    title: "賛成",
     subtitle: "帯の緑の部分",
   })
   .node("downCard", {
     lane: "down",
     stack: 0,
     kind: "card",
-    title: "▼ Down votes",
+    title: "▼ 反対票",
     subtitle: "帯の赤の側を決める票",
   })
   .node("downDetail", {
     lane: "down",
     stack: 1,
     kind: "card",
-    title: "Negative",
+    title: "反対",
     subtitle: "帯の赤の部分",
   })
   .edge("upCard", "downCard", { label: "割合", tone: "warning" })
@@ -9340,7 +9340,7 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
     source: "votes",
     colorUp: "#22c55e",
     colorDown: "#ef4444",
-    label: "Review score",
+    label: "評価",
   })
   .phase(
     "p1",
@@ -9384,49 +9384,49 @@ export const startupOrgChart = diagram("interactive-startup-org", {
   .lane("vp", { x: 260, width: 220 })
   .lane("ic", { x: 520, width: 260 })
   .arraySignal("org", [
-    ["Alice CEO", 0],
-    ["Bob VP Eng", 1],
-    ["Carol VP Sales", 1],
-    ["Dan Eng", 2],
-    ["Eve Eng", 2],
-    ["Frank Sales", 2],
+    ["佐藤 社長", 0],
+    ["鈴木 開発部長", 1],
+    ["高橋 営業部長", 1],
+    ["田中 開発", 2],
+    ["伊藤 開発", 2],
+    ["渡辺 営業", 2],
   ] as unknown as (string | number)[])
   .node("ceoCard", {
     lane: "ceo",
     stack: 0,
     kind: "card",
-    title: "Alice CEO",
+    title: "佐藤 社長",
     subtitle: "最上位の階層",
   })
   .node("vpEng", {
     lane: "vp",
     stack: 0,
     kind: "card",
-    title: "Bob VP Eng",
+    title: "鈴木 開発部長",
     subtitle: "中間の階層",
   })
   .node("vpSales", {
     lane: "vp",
     stack: 1,
     kind: "card",
-    title: "Carol Sales",
+    title: "高橋 営業部長",
     subtitle: "中間の階層",
   })
-  .node("icDan", { lane: "ic", stack: 0, kind: "card", title: "Dan Eng", subtitle: "最下位の階層" })
-  .node("icEve", { lane: "ic", stack: 1, kind: "card", title: "Eve Eng", subtitle: "最下位の階層" })
+  .node("icDan", { lane: "ic", stack: 0, kind: "card", title: "田中 開発", subtitle: "最下位の階層" })
+  .node("icEve", { lane: "ic", stack: 1, kind: "card", title: "伊藤 開発", subtitle: "最下位の階層" })
   .node("icFrank", {
     lane: "ic",
     stack: 2,
     kind: "card",
-    title: "Frank Sales",
+    title: "渡辺 営業",
     subtitle: "最下位の階層",
   })
-  .edge("ceoCard", "vpEng", { label: "reports", tone: "info" })
-  .edge("ceoCard", "vpSales", { label: "reports", tone: "info" })
-  .edge("vpEng", "icDan", { label: "manages", tone: "accent" })
-  .edge("vpEng", "icEve", { label: "manages", tone: "accent" })
-  .edge("vpSales", "icFrank", { label: "manages", tone: "accent" })
-  .readout.orgChartMini("oc", { source: "org", color: "#2563eb", label: "Org hierarchy" })
+  .edge("ceoCard", "vpEng", { label: "率いる", tone: "info" })
+  .edge("ceoCard", "vpSales", { label: "率いる", tone: "info" })
+  .edge("vpEng", "icDan", { label: "まとめる", tone: "accent" })
+  .edge("vpEng", "icEve", { label: "まとめる", tone: "accent" })
+  .edge("vpSales", "icFrank", { label: "まとめる", tone: "accent" })
+  .readout.orgChartMini("oc", { source: "org", color: "#2563eb", label: "組織の階層" })
   .phase(
     "p1",
     {
@@ -9434,7 +9434,7 @@ export const startupOrgChart = diagram("interactive-startup-org", {
       title: "創業した頃",
       body: "階層が 1 段しかない。 下の段が空だと繋ぐ線を引かないため、箱が 1 つ浮く形になる。",
     },
-    (p: PhaseBuilder) => p.activate("ceoCard").set("org", '[["Alice CEO",0]]'),
+    (p: PhaseBuilder) => p.activate("ceoCard").set("org", '[["佐藤 社長",0]]'),
   )
   .phase(
     "p2",
@@ -9446,21 +9446,21 @@ export const startupOrgChart = diagram("interactive-startup-org", {
     (p: PhaseBuilder) =>
       p
         .activate("ceoCard", "vpEng", "vpSales")
-        .set("org", '[["Alice CEO",0],["Bob VP Eng",1],["Carol VP Sales",1]]'),
+        .set("org", '[["佐藤 社長",0],["鈴木 開発部長",1],["高橋 営業部長",1]]'),
   )
   .phase(
     "p3",
     {
       duration: 1800,
       title: "現場が増える",
-      body: "3 段目まで揃う。 名前が 10 文字を超える箱は末尾を省いて出ることが読み取れる。",
+      body: "3 段目まで揃う。 2 段目の 2 人の下に 3 人が並び、6 つの箱で組織の全体が読める。",
     },
     (p: PhaseBuilder) =>
       p
         .activate("ceoCard", "vpEng", "vpSales", "icDan", "icEve", "icFrank")
         .set(
           "org",
-          '[["Alice CEO",0],["Bob VP Eng",1],["Carol VP Sales",1],["Dan Eng",2],["Eve Eng",2],["Frank Sales",2]]',
+          '[["佐藤 社長",0],["鈴木 開発部長",1],["高橋 営業部長",1],["田中 開発",2],["伊藤 開発",2],["渡辺 営業",2]]',
         ),
   )
   .build();
@@ -9479,26 +9479,26 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
   .state("cur", { initial: 82 })
   .state("prev", { initial: 75 })
   .arraySignal("hist", [60, 65, 70, 75, 80, 82])
-  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "Current", subtitle: "今月の値" })
+  .node("curCard", { lane: "cur", stack: 0, kind: "card", title: "今月", subtitle: "大きく出る数" })
   .node("prevCard", {
     lane: "delta",
     stack: 0,
     kind: "card",
-    title: "Previous",
-    subtitle: "先月の値",
+    title: "先月",
+    subtitle: "差を求めるもとの数",
   })
   .node("deltaCard", {
     lane: "delta",
     stack: 1,
     kind: "card",
-    title: "Delta",
+    title: "差",
     subtitle: "今月 - 先月の差",
   })
   .node("histCard", {
     lane: "hist",
     stack: 0,
     kind: "card",
-    title: "History",
+    title: "推移",
     subtitle: "折れ線のもとになる並び",
   })
   .edge("curCard", "prevCard", { label: "比べる", tone: "info" })
@@ -9510,7 +9510,7 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
     unit: "",
     colorPos: "#22c55e",
     colorNeg: "#ef4444",
-    label: "NPS trend",
+    label: "NPS の推移",
   })
   .phase(
     "p1",
@@ -9576,24 +9576,24 @@ export const postReactionPoll = diagram("interactive-post-reaction-poll", {
     lane: "thumbs",
     stack: 0,
     kind: "card",
-    title: "👍 Thumbs",
+    title: "👍 いいね",
     subtitle: "票が最も多い絵文字",
   })
   .node("heartCard", {
     lane: "heart",
     stack: 0,
     kind: "card",
-    title: "❤️ Heart",
+    title: "❤️ 好き",
     subtitle: "次に多い絵文字",
   })
   .node("partyCard", {
     lane: "party",
     stack: 0,
     kind: "card",
-    title: "🎉 Party",
+    title: "🎉 お祝い",
     subtitle: "票が最も少ない絵文字",
   })
-  .readout.quickPollEmoji("qp", { source: "votes", colorWinner: "#2563eb", label: "Reactions" })
+  .readout.quickPollEmoji("qp", { source: "votes", colorWinner: "#2563eb", label: "反応" })
   .phase(
     "p1",
     {
@@ -9723,7 +9723,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
   .lane("unread", { x: 0, width: 220 })
   .lane("participants", { x: 260, width: 220 })
   .lane("activity", { x: 520, width: 260 })
-  .arraySignal("thread", [5, 8, "Alice", "12 分前"] as unknown as (string | number)[])
+  .arraySignal("thread", [5, 8, "佐藤", "12 分前"] as unknown as (string | number)[])
   .node("unreadCard", {
     lane: "unread",
     stack: 0,
@@ -9763,7 +9763,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
       body: "未読が 0。 赤い丸だけが消え、人数と直近の発言者と経過の 3 行は残る。",
     },
     (p: PhaseBuilder) =>
-      p.activate("partCard").set("thread", '[0,4,"Bob","2 時間前"]').badge("静か"),
+      p.activate("partCard").set("thread", '[0,4,"鈴木","2 時間前"]').badge("静か"),
   )
   .phase(
     "p2",
@@ -9775,7 +9775,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
     (p: PhaseBuilder) =>
       p
         .activate("unreadCard", "partCard", "authorCard")
-        .set("thread", '[3,6,"Carol","25 分前"]')
+        .set("thread", '[3,6,"高橋","25 分前"]')
         .badge("新着"),
   )
   .phase(
@@ -9788,7 +9788,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
     (p: PhaseBuilder) =>
       p
         .activate("unreadCard", "partCard", "authorCard", "timeCard")
-        .set("thread", '[5,8,"Alice","12 分前"]')
+        .set("thread", '[5,8,"佐藤","12 分前"]')
         .badge("混雑"),
   )
   .build();
@@ -9842,7 +9842,7 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
     {
       duration: 1500,
       title: "送信",
-      body: "status = 0、 送信 lane のみ active、 readout に灰の単チェック表示 (送信済 but 未配信)。",
+      body: "状態は 0。 送信の列だけが光り、灰の単チェックが出る (送ったが、まだ届いていない)。",
     },
     (p: PhaseBuilder) => p.activate("sentCard").set("status", 0).badge("送信"),
   )
@@ -9851,7 +9851,7 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
     {
       duration: 1500,
       title: "配信完了",
-      body: "status = 1 に切替、 配信 lane 追加 activate、 readout が灰の二重チェックに変化 (配信 but 未読)。",
+      body: "状態を 1 にすると配信の列も光り、灰の二重チェックに変わる (届いたが、まだ読まれていない)。",
     },
     (p: PhaseBuilder) => p.activate("sentCard", "deliveredCard").set("status", 1).badge("配信"),
   )
@@ -9860,7 +9860,7 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
     {
       duration: 1500,
       title: "既読",
-      body: "status = 2 に切替、 既読 lane 追加 activate、 readout の二重チェックが青に変化 (既読確認)。",
+      body: "状態を 2 にすると既読の列も光り、二重チェックが青に変わる (読まれたことが分かる)。",
     },
     (p: PhaseBuilder) =>
       p.activate("sentCard", "deliveredCard", "readCard").set("status", 2).badge("既読"),
@@ -9883,43 +9883,43 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
     lane: "input",
     stack: 0,
     kind: "card",
-    title: "◆ password",
-    subtitle: "現在 level {pw} · マスク表示",
+    title: "◆ パスワード",
+    subtitle: "いまの段階 {pw} · 伏せ字で出す",
   })
   .node("meterBars", {
     lane: "meter",
     stack: 0,
     kind: "card",
-    title: "4 セグメント メーター",
-    subtitle: "level {pw} 分だけ着色",
+    title: "4 区切りのメーター",
+    subtitle: "段階 {pw} の数だけ色が付く",
   })
   .node("levelLabel", {
     lane: "meter",
     stack: 1,
     kind: "card",
-    title: "level ラベル",
-    subtitle: "メーター色と同色 tint",
+    title: "段階の名前",
+    subtitle: "メーターと同じ色で出る",
   })
   .node("rule1", {
     lane: "rules",
     stack: 0,
     kind: "card",
     title: "✓ 8 文字以上",
-    subtitle: "level ≥ 1 で pass",
+    subtitle: "段階 1 以上で満たす",
   })
   .node("rule2", {
     lane: "rules",
     stack: 1,
     kind: "card",
     title: "✓ 大小混合",
-    subtitle: "level ≥ 2 で pass",
+    subtitle: "段階 2 以上で満たす",
   })
   .node("rule3", {
     lane: "rules",
     stack: 2,
     kind: "card",
     title: "✓ 数字 + 記号",
-    subtitle: "level ≥ 3 で pass",
+    subtitle: "段階 3 以上で満たす",
   })
   .edge("pwField", "meterBars", { label: "評価", tone: "info" })
   .edge("meterBars", "levelLabel", { label: "注釈", tone: "success" })
@@ -9933,8 +9933,8 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
     "p1",
     {
       duration: 1500,
-      title: "弱い (level 1)",
-      body: "初期入力、 pw = 1、 meter 1 セグメント赤、 rule1 のみ pass、 入力 + メーター lane が active。",
+      title: "弱い (段階 1)",
+      body: "最初の入力で段階は 1。 メーターは 1 区切りだけ赤く、満たす決まりは 8 文字以上の 1 つだけ。 入力とメーターの列が光る。",
     },
     (p: PhaseBuilder) => p.activate("pwField", "meterBars", "rule1").set("pw", 1).badge("弱い"),
   )
@@ -9942,8 +9942,8 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
     "p2",
     {
       duration: 2000,
-      title: "改善中 (level 1 → 3)",
-      body: "文字追加 + 大小混合、 pw を 1 → 3 まで tween、 meter が赤 → 橙 → 黄 → 黄緑と連続変化、 rule2 + rule3 追加 activate。",
+      title: "改善中 (段階 1 → 3)",
+      body: "文字を足して大文字と小文字を混ぜ、段階が 1 から 3 へ上がる。 メーターが赤から橙、黄、黄緑へ続けて変わり、残り 2 つの決まりも光る。",
     },
     (p: PhaseBuilder) =>
       p
@@ -9955,8 +9955,8 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
     "p3",
     {
       duration: 1500,
-      title: "強い (level 4)",
-      body: "数字 + 記号追加で pw = 4、 meter 全 4 セグメント緑、 全 rule pass、 6 node 全 active。",
+      title: "強い (段階 4)",
+      body: "数字と記号を足して段階が 4 になる。 メーターは 4 区切りすべてが緑になり、決まりを全部満たして 6 つの箱がすべて光る。",
     },
     (p: PhaseBuilder) =>
       p
@@ -10008,7 +10008,7 @@ export const loginOtpVerify = diagram("interactive-login-otp-verify", {
   })
   .edge("sentCard", "entryCard", { label: "ユーザ入力", tone: "info" })
   .edge("entryCard", "verifyCard", { label: "自動送信", tone: "success" })
-  .readout.otpInput("oi", { source: "otp", colorFocus: "#2563eb", label: "OTP コード" })
+  .readout.otpInput("oi", { source: "otp", colorFocus: "#2563eb", label: "確認コード" })
   .phase(
     "p1",
     {
@@ -10063,14 +10063,14 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
     kind: "card",
     w: 280,
     title: "未選択",
-    subtitle: "破線枠 · '⬆ ここにドロップ'",
+    subtitle: "破線の枠と上向きの矢印",
   })
   .node("uploadedCard", {
     lane: "col2",
     stack: 0,
     kind: "card",
     w: 310,
-    title: "◆ avatar.png",
+    title: "◆ 顔写真.png",
     subtitle: "実線枠 · ファイル名カード",
   })
   .node("previewCard", {
@@ -10081,7 +10081,7 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
     title: "▶ 円形アバター",
     subtitle: "80×80 クロップ表示",
   })
-  .edge("emptyCard", "uploadedCard", { label: "drop", tone: "info" })
+  .edge("emptyCard", "uploadedCard", { label: "置く", tone: "info" })
   .edge("uploadedCard", "previewCard", { label: "プレビュー", tone: "success" })
   .readout.fileDropzone("fd", {
     source: "file",
@@ -10093,7 +10093,7 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
     {
       duration: 1500,
       title: "未選択",
-      body: "file = ''、 未選択の card のみ active、 dropzone は破線枠 + '⬆ ここにドロップ' のプロンプト表示。",
+      body: "ファイルは空。 未選択の箱だけが光り、置き場は破線の枠に上向きの矢印と案内を出す。",
     },
     (p: PhaseBuilder) => p.activate("emptyCard").set("file", "").badge("未選択"),
   )
@@ -10102,22 +10102,22 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
     {
       duration: 2000,
       title: "ドロップ受信",
-      body: "file を空 → 'avatar.png' に切替、 アップロードの card を追加 activate、 dropzone が実線枠 + ファイル名カード表示に変化。",
+      body: "ファイルを空から「顔写真.png」 に切り替え、アップロードの箱も光る。 置き場は実線の枠に変わり、ファイル名の札を出す。",
     },
     (p: PhaseBuilder) =>
-      p.activate("emptyCard", "uploadedCard").set("file", "avatar.png").badge("アップロード"),
+      p.activate("emptyCard", "uploadedCard").set("file", "顔写真.png").badge("アップロード"),
   )
   .phase(
     "p3",
     {
       duration: 1500,
       title: "プレビュー表示",
-      body: "アップロード完了、 プレビューの card を追加 activate、 円形クロップされたアバターが表示、 3 node 全 highlight。",
+      body: "アップロードが終わり、プレビューの箱も光る。 丸く切り抜いた顔写真が出て、3 つの箱がすべて光る。",
     },
     (p: PhaseBuilder) =>
       p
         .activate("emptyCard", "uploadedCard", "previewCard")
-        .set("file", "avatar.png")
+        .set("file", "顔写真.png")
         .badge("完了"),
   )
   .build();
@@ -10134,11 +10134,11 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
   .lane("level", { x: 200, width: 140 })
   .lane("msg", { x: 360, width: 340 })
   .arraySignal("logs", [
-    ["09:00:12", 1, "server 起動完了"],
-    ["09:00:15", 1, "db connection pool 20"],
+    ["09:00:12", 1, "サーバの起動が済んだ"],
+    ["09:00:15", 1, "DB の接続の枠 20"],
     ["09:01:03", 2, "メモリ使用率 82%"],
-    ["09:01:47", 3, "worker crash: OOM"],
-    ["09:02:02", 1, "worker 再起動 ok"],
+    ["09:01:47", 3, "ワーカーが落ちた: メモリ不足"],
+    ["09:02:02", 1, "ワーカーを再起動した"],
   ] as unknown as (string | number)[])
   .node("tsCard", {
     lane: "ts",
@@ -10177,7 +10177,7 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
   })
   .edge("tsCard", "levelCard", { label: "分類", tone: "info" })
   .edge("levelCard", "errRow", { label: "重篤化", tone: "error" })
-  .readout.logStream("ls", { source: "logs", label: "ログ tail" })
+  .readout.logStream("ls", { source: "logs", label: "ログの末尾" })
   .phase(
     "p1",
     {
@@ -10188,7 +10188,7 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
     (p: PhaseBuilder) =>
       p
         .activate("tsCard", "levelCard", "infoRow")
-        .set("logs", '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"]]')
+        .set("logs", '[["09:00:12",1,"サーバの起動が済んだ"],["09:00:15",1,"DB の接続の枠 20"]]')
         .badge("通常"),
   )
   .phase(
@@ -10203,7 +10203,7 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
         .activate("tsCard", "levelCard", "infoRow", "warnRow")
         .set(
           "logs",
-          '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"],["09:01:03",2,"メモリ使用率 82%"]]',
+          '[["09:00:12",1,"サーバの起動が済んだ"],["09:00:15",1,"DB の接続の枠 20"],["09:01:03",2,"メモリ使用率 82%"]]',
         )
         .badge("警告"),
   )
@@ -10219,7 +10219,7 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
         .activate("tsCard", "levelCard", "infoRow", "warnRow", "errRow")
         .set(
           "logs",
-          '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"],["09:01:03",2,"メモリ使用率 82%"],["09:01:47",3,"worker crash: OOM"],["09:02:02",1,"worker 再起動 ok"],["09:02:30",1,"health check ok"]]',
+          '[["09:00:12",1,"サーバの起動が済んだ"],["09:00:15",1,"DB の接続の枠 20"],["09:01:03",2,"メモリ使用率 82%"],["09:01:47",3,"ワーカーが落ちた: メモリ不足"],["09:02:02",1,"ワーカーを再起動した"],["09:02:30",1,"死活監視で正常"]]',
         )
         .badge("障害"),
   )
@@ -10276,7 +10276,7 @@ export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
       body: "重要度が最も低い。 帯は青で、印は情報を表す形になる。",
     },
     (p: PhaseBuilder) =>
-      p.activate("triggerCard", "sevCard").set("alert", '[0,"CPU 68% — 通常の範囲"]').badge("info"),
+      p.activate("triggerCard", "sevCard").set("alert", '[0,"CPU 68% — 通常の範囲"]').badge("情報"),
   )
   .phase(
     "p2",
@@ -10289,7 +10289,7 @@ export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
       p
         .activate("triggerCard", "sevCard", "iconCard")
         .set("alert", '[2,"CPU 92% を 5 分継続 — 調査要"]')
-        .badge("warn"),
+        .badge("注意"),
   )
   .phase(
     "p3",
@@ -10301,8 +10301,8 @@ export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
     (p: PhaseBuilder) =>
       p
         .activate("triggerCard", "sevCard", "iconCard", "actionCard")
-        .set("alert", '[3,"prod-web-3 応答なし — 全系統の切替が要る"]')
-        .badge("error"),
+        .set("alert", '[3,"本番機 3 号が応答なし — 切替が要る"]')
+        .badge("異常"),
   )
   .build();
 export const subtitle__opsAlertBanner =
@@ -10318,53 +10318,53 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
   .lane("deg", { x: 280, width: 240 })
   .lane("down", { x: 560, width: 240 })
   .arraySignal("svcs", [
-    ["api", 2],
-    ["web", 2],
-    ["auth", 2],
-    ["db", 1],
-    ["cache", 1],
-    ["queue", 0],
+    ["API", 2],
+    ["画面", 2],
+    ["認証", 2],
+    ["DB", 1],
+    ["一時保存", 1],
+    ["待ち行列", 0],
   ] as unknown as (string | number)[])
   .node("apiCard", {
     lane: "up",
     stack: 0,
     kind: "card",
-    title: "api",
+    title: "API",
     subtitle: "稼働を表す緑のマス",
   })
   .node("webCard", {
     lane: "up",
     stack: 1,
     kind: "card",
-    title: "web",
+    title: "画面",
     subtitle: "稼働を表す緑のマス",
   })
   .node("authCard", {
     lane: "up",
     stack: 2,
     kind: "card",
-    title: "auth",
+    title: "認証",
     subtitle: "稼働を表す緑のマス",
   })
   .node("dbCard", {
     lane: "deg",
     stack: 0,
     kind: "card",
-    title: "db",
+    title: "DB",
     subtitle: "劣化を表す黄のマス",
   })
   .node("cacheCard", {
     lane: "deg",
     stack: 1,
     kind: "card",
-    title: "cache",
+    title: "一時保存",
     subtitle: "劣化を表す黄のマス",
   })
   .node("queueCard", {
     lane: "down",
     stack: 0,
     kind: "card",
-    title: "queue",
+    title: "待ち行列",
     subtitle: "停止を表す赤のマス",
   })
   .edge("dbCard", "queueCard", { label: "波及", tone: "error" })
@@ -10379,7 +10379,7 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
     (p: PhaseBuilder) =>
       p
         .activate("apiCard", "webCard", "authCard")
-        .set("svcs", '[["api",2],["web",2],["auth",2],["db",2],["cache",2],["queue",2]]')
+        .set("svcs", '[["API",2],["画面",2],["認証",2],["DB",2],["一時保存",2],["待ち行列",2]]')
         .badge("全稼働"),
   )
   .phase(
@@ -10392,7 +10392,7 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
     (p: PhaseBuilder) =>
       p
         .activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard")
-        .set("svcs", '[["api",2],["web",2],["auth",2],["db",1],["cache",1],["queue",2]]')
+        .set("svcs", '[["API",2],["画面",2],["認証",2],["DB",1],["一時保存",1],["待ち行列",2]]')
         .badge("劣化"),
   )
   .phase(
@@ -10405,7 +10405,7 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
     (p: PhaseBuilder) =>
       p
         .activate("apiCard", "webCard", "authCard", "dbCard", "cacheCard", "queueCard")
-        .set("svcs", '[["api",2],["web",2],["auth",2],["db",1],["cache",1],["queue",0]]')
+        .set("svcs", '[["API",2],["画面",2],["認証",2],["DB",1],["一時保存",1],["待ち行列",0]]')
         .badge("障害"),
   )
   .build();
@@ -10508,17 +10508,17 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
   .lane("starter", { x: 0, width: 240 })
   .lane("pro", { x: 280, width: 240 })
   .lane("enterprise", { x: 560, width: 260 })
-  .arraySignal("plan", ["Pro", 29, "10 席", "優先サポート", "カスタムドメイン"] as unknown as (
+  .arraySignal("plan", ["標準", 29, "10 席", "優先サポート", "カスタムドメイン"] as unknown as (
     string | number
   )[])
   .node("starterCard", {
     lane: "starter",
     stack: 0,
     kind: "card",
-    title: "Starter",
+    title: "入門",
     subtitle: "最も安いプラン",
   })
-  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "Pro", subtitle: "中間のプラン" })
+  .node("proCard", { lane: "pro", stack: 0, kind: "card", title: "標準", subtitle: "中間のプラン" })
   .node("proBadge", {
     lane: "pro",
     stack: 1,
@@ -10530,7 +10530,7 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
     lane: "enterprise",
     stack: 0,
     kind: "card",
-    title: "Enterprise",
+    title: "法人",
     subtitle: "最も高いプラン",
   })
   .edge("starterCard", "proCard", { label: "アップグレード", tone: "info" })
@@ -10549,7 +10549,7 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
       body: "名前と価格と特典 1 つが出る。 3 つ目以降が特典として並ぶ形が読める。",
     },
     (p: PhaseBuilder) =>
-      p.activate("starterCard").set("plan", '["Starter",9,"3 席"]').badge("Starter"),
+      p.activate("starterCard").set("plan", '["入門",9,"3 席"]').badge("入門"),
   )
   .phase(
     "p2",
@@ -10561,8 +10561,8 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
     (p: PhaseBuilder) =>
       p
         .activate("starterCard", "proCard", "proBadge")
-        .set("plan", '["Pro",29,"10 席","優先サポート","カスタムドメイン"]')
-        .badge("Pro"),
+        .set("plan", '["標準",29,"10 席","優先サポート","カスタムドメイン"]')
+        .badge("標準"),
   )
   .phase(
     "p3",
@@ -10574,7 +10574,7 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
     (p: PhaseBuilder) =>
       p
         .activate("starterCard", "proCard", "proBadge", "enterpriseCard")
-        .set("plan", '["Enterprise",99,"無制限の席","専任の担当","監査ログ","SSO 連携","SLA 保証"]')
+        .set("plan", '["法人",99,"無制限の席","専任の担当","監査ログ","一括ログイン","稼働の保証"]')
         .badge("比較"),
   )
   .build();
@@ -10590,7 +10590,7 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
   .lane("empty", { x: 0, width: 240 })
   .lane("entered", { x: 280, width: 240 })
   .lane("applied", { x: 560, width: 240 })
-  .arraySignal("coupon", ["SAVE20", 20] as unknown as (string | number)[])
+  .arraySignal("coupon", ["春割20", 20] as unknown as (string | number)[])
   .node("emptyCard", {
     lane: "empty",
     stack: 0,
@@ -10641,7 +10641,7 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
     (p: PhaseBuilder) =>
       p
         .activate("emptyCard", "enteredCard", "applyBtn")
-        .set("coupon", '["SAVE20",0]')
+        .set("coupon", '["春割20",0]')
         .badge("入力済"),
   )
   .phase(
@@ -10654,7 +10654,7 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
     (p: PhaseBuilder) =>
       p
         .activate("emptyCard", "enteredCard", "applyBtn", "appliedCard")
-        .set("coupon", '["SAVE20",20]')
+        .set("coupon", '["春割20",20]')
         .badge("適用"),
   )
   .build();
@@ -10672,8 +10672,8 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
   .lane("meta", { x: 560, width: 220 })
   .arraySignal("article", [
     "dragon 入門",
-    "dragon で interactive diagram を作る方法を解説",
-    "Alice",
+    "dragon で操作できる図を作る",
+    "佐藤",
     "2 時間前",
   ] as unknown as (string | number)[])
   .node("thumbCard", {
@@ -10688,14 +10688,14 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
     stack: 0,
     kind: "card",
     title: "タイトル",
-    subtitle: "長いと末尾を省いて出る見出し",
+    subtitle: "札の上に太字で出る見出し",
   })
   .node("excerptCard", {
     lane: "content",
     stack: 1,
     kind: "card",
     title: "抜粋",
-    subtitle: "折り返して出る本文",
+    subtitle: "見出しの下に出る本文",
   })
   .node("authorCard", {
     lane: "meta",
@@ -10713,7 +10713,7 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
   })
   .edge("thumbCard", "titleCard", { label: "視線", tone: "info" })
   .edge("titleCard", "authorCard", { label: "帰属", tone: "success" })
-  .readout.articlePreview("ap", { source: "article", colorAccent: "#2563eb", label: "記事 card" })
+  .readout.articlePreview("ap", { source: "article", colorAccent: "#2563eb", label: "記事カード" })
   .phase(
     "p1",
     {
@@ -10724,40 +10724,40 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
     (p: PhaseBuilder) =>
       p
         .activate("thumbCard", "titleCard")
-        .set("article", '["入門","はじめの一歩","Bob","5 分前"]')
+        .set("article", '["入門","はじめの一歩","鈴木","5 分前"]')
         .badge("初期"),
   )
   .phase(
     "p2",
     {
       duration: 1800,
-      title: "抜粋が伸びる",
-      body: "抜粋が 2 行に分かれる。 1 行目は 28 文字で切れて省略記号が付き、残りが 2 行目に出る。",
+      title: "題と抜粋が伸びる",
+      body: "題と抜粋が長くなる。 どちらも札の幅に収まる長さで、4 つの値の位置は変わらない。",
     },
     (p: PhaseBuilder) =>
       p
         .activate("thumbCard", "titleCard", "excerptCard")
         .set(
           "article",
-          '["dragon 入門","dragon で interactive diagram を作る方法を解説","Alice","2 時間前"]',
+          '["dragon 入門","dragon で操作できる図を作る","佐藤","2 時間前"]',
         )
-        .badge("hover"),
+        .badge("かざす"),
   )
   .phase(
     "p3",
     {
       duration: 1800,
-      title: "題も伸びる",
-      body: "題が 26 文字を超える。 題も末尾を省いて出るため、1 行に収まる形が保たれる。",
+      title: "別の記事",
+      body: "4 つの値がすべて別の記事のものに入れ替わる。 札の形は変わらず、著者と経過の行も入れ替わる。",
     },
     (p: PhaseBuilder) =>
       p
         .activate("thumbCard", "titleCard", "excerptCard", "authorCard", "timeCard")
         .set(
           "article",
-          '["dragon で作る interactive diagram の完全ガイド 2026 年版","段ごとの変化と表示部品の連動を実例つきで最初から順に解説する長い記事","Carol","3 日前"]',
+          '["操作できる図の手引き 2026 年版","段ごとの変化と表示部品の連動を解説","高橋","3 日前"]',
         )
-        .badge("click"),
+        .badge("押す"),
   )
   .build();
 export const subtitle__blogArticlePreview =
@@ -10826,7 +10826,7 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
   .edge("introCard", "gsCard", { label: "次へ", tone: "info" })
   .edge("gsCard", "installCard", { label: "子", tone: "accent" })
   .edge("gsCard", "firstCard", { label: "現在", tone: "success" })
-  .readout.tocNav("tn", { source: "toc", colorActive: "#2563eb", label: "ドキュメント TOC" })
+  .readout.tocNav("tn", { source: "toc", colorActive: "#2563eb", label: "文書の目次" })
   .phase(
     "p1",
     {
@@ -10841,7 +10841,7 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
           "toc",
           '[[0,"はじめに",1],[1,"スタートガイド",0],[2,"インストール",0],[2,"最初の図",0],[1,"高度な使い方",0],[0,"API リファレンス",0]]',
         )
-        .badge("Intro"),
+        .badge("はじめに"),
   )
   .phase(
     "p2",
@@ -10857,7 +10857,7 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
           "toc",
           '[[0,"はじめに",0],[1,"スタートガイド",1],[2,"インストール",0],[2,"最初の図",0],[1,"高度な使い方",0],[0,"API リファレンス",0]]',
         )
-        .badge("GS"),
+        .badge("導入"),
   )
   .phase(
     "p3",
@@ -10873,7 +10873,7 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
           "toc",
           '[[0,"はじめに",0],[1,"スタートガイド",0],[2,"インストール",0],[2,"最初の図",1],[1,"高度な使い方",0],[0,"API リファレンス",0]]',
         )
-        .badge("First"),
+        .badge("最初の図"),
   )
   .build();
 export const subtitle__docsTocNav =
@@ -10894,14 +10894,14 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
     ["li", 32],
     ["rd", 18],
   ] as unknown as (string | number)[])
-  .node("twCard", { lane: "tw", stack: 0, kind: "card", title: "tw", subtitle: "共有が最も多い先" })
-  .node("fbCard", { lane: "fb", stack: 0, kind: "card", title: "fb", subtitle: "次に多い先" })
-  .node("liCard", { lane: "li", stack: 0, kind: "card", title: "li", subtitle: "中ほどの先" })
+  .node("twCard", { lane: "tw", stack: 0, kind: "card", title: "X (tw)", subtitle: "共有が最も多い先" })
+  .node("fbCard", { lane: "fb", stack: 0, kind: "card", title: "フェイスブック (fb)", subtitle: "次に多い先" })
+  .node("liCard", { lane: "li", stack: 0, kind: "card", title: "リンクトイン (li)", subtitle: "中ほどの先" })
   .node("rdCard", {
     lane: "li",
     stack: 1,
     kind: "card",
-    title: "rd",
+    title: "レディット (rd)",
     subtitle: "共有が最も少ない先",
   })
   .edge("twCard", "fbCard", { label: "拡散", tone: "info" })
@@ -10941,7 +10941,7 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
     (p: PhaseBuilder) =>
       p
         .activate("twCard", "fbCard", "liCard", "rdCard")
-        .set("shares", '[["tw",245],["fb",89],["li",32],["rd",18],["hn",6]]')
+        .set("shares", '[["tw",245],["fb",89],["li",32],["rd",18],["ig",6]]')
         .badge("バズ"),
   )
   .build();
@@ -10966,7 +10966,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     stack: 0,
     kind: "shape-person",
     title: "田中様",
-    eyebrow: "customer",
+    eyebrow: "顧客",
     subtitle: "購入者",
   })
   .node("mobile", {
@@ -10974,62 +10974,62 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     stack: 1,
     kind: "shape-mobile-device",
     title: "iPhone",
-    eyebrow: "device",
-    subtitle: "Safari / iOS 17",
+    eyebrow: "端末",
+    subtitle: "iOS 17 のブラウザ",
   })
   .node("card", {
     lane: "customer-lane",
     stack: 2,
     kind: "shape-credit-card",
     title: "VISA **1234",
-    eyebrow: "card",
-    subtitle: "MUFG 発行",
+    eyebrow: "カード",
+    subtitle: "発行銀行のカード",
   })
   .node("shop", {
     lane: "processor",
     stack: 0,
     kind: "shape-online-shop",
-    title: "BuyNow",
-    eyebrow: "merchant",
-    subtitle: "checkout · ¥{amount}",
+    title: "ひだまり雑貨店",
+    eyebrow: "加盟店",
+    subtitle: "会計 · ¥{amount}",
   })
   .node("gateway", {
     lane: "processor",
     stack: 1,
     kind: "shape-api-gateway",
-    title: "API Gateway",
-    eyebrow: "gateway",
-    subtitle: "認証 + rate limit",
+    title: "API の入口",
+    eyebrow: "入口",
+    subtitle: "認証と回数の制限",
   })
   .node("provider", {
     lane: "processor",
     stack: 2,
     kind: "shape-payment-provider",
     title: "Stripe",
-    eyebrow: "provider",
-    subtitle: "3DS {auth3ds}%",
+    eyebrow: "決済代行",
+    subtitle: "本人認証 {auth3ds}%",
   })
   .node("bankShape", {
     lane: "bank",
     stack: 0,
     kind: "shape-bank",
-    title: "MUFG",
-    eyebrow: "issuer",
-    subtitle: "発行銀行 · 与信照会",
+    title: "発行銀行",
+    eyebrow: "銀行",
+    subtitle: "カードの発行元 · 与信照会",
   })
   .node("ledger", {
     lane: "bank",
     stack: 1,
     kind: "shape-cylinder",
     title: "取引台帳",
-    eyebrow: "database",
-    subtitle: "記帳 + 監査 log",
+    eyebrow: "記録",
+    subtitle: "記帳と監査の記録",
   })
   .edge("customer", "mobile", { label: "操作", tone: "info" })
   .edge("mobile", "shop", { label: "購入", tone: "info" })
-  .edge("shop", "gateway", { label: "POST /pay", tone: "info" })
+  .edge("shop", "gateway", { label: "購入を送る", tone: "info" })
   .edge("gateway", "provider", { label: "転送", tone: "info" })
-  .edge("card", "provider", { label: "3DS 認証", tone: "accent" })
+  .edge("card", "provider", { label: "本人認証", tone: "accent" })
   .edge("provider", "bankShape", { label: "決済要求", tone: "success" })
   .edge("bankShape", "ledger", { label: "記帳", tone: "success" })
   .readout.stat("amountStat", { source: "amount", unit: " 円", caption: "決済金額", label: "金額" })
@@ -11038,16 +11038,16 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     min: 0,
     max: 100,
     color: "#22c55e",
-    label: "3DS 認証 %",
+    label: "本人認証 %",
   })
-  .readout.trafficLight("statusTL", { source: "txStatus", label: "決済 status" })
-  .readout.countup("totalCU", { source: "totalTx", unit: " 件", label: "本日累計 tx", decimals: 0 })
+  .readout.trafficLight("statusTL", { source: "txStatus", label: "決済の状態" })
+  .readout.countup("totalCU", { source: "totalTx", unit: " 件", label: "本日の取引の累計", decimals: 0 })
   .phase(
     "p1",
     {
       duration: 2200,
       title: "商品購入",
-      body: "田中様が iPhone で BuyNow にアクセス、 checkout で購入決定。 amount 0 → 12500 tween (stat 金額上昇)、 txStatus = 0 (traffic-light 赤)、 auth3ds = 0 (gauge 針最下)。 顧客 + shop lane が active。",
+      body: "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。 顧客と店の列が光る。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11061,22 +11061,22 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     "p2",
     {
       duration: 2500,
-      title: "3DS 認証",
-      body: "gateway 経由で Stripe に転送、 VISA カードの 3D-Secure 認証実行。 txStatus 0 → 1 tween (traffic-light 赤 → 黄)、 auth3ds 0 → 92% tween (gauge 針が緑域まで上昇)。 processor lane 全 activate、 card → provider の accent edge。",
+      title: "本人認証",
+      body: "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 処理の列がすべて光り、カードから決済代行への矢印が強調される。",
     },
     (p: PhaseBuilder) =>
       p
         .activate("customer", "mobile", "card", "shop", "gateway", "provider")
         .tween("txStatus", 0, 1)
         .tween("auth3ds", 0, 92)
-        .badge("3DS 認証"),
+        .badge("本人認証"),
   )
   .phase(
     "p3",
     {
       duration: 2000,
       title: "銀行確定",
-      body: "認証通過、 発行銀行 MUFG に与信照会 + 決済確定。 txStatus 1 → 2 tween (traffic-light 黄 → 緑)、 auth3ds 92 → 98% tween (最終確定)、 bank lane activate。",
+      body: "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定し、銀行の列が光る。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11090,7 +11090,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     {
       duration: 1800,
       title: "記帳完了",
-      body: "銀行が取引台帳に記帳 + 監査 log 記録、 totalTx 1247 → 1248 tween (countup が +1 加算表示、 800ms かけて動的 count up)、 全 8 shape active、 決済 flow 完遂。",
+      body: "銀行が取引台帳に記帳し、監査の記録を残す。 本日の取引の累計が 800ms かけて 1 件増え、8 つの形がすべて光って決済が終わる。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11130,64 +11130,64 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     stack: 0,
     kind: "shape-person",
     title: "山田様",
-    eyebrow: "user",
-    subtitle: "email + password 送信",
+    eyebrow: "利用者",
+    subtitle: "メールとパスワードを送る",
   })
   .node("mobile", {
     lane: "user",
     stack: 1,
     kind: "shape-mobile-device",
-    title: "Pixel 8",
-    eyebrow: "device",
-    subtitle: "Chrome / Android 14",
+    title: "スマートフォン",
+    eyebrow: "端末",
+    subtitle: "Android 14 のブラウザ",
   })
   .node("authApi", {
     lane: "auth",
     stack: 0,
     kind: "shape-server-rack",
-    title: "Auth API",
-    eyebrow: "server",
-    subtitle: "credential 一次検証",
+    title: "認証 API",
+    eyebrow: "サーバ",
+    subtitle: "資格情報の一次検証",
   })
   .node("mfaCheck", {
     lane: "auth",
     stack: 1,
     kind: "shape-diamond",
-    title: "2FA 要求?",
-    eyebrow: "decision",
-    subtitle: "TOTP 6 桁 or SMS",
+    title: "2 段階が要る?",
+    eyebrow: "分岐",
+    subtitle: "認証アプリの 6 桁か SMS",
   })
   .node("jwtSign", {
     lane: "auth",
     stack: 2,
     kind: "shape-hexagon",
     title: "JWT 発行器",
-    eyebrow: "signer",
-    subtitle: "RS256 · exp 1h",
+    eyebrow: "署名",
+    subtitle: "署名する · 有効は 1 時間",
   })
   .node("session", {
     lane: "session-lane",
     stack: 0,
     kind: "shape-cylinder",
     title: "Redis",
-    eyebrow: "cache",
-    subtitle: "TTL 3600s",
+    eyebrow: "一時保存",
+    subtitle: "保持は 3600 秒",
   })
   .node("token", {
     lane: "session-lane",
     stack: 1,
     kind: "shape-cloud",
-    title: "JWT token",
-    eyebrow: "response",
-    subtitle: "Bearer · 302 redirect",
+    title: "JWT トークン",
+    eyebrow: "応答",
+    subtitle: "応答に付けて返す · 画面を移す",
   })
   .edge("customer", "mobile", { label: "入力", tone: "info" })
-  .edge("mobile", "authApi", { label: "POST /login", tone: "info" })
-  .edge("authApi", "mfaCheck", { label: "一次 OK", tone: "success" })
-  .edge("mfaCheck", "jwtSign", { label: "2FA OK", tone: "success" })
-  .edge("jwtSign", "session", { label: "sid 保存", tone: "success" })
-  .edge("session", "token", { label: "token 発行", tone: "success" })
-  .readout.trafficLight("statusTL", { source: "authStatus", label: "認証 status (0/1/2)" })
+  .edge("mobile", "authApi", { label: "認証を求める", tone: "info" })
+  .edge("authApi", "mfaCheck", { label: "一次を通過", tone: "success" })
+  .edge("mfaCheck", "jwtSign", { label: "2 段階目を通過", tone: "success" })
+  .edge("jwtSign", "session", { label: "セッションを保存", tone: "success" })
+  .edge("session", "token", { label: "トークンを発行", tone: "success" })
+  .readout.trafficLight("statusTL", { source: "authStatus", label: "認証の状態 (0/1/2)" })
   .readout.countup("successCU", { source: "successLogin", unit: " 回", label: "本日成功ログイン" })
   .readout.gauge("rateGauge", {
     source: "failRate",
@@ -11208,7 +11208,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     {
       duration: 1500,
       title: "認証要求",
-      body: "山田様が Pixel でログイン画面に credential 送信。 authStatus = 0 (traffic-light 赤 = 未検証)、 latency 0 → 80ms tween (bar 立ち上がり)、 gauge 100%、 countup 保持。 user lane 全 active。",
+      body: "山田様がスマートフォンのログイン画面から資格情報を送る。 認証の状態は赤 (まだ確かめていない) で、応答時間の帯が 80ms まで立ち上がる。 利用者の列がすべて光る。",
     },
     (p: PhaseBuilder) =>
       p.activate("customer", "mobile").set("authStatus", 0).tween("latency", 0, 80).badge("要求"),
@@ -11218,7 +11218,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     {
       duration: 2000,
       title: "一次検証",
-      body: "Auth API が credential 照合、 hash 比較。 authStatus 0 → 1 tween (traffic-light 赤 → 黄)、 latency 80 → 220ms tween (bcrypt で bar 伸長)、 gauge 100 → 99% tween (失敗も少数計上)。 authApi + mfaCheck lane activate。",
+      body: "認証 API が資格情報を照らし合わせ、ハッシュを比べる。 認証の状態が赤から黄へ、応答時間が 220ms へ伸び、少数の失敗を数えて成功率が 99% に下がる。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11232,22 +11232,22 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     "p3",
     {
       duration: 2200,
-      title: "2FA 検証",
-      body: "TOTP 6 桁認証、 認証サーバが time-window 比較。 authStatus 1 → 1 保持 (traffic-light 黄)、 latency 220 → 350ms tween (2FA overhead で bar さらに伸長)、 mfaCheck diamond が pending 状態。",
+      title: "2 段階認証",
+      body: "認証アプリの 6 桁を、認証サーバが時刻の幅に照らして確かめる。 認証の状態は黄のまま、2 段階目の手間で応答時間が 350ms まで伸びる。",
     },
     (p: PhaseBuilder) =>
       p
         .activate("customer", "mobile", "authApi", "mfaCheck")
         .set("authStatus", 1)
         .tween("latency", 220, 350)
-        .badge("2FA"),
+        .badge("2 段階"),
   )
   .phase(
     "p4",
     {
       duration: 2000,
       title: "セッション発行",
-      body: "2FA 通過、 JWT 発行 + Redis に session 保存。 authStatus 1 → 2 tween (traffic-light 黄 → 緑)、 latency 350 → 180ms tween (bar 縮小)、 gauge 99 → 99% 維持、 jwtSign + session lane activate。",
+      body: "2 段階目を通り、JWT を発行して Redis にセッションを保存する。 認証の状態が黄から緑へ、応答時間が 180ms へ縮み、成功率は 99% のまま。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11261,7 +11261,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     {
       duration: 1800,
       title: "応答返却",
-      body: "JWT token を Bearer header で返却、 302 redirect。 successLogin 8421 → 8422 tween (countup が +1 加算表示、 900ms かけて動的)、 latency 180 → 50ms tween (最終)、 全 7 shape active。",
+      body: "JWT トークンを応答に付けて返し、画面を移す。 本日成功ログインが 900ms かけて 1 回増え、応答時間が 50ms まで縮んで 7 つの形がすべて光る。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11292,8 +11292,8 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     lane: "origin",
     stack: 0,
     kind: "shape-message-bubble",
-    title: "新着 message",
-    eyebrow: "trigger",
+    title: "新着の知らせ",
+    eyebrow: "きっかけ",
     subtitle: '"注文が発送されました"',
   })
   .node("kafka", {
@@ -11301,68 +11301,68 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     stack: 0,
     kind: "shape-stack",
     title: "Kafka キュー",
-    eyebrow: "queue",
-    subtitle: "残 {queued} 件 · TTL 300s",
+    eyebrow: "キュー",
+    subtitle: "残 {queued} 件 · 保持は 300 秒",
   })
   .node("fcm", {
     lane: "infra",
     stack: 1,
     kind: "shape-cloud",
-    title: "FCM Service",
-    eyebrow: "notification",
-    subtitle: "配信 batch 処理",
+    title: "配信サービス",
+    eyebrow: "通知",
+    subtitle: "まとめて配る処理",
   })
   .node("retryGate", {
     lane: "infra",
     stack: 2,
     kind: "shape-diamond",
-    title: "retry 判定",
-    eyebrow: "policy",
-    subtitle: "指数 backoff · 最大 3 回",
+    title: "再送の判定",
+    eyebrow: "方針",
+    subtitle: "間隔を倍に広げる · 最大 3 回",
   })
   .node("iphone", {
     lane: "devices",
     stack: 0,
     kind: "shape-mobile-device",
     title: "iPhone",
-    eyebrow: "device",
-    subtitle: "APNs 経由 · foreground",
+    eyebrow: "端末",
+    subtitle: "iOS の通知網 · 前面で受ける",
   })
   .node("pixel", {
     lane: "devices",
     stack: 1,
     kind: "shape-mobile-device",
-    title: "Pixel",
-    eyebrow: "device",
-    subtitle: "FCM 経由 · background",
+    title: "Android",
+    eyebrow: "端末",
+    subtitle: "Android の通知網 · 背面で受ける",
   })
   .node("galaxy", {
     lane: "devices",
     stack: 2,
     kind: "shape-mobile-device",
-    title: "Galaxy",
-    eyebrow: "device",
-    subtitle: "圏外 → retry 対象",
+    title: "タブレット",
+    eyebrow: "端末",
+    subtitle: "圏外 → 再送の対象",
   })
-  .edge("msg", "kafka", { label: "enqueue", tone: "info" })
-  .edge("kafka", "fcm", { label: "dequeue", tone: "info" })
+  .edge("msg", "kafka", { label: "積む", tone: "info" })
+  .edge("kafka", "fcm", { label: "取り出す", tone: "info" })
   .edge("fcm", "iphone", {
-    label: "APNs 配信",
+    label: "iOS へ配信",
     tone: "success",
     // 縦に走る区間の中点だと、 kafka → fcm の label と同じ高さ (y=438) に並んで 12px しか離れない。
     // 縦区間は y=272-604 と長いので上へ寄せる。 -160 まで動かすと折れ角に乗って自 path と接する。
     labelOffsetY: -120,
   })
-  .edge("fcm", "pixel", { label: "FCM 配信", tone: "success" })
+  .edge("fcm", "pixel", { label: "Android へ配信", tone: "success" })
   .edge("fcm", "galaxy", { label: "初回失敗", tone: "error" })
-  .edge("galaxy", "retryGate", { label: "retry 要求", tone: "warning" })
+  .edge("galaxy", "retryGate", { label: "再送を求める", tone: "warning" })
   .edge("retryGate", "fcm", { label: "再送指示", tone: "warning" })
   .readout.bar("queuedBar", {
     source: "queued",
     min: 0,
     max: 1000,
     color: "#f97316",
-    label: "queue 残",
+    label: "キューの残り",
   })
   .readout.countup("deliveredCU", {
     source: "delivered",
@@ -11387,8 +11387,8 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     "p1",
     {
       duration: 1800,
-      title: "event 発火",
-      body: "注文発送 event が発生、 message-bubble から Kafka キューに enqueue。 queued 0 → 1000 tween (bar が右に伸長)、 delivered = 0、 failed = 0、 deliveryRate = 0% (gauge 針最下)。 origin + queue が active。",
+      title: "通知のきっかけ",
+      body: "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。 知らせとキューが光る。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11404,7 +11404,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 2000,
       title: "キューイング",
-      body: "batch 化された 1000 件が処理待ち、 FCM Service が dequeue 開始。 queued 1000 → 800 tween (bar 縮小開始)、 fcm lane activate、 kafka → fcm edge が info tone で信号伝達。",
+      body: "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、配信サービスが光って、キューからの矢印に信号が流れる。",
     },
     (p: PhaseBuilder) =>
       p.activate("msg", "kafka", "fcm").tween("queued", 1000, 800).badge("キュー"),
@@ -11414,7 +11414,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 2500,
       title: "配信中",
-      body: "FCM が iPhone / Pixel / Galaxy へ fan-out 配信。 queued 800 → 50 tween (bar 大幅縮小)、 delivered 0 → 920 tween (countup が加速的 count up、 500/s peak)、 failed 0 → 80 tween、 deliveryRate 0 → 92% tween (gauge 針上昇)。 3 device 全 activate、 Galaxy は失敗 edge (error tone)。",
+      body: "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 3 台とも光り、タブレットへの矢印は失敗の赤になる。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11430,7 +11430,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 1800,
       title: "初回到達",
-      body: "iPhone + Pixel は成功受信、 Galaxy は圏外で失敗。 queued 50 → 20 tween、 delivered 920 → 950 tween、 failed 80 → 50 tween、 deliveryRate 92 → 95% tween。 全 shape active。",
+      body: "iPhone と Android 端末は受け取り、タブレットは圏外で届かない。 キューの残りが 20 件、配信成功が 950 件、失敗が 50 件、配信成功率が 95% になる。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11446,7 +11446,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 2000,
       title: "リトライ",
-      body: "失敗 50 件を retryGate が指数 backoff で再送、 Galaxy 圏内復帰後に配信成功。 queued 20 → 0 tween (bar 消失)、 delivered 950 → 992 tween (countup 最終)、 failed 50 → 8 tween (stat 減少)、 deliveryRate 95 → 99% tween (gauge 針最終)。 retryGate diamond が highlight。",
+      body: "失敗した 50 件を、再送の判定が間隔を倍に広げながら送り直し、圏内に戻ったタブレットにも届く。 キューの残りが 0 件、配信成功が 992 件、失敗が 8 件、配信成功率が 99% になり、再送の判定が光る。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11455,7 +11455,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
         .tween("delivered", 950, 992)
         .tween("failed", 50, 8)
         .tween("deliveryRate", 95, 99)
-        .badge("retry"),
+        .badge("再送"),
   )
   .build();
 export const subtitle__exemplarNotificationFlow =
@@ -16238,7 +16238,7 @@ export const sourceYaml__monthCalendarView = `title: "1 か月を週ごとに並
 type: flow
 
 readouts:
-  cm: { kind: calendar-month, source: "days", monthName: "January 2026", color: "#2563eb", label: "Month view (7 column grid)" }
+  cm: { kind: calendar-month, source: "days", monthName: "2026 年 1 月", color: "#2563eb", label: "1 か月 (7 列の升目)" }
 
 lanes:
   w1: { x: 0, width: 150 }
@@ -16250,25 +16250,25 @@ states:
   days: "[[1,false,false],[2,false,false],[3,true,false],[4,false,false],[5,false,false],[6,false,false],[7,false,false],[8,true,false],[9,false,false],[10,false,false],[11,false,false],[12,true,false],[13,false,true],[14,false,false],[15,false,false],[16,false,false],[17,true,false],[18,false,false],[19,false,false],[20,false,false],[21,false,false],[22,true,false],[23,false,false],[24,false,false],[25,false,false],[26,true,false],[27,false,false],[28,false,false],[29,false,false],[30,false,false],[31,false,false]]"
 
 actors:
-  - Week 1: { kind: card, lane: w1, stack: 0, subtitle: "月の最初の週" }
-  - Week 2: { kind: card, lane: w2, stack: 0, subtitle: "今日を含む週" }
-  - Week 3: { kind: card, lane: w3, stack: 0, subtitle: "月の半ばの週" }
-  - Week 4-5: { kind: card, lane: w4, stack: 0, subtitle: "月の終わりの週" }
-  - Month total: { kind: card, lane: w4, stack: 1, subtitle: "月ぜんたいのまとめ" }
+  - 第 1 週: { kind: card, lane: w1, stack: 0, subtitle: "月の最初の週" }
+  - 第 2 週: { kind: card, lane: w2, stack: 0, subtitle: "今日を含む週" }
+  - 第 3 週: { kind: card, lane: w3, stack: 0, subtitle: "月の半ばの週" }
+  - 第 4〜5 週: { kind: card, lane: w4, stack: 0, subtitle: "月の終わりの週" }
+  - 月の合計: { kind: card, lane: w4, stack: 1, subtitle: "月ぜんたいのまとめ" }
 
 animation:
   - step: "月の初め" 1.8s
-    focus: ["Week 1", "Week 2"]
+    focus: ["第 1 週", "第 2 週"]
     set:
       days: "[[1,false,false],[2,false,false],[3,true,false],[4,false,false],[5,false,false],[6,false,false],[7,false,false],[8,true,false],[9,false,false],[10,false,false],[11,false,false],[12,false,false],[13,false,true],[14,false,false],[15,false,false],[16,false,false],[17,false,false],[18,false,false],[19,false,false],[20,false,false],[21,false,false],[22,false,false],[23,false,false],[24,false,false],[25,false,false],[26,false,false],[27,false,false],[28,false,false],[29,false,false],[30,false,false],[31,false,false]]"
     description: "予定の印が前半に 2 つだけ付く。 升目の数は変わらず、印の有無だけが変わる。"
   - step: "月の半ば" 1.8s
-    focus: ["Week 1", "Week 2", "Week 3"]
+    focus: ["第 1 週", "第 2 週", "第 3 週"]
     set:
       days: "[[1,false,false],[2,false,false],[3,true,false],[4,false,false],[5,false,false],[6,false,false],[7,false,false],[8,true,false],[9,false,false],[10,false,false],[11,false,false],[12,true,false],[13,false,true],[14,false,false],[15,false,false],[16,false,false],[17,true,false],[18,false,false],[19,false,false],[20,false,false],[21,false,false],[22,false,false],[23,false,false],[24,false,false],[25,false,false],[26,false,false],[27,false,false],[28,false,false],[29,false,false],[30,false,false],[31,false,false]]"
     description: "印が半ばまで広がる。 今日の升目だけ別の色で囲われることが読み取れる。"
   - step: "月の終わり" 1.8s
-    focus: ["Week 1", "Week 2", "Week 3", "Week 4-5", "Month total"]
+    focus: ["第 1 週", "第 2 週", "第 3 週", "第 4〜5 週", "月の合計"]
     set:
       days: "[[1,false,false],[2,false,false],[3,true,false],[4,false,false],[5,false,false],[6,false,false],[7,false,false],[8,true,false],[9,false,false],[10,false,false],[11,false,false],[12,true,false],[13,false,true],[14,false,false],[15,false,false],[16,false,false],[17,true,false],[18,false,false],[19,false,false],[20,false,false],[21,false,false],[22,true,false],[23,false,false],[24,false,false],[25,false,false],[26,true,false],[27,false,false],[28,false,false],[29,false,false],[30,false,false],[31,false,false]]"
     description: "印が月の終わりまで並ぶ。 7 列の格子に予定の散らばりが読める形になる。"
@@ -16282,9 +16282,9 @@ export const sourceJson__monthCalendarView = `{
       "id": "cm",
       "kind": "calendar-month",
       "source": "days",
-      "monthName": "January 2026",
+      "monthName": "2026 年 1 月",
       "color": "#2563eb",
-      "label": "Month view (7 column grid)"
+      "label": "1 か月 (7 列の升目)"
     }
   ],
   "lanes": {
@@ -16294,11 +16294,11 @@ export const sourceJson__monthCalendarView = `{
     "w4": { "x": 510, "width": 200 }
   },
   "actors": [
-    { "name": "Week 1", "kind": "card", "lane": "w1", "stack": 0, "subtitle": "月の最初の週" },
-    { "name": "Week 2", "kind": "card", "lane": "w2", "stack": 0, "subtitle": "今日を含む週" },
-    { "name": "Week 3", "kind": "card", "lane": "w3", "stack": 0, "subtitle": "月の半ばの週" },
-    { "name": "Week 4-5", "kind": "card", "lane": "w4", "stack": 0, "subtitle": "月の終わりの週" },
-    { "name": "Month total", "kind": "card", "lane": "w4", "stack": 1, "subtitle": "月ぜんたいのまとめ" }
+    { "name": "第 1 週", "kind": "card", "lane": "w1", "stack": 0, "subtitle": "月の最初の週" },
+    { "name": "第 2 週", "kind": "card", "lane": "w2", "stack": 0, "subtitle": "今日を含む週" },
+    { "name": "第 3 週", "kind": "card", "lane": "w3", "stack": 0, "subtitle": "月の半ばの週" },
+    { "name": "第 4〜5 週", "kind": "card", "lane": "w4", "stack": 0, "subtitle": "月の終わりの週" },
+    { "name": "月の合計", "kind": "card", "lane": "w4", "stack": 1, "subtitle": "月ぜんたいのまとめ" }
   ],
   "flow": [],
   "states": {
@@ -16308,7 +16308,7 @@ export const sourceJson__monthCalendarView = `{
     {
       "step": "月の初め",
       "duration": 1.8,
-      "focus": ["Week 1", "Week 2"],
+      "focus": ["第 1 週", "第 2 週"],
       "set": {
         "days": "[[1,false,false],[2,false,false],[3,true,false],[4,false,false],[5,false,false],[6,false,false],[7,false,false],[8,true,false],[9,false,false],[10,false,false],[11,false,false],[12,false,false],[13,false,true],[14,false,false],[15,false,false],[16,false,false],[17,false,false],[18,false,false],[19,false,false],[20,false,false],[21,false,false],[22,false,false],[23,false,false],[24,false,false],[25,false,false],[26,false,false],[27,false,false],[28,false,false],[29,false,false],[30,false,false],[31,false,false]]"
       },
@@ -16317,7 +16317,7 @@ export const sourceJson__monthCalendarView = `{
     {
       "step": "月の半ば",
       "duration": 1.8,
-      "focus": ["Week 1", "Week 2", "Week 3"],
+      "focus": ["第 1 週", "第 2 週", "第 3 週"],
       "set": {
         "days": "[[1,false,false],[2,false,false],[3,true,false],[4,false,false],[5,false,false],[6,false,false],[7,false,false],[8,true,false],[9,false,false],[10,false,false],[11,false,false],[12,true,false],[13,false,true],[14,false,false],[15,false,false],[16,false,false],[17,true,false],[18,false,false],[19,false,false],[20,false,false],[21,false,false],[22,false,false],[23,false,false],[24,false,false],[25,false,false],[26,false,false],[27,false,false],[28,false,false],[29,false,false],[30,false,false],[31,false,false]]"
       },
@@ -16326,7 +16326,7 @@ export const sourceJson__monthCalendarView = `{
     {
       "step": "月の終わり",
       "duration": 1.8,
-      "focus": ["Week 1", "Week 2", "Week 3", "Week 4-5", "Month total"],
+      "focus": ["第 1 週", "第 2 週", "第 3 週", "第 4〜5 週", "月の合計"],
       "set": {
         "days": "[[1,false,false],[2,false,false],[3,true,false],[4,false,false],[5,false,false],[6,false,false],[7,false,false],[8,true,false],[9,false,false],[10,false,false],[11,false,false],[12,true,false],[13,false,true],[14,false,false],[15,false,false],[16,false,false],[17,true,false],[18,false,false],[19,false,false],[20,false,false],[21,false,false],[22,true,false],[23,false,false],[24,false,false],[25,false,false],[26,true,false],[27,false,false],[28,false,false],[29,false,false],[30,false,false],[31,false,false]]"
       },
@@ -16339,7 +16339,7 @@ export const sourceYaml__cliTerminalSession = `title: "コマンド 5 つを用�
 type: flow
 
 readouts:
-  tm: { kind: terminal, source: "cmds", max: 10, color: "var(--d-dg-2)", label: "Session (CLI window)" }
+  tm: { kind: terminal, source: "cmds", max: 10, color: "var(--d-dg-2)", label: "端末の画面" }
 
 lanes:
   fs: { x: 0, width: 220 }
@@ -16347,30 +16347,30 @@ lanes:
   dev: { x: 520, width: 220 }
 
 states:
-  cmds: '[["$","ls -la","total 42\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\\n-rw-r--r--  1 user 1240 Jan 13 07:55 README.md"],["$","cd projects",""],["$","git status","On branch main\\nnothing to commit, working tree clean"],["$","pnpm test","Test Files  114 passed\\nTests  1649 passed"],["$","docker ps","CONTAINER ID   IMAGE\\n8f3a2b1c9d   nginx:latest"]]'
+  cmds: '[["$","ls -1","作業場\\n見本\\nメモ"],["$","cd 作業場",""],["$","git diff","-古い説明\\n+新しい説明"],["$","pnpm -v","9.15.0"],["$","wc -l メモ","2 メモ"]]'
 
 actors:
-  - ls -la: { kind: card, lane: fs, stack: 0, subtitle: "file を見る · 出力が長い" }
-  - cd projects: { kind: card, lane: fs, stack: 1, subtitle: "場所を移る · 出力が無い" }
-  - git status: { kind: card, lane: git, stack: 0, subtitle: "履歴の状態を見る" }
-  - pnpm test: { kind: card, lane: dev, stack: 0, subtitle: "検査を回す" }
-  - docker ps: { kind: card, lane: dev, stack: 1, subtitle: "動いている入れ物を見る" }
+  - ls -1: { kind: card, lane: fs, stack: 0, subtitle: "中身を並べる · 出力が長い" }
+  - cd 作業場: { kind: card, lane: fs, stack: 1, subtitle: "場所を移る · 出力が無い" }
+  - git diff: { kind: card, lane: git, stack: 0, subtitle: "変更の差分を見る" }
+  - pnpm -v: { kind: card, lane: dev, stack: 0, subtitle: "道具の版を見る" }
+  - wc -l メモ: { kind: card, lane: dev, stack: 1, subtitle: "行の数を数える" }
 
 animation:
   - step: "打ち始め" 1.8s
-    focus: ["ls -la"]
+    focus: ["ls -1"]
     set:
-      cmds: '[["$","ls -la","total 42\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\\n-rw-r--r--  1 user 1240 Jan 13 07:55 README.md"]]'
+      cmds: '[["$","ls -1","作業場\\n見本\\nメモ"]]'
     description: "1 つ目の命令と、その返事が出る。 促す記号と命令と返事の 3 つが 1 組になる。"
   - step: "場所を移る" 1.8s
-    focus: ["ls -la", "cd projects", "git status"]
+    focus: ["ls -1", "cd 作業場", "git diff"]
     set:
-      cmds: '[["$","ls -la","total 42\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 ."],["$","cd projects",""],["$","git status","On branch main\\nnothing to commit, working tree clean"]]'
+      cmds: '[["$","ls -1","作業場\\n見本"],["$","cd 作業場",""],["$","git diff","-古い説明\\n+新しい説明"]]'
     description: "返事を持たない命令が続く。 返事が空でも組は 1 つ増えることが読み取れる。"
   - step: "作業が進む" 1.8s
-    focus: ["ls -la", "cd projects", "git status", "pnpm test", "docker ps"]
+    focus: ["ls -1", "cd 作業場", "git diff", "pnpm -v", "wc -l メモ"]
     set:
-      cmds: '[["$","ls -la","total 42\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 ."],["$","cd projects",""],["$","git status","On branch main\\nnothing to commit, working tree clean"],["$","pnpm test","Test Files  114 passed\\nTests  1649 passed"],["$","docker ps","CONTAINER ID   IMAGE\\n8f3a2b1c9d   nginx:latest"]]'
+      cmds: '[["$","ls -1","作業場\\n見本"],["$","cd 作業場",""],["$","git diff","-古い説明\\n+新しい説明"],["$","pnpm -v","9.15.0"],["$","wc -l メモ","2 メモ"]]'
     description: "組が 5 つ並ぶ。 返事の行数が違っても、次の命令が続けて下に出る形が読める。"
 `;
 
@@ -16384,7 +16384,7 @@ export const sourceJson__cliTerminalSession = `{
       "source": "cmds",
       "max": 10,
       "color": "var(--d-dg-2)",
-      "label": "Session (CLI window)"
+      "label": "端末の画面"
     }
   ],
   "lanes": {
@@ -16394,58 +16394,58 @@ export const sourceJson__cliTerminalSession = `{
   },
   "actors": [
     {
-      "name": "ls -la",
+      "name": "ls -1",
       "kind": "card",
       "lane": "fs",
       "stack": 0,
-      "subtitle": "file を見る · 出力が長い"
+      "subtitle": "中身を並べる · 出力が長い"
     },
     {
-      "name": "cd projects",
+      "name": "cd 作業場",
       "kind": "card",
       "lane": "fs",
       "stack": 1,
       "subtitle": "場所を移る · 出力が無い"
     },
-    { "name": "git status", "kind": "card", "lane": "git", "stack": 0, "subtitle": "履歴の状態を見る" },
-    { "name": "pnpm test", "kind": "card", "lane": "dev", "stack": 0, "subtitle": "検査を回す" },
+    { "name": "git diff", "kind": "card", "lane": "git", "stack": 0, "subtitle": "変更の差分を見る" },
+    { "name": "pnpm -v", "kind": "card", "lane": "dev", "stack": 0, "subtitle": "道具の版を見る" },
     {
-      "name": "docker ps",
+      "name": "wc -l メモ",
       "kind": "card",
       "lane": "dev",
       "stack": 1,
-      "subtitle": "動いている入れ物を見る"
+      "subtitle": "行の数を数える"
     }
   ],
   "flow": [],
   "states": {
-    "cmds": "[[\\"$\\",\\"ls -la\\",\\"total 42\\\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\\\\n-rw-r--r--  1 user 1240 Jan 13 07:55 README.md\\"],[\\"$\\",\\"cd projects\\",\\"\\"],[\\"$\\",\\"git status\\",\\"On branch main\\\\nnothing to commit, working tree clean\\"],[\\"$\\",\\"pnpm test\\",\\"Test Files  114 passed\\\\nTests  1649 passed\\"],[\\"$\\",\\"docker ps\\",\\"CONTAINER ID   IMAGE\\\\n8f3a2b1c9d   nginx:latest\\"]]"
+    "cmds": "[[\\"$\\",\\"ls -1\\",\\"作業場\\\\n見本\\\\nメモ\\"],[\\"$\\",\\"cd 作業場\\",\\"\\"],[\\"$\\",\\"git diff\\",\\"-古い説明\\\\n+新しい説明\\"],[\\"$\\",\\"pnpm -v\\",\\"9.15.0\\"],[\\"$\\",\\"wc -l メモ\\",\\"2 メモ\\"]]"
   },
   "animation": [
     {
       "step": "打ち始め",
       "duration": 1.8,
-      "focus": ["ls -la"],
+      "focus": ["ls -1"],
       "set": {
-        "cmds": "[[\\"$\\",\\"ls -la\\",\\"total 42\\\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\\\\n-rw-r--r--  1 user 1240 Jan 13 07:55 README.md\\"]]"
+        "cmds": "[[\\"$\\",\\"ls -1\\",\\"作業場\\\\n見本\\\\nメモ\\"]]"
       },
       "body": "1 つ目の命令と、その返事が出る。 促す記号と命令と返事の 3 つが 1 組になる。"
     },
     {
       "step": "場所を移る",
       "duration": 1.8,
-      "focus": ["ls -la", "cd projects", "git status"],
+      "focus": ["ls -1", "cd 作業場", "git diff"],
       "set": {
-        "cmds": "[[\\"$\\",\\"ls -la\\",\\"total 42\\\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\\"],[\\"$\\",\\"cd projects\\",\\"\\"],[\\"$\\",\\"git status\\",\\"On branch main\\\\nnothing to commit, working tree clean\\"]]"
+        "cmds": "[[\\"$\\",\\"ls -1\\",\\"作業場\\\\n見本\\"],[\\"$\\",\\"cd 作業場\\",\\"\\"],[\\"$\\",\\"git diff\\",\\"-古い説明\\\\n+新しい説明\\"]]"
       },
       "body": "返事を持たない命令が続く。 返事が空でも組は 1 つ増えることが読み取れる。"
     },
     {
       "step": "作業が進む",
       "duration": 1.8,
-      "focus": ["ls -la", "cd projects", "git status", "pnpm test", "docker ps"],
+      "focus": ["ls -1", "cd 作業場", "git diff", "pnpm -v", "wc -l メモ"],
       "set": {
-        "cmds": "[[\\"$\\",\\"ls -la\\",\\"total 42\\\\ndrwxr-xr-x  8 user 256 Jan 13 08:00 .\\"],[\\"$\\",\\"cd projects\\",\\"\\"],[\\"$\\",\\"git status\\",\\"On branch main\\\\nnothing to commit, working tree clean\\"],[\\"$\\",\\"pnpm test\\",\\"Test Files  114 passed\\\\nTests  1649 passed\\"],[\\"$\\",\\"docker ps\\",\\"CONTAINER ID   IMAGE\\\\n8f3a2b1c9d   nginx:latest\\"]]"
+        "cmds": "[[\\"$\\",\\"ls -1\\",\\"作業場\\\\n見本\\"],[\\"$\\",\\"cd 作業場\\",\\"\\"],[\\"$\\",\\"git diff\\",\\"-古い説明\\\\n+新しい説明\\"],[\\"$\\",\\"pnpm -v\\",\\"9.15.0\\"],[\\"$\\",\\"wc -l メモ\\",\\"2 メモ\\"]]"
       },
       "body": "組が 5 つ並ぶ。 返事の行数が違っても、次の命令が続けて下に出る形が読める。"
     }
@@ -16456,7 +16456,7 @@ export const sourceYaml__chessStartingBoard = `title: "駒 32 個を白黒と前
 type: flow
 
 readouts:
-  cb: { kind: chess-board, source: "pieces", cellSize: 28, label: "Position (8×8 board)" }
+  cb: { kind: chess-board, source: "pieces", cellSize: 28, label: "盤面 (8×8)" }
 
 lanes:
   blackBack: { x: 0, width: 320 }
@@ -16468,24 +16468,24 @@ states:
   pieces: '[["a",8,"♜"],["b",8,"♞"],["c",8,"♝"],["d",8,"♛"],["e",8,"♚"],["f",8,"♝"],["g",8,"♞"],["h",8,"♜"],["a",7,"♟"],["b",7,"♟"],["c",7,"♟"],["d",7,"♟"],["e",7,"♟"],["f",7,"♟"],["g",7,"♟"],["h",7,"♟"],["a",2,"♙"],["b",2,"♙"],["c",2,"♙"],["d",2,"♙"],["e",2,"♙"],["f",2,"♙"],["g",2,"♙"],["h",2,"♙"],["a",1,"♖"],["b",1,"♘"],["c",1,"♗"],["d",1,"♕"],["e",1,"♔"],["f",1,"♗"],["g",1,"♘"],["h",1,"♖"]]'
 
 actors:
-  - Black back: { kind: card, lane: blackBack, stack: 0, subtitle: "黒の奥の列 (♜♞♝♛♚♝♞♜)", posW: 270 }
-  - Black pawns: { kind: card, lane: blackPawn, stack: 0, subtitle: "黒の手前の列 (♟)", posW: 290 }
-  - White pawns: { kind: card, lane: whitePawn, stack: 0, subtitle: "白の手前の列 (♙)", posW: 290 }
-  - White back: { kind: card, lane: whiteBack, stack: 0, subtitle: "白の奥の列 (♖♘♗♕♔♗♘♖)", posW: 270 }
+  - 黒の奥の列: { kind: card, lane: blackBack, stack: 0, subtitle: "ポーン以外 (♜♞♝♛♚♝♞♜)", posW: 270 }
+  - 黒の手前の列: { kind: card, lane: blackPawn, stack: 0, subtitle: "ポーンだけの列 (♟)", posW: 290 }
+  - 白の手前の列: { kind: card, lane: whitePawn, stack: 0, subtitle: "ポーンだけの列 (♙)", posW: 290 }
+  - 白の奥の列: { kind: card, lane: whiteBack, stack: 0, subtitle: "ポーン以外 (♖♘♗♕♔♗♘♖)", posW: 270 }
 
 animation:
   - step: "白を並べる" 1.8s
-    focus: ["White back", "White pawns"]
+    focus: ["白の奥の列", "白の手前の列"]
     set:
       pieces: '[["a",2,"♙"],["b",2,"♙"],["c",2,"♙"],["d",2,"♙"],["e",2,"♙"],["f",2,"♙"],["g",2,"♙"],["h",2,"♙"],["a",1,"♖"],["b",1,"♘"],["c",1,"♗"],["d",1,"♕"],["e",1,"♔"],["f",1,"♗"],["g",1,"♘"],["h",1,"♖"]]'
     description: "白の 2 列だけを置く。 升目の明暗は駒と関係なく、置いた場所にだけ駒が乗る。"
   - step: "黒の手前を置く" 1.8s
-    focus: ["White back", "White pawns", "Black pawns"]
+    focus: ["白の奥の列", "白の手前の列", "黒の手前の列"]
     set:
       pieces: '[["a",7,"♟"],["b",7,"♟"],["c",7,"♟"],["d",7,"♟"],["e",7,"♟"],["f",7,"♟"],["g",7,"♟"],["h",7,"♟"],["a",2,"♙"],["b",2,"♙"],["c",2,"♙"],["d",2,"♙"],["e",2,"♙"],["f",2,"♙"],["g",2,"♙"],["h",2,"♙"],["a",1,"♖"],["b",1,"♘"],["c",1,"♗"],["d",1,"♕"],["e",1,"♔"],["f",1,"♗"],["g",1,"♘"],["h",1,"♖"]]'
     description: "反対側の手前の列が埋まる。 縦の位置は数、横の位置は文字で決まることが読める。"
   - step: "開始の形" 1.8s
-    focus: ["Black back", "Black pawns", "White pawns", "White back"]
+    focus: ["黒の奥の列", "黒の手前の列", "白の手前の列", "白の奥の列"]
     set:
       pieces: '[["a",8,"♜"],["b",8,"♞"],["c",8,"♝"],["d",8,"♛"],["e",8,"♚"],["f",8,"♝"],["g",8,"♞"],["h",8,"♜"],["a",7,"♟"],["b",7,"♟"],["c",7,"♟"],["d",7,"♟"],["e",7,"♟"],["f",7,"♟"],["g",7,"♟"],["h",7,"♟"],["a",2,"♙"],["b",2,"♙"],["c",2,"♙"],["d",2,"♙"],["e",2,"♙"],["f",2,"♙"],["g",2,"♙"],["h",2,"♙"],["a",1,"♖"],["b",1,"♘"],["c",1,"♗"],["d",1,"♕"],["e",1,"♔"],["f",1,"♗"],["g",1,"♘"],["h",1,"♖"]]'
     description: "上下の端 2 列ずつが埋まり、中央 4 列が空く。 開始の形が盤の上に揃う。"
@@ -16500,7 +16500,7 @@ export const sourceJson__chessStartingBoard = `{
       "kind": "chess-board",
       "source": "pieces",
       "cellSize": 28,
-      "label": "Position (8×8 board)"
+      "label": "盤面 (8×8)"
     }
   ],
   "lanes": {
@@ -16511,35 +16511,35 @@ export const sourceJson__chessStartingBoard = `{
   },
   "actors": [
     {
-      "name": "Black back",
+      "name": "黒の奥の列",
       "kind": "card",
       "lane": "blackBack",
       "stack": 0,
-      "subtitle": "黒の奥の列 (♜♞♝♛♚♝♞♜)",
+      "subtitle": "ポーン以外 (♜♞♝♛♚♝♞♜)",
       "posW": 270
     },
     {
-      "name": "Black pawns",
+      "name": "黒の手前の列",
       "kind": "card",
       "lane": "blackPawn",
       "stack": 0,
-      "subtitle": "黒の手前の列 (♟)",
+      "subtitle": "ポーンだけの列 (♟)",
       "posW": 290
     },
     {
-      "name": "White pawns",
+      "name": "白の手前の列",
       "kind": "card",
       "lane": "whitePawn",
       "stack": 0,
-      "subtitle": "白の手前の列 (♙)",
+      "subtitle": "ポーンだけの列 (♙)",
       "posW": 290
     },
     {
-      "name": "White back",
+      "name": "白の奥の列",
       "kind": "card",
       "lane": "whiteBack",
       "stack": 0,
-      "subtitle": "白の奥の列 (♖♘♗♕♔♗♘♖)",
+      "subtitle": "ポーン以外 (♖♘♗♕♔♗♘♖)",
       "posW": 270
     }
   ],
@@ -16551,7 +16551,7 @@ export const sourceJson__chessStartingBoard = `{
     {
       "step": "白を並べる",
       "duration": 1.8,
-      "focus": ["White back", "White pawns"],
+      "focus": ["白の奥の列", "白の手前の列"],
       "set": {
         "pieces": "[[\\"a\\",2,\\"♙\\"],[\\"b\\",2,\\"♙\\"],[\\"c\\",2,\\"♙\\"],[\\"d\\",2,\\"♙\\"],[\\"e\\",2,\\"♙\\"],[\\"f\\",2,\\"♙\\"],[\\"g\\",2,\\"♙\\"],[\\"h\\",2,\\"♙\\"],[\\"a\\",1,\\"♖\\"],[\\"b\\",1,\\"♘\\"],[\\"c\\",1,\\"♗\\"],[\\"d\\",1,\\"♕\\"],[\\"e\\",1,\\"♔\\"],[\\"f\\",1,\\"♗\\"],[\\"g\\",1,\\"♘\\"],[\\"h\\",1,\\"♖\\"]]"
       },
@@ -16560,7 +16560,7 @@ export const sourceJson__chessStartingBoard = `{
     {
       "step": "黒の手前を置く",
       "duration": 1.8,
-      "focus": ["White back", "White pawns", "Black pawns"],
+      "focus": ["白の奥の列", "白の手前の列", "黒の手前の列"],
       "set": {
         "pieces": "[[\\"a\\",7,\\"♟\\"],[\\"b\\",7,\\"♟\\"],[\\"c\\",7,\\"♟\\"],[\\"d\\",7,\\"♟\\"],[\\"e\\",7,\\"♟\\"],[\\"f\\",7,\\"♟\\"],[\\"g\\",7,\\"♟\\"],[\\"h\\",7,\\"♟\\"],[\\"a\\",2,\\"♙\\"],[\\"b\\",2,\\"♙\\"],[\\"c\\",2,\\"♙\\"],[\\"d\\",2,\\"♙\\"],[\\"e\\",2,\\"♙\\"],[\\"f\\",2,\\"♙\\"],[\\"g\\",2,\\"♙\\"],[\\"h\\",2,\\"♙\\"],[\\"a\\",1,\\"♖\\"],[\\"b\\",1,\\"♘\\"],[\\"c\\",1,\\"♗\\"],[\\"d\\",1,\\"♕\\"],[\\"e\\",1,\\"♔\\"],[\\"f\\",1,\\"♗\\"],[\\"g\\",1,\\"♘\\"],[\\"h\\",1,\\"♖\\"]]"
       },
@@ -16569,7 +16569,7 @@ export const sourceJson__chessStartingBoard = `{
     {
       "step": "開始の形",
       "duration": 1.8,
-      "focus": ["Black back", "Black pawns", "White pawns", "White back"],
+      "focus": ["黒の奥の列", "黒の手前の列", "白の手前の列", "白の奥の列"],
       "set": {
         "pieces": "[[\\"a\\",8,\\"♜\\"],[\\"b\\",8,\\"♞\\"],[\\"c\\",8,\\"♝\\"],[\\"d\\",8,\\"♛\\"],[\\"e\\",8,\\"♚\\"],[\\"f\\",8,\\"♝\\"],[\\"g\\",8,\\"♞\\"],[\\"h\\",8,\\"♜\\"],[\\"a\\",7,\\"♟\\"],[\\"b\\",7,\\"♟\\"],[\\"c\\",7,\\"♟\\"],[\\"d\\",7,\\"♟\\"],[\\"e\\",7,\\"♟\\"],[\\"f\\",7,\\"♟\\"],[\\"g\\",7,\\"♟\\"],[\\"h\\",7,\\"♟\\"],[\\"a\\",2,\\"♙\\"],[\\"b\\",2,\\"♙\\"],[\\"c\\",2,\\"♙\\"],[\\"d\\",2,\\"♙\\"],[\\"e\\",2,\\"♙\\"],[\\"f\\",2,\\"♙\\"],[\\"g\\",2,\\"♙\\"],[\\"h\\",2,\\"♙\\"],[\\"a\\",1,\\"♖\\"],[\\"b\\",1,\\"♘\\"],[\\"c\\",1,\\"♗\\"],[\\"d\\",1,\\"♕\\"],[\\"e\\",1,\\"♔\\"],[\\"f\\",1,\\"♗\\"],[\\"g\\",1,\\"♘\\"],[\\"h\\",1,\\"♖\\"]]"
       },
@@ -16582,7 +16582,7 @@ export const sourceYaml__sprintKanbanBoard = `title: "6 タスクを未着手 / 
 type: flow
 
 readouts:
-  kb: { kind: kanban-board, source: "tasks", columnWidth: 140, max: 5, label: "Sprint kanban" }
+  kb: { kind: kanban-board, source: "tasks", columnWidth: 140, max: 5, label: "今期のかんばん" }
 
 lanes:
   todo: { x: 0, width: 220 }
@@ -16590,28 +16590,28 @@ lanes:
   done: { x: 520, width: 220 }
 
 states:
-  tasks: '[["todo","Design API schema","high"],["todo","Write docs","low"],["inprogress","Impl auth flow","high"],["inprogress","Migration script","med"],["done","Setup CI","med"],["done","Repo bootstrap","low"]]'
+  tasks: '[["todo","API の型を設計する","high"],["todo","文書を書く","low"],["inprogress","認証の流れを作る","high"],["inprogress","移行の手順を書く","med"],["done","自動検査を整える","med"],["done","リポジトリを用意する","low"]]'
 
 actors:
-  - Todo2: { kind: card, lane: todo, stack: 0, subtitle: "まだ手を付けていない列", title: "Todo" }
-  - In Progress: { kind: card, lane: inprogress, stack: 0, subtitle: "いま進めている列" }
-  - Done2: { kind: card, lane: done, stack: 0, subtitle: "終わった列", title: "Done" }
+  - Todo2: { kind: card, lane: todo, stack: 0, subtitle: "まだ手を付けていない列", title: "未着手" }
+  - 進行中: { kind: card, lane: inprogress, stack: 0, subtitle: "いま進めている列" }
+  - Done2: { kind: card, lane: done, stack: 0, subtitle: "終わった列", title: "完了" }
 
 animation:
   - step: "着手前" 1.8s
     focus: ["Todo2"]
     set:
-      tasks: '[["todo","Design API schema","high"],["todo","Write docs","low"],["todo","Impl auth flow","high"],["todo","Migration script","med"],["todo","Setup CI","med"],["todo","Repo bootstrap","low"]]'
+      tasks: '[["todo","API の型を設計する","high"],["todo","文書を書く","low"],["todo","認証の流れを作る","high"],["todo","移行の手順を書く","med"],["todo","自動検査を整える","med"],["todo","リポジトリを用意する","low"]]'
     description: "札がすべて左の列に積まれる。 重さの違いは札の色として出る。"
   - step: "動き出す" 1.8s
-    focus: ["Todo2", "In Progress"]
+    focus: ["Todo2", "進行中"]
     set:
-      tasks: '[["todo","Design API schema","high"],["todo","Write docs","low"],["inprogress","Impl auth flow","high"],["inprogress","Migration script","med"],["done","Setup CI","med"],["todo","Repo bootstrap","low"]]'
+      tasks: '[["todo","API の型を設計する","high"],["todo","文書を書く","low"],["inprogress","認証の流れを作る","high"],["inprogress","移行の手順を書く","med"],["done","自動検査を整える","med"],["todo","リポジトリを用意する","low"]]'
     description: "札が中央と右の列へ移る。 列ごとの高さの差で、どこに滞っているかが読める。"
   - step: "終盤に入る" 1.8s
-    focus: ["Todo2", "In Progress", "Done2"]
+    focus: ["Todo2", "進行中", "Done2"]
     set:
-      tasks: '[["todo","Design API schema","high"],["inprogress","Write docs","low"],["inprogress","Impl auth flow","high"],["done","Migration script","med"],["done","Setup CI","med"],["done","Repo bootstrap","low"]]'
+      tasks: '[["todo","API の型を設計する","high"],["inprogress","文書を書く","low"],["inprogress","認証の流れを作る","high"],["done","移行の手順を書く","med"],["done","自動検査を整える","med"],["done","リポジトリを用意する","low"]]'
     description: "右の列が最も高くなる。 札の総数は変わらず、列の間を移るだけであることが読める。"
 `;
 
@@ -16625,7 +16625,7 @@ export const sourceJson__sprintKanbanBoard = `{
       "source": "tasks",
       "columnWidth": 140,
       "max": 5,
-      "label": "Sprint kanban"
+      "label": "今期のかんばん"
     }
   ],
   "lanes": {
@@ -16640,10 +16640,10 @@ export const sourceJson__sprintKanbanBoard = `{
       "lane": "todo",
       "stack": 0,
       "subtitle": "まだ手を付けていない列",
-      "title": "Todo"
+      "title": "未着手"
     },
     {
-      "name": "In Progress",
+      "name": "進行中",
       "kind": "card",
       "lane": "inprogress",
       "stack": 0,
@@ -16655,12 +16655,12 @@ export const sourceJson__sprintKanbanBoard = `{
       "lane": "done",
       "stack": 0,
       "subtitle": "終わった列",
-      "title": "Done"
+      "title": "完了"
     }
   ],
   "flow": [],
   "states": {
-    "tasks": "[[\\"todo\\",\\"Design API schema\\",\\"high\\"],[\\"todo\\",\\"Write docs\\",\\"low\\"],[\\"inprogress\\",\\"Impl auth flow\\",\\"high\\"],[\\"inprogress\\",\\"Migration script\\",\\"med\\"],[\\"done\\",\\"Setup CI\\",\\"med\\"],[\\"done\\",\\"Repo bootstrap\\",\\"low\\"]]"
+    "tasks": "[[\\"todo\\",\\"API の型を設計する\\",\\"high\\"],[\\"todo\\",\\"文書を書く\\",\\"low\\"],[\\"inprogress\\",\\"認証の流れを作る\\",\\"high\\"],[\\"inprogress\\",\\"移行の手順を書く\\",\\"med\\"],[\\"done\\",\\"自動検査を整える\\",\\"med\\"],[\\"done\\",\\"リポジトリを用意する\\",\\"low\\"]]"
   },
   "animation": [
     {
@@ -16668,25 +16668,25 @@ export const sourceJson__sprintKanbanBoard = `{
       "duration": 1.8,
       "focus": ["Todo2"],
       "set": {
-        "tasks": "[[\\"todo\\",\\"Design API schema\\",\\"high\\"],[\\"todo\\",\\"Write docs\\",\\"low\\"],[\\"todo\\",\\"Impl auth flow\\",\\"high\\"],[\\"todo\\",\\"Migration script\\",\\"med\\"],[\\"todo\\",\\"Setup CI\\",\\"med\\"],[\\"todo\\",\\"Repo bootstrap\\",\\"low\\"]]"
+        "tasks": "[[\\"todo\\",\\"API の型を設計する\\",\\"high\\"],[\\"todo\\",\\"文書を書く\\",\\"low\\"],[\\"todo\\",\\"認証の流れを作る\\",\\"high\\"],[\\"todo\\",\\"移行の手順を書く\\",\\"med\\"],[\\"todo\\",\\"自動検査を整える\\",\\"med\\"],[\\"todo\\",\\"リポジトリを用意する\\",\\"low\\"]]"
       },
       "body": "札がすべて左の列に積まれる。 重さの違いは札の色として出る。"
     },
     {
       "step": "動き出す",
       "duration": 1.8,
-      "focus": ["Todo2", "In Progress"],
+      "focus": ["Todo2", "進行中"],
       "set": {
-        "tasks": "[[\\"todo\\",\\"Design API schema\\",\\"high\\"],[\\"todo\\",\\"Write docs\\",\\"low\\"],[\\"inprogress\\",\\"Impl auth flow\\",\\"high\\"],[\\"inprogress\\",\\"Migration script\\",\\"med\\"],[\\"done\\",\\"Setup CI\\",\\"med\\"],[\\"todo\\",\\"Repo bootstrap\\",\\"low\\"]]"
+        "tasks": "[[\\"todo\\",\\"API の型を設計する\\",\\"high\\"],[\\"todo\\",\\"文書を書く\\",\\"low\\"],[\\"inprogress\\",\\"認証の流れを作る\\",\\"high\\"],[\\"inprogress\\",\\"移行の手順を書く\\",\\"med\\"],[\\"done\\",\\"自動検査を整える\\",\\"med\\"],[\\"todo\\",\\"リポジトリを用意する\\",\\"low\\"]]"
       },
       "body": "札が中央と右の列へ移る。 列ごとの高さの差で、どこに滞っているかが読める。"
     },
     {
       "step": "終盤に入る",
       "duration": 1.8,
-      "focus": ["Todo2", "In Progress", "Done2"],
+      "focus": ["Todo2", "進行中", "Done2"],
       "set": {
-        "tasks": "[[\\"todo\\",\\"Design API schema\\",\\"high\\"],[\\"inprogress\\",\\"Write docs\\",\\"low\\"],[\\"inprogress\\",\\"Impl auth flow\\",\\"high\\"],[\\"done\\",\\"Migration script\\",\\"med\\"],[\\"done\\",\\"Setup CI\\",\\"med\\"],[\\"done\\",\\"Repo bootstrap\\",\\"low\\"]]"
+        "tasks": "[[\\"todo\\",\\"API の型を設計する\\",\\"high\\"],[\\"inprogress\\",\\"文書を書く\\",\\"low\\"],[\\"inprogress\\",\\"認証の流れを作る\\",\\"high\\"],[\\"done\\",\\"移行の手順を書く\\",\\"med\\"],[\\"done\\",\\"自動検査を整える\\",\\"med\\"],[\\"done\\",\\"リポジトリを用意する\\",\\"low\\"]]"
       },
       "body": "右の列が最も高くなる。 札の総数は変わらず、列の間を移るだけであることが読める。"
     }
@@ -16697,40 +16697,40 @@ export const sourceYaml__docsBreadcrumb = `title: "階層 4 段のパンくず�
 type: flow
 
 readouts:
-  bc: { kind: breadcrumb, source: "path", currentSource: "cur", color: "#2563eb", label: "Path" }
+  bc: { kind: breadcrumb, source: "path", currentSource: "cur", color: "#2563eb", label: "現在地" }
 
 lanes:
   col1: { x: 0, width: 270 }
   col2: { x: 310, width: 300 }
 
 states:
-  path: '["Home","Docs","API","Reference"]'
+  path: '["トップ","文書","API","参照"]'
   cur: 2
 
 actors:
-  - Home: { kind: card, lane: col1, stack: 0, subtitle: "最上位の階層", posW: 190  }
-  - Docs: { kind: card, lane: col2, stack: 0, subtitle: "Home の下にある階層", posW: 140  }
-  - API: { kind: card, lane: col1, stack: 1, subtitle: "Reference の上にある階層", posW: 220  }
-  - Reference: { kind: card, lane: col2, stack: 1, subtitle: "最も深い階層", posW: 250  }
+  - トップ: { kind: card, lane: col1, stack: 0, subtitle: "最上位の階層", posW: 190  }
+  - 文書: { kind: card, lane: col2, stack: 0, subtitle: "トップの下にある階層", posW: 140  }
+  - API: { kind: card, lane: col1, stack: 1, subtitle: "参照の上にある階層", posW: 220  }
+  - 参照: { kind: card, lane: col2, stack: 1, subtitle: "最も深い階層", posW: 250  }
 
 flow:
-  - Home -> Docs: "→" (info)
-  - Docs -> API: "→" (accent)
-  - API -> Reference: "→" (info)
+  - トップ -> 文書: "→" (info)
+  - 文書 -> API: "→" (accent)
+  - API -> 参照: "→" (info)
 
 animation:
   - step: "最上位に居る" 1.8s
-    focus: ["Home"]
+    focus: ["トップ"]
     set:
       cur: 0
     description: "4 段すべてが並ぶ中で、先頭だけが濃く太い。 今どこに居るかを色と太さで示す。"
   - step: "中ほどへ降りる" 1.8s
-    focus: ["Home", "Docs", "API"]
+    focus: ["トップ", "文書", "API"]
     set:
       cur: 2
     description: "濃い段が右へ移る。 並びと区切りは変わらず、強調の位置だけが動く。"
   - step: "最も深い階層" 1.8s
-    focus: ["Home", "Docs", "API", "Reference"]
+    focus: ["トップ", "文書", "API", "参照"]
     set:
       cur: 3
     description: "末尾が濃くなる。 手前の段は薄いまま残り、辿ってきた道が読める形になる。"
@@ -16746,7 +16746,7 @@ export const sourceJson__docsBreadcrumb = `{
       "source": "path",
       "currentSource": "cur",
       "color": "#2563eb",
-      "label": "Path"
+      "label": "現在地"
     }
   ],
   "lanes": {
@@ -16755,7 +16755,7 @@ export const sourceJson__docsBreadcrumb = `{
   },
   "actors": [
     {
-      "name": "Home",
+      "name": "トップ",
       "kind": "card",
       "lane": "col1",
       "stack": 0,
@@ -16763,11 +16763,11 @@ export const sourceJson__docsBreadcrumb = `{
       "posW": 190
     },
     {
-      "name": "Docs",
+      "name": "文書",
       "kind": "card",
       "lane": "col2",
       "stack": 0,
-      "subtitle": "Home の下にある階層",
+      "subtitle": "トップの下にある階層",
       "posW": 140
     },
     {
@@ -16775,11 +16775,11 @@ export const sourceJson__docsBreadcrumb = `{
       "kind": "card",
       "lane": "col1",
       "stack": 1,
-      "subtitle": "Reference の上にある階層",
+      "subtitle": "参照の上にある階層",
       "posW": 220
     },
     {
-      "name": "Reference",
+      "name": "参照",
       "kind": "card",
       "lane": "col2",
       "stack": 1,
@@ -16788,30 +16788,30 @@ export const sourceJson__docsBreadcrumb = `{
     }
   ],
   "flow": [
-    { "from": "Home", "to": "Docs", "label": "→", "tone": "info" },
-    { "from": "Docs", "to": "API", "label": "→", "tone": "accent" },
-    { "from": "API", "to": "Reference", "label": "→", "tone": "info" }
+    { "from": "トップ", "to": "文書", "label": "→", "tone": "info" },
+    { "from": "文書", "to": "API", "label": "→", "tone": "accent" },
+    { "from": "API", "to": "参照", "label": "→", "tone": "info" }
   ],
-  "states": { "path": "[\\"Home\\",\\"Docs\\",\\"API\\",\\"Reference\\"]", "cur": 2 },
+  "states": { "path": "[\\"トップ\\",\\"文書\\",\\"API\\",\\"参照\\"]", "cur": 2 },
   "animation": [
     {
       "step": "最上位に居る",
       "duration": 1.8,
-      "focus": ["Home"],
+      "focus": ["トップ"],
       "set": { "cur": 0 },
       "body": "4 段すべてが並ぶ中で、先頭だけが濃く太い。 今どこに居るかを色と太さで示す。"
     },
     {
       "step": "中ほどへ降りる",
       "duration": 1.8,
-      "focus": ["Home", "Docs", "API"],
+      "focus": ["トップ", "文書", "API"],
       "set": { "cur": 2 },
       "body": "濃い段が右へ移る。 並びと区切りは変わらず、強調の位置だけが動く。"
     },
     {
       "step": "最も深い階層",
       "duration": 1.8,
-      "focus": ["Home", "Docs", "API", "Reference"],
+      "focus": ["トップ", "文書", "API", "参照"],
       "set": { "cur": 3 },
       "body": "末尾が濃くなる。 手前の段は薄いまま残り、辿ってきた道が読める形になる。"
     }
@@ -16822,7 +16822,7 @@ export const sourceYaml__dayScheduleTimeline = `title: "1 日の予定を朝 / �
 type: flow
 
 readouts:
-  tv: { kind: timeline-vertical, source: "events", color: "#2563eb", max: 8, label: "Day events" }
+  tv: { kind: timeline-vertical, source: "events", color: "#2563eb", max: 8, label: "1 日の予定" }
 
 lanes:
   morning: { x: 0, width: 240 }
@@ -16830,28 +16830,28 @@ lanes:
   evening: { x: 560, width: 240 }
 
 states:
-  events: '[["09:00","Standup","team sync"],["10:30","Design review","3 proposals"],["14:00","Deploy staging","v1.2.0"],["16:00","1-on-1","career discussion"],["19:30","Retrospective","sprint 42 close"]]'
+  events: '[["09:00","朝会","進み具合を合わせる"],["10:30","設計の確認","3 案を比べる"],["14:00","試験環境へ配備","v1.2.0"],["16:00","1 対 1 の面談","これからの仕事の話"],["19:30","振り返り","第 42 期の締め"]]'
 
 actors:
-  - Morning2: { kind: card, lane: morning, stack: 0, subtitle: "午前の時間帯", title: "Morning" }
-  - Afternoon2: { kind: card, lane: afternoon, stack: 0, subtitle: "午後の時間帯", title: "Afternoon" }
-  - Evening2: { kind: card, lane: evening, stack: 0, subtitle: "夜の時間帯", title: "Evening" }
+  - Morning2: { kind: card, lane: morning, stack: 0, subtitle: "9 時から 12 時まで", title: "午前" }
+  - Afternoon2: { kind: card, lane: afternoon, stack: 0, subtitle: "12 時から 18 時まで", title: "午後" }
+  - Evening2: { kind: card, lane: evening, stack: 0, subtitle: "18 時から後", title: "夜" }
 
 animation:
   - step: "午前の予定" 1.8s
     focus: ["Morning2"]
     set:
-      events: '[["09:00","Standup","team sync"],["10:30","Design review","3 proposals"]]'
+      events: '[["09:00","朝会","進み具合を合わせる"],["10:30","設計の確認","3 案を比べる"]]'
     description: "点が 2 つだけ縦に並ぶ。 時刻と題と補足の 3 つが 1 つの点にぶら下がる形が読める。"
   - step: "午後まで" 1.8s
     focus: ["Morning2", "Afternoon2"]
     set:
-      events: '[["09:00","Standup","team sync"],["10:30","Design review","3 proposals"],["14:00","Deploy staging"],["16:00","1-on-1","career discussion"]]'
+      events: '[["09:00","朝会","進み具合を合わせる"],["10:30","設計の確認","3 案を比べる"],["14:00","試験環境へ配備"],["16:00","1 対 1 の面談","これからの仕事の話"]]'
     description: "点が 4 つに増える。 補足を持たない予定は 3 行目が出ないが、点の間隔は変わらない。"
   - step: "1 日ぶん" 1.8s
     focus: ["Morning2", "Afternoon2", "Evening2"]
     set:
-      events: '[["09:00","Standup","team sync"],["10:30","Design review","3 proposals"],["14:00","Deploy staging","v1.2.0"],["16:00","1-on-1","career discussion"],["19:30","Retrospective","sprint 42 close"]]'
+      events: '[["09:00","朝会","進み具合を合わせる"],["10:30","設計の確認","3 案を比べる"],["14:00","試験環境へ配備","v1.2.0"],["16:00","1 対 1 の面談","これからの仕事の話"],["19:30","振り返り","第 42 期の締め"]]'
     description: "点が 5 つ並ぶ。 上から下へ時刻が進む形で、1 日の流れが 1 本の線に載る。"
 `;
 
@@ -16865,7 +16865,7 @@ export const sourceJson__dayScheduleTimeline = `{
       "source": "events",
       "color": "#2563eb",
       "max": 8,
-      "label": "Day events"
+      "label": "1 日の予定"
     }
   ],
   "lanes": {
@@ -16879,29 +16879,29 @@ export const sourceJson__dayScheduleTimeline = `{
       "kind": "card",
       "lane": "morning",
       "stack": 0,
-      "subtitle": "午前の時間帯",
-      "title": "Morning"
+      "subtitle": "9 時から 12 時まで",
+      "title": "午前"
     },
     {
       "name": "Afternoon2",
       "kind": "card",
       "lane": "afternoon",
       "stack": 0,
-      "subtitle": "午後の時間帯",
-      "title": "Afternoon"
+      "subtitle": "12 時から 18 時まで",
+      "title": "午後"
     },
     {
       "name": "Evening2",
       "kind": "card",
       "lane": "evening",
       "stack": 0,
-      "subtitle": "夜の時間帯",
-      "title": "Evening"
+      "subtitle": "18 時から後",
+      "title": "夜"
     }
   ],
   "flow": [],
   "states": {
-    "events": "[[\\"09:00\\",\\"Standup\\",\\"team sync\\"],[\\"10:30\\",\\"Design review\\",\\"3 proposals\\"],[\\"14:00\\",\\"Deploy staging\\",\\"v1.2.0\\"],[\\"16:00\\",\\"1-on-1\\",\\"career discussion\\"],[\\"19:30\\",\\"Retrospective\\",\\"sprint 42 close\\"]]"
+    "events": "[[\\"09:00\\",\\"朝会\\",\\"進み具合を合わせる\\"],[\\"10:30\\",\\"設計の確認\\",\\"3 案を比べる\\"],[\\"14:00\\",\\"試験環境へ配備\\",\\"v1.2.0\\"],[\\"16:00\\",\\"1 対 1 の面談\\",\\"これからの仕事の話\\"],[\\"19:30\\",\\"振り返り\\",\\"第 42 期の締め\\"]]"
   },
   "animation": [
     {
@@ -16909,7 +16909,7 @@ export const sourceJson__dayScheduleTimeline = `{
       "duration": 1.8,
       "focus": ["Morning2"],
       "set": {
-        "events": "[[\\"09:00\\",\\"Standup\\",\\"team sync\\"],[\\"10:30\\",\\"Design review\\",\\"3 proposals\\"]]"
+        "events": "[[\\"09:00\\",\\"朝会\\",\\"進み具合を合わせる\\"],[\\"10:30\\",\\"設計の確認\\",\\"3 案を比べる\\"]]"
       },
       "body": "点が 2 つだけ縦に並ぶ。 時刻と題と補足の 3 つが 1 つの点にぶら下がる形が読める。"
     },
@@ -16918,7 +16918,7 @@ export const sourceJson__dayScheduleTimeline = `{
       "duration": 1.8,
       "focus": ["Morning2", "Afternoon2"],
       "set": {
-        "events": "[[\\"09:00\\",\\"Standup\\",\\"team sync\\"],[\\"10:30\\",\\"Design review\\",\\"3 proposals\\"],[\\"14:00\\",\\"Deploy staging\\"],[\\"16:00\\",\\"1-on-1\\",\\"career discussion\\"]]"
+        "events": "[[\\"09:00\\",\\"朝会\\",\\"進み具合を合わせる\\"],[\\"10:30\\",\\"設計の確認\\",\\"3 案を比べる\\"],[\\"14:00\\",\\"試験環境へ配備\\"],[\\"16:00\\",\\"1 対 1 の面談\\",\\"これからの仕事の話\\"]]"
       },
       "body": "点が 4 つに増える。 補足を持たない予定は 3 行目が出ないが、点の間隔は変わらない。"
     },
@@ -16927,7 +16927,7 @@ export const sourceJson__dayScheduleTimeline = `{
       "duration": 1.8,
       "focus": ["Morning2", "Afternoon2", "Evening2"],
       "set": {
-        "events": "[[\\"09:00\\",\\"Standup\\",\\"team sync\\"],[\\"10:30\\",\\"Design review\\",\\"3 proposals\\"],[\\"14:00\\",\\"Deploy staging\\",\\"v1.2.0\\"],[\\"16:00\\",\\"1-on-1\\",\\"career discussion\\"],[\\"19:30\\",\\"Retrospective\\",\\"sprint 42 close\\"]]"
+        "events": "[[\\"09:00\\",\\"朝会\\",\\"進み具合を合わせる\\"],[\\"10:30\\",\\"設計の確認\\",\\"3 案を比べる\\"],[\\"14:00\\",\\"試験環境へ配備\\",\\"v1.2.0\\"],[\\"16:00\\",\\"1 対 1 の面談\\",\\"これからの仕事の話\\"],[\\"19:30\\",\\"振り返り\\",\\"第 42 期の締め\\"]]"
       },
       "body": "点が 5 つ並ぶ。 上から下へ時刻が進む形で、1 日の流れが 1 本の線に載る。"
     }
@@ -16938,7 +16938,7 @@ export const sourceYaml__serverUptimeStatus = `title: "稼働 6 区間を稼働 
 type: flow
 
 readouts:
-  st: { kind: status-timeline, source: "events", max: 8, label: "Server status" }
+  st: { kind: status-timeline, source: "events", max: 8, label: "サーバの状態" }
 
 lanes:
   active: { x: 0, width: 240 }
@@ -16949,9 +16949,9 @@ states:
   events: '[["09:00","active"],["09:15","active"],["10:30","idle"],["11:00","error"],["11:15","active"],["12:00","active"]]'
 
 actors:
-  - Active2: { kind: card, lane: active, stack: 0, subtitle: "稼働している区間 (緑)", title: "Active" }
-  - Idle2: { kind: card, lane: idle, stack: 0, subtitle: "待機している区間 (灰)", title: "Idle" }
-  - Error2: { kind: card, lane: error, stack: 0, subtitle: "異常が出た区間 (赤)", title: "Error" }
+  - Active2: { kind: card, lane: active, stack: 0, subtitle: "稼働している区間 (緑)", title: "稼働" }
+  - Idle2: { kind: card, lane: idle, stack: 0, subtitle: "待機している区間 (灰)", title: "待機" }
+  - Error2: { kind: card, lane: error, stack: 0, subtitle: "異常が出た区間 (赤)", title: "異常" }
 
 animation:
   - step: "平常の稼働" 1.8s
@@ -16980,7 +16980,7 @@ export const sourceJson__serverUptimeStatus = `{
       "kind": "status-timeline",
       "source": "events",
       "max": 8,
-      "label": "Server status"
+      "label": "サーバの状態"
     }
   ],
   "lanes": {
@@ -16995,7 +16995,7 @@ export const sourceJson__serverUptimeStatus = `{
       "lane": "active",
       "stack": 0,
       "subtitle": "稼働している区間 (緑)",
-      "title": "Active"
+      "title": "稼働"
     },
     {
       "name": "Idle2",
@@ -17003,7 +17003,7 @@ export const sourceJson__serverUptimeStatus = `{
       "lane": "idle",
       "stack": 0,
       "subtitle": "待機している区間 (灰)",
-      "title": "Idle"
+      "title": "待機"
     },
     {
       "name": "Error2",
@@ -17011,7 +17011,7 @@ export const sourceJson__serverUptimeStatus = `{
       "lane": "error",
       "stack": 0,
       "subtitle": "異常が出た区間 (赤)",
-      "title": "Error"
+      "title": "異常"
     }
   ],
   "flow": [],
@@ -17051,7 +17051,7 @@ export const sourceYaml__weekCalendarView = `title: "1 週間を曜日ごとに�
 type: flow
 
 readouts:
-  cw: { kind: calendar-week, source: "week", cellSize: 40, color: "#2563eb", label: "This week" }
+  cw: { kind: calendar-week, source: "week", cellSize: 40, color: "#2563eb", label: "今週" }
 
 lanes:
   mon: { x: 0, width: 160 }
@@ -17063,32 +17063,32 @@ lanes:
   sun: { x: 1160, width: 160 }
 
 states:
-  week: '[["Mon",true,false],["Tue",false,false],["Wed",true,true],["Thu",false,false],["Fri",true,false],["Sat",false,false],["Sun",false,false]]'
+  week: '[["月",true,false],["火",false,false],["水",true,true],["木",false,false],["金",true,false],["土",false,false],["日",false,false]]'
 
 actors:
-  - Mon2: { kind: card, lane: mon, stack: 0, subtitle: "予定を持つ日", posW: 110, title: "Mon" }
-  - Tue2: { kind: card, lane: tue, stack: 0, subtitle: "予定を持たない日", posW: 110, title: "Tue" }
-  - Wed2: { kind: card, lane: wed, stack: 0, subtitle: "予定を持つ日", posW: 160, title: "Wed" }
-  - Thu2: { kind: card, lane: thu, stack: 0, subtitle: "予定を持たない日", posW: 110, title: "Thu" }
-  - Fri2: { kind: card, lane: fri, stack: 0, subtitle: "予定を持つ日", posW: 110, title: "Fri" }
-  - Sat2: { kind: card, lane: sat, stack: 0, subtitle: "予定を持たない日 (週末)", posW: 110, title: "Sat" }
-  - Sun2: { kind: card, lane: sun, stack: 0, subtitle: "予定を持たない日 (週明け前)", posW: 110, title: "Sun" }
+  - Mon2: { kind: card, lane: mon, stack: 0, subtitle: "予定を持つ日", posW: 110, title: "月曜" }
+  - Tue2: { kind: card, lane: tue, stack: 0, subtitle: "予定を持たない日", posW: 110, title: "火曜" }
+  - Wed2: { kind: card, lane: wed, stack: 0, subtitle: "予定を持つ日", posW: 160, title: "水曜" }
+  - Thu2: { kind: card, lane: thu, stack: 0, subtitle: "予定を持たない日", posW: 110, title: "木曜" }
+  - Fri2: { kind: card, lane: fri, stack: 0, subtitle: "予定を持つ日", posW: 110, title: "金曜" }
+  - Sat2: { kind: card, lane: sat, stack: 0, subtitle: "予定のない週末", posW: 110, title: "土曜" }
+  - Sun2: { kind: card, lane: sun, stack: 0, subtitle: "週明け前の休日", posW: 110, title: "日曜" }
 
 animation:
   - step: "週の始まり" 1.8s
     focus: ["Mon2"]
     set:
-      week: '[["Mon",true,true],["Tue",false,false],["Wed",true,false],["Thu",false,false],["Fri",true,false],["Sat",false,false],["Sun",false,false]]'
+      week: '[["月",true,true],["火",false,false],["水",true,false],["木",false,false],["金",true,false],["土",false,false],["日",false,false]]'
     description: "今日の升目だけ塗りつぶす。 塗った日は予定の丸を出さないため、印は 1 つに畳まれる。"
   - step: "週の半ば" 1.8s
     focus: ["Mon2", "Wed2"]
     set:
-      week: '[["Mon",true,false],["Tue",false,false],["Wed",true,true],["Thu",false,false],["Fri",true,false],["Sat",false,false],["Sun",false,false]]'
+      week: '[["月",true,false],["火",false,false],["水",true,true],["木",false,false],["金",true,false],["土",false,false],["日",false,false]]'
     description: "塗りが右へ移る。 塗りが外れた日に予定の丸が現れ、塗られた日の丸が消える。"
   - step: "週の終わり" 1.8s
     focus: ["Mon2", "Wed2", "Fri2", "Sat2", "Sun2"]
     set:
-      week: '[["Mon",true,false],["Tue",false,false],["Wed",true,false],["Thu",false,false],["Fri",true,true],["Sat",false,false],["Sun",false,false]]'
+      week: '[["月",true,false],["火",false,false],["水",true,false],["木",false,false],["金",true,true],["土",false,false],["日",false,false]]'
     description: "塗りが 5 つ目まで進む。 7 つの升目の数は変わらず、塗りと丸の位置だけが動く。"
 `;
 
@@ -17102,7 +17102,7 @@ export const sourceJson__weekCalendarView = `{
       "source": "week",
       "cellSize": 40,
       "color": "#2563eb",
-      "label": "This week"
+      "label": "今週"
     }
   ],
   "lanes": {
@@ -17122,7 +17122,7 @@ export const sourceJson__weekCalendarView = `{
       "stack": 0,
       "subtitle": "予定を持つ日",
       "posW": 110,
-      "title": "Mon"
+      "title": "月曜"
     },
     {
       "name": "Tue2",
@@ -17131,7 +17131,7 @@ export const sourceJson__weekCalendarView = `{
       "stack": 0,
       "subtitle": "予定を持たない日",
       "posW": 110,
-      "title": "Tue"
+      "title": "火曜"
     },
     {
       "name": "Wed2",
@@ -17140,7 +17140,7 @@ export const sourceJson__weekCalendarView = `{
       "stack": 0,
       "subtitle": "予定を持つ日",
       "posW": 160,
-      "title": "Wed"
+      "title": "水曜"
     },
     {
       "name": "Thu2",
@@ -17149,7 +17149,7 @@ export const sourceJson__weekCalendarView = `{
       "stack": 0,
       "subtitle": "予定を持たない日",
       "posW": 110,
-      "title": "Thu"
+      "title": "木曜"
     },
     {
       "name": "Fri2",
@@ -17158,30 +17158,30 @@ export const sourceJson__weekCalendarView = `{
       "stack": 0,
       "subtitle": "予定を持つ日",
       "posW": 110,
-      "title": "Fri"
+      "title": "金曜"
     },
     {
       "name": "Sat2",
       "kind": "card",
       "lane": "sat",
       "stack": 0,
-      "subtitle": "予定を持たない日 (週末)",
+      "subtitle": "予定のない週末",
       "posW": 110,
-      "title": "Sat"
+      "title": "土曜"
     },
     {
       "name": "Sun2",
       "kind": "card",
       "lane": "sun",
       "stack": 0,
-      "subtitle": "予定を持たない日 (週明け前)",
+      "subtitle": "週明け前の休日",
       "posW": 110,
-      "title": "Sun"
+      "title": "日曜"
     }
   ],
   "flow": [],
   "states": {
-    "week": "[[\\"Mon\\",true,false],[\\"Tue\\",false,false],[\\"Wed\\",true,true],[\\"Thu\\",false,false],[\\"Fri\\",true,false],[\\"Sat\\",false,false],[\\"Sun\\",false,false]]"
+    "week": "[[\\"月\\",true,false],[\\"火\\",false,false],[\\"水\\",true,true],[\\"木\\",false,false],[\\"金\\",true,false],[\\"土\\",false,false],[\\"日\\",false,false]]"
   },
   "animation": [
     {
@@ -17189,7 +17189,7 @@ export const sourceJson__weekCalendarView = `{
       "duration": 1.8,
       "focus": ["Mon2"],
       "set": {
-        "week": "[[\\"Mon\\",true,true],[\\"Tue\\",false,false],[\\"Wed\\",true,false],[\\"Thu\\",false,false],[\\"Fri\\",true,false],[\\"Sat\\",false,false],[\\"Sun\\",false,false]]"
+        "week": "[[\\"月\\",true,true],[\\"火\\",false,false],[\\"水\\",true,false],[\\"木\\",false,false],[\\"金\\",true,false],[\\"土\\",false,false],[\\"日\\",false,false]]"
       },
       "body": "今日の升目だけ塗りつぶす。 塗った日は予定の丸を出さないため、印は 1 つに畳まれる。"
     },
@@ -17198,7 +17198,7 @@ export const sourceJson__weekCalendarView = `{
       "duration": 1.8,
       "focus": ["Mon2", "Wed2"],
       "set": {
-        "week": "[[\\"Mon\\",true,false],[\\"Tue\\",false,false],[\\"Wed\\",true,true],[\\"Thu\\",false,false],[\\"Fri\\",true,false],[\\"Sat\\",false,false],[\\"Sun\\",false,false]]"
+        "week": "[[\\"月\\",true,false],[\\"火\\",false,false],[\\"水\\",true,true],[\\"木\\",false,false],[\\"金\\",true,false],[\\"土\\",false,false],[\\"日\\",false,false]]"
       },
       "body": "塗りが右へ移る。 塗りが外れた日に予定の丸が現れ、塗られた日の丸が消える。"
     },
@@ -17207,7 +17207,7 @@ export const sourceJson__weekCalendarView = `{
       "duration": 1.8,
       "focus": ["Mon2", "Wed2", "Fri2", "Sat2", "Sun2"],
       "set": {
-        "week": "[[\\"Mon\\",true,false],[\\"Tue\\",false,false],[\\"Wed\\",true,false],[\\"Thu\\",false,false],[\\"Fri\\",true,true],[\\"Sat\\",false,false],[\\"Sun\\",false,false]]"
+        "week": "[[\\"月\\",true,false],[\\"火\\",false,false],[\\"水\\",true,false],[\\"木\\",false,false],[\\"金\\",true,true],[\\"土\\",false,false],[\\"日\\",false,false]]"
       },
       "body": "塗りが 5 つ目まで進む。 7 つの升目の数は変わらず、塗りと丸の位置だけが動く。"
     }
@@ -17218,39 +17218,39 @@ export const sourceYaml__teamKpiComparison = `title: "2 チームの成績を並
 type: flow
 
 readouts:
-  kc: { kind: kpi-comparison, source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "Score compare" }
+  kc: { kind: kpi-comparison, source: "teams", max: 100, colorA: "#2563eb", colorB: "#f97316", label: "成績の比較" }
 
 lanes:
   teamA: { x: 0, width: 340 }
   teamB: { x: 380, width: 340 }
 
 states:
-  teams: '[["Team A",82],["Team B",65]]'
+  teams: '[["チーム A",82],["チーム B",65]]'
 
 actors:
-  - Team A: { kind: card, lane: teamA, stack: 0, subtitle: "上の帯 (青)" }
-  - Velocity: { kind: card, lane: teamA, stack: 1, subtitle: "上の帯が表す量" }
-  - Team B: { kind: card, lane: teamB, stack: 0, subtitle: "下の帯 (橙)" }
-  - Velocity2: { kind: card, lane: teamB, stack: 1, subtitle: "下の帯が表す量", title: "Velocity" }
+  - チーム A: { kind: card, lane: teamA, stack: 0, subtitle: "上の帯 (青)" }
+  - 進む速さ: { kind: card, lane: teamA, stack: 1, subtitle: "上の帯が表す量" }
+  - チーム B: { kind: card, lane: teamB, stack: 0, subtitle: "下の帯 (橙)" }
+  - Velocity2: { kind: card, lane: teamB, stack: 1, subtitle: "下の帯が表す量", title: "進む速さ" }
 
 flow:
-  - Team A -> Team B: "差" (warning)
+  - チーム A -> チーム B: "差" (warning)
 
 animation:
   - step: "差が大きい" 1.8s
-    focus: ["Team A", "Team B"]
+    focus: ["チーム A", "チーム B"]
     set:
-      teams: '[["Team A",82],["Team B",41]]'
+      teams: '[["チーム A",82],["チーム B",41]]'
     description: "2 本の帯の長さが大きく違う。 帯は上限を基準に伸びるため、差がそのまま長さに出る。"
   - step: "追い上げる" 1.8s
-    focus: ["Team A", "Velocity", "Team B"]
+    focus: ["チーム A", "進む速さ", "チーム B"]
     set:
-      teams: '[["Team A",82],["Team B",65]]'
+      teams: '[["チーム A",82],["チーム B",65]]'
     description: "下の帯が伸びる。 上の帯は変わらないため、差が縮まったことが並べて読める。"
   - step: "ほぼ並ぶ" 1.8s
-    focus: ["Team A", "Velocity", "Team B", "Velocity2"]
+    focus: ["チーム A", "進む速さ", "チーム B", "Velocity2"]
     set:
-      teams: '[["Team A",84],["Team B",80]]'
+      teams: '[["チーム A",84],["チーム B",80]]'
     description: "2 本がほぼ同じ長さになる。 色が違うだけの帯として、比較の形が最も読みやすくなる。"
 `;
 
@@ -17265,7 +17265,7 @@ export const sourceJson__teamKpiComparison = `{
       "max": 100,
       "colorA": "#2563eb",
       "colorB": "#f97316",
-      "label": "Score compare"
+      "label": "成績の比較"
     }
   ],
   "lanes": {
@@ -17273,42 +17273,42 @@ export const sourceJson__teamKpiComparison = `{
     "teamB": { "x": 380, "width": 340 }
   },
   "actors": [
-    { "name": "Team A", "kind": "card", "lane": "teamA", "stack": 0, "subtitle": "上の帯 (青)" },
-    { "name": "Velocity", "kind": "card", "lane": "teamA", "stack": 1, "subtitle": "上の帯が表す量" },
-    { "name": "Team B", "kind": "card", "lane": "teamB", "stack": 0, "subtitle": "下の帯 (橙)" },
+    { "name": "チーム A", "kind": "card", "lane": "teamA", "stack": 0, "subtitle": "上の帯 (青)" },
+    { "name": "進む速さ", "kind": "card", "lane": "teamA", "stack": 1, "subtitle": "上の帯が表す量" },
+    { "name": "チーム B", "kind": "card", "lane": "teamB", "stack": 0, "subtitle": "下の帯 (橙)" },
     {
       "name": "Velocity2",
       "kind": "card",
       "lane": "teamB",
       "stack": 1,
       "subtitle": "下の帯が表す量",
-      "title": "Velocity"
+      "title": "進む速さ"
     }
   ],
   "flow": [
-    { "from": "Team A", "to": "Team B", "label": "差", "tone": "warning" }
+    { "from": "チーム A", "to": "チーム B", "label": "差", "tone": "warning" }
   ],
-  "states": { "teams": "[[\\"Team A\\",82],[\\"Team B\\",65]]" },
+  "states": { "teams": "[[\\"チーム A\\",82],[\\"チーム B\\",65]]" },
   "animation": [
     {
       "step": "差が大きい",
       "duration": 1.8,
-      "focus": ["Team A", "Team B"],
-      "set": { "teams": "[[\\"Team A\\",82],[\\"Team B\\",41]]" },
+      "focus": ["チーム A", "チーム B"],
+      "set": { "teams": "[[\\"チーム A\\",82],[\\"チーム B\\",41]]" },
       "body": "2 本の帯の長さが大きく違う。 帯は上限を基準に伸びるため、差がそのまま長さに出る。"
     },
     {
       "step": "追い上げる",
       "duration": 1.8,
-      "focus": ["Team A", "Velocity", "Team B"],
-      "set": { "teams": "[[\\"Team A\\",82],[\\"Team B\\",65]]" },
+      "focus": ["チーム A", "進む速さ", "チーム B"],
+      "set": { "teams": "[[\\"チーム A\\",82],[\\"チーム B\\",65]]" },
       "body": "下の帯が伸びる。 上の帯は変わらないため、差が縮まったことが並べて読める。"
     },
     {
       "step": "ほぼ並ぶ",
       "duration": 1.8,
-      "focus": ["Team A", "Velocity", "Team B", "Velocity2"],
-      "set": { "teams": "[[\\"Team A\\",84],[\\"Team B\\",80]]" },
+      "focus": ["チーム A", "進む速さ", "チーム B", "Velocity2"],
+      "set": { "teams": "[[\\"チーム A\\",84],[\\"チーム B\\",80]]" },
       "body": "2 本がほぼ同じ長さになる。 色が違うだけの帯として、比較の形が最も読みやすくなる。"
     }
   ]
@@ -17318,40 +17318,40 @@ export const sourceYaml__publishWorkflowSteps = `title: "記事公開の 4 工�
 type: flow
 
 readouts:
-  sp: { kind: step-progress, source: "cur", stepsSource: "steps", color: "#2563eb", label: "Workflow" }
+  sp: { kind: step-progress, source: "cur", stepsSource: "steps", color: "#2563eb", label: "公開の手順" }
 
 lanes:
   col1: { x: 0, width: 300 }
   col2: { x: 340, width: 270 }
 
 states:
-  steps: '["Draft","Review","Approve","Publish"]'
+  steps: '["下書き","確認","承認","公開"]'
   cur: 2
 
 actors:
-  - Draft: { kind: card, lane: col1, stack: 0, subtitle: "最初の工程", posW: 190  }
-  - Review: { kind: card, lane: col2, stack: 0, subtitle: "Draft の次の工程", posW: 190  }
-  - Approve: { kind: card, lane: col1, stack: 1, subtitle: "Publish の直前の工程", posW: 250  }
-  - Publish: { kind: card, lane: col2, stack: 1, subtitle: "最後の工程", posW: 220  }
+  - 下書き: { kind: card, lane: col1, stack: 0, subtitle: "最初の工程", posW: 190  }
+  - 確認: { kind: card, lane: col2, stack: 0, subtitle: "下書きの次の工程", posW: 190  }
+  - 承認: { kind: card, lane: col1, stack: 1, subtitle: "公開の直前の工程", posW: 250  }
+  - 公開: { kind: card, lane: col2, stack: 1, subtitle: "最後の工程", posW: 220  }
 
 flow:
-  - Draft -> Review: "submit" (success)
-  - Review -> Approve: "reviewed" (info)
-  - Approve -> Publish: "publish" (accent)
+  - 下書き -> 確認: "出す" (success)
+  - 確認 -> 承認: "確かめた" (info)
+  - 承認 -> 公開: "公開する" (accent)
 
 animation:
   - step: "書き始め" 1.8s
-    focus: ["Draft"]
+    focus: ["下書き"]
     set:
       cur: 0
     description: "番号の付いた丸が 4 つ並び、先頭だけが濃い。 手前の線が塗られていない状態から始まる。"
   - step: "確認を経る" 1.8s
-    focus: ["Draft", "Review", "Approve"]
+    focus: ["下書き", "確認", "承認"]
     set:
       cur: 2
     description: "濃い丸が右へ移り、そこまでの線が塗られる。 どこまで進んだかを線の長さが示す。"
   - step: "公開する" 1.8s
-    focus: ["Draft", "Review", "Approve", "Publish"]
+    focus: ["下書き", "確認", "承認", "公開"]
     set:
       cur: 3
     description: "末尾の丸まで濃くなる。 丸の数は変わらず、塗られた線が端まで届く形になる。"
@@ -17367,7 +17367,7 @@ export const sourceJson__publishWorkflowSteps = `{
       "source": "cur",
       "stepsSource": "steps",
       "color": "#2563eb",
-      "label": "Workflow"
+      "label": "公開の手順"
     }
   ],
   "lanes": {
@@ -17376,7 +17376,7 @@ export const sourceJson__publishWorkflowSteps = `{
   },
   "actors": [
     {
-      "name": "Draft",
+      "name": "下書き",
       "kind": "card",
       "lane": "col1",
       "stack": 0,
@@ -17384,23 +17384,23 @@ export const sourceJson__publishWorkflowSteps = `{
       "posW": 190
     },
     {
-      "name": "Review",
+      "name": "確認",
       "kind": "card",
       "lane": "col2",
       "stack": 0,
-      "subtitle": "Draft の次の工程",
+      "subtitle": "下書きの次の工程",
       "posW": 190
     },
     {
-      "name": "Approve",
+      "name": "承認",
       "kind": "card",
       "lane": "col1",
       "stack": 1,
-      "subtitle": "Publish の直前の工程",
+      "subtitle": "公開の直前の工程",
       "posW": 250
     },
     {
-      "name": "Publish",
+      "name": "公開",
       "kind": "card",
       "lane": "col2",
       "stack": 1,
@@ -17409,30 +17409,30 @@ export const sourceJson__publishWorkflowSteps = `{
     }
   ],
   "flow": [
-    { "from": "Draft", "to": "Review", "label": "submit", "tone": "success" },
-    { "from": "Review", "to": "Approve", "label": "reviewed", "tone": "info" },
-    { "from": "Approve", "to": "Publish", "label": "publish", "tone": "accent" }
+    { "from": "下書き", "to": "確認", "label": "出す", "tone": "success" },
+    { "from": "確認", "to": "承認", "label": "確かめた", "tone": "info" },
+    { "from": "承認", "to": "公開", "label": "公開する", "tone": "accent" }
   ],
-  "states": { "steps": "[\\"Draft\\",\\"Review\\",\\"Approve\\",\\"Publish\\"]", "cur": 2 },
+  "states": { "steps": "[\\"下書き\\",\\"確認\\",\\"承認\\",\\"公開\\"]", "cur": 2 },
   "animation": [
     {
       "step": "書き始め",
       "duration": 1.8,
-      "focus": ["Draft"],
+      "focus": ["下書き"],
       "set": { "cur": 0 },
       "body": "番号の付いた丸が 4 つ並び、先頭だけが濃い。 手前の線が塗られていない状態から始まる。"
     },
     {
       "step": "確認を経る",
       "duration": 1.8,
-      "focus": ["Draft", "Review", "Approve"],
+      "focus": ["下書き", "確認", "承認"],
       "set": { "cur": 2 },
       "body": "濃い丸が右へ移り、そこまでの線が塗られる。 どこまで進んだかを線の長さが示す。"
     },
     {
       "step": "公開する",
       "duration": 1.8,
-      "focus": ["Draft", "Review", "Approve", "Publish"],
+      "focus": ["下書き", "確認", "承認", "公開"],
       "set": { "cur": 3 },
       "body": "末尾の丸まで濃くなる。 丸の数は変わらず、塗られた線が端まで届く形になる。"
     }
@@ -17443,7 +17443,7 @@ export const sourceYaml__teamPresenceStatus = `title: "5 人の在席を在席 /
 type: flow
 
 readouts:
-  up: { kind: user-presence, source: "team", max: 6, label: "Team status" }
+  up: { kind: user-presence, source: "team", max: 6, label: "チームの在席" }
 
 lanes:
   online: { x: 0, width: 240 }
@@ -17451,30 +17451,30 @@ lanes:
   offline: { x: 560, width: 240 }
 
 states:
-  team: '[["Alice","online"],["Bob","away"],["Carol","online"],["Dan","offline"],["Eve","online"]]'
+  team: '[["佐藤","online"],["鈴木","away"],["高橋","online"],["田中","offline"],["伊藤","online"]]'
 
 actors:
-  - Alice: { kind: card, lane: online, stack: 0, subtitle: "在席の人 (緑の丸)" }
-  - Carol: { kind: card, lane: online, stack: 1, subtitle: "在席の人 (緑の丸)" }
-  - Eve: { kind: card, lane: online, stack: 2, subtitle: "在席の人 (緑の丸)" }
-  - Bob: { kind: card, lane: away, stack: 0, subtitle: "離席の人 (黄の丸)" }
-  - Dan: { kind: card, lane: offline, stack: 0, subtitle: "不在の人 (灰の丸)" }
+  - 佐藤: { kind: card, lane: online, stack: 0, subtitle: "在席の人 (緑の丸)" }
+  - 高橋: { kind: card, lane: online, stack: 1, subtitle: "在席の人 (緑の丸)" }
+  - 伊藤: { kind: card, lane: online, stack: 2, subtitle: "在席の人 (緑の丸)" }
+  - 鈴木: { kind: card, lane: away, stack: 0, subtitle: "離席の人 (黄の丸)" }
+  - 田中: { kind: card, lane: offline, stack: 0, subtitle: "不在の人 (灰の丸)" }
 
 animation:
   - step: "朝の在席" 1.8s
-    focus: ["Dan"]
+    focus: ["田中"]
     set:
-      team: '[["Alice","offline"],["Bob","offline"],["Carol","offline"],["Dan","offline"],["Eve","offline"]]'
+      team: '[["佐藤","offline"],["鈴木","offline"],["高橋","offline"],["田中","offline"],["伊藤","offline"]]'
     description: "全員が不在。 名前の左の丸がすべて灰になり、行末の状態も同じ語で揃う。"
   - step: "上限ちょうど" 1.8s
-    focus: ["Alice", "Bob", "Dan"]
+    focus: ["佐藤", "鈴木", "田中"]
     set:
-      team: '[["Alice","online"],["Bob","away"],["Carol","offline"],["Dan","offline"],["Eve","online"],["Frank","online"]]'
+      team: '[["佐藤","online"],["鈴木","away"],["高橋","offline"],["田中","offline"],["伊藤","online"],["渡辺","online"]]'
     description: "6 人まで並ぶ。 表示の上限と同じ人数なので、余りの行はまだ出ない。"
   - step: "上限を超える" 1.8s
-    focus: ["Alice", "Carol", "Eve", "Bob", "Dan"]
+    focus: ["佐藤", "高橋", "伊藤", "鈴木", "田中"]
     set:
-      team: '[["Alice","online"],["Bob","away"],["Carol","offline"],["Dan","offline"],["Eve","online"],["Frank","online"],["Grace","away"]]'
+      team: '[["佐藤","online"],["鈴木","away"],["高橋","offline"],["田中","offline"],["伊藤","online"],["渡辺","online"],["山本","away"]]'
     description: "7 人目は行にならず、末尾に残りの人数としてまとめて出る。 上の 6 行は変わらない。"
 `;
 
@@ -17482,7 +17482,7 @@ export const sourceJson__teamPresenceStatus = `{
   "title": "5 人の在席を在席 / 離席 / 不在で分ける",
   "type": "flow",
   "readouts": [
-    { "id": "up", "kind": "user-presence", "source": "team", "max": 6, "label": "Team status" }
+    { "id": "up", "kind": "user-presence", "source": "team", "max": 6, "label": "チームの在席" }
   ],
   "lanes": {
     "online": { "x": 0, "width": 240 },
@@ -17490,41 +17490,41 @@ export const sourceJson__teamPresenceStatus = `{
     "offline": { "x": 560, "width": 240 }
   },
   "actors": [
-    { "name": "Alice", "kind": "card", "lane": "online", "stack": 0, "subtitle": "在席の人 (緑の丸)" },
-    { "name": "Carol", "kind": "card", "lane": "online", "stack": 1, "subtitle": "在席の人 (緑の丸)" },
-    { "name": "Eve", "kind": "card", "lane": "online", "stack": 2, "subtitle": "在席の人 (緑の丸)" },
-    { "name": "Bob", "kind": "card", "lane": "away", "stack": 0, "subtitle": "離席の人 (黄の丸)" },
-    { "name": "Dan", "kind": "card", "lane": "offline", "stack": 0, "subtitle": "不在の人 (灰の丸)" }
+    { "name": "佐藤", "kind": "card", "lane": "online", "stack": 0, "subtitle": "在席の人 (緑の丸)" },
+    { "name": "高橋", "kind": "card", "lane": "online", "stack": 1, "subtitle": "在席の人 (緑の丸)" },
+    { "name": "伊藤", "kind": "card", "lane": "online", "stack": 2, "subtitle": "在席の人 (緑の丸)" },
+    { "name": "鈴木", "kind": "card", "lane": "away", "stack": 0, "subtitle": "離席の人 (黄の丸)" },
+    { "name": "田中", "kind": "card", "lane": "offline", "stack": 0, "subtitle": "不在の人 (灰の丸)" }
   ],
   "flow": [],
   "states": {
-    "team": "[[\\"Alice\\",\\"online\\"],[\\"Bob\\",\\"away\\"],[\\"Carol\\",\\"online\\"],[\\"Dan\\",\\"offline\\"],[\\"Eve\\",\\"online\\"]]"
+    "team": "[[\\"佐藤\\",\\"online\\"],[\\"鈴木\\",\\"away\\"],[\\"高橋\\",\\"online\\"],[\\"田中\\",\\"offline\\"],[\\"伊藤\\",\\"online\\"]]"
   },
   "animation": [
     {
       "step": "朝の在席",
       "duration": 1.8,
-      "focus": ["Dan"],
+      "focus": ["田中"],
       "set": {
-        "team": "[[\\"Alice\\",\\"offline\\"],[\\"Bob\\",\\"offline\\"],[\\"Carol\\",\\"offline\\"],[\\"Dan\\",\\"offline\\"],[\\"Eve\\",\\"offline\\"]]"
+        "team": "[[\\"佐藤\\",\\"offline\\"],[\\"鈴木\\",\\"offline\\"],[\\"高橋\\",\\"offline\\"],[\\"田中\\",\\"offline\\"],[\\"伊藤\\",\\"offline\\"]]"
       },
       "body": "全員が不在。 名前の左の丸がすべて灰になり、行末の状態も同じ語で揃う。"
     },
     {
       "step": "上限ちょうど",
       "duration": 1.8,
-      "focus": ["Alice", "Bob", "Dan"],
+      "focus": ["佐藤", "鈴木", "田中"],
       "set": {
-        "team": "[[\\"Alice\\",\\"online\\"],[\\"Bob\\",\\"away\\"],[\\"Carol\\",\\"offline\\"],[\\"Dan\\",\\"offline\\"],[\\"Eve\\",\\"online\\"],[\\"Frank\\",\\"online\\"]]"
+        "team": "[[\\"佐藤\\",\\"online\\"],[\\"鈴木\\",\\"away\\"],[\\"高橋\\",\\"offline\\"],[\\"田中\\",\\"offline\\"],[\\"伊藤\\",\\"online\\"],[\\"渡辺\\",\\"online\\"]]"
       },
       "body": "6 人まで並ぶ。 表示の上限と同じ人数なので、余りの行はまだ出ない。"
     },
     {
       "step": "上限を超える",
       "duration": 1.8,
-      "focus": ["Alice", "Carol", "Eve", "Bob", "Dan"],
+      "focus": ["佐藤", "高橋", "伊藤", "鈴木", "田中"],
       "set": {
-        "team": "[[\\"Alice\\",\\"online\\"],[\\"Bob\\",\\"away\\"],[\\"Carol\\",\\"offline\\"],[\\"Dan\\",\\"offline\\"],[\\"Eve\\",\\"online\\"],[\\"Frank\\",\\"online\\"],[\\"Grace\\",\\"away\\"]]"
+        "team": "[[\\"佐藤\\",\\"online\\"],[\\"鈴木\\",\\"away\\"],[\\"高橋\\",\\"offline\\"],[\\"田中\\",\\"offline\\"],[\\"伊藤\\",\\"online\\"],[\\"渡辺\\",\\"online\\"],[\\"山本\\",\\"away\\"]]"
       },
       "body": "7 人目は行にならず、末尾に残りの人数としてまとめて出る。 上の 6 行は変わらない。"
     }
@@ -17535,7 +17535,7 @@ export const sourceYaml__feedbackThumbRating = `title: "賛成票と反対票を
 type: flow
 
 readouts:
-  rt: { kind: rating-thumb, source: "votes", colorUp: "#22c55e", colorDown: "#ef4444", label: "Review score" }
+  rt: { kind: rating-thumb, source: "votes", colorUp: "#22c55e", colorDown: "#ef4444", label: "評価" }
 
 lanes:
   up: { x: 0, width: 340 }
@@ -17545,27 +17545,27 @@ states:
   votes: "[24,3]"
 
 actors:
-  - ▲ Up votes: { kind: card, lane: up, stack: 0, subtitle: "帯の緑の側を決める票" }
-  - Positive: { kind: card, lane: up, stack: 1, subtitle: "帯の緑の部分" }
-  - ▼ Down votes: { kind: card, lane: down, stack: 0, subtitle: "帯の赤の側を決める票" }
-  - Negative: { kind: card, lane: down, stack: 1, subtitle: "帯の赤の部分" }
+  - ▲ 賛成票: { kind: card, lane: up, stack: 0, subtitle: "帯の緑の側を決める票" }
+  - 賛成: { kind: card, lane: up, stack: 1, subtitle: "帯の緑の部分" }
+  - ▼ 反対票: { kind: card, lane: down, stack: 0, subtitle: "帯の赤の側を決める票" }
+  - 反対: { kind: card, lane: down, stack: 1, subtitle: "帯の赤の部分" }
 
 flow:
-  - ▲ Up votes -> ▼ Down votes: "割合" (warning)
+  - ▲ 賛成票 -> ▼ 反対票: "割合" (warning)
 
 animation:
   - step: "票が割れる" 1.8s
-    focus: ["▲ Up votes", "▼ Down votes"]
+    focus: ["▲ 賛成票", "▼ 反対票"]
     set:
       votes: "[12,10]"
     description: "賛成と反対がほぼ同数。 帯は票数でなく賛成の占める割合で塗り分けられる。"
   - step: "賛成が増える" 1.8s
-    focus: ["▲ Up votes", "Positive", "▼ Down votes"]
+    focus: ["▲ 賛成票", "賛成", "▼ 反対票"]
     set:
       votes: "[20,10]"
     description: "賛成の割合が 3 分の 2 になる。 緑の部分が伸び、赤の部分が縮む。"
   - step: "賛成に寄る" 1.8s
-    focus: ["▲ Up votes", "Positive", "▼ Down votes", "Negative"]
+    focus: ["▲ 賛成票", "賛成", "▼ 反対票", "反対"]
     set:
       votes: "[24,3]"
     description: "賛成が 9 割近くを占める。 総数が増えても、帯の長さは割合だけで決まる。"
@@ -17581,7 +17581,7 @@ export const sourceJson__feedbackThumbRating = `{
       "source": "votes",
       "colorUp": "#22c55e",
       "colorDown": "#ef4444",
-      "label": "Review score"
+      "label": "評価"
     }
   ],
   "lanes": {
@@ -17589,40 +17589,40 @@ export const sourceJson__feedbackThumbRating = `{
     "down": { "x": 380, "width": 340 }
   },
   "actors": [
-    { "name": "▲ Up votes", "kind": "card", "lane": "up", "stack": 0, "subtitle": "帯の緑の側を決める票" },
-    { "name": "Positive", "kind": "card", "lane": "up", "stack": 1, "subtitle": "帯の緑の部分" },
+    { "name": "▲ 賛成票", "kind": "card", "lane": "up", "stack": 0, "subtitle": "帯の緑の側を決める票" },
+    { "name": "賛成", "kind": "card", "lane": "up", "stack": 1, "subtitle": "帯の緑の部分" },
     {
-      "name": "▼ Down votes",
+      "name": "▼ 反対票",
       "kind": "card",
       "lane": "down",
       "stack": 0,
       "subtitle": "帯の赤の側を決める票"
     },
-    { "name": "Negative", "kind": "card", "lane": "down", "stack": 1, "subtitle": "帯の赤の部分" }
+    { "name": "反対", "kind": "card", "lane": "down", "stack": 1, "subtitle": "帯の赤の部分" }
   ],
   "flow": [
-    { "from": "▲ Up votes", "to": "▼ Down votes", "label": "割合", "tone": "warning" }
+    { "from": "▲ 賛成票", "to": "▼ 反対票", "label": "割合", "tone": "warning" }
   ],
   "states": { "votes": "[24,3]" },
   "animation": [
     {
       "step": "票が割れる",
       "duration": 1.8,
-      "focus": ["▲ Up votes", "▼ Down votes"],
+      "focus": ["▲ 賛成票", "▼ 反対票"],
       "set": { "votes": "[12,10]" },
       "body": "賛成と反対がほぼ同数。 帯は票数でなく賛成の占める割合で塗り分けられる。"
     },
     {
       "step": "賛成が増える",
       "duration": 1.8,
-      "focus": ["▲ Up votes", "Positive", "▼ Down votes"],
+      "focus": ["▲ 賛成票", "賛成", "▼ 反対票"],
       "set": { "votes": "[20,10]" },
       "body": "賛成の割合が 3 分の 2 になる。 緑の部分が伸び、赤の部分が縮む。"
     },
     {
       "step": "賛成に寄る",
       "duration": 1.8,
-      "focus": ["▲ Up votes", "Positive", "▼ Down votes", "Negative"],
+      "focus": ["▲ 賛成票", "賛成", "▼ 反対票", "反対"],
       "set": { "votes": "[24,3]" },
       "body": "賛成が 9 割近くを占める。 総数が増えても、帯の長さは割合だけで決まる。"
     }
@@ -17633,7 +17633,7 @@ export const sourceYaml__startupOrgChart = `title: "3 階層の組織図を階�
 type: flow
 
 readouts:
-  oc: { kind: org-chart-mini, source: "org", color: "#2563eb", label: "Org hierarchy" }
+  oc: { kind: org-chart-mini, source: "org", color: "#2563eb", label: "組織の階層" }
 
 lanes:
   ceo: { x: 0, width: 220 }
@@ -17641,39 +17641,39 @@ lanes:
   ic: { x: 520, width: 260 }
 
 states:
-  org: '[["Alice CEO",0],["Bob VP Eng",1],["Carol VP Sales",1],["Dan Eng",2],["Eve Eng",2],["Frank Sales",2]]'
+  org: '[["佐藤 社長",0],["鈴木 開発部長",1],["高橋 営業部長",1],["田中 開発",2],["伊藤 開発",2],["渡辺 営業",2]]'
 
 actors:
-  - Alice CEO: { kind: card, lane: ceo, stack: 0, subtitle: "最上位の階層" }
-  - Bob VP Eng: { kind: card, lane: vp, stack: 0, subtitle: "中間の階層" }
-  - Carol Sales: { kind: card, lane: vp, stack: 1, subtitle: "中間の階層" }
-  - Dan Eng: { kind: card, lane: ic, stack: 0, subtitle: "最下位の階層" }
-  - Eve Eng: { kind: card, lane: ic, stack: 1, subtitle: "最下位の階層" }
-  - Frank Sales: { kind: card, lane: ic, stack: 2, subtitle: "最下位の階層" }
+  - 佐藤 社長: { kind: card, lane: ceo, stack: 0, subtitle: "最上位の階層" }
+  - 鈴木 開発部長: { kind: card, lane: vp, stack: 0, subtitle: "中間の階層" }
+  - 高橋 営業部長: { kind: card, lane: vp, stack: 1, subtitle: "中間の階層" }
+  - 田中 開発: { kind: card, lane: ic, stack: 0, subtitle: "最下位の階層" }
+  - 伊藤 開発: { kind: card, lane: ic, stack: 1, subtitle: "最下位の階層" }
+  - 渡辺 営業: { kind: card, lane: ic, stack: 2, subtitle: "最下位の階層" }
 
 flow:
-  - Alice CEO -> Bob VP Eng: "reports" (info)
-  - Alice CEO -> Carol Sales: "reports" (info)
-  - Bob VP Eng -> Dan Eng: "manages" (accent)
-  - Bob VP Eng -> Eve Eng: "manages" (accent)
-  - Carol Sales -> Frank Sales: "manages" (accent)
+  - 佐藤 社長 -> 鈴木 開発部長: "率いる" (info)
+  - 佐藤 社長 -> 高橋 営業部長: "率いる" (info)
+  - 鈴木 開発部長 -> 田中 開発: "まとめる" (accent)
+  - 鈴木 開発部長 -> 伊藤 開発: "まとめる" (accent)
+  - 高橋 営業部長 -> 渡辺 営業: "まとめる" (accent)
 
 animation:
   - step: "創業した頃" 1.8s
-    focus: ["Alice CEO"]
+    focus: ["佐藤 社長"]
     set:
-      org: '[["Alice CEO",0]]'
+      org: '[["佐藤 社長",0]]'
     description: "階層が 1 段しかない。 下の段が空だと繋ぐ線を引かないため、箱が 1 つ浮く形になる。"
   - step: "役員を置く" 1.8s
-    focus: ["Alice CEO", "Bob VP Eng", "Carol Sales"]
+    focus: ["佐藤 社長", "鈴木 開発部長", "高橋 営業部長"]
     set:
-      org: '[["Alice CEO",0],["Bob VP Eng",1],["Carol VP Sales",1]]'
+      org: '[["佐藤 社長",0],["鈴木 開発部長",1],["高橋 営業部長",1]]'
     description: "2 段目が埋まり、上の段から線が下りる。 同じ段の箱は横に並ぶ。"
   - step: "現場が増える" 1.8s
-    focus: ["Alice CEO", "Bob VP Eng", "Carol Sales", "Dan Eng", "Eve Eng", "Frank Sales"]
+    focus: ["佐藤 社長", "鈴木 開発部長", "高橋 営業部長", "田中 開発", "伊藤 開発", "渡辺 営業"]
     set:
-      org: '[["Alice CEO",0],["Bob VP Eng",1],["Carol VP Sales",1],["Dan Eng",2],["Eve Eng",2],["Frank Sales",2]]'
-    description: "3 段目まで揃う。 名前が 10 文字を超える箱は末尾を省いて出ることが読み取れる。"
+      org: '[["佐藤 社長",0],["鈴木 開発部長",1],["高橋 営業部長",1],["田中 開発",2],["伊藤 開発",2],["渡辺 営業",2]]'
+    description: "3 段目まで揃う。 2 段目の 2 人の下に 3 人が並び、6 つの箱で組織の全体が読める。"
 `;
 
 export const sourceJson__startupOrgChart = `{
@@ -17685,7 +17685,7 @@ export const sourceJson__startupOrgChart = `{
       "kind": "org-chart-mini",
       "source": "org",
       "color": "#2563eb",
-      "label": "Org hierarchy"
+      "label": "組織の階層"
     }
   ],
   "lanes": {
@@ -17694,46 +17694,46 @@ export const sourceJson__startupOrgChart = `{
     "ic": { "x": 520, "width": 260 }
   },
   "actors": [
-    { "name": "Alice CEO", "kind": "card", "lane": "ceo", "stack": 0, "subtitle": "最上位の階層" },
-    { "name": "Bob VP Eng", "kind": "card", "lane": "vp", "stack": 0, "subtitle": "中間の階層" },
-    { "name": "Carol Sales", "kind": "card", "lane": "vp", "stack": 1, "subtitle": "中間の階層" },
-    { "name": "Dan Eng", "kind": "card", "lane": "ic", "stack": 0, "subtitle": "最下位の階層" },
-    { "name": "Eve Eng", "kind": "card", "lane": "ic", "stack": 1, "subtitle": "最下位の階層" },
-    { "name": "Frank Sales", "kind": "card", "lane": "ic", "stack": 2, "subtitle": "最下位の階層" }
+    { "name": "佐藤 社長", "kind": "card", "lane": "ceo", "stack": 0, "subtitle": "最上位の階層" },
+    { "name": "鈴木 開発部長", "kind": "card", "lane": "vp", "stack": 0, "subtitle": "中間の階層" },
+    { "name": "高橋 営業部長", "kind": "card", "lane": "vp", "stack": 1, "subtitle": "中間の階層" },
+    { "name": "田中 開発", "kind": "card", "lane": "ic", "stack": 0, "subtitle": "最下位の階層" },
+    { "name": "伊藤 開発", "kind": "card", "lane": "ic", "stack": 1, "subtitle": "最下位の階層" },
+    { "name": "渡辺 営業", "kind": "card", "lane": "ic", "stack": 2, "subtitle": "最下位の階層" }
   ],
   "flow": [
-    { "from": "Alice CEO", "to": "Bob VP Eng", "label": "reports", "tone": "info" },
-    { "from": "Alice CEO", "to": "Carol Sales", "label": "reports", "tone": "info" },
-    { "from": "Bob VP Eng", "to": "Dan Eng", "label": "manages", "tone": "accent" },
-    { "from": "Bob VP Eng", "to": "Eve Eng", "label": "manages", "tone": "accent" },
-    { "from": "Carol Sales", "to": "Frank Sales", "label": "manages", "tone": "accent" }
+    { "from": "佐藤 社長", "to": "鈴木 開発部長", "label": "率いる", "tone": "info" },
+    { "from": "佐藤 社長", "to": "高橋 営業部長", "label": "率いる", "tone": "info" },
+    { "from": "鈴木 開発部長", "to": "田中 開発", "label": "まとめる", "tone": "accent" },
+    { "from": "鈴木 開発部長", "to": "伊藤 開発", "label": "まとめる", "tone": "accent" },
+    { "from": "高橋 営業部長", "to": "渡辺 営業", "label": "まとめる", "tone": "accent" }
   ],
   "states": {
-    "org": "[[\\"Alice CEO\\",0],[\\"Bob VP Eng\\",1],[\\"Carol VP Sales\\",1],[\\"Dan Eng\\",2],[\\"Eve Eng\\",2],[\\"Frank Sales\\",2]]"
+    "org": "[[\\"佐藤 社長\\",0],[\\"鈴木 開発部長\\",1],[\\"高橋 営業部長\\",1],[\\"田中 開発\\",2],[\\"伊藤 開発\\",2],[\\"渡辺 営業\\",2]]"
   },
   "animation": [
     {
       "step": "創業した頃",
       "duration": 1.8,
-      "focus": ["Alice CEO"],
-      "set": { "org": "[[\\"Alice CEO\\",0]]" },
+      "focus": ["佐藤 社長"],
+      "set": { "org": "[[\\"佐藤 社長\\",0]]" },
       "body": "階層が 1 段しかない。 下の段が空だと繋ぐ線を引かないため、箱が 1 つ浮く形になる。"
     },
     {
       "step": "役員を置く",
       "duration": 1.8,
-      "focus": ["Alice CEO", "Bob VP Eng", "Carol Sales"],
-      "set": { "org": "[[\\"Alice CEO\\",0],[\\"Bob VP Eng\\",1],[\\"Carol VP Sales\\",1]]" },
+      "focus": ["佐藤 社長", "鈴木 開発部長", "高橋 営業部長"],
+      "set": { "org": "[[\\"佐藤 社長\\",0],[\\"鈴木 開発部長\\",1],[\\"高橋 営業部長\\",1]]" },
       "body": "2 段目が埋まり、上の段から線が下りる。 同じ段の箱は横に並ぶ。"
     },
     {
       "step": "現場が増える",
       "duration": 1.8,
-      "focus": ["Alice CEO", "Bob VP Eng", "Carol Sales", "Dan Eng", "Eve Eng", "Frank Sales"],
+      "focus": ["佐藤 社長", "鈴木 開発部長", "高橋 営業部長", "田中 開発", "伊藤 開発", "渡辺 営業"],
       "set": {
-        "org": "[[\\"Alice CEO\\",0],[\\"Bob VP Eng\\",1],[\\"Carol VP Sales\\",1],[\\"Dan Eng\\",2],[\\"Eve Eng\\",2],[\\"Frank Sales\\",2]]"
+        "org": "[[\\"佐藤 社長\\",0],[\\"鈴木 開発部長\\",1],[\\"高橋 営業部長\\",1],[\\"田中 開発\\",2],[\\"伊藤 開発\\",2],[\\"渡辺 営業\\",2]]"
       },
-      "body": "3 段目まで揃う。 名前が 10 文字を超える箱は末尾を省いて出ることが読み取れる。"
+      "body": "3 段目まで揃う。 2 段目の 2 人の下に 3 人が並び、6 つの箱で組織の全体が読める。"
     }
   ]
 }`;
@@ -17742,7 +17742,7 @@ export const sourceYaml__npsTrendKpi = `title: "NPS の現在値と増減と推�
 type: flow
 
 readouts:
-  kt: { kind: kpi-trend-tile, source: "cur", prevSource: "prev", historySource: "hist", unit: "", colorPos: "#22c55e", colorNeg: "#ef4444", label: "NPS trend" }
+  kt: { kind: kpi-trend-tile, source: "cur", prevSource: "prev", historySource: "hist", unit: "", colorPos: "#22c55e", colorNeg: "#ef4444", label: "NPS の推移" }
 
 lanes:
   cur: { x: 0, width: 220 }
@@ -17755,32 +17755,32 @@ states:
   hist: "[60,65,70,75,80,82]"
 
 actors:
-  - Current: { kind: card, lane: cur, stack: 0, subtitle: "今月の値" }
-  - Previous: { kind: card, lane: delta, stack: 0, subtitle: "先月の値" }
-  - Delta2: { kind: card, lane: delta, stack: 1, subtitle: "今月 - 先月の差", title: "Delta" }
-  - History: { kind: card, lane: hist, stack: 0, subtitle: "折れ線のもとになる並び" }
+  - 今月: { kind: card, lane: cur, stack: 0, subtitle: "大きく出る数" }
+  - 先月: { kind: card, lane: delta, stack: 0, subtitle: "差を求めるもとの数" }
+  - Delta2: { kind: card, lane: delta, stack: 1, subtitle: "今月 - 先月の差", title: "差" }
+  - 推移: { kind: card, lane: hist, stack: 0, subtitle: "折れ線のもとになる並び" }
 
 flow:
-  - Current -> Previous: "比べる" (info)
-  - Current -> History: "並べる" (success)
+  - 今月 -> 先月: "比べる" (info)
+  - 今月 -> 推移: "並べる" (success)
 
 animation:
   - step: "下がった月" 1.8s
-    focus: ["Current", "Previous"]
+    focus: ["今月", "先月"]
     set:
       cur: 58
       prev: 64
       hist: "[70,68,66,64,60,58]"
     description: "今月が先月を下回る。 差が負になり、印と色が下向きの赤に変わる。"
   - step: "底を打つ" 1.8s
-    focus: ["Current", "Previous", "Delta2"]
+    focus: ["今月", "先月", "Delta2"]
     set:
       cur: 64
       prev: 64
       hist: "[68,66,64,60,58,64]"
     description: "今月が先月と並んで差が 0 になる。 印は上向きのまま残り、折れ線の右端が持ち直す。"
   - step: "持ち直す" 1.8s
-    focus: ["Current", "Previous", "Delta2", "History"]
+    focus: ["今月", "先月", "Delta2", "推移"]
     set:
       cur: 82
       prev: 75
@@ -17801,7 +17801,7 @@ export const sourceJson__npsTrendKpi = `{
       "unit": "",
       "colorPos": "#22c55e",
       "colorNeg": "#ef4444",
-      "label": "NPS trend"
+      "label": "NPS の推移"
     }
   ],
   "lanes": {
@@ -17810,42 +17810,42 @@ export const sourceJson__npsTrendKpi = `{
     "hist": { "x": 520, "width": 260 }
   },
   "actors": [
-    { "name": "Current", "kind": "card", "lane": "cur", "stack": 0, "subtitle": "今月の値" },
-    { "name": "Previous", "kind": "card", "lane": "delta", "stack": 0, "subtitle": "先月の値" },
+    { "name": "今月", "kind": "card", "lane": "cur", "stack": 0, "subtitle": "大きく出る数" },
+    { "name": "先月", "kind": "card", "lane": "delta", "stack": 0, "subtitle": "差を求めるもとの数" },
     {
       "name": "Delta2",
       "kind": "card",
       "lane": "delta",
       "stack": 1,
       "subtitle": "今月 - 先月の差",
-      "title": "Delta"
+      "title": "差"
     },
-    { "name": "History", "kind": "card", "lane": "hist", "stack": 0, "subtitle": "折れ線のもとになる並び" }
+    { "name": "推移", "kind": "card", "lane": "hist", "stack": 0, "subtitle": "折れ線のもとになる並び" }
   ],
   "flow": [
-    { "from": "Current", "to": "Previous", "label": "比べる", "tone": "info" },
-    { "from": "Current", "to": "History", "label": "並べる", "tone": "success" }
+    { "from": "今月", "to": "先月", "label": "比べる", "tone": "info" },
+    { "from": "今月", "to": "推移", "label": "並べる", "tone": "success" }
   ],
   "states": { "cur": 82, "prev": 75, "hist": "[60,65,70,75,80,82]" },
   "animation": [
     {
       "step": "下がった月",
       "duration": 1.8,
-      "focus": ["Current", "Previous"],
+      "focus": ["今月", "先月"],
       "set": { "cur": 58, "prev": 64, "hist": "[70,68,66,64,60,58]" },
       "body": "今月が先月を下回る。 差が負になり、印と色が下向きの赤に変わる。"
     },
     {
       "step": "底を打つ",
       "duration": 1.8,
-      "focus": ["Current", "Previous", "Delta2"],
+      "focus": ["今月", "先月", "Delta2"],
       "set": { "cur": 64, "prev": 64, "hist": "[68,66,64,60,58,64]" },
       "body": "今月が先月と並んで差が 0 になる。 印は上向きのまま残り、折れ線の右端が持ち直す。"
     },
     {
       "step": "持ち直す",
       "duration": 1.8,
-      "focus": ["Current", "Previous", "Delta2", "History"],
+      "focus": ["今月", "先月", "Delta2", "推移"],
       "set": { "cur": 82, "prev": 75, "hist": "[60,65,70,75,80,82]" },
       "body": "今月が先月を上回る。 差が正になって上向きの緑になり、折れ線も右上がりに揃う。"
     }
@@ -17856,7 +17856,7 @@ export const sourceYaml__postReactionPoll = `title: "絵文字 3 種の投票を
 type: flow
 
 readouts:
-  qp: { kind: quick-poll-emoji, source: "votes", colorWinner: "#2563eb", label: "Reactions" }
+  qp: { kind: quick-poll-emoji, source: "votes", colorWinner: "#2563eb", label: "反応" }
 
 lanes:
   thumbs: { x: 0, width: 240 }
@@ -17867,9 +17867,9 @@ states:
   votes: '[["👍",42],["❤️",28],["🎉",15]]'
 
 actors:
-  - 👍 Thumbs2: { kind: card, lane: thumbs, stack: 0, subtitle: "票が最も多い絵文字", title: "👍 Thumbs" }
-  - ❤️ Heart2: { kind: card, lane: heart, stack: 0, subtitle: "次に多い絵文字", title: "❤️ Heart" }
-  - 🎉 Party2: { kind: card, lane: party, stack: 0, subtitle: "票が最も少ない絵文字", title: "🎉 Party" }
+  - 👍 Thumbs2: { kind: card, lane: thumbs, stack: 0, subtitle: "票が最も多い絵文字", title: "👍 いいね" }
+  - ❤️ Heart2: { kind: card, lane: heart, stack: 0, subtitle: "次に多い絵文字", title: "❤️ 好き" }
+  - 🎉 Party2: { kind: card, lane: party, stack: 0, subtitle: "票が最も少ない絵文字", title: "🎉 お祝い" }
 
 animation:
   - step: "票が入り始める" 1.8s
@@ -17898,7 +17898,7 @@ export const sourceJson__postReactionPoll = `{
       "kind": "quick-poll-emoji",
       "source": "votes",
       "colorWinner": "#2563eb",
-      "label": "Reactions"
+      "label": "反応"
     }
   ],
   "lanes": {
@@ -17913,7 +17913,7 @@ export const sourceJson__postReactionPoll = `{
       "lane": "thumbs",
       "stack": 0,
       "subtitle": "票が最も多い絵文字",
-      "title": "👍 Thumbs"
+      "title": "👍 いいね"
     },
     {
       "name": "❤️ Heart2",
@@ -17921,7 +17921,7 @@ export const sourceJson__postReactionPoll = `{
       "lane": "heart",
       "stack": 0,
       "subtitle": "次に多い絵文字",
-      "title": "❤️ Heart"
+      "title": "❤️ 好き"
     },
     {
       "name": "🎉 Party2",
@@ -17929,7 +17929,7 @@ export const sourceJson__postReactionPoll = `{
       "lane": "party",
       "stack": 0,
       "subtitle": "票が最も少ない絵文字",
-      "title": "🎉 Party"
+      "title": "🎉 お祝い"
     }
   ],
   "flow": [],
@@ -18076,7 +18076,7 @@ lanes:
   activity: { x: 520, width: 260 }
 
 states:
-  thread: '[5,8,"Alice","12 分前"]'
+  thread: '[5,8,"佐藤","12 分前"]'
 
 actors:
   - 未読: { kind: card, lane: unread, stack: 0, subtitle: "赤い丸の中に出る数" }
@@ -18092,19 +18092,19 @@ animation:
   - step: "静かなスレッド" 1.8s
     focus: ["参加者"]
     set:
-      thread: '[0,4,"Bob","2 時間前"]'
+      thread: '[0,4,"鈴木","2 時間前"]'
     badge: "静か"
     description: "未読が 0。 赤い丸だけが消え、人数と直近の発言者と経過の 3 行は残る。"
   - step: "新着が付く" 1.8s
     focus: ["未読", "参加者", "直近の発言者"]
     set:
-      thread: '[3,6,"Carol","25 分前"]'
+      thread: '[3,6,"高橋","25 分前"]'
     badge: "新着"
     description: "未読が 3 件。 右上に赤い丸が現れ、中に件数が出る。 人数と発言者も入れ替わる。"
   - step: "混雑する" 1.8s
     focus: ["未読", "参加者", "直近の発言者", "経過"]
     set:
-      thread: '[5,8,"Alice","12 分前"]'
+      thread: '[5,8,"佐藤","12 分前"]'
     badge: "混雑"
     description: "未読が 5 件に増える。 丸の大きさは変わらず、中の数と 3 行の文字だけが動く。"
 `;
@@ -18142,13 +18142,13 @@ export const sourceJson__teamThreadSummary = `{
     { "from": "未読", "to": "直近の発言者", "label": "帰属", "tone": "info" },
     { "from": "参加者", "to": "直近の発言者", "label": "所属", "tone": "teal" }
   ],
-  "states": { "thread": "[5,8,\\"Alice\\",\\"12 分前\\"]" },
+  "states": { "thread": "[5,8,\\"佐藤\\",\\"12 分前\\"]" },
   "animation": [
     {
       "step": "静かなスレッド",
       "duration": 1.8,
       "focus": ["参加者"],
-      "set": { "thread": "[0,4,\\"Bob\\",\\"2 時間前\\"]" },
+      "set": { "thread": "[0,4,\\"鈴木\\",\\"2 時間前\\"]" },
       "badge": "静か",
       "body": "未読が 0。 赤い丸だけが消え、人数と直近の発言者と経過の 3 行は残る。"
     },
@@ -18156,7 +18156,7 @@ export const sourceJson__teamThreadSummary = `{
       "step": "新着が付く",
       "duration": 1.8,
       "focus": ["未読", "参加者", "直近の発言者"],
-      "set": { "thread": "[3,6,\\"Carol\\",\\"25 分前\\"]" },
+      "set": { "thread": "[3,6,\\"高橋\\",\\"25 分前\\"]" },
       "badge": "新着",
       "body": "未読が 3 件。 右上に赤い丸が現れ、中に件数が出る。 人数と発言者も入れ替わる。"
     },
@@ -18164,7 +18164,7 @@ export const sourceJson__teamThreadSummary = `{
       "step": "混雑する",
       "duration": 1.8,
       "focus": ["未読", "参加者", "直近の発言者", "経過"],
-      "set": { "thread": "[5,8,\\"Alice\\",\\"12 分前\\"]" },
+      "set": { "thread": "[5,8,\\"佐藤\\",\\"12 分前\\"]" },
       "badge": "混雑",
       "body": "未読が 5 件に増える。 丸の大きさは変わらず、中の数と 3 行の文字だけが動く。"
     }
@@ -18200,19 +18200,19 @@ animation:
     set:
       status: 0
     badge: "送信"
-    description: "status = 0、 送信 lane のみ active、 readout に灰の単チェック表示 (送信済 but 未配信)。"
+    description: "状態は 0。 送信の列だけが光り、灰の単チェックが出る (送ったが、まだ届いていない)。"
   - step: "配信完了" 1.5s
     focus: ["▶ 送信 (0)", "▶▶ 配信 (1)"]
     set:
       status: 1
     badge: "配信"
-    description: "status = 1 に切替、 配信 lane 追加 activate、 readout が灰の二重チェックに変化 (配信 but 未読)。"
+    description: "状態を 1 にすると配信の列も光り、灰の二重チェックに変わる (届いたが、まだ読まれていない)。"
   - step: "既読" 1.5s
     focus: ["▶ 送信 (0)", "▶▶ 配信 (1)", "◆ 既読 (2)"]
     set:
       status: 2
     badge: "既読"
-    description: "status = 2 に切替、 既読 lane 追加 activate、 readout の二重チェックが青に変化 (既読確認)。"
+    description: "状態を 2 にすると既読の列も光り、二重チェックが青に変わる (読まれたことが分かる)。"
 `;
 
 export const sourceJson__dmReadReceipt = `{
@@ -18271,7 +18271,7 @@ export const sourceJson__dmReadReceipt = `{
       "focus": ["▶ 送信 (0)"],
       "set": { "status": 0 },
       "badge": "送信",
-      "body": "status = 0、 送信 lane のみ active、 readout に灰の単チェック表示 (送信済 but 未配信)。"
+      "body": "状態は 0。 送信の列だけが光り、灰の単チェックが出る (送ったが、まだ届いていない)。"
     },
     {
       "step": "配信完了",
@@ -18279,7 +18279,7 @@ export const sourceJson__dmReadReceipt = `{
       "focus": ["▶ 送信 (0)", "▶▶ 配信 (1)"],
       "set": { "status": 1 },
       "badge": "配信",
-      "body": "status = 1 に切替、 配信 lane 追加 activate、 readout が灰の二重チェックに変化 (配信 but 未読)。"
+      "body": "状態を 1 にすると配信の列も光り、灰の二重チェックに変わる (届いたが、まだ読まれていない)。"
     },
     {
       "step": "既読",
@@ -18287,7 +18287,7 @@ export const sourceJson__dmReadReceipt = `{
       "focus": ["▶ 送信 (0)", "▶▶ 配信 (1)", "◆ 既読 (2)"],
       "set": { "status": 2 },
       "badge": "既読",
-      "body": "status = 2 に切替、 既読 lane 追加 activate、 readout の二重チェックが青に変化 (既読確認)。"
+      "body": "状態を 2 にすると既読の列も光り、二重チェックが青に変わる (読まれたことが分かる)。"
     }
   ]
 }`;
@@ -18307,36 +18307,36 @@ states:
   pw: 1
 
 actors:
-  - ◆ password: { kind: card, lane: input, stack: 0, subtitle: "現在 level {pw} · マスク表示" }
-  - 4 セグメント メーター: { kind: card, lane: meter, stack: 0, subtitle: "level {pw} 分だけ着色" }
-  - level ラベル: { kind: card, lane: meter, stack: 1, subtitle: "メーター色と同色 tint" }
-  - ✓ 8 文字以上: { kind: card, lane: rules, stack: 0, subtitle: "level ≥ 1 で pass" }
-  - ✓ 大小混合: { kind: card, lane: rules, stack: 1, subtitle: "level ≥ 2 で pass" }
-  - ✓ 数字 + 記号: { kind: card, lane: rules, stack: 2, subtitle: "level ≥ 3 で pass" }
+  - ◆ パスワード: { kind: card, lane: input, stack: 0, subtitle: "いまの段階 {pw} · 伏せ字で出す" }
+  - 4 区切りのメーター: { kind: card, lane: meter, stack: 0, subtitle: "段階 {pw} の数だけ色が付く" }
+  - 段階の名前: { kind: card, lane: meter, stack: 1, subtitle: "メーターと同じ色で出る" }
+  - ✓ 8 文字以上: { kind: card, lane: rules, stack: 0, subtitle: "段階 1 以上で満たす" }
+  - ✓ 大小混合: { kind: card, lane: rules, stack: 1, subtitle: "段階 2 以上で満たす" }
+  - ✓ 数字 + 記号: { kind: card, lane: rules, stack: 2, subtitle: "段階 3 以上で満たす" }
 
 flow:
-  - ◆ password -> 4 セグメント メーター: "評価" (info)
-  - 4 セグメント メーター -> level ラベル: "注釈" (success)
+  - ◆ パスワード -> 4 区切りのメーター: "評価" (info)
+  - 4 区切りのメーター -> 段階の名前: "注釈" (success)
 
 animation:
-  - step: "弱い (level 1)" 1.5s
-    focus: ["◆ password", "4 セグメント メーター", "✓ 8 文字以上"]
+  - step: "弱い (段階 1)" 1.5s
+    focus: ["◆ パスワード", "4 区切りのメーター", "✓ 8 文字以上"]
     set:
       pw: 1
     badge: "弱い"
-    description: "初期入力、 pw = 1、 meter 1 セグメント赤、 rule1 のみ pass、 入力 + メーター lane が active。"
-  - step: "改善中 (level 1 → 3)" 2s
-    focus: ["◆ password", "4 セグメント メーター", "level ラベル", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"]
+    description: "最初の入力で段階は 1。 メーターは 1 区切りだけ赤く、満たす決まりは 8 文字以上の 1 つだけ。 入力とメーターの列が光る。"
+  - step: "改善中 (段階 1 → 3)" 2s
+    focus: ["◆ パスワード", "4 区切りのメーター", "段階の名前", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"]
     tween:
       pw: 1 -> 3
     badge: "改善中"
-    description: "文字追加 + 大小混合、 pw を 1 → 3 まで tween、 meter が赤 → 橙 → 黄 → 黄緑と連続変化、 rule2 + rule3 追加 activate。"
-  - step: "強い (level 4)" 1.5s
-    focus: ["◆ password", "4 セグメント メーター", "level ラベル", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"]
+    description: "文字を足して大文字と小文字を混ぜ、段階が 1 から 3 へ上がる。 メーターが赤から橙、黄、黄緑へ続けて変わり、残り 2 つの決まりも光る。"
+  - step: "強い (段階 4)" 1.5s
+    focus: ["◆ パスワード", "4 区切りのメーター", "段階の名前", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"]
     set:
       pw: 4
     badge: "強い"
-    description: "数字 + 記号追加で pw = 4、 meter 全 4 セグメント緑、 全 rule pass、 6 node 全 active。"
+    description: "数字と記号を足して段階が 4 になる。 メーターは 4 区切りすべてが緑になり、決まりを全部満たして 6 つの箱がすべて光る。"
 `;
 
 export const sourceJson__formPasswordCheck = `{
@@ -18359,77 +18359,77 @@ export const sourceJson__formPasswordCheck = `{
   },
   "actors": [
     {
-      "name": "◆ password",
+      "name": "◆ パスワード",
       "kind": "card",
       "lane": "input",
       "stack": 0,
-      "subtitle": "現在 level {pw} · マスク表示"
+      "subtitle": "いまの段階 {pw} · 伏せ字で出す"
     },
     {
-      "name": "4 セグメント メーター",
+      "name": "4 区切りのメーター",
       "kind": "card",
       "lane": "meter",
       "stack": 0,
-      "subtitle": "level {pw} 分だけ着色"
+      "subtitle": "段階 {pw} の数だけ色が付く"
     },
     {
-      "name": "level ラベル",
+      "name": "段階の名前",
       "kind": "card",
       "lane": "meter",
       "stack": 1,
-      "subtitle": "メーター色と同色 tint"
+      "subtitle": "メーターと同じ色で出る"
     },
     {
       "name": "✓ 8 文字以上",
       "kind": "card",
       "lane": "rules",
       "stack": 0,
-      "subtitle": "level ≥ 1 で pass"
+      "subtitle": "段階 1 以上で満たす"
     },
     {
       "name": "✓ 大小混合",
       "kind": "card",
       "lane": "rules",
       "stack": 1,
-      "subtitle": "level ≥ 2 で pass"
+      "subtitle": "段階 2 以上で満たす"
     },
     {
       "name": "✓ 数字 + 記号",
       "kind": "card",
       "lane": "rules",
       "stack": 2,
-      "subtitle": "level ≥ 3 で pass"
+      "subtitle": "段階 3 以上で満たす"
     }
   ],
   "flow": [
-    { "from": "◆ password", "to": "4 セグメント メーター", "label": "評価", "tone": "info" },
-    { "from": "4 セグメント メーター", "to": "level ラベル", "label": "注釈", "tone": "success" }
+    { "from": "◆ パスワード", "to": "4 区切りのメーター", "label": "評価", "tone": "info" },
+    { "from": "4 区切りのメーター", "to": "段階の名前", "label": "注釈", "tone": "success" }
   ],
   "states": { "pw": 1 },
   "animation": [
     {
-      "step": "弱い (level 1)",
+      "step": "弱い (段階 1)",
       "duration": 1.5,
-      "focus": ["◆ password", "4 セグメント メーター", "✓ 8 文字以上"],
+      "focus": ["◆ パスワード", "4 区切りのメーター", "✓ 8 文字以上"],
       "set": { "pw": 1 },
       "badge": "弱い",
-      "body": "初期入力、 pw = 1、 meter 1 セグメント赤、 rule1 のみ pass、 入力 + メーター lane が active。"
+      "body": "最初の入力で段階は 1。 メーターは 1 区切りだけ赤く、満たす決まりは 8 文字以上の 1 つだけ。 入力とメーターの列が光る。"
     },
     {
-      "step": "改善中 (level 1 → 3)",
+      "step": "改善中 (段階 1 → 3)",
       "duration": 2,
-      "focus": ["◆ password", "4 セグメント メーター", "level ラベル", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"],
+      "focus": ["◆ パスワード", "4 区切りのメーター", "段階の名前", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"],
       "tween": { "pw": [1, 3] },
       "badge": "改善中",
-      "body": "文字追加 + 大小混合、 pw を 1 → 3 まで tween、 meter が赤 → 橙 → 黄 → 黄緑と連続変化、 rule2 + rule3 追加 activate。"
+      "body": "文字を足して大文字と小文字を混ぜ、段階が 1 から 3 へ上がる。 メーターが赤から橙、黄、黄緑へ続けて変わり、残り 2 つの決まりも光る。"
     },
     {
-      "step": "強い (level 4)",
+      "step": "強い (段階 4)",
       "duration": 1.5,
-      "focus": ["◆ password", "4 セグメント メーター", "level ラベル", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"],
+      "focus": ["◆ パスワード", "4 区切りのメーター", "段階の名前", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"],
       "set": { "pw": 4 },
       "badge": "強い",
-      "body": "数字 + 記号追加で pw = 4、 meter 全 4 セグメント緑、 全 rule pass、 6 node 全 active。"
+      "body": "数字と記号を足して段階が 4 になる。 メーターは 4 区切りすべてが緑になり、決まりを全部満たして 6 つの箱がすべて光る。"
     }
   ]
 }`;
@@ -18438,7 +18438,7 @@ export const sourceYaml__loginOtpVerify = `title: "OTP 6 桁の入力から検�
 type: flow
 
 readouts:
-  oi: { kind: otp-input, source: "otp", colorFocus: "#2563eb", label: "OTP コード" }
+  oi: { kind: otp-input, source: "otp", colorFocus: "#2563eb", label: "確認コード" }
 
 lanes:
   sent: { x: 0, width: 220 }
@@ -18488,7 +18488,7 @@ export const sourceJson__loginOtpVerify = `{
       "kind": "otp-input",
       "source": "otp",
       "colorFocus": "#2563eb",
-      "label": "OTP コード"
+      "label": "確認コード"
     }
   ],
   "lanes": {
@@ -18549,13 +18549,13 @@ states:
   file: ""
 
 actors:
-  - 未選択: { kind: card, lane: col1, stack: 0, subtitle: "破線枠 · '⬆ ここにドロップ'", posW: 280 }
-  - ◆ avatar.png: { kind: card, lane: col2, stack: 0, subtitle: "実線枠 · ファイル名カード", posW: 310 }
+  - 未選択: { kind: card, lane: col1, stack: 0, subtitle: "破線の枠と上向きの矢印", posW: 280 }
+  - ◆ 顔写真.png: { kind: card, lane: col2, stack: 0, subtitle: "実線枠 · ファイル名カード", posW: 310 }
   - ▶ 円形アバター: { kind: card, lane: col1, stack: 1, subtitle: "80×80 クロップ表示", posW: 220 }
 
 flow:
-  - 未選択 -> ◆ avatar.png: "drop" (info)
-  - ◆ avatar.png -> ▶ 円形アバター: "プレビュー" (success)
+  - 未選択 -> ◆ 顔写真.png: "置く" (info)
+  - ◆ 顔写真.png -> ▶ 円形アバター: "プレビュー" (success)
 
 animation:
   - step: "未選択" 1.5s
@@ -18563,19 +18563,19 @@ animation:
     set:
       file: ""
     badge: "未選択"
-    description: "file = ''、 未選択の card のみ active、 dropzone は破線枠 + '⬆ ここにドロップ' のプロンプト表示。"
+    description: "ファイルは空。 未選択の箱だけが光り、置き場は破線の枠に上向きの矢印と案内を出す。"
   - step: "ドロップ受信" 2s
-    focus: ["未選択", "◆ avatar.png"]
+    focus: ["未選択", "◆ 顔写真.png"]
     set:
-      file: "avatar.png"
+      file: "顔写真.png"
     badge: "アップロード"
-    description: "file を空 → 'avatar.png' に切替、 アップロードの card を追加 activate、 dropzone が実線枠 + ファイル名カード表示に変化。"
+    description: "ファイルを空から「顔写真.png」 に切り替え、アップロードの箱も光る。 置き場は実線の枠に変わり、ファイル名の札を出す。"
   - step: "プレビュー表示" 1.5s
-    focus: ["未選択", "◆ avatar.png", "▶ 円形アバター"]
+    focus: ["未選択", "◆ 顔写真.png", "▶ 円形アバター"]
     set:
-      file: "avatar.png"
+      file: "顔写真.png"
     badge: "完了"
-    description: "アップロード完了、 プレビューの card を追加 activate、 円形クロップされたアバターが表示、 3 node 全 highlight。"
+    description: "アップロードが終わり、プレビューの箱も光る。 丸く切り抜いた顔写真が出て、3 つの箱がすべて光る。"
 `;
 
 export const sourceJson__profileAvatarUpload = `{
@@ -18600,11 +18600,11 @@ export const sourceJson__profileAvatarUpload = `{
       "kind": "card",
       "lane": "col1",
       "stack": 0,
-      "subtitle": "破線枠 · '⬆ ここにドロップ'",
+      "subtitle": "破線の枠と上向きの矢印",
       "posW": 280
     },
     {
-      "name": "◆ avatar.png",
+      "name": "◆ 顔写真.png",
       "kind": "card",
       "lane": "col2",
       "stack": 0,
@@ -18621,8 +18621,8 @@ export const sourceJson__profileAvatarUpload = `{
     }
   ],
   "flow": [
-    { "from": "未選択", "to": "◆ avatar.png", "label": "drop", "tone": "info" },
-    { "from": "◆ avatar.png", "to": "▶ 円形アバター", "label": "プレビュー", "tone": "success" }
+    { "from": "未選択", "to": "◆ 顔写真.png", "label": "置く", "tone": "info" },
+    { "from": "◆ 顔写真.png", "to": "▶ 円形アバター", "label": "プレビュー", "tone": "success" }
   ],
   "states": { "file": "" },
   "animation": [
@@ -18632,23 +18632,23 @@ export const sourceJson__profileAvatarUpload = `{
       "focus": ["未選択"],
       "set": { "file": "" },
       "badge": "未選択",
-      "body": "file = ''、 未選択の card のみ active、 dropzone は破線枠 + '⬆ ここにドロップ' のプロンプト表示。"
+      "body": "ファイルは空。 未選択の箱だけが光り、置き場は破線の枠に上向きの矢印と案内を出す。"
     },
     {
       "step": "ドロップ受信",
       "duration": 2,
-      "focus": ["未選択", "◆ avatar.png"],
-      "set": { "file": "avatar.png" },
+      "focus": ["未選択", "◆ 顔写真.png"],
+      "set": { "file": "顔写真.png" },
       "badge": "アップロード",
-      "body": "file を空 → 'avatar.png' に切替、 アップロードの card を追加 activate、 dropzone が実線枠 + ファイル名カード表示に変化。"
+      "body": "ファイルを空から「顔写真.png」 に切り替え、アップロードの箱も光る。 置き場は実線の枠に変わり、ファイル名の札を出す。"
     },
     {
       "step": "プレビュー表示",
       "duration": 1.5,
-      "focus": ["未選択", "◆ avatar.png", "▶ 円形アバター"],
-      "set": { "file": "avatar.png" },
+      "focus": ["未選択", "◆ 顔写真.png", "▶ 円形アバター"],
+      "set": { "file": "顔写真.png" },
       "badge": "完了",
-      "body": "アップロード完了、 プレビューの card を追加 activate、 円形クロップされたアバターが表示、 3 node 全 highlight。"
+      "body": "アップロードが終わり、プレビューの箱も光る。 丸く切り抜いた顔写真が出て、3 つの箱がすべて光る。"
     }
   ]
 }`;
@@ -18657,7 +18657,7 @@ export const sourceYaml__prodLogTail = `title: "本番ログ直近 5 行を重�
 type: flow
 
 readouts:
-  ls: { kind: log-stream, source: "logs", label: "ログ tail" }
+  ls: { kind: log-stream, source: "logs", label: "ログの末尾" }
 
 lanes:
   ts: { x: 0, width: 180 }
@@ -18665,7 +18665,7 @@ lanes:
   msg: { x: 360, width: 340 }
 
 states:
-  logs: '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"],["09:01:03",2,"メモリ使用率 82%"],["09:01:47",3,"worker crash: OOM"],["09:02:02",1,"worker 再起動 ok"]]'
+  logs: '[["09:00:12",1,"サーバの起動が済んだ"],["09:00:15",1,"DB の接続の枠 20"],["09:01:03",2,"メモリ使用率 82%"],["09:01:47",3,"ワーカーが落ちた: メモリ不足"],["09:02:02",1,"ワーカーを再起動した"]]'
 
 actors:
   - 時刻列: { kind: card, lane: ts, stack: 0, subtitle: "行の左端に出る時刻" }
@@ -18682,19 +18682,19 @@ animation:
   - step: "通常運転" 1.8s
     focus: ["時刻列", "レベル列", "情報の行"]
     set:
-      logs: '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"]]'
+      logs: '[["09:00:12",1,"サーバの起動が済んだ"],["09:00:15",1,"DB の接続の枠 20"]]'
     badge: "通常"
     description: "情報の行だけが流れる。 札はどれも同じ色で、重さの差が出ていない状態。"
   - step: "注意が出る" 1.8s
     focus: ["時刻列", "レベル列", "情報の行", "注意の行"]
     set:
-      logs: '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"],["09:01:03",2,"メモリ使用率 82%"]]'
+      logs: '[["09:00:12",1,"サーバの起動が済んだ"],["09:00:15",1,"DB の接続の枠 20"],["09:01:03",2,"メモリ使用率 82%"]]'
     badge: "警告"
     description: "橙の札が付いた行が混じる。 青い札と並ぶため、重さの違いが色で読み取れる。"
   - step: "異常が出る" 1.8s
     focus: ["時刻列", "レベル列", "情報の行", "注意の行", "異常の行"]
     set:
-      logs: '[["09:00:12",1,"server 起動完了"],["09:00:15",1,"db connection pool 20"],["09:01:03",2,"メモリ使用率 82%"],["09:01:47",3,"worker crash: OOM"],["09:02:02",1,"worker 再起動 ok"],["09:02:30",1,"health check ok"]]'
+      logs: '[["09:00:12",1,"サーバの起動が済んだ"],["09:00:15",1,"DB の接続の枠 20"],["09:01:03",2,"メモリ使用率 82%"],["09:01:47",3,"ワーカーが落ちた: メモリ不足"],["09:02:02",1,"ワーカーを再起動した"],["09:02:30",1,"死活監視で正常"]]'
     badge: "障害"
     description: "行が 6 つに増えるが、出るのは **末尾 5 行** だけ。 先頭の 1 行が押し出されて消える。"
 `;
@@ -18703,7 +18703,7 @@ export const sourceJson__prodLogTail = `{
   "title": "本番ログ直近 5 行を重要度付きで流す",
   "type": "flow",
   "readouts": [
-    { "id": "ls", "kind": "log-stream", "source": "logs", "label": "ログ tail" }
+    { "id": "ls", "kind": "log-stream", "source": "logs", "label": "ログの末尾" }
   ],
   "lanes": {
     "ts": { "x": 0, "width": 180 },
@@ -18722,7 +18722,7 @@ export const sourceJson__prodLogTail = `{
     { "from": "レベル列", "to": "異常の行", "label": "重篤化", "tone": "error" }
   ],
   "states": {
-    "logs": "[[\\"09:00:12\\",1,\\"server 起動完了\\"],[\\"09:00:15\\",1,\\"db connection pool 20\\"],[\\"09:01:03\\",2,\\"メモリ使用率 82%\\"],[\\"09:01:47\\",3,\\"worker crash: OOM\\"],[\\"09:02:02\\",1,\\"worker 再起動 ok\\"]]"
+    "logs": "[[\\"09:00:12\\",1,\\"サーバの起動が済んだ\\"],[\\"09:00:15\\",1,\\"DB の接続の枠 20\\"],[\\"09:01:03\\",2,\\"メモリ使用率 82%\\"],[\\"09:01:47\\",3,\\"ワーカーが落ちた: メモリ不足\\"],[\\"09:02:02\\",1,\\"ワーカーを再起動した\\"]]"
   },
   "animation": [
     {
@@ -18730,7 +18730,7 @@ export const sourceJson__prodLogTail = `{
       "duration": 1.8,
       "focus": ["時刻列", "レベル列", "情報の行"],
       "set": {
-        "logs": "[[\\"09:00:12\\",1,\\"server 起動完了\\"],[\\"09:00:15\\",1,\\"db connection pool 20\\"]]"
+        "logs": "[[\\"09:00:12\\",1,\\"サーバの起動が済んだ\\"],[\\"09:00:15\\",1,\\"DB の接続の枠 20\\"]]"
       },
       "badge": "通常",
       "body": "情報の行だけが流れる。 札はどれも同じ色で、重さの差が出ていない状態。"
@@ -18740,7 +18740,7 @@ export const sourceJson__prodLogTail = `{
       "duration": 1.8,
       "focus": ["時刻列", "レベル列", "情報の行", "注意の行"],
       "set": {
-        "logs": "[[\\"09:00:12\\",1,\\"server 起動完了\\"],[\\"09:00:15\\",1,\\"db connection pool 20\\"],[\\"09:01:03\\",2,\\"メモリ使用率 82%\\"]]"
+        "logs": "[[\\"09:00:12\\",1,\\"サーバの起動が済んだ\\"],[\\"09:00:15\\",1,\\"DB の接続の枠 20\\"],[\\"09:01:03\\",2,\\"メモリ使用率 82%\\"]]"
       },
       "badge": "警告",
       "body": "橙の札が付いた行が混じる。 青い札と並ぶため、重さの違いが色で読み取れる。"
@@ -18750,7 +18750,7 @@ export const sourceJson__prodLogTail = `{
       "duration": 1.8,
       "focus": ["時刻列", "レベル列", "情報の行", "注意の行", "異常の行"],
       "set": {
-        "logs": "[[\\"09:00:12\\",1,\\"server 起動完了\\"],[\\"09:00:15\\",1,\\"db connection pool 20\\"],[\\"09:01:03\\",2,\\"メモリ使用率 82%\\"],[\\"09:01:47\\",3,\\"worker crash: OOM\\"],[\\"09:02:02\\",1,\\"worker 再起動 ok\\"],[\\"09:02:30\\",1,\\"health check ok\\"]]"
+        "logs": "[[\\"09:00:12\\",1,\\"サーバの起動が済んだ\\"],[\\"09:00:15\\",1,\\"DB の接続の枠 20\\"],[\\"09:01:03\\",2,\\"メモリ使用率 82%\\"],[\\"09:01:47\\",3,\\"ワーカーが落ちた: メモリ不足\\"],[\\"09:02:02\\",1,\\"ワーカーを再起動した\\"],[\\"09:02:30\\",1,\\"死活監視で正常\\"]]"
       },
       "badge": "障害",
       "body": "行が 6 つに増えるが、出るのは **末尾 5 行** だけ。 先頭の 1 行が押し出されて消える。"
@@ -18787,19 +18787,19 @@ animation:
     focus: ["きっかけ", "重要度"]
     set:
       alert: '[0,"CPU 68% — 通常の範囲"]'
-    badge: "info"
+    badge: "情報"
     description: "重要度が最も低い。 帯は青で、印は情報を表す形になる。"
   - step: "注意に上がる" 1.8s
     focus: ["きっかけ", "重要度", "重要度の印"]
     set:
       alert: '[2,"CPU 92% を 5 分継続 — 調査要"]'
-    badge: "warn"
+    badge: "注意"
     description: "重要度が上がり、帯が橙に変わる。 本文も入れ替わり、印が注意の形になる。"
   - step: "異常に上がる" 1.8s
     focus: ["きっかけ", "重要度", "重要度の印", "対応"]
     set:
-      alert: '[3,"prod-web-3 応答なし — 全系統の切替が要る"]'
-    badge: "error"
+      alert: '[3,"本番機 3 号が応答なし — 切替が要る"]'
+    badge: "異常"
     description: "重要度が最大になり帯が赤くなる。 本文と印も異常を表す内容に入れ替わる。"
 `;
 
@@ -18837,7 +18837,7 @@ export const sourceJson__opsAlertBanner = `{
       "duration": 1.8,
       "focus": ["きっかけ", "重要度"],
       "set": { "alert": "[0,\\"CPU 68% — 通常の範囲\\"]" },
-      "badge": "info",
+      "badge": "情報",
       "body": "重要度が最も低い。 帯は青で、印は情報を表す形になる。"
     },
     {
@@ -18845,15 +18845,15 @@ export const sourceJson__opsAlertBanner = `{
       "duration": 1.8,
       "focus": ["きっかけ", "重要度", "重要度の印"],
       "set": { "alert": "[2,\\"CPU 92% を 5 分継続 — 調査要\\"]" },
-      "badge": "warn",
+      "badge": "注意",
       "body": "重要度が上がり、帯が橙に変わる。 本文も入れ替わり、印が注意の形になる。"
     },
     {
       "step": "異常に上がる",
       "duration": 1.8,
       "focus": ["きっかけ", "重要度", "重要度の印", "対応"],
-      "set": { "alert": "[3,\\"prod-web-3 応答なし — 全系統の切替が要る\\"]" },
-      "badge": "error",
+      "set": { "alert": "[3,\\"本番機 3 号が応答なし — 切替が要る\\"]" },
+      "badge": "異常",
       "body": "重要度が最大になり帯が赤くなる。 本文と印も異常を表す内容に入れ替わる。"
     }
   ]
@@ -18871,36 +18871,36 @@ lanes:
   down: { x: 560, width: 240 }
 
 states:
-  svcs: '[["api",2],["web",2],["auth",2],["db",1],["cache",1],["queue",0]]'
+  svcs: '[["API",2],["画面",2],["認証",2],["DB",1],["一時保存",1],["待ち行列",0]]'
 
 actors:
-  - api: { kind: card, lane: up, stack: 0, subtitle: "稼働を表す緑のマス" }
-  - web: { kind: card, lane: up, stack: 1, subtitle: "稼働を表す緑のマス" }
-  - auth: { kind: card, lane: up, stack: 2, subtitle: "稼働を表す緑のマス" }
-  - db: { kind: card, lane: deg, stack: 0, subtitle: "劣化を表す黄のマス" }
-  - cache: { kind: card, lane: deg, stack: 1, subtitle: "劣化を表す黄のマス" }
-  - queue: { kind: card, lane: down, stack: 0, subtitle: "停止を表す赤のマス" }
+  - API: { kind: card, lane: up, stack: 0, subtitle: "稼働を表す緑のマス" }
+  - 画面: { kind: card, lane: up, stack: 1, subtitle: "稼働を表す緑のマス" }
+  - 認証: { kind: card, lane: up, stack: 2, subtitle: "稼働を表す緑のマス" }
+  - DB: { kind: card, lane: deg, stack: 0, subtitle: "劣化を表す黄のマス" }
+  - 一時保存: { kind: card, lane: deg, stack: 1, subtitle: "劣化を表す黄のマス" }
+  - 待ち行列: { kind: card, lane: down, stack: 0, subtitle: "停止を表す赤のマス" }
 
 flow:
-  - db -> queue: "波及" (error)
+  - DB -> 待ち行列: "波及" (error)
 
 animation:
   - step: "全て稼働" 1.8s
-    focus: ["api", "web", "auth"]
+    focus: ["API", "画面", "認証"]
     set:
-      svcs: '[["api",2],["web",2],["auth",2],["db",2],["cache",2],["queue",2]]'
+      svcs: '[["API",2],["画面",2],["認証",2],["DB",2],["一時保存",2],["待ち行列",2]]'
     badge: "全稼働"
     description: "6 つのマスがすべて緑。 名前と状態の組が並び、状態の数だけで色が決まる。"
   - step: "一部が劣化" 1.8s
-    focus: ["api", "web", "auth", "db", "cache"]
+    focus: ["API", "画面", "認証", "DB", "一時保存"]
     set:
-      svcs: '[["api",2],["web",2],["auth",2],["db",1],["cache",1],["queue",2]]'
+      svcs: '[["API",2],["画面",2],["認証",2],["DB",1],["一時保存",1],["待ち行列",2]]'
     badge: "劣化"
     description: "2 つが黄に変わる。 マスの位置と数は変わらず、色だけが入れ替わる。"
   - step: "1 つが停止" 1.8s
-    focus: ["api", "web", "auth", "db", "cache", "queue"]
+    focus: ["API", "画面", "認証", "DB", "一時保存", "待ち行列"]
     set:
-      svcs: '[["api",2],["web",2],["auth",2],["db",1],["cache",1],["queue",0]]'
+      svcs: '[["API",2],["画面",2],["認証",2],["DB",1],["一時保存",1],["待ち行列",0]]'
     badge: "障害"
     description: "最後の 1 つが赤になる。 緑 3 と黄 2 と赤 1 の内訳が、色を数えて読み取れる。"
 `;
@@ -18917,24 +18917,24 @@ export const sourceJson__serviceHealthGrid = `{
     "down": { "x": 560, "width": 240 }
   },
   "actors": [
-    { "name": "api", "kind": "card", "lane": "up", "stack": 0, "subtitle": "稼働を表す緑のマス" },
-    { "name": "web", "kind": "card", "lane": "up", "stack": 1, "subtitle": "稼働を表す緑のマス" },
-    { "name": "auth", "kind": "card", "lane": "up", "stack": 2, "subtitle": "稼働を表す緑のマス" },
-    { "name": "db", "kind": "card", "lane": "deg", "stack": 0, "subtitle": "劣化を表す黄のマス" },
-    { "name": "cache", "kind": "card", "lane": "deg", "stack": 1, "subtitle": "劣化を表す黄のマス" },
-    { "name": "queue", "kind": "card", "lane": "down", "stack": 0, "subtitle": "停止を表す赤のマス" }
+    { "name": "API", "kind": "card", "lane": "up", "stack": 0, "subtitle": "稼働を表す緑のマス" },
+    { "name": "画面", "kind": "card", "lane": "up", "stack": 1, "subtitle": "稼働を表す緑のマス" },
+    { "name": "認証", "kind": "card", "lane": "up", "stack": 2, "subtitle": "稼働を表す緑のマス" },
+    { "name": "DB", "kind": "card", "lane": "deg", "stack": 0, "subtitle": "劣化を表す黄のマス" },
+    { "name": "一時保存", "kind": "card", "lane": "deg", "stack": 1, "subtitle": "劣化を表す黄のマス" },
+    { "name": "待ち行列", "kind": "card", "lane": "down", "stack": 0, "subtitle": "停止を表す赤のマス" }
   ],
   "flow": [
-    { "from": "db", "to": "queue", "label": "波及", "tone": "error" }
+    { "from": "DB", "to": "待ち行列", "label": "波及", "tone": "error" }
   ],
-  "states": { "svcs": "[[\\"api\\",2],[\\"web\\",2],[\\"auth\\",2],[\\"db\\",1],[\\"cache\\",1],[\\"queue\\",0]]" },
+  "states": { "svcs": "[[\\"API\\",2],[\\"画面\\",2],[\\"認証\\",2],[\\"DB\\",1],[\\"一時保存\\",1],[\\"待ち行列\\",0]]" },
   "animation": [
     {
       "step": "全て稼働",
       "duration": 1.8,
-      "focus": ["api", "web", "auth"],
+      "focus": ["API", "画面", "認証"],
       "set": {
-        "svcs": "[[\\"api\\",2],[\\"web\\",2],[\\"auth\\",2],[\\"db\\",2],[\\"cache\\",2],[\\"queue\\",2]]"
+        "svcs": "[[\\"API\\",2],[\\"画面\\",2],[\\"認証\\",2],[\\"DB\\",2],[\\"一時保存\\",2],[\\"待ち行列\\",2]]"
       },
       "badge": "全稼働",
       "body": "6 つのマスがすべて緑。 名前と状態の組が並び、状態の数だけで色が決まる。"
@@ -18942,9 +18942,9 @@ export const sourceJson__serviceHealthGrid = `{
     {
       "step": "一部が劣化",
       "duration": 1.8,
-      "focus": ["api", "web", "auth", "db", "cache"],
+      "focus": ["API", "画面", "認証", "DB", "一時保存"],
       "set": {
-        "svcs": "[[\\"api\\",2],[\\"web\\",2],[\\"auth\\",2],[\\"db\\",1],[\\"cache\\",1],[\\"queue\\",2]]"
+        "svcs": "[[\\"API\\",2],[\\"画面\\",2],[\\"認証\\",2],[\\"DB\\",1],[\\"一時保存\\",1],[\\"待ち行列\\",2]]"
       },
       "badge": "劣化",
       "body": "2 つが黄に変わる。 マスの位置と数は変わらず、色だけが入れ替わる。"
@@ -18952,9 +18952,9 @@ export const sourceJson__serviceHealthGrid = `{
     {
       "step": "1 つが停止",
       "duration": 1.8,
-      "focus": ["api", "web", "auth", "db", "cache", "queue"],
+      "focus": ["API", "画面", "認証", "DB", "一時保存", "待ち行列"],
       "set": {
-        "svcs": "[[\\"api\\",2],[\\"web\\",2],[\\"auth\\",2],[\\"db\\",1],[\\"cache\\",1],[\\"queue\\",0]]"
+        "svcs": "[[\\"API\\",2],[\\"画面\\",2],[\\"認証\\",2],[\\"DB\\",1],[\\"一時保存\\",1],[\\"待ち行列\\",0]]"
       },
       "badge": "障害",
       "body": "最後の 1 つが赤になる。 緑 3 と黄 2 と赤 1 の内訳が、色を数えて読み取れる。"
@@ -19078,13 +19078,13 @@ lanes:
   enterprise: { x: 560, width: 260 }
 
 states:
-  plan: '["Pro",29,"10 席","優先サポート","カスタムドメイン"]'
+  plan: '["標準",29,"10 席","優先サポート","カスタムドメイン"]'
 
 actors:
-  - Starter2: { kind: card, lane: starter, stack: 0, subtitle: "最も安いプラン", title: "Starter" }
-  - Pro2: { kind: card, lane: pro, stack: 0, subtitle: "中間のプラン", title: "Pro" }
+  - Starter2: { kind: card, lane: starter, stack: 0, subtitle: "最も安いプラン", title: "入門" }
+  - Pro2: { kind: card, lane: pro, stack: 0, subtitle: "中間のプラン", title: "標準" }
   - 特典の欄: { kind: card, lane: pro, stack: 1, subtitle: "名前と価格の後に並ぶ特典" }
-  - Enterprise2: { kind: card, lane: enterprise, stack: 0, subtitle: "最も高いプラン", title: "Enterprise" }
+  - Enterprise2: { kind: card, lane: enterprise, stack: 0, subtitle: "最も高いプラン", title: "法人" }
 
 flow:
   - Starter2 -> Pro2: "アップグレード" (info)
@@ -19094,19 +19094,19 @@ animation:
   - step: "最も安いプラン" 1.8s
     focus: ["Starter2"]
     set:
-      plan: '["Starter",9,"3 席"]'
-    badge: "Starter"
+      plan: '["入門",9,"3 席"]'
+    badge: "入門"
     description: "名前と価格と特典 1 つが出る。 3 つ目以降が特典として並ぶ形が読める。"
   - step: "中間のプラン" 1.8s
     focus: ["Starter2", "Pro2", "特典の欄"]
     set:
-      plan: '["Pro",29,"10 席","優先サポート","カスタムドメイン"]'
-    badge: "Pro"
+      plan: '["標準",29,"10 席","優先サポート","カスタムドメイン"]'
+    badge: "標準"
     description: "価格が上がり特典が 3 つに増える。 名前と価格の位置は変わらず、下の並びだけが伸びる。"
   - step: "最も高いプラン" 1.8s
     focus: ["Starter2", "Pro2", "特典の欄", "Enterprise2"]
     set:
-      plan: '["Enterprise",99,"無制限の席","専任の担当","監査ログ","SSO 連携","SLA 保証"]'
+      plan: '["法人",99,"無制限の席","専任の担当","監査ログ","一括ログイン","稼働の保証"]'
     badge: "比較"
     description: "特典を 5 つ渡しても出るのは **先頭 3 つ** まで。 4 つ目以降は表示に載らない。"
 `;
@@ -19136,7 +19136,7 @@ export const sourceJson__saasPricingTier = `{
       "lane": "starter",
       "stack": 0,
       "subtitle": "最も安いプラン",
-      "title": "Starter"
+      "title": "入門"
     },
     {
       "name": "Pro2",
@@ -19144,7 +19144,7 @@ export const sourceJson__saasPricingTier = `{
       "lane": "pro",
       "stack": 0,
       "subtitle": "中間のプラン",
-      "title": "Pro"
+      "title": "標準"
     },
     { "name": "特典の欄", "kind": "card", "lane": "pro", "stack": 1, "subtitle": "名前と価格の後に並ぶ特典" },
     {
@@ -19153,36 +19153,36 @@ export const sourceJson__saasPricingTier = `{
       "lane": "enterprise",
       "stack": 0,
       "subtitle": "最も高いプラン",
-      "title": "Enterprise"
+      "title": "法人"
     }
   ],
   "flow": [
     { "from": "Starter2", "to": "Pro2", "label": "アップグレード", "tone": "info" },
     { "from": "Pro2", "to": "Enterprise2", "label": "アップグレード", "tone": "success" }
   ],
-  "states": { "plan": "[\\"Pro\\",29,\\"10 席\\",\\"優先サポート\\",\\"カスタムドメイン\\"]" },
+  "states": { "plan": "[\\"標準\\",29,\\"10 席\\",\\"優先サポート\\",\\"カスタムドメイン\\"]" },
   "animation": [
     {
       "step": "最も安いプラン",
       "duration": 1.8,
       "focus": ["Starter2"],
-      "set": { "plan": "[\\"Starter\\",9,\\"3 席\\"]" },
-      "badge": "Starter",
+      "set": { "plan": "[\\"入門\\",9,\\"3 席\\"]" },
+      "badge": "入門",
       "body": "名前と価格と特典 1 つが出る。 3 つ目以降が特典として並ぶ形が読める。"
     },
     {
       "step": "中間のプラン",
       "duration": 1.8,
       "focus": ["Starter2", "Pro2", "特典の欄"],
-      "set": { "plan": "[\\"Pro\\",29,\\"10 席\\",\\"優先サポート\\",\\"カスタムドメイン\\"]" },
-      "badge": "Pro",
+      "set": { "plan": "[\\"標準\\",29,\\"10 席\\",\\"優先サポート\\",\\"カスタムドメイン\\"]" },
+      "badge": "標準",
       "body": "価格が上がり特典が 3 つに増える。 名前と価格の位置は変わらず、下の並びだけが伸びる。"
     },
     {
       "step": "最も高いプラン",
       "duration": 1.8,
       "focus": ["Starter2", "Pro2", "特典の欄", "Enterprise2"],
-      "set": { "plan": "[\\"Enterprise\\",99,\\"無制限の席\\",\\"専任の担当\\",\\"監査ログ\\",\\"SSO 連携\\",\\"SLA 保証\\"]" },
+      "set": { "plan": "[\\"法人\\",99,\\"無制限の席\\",\\"専任の担当\\",\\"監査ログ\\",\\"一括ログイン\\",\\"稼働の保証\\"]" },
       "badge": "比較",
       "body": "特典を 5 つ渡しても出るのは **先頭 3 つ** まで。 4 つ目以降は表示に載らない。"
     }
@@ -19201,7 +19201,7 @@ lanes:
   applied: { x: 560, width: 240 }
 
 states:
-  coupon: '["SAVE20",20]'
+  coupon: '["春割20",20]'
 
 actors:
   - 未入力: { kind: card, lane: empty, stack: 0, subtitle: "符号が空の状態" }
@@ -19223,13 +19223,13 @@ animation:
   - step: "符号を入れる" 1.8s
     focus: ["未入力", "入力済", "適用ボタン"]
     set:
-      coupon: '["SAVE20",0]'
+      coupon: '["春割20",0]'
     badge: "入力済"
     description: "符号が入るが割引はまだ 0。 符号の文字は出るが、割引の札は出ないままになる。"
   - step: "適用する" 1.8s
     focus: ["未入力", "入力済", "適用ボタン", "適用済"]
     set:
-      coupon: '["SAVE20",20]'
+      coupon: '["春割20",20]'
     badge: "適用"
     description: "割引が正になる。 緑の札が現れ、符号と割引率が並んで出る形になる。"
 `;
@@ -19273,7 +19273,7 @@ export const sourceJson__checkoutCouponApply = `{
     { "from": "未入力", "to": "入力済", "label": "コード入力", "tone": "info" },
     { "from": "入力済", "to": "適用済", "label": "適用", "tone": "success" }
   ],
-  "states": { "coupon": "[\\"SAVE20\\",20]" },
+  "states": { "coupon": "[\\"春割20\\",20]" },
   "animation": [
     {
       "step": "未入力",
@@ -19287,7 +19287,7 @@ export const sourceJson__checkoutCouponApply = `{
       "step": "符号を入れる",
       "duration": 1.8,
       "focus": ["未入力", "入力済", "適用ボタン"],
-      "set": { "coupon": "[\\"SAVE20\\",0]" },
+      "set": { "coupon": "[\\"春割20\\",0]" },
       "badge": "入力済",
       "body": "符号が入るが割引はまだ 0。 符号の文字は出るが、割引の札は出ないままになる。"
     },
@@ -19295,7 +19295,7 @@ export const sourceJson__checkoutCouponApply = `{
       "step": "適用する",
       "duration": 1.8,
       "focus": ["未入力", "入力済", "適用ボタン", "適用済"],
-      "set": { "coupon": "[\\"SAVE20\\",20]" },
+      "set": { "coupon": "[\\"春割20\\",20]" },
       "badge": "適用",
       "body": "割引が正になる。 緑の札が現れ、符号と割引率が並んで出る形になる。"
     }
@@ -19306,7 +19306,7 @@ export const sourceYaml__blogArticlePreview = `title: "記事カードの見出�
 type: flow
 
 readouts:
-  ap: { kind: article-preview, source: "article", colorAccent: "#2563eb", label: "記事 card" }
+  ap: { kind: article-preview, source: "article", colorAccent: "#2563eb", label: "記事カード" }
 
 lanes:
   thumb: { x: 0, width: 200 }
@@ -19314,12 +19314,12 @@ lanes:
   meta: { x: 560, width: 220 }
 
 states:
-  article: '["dragon 入門","dragon で interactive diagram を作る方法を解説","Alice","2 時間前"]'
+  article: '["dragon 入門","dragon で操作できる図を作る","佐藤","2 時間前"]'
 
 actors:
   - サムネイル: { kind: card, lane: thumb, stack: 0, subtitle: "配列の値に依らず固定" }
-  - タイトル: { kind: card, lane: content, stack: 0, subtitle: "長いと末尾を省いて出る見出し" }
-  - 抜粋: { kind: card, lane: content, stack: 1, subtitle: "折り返して出る本文" }
+  - タイトル: { kind: card, lane: content, stack: 0, subtitle: "札の上に太字で出る見出し" }
+  - 抜粋: { kind: card, lane: content, stack: 1, subtitle: "見出しの下に出る本文" }
   - 著者: { kind: card, lane: meta, stack: 0, subtitle: "記事を書いた人の名前" }
   - 経過: { kind: card, lane: meta, stack: 1, subtitle: "記事の公開からの経過" }
 
@@ -19331,21 +19331,21 @@ animation:
   - step: "短い記事" 1.8s
     focus: ["サムネイル", "タイトル"]
     set:
-      article: '["入門","はじめの一歩","Bob","5 分前"]'
+      article: '["入門","はじめの一歩","鈴木","5 分前"]'
     badge: "初期"
     description: "題も抜粋も短い。 4 つの値がそれぞれの位置にそのまま出て、省略は起きない。"
-  - step: "抜粋が伸びる" 1.8s
+  - step: "題と抜粋が伸びる" 1.8s
     focus: ["サムネイル", "タイトル", "抜粋"]
     set:
-      article: '["dragon 入門","dragon で interactive diagram を作る方法を解説","Alice","2 時間前"]'
-    badge: "hover"
-    description: "抜粋が 2 行に分かれる。 1 行目は 28 文字で切れて省略記号が付き、残りが 2 行目に出る。"
-  - step: "題も伸びる" 1.8s
+      article: '["dragon 入門","dragon で操作できる図を作る","佐藤","2 時間前"]'
+    badge: "かざす"
+    description: "題と抜粋が長くなる。 どちらも札の幅に収まる長さで、4 つの値の位置は変わらない。"
+  - step: "別の記事" 1.8s
     focus: ["サムネイル", "タイトル", "抜粋", "著者", "経過"]
     set:
-      article: '["dragon で作る interactive diagram の完全ガイド 2026 年版","段ごとの変化と表示部品の連動を実例つきで最初から順に解説する長い記事","Carol","3 日前"]'
-    badge: "click"
-    description: "題が 26 文字を超える。 題も末尾を省いて出るため、1 行に収まる形が保たれる。"
+      article: '["操作できる図の手引き 2026 年版","段ごとの変化と表示部品の連動を解説","高橋","3 日前"]'
+    badge: "押す"
+    description: "4 つの値がすべて別の記事のものに入れ替わる。 札の形は変わらず、著者と経過の行も入れ替わる。"
 `;
 
 export const sourceJson__blogArticlePreview = `{
@@ -19357,7 +19357,7 @@ export const sourceJson__blogArticlePreview = `{
       "kind": "article-preview",
       "source": "article",
       "colorAccent": "#2563eb",
-      "label": "記事 card"
+      "label": "記事カード"
     }
   ],
   "lanes": {
@@ -19372,9 +19372,9 @@ export const sourceJson__blogArticlePreview = `{
       "kind": "card",
       "lane": "content",
       "stack": 0,
-      "subtitle": "長いと末尾を省いて出る見出し"
+      "subtitle": "札の上に太字で出る見出し"
     },
-    { "name": "抜粋", "kind": "card", "lane": "content", "stack": 1, "subtitle": "折り返して出る本文" },
+    { "name": "抜粋", "kind": "card", "lane": "content", "stack": 1, "subtitle": "見出しの下に出る本文" },
     { "name": "著者", "kind": "card", "lane": "meta", "stack": 0, "subtitle": "記事を書いた人の名前" },
     { "name": "経過", "kind": "card", "lane": "meta", "stack": 1, "subtitle": "記事の公開からの経過" }
   ],
@@ -19382,35 +19382,35 @@ export const sourceJson__blogArticlePreview = `{
     { "from": "サムネイル", "to": "タイトル", "label": "視線", "tone": "info" },
     { "from": "タイトル", "to": "著者", "label": "帰属", "tone": "success" }
   ],
-  "states": { "article": "[\\"dragon 入門\\",\\"dragon で interactive diagram を作る方法を解説\\",\\"Alice\\",\\"2 時間前\\"]" },
+  "states": { "article": "[\\"dragon 入門\\",\\"dragon で操作できる図を作る\\",\\"佐藤\\",\\"2 時間前\\"]" },
   "animation": [
     {
       "step": "短い記事",
       "duration": 1.8,
       "focus": ["サムネイル", "タイトル"],
-      "set": { "article": "[\\"入門\\",\\"はじめの一歩\\",\\"Bob\\",\\"5 分前\\"]" },
+      "set": { "article": "[\\"入門\\",\\"はじめの一歩\\",\\"鈴木\\",\\"5 分前\\"]" },
       "badge": "初期",
       "body": "題も抜粋も短い。 4 つの値がそれぞれの位置にそのまま出て、省略は起きない。"
     },
     {
-      "step": "抜粋が伸びる",
+      "step": "題と抜粋が伸びる",
       "duration": 1.8,
       "focus": ["サムネイル", "タイトル", "抜粋"],
       "set": {
-        "article": "[\\"dragon 入門\\",\\"dragon で interactive diagram を作る方法を解説\\",\\"Alice\\",\\"2 時間前\\"]"
+        "article": "[\\"dragon 入門\\",\\"dragon で操作できる図を作る\\",\\"佐藤\\",\\"2 時間前\\"]"
       },
-      "badge": "hover",
-      "body": "抜粋が 2 行に分かれる。 1 行目は 28 文字で切れて省略記号が付き、残りが 2 行目に出る。"
+      "badge": "かざす",
+      "body": "題と抜粋が長くなる。 どちらも札の幅に収まる長さで、4 つの値の位置は変わらない。"
     },
     {
-      "step": "題も伸びる",
+      "step": "別の記事",
       "duration": 1.8,
       "focus": ["サムネイル", "タイトル", "抜粋", "著者", "経過"],
       "set": {
-        "article": "[\\"dragon で作る interactive diagram の完全ガイド 2026 年版\\",\\"段ごとの変化と表示部品の連動を実例つきで最初から順に解説する長い記事\\",\\"Carol\\",\\"3 日前\\"]"
+        "article": "[\\"操作できる図の手引き 2026 年版\\",\\"段ごとの変化と表示部品の連動を解説\\",\\"高橋\\",\\"3 日前\\"]"
       },
-      "badge": "click",
-      "body": "題が 26 文字を超える。 題も末尾を省いて出るため、1 行に収まる形が保たれる。"
+      "badge": "押す",
+      "body": "4 つの値がすべて別の記事のものに入れ替わる。 札の形は変わらず、著者と経過の行も入れ替わる。"
     }
   ]
 }`;
@@ -19419,7 +19419,7 @@ export const sourceYaml__docsTocNav = `title: "3 段の目次と現在位置を�
 type: flow
 
 readouts:
-  tn: { kind: toc-nav, source: "toc", colorActive: "#2563eb", label: "ドキュメント TOC" }
+  tn: { kind: toc-nav, source: "toc", colorActive: "#2563eb", label: "文書の目次" }
 
 lanes:
   lvl0: { x: 0, width: 240 }
@@ -19448,19 +19448,19 @@ animation:
     focus: ["はじめに"]
     set:
       toc: '[[0,"はじめに",1],[1,"スタートガイド",0],[2,"インストール",0],[2,"最初の図",0],[1,"高度な使い方",0],[0,"API リファレンス",0]]'
-    badge: "Intro"
+    badge: "はじめに"
     description: "先頭の項目だけが青い。 印は各行の 3 つ目で、正の値を持つ行が今いる場所になる。"
   - step: "下へ進む" 1.8s
     focus: ["はじめに", "スタートガイド"]
     set:
       toc: '[[0,"はじめに",0],[1,"スタートガイド",1],[2,"インストール",0],[2,"最初の図",0],[1,"高度な使い方",0],[0,"API リファレンス",0]]'
-    badge: "GS"
+    badge: "導入"
     description: "青い行が 2 つ目へ移る。 階層に応じた字下げは変わらず、色だけが動く。"
   - step: "さらに下へ" 1.8s
     focus: ["はじめに", "API リファレンス", "スタートガイド", "高度な使い方", "インストール", "最初の図"]
     set:
       toc: '[[0,"はじめに",0],[1,"スタートガイド",0],[2,"インストール",0],[2,"最初の図",1],[1,"高度な使い方",0],[0,"API リファレンス",0]]'
-    badge: "First"
+    badge: "最初の図"
     description: "最も深い階層の行が青くなる。 6 行のうち出るのは先頭 6 行までで、字下げが 3 段に分かれる。"
 `;
 
@@ -19473,7 +19473,7 @@ export const sourceJson__docsTocNav = `{
       "kind": "toc-nav",
       "source": "toc",
       "colorActive": "#2563eb",
-      "label": "ドキュメント TOC"
+      "label": "文書の目次"
     }
   ],
   "lanes": {
@@ -19536,7 +19536,7 @@ export const sourceJson__docsTocNav = `{
       "set": {
         "toc": "[[0,\\"はじめに\\",1],[1,\\"スタートガイド\\",0],[2,\\"インストール\\",0],[2,\\"最初の図\\",0],[1,\\"高度な使い方\\",0],[0,\\"API リファレンス\\",0]]"
       },
-      "badge": "Intro",
+      "badge": "はじめに",
       "body": "先頭の項目だけが青い。 印は各行の 3 つ目で、正の値を持つ行が今いる場所になる。"
     },
     {
@@ -19546,7 +19546,7 @@ export const sourceJson__docsTocNav = `{
       "set": {
         "toc": "[[0,\\"はじめに\\",0],[1,\\"スタートガイド\\",1],[2,\\"インストール\\",0],[2,\\"最初の図\\",0],[1,\\"高度な使い方\\",0],[0,\\"API リファレンス\\",0]]"
       },
-      "badge": "GS",
+      "badge": "導入",
       "body": "青い行が 2 つ目へ移る。 階層に応じた字下げは変わらず、色だけが動く。"
     },
     {
@@ -19556,7 +19556,7 @@ export const sourceJson__docsTocNav = `{
       "set": {
         "toc": "[[0,\\"はじめに\\",0],[1,\\"スタートガイド\\",0],[2,\\"インストール\\",0],[2,\\"最初の図\\",1],[1,\\"高度な使い方\\",0],[0,\\"API リファレンス\\",0]]"
       },
-      "badge": "First",
+      "badge": "最初の図",
       "body": "最も深い階層の行が青くなる。 6 行のうち出るのは先頭 6 行までで、字下げが 3 段に分かれる。"
     }
   ]
@@ -19577,15 +19577,15 @@ states:
   shares: '[["tw",245],["fb",89],["li",32],["rd",18]]'
 
 actors:
-  - tw2: { kind: card, lane: tw, stack: 0, subtitle: "共有が最も多い先", title: "tw" }
-  - fb2: { kind: card, lane: fb, stack: 0, subtitle: "次に多い先", title: "fb" }
-  - li2: { kind: card, lane: li, stack: 0, subtitle: "中ほどの先", title: "li" }
-  - rd: { kind: card, lane: li, stack: 1, subtitle: "共有が最も少ない先" }
+  - tw2: { kind: card, lane: tw, stack: 0, subtitle: "共有が最も多い先", title: "X (tw)" }
+  - fb2: { kind: card, lane: fb, stack: 0, subtitle: "次に多い先", title: "フェイスブック (fb)" }
+  - li2: { kind: card, lane: li, stack: 0, subtitle: "中ほどの先", title: "リンクトイン (li)" }
+  - レディット (rd): { kind: card, lane: li, stack: 1, subtitle: "共有が最も少ない先" }
 
 flow:
   - tw2 -> fb2: "拡散" (info)
   - fb2 -> li2: "拡散" (info)
-  - li2 -> rd: "拡散" (info)
+  - li2 -> レディット (rd): "拡散" (info)
 
 animation:
   - step: "投稿した直後" 1.8s
@@ -19601,9 +19601,9 @@ animation:
     badge: "拡散"
     description: "数が桁 1 つぶん増える。 並びと色は変わらず、ボタンの中の数だけが上がる。"
   - step: "落ち着く" 1.8s
-    focus: ["tw2", "fb2", "li2", "rd"]
+    focus: ["tw2", "fb2", "li2", "レディット (rd)"]
     set:
-      shares: '[["tw",245],["fb",89],["li",32],["rd",18],["hn",6]]'
+      shares: '[["tw",245],["fb",89],["li",32],["rd",18],["ig",6]]'
     badge: "バズ"
     description: "4 つの差が最も開く。 5 つ渡しても出るのは **先頭 4 つ** までで、5 つ目は載らない。"
 `;
@@ -19626,7 +19626,7 @@ export const sourceJson__socialShareButtons = `{
       "lane": "tw",
       "stack": 0,
       "subtitle": "共有が最も多い先",
-      "title": "tw"
+      "title": "X (tw)"
     },
     {
       "name": "fb2",
@@ -19634,7 +19634,7 @@ export const sourceJson__socialShareButtons = `{
       "lane": "fb",
       "stack": 0,
       "subtitle": "次に多い先",
-      "title": "fb"
+      "title": "フェイスブック (fb)"
     },
     {
       "name": "li2",
@@ -19642,14 +19642,14 @@ export const sourceJson__socialShareButtons = `{
       "lane": "li",
       "stack": 0,
       "subtitle": "中ほどの先",
-      "title": "li"
+      "title": "リンクトイン (li)"
     },
-    { "name": "rd", "kind": "card", "lane": "li", "stack": 1, "subtitle": "共有が最も少ない先" }
+    { "name": "レディット (rd)", "kind": "card", "lane": "li", "stack": 1, "subtitle": "共有が最も少ない先" }
   ],
   "flow": [
     { "from": "tw2", "to": "fb2", "label": "拡散", "tone": "info" },
     { "from": "fb2", "to": "li2", "label": "拡散", "tone": "info" },
-    { "from": "li2", "to": "rd", "label": "拡散", "tone": "info" }
+    { "from": "li2", "to": "レディット (rd)", "label": "拡散", "tone": "info" }
   ],
   "states": { "shares": "[[\\"tw\\",245],[\\"fb\\",89],[\\"li\\",32],[\\"rd\\",18]]" },
   "animation": [
@@ -19672,8 +19672,8 @@ export const sourceJson__socialShareButtons = `{
     {
       "step": "落ち着く",
       "duration": 1.8,
-      "focus": ["tw2", "fb2", "li2", "rd"],
-      "set": { "shares": "[[\\"tw\\",245],[\\"fb\\",89],[\\"li\\",32],[\\"rd\\",18],[\\"hn\\",6]]" },
+      "focus": ["tw2", "fb2", "li2", "レディット (rd)"],
+      "set": { "shares": "[[\\"tw\\",245],[\\"fb\\",89],[\\"li\\",32],[\\"rd\\",18],[\\"ig\\",6]]" },
       "badge": "バズ",
       "body": "4 つの差が最も開く。 5 つ渡しても出るのは **先頭 4 つ** までで、5 つ目は載らない。"
     }
@@ -19685,9 +19685,9 @@ type: flow
 
 readouts:
   amountStat: { kind: stat, source: "amount", caption: "決済金額", unit: " 円", label: "金額" }
-  authGauge: { kind: gauge, source: "auth3ds", min: 0, max: 100, color: "#22c55e", label: "3DS 認証 %" }
-  statusTL: { kind: traffic-light, source: "txStatus", label: "決済 status" }
-  totalCU: { kind: countup, source: "totalTx", decimals: 0, unit: " 件", label: "本日累計 tx" }
+  authGauge: { kind: gauge, source: "auth3ds", min: 0, max: 100, color: "#22c55e", label: "本人認証 %" }
+  statusTL: { kind: traffic-light, source: "txStatus", label: "決済の状態" }
+  totalCU: { kind: countup, source: "totalTx", decimals: 0, unit: " 件", label: "本日の取引の累計" }
 
 lanes:
   customer-lane: { x: 0, width: 220 }
@@ -19701,56 +19701,56 @@ states:
   totalTx: 1247
 
 actors:
-  - 田中様: { kind: shape-person, lane: customer-lane, stack: 0, eyebrow: "customer", subtitle: "購入者" }
-  - iPhone: { kind: shape-mobile-device, lane: customer-lane, stack: 1, eyebrow: "device", subtitle: "Safari / iOS 17" }
-  - VISA **1234: { kind: shape-credit-card, lane: customer-lane, stack: 2, eyebrow: "card", subtitle: "MUFG 発行" }
-  - BuyNow: { kind: shape-online-shop, lane: processor, stack: 0, eyebrow: "merchant", subtitle: "checkout · ¥{amount}" }
-  - API Gateway: { kind: shape-api-gateway, lane: processor, stack: 1, eyebrow: "gateway", subtitle: "認証 + rate limit" }
-  - Stripe: { kind: shape-payment-provider, lane: processor, stack: 2, eyebrow: "provider", subtitle: "3DS {auth3ds}%" }
-  - MUFG: { kind: shape-bank, lane: bank, stack: 0, eyebrow: "issuer", subtitle: "発行銀行 · 与信照会" }
-  - 取引台帳: { kind: shape-cylinder, lane: bank, stack: 1, eyebrow: "database", subtitle: "記帳 + 監査 log" }
+  - 田中様: { kind: shape-person, lane: customer-lane, stack: 0, eyebrow: "顧客", subtitle: "購入者" }
+  - iPhone: { kind: shape-mobile-device, lane: customer-lane, stack: 1, eyebrow: "端末", subtitle: "iOS 17 のブラウザ" }
+  - VISA **1234: { kind: shape-credit-card, lane: customer-lane, stack: 2, eyebrow: "カード", subtitle: "発行銀行のカード" }
+  - ひだまり雑貨店: { kind: shape-online-shop, lane: processor, stack: 0, eyebrow: "加盟店", subtitle: "会計 · ¥{amount}" }
+  - API の入口: { kind: shape-api-gateway, lane: processor, stack: 1, eyebrow: "入口", subtitle: "認証と回数の制限" }
+  - Stripe: { kind: shape-payment-provider, lane: processor, stack: 2, eyebrow: "決済代行", subtitle: "本人認証 {auth3ds}%" }
+  - 発行銀行: { kind: shape-bank, lane: bank, stack: 0, eyebrow: "銀行", subtitle: "カードの発行元 · 与信照会" }
+  - 取引台帳: { kind: shape-cylinder, lane: bank, stack: 1, eyebrow: "記録", subtitle: "記帳と監査の記録" }
 
 flow:
   - 田中様 -> iPhone: "操作" (info)
-  - iPhone -> BuyNow: "購入" (info)
-  - BuyNow -> API Gateway: "POST /pay" (info)
-  - API Gateway -> Stripe: "転送" (info)
-  - VISA **1234 -> Stripe: "3DS 認証" (accent)
-  - Stripe -> MUFG: "決済要求" (success)
-  - MUFG -> 取引台帳: "記帳" (success)
+  - iPhone -> ひだまり雑貨店: "購入" (info)
+  - ひだまり雑貨店 -> API の入口: "購入を送る" (info)
+  - API の入口 -> Stripe: "転送" (info)
+  - VISA **1234 -> Stripe: "本人認証" (accent)
+  - Stripe -> 発行銀行: "決済要求" (success)
+  - 発行銀行 -> 取引台帳: "記帳" (success)
 
 animation:
   - step: "商品購入" 2.2s
-    focus: ["田中様", "iPhone", "VISA **1234", "BuyNow"]
+    focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店"]
     tween:
       amount: 0 -> 12500
     set:
       txStatus: 0
       auth3ds: 0
     badge: "購入"
-    description: "田中様が iPhone で BuyNow にアクセス、 checkout で購入決定。 amount 0 → 12500 tween (stat 金額上昇)、 txStatus = 0 (traffic-light 赤)、 auth3ds = 0 (gauge 針最下)。 顧客 + shop lane が active。"
-  - step: "3DS 認証" 2.5s
-    focus: ["田中様", "iPhone", "VISA **1234", "BuyNow", "API Gateway", "Stripe"]
+    description: "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。 顧客と店の列が光る。"
+  - step: "本人認証" 2.5s
+    focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe"]
     tween:
       txStatus: 0 -> 1
       auth3ds: 0 -> 92
-    badge: "3DS 認証"
-    description: "gateway 経由で Stripe に転送、 VISA カードの 3D-Secure 認証実行。 txStatus 0 → 1 tween (traffic-light 赤 → 黄)、 auth3ds 0 → 92% tween (gauge 針が緑域まで上昇)。 processor lane 全 activate、 card → provider の accent edge。"
+    badge: "本人認証"
+    description: "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 処理の列がすべて光り、カードから決済代行への矢印が強調される。"
   - step: "銀行確定" 2s
-    focus: ["田中様", "iPhone", "VISA **1234", "BuyNow", "API Gateway", "Stripe", "MUFG"]
+    focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行"]
     tween:
       txStatus: 1 -> 2
       auth3ds: 92 -> 98
     badge: "銀行確定"
-    description: "認証通過、 発行銀行 MUFG に与信照会 + 決済確定。 txStatus 1 → 2 tween (traffic-light 黄 → 緑)、 auth3ds 92 → 98% tween (最終確定)、 bank lane activate。"
+    description: "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定し、銀行の列が光る。"
   - step: "記帳完了" 1.8s
-    focus: ["田中様", "iPhone", "VISA **1234", "BuyNow", "API Gateway", "Stripe", "MUFG", "取引台帳"]
+    focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行", "取引台帳"]
     tween:
       totalTx: 1247 -> 1248
     set:
       txStatus: 2
     badge: "記帳完了"
-    description: "銀行が取引台帳に記帳 + 監査 log 記録、 totalTx 1247 → 1248 tween (countup が +1 加算表示、 800ms かけて動的 count up)、 全 8 shape active、 決済 flow 完遂。"
+    description: "銀行が取引台帳に記帳し、監査の記録を残す。 本日の取引の累計が 800ms かけて 1 件増え、8 つの形がすべて光って決済が終わる。"
 `;
 
 export const sourceJson__exemplarPaymentFlow = `{
@@ -19772,16 +19772,16 @@ export const sourceJson__exemplarPaymentFlow = `{
       "min": 0,
       "max": 100,
       "color": "#22c55e",
-      "label": "3DS 認証 %"
+      "label": "本人認証 %"
     },
-    { "id": "statusTL", "kind": "traffic-light", "source": "txStatus", "label": "決済 status" },
+    { "id": "statusTL", "kind": "traffic-light", "source": "txStatus", "label": "決済の状態" },
     {
       "id": "totalCU",
       "kind": "countup",
       "source": "totalTx",
       "decimals": 0,
       "unit": " 件",
-      "label": "本日累計 tx"
+      "label": "本日の取引の累計"
     }
   ],
   "lanes": {
@@ -19795,7 +19795,7 @@ export const sourceJson__exemplarPaymentFlow = `{
       "kind": "shape-person",
       "lane": "customer-lane",
       "stack": 0,
-      "eyebrow": "customer",
+      "eyebrow": "顧客",
       "subtitle": "購入者"
     },
     {
@@ -19803,102 +19803,102 @@ export const sourceJson__exemplarPaymentFlow = `{
       "kind": "shape-mobile-device",
       "lane": "customer-lane",
       "stack": 1,
-      "eyebrow": "device",
-      "subtitle": "Safari / iOS 17"
+      "eyebrow": "端末",
+      "subtitle": "iOS 17 のブラウザ"
     },
     {
       "name": "VISA **1234",
       "kind": "shape-credit-card",
       "lane": "customer-lane",
       "stack": 2,
-      "eyebrow": "card",
-      "subtitle": "MUFG 発行"
+      "eyebrow": "カード",
+      "subtitle": "発行銀行のカード"
     },
     {
-      "name": "BuyNow",
+      "name": "ひだまり雑貨店",
       "kind": "shape-online-shop",
       "lane": "processor",
       "stack": 0,
-      "eyebrow": "merchant",
-      "subtitle": "checkout · ¥{amount}"
+      "eyebrow": "加盟店",
+      "subtitle": "会計 · ¥{amount}"
     },
     {
-      "name": "API Gateway",
+      "name": "API の入口",
       "kind": "shape-api-gateway",
       "lane": "processor",
       "stack": 1,
-      "eyebrow": "gateway",
-      "subtitle": "認証 + rate limit"
+      "eyebrow": "入口",
+      "subtitle": "認証と回数の制限"
     },
     {
       "name": "Stripe",
       "kind": "shape-payment-provider",
       "lane": "processor",
       "stack": 2,
-      "eyebrow": "provider",
-      "subtitle": "3DS {auth3ds}%"
+      "eyebrow": "決済代行",
+      "subtitle": "本人認証 {auth3ds}%"
     },
     {
-      "name": "MUFG",
+      "name": "発行銀行",
       "kind": "shape-bank",
       "lane": "bank",
       "stack": 0,
-      "eyebrow": "issuer",
-      "subtitle": "発行銀行 · 与信照会"
+      "eyebrow": "銀行",
+      "subtitle": "カードの発行元 · 与信照会"
     },
     {
       "name": "取引台帳",
       "kind": "shape-cylinder",
       "lane": "bank",
       "stack": 1,
-      "eyebrow": "database",
-      "subtitle": "記帳 + 監査 log"
+      "eyebrow": "記録",
+      "subtitle": "記帳と監査の記録"
     }
   ],
   "flow": [
     { "from": "田中様", "to": "iPhone", "label": "操作", "tone": "info" },
-    { "from": "iPhone", "to": "BuyNow", "label": "購入", "tone": "info" },
-    { "from": "BuyNow", "to": "API Gateway", "label": "POST /pay", "tone": "info" },
-    { "from": "API Gateway", "to": "Stripe", "label": "転送", "tone": "info" },
-    { "from": "VISA **1234", "to": "Stripe", "label": "3DS 認証", "tone": "accent" },
-    { "from": "Stripe", "to": "MUFG", "label": "決済要求", "tone": "success" },
-    { "from": "MUFG", "to": "取引台帳", "label": "記帳", "tone": "success" }
+    { "from": "iPhone", "to": "ひだまり雑貨店", "label": "購入", "tone": "info" },
+    { "from": "ひだまり雑貨店", "to": "API の入口", "label": "購入を送る", "tone": "info" },
+    { "from": "API の入口", "to": "Stripe", "label": "転送", "tone": "info" },
+    { "from": "VISA **1234", "to": "Stripe", "label": "本人認証", "tone": "accent" },
+    { "from": "Stripe", "to": "発行銀行", "label": "決済要求", "tone": "success" },
+    { "from": "発行銀行", "to": "取引台帳", "label": "記帳", "tone": "success" }
   ],
   "states": { "amount": 0, "auth3ds": 0, "txStatus": 0, "totalTx": 1247 },
   "animation": [
     {
       "step": "商品購入",
       "duration": 2.2,
-      "focus": ["田中様", "iPhone", "VISA **1234", "BuyNow"],
+      "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店"],
       "tween": { "amount": [0, 12500] },
       "set": { "txStatus": 0, "auth3ds": 0 },
       "badge": "購入",
-      "body": "田中様が iPhone で BuyNow にアクセス、 checkout で購入決定。 amount 0 → 12500 tween (stat 金額上昇)、 txStatus = 0 (traffic-light 赤)、 auth3ds = 0 (gauge 針最下)。 顧客 + shop lane が active。"
+      "body": "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。 顧客と店の列が光る。"
     },
     {
-      "step": "3DS 認証",
+      "step": "本人認証",
       "duration": 2.5,
-      "focus": ["田中様", "iPhone", "VISA **1234", "BuyNow", "API Gateway", "Stripe"],
+      "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe"],
       "tween": { "txStatus": [0, 1], "auth3ds": [0, 92] },
-      "badge": "3DS 認証",
-      "body": "gateway 経由で Stripe に転送、 VISA カードの 3D-Secure 認証実行。 txStatus 0 → 1 tween (traffic-light 赤 → 黄)、 auth3ds 0 → 92% tween (gauge 針が緑域まで上昇)。 processor lane 全 activate、 card → provider の accent edge。"
+      "badge": "本人認証",
+      "body": "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 処理の列がすべて光り、カードから決済代行への矢印が強調される。"
     },
     {
       "step": "銀行確定",
       "duration": 2,
-      "focus": ["田中様", "iPhone", "VISA **1234", "BuyNow", "API Gateway", "Stripe", "MUFG"],
+      "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行"],
       "tween": { "txStatus": [1, 2], "auth3ds": [92, 98] },
       "badge": "銀行確定",
-      "body": "認証通過、 発行銀行 MUFG に与信照会 + 決済確定。 txStatus 1 → 2 tween (traffic-light 黄 → 緑)、 auth3ds 92 → 98% tween (最終確定)、 bank lane activate。"
+      "body": "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定し、銀行の列が光る。"
     },
     {
       "step": "記帳完了",
       "duration": 1.8,
-      "focus": ["田中様", "iPhone", "VISA **1234", "BuyNow", "API Gateway", "Stripe", "MUFG", "取引台帳"],
+      "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行", "取引台帳"],
       "tween": { "totalTx": [1247, 1248] },
       "set": { "txStatus": 2 },
       "badge": "記帳完了",
-      "body": "銀行が取引台帳に記帳 + 監査 log 記録、 totalTx 1247 → 1248 tween (countup が +1 加算表示、 800ms かけて動的 count up)、 全 8 shape active、 決済 flow 完遂。"
+      "body": "銀行が取引台帳に記帳し、監査の記録を残す。 本日の取引の累計が 800ms かけて 1 件増え、8 つの形がすべて光って決済が終わる。"
     }
   ]
 }`;
@@ -19907,7 +19907,7 @@ export const sourceYaml__exemplarLoginFlow = `title: "ログインと 2 要素�
 type: flow
 
 readouts:
-  statusTL: { kind: traffic-light, source: "authStatus", label: "認証 status (0/1/2)" }
+  statusTL: { kind: traffic-light, source: "authStatus", label: "認証の状態 (0/1/2)" }
   successCU: { kind: countup, source: "successLogin", unit: " 回", label: "本日成功ログイン" }
   rateGauge: { kind: gauge, source: "failRate", min: 0, max: 100, color: "#22c55e", label: "成功率 %" }
   latencyBar: { kind: bar, source: "latency", min: 0, max: 500, color: "#f97316", label: "応答時間 ms" }
@@ -19924,63 +19924,63 @@ states:
   latency: 0
 
 actors:
-  - 山田様: { kind: shape-person, lane: user, stack: 0, eyebrow: "user", subtitle: "email + password 送信" }
-  - Pixel 8: { kind: shape-mobile-device, lane: user, stack: 1, eyebrow: "device", subtitle: "Chrome / Android 14" }
-  - Auth API: { kind: shape-server-rack, lane: auth, stack: 0, eyebrow: "server", subtitle: "credential 一次検証" }
-  - 2FA 要求?: { kind: shape-diamond, lane: auth, stack: 1, eyebrow: "decision", subtitle: "TOTP 6 桁 or SMS" }
-  - JWT 発行器: { kind: shape-hexagon, lane: auth, stack: 2, eyebrow: "signer", subtitle: "RS256 · exp 1h" }
-  - Redis: { kind: shape-cylinder, lane: session-lane, stack: 0, eyebrow: "cache", subtitle: "TTL 3600s" }
-  - JWT token: { kind: shape-cloud, lane: session-lane, stack: 1, eyebrow: "response", subtitle: "Bearer · 302 redirect" }
+  - 山田様: { kind: shape-person, lane: user, stack: 0, eyebrow: "利用者", subtitle: "メールとパスワードを送る" }
+  - スマートフォン: { kind: shape-mobile-device, lane: user, stack: 1, eyebrow: "端末", subtitle: "Android 14 のブラウザ" }
+  - 認証 API: { kind: shape-server-rack, lane: auth, stack: 0, eyebrow: "サーバ", subtitle: "資格情報の一次検証" }
+  - 2 段階が要る?: { kind: shape-diamond, lane: auth, stack: 1, eyebrow: "分岐", subtitle: "認証アプリの 6 桁か SMS" }
+  - JWT 発行器: { kind: shape-hexagon, lane: auth, stack: 2, eyebrow: "署名", subtitle: "署名する · 有効は 1 時間" }
+  - Redis: { kind: shape-cylinder, lane: session-lane, stack: 0, eyebrow: "一時保存", subtitle: "保持は 3600 秒" }
+  - JWT トークン: { kind: shape-cloud, lane: session-lane, stack: 1, eyebrow: "応答", subtitle: "応答に付けて返す · 画面を移す" }
 
 flow:
-  - 山田様 -> Pixel 8: "入力" (info)
-  - Pixel 8 -> Auth API: "POST /login" (info)
-  - Auth API -> 2FA 要求?: "一次 OK" (success)
-  - 2FA 要求? -> JWT 発行器: "2FA OK" (success)
-  - JWT 発行器 -> Redis: "sid 保存" (success)
-  - Redis -> JWT token: "token 発行" (success)
+  - 山田様 -> スマートフォン: "入力" (info)
+  - スマートフォン -> 認証 API: "認証を求める" (info)
+  - 認証 API -> 2 段階が要る?: "一次を通過" (success)
+  - 2 段階が要る? -> JWT 発行器: "2 段階目を通過" (success)
+  - JWT 発行器 -> Redis: "セッションを保存" (success)
+  - Redis -> JWT トークン: "トークンを発行" (success)
 
 animation:
   - step: "認証要求" 1.5s
-    focus: ["山田様", "Pixel 8"]
+    focus: ["山田様", "スマートフォン"]
     tween:
       latency: 0 -> 80
     set:
       authStatus: 0
     badge: "要求"
-    description: "山田様が Pixel でログイン画面に credential 送信。 authStatus = 0 (traffic-light 赤 = 未検証)、 latency 0 → 80ms tween (bar 立ち上がり)、 gauge 100%、 countup 保持。 user lane 全 active。"
+    description: "山田様がスマートフォンのログイン画面から資格情報を送る。 認証の状態は赤 (まだ確かめていない) で、応答時間の帯が 80ms まで立ち上がる。 利用者の列がすべて光る。"
   - step: "一次検証" 2s
-    focus: ["山田様", "Pixel 8", "Auth API", "2FA 要求?"]
+    focus: ["山田様", "スマートフォン", "認証 API", "2 段階が要る?"]
     tween:
       authStatus: 0 -> 1
       latency: 80 -> 220
       failRate: 100 -> 99
     badge: "一次検証"
-    description: "Auth API が credential 照合、 hash 比較。 authStatus 0 → 1 tween (traffic-light 赤 → 黄)、 latency 80 → 220ms tween (bcrypt で bar 伸長)、 gauge 100 → 99% tween (失敗も少数計上)。 authApi + mfaCheck lane activate。"
-  - step: "2FA 検証" 2.2s
-    focus: ["山田様", "Pixel 8", "Auth API", "2FA 要求?"]
+    description: "認証 API が資格情報を照らし合わせ、ハッシュを比べる。 認証の状態が赤から黄へ、応答時間が 220ms へ伸び、少数の失敗を数えて成功率が 99% に下がる。"
+  - step: "2 段階認証" 2.2s
+    focus: ["山田様", "スマートフォン", "認証 API", "2 段階が要る?"]
     tween:
       latency: 220 -> 350
     set:
       authStatus: 1
-    badge: "2FA"
-    description: "TOTP 6 桁認証、 認証サーバが time-window 比較。 authStatus 1 → 1 保持 (traffic-light 黄)、 latency 220 → 350ms tween (2FA overhead で bar さらに伸長)、 mfaCheck diamond が pending 状態。"
+    badge: "2 段階"
+    description: "認証アプリの 6 桁を、認証サーバが時刻の幅に照らして確かめる。 認証の状態は黄のまま、2 段階目の手間で応答時間が 350ms まで伸びる。"
   - step: "セッション発行" 2s
-    focus: ["山田様", "Pixel 8", "Auth API", "2FA 要求?", "JWT 発行器", "Redis"]
+    focus: ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "Redis"]
     tween:
       authStatus: 1 -> 2
       latency: 350 -> 180
     badge: "発行"
-    description: "2FA 通過、 JWT 発行 + Redis に session 保存。 authStatus 1 → 2 tween (traffic-light 黄 → 緑)、 latency 350 → 180ms tween (bar 縮小)、 gauge 99 → 99% 維持、 jwtSign + session lane activate。"
+    description: "2 段階目を通り、JWT を発行して Redis にセッションを保存する。 認証の状態が黄から緑へ、応答時間が 180ms へ縮み、成功率は 99% のまま。"
   - step: "応答返却" 1.8s
-    focus: ["山田様", "Pixel 8", "Auth API", "2FA 要求?", "JWT 発行器", "Redis", "JWT token"]
+    focus: ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "Redis", "JWT トークン"]
     tween:
       successLogin: 8421 -> 8422
       latency: 180 -> 50
     set:
       authStatus: 2
     badge: "応答"
-    description: "JWT token を Bearer header で返却、 302 redirect。 successLogin 8421 → 8422 tween (countup が +1 加算表示、 900ms かけて動的)、 latency 180 → 50ms tween (最終)、 全 7 shape active。"
+    description: "JWT トークンを応答に付けて返し、画面を移す。 本日成功ログインが 900ms かけて 1 回増え、応答時間が 50ms まで縮んで 7 つの形がすべて光る。"
 `;
 
 export const sourceJson__exemplarLoginFlow = `{
@@ -19991,7 +19991,7 @@ export const sourceJson__exemplarLoginFlow = `{
       "id": "statusTL",
       "kind": "traffic-light",
       "source": "authStatus",
-      "label": "認証 status (0/1/2)"
+      "label": "認証の状態 (0/1/2)"
     },
     {
       "id": "successCU",
@@ -20030,110 +20030,110 @@ export const sourceJson__exemplarLoginFlow = `{
       "kind": "shape-person",
       "lane": "user",
       "stack": 0,
-      "eyebrow": "user",
-      "subtitle": "email + password 送信"
+      "eyebrow": "利用者",
+      "subtitle": "メールとパスワードを送る"
     },
     {
-      "name": "Pixel 8",
+      "name": "スマートフォン",
       "kind": "shape-mobile-device",
       "lane": "user",
       "stack": 1,
-      "eyebrow": "device",
-      "subtitle": "Chrome / Android 14"
+      "eyebrow": "端末",
+      "subtitle": "Android 14 のブラウザ"
     },
     {
-      "name": "Auth API",
+      "name": "認証 API",
       "kind": "shape-server-rack",
       "lane": "auth",
       "stack": 0,
-      "eyebrow": "server",
-      "subtitle": "credential 一次検証"
+      "eyebrow": "サーバ",
+      "subtitle": "資格情報の一次検証"
     },
     {
-      "name": "2FA 要求?",
+      "name": "2 段階が要る?",
       "kind": "shape-diamond",
       "lane": "auth",
       "stack": 1,
-      "eyebrow": "decision",
-      "subtitle": "TOTP 6 桁 or SMS"
+      "eyebrow": "分岐",
+      "subtitle": "認証アプリの 6 桁か SMS"
     },
     {
       "name": "JWT 発行器",
       "kind": "shape-hexagon",
       "lane": "auth",
       "stack": 2,
-      "eyebrow": "signer",
-      "subtitle": "RS256 · exp 1h"
+      "eyebrow": "署名",
+      "subtitle": "署名する · 有効は 1 時間"
     },
     {
       "name": "Redis",
       "kind": "shape-cylinder",
       "lane": "session-lane",
       "stack": 0,
-      "eyebrow": "cache",
-      "subtitle": "TTL 3600s"
+      "eyebrow": "一時保存",
+      "subtitle": "保持は 3600 秒"
     },
     {
-      "name": "JWT token",
+      "name": "JWT トークン",
       "kind": "shape-cloud",
       "lane": "session-lane",
       "stack": 1,
-      "eyebrow": "response",
-      "subtitle": "Bearer · 302 redirect"
+      "eyebrow": "応答",
+      "subtitle": "応答に付けて返す · 画面を移す"
     }
   ],
   "flow": [
-    { "from": "山田様", "to": "Pixel 8", "label": "入力", "tone": "info" },
-    { "from": "Pixel 8", "to": "Auth API", "label": "POST /login", "tone": "info" },
-    { "from": "Auth API", "to": "2FA 要求?", "label": "一次 OK", "tone": "success" },
-    { "from": "2FA 要求?", "to": "JWT 発行器", "label": "2FA OK", "tone": "success" },
-    { "from": "JWT 発行器", "to": "Redis", "label": "sid 保存", "tone": "success" },
-    { "from": "Redis", "to": "JWT token", "label": "token 発行", "tone": "success" }
+    { "from": "山田様", "to": "スマートフォン", "label": "入力", "tone": "info" },
+    { "from": "スマートフォン", "to": "認証 API", "label": "認証を求める", "tone": "info" },
+    { "from": "認証 API", "to": "2 段階が要る?", "label": "一次を通過", "tone": "success" },
+    { "from": "2 段階が要る?", "to": "JWT 発行器", "label": "2 段階目を通過", "tone": "success" },
+    { "from": "JWT 発行器", "to": "Redis", "label": "セッションを保存", "tone": "success" },
+    { "from": "Redis", "to": "JWT トークン", "label": "トークンを発行", "tone": "success" }
   ],
   "states": { "authStatus": 0, "successLogin": 8421, "failRate": 100, "latency": 0 },
   "animation": [
     {
       "step": "認証要求",
       "duration": 1.5,
-      "focus": ["山田様", "Pixel 8"],
+      "focus": ["山田様", "スマートフォン"],
       "tween": { "latency": [0, 80] },
       "set": { "authStatus": 0 },
       "badge": "要求",
-      "body": "山田様が Pixel でログイン画面に credential 送信。 authStatus = 0 (traffic-light 赤 = 未検証)、 latency 0 → 80ms tween (bar 立ち上がり)、 gauge 100%、 countup 保持。 user lane 全 active。"
+      "body": "山田様がスマートフォンのログイン画面から資格情報を送る。 認証の状態は赤 (まだ確かめていない) で、応答時間の帯が 80ms まで立ち上がる。 利用者の列がすべて光る。"
     },
     {
       "step": "一次検証",
       "duration": 2,
-      "focus": ["山田様", "Pixel 8", "Auth API", "2FA 要求?"],
+      "focus": ["山田様", "スマートフォン", "認証 API", "2 段階が要る?"],
       "tween": { "authStatus": [0, 1], "latency": [80, 220], "failRate": [100, 99] },
       "badge": "一次検証",
-      "body": "Auth API が credential 照合、 hash 比較。 authStatus 0 → 1 tween (traffic-light 赤 → 黄)、 latency 80 → 220ms tween (bcrypt で bar 伸長)、 gauge 100 → 99% tween (失敗も少数計上)。 authApi + mfaCheck lane activate。"
+      "body": "認証 API が資格情報を照らし合わせ、ハッシュを比べる。 認証の状態が赤から黄へ、応答時間が 220ms へ伸び、少数の失敗を数えて成功率が 99% に下がる。"
     },
     {
-      "step": "2FA 検証",
+      "step": "2 段階認証",
       "duration": 2.2,
-      "focus": ["山田様", "Pixel 8", "Auth API", "2FA 要求?"],
+      "focus": ["山田様", "スマートフォン", "認証 API", "2 段階が要る?"],
       "tween": { "latency": [220, 350] },
       "set": { "authStatus": 1 },
-      "badge": "2FA",
-      "body": "TOTP 6 桁認証、 認証サーバが time-window 比較。 authStatus 1 → 1 保持 (traffic-light 黄)、 latency 220 → 350ms tween (2FA overhead で bar さらに伸長)、 mfaCheck diamond が pending 状態。"
+      "badge": "2 段階",
+      "body": "認証アプリの 6 桁を、認証サーバが時刻の幅に照らして確かめる。 認証の状態は黄のまま、2 段階目の手間で応答時間が 350ms まで伸びる。"
     },
     {
       "step": "セッション発行",
       "duration": 2,
-      "focus": ["山田様", "Pixel 8", "Auth API", "2FA 要求?", "JWT 発行器", "Redis"],
+      "focus": ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "Redis"],
       "tween": { "authStatus": [1, 2], "latency": [350, 180] },
       "badge": "発行",
-      "body": "2FA 通過、 JWT 発行 + Redis に session 保存。 authStatus 1 → 2 tween (traffic-light 黄 → 緑)、 latency 350 → 180ms tween (bar 縮小)、 gauge 99 → 99% 維持、 jwtSign + session lane activate。"
+      "body": "2 段階目を通り、JWT を発行して Redis にセッションを保存する。 認証の状態が黄から緑へ、応答時間が 180ms へ縮み、成功率は 99% のまま。"
     },
     {
       "step": "応答返却",
       "duration": 1.8,
-      "focus": ["山田様", "Pixel 8", "Auth API", "2FA 要求?", "JWT 発行器", "Redis", "JWT token"],
+      "focus": ["山田様", "スマートフォン", "認証 API", "2 段階が要る?", "JWT 発行器", "Redis", "JWT トークン"],
       "tween": { "successLogin": [8421, 8422], "latency": [180, 50] },
       "set": { "authStatus": 2 },
       "badge": "応答",
-      "body": "JWT token を Bearer header で返却、 302 redirect。 successLogin 8421 → 8422 tween (countup が +1 加算表示、 900ms かけて動的)、 latency 180 → 50ms tween (最終)、 全 7 shape active。"
+      "body": "JWT トークンを応答に付けて返し、画面を移す。 本日成功ログインが 900ms かけて 1 回増え、応答時間が 50ms まで縮んで 7 つの形がすべて光る。"
     }
   ]
 }`;
@@ -20142,7 +20142,7 @@ export const sourceYaml__exemplarNotificationFlow = `title: "通知配信を発�
 type: flow
 
 readouts:
-  queuedBar: { kind: bar, source: "queued", min: 0, max: 1000, color: "#f97316", label: "queue 残" }
+  queuedBar: { kind: bar, source: "queued", min: 0, max: 1000, color: "#f97316", label: "キューの残り" }
   deliveredCU: { kind: countup, source: "delivered", decimals: 0, unit: " 件", label: "配信成功" }
   rateGauge: { kind: gauge, source: "deliveryRate", min: 0, max: 100, color: "#22c55e", label: "配信成功率 %" }
   failedStat: { kind: stat, source: "failed", caption: "リトライ待ち", unit: " 件", label: "失敗" }
@@ -20159,26 +20159,26 @@ states:
   deliveryRate: 0
 
 actors:
-  - 新着 message: { kind: shape-message-bubble, lane: origin, stack: 0, eyebrow: "trigger", subtitle: '"注文が発送されました"' }
-  - Kafka キュー: { kind: shape-stack, lane: infra, stack: 0, eyebrow: "queue", subtitle: "残 {queued} 件 · TTL 300s" }
-  - FCM Service: { kind: shape-cloud, lane: infra, stack: 1, eyebrow: "notification", subtitle: "配信 batch 処理" }
-  - retry 判定: { kind: shape-diamond, lane: infra, stack: 2, eyebrow: "policy", subtitle: "指数 backoff · 最大 3 回" }
-  - iPhone: { kind: shape-mobile-device, lane: devices, stack: 0, eyebrow: "device", subtitle: "APNs 経由 · foreground" }
-  - Pixel: { kind: shape-mobile-device, lane: devices, stack: 1, eyebrow: "device", subtitle: "FCM 経由 · background" }
-  - Galaxy: { kind: shape-mobile-device, lane: devices, stack: 2, eyebrow: "device", subtitle: "圏外 → retry 対象" }
+  - 新着の知らせ: { kind: shape-message-bubble, lane: origin, stack: 0, eyebrow: "きっかけ", subtitle: '"注文が発送されました"' }
+  - Kafka キュー: { kind: shape-stack, lane: infra, stack: 0, eyebrow: "キュー", subtitle: "残 {queued} 件 · 保持は 300 秒" }
+  - 配信サービス: { kind: shape-cloud, lane: infra, stack: 1, eyebrow: "通知", subtitle: "まとめて配る処理" }
+  - 再送の判定: { kind: shape-diamond, lane: infra, stack: 2, eyebrow: "方針", subtitle: "間隔を倍に広げる · 最大 3 回" }
+  - iPhone: { kind: shape-mobile-device, lane: devices, stack: 0, eyebrow: "端末", subtitle: "iOS の通知網 · 前面で受ける" }
+  - Android: { kind: shape-mobile-device, lane: devices, stack: 1, eyebrow: "端末", subtitle: "Android の通知網 · 背面で受ける" }
+  - タブレット: { kind: shape-mobile-device, lane: devices, stack: 2, eyebrow: "端末", subtitle: "圏外 → 再送の対象" }
 
 flow:
-  - 新着 message -> Kafka キュー: "enqueue" (info)
-  - Kafka キュー -> FCM Service: "dequeue" (info)
-  - FCM Service -> iPhone: "APNs 配信" (success) { labelOffsetY: -120 }
-  - FCM Service -> Pixel: "FCM 配信" (success)
-  - FCM Service -> Galaxy: "初回失敗" (error)
-  - Galaxy -> retry 判定: "retry 要求" (warning)
-  - retry 判定 -> FCM Service: "再送指示" (warning)
+  - 新着の知らせ -> Kafka キュー: "積む" (info)
+  - Kafka キュー -> 配信サービス: "取り出す" (info)
+  - 配信サービス -> iPhone: "iOS へ配信" (success) { labelOffsetY: -120 }
+  - 配信サービス -> Android: "Android へ配信" (success)
+  - 配信サービス -> タブレット: "初回失敗" (error)
+  - タブレット -> 再送の判定: "再送を求める" (warning)
+  - 再送の判定 -> 配信サービス: "再送指示" (warning)
 
 animation:
-  - step: "event 発火" 1.8s
-    focus: ["新着 message", "Kafka キュー"]
+  - step: "通知のきっかけ" 1.8s
+    focus: ["新着の知らせ", "Kafka キュー"]
     tween:
       queued: 0 -> 1000
     set:
@@ -20186,40 +20186,40 @@ animation:
       failed: 0
       deliveryRate: 0
     badge: "発火"
-    description: "注文発送 event が発生、 message-bubble から Kafka キューに enqueue。 queued 0 → 1000 tween (bar が右に伸長)、 delivered = 0、 failed = 0、 deliveryRate = 0% (gauge 針最下)。 origin + queue が active。"
+    description: "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。 知らせとキューが光る。"
   - step: "キューイング" 2s
-    focus: ["新着 message", "Kafka キュー", "FCM Service"]
+    focus: ["新着の知らせ", "Kafka キュー", "配信サービス"]
     tween:
       queued: 1000 -> 800
     badge: "キュー"
-    description: "batch 化された 1000 件が処理待ち、 FCM Service が dequeue 開始。 queued 1000 → 800 tween (bar 縮小開始)、 fcm lane activate、 kafka → fcm edge が info tone で信号伝達。"
+    description: "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、配信サービスが光って、キューからの矢印に信号が流れる。"
   - step: "配信中" 2.5s
-    focus: ["新着 message", "Kafka キュー", "FCM Service", "iPhone", "Pixel", "Galaxy"]
+    focus: ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"]
     tween:
       queued: 800 -> 50
       delivered: 0 -> 920
       failed: 0 -> 80
       deliveryRate: 0 -> 92
     badge: "配信"
-    description: "FCM が iPhone / Pixel / Galaxy へ fan-out 配信。 queued 800 → 50 tween (bar 大幅縮小)、 delivered 0 → 920 tween (countup が加速的 count up、 500/s peak)、 failed 0 → 80 tween、 deliveryRate 0 → 92% tween (gauge 針上昇)。 3 device 全 activate、 Galaxy は失敗 edge (error tone)。"
+    description: "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 3 台とも光り、タブレットへの矢印は失敗の赤になる。"
   - step: "初回到達" 1.8s
-    focus: ["新着 message", "Kafka キュー", "FCM Service", "iPhone", "Pixel", "Galaxy"]
+    focus: ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"]
     tween:
       queued: 50 -> 20
       delivered: 920 -> 950
       failed: 80 -> 50
       deliveryRate: 92 -> 95
     badge: "到達"
-    description: "iPhone + Pixel は成功受信、 Galaxy は圏外で失敗。 queued 50 → 20 tween、 delivered 920 → 950 tween、 failed 80 → 50 tween、 deliveryRate 92 → 95% tween。 全 shape active。"
+    description: "iPhone と Android 端末は受け取り、タブレットは圏外で届かない。 キューの残りが 20 件、配信成功が 950 件、失敗が 50 件、配信成功率が 95% になる。"
   - step: "リトライ" 2s
-    focus: ["新着 message", "Kafka キュー", "FCM Service", "retry 判定", "iPhone", "Pixel", "Galaxy"]
+    focus: ["新着の知らせ", "Kafka キュー", "配信サービス", "再送の判定", "iPhone", "Android", "タブレット"]
     tween:
       queued: 20 -> 0
       delivered: 950 -> 992
       failed: 50 -> 8
       deliveryRate: 95 -> 99
-    badge: "retry"
-    description: "失敗 50 件を retryGate が指数 backoff で再送、 Galaxy 圏内復帰後に配信成功。 queued 20 → 0 tween (bar 消失)、 delivered 950 → 992 tween (countup 最終)、 failed 50 → 8 tween (stat 減少)、 deliveryRate 95 → 99% tween (gauge 針最終)。 retryGate diamond が highlight。"
+    badge: "再送"
+    description: "失敗した 50 件を、再送の判定が間隔を倍に広げながら送り直し、圏内に戻ったタブレットにも届く。 キューの残りが 0 件、配信成功が 992 件、失敗が 8 件、配信成功率が 99% になり、再送の判定が光る。"
 `;
 
 export const sourceJson__exemplarNotificationFlow = `{
@@ -20233,7 +20233,7 @@ export const sourceJson__exemplarNotificationFlow = `{
       "min": 0,
       "max": 1000,
       "color": "#f97316",
-      "label": "queue 残"
+      "label": "キューの残り"
     },
     {
       "id": "deliveredCU",
@@ -20268,11 +20268,11 @@ export const sourceJson__exemplarNotificationFlow = `{
   },
   "actors": [
     {
-      "name": "新着 message",
+      "name": "新着の知らせ",
       "kind": "shape-message-bubble",
       "lane": "origin",
       "stack": 0,
-      "eyebrow": "trigger",
+      "eyebrow": "きっかけ",
       "subtitle": "\\"注文が発送されました\\""
     },
     {
@@ -20280,96 +20280,96 @@ export const sourceJson__exemplarNotificationFlow = `{
       "kind": "shape-stack",
       "lane": "infra",
       "stack": 0,
-      "eyebrow": "queue",
-      "subtitle": "残 {queued} 件 · TTL 300s"
+      "eyebrow": "キュー",
+      "subtitle": "残 {queued} 件 · 保持は 300 秒"
     },
     {
-      "name": "FCM Service",
+      "name": "配信サービス",
       "kind": "shape-cloud",
       "lane": "infra",
       "stack": 1,
-      "eyebrow": "notification",
-      "subtitle": "配信 batch 処理"
+      "eyebrow": "通知",
+      "subtitle": "まとめて配る処理"
     },
     {
-      "name": "retry 判定",
+      "name": "再送の判定",
       "kind": "shape-diamond",
       "lane": "infra",
       "stack": 2,
-      "eyebrow": "policy",
-      "subtitle": "指数 backoff · 最大 3 回"
+      "eyebrow": "方針",
+      "subtitle": "間隔を倍に広げる · 最大 3 回"
     },
     {
       "name": "iPhone",
       "kind": "shape-mobile-device",
       "lane": "devices",
       "stack": 0,
-      "eyebrow": "device",
-      "subtitle": "APNs 経由 · foreground"
+      "eyebrow": "端末",
+      "subtitle": "iOS の通知網 · 前面で受ける"
     },
     {
-      "name": "Pixel",
+      "name": "Android",
       "kind": "shape-mobile-device",
       "lane": "devices",
       "stack": 1,
-      "eyebrow": "device",
-      "subtitle": "FCM 経由 · background"
+      "eyebrow": "端末",
+      "subtitle": "Android の通知網 · 背面で受ける"
     },
     {
-      "name": "Galaxy",
+      "name": "タブレット",
       "kind": "shape-mobile-device",
       "lane": "devices",
       "stack": 2,
-      "eyebrow": "device",
-      "subtitle": "圏外 → retry 対象"
+      "eyebrow": "端末",
+      "subtitle": "圏外 → 再送の対象"
     }
   ],
   "flow": [
-    { "from": "新着 message", "to": "Kafka キュー", "label": "enqueue", "tone": "info" },
-    { "from": "Kafka キュー", "to": "FCM Service", "label": "dequeue", "tone": "info" },
+    { "from": "新着の知らせ", "to": "Kafka キュー", "label": "積む", "tone": "info" },
+    { "from": "Kafka キュー", "to": "配信サービス", "label": "取り出す", "tone": "info" },
     {
-      "from": "FCM Service",
+      "from": "配信サービス",
       "to": "iPhone",
-      "label": "APNs 配信",
+      "label": "iOS へ配信",
       "tone": "success",
       "labelOffsetY": -120
     },
-    { "from": "FCM Service", "to": "Pixel", "label": "FCM 配信", "tone": "success" },
-    { "from": "FCM Service", "to": "Galaxy", "label": "初回失敗", "tone": "error" },
-    { "from": "Galaxy", "to": "retry 判定", "label": "retry 要求", "tone": "warning" },
-    { "from": "retry 判定", "to": "FCM Service", "label": "再送指示", "tone": "warning" }
+    { "from": "配信サービス", "to": "Android", "label": "Android へ配信", "tone": "success" },
+    { "from": "配信サービス", "to": "タブレット", "label": "初回失敗", "tone": "error" },
+    { "from": "タブレット", "to": "再送の判定", "label": "再送を求める", "tone": "warning" },
+    { "from": "再送の判定", "to": "配信サービス", "label": "再送指示", "tone": "warning" }
   ],
   "states": { "queued": 0, "delivered": 0, "failed": 0, "deliveryRate": 0 },
   "animation": [
     {
-      "step": "event 発火",
+      "step": "通知のきっかけ",
       "duration": 1.8,
-      "focus": ["新着 message", "Kafka キュー"],
+      "focus": ["新着の知らせ", "Kafka キュー"],
       "tween": { "queued": [0, 1000] },
       "set": { "delivered": 0, "failed": 0, "deliveryRate": 0 },
       "badge": "発火",
-      "body": "注文発送 event が発生、 message-bubble から Kafka キューに enqueue。 queued 0 → 1000 tween (bar が右に伸長)、 delivered = 0、 failed = 0、 deliveryRate = 0% (gauge 針最下)。 origin + queue が active。"
+      "body": "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。 知らせとキューが光る。"
     },
     {
       "step": "キューイング",
       "duration": 2,
-      "focus": ["新着 message", "Kafka キュー", "FCM Service"],
+      "focus": ["新着の知らせ", "Kafka キュー", "配信サービス"],
       "tween": { "queued": [1000, 800] },
       "badge": "キュー",
-      "body": "batch 化された 1000 件が処理待ち、 FCM Service が dequeue 開始。 queued 1000 → 800 tween (bar 縮小開始)、 fcm lane activate、 kafka → fcm edge が info tone で信号伝達。"
+      "body": "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、配信サービスが光って、キューからの矢印に信号が流れる。"
     },
     {
       "step": "配信中",
       "duration": 2.5,
-      "focus": ["新着 message", "Kafka キュー", "FCM Service", "iPhone", "Pixel", "Galaxy"],
+      "focus": ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"],
       "tween": { "queued": [800, 50], "delivered": [0, 920], "failed": [0, 80], "deliveryRate": [0, 92] },
       "badge": "配信",
-      "body": "FCM が iPhone / Pixel / Galaxy へ fan-out 配信。 queued 800 → 50 tween (bar 大幅縮小)、 delivered 0 → 920 tween (countup が加速的 count up、 500/s peak)、 failed 0 → 80 tween、 deliveryRate 0 → 92% tween (gauge 針上昇)。 3 device 全 activate、 Galaxy は失敗 edge (error tone)。"
+      "body": "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 3 台とも光り、タブレットへの矢印は失敗の赤になる。"
     },
     {
       "step": "初回到達",
       "duration": 1.8,
-      "focus": ["新着 message", "Kafka キュー", "FCM Service", "iPhone", "Pixel", "Galaxy"],
+      "focus": ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"],
       "tween": {
         "queued": [50, 20],
         "delivered": [920, 950],
@@ -20377,20 +20377,20 @@ export const sourceJson__exemplarNotificationFlow = `{
         "deliveryRate": [92, 95]
       },
       "badge": "到達",
-      "body": "iPhone + Pixel は成功受信、 Galaxy は圏外で失敗。 queued 50 → 20 tween、 delivered 920 → 950 tween、 failed 80 → 50 tween、 deliveryRate 92 → 95% tween。 全 shape active。"
+      "body": "iPhone と Android 端末は受け取り、タブレットは圏外で届かない。 キューの残りが 20 件、配信成功が 950 件、失敗が 50 件、配信成功率が 95% になる。"
     },
     {
       "step": "リトライ",
       "duration": 2,
-      "focus": ["新着 message", "Kafka キュー", "FCM Service", "retry 判定", "iPhone", "Pixel", "Galaxy"],
+      "focus": ["新着の知らせ", "Kafka キュー", "配信サービス", "再送の判定", "iPhone", "Android", "タブレット"],
       "tween": {
         "queued": [20, 0],
         "delivered": [950, 992],
         "failed": [50, 8],
         "deliveryRate": [95, 99]
       },
-      "badge": "retry",
-      "body": "失敗 50 件を retryGate が指数 backoff で再送、 Galaxy 圏内復帰後に配信成功。 queued 20 → 0 tween (bar 消失)、 delivered 950 → 992 tween (countup 最終)、 failed 50 → 8 tween (stat 減少)、 deliveryRate 95 → 99% tween (gauge 針最終)。 retryGate diamond が highlight。"
+      "badge": "再送",
+      "body": "失敗した 50 件を、再送の判定が間隔を倍に広げながら送り直し、圏内に戻ったタブレットにも届く。 キューの残りが 0 件、配信成功が 992 件、失敗が 8 件、配信成功率が 99% になり、再送の判定が光る。"
     }
   ]
 }`;
