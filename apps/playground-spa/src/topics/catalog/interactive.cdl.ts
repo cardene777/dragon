@@ -76,7 +76,7 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
   )
   .build();
 export const subtitle__inputSliderBar =
-  "input.slider bind の 2-lane (Slider signal / Bar node) + bind edge、 signal → subtitle 反映経路を可視化";
+  "つまみ (slider) で動かした値が、矢印の先の箱の説明欄にそのまま届く最小の見本";
 
 /**
  * 2. formula → text bind (formula primitive + reactive computed)。
@@ -157,7 +157,7 @@ export const pattern__formulaTextBind__名前のまま描く = 二倍と半分�
   false,
 );
 export const subtitle__formulaTextBind =
-  "formula chain を 3-lane (Input / Doubled / Halved) 分散 + 2 dependency edge で dataflow network 化、 formula reactive を可視化";
+  "入力欄に入れた元の値から、式で 2 倍と半分を求めて隣の縦列の箱に出す";
 
 /**
  * 3. scroll → progress readout (scroll-driven trigger)。
@@ -202,7 +202,7 @@ export const scrollNarrative = diagram("interactive-scroll-narrative", {
   )
   .build();
 export const subtitle__scrollNarrative =
-  "scroll 0..1 progress を 3-lane (Step 1 / Step 2 / Step 3) step 別分散、 各 step 個別 lane、 scroll 進行が全 lane 同時追随";
+  "画面を送った量 (scroll) を 1 つの値にして、3 つの箱が同じ進み具合を出す";
 
 /**
  * 4. click → toggle (event handler + hover)。
@@ -286,7 +286,7 @@ export const clickToggle = 押すと切り替わる図("interactive-click-toggle
 export const patternBase__clickToggle = "名前で描く";
 export const pattern__clickToggle__値のまま描く = 押すと切り替わる図("interactive-click-toggle-bare", false);
 export const subtitle__clickToggle =
-  "click event flow を 3 区画 (Trigger button / Event handler / Signal state) 2 列 2 段 + 2 edge、 click→handler→signal の 3 step dataflow";
+  "押す先を押すと受け取り手を通って、押した状態の値が切り替わる";
 
 /**
  * 5. visual binding = slider → node 実 width 変化 (arc-intro 相当の core UX)。
@@ -365,7 +365,7 @@ export const visualBindBar = diagram("interactive-visual-bar", {
   )
   .build();
 export const subtitle__visualBindBar =
-  "wBind / hBind visual binding を 3-lane (Signal source / Dynamic bar / Bar readout) + 3 edge、 signal → 実 SVG width と height の反映経路を可視化";
+  "1 つの値を横の棒の幅と縦の棒の高さに当て、同じ値を数でも出す (wBind / hBind)";
 
 /**
  * 6. visual binding = slider → node opacity で fade in/out。
@@ -434,7 +434,7 @@ export const visualBindOpacity = diagram("interactive-visual-opacity", {
   )
   .build();
 export const subtitle__visualBindOpacity =
-  "opacity visual bind を 3-lane (Fade control / Target opacity / Reference constant) + 2 edge、 signal 追随 vs 固定の対比可視化";
+  "つまみの値で濃さが変わる箱と、値を渡さず濃さが変わらない箱を並べて比べる (opacity)";
 
 /**
  * 7. XY pad = 2 軸選択、 stat readout で x/y を表示。
@@ -497,7 +497,7 @@ export const xypadNavigate = diagram("interactive-xypad-nav", {
   )
   .build();
 export const subtitle__xypadNavigate =
-  "XY pad 2D 座標を 4-lane quadrant (Q1/Q2/Q3/Q4) 分散、 現在 pos を center indicator + stat readout で数値化";
+  "平面のつまみ (xypad) で選んだ位置が、左上 / 右上 / 左下 / 右下のどの区画に入るかを示す";
 
 /**
  * 8. stepper で phase 相当の値を細かく調整、 bar readout に反映。
@@ -564,7 +564,7 @@ export const stepperControl = diagram("interactive-stepper", {
   )
   .build();
 export const subtitle__stepperControl =
-  "stepper control を 3-lane (Control input / Bar visualization / Stat readout) 分散 + 2 fan-out edge、 signal → 2 readout の 1:N 経路可視化";
+  "増減の入力欄 (stepper) で決めた個数を、棒と数の 2 か所に出す";
 
 /**
  * 9. number → sparkline = number 入力の履歴を line chart で。
@@ -629,7 +629,7 @@ export const numberSparkline = diagram("interactive-number-spark", {
   )
   .build();
 export const subtitle__numberSparkline =
-  "number sparkline を 2-lane (Current value / History sparkline) 分散 + push edge、 現在値と履歴の関係を可視化";
+  "入力欄に入れた値を、いまの値と直近 15 回の小さな折れ線の 2 つで出す (sparkline)";
 
 /**
  * 9b. radio + stat = 選択肢と現在値。 radio で option 切替、 stat で文字列表示。
@@ -700,7 +700,7 @@ export const radioSelect = diagram("interactive-radio-select", {
   )
   .build();
 export const subtitle__radioSelect =
-  "radio 3 option (low/mid/high) を 3-lane 排他分散 + current indicator、 現在選択 mode 位置を明示";
+  "低 / 中 / 高から 1 つだけ選ぶ入力欄 (radio) で、選んだ段階を箱と数で示す";
 
 /**
  * 10. color picker で node stroke を変える (theme 実験)。
@@ -769,7 +769,7 @@ export const colorPickerTheme = diagram("interactive-color-theme", {
   )
   .build();
 export const subtitle__colorPickerTheme =
-  "color picker pipeline を 3-lane (Picker input / Swatch preview / Hex stat) + 2 edge、 hex signal 生成 dataflow を可視化";
+  "色の入力欄 (color) で選んだ色が、色見本の箱と 16 進の表記に届く";
 
 /**
  * 11. shape primitive = rect fill、 signal で内部が実際に伸縮する汎用 container。
@@ -860,7 +860,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
   )
   .build();
 export const subtitle__shapeRectFill =
-  "dyn-rect fill を 4-lane (Low 25% / Mid 50% / High 75% / Interactive slider) 分散、 3 static + 1 reactive rect 並列比較";
+  "塗り割合が 25% / 50% / 75% の四角を並べ、4 つ目だけをつまみで動かして比べる (dyn-rect)";
 
 /**
  * 12. chain fill = 3 個の rect を並列、 base 値の伝搬で各 fill が連動 (EIP1559 相当)。
@@ -1033,7 +1033,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
   )
   .build();
 export const subtitle__shapeCirclePulse =
-  "dyn-circle progress ring を 4-lane (0% / 33% / 66% / Interactive) 分散、 3 static + 1 reactive circle 並列比較";
+  "進み具合が 0% / 33% / 66% の輪を並べ、4 つ目だけをつまみで動かして比べる (dyn-circle)";
 
 /**
  * 14. dyn-arc = 角度で fill sweep、 gauge や circular progress の汎用形。
@@ -1128,7 +1128,7 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
   )
   .build();
 export const subtitle__shapeArcSweep =
-  "dyn-arc gauge sweep を 4-lane (Min 0° / Quarter 90° / Half 180° / Interactive) 分散、 3 static + 1 reactive arc 並列比較";
+  "角度が 0° / 90° / 180° の弧を並べ、4 つ目だけをつまみで動かして比べる (dyn-arc)";
 
 /**
  * 15. dyn-wave = 水位表示、 tank / battery / liquid level の汎用形。
@@ -1251,7 +1251,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
   )
   .build();
 export const subtitle__shapeWaveTank =
-  "dyn-wave tank level を 4-lane (Low 25 / Half 50 / High 75 / Interactive slider) 分散、 3 static + 1 reactive tank 並列比較";
+  "水位が 25% / 50% / 75% の波を並べ、4 つ目だけをつまみで動かして比べる (dyn-wave)";
 
 /**
  * 16. dyn-polygon = 頂点数 + 回転を signal で駆動、 badge / medal / spinner の汎用形。
@@ -1347,7 +1347,7 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
   )
   .build();
 export const subtitle__shapePolyRotate =
-  "dyn-polygon sides を 4-lane (Triangle 3 / Hexagon 6 / Octagon 8 / Interactive hexagon slider) 分散、 3 static + 1 reactive polygon 並列比較";
+  "角が 3 つ / 6 つ / 8 つの多角形を並べ、4 つ目の六角形だけをつまみで回して大きさも変える (dyn-polygon)";
 
 /**
  * 17. repeat + derive chain = N 個の shape を宣言的に生成、 前値参照で連鎖伝搬。
@@ -1509,7 +1509,7 @@ export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
   )
   .build();
 export const subtitle__dynamicReadouts =
-  "4 dynamic readout (countup/delta/percent-ring/typewriter) を 2 列 2 段に分散、 各 readout 個別区画、 signal → 4 readout の 1:N 経路可視化";
+  "売上と状態の値を、数え上げ / 増減 / 割合の円 / 打ち出す字の 4 つの部品で見せる (countup / delta / percent-ring / typewriter)";
 
 /**
  * 19. timeline = 時間軸を signal 化、 play/pause/scrub/speed で phase 相当を手動制御。
@@ -1588,7 +1588,7 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   )
   .build();
 export const subtitle__timelineDrive =
-  "timeline signal fan-out を 3-lane (Timeline control / Rect shape / Arc shape) + 2 fan-out edge、 time → 2 shape 同時追随";
+  "3 秒ごとにくり返す時間の値 1 つから、四角の棒の長さと弧の角度を式で求める (timeline)";
 
 /**
  * 20. edge signal binding = 太さ / 色 / dashoffset を signal 追随、 chain の流れを animate。
@@ -1662,7 +1662,7 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
   )
   .build();
 export const subtitle__edgeFlowBind =
-  "edge signal bind (太さ/色/dashoffset) を 3-lane (Source / Pipe / Sink) 分散、 Source→Sink flow を横断 edge で animate";
+  "送り手から受け手への矢印の太さと色と流れる点の位置を、つまみ / 時間 / 選択の 3 つの入力欄で決める";
 
 /**
  * 21. new input widgets = range / multi-select / tabs / text の合わせ技。
@@ -1767,7 +1767,7 @@ export const inputVariety = diagram("interactive-input-variety", {
   )
   .build();
 export const subtitle__inputVariety =
-  "4 input widget (range/multiSelect/tabs/text) を 4-lane 分散、 各 widget 個別 lane + input signal 表示";
+  "範囲のつまみ / 複数選択 / 切り替え / 文字の 4 種の入力欄を並べ、入れた値を箱に出す (range / multi-select / tabs / text)";
 
 /**
  * 22. new readouts = heat cell + badge + status dot の合わせ技。
@@ -1853,7 +1853,7 @@ export const readoutVariety = diagram("interactive-readout-variety", {
   )
   .build();
 export const subtitle__readoutVariety =
-  "3 readout variant (heatCell/badge/statusDot) を 3-lane 分散、 各 readout 個別 lane + temp/state signal 追随";
+  "温度と状態の値を、色の濃さの升目 / 数の札 / 色の点の 3 つの部品で見せる (heat-cell / badge / status-dot)";
 
 /**
  * 23. event 拡張 = double-click / keydown / focus / blur を network 化。
@@ -1937,7 +1937,7 @@ export const eventVariety = diagram("interactive-event-variety", {
   )
   .build();
 export const subtitle__eventVariety =
-  "5 event kind (dbl/focus/blur/keydown/longpress) を 3-lane (Pointer / Keyboard / Touch) event category 別分散、 3 target node + 5 event bind";
+  "2 回押す / 選ぶ / 外れる / 鍵盤を押す / 長く押すの 5 種の操作を、押す・打つ・触れるの縦列に分けて受け取る";
 
 /**
  * 24. gridNodes = 2D grid layout。 rows × cols の matrix を宣言的に生成、
@@ -1993,7 +1993,7 @@ export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
   )
   .build();
 export const subtitle__gridLayoutMatrix =
-  "gridNodes(3, 4) 12 cell を 4-lane (Col 0-3) 列別分散、 gridNodes template で lane 動的割当、 各 lane 3 cell (Row 0-2) stack";
+  "3 行 4 列の格子の箱 12 個をまとめて作り、列ごとの縦列に並べる (gridNodes)";
 
 /**
  * 25. arraySignal = array を単一 signal に格納、 template で index / length / sum / avg access。
@@ -2069,7 +2069,7 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
   )
   .build();
 export const subtitle__arraySignalHistogram =
-  "arraySignal 5 element を 2-lane (Aggregate stat / Individual items) 分散、 各 element 個別 card + 集約 card、 arrayBar/arrayList readout 併存";
+  "5 つの数の並びを集計の箱と 1 つずつの箱に分け、棒と一覧の部品でも見せる (array-bar / array-list)";
 
 /**
  * 26. pathProgress readout + visibleIf。 slider で progress、 完了時 badge を visibleIf 経由で表示。
@@ -2153,7 +2153,7 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
   )
   .build();
 export const subtitle__pathProgressDemo =
-  "path progress を 3-lane (State / Path visual / Completion) 分散、 progress state + path readout + 完了 badge を lane 別展開";
+  "つまみの進み具合を折れ曲がった線を塗る位置と割合の円で見せ、100% で完了の印を出す (path-progress)";
 
 /**
  * 27. lineChart readout = array signal を折れ線 chart 表示 (時系列 like)。
@@ -2239,7 +2239,7 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
   )
   .build();
 export const subtitle__arrayLineChart =
-  "arraySignal line chart を 3-lane (Data source / Area chart fill / Line chart no-fill) 分散、 chart variant 別 lane 展開、 lineChart 2 種類併存";
+  "同じ数の並びから、塗りのある折れ線と塗りの無い折れ線の 2 つを描き分ける (line-chart)";
 
 /**
  * 28. stackedBar readout = 2 array を並列 bar 比較、 A/B histogram の per-index 対比。
@@ -2323,7 +2323,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
   )
   .build();
 export const subtitle__arrayStackedBar =
-  "2 arraySignal (A/B) を 2-lane (Group A blue / Group B orange) 分散 + comparison edge、 各 group 個別 card + stackedBar readout 併存";
+  "A 群と B 群の 2 つの数の並びを、合計と平均の箱と横に並べた棒で比べる (stacked-bar)";
 
 /**
  * 29. radialNodes + renderOffset = hub-and-spoke architecture 図、
@@ -2380,7 +2380,7 @@ export const radialHubAndSpoke = diagram("interactive-radial-hub", {
   )
   .build();
 export const subtitle__radialHubAndSpoke =
-  "hub-and-spoke を 3-lane (Spokes 上 / Hub center / Spokes 下) 分散、 4 spoke を上下 lane に振り分けて edge-node-cross を回避、 hub → 4 spoke edge の star topology";
+  "中心の箱から 0° / 90° / 180° / 270° の 4 方向へ矢印を伸ばし、上下の縦列に分けて矢印が箱を横切らないように置く";
 
 /**
  * 30. waterfall readout = 5 element を左から累積、 正 / 負 で色分け (財務 waterfall chart)。
@@ -2450,7 +2450,7 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
   )
   .build();
 export const subtitle__arrayWaterfall =
-  "arraySignal waterfall 5 element を 2-lane (Positive changes / Negative changes) 分散、 各 element 個別 card、 waterfall readout 併存";
+  "増えた分と減った分を別の縦列に分け、積み上がって最後の収支に至るまでを段の図で見せる (waterfall)";
 
 /**
  * 31. renderOffset signal binding = slider で node が動く、 renderOffsetX/Y に signal template。
@@ -2511,7 +2511,7 @@ export const renderOffsetDrift = diagram("interactive-render-offset", {
   )
   .build();
 export const subtitle__renderOffsetDrift =
-  "renderOffset bind を 2-lane (Anchor fixed / Floater drift) 分散、 anchor は固定、 floater は renderOffset signal 追随";
+  "動かない基準の点と、横と縦のつまみで描く位置だけがずれる点を並べる (renderOffset)";
 
 /**
  * 32. matrix readout = 4×4 の 2D array を色 gradient で表示 (confusion matrix / heatmap 用)。
@@ -2639,7 +2639,7 @@ export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
   )
   .build();
 export const subtitle__matrixHeatmap =
-  "4×4 confusion matrix を 4-lane (class 0/1/2/3) 分散、 各 class の diagonal (correct) / off-diagonal (wrong) を個別 card 表示、 matrix readout 併存";
+  "4 つの区分ごとに正解と取り違えを箱に分け、4×4 の升目を色の濃さで見せる (matrix)";
 
 /**
  * 33. progress-group readout = 4 task の progress を label + bar list で表示。
@@ -2718,7 +2718,7 @@ export const taskProgressGroup = diagram("interactive-progress-group", {
   )
   .build();
 export const subtitle__taskProgressGroup =
-  "4 task の progress を 2-lane (Advanced ≥50% / Behind <50%) に分散、 各 task 個別 card + progressGroup readout 併存";
+  "4 件の作業を 50% 以上と未満の縦列に分け、進み具合をまとめて出す部品で並べる (progress-group)";
 
 /**
  * 34. domain example = EIP-1559 gas cost model。
@@ -2817,7 +2817,7 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   )
   .build();
 export const subtitle__eip1559GasFlow =
-  "EIP-1559 gas cost model = 4 区画 (Sender / Block1 / Block2 / Block3) 2 列 2 段を edge で gas propagation、 base fee slider で 3 block の total が chain 追随";
+  "基準と優先の手数料のつまみから 3 つのブロックの手数料を式で求め、焼却分と優先分を積み上げた棒で見せる";
 
 /**
  * 35. domain example = OAuth 2.0 authorization code flow の sequence timeline。
@@ -2950,7 +2950,7 @@ export const interactiveOauthFlow = diagram("interactive-oauth-flow", {
   )
   .build();
 export const subtitle__interactiveOauthFlow =
-  "OAuth 2.0 authorization code flow を 3-lane (User / Auth server / Resource server) + 6 event edge で node network 化、 latency は slider 追随";
+  "利用者 / 認可サーバー / 資源サーバーの間を 6 本の矢印で往復し、サーバーの遅れをつまみで変える (OAuth)";
 
 /**
  * 36. domain example = tree diagram = decision tree 3 level (2^3 = 7 node)。
@@ -3014,7 +3014,7 @@ export const decisionTree = diagram("interactive-decision-tree", {
   )
   .build();
 export const subtitle__decisionTree =
-  "decision tree 3 level (2^2 = 4 leaf) を 3-lane (Root / Mid / Leaf) tree depth 別分散、 stack を parent-child alignment で edge-node-cross 回避、 6 edge で 2 分木構造明示";
+  "問いの答え (○ / ×) で 2 つずつ枝分かれして 4 つの結果に至り、親と子の高さを揃えて矢印が箱を横切らないように置く";
 
 /**
  * 37. radar chart = 5 skill dimensions を spider chart で表示。
@@ -3104,7 +3104,7 @@ export const skillRadar = diagram("interactive-skill-radar", {
   )
   .build();
 export const subtitle__skillRadar =
-  "5 skill を 3-lane (Strong ≥7 / Middle 5-6 / Weak <5) レベル別分散、 各 skill 個別 card + radar readout 併存";
+  "5 つの技能を 7 以上 / 5〜6 / 5 未満の縦列に分け、多角形の部品で形を見せる (radar)";
 
 /**
  * 38. bubble chart = 3D data (perf / cost / usage) の bubbles、 各点の size で 3 次元目を表現。
@@ -3204,7 +3204,7 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
   )
   .build();
 export const subtitle__perfBubbleChart =
-  "5 workload を 2-lane (High usage ≥7 / Low usage <7) usage size 別分散、 各 workload 個別 card + bubbleChart readout 併存";
+  "5 種の処理を負荷 7 以上と未満の縦列に分け、3 つの軸を持つ円の大きさで比べる (bubble-chart)";
 
 /**
  * 39. donut chart = portfolio share (asset allocation) を multi-segment donut 表示。
@@ -3300,7 +3300,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
   )
   .build();
 export const subtitle__portfolioDonut =
-  "portfolio 4 asset を 2-lane (Traditional Stocks+Bonds / Alternative Cash+Crypto) 分散、 各 asset 個別 card、 donut readout 併存";
+  "株式と債券を伝統的な資産、現金と暗号資産を代替の資産に分け、配分を輪の部品で見せる (donut)";
 
 /**
  * 40. domain KPI dashboard = 4 KPI (revenue / users / churn / NPS) を 4 readout 組合せで dashboard 化。
@@ -3389,7 +3389,7 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   )
   .build();
 export const subtitle__kpiDashboard =
-  "SaaS KPI dashboard = 4-lane (Revenue / Users / Churn / NPS) node grid + revenue → users/churn/nps に因果関係 edge、 formula chain で 3 KPI が chain 追随";
+  "月の売上をつまみで動かすと利用者 / 解約率 / 推奨度の 3 指標が式で決まり、4 つの指標を並べて見せる";
 
 /**
  * 41. domain A/B test result = 2 variant の conversion rate + confidence を並列表示。
@@ -3501,7 +3501,7 @@ export const abTestResult = diagram("interactive-ab-test", {
   )
   .build();
 export const subtitle__abTestResult =
-  "A/B test を 3-lane (Variant A / Split / Variant B) + Split → A,B edge で experiment 構造を node network 化";
+  "振り分けから A 案と B 案へ半分ずつ矢印を引き、日ごとの成約率と勝った割合を部品で並べる (stacked-bar / donut)";
 
 /**
  * 42. calendar heatmap = 1 年分の日次 commit を GitHub-style で表示 (365 day、 53 週 × 7 日)。
@@ -3605,7 +3605,7 @@ export const contributionHeatmap = diagram("interactive-contribution-heatmap", {
   )
   .build();
 export const subtitle__contributionHeatmap =
-  "365 day contribution を 4-lane (Q1/Q2/Q3/Q4 quarter) 分散、 各 quarter summary card + total/max、 calendarHeatmap readout 併存";
+  "1 年の活動を 3 か月ごとの箱に分けて合計と最大を出し、53 週 × 7 日の升目を色の濃さで見せる (calendar-heatmap)";
 
 /**
  * 43. mini-map = 大 canvas 1000×800 上の 400×300 viewport を slider で移動、 mini-map で追従。
@@ -3683,7 +3683,7 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
   )
   .build();
 export const subtitle__canvasMiniMap =
-  "canvas mini-map を 3-lane (X pan / Y pan / Mini-map viewport) 分散、 axis 別 control + viewport 集約、 miniMap readout 併存";
+  "横と縦の移動のつまみで、全体図の中の小窓の位置を動かす (mini-map)";
 
 /**
  * 44. kpi-card = revenue の現在値 + 直前値との delta + 6 point history sparkline を composite。
@@ -3762,7 +3762,7 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
   )
   .build();
 export const subtitle__revenueKpiCard =
-  "revenue KPI を 3 区画 (Previous / Current / Trend) 2 列 2 段に分散 + prev→current delta edge、 kpiCard readout 併存";
+  "前期と今期の売上の差を矢印で示し、6 か月の推移とまとめて 1 枚の部品で見せる (kpi-card)";
 
 /**
  * 45. candlestick chart = 8 日分の OHLC を蝋燭足で表示 (finance chart)。
@@ -3892,7 +3892,7 @@ export const priceCandlestick = diagram("interactive-price-candlestick", {
   )
   .build();
 export const subtitle__priceCandlestick =
-  "OHLC 8 day を 2-lane (Up days close≥open / Down days close<open) 分散、 各 day 個別 card + candlestick readout 併存";
+  "8 日分の始値と終値を上がった日と下がった日の縦列に分け、ろうそく足の部品で見せる (candlestick)";
 
 /**
  * 46. Venn diagram = 2 set (Users / Payers) の intersection を可視化。
@@ -3974,7 +3974,7 @@ export const userVenn = diagram("interactive-user-venn", {
   )
   .build();
 export const subtitle__userVenn =
-  "2 set Venn を 3-lane (Users only / Both / Payers only) 領域別分散、 各 region 個別 card、 venn readout 併存";
+  "利用者と支払う人の 2 つの集まりを、利用者だけ / 両方 / 支払う人だけの 3 つの領域に分けて重なりを見せる (venn)";
 
 /**
  * 47. slope chart = 5 student の test score before/after 変化を slope で表示。
@@ -4048,7 +4048,7 @@ export const scoreSlope = diagram("interactive-score-slope", {
   )
   .build();
 export const subtitle__scoreSlope =
-  "5 student score change を 2-lane (Improved up ↑ / Declined down ↓) 分散、 各 student 個別 card、 slope readout 併存";
+  "5 人の点数を上がった人と下がった人の縦列に分け、前後の点を結ぶ傾きで見せる (slope)";
 
 /**
  * 48. sales funnel = 4 stage の conversion funnel (Visit → Signup → Trial → Paid)。
@@ -4143,7 +4143,7 @@ export const salesFunnel = diagram("interactive-sales-funnel", {
   )
   .build();
 export const subtitle__salesFunnel =
-  "sales funnel 4 stage を 2 列 2 段の pipeline + 3 drop-off edge、 Visit → Signup → Trial → Paid の conversion 遷移 network 化";
+  "訪問 → 登録 → 試用 → 購入の 4 段を矢印でつなぎ、進むほど減る人数を台形の部品で見せる (funnel)";
 
 /**
  * 49. project gantt = 4 task を 10 day timeline 上に配置。
@@ -4238,7 +4238,7 @@ export const projectGantt = diagram("interactive-project-gantt", {
   )
   .build();
 export const subtitle__projectGantt =
-  "project 4 task を 4 区画 (Design / Impl / Test / Ship) 2 列 2 段で task 別分散 + 3 handover edge、 gantt readout 併存";
+  "設計 → 実装 → テスト → 公開の 4 工程を矢印で引き継ぎ、期間を横棒の工程表で見せる (gantt)";
 
 /**
  * 50. resource treemap = 6 team の share 割合を hierarchical rectangles で表示。
@@ -4341,7 +4341,7 @@ export const resourceTreemap = diagram("interactive-resource-treemap", {
   )
   .build();
 export const subtitle__resourceTreemap =
-  "6 team budget を 3-lane (Major ≥15% / Mid 5-14% / Minor <5%) size 別分散、 各 team 個別 card、 treemap readout 併存";
+  "6 つの部署の予算を 15% 以上 / 5〜14% / 5% 未満の縦列に分け、面積の大きさで比べる (treemap)";
 
 /**
  * 51. sankey flow = traffic source → landing → conversion の flow diagram。
@@ -4466,7 +4466,7 @@ export const trafficSankey = diagram("interactive-traffic-sankey", {
   )
   .build();
 export const subtitle__trafficSankey =
-  "traffic source (3) → landing (2) → conversion (1) の 3-lane funnel を node network + edge で明示、 sankey readout 併存";
+  "検索 / SNS / 直接の 3 つの流入元から入口と商品の画面を経て購入に至る人数を、帯の太さで見せる (sankey)";
 
 /**
  * 52. polar-area = 7 day activity distribution。
@@ -4570,7 +4570,7 @@ export const activityPolar = diagram("interactive-activity-polar", {
   )
   .build();
 export const subtitle__activityPolar =
-  "weekly activity 7 day を 2-lane (Weekday / Weekend) に分散、 各 day 個別 card + hours、 polarArea readout 併存";
+  "曜日ごとの活動時間を平日と週末の縦列に分け、扇形の部品で見せる (polar-area)";
 
 /**
  * 53. step-indicator = onboarding 5 step wizard、 slider で current step を切替。
@@ -4657,7 +4657,7 @@ export const onboardingStepper = diagram("interactive-onboarding-stepper", {
   )
   .build();
 export const subtitle__onboardingStepper =
-  "onboarding 5 step wizard を 3 列 2 段の pipeline + 4 edge で wizard 遷移を node network 化、 stepIndicator readout 併存";
+  "登録から利用開始までの 5 段を矢印でつなぎ、いまの段を点の並びで示す (step-indicator)";
 
 /**
  * 54. bullet-chart = KPI actual vs target + 3 range、 slider で actual 変化 → 3 range のどこにいるか可視化。
@@ -4749,7 +4749,7 @@ export const kpiBullet = diagram("interactive-kpi-bullet", {
   )
   .build();
 export const subtitle__kpiBullet =
-  "KPI bullet chart を 3-lane (bad / avg / good) range 分散 + actual/target 個別 card、 bulletChart readout 併存";
+  "実績が悪い / 並 / 良いの 3 つの帯のどこに入るかを示し、目標との差を矢印で出す (bullet-chart)";
 
 /**
  * 55. number-board = 大 numeric display、 slider で revenue を score board 表示。
@@ -4813,7 +4813,7 @@ export const revenueScoreboard = diagram("interactive-revenue-scoreboard", {
   )
   .build();
 export const subtitle__revenueScoreboard =
-  "revenue Q3 status を 3 区画 (Current / Target / Gap) 2 列 2 段 + 2 edge、 scoreboard display に加え target との差を可視化";
+  "いまの売上をつまみで動かし、第 3 四半期の目標との差を大きな数字の部品で見せる (number-board)";
 
 /**
  * 56. leaderboard = 6 player の score ranking を top 5 表示 (medal 色 + bar + value)。
@@ -4903,7 +4903,7 @@ export const playerLeaderboard = diagram("interactive-player-leaderboard", {
   )
   .build();
 export const subtitle__playerLeaderboard =
-  "6 player を 3-lane (Top 3 medals / Middle 2 / Bottom 1 out of top) rank 別分散、 各 player 個別 card、 leaderboard readout 併存";
+  "6 人を上位 3 人 / 中位 2 人 / 表示の外の 1 人に分け、上位 5 人までを順位の部品で見せる (leaderboard)";
 
 /**
  * 57. traffic-light = 3-color status、 dropdown で red/yellow/green 選択 → active dot が glow 表示。
@@ -4997,7 +4997,7 @@ export const pattern__buildStatusTrafficLight__値のまま描く = ビルドの
   false,
 );
 export const subtitle__buildStatusTrafficLight =
-  "build status 3 state (red/yellow/green) を 3-lane 分散、 各 state 個別 card + current indicator、 trafficLight readout 併存";
+  "ビルドの状態を赤 / 黄 / 緑の縦列に分け、選んだ状態を信号機の 3 色の灯りで示す (traffic-light)";
 
 /**
  * 58. tag-cloud = tech skill 8 種を weight 比例 font-size で表示。
@@ -5113,7 +5113,7 @@ export const techTagCloud = diagram("interactive-tech-tagcloud", {
   )
   .build();
 export const subtitle__techTagCloud =
-  "8 tech skill を 3-lane (High ≥20 / Mid 10-19 / Low <10) weight 別分散、 各 skill 個別 card、 tagCloud readout 併存";
+  "8 つの技術を使用量 20 以上 / 10〜19 / 10 未満の縦列に分け、語の大きさで重みを見せる (tag-cloud)";
 
 /**
  * 59. activity-feed = team activity 5 event を feed list で表示。
@@ -5222,7 +5222,7 @@ export const teamActivityFeed = diagram("interactive-team-activity", {
   )
   .build();
 export const subtitle__teamActivityFeed =
-  "team activity 5 event を 3 列 2 段の timeline (recent → old) で個別 card 分散、 activityFeed readout 併存";
+  "5 人の出来事を新しい順に矢印でつなぎ、最近の出来事の一覧で見せる (activity-feed)";
 
 /**
  * 60. rating = 5 star rating を slider (0-5) で表示、 half-star 対応。
@@ -5287,7 +5287,7 @@ export const productRating = diagram("interactive-product-rating", {
   )
   .build();
 export const subtitle__productRating =
-  "product rating を 3-lane (Low 0-1.5 / Mid 2-3.5 / High 4-5) range 別分散 + current indicator、 rating readout 併存";
+  "商品の評価を星 0〜1.5 / 2〜3.5 / 4〜5 の帯に分け、つまみで決めた評価を星の数で示す (rating)";
 
 /**
  * 61. notification = alert card、 dropdown で kind (info/warn/error/success) を切替。
@@ -5374,7 +5374,7 @@ export const alertNotification = diagram("interactive-alert-notification", {
   )
   .build();
 export const subtitle__alertNotification =
-  "alert kind 4 種 (info/warn/error/success) を 4-lane 分散 + current indicator、 各 kind 個別 card、 notification readout 併存";
+  "知らせを情報 / 注意 / 異常 / 成功の 4 種に分け、選んだ種類を色と記号の部品で示す (notification)";
 
 /**
  * 62. diff-counter = git commit style +N/-N、 stepper で additions / deletions 変化。
@@ -5441,7 +5441,7 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
   )
   .build();
 export const subtitle__commitDiffCounter =
-  "git PR diff を 2-lane (Additions +N / Deletions -N) 分散 + net delta edge、 diffCounter readout 併存";
+  "追加した行と削除した行の数を増減の入力欄で決め、差し引きを +N / -N の棒で見せる (diff-counter)";
 
 /**
  * 63. chat-bubble = customer support conversation 5 message、 self/other 左右寄せ表示。
@@ -5542,7 +5542,7 @@ export const supportChat = diagram("interactive-support-chat", {
   )
   .build();
 export const subtitle__supportChat =
-  "customer support 5 message を 2-lane (Customer / Support) speaker 別分散、 各 message 個別 card、 chatBubble readout 併存";
+  "問い合わせの 5 通を利用者と窓口の縦列に分け、吹き出しのやり取りで見せる (chat-bubble)";
 
 /**
  * 64. avatar = user profile avatar、 text input で name 変化 → initials + color circle 追随。
@@ -5603,7 +5603,7 @@ export const userAvatar = diagram("interactive-user-avatar", {
   )
   .build();
 export const subtitle__userAvatar =
-  "user avatar generation pipeline を 3 区画 (Input name / Initials extract / Circle render) 2 列 2 段 + 2 edge で pipeline network 化、 avatar readout 併存";
+  "入力した名前から語ごとの頭文字を取り出し、青い丸に描いて利用者の印にする (avatar)";
 
 /**
  * 65. checklist = sprint task list 6 item、 progress% 表示。
@@ -5699,7 +5699,7 @@ export const sprintChecklist = diagram("interactive-sprint-checklist", {
   )
   .build();
 export const subtitle__sprintChecklist =
-  "sprint 6 task を 2-lane (Done ✓ / Todo) 状態別分散、 各 task 個別 card、 checklist readout 併存";
+  "6 件の作業を完了と未完了の縦列に分け、進み具合を印の付いた一覧で見せる (checklist)";
 
 /**
  * 66. circular-gauge = engine RPM を 270° dial で表示、 slider で 0-8000 rpm 制御。
@@ -5768,7 +5768,7 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
   )
   .build();
 export const subtitle__engineTachometer =
-  "engine RPM を 3-lane (Idle 0-2000 / Cruise 2000-5000 / Redline 5000-8000) 領域別分散 + current rpm indicator、 circularGauge readout 併存";
+  "回転数を通常 / 巡航 / 過回転の帯に分け、つまみで決めた回転数を 270° の目盛盤で示す (circular-gauge)";
 
 /**
  * 67. price-tag = e-commerce 商品価格、 stepper で newPrice 変化 → discount % 自動計算。
@@ -5833,7 +5833,7 @@ export const productPriceTag = diagram("interactive-product-price-tag", {
   )
   .build();
 export const subtitle__productPriceTag =
-  "e-commerce price tag を 3 区画 (Old price / New price / Discount %) 2 列 2 段 + 2 edge、 discount 計算経路可視化、 priceTag readout 併存";
+  "新価格を増減の入力欄で決めて旧価格からの割引率を求め、3 つの値を値札の部品にまとめる (price-tag)";
 
 /**
  * 68. spinner = deploy status、 dropdown で running/done/error 切替 → icon 変化。
@@ -5914,7 +5914,7 @@ export const deploySpinner = diagram("interactive-deploy-spinner", {
   )
   .build();
 export const subtitle__deploySpinner =
-  "deploy 3 state (running/done/error) を 3-lane 分散 + current indicator、 spinner readout 併存";
+  "配備の状態を実行中 / 完了 / 失敗に分け、選んだ状態と知らせる文を回る輪で示す (spinner)";
 
 /**
  * 69. grade = exam score を slider で操作 → A/B/C/D/F letter grade + color 追随。
@@ -5966,7 +5966,7 @@ export const examGrade = diagram("interactive-exam-grade", {
   )
   .build();
 export const subtitle__examGrade =
-  "exam grade 5 letter (A/B/C/D/F) を 5-lane band 分散 + current indicator (default=B lane)、 grade readout 併存";
+  "点数を A〜F の 5 段階の帯に分け、つまみで決めた点数がどの段階かを示す (grade)";
 
 /**
  * 70. stopwatch = ms 数値 (stepper で秒指定) を MM:SS.ms display で表示。
@@ -6030,7 +6030,7 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
   )
   .build();
 export const subtitle__timerStopwatch =
-  "stopwatch control を 3-lane (Seconds input / Running toggle / MM:SS.ms display) + 2 edge、 stepper + toggle → display fan-out、 stopwatch readout 併存";
+  "経過した秒数と動作中かどうかの 2 つから、分:秒.ms の時計表示を作る (stopwatch)";
 
 /**
  * 71. confidence-meter = ML classification confidence を slider で操作 → 3 color band 追随。
@@ -6097,7 +6097,7 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
   )
   .build();
 export const subtitle__mlConfidenceMeter =
-  "ML confidence を 3-lane (Low <40 / Mid 40-74 / High ≥75) band 別分散 + current indicator (default=high)、 confidenceMeter readout 併存";
+  "推論の確信度を 40% 未満 / 40〜74% / 75% 以上の帯に分け、つまみで決めた値がどの帯かを示す (confidence-meter)";
 
 /**
  * 72. reaction-bar = social post reactions、 4 emoji + count で pill 表示。
@@ -6188,7 +6188,7 @@ export const postReactions = diagram("interactive-post-reactions", {
   )
   .build();
 export const subtitle__postReactions =
-  "social post 4 reaction を 4-lane emoji 別分散、 各 reaction 個別 card、 reactionBar readout 併存";
+  "投稿に付いた 4 種の反応を絵文字ごとの縦列に分け、札の並びで見せる (reaction-bar)";
 
 /**
  * 73. pill-group = tech skill 色付き pills、 [[label, colorHex], ...] で per-pill color。
@@ -6277,7 +6277,7 @@ export const techPills = diagram("interactive-tech-pills", {
   )
   .build();
 export const subtitle__techPills =
-  "tech stack 5 pill を 3-lane (Frontend / Systems / Build) category 別分散、 各 tool 個別 card、 pillGroup readout 併存";
+  "5 つの技術を画面 / 基盤 / 組み立ての縦列に分け、札の並びで見せる (pill-group)";
 
 /**
  * 74. fuel-bar = device battery、 slider で 0-100% 変化 → 10 segment + 3 color band 追随。
@@ -6345,7 +6345,7 @@ export const deviceBattery = diagram("interactive-device-battery", {
   )
   .build();
 export const subtitle__deviceBattery =
-  "battery level を 3-lane (Low <20 / Mid 20-60 / High ≥60) band 別分散 + current indicator (default=high)、 fuelBar readout 併存";
+  "電池残量を 20% 未満 / 20〜60% / 60% 以上の帯に分け、つまみで決めた残量を 10 区切りの棒で示す (fuel-bar)";
 
 /**
  * 75. metrics-grid = SaaS dashboard の 4 KPI を 2×2 grid 表示。
@@ -6434,7 +6434,7 @@ export const dashboardMetricsGrid = diagram("interactive-metrics-grid", {
   )
   .build();
 export const subtitle__dashboardMetricsGrid =
-  "SaaS 4 KPI を 4-lane (Users / Revenue / Uptime / Errors) 分散、 各 KPI 個別 card、 metricsGrid readout 併存";
+  "利用者 / 売上 / 稼働率 / 異常の件数の 4 指標を縦列に分け、2×2 の升目の部品で見せる (metrics-grid)";
 
 /**
  * 76. thermometer = 室温 24°C を slider で操作 → 縦 bar + 球部 で温度表示。
@@ -6503,7 +6503,7 @@ export const roomThermometer = diagram("interactive-room-thermometer", {
   )
   .build();
 export const subtitle__roomThermometer =
-  "室温を 3-lane (Cold <15°C / Comfort 15-25°C / Hot ≥25°C) 温度帯別分散 + current indicator、 thermometer readout 併存";
+  "室温を 15°C 未満 / 15〜25°C / 25°C 以上の帯に分け、つまみで決めた室温を縦の棒で示す (thermometer)";
 
 /**
  * 77. icon-tile = 3 KPI を emoji icon + label + value tile で表示。
@@ -6579,7 +6579,7 @@ export const kpiIconTile = diagram("interactive-kpi-icon-tile", {
   )
   .build();
 export const subtitle__kpiIconTile =
-  "3 KPI (Growth / Revenue / Goals) を 3-lane 個別 tile 分散、 iconTile readout 併存";
+  "伸び / 売上 / 目標の 3 指標を縦列に分け、絵記号の付いた札で見せる (icon-tile)";
 
 /**
  * 78. token-list = crypto wallet の 4 token を icon + name + amount + delta% で表示。
@@ -6676,7 +6676,7 @@ export const cryptoWallet = diagram("interactive-crypto-wallet", {
   )
   .build();
 export const subtitle__cryptoWallet =
-  "crypto wallet 4 token を 2-lane (Gainers +% / Losers -%) に分散、 各 token を個別 card、 tokenList readout 併存";
+  "保有する 4 銘柄を値上がりと値下がりの縦列に分け、合計付きの一覧で見せる (token-list)";
 
 /**
  * 79. map-pin = world map (地図座標) 上の 5 city を pin 表示。
@@ -6765,7 +6765,7 @@ export const worldMapPins = diagram("interactive-world-map", {
   )
   .build();
 export const subtitle__worldMapPins =
-  "world map 5 city を 2-lane (Asia-Pacific / America-Europe) に分散、 各 city 個別 node + 座標表記、 mapPin readout 併存";
+  "5 都市をアジアと太平洋 / 欧州と米州の縦列に分け、平面の世界地図に点で置く (map-pin)";
 
 /**
  * 80. priority-badge = issue priority、 dropdown で high/med/low 切替 → badge + text 追随。
@@ -6845,7 +6845,7 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
   )
   .build();
 export const subtitle__issuePriorityBadge =
-  "issue priority を 3-lane (High ▲ / Med ● / Low ▼) 分散、 現在選択 priority を currentIssue node で明示、 priorityBadge readout 併存";
+  "課題の優先度を高 / 中 / 低に分け、選んだ優先度と説明を札と記号で示す (priority-badge)";
 
 /**
  * 81. podium = tournament の 1st/2nd/3rd 表彰台。
@@ -6926,7 +6926,7 @@ export const tournamentPodium = diagram("interactive-tournament-podium", {
   )
   .build();
 export const subtitle__tournamentPodium =
-  "tournament 1st/2nd/3rd を 3-lane (Silver/Gold/Bronze、 中央=Gold の podium 配列) 分散、 各 winner 個別 card、 podium readout 併存";
+  "1 位を中央、2 位を左、3 位を右に置き、高さの違う 3 本の台で表彰台を見せる (podium)";
 
 /**
  * 82. poll-bar = feature poll、 4 option の投票 % 表示、 winner に ★ 装飾。
@@ -7017,7 +7017,7 @@ export const featurePoll = diagram("interactive-feature-poll", {
   )
   .build();
 export const subtitle__featurePoll =
-  "feature poll 4 option を 2-lane (Winner / Runners-up) に分散、 各 option 個別 card、 pollBar readout 併存";
+  "4 つの案への投票を 1 位とその他の縦列に分け、合計付きの棒で見せる (poll-bar)";
 
 /**
  * 83. user-stack = code review reviewer 7 人 (max 5 表示 + overflow +2)。
@@ -7127,7 +7127,7 @@ export const reviewerStack = diagram("interactive-reviewer-stack", {
   )
   .build();
 export const subtitle__reviewerStack =
-  "code review reviewer 7 人 を 2-lane (Displayed 5 / Overflow 2) 分散、 各 reviewer 個別 card、 userStack readout 併存";
+  "変更を確かめる 7 人を表示する 5 人と残り 2 人に分け、重ねた丸で見せる (user-stack)";
 
 /**
  * 84. commit-list = recent git commits を 5 rows 表示。
@@ -7233,7 +7233,7 @@ export const gitCommitList = diagram("interactive-git-commits", {
   )
   .build();
 export const subtitle__gitCommitList =
-  "5 git commit を 5 区画 (feat / fix / docs / refactor / test) 3 列 2 段で commit type 別分散、 各 commit 個別 card、 commitList readout 併存";
+  "5 件の変更を機能 / 修正 / 文書 / 整理 / テストの種別ごとの箱に分け、変更の履歴の一覧で見せる (commit-list)";
 
 /**
  * 85. media-player = audio player、 slider で current time、 toggle で play/pause。
@@ -7297,7 +7297,7 @@ export const audioPlayer = diagram("interactive-audio-player", {
   )
   .build();
 export const subtitle__audioPlayer =
-  "audio player を 3-lane (Current time / Play toggle / Duration) + 2 edge、 signal 制御と mediaPlayer readout の bind 関係可視化";
+  "再生位置のつまみと再生中の切り替えから、記号と進み具合と分:秒の再生表示を作る (media-player)";
 
 /**
  * 86. event-log = server monitoring log、 4 severity (info/warn/error/debug) 表示。
@@ -7399,7 +7399,7 @@ export const serverEventLog = diagram("interactive-server-event-log", {
   )
   .build();
 export const subtitle__serverEventLog =
-  "server monitoring event log 5 event を 4-lane (info / debug / warn / error) severity 別に分散、 eventLog readout 併存";
+  "運用の出来事 5 件を情報 / 詳細 / 注意 / 異常の縦列に分け、時系列の記録で見せる (event-log)";
 
 /**
  * 87. search-result = 5 search hit を title + snippet + url で表示。
@@ -7508,7 +7508,7 @@ export const searchResults = diagram("interactive-search-results", {
   )
   .build();
 export const subtitle__searchResults =
-  "search hit 5 を 2-lane (Docs 4 / Interactive tool 1) 分散、 各 hit 個別 card、 searchResult readout 併存";
+  "5 件の検索結果を文書とその場で動かせる練習場の縦列に分け、題と抜粋と所在で見せる (search-result)";
 
 /**
  * 88. roadmap = 2026 year quarterly plan Q1-Q4。
@@ -7657,7 +7657,7 @@ export const yearRoadmap = diagram("interactive-year-roadmap", {
   )
   .build();
 export const subtitle__yearRoadmap =
-  "2026 yearly roadmap を 4-lane (Q1-Q4) 分散、 各 quarter items を stack 分散、 quarterly 遷移 3 edge、 roadmap readout 併存";
+  "1 年の計画を 4 つの四半期の縦列に分けて各期の項目を積み、期と期を矢印で引き継ぐ (roadmap)";
 
 /**
  * 89. weather-forecast = 5-day weather (Mon-Fri) with icon + high/low temp。
@@ -7758,7 +7758,7 @@ export const weekWeather = diagram("interactive-week-weather", {
   )
   .build();
 export const subtitle__weekWeather =
-  "5-day weather を 3-lane (Sunny ☀ / Cloudy/Rainy / Thunder ⚡) 天気別分散、 各 day 個別 card、 weatherForecast readout 併存";
+  "5 日間の天気を晴れ / 曇りと雨 / 雷の縦列に分け、5 日分の予報で見せる (weather-forecast)";
 
 /**
  * 90. video-card = tutorial video 3 本 (title + duration + views)。
@@ -7843,7 +7843,7 @@ export const tutorialVideoCards = diagram("interactive-tutorial-videos", {
   )
   .build();
 export const subtitle__tutorialVideoCards =
-  "tutorial video 3 本 を 3-lane (Rust / TypeScript / React) topic 別分散、 各 video 個別 card、 videoCard readout 併存";
+  "解説動画 3 本を言語ごとの縦列に分け、縮小画像の一覧で見せる (video-card)";
 
 /**
  * 91. order-status = e-commerce 配送追跡、 stepper で current step 切替 → 4 icon step。
@@ -7915,7 +7915,7 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
   )
   .build();
 export const subtitle__shippingOrderStatus =
-  "e-commerce 配送追跡 4 step (📦→🚚→🏠→✅) を 2 列 2 段の pipeline + 3 edge で状態遷移 network 化、 orderStatus readout 併存";
+  "梱包 → 発送 → 配達中 → 配達完了の 4 段階を矢印でつなぎ、増減の入力欄で決めた段階を記号の帯で示す (order-status)";
 
 /**
  * 92. attendance-grid = チーム週間 attendance (5 day × 4 member)。
@@ -8015,7 +8015,7 @@ export const teamAttendanceGrid = diagram("interactive-team-attendance", {
   )
   .build();
 export const subtitle__teamAttendanceGrid =
-  "5 day × 4 member attendance を 4-lane (Alice/Bob/Carol/Dan) member 別分散、 各 member weekly summary + attendanceGrid readout 併存";
+  "4 人を縦列に分け、5 日 × 4 人の出欠を升目の部品で見せる (attendance-grid)";
 
 /**
  * 93. timezone-clock = 4 city の multi-timezone clock (Tokyo / London / NYC / Sydney)。
@@ -8117,7 +8117,7 @@ export const globalTimezoneClock = diagram("interactive-timezone-clock", {
   )
   .build();
 export const subtitle__globalTimezoneClock =
-  "4 city timezone を 4-lane (Tokyo / London / NYC / Sydney) 都市別分散、 各 city 個別 card、 timezoneClock readout 併存";
+  "時差の違う 4 都市を縦列に分け、現地時刻を 4 列の升目で見せる (timezone-clock)";
 
 /**
  * 94. form-summary = signup form の 5 field 送信内容 summary。
@@ -8213,7 +8213,7 @@ export const signupFormSummary = diagram("interactive-signup-form", {
   )
   .build();
 export const subtitle__signupFormSummary =
-  "signup form 5 field を 3-lane (Personal / Contact / Prefs) semantic 分類、 各 field 個別 card、 formSummary readout 併存";
+  "登録の 5 項目を本人 / 連絡先 / 希望の縦列に分け、送る内容を項目名と値の一覧で見せる (form-summary)";
 
 /**
  * 95. song-queue = playlist queue 5 song、 stepper で current index。
@@ -8292,7 +8292,7 @@ export const playlistSongQueue = diagram("interactive-playlist-queue", {
   )
   .build();
 export const subtitle__playlistSongQueue =
-  "playlist queue 5 song を 3-lane (Played / Now Playing / Up Next) 状態別分散、 各 song 個別 card、 songQueue readout 併存";
+  "再生待ちの 5 曲を再生済 / 再生中 / 次の縦列に分け、増減の入力欄で決めた曲を強調する (song-queue)";
 
 /**
  * 96. calendar-month = January 2026 calendar with event marks + today highlight。
@@ -8375,7 +8375,7 @@ export const monthCalendarView = diagram("interactive-month-calendar", {
   )
   .build();
 export const subtitle__monthCalendarView =
-  "January 2026 calendar を 4-lane (Week 1 / Week 2 / Week 3 / Week 4-5) 週別分散、 各週 summary + calendarMonth readout 併存";
+  "1 か月を 4 つの週の縦列に分け、7 列の升目の暦で見せる (calendar-month)";
 
 /**
  * 97. terminal = CLI session output、 5 command history。
@@ -8485,7 +8485,7 @@ export const cliTerminalSession = diagram("interactive-cli-terminal", {
   )
   .build();
 export const subtitle__cliTerminalSession =
-  "CLI 5 command を 3-lane (Filesystem / Git / Dev) tool category 別分散、 各 command 個別 card、 terminal readout 併存";
+  "5 つの命令を置き場の操作 / 変更の履歴 / 開発の道具の縦列に分け、端末の画面で見せる (terminal)";
 
 /**
  * 98. chess-board = 8×8 chess board with starting position。
@@ -8615,7 +8615,7 @@ export const chessStartingBoard = diagram("interactive-chess-board", {
   )
   .build();
 export const subtitle__chessStartingBoard =
-  "32 chess piece を 4-lane (Black back rank / Black pawns / White pawns / White back rank) rank 別分散、 chessBoard readout 併存";
+  "32 個の駒を黒の奥 / 黒の手前 / 白の手前 / 白の奥の 4 列に分け、8×8 の盤面で開始の形を見せる (chess-board)";
 
 /**
  * 100. kanban-board = sprint task board、 3-lane (Todo / In Progress / Done) state 別分散 + kanban readout 併存。
@@ -8698,7 +8698,7 @@ export const sprintKanbanBoard = diagram("interactive-sprint-kanban", {
   )
   .build();
 export const subtitle__sprintKanbanBoard =
-  "sprint 6 task を 3-lane (Todo / In Progress / Done) 状態別分散、 kanban readout 併存";
+  "6 件の作業を未着手 / 進行中 / 完了の縦列に分け、かんばんの部品で見せる (kanban-board)";
 
 /**
  * 101. breadcrumb = navigation path、 4 区画 (Home / Docs / API / Reference) を 2 列 2 段に置いた pipeline + 3 next edge + breadcrumb readout 併存。
@@ -8781,7 +8781,7 @@ export const docsBreadcrumb = diagram("interactive-docs-breadcrumb", {
   )
   .build();
 export const subtitle__docsBreadcrumb =
-  "docs navigation 4 crumb を 2 列 2 段の pipeline (Home → Docs → API → Reference) + 3 next edge + breadcrumb readout 併存";
+  "トップ → 文書 → API → 参照の 4 階層を矢印でつなぎ、いまの居場所を辿った道で示す (breadcrumb)";
 
 /**
  * 102. timeline-vertical = day schedule 5 event を縦 timeline で表示、 3-lane (Morning / Afternoon / Evening) 時間帯別分散 + timelineVertical readout 併存。
@@ -8871,7 +8871,7 @@ export const dayScheduleTimeline = diagram("interactive-day-schedule", {
   )
   .build();
 export const subtitle__dayScheduleTimeline =
-  "day schedule 5 event を 3-lane (Morning / Afternoon / Evening) 時間帯別分散 + timelineVertical readout 併存";
+  "1 日の予定を午前 / 午後 / 夜の縦列に分け、縦に並べた時刻で見せる (timeline-vertical)";
 
 /**
  * 103. status-timeline = server uptime 6 event を 3-lane (Active / Idle / Error) status 別分散 + statusTimeline readout 併存。
@@ -8955,7 +8955,7 @@ export const serverUptimeStatus = diagram("interactive-server-uptime", {
   )
   .build();
 export const subtitle__serverUptimeStatus =
-  "server uptime 6 event を 3-lane (Active / Idle / Error) status 別分散 + statusTimeline readout 併存";
+  "稼働の記録の 6 区間を稼働 / 待機 / 異常の縦列に分け、区間を色で塗った帯で見せる (status-timeline)";
 
 /**
  * 104. calendar-week = 週間 mini calendar、 7-lane 分散 + calendarWeek readout 併存。 iteration 6 wave 3、 pattern taxonomy § 7 individual element split。
@@ -9088,7 +9088,7 @@ export const weekCalendarView = diagram("interactive-week-calendar", {
   )
   .build();
 export const subtitle__weekCalendarView =
-  "7-day week calendar を 7-lane 個別 day 分散 + calendarWeek readout 併存";
+  "1 週間を曜日ごとの 7 つの縦列に分け、今週の暦で見せる (calendar-week)";
 
 /**
  * 105. kpi-comparison = A/B team score 比較を 2-lane 分散 + kpiComparison readout 併存。 iteration 6 wave 3、 pattern taxonomy § 3 category split。
@@ -9171,7 +9171,7 @@ export const teamKpiComparison = diagram("interactive-team-kpi-compare", {
   )
   .build();
 export const subtitle__teamKpiComparison =
-  "Team A vs Team B の score を 2-lane 分散 + kpiComparison readout 併存";
+  "2 つのチームの進む速さを上の帯と下の帯に分け、差を矢印で示して比べる (kpi-comparison)";
 
 /**
  * 106. step-progress = 4 step wizard を 4 区画 2 列 2 段の pipeline + 3 next edge + stepProgress readout 併存。 iteration 6 wave 4、 pattern taxonomy § 4 pipeline flow + § 5 fan-out。
@@ -9254,7 +9254,7 @@ export const publishWorkflowSteps = diagram("interactive-publish-workflow", {
   )
   .build();
 export const subtitle__publishWorkflowSteps =
-  "content publish workflow 4 step を 2 列 2 段の pipeline + 3 next edge + stepProgress readout 併存";
+  "下書き → 確認 → 承認 → 公開の 4 工程を矢印でつなぎ、公開の手順の進み具合で見せる (step-progress)";
 
 /**
  * 107. user-presence = 5 team member を 3-lane (Online / Away / Offline) + userPresence readout 併存。 iteration 6 wave 4、 pattern taxonomy § 1 state-based split。
@@ -9355,7 +9355,7 @@ export const teamPresenceStatus = diagram("interactive-team-presence", {
   )
   .build();
 export const subtitle__teamPresenceStatus =
-  "5 team member を 3-lane (Online / Away / Offline) status 別分散 + userPresence readout 併存";
+  "5 人を在席 / 離席 / 不在の縦列に分け、色の丸で在席を見せる (user-presence)";
 
 /**
  * 108. rating-thumb = review vote 2 category (up / down) を 2-lane + ratingThumb readout 併存。 iteration 6 wave 4、 pattern taxonomy § 3 category split。
@@ -9431,7 +9431,7 @@ export const feedbackThumbRating = diagram("interactive-feedback-rating", {
   )
   .build();
 export const subtitle__feedbackThumbRating =
-  "review 24 up / 3 down vote を 2-lane (Up / Down) 分散 + ratingThumb readout 併存";
+  "賛成票と反対票を 2 つの縦列に分け、緑と赤の帯の割合で見せる (rating-thumb)";
 
 /**
  * 109. org-chart-mini = 3-level org hierarchy を 3-lane (CEO / VP / IC) tree depth 別分散 + orgChartMini readout 併存。 iteration 6 wave 5、 pattern taxonomy § 8 tree depth split。
@@ -9524,7 +9524,7 @@ export const startupOrgChart = diagram("interactive-startup-org", {
   )
   .build();
 export const subtitle__startupOrgChart =
-  "startup 3-level org (CEO / 2 VP / 3 IC) を 3-lane tree depth 別分散 + orgChartMini readout 併存";
+  "社長 / 部長 2 人 / 担当 3 人の 3 階層を縦列に分け、率いる相手を矢印でつなぐ (org-chart-mini)";
 
 /**
  * 110. kpi-trend-tile = NPS current + delta + sparkline を 3-lane (Current / Delta / History) fan-out + kpiTrendTile readout 併存。 iteration 6 wave 5、 pattern taxonomy § 5 fan-out。
@@ -9615,7 +9615,7 @@ export const npsTrendKpi = diagram("interactive-nps-trend", {
   )
   .build();
 export const subtitle__npsTrendKpi =
-  "NPS current + delta + sparkline を 3-lane (Current / Delta / History) 分散 + kpiTrendTile readout 併存";
+  "推奨度 (NPS) の今月の値 / 先月との差 / 推移を縦列に分け、1 枚の札にまとめて見せる (kpi-trend-tile)";
 
 /**
  * 111. quick-poll-emoji = 3 emoji reaction poll を 3-lane 分散 + quickPollEmoji readout 併存。 iteration 6 wave 5、 pattern taxonomy § 3 category split。
@@ -9686,7 +9686,7 @@ export const postReactionPoll = diagram("interactive-post-reaction-poll", {
   )
   .build();
 export const subtitle__postReactionPoll =
-  "3 emoji reaction poll (👍/❤️/🎉) を 3-lane 分散 + quickPollEmoji readout 併存";
+  "いいね / 好き / お祝いの 3 つの絵文字への票を縦列に分け、反応の部品で見せる (quick-poll-emoji)";
 
 /**
  * 112. voice-message = 音声メッセージ再生 UI を 3-lane (送信者 / 波形 / 再生) dense sequence 分散 + voiceMessage readout 併存 + 3 phase 動き (受信 → 再生中 tween → 完了)。 iteration 7 wave 1、 pattern taxonomy § 7 dense sequence。
@@ -9771,7 +9771,7 @@ export const voiceMessagePlayback = diagram("interactive-voice-message-playback"
   )
   .build();
 export const subtitle__voiceMessagePlayback =
-  "音声メッセージ再生 (波形 15 バー + 再生 progress) を 3-lane 分散 + voiceMessage readout 併存、 3 phase で受信 → 半ばまで再生 → 完了の変化を可視化";
+  "送り主 / 波形 / 再生を縦列に分け、音の大小を棒の高さに、再生した位置を棒の色で見せる (voice-message)";
 
 /**
  * 113. thread-summary = 会話スレッド概要を 3-lane (未読 / 参加者 / 直近) category split 分散 + threadSummary readout 併存 + 3 phase 動き (静か → 新着 tween → 混雑)。 iteration 7 wave 1、 pattern taxonomy § 3 category split。
@@ -9852,7 +9852,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
   )
   .build();
 export const subtitle__teamThreadSummary =
-  "チームスレッド概要 (未読 / 参加者 / 直近 author / 経過時間) を 3-lane 分散 + threadSummary readout 併存、 3 phase で静か → 新着 → 混雑の変化を可視化";
+  "話し合いの未読 / 参加者 / 直近の発言者 / 経過を縦列に分け、1 行の概要にまとめる (thread-summary)";
 
 /**
  * 114. read-receipt = message 既読状態遷移を 3-lane (送信 / 配信 / 既読) state-driven visibility 分散 + readReceipt readout 併存 + 3 phase 動き (送信 → 配信 → 既読 の状態切替)。 iteration 7 wave 1、 pattern taxonomy § 2 state-driven visibility。
@@ -9926,7 +9926,7 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
   )
   .build();
 export const subtitle__dmReadReceipt =
-  "DM 既読状態 (0=送信 / 1=配信 / 2=既読) を 3-lane state 別分散 + readReceipt readout 併存、 3 phase で状態遷移の動きを可視化";
+  "1 対 1 の連絡 (DM) の送信 / 配信 / 既読の 3 段階を矢印でつなぎ、印の数と色で示す (read-receipt)";
 
 /**
  * 115. password-strength = パスワード強度 5 段階を 3-lane (入力 / メーター / ルール) rank-based split 分散 + passwordStrength readout 併存 + 3 phase 動き (弱 → tween → 強)。 iteration 7 wave 2、 pattern taxonomy § 4 rank-based split。
@@ -10025,7 +10025,7 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
   )
   .build();
 export const subtitle__formPasswordCheck =
-  "サインアップ画面の password 強度 5 段階を 3-lane 分散 + passwordStrength readout 併存、 3 phase で弱 → 中 → 強の 3 段階を可視化";
+  "パスワードの強さを 4 区切りの目盛りと 3 つの条件で示し、段階の名前を同じ色で出す (password-strength)";
 
 /**
  * 116. otp-input = ログイン OTP 6 桁検証を 3-lane (SMS / 入力 / 検証) dense sequence 分散 + otpInput readout 併存 + 3 phase 動き (送信 → 入力 tween → 検証)。 iteration 7 wave 2、 pattern taxonomy § 7 dense sequence。
@@ -10105,7 +10105,7 @@ export const loginOtpVerify = diagram("interactive-login-otp-verify", {
   )
   .build();
 export const subtitle__loginOtpVerify =
-  "OTP ログイン 6 桁検証を 3-lane 分散 + otpInput readout 併存、 3 phase で空欄 → 3 桁 → 6 桁の入力状態を可視化";
+  "送られた 6 桁の確認の符号 (OTP) を 6 つの枠に入れ、埋まると検証に送る (otp-input)";
 
 /**
  * 117. file-dropzone = プロフィール画像アップロードを 3 区画 (未選択 / アップロード / プレビュー) 2 列 2 段の state-driven visibility 分散 + fileDropzone readout 併存 + 3 phase 動き (未選択 → drop → プレビュー)。 iteration 7 wave 2、 pattern taxonomy § 2 state-driven visibility。
@@ -10181,7 +10181,7 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
   )
   .build();
 export const subtitle__profileAvatarUpload =
-  "プロフィール画像アップロードを 3 区画 2 列 2 段に分散 + fileDropzone readout 併存、 3 phase で未選択 → drop → プレビュー表示の状態遷移を可視化";
+  "未選択 → 画像を置く → 丸く切り抜いて見せるの 3 つの状態を矢印でつなぎ、画像を置く枠の部品で見せる (file-dropzone)";
 
 /**
  * 118. log-stream = 本番ログ tail を 3-lane (時刻 / レベル / メッセージ) dense sequence 分散 + logStream readout 併存 + 3 phase 動き (通常 → 警告 tween → 障害)。 iteration 7 wave 3、 pattern taxonomy § 7 dense sequence。
@@ -10284,7 +10284,7 @@ export const prodLogTail = diagram("interactive-prod-log-tail", {
   )
   .build();
 export const subtitle__prodLogTail =
-  "本番ログ tail (直近 5 行 + レベル別 pill) を 3-lane 分散 + logStream readout 併存、 3 phase で通常 → 警告 → 障害の重篤度昇華を可視化";
+  "本番の記録の直近 5 行を時刻 / 重さ / 本文の縦列に分け、情報 / 注意 / 異常の札の色で見せる (log-stream)";
 
 /**
  * 119. alert-banner = 重要度別 alert banner を 3-lane (トリガー / 重要度 / アクション) state-driven visibility 分散 + alertBanner readout 併存 + 3 phase 動き (info → warn tween → error エスカレーション)。 iteration 7 wave 3、 pattern taxonomy § 2 state-driven visibility。
@@ -10365,7 +10365,7 @@ export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
   )
   .build();
 export const subtitle__opsAlertBanner =
-  "運用 alert 重要度別 banner (info / warn / error) を 3-lane 分散 + alertBanner readout 併存、 3 phase で info → warn → error のエスカレーションを可視化";
+  "運用の知らせをきっかけ / 重要度 / 対応の縦列に分け、重要度で色と記号が変わる帯で見せる (alert-banner)";
 
 /**
  * 120. service-health = microservice health matrix を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存。 iteration 7 wave 3、 pattern taxonomy § 3 category split。
@@ -10469,7 +10469,7 @@ export const serviceHealthGrid = diagram("interactive-service-health-grid", {
   )
   .build();
 export const subtitle__serviceHealthGrid =
-  "microservice health matrix (up/degraded/down status per service) を 3-lane (Up / Degraded / Down) category split 分散 + serviceHealth readout 併存";
+  "6 つのサービスを稼働 / 劣化 / 停止の縦列に分け、緑 / 黄 / 赤の升目で見せる (service-health)";
 
 /**
  * 121. cart-summary = ショッピングカート小計を 3-lane (商品 / 内訳 / 合計) rank-based split 分散 + cartSummary readout 併存 + 3 phase 動き (商品追加 tween → 送料計算 → 合計確定)。 iteration 7 wave 4、 pattern taxonomy § 4 rank-based split。
@@ -10556,7 +10556,7 @@ export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", 
   )
   .build();
 export const subtitle__checkoutCartSummary =
-  "ショッピングカート小計 (商品 / 小計 / 送料 / 合計) を 3-lane 分散 + cartSummary readout 併存、 3 phase で 1 点 → 2 点 → 確定の金額変化を可視化";
+  "買い物かごの点数から小計を出し、送料を足して合計に至るまでを矢印でつなぐ (cart-summary)";
 
 /**
  * 122. pricing-tier = SaaS 料金プラン (3 tier 比較) を 3-lane (Starter / Pro / Enterprise) category split 分散 + pricingTier readout 併存 + 3 phase 動き (Starter → Pro tween → Enterprise 検討)。 iteration 7 wave 4、 pattern taxonomy § 3 category split。
@@ -10638,7 +10638,7 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
   )
   .build();
 export const subtitle__saasPricingTier =
-  "SaaS 料金 3 tier (Starter / Pro / Enterprise) を 3-lane 分散 + pricingTier readout 併存、 3 phase で Starter → Pro → Enterprise の表示差を可視化";
+  "入門 / 標準 / 法人の 3 つの料金の種類を縦列に分け、名前と価格と特典を並べて比べる (pricing-tier)";
 
 /**
  * 123. coupon-code = チェックアウト クーポン適用フローを 3-lane (未入力 / 入力済 / 適用済) state-driven visibility 分散 + couponCode readout 併存 + 3 phase 動き (未入力 → 入力 → 適用 tween)。 iteration 7 wave 4、 pattern taxonomy § 2 state-driven visibility。
@@ -10718,7 +10718,7 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
   )
   .build();
 export const subtitle__checkoutCouponApply =
-  "チェックアウト クーポン適用フロー (未入力 → 入力 → 適用) を 3-lane state 分散 + couponCode readout 併存、 3 phase で未入力 → 符号入力 → 適用の状態変化を可視化";
+  "割引の符号の未入力 → 入力済 → 適用済の 3 つの状態を矢印でつなぎ、割引の札の出方を見せる (coupon-code)";
 
 /**
  * 124. article-preview = ブログ記事プレビュー card を 3-lane (サムネ / 本文 / メタ) category split 分散 + articlePreview readout 併存 + 3 phase 動き (初期表示 → hover tween → クリック)。 iteration 7 wave 5、 pattern taxonomy § 3 category split。
@@ -10820,7 +10820,7 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
   )
   .build();
 export const subtitle__blogArticlePreview =
-  "ブログ記事プレビュー card (タイトル / 抜粋 / 著者 / 経過) を 3-lane 分散 + articlePreview readout 併存、 3 phase で短い記事 → 抜粋が伸びる → 題も伸びるの表示差を可視化";
+  "記事の縮小画像 / 見出しと抜粋 / 著者と経過を縦列に分け、1 枚の記事の札にまとめる (article-preview)";
 
 /**
  * 125. toc-nav = ドキュメント TOC (階層 3 段 + アクティブセクション) を 3-lane (H1 / H2 / H3) tree depth split 分散 + tocNav readout 併存 + 3 phase 動き (Intro → GS → First tween スクロール)。 iteration 7 wave 5、 pattern taxonomy § 8 tree depth split。
@@ -10936,7 +10936,7 @@ export const docsTocNav = diagram("interactive-docs-toc-nav", {
   )
   .build();
 export const subtitle__docsTocNav =
-  "docs TOC (階層 3 段 + アクティブセクション) を 3-lane 分散 + tocNav readout 併存、 3 phase でスクロール進行によるアクティブセクション遷移を可視化";
+  "文書の目次を字下げの深さで 3 つの縦列に分け、読んでいる節を示す (toc-nav)";
 
 /**
  * 126. share-buttons = ブログ記事 SNS シェアボタンを 3-lane (Twitter / Facebook / LinkedIn) dense sequence 分散 + shareButtons readout 併存 + 3 phase 動き (投稿直後 → 拡散 tween → バズ)。 iteration 7 wave 5、 iteration 完遂。 pattern taxonomy § 7 dense sequence。
@@ -11005,7 +11005,7 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
   )
   .build();
 export const subtitle__socialShareButtons =
-  "ブログ記事 SNS シェア (Twitter / Facebook / LinkedIn / Reddit) を 3-lane 分散 + shareButtons readout 併存、 3 phase で投稿直後 → 広まる → 落ち着くの共有数変化を可視化";
+  "記事を共有した 4 つの先を縦列に分け、共有数付きの押す先の並びで見せる (share-buttons)";
 
 /**
  * 127. exemplar-payment-flow v2 = EC 決済の実業務シナリオ、 shape-* primitive (person / mobile / credit-card / online-shop / payment-provider / api-gateway / bank / cylinder) で visual scene 化、 4 phase (商品購入 → 3DS 認証 → 銀行確定 → 記帳) + 4 readout (stat 金額 / gauge 3DS / traffic-light 状態 / countup 累計) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 1。
@@ -11169,7 +11169,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
   )
   .build();
 export const subtitle__exemplarPaymentFlow =
-  "EC 決済実業務シナリオ = 4 phase (購入 → 3DS 認証 → 銀行確定 → 記帳) の flow を shape-* primitive 8 種で表現 + 4 readout が state を consume して表示に反映";
+  "購入者 / 決済の窓口 / 銀行の縦列で、購入から本人認証と銀行の確定を経て記帳に至る 4 段を追い、金額と認証の割合と状態を部品で出す";
 
 /**
  * 128. exemplar-login-flow v2 = 実 login 認証 + 2FA + セッション発行シナリオ、 shape-* primitive (mobile-device / person / server-rack / hexagon / diamond / cylinder / cloud) で visual scene 化、 5 phase (要求 → 一次検証 → 2FA → セッション発行 → 応答) + 4 readout (traffic-light / countup / gauge / bar) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 2。
@@ -11332,7 +11332,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
   )
   .build();
 export const subtitle__exemplarLoginFlow =
-  "login + 2FA 実業務シナリオ = 5 phase (要求 → 一次検証 → 2FA → セッション発行 → 応答) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して表示に反映";
+  "利用者 / 認証 / 保存の縦列で、要求から一次検証と 2 段階の認証を経て応答に至る 5 段を追い、成功の数と割合と応答時間を部品で出す";
 
 /**
  * 129. exemplar-notification-flow v2 = 実 push 通知配信 (message → queue → service → fan-out → device / retry) シナリオ、 shape-* primitive (message-bubble / stack / cloud / diamond / mobile-device × 3) で visual scene 化、 5 phase (event 発火 → キューイング → 配信中 → 到達 → リトライ) + 4 readout (bar / countup / gauge / stat) が state を consume して visually 連続変化する高品質 pattern SSOT。 iteration 7 catalog redesign § PR-B exemplar 3。
@@ -11518,7 +11518,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
   )
   .build();
 export const subtitle__exemplarNotificationFlow =
-  "push 通知配信 + retry 実業務シナリオ = 5 phase (発火 → キュー → 配信 → 到達 → retry) の flow を shape-* primitive 7 種で表現 + 4 readout が state を consume して表示に反映";
+  "発信 / 配る仕組み / 受け取る端末の縦列で、知らせが待ち行列を経て届き、届かなかった端末へ送り直すまでの 5 段を追う";
 
 // ============================================================
 // 記法 (#1385 / #1389 / #1391 / #1392 / #1393 / #1396)

@@ -70,7 +70,7 @@ export const 外す材料: Record<string, string> = {
  */
 export const 外す置き場: Record<string, string> = {
   "topics/":
-    "見本の図の中の字。 説明が記法の技術メモのまま画面に出ており (`input.slider bind の 2-lane (Slider signal / …)` の形)、英語が大量に残る。 呼び名を新しく決める判断が要るので #1829 が持つ。 2 通りの呼び名は現れないので、呼び名の母集団からは外さない",
+    "見本の図の記法そのもの。 1 行の字として拾うと、記法の項目名 (`kind` / `lane`)、状態の名前 (`barW` / `balA`)、図の型の名前 (`cylinder`) と、製品名の箱の題 (`PostgreSQL`) が並び、どれも打ち込む字なので訳せない。 図の説明は #1829 で日本語にしたので、英語が残らないことは `topics/subtitle-words.test.ts` が見る。 2 通りの呼び名は現れないので、呼び名の母集団からは外さない",
 };
 
 /**
