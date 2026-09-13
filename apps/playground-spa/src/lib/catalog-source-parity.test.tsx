@@ -73,8 +73,9 @@ const 縦列の見出しの既知の差: Record<string, string> = {};
  * 記法側だけを外すと、組立て API 側がその矢印を光らせなくなった変更に気付けない。
  */
 const 光らせ分けられない矢印: Record<string, readonly string[]> = {
-  // read と write はどちらも `decrement(...) -> counter table`。 記法では書き分けられない
-  patternCallReadWrite: ["read", "write"],
+  // 「読む」 と「書く」 はどちらも `残数を減らす(...) -> 残数の表`。 記法では書き分けられない
+  // (矢印の札で引くので、札を訳したらここも揃える。 #1888)
+  patternCallReadWrite: ["読む", "書く"],
 };
 
 const 光らせる先の既知の差: Record<string, readonly string[]> = {
@@ -1141,7 +1142,7 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // **注意は画面に出ない**。 一覧は組み立て時の注意を受け取らないため、
         // 光らせ忘れ (`focus-target-missing`) のような取りこぼしが黙って残る。
         //
-        // 実測 = 箱の名前に空白があると `focus: [counter table]` が 2 つの名前として読まれ、
+        // 実測 = 箱の名前に空白があると `focus: [働き手 1]` が 2 つの名前として読まれ、
         // どちらも実在しないので何も光らない。 記法は全件を引用符付きで書く。
         const 注意: string[] = [];
         textDslToDiagram(t.yaml, { onNotice: (n) => 注意.push(`${n.kind}: ${n.message}`) });

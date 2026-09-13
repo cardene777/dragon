@@ -34,7 +34,7 @@ test.describe("構成の見本で記法が読める (#1371)", () => {
     expect(yaml, "題が出ていない").toContain("title:");
     expect(yaml, "図の種別が出ていない").toContain("type: flow");
     expect(yaml, "縦列が出ていない").toContain("lanes:");
-    expect(yaml, "この図の箱が出ていない").toContain("Dispatcher");
+    expect(yaml, "この図の箱が出ていない").toContain("配り手");
 
     await page.getByRole("tab", { name: "json" }).click();
     await page.waitForTimeout(300);
@@ -45,7 +45,7 @@ test.describe("構成の見本で記法が読める (#1371)", () => {
     expect(
       (読んだ.actors ?? []).map((a) => a.name),
       "json にこの図の箱が出ていない",
-    ).toContain("Dispatcher");
+    ).toContain("配り手");
   });
 
   test("一覧の全件でコードが空にならない", async ({ page }) => {
