@@ -30,29 +30,29 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
 })
   .lane("slider", { x: 0, width: 260 })
   .lane("output", { x: 300, width: 260 })
-  .input.slider("value", { min: 0, max: 100, defaultValue: 50, label: "Value" })
+  .input.slider("value", { min: 0, max: 100, defaultValue: 50, label: "値" })
   .state("value", { initial: 50 })
   .node("sliderNode", {
     lane: "slider",
     stack: 0,
     kind: "card",
-    title: "Slider",
-    subtitle: "value = {value}",
+    title: "つまみ",
+    subtitle: "値 = {value}",
   })
   .node("bar-node", {
     lane: "output",
     stack: 0,
     kind: "card",
-    title: "Bar",
-    subtitle: "value: {value}",
+    title: "受け手",
+    subtitle: "受け取った値: {value}",
   })
-  .edge("sliderNode", "bar-node", { label: "signal bind", tone: "info" })
+  .edge("sliderNode", "bar-node", { label: "値を渡す", tone: "info" })
   .phase(
     "p1",
     {
       duration: 1600,
       title: "つまみを持つ",
-      body: "左の縦列だけを見る。 つまみが `value` という値を握っていて、動かすとこの値が変わる。 まだ右の棒には届いていない。",
+      body: "左の縦列だけを見る。 つまみを動かすと値が変わる。 まだ右の箱には届いていない。",
     },
     (p: PhaseBuilder) => p.activate("sliderNode"),
   )
@@ -61,7 +61,7 @@ export const inputSliderBar = diagram("interactive-slider-bar", {
     {
       duration: 1600,
       title: "値が渡る",
-      body: "つまみと右の箱を結ぶ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。",
+      body: "つまみと右の箱をつなぐ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。",
     },
     (p: PhaseBuilder) => p.activate("sliderNode", "bar-node"),
   )
@@ -87,7 +87,7 @@ export const formulaTextBind = diagram("interactive-formula-text", {
   .lane("input", { x: 0, width: 200 })
   .lane("doubled", { x: 240, width: 200 })
   .lane("halved", { x: 480, width: 200 })
-  .input.number("input", { defaultValue: 10, label: "Input" })
+  .input.number("input", { defaultValue: 10, label: "元の値" })
   .formula("doubled", "input * 2")
   .formula("halved", "input / 2")
   .state("input", { initial: 10 })
@@ -97,22 +97,22 @@ export const formulaTextBind = diagram("interactive-formula-text", {
     lane: "input",
     stack: 0,
     kind: "card",
-    title: "Input",
-    subtitle: "value = {input}",
+    title: "元の値",
+    subtitle: "値 = {input}",
   })
   .node("out1", {
     lane: "doubled",
     stack: 0,
     kind: "card",
-    title: "Doubled",
-    subtitle: "input * 2 = {doubled}",
+    title: "2 倍",
+    subtitle: "元の値 × 2 = {doubled}",
   })
   .node("out2", {
     lane: "halved",
     stack: 0,
     kind: "card",
-    title: "Halved",
-    subtitle: "input / 2 = {halved}",
+    title: "半分",
+    subtitle: "元の値 ÷ 2 = {halved}",
   })
   .edge("in", "out1", { label: "× 2", tone: "success" })
   .edge("in", "out2", { label: "÷ 2", tone: "info" })
@@ -156,11 +156,11 @@ export const scrollNarrative = diagram("interactive-scroll-narrative", {
   .lane("s1", { x: 0, width: 220 })
   .lane("s2", { x: 260, width: 220 })
   .lane("s3", { x: 520, width: 220 })
-  .animation.scroll("intro", { start: 0.9, end: 0.1, label: "Intro reveal" })
+  .animation.scroll("intro", { start: 0.9, end: 0.1, label: "スクロールの進み具合" })
   .state("intro", { initial: 0 })
-  .node("a", { lane: "s1", stack: 0, kind: "card", title: "Step 1", subtitle: "progress: {intro}" })
-  .node("b", { lane: "s2", stack: 0, kind: "card", title: "Step 2", subtitle: "progress: {intro}" })
-  .node("c", { lane: "s3", stack: 0, kind: "card", title: "Step 3", subtitle: "progress: {intro}" })
+  .node("a", { lane: "s1", stack: 0, kind: "card", title: "段 1", subtitle: "進み具合: {intro}" })
+  .node("b", { lane: "s2", stack: 0, kind: "card", title: "段 2", subtitle: "進み具合: {intro}" })
+  .node("c", { lane: "s3", stack: 0, kind: "card", title: "段 3", subtitle: "進み具合: {intro}" })
   .phase(
     "p1",
     {
@@ -200,34 +200,34 @@ export const clickToggle = diagram("interactive-click-toggle", {
 })
   .lane("col1", { x: 0, width: 360 })
   .lane("col2", { x: 400, width: 370 })
-  .input.toggle("active", { defaultValue: false, label: "Active" })
-  .state("active", { initial: "off" })
+  // 押した状態は入力欄が持つ。 別に `state` を置いても入力欄の初期値が勝ち、その値は画面に出ない
+  .input.toggle("active", { defaultValue: false, label: "押した状態" })
   .node("btn", {
     lane: "col1",
     stack: 0,
     kind: "card",
     w: 180,
-    title: "Button",
-    subtitle: "click target",
+    title: "ボタン",
+    subtitle: "押す先",
   })
   .node("handlerNode", {
     lane: "col2",
     stack: 0,
     kind: "card",
     w: 320,
-    title: "Handler",
-    subtitle: "押した時と触れた時の受け取り手",
+    title: "受け取り手",
+    subtitle: "押した時と触れた時に呼ばれる",
   })
   .node("signalNode", {
     lane: "col1",
     stack: 1,
     kind: "card",
     w: 310,
-    title: "Signal state",
-    subtitle: "active = {active}",
+    title: "値の状態",
+    subtitle: "押した状態 = {active}",
   })
-  .edge("btn", "handlerNode", { label: "click / hover", tone: "info" })
-  .edge("handlerNode", "signalNode", { label: "toggle", tone: "success" })
+  .edge("btn", "handlerNode", { label: "押す / 触れる", tone: "info" })
+  .edge("handlerNode", "signalNode", { label: "切り替え", tone: "success" })
   .on.click({ kind: "node", id: "btn" }, "toggle-active")
   .on.hover({ kind: "node", id: "btn" }, "hover-state")
   .phase(
@@ -243,8 +243,8 @@ export const clickToggle = diagram("interactive-click-toggle", {
     "p2",
     {
       duration: 1600,
-      title: "受け取り手に結ぶ",
-      body: "押した時に呼ぶ受け取り手を結び付ける。 受け取り手の中身は使う側が渡す。",
+      title: "受け取り手を決める",
+      body: "押した時に呼ぶ受け取り手を決める。 受け取り手の中身は使う側が渡す。",
     },
     (p: PhaseBuilder) => p.activate("btn", "handlerNode"),
   )
@@ -271,21 +271,21 @@ export const visualBindBar = diagram("interactive-visual-bar", {
   .lane("signal", { x: 0, width: 200 })
   .lane("bar-lane", { x: 240, width: 340 })
   .lane("readout", { x: 600, width: 220 })
-  .input.slider("barW", { min: 40, max: 320, defaultValue: 160, label: "Bar width" })
+  .input.slider("barW", { min: 40, max: 320, defaultValue: 160, label: "棒の幅" })
   .state("barW", { initial: 160 })
   .node("signalNode", {
     lane: "signal",
     stack: 0,
     kind: "card",
-    title: "Signal",
-    subtitle: "barW = {barW}",
+    title: "信号",
+    subtitle: "幅 = {barW}",
   })
   .node("bar", {
     lane: "bar-lane",
     stack: 0,
     kind: "card",
-    title: "Bar",
-    subtitle: "wBind = {barW}px",
+    title: "横の棒",
+    subtitle: "幅 {barW}px",
     w: 160,
     wBind: "{barW}",
   })
@@ -293,8 +293,8 @@ export const visualBindBar = diagram("interactive-visual-bar", {
     lane: "bar-lane",
     stack: 1,
     kind: "card",
-    title: "Tall bar",
-    subtitle: "hBind = {barW}px",
+    title: "縦の棒",
+    subtitle: "高さ {barW}px",
     h: 96,
     hBind: "{barW}",
   })
@@ -302,13 +302,13 @@ export const visualBindBar = diagram("interactive-visual-bar", {
     lane: "readout",
     stack: 0,
     kind: "card",
-    title: "Bar readout",
-    subtitle: "readout.bar が signal を同時追随",
+    title: "数の表示",
+    subtitle: "同じ信号を数でも出す",
   })
-  .edge("signalNode", "bar", { label: "wBind", tone: "info" })
-  .edge("signalNode", "barTall", { label: "hBind", tone: "warning" })
-  .edge("signalNode", "readoutNode", { label: "readout", tone: "success" })
-  .readout.bar("barMon", { source: "barW", min: 40, max: 320, label: "Width readout" })
+  .edge("signalNode", "bar", { label: "幅に使う", tone: "info" })
+  .edge("signalNode", "barTall", { label: "高さに使う", tone: "warning" })
+  .edge("signalNode", "readoutNode", { label: "数で出す", tone: "success" })
+  .readout.bar("barMon", { source: "barW", min: 40, max: 320, label: "いまの幅" })
   .phase(
     "p1",
     {
@@ -349,7 +349,7 @@ export const visualBindOpacity = diagram("interactive-visual-opacity", {
   .lane("control", { x: 0, width: 200 })
   .lane("target-lane", { x: 240, width: 220 })
   .lane("ref-lane", { x: 500, width: 200 })
-  .input.slider("fade", { min: 0, max: 100, defaultValue: 100, label: "Opacity" })
+  .input.slider("fade", { min: 0, max: 100, defaultValue: 100, label: "濃さ" })
   .formula("op", "fade / 100")
   .state("fade", { initial: 100 })
   .state("op", { initial: 1 })
@@ -357,27 +357,27 @@ export const visualBindOpacity = diagram("interactive-visual-opacity", {
     lane: "control",
     stack: 0,
     kind: "card",
-    title: "Fade control",
-    subtitle: "fade = {fade} · op = {op}",
+    title: "濃さの操作",
+    subtitle: "濃さ {fade} · 不透明度 {op}",
   })
   .node("target", {
     lane: "target-lane",
     stack: 0,
     kind: "card",
-    title: "Target",
-    subtitle: "opacity: {op}",
+    title: "追随する側",
+    subtitle: "不透明度 {op}",
     opacity: "{op}",
   })
   .node("ref", {
     lane: "ref-lane",
     stack: 0,
     kind: "card",
-    title: "Reference",
-    subtitle: "always visible (opacity=1)",
+    title: "固定の側",
+    subtitle: "いつも見える (不透明度 1)",
   })
-  .edge("controlNode", "target", { label: "op bind", tone: "info" })
-  .edge("controlNode", "ref", { label: "no bind", tone: "warning" })
-  .readout.gauge("opGauge", { source: "fade", min: 0, max: 100, label: "Fade % gauge" })
+  .edge("controlNode", "target", { label: "濃さを渡す", tone: "info" })
+  .edge("controlNode", "ref", { label: "渡さない", tone: "warning" })
+  .readout.gauge("opGauge", { source: "fade", min: 0, max: 100, label: "濃さ (%)" })
   .phase(
     "p1",
     {
@@ -392,7 +392,7 @@ export const visualBindOpacity = diagram("interactive-visual-opacity", {
     {
       duration: 1800,
       title: "追随する側",
-      body: "追随する側は信号に束ねられている。 つまみを動かすとここだけが変わる。",
+      body: "追随する側は信号の値で濃さが決まる。 つまみを動かすとここだけが変わる。",
     },
     (p: PhaseBuilder) => p.activate("controlNode", "target", "ref"),
   )
@@ -401,7 +401,7 @@ export const visualBindOpacity = diagram("interactive-visual-opacity", {
     {
       duration: 1800,
       title: "固定の側と比べる",
-      body: "固定側は束ねられていないので動かない。 2 つを並べると束ねの有無が見える。",
+      body: "固定の側は信号を見ていないので動かない。 2 つを並べると、追随するかどうかの違いが見える。",
     },
     (p: PhaseBuilder) => p.activate("target", "ref"),
   )
@@ -426,21 +426,21 @@ export const xypadNavigate = diagram("interactive-xypad-nav", {
     yMax: 100,
     defaultX: 50,
     defaultY: 50,
-    label: "Position",
+    label: "位置",
   })
   .state("pos", { initial: "50,50" })
-  .node("q2Node", { lane: "q2", stack: 0, kind: "card", title: "Q2", subtitle: "upper-left" })
-  .node("q1Node", { lane: "q1", stack: 0, kind: "card", title: "Q1", subtitle: "upper-right" })
-  .node("q3Node", { lane: "q3", stack: 0, kind: "card", title: "Q3", subtitle: "lower-left" })
-  .node("q4Node", { lane: "q4", stack: 0, kind: "card", title: "Q4", subtitle: "lower-right" })
+  .node("q2Node", { lane: "q2", stack: 0, kind: "card", title: "左上", subtitle: "第 2 象限" })
+  .node("q1Node", { lane: "q1", stack: 0, kind: "card", title: "右上", subtitle: "第 1 象限" })
+  .node("q3Node", { lane: "q3", stack: 0, kind: "card", title: "左下", subtitle: "第 3 象限" })
+  .node("q4Node", { lane: "q4", stack: 0, kind: "card", title: "右下", subtitle: "第 4 象限" })
   .node("indicator", {
     lane: "q1",
     stack: 1,
     kind: "card",
-    title: "◆ Position",
-    subtitle: "{pos} (default center → Q1 boundary)",
+    title: "◆ いまの位置",
+    subtitle: "{pos} (初期値は中央で、右上との境目)",
   })
-  .readout.stat("posStat", { source: "pos", label: "Selected", caption: "x,y in 0..100" })
+  .readout.stat("posStat", { source: "pos", label: "選んだ座標", caption: "横, 縦 の順に 0〜100" })
   .phase(
     "p1",
     {
@@ -481,33 +481,33 @@ export const stepperControl = diagram("interactive-stepper", {
   .lane("ctrl", { x: 0, width: 200 })
   .lane("bar", { x: 240, width: 220 })
   .lane("stat", { x: 480, width: 200 })
-  .input.stepper("count", { min: 0, max: 10, defaultValue: 3, label: "Count" })
+  .input.stepper("count", { min: 0, max: 10, defaultValue: 3, label: "個数" })
   .state("count", { initial: 3 })
   .node("ctrlNode", {
     lane: "ctrl",
     stack: 0,
     kind: "card",
-    title: "Stepper",
-    subtitle: "count = {count} (0-10 range)",
+    title: "増減ボタン",
+    subtitle: "個数 = {count} (0〜10)",
   })
   .node("barNode", {
     lane: "bar",
     stack: 0,
     kind: "card",
-    title: "Bar visual",
-    subtitle: "count 追随 progress bar (readout.bar)",
+    title: "棒で見る",
+    subtitle: "個数に追随する棒",
   })
   .node("statNode", {
     lane: "stat",
     stack: 0,
     kind: "card",
-    title: "Stat readout",
-    subtitle: "count 追随 number + unit (readout.stat)",
+    title: "数で見る",
+    subtitle: "個数に追随する数と単位",
   })
-  .edge("ctrlNode", "barNode", { label: "→ bar", tone: "info" })
-  .edge("ctrlNode", "statNode", { label: "→ stat", tone: "success" })
-  .readout.bar("countBar", { source: "count", min: 0, max: 10, label: "Progress bar" })
-  .readout.stat("countStat", { source: "count", label: "Total", unit: " items" })
+  .edge("ctrlNode", "barNode", { label: "→ 棒", tone: "info" })
+  .edge("ctrlNode", "statNode", { label: "→ 数", tone: "success" })
+  .readout.bar("countBar", { source: "count", min: 0, max: 10, label: "進み具合の棒" })
+  .readout.stat("countStat", { source: "count", label: "合計", unit: " 個" })
   .phase(
     "p1",
     {
@@ -549,30 +549,30 @@ export const numberSparkline = diagram("interactive-number-spark", {
 })
   .lane("current", { x: 0, width: 220 })
   .lane("history", { x: 260, width: 320 })
-  .input.number("val", { defaultValue: 20, label: "Value" })
+  .input.number("val", { defaultValue: 20, label: "値" })
   .state("val", { initial: 20 })
   .node("currentNode", {
     lane: "current",
     stack: 0,
     kind: "card",
-    title: "Current",
-    subtitle: "val = {val}",
+    title: "いまの値",
+    subtitle: "値 = {val}",
   })
   .node("historyNode", {
     lane: "history",
     stack: 0,
     kind: "card",
-    title: "History (15)",
-    subtitle: "sparkline で直近 15 push 履歴",
+    title: "履歴 (15 件)",
+    subtitle: "直近 15 回の値を折れ線で残す",
   })
-  .edge("currentNode", "historyNode", { label: "push", tone: "info" })
+  .edge("currentNode", "historyNode", { label: "履歴に足す", tone: "info" })
   .readout.sparkline("valHist", {
     source: "val",
     history: 15,
     color: "#e57373",
-    label: "Sparkline history",
+    label: "履歴の折れ線",
   })
-  .readout.stat("valStat", { source: "val", label: "Latest", caption: "input 履歴の最新" })
+  .readout.stat("valStat", { source: "val", label: "最新の値", caption: "入力の履歴の最新" })
   .phase(
     "p1",
     {
@@ -613,37 +613,37 @@ export const radioSelect = diagram("interactive-radio-select", {
   .lane("low", { x: 0, width: 200 })
   .lane("mid", { x: 240, width: 200 })
   .lane("high", { x: 480, width: 200 })
-  .input.radio("mode", { options: ["low", "mid", "high"], defaultValue: "mid", label: "Mode" })
-  .state("mode", { initial: "mid" })
+  .input.radio("mode", { options: ["低", "中", "高"], defaultValue: "中", label: "段階" })
+  .state("mode", { initial: "中" })
   .node("lowNode", {
     lane: "low",
     stack: 0,
     kind: "card",
-    title: "Low mode",
-    subtitle: "option: low",
+    title: "低",
+    subtitle: "選択肢: 低",
   })
   .node("midNode", {
     lane: "mid",
     stack: 0,
     kind: "card",
-    title: "Mid mode",
-    subtitle: "option: mid (default)",
+    title: "中",
+    subtitle: "選択肢: 中 (初期値)",
   })
   .node("highNode", {
     lane: "high",
     stack: 0,
     kind: "card",
-    title: "High mode",
-    subtitle: "option: high",
+    title: "高",
+    subtitle: "選択肢: 高",
   })
   .node("currentMode", {
     lane: "mid",
     stack: 1,
     kind: "card",
-    title: "◆ Current",
-    subtitle: "mode = {mode}",
+    title: "◆ 選択中",
+    subtitle: "段階 = {mode}",
   })
-  .readout.stat("modeStat", { source: "mode", label: "Current", caption: "選択中" })
+  .readout.stat("modeStat", { source: "mode", label: "いまの段階", caption: "選択中" })
   .phase(
     "p1",
     {
@@ -684,35 +684,35 @@ export const colorPickerTheme = diagram("interactive-color-theme", {
   .lane("picker", { x: 0, width: 370 })
   .lane("swatch-lane", { x: 410, width: 230 })
   .lane("stat", { x: 680, width: 320 })
-  .input.color("accent", { defaultValue: "#8a5a2a", label: "Accent" })
+  .input.color("accent", { defaultValue: "#8a5a2a", label: "差し色" })
   .state("accent", { initial: "#8a5a2a" })
   .node("pickerNode", {
     lane: "picker",
     stack: 0,
     kind: "card",
     w: 320,
-    title: "Color picker",
-    subtitle: "input.color widget · default #8a5a2a",
+    title: "色の選択",
+    subtitle: "色の入力欄 · 初期値 #8a5a2a",
   })
   .node("swatch", {
     lane: "swatch-lane",
     stack: 0,
     kind: "card",
     w: 180,
-    title: "Swatch",
-    subtitle: "hex: {accent}",
+    title: "色見本",
+    subtitle: "{accent}",
   })
   .node("statNode", {
     lane: "stat",
     stack: 0,
     kind: "card",
     w: 270,
-    title: "Hex stat",
-    subtitle: "readout.stat で hex 表示",
+    title: "16 進の表示",
+    subtitle: "選んだ色を 16 進で出す",
   })
-  .edge("pickerNode", "swatch", { label: "select", tone: "info" })
-  .edge("swatch", "statNode", { label: "display", tone: "success" })
-  .readout.stat("hexReadout", { source: "accent", label: "Selected", caption: "hex color" })
+  .edge("pickerNode", "swatch", { label: "選ぶ", tone: "info" })
+  .edge("swatch", "statNode", { label: "表示する", tone: "success" })
+  .readout.stat("hexReadout", { source: "accent", label: "選んだ色", caption: "16 進の色" })
   .phase(
     "p1",
     {
@@ -727,7 +727,7 @@ export const colorPickerTheme = diagram("interactive-color-theme", {
     {
       duration: 1800,
       title: "見本に伝わる",
-      body: "選んだ色の 16 進表記が中央に出る。 箱の塗り自体には束ねていないので、色は変わらない。",
+      body: "選んだ色の 16 進表記が中央に出る。 箱の塗りは選んだ色を見ていないので、色は変わらない。",
     },
     (p: PhaseBuilder) => p.activate("pickerNode", "swatch"),
   )
@@ -754,7 +754,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
   .lane("mid", { x: 150, width: 130 })
   .lane("high", { x: 300, width: 130 })
   .lane("interactive", { x: 450, width: 160 })
-  .input.slider("v", { min: 0, max: 100, defaultValue: 40, label: "Value" })
+  .input.slider("v", { min: 0, max: 100, defaultValue: 40, label: "値" })
   .state("v", { initial: 40 })
   .state("low25", { initial: 25 })
   .state("mid50", { initial: 50 })
@@ -763,7 +763,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
     lane: "low",
     stack: 0,
     kind: "dyn-rect",
-    title: "Low 25%",
+    title: "低 25%",
     w: 100,
     h: 240,
     shape: { kind: "rect", source: "{low25}", fillMax: 100, orient: "up", fill: "#a08870" },
@@ -772,7 +772,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
     lane: "mid",
     stack: 0,
     kind: "dyn-rect",
-    title: "Mid 50%",
+    title: "中 50%",
     w: 100,
     h: 240,
     shape: { kind: "rect", source: "{mid50}", fillMax: 100, orient: "up", fill: "#2563eb" },
@@ -781,7 +781,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
     lane: "high",
     stack: 0,
     kind: "dyn-rect",
-    title: "High 75%",
+    title: "高 75%",
     w: 100,
     h: 240,
     shape: { kind: "rect", source: "{high75}", fillMax: 100, orient: "up", fill: "#f97316" },
@@ -790,7 +790,7 @@ export const shapeRectFill = diagram("interactive-shape-rect", {
     lane: "interactive",
     stack: 0,
     kind: "dyn-rect",
-    title: "Slider ({v}%)",
+    title: "つまみ ({v}%)",
     w: 100,
     h: 240,
     shape: { kind: "rect", source: "{v}", fillMax: 100, orient: "up", fill: "#8a5a2a" },
@@ -844,7 +844,7 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
   .lane("l1", { x: 0, width: 130 })
   .lane("l2", { x: 150, width: 130 })
   .lane("l3", { x: 300, width: 130 })
-  .input.slider("base", { min: 0, max: 100, defaultValue: 30, label: "Base" })
+  .input.slider("base", { min: 0, max: 100, defaultValue: 30, label: "元の値" })
   .formula("gas1", "base")
   .formula("gas2", "base * 1.2")
   .formula("gas3", "base * 1.5")
@@ -856,8 +856,8 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
     lane: "l1",
     stack: 0,
     kind: "dyn-rect",
-    title: "Block 1",
-    subtitle: "gas: {gas1}",
+    title: "ブロック 1",
+    subtitle: "手数料: {gas1}",
     w: 100,
     h: 220,
     shape: { kind: "rect", source: "{gas1}", fillMax: 150, orient: "up", fill: "#8a5a2a" },
@@ -866,8 +866,8 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
     lane: "l2",
     stack: 0,
     kind: "dyn-rect",
-    title: "Block 2",
-    subtitle: "gas: {gas2}",
+    title: "ブロック 2",
+    subtitle: "手数料: {gas2}",
     w: 100,
     h: 220,
     shape: { kind: "rect", source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" },
@@ -876,8 +876,8 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
     lane: "l3",
     stack: 0,
     kind: "dyn-rect",
-    title: "Block 3",
-    subtitle: "gas: {gas3}",
+    title: "ブロック 3",
+    subtitle: "手数料: {gas3}",
     w: 100,
     h: 220,
     shape: { kind: "rect", source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" },
@@ -921,7 +921,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
   .lane("third", { x: 195, width: 170 })
   .lane("twothird", { x: 390, width: 170 })
   .lane("interactive", { x: 585, width: 180 })
-  .input.slider("p", { min: 0, max: 100, defaultValue: 60, label: "Progress" })
+  .input.slider("p", { min: 0, max: 100, defaultValue: 60, label: "進み具合" })
   .formula("prog", "p / 100")
   .state("p", { initial: 60 })
   .state("prog", { initial: 0.6 })
@@ -933,7 +933,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
     stack: 0,
     kind: "dyn-circle",
     title: "0%",
-    subtitle: "empty",
+    subtitle: "空",
     w: 160,
     h: 160,
     shape: { kind: "circle", fillProgress: "{prog0}", fill: "#a08870" },
@@ -943,7 +943,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
     stack: 0,
     kind: "dyn-circle",
     title: "33%",
-    subtitle: "one-third",
+    subtitle: "3 分の 1",
     w: 160,
     h: 160,
     shape: { kind: "circle", fillProgress: "{prog33}", fill: "#2563eb" },
@@ -953,7 +953,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
     stack: 0,
     kind: "dyn-circle",
     title: "66%",
-    subtitle: "two-third",
+    subtitle: "3 分の 2",
     w: 160,
     h: 160,
     shape: { kind: "circle", fillProgress: "{prog66}", fill: "#f97316" },
@@ -962,7 +962,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
     lane: "interactive",
     stack: 0,
     kind: "dyn-circle",
-    title: "Ring",
+    title: "輪",
     subtitle: "{p}%",
     w: 160,
     h: 160,
@@ -1018,7 +1018,7 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
   .lane("quarter", { x: 205, width: 180 })
   .lane("half", { x: 410, width: 180 })
   .lane("interactive", { x: 615, width: 200 })
-  .input.slider("a", { min: 0, max: 270, defaultValue: 180, label: "Angle" })
+  .input.slider("a", { min: 0, max: 270, defaultValue: 180, label: "角度" })
   .state("a", { initial: 180 })
   .state("a0", { initial: 0 })
   .state("a90", { initial: 90 })
@@ -1028,7 +1028,7 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
     stack: 0,
     kind: "dyn-arc",
     title: "0°",
-    subtitle: "min",
+    subtitle: "最小",
     w: 180,
     h: 180,
     shape: { kind: "arc", angle: "{a0}", startAngle: -135, sweepMax: 270, fill: "#a08870" },
@@ -1038,7 +1038,7 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
     stack: 0,
     kind: "dyn-arc",
     title: "90°",
-    subtitle: "quarter",
+    subtitle: "4 分の 1 周",
     w: 180,
     h: 180,
     shape: { kind: "arc", angle: "{a90}", startAngle: -135, sweepMax: 270, fill: "#2563eb" },
@@ -1048,7 +1048,7 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
     stack: 0,
     kind: "dyn-arc",
     title: "180°",
-    subtitle: "half",
+    subtitle: "半周",
     w: 180,
     h: 180,
     shape: { kind: "arc", angle: "{a180}", startAngle: -135, sweepMax: 270, fill: "#f97316" },
@@ -1057,7 +1057,7 @@ export const shapeArcSweep = diagram("interactive-shape-arc", {
     lane: "interactive",
     stack: 0,
     kind: "dyn-arc",
-    title: "Slider",
+    title: "つまみ",
     subtitle: "{a}°",
     w: 180,
     h: 180,
@@ -1113,7 +1113,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
   .lane("half", { x: 180, width: 160 })
   .lane("high", { x: 360, width: 160 })
   .lane("interactive", { x: 540, width: 180 })
-  .input.slider("lvl", { min: 0, max: 100, defaultValue: 55, label: "Level" })
+  .input.slider("lvl", { min: 0, max: 100, defaultValue: 55, label: "水位" })
   .state("lvl", { initial: 55 })
   .state("lvl25", { initial: 25 })
   .state("lvl50", { initial: 50 })
@@ -1122,7 +1122,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
     lane: "low",
     stack: 0,
     kind: "dyn-wave",
-    title: "Low",
+    title: "低",
     subtitle: "25%",
     w: 140,
     h: 220,
@@ -1139,7 +1139,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
     lane: "half",
     stack: 0,
     kind: "dyn-wave",
-    title: "Half",
+    title: "半分",
     subtitle: "50%",
     w: 140,
     h: 220,
@@ -1156,7 +1156,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
     lane: "high",
     stack: 0,
     kind: "dyn-wave",
-    title: "High",
+    title: "高",
     subtitle: "75%",
     w: 140,
     h: 220,
@@ -1173,7 +1173,7 @@ export const shapeWaveTank = diagram("interactive-shape-wave", {
     lane: "interactive",
     stack: 0,
     kind: "dyn-wave",
-    title: "Wave",
+    title: "波",
     subtitle: "{lvl}%",
     w: 140,
     h: 220,
@@ -1236,8 +1236,8 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
   .lane("hexagon", { x: 200, width: 180 })
   .lane("octagon", { x: 400, width: 180 })
   .lane("interactive", { x: 600, width: 200 })
-  .input.slider("rot", { min: 0, max: 360, defaultValue: 0, label: "Rotation" })
-  .input.slider("radius", { min: 20, max: 80, defaultValue: 60, label: "Radius" })
+  .input.slider("rot", { min: 0, max: 360, defaultValue: 0, label: "回転" })
+  .input.slider("radius", { min: 20, max: 80, defaultValue: 60, label: "大きさ" })
   .state("rot", { initial: 0 })
   .state("radius", { initial: 60 })
   .state("rot0", { initial: 0 })
@@ -1246,8 +1246,8 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
     lane: "triangle",
     stack: 0,
     kind: "dyn-polygon",
-    title: "Tri",
-    subtitle: "sides=3",
+    title: "三角形",
+    subtitle: "角 3 つ",
     w: 180,
     h: 180,
     shape: { kind: "polygon", sides: 3, radius: "{radius60}", rotation: "{rot0}", fill: "#a08870" },
@@ -1256,8 +1256,8 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
     lane: "hexagon",
     stack: 0,
     kind: "dyn-polygon",
-    title: "Hex",
-    subtitle: "sides=6",
+    title: "六角形",
+    subtitle: "角 6 つ",
     w: 180,
     h: 180,
     shape: { kind: "polygon", sides: 6, radius: "{radius60}", rotation: "{rot0}", fill: "#2563eb" },
@@ -1266,8 +1266,8 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
     lane: "octagon",
     stack: 0,
     kind: "dyn-polygon",
-    title: "Oct",
-    subtitle: "sides=8",
+    title: "八角形",
+    subtitle: "角 8 つ",
     w: 180,
     h: 180,
     shape: { kind: "polygon", sides: 8, radius: "{radius60}", rotation: "{rot0}", fill: "#f97316" },
@@ -1276,8 +1276,8 @@ export const shapePolyRotate = diagram("interactive-shape-polygon", {
     lane: "interactive",
     stack: 0,
     kind: "dyn-polygon",
-    title: "Hexagon",
-    subtitle: "{rot}° · r={radius}",
+    title: "動かす六角形",
+    subtitle: "{rot}° · 大きさ {radius}",
     w: 200,
     h: 200,
     shape: { kind: "polygon", sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#8a5a2a" },
@@ -1334,7 +1334,7 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
   .lane("l3", { x: 240, width: 100 })
   .lane("l4", { x: 360, width: 100 })
   .lane("l5", { x: 480, width: 100 })
-  .input.slider("base", { min: 0, max: 60, defaultValue: 20, label: "Base" })
+  .input.slider("base", { min: 0, max: 60, defaultValue: 20, label: "元の値" })
   // formula chain: gas1 = base、 gas2 = gas1*1.2、 gas3 = gas2*1.2、 gas4 = gas3*1.2、 gas5 = gas4*1.2
   .deriveChain("gas", 5, (i, prev) => (i === 0 ? "base" : `${prev} * 1.2`))
   .state("base", { initial: 20 })
@@ -1349,8 +1349,8 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
     lane: `l{i+1}`,
     stack: 0,
     kind: "dyn-rect" as const,
-    title: `Block {i+1}`,
-    subtitle: "gas: {gas{i+1}}",
+    title: `ブロック {i+1}`,
+    subtitle: "手数料: {gas{i+1}}",
     w: 80,
     h: 220,
     shape: {
@@ -1407,50 +1407,50 @@ export const dynamicReadouts = diagram("interactive-dynamic-readouts", {
 })
   .lane("col1", { x: 0, width: 370 })
   .lane("col2", { x: 410, width: 370 })
-  .input.slider("rev", { min: 0, max: 500, defaultValue: 250, label: "Revenue" })
+  .input.slider("rev", { min: 0, max: 500, defaultValue: 250, label: "売上" })
   .input.dropdown("status", {
-    options: ["active", "pending", "closed"],
-    defaultValue: "active",
-    label: "Status",
+    options: ["受付中", "保留", "終了"],
+    defaultValue: "受付中",
+    label: "状態",
   })
   .state("rev", { initial: 250 })
-  .state("status", { initial: "active" })
+  .state("status", { initial: "受付中" })
   .node("countNode", {
     lane: "col1",
     stack: 0,
     kind: "card",
     w: 320,
-    title: "Countup",
-    subtitle: "rev={rev} · animated $ counter",
+    title: "数え上げ",
+    subtitle: "売上 {rev} · ドルで数え上げる",
   })
   .node("deltaNode", {
     lane: "col2",
     stack: 0,
     kind: "card",
     w: 240,
-    title: "Delta",
-    subtitle: "rev={rev} · ↑↓ arrow",
+    title: "増減",
+    subtitle: "売上 {rev} · 矢印で出す",
   })
   .node("ringNode", {
     lane: "col1",
     stack: 1,
     kind: "card",
     w: 310,
-    title: "Percent ring",
-    subtitle: "rev/500 = {rev} progress",
+    title: "割合の円",
+    subtitle: "売上 {rev} ÷ 500 の割合",
   })
   .node("textNode", {
     lane: "col2",
     stack: 1,
     kind: "card",
     w: 320,
-    title: "Typewriter",
-    subtitle: "status={status} · char reveal",
+    title: "打ち出し",
+    subtitle: "状態 {status} · 1 文字ずつ出す",
   })
-  .readout.countup("revCount", { source: "rev", unit: "$", label: "Revenue count" })
-  .readout.delta("revDelta", { source: "rev", unit: "$", label: "Δ delta" })
-  .readout.percentRing("revPct", { source: "rev", max: 500, label: "Progress ring" })
-  .readout.typewriter("statusText", { source: "status", charMs: 50, label: "Status text" })
+  .readout.countup("revCount", { source: "rev", unit: "$", label: "売上の数え上げ" })
+  .readout.delta("revDelta", { source: "rev", unit: "$", label: "Δ 増減" })
+  .readout.percentRing("revPct", { source: "rev", max: 500, label: "進み具合の円" })
+  .readout.typewriter("statusText", { source: "status", charMs: 50, label: "状態の文字" })
   .phase(
     "p1",
     {
@@ -1492,7 +1492,7 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .lane("time", { x: 0, width: 200 })
   .lane("bar", { x: 240, width: 180 })
   .lane("arc", { x: 440, width: 220 })
-  .input.timeline("t", { duration: 3000, autoplay: true, loop: true, label: "Timeline" })
+  .input.timeline("t", { duration: 3000, autoplay: true, loop: true, label: "時間" })
   .formula("bar", "t * 100")
   .formula("angle", "t * 270")
   .state("t", { initial: 0 })
@@ -1502,15 +1502,15 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
     lane: "time",
     stack: 0,
     kind: "card",
-    title: "Timeline",
-    subtitle: "t (0-1 loop 3s autoplay)",
+    title: "時間",
+    subtitle: "t は 0〜1 を 3 秒でくり返す",
   })
   .node("r", {
     lane: "bar",
     stack: 0,
     kind: "dyn-rect",
-    title: "Bar (rect)",
-    subtitle: "bar = t * 100",
+    title: "棒 (四角)",
+    subtitle: "棒 = t × 100",
     w: 80,
     h: 200,
     shape: { kind: "rect", source: "{bar}", fillMax: 100, orient: "up", fill: "#8a5a2a" },
@@ -1519,17 +1519,17 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
     lane: "arc",
     stack: 0,
     kind: "dyn-arc",
-    title: "Arc",
-    subtitle: "angle = t * 270",
+    title: "弧",
+    subtitle: "角度 = t × 270",
     w: 140,
     h: 140,
     shape: { kind: "arc", angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" },
   })
-  .edge("timeNode", "r", { label: "→ bar", tone: "info" })
+  .edge("timeNode", "r", { label: "→ 棒", tone: "info" })
   // timeNode→a は bar lane を跨ぐ長い edge。 label を bar lane 中央へ寄せて左右余白を確保し、
   // 非発着 lane bar の border 貫通 (lane-border-clearance) を font metric 変動にも耐える形で防ぐ。
-  .edge("timeNode", "a", { label: "→ angle", tone: "accent", labelOffsetX: -45 })
-  .readout.countup("timeCu", { source: "bar", unit: "%", label: "Time %" })
+  .edge("timeNode", "a", { label: "→ 角度", tone: "accent", labelOffsetX: -45 })
+  .readout.countup("timeCu", { source: "bar", unit: "%", label: "時間 (%)" })
   .phase(
     "p1",
     {
@@ -1544,7 +1544,7 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
     {
       duration: 1800,
       title: "四角に届く",
-      body: "計算式の値が四角に束ねられている。 時間が進むと自動で変わる。",
+      body: "計算式の値で四角の高さが決まる。 時間が進むと自動で変わる。",
     },
     (p: PhaseBuilder) => p.activate("timeNode", "r"),
   )
@@ -1553,7 +1553,7 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
     {
       duration: 1800,
       title: "弧にも届く",
-      body: "弧には別の計算式 (時間の 270 倍) が束ねられている。 同じ時間から別々の値を導く。",
+      body: "弧の角度は別の計算式 (時間の 270 倍) で決まる。 同じ時間から別々の値を導く。",
     },
     (p: PhaseBuilder) => p.activate("timeNode", "r", "a"),
   )
@@ -1570,8 +1570,8 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
   .lane("src", { x: 0, width: 230 })
   .lane("pipe", { x: 270, width: 350 })
   .lane("sink", { x: 660, width: 190 })
-  .input.slider("flow", { min: 1, max: 15, defaultValue: 5, label: "Flow Width" })
-  .input.timeline("t", { duration: 2000, autoplay: true, loop: true, label: "Timeline" })
+  .input.slider("flow", { min: 1, max: 15, defaultValue: 5, label: "流れの太さ" })
+  .input.timeline("t", { duration: 2000, autoplay: true, loop: true, label: "時間" })
   .input.dropdown("flowColor", {
     options: ["#38bdf8", "#f472b6", "#facc15"],
     defaultValue: "#38bdf8",
@@ -1582,24 +1582,24 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
   .state("t", { initial: 0 })
   .state("dash", { initial: 0 })
   .state("flowColor", { initial: "#38bdf8" })
-  .node("a", { lane: "src", stack: 0, kind: "card", w: 180, title: "Source", subtitle: "producer" })
+  .node("a", { lane: "src", stack: 0, kind: "card", w: 180, title: "送り手", subtitle: "作る側" })
   .node("pipeNode", {
     lane: "pipe",
     stack: 0,
     kind: "card",
     w: 300,
-    title: "Pipe",
-    subtitle: "width={flow} · dash={dash} · stroke={flowColor}",
+    title: "管",
+    subtitle: "太さ {flow} · 点の位置 {dash} · 色 {flowColor}",
   })
-  .node("b", { lane: "sink", stack: 0, kind: "card", w: 140, title: "Sink", subtitle: "consumer" })
+  .node("b", { lane: "sink", stack: 0, kind: "card", w: 140, title: "受け手", subtitle: "使う側" })
   .edge("a", "pipeNode", {
-    label: "produce",
+    label: "送る",
     widthBind: "{flow}",
     strokeBind: "{flowColor}",
     dashOffsetBind: "{dash}",
   })
   .edge("pipeNode", "b", {
-    label: "consume",
+    label: "受け取る",
     widthBind: "{flow}",
     strokeBind: "{flowColor}",
     dashOffsetBind: "{dash}",
@@ -1650,55 +1650,55 @@ export const inputVariety = diagram("interactive-input-variety", {
     max: 1000,
     defaultLo: 200,
     defaultHi: 700,
-    label: "Price Range",
+    label: "価格の範囲",
   })
   .input.multiSelect("tags", {
-    options: ["new", "sale", "hot", "featured"],
-    defaultValues: ["new"],
-    label: "Tags",
+    options: ["新着", "値下げ", "人気", "おすすめ"],
+    defaultValues: ["新着"],
+    label: "札",
   })
-  .input.tabs("view", { options: ["grid", "list", "compact"], defaultValue: "grid", label: "View" })
+  .input.tabs("view", { options: ["格子", "一覧", "詰めた一覧"], defaultValue: "格子", label: "表示の形" })
   .input.text("query", {
     defaultValue: "",
-    placeholder: "Search...",
+    placeholder: "検索する言葉",
     maxLength: 50,
-    label: "Query",
+    label: "検索語",
   })
   .state("priceRange", { initial: "200,700" })
-  .state("tags", { initial: "new" })
-  .state("view", { initial: "grid" })
+  .state("tags", { initial: "新着" })
+  .state("view", { initial: "格子" })
   .state("query", { initial: "" })
   .node("rangeNode", {
     lane: "range",
     stack: 0,
     kind: "card",
     w: 310,
-    title: "Range slider",
-    subtitle: "price = {priceRange}",
+    title: "範囲のつまみ",
+    subtitle: "価格 = {priceRange}",
   })
   .node("multiNode", {
     lane: "multi",
     stack: 0,
     kind: "card",
     w: 310,
-    title: "Multi-select",
-    subtitle: "tags = {tags}",
+    title: "複数選択",
+    subtitle: "札 = {tags}",
   })
   .node("tabsNode", {
     lane: "tabs",
     stack: 0,
     kind: "card",
     w: 180,
-    title: "Tabs",
-    subtitle: "view = {view}",
+    title: "タブ",
+    subtitle: "表示 = {view}",
   })
   .node("textNode", {
     lane: "text",
     stack: 0,
     kind: "card",
     w: 270,
-    title: "Text input",
-    subtitle: "query = {query}",
+    title: "文字の入力",
+    subtitle: "検索語 = {query}",
   })
   .phase(
     "p1",
@@ -1749,51 +1749,51 @@ export const readoutVariety = diagram("interactive-readout-variety", {
   .lane("heat", { x: 0, width: 220 })
   .lane("badge", { x: 260, width: 220 })
   .lane("dot", { x: 520, width: 220 })
-  .input.slider("temp", { min: 0, max: 100, defaultValue: 42, label: "Temp" })
+  .input.slider("temp", { min: 0, max: 100, defaultValue: 42, label: "温度" })
   .input.dropdown("state", {
-    options: ["online", "offline", "error"],
-    defaultValue: "online",
-    label: "State",
+    options: ["稼働", "停止", "異常"],
+    defaultValue: "稼働",
+    label: "状態",
   })
   .state("temp", { initial: 42 })
-  .state("state", { initial: "online" })
+  .state("state", { initial: "稼働" })
   .node("heatNode", {
     lane: "heat",
     stack: 0,
     kind: "card",
-    title: "Heat cell",
-    subtitle: "temp = {temp} · 色 gradient",
+    title: "熱の升目",
+    subtitle: "温度 {temp} · 色の濃淡",
   })
   .node("badgeNode", {
     lane: "badge",
     stack: 0,
     kind: "card",
-    title: "Badge (pill)",
-    subtitle: "temp = {temp} · number pill",
+    title: "札",
+    subtitle: "温度 {temp} · 数字を札で出す",
   })
   .node("dotNode", {
     lane: "dot",
     stack: 0,
     kind: "card",
-    title: "Status dot",
-    subtitle: "state = {state} · online/offline/error",
+    title: "状態の点",
+    subtitle: "状態 {state} · 色で出す",
   })
   .readout.heatCell("tempHeat", {
     source: "temp",
     min: 0,
     max: 100,
     colors: ["#4e9dc4", "#e57373"],
-    label: "Temp gradient",
+    label: "温度の濃淡",
   })
-  .readout.badge("tempBadge", { source: "temp", label: "Value pill" })
+  .readout.badge("tempBadge", { source: "temp", label: "値の札" })
   .readout.statusDot("statusRead", {
     source: "state",
     map: [
-      { value: "online", color: "#22c55e", label: "Online" },
-      { value: "offline", color: "#a08870", label: "Offline" },
-      { value: "error", color: "#ef4444", label: "Error" },
+      { value: "稼働", color: "#22c55e", label: "稼働" },
+      { value: "停止", color: "#a08870", label: "停止" },
+      { value: "異常", color: "#ef4444", label: "異常" },
     ],
-    label: "State dot",
+    label: "状態の点",
   })
   .phase(
     "p1",
@@ -1849,21 +1849,21 @@ export const eventVariety = diagram("interactive-event-variety", {
     lane: "pointer",
     stack: 0,
     kind: "card",
-    title: "Double Click",
+    title: "2 回押し",
     subtitle: "2 回続けて押す",
   })
   .node("btn2", {
     lane: "keyboard",
     stack: 0,
     kind: "card",
-    title: "Key Focus",
+    title: "選択とキー入力",
     subtitle: "選ぶ / 外れる / キーを押す",
   })
   .node("btn3", {
     lane: "touch",
     stack: 0,
     kind: "card",
-    title: "Long Press",
+    title: "長押し",
     subtitle: "押したまま 500 ミリ秒",
   })
   .node("receiver", {
@@ -1921,8 +1921,8 @@ export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
   .lane("col1", { x: 170, width: 150 })
   .lane("col2", { x: 340, width: 150 })
   .lane("col3", { x: 510, width: 150 })
-  .input.stepper("r", { min: 0, max: 2, defaultValue: 0, label: "Row" })
-  .input.stepper("c", { min: 0, max: 3, defaultValue: 0, label: "Col" })
+  .input.stepper("r", { min: 0, max: 2, defaultValue: 0, label: "行" })
+  .input.stepper("c", { min: 0, max: 3, defaultValue: 0, label: "列" })
   .state("r", { initial: 0 })
   .state("c", { initial: 0 })
   .gridNodes(3, 4, (r, _c) => ({
@@ -1930,11 +1930,11 @@ export const gridLayoutMatrix = diagram("interactive-grid-matrix", {
     lane: `col{c}`,
     stack: r,
     kind: "card" as const,
-    title: `r{r} c{c}`,
-    subtitle: `col{c} lane · row{r} stack`,
+    title: `行 {r} · 列 {c}`,
+    subtitle: `縦列 {c} · 段 {r}`,
   }))
-  .readout.stat("hover", { source: "r", label: "Row" })
-  .readout.stat("hoverC", { source: "c", label: "Col" })
+  .readout.stat("hover", { source: "r", label: "行" })
+  .readout.stat("hoverC", { source: "c", label: "列" })
   .phase(
     "p1",
     {
@@ -1976,40 +1976,40 @@ export const arraySignalHistogram = diagram("interactive-array-signal", {
   .lane("agg", { x: 0, width: 240 })
   .lane("items", { x: 300, width: 260 })
   .arraySignal("xs", [12, 34, 20, 45, 28])
-  .input.slider("bump", { min: 0, max: 50, defaultValue: 20, label: "First bar" })
+  .input.slider("bump", { min: 0, max: 50, defaultValue: 20, label: "1 本目を上書き" })
   .node("summary", {
     lane: "agg",
     stack: 0,
     kind: "card",
-    title: "Aggregate",
-    subtitle: "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}",
+    title: "集計",
+    subtitle: "件数 {xs.length} · 合計 {xs.sum} · 平均 {xs.avg} · 最大 {xs.max}",
   })
   .node("bumpNode", {
     lane: "agg",
     stack: 1,
     kind: "card",
-    title: "Bump control",
+    title: "上書きのつまみ",
     subtitle: "1 本目だけを上書きするつまみ",
   })
-  .node("i0", { lane: "items", stack: 0, kind: "card", title: "#0", subtitle: "xs[0] = {xs[0]}" })
-  .node("i1", { lane: "items", stack: 1, kind: "card", title: "#1", subtitle: "xs[1] = {xs[1]}" })
-  .node("i2", { lane: "items", stack: 2, kind: "card", title: "#2", subtitle: "xs[2] = {xs[2]}" })
-  .node("i3", { lane: "items", stack: 3, kind: "card", title: "#3", subtitle: "xs[3] = {xs[3]}" })
-  .node("i4", { lane: "items", stack: 4, kind: "card", title: "#4", subtitle: "xs[4] = {xs[4]}" })
+  .node("i0", { lane: "items", stack: 0, kind: "card", title: "#0", subtitle: "値 {xs[0]}" })
+  .node("i1", { lane: "items", stack: 1, kind: "card", title: "#1", subtitle: "値 {xs[1]}" })
+  .node("i2", { lane: "items", stack: 2, kind: "card", title: "#2", subtitle: "値 {xs[2]}" })
+  .node("i3", { lane: "items", stack: 3, kind: "card", title: "#3", subtitle: "値 {xs[3]}" })
+  .node("i4", { lane: "items", stack: 4, kind: "card", title: "#4", subtitle: "値 {xs[4]}" })
   .readout.arrayBar("hist", {
     source: "xs",
     min: 0,
     max: 50,
     color: "#2563eb",
-    label: "Bars (histogram)",
+    label: "棒グラフ",
   })
   .readout.arrayList("items", {
     source: "xs",
     itemTemplate: "#{i} → {item}",
     max: 6,
-    label: "Items (bullet list)",
+    label: "一覧 (箇条書き)",
   })
-  .readout.stat("first", { source: "bump", label: "Bump" })
+  .readout.stat("first", { source: "bump", label: "1 本目の値" })
   .phase(
     "p1",
     {
@@ -2051,7 +2051,7 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
   .lane("state", { x: 0, width: 200 })
   .lane("visual", { x: 240, width: 300 })
   .lane("done", { x: 560, width: 200 })
-  .input.slider("progress", { min: 0, max: 100, defaultValue: 40, label: "Progress" })
+  .input.slider("progress", { min: 0, max: 100, defaultValue: 40, label: "進み具合" })
   .state("progress", { initial: 40 })
   .state("done", { initial: 0 })
   .formula("done", "progress >= 100 ? 1 : 0")
@@ -2059,29 +2059,29 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
     lane: "state",
     stack: 0,
     kind: "card",
-    title: "Task state",
-    subtitle: "{progress}% complete",
+    title: "作業の状態",
+    subtitle: "{progress}% 完了",
   })
   .node("pathNode", {
     lane: "visual",
     stack: 0,
     kind: "card",
-    title: "Path visual",
-    subtitle: "SVG stroke-dashoffset で進行",
+    title: "経路の表示",
+    subtitle: "線を塗る位置で進みを出す",
   })
   .node("ringNode", {
     lane: "visual",
     stack: 1,
     kind: "card",
-    title: "Percent ring",
+    title: "割合の円",
     subtitle: "同時追随",
   })
   .node("ok", {
     lane: "done",
     stack: 0,
     kind: "card",
-    title: "✓ Done",
-    subtitle: "progress=100% で visibleIf 発動",
+    title: "✓ 完了",
+    subtitle: "100% に達すると表示される",
     visibleIf: "{done}",
   })
   .readout.pathProgress("pp", {
@@ -2092,9 +2092,9 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
     strokeWidth: 5,
     color: "#22c55e",
     max: 100,
-    label: "Path (zigzag)",
+    label: "経路 (ジグザグ)",
   })
-  .readout.percentRing("ring", { source: "progress", max: 100, color: "#22c55e", label: "Ring" })
+  .readout.percentRing("ring", { source: "progress", max: 100, color: "#22c55e", label: "円" })
   .phase(
     "p1",
     {
@@ -2140,22 +2140,22 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
     lane: "data",
     stack: 0,
     kind: "card",
-    title: "Time series",
-    subtitle: "n={series.length} · sum={series.sum} · avg={series.avg}",
+    title: "時系列",
+    subtitle: "{series.length} 件 · 計 {series.sum} · 平均 {series.avg}",
   })
   .node("areaCard", {
     lane: "area",
     stack: 0,
     kind: "card",
-    title: "Area chart",
-    subtitle: "blue #2563eb · viewH=70",
+    title: "面グラフ",
+    subtitle: "青 #2563eb · 高さ 70",
   })
   .node("lineCard", {
     lane: "line",
     stack: 0,
     kind: "card",
-    title: "Line chart",
-    subtitle: "orange #f97316 · viewH=50",
+    title: "折れ線グラフ",
+    subtitle: "橙 #f97316 · 高さ 50",
   })
   .readout.lineChart("chart", {
     source: "series",
@@ -2165,7 +2165,7 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
     viewH: 70,
     color: "#2563eb",
     fill: true,
-    label: "Area chart",
+    label: "面グラフ",
   })
   .readout.lineChart("chartNoFill", {
     source: "series",
@@ -2175,7 +2175,7 @@ export const arrayLineChart = diagram("interactive-array-line-chart", {
     viewH: 50,
     color: "#f97316",
     fill: false,
-    label: "Line chart",
+    label: "折れ線グラフ",
   })
   .phase(
     "p1",
@@ -2226,31 +2226,31 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     lane: "groupA",
     stack: 0,
     kind: "card",
-    title: "Group A",
-    subtitle: "sum={groupA.sum} · avg={groupA.avg} · max={groupA.max}",
+    title: "A 群",
+    subtitle: "合計 {groupA.sum} · 平均 {groupA.avg} · 最大 {groupA.max}",
   })
   .node("aDetail", {
     lane: "groupA",
     stack: 1,
     kind: "card",
-    title: "A 5 element",
+    title: "A の 5 要素",
     subtitle: "系列 A",
   })
   .node("bCard", {
     lane: "groupB",
     stack: 0,
     kind: "card",
-    title: "Group B",
-    subtitle: "sum={groupB.sum} · avg={groupB.avg} · max={groupB.max}",
+    title: "B 群",
+    subtitle: "合計 {groupB.sum} · 平均 {groupB.avg} · 最大 {groupB.max}",
   })
   .node("bDetail", {
     lane: "groupB",
     stack: 1,
     kind: "card",
-    title: "B 5 element",
+    title: "B の 5 要素",
     subtitle: "系列 B",
   })
-  .edge("aCard", "bCard", { label: "A vs B diff", tone: "warning" })
+  .edge("aCard", "bCard", { label: "A と B の差", tone: "warning" })
   .readout.stackedBar("cmp", {
     sourceA: "groupA",
     sourceB: "groupB",
@@ -2258,7 +2258,7 @@ export const arrayStackedBar = diagram("interactive-array-stacked-bar", {
     max: 80,
     colorA: "#2563eb",
     colorB: "#f97316",
-    label: "A / B (side-by-side bar)",
+    label: "A / B (横に並べた棒)",
   })
   .phase(
     "p1",
@@ -2311,8 +2311,8 @@ export const radialHubAndSpoke = diagram("interactive-radial-hub", {
     lane: "hub-lane",
     stack: 0,
     kind: "card",
-    title: "Hub",
-    subtitle: "center · 4 spoke に fan-out",
+    title: "中心",
+    subtitle: "ここから 4 本に分かれる",
   })
   .node("spoke-0", { lane: "spokesTop", stack: 0, kind: "card", title: "#0", subtitle: "0°" })
   .node("spoke-1", { lane: "spokesTop", stack: 1, kind: "card", title: "#1", subtitle: "90°" })
@@ -2371,8 +2371,8 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
     lane: "pos",
     stack: 3,
     kind: "card",
-    title: "Waterfall",
-    subtitle: "final = sum = {changes.sum}",
+    title: "収支",
+    subtitle: "最終 = 合計 = {changes.sum}",
   })
   .readout.waterfall("wf", {
     source: "changes",
@@ -2382,12 +2382,12 @@ export const arrayWaterfall = diagram("interactive-array-waterfall", {
     viewH: 90,
     colorPos: "#22c55e",
     colorNeg: "#ef4444",
-    label: "Changes (waterfall)",
+    label: "増減 (滝グラフ)",
   })
   .readout.arrayList("items", {
     source: "changes",
-    itemTemplate: "step {i}: {item}",
-    label: "Steps",
+    itemTemplate: "段 {i}: {item}",
+    label: "各段",
   })
   .phase(
     "p1",
@@ -2433,23 +2433,23 @@ export const renderOffsetDrift = diagram("interactive-render-offset", {
 })
   .lane("anchor-lane", { x: 0, width: 240 })
   .lane("floater-lane", { x: 300, width: 300 })
-  .input.slider("dx", { min: -80, max: 80, defaultValue: 0, label: "Drift X" })
-  .input.slider("dy", { min: -40, max: 40, defaultValue: 0, label: "Drift Y" })
+  .input.slider("dx", { min: -80, max: 80, defaultValue: 0, label: "横のずれ" })
+  .input.slider("dy", { min: -40, max: 40, defaultValue: 0, label: "縦のずれ" })
   .state("dx", { initial: 0 })
   .state("dy", { initial: 0 })
   .node("anchor", {
     lane: "anchor-lane",
     stack: 0,
     kind: "card",
-    title: "Anchor",
-    subtitle: "固定位置、 signal bind なし",
+    title: "基準の点",
+    subtitle: "つまみに追随しない",
   })
   .node("floater", {
     lane: "floater-lane",
     stack: 0,
     kind: "card",
-    title: "Floater",
-    subtitle: "dx={dx} · dy={dy}",
+    title: "ずれる点",
+    subtitle: "横 {dx} · 縦 {dy}",
     renderOffsetX: "{dx}",
     renderOffsetY: "{dy}",
   })
@@ -2504,56 +2504,56 @@ export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
     lane: "c0",
     stack: 0,
     kind: "card",
-    title: "Class 0 ✓",
+    title: "区分 0 ✓",
     subtitle: "上段の正解",
   })
   .node("c0Wrong", {
     lane: "c0",
     stack: 1,
     kind: "card",
-    title: "Class 0 ✕",
+    title: "区分 0 ✕",
     subtitle: "上段の取り違え",
   })
   .node("c1Diag", {
     lane: "c1",
     stack: 0,
     kind: "card",
-    title: "Class 1 ✓",
+    title: "区分 1 ✓",
     subtitle: "中上段の正解",
   })
   .node("c1Wrong", {
     lane: "c1",
     stack: 1,
     kind: "card",
-    title: "Class 1 ✕",
+    title: "区分 1 ✕",
     subtitle: "中上段の取り違え",
   })
   .node("c2Diag", {
     lane: "c2",
     stack: 0,
     kind: "card",
-    title: "Class 2 ✓",
+    title: "区分 2 ✓",
     subtitle: "中下段の正解",
   })
   .node("c2Wrong", {
     lane: "c2",
     stack: 1,
     kind: "card",
-    title: "Class 2 ✕",
+    title: "区分 2 ✕",
     subtitle: "中下段の取り違え",
   })
   .node("c3Diag", {
     lane: "c3",
     stack: 0,
     kind: "card",
-    title: "Class 3 ✓",
+    title: "区分 3 ✓",
     subtitle: "下段の正解",
   })
   .node("c3Wrong", {
     lane: "c3",
     stack: 1,
     kind: "card",
-    title: "Class 3 ✕",
+    title: "区分 3 ✕",
     subtitle: "下段の取り違え",
   })
   .readout.matrix("m", {
@@ -2563,7 +2563,7 @@ export const matrixHeatmap = diagram("interactive-matrix-heatmap", {
     cellSize: 30,
     showValue: true,
     colors: ["#f0f4f8", "#0369a1"] as const,
-    label: "Predictions (4×4)",
+    label: "予測の結果 (4×4)",
   })
   .phase(
     "p1",
@@ -2621,33 +2621,33 @@ export const taskProgressGroup = diagram("interactive-progress-group", {
   .lane("advanced", { x: 0, width: 240 })
   .lane("behind", { x: 300, width: 240 })
   .arraySignal("progress", [40, 75, 20, 90])
-  .arraySignal("names", ["Design", "Impl", "Test", "Docs"])
+  .arraySignal("names", ["設計", "実装", "テスト", "文書"])
   .node("implNode", {
     lane: "advanced",
     stack: 0,
     kind: "card",
-    title: "Impl",
+    title: "実装",
     subtitle: "{progress[1]}%",
   })
   .node("docsNode", {
     lane: "advanced",
     stack: 1,
     kind: "card",
-    title: "Docs",
+    title: "文書",
     subtitle: "{progress[3]}%",
   })
   .node("designNode", {
     lane: "behind",
     stack: 0,
     kind: "card",
-    title: "Design",
+    title: "設計",
     subtitle: "{progress[0]}%",
   })
   .node("testNode", {
     lane: "behind",
     stack: 1,
     kind: "card",
-    title: "Test",
+    title: "テスト",
     subtitle: "{progress[2]}%",
   })
   .readout.progressGroup("tasks", {
@@ -2655,7 +2655,7 @@ export const taskProgressGroup = diagram("interactive-progress-group", {
     max: 100,
     labelSource: "names",
     color: "#2563eb",
-    label: "Tasks (progressGroup)",
+    label: "作業ごとの進み具合",
   })
   .phase(
     "p1",
@@ -2700,8 +2700,8 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
 })
   .lane("col1", { x: 0, width: 370 })
   .lane("col2", { x: 410, width: 300 })
-  .input.slider("baseFee", { min: 10, max: 200, defaultValue: 50, label: "Base fee (gwei)" })
-  .input.slider("priority", { min: 1, max: 30, defaultValue: 5, label: "Priority tip" })
+  .input.slider("baseFee", { min: 10, max: 200, defaultValue: 50, label: "基準手数料 (gwei)" })
+  .input.slider("priority", { min: 1, max: 30, defaultValue: 5, label: "優先手数料" })
   .state("baseFee", { initial: 50 })
   .state("priority", { initial: 5 })
   .arraySignal("burned", [50, 60, 72])
@@ -2717,36 +2717,36 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
     stack: 0,
     kind: "card",
     w: 320,
-    title: "Wallet",
-    subtitle: "base {baseFee} + tip {priority} gwei",
+    title: "財布",
+    subtitle: "基準 {baseFee} + 優先 {priority} gwei",
   })
   .node("b1", {
     lane: "col1",
     stack: 1,
     kind: "card",
     w: 240,
-    title: "Block N",
-    subtitle: "1.0x = {total1} gwei",
+    title: "ブロック N",
+    subtitle: "×1.0 = {total1} gwei",
   })
   .node("b2", {
     lane: "col2",
     stack: 0,
     kind: "card",
     w: 250,
-    title: "Block N+1",
-    subtitle: "1.2x = {total2} gwei",
+    title: "ブロック N+1",
+    subtitle: "×1.2 = {total2} gwei",
   })
   .node("b3", {
     lane: "col2",
     stack: 1,
     kind: "card",
     w: 250,
-    title: "Block N+2",
-    subtitle: "1.5x = {total3} gwei",
+    title: "ブロック N+2",
+    subtitle: "×1.5 = {total3} gwei",
   })
-  .edge("wallet", "b1", { label: "tx submit", sub: "base + tip", tone: "info" })
-  .edge("b1", "b2", { label: "next block", sub: "+20% fee", tone: "warning" })
-  .edge("b2", "b3", { label: "next block", sub: "+25% fee", tone: "error" })
+  .edge("wallet", "b1", { label: "取引を送る", sub: "基準 + 優先", tone: "info" })
+  .edge("b1", "b2", { label: "次のブロック", sub: "手数料 +20%", tone: "warning" })
+  .edge("b2", "b3", { label: "次のブロック", sub: "手数料 +25%", tone: "error" })
   .readout.stackedBar("gas", {
     sourceA: "burned",
     sourceB: "tips",
@@ -2754,7 +2754,7 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
     max: 120,
     colorA: "#ef4444",
     colorB: "#22c55e",
-    label: "Burned / Tip per block",
+    label: "ブロックごとの焼却分 / 優先分",
   })
   .phase(
     "p1",
@@ -2799,38 +2799,38 @@ export const interactiveOauthFlow = diagram("interactive-oauth-flow", {
   .lane("user", { x: 0, width: 220 })
   .lane("auth", { x: 320, width: 220 })
   .lane("resource", { x: 640, width: 220 })
-  .input.slider("delay", { min: 0, max: 300, defaultValue: 50, label: "Server delay (ms)" })
+  .input.slider("delay", { min: 0, max: 300, defaultValue: 50, label: "サーバーの遅れ (ms)" })
   .state("delay", { initial: 50 })
   .arraySignal("events", [
-    [0, "click"],
-    [100, "redirect"],
-    [200, "consent"],
-    [350, "code"],
-    [500, "token"],
-    [650, "resp"],
+    [0, "押す"],
+    [100, "認可画面へ"],
+    [200, "同意"],
+    [350, "コード発行"],
+    [500, "トークン発行"],
+    [650, "資源応答"],
   ] as unknown as (string | number)[])
   .node("client", {
     lane: "user",
     stack: 0,
     kind: "card",
-    title: "Browser",
-    subtitle: "user agent",
+    title: "閲覧ソフト",
+    subtitle: "利用者が操作する",
   })
   .node("consent", {
     lane: "auth",
     stack: 0,
     kind: "card",
-    title: "Auth server",
-    subtitle: "delay {delay}ms",
+    title: "認可サーバー",
+    subtitle: "遅れ {delay}ms",
   })
   .node("api", {
     lane: "resource",
     stack: 0,
     kind: "card",
-    title: "Resource",
-    subtitle: "API endpoint",
+    title: "資源サーバー",
+    subtitle: "API の窓口",
   })
-  // 1-4 は Browser ↔ Auth server の往復 4 本。 label の位置は engine に任せる。
+  // 1-4 は閲覧ソフトと認可サーバーの往復 4 本。 label の位置は engine に任せる。
   //
   // 元は engine が 3 と 4 の label を完全に同じ点に置いていたため、 `labelOffsetX` /
   // `labelOffsetY` を手で与えて 2 列 × 2 段に散らしていた。 cdl#372 / cdl#374 / cdl#376 で
@@ -2841,36 +2841,36 @@ export const interactiveOauthFlow = diagram("interactive-oauth-flow", {
   // 200 以上離れて `edge-label-proximity` の破綻になる (実測 = 222)。 1 行 pill (36) なら
   // 必要な縦幅が 216 に減り、 全ての label が自分の弧から 86 以内に収まる。
   //
-  // 情報は落としていない = `with client_id` 等の文言をそのまま括弧で label 本体に入れた。 pill は
+  // 情報は落としていない = 送る値 (識別子 / 認可コード) と承認する人を label 本体に書き込んだ。 pill は
   // 横に伸びるが縦には伸びないので、 束の縦幅は変わらない。
   //
   // lane 間隔は関係しない = cdl が label 幅に合わせて自動で広げるため、 宣言値を変えても実配置は
   // 変わらない (実測 = 320/640 と 620/1240 のどちらでも lane x が 0/1008/2016)。
-  .edge("client", "consent", { label: "1. redirect (with client_id)", tone: "info" })
+  .edge("client", "consent", { label: "1. 認可画面へ移す (識別子付き)", tone: "info" })
   .edge("consent", "client", {
-    label: "2. consent screen (user approves)",
+    label: "2. 同意画面 (利用者が承認)",
     tone: "info",
     side: "left",
   })
   .edge("client", "consent", {
     id: "code-exchange",
-    label: "3. code exchange (with code)",
+    label: "3. 認可コードを引き換える",
     tone: "accent",
   })
   .edge("consent", "client", {
     id: "token-issue",
-    label: "4. token issued (access_token)",
+    label: "4. アクセストークンを発行",
     tone: "success",
     side: "left",
   })
-  // 5-6 は Auth server を跨いで Browser ↔ Resource を結ぶ。 どちらも迂回するため、 何もしないと
+  // 5-6 は認可サーバーを跨いで閲覧ソフトと資源サーバーをつなぐ。 どちらも迂回するため、 何もしないと
   // 2 本の迂回が同じ高さで重なり label も同じ点に乗る (実測 = 重なり面積 12215)。 6 を下
   // (side: "bottom") に回して迂回の向きを分け、 6 の label だけ下へ 120 離す。 5 側にも offset を
   // 足すと label が path から 170 離れて edge-label-proximity warn が出て、 図の高さが 19% 増える。
-  .edge("client", "api", { label: "5. API call", sub: "Bearer token", tone: "accent" })
+  .edge("client", "api", { label: "5. API を呼ぶ", sub: "トークンを添える", tone: "accent" })
   .edge("api", "client", {
-    label: "6. resp",
-    sub: "protected data",
+    label: "6. 応答",
+    sub: "保護された情報",
     tone: "success",
     side: "bottom",
     labelOffsetY: 120,
@@ -2882,9 +2882,9 @@ export const interactiveOauthFlow = diagram("interactive-oauth-flow", {
     viewW: 400,
     viewH: 60,
     color: "#2563eb",
-    label: "Timeline",
+    label: "やり取りの時刻",
   })
-  .readout.stat("finalDelay", { source: "delay", unit: "ms", label: "Delay" })
+  .readout.stat("finalDelay", { source: "delay", unit: "ms", label: "遅れ" })
   .phase(
     "p1",
     {
@@ -2909,14 +2909,14 @@ export const interactiveOauthFlow = diagram("interactive-oauth-flow", {
     {
       duration: 1800,
       title: "引き換える",
-      body: "コードを token に引き換えて資源まで届く。 6 回のやり取りが時刻付きで並ぶ。",
+      body: "コードをトークンに引き換えて資源まで届く。 6 回のやり取りが時刻付きで並ぶ。",
     },
     (p: PhaseBuilder) =>
       p
         .activate("client", "consent", "api")
         .set(
           "events",
-          '[[0,"認可要求"],[120,"コード発行"],[260,"token 交換"],[380,"token 発行"],[500,"資源要求"],[620,"資源応答"]]',
+          '[[0,"認可要求"],[120,"コード発行"],[260,"トークン交換"],[380,"トークン発行"],[500,"資源要求"],[620,"資源応答"]]',
         ),
   )
   .build();
@@ -2932,20 +2932,20 @@ export const decisionTree = diagram("interactive-decision-tree", {
   .lane("root", { x: 0, width: 200 })
   .lane("mid", { x: 240, width: 200 })
   .lane("leaf", { x: 480, width: 240 })
-  .node("node-0", { lane: "root", stack: 1, kind: "card", title: "L0P0", subtitle: "#0 (root)" })
-  .node("node-1", { lane: "mid", stack: 0, kind: "card", title: "L1P0", subtitle: "#1" })
-  .node("node-2", { lane: "mid", stack: 2, kind: "card", title: "L1P1", subtitle: "#2" })
-  .node("node-3", { lane: "leaf", stack: 0, kind: "card", title: "L2P0", subtitle: "#3" })
-  .node("node-4", { lane: "leaf", stack: 1, kind: "card", title: "L2P1", subtitle: "#4" })
-  .node("node-5", { lane: "leaf", stack: 2, kind: "card", title: "L2P2", subtitle: "#5" })
-  .node("node-6", { lane: "leaf", stack: 3, kind: "card", title: "L2P3", subtitle: "#6" })
+  .node("node-0", { lane: "root", stack: 1, kind: "card", title: "問い 1", subtitle: "#0 (起点)" })
+  .node("node-1", { lane: "mid", stack: 0, kind: "card", title: "問い 2", subtitle: "#1" })
+  .node("node-2", { lane: "mid", stack: 2, kind: "card", title: "問い 3", subtitle: "#2" })
+  .node("node-3", { lane: "leaf", stack: 0, kind: "card", title: "結果 1", subtitle: "#3" })
+  .node("node-4", { lane: "leaf", stack: 1, kind: "card", title: "結果 2", subtitle: "#4" })
+  .node("node-5", { lane: "leaf", stack: 2, kind: "card", title: "結果 3", subtitle: "#5" })
+  .node("node-6", { lane: "leaf", stack: 3, kind: "card", title: "結果 4", subtitle: "#6" })
   // completely-binary tree: 0 -> 1,2 / 1 -> 3,4 / 2 -> 5,6
-  .edge("node-0", "node-1", { label: "yes", tone: "success" })
-  .edge("node-0", "node-2", { label: "no", tone: "error" })
-  .edge("node-1", "node-3", { label: "yes", tone: "success" })
-  .edge("node-1", "node-4", { label: "no", tone: "error" })
-  .edge("node-2", "node-5", { label: "yes", tone: "success" })
-  .edge("node-2", "node-6", { label: "no", tone: "error" })
+  .edge("node-0", "node-1", { label: "○", tone: "success" })
+  .edge("node-0", "node-2", { label: "×", tone: "error" })
+  .edge("node-1", "node-3", { label: "○", tone: "success" })
+  .edge("node-1", "node-4", { label: "×", tone: "error" })
+  .edge("node-2", "node-5", { label: "○", tone: "success" })
+  .edge("node-2", "node-6", { label: "×", tone: "error" })
   .phase(
     "p1",
     {
@@ -2997,40 +2997,40 @@ export const skillRadar = diagram("interactive-skill-radar", {
   .lane("middle", { x: 260, width: 220 })
   .lane("weak", { x: 520, width: 220 })
   .arraySignal("skills", [8, 5, 7, 3, 9])
-  .arraySignal("skillNames", ["Design", "Impl", "Test", "Docs", "Debug"])
+  .arraySignal("skillNames", ["設計", "実装", "テスト", "文書", "不具合の調査"])
   .node("designNode", {
     lane: "strong",
     stack: 0,
     kind: "card",
-    title: "Design",
+    title: "設計",
     subtitle: "{skills[0]}/10",
   })
   .node("testNode", {
     lane: "strong",
     stack: 1,
     kind: "card",
-    title: "Test",
+    title: "テスト",
     subtitle: "{skills[2]}/10",
   })
   .node("debugNode", {
     lane: "strong",
     stack: 2,
     kind: "card",
-    title: "Debug",
+    title: "不具合の調査",
     subtitle: "{skills[4]}/10",
   })
   .node("implNode", {
     lane: "middle",
     stack: 0,
     kind: "card",
-    title: "Impl",
+    title: "実装",
     subtitle: "{skills[1]}/10",
   })
   .node("docsNode", {
     lane: "weak",
     stack: 0,
     kind: "card",
-    title: "Docs",
+    title: "文書",
     subtitle: "{skills[3]}/10",
   })
   .readout.radar("radar", {
@@ -3040,7 +3040,7 @@ export const skillRadar = diagram("interactive-skill-radar", {
     color: "#2563eb",
     viewW: 200,
     viewH: 200,
-    label: "Skills (polygon spider)",
+    label: "5 技能の多角形",
   })
   .phase(
     "p1",
@@ -3096,35 +3096,35 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
     lane: "high",
     stack: 0,
     kind: "card",
-    title: "Workload B",
+    title: "処理 B",
     subtitle: "中央寄りの処理",
   })
   .node("w3", {
     lane: "high",
     stack: 1,
     kind: "card",
-    title: "Workload C",
+    title: "処理 C",
     subtitle: "右上に位置する処理",
   })
   .node("w5", {
     lane: "high",
     stack: 2,
     kind: "card",
-    title: "Workload E",
+    title: "処理 E",
     subtitle: "左上に位置する処理",
   })
   .node("w1", {
     lane: "low",
     stack: 0,
     kind: "card",
-    title: "Workload A",
+    title: "処理 A",
     subtitle: "左下に位置する処理",
   })
   .node("w4", {
     lane: "low",
     stack: 1,
     kind: "card",
-    title: "Workload D",
+    title: "処理 D",
     subtitle: "右寄りの処理",
   })
   .readout.bubbleChart("bubbles", {
@@ -3138,7 +3138,7 @@ export const perfBubbleChart = diagram("interactive-perf-bubble", {
     color: "#2563eb",
     viewW: 280,
     viewH: 180,
-    label: "workloads (3D bubble)",
+    label: "処理ごとの負荷 (3 軸の円)",
   })
   .phase(
     "p1",
@@ -3186,40 +3186,40 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
   .lane("traditional", { x: 0, width: 300 })
   .lane("alternative", { x: 340, width: 300 })
   .arraySignal("assets", [45, 30, 15, 10])
-  .arraySignal("assetNames", ["Stocks", "Bonds", "Cash", "Crypto"])
+  .arraySignal("assetNames", ["株式", "債券", "現金", "暗号資産"])
   .node("stocksNode", {
     lane: "traditional",
     stack: 0,
     kind: "card",
-    title: "Stocks",
+    title: "株式",
     subtitle: "{assets[0]}%",
   })
   .node("bondsNode", {
     lane: "traditional",
     stack: 1,
     kind: "card",
-    title: "Bonds",
+    title: "債券",
     subtitle: "{assets[1]}%",
   })
   .node("cashNode", {
     lane: "alternative",
     stack: 0,
     kind: "card",
-    title: "Cash",
+    title: "現金",
     subtitle: "{assets[2]}%",
   })
   .node("cryptoNode", {
     lane: "alternative",
     stack: 1,
     kind: "card",
-    title: "Crypto",
+    title: "暗号資産",
     subtitle: "{assets[3]}%",
   })
   .node("totalNode", {
     lane: "traditional",
     stack: 2,
     kind: "card",
-    title: "Portfolio",
+    title: "資産全体",
     subtitle: "合計 {assets.sum}% · 最大 {assets.max}%",
   })
   .readout.donut("d", {
@@ -3227,9 +3227,9 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
     innerRatio: 0.55,
     viewW: 160,
     viewH: 160,
-    label: "Allocation (donut)",
+    label: "配分の円",
   })
-  .readout.arrayList("legend", { source: "assetNames", itemTemplate: "● {item}", label: "Legend" })
+  .readout.arrayList("legend", { source: "assetNames", itemTemplate: "● {item}", label: "凡例" })
   .phase(
     "p1",
     {
@@ -3241,7 +3241,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
       p
         .activate("stocksNode")
         .set("assets", "[60,20,15,5]")
-        .set("assetNames", '["Stocks","Bonds","Cash","Crypto"]'),
+        .set("assetNames", '["株式","債券","現金","暗号資産"]'),
   )
   .phase(
     "p2",
@@ -3254,7 +3254,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
       p
         .activate("stocksNode", "bondsNode")
         .set("assets", "[45,30,15,10]")
-        .set("assetNames", '["Stocks","Bonds","Crypto","Cash"]'),
+        .set("assetNames", '["株式","債券","暗号資産","現金"]'),
   )
   .phase(
     "p3",
@@ -3267,7 +3267,7 @@ export const portfolioDonut = diagram("interactive-portfolio-donut", {
       p
         .activate("stocksNode", "bondsNode", "cashNode", "cryptoNode", "totalNode")
         .set("assets", "[30,28,22,20]")
-        .set("assetNames", '["Stocks","Bonds","Cash","Crypto"]'),
+        .set("assetNames", '["株式","債券","現金","暗号資産"]'),
   )
   .build();
 export const subtitle__portfolioDonut =
@@ -3283,7 +3283,7 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   .lane("users", { x: 260, width: 200 })
   .lane("churn", { x: 520, width: 200 })
   .lane("nps", { x: 780, width: 200 })
-  .input.slider("revenueInput", { min: 10, max: 500, defaultValue: 120, label: "Revenue (k)" })
+  .input.slider("revenueInput", { min: 10, max: 500, defaultValue: 120, label: "月の売上 (千ドル)" })
   .state("revenueInput", { initial: 120 })
   .formula("users", "revenueInput * 8")
   .formula("churn", "50 - revenueInput / 10")
@@ -3295,42 +3295,42 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
     lane: "revenue",
     stack: 0,
     kind: "card",
-    title: "Revenue",
-    subtitle: "${revenueInput}k / month",
+    title: "売上",
+    subtitle: "月 {revenueInput} 千ドル",
   })
   .node("usersCard", {
     lane: "users",
     stack: 0,
     kind: "card",
-    title: "Users",
-    subtitle: "{users} active",
+    title: "利用者",
+    subtitle: "{users} 人が利用中",
   })
   .node("churnCard", {
     lane: "churn",
     stack: 0,
     kind: "card",
-    title: "Churn",
-    subtitle: "{churn}% / month",
+    title: "解約率",
+    subtitle: "月 {churn}%",
   })
   .node("npsCard", {
     lane: "nps",
     stack: 0,
     kind: "card",
-    title: "NPS",
-    subtitle: "{nps} score",
+    title: "推奨度",
+    subtitle: "{nps} 点",
   })
-  .edge("revCard", "usersCard", { label: "×8", sub: "acquisition", tone: "info" })
-  .edge("revCard", "churnCard", { label: "inverse", sub: "50 − rev/10", tone: "error" })
+  .edge("revCard", "usersCard", { label: "×8", sub: "獲得", tone: "info" })
+  .edge("revCard", "churnCard", { label: "逆に動く", sub: "50 − 売上/10", tone: "error" })
   .edge("revCard", "npsCard", {
-    label: "correlate",
-    sub: "rev/2 + 20",
+    label: "同じ向きに動く",
+    sub: "売上/2 + 20",
     tone: "success",
     side: "bottom",
   })
-  .readout.stat("rev", { source: "revenueInput", unit: "k", label: "Revenue" })
-  .readout.stat("usr", { source: "users", label: "Users" })
-  .readout.gauge("chr", { source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn %" })
-  .readout.percentRing("np", { source: "nps", max: 100, color: "#22c55e", label: "NPS" })
+  .readout.stat("rev", { source: "revenueInput", unit: " 千ドル", label: "売上" })
+  .readout.stat("usr", { source: "users", label: "利用者" })
+  .readout.gauge("chr", { source: "churn", min: 0, max: 60, color: "#ef4444", label: "解約率 (%)" })
+  .readout.percentRing("np", { source: "nps", max: 100, color: "#22c55e", label: "推奨度" })
   .phase(
     "p1",
     {
@@ -3380,27 +3380,27 @@ export const abTestResult = diagram("interactive-ab-test", {
     stack: 0,
     kind: "card",
     w: 250,
-    title: "Variant A",
-    subtitle: "avg {convA.avg}%",
+    title: "A 案",
+    subtitle: "平均 {convA.avg}%",
   })
   .node("splitCard", {
     lane: "split",
     stack: 0,
     kind: "card",
     w: 200,
-    title: "Split",
-    subtitle: "振り分け {splitData[0]} / {splitData[1]}",
+    title: "振り分け",
+    subtitle: "割合 {splitData[0]} / {splitData[1]}",
   })
   .node("treatmentCard", {
     lane: "varB",
     stack: 0,
     kind: "card",
     w: 250,
-    title: "Variant B",
-    subtitle: "avg {convB.avg}%",
+    title: "B 案",
+    subtitle: "平均 {convB.avg}%",
   })
-  .edge("splitCard", "controlCard", { label: "50%", sub: "control", tone: "info", side: "left" })
-  .edge("splitCard", "treatmentCard", { label: "50%", sub: "treatment", tone: "success" })
+  .edge("splitCard", "controlCard", { label: "50%", sub: "対照群", tone: "info", side: "left" })
+  .edge("splitCard", "treatmentCard", { label: "50%", sub: "試験群", tone: "success" })
   .readout.stackedBar("conv", {
     sourceA: "convA",
     sourceB: "convB",
@@ -3408,14 +3408,14 @@ export const abTestResult = diagram("interactive-ab-test", {
     max: 70,
     colorA: "#a08870",
     colorB: "#22c55e",
-    label: "Daily conv % (A vs B)",
+    label: "日ごとの成約率 (A と B)",
   })
   .readout.donut("splitDonut", {
     source: "splitData",
     innerRatio: 0.5,
     viewW: 120,
     viewH: 120,
-    label: "Traffic split",
+    label: "振り分けの割合",
   })
   .readout.donut("winner", {
     source: "results",
@@ -3423,7 +3423,7 @@ export const abTestResult = diagram("interactive-ab-test", {
     viewW: 120,
     viewH: 120,
     colors: ["#22c55e", "#a08870"] as const,
-    label: "Winner share (B=green)",
+    label: "勝った割合 (緑が B)",
   })
   .phase(
     "p1",
@@ -3500,43 +3500,43 @@ export const contributionHeatmap = diagram("interactive-contribution-heatmap", {
     lane: "q1",
     stack: 0,
     kind: "card",
-    title: "Q1 (Jan-Mar)",
+    title: "1〜3 月",
     subtitle: "静かな期間",
   })
   .node("q2Card", {
     lane: "q2",
     stack: 0,
     kind: "card",
-    title: "Q2 (Apr-Jun)",
+    title: "4〜6 月",
     subtitle: "活発な期間",
   })
   .node("q3Card", {
     lane: "q3",
     stack: 0,
     kind: "card",
-    title: "Q3 (Jul-Sep)",
+    title: "7〜9 月",
     subtitle: "落ち着く期間",
   })
   .node("q4Card", {
     lane: "q4",
     stack: 0,
     kind: "card",
-    title: "Q4 (Oct-Dec)",
+    title: "10〜12 月",
     subtitle: "全体の推移",
   })
   .node("totalCard", {
     lane: "q4",
     stack: 1,
     kind: "card",
-    title: "Year total",
-    subtitle: "sum {commits.sum} · max {commits.max} · avg {commits.avg}",
+    title: "1 年の合計",
+    subtitle: "合計 {commits.sum} · 最大 {commits.max} · 平均 {commits.avg}",
   })
   .readout.calendarHeatmap("h", {
     source: "commits",
     max: 10,
     cellSize: 10,
     cellGap: 2,
-    label: "1 year (53 週 × 7 日)",
+    label: "1 年 (53 週 × 7 日)",
   })
   .phase(
     "p1",
@@ -3587,8 +3587,8 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
   .lane("xpan", { x: 0, width: 200 })
   .lane("ypan", { x: 240, width: 200 })
   .lane("map", { x: 480, width: 260 })
-  .input.slider("panX", { min: 0, max: 600, defaultValue: 300, label: "Pan X" })
-  .input.slider("panY", { min: 0, max: 500, defaultValue: 250, label: "Pan Y" })
+  .input.slider("panX", { min: 0, max: 600, defaultValue: 300, label: "横の移動" })
+  .input.slider("panY", { min: 0, max: 500, defaultValue: 250, label: "縦の移動" })
   .state("panX", { initial: 300 })
   .state("panY", { initial: 250 })
   .arraySignal("viewport", [300, 250, 400, 300])
@@ -3596,22 +3596,22 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
     lane: "xpan",
     stack: 0,
     kind: "card",
-    title: "Pan X",
-    subtitle: "panX = {panX}px (0-600)",
+    title: "横の移動",
+    subtitle: "{panX}px (0〜600)",
   })
   .node("yNode", {
     lane: "ypan",
     stack: 0,
     kind: "card",
-    title: "Pan Y",
-    subtitle: "panY = {panY}px (0-500)",
+    title: "縦の移動",
+    subtitle: "{panY}px (0〜500)",
   })
   .node("mapNode", {
     lane: "map",
     stack: 0,
     kind: "card",
-    title: "Mini-map",
-    subtitle: "pan ({panX}, {panY}) view 400×300",
+    title: "小窓",
+    subtitle: "({panX}, {panY}) から 400×300",
   })
   .readout.miniMap("map", {
     source: "viewport",
@@ -3620,10 +3620,10 @@ export const canvasMiniMap = diagram("interactive-canvas-minimap", {
     viewW: 200,
     viewH: 160,
     color: "#2563eb",
-    label: "Overview (mini-map)",
+    label: "全体図 (小窓)",
   })
-  .readout.stat("panXStat", { source: "panX", unit: "px", label: "X stat" })
-  .readout.stat("panYStat", { source: "panY", unit: "px", label: "Y stat" })
+  .readout.stat("panXStat", { source: "panX", unit: "px", label: "横の移動量" })
+  .readout.stat("panYStat", { source: "panY", unit: "px", label: "縦の移動量" })
   .phase(
     "p1",
     {
@@ -3664,7 +3664,7 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
 })
   .lane("col1", { x: 0, width: 370 })
   .lane("col2", { x: 410, width: 350 })
-  .input.slider("current", { min: 50, max: 300, defaultValue: 180, label: "Current revenue (k)" })
+  .input.slider("current", { min: 50, max: 300, defaultValue: 180, label: "今期の売上 (千ドル)" })
   .state("current", { initial: 180 })
   .state("prev", { initial: 150 })
   .arraySignal("history", [120, 135, 148, 152, 165, 170])
@@ -3673,37 +3673,37 @@ export const revenueKpiCard = diagram("interactive-revenue-kpi", {
     stack: 0,
     kind: "card",
     w: 220,
-    title: "Previous",
-    subtitle: "{prev}k (baseline)",
+    title: "前期",
+    subtitle: "{prev} 千ドル (基準)",
   })
   .node("currNode", {
     lane: "col2",
     stack: 0,
     kind: "card",
     w: 300,
-    title: "◆ Current",
-    subtitle: "{current}k (slider driven)",
+    title: "◆ 今期",
+    subtitle: "{current} 千ドル (つまみで動く)",
   })
   .node("trendNode", {
     lane: "col1",
     stack: 1,
     kind: "card",
     w: 320,
-    title: "Trend",
-    subtitle: "6 month sparkline (120-170k)",
+    title: "推移",
+    subtitle: "6 か月の折れ線 (120〜170 千ドル)",
   })
-  .edge("prevNode", "currNode", { label: "delta = current - prev", tone: "success" })
-  .edge("currNode", "trendNode", { label: "sparkline last", tone: "info" })
+  .edge("prevNode", "currNode", { label: "差 = 今期 − 前期", tone: "success" })
+  .edge("currNode", "trendNode", { label: "折れ線の右端", tone: "info" })
   .readout.kpiCard("kpi", {
     source: "current",
     historySource: "history",
     comparisonSource: "prev",
-    unit: "k",
+    unit: " 千ドル",
     colorPos: "#22c55e",
     colorNeg: "#ef4444",
-    label: "Revenue KPI (composite)",
+    label: "売上の指標 (まとめ表示)",
   })
-  .readout.stat("prevStat", { source: "prev", unit: "k", label: "Prev stat" })
+  .readout.stat("prevStat", { source: "prev", unit: " 千ドル", label: "前期の値" })
   .phase(
     "p1",
     {
@@ -11480,8 +11480,8 @@ export const sourceYaml__arrayLineChart = `title: "配列の値から面グラ�
 type: flow
 
 readouts:
-  chart: { kind: line-chart, source: "series", min: 0, max: 100, viewW: 260, viewH: 70, color: "#2563eb", fill: true, label: "Area chart" }
-  chartNoFill: { kind: line-chart, source: "series", min: 0, max: 100, viewW: 260, viewH: 50, color: "#f97316", fill: false, label: "Line chart" }
+  chart: { kind: line-chart, source: "series", min: 0, max: 100, viewW: 260, viewH: 70, color: "#2563eb", fill: true, label: "面グラフ" }
+  chartNoFill: { kind: line-chart, source: "series", min: 0, max: 100, viewW: 260, viewH: 50, color: "#f97316", fill: false, label: "折れ線グラフ" }
 
 lanes:
   data: { x: 0, width: 200 }
@@ -11492,23 +11492,23 @@ states:
   series: "[22,35,28,42,55,48,60,72,65,80]"
 
 actors:
-  - Time series: { kind: card, lane: data, stack: 0, subtitle: "n={series.length} · sum={series.sum} · avg={series.avg}" }
-  - Area chart: { kind: card, lane: area, stack: 0, subtitle: "blue #2563eb · viewH=70" }
-  - Line chart: { kind: card, lane: line, stack: 0, subtitle: "orange #f97316 · viewH=50" }
+  - 時系列: { kind: card, lane: data, stack: 0, subtitle: "{series.length} 件 · 計 {series.sum} · 平均 {series.avg}" }
+  - 面グラフ: { kind: card, lane: area, stack: 0, subtitle: "青 #2563eb · 高さ 70" }
+  - 折れ線グラフ: { kind: card, lane: line, stack: 0, subtitle: "橙 #f97316 · 高さ 50" }
 
 animation:
   - step: "序盤の値" 1.8s
-    focus: ["Time series"]
+    focus: ["時系列"]
     set:
       series: "[22,35,28,42,55]"
     description: "前半の値だけを持つ。 折れ線が左半分に収まる。"
   - step: "伸びる" 1.8s
-    focus: ["Time series", "Area chart"]
+    focus: ["時系列", "面グラフ"]
     set:
       series: "[22,35,28,42,55,48,60,72]"
     description: "後半の値が加わり、折れ線が右へ伸びる。 面の広さも増える。"
   - step: "全体が揃う" 1.8s
-    focus: ["Time series", "Area chart", "Line chart"]
+    focus: ["時系列", "面グラフ", "折れ線グラフ"]
     set:
       series: "[22,35,28,42,55,48,60,72,65,80]"
     description: "10 個すべてが揃う。 面と線の 2 表示が同じ配列を描く。"
@@ -11528,7 +11528,7 @@ export const sourceJson__arrayLineChart = `{
       "viewH": 70,
       "color": "#2563eb",
       "fill": true,
-      "label": "Area chart"
+      "label": "面グラフ"
     },
     {
       "id": "chartNoFill",
@@ -11540,7 +11540,7 @@ export const sourceJson__arrayLineChart = `{
       "viewH": 50,
       "color": "#f97316",
       "fill": false,
-      "label": "Line chart"
+      "label": "折れ線グラフ"
     }
   ],
   "lanes": {
@@ -11550,25 +11550,25 @@ export const sourceJson__arrayLineChart = `{
   },
   "actors": [
     {
-      "name": "Time series",
+      "name": "時系列",
       "kind": "card",
       "lane": "data",
       "stack": 0,
-      "subtitle": "n={series.length} · sum={series.sum} · avg={series.avg}"
+      "subtitle": "{series.length} 件 · 計 {series.sum} · 平均 {series.avg}"
     },
     {
-      "name": "Area chart",
+      "name": "面グラフ",
       "kind": "card",
       "lane": "area",
       "stack": 0,
-      "subtitle": "blue #2563eb · viewH=70"
+      "subtitle": "青 #2563eb · 高さ 70"
     },
     {
-      "name": "Line chart",
+      "name": "折れ線グラフ",
       "kind": "card",
       "lane": "line",
       "stack": 0,
-      "subtitle": "orange #f97316 · viewH=50"
+      "subtitle": "橙 #f97316 · 高さ 50"
     }
   ],
   "flow": [],
@@ -11577,21 +11577,21 @@ export const sourceJson__arrayLineChart = `{
     {
       "step": "序盤の値",
       "duration": 1.8,
-      "focus": ["Time series"],
+      "focus": ["時系列"],
       "set": { "series": "[22,35,28,42,55]" },
       "body": "前半の値だけを持つ。 折れ線が左半分に収まる。"
     },
     {
       "step": "伸びる",
       "duration": 1.8,
-      "focus": ["Time series", "Area chart"],
+      "focus": ["時系列", "面グラフ"],
       "set": { "series": "[22,35,28,42,55,48,60,72]" },
       "body": "後半の値が加わり、折れ線が右へ伸びる。 面の広さも増える。"
     },
     {
       "step": "全体が揃う",
       "duration": 1.8,
-      "focus": ["Time series", "Area chart", "Line chart"],
+      "focus": ["時系列", "面グラフ", "折れ線グラフ"],
       "set": { "series": "[22,35,28,42,55,48,60,72,65,80]" },
       "body": "10 個すべてが揃う。 面と線の 2 表示が同じ配列を描く。"
     }
@@ -11602,7 +11602,7 @@ export const sourceYaml__arrayStackedBar = `title: "2 系列の配列を積み�
 type: flow
 
 readouts:
-  cmp: { kind: stacked-bar, sourceA: "groupA", sourceB: "groupB", min: 0, max: 80, colorA: "#2563eb", colorB: "#f97316", label: "A / B (side-by-side bar)" }
+  cmp: { kind: stacked-bar, sourceA: "groupA", sourceB: "groupB", min: 0, max: 80, colorA: "#2563eb", colorB: "#f97316", label: "A / B (横に並べた棒)" }
 
 lanes:
   groupA: { x: 0, width: 300 }
@@ -11613,28 +11613,28 @@ states:
   groupB: "[25,40,50,35,60]"
 
 actors:
-  - Group A: { kind: card, lane: groupA, stack: 0, subtitle: "sum={groupA.sum} · avg={groupA.avg} · max={groupA.max}" }
-  - A 5 element: { kind: card, lane: groupA, stack: 1, subtitle: "系列 A" }
-  - Group B: { kind: card, lane: groupB, stack: 0, subtitle: "sum={groupB.sum} · avg={groupB.avg} · max={groupB.max}" }
-  - B 5 element: { kind: card, lane: groupB, stack: 1, subtitle: "系列 B" }
+  - A 群: { kind: card, lane: groupA, stack: 0, subtitle: "合計 {groupA.sum} · 平均 {groupA.avg} · 最大 {groupA.max}" }
+  - A の 5 要素: { kind: card, lane: groupA, stack: 1, subtitle: "系列 A" }
+  - B 群: { kind: card, lane: groupB, stack: 0, subtitle: "合計 {groupB.sum} · 平均 {groupB.avg} · 最大 {groupB.max}" }
+  - B の 5 要素: { kind: card, lane: groupB, stack: 1, subtitle: "系列 B" }
 
 flow:
-  - Group A -> Group B: "A vs B diff" (warning)
+  - A 群 -> B 群: "A と B の差" (warning)
 
 animation:
   - step: "A だけ" 1.8s
-    focus: ["Group A", "A 5 element"]
+    focus: ["A 群", "A の 5 要素"]
     set:
       groupA: "[40,55,30,65,45]"
       groupB: "[0,0,0,0,0]"
     description: "1 つ目の系列だけを見る。 2 系列を横に並べて比べる形の片方。"
   - step: "B を並べる" 1.8s
-    focus: ["Group A", "A 5 element", "Group B"]
+    focus: ["A 群", "A の 5 要素", "B 群"]
     set:
       groupB: "[25,40,50,35,60]"
     description: "2 つ目の系列が隣に並ぶ。 同じ位置で 2 本の高さを比べられる。"
   - step: "高さが入れ替わる" 1.8s
-    focus: ["Group A", "A 5 element", "Group B", "B 5 element"]
+    focus: ["A 群", "A の 5 要素", "B 群", "B の 5 要素"]
     set:
       groupA: "[30,35,25,40,30]"
       groupB: "[45,60,70,55,80]"
@@ -11654,7 +11654,7 @@ export const sourceJson__arrayStackedBar = `{
       "max": 80,
       "colorA": "#2563eb",
       "colorB": "#f97316",
-      "label": "A / B (side-by-side bar)"
+      "label": "A / B (横に並べた棒)"
     }
   ],
   "lanes": {
@@ -11663,45 +11663,45 @@ export const sourceJson__arrayStackedBar = `{
   },
   "actors": [
     {
-      "name": "Group A",
+      "name": "A 群",
       "kind": "card",
       "lane": "groupA",
       "stack": 0,
-      "subtitle": "sum={groupA.sum} · avg={groupA.avg} · max={groupA.max}"
+      "subtitle": "合計 {groupA.sum} · 平均 {groupA.avg} · 最大 {groupA.max}"
     },
-    { "name": "A 5 element", "kind": "card", "lane": "groupA", "stack": 1, "subtitle": "系列 A" },
+    { "name": "A の 5 要素", "kind": "card", "lane": "groupA", "stack": 1, "subtitle": "系列 A" },
     {
-      "name": "Group B",
+      "name": "B 群",
       "kind": "card",
       "lane": "groupB",
       "stack": 0,
-      "subtitle": "sum={groupB.sum} · avg={groupB.avg} · max={groupB.max}"
+      "subtitle": "合計 {groupB.sum} · 平均 {groupB.avg} · 最大 {groupB.max}"
     },
-    { "name": "B 5 element", "kind": "card", "lane": "groupB", "stack": 1, "subtitle": "系列 B" }
+    { "name": "B の 5 要素", "kind": "card", "lane": "groupB", "stack": 1, "subtitle": "系列 B" }
   ],
   "flow": [
-    { "from": "Group A", "to": "Group B", "label": "A vs B diff", "tone": "warning" }
+    { "from": "A 群", "to": "B 群", "label": "A と B の差", "tone": "warning" }
   ],
   "states": { "groupA": "[40,55,30,65,45]", "groupB": "[25,40,50,35,60]" },
   "animation": [
     {
       "step": "A だけ",
       "duration": 1.8,
-      "focus": ["Group A", "A 5 element"],
+      "focus": ["A 群", "A の 5 要素"],
       "set": { "groupA": "[40,55,30,65,45]", "groupB": "[0,0,0,0,0]" },
       "body": "1 つ目の系列だけを見る。 2 系列を横に並べて比べる形の片方。"
     },
     {
       "step": "B を並べる",
       "duration": 1.8,
-      "focus": ["Group A", "A 5 element", "Group B"],
+      "focus": ["A 群", "A の 5 要素", "B 群"],
       "set": { "groupB": "[25,40,50,35,60]" },
       "body": "2 つ目の系列が隣に並ぶ。 同じ位置で 2 本の高さを比べられる。"
     },
     {
       "step": "高さが入れ替わる",
       "duration": 1.8,
-      "focus": ["Group A", "A 5 element", "Group B", "B 5 element"],
+      "focus": ["A 群", "A の 5 要素", "B 群", "B の 5 要素"],
       "set": { "groupA": "[30,35,25,40,30]", "groupB": "[45,60,70,55,80]" },
       "body": "2 つ目が 1 つ目を上回る位置が出てくる。 隣り合う 2 本の高低が逆になる。"
     }
@@ -11712,8 +11712,8 @@ export const sourceYaml__arrayWaterfall = `title: "増減を滝グラフで正�
 type: flow
 
 readouts:
-  wf: { kind: waterfall, source: "changes", min: -30, max: 150, viewW: 280, viewH: 90, colorPos: "#22c55e", colorNeg: "#ef4444", label: "Changes (waterfall)" }
-  items: { kind: array-list, source: "changes", itemTemplate: "step {i}: {item}", label: "Steps" }
+  wf: { kind: waterfall, source: "changes", min: -30, max: 150, viewW: 280, viewH: 90, colorPos: "#22c55e", colorNeg: "#ef4444", label: "増減 (滝グラフ)" }
+  items: { kind: array-list, source: "changes", itemTemplate: "段 {i}: {item}", label: "各段" }
 
 lanes:
   pos: { x: 0, width: 300 }
@@ -11728,7 +11728,7 @@ actors:
   - +40: { kind: card, lane: pos, stack: 2, subtitle: "最終利益" }
   - -30: { kind: card, lane: neg, stack: 0, subtitle: "小損失" }
   - -20: { kind: card, lane: neg, stack: 1, subtitle: "追加損失" }
-  - Waterfall: { kind: card, lane: pos, stack: 3, subtitle: "final = sum = {changes.sum}" }
+  - 収支: { kind: card, lane: pos, stack: 3, subtitle: "最終 = 合計 = {changes.sum}" }
 
 animation:
   - step: "増える分" 1.8s
@@ -11742,7 +11742,7 @@ animation:
       changes: "[100,-30,50,-20,40]"
     description: "負の増減が混ざる。 積み上がった分から下がる段が現れ、途中の落ち込みが見える。"
   - step: "収支が出る" 1.8s
-    focus: ["+100", "+50", "+40", "-30", "-20", "Waterfall"]
+    focus: ["+100", "+50", "+40", "-30", "-20", "収支"]
     set:
       changes: "[60,-20,40,-15,30]"
     description: "増減を通した合計が出る。 一覧と滝が同じ配列を見ている。"
@@ -11762,14 +11762,14 @@ export const sourceJson__arrayWaterfall = `{
       "viewH": 90,
       "colorPos": "#22c55e",
       "colorNeg": "#ef4444",
-      "label": "Changes (waterfall)"
+      "label": "増減 (滝グラフ)"
     },
     {
       "id": "items",
       "kind": "array-list",
       "source": "changes",
-      "itemTemplate": "step {i}: {item}",
-      "label": "Steps"
+      "itemTemplate": "段 {i}: {item}",
+      "label": "各段"
     }
   ],
   "lanes": {
@@ -11783,11 +11783,11 @@ export const sourceJson__arrayWaterfall = `{
     { "name": "-30", "kind": "card", "lane": "neg", "stack": 0, "subtitle": "小損失" },
     { "name": "-20", "kind": "card", "lane": "neg", "stack": 1, "subtitle": "追加損失" },
     {
-      "name": "Waterfall",
+      "name": "収支",
       "kind": "card",
       "lane": "pos",
       "stack": 3,
-      "subtitle": "final = sum = {changes.sum}"
+      "subtitle": "最終 = 合計 = {changes.sum}"
     }
   ],
   "flow": [],
@@ -11810,7 +11810,7 @@ export const sourceJson__arrayWaterfall = `{
     {
       "step": "収支が出る",
       "duration": 1.8,
-      "focus": ["+100", "+50", "+40", "-30", "-20", "Waterfall"],
+      "focus": ["+100", "+50", "+40", "-30", "-20", "収支"],
       "set": { "changes": "[60,-20,40,-15,30]" },
       "body": "増減を通した合計が出る。 一覧と滝が同じ配列を見ている。"
     }
@@ -11821,7 +11821,7 @@ export const sourceYaml__matrixHeatmap = `title: "4×4 の混同行列を熱の�
 type: flow
 
 readouts:
-  m: { kind: matrix, source: "cm", min: 0, max: 10, cellSize: 30, colors: ["#f0f4f8", "#0369a1"], showValue: true, label: "Predictions (4×4)" }
+  m: { kind: matrix, source: "cm", min: 0, max: 10, cellSize: 30, colors: ["#f0f4f8", "#0369a1"], showValue: true, label: "予測の結果 (4×4)" }
 
 lanes:
   c0: { x: 0, width: 150 }
@@ -11833,28 +11833,28 @@ states:
   cm: "[[8,1,0,1],[2,7,1,0],[0,1,9,0],[0,0,2,6]]"
 
 actors:
-  - Class 0 ✓: { kind: card, lane: c0, stack: 0, subtitle: "上段の正解" }
-  - Class 0 ✕2: { kind: card, lane: c0, stack: 1, subtitle: "上段の取り違え", title: "Class 0 ✕" }
-  - Class 1 ✓: { kind: card, lane: c1, stack: 0, subtitle: "中上段の正解" }
-  - Class 1 ✕2: { kind: card, lane: c1, stack: 1, subtitle: "中上段の取り違え", title: "Class 1 ✕" }
-  - Class 2 ✓: { kind: card, lane: c2, stack: 0, subtitle: "中下段の正解" }
-  - Class 2 ✕2: { kind: card, lane: c2, stack: 1, subtitle: "中下段の取り違え", title: "Class 2 ✕" }
-  - Class 3 ✓: { kind: card, lane: c3, stack: 0, subtitle: "下段の正解" }
-  - Class 3 ✕2: { kind: card, lane: c3, stack: 1, subtitle: "下段の取り違え", title: "Class 3 ✕" }
+  - 区分 0 ✓: { kind: card, lane: c0, stack: 0, subtitle: "上段の正解" }
+  - Class 0 ✕2: { kind: card, lane: c0, stack: 1, subtitle: "上段の取り違え", title: "区分 0 ✕" }
+  - 区分 1 ✓: { kind: card, lane: c1, stack: 0, subtitle: "中上段の正解" }
+  - Class 1 ✕2: { kind: card, lane: c1, stack: 1, subtitle: "中上段の取り違え", title: "区分 1 ✕" }
+  - 区分 2 ✓: { kind: card, lane: c2, stack: 0, subtitle: "中下段の正解" }
+  - Class 2 ✕2: { kind: card, lane: c2, stack: 1, subtitle: "中下段の取り違え", title: "区分 2 ✕" }
+  - 区分 3 ✓: { kind: card, lane: c3, stack: 0, subtitle: "下段の正解" }
+  - Class 3 ✕2: { kind: card, lane: c3, stack: 1, subtitle: "下段の取り違え", title: "区分 3 ✕" }
 
 animation:
   - step: "対角だけ" 1.8s
-    focus: ["Class 0 ✓", "Class 1 ✓"]
+    focus: ["区分 0 ✓", "区分 1 ✓"]
     set:
       cm: "[[9,0,0,0],[0,8,0,0],[0,0,9,0],[0,0,0,7]]"
     description: "正解した数だけを置く。 対角線に色が集まり、取り違えは 0。"
   - step: "誤りが混ざる" 1.8s
-    focus: ["Class 0 ✓", "Class 0 ✕2", "Class 1 ✓", "Class 1 ✕2"]
+    focus: ["区分 0 ✓", "Class 0 ✕2", "区分 1 ✓", "Class 1 ✕2"]
     set:
       cm: "[[8,1,0,1],[2,7,1,0],[0,1,9,0],[0,0,2,6]]"
     description: "取り違えた数が対角の外に現れる。 色が対角から散らばる。"
   - step: "偏りが出る" 1.8s
-    focus: ["Class 0 ✓", "Class 0 ✕2", "Class 1 ✓", "Class 1 ✕2", "Class 2 ✓", "Class 2 ✕2", "Class 3 ✓", "Class 3 ✕2"]
+    focus: ["区分 0 ✓", "Class 0 ✕2", "区分 1 ✓", "Class 1 ✕2", "区分 2 ✓", "Class 2 ✕2", "区分 3 ✓", "Class 3 ✕2"]
     set:
       cm: "[[6,3,0,1],[4,5,1,0],[0,1,8,1],[0,0,5,3]]"
     description: "特定の組合せに誤りが集中する。 濃い升目の位置で癖が読める。"
@@ -11873,7 +11873,7 @@ export const sourceJson__matrixHeatmap = `{
       "cellSize": 30,
       "colors": ["#f0f4f8", "#0369a1"],
       "showValue": true,
-      "label": "Predictions (4×4)"
+      "label": "予測の結果 (4×4)"
     }
   ],
   "lanes": {
@@ -11883,41 +11883,41 @@ export const sourceJson__matrixHeatmap = `{
     "c3": { "x": 510, "width": 150 }
   },
   "actors": [
-    { "name": "Class 0 ✓", "kind": "card", "lane": "c0", "stack": 0, "subtitle": "上段の正解" },
+    { "name": "区分 0 ✓", "kind": "card", "lane": "c0", "stack": 0, "subtitle": "上段の正解" },
     {
       "name": "Class 0 ✕2",
       "kind": "card",
       "lane": "c0",
       "stack": 1,
       "subtitle": "上段の取り違え",
-      "title": "Class 0 ✕"
+      "title": "区分 0 ✕"
     },
-    { "name": "Class 1 ✓", "kind": "card", "lane": "c1", "stack": 0, "subtitle": "中上段の正解" },
+    { "name": "区分 1 ✓", "kind": "card", "lane": "c1", "stack": 0, "subtitle": "中上段の正解" },
     {
       "name": "Class 1 ✕2",
       "kind": "card",
       "lane": "c1",
       "stack": 1,
       "subtitle": "中上段の取り違え",
-      "title": "Class 1 ✕"
+      "title": "区分 1 ✕"
     },
-    { "name": "Class 2 ✓", "kind": "card", "lane": "c2", "stack": 0, "subtitle": "中下段の正解" },
+    { "name": "区分 2 ✓", "kind": "card", "lane": "c2", "stack": 0, "subtitle": "中下段の正解" },
     {
       "name": "Class 2 ✕2",
       "kind": "card",
       "lane": "c2",
       "stack": 1,
       "subtitle": "中下段の取り違え",
-      "title": "Class 2 ✕"
+      "title": "区分 2 ✕"
     },
-    { "name": "Class 3 ✓", "kind": "card", "lane": "c3", "stack": 0, "subtitle": "下段の正解" },
+    { "name": "区分 3 ✓", "kind": "card", "lane": "c3", "stack": 0, "subtitle": "下段の正解" },
     {
       "name": "Class 3 ✕2",
       "kind": "card",
       "lane": "c3",
       "stack": 1,
       "subtitle": "下段の取り違え",
-      "title": "Class 3 ✕"
+      "title": "区分 3 ✕"
     }
   ],
   "flow": [],
@@ -11926,14 +11926,14 @@ export const sourceJson__matrixHeatmap = `{
     {
       "step": "対角だけ",
       "duration": 1.8,
-      "focus": ["Class 0 ✓", "Class 1 ✓"],
+      "focus": ["区分 0 ✓", "区分 1 ✓"],
       "set": { "cm": "[[9,0,0,0],[0,8,0,0],[0,0,9,0],[0,0,0,7]]" },
       "body": "正解した数だけを置く。 対角線に色が集まり、取り違えは 0。"
     },
     {
       "step": "誤りが混ざる",
       "duration": 1.8,
-      "focus": ["Class 0 ✓", "Class 0 ✕2", "Class 1 ✓", "Class 1 ✕2"],
+      "focus": ["区分 0 ✓", "Class 0 ✕2", "区分 1 ✓", "Class 1 ✕2"],
       "set": { "cm": "[[8,1,0,1],[2,7,1,0],[0,1,9,0],[0,0,2,6]]" },
       "body": "取り違えた数が対角の外に現れる。 色が対角から散らばる。"
     },
@@ -11941,13 +11941,13 @@ export const sourceJson__matrixHeatmap = `{
       "step": "偏りが出る",
       "duration": 1.8,
       "focus": [
-        "Class 0 ✓",
+        "区分 0 ✓",
         "Class 0 ✕2",
-        "Class 1 ✓",
+        "区分 1 ✓",
         "Class 1 ✕2",
-        "Class 2 ✓",
+        "区分 2 ✓",
         "Class 2 ✕2",
-        "Class 3 ✓",
+        "区分 3 ✓",
         "Class 3 ✕2"
       ],
       "set": { "cm": "[[6,3,0,1],[4,5,1,0],[0,1,8,1],[0,0,5,3]]" },
@@ -11960,7 +11960,7 @@ export const sourceYaml__taskProgressGroup = `title: "4 件の進捗を達成 / 
 type: flow
 
 readouts:
-  tasks: { kind: progress-group, source: "progress", max: 100, labelSource: "names", color: "#2563eb", label: "Tasks (progressGroup)" }
+  tasks: { kind: progress-group, source: "progress", max: 100, labelSource: "names", color: "#2563eb", label: "作業ごとの進み具合" }
 
 lanes:
   advanced: { x: 0, width: 240 }
@@ -11968,27 +11968,27 @@ lanes:
 
 states:
   progress: "[40,75,20,90]"
-  names: '["Design","Impl","Test","Docs"]'
+  names: '["設計","実装","テスト","文書"]'
 
 actors:
-  - Impl: { kind: card, lane: advanced, stack: 0, subtitle: "{progress[1]}%" }
-  - Docs: { kind: card, lane: advanced, stack: 1, subtitle: "{progress[3]}%" }
-  - Design: { kind: card, lane: behind, stack: 0, subtitle: "{progress[0]}%" }
-  - Test: { kind: card, lane: behind, stack: 1, subtitle: "{progress[2]}%" }
+  - 実装: { kind: card, lane: advanced, stack: 0, subtitle: "{progress[1]}%" }
+  - 文書: { kind: card, lane: advanced, stack: 1, subtitle: "{progress[3]}%" }
+  - 設計: { kind: card, lane: behind, stack: 0, subtitle: "{progress[0]}%" }
+  - テスト: { kind: card, lane: behind, stack: 1, subtitle: "{progress[2]}%" }
 
 animation:
   - step: "着手前" 1.8s
-    focus: ["Impl"]
+    focus: ["実装"]
     set:
       progress: "[10,20,5,15]"
     description: "4 件とも進捗が低い。 帯がどれも短い。"
   - step: "ばらつく" 1.8s
-    focus: ["Impl", "Docs"]
+    focus: ["実装", "文書"]
     set:
       progress: "[40,75,20,90]"
     description: "先に進む項目と遅れる項目に分かれる。 帯の長さの差が開く。"
   - step: "追いつく" 1.8s
-    focus: ["Impl", "Docs", "Design", "Test"]
+    focus: ["実装", "文書", "設計", "テスト"]
     set:
       progress: "[85,95,80,100]"
     description: "遅れていた項目が追いつく。 4 本の帯が揃う。"
@@ -12005,7 +12005,7 @@ export const sourceJson__taskProgressGroup = `{
       "max": 100,
       "labelSource": "names",
       "color": "#2563eb",
-      "label": "Tasks (progressGroup)"
+      "label": "作業ごとの進み具合"
     }
   ],
   "lanes": {
@@ -12014,28 +12014,28 @@ export const sourceJson__taskProgressGroup = `{
   },
   "actors": [
     {
-      "name": "Impl",
+      "name": "実装",
       "kind": "card",
       "lane": "advanced",
       "stack": 0,
       "subtitle": "{progress[1]}%"
     },
     {
-      "name": "Docs",
+      "name": "文書",
       "kind": "card",
       "lane": "advanced",
       "stack": 1,
       "subtitle": "{progress[3]}%"
     },
     {
-      "name": "Design",
+      "name": "設計",
       "kind": "card",
       "lane": "behind",
       "stack": 0,
       "subtitle": "{progress[0]}%"
     },
     {
-      "name": "Test",
+      "name": "テスト",
       "kind": "card",
       "lane": "behind",
       "stack": 1,
@@ -12043,26 +12043,26 @@ export const sourceJson__taskProgressGroup = `{
     }
   ],
   "flow": [],
-  "states": { "progress": "[40,75,20,90]", "names": "[\\"Design\\",\\"Impl\\",\\"Test\\",\\"Docs\\"]" },
+  "states": { "progress": "[40,75,20,90]", "names": "[\\"設計\\",\\"実装\\",\\"テスト\\",\\"文書\\"]" },
   "animation": [
     {
       "step": "着手前",
       "duration": 1.8,
-      "focus": ["Impl"],
+      "focus": ["実装"],
       "set": { "progress": "[10,20,5,15]" },
       "body": "4 件とも進捗が低い。 帯がどれも短い。"
     },
     {
       "step": "ばらつく",
       "duration": 1.8,
-      "focus": ["Impl", "Docs"],
+      "focus": ["実装", "文書"],
       "set": { "progress": "[40,75,20,90]" },
       "body": "先に進む項目と遅れる項目に分かれる。 帯の長さの差が開く。"
     },
     {
       "step": "追いつく",
       "duration": 1.8,
-      "focus": ["Impl", "Docs", "Design", "Test"],
+      "focus": ["実装", "文書", "設計", "テスト"],
       "set": { "progress": "[85,95,80,100]" },
       "body": "遅れていた項目が追いつく。 4 本の帯が揃う。"
     }
@@ -12073,7 +12073,7 @@ export const sourceYaml__skillRadar = `title: "5 技能を強 / 中 / 弱に分�
 type: flow
 
 readouts:
-  radar: { kind: radar, source: "skills", max: 10, viewW: 200, viewH: 200, color: "#2563eb", labelSource: "skillNames", label: "Skills (polygon spider)" }
+  radar: { kind: radar, source: "skills", max: 10, viewW: 200, viewH: 200, color: "#2563eb", labelSource: "skillNames", label: "5 技能の多角形" }
 
 lanes:
   strong: { x: 0, width: 220 }
@@ -12082,28 +12082,28 @@ lanes:
 
 states:
   skills: "[8,5,7,3,9]"
-  skillNames: '["Design","Impl","Test","Docs","Debug"]'
+  skillNames: '["設計","実装","テスト","文書","不具合の調査"]'
 
 actors:
-  - Design: { kind: card, lane: strong, stack: 0, subtitle: "{skills[0]}/10" }
-  - Test: { kind: card, lane: strong, stack: 1, subtitle: "{skills[2]}/10" }
-  - Debug: { kind: card, lane: strong, stack: 2, subtitle: "{skills[4]}/10" }
-  - Impl: { kind: card, lane: middle, stack: 0, subtitle: "{skills[1]}/10" }
-  - Docs: { kind: card, lane: weak, stack: 0, subtitle: "{skills[3]}/10" }
+  - 設計: { kind: card, lane: strong, stack: 0, subtitle: "{skills[0]}/10" }
+  - テスト: { kind: card, lane: strong, stack: 1, subtitle: "{skills[2]}/10" }
+  - 不具合の調査: { kind: card, lane: strong, stack: 2, subtitle: "{skills[4]}/10" }
+  - 実装: { kind: card, lane: middle, stack: 0, subtitle: "{skills[1]}/10" }
+  - 文書: { kind: card, lane: weak, stack: 0, subtitle: "{skills[3]}/10" }
 
 animation:
   - step: "偏った形" 1.8s
-    focus: ["Design"]
+    focus: ["設計"]
     set:
       skills: "[9,2,3,2,3]"
     description: "1 つの技能だけが高い。 図形が一方向に伸びる。"
   - step: "広がる" 1.8s
-    focus: ["Design", "Test", "Debug"]
+    focus: ["設計", "テスト", "不具合の調査"]
     set:
       skills: "[8,5,7,3,9]"
     description: "他の技能も伸びて図形が広がる。 尖りが目立たなくなる。"
   - step: "形が整う" 1.8s
-    focus: ["Design", "Test", "Debug", "Impl", "Docs"]
+    focus: ["設計", "テスト", "不具合の調査", "実装", "文書"]
     set:
       skills: "[7,7,8,6,8]"
     description: "5 技能が近い値になり、図形が正多角形に近づく。"
@@ -12122,7 +12122,7 @@ export const sourceJson__skillRadar = `{
       "viewH": 200,
       "color": "#2563eb",
       "labelSource": "skillNames",
-      "label": "Skills (polygon spider)"
+      "label": "5 技能の多角形"
     }
   ],
   "lanes": {
@@ -12132,56 +12132,56 @@ export const sourceJson__skillRadar = `{
   },
   "actors": [
     {
-      "name": "Design",
+      "name": "設計",
       "kind": "card",
       "lane": "strong",
       "stack": 0,
       "subtitle": "{skills[0]}/10"
     },
     {
-      "name": "Test",
+      "name": "テスト",
       "kind": "card",
       "lane": "strong",
       "stack": 1,
       "subtitle": "{skills[2]}/10"
     },
     {
-      "name": "Debug",
+      "name": "不具合の調査",
       "kind": "card",
       "lane": "strong",
       "stack": 2,
       "subtitle": "{skills[4]}/10"
     },
     {
-      "name": "Impl",
+      "name": "実装",
       "kind": "card",
       "lane": "middle",
       "stack": 0,
       "subtitle": "{skills[1]}/10"
     },
-    { "name": "Docs", "kind": "card", "lane": "weak", "stack": 0, "subtitle": "{skills[3]}/10" }
+    { "name": "文書", "kind": "card", "lane": "weak", "stack": 0, "subtitle": "{skills[3]}/10" }
   ],
   "flow": [],
-  "states": { "skills": "[8,5,7,3,9]", "skillNames": "[\\"Design\\",\\"Impl\\",\\"Test\\",\\"Docs\\",\\"Debug\\"]" },
+  "states": { "skills": "[8,5,7,3,9]", "skillNames": "[\\"設計\\",\\"実装\\",\\"テスト\\",\\"文書\\",\\"不具合の調査\\"]" },
   "animation": [
     {
       "step": "偏った形",
       "duration": 1.8,
-      "focus": ["Design"],
+      "focus": ["設計"],
       "set": { "skills": "[9,2,3,2,3]" },
       "body": "1 つの技能だけが高い。 図形が一方向に伸びる。"
     },
     {
       "step": "広がる",
       "duration": 1.8,
-      "focus": ["Design", "Test", "Debug"],
+      "focus": ["設計", "テスト", "不具合の調査"],
       "set": { "skills": "[8,5,7,3,9]" },
       "body": "他の技能も伸びて図形が広がる。 尖りが目立たなくなる。"
     },
     {
       "step": "形が整う",
       "duration": 1.8,
-      "focus": ["Design", "Test", "Debug", "Impl", "Docs"],
+      "focus": ["設計", "テスト", "不具合の調査", "実装", "文書"],
       "set": { "skills": "[7,7,8,6,8]" },
       "body": "5 技能が近い値になり、図形が正多角形に近づく。"
     }
@@ -12192,7 +12192,7 @@ export const sourceYaml__perfBubbleChart = `title: "5 種の処理の負荷を�
 type: flow
 
 readouts:
-  bubbles: { kind: bubble-chart, source: "perf", xMin: 0, xMax: 100, yMin: 0, yMax: 100, rMin: 0, rMax: 10, viewW: 280, viewH: 180, color: "#2563eb", label: "workloads (3D bubble)" }
+  bubbles: { kind: bubble-chart, source: "perf", xMin: 0, xMax: 100, yMin: 0, yMax: 100, rMin: 0, rMax: 10, viewW: 280, viewH: 180, color: "#2563eb", label: "処理ごとの負荷 (3 軸の円)" }
 
 lanes:
   high: { x: 0, width: 300 }
@@ -12202,25 +12202,25 @@ states:
   perf: "[[50,20,5],[70,40,8],[90,60,10],[30,80,3],[60,50,7]]"
 
 actors:
-  - Workload B: { kind: card, lane: high, stack: 0, subtitle: "中央寄りの処理" }
-  - Workload C: { kind: card, lane: high, stack: 1, subtitle: "右上に位置する処理" }
-  - Workload E: { kind: card, lane: high, stack: 2, subtitle: "左上に位置する処理" }
-  - Workload A: { kind: card, lane: low, stack: 0, subtitle: "左下に位置する処理" }
-  - Workload D: { kind: card, lane: low, stack: 1, subtitle: "右寄りの処理" }
+  - 処理 B: { kind: card, lane: high, stack: 0, subtitle: "中央寄りの処理" }
+  - 処理 C: { kind: card, lane: high, stack: 1, subtitle: "右上に位置する処理" }
+  - 処理 E: { kind: card, lane: high, stack: 2, subtitle: "左上に位置する処理" }
+  - 処理 A: { kind: card, lane: low, stack: 0, subtitle: "左下に位置する処理" }
+  - 処理 D: { kind: card, lane: low, stack: 1, subtitle: "右寄りの処理" }
 
 animation:
   - step: "軽い処理" 1.8s
-    focus: ["Workload B"]
+    focus: ["処理 B"]
     set:
       perf: "[[50,20,3],[70,40,4],[90,60,3]]"
     description: "負荷の小さい処理だけを置く。 円が小さくまとまる。"
   - step: "重い処理が入る" 1.8s
-    focus: ["Workload B", "Workload C", "Workload E"]
+    focus: ["処理 B", "処理 C", "処理 E"]
     set:
       perf: "[[50,20,5],[70,40,8],[90,60,10],[30,80,3],[60,50,7]]"
     description: "負荷の大きい処理が加わる。 円の大小差が開く。"
   - step: "偏りが出る" 1.8s
-    focus: ["Workload B", "Workload C", "Workload E", "Workload A", "Workload D"]
+    focus: ["処理 B", "処理 C", "処理 E", "処理 A", "処理 D"]
     set:
       perf: "[[50,20,4],[70,40,9],[90,60,10],[30,80,3],[85,70,8]]"
     description: "右上に大きな円が集まる。 位置と大きさの両方で傾向が読める。"
@@ -12243,7 +12243,7 @@ export const sourceJson__perfBubbleChart = `{
       "viewW": 280,
       "viewH": 180,
       "color": "#2563eb",
-      "label": "workloads (3D bubble)"
+      "label": "処理ごとの負荷 (3 軸の円)"
     }
   ],
   "lanes": {
@@ -12251,23 +12251,23 @@ export const sourceJson__perfBubbleChart = `{
     "low": { "x": 340, "width": 300 }
   },
   "actors": [
-    { "name": "Workload B", "kind": "card", "lane": "high", "stack": 0, "subtitle": "中央寄りの処理" },
+    { "name": "処理 B", "kind": "card", "lane": "high", "stack": 0, "subtitle": "中央寄りの処理" },
     {
-      "name": "Workload C",
+      "name": "処理 C",
       "kind": "card",
       "lane": "high",
       "stack": 1,
       "subtitle": "右上に位置する処理"
     },
     {
-      "name": "Workload E",
+      "name": "処理 E",
       "kind": "card",
       "lane": "high",
       "stack": 2,
       "subtitle": "左上に位置する処理"
     },
-    { "name": "Workload A", "kind": "card", "lane": "low", "stack": 0, "subtitle": "左下に位置する処理" },
-    { "name": "Workload D", "kind": "card", "lane": "low", "stack": 1, "subtitle": "右寄りの処理" }
+    { "name": "処理 A", "kind": "card", "lane": "low", "stack": 0, "subtitle": "左下に位置する処理" },
+    { "name": "処理 D", "kind": "card", "lane": "low", "stack": 1, "subtitle": "右寄りの処理" }
   ],
   "flow": [],
   "states": { "perf": "[[50,20,5],[70,40,8],[90,60,10],[30,80,3],[60,50,7]]" },
@@ -12275,21 +12275,21 @@ export const sourceJson__perfBubbleChart = `{
     {
       "step": "軽い処理",
       "duration": 1.8,
-      "focus": ["Workload B"],
+      "focus": ["処理 B"],
       "set": { "perf": "[[50,20,3],[70,40,4],[90,60,3]]" },
       "body": "負荷の小さい処理だけを置く。 円が小さくまとまる。"
     },
     {
       "step": "重い処理が入る",
       "duration": 1.8,
-      "focus": ["Workload B", "Workload C", "Workload E"],
+      "focus": ["処理 B", "処理 C", "処理 E"],
       "set": { "perf": "[[50,20,5],[70,40,8],[90,60,10],[30,80,3],[60,50,7]]" },
       "body": "負荷の大きい処理が加わる。 円の大小差が開く。"
     },
     {
       "step": "偏りが出る",
       "duration": 1.8,
-      "focus": ["Workload B", "Workload C", "Workload E", "Workload A", "Workload D"],
+      "focus": ["処理 B", "処理 C", "処理 E", "処理 A", "処理 D"],
       "set": { "perf": "[[50,20,4],[70,40,9],[90,60,10],[30,80,3],[85,70,8]]" },
       "body": "右上に大きな円が集まる。 位置と大きさの両方で傾向が読める。"
     }
@@ -12300,8 +12300,8 @@ export const sourceYaml__portfolioDonut = `title: "資産 4 種を伝統 / 代�
 type: flow
 
 readouts:
-  d: { kind: donut, source: "assets", viewW: 160, viewH: 160, innerRatio: 0.55, label: "Allocation (donut)" }
-  legend: { kind: array-list, source: "assetNames", itemTemplate: "● {item}", label: "Legend" }
+  d: { kind: donut, source: "assets", viewW: 160, viewH: 160, innerRatio: 0.55, label: "配分の円" }
+  legend: { kind: array-list, source: "assetNames", itemTemplate: "● {item}", label: "凡例" }
 
 lanes:
   traditional: { x: 0, width: 300 }
@@ -12309,33 +12309,33 @@ lanes:
 
 states:
   assets: "[45,30,15,10]"
-  assetNames: '["Stocks","Bonds","Cash","Crypto"]'
+  assetNames: '["株式","債券","現金","暗号資産"]'
 
 actors:
-  - Stocks: { kind: card, lane: traditional, stack: 0, subtitle: "{assets[0]}%" }
-  - Bonds: { kind: card, lane: traditional, stack: 1, subtitle: "{assets[1]}%" }
-  - Cash: { kind: card, lane: alternative, stack: 0, subtitle: "{assets[2]}%" }
-  - Crypto: { kind: card, lane: alternative, stack: 1, subtitle: "{assets[3]}%" }
-  - Portfolio: { kind: card, lane: traditional, stack: 2, subtitle: "合計 {assets.sum}% · 最大 {assets.max}%" }
+  - 株式: { kind: card, lane: traditional, stack: 0, subtitle: "{assets[0]}%" }
+  - 債券: { kind: card, lane: traditional, stack: 1, subtitle: "{assets[1]}%" }
+  - 現金: { kind: card, lane: alternative, stack: 0, subtitle: "{assets[2]}%" }
+  - 暗号資産: { kind: card, lane: alternative, stack: 1, subtitle: "{assets[3]}%" }
+  - 資産全体: { kind: card, lane: traditional, stack: 2, subtitle: "合計 {assets.sum}% · 最大 {assets.max}%" }
 
 animation:
   - step: "株式に寄る" 1.8s
-    focus: ["Stocks"]
+    focus: ["株式"]
     set:
       assets: "[60,20,15,5]"
-      assetNames: '["Stocks","Bonds","Cash","Crypto"]'
+      assetNames: '["株式","債券","現金","暗号資産"]'
     description: "株式の比重が大きい配分。 円の 1 区画が広い。"
   - step: "債券を増やす" 1.8s
-    focus: ["Stocks", "Bonds"]
+    focus: ["株式", "債券"]
     set:
       assets: "[45,30,15,10]"
-      assetNames: '["Stocks","Bonds","Crypto","Cash"]'
+      assetNames: '["株式","債券","暗号資産","現金"]'
     description: "債券に振り替える。 円の区画の比率が変わり、各箱の数字も追いかける。"
   - step: "分散する" 1.8s
-    focus: ["Stocks", "Bonds", "Cash", "Crypto", "Portfolio"]
+    focus: ["株式", "債券", "現金", "暗号資産", "資産全体"]
     set:
       assets: "[30,28,22,20]"
-      assetNames: '["Stocks","Bonds","Cash","Crypto"]'
+      assetNames: '["株式","債券","現金","暗号資産"]'
     description: "4 種に近い比率で分散する。 区画の差が小さくなる。"
 `;
 
@@ -12350,14 +12350,14 @@ export const sourceJson__portfolioDonut = `{
       "viewW": 160,
       "viewH": 160,
       "innerRatio": 0.55,
-      "label": "Allocation (donut)"
+      "label": "配分の円"
     },
     {
       "id": "legend",
       "kind": "array-list",
       "source": "assetNames",
       "itemTemplate": "● {item}",
-      "label": "Legend"
+      "label": "凡例"
     }
   ],
   "lanes": {
@@ -12366,35 +12366,35 @@ export const sourceJson__portfolioDonut = `{
   },
   "actors": [
     {
-      "name": "Stocks",
+      "name": "株式",
       "kind": "card",
       "lane": "traditional",
       "stack": 0,
       "subtitle": "{assets[0]}%"
     },
     {
-      "name": "Bonds",
+      "name": "債券",
       "kind": "card",
       "lane": "traditional",
       "stack": 1,
       "subtitle": "{assets[1]}%"
     },
     {
-      "name": "Cash",
+      "name": "現金",
       "kind": "card",
       "lane": "alternative",
       "stack": 0,
       "subtitle": "{assets[2]}%"
     },
     {
-      "name": "Crypto",
+      "name": "暗号資産",
       "kind": "card",
       "lane": "alternative",
       "stack": 1,
       "subtitle": "{assets[3]}%"
     },
     {
-      "name": "Portfolio",
+      "name": "資産全体",
       "kind": "card",
       "lane": "traditional",
       "stack": 2,
@@ -12402,27 +12402,27 @@ export const sourceJson__portfolioDonut = `{
     }
   ],
   "flow": [],
-  "states": { "assets": "[45,30,15,10]", "assetNames": "[\\"Stocks\\",\\"Bonds\\",\\"Cash\\",\\"Crypto\\"]" },
+  "states": { "assets": "[45,30,15,10]", "assetNames": "[\\"株式\\",\\"債券\\",\\"現金\\",\\"暗号資産\\"]" },
   "animation": [
     {
       "step": "株式に寄る",
       "duration": 1.8,
-      "focus": ["Stocks"],
-      "set": { "assets": "[60,20,15,5]", "assetNames": "[\\"Stocks\\",\\"Bonds\\",\\"Cash\\",\\"Crypto\\"]" },
+      "focus": ["株式"],
+      "set": { "assets": "[60,20,15,5]", "assetNames": "[\\"株式\\",\\"債券\\",\\"現金\\",\\"暗号資産\\"]" },
       "body": "株式の比重が大きい配分。 円の 1 区画が広い。"
     },
     {
       "step": "債券を増やす",
       "duration": 1.8,
-      "focus": ["Stocks", "Bonds"],
-      "set": { "assets": "[45,30,15,10]", "assetNames": "[\\"Stocks\\",\\"Bonds\\",\\"Crypto\\",\\"Cash\\"]" },
+      "focus": ["株式", "債券"],
+      "set": { "assets": "[45,30,15,10]", "assetNames": "[\\"株式\\",\\"債券\\",\\"暗号資産\\",\\"現金\\"]" },
       "body": "債券に振り替える。 円の区画の比率が変わり、各箱の数字も追いかける。"
     },
     {
       "step": "分散する",
       "duration": 1.8,
-      "focus": ["Stocks", "Bonds", "Cash", "Crypto", "Portfolio"],
-      "set": { "assets": "[30,28,22,20]", "assetNames": "[\\"Stocks\\",\\"Bonds\\",\\"Cash\\",\\"Crypto\\"]" },
+      "focus": ["株式", "債券", "現金", "暗号資産", "資産全体"],
+      "set": { "assets": "[30,28,22,20]", "assetNames": "[\\"株式\\",\\"債券\\",\\"現金\\",\\"暗号資産\\"]" },
       "body": "4 種に近い比率で分散する。 区画の差が小さくなる。"
     }
   ]
@@ -12432,9 +12432,9 @@ export const sourceYaml__abTestResult = `title: "A/B テストの振り分けと
 type: flow
 
 readouts:
-  conv: { kind: stacked-bar, sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#a08870", colorB: "#22c55e", label: "Daily conv % (A vs B)" }
-  splitDonut: { kind: donut, source: "splitData", viewW: 120, viewH: 120, innerRatio: 0.5, label: "Traffic split" }
-  winner: { kind: donut, source: "results", viewW: 120, viewH: 120, colors: ["#22c55e", "#a08870"], innerRatio: 0.6, label: "Winner share (B=green)" }
+  conv: { kind: stacked-bar, sourceA: "convA", sourceB: "convB", min: 30, max: 70, colorA: "#a08870", colorB: "#22c55e", label: "日ごとの成約率 (A と B)" }
+  splitDonut: { kind: donut, source: "splitData", viewW: 120, viewH: 120, innerRatio: 0.5, label: "振り分けの割合" }
+  winner: { kind: donut, source: "results", viewW: 120, viewH: 120, colors: ["#22c55e", "#a08870"], innerRatio: 0.6, label: "勝った割合 (緑が B)" }
 
 lanes:
   varA: { x: 0, width: 300 }
@@ -12448,17 +12448,17 @@ states:
   results: "[58,42]"
 
 actors:
-  - Variant A: { kind: card, lane: varA, stack: 0, subtitle: "avg {convA.avg}%", posW: 250 }
-  - Split2: { kind: card, lane: split, stack: 0, subtitle: "振り分け {splitData[0]} / {splitData[1]}", posW: 200, title: "Split" }
-  - Variant B: { kind: card, lane: varB, stack: 0, subtitle: "avg {convB.avg}%", posW: 250 }
+  - A 案: { kind: card, lane: varA, stack: 0, subtitle: "平均 {convA.avg}%", posW: 250 }
+  - Split2: { kind: card, lane: split, stack: 0, subtitle: "割合 {splitData[0]} / {splitData[1]}", posW: 200, title: "振り分け" }
+  - B 案: { kind: card, lane: varB, stack: 0, subtitle: "平均 {convB.avg}%", posW: 250 }
 
 flow:
-  - Split2 -> Variant A: "50%" (info) { sub: "control", side: "left" }
-  - Split2 -> Variant B: "50%" (success) { sub: "treatment" }
+  - Split2 -> A 案: "50%" (info) { sub: "対照群", side: "left" }
+  - Split2 -> B 案: "50%" (success) { sub: "試験群" }
 
 animation:
   - step: "振り分け" 1.8s
-    focus: ["Variant A", "Split2"]
+    focus: ["A 案", "Split2"]
     set:
       splitData: "[50,50]"
       results: "[50,50]"
@@ -12466,7 +12466,7 @@ animation:
       convB: "[49,50,51,50,52]"
     description: "利用者を半々に分ける。 振り分けの円が 2 等分になる。"
   - step: "差が出る" 1.8s
-    focus: ["Variant A", "Split2", "Variant B"]
+    focus: ["A 案", "Split2", "B 案"]
     set:
       splitData: "[60,40]"
       results: "[55,45]"
@@ -12474,7 +12474,7 @@ animation:
       convB: "[52,55,57,56,58]"
     description: "試験群に多く振り分けて成績を見る。 振り分けの円と結果の円が別々に動く。"
   - step: "差が確定する" 1.8s
-    focus: ["Split2", "Variant B"]
+    focus: ["Split2", "B 案"]
     set:
       splitData: "[50,50]"
       results: "[62,38]"
@@ -12496,7 +12496,7 @@ export const sourceJson__abTestResult = `{
       "max": 70,
       "colorA": "#a08870",
       "colorB": "#22c55e",
-      "label": "Daily conv % (A vs B)"
+      "label": "日ごとの成約率 (A と B)"
     },
     {
       "id": "splitDonut",
@@ -12505,7 +12505,7 @@ export const sourceJson__abTestResult = `{
       "viewW": 120,
       "viewH": 120,
       "innerRatio": 0.5,
-      "label": "Traffic split"
+      "label": "振り分けの割合"
     },
     {
       "id": "winner",
@@ -12515,7 +12515,7 @@ export const sourceJson__abTestResult = `{
       "viewH": 120,
       "colors": ["#22c55e", "#a08870"],
       "innerRatio": 0.6,
-      "label": "Winner share (B=green)"
+      "label": "勝った割合 (緑が B)"
     }
   ],
   "lanes": {
@@ -12525,11 +12525,11 @@ export const sourceJson__abTestResult = `{
   },
   "actors": [
     {
-      "name": "Variant A",
+      "name": "A 案",
       "kind": "card",
       "lane": "varA",
       "stack": 0,
-      "subtitle": "avg {convA.avg}%",
+      "subtitle": "平均 {convA.avg}%",
       "posW": 250
     },
     {
@@ -12537,34 +12537,34 @@ export const sourceJson__abTestResult = `{
       "kind": "card",
       "lane": "split",
       "stack": 0,
-      "subtitle": "振り分け {splitData[0]} / {splitData[1]}",
+      "subtitle": "割合 {splitData[0]} / {splitData[1]}",
       "posW": 200,
-      "title": "Split"
+      "title": "振り分け"
     },
     {
-      "name": "Variant B",
+      "name": "B 案",
       "kind": "card",
       "lane": "varB",
       "stack": 0,
-      "subtitle": "avg {convB.avg}%",
+      "subtitle": "平均 {convB.avg}%",
       "posW": 250
     }
   ],
   "flow": [
     {
       "from": "Split2",
-      "to": "Variant A",
+      "to": "A 案",
       "label": "50%",
       "tone": "info",
-      "sub": "control",
+      "sub": "対照群",
       "side": "left"
     },
     {
       "from": "Split2",
-      "to": "Variant B",
+      "to": "B 案",
       "label": "50%",
       "tone": "success",
-      "sub": "treatment"
+      "sub": "試験群"
     }
   ],
   "states": {
@@ -12577,7 +12577,7 @@ export const sourceJson__abTestResult = `{
     {
       "step": "振り分け",
       "duration": 1.8,
-      "focus": ["Variant A", "Split2"],
+      "focus": ["A 案", "Split2"],
       "set": {
         "splitData": "[50,50]",
         "results": "[50,50]",
@@ -12589,7 +12589,7 @@ export const sourceJson__abTestResult = `{
     {
       "step": "差が出る",
       "duration": 1.8,
-      "focus": ["Variant A", "Split2", "Variant B"],
+      "focus": ["A 案", "Split2", "B 案"],
       "set": {
         "splitData": "[60,40]",
         "results": "[55,45]",
@@ -12601,7 +12601,7 @@ export const sourceJson__abTestResult = `{
     {
       "step": "差が確定する",
       "duration": 1.8,
-      "focus": ["Split2", "Variant B"],
+      "focus": ["Split2", "B 案"],
       "set": {
         "splitData": "[50,50]",
         "results": "[62,38]",
@@ -12617,7 +12617,7 @@ export const sourceYaml__contributionHeatmap = `title: "30 日の活動量を升
 type: flow
 
 readouts:
-  h: { kind: calendar-heatmap, source: "commits", max: 10, cellSize: 10, cellGap: 2, label: "1 year (53 週 × 7 日)" }
+  h: { kind: calendar-heatmap, source: "commits", max: 10, cellSize: 10, cellGap: 2, label: "1 年 (53 週 × 7 日)" }
 
 lanes:
   q1: { x: 0, width: 160 }
@@ -12629,25 +12629,25 @@ states:
   commits: "[0,9,5,1,10,6,0,5,5,1,10,6,2,7,1,1,10,6,2,10,3,0,10,6,2,10,7,0,6,6,2,10,7,3,8,2,2,10,7,3,10,4,0,10,7,3,10,8,0,7,7,3,10,8,4,0,3,3,10,8,4,0,5,0,10,8,4,0,9,1,8,8,4,0,9,5,0,4,4,0,9,5,1,6,0,0,9,5,1,10,2,0,9,5,1,10,6,0,5,5,1,10,6,2,7,1,1,10,6,2,10,3,0,10,6,2,10,7,0,6,6,2,10,7,3,8,2,2,10,7,3,10,4,0,10,7,3,10,8,0,7,7,3,10,8,4,0,3,3,10,8,4,0,5,0,10,8,4,0,9,1,8,8,4,0,9,5,0,4,4,0,9,5,1,6,0,0,9,5,1,10,2,0,9,5,1,10,6,0,5,5,1,10,6,2,7,1,1,10,6,2,10,3,0,10,6,2,10,7,0,6,6,2,10,7,3,8,2,2,10,7,3,10,4,0,10,7,3,10,8,0,7,7,3,10,8,4,0,3,3,10,8,4,0,5,0,10,8,4,0,9,1,8,8,4,0,9,5,0,4,4,0,9,5,1,6,0,0,9,5,1,10,2,0,9,5,1,10,6,0,5,5,1,10,6,2,7,1,1,10,6,2,10,3,0,10,6,2,10,7,0,6,6,2,10,7,3,8,2,2,10,7,3,10,4,0,10,7,3,10,8,0,7,7,3,10,8,4,0,3,3,10,8,4,0,5,0,10,8,4,0,9,1,8,8,4,0,9,5,0,4,4,0,9,5,1,6,0,0,9,5,1,10,2,0,9,5,1,10,6,0]"
 
 actors:
-  - Q1 (Jan-Mar): { kind: card, lane: q1, stack: 0, subtitle: "静かな期間" }
-  - Q2 (Apr-Jun): { kind: card, lane: q2, stack: 0, subtitle: "活発な期間" }
-  - Q3 (Jul-Sep): { kind: card, lane: q3, stack: 0, subtitle: "落ち着く期間" }
-  - Q4 (Oct-Dec): { kind: card, lane: q4, stack: 0, subtitle: "全体の推移" }
-  - Year total: { kind: card, lane: q4, stack: 1, subtitle: "sum {commits.sum} · max {commits.max} · avg {commits.avg}" }
+  - 1〜3 月: { kind: card, lane: q1, stack: 0, subtitle: "静かな期間" }
+  - 4〜6 月: { kind: card, lane: q2, stack: 0, subtitle: "活発な期間" }
+  - 7〜9 月: { kind: card, lane: q3, stack: 0, subtitle: "落ち着く期間" }
+  - 10〜12 月: { kind: card, lane: q4, stack: 0, subtitle: "全体の推移" }
+  - 1 年の合計: { kind: card, lane: q4, stack: 1, subtitle: "合計 {commits.sum} · 最大 {commits.max} · 平均 {commits.avg}" }
 
 animation:
   - step: "静かな期間" 1.8s
-    focus: ["Q1 (Jan-Mar)"]
+    focus: ["1〜3 月"]
     set:
       commits: "[0,1,0,2,1,0,0,1,2,0,1,0,0,2,1,0,1,0,2,0,1,0,0,1,2,0,1,0,0,2]"
     description: "書き込みが少ない期間。 濃い升目がまばら。"
   - step: "活発になる" 1.8s
-    focus: ["Q1 (Jan-Mar)", "Q2 (Apr-Jun)"]
+    focus: ["1〜3 月", "4〜6 月"]
     set:
       commits: "[0,9,5,1,10,6,0,5,5,1,10,6,2,7,1,1,10,6,2,10,3,0,10,6,2,10,7,0,6,6]"
     description: "書き込みが増えて濃い升目が続く。 帯のように連なる。"
   - step: "落ち着く" 1.8s
-    focus: ["Q1 (Jan-Mar)", "Q2 (Apr-Jun)", "Q3 (Jul-Sep)", "Q4 (Oct-Dec)", "Year total"]
+    focus: ["1〜3 月", "4〜6 月", "7〜9 月", "10〜12 月", "1 年の合計"]
     set:
       commits: "[0,9,5,1,10,6,0,5,5,1,10,6,2,7,1,1,4,2,1,3,1,0,2,1,0,1,2,0,1,0]"
     description: "終盤で書き込みが減る。 濃淡の移り変わりで期間の性格が読める。"
@@ -12664,7 +12664,7 @@ export const sourceJson__contributionHeatmap = `{
       "max": 10,
       "cellSize": 10,
       "cellGap": 2,
-      "label": "1 year (53 週 × 7 日)"
+      "label": "1 年 (53 週 × 7 日)"
     }
   ],
   "lanes": {
@@ -12674,16 +12674,16 @@ export const sourceJson__contributionHeatmap = `{
     "q4": { "x": 540, "width": 160 }
   },
   "actors": [
-    { "name": "Q1 (Jan-Mar)", "kind": "card", "lane": "q1", "stack": 0, "subtitle": "静かな期間" },
-    { "name": "Q2 (Apr-Jun)", "kind": "card", "lane": "q2", "stack": 0, "subtitle": "活発な期間" },
-    { "name": "Q3 (Jul-Sep)", "kind": "card", "lane": "q3", "stack": 0, "subtitle": "落ち着く期間" },
-    { "name": "Q4 (Oct-Dec)", "kind": "card", "lane": "q4", "stack": 0, "subtitle": "全体の推移" },
+    { "name": "1〜3 月", "kind": "card", "lane": "q1", "stack": 0, "subtitle": "静かな期間" },
+    { "name": "4〜6 月", "kind": "card", "lane": "q2", "stack": 0, "subtitle": "活発な期間" },
+    { "name": "7〜9 月", "kind": "card", "lane": "q3", "stack": 0, "subtitle": "落ち着く期間" },
+    { "name": "10〜12 月", "kind": "card", "lane": "q4", "stack": 0, "subtitle": "全体の推移" },
     {
-      "name": "Year total",
+      "name": "1 年の合計",
       "kind": "card",
       "lane": "q4",
       "stack": 1,
-      "subtitle": "sum {commits.sum} · max {commits.max} · avg {commits.avg}"
+      "subtitle": "合計 {commits.sum} · 最大 {commits.max} · 平均 {commits.avg}"
     }
   ],
   "flow": [],
@@ -12694,21 +12694,21 @@ export const sourceJson__contributionHeatmap = `{
     {
       "step": "静かな期間",
       "duration": 1.8,
-      "focus": ["Q1 (Jan-Mar)"],
+      "focus": ["1〜3 月"],
       "set": { "commits": "[0,1,0,2,1,0,0,1,2,0,1,0,0,2,1,0,1,0,2,0,1,0,0,1,2,0,1,0,0,2]" },
       "body": "書き込みが少ない期間。 濃い升目がまばら。"
     },
     {
       "step": "活発になる",
       "duration": 1.8,
-      "focus": ["Q1 (Jan-Mar)", "Q2 (Apr-Jun)"],
+      "focus": ["1〜3 月", "4〜6 月"],
       "set": { "commits": "[0,9,5,1,10,6,0,5,5,1,10,6,2,7,1,1,10,6,2,10,3,0,10,6,2,10,7,0,6,6]" },
       "body": "書き込みが増えて濃い升目が続く。 帯のように連なる。"
     },
     {
       "step": "落ち着く",
       "duration": 1.8,
-      "focus": ["Q1 (Jan-Mar)", "Q2 (Apr-Jun)", "Q3 (Jul-Sep)", "Q4 (Oct-Dec)", "Year total"],
+      "focus": ["1〜3 月", "4〜6 月", "7〜9 月", "10〜12 月", "1 年の合計"],
       "set": { "commits": "[0,9,5,1,10,6,0,5,5,1,10,6,2,7,1,1,4,2,1,3,1,0,2,1,0,1,2,0,1,0]" },
       "body": "終盤で書き込みが減る。 濃淡の移り変わりで期間の性格が読める。"
     }
@@ -20533,12 +20533,12 @@ export const sourceYaml__arraySignalHistogram = `title: "配列 5 要素の合�
 type: flow
 
 inputs:
-  bump: { kind: slider, min: 0, max: 50, defaultValue: 20, label: "First bar" }
+  bump: { kind: slider, min: 0, max: 50, defaultValue: 20, label: "1 本目を上書き" }
 
 readouts:
-  hist: { kind: array-bar, source: "xs", min: 0, max: 50, color: "#2563eb", label: "Bars (histogram)" }
-  items: { kind: array-list, source: "xs", itemTemplate: "#{i} → {item}", max: 6, label: "Items (bullet list)" }
-  first: { kind: stat, source: "bump", label: "Bump" }
+  hist: { kind: array-bar, source: "xs", min: 0, max: 50, color: "#2563eb", label: "棒グラフ" }
+  items: { kind: array-list, source: "xs", itemTemplate: "#{i} → {item}", max: 6, label: "一覧 (箇条書き)" }
+  first: { kind: stat, source: "bump", label: "1 本目の値" }
 
 lanes:
   agg: { x: 0, width: 240 }
@@ -20548,27 +20548,27 @@ states:
   xs: "[12,34,20,45,28]"
 
 actors:
-  - Aggregate: { kind: card, lane: agg, stack: 0, subtitle: "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}" }
-  - Bump control: { kind: card, lane: agg, stack: 1, subtitle: "1 本目だけを上書きするつまみ" }
-  - #0: { kind: card, lane: items, stack: 0, subtitle: "xs[0] = {xs[0]}" }
-  - #1: { kind: card, lane: items, stack: 1, subtitle: "xs[1] = {xs[1]}" }
-  - #2: { kind: card, lane: items, stack: 2, subtitle: "xs[2] = {xs[2]}" }
-  - #3: { kind: card, lane: items, stack: 3, subtitle: "xs[3] = {xs[3]}" }
-  - #4: { kind: card, lane: items, stack: 4, subtitle: "xs[4] = {xs[4]}" }
+  - 集計: { kind: card, lane: agg, stack: 0, subtitle: "件数 {xs.length} · 合計 {xs.sum} · 平均 {xs.avg} · 最大 {xs.max}" }
+  - 上書きのつまみ: { kind: card, lane: agg, stack: 1, subtitle: "1 本目だけを上書きするつまみ" }
+  - #0: { kind: card, lane: items, stack: 0, subtitle: "値 {xs[0]}" }
+  - #1: { kind: card, lane: items, stack: 1, subtitle: "値 {xs[1]}" }
+  - #2: { kind: card, lane: items, stack: 2, subtitle: "値 {xs[2]}" }
+  - #3: { kind: card, lane: items, stack: 3, subtitle: "値 {xs[3]}" }
+  - #4: { kind: card, lane: items, stack: 4, subtitle: "値 {xs[4]}" }
 
 animation:
   - step: "初期の並び" 1.8s
-    focus: ["Aggregate", "#0"]
+    focus: ["集計", "#0"]
     set:
       xs: "[12,34,20,45,28]"
     description: "5 つの値が並んだ状態。 棒の高さと一覧が同じ配列を見ている。"
   - step: "山が右へ移る" 1.8s
-    focus: ["Aggregate", "#0", "#1", "#2"]
+    focus: ["集計", "#0", "#1", "#2"]
     set:
       xs: "[40,18,30,26,48]"
     description: "配列を差し替えると、一番高い棒が左寄りから右端に移る。 各箱の数字も同時に変わる。"
   - step: "右上がりに整う" 1.8s
-    focus: ["Aggregate", "#0", "#1", "#2", "#3", "#4"]
+    focus: ["集計", "#0", "#1", "#2", "#3", "#4"]
     set:
       xs: "[15,22,30,38,48]"
     description: "右端を最大に保ったまま、左から右へ揃って上がる形にする。 配列 1 つで棒も箱も追いかける。"
@@ -20584,7 +20584,7 @@ export const sourceJson__arraySignalHistogram = `{
       "min": 0,
       "max": 50,
       "defaultValue": 20,
-      "label": "First bar"
+      "label": "1 本目を上書き"
     }
   ],
   "readouts": [
@@ -20595,7 +20595,7 @@ export const sourceJson__arraySignalHistogram = `{
       "min": 0,
       "max": 50,
       "color": "#2563eb",
-      "label": "Bars (histogram)"
+      "label": "棒グラフ"
     },
     {
       "id": "items",
@@ -20603,9 +20603,9 @@ export const sourceJson__arraySignalHistogram = `{
       "source": "xs",
       "itemTemplate": "#{i} → {item}",
       "max": 6,
-      "label": "Items (bullet list)"
+      "label": "一覧 (箇条書き)"
     },
-    { "id": "first", "kind": "stat", "source": "bump", "label": "Bump" }
+    { "id": "first", "kind": "stat", "source": "bump", "label": "1 本目の値" }
   ],
   "lanes": {
     "agg": { "x": 0, "width": 240 },
@@ -20613,24 +20613,24 @@ export const sourceJson__arraySignalHistogram = `{
   },
   "actors": [
     {
-      "name": "Aggregate",
+      "name": "集計",
       "kind": "card",
       "lane": "agg",
       "stack": 0,
-      "subtitle": "count {xs.length} · sum {xs.sum} · avg {xs.avg} · max {xs.max}"
+      "subtitle": "件数 {xs.length} · 合計 {xs.sum} · 平均 {xs.avg} · 最大 {xs.max}"
     },
     {
-      "name": "Bump control",
+      "name": "上書きのつまみ",
       "kind": "card",
       "lane": "agg",
       "stack": 1,
       "subtitle": "1 本目だけを上書きするつまみ"
     },
-    { "name": "#0", "kind": "card", "lane": "items", "stack": 0, "subtitle": "xs[0] = {xs[0]}" },
-    { "name": "#1", "kind": "card", "lane": "items", "stack": 1, "subtitle": "xs[1] = {xs[1]}" },
-    { "name": "#2", "kind": "card", "lane": "items", "stack": 2, "subtitle": "xs[2] = {xs[2]}" },
-    { "name": "#3", "kind": "card", "lane": "items", "stack": 3, "subtitle": "xs[3] = {xs[3]}" },
-    { "name": "#4", "kind": "card", "lane": "items", "stack": 4, "subtitle": "xs[4] = {xs[4]}" }
+    { "name": "#0", "kind": "card", "lane": "items", "stack": 0, "subtitle": "値 {xs[0]}" },
+    { "name": "#1", "kind": "card", "lane": "items", "stack": 1, "subtitle": "値 {xs[1]}" },
+    { "name": "#2", "kind": "card", "lane": "items", "stack": 2, "subtitle": "値 {xs[2]}" },
+    { "name": "#3", "kind": "card", "lane": "items", "stack": 3, "subtitle": "値 {xs[3]}" },
+    { "name": "#4", "kind": "card", "lane": "items", "stack": 4, "subtitle": "値 {xs[4]}" }
   ],
   "flow": [],
   "states": { "xs": "[12,34,20,45,28]" },
@@ -20638,21 +20638,21 @@ export const sourceJson__arraySignalHistogram = `{
     {
       "step": "初期の並び",
       "duration": 1.8,
-      "focus": ["Aggregate", "#0"],
+      "focus": ["集計", "#0"],
       "set": { "xs": "[12,34,20,45,28]" },
       "body": "5 つの値が並んだ状態。 棒の高さと一覧が同じ配列を見ている。"
     },
     {
       "step": "山が右へ移る",
       "duration": 1.8,
-      "focus": ["Aggregate", "#0", "#1", "#2"],
+      "focus": ["集計", "#0", "#1", "#2"],
       "set": { "xs": "[40,18,30,26,48]" },
       "body": "配列を差し替えると、一番高い棒が左寄りから右端に移る。 各箱の数字も同時に変わる。"
     },
     {
       "step": "右上がりに整う",
       "duration": 1.8,
-      "focus": ["Aggregate", "#0", "#1", "#2", "#3", "#4"],
+      "focus": ["集計", "#0", "#1", "#2", "#3", "#4"],
       "set": { "xs": "[15,22,30,38,48]" },
       "body": "右端を最大に保ったまま、左から右へ揃って上がる形にする。 配列 1 つで棒も箱も追いかける。"
     }
@@ -20905,13 +20905,13 @@ export const sourceYaml__canvasMiniMap = `title: "全体図の中で今見てい
 type: flow
 
 inputs:
-  panX: { kind: slider, min: 0, max: 600, defaultValue: 300, label: "Pan X" }
-  panY: { kind: slider, min: 0, max: 500, defaultValue: 250, label: "Pan Y" }
+  panX: { kind: slider, min: 0, max: 600, defaultValue: 300, label: "横の移動" }
+  panY: { kind: slider, min: 0, max: 500, defaultValue: 250, label: "縦の移動" }
 
 readouts:
-  map: { kind: mini-map, source: "viewport", canvasW: 1000, canvasH: 800, viewW: 200, viewH: 160, color: "#2563eb", label: "Overview (mini-map)" }
-  panXStat: { kind: stat, source: "panX", unit: "px", label: "X stat" }
-  panYStat: { kind: stat, source: "panY", unit: "px", label: "Y stat" }
+  map: { kind: mini-map, source: "viewport", canvasW: 1000, canvasH: 800, viewW: 200, viewH: 160, color: "#2563eb", label: "全体図 (小窓)" }
+  panXStat: { kind: stat, source: "panX", unit: "px", label: "横の移動量" }
+  panYStat: { kind: stat, source: "panY", unit: "px", label: "縦の移動量" }
 
 lanes:
   xpan: { x: 0, width: 200 }
@@ -20924,23 +20924,23 @@ states:
   viewport: "[300,250,400,300]"
 
 actors:
-  - Pan X: { kind: card, lane: xpan, stack: 0, subtitle: "panX = {panX}px (0-600)" }
-  - Pan Y: { kind: card, lane: ypan, stack: 0, subtitle: "panY = {panY}px (0-500)" }
-  - Mini-map: { kind: card, lane: map, stack: 0, subtitle: "pan ({panX}, {panY}) view 400×300" }
+  - 横の移動: { kind: card, lane: xpan, stack: 0, subtitle: "{panX}px (0〜600)" }
+  - 縦の移動: { kind: card, lane: ypan, stack: 0, subtitle: "{panY}px (0〜500)" }
+  - 小窓: { kind: card, lane: map, stack: 0, subtitle: "({panX}, {panY}) から 400×300" }
 
 animation:
   - step: "左上を見る" 1.8s
-    focus: ["Pan X"]
+    focus: ["横の移動"]
     set:
       viewport: "[0,0,400,300]"
     description: "全体図の左上を見ている状態。 小窓の枠が左上にある。"
   - step: "右へ移る" 1.8s
-    focus: ["Pan X", "Pan Y"]
+    focus: ["横の移動", "縦の移動"]
     set:
       viewport: "[500,0,400,300]"
     description: "見ている範囲が右へ移る。 小窓の枠も追いかける。"
   - step: "下へ移る" 1.8s
-    focus: ["Pan X", "Pan Y", "Mini-map"]
+    focus: ["横の移動", "縦の移動", "小窓"]
     set:
       viewport: "[500,400,400,300]"
     description: "さらに下へ移る。 全体の中で今どこを見ているかが枠で分かる。"
@@ -20956,7 +20956,7 @@ export const sourceJson__canvasMiniMap = `{
       "min": 0,
       "max": 600,
       "defaultValue": 300,
-      "label": "Pan X"
+      "label": "横の移動"
     },
     {
       "id": "panY",
@@ -20964,7 +20964,7 @@ export const sourceJson__canvasMiniMap = `{
       "min": 0,
       "max": 500,
       "defaultValue": 250,
-      "label": "Pan Y"
+      "label": "縦の移動"
     }
   ],
   "readouts": [
@@ -20977,10 +20977,10 @@ export const sourceJson__canvasMiniMap = `{
       "viewW": 200,
       "viewH": 160,
       "color": "#2563eb",
-      "label": "Overview (mini-map)"
+      "label": "全体図 (小窓)"
     },
-    { "id": "panXStat", "kind": "stat", "source": "panX", "unit": "px", "label": "X stat" },
-    { "id": "panYStat", "kind": "stat", "source": "panY", "unit": "px", "label": "Y stat" }
+    { "id": "panXStat", "kind": "stat", "source": "panX", "unit": "px", "label": "横の移動量" },
+    { "id": "panYStat", "kind": "stat", "source": "panY", "unit": "px", "label": "縦の移動量" }
   ],
   "lanes": {
     "xpan": { "x": 0, "width": 200 },
@@ -20989,25 +20989,25 @@ export const sourceJson__canvasMiniMap = `{
   },
   "actors": [
     {
-      "name": "Pan X",
+      "name": "横の移動",
       "kind": "card",
       "lane": "xpan",
       "stack": 0,
-      "subtitle": "panX = {panX}px (0-600)"
+      "subtitle": "{panX}px (0〜600)"
     },
     {
-      "name": "Pan Y",
+      "name": "縦の移動",
       "kind": "card",
       "lane": "ypan",
       "stack": 0,
-      "subtitle": "panY = {panY}px (0-500)"
+      "subtitle": "{panY}px (0〜500)"
     },
     {
-      "name": "Mini-map",
+      "name": "小窓",
       "kind": "card",
       "lane": "map",
       "stack": 0,
-      "subtitle": "pan ({panX}, {panY}) view 400×300"
+      "subtitle": "({panX}, {panY}) から 400×300"
     }
   ],
   "flow": [],
@@ -21016,21 +21016,21 @@ export const sourceJson__canvasMiniMap = `{
     {
       "step": "左上を見る",
       "duration": 1.8,
-      "focus": ["Pan X"],
+      "focus": ["横の移動"],
       "set": { "viewport": "[0,0,400,300]" },
       "body": "全体図の左上を見ている状態。 小窓の枠が左上にある。"
     },
     {
       "step": "右へ移る",
       "duration": 1.8,
-      "focus": ["Pan X", "Pan Y"],
+      "focus": ["横の移動", "縦の移動"],
       "set": { "viewport": "[500,0,400,300]" },
       "body": "見ている範囲が右へ移る。 小窓の枠も追いかける。"
     },
     {
       "step": "下へ移る",
       "duration": 1.8,
-      "focus": ["Pan X", "Pan Y", "Mini-map"],
+      "focus": ["横の移動", "縦の移動", "小窓"],
       "set": { "viewport": "[500,400,400,300]" },
       "body": "さらに下へ移る。 全体の中で今どこを見ているかが枠で分かる。"
     }
@@ -21041,10 +21041,10 @@ export const sourceYaml__colorPickerTheme = `title: "選んだ色が見本と 16
 type: flow
 
 inputs:
-  accent: { kind: color, defaultValue: "#8a5a2a", label: "Accent" }
+  accent: { kind: color, defaultValue: "#8a5a2a", label: "差し色" }
 
 readouts:
-  hexReadout: { kind: stat, source: "accent", caption: "hex color", label: "Selected" }
+  hexReadout: { kind: stat, source: "accent", caption: "16 進の色", label: "選んだ色" }
 
 lanes:
   picker: { x: 0, width: 370 }
@@ -21055,23 +21055,23 @@ states:
   accent: "#8a5a2a"
 
 actors:
-  - Color picker: { kind: card, lane: picker, stack: 0, subtitle: "input.color widget · default #8a5a2a", posW: 320 }
-  - Swatch: { kind: card, lane: swatch-lane, stack: 0, subtitle: "hex: {accent}", posW: 180 }
-  - Hex stat: { kind: card, lane: stat, stack: 0, subtitle: "readout.stat で hex 表示", posW: 270 }
+  - 色の選択: { kind: card, lane: picker, stack: 0, subtitle: "色の入力欄 · 初期値 #8a5a2a", posW: 320 }
+  - 色見本: { kind: card, lane: swatch-lane, stack: 0, subtitle: "{accent}", posW: 180 }
+  - 16 進の表示: { kind: card, lane: stat, stack: 0, subtitle: "選んだ色を 16 進で出す", posW: 270 }
 
 flow:
-  - Color picker -> Swatch: "select" (info)
-  - Swatch -> Hex stat: "display" (success)
+  - 色の選択 -> 色見本: "選ぶ" (info)
+  - 色見本 -> 16 進の表示: "表示する" (success)
 
 animation:
   - step: "色を選ぶ" 1.8s
-    focus: ["Color picker"]
+    focus: ["色の選択"]
     description: "選んだ色が左の箱に入る。 まだ見本には伝わっていない。"
   - step: "見本に伝わる" 1.8s
-    focus: ["Color picker", "Swatch"]
-    description: "選んだ色の 16 進表記が中央に出る。 箱の塗り自体には束ねていないので、色は変わらない。"
+    focus: ["色の選択", "色見本"]
+    description: "選んだ色の 16 進表記が中央に出る。 箱の塗りは選んだ色を見ていないので、色は変わらない。"
   - step: "表記も揃う" 1.8s
-    focus: ["Color picker", "Swatch", "Hex stat"]
+    focus: ["色の選択", "色見本", "16 進の表示"]
     description: "右にも同じ 16 進表記が出る。 選んだ値が 2 箇所で読める形になっている。"
 `;
 
@@ -21079,15 +21079,15 @@ export const sourceJson__colorPickerTheme = `{
   "title": "選んだ色が見本と 16 進表記に伝わる",
   "type": "flow",
   "inputs": [
-    { "id": "accent", "kind": "color", "defaultValue": "#8a5a2a", "label": "Accent" }
+    { "id": "accent", "kind": "color", "defaultValue": "#8a5a2a", "label": "差し色" }
   ],
   "readouts": [
     {
       "id": "hexReadout",
       "kind": "stat",
       "source": "accent",
-      "caption": "hex color",
-      "label": "Selected"
+      "caption": "16 進の色",
+      "label": "選んだ色"
     }
   ],
   "lanes": {
@@ -21097,52 +21097,52 @@ export const sourceJson__colorPickerTheme = `{
   },
   "actors": [
     {
-      "name": "Color picker",
+      "name": "色の選択",
       "kind": "card",
       "lane": "picker",
       "stack": 0,
-      "subtitle": "input.color widget · default #8a5a2a",
+      "subtitle": "色の入力欄 · 初期値 #8a5a2a",
       "posW": 320
     },
     {
-      "name": "Swatch",
+      "name": "色見本",
       "kind": "card",
       "lane": "swatch-lane",
       "stack": 0,
-      "subtitle": "hex: {accent}",
+      "subtitle": "{accent}",
       "posW": 180
     },
     {
-      "name": "Hex stat",
+      "name": "16 進の表示",
       "kind": "card",
       "lane": "stat",
       "stack": 0,
-      "subtitle": "readout.stat で hex 表示",
+      "subtitle": "選んだ色を 16 進で出す",
       "posW": 270
     }
   ],
   "flow": [
-    { "from": "Color picker", "to": "Swatch", "label": "select", "tone": "info" },
-    { "from": "Swatch", "to": "Hex stat", "label": "display", "tone": "success" }
+    { "from": "色の選択", "to": "色見本", "label": "選ぶ", "tone": "info" },
+    { "from": "色見本", "to": "16 進の表示", "label": "表示する", "tone": "success" }
   ],
   "states": { "accent": "#8a5a2a" },
   "animation": [
     {
       "step": "色を選ぶ",
       "duration": 1.8,
-      "focus": ["Color picker"],
+      "focus": ["色の選択"],
       "body": "選んだ色が左の箱に入る。 まだ見本には伝わっていない。"
     },
     {
       "step": "見本に伝わる",
       "duration": 1.8,
-      "focus": ["Color picker", "Swatch"],
-      "body": "選んだ色の 16 進表記が中央に出る。 箱の塗り自体には束ねていないので、色は変わらない。"
+      "focus": ["色の選択", "色見本"],
+      "body": "選んだ色の 16 進表記が中央に出る。 箱の塗りは選んだ色を見ていないので、色は変わらない。"
     },
     {
       "step": "表記も揃う",
       "duration": 1.8,
-      "focus": ["Color picker", "Swatch", "Hex stat"],
+      "focus": ["色の選択", "色見本", "16 進の表示"],
       "body": "右にも同じ 16 進表記が出る。 選んだ値が 2 箇所で読める形になっている。"
     }
   ]
@@ -21516,14 +21516,14 @@ export const sourceYaml__dynamicReadouts = `title: "数え上げ / 増減 / 円 
 type: flow
 
 inputs:
-  rev: { kind: slider, min: 0, max: 500, defaultValue: 250, label: "Revenue" }
-  status: { kind: dropdown, options: ["active", "pending", "closed"], defaultValue: "active", label: "Status" }
+  rev: { kind: slider, min: 0, max: 500, defaultValue: 250, label: "売上" }
+  status: { kind: dropdown, options: ["受付中", "保留", "終了"], defaultValue: "受付中", label: "状態" }
 
 readouts:
-  revCount: { kind: countup, source: "rev", unit: "$", label: "Revenue count" }
-  revDelta: { kind: delta, source: "rev", unit: "$", label: "Δ delta" }
-  revPct: { kind: percent-ring, source: "rev", max: 500, label: "Progress ring" }
-  statusText: { kind: typewriter, source: "status", charMs: 50, label: "Status text" }
+  revCount: { kind: countup, source: "rev", unit: "$", label: "売上の数え上げ" }
+  revDelta: { kind: delta, source: "rev", unit: "$", label: "Δ 増減" }
+  revPct: { kind: percent-ring, source: "rev", max: 500, label: "進み具合の円" }
+  statusText: { kind: typewriter, source: "status", charMs: 50, label: "状態の文字" }
 
 lanes:
   col1: { x: 0, width: 370 }
@@ -21531,23 +21531,23 @@ lanes:
 
 states:
   rev: 250
-  status: "active"
+  status: "受付中"
 
 actors:
-  - Countup: { kind: card, lane: col1, stack: 0, subtitle: "rev={rev} · animated $ counter", posW: 320 }
-  - Delta: { kind: card, lane: col2, stack: 0, subtitle: "rev={rev} · ↑↓ arrow", posW: 240 }
-  - Percent ring: { kind: card, lane: col1, stack: 1, subtitle: "rev/500 = {rev} progress", posW: 310 }
-  - Typewriter: { kind: card, lane: col2, stack: 1, subtitle: "status={status} · char reveal", posW: 320 }
+  - 数え上げ: { kind: card, lane: col1, stack: 0, subtitle: "売上 {rev} · ドルで数え上げる", posW: 320 }
+  - 増減: { kind: card, lane: col2, stack: 0, subtitle: "売上 {rev} · 矢印で出す", posW: 240 }
+  - 割合の円: { kind: card, lane: col1, stack: 1, subtitle: "売上 {rev} ÷ 500 の割合", posW: 310 }
+  - 打ち出し: { kind: card, lane: col2, stack: 1, subtitle: "状態 {status} · 1 文字ずつ出す", posW: 320 }
 
 animation:
   - step: "数え上げを見る" 1.8s
-    focus: ["Countup"]
+    focus: ["数え上げ"]
     description: "件数を数え上げる表示。 4 つのうち 1 つ目で、つまみの値をそのまま出す。"
   - step: "増減と円を見る" 1.8s
-    focus: ["Countup", "Delta", "Percent ring"]
+    focus: ["数え上げ", "増減", "割合の円"]
     description: "同じ件数から増減の幅と割合の円を出す。 1 つの値を 3 通りに描き分ける。"
   - step: "文字でも出す" 1.8s
-    focus: ["Countup", "Delta", "Percent ring", "Typewriter"]
+    focus: ["数え上げ", "増減", "割合の円", "打ち出し"]
     description: "状態を打ち出す表示まで並ぶ。 数値 3 つと文字 1 つの 4 表示が揃う。"
 `;
 
@@ -21561,14 +21561,14 @@ export const sourceJson__dynamicReadouts = `{
       "min": 0,
       "max": 500,
       "defaultValue": 250,
-      "label": "Revenue"
+      "label": "売上"
     },
     {
       "id": "status",
       "kind": "dropdown",
-      "options": ["active", "pending", "closed"],
-      "defaultValue": "active",
-      "label": "Status"
+      "options": ["受付中", "保留", "終了"],
+      "defaultValue": "受付中",
+      "label": "状態"
     }
   ],
   "readouts": [
@@ -21577,22 +21577,22 @@ export const sourceJson__dynamicReadouts = `{
       "kind": "countup",
       "source": "rev",
       "unit": "$",
-      "label": "Revenue count"
+      "label": "売上の数え上げ"
     },
-    { "id": "revDelta", "kind": "delta", "source": "rev", "unit": "$", "label": "Δ delta" },
+    { "id": "revDelta", "kind": "delta", "source": "rev", "unit": "$", "label": "Δ 増減" },
     {
       "id": "revPct",
       "kind": "percent-ring",
       "source": "rev",
       "max": 500,
-      "label": "Progress ring"
+      "label": "進み具合の円"
     },
     {
       "id": "statusText",
       "kind": "typewriter",
       "source": "status",
       "charMs": 50,
-      "label": "Status text"
+      "label": "状態の文字"
     }
   ],
   "lanes": {
@@ -21601,57 +21601,57 @@ export const sourceJson__dynamicReadouts = `{
   },
   "actors": [
     {
-      "name": "Countup",
+      "name": "数え上げ",
       "kind": "card",
       "lane": "col1",
       "stack": 0,
-      "subtitle": "rev={rev} · animated $ counter",
+      "subtitle": "売上 {rev} · ドルで数え上げる",
       "posW": 320
     },
     {
-      "name": "Delta",
+      "name": "増減",
       "kind": "card",
       "lane": "col2",
       "stack": 0,
-      "subtitle": "rev={rev} · ↑↓ arrow",
+      "subtitle": "売上 {rev} · 矢印で出す",
       "posW": 240
     },
     {
-      "name": "Percent ring",
+      "name": "割合の円",
       "kind": "card",
       "lane": "col1",
       "stack": 1,
-      "subtitle": "rev/500 = {rev} progress",
+      "subtitle": "売上 {rev} ÷ 500 の割合",
       "posW": 310
     },
     {
-      "name": "Typewriter",
+      "name": "打ち出し",
       "kind": "card",
       "lane": "col2",
       "stack": 1,
-      "subtitle": "status={status} · char reveal",
+      "subtitle": "状態 {status} · 1 文字ずつ出す",
       "posW": 320
     }
   ],
   "flow": [],
-  "states": { "rev": 250, "status": "active" },
+  "states": { "rev": 250, "status": "受付中" },
   "animation": [
     {
       "step": "数え上げを見る",
       "duration": 1.8,
-      "focus": ["Countup"],
+      "focus": ["数え上げ"],
       "body": "件数を数え上げる表示。 4 つのうち 1 つ目で、つまみの値をそのまま出す。"
     },
     {
       "step": "増減と円を見る",
       "duration": 1.8,
-      "focus": ["Countup", "Delta", "Percent ring"],
+      "focus": ["数え上げ", "増減", "割合の円"],
       "body": "同じ件数から増減の幅と割合の円を出す。 1 つの値を 3 通りに描き分ける。"
     },
     {
       "step": "文字でも出す",
       "duration": 1.8,
-      "focus": ["Countup", "Delta", "Percent ring", "Typewriter"],
+      "focus": ["数え上げ", "増減", "割合の円", "打ち出し"],
       "body": "状態を打ち出す表示まで並ぶ。 数値 3 つと文字 1 つの 4 表示が揃う。"
     }
   ]
@@ -21887,12 +21887,12 @@ export const sourceYaml__gridLayoutMatrix = `title: "3 行 4 列の格子を列�
 type: flow
 
 inputs:
-  r: { kind: stepper, min: 0, max: 2, defaultValue: 0, label: "Row" }
-  c: { kind: stepper, min: 0, max: 3, defaultValue: 0, label: "Col" }
+  r: { kind: stepper, min: 0, max: 2, defaultValue: 0, label: "行" }
+  c: { kind: stepper, min: 0, max: 3, defaultValue: 0, label: "列" }
 
 readouts:
-  hover: { kind: stat, source: "r", label: "Row" }
-  hoverC: { kind: stat, source: "c", label: "Col" }
+  hover: { kind: stat, source: "r", label: "行" }
+  hoverC: { kind: stat, source: "c", label: "列" }
 
 lanes:
   col0: { x: 0, width: 150 }
@@ -21905,28 +21905,28 @@ states:
   c: 0
 
 actors:
-  - r0 c0: { kind: card, lane: col0, stack: 0, subtitle: "col0 lane · row0 stack" }
-  - r0 c1: { kind: card, lane: col1, stack: 0, subtitle: "col1 lane · row0 stack" }
-  - r0 c2: { kind: card, lane: col2, stack: 0, subtitle: "col2 lane · row0 stack" }
-  - r0 c3: { kind: card, lane: col3, stack: 0, subtitle: "col3 lane · row0 stack" }
-  - r1 c0: { kind: card, lane: col0, stack: 1, subtitle: "col0 lane · row1 stack" }
-  - r1 c1: { kind: card, lane: col1, stack: 1, subtitle: "col1 lane · row1 stack" }
-  - r1 c2: { kind: card, lane: col2, stack: 1, subtitle: "col2 lane · row1 stack" }
-  - r1 c3: { kind: card, lane: col3, stack: 1, subtitle: "col3 lane · row1 stack" }
-  - r2 c0: { kind: card, lane: col0, stack: 2, subtitle: "col0 lane · row2 stack" }
-  - r2 c1: { kind: card, lane: col1, stack: 2, subtitle: "col1 lane · row2 stack" }
-  - r2 c2: { kind: card, lane: col2, stack: 2, subtitle: "col2 lane · row2 stack" }
-  - r2 c3: { kind: card, lane: col3, stack: 2, subtitle: "col3 lane · row2 stack" }
+  - 行 0 · 列 0: { kind: card, lane: col0, stack: 0, subtitle: "縦列 0 · 段 0" }
+  - 行 0 · 列 1: { kind: card, lane: col1, stack: 0, subtitle: "縦列 1 · 段 0" }
+  - 行 0 · 列 2: { kind: card, lane: col2, stack: 0, subtitle: "縦列 2 · 段 0" }
+  - 行 0 · 列 3: { kind: card, lane: col3, stack: 0, subtitle: "縦列 3 · 段 0" }
+  - 行 1 · 列 0: { kind: card, lane: col0, stack: 1, subtitle: "縦列 0 · 段 1" }
+  - 行 1 · 列 1: { kind: card, lane: col1, stack: 1, subtitle: "縦列 1 · 段 1" }
+  - 行 1 · 列 2: { kind: card, lane: col2, stack: 1, subtitle: "縦列 2 · 段 1" }
+  - 行 1 · 列 3: { kind: card, lane: col3, stack: 1, subtitle: "縦列 3 · 段 1" }
+  - 行 2 · 列 0: { kind: card, lane: col0, stack: 2, subtitle: "縦列 0 · 段 2" }
+  - 行 2 · 列 1: { kind: card, lane: col1, stack: 2, subtitle: "縦列 1 · 段 2" }
+  - 行 2 · 列 2: { kind: card, lane: col2, stack: 2, subtitle: "縦列 2 · 段 2" }
+  - 行 2 · 列 3: { kind: card, lane: col3, stack: 2, subtitle: "縦列 3 · 段 2" }
 
 animation:
   - step: "1 行目を見る" 1.8s
-    focus: ["r0 c0", "r0 c1", "r0 c2", "r0 c3"]
+    focus: ["行 0 · 列 0", "行 0 · 列 1", "行 0 · 列 2", "行 0 · 列 3"]
     description: "格子の 1 行目。 行と列はつまみで選び、選んだ位置が表示に出る。"
   - step: "2 行目を見る" 1.8s
-    focus: ["r1 c0", "r1 c1", "r1 c2", "r1 c3"]
+    focus: ["行 1 · 列 0", "行 1 · 列 1", "行 1 · 列 2", "行 1 · 列 3"]
     description: "2 行目の 4 つ。 3 行 4 列がすべて同じ形で並んでいる。"
   - step: "3 行目を見る" 1.8s
-    focus: ["r2 c0", "r2 c1", "r2 c2", "r2 c3"]
+    focus: ["行 2 · 列 0", "行 2 · 列 1", "行 2 · 列 2", "行 2 · 列 3"]
     description: "3 行目まで見ると格子の全体が揃う。 12 個が規則的に並ぶ。"
 `;
 
@@ -21934,12 +21934,12 @@ export const sourceJson__gridLayoutMatrix = `{
   "title": "3 行 4 列の格子を列ごとに並べる",
   "type": "flow",
   "inputs": [
-    { "id": "r", "kind": "stepper", "min": 0, "max": 2, "defaultValue": 0, "label": "Row" },
-    { "id": "c", "kind": "stepper", "min": 0, "max": 3, "defaultValue": 0, "label": "Col" }
+    { "id": "r", "kind": "stepper", "min": 0, "max": 2, "defaultValue": 0, "label": "行" },
+    { "id": "c", "kind": "stepper", "min": 0, "max": 3, "defaultValue": 0, "label": "列" }
   ],
   "readouts": [
-    { "id": "hover", "kind": "stat", "source": "r", "label": "Row" },
-    { "id": "hoverC", "kind": "stat", "source": "c", "label": "Col" }
+    { "id": "hover", "kind": "stat", "source": "r", "label": "行" },
+    { "id": "hoverC", "kind": "stat", "source": "c", "label": "列" }
   ],
   "lanes": {
     "col0": { "x": 0, "width": 150 },
@@ -21949,88 +21949,88 @@ export const sourceJson__gridLayoutMatrix = `{
   },
   "actors": [
     {
-      "name": "r0 c0",
+      "name": "行 0 · 列 0",
       "kind": "card",
       "lane": "col0",
       "stack": 0,
-      "subtitle": "col0 lane · row0 stack"
+      "subtitle": "縦列 0 · 段 0"
     },
     {
-      "name": "r0 c1",
+      "name": "行 0 · 列 1",
       "kind": "card",
       "lane": "col1",
       "stack": 0,
-      "subtitle": "col1 lane · row0 stack"
+      "subtitle": "縦列 1 · 段 0"
     },
     {
-      "name": "r0 c2",
+      "name": "行 0 · 列 2",
       "kind": "card",
       "lane": "col2",
       "stack": 0,
-      "subtitle": "col2 lane · row0 stack"
+      "subtitle": "縦列 2 · 段 0"
     },
     {
-      "name": "r0 c3",
+      "name": "行 0 · 列 3",
       "kind": "card",
       "lane": "col3",
       "stack": 0,
-      "subtitle": "col3 lane · row0 stack"
+      "subtitle": "縦列 3 · 段 0"
     },
     {
-      "name": "r1 c0",
+      "name": "行 1 · 列 0",
       "kind": "card",
       "lane": "col0",
       "stack": 1,
-      "subtitle": "col0 lane · row1 stack"
+      "subtitle": "縦列 0 · 段 1"
     },
     {
-      "name": "r1 c1",
+      "name": "行 1 · 列 1",
       "kind": "card",
       "lane": "col1",
       "stack": 1,
-      "subtitle": "col1 lane · row1 stack"
+      "subtitle": "縦列 1 · 段 1"
     },
     {
-      "name": "r1 c2",
+      "name": "行 1 · 列 2",
       "kind": "card",
       "lane": "col2",
       "stack": 1,
-      "subtitle": "col2 lane · row1 stack"
+      "subtitle": "縦列 2 · 段 1"
     },
     {
-      "name": "r1 c3",
+      "name": "行 1 · 列 3",
       "kind": "card",
       "lane": "col3",
       "stack": 1,
-      "subtitle": "col3 lane · row1 stack"
+      "subtitle": "縦列 3 · 段 1"
     },
     {
-      "name": "r2 c0",
+      "name": "行 2 · 列 0",
       "kind": "card",
       "lane": "col0",
       "stack": 2,
-      "subtitle": "col0 lane · row2 stack"
+      "subtitle": "縦列 0 · 段 2"
     },
     {
-      "name": "r2 c1",
+      "name": "行 2 · 列 1",
       "kind": "card",
       "lane": "col1",
       "stack": 2,
-      "subtitle": "col1 lane · row2 stack"
+      "subtitle": "縦列 1 · 段 2"
     },
     {
-      "name": "r2 c2",
+      "name": "行 2 · 列 2",
       "kind": "card",
       "lane": "col2",
       "stack": 2,
-      "subtitle": "col2 lane · row2 stack"
+      "subtitle": "縦列 2 · 段 2"
     },
     {
-      "name": "r2 c3",
+      "name": "行 2 · 列 3",
       "kind": "card",
       "lane": "col3",
       "stack": 2,
-      "subtitle": "col3 lane · row2 stack"
+      "subtitle": "縦列 3 · 段 2"
     }
   ],
   "flow": [],
@@ -22039,19 +22039,19 @@ export const sourceJson__gridLayoutMatrix = `{
     {
       "step": "1 行目を見る",
       "duration": 1.8,
-      "focus": ["r0 c0", "r0 c1", "r0 c2", "r0 c3"],
+      "focus": ["行 0 · 列 0", "行 0 · 列 1", "行 0 · 列 2", "行 0 · 列 3"],
       "body": "格子の 1 行目。 行と列はつまみで選び、選んだ位置が表示に出る。"
     },
     {
       "step": "2 行目を見る",
       "duration": 1.8,
-      "focus": ["r1 c0", "r1 c1", "r1 c2", "r1 c3"],
+      "focus": ["行 1 · 列 0", "行 1 · 列 1", "行 1 · 列 2", "行 1 · 列 3"],
       "body": "2 行目の 4 つ。 3 行 4 列がすべて同じ形で並んでいる。"
     },
     {
       "step": "3 行目を見る",
       "duration": 1.8,
-      "focus": ["r2 c0", "r2 c1", "r2 c2", "r2 c3"],
+      "focus": ["行 2 · 列 0", "行 2 · 列 1", "行 2 · 列 2", "行 2 · 列 3"],
       "body": "3 行目まで見ると格子の全体が揃う。 12 個が規則的に並ぶ。"
     }
   ]
@@ -22061,7 +22061,7 @@ export const sourceYaml__inputSliderBar = `title: "スライダーの値が右�
 type: flow
 
 inputs:
-  value: { kind: slider, min: 0, max: 100, defaultValue: 50, label: "Value" }
+  value: { kind: slider, min: 0, max: 100, defaultValue: 50, label: "値" }
 
 lanes:
   slider: { x: 0, width: 260 }
@@ -22071,19 +22071,19 @@ states:
   value: 50
 
 actors:
-  - sliderNode: { kind: card, lane: slider, stack: 0, subtitle: "value = {value}", title: "Slider" }
-  - bar-node: { kind: card, lane: output, stack: 0, subtitle: "value: {value}", title: "Bar" }
+  - sliderNode: { kind: card, lane: slider, stack: 0, subtitle: "値 = {value}", title: "つまみ" }
+  - bar-node: { kind: card, lane: output, stack: 0, subtitle: "受け取った値: {value}", title: "受け手" }
 
 flow:
-  - sliderNode -> bar-node: "signal bind" (info)
+  - sliderNode -> bar-node: "値を渡す" (info)
 
 animation:
   - step: "つまみを持つ" 1.6s
     focus: ["sliderNode"]
-    description: "左の縦列だけを見る。 つまみが \`value\` という値を握っていて、動かすとこの値が変わる。 まだ右の棒には届いていない。"
+    description: "左の縦列だけを見る。 つまみを動かすと値が変わる。 まだ右の箱には届いていない。"
   - step: "値が渡る" 1.6s
     focus: ["sliderNode", "bar-node"]
-    description: "つまみと右の箱を結ぶ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。"
+    description: "つまみと右の箱をつなぐ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。"
   - step: "説明欄に出る" 1.6s
     focus: ["bar-node"]
     description: "渡った値が右の箱の説明欄に出る。 図形の大きさは変わらず、文字として反映される経路。"
@@ -22099,7 +22099,7 @@ export const sourceJson__inputSliderBar = `{
       "min": 0,
       "max": 100,
       "defaultValue": 50,
-      "label": "Value"
+      "label": "値"
     }
   ],
   "lanes": {
@@ -22112,20 +22112,20 @@ export const sourceJson__inputSliderBar = `{
       "kind": "card",
       "lane": "slider",
       "stack": 0,
-      "subtitle": "value = {value}",
-      "title": "Slider"
+      "subtitle": "値 = {value}",
+      "title": "つまみ"
     },
     {
       "name": "bar-node",
       "kind": "card",
       "lane": "output",
       "stack": 0,
-      "subtitle": "value: {value}",
-      "title": "Bar"
+      "subtitle": "受け取った値: {value}",
+      "title": "受け手"
     }
   ],
   "flow": [
-    { "from": "sliderNode", "to": "bar-node", "label": "signal bind", "tone": "info" }
+    { "from": "sliderNode", "to": "bar-node", "label": "値を渡す", "tone": "info" }
   ],
   "states": { "value": 50 },
   "animation": [
@@ -22133,13 +22133,13 @@ export const sourceJson__inputSliderBar = `{
       "step": "つまみを持つ",
       "duration": 1.6,
       "focus": ["sliderNode"],
-      "body": "左の縦列だけを見る。 つまみが \`value\` という値を握っていて、動かすとこの値が変わる。 まだ右の棒には届いていない。"
+      "body": "左の縦列だけを見る。 つまみを動かすと値が変わる。 まだ右の箱には届いていない。"
     },
     {
       "step": "値が渡る",
       "duration": 1.6,
       "focus": ["sliderNode", "bar-node"],
-      "body": "つまみと右の箱を結ぶ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。"
+      "body": "つまみと右の箱をつなぐ線を通って値が渡る。 2 つの箱が同じ値を見ている状態になる。"
     },
     {
       "step": "説明欄に出る",
@@ -22154,10 +22154,10 @@ export const sourceYaml__inputVariety = `title: "スライダー / 複数選択 
 type: flow
 
 inputs:
-  priceRange: { kind: range, min: 0, max: 1000, defaultLo: 200, defaultHi: 700, label: "Price Range" }
-  tags: { kind: multi-select, options: ["new", "sale", "hot", "featured"], defaultValues: ["new"], label: "Tags" }
-  view: { kind: tabs, options: ["grid", "list", "compact"], defaultValue: "grid", label: "View" }
-  query: { kind: text, defaultValue: "", placeholder: "Search...", maxLength: 50, label: "Query" }
+  priceRange: { kind: range, min: 0, max: 1000, defaultLo: 200, defaultHi: 700, label: "価格の範囲" }
+  tags: { kind: multi-select, options: ["新着", "値下げ", "人気", "おすすめ"], defaultValues: ["新着"], label: "札" }
+  view: { kind: tabs, options: ["格子", "一覧", "詰めた一覧"], defaultValue: "格子", label: "表示の形" }
+  query: { kind: text, defaultValue: "", placeholder: "検索する言葉", maxLength: 50, label: "検索語" }
 
 lanes:
   range: { x: 0, width: 360 }
@@ -22167,15 +22167,15 @@ lanes:
 
 states:
   priceRange: "200,700"
-  tags: "new"
-  view: "grid"
+  tags: "新着"
+  view: "格子"
   query: ""
 
 actors:
-  - rangeNode: { kind: card, lane: range, stack: 0, subtitle: "price = {priceRange}", posW: 310, title: "Range slider" }
-  - multiNode: { kind: card, lane: multi, stack: 0, subtitle: "tags = {tags}", posW: 310, title: "Multi-select" }
-  - tabsNode: { kind: card, lane: tabs, stack: 0, subtitle: "view = {view}", posW: 180, title: "Tabs" }
-  - textNode: { kind: card, lane: text, stack: 0, subtitle: "query = {query}", posW: 270, title: "Text input" }
+  - rangeNode: { kind: card, lane: range, stack: 0, subtitle: "価格 = {priceRange}", posW: 310, title: "範囲のつまみ" }
+  - multiNode: { kind: card, lane: multi, stack: 0, subtitle: "札 = {tags}", posW: 310, title: "複数選択" }
+  - tabsNode: { kind: card, lane: tabs, stack: 0, subtitle: "表示 = {view}", posW: 180, title: "タブ" }
+  - textNode: { kind: card, lane: text, stack: 0, subtitle: "検索語 = {query}", posW: 270, title: "文字の入力" }
 
 animation:
   - step: "数を選ぶ" 1.6s
@@ -22203,29 +22203,29 @@ export const sourceJson__inputVariety = `{
       "max": 1000,
       "defaultLo": 200,
       "defaultHi": 700,
-      "label": "Price Range"
+      "label": "価格の範囲"
     },
     {
       "id": "tags",
       "kind": "multi-select",
-      "options": ["new", "sale", "hot", "featured"],
-      "defaultValues": ["new"],
-      "label": "Tags"
+      "options": ["新着", "値下げ", "人気", "おすすめ"],
+      "defaultValues": ["新着"],
+      "label": "札"
     },
     {
       "id": "view",
       "kind": "tabs",
-      "options": ["grid", "list", "compact"],
-      "defaultValue": "grid",
-      "label": "View"
+      "options": ["格子", "一覧", "詰めた一覧"],
+      "defaultValue": "格子",
+      "label": "表示の形"
     },
     {
       "id": "query",
       "kind": "text",
       "defaultValue": "",
-      "placeholder": "Search...",
+      "placeholder": "検索する言葉",
       "maxLength": 50,
-      "label": "Query"
+      "label": "検索語"
     }
   ],
   "lanes": {
@@ -22240,40 +22240,40 @@ export const sourceJson__inputVariety = `{
       "kind": "card",
       "lane": "range",
       "stack": 0,
-      "subtitle": "price = {priceRange}",
+      "subtitle": "価格 = {priceRange}",
       "posW": 310,
-      "title": "Range slider"
+      "title": "範囲のつまみ"
     },
     {
       "name": "multiNode",
       "kind": "card",
       "lane": "multi",
       "stack": 0,
-      "subtitle": "tags = {tags}",
+      "subtitle": "札 = {tags}",
       "posW": 310,
-      "title": "Multi-select"
+      "title": "複数選択"
     },
     {
       "name": "tabsNode",
       "kind": "card",
       "lane": "tabs",
       "stack": 0,
-      "subtitle": "view = {view}",
+      "subtitle": "表示 = {view}",
       "posW": 180,
-      "title": "Tabs"
+      "title": "タブ"
     },
     {
       "name": "textNode",
       "kind": "card",
       "lane": "text",
       "stack": 0,
-      "subtitle": "query = {query}",
+      "subtitle": "検索語 = {query}",
       "posW": 270,
-      "title": "Text input"
+      "title": "文字の入力"
     }
   ],
   "flow": [],
-  "states": { "priceRange": "200,700", "tags": "new", "view": "grid", "query": "" },
+  "states": { "priceRange": "200,700", "tags": "新着", "view": "格子", "query": "" },
   "animation": [
     {
       "step": "数を選ぶ",
@@ -22306,11 +22306,11 @@ export const sourceYaml__interactiveOauthFlow = `title: "OAuth 認可コード�
 type: flow
 
 inputs:
-  delay: { kind: slider, min: 0, max: 300, defaultValue: 50, label: "Server delay (ms)" }
+  delay: { kind: slider, min: 0, max: 300, defaultValue: 50, label: "サーバーの遅れ (ms)" }
 
 readouts:
-  seq: { kind: sequence-timeline, source: "events", min: 0, max: 700, viewW: 400, viewH: 60, color: "#2563eb", label: "Timeline" }
-  finalDelay: { kind: stat, source: "delay", unit: "ms", label: "Delay" }
+  seq: { kind: sequence-timeline, source: "events", min: 0, max: 700, viewW: 400, viewH: 60, color: "#2563eb", label: "やり取りの時刻" }
+  finalDelay: { kind: stat, source: "delay", unit: "ms", label: "遅れ" }
 
 lanes:
   user: { x: 0, width: 220 }
@@ -22319,20 +22319,20 @@ lanes:
 
 states:
   delay: 50
-  events: '[[0,"click"],[100,"redirect"],[200,"consent"],[350,"code"],[500,"token"],[650,"resp"]]'
+  events: '[[0,"押す"],[100,"認可画面へ"],[200,"同意"],[350,"コード発行"],[500,"トークン発行"],[650,"資源応答"]]'
 
 actors:
-  - client: { kind: card, lane: user, stack: 0, subtitle: "user agent", title: "Browser" }
-  - consent: { kind: card, lane: auth, stack: 0, subtitle: "delay {delay}ms", title: "Auth server" }
-  - api: { kind: card, lane: resource, stack: 0, subtitle: "API endpoint", title: "Resource" }
+  - client: { kind: card, lane: user, stack: 0, subtitle: "利用者が操作する", title: "閲覧ソフト" }
+  - consent: { kind: card, lane: auth, stack: 0, subtitle: "遅れ {delay}ms", title: "認可サーバー" }
+  - api: { kind: card, lane: resource, stack: 0, subtitle: "API の窓口", title: "資源サーバー" }
 
 flow:
-  - client -> consent: "1. redirect (with client_id)" (info)
-  - consent -> client: "2. consent screen (user approves)" (info) { side: "left" }
-  - client -> consent: "3. code exchange (with code)" (accent)
-  - consent -> client: "4. token issued (access_token)" (success) { side: "left" }
-  - client -> api: "5. API call" (accent) { sub: "Bearer token" }
-  - api -> client: "6. resp" (success) { sub: "protected data", side: "bottom", labelOffsetY: 120 }
+  - client -> consent: "1. 認可画面へ移す (識別子付き)" (info)
+  - consent -> client: "2. 同意画面 (利用者が承認)" (info) { side: "left" }
+  - client -> consent: "3. 認可コードを引き換える" (accent)
+  - consent -> client: "4. アクセストークンを発行" (success) { side: "left" }
+  - client -> api: "5. API を呼ぶ" (accent) { sub: "トークンを添える" }
+  - api -> client: "6. 応答" (success) { sub: "保護された情報", side: "bottom", labelOffsetY: 120 }
 
 animation:
   - step: "認可を求める" 1.8s
@@ -22348,8 +22348,8 @@ animation:
   - step: "引き換える" 1.8s
     focus: ["client", "consent", "api"]
     set:
-      events: '[[0,"認可要求"],[120,"コード発行"],[260,"token 交換"],[380,"token 発行"],[500,"資源要求"],[620,"資源応答"]]'
-    description: "コードを token に引き換えて資源まで届く。 6 回のやり取りが時刻付きで並ぶ。"
+      events: '[[0,"認可要求"],[120,"コード発行"],[260,"トークン交換"],[380,"トークン発行"],[500,"資源要求"],[620,"資源応答"]]'
+    description: "コードをトークンに引き換えて資源まで届く。 6 回のやり取りが時刻付きで並ぶ。"
 `;
 
 export const sourceJson__interactiveOauthFlow = `{
@@ -22362,7 +22362,7 @@ export const sourceJson__interactiveOauthFlow = `{
       "min": 0,
       "max": 300,
       "defaultValue": 50,
-      "label": "Server delay (ms)"
+      "label": "サーバーの遅れ (ms)"
     }
   ],
   "readouts": [
@@ -22375,9 +22375,9 @@ export const sourceJson__interactiveOauthFlow = `{
       "viewW": 400,
       "viewH": 60,
       "color": "#2563eb",
-      "label": "Timeline"
+      "label": "やり取りの時刻"
     },
-    { "id": "finalDelay", "kind": "stat", "source": "delay", "unit": "ms", "label": "Delay" }
+    { "id": "finalDelay", "kind": "stat", "source": "delay", "unit": "ms", "label": "遅れ" }
   ],
   "lanes": {
     "user": { "x": 0, "width": 220 },
@@ -22390,65 +22390,65 @@ export const sourceJson__interactiveOauthFlow = `{
       "kind": "card",
       "lane": "user",
       "stack": 0,
-      "subtitle": "user agent",
-      "title": "Browser"
+      "subtitle": "利用者が操作する",
+      "title": "閲覧ソフト"
     },
     {
       "name": "consent",
       "kind": "card",
       "lane": "auth",
       "stack": 0,
-      "subtitle": "delay {delay}ms",
-      "title": "Auth server"
+      "subtitle": "遅れ {delay}ms",
+      "title": "認可サーバー"
     },
     {
       "name": "api",
       "kind": "card",
       "lane": "resource",
       "stack": 0,
-      "subtitle": "API endpoint",
-      "title": "Resource"
+      "subtitle": "API の窓口",
+      "title": "資源サーバー"
     }
   ],
   "flow": [
     {
       "from": "client",
       "to": "consent",
-      "label": "1. redirect (with client_id)",
+      "label": "1. 認可画面へ移す (識別子付き)",
       "tone": "info"
     },
     {
       "from": "consent",
       "to": "client",
-      "label": "2. consent screen (user approves)",
+      "label": "2. 同意画面 (利用者が承認)",
       "tone": "info",
       "side": "left"
     },
     {
       "from": "client",
       "to": "consent",
-      "label": "3. code exchange (with code)",
+      "label": "3. 認可コードを引き換える",
       "tone": "accent"
     },
     {
       "from": "consent",
       "to": "client",
-      "label": "4. token issued (access_token)",
+      "label": "4. アクセストークンを発行",
       "tone": "success",
       "side": "left"
     },
     {
       "from": "client",
       "to": "api",
-      "label": "5. API call",
-      "sub": "Bearer token",
+      "label": "5. API を呼ぶ",
+      "sub": "トークンを添える",
       "tone": "accent"
     },
     {
       "from": "api",
       "to": "client",
-      "label": "6. resp",
-      "sub": "protected data",
+      "label": "6. 応答",
+      "sub": "保護された情報",
       "tone": "success",
       "side": "bottom",
       "labelOffsetY": 120
@@ -22456,7 +22456,7 @@ export const sourceJson__interactiveOauthFlow = `{
   ],
   "states": {
     "delay": 50,
-    "events": "[[0,\\"click\\"],[100,\\"redirect\\"],[200,\\"consent\\"],[350,\\"code\\"],[500,\\"token\\"],[650,\\"resp\\"]]"
+    "events": "[[0,\\"押す\\"],[100,\\"認可画面へ\\"],[200,\\"同意\\"],[350,\\"コード発行\\"],[500,\\"トークン発行\\"],[650,\\"資源応答\\"]]"
   },
   "animation": [
     {
@@ -22478,9 +22478,9 @@ export const sourceJson__interactiveOauthFlow = `{
       "duration": 1.8,
       "focus": ["client", "consent", "api"],
       "set": {
-        "events": "[[0,\\"認可要求\\"],[120,\\"コード発行\\"],[260,\\"token 交換\\"],[380,\\"token 発行\\"],[500,\\"資源要求\\"],[620,\\"資源応答\\"]]"
+        "events": "[[0,\\"認可要求\\"],[120,\\"コード発行\\"],[260,\\"トークン交換\\"],[380,\\"トークン発行\\"],[500,\\"資源要求\\"],[620,\\"資源応答\\"]]"
       },
-      "body": "コードを token に引き換えて資源まで届く。 6 回のやり取りが時刻付きで並ぶ。"
+      "body": "コードをトークンに引き換えて資源まで届く。 6 回のやり取りが時刻付きで並ぶ。"
     }
   ]
 }`;
@@ -22846,11 +22846,11 @@ export const sourceYaml__numberSparkline = `title: "現在値と履歴のミニ�
 type: flow
 
 inputs:
-  val: { kind: number, defaultValue: 20, label: "Value" }
+  val: { kind: number, defaultValue: 20, label: "値" }
 
 readouts:
-  valHist: { kind: sparkline, source: "val", history: 15, color: "#e57373", label: "Sparkline history" }
-  valStat: { kind: stat, source: "val", caption: "input 履歴の最新", label: "Latest" }
+  valHist: { kind: sparkline, source: "val", history: 15, color: "#e57373", label: "履歴の折れ線" }
+  valStat: { kind: stat, source: "val", caption: "入力の履歴の最新", label: "最新の値" }
 
 lanes:
   current: { x: 0, width: 220 }
@@ -22860,11 +22860,11 @@ states:
   val: 20
 
 actors:
-  - currentNode: { kind: card, lane: current, stack: 0, subtitle: "val = {val}", title: "Current" }
-  - historyNode: { kind: card, lane: history, stack: 0, subtitle: "sparkline で直近 15 push 履歴", title: "History (15)" }
+  - currentNode: { kind: card, lane: current, stack: 0, subtitle: "値 = {val}", title: "いまの値" }
+  - historyNode: { kind: card, lane: history, stack: 0, subtitle: "直近 15 回の値を折れ線で残す", title: "履歴 (15 件)" }
 
 flow:
-  - currentNode -> historyNode: "push" (info)
+  - currentNode -> historyNode: "履歴に足す" (info)
 
 animation:
   - step: "現在値を見る" 1.8s
@@ -22882,7 +22882,7 @@ export const sourceJson__numberSparkline = `{
   "title": "現在値と履歴のミニ折れ線を並べる",
   "type": "flow",
   "inputs": [
-    { "id": "val", "kind": "number", "defaultValue": 20, "label": "Value" }
+    { "id": "val", "kind": "number", "defaultValue": 20, "label": "値" }
   ],
   "readouts": [
     {
@@ -22891,14 +22891,14 @@ export const sourceJson__numberSparkline = `{
       "source": "val",
       "history": 15,
       "color": "#e57373",
-      "label": "Sparkline history"
+      "label": "履歴の折れ線"
     },
     {
       "id": "valStat",
       "kind": "stat",
       "source": "val",
-      "caption": "input 履歴の最新",
-      "label": "Latest"
+      "caption": "入力の履歴の最新",
+      "label": "最新の値"
     }
   ],
   "lanes": {
@@ -22911,20 +22911,20 @@ export const sourceJson__numberSparkline = `{
       "kind": "card",
       "lane": "current",
       "stack": 0,
-      "subtitle": "val = {val}",
-      "title": "Current"
+      "subtitle": "値 = {val}",
+      "title": "いまの値"
     },
     {
       "name": "historyNode",
       "kind": "card",
       "lane": "history",
       "stack": 0,
-      "subtitle": "sparkline で直近 15 push 履歴",
-      "title": "History (15)"
+      "subtitle": "直近 15 回の値を折れ線で残す",
+      "title": "履歴 (15 件)"
     }
   ],
   "flow": [
-    { "from": "currentNode", "to": "historyNode", "label": "push", "tone": "info" }
+    { "from": "currentNode", "to": "historyNode", "label": "履歴に足す", "tone": "info" }
   ],
   "states": { "val": 20 },
   "animation": [
@@ -23446,10 +23446,10 @@ export const sourceYaml__radioSelect = `title: "3 択のラジオで選んだ 1 
 type: flow
 
 inputs:
-  mode: { kind: radio, options: ["low", "mid", "high"], defaultValue: "mid", label: "Mode" }
+  mode: { kind: radio, options: ["低", "中", "高"], defaultValue: "中", label: "段階" }
 
 readouts:
-  modeStat: { kind: stat, source: "mode", caption: "選択中", label: "Current" }
+  modeStat: { kind: stat, source: "mode", caption: "選択中", label: "いまの段階" }
 
 lanes:
   low: { x: 0, width: 200 }
@@ -23457,23 +23457,23 @@ lanes:
   high: { x: 480, width: 200 }
 
 states:
-  mode: "mid"
+  mode: "中"
 
 actors:
-  - Low mode: { kind: card, lane: low, stack: 0, subtitle: "option: low" }
-  - Mid mode: { kind: card, lane: mid, stack: 0, subtitle: "option: mid (default)" }
-  - High mode: { kind: card, lane: high, stack: 0, subtitle: "option: high" }
-  - ◆ Current: { kind: card, lane: mid, stack: 1, subtitle: "mode = {mode}" }
+  - 低: { kind: card, lane: low, stack: 0, subtitle: "選択肢: 低" }
+  - 中: { kind: card, lane: mid, stack: 0, subtitle: "選択肢: 中 (初期値)" }
+  - 高: { kind: card, lane: high, stack: 0, subtitle: "選択肢: 高" }
+  - ◆ 選択中: { kind: card, lane: mid, stack: 1, subtitle: "段階 = {mode}" }
 
 animation:
   - step: "低の札" 1.8s
-    focus: ["Low mode"]
+    focus: ["低"]
     description: "3 択の 1 つ目。 どれが選ばれるかはつまみで決まり、選ばれた 1 つだけが光る。"
   - step: "中の札" 1.8s
-    focus: ["Mid mode"]
+    focus: ["中"]
     description: "2 つ目の札。 3 つのうち同時に選べるのは常に 1 つ。"
   - step: "高の札" 1.8s
-    focus: ["High mode", "◆ Current"]
+    focus: ["高", "◆ 選択中"]
     description: "3 つ目の札。 選んだ値は右の箱にも文字で出る。"
 `;
 
@@ -23484,13 +23484,13 @@ export const sourceJson__radioSelect = `{
     {
       "id": "mode",
       "kind": "radio",
-      "options": ["low", "mid", "high"],
-      "defaultValue": "mid",
-      "label": "Mode"
+      "options": ["低", "中", "高"],
+      "defaultValue": "中",
+      "label": "段階"
     }
   ],
   "readouts": [
-    { "id": "modeStat", "kind": "stat", "source": "mode", "caption": "選択中", "label": "Current" }
+    { "id": "modeStat", "kind": "stat", "source": "mode", "caption": "選択中", "label": "いまの段階" }
   ],
   "lanes": {
     "low": { "x": 0, "width": 200 },
@@ -23498,48 +23498,48 @@ export const sourceJson__radioSelect = `{
     "high": { "x": 480, "width": 200 }
   },
   "actors": [
-    { "name": "Low mode", "kind": "card", "lane": "low", "stack": 0, "subtitle": "option: low" },
+    { "name": "低", "kind": "card", "lane": "low", "stack": 0, "subtitle": "選択肢: 低" },
     {
-      "name": "Mid mode",
+      "name": "中",
       "kind": "card",
       "lane": "mid",
       "stack": 0,
-      "subtitle": "option: mid (default)"
+      "subtitle": "選択肢: 中 (初期値)"
     },
     {
-      "name": "High mode",
+      "name": "高",
       "kind": "card",
       "lane": "high",
       "stack": 0,
-      "subtitle": "option: high"
+      "subtitle": "選択肢: 高"
     },
     {
-      "name": "◆ Current",
+      "name": "◆ 選択中",
       "kind": "card",
       "lane": "mid",
       "stack": 1,
-      "subtitle": "mode = {mode}"
+      "subtitle": "段階 = {mode}"
     }
   ],
   "flow": [],
-  "states": { "mode": "mid" },
+  "states": { "mode": "中" },
   "animation": [
     {
       "step": "低の札",
       "duration": 1.8,
-      "focus": ["Low mode"],
+      "focus": ["低"],
       "body": "3 択の 1 つ目。 どれが選ばれるかはつまみで決まり、選ばれた 1 つだけが光る。"
     },
     {
       "step": "中の札",
       "duration": 1.8,
-      "focus": ["Mid mode"],
+      "focus": ["中"],
       "body": "2 つ目の札。 3 つのうち同時に選べるのは常に 1 つ。"
     },
     {
       "step": "高の札",
       "duration": 1.8,
-      "focus": ["High mode", "◆ Current"],
+      "focus": ["高", "◆ 選択中"],
       "body": "3 つ目の札。 選んだ値は右の箱にも文字で出る。"
     }
   ]
@@ -23549,13 +23549,13 @@ export const sourceYaml__readoutVariety = `title: "熱セル / バッジ / 状�
 type: flow
 
 inputs:
-  temp: { kind: slider, min: 0, max: 100, defaultValue: 42, label: "Temp" }
-  state: { kind: dropdown, options: ["online", "offline", "error"], defaultValue: "online", label: "State" }
+  temp: { kind: slider, min: 0, max: 100, defaultValue: 42, label: "温度" }
+  state: { kind: dropdown, options: ["稼働", "停止", "異常"], defaultValue: "稼働", label: "状態" }
 
 readouts:
-  tempHeat: { kind: heat-cell, source: "temp", min: 0, max: 100, colors: ["#4e9dc4", "#e57373"], label: "Temp gradient" }
-  tempBadge: { kind: badge, source: "temp", label: "Value pill" }
-  statusRead: { kind: status-dot, source: "state", map: [{ value: "online", color: "#22c55e", label: "Online" }, { value: "offline", color: "#a08870", label: "Offline" }, { value: "error", color: "#ef4444", label: "Error" }], label: "State dot" }
+  tempHeat: { kind: heat-cell, source: "temp", min: 0, max: 100, colors: ["#4e9dc4", "#e57373"], label: "温度の濃淡" }
+  tempBadge: { kind: badge, source: "temp", label: "値の札" }
+  statusRead: { kind: status-dot, source: "state", map: [{ value: "稼働", color: "#22c55e", label: "稼働" }, { value: "停止", color: "#a08870", label: "停止" }, { value: "異常", color: "#ef4444", label: "異常" }], label: "状態の点" }
 
 lanes:
   heat: { x: 0, width: 220 }
@@ -23564,22 +23564,22 @@ lanes:
 
 states:
   temp: 42
-  state: "online"
+  state: "稼働"
 
 actors:
-  - Heat cell: { kind: card, lane: heat, stack: 0, subtitle: "temp = {temp} · 色 gradient" }
-  - Badge (pill): { kind: card, lane: badge, stack: 0, subtitle: "temp = {temp} · number pill" }
-  - Status dot: { kind: card, lane: dot, stack: 0, subtitle: "state = {state} · online/offline/error" }
+  - 熱の升目: { kind: card, lane: heat, stack: 0, subtitle: "温度 {temp} · 色の濃淡" }
+  - 札: { kind: card, lane: badge, stack: 0, subtitle: "温度 {temp} · 数字を札で出す" }
+  - 状態の点: { kind: card, lane: dot, stack: 0, subtitle: "状態 {state} · 色で出す" }
 
 animation:
   - step: "熱の升目を見る" 1.8s
-    focus: ["Heat cell"]
+    focus: ["熱の升目"]
     description: "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。"
   - step: "札でも出す" 1.8s
-    focus: ["Heat cell", "Badge (pill)"]
+    focus: ["熱の升目", "札"]
     description: "同じ温度を札の数字でも出す。 濃さと数字が同じ値を指す。"
   - step: "状態の点を見る" 1.8s
-    focus: ["Heat cell", "Badge (pill)", "Status dot"]
+    focus: ["熱の升目", "札", "状態の点"]
     description: "別の状態を色の点で出す。 温度 2 表示と状態 1 表示で計 3 つが並ぶ。"
 `;
 
@@ -23593,14 +23593,14 @@ export const sourceJson__readoutVariety = `{
       "min": 0,
       "max": 100,
       "defaultValue": 42,
-      "label": "Temp"
+      "label": "温度"
     },
     {
       "id": "state",
       "kind": "dropdown",
-      "options": ["online", "offline", "error"],
-      "defaultValue": "online",
-      "label": "State"
+      "options": ["稼働", "停止", "異常"],
+      "defaultValue": "稼働",
+      "label": "状態"
     }
   ],
   "readouts": [
@@ -23611,19 +23611,19 @@ export const sourceJson__readoutVariety = `{
       "min": 0,
       "max": 100,
       "colors": ["#4e9dc4", "#e57373"],
-      "label": "Temp gradient"
+      "label": "温度の濃淡"
     },
-    { "id": "tempBadge", "kind": "badge", "source": "temp", "label": "Value pill" },
+    { "id": "tempBadge", "kind": "badge", "source": "temp", "label": "値の札" },
     {
       "id": "statusRead",
       "kind": "status-dot",
       "source": "state",
       "map": [
-        { "value": "online", "color": "#22c55e", "label": "Online" },
-        { "value": "offline", "color": "#a08870", "label": "Offline" },
-        { "value": "error", "color": "#ef4444", "label": "Error" }
+        { "value": "稼働", "color": "#22c55e", "label": "稼働" },
+        { "value": "停止", "color": "#a08870", "label": "停止" },
+        { "value": "異常", "color": "#ef4444", "label": "異常" }
       ],
-      "label": "State dot"
+      "label": "状態の点"
     }
   ],
   "lanes": {
@@ -23633,46 +23633,46 @@ export const sourceJson__readoutVariety = `{
   },
   "actors": [
     {
-      "name": "Heat cell",
+      "name": "熱の升目",
       "kind": "card",
       "lane": "heat",
       "stack": 0,
-      "subtitle": "temp = {temp} · 色 gradient"
+      "subtitle": "温度 {temp} · 色の濃淡"
     },
     {
-      "name": "Badge (pill)",
+      "name": "札",
       "kind": "card",
       "lane": "badge",
       "stack": 0,
-      "subtitle": "temp = {temp} · number pill"
+      "subtitle": "温度 {temp} · 数字を札で出す"
     },
     {
-      "name": "Status dot",
+      "name": "状態の点",
       "kind": "card",
       "lane": "dot",
       "stack": 0,
-      "subtitle": "state = {state} · online/offline/error"
+      "subtitle": "状態 {state} · 色で出す"
     }
   ],
   "flow": [],
-  "states": { "temp": 42, "state": "online" },
+  "states": { "temp": 42, "state": "稼働" },
   "animation": [
     {
       "step": "熱の升目を見る",
       "duration": 1.8,
-      "focus": ["Heat cell"],
+      "focus": ["熱の升目"],
       "body": "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。"
     },
     {
       "step": "札でも出す",
       "duration": 1.8,
-      "focus": ["Heat cell", "Badge (pill)"],
+      "focus": ["熱の升目", "札"],
       "body": "同じ温度を札の数字でも出す。 濃さと数字が同じ値を指す。"
     },
     {
       "step": "状態の点を見る",
       "duration": 1.8,
-      "focus": ["Heat cell", "Badge (pill)", "Status dot"],
+      "focus": ["熱の升目", "札", "状態の点"],
       "body": "別の状態を色の点で出す。 温度 2 表示と状態 1 表示で計 3 つが並ぶ。"
     }
   ]
@@ -23682,11 +23682,11 @@ export const sourceYaml__revenueKpiCard = `title: "前期と今期の売上を�
 type: flow
 
 inputs:
-  current: { kind: slider, min: 50, max: 300, defaultValue: 180, label: "Current revenue (k)" }
+  current: { kind: slider, min: 50, max: 300, defaultValue: 180, label: "今期の売上 (千ドル)" }
 
 readouts:
-  kpi: { kind: kpi-card, source: "current", historySource: "history", comparisonSource: "prev", unit: "k", colorPos: "#22c55e", colorNeg: "#ef4444", label: "Revenue KPI (composite)" }
-  prevStat: { kind: stat, source: "prev", unit: "k", label: "Prev stat" }
+  kpi: { kind: kpi-card, source: "current", historySource: "history", comparisonSource: "prev", unit: " 千ドル", colorPos: "#22c55e", colorNeg: "#ef4444", label: "売上の指標 (まとめ表示)" }
+  prevStat: { kind: stat, source: "prev", unit: " 千ドル", label: "前期の値" }
 
 lanes:
   col1: { x: 0, width: 370 }
@@ -23698,23 +23698,23 @@ states:
   history: "[120,135,148,152,165,170]"
 
 actors:
-  - Previous: { kind: card, lane: col1, stack: 0, subtitle: "{prev}k (baseline)", posW: 220 }
-  - ◆ Current: { kind: card, lane: col2, stack: 0, subtitle: "{current}k (slider driven)", posW: 300 }
-  - Trend: { kind: card, lane: col1, stack: 1, subtitle: "6 month sparkline (120-170k)", posW: 320 }
+  - 前期: { kind: card, lane: col1, stack: 0, subtitle: "{prev} 千ドル (基準)", posW: 220 }
+  - ◆ 今期: { kind: card, lane: col2, stack: 0, subtitle: "{current} 千ドル (つまみで動く)", posW: 300 }
+  - 推移: { kind: card, lane: col1, stack: 1, subtitle: "6 か月の折れ線 (120〜170 千ドル)", posW: 320 }
 
 flow:
-  - Previous -> ◆ Current: "delta = current - prev" (success)
-  - ◆ Current -> Trend: "sparkline last" (info)
+  - 前期 -> ◆ 今期: "差 = 今期 − 前期" (success)
+  - ◆ 今期 -> 推移: "折れ線の右端" (info)
 
 animation:
   - step: "前期を見る" 1.8s
-    focus: ["Previous"]
+    focus: ["前期"]
     description: "比べる相手になる前期の値。 これは固定で動かない。"
   - step: "今期を見る" 1.8s
-    focus: ["Previous", "◆ Current"]
+    focus: ["前期", "◆ 今期"]
     description: "今期の値はつまみで動く。 前期との差がその場で出る。"
   - step: "推移で読む" 1.8s
-    focus: ["Previous", "◆ Current", "Trend"]
+    focus: ["前期", "◆ 今期", "推移"]
     description: "推移の表示が上下の向きを形で出す。 数字と形の 2 通りで読める。"
 `;
 
@@ -23728,7 +23728,7 @@ export const sourceJson__revenueKpiCard = `{
       "min": 50,
       "max": 300,
       "defaultValue": 180,
-      "label": "Current revenue (k)"
+      "label": "今期の売上 (千ドル)"
     }
   ],
   "readouts": [
@@ -23738,12 +23738,12 @@ export const sourceJson__revenueKpiCard = `{
       "source": "current",
       "historySource": "history",
       "comparisonSource": "prev",
-      "unit": "k",
+      "unit": " 千ドル",
       "colorPos": "#22c55e",
       "colorNeg": "#ef4444",
-      "label": "Revenue KPI (composite)"
+      "label": "売上の指標 (まとめ表示)"
     },
-    { "id": "prevStat", "kind": "stat", "source": "prev", "unit": "k", "label": "Prev stat" }
+    { "id": "prevStat", "kind": "stat", "source": "prev", "unit": " 千ドル", "label": "前期の値" }
   ],
   "lanes": {
     "col1": { "x": 0, "width": 370 },
@@ -23751,57 +23751,57 @@ export const sourceJson__revenueKpiCard = `{
   },
   "actors": [
     {
-      "name": "Previous",
+      "name": "前期",
       "kind": "card",
       "lane": "col1",
       "stack": 0,
-      "subtitle": "{prev}k (baseline)",
+      "subtitle": "{prev} 千ドル (基準)",
       "posW": 220
     },
     {
-      "name": "◆ Current",
+      "name": "◆ 今期",
       "kind": "card",
       "lane": "col2",
       "stack": 0,
-      "subtitle": "{current}k (slider driven)",
+      "subtitle": "{current} 千ドル (つまみで動く)",
       "posW": 300
     },
     {
-      "name": "Trend",
+      "name": "推移",
       "kind": "card",
       "lane": "col1",
       "stack": 1,
-      "subtitle": "6 month sparkline (120-170k)",
+      "subtitle": "6 か月の折れ線 (120〜170 千ドル)",
       "posW": 320
     }
   ],
   "flow": [
     {
-      "from": "Previous",
-      "to": "◆ Current",
-      "label": "delta = current - prev",
+      "from": "前期",
+      "to": "◆ 今期",
+      "label": "差 = 今期 − 前期",
       "tone": "success"
     },
-    { "from": "◆ Current", "to": "Trend", "label": "sparkline last", "tone": "info" }
+    { "from": "◆ 今期", "to": "推移", "label": "折れ線の右端", "tone": "info" }
   ],
   "states": { "current": 180, "prev": 150, "history": "[120,135,148,152,165,170]" },
   "animation": [
     {
       "step": "前期を見る",
       "duration": 1.8,
-      "focus": ["Previous"],
+      "focus": ["前期"],
       "body": "比べる相手になる前期の値。 これは固定で動かない。"
     },
     {
       "step": "今期を見る",
       "duration": 1.8,
-      "focus": ["Previous", "◆ Current"],
+      "focus": ["前期", "◆ 今期"],
       "body": "今期の値はつまみで動く。 前期との差がその場で出る。"
     },
     {
       "step": "推移で読む",
       "duration": 1.8,
-      "focus": ["Previous", "◆ Current", "Trend"],
+      "focus": ["前期", "◆ 今期", "推移"],
       "body": "推移の表示が上下の向きを形で出す。 数字と形の 2 通りで読める。"
     }
   ]
@@ -24046,7 +24046,7 @@ export const sourceYaml__shapeArcSweep = `title: "弧のゲージ角度を 4 段
 type: flow
 
 inputs:
-  a: { kind: slider, min: 0, max: 270, defaultValue: 180, label: "Angle" }
+  a: { kind: slider, min: 0, max: 270, defaultValue: 180, label: "角度" }
 
 lanes:
   min: { x: 0, width: 180 }
@@ -24061,10 +24061,10 @@ states:
   a180: 180
 
 actors:
-  - 0°: { kind: dyn-arc, lane: min, stack: 0, subtitle: "min", shape: { kind: arc, angle: "{a0}", startAngle: -135, sweepMax: 270, fill: "#a08870" }, posW: 180, posH: 180 }
-  - 90°: { kind: dyn-arc, lane: quarter, stack: 0, subtitle: "quarter", shape: { kind: arc, angle: "{a90}", startAngle: -135, sweepMax: 270, fill: "#2563eb" }, posW: 180, posH: 180 }
-  - 180°: { kind: dyn-arc, lane: half, stack: 0, subtitle: "half", shape: { kind: arc, angle: "{a180}", startAngle: -135, sweepMax: 270, fill: "#f97316" }, posW: 180, posH: 180 }
-  - Slider: { kind: dyn-arc, lane: interactive, stack: 0, subtitle: "{a}°", shape: { kind: arc, angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#8a5a2a" }, posW: 180, posH: 180 }
+  - 0°: { kind: dyn-arc, lane: min, stack: 0, subtitle: "最小", shape: { kind: arc, angle: "{a0}", startAngle: -135, sweepMax: 270, fill: "#a08870" }, posW: 180, posH: 180 }
+  - 90°: { kind: dyn-arc, lane: quarter, stack: 0, subtitle: "4 分の 1 周", shape: { kind: arc, angle: "{a90}", startAngle: -135, sweepMax: 270, fill: "#2563eb" }, posW: 180, posH: 180 }
+  - 180°: { kind: dyn-arc, lane: half, stack: 0, subtitle: "半周", shape: { kind: arc, angle: "{a180}", startAngle: -135, sweepMax: 270, fill: "#f97316" }, posW: 180, posH: 180 }
+  - つまみ: { kind: dyn-arc, lane: interactive, stack: 0, subtitle: "{a}°", shape: { kind: arc, angle: "{a}", startAngle: -135, sweepMax: 270, fill: "#8a5a2a" }, posW: 180, posH: 180 }
 
 animation:
   - step: "0 度を見る" 1.6s
@@ -24077,7 +24077,7 @@ animation:
     focus: ["0°", "90°", "180°"]
     description: "半周まで並べる。 角度の差が弧の長さで分かる。"
   - step: "つまみで動かす" 1.6s
-    focus: ["0°", "90°", "180°", "Slider"]
+    focus: ["0°", "90°", "180°", "つまみ"]
     description: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
 `;
 
@@ -24085,7 +24085,7 @@ export const sourceJson__shapeArcSweep = `{
   "title": "弧のゲージ角度を 4 段階で見せる",
   "type": "flow",
   "inputs": [
-    { "id": "a", "kind": "slider", "min": 0, "max": 270, "defaultValue": 180, "label": "Angle" }
+    { "id": "a", "kind": "slider", "min": 0, "max": 270, "defaultValue": 180, "label": "角度" }
   ],
   "lanes": {
     "min": { "x": 0, "width": 180 },
@@ -24099,7 +24099,7 @@ export const sourceJson__shapeArcSweep = `{
       "kind": "dyn-arc",
       "lane": "min",
       "stack": 0,
-      "subtitle": "min",
+      "subtitle": "最小",
       "shape": { "kind": "arc", "angle": "{a0}", "startAngle": -135, "sweepMax": 270, "fill": "#a08870" },
       "posW": 180,
       "posH": 180
@@ -24109,7 +24109,7 @@ export const sourceJson__shapeArcSweep = `{
       "kind": "dyn-arc",
       "lane": "quarter",
       "stack": 0,
-      "subtitle": "quarter",
+      "subtitle": "4 分の 1 周",
       "shape": {
         "kind": "arc",
         "angle": "{a90}",
@@ -24125,7 +24125,7 @@ export const sourceJson__shapeArcSweep = `{
       "kind": "dyn-arc",
       "lane": "half",
       "stack": 0,
-      "subtitle": "half",
+      "subtitle": "半周",
       "shape": {
         "kind": "arc",
         "angle": "{a180}",
@@ -24137,7 +24137,7 @@ export const sourceJson__shapeArcSweep = `{
       "posH": 180
     },
     {
-      "name": "Slider",
+      "name": "つまみ",
       "kind": "dyn-arc",
       "lane": "interactive",
       "stack": 0,
@@ -24171,7 +24171,7 @@ export const sourceJson__shapeArcSweep = `{
     {
       "step": "つまみで動かす",
       "duration": 1.6,
-      "focus": ["0°", "90°", "180°", "Slider"],
+      "focus": ["0°", "90°", "180°", "つまみ"],
       "body": "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
     }
   ]
@@ -24181,8 +24181,8 @@ export const sourceYaml__shapePolyRotate = `title: "多角形の角数を 3 / 6 
 type: flow
 
 inputs:
-  rot: { kind: slider, min: 0, max: 360, defaultValue: 0, label: "Rotation" }
-  radius: { kind: slider, min: 20, max: 80, defaultValue: 60, label: "Radius" }
+  rot: { kind: slider, min: 0, max: 360, defaultValue: 0, label: "回転" }
+  radius: { kind: slider, min: 20, max: 80, defaultValue: 60, label: "大きさ" }
 
 lanes:
   triangle: { x: 0, width: 180 }
@@ -24197,10 +24197,10 @@ states:
   radius60: 60
 
 actors:
-  - polyTri: { kind: dyn-polygon, lane: triangle, stack: 0, subtitle: "sides=3", shape: { kind: polygon, sides: 3, radius: "{radius60}", rotation: "{rot0}", fill: "#a08870" }, posW: 180, posH: 180, title: "Tri" }
-  - polyHex: { kind: dyn-polygon, lane: hexagon, stack: 0, subtitle: "sides=6", shape: { kind: polygon, sides: 6, radius: "{radius60}", rotation: "{rot0}", fill: "#2563eb" }, posW: 180, posH: 180, title: "Hex" }
-  - polyOct: { kind: dyn-polygon, lane: octagon, stack: 0, subtitle: "sides=8", shape: { kind: polygon, sides: 8, radius: "{radius60}", rotation: "{rot0}", fill: "#f97316" }, posW: 180, posH: 180, title: "Oct" }
-  - p: { kind: dyn-polygon, lane: interactive, stack: 0, subtitle: "{rot}° · r={radius}", shape: { kind: polygon, sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#8a5a2a" }, posW: 200, posH: 200, title: "Hexagon" }
+  - polyTri: { kind: dyn-polygon, lane: triangle, stack: 0, subtitle: "角 3 つ", shape: { kind: polygon, sides: 3, radius: "{radius60}", rotation: "{rot0}", fill: "#a08870" }, posW: 180, posH: 180, title: "三角形" }
+  - polyHex: { kind: dyn-polygon, lane: hexagon, stack: 0, subtitle: "角 6 つ", shape: { kind: polygon, sides: 6, radius: "{radius60}", rotation: "{rot0}", fill: "#2563eb" }, posW: 180, posH: 180, title: "六角形" }
+  - polyOct: { kind: dyn-polygon, lane: octagon, stack: 0, subtitle: "角 8 つ", shape: { kind: polygon, sides: 8, radius: "{radius60}", rotation: "{rot0}", fill: "#f97316" }, posW: 180, posH: 180, title: "八角形" }
+  - p: { kind: dyn-polygon, lane: interactive, stack: 0, subtitle: "{rot}° · 大きさ {radius}", shape: { kind: polygon, sides: 6, radius: "{radius}", rotation: "{rot}", fill: "#8a5a2a" }, posW: 200, posH: 200, title: "動かす六角形" }
 
 animation:
   - step: "3 角を見る" 1.6s
@@ -24227,7 +24227,7 @@ export const sourceJson__shapePolyRotate = `{
       "min": 0,
       "max": 360,
       "defaultValue": 0,
-      "label": "Rotation"
+      "label": "回転"
     },
     {
       "id": "radius",
@@ -24235,7 +24235,7 @@ export const sourceJson__shapePolyRotate = `{
       "min": 20,
       "max": 80,
       "defaultValue": 60,
-      "label": "Radius"
+      "label": "大きさ"
     }
   ],
   "lanes": {
@@ -24250,7 +24250,7 @@ export const sourceJson__shapePolyRotate = `{
       "kind": "dyn-polygon",
       "lane": "triangle",
       "stack": 0,
-      "subtitle": "sides=3",
+      "subtitle": "角 3 つ",
       "shape": {
         "kind": "polygon",
         "sides": 3,
@@ -24260,14 +24260,14 @@ export const sourceJson__shapePolyRotate = `{
       },
       "posW": 180,
       "posH": 180,
-      "title": "Tri"
+      "title": "三角形"
     },
     {
       "name": "polyHex",
       "kind": "dyn-polygon",
       "lane": "hexagon",
       "stack": 0,
-      "subtitle": "sides=6",
+      "subtitle": "角 6 つ",
       "shape": {
         "kind": "polygon",
         "sides": 6,
@@ -24277,14 +24277,14 @@ export const sourceJson__shapePolyRotate = `{
       },
       "posW": 180,
       "posH": 180,
-      "title": "Hex"
+      "title": "六角形"
     },
     {
       "name": "polyOct",
       "kind": "dyn-polygon",
       "lane": "octagon",
       "stack": 0,
-      "subtitle": "sides=8",
+      "subtitle": "角 8 つ",
       "shape": {
         "kind": "polygon",
         "sides": 8,
@@ -24294,14 +24294,14 @@ export const sourceJson__shapePolyRotate = `{
       },
       "posW": 180,
       "posH": 180,
-      "title": "Oct"
+      "title": "八角形"
     },
     {
       "name": "p",
       "kind": "dyn-polygon",
       "lane": "interactive",
       "stack": 0,
-      "subtitle": "{rot}° · r={radius}",
+      "subtitle": "{rot}° · 大きさ {radius}",
       "shape": {
         "kind": "polygon",
         "sides": 6,
@@ -24311,7 +24311,7 @@ export const sourceJson__shapePolyRotate = `{
       },
       "posW": 200,
       "posH": 200,
-      "title": "Hexagon"
+      "title": "動かす六角形"
     }
   ],
   "flow": [],
@@ -24348,7 +24348,7 @@ export const sourceYaml__shapeRectFill = `title: "四角の塗り割合を 4 段
 type: flow
 
 inputs:
-  v: { kind: slider, min: 0, max: 100, defaultValue: 40, label: "Value" }
+  v: { kind: slider, min: 0, max: 100, defaultValue: 40, label: "値" }
 
 lanes:
   low: { x: 0, width: 130 }
@@ -24363,23 +24363,23 @@ states:
   high75: 75
 
 actors:
-  - Low 25%: { kind: dyn-rect, lane: low, stack: 0, shape: { kind: rect, source: "{low25}", fillMax: 100, orient: "up", fill: "#a08870" }, posW: 100, posH: 240 }
-  - Mid 50%: { kind: dyn-rect, lane: mid, stack: 0, shape: { kind: rect, source: "{mid50}", fillMax: 100, orient: "up", fill: "#2563eb" }, posW: 100, posH: 240 }
-  - High 75%: { kind: dyn-rect, lane: high, stack: 0, shape: { kind: rect, source: "{high75}", fillMax: 100, orient: "up", fill: "#f97316" }, posW: 100, posH: 240 }
-  - Slider ({v}%): { kind: dyn-rect, lane: interactive, stack: 0, shape: { kind: rect, source: "{v}", fillMax: 100, orient: "up", fill: "#8a5a2a" }, posW: 100, posH: 240 }
+  - 低 25%: { kind: dyn-rect, lane: low, stack: 0, shape: { kind: rect, source: "{low25}", fillMax: 100, orient: "up", fill: "#a08870" }, posW: 100, posH: 240 }
+  - 中 50%: { kind: dyn-rect, lane: mid, stack: 0, shape: { kind: rect, source: "{mid50}", fillMax: 100, orient: "up", fill: "#2563eb" }, posW: 100, posH: 240 }
+  - 高 75%: { kind: dyn-rect, lane: high, stack: 0, shape: { kind: rect, source: "{high75}", fillMax: 100, orient: "up", fill: "#f97316" }, posW: 100, posH: 240 }
+  - つまみ ({v}%): { kind: dyn-rect, lane: interactive, stack: 0, shape: { kind: rect, source: "{v}", fillMax: 100, orient: "up", fill: "#8a5a2a" }, posW: 100, posH: 240 }
 
 animation:
   - step: "25% を見る" 1.6s
-    focus: ["Low 25%"]
+    focus: ["低 25%"]
     description: "塗りが 4 分の 1 の状態。 下から少しだけ埋まっている。"
   - step: "50% と並べる" 1.6s
-    focus: ["Low 25%", "Mid 50%"]
+    focus: ["低 25%", "中 50%"]
     description: "半分の状態を隣に置く。 25% との差が高さで分かる。"
   - step: "75% まで並べる" 1.6s
-    focus: ["Low 25%", "Mid 50%", "High 75%"]
+    focus: ["低 25%", "中 50%", "高 75%"]
     description: "4 分の 3 まで並べる。 3 段階の差が一目で比べられる。"
   - step: "つまみで動かす" 1.6s
-    focus: ["Low 25%", "Mid 50%", "High 75%", "Slider ({v}%)"]
+    focus: ["低 25%", "中 50%", "高 75%", "つまみ ({v}%)"]
     description: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
 `;
 
@@ -24387,7 +24387,7 @@ export const sourceJson__shapeRectFill = `{
   "title": "四角の塗り割合を 4 段階で見せる",
   "type": "flow",
   "inputs": [
-    { "id": "v", "kind": "slider", "min": 0, "max": 100, "defaultValue": 40, "label": "Value" }
+    { "id": "v", "kind": "slider", "min": 0, "max": 100, "defaultValue": 40, "label": "値" }
   ],
   "lanes": {
     "low": { "x": 0, "width": 130 },
@@ -24397,7 +24397,7 @@ export const sourceJson__shapeRectFill = `{
   },
   "actors": [
     {
-      "name": "Low 25%",
+      "name": "低 25%",
       "kind": "dyn-rect",
       "lane": "low",
       "stack": 0,
@@ -24406,7 +24406,7 @@ export const sourceJson__shapeRectFill = `{
       "posH": 240
     },
     {
-      "name": "Mid 50%",
+      "name": "中 50%",
       "kind": "dyn-rect",
       "lane": "mid",
       "stack": 0,
@@ -24415,7 +24415,7 @@ export const sourceJson__shapeRectFill = `{
       "posH": 240
     },
     {
-      "name": "High 75%",
+      "name": "高 75%",
       "kind": "dyn-rect",
       "lane": "high",
       "stack": 0,
@@ -24430,7 +24430,7 @@ export const sourceJson__shapeRectFill = `{
       "posH": 240
     },
     {
-      "name": "Slider ({v}%)",
+      "name": "つまみ ({v}%)",
       "kind": "dyn-rect",
       "lane": "interactive",
       "stack": 0,
@@ -24445,25 +24445,25 @@ export const sourceJson__shapeRectFill = `{
     {
       "step": "25% を見る",
       "duration": 1.6,
-      "focus": ["Low 25%"],
+      "focus": ["低 25%"],
       "body": "塗りが 4 分の 1 の状態。 下から少しだけ埋まっている。"
     },
     {
       "step": "50% と並べる",
       "duration": 1.6,
-      "focus": ["Low 25%", "Mid 50%"],
+      "focus": ["低 25%", "中 50%"],
       "body": "半分の状態を隣に置く。 25% との差が高さで分かる。"
     },
     {
       "step": "75% まで並べる",
       "duration": 1.6,
-      "focus": ["Low 25%", "Mid 50%", "High 75%"],
+      "focus": ["低 25%", "中 50%", "高 75%"],
       "body": "4 分の 3 まで並べる。 3 段階の差が一目で比べられる。"
     },
     {
       "step": "つまみで動かす",
       "duration": 1.6,
-      "focus": ["Low 25%", "Mid 50%", "High 75%", "Slider ({v}%)"],
+      "focus": ["低 25%", "中 50%", "高 75%", "つまみ ({v}%)"],
       "body": "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
     }
   ]
@@ -24473,7 +24473,7 @@ export const sourceYaml__shapeWaveTank = `title: "波の水位を 4 段階で見
 type: flow
 
 inputs:
-  lvl: { kind: slider, min: 0, max: 100, defaultValue: 55, label: "Level" }
+  lvl: { kind: slider, min: 0, max: 100, defaultValue: 55, label: "水位" }
 
 lanes:
   low: { x: 0, width: 160 }
@@ -24488,10 +24488,10 @@ states:
   lvl75: 75
 
 actors:
-  - wLow: { kind: dyn-wave, lane: low, stack: 0, subtitle: "25%", shape: { kind: wave, level: "{lvl25}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#a08870" }, posW: 140, posH: 220, title: "Low" }
-  - wHalf: { kind: dyn-wave, lane: half, stack: 0, subtitle: "50%", shape: { kind: wave, level: "{lvl50}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#2563eb" }, posW: 140, posH: 220, title: "Half" }
-  - wHigh: { kind: dyn-wave, lane: high, stack: 0, subtitle: "75%", shape: { kind: wave, level: "{lvl75}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#f97316" }, posW: 140, posH: 220, title: "High" }
-  - w: { kind: dyn-wave, lane: interactive, stack: 0, subtitle: "{lvl}%", shape: { kind: wave, level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" }, posW: 140, posH: 220, title: "Wave" }
+  - wLow: { kind: dyn-wave, lane: low, stack: 0, subtitle: "25%", shape: { kind: wave, level: "{lvl25}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#a08870" }, posW: 140, posH: 220, title: "低" }
+  - wHalf: { kind: dyn-wave, lane: half, stack: 0, subtitle: "50%", shape: { kind: wave, level: "{lvl50}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#2563eb" }, posW: 140, posH: 220, title: "半分" }
+  - wHigh: { kind: dyn-wave, lane: high, stack: 0, subtitle: "75%", shape: { kind: wave, level: "{lvl75}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#f97316" }, posW: 140, posH: 220, title: "高" }
+  - w: { kind: dyn-wave, lane: interactive, stack: 0, subtitle: "{lvl}%", shape: { kind: wave, level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 5, fill: "#4e9dc4" }, posW: 140, posH: 220, title: "波" }
 
 animation:
   - step: "25% を見る" 1.6s
@@ -24518,7 +24518,7 @@ export const sourceJson__shapeWaveTank = `{
       "min": 0,
       "max": 100,
       "defaultValue": 55,
-      "label": "Level"
+      "label": "水位"
     }
   ],
   "lanes": {
@@ -24544,7 +24544,7 @@ export const sourceJson__shapeWaveTank = `{
       },
       "posW": 140,
       "posH": 220,
-      "title": "Low"
+      "title": "低"
     },
     {
       "name": "wHalf",
@@ -24562,7 +24562,7 @@ export const sourceJson__shapeWaveTank = `{
       },
       "posW": 140,
       "posH": 220,
-      "title": "Half"
+      "title": "半分"
     },
     {
       "name": "wHigh",
@@ -24580,7 +24580,7 @@ export const sourceJson__shapeWaveTank = `{
       },
       "posW": 140,
       "posH": 220,
-      "title": "High"
+      "title": "高"
     },
     {
       "name": "w",
@@ -24598,7 +24598,7 @@ export const sourceJson__shapeWaveTank = `{
       },
       "posW": 140,
       "posH": 220,
-      "title": "Wave"
+      "title": "波"
     }
   ],
   "flow": [],
@@ -24761,11 +24761,11 @@ export const sourceYaml__stepperControl = `title: "増減ボタンで棒と数�
 type: flow
 
 inputs:
-  count: { kind: stepper, min: 0, max: 10, defaultValue: 3, label: "Count" }
+  count: { kind: stepper, min: 0, max: 10, defaultValue: 3, label: "個数" }
 
 readouts:
-  countBar: { kind: bar, source: "count", min: 0, max: 10, label: "Progress bar" }
-  countStat: { kind: stat, source: "count", unit: " items", label: "Total" }
+  countBar: { kind: bar, source: "count", min: 0, max: 10, label: "進み具合の棒" }
+  countStat: { kind: stat, source: "count", unit: " 個", label: "合計" }
 
 lanes:
   ctrl: { x: 0, width: 200 }
@@ -24776,23 +24776,23 @@ states:
   count: 3
 
 actors:
-  - Stepper: { kind: card, lane: ctrl, stack: 0, subtitle: "count = {count} (0-10 range)" }
-  - Bar visual: { kind: card, lane: bar, stack: 0, subtitle: "count 追随 progress bar (readout.bar)" }
-  - Stat readout: { kind: card, lane: stat, stack: 0, subtitle: "count 追随 number + unit (readout.stat)" }
+  - 増減ボタン: { kind: card, lane: ctrl, stack: 0, subtitle: "個数 = {count} (0〜10)" }
+  - 棒で見る: { kind: card, lane: bar, stack: 0, subtitle: "個数に追随する棒" }
+  - 数で見る: { kind: card, lane: stat, stack: 0, subtitle: "個数に追随する数と単位" }
 
 flow:
-  - Stepper -> Bar visual: "→ bar" (info)
-  - Stepper -> Stat readout: "→ stat" (success)
+  - 増減ボタン -> 棒で見る: "→ 棒" (info)
+  - 増減ボタン -> 数で見る: "→ 数" (success)
 
 animation:
   - step: "3 個" 1.8s
-    focus: ["Stepper"]
+    focus: ["増減ボタン"]
     description: "初期の 3 個。 棒の長さと数字が同じ値を見ている。"
   - step: "増やす" 1.8s
-    focus: ["Stepper", "Bar visual"]
+    focus: ["増減ボタン", "棒で見る"]
     description: "ボタンで増やすと棒が伸び、数字も上がる。 2 つが同時に動く。"
   - step: "読み取る" 1.8s
-    focus: ["Stepper", "Bar visual", "Stat readout"]
+    focus: ["増減ボタン", "棒で見る", "数で見る"]
     description: "右の数字で正確な値を読む。 棒は大小、数字は正確さを担う。"
 `;
 
@@ -24806,7 +24806,7 @@ export const sourceJson__stepperControl = `{
       "min": 0,
       "max": 10,
       "defaultValue": 3,
-      "label": "Count"
+      "label": "個数"
     }
   ],
   "readouts": [
@@ -24816,9 +24816,9 @@ export const sourceJson__stepperControl = `{
       "source": "count",
       "min": 0,
       "max": 10,
-      "label": "Progress bar"
+      "label": "進み具合の棒"
     },
-    { "id": "countStat", "kind": "stat", "source": "count", "unit": " items", "label": "Total" }
+    { "id": "countStat", "kind": "stat", "source": "count", "unit": " 個", "label": "合計" }
   ],
   "lanes": {
     "ctrl": { "x": 0, "width": 200 },
@@ -24827,49 +24827,49 @@ export const sourceJson__stepperControl = `{
   },
   "actors": [
     {
-      "name": "Stepper",
+      "name": "増減ボタン",
       "kind": "card",
       "lane": "ctrl",
       "stack": 0,
-      "subtitle": "count = {count} (0-10 range)"
+      "subtitle": "個数 = {count} (0〜10)"
     },
     {
-      "name": "Bar visual",
+      "name": "棒で見る",
       "kind": "card",
       "lane": "bar",
       "stack": 0,
-      "subtitle": "count 追随 progress bar (readout.bar)"
+      "subtitle": "個数に追随する棒"
     },
     {
-      "name": "Stat readout",
+      "name": "数で見る",
       "kind": "card",
       "lane": "stat",
       "stack": 0,
-      "subtitle": "count 追随 number + unit (readout.stat)"
+      "subtitle": "個数に追随する数と単位"
     }
   ],
   "flow": [
-    { "from": "Stepper", "to": "Bar visual", "label": "→ bar", "tone": "info" },
-    { "from": "Stepper", "to": "Stat readout", "label": "→ stat", "tone": "success" }
+    { "from": "増減ボタン", "to": "棒で見る", "label": "→ 棒", "tone": "info" },
+    { "from": "増減ボタン", "to": "数で見る", "label": "→ 数", "tone": "success" }
   ],
   "states": { "count": 3 },
   "animation": [
     {
       "step": "3 個",
       "duration": 1.8,
-      "focus": ["Stepper"],
+      "focus": ["増減ボタン"],
       "body": "初期の 3 個。 棒の長さと数字が同じ値を見ている。"
     },
     {
       "step": "増やす",
       "duration": 1.8,
-      "focus": ["Stepper", "Bar visual"],
+      "focus": ["増減ボタン", "棒で見る"],
       "body": "ボタンで増やすと棒が伸び、数字も上がる。 2 つが同時に動く。"
     },
     {
       "step": "読み取る",
       "duration": 1.8,
-      "focus": ["Stepper", "Bar visual", "Stat readout"],
+      "focus": ["増減ボタン", "棒で見る", "数で見る"],
       "body": "右の数字で正確な値を読む。 棒は大小、数字は正確さを担う。"
     }
   ]
@@ -24993,10 +24993,10 @@ export const sourceYaml__xypadNavigate = `title: "XY パッドの座標が 4 象
 type: flow
 
 inputs:
-  pos: { kind: xypad, xMin: 0, xMax: 100, yMin: 0, yMax: 100, defaultX: 50, defaultY: 50, label: "Position" }
+  pos: { kind: xypad, xMin: 0, xMax: 100, yMin: 0, yMax: 100, defaultX: 50, defaultY: 50, label: "位置" }
 
 readouts:
-  posStat: { kind: stat, source: "pos", caption: "x,y in 0..100", label: "Selected" }
+  posStat: { kind: stat, source: "pos", caption: "横, 縦 の順に 0〜100", label: "選んだ座標" }
 
 lanes:
   q2: { x: 0, width: 160 }
@@ -25008,11 +25008,11 @@ states:
   pos: "50,50"
 
 actors:
-  - q2Node: { kind: card, lane: q2, stack: 0, subtitle: "upper-left", title: "Q2" }
-  - q1Node: { kind: card, lane: q1, stack: 0, subtitle: "upper-right", title: "Q1" }
-  - q3Node: { kind: card, lane: q3, stack: 0, subtitle: "lower-left", title: "Q3" }
-  - q4Node: { kind: card, lane: q4, stack: 0, subtitle: "lower-right", title: "Q4" }
-  - indicator: { kind: card, lane: q1, stack: 1, subtitle: "{pos} (default center → Q1 boundary)", title: "◆ Position" }
+  - q2Node: { kind: card, lane: q2, stack: 0, subtitle: "第 2 象限", title: "左上" }
+  - q1Node: { kind: card, lane: q1, stack: 0, subtitle: "第 1 象限", title: "右上" }
+  - q3Node: { kind: card, lane: q3, stack: 0, subtitle: "第 3 象限", title: "左下" }
+  - q4Node: { kind: card, lane: q4, stack: 0, subtitle: "第 4 象限", title: "右下" }
+  - indicator: { kind: card, lane: q1, stack: 1, subtitle: "{pos} (初期値は中央で、右上との境目)", title: "◆ いまの位置" }
 
 animation:
   - step: "左下の区画" 1.8s
@@ -25039,7 +25039,7 @@ export const sourceJson__xypadNavigate = `{
       "yMax": 100,
       "defaultX": 50,
       "defaultY": 50,
-      "label": "Position"
+      "label": "位置"
     }
   ],
   "readouts": [
@@ -25047,8 +25047,8 @@ export const sourceJson__xypadNavigate = `{
       "id": "posStat",
       "kind": "stat",
       "source": "pos",
-      "caption": "x,y in 0..100",
-      "label": "Selected"
+      "caption": "横, 縦 の順に 0〜100",
+      "label": "選んだ座標"
     }
   ],
   "lanes": {
@@ -25063,40 +25063,40 @@ export const sourceJson__xypadNavigate = `{
       "kind": "card",
       "lane": "q2",
       "stack": 0,
-      "subtitle": "upper-left",
-      "title": "Q2"
+      "subtitle": "第 2 象限",
+      "title": "左上"
     },
     {
       "name": "q1Node",
       "kind": "card",
       "lane": "q1",
       "stack": 0,
-      "subtitle": "upper-right",
-      "title": "Q1"
+      "subtitle": "第 1 象限",
+      "title": "右上"
     },
     {
       "name": "q3Node",
       "kind": "card",
       "lane": "q3",
       "stack": 0,
-      "subtitle": "lower-left",
-      "title": "Q3"
+      "subtitle": "第 3 象限",
+      "title": "左下"
     },
     {
       "name": "q4Node",
       "kind": "card",
       "lane": "q4",
       "stack": 0,
-      "subtitle": "lower-right",
-      "title": "Q4"
+      "subtitle": "第 4 象限",
+      "title": "右下"
     },
     {
       "name": "indicator",
       "kind": "card",
       "lane": "q1",
       "stack": 1,
-      "subtitle": "{pos} (default center → Q1 boundary)",
-      "title": "◆ Position"
+      "subtitle": "{pos} (初期値は中央で、右上との境目)",
+      "title": "◆ いまの位置"
     }
   ],
   "flow": [],
@@ -25127,8 +25127,8 @@ export const sourceYaml__renderOffsetDrift = `title: "固定点に対して浮�
 type: flow
 
 inputs:
-  dx: { kind: slider, min: -80, max: 80, defaultValue: 0, label: "Drift X" }
-  dy: { kind: slider, min: -40, max: 40, defaultValue: 0, label: "Drift Y" }
+  dx: { kind: slider, min: -80, max: 80, defaultValue: 0, label: "横のずれ" }
+  dy: { kind: slider, min: -40, max: 40, defaultValue: 0, label: "縦のずれ" }
 
 lanes:
   anchor-lane: { x: 0, width: 240 }
@@ -25139,18 +25139,18 @@ states:
   dy: 0
 
 actors:
-  - Anchor: { kind: card, lane: anchor-lane, stack: 0, subtitle: "固定位置、 signal bind なし" }
-  - Floater: { kind: card, lane: floater-lane, stack: 0, subtitle: "dx={dx} · dy={dy}", renderOffsetX: "{dx}", renderOffsetY: "{dy}" }
+  - 基準の点: { kind: card, lane: anchor-lane, stack: 0, subtitle: "つまみに追随しない" }
+  - ずれる点: { kind: card, lane: floater-lane, stack: 0, subtitle: "横 {dx} · 縦 {dy}", renderOffsetX: "{dx}", renderOffsetY: "{dy}" }
 
 animation:
   - step: "基準を置く" 1.6s
-    focus: ["Anchor"]
+    focus: ["基準の点"]
     description: "動かない点を先に置く。 ここが位置の基準になる。"
   - step: "ずれを見る" 1.6s
-    focus: ["Anchor", "Floater"]
+    focus: ["基準の点", "ずれる点"]
     description: "もう 1 つの点が基準からずれて描かれる。 ずれ幅は縦横それぞれで決まる。"
   - step: "つまみで動かす" 1.6s
-    focus: ["Floater"]
+    focus: ["ずれる点"]
     description: "つまみで縦横のずれを変えられる。 基準は動かないので差が読み取れる。"
 `;
 
@@ -25164,7 +25164,7 @@ export const sourceJson__renderOffsetDrift = `{
       "min": -80,
       "max": 80,
       "defaultValue": 0,
-      "label": "Drift X"
+      "label": "横のずれ"
     },
     {
       "id": "dy",
@@ -25172,7 +25172,7 @@ export const sourceJson__renderOffsetDrift = `{
       "min": -40,
       "max": 40,
       "defaultValue": 0,
-      "label": "Drift Y"
+      "label": "縦のずれ"
     }
   ],
   "lanes": {
@@ -25181,18 +25181,18 @@ export const sourceJson__renderOffsetDrift = `{
   },
   "actors": [
     {
-      "name": "Anchor",
+      "name": "基準の点",
       "kind": "card",
       "lane": "anchor-lane",
       "stack": 0,
-      "subtitle": "固定位置、 signal bind なし"
+      "subtitle": "つまみに追随しない"
     },
     {
-      "name": "Floater",
+      "name": "ずれる点",
       "kind": "card",
       "lane": "floater-lane",
       "stack": 0,
-      "subtitle": "dx={dx} · dy={dy}",
+      "subtitle": "横 {dx} · 縦 {dy}",
       "renderOffsetX": "{dx}",
       "renderOffsetY": "{dy}"
     }
@@ -25203,19 +25203,19 @@ export const sourceJson__renderOffsetDrift = `{
     {
       "step": "基準を置く",
       "duration": 1.6,
-      "focus": ["Anchor"],
+      "focus": ["基準の点"],
       "body": "動かない点を先に置く。 ここが位置の基準になる。"
     },
     {
       "step": "ずれを見る",
       "duration": 1.6,
-      "focus": ["Anchor", "Floater"],
+      "focus": ["基準の点", "ずれる点"],
       "body": "もう 1 つの点が基準からずれて描かれる。 ずれ幅は縦横それぞれで決まる。"
     },
     {
       "step": "つまみで動かす",
       "duration": 1.6,
-      "focus": ["Floater"],
+      "focus": ["ずれる点"],
       "body": "つまみで縦横のずれを変えられる。 基準は動かないので差が読み取れる。"
     }
   ]
@@ -25225,10 +25225,10 @@ export const sourceYaml__visualBindBar = `title: "信号の値が棒の実際の
 type: flow
 
 inputs:
-  barW: { kind: slider, min: 40, max: 320, defaultValue: 160, label: "Bar width" }
+  barW: { kind: slider, min: 40, max: 320, defaultValue: 160, label: "棒の幅" }
 
 readouts:
-  barMon: { kind: bar, source: "barW", min: 40, max: 320, label: "Width readout" }
+  barMon: { kind: bar, source: "barW", min: 40, max: 320, label: "いまの幅" }
 
 lanes:
   signal: { x: 0, width: 200 }
@@ -25239,15 +25239,15 @@ states:
   barW: 160
 
 actors:
-  - signalNode: { kind: card, lane: signal, stack: 0, subtitle: "barW = {barW}", title: "Signal" }
-  - bar: { kind: card, lane: bar-lane, stack: 0, subtitle: "wBind = {barW}px", wBind: "{barW}", posW: 160, title: "Bar" }
-  - barTall: { kind: card, lane: bar-lane, stack: 1, subtitle: "hBind = {barW}px", hBind: "{barW}", posH: 96, title: "Tall bar" }
-  - readoutNode: { kind: card, lane: readout, stack: 0, subtitle: "readout.bar が signal を同時追随", title: "Bar readout" }
+  - signalNode: { kind: card, lane: signal, stack: 0, subtitle: "幅 = {barW}", title: "信号" }
+  - bar: { kind: card, lane: bar-lane, stack: 0, subtitle: "幅 {barW}px", wBind: "{barW}", posW: 160, title: "横の棒" }
+  - barTall: { kind: card, lane: bar-lane, stack: 1, subtitle: "高さ {barW}px", hBind: "{barW}", posH: 96, title: "縦の棒" }
+  - readoutNode: { kind: card, lane: readout, stack: 0, subtitle: "同じ信号を数でも出す", title: "数の表示" }
 
 flow:
-  - signalNode -> bar: "wBind" (info)
-  - signalNode -> barTall: "hBind" (warning)
-  - signalNode -> readoutNode: "readout" (success)
+  - signalNode -> bar: "幅に使う" (info)
+  - signalNode -> barTall: "高さに使う" (warning)
+  - signalNode -> readoutNode: "数で出す" (success)
 
 animation:
   - step: "信号を見る" 1.8s
@@ -25271,7 +25271,7 @@ export const sourceJson__visualBindBar = `{
       "min": 40,
       "max": 320,
       "defaultValue": 160,
-      "label": "Bar width"
+      "label": "棒の幅"
     }
   ],
   "readouts": [
@@ -25281,7 +25281,7 @@ export const sourceJson__visualBindBar = `{
       "source": "barW",
       "min": 40,
       "max": 320,
-      "label": "Width readout"
+      "label": "いまの幅"
     }
   ],
   "lanes": {
@@ -25295,42 +25295,42 @@ export const sourceJson__visualBindBar = `{
       "kind": "card",
       "lane": "signal",
       "stack": 0,
-      "subtitle": "barW = {barW}",
-      "title": "Signal"
+      "subtitle": "幅 = {barW}",
+      "title": "信号"
     },
     {
       "name": "bar",
       "kind": "card",
       "lane": "bar-lane",
       "stack": 0,
-      "subtitle": "wBind = {barW}px",
+      "subtitle": "幅 {barW}px",
       "wBind": "{barW}",
       "posW": 160,
-      "title": "Bar"
+      "title": "横の棒"
     },
     {
       "name": "barTall",
       "kind": "card",
       "lane": "bar-lane",
       "stack": 1,
-      "subtitle": "hBind = {barW}px",
+      "subtitle": "高さ {barW}px",
       "hBind": "{barW}",
       "posH": 96,
-      "title": "Tall bar"
+      "title": "縦の棒"
     },
     {
       "name": "readoutNode",
       "kind": "card",
       "lane": "readout",
       "stack": 0,
-      "subtitle": "readout.bar が signal を同時追随",
-      "title": "Bar readout"
+      "subtitle": "同じ信号を数でも出す",
+      "title": "数の表示"
     }
   ],
   "flow": [
-    { "from": "signalNode", "to": "bar", "label": "wBind", "tone": "info" },
-    { "from": "signalNode", "to": "barTall", "label": "hBind", "tone": "warning" },
-    { "from": "signalNode", "to": "readoutNode", "label": "readout", "tone": "success" }
+    { "from": "signalNode", "to": "bar", "label": "幅に使う", "tone": "info" },
+    { "from": "signalNode", "to": "barTall", "label": "高さに使う", "tone": "warning" },
+    { "from": "signalNode", "to": "readoutNode", "label": "数で出す", "tone": "success" }
   ],
   "states": { "barW": 160 },
   "animation": [
@@ -25359,11 +25359,11 @@ export const sourceYaml__eip1559GasFlow = `title: "EIP-1559 の手数料が 3 �
 type: flow
 
 inputs:
-  baseFee: { kind: slider, min: 10, max: 200, defaultValue: 50, label: "Base fee (gwei)" }
-  priority: { kind: slider, min: 1, max: 30, defaultValue: 5, label: "Priority tip" }
+  baseFee: { kind: slider, min: 10, max: 200, defaultValue: 50, label: "基準手数料 (gwei)" }
+  priority: { kind: slider, min: 1, max: 30, defaultValue: 5, label: "優先手数料" }
 
 readouts:
-  gas: { kind: stacked-bar, sourceA: "burned", sourceB: "tips", min: 0, max: 120, colorA: "#ef4444", colorB: "#22c55e", label: "Burned / Tip per block" }
+  gas: { kind: stacked-bar, sourceA: "burned", sourceB: "tips", min: 0, max: 120, colorA: "#ef4444", colorB: "#22c55e", label: "ブロックごとの焼却分 / 優先分" }
 
 formulas:
   total1: "baseFee + priority"
@@ -25384,31 +25384,31 @@ states:
   total3: 82
 
 actors:
-  - Wallet: { kind: card, lane: col1, stack: 0, subtitle: "base {baseFee} + tip {priority} gwei", posW: 320 }
-  - Block N: { kind: card, lane: col1, stack: 1, subtitle: "1.0x = {total1} gwei", posW: 240 }
-  - Block N+1: { kind: card, lane: col2, stack: 0, subtitle: "1.2x = {total2} gwei", posW: 250 }
-  - Block N+2: { kind: card, lane: col2, stack: 1, subtitle: "1.5x = {total3} gwei", posW: 250 }
+  - 財布: { kind: card, lane: col1, stack: 0, subtitle: "基準 {baseFee} + 優先 {priority} gwei", posW: 320 }
+  - ブロック N: { kind: card, lane: col1, stack: 1, subtitle: "×1.0 = {total1} gwei", posW: 240 }
+  - ブロック N+1: { kind: card, lane: col2, stack: 0, subtitle: "×1.2 = {total2} gwei", posW: 250 }
+  - ブロック N+2: { kind: card, lane: col2, stack: 1, subtitle: "×1.5 = {total3} gwei", posW: 250 }
 
 flow:
-  - Wallet -> Block N: "tx submit" (info) { sub: "base + tip" }
-  - Block N -> Block N+1: "next block" (warning) { sub: "+20% fee" }
-  - Block N+1 -> Block N+2: "next block" (error) { sub: "+25% fee" }
+  - 財布 -> ブロック N: "取引を送る" (info) { sub: "基準 + 優先" }
+  - ブロック N -> ブロック N+1: "次のブロック" (warning) { sub: "手数料 +20%" }
+  - ブロック N+1 -> ブロック N+2: "次のブロック" (error) { sub: "手数料 +25%" }
 
 animation:
   - step: "1 ブロック目" 1.8s
-    focus: ["Wallet", "Block N"]
+    focus: ["財布", "ブロック N"]
     set:
       burned: "[50,0,0]"
       tips: "[5,0,0]"
     description: "基準手数料 50 / 優先手数料 5。 最初のブロックの内訳。"
   - step: "2 ブロック目" 1.8s
-    focus: ["Wallet", "Block N", "Block N+1"]
+    focus: ["財布", "ブロック N", "ブロック N+1"]
     set:
       burned: "[50,60,0]"
       tips: "[5,8,0]"
     description: "混雑して基準手数料が上がる。 焼却分が増え、優先分も上がる。"
   - step: "3 ブロック目" 1.8s
-    focus: ["Wallet", "Block N", "Block N+1", "Block N+2"]
+    focus: ["財布", "ブロック N", "ブロック N+1", "ブロック N+2"]
     set:
       burned: "[50,60,72]"
       tips: "[5,8,10]"
@@ -25425,7 +25425,7 @@ export const sourceJson__eip1559GasFlow = `{
       "min": 10,
       "max": 200,
       "defaultValue": 50,
-      "label": "Base fee (gwei)"
+      "label": "基準手数料 (gwei)"
     },
     {
       "id": "priority",
@@ -25433,7 +25433,7 @@ export const sourceJson__eip1559GasFlow = `{
       "min": 1,
       "max": 30,
       "defaultValue": 5,
-      "label": "Priority tip"
+      "label": "優先手数料"
     }
   ],
   "readouts": [
@@ -25446,7 +25446,7 @@ export const sourceJson__eip1559GasFlow = `{
       "max": 120,
       "colorA": "#ef4444",
       "colorB": "#22c55e",
-      "label": "Burned / Tip per block"
+      "label": "ブロックごとの焼却分 / 優先分"
     }
   ],
   "formulas": {
@@ -25460,58 +25460,58 @@ export const sourceJson__eip1559GasFlow = `{
   },
   "actors": [
     {
-      "name": "Wallet",
+      "name": "財布",
       "kind": "card",
       "lane": "col1",
       "stack": 0,
-      "subtitle": "base {baseFee} + tip {priority} gwei",
+      "subtitle": "基準 {baseFee} + 優先 {priority} gwei",
       "posW": 320
     },
     {
-      "name": "Block N",
+      "name": "ブロック N",
       "kind": "card",
       "lane": "col1",
       "stack": 1,
-      "subtitle": "1.0x = {total1} gwei",
+      "subtitle": "×1.0 = {total1} gwei",
       "posW": 240
     },
     {
-      "name": "Block N+1",
+      "name": "ブロック N+1",
       "kind": "card",
       "lane": "col2",
       "stack": 0,
-      "subtitle": "1.2x = {total2} gwei",
+      "subtitle": "×1.2 = {total2} gwei",
       "posW": 250
     },
     {
-      "name": "Block N+2",
+      "name": "ブロック N+2",
       "kind": "card",
       "lane": "col2",
       "stack": 1,
-      "subtitle": "1.5x = {total3} gwei",
+      "subtitle": "×1.5 = {total3} gwei",
       "posW": 250
     }
   ],
   "flow": [
     {
-      "from": "Wallet",
-      "to": "Block N",
-      "label": "tx submit",
-      "sub": "base + tip",
+      "from": "財布",
+      "to": "ブロック N",
+      "label": "取引を送る",
+      "sub": "基準 + 優先",
       "tone": "info"
     },
     {
-      "from": "Block N",
-      "to": "Block N+1",
-      "label": "next block",
-      "sub": "+20% fee",
+      "from": "ブロック N",
+      "to": "ブロック N+1",
+      "label": "次のブロック",
+      "sub": "手数料 +20%",
       "tone": "warning"
     },
     {
-      "from": "Block N+1",
-      "to": "Block N+2",
-      "label": "next block",
-      "sub": "+25% fee",
+      "from": "ブロック N+1",
+      "to": "ブロック N+2",
+      "label": "次のブロック",
+      "sub": "手数料 +25%",
       "tone": "error"
     }
   ],
@@ -25528,21 +25528,21 @@ export const sourceJson__eip1559GasFlow = `{
     {
       "step": "1 ブロック目",
       "duration": 1.8,
-      "focus": ["Wallet", "Block N"],
+      "focus": ["財布", "ブロック N"],
       "set": { "burned": "[50,0,0]", "tips": "[5,0,0]" },
       "body": "基準手数料 50 / 優先手数料 5。 最初のブロックの内訳。"
     },
     {
       "step": "2 ブロック目",
       "duration": 1.8,
-      "focus": ["Wallet", "Block N", "Block N+1"],
+      "focus": ["財布", "ブロック N", "ブロック N+1"],
       "set": { "burned": "[50,60,0]", "tips": "[5,8,0]" },
       "body": "混雑して基準手数料が上がる。 焼却分が増え、優先分も上がる。"
     },
     {
       "step": "3 ブロック目",
       "duration": 1.8,
-      "focus": ["Wallet", "Block N", "Block N+1", "Block N+2"],
+      "focus": ["財布", "ブロック N", "ブロック N+1", "ブロック N+2"],
       "set": { "burned": "[50,60,72]", "tips": "[5,8,10]" },
       "body": "さらに上がって 72 に届く。 3 ブロック分の推移が積み上げで並ぶ。"
     }
@@ -25553,7 +25553,7 @@ export const sourceYaml__formulaTextBind = `title: "入力値から 2 倍と半�
 type: flow
 
 inputs:
-  input: { kind: number, defaultValue: 10, label: "Input" }
+  input: { kind: number, defaultValue: 10, label: "元の値" }
 
 formulas:
   doubled: "input * 2"
@@ -25570,9 +25570,9 @@ states:
   halved: 5
 
 actors:
-  - in: { kind: card, lane: input, stack: 0, subtitle: "value = {input}", title: "Input" }
-  - out1: { kind: card, lane: doubled, stack: 0, subtitle: "input * 2 = {doubled}", title: "Doubled" }
-  - out2: { kind: card, lane: halved, stack: 0, subtitle: "input / 2 = {halved}", title: "Halved" }
+  - in: { kind: card, lane: input, stack: 0, subtitle: "値 = {input}", title: "元の値" }
+  - out1: { kind: card, lane: doubled, stack: 0, subtitle: "元の値 × 2 = {doubled}", title: "2 倍" }
+  - out2: { kind: card, lane: halved, stack: 0, subtitle: "元の値 ÷ 2 = {halved}", title: "半分" }
 
 flow:
   - in -> out1: "× 2" (success)
@@ -25594,7 +25594,7 @@ export const sourceJson__formulaTextBind = `{
   "title": "入力値から 2 倍と半分を自動計算する",
   "type": "flow",
   "inputs": [
-    { "id": "input", "kind": "number", "defaultValue": 10, "label": "Input" }
+    { "id": "input", "kind": "number", "defaultValue": 10, "label": "元の値" }
   ],
   "formulas": { "doubled": "input * 2", "halved": "input / 2" },
   "lanes": {
@@ -25608,24 +25608,24 @@ export const sourceJson__formulaTextBind = `{
       "kind": "card",
       "lane": "input",
       "stack": 0,
-      "subtitle": "value = {input}",
-      "title": "Input"
+      "subtitle": "値 = {input}",
+      "title": "元の値"
     },
     {
       "name": "out1",
       "kind": "card",
       "lane": "doubled",
       "stack": 0,
-      "subtitle": "input * 2 = {doubled}",
-      "title": "Doubled"
+      "subtitle": "元の値 × 2 = {doubled}",
+      "title": "2 倍"
     },
     {
       "name": "out2",
       "kind": "card",
       "lane": "halved",
       "stack": 0,
-      "subtitle": "input / 2 = {halved}",
-      "title": "Halved"
+      "subtitle": "元の値 ÷ 2 = {halved}",
+      "title": "半分"
     }
   ],
   "flow": [
@@ -25654,13 +25654,13 @@ export const sourceYaml__kpiDashboard = `title: "SaaS の主要指標 4 つを 1
 type: flow
 
 inputs:
-  revenueInput: { kind: slider, min: 10, max: 500, defaultValue: 120, label: "Revenue (k)" }
+  revenueInput: { kind: slider, min: 10, max: 500, defaultValue: 120, label: "月の売上 (千ドル)" }
 
 readouts:
-  rev: { kind: stat, source: "revenueInput", unit: "k", label: "Revenue" }
-  usr: { kind: stat, source: "users", label: "Users" }
-  chr: { kind: gauge, source: "churn", min: 0, max: 60, color: "#ef4444", label: "Churn %" }
-  np: { kind: percent-ring, source: "nps", max: 100, color: "#22c55e", label: "NPS" }
+  rev: { kind: stat, source: "revenueInput", unit: " 千ドル", label: "売上" }
+  usr: { kind: stat, source: "users", label: "利用者" }
+  chr: { kind: gauge, source: "churn", min: 0, max: 60, color: "#ef4444", label: "解約率 (%)" }
+  np: { kind: percent-ring, source: "nps", max: 100, color: "#22c55e", label: "推奨度" }
 
 formulas:
   users: "revenueInput * 8"
@@ -25680,15 +25680,15 @@ states:
   nps: 80
 
 actors:
-  - revCard: { kind: card, lane: revenue, stack: 0, subtitle: "\${revenueInput}k / month", title: "Revenue" }
-  - usersCard: { kind: card, lane: users, stack: 0, subtitle: "{users} active", title: "Users" }
-  - churnCard: { kind: card, lane: churn, stack: 0, subtitle: "{churn}% / month", title: "Churn" }
-  - npsCard: { kind: card, lane: nps, stack: 0, subtitle: "{nps} score", title: "NPS" }
+  - revCard: { kind: card, lane: revenue, stack: 0, subtitle: "月 {revenueInput} 千ドル", title: "売上" }
+  - usersCard: { kind: card, lane: users, stack: 0, subtitle: "{users} 人が利用中", title: "利用者" }
+  - churnCard: { kind: card, lane: churn, stack: 0, subtitle: "月 {churn}%", title: "解約率" }
+  - npsCard: { kind: card, lane: nps, stack: 0, subtitle: "{nps} 点", title: "推奨度" }
 
 flow:
-  - revCard -> usersCard: "×8" (info) { sub: "acquisition" }
-  - revCard -> churnCard: "inverse" (error) { sub: "50 − rev/10" }
-  - revCard -> npsCard: "correlate" (success) { sub: "rev/2 + 20", side: "bottom" }
+  - revCard -> usersCard: "×8" (info) { sub: "獲得" }
+  - revCard -> churnCard: "逆に動く" (error) { sub: "50 − 売上/10" }
+  - revCard -> npsCard: "同じ向きに動く" (success) { sub: "売上/2 + 20", side: "bottom" }
 
 animation:
   - step: "利用者を見る" 1.8s
@@ -25712,12 +25712,12 @@ export const sourceJson__kpiDashboard = `{
       "min": 10,
       "max": 500,
       "defaultValue": 120,
-      "label": "Revenue (k)"
+      "label": "月の売上 (千ドル)"
     }
   ],
   "readouts": [
-    { "id": "rev", "kind": "stat", "source": "revenueInput", "unit": "k", "label": "Revenue" },
-    { "id": "usr", "kind": "stat", "source": "users", "label": "Users" },
+    { "id": "rev", "kind": "stat", "source": "revenueInput", "unit": " 千ドル", "label": "売上" },
+    { "id": "usr", "kind": "stat", "source": "users", "label": "利用者" },
     {
       "id": "chr",
       "kind": "gauge",
@@ -25725,7 +25725,7 @@ export const sourceJson__kpiDashboard = `{
       "min": 0,
       "max": 60,
       "color": "#ef4444",
-      "label": "Churn %"
+      "label": "解約率 (%)"
     },
     {
       "id": "np",
@@ -25733,7 +25733,7 @@ export const sourceJson__kpiDashboard = `{
       "source": "nps",
       "max": 100,
       "color": "#22c55e",
-      "label": "NPS"
+      "label": "推奨度"
     }
   ],
   "formulas": {
@@ -25753,32 +25753,32 @@ export const sourceJson__kpiDashboard = `{
       "kind": "card",
       "lane": "revenue",
       "stack": 0,
-      "subtitle": "\${revenueInput}k / month",
-      "title": "Revenue"
+      "subtitle": "月 {revenueInput} 千ドル",
+      "title": "売上"
     },
     {
       "name": "usersCard",
       "kind": "card",
       "lane": "users",
       "stack": 0,
-      "subtitle": "{users} active",
-      "title": "Users"
+      "subtitle": "{users} 人が利用中",
+      "title": "利用者"
     },
     {
       "name": "churnCard",
       "kind": "card",
       "lane": "churn",
       "stack": 0,
-      "subtitle": "{churn}% / month",
-      "title": "Churn"
+      "subtitle": "月 {churn}%",
+      "title": "解約率"
     },
     {
       "name": "npsCard",
       "kind": "card",
       "lane": "nps",
       "stack": 0,
-      "subtitle": "{nps} score",
-      "title": "NPS"
+      "subtitle": "{nps} 点",
+      "title": "推奨度"
     }
   ],
   "flow": [
@@ -25786,21 +25786,21 @@ export const sourceJson__kpiDashboard = `{
       "from": "revCard",
       "to": "usersCard",
       "label": "×8",
-      "sub": "acquisition",
+      "sub": "獲得",
       "tone": "info"
     },
     {
       "from": "revCard",
       "to": "churnCard",
-      "label": "inverse",
-      "sub": "50 − rev/10",
+      "label": "逆に動く",
+      "sub": "50 − 売上/10",
       "tone": "error"
     },
     {
       "from": "revCard",
       "to": "npsCard",
-      "label": "correlate",
-      "sub": "rev/2 + 20",
+      "label": "同じ向きに動く",
+      "sub": "売上/2 + 20",
       "tone": "success",
       "side": "bottom"
     }
@@ -25832,11 +25832,11 @@ export const sourceYaml__pathProgressDemo = `title: "経路の進捗と完了状
 type: flow
 
 inputs:
-  progress: { kind: slider, min: 0, max: 100, defaultValue: 40, label: "Progress" }
+  progress: { kind: slider, min: 0, max: 100, defaultValue: 40, label: "進み具合" }
 
 readouts:
-  pp: { kind: path-progress, source: "progress", pathD: "M 10 30 L 60 10 L 110 30 L 160 10 L 210 30 L 260 10", viewW: 270, viewH: 40, strokeWidth: 5, color: "#22c55e", max: 100, label: "Path (zigzag)" }
-  ring: { kind: percent-ring, source: "progress", max: 100, color: "#22c55e", label: "Ring" }
+  pp: { kind: path-progress, source: "progress", pathD: "M 10 30 L 60 10 L 110 30 L 160 10 L 210 30 L 260 10", viewW: 270, viewH: 40, strokeWidth: 5, color: "#22c55e", max: 100, label: "経路 (ジグザグ)" }
+  ring: { kind: percent-ring, source: "progress", max: 100, color: "#22c55e", label: "円" }
 
 formulas:
   done: "progress >= 100 ? 1 : 0"
@@ -25851,10 +25851,10 @@ states:
   done: 0
 
 actors:
-  - main: { kind: card, lane: state, stack: 0, subtitle: "{progress}% complete", title: "Task state" }
-  - pathNode: { kind: card, lane: visual, stack: 0, subtitle: "SVG stroke-dashoffset で進行", title: "Path visual" }
-  - ringNode: { kind: card, lane: visual, stack: 1, subtitle: "同時追随", title: "Percent ring" }
-  - ok: { kind: card, lane: done, stack: 0, subtitle: "progress=100% で visibleIf 発動", visibleIf: "{done}", title: "✓ Done" }
+  - main: { kind: card, lane: state, stack: 0, subtitle: "{progress}% 完了", title: "作業の状態" }
+  - pathNode: { kind: card, lane: visual, stack: 0, subtitle: "線を塗る位置で進みを出す", title: "経路の表示" }
+  - ringNode: { kind: card, lane: visual, stack: 1, subtitle: "同時追随", title: "割合の円" }
+  - ok: { kind: card, lane: done, stack: 0, subtitle: "100% に達すると表示される", visibleIf: "{done}", title: "✓ 完了" }
 
 animation:
   - step: "元の値を見る" 1.8s
@@ -25878,7 +25878,7 @@ export const sourceJson__pathProgressDemo = `{
       "min": 0,
       "max": 100,
       "defaultValue": 40,
-      "label": "Progress"
+      "label": "進み具合"
     }
   ],
   "readouts": [
@@ -25892,7 +25892,7 @@ export const sourceJson__pathProgressDemo = `{
       "strokeWidth": 5,
       "color": "#22c55e",
       "max": 100,
-      "label": "Path (zigzag)"
+      "label": "経路 (ジグザグ)"
     },
     {
       "id": "ring",
@@ -25900,7 +25900,7 @@ export const sourceJson__pathProgressDemo = `{
       "source": "progress",
       "max": 100,
       "color": "#22c55e",
-      "label": "Ring"
+      "label": "円"
     }
   ],
   "formulas": { "done": "progress >= 100 ? 1 : 0" },
@@ -25915,16 +25915,16 @@ export const sourceJson__pathProgressDemo = `{
       "kind": "card",
       "lane": "state",
       "stack": 0,
-      "subtitle": "{progress}% complete",
-      "title": "Task state"
+      "subtitle": "{progress}% 完了",
+      "title": "作業の状態"
     },
     {
       "name": "pathNode",
       "kind": "card",
       "lane": "visual",
       "stack": 0,
-      "subtitle": "SVG stroke-dashoffset で進行",
-      "title": "Path visual"
+      "subtitle": "線を塗る位置で進みを出す",
+      "title": "経路の表示"
     },
     {
       "name": "ringNode",
@@ -25932,16 +25932,16 @@ export const sourceJson__pathProgressDemo = `{
       "lane": "visual",
       "stack": 1,
       "subtitle": "同時追随",
-      "title": "Percent ring"
+      "title": "割合の円"
     },
     {
       "name": "ok",
       "kind": "card",
       "lane": "done",
       "stack": 0,
-      "subtitle": "progress=100% で visibleIf 発動",
+      "subtitle": "100% に達すると表示される",
       "visibleIf": "{done}",
-      "title": "✓ Done"
+      "title": "✓ 完了"
     }
   ],
   "flow": [],
@@ -25972,7 +25972,7 @@ export const sourceYaml__repeatDeriveChain = `title: "repeatNodes + deriveChain 
 type: flow
 
 inputs:
-  base: { kind: slider, min: 0, max: 60, defaultValue: 20, label: "Base" }
+  base: { kind: slider, min: 0, max: 60, defaultValue: 20, label: "元の値" }
 
 formulas:
   gas1: "base"
@@ -25997,24 +25997,24 @@ states:
   gas5: 41.472
 
 actors:
-  - Block 1: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "gas: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
-  - Block 2: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "gas: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
-  - Block 3: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "gas: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
-  - Block 4: { kind: dyn-rect, lane: l4, stack: 0, subtitle: "gas: {gas4}", shape: { kind: rect, source: "{gas4}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
-  - Block 5: { kind: dyn-rect, lane: l5, stack: 0, subtitle: "gas: {gas5}", shape: { kind: rect, source: "{gas5}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - ブロック 1: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "手数料: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - ブロック 2: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "手数料: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - ブロック 3: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "手数料: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - ブロック 4: { kind: dyn-rect, lane: l4, stack: 0, subtitle: "手数料: {gas4}", shape: { kind: rect, source: "{gas4}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
+  - ブロック 5: { kind: dyn-rect, lane: l5, stack: 0, subtitle: "手数料: {gas5}", shape: { kind: rect, source: "{gas5}", fillMax: 130, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 220 }
 
 animation:
   - step: "起点を置く" 1.6s
-    focus: ["Block 1"]
+    focus: ["ブロック 1"]
     description: "元の値が 1 つ目の四角に入る。 ここが連なりの起点。"
   - step: "2 つ目まで伝わる" 1.6s
-    focus: ["Block 1", "Block 2"]
+    focus: ["ブロック 1", "ブロック 2"]
     description: "前の値を受けて次の値が決まる。 同じ規則で 2 つ目が埋まる。"
   - step: "4 つ目まで伝わる" 1.6s
-    focus: ["Block 1", "Block 2", "Block 3", "Block 4"]
+    focus: ["ブロック 1", "ブロック 2", "ブロック 3", "ブロック 4"]
     description: "同じ規則を繰り返して 4 つ目まで届く。 書いたのは規則 1 つだけ。"
   - step: "端まで届く" 1.6s
-    focus: ["Block 1", "Block 2", "Block 3", "Block 4", "Block 5"]
+    focus: ["ブロック 1", "ブロック 2", "ブロック 3", "ブロック 4", "ブロック 5"]
     description: "5 つ目まで伝わり切る。 元を動かすと端まで連なって変わる。"
 `;
 
@@ -26022,7 +26022,7 @@ export const sourceJson__repeatDeriveChain = `{
   "title": "repeatNodes + deriveChain で N 個の rect を宣言的に生成、 前値連鎖で伝搬",
   "type": "flow",
   "inputs": [
-    { "id": "base", "kind": "slider", "min": 0, "max": 60, "defaultValue": 20, "label": "Base" }
+    { "id": "base", "kind": "slider", "min": 0, "max": 60, "defaultValue": 20, "label": "元の値" }
   ],
   "formulas": {
     "gas1": "base",
@@ -26040,51 +26040,51 @@ export const sourceJson__repeatDeriveChain = `{
   },
   "actors": [
     {
-      "name": "Block 1",
+      "name": "ブロック 1",
       "kind": "dyn-rect",
       "lane": "l1",
       "stack": 0,
-      "subtitle": "gas: {gas1}",
+      "subtitle": "手数料: {gas1}",
       "shape": { "kind": "rect", "source": "{gas1}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
     },
     {
-      "name": "Block 2",
+      "name": "ブロック 2",
       "kind": "dyn-rect",
       "lane": "l2",
       "stack": 0,
-      "subtitle": "gas: {gas2}",
+      "subtitle": "手数料: {gas2}",
       "shape": { "kind": "rect", "source": "{gas2}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
     },
     {
-      "name": "Block 3",
+      "name": "ブロック 3",
       "kind": "dyn-rect",
       "lane": "l3",
       "stack": 0,
-      "subtitle": "gas: {gas3}",
+      "subtitle": "手数料: {gas3}",
       "shape": { "kind": "rect", "source": "{gas3}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
     },
     {
-      "name": "Block 4",
+      "name": "ブロック 4",
       "kind": "dyn-rect",
       "lane": "l4",
       "stack": 0,
-      "subtitle": "gas: {gas4}",
+      "subtitle": "手数料: {gas4}",
       "shape": { "kind": "rect", "source": "{gas4}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
     },
     {
-      "name": "Block 5",
+      "name": "ブロック 5",
       "kind": "dyn-rect",
       "lane": "l5",
       "stack": 0,
-      "subtitle": "gas: {gas5}",
+      "subtitle": "手数料: {gas5}",
       "shape": { "kind": "rect", "source": "{gas5}", "fillMax": 130, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 220
@@ -26096,25 +26096,25 @@ export const sourceJson__repeatDeriveChain = `{
     {
       "step": "起点を置く",
       "duration": 1.6,
-      "focus": ["Block 1"],
+      "focus": ["ブロック 1"],
       "body": "元の値が 1 つ目の四角に入る。 ここが連なりの起点。"
     },
     {
       "step": "2 つ目まで伝わる",
       "duration": 1.6,
-      "focus": ["Block 1", "Block 2"],
+      "focus": ["ブロック 1", "ブロック 2"],
       "body": "前の値を受けて次の値が決まる。 同じ規則で 2 つ目が埋まる。"
     },
     {
       "step": "4 つ目まで伝わる",
       "duration": 1.6,
-      "focus": ["Block 1", "Block 2", "Block 3", "Block 4"],
+      "focus": ["ブロック 1", "ブロック 2", "ブロック 3", "ブロック 4"],
       "body": "同じ規則を繰り返して 4 つ目まで届く。 書いたのは規則 1 つだけ。"
     },
     {
       "step": "端まで届く",
       "duration": 1.6,
-      "focus": ["Block 1", "Block 2", "Block 3", "Block 4", "Block 5"],
+      "focus": ["ブロック 1", "ブロック 2", "ブロック 3", "ブロック 4", "ブロック 5"],
       "body": "5 つ目まで伝わり切る。 元を動かすと端まで連なって変わる。"
     }
   ]
@@ -26124,7 +26124,7 @@ export const sourceYaml__shapeChainFill = `title: "3 個の dyn-rect を並列�
 type: flow
 
 inputs:
-  base: { kind: slider, min: 0, max: 100, defaultValue: 30, label: "Base" }
+  base: { kind: slider, min: 0, max: 100, defaultValue: 30, label: "元の値" }
 
 formulas:
   gas1: "base"
@@ -26143,19 +26143,19 @@ states:
   gas3: 45
 
 actors:
-  - Block 1: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "gas: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 150, orient: "up", fill: "#8a5a2a" }, posW: 100, posH: 220 }
-  - Block 2: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "gas: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" }, posW: 100, posH: 220 }
-  - Block 3: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "gas: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" }, posW: 100, posH: 220 }
+  - ブロック 1: { kind: dyn-rect, lane: l1, stack: 0, subtitle: "手数料: {gas1}", shape: { kind: rect, source: "{gas1}", fillMax: 150, orient: "up", fill: "#8a5a2a" }, posW: 100, posH: 220 }
+  - ブロック 2: { kind: dyn-rect, lane: l2, stack: 0, subtitle: "手数料: {gas2}", shape: { kind: rect, source: "{gas2}", fillMax: 150, orient: "up", fill: "#4e9dc4" }, posW: 100, posH: 220 }
+  - ブロック 3: { kind: dyn-rect, lane: l3, stack: 0, subtitle: "手数料: {gas3}", shape: { kind: rect, source: "{gas3}", fillMax: 150, orient: "up", fill: "#7ec4dd" }, posW: 100, posH: 220 }
 
 animation:
   - step: "等倍で見る" 1.6s
-    focus: ["Block 1"]
+    focus: ["ブロック 1"]
     description: "元の値がそのまま 1 つ目の四角の塗りになる。 3 つのうち基準になる 1 つ。"
   - step: "1.2 倍で見る" 1.6s
-    focus: ["Block 1", "Block 2"]
+    focus: ["ブロック 1", "ブロック 2"]
     description: "2 つ目は同じ元の値を 1.2 倍した塗りになる。 前の四角からではなく、元の値を直接見ている。"
   - step: "1.5 倍で見る" 1.6s
-    focus: ["Block 1", "Block 2", "Block 3"]
+    focus: ["ブロック 1", "ブロック 2", "ブロック 3"]
     description: "3 つ目は 1.5 倍。 元を 1 つ動かすと 3 つが同時に、別々の率で変わる。"
 `;
 
@@ -26169,7 +26169,7 @@ export const sourceJson__shapeChainFill = `{
       "min": 0,
       "max": 100,
       "defaultValue": 30,
-      "label": "Base"
+      "label": "元の値"
     }
   ],
   "formulas": { "gas1": "base", "gas2": "base * 1.2", "gas3": "base * 1.5" },
@@ -26180,31 +26180,31 @@ export const sourceJson__shapeChainFill = `{
   },
   "actors": [
     {
-      "name": "Block 1",
+      "name": "ブロック 1",
       "kind": "dyn-rect",
       "lane": "l1",
       "stack": 0,
-      "subtitle": "gas: {gas1}",
+      "subtitle": "手数料: {gas1}",
       "shape": { "kind": "rect", "source": "{gas1}", "fillMax": 150, "orient": "up", "fill": "#8a5a2a" },
       "posW": 100,
       "posH": 220
     },
     {
-      "name": "Block 2",
+      "name": "ブロック 2",
       "kind": "dyn-rect",
       "lane": "l2",
       "stack": 0,
-      "subtitle": "gas: {gas2}",
+      "subtitle": "手数料: {gas2}",
       "shape": { "kind": "rect", "source": "{gas2}", "fillMax": 150, "orient": "up", "fill": "#4e9dc4" },
       "posW": 100,
       "posH": 220
     },
     {
-      "name": "Block 3",
+      "name": "ブロック 3",
       "kind": "dyn-rect",
       "lane": "l3",
       "stack": 0,
-      "subtitle": "gas: {gas3}",
+      "subtitle": "手数料: {gas3}",
       "shape": { "kind": "rect", "source": "{gas3}", "fillMax": 150, "orient": "up", "fill": "#7ec4dd" },
       "posW": 100,
       "posH": 220
@@ -26216,19 +26216,19 @@ export const sourceJson__shapeChainFill = `{
     {
       "step": "等倍で見る",
       "duration": 1.6,
-      "focus": ["Block 1"],
+      "focus": ["ブロック 1"],
       "body": "元の値がそのまま 1 つ目の四角の塗りになる。 3 つのうち基準になる 1 つ。"
     },
     {
       "step": "1.2 倍で見る",
       "duration": 1.6,
-      "focus": ["Block 1", "Block 2"],
+      "focus": ["ブロック 1", "ブロック 2"],
       "body": "2 つ目は同じ元の値を 1.2 倍した塗りになる。 前の四角からではなく、元の値を直接見ている。"
     },
     {
       "step": "1.5 倍で見る",
       "duration": 1.6,
-      "focus": ["Block 1", "Block 2", "Block 3"],
+      "focus": ["ブロック 1", "ブロック 2", "ブロック 3"],
       "body": "3 つ目は 1.5 倍。 元を 1 つ動かすと 3 つが同時に、別々の率で変わる。"
     }
   ]
@@ -26238,7 +26238,7 @@ export const sourceYaml__shapeCirclePulse = `title: "円の進捗リングを 4 
 type: flow
 
 inputs:
-  p: { kind: slider, min: 0, max: 100, defaultValue: 60, label: "Progress" }
+  p: { kind: slider, min: 0, max: 100, defaultValue: 60, label: "進み具合" }
 
 formulas:
   prog: "p / 100"
@@ -26257,10 +26257,10 @@ states:
   prog66: 0.66
 
 actors:
-  - 0%: { kind: dyn-circle, lane: empty, stack: 0, subtitle: "empty", shape: { kind: circle, fillProgress: "{prog0}", fill: "#a08870" }, posW: 160, posH: 160 }
-  - 33%: { kind: dyn-circle, lane: third, stack: 0, subtitle: "one-third", shape: { kind: circle, fillProgress: "{prog33}", fill: "#2563eb" }, posW: 160, posH: 160 }
-  - 66%: { kind: dyn-circle, lane: twothird, stack: 0, subtitle: "two-third", shape: { kind: circle, fillProgress: "{prog66}", fill: "#f97316" }, posW: 160, posH: 160 }
-  - Ring: { kind: dyn-circle, lane: interactive, stack: 0, subtitle: "{p}%", shape: { kind: circle, fillProgress: "{prog}", fill: "#8a5a2a" }, posW: 160, posH: 160 }
+  - 0%: { kind: dyn-circle, lane: empty, stack: 0, subtitle: "空", shape: { kind: circle, fillProgress: "{prog0}", fill: "#a08870" }, posW: 160, posH: 160 }
+  - 33%: { kind: dyn-circle, lane: third, stack: 0, subtitle: "3 分の 1", shape: { kind: circle, fillProgress: "{prog33}", fill: "#2563eb" }, posW: 160, posH: 160 }
+  - 66%: { kind: dyn-circle, lane: twothird, stack: 0, subtitle: "3 分の 2", shape: { kind: circle, fillProgress: "{prog66}", fill: "#f97316" }, posW: 160, posH: 160 }
+  - 輪: { kind: dyn-circle, lane: interactive, stack: 0, subtitle: "{p}%", shape: { kind: circle, fillProgress: "{prog}", fill: "#8a5a2a" }, posW: 160, posH: 160 }
 
 animation:
   - step: "0% を見る" 1.6s
@@ -26273,7 +26273,7 @@ animation:
     focus: ["0%", "33%", "66%"]
     description: "3 分の 2 まで並べる。 角度の差が輪の長さで分かる。"
   - step: "つまみで動かす" 1.6s
-    focus: ["0%", "33%", "66%", "Ring"]
+    focus: ["0%", "33%", "66%", "輪"]
     description: "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
 `;
 
@@ -26287,7 +26287,7 @@ export const sourceJson__shapeCirclePulse = `{
       "min": 0,
       "max": 100,
       "defaultValue": 60,
-      "label": "Progress"
+      "label": "進み具合"
     }
   ],
   "formulas": { "prog": "p / 100" },
@@ -26303,7 +26303,7 @@ export const sourceJson__shapeCirclePulse = `{
       "kind": "dyn-circle",
       "lane": "empty",
       "stack": 0,
-      "subtitle": "empty",
+      "subtitle": "空",
       "shape": { "kind": "circle", "fillProgress": "{prog0}", "fill": "#a08870" },
       "posW": 160,
       "posH": 160
@@ -26313,7 +26313,7 @@ export const sourceJson__shapeCirclePulse = `{
       "kind": "dyn-circle",
       "lane": "third",
       "stack": 0,
-      "subtitle": "one-third",
+      "subtitle": "3 分の 1",
       "shape": { "kind": "circle", "fillProgress": "{prog33}", "fill": "#2563eb" },
       "posW": 160,
       "posH": 160
@@ -26323,13 +26323,13 @@ export const sourceJson__shapeCirclePulse = `{
       "kind": "dyn-circle",
       "lane": "twothird",
       "stack": 0,
-      "subtitle": "two-third",
+      "subtitle": "3 分の 2",
       "shape": { "kind": "circle", "fillProgress": "{prog66}", "fill": "#f97316" },
       "posW": 160,
       "posH": 160
     },
     {
-      "name": "Ring",
+      "name": "輪",
       "kind": "dyn-circle",
       "lane": "interactive",
       "stack": 0,
@@ -26363,7 +26363,7 @@ export const sourceJson__shapeCirclePulse = `{
     {
       "step": "つまみで動かす",
       "duration": 1.6,
-      "focus": ["0%", "33%", "66%", "Ring"],
+      "focus": ["0%", "33%", "66%", "輪"],
       "body": "右端はつまみで自由に変えられる。 3 つの見本と見比べる。"
     }
   ]
@@ -26373,10 +26373,10 @@ export const sourceYaml__timelineDrive = `title: "1 つの時間信号が図形 
 type: flow
 
 inputs:
-  t: { kind: timeline, duration: 3000, autoplay: true, loop: true, label: "Timeline" }
+  t: { kind: timeline, duration: 3000, autoplay: true, loop: true, label: "時間" }
 
 readouts:
-  timeCu: { kind: countup, source: "bar", unit: "%", label: "Time %" }
+  timeCu: { kind: countup, source: "bar", unit: "%", label: "時間 (%)" }
 
 formulas:
   bar: "t * 100"
@@ -26393,13 +26393,13 @@ states:
   angle: 0
 
 actors:
-  - timeNode: { kind: card, lane: time, stack: 0, subtitle: "t (0-1 loop 3s autoplay)", title: "Timeline" }
-  - r: { kind: dyn-rect, lane: bar, stack: 0, subtitle: "bar = t * 100", shape: { kind: rect, source: "{bar}", fillMax: 100, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 200, title: "Bar (rect)" }
-  - a: { kind: dyn-arc, lane: arc, stack: 0, subtitle: "angle = t * 270", shape: { kind: arc, angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" }, posW: 140, posH: 140, title: "Arc" }
+  - timeNode: { kind: card, lane: time, stack: 0, subtitle: "t は 0〜1 を 3 秒でくり返す", title: "時間" }
+  - r: { kind: dyn-rect, lane: bar, stack: 0, subtitle: "棒 = t × 100", shape: { kind: rect, source: "{bar}", fillMax: 100, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 200, title: "棒 (四角)" }
+  - a: { kind: dyn-arc, lane: arc, stack: 0, subtitle: "角度 = t × 270", shape: { kind: arc, angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" }, posW: 140, posH: 140, title: "弧" }
 
 flow:
-  - timeNode -> r: "→ bar" (info)
-  - timeNode -> a: "→ angle" (accent) { labelOffsetX: -45 }
+  - timeNode -> r: "→ 棒" (info)
+  - timeNode -> a: "→ 角度" (accent) { labelOffsetX: -45 }
 
 animation:
   - step: "時間の元を見る" 1.8s
@@ -26407,10 +26407,10 @@ animation:
     description: "時間の入力が元になる。 この値から計算式で図形の値を導く。"
   - step: "四角に届く" 1.8s
     focus: ["timeNode", "r"]
-    description: "計算式の値が四角に束ねられている。 時間が進むと自動で変わる。"
+    description: "計算式の値で四角の高さが決まる。 時間が進むと自動で変わる。"
   - step: "弧にも届く" 1.8s
     focus: ["timeNode", "r", "a"]
-    description: "弧には別の計算式 (時間の 270 倍) が束ねられている。 同じ時間から別々の値を導く。"
+    description: "弧の角度は別の計算式 (時間の 270 倍) で決まる。 同じ時間から別々の値を導く。"
 `;
 
 export const sourceJson__timelineDrive = `{
@@ -26423,11 +26423,11 @@ export const sourceJson__timelineDrive = `{
       "duration": 3000,
       "autoplay": true,
       "loop": true,
-      "label": "Timeline"
+      "label": "時間"
     }
   ],
   "readouts": [
-    { "id": "timeCu", "kind": "countup", "source": "bar", "unit": "%", "label": "Time %" }
+    { "id": "timeCu", "kind": "countup", "source": "bar", "unit": "%", "label": "時間 (%)" }
   ],
   "formulas": { "bar": "t * 100", "angle": "t * 270" },
   "lanes": {
@@ -26441,26 +26441,26 @@ export const sourceJson__timelineDrive = `{
       "kind": "card",
       "lane": "time",
       "stack": 0,
-      "subtitle": "t (0-1 loop 3s autoplay)",
-      "title": "Timeline"
+      "subtitle": "t は 0〜1 を 3 秒でくり返す",
+      "title": "時間"
     },
     {
       "name": "r",
       "kind": "dyn-rect",
       "lane": "bar",
       "stack": 0,
-      "subtitle": "bar = t * 100",
+      "subtitle": "棒 = t × 100",
       "shape": { "kind": "rect", "source": "{bar}", "fillMax": 100, "orient": "up", "fill": "#8a5a2a" },
       "posW": 80,
       "posH": 200,
-      "title": "Bar (rect)"
+      "title": "棒 (四角)"
     },
     {
       "name": "a",
       "kind": "dyn-arc",
       "lane": "arc",
       "stack": 0,
-      "subtitle": "angle = t * 270",
+      "subtitle": "角度 = t × 270",
       "shape": {
         "kind": "arc",
         "angle": "{angle}",
@@ -26470,12 +26470,12 @@ export const sourceJson__timelineDrive = `{
       },
       "posW": 140,
       "posH": 140,
-      "title": "Arc"
+      "title": "弧"
     }
   ],
   "flow": [
-    { "from": "timeNode", "to": "r", "label": "→ bar", "tone": "info" },
-    { "from": "timeNode", "to": "a", "label": "→ angle", "tone": "accent", "labelOffsetX": -45 }
+    { "from": "timeNode", "to": "r", "label": "→ 棒", "tone": "info" },
+    { "from": "timeNode", "to": "a", "label": "→ 角度", "tone": "accent", "labelOffsetX": -45 }
   ],
   "states": { "t": 0, "bar": 0, "angle": 0 },
   "animation": [
@@ -26489,13 +26489,13 @@ export const sourceJson__timelineDrive = `{
       "step": "四角に届く",
       "duration": 1.8,
       "focus": ["timeNode", "r"],
-      "body": "計算式の値が四角に束ねられている。 時間が進むと自動で変わる。"
+      "body": "計算式の値で四角の高さが決まる。 時間が進むと自動で変わる。"
     },
     {
       "step": "弧にも届く",
       "duration": 1.8,
       "focus": ["timeNode", "r", "a"],
-      "body": "弧には別の計算式 (時間の 270 倍) が束ねられている。 同じ時間から別々の値を導く。"
+      "body": "弧の角度は別の計算式 (時間の 270 倍) で決まる。 同じ時間から別々の値を導く。"
     }
   ]
 }`;
@@ -26625,10 +26625,10 @@ export const sourceYaml__visualBindOpacity = `title: "信号に追随する濃�
 type: flow
 
 inputs:
-  fade: { kind: slider, min: 0, max: 100, defaultValue: 100, label: "Opacity" }
+  fade: { kind: slider, min: 0, max: 100, defaultValue: 100, label: "濃さ" }
 
 readouts:
-  opGauge: { kind: gauge, source: "fade", min: 0, max: 100, label: "Fade % gauge" }
+  opGauge: { kind: gauge, source: "fade", min: 0, max: 100, label: "濃さ (%)" }
 
 formulas:
   op: "fade / 100"
@@ -26643,24 +26643,24 @@ states:
   op: 1
 
 actors:
-  - Fade control: { kind: card, lane: control, stack: 0, subtitle: "fade = {fade} · op = {op}" }
-  - Target: { kind: card, lane: target-lane, stack: 0, subtitle: "opacity: {op}", opacity: "{op}" }
-  - Reference: { kind: card, lane: ref-lane, stack: 0, subtitle: "always visible (opacity=1)" }
+  - 濃さの操作: { kind: card, lane: control, stack: 0, subtitle: "濃さ {fade} · 不透明度 {op}" }
+  - 追随する側: { kind: card, lane: target-lane, stack: 0, subtitle: "不透明度 {op}", opacity: "{op}" }
+  - 固定の側: { kind: card, lane: ref-lane, stack: 0, subtitle: "いつも見える (不透明度 1)" }
 
 flow:
-  - Fade control -> Target: "op bind" (info)
-  - Fade control -> Reference: "no bind" (warning)
+  - 濃さの操作 -> 追随する側: "濃さを渡す" (info)
+  - 濃さの操作 -> 固定の側: "渡さない" (warning)
 
 animation:
   - step: "動かす側を見る" 1.8s
-    focus: ["Fade control", "Reference"]
+    focus: ["濃さの操作", "固定の側"]
     description: "左の箱がつまみで濃さを持つ。 この値が右の 1 つだけに届く。"
   - step: "追随する側" 1.8s
-    focus: ["Fade control", "Target", "Reference"]
-    description: "追随する側は信号に束ねられている。 つまみを動かすとここだけが変わる。"
+    focus: ["濃さの操作", "追随する側", "固定の側"]
+    description: "追随する側は信号の値で濃さが決まる。 つまみを動かすとここだけが変わる。"
   - step: "固定の側と比べる" 1.8s
-    focus: ["Target", "Reference"]
-    description: "固定側は束ねられていないので動かない。 2 つを並べると束ねの有無が見える。"
+    focus: ["追随する側", "固定の側"]
+    description: "固定の側は信号を見ていないので動かない。 2 つを並べると、追随するかどうかの違いが見える。"
 `;
 
 export const sourceJson__visualBindOpacity = `{
@@ -26673,7 +26673,7 @@ export const sourceJson__visualBindOpacity = `{
       "min": 0,
       "max": 100,
       "defaultValue": 100,
-      "label": "Opacity"
+      "label": "濃さ"
     }
   ],
   "readouts": [
@@ -26683,7 +26683,7 @@ export const sourceJson__visualBindOpacity = `{
       "source": "fade",
       "min": 0,
       "max": 100,
-      "label": "Fade % gauge"
+      "label": "濃さ (%)"
     }
   ],
   "formulas": { "op": "fade / 100" },
@@ -26694,51 +26694,51 @@ export const sourceJson__visualBindOpacity = `{
   },
   "actors": [
     {
-      "name": "Fade control",
+      "name": "濃さの操作",
       "kind": "card",
       "lane": "control",
       "stack": 0,
-      "subtitle": "fade = {fade} · op = {op}"
+      "subtitle": "濃さ {fade} · 不透明度 {op}"
     },
     {
-      "name": "Target",
+      "name": "追随する側",
       "kind": "card",
       "lane": "target-lane",
       "stack": 0,
-      "subtitle": "opacity: {op}",
+      "subtitle": "不透明度 {op}",
       "opacity": "{op}"
     },
     {
-      "name": "Reference",
+      "name": "固定の側",
       "kind": "card",
       "lane": "ref-lane",
       "stack": 0,
-      "subtitle": "always visible (opacity=1)"
+      "subtitle": "いつも見える (不透明度 1)"
     }
   ],
   "flow": [
-    { "from": "Fade control", "to": "Target", "label": "op bind", "tone": "info" },
-    { "from": "Fade control", "to": "Reference", "label": "no bind", "tone": "warning" }
+    { "from": "濃さの操作", "to": "追随する側", "label": "濃さを渡す", "tone": "info" },
+    { "from": "濃さの操作", "to": "固定の側", "label": "渡さない", "tone": "warning" }
   ],
   "states": { "fade": 100, "op": 1 },
   "animation": [
     {
       "step": "動かす側を見る",
       "duration": 1.8,
-      "focus": ["Fade control", "Reference"],
+      "focus": ["濃さの操作", "固定の側"],
       "body": "左の箱がつまみで濃さを持つ。 この値が右の 1 つだけに届く。"
     },
     {
       "step": "追随する側",
       "duration": 1.8,
-      "focus": ["Fade control", "Target", "Reference"],
-      "body": "追随する側は信号に束ねられている。 つまみを動かすとここだけが変わる。"
+      "focus": ["濃さの操作", "追随する側", "固定の側"],
+      "body": "追随する側は信号の値で濃さが決まる。 つまみを動かすとここだけが変わる。"
     },
     {
       "step": "固定の側と比べる",
       "duration": 1.8,
-      "focus": ["Target", "Reference"],
-      "body": "固定側は束ねられていないので動かない。 2 つを並べると束ねの有無が見える。"
+      "focus": ["追随する側", "固定の側"],
+      "body": "固定の側は信号を見ていないので動かない。 2 つを並べると、追随するかどうかの違いが見える。"
     }
   ]
 }`;
@@ -26747,8 +26747,8 @@ export const sourceYaml__edgeFlowBind = `title: "信号で線の太さと色と�
 type: flow
 
 inputs:
-  flow: { kind: slider, min: 1, max: 15, defaultValue: 5, label: "Flow Width" }
-  t: { kind: timeline, duration: 2000, autoplay: true, loop: true, label: "Timeline" }
+  flow: { kind: slider, min: 1, max: 15, defaultValue: 5, label: "流れの太さ" }
+  t: { kind: timeline, duration: 2000, autoplay: true, loop: true, label: "時間" }
   flowColor: { kind: dropdown, options: ["#38bdf8", "#f472b6", "#facc15"], defaultValue: "#38bdf8", label: "線の色" }
 
 formulas:
@@ -26766,13 +26766,13 @@ states:
   flowColor: "#38bdf8"
 
 actors:
-  - a: { kind: card, lane: src, stack: 0, subtitle: "producer", posW: 180, title: "Source" }
-  - pipeNode: { kind: card, lane: pipe, stack: 0, subtitle: "width={flow} · dash={dash} · stroke={flowColor}", posW: 300, title: "Pipe" }
-  - b: { kind: card, lane: sink, stack: 0, subtitle: "consumer", posW: 140, title: "Sink" }
+  - a: { kind: card, lane: src, stack: 0, subtitle: "作る側", posW: 180, title: "送り手" }
+  - pipeNode: { kind: card, lane: pipe, stack: 0, subtitle: "太さ {flow} · 点の位置 {dash} · 色 {flowColor}", posW: 300, title: "管" }
+  - b: { kind: card, lane: sink, stack: 0, subtitle: "使う側", posW: 140, title: "受け手" }
 
 flow:
-  - a -> pipeNode: "produce" (accent) { widthBind: "{flow}", strokeBind: "{flowColor}", dashOffsetBind: "{dash}" }
-  - pipeNode -> b: "consume" (accent) { widthBind: "{flow}", strokeBind: "{flowColor}", dashOffsetBind: "{dash}" }
+  - a -> pipeNode: "送る" (accent) { widthBind: "{flow}", strokeBind: "{flowColor}", dashOffsetBind: "{dash}" }
+  - pipeNode -> b: "受け取る" (accent) { widthBind: "{flow}", strokeBind: "{flowColor}", dashOffsetBind: "{dash}" }
 
 animation:
   - step: "送り手を見る" 1.6s
@@ -26796,7 +26796,7 @@ export const sourceJson__edgeFlowBind = `{
       "min": 1,
       "max": 15,
       "defaultValue": 5,
-      "label": "Flow Width"
+      "label": "流れの太さ"
     },
     {
       "id": "t",
@@ -26804,7 +26804,7 @@ export const sourceJson__edgeFlowBind = `{
       "duration": 2000,
       "autoplay": true,
       "loop": true,
-      "label": "Timeline"
+      "label": "時間"
     },
     {
       "id": "flowColor",
@@ -26826,34 +26826,34 @@ export const sourceJson__edgeFlowBind = `{
       "kind": "card",
       "lane": "src",
       "stack": 0,
-      "subtitle": "producer",
+      "subtitle": "作る側",
       "posW": 180,
-      "title": "Source"
+      "title": "送り手"
     },
     {
       "name": "pipeNode",
       "kind": "card",
       "lane": "pipe",
       "stack": 0,
-      "subtitle": "width={flow} · dash={dash} · stroke={flowColor}",
+      "subtitle": "太さ {flow} · 点の位置 {dash} · 色 {flowColor}",
       "posW": 300,
-      "title": "Pipe"
+      "title": "管"
     },
     {
       "name": "b",
       "kind": "card",
       "lane": "sink",
       "stack": 0,
-      "subtitle": "consumer",
+      "subtitle": "使う側",
       "posW": 140,
-      "title": "Sink"
+      "title": "受け手"
     }
   ],
   "flow": [
     {
       "from": "a",
       "to": "pipeNode",
-      "label": "produce",
+      "label": "送る",
       "tone": "accent",
       "widthBind": "{flow}",
       "strokeBind": "{flowColor}",
@@ -26862,7 +26862,7 @@ export const sourceJson__edgeFlowBind = `{
     {
       "from": "pipeNode",
       "to": "b",
-      "label": "consume",
+      "label": "受け取る",
       "tone": "accent",
       "widthBind": "{flow}",
       "strokeBind": "{flowColor}",
@@ -26891,37 +26891,34 @@ export const sourceYaml__clickToggle = `title: "クリックが handler を通�
 type: flow
 
 inputs:
-  active: { kind: toggle, defaultValue: false, label: "Active" }
+  active: { kind: toggle, defaultValue: false, label: "押した状態" }
 
 lanes:
   col1: { x: 0, width: 360 }
   col2: { x: 400, width: 370 }
 
-states:
-  active: "off"
-
 actors:
-  - Button: { kind: card, lane: col1, stack: 0, subtitle: "click target", posW: 180 }
-  - Handler: { kind: card, lane: col2, stack: 0, subtitle: "押した時と触れた時の受け取り手", posW: 320 }
-  - Signal state: { kind: card, lane: col1, stack: 1, subtitle: "active = {active}", posW: 310 }
+  - ボタン: { kind: card, lane: col1, stack: 0, subtitle: "押す先", posW: 180 }
+  - 受け取り手: { kind: card, lane: col2, stack: 0, subtitle: "押した時と触れた時に呼ばれる", posW: 320 }
+  - 値の状態: { kind: card, lane: col1, stack: 1, subtitle: "押した状態 = {active}", posW: 310 }
 
 flow:
-  - Button -> Handler: "click / hover" (info)
-  - Handler -> Signal state: "toggle" (success)
+  - ボタン -> 受け取り手: "押す / 触れる" (info)
+  - 受け取り手 -> 値の状態: "切り替え" (success)
 
 events:
-  - { on: click, box: "Button", handler: "toggle-active" }
-  - { on: hover, box: "Button", handler: "hover-state" }
+  - { on: click, box: "ボタン", handler: "toggle-active" }
+  - { on: hover, box: "ボタン", handler: "hover-state" }
 
 animation:
   - step: "押す前" 1.6s
-    focus: ["Button"]
+    focus: ["ボタン"]
     description: "ボタンだけがある状態。 まだ何も起きていない。"
-  - step: "受け取り手に結ぶ" 1.6s
-    focus: ["Button", "Handler"]
-    description: "押した時に呼ぶ受け取り手を結び付ける。 受け取り手の中身は使う側が渡す。"
+  - step: "受け取り手を決める" 1.6s
+    focus: ["ボタン", "受け取り手"]
+    description: "押した時に呼ぶ受け取り手を決める。 受け取り手の中身は使う側が渡す。"
   - step: "押すと値が変わる" 1.6s
-    focus: ["Button", "Handler", "Signal state"]
+    focus: ["ボタン", "受け取り手", "値の状態"]
     description: "受け取り手が値を書き換える。 左上の箱を実際に押すと下の箱の値が入れ替わり、もう一度押すと戻る。"
 `;
 
@@ -26929,7 +26926,7 @@ export const sourceJson__clickToggle = `{
   "title": "クリックが handler を通って状態に届く",
   "type": "flow",
   "inputs": [
-    { "id": "active", "kind": "toggle", "defaultValue": false, "label": "Active" }
+    { "id": "active", "kind": "toggle", "defaultValue": false, "label": "押した状態" }
   ],
   "lanes": {
     "col1": { "x": 0, "width": 360 },
@@ -26937,51 +26934,50 @@ export const sourceJson__clickToggle = `{
   },
   "actors": [
     {
-      "name": "Button",
+      "name": "ボタン",
       "kind": "card",
       "lane": "col1",
       "stack": 0,
-      "subtitle": "click target",
+      "subtitle": "押す先",
       "posW": 180
     },
     {
-      "name": "Handler",
+      "name": "受け取り手",
       "kind": "card",
       "lane": "col2",
       "stack": 0,
-      "subtitle": "押した時と触れた時の受け取り手",
+      "subtitle": "押した時と触れた時に呼ばれる",
       "posW": 320
     },
     {
-      "name": "Signal state",
+      "name": "値の状態",
       "kind": "card",
       "lane": "col1",
       "stack": 1,
-      "subtitle": "active = {active}",
+      "subtitle": "押した状態 = {active}",
       "posW": 310
     }
   ],
   "flow": [
-    { "from": "Button", "to": "Handler", "label": "click / hover", "tone": "info" },
-    { "from": "Handler", "to": "Signal state", "label": "toggle", "tone": "success" }
+    { "from": "ボタン", "to": "受け取り手", "label": "押す / 触れる", "tone": "info" },
+    { "from": "受け取り手", "to": "値の状態", "label": "切り替え", "tone": "success" }
   ],
-  "states": { "active": "off" },
   "events": [
-    { "on": "click", "box": "Button", "handler": "toggle-active" },
-    { "on": "hover", "box": "Button", "handler": "hover-state" }
+    { "on": "click", "box": "ボタン", "handler": "toggle-active" },
+    { "on": "hover", "box": "ボタン", "handler": "hover-state" }
   ],
   "animation": [
-    { "step": "押す前", "duration": 1.6, "focus": ["Button"], "body": "ボタンだけがある状態。 まだ何も起きていない。" },
+    { "step": "押す前", "duration": 1.6, "focus": ["ボタン"], "body": "ボタンだけがある状態。 まだ何も起きていない。" },
     {
-      "step": "受け取り手に結ぶ",
+      "step": "受け取り手を決める",
       "duration": 1.6,
-      "focus": ["Button", "Handler"],
-      "body": "押した時に呼ぶ受け取り手を結び付ける。 受け取り手の中身は使う側が渡す。"
+      "focus": ["ボタン", "受け取り手"],
+      "body": "押した時に呼ぶ受け取り手を決める。 受け取り手の中身は使う側が渡す。"
     },
     {
       "step": "押すと値が変わる",
       "duration": 1.6,
-      "focus": ["Button", "Handler", "Signal state"],
+      "focus": ["ボタン", "受け取り手", "値の状態"],
       "body": "受け取り手が値を書き換える。 左上の箱を実際に押すと下の箱の値が入れ替わり、もう一度押すと戻る。"
     }
   ]
@@ -27000,27 +26996,27 @@ lanes:
   touch: { x: 500, width: 240 }
 
 actors:
-  - Double Click: { kind: card, lane: pointer, stack: 0, subtitle: "2 回続けて押す" }
-  - Key Focus: { kind: card, lane: keyboard, stack: 0, subtitle: "選ぶ / 外れる / キーを押す" }
-  - Long Press: { kind: card, lane: touch, stack: 0, subtitle: "押したまま 500 ミリ秒" }
+  - 2 回押し: { kind: card, lane: pointer, stack: 0, subtitle: "2 回続けて押す" }
+  - 選択とキー入力: { kind: card, lane: keyboard, stack: 0, subtitle: "選ぶ / 外れる / キーを押す" }
+  - 長押し: { kind: card, lane: touch, stack: 0, subtitle: "押したまま 500 ミリ秒" }
   - 受け取った結果: { kind: card, lane: touch, stack: 1, subtitle: "{lastEvent} · 累計 {received} 回", posW: 220 }
 
 events:
-  - { on: double-click, box: "Double Click", handler: "on-dbl" }
-  - { on: focus, box: "Key Focus", handler: "on-focus" }
-  - { on: blur, box: "Key Focus", handler: "on-blur" }
-  - { on: keydown, box: "Key Focus", handler: "on-key" }
-  - { on: long-press, box: "Long Press", handler: "on-long" }
+  - { on: double-click, box: "2 回押し", handler: "on-dbl" }
+  - { on: focus, box: "選択とキー入力", handler: "on-focus" }
+  - { on: blur, box: "選択とキー入力", handler: "on-blur" }
+  - { on: keydown, box: "選択とキー入力", handler: "on-key" }
+  - { on: long-press, box: "長押し", handler: "on-long" }
 
 animation:
   - step: "2 回押す" 1.6s
-    focus: ["Double Click", "受け取った結果"]
+    focus: ["2 回押し", "受け取った結果"]
     description: "1 つ目は 2 回続けて押した時だけ受け取る。 1 回では何も起きない。 受け取ると右下の箱が変わる。"
   - step: "選ぶ / キーを押す" 1.6s
-    focus: ["Double Click", "Key Focus", "受け取った結果"]
+    focus: ["2 回押し", "選択とキー入力", "受け取った結果"]
     description: "2 つ目は選ばれた時 / 外れた時 / キーを押した時の 3 つを受け取る。 押す操作ではない。"
   - step: "長く押す" 1.6s
-    focus: ["Double Click", "Key Focus", "Long Press", "受け取った結果"]
+    focus: ["2 回押し", "選択とキー入力", "長押し", "受け取った結果"]
     description: "3 つ目は押したまま一定時間たつと受け取る。 5 つの操作はどれも同じ箱に結果を書く。"
 `;
 
@@ -27051,21 +27047,21 @@ export const sourceJson__eventVariety = `{
   },
   "actors": [
     {
-      "name": "Double Click",
+      "name": "2 回押し",
       "kind": "card",
       "lane": "pointer",
       "stack": 0,
       "subtitle": "2 回続けて押す"
     },
     {
-      "name": "Key Focus",
+      "name": "選択とキー入力",
       "kind": "card",
       "lane": "keyboard",
       "stack": 0,
       "subtitle": "選ぶ / 外れる / キーを押す"
     },
     {
-      "name": "Long Press",
+      "name": "長押し",
       "kind": "card",
       "lane": "touch",
       "stack": 0,
@@ -27082,29 +27078,29 @@ export const sourceJson__eventVariety = `{
   ],
   "flow": [],
   "events": [
-    { "on": "double-click", "box": "Double Click", "handler": "on-dbl" },
-    { "on": "focus", "box": "Key Focus", "handler": "on-focus" },
-    { "on": "blur", "box": "Key Focus", "handler": "on-blur" },
-    { "on": "keydown", "box": "Key Focus", "handler": "on-key" },
-    { "on": "long-press", "box": "Long Press", "handler": "on-long" }
+    { "on": "double-click", "box": "2 回押し", "handler": "on-dbl" },
+    { "on": "focus", "box": "選択とキー入力", "handler": "on-focus" },
+    { "on": "blur", "box": "選択とキー入力", "handler": "on-blur" },
+    { "on": "keydown", "box": "選択とキー入力", "handler": "on-key" },
+    { "on": "long-press", "box": "長押し", "handler": "on-long" }
   ],
   "animation": [
     {
       "step": "2 回押す",
       "duration": 1.6,
-      "focus": ["Double Click", "受け取った結果"],
+      "focus": ["2 回押し", "受け取った結果"],
       "body": "1 つ目は 2 回続けて押した時だけ受け取る。 1 回では何も起きない。 受け取ると右下の箱が変わる。"
     },
     {
       "step": "選ぶ / キーを押す",
       "duration": 1.6,
-      "focus": ["Double Click", "Key Focus", "受け取った結果"],
+      "focus": ["2 回押し", "選択とキー入力", "受け取った結果"],
       "body": "2 つ目は選ばれた時 / 外れた時 / キーを押した時の 3 つを受け取る。 押す操作ではない。"
     },
     {
       "step": "長く押す",
       "duration": 1.6,
-      "focus": ["Double Click", "Key Focus", "Long Press", "受け取った結果"],
+      "focus": ["2 回押し", "選択とキー入力", "長押し", "受け取った結果"],
       "body": "3 つ目は押したまま一定時間たつと受け取る。 5 つの操作はどれも同じ箱に結果を書く。"
     }
   ]
@@ -27122,22 +27118,22 @@ states:
   intro: 0
 
 actors:
-  - Step 1: { kind: card, lane: s1, stack: 0, subtitle: "progress: {intro}" }
-  - Step 2: { kind: card, lane: s2, stack: 0, subtitle: "progress: {intro}" }
-  - Step 3: { kind: card, lane: s3, stack: 0, subtitle: "progress: {intro}" }
+  - 段 1: { kind: card, lane: s1, stack: 0, subtitle: "進み具合: {intro}" }
+  - 段 2: { kind: card, lane: s2, stack: 0, subtitle: "進み具合: {intro}" }
+  - 段 3: { kind: card, lane: s3, stack: 0, subtitle: "進み具合: {intro}" }
 
 scrolls:
-  intro: { start: 0.9, end: 0.1, scrub: 1, label: "Intro reveal" }
+  intro: { start: 0.9, end: 0.1, scrub: 1, label: "スクロールの進み具合" }
 
 animation:
   - step: "1 箱で見る" 1.6s
-    focus: ["Step 1"]
+    focus: ["段 1"]
     description: "スクロールの進み具合が 1 つの箱に届いている状態。 進捗は 1 つの信号で持つ。"
   - step: "2 箱で見る" 1.6s
-    focus: ["Step 1", "Step 2"]
+    focus: ["段 1", "段 2"]
     description: "同じ進捗を 2 つ目の箱でも見る。 区切りが 2 つあるのではなく、1 つの信号を 2 箇所が見ている。"
   - step: "3 箱が同時に追う" 1.6s
-    focus: ["Step 1", "Step 2", "Step 3"]
+    focus: ["段 1", "段 2", "段 3"]
     description: "3 つの箱が同じ進捗を同時に映す。 スクロール 1 つで複数箇所が揃って動く。"
 `;
 
@@ -27151,49 +27147,49 @@ export const sourceJson__scrollNarrative = `{
   },
   "actors": [
     {
-      "name": "Step 1",
+      "name": "段 1",
       "kind": "card",
       "lane": "s1",
       "stack": 0,
-      "subtitle": "progress: {intro}"
+      "subtitle": "進み具合: {intro}"
     },
     {
-      "name": "Step 2",
+      "name": "段 2",
       "kind": "card",
       "lane": "s2",
       "stack": 0,
-      "subtitle": "progress: {intro}"
+      "subtitle": "進み具合: {intro}"
     },
     {
-      "name": "Step 3",
+      "name": "段 3",
       "kind": "card",
       "lane": "s3",
       "stack": 0,
-      "subtitle": "progress: {intro}"
+      "subtitle": "進み具合: {intro}"
     }
   ],
   "flow": [],
   "states": { "intro": 0 },
   "scrolls": {
-    "intro": { "start": 0.9, "end": 0.1, "scrub": 1, "label": "Intro reveal" }
+    "intro": { "start": 0.9, "end": 0.1, "scrub": 1, "label": "スクロールの進み具合" }
   },
   "animation": [
     {
       "step": "1 箱で見る",
       "duration": 1.6,
-      "focus": ["Step 1"],
+      "focus": ["段 1"],
       "body": "スクロールの進み具合が 1 つの箱に届いている状態。 進捗は 1 つの信号で持つ。"
     },
     {
       "step": "2 箱で見る",
       "duration": 1.6,
-      "focus": ["Step 1", "Step 2"],
+      "focus": ["段 1", "段 2"],
       "body": "同じ進捗を 2 つ目の箱でも見る。 区切りが 2 つあるのではなく、1 つの信号を 2 箇所が見ている。"
     },
     {
       "step": "3 箱が同時に追う",
       "duration": 1.6,
-      "focus": ["Step 1", "Step 2", "Step 3"],
+      "focus": ["段 1", "段 2", "段 3"],
       "body": "3 つの箱が同じ進捗を同時に映す。 スクロール 1 つで複数箇所が揃って動く。"
     }
   ]
@@ -27328,34 +27324,34 @@ lanes:
   leaf: { x: 480, width: 240 }
 
 actors:
-  - L0P0: { kind: card, lane: root, stack: 1, subtitle: "#0 (root)" }
-  - L1P0: { kind: card, lane: mid, stack: 0, subtitle: "#1" }
-  - L1P1: { kind: card, lane: mid, stack: 2, subtitle: "#2" }
-  - L2P0: { kind: card, lane: leaf, stack: 0, subtitle: "#3" }
-  - L2P1: { kind: card, lane: leaf, stack: 1, subtitle: "#4" }
-  - L2P2: { kind: card, lane: leaf, stack: 2, subtitle: "#5" }
-  - L2P3: { kind: card, lane: leaf, stack: 3, subtitle: "#6" }
+  - 問い 1: { kind: card, lane: root, stack: 1, subtitle: "#0 (起点)" }
+  - 問い 2: { kind: card, lane: mid, stack: 0, subtitle: "#1" }
+  - 問い 3: { kind: card, lane: mid, stack: 2, subtitle: "#2" }
+  - 結果 1: { kind: card, lane: leaf, stack: 0, subtitle: "#3" }
+  - 結果 2: { kind: card, lane: leaf, stack: 1, subtitle: "#4" }
+  - 結果 3: { kind: card, lane: leaf, stack: 2, subtitle: "#5" }
+  - 結果 4: { kind: card, lane: leaf, stack: 3, subtitle: "#6" }
 
 flow:
-  - L0P0 -> L1P0: "yes" (success)
-  - L0P0 -> L1P1: "no" (error)
-  - L1P0 -> L2P0: "yes" (success)
-  - L1P0 -> L2P1: "no" (error)
-  - L1P1 -> L2P2: "yes" (success)
-  - L1P1 -> L2P3: "no" (error)
+  - 問い 1 -> 問い 2: "○" (success)
+  - 問い 1 -> 問い 3: "×" (error)
+  - 問い 2 -> 結果 1: "○" (success)
+  - 問い 2 -> 結果 2: "×" (error)
+  - 問い 3 -> 結果 3: "○" (success)
+  - 問い 3 -> 結果 4: "×" (error)
 
 animation:
   - step: "入口に立つ" 1.6s
-    focus: ["L0P0"]
+    focus: ["問い 1"]
     description: "一番上の分かれ道から始まる。 まだどちらにも進んでいない。"
   - step: "1 段目で分かれる" 1.6s
-    focus: ["L0P0", "L1P0", "L1P1"]
+    focus: ["問い 1", "問い 2", "問い 3"]
     description: "最初の判断で左右に分かれる。 2 つの道ができる。"
   - step: "左の枝が分かれる" 1.6s
-    focus: ["L0P0", "L1P0", "L1P1", "L2P0", "L2P1"]
+    focus: ["問い 1", "問い 2", "問い 3", "結果 1", "結果 2"]
     description: "左側だけがもう一度分かれて 2 つの葉になる。 右側はまだ 1 本のまま。"
   - step: "右の枝も分かれる" 1.6s
-    focus: ["L0P0", "L1P0", "L1P1", "L2P0", "L2P1", "L2P2", "L2P3"]
+    focus: ["問い 1", "問い 2", "問い 3", "結果 1", "結果 2", "結果 3", "結果 4"]
     description: "右側も分かれて 4 つの終点すべてに届く。 2 段の判断で 4 通りの結果になる。"
 `;
 
@@ -27368,45 +27364,45 @@ export const sourceJson__decisionTree = `{
     "leaf": { "x": 480, "width": 240 }
   },
   "actors": [
-    { "name": "L0P0", "kind": "card", "lane": "root", "stack": 1, "subtitle": "#0 (root)" },
-    { "name": "L1P0", "kind": "card", "lane": "mid", "stack": 0, "subtitle": "#1" },
-    { "name": "L1P1", "kind": "card", "lane": "mid", "stack": 2, "subtitle": "#2" },
-    { "name": "L2P0", "kind": "card", "lane": "leaf", "stack": 0, "subtitle": "#3" },
-    { "name": "L2P1", "kind": "card", "lane": "leaf", "stack": 1, "subtitle": "#4" },
-    { "name": "L2P2", "kind": "card", "lane": "leaf", "stack": 2, "subtitle": "#5" },
-    { "name": "L2P3", "kind": "card", "lane": "leaf", "stack": 3, "subtitle": "#6" }
+    { "name": "問い 1", "kind": "card", "lane": "root", "stack": 1, "subtitle": "#0 (起点)" },
+    { "name": "問い 2", "kind": "card", "lane": "mid", "stack": 0, "subtitle": "#1" },
+    { "name": "問い 3", "kind": "card", "lane": "mid", "stack": 2, "subtitle": "#2" },
+    { "name": "結果 1", "kind": "card", "lane": "leaf", "stack": 0, "subtitle": "#3" },
+    { "name": "結果 2", "kind": "card", "lane": "leaf", "stack": 1, "subtitle": "#4" },
+    { "name": "結果 3", "kind": "card", "lane": "leaf", "stack": 2, "subtitle": "#5" },
+    { "name": "結果 4", "kind": "card", "lane": "leaf", "stack": 3, "subtitle": "#6" }
   ],
   "flow": [
-    { "from": "L0P0", "to": "L1P0", "label": "yes", "tone": "success" },
-    { "from": "L0P0", "to": "L1P1", "label": "no", "tone": "error" },
-    { "from": "L1P0", "to": "L2P0", "label": "yes", "tone": "success" },
-    { "from": "L1P0", "to": "L2P1", "label": "no", "tone": "error" },
-    { "from": "L1P1", "to": "L2P2", "label": "yes", "tone": "success" },
-    { "from": "L1P1", "to": "L2P3", "label": "no", "tone": "error" }
+    { "from": "問い 1", "to": "問い 2", "label": "○", "tone": "success" },
+    { "from": "問い 1", "to": "問い 3", "label": "×", "tone": "error" },
+    { "from": "問い 2", "to": "結果 1", "label": "○", "tone": "success" },
+    { "from": "問い 2", "to": "結果 2", "label": "×", "tone": "error" },
+    { "from": "問い 3", "to": "結果 3", "label": "○", "tone": "success" },
+    { "from": "問い 3", "to": "結果 4", "label": "×", "tone": "error" }
   ],
   "animation": [
     {
       "step": "入口に立つ",
       "duration": 1.6,
-      "focus": ["L0P0"],
+      "focus": ["問い 1"],
       "body": "一番上の分かれ道から始まる。 まだどちらにも進んでいない。"
     },
     {
       "step": "1 段目で分かれる",
       "duration": 1.6,
-      "focus": ["L0P0", "L1P0", "L1P1"],
+      "focus": ["問い 1", "問い 2", "問い 3"],
       "body": "最初の判断で左右に分かれる。 2 つの道ができる。"
     },
     {
       "step": "左の枝が分かれる",
       "duration": 1.6,
-      "focus": ["L0P0", "L1P0", "L1P1", "L2P0", "L2P1"],
+      "focus": ["問い 1", "問い 2", "問い 3", "結果 1", "結果 2"],
       "body": "左側だけがもう一度分かれて 2 つの葉になる。 右側はまだ 1 本のまま。"
     },
     {
       "step": "右の枝も分かれる",
       "duration": 1.6,
-      "focus": ["L0P0", "L1P0", "L1P1", "L2P0", "L2P1", "L2P2", "L2P3"],
+      "focus": ["問い 1", "問い 2", "問い 3", "結果 1", "結果 2", "結果 3", "結果 4"],
       "body": "右側も分かれて 4 つの終点すべてに届く。 2 段の判断で 4 通りの結果になる。"
     }
   ]
@@ -27421,27 +27417,27 @@ lanes:
   spokesBottom: { x: 300, width: 200 }
 
 actors:
-  - Hub: { kind: card, lane: hub-lane, stack: 0, subtitle: "center · 4 spoke に fan-out" }
+  - 中心: { kind: card, lane: hub-lane, stack: 0, subtitle: "ここから 4 本に分かれる" }
   - #0: { kind: card, lane: spokesTop, stack: 0, subtitle: "0°" }
   - #1: { kind: card, lane: spokesTop, stack: 1, subtitle: "90°" }
   - #2: { kind: card, lane: spokesBottom, stack: 0, subtitle: "180°" }
   - #3: { kind: card, lane: spokesBottom, stack: 1, subtitle: "270°" }
 
 flow:
-  - Hub -> #0: "0°" (info)
-  - Hub -> #1: "90°" (info)
-  - Hub -> #2: "180°" (info)
-  - Hub -> #3: "270°" (info)
+  - 中心 -> #0: "0°" (info)
+  - 中心 -> #1: "90°" (info)
+  - 中心 -> #2: "180°" (info)
+  - 中心 -> #3: "270°" (info)
 
 animation:
   - step: "中心を置く" 1.6s
-    focus: ["Hub"]
+    focus: ["中心"]
     description: "真ん中の箱が起点。 ここから外へ伸びる。"
   - step: "2 本伸ばす" 1.6s
-    focus: ["Hub", "#0", "#1"]
+    focus: ["中心", "#0", "#1"]
     description: "中心から 2 本が外へ伸びる。 向きが 2 方向に分かれる。"
   - step: "4 本に広げる" 1.6s
-    focus: ["Hub", "#0", "#1", "#2", "#3"]
+    focus: ["中心", "#0", "#1", "#2", "#3"]
     description: "4 本すべてが放射状に広がる。 中心 1 つに対して外が 4 つ。"
 `;
 
@@ -27455,11 +27451,11 @@ export const sourceJson__radialHubAndSpoke = `{
   },
   "actors": [
     {
-      "name": "Hub",
+      "name": "中心",
       "kind": "card",
       "lane": "hub-lane",
       "stack": 0,
-      "subtitle": "center · 4 spoke に fan-out"
+      "subtitle": "ここから 4 本に分かれる"
     },
     { "name": "#0", "kind": "card", "lane": "spokesTop", "stack": 0, "subtitle": "0°" },
     { "name": "#1", "kind": "card", "lane": "spokesTop", "stack": 1, "subtitle": "90°" },
@@ -27467,23 +27463,23 @@ export const sourceJson__radialHubAndSpoke = `{
     { "name": "#3", "kind": "card", "lane": "spokesBottom", "stack": 1, "subtitle": "270°" }
   ],
   "flow": [
-    { "from": "Hub", "to": "#0", "label": "0°", "tone": "info" },
-    { "from": "Hub", "to": "#1", "label": "90°", "tone": "info" },
-    { "from": "Hub", "to": "#2", "label": "180°", "tone": "info" },
-    { "from": "Hub", "to": "#3", "label": "270°", "tone": "info" }
+    { "from": "中心", "to": "#0", "label": "0°", "tone": "info" },
+    { "from": "中心", "to": "#1", "label": "90°", "tone": "info" },
+    { "from": "中心", "to": "#2", "label": "180°", "tone": "info" },
+    { "from": "中心", "to": "#3", "label": "270°", "tone": "info" }
   ],
   "animation": [
-    { "step": "中心を置く", "duration": 1.6, "focus": ["Hub"], "body": "真ん中の箱が起点。 ここから外へ伸びる。" },
+    { "step": "中心を置く", "duration": 1.6, "focus": ["中心"], "body": "真ん中の箱が起点。 ここから外へ伸びる。" },
     {
       "step": "2 本伸ばす",
       "duration": 1.6,
-      "focus": ["Hub", "#0", "#1"],
+      "focus": ["中心", "#0", "#1"],
       "body": "中心から 2 本が外へ伸びる。 向きが 2 方向に分かれる。"
     },
     {
       "step": "4 本に広げる",
       "duration": 1.6,
-      "focus": ["Hub", "#0", "#1", "#2", "#3"],
+      "focus": ["中心", "#0", "#1", "#2", "#3"],
       "body": "4 本すべてが放射状に広がる。 中心 1 つに対して外が 4 つ。"
     }
   ]
