@@ -21,6 +21,7 @@
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
+import { tsImport } from "tsx/esm/api";
 import { lintDiagram, autoFix } from "../dist/index.js";
 
 const args = process.argv.slice(2);
@@ -38,7 +39,9 @@ let totalDiagrams = 0;
 
 for (const target of targets) {
   const absPath = resolve(process.cwd(), target);
-  const mod = await import(pathToFileURL(absPath).href);
+  // 素の import() は拡張子なしの相対読み込み (`./relation-focus`) を解決できず、最初の見本で落ちて
+  // 残りのファイルも検査しなくなる。 見本帳と同じく拡張子なしで読めるよう tsx の読み込み口を使う (#1918)
+  const mod = await tsImport(pathToFileURL(absPath).href, import.meta.url);
   const diagrams = Object.entries(mod).filter(
     ([, v]) => v && typeof v === "object" && "id" in v && "nodes" in v && "topic" in v,
   );
