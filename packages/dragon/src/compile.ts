@@ -5762,7 +5762,8 @@ function 放射に出す文字(a: DslActor): { title: string; subtitle?: string 
 }
 
 function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
-  const b = diagram(slugify(doc.title), { topic: doc.title, type: "mindmap" });
+  // 図の型は描画側の組み立て関数 `mindMap()` と同じ綴り (cdl 0.63.0 で `mindmap` から `mind` に揃った)
+  const b = diagram(slugify(doc.title), { topic: doc.title, type: "mind" });
   const { w: W, h: H } = 図表の大きさ.mind;
 
   const 伝える = (kind: CompileNotice["kind"], 名: string, message: string, line = 0): void => {

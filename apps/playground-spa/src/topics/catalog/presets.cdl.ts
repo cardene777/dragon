@@ -2369,12 +2369,12 @@ flow:
 
 animation:
   - step: "書き出した時" 2.4s
-    badge: "mindmap"
+    badge: "mind"
     focus: [機能]
     draw: mind
     body: "中心はまだ「新しい企画」 のまま。"
   - step: "中心の主題から発想を放射状に広げる図" 0.9s
-    badge: "mindmap"
+    badge: "mind"
     focus: [機能]
     set:
       theme: "認証と課金の刷新"
@@ -2406,14 +2406,14 @@ export const sourceJson__presetMindMap = `{
       "focus": ["機能"],
       "draw": "mind",
       "body": "中心はまだ「新しい企画」 のまま。",
-      "badge": "mindmap"
+      "badge": "mind"
     },
     {
       "step": "中心の主題から発想を放射状に広げる図",
       "duration": 0.9,
       "focus": ["機能"],
       "body": "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。",
-      "badge": "mindmap",
+      "badge": "mind",
       "set": { "theme": "認証と課金の刷新" }
     }
   ]
@@ -2658,23 +2658,23 @@ flow:
 
 animation:
   - step: "1. 下書き" 0.9s
-    badge: "fsm"
+    badge: "state"
     focus: [begin, 下書き, "begin -> 下書き"]
     body: "塗った丸が始まり。"
   - step: "2. 出して受付済へ" 0.9s
-    badge: "fsm"
+    badge: "state"
     focus: [begin, 下書き, 受付済, "begin -> 下書き", "下書き -> 受付済"]
     body: "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。"
   - step: "3. 受付済のまま催促する" 0.9s
-    badge: "fsm"
+    badge: "state"
     focus: [begin, 下書き, 受付済, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済"]
     body: "自分へ戻る輪。 7 日ごとに督促を送っても状態は変わらない。"
   - step: "4. 支払って終わる" 0.9s
-    badge: "fsm"
+    badge: "state"
     focus: [begin, 下書き, 受付済, 支払済, done, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done"]
     body: "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。"
   - step: "5. 取り消して終わる" 0.9s
-    badge: "fsm"
+    badge: "state"
     focus: [begin, 下書き, 受付済, 支払済, done, 取消済, closed, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"]
     body: "山形の外枠だけは出る瞬間に 1 度だけ。"
 `;
@@ -2707,35 +2707,35 @@ export const sourceJson__presetStateMachine = `{
       "duration": 0.9,
       "focus": ["begin", "下書き", "begin -> 下書き"],
       "body": "塗った丸が始まり。",
-      "badge": "fsm"
+      "badge": "state"
     },
     {
       "step": "2. 出して受付済へ",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "begin -> 下書き", "下書き -> 受付済"],
       "body": "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。",
-      "badge": "fsm"
+      "badge": "state"
     },
     {
       "step": "3. 受付済のまま催促する",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済"],
       "body": "自分へ戻る輪。 7 日ごとに督促を送っても状態は変わらない。",
-      "badge": "fsm"
+      "badge": "state"
     },
     {
       "step": "4. 支払って終わる",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "支払済", "done", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done"],
       "body": "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。",
-      "badge": "fsm"
+      "badge": "state"
     },
     {
       "step": "5. 取り消して終わる",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "支払済", "done", "取消済", "closed", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"],
       "body": "山形の外枠だけは出る瞬間に 1 度だけ。",
-      "badge": "fsm"
+      "badge": "state"
     }
   ]
 }`;
@@ -2761,15 +2761,15 @@ flow:
 
 animation:
   - step: "1. 待機" 0.9s
-    badge: "statemachine2"
+    badge: "state"
     focus: [待機]
     body: "入力を空にして待つ。"
   - step: "2. 処理中の中の読み込み" 0.9s
-    badge: "statemachine2"
+    badge: "state"
     focus: [待機, 処理中, 読み込み, "待機 -> 読み込み"]
     body: "送信で入れ子の状態に入る。"
   - step: "階層状態や遷移アクションを持つ拡張ステート図" 0.9s
-    badge: "statemachine2"
+    badge: "state"
     focus: [待機, 処理中, 読み込み, 完了, "待機 -> 読み込み", "読み込み -> 完了"]
     body: "成功で完了に移る。"
 `;
@@ -2818,21 +2818,21 @@ export const sourceJson__presetStateMachine2 = `{
       "duration": 0.9,
       "focus": ["待機"],
       "body": "入力を空にして待つ。",
-      "badge": "statemachine2"
+      "badge": "state"
     },
     {
       "step": "2. 処理中の中の読み込み",
       "duration": 0.9,
       "focus": ["待機", "処理中", "読み込み", "待機 -> 読み込み"],
       "body": "送信で入れ子の状態に入る。",
-      "badge": "statemachine2"
+      "badge": "state"
     },
     {
       "step": "階層状態や遷移アクションを持つ拡張ステート図",
       "duration": 0.9,
       "focus": ["待機", "処理中", "読み込み", "完了", "待機 -> 読み込み", "読み込み -> 完了"],
       "body": "成功で完了に移る。",
-      "badge": "statemachine2"
+      "badge": "state"
     }
   ]
 }`;
