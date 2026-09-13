@@ -2202,11 +2202,34 @@
     },
     "formulas": {
       "type": "object",
-      "description": "つまみの値から決まる値。 名前を鍵、式を値に書く。 `values` とは経路が別で、式は名前を中括弧で囲わない (例 \"input * 2\")。",
+      "description": "つまみの値から決まる値。 名前を鍵、式を値に書く。 `values` とは経路が別で、式は名前を中括弧で囲わない (例 \"input * 2\")。 操作部に出す名札を付ける時は { \"expression\": \"input * 2\", \"label\": \"2 倍\" } の組で書く。",
       "additionalProperties": {
-        "type": "string",
-        "minLength": 1,
-        "pattern": "\\S"
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["expression"],
+            "properties": {
+              "expression": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "式 (例 \"input * 2\")"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "操作部に式の名前として出す名札。 書かなければ名前をそのまま出す"
+              }
+            }
+          }
+        ]
       },
       "propertyNames": {
         "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"

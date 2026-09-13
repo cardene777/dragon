@@ -139,6 +139,63 @@ animation:
   });
 });
 
+describe("記法で式に名札を書ける (#1916)", () => {
+  /*
+   * 描画側は式の `label` を操作部の名前に描き、中身の名前も名札に置き換える (cdl#853)。
+   * 記法が `名前: "式"` の 1 形しか受けないと、組み立て関数で書いた名札を記法の見本に
+   * 写せず、見本帳の 3 つの書き方が食い違う。
+   *
+   * 巻き取り (`intro: { start: 0.9, label: "..." }`) と同じ組の形にそろえる。
+   */
+  it("組の形で書いた名札が図の式に載る", () => {
+    const d = 記法('  total: { expression: "input + 1", label: "合計" }');
+    expect(式たち(d)).toEqual([{ id: "total", expression: "input + 1", label: "合計" }]);
+  });
+
+  it("文字列の形と組の形を混ぜて書け、文字列の形の式は `label` を持たない", () => {
+    const d = 記法('  doubled: "input * 2"\n  total: { expression: "doubled + 1", label: "合計" }');
+    expect(式たち(d)).toEqual([
+      { id: "doubled", expression: "input * 2" },
+      { id: "total", expression: "doubled + 1", label: "合計" },
+    ]);
+  });
+
+  it("名札を書かない組の形は `label` を持たない", () => {
+    expect(式たち(記法('  total: { expression: "input + 1" }'))).toEqual([
+      { id: "total", expression: "input + 1" },
+    ]);
+  });
+
+  it("`,` を含む式を引用符で囲えば、組の形でも式が割れない", () => {
+    const d = 記法('  gas: { label: "上限つき", expression: "Math.min(input, 60) * 2" }');
+    expect(式たち(d)).toEqual([
+      { id: "gas", expression: "Math.min(input, 60) * 2", label: "上限つき" },
+    ]);
+  });
+
+  it("中括弧で名前を囲った式は、引用符の有無によらず組の形と取り違えない", () => {
+    // `{input}` は名前を囲っただけで、項目名 (`expression:`) を持たない
+    expect(式たち(記法('  v: "{input} * 2"'))).toEqual([{ id: "v", expression: "{input} * 2" }]);
+    expect(式たち(記法("  v: {input} * 2"))).toEqual([{ id: "v", expression: "{input} * 2" }]);
+    expect(式たち(記法("  v: {input}"))).toEqual([{ id: "v", expression: "{input}" }]);
+  });
+
+  it.each([
+    ["式が無い", '  v: { label: "名札" }', /式 "v" が空です/],
+    ["式が空", '  v: { expression: "", label: "名札" }', /式 "v" が空です/],
+    ["名札が空", '  v: { expression: "input", label: "" }', /式 "v" の名札が空です/],
+    [
+      "知らない項目名",
+      '  v: { expression: "input", title: "名札" }',
+      /式 "v" の項目名が読めません: "title"/,
+    ],
+    ["項目の形でない欄", "  v: { expression: input, 60 }", /式 "v" の項目が読めません: "60"/],
+    ["読めない式", '  v: { expression: "input *" }', /式 "v" を読めません/],
+  ])("組の形で %s 時は行番号付きで知らせる", (_名, 行, 知らせ) => {
+    expect(() => 記法(行)).toThrow(知らせ);
+  });
+});
+
 describe("どこにも書かれていない名前を読む式を知らせる (#1391)", () => {
   const 知らせを集める = (src: string): CompileNotice[] => {
     const r = parseTextDslV05(src);
@@ -255,6 +312,47 @@ describe("JSON でも式を書ける (#1391)", () => {
     if (!r.ok) expect(r.errors.map((e) => e.path)).toContain("$.formulas.1a");
   });
 
+  it("組の形で書いた名札が図の式に載り、文字列の形の式は `label` を持たない (#1916)", () => {
+    const json = JSONの図({
+      doubled: "input * 2",
+      total: { expression: "Math.min(doubled, 60) + 1", label: "合計" },
+      bare: { expression: "input" },
+    });
+    const v = validateDragonJson(json);
+    expect(v.ok, v.ok ? "" : v.errors.map((e) => `${e.path} ${e.message}`).join(" / ")).toBe(true);
+    expect(式たち(jsonToDiagram(json as never))).toEqual([
+      { id: "doubled", expression: "input * 2" },
+      { id: "total", expression: "Math.min(doubled, 60) + 1", label: "合計" },
+      { id: "bare", expression: "input" },
+    ]);
+  });
+
+  it.each([
+    ["式が無い", { label: "名札" }, "$.formulas.a.expression"],
+    ["式が空", { expression: " ", label: "名札" }, "$.formulas.a.expression"],
+    ["式が文字列でない", { expression: 2 }, "$.formulas.a.expression"],
+    ["名札が空", { expression: "input", label: "" }, "$.formulas.a.label"],
+    ["名札が文字列でない", { expression: "input", label: 1 }, "$.formulas.a.label"],
+    ["知らない項目名", { expression: "input", title: "名札" }, "$.formulas.a.title"],
+    ["読めない式", { expression: "input *" }, "$.formulas.a"],
+    ["並び", ["input"], "$.formulas.a"],
+    ["null", null, "$.formulas.a"],
+  ])("組の形で %s 時は場所を示して拒む (#1916)", (_名, 値, 場所) => {
+    const r = validateDragonJson(JSONの図({ a: 値 }));
+    expect(r.ok, "読めない組が通っている").toBe(false);
+    if (!r.ok) expect(r.errors.map((e) => e.path)).toContain(場所);
+  });
+
+  it("組の形の式も、前方参照を拒む (#1916)", () => {
+    const r = validateDragonJson(
+      JSONの図({
+        a: { expression: "b * 2", label: "前" },
+        b: { expression: "input + 1", label: "後" },
+      }),
+    );
+    expect(r.ok, "後から書く式を読む組が通っている").toBe(false);
+  });
+
   it("input と同じ名前、前方参照、文字列 input の参照を拒む", () => {
     const collision = validateDragonJson(JSONの図({ input: "input * 2" }));
     expect(collision.ok).toBe(false);
@@ -269,24 +367,39 @@ describe("JSON でも式を書ける (#1391)", () => {
 });
 
 describe("公開している形が式を持つ (#1391)", () => {
+  type 値の形 = {
+    type?: string;
+    minLength?: number;
+    pattern?: string;
+    required?: string[];
+    additionalProperties?: boolean;
+    properties?: Record<string, { type?: string; minLength?: number; pattern?: string }>;
+  };
   const 形 = (
     diagramJsonSchema as unknown as {
-      properties: Record<
-        string,
-        { type?: string; additionalProperties?: { type?: string; minLength?: number } }
-      >;
+      properties: Record<string, { type?: string; additionalProperties?: { oneOf?: 値の形[] } }>;
     }
   ).properties.formulas;
+  const 値の形たち = 形?.additionalProperties?.oneOf ?? [];
 
   it("公開している形を読めている", () => {
     expect(形, "公開している形に formulas が無い").toBeDefined();
+    expect(値の形たち.length, "値の形を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(
+      0,
+    );
   });
 
-  it("名前を鍵、空でない文字列を値に取る", () => {
+  it("名前を鍵、空でない文字列か `expression` と `label` の組を値に取る (#1916)", () => {
     // 記法 / JSON validator / 公開している形 の 3 つで受ける形が割れると、
     // 書けるのに拒まれる (逆もある) 状態が生まれる
     expect(形?.type).toBe("object");
-    expect(形?.additionalProperties?.type).toBe("string");
-    expect(形?.additionalProperties?.minLength).toBe(1);
+    expect(値の形たち.map((v) => v.type)).toEqual(["string", "object"]);
+    const [文字列, 組] = 値の形たち;
+    expect(文字列?.minLength).toBe(1);
+    expect(組?.required).toEqual(["expression"]);
+    expect(組?.additionalProperties).toBe(false);
+    expect(Object.keys(組?.properties ?? {}).sort()).toEqual(["expression", "label"]);
+    expect(組?.properties?.expression?.minLength).toBe(1);
+    expect(組?.properties?.label?.minLength).toBe(1);
   });
 });
