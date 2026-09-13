@@ -25,7 +25,7 @@ export const つまみの表: Record<string, 図形の定義> = {
   dropdown: {
     必須: ["options", "defaultValue"],
     欄: {
-      options: "文字列の並び",
+      options: "選択肢の並び",
       defaultValue: "文字列",
       label: "文字列",
     },
@@ -33,7 +33,7 @@ export const つまみの表: Record<string, 図形の定義> = {
   "multi-select": {
     必須: ["options", "defaultValues"],
     欄: {
-      options: "文字列の並び",
+      options: "選択肢の並び",
       defaultValues: "文字列の並び",
       label: "文字列",
     },
@@ -50,7 +50,7 @@ export const つまみの表: Record<string, 図形の定義> = {
   radio: {
     必須: ["options", "defaultValue"],
     欄: {
-      options: "文字列の並び",
+      options: "選択肢の並び",
       defaultValue: "文字列",
       label: "文字列",
     },
@@ -89,7 +89,7 @@ export const つまみの表: Record<string, 図形の定義> = {
   tabs: {
     必須: ["options", "defaultValue"],
     欄: {
-      options: "文字列の並び",
+      options: "選択肢の並び",
       defaultValue: "文字列",
       label: "文字列",
     },
@@ -119,6 +119,8 @@ export const つまみの表: Record<string, 図形の定義> = {
     欄: {
       defaultValue: "真偽",
       label: "文字列",
+      onLabel: "文字列",
+      offLabel: "文字列",
     },
   },
   xypad: {

@@ -80,6 +80,15 @@ describe("つまみの表は描画側の型定義から生成する (#1389)", ()
     expect(持つ, "数の並びを取る欄が 1 つも無い").toContain("timeline");
   });
 
+  it("選択肢の並びを取る欄は選択肢を持つ 4 種の `options` で、切り替えは名前の欄を持つ (#1920)", () => {
+    const 持つ = Object.entries(つまみの表)
+      .filter(([, 定義]) => 定義.欄.options === "選択肢の並び")
+      .map(([k]) => k)
+      .sort();
+    expect(持つ).toEqual(["dropdown", "multi-select", "radio", "tabs"]);
+    expect(つまみの表.toggle?.欄).toMatchObject({ onLabel: "文字列", offLabel: "文字列" });
+  });
+
   it("生成した file を手で編集しないよう書いてある", () => {
     const 中身 = readFileSync(join(ここ, "../src/v05/input-table.generated.ts"), "utf8");
     expect(中身, "自動生成であることが書かれていない").toContain("自動生成");
@@ -90,7 +99,7 @@ describe("つまみの表は描画側の型定義から生成する (#1389)", ()
 describe("公開している形と記法の表が同じ種類を持つ (#1389)", () => {
   type 公開欄 = {
     type?: string | string[];
-    items?: { type?: string };
+    items?: { type?: string; oneOf?: { type?: string; required?: string[] }[] };
   };
   type 分岐 = {
     properties: { kind: { enum: string[] } } & Record<string, 公開欄>;
@@ -126,6 +135,17 @@ describe("公開している形と記法の表が同じ種類を持つ (#1389)",
     if (定義?.type === "boolean") return "真偽";
     if (定義?.type === "array" && 定義.items?.type === "string") return "文字列の並び";
     if (定義?.type === "array" && 定義.items?.type === "number") return "数の並び";
+    // 選択肢の並び (#1920) = 要素が「文字列」 か「value と label を必須に持つ組」
+    const 要素 = 定義?.type === "array" ? (定義.items?.oneOf ?? []) : [];
+    if (
+      要素.length === 2 &&
+      要素.some((x) => x.type === "string") &&
+      要素.some(
+        (x) => x.type === "object" && [...(x.required ?? [])].sort().join(",") === "label,value",
+      )
+    ) {
+      return "選択肢の並び";
+    }
     return undefined;
   };
 

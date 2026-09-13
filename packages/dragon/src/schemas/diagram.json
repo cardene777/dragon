@@ -2025,10 +2025,43 @@
           "min": {
             "type": "number"
           },
+          "offLabel": {
+            "type": "string",
+            "minLength": 1,
+            "description": "切り替え (toggle) が切の時に、箱の字の差し込みへ描く名前。 省略すると false を描く。"
+          },
+          "onLabel": {
+            "type": "string",
+            "minLength": 1,
+            "description": "切り替え (toggle) が入の時に、箱の字の差し込みへ描く名前。 省略すると true を描く。"
+          },
           "options": {
             "type": "array",
+            "description": "選択肢。 文字列は値と名前を兼ね、{ value, label } の組は value を値にして label を操作部の選択肢と箱の字の差し込みに描く。 2 つを混ぜて書ける。",
             "items": {
-              "type": "string"
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "value",
+                    "label"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
             }
           },
           "placeholder": {
