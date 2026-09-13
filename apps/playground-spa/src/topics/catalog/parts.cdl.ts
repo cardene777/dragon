@@ -126,7 +126,7 @@ export const partsStateIndicator = diagram("parts-state-indicator", {
     stack: 0,
     kind: "dyn-circle",
     title: "現在の状態",
-    subtitle: "active",
+    subtitle: "稼働中",
     w: 360,
     h: 380,
     shape: { kind: "circle", radius: 140, fillProgress: "{lvl}", fill: "{stFill}" },
@@ -284,7 +284,7 @@ export const partsCircleSizeRace = diagram("parts-circle-size-race", {
     stack: 0,
     kind: "dyn-circle",
     title: "A",
-    subtitle: "score {sa}",
+    subtitle: "得点 {sa}",
     w: 160,
     h: 200,
     shape: { kind: "circle", radius: "{sa}", fill: "#a08870" },
@@ -294,7 +294,7 @@ export const partsCircleSizeRace = diagram("parts-circle-size-race", {
     stack: 0,
     kind: "dyn-circle",
     title: "B",
-    subtitle: "score {sb}",
+    subtitle: "得点 {sb}",
     w: 160,
     h: 200,
     shape: { kind: "circle", radius: "{sb}", fill: "#22c55e" },
@@ -304,7 +304,7 @@ export const partsCircleSizeRace = diagram("parts-circle-size-race", {
     stack: 0,
     kind: "dyn-circle",
     title: "C",
-    subtitle: "score {sc}",
+    subtitle: "得点 {sc}",
     w: 160,
     h: 200,
     shape: { kind: "circle", radius: "{sc}", fill: "#a08870" },
@@ -809,7 +809,7 @@ export const partsToggleSwitch = diagram("parts-toggle-switch", {
     stack: 0,
     kind: "dyn-rect",
     title: "",
-    subtitle: "ON",
+    subtitle: "入",
     w: 320,
     h: 160,
     shape: {
@@ -895,7 +895,7 @@ export const partsPulseIndicator = diagram("parts-pulse-indicator", {
     stack: 0,
     kind: "dyn-wave",
     title: "レート",
-    subtitle: "{rate} req/s",
+    subtitle: "{rate} 件/秒",
     w: 380,
     h: 380,
     shape: {
@@ -945,7 +945,7 @@ export const partsGaugeCluster = diagram("parts-gauge-cluster", {
     lane: "lb",
     stack: 0,
     kind: "dyn-arc",
-    title: "MEM",
+    title: "メモリ",
     subtitle: "{mem}%",
     w: 200,
     h: 200,
@@ -962,7 +962,7 @@ export const partsGaugeCluster = diagram("parts-gauge-cluster", {
     lane: "lc",
     stack: 0,
     kind: "dyn-arc",
-    title: "NET",
+    title: "通信",
     subtitle: "{net}%",
     w: 200,
     h: 200,
@@ -1044,8 +1044,8 @@ export const partsMessageBubble = diagram("parts-message-bubble", {
     lane: "l",
     stack: 0,
     kind: "dyn-rect",
-    title: "Hi there!",
-    subtitle: "10:30 AM",
+    title: "こんにちは!",
+    subtitle: "午前 10:30",
     w: 460,
     h: 200,
     shape: {
@@ -1076,8 +1076,8 @@ export const partsUserAvatar = diagram("parts-user-avatar", {
     lane: "l",
     stack: 0,
     kind: "dyn-circle",
-    title: "JD",
-    subtitle: "John Doe",
+    title: "山田",
+    subtitle: "山田 太郎",
     w: 340,
     h: 340,
     shape: { kind: "circle", radius: "{r}", fill: "{bg}" },
@@ -1157,7 +1157,7 @@ export const partsBandwidthMeter = diagram("parts-bandwidth-meter", {
     lane: "la",
     stack: 0,
     kind: "dyn-rect",
-    title: "UP",
+    title: "上り",
     subtitle: "{up} Mbps",
     w: 220,
     h: 340,
@@ -1167,7 +1167,7 @@ export const partsBandwidthMeter = diagram("parts-bandwidth-meter", {
     lane: "lb",
     stack: 0,
     kind: "dyn-rect",
-    title: "DOWN",
+    title: "下り",
     subtitle: "{dn} Mbps",
     w: 220,
     h: 340,
@@ -1404,7 +1404,7 @@ export const partsRainbowStack = diagram("parts-rainbow-stack", {
     lane: "l",
     stack: 0,
     kind: "dyn-rect",
-    title: "Tier 1",
+    title: "階層 1",
     subtitle: "S",
     w: 320,
     h: 90,
@@ -1414,7 +1414,7 @@ export const partsRainbowStack = diagram("parts-rainbow-stack", {
     lane: "l",
     stack: 1,
     kind: "dyn-rect",
-    title: "Tier 2",
+    title: "階層 2",
     subtitle: "A",
     w: 320,
     h: 90,
@@ -1424,7 +1424,7 @@ export const partsRainbowStack = diagram("parts-rainbow-stack", {
     lane: "l",
     stack: 2,
     kind: "dyn-rect",
-    title: "Tier 3",
+    title: "階層 3",
     subtitle: "B",
     w: 320,
     h: 90,
@@ -1434,7 +1434,7 @@ export const partsRainbowStack = diagram("parts-rainbow-stack", {
     lane: "l",
     stack: 3,
     kind: "dyn-rect",
-    title: "Tier 4",
+    title: "階層 4",
     subtitle: "C",
     w: 320,
     h: 90,
@@ -1444,7 +1444,7 @@ export const partsRainbowStack = diagram("parts-rainbow-stack", {
     lane: "l",
     stack: 4,
     kind: "dyn-rect",
-    title: "Tier 5",
+    title: "階層 5",
     subtitle: "D",
     w: 320,
     h: 90,
@@ -1572,7 +1572,7 @@ export const partsSearchBar = diagram("parts-search-bar", {
     stack: 0,
     kind: "dyn-rect",
     title: "🔍 検索",
-    subtitle: "keyword を入力",
+    subtitle: "検索語を入力",
     w: 680,
     h: 140,
     shape: {
@@ -1673,8 +1673,8 @@ export const partsExpBar = diagram("parts-exp-bar", {
     lane: "l",
     stack: 0,
     kind: "dyn-rect",
-    title: "EXP Lv.12",
-    subtitle: "{xp}/100 to Lv.13",
+    title: "経験値 レベル 12",
+    subtitle: "{xp}/100 でレベル 13",
     w: 680,
     h: 120,
     shape: {
@@ -1729,8 +1729,8 @@ export const partsSaleTag = diagram("parts-sale-tag", {
     lane: "l",
     stack: 0,
     kind: "dyn-rect",
-    title: "SALE",
-    subtitle: "{off}% OFF",
+    title: "セール",
+    subtitle: "{off}% 引き",
     w: 360,
     h: 200,
     shape: { kind: "rect", source: 100, fillMax: 100, orient: "up", fill: "#dc2626", radius: 12 },
@@ -1914,7 +1914,7 @@ export const partsBindCounterRadius = diagram("parts-bind-counter-radius", {
     lane: "l",
     stack: 0,
     kind: "dyn-circle",
-    title: "counter",
+    title: "計数",
     subtitle: "半径 {count}",
     w: 380,
     h: 380,
@@ -2069,7 +2069,7 @@ export const partsBindPulseCycle = diagram("parts-bind-pulse-cycle", {
     lane: "l",
     stack: 0,
     kind: "dyn-circle",
-    title: "pulse",
+    title: "脈動",
     subtitle: "{pulse}",
     w: 340,
     h: 340,
@@ -2215,7 +2215,7 @@ export const partsBindArcSweep = diagram("parts-bind-arc-sweep", {
     lane: "l",
     stack: 0,
     kind: "dyn-arc",
-    title: "loading",
+    title: "読み込み",
     subtitle: "{deg}°",
     w: 340,
     h: 340,
@@ -2245,7 +2245,7 @@ export const partsBindSplitFill = diagram("parts-bind-split-fill", {
     lane: "l",
     stack: 0,
     kind: "dyn-rect",
-    title: "上 zone",
+    title: "上の区画",
     subtitle: "{up}%",
     w: 380,
     h: 180,
@@ -2262,7 +2262,7 @@ export const partsBindSplitFill = diagram("parts-bind-split-fill", {
     lane: "l",
     stack: 1,
     kind: "dyn-rect",
-    title: "下 zone",
+    title: "下の区画",
     subtitle: "{dn}%",
     w: 380,
     h: 180,
@@ -2365,7 +2365,7 @@ export const partsBindColorState = diagram("parts-bind-color-state", {
     stack: 0,
     kind: "dyn-rect",
     title: "status",
-    subtitle: "healthy",
+    subtitle: "正常",
     w: 340,
     h: 340,
     shape: { kind: "rect", source: 100, fillMax: 100, orient: "up", fill: "{bg}", radius: 12 },
@@ -2393,7 +2393,7 @@ export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", 
     lane: "l",
     stack: 0,
     kind: "dyn-wave",
-    title: "tank",
+    title: "水槽",
     subtitle: "{lvl}%",
     w: 380,
     h: 380,
@@ -2428,8 +2428,8 @@ export const partsBindEscalation3 = diagram("parts-bind-escalation-3", {
     lane: "l",
     stack: 0,
     kind: "dyn-rect",
-    title: "Alert Lv {level}",
-    subtitle: "level: {level}",
+    title: "警報レベル {level}",
+    subtitle: "段階 {level}",
     w: 340,
     h: 340,
     shape: { kind: "rect", source: 100, fillMax: 100, orient: "up", fill: "{bg}", radius: 8 },
@@ -2497,7 +2497,7 @@ export const partsBindRingCounter = diagram("parts-bind-ring-counter", {
     lane: "l",
     stack: 0,
     kind: "dyn-arc",
-    title: "requests",
+    title: "要求数",
     subtitle: "{k}k / 1000k",
     w: 380,
     h: 380,
@@ -2527,7 +2527,7 @@ export const partsBindModeToggle = diagram("parts-bind-mode-toggle", {
     lane: "l",
     stack: 0,
     kind: "dyn-rect",
-    title: "theme",
+    title: "配色",
     subtitle: "{txt}",
     w: 340,
     h: 340,
@@ -2627,7 +2627,7 @@ export const partsBindGrowShrink = diagram("parts-bind-grow-shrink", {
     lane: "l",
     stack: 0,
     kind: "dyn-circle",
-    title: "breath",
+    title: "呼吸",
     subtitle: "半径 {r}",
     w: 340,
     h: 340,
@@ -2669,7 +2669,7 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
     lane: "lb",
     stack: 0,
     kind: "dyn-rect",
-    title: "MEM",
+    title: "メモリ",
     subtitle: "{mem}%",
     w: 240,
     h: 380,
@@ -2679,7 +2679,7 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
     lane: "lc",
     stack: 0,
     kind: "dyn-rect",
-    title: "NET",
+    title: "通信",
     subtitle: "{net} Mbps",
     w: 240,
     h: 380,
@@ -2903,7 +2903,7 @@ states:
   lvl: 0
 
 actors:
-  - 現在の状態: { kind: dyn-circle, lane: l, stack: 0, subtitle: "active", posW: 360, posH: 380, shape: { kind: circle, radius: 140, fillProgress: "{lvl}", fill: "{stFill}" } }
+  - 現在の状態: { kind: dyn-circle, lane: l, stack: 0, subtitle: "稼働中", posW: 360, posH: 380, shape: { kind: circle, radius: 140, fillProgress: "{lvl}", fill: "{stFill}" } }
 
 animation:
   - step: "状態が立ち上がる" 3s
@@ -2924,7 +2924,7 @@ export const sourceJson__partsStateIndicator = `{
       "kind": "dyn-circle",
       "lane": "l",
       "stack": 0,
-      "subtitle": "active",
+      "subtitle": "稼働中",
       "posW": 360,
       "posH": 380,
       "shape": { "kind": "circle", "radius": 140, "fillProgress": "{lvl}", "fill": "{stFill}" }
@@ -3190,9 +3190,9 @@ states:
   sc: 20
 
 actors:
-  - A2: { kind: dyn-circle, lane: a, stack: 0, subtitle: "score {sa}", posW: 160, posH: 200, shape: { kind: circle, radius: "{sa}", fill: "#a08870" }, title: "A" }
-  - B2: { kind: dyn-circle, lane: b, stack: 0, subtitle: "score {sb}", posW: 160, posH: 200, shape: { kind: circle, radius: "{sb}", fill: "#22c55e" }, title: "B" }
-  - C2: { kind: dyn-circle, lane: c, stack: 0, subtitle: "score {sc}", posW: 160, posH: 200, shape: { kind: circle, radius: "{sc}", fill: "#a08870" }, title: "C" }
+  - A2: { kind: dyn-circle, lane: a, stack: 0, subtitle: "得点 {sa}", posW: 160, posH: 200, shape: { kind: circle, radius: "{sa}", fill: "#a08870" }, title: "A" }
+  - B2: { kind: dyn-circle, lane: b, stack: 0, subtitle: "得点 {sb}", posW: 160, posH: 200, shape: { kind: circle, radius: "{sb}", fill: "#22c55e" }, title: "B" }
+  - C2: { kind: dyn-circle, lane: c, stack: 0, subtitle: "得点 {sc}", posW: 160, posH: 200, shape: { kind: circle, radius: "{sc}", fill: "#a08870" }, title: "C" }
 
 animation:
   - step: "競争" 3.5s
@@ -3217,7 +3217,7 @@ export const sourceJson__partsCircleSizeRace = `{
       "kind": "dyn-circle",
       "lane": "a",
       "stack": 0,
-      "subtitle": "score {sa}",
+      "subtitle": "得点 {sa}",
       "posW": 160,
       "posH": 200,
       "shape": { "kind": "circle", "radius": "{sa}", "fill": "#a08870" },
@@ -3228,7 +3228,7 @@ export const sourceJson__partsCircleSizeRace = `{
       "kind": "dyn-circle",
       "lane": "b",
       "stack": 0,
-      "subtitle": "score {sb}",
+      "subtitle": "得点 {sb}",
       "posW": 160,
       "posH": 200,
       "shape": { "kind": "circle", "radius": "{sb}", "fill": "#22c55e" },
@@ -3239,7 +3239,7 @@ export const sourceJson__partsCircleSizeRace = `{
       "kind": "dyn-circle",
       "lane": "c",
       "stack": 0,
-      "subtitle": "score {sc}",
+      "subtitle": "得点 {sc}",
       "posW": 160,
       "posH": 200,
       "shape": { "kind": "circle", "radius": "{sc}", "fill": "#a08870" },
@@ -4413,7 +4413,7 @@ states:
   on: 0
 
 actors:
-  - track: { kind: dyn-rect, lane: l, stack: 0, subtitle: "ON", posW: 320, posH: 160, shape: { kind: rect, source: "{on}", fillMax: 100, orient: right, fill: "{bg}", radius: 80 }, title: "" }
+  - track: { kind: dyn-rect, lane: l, stack: 0, subtitle: "入", posW: 320, posH: 160, shape: { kind: rect, source: "{on}", fillMax: 100, orient: right, fill: "{bg}", radius: 80 }, title: "" }
 
 animation:
   - step: "切から入へ" 3s
@@ -4434,7 +4434,7 @@ export const sourceJson__partsToggleSwitch = `{
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
-      "subtitle": "ON",
+      "subtitle": "入",
       "posW": 320,
       "posH": 160,
       "shape": {
@@ -4575,7 +4575,7 @@ states:
   rate: 5
 
 actors:
-  - レート: { kind: dyn-wave, lane: l, stack: 0, subtitle: "{rate} req/s", posW: 380, posH: 380, shape: { kind: wave, level: "{rate}", amplitude: 50, frequency: 3, waveHeight: 15, fill: "#8b5cf6" } }
+  - レート: { kind: dyn-wave, lane: l, stack: 0, subtitle: "{rate} 件/秒", posW: 380, posH: 380, shape: { kind: wave, level: "{rate}", amplitude: 50, frequency: 3, waveHeight: 15, fill: "#8b5cf6" } }
 
 animation:
   - step: "毎秒の件数が増える" 4s
@@ -4596,7 +4596,7 @@ export const sourceJson__partsPulseIndicator = `{
       "kind": "dyn-wave",
       "lane": "l",
       "stack": 0,
-      "subtitle": "{rate} req/s",
+      "subtitle": "{rate} 件/秒",
       "posW": 380,
       "posH": 380,
       "shape": {
@@ -4636,12 +4636,12 @@ states:
 
 actors:
   - CPU: { kind: dyn-arc, lane: la, stack: 0, subtitle: "{cpu}%", posW: 200, posH: 200, shape: { kind: arc, angle: "{cpu}", sweepMax: 100, outerRadius: 80, innerRadius: 55, fill: "#4e9dc4" } }
-  - MEM: { kind: dyn-arc, lane: lb, stack: 0, subtitle: "{mem}%", posW: 200, posH: 200, shape: { kind: arc, angle: "{mem}", sweepMax: 100, outerRadius: 80, innerRadius: 55, fill: "#22c55e" } }
-  - NET: { kind: dyn-arc, lane: lc, stack: 0, subtitle: "{net}%", posW: 200, posH: 200, shape: { kind: arc, angle: "{net}", sweepMax: 100, outerRadius: 80, innerRadius: 55, fill: "#f59e0b" } }
+  - メモリ: { kind: dyn-arc, lane: lb, stack: 0, subtitle: "{mem}%", posW: 200, posH: 200, shape: { kind: arc, angle: "{mem}", sweepMax: 100, outerRadius: 80, innerRadius: 55, fill: "#22c55e" } }
+  - 通信: { kind: dyn-arc, lane: lc, stack: 0, subtitle: "{net}%", posW: 200, posH: 200, shape: { kind: arc, angle: "{net}", sweepMax: 100, outerRadius: 80, innerRadius: 55, fill: "#f59e0b" } }
 
 animation:
   - step: "負荷変動" 4s
-    focus: ["CPU", "MEM", "NET"]
+    focus: ["CPU", "メモリ", "通信"]
     tween:
       cpu: 20 -> 75
       mem: 40 -> 85
@@ -4675,7 +4675,7 @@ export const sourceJson__partsGaugeCluster = `{
       }
     },
     {
-      "name": "MEM",
+      "name": "メモリ",
       "kind": "dyn-arc",
       "lane": "lb",
       "stack": 0,
@@ -4692,7 +4692,7 @@ export const sourceJson__partsGaugeCluster = `{
       }
     },
     {
-      "name": "NET",
+      "name": "通信",
       "kind": "dyn-arc",
       "lane": "lc",
       "stack": 0,
@@ -4715,7 +4715,7 @@ export const sourceJson__partsGaugeCluster = `{
     {
       "step": "負荷変動",
       "duration": 4,
-      "focus": ["CPU", "MEM", "NET"],
+      "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [20, 75], "mem": [40, 85], "net": [15, 60] }
     }
   ]
@@ -4847,11 +4847,11 @@ states:
   pop: 0
 
 actors:
-  - Hi there!: { kind: dyn-rect, lane: l, stack: 0, subtitle: "10:30 AM", posW: 460, posH: 200, shape: { kind: rect, source: "{pop}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 24 } }
+  - こんにちは!: { kind: dyn-rect, lane: l, stack: 0, subtitle: "午前 10:30", posW: 460, posH: 200, shape: { kind: rect, source: "{pop}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 24 } }
 
 animation:
   - step: "メッセージが届く" 3s
-    focus: ["Hi there!"]
+    focus: ["こんにちは!"]
     tween:
       pop: 0 -> 100
 `;
@@ -4864,11 +4864,11 @@ export const sourceJson__partsMessageBubble = `{
   },
   "actors": [
     {
-      "name": "Hi there!",
+      "name": "こんにちは!",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
-      "subtitle": "10:30 AM",
+      "subtitle": "午前 10:30",
       "posW": 460,
       "posH": 200,
       "shape": {
@@ -4887,7 +4887,7 @@ export const sourceJson__partsMessageBubble = `{
     {
       "step": "メッセージが届く",
       "duration": 3,
-      "focus": ["Hi there!"],
+      "focus": ["こんにちは!"],
       "tween": { "pop": [0, 100] }
     }
   ]
@@ -4904,11 +4904,11 @@ states:
   r: 40
 
 actors:
-  - JD: { kind: dyn-circle, lane: l, stack: 0, subtitle: "John Doe", posW: 340, posH: 340, shape: { kind: circle, radius: "{r}", fill: "{bg}" } }
+  - 山田: { kind: dyn-circle, lane: l, stack: 0, subtitle: "山田 太郎", posW: 340, posH: 340, shape: { kind: circle, radius: "{r}", fill: "{bg}" } }
 
 animation:
   - step: "人物の絵が現れる" 3s
-    focus: ["JD"]
+    focus: ["山田"]
     tween:
       r: 40 -> 150
 `;
@@ -4921,11 +4921,11 @@ export const sourceJson__partsUserAvatar = `{
   },
   "actors": [
     {
-      "name": "JD",
+      "name": "山田",
       "kind": "dyn-circle",
       "lane": "l",
       "stack": 0,
-      "subtitle": "John Doe",
+      "subtitle": "山田 太郎",
       "posW": 340,
       "posH": 340,
       "shape": { "kind": "circle", "radius": "{r}", "fill": "{bg}" }
@@ -4937,7 +4937,7 @@ export const sourceJson__partsUserAvatar = `{
     {
       "step": "人物の絵が現れる",
       "duration": 3,
-      "focus": ["JD"],
+      "focus": ["山田"],
       "tween": { "r": [40, 150] }
     }
   ]
@@ -5077,12 +5077,12 @@ states:
   dn: 30
 
 actors:
-  - UP: { kind: dyn-rect, lane: la, stack: 0, subtitle: "{up} Mbps", posW: 220, posH: 340, shape: { kind: rect, source: "{up}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
-  - DOWN: { kind: dyn-rect, lane: lb, stack: 0, subtitle: "{dn} Mbps", posW: 220, posH: 340, shape: { kind: rect, source: "{dn}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 上り: { kind: dyn-rect, lane: la, stack: 0, subtitle: "{up} Mbps", posW: 220, posH: 340, shape: { kind: rect, source: "{up}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
+  - 下り: { kind: dyn-rect, lane: lb, stack: 0, subtitle: "{dn} Mbps", posW: 220, posH: 340, shape: { kind: rect, source: "{dn}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
 
 animation:
   - step: "帯域変動" 4s
-    focus: ["UP", "DOWN"]
+    focus: ["上り", "下り"]
     tween:
       up: 20 -> 65
       dn: 30 -> 90
@@ -5097,7 +5097,7 @@ export const sourceJson__partsBandwidthMeter = `{
   },
   "actors": [
     {
-      "name": "UP",
+      "name": "上り",
       "kind": "dyn-rect",
       "lane": "la",
       "stack": 0,
@@ -5114,7 +5114,7 @@ export const sourceJson__partsBandwidthMeter = `{
       }
     },
     {
-      "name": "DOWN",
+      "name": "下り",
       "kind": "dyn-rect",
       "lane": "lb",
       "stack": 0,
@@ -5137,7 +5137,7 @@ export const sourceJson__partsBandwidthMeter = `{
     {
       "step": "帯域変動",
       "duration": 4,
-      "focus": ["UP", "DOWN"],
+      "focus": ["上り", "下り"],
       "tween": { "up": [20, 65], "dn": [30, 90] }
     }
   ]
@@ -5610,15 +5610,15 @@ states:
   t5: 20
 
 actors:
-  - Tier 1: { kind: dyn-rect, lane: l, stack: 0, subtitle: "S", posW: 320, posH: 90, shape: { kind: rect, source: "{t1}", fillMax: 30, orient: up, fill: "#dc2626", radius: 4 } }
-  - Tier 2: { kind: dyn-rect, lane: l, stack: 1, subtitle: "A", posW: 320, posH: 90, shape: { kind: rect, source: "{t2}", fillMax: 30, orient: up, fill: "#f59e0b", radius: 4 } }
-  - Tier 3: { kind: dyn-rect, lane: l, stack: 2, subtitle: "B", posW: 320, posH: 90, shape: { kind: rect, source: "{t3}", fillMax: 30, orient: up, fill: "#22c55e", radius: 4 } }
-  - Tier 4: { kind: dyn-rect, lane: l, stack: 3, subtitle: "C", posW: 320, posH: 90, shape: { kind: rect, source: "{t4}", fillMax: 30, orient: up, fill: "#4e9dc4", radius: 4 } }
-  - Tier 5: { kind: dyn-rect, lane: l, stack: 4, subtitle: "D", posW: 320, posH: 90, shape: { kind: rect, source: "{t5}", fillMax: 30, orient: up, fill: "#8b5cf6", radius: 4 } }
+  - 階層 1: { kind: dyn-rect, lane: l, stack: 0, subtitle: "S", posW: 320, posH: 90, shape: { kind: rect, source: "{t1}", fillMax: 30, orient: up, fill: "#dc2626", radius: 4 } }
+  - 階層 2: { kind: dyn-rect, lane: l, stack: 1, subtitle: "A", posW: 320, posH: 90, shape: { kind: rect, source: "{t2}", fillMax: 30, orient: up, fill: "#f59e0b", radius: 4 } }
+  - 階層 3: { kind: dyn-rect, lane: l, stack: 2, subtitle: "B", posW: 320, posH: 90, shape: { kind: rect, source: "{t3}", fillMax: 30, orient: up, fill: "#22c55e", radius: 4 } }
+  - 階層 4: { kind: dyn-rect, lane: l, stack: 3, subtitle: "C", posW: 320, posH: 90, shape: { kind: rect, source: "{t4}", fillMax: 30, orient: up, fill: "#4e9dc4", radius: 4 } }
+  - 階層 5: { kind: dyn-rect, lane: l, stack: 4, subtitle: "D", posW: 320, posH: 90, shape: { kind: rect, source: "{t5}", fillMax: 30, orient: up, fill: "#8b5cf6", radius: 4 } }
 
 animation:
   - step: "全ての段が動く" 4s
-    focus: ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"]
+    focus: ["階層 1", "階層 2", "階層 3", "階層 4", "階層 5"]
     tween:
       t1: 20 -> 28
       t2: 20 -> 28
@@ -5635,7 +5635,7 @@ export const sourceJson__partsRainbowStack = `{
   },
   "actors": [
     {
-      "name": "Tier 1",
+      "name": "階層 1",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
@@ -5652,7 +5652,7 @@ export const sourceJson__partsRainbowStack = `{
       }
     },
     {
-      "name": "Tier 2",
+      "name": "階層 2",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 1,
@@ -5669,7 +5669,7 @@ export const sourceJson__partsRainbowStack = `{
       }
     },
     {
-      "name": "Tier 3",
+      "name": "階層 3",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 2,
@@ -5686,7 +5686,7 @@ export const sourceJson__partsRainbowStack = `{
       }
     },
     {
-      "name": "Tier 4",
+      "name": "階層 4",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 3,
@@ -5703,7 +5703,7 @@ export const sourceJson__partsRainbowStack = `{
       }
     },
     {
-      "name": "Tier 5",
+      "name": "階層 5",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 4,
@@ -5726,7 +5726,7 @@ export const sourceJson__partsRainbowStack = `{
     {
       "step": "全ての段が動く",
       "duration": 4,
-      "focus": ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"],
+      "focus": ["階層 1", "階層 2", "階層 3", "階層 4", "階層 5"],
       "tween": { "t1": [20, 28], "t2": [20, 28], "t3": [20, 28], "t4": [20, 28], "t5": [20, 28] }
     }
   ]
@@ -5946,7 +5946,7 @@ states:
   typed: 0
 
 actors:
-  - 🔍 検索: { kind: dyn-rect, lane: l, stack: 0, subtitle: "keyword を入力", posW: 680, posH: 140, shape: { kind: rect, source: "{typed}", fillMax: 100, orient: right, fill: "#f5e6b8", radius: 70 } }
+  - 🔍 検索: { kind: dyn-rect, lane: l, stack: 0, subtitle: "検索語を入力", posW: 680, posH: 140, shape: { kind: rect, source: "{typed}", fillMax: 100, orient: right, fill: "#f5e6b8", radius: 70 } }
 
 animation:
   - step: "入力が伸びる" 3s
@@ -5967,7 +5967,7 @@ export const sourceJson__partsSearchBar = `{
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
-      "subtitle": "keyword を入力",
+      "subtitle": "検索語を入力",
       "posW": 680,
       "posH": 140,
       "shape": {
@@ -6167,11 +6167,11 @@ states:
   xp: 20
 
 actors:
-  - EXP Lv.12: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{xp}/100 to Lv.13", posW: 680, posH: 120, shape: { kind: rect, source: "{xp}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 60 } }
+  - 経験値 レベル 12: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{xp}/100 でレベル 13", posW: 680, posH: 120, shape: { kind: rect, source: "{xp}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 60 } }
 
 animation:
   - step: "経験値が上がる" 4.5s
-    focus: ["EXP Lv.12"]
+    focus: ["経験値 レベル 12"]
     tween:
       xp: 20 -> 95
 `;
@@ -6184,11 +6184,11 @@ export const sourceJson__partsExpBar = `{
   },
   "actors": [
     {
-      "name": "EXP Lv.12",
+      "name": "経験値 レベル 12",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
-      "subtitle": "{xp}/100 to Lv.13",
+      "subtitle": "{xp}/100 でレベル 13",
       "posW": 680,
       "posH": 120,
       "shape": {
@@ -6207,7 +6207,7 @@ export const sourceJson__partsExpBar = `{
     {
       "step": "経験値が上がる",
       "duration": 4.5,
-      "focus": ["EXP Lv.12"],
+      "focus": ["経験値 レベル 12"],
       "tween": { "xp": [20, 95] }
     }
   ]
@@ -6273,11 +6273,11 @@ states:
   off: 30
 
 actors:
-  - SALE: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{off}% OFF", posW: 360, posH: 200, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "#dc2626", radius: 12 } }
+  - セール: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{off}% 引き", posW: 360, posH: 200, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "#dc2626", radius: 12 } }
 
 animation:
   - step: "割引拡大" 4s
-    focus: ["SALE"]
+    focus: ["セール"]
     tween:
       off: 30 -> 70
 `;
@@ -6290,11 +6290,11 @@ export const sourceJson__partsSaleTag = `{
   },
   "actors": [
     {
-      "name": "SALE",
+      "name": "セール",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
-      "subtitle": "{off}% OFF",
+      "subtitle": "{off}% 引き",
       "posW": 360,
       "posH": 200,
       "shape": {
@@ -6313,7 +6313,7 @@ export const sourceJson__partsSaleTag = `{
     {
       "step": "割引拡大",
       "duration": 4,
-      "focus": ["SALE"],
+      "focus": ["セール"],
       "tween": { "off": [30, 70] }
     }
   ]
@@ -6629,11 +6629,11 @@ states:
   count: 30
 
 actors:
-  - counter: { kind: dyn-circle, lane: l, stack: 0, subtitle: "半径 {count}", posW: 380, posH: 380, shape: { kind: circle, radius: "{count}", fill: "#4e9dc4" } }
+  - 計数: { kind: dyn-circle, lane: l, stack: 0, subtitle: "半径 {count}", posW: 380, posH: 380, shape: { kind: circle, radius: "{count}", fill: "#4e9dc4" } }
 
 animation:
   - step: "半径拡大" 4s
-    focus: ["counter"]
+    focus: ["計数"]
     tween:
       count: 30 -> 150
 `;
@@ -6646,7 +6646,7 @@ export const sourceJson__partsBindCounterRadius = `{
   },
   "actors": [
     {
-      "name": "counter",
+      "name": "計数",
       "kind": "dyn-circle",
       "lane": "l",
       "stack": 0,
@@ -6662,7 +6662,7 @@ export const sourceJson__partsBindCounterRadius = `{
     {
       "step": "半径拡大",
       "duration": 4,
-      "focus": ["counter"],
+      "focus": ["計数"],
       "tween": { "count": [30, 150] }
     }
   ]
@@ -6926,15 +6926,15 @@ states:
   pulse: 0
 
 actors:
-  - pulse: { kind: dyn-circle, lane: l, stack: 0, subtitle: "{pulse}", posW: 340, posH: 340, shape: { kind: circle, radius: "{pulse}", fill: "#dc2626" } }
+  - 脈動: { kind: dyn-circle, lane: l, stack: 0, subtitle: "{pulse}", posW: 340, posH: 340, shape: { kind: circle, radius: "{pulse}", fill: "#dc2626" } }
 
 animation:
   - step: "膨張" 0.8s
-    focus: ["pulse"]
+    focus: ["脈動"]
     tween:
       pulse: 20 -> 150
   - step: "収縮" 0.8s
-    focus: ["pulse"]
+    focus: ["脈動"]
     tween:
       pulse: 150 -> 20
 `;
@@ -6947,7 +6947,7 @@ export const sourceJson__partsBindPulseCycle = `{
   },
   "actors": [
     {
-      "name": "pulse",
+      "name": "脈動",
       "kind": "dyn-circle",
       "lane": "l",
       "stack": 0,
@@ -6963,13 +6963,13 @@ export const sourceJson__partsBindPulseCycle = `{
     {
       "step": "膨張",
       "duration": 0.8,
-      "focus": ["pulse"],
+      "focus": ["脈動"],
       "tween": { "pulse": [20, 150] }
     },
     {
       "step": "収縮",
       "duration": 0.8,
-      "focus": ["pulse"],
+      "focus": ["脈動"],
       "tween": { "pulse": [150, 20] }
     }
   ]
@@ -7225,11 +7225,11 @@ states:
   deg: 0
 
 actors:
-  - loading: { kind: dyn-arc, lane: l, stack: 0, subtitle: "{deg}°", posW: 340, posH: 340, shape: { kind: arc, angle: "{deg}", sweepMax: 360, outerRadius: 140, innerRadius: 100, fill: "#f59e0b" } }
+  - 読み込み: { kind: dyn-arc, lane: l, stack: 0, subtitle: "{deg}°", posW: 340, posH: 340, shape: { kind: arc, angle: "{deg}", sweepMax: 360, outerRadius: 140, innerRadius: 100, fill: "#f59e0b" } }
 
 animation:
   - step: "1 周" 3s
-    focus: ["loading"]
+    focus: ["読み込み"]
     tween:
       deg: 0 -> 360
 `;
@@ -7242,7 +7242,7 @@ export const sourceJson__partsBindArcSweep = `{
   },
   "actors": [
     {
-      "name": "loading",
+      "name": "読み込み",
       "kind": "dyn-arc",
       "lane": "l",
       "stack": 0,
@@ -7265,7 +7265,7 @@ export const sourceJson__partsBindArcSweep = `{
     {
       "step": "1 周",
       "duration": 3,
-      "focus": ["loading"],
+      "focus": ["読み込み"],
       "tween": { "deg": [0, 360] }
     }
   ]
@@ -7282,12 +7282,12 @@ states:
   dn: 60
 
 actors:
-  - 上 zone: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{up}%", posW: 380, posH: 180, shape: { kind: rect, source: "{up}", fillMax: 100, orient: down, fill: "#22c55e", radius: 4 } }
-  - 下 zone: { kind: dyn-rect, lane: l, stack: 1, subtitle: "{dn}%", posW: 380, posH: 180, shape: { kind: rect, source: "{dn}", fillMax: 100, orient: up, fill: "#dc2626", radius: 4 } }
+  - 上の区画: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{up}%", posW: 380, posH: 180, shape: { kind: rect, source: "{up}", fillMax: 100, orient: down, fill: "#22c55e", radius: 4 } }
+  - 下の区画: { kind: dyn-rect, lane: l, stack: 1, subtitle: "{dn}%", posW: 380, posH: 180, shape: { kind: rect, source: "{dn}", fillMax: 100, orient: up, fill: "#dc2626", radius: 4 } }
 
 animation:
   - step: "上下逆転" 4s
-    focus: ["上 zone", "下 zone"]
+    focus: ["上の区画", "下の区画"]
     tween:
       up: 40 -> 80
       dn: 60 -> 20
@@ -7301,7 +7301,7 @@ export const sourceJson__partsBindSplitFill = `{
   },
   "actors": [
     {
-      "name": "上 zone",
+      "name": "上の区画",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
@@ -7318,7 +7318,7 @@ export const sourceJson__partsBindSplitFill = `{
       }
     },
     {
-      "name": "下 zone",
+      "name": "下の区画",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 1,
@@ -7341,7 +7341,7 @@ export const sourceJson__partsBindSplitFill = `{
     {
       "step": "上下逆転",
       "duration": 4,
-      "focus": ["上 zone", "下 zone"],
+      "focus": ["上の区画", "下の区画"],
       "tween": { "up": [40, 80], "dn": [60, 20] }
     }
   ]
@@ -7506,7 +7506,7 @@ states:
   bg: "#22c55e"
 
 actors:
-  - status: { kind: dyn-rect, lane: l, stack: 0, subtitle: "healthy", posW: 340, posH: 340, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "{bg}", radius: 12 } }
+  - status: { kind: dyn-rect, lane: l, stack: 0, subtitle: "正常", posW: 340, posH: 340, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "{bg}", radius: 12 } }
 
 animation:
   - step: "注意" 1.5s
@@ -7535,7 +7535,7 @@ export const sourceJson__partsBindColorState = `{
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
-      "subtitle": "healthy",
+      "subtitle": "正常",
       "posW": 340,
       "posH": 340,
       "shape": {
@@ -7583,15 +7583,15 @@ states:
   hue: "#4e9dc4"
 
 actors:
-  - tank: { kind: dyn-wave, lane: l, stack: 0, subtitle: "{lvl}%", posW: 380, posH: 380, shape: { kind: wave, level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 10, fill: "{hue}" } }
+  - 水槽: { kind: dyn-wave, lane: l, stack: 0, subtitle: "{lvl}%", posW: 380, posH: 380, shape: { kind: wave, level: "{lvl}", amplitude: 100, frequency: 2, waveHeight: 10, fill: "{hue}" } }
 
 animation:
   - step: "水位上昇" 2s
-    focus: ["tank"]
+    focus: ["水槽"]
     tween:
       lvl: 30 -> 85
   - step: "警告色" 2s
-    focus: ["tank"]
+    focus: ["水槽"]
     set:
       hue: "#dc2626"
 `;
@@ -7604,7 +7604,7 @@ export const sourceJson__partsBindLevelColorCombo = `{
   },
   "actors": [
     {
-      "name": "tank",
+      "name": "水槽",
       "kind": "dyn-wave",
       "lane": "l",
       "stack": 0,
@@ -7627,13 +7627,13 @@ export const sourceJson__partsBindLevelColorCombo = `{
     {
       "step": "水位上昇",
       "duration": 2,
-      "focus": ["tank"],
+      "focus": ["水槽"],
       "tween": { "lvl": [30, 85] }
     },
     {
       "step": "警告色",
       "duration": 2,
-      "focus": ["tank"],
+      "focus": ["水槽"],
       "set": { "hue": "#dc2626" }
     }
   ]
@@ -7650,21 +7650,21 @@ states:
   bg: "#22c55e"
 
 actors:
-  - Alert Lv {level}: { kind: dyn-rect, lane: l, stack: 0, subtitle: "level: {level}", posW: 340, posH: 340, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "{bg}", radius: 8 } }
+  - 警報レベル {level}: { kind: dyn-rect, lane: l, stack: 0, subtitle: "段階 {level}", posW: 340, posH: 340, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "{bg}", radius: 8 } }
 
 animation:
   - step: "L1 = 平常" 1.5s
-    focus: ["Alert Lv {level}"]
+    focus: ["警報レベル {level}"]
     set:
       level: 1
       bg: "#22c55e"
   - step: "L2 = 注意" 1.5s
-    focus: ["Alert Lv {level}"]
+    focus: ["警報レベル {level}"]
     set:
       level: 2
       bg: "#f59e0b"
   - step: "L3 = 危険" 1.5s
-    focus: ["Alert Lv {level}"]
+    focus: ["警報レベル {level}"]
     set:
       level: 3
       bg: "#dc2626"
@@ -7678,11 +7678,11 @@ export const sourceJson__partsBindEscalation3 = `{
   },
   "actors": [
     {
-      "name": "Alert Lv {level}",
+      "name": "警報レベル {level}",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
-      "subtitle": "level: {level}",
+      "subtitle": "段階 {level}",
       "posW": 340,
       "posH": 340,
       "shape": {
@@ -7701,19 +7701,19 @@ export const sourceJson__partsBindEscalation3 = `{
     {
       "step": "L1 = 平常",
       "duration": 1.5,
-      "focus": ["Alert Lv {level}"],
+      "focus": ["警報レベル {level}"],
       "set": { "level": 1, "bg": "#22c55e" }
     },
     {
       "step": "L2 = 注意",
       "duration": 1.5,
-      "focus": ["Alert Lv {level}"],
+      "focus": ["警報レベル {level}"],
       "set": { "level": 2, "bg": "#f59e0b" }
     },
     {
       "step": "L3 = 危険",
       "duration": 1.5,
-      "focus": ["Alert Lv {level}"],
+      "focus": ["警報レベル {level}"],
       "set": { "level": 3, "bg": "#dc2626" }
     }
   ]
@@ -7815,11 +7815,11 @@ states:
   k: 250
 
 actors:
-  - requests: { kind: dyn-arc, lane: l, stack: 0, subtitle: "{k}k / 1000k", posW: 380, posH: 380, shape: { kind: arc, angle: "{k}", sweepMax: 1000, outerRadius: 150, innerRadius: 100, fill: "#22c55e" } }
+  - 要求数: { kind: dyn-arc, lane: l, stack: 0, subtitle: "{k}k / 1000k", posW: 380, posH: 380, shape: { kind: arc, angle: "{k}", sweepMax: 1000, outerRadius: 150, innerRadius: 100, fill: "#22c55e" } }
 
 animation:
   - step: "1k 到達" 4s
-    focus: ["requests"]
+    focus: ["要求数"]
     tween:
       k: 250 -> 980
 `;
@@ -7832,7 +7832,7 @@ export const sourceJson__partsBindRingCounter = `{
   },
   "actors": [
     {
-      "name": "requests",
+      "name": "要求数",
       "kind": "dyn-arc",
       "lane": "l",
       "stack": 0,
@@ -7855,7 +7855,7 @@ export const sourceJson__partsBindRingCounter = `{
     {
       "step": "1k 到達",
       "duration": 4,
-      "focus": ["requests"],
+      "focus": ["要求数"],
       "tween": { "k": [250, 980] }
     }
   ]
@@ -7872,16 +7872,16 @@ states:
   txt: "light mode"
 
 actors:
-  - theme: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{txt}", posW: 340, posH: 340, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "{bg}", radius: 12 } }
+  - 配色: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{txt}", posW: 340, posH: 340, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "{bg}", radius: 12 } }
 
 animation:
   - step: "暗い配色へ" 1.5s
-    focus: ["theme"]
+    focus: ["配色"]
     set:
       bg: "#1a1408"
       txt: "dark mode"
   - step: "明るい配色へ" 1.5s
-    focus: ["theme"]
+    focus: ["配色"]
     set:
       bg: "#fcf8ee"
       txt: "light mode"
@@ -7895,7 +7895,7 @@ export const sourceJson__partsBindModeToggle = `{
   },
   "actors": [
     {
-      "name": "theme",
+      "name": "配色",
       "kind": "dyn-rect",
       "lane": "l",
       "stack": 0,
@@ -7918,13 +7918,13 @@ export const sourceJson__partsBindModeToggle = `{
     {
       "step": "暗い配色へ",
       "duration": 1.5,
-      "focus": ["theme"],
+      "focus": ["配色"],
       "set": { "bg": "#1a1408", "txt": "dark mode" }
     },
     {
       "step": "明るい配色へ",
       "duration": 1.5,
-      "focus": ["theme"],
+      "focus": ["配色"],
       "set": { "bg": "#fcf8ee", "txt": "light mode" }
     }
   ]
@@ -8084,15 +8084,15 @@ states:
   r: 40
 
 actors:
-  - breath: { kind: dyn-circle, lane: l, stack: 0, subtitle: "半径 {r}", posW: 340, posH: 340, shape: { kind: circle, radius: "{r}", fill: "#4e9dc4" } }
+  - 呼吸: { kind: dyn-circle, lane: l, stack: 0, subtitle: "半径 {r}", posW: 340, posH: 340, shape: { kind: circle, radius: "{r}", fill: "#4e9dc4" } }
 
 animation:
   - step: "吸う" 1.8s
-    focus: ["breath"]
+    focus: ["呼吸"]
     tween:
       r: 40 -> 150
   - step: "吐く" 1.8s
-    focus: ["breath"]
+    focus: ["呼吸"]
     tween:
       r: 150 -> 40
 `;
@@ -8105,7 +8105,7 @@ export const sourceJson__partsBindGrowShrink = `{
   },
   "actors": [
     {
-      "name": "breath",
+      "name": "呼吸",
       "kind": "dyn-circle",
       "lane": "l",
       "stack": 0,
@@ -8121,13 +8121,13 @@ export const sourceJson__partsBindGrowShrink = `{
     {
       "step": "吸う",
       "duration": 1.8,
-      "focus": ["breath"],
+      "focus": ["呼吸"],
       "tween": { "r": [40, 150] }
     },
     {
       "step": "吐く",
       "duration": 1.8,
-      "focus": ["breath"],
+      "focus": ["呼吸"],
       "tween": { "r": [150, 40] }
     }
   ]
@@ -8152,25 +8152,25 @@ states:
 
 actors:
   - CPU: { kind: dyn-rect, lane: la, stack: 0, subtitle: "{cpu}% ({status})", posW: 240, posH: 380, shape: { kind: rect, source: "{cpu}", fillMax: 100, orient: up, fill: "{cpuC}", radius: 8 } }
-  - MEM: { kind: dyn-rect, lane: lb, stack: 0, subtitle: "{mem}%", posW: 240, posH: 380, shape: { kind: rect, source: "{mem}", fillMax: 100, orient: up, fill: "{memC}", radius: 8 } }
-  - NET: { kind: dyn-rect, lane: lc, stack: 0, subtitle: "{net} Mbps", posW: 240, posH: 380, shape: { kind: rect, source: "{net}", fillMax: 100, orient: up, fill: "{netC}", radius: 8 } }
+  - メモリ: { kind: dyn-rect, lane: lb, stack: 0, subtitle: "{mem}%", posW: 240, posH: 380, shape: { kind: rect, source: "{mem}", fillMax: 100, orient: up, fill: "{memC}", radius: 8 } }
+  - 通信: { kind: dyn-rect, lane: lc, stack: 0, subtitle: "{net} Mbps", posW: 240, posH: 380, shape: { kind: rect, source: "{net}", fillMax: 100, orient: up, fill: "{netC}", radius: 8 } }
 
 animation:
   - step: "負荷が上がる" 1.2s
-    focus: ["CPU", "MEM", "NET"]
+    focus: ["CPU", "メモリ", "通信"]
     tween:
       cpu: 15 -> 60
       mem: 30 -> 55
       net: 5 -> 40
   - step: "注意" 1.2s
-    focus: ["CPU", "MEM", "NET"]
+    focus: ["CPU", "メモリ", "通信"]
     tween:
       cpu: 60 -> 82
     set:
       cpuC: "#f59e0b"
       status: "warning"
   - step: "危険" 1.2s
-    focus: ["CPU", "MEM", "NET"]
+    focus: ["CPU", "メモリ", "通信"]
     tween:
       cpu: 82 -> 95
     set:
@@ -8178,7 +8178,7 @@ animation:
       memC: "#f59e0b"
       status: "critical"
   - step: "回復開始" 1.2s
-    focus: ["CPU", "MEM", "NET"]
+    focus: ["CPU", "メモリ", "通信"]
     tween:
       cpu: 95 -> 40
       mem: 55 -> 35
@@ -8187,7 +8187,7 @@ animation:
       memC: "#22c55e"
       status: "recovering"
   - step: "平常復帰" 1.2s
-    focus: ["CPU", "MEM", "NET"]
+    focus: ["CPU", "メモリ", "通信"]
     set:
       status: "healthy"
 `;
@@ -8219,7 +8219,7 @@ export const sourceJson__partsBindComprehensive = `{
       }
     },
     {
-      "name": "MEM",
+      "name": "メモリ",
       "kind": "dyn-rect",
       "lane": "lb",
       "stack": 0,
@@ -8236,7 +8236,7 @@ export const sourceJson__partsBindComprehensive = `{
       }
     },
     {
-      "name": "NET",
+      "name": "通信",
       "kind": "dyn-rect",
       "lane": "lc",
       "stack": 0,
@@ -8267,34 +8267,34 @@ export const sourceJson__partsBindComprehensive = `{
     {
       "step": "負荷が上がる",
       "duration": 1.2,
-      "focus": ["CPU", "MEM", "NET"],
+      "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [15, 60], "mem": [30, 55], "net": [5, 40] }
     },
     {
       "step": "注意",
       "duration": 1.2,
-      "focus": ["CPU", "MEM", "NET"],
+      "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [60, 82] },
       "set": { "cpuC": "#f59e0b", "status": "warning" }
     },
     {
       "step": "危険",
       "duration": 1.2,
-      "focus": ["CPU", "MEM", "NET"],
+      "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [82, 95] },
       "set": { "cpuC": "#dc2626", "memC": "#f59e0b", "status": "critical" }
     },
     {
       "step": "回復開始",
       "duration": 1.2,
-      "focus": ["CPU", "MEM", "NET"],
+      "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [95, 40], "mem": [55, 35] },
       "set": { "cpuC": "#22c55e", "memC": "#22c55e", "status": "recovering" }
     },
     {
       "step": "平常復帰",
       "duration": 1.2,
-      "focus": ["CPU", "MEM", "NET"],
+      "focus": ["CPU", "メモリ", "通信"],
       "set": { "status": "healthy" }
     }
   ]
