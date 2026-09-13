@@ -10108,7 +10108,7 @@ export const subtitle__loginOtpVerify =
   "送られた 6 桁の確認の符号 (OTP) を 6 つの枠に入れ、埋まると検証に送る (otp-input)";
 
 /**
- * 117. file-dropzone = プロフィール画像アップロードを 3 区画 (未選択 / アップロード / プレビュー) 2 列 2 段の state-driven visibility 分散 + fileDropzone readout 併存 + 3 phase 動き (未選択 → drop → プレビュー)。 iteration 7 wave 2、 pattern taxonomy § 2 state-driven visibility。
+ * 117. file-dropzone = 顔写真のアップロードを 3 区画 (未選択 / アップロード / プレビュー) 2 列 2 段の state-driven visibility 分散 + fileDropzone readout 併存 + 3 phase 動き (未選択 → drop → プレビュー)。 iteration 7 wave 2、 pattern taxonomy § 2 state-driven visibility。
  */
 export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", {
   topic: "画像の選択から反映までを追う",
@@ -10472,7 +10472,7 @@ export const subtitle__serviceHealthGrid =
   "6 つのサービスを稼働 / 劣化 / 停止の縦列に分け、緑 / 黄 / 赤の升目で見せる (service-health)";
 
 /**
- * 121. cart-summary = ショッピングカート小計を 3-lane (商品 / 内訳 / 合計) rank-based split 分散 + cartSummary readout 併存 + 3 phase 動き (商品追加 tween → 送料計算 → 合計確定)。 iteration 7 wave 4、 pattern taxonomy § 4 rank-based split。
+ * 121. cart-summary = 買い物かごの小計を 3-lane (商品 / 内訳 / 合計) rank-based split 分散 + cartSummary readout 併存 + 3 phase 動き (商品追加 tween → 送料計算 → 合計確定)。 iteration 7 wave 4、 pattern taxonomy § 4 rank-based split。
  */
 export const checkoutCartSummary = diagram("interactive-checkout-cart-summary", {
   topic: "カートの小計から合計までを積み上げる",
@@ -10641,7 +10641,7 @@ export const subtitle__saasPricingTier =
   "入門 / 標準 / 法人の 3 つの料金の種類を縦列に分け、名前と価格と特典を並べて比べる (pricing-tier)";
 
 /**
- * 123. coupon-code = チェックアウト クーポン適用フローを 3-lane (未入力 / 入力済 / 適用済) state-driven visibility 分散 + couponCode readout 併存 + 3 phase 動き (未入力 → 入力 → 適用 tween)。 iteration 7 wave 4、 pattern taxonomy § 2 state-driven visibility。
+ * 123. coupon-code = クーポン適用の流れを 3-lane (未入力 / 入力済 / 適用済) state-driven visibility 分散 + couponCode readout 併存 + 3 phase 動き (未入力 → 入力 → 適用 tween)。 iteration 7 wave 4、 pattern taxonomy § 2 state-driven visibility。
  */
 export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", {
   topic: "クーポンの未入力から適用までを追う",
@@ -10721,7 +10721,7 @@ export const subtitle__checkoutCouponApply =
   "割引の符号の未入力 → 入力済 → 適用済の 3 つの状態を矢印でつなぎ、割引の札の出方を見せる (coupon-code)";
 
 /**
- * 124. article-preview = ブログ記事プレビュー card を 3-lane (サムネ / 本文 / メタ) category split 分散 + articlePreview readout 併存 + 3 phase 動き (初期表示 → hover tween → クリック)。 iteration 7 wave 5、 pattern taxonomy § 3 category split。
+ * 124. article-preview = ブログ記事のカードを 3-lane (サムネ / 本文 / メタ) category split 分散 + articlePreview readout 併存 + 3 phase 動き (初期表示 → hover tween → クリック)。 iteration 7 wave 5、 pattern taxonomy § 3 category split。
  */
 export const blogArticlePreview = diagram("interactive-blog-article-preview", {
   topic: "記事カードの見出しと抜粋と著者を並べる",

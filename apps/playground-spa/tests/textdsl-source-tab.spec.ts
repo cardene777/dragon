@@ -20,7 +20,7 @@ async function 開く(page: Page, 名前: string): Promise<void> {
 
 test.describe("Text DSL のページで記法が読める (#1365)", () => {
   test("コードのタブが押せて、記法が出る", async ({ page }) => {
-    await 開く(page, "テキスト記法のガント");
+    await 開く(page, "テキスト記法の工程表");
 
     const タブ = page.getByRole("tab", { name: "コード" });
     await expect(タブ, "コードのタブが押せない").toBeEnabled();
@@ -42,7 +42,7 @@ test.describe("Text DSL のページで記法が読める (#1365)", () => {
      * 記法を出すようにした以上、速度の切替 (#1356) がこのページでも効く必要がある。
      * 出す経路が同じ (`SourceTabs`) なので効くはずだが、確かめていないと分からない。
      */
-    await 開く(page, "テキスト記法のガント");
+    await 開く(page, "テキスト記法の工程表");
     await page.getByRole("tab", { name: "コード" }).click();
     await page.waitForTimeout(300);
 

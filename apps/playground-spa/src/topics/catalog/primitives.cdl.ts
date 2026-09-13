@@ -156,7 +156,7 @@ export const shapeFile = shapeSample({
   subtitle: "PDF · {v} MB",
   metric: { from: 2, to: 9 },
   w: 272,
-  topic: "shape: file (ドッグイア rect、 ファイル / document 表現)",
+  topic: "shape: file (角を折った rect、 ファイル / document 表現)",
   phase: { title: "shape-file", body: "右上の角を折り返した四角。 ファイルや文書、報告書を表す。" },
 });
 export const shapeFolder = shapeSample({
@@ -328,7 +328,7 @@ export const shapeMobileDevice = shapeSample({
   eyebrow: "携帯端末",
   subtitle: "{v} 台が稼働",
   metric: { from: 200, to: 1800 },
-  topic: "shape: mobile-device (スマホ、 モバイル端末)",
+  topic: "shape: mobile-device (携帯端末)",
   phase: { title: "shape-mobile-device", body: "上の話し口と画面、下のボタンを持つスマホ。 携帯のアプリや、利用者の手元の端末を表す。" },
 });
 export const shapeIotSensor = shapeSample({
@@ -348,7 +348,7 @@ export const shapeRobotArm = shapeSample({
   eyebrow: "ロボット",
   subtitle: "6 軸 · {v} 個/時",
   metric: { from: 40, to: 260 },
-  topic: "shape: robot-arm (ロボアーム、 産業機器)",
+  topic: "shape: robot-arm (機械の腕、 産業機器)",
   phase: { title: "shape-robot-arm", body: "台座と 2 つの関節、先のつかみ手を持つ腕。 産業機器や、自動にした工程、制御する対象を表す。" },
 });
 export const shapeSatellite = shapeSample({
@@ -707,7 +707,7 @@ export const sceneBankingFlow = diagram("scene-banking-flow", { topic: "scene: �
   .build();
 
 /** S-4. IoT センサー → RPC → smart-contract (web3 IoT) */
-export const sceneIotOnchain = diagram("scene-iot-onchain", { topic: "scene: IoT オンチェーン (sensor → RPC → contract)" })
+export const sceneIotOnchain = diagram("scene-iot-onchain", { topic: "scene: IoT 機器から台帳へ (sensor → RPC → contract)" })
   .lane("l", { x: 0, width: W })
   .node("s", { lane: "l", stack: 0, kind: "shape-iot-sensor", title: "温度計", eyebrow: "計測機器", subtitle: "近距離の無線" })
   .node("r", { lane: "l", stack: 1, kind: "shape-rpc-node", title: "Infura", eyebrow: "RPC の窓口", subtitle: "窓口を貸す事業者" })
@@ -745,7 +745,7 @@ export const sceneStockTrading = diagram("scene-stock-trading", { topic: "scene:
   .phase("p3", { duration: 750, title: "証券取引", body: "個人投資家が証券会社へ発注し、取引所で約定する。 株の売買で踏む 3 段の場面。" }, (p: PhaseBuilder) => p.activate("t").activate("b").activate("e").badge("取引所"))
   .build();
 
-/** S-7. カスタマーサポート → チケット → 開発チーム (問い合わせ flow) */
+/** S-7. 顧客対応 → チケット → 開発チーム (問い合わせ flow) */
 export const sceneSupportFlow = diagram("scene-support-flow", { topic: "scene: 問い合わせ (CS → ticket → 開発)" })
   .lane("l", { x: 0, width: W })
   .node("c", { lane: "l", stack: 0, kind: "shape-customer-service", title: "サポート担当", eyebrow: "問い合わせ", subtitle: "24 時間対応" })
@@ -863,7 +863,7 @@ export const sceneMobileApi = diagram("scene-mobile-api", { topic: "scene: mobil
   .build();
 
 /** S-16. robot arm production (robot → sensor → cylinder db) */
-export const sceneFactoryLine = diagram("scene-factory-line", { topic: "scene: 工場ライン (robot → sensor → DB)" })
+export const sceneFactoryLine = diagram("scene-factory-line", { topic: "scene: 工場の組立 (robot → sensor → DB)" })
   .lane("l", { x: 0, width: W })
   .node("r", { lane: "l", stack: 0, kind: "shape-robot-arm", title: "ファナックの腕", eyebrow: "ロボット", subtitle: "組立", w: 294 })
   .node("s", { lane: "l", stack: 1, kind: "shape-iot-sensor", title: "外観の検査", eyebrow: "計測機器", subtitle: "品質" })
@@ -1415,7 +1415,7 @@ export const sourceJson__sceneBankingFlow = `{
   ]
 }`;
 
-export const sourceYaml__sceneIotOnchain = `title: "scene: IoT オンチェーン (sensor → RPC → contract)"
+export const sourceYaml__sceneIotOnchain = `title: "scene: IoT 機器から台帳へ (sensor → RPC → contract)"
 type: flow
 
 lanes:
@@ -1446,7 +1446,7 @@ animation:
 `;
 
 export const sourceJson__sceneIotOnchain = `{
-  "title": "scene: IoT オンチェーン (sensor → RPC → contract)",
+  "title": "scene: IoT 機器から台帳へ (sensor → RPC → contract)",
   "type": "flow",
   "lanes": {
     "l": { "x": 0, "width": 440 }
@@ -2399,7 +2399,7 @@ export const sourceJson__sceneMobileApi = `{
   ]
 }`;
 
-export const sourceYaml__sceneFactoryLine = `title: "scene: 工場ライン (robot → sensor → DB)"
+export const sourceYaml__sceneFactoryLine = `title: "scene: 工場の組立 (robot → sensor → DB)"
 type: flow
 
 lanes:
@@ -2430,7 +2430,7 @@ animation:
 `;
 
 export const sourceJson__sceneFactoryLine = `{
-  "title": "scene: 工場ライン (robot → sensor → DB)",
+  "title": "scene: 工場の組立 (robot → sensor → DB)",
   "type": "flow",
   "lanes": {
     "l": { "x": 0, "width": 440 }
@@ -4303,7 +4303,7 @@ export const sourceJson__stackTriple = `{
   ]
 }`;
 
-export const sourceYaml__shapeFile = `title: "shape: file (ドッグイア rect、 ファイル / document 表現)"
+export const sourceYaml__shapeFile = `title: "shape: file (角を折った rect、 ファイル / document 表現)"
 type: flow
 
 lanes:
@@ -4329,7 +4329,7 @@ animation:
 `;
 
 export const sourceJson__shapeFile = `{
-  "title": "shape: file (ドッグイア rect、 ファイル / document 表現)",
+  "title": "shape: file (角を折った rect、 ファイル / document 表現)",
   "type": "flow",
   "lanes": {
     "l": { "x": 0, "width": 440 }
@@ -5244,7 +5244,7 @@ export const sourceJson__shapeNetworkNode = `{
   ]
 }`;
 
-export const sourceYaml__shapeMobileDevice = `title: "shape: mobile-device (スマホ、 モバイル端末)"
+export const sourceYaml__shapeMobileDevice = `title: "shape: mobile-device (携帯端末)"
 type: flow
 
 lanes:
@@ -5270,7 +5270,7 @@ animation:
 `;
 
 export const sourceJson__shapeMobileDevice = `{
-  "title": "shape: mobile-device (スマホ、 モバイル端末)",
+  "title": "shape: mobile-device (携帯端末)",
   "type": "flow",
   "lanes": {
     "l": { "x": 0, "width": 440 }
@@ -5368,7 +5368,7 @@ export const sourceJson__shapeIotSensor = `{
   ]
 }`;
 
-export const sourceYaml__shapeRobotArm = `title: "shape: robot-arm (ロボアーム、 産業機器)"
+export const sourceYaml__shapeRobotArm = `title: "shape: robot-arm (機械の腕、 産業機器)"
 type: flow
 
 lanes:
@@ -5394,7 +5394,7 @@ animation:
 `;
 
 export const sourceJson__shapeRobotArm = `{
-  "title": "shape: robot-arm (ロボアーム、 産業機器)",
+  "title": "shape: robot-arm (機械の腕、 産業機器)",
   "type": "flow",
   "lanes": {
     "l": { "x": 0, "width": 440 }

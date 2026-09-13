@@ -43,7 +43,7 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   });
 
   test("[proof] gantt arrow head gap axis = 食い込み状態を注入すると検知される", async ({ page }) => {
-    await page.getByText("ガントチャート", { exact: true }).first().click();
+    await page.getByText("工程表", { exact: true }).first().click();
     await page.waitForTimeout(1000);
     // 帯を起点から描く段では、矢印は帯が出揃ってから出る (#1357)
     await 矢印が出るまで待つ(page);
@@ -112,7 +112,7 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   });
 
   test("[proof] funnel monotonic 幅減少 axis = 逆順に並替えると検知される", async ({ page }) => {
-    await page.getByText("ファネル図", { exact: true }).first().click();
+    await page.getByText("絞り込み図", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
     const checkMonotonic = async () => {
@@ -217,7 +217,7 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   });
 
   test("[proof] card text overflow axis = subtitle を極端に長く設定すると検知される", async ({ page }) => {
-    await page.getByText("拡張ステート図", { exact: true }).first().click();
+    await page.getByText("入れ子の状態遷移図", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
     const checkOverflow = async () => {
@@ -254,7 +254,7 @@ test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
   });
 
   test("[proof] edge-line fill:none axis = fill を色に変更すると検知される", async ({ page }) => {
-    await page.getByText("フローチャート", { exact: true }).first().click();
+    await page.getByText("流れ図", { exact: true }).first().click();
     /*
      * **線が出るまで待つ** (#1479)。
      *

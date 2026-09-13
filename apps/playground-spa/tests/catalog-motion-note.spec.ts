@@ -29,7 +29,7 @@ test.describe("動きの記述の表示 (#1053)", () => {
   });
 
   test("動く図には動きに応じた一文が出る", async ({ page }) => {
-    await openItem(page, "interactive", "パスワード強度チェック");
+    await openItem(page, "interactive", "パスワードの強さ");
     const note = (await page.locator(".catalog-preview-motion").first().textContent())?.trim();
     expect(note, "連続して動く図の一文が違う").toBe("段の中で値が連続して動く");
   });

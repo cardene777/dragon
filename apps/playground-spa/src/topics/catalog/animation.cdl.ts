@@ -149,7 +149,7 @@ export const mixedTweenSet = diagram("mixed-tween-set", { topic: "tween + set �
  * mermaid では静止 5 rectangle + 5 arrow しか描けない、 dragon はこの 5 layer 同時発火で「見てて楽しい + 理解しやすい」 を両立する。
  */
 export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
-  topic: "5段階CSVパイプラインのリッチ進捗デモ",
+  topic: "5段階のCSV処理の進捗",
 })
   .lane("col1", { x: 0, width: 190 })
   .lane("col2", { x: 230, width: 190 })
@@ -308,7 +308,7 @@ export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
  * - layer 5 = 稼働 hour readout.countup
  */
 export const richServerLoadDashboard = diagram("animation-rich-server-load-dashboard", {
-  topic: "4台サーバーCPU負荷ダッシュボード (朝ピーク→昼安定→夜スケールダウン→深夜アイドル)",
+  topic: "4台のサーバーのCPU負荷 (朝ピーク→昼安定→夜スケールダウン→深夜アイドル)",
 })
   .lane("l1", { x: 0, width: 200 })
   .lane("l2", { x: 260, width: 200 })
@@ -593,7 +593,7 @@ export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
  * - layer 5 = round 進行 (badge に round 番号)
  */
 export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", {
-  topic: "4プレイヤースコア推移 (4ラウンドで順位変動、 円の大きさが強さを表す)",
+  topic: "4人の得点の推移 (4ラウンドで順位変動、 円の大きさが強さを表す)",
 })
   .lane("l1", { x: 0, width: 180 })
   .lane("l2", { x: 240, width: 180 })
@@ -713,9 +713,9 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
  * theme = Ethereum EIP-1559 gas fee の 3 層構成 (基本手数料 (焼却) / 優先手数料 / 上限手数料) を混雑度で追跡。
  *
  * uses parts:
- *   - 縦積み層バー (partsStackedLayer 経路) = 3 dyn-rect stacked layer で「重ね張り」 metaphor
- *   - カウンタ表示 (partsCounterActor 経路) = actor + subtitle template で有効総額 gwei
- *   - アークゲージ (partsArcGauge 経路) = dyn-arc で混雑度 %
+ *   - 縦に積んだ層の棒 (partsStackedLayer 経路) = 3 dyn-rect stacked layer で「重ね張り」 metaphor
+ *   - 件数の表示 (partsCounterActor 経路) = actor + subtitle template で有効総額 gwei
+ *   - 円弧のゲージ (partsArcGauge 経路) = dyn-arc で混雑度 %
  *
  * story arc = 空 block → 平常 → 混雑 → 極混雑 の 4 phase で 3 層が同時変動。
  */
@@ -1190,7 +1190,7 @@ export const sourceJson__mixedTweenSet = `{
 // **図は組み立て API のまま残す**。 記法から組み立て直すと図の識別子が題から導かれ、
 // 一覧と検索に出る文字列が変わる。
 
-export const sourceYaml__richPipelineDemo = `title: "5段階CSVパイプラインのリッチ進捗デモ"
+export const sourceYaml__richPipelineDemo = `title: "5段階のCSV処理の進捗"
 type: flow
 
 lanes:
@@ -1263,7 +1263,7 @@ animation:
 `;
 
 export const sourceJson__richPipelineDemo = `{
-  "title": "5段階CSVパイプラインのリッチ進捗デモ",
+  "title": "5段階のCSV処理の進捗",
   "type": "flow",
   "lanes": {
     "col1": { "x": 0, "width": 190 },
@@ -1414,7 +1414,7 @@ export const sourceJson__richPipelineDemo = `{
   ]
 }`;
 
-export const sourceYaml__richServerLoadDashboard = `title: "4台サーバーCPU負荷ダッシュボード (朝ピーク→昼安定→夜スケールダウン→深夜アイドル)"
+export const sourceYaml__richServerLoadDashboard = `title: "4台のサーバーのCPU負荷 (朝ピーク→昼安定→夜スケールダウン→深夜アイドル)"
 type: flow
 
 lanes:
@@ -1485,7 +1485,7 @@ animation:
 `;
 
 export const sourceJson__richServerLoadDashboard = `{
-  "title": "4台サーバーCPU負荷ダッシュボード (朝ピーク→昼安定→夜スケールダウン→深夜アイドル)",
+  "title": "4台のサーバーのCPU負荷 (朝ピーク→昼安定→夜スケールダウン→深夜アイドル)",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 200 },
@@ -1837,7 +1837,7 @@ export const sourceJson__richOrderStatusFlow = `{
   ]
 }`;
 
-export const sourceYaml__richScoreLeaderboard = `title: "4プレイヤースコア推移 (4ラウンドで順位変動、 円の大きさが強さを表す)"
+export const sourceYaml__richScoreLeaderboard = `title: "4人の得点の推移 (4ラウンドで順位変動、 円の大きさが強さを表す)"
 type: flow
 
 lanes:
@@ -1908,7 +1908,7 @@ animation:
 `;
 
 export const sourceJson__richScoreLeaderboard = `{
-  "title": "4プレイヤースコア推移 (4ラウンドで順位変動、 円の大きさが強さを表す)",
+  "title": "4人の得点の推移 (4ラウンドで順位変動、 円の大きさが強さを表す)",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 180 },

@@ -8,7 +8,7 @@
  */
 import { test, expect, type Page, type Locator } from "@playwright/test";
 
-const ITEM_LABEL = "イベントハンドラ5種の組合せ";
+const ITEM_LABEL = "5種の操作の受け取り";
 
 async function open(page: Page): Promise<Locator> {
   await page.goto("catalog/interactive", { waitUntil: "networkidle" });
