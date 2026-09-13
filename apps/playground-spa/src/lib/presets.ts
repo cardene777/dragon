@@ -71,14 +71,14 @@ export function presetName(preset: PresetMetadata, locale: Locale): string {
 }
 
 export const PRESETS: PresetMetadata[] = [
-  { id: "swimlane", slug: "swimlane", eyebrow: "流れの図 / 担当の切り分け", subtitle: "3 レーンで呼び出す側・処理する側・知らせる側を分け、依頼が役割をまたいで進む様子を追う図。", tags: ["レーン", "役割の分担"], diagram: presetSwimlane },
+  { id: "swimlane", slug: "swimlane", eyebrow: "流れの図 / 担当の切り分け", subtitle: "3 つの縦列で呼び出す側・処理する側・知らせる側を分け、依頼が役割をまたいで進む様子を追う図。", tags: ["縦列", "役割の分担"], diagram: presetSwimlane },
   { id: "flow", slug: "flow", eyebrow: "道筋の図 / 順を追う", subtitle: "ログインの要求が受付の窓口・認証・利用者の表の順に進む様子を、上から下への 1 本の流れで示す図。", tags: ["一本の流れ", "上から下"], diagram: presetFlow },
   { id: "sequence", slug: "sequence", eyebrow: "やり取りの図 / 呼び出しと返事", subtitle: "注文から発送までの呼び出しと返事を、登場する仕組みごとの縦の時間軸に並べた UML のシーケンス図。", tags: ["時間軸", "UML"], diagram: presetSequence },
   { id: "topology", slug: "topology", eyebrow: "配置の図 / どこで動くか", subtitle: "利用者の端末とクラウドを区画に分け、負荷分散・コンテナ・データベースを接続でつないだ構成図。", tags: ["区画", "接続"], diagram: presetTopology },
   { id: "er", slug: "er", eyebrow: "構造の図 / データ設計", subtitle: "3 表 × 3 関係。 主キーと外部キー、識別する関係としない関係、自己参照を示す ER 図。", tags: ["表", "関係"], diagram: presetEr },
   { id: "erComplex", slug: "er-complex", eyebrow: "構造の図 / データ設計", subtitle: "12 表 × 14 関係。 多対多、自己参照、必須・任意を含む商取引の構造。", tags: ["多対多", "必須と任意"], diagram: presetErComplex },
   { id: "stateMachine", slug: "state-machine", eyebrow: "ふるまいの図 / 切り替わり", subtitle: "注文が下書きから受付・支払を経て終わるか、受付の後に取り消されるかを、状態と遷移の条件で示す状態遷移図。", tags: ["状態", "遷移"], diagram: presetStateMachine },
-  { id: "infrastructure", slug: "infrastructure", eyebrow: "積み上げの図 / 全体の見取り", subtitle: "利用者から配信・負荷分散・アプリを経て、データベースとキャッシュに届くウェブサービスの階層構成図。", tags: ["クラウド", "階層構成"], diagram: presetInfrastructure },
+  { id: "infrastructure", slug: "infrastructure", eyebrow: "積み上げの図 / 全体の見取り", subtitle: "利用者から配信・負荷分散・アプリを経て、データベースとキャッシュに届くまでの階層構成図。", tags: ["クラウド", "階層構成"], diagram: presetInfrastructure },
   { id: "classDiagram", slug: "class", eyebrow: "構造の図 / 設計の型", subtitle: "7 クラス × 6 関係。 継承・実装・集約・コンポジション・関連・依存の 6 種を 1 枚で示す UML クラス図。", tags: ["クラス", "UML"], diagram: presetClassDiagram },
   { id: "classComplex", slug: "class-complex", eyebrow: "構造の図 / 設計の型", subtitle: "12 クラス × 14 関係。 抽象クラスとインターフェース、6 種の関係を含む決済の仕組み。", tags: ["抽象クラス", "インターフェース"], diagram: presetClassComplex },
   { id: "tree", slug: "tree", eyebrow: "親子の図 / 枝分かれ", subtitle: "社長の下に技術と財務の責任者が並び、技術の下に開発と運用の部門が続く組織図。", tags: ["階層", "組織図"], diagram: presetTree },
@@ -89,7 +89,7 @@ export const PRESETS: PresetMetadata[] = [
   { id: "chartPie", slug: "chart-pie", eyebrow: "数の図 / 内訳", subtitle: "利用の経路ごとの内訳を、全体に対する割合で示す円グラフ。", tags: ["グラフ", "割合"], diagram: presetChartPie },
   { id: "chartLine", slug: "chart-line", eyebrow: "数の図 / 上がり下がり", subtitle: "月ごとの計画と実績を 1 本の折れ線で比べ、どの月で計画を上回ったかを示す折れ線グラフ。", tags: ["グラフ", "推移"], diagram: presetChartLine },
   { id: "gantt", slug: "gantt", eyebrow: "時間の図 / 工程の割り当て", subtitle: "設計・実装・検証・公開の工程を期ごとの横棒で並べ、前の工程が終わってから次が始まる関係を示す工程表。", tags: ["工程", "期間"], diagram: presetGantt },
-  { id: "flowchart", slug: "flowchart", eyebrow: "手順の図 / 分かれ道", subtitle: "2 レーンで申請者と承認者を分け、承認されるか差し戻されるかに分かれる申請の流れ図。", tags: ["承認", "分岐"], diagram: presetFlowchart },
+  { id: "flowchart", slug: "flowchart", eyebrow: "手順の図 / 分かれ道", subtitle: "2 つの縦列で申請者と承認者を分け、承認されるか差し戻されるかに分かれる申請の流れ図。", tags: ["承認", "分岐"], diagram: presetFlowchart },
   { id: "network", slug: "network", eyebrow: "つながりの図 / 通り道", subtitle: "ファイアウォールからスイッチを経て、アプリとデータベースのサーバーにつながる社内ネットワークの接続図。", tags: ["ネットワーク", "接続"], diagram: presetNetwork },
   { id: "stateMachine2", slug: "state-machine-2", eyebrow: "ふるまいの図 / 入れ子", subtitle: "状態の中に状態を入れ子にし、入る時と出る時の処理を添えた、階層を持つ状態遷移図。", tags: ["入れ子の状態", "入る時と出る時の処理"], diagram: presetStateMachine2 },
 ];

@@ -44,9 +44,14 @@ function 分類名の難あり(p: PresetMetadata): string[] {
   return out;
 }
 
-/** 説明文が書く数の形。 箱と線の数 (ER 図とクラス図) と、レーンの数 */
+/**
+ * 説明文が書く数の形。 箱と線の数 (ER 図とクラス図) と、縦列の数。
+ *
+ * 縦列は #1929 で `3 レーン` から `3 つの縦列` に書き換えた。 形を変えずに残すと、書き換えた
+ * 説明文がこの照合に 1 件も当たらなくなり、数が図と食い違っても通る。
+ */
 const 箱と線の数 = /(\d+) (?:表|クラス) × (\d+) 関係/;
-const レーンの数 = /(\d+) レーン/;
+const 縦列の数 = /(\d+) つの縦列/;
 
 /** 説明文に書いた数のうち、図の実物と合わないもの */
 function 数の食い違い(p: PresetMetadata): string[] {
@@ -57,8 +62,8 @@ function 数の食い違い(p: PresetMetadata): string[] {
   const m = p.subtitle.match(箱と線の数);
   if (m && Number(m[1]) !== 箱) out.push(`${p.id}: 箱を ${m[1]} と書いたが図は ${箱}`);
   if (m && Number(m[2]) !== 線) out.push(`${p.id}: 関係を ${m[2]} と書いたが図は ${線}`);
-  const l = p.subtitle.match(レーンの数);
-  if (l && Number(l[1]) !== レーン) out.push(`${p.id}: レーンを ${l[1]} と書いたが図は ${レーン}`);
+  const l = p.subtitle.match(縦列の数);
+  if (l && Number(l[1]) !== レーン) out.push(`${p.id}: 縦列を ${l[1]} と書いたが図は ${レーン}`);
   return out;
 }
 
@@ -138,7 +143,7 @@ describe("詳細画面の説明文と札 (#1777)", () => {
 
   it("英語の小文字の語を拾える (植え込み対照)", () => {
     // 探し方が何にも当たらない形に壊れていると、上は必ず通る。 土台は本番の字に依らない形にする
-    const 元 = { ...PRESETS[0]!, subtitle: "役割ごとに分けた図。", tags: ["レーン"] };
+    const 元 = { ...PRESETS[0]!, subtitle: "役割ごとに分けた図。", tags: ["縦列"] };
     expect(英語の混ざる所(元), "土台に英語が混ざっている").toEqual([]);
     expect(英語の混ざる所({ ...元, subtitle: "3 lane 自動配置。" })).toHaveLength(1);
     expect(英語の混ざる所({ ...元, tags: ["auto layout"] })).toHaveLength(1);
@@ -161,24 +166,29 @@ describe("詳細画面の説明文と札 (#1777)", () => {
     expect(分類名の難あり(元), "直したままの分類名を難と読む").toEqual([]);
     expect(分類名の難あり({ ...元, eyebrow: "SWIMLANE / LAYOUT" })).toHaveLength(2);
     expect(分類名の難あり({ ...元, eyebrow: "スイムレーン / 担当の切り分け" })).toHaveLength(1);
-    expect(分類名の難あり({ ...元, eyebrow: "流れの図 / レーン" })).toHaveLength(1);
+    expect(分類名の難あり({ ...元, eyebrow: "流れの図 / 縦列" })).toHaveLength(1);
     expect(分類名の難あり({ ...元, eyebrow: "123 / 456" })).toHaveLength(1);
   });
 
   it("説明文に書いた数が図の数と合う", () => {
-    const 数を書いた = PRESETS.filter((p) => 箱と線の数.test(p.subtitle) || レーンの数.test(p.subtitle));
-    expect(数を書いた.length, "数を書いた説明文が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+    // **形ごとに下限を置く** = 合わせて 1 件以上だと、片方の形が書き換えで 1 件も当たらなく
+    // なっても もう片方だけで通る (#1929 で縦列の側が実際にそうなりかけた)
+    const 箱と線を書いた = PRESETS.filter((p) => 箱と線の数.test(p.subtitle));
+    const 縦列を書いた = PRESETS.filter((p) => 縦列の数.test(p.subtitle));
+    expect(箱と線を書いた.length, "箱と線の数を書いた説明文が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+    expect(縦列を書いた.length, "縦列の数を書いた説明文が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
     const 食い違う = PRESETS.flatMap(数の食い違い);
     expect(食い違う, `説明文の数が図と合わない:\n${食い違う.join("\n")}`).toEqual([]);
   });
 
   it("数の食い違いを拾える (植え込み対照)", () => {
-    // 箱・線・レーンの 3 つを 1 つずつずらす = どれか 1 つの照合が死んでいれば、その行が落ちる
+    // 箱・線・縦列の 3 つを 1 つずつずらす = どれか 1 つの照合が死んでいれば、その行が落ちる
     const クラス図 = PRESETS.find((p) => p.id === "classDiagram")!;
     const 泳ぎ線 = PRESETS.find((p) => p.id === "swimlane")!;
     expect(数の食い違い(クラス図), "直したままの説明文を食い違いと読む").toEqual([]);
     expect(数の食い違い({ ...クラス図, subtitle: "8 クラス × 6 関係。" })).toHaveLength(1);
     expect(数の食い違い({ ...クラス図, subtitle: "7 クラス × 5 関係。" })).toHaveLength(1);
-    expect(数の食い違い({ ...泳ぎ線, subtitle: "4 レーンで分ける図。" })).toHaveLength(1);
+    expect(数の食い違い(泳ぎ線), "直したままの説明文を食い違いと読む").toEqual([]);
+    expect(数の食い違い({ ...泳ぎ線, subtitle: "4 つの縦列で分ける図。" })).toHaveLength(1);
   });
 });
