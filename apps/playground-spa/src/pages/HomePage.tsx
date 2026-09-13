@@ -4,6 +4,7 @@ import { PenLine, Play, Share2 } from "lucide-react";
 import { presetSequence, presetTopology, presetEr } from "@/topics/catalog/presets.cdl";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useLocale } from "@/lib/useLocale";
+import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 
 import { 区間, 区間のspan } from "@/components/SyntaxCode";
 /**
@@ -264,7 +265,7 @@ export function HomePage(): React.ReactElement {
         <div className="examples-grid">
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView hideMiniPhaseIndicator diagram={presetSequence} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(presetSequence, locale)} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag tag-seq">{isJa ? "シーケンス図" : "sequence"}</span>
@@ -274,7 +275,7 @@ export function HomePage(): React.ReactElement {
           </Link>
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView hideMiniPhaseIndicator diagram={presetTopology} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(presetTopology, locale)} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag tag-topo">{isJa ? "トポロジー図" : "topology"}</span>
@@ -284,7 +285,7 @@ export function HomePage(): React.ReactElement {
           </Link>
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView hideMiniPhaseIndicator diagram={presetEr} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(presetEr, locale)} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag tag-er">{isJa ? "ER図" : "er"}</span>
