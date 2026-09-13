@@ -45,6 +45,35 @@ describe("lintDiagram — topic 冗長 (実装詳細) rule", () => {
     const report = lintDiagram(diagram({ topic: "flow preset (詳細)" }));
     expect(report.autoFixableCount).toBe(report.issues.filter((i) => i.autoFixable).length);
   });
+
+  it("自動修正できる指摘の修正案は、自動修正が書く値そのもの (#1940)", () => {
+    // 先頭の型の名前・括弧の中の実装の言葉・3 字に満たなくなる説明の 3 通りを並べる
+    const 説明たち = ["flow preset (詳細)", "ログインの流れ (SVG path で描く)", "ログイン (render 未実装)", "AB (polygon)"];
+    for (const topic of 説明たち) {
+      const d = diagram({ topic });
+      const 指摘 = lintDiagram(d).issues.filter((i) => i.rule === "topic-redundant-implementation-detail");
+      expect(指摘.length, `${topic} を指摘していない (検査が空振りしている)`).toBeGreaterThan(0);
+      for (const i of 指摘) {
+        expect(i.autoFixable, topic).toBe(true);
+        expect(i.suggestion, topic).toBe(autoFix(d).topic);
+      }
+      expect(lintDiagram(autoFix(d)).issues.some((i) => i.rule === "topic-redundant-implementation-detail"), topic).toBe(false);
+    }
+  });
+
+  it("自動修正で消えない説明は、自動修正できると数えない (#1940)", () => {
+    // 括弧の外の実装の言葉は自動修正が触らない。 直せると数えると、直したはずの指摘が次の検査でまた出る
+    const d = diagram({ topic: "SVG polyline を使う" });
+    expect(autoFix(d).topic, "自動修正が触らない前提が崩れた").toBe("SVG polyline を使う");
+    const report = lintDiagram(d);
+    const 指摘 = report.issues.find((i) => i.rule === "topic-redundant-implementation-detail");
+    expect(指摘?.autoFixable).toBe(false);
+    expect(report.autoFixableCount).toBe(0);
+    // 直し方の例は書き換え先の表から作る (自動修正の出力と同じ文型になる)
+    expect(指摘?.suggestion).toBe(
+      `何を示す図かを文で書き直す (「${autoFix(diagram({ topic: "gantt" })).topic}」 のように)`,
+    );
+  });
 });
 
 describe("lintDiagram — chart 空データ rule", () => {
