@@ -7723,7 +7723,7 @@
                 {
                   "type": "frame",
                   "id": "ppC3k",
-                  "name": "Cat プリセット",
+                  "name": "Cat ひな形",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -7744,15 +7744,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "oE12U",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "01",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "a0KV3H",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "oE12U",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "01",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "nIk7F",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "21 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -7796,7 +7815,7 @@
                 {
                   "type": "frame",
                   "id": "r3KIw",
-                  "name": "Cat レシピ集",
+                  "name": "Cat 実用例",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -7817,15 +7836,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "jGHLp",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "02",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "sIyE1",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "jGHLp",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "02",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "AzMDz",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "26 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -7834,7 +7872,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "レシピ集",
+                          "content": "実用例",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -7846,7 +7884,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "現場でよく議論される要件を、 そのまま図にした集合。",
+                          "content": "現場でよく議論される要件をそのまま図にした集合。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -7869,7 +7907,7 @@
                 {
                   "type": "frame",
                   "id": "X4Uoud",
-                  "name": "Cat パターン",
+                  "name": "Cat 組み方の型",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -7890,15 +7928,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "FWuax",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "03",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "dSg8C",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "FWuax",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "03",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "rJNdn",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "12 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -7907,7 +7964,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "パターン",
+                          "content": "組み方の型",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -7972,15 +8029,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "PBD7Z",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "04",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "gT5Nj",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "PBD7Z",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "04",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "wDONe",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "110 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8024,7 +8100,7 @@
                 {
                   "type": "frame",
                   "id": "DUfPn",
-                  "name": "Cat テキスト DSL",
+                  "name": "Cat テキスト記法",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -8045,15 +8121,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "kg8Fa",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "05",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "vzDwo",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kg8Fa",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "05",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "n9L33",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "15 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8062,7 +8157,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "テキスト DSL",
+                          "content": "テキスト記法",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -8118,15 +8213,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "W3l28",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "06",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "kBpgF",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "W3l28",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "06",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "RHLtl",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "10 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8147,7 +8261,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "動く図の書き方。 段での推移、 数値の補間、 即時の切替、 名札での段表示。",
+                          "content": "段での推移 / 数値の補間 / 即時の切替 / 名札での段表示。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -8200,15 +8314,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "z5oWOV",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "07",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "rn9AW",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "z5oWOV",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "07",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "fyz69",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "4 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8273,15 +8406,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "iezzO",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "08",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "wwUsR",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "iezzO",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "08",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "RbbQe",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "15 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8302,7 +8454,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "数そのものを見せる図。 棒 / 線 / 扇で量の関係を扱う。",
+                          "content": "数そのものを見せる図。 大小を棒で比べる / 移り変わりを線で追う / 割合を扇で見る。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -8325,7 +8477,7 @@
                 {
                   "type": "frame",
                   "id": "oJD5s",
-                  "name": "Cat パーツ",
+                  "name": "Cat 部品",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -8346,15 +8498,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "JiPow",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "09",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "woXLb",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "JiPow",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "09",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "gefgx",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "80 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8375,7 +8546,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "小部品の見本市。 入れ物、 計器、 指標、 時系列など。",
+                          "content": "小部品の見本市。 入れ物 / 計器 / 指標 / 時系列など。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -8407,7 +8578,7 @@
                 {
                   "type": "frame",
                   "id": "NDZax",
-                  "name": "Cat スタイル",
+                  "name": "Cat 線と色",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -8428,15 +8599,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "k9y5x",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "10",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "JkQ6C",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "k9y5x",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "10",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "Y4gmtz",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "10 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8445,7 +8635,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "スタイル",
+                          "content": "線と色",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -8480,7 +8670,7 @@
                 {
                   "type": "frame",
                   "id": "guDct",
-                  "name": "Cat インタラクティブ",
+                  "name": "Cat 操作で動く",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -8501,15 +8691,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "UWgch",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "11",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "OYyJu",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "UWgch",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "11",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "QRKhB",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "129 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8518,7 +8727,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "インタラクティブ",
+                          "content": "操作で動く",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -8710,7 +8919,7 @@
                 {
                   "type": "frame",
                   "id": "TLxuh",
-                  "name": "Cat プリセット",
+                  "name": "Cat ひな形",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -8731,15 +8940,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "qgDcO",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "01",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "S3NkBc",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "qgDcO",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "01",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "g7bpjf",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "21 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8783,7 +9011,7 @@
                 {
                   "type": "frame",
                   "id": "IkSLJ",
-                  "name": "Cat レシピ集",
+                  "name": "Cat 実用例",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -8804,15 +9032,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "Kw8Hi",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "02",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "kOqwf",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Kw8Hi",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "02",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "SIl8r",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "26 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8821,7 +9068,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "レシピ集",
+                          "content": "実用例",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -8833,7 +9080,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "現場でよく議論される要件を、 そのまま図にした集合。",
+                          "content": "現場でよく議論される要件をそのまま図にした集合。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -8856,7 +9103,7 @@
                 {
                   "type": "frame",
                   "id": "mLyjS",
-                  "name": "Cat パターン",
+                  "name": "Cat 組み方の型",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -8877,15 +9124,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "u06eS9",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "03",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "T1Xc3m",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "u06eS9",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "03",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "G1CiH",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "12 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -8894,7 +9160,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "パターン",
+                          "content": "組み方の型",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -8959,15 +9225,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "yXDB8",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "04",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "f3egB",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "yXDB8",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "04",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "HJuKk",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "110 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -9011,7 +9296,7 @@
                 {
                   "type": "frame",
                   "id": "JFfw3",
-                  "name": "Cat テキスト DSL",
+                  "name": "Cat テキスト記法",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -9032,15 +9317,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "J0Jl9",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "05",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "xtPml",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "J0Jl9",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "05",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "zWprK",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "15 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -9049,7 +9353,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "テキスト DSL",
+                          "content": "テキスト記法",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -9105,15 +9409,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "wjTri",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "06",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "e6rmVx",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "wjTri",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "06",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "e0Fq8k",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "10 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -9134,7 +9457,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "動く図の書き方。 段での推移、 数値の補間、 即時の切替、 名札での段表示。",
+                          "content": "段での推移 / 数値の補間 / 即時の切替 / 名札での段表示。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -9187,15 +9510,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "hYqMJ",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "07",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "tT9Kx",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hYqMJ",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "07",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "Qw0xK",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "4 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -9260,15 +9602,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "DKGtD",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "08",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "D0WEDS",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "DKGtD",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "08",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "kBv6a",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "15 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -9289,7 +9650,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "数そのものを見せる図。 棒 / 線 / 扇で量の関係を扱う。",
+                          "content": "数そのものを見せる図。 大小を棒で比べる / 移り変わりを線で追う / 割合を扇で見る。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -9312,7 +9673,7 @@
                 {
                   "type": "frame",
                   "id": "W6mK7D",
-                  "name": "Cat パーツ",
+                  "name": "Cat 部品",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -9333,15 +9694,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "mi5kB",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "09",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "E0h2o7",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "mi5kB",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "09",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "qwl07",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "80 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -9362,7 +9742,7 @@
                           "fill": "$text-secondary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "小部品の見本市。 入れ物、 計器、 指標、 時系列など。",
+                          "content": "小部品の見本市。 入れ物 / 計器 / 指標 / 時系列など。",
                           "lineHeight": 1.8,
                           "fontFamily": "$font-body",
                           "fontSize": 13.5,
@@ -9394,7 +9774,7 @@
                 {
                   "type": "frame",
                   "id": "DYXuz",
-                  "name": "Cat スタイル",
+                  "name": "Cat 線と色",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -9415,15 +9795,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "KQRXl",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "10",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "JjpUM",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "KQRXl",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "10",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "cJfo2",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "10 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -9432,7 +9831,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "スタイル",
+                          "content": "線と色",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
@@ -9467,7 +9866,7 @@
                 {
                   "type": "frame",
                   "id": "xwpdH",
-                  "name": "Cat インタラクティブ",
+                  "name": "Cat 操作で動く",
                   "width": "fill_container",
                   "height": 206,
                   "fill": "$surface",
@@ -9488,15 +9887,34 @@
                       "gap": 9,
                       "children": [
                         {
-                          "type": "text",
-                          "id": "UL0xS",
-                          "name": "Index",
-                          "fill": "$accent",
-                          "content": "11",
-                          "fontFamily": "$font-mono",
-                          "fontSize": 11,
-                          "fontWeight": "normal",
-                          "letterSpacing": 1
+                          "type": "frame",
+                          "id": "VYQWg",
+                          "name": "Head",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "UL0xS",
+                              "name": "Index",
+                              "fill": "$accent",
+                              "content": "11",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal",
+                              "letterSpacing": 1
+                            },
+                            {
+                              "type": "text",
+                              "id": "Kn9a7",
+                              "name": "Count",
+                              "fill": "$text-muted",
+                              "content": "129 件",
+                              "fontFamily": "$font-mono",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "text",
@@ -9505,7 +9923,7 @@
                           "fill": "$text-primary",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "インタラクティブ",
+                          "content": "操作で動く",
                           "fontFamily": "$font-display",
                           "fontSize": 20,
                           "fontWeight": "600"
