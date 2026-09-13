@@ -39,7 +39,7 @@ test.describe("preset 詳細の見出し (#1047)", () => {
     // (プリセット / preset) が変わっただけでも通ってしまう
     await page.goto("preset/state-machine-2", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
-    expect(await headingName(page), "日本語表示で日本語名が出ない").toBe("拡張ステート図");
+    expect(await headingName(page), "日本語表示で日本語名が出ない").toBe("入れ子の状態遷移図");
 
     await switchLocale(page);
     expect(await headingName(page), "英語表示で英語名が出ない").toBe("Extended state machine");
@@ -53,7 +53,7 @@ test.describe("preset 詳細の見出し (#1047)", () => {
     for (const identifier of ["mindMap", "mind", "presetMindMap"]) {
       expect(name, `識別子がそのまま出ている: ${identifier}`).not.toBe(identifier);
     }
-    expect(name, "日本語名が出ない").toBe("マインドマップ");
+    expect(name, "日本語名が出ない").toBe("枝分かれ図");
   });
 
   test("見出しに識別子がそのまま出ない", async ({ page }) => {

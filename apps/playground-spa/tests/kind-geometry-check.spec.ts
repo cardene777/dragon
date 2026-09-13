@@ -69,7 +69,7 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   });
 
   test("gantt-timeline: dependsOn arrow は右向き (arrow tip が子 bar 左辺、 elbow から水平右方向)", async ({ page }) => {
-    await page.getByText("ガントチャート", { exact: true }).first().click();
+    await page.getByText("工程表", { exact: true }).first().click();
     await page.waitForTimeout(1000);
     // 帯を起点から描く段では、矢印は帯が出揃ってから出る (#1357)
     await 矢印が出るまで待つ(page);
@@ -108,7 +108,7 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   });
 
   test("gantt-timeline: arrow head 三角形の頂点が 子 bar の左辺の 4px 以上外側 (食い込み防止)", async ({ page }) => {
-    await page.getByText("ガントチャート", { exact: true }).first().click();
+    await page.getByText("工程表", { exact: true }).first().click();
     await page.waitForTimeout(1000);
     // 帯を起点から描く段では、矢印は帯が出揃ってから出る (#1357)
     await 矢印が出るまで待つ(page);
@@ -168,7 +168,7 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   });
 
   test("funnel-stages: polygon の幅が上から下へ単調減少 (自然な逆三角形)", async ({ page }) => {
-    await page.getByText("ファネル図", { exact: true }).first().click();
+    await page.getByText("絞り込み図", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
     const widths = await page.evaluate(() => {
@@ -190,7 +190,7 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   });
 
   test("mind-map: root node が canvas の中央付近 (±20% 内)", async ({ page }) => {
-    await page.getByText("マインドマップ", { exact: true }).first().click();
+    await page.getByText("枝分かれ図", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
     // 根の名前は図の定義から導く (#1838)。 字で書くと、見本を開いた日から噛み合わなくなる
@@ -273,7 +273,7 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   });
 
   test("card: subtitle が rect の水平範囲を超えない (sm2 の long entry/exit label 対応)", async ({ page }) => {
-    await page.getByText("拡張ステート図", { exact: true }).first().click();
+    await page.getByText("入れ子の状態遷移図", { exact: true }).first().click();
     await page.waitForTimeout(1000);
 
     const info = await page.evaluate(() => {
@@ -295,7 +295,7 @@ test.describe("kind geometry check (層 3、 developer 向け検知)", () => {
   });
 
   test("edge-line: fill は none (fill:#XXX bug 回帰なし)", async ({ page }) => {
-    await page.getByText("フローチャート", { exact: true }).first().click();
+    await page.getByText("流れ図", { exact: true }).first().click();
     /*
      * **線が出るまで待つ** (#1479)。
      *

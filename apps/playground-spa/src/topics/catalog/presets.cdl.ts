@@ -192,7 +192,7 @@ function bindFirstNode(d: CdlDiagram, patch: (n: Node) => Node): CdlDiagram {
 // swimlane preset ... 3 lane 自動配置 + laneId(label) で slug 取得
 const swim = swimlane({
   id: "swim-demo",
-  topic: "処理を役割ごとに縦レーン分けして流れを示す図",
+  topic: "処理を役割ごとに縦列に分けて流れを示す図",
   lanes: ["クライアント", "サービス", "イベント"],
   laneWidth: 520,
 });
@@ -209,7 +209,7 @@ swim
     "p",
     {
       duration: 2400,
-      title: "処理を役割ごとに縦レーン分けして流れを示す図",
+      title: "処理を役割ごとに縦列に分けて流れを示す図",
       body: "処理が済むと、結果をイベントとして発行する。",
     },
     // 札は図の型を出す。 他の見本は記法が自動で付けており (`withSteps()` が引き継ぐ)、
@@ -1299,7 +1299,7 @@ export const presetQuadrant = withSteps(
   bindFirstNode(
     quadrant({
       id: "quad-demo",
-      topic: "2 つの軸で 4 象限に分けて配置する優先度マトリクス",
+      topic: "2 つの軸で 4 象限に分けて優先度を決める図",
       xAxis: { left: "労力が小さい", right: "労力が大きい" },
       yAxis: { bottom: "価値が低い", top: "価値が高い" },
     })
@@ -1510,7 +1510,7 @@ export const presetNetwork = withSteps(
 export const presetStateMachine2 = withSteps(
   stateMachine2({
     id: "sm2-demo",
-    topic: "階層状態や遷移アクションを持つ拡張ステート図",
+    topic: "階層状態や遷移の処理を持つ入れ子の状態遷移図",
     stateWidth: 280,
   })
     .state({ id: "idle", title: "待機", initial: true, entry: "入力を空にする" })
@@ -2490,7 +2490,7 @@ export const sourceJson__presetUserJourney = `{
   ]
 }`;
 
-export const sourceYaml__presetQuadrant = `title: "2 つの軸で 4 象限に分けて配置する優先度マトリクス"
+export const sourceYaml__presetQuadrant = `title: "2 つの軸で 4 象限に分けて優先度を決める図"
 eyebrow: "quadrant"
 type: quadrant
 
@@ -2514,7 +2514,7 @@ animation:
     set:
       fill_in_at: "左下"
     body: "検索の絞り込みは、価値も労力も低い枠に置いてある。"
-  - step: "2 つの軸で 4 象限に分けて配置する優先度マトリクス" 0.9s
+  - step: "2 つの軸で 4 象限に分けて優先度を決める図" 0.9s
     badge: "quadrant"
     focus: ["文言の直し"]
     set:
@@ -2523,7 +2523,7 @@ animation:
 `;
 
 export const sourceJson__presetQuadrant = `{
-  "title": "2 つの軸で 4 象限に分けて配置する優先度マトリクス",
+  "title": "2 つの軸で 4 象限に分けて優先度を決める図",
   "type": "quadrant",
   "eyebrow": "quadrant",
   "axes": {
@@ -2548,7 +2548,7 @@ export const sourceJson__presetQuadrant = `{
       "set": { "fill_in_at": "左下" }
     },
     {
-      "step": "2 つの軸で 4 象限に分けて配置する優先度マトリクス",
+      "step": "2 つの軸で 4 象限に分けて優先度を決める図",
       "duration": 0.9,
       "focus": ["文言の直し"],
       "body": "見直しで検索の絞り込みを価値の高い枠へ移す。 どの枠に居るかを状態から取っている。",
@@ -2740,7 +2740,7 @@ export const sourceJson__presetStateMachine = `{
   ]
 }`;
 
-export const sourceYaml__presetStateMachine2 = `title: "階層状態や遷移アクションを持つ拡張ステート図"
+export const sourceYaml__presetStateMachine2 = `title: "階層状態や遷移の処理を持つ入れ子の状態遷移図"
 type: state
 
 lanes:
@@ -2768,14 +2768,14 @@ animation:
     badge: "state"
     focus: [待機, 処理中, 読み込み, "待機 -> 読み込み"]
     body: "送信で入れ子の状態に入る。"
-  - step: "階層状態や遷移アクションを持つ拡張ステート図" 0.9s
+  - step: "階層状態や遷移の処理を持つ入れ子の状態遷移図" 0.9s
     badge: "state"
     focus: [待機, 処理中, 読み込み, 完了, "待機 -> 読み込み", "読み込み -> 完了"]
     body: "成功で完了に移る。"
 `;
 
 export const sourceJson__presetStateMachine2 = `{
-  "title": "階層状態や遷移アクションを持つ拡張ステート図",
+  "title": "階層状態や遷移の処理を持つ入れ子の状態遷移図",
   "type": "state",
   "lanes": {
     "lane-待機": { "width": 330 },
@@ -2828,7 +2828,7 @@ export const sourceJson__presetStateMachine2 = `{
       "badge": "state"
     },
     {
-      "step": "階層状態や遷移アクションを持つ拡張ステート図",
+      "step": "階層状態や遷移の処理を持つ入れ子の状態遷移図",
       "duration": 0.9,
       "focus": ["待機", "処理中", "読み込み", "完了", "待機 -> 読み込み", "読み込み -> 完了"],
       "body": "成功で完了に移る。",
@@ -2837,7 +2837,7 @@ export const sourceJson__presetStateMachine2 = `{
   ]
 }`;
 
-export const sourceYaml__presetSwimlane = `title: "処理を役割ごとに縦レーン分けして流れを示す図"
+export const sourceYaml__presetSwimlane = `title: "処理を役割ごとに縦列に分けて流れを示す図"
 type: swimlane
 
 lanes:
@@ -2863,14 +2863,14 @@ animation:
     badge: "swimlane"
     focus: [利用者, "注文の処理", "利用者 -> 注文の処理"]
     body: "呼び出しが隣の縦列に渡る。"
-  - step: "処理を役割ごとに縦レーン分けして流れを示す図" 0.9s
+  - step: "処理を役割ごとに縦列に分けて流れを示す図" 0.9s
     badge: "swimlane"
     focus: [利用者, "注文の処理", 注文済み, "利用者 -> 注文の処理", "注文の処理 -> 注文済み"]
     body: "処理が済むと、結果をイベントとして発行する。"
 `;
 
 export const sourceJson__presetSwimlane = `{
-  "title": "処理を役割ごとに縦レーン分けして流れを示す図",
+  "title": "処理を役割ごとに縦列に分けて流れを示す図",
   "type": "swimlane",
   "lanes": {
     "lane-利用者": { "width": 520, "label": "クライアント" },
@@ -2914,7 +2914,7 @@ export const sourceJson__presetSwimlane = `{
       "badge": "swimlane"
     },
     {
-      "step": "処理を役割ごとに縦レーン分けして流れを示す図",
+      "step": "処理を役割ごとに縦列に分けて流れを示す図",
       "duration": 0.9,
       "focus": [
         "利用者",

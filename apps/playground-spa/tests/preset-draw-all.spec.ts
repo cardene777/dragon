@@ -8,10 +8,10 @@
  *
  * | 見本 | 観測するもの |
  * |---|---|
- * | 折れ線 / ユーザージャーニー / マインドマップ / ツリー図 | `stroke-dashoffset` が 2 種類以上出る |
+ * | 折れ線 / 体験の道筋 / 枝分かれ図 / 階層図 | `stroke-dashoffset` が 2 種類以上出る |
  * | 円グラフ | 切り抜きの形が 2 種類以上出る |
- * | ガントチャート | 帯の包みの倍率が 2 種類以上出る |
- * | ファネル図 | 切り抜きの高さが 2 種類以上出る |
+ * | 工程表 | 帯の包みの倍率が 2 種類以上出る |
+ * | 絞り込み図 | 切り抜きの高さが 2 種類以上出る |
  *
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test preset-draw-all`
  */
@@ -44,9 +44,9 @@ async function 値の種類(page: Page, 読む: () => Promise<string[]>): Promis
 /** 線の残りを読む種別 (`data-cdl-role` の値で引く) */
 const 線で見る = [
   { 名前: "折れ線グラフ", role: "chart-line" },
-  { 名前: "ユーザージャーニー", role: "journey-line" },
-  { 名前: "マインドマップ", role: "mind-edge" },
-  { 名前: "ツリー図", role: "tree-edge" },
+  { 名前: "体験の道筋", role: "journey-line" },
+  { 名前: "枝分かれ図", role: "mind-edge" },
+  { 名前: "階層図", role: "tree-edge" },
 ] as const;
 
 test.describe("プリセットの見本も起点から描かれる (#1357)", () => {
@@ -78,8 +78,8 @@ test.describe("プリセットの見本も起点から描かれる (#1357)", () 
     expect(値.size, `切り抜きの形が変わらない (観測できた形 = ${[...値].join(", ")})`).toBeGreaterThanOrEqual(2);
   });
 
-  test("ガントチャート: 帯の倍率が動く", async ({ page }) => {
-    await 開く(page, "ガントチャート");
+  test("工程表: 帯の倍率が動く", async ({ page }) => {
+    await 開く(page, "工程表");
     const 値 = await 値の種類(page, () =>
       page.evaluate(() =>
         Array.from(document.querySelectorAll('[data-cdl-role="gantt-bar"]'))
@@ -90,8 +90,8 @@ test.describe("プリセットの見本も起点から描かれる (#1357)", () 
     expect(値.size, `倍率が動かない (観測できた値 = ${[...値].join(" | ")})`).toBeGreaterThanOrEqual(2);
   });
 
-  test("ファネル図: 切り抜きの高さが動く", async ({ page }) => {
-    await 開く(page, "ファネル図");
+  test("絞り込み図: 切り抜きの高さが動く", async ({ page }) => {
+    await 開く(page, "絞り込み図");
     const 値 = await 値の種類(page, () =>
       page.evaluate(() => {
         const h = document
