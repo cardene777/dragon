@@ -54,7 +54,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CdlDiagramView, diagram, layout } from "@cardenelabs/cdl";
+import { CdlDiagramView, diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { 記法が知る名前, 記法が配る図の型, 綴りの照合, 経路ごとの専有 } from "./notation-names";
 
@@ -254,8 +254,12 @@ function 描き直した字(d: CdlDiagram): string[] {
   vi.setSystemTime(描く時刻);
   let s: string;
   try {
-    // 詳細画面と同じ指定で描く (`PresetDetailPage`)。 見出しと段ごとの差分の表は画面が出さない
-    s = renderToStaticMarkup(<CdlDiagramView hideMiniPhaseIndicator hideHeader diagram={layout(d)} />);
+    // 詳細画面と同じ指定で描く (`PresetDetailPage`)。 見出しと段ごとの差分の表は画面が出さない。
+    // **図をそのまま渡す** (#1898)。 画面はどれも `layout()` を通さずに渡している。 `layout()` の
+    // 戻り値は入力欄と読み出しを持ち越さないので、通すと描画側が操作を持たない図と見なし、
+    // 画面の操作部 (入力欄の名札 / 選択肢 / 読み出しの名札と単位) を描かず、入力欄の初期値も
+    // 差し込まない (実測 = `eventVariety` が `{lastEvent} · 累計 {received} 回` のまま残った)
+    s = renderToStaticMarkup(<CdlDiagramView hideMiniPhaseIndicator hideHeader diagram={d} />);
   } finally {
     vi.useRealTimers();
   }
@@ -566,6 +570,7 @@ function 見本帳の図(): { 件: { file: string; 鍵: string; 図: CdlDiagram 
  * | #1892 | 下がる | `primitives.cdl.ts` の部品と形の見本 59 図の書き手の字を日本語に開き、製品名と規格名と単位 22 語を一覧に載せた (`interactive` も下がった)。 残る 14 図は描画側が箱に書く字だけ (#1877) |
  * | #1894 | 下がる | `primitives.cdl.ts` の場面の見本 30 図の書き手の字を日本語に開き、製品名と言語名と通貨の略号 22 語を一覧に載せた (`interactive` も下がった)。 残る 33 図は描画側が箱に書く字だけ (#1877) |
  * | #1896 | 下がる | 色の値 (`#8a5a2a`) が語に割れるのを止めた (`interactive.cdl.ts` の断片 3 語 / 5 か所) |
+ * | #1898 | **上がる** | 図を `layout()` に通さず画面と同じくそのまま描き、画面の操作部 (入力欄の名札 / 選択肢 / 読み出しの名札と単位) と入力欄の初期値の差し込みを母集団に足した (`interactive.cdl.ts` が 13 図 / 235 語 / 延べ 950 上がる)。 新たに見えた `parts` 15 図 / `animation` 1 図 / `ethereum` 1 図の字は日本語に開いたので、その 3 file は動かない |
  *
  * **手書きの一覧に 1 語足すと、その語を持つ file すべてが下がる** (#1861 / #1876 で実測)。
  * 一覧は 12 file に効くので、足した回は全 file の数を測り直す。
@@ -575,7 +580,7 @@ const 図の字の天井: Record<string, { 図: number; 語: number; 延べ: num
   "charts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "cookbook.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "ethereum.cdl.ts": { 図: 2, 語: 5, 延べ: 5 },
-  "interactive.cdl.ts": { 図: 114, 語: 674, 延べ: 1283 },
+  "interactive.cdl.ts": { 図: 127, 語: 909, 延べ: 2233 },
   "parts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "patterns.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "presets.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
@@ -764,6 +769,78 @@ describe("色の値を英語の語として数えない (#1896)", () => {
   it("色の値の後ろに続く英語は、従来どおり数える", () => {
     // 値だけを外す。 同じ字の中の別の語まで消すと判定が緩む
     expect(英語の語(["#2563eb の Alice"])).toEqual(["Alice (「#2563eb の Alice」)"]);
+  });
+});
+
+/**
+ * 描いた字に、差し込まれずに残った `{名前}`。 形は描画側が差し込めなかった名前を残す形と
+ * 同じにする (`@cardenelabs/cdl` の `TEMPLATE_LEFTOVER_SRC`。 package が export しないので写す)。
+ * 名前の後ろの取り出し (`.length` / `[0]`) も含めて 1 件と数える。
+ */
+const 差し込み残りの形 = /\{\w+(?:[.[][^}]*)?\}/g;
+function 差し込まれていない名前(字: readonly string[]): string[] {
+  return 字.flatMap((t) => t.match(差し込み残りの形) ?? []);
+}
+
+describe("画面と同じく図をそのまま描く (#1898)", () => {
+  /**
+   * 入力欄を 1 つ持つ図。 入力欄の名札は画面の操作部に出て、副題の `{choice}` には入力欄の
+   * 初期値が差し込まれる。 `状態` を渡すと同じ名前の状態も持つ (画面では入力欄の値が勝つ)
+   */
+  function 入力欄の図(名札: string, 状態?: string): CdlDiagram {
+    const b = diagram("入力欄の図", { topic: "入力欄の図" })
+      .lane("左", { width: 400, label: "受け付け" })
+      .input.dropdown("choice", { options: ["未選択", "受付済"], defaultValue: "受付済", label: 名札 });
+    return (状態 === undefined ? b : b.state("choice", { initial: 状態 }))
+      .node("a", { lane: "左", stack: 0, kind: "function", title: "受付", subtitle: "選んだ値は {choice}" })
+      .phase("p1", { duration: 1000, title: "1. 受け付ける", body: "申請を受け付ける。" }, (p) =>
+        p.activate("a"),
+      )
+      .build();
+  }
+
+  it("入力欄の名札にだけ英語を置いた図から拾う (植え込み対照)", () => {
+    // `layout()` を通して描くと操作部が出ず、名札を 1 度も読まない
+    expect(記法が知るか("Choice"), "Choice を記法が知っている (対照の前提が崩れた)").toBe(false);
+    expect(英語の残り("入力欄の図", 入力欄の図("Choice"))).toEqual(["Choice (「Choice」)"]);
+  });
+
+  it("入力欄の名札が日本語なら拾わない (陰性対照)", () => {
+    expect(英語の残り("入力欄の図", 入力欄の図("選んだ窓口"))).toEqual([]);
+  });
+
+  it("入力欄だけが持つ名前に、入力欄の初期値が差し込まれる", () => {
+    const 字 = 描いた字(入力欄の図("選んだ窓口"));
+    expect(字.join("\n")).toContain("選んだ値は 受付済");
+    expect(差し込まれていない名前(字)).toEqual([]);
+  });
+
+  it("同じ名前の状態より、入力欄の初期値が勝つ", () => {
+    const d = 入力欄の図("選んだ窓口", "未選択");
+    // 対照の前提 = 状態の初期値と入力欄の初期値が違う値を持っている
+    expect(d.states.find((s) => s.id === "choice")?.initial).toBe("未選択");
+    const 字 = 描いた字(d).join("\n");
+    expect(字).toContain("選んだ値は 受付済");
+    expect(字).not.toContain("選んだ値は 未選択");
+  });
+
+  it("見本帳の図の描いた字に、差し込まれていない名前が残っていない", () => {
+    const { 件 } = 見本帳の図();
+    expect(件.length, "図を 1 件も見つけていない (検査が空振りしている)").toBeGreaterThan(100);
+    // 入力欄を持つ図が居ないと、差し込みの相手が居ないまま 0 件になる
+    const 入力欄を持つ = 件.filter((r) => ((r.図 as { inputs?: unknown[] }).inputs?.length ?? 0) > 0);
+    expect(入力欄を持つ.length, "入力欄を持つ図が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+    // 収容対照 = `layout()` を通して描いていた間、ここだけが `{lastEvent}` を残していた
+    const 受け取り分け = 件.find((r) => r.鍵 === "eventVariety");
+    expect(受け取り分け, "eventVariety を見つけていない").toBeDefined();
+    expect(描いた字(受け取り分け!.図)).toContain("まだ無し · 累計 0 回");
+    const 残り = 件.flatMap((r) => 差し込まれていない名前(描いた字(r.図)).map((n) => `${r.鍵}: ${n}`));
+    expect(残り).toEqual([]);
+  });
+
+  it("差し込まれていない名前を探す検査が、植え込んだ 1 件を見つける (植え込み対照)", () => {
+    // どの状態にも入力欄にも無い名前は、描画側が差し込めずに残す
+    expect(差し込まれていない名前(描いた字(土台("{missing} の窓口")))).toEqual(["{missing}"]);
   });
 });
 

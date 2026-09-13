@@ -588,7 +588,7 @@ export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
  * 5 layer 同時発火:
  * - layer 1 = 4 circle radius 変化 (score 追随、 大きい = 強い)
  * - layer 2 = badge = 現在 leader プレイヤー名
- * - layer 3 = readout.countup 累計 total kill
+ * - layer 3 = readout.countup 累計の撃破数
  * - layer 4 = readout.gauge 平均 accuracy
  * - layer 5 = round 進行 (badge に round 番号)
  */
@@ -647,8 +647,8 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
   })
   .readout.countup("killCU", {
     source: "totalKill",
-    unit: " kill",
-    label: "累計 kill",
+    unit: " 回",
+    label: "累計の撃破数",
     decimals: 0,
   })
   .readout.gauge("accG", {
@@ -1855,7 +1855,7 @@ states:
   avgAcc: 40
 
 readouts:
-  killCU: { kind: countup, source: totalKill, decimals: 0, unit: " kill", label: "累計 kill" }
+  killCU: { kind: countup, source: totalKill, decimals: 0, unit: " 回", label: "累計の撃破数" }
   accG: { kind: gauge, source: avgAcc, min: 0, max: 100, color: "#22c55e", label: "平均命中率 %" }
 
 actors:
@@ -1966,8 +1966,8 @@ export const sourceJson__richScoreLeaderboard = `{
       "kind": "countup",
       "source": "totalKill",
       "decimals": 0,
-      "unit": " kill",
-      "label": "累計 kill"
+      "unit": " 回",
+      "label": "累計の撃破数"
     },
     {
       "id": "accG",

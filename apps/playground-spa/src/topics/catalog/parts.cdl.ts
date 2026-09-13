@@ -324,7 +324,7 @@ export const partsPercentRing = diagram("parts-percent-ring", {
   .lane("l", { x: 0, width: 300 })
   .state("v", { initial: 0 })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
-  .readout.percentRing("ring", { source: "v", max: 100, label: "percent ring" })
+  .readout.percentRing("ring", { source: "v", max: 100, label: "達成率" })
   .phase("p", { duration: 4000, title: "輪が回る", body: "" }, (p: PhaseBuilder) =>
     p.tween("v", 0, 100),
   )
@@ -340,7 +340,7 @@ export const partsCountup = diagram("parts-countup", {
   .lane("l", { x: 0, width: 300 })
   .state("n", { initial: 0 })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
-  .readout.countup("cu", { source: "n", unit: " 件", label: "count up", decimals: 0 })
+  .readout.countup("cu", { source: "n", unit: " 件", label: "処理した件数", decimals: 0 })
   .phase("p", { duration: 4000, title: "カウント上昇", body: "" }, (p: PhaseBuilder) =>
     p.tween("n", 0, 15000),
   )
@@ -444,7 +444,7 @@ export const partsSparkline = diagram("parts-sparkline", {
     source: "v",
     history: 20,
     color: "#4e9dc4",
-    label: "trend sparkline",
+    label: "直近の推移",
   })
   .phase("p", { duration: 4000, title: "推移を描く", body: "" }, (p: PhaseBuilder) =>
     p.tween("v", 10, 80),
@@ -461,7 +461,7 @@ export const partsDonut = diagram("parts-donut", {
   .lane("l", { x: 0, width: 300 })
   .state("seg", { initial: "[30, 25, 20, 25]" })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
-  .readout.donut("dnt", { source: "seg", label: "donut 4 segment" })
+  .readout.donut("dnt", { source: "seg", label: "4 区分の割合" })
   .phase("p", { duration: 3000, title: "分配表示", body: "" }, (p: PhaseBuilder) =>
     p.set("seg", "[30, 25, 20, 25]"),
   )
@@ -477,7 +477,7 @@ export const partsRadar = diagram("parts-radar", {
   .lane("l", { x: 0, width: 320 })
   .state("dims", { initial: "[3, 3, 3, 3, 3]" })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
-  .readout.radar("rdr", { source: "dims", max: 10, color: "#4e9dc4", label: "5 軸 radar" })
+  .readout.radar("rdr", { source: "dims", max: 10, color: "#4e9dc4", label: "5 つの軸の強み" })
   .phase("p", { duration: 3000, title: "釣り合いを見せる", body: "" }, (p: PhaseBuilder) =>
     p.set("dims", "[8, 3, 5, 2, 7]"),
   )
@@ -498,7 +498,7 @@ export const partsStepProgress = diagram("parts-step-progress", {
     source: "cur",
     stepsSource: "steps",
     color: "#22c55e",
-    label: "wizard 4 step",
+    label: "購入の 4 段階",
   })
   .phase("p", { duration: 3000, title: "段取りを見せる", body: "" }, (p: PhaseBuilder) =>
     p.set("cur", 1),
@@ -522,7 +522,7 @@ export const partsStatusDot = diagram("parts-status-dot", {
       { value: "away", color: "#f59e0b", label: "離席" },
       { value: "offline", color: "#a08870", label: "オフライン" },
     ] as const,
-    label: "status dot",
+    label: "在席の状態",
   })
   .phase("p", { duration: 3000, title: "状態を見せる", body: "" }, (p: PhaseBuilder) =>
     p.set("st", "online"),
@@ -538,14 +538,14 @@ export const partsNotification = diagram("parts-notification", {
 })
   .lane("l", { x: 0, width: 500 })
   .state("nkind", { initial: "info" })
-  .state("ntitle", { initial: "system status" })
-  .state("nbody", { initial: "all systems operational" })
+  .state("ntitle", { initial: "稼働状況" })
+  .state("nbody", { initial: "すべて正常に動いています" })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
   .readout.notification("nt", {
     kindSource: "nkind",
     titleSource: "ntitle",
     bodySource: "nbody",
-    label: "notification card",
+    label: "お知らせ",
   })
   .phase("p", { duration: 3000, title: "通知表示", body: "" }, (p: PhaseBuilder) =>
     p.set("nkind", "info"),
@@ -569,7 +569,7 @@ export const partsKpiCard = diagram("parts-kpi-card", {
     historySource: "hist",
     comparisonSource: "prev",
     unit: " 件",
-    label: "KPI 売上件数",
+    label: "売上件数",
   })
   .phase("p", { duration: 3500, title: "指標が上がる", body: "" }, (p: PhaseBuilder) =>
     p.tween("cur", 1000, 1500).tween("hist", 500, 1200).set("prev", 1000),
@@ -585,12 +585,23 @@ export const partsTimelineStrip = diagram("parts-timeline-strip", {
 })
   .lane("l", { x: 0, width: 600 })
   .state("evt", {
-    initial: '[["00:00","active"],["01:00","warning"],["02:00","error"],["03:00","active"]]',
+    initial: '[["00:00","稼働"],["01:00","警告"],["02:00","異常"],["03:00","稼働"]]',
   })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
-  .readout.statusTimeline("stl", { source: "evt", max: 8, label: "timeline 4 event" })
+  .readout.statusTimeline("stl", {
+    source: "evt",
+    // 状態の値は日本語で書くので、色の対応も同じ名前で渡す。 描画側の既定の対応は
+    // 英語の `active` / `idle` / `error` しか知らず、日本語の値は全部灰色になる
+    colorMap: [
+      { status: "稼働", color: "#22c55e" },
+      { status: "警告", color: "#f59e0b" },
+      { status: "異常", color: "#ef4444" },
+    ],
+    max: 8,
+    label: "4 時間の稼働状況",
+  })
   .phase("p", { duration: 3000, title: "時間の並びを見せる", body: "" }, (p: PhaseBuilder) =>
-    p.set("evt", '[["00:00","active"],["01:00","warning"],["02:00","error"],["03:00","active"]]'),
+    p.set("evt", '[["00:00","稼働"],["01:00","警告"],["02:00","異常"],["03:00","稼働"]]'),
   )
   .build();
 
@@ -666,8 +677,8 @@ export const partsHeartbeat = diagram("parts-heartbeat", {
   .lane("l", { x: 0, width: 500 })
   .state("bpm", { initial: 72 })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
-  .readout.sparkline("hb", { source: "bpm", history: 30, color: "#dc2626", label: "heart beat" })
-  .readout.countup("v", { source: "bpm", unit: " bpm", label: "現在の心拍", decimals: 0 })
+  .readout.sparkline("hb", { source: "bpm", history: 30, color: "#dc2626", label: "心拍の推移" })
+  .readout.countup("v", { source: "bpm", unit: " 回/分", label: "現在の心拍", decimals: 0 })
   .phase("p", { duration: 4000, title: "心拍推移", body: "" }, (p: PhaseBuilder) =>
     p.tween("bpm", 72, 118),
   )
@@ -1093,7 +1104,7 @@ export const partsPriceCard = diagram("parts-price-card", {
     historySource: "hist",
     comparisonSource: "prev",
     unit: " 円/月",
-    label: "Basic プラン",
+    label: "基本プラン",
   })
   .phase("p", { duration: 3500, title: "料金表示", body: "" }, (p: PhaseBuilder) =>
     p.tween("hist", 1200, 980).set("prev", 1200),
@@ -1204,9 +1215,9 @@ export const partsMultiSparkline = diagram("parts-multi-sparkline", {
   .state("mem", { initial: 40 })
   .state("net", { initial: 15 })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
-  .readout.sparkline("sc", { source: "cpu", history: 30, color: "#dc2626", label: "CPU trend" })
-  .readout.sparkline("sm", { source: "mem", history: 30, color: "#22c55e", label: "MEM trend" })
-  .readout.sparkline("sn", { source: "net", history: 30, color: "#4e9dc4", label: "NET trend" })
+  .readout.sparkline("sc", { source: "cpu", history: 30, color: "#dc2626", label: "CPU の推移" })
+  .readout.sparkline("sm", { source: "mem", history: 30, color: "#22c55e", label: "メモリの推移" })
+  .readout.sparkline("sn", { source: "net", history: 30, color: "#4e9dc4", label: "通信量の推移" })
   .phase("p", { duration: 4500, title: "3 指標推移", body: "" }, (p: PhaseBuilder) =>
     p.tween("cpu", 20, 78).tween("mem", 40, 65).tween("net", 15, 88),
   )
@@ -1307,7 +1318,7 @@ export const partsProgressLong = diagram("parts-progress-long", {
     source: "cur",
     stepsSource: "steps",
     color: "#22c55e",
-    label: "6 stage wizard",
+    label: "申し込みの 6 段階",
   })
   .phase("p", { duration: 4000, title: "段取りが進む", body: "" }, (p: PhaseBuilder) =>
     p.tween("cur", 3, 6),
@@ -1355,14 +1366,24 @@ export const partsStatusTimelineWeek = diagram("parts-status-timeline-week", {
   .lane("l", { x: 0, width: 700 })
   .state("evt", {
     initial:
-      '[["月","active"],["火","active"],["水","warning"],["木","error"],["金","warning"],["土","active"],["日","active"]]',
+      '[["月","稼働"],["火","稼働"],["水","警告"],["木","異常"],["金","警告"],["土","稼働"],["日","稼働"]]',
   })
   .node("_h", { lane: "l", stack: 0, kind: "actor", title: "", w: 1, h: 1, visibleIf: "0" })
-  .readout.statusTimeline("stl", { source: "evt", max: 8, label: "7 day status" })
+  .readout.statusTimeline("stl", {
+    source: "evt",
+    // 状態の値は日本語で書くので、色の対応も同じ名前で渡す (`partsTimelineStrip` と同じ)
+    colorMap: [
+      { status: "稼働", color: "#22c55e" },
+      { status: "警告", color: "#f59e0b" },
+      { status: "異常", color: "#ef4444" },
+    ],
+    max: 8,
+    label: "7 日間の稼働状況",
+  })
   .phase("p", { duration: 3000, title: "週間表示", body: "" }, (p: PhaseBuilder) =>
     p.set(
       "evt",
-      '[["月","active"],["火","active"],["水","warning"],["木","error"],["金","warning"],["土","active"],["日","active"]]',
+      '[["月","稼働"],["火","稼働"],["水","警告"],["木","異常"],["金","警告"],["土","稼働"],["日","稼働"]]',
     ),
   )
   .build();
@@ -3241,7 +3262,7 @@ export const sourceYaml__partsPercentRing = `title: "パーセントリング �
 type: flow
 
 readouts:
-  ring: { kind: percent-ring, source: "v", max: 100, label: "percent ring" }
+  ring: { kind: percent-ring, source: "v", max: 100, label: "達成率" }
 
 lanes:
   l: { x: 0, width: 300 }
@@ -3262,7 +3283,7 @@ export const sourceJson__partsPercentRing = `{
   "title": "パーセントリング — 0-100% を ring 表示",
   "type": "flow",
   "readouts": [
-    { "id": "ring", "kind": "percent-ring", "source": "v", "max": 100, "label": "percent ring" }
+    { "id": "ring", "kind": "percent-ring", "source": "v", "max": 100, "label": "達成率" }
   ],
   "lanes": {
     "l": { "x": 0, "width": 300 }
@@ -3294,7 +3315,7 @@ export const sourceYaml__partsCountup = `title: "カウントアップ — 数�
 type: flow
 
 readouts:
-  cu: { kind: countup, source: "n", decimals: 0, unit: " 件", label: "count up" }
+  cu: { kind: countup, source: "n", decimals: 0, unit: " 件", label: "処理した件数" }
 
 lanes:
   l: { x: 0, width: 300 }
@@ -3321,7 +3342,7 @@ export const sourceJson__partsCountup = `{
       "source": "n",
       "decimals": 0,
       "unit": " 件",
-      "label": "count up"
+      "label": "処理した件数"
     }
   ],
   "lanes": {
@@ -3517,7 +3538,7 @@ export const sourceYaml__partsSparkline = `title: "スパークライン — 数
 type: flow
 
 readouts:
-  spk: { kind: sparkline, source: "v", history: 20, color: "#4e9dc4", label: "trend sparkline" }
+  spk: { kind: sparkline, source: "v", history: 20, color: "#4e9dc4", label: "直近の推移" }
 
 lanes:
   l: { x: 0, width: 400 }
@@ -3544,7 +3565,7 @@ export const sourceJson__partsSparkline = `{
       "source": "v",
       "history": 20,
       "color": "#4e9dc4",
-      "label": "trend sparkline"
+      "label": "直近の推移"
     }
   ],
   "lanes": {
@@ -3577,7 +3598,7 @@ export const sourceYaml__partsDonut = `title: "ドーナツチャート — N se
 type: flow
 
 readouts:
-  dnt: { kind: donut, source: "seg", label: "donut 4 segment" }
+  dnt: { kind: donut, source: "seg", label: "4 区分の割合" }
 
 lanes:
   l: { x: 0, width: 300 }
@@ -3598,7 +3619,7 @@ export const sourceJson__partsDonut = `{
   "title": "ドーナツチャート — N segment 割合表示",
   "type": "flow",
   "readouts": [
-    { "id": "dnt", "kind": "donut", "source": "seg", "label": "donut 4 segment" }
+    { "id": "dnt", "kind": "donut", "source": "seg", "label": "4 区分の割合" }
   ],
   "lanes": {
     "l": { "x": 0, "width": 300 }
@@ -3630,7 +3651,7 @@ export const sourceYaml__partsRadar = `title: "レーダー図 — 複数の軸�
 type: flow
 
 readouts:
-  rdr: { kind: radar, source: "dims", max: 10, color: "#4e9dc4", label: "5 軸 radar" }
+  rdr: { kind: radar, source: "dims", max: 10, color: "#4e9dc4", label: "5 つの軸の強み" }
 
 lanes:
   l: { x: 0, width: 320 }
@@ -3657,7 +3678,7 @@ export const sourceJson__partsRadar = `{
       "source": "dims",
       "max": 10,
       "color": "#4e9dc4",
-      "label": "5 軸 radar"
+      "label": "5 つの軸の強み"
     }
   ],
   "lanes": {
@@ -3690,7 +3711,7 @@ export const sourceYaml__partsStepProgress = `title: "ステップ進捗 — 番
 type: flow
 
 readouts:
-  stp: { kind: step-progress, source: "cur", stepsSource: "steps", color: "#22c55e", label: "wizard 4 step" }
+  stp: { kind: step-progress, source: "cur", stepsSource: "steps", color: "#22c55e", label: "購入の 4 段階" }
 
 lanes:
   l: { x: 0, width: 500 }
@@ -3718,7 +3739,7 @@ export const sourceJson__partsStepProgress = `{
       "source": "cur",
       "stepsSource": "steps",
       "color": "#22c55e",
-      "label": "wizard 4 step"
+      "label": "購入の 4 段階"
     }
   ],
   "lanes": {
@@ -3751,7 +3772,7 @@ export const sourceYaml__partsStatusDot = `title: "ステータスドット — 
 type: flow
 
 readouts:
-  dot: { kind: status-dot, source: "st", map: [{ value: "online", color: "#22c55e", label: "オンライン" }, { value: "away", color: "#f59e0b", label: "離席" }, { value: "offline", color: "#a08870", label: "オフライン" }], label: "status dot" }
+  dot: { kind: status-dot, source: "st", map: [{ value: "online", color: "#22c55e", label: "オンライン" }, { value: "away", color: "#f59e0b", label: "離席" }, { value: "offline", color: "#a08870", label: "オフライン" }], label: "在席の状態" }
 
 lanes:
   l: { x: 0, width: 300 }
@@ -3781,7 +3802,7 @@ export const sourceJson__partsStatusDot = `{
         { "value": "away", "color": "#f59e0b", "label": "離席" },
         { "value": "offline", "color": "#a08870", "label": "オフライン" }
       ],
-      "label": "status dot"
+      "label": "在席の状態"
     }
   ],
   "lanes": {
@@ -3814,15 +3835,15 @@ export const sourceYaml__partsNotification = `title: "通知カード — 4 kind
 type: flow
 
 readouts:
-  nt: { kind: notification, kindSource: "nkind", titleSource: "ntitle", bodySource: "nbody", label: "notification card" }
+  nt: { kind: notification, kindSource: "nkind", titleSource: "ntitle", bodySource: "nbody", label: "お知らせ" }
 
 lanes:
   l: { x: 0, width: 500 }
 
 states:
   nkind: "info"
-  ntitle: "system status"
-  nbody: "all systems operational"
+  ntitle: "稼働状況"
+  nbody: "すべて正常に動いています"
 
 actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
@@ -3843,7 +3864,7 @@ export const sourceJson__partsNotification = `{
       "kindSource": "nkind",
       "titleSource": "ntitle",
       "bodySource": "nbody",
-      "label": "notification card"
+      "label": "お知らせ"
     }
   ],
   "lanes": {
@@ -3862,7 +3883,7 @@ export const sourceJson__partsNotification = `{
     }
   ],
   "flow": [],
-  "states": { "nkind": "info", "ntitle": "system status", "nbody": "all systems operational" },
+  "states": { "nkind": "info", "ntitle": "稼働状況", "nbody": "すべて正常に動いています" },
   "animation": [
     {
       "step": "通知表示",
@@ -3876,7 +3897,7 @@ export const sourceYaml__partsKpiCard = `title: "KPI カード — 数値 + delt
 type: flow
 
 readouts:
-  kpi: { kind: kpi-card, source: "cur", historySource: "hist", comparisonSource: "prev", unit: " 件", label: "KPI 売上件数" }
+  kpi: { kind: kpi-card, source: "cur", historySource: "hist", comparisonSource: "prev", unit: " 件", label: "売上件数" }
 
 lanes:
   l: { x: 0, width: 400 }
@@ -3909,7 +3930,7 @@ export const sourceJson__partsKpiCard = `{
       "historySource": "hist",
       "comparisonSource": "prev",
       "unit": " 件",
-      "label": "KPI 売上件数"
+      "label": "売上件数"
     }
   ],
   "lanes": {
@@ -3943,13 +3964,13 @@ export const sourceYaml__partsTimelineStrip = `title: "タイムライン帯 —
 type: flow
 
 readouts:
-  stl: { kind: status-timeline, source: "evt", max: 8, label: "timeline 4 event" }
+  stl: { kind: status-timeline, source: "evt", colorMap: [{ status: "稼働", color: "#22c55e" }, { status: "警告", color: "#f59e0b" }, { status: "異常", color: "#ef4444" }], max: 8, label: "4 時間の稼働状況" }
 
 lanes:
   l: { x: 0, width: 600 }
 
 states:
-  evt: '[["00:00","active"],["01:00","warning"],["02:00","error"],["03:00","active"]]'
+  evt: '[["00:00","稼働"],["01:00","警告"],["02:00","異常"],["03:00","稼働"]]'
 
 actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
@@ -3957,7 +3978,7 @@ actors:
 animation:
   - step: "時間の並びを見せる" 3s
     set:
-      evt: '[["00:00","active"],["01:00","warning"],["02:00","error"],["03:00","active"]]'
+      evt: '[["00:00","稼働"],["01:00","警告"],["02:00","異常"],["03:00","稼働"]]'
 `;
 
 export const sourceJson__partsTimelineStrip = `{
@@ -3968,8 +3989,13 @@ export const sourceJson__partsTimelineStrip = `{
       "id": "stl",
       "kind": "status-timeline",
       "source": "evt",
+      "colorMap": [
+        { "status": "稼働", "color": "#22c55e" },
+        { "status": "警告", "color": "#f59e0b" },
+        { "status": "異常", "color": "#ef4444" }
+      ],
       "max": 8,
-      "label": "timeline 4 event"
+      "label": "4 時間の稼働状況"
     }
   ],
   "lanes": {
@@ -3989,14 +4015,14 @@ export const sourceJson__partsTimelineStrip = `{
   ],
   "flow": [],
   "states": {
-    "evt": "[[\\"00:00\\",\\"active\\"],[\\"01:00\\",\\"warning\\"],[\\"02:00\\",\\"error\\"],[\\"03:00\\",\\"active\\"]]"
+    "evt": "[[\\"00:00\\",\\"稼働\\"],[\\"01:00\\",\\"警告\\"],[\\"02:00\\",\\"異常\\"],[\\"03:00\\",\\"稼働\\"]]"
   },
   "animation": [
     {
       "step": "時間の並びを見せる",
       "duration": 3,
       "set": {
-        "evt": "[[\\"00:00\\",\\"active\\"],[\\"01:00\\",\\"warning\\"],[\\"02:00\\",\\"error\\"],[\\"03:00\\",\\"active\\"]]"
+        "evt": "[[\\"00:00\\",\\"稼働\\"],[\\"01:00\\",\\"警告\\"],[\\"02:00\\",\\"異常\\"],[\\"03:00\\",\\"稼働\\"]]"
       }
     }
   ]
@@ -4118,8 +4144,8 @@ export const sourceYaml__partsHeartbeat = `title: "心拍波形 — sparkline �
 type: flow
 
 readouts:
-  hb: { kind: sparkline, source: "bpm", history: 30, color: "#dc2626", label: "heart beat" }
-  v: { kind: countup, source: "bpm", decimals: 0, unit: " bpm", label: "現在の心拍" }
+  hb: { kind: sparkline, source: "bpm", history: 30, color: "#dc2626", label: "心拍の推移" }
+  v: { kind: countup, source: "bpm", decimals: 0, unit: " 回/分", label: "現在の心拍" }
 
 lanes:
   l: { x: 0, width: 500 }
@@ -4146,14 +4172,14 @@ export const sourceJson__partsHeartbeat = `{
       "source": "bpm",
       "history": 30,
       "color": "#dc2626",
-      "label": "heart beat"
+      "label": "心拍の推移"
     },
     {
       "id": "v",
       "kind": "countup",
       "source": "bpm",
       "decimals": 0,
-      "unit": " bpm",
+      "unit": " 回/分",
       "label": "現在の心拍"
     }
   ],
@@ -4921,7 +4947,7 @@ export const sourceYaml__partsPriceCard = `title: "料金カード — 価格 + 
 type: flow
 
 readouts:
-  pc: { kind: kpi-card, source: "price", historySource: "hist", comparisonSource: "prev", unit: " 円/月", label: "Basic プラン" }
+  pc: { kind: kpi-card, source: "price", historySource: "hist", comparisonSource: "prev", unit: " 円/月", label: "基本プラン" }
 
 lanes:
   l: { x: 0, width: 500 }
@@ -4953,7 +4979,7 @@ export const sourceJson__partsPriceCard = `{
       "historySource": "hist",
       "comparisonSource": "prev",
       "unit": " 円/月",
-      "label": "Basic プラン"
+      "label": "基本プラン"
     }
   ],
   "lanes": {
@@ -5171,9 +5197,9 @@ export const sourceYaml__partsMultiSparkline = `title: "波形 3 連 — 3 指�
 type: flow
 
 readouts:
-  sc: { kind: sparkline, source: "cpu", history: 30, color: "#dc2626", label: "CPU trend" }
-  sm: { kind: sparkline, source: "mem", history: 30, color: "#22c55e", label: "MEM trend" }
-  sn: { kind: sparkline, source: "net", history: 30, color: "#4e9dc4", label: "NET trend" }
+  sc: { kind: sparkline, source: "cpu", history: 30, color: "#dc2626", label: "CPU の推移" }
+  sm: { kind: sparkline, source: "mem", history: 30, color: "#22c55e", label: "メモリの推移" }
+  sn: { kind: sparkline, source: "net", history: 30, color: "#4e9dc4", label: "通信量の推移" }
 
 lanes:
   l: { x: 0, width: 600 }
@@ -5204,7 +5230,7 @@ export const sourceJson__partsMultiSparkline = `{
       "source": "cpu",
       "history": 30,
       "color": "#dc2626",
-      "label": "CPU trend"
+      "label": "CPU の推移"
     },
     {
       "id": "sm",
@@ -5212,7 +5238,7 @@ export const sourceJson__partsMultiSparkline = `{
       "source": "mem",
       "history": 30,
       "color": "#22c55e",
-      "label": "MEM trend"
+      "label": "メモリの推移"
     },
     {
       "id": "sn",
@@ -5220,7 +5246,7 @@ export const sourceJson__partsMultiSparkline = `{
       "source": "net",
       "history": 30,
       "color": "#4e9dc4",
-      "label": "NET trend"
+      "label": "通信量の推移"
     }
   ],
   "lanes": {
@@ -5389,7 +5415,7 @@ export const sourceYaml__partsProgressLong = `title: "進捗 6 段階 — 長い
 type: flow
 
 readouts:
-  stp: { kind: step-progress, source: "cur", stepsSource: "steps", color: "#22c55e", label: "6 stage wizard" }
+  stp: { kind: step-progress, source: "cur", stepsSource: "steps", color: "#22c55e", label: "申し込みの 6 段階" }
 
 lanes:
   l: { x: 0, width: 700 }
@@ -5417,7 +5443,7 @@ export const sourceJson__partsProgressLong = `{
       "source": "cur",
       "stepsSource": "steps",
       "color": "#22c55e",
-      "label": "6 stage wizard"
+      "label": "申し込みの 6 段階"
     }
   ],
   "lanes": {
@@ -5506,13 +5532,13 @@ export const sourceYaml__partsStatusTimelineWeek = `title: "週間 status timeli
 type: flow
 
 readouts:
-  stl: { kind: status-timeline, source: "evt", max: 8, label: "7 day status" }
+  stl: { kind: status-timeline, source: "evt", colorMap: [{ status: "稼働", color: "#22c55e" }, { status: "警告", color: "#f59e0b" }, { status: "異常", color: "#ef4444" }], max: 8, label: "7 日間の稼働状況" }
 
 lanes:
   l: { x: 0, width: 700 }
 
 states:
-  evt: '[["月","active"],["火","active"],["水","warning"],["木","error"],["金","warning"],["土","active"],["日","active"]]'
+  evt: '[["月","稼働"],["火","稼働"],["水","警告"],["木","異常"],["金","警告"],["土","稼働"],["日","稼働"]]'
 
 actors:
   - _h: { kind: actor, lane: l, stack: 0, posW: 1, posH: 1, visibleIf: "0", title: "" }
@@ -5520,7 +5546,7 @@ actors:
 animation:
   - step: "週間表示" 3s
     set:
-      evt: '[["月","active"],["火","active"],["水","warning"],["木","error"],["金","warning"],["土","active"],["日","active"]]'
+      evt: '[["月","稼働"],["火","稼働"],["水","警告"],["木","異常"],["金","警告"],["土","稼働"],["日","稼働"]]'
 `;
 
 export const sourceJson__partsStatusTimelineWeek = `{
@@ -5531,8 +5557,13 @@ export const sourceJson__partsStatusTimelineWeek = `{
       "id": "stl",
       "kind": "status-timeline",
       "source": "evt",
+      "colorMap": [
+        { "status": "稼働", "color": "#22c55e" },
+        { "status": "警告", "color": "#f59e0b" },
+        { "status": "異常", "color": "#ef4444" }
+      ],
       "max": 8,
-      "label": "7 day status"
+      "label": "7 日間の稼働状況"
     }
   ],
   "lanes": {
@@ -5552,14 +5583,14 @@ export const sourceJson__partsStatusTimelineWeek = `{
   ],
   "flow": [],
   "states": {
-    "evt": "[[\\"月\\",\\"active\\"],[\\"火\\",\\"active\\"],[\\"水\\",\\"warning\\"],[\\"木\\",\\"error\\"],[\\"金\\",\\"warning\\"],[\\"土\\",\\"active\\"],[\\"日\\",\\"active\\"]]"
+    "evt": "[[\\"月\\",\\"稼働\\"],[\\"火\\",\\"稼働\\"],[\\"水\\",\\"警告\\"],[\\"木\\",\\"異常\\"],[\\"金\\",\\"警告\\"],[\\"土\\",\\"稼働\\"],[\\"日\\",\\"稼働\\"]]"
   },
   "animation": [
     {
       "step": "週間表示",
       "duration": 3,
       "set": {
-        "evt": "[[\\"月\\",\\"active\\"],[\\"火\\",\\"active\\"],[\\"水\\",\\"warning\\"],[\\"木\\",\\"error\\"],[\\"金\\",\\"warning\\"],[\\"土\\",\\"active\\"],[\\"日\\",\\"active\\"]]"
+        "evt": "[[\\"月\\",\\"稼働\\"],[\\"火\\",\\"稼働\\"],[\\"水\\",\\"警告\\"],[\\"木\\",\\"異常\\"],[\\"金\\",\\"警告\\"],[\\"土\\",\\"稼働\\"],[\\"日\\",\\"稼働\\"]]"
       }
     }
   ]
