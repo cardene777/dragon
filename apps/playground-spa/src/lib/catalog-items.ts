@@ -98,7 +98,7 @@ function ensurePhase(d: CdlDiagram): CdlDiagram {
  * `topic` は図の題名で 60 字以内に収める (cdl の seo-metadata-quality が SEO title として見る)。
  * 一覧に出したい長い説明は `subtitle__<key>` に置く。
  *
- * **検査から呼べるように export する** (#1696)。 変種の読み取りは実在の見本帳を経由すると
+ * **検査から呼べるように export する** (#1696)。 変種の読み取りは実在のカタログを経由すると
  * 「今そう書いてあるか」 しか見られず、書き方そのもの (名前が無い変種を弾く 等) を
  * 確かめられない。 検査が自分で module の形を組み立てられるようにする。
  */

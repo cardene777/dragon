@@ -16,7 +16,7 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const 見本帳の置き場 = fileURLToPath(new URL(".", import.meta.url));
+const カタログの置き場 = fileURLToPath(new URL(".", import.meta.url));
 
 /**
  * 記法の本文 (`title: "..."`) と組立て済み (`"title": "..."`) の両方の形を拾う。
@@ -26,8 +26,8 @@ const 見本帳の置き場 = fileURLToPath(new URL(".", import.meta.url));
  */
 const 題の書き方 = /"?(?:sub)?title"?\s*:\s*"([^"]*)"/g;
 
-function 見本帳のfile一覧(): string[] {
-  return readdirSync(見本帳の置き場).filter((f) => f.endsWith(".cdl.ts"));
+function カタログのfile一覧(): string[] {
+  return readdirSync(カタログの置き場).filter((f) => f.endsWith(".cdl.ts"));
 }
 
 /**
@@ -60,8 +60,8 @@ function 宣言の区間(src: string, 名: string): string | null {
 /** 記法の本文と組立て済みが対になっている見本を、題つきで列挙する */
 function 本文と組立ての対(): { file: string; 鍵: string; yaml: string | null; json: string | null }[] {
   const out: { file: string; 鍵: string; yaml: string | null; json: string | null }[] = [];
-  for (const f of 見本帳のfile一覧()) {
-    const src = readFileSync(見本帳の置き場 + f, "utf8");
+  for (const f of カタログのfile一覧()) {
+    const src = readFileSync(カタログの置き場 + f, "utf8");
     for (const m of src.matchAll(/export const sourceYaml__([A-Za-z0-9_]+) = /g)) {
       const 鍵 = m[1]!;
       const y = 宣言の区間(src, `sourceYaml__${鍵}`);
@@ -75,12 +75,12 @@ function 本文と組立ての対(): { file: string; 鍵: string; yaml: string |
 
 describe("図の題の言葉 (#1792)", () => {
   it("図の題に DSL が残っていない", () => {
-    const files = 見本帳のfile一覧();
-    expect(files.length, "見本帳の file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(5);
+    const files = カタログのfile一覧();
+    expect(files.length, "カタログの file を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(5);
     let 題の数 = 0;
     const 残る: string[] = [];
     for (const f of files) {
-      for (const t of 題を取り出す(readFileSync(見本帳の置き場 + f, "utf8"))) {
+      for (const t of 題を取り出す(readFileSync(カタログの置き場 + f, "utf8"))) {
         題の数 += 1;
         if (t.includes("DSL")) 残る.push(`${f}: ${t}`);
       }

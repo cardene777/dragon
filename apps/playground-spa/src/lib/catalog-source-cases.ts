@@ -25,7 +25,7 @@ export type CatalogSourceCase = { key: string; yaml: string; built: CdlDiagram }
  * 実際 `charts` と `text-dsl` が一覧に載りながら一致検査の対象から漏れていた (#1403)。
  * **漏れは `catalog-source-parity.test.tsx` の一覧との照合が落とす**。
  */
-export const 記法を持つ見本帳: readonly [string, Record<string, unknown>][] = [
+export const 記法を持つカタログ: readonly [string, Record<string, unknown>][] = [
   ["presets", Presets],
   ["patterns", Patterns],
   ["styles", Styles],
@@ -45,7 +45,7 @@ export const 記法を持つ見本帳: readonly [string, Record<string, unknown>
 export function 記法つき(): CatalogSourceCase[] {
   const out: CatalogSourceCase[] = [];
   const 既出の名前 = new Set<string>();
-  for (const [名, mod] of 記法を持つ見本帳) {
+  for (const [名, mod] of 記法を持つカタログ) {
     for (const [k, v] of Object.entries(mod)) {
       if (!k.startsWith("sourceYaml__") || typeof v !== "string") continue;
       const key = k.slice("sourceYaml__".length);

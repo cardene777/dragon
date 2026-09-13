@@ -40,7 +40,7 @@ let totalDiagrams = 0;
 for (const target of targets) {
   const absPath = resolve(process.cwd(), target);
   // 素の import() は拡張子なしの相対読み込み (`./relation-focus`) を解決できず、最初の見本で落ちて
-  // 残りのファイルも検査しなくなる。 見本帳と同じく拡張子なしで読めるよう tsx の読み込み口を使う (#1918)
+  // 残りのファイルも検査しなくなる。 カタログと同じく拡張子なしで読めるよう tsx の読み込み口を使う (#1918)
   const mod = await tsImport(pathToFileURL(absPath).href, import.meta.url);
   const diagrams = Object.entries(mod).filter(
     ([, v]) => v && typeof v === "object" && "id" in v && "nodes" in v && "topic" in v,

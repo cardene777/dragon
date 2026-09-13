@@ -105,7 +105,7 @@ async function 測る(page: Page): Promise<測り結果> {
   });
 }
 
-/** 見本帳の枝分かれ図を開く */
+/** カタログの枝分かれ図を開く */
 async function 開く(page: Page): Promise<void> {
   await page.goto("catalog/charts", { waitUntil: "networkidle" });
   await page.waitForTimeout(700);

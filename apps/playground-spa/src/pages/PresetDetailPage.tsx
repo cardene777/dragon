@@ -117,7 +117,7 @@ export function PresetDetailPage(): React.ReactElement {
           <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="nm-crumb">
             <Link to="/">概要</Link>
             <span aria-hidden="true">›</span>
-            <Link to="/catalog">見本帳</Link>
+            <Link to="/catalog">カタログ</Link>
             <span aria-hidden="true">›</span>
             <Link to="/catalog/presets">{分類の呼び名}</Link>
             <span aria-hidden="true">›</span>

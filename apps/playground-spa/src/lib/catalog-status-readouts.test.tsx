@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * 見本帳の稼働の時系列と在席の状態が、画面の言語で状態の字を描くこと (#1922)。
+ * カタログの稼働の時系列と在席の状態が、画面の言語で状態の字を描くこと (#1922)。
  *
  * 描画エンジン `0.62.0` (cdl#857) は、色を選ぶための状態の語を図の言語の辞書で引き、描いた状態の値を
  * `data-cdl-status` / `data-cdl-presence-status` に綴りのまま出す。 画面は図を描く直前に言語を当てる
@@ -18,7 +18,7 @@ import { 図に画面の言語を当てる } from "./diagram-lang";
 
 function 見本の図(題: string): CdlDiagram {
   const item = CATALOG_ITEMS.interactive!.find((i) => i.title === 題);
-  expect(item, `見本帳に ${題} が無い`).toBeDefined();
+  expect(item, `カタログに ${題} が無い`).toBeDefined();
   return item!.diagram;
 }
 
@@ -37,7 +37,7 @@ function 状態を読む(d: CdlDiagram, 目印: string): { 値: string; 字: str
   });
 }
 
-describe("見本帳の状態の字 (#1922)", () => {
+describe("カタログの状態の字 (#1922)", () => {
   it("`serverUptimeStatus` は区間を状態の名前で描き、目印に綴りの値を出す", () => {
     const 区間 = 状態を読む(見本の図("serverUptimeStatus"), "data-cdl-status");
     expect(区間.length, "区間を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);

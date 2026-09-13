@@ -2570,7 +2570,7 @@ export function splitColorValue(raw: string): { tone?: Tone; hex?: string } {
  * v0.4 で使えた箱の種類の名前 (#1301)。
  *
  * v0.5 の受理集合 (`NODE_KIND_VALID`) に無いため、書くと見本 (parts) の名前として扱われ、
- * 見本帳に無ければ `actor` に潰れて **黙って消えていた**。 見本の名前と区別が付かないので、
+ * カタログに無ければ `actor` に潰れて **黙って消えていた**。 見本の名前と区別が付かないので、
  * 「v0.4 で種類として使えた語」 であることを根拠に誤りとして知らせる。
  *
  * 対応は `keywords.ts` の `NODE_KIND_ALIAS` が持つ (日本語 → 英語の種類名)。
@@ -2584,7 +2584,7 @@ function v04の種類名(値: string): string | undefined {
 /**
  * 箱の種類に v0.4 の日本語を書いた時に知らせる (#1301)。
  *
- * 黙って見本の名前として扱うと、見本帳に無い場合に `actor` へ潰れて手掛かりが残らない。
+ * 黙って見本の名前として扱うと、カタログに無い場合に `actor` へ潰れて手掛かりが残らない。
  */
 function reportV04Kind(kindRaw: string, line: number, errors: DslError[]): void {
   const 英語 = v04の種類名(kindRaw);

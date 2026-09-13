@@ -30,7 +30,7 @@ export function DocsPage(): React.ReactElement {
               5 分で始める →
             </Link>
             <Link to="/catalog" className="docs-hero-cta-secondary">
-              見本帳で図を見る
+              カタログで図を見る
             </Link>
           </div>
         </section>

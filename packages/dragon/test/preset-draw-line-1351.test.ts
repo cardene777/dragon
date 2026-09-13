@@ -3,7 +3,7 @@ import { validate, type CdlDiagram } from "@cardenelabs/cdl";
 import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 
 /**
- * 見本帳の「プリセット」 で、折れ線が左から伸びるようにした件 (#1351)。
+ * カタログの「プリセット」 で、折れ線が左から伸びるようにした件 (#1351)。
  *
  * 描画側は段に `draw` があると起点から伸ばす。 折れ線は左端から右へ伸びる。
  * 段を組み直す `withSteps` が `draw` を運ぶ経路を持っていなかったため、このページの見本は

@@ -35,7 +35,7 @@ const 図か = (v: unknown): v is CdlDiagram =>
   Array.isArray((v as CdlDiagram).nodes) &&
   Array.isArray((v as CdlDiagram).lanes);
 
-/** 見本帳の全図。 枚数は増えるので書かない。 */
+/** カタログの全図。 枚数は増えるので書かない。 */
 const 全図: CdlDiagram[] = [
   cookbook,
   patterns,
@@ -71,10 +71,10 @@ const 探す = (d: CdlDiagram): string[] =>
     .map((v) => `${v.axis}: ${v.detail}`);
 
 describe("帯の間隔を書いて確保した図 (#1741)", () => {
-  it("対象の図が見本帳にある", () => {
+  it("対象の図がカタログにある", () => {
     // 空振り防止 = id を書き換えた時に「0 件だから通る」 にならないようにする。
     for (const { id } of 間隔を書いた図) {
-      expect(全図.some((d) => d.id === id), `${id} が見本帳に無い`).toBe(true);
+      expect(全図.some((d) => d.id === id), `${id} がカタログに無い`).toBe(true);
     }
     expect(間隔を書いた図.length, "対象が 0 件 (検査が空振りしている)").toBeGreaterThan(0);
   });
@@ -133,14 +133,14 @@ describe("帯の間隔を書いて確保した図 (#1741)", () => {
     }
   });
 
-  it("見本帳の全図で 名札どうしの重なりと 経路の交差が 0 件", () => {
+  it("カタログの全図で 名札どうしの重なりと 経路の交差が 0 件", () => {
     const 出た = 全図.flatMap((d) =>
       visualValidate(d)
         .violations.filter((v) => v.axis === "edge-label-overlap" || v.axis === "edge-crossing")
         .map((v) => `${d.id}: ${v.axis}`),
     );
     // 0 件を報告する時は母数を併記する。
-    expect(全図.length, "見本帳が空 (検査が空振りしている)").toBeGreaterThan(400);
+    expect(全図.length, "カタログが空 (検査が空振りしている)").toBeGreaterThan(400);
     expect(出た, `${全図.length} 枚を走査`).toEqual([]);
   });
 });

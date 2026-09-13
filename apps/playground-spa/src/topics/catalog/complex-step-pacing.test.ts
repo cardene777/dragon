@@ -27,7 +27,7 @@ const 複雑見本たち = 見本たち.filter(
   (見本) => 見本.id === "class-complex-demo" || 見本.id === "er-complex-demo",
 );
 
-describe("複雑な見本帳の段の進み方 (#1599)", () => {
+describe("複雑なカタログの段の進み方 (#1599)", () => {
   it("4 見本すべてのどの段も増分が 4 件以下である", () => {
     for (const 見本 of 見本たち) {
       for (const [段番号, 増分] of 段ごとの増分(見本.phases).entries()) {

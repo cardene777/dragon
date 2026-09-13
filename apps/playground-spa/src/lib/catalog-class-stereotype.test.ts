@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { jsonToDiagram, textDslToDiagram } from "@cardenelabs/dragon";
-import * as 見本帳 from "@/topics/catalog/presets.cdl";
+import * as カタログ from "@/topics/catalog/presets.cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 type 表記 = "組み立て器" | "記法" | "JSON";
@@ -8,9 +8,9 @@ type 表記 = "組み立て器" | "記法" | "JSON";
 /** 三つの表記をそれぞれ図にする。 */
 function クラス図たち(): Record<表記, CdlDiagram> {
   return {
-    組み立て器: 見本帳.presetClassDiagram,
-    記法: textDslToDiagram(見本帳.sourceYaml__presetClassDiagram),
-    JSON: jsonToDiagram(JSON.parse(見本帳.sourceJson__presetClassDiagram)),
+    組み立て器: カタログ.presetClassDiagram,
+    記法: textDslToDiagram(カタログ.sourceYaml__presetClassDiagram),
+    JSON: jsonToDiagram(JSON.parse(カタログ.sourceJson__presetClassDiagram)),
   };
 }
 

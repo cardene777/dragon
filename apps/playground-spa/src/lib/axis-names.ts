@@ -58,7 +58,7 @@ export const AXIS_JA: Record<string, string> = {
   "migration-path-consistency": "古い名前のまま残っていないか",
   "axis-coverage-meta": "一度も働いていない走査の軸が無いか",
   "axis-documentation-completeness": "走査の軸の数が記録と合っているか",
-  "fixture-drift-detection": "見本帳の指摘の数が基準から増えていないか",
+  "fixture-drift-detection": "カタログの指摘の数が基準から増えていないか",
   "locale-parity": "日本語と英語の中身が揃っているか",
   "validate-performance-budget": "走査にかかる時間が長引いていないか",
   "node-inside-viewbox": "箱が図の枠に収まっているか",

@@ -296,7 +296,7 @@ export function HomePage(): React.ReactElement {
         </div>
         <div className="examples-more">
           <Link className="link-accent" to="/catalog">
-            {isJa ? "見本帳で図を見る →" : "Browse the catalog →"}
+            {isJa ? "カタログで図を見る →" : "Browse the catalog →"}
           </Link>
         </div>
       </section>

@@ -5,7 +5,7 @@
  * `INFRA_KIND_ALIAS`) を見る。 JSON の入口は同じ一覧を **手で写して** 持っていたため、
  * 写した後に増えた種類が JSON 側だけ「知らない値」 になっていた。
  *
- * 知らない値は見本 (parts) の名前として扱われる。 見本帳に無ければ箱は `actor` に倒れ、
+ * 知らない値は見本 (parts) の名前として扱われる。 カタログに無ければ箱は `actor` に倒れ、
  * `console.warn` にしか残らない (`onNotice` を呼ばない) = **画面には何も出ない**。
  *
  * 公開している JSON Schema は `kind` の説明に `shape-wallet` 等を例示しているため、
@@ -65,7 +65,7 @@ describe("2 つの入口が同じ種類を受ける (#1293)", () => {
 
   it("一覧に無い値は従来どおり見本の名前として扱う", () => {
     // 見本 (parts) を `kind` に書く記法 (`arc-gauge` 等) を壊していないことの確認。
-    // 綴りを誤った値もここに落ちる = 見本帳に無ければ箱は `actor` に倒れる
+    // 綴りを誤った値もここに落ちる = カタログに無ければ箱は `actor` に倒れる
     const actor = jsonToDoc(図("arc-gauge")).actors[0]!;
     expect(actor.partId).toBe("arc-gauge");
     expect(actor.kind).toBe("actor");

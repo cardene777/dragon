@@ -49,7 +49,7 @@ const 図か = (v: unknown): v is CdlDiagram =>
   Array.isArray((v as CdlDiagram).nodes) &&
   Array.isArray((v as CdlDiagram).lanes);
 
-/** 見本帳の全図。 枚数は増えるので書かない。 */
+/** カタログの全図。 枚数は増えるので書かない。 */
 const 全図: CdlDiagram[] = [
   cookbook,
   patterns,
@@ -147,8 +147,8 @@ const 寸法: ReadonlyArray<{ id: string; w: number; h: number }> = 全図.flatM
 const 丸めの帯 = 0.002;
 
 describe("読みにくいの注意が画面上の字と一致する (#1738)", () => {
-  it("見本帳の図を 1 枚以上集められている (空振り防止)", () => {
-    expect(全図.length, "見本帳の図を 1 枚も集められていない (検査が空振りしている)").toBeGreaterThan(
+  it("カタログの図を 1 枚以上集められている (空振り防止)", () => {
+    expect(全図.length, "カタログの図を 1 枚も集められていない (検査が空振りしている)").toBeGreaterThan(
       0,
     );
   });

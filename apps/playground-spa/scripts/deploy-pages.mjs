@@ -1,7 +1,7 @@
 import ghpages from "gh-pages";
 
 /**
- * 見本帳を GitHub Pages へ配信する (#1347)。
+ * カタログを GitHub Pages へ配信する (#1347)。
  *
  * `gh-pages` の CLI ではなく API を呼ぶ。 CLI の `--remove` は pattern を 1 つしか受けず、
  * **`.git` を除外する書き方ができない** ため。
