@@ -8918,7 +8918,7 @@ export const serverUptimeStatus = diagram("interactive-server-uptime", {
     {
       duration: 1800,
       title: "平常の稼働",
-      body: "同じ色の区間が続く。 状態の名は 4 文字までに切って大文字で出ることが読める。",
+      body: "同じ色の区間が続く。 区間の字は状態の名前 (稼働 / 待機 / 異常) で出ることが読める。",
     },
     (p: PhaseBuilder) =>
       p.activate("activeCard").set("events", '[["09:00","active"],["09:15","active"]]'),
@@ -10953,14 +10953,14 @@ export const socialShareButtons = diagram("interactive-social-share-buttons", {
     ["li", 32],
     ["rd", 18],
   ] as unknown as (string | number)[])
-  .node("twCard", { lane: "tw", stack: 0, kind: "card", title: "X (tw)", subtitle: "共有が最も多い先" })
-  .node("fbCard", { lane: "fb", stack: 0, kind: "card", title: "フェイスブック (fb)", subtitle: "次に多い先" })
-  .node("liCard", { lane: "li", stack: 0, kind: "card", title: "リンクトイン (li)", subtitle: "中ほどの先" })
+  .node("twCard", { lane: "tw", stack: 0, kind: "card", title: "X", subtitle: "共有が最も多い先" })
+  .node("fbCard", { lane: "fb", stack: 0, kind: "card", title: "フェイスブック", subtitle: "次に多い先" })
+  .node("liCard", { lane: "li", stack: 0, kind: "card", title: "リンクトイン", subtitle: "中ほどの先" })
   .node("rdCard", {
     lane: "li",
     stack: 1,
     kind: "card",
-    title: "レディット (rd)",
+    title: "レディット",
     subtitle: "共有が最も少ない先",
   })
   .edge("twCard", "fbCard", { label: "拡散", tone: "info" })
@@ -17017,7 +17017,7 @@ animation:
     focus: ["Active2"]
     set:
       events: '[["09:00","active"],["09:15","active"]]'
-    description: "同じ色の区間が続く。 状態の名は 4 文字までに切って大文字で出ることが読める。"
+    description: "同じ色の区間が続く。 区間の字は状態の名前 (稼働 / 待機 / 異常) で出ることが読める。"
   - step: "異常が出る" 1.8s
     focus: ["Active2", "Idle2", "Error2"]
     set:
@@ -17083,7 +17083,7 @@ export const sourceJson__serverUptimeStatus = `{
       "duration": 1.8,
       "focus": ["Active2"],
       "set": { "events": "[[\\"09:00\\",\\"active\\"],[\\"09:15\\",\\"active\\"]]" },
-      "body": "同じ色の区間が続く。 状態の名は 4 文字までに切って大文字で出ることが読める。"
+      "body": "同じ色の区間が続く。 区間の字は状態の名前 (稼働 / 待機 / 異常) で出ることが読める。"
     },
     {
       "step": "異常が出る",
@@ -19636,15 +19636,15 @@ states:
   shares: '[["tw",245],["fb",89],["li",32],["rd",18]]'
 
 actors:
-  - tw2: { kind: card, lane: tw, stack: 0, subtitle: "共有が最も多い先", title: "X (tw)" }
-  - fb2: { kind: card, lane: fb, stack: 0, subtitle: "次に多い先", title: "フェイスブック (fb)" }
-  - li2: { kind: card, lane: li, stack: 0, subtitle: "中ほどの先", title: "リンクトイン (li)" }
-  - レディット (rd): { kind: card, lane: li, stack: 1, subtitle: "共有が最も少ない先" }
+  - tw2: { kind: card, lane: tw, stack: 0, subtitle: "共有が最も多い先", title: "X" }
+  - fb2: { kind: card, lane: fb, stack: 0, subtitle: "次に多い先", title: "フェイスブック" }
+  - li2: { kind: card, lane: li, stack: 0, subtitle: "中ほどの先", title: "リンクトイン" }
+  - レディット: { kind: card, lane: li, stack: 1, subtitle: "共有が最も少ない先" }
 
 flow:
   - tw2 -> fb2: "拡散" (info)
   - fb2 -> li2: "拡散" (info)
-  - li2 -> レディット (rd): "拡散" (info)
+  - li2 -> レディット: "拡散" (info)
 
 animation:
   - step: "投稿した直後" 1.8s
@@ -19660,7 +19660,7 @@ animation:
     badge: "拡散"
     description: "数が桁 1 つぶん増える。 並びと色は変わらず、ボタンの中の数だけが上がる。"
   - step: "落ち着く" 1.8s
-    focus: ["tw2", "fb2", "li2", "レディット (rd)"]
+    focus: ["tw2", "fb2", "li2", "レディット"]
     set:
       shares: '[["tw",245],["fb",89],["li",32],["rd",18],["ig",6]]'
     badge: "バズ"
@@ -19685,7 +19685,7 @@ export const sourceJson__socialShareButtons = `{
       "lane": "tw",
       "stack": 0,
       "subtitle": "共有が最も多い先",
-      "title": "X (tw)"
+      "title": "X"
     },
     {
       "name": "fb2",
@@ -19693,7 +19693,7 @@ export const sourceJson__socialShareButtons = `{
       "lane": "fb",
       "stack": 0,
       "subtitle": "次に多い先",
-      "title": "フェイスブック (fb)"
+      "title": "フェイスブック"
     },
     {
       "name": "li2",
@@ -19701,14 +19701,14 @@ export const sourceJson__socialShareButtons = `{
       "lane": "li",
       "stack": 0,
       "subtitle": "中ほどの先",
-      "title": "リンクトイン (li)"
+      "title": "リンクトイン"
     },
-    { "name": "レディット (rd)", "kind": "card", "lane": "li", "stack": 1, "subtitle": "共有が最も少ない先" }
+    { "name": "レディット", "kind": "card", "lane": "li", "stack": 1, "subtitle": "共有が最も少ない先" }
   ],
   "flow": [
     { "from": "tw2", "to": "fb2", "label": "拡散", "tone": "info" },
     { "from": "fb2", "to": "li2", "label": "拡散", "tone": "info" },
-    { "from": "li2", "to": "レディット (rd)", "label": "拡散", "tone": "info" }
+    { "from": "li2", "to": "レディット", "label": "拡散", "tone": "info" }
   ],
   "states": { "shares": "[[\\"tw\\",245],[\\"fb\\",89],[\\"li\\",32],[\\"rd\\",18]]" },
   "animation": [
@@ -19731,7 +19731,7 @@ export const sourceJson__socialShareButtons = `{
     {
       "step": "落ち着く",
       "duration": 1.8,
-      "focus": ["tw2", "fb2", "li2", "レディット (rd)"],
+      "focus": ["tw2", "fb2", "li2", "レディット"],
       "set": { "shares": "[[\\"tw\\",245],[\\"fb\\",89],[\\"li\\",32],[\\"rd\\",18],[\\"ig\\",6]]" },
       "badge": "バズ",
       "body": "4 つの差が最も開く。 5 つ渡しても出るのは **先頭 4 つ** までで、5 つ目は載らない。"
