@@ -18,41 +18,41 @@ const W = 440;
 export const kindActor = diagram("kind-actor", { topic: "kind: actor (外部主体)" })
   .lane("l", { x: 0, width: W })
   .state("v", { initial: 42 })
-  .node("a", { lane: "l", stack: 0, kind: "actor", title: "Client", eyebrow: "外部主体", value: "{v} users" })
-  .phase("p", { duration: 1500, title: "actor", body: "外部主体 (Client / 利用者 等)。 数値 value 表示可。" }, (p: PhaseBuilder) => p.activate("a").badge("active"))
-  .phase("p2", { duration: 1500, title: "actor の数が動く", body: "値の欄が段の中で動く。 この欄を描くのは actor だけ。" }, (p: PhaseBuilder) => p.activate("a").tween("v", 42, 137).badge("active"))
+  .node("a", { lane: "l", stack: 0, kind: "actor", title: "利用者", eyebrow: "外部主体", value: "{v} 人" })
+  .phase("p", { duration: 1500, title: "actor", body: "外から関わる主体 (利用者や外部の仕組み)。 値の欄に数を出せる。" }, (p: PhaseBuilder) => p.activate("a").badge("動作中"))
+  .phase("p2", { duration: 1500, title: "actor の数が動く", body: "値の欄が段の中で動く。 この欄を描くのは actor だけ。" }, (p: PhaseBuilder) => p.activate("a").tween("v", 42, 137).badge("動作中"))
   .build();
 
 export const kindFunction = diagram("kind-function", { topic: "kind: function (関数呼び出し)" })
   .lane("l", { x: 0, width: W })
   .state("v", { initial: 12 })
-  .node("fn", { lane: "l", stack: 0, kind: "function", title: "handler(req)", eyebrow: "関数呼び出し", subtitle: "-> Result<Order, E> · 呼出 {v}" })
-  .phase("p", { duration: 1500, title: "function", body: "Service の関数。 mono 等幅 title + subtitle で署名表示。" }, (p: PhaseBuilder) => p.activate("fn").badge("active"))
-  .phase("p2", { duration: 1500, title: "function の数が動く", body: "副題の呼出回数が段の中で動く。 署名の形は変えない。" }, (p: PhaseBuilder) => p.activate("fn").tween("v", 12, 480).badge("active"))
+  .node("fn", { lane: "l", stack: 0, kind: "function", title: "注文を受ける(要求)", eyebrow: "関数呼び出し", subtitle: "-> 注文か失敗 · 呼出 {v} 回" })
+  .phase("p", { duration: 1500, title: "function", body: "処理を受け持つ関数。 題を等幅の字で書き、副題に戻り値を書いて署名に見せる。" }, (p: PhaseBuilder) => p.activate("fn").badge("動作中"))
+  .phase("p2", { duration: 1500, title: "function の数が動く", body: "副題の呼出回数が段の中で動く。 署名の形は変えない。" }, (p: PhaseBuilder) => p.activate("fn").tween("v", 12, 480).badge("動作中"))
   .build();
 
 export const kindStorage = diagram("kind-storage", { topic: "kind: storage (保存データ)" })
   .lane("l", { x: 0, width: W })
   .state("v", { initial: 1200 })
-  .node("s", { lane: "l", stack: 0, kind: "storage", title: "users", eyebrow: "保存データ", rows: ["id: PK", "email: text", "行数: {v}"] })
-  .phase("p", { duration: 1500, title: "storage", body: "DB の table。 rows で複数 column 表示。" }, (p: PhaseBuilder) => p.activate("s").badge("active"))
-  .phase("p2", { duration: 1500, title: "storage の数が動く", body: "行の数が段の中で動く。 行も同じ経路で置換される。" }, (p: PhaseBuilder) => p.activate("s").tween("v", 1200, 8400).badge("active"))
+  .node("s", { lane: "l", stack: 0, kind: "storage", title: "利用者の表", eyebrow: "保存データ", rows: ["番号: 主キー", "メール: 文字列", "行数: {v}"] })
+  .phase("p", { duration: 1500, title: "storage", body: "DB の表。 列を rows に 1 行ずつ書く。" }, (p: PhaseBuilder) => p.activate("s").badge("動作中"))
+  .phase("p2", { duration: 1500, title: "storage の数が動く", body: "行の数が段の中で動く。 行も同じ経路で置換される。" }, (p: PhaseBuilder) => p.activate("s").tween("v", 1200, 8400).badge("動作中"))
   .build();
 
 export const kindEvent = diagram("kind-event", { topic: "kind: event (イベントログ)" })
   .lane("l", { x: 0, width: W })
   .state("v", { initial: 3 })
-  .node("e", { lane: "l", stack: 0, kind: "event", title: "OrderCreated", eyebrow: "イベント", subtitle: "(orderId, userId) · {v} 件/s" })
-  .phase("p", { duration: 1500, title: "event", body: "emit された event。 event bus / log が読む。" }, (p: PhaseBuilder) => p.activate("e").badge("active"))
-  .phase("p2", { duration: 1500, title: "event の数が動く", body: "副題の発生件数が段の中で動く。 中身の形は変えない。" }, (p: PhaseBuilder) => p.activate("e").tween("v", 3, 96).badge("active"))
+  .node("e", { lane: "l", stack: 0, kind: "event", title: "注文ができた", eyebrow: "イベント", subtitle: "(注文, 利用者) · 毎秒 {v} 件" })
+  .phase("p", { duration: 1500, title: "event", body: "発行された出来事。 出来事を配る経路や記録が読む。" }, (p: PhaseBuilder) => p.activate("e").badge("動作中"))
+  .phase("p2", { duration: 1500, title: "event の数が動く", body: "副題の発生件数が段の中で動く。 中身の形は変えない。" }, (p: PhaseBuilder) => p.activate("e").tween("v", 3, 96).badge("動作中"))
   .build();
 
 export const kindCard = diagram("kind-card", { topic: "kind: card (汎用情報)" })
   .lane("l", { x: 0, width: W })
   .state("v", { initial: 2 })
   .node("c", { lane: "l", stack: 0, kind: "card", title: "備考", eyebrow: "汎用カード", subtitle: "汎用の説明カード · {v} 件" })
-  .phase("p", { duration: 1500, title: "card", body: "kind に当てはまらない補足情報。" }, (p: PhaseBuilder) => p.activate("c").badge("active"))
-  .phase("p2", { duration: 1500, title: "card の数が動く", body: "副題の件数が段の中で動く。 説明の文は変えない。" }, (p: PhaseBuilder) => p.activate("c").tween("v", 2, 31).badge("active"))
+  .phase("p", { duration: 1500, title: "card", body: "kind に当てはまらない補足情報。" }, (p: PhaseBuilder) => p.activate("c").badge("動作中"))
+  .phase("p2", { duration: 1500, title: "card の数が動く", body: "副題の件数が段の中で動く。 説明の文は変えない。" }, (p: PhaseBuilder) => p.activate("c").tween("v", 2, 31).badge("動作中"))
   .build();
 
 /** 2. Lane バリエーション */
@@ -60,7 +60,7 @@ export const laneSingle = diagram("lane-single", { topic: "lane: 1 本" })
   .lane("only", { x: 0, width: W })
   .node("a", { lane: "only", stack: 0, kind: "actor", title: "A" })
   .node("b", { lane: "only", stack: 1, kind: "function", title: "B" })
-  .phase("p", { duration: 1500, title: "1 lane", body: "1 lane に複数 node を縦 stack。" }, (p: PhaseBuilder) => p.activate("a", "b").badge("OK"))
+  .phase("p", { duration: 1500, title: "1 lane", body: "1 本の lane に node を縦に積む。" }, (p: PhaseBuilder) => p.activate("a", "b").badge("正常"))
   .build();
 
 export const laneMulti = diagram("lane-multi", { topic: "lane: 3 本 (横並び)" })
@@ -70,14 +70,14 @@ export const laneMulti = diagram("lane-multi", { topic: "lane: 3 本 (横並び)
   .node("a", { lane: "l1", stack: 0, kind: "function", title: "A" })
   .node("b", { lane: "l2", stack: 0, kind: "function", title: "B" })
   .node("c", { lane: "l3", stack: 0, kind: "event", title: "C" })
-  .phase("p", { duration: 1500, title: "3 lane", body: "lane を横並びで責務分担 (Client / Service / Event)。" }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("OK"))
+  .phase("p", { duration: 1500, title: "3 lane", body: "lane を横に並べて役割を分ける (利用者 / 処理 / 出来事)。" }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("正常"))
   .build();
 
 export const laneContain = diagram("lane-contain", { topic: "lane: contain (枠囲み)" })
   .lane("inner", { x: 0, width: W, contain: true })
-  .node("fn", { lane: "inner", stack: 0, kind: "function", title: "internal fn" })
-  .node("st", { lane: "inner", stack: 1, kind: "storage", title: "storage" })
-  .phase("p", { duration: 1500, title: "contain", body: "lane.contain=true で lane 自体を枠で囲み、 内部を境界明示。" }, (p: PhaseBuilder) => p.activate("fn", "st").badge("OK"))
+  .node("fn", { lane: "inner", stack: 0, kind: "function", title: "内部の処理" })
+  .node("st", { lane: "inner", stack: 1, kind: "storage", title: "保存先" })
+  .phase("p", { duration: 1500, title: "contain", body: "lane に contain を付けると、 lane ごと枠で囲んで内と外の境を示す。" }, (p: PhaseBuilder) => p.activate("fn", "st").badge("正常"))
   .build();
 
 /** 3. Node stack バリエーション */
@@ -85,7 +85,7 @@ export const stackPair = diagram("stack-pair", { topic: "stack: 縦 2 段" })
   .lane("l", { x: 0, width: W })
   .node("top", { lane: "l", stack: 0, kind: "actor", title: "上" })
   .node("bot", { lane: "l", stack: 1, kind: "actor", title: "下" })
-  .phase("p", { duration: 1500, title: "stack 0/1", body: "同 lane 内で stack で縦並びを制御。" }, (p: PhaseBuilder) => p.activate("top", "bot").badge("OK"))
+  .phase("p", { duration: 1500, title: "stack 0/1", body: "同じ lane の中で、 stack の番号が縦の並びを決める。" }, (p: PhaseBuilder) => p.activate("top", "bot").badge("正常"))
   .build();
 
 export const stackTriple = diagram("stack-triple", { topic: "stack: 縦 3 段" })
@@ -93,7 +93,7 @@ export const stackTriple = diagram("stack-triple", { topic: "stack: 縦 3 段" }
   .node("a", { lane: "l", stack: 0, kind: "actor", title: "stack 0" })
   .node("b", { lane: "l", stack: 1, kind: "function", title: "stack 1" })
   .node("c", { lane: "l", stack: 2, kind: "storage", title: "stack 2" })
-  .phase("p", { duration: 1500, title: "stack 0/1/2", body: "stack の数を増やして縦展開、 row_gap で間隔自動。" }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("OK"))
+  .phase("p", { duration: 1500, title: "stack 0/1/2", body: "stack を増やすと縦に伸びる。 間隔は row_gap が自動で決める。" }, (p: PhaseBuilder) => p.activate("a", "b", "c").badge("正常"))
   .build();
 
 /**
@@ -151,85 +151,85 @@ function shapeSample(spec: ShapeSpec) {
 export const shapeFile = shapeSample({
   id: "shape-file",
   kind: "shape-file",
-  title: "report.pdf",
-  eyebrow: "file",
-  subtitle: "PDF {v} MB",
+  title: "月次報告書",
+  eyebrow: "ファイル",
+  subtitle: "PDF · {v} MB",
   metric: { from: 2, to: 9 },
   w: 272,
   topic: "shape: file (ドッグイア rect、 ファイル / document 表現)",
-  phase: { title: "file", body: "右上がドッグイアで折り返された rect。 ファイル / 文書 / レポート等" },
+  phase: { title: "shape-file", body: "右上の角を折り返した四角。 ファイルや文書、報告書を表す。" },
 });
 export const shapeFolder = shapeSample({
   id: "shape-folder",
   kind: "shape-folder",
-  title: "src/",
-  eyebrow: "folder",
-  subtitle: "{v} files",
+  title: "設計資料/",
+  eyebrow: "フォルダ",
+  subtitle: "ファイル {v} 件",
   metric: { from: 24, to: 118 },
   topic: "shape: folder (tab 付き rect、 フォルダ / パッケージ)",
-  phase: { title: "folder", body: "上端に tab のある rect。 ディレクトリ / package / モジュール群等" },
+  phase: { title: "shape-folder", body: "上の縁につまみの付いた四角。 フォルダや、部品をまとめた単位を表す。" },
 });
 export const shapeCloud = shapeSample({
   id: "shape-cloud",
   kind: "shape-cloud",
   title: "AWS",
-  eyebrow: "cloud",
+  eyebrow: "クラウド",
   subtitle: "{v} リージョン",
   metric: { from: 3, to: 12 },
   topic: "shape: cloud (5 円 合成、 クラウド / SaaS 表現)",
-  phase: { title: "cloud", body: "5 円 合成の cloud shape。 AWS / GCP / SaaS / 外部 API 等" },
+  phase: { title: "shape-cloud", body: "5 つの円を重ねた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。" },
 });
 export const shapeCylinder = shapeSample({
   id: "shape-cylinder",
   kind: "shape-cylinder",
   title: "PostgreSQL",
-  eyebrow: "database",
+  eyebrow: "データベース",
   subtitle: "{v} GB 使用",
   metric: { from: 120, to: 480 },
   w: 272,
   topic: "shape: cylinder (円柱、 DB / storage 表現)",
-  phase: { title: "cylinder", body: "円柱 (top + side + bottom ellipse)。 DB / 永続 storage / volume 等" },
+  phase: { title: "shape-cylinder", body: "円柱 (上面と側面と底の楕円)。 DB や、消えずに残る保存先を表す。" },
 });
 export const shapeHexagon = shapeSample({
   id: "shape-hexagon",
   kind: "shape-hexagon",
-  title: "AuthService",
-  eyebrow: "component",
-  subtitle: "{v} req/s",
+  title: "認証の役務",
+  eyebrow: "部品",
+  subtitle: "毎秒 {v} 件",
   metric: { from: 60, to: 940 },
   w: 294,
   topic: "shape: hexagon (六角形、 component / service)",
-  phase: { title: "hexagon", body: "六角形。 microservice / ドメインコンポーネント / モジュール表現" },
+  phase: { title: "shape-hexagon", body: "六角形。 小さく分けた役務や、業務ごとの部品を表す。" },
 });
 export const shapeDiamond = shapeSample({
   id: "shape-diamond",
   kind: "shape-diamond",
-  title: "valid?",
-  eyebrow: "decision",
-  subtitle: "true {v}%",
+  title: "正しい?",
+  eyebrow: "判定",
+  subtitle: "はい {v}%",
   metric: { from: 40, to: 92 },
   topic: "shape: diamond (ひし形、 decision / 判定)",
-  phase: { title: "diamond", body: "ひし形。 判定分岐 / choice / gateway 表現" },
+  phase: { title: "shape-diamond", body: "ひし形。 条件で道が分かれる所を表す。" },
 });
 export const shapeStack = shapeSample({
   id: "shape-stack",
   kind: "shape-stack",
   title: "v3.2.0",
-  eyebrow: "release",
+  eyebrow: "公開版",
   subtitle: "{v} 版",
   metric: { from: 3, to: 14 },
   topic: "shape: stack (重ね rect、 layer / history)",
-  phase: { title: "stack", body: "重なった 3 段の rect。 バージョン履歴 / layer / snapshot 群等" },
+  phase: { title: "shape-stack", body: "3 枚重ねた四角。 版の履歴や層、ある時点の写しの束を表す。" },
 });
 export const shapePerson = shapeSample({
   id: "shape-person",
   kind: "shape-person",
   title: "エンドユーザ",
-  eyebrow: "actor",
+  eyebrow: "人物",
   subtitle: "{v} 操作",
   metric: { from: 2, to: 21 },
   topic: "shape: person (人型 figure、 actor / user 表現)",
-  phase: { title: "person", body: "人型 figure (円頭 + 台形 body + 腕 curve)。 actor / user / 担当者" },
+  phase: { title: "shape-person", body: "人の形 (丸い頭と台形の胴、曲げた腕)。 登場する人や利用者、担当者を表す。" },
 });
 
 /** 4-b. Shape-driven software 6 (CAR-1111 Phase 2-B) ... OS ウィンドウ / 端末 / コード block / kanban ticket / チャット吹き出し / 歯車 */
@@ -237,11 +237,11 @@ export const shapeWindow = shapeSample({
   id: "shape-window",
   kind: "shape-window",
   title: "ダッシュボード",
-  eyebrow: "window",
+  eyebrow: "アプリの画面",
   subtitle: "開いた画面 {v}",
   metric: { from: 1, to: 6 },
   topic: "shape: window (GUI アプリ、 traffic lights + body)",
-  phase: { title: "window", body: "title bar + traffic lights + body。 GUI アプリ / desktop / ブラウザ画面" },
+  phase: { title: "shape-window", body: "題の帯と 3 色の丸ボタン、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。" },
 });
 // 段を付けていない (#1196)。 この種別は副題を描かない (題と目次だけを自前で描く)。
 // 数を置ける欄が識別の文字しか残らず、形の見本としての説明を潰すことになる。
@@ -250,10 +250,10 @@ export const shapeTerminal = shapeSample({
   id: "shape-terminal",
   kind: "shape-terminal",
   title: "zsh",
-  eyebrow: "terminal",
-  subtitle: "CLI shell",
+  eyebrow: "端末",
+  subtitle: "命令を打つ画面",
   topic: "shape: terminal (CLI shell、 mac bar + prompt)",
-  phase: { title: "terminal", body: "macOS bar + $ prompt + typing cursor。 CLI shell / SSH / script 実行" },
+  phase: { title: "shape-terminal", body: "上の帯と $ の入力待ち、点滅する印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。" },
 });
 // 段を付けていない (#1196)。 この種別は副題を描かない (題と目次だけを自前で描く)。
 // 数を置ける欄が識別の文字しか残らず、形の見本としての説明を潰すことになる。
@@ -261,11 +261,11 @@ export const shapeTerminal = shapeSample({
 export const shapeCodeBlock = shapeSample({
   id: "shape-code-block",
   kind: "shape-code-block",
-  title: "utils.ts",
-  eyebrow: "code",
-  subtitle: "3 line snippet",
+  title: "共通の処理",
+  eyebrow: "コード",
+  subtitle: "3 行の抜粋",
   topic: "shape: code-block (snippet、 editor tab + 4 syntax lines)",
-  phase: { title: "code-block", body: "editor tab + gutter + 4 syntax lines。 code snippet / editor / 実装" },
+  phase: { title: "shape-code-block", body: "編集画面の見出しと行番号の欄、色分けした 4 行。 コードの抜粋や、実装そのものを表す。" },
 });
 // 段を付けていない (#1196)。 この種別は副題を描かない (題と目次だけを自前で描く)。
 // 数を置ける欄が識別の文字しか残らず、形の見本としての説明を潰すことになる。
@@ -273,105 +273,105 @@ export const shapeCodeBlock = shapeSample({
 export const shapeKanbanCard = shapeSample({
   id: "shape-kanban-card",
   kind: "shape-kanban-card",
-  title: "CAR-1111",
-  eyebrow: "in progress",
-  subtitle: "shape-driven kind",
+  title: "課題 #1111",
+  eyebrow: "作業中",
+  subtitle: "形で見せる種別",
   topic: "shape: kanban-card (ticket + priority + tags)",
-  phase: { title: "kanban-card", body: "priority bar + ID + status pill + title + tags + avatars。 kanban ticket / Issue" },
+  phase: { title: "shape-kanban-card", body: "優先度の帯と番号、状態の札、題、分類の札、担当者の顔。 看板に貼る作業札や課題を表す。" },
 });
 export const shapeMessageBubble = shapeSample({
   id: "shape-message-bubble",
   kind: "shape-message-bubble",
   title: "了解しました",
-  eyebrow: "message",
+  eyebrow: "発言",
   subtitle: "未読 {v}",
   metric: { from: 0, to: 9 },
   topic: "shape: message-bubble (吹き出し、 rounded rect + tail)",
-  phase: { title: "message-bubble", body: "rounded rect + 左下 tail。 message / commit comment / 通知 / チャット" },
+  phase: { title: "shape-message-bubble", body: "角の丸い四角と、左下のしっぽ。 会話の発言や、変更への意見、通知を表す。" },
 });
 export const shapeGear = shapeSample({
   id: "shape-gear",
   kind: "shape-gear",
-  title: "Settings",
-  eyebrow: "config",
+  title: "環境設定",
+  eyebrow: "構成",
   subtitle: "設定 {v} 件",
   metric: { from: 8, to: 26 },
   topic: "shape: gear (歯車、 設定 / 処理エンジン)",
-  phase: { title: "gear", body: "12 teeth 大歯車 + 4 spokes + hub + bolt。 config / process engine / 設定" },
+  phase: { title: "shape-gear", body: "歯が 12 枚の大きな歯車と、4 本の腕、中心の軸、留め具。 設定や、処理を回す仕組みを表す。" },
 });
 
 /** 5. Shape-driven hardware 6 (CAR-1111 Phase 2-C) ... ハードウェア / IoT / エッジ領域の視覚要素 */
 export const shapeServerRack = shapeSample({
   id: "shape-server-rack",
   kind: "shape-server-rack",
-  title: "web-01",
-  eyebrow: "server",
-  subtitle: "{v} U rack mount",
+  title: "公開用 1 号機",
+  eyebrow: "サーバ",
+  subtitle: "{v} U 分を使用",
   metric: { from: 3, to: 12 },
   topic: "shape: server-rack (19 inch rack、 物理サーバ)",
-  phase: { title: "server-rack", body: "外枠 + 3 段 slot の rack。 物理サーバ / データセンター / on-prem 機器" },
+  phase: { title: "shape-server-rack", body: "外枠と 3 段の差し込み口を持つ棚。 実機のサーバや、データセンター、自社に置く機器を表す。" },
 });
 export const shapeNetworkNode = shapeSample({
   id: "shape-network-node",
   kind: "shape-network-node",
-  title: "core-router",
-  eyebrow: "network",
+  title: "基幹ルータ",
+  eyebrow: "通信網",
   subtitle: "L3 · 接続 {v} 台",
   metric: { from: 12, to: 96 },
   topic: "shape: network-node (network hub、 router / switch)",
-  phase: { title: "network-node", body: "中央 circle + 4 方向 line。 router / switch / hub / L3 gateway 等" },
+  phase: { title: "shape-network-node", body: "中央の円と 4 方向の線。 通信を中継する機器 (経路を選ぶもの、線を束ねるもの) を表す。" },
 });
 export const shapeMobileDevice = shapeSample({
   id: "shape-mobile-device",
   kind: "shape-mobile-device",
   title: "iPhone",
-  eyebrow: "mobile",
-  subtitle: "iOS · {v} 台",
+  eyebrow: "携帯端末",
+  subtitle: "{v} 台が稼働",
   metric: { from: 200, to: 1800 },
   topic: "shape: mobile-device (スマホ、 モバイル端末)",
-  phase: { title: "mobile-device", body: "speaker + screen + home button のスマホ。 mobile app / client 端末" },
+  phase: { title: "shape-mobile-device", body: "上の話し口と画面、下のボタンを持つスマホ。 携帯のアプリや、利用者の手元の端末を表す。" },
 });
 export const shapeIotSensor = shapeSample({
   id: "shape-iot-sensor",
   kind: "shape-iot-sensor",
   title: "温度センサー",
-  eyebrow: "iot",
-  subtitle: "BLE · {v} 度",
+  eyebrow: "計測機器",
+  subtitle: "無線 · {v} 度",
   metric: { from: 18, to: 34 },
   topic: "shape: iot-sensor (IoT beacon、 電波発信)",
-  phase: { title: "iot-sensor", body: "sensor 円 + 3 波紋 arc。 IoT beacon / センサー / ZigBee / LoRa 端末" },
+  phase: { title: "shape-iot-sensor", body: "計測器の円と 3 重の波紋。 電波で知らせる計測器や、ものにつないだ端末を表す。" },
 });
 export const shapeRobotArm = shapeSample({
   id: "shape-robot-arm",
   kind: "shape-robot-arm",
   title: "組立ライン",
-  eyebrow: "robot",
+  eyebrow: "ロボット",
   subtitle: "6 軸 · {v} 個/時",
   metric: { from: 40, to: 260 },
   topic: "shape: robot-arm (ロボアーム、 産業機器)",
-  phase: { title: "robot-arm", body: "base + 2 関節 + gripper のロボアーム。 産業機器 / 自動化 / 制御対象" },
+  phase: { title: "shape-robot-arm", body: "台座と 2 つの関節、先のつかみ手を持つ腕。 産業機器や、自動にした工程、制御する対象を表す。" },
 });
 export const shapeSatellite = shapeSample({
   id: "shape-satellite",
   kind: "shape-satellite",
   title: "Starlink",
-  eyebrow: "satellite",
-  subtitle: "LEO · 高度 {v} km",
+  eyebrow: "人工衛星",
+  subtitle: "低軌道 · 高度 {v} km",
   metric: { from: 340, to: 550 },
   topic: "shape: satellite (人工衛星、 エッジ通信)",
-  phase: { title: "satellite", body: "中央 body + 左右 solar panel + アンテナ。 人工衛星 / 宇宙 / エッジ通信" },
+  phase: { title: "shape-satellite", body: "中央の本体と左右の太陽電池板、アンテナ。 人工衛星や、宇宙を経由する通信を表す。" },
 });
 
 /** 6. Shape-driven blockchain / web3 6 (CAR-1111 Phase 2-D) ... Solidity / EVM 系開発主体 */
 export const shapeSmartContract = shapeSample({
   id: "shape-smart-contract",
   kind: "shape-smart-contract",
-  title: "Vault.sol",
-  eyebrow: "contract",
+  title: "預かり契約",
+  eyebrow: "契約",
   subtitle: "0.8.24 · 呼出 {v}",
   metric: { from: 12, to: 480 },
   topic: "shape: smart-contract (契約書 + 歯車 = 自動実行)",
-  phase: { title: "smart-contract", body: "文書 + 底に歯車 (自動実行)。 Solidity 契約 / DAO 規約 / 自動 escrow" },
+  phase: { title: "shape-smart-contract", body: "文書と、底の歯車 (自動で動く印)。 自動で動く契約や、参加者で決める組織の規約、条件付きの預かりを表す。" },
 });
 // 段を付けていない (#1196)。 この種別は絵の文字を自前で固定していて、書き手が渡した
 // 題 / 副題 / 目次 を 1 つも読まない。 副題に数を置いても変わるのは見えない控えの欄だけ。
@@ -379,52 +379,52 @@ export const shapeSmartContract = shapeSample({
 export const shapeBlockchainBlock = shapeSample({
   id: "shape-blockchain-block",
   kind: "shape-blockchain-block",
-  title: "Block #421",
-  eyebrow: "chain",
+  title: "ブロック #421",
+  eyebrow: "台帳",
   subtitle: "0xaf31c9d2...",
   topic: "shape: blockchain-block (連結 3 block + hash pointer)",
-  phase: { title: "blockchain-block", body: "縦連結 3 block + hash pointer + tx count。 Ethereum / Bitcoin ブロック" },
+  phase: { title: "shape-blockchain-block", body: "3 つのブロックを縦につなぎ、前のブロックの要約値と取引の数を持たせた形。 Ethereum や Bitcoin のブロックを表す。" },
 });
 export const shapeRpcNode = shapeSample({
   id: "shape-rpc-node",
   kind: "shape-rpc-node",
   title: "Alchemy",
-  eyebrow: "rpc",
-  subtitle: "mainnet · {v} req/s",
+  eyebrow: "RPC の窓口",
+  subtitle: "本番の網 · 毎秒 {v} 件",
   metric: { from: 90, to: 1200 },
   topic: "shape: rpc-node (JSON-RPC node + 6 peers + sync bar)",
-  phase: { title: "rpc-node", body: "中央 sphere + 6 peer dot + sync bar。 Infura / Alchemy / node provider" },
+  phase: { title: "shape-rpc-node", body: "中央の球と周りの 6 つの点、同期の帯。 分散台帳へ問い合わせる窓口を貸す事業者を表す。" },
 });
 export const shapeWallet = shapeSample({
   id: "shape-wallet",
   kind: "shape-wallet",
   title: "MetaMask",
-  eyebrow: "wallet",
-  subtitle: "EOA · 残高 {v} ETH",
+  eyebrow: "財布",
+  subtitle: "個人の口座 · 残高 {v} ETH",
   metric: { from: 1, to: 12 },
   topic: "shape: wallet (財布 + coin + balance display)",
-  phase: { title: "wallet", body: "財布 + coin 差し込み + balance。 MetaMask / Ledger / smart wallet" },
+  phase: { title: "shape-wallet", body: "財布と差し込んだ硬貨、残高。 閲覧ソフトの財布や、鍵を持ち歩く機器、契約でできた財布を表す。" },
 });
 export const shapeNft = shapeSample({
   id: "shape-nft",
   kind: "shape-nft",
   title: "CryptoPunk",
-  eyebrow: "nft",
+  eyebrow: "NFT",
   subtitle: "ERC-721 · {v} ETH",
   metric: { from: 3, to: 28 },
   w: 272,
   topic: "shape: nft (額縁 + polygonal art + verified badge)",
-  phase: { title: "nft", body: "額縁 + polygonal art + verified check。 ERC-721 / SBT / collection" },
+  phase: { title: "shape-nft", body: "額縁と角ばった絵、本物の印。 ERC-721 の作品や、譲れない証明、作品の集まりを表す。" },
 });
 export const shapeToken = shapeSample({
   id: "shape-token",
   kind: "shape-token",
   title: "ETH",
-  eyebrow: "token",
-  subtitle: "ERC-20 · {v} USD",
+  eyebrow: "通貨",
+  subtitle: "ERC-20 · {v} ドル",
   metric: { from: 2100, to: 3400 },
   topic: "shape: token (硬貨、 fungible currency)",
-  phase: { title: "token", body: "硬貨 + 通貨 symbol Ξ + shine。 ERC-20 / native currency / stablecoin" },
+  phase: { title: "shape-token", body: "硬貨と通貨の記号 Ξ、光。 ERC-20 の通貨や、台帳そのものの通貨、値を固定した通貨を表す。" },
 });
 
 /** 7. Shape-driven finance 6 (CAR-1111 Phase 2-D) ... 銀行 / 決済 / 信託 / 取引所主体 */
@@ -432,123 +432,123 @@ export const shapeBank = shapeSample({
   id: "shape-bank",
   kind: "shape-bank",
   title: "みずほ銀行",
-  eyebrow: "bank",
+  eyebrow: "銀行",
   subtitle: "都銀 · 預金 {v} 兆円",
   metric: { from: 90, to: 142 },
   topic: "shape: bank (Greek facade + 4 columns + $)",
-  phase: { title: "bank", body: "神殿風 facade (pediment + columns + base)。 都銀 / 地銀 / 銀行本店" },
+  phase: { title: "shape-bank", body: "神殿風の正面 (三角の屋根と柱と土台)。 都市銀行や地方銀行、銀行の本店を表す。" },
 });
 export const shapeTrustBank = shapeSample({
   id: "shape-trust-bank",
   kind: "shape-trust-bank",
   title: "三菱 UFJ 信託",
-  eyebrow: "trust-bank",
+  eyebrow: "信託銀行",
   subtitle: "受託 {v} 兆円",
   metric: { from: 40, to: 88 },
   topic: "shape: trust-bank (bank facade + 冠 crown = 受託の信頼)",
-  phase: { title: "trust-bank", body: "冠 + facade + Ⓣ letter。 信託銀行 / 受託業務 / 資産管理" },
+  phase: { title: "shape-trust-bank", body: "冠と正面の柱、T の印。 信託銀行や、預かって運用する業務、資産の管理を表す。" },
 });
 export const shapePaymentProvider = shapeSample({
   id: "shape-payment-provider",
   kind: "shape-payment-provider",
   title: "Stripe",
-  eyebrow: "payment",
+  eyebrow: "決済",
   subtitle: "決済 {v} 件/s",
   metric: { from: 30, to: 420 },
   topic: "shape: payment-provider (POS 端末 + screen + keypad)",
-  phase: { title: "payment-provider", body: "POS 端末 + APPROVED 表示 + keypad。 決済業者 / Stripe / 電子決済手段等取引業" },
+  phase: { title: "shape-payment-provider", body: "支払いの端末と承認の表示、数字の鍵盤。 決済の代行業者や、電子決済の取次を表す。" },
 });
 export const shapeBrokerage = shapeSample({
   id: "shape-brokerage",
   kind: "shape-brokerage",
   title: "野村證券",
-  eyebrow: "brokerage",
+  eyebrow: "証券",
   subtitle: "約定 {v} 件",
   metric: { from: 120, to: 940 },
   topic: "shape: brokerage (証券会社 tower + candle chart + up arrow)",
-  phase: { title: "brokerage", body: "tower + window grid + candle chart + up arrow。 証券会社 / 投資銀行" },
+  phase: { title: "shape-brokerage", body: "高い建物と格子の窓、ろうそく足の図、上向きの矢印。 証券会社や投資銀行を表す。" },
 });
 export const shapeExchange = shapeSample({
   id: "shape-exchange",
   kind: "shape-exchange",
   title: "Coinbase",
-  eyebrow: "exchange",
+  eyebrow: "取引所",
   subtitle: "出来高 {v} 億",
   metric: { from: 12, to: 86 },
   topic: "shape: exchange (取引所、 $ ⇄ Ξ swap)",
-  phase: { title: "exchange", body: "2 通貨 coin + 双方向 arrow + rate。 取引所 / DEX / 換金" },
+  phase: { title: "shape-exchange", body: "2 つの通貨の硬貨と両向きの矢印、交換の比率。 取引所や、仲介なしで交換する場、両替を表す。" },
 });
 export const shapeAtm = shapeSample({
   id: "shape-atm",
   kind: "shape-atm",
   title: "ATM",
-  eyebrow: "atm",
-  subtitle: "24 h · {v} 件/日",
+  eyebrow: "現金の窓口",
+  subtitle: "24 時間 · {v} 件/日",
   metric: { from: 180, to: 620 },
   topic: "shape: atm (現金自動預払機、 card slot + cash dispenser)",
-  phase: { title: "atm", body: "screen + button + card slot + dispenser。 銀行 ATM / コンビニ ATM" },
+  phase: { title: "shape-atm", body: "画面とボタン、カードの差し込み口、お金の出口。 銀行やコンビニの ATM を表す。" },
 });
 
 /** 8. Shape-driven commerce / web 6 (CAR-1111 Phase 2-D) ... web / EC / インフラ主体 */
 export const shapeWebsite = shapeSample({
   id: "shape-website",
   kind: "shape-website",
-  title: "example.com",
-  eyebrow: "website",
-  subtitle: "{v} PV/日",
+  title: "会社案内",
+  eyebrow: "サイト",
+  subtitle: "閲覧 {v} 回/日",
   metric: { from: 1200, to: 8600 },
   topic: "shape: website (browser + URL + page layout)",
-  phase: { title: "website", body: "browser + URL bar + header + 2 col。 corporate / SaaS LP / blog" },
+  phase: { title: "shape-website", body: "閲覧ソフトの枠と住所の欄、見出し、2 列の本文。 会社の案内や製品の紹介、日記のようなサイトを表す。" },
 });
 export const shapeStorefront = shapeSample({
   id: "shape-storefront",
   kind: "shape-storefront",
   title: "コンビニ",
-  eyebrow: "store",
+  eyebrow: "店舗",
   subtitle: "来店 {v} 人/日",
   metric: { from: 240, to: 810 },
   topic: "shape: storefront (実店舗、 awning + door + windows)",
-  phase: { title: "storefront", body: "赤白 awning + OPEN sign + door + windows。 リアル店舗 / 小売" },
+  phase: { title: "shape-storefront", body: "赤と白の日よけ、営業中の札、扉、窓。 実際の店や小売を表す。" },
 });
 export const shapeWarehouse = shapeSample({
   id: "shape-warehouse",
   kind: "shape-warehouse",
-  title: "FC1",
-  eyebrow: "warehouse",
+  title: "市川倉庫",
+  eyebrow: "物流拠点",
   subtitle: "在庫 {v} 千点",
   metric: { from: 12, to: 48 },
   topic: "shape: warehouse (倉庫、 roof + shutter + boxes)",
-  phase: { title: "warehouse", body: "roof + shutter door + box stack。 fulfillment center / 倉庫" },
+  phase: { title: "shape-warehouse", body: "屋根と巻き上げの扉、積んだ箱。 出荷を受け持つ拠点や倉庫を表す。" },
 });
 export const shapeOnlineShop = shapeSample({
   id: "shape-online-shop",
   kind: "shape-online-shop",
   title: "Amazon",
-  eyebrow: "online-shop",
+  eyebrow: "通販",
   subtitle: "注文 {v} 件/分",
   metric: { from: 6, to: 74 },
   topic: "shape: online-shop (browser + cart badge + product grid)",
-  phase: { title: "online-shop", body: "browser + cart badge (3) + 6 product grid。 EC / online 販売" },
+  phase: { title: "shape-online-shop", body: "閲覧ソフトの枠と、かごの数 (3)、6 つの商品の並び。 通販やネットの販売を表す。" },
 });
 export const shapeCdnEdge = shapeSample({
   id: "shape-cdn-edge",
   kind: "shape-cdn-edge",
   title: "Cloudflare",
-  eyebrow: "cdn",
-  subtitle: "{v} POP",
+  eyebrow: "配信網",
+  subtitle: "拠点 {v} か所",
   metric: { from: 300, to: 380 },
   topic: "shape: cdn-edge (地球儀 + 5 edge nodes + arc)",
-  phase: { title: "cdn-edge", body: "地球儀 + 5 edge dot + dashed connect。 Cloudflare / Fastly / edge network" },
+  phase: { title: "shape-cdn-edge", body: "地球儀と 5 つの拠点、点線のつながり。 配信網の事業者や、利用者の近くで返す網を表す。" },
 });
 export const shapeApiGateway = shapeSample({
   id: "shape-api-gateway",
   kind: "shape-api-gateway",
   title: "Kong",
-  eyebrow: "gateway",
-  subtitle: "{v} req/s",
+  eyebrow: "API の入口",
+  subtitle: "毎秒 {v} 件",
   metric: { from: 400, to: 3200 },
   topic: "shape: api-gateway (門柱 + arch + traffic arrow)",
-  phase: { title: "api-gateway", body: "2 柱 + arch + API text + traffic arrow。 Kong / AWS API GW / 門番" },
+  phase: { title: "shape-api-gateway", body: "2 本の柱と弧、API の字、行き交う矢印。 API の入口に立つ門番を表す。" },
 });
 
 /** 9. Shape-driven people 6 (CAR-1111 Phase 2-D) ... 職種別 person 型 */
@@ -556,61 +556,61 @@ export const shapeAuditor = shapeSample({
   id: "shape-auditor",
   kind: "shape-auditor",
   title: "監査法人",
-  eyebrow: "auditor",
+  eyebrow: "監査",
   subtitle: "指摘 {v} 件",
   metric: { from: 2, to: 17 },
   topic: "shape: auditor (監査人 + magnifier + check)",
-  phase: { title: "auditor", body: "人 + tie + magnifier + check icon。 監査人 / 公認会計士 / 内部監査" },
+  phase: { title: "shape-auditor", body: "人とネクタイ、虫眼鏡、確認の印。 監査人や公認会計士、内部の監査を表す。" },
 });
 export const shapeRegulator = shapeSample({
   id: "shape-regulator",
   kind: "shape-regulator",
   title: "金融庁",
-  eyebrow: "regulator",
+  eyebrow: "規制当局",
   subtitle: "検査 {v} 件",
   metric: { from: 4, to: 23 },
   topic: "shape: regulator (規制当局 + 冠 crown + 章 badge)",
-  phase: { title: "regulator", body: "人 + crown + 五芒星 badge。 金融庁 / 消費者庁 / 規制当局" },
+  phase: { title: "shape-regulator", body: "人と冠、五芒星の記章。 金融庁や消費者庁のような規制の当局を表す。" },
 });
 export const shapeNotary = shapeSample({
   id: "shape-notary",
   kind: "shape-notary",
   title: "公証役場",
-  eyebrow: "notary",
+  eyebrow: "公証",
   subtitle: "認証 {v} 件",
   metric: { from: 6, to: 31 },
   topic: "shape: notary (公証人 + 儒学者風 hat + seal 印)",
-  phase: { title: "notary", body: "人 + 儒学者風 hat + 紅印。 公証人 / 認証業務 / 書類認証" },
+  phase: { title: "shape-notary", body: "人と儒学者風の帽子、赤い印。 公証人や、書類が正しいと認める業務を表す。" },
 });
 export const shapeLawyer = shapeSample({
   id: "shape-lawyer",
   kind: "shape-lawyer",
   title: "顧問弁護士",
-  eyebrow: "lawyer",
+  eyebrow: "法務",
   subtitle: "案件 {v} 件",
   metric: { from: 3, to: 19 },
   topic: "shape: lawyer (弁護士 + wig + 天秤)",
-  phase: { title: "lawyer", body: "人 + 髪 + 正義の天秤 icon。 弁護士 / 法務顧問 / 法律事務所" },
+  phase: { title: "shape-lawyer", body: "人と髪、正義の天秤の印。 弁護士や法務の顧問、法律事務所を表す。" },
 });
 export const shapeTrader = shapeSample({
   id: "shape-trader",
   kind: "shape-trader",
   title: "デイトレーダー",
-  eyebrow: "trader",
+  eyebrow: "売買",
   subtitle: "約定 {v} 回",
   metric: { from: 8, to: 152 },
   topic: "shape: trader (トレーダー + headset + laptop chart)",
-  phase: { title: "trader", body: "人 + headset + laptop with chart。 トレーダー / MM / algo 発注" },
+  phase: { title: "shape-trader", body: "人とヘッドセット、値動きの映るパソコン。 トレーダーや、値付けを受け持つ業者、機械の自動発注を表す。" },
 });
 export const shapeCustomerService = shapeSample({
   id: "shape-customer-service",
   kind: "shape-customer-service",
   title: "サポート担当",
-  eyebrow: "support",
+  eyebrow: "問い合わせ",
   subtitle: "対応 {v} 件",
   metric: { from: 14, to: 88 },
   topic: "shape: customer-service (CS + headset + bubble)",
-  phase: { title: "customer-service", body: "人 + headset + speech bubble + name badge。 CS / コールセンター" },
+  phase: { title: "shape-customer-service", body: "人とヘッドセット、吹き出し、名札。 お客様の窓口やコールセンターを表す。" },
 });
 
 /** 10. Phase 2-D 追加分 (blockchain 4 新 + credit-card 分離) */
@@ -618,51 +618,51 @@ export const shapeBlockchain = shapeSample({
   id: "shape-blockchain",
   kind: "shape-blockchain",
   title: "ブロックチェーン",
-  eyebrow: "chain",
-  subtitle: "{v} block",
+  eyebrow: "台帳",
+  subtitle: "{v} ブロック",
   metric: { from: 5, to: 42 },
   topic: "shape: blockchain (5 block linked chain)",
-  phase: { title: "blockchain", body: "5 block を hash pointer で横に連結。 汎用 chain / L1 / L2 の抽象" },
+  phase: { title: "shape-blockchain", body: "5 つのブロックを、前の要約値を指す形で横につなぐ。 分散台帳の一般の形を表す。" },
 });
 export const shapeBitcoinChain = shapeSample({
   id: "shape-bitcoin-chain",
   kind: "shape-bitcoin-chain",
   title: "Bitcoin",
-  eyebrow: "bitcoin",
-  subtitle: "PoW · 高さ {v} 万",
+  eyebrow: "分散台帳",
+  subtitle: "ブロック高 {v} 万",
   metric: { from: 84, to: 89 },
   topic: "shape: bitcoin-chain (₿ + PoW + 橙色)",
-  phase: { title: "bitcoin-chain", body: "橙 accent + ₿ symbol + PoW mining。 Bitcoin mainnet / testnet" },
+  phase: { title: "shape-bitcoin-chain", body: "橙の色と ₿ の記号、計算の量で合意する採掘。 Bitcoin の本番の網や、試しの網を表す。" },
 });
 export const shapeEthereumChain = shapeSample({
   id: "shape-ethereum-chain",
   kind: "shape-ethereum-chain",
   title: "Ethereum",
-  eyebrow: "ethereum",
-  subtitle: "PoS · {v} 万 block",
+  eyebrow: "分散台帳",
+  subtitle: "{v} 万ブロック",
   metric: { from: 2000, to: 2400 },
   topic: "shape: ethereum-chain (Ξ + PoS + 紫色)",
-  phase: { title: "ethereum-chain", body: "紫 accent + Ξ symbol + PoS validator。 Ethereum mainnet / rollup base" },
+  phase: { title: "shape-ethereum-chain", body: "紫の色と Ξ の記号、預けた量で合意する検証役。 Ethereum の本番の網や、その上に重ねた網を表す。" },
 });
 export const shapeBlockchainNode = shapeSample({
   id: "shape-blockchain-node",
   kind: "shape-blockchain-node",
   title: "フルノード",
-  eyebrow: "node",
-  subtitle: "P2P · peer {v}",
+  eyebrow: "参加者",
+  subtitle: "直接つながる相手 {v} 台",
   metric: { from: 8, to: 64 },
   topic: "shape: blockchain-node (P2P hex + 6 peers)",
-  phase: { title: "blockchain-node", body: "中央 hex + 6 peer hex + block stack icon。 P2P full / archive / light node" },
+  phase: { title: "shape-blockchain-node", body: "中央の六角形と周りの 6 つの六角形、積んだブロックの印。 分散台帳の参加者 (全記録を持つもの、過去の状態まで持つもの、最小限だけ持つもの) を表す。" },
 });
 export const shapeCreditCard = shapeSample({
   id: "shape-credit-card",
   kind: "shape-credit-card",
   title: "クレカ",
-  eyebrow: "card",
-  subtitle: "VISA · {v} 万円",
+  eyebrow: "カード",
+  subtitle: "利用額 {v} 万円",
   metric: { from: 3, to: 18 },
   topic: "shape: credit-card (chip + magstripe + brand mark)",
-  phase: { title: "credit-card", body: "chip + NFC wave + 番号 + 名義 + 有効期限 + brand mark。 実物クレジットカード" },
+  phase: { title: "shape-credit-card", body: "金色の端子と非接触の波、番号、名義、有効期限、ブランドの印。 実物のクレジットカードを表す。" },
 });
 
 /** 11. 実シーン (Scene) diagram = 複数 shape の連携例、 catalog の実用性向上 */
@@ -3800,18 +3800,18 @@ states:
   v: 42
 
 actors:
-  - Client: { kind: actor, lane: l, stack: 0, eyebrow: "外部主体", value: "{v} users" }
+  - 利用者: { kind: actor, lane: l, stack: 0, eyebrow: "外部主体", value: "{v} 人" }
 
 animation:
   - step: "actor" 1.5s
-    focus: ["Client"]
-    badge: "active"
-    description: "外部主体 (Client / 利用者 等)。 数値 value 表示可。"
+    focus: ["利用者"]
+    badge: "動作中"
+    description: "外から関わる主体 (利用者や外部の仕組み)。 値の欄に数を出せる。"
   - step: "actor の数が動く" 1.5s
-    focus: ["Client"]
+    focus: ["利用者"]
     tween:
       v: 42 -> 137
-    badge: "active"
+    badge: "動作中"
     description: "値の欄が段の中で動く。 この欄を描くのは actor だけ。"
 `;
 
@@ -3823,12 +3823,12 @@ export const sourceJson__kindActor = `{
   },
   "actors": [
     {
-      "name": "Client",
+      "name": "利用者",
       "kind": "actor",
       "lane": "l",
       "stack": 0,
       "eyebrow": "外部主体",
-      "value": "{v} users"
+      "value": "{v} 人"
     }
   ],
   "flow": [],
@@ -3837,16 +3837,16 @@ export const sourceJson__kindActor = `{
     {
       "step": "actor",
       "duration": 1.5,
-      "focus": ["Client"],
-      "badge": "active",
-      "body": "外部主体 (Client / 利用者 等)。 数値 value 表示可。"
+      "focus": ["利用者"],
+      "badge": "動作中",
+      "body": "外から関わる主体 (利用者や外部の仕組み)。 値の欄に数を出せる。"
     },
     {
       "step": "actor の数が動く",
       "duration": 1.5,
-      "focus": ["Client"],
+      "focus": ["利用者"],
       "tween": { "v": [42, 137] },
-      "badge": "active",
+      "badge": "動作中",
       "body": "値の欄が段の中で動く。 この欄を描くのは actor だけ。"
     }
   ]
@@ -3862,18 +3862,18 @@ states:
   v: 12
 
 actors:
-  - handler(req): { kind: function, lane: l, stack: 0, eyebrow: "関数呼び出し", subtitle: "-> Result<Order, E> · 呼出 {v}" }
+  - 注文を受ける(要求): { kind: function, lane: l, stack: 0, eyebrow: "関数呼び出し", subtitle: "-> 注文か失敗 · 呼出 {v} 回" }
 
 animation:
   - step: "function" 1.5s
-    focus: ["handler(req)"]
-    badge: "active"
-    description: "Service の関数。 mono 等幅 title + subtitle で署名表示。"
+    focus: ["注文を受ける(要求)"]
+    badge: "動作中"
+    description: "処理を受け持つ関数。 題を等幅の字で書き、副題に戻り値を書いて署名に見せる。"
   - step: "function の数が動く" 1.5s
-    focus: ["handler(req)"]
+    focus: ["注文を受ける(要求)"]
     tween:
       v: 12 -> 480
-    badge: "active"
+    badge: "動作中"
     description: "副題の呼出回数が段の中で動く。 署名の形は変えない。"
 `;
 
@@ -3885,12 +3885,12 @@ export const sourceJson__kindFunction = `{
   },
   "actors": [
     {
-      "name": "handler(req)",
+      "name": "注文を受ける(要求)",
       "kind": "function",
       "lane": "l",
       "stack": 0,
       "eyebrow": "関数呼び出し",
-      "subtitle": "-> Result<Order, E> · 呼出 {v}"
+      "subtitle": "-> 注文か失敗 · 呼出 {v} 回"
     }
   ],
   "flow": [],
@@ -3899,16 +3899,16 @@ export const sourceJson__kindFunction = `{
     {
       "step": "function",
       "duration": 1.5,
-      "focus": ["handler(req)"],
-      "badge": "active",
-      "body": "Service の関数。 mono 等幅 title + subtitle で署名表示。"
+      "focus": ["注文を受ける(要求)"],
+      "badge": "動作中",
+      "body": "処理を受け持つ関数。 題を等幅の字で書き、副題に戻り値を書いて署名に見せる。"
     },
     {
       "step": "function の数が動く",
       "duration": 1.5,
-      "focus": ["handler(req)"],
+      "focus": ["注文を受ける(要求)"],
       "tween": { "v": [12, 480] },
-      "badge": "active",
+      "badge": "動作中",
       "body": "副題の呼出回数が段の中で動く。 署名の形は変えない。"
     }
   ]
@@ -3924,18 +3924,18 @@ states:
   v: 1200
 
 actors:
-  - users: { kind: storage, lane: l, stack: 0, eyebrow: "保存データ", rows: ["id: PK", "email: text", "行数: {v}"] }
+  - 利用者の表: { kind: storage, lane: l, stack: 0, eyebrow: "保存データ", rows: ["番号: 主キー", "メール: 文字列", "行数: {v}"] }
 
 animation:
   - step: "storage" 1.5s
-    focus: ["users"]
-    badge: "active"
-    description: "DB の table。 rows で複数 column 表示。"
+    focus: ["利用者の表"]
+    badge: "動作中"
+    description: "DB の表。 列を rows に 1 行ずつ書く。"
   - step: "storage の数が動く" 1.5s
-    focus: ["users"]
+    focus: ["利用者の表"]
     tween:
       v: 1200 -> 8400
-    badge: "active"
+    badge: "動作中"
     description: "行の数が段の中で動く。 行も同じ経路で置換される。"
 `;
 
@@ -3947,12 +3947,12 @@ export const sourceJson__kindStorage = `{
   },
   "actors": [
     {
-      "name": "users",
+      "name": "利用者の表",
       "kind": "storage",
       "lane": "l",
       "stack": 0,
       "eyebrow": "保存データ",
-      "rows": ["id: PK", "email: text", "行数: {v}"]
+      "rows": ["番号: 主キー", "メール: 文字列", "行数: {v}"]
     }
   ],
   "flow": [],
@@ -3961,16 +3961,16 @@ export const sourceJson__kindStorage = `{
     {
       "step": "storage",
       "duration": 1.5,
-      "focus": ["users"],
-      "badge": "active",
-      "body": "DB の table。 rows で複数 column 表示。"
+      "focus": ["利用者の表"],
+      "badge": "動作中",
+      "body": "DB の表。 列を rows に 1 行ずつ書く。"
     },
     {
       "step": "storage の数が動く",
       "duration": 1.5,
-      "focus": ["users"],
+      "focus": ["利用者の表"],
       "tween": { "v": [1200, 8400] },
-      "badge": "active",
+      "badge": "動作中",
       "body": "行の数が段の中で動く。 行も同じ経路で置換される。"
     }
   ]
@@ -3986,18 +3986,18 @@ states:
   v: 3
 
 actors:
-  - OrderCreated: { kind: event, lane: l, stack: 0, eyebrow: "イベント", subtitle: "(orderId, userId) · {v} 件/s" }
+  - 注文ができた: { kind: event, lane: l, stack: 0, eyebrow: "イベント", subtitle: "(注文, 利用者) · 毎秒 {v} 件" }
 
 animation:
   - step: "event" 1.5s
-    focus: ["OrderCreated"]
-    badge: "active"
-    description: "emit された event。 event bus / log が読む。"
+    focus: ["注文ができた"]
+    badge: "動作中"
+    description: "発行された出来事。 出来事を配る経路や記録が読む。"
   - step: "event の数が動く" 1.5s
-    focus: ["OrderCreated"]
+    focus: ["注文ができた"]
     tween:
       v: 3 -> 96
-    badge: "active"
+    badge: "動作中"
     description: "副題の発生件数が段の中で動く。 中身の形は変えない。"
 `;
 
@@ -4009,12 +4009,12 @@ export const sourceJson__kindEvent = `{
   },
   "actors": [
     {
-      "name": "OrderCreated",
+      "name": "注文ができた",
       "kind": "event",
       "lane": "l",
       "stack": 0,
       "eyebrow": "イベント",
-      "subtitle": "(orderId, userId) · {v} 件/s"
+      "subtitle": "(注文, 利用者) · 毎秒 {v} 件"
     }
   ],
   "flow": [],
@@ -4023,16 +4023,16 @@ export const sourceJson__kindEvent = `{
     {
       "step": "event",
       "duration": 1.5,
-      "focus": ["OrderCreated"],
-      "badge": "active",
-      "body": "emit された event。 event bus / log が読む。"
+      "focus": ["注文ができた"],
+      "badge": "動作中",
+      "body": "発行された出来事。 出来事を配る経路や記録が読む。"
     },
     {
       "step": "event の数が動く",
       "duration": 1.5,
-      "focus": ["OrderCreated"],
+      "focus": ["注文ができた"],
       "tween": { "v": [3, 96] },
-      "badge": "active",
+      "badge": "動作中",
       "body": "副題の発生件数が段の中で動く。 中身の形は変えない。"
     }
   ]
@@ -4053,13 +4053,13 @@ actors:
 animation:
   - step: "card" 1.5s
     focus: ["備考"]
-    badge: "active"
+    badge: "動作中"
     description: "kind に当てはまらない補足情報。"
   - step: "card の数が動く" 1.5s
     focus: ["備考"]
     tween:
       v: 2 -> 31
-    badge: "active"
+    badge: "動作中"
     description: "副題の件数が段の中で動く。 説明の文は変えない。"
 `;
 
@@ -4086,7 +4086,7 @@ export const sourceJson__kindCard = `{
       "step": "card",
       "duration": 1.5,
       "focus": ["備考"],
-      "badge": "active",
+      "badge": "動作中",
       "body": "kind に当てはまらない補足情報。"
     },
     {
@@ -4094,7 +4094,7 @@ export const sourceJson__kindCard = `{
       "duration": 1.5,
       "focus": ["備考"],
       "tween": { "v": [2, 31] },
-      "badge": "active",
+      "badge": "動作中",
       "body": "副題の件数が段の中で動く。 説明の文は変えない。"
     }
   ]
@@ -4113,8 +4113,8 @@ actors:
 animation:
   - step: "1 lane" 1.5s
     focus: ["A", "B"]
-    badge: "OK"
-    description: "1 lane に複数 node を縦 stack。"
+    badge: "正常"
+    description: "1 本の lane に node を縦に積む。"
 `;
 
 export const sourceJson__laneSingle = `{
@@ -4133,8 +4133,8 @@ export const sourceJson__laneSingle = `{
       "step": "1 lane",
       "duration": 1.5,
       "focus": ["A", "B"],
-      "badge": "OK",
-      "body": "1 lane に複数 node を縦 stack。"
+      "badge": "正常",
+      "body": "1 本の lane に node を縦に積む。"
     }
   ]
 }`;
@@ -4155,8 +4155,8 @@ actors:
 animation:
   - step: "3 lane" 1.5s
     focus: ["A", "B", "C"]
-    badge: "OK"
-    description: "lane を横並びで責務分担 (Client / Service / Event)。"
+    badge: "正常"
+    description: "lane を横に並べて役割を分ける (利用者 / 処理 / 出来事)。"
 `;
 
 export const sourceJson__laneMulti = `{
@@ -4178,8 +4178,8 @@ export const sourceJson__laneMulti = `{
       "step": "3 lane",
       "duration": 1.5,
       "focus": ["A", "B", "C"],
-      "badge": "OK",
-      "body": "lane を横並びで責務分担 (Client / Service / Event)。"
+      "badge": "正常",
+      "body": "lane を横に並べて役割を分ける (利用者 / 処理 / 出来事)。"
     }
   ]
 }`;
@@ -4191,14 +4191,14 @@ lanes:
   inner: { x: 0, width: 440, contain: true }
 
 actors:
-  - internal fn: { kind: function, lane: inner, stack: 0 }
-  - storage: { kind: storage, lane: inner, stack: 1 }
+  - 内部の処理: { kind: function, lane: inner, stack: 0 }
+  - 保存先: { kind: storage, lane: inner, stack: 1 }
 
 animation:
   - step: "contain" 1.5s
-    focus: ["internal fn", "storage"]
-    badge: "OK"
-    description: "lane.contain=true で lane 自体を枠で囲み、 内部を境界明示。"
+    focus: ["内部の処理", "保存先"]
+    badge: "正常"
+    description: "lane に contain を付けると、 lane ごと枠で囲んで内と外の境を示す。"
 `;
 
 export const sourceJson__laneContain = `{
@@ -4208,17 +4208,17 @@ export const sourceJson__laneContain = `{
     "inner": { "x": 0, "width": 440, "contain": true }
   },
   "actors": [
-    { "name": "internal fn", "kind": "function", "lane": "inner", "stack": 0 },
-    { "name": "storage", "kind": "storage", "lane": "inner", "stack": 1 }
+    { "name": "内部の処理", "kind": "function", "lane": "inner", "stack": 0 },
+    { "name": "保存先", "kind": "storage", "lane": "inner", "stack": 1 }
   ],
   "flow": [],
   "animation": [
     {
       "step": "contain",
       "duration": 1.5,
-      "focus": ["internal fn", "storage"],
-      "badge": "OK",
-      "body": "lane.contain=true で lane 自体を枠で囲み、 内部を境界明示。"
+      "focus": ["内部の処理", "保存先"],
+      "badge": "正常",
+      "body": "lane に contain を付けると、 lane ごと枠で囲んで内と外の境を示す。"
     }
   ]
 }`;
@@ -4236,8 +4236,8 @@ actors:
 animation:
   - step: "stack 0/1" 1.5s
     focus: ["上", "下"]
-    badge: "OK"
-    description: "同 lane 内で stack で縦並びを制御。"
+    badge: "正常"
+    description: "同じ lane の中で、 stack の番号が縦の並びを決める。"
 `;
 
 export const sourceJson__stackPair = `{
@@ -4256,8 +4256,8 @@ export const sourceJson__stackPair = `{
       "step": "stack 0/1",
       "duration": 1.5,
       "focus": ["上", "下"],
-      "badge": "OK",
-      "body": "同 lane 内で stack で縦並びを制御。"
+      "badge": "正常",
+      "body": "同じ lane の中で、 stack の番号が縦の並びを決める。"
     }
   ]
 }`;
@@ -4276,8 +4276,8 @@ actors:
 animation:
   - step: "stack 0/1/2" 1.5s
     focus: ["stack 0", "stack 1", "stack 2"]
-    badge: "OK"
-    description: "stack の数を増やして縦展開、 row_gap で間隔自動。"
+    badge: "正常"
+    description: "stack を増やすと縦に伸びる。 間隔は row_gap が自動で決める。"
 `;
 
 export const sourceJson__stackTriple = `{
@@ -4297,8 +4297,8 @@ export const sourceJson__stackTriple = `{
       "step": "stack 0/1/2",
       "duration": 1.5,
       "focus": ["stack 0", "stack 1", "stack 2"],
-      "badge": "OK",
-      "body": "stack の数を増やして縦展開、 row_gap で間隔自動。"
+      "badge": "正常",
+      "body": "stack を増やすと縦に伸びる。 間隔は row_gap が自動で決める。"
     }
   ]
 }`;
@@ -4313,15 +4313,15 @@ states:
   v: 2
 
 actors:
-  - report.pdf: { kind: shape-file, lane: l, stack: 0, eyebrow: "file", subtitle: "PDF {v} MB", posW: 272 }
+  - 月次報告書: { kind: shape-file, lane: l, stack: 0, eyebrow: "ファイル", subtitle: "PDF · {v} MB", posW: 272 }
 
 animation:
-  - step: "file" 1.5s
-    focus: ["report.pdf"]
+  - step: "shape-file" 1.5s
+    focus: ["月次報告書"]
     badge: "shape"
-    description: "右上がドッグイアで折り返された rect。 ファイル / 文書 / レポート等"
-  - step: "file の数が動く" 1.5s
-    focus: ["report.pdf"]
+    description: "右上の角を折り返した四角。 ファイルや文書、報告書を表す。"
+  - step: "shape-file の数が動く" 1.5s
+    focus: ["月次報告書"]
     tween:
       v: 2 -> 9
     badge: "shape"
@@ -4336,12 +4336,12 @@ export const sourceJson__shapeFile = `{
   },
   "actors": [
     {
-      "name": "report.pdf",
+      "name": "月次報告書",
       "kind": "shape-file",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "file",
-      "subtitle": "PDF {v} MB",
+      "eyebrow": "ファイル",
+      "subtitle": "PDF · {v} MB",
       "posW": 272
     }
   ],
@@ -4349,16 +4349,16 @@ export const sourceJson__shapeFile = `{
   "states": { "v": 2 },
   "animation": [
     {
-      "step": "file",
+      "step": "shape-file",
       "duration": 1.5,
-      "focus": ["report.pdf"],
+      "focus": ["月次報告書"],
       "badge": "shape",
-      "body": "右上がドッグイアで折り返された rect。 ファイル / 文書 / レポート等"
+      "body": "右上の角を折り返した四角。 ファイルや文書、報告書を表す。"
     },
     {
-      "step": "file の数が動く",
+      "step": "shape-file の数が動く",
       "duration": 1.5,
-      "focus": ["report.pdf"],
+      "focus": ["月次報告書"],
       "tween": { "v": [2, 9] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -4376,15 +4376,15 @@ states:
   v: 24
 
 actors:
-  - src/: { kind: shape-folder, lane: l, stack: 0, eyebrow: "folder", subtitle: "{v} files" }
+  - 設計資料/: { kind: shape-folder, lane: l, stack: 0, eyebrow: "フォルダ", subtitle: "ファイル {v} 件" }
 
 animation:
-  - step: "folder" 1.5s
-    focus: ["src/"]
+  - step: "shape-folder" 1.5s
+    focus: ["設計資料/"]
     badge: "shape"
-    description: "上端に tab のある rect。 ディレクトリ / package / モジュール群等"
-  - step: "folder の数が動く" 1.5s
-    focus: ["src/"]
+    description: "上の縁につまみの付いた四角。 フォルダや、部品をまとめた単位を表す。"
+  - step: "shape-folder の数が動く" 1.5s
+    focus: ["設計資料/"]
     tween:
       v: 24 -> 118
     badge: "shape"
@@ -4399,28 +4399,28 @@ export const sourceJson__shapeFolder = `{
   },
   "actors": [
     {
-      "name": "src/",
+      "name": "設計資料/",
       "kind": "shape-folder",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "folder",
-      "subtitle": "{v} files"
+      "eyebrow": "フォルダ",
+      "subtitle": "ファイル {v} 件"
     }
   ],
   "flow": [],
   "states": { "v": 24 },
   "animation": [
     {
-      "step": "folder",
+      "step": "shape-folder",
       "duration": 1.5,
-      "focus": ["src/"],
+      "focus": ["設計資料/"],
       "badge": "shape",
-      "body": "上端に tab のある rect。 ディレクトリ / package / モジュール群等"
+      "body": "上の縁につまみの付いた四角。 フォルダや、部品をまとめた単位を表す。"
     },
     {
-      "step": "folder の数が動く",
+      "step": "shape-folder の数が動く",
       "duration": 1.5,
-      "focus": ["src/"],
+      "focus": ["設計資料/"],
       "tween": { "v": [24, 118] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -4438,14 +4438,14 @@ states:
   v: 3
 
 actors:
-  - AWS: { kind: shape-cloud, lane: l, stack: 0, eyebrow: "cloud", subtitle: "{v} リージョン" }
+  - AWS: { kind: shape-cloud, lane: l, stack: 0, eyebrow: "クラウド", subtitle: "{v} リージョン" }
 
 animation:
-  - step: "cloud" 1.5s
+  - step: "shape-cloud" 1.5s
     focus: ["AWS"]
     badge: "shape"
-    description: "5 円 合成の cloud shape。 AWS / GCP / SaaS / 外部 API 等"
-  - step: "cloud の数が動く" 1.5s
+    description: "5 つの円を重ねた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。"
+  - step: "shape-cloud の数が動く" 1.5s
     focus: ["AWS"]
     tween:
       v: 3 -> 12
@@ -4465,7 +4465,7 @@ export const sourceJson__shapeCloud = `{
       "kind": "shape-cloud",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "cloud",
+      "eyebrow": "クラウド",
       "subtitle": "{v} リージョン"
     }
   ],
@@ -4473,14 +4473,14 @@ export const sourceJson__shapeCloud = `{
   "states": { "v": 3 },
   "animation": [
     {
-      "step": "cloud",
+      "step": "shape-cloud",
       "duration": 1.5,
       "focus": ["AWS"],
       "badge": "shape",
-      "body": "5 円 合成の cloud shape。 AWS / GCP / SaaS / 外部 API 等"
+      "body": "5 つの円を重ねた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。"
     },
     {
-      "step": "cloud の数が動く",
+      "step": "shape-cloud の数が動く",
       "duration": 1.5,
       "focus": ["AWS"],
       "tween": { "v": [3, 12] },
@@ -4500,14 +4500,14 @@ states:
   v: 120
 
 actors:
-  - PostgreSQL: { kind: shape-cylinder, lane: l, stack: 0, eyebrow: "database", subtitle: "{v} GB 使用", posW: 272 }
+  - PostgreSQL: { kind: shape-cylinder, lane: l, stack: 0, eyebrow: "データベース", subtitle: "{v} GB 使用", posW: 272 }
 
 animation:
-  - step: "cylinder" 1.5s
+  - step: "shape-cylinder" 1.5s
     focus: ["PostgreSQL"]
     badge: "shape"
-    description: "円柱 (top + side + bottom ellipse)。 DB / 永続 storage / volume 等"
-  - step: "cylinder の数が動く" 1.5s
+    description: "円柱 (上面と側面と底の楕円)。 DB や、消えずに残る保存先を表す。"
+  - step: "shape-cylinder の数が動く" 1.5s
     focus: ["PostgreSQL"]
     tween:
       v: 120 -> 480
@@ -4527,7 +4527,7 @@ export const sourceJson__shapeCylinder = `{
       "kind": "shape-cylinder",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "database",
+      "eyebrow": "データベース",
       "subtitle": "{v} GB 使用",
       "posW": 272
     }
@@ -4536,14 +4536,14 @@ export const sourceJson__shapeCylinder = `{
   "states": { "v": 120 },
   "animation": [
     {
-      "step": "cylinder",
+      "step": "shape-cylinder",
       "duration": 1.5,
       "focus": ["PostgreSQL"],
       "badge": "shape",
-      "body": "円柱 (top + side + bottom ellipse)。 DB / 永続 storage / volume 等"
+      "body": "円柱 (上面と側面と底の楕円)。 DB や、消えずに残る保存先を表す。"
     },
     {
-      "step": "cylinder の数が動く",
+      "step": "shape-cylinder の数が動く",
       "duration": 1.5,
       "focus": ["PostgreSQL"],
       "tween": { "v": [120, 480] },
@@ -4563,15 +4563,15 @@ states:
   v: 60
 
 actors:
-  - AuthService: { kind: shape-hexagon, lane: l, stack: 0, eyebrow: "component", subtitle: "{v} req/s", posW: 294 }
+  - 認証の役務: { kind: shape-hexagon, lane: l, stack: 0, eyebrow: "部品", subtitle: "毎秒 {v} 件", posW: 294 }
 
 animation:
-  - step: "hexagon" 1.5s
-    focus: ["AuthService"]
+  - step: "shape-hexagon" 1.5s
+    focus: ["認証の役務"]
     badge: "shape"
-    description: "六角形。 microservice / ドメインコンポーネント / モジュール表現"
-  - step: "hexagon の数が動く" 1.5s
-    focus: ["AuthService"]
+    description: "六角形。 小さく分けた役務や、業務ごとの部品を表す。"
+  - step: "shape-hexagon の数が動く" 1.5s
+    focus: ["認証の役務"]
     tween:
       v: 60 -> 940
     badge: "shape"
@@ -4586,12 +4586,12 @@ export const sourceJson__shapeHexagon = `{
   },
   "actors": [
     {
-      "name": "AuthService",
+      "name": "認証の役務",
       "kind": "shape-hexagon",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "component",
-      "subtitle": "{v} req/s",
+      "eyebrow": "部品",
+      "subtitle": "毎秒 {v} 件",
       "posW": 294
     }
   ],
@@ -4599,16 +4599,16 @@ export const sourceJson__shapeHexagon = `{
   "states": { "v": 60 },
   "animation": [
     {
-      "step": "hexagon",
+      "step": "shape-hexagon",
       "duration": 1.5,
-      "focus": ["AuthService"],
+      "focus": ["認証の役務"],
       "badge": "shape",
-      "body": "六角形。 microservice / ドメインコンポーネント / モジュール表現"
+      "body": "六角形。 小さく分けた役務や、業務ごとの部品を表す。"
     },
     {
-      "step": "hexagon の数が動く",
+      "step": "shape-hexagon の数が動く",
       "duration": 1.5,
-      "focus": ["AuthService"],
+      "focus": ["認証の役務"],
       "tween": { "v": [60, 940] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -4626,15 +4626,15 @@ states:
   v: 40
 
 actors:
-  - valid?: { kind: shape-diamond, lane: l, stack: 0, eyebrow: "decision", subtitle: "true {v}%" }
+  - 正しい?: { kind: shape-diamond, lane: l, stack: 0, eyebrow: "判定", subtitle: "はい {v}%" }
 
 animation:
-  - step: "diamond" 1.5s
-    focus: ["valid?"]
+  - step: "shape-diamond" 1.5s
+    focus: ["正しい?"]
     badge: "shape"
-    description: "ひし形。 判定分岐 / choice / gateway 表現"
-  - step: "diamond の数が動く" 1.5s
-    focus: ["valid?"]
+    description: "ひし形。 条件で道が分かれる所を表す。"
+  - step: "shape-diamond の数が動く" 1.5s
+    focus: ["正しい?"]
     tween:
       v: 40 -> 92
     badge: "shape"
@@ -4649,28 +4649,28 @@ export const sourceJson__shapeDiamond = `{
   },
   "actors": [
     {
-      "name": "valid?",
+      "name": "正しい?",
       "kind": "shape-diamond",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "decision",
-      "subtitle": "true {v}%"
+      "eyebrow": "判定",
+      "subtitle": "はい {v}%"
     }
   ],
   "flow": [],
   "states": { "v": 40 },
   "animation": [
     {
-      "step": "diamond",
+      "step": "shape-diamond",
       "duration": 1.5,
-      "focus": ["valid?"],
+      "focus": ["正しい?"],
       "badge": "shape",
-      "body": "ひし形。 判定分岐 / choice / gateway 表現"
+      "body": "ひし形。 条件で道が分かれる所を表す。"
     },
     {
-      "step": "diamond の数が動く",
+      "step": "shape-diamond の数が動く",
       "duration": 1.5,
-      "focus": ["valid?"],
+      "focus": ["正しい?"],
       "tween": { "v": [40, 92] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -4688,14 +4688,14 @@ states:
   v: 3
 
 actors:
-  - v3.2.0: { kind: shape-stack, lane: l, stack: 0, eyebrow: "release", subtitle: "{v} 版" }
+  - v3.2.0: { kind: shape-stack, lane: l, stack: 0, eyebrow: "公開版", subtitle: "{v} 版" }
 
 animation:
-  - step: "stack" 1.5s
+  - step: "shape-stack" 1.5s
     focus: ["v3.2.0"]
     badge: "shape"
-    description: "重なった 3 段の rect。 バージョン履歴 / layer / snapshot 群等"
-  - step: "stack の数が動く" 1.5s
+    description: "3 枚重ねた四角。 版の履歴や層、ある時点の写しの束を表す。"
+  - step: "shape-stack の数が動く" 1.5s
     focus: ["v3.2.0"]
     tween:
       v: 3 -> 14
@@ -4715,7 +4715,7 @@ export const sourceJson__shapeStack = `{
       "kind": "shape-stack",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "release",
+      "eyebrow": "公開版",
       "subtitle": "{v} 版"
     }
   ],
@@ -4723,14 +4723,14 @@ export const sourceJson__shapeStack = `{
   "states": { "v": 3 },
   "animation": [
     {
-      "step": "stack",
+      "step": "shape-stack",
       "duration": 1.5,
       "focus": ["v3.2.0"],
       "badge": "shape",
-      "body": "重なった 3 段の rect。 バージョン履歴 / layer / snapshot 群等"
+      "body": "3 枚重ねた四角。 版の履歴や層、ある時点の写しの束を表す。"
     },
     {
-      "step": "stack の数が動く",
+      "step": "shape-stack の数が動く",
       "duration": 1.5,
       "focus": ["v3.2.0"],
       "tween": { "v": [3, 14] },
@@ -4750,14 +4750,14 @@ states:
   v: 2
 
 actors:
-  - エンドユーザ: { kind: shape-person, lane: l, stack: 0, eyebrow: "actor", subtitle: "{v} 操作" }
+  - エンドユーザ: { kind: shape-person, lane: l, stack: 0, eyebrow: "人物", subtitle: "{v} 操作" }
 
 animation:
-  - step: "person" 1.5s
+  - step: "shape-person" 1.5s
     focus: ["エンドユーザ"]
     badge: "shape"
-    description: "人型 figure (円頭 + 台形 body + 腕 curve)。 actor / user / 担当者"
-  - step: "person の数が動く" 1.5s
+    description: "人の形 (丸い頭と台形の胴、曲げた腕)。 登場する人や利用者、担当者を表す。"
+  - step: "shape-person の数が動く" 1.5s
     focus: ["エンドユーザ"]
     tween:
       v: 2 -> 21
@@ -4777,7 +4777,7 @@ export const sourceJson__shapePerson = `{
       "kind": "shape-person",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "actor",
+      "eyebrow": "人物",
       "subtitle": "{v} 操作"
     }
   ],
@@ -4785,14 +4785,14 @@ export const sourceJson__shapePerson = `{
   "states": { "v": 2 },
   "animation": [
     {
-      "step": "person",
+      "step": "shape-person",
       "duration": 1.5,
       "focus": ["エンドユーザ"],
       "badge": "shape",
-      "body": "人型 figure (円頭 + 台形 body + 腕 curve)。 actor / user / 担当者"
+      "body": "人の形 (丸い頭と台形の胴、曲げた腕)。 登場する人や利用者、担当者を表す。"
     },
     {
-      "step": "person の数が動く",
+      "step": "shape-person の数が動く",
       "duration": 1.5,
       "focus": ["エンドユーザ"],
       "tween": { "v": [2, 21] },
@@ -4812,14 +4812,14 @@ states:
   v: 1
 
 actors:
-  - ダッシュボード: { kind: shape-window, lane: l, stack: 0, eyebrow: "window", subtitle: "開いた画面 {v}" }
+  - ダッシュボード: { kind: shape-window, lane: l, stack: 0, eyebrow: "アプリの画面", subtitle: "開いた画面 {v}" }
 
 animation:
-  - step: "window" 1.5s
+  - step: "shape-window" 1.5s
     focus: ["ダッシュボード"]
     badge: "shape"
-    description: "title bar + traffic lights + body。 GUI アプリ / desktop / ブラウザ画面"
-  - step: "window の数が動く" 1.5s
+    description: "題の帯と 3 色の丸ボタン、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。"
+  - step: "shape-window の数が動く" 1.5s
     focus: ["ダッシュボード"]
     tween:
       v: 1 -> 6
@@ -4839,7 +4839,7 @@ export const sourceJson__shapeWindow = `{
       "kind": "shape-window",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "window",
+      "eyebrow": "アプリの画面",
       "subtitle": "開いた画面 {v}"
     }
   ],
@@ -4847,14 +4847,14 @@ export const sourceJson__shapeWindow = `{
   "states": { "v": 1 },
   "animation": [
     {
-      "step": "window",
+      "step": "shape-window",
       "duration": 1.5,
       "focus": ["ダッシュボード"],
       "badge": "shape",
-      "body": "title bar + traffic lights + body。 GUI アプリ / desktop / ブラウザ画面"
+      "body": "題の帯と 3 色の丸ボタン、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。"
     },
     {
-      "step": "window の数が動く",
+      "step": "shape-window の数が動く",
       "duration": 1.5,
       "focus": ["ダッシュボード"],
       "tween": { "v": [1, 6] },
@@ -4871,13 +4871,13 @@ lanes:
   l: { x: 0, width: 440 }
 
 actors:
-  - zsh: { kind: shape-terminal, lane: l, stack: 0, eyebrow: "terminal", subtitle: "CLI shell" }
+  - zsh: { kind: shape-terminal, lane: l, stack: 0, eyebrow: "端末", subtitle: "命令を打つ画面" }
 
 animation:
-  - step: "terminal" 1.5s
+  - step: "shape-terminal" 1.5s
     focus: ["zsh"]
     badge: "shape"
-    description: "macOS bar + $ prompt + typing cursor。 CLI shell / SSH / script 実行"
+    description: "上の帯と $ の入力待ち、点滅する印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。"
 `;
 
 export const sourceJson__shapeTerminal = `{
@@ -4892,18 +4892,18 @@ export const sourceJson__shapeTerminal = `{
       "kind": "shape-terminal",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "terminal",
-      "subtitle": "CLI shell"
+      "eyebrow": "端末",
+      "subtitle": "命令を打つ画面"
     }
   ],
   "flow": [],
   "animation": [
     {
-      "step": "terminal",
+      "step": "shape-terminal",
       "duration": 1.5,
       "focus": ["zsh"],
       "badge": "shape",
-      "body": "macOS bar + $ prompt + typing cursor。 CLI shell / SSH / script 実行"
+      "body": "上の帯と $ の入力待ち、点滅する印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。"
     }
   ]
 }`;
@@ -4915,13 +4915,13 @@ lanes:
   l: { x: 0, width: 440 }
 
 actors:
-  - utils.ts: { kind: shape-code-block, lane: l, stack: 0, eyebrow: "code", subtitle: "3 line snippet" }
+  - 共通の処理: { kind: shape-code-block, lane: l, stack: 0, eyebrow: "コード", subtitle: "3 行の抜粋" }
 
 animation:
-  - step: "code-block" 1.5s
-    focus: ["utils.ts"]
+  - step: "shape-code-block" 1.5s
+    focus: ["共通の処理"]
     badge: "shape"
-    description: "editor tab + gutter + 4 syntax lines。 code snippet / editor / 実装"
+    description: "編集画面の見出しと行番号の欄、色分けした 4 行。 コードの抜粋や、実装そのものを表す。"
 `;
 
 export const sourceJson__shapeCodeBlock = `{
@@ -4932,22 +4932,22 @@ export const sourceJson__shapeCodeBlock = `{
   },
   "actors": [
     {
-      "name": "utils.ts",
+      "name": "共通の処理",
       "kind": "shape-code-block",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "code",
-      "subtitle": "3 line snippet"
+      "eyebrow": "コード",
+      "subtitle": "3 行の抜粋"
     }
   ],
   "flow": [],
   "animation": [
     {
-      "step": "code-block",
+      "step": "shape-code-block",
       "duration": 1.5,
-      "focus": ["utils.ts"],
+      "focus": ["共通の処理"],
       "badge": "shape",
-      "body": "editor tab + gutter + 4 syntax lines。 code snippet / editor / 実装"
+      "body": "編集画面の見出しと行番号の欄、色分けした 4 行。 コードの抜粋や、実装そのものを表す。"
     }
   ]
 }`;
@@ -4959,13 +4959,13 @@ lanes:
   l: { x: 0, width: 440 }
 
 actors:
-  - CAR-1111: { kind: shape-kanban-card, lane: l, stack: 0, eyebrow: "in progress", subtitle: "shape-driven kind" }
+  - 課題 #1111: { kind: shape-kanban-card, lane: l, stack: 0, eyebrow: "作業中", subtitle: "形で見せる種別" }
 
 animation:
-  - step: "kanban-card" 1.5s
-    focus: ["CAR-1111"]
+  - step: "shape-kanban-card" 1.5s
+    focus: ["課題 #1111"]
     badge: "shape"
-    description: "priority bar + ID + status pill + title + tags + avatars。 kanban ticket / Issue"
+    description: "優先度の帯と番号、状態の札、題、分類の札、担当者の顔。 看板に貼る作業札や課題を表す。"
 `;
 
 export const sourceJson__shapeKanbanCard = `{
@@ -4976,22 +4976,22 @@ export const sourceJson__shapeKanbanCard = `{
   },
   "actors": [
     {
-      "name": "CAR-1111",
+      "name": "課題 #1111",
       "kind": "shape-kanban-card",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "in progress",
-      "subtitle": "shape-driven kind"
+      "eyebrow": "作業中",
+      "subtitle": "形で見せる種別"
     }
   ],
   "flow": [],
   "animation": [
     {
-      "step": "kanban-card",
+      "step": "shape-kanban-card",
       "duration": 1.5,
-      "focus": ["CAR-1111"],
+      "focus": ["課題 #1111"],
       "badge": "shape",
-      "body": "priority bar + ID + status pill + title + tags + avatars。 kanban ticket / Issue"
+      "body": "優先度の帯と番号、状態の札、題、分類の札、担当者の顔。 看板に貼る作業札や課題を表す。"
     }
   ]
 }`;
@@ -5006,14 +5006,14 @@ states:
   v: 0
 
 actors:
-  - 了解しました: { kind: shape-message-bubble, lane: l, stack: 0, eyebrow: "message", subtitle: "未読 {v}" }
+  - 了解しました: { kind: shape-message-bubble, lane: l, stack: 0, eyebrow: "発言", subtitle: "未読 {v}" }
 
 animation:
-  - step: "message-bubble" 1.5s
+  - step: "shape-message-bubble" 1.5s
     focus: ["了解しました"]
     badge: "shape"
-    description: "rounded rect + 左下 tail。 message / commit comment / 通知 / チャット"
-  - step: "message-bubble の数が動く" 1.5s
+    description: "角の丸い四角と、左下のしっぽ。 会話の発言や、変更への意見、通知を表す。"
+  - step: "shape-message-bubble の数が動く" 1.5s
     focus: ["了解しました"]
     tween:
       v: 0 -> 9
@@ -5033,7 +5033,7 @@ export const sourceJson__shapeMessageBubble = `{
       "kind": "shape-message-bubble",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "message",
+      "eyebrow": "発言",
       "subtitle": "未読 {v}"
     }
   ],
@@ -5041,14 +5041,14 @@ export const sourceJson__shapeMessageBubble = `{
   "states": { "v": 0 },
   "animation": [
     {
-      "step": "message-bubble",
+      "step": "shape-message-bubble",
       "duration": 1.5,
       "focus": ["了解しました"],
       "badge": "shape",
-      "body": "rounded rect + 左下 tail。 message / commit comment / 通知 / チャット"
+      "body": "角の丸い四角と、左下のしっぽ。 会話の発言や、変更への意見、通知を表す。"
     },
     {
-      "step": "message-bubble の数が動く",
+      "step": "shape-message-bubble の数が動く",
       "duration": 1.5,
       "focus": ["了解しました"],
       "tween": { "v": [0, 9] },
@@ -5068,15 +5068,15 @@ states:
   v: 8
 
 actors:
-  - Settings: { kind: shape-gear, lane: l, stack: 0, eyebrow: "config", subtitle: "設定 {v} 件" }
+  - 環境設定: { kind: shape-gear, lane: l, stack: 0, eyebrow: "構成", subtitle: "設定 {v} 件" }
 
 animation:
-  - step: "gear" 1.5s
-    focus: ["Settings"]
+  - step: "shape-gear" 1.5s
+    focus: ["環境設定"]
     badge: "shape"
-    description: "12 teeth 大歯車 + 4 spokes + hub + bolt。 config / process engine / 設定"
-  - step: "gear の数が動く" 1.5s
-    focus: ["Settings"]
+    description: "歯が 12 枚の大きな歯車と、4 本の腕、中心の軸、留め具。 設定や、処理を回す仕組みを表す。"
+  - step: "shape-gear の数が動く" 1.5s
+    focus: ["環境設定"]
     tween:
       v: 8 -> 26
     badge: "shape"
@@ -5091,11 +5091,11 @@ export const sourceJson__shapeGear = `{
   },
   "actors": [
     {
-      "name": "Settings",
+      "name": "環境設定",
       "kind": "shape-gear",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "config",
+      "eyebrow": "構成",
       "subtitle": "設定 {v} 件"
     }
   ],
@@ -5103,16 +5103,16 @@ export const sourceJson__shapeGear = `{
   "states": { "v": 8 },
   "animation": [
     {
-      "step": "gear",
+      "step": "shape-gear",
       "duration": 1.5,
-      "focus": ["Settings"],
+      "focus": ["環境設定"],
       "badge": "shape",
-      "body": "12 teeth 大歯車 + 4 spokes + hub + bolt。 config / process engine / 設定"
+      "body": "歯が 12 枚の大きな歯車と、4 本の腕、中心の軸、留め具。 設定や、処理を回す仕組みを表す。"
     },
     {
-      "step": "gear の数が動く",
+      "step": "shape-gear の数が動く",
       "duration": 1.5,
-      "focus": ["Settings"],
+      "focus": ["環境設定"],
       "tween": { "v": [8, 26] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -5130,15 +5130,15 @@ states:
   v: 3
 
 actors:
-  - web-01: { kind: shape-server-rack, lane: l, stack: 0, eyebrow: "server", subtitle: "{v} U rack mount" }
+  - 公開用 1 号機: { kind: shape-server-rack, lane: l, stack: 0, eyebrow: "サーバ", subtitle: "{v} U 分を使用" }
 
 animation:
-  - step: "server-rack" 1.5s
-    focus: ["web-01"]
+  - step: "shape-server-rack" 1.5s
+    focus: ["公開用 1 号機"]
     badge: "shape"
-    description: "外枠 + 3 段 slot の rack。 物理サーバ / データセンター / on-prem 機器"
-  - step: "server-rack の数が動く" 1.5s
-    focus: ["web-01"]
+    description: "外枠と 3 段の差し込み口を持つ棚。 実機のサーバや、データセンター、自社に置く機器を表す。"
+  - step: "shape-server-rack の数が動く" 1.5s
+    focus: ["公開用 1 号機"]
     tween:
       v: 3 -> 12
     badge: "shape"
@@ -5153,28 +5153,28 @@ export const sourceJson__shapeServerRack = `{
   },
   "actors": [
     {
-      "name": "web-01",
+      "name": "公開用 1 号機",
       "kind": "shape-server-rack",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "server",
-      "subtitle": "{v} U rack mount"
+      "eyebrow": "サーバ",
+      "subtitle": "{v} U 分を使用"
     }
   ],
   "flow": [],
   "states": { "v": 3 },
   "animation": [
     {
-      "step": "server-rack",
+      "step": "shape-server-rack",
       "duration": 1.5,
-      "focus": ["web-01"],
+      "focus": ["公開用 1 号機"],
       "badge": "shape",
-      "body": "外枠 + 3 段 slot の rack。 物理サーバ / データセンター / on-prem 機器"
+      "body": "外枠と 3 段の差し込み口を持つ棚。 実機のサーバや、データセンター、自社に置く機器を表す。"
     },
     {
-      "step": "server-rack の数が動く",
+      "step": "shape-server-rack の数が動く",
       "duration": 1.5,
-      "focus": ["web-01"],
+      "focus": ["公開用 1 号機"],
       "tween": { "v": [3, 12] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -5192,15 +5192,15 @@ states:
   v: 12
 
 actors:
-  - core-router: { kind: shape-network-node, lane: l, stack: 0, eyebrow: "network", subtitle: "L3 · 接続 {v} 台" }
+  - 基幹ルータ: { kind: shape-network-node, lane: l, stack: 0, eyebrow: "通信網", subtitle: "L3 · 接続 {v} 台" }
 
 animation:
-  - step: "network-node" 1.5s
-    focus: ["core-router"]
+  - step: "shape-network-node" 1.5s
+    focus: ["基幹ルータ"]
     badge: "shape"
-    description: "中央 circle + 4 方向 line。 router / switch / hub / L3 gateway 等"
-  - step: "network-node の数が動く" 1.5s
-    focus: ["core-router"]
+    description: "中央の円と 4 方向の線。 通信を中継する機器 (経路を選ぶもの、線を束ねるもの) を表す。"
+  - step: "shape-network-node の数が動く" 1.5s
+    focus: ["基幹ルータ"]
     tween:
       v: 12 -> 96
     badge: "shape"
@@ -5215,11 +5215,11 @@ export const sourceJson__shapeNetworkNode = `{
   },
   "actors": [
     {
-      "name": "core-router",
+      "name": "基幹ルータ",
       "kind": "shape-network-node",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "network",
+      "eyebrow": "通信網",
       "subtitle": "L3 · 接続 {v} 台"
     }
   ],
@@ -5227,16 +5227,16 @@ export const sourceJson__shapeNetworkNode = `{
   "states": { "v": 12 },
   "animation": [
     {
-      "step": "network-node",
+      "step": "shape-network-node",
       "duration": 1.5,
-      "focus": ["core-router"],
+      "focus": ["基幹ルータ"],
       "badge": "shape",
-      "body": "中央 circle + 4 方向 line。 router / switch / hub / L3 gateway 等"
+      "body": "中央の円と 4 方向の線。 通信を中継する機器 (経路を選ぶもの、線を束ねるもの) を表す。"
     },
     {
-      "step": "network-node の数が動く",
+      "step": "shape-network-node の数が動く",
       "duration": 1.5,
-      "focus": ["core-router"],
+      "focus": ["基幹ルータ"],
       "tween": { "v": [12, 96] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -5254,14 +5254,14 @@ states:
   v: 200
 
 actors:
-  - iPhone: { kind: shape-mobile-device, lane: l, stack: 0, eyebrow: "mobile", subtitle: "iOS · {v} 台" }
+  - iPhone: { kind: shape-mobile-device, lane: l, stack: 0, eyebrow: "携帯端末", subtitle: "{v} 台が稼働" }
 
 animation:
-  - step: "mobile-device" 1.5s
+  - step: "shape-mobile-device" 1.5s
     focus: ["iPhone"]
     badge: "shape"
-    description: "speaker + screen + home button のスマホ。 mobile app / client 端末"
-  - step: "mobile-device の数が動く" 1.5s
+    description: "上の話し口と画面、下のボタンを持つスマホ。 携帯のアプリや、利用者の手元の端末を表す。"
+  - step: "shape-mobile-device の数が動く" 1.5s
     focus: ["iPhone"]
     tween:
       v: 200 -> 1800
@@ -5281,22 +5281,22 @@ export const sourceJson__shapeMobileDevice = `{
       "kind": "shape-mobile-device",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "mobile",
-      "subtitle": "iOS · {v} 台"
+      "eyebrow": "携帯端末",
+      "subtitle": "{v} 台が稼働"
     }
   ],
   "flow": [],
   "states": { "v": 200 },
   "animation": [
     {
-      "step": "mobile-device",
+      "step": "shape-mobile-device",
       "duration": 1.5,
       "focus": ["iPhone"],
       "badge": "shape",
-      "body": "speaker + screen + home button のスマホ。 mobile app / client 端末"
+      "body": "上の話し口と画面、下のボタンを持つスマホ。 携帯のアプリや、利用者の手元の端末を表す。"
     },
     {
-      "step": "mobile-device の数が動く",
+      "step": "shape-mobile-device の数が動く",
       "duration": 1.5,
       "focus": ["iPhone"],
       "tween": { "v": [200, 1800] },
@@ -5316,14 +5316,14 @@ states:
   v: 18
 
 actors:
-  - 温度センサー: { kind: shape-iot-sensor, lane: l, stack: 0, eyebrow: "iot", subtitle: "BLE · {v} 度" }
+  - 温度センサー: { kind: shape-iot-sensor, lane: l, stack: 0, eyebrow: "計測機器", subtitle: "無線 · {v} 度" }
 
 animation:
-  - step: "iot-sensor" 1.5s
+  - step: "shape-iot-sensor" 1.5s
     focus: ["温度センサー"]
     badge: "shape"
-    description: "sensor 円 + 3 波紋 arc。 IoT beacon / センサー / ZigBee / LoRa 端末"
-  - step: "iot-sensor の数が動く" 1.5s
+    description: "計測器の円と 3 重の波紋。 電波で知らせる計測器や、ものにつないだ端末を表す。"
+  - step: "shape-iot-sensor の数が動く" 1.5s
     focus: ["温度センサー"]
     tween:
       v: 18 -> 34
@@ -5343,22 +5343,22 @@ export const sourceJson__shapeIotSensor = `{
       "kind": "shape-iot-sensor",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "iot",
-      "subtitle": "BLE · {v} 度"
+      "eyebrow": "計測機器",
+      "subtitle": "無線 · {v} 度"
     }
   ],
   "flow": [],
   "states": { "v": 18 },
   "animation": [
     {
-      "step": "iot-sensor",
+      "step": "shape-iot-sensor",
       "duration": 1.5,
       "focus": ["温度センサー"],
       "badge": "shape",
-      "body": "sensor 円 + 3 波紋 arc。 IoT beacon / センサー / ZigBee / LoRa 端末"
+      "body": "計測器の円と 3 重の波紋。 電波で知らせる計測器や、ものにつないだ端末を表す。"
     },
     {
-      "step": "iot-sensor の数が動く",
+      "step": "shape-iot-sensor の数が動く",
       "duration": 1.5,
       "focus": ["温度センサー"],
       "tween": { "v": [18, 34] },
@@ -5378,14 +5378,14 @@ states:
   v: 40
 
 actors:
-  - 組立ライン: { kind: shape-robot-arm, lane: l, stack: 0, eyebrow: "robot", subtitle: "6 軸 · {v} 個/時" }
+  - 組立ライン: { kind: shape-robot-arm, lane: l, stack: 0, eyebrow: "ロボット", subtitle: "6 軸 · {v} 個/時" }
 
 animation:
-  - step: "robot-arm" 1.5s
+  - step: "shape-robot-arm" 1.5s
     focus: ["組立ライン"]
     badge: "shape"
-    description: "base + 2 関節 + gripper のロボアーム。 産業機器 / 自動化 / 制御対象"
-  - step: "robot-arm の数が動く" 1.5s
+    description: "台座と 2 つの関節、先のつかみ手を持つ腕。 産業機器や、自動にした工程、制御する対象を表す。"
+  - step: "shape-robot-arm の数が動く" 1.5s
     focus: ["組立ライン"]
     tween:
       v: 40 -> 260
@@ -5405,7 +5405,7 @@ export const sourceJson__shapeRobotArm = `{
       "kind": "shape-robot-arm",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "robot",
+      "eyebrow": "ロボット",
       "subtitle": "6 軸 · {v} 個/時"
     }
   ],
@@ -5413,14 +5413,14 @@ export const sourceJson__shapeRobotArm = `{
   "states": { "v": 40 },
   "animation": [
     {
-      "step": "robot-arm",
+      "step": "shape-robot-arm",
       "duration": 1.5,
       "focus": ["組立ライン"],
       "badge": "shape",
-      "body": "base + 2 関節 + gripper のロボアーム。 産業機器 / 自動化 / 制御対象"
+      "body": "台座と 2 つの関節、先のつかみ手を持つ腕。 産業機器や、自動にした工程、制御する対象を表す。"
     },
     {
-      "step": "robot-arm の数が動く",
+      "step": "shape-robot-arm の数が動く",
       "duration": 1.5,
       "focus": ["組立ライン"],
       "tween": { "v": [40, 260] },
@@ -5440,14 +5440,14 @@ states:
   v: 340
 
 actors:
-  - Starlink: { kind: shape-satellite, lane: l, stack: 0, eyebrow: "satellite", subtitle: "LEO · 高度 {v} km" }
+  - Starlink: { kind: shape-satellite, lane: l, stack: 0, eyebrow: "人工衛星", subtitle: "低軌道 · 高度 {v} km" }
 
 animation:
-  - step: "satellite" 1.5s
+  - step: "shape-satellite" 1.5s
     focus: ["Starlink"]
     badge: "shape"
-    description: "中央 body + 左右 solar panel + アンテナ。 人工衛星 / 宇宙 / エッジ通信"
-  - step: "satellite の数が動く" 1.5s
+    description: "中央の本体と左右の太陽電池板、アンテナ。 人工衛星や、宇宙を経由する通信を表す。"
+  - step: "shape-satellite の数が動く" 1.5s
     focus: ["Starlink"]
     tween:
       v: 340 -> 550
@@ -5467,22 +5467,22 @@ export const sourceJson__shapeSatellite = `{
       "kind": "shape-satellite",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "satellite",
-      "subtitle": "LEO · 高度 {v} km"
+      "eyebrow": "人工衛星",
+      "subtitle": "低軌道 · 高度 {v} km"
     }
   ],
   "flow": [],
   "states": { "v": 340 },
   "animation": [
     {
-      "step": "satellite",
+      "step": "shape-satellite",
       "duration": 1.5,
       "focus": ["Starlink"],
       "badge": "shape",
-      "body": "中央 body + 左右 solar panel + アンテナ。 人工衛星 / 宇宙 / エッジ通信"
+      "body": "中央の本体と左右の太陽電池板、アンテナ。 人工衛星や、宇宙を経由する通信を表す。"
     },
     {
-      "step": "satellite の数が動く",
+      "step": "shape-satellite の数が動く",
       "duration": 1.5,
       "focus": ["Starlink"],
       "tween": { "v": [340, 550] },
@@ -5502,15 +5502,15 @@ states:
   v: 12
 
 actors:
-  - Vault.sol: { kind: shape-smart-contract, lane: l, stack: 0, eyebrow: "contract", subtitle: "0.8.24 · 呼出 {v}" }
+  - 預かり契約: { kind: shape-smart-contract, lane: l, stack: 0, eyebrow: "契約", subtitle: "0.8.24 · 呼出 {v}" }
 
 animation:
-  - step: "smart-contract" 1.5s
-    focus: ["Vault.sol"]
+  - step: "shape-smart-contract" 1.5s
+    focus: ["預かり契約"]
     badge: "shape"
-    description: "文書 + 底に歯車 (自動実行)。 Solidity 契約 / DAO 規約 / 自動 escrow"
-  - step: "smart-contract の数が動く" 1.5s
-    focus: ["Vault.sol"]
+    description: "文書と、底の歯車 (自動で動く印)。 自動で動く契約や、参加者で決める組織の規約、条件付きの預かりを表す。"
+  - step: "shape-smart-contract の数が動く" 1.5s
+    focus: ["預かり契約"]
     tween:
       v: 12 -> 480
     badge: "shape"
@@ -5525,11 +5525,11 @@ export const sourceJson__shapeSmartContract = `{
   },
   "actors": [
     {
-      "name": "Vault.sol",
+      "name": "預かり契約",
       "kind": "shape-smart-contract",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "contract",
+      "eyebrow": "契約",
       "subtitle": "0.8.24 · 呼出 {v}"
     }
   ],
@@ -5537,16 +5537,16 @@ export const sourceJson__shapeSmartContract = `{
   "states": { "v": 12 },
   "animation": [
     {
-      "step": "smart-contract",
+      "step": "shape-smart-contract",
       "duration": 1.5,
-      "focus": ["Vault.sol"],
+      "focus": ["預かり契約"],
       "badge": "shape",
-      "body": "文書 + 底に歯車 (自動実行)。 Solidity 契約 / DAO 規約 / 自動 escrow"
+      "body": "文書と、底の歯車 (自動で動く印)。 自動で動く契約や、参加者で決める組織の規約、条件付きの預かりを表す。"
     },
     {
-      "step": "smart-contract の数が動く",
+      "step": "shape-smart-contract の数が動く",
       "duration": 1.5,
-      "focus": ["Vault.sol"],
+      "focus": ["預かり契約"],
       "tween": { "v": [12, 480] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -5561,13 +5561,13 @@ lanes:
   l: { x: 0, width: 440 }
 
 actors:
-  - Block #421: { kind: shape-blockchain-block, lane: l, stack: 0, eyebrow: "chain", subtitle: "0xaf31c9d2..." }
+  - ブロック #421: { kind: shape-blockchain-block, lane: l, stack: 0, eyebrow: "台帳", subtitle: "0xaf31c9d2..." }
 
 animation:
-  - step: "blockchain-block" 1.5s
-    focus: ["Block #421"]
+  - step: "shape-blockchain-block" 1.5s
+    focus: ["ブロック #421"]
     badge: "shape"
-    description: "縦連結 3 block + hash pointer + tx count。 Ethereum / Bitcoin ブロック"
+    description: "3 つのブロックを縦につなぎ、前のブロックの要約値と取引の数を持たせた形。 Ethereum や Bitcoin のブロックを表す。"
 `;
 
 export const sourceJson__shapeBlockchainBlock = `{
@@ -5578,22 +5578,22 @@ export const sourceJson__shapeBlockchainBlock = `{
   },
   "actors": [
     {
-      "name": "Block #421",
+      "name": "ブロック #421",
       "kind": "shape-blockchain-block",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "chain",
+      "eyebrow": "台帳",
       "subtitle": "0xaf31c9d2..."
     }
   ],
   "flow": [],
   "animation": [
     {
-      "step": "blockchain-block",
+      "step": "shape-blockchain-block",
       "duration": 1.5,
-      "focus": ["Block #421"],
+      "focus": ["ブロック #421"],
       "badge": "shape",
-      "body": "縦連結 3 block + hash pointer + tx count。 Ethereum / Bitcoin ブロック"
+      "body": "3 つのブロックを縦につなぎ、前のブロックの要約値と取引の数を持たせた形。 Ethereum や Bitcoin のブロックを表す。"
     }
   ]
 }`;
@@ -5608,14 +5608,14 @@ states:
   v: 90
 
 actors:
-  - Alchemy: { kind: shape-rpc-node, lane: l, stack: 0, eyebrow: "rpc", subtitle: "mainnet · {v} req/s" }
+  - Alchemy: { kind: shape-rpc-node, lane: l, stack: 0, eyebrow: "RPC の窓口", subtitle: "本番の網 · 毎秒 {v} 件" }
 
 animation:
-  - step: "rpc-node" 1.5s
+  - step: "shape-rpc-node" 1.5s
     focus: ["Alchemy"]
     badge: "shape"
-    description: "中央 sphere + 6 peer dot + sync bar。 Infura / Alchemy / node provider"
-  - step: "rpc-node の数が動く" 1.5s
+    description: "中央の球と周りの 6 つの点、同期の帯。 分散台帳へ問い合わせる窓口を貸す事業者を表す。"
+  - step: "shape-rpc-node の数が動く" 1.5s
     focus: ["Alchemy"]
     tween:
       v: 90 -> 1200
@@ -5635,22 +5635,22 @@ export const sourceJson__shapeRpcNode = `{
       "kind": "shape-rpc-node",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "rpc",
-      "subtitle": "mainnet · {v} req/s"
+      "eyebrow": "RPC の窓口",
+      "subtitle": "本番の網 · 毎秒 {v} 件"
     }
   ],
   "flow": [],
   "states": { "v": 90 },
   "animation": [
     {
-      "step": "rpc-node",
+      "step": "shape-rpc-node",
       "duration": 1.5,
       "focus": ["Alchemy"],
       "badge": "shape",
-      "body": "中央 sphere + 6 peer dot + sync bar。 Infura / Alchemy / node provider"
+      "body": "中央の球と周りの 6 つの点、同期の帯。 分散台帳へ問い合わせる窓口を貸す事業者を表す。"
     },
     {
-      "step": "rpc-node の数が動く",
+      "step": "shape-rpc-node の数が動く",
       "duration": 1.5,
       "focus": ["Alchemy"],
       "tween": { "v": [90, 1200] },
@@ -5670,14 +5670,14 @@ states:
   v: 1
 
 actors:
-  - MetaMask: { kind: shape-wallet, lane: l, stack: 0, eyebrow: "wallet", subtitle: "EOA · 残高 {v} ETH" }
+  - MetaMask: { kind: shape-wallet, lane: l, stack: 0, eyebrow: "財布", subtitle: "個人の口座 · 残高 {v} ETH" }
 
 animation:
-  - step: "wallet" 1.5s
+  - step: "shape-wallet" 1.5s
     focus: ["MetaMask"]
     badge: "shape"
-    description: "財布 + coin 差し込み + balance。 MetaMask / Ledger / smart wallet"
-  - step: "wallet の数が動く" 1.5s
+    description: "財布と差し込んだ硬貨、残高。 閲覧ソフトの財布や、鍵を持ち歩く機器、契約でできた財布を表す。"
+  - step: "shape-wallet の数が動く" 1.5s
     focus: ["MetaMask"]
     tween:
       v: 1 -> 12
@@ -5697,22 +5697,22 @@ export const sourceJson__shapeWallet = `{
       "kind": "shape-wallet",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "wallet",
-      "subtitle": "EOA · 残高 {v} ETH"
+      "eyebrow": "財布",
+      "subtitle": "個人の口座 · 残高 {v} ETH"
     }
   ],
   "flow": [],
   "states": { "v": 1 },
   "animation": [
     {
-      "step": "wallet",
+      "step": "shape-wallet",
       "duration": 1.5,
       "focus": ["MetaMask"],
       "badge": "shape",
-      "body": "財布 + coin 差し込み + balance。 MetaMask / Ledger / smart wallet"
+      "body": "財布と差し込んだ硬貨、残高。 閲覧ソフトの財布や、鍵を持ち歩く機器、契約でできた財布を表す。"
     },
     {
-      "step": "wallet の数が動く",
+      "step": "shape-wallet の数が動く",
       "duration": 1.5,
       "focus": ["MetaMask"],
       "tween": { "v": [1, 12] },
@@ -5732,14 +5732,14 @@ states:
   v: 3
 
 actors:
-  - CryptoPunk: { kind: shape-nft, lane: l, stack: 0, eyebrow: "nft", subtitle: "ERC-721 · {v} ETH", posW: 272 }
+  - CryptoPunk: { kind: shape-nft, lane: l, stack: 0, eyebrow: "NFT", subtitle: "ERC-721 · {v} ETH", posW: 272 }
 
 animation:
-  - step: "nft" 1.5s
+  - step: "shape-nft" 1.5s
     focus: ["CryptoPunk"]
     badge: "shape"
-    description: "額縁 + polygonal art + verified check。 ERC-721 / SBT / collection"
-  - step: "nft の数が動く" 1.5s
+    description: "額縁と角ばった絵、本物の印。 ERC-721 の作品や、譲れない証明、作品の集まりを表す。"
+  - step: "shape-nft の数が動く" 1.5s
     focus: ["CryptoPunk"]
     tween:
       v: 3 -> 28
@@ -5759,7 +5759,7 @@ export const sourceJson__shapeNft = `{
       "kind": "shape-nft",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "nft",
+      "eyebrow": "NFT",
       "subtitle": "ERC-721 · {v} ETH",
       "posW": 272
     }
@@ -5768,14 +5768,14 @@ export const sourceJson__shapeNft = `{
   "states": { "v": 3 },
   "animation": [
     {
-      "step": "nft",
+      "step": "shape-nft",
       "duration": 1.5,
       "focus": ["CryptoPunk"],
       "badge": "shape",
-      "body": "額縁 + polygonal art + verified check。 ERC-721 / SBT / collection"
+      "body": "額縁と角ばった絵、本物の印。 ERC-721 の作品や、譲れない証明、作品の集まりを表す。"
     },
     {
-      "step": "nft の数が動く",
+      "step": "shape-nft の数が動く",
       "duration": 1.5,
       "focus": ["CryptoPunk"],
       "tween": { "v": [3, 28] },
@@ -5795,14 +5795,14 @@ states:
   v: 2100
 
 actors:
-  - ETH: { kind: shape-token, lane: l, stack: 0, eyebrow: "token", subtitle: "ERC-20 · {v} USD" }
+  - ETH: { kind: shape-token, lane: l, stack: 0, eyebrow: "通貨", subtitle: "ERC-20 · {v} ドル" }
 
 animation:
-  - step: "token" 1.5s
+  - step: "shape-token" 1.5s
     focus: ["ETH"]
     badge: "shape"
-    description: "硬貨 + 通貨 symbol Ξ + shine。 ERC-20 / native currency / stablecoin"
-  - step: "token の数が動く" 1.5s
+    description: "硬貨と通貨の記号 Ξ、光。 ERC-20 の通貨や、台帳そのものの通貨、値を固定した通貨を表す。"
+  - step: "shape-token の数が動く" 1.5s
     focus: ["ETH"]
     tween:
       v: 2100 -> 3400
@@ -5822,22 +5822,22 @@ export const sourceJson__shapeToken = `{
       "kind": "shape-token",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "token",
-      "subtitle": "ERC-20 · {v} USD"
+      "eyebrow": "通貨",
+      "subtitle": "ERC-20 · {v} ドル"
     }
   ],
   "flow": [],
   "states": { "v": 2100 },
   "animation": [
     {
-      "step": "token",
+      "step": "shape-token",
       "duration": 1.5,
       "focus": ["ETH"],
       "badge": "shape",
-      "body": "硬貨 + 通貨 symbol Ξ + shine。 ERC-20 / native currency / stablecoin"
+      "body": "硬貨と通貨の記号 Ξ、光。 ERC-20 の通貨や、台帳そのものの通貨、値を固定した通貨を表す。"
     },
     {
-      "step": "token の数が動く",
+      "step": "shape-token の数が動く",
       "duration": 1.5,
       "focus": ["ETH"],
       "tween": { "v": [2100, 3400] },
@@ -5857,14 +5857,14 @@ states:
   v: 90
 
 actors:
-  - みずほ銀行: { kind: shape-bank, lane: l, stack: 0, eyebrow: "bank", subtitle: "都銀 · 預金 {v} 兆円" }
+  - みずほ銀行: { kind: shape-bank, lane: l, stack: 0, eyebrow: "銀行", subtitle: "都銀 · 預金 {v} 兆円" }
 
 animation:
-  - step: "bank" 1.5s
+  - step: "shape-bank" 1.5s
     focus: ["みずほ銀行"]
     badge: "shape"
-    description: "神殿風 facade (pediment + columns + base)。 都銀 / 地銀 / 銀行本店"
-  - step: "bank の数が動く" 1.5s
+    description: "神殿風の正面 (三角の屋根と柱と土台)。 都市銀行や地方銀行、銀行の本店を表す。"
+  - step: "shape-bank の数が動く" 1.5s
     focus: ["みずほ銀行"]
     tween:
       v: 90 -> 142
@@ -5884,7 +5884,7 @@ export const sourceJson__shapeBank = `{
       "kind": "shape-bank",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "bank",
+      "eyebrow": "銀行",
       "subtitle": "都銀 · 預金 {v} 兆円"
     }
   ],
@@ -5892,14 +5892,14 @@ export const sourceJson__shapeBank = `{
   "states": { "v": 90 },
   "animation": [
     {
-      "step": "bank",
+      "step": "shape-bank",
       "duration": 1.5,
       "focus": ["みずほ銀行"],
       "badge": "shape",
-      "body": "神殿風 facade (pediment + columns + base)。 都銀 / 地銀 / 銀行本店"
+      "body": "神殿風の正面 (三角の屋根と柱と土台)。 都市銀行や地方銀行、銀行の本店を表す。"
     },
     {
-      "step": "bank の数が動く",
+      "step": "shape-bank の数が動く",
       "duration": 1.5,
       "focus": ["みずほ銀行"],
       "tween": { "v": [90, 142] },
@@ -5919,14 +5919,14 @@ states:
   v: 40
 
 actors:
-  - 三菱 UFJ 信託: { kind: shape-trust-bank, lane: l, stack: 0, eyebrow: "trust-bank", subtitle: "受託 {v} 兆円" }
+  - 三菱 UFJ 信託: { kind: shape-trust-bank, lane: l, stack: 0, eyebrow: "信託銀行", subtitle: "受託 {v} 兆円" }
 
 animation:
-  - step: "trust-bank" 1.5s
+  - step: "shape-trust-bank" 1.5s
     focus: ["三菱 UFJ 信託"]
     badge: "shape"
-    description: "冠 + facade + Ⓣ letter。 信託銀行 / 受託業務 / 資産管理"
-  - step: "trust-bank の数が動く" 1.5s
+    description: "冠と正面の柱、T の印。 信託銀行や、預かって運用する業務、資産の管理を表す。"
+  - step: "shape-trust-bank の数が動く" 1.5s
     focus: ["三菱 UFJ 信託"]
     tween:
       v: 40 -> 88
@@ -5946,7 +5946,7 @@ export const sourceJson__shapeTrustBank = `{
       "kind": "shape-trust-bank",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "trust-bank",
+      "eyebrow": "信託銀行",
       "subtitle": "受託 {v} 兆円"
     }
   ],
@@ -5954,14 +5954,14 @@ export const sourceJson__shapeTrustBank = `{
   "states": { "v": 40 },
   "animation": [
     {
-      "step": "trust-bank",
+      "step": "shape-trust-bank",
       "duration": 1.5,
       "focus": ["三菱 UFJ 信託"],
       "badge": "shape",
-      "body": "冠 + facade + Ⓣ letter。 信託銀行 / 受託業務 / 資産管理"
+      "body": "冠と正面の柱、T の印。 信託銀行や、預かって運用する業務、資産の管理を表す。"
     },
     {
-      "step": "trust-bank の数が動く",
+      "step": "shape-trust-bank の数が動く",
       "duration": 1.5,
       "focus": ["三菱 UFJ 信託"],
       "tween": { "v": [40, 88] },
@@ -5981,14 +5981,14 @@ states:
   v: 30
 
 actors:
-  - Stripe: { kind: shape-payment-provider, lane: l, stack: 0, eyebrow: "payment", subtitle: "決済 {v} 件/s" }
+  - Stripe: { kind: shape-payment-provider, lane: l, stack: 0, eyebrow: "決済", subtitle: "決済 {v} 件/s" }
 
 animation:
-  - step: "payment-provider" 1.5s
+  - step: "shape-payment-provider" 1.5s
     focus: ["Stripe"]
     badge: "shape"
-    description: "POS 端末 + APPROVED 表示 + keypad。 決済業者 / Stripe / 電子決済手段等取引業"
-  - step: "payment-provider の数が動く" 1.5s
+    description: "支払いの端末と承認の表示、数字の鍵盤。 決済の代行業者や、電子決済の取次を表す。"
+  - step: "shape-payment-provider の数が動く" 1.5s
     focus: ["Stripe"]
     tween:
       v: 30 -> 420
@@ -6008,7 +6008,7 @@ export const sourceJson__shapePaymentProvider = `{
       "kind": "shape-payment-provider",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "payment",
+      "eyebrow": "決済",
       "subtitle": "決済 {v} 件/s"
     }
   ],
@@ -6016,14 +6016,14 @@ export const sourceJson__shapePaymentProvider = `{
   "states": { "v": 30 },
   "animation": [
     {
-      "step": "payment-provider",
+      "step": "shape-payment-provider",
       "duration": 1.5,
       "focus": ["Stripe"],
       "badge": "shape",
-      "body": "POS 端末 + APPROVED 表示 + keypad。 決済業者 / Stripe / 電子決済手段等取引業"
+      "body": "支払いの端末と承認の表示、数字の鍵盤。 決済の代行業者や、電子決済の取次を表す。"
     },
     {
-      "step": "payment-provider の数が動く",
+      "step": "shape-payment-provider の数が動く",
       "duration": 1.5,
       "focus": ["Stripe"],
       "tween": { "v": [30, 420] },
@@ -6043,14 +6043,14 @@ states:
   v: 120
 
 actors:
-  - 野村證券: { kind: shape-brokerage, lane: l, stack: 0, eyebrow: "brokerage", subtitle: "約定 {v} 件" }
+  - 野村證券: { kind: shape-brokerage, lane: l, stack: 0, eyebrow: "証券", subtitle: "約定 {v} 件" }
 
 animation:
-  - step: "brokerage" 1.5s
+  - step: "shape-brokerage" 1.5s
     focus: ["野村證券"]
     badge: "shape"
-    description: "tower + window grid + candle chart + up arrow。 証券会社 / 投資銀行"
-  - step: "brokerage の数が動く" 1.5s
+    description: "高い建物と格子の窓、ろうそく足の図、上向きの矢印。 証券会社や投資銀行を表す。"
+  - step: "shape-brokerage の数が動く" 1.5s
     focus: ["野村證券"]
     tween:
       v: 120 -> 940
@@ -6070,7 +6070,7 @@ export const sourceJson__shapeBrokerage = `{
       "kind": "shape-brokerage",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "brokerage",
+      "eyebrow": "証券",
       "subtitle": "約定 {v} 件"
     }
   ],
@@ -6078,14 +6078,14 @@ export const sourceJson__shapeBrokerage = `{
   "states": { "v": 120 },
   "animation": [
     {
-      "step": "brokerage",
+      "step": "shape-brokerage",
       "duration": 1.5,
       "focus": ["野村證券"],
       "badge": "shape",
-      "body": "tower + window grid + candle chart + up arrow。 証券会社 / 投資銀行"
+      "body": "高い建物と格子の窓、ろうそく足の図、上向きの矢印。 証券会社や投資銀行を表す。"
     },
     {
-      "step": "brokerage の数が動く",
+      "step": "shape-brokerage の数が動く",
       "duration": 1.5,
       "focus": ["野村證券"],
       "tween": { "v": [120, 940] },
@@ -6105,14 +6105,14 @@ states:
   v: 12
 
 actors:
-  - Coinbase: { kind: shape-exchange, lane: l, stack: 0, eyebrow: "exchange", subtitle: "出来高 {v} 億" }
+  - Coinbase: { kind: shape-exchange, lane: l, stack: 0, eyebrow: "取引所", subtitle: "出来高 {v} 億" }
 
 animation:
-  - step: "exchange" 1.5s
+  - step: "shape-exchange" 1.5s
     focus: ["Coinbase"]
     badge: "shape"
-    description: "2 通貨 coin + 双方向 arrow + rate。 取引所 / DEX / 換金"
-  - step: "exchange の数が動く" 1.5s
+    description: "2 つの通貨の硬貨と両向きの矢印、交換の比率。 取引所や、仲介なしで交換する場、両替を表す。"
+  - step: "shape-exchange の数が動く" 1.5s
     focus: ["Coinbase"]
     tween:
       v: 12 -> 86
@@ -6132,7 +6132,7 @@ export const sourceJson__shapeExchange = `{
       "kind": "shape-exchange",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "exchange",
+      "eyebrow": "取引所",
       "subtitle": "出来高 {v} 億"
     }
   ],
@@ -6140,14 +6140,14 @@ export const sourceJson__shapeExchange = `{
   "states": { "v": 12 },
   "animation": [
     {
-      "step": "exchange",
+      "step": "shape-exchange",
       "duration": 1.5,
       "focus": ["Coinbase"],
       "badge": "shape",
-      "body": "2 通貨 coin + 双方向 arrow + rate。 取引所 / DEX / 換金"
+      "body": "2 つの通貨の硬貨と両向きの矢印、交換の比率。 取引所や、仲介なしで交換する場、両替を表す。"
     },
     {
-      "step": "exchange の数が動く",
+      "step": "shape-exchange の数が動く",
       "duration": 1.5,
       "focus": ["Coinbase"],
       "tween": { "v": [12, 86] },
@@ -6167,14 +6167,14 @@ states:
   v: 180
 
 actors:
-  - ATM: { kind: shape-atm, lane: l, stack: 0, eyebrow: "atm", subtitle: "24 h · {v} 件/日" }
+  - ATM: { kind: shape-atm, lane: l, stack: 0, eyebrow: "現金の窓口", subtitle: "24 時間 · {v} 件/日" }
 
 animation:
-  - step: "atm" 1.5s
+  - step: "shape-atm" 1.5s
     focus: ["ATM"]
     badge: "shape"
-    description: "screen + button + card slot + dispenser。 銀行 ATM / コンビニ ATM"
-  - step: "atm の数が動く" 1.5s
+    description: "画面とボタン、カードの差し込み口、お金の出口。 銀行やコンビニの ATM を表す。"
+  - step: "shape-atm の数が動く" 1.5s
     focus: ["ATM"]
     tween:
       v: 180 -> 620
@@ -6194,22 +6194,22 @@ export const sourceJson__shapeAtm = `{
       "kind": "shape-atm",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "atm",
-      "subtitle": "24 h · {v} 件/日"
+      "eyebrow": "現金の窓口",
+      "subtitle": "24 時間 · {v} 件/日"
     }
   ],
   "flow": [],
   "states": { "v": 180 },
   "animation": [
     {
-      "step": "atm",
+      "step": "shape-atm",
       "duration": 1.5,
       "focus": ["ATM"],
       "badge": "shape",
-      "body": "screen + button + card slot + dispenser。 銀行 ATM / コンビニ ATM"
+      "body": "画面とボタン、カードの差し込み口、お金の出口。 銀行やコンビニの ATM を表す。"
     },
     {
-      "step": "atm の数が動く",
+      "step": "shape-atm の数が動く",
       "duration": 1.5,
       "focus": ["ATM"],
       "tween": { "v": [180, 620] },
@@ -6229,15 +6229,15 @@ states:
   v: 1200
 
 actors:
-  - example.com: { kind: shape-website, lane: l, stack: 0, eyebrow: "website", subtitle: "{v} PV/日" }
+  - 会社案内: { kind: shape-website, lane: l, stack: 0, eyebrow: "サイト", subtitle: "閲覧 {v} 回/日" }
 
 animation:
-  - step: "website" 1.5s
-    focus: ["example.com"]
+  - step: "shape-website" 1.5s
+    focus: ["会社案内"]
     badge: "shape"
-    description: "browser + URL bar + header + 2 col。 corporate / SaaS LP / blog"
-  - step: "website の数が動く" 1.5s
-    focus: ["example.com"]
+    description: "閲覧ソフトの枠と住所の欄、見出し、2 列の本文。 会社の案内や製品の紹介、日記のようなサイトを表す。"
+  - step: "shape-website の数が動く" 1.5s
+    focus: ["会社案内"]
     tween:
       v: 1200 -> 8600
     badge: "shape"
@@ -6252,28 +6252,28 @@ export const sourceJson__shapeWebsite = `{
   },
   "actors": [
     {
-      "name": "example.com",
+      "name": "会社案内",
       "kind": "shape-website",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "website",
-      "subtitle": "{v} PV/日"
+      "eyebrow": "サイト",
+      "subtitle": "閲覧 {v} 回/日"
     }
   ],
   "flow": [],
   "states": { "v": 1200 },
   "animation": [
     {
-      "step": "website",
+      "step": "shape-website",
       "duration": 1.5,
-      "focus": ["example.com"],
+      "focus": ["会社案内"],
       "badge": "shape",
-      "body": "browser + URL bar + header + 2 col。 corporate / SaaS LP / blog"
+      "body": "閲覧ソフトの枠と住所の欄、見出し、2 列の本文。 会社の案内や製品の紹介、日記のようなサイトを表す。"
     },
     {
-      "step": "website の数が動く",
+      "step": "shape-website の数が動く",
       "duration": 1.5,
-      "focus": ["example.com"],
+      "focus": ["会社案内"],
       "tween": { "v": [1200, 8600] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -6291,14 +6291,14 @@ states:
   v: 240
 
 actors:
-  - コンビニ: { kind: shape-storefront, lane: l, stack: 0, eyebrow: "store", subtitle: "来店 {v} 人/日" }
+  - コンビニ: { kind: shape-storefront, lane: l, stack: 0, eyebrow: "店舗", subtitle: "来店 {v} 人/日" }
 
 animation:
-  - step: "storefront" 1.5s
+  - step: "shape-storefront" 1.5s
     focus: ["コンビニ"]
     badge: "shape"
-    description: "赤白 awning + OPEN sign + door + windows。 リアル店舗 / 小売"
-  - step: "storefront の数が動く" 1.5s
+    description: "赤と白の日よけ、営業中の札、扉、窓。 実際の店や小売を表す。"
+  - step: "shape-storefront の数が動く" 1.5s
     focus: ["コンビニ"]
     tween:
       v: 240 -> 810
@@ -6318,7 +6318,7 @@ export const sourceJson__shapeStorefront = `{
       "kind": "shape-storefront",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "store",
+      "eyebrow": "店舗",
       "subtitle": "来店 {v} 人/日"
     }
   ],
@@ -6326,14 +6326,14 @@ export const sourceJson__shapeStorefront = `{
   "states": { "v": 240 },
   "animation": [
     {
-      "step": "storefront",
+      "step": "shape-storefront",
       "duration": 1.5,
       "focus": ["コンビニ"],
       "badge": "shape",
-      "body": "赤白 awning + OPEN sign + door + windows。 リアル店舗 / 小売"
+      "body": "赤と白の日よけ、営業中の札、扉、窓。 実際の店や小売を表す。"
     },
     {
-      "step": "storefront の数が動く",
+      "step": "shape-storefront の数が動く",
       "duration": 1.5,
       "focus": ["コンビニ"],
       "tween": { "v": [240, 810] },
@@ -6353,15 +6353,15 @@ states:
   v: 12
 
 actors:
-  - FC1: { kind: shape-warehouse, lane: l, stack: 0, eyebrow: "warehouse", subtitle: "在庫 {v} 千点" }
+  - 市川倉庫: { kind: shape-warehouse, lane: l, stack: 0, eyebrow: "物流拠点", subtitle: "在庫 {v} 千点" }
 
 animation:
-  - step: "warehouse" 1.5s
-    focus: ["FC1"]
+  - step: "shape-warehouse" 1.5s
+    focus: ["市川倉庫"]
     badge: "shape"
-    description: "roof + shutter door + box stack。 fulfillment center / 倉庫"
-  - step: "warehouse の数が動く" 1.5s
-    focus: ["FC1"]
+    description: "屋根と巻き上げの扉、積んだ箱。 出荷を受け持つ拠点や倉庫を表す。"
+  - step: "shape-warehouse の数が動く" 1.5s
+    focus: ["市川倉庫"]
     tween:
       v: 12 -> 48
     badge: "shape"
@@ -6376,11 +6376,11 @@ export const sourceJson__shapeWarehouse = `{
   },
   "actors": [
     {
-      "name": "FC1",
+      "name": "市川倉庫",
       "kind": "shape-warehouse",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "warehouse",
+      "eyebrow": "物流拠点",
       "subtitle": "在庫 {v} 千点"
     }
   ],
@@ -6388,16 +6388,16 @@ export const sourceJson__shapeWarehouse = `{
   "states": { "v": 12 },
   "animation": [
     {
-      "step": "warehouse",
+      "step": "shape-warehouse",
       "duration": 1.5,
-      "focus": ["FC1"],
+      "focus": ["市川倉庫"],
       "badge": "shape",
-      "body": "roof + shutter door + box stack。 fulfillment center / 倉庫"
+      "body": "屋根と巻き上げの扉、積んだ箱。 出荷を受け持つ拠点や倉庫を表す。"
     },
     {
-      "step": "warehouse の数が動く",
+      "step": "shape-warehouse の数が動く",
       "duration": 1.5,
-      "focus": ["FC1"],
+      "focus": ["市川倉庫"],
       "tween": { "v": [12, 48] },
       "badge": "shape",
       "body": "副題の数が段の中で動く。 形と説明は変えない。"
@@ -6415,14 +6415,14 @@ states:
   v: 6
 
 actors:
-  - Amazon: { kind: shape-online-shop, lane: l, stack: 0, eyebrow: "online-shop", subtitle: "注文 {v} 件/分" }
+  - Amazon: { kind: shape-online-shop, lane: l, stack: 0, eyebrow: "通販", subtitle: "注文 {v} 件/分" }
 
 animation:
-  - step: "online-shop" 1.5s
+  - step: "shape-online-shop" 1.5s
     focus: ["Amazon"]
     badge: "shape"
-    description: "browser + cart badge (3) + 6 product grid。 EC / online 販売"
-  - step: "online-shop の数が動く" 1.5s
+    description: "閲覧ソフトの枠と、かごの数 (3)、6 つの商品の並び。 通販やネットの販売を表す。"
+  - step: "shape-online-shop の数が動く" 1.5s
     focus: ["Amazon"]
     tween:
       v: 6 -> 74
@@ -6442,7 +6442,7 @@ export const sourceJson__shapeOnlineShop = `{
       "kind": "shape-online-shop",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "online-shop",
+      "eyebrow": "通販",
       "subtitle": "注文 {v} 件/分"
     }
   ],
@@ -6450,14 +6450,14 @@ export const sourceJson__shapeOnlineShop = `{
   "states": { "v": 6 },
   "animation": [
     {
-      "step": "online-shop",
+      "step": "shape-online-shop",
       "duration": 1.5,
       "focus": ["Amazon"],
       "badge": "shape",
-      "body": "browser + cart badge (3) + 6 product grid。 EC / online 販売"
+      "body": "閲覧ソフトの枠と、かごの数 (3)、6 つの商品の並び。 通販やネットの販売を表す。"
     },
     {
-      "step": "online-shop の数が動く",
+      "step": "shape-online-shop の数が動く",
       "duration": 1.5,
       "focus": ["Amazon"],
       "tween": { "v": [6, 74] },
@@ -6477,14 +6477,14 @@ states:
   v: 300
 
 actors:
-  - Cloudflare: { kind: shape-cdn-edge, lane: l, stack: 0, eyebrow: "cdn", subtitle: "{v} POP" }
+  - Cloudflare: { kind: shape-cdn-edge, lane: l, stack: 0, eyebrow: "配信網", subtitle: "拠点 {v} か所" }
 
 animation:
-  - step: "cdn-edge" 1.5s
+  - step: "shape-cdn-edge" 1.5s
     focus: ["Cloudflare"]
     badge: "shape"
-    description: "地球儀 + 5 edge dot + dashed connect。 Cloudflare / Fastly / edge network"
-  - step: "cdn-edge の数が動く" 1.5s
+    description: "地球儀と 5 つの拠点、点線のつながり。 配信網の事業者や、利用者の近くで返す網を表す。"
+  - step: "shape-cdn-edge の数が動く" 1.5s
     focus: ["Cloudflare"]
     tween:
       v: 300 -> 380
@@ -6504,22 +6504,22 @@ export const sourceJson__shapeCdnEdge = `{
       "kind": "shape-cdn-edge",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "cdn",
-      "subtitle": "{v} POP"
+      "eyebrow": "配信網",
+      "subtitle": "拠点 {v} か所"
     }
   ],
   "flow": [],
   "states": { "v": 300 },
   "animation": [
     {
-      "step": "cdn-edge",
+      "step": "shape-cdn-edge",
       "duration": 1.5,
       "focus": ["Cloudflare"],
       "badge": "shape",
-      "body": "地球儀 + 5 edge dot + dashed connect。 Cloudflare / Fastly / edge network"
+      "body": "地球儀と 5 つの拠点、点線のつながり。 配信網の事業者や、利用者の近くで返す網を表す。"
     },
     {
-      "step": "cdn-edge の数が動く",
+      "step": "shape-cdn-edge の数が動く",
       "duration": 1.5,
       "focus": ["Cloudflare"],
       "tween": { "v": [300, 380] },
@@ -6539,14 +6539,14 @@ states:
   v: 400
 
 actors:
-  - Kong: { kind: shape-api-gateway, lane: l, stack: 0, eyebrow: "gateway", subtitle: "{v} req/s" }
+  - Kong: { kind: shape-api-gateway, lane: l, stack: 0, eyebrow: "API の入口", subtitle: "毎秒 {v} 件" }
 
 animation:
-  - step: "api-gateway" 1.5s
+  - step: "shape-api-gateway" 1.5s
     focus: ["Kong"]
     badge: "shape"
-    description: "2 柱 + arch + API text + traffic arrow。 Kong / AWS API GW / 門番"
-  - step: "api-gateway の数が動く" 1.5s
+    description: "2 本の柱と弧、API の字、行き交う矢印。 API の入口に立つ門番を表す。"
+  - step: "shape-api-gateway の数が動く" 1.5s
     focus: ["Kong"]
     tween:
       v: 400 -> 3200
@@ -6566,22 +6566,22 @@ export const sourceJson__shapeApiGateway = `{
       "kind": "shape-api-gateway",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "gateway",
-      "subtitle": "{v} req/s"
+      "eyebrow": "API の入口",
+      "subtitle": "毎秒 {v} 件"
     }
   ],
   "flow": [],
   "states": { "v": 400 },
   "animation": [
     {
-      "step": "api-gateway",
+      "step": "shape-api-gateway",
       "duration": 1.5,
       "focus": ["Kong"],
       "badge": "shape",
-      "body": "2 柱 + arch + API text + traffic arrow。 Kong / AWS API GW / 門番"
+      "body": "2 本の柱と弧、API の字、行き交う矢印。 API の入口に立つ門番を表す。"
     },
     {
-      "step": "api-gateway の数が動く",
+      "step": "shape-api-gateway の数が動く",
       "duration": 1.5,
       "focus": ["Kong"],
       "tween": { "v": [400, 3200] },
@@ -6601,14 +6601,14 @@ states:
   v: 2
 
 actors:
-  - 監査法人: { kind: shape-auditor, lane: l, stack: 0, eyebrow: "auditor", subtitle: "指摘 {v} 件" }
+  - 監査法人: { kind: shape-auditor, lane: l, stack: 0, eyebrow: "監査", subtitle: "指摘 {v} 件" }
 
 animation:
-  - step: "auditor" 1.5s
+  - step: "shape-auditor" 1.5s
     focus: ["監査法人"]
     badge: "shape"
-    description: "人 + tie + magnifier + check icon。 監査人 / 公認会計士 / 内部監査"
-  - step: "auditor の数が動く" 1.5s
+    description: "人とネクタイ、虫眼鏡、確認の印。 監査人や公認会計士、内部の監査を表す。"
+  - step: "shape-auditor の数が動く" 1.5s
     focus: ["監査法人"]
     tween:
       v: 2 -> 17
@@ -6628,7 +6628,7 @@ export const sourceJson__shapeAuditor = `{
       "kind": "shape-auditor",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "auditor",
+      "eyebrow": "監査",
       "subtitle": "指摘 {v} 件"
     }
   ],
@@ -6636,14 +6636,14 @@ export const sourceJson__shapeAuditor = `{
   "states": { "v": 2 },
   "animation": [
     {
-      "step": "auditor",
+      "step": "shape-auditor",
       "duration": 1.5,
       "focus": ["監査法人"],
       "badge": "shape",
-      "body": "人 + tie + magnifier + check icon。 監査人 / 公認会計士 / 内部監査"
+      "body": "人とネクタイ、虫眼鏡、確認の印。 監査人や公認会計士、内部の監査を表す。"
     },
     {
-      "step": "auditor の数が動く",
+      "step": "shape-auditor の数が動く",
       "duration": 1.5,
       "focus": ["監査法人"],
       "tween": { "v": [2, 17] },
@@ -6663,14 +6663,14 @@ states:
   v: 4
 
 actors:
-  - 金融庁: { kind: shape-regulator, lane: l, stack: 0, eyebrow: "regulator", subtitle: "検査 {v} 件" }
+  - 金融庁: { kind: shape-regulator, lane: l, stack: 0, eyebrow: "規制当局", subtitle: "検査 {v} 件" }
 
 animation:
-  - step: "regulator" 1.5s
+  - step: "shape-regulator" 1.5s
     focus: ["金融庁"]
     badge: "shape"
-    description: "人 + crown + 五芒星 badge。 金融庁 / 消費者庁 / 規制当局"
-  - step: "regulator の数が動く" 1.5s
+    description: "人と冠、五芒星の記章。 金融庁や消費者庁のような規制の当局を表す。"
+  - step: "shape-regulator の数が動く" 1.5s
     focus: ["金融庁"]
     tween:
       v: 4 -> 23
@@ -6690,7 +6690,7 @@ export const sourceJson__shapeRegulator = `{
       "kind": "shape-regulator",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "regulator",
+      "eyebrow": "規制当局",
       "subtitle": "検査 {v} 件"
     }
   ],
@@ -6698,14 +6698,14 @@ export const sourceJson__shapeRegulator = `{
   "states": { "v": 4 },
   "animation": [
     {
-      "step": "regulator",
+      "step": "shape-regulator",
       "duration": 1.5,
       "focus": ["金融庁"],
       "badge": "shape",
-      "body": "人 + crown + 五芒星 badge。 金融庁 / 消費者庁 / 規制当局"
+      "body": "人と冠、五芒星の記章。 金融庁や消費者庁のような規制の当局を表す。"
     },
     {
-      "step": "regulator の数が動く",
+      "step": "shape-regulator の数が動く",
       "duration": 1.5,
       "focus": ["金融庁"],
       "tween": { "v": [4, 23] },
@@ -6725,14 +6725,14 @@ states:
   v: 6
 
 actors:
-  - 公証役場: { kind: shape-notary, lane: l, stack: 0, eyebrow: "notary", subtitle: "認証 {v} 件" }
+  - 公証役場: { kind: shape-notary, lane: l, stack: 0, eyebrow: "公証", subtitle: "認証 {v} 件" }
 
 animation:
-  - step: "notary" 1.5s
+  - step: "shape-notary" 1.5s
     focus: ["公証役場"]
     badge: "shape"
-    description: "人 + 儒学者風 hat + 紅印。 公証人 / 認証業務 / 書類認証"
-  - step: "notary の数が動く" 1.5s
+    description: "人と儒学者風の帽子、赤い印。 公証人や、書類が正しいと認める業務を表す。"
+  - step: "shape-notary の数が動く" 1.5s
     focus: ["公証役場"]
     tween:
       v: 6 -> 31
@@ -6752,7 +6752,7 @@ export const sourceJson__shapeNotary = `{
       "kind": "shape-notary",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "notary",
+      "eyebrow": "公証",
       "subtitle": "認証 {v} 件"
     }
   ],
@@ -6760,14 +6760,14 @@ export const sourceJson__shapeNotary = `{
   "states": { "v": 6 },
   "animation": [
     {
-      "step": "notary",
+      "step": "shape-notary",
       "duration": 1.5,
       "focus": ["公証役場"],
       "badge": "shape",
-      "body": "人 + 儒学者風 hat + 紅印。 公証人 / 認証業務 / 書類認証"
+      "body": "人と儒学者風の帽子、赤い印。 公証人や、書類が正しいと認める業務を表す。"
     },
     {
-      "step": "notary の数が動く",
+      "step": "shape-notary の数が動く",
       "duration": 1.5,
       "focus": ["公証役場"],
       "tween": { "v": [6, 31] },
@@ -6787,14 +6787,14 @@ states:
   v: 3
 
 actors:
-  - 顧問弁護士: { kind: shape-lawyer, lane: l, stack: 0, eyebrow: "lawyer", subtitle: "案件 {v} 件" }
+  - 顧問弁護士: { kind: shape-lawyer, lane: l, stack: 0, eyebrow: "法務", subtitle: "案件 {v} 件" }
 
 animation:
-  - step: "lawyer" 1.5s
+  - step: "shape-lawyer" 1.5s
     focus: ["顧問弁護士"]
     badge: "shape"
-    description: "人 + 髪 + 正義の天秤 icon。 弁護士 / 法務顧問 / 法律事務所"
-  - step: "lawyer の数が動く" 1.5s
+    description: "人と髪、正義の天秤の印。 弁護士や法務の顧問、法律事務所を表す。"
+  - step: "shape-lawyer の数が動く" 1.5s
     focus: ["顧問弁護士"]
     tween:
       v: 3 -> 19
@@ -6814,7 +6814,7 @@ export const sourceJson__shapeLawyer = `{
       "kind": "shape-lawyer",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "lawyer",
+      "eyebrow": "法務",
       "subtitle": "案件 {v} 件"
     }
   ],
@@ -6822,14 +6822,14 @@ export const sourceJson__shapeLawyer = `{
   "states": { "v": 3 },
   "animation": [
     {
-      "step": "lawyer",
+      "step": "shape-lawyer",
       "duration": 1.5,
       "focus": ["顧問弁護士"],
       "badge": "shape",
-      "body": "人 + 髪 + 正義の天秤 icon。 弁護士 / 法務顧問 / 法律事務所"
+      "body": "人と髪、正義の天秤の印。 弁護士や法務の顧問、法律事務所を表す。"
     },
     {
-      "step": "lawyer の数が動く",
+      "step": "shape-lawyer の数が動く",
       "duration": 1.5,
       "focus": ["顧問弁護士"],
       "tween": { "v": [3, 19] },
@@ -6849,14 +6849,14 @@ states:
   v: 8
 
 actors:
-  - デイトレーダー: { kind: shape-trader, lane: l, stack: 0, eyebrow: "trader", subtitle: "約定 {v} 回" }
+  - デイトレーダー: { kind: shape-trader, lane: l, stack: 0, eyebrow: "売買", subtitle: "約定 {v} 回" }
 
 animation:
-  - step: "trader" 1.5s
+  - step: "shape-trader" 1.5s
     focus: ["デイトレーダー"]
     badge: "shape"
-    description: "人 + headset + laptop with chart。 トレーダー / MM / algo 発注"
-  - step: "trader の数が動く" 1.5s
+    description: "人とヘッドセット、値動きの映るパソコン。 トレーダーや、値付けを受け持つ業者、機械の自動発注を表す。"
+  - step: "shape-trader の数が動く" 1.5s
     focus: ["デイトレーダー"]
     tween:
       v: 8 -> 152
@@ -6876,7 +6876,7 @@ export const sourceJson__shapeTrader = `{
       "kind": "shape-trader",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "trader",
+      "eyebrow": "売買",
       "subtitle": "約定 {v} 回"
     }
   ],
@@ -6884,14 +6884,14 @@ export const sourceJson__shapeTrader = `{
   "states": { "v": 8 },
   "animation": [
     {
-      "step": "trader",
+      "step": "shape-trader",
       "duration": 1.5,
       "focus": ["デイトレーダー"],
       "badge": "shape",
-      "body": "人 + headset + laptop with chart。 トレーダー / MM / algo 発注"
+      "body": "人とヘッドセット、値動きの映るパソコン。 トレーダーや、値付けを受け持つ業者、機械の自動発注を表す。"
     },
     {
-      "step": "trader の数が動く",
+      "step": "shape-trader の数が動く",
       "duration": 1.5,
       "focus": ["デイトレーダー"],
       "tween": { "v": [8, 152] },
@@ -6911,14 +6911,14 @@ states:
   v: 14
 
 actors:
-  - サポート担当: { kind: shape-customer-service, lane: l, stack: 0, eyebrow: "support", subtitle: "対応 {v} 件" }
+  - サポート担当: { kind: shape-customer-service, lane: l, stack: 0, eyebrow: "問い合わせ", subtitle: "対応 {v} 件" }
 
 animation:
-  - step: "customer-service" 1.5s
+  - step: "shape-customer-service" 1.5s
     focus: ["サポート担当"]
     badge: "shape"
-    description: "人 + headset + speech bubble + name badge。 CS / コールセンター"
-  - step: "customer-service の数が動く" 1.5s
+    description: "人とヘッドセット、吹き出し、名札。 お客様の窓口やコールセンターを表す。"
+  - step: "shape-customer-service の数が動く" 1.5s
     focus: ["サポート担当"]
     tween:
       v: 14 -> 88
@@ -6938,7 +6938,7 @@ export const sourceJson__shapeCustomerService = `{
       "kind": "shape-customer-service",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "support",
+      "eyebrow": "問い合わせ",
       "subtitle": "対応 {v} 件"
     }
   ],
@@ -6946,14 +6946,14 @@ export const sourceJson__shapeCustomerService = `{
   "states": { "v": 14 },
   "animation": [
     {
-      "step": "customer-service",
+      "step": "shape-customer-service",
       "duration": 1.5,
       "focus": ["サポート担当"],
       "badge": "shape",
-      "body": "人 + headset + speech bubble + name badge。 CS / コールセンター"
+      "body": "人とヘッドセット、吹き出し、名札。 お客様の窓口やコールセンターを表す。"
     },
     {
-      "step": "customer-service の数が動く",
+      "step": "shape-customer-service の数が動く",
       "duration": 1.5,
       "focus": ["サポート担当"],
       "tween": { "v": [14, 88] },
@@ -6973,14 +6973,14 @@ states:
   v: 5
 
 actors:
-  - ブロックチェーン: { kind: shape-blockchain, lane: l, stack: 0, eyebrow: "chain", subtitle: "{v} block" }
+  - ブロックチェーン: { kind: shape-blockchain, lane: l, stack: 0, eyebrow: "台帳", subtitle: "{v} ブロック" }
 
 animation:
-  - step: "blockchain" 1.5s
+  - step: "shape-blockchain" 1.5s
     focus: ["ブロックチェーン"]
     badge: "shape"
-    description: "5 block を hash pointer で横に連結。 汎用 chain / L1 / L2 の抽象"
-  - step: "blockchain の数が動く" 1.5s
+    description: "5 つのブロックを、前の要約値を指す形で横につなぐ。 分散台帳の一般の形を表す。"
+  - step: "shape-blockchain の数が動く" 1.5s
     focus: ["ブロックチェーン"]
     tween:
       v: 5 -> 42
@@ -7000,22 +7000,22 @@ export const sourceJson__shapeBlockchain = `{
       "kind": "shape-blockchain",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "chain",
-      "subtitle": "{v} block"
+      "eyebrow": "台帳",
+      "subtitle": "{v} ブロック"
     }
   ],
   "flow": [],
   "states": { "v": 5 },
   "animation": [
     {
-      "step": "blockchain",
+      "step": "shape-blockchain",
       "duration": 1.5,
       "focus": ["ブロックチェーン"],
       "badge": "shape",
-      "body": "5 block を hash pointer で横に連結。 汎用 chain / L1 / L2 の抽象"
+      "body": "5 つのブロックを、前の要約値を指す形で横につなぐ。 分散台帳の一般の形を表す。"
     },
     {
-      "step": "blockchain の数が動く",
+      "step": "shape-blockchain の数が動く",
       "duration": 1.5,
       "focus": ["ブロックチェーン"],
       "tween": { "v": [5, 42] },
@@ -7035,14 +7035,14 @@ states:
   v: 84
 
 actors:
-  - Bitcoin: { kind: shape-bitcoin-chain, lane: l, stack: 0, eyebrow: "bitcoin", subtitle: "PoW · 高さ {v} 万" }
+  - Bitcoin: { kind: shape-bitcoin-chain, lane: l, stack: 0, eyebrow: "分散台帳", subtitle: "ブロック高 {v} 万" }
 
 animation:
-  - step: "bitcoin-chain" 1.5s
+  - step: "shape-bitcoin-chain" 1.5s
     focus: ["Bitcoin"]
     badge: "shape"
-    description: "橙 accent + ₿ symbol + PoW mining。 Bitcoin mainnet / testnet"
-  - step: "bitcoin-chain の数が動く" 1.5s
+    description: "橙の色と ₿ の記号、計算の量で合意する採掘。 Bitcoin の本番の網や、試しの網を表す。"
+  - step: "shape-bitcoin-chain の数が動く" 1.5s
     focus: ["Bitcoin"]
     tween:
       v: 84 -> 89
@@ -7062,22 +7062,22 @@ export const sourceJson__shapeBitcoinChain = `{
       "kind": "shape-bitcoin-chain",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "bitcoin",
-      "subtitle": "PoW · 高さ {v} 万"
+      "eyebrow": "分散台帳",
+      "subtitle": "ブロック高 {v} 万"
     }
   ],
   "flow": [],
   "states": { "v": 84 },
   "animation": [
     {
-      "step": "bitcoin-chain",
+      "step": "shape-bitcoin-chain",
       "duration": 1.5,
       "focus": ["Bitcoin"],
       "badge": "shape",
-      "body": "橙 accent + ₿ symbol + PoW mining。 Bitcoin mainnet / testnet"
+      "body": "橙の色と ₿ の記号、計算の量で合意する採掘。 Bitcoin の本番の網や、試しの網を表す。"
     },
     {
-      "step": "bitcoin-chain の数が動く",
+      "step": "shape-bitcoin-chain の数が動く",
       "duration": 1.5,
       "focus": ["Bitcoin"],
       "tween": { "v": [84, 89] },
@@ -7097,14 +7097,14 @@ states:
   v: 2000
 
 actors:
-  - Ethereum: { kind: shape-ethereum-chain, lane: l, stack: 0, eyebrow: "ethereum", subtitle: "PoS · {v} 万 block" }
+  - Ethereum: { kind: shape-ethereum-chain, lane: l, stack: 0, eyebrow: "分散台帳", subtitle: "{v} 万ブロック" }
 
 animation:
-  - step: "ethereum-chain" 1.5s
+  - step: "shape-ethereum-chain" 1.5s
     focus: ["Ethereum"]
     badge: "shape"
-    description: "紫 accent + Ξ symbol + PoS validator。 Ethereum mainnet / rollup base"
-  - step: "ethereum-chain の数が動く" 1.5s
+    description: "紫の色と Ξ の記号、預けた量で合意する検証役。 Ethereum の本番の網や、その上に重ねた網を表す。"
+  - step: "shape-ethereum-chain の数が動く" 1.5s
     focus: ["Ethereum"]
     tween:
       v: 2000 -> 2400
@@ -7124,22 +7124,22 @@ export const sourceJson__shapeEthereumChain = `{
       "kind": "shape-ethereum-chain",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "ethereum",
-      "subtitle": "PoS · {v} 万 block"
+      "eyebrow": "分散台帳",
+      "subtitle": "{v} 万ブロック"
     }
   ],
   "flow": [],
   "states": { "v": 2000 },
   "animation": [
     {
-      "step": "ethereum-chain",
+      "step": "shape-ethereum-chain",
       "duration": 1.5,
       "focus": ["Ethereum"],
       "badge": "shape",
-      "body": "紫 accent + Ξ symbol + PoS validator。 Ethereum mainnet / rollup base"
+      "body": "紫の色と Ξ の記号、預けた量で合意する検証役。 Ethereum の本番の網や、その上に重ねた網を表す。"
     },
     {
-      "step": "ethereum-chain の数が動く",
+      "step": "shape-ethereum-chain の数が動く",
       "duration": 1.5,
       "focus": ["Ethereum"],
       "tween": { "v": [2000, 2400] },
@@ -7159,14 +7159,14 @@ states:
   v: 8
 
 actors:
-  - フルノード: { kind: shape-blockchain-node, lane: l, stack: 0, eyebrow: "node", subtitle: "P2P · peer {v}" }
+  - フルノード: { kind: shape-blockchain-node, lane: l, stack: 0, eyebrow: "参加者", subtitle: "直接つながる相手 {v} 台" }
 
 animation:
-  - step: "blockchain-node" 1.5s
+  - step: "shape-blockchain-node" 1.5s
     focus: ["フルノード"]
     badge: "shape"
-    description: "中央 hex + 6 peer hex + block stack icon。 P2P full / archive / light node"
-  - step: "blockchain-node の数が動く" 1.5s
+    description: "中央の六角形と周りの 6 つの六角形、積んだブロックの印。 分散台帳の参加者 (全記録を持つもの、過去の状態まで持つもの、最小限だけ持つもの) を表す。"
+  - step: "shape-blockchain-node の数が動く" 1.5s
     focus: ["フルノード"]
     tween:
       v: 8 -> 64
@@ -7186,22 +7186,22 @@ export const sourceJson__shapeBlockchainNode = `{
       "kind": "shape-blockchain-node",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "node",
-      "subtitle": "P2P · peer {v}"
+      "eyebrow": "参加者",
+      "subtitle": "直接つながる相手 {v} 台"
     }
   ],
   "flow": [],
   "states": { "v": 8 },
   "animation": [
     {
-      "step": "blockchain-node",
+      "step": "shape-blockchain-node",
       "duration": 1.5,
       "focus": ["フルノード"],
       "badge": "shape",
-      "body": "中央 hex + 6 peer hex + block stack icon。 P2P full / archive / light node"
+      "body": "中央の六角形と周りの 6 つの六角形、積んだブロックの印。 分散台帳の参加者 (全記録を持つもの、過去の状態まで持つもの、最小限だけ持つもの) を表す。"
     },
     {
-      "step": "blockchain-node の数が動く",
+      "step": "shape-blockchain-node の数が動く",
       "duration": 1.5,
       "focus": ["フルノード"],
       "tween": { "v": [8, 64] },
@@ -7221,14 +7221,14 @@ states:
   v: 3
 
 actors:
-  - クレカ: { kind: shape-credit-card, lane: l, stack: 0, eyebrow: "card", subtitle: "VISA · {v} 万円" }
+  - クレカ: { kind: shape-credit-card, lane: l, stack: 0, eyebrow: "カード", subtitle: "利用額 {v} 万円" }
 
 animation:
-  - step: "credit-card" 1.5s
+  - step: "shape-credit-card" 1.5s
     focus: ["クレカ"]
     badge: "shape"
-    description: "chip + NFC wave + 番号 + 名義 + 有効期限 + brand mark。 実物クレジットカード"
-  - step: "credit-card の数が動く" 1.5s
+    description: "金色の端子と非接触の波、番号、名義、有効期限、ブランドの印。 実物のクレジットカードを表す。"
+  - step: "shape-credit-card の数が動く" 1.5s
     focus: ["クレカ"]
     tween:
       v: 3 -> 18
@@ -7248,22 +7248,22 @@ export const sourceJson__shapeCreditCard = `{
       "kind": "shape-credit-card",
       "lane": "l",
       "stack": 0,
-      "eyebrow": "card",
-      "subtitle": "VISA · {v} 万円"
+      "eyebrow": "カード",
+      "subtitle": "利用額 {v} 万円"
     }
   ],
   "flow": [],
   "states": { "v": 3 },
   "animation": [
     {
-      "step": "credit-card",
+      "step": "shape-credit-card",
       "duration": 1.5,
       "focus": ["クレカ"],
       "badge": "shape",
-      "body": "chip + NFC wave + 番号 + 名義 + 有効期限 + brand mark。 実物クレジットカード"
+      "body": "金色の端子と非接触の波、番号、名義、有効期限、ブランドの印。 実物のクレジットカードを表す。"
     },
     {
-      "step": "credit-card の数が動く",
+      "step": "shape-credit-card の数が動く",
       "duration": 1.5,
       "focus": ["クレカ"],
       "tween": { "v": [3, 18] },
