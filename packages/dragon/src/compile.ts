@@ -426,6 +426,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     const ownFormulas = doc.formulas.map((formula) => ({
       id: formula.id,
       expression: formula.expression,
+      // 名札は操作部が式の名前として描く (#1916、cdl#853)。 書かなければ欄ごと付けない
+      ...(formula.label !== undefined ? { label: formula.label } : {}),
       line: formula.pos?.line ?? 0,
     }));
     /*
@@ -485,7 +487,11 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
         });
       }
       if (解けない) continue;
-      載せる式.push({ id: formula.id, expression: formula.expression });
+      載せる式.push({
+        id: formula.id,
+        expression: formula.expression,
+        ...(formula.label !== undefined ? { label: formula.label } : {}),
+      });
       先に書かれた式.add(formula.id);
     }
     if (載せる式.length > 0) merged.formulas = 載せる式;

@@ -2102,6 +2102,9 @@ function 巻き上げとして読む(
  *
  * **式は描画側の parser に通す**。 自前で書き方を決めると、通ったのに描画側が
  * 解けない式を受けてしまう。 描画側が投げた誤りの本文をそのまま知らせに載せる。
+ *
+ * 名札を付ける時は `名前: { expression: "式", label: "名札" }` の組で書く (#1916)。
+ * 描画側は名札を操作部の名前に描く (cdl#853)。 巻き取り (`scrolls:`) と同じ組の形にそろえる。
  */
 function 式として読む(行: string, line: number, errors: DslError[]): DslFormula | undefined {
   const c = 行.indexOf(":");
@@ -2114,11 +2117,21 @@ function 式として読む(行: string, line: number, errors: DslError[]): DslF
     return undefined;
   }
   const 名前 = 行.slice(0, c).trim();
-  const 式 = stripQuotes(行.slice(c + 1).trim());
   if (!isValueName(名前)) {
     // 名前の規則は状態と揃える = 式の名前も `{名前}` で箱の文字に差し込める
     errors.push({ line, ...valueNameIssue(名前) });
     return undefined;
+  }
+  const 組 = 式の組に割る(行);
+  let 式: string;
+  let 名札: string | undefined;
+  if (組 === undefined) {
+    式 = stripQuotes(行.slice(c + 1).trim());
+  } else {
+    const 読めた = 式の組を読む(名前, 組, line, errors);
+    if (読めた === undefined) return undefined;
+    式 = 読めた.expression;
+    名札 = 読めた.label;
   }
   if (式 === "") {
     errors.push({
@@ -2138,7 +2151,71 @@ function 式として読む(行: string, line: number, errors: DslError[]): DslF
     });
     return undefined;
   }
-  return { id: 名前, expression: 式, pos: { line } };
+  return { id: 名前, expression: 式, ...(名札 !== undefined ? { label: 名札 } : {}), pos: { line } };
+}
+
+/** 組の中の項目名の形。 `parseInlineMapping` が項目名として受ける字と同じ */
+const 組の項目名 = /^([^\s:,{}[\]"']+)\s*:\s*(.*)$/s;
+
+/**
+ * 式の行が組の形 (`{ expression: ..., label: ... }`) なら中括弧の内側を返す (#1916)。
+ *
+ * **中括弧で名前を囲った式と取り違えない**。 式は `{input} * 2` のように名前を中括弧で
+ * 囲ってよく (#1391)、`v: {input}` は中括弧だけの行になる。 組とみなすのは、行全体が
+ * 1 つの中括弧の塊で、**最初の項目が `名前:` の形を持つ** 時だけ。
+ */
+function 式の組に割る(行: string): string | undefined {
+  const 割れた = 名前と中括弧に割る(行);
+  if (割れた === undefined) return undefined;
+  const 最初 = splitInlineFields(割れた[1])[0]?.trim() ?? "";
+  return 組の項目名.test(最初) ? 割れた[1] : undefined;
+}
+
+/**
+ * 式の組の中身を読む (#1916)。 読めなければ知らせて `undefined` を返す。
+ *
+ * 式の中身と空の式の検査は呼び手が文字列の形と同じ経路で行う。 ここで見るのは組の形だけ。
+ */
+function 式の組を読む(
+  名前: string,
+  中身: string,
+  line: number,
+  errors: DslError[],
+): { expression: string; label?: string } | undefined {
+  const 使える = ["expression", "label"];
+  const 読めた: Record<string, string> = {};
+  for (const 欄 of splitInlineFields(中身).map((s) => s.trim()).filter((s) => s !== "")) {
+    const m = 欄.match(組の項目名);
+    if (!m) {
+      errors.push({
+        line,
+        message: `式 "${名前}" の項目が読めません: "${欄}"`,
+        hint: '`{ expression: "input * 2", label: "2 倍" }` の形で書く。 `,` を含む式は引用符で囲む',
+      });
+      return undefined;
+    }
+    if (!使える.includes(m[1]!)) {
+      errors.push({
+        line,
+        message: `式 "${名前}" の項目名が読めません: "${m[1]}"`,
+        hint: `使える項目 = ${使える.join(", ")}`,
+      });
+      return undefined;
+    }
+    読めた[m[1]!] = stripQuotes(m[2]!.trim());
+  }
+  if (読めた.label !== undefined && 読めた.label.trim() === "") {
+    errors.push({
+      line,
+      message: `式 "${名前}" の名札が空です`,
+      hint: '名札を付けないなら `label` を書かない。 付けるなら `label: "2 倍"` のように書く',
+    });
+    return undefined;
+  }
+  return {
+    expression: 読めた.expression ?? "",
+    ...(読めた.label !== undefined ? { label: 読めた.label } : {}),
+  };
 }
 
 /**

@@ -170,6 +170,8 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       { id: "interactive-exemplar-login-flow", 器: ["一覧"] },
       { id: "interactive-exemplar-notification-flow", 器: ["一覧"] },
       { id: "interactive-formula-text", 器: ["一覧"] },
+      // 名札を書かない変種 (#1916)。 元の図と同じ組み立てで、幅も同じ
+      { id: "interactive-formula-text-bare", 器: ["一覧"] },
       { id: "interactive-grid-matrix", 器: ["一覧"] },
       { id: "interactive-input-variety", 器: ["一覧"] },
       { id: "interactive-kpi-bullet", 器: ["一覧"] },

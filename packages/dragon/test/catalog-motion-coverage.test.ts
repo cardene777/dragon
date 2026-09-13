@@ -203,7 +203,8 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
     const 件数 = Object.fromEntries(対象.map(([n, m]) => [n, diagramsOf(m).length]));
     expect(件数).toEqual({
       parts: 80,
-      interactive: 129,
+      // 130 = 129 図 + `formulaTextBind` の名札を書かない変種 (#1916)
+      interactive: 130,
       cookbook: 26,
       patterns: 12,
       "text-dsl": 16,

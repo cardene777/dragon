@@ -80,70 +80,82 @@ export const subtitle__inputSliderBar =
 
 /**
  * 2. formula → text bind (formula primitive + reactive computed)。
+ *
+ * 式の名札 (`label`) の有無を変種で見比べる (#1916)。 名札を書くと操作部が式の名前と中身を
+ * 名札で描き、書かないと式の名前 (`doubled` / `halved`) をそのまま描く。
+ * 名札の有無のほかは同じ図なので、組み立てを 1 本にして 2 度書かない。
  */
-export const formulaTextBind = diagram("interactive-formula-text", {
-  topic: "入力値から 2 倍と半分を自動計算する",
-})
-  .lane("input", { x: 0, width: 200 })
-  .lane("doubled", { x: 240, width: 200 })
-  .lane("halved", { x: 480, width: 200 })
-  .input.number("input", { defaultValue: 10, label: "元の値" })
-  .formula("doubled", "input * 2")
-  .formula("halved", "input / 2")
-  .state("input", { initial: 10 })
-  .state("doubled", { initial: 20 })
-  .state("halved", { initial: 5 })
-  .node("in", {
-    lane: "input",
-    stack: 0,
-    kind: "card",
-    title: "元の値",
-    subtitle: "値 = {input}",
+function 二倍と半分の図(id: string, 名札: boolean) {
+  return diagram(id, {
+    topic: "入力値から 2 倍と半分を自動計算する",
   })
-  .node("out1", {
-    lane: "doubled",
-    stack: 0,
-    kind: "card",
-    title: "2 倍",
-    subtitle: "元の値 × 2 = {doubled}",
-  })
-  .node("out2", {
-    lane: "halved",
-    stack: 0,
-    kind: "card",
-    title: "半分",
-    subtitle: "元の値 ÷ 2 = {halved}",
-  })
-  .edge("in", "out1", { label: "× 2", tone: "success" })
-  .edge("in", "out2", { label: "÷ 2", tone: "info" })
-  .phase(
-    "p1",
-    {
-      duration: 1600,
-      title: "元の値を置く",
-      body: "左の箱に入力値を置く。 まだ計算式は動いていない。",
-    },
-    (p: PhaseBuilder) => p.activate("in"),
-  )
-  .phase(
-    "p2",
-    {
-      duration: 1600,
-      title: "2 倍を出す",
-      body: "1 つ目の計算式が元の値を 2 倍にして、右上の箱に書き出す。 元の値を変えると追いかける。",
-    },
-    (p: PhaseBuilder) => p.activate("in", "out1"),
-  )
-  .phase(
-    "p3",
-    {
-      duration: 1600,
-      title: "半分も出す",
-      body: "2 つ目の計算式が同じ元の値を半分にする。 元が 1 つ、そこから出る値が 2 つ。",
-    },
-    (p: PhaseBuilder) => p.activate("in", "out1", "out2"),
-  )
-  .build();
+    .lane("input", { x: 0, width: 200 })
+    .lane("doubled", { x: 240, width: 200 })
+    .lane("halved", { x: 480, width: 200 })
+    .input.number("input", { defaultValue: 10, label: "元の値" })
+    .formula("doubled", "input * 2", 名札 ? { label: "2 倍" } : undefined)
+    .formula("halved", "input / 2", 名札 ? { label: "半分" } : undefined)
+    .state("input", { initial: 10 })
+    .state("doubled", { initial: 20 })
+    .state("halved", { initial: 5 })
+    .node("in", {
+      lane: "input",
+      stack: 0,
+      kind: "card",
+      title: "元の値",
+      subtitle: "値 = {input}",
+    })
+    .node("out1", {
+      lane: "doubled",
+      stack: 0,
+      kind: "card",
+      title: "2 倍",
+      subtitle: "元の値 × 2 = {doubled}",
+    })
+    .node("out2", {
+      lane: "halved",
+      stack: 0,
+      kind: "card",
+      title: "半分",
+      subtitle: "元の値 ÷ 2 = {halved}",
+    })
+    .edge("in", "out1", { label: "× 2", tone: "success" })
+    .edge("in", "out2", { label: "÷ 2", tone: "info" })
+    .phase(
+      "p1",
+      {
+        duration: 1600,
+        title: "元の値を置く",
+        body: "左の箱に入力値を置く。 まだ計算式は動いていない。",
+      },
+      (p: PhaseBuilder) => p.activate("in"),
+    )
+    .phase(
+      "p2",
+      {
+        duration: 1600,
+        title: "2 倍を出す",
+        body: "1 つ目の計算式が元の値を 2 倍にして、右上の箱に書き出す。 元の値を変えると追いかける。",
+      },
+      (p: PhaseBuilder) => p.activate("in", "out1"),
+    )
+    .phase(
+      "p3",
+      {
+        duration: 1600,
+        title: "半分も出す",
+        body: "2 つ目の計算式が同じ元の値を半分にする。 元が 1 つ、そこから出る値が 2 つ。",
+      },
+      (p: PhaseBuilder) => p.activate("in", "out1", "out2"),
+    )
+    .build();
+}
+export const formulaTextBind = 二倍と半分の図("interactive-formula-text", true);
+export const patternBase__formulaTextBind = "名札で描く";
+export const pattern__formulaTextBind__名前のまま描く = 二倍と半分の図(
+  "interactive-formula-text-bare",
+  false,
+);
 export const subtitle__formulaTextBind =
   "formula chain を 3-lane (Input / Doubled / Halved) 分散 + 2 dependency edge で dataflow network 化、 formula reactive を可視化";
 
@@ -350,7 +362,7 @@ export const visualBindOpacity = diagram("interactive-visual-opacity", {
   .lane("target-lane", { x: 240, width: 220 })
   .lane("ref-lane", { x: 500, width: 200 })
   .input.slider("fade", { min: 0, max: 100, defaultValue: 100, label: "濃さ" })
-  .formula("op", "fade / 100")
+  .formula("op", "fade / 100", { label: "不透明度" })
   .state("fade", { initial: 100 })
   .state("op", { initial: 1 })
   .node("controlNode", {
@@ -845,9 +857,9 @@ export const shapeChainFill = diagram("interactive-shape-chain", {
   .lane("l2", { x: 150, width: 130 })
   .lane("l3", { x: 300, width: 130 })
   .input.slider("base", { min: 0, max: 100, defaultValue: 30, label: "元の値" })
-  .formula("gas1", "base")
-  .formula("gas2", "base * 1.2")
-  .formula("gas3", "base * 1.5")
+  .formula("gas1", "base", { label: "ブロック 1 の手数料" })
+  .formula("gas2", "base * 1.2", { label: "ブロック 2 の手数料" })
+  .formula("gas3", "base * 1.5", { label: "ブロック 3 の手数料" })
   .state("base", { initial: 30 })
   .state("gas1", { initial: 30 })
   .state("gas2", { initial: 36 })
@@ -922,7 +934,7 @@ export const shapeCirclePulse = diagram("interactive-shape-circle", {
   .lane("twothird", { x: 390, width: 170 })
   .lane("interactive", { x: 585, width: 180 })
   .input.slider("p", { min: 0, max: 100, defaultValue: 60, label: "進み具合" })
-  .formula("prog", "p / 100")
+  .formula("prog", "p / 100", { label: "塗る割合" })
   .state("p", { initial: 60 })
   .state("prog", { initial: 0.6 })
   .state("prog0", { initial: 0.0 })
@@ -1336,7 +1348,9 @@ export const repeatDeriveChain = diagram("interactive-repeat-chain", {
   .lane("l5", { x: 480, width: 100 })
   .input.slider("base", { min: 0, max: 60, defaultValue: 20, label: "元の値" })
   // formula chain: gas1 = base、 gas2 = gas1*1.2、 gas3 = gas2*1.2、 gas4 = gas3*1.2、 gas5 = gas4*1.2
-  .deriveChain("gas", 5, (i, prev) => (i === 0 ? "base" : `${prev} * 1.2`))
+  .deriveChain("gas", 5, (i, prev) => (i === 0 ? "base" : `${prev} * 1.2`), {
+    label: (i) => `ブロック ${i + 1} の手数料`,
+  })
   .state("base", { initial: 20 })
   .state("gas1", { initial: 20 })
   .state("gas2", { initial: 24 })
@@ -1493,8 +1507,8 @@ export const timelineDrive = diagram("interactive-timeline-drive", {
   .lane("bar", { x: 240, width: 180 })
   .lane("arc", { x: 440, width: 220 })
   .input.timeline("t", { duration: 3000, autoplay: true, loop: true, label: "時間" })
-  .formula("bar", "t * 100")
-  .formula("angle", "t * 270")
+  .formula("bar", "t * 100", { label: "棒の長さ" })
+  .formula("angle", "t * 270", { label: "弧の角度" })
   .state("t", { initial: 0 })
   .state("bar", { initial: 0 })
   .state("angle", { initial: 0 })
@@ -1577,7 +1591,7 @@ export const edgeFlowBind = diagram("interactive-edge-flow", {
     defaultValue: "#38bdf8",
     label: "線の色",
   })
-  .formula("dash", "t * 24")
+  .formula("dash", "t * 24", { label: "点の位置" })
   .state("flow", { initial: 5 })
   .state("t", { initial: 0 })
   .state("dash", { initial: 0 })
@@ -2054,7 +2068,7 @@ export const pathProgressDemo = diagram("interactive-path-progress", {
   .input.slider("progress", { min: 0, max: 100, defaultValue: 40, label: "進み具合" })
   .state("progress", { initial: 40 })
   .state("done", { initial: 0 })
-  .formula("done", "progress >= 100 ? 1 : 0")
+  .formula("done", "progress >= 100 ? 1 : 0", { label: "完了したか" })
   .node("main", {
     lane: "state",
     stack: 0,
@@ -2706,9 +2720,9 @@ export const eip1559GasFlow = diagram("interactive-eip1559", {
   .state("priority", { initial: 5 })
   .arraySignal("burned", [50, 60, 72])
   .arraySignal("tips", [5, 8, 10])
-  .formula("total1", "baseFee + priority")
-  .formula("total2", "(baseFee + priority) * 12 / 10")
-  .formula("total3", "(baseFee + priority) * 15 / 10")
+  .formula("total1", "baseFee + priority", { label: "ブロック N の手数料" })
+  .formula("total2", "(baseFee + priority) * 12 / 10", { label: "ブロック N+1 の手数料" })
+  .formula("total3", "(baseFee + priority) * 15 / 10", { label: "ブロック N+2 の手数料" })
   .state("total1", { initial: 55 })
   .state("total2", { initial: 66 })
   .state("total3", { initial: 82 })
@@ -3285,9 +3299,9 @@ export const kpiDashboard = diagram("interactive-kpi-dashboard", {
   .lane("nps", { x: 780, width: 200 })
   .input.slider("revenueInput", { min: 10, max: 500, defaultValue: 120, label: "月の売上 (千ドル)" })
   .state("revenueInput", { initial: 120 })
-  .formula("users", "revenueInput * 8")
-  .formula("churn", "50 - revenueInput / 10")
-  .formula("nps", "revenueInput / 2 + 20")
+  .formula("users", "revenueInput * 8", { label: "利用者" })
+  .formula("churn", "50 - revenueInput / 10", { label: "解約率" })
+  .formula("nps", "revenueInput / 2 + 20", { label: "推奨度" })
   .state("users", { initial: 960 })
   .state("churn", { initial: 38 })
   .state("nps", { initial: 80 })
@@ -5928,7 +5942,7 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
   .state("sec", { initial: 125 })
   .state("running", { initial: "true" })
   .state("elapsed", { initial: 125000 })
-  .formula("elapsed", "sec * 1000")
+  .formula("elapsed", "sec * 1000", { label: "経過 (ms)" })
   .node("secNode", {
     lane: "input",
     stack: 0,
@@ -25366,9 +25380,9 @@ readouts:
   gas: { kind: stacked-bar, sourceA: "burned", sourceB: "tips", min: 0, max: 120, colorA: "#ef4444", colorB: "#22c55e", label: "ブロックごとの焼却分 / 優先分" }
 
 formulas:
-  total1: "baseFee + priority"
-  total2: "(baseFee + priority) * 12 / 10"
-  total3: "(baseFee + priority) * 15 / 10"
+  total1: { expression: "baseFee + priority", label: "ブロック N の手数料" }
+  total2: { expression: "(baseFee + priority) * 12 / 10", label: "ブロック N+1 の手数料" }
+  total3: { expression: "(baseFee + priority) * 15 / 10", label: "ブロック N+2 の手数料" }
 
 lanes:
   col1: { x: 0, width: 370 }
@@ -25450,9 +25464,9 @@ export const sourceJson__eip1559GasFlow = `{
     }
   ],
   "formulas": {
-    "total1": "baseFee + priority",
-    "total2": "(baseFee + priority) * 12 / 10",
-    "total3": "(baseFee + priority) * 15 / 10"
+    "total1": { "expression": "baseFee + priority", "label": "ブロック N の手数料" },
+    "total2": { "expression": "(baseFee + priority) * 12 / 10", "label": "ブロック N+1 の手数料" },
+    "total3": { "expression": "(baseFee + priority) * 15 / 10", "label": "ブロック N+2 の手数料" }
   },
   "lanes": {
     "col1": { "x": 0, "width": 370 },
@@ -25556,6 +25570,110 @@ inputs:
   input: { kind: number, defaultValue: 10, label: "元の値" }
 
 formulas:
+  doubled: { expression: "input * 2", label: "2 倍" }
+  halved: { expression: "input / 2", label: "半分" }
+
+lanes:
+  input: { x: 0, width: 200 }
+  doubled: { x: 240, width: 200 }
+  halved: { x: 480, width: 200 }
+
+states:
+  input: 10
+  doubled: 20
+  halved: 5
+
+actors:
+  - in: { kind: card, lane: input, stack: 0, subtitle: "値 = {input}", title: "元の値" }
+  - out1: { kind: card, lane: doubled, stack: 0, subtitle: "元の値 × 2 = {doubled}", title: "2 倍" }
+  - out2: { kind: card, lane: halved, stack: 0, subtitle: "元の値 ÷ 2 = {halved}", title: "半分" }
+
+flow:
+  - in -> out1: "× 2" (success)
+  - in -> out2: "÷ 2" (info)
+
+animation:
+  - step: "元の値を置く" 1.6s
+    focus: ["in"]
+    description: "左の箱に入力値を置く。 まだ計算式は動いていない。"
+  - step: "2 倍を出す" 1.6s
+    focus: ["in", "out1"]
+    description: "1 つ目の計算式が元の値を 2 倍にして、右上の箱に書き出す。 元の値を変えると追いかける。"
+  - step: "半分も出す" 1.6s
+    focus: ["in", "out1", "out2"]
+    description: "2 つ目の計算式が同じ元の値を半分にする。 元が 1 つ、そこから出る値が 2 つ。"
+`;
+
+export const sourceJson__formulaTextBind = `{
+  "title": "入力値から 2 倍と半分を自動計算する",
+  "type": "flow",
+  "inputs": [
+    { "id": "input", "kind": "number", "defaultValue": 10, "label": "元の値" }
+  ],
+  "formulas": {
+    "doubled": { "expression": "input * 2", "label": "2 倍" },
+    "halved": { "expression": "input / 2", "label": "半分" }
+  },
+  "lanes": {
+    "input": { "x": 0, "width": 200 },
+    "doubled": { "x": 240, "width": 200 },
+    "halved": { "x": 480, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "in",
+      "kind": "card",
+      "lane": "input",
+      "stack": 0,
+      "subtitle": "値 = {input}",
+      "title": "元の値"
+    },
+    {
+      "name": "out1",
+      "kind": "card",
+      "lane": "doubled",
+      "stack": 0,
+      "subtitle": "元の値 × 2 = {doubled}",
+      "title": "2 倍"
+    },
+    {
+      "name": "out2",
+      "kind": "card",
+      "lane": "halved",
+      "stack": 0,
+      "subtitle": "元の値 ÷ 2 = {halved}",
+      "title": "半分"
+    }
+  ],
+  "flow": [
+    { "from": "in", "to": "out1", "label": "× 2", "tone": "success" },
+    { "from": "in", "to": "out2", "label": "÷ 2", "tone": "info" }
+  ],
+  "states": { "input": 10, "doubled": 20, "halved": 5 },
+  "animation": [
+    { "step": "元の値を置く", "duration": 1.6, "focus": ["in"], "body": "左の箱に入力値を置く。 まだ計算式は動いていない。" },
+    {
+      "step": "2 倍を出す",
+      "duration": 1.6,
+      "focus": ["in", "out1"],
+      "body": "1 つ目の計算式が元の値を 2 倍にして、右上の箱に書き出す。 元の値を変えると追いかける。"
+    },
+    {
+      "step": "半分も出す",
+      "duration": 1.6,
+      "focus": ["in", "out1", "out2"],
+      "body": "2 つ目の計算式が同じ元の値を半分にする。 元が 1 つ、そこから出る値が 2 つ。"
+    }
+  ]
+}`;
+
+export const sourceYaml__pattern__formulaTextBind__名前のまま描く = `title: "入力値から 2 倍と半分を自動計算する"
+type: flow
+
+inputs:
+  input: { kind: number, defaultValue: 10, label: "元の値" }
+
+formulas:
   doubled: "input * 2"
   halved: "input / 2"
 
@@ -25590,7 +25708,7 @@ animation:
     description: "2 つ目の計算式が同じ元の値を半分にする。 元が 1 つ、そこから出る値が 2 つ。"
 `;
 
-export const sourceJson__formulaTextBind = `{
+export const sourceJson__pattern__formulaTextBind__名前のまま描く = `{
   "title": "入力値から 2 倍と半分を自動計算する",
   "type": "flow",
   "inputs": [
@@ -25650,7 +25768,7 @@ export const sourceJson__formulaTextBind = `{
   ]
 }`;
 
-export const sourceYaml__kpiDashboard = `title: "SaaS の主要指標 4 つを 1 画面に並べる"
+export const sourceYaml__kpiDashboard =`title: "SaaS の主要指標 4 つを 1 画面に並べる"
 type: flow
 
 inputs:
@@ -25663,9 +25781,9 @@ readouts:
   np: { kind: percent-ring, source: "nps", max: 100, color: "#22c55e", label: "推奨度" }
 
 formulas:
-  users: "revenueInput * 8"
-  churn: "50 - revenueInput / 10"
-  nps: "revenueInput / 2 + 20"
+  users: { expression: "revenueInput * 8", label: "利用者" }
+  churn: { expression: "50 - revenueInput / 10", label: "解約率" }
+  nps: { expression: "revenueInput / 2 + 20", label: "推奨度" }
 
 lanes:
   revenue: { x: 0, width: 200 }
@@ -25737,9 +25855,9 @@ export const sourceJson__kpiDashboard = `{
     }
   ],
   "formulas": {
-    "users": "revenueInput * 8",
-    "churn": "50 - revenueInput / 10",
-    "nps": "revenueInput / 2 + 20"
+    "users": { "expression": "revenueInput * 8", "label": "利用者" },
+    "churn": { "expression": "50 - revenueInput / 10", "label": "解約率" },
+    "nps": { "expression": "revenueInput / 2 + 20", "label": "推奨度" }
   },
   "lanes": {
     "revenue": { "x": 0, "width": 200 },
@@ -25839,7 +25957,7 @@ readouts:
   ring: { kind: percent-ring, source: "progress", max: 100, color: "#22c55e", label: "円" }
 
 formulas:
-  done: "progress >= 100 ? 1 : 0"
+  done: { expression: "progress >= 100 ? 1 : 0", label: "完了したか" }
 
 lanes:
   state: { x: 0, width: 200 }
@@ -25903,7 +26021,7 @@ export const sourceJson__pathProgressDemo = `{
       "label": "円"
     }
   ],
-  "formulas": { "done": "progress >= 100 ? 1 : 0" },
+  "formulas": { "done": { "expression": "progress >= 100 ? 1 : 0", "label": "完了したか" } },
   "lanes": {
     "state": { "x": 0, "width": 200 },
     "visual": { "x": 240, "width": 300 },
@@ -25975,11 +26093,11 @@ inputs:
   base: { kind: slider, min: 0, max: 60, defaultValue: 20, label: "元の値" }
 
 formulas:
-  gas1: "base"
-  gas2: "gas1 * 1.2"
-  gas3: "gas2 * 1.2"
-  gas4: "gas3 * 1.2"
-  gas5: "gas4 * 1.2"
+  gas1: { expression: "base", label: "ブロック 1 の手数料" }
+  gas2: { expression: "gas1 * 1.2", label: "ブロック 2 の手数料" }
+  gas3: { expression: "gas2 * 1.2", label: "ブロック 3 の手数料" }
+  gas4: { expression: "gas3 * 1.2", label: "ブロック 4 の手数料" }
+  gas5: { expression: "gas4 * 1.2", label: "ブロック 5 の手数料" }
 
 lanes:
   l1: { x: 0, width: 100 }
@@ -26025,11 +26143,11 @@ export const sourceJson__repeatDeriveChain = `{
     { "id": "base", "kind": "slider", "min": 0, "max": 60, "defaultValue": 20, "label": "元の値" }
   ],
   "formulas": {
-    "gas1": "base",
-    "gas2": "gas1 * 1.2",
-    "gas3": "gas2 * 1.2",
-    "gas4": "gas3 * 1.2",
-    "gas5": "gas4 * 1.2"
+    "gas1": { "expression": "base", "label": "ブロック 1 の手数料" },
+    "gas2": { "expression": "gas1 * 1.2", "label": "ブロック 2 の手数料" },
+    "gas3": { "expression": "gas2 * 1.2", "label": "ブロック 3 の手数料" },
+    "gas4": { "expression": "gas3 * 1.2", "label": "ブロック 4 の手数料" },
+    "gas5": { "expression": "gas4 * 1.2", "label": "ブロック 5 の手数料" }
   },
   "lanes": {
     "l1": { "x": 0, "width": 100 },
@@ -26127,9 +26245,9 @@ inputs:
   base: { kind: slider, min: 0, max: 100, defaultValue: 30, label: "元の値" }
 
 formulas:
-  gas1: "base"
-  gas2: "base * 1.2"
-  gas3: "base * 1.5"
+  gas1: { expression: "base", label: "ブロック 1 の手数料" }
+  gas2: { expression: "base * 1.2", label: "ブロック 2 の手数料" }
+  gas3: { expression: "base * 1.5", label: "ブロック 3 の手数料" }
 
 lanes:
   l1: { x: 0, width: 130 }
@@ -26172,7 +26290,11 @@ export const sourceJson__shapeChainFill = `{
       "label": "元の値"
     }
   ],
-  "formulas": { "gas1": "base", "gas2": "base * 1.2", "gas3": "base * 1.5" },
+  "formulas": {
+    "gas1": { "expression": "base", "label": "ブロック 1 の手数料" },
+    "gas2": { "expression": "base * 1.2", "label": "ブロック 2 の手数料" },
+    "gas3": { "expression": "base * 1.5", "label": "ブロック 3 の手数料" }
+  },
   "lanes": {
     "l1": { "x": 0, "width": 130 },
     "l2": { "x": 150, "width": 130 },
@@ -26241,7 +26363,7 @@ inputs:
   p: { kind: slider, min: 0, max: 100, defaultValue: 60, label: "進み具合" }
 
 formulas:
-  prog: "p / 100"
+  prog: { expression: "p / 100", label: "塗る割合" }
 
 lanes:
   empty: { x: 0, width: 170 }
@@ -26290,7 +26412,7 @@ export const sourceJson__shapeCirclePulse = `{
       "label": "進み具合"
     }
   ],
-  "formulas": { "prog": "p / 100" },
+  "formulas": { "prog": { "expression": "p / 100", "label": "塗る割合" } },
   "lanes": {
     "empty": { "x": 0, "width": 170 },
     "third": { "x": 195, "width": 170 },
@@ -26379,8 +26501,8 @@ readouts:
   timeCu: { kind: countup, source: "bar", unit: "%", label: "時間 (%)" }
 
 formulas:
-  bar: "t * 100"
-  angle: "t * 270"
+  bar: { expression: "t * 100", label: "棒の長さ" }
+  angle: { expression: "t * 270", label: "弧の角度" }
 
 lanes:
   time: { x: 0, width: 200 }
@@ -26429,7 +26551,10 @@ export const sourceJson__timelineDrive = `{
   "readouts": [
     { "id": "timeCu", "kind": "countup", "source": "bar", "unit": "%", "label": "時間 (%)" }
   ],
-  "formulas": { "bar": "t * 100", "angle": "t * 270" },
+  "formulas": {
+    "bar": { "expression": "t * 100", "label": "棒の長さ" },
+    "angle": { "expression": "t * 270", "label": "弧の角度" }
+  },
   "lanes": {
     "time": { "x": 0, "width": 200 },
     "bar": { "x": 240, "width": 180 },
@@ -26511,7 +26636,7 @@ readouts:
   sw: { kind: stopwatch, source: "elapsed", runningSource: "running", size: 40, color: "#241c14", label: "時計 (分:秒.ms)" }
 
 formulas:
-  elapsed: "sec * 1000"
+  elapsed: { expression: "sec * 1000", label: "経過 (ms)" }
 
 lanes:
   input: { x: 0, width: 200 }
@@ -26571,7 +26696,7 @@ export const sourceJson__timerStopwatch = `{
       "label": "時計 (分:秒.ms)"
     }
   ],
-  "formulas": { "elapsed": "sec * 1000" },
+  "formulas": { "elapsed": { "expression": "sec * 1000", "label": "経過 (ms)" } },
   "lanes": {
     "input": { "x": 0, "width": 200 },
     "toggle": { "x": 240, "width": 200 },
@@ -26631,7 +26756,7 @@ readouts:
   opGauge: { kind: gauge, source: "fade", min: 0, max: 100, label: "濃さ (%)" }
 
 formulas:
-  op: "fade / 100"
+  op: { expression: "fade / 100", label: "不透明度" }
 
 lanes:
   control: { x: 0, width: 200 }
@@ -26686,7 +26811,7 @@ export const sourceJson__visualBindOpacity = `{
       "label": "濃さ (%)"
     }
   ],
-  "formulas": { "op": "fade / 100" },
+  "formulas": { "op": { "expression": "fade / 100", "label": "不透明度" } },
   "lanes": {
     "control": { "x": 0, "width": 200 },
     "target-lane": { "x": 240, "width": 220 },
@@ -26752,7 +26877,7 @@ inputs:
   flowColor: { kind: dropdown, options: ["#38bdf8", "#f472b6", "#facc15"], defaultValue: "#38bdf8", label: "線の色" }
 
 formulas:
-  dash: "t * 24"
+  dash: { expression: "t * 24", label: "点の位置" }
 
 lanes:
   src: { x: 0, width: 230 }
@@ -26814,7 +26939,7 @@ export const sourceJson__edgeFlowBind = `{
       "label": "線の色"
     }
   ],
-  "formulas": { "dash": "t * 24" },
+  "formulas": { "dash": { "expression": "t * 24", "label": "点の位置" } },
   "lanes": {
     "src": { "x": 0, "width": 230 },
     "pipe": { "x": 270, "width": 350 },

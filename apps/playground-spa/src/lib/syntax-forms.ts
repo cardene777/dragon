@@ -327,6 +327,10 @@ export const FORMS: Section[] = [
         code: '  flag: "doubled >= 100 ? 1 : 0"',
         note: "比較と三項も書ける",
       },
+      {
+        code: '  total: { expression: "doubled + 10", label: "合計" }',
+        note: "組で書くと操作部に名札を出す。 中身の名前も名札を持つつまみと式は名札で出す",
+      },
     ],
   },
   {

@@ -118,8 +118,11 @@ export interface DragonJson {
    * つまみの値から決まる値 (optional、 #1391)。 記法の最上位 `formulas:` と同じ。
    *
    * 形は `{ 名前: "式" }`。 `values:` と経路が別で、式は名前を中括弧で囲わない。
+   *
+   * 名札を付ける時は `{ 名前: { expression: "式", label: "名札" } }` の組で書く (#1916)。
+   * 描画側は名札を操作部の式の名前に描く (cdl#853)。
    */
-  formulas?: Record<string, string>;
+  formulas?: Record<string, string | { expression: string; label?: string }>;
   /**
    * 押下などの出来事で動く仕掛け (optional、 #1393)。 記法の最上位 `events:` と同じ。
    *
@@ -1491,12 +1494,14 @@ function validateFormulas(v: unknown, inputs: unknown, errors: JsonDslError[]): 
     }
   }
   const 先に書かれた式 = new Set<string>();
-  for (const [名前, 式] of Object.entries(v as Record<string, unknown>)) {
+  for (const [名前, 値] of Object.entries(v as Record<string, unknown>)) {
     const path = `$.formulas.${名前}`;
     if (!isValueName(名前)) {
       errors.push({ path, ...valueNameIssue(名前) });
       continue;
     }
+    const 式 = 式の組を検査する(値, path, errors);
+    if (式 === 組が読めない) continue;
     if (typeof 式 !== "string" || 式.trim() === "") {
       errors.push({
         path,
@@ -1536,6 +1541,53 @@ function validateFormulas(v: unknown, inputs: unknown, errors: JsonDslError[]): 
       });
     }
   }
+}
+
+/**
+ * 式の値が組の形 (`{ expression, label }`) なら組を検査し、式の文字列を返す (#1916)。
+ *
+ * 文字列やそれ以外の形は **そのまま返す** = 式の文字列の検査は呼び手が文字列の形と同じ経路で行う。
+ * 組に誤りがあれば知らせて `組が読めない` を返す。
+ *
+ * **誤りの合図を `null` にしない**。 `{ a: null }` の `null` がそのまま返ると合図と区別が付かず、
+ * 呼び手が「組の誤りは知らせ済み」 と読んで何も知らせずに通してしまう (実測)。
+ */
+const 組が読めない: unique symbol = Symbol("組が読めない");
+
+function 式の組を検査する(
+  値: unknown,
+  path: string,
+  errors: JsonDslError[],
+): unknown | typeof 組が読めない {
+  if (!値 || typeof 値 !== "object" || Array.isArray(値)) return 値;
+  const 組 = 値 as Record<string, unknown>;
+  let 読めた = true;
+  for (const 鍵 of Object.keys(組)) {
+    if (鍵 === "expression" || 鍵 === "label") continue;
+    読めた = false;
+    errors.push({
+      path: `${path}.${鍵}`,
+      message: `unknown formula field: ${鍵}`,
+      hint: "使える項目 = expression, label",
+    });
+  }
+  if (typeof 組.expression !== "string" || 組.expression.trim() === "") {
+    読めた = false;
+    errors.push({
+      path: `${path}.expression`,
+      message: "expression must be a non-empty expression string",
+      hint: `got ${組.expression === undefined ? "nothing" : JSON.stringify(組.expression)}`,
+    });
+  }
+  if (組.label !== undefined && (typeof 組.label !== "string" || 組.label.trim() === "")) {
+    読めた = false;
+    errors.push({
+      path: `${path}.label`,
+      message: "label must be a non-empty string",
+      hint: "名札を付けないなら label を書かない",
+    });
+  }
+  return 読めた ? 組.expression : 組が読めない;
 }
 
 /**
@@ -2464,9 +2516,19 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   const scrolls: DslScrollTrigger[] | undefined = json.scrolls
     ? Object.entries(json.scrolls).map(([id, spec]) => ({ id, ...spec }))
     : undefined;
-  // 式は `{ 名前: "式" }` から並びへ写す (#1391)。 記法側と同じ形にして組み立てを 1 本にする
+  // 式は `{ 名前: "式" }` から並びへ写す (#1391)。 記法側と同じ形にして組み立てを 1 本にする。
+  // 組の形 (`{ expression, label }`) は名札を持ったまま写す (#1916)
   const formulas: DslFormula[] | undefined = json.formulas
-    ? Object.entries(json.formulas).map(([id, expression]) => ({ id, expression, pos: p0 }))
+    ? Object.entries(json.formulas).map(([id, 値]) =>
+        typeof 値 === "string"
+          ? { id, expression: 値, pos: p0 }
+          : {
+              id,
+              expression: 値.expression,
+              ...(値.label !== undefined ? { label: 値.label } : {}),
+              pos: p0,
+            },
+      )
     : undefined;
   const states: DslState[] = Object.entries(json.states ?? {}).map(([name, initial]) => ({
     name,
