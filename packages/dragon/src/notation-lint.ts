@@ -85,32 +85,46 @@ export function autoFix(d: CdlDiagram): CdlDiagram {
   return patched;
 }
 
-const KIND_TO_JA: Record<string, string> = {
-  chart: "統計チャート",
-  "line chart": "折れ線グラフ",
-  "pie chart": "円グラフ",
-  "bar chart": "棒グラフ",
-  flow: "処理の流れ",
-  swimlane: "スイムレーン (役割別レーン)",
-  sequence: "時系列のやり取り",
-  topology: "システム構成",
-  er: "テーブル関係 (ER 図)",
-  stateMachine: "状態遷移 (ステート図)",
-  stateMachine2: "拡張ステート図 (階層状態)",
-  infrastructure: "クラウド構成",
-  classDiagram: "UML クラス図",
-  tree: "階層ツリー",
-  userJourney: "ユーザージャーニー",
-  mindMap: "マインドマップ",
-  funnel: "ファネル (段階別離脱)",
-  quadrant: "四象限マトリクス",
-  gantt: "ガントチャート",
-  flowchart: "分岐フローチャート",
-  network: "ネットワーク構成",
+/**
+ * 図の型ごとに、 自動修正が書く説明「{shows}を示す{name}」 の 2 つの部品。
+ *
+ * `name` は見本帳が同じ型の見本に付けた名前 (`apps/playground-spa/src/lib/i18n.ts` の
+ * `ITEM_NAME_JA` の `preset*`) と同じ字にする。 利用者は自動修正で書き換わった説明の名前で
+ * 見本帳を探すため、 呼び名が割れると同じ型の見本に辿り着けない。 照らす検査は画面側の
+ * `lint-topic-names.test.ts` が持つ (この package は画面側の file を読まない)。
+ *
+ * 説明の末尾を型の名前にするのは、 名前の多くが `図` で終わるため。 旧い文型
+ * 「{名前} を示す図」 のまま名前を差し替えると `工程表 を示す図` / `状態遷移図 を示す図` の
+ * ように図が重なる。 見本帳の見本の説明 (`全体に対する内訳の割合を示す円グラフ`) と同じ並びにした。
+ *
+ * `chart` と `bar chart` は見本帳に同じ型の見本が無いので、 図表の日常語で呼ぶ。
+ */
+const KIND_TO_JA: Record<string, { shows: string; name: string }> = {
+  chart: { shows: "項目ごとの数値", name: "グラフ" },
+  "line chart": { shows: "値の移り変わり", name: "折れ線グラフ" },
+  "pie chart": { shows: "全体に対する内訳の割合", name: "円グラフ" },
+  "bar chart": { shows: "項目ごとの値の大きさ", name: "棒グラフ" },
+  flow: { shows: "処理の順番", name: "フロー" },
+  swimlane: { shows: "役割ごとの縦列に分けた処理の流れ", name: "スイムレーン" },
+  sequence: { shows: "要素どうしのやり取りの順番", name: "シーケンス図" },
+  topology: { shows: "システムの構成要素と接続", name: "トポロジー図" },
+  er: { shows: "表どうしの関係", name: "ER図" },
+  stateMachine: { shows: "状態と遷移の条件", name: "状態遷移図" },
+  stateMachine2: { shows: "親の状態の中に置いた子の状態と遷移の条件", name: "入れ子の状態遷移図" },
+  infrastructure: { shows: "クラウドとネットワークの構成", name: "階層構成図" },
+  classDiagram: { shows: "クラスどうしの関係", name: "クラス図" },
+  tree: { shows: "組織や分類の親子の関係", name: "階層図" },
+  userJourney: { shows: "利用者の気持ちの移り変わり", name: "体験の道筋" },
+  mindMap: { shows: "中心の主題から広がる発想", name: "枝分かれ図" },
+  funnel: { shows: "段階ごとに残る数と離れる数", name: "絞り込み図" },
+  quadrant: { shows: "2 つの軸で分けた項目の位置", name: "四象限図" },
+  gantt: { shows: "作業の期間と前後の関係", name: "工程表" },
+  flowchart: { shows: "分岐や判定を含む処理の順番", name: "流れ図" },
+  network: { shows: "機器と区画のつながり", name: "ネットワーク図" },
 };
 
 function applyTopicAutoFix(topic: string): string {
-  // 1. 先頭の kind name を検出、 マッチしたら JA description に置換
+  // 1. 先頭の kind name を検出、 マッチしたら「{shows}を示す{name}」 に置換
   const kindMatch = topic.match(
     /^\s*(chart|flow|swimlane|sequence|topology|er|stateMachine2?|infrastructure|classDiagram|tree|userJourney|mindMap|funnel|quadrant|gantt|flowchart|network|line chart|pie chart|bar chart)\b/i,
   );
@@ -118,7 +132,8 @@ function applyTopicAutoFix(topic: string): string {
     const kind = kindMatch[1]!.toLowerCase();
     const canonical = Object.keys(KIND_TO_JA).find((k) => k.toLowerCase() === kind);
     if (canonical) {
-      return `${KIND_TO_JA[canonical]} を示す図`;
+      const { shows, name } = KIND_TO_JA[canonical]!;
+      return `${shows}を示す${name}`;
     }
   }
 

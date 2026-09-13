@@ -139,12 +139,19 @@ describe("lintDiagram — quadrant / funnel rule", () => {
 });
 
 describe("autoFix — topic 変換", () => {
-  it("kind 名で始まる topic → 「{JA} を示す図」 に置換", () => {
-    expect(autoFix(diagram({ topic: "flow preset (詳細)" })).topic).toBe("処理の流れ を示す図");
+  it("kind 名で始まる topic → 「{示すもの}を示す{型の名前}」 に置換", () => {
+    expect(autoFix(diagram({ topic: "flow preset (詳細)" })).topic).toBe("処理の順番を示すフロー");
   });
 
-  it("sequence 始まり → 時系列のやり取り", () => {
-    expect(autoFix(diagram({ topic: "sequence の例" })).topic).toBe("時系列のやり取り を示す図");
+  it("sequence 始まり → 見本帳の名前 `シーケンス図` で終わる", () => {
+    expect(autoFix(diagram({ topic: "sequence の例" })).topic).toBe("要素どうしのやり取りの順番を示すシーケンス図");
+  });
+
+  it("名前が `図` で終わる型でも図が重ならない (#1934)", () => {
+    expect(autoFix(diagram({ topic: "gantt preset (詳細)" })).topic).toBe("作業の期間と前後の関係を示す工程表");
+    expect(autoFix(diagram({ topic: "stateMachine2 の例" })).topic).toBe(
+      "親の状態の中に置いた子の状態と遷移の条件を示す入れ子の状態遷移図",
+    );
   });
 
   it("kind 名で始まらず括弧内実装詳細 → 除去", () => {
