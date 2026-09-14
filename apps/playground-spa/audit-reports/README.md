@@ -55,62 +55,73 @@ CAR-994 で cdl engine に 10 新 kind (chart-line/pie/bar / gantt-timeline / mi
 
 ---
 
-## 修正システム = notation lint
+## 修正システム = 記法の検査 (`notation lint`)
 
-### 動機
+### 何のためか
 
-catalog 記述の author (`presets.cdl.ts` を書く開発者、 dragon DSL を書く外部ユーザ) が **書き方の癖 / 冗長表現 / 未定義参照 / 空 payload** で「見た目は動くが読者に伝わらない」 diagram を作るのを rule-based に指摘する。
+図の書き手 (`presets.cdl.ts` を書く開発者と、dragon の記法を書く外の利用者) が、見た目は動くのに読む人へ伝わらない図を作った時に、決まった規則で指摘する。
+見るのは、図の説明に入り込んだ実装の書き方、無い部品を指す参照、値や項目が空の図表と四象限図。
 
-例 = topic が `chart preset (SVG polyline + 縦軸目盛)` の実装詳細説明になっている、 gantt の dependsOn 参照先 task が未定義、 mind-map の branch が未定義 parent を参照。
+例は、図の説明が `chart preset (SVG polyline + 縦軸目盛)` のように作り手の書き方になっている図、工程表の作業の `dependsOn` が無い作業を指す図、枝分かれ図の枝の `parent` が無い枝を指す図。
 
-### 検出 rule 一覧
+### 規則の一覧
 
-| rule | severity | auto-fix | 対象 |
+| 規則 | 重さ | 自動修正 | 何を見るか |
 |---|---|---|---|
-| topic-redundant-implementation-detail | warn | ✓ | topic に "preset" / "render 未実装" / "SVG polygon" 等 |
-| chart-empty-datum | warn | — | chart-{line,pie,bar} kind の datum 0 件 |
-| chart-single-datum | info | — | datum 1 件 (2 件以上推奨) |
-| gantt-unknown-depends-on | warn | — | 未定義 task への dependsOn 参照 |
-| mindmap-unknown-parent | warn | — | mind-map の branch 未定義 parent 参照 |
-| tree-unknown-parent | warn | — | tree の node 未定義 parent 参照 |
-| quadrant-empty | warn | — | quadrant の item 0 件 |
-| quadrant-single-quadrant | info | — | item が 1 象限に集中 |
-| funnel-increasing-count | warn | — | funnel stage の count が増加 (単調減少期待) |
+| `topic-redundant-implementation-detail` | ⚠ 注意 | できる (条件は下の節) | 図の説明に実装の書き方 (`preset (…)` / `render 未実装` / `SVG` の描き方の名前 (`polyline` など) / `polygon`) が入っている |
+| `chart-empty-datum` | ⚠ 注意 | できない | 図表 (`chart-line` / `chart-pie` / `chart-bar`) に値 (`datum`) が 1 件も無い |
+| `chart-single-datum` | ℹ 参考 | できない | 図表の値が 1 件だけ |
+| `gantt-unknown-depends-on` | ⚠ 注意 | できない | 工程表の作業の `dependsOn` が、無い作業を指している |
+| `mindmap-unknown-parent` | ⚠ 注意 | できない | 枝分かれ図の枝の `parent` が、中心にも他の枝にも無い |
+| `tree-unknown-parent` | ⚠ 注意 | できない | 階層図の項目の `parent` が、無い項目を指している |
+| `quadrant-empty` | ⚠ 注意 | できない | 四象限図に項目 (`item`) が 1 件も無い |
+| `quadrant-single-quadrant` | ℹ 参考 | できない | 四象限図の項目が 4 件以上あり、すべて 1 つの区画に入っている |
+| `funnel-increasing-count` | ⚠ 注意 | できない | 絞り込み図の段階の数が、前の段階より多い (状態から取る `{名前}` の数は比べない) |
 
-### 実行
+重さの呼び名は、記法の検査の道具が端末に出す呼び名と同じ。
+表の規則・重さ・自動修正の 3 つの欄は、画面側の検査 (`apps/playground-spa/src/lib/audit-readme-lint.test.ts`) が記法の検査の実物と照らす。
+「何を見るか」 の欄は機械で照らしていないので、規則の条件を変えた時は `packages/dragon/src/notation-lint.ts` と見比べて直す。
+
+### 走らせ方
 
 ```bash
-# lint 結果を stdout に表示 (auto-fix 未適用)
+# カタログの図に記法の検査を当て、指摘を端末に出す (自動修正は当てない)
 pnpm lint:notation
 
-# auto-fix 可能な rule を適用、 修正版を .lint-fix.json に書出し
+# カタログの presets.cdl.ts に自動修正を当てた結果を、隣の presets.lint-fix.json に書き出す (指摘がある時だけ)
 pnpm fix:notation
 
-# 実効性証明 (意図的にバグを注入した fixture で 8 rule 全 detect + autoFix 動作)
+# 実証用の台本。 わざと問題を入れた図に当て、全ての規則が指摘を出すことを確かめる
 pnpm lint:notation:proof
 ```
 
-### autoFix 挙動
-
-`topic-redundant-implementation-detail` rule に対応する autoFix は topic の先頭 kind 名を判定し、 該当 kind の 「〜 を示す図」 日本語 description に自動置換する。
-
-例:
-- `"chart preset (SVG polyline + tone 別 slice)"` → `"統計チャート を示す図"`
-- `"gantt preset (Release timeline)"` → `"ガントチャート を示す図"`
-- `"mindMap preset (Project ideas)"` → `"マインドマップ を示す図"`
-
-kind 判定 20+ pattern (chart / flow / swimlane / sequence / topology / er / stateMachine / infrastructure / classDiagram / tree / userJourney / mindMap / funnel / quadrant / gantt / flowchart / network 等)。
-
-CLI から任意 file を lint する場合:
+任意の file に当てる時。
 
 ```bash
 node packages/dragon/scripts/dragon-lint.mjs path/to/your.cdl.ts
 node packages/dragon/scripts/dragon-lint.mjs --fix path/to/your.cdl.ts
 ```
 
-### プログラム API
+### 自動修正の挙動
 
-`@cardenelabs/dragon` から export:
+自動修正 (`autoFix`) が直すのは図の説明の規則だけで、他の規則は手で直す。
+
+1. 図の説明が型の名前 (`gantt` など) で始まる時は、説明全体を「{何を示すか}を示す{カタログの名前}」 に書き換える。 型の一覧は `notation-lint.ts` の検出の正規表現が、書き換え先は書き換え先の表 (`KIND_TO_JA`) が持つ
+2. 型の名前で始まらない時は、括弧の中の実装の言葉と `preset` / `render` の語だけを消す。 3 字に満たなくなった時は `図の説明` にする
+
+例。
+
+- `chart preset (SVG polyline + tone 別 slice)` → `項目ごとの数値を示すグラフ`
+- `gantt preset (Release timeline)` → `作業の期間と前後の関係を示す工程表`
+- `mindMap preset (Project ideas)` → `中心の主題から広がる発想を示す枝分かれ図`
+- `ログイン (render 未実装)` → `ログイン`
+
+括弧の外に実装の言葉がある説明 (`SVG polyline を使う`) は、自動修正を当てても字が変わらない。
+この時の指摘は自動修正できる数に入れず、修正案は直し方の文になる (#1940)。
+
+### プログラムから使う
+
+`@cardenelabs/dragon` が書き出す。
 
 ```ts
 import { lintDiagram, autoFix, type LintReport, type LintIssue } from "@cardenelabs/dragon";
@@ -119,7 +130,7 @@ const report: LintReport = lintDiagram(diagram);
 console.log(report.issues); // LintIssue[]
 console.log(report.autoFixableCount);
 
-const patched = autoFix(diagram); // autoFixable な issue を全部解消
+const patched = autoFix(diagram); // 自動修正できる指摘を直した新しい図を返す (元の図は変えない)
 ```
 
 ---
