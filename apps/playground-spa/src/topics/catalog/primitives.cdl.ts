@@ -864,6 +864,219 @@ export const sourceJson__pattern__stateStartEnd__書く = `{
 export const pattern__stateStartEnd__書く = textDslToDiagram(sourceYaml__pattern__stateStartEnd__書く);
 // ==== #1969 並ぶ向きと始まりと終わり ここまで ====
 
+// ==== #1971 位置のずらし ここから ====
+// ---- 位置のずらし (pos / offsetX / offsetY) ----
+//
+// 箱と縦列と矢印の名前を、自動で決まった位置からずらす。 JSON は `pos`、記法は箱と縦列が
+// `offsetX` / `offsetY`、矢印は名前のずらし (`labelOffsetX` / `labelOffsetY`) で書き、同じ図になる。
+
+export const patternBase__layoutOffset = "ずらさない";
+
+export const subtitle__layoutOffset =
+  "箱と縦列と矢印の名前を、自動で決まった位置から書いた量だけずらす。 記法と JSON で書き方が違い、同じ図になる";
+
+export const sourceYaml__layoutOffset = `title: "位置をずらさない"
+type: flow
+
+lanes:
+  l1: { width: 280, label: "利用者" }
+  l2: { width: 280, label: "受付の窓口" }
+
+actors:
+  - 注文する: { kind: actor, lane: l1, stack: 0 }
+  - 受け付ける: { kind: function, lane: l2, stack: 1 }
+  - 在庫を引く: { kind: storage, lane: l2, stack: 2 }
+
+flow:
+  - 注文する -> 受け付ける: "注文"
+  - 受け付ける -> 在庫を引く: "引き当て"
+
+animation:
+  - step: "自動で決まった位置に置く" 1.8s
+    focus: ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"]
+    description: "位置のずらしを書かず、縦列と段から決まった位置に箱と縦列と矢印の名前を置く"
+`;
+
+export const sourceJson__layoutOffset = `{
+  "title": "位置をずらさない",
+  "type": "flow",
+  "lanes": {
+    "l1": { "width": 280, "label": "利用者" },
+    "l2": { "width": 280, "label": "受付の窓口" }
+  },
+  "actors": [
+    { "name": "注文する", "kind": "actor", "lane": "l1", "stack": 0 },
+    { "name": "受け付ける", "kind": "function", "lane": "l2", "stack": 1 },
+    { "name": "在庫を引く", "kind": "storage", "lane": "l2", "stack": 2 }
+  ],
+  "flow": [
+    { "from": "注文する", "to": "受け付ける", "label": "注文" },
+    { "from": "受け付ける", "to": "在庫を引く", "label": "引き当て" }
+  ],
+  "animation": [
+    {
+      "step": "自動で決まった位置に置く",
+      "duration": 1.8,
+      "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
+      "body": "位置のずらしを書かず、縦列と段から決まった位置に箱と縦列と矢印の名前を置く"
+    }
+  ]
+}`;
+
+export const layoutOffset = textDslToDiagram(sourceYaml__layoutOffset);
+
+export const sourceYaml__pattern__layoutOffset__箱をずらす = `title: "箱を自動で決まった位置からずらす"
+type: flow
+
+lanes:
+  l1: { width: 280, label: "利用者" }
+  l2: { width: 280, label: "受付の窓口" }
+
+actors:
+  - 注文する: { kind: actor, lane: l1, stack: 0, offsetX: 40, offsetY: 60 }
+  - 受け付ける: { kind: function, lane: l2, stack: 1 }
+  - 在庫を引く: { kind: storage, lane: l2, stack: 2 }
+
+flow:
+  - 注文する -> 受け付ける: "注文"
+  - 受け付ける -> 在庫を引く: "引き当て"
+
+animation:
+  - step: "注文するの箱を右へ 40、下へ 60 ずらす" 1.8s
+    focus: ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"]
+    description: "注文するの箱だけが右へ 40、下へ 60 動き、矢印は動いた箱から出る。 縦列と他の箱は動かない"
+`;
+
+export const sourceJson__pattern__layoutOffset__箱をずらす = `{
+  "title": "箱を自動で決まった位置からずらす",
+  "type": "flow",
+  "lanes": {
+    "l1": { "width": 280, "label": "利用者" },
+    "l2": { "width": 280, "label": "受付の窓口" }
+  },
+  "actors": [
+    { "name": "注文する", "kind": "actor", "lane": "l1", "stack": 0, "pos": { "x": 40, "y": 60 } },
+    { "name": "受け付ける", "kind": "function", "lane": "l2", "stack": 1 },
+    { "name": "在庫を引く", "kind": "storage", "lane": "l2", "stack": 2 }
+  ],
+  "flow": [
+    { "from": "注文する", "to": "受け付ける", "label": "注文" },
+    { "from": "受け付ける", "to": "在庫を引く", "label": "引き当て" }
+  ],
+  "animation": [
+    {
+      "step": "注文するの箱を右へ 40、下へ 60 ずらす",
+      "duration": 1.8,
+      "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
+      "body": "注文するの箱だけが右へ 40、下へ 60 動き、矢印は動いた箱から出る。 縦列と他の箱は動かない"
+    }
+  ]
+}`;
+
+export const pattern__layoutOffset__箱をずらす = textDslToDiagram(sourceYaml__pattern__layoutOffset__箱をずらす);
+
+export const sourceYaml__pattern__layoutOffset__縦列をずらす = `title: "縦列を自動で決まった位置からずらす"
+type: flow
+
+lanes:
+  l1: { width: 280, label: "利用者" }
+  l2: { width: 280, label: "受付の窓口", offsetX: 120, offsetY: 40 }
+
+actors:
+  - 注文する: { kind: actor, lane: l1, stack: 0 }
+  - 受け付ける: { kind: function, lane: l2, stack: 1 }
+  - 在庫を引く: { kind: storage, lane: l2, stack: 2 }
+
+flow:
+  - 注文する -> 受け付ける: "注文"
+  - 受け付ける -> 在庫を引く: "引き当て"
+
+animation:
+  - step: "受付の窓口の縦列を右へ 120、下へ 40 ずらす" 1.8s
+    focus: ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"]
+    description: "受付の窓口の縦列が右へ 120、下へ 40 動き、中の 2 つの箱も一緒に動く。 縦列の幅と高さと、利用者の縦列は変わらない"
+`;
+
+export const sourceJson__pattern__layoutOffset__縦列をずらす = `{
+  "title": "縦列を自動で決まった位置からずらす",
+  "type": "flow",
+  "lanes": {
+    "l1": { "width": 280, "label": "利用者" },
+    "l2": { "width": 280, "label": "受付の窓口", "pos": { "x": 120, "y": 40 } }
+  },
+  "actors": [
+    { "name": "注文する", "kind": "actor", "lane": "l1", "stack": 0 },
+    { "name": "受け付ける", "kind": "function", "lane": "l2", "stack": 1 },
+    { "name": "在庫を引く", "kind": "storage", "lane": "l2", "stack": 2 }
+  ],
+  "flow": [
+    { "from": "注文する", "to": "受け付ける", "label": "注文" },
+    { "from": "受け付ける", "to": "在庫を引く", "label": "引き当て" }
+  ],
+  "animation": [
+    {
+      "step": "受付の窓口の縦列を右へ 120、下へ 40 ずらす",
+      "duration": 1.8,
+      "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
+      "body": "受付の窓口の縦列が右へ 120、下へ 40 動き、中の 2 つの箱も一緒に動く。 縦列の幅と高さと、利用者の縦列は変わらない"
+    }
+  ]
+}`;
+
+export const pattern__layoutOffset__縦列をずらす = textDslToDiagram(sourceYaml__pattern__layoutOffset__縦列をずらす);
+
+export const sourceYaml__pattern__layoutOffset__矢印の名前をずらす = `title: "矢印の名前を自動で決まった位置からずらす"
+type: flow
+
+lanes:
+  l1: { width: 280, label: "利用者" }
+  l2: { width: 280, label: "受付の窓口" }
+
+actors:
+  - 注文する: { kind: actor, lane: l1, stack: 0 }
+  - 受け付ける: { kind: function, lane: l2, stack: 1 }
+  - 在庫を引く: { kind: storage, lane: l2, stack: 2 }
+
+flow:
+  - 注文する -> 受け付ける: "注文" { labelOffsetX: 40, labelOffsetY: -24 }
+  - 受け付ける -> 在庫を引く: "引き当て"
+
+animation:
+  - step: "注文の名前を右へ 40、上へ 24 ずらす" 1.8s
+    focus: ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"]
+    description: "注文の矢印の名前だけが右へ 40、上へ 24 動く。 矢印の線と箱は動かない"
+`;
+
+export const sourceJson__pattern__layoutOffset__矢印の名前をずらす = `{
+  "title": "矢印の名前を自動で決まった位置からずらす",
+  "type": "flow",
+  "lanes": {
+    "l1": { "width": 280, "label": "利用者" },
+    "l2": { "width": 280, "label": "受付の窓口" }
+  },
+  "actors": [
+    { "name": "注文する", "kind": "actor", "lane": "l1", "stack": 0 },
+    { "name": "受け付ける", "kind": "function", "lane": "l2", "stack": 1 },
+    { "name": "在庫を引く", "kind": "storage", "lane": "l2", "stack": 2 }
+  ],
+  "flow": [
+    { "from": "注文する", "to": "受け付ける", "label": "注文", "pos": { "x": 40, "y": -24 } },
+    { "from": "受け付ける", "to": "在庫を引く", "label": "引き当て" }
+  ],
+  "animation": [
+    {
+      "step": "注文の名前を右へ 40、上へ 24 ずらす",
+      "duration": 1.8,
+      "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
+      "body": "注文の矢印の名前だけが右へ 40、上へ 24 動く。 矢印の線と箱は動かない"
+    }
+  ]
+}`;
+
+export const pattern__layoutOffset__矢印の名前をずらす = textDslToDiagram(sourceYaml__pattern__layoutOffset__矢印の名前をずらす);
+
+// ==== #1971 位置のずらし ここまで ====
+
 /** 3. Node stack バリエーション */
 export const stackPair = diagram("stack-pair", { topic: "stack: 縦 2 段" })
   .lane("l", { x: 0, width: W })

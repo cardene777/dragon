@@ -480,6 +480,8 @@ export const ITEM_NAME_JA: Record<string, string> = {
   viewportSpacing: "図全体の間隔と大きさ",
   flowDirection: "流れ図の並ぶ向き",
   stateStartEnd: "状態の始まりと終わり",
+  // 位置のずらしの見本 (#1971)
+  layoutOffset: "位置のずらし",
   stackPair: "縦2段の積み",
   stackTriple: "縦3段の積み",
   kPerson: "種別: 人",
@@ -656,6 +658,7 @@ export const ITEM_NAME_EN: Record<string, string> = {
   viewportSpacing: "Diagram spacing and size",
   flowDirection: "Flow direction",
   stateStartEnd: "State start and end",
+  layoutOffset: "Position offset",
   stackPair: "Two-row stack",
   stackTriple: "Three-row stack",
   shapeFile: "File with dog-ear",

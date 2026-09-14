@@ -32,7 +32,12 @@ import {
   ACTOR_INLINE_VALUE_KINDS,
   ACTOR_BLOCK_VALUE_KINDS,
   FLOW_INLINE_VALUE_KINDS,
+  OFFSET_VALUE_KINDS,
 } from "../src/v05/parser";
+
+/** 位置のずらしの欄の値は `layoutPos` の片方に届く (#1971) */
+const ずらしの値 = (layoutPos: { x: number; y: number } | undefined, 欄: string): unknown =>
+  欄 === "offsetX" ? layoutPos?.x : layoutPos?.y;
 
 type 値の形 = "数" | "真偽";
 
@@ -97,6 +102,31 @@ const 場所 = {
       読む: (doc: any) => doc.actors[0]?.[欄],
     }),
   },
+  // 位置のずらし (#1971)。 箱の 2 つの書き方と縦列で同じ表を読み、`layoutPos` に届く
+  "位置のずらし (箱の中括弧)": {
+    表: OFFSET_VALUE_KINDS,
+    組む: (欄: string, v: string) => ({
+      本文: `title: "t"\ntype: flow\n\nactors:\n  - A: { kind: card, ${欄}: ${v} }\n  - B\n\nflow:\n  - A -> B: "x"\n`,
+      行: 5,
+      読む: (doc: any) => ずらしの値(doc.actors[0]?.layoutPos, 欄),
+    }),
+  },
+  "位置のずらし (箱の縦)": {
+    表: OFFSET_VALUE_KINDS,
+    組む: (欄: string, v: string) => ({
+      本文: `title: "t"\ntype: flow\n\nactors:\n  - A:\n      kind: card\n      ${欄}: ${v}\n  - B\n\nflow:\n  - A -> B: "x"\n`,
+      行: 7,
+      読む: (doc: any) => ずらしの値(doc.actors[0]?.layoutPos, 欄),
+    }),
+  },
+  "位置のずらし (縦列)": {
+    表: OFFSET_VALUE_KINDS,
+    組む: (欄: string, v: string) => ({
+      本文: `title: "t"\ntype: flow\nlanes:\n  L1: { ${欄}: ${v} }\n\nactors:\n  - A\n  - B\n\nflow:\n  - A -> B: "x"\n`,
+      行: 4,
+      読む: (doc: any) => ずらしの値(doc.lanes?.L1?.layoutPos, 欄),
+    }),
+  },
   矢印: {
     表: FLOW_INLINE_VALUE_KINDS,
     組む: (欄: string, v: string) => ({
@@ -132,18 +162,18 @@ describe("読めない値を知らせる欄を網羅している (#1306)", () =>
     expect(Object.keys(場所).length, "場所が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
   });
 
-  it("欄の異なりが 21 ある (実装から導く)", () => {
+  it("欄の異なりが 23 ある (実装から導く)", () => {
     // Issue #1306 が数えた 21 欄を、表から導いて突き合わせる。 表に欄を足して呼出側に
-    // 配線し忘れると、下の 2 方向の検査が落ちる
+    // 配線し忘れると、下の 2 方向の検査が落ちる。 #1971 で位置のずらし (`offsetX` / `offsetY`) を足して 23
     const 名前 = new Set(全欄().map((f) => f.欄));
-    expect(名前.size, `欄の異なりが変わった (${[...名前].sort().join(",")})`).toBe(21);
+    expect(名前.size, `欄の異なりが変わった (${[...名前].sort().join(",")})`).toBe(23);
   });
 
-  it("数の欄が 16、真偽の欄が 5", () => {
+  it("数の欄が 18、真偽の欄が 5", () => {
     const 欄 = 全欄();
     const 数 = new Set(欄.filter((f) => f.形 === "数").map((f) => f.欄));
     const 真偽 = new Set(欄.filter((f) => f.形 === "真偽").map((f) => f.欄));
-    expect(数.size, `数の欄 = ${[...数].sort().join(",")}`).toBe(16);
+    expect(数.size, `数の欄 = ${[...数].sort().join(",")}`).toBe(18);
     expect(真偽.size, `真偽の欄 = ${[...真偽].sort().join(",")}`).toBe(5);
   });
 

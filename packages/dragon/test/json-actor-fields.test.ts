@@ -46,6 +46,10 @@ const 対応表: Record<string, 対応> = {
   tone: { 記法: "tone: success", json: { tone: "success" } },
   // 色の欄 (#1969)。 中括弧の形だけが読めなかった。 名前は箱の色、`#` で始まる値は色番号
   color: { 記法: 'color: "成功"', json: { color: "success" } },
+  // 位置のずらし (#1971)。 記法は 2 欄、JSON は `pos` 1 欄で、同じ `layoutPos` に入る。
+  // 片方だけ書いた記法は残りを 0 として読むので、JSON 側に 0 を書いて揃える
+  offsetX: { 記法: "offsetX: 60", json: { pos: { x: 60, y: 0 } } },
+  offsetY: { 記法: "offsetY: -40", json: { pos: { x: 0, y: -40 } } },
   nodes: {
     記法: "nodes: { header: { posX: 10, posY: 20 } }",
     json: { nodes: { header: { posX: 10, posY: 20 } } },
