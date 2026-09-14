@@ -182,10 +182,34 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
      * **届き方が 2 通りある**。 多くの欄は同じ名前で矢印に載るが、種類をまとめて書く欄
      * (`relation` / `kind`) は線と端の形と塗りに展開される = 名前のまま載らない。
      * その 2 つは `型` (どの図で書くか) と `確かめる` (何を見るか) を持つ。
+     *
+     * 部品の要素の名指し (`fromPartNode` / `toPartNode`、#1979) は、端が部品の時にだけ効き、矢印の端の
+     * id に展開される。 `箱` (actors の行) と `部品` (組み立てに渡す部品の一覧) も持つ。
      */
+    const 部品の一覧: Record<string, CdlDiagram> = {
+      two: {
+        id: "parts-two",
+        topic: "t",
+        lanes: [{ id: "l", x: 0, width: 200 }],
+        nodes: [
+          { id: "x", lane: "l", stack: 0, kind: "card", title: "x" },
+          { id: "y", lane: "l", stack: 1, kind: "card", title: "y" },
+        ],
+        edges: [],
+        states: [],
+        phases: [],
+      },
+    };
     const 試す値: Record<
       string,
-      { 書く: string; 期待?: unknown; 型?: string; 確かめる?: (d: CdlDiagram) => void }
+      {
+        書く: string;
+        期待?: unknown;
+        型?: string;
+        確かめる?: (d: CdlDiagram) => void;
+        箱?: string;
+        部品?: Record<string, CdlDiagram>;
+      }
     > = {
       sub: { 書く: '"補足"', 期待: "補足" },
       // クラス図の出どころ側の多重度 (#1771)。 名前のまま載らず、出どころの端の字になる
@@ -243,6 +267,25 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
           expect(中身!.messages[0]?.kind, "kind が言づてに届いていない").toBe("return");
         },
       },
+      // 部品の要素の名指し (#1979)。 名前のまま載らず、矢印の端が部品の要素の id になる
+      fromPartNode: {
+        書く: "y",
+        型: "swimlane",
+        箱: "  - A: { kind: two }\n  - B: { kind: card }",
+        部品: 部品の一覧,
+        確かめる: (d) => {
+          expect(d.edges[0]?.from, "fromPartNode が矢印の出どころに届いていない").toBe("A__y");
+        },
+      },
+      toPartNode: {
+        書く: "y",
+        型: "swimlane",
+        箱: "  - A: { kind: card }\n  - B: { kind: two }",
+        部品: 部品の一覧,
+        確かめる: (d) => {
+          expect(d.edges[0]?.to, "toPartNode が矢印の行き先に届いていない").toBe("B__y");
+        },
+      },
     };
 
     const 値が無い欄 = 書いた.filter((k) => !(k in 試す値));
@@ -255,14 +298,13 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
 type: ${型}
 
 actors:
-  - A: { kind: card }
-  - B: { kind: card }
+${v.箱 ?? "  - A: { kind: card }\n  - B: { kind: card }"}
 
 flow:
   - A -> B: "x" { ${欄}: ${v.書く} }
 `);
       if (!r.ok) throw new Error(`${欄} を書いた記法が読めない: ${JSON.stringify(r.errors)}`);
-      const 図 = compileToCdl(r.doc);
+      const 図 = compileToCdl(r.doc, v.部品 ? { partsCatalog: v.部品 } : undefined);
       if (v.確かめる) {
         v.確かめる(図);
         continue;

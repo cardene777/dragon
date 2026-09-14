@@ -161,6 +161,9 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     labelOffsetY: 2,
     overlay: true,
     pos: { x: 1, y: 2 },
+    // 部品の端で繋ぐ要素の id (#1979)
+    fromPartNode: "rC",
+    toPartNode: "gC",
   },
   phase: {
     step: "s1",

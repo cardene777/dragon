@@ -27,6 +27,16 @@ import * as 部品 from "./parts.cdl";
  *
  * 位置を書かない部品に `lane:` を書くと、その縦列の中心に置き、縦列の他の箱の下に並べる。
  * 同じ縦列に普通の箱 (`梱包する`) を置き、部品が縦列の中に収まって普通の箱と縦にそろうことを見せる。
+ *
+ * ## 部品へ矢印を引く (#1979)
+ *
+ * 矢印は部品の中の要素に繋がる。 `state-indicator` は要素を 1 つだけ持つので何も足さずに繋がる。
+ * 要素を 2 つ以上持つ部品 (`stacked-layer` の上層 / 中層 / 底層) は、矢印に `toPartNode` /
+ * `fromPartNode` で要素の id を書いて繋ぐ層を選ぶ。
+ *
+ * 矢印を引く 2 つの切替は `swimlane` で書く。 `flow` と `topology` は部品を他の箱の下の格子に置くため、
+ * 矢印が間の箱を貫く (絵の検査で実測)。 `traffic-light-stack` のように要素を縦に詰めた部品は、図に
+ * 取り込むと要素の間が 60px になり間隔の検査 (70px) に掛かるので、層の間が広い `stacked-layer` を使う。
  */
 
 const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
@@ -34,7 +44,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partInBox = "書かない";
 
 export const subtitle__partInBox =
-  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置く";
+  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぐ";
 
 export const sourceYaml__partInBox = `title: "部品を箱に置き何も書き換えない"
 type: flow
@@ -147,5 +157,69 @@ export const sourceJson__pattern__partInBox__縦列に置く = `{
 
 export const pattern__partInBox__縦列に置く = textDslToDiagram(
   sourceYaml__pattern__partInBox__縦列に置く,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partInBox__矢印を繋ぐ = `title: "点検の結果を部品に送り、部品から保全へ知らせる"
+type: swimlane
+
+actors:
+  - 点検: { kind: card }
+  - 設備の稼働: { kind: state-indicator }
+  - 保全: { kind: card }
+
+flow:
+  - 点検 -> 設備の稼働: "結果を送る"
+  - 設備の稼働 -> 保全: "異常を知らせる"
+`;
+
+export const sourceJson__pattern__partInBox__矢印を繋ぐ = `{
+  "title": "点検の結果を部品に送り、部品から保全へ知らせる",
+  "type": "swimlane",
+  "actors": [
+    { "name": "点検", "kind": "card" },
+    { "name": "設備の稼働", "kind": "state-indicator" },
+    { "name": "保全", "kind": "card" }
+  ],
+  "flow": [
+    { "from": "点検", "to": "設備の稼働", "label": "結果を送る" },
+    { "from": "設備の稼働", "to": "保全", "label": "異常を知らせる" }
+  ]
+}`;
+
+export const pattern__partInBox__矢印を繋ぐ = textDslToDiagram(
+  sourceYaml__pattern__partInBox__矢印を繋ぐ,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partInBox__繋ぐ要素を名指しする = `title: "受注から在庫の上層へ、在庫の底層から出荷へ矢印を繋ぐ"
+type: swimlane
+
+actors:
+  - 受注: { kind: card }
+  - 在庫の内訳: { kind: stacked-layer }
+  - 出荷: { kind: card }
+
+flow:
+  - 受注 -> 在庫の内訳: "上層から引き当てる" { toPartNode: topL }
+  - 在庫の内訳 -> 出荷: "底層を出す" { fromPartNode: botL }
+`;
+
+export const sourceJson__pattern__partInBox__繋ぐ要素を名指しする = `{
+  "title": "受注から在庫の上層へ、在庫の底層から出荷へ矢印を繋ぐ",
+  "type": "swimlane",
+  "actors": [
+    { "name": "受注", "kind": "card" },
+    { "name": "在庫の内訳", "kind": "stacked-layer" },
+    { "name": "出荷", "kind": "card" }
+  ],
+  "flow": [
+    { "from": "受注", "to": "在庫の内訳", "label": "上層から引き当てる", "toPartNode": "topL" },
+    { "from": "在庫の内訳", "to": "出荷", "label": "底層を出す", "fromPartNode": "botL" }
+  ]
+}`;
+
+export const pattern__partInBox__繋ぐ要素を名指しする = textDslToDiagram(
+  sourceYaml__pattern__partInBox__繋ぐ要素を名指しする,
   { partsCatalog: 部品の一覧 },
 );

@@ -391,6 +391,12 @@ export interface JsonStep {
    * 矢印の位置のずらし (#1971)。 名前のずらし (`labelOffsetX` / `labelOffsetY`) に足して名前を動かす。
    */
   pos?: LayoutPos;
+  /**
+   * 部品の端で矢印を繋ぐ部品の中の要素の id (#1979)。 記法の `{ fromPartNode: rC }` / `{ toPartNode: gC }` と同じ。
+   * 要素を 1 つだけ持つ部品は書かなくてもその要素に繋ぐ
+   */
+  fromPartNode?: string;
+  toPartNode?: string;
 }
 
 export interface JsonPhase {
@@ -584,6 +590,9 @@ export const ACCEPTED_KEYS = {
     "labelOffsetY",
     "overlay",
     "pos",
+    // 部品の端で繋ぐ要素の id (#1979)
+    "fromPartNode",
+    "toPartNode",
   ],
   phase: ["step", "duration", "focus", "body", "badge", "tween", "set", "draw", "drawRatio"],
   viewport: ["width", "height", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
@@ -747,6 +756,9 @@ export const 欄の型表 = {
     labelOffsetY: "数",
     overlay: "真偽",
     pos: "object",
+    // 部品の端で繋ぐ要素の id (#1979)。 空の id は要素を指せないので受けない
+    fromPartNode: "非空の文字列",
+    toPartNode: "非空の文字列",
   },
   phase: {
     step: "必須の非空文字列",
@@ -2484,6 +2496,9 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     labelOffsetX: s.labelOffsetX,
     labelOffsetY: s.labelOffsetY,
     overlay: s.overlay,
+    // 部品の端で繋ぐ要素の id (#1979)。 書かない矢印には欄を足さない = 記法と同じ形になる
+    ...(s.fromPartNode !== undefined ? { fromPartNode: s.fromPartNode } : {}),
+    ...(s.toPartNode !== undefined ? { toPartNode: s.toPartNode } : {}),
     // CAR-1693 Phase 1: DSL 表面 pos → 内部 AST layoutPos
     layoutPos: s.pos,
     pos: p0,

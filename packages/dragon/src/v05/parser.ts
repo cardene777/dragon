@@ -3468,6 +3468,12 @@ const FLOW_INLINE_READERS = {
    * 持たないため、知らせを出せる場所で見る)。
    */
   ...EDGE_BIND_INLINE_READERS,
+  /*
+   * 部品の端で矢印を繋ぐ要素の id (#1979)。 部品かどうか、要素が在るかは組み立てで部品の図を
+   * 引いてから決まるため、ここでは字をそのまま通す
+   */
+  fromPartNode: (v: string | undefined) => v,
+  toPartNode: (v: string | undefined) => v,
   // 数と真偽の欄は `FLOW_INLINE_VALUE_KINDS` の表が読む (#1306)。 ここでは名前だけを持つ =
   // 読める欄の一覧 (`FLOW_INLINE_KEYS`) は本表から導くため、載せないと欄ごと消える
   labelOffsetX: null,
@@ -3823,6 +3829,9 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   const labelOffsetX = 数と真偽?.labelOffsetX;
   const labelOffsetY = 数と真偽?.labelOffsetY;
   const overlay = 数と真偽?.overlay;
+  // 空の名指し (`toPartNode: ""`) は書かなかったことにする = 要素 1 つの部品なら自動で繋ぐ
+  const fromPartNode = (中括弧.fromPartNode as string | undefined) || undefined;
+  const toPartNode = (中括弧.toPartNode as string | undefined) || undefined;
   // 色と線種を末尾から取る。 括弧 (`(成功)`) と空白区切り (`成功`) の両方を受け付ける。
   //
   // 括弧は従来の書き方で、 catalog が使っている。 空白区切りは登場人物と揃えた形。
@@ -3895,6 +3904,8 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     labelOffsetX,
     labelOffsetY,
     overlay,
+    ...(fromPartNode !== undefined ? { fromPartNode } : {}),
+    ...(toPartNode !== undefined ? { toPartNode } : {}),
     pos: { line: line.no },
   };
 }
