@@ -23,13 +23,14 @@ import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
 import { tsImport } from "tsx/esm/api";
 import { lintDiagram, autoFix } from "../dist/index.js";
+import { 指摘の行 } from "./lint-output.mjs";
 
 const args = process.argv.slice(2);
 const applyFix = args.includes("--fix");
 const targets = args.filter((a) => !a.startsWith("--"));
 
 if (targets.length === 0) {
-  console.error("Usage: dragon-lint <cdl-file.ts> [--fix]");
+  console.error("使い方: `node packages/dragon/scripts/dragon-lint.mjs <図を書いた .cdl.ts>… [--fix]`");
   process.exit(1);
 }
 
@@ -47,11 +48,11 @@ for (const target of targets) {
   );
 
   if (diagrams.length === 0) {
-    console.warn(`[dragon-lint] ${target} に CdlDiagram export なし`);
+    console.warn(`[記法の検査] \`${target}\` に図 (\`CdlDiagram\`) の書き出し (\`export\`) が無い`);
     continue;
   }
 
-  console.log(`\n== ${target} (${diagrams.length} diagram) ==\n`);
+  console.log(`\n== \`${target}\` (図 ${diagrams.length} 件) ==\n`);
 
   const fixed = {};
   for (const [exportName, d] of diagrams) {
@@ -59,13 +60,9 @@ for (const target of targets) {
     totalDiagrams++;
     if (report.issues.length === 0) continue;
 
-    console.log(`  [${exportName}] ${d.id} — ${report.issues.length} issue`);
+    console.log(`  \`${exportName}\` (\`${d.id}\`) の指摘 ${report.issues.length} 件`);
     for (const issue of report.issues) {
-      const marker = issue.severity === "warn" ? "⚠" : "ℹ";
-      const auto = issue.autoFixable ? " (auto-fix 可)" : "";
-      console.log(`    ${marker} ${issue.rule} @ ${issue.target}${auto}`);
-      console.log(`       ${issue.message}`);
-      if (issue.suggestion) console.log(`       → ${issue.suggestion}`);
+      for (const 行 of 指摘の行(issue, "    ")) console.log(行);
     }
     totalIssues += report.issues.length;
     totalAutoFixable += report.autoFixableCount;
@@ -78,16 +75,18 @@ for (const target of targets) {
   if (applyFix && Object.keys(fixed).length > 0) {
     const outPath = absPath.replace(/\.ts$/, ".lint-fix.json");
     writeFileSync(outPath, JSON.stringify(fixed, null, 2));
-    console.log(`  [--fix] ${Object.keys(fixed).length} diagram の autoFix 結果を ${outPath} に書出し`);
+    console.log(
+      `  \`--fix\`: 図 ${Object.keys(fixed).length} 件に自動修正を当てた結果を \`${outPath}\` に書き出した`,
+    );
   }
 }
 
-console.log(`\n== summary ==`);
-console.log(`  diagram total: ${totalDiagrams}`);
-console.log(`  issue total: ${totalIssues}`);
-console.log(`  auto-fixable: ${totalAutoFixable}`);
+console.log(`\n== まとめ ==`);
+console.log(`  検査した図: ${totalDiagrams} 件`);
+console.log(`  指摘: ${totalIssues} 件`);
+console.log(`  自動修正できる指摘: ${totalAutoFixable} 件`);
 
 if (totalIssues > 0 && !applyFix) {
-  console.log(`  → 自動修正するには --fix flag を付けて再実行`);
+  console.log(`  → 自動修正を当てるには \`--fix\` を付けて走らせ直す`);
 }
 process.exit(0);

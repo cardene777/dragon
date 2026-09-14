@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { lintDiagram } from "@cardenelabs/dragon";
-import { 残る英単語, 残るカタカナ語 } from "./screen-words";
+import { 文に残る語 } from "./screen-words";
 
 type 指摘 = ReturnType<typeof lintDiagram>["issues"][number];
 
@@ -22,12 +22,6 @@ const 記法の検査 = readFileSync(
   fileURLToPath(new URL("../../../../packages/dragon/src/notation-lint.ts", import.meta.url)),
   "utf8",
 );
-
-/** `` ` `` で囲んだ範囲を外した上で、残す語の一覧の外の英単語とカタカナ語を返す */
-export function 文に残る語(文: string): { 英: string[]; カナ: string[] } {
-  const 素 = 文.replace(/`[^`]*`/g, " ");
-  return { 英: 残る英単語(素), カナ: 残るカタカナ語(素) };
-}
 
 /** 書き手が読む文。 自動修正できる指摘の修正案は値なので外す */
 function 読む文(i: 指摘): string {

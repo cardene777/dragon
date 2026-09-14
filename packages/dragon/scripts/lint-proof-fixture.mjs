@@ -15,6 +15,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { lintDiagram, autoFix } from "../dist/index.js";
+import { 指摘の行 } from "./lint-output.mjs";
 
 /** 記法の検査の規則。 指摘の文の検査 (`lint-message-words.test.ts`) と同じ読み方で `rule: "…"` を読む */
 export function 規則を読む(src) {
@@ -130,27 +131,23 @@ export const buggyDiagram = {
 };
 
 function 実行する() {
-  console.log("=== 意図的にバグを注入した CdlDiagram に対して lintDiagram() 実行 ===\n");
+  console.log("=== わざと問題を入れた図に記法の検査 (`lintDiagram`) を当てる ===\n");
   const report = lintDiagram(buggyDiagram);
-  console.log(`diagram id: ${report.diagramId}`);
-  console.log(`issues detected: ${report.issues.length}`);
-  console.log(`auto-fixable: ${report.autoFixableCount}\n`);
+  console.log(`図: \`${report.diagramId}\``);
+  console.log(`指摘: ${report.issues.length} 件`);
+  console.log(`自動修正できる指摘: ${report.autoFixableCount} 件\n`);
 
   for (const issue of report.issues) {
-    const marker = issue.severity === "warn" ? "⚠" : "ℹ";
-    const auto = issue.autoFixable ? " (auto-fix 可)" : "";
-    console.log(`${marker} ${issue.rule} @ ${issue.target}${auto}`);
-    console.log(`   ${issue.message}`);
-    if (issue.suggestion) console.log(`   → ${issue.suggestion}`);
+    for (const 行 of 指摘の行(issue)) console.log(行);
     console.log();
   }
 
-  console.log("=== autoFix() 適用後 の topic ===");
+  console.log("=== 自動修正 (`autoFix`) を当てた図の説明 ===");
   const fixed = autoFix(buggyDiagram);
-  console.log(`before: "${buggyDiagram.topic}"`);
-  console.log(`after:  "${fixed.topic}"`);
+  console.log(`直す前: \`${buggyDiagram.topic}\``);
+  console.log(`直した後: \`${fixed.topic}\``);
 
-  console.log("\n=== summary ===");
+  console.log("\n=== まとめ ===");
   const 規則の元 = fileURLToPath(new URL("../src/notation-lint.ts", import.meta.url));
   const 期待する規則 = 規則を読む(readFileSync(規則の元, "utf8"));
   if (期待する規則.length === 0) {

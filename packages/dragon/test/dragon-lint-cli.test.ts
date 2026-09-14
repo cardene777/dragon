@@ -71,16 +71,16 @@ describe("記法の検査の段は隣のファイルを読む見本を読める 
     const 結果 = 段を起動する(join(置き場, "reads-neighbor.cdl.ts"));
     expect(結果.status, `段が落ちた:\n${結果.stderr}`).toBe(0);
     expect(結果.stdout, "見本の見出しが出ていない (見本を読めていない)").toContain(
-      "reads-neighbor.cdl.ts (1 diagram)",
+      "reads-neighbor.cdl.ts` (図 1 件)",
     );
     expect(結果.stdout, "図を 1 つも数えていない (検査が空振りしている)").toContain(
-      "diagram total: 1",
+      "検査した図: 1 件",
     );
   });
 
   it("読み込む先が無い見本は黙って飛ばさず非 0 で終わる", () => {
     const 結果 = 段を起動する(join(置き場, "reads-missing.cdl.ts"));
     expect(結果.status, "読めない見本を検査したことにしている").not.toBe(0);
-    expect(結果.stdout, "読めない見本を数えている").not.toContain("diagram total: 1");
+    expect(結果.stdout, "読めない見本を数えている").not.toContain("検査した図: 1 件");
   });
 });
