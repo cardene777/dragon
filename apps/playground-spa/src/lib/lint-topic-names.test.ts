@@ -7,12 +7,15 @@
  *
  * 直す前は `ガントチャート を示す図` のように、カタログが #1930 で開いた名前 (`工程表`) と違う呼び名を
  * 書いていた。 名前を差し替えるだけだと `工程表 を示す図` と図が重なる。
+ *
+ * 同じ型の一覧で、図の説明の指摘の修正案が自動修正の書く説明と一致することも確かめる (#1942)。
+ * package 側の検査は説明 4 通りしか入力にしないので、全ての型と実装の言葉の組はここで回す。
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import { autoFix } from "@cardenelabs/dragon";
+import { autoFix, lintDiagram } from "@cardenelabs/dragon";
 import { ITEM_NAME_JA } from "./i18n";
 import { 残るカタカナ語 } from "./screen-words";
 
@@ -55,8 +58,65 @@ export function 見本の鍵(型: string): string {
   return `preset${語.map((w) => w[0]!.toUpperCase() + w.slice(1)).join("")}`;
 }
 
+function 図(topic: string): CdlDiagram {
+  return { id: "d", topic, nodes: [], edges: [] } as unknown as CdlDiagram;
+}
+
 function 書き換え(topic: string): string {
-  return autoFix({ id: "d", topic, nodes: [], edges: [] } as unknown as CdlDiagram).topic;
+  return autoFix(図(topic)).topic;
+}
+
+const 図の説明の規則 = "topic-redundant-implementation-detail";
+
+/**
+ * 図の説明に入れる実装の言葉。 検出の形 (`REDUNDANT_TOPIC_PATTERNS`) の 1 つに 1 つずつ当たる字を置く。
+ *
+ * 形の数は実物の理由 (`hint:`) の数を読んで突き合わせるので、形を足してここに字を足し忘れると検査が落ちる。
+ * 読み方は指摘の文の検査 (`lint-message-words.test.ts`) と同じにする。
+ */
+export const 実装の言葉 = [
+  "preset (詳細)",
+  "render 未実装",
+  "SVG polyline で描く",
+  "polygon",
+] as const;
+
+/**
+ * 型と実装の言葉の組ごとに、図の説明の指摘が自動修正と食い違うもの。
+ *
+ * 見るのは 3 つ。 自動修正できると数えているか、修正案が自動修正の書く説明そのものか、
+ * 直した説明にもう指摘が出ないか。 3 つ目が崩れると、道具が直せる数に入れた指摘が直した後も残る。
+ */
+export function 修正案とずれる組(
+  型たち: readonly string[],
+  言葉たち: readonly string[],
+  検査: (d: CdlDiagram) => ReturnType<typeof lintDiagram>,
+  直す: (d: CdlDiagram) => CdlDiagram,
+): { ずれ: string[]; 組: number } {
+  const ずれ: string[] = [];
+  let 組 = 0;
+  for (const 型 of 型たち) {
+    for (const 言葉 of 言葉たち) {
+      const d = 図(`${型} ${言葉}`);
+      const 指摘 = 検査(d).issues.filter((i) => i.rule === 図の説明の規則);
+      if (指摘.length === 0) {
+        ずれ.push(`${d.topic}: 指摘が出ない`);
+        continue;
+      }
+      組++;
+      const 直した = 直す(d);
+      for (const i of 指摘) {
+        if (!i.autoFixable) ずれ.push(`${d.topic}: 自動修正できると数えていない`);
+        if (i.suggestion !== 直した.topic) {
+          ずれ.push(`${d.topic}: 修正案は ${i.suggestion}、自動修正は ${直した.topic}`);
+        }
+      }
+      if (検査(直した).issues.some((i) => i.rule === 図の説明の規則)) {
+        ずれ.push(`${d.topic}: 直した説明 ${直した.topic} にまだ指摘が出る`);
+      }
+    }
+  }
+  return { ずれ, 組 };
 }
 
 /**
@@ -137,5 +197,59 @@ describe("自動修正が書く図の説明とカタログの名前 (#1934)", ()
     const src =
       "const kindMatch = topic.match(\n    /^\\s*(flow|stateMachine2?|line chart)\\b/i,\n  );";
     expect(書き換える型(src)).toEqual(["flow", "stateMachine", "stateMachine2", "line chart"]);
+  });
+});
+
+describe("図の説明の指摘の修正案と自動修正 (#1942)", () => {
+  it("実装の言葉は検出の形と同じ数で、1 つずつ別の形に当たる", () => {
+    const 形の数 = (記法の検査.match(/\bhint: "/g) ?? []).length;
+    expect(形の数, "検出の形を 1 つも数えられていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(実装の言葉.length).toBe(形の数);
+    const 区切り = "入っている。";
+    const 理由 = 実装の言葉.map((言葉) => {
+      const 指摘 = lintDiagram(図(`flow ${言葉}`)).issues.filter((i) => i.rule === 図の説明の規則);
+      expect(指摘.length, `${言葉} が当たる形は 1 つのはず`).toBe(1);
+      const 文 = 指摘[0]!.message;
+      return 文.slice(文.indexOf(区切り) + 区切り.length).trim();
+    });
+    expect(new Set(理由).size, "2 つの言葉が同じ形に当たっている").toBe(実装の言葉.length);
+  });
+
+  it("どの型と実装の言葉の組でも、修正案は自動修正が書く説明そのもので、直した説明に指摘が残らない", () => {
+    expect(
+      型たち.length,
+      "書き換える型を 1 つも読めていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    const { ずれ, 組 } = 修正案とずれる組(型たち, 実装の言葉, lintDiagram, autoFix);
+    expect(ずれ).toEqual([]);
+    expect(組, "指摘の出た組が足りない (検査が空振りしている)").toBe(
+      型たち.length * 実装の言葉.length,
+    );
+  });
+
+  it("植え込み対照: 1 つの型だけ修正案を固定の文にして直せないと数えると、その型の組を全て見つける", () => {
+    const 固定の文 = "何を示す図かを文で書き直す";
+    const 戻した = (d: CdlDiagram): ReturnType<typeof lintDiagram> => {
+      const r = lintDiagram(d);
+      if (!d.topic.startsWith("gantt ")) return r;
+      return {
+        ...r,
+        issues: r.issues.map((i) => ({ ...i, suggestion: 固定の文, autoFixable: false })),
+      };
+    };
+    expect(修正案とずれる組(型たち, 実装の言葉, 戻した, autoFix).ずれ).toEqual(
+      実装の言葉.flatMap((言葉) => [
+        `gantt ${言葉}: 自動修正できると数えていない`,
+        `gantt ${言葉}: 修正案は ${固定の文}、自動修正は 作業の期間と前後の関係を示す工程表`,
+      ]),
+    );
+  });
+
+  it("植え込み対照: 自動修正が説明を変えないと、修正案とのずれと直した後の指摘の両方を見つける", () => {
+    const { ずれ } = 修正案とずれる組(["er"], ["polygon"], lintDiagram, (d) => d);
+    expect(ずれ).toEqual([
+      "er polygon: 修正案は 表どうしの関係を示すER図、自動修正は er polygon",
+      "er polygon: 直した説明 er polygon にまだ指摘が出る",
+    ]);
   });
 });
