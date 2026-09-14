@@ -16,7 +16,7 @@
  * | 捨てられた指定 | 記法の解析が読めなかった項目を返していないか | 図になる前の層 |
  */
 import { describe, it, expect } from "vitest";
-import type { CdlDiagram } from "@cardenelabs/cdl";
+import { layout, type CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "../src/index";
 import type { PresetType } from "../src/types";
 import { PRESET_TYPES } from "../src/v05/parser";
@@ -97,10 +97,31 @@ const 型の一覧 = Object.entries(型と種類) as ReadonlyArray<
 const 記法 = (type: PresetType): string =>
   `title: "t"\ntype: ${type}\n\nactors:\n  - A: "Q1"\n  - B: "Q2"\n\nflow:\n  - A -> B: "x"\n`;
 
-/** 中身の無い枠。 枠を作ったのに 1 つも節点が入っていないもの */
+/**
+ * 中身の無い枠。 枠を作ったのに 1 つも節点が入っていないもの。
+ *
+ * 組 (`groups:`) の枠は節点を直接持たず、束ねた縦列の箱を囲む (#1972)。 節点の所属だけで数えると
+ * 箱を囲んでいる枠まで空に数えるので、**描いた矩形の中に箱が収まるか** も中身として数える。
+ * 所属を持たない縦列だけを配置して測る (全図を配置すると catalog 全件で時間がかかる)。
+ */
 const 空の枠 = (d: CdlDiagram): string[] => {
   const 使用 = new Set(d.nodes.map((n) => n.lane));
-  return d.lanes.filter((l) => !使用.has(l.id)).map((l) => l.id);
+  const 候補 = d.lanes.filter((l) => !使用.has(l.id));
+  if (候補.length === 0) return [];
+  const 配置 = layout(d);
+  const 囲む = (id: string): boolean => {
+    const l = 配置.lanes.find((x) => x.id === id);
+    if (!l) return false;
+    const [x, y] = [l.x ?? 0, l.y ?? 0];
+    return 配置.nodes.some(
+      (n) =>
+        n.cx - n.w / 2 >= x &&
+        n.cx + n.w / 2 <= x + l.width &&
+        n.cy - n.h / 2 >= y &&
+        n.cy + n.h / 2 <= y + (l.height ?? 0),
+    );
+  };
+  return 候補.filter((l) => !囲む(l.id)).map((l) => l.id);
 };
 
 const catalog: ReadonlyArray<readonly [string, Record<string, unknown>]> = [
@@ -193,6 +214,38 @@ describe("軸 2 = 中身の無い枠を作らない (#1096)", () => {
       if (空.length > 0) 問題.push(`登場人物 ${n} 人: ${空.join(", ")}`);
     }
     expect(問題, `中身の無い枠が残っている: ${問題.join(" / ")}`).toEqual([]);
+  });
+
+  it("組の枠は囲んだ箱を中身に数え、箱から離した枠と箱の入らない縦列は空に数える (#1972)", () => {
+    const 組の図 = textDslToDiagram(`title: "t"
+type: flow
+
+lanes:
+  web: { label: "受付の層" }
+  app: { label: "処理の層" }
+
+groups:
+  inside: { label: "社内の網", lanes: [web, app] }
+
+actors:
+  - 利用者: { kind: card, lane: web }
+  - 注文の処理: { kind: card, lane: app }
+
+flow:
+  - 利用者 -> 注文の処理: "注文"
+`);
+    const 枠 = 組の図.lanes.find((l) => l.id === "group-inside");
+    expect(枠, "組の枠が作られていない (検査が空振りしている)").toBeDefined();
+    expect(空の枠(組の図)).toEqual([]);
+    // 植え込み対照。 箱の入らない縦列と、箱から遠くへ離した枠は空と数える
+    const 離した: CdlDiagram = {
+      ...組の図,
+      lanes: [
+        ...組の図.lanes.map((l) => (l.id === "group-inside" ? { ...l, posX: 5000 } : l)),
+        { id: "zz", label: "空", width: 400 },
+      ],
+    };
+    expect(空の枠(離した).sort()).toEqual(["group-inside", "zz"]);
   });
 
   it("catalog の全図で空の枠が残らない", () => {

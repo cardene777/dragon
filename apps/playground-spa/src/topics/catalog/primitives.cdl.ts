@@ -1077,6 +1077,189 @@ export const pattern__layoutOffset__矢印の名前をずらす = textDslToDiagr
 
 // ==== #1971 位置のずらし ここまで ====
 
+// ==== #1972 縦列の組 ここから ====
+// ---- 縦列の組 (groups) ----
+//
+// 並べた縦列のうち何本かを 1 つの枠で囲む。 箱の種別は `card` にし、矢印の名前は 2 字にする =
+// 箱と名前が広いと 3 本の縦列で横 1602 を超え、一覧の枠で箱の題が 12px を割る (実測 = 1620 で 11.9px)。
+
+export const patternBase__laneGroup = "書かない";
+
+export const subtitle__laneGroup =
+  "並べた縦列のうち何本かを 1 つの組にまとめ、束ねた縦列と中の箱を枠で囲む";
+
+export const sourceYaml__laneGroup = `title: "縦列を組で束ねない"
+type: flow
+
+lanes:
+  web: { label: "受付の層" }
+  app: { label: "処理の層" }
+  db: { label: "保存の層" }
+
+actors:
+  - 利用者: { kind: card, lane: web }
+  - 注文の処理: { kind: card, lane: app }
+  - 注文の台帳: { kind: card, lane: db }
+
+flow:
+  - 利用者 -> 注文の処理: "依頼"
+  - 注文の処理 -> 注文の台帳: "保存"
+
+animation:
+  - step: "縦列を 1 本ずつ並べる" 1.8s
+    focus: ["利用者", "注文の処理", "注文の台帳"]
+    description: "組を書かず、受付の層と処理の層と保存の層を枠で囲まずに横へ並べる"
+`;
+
+export const sourceJson__laneGroup = `{
+  "title": "縦列を組で束ねない",
+  "type": "flow",
+  "lanes": {
+    "web": { "label": "受付の層" },
+    "app": { "label": "処理の層" },
+    "db": { "label": "保存の層" }
+  },
+  "actors": [
+    { "name": "利用者", "kind": "card", "lane": "web" },
+    { "name": "注文の処理", "kind": "card", "lane": "app" },
+    { "name": "注文の台帳", "kind": "card", "lane": "db" }
+  ],
+  "flow": [
+    { "from": "利用者", "to": "注文の処理", "label": "依頼" },
+    { "from": "注文の処理", "to": "注文の台帳", "label": "保存" }
+  ],
+  "animation": [
+    {
+      "step": "縦列を 1 本ずつ並べる",
+      "duration": 1.8,
+      "focus": ["利用者", "注文の処理", "注文の台帳"],
+      "body": "組を書かず、受付の層と処理の層と保存の層を枠で囲まずに横へ並べる"
+    }
+  ]
+}`;
+
+export const laneGroup = textDslToDiagram(sourceYaml__laneGroup);
+
+export const sourceYaml__pattern__laneGroup__縦列を束ねる = `title: "処理と保存の縦列を 1 つの組で囲む"
+type: flow
+
+lanes:
+  web: { label: "受付の層" }
+  app: { label: "処理の層" }
+  db: { label: "保存の層" }
+
+groups:
+  inside: { label: "社内の網", lanes: [app, db] }
+
+actors:
+  - 利用者: { kind: card, lane: web }
+  - 注文の処理: { kind: card, lane: app }
+  - 注文の台帳: { kind: card, lane: db }
+
+flow:
+  - 利用者 -> 注文の処理: "依頼"
+  - 注文の処理 -> 注文の台帳: "保存"
+
+animation:
+  - step: "社内の網で 2 本の縦列を囲む" 1.8s
+    focus: ["利用者", "注文の処理", "注文の台帳"]
+    description: "社内の網の枠が処理の層と保存の層と中の箱を囲み、受付の層は枠の外に残る。 縦列と箱の位置は束ねない図と同じ"
+`;
+
+export const sourceJson__pattern__laneGroup__縦列を束ねる = `{
+  "title": "処理と保存の縦列を 1 つの組で囲む",
+  "type": "flow",
+  "lanes": {
+    "web": { "label": "受付の層" },
+    "app": { "label": "処理の層" },
+    "db": { "label": "保存の層" }
+  },
+  "groups": {
+    "inside": { "label": "社内の網", "lanes": ["app", "db"] }
+  },
+  "actors": [
+    { "name": "利用者", "kind": "card", "lane": "web" },
+    { "name": "注文の処理", "kind": "card", "lane": "app" },
+    { "name": "注文の台帳", "kind": "card", "lane": "db" }
+  ],
+  "flow": [
+    { "from": "利用者", "to": "注文の処理", "label": "依頼" },
+    { "from": "注文の処理", "to": "注文の台帳", "label": "保存" }
+  ],
+  "animation": [
+    {
+      "step": "社内の網で 2 本の縦列を囲む",
+      "duration": 1.8,
+      "focus": ["利用者", "注文の処理", "注文の台帳"],
+      "body": "社内の網の枠が処理の層と保存の層と中の箱を囲み、受付の層は枠の外に残る。 縦列と箱の位置は束ねない図と同じ"
+    }
+  ]
+}`;
+
+export const pattern__laneGroup__縦列を束ねる = textDslToDiagram(sourceYaml__pattern__laneGroup__縦列を束ねる);
+
+export const sourceYaml__pattern__laneGroup__2つの組 = `title: "組を 2 つ書いて縦列を分けて囲む"
+type: flow
+
+lanes:
+  web: { label: "受付の層" }
+  app: { label: "処理の層" }
+  db: { label: "保存の層" }
+
+groups:
+  front: { label: "社外", lanes: [web] }
+  inside: { label: "社内の網", lanes: [app, db] }
+
+actors:
+  - 利用者: { kind: card, lane: web }
+  - 注文の処理: { kind: card, lane: app }
+  - 注文の台帳: { kind: card, lane: db }
+
+flow:
+  - 利用者 -> 注文の処理: "依頼"
+  - 注文の処理 -> 注文の台帳: "保存"
+
+animation:
+  - step: "社外と社内の網を別の枠で囲む" 1.8s
+    focus: ["利用者", "注文の処理", "注文の台帳"]
+    description: "社外の枠が受付の層を、社内の網の枠が処理の層と保存の層を囲む。 依頼の矢印は 2 つの枠の間を渡る"
+`;
+
+export const sourceJson__pattern__laneGroup__2つの組 = `{
+  "title": "組を 2 つ書いて縦列を分けて囲む",
+  "type": "flow",
+  "lanes": {
+    "web": { "label": "受付の層" },
+    "app": { "label": "処理の層" },
+    "db": { "label": "保存の層" }
+  },
+  "groups": {
+    "front": { "label": "社外", "lanes": ["web"] },
+    "inside": { "label": "社内の網", "lanes": ["app", "db"] }
+  },
+  "actors": [
+    { "name": "利用者", "kind": "card", "lane": "web" },
+    { "name": "注文の処理", "kind": "card", "lane": "app" },
+    { "name": "注文の台帳", "kind": "card", "lane": "db" }
+  ],
+  "flow": [
+    { "from": "利用者", "to": "注文の処理", "label": "依頼" },
+    { "from": "注文の処理", "to": "注文の台帳", "label": "保存" }
+  ],
+  "animation": [
+    {
+      "step": "社外と社内の網を別の枠で囲む",
+      "duration": 1.8,
+      "focus": ["利用者", "注文の処理", "注文の台帳"],
+      "body": "社外の枠が受付の層を、社内の網の枠が処理の層と保存の層を囲む。 依頼の矢印は 2 つの枠の間を渡る"
+    }
+  ]
+}`;
+
+export const pattern__laneGroup__2つの組 = textDslToDiagram(sourceYaml__pattern__laneGroup__2つの組);
+
+// ==== #1972 縦列の組 ここまで ====
+
 /** 3. Node stack バリエーション */
 export const stackPair = diagram("stack-pair", { topic: "stack: 縦 2 段" })
   .lane("l", { x: 0, width: W })
