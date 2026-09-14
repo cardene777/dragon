@@ -106,6 +106,11 @@ test('クラス図の絵の根は data-cdl-type="class" を持つ', async ({ pag
   ).toHaveAttribute("data-cdl-type", "class");
 });
 
+/**
+ * 矢じりは 2 倍に描き (#1966)、輪郭には半分の値を書く。 画面上の輪郭は「書いた値 × 倍率」 で、
+ * 線を 7 にした時 (#1598) の 4.36 と 4.98 に揃う。 倍率だけを見ると輪郭が倍に太って点に戻る形を、
+ * 輪郭の値だけを見ると矢じりが小さいまま据え置かれる形を見逃すので、2 つを掛けて確かめる。
+ */
 test("白抜きの印と開いた矢の輪郭も線と同じ比で太くなる", async ({ page }) => {
   await 図を開く(page, クラス図の記法);
   const 印 = await page
@@ -120,20 +125,24 @@ test("白抜きの印と開いた矢の輪郭も線と同じ比で太くなる",
           const 矢印 = id
             ? 絵?.querySelector(`#${CSS.escape(id)} [data-cdl-role="edge-arrowhead"]`)
             : null;
-          return 矢印
-            ? [
-                {
-                  head: 矢印.getAttribute("data-cdl-edge-head"),
-                  fill: 矢印.getAttribute("data-cdl-edge-head-fill"),
-                  width: Number.parseFloat(getComputedStyle(矢印).strokeWidth),
-                },
-              ]
-            : [];
+          if (!矢印) return [];
+          const 変形 = getComputedStyle(矢印).transform;
+          // `matrix(a, b, c, d, e, f)` の a が横の倍率。 変形が無ければ 1 倍
+          const 倍率 = 変形 === "none" ? 1 : new DOMMatrixReadOnly(変形).a;
+          return [
+            {
+              head: 矢印.getAttribute("data-cdl-edge-head"),
+              fill: 矢印.getAttribute("data-cdl-edge-head-fill"),
+              width: Number.parseFloat(getComputedStyle(矢印).strokeWidth) * 倍率,
+            },
+          ];
         });
       }),
     );
-  const 白抜き = 印.filter((値) => 値.fill === "hollow").map((値) => 値.width);
-  const 開いた矢 = 印.filter((値) => 値.head === "open").map((値) => 値.width);
+  // 掛け算で出る端数を丸める (2.18 × 2 = 4.36 が 4.3599999 になる)
+  const 丸める = (値: number) => Math.round(値 * 100) / 100;
+  const 白抜き = 印.filter((値) => 値.fill === "hollow").map((値) => 丸める(値.width));
+  const 開いた矢 = 印.filter((値) => 値.head === "open").map((値) => 丸める(値.width));
 
   expect(白抜き.length, "白抜きの印を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(
     0,
@@ -147,4 +156,74 @@ test("白抜きの印と開いた矢の輪郭も線と同じ比で太くなる",
   expect(new Set(開いた矢), `開いた矢の輪郭が揃っていない: ${開いた矢.join(" / ")}`).toEqual(
     new Set([4.98]),
   );
+});
+
+const 矢じりの記法 = `title: "矢じりの大きさ"
+type: flow
+reveal: all
+
+actors:
+  - A
+  - B
+  - C
+  - D
+  - E
+  - F
+  - G
+  - H
+
+flow:
+  - A -> B: "三角"
+  - C -> D: "菱形" { head: diamond }
+  - E -> F: "開いた矢" { head: open }
+  - G -> H: "三又" { head: crow }
+`;
+
+/** 画面に出ている矢じりを、形の名前と倍率と、はみ出しを見せているかで読む */
+async function 矢じりを読む(page: Page) {
+  return page.locator('[data-testid="editor-preview-stage"] svg marker').evaluateAll((印) =>
+    印.flatMap((枠) => {
+      const 形 = 枠.querySelector('[data-cdl-role="edge-arrowhead"]');
+      if (!形) return [];
+      const 変形 = getComputedStyle(形).transform;
+      return [
+        {
+          head: 形.getAttribute("data-cdl-edge-head") ?? "(既定の灰色)",
+          倍率: 変形 === "none" ? 1 : new DOMMatrixReadOnly(変形).a,
+          はみ出し: getComputedStyle(枠).overflow,
+        },
+      ];
+    }),
+  );
+}
+
+/**
+ * 矢じりは線の太さ 7 に負けないよう 2 倍に描く (#1966)。
+ *
+ * 枠の外へはみ出した分を見せないと、拡大した形が枠で切れて半分しか出ない。
+ */
+test("矢じりは線の太さに負けないよう 2 倍に描き、枠の外まで見せる", async ({ page }) => {
+  await 図を開く(page, 矢じりの記法);
+  const 矢じり = await 矢じりを読む(page);
+
+  const 形の名前 = new Set(矢じり.map((値) => 値.head));
+  expect(
+    [...形の名前].sort(),
+    "記法に書いた 4 形を全て読めていない (検査が空振りしている)",
+  ).toEqual(expect.arrayContaining(["crow", "diamond", "open", "triangle"]));
+  for (const 値 of 矢じり) {
+    expect(値.倍率, `${値.head} の矢じりが 2 倍になっていない`).toBe(2);
+    expect(値.はみ出し, `${値.head} の矢じりの枠が外を切っている`).toBe("visible");
+  }
+});
+
+test("ER の端は engine の大きさのまま描く", async ({ page }) => {
+  await 図を開く(page, ER図の記法);
+  const 矢じり = await 矢じりを読む(page);
+  const ERの端 = 矢じり.filter((値) => ["one", "zero-many"].includes(値.head));
+
+  expect(ERの端.length, "ER の端を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
+  for (const 値 of ERの端) {
+    expect(値.倍率, `${値.head} は engine が 1.8 倍の枠で描くので重ねて拡大しない`).toBe(1);
+  }
 });

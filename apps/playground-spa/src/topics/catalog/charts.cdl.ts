@@ -642,6 +642,76 @@ export const pattern__journeyMap__接点つき = textDslToDiagram(
   sourceYaml__pattern__journeyMap__接点つき,
 );
 
+/**
+ * 気持ちの 5 段を全て通る形 (#1966)。
+ *
+ * 描画エンジンは段の顔を 5 通り描き分ける (`最高` / `満足` / `普通` / `不満` / `怒り`)。
+ * 元の見本は `怒り` を書いておらず、いちばん低い顔がどこにも出ていなかった。
+ * 抜けは `lib/catalog-value-coverage.test.ts` が engine の一覧と突き合わせて数える。
+ *
+ * 図表の見本は段で動かす決まりなので (`catalog-motion-render.test.tsx`)、1 段目で 5 つの顔を全て出し、
+ * 2 段目で窓口を直した後の山に置き換える。
+ *
+ * 段の名前は短い名詞にする = 横幅 1440 の画面で 5 つを並べると、動詞の句 (「たらい回しにされる」) は
+ * 隣の段の名前と重なる。
+ */
+export const sourceYaml__pattern__journeyMap__5つの気持ち = `title: "問い合わせから解決するまで"
+type: journey
+
+actors:
+  - 困りごと: "普通"
+  - 窓口探し: "{search}"
+  - たらい回し: "{handoff}"
+  - 担当者: "満足"
+  - 解決: "最高"
+
+states:
+  search: "不満"
+  handoff: "怒り"
+
+animation:
+  - step: "5 つの気持ち" 1.2s
+    draw: journey
+    description: "いちばん低い怒りから、いちばん高い最高まで、顔が 5 通りに描き分けられる"
+  - step: "窓口を 1 つにした後" 1.2s
+    set:
+      search: "普通"
+      handoff: "満足"
+    description: "探す手間と、たらい回しが無くなると、谷が埋まる"
+`;
+
+export const sourceJson__pattern__journeyMap__5つの気持ち = `{
+  "title": "問い合わせから解決するまで",
+  "type": "journey",
+  "actors": [
+    { "name": "困りごと", "subtitle": "普通" },
+    { "name": "窓口探し", "subtitle": "{search}" },
+    { "name": "たらい回し", "subtitle": "{handoff}" },
+    { "name": "担当者", "subtitle": "満足" },
+    { "name": "解決", "subtitle": "最高" }
+  ],
+  "flow": [],
+  "states": { "search": "不満", "handoff": "怒り" },
+  "animation": [
+    {
+      "step": "5 つの気持ち",
+      "duration": 1.2,
+      "draw": "journey",
+      "body": "いちばん低い怒りから、いちばん高い最高まで、顔が 5 通りに描き分けられる"
+    },
+    {
+      "step": "窓口を 1 つにした後",
+      "duration": 1.2,
+      "body": "探す手間と、たらい回しが無くなると、谷が埋まる",
+      "set": { "search": "普通", "handoff": "満足" }
+    }
+  ]
+}`;
+
+export const pattern__journeyMap__5つの気持ち = textDslToDiagram(
+  sourceYaml__pattern__journeyMap__5つの気持ち,
+);
+
 // ============================================================
 // 7. 枝分かれで広げる
 // ============================================================

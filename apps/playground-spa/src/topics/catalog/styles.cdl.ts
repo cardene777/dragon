@@ -1,5 +1,6 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { EdgeStyle, Tone, PhaseBuilder } from "@cardenelabs/cdl";
+import { textDslToDiagram } from "@cardenelabs/dragon";
 
 /**
  * Catalog - Styles ... edge / tone の見た目バリエーション。
@@ -537,3 +538,748 @@ export const sourceJson__stateInactive = `{
     }
   ]
 }`;
+
+// ============================================================
+// 欄が取る値を全て見せる (#1966)
+// ============================================================
+//
+// 節の色・矢印の端の形・矢印の出る辺・形の満ちる向きは、engine が値の一覧を持つ。 カタログは
+// それぞれ 1 つか 2 つの値しか書いておらず、残りの値がどんな絵になるかをどこでも見られなかった。
+// 抜けは `lib/catalog-value-coverage.test.ts` が engine の一覧と突き合わせて数える。
+//
+// **1 枚に並べる値と、切替で見せる値を分ける**。 色と端の形は隣に並べた方が違いを読める。
+// 出る辺は 1 枚に 4 本並べると迂回の線が重なって読めないので、同じ 2 つの節を切替で出し分ける。
+//
+// ここの図は記法から組む = 記法と図がずれない。 上の 10 件と違い、識別子を一覧で固定する前の見本なので、
+// 題から導かれた識別子のままでよい。
+
+// ---- 節の色 ----
+
+export const sourceYaml__nodeTone = `title: "節の色 6 種"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 280 }
+  l2: { x: 400, width: 280 }
+
+actors:
+  - 主張: { kind: card, lane: l1, stack: 0, tone: accent, subtitle: "accent" }
+  - 青緑: { kind: card, lane: l1, stack: 1, tone: teal, subtitle: "teal" }
+  - 成功: { kind: card, lane: l1, stack: 2, tone: success, subtitle: "success" }
+  - 失敗: { kind: card, lane: l2, stack: 0, tone: error, subtitle: "error" }
+  - 注意: { kind: card, lane: l2, stack: 1, tone: warning, subtitle: "warning" }
+  - 案内: { kind: card, lane: l2, stack: 2, tone: info, subtitle: "info" }
+
+animation:
+  - step: "6 色を並べる" 1.8s
+    focus: ["主張", "青緑", "成功", "失敗", "注意", "案内"]
+    description: "強調した箱の枠が、書いた色の名前で描かれる。 主張の色は強調の既定の色と同じ"
+`;
+
+export const sourceJson__nodeTone = `{
+  "title": "節の色 6 種",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 280 },
+    "l2": { "x": 400, "width": 280 }
+  },
+  "actors": [
+    { "name": "主張", "kind": "card", "lane": "l1", "stack": 0, "tone": "accent", "subtitle": "accent" },
+    { "name": "青緑", "kind": "card", "lane": "l1", "stack": 1, "tone": "teal", "subtitle": "teal" },
+    { "name": "成功", "kind": "card", "lane": "l1", "stack": 2, "tone": "success", "subtitle": "success" },
+    { "name": "失敗", "kind": "card", "lane": "l2", "stack": 0, "tone": "error", "subtitle": "error" },
+    { "name": "注意", "kind": "card", "lane": "l2", "stack": 1, "tone": "warning", "subtitle": "warning" },
+    { "name": "案内", "kind": "card", "lane": "l2", "stack": 2, "tone": "info", "subtitle": "info" }
+  ],
+  "flow": [],
+  "animation": [
+    {
+      "step": "6 色を並べる",
+      "duration": 1.8,
+      "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内"],
+      "body": "強調した箱の枠が、書いた色の名前で描かれる。 主張の色は強調の既定の色と同じ"
+    }
+  ]
+}`;
+
+export const nodeTone = textDslToDiagram(sourceYaml__nodeTone);
+
+// ---- 矢印の端の形 ----
+//
+// 先端 (`head`) と根元 (`tailHead`) は同じ 9 形を取る。 9 本を 1 枚に縦に積むと台の高さを超え、横に 2 列に
+// 並べると一覧の幅で字が読めない大きさまで縮む。 形の意味で 2 つに分ける = 線の向きを示す矢じり 5 形と、
+// 関係の数を示す多重度 4 形。 それぞれを先端に置く形と根元に置く形の 4 つを切り替える。
+// 根元の側は先端を「無し」 にして、根元の形だけが見えるようにする。
+
+export const patternBase__edgeHead = "先端の矢じり";
+
+export const sourceYaml__edgeHead = `title: "矢印の先端の矢じり 5 形"
+type: flow
+
+lanes:
+  元: { x: 0, width: 240 }
+  先: { x: 600, width: 240 }
+
+actors:
+  - 無し: { kind: actor, lane: 元, stack: 0 }
+  - 三角: { kind: actor, lane: 元, stack: 1 }
+  - 菱形: { kind: actor, lane: 元, stack: 2 }
+  - 開いた矢じり: { kind: actor, lane: 元, stack: 3 }
+  - 鳥の足: { kind: actor, lane: 元, stack: 4 }
+  - 無しの行き先: { kind: actor, lane: 先, stack: 0 }
+  - 三角の行き先: { kind: actor, lane: 先, stack: 1 }
+  - 菱形の行き先: { kind: actor, lane: 先, stack: 2 }
+  - 開いた矢じりの行き先: { kind: actor, lane: 先, stack: 3 }
+  - 鳥の足の行き先: { kind: actor, lane: 先, stack: 4 }
+
+flow:
+  - 無し -> 無しの行き先: "none" (accent, solid) { head: none }
+  - 三角 -> 三角の行き先: "triangle" (accent, solid) { head: triangle }
+  - 菱形 -> 菱形の行き先: "diamond" (accent, solid) { head: diamond }
+  - 開いた矢じり -> 開いた矢じりの行き先: "open" (accent, solid) { head: open }
+  - 鳥の足 -> 鳥の足の行き先: "crow" (accent, solid) { head: crow }
+
+animation:
+  - step: "先端に矢じりを置く" 1.8s
+    focus: ["無し -> 無しの行き先", "三角 -> 三角の行き先", "菱形 -> 菱形の行き先", "開いた矢じり -> 開いた矢じりの行き先", "鳥の足 -> 鳥の足の行き先"]
+    description: "線の行き先の端に、向きを示す 5 つの形を置く"
+`;
+
+export const sourceJson__edgeHead = `{
+  "title": "矢印の先端の矢じり 5 形",
+  "type": "flow",
+  "lanes": {
+    "元": { "x": 0, "width": 240 },
+    "先": { "x": 600, "width": 240 }
+  },
+  "actors": [
+    { "name": "無し", "kind": "actor", "lane": "元", "stack": 0 },
+    { "name": "三角", "kind": "actor", "lane": "元", "stack": 1 },
+    { "name": "菱形", "kind": "actor", "lane": "元", "stack": 2 },
+    { "name": "開いた矢じり", "kind": "actor", "lane": "元", "stack": 3 },
+    { "name": "鳥の足", "kind": "actor", "lane": "元", "stack": 4 },
+    { "name": "無しの行き先", "kind": "actor", "lane": "先", "stack": 0 },
+    { "name": "三角の行き先", "kind": "actor", "lane": "先", "stack": 1 },
+    { "name": "菱形の行き先", "kind": "actor", "lane": "先", "stack": 2 },
+    { "name": "開いた矢じりの行き先", "kind": "actor", "lane": "先", "stack": 3 },
+    { "name": "鳥の足の行き先", "kind": "actor", "lane": "先", "stack": 4 }
+  ],
+  "flow": [
+    { "from": "無し", "to": "無しの行き先", "label": "none", "tone": "accent", "style": "solid", "head": "none" },
+    { "from": "三角", "to": "三角の行き先", "label": "triangle", "tone": "accent", "style": "solid", "head": "triangle" },
+    { "from": "菱形", "to": "菱形の行き先", "label": "diamond", "tone": "accent", "style": "solid", "head": "diamond" },
+    { "from": "開いた矢じり", "to": "開いた矢じりの行き先", "label": "open", "tone": "accent", "style": "solid", "head": "open" },
+    { "from": "鳥の足", "to": "鳥の足の行き先", "label": "crow", "tone": "accent", "style": "solid", "head": "crow" }
+  ],
+  "animation": [
+    {
+      "step": "先端に矢じりを置く",
+      "duration": 1.8,
+      "focus": ["無し -> 無しの行き先", "三角 -> 三角の行き先", "菱形 -> 菱形の行き先", "開いた矢じり -> 開いた矢じりの行き先", "鳥の足 -> 鳥の足の行き先"],
+      "body": "線の行き先の端に、向きを示す 5 つの形を置く"
+    }
+  ]
+}`;
+
+export const edgeHead = textDslToDiagram(sourceYaml__edgeHead);
+
+export const sourceYaml__pattern__edgeHead__先端の多重度 = `title: "矢印の先端の多重度 4 形"
+type: flow
+
+lanes:
+  元: { x: 0, width: 240 }
+  先: { x: 600, width: 240 }
+
+actors:
+  - 1 つ: { kind: actor, lane: 元, stack: 0 }
+  - 0 か 1: { kind: actor, lane: 元, stack: 1 }
+  - 多: { kind: actor, lane: 元, stack: 2 }
+  - 0 以上: { kind: actor, lane: 元, stack: 3 }
+  - 1 つの行き先: { kind: actor, lane: 先, stack: 0 }
+  - 0 か 1の行き先: { kind: actor, lane: 先, stack: 1 }
+  - 多の行き先: { kind: actor, lane: 先, stack: 2 }
+  - 0 以上の行き先: { kind: actor, lane: 先, stack: 3 }
+
+flow:
+  - 1 つ -> 1 つの行き先: "one" (accent, solid) { head: one }
+  - 0 か 1 -> 0 か 1の行き先: "zero-one" (accent, solid) { head: zero-one }
+  - 多 -> 多の行き先: "many" (accent, solid) { head: many }
+  - 0 以上 -> 0 以上の行き先: "zero-many" (accent, solid) { head: zero-many }
+
+animation:
+  - step: "先端に多重度を置く" 1.8s
+    focus: ["1 つ -> 1 つの行き先", "0 か 1 -> 0 か 1の行き先", "多 -> 多の行き先", "0 以上 -> 0 以上の行き先"]
+    description: "線の行き先の端に、関係の数を示す 4 つの形を置く"
+`;
+
+export const sourceJson__pattern__edgeHead__先端の多重度 = `{
+  "title": "矢印の先端の多重度 4 形",
+  "type": "flow",
+  "lanes": {
+    "元": { "x": 0, "width": 240 },
+    "先": { "x": 600, "width": 240 }
+  },
+  "actors": [
+    { "name": "1 つ", "kind": "actor", "lane": "元", "stack": 0 },
+    { "name": "0 か 1", "kind": "actor", "lane": "元", "stack": 1 },
+    { "name": "多", "kind": "actor", "lane": "元", "stack": 2 },
+    { "name": "0 以上", "kind": "actor", "lane": "元", "stack": 3 },
+    { "name": "1 つの行き先", "kind": "actor", "lane": "先", "stack": 0 },
+    { "name": "0 か 1の行き先", "kind": "actor", "lane": "先", "stack": 1 },
+    { "name": "多の行き先", "kind": "actor", "lane": "先", "stack": 2 },
+    { "name": "0 以上の行き先", "kind": "actor", "lane": "先", "stack": 3 }
+  ],
+  "flow": [
+    { "from": "1 つ", "to": "1 つの行き先", "label": "one", "tone": "accent", "style": "solid", "head": "one" },
+    { "from": "0 か 1", "to": "0 か 1の行き先", "label": "zero-one", "tone": "accent", "style": "solid", "head": "zero-one" },
+    { "from": "多", "to": "多の行き先", "label": "many", "tone": "accent", "style": "solid", "head": "many" },
+    { "from": "0 以上", "to": "0 以上の行き先", "label": "zero-many", "tone": "accent", "style": "solid", "head": "zero-many" }
+  ],
+  "animation": [
+    {
+      "step": "先端に多重度を置く",
+      "duration": 1.8,
+      "focus": ["1 つ -> 1 つの行き先", "0 か 1 -> 0 か 1の行き先", "多 -> 多の行き先", "0 以上 -> 0 以上の行き先"],
+      "body": "線の行き先の端に、関係の数を示す 4 つの形を置く"
+    }
+  ]
+}`;
+
+export const pattern__edgeHead__先端の多重度 = textDslToDiagram(sourceYaml__pattern__edgeHead__先端の多重度);
+
+export const sourceYaml__pattern__edgeHead__根元の矢じり = `title: "矢印の根元の矢じり 5 形"
+type: flow
+
+lanes:
+  元: { x: 0, width: 240 }
+  先: { x: 600, width: 240 }
+
+actors:
+  - 無し: { kind: actor, lane: 元, stack: 0 }
+  - 三角: { kind: actor, lane: 元, stack: 1 }
+  - 菱形: { kind: actor, lane: 元, stack: 2 }
+  - 開いた矢じり: { kind: actor, lane: 元, stack: 3 }
+  - 鳥の足: { kind: actor, lane: 元, stack: 4 }
+  - 無しの行き先: { kind: actor, lane: 先, stack: 0 }
+  - 三角の行き先: { kind: actor, lane: 先, stack: 1 }
+  - 菱形の行き先: { kind: actor, lane: 先, stack: 2 }
+  - 開いた矢じりの行き先: { kind: actor, lane: 先, stack: 3 }
+  - 鳥の足の行き先: { kind: actor, lane: 先, stack: 4 }
+
+flow:
+  - 無し -> 無しの行き先: "none" (accent, solid) { head: none, tailHead: none }
+  - 三角 -> 三角の行き先: "triangle" (accent, solid) { head: none, tailHead: triangle }
+  - 菱形 -> 菱形の行き先: "diamond" (accent, solid) { head: none, tailHead: diamond }
+  - 開いた矢じり -> 開いた矢じりの行き先: "open" (accent, solid) { head: none, tailHead: open }
+  - 鳥の足 -> 鳥の足の行き先: "crow" (accent, solid) { head: none, tailHead: crow }
+
+animation:
+  - step: "根元に矢じりを置く" 1.8s
+    focus: ["無し -> 無しの行き先", "三角 -> 三角の行き先", "菱形 -> 菱形の行き先", "開いた矢じり -> 開いた矢じりの行き先", "鳥の足 -> 鳥の足の行き先"]
+    description: "線の出どころの端に、5 つの形を置く。 先端は無しにして根元だけを見せる"
+`;
+
+export const sourceJson__pattern__edgeHead__根元の矢じり = `{
+  "title": "矢印の根元の矢じり 5 形",
+  "type": "flow",
+  "lanes": {
+    "元": { "x": 0, "width": 240 },
+    "先": { "x": 600, "width": 240 }
+  },
+  "actors": [
+    { "name": "無し", "kind": "actor", "lane": "元", "stack": 0 },
+    { "name": "三角", "kind": "actor", "lane": "元", "stack": 1 },
+    { "name": "菱形", "kind": "actor", "lane": "元", "stack": 2 },
+    { "name": "開いた矢じり", "kind": "actor", "lane": "元", "stack": 3 },
+    { "name": "鳥の足", "kind": "actor", "lane": "元", "stack": 4 },
+    { "name": "無しの行き先", "kind": "actor", "lane": "先", "stack": 0 },
+    { "name": "三角の行き先", "kind": "actor", "lane": "先", "stack": 1 },
+    { "name": "菱形の行き先", "kind": "actor", "lane": "先", "stack": 2 },
+    { "name": "開いた矢じりの行き先", "kind": "actor", "lane": "先", "stack": 3 },
+    { "name": "鳥の足の行き先", "kind": "actor", "lane": "先", "stack": 4 }
+  ],
+  "flow": [
+    { "from": "無し", "to": "無しの行き先", "label": "none", "tone": "accent", "style": "solid", "head": "none", "tailHead": "none" },
+    { "from": "三角", "to": "三角の行き先", "label": "triangle", "tone": "accent", "style": "solid", "head": "none", "tailHead": "triangle" },
+    { "from": "菱形", "to": "菱形の行き先", "label": "diamond", "tone": "accent", "style": "solid", "head": "none", "tailHead": "diamond" },
+    { "from": "開いた矢じり", "to": "開いた矢じりの行き先", "label": "open", "tone": "accent", "style": "solid", "head": "none", "tailHead": "open" },
+    { "from": "鳥の足", "to": "鳥の足の行き先", "label": "crow", "tone": "accent", "style": "solid", "head": "none", "tailHead": "crow" }
+  ],
+  "animation": [
+    {
+      "step": "根元に矢じりを置く",
+      "duration": 1.8,
+      "focus": ["無し -> 無しの行き先", "三角 -> 三角の行き先", "菱形 -> 菱形の行き先", "開いた矢じり -> 開いた矢じりの行き先", "鳥の足 -> 鳥の足の行き先"],
+      "body": "線の出どころの端に、5 つの形を置く。 先端は無しにして根元だけを見せる"
+    }
+  ]
+}`;
+
+export const pattern__edgeHead__根元の矢じり = textDslToDiagram(sourceYaml__pattern__edgeHead__根元の矢じり);
+
+export const sourceYaml__pattern__edgeHead__根元の多重度 = `title: "矢印の根元の多重度 4 形"
+type: flow
+
+lanes:
+  元: { x: 0, width: 240 }
+  先: { x: 600, width: 240 }
+
+actors:
+  - 1 つ: { kind: actor, lane: 元, stack: 0 }
+  - 0 か 1: { kind: actor, lane: 元, stack: 1 }
+  - 多: { kind: actor, lane: 元, stack: 2 }
+  - 0 以上: { kind: actor, lane: 元, stack: 3 }
+  - 1 つの行き先: { kind: actor, lane: 先, stack: 0 }
+  - 0 か 1の行き先: { kind: actor, lane: 先, stack: 1 }
+  - 多の行き先: { kind: actor, lane: 先, stack: 2 }
+  - 0 以上の行き先: { kind: actor, lane: 先, stack: 3 }
+
+flow:
+  - 1 つ -> 1 つの行き先: "one" (accent, solid) { head: none, tailHead: one }
+  - 0 か 1 -> 0 か 1の行き先: "zero-one" (accent, solid) { head: none, tailHead: zero-one }
+  - 多 -> 多の行き先: "many" (accent, solid) { head: none, tailHead: many }
+  - 0 以上 -> 0 以上の行き先: "zero-many" (accent, solid) { head: none, tailHead: zero-many }
+
+animation:
+  - step: "根元に多重度を置く" 1.8s
+    focus: ["1 つ -> 1 つの行き先", "0 か 1 -> 0 か 1の行き先", "多 -> 多の行き先", "0 以上 -> 0 以上の行き先"]
+    description: "線の出どころの端に、関係の数を示す 4 つの形を置く。 先端は無しにして根元だけを見せる"
+`;
+
+export const sourceJson__pattern__edgeHead__根元の多重度 = `{
+  "title": "矢印の根元の多重度 4 形",
+  "type": "flow",
+  "lanes": {
+    "元": { "x": 0, "width": 240 },
+    "先": { "x": 600, "width": 240 }
+  },
+  "actors": [
+    { "name": "1 つ", "kind": "actor", "lane": "元", "stack": 0 },
+    { "name": "0 か 1", "kind": "actor", "lane": "元", "stack": 1 },
+    { "name": "多", "kind": "actor", "lane": "元", "stack": 2 },
+    { "name": "0 以上", "kind": "actor", "lane": "元", "stack": 3 },
+    { "name": "1 つの行き先", "kind": "actor", "lane": "先", "stack": 0 },
+    { "name": "0 か 1の行き先", "kind": "actor", "lane": "先", "stack": 1 },
+    { "name": "多の行き先", "kind": "actor", "lane": "先", "stack": 2 },
+    { "name": "0 以上の行き先", "kind": "actor", "lane": "先", "stack": 3 }
+  ],
+  "flow": [
+    { "from": "1 つ", "to": "1 つの行き先", "label": "one", "tone": "accent", "style": "solid", "head": "none", "tailHead": "one" },
+    { "from": "0 か 1", "to": "0 か 1の行き先", "label": "zero-one", "tone": "accent", "style": "solid", "head": "none", "tailHead": "zero-one" },
+    { "from": "多", "to": "多の行き先", "label": "many", "tone": "accent", "style": "solid", "head": "none", "tailHead": "many" },
+    { "from": "0 以上", "to": "0 以上の行き先", "label": "zero-many", "tone": "accent", "style": "solid", "head": "none", "tailHead": "zero-many" }
+  ],
+  "animation": [
+    {
+      "step": "根元に多重度を置く",
+      "duration": 1.8,
+      "focus": ["1 つ -> 1 つの行き先", "0 か 1 -> 0 か 1の行き先", "多 -> 多の行き先", "0 以上 -> 0 以上の行き先"],
+      "body": "線の出どころの端に、関係の数を示す 4 つの形を置く。 先端は無しにして根元だけを見せる"
+    }
+  ]
+}`;
+
+export const pattern__edgeHead__根元の多重度 = textDslToDiagram(sourceYaml__pattern__edgeHead__根元の多重度);
+
+// ---- 矢印の出る辺 ----
+//
+// 書かない矢印は、2 つの箱のレーンから出る辺を推し量る (別のレーンなら横の辺、同じレーンなら縦の辺)。
+// 書くと出どころの辺が決まり、行き先には向かいの辺から入る。
+//
+// **1 枚に 2 組を上下に並べる**。 上の組は辺を書かず、下の組は同じ置き方で辺を書く。 1 組だけだと、
+// 書いた辺が推し量った辺と同じになる置き方 (別のレーンで右へ出す) で「書かない」 と見分けが付かない。
+//
+// engine は辺を書いた矢印を迂回させないため、出す辺の先に行き先を置く。 置かないと線が箱の裏を通る。
+// 箱は段 (`stack`) で置き、**右と左の見本だけ位置 (`posX` / `posY`) も書く**。 右と左は同じレーンの中で
+// 行き先を横にずらす必要があり、段だけでは同じレーンの箱が縦 1 列に並ぶ。 横にずらすことは図の検査の
+// 揃えの決まりに触れるので、2 図は `packages/dragon/test/visual-validate-sweep.test.ts` の見逃す組に
+// 理由を書いてある。
+
+export const patternBase__edgeSide = "書かない";
+
+export const sourceYaml__edgeSide = `title: "矢印の出る辺を書かない"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 280 }
+  l2: { x: 560, width: 280 }
+
+actors:
+  - 別のレーンの元: { kind: card, lane: l1, stack: 0 }
+  - 別のレーンの先: { kind: card, lane: l2, stack: 1 }
+  - 同じレーンの元: { kind: card, lane: l2, stack: 2 }
+  - 同じレーンの先: { kind: card, lane: l2, stack: 3 }
+
+flow:
+  - 別のレーンの元 -> 別のレーンの先: "横の辺で結ぶ" (accent, solid)
+  - 同じレーンの元 -> 同じレーンの先: "縦の辺で結ぶ" (accent, solid)
+
+animation:
+  - step: "出る辺を推し量る" 1.8s
+    focus: ["別のレーンの元", "別のレーンの先", "同じレーンの元", "同じレーンの先", "別のレーンの元 -> 別のレーンの先", "同じレーンの元 -> 同じレーンの先"]
+    description: "上の組は別のレーンなので横の辺で結ぶ。 下の組は同じレーンなので縦の辺で結ぶ"
+`;
+
+export const sourceJson__edgeSide = `{
+  "title": "矢印の出る辺を書かない",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 280 },
+    "l2": { "x": 560, "width": 280 }
+  },
+  "actors": [
+    { "name": "別のレーンの元", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "別のレーンの先", "kind": "card", "lane": "l2", "stack": 1 },
+    { "name": "同じレーンの元", "kind": "card", "lane": "l2", "stack": 2 },
+    { "name": "同じレーンの先", "kind": "card", "lane": "l2", "stack": 3 }
+  ],
+  "flow": [
+    { "from": "別のレーンの元", "to": "別のレーンの先", "label": "横の辺で結ぶ", "tone": "accent", "style": "solid" },
+    { "from": "同じレーンの元", "to": "同じレーンの先", "label": "縦の辺で結ぶ", "tone": "accent", "style": "solid" }
+  ],
+  "animation": [
+    {
+      "step": "出る辺を推し量る",
+      "duration": 1.8,
+      "focus": [
+        "別のレーンの元",
+        "別のレーンの先",
+        "同じレーンの元",
+        "同じレーンの先",
+        "別のレーンの元 -> 別のレーンの先",
+        "同じレーンの元 -> 同じレーンの先"
+      ],
+      "body": "上の組は別のレーンなので横の辺で結ぶ。 下の組は同じレーンなので縦の辺で結ぶ"
+    }
+  ]
+}`;
+
+export const edgeSide = textDslToDiagram(sourceYaml__edgeSide);
+
+export const sourceYaml__pattern__edgeSide__上 = `title: "矢印を上の辺から出す"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 280 }
+  l2: { x: 560, width: 280 }
+
+actors:
+  - 書かない時の元: { kind: card, lane: l1, stack: 1 }
+  - 書かない時の先: { kind: card, lane: l2, stack: 0 }
+  - 上と書いた元: { kind: card, lane: l1, stack: 3 }
+  - 上と書いた先: { kind: card, lane: l2, stack: 2 }
+
+flow:
+  - 書かない時の元 -> 書かない時の先: "横の辺で結ぶ" (info, dashed)
+  - 上と書いた元 -> 上と書いた先: "上の辺から" (accent, solid) { side: top }
+
+animation:
+  - step: "上の辺から出す" 1.8s
+    focus: ["書かない時の元", "書かない時の先", "上と書いた元", "上と書いた先", "書かない時の元 -> 書かない時の先", "上と書いた元 -> 上と書いた先"]
+    description: "上の組は辺を書かないので横の辺で結ぶ。 下の組は上の辺から出て、行き先には下の辺から入る"
+`;
+
+export const sourceJson__pattern__edgeSide__上 = `{
+  "title": "矢印を上の辺から出す",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 280 },
+    "l2": { "x": 560, "width": 280 }
+  },
+  "actors": [
+    { "name": "書かない時の元", "kind": "card", "lane": "l1", "stack": 1 },
+    { "name": "書かない時の先", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "上と書いた元", "kind": "card", "lane": "l1", "stack": 3 },
+    { "name": "上と書いた先", "kind": "card", "lane": "l2", "stack": 2 }
+  ],
+  "flow": [
+    { "from": "書かない時の元", "to": "書かない時の先", "label": "横の辺で結ぶ", "tone": "info", "style": "dashed" },
+    { "from": "上と書いた元", "to": "上と書いた先", "label": "上の辺から", "tone": "accent", "style": "solid", "side": "top" }
+  ],
+  "animation": [
+    {
+      "step": "上の辺から出す",
+      "duration": 1.8,
+      "focus": [
+        "書かない時の元",
+        "書かない時の先",
+        "上と書いた元",
+        "上と書いた先",
+        "書かない時の元 -> 書かない時の先",
+        "上と書いた元 -> 上と書いた先"
+      ],
+      "body": "上の組は辺を書かないので横の辺で結ぶ。 下の組は上の辺から出て、行き先には下の辺から入る"
+    }
+  ]
+}`;
+
+export const pattern__edgeSide__上 = textDslToDiagram(sourceYaml__pattern__edgeSide__上);
+
+export const sourceYaml__pattern__edgeSide__右 = `title: "矢印を右の辺から出す"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 840 }
+
+actors:
+  - 書かない時の元: { kind: card, lane: l1, stack: 0, posX: 140, posY: 0, posW: 260, posH: 56 }
+  - 書かない時の先: { kind: card, lane: l1, stack: 1, posX: 700, posY: 180, posW: 260, posH: 56 }
+  - 右と書いた元: { kind: card, lane: l1, stack: 2, posX: 140, posY: 360, posW: 260, posH: 56 }
+  - 右と書いた先: { kind: card, lane: l1, stack: 3, posX: 700, posY: 540, posW: 260, posH: 56 }
+
+flow:
+  - 書かない時の元 -> 書かない時の先: "縦の辺で結ぶ" (info, dashed)
+  - 右と書いた元 -> 右と書いた先: "右の辺から" (accent, solid) { side: right }
+
+animation:
+  - step: "右の辺から出す" 1.8s
+    focus: ["書かない時の元", "書かない時の先", "右と書いた元", "右と書いた先", "書かない時の元 -> 書かない時の先", "右と書いた元 -> 右と書いた先"]
+    description: "上の組は辺を書かないので縦の辺で結ぶ。 下の組は右の辺から出て、行き先には左の辺から入る"
+`;
+
+export const sourceJson__pattern__edgeSide__右 = `{
+  "title": "矢印を右の辺から出す",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 840 }
+  },
+  "actors": [
+    { "name": "書かない時の元", "kind": "card", "lane": "l1", "stack": 0, "posX": 140, "posY": 0, "posW": 260, "posH": 56 },
+    { "name": "書かない時の先", "kind": "card", "lane": "l1", "stack": 1, "posX": 700, "posY": 180, "posW": 260, "posH": 56 },
+    { "name": "右と書いた元", "kind": "card", "lane": "l1", "stack": 2, "posX": 140, "posY": 360, "posW": 260, "posH": 56 },
+    { "name": "右と書いた先", "kind": "card", "lane": "l1", "stack": 3, "posX": 700, "posY": 540, "posW": 260, "posH": 56 }
+  ],
+  "flow": [
+    { "from": "書かない時の元", "to": "書かない時の先", "label": "縦の辺で結ぶ", "tone": "info", "style": "dashed" },
+    { "from": "右と書いた元", "to": "右と書いた先", "label": "右の辺から", "tone": "accent", "style": "solid", "side": "right" }
+  ],
+  "animation": [
+    {
+      "step": "右の辺から出す",
+      "duration": 1.8,
+      "focus": [
+        "書かない時の元",
+        "書かない時の先",
+        "右と書いた元",
+        "右と書いた先",
+        "書かない時の元 -> 書かない時の先",
+        "右と書いた元 -> 右と書いた先"
+      ],
+      "body": "上の組は辺を書かないので縦の辺で結ぶ。 下の組は右の辺から出て、行き先には左の辺から入る"
+    }
+  ]
+}`;
+
+export const pattern__edgeSide__右 = textDslToDiagram(sourceYaml__pattern__edgeSide__右);
+
+export const sourceYaml__pattern__edgeSide__下 = `title: "矢印を下の辺から出す"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 280 }
+  l2: { x: 560, width: 280 }
+
+actors:
+  - 書かない時の元: { kind: card, lane: l1, stack: 0 }
+  - 書かない時の先: { kind: card, lane: l2, stack: 1 }
+  - 下と書いた元: { kind: card, lane: l1, stack: 2 }
+  - 下と書いた先: { kind: card, lane: l2, stack: 3 }
+
+flow:
+  - 書かない時の元 -> 書かない時の先: "横の辺で結ぶ" (info, dashed)
+  - 下と書いた元 -> 下と書いた先: "下の辺から" (accent, solid) { side: bottom }
+
+animation:
+  - step: "下の辺から出す" 1.8s
+    focus: ["書かない時の元", "書かない時の先", "下と書いた元", "下と書いた先", "書かない時の元 -> 書かない時の先", "下と書いた元 -> 下と書いた先"]
+    description: "上の組は辺を書かないので横の辺で結ぶ。 下の組は下の辺から出て、行き先には上の辺から入る"
+`;
+
+export const sourceJson__pattern__edgeSide__下 = `{
+  "title": "矢印を下の辺から出す",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 280 },
+    "l2": { "x": 560, "width": 280 }
+  },
+  "actors": [
+    { "name": "書かない時の元", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "書かない時の先", "kind": "card", "lane": "l2", "stack": 1 },
+    { "name": "下と書いた元", "kind": "card", "lane": "l1", "stack": 2 },
+    { "name": "下と書いた先", "kind": "card", "lane": "l2", "stack": 3 }
+  ],
+  "flow": [
+    { "from": "書かない時の元", "to": "書かない時の先", "label": "横の辺で結ぶ", "tone": "info", "style": "dashed" },
+    { "from": "下と書いた元", "to": "下と書いた先", "label": "下の辺から", "tone": "accent", "style": "solid", "side": "bottom" }
+  ],
+  "animation": [
+    {
+      "step": "下の辺から出す",
+      "duration": 1.8,
+      "focus": [
+        "書かない時の元",
+        "書かない時の先",
+        "下と書いた元",
+        "下と書いた先",
+        "書かない時の元 -> 書かない時の先",
+        "下と書いた元 -> 下と書いた先"
+      ],
+      "body": "上の組は辺を書かないので横の辺で結ぶ。 下の組は下の辺から出て、行き先には上の辺から入る"
+    }
+  ]
+}`;
+
+export const pattern__edgeSide__下 = textDslToDiagram(sourceYaml__pattern__edgeSide__下);
+
+export const sourceYaml__pattern__edgeSide__左 = `title: "矢印を左の辺から出す"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 840 }
+
+actors:
+  - 書かない時の元: { kind: card, lane: l1, stack: 0, posX: 700, posY: 0, posW: 260, posH: 56 }
+  - 書かない時の先: { kind: card, lane: l1, stack: 1, posX: 140, posY: 180, posW: 260, posH: 56 }
+  - 左と書いた元: { kind: card, lane: l1, stack: 2, posX: 700, posY: 360, posW: 260, posH: 56 }
+  - 左と書いた先: { kind: card, lane: l1, stack: 3, posX: 140, posY: 540, posW: 260, posH: 56 }
+
+flow:
+  - 書かない時の元 -> 書かない時の先: "縦の辺で結ぶ" (info, dashed)
+  - 左と書いた元 -> 左と書いた先: "左の辺から" (accent, solid) { side: left }
+
+animation:
+  - step: "左の辺から出す" 1.8s
+    focus: ["書かない時の元", "書かない時の先", "左と書いた元", "左と書いた先", "書かない時の元 -> 書かない時の先", "左と書いた元 -> 左と書いた先"]
+    description: "上の組は辺を書かないので縦の辺で結ぶ。 下の組は左の辺から出て、行き先には右の辺から入る"
+`;
+
+export const sourceJson__pattern__edgeSide__左 = `{
+  "title": "矢印を左の辺から出す",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 840 }
+  },
+  "actors": [
+    { "name": "書かない時の元", "kind": "card", "lane": "l1", "stack": 0, "posX": 700, "posY": 0, "posW": 260, "posH": 56 },
+    { "name": "書かない時の先", "kind": "card", "lane": "l1", "stack": 1, "posX": 140, "posY": 180, "posW": 260, "posH": 56 },
+    { "name": "左と書いた元", "kind": "card", "lane": "l1", "stack": 2, "posX": 700, "posY": 360, "posW": 260, "posH": 56 },
+    { "name": "左と書いた先", "kind": "card", "lane": "l1", "stack": 3, "posX": 140, "posY": 540, "posW": 260, "posH": 56 }
+  ],
+  "flow": [
+    { "from": "書かない時の元", "to": "書かない時の先", "label": "縦の辺で結ぶ", "tone": "info", "style": "dashed" },
+    { "from": "左と書いた元", "to": "左と書いた先", "label": "左の辺から", "tone": "accent", "style": "solid", "side": "left" }
+  ],
+  "animation": [
+    {
+      "step": "左の辺から出す",
+      "duration": 1.8,
+      "focus": [
+        "書かない時の元",
+        "書かない時の先",
+        "左と書いた元",
+        "左と書いた先",
+        "書かない時の元 -> 書かない時の先",
+        "左と書いた元 -> 左と書いた先"
+      ],
+      "body": "上の組は辺を書かないので縦の辺で結ぶ。 下の組は左の辺から出て、行き先には右の辺から入る"
+    }
+  ]
+}`;
+
+export const pattern__edgeSide__左 = textDslToDiagram(sourceYaml__pattern__edgeSide__左);
+
+// ---- 形の満ちる向き ----
+//
+// 四角の形 (`dyn-rect`) は、値に合わせて中を塗る向きを 4 つ取る。 同じ値 (6 割) で 4 つを並べ、塗りが
+// 寄る向きだけが違うことを見せる。 **値は動かさない** = スタイルの分類は見た目の違いを見せる見本で、
+// 値を動かすと向きより満ちていく動きに目が行く (`packages/dragon/test/catalog-motion-coverage.test.ts`)。
+//
+// **形を 1 つずつ見出し付きのレーンに入れる**。 `dyn-rect` は値の字 (`60 / 100`) しか描かず、箱の名前も
+// 副題も出ないので、4 つ並べるとどれがどの向きか画面から読めない。 レーンの見出しに向きの名前と
+// 書く値を出す。 レーンは記法で縦に積めないので横 1 列に並べ、形を小さくして図を縮めずに出す
+// (縮めると値の字 `60 / 100` が読めなくなる)。
+
+export const sourceYaml__shapeOrient = `title: "形の満ちる向き 4 種"
+type: flow
+
+lanes:
+  o-up: { label: "上へ満ちる (up)", x: 0, width: 200 }
+  o-down: { label: "下へ満ちる (down)", x: 260, width: 200 }
+  o-left: { label: "左へ満ちる (left)", x: 520, width: 200 }
+  o-right: { label: "右へ満ちる (right)", x: 780, width: 200 }
+
+states:
+  level: 60
+
+actors:
+  - 上へ満ちる: { kind: dyn-rect, lane: o-up, stack: 0, posW: 180, posH: 110, shape: { kind: rect, source: "{level}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
+  - 下へ満ちる: { kind: dyn-rect, lane: o-down, stack: 0, posW: 180, posH: 110, shape: { kind: rect, source: "{level}", fillMax: 100, orient: down, fill: "#22c55e", radius: 6 } }
+  - 左へ満ちる: { kind: dyn-rect, lane: o-left, stack: 0, posW: 180, posH: 110, shape: { kind: rect, source: "{level}", fillMax: 100, orient: left, fill: "#22c55e", radius: 6 } }
+  - 右へ満ちる: { kind: dyn-rect, lane: o-right, stack: 0, posW: 180, posH: 110, shape: { kind: rect, source: "{level}", fillMax: 100, orient: right, fill: "#22c55e", radius: 6 } }
+
+animation:
+  - step: "同じ値で 4 つの向き" 1.8s
+    focus: ["上へ満ちる", "下へ満ちる", "左へ満ちる", "右へ満ちる"]
+    description: "どれも 6 割を塗る。 上へは下から、下へは上から、左へは右から、右へは左から塗りが寄る"
+`;
+
+export const sourceJson__shapeOrient = `{
+  "title": "形の満ちる向き 4 種",
+  "type": "flow",
+  "lanes": {
+    "o-up": { "label": "上へ満ちる (up)", "x": 0, "width": 200 },
+    "o-down": { "label": "下へ満ちる (down)", "x": 260, "width": 200 },
+    "o-left": { "label": "左へ満ちる (left)", "x": 520, "width": 200 },
+    "o-right": { "label": "右へ満ちる (right)", "x": 780, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "上へ満ちる",
+      "kind": "dyn-rect",
+      "lane": "o-up",
+      "stack": 0,
+      "posW": 180,
+      "posH": 110,
+      "shape": { "kind": "rect", "source": "{level}", "fillMax": 100, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "下へ満ちる",
+      "kind": "dyn-rect",
+      "lane": "o-down",
+      "stack": 0,
+      "posW": 180,
+      "posH": 110,
+      "shape": { "kind": "rect", "source": "{level}", "fillMax": 100, "orient": "down", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "左へ満ちる",
+      "kind": "dyn-rect",
+      "lane": "o-left",
+      "stack": 0,
+      "posW": 180,
+      "posH": 110,
+      "shape": { "kind": "rect", "source": "{level}", "fillMax": 100, "orient": "left", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "右へ満ちる",
+      "kind": "dyn-rect",
+      "lane": "o-right",
+      "stack": 0,
+      "posW": 180,
+      "posH": 110,
+      "shape": { "kind": "rect", "source": "{level}", "fillMax": 100, "orient": "right", "fill": "#22c55e", "radius": 6 }
+    }
+  ],
+  "flow": [],
+  "states": { "level": 60 },
+  "animation": [
+    {
+      "step": "同じ値で 4 つの向き",
+      "duration": 1.8,
+      "focus": ["上へ満ちる", "下へ満ちる", "左へ満ちる", "右へ満ちる"],
+      "body": "どれも 6 割を塗る。 上へは下から、下へは上から、左へは右から、右へは左から塗りが寄る"
+    }
+  ]
+}`;
+
+export const shapeOrient = textDslToDiagram(sourceYaml__shapeOrient);

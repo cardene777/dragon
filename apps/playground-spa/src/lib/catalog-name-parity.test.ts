@@ -71,7 +71,8 @@ describe("一覧の名前 (#1030)", () => {
     const expected: Record<string, number> = {
       interactive: 129, cookbook: 26, patterns: 12, primitives: 89,
       // presets はクラス図と ER 図の複雑な版をパターンへ移して 21 → 19 (#1960)
-      "primitives-extra": 21, animation: 10, styles: 10, presets: 19,
+      // styles は欄が取る値を並べる見本を 4 件足して 10 → 14 (#1966)
+      "primitives-extra": 21, animation: 10, styles: 14, presets: 19,
       ethereum: 4, "text-dsl": 15, parts: 80, charts: 15,
     };
     const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));

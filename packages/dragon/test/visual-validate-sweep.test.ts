@@ -127,6 +127,16 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     axis: "edge-node-cross",
     理由: "「a → router → c」 の通過を見せる図で、 router を貫くこと自体が意図",
   },
+  // 矢印の出る辺の見本 (#1966)。 engine は同じレーンの箱を縦の辺で結ぶと推し量るので、右と左の辺を
+  // 書く意味が出るのは同じレーンの中で行き先を横にずらした時だけになる。 縦 1 列に揃えると、右の辺から
+  // 出た線が行き先の箱の裏を通って左の辺に入る (engine は辺を書いた線を迂回させない)。
+  ...["矢印を右の辺から出す", "矢印を左の辺から出す"].flatMap((diagramId) =>
+    ["alignment", "column-alignment"].map((axis) => ({
+      diagramId,
+      axis,
+      理由: "同じレーンの中で行き先を横にずらすこと自体が、右と左の辺を書く見本の意図",
+    })),
+  ),
 ];
 
 function isGatingViolation(v: Violation & { diagramId?: string }): boolean {

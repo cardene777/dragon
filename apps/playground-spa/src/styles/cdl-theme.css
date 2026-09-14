@@ -183,6 +183,43 @@
   stroke-width: 2.5 !important;
 }
 
+/* 節の色を書いた箱は、強調した枠をその色で描く (#1966)。
+ *
+ * engine は強調した箱の枠を節の色 (`tone`) で描き、強調していない箱は色を持たない枠で描く。
+ * 上の 2 つの規則が全ての箱の枠を 1 色に揃えるため、`tone` を書いても dragon の画面では
+ * 色が 1 つも出ていなかった (カタログの「節の色 6 種」 で 6 枚とも同じ朱になった)。
+ *
+ * **`accent` は外す**。 強調の既定の色が `accent` なので、書いた図と書かない図が同じ朱で描かれる
+ * のが engine と揃う。 `--dragon-edge-tone` の `accent` は線の色 (墨) を指しており、それを当てると
+ * `tone: accent` を書いた既存の箱だけ強調の色が変わる。
+ *
+ * 色は線と同じ変数から取る = 線の色は紙の上で 4.61 の対比を満たすことを検査している
+ * (`dark-ground-step.spec.ts`)。 箱と矢印で同じ名前の色が別の色にならない。 */
+[data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])
+  [data-cdl-role="node-body"]:not([data-cdl-look]),
+[data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])
+  [data-cdl-role="node-body"]:not([data-cdl-look])
+  > rect,
+[data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])
+  [data-cdl-role="node-body"]:not([data-cdl-look])
+  > path,
+[data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])
+  [data-cdl-role="node-body"]:not([data-cdl-look])
+  > ellipse,
+[data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])
+  [data-cdl-role="node-body"]:not([data-cdl-look])
+  > circle,
+[data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])
+  [data-cdl-role="node-body"]:not([data-cdl-look])
+  > g
+  > rect,
+[data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])
+  [data-cdl-role="node-body"]:not([data-cdl-look])
+  > g
+  > path {
+  stroke: var(--dragon-edge-tone) !important;
+}
+
 /* 見せ方を持つ箱の中の字は engine が決める (cdl#620)。 墨のベタの上では紙の色で抜くので、
    ここで文字色を上書きすると黒地に黒で消える。 書体と太さは揃えたいので色だけ外す */
 [data-cdl-role="node-label"] {
@@ -231,18 +268,53 @@
   stroke: none !important;
 }
 
+/* 矢じりを 2 倍に描く (#1966)。
+   engine の矢じりは 14 の枠で、線の太さ 2.5 に合わせた大きさ。 線を 7 にした時 (#1598) に矢じりを
+   据え置いたため、三角は線とほぼ同じ幅になって向きが読めず、開いた矢と三又は線と同じ太さの輪郭で
+   枠が埋まって点に見えていた (カタログの「矢印の端の形」 で 5 形の見分けが付かなかった)。
+
+   枠の大きさ (`markerWidth`) は CSS で変えられないので、形を線の先端の点 (`refX`, `refY`) を中心に
+   拡大し、はみ出した分を見せる。 **ER の端 (`one` / `many` 等) は外す** = engine が既に 1.8 倍の
+   枠で描いており、線の太さに負けていない。 */
+marker:has(> [data-cdl-role="edge-arrowhead"]) {
+  overflow: visible;
+}
+
+[data-cdl-role="edge-arrowhead"]:is(
+    [data-cdl-edge-head="triangle"],
+    [data-cdl-edge-head="diamond"],
+    [data-cdl-edge-head="open"],
+    :not([data-cdl-edge-head])
+  ) {
+  transform: scale(2);
+  transform-origin: 9px 5px;
+}
+
+/* 三又だけ線の先端が枠の端 (x=10) にある */
+[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="crow"] {
+  transform: scale(2);
+  transform-origin: 10px 5px;
+}
+
 /* 白抜きの印。 面を紙の色にして輪郭に色を置く (cdl#578)。
-   面を透かさないのは、線が印の中を素通りして見えるため */
+   面を透かさないのは、線が印の中を素通りして見えるため。
+   輪郭は拡大で 2 倍になるので、線との比 (#1598 の 4.36) を保つよう半分の値を書く */
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head-fill="hollow"] {
   fill: var(--d-surface) !important;
   stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
-  stroke-width: 4.36 !important;
+  stroke-width: 2.18 !important;
 }
 
 /* 元から輪郭しか無い形。 塗ると「閉じた矢」 と見分けが付かなくなる = 開いた矢は
    閉じないことで「返事を待たない」 を示し、三又は開いた側で「多」 を示す */
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="open"],
-[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="crow"],
+[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="crow"] {
+  fill: none !important;
+  stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
+  /* 2 倍に描く形なので、線との比 (#1598 の 4.98) を保つ半分の値 */
+  stroke-width: 2.49 !important;
+}
+
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="one"],
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="zero-one"],
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="many"],
