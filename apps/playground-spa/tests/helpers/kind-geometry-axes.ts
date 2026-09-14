@@ -25,6 +25,14 @@
  * 見本の一覧の画面は、開いた直後に折れ線グラフを出している。 見本を開き損ねると、軸は
  * 折れ線グラフを測る。 箱の字のはみ出しの軸は、見本を開かない変異で折れ線グラフの箱を測って
  * 通った (#1952 で実測)。 見本は書き出しの名前で持ち、画面に出す名前と図の `id` をそこから導く。
+ *
+ * ## 位置と大きさは図の枠の座標で比べる
+ *
+ * `getBBox` と `d` 属性は、要素自身や祖先に付いた `transform` を含まない局所の値を返す。
+ * 局所の値で比べると、`transform` で画面の上の位置が崩れても値は変わらず、判定は通る
+ * (#1958 で実測。 状態遷移図の字に `translate(400 0)` を付けると、画面の右端は 91 から 491 へ
+ * 動くのに `getBBox` の右端は 66 のまま)。 画面では変換行列と局所の値だけを測り
+ * (`要素を測る`)、枠の座標へ直すのは Node 側の `枠の点へ` と `枠の外枠へ` の 1 か所に置く。
  */
 import type { Page } from "@playwright/test";
 import { ITEM_NAME_JA } from "../../src/lib/i18n";
@@ -97,6 +105,100 @@ function 軸を組む<T>(定義: 軸の定義<T>): 層3の軸 {
 
 type 点 = { x: number; y: number };
 
+/** 図の枠 (`viewBox`) の座標で表した外枠 */
+export type 外枠 = { x: number; y: number; 幅: number; 高さ: number };
+
+/** 要素の局所の座標から枠の座標への変換行列 `[a, b, c, d, e, f]` (`DOMMatrix` と同じ並び) */
+export type 行列 = readonly [number, number, number, number, number, number];
+
+/** 画面で 1 つの要素から測る生の値。 枠の座標へは Node 側で直す */
+export type 測った要素 = {
+  行列: 行列;
+  /** `getBBox` の値 (要素自身と祖先の `transform` を含まない) */
+  局所の外枠: 外枠;
+  d: string;
+  字: string;
+  /** 要素を含む最も近い `[data-cdl-node]` の値。 無ければ空 */
+  持ち主: string;
+};
+
+/** 局所の座標の点を枠の座標へ直す */
+export function 枠の点へ([a, b, c, d, e, f]: 行列, p: 点): 点 {
+  return { x: a * p.x + c * p.y + e, y: b * p.x + d * p.y + f };
+}
+
+/**
+ * 局所の外枠を枠の座標へ直す。 4 つの角を直して最小と最大を取るので、反転や傾きがあっても
+ * 外枠の向きは入れ替わらない。
+ */
+export function 枠の外枠へ(m: 行列, 枠: 外枠): 外枠 {
+  const 角たち = [
+    { x: 枠.x, y: 枠.y },
+    { x: 枠.x + 枠.幅, y: 枠.y },
+    { x: 枠.x, y: 枠.y + 枠.高さ },
+    { x: 枠.x + 枠.幅, y: 枠.y + 枠.高さ },
+  ].map((p) => 枠の点へ(m, p));
+  const xs = 角たち.map((p) => p.x);
+  const ys = 角たち.map((p) => p.y);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return { x, y, 幅: Math.max(...xs) - x, 高さ: Math.max(...ys) - y };
+}
+
+/** 図の枠 (`viewBox`) を読む */
+async function 枠を読む(page: Page): Promise<外枠> {
+  const [x = 0, y = 0, 幅 = 0, 高さ = 0] = await page.evaluate(() =>
+    (document.querySelector('svg[role="img"]')?.getAttribute("viewBox") ?? "")
+      .split(/\s+/)
+      .map(Number),
+  );
+  return { x, y, 幅, 高さ };
+}
+
+/** 図の中で `選び` に当たる要素ごとに、枠の座標への変換行列と局所の値を測る */
+export function 要素を測る(page: Page, 選び: string): Promise<測った要素[]> {
+  return page.evaluate((選び) => {
+    const svg = document.querySelector<SVGSVGElement>('svg[role="img"]');
+    const 画面から枠へ = svg?.getScreenCTM()?.inverse();
+    if (!svg || !画面から枠へ) return [];
+    return Array.from(svg.querySelectorAll<SVGGraphicsElement>(選び)).flatMap((el) => {
+      const 要素から画面へ = el.getScreenCTM();
+      if (!要素から画面へ) return [];
+      const m = 画面から枠へ.multiply(要素から画面へ);
+      const bb = el.getBBox();
+      return [
+        {
+          行列: [m.a, m.b, m.c, m.d, m.e, m.f] as [number, number, number, number, number, number],
+          局所の外枠: { x: bb.x, y: bb.y, 幅: bb.width, 高さ: bb.height },
+          d: el.getAttribute("d") ?? "",
+          字: el.textContent ?? "",
+          持ち主: el.closest("[data-cdl-node]")?.getAttribute("data-cdl-node") ?? "",
+        },
+      ];
+    });
+  }, 選び);
+}
+
+/** 要素の `transform` の後ろに変換を足す。 局所の値を変えずに画面の上の位置だけを崩す */
+function 変換を足す(
+  page: Page,
+  選び: string,
+  変換: string,
+  対象: "全て" | "最初" | "最後" = "全て",
+): Promise<void> {
+  return page.evaluate(
+    ({ 選び, 変換, 対象 }) => {
+      const 要素たち = Array.from(document.querySelectorAll(`svg[role="img"] ${選び}`));
+      const 対象たち =
+        対象 === "最初" ? 要素たち.slice(0, 1) : 対象 === "最後" ? 要素たち.slice(-1) : 要素たち;
+      対象たち.forEach((el) =>
+        el.setAttribute("transform", `${el.getAttribute("transform") ?? ""} ${変換}`.trim()),
+      );
+    },
+    { 選び, 変換, 対象 },
+  );
+}
+
 /** `path` の `d` (`M` / `L` のみ) から点の並びを読む */
 export function 点を読む(d: string): 点[] {
   const 点たち: 点[] = [];
@@ -167,22 +269,20 @@ async function 線が出るまで待つ(page: Page): Promise<void> {
   await page.waitForSelector('[data-cdl-role="edge-line"]', { state: "attached", timeout: 15_000 });
 }
 
-/** 工程表の依存の矢印の線 (`Z` で閉じない `path`) */
-const 工程表の矢印の向き = 軸を組む<string[]>({
+/** 工程表の依存の矢印の線 (`Z` で閉じない `path`) と矢じり (`Z` で閉じる `path`) */
+const 矢印の線 = '[data-cdl-role="gantt-arrow"] path:not([d*="Z"])';
+const 矢じり = '[data-cdl-role="gantt-arrow"] path[d*="Z"]';
+
+const 工程表の矢印の向き = 軸を組む<測った要素[]>({
   名前: "工程表の依存の矢印は右へ出て、着く先の帯の左辺へ水平に着く",
   見本: "presetGantt",
   下限: 1,
   待つ: 矢印が出るまで待つ,
-  測る: (page) =>
-    page.evaluate(() =>
-      Array.from(document.querySelectorAll('[data-cdl-role="gantt-arrow"] path'))
-        .map((p) => p.getAttribute("d") ?? "")
-        .filter((d) => !d.includes("Z")),
-    ),
+  測る: (page) => 要素を測る(page, 矢印の線),
   母数: (線たち) => 線たち.length,
   判定: (線たち) =>
-    線たち.flatMap((d) => {
-      const 点たち = 点を読む(d);
+    線たち.flatMap(({ 行列, d }) => {
+      const 点たち = 点を読む(d).map((p) => 枠の点へ(行列, p));
       // 経路は 2 通り (`kinds/gantt.tsx § dependsOn arrow`)。 間が空いていれば直接折れる 4 点、
       // 帯が近ければ回り込む 6 点。 共通して守るのは「1 段目は水平に右」 と「終端は水平に着く」
       if (点たち.length !== 4 && 点たち.length !== 6) {
@@ -199,85 +299,51 @@ const 工程表の矢印の向き = 軸を組む<string[]>({
       if (Math.abs(先.x - 手前.x) >= 40) 違反.push(`終端が折れ目から 40px 以上離れている: ${d}`);
       return 違反;
     }),
-  // 1 本目の線の 2 点目を 10 下げる = 1 段目が水平でなくなる
-  壊す: (page) =>
-    page.evaluate(() => {
-      const 線 = Array.from(document.querySelectorAll('[data-cdl-role="gantt-arrow"] path')).find(
-        (p) => !(p.getAttribute("d") ?? "").includes("Z"),
-      );
-      if (!線) return;
-      const 字たち = (線.getAttribute("d") ?? "").trim().split(/[\s,]+/);
-      const i = 字たち.indexOf("L");
-      const y = 字たち[i + 2];
-      if (i < 0 || y === undefined) return;
-      字たち[i + 2] = String(parseFloat(y) + 10);
-      線.setAttribute("d", 字たち.join(" "));
-    }),
+  // 1 本目の線を左右に反転する。 `d` は変わらず、画面の上で 1 段目が左へ出る
+  壊す: (page) => 変換を足す(page, 矢印の線, "scale(-1 1)", "最初"),
 });
 
-type 帯 = { 左: number; 上: number; 高さ: number };
-
 /** 工程表の依存の矢じり (`Z` で閉じる 3 点の `path`) */
-const 工程表の矢じりの隙間 = 軸を組む<{ 帯たち: 帯[]; 矢じりたち: string[] }>({
+const 工程表の矢じりの隙間 = 軸を組む<{ 帯たち: 外枠[]; 矢じりたち: 測った要素[] }>({
   名前: "工程表の矢じりの先が、着く先の帯の左辺から 4px 以上外にある",
   見本: "presetGantt",
   下限: 1,
   待つ: 矢印が出るまで待つ,
-  測る: (page) =>
-    page.evaluate(() => ({
-      帯たち: Array.from(document.querySelectorAll('[data-cdl-role="gantt-bar"]')).map((b) => ({
-        左: parseFloat(b.getAttribute("x") ?? "0"),
-        上: parseFloat(b.getAttribute("y") ?? "0"),
-        高さ: parseFloat(b.getAttribute("height") ?? "0"),
-      })),
-      矢じりたち: Array.from(document.querySelectorAll('[data-cdl-role="gantt-arrow"] path'))
-        .map((p) => p.getAttribute("d") ?? "")
-        .filter((d) => d.includes("Z")),
-    })),
-  母数: ({ 矢じりたち }) => 矢じりたち.filter((d) => 点を読む(d).length === 3).length,
+  測る: async (page) => ({
+    帯たち: (await 要素を測る(page, '[data-cdl-role="gantt-bar"]')).map((帯) =>
+      枠の外枠へ(帯.行列, 帯.局所の外枠),
+    ),
+    矢じりたち: await 要素を測る(page, 矢じり),
+  }),
+  母数: ({ 矢じりたち }) => 矢じりたち.filter(({ d }) => 点を読む(d).length === 3).length,
   判定: ({ 帯たち, 矢じりたち }) =>
-    矢じりたち.flatMap((d) => {
-      const 点たち = 点を読む(d);
+    矢じりたち.flatMap(({ 行列, d }) => {
+      const 点たち = 点を読む(d).map((p) => 枠の点へ(行列, p));
       if (点たち.length !== 3) return [];
       const 先の右端 = Math.max(...点たち.map((p) => p.x));
       const 先の高さ = 点たち.reduce((和, p) => 和 + p.y, 0) / 点たち.length;
-      const 着く帯 = 帯たち.find((b) => 先の高さ >= b.上 && 先の高さ <= b.上 + b.高さ);
+      const 着く帯 = 帯たち.find((b) => 先の高さ >= b.y && 先の高さ <= b.y + b.高さ);
       if (!着く帯) return [`矢じりの高さ ${先の高さ} に着く帯が無い: ${d}`];
-      const 隙間 = 着く帯.左 - 先の右端;
+      const 隙間 = 着く帯.x - 先の右端;
       return 隙間 < 4
         ? [
-            `矢じりの先 (x=${先の右端}) と帯の左辺 (x=${着く帯.左}) の隙間が ${隙間}px (負は食い込み)`,
+            `矢じりの先 (x=${先の右端}) と帯の左辺 (x=${着く帯.x}) の隙間が ${隙間}px (負は食い込み)`,
           ]
         : [];
     }),
-  // 矢じりを右へ 20 動かす = 帯の中へ食い込む
-  壊す: (page) =>
-    page.evaluate(() => {
-      document.querySelectorAll('[data-cdl-role="gantt-arrow"] path').forEach((p) => {
-        const d = p.getAttribute("d") ?? "";
-        if (!d.includes("Z")) return;
-        p.setAttribute(
-          "d",
-          d.replace(
-            /([ML])\s+([\d.]+)\s+([\d.]+)/g,
-            (_, 命令, x, y) => `${命令} ${parseFloat(x) + 20} ${y}`,
-          ),
-        );
-      });
-    }),
+  // 矢じりを右へ 20 動かす。 `d` は変わらず、画面の上で帯の中へ食い込む
+  壊す: (page) => 変換を足す(page, 矢じり, "translate(20 0)"),
 });
+
+const 絞り込み図の段 = '[data-cdl-role="funnel-stage"]';
 
 const 絞り込み図の幅 = 軸を組む<number[]>({
   名前: "絞り込み図の段の幅が上から下へ減っていく",
   見本: "presetFunnel",
   下限: 2,
   待つ: 一拍待つ,
-  測る: (page) =>
-    page.evaluate(() =>
-      Array.from(document.querySelectorAll('[data-cdl-role="funnel-stage"]')).map(
-        (el) => (el as SVGGraphicsElement).getBBox().width,
-      ),
-    ),
+  測る: async (page) =>
+    (await 要素を測る(page, 絞り込み図の段)).map((段) => 枠の外枠へ(段.行列, 段.局所の外枠).幅),
   母数: (幅たち) => 幅たち.length,
   判定: (幅たち) =>
     幅たち.flatMap((今, i) => {
@@ -286,24 +352,12 @@ const 絞り込み図の幅 = 軸を組む<number[]>({
         ? [`段 ${i} の幅 (${今}) が段 ${i - 1} の幅 (${前}) より広い`]
         : [];
     }),
-  // 最後の段を幅 800 に広げる
-  壊す: (page) =>
-    page.evaluate(() => {
-      const 段たち = document.querySelectorAll('[data-cdl-role="funnel-stage"]');
-      const 最後 = 段たち[段たち.length - 1];
-      if (段たち.length < 2 || !最後) return;
-      const ys = (最後.getAttribute("points") ?? "")
-        .split(/\s+/)
-        .map((p) => p.split(",")[1] ?? "0");
-      最後.setAttribute(
-        "points",
-        [`0,${ys[0]}`, `800,${ys[1]}`, `800,${ys[2]}`, `0,${ys[3]}`].join(" "),
-      );
-    }),
+  // 最後の段を横に 3 倍へ伸ばす。 `getBBox` の幅は変わらず、画面の上で 1 段目より広くなる
+  壊す: (page) => 変換を足す(page, 絞り込み図の段, "scale(3 1)", "最後"),
 });
 
 /** 図の枠 (`viewBox`) と、根の字の中心を枠の座標で測った位置 */
-export type 根の位置 = { 枠: { x: number; y: number; 幅: number; 高さ: number }; 根: 点 | null };
+export type 根の位置 = { 枠: 外枠; 根: 点 | null };
 
 /**
  * 根の字の中心が、枠の中央から縦横とも枠の 20% 以内にあるかを見る (#1954)。
@@ -334,23 +388,14 @@ const 枝分かれ図の根 = 軸を組む<根の位置>({
    * 持つ `g` があり、字の `getBBox` はその移動を含まない局所の座標を返す。 局所の座標で比べていた
    * 間は、根を持つ箱ごと図の中で動いても字の値は変わらず、判定は気付けなかった。
    */
-  測る: (page) =>
-    page.evaluate((名) => {
-      const svg = document.querySelector<SVGSVGElement>('svg[role="img"]');
-      const [x = 0, y = 0, 幅 = 0, 高さ = 0] = (svg?.getAttribute("viewBox") ?? "")
-        .split(/\s+/)
-        .map(Number);
-      const 枠 = { x, y, 幅, 高さ };
-      const 根 = Array.from(svg?.querySelectorAll("text") ?? []).find((t) => t.textContent === 名);
-      const 枠へ = svg?.getScreenCTM()?.inverse();
-      const 字から画面へ = 根?.getScreenCTM();
-      if (!根 || !枠へ || !字から画面へ) return { 枠, 根: null };
-      const bb = 根.getBBox();
-      const 中心 = new DOMPoint(bb.x + bb.width / 2, bb.y + bb.height / 2).matrixTransform(
-        枠へ.multiply(字から画面へ),
-      );
-      return { 枠, 根: { x: 中心.x, y: 中心.y } };
-    }, 見本の根の名前()),
+  // 外枠の中心は、局所の外枠の中心を直した点と一致する (向きを保つ変換で平行四辺形は中心に対して対称)
+  測る: async (page) => {
+    const 名 = 見本の根の名前();
+    const 字 = (await 要素を測る(page, "text")).find((t) => t.字 === 名);
+    if (!字) return { 枠: await 枠を読む(page), 根: null };
+    const 外 = 枠の外枠へ(字.行列, 字.局所の外枠);
+    return { 枠: await 枠を読む(page), 根: { x: 外.x + 外.幅 / 2, y: 外.y + 外.高さ / 2 } };
+  },
   母数: ({ 根 }) => (根 ? 1 : 0),
   判定: 根の位置の違反,
   // 根の字の親の `g` を枠の幅の半分だけ右へ動かす。 字の局所の座標は変わらない崩れ
@@ -398,7 +443,13 @@ const 折れ線の点の数 = 軸を組む<number[]>({
     }),
 });
 
-type 札 = { x: number; y: number; w: number; h: number; 字: string };
+type 札 = 外枠 & { 字: string };
+
+const 札を測る = async (page: Page, 役割: string): Promise<札[]> =>
+  (await 要素を測る(page, `[data-cdl-role="${役割}"]`)).map((e) => ({
+    ...枠の外枠へ(e.行列, e.局所の外枠),
+    字: e.字,
+  }));
 
 /** 札は役割の印で選ぶ (#1838)。 字の形で探すと、見本を日本語に開いた日から 1 件も当たらない */
 const 折れ線の札の重なり = 軸を組む<{ 値の札: 札[]; 軸の札: 札[] }>({
@@ -406,68 +457,81 @@ const 折れ線の札の重なり = 軸を組む<{ 値の札: 札[]; 軸の札: 
   見本: "presetChartLine",
   下限: 折れ線の札の下限,
   待つ: 一拍待つ,
-  測る: (page) =>
-    page.evaluate((印) => {
-      const svg = document.querySelector('svg[role="img"]');
-      const 測る = (役割: string) =>
-        Array.from(svg?.querySelectorAll(`[data-cdl-role="${役割}"]`) ?? []).map((e) => {
-          const bb = (e as SVGGraphicsElement).getBBox();
-          return { x: bb.x, y: bb.y, w: bb.width, h: bb.height, 字: e.textContent ?? "" };
-        });
-      return { 値の札: 測る(印.値の札), 軸の札: 測る(印.軸の札) };
-    }, 折れ線の印),
+  測る: async (page) => ({
+    値の札: await 札を測る(page, 折れ線の印.値の札),
+    軸の札: await 札を測る(page, 折れ線の印.軸の札),
+  }),
   // 値の札と軸の札の少ない方。 重なり 0 件は片方が空でも成り立つので、両方を数える
   母数: ({ 値の札, 軸の札 }) => Math.min(値の札.length, 軸の札.length),
   判定: ({ 値の札, 軸の札 }) =>
     値の札.flatMap((v) =>
       軸の札
-        .filter((a) => v.x < a.x + a.w && v.x + v.w > a.x && v.y < a.y + a.h && v.y + v.h > a.y)
+        .filter(
+          (a) => v.x < a.x + a.幅 && v.x + v.幅 > a.x && v.y < a.y + a.高さ && v.y + v.高さ > a.y,
+        )
         .map((a) => `値の札 "${v.字}" が軸の札 "${a.字}" と重なる`),
     ),
-  // 値の札を全て 1 つ目の軸の札の位置へ動かす
+  /*
+   * 値の札を全て 1 つ目の軸の札の位置へ `translate` で動かす。 札の `x` と `y` は変わらない崩れ。
+   * 動かす量は軸の札の外枠の角を札の局所の座標へ直して求める (札と軸の札が別の座標の系にいても重なる)
+   */
   壊す: (page) =>
     page.evaluate((印) => {
       const svg = document.querySelector('svg[role="img"]');
-      const 軸 = svg?.querySelector(`[data-cdl-role="${印.軸の札}"]`);
-      if (!svg || !軸) return;
-      svg.querySelectorAll(`[data-cdl-role="${印.値の札}"]`).forEach((t) => {
-        t.setAttribute("x", 軸.getAttribute("x") ?? "0");
-        t.setAttribute("y", 軸.getAttribute("y") ?? "0");
+      const 軸 = svg?.querySelector<SVGGraphicsElement>(`[data-cdl-role="${印.軸の札}"]`);
+      const 軸から画面へ = 軸?.getScreenCTM();
+      if (!svg || !軸 || !軸から画面へ) return;
+      const 軸の外枠 = 軸.getBBox();
+      svg.querySelectorAll<SVGGraphicsElement>(`[data-cdl-role="${印.値の札}"]`).forEach((札) => {
+        const 画面から札へ = 札.getScreenCTM()?.inverse();
+        if (!画面から札へ) return;
+        const 角 = new DOMPoint(軸の外枠.x, 軸の外枠.y).matrixTransform(
+          画面から札へ.multiply(軸から画面へ),
+        );
+        const 札の外枠 = 札.getBBox();
+        札.setAttribute(
+          "transform",
+          `${札.getAttribute("transform") ?? ""} translate(${角.x - 札の外枠.x} ${角.y - 札の外枠.y})`.trim(),
+        );
       });
     }, 折れ線の印),
 });
 
-type 箱の字 = { 字: string; 右端: number; 箱の幅: number };
+type 箱と字 = { 箱たち: 測った要素[]; 字たち: 測った要素[] };
 
-const 状態遷移図の字のはみ出し = 軸を組む<箱の字[]>({
+/**
+ * 字を、字を含む最も近い `[data-cdl-node]` の箱と組にする。 箱を持たない持ち主の字は組まない。
+ * 入れ子の箱の字は、外側の箱ではなく自分の箱と比べる
+ */
+function 字を箱と組む({
+  箱たち,
+  字たち,
+}: 箱と字): { 字: string; 右端: number; 箱の右端: number }[] {
+  return 字たち.flatMap((字) => {
+    const 箱 = 箱たち.find((b) => b.持ち主 !== "" && b.持ち主 === 字.持ち主);
+    if (!箱) return [];
+    const 字の外枠 = 枠の外枠へ(字.行列, 字.局所の外枠);
+    const 箱の外枠 = 枠の外枠へ(箱.行列, 箱.局所の外枠);
+    return [{ 字: 字.字, 右端: 字の外枠.x + 字の外枠.幅, 箱の右端: 箱の外枠.x + 箱の外枠.幅 }];
+  });
+}
+
+const 状態遷移図の字のはみ出し = 軸を組む<箱と字>({
   名前: "入れ子の状態遷移図の箱の字が、箱の横幅をはみ出さない",
   見本: "presetStateMachine2",
   下限: 1,
   待つ: 一拍待つ,
-  測る: (page) =>
-    page.evaluate(() =>
-      Array.from(document.querySelectorAll("[data-cdl-node]")).flatMap((g) => {
-        const 箱 = g.querySelector('[data-cdl-role="node-body"]');
-        if (!箱) return [];
-        const 箱の幅 = parseFloat(箱.getAttribute("width") ?? "0");
-        return Array.from(g.querySelectorAll("text")).map((t) => {
-          const bb = (t as SVGGraphicsElement).getBBox();
-          return { 字: t.textContent ?? "", 右端: bb.x + bb.width, 箱の幅 };
-        });
-      }),
-    ),
-  母数: (字たち) => 字たち.length,
-  判定: (字たち) =>
-    字たち
-      .filter((t) => t.右端 > t.箱の幅 + 4)
-      .map((t) => `"${t.字}" の右端 (${t.右端}) が箱の幅 (${t.箱の幅}) を超える`),
-  // 1 つ目の箱の字を長い文に替える (SVG の字は折り返さないのではみ出す)
-  壊す: (page) =>
-    page.evaluate(() => {
-      const 字 = document.querySelector("[data-cdl-node] text");
-      if (字)
-        字.textContent = "箱の幅を大きく超えるほど長い文を入れて、字が箱の外へはみ出す形を作る";
-    }),
+  測る: async (page) => ({
+    箱たち: await 要素を測る(page, '[data-cdl-node] [data-cdl-role="node-body"]'),
+    字たち: await 要素を測る(page, "[data-cdl-node] text"),
+  }),
+  母数: (値) => 字を箱と組む(値).length,
+  判定: (値) =>
+    字を箱と組む(値)
+      .filter((t) => t.右端 > t.箱の右端 + 4)
+      .map((t) => `"${t.字}" の右端 (${t.右端}) が箱の右端 (${t.箱の右端}) を超える`),
+  // 1 つ目の箱の字を右へ 400 動かす。 字の `getBBox` は変わらず、画面の上で箱の外へ出る
+  壊す: (page) => 変換を足す(page, "[data-cdl-node] text", "translate(400 0)", "最初"),
 });
 
 const 流れ図の線の塗り = 軸を組む<string[]>({
