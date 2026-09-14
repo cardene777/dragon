@@ -30,7 +30,7 @@
  * 通るので、**集めた件数を別に assert する** (`rules/quality.md § 対象を走査する検査は
  * 「1 件以上あった」 ことを併記済`)。 下限は `折れ線の札の下限` が持つ。
  */
-import { presetMindMap } from "../../src/topics/catalog/presets.cdl";
+import { presetChartLine, presetMindMap } from "../../src/topics/catalog/presets.cdl";
 
 /**
  * 折れ線の図が出す役割の印。 2 つの検査が同じ字を書かないよう、ここに 1 度だけ置く。
@@ -72,4 +72,16 @@ export function 見本の根の名前(): string {
     throw new Error(`見本の根が差し込む状態 ${状態の名} が図の定義に無い`);
   }
   return String(状態.initial);
+}
+
+/**
+ * 見本の折れ線グラフが持つ値の数を、図の定義から導く (#1952)。
+ *
+ * 折れ線は値ごとに 1 つの点を打つので、描いた線の点の数はこの数と一致する。
+ * 字で書くと、見本の月を足した日から検査が噛み合わなくなる。
+ */
+export function 見本の折れ線の値の数(): number {
+  const 値たち = presetChartLine.nodes.find((n) => n.chartData !== undefined)?.chartData;
+  if (値たち === undefined) throw new Error("見本の折れ線グラフが値を持っていない");
+  return 値たち.length;
 }
