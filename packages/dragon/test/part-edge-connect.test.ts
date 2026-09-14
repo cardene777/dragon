@@ -91,7 +91,10 @@ flow:
 `;
     const { 端, 知らせ, 図 } = 組み立てる(src);
     expect(端).toEqual(["受付 -> 印__ind"]);
-    expect(図.nodes.some((n) => n.id === "印__ind"), "繋ぎ先の要素が図に無い").toBe(true);
+    expect(
+      図.nodes.some((n) => n.id === "印__ind"),
+      "繋ぎ先の要素が図に無い",
+    ).toBe(true);
     expect(部品の知らせ(知らせ)).toEqual([]);
   });
 
@@ -120,7 +123,11 @@ flow:
 
   it("要素 2 つ以上の部品で名指しが無いと、外した矢印の数と同じ件数を行番号付きで知らせる", () => {
     const { 端, 知らせ } = 組み立てる(
-      本文("swimlane", "  - 信号: { kind: three }", '  - 受付 -> 信号: "止める"\n  - 信号 -> 出荷: "進める"'),
+      本文(
+        "swimlane",
+        "  - 信号: { kind: three }",
+        '  - 受付 -> 信号: "止める"\n  - 信号 -> 出荷: "進める"',
+      ),
     );
     expect(端).toEqual([]);
     expect(部品の知らせ(知らせ)).toEqual([
@@ -136,7 +143,11 @@ flow:
 
   it("名指しした要素が部品に無いと、外して部品の要素の一覧を添える", () => {
     const { 端, 知らせ } = 組み立てる(
-      本文("swimlane", "  - 信号: { kind: three }", '  - 受付 -> 信号: "止める" { toPartNode: zz }'),
+      本文(
+        "swimlane",
+        "  - 信号: { kind: three }",
+        '  - 受付 -> 信号: "止める" { toPartNode: zz }',
+      ),
     );
     expect(端).toEqual([]);
     expect(部品の知らせ(知らせ)).toEqual([
@@ -173,7 +184,10 @@ flow:
     expect(部品の知らせ(知らせ)).toEqual([
       'part-edge-dropped 10 "受付" から "大" への矢印は、"大" (big) を図に取り込まなかったため外しました',
     ]);
-    expect(知らせ.some((n) => n.kind === "part-not-drawn"), "部品の知らせが消えた").toBe(true);
+    expect(
+      知らせ.some((n) => n.kind === "part-not-drawn"),
+      "部品の知らせが消えた",
+    ).toBe(true);
   });
 
   it("矢印を書かずに並び順で作られた矢印は、繋がずに知らせも出さない", () => {
@@ -188,6 +202,31 @@ actors:
     const { 端, 知らせ } = 組み立てる(src);
     const 一覧なし = textDslToDiagram(src, {});
     expect(一覧なし.edges.length, "並び順の矢印が作られていない (前提が崩れた)").toBe(1);
+    expect(端).toEqual([]);
+    expect(部品の知らせ(知らせ)).toEqual([]);
+  });
+
+  it("行はあるが部品を指さない並び順の矢印も、繋がずに知らせも出さない", () => {
+    // 静止した flow は矢印と行を「行き先の名前」 で対応させる (#1267)。 `受付 -> 出荷` の行は
+    // 並び順の矢印 `印 -> 出荷` に対応するが、行の出どころは部品ではない = 書き手が部品から引いた矢印ではない。
+    // 行が在ることだけで繋ぐと、書いていない矢印が部品から出る
+    const src = `title: "t"
+type: flow
+
+actors:
+  - 受付: { kind: card }
+  - 印: { kind: one }
+  - 出荷: { kind: card }
+
+flow:
+  - 受付 -> 出荷: "送る"
+`;
+    const { 端, 知らせ } = 組み立てる(src);
+    const 一覧なし = textDslToDiagram(src, {});
+    expect(
+      一覧なし.edges.map((e) => `${e.from} -> ${e.to}`),
+      "並び順の矢印が作られていない (前提が崩れた)",
+    ).toEqual(["受付 -> 印", "印 -> 出荷"]);
     expect(端).toEqual([]);
     expect(部品の知らせ(知らせ)).toEqual([]);
   });
@@ -245,7 +284,11 @@ animation:
 describe("部品の要素の名指しが効かない時に知らせる (#1979)", () => {
   it("部品でない箱の端に書くと、繋ぎ先は変えずに知らせる", () => {
     const { 端, 知らせ } = 組み立てる(
-      本文("swimlane", "  - 印: { kind: one }", '  - 受付 -> 出荷: "送る" { toPartNode: ind, fromPartNode: ind }'),
+      本文(
+        "swimlane",
+        "  - 印: { kind: one }",
+        '  - 受付 -> 出荷: "送る" { toPartNode: ind, fromPartNode: ind }',
+      ),
     );
     expect(端).toEqual(["受付 -> 出荷"]);
     expect(部品の知らせ(知らせ)).toEqual([

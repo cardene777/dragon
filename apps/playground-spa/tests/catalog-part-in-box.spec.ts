@@ -125,6 +125,52 @@ test.describe("部品を箱に使う見本 (#1973)", () => {
       .toBe("中");
   });
 
+  test("矢印を引く 2 つの切替は、部品の要素へ繋いだ矢印を描く (#1979)", async ({ page }) => {
+    await 開く(page);
+    // 繋ぎ先の id は組み立てが `{部品の名前}__{要素の id}` で作る。 見本に書いた名前と要素の id で引く
+    for (const [名, 部品, 要素] of [
+      ["矢印を繋ぐ", "設備の稼働", ["ind"]],
+      ["繋ぐ要素を名指しする", "在庫の内訳", ["topL", "botL"]],
+    ] as const) {
+      await 押す(page, 名);
+      const 図 = page.locator(カタログの図).first();
+      // 矢印の線が 2 本とも出て、部品の要素の箱も画面にある
+      await expect(図.locator("[data-cdl-edge]"), `${名} の矢印の線`).toHaveCount(2);
+      for (const id of 要素) {
+        await expect(
+          図.locator(`[data-cdl-node="${部品}__${id}"]`),
+          `${名} の繋ぎ先 ${id}`,
+        ).toHaveCount(1);
+      }
+    }
+  });
+
+  test("編集画面で部品へ矢印を引いた本文は、重ねずに矢印を部品に繋いで描く (#1979)", async ({
+    page,
+  }) => {
+    // 縦列を共有する流れ図で見る。 swimlane の部品は矢印が無くても縦列に入って重ねない (#1980)
+    const 本文 = [
+      'title: "部品へ矢印"',
+      "type: flow",
+      "",
+      "actors:",
+      "  - 受付: { kind: card }",
+      "  - 印: { kind: state-indicator }",
+      "",
+      "flow:",
+      '  - 受付 -> 印: "送る"',
+      "",
+    ].join("\n");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`editor#s=${Buffer.from(本文, "utf8").toString("base64")}`);
+    await page.waitForLoadState("networkidle");
+    const 図 = page.locator(".v4-editor-stage svg[data-cdl-stage]").first();
+    await expect(図).toContainText("受付", { timeout: 15000 });
+    await expect(page.locator('.v4-editor-stage [data-overlay-part="印"]')).toHaveCount(0);
+    await expect(図.locator('[data-cdl-node="印__ind"]')).toHaveCount(1);
+    await expect(図.locator("[data-cdl-edge]")).toHaveCount(1);
+  });
+
   test("切替ごとに円の大きさと塗りの色が書いた欄のとおりに変わる", async ({ page }) => {
     await 開く(page);
     const 書かない = await 円(page, カタログの図);
