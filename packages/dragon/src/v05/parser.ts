@@ -66,7 +66,6 @@ import type {
   DslFormula,
   DslEventBinding,
   DslScrollTrigger,
-  DslActorNodeOverride,
   DslStep,
   DslAnimate,
   DslState,
@@ -2395,14 +2394,6 @@ function つまみとして読む(
   return { id, kind, ...読めた } as DslInput;
 }
 
-/** 箱の中の要素の欄 (#1306)。 `DslActorNodeOverride` の全欄を覆う */
-export const ACTOR_NODE_VALUE_KINDS = {
-  posX: "数",
-  posY: "数",
-  posW: "数",
-  posH: "数",
-} as const satisfies Record<keyof DslActorNodeOverride, 値の形>;
-
 /** 中括弧の形で箱に書ける、数と真偽の欄 (#1306) */
 export const ACTOR_INLINE_VALUE_KINDS = {
   stack: "数",
@@ -3237,8 +3228,6 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   // 位置のずらし (#1971)。 見本では見本 1 つ分をまとめてずらす欄で、状態の名前としては読まない
   "offsetX",
   "offsetY",
-  // canvas pivot UX 修正 (B1) = sub-node 単位 override map (nested `nodes: { header: {...} }`)
-  "nodes",
   // 図形の倍率 (#1026)。 状態の名前としては読まない
   "scale",
   "倍率",
@@ -3279,52 +3268,6 @@ function extractStateOverride(
     count += 1;
   }
   return count > 0 ? out : undefined;
-}
-
-/**
- * canvas pivot UX 修正 (B1) = actor entry の inline map から `nodes: { header: { posX: ..., ... }, ... }`
- * 形式の nested override を抽出する。 outer parseInlineMapping が opts.nodes を string としてそのまま
- * 保持 (value 内 nested `{ }` は depth-aware で保護済) しているので、 本 fn で「outer `{...}` を剥がして
- * key: sub-map ペアに再 split → 各 sub-map を parseInlineMapping で解いて posX/Y/W/H に coerce」 する。
- * 未 field or 空 object なら undefined 返し (caller は actor.nodes を set しない)。
- */
-function parseActorNodesField(
-  raw: string | undefined,
-  line: number,
-  errors: DslError[],
-): Record<string, DslActorNodeOverride> | undefined {
-  if (!raw) return undefined;
-  const trimmed = raw.trim();
-  if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return undefined;
-  const inner = trimmed.slice(1, -1).trim();
-  if (!inner) return undefined;
-  // depth-aware split (parseInlineMapping と同じ logic を local reuse、 nested `{ }` / `[ ]` 保護)
-  const parts: string[] = [];
-  let depth = 0;
-  let buf = "";
-  for (let i = 0; i < inner.length; i += 1) {
-    const c = inner[i]!;
-    if (c === "[" || c === "{") depth += 1;
-    else if (c === "]" || c === "}") depth -= 1;
-    if (c === "," && depth === 0) {
-      parts.push(buf);
-      buf = "";
-      continue;
-    }
-    buf += c;
-  }
-  if (buf.trim()) parts.push(buf);
-  const out: Record<string, DslActorNodeOverride> = {};
-  for (const p of parts) {
-    const colonIdx = p.indexOf(":");
-    if (colonIdx < 0) continue;
-    const key = p.slice(0, colonIdx).trim();
-    const val = p.slice(colonIdx + 1).trim();
-    if (!key || !val.startsWith("{") || !val.endsWith("}")) continue;
-    const nodeOpts = parseInlineMapping(val.slice(1, -1));
-    out[key] = 表で読む(ACTOR_NODE_VALUE_KINDS, nodeOpts, `nodes の ${key} の `, line, errors);
-  }
-  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function coerceStateValue(raw: string): number | string | boolean {
@@ -3413,7 +3356,6 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   // 色の欄 (#1969)。 縦に並べた形と JSON は `color` を受けるのに、中括弧の形だけが知らない
   // 項目名として落としていた。 見本 (parts) では従来どおり状態の上書きとして読む
   "color",
-  "nodes",
   // 体験の道筋の欄 (#1251)。 他の図種では組み立て側が知らせる
   "touchpoint",
   "opportunity",
@@ -3724,8 +3666,6 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // 図形の倍率 (#1026)。 どれが効くかは `resolveScale` が 1 箇所で決める
       scale: inlineScale.scale,
       scaleKeys: inlineScale.keys.length ? inlineScale.keys : undefined,
-      // canvas pivot UX 修正 (B1) = sub-node 単位 override map (`nodes: { header: {posX:..., ...}, ...}`)
-      nodes: parseActorNodesField(opts.nodes, line.no, errors),
       // 位置のずらし (#1971)。 見本 (parts) でも見本 1 つ分をまとめてずらす
       layoutPos: ずらしにまとめる(表で読む(OFFSET_VALUE_KINDS, opts, "箱の ", line.no, errors)),
       pos: { line: line.no },

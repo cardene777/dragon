@@ -50,10 +50,6 @@ const 対応表: Record<string, 対応> = {
   // 片方だけ書いた記法は残りを 0 として読むので、JSON 側に 0 を書いて揃える
   offsetX: { 記法: "offsetX: 60", json: { pos: { x: 60, y: 0 } } },
   offsetY: { 記法: "offsetY: -40", json: { pos: { x: 0, y: -40 } } },
-  nodes: {
-    記法: "nodes: { header: { posX: 10, posY: 20 } }",
-    json: { nodes: { header: { posX: 10, posY: 20 } } },
-  },
   touchpoint: { 記法: 'touchpoint: "店頭"', json: { touchpoint: "店頭" } },
   opportunity: { 記法: 'opportunity: "改善"', json: { opportunity: "改善" } },
   owner: { 記法: 'owner: "私"', json: { owner: "私" } },
@@ -322,7 +318,7 @@ describe("LLM に渡す JSON Schema (#1294)", () => {
 describe("型が違う値は誤りになる (#1294)", () => {
   // この block は **わざと型の違う値** を渡す。 `Partial<JsonActor>` は値の型まで縛るため、
   // 検査したい入力そのものを型が拒む。 項目名だけを `JsonActor` に縛り、 値は `unknown` で受ける
-  const 図 = (extra: Partial<Record<keyof JsonActor, unknown>>) => ({
+  const 図 = (extra: Partial<Record<keyof JsonActor | "nodes", unknown>>) => ({
     title: "t",
     type: "flow",
     actors: [{ name: "A", ...extra }, { name: "B" }],
@@ -334,16 +330,17 @@ describe("型が違う値は誤りになる (#1294)", () => {
     { name: "owner が文字列でない", input: { owner: 1 }, path: "$.actors[0].owner" },
     { name: "posX が数でない", input: { posX: "x" }, path: "$.actors[0].posX" },
     { name: "posX が有限でない", input: { posX: Number.NaN }, path: "$.actors[0].posX" },
-    { name: "nodes が object でない", input: { nodes: 1 }, path: "$.actors[0].nodes" },
+    // 箱の中の要素ごとの位置 (`nodes`) は欄ごと外した (#1976)。 中身の形に依らず、欄そのものを誤りにする
+    { name: "外した nodes が object でない", input: { nodes: 1 }, path: "$.actors[0].nodes" },
     {
-      name: "nodes の中身が object でない",
+      name: "外した nodes の中身が object でない",
       input: { nodes: { header: 1 } },
-      path: "$.actors[0].nodes.header",
+      path: "$.actors[0].nodes",
     },
     {
-      name: "nodes の座標が数でない",
-      input: { nodes: { header: { posX: "x" } } },
-      path: "$.actors[0].nodes.header.posX",
+      name: "外した nodes に座標を書く",
+      input: { nodes: { header: { posX: 10, posY: 20 } } },
+      path: "$.actors[0].nodes",
     },
     {
       name: "scale が数でない",

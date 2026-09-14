@@ -282,7 +282,7 @@ function unquoteAlias(raw: string): string {
 /**
  * inline map の inner を top-level の field 単位に分割する。
  *
- * `kind: achievement, nodes: { header: { posX: 1 } }, posX: 10` のような nested map を
+ * `kind: achievement, shape: { kind: wave, posX: 1 }, posX: 10` のような nested map を
  * 単純な `,` split や正規表現で扱うと、 入れ子の中の `posX` / `kind` を top-level のものと
  * 取り違えて誤抽出・データ欠落を起こす (CAR-2158 Round 3 CRITICAL)。
  * brace の深さを数えて、 深さ 0 の `,` でだけ区切る。
@@ -672,7 +672,7 @@ export function extractPartsFromSrc(
     if (m) {
       const alias = unquoteAlias(m[2]!);
       const inner = m[4]!;
-      // nested map (`nodes: { header: { kind: x, posX: 1 } }`) の内側を top-level と
+      // nested map (`shape: { kind: wave, posX: 1 }`) の内側を top-level と
       // 取り違えないよう、 depth を数えて top-level field だけを読む。
       const kindRaw = readTopLevelField(inner, "kind");
       if (kindRaw) {
@@ -924,8 +924,9 @@ function readScaleFromBlock(lines: string[]): number {
 /**
  * 縦に並べて書いた 1 件から、**直下の項目** だけを読む。
  *
- * 字下げを見ずに読むと、入れ子の中の同名の項目まで拾う (実測 = `nodes` の下に書いた
- * `scale: 7` がパーツ全体の倍率になった)。 一番浅い字下げを直下とみなす。
+ * 字下げを見ずに読むと、入れ子の中の同名の項目まで拾う (実測 = `nodes` (#1976 で外した欄) の
+ * 下に書いた `scale: 7` がパーツ全体の倍率になった。 `shape` の下でも同じ形になる)。
+ * 一番浅い字下げを直下とみなす。
  *
  * 同じ項目を 2 度書いた時は後を採る。 前を採ると、書き直した値が効かない。
  */

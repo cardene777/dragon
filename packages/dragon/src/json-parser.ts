@@ -319,12 +319,6 @@ export interface JsonActor {
   posW?: number;
   posH?: number;
   /**
-   * 箱の中の要素ごとに位置と大きさを固定する (#1294)。 記法の `nodes:` と同じ。
-   *
-   * key は箱が作る要素の名前 (`header` / `footer` / `spacer` / `s0` 等)。
-   */
-  nodes?: Record<string, JsonActorNodeOverride>;
-  /**
    * 見本を何倍で描くか (#1294)。 記法の `scale:` / `倍率:` と同じ。
    *
    * 見本 (parts) にしか効かない。 見本でない箱に書くと誤りとして返す (記法側も同じく
@@ -339,14 +333,6 @@ export interface JsonActor {
 export interface JsonAxes {
   x?: { left?: string; right?: string };
   y?: { bottom?: string; top?: string };
-}
-
-/** 箱の中の要素 1 つ分の位置と大きさ (#1294)。 記法の `nodes: { header: { ... } }` と同じ */
-export interface JsonActorNodeOverride {
-  posX?: number;
-  posY?: number;
-  posW?: number;
-  posH?: number;
 }
 
 export interface JsonStep {
@@ -548,7 +534,6 @@ export const ACCEPTED_KEYS = {
     "posY",
     "posW",
     "posH",
-    "nodes",
     "scale",
     "state",
     "pos",
@@ -604,7 +589,6 @@ export const ACCEPTED_KEYS = {
   viewport: ["width", "height", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
   lane: ["x", "width", "label", "contain", "lifeline", "pos"],
   group: ["label", "lanes"],
-  actorNode: ["posX", "posY", "posW", "posH"],
   axes: ["x", "y"],
   axesX: ["left", "right"],
   axesY: ["bottom", "top"],
@@ -714,7 +698,6 @@ export const 欄の型表 = {
     posY: "数",
     posW: "数",
     posH: "数",
-    nodes: "object",
     scale: "数",
     state: "object",
     pos: "object",
@@ -795,7 +778,6 @@ export const 欄の型表 = {
     pos: "object",
   },
   group: { label: "文字列", lanes: "文字列の並び" },
-  actorNode: { posX: "数", posY: "数", posW: "数", posH: "数" },
   axes: { x: "object", y: "object" },
   axesX: { left: "文字列", right: "文字列" },
   axesY: { bottom: "文字列", top: "文字列" },
@@ -1182,28 +1164,6 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
 function 見本の名前か(kind: unknown): boolean {
   if (typeof kind !== "string" || kind.length === 0) return false;
   return kind !== "actor" && !VALID_KIND_SET.has(kind);
-}
-
-/** 箱の中の要素ごとの位置と大きさを見る (#1294) */
-function validateActorNodes(v: unknown, path: string, errors: JsonDslError[]): void {
-  if (v === undefined) return;
-  if (!v || typeof v !== "object" || Array.isArray(v)) {
-    errors.push({
-      path,
-      message: "actor.nodes must be a plain object of name -> { posX, posY, posW, posH }",
-    });
-    return;
-  }
-  for (const [name, o] of Object.entries(v as Record<string, unknown>)) {
-    const nodePath = `${path}.${name}`;
-    if (!o || typeof o !== "object" || Array.isArray(o)) {
-      errors.push({ path: nodePath, message: "actor.nodes entry must be a plain object" });
-      continue;
-    }
-    const n = o as Record<string, unknown>;
-    checkUnknownKeys(n, "actorNode", nodePath, errors);
-    表で検査(n, "actorNode", nodePath, `nodes.${name}`, errors);
-  }
 }
 
 /**
@@ -2198,7 +2158,6 @@ function validateJson(
           });
         }
       }
-      validateActorNodes(ao.nodes, `$.actors[${i}].nodes`, errors);
       // codex-review MAJOR fix = state override は plain object + 値は primitive (number / string / boolean) 限定、
       // `{ v: {} }` 等 nested object や null が流入すると CdlState.initial に不正な型が入り compile 崩れる。
       if (ao.state !== undefined) {
@@ -2478,15 +2437,6 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       posY: a.posY,
       posW: a.posW,
       posH: a.posH,
-      // 箱の中の要素ごとの固定 (#1294)。 写しを作って外から書き換えられないようにする
-      nodes: a.nodes
-        ? Object.fromEntries(
-            Object.entries(a.nodes).map(([id, o]) => [
-              id,
-              { posX: o.posX, posY: o.posY, posW: o.posW, posH: o.posH },
-            ]),
-          )
-        : undefined,
       // 倍率は見本にしか効かない (検査が見本でない箱を弾く)。 書かれた名前は JSON では
       // 常に `scale` で、記法の別名 (`倍率`) は JSON に持ち込まない
       scale: isPart ? a.scale : undefined,

@@ -188,7 +188,8 @@ describe("描けない欄を表から導く (Round 4)", () => {
   it.each([
     ["initial", { initial: true }, "始まり / 終わり の印"],
     ["final", { final: true }, "始まり / 終わり の印"],
-    ["nodes", { nodes: { spacer: { posX: 1 } } }, "中の箱ごとの指定"],
+    // 中の箱ごとの指定 (`nodes`) は欄ごと外した (#1976)。 同じく部品にしか残らない色の名前で測る
+    ["partColorName", { partColorName: "success" }, "色の名前"],
     ["layoutPos", { layoutPos: { dx: 1, dy: 2 } }, "配置のずらし"],
     ["scale", { scale: 1.5 }, "倍率"],
     ["scaleKeys", { scaleKeys: ["k"] }, "倍率"],

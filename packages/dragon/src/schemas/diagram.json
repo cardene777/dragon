@@ -241,28 +241,6 @@
                 "type": "number",
                 "description": "箱の高さ。"
               },
-              "nodes": {
-                "type": "object",
-                "description": "箱の中の要素ごとの位置と大きさ。 key は header / footer / s0 等の要素名。",
-                "additionalProperties": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "posX": {
-                      "type": "number"
-                    },
-                    "posY": {
-                      "type": "number"
-                    },
-                    "posW": {
-                      "type": "number"
-                    },
-                    "posH": {
-                      "type": "number"
-                    }
-                  }
-                }
-              },
               "scale": {
                 "type": "number",
                 "description": "parts の描画倍率。 kind に parts identifier を指定した時だけ使える。"

@@ -153,6 +153,8 @@ export type CompileNotice = {
     // 部品に書いた色が効かない (#1973)。 色番号を入れる状態を 1 つも持たない部品に色番号を
     // 書いた時と、色番号でなく色の名前を書いた時
     | "part-color-ignored"
+    // 部品に、部品が持たない状態の名前で値を書いた (#1976)。 綴り違いと、外した欄 (`nodes`) を書いた時
+    | "part-state-missing"
     // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
     | "chart-value-unreadable"
     // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
@@ -185,8 +187,6 @@ export type CompileNotice = {
     | "event-target-missing"
     // 順序図で面に種類を書いたが、板は名前と呼び名しか描かない (#1466)
     | "actor-kind-not-honored"
-    // 箱の中の小さな箱に位置を書いたが、その名前の箱が図に無かった (#1466)
-    | "sub-node-not-found"
     // 順序図の言づてに、板が描かない飾り (色味 / 添え字 / 寄せ) を書いた (#1466)
     | "message-option-not-honored"
     // 位置のずらし (`pos` / `offsetX` / `offsetY`) を載せる相手が無いか、書いた量だけ動かせなかった (#1971)
@@ -2211,45 +2211,6 @@ function applyCanvasPivotPositions(
         }
       }
     }
-    // canvas pivot UX 修正 (B1) = actor.nodes[subKey] を対応 CDL node に個別反映。
-    // sub-node id pattern を actor scope 限定の 2 経路に絞る (subagent review MAJOR-1 対応、 CAR-canvas-pivot):
-    //   1. `{aliasSlug}-{subKey}` = header / footer / spacer 等 suffix
-    //   2. `{subKey}-{aliasSlug}` = sequence step box `s{N}-{aliasSlug}` 等 prefix
-    // 旧 `node.id === subKey` 完全一致 fallback は actor scope を持たず cross-actor pollution risk
-    // (別 actor が保有する同名 id node に座標が漏れる silent bug) のため削除。 全 sub-node は必ず
-    // aliasSlug を接頭 / 接尾に含む形式で生成されるため、 2 経路で網羅済。
-    // lane 側は触らない = 他 sub-node の auto layout 経路を保持 (B1 独立性の SSOT)。
-    if (actor.nodes) {
-      for (const [subKey, override] of Object.entries(actor.nodes)) {
-        if (override.posX === undefined || override.posY === undefined) continue;
-        let 当たった = 0;
-        for (const node of diagram.nodes) {
-          if (node.id === `${aliasSlug}-${subKey}` || node.id === `${subKey}-${aliasSlug}`) {
-            node.posX = override.posX;
-            node.posY = override.posY;
-            if (override.posW !== undefined) node.posW = override.posW;
-            if (override.posH !== undefined) node.posH = override.posH;
-            当たった += 1;
-          }
-        }
-        /*
-         * **当たらなかったことを伝える** (#1466)。
-         *
-         * この経路が動くのは、図種が 1 人につき複数の箱を作る時だけ。 順序図が名札 / 余白 /
-         * 足を作っていた頃はそこに当たっていたが、板になって作らなくなった = いまはどの図種も
-         * この形の箱を作らない。 黙って落とすと、書いた側は効いていると思い込む。
-         */
-        if (当たった === 0) {
-          onNotice?.({
-            kind: "sub-node-not-found",
-            actor: actor.name,
-            line: actor.pos?.line ?? 0,
-            message: `"${truncateForMessage(actor.name)}" の nodes に書いた "${truncateForMessage(subKey)}" に当たる箱が図にありません`,
-            hint: "1 人に複数の箱を作る図種でだけ効きます。 箱そのものの位置は actor 側の 位置: に書いてください",
-          });
-        }
-      }
-    }
   }
 }
 
@@ -3230,6 +3191,24 @@ function mergePartsFromActors(
         // 残っている名前は読み替えた後の正規の名前 (`成功` なら `success`) なので文には出さない
         message: `"${actor.name}" (${partId}) の色は色の名前では変わりません`,
         hint: '部品の色は色番号で書く (例 = color: "#d9534f")',
+      });
+    }
+    // 上書きが読むのは部品の状態の名前と `phase` (段を外す) だけで、他の名前は何も変えない。
+    // 綴り違いや、外した欄 (`nodes`、#1976) を書いた時に、効いていない値を黙って持たない
+    const 部品の状態 = new Set((part.states ?? []).map((st) => st.id));
+    const 無い状態 = Object.keys(actor.stateOverride ?? {}).filter(
+      (k) => k !== "phase" && !部品の状態.has(k),
+    );
+    if (無い状態.length > 0) {
+      onNotice?.({
+        kind: "part-state-missing",
+        actor: actor.name,
+        line: actor.pos?.line ?? 0,
+        message: `"${actor.name}" (${partId}) は ${無い状態.map((k) => `"${truncateForMessage(k)}"`).join(" / ")} という状態を持たないため、書いた値は効きません`,
+        hint:
+          部品の状態.size > 0
+            ? `この部品の状態 = ${[...部品の状態].join(", ")}`
+            : "この部品は状態を持たないため、値を書いても変わりません",
       });
     }
     // 位置を書いていないパーツは格子に並べる。 書いてあればその位置を使う
@@ -6186,7 +6165,6 @@ type 放射で描けない欄 =
   | "scale"
   | "scaleKeys"
   | "posRel"
-  | "nodes"
   | "layoutPos"
   // 箱の中に描く図形 (#1374)。 放射の枝は箱の中に図形を持たない
   | "shape"
@@ -6253,7 +6231,6 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   scale: "倍率",
   scaleKeys: "倍率",
   posRel: "位置 (相対)",
-  nodes: "中の箱ごとの指定",
   layoutPos: "配置のずらし",
   shape: "箱の中の図形",
   visibleIf: "出す条件",

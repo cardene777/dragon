@@ -53,8 +53,6 @@ export function 欄に値を置く(層: 階層, key: string, v: unknown): Record
       return 図({ lanes: { L1: { [key]: v } } });
     case "group":
       return 図({ lanes: { L1: {} }, groups: { G1: { lanes: ["L1"], [key]: v } } });
-    case "actorNode":
-      return 図({ actors: [{ name: "A", nodes: { header: { [key]: v } } }, { name: "B" }] });
     case "axes":
       return 図({ type: "quadrant", axes: { [key]: v } });
     case "axesX":
@@ -83,8 +81,6 @@ export function 欄のpath(層: 階層, key: string): string {
       return `$.lanes.L1.${key}`;
     case "group":
       return `$.groups.G1.${key}`;
-    case "actorNode":
-      return `$.actors[0].nodes.header.${key}`;
     case "axes":
       return `$.axes.${key}`;
     case "axesX":
