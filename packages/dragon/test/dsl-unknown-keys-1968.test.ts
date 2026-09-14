@@ -312,9 +312,11 @@ describe("使える項目の一覧が JSON の入口と揃っている (#1968)",
    * 記法の一覧は各欄の表から導く。 JSON の一覧 (`ACCEPTED_KEYS`) と食い違うと、同じ項目が
    * 片方の入口でだけ誤りになる。
    *
-   * 縦列の `pos` は JSON だけが受ける (記法の縦列には位置を書く形がまだ無い、 #1969 で足す)。
+   * 縦列の位置のずらしは、JSON が `pos` 1 欄、記法が `offsetX` / `offsetY` の 2 欄で書く (#1971)。
+   * 記法の `pos:` は箱の座標の意味で使われているため別の名前にしてあり、どちらも同じ `layoutPos` に入る。
    */
   const 記法だけに無い: Record<string, readonly string[]> = { lane: ["pos"] };
+  const JSONだけに無い: Record<string, readonly string[]> = { lane: ["offsetX", "offsetY"] };
 
   const 組: [string, readonly string[], readonly string[]][] = [
     ["viewport", Object.keys(VIEWPORT_VALUE_KINDS), ACCEPTED_KEYS.viewport],
@@ -328,7 +330,10 @@ describe("使える項目の一覧が JSON の入口と揃っている (#1968)",
     it(`${層}`, () => {
       expect(記法.length, `${層} の一覧が空 (検査が空振りしている)`).toBeGreaterThan(0);
       const 除く = 記法だけに無い[層] ?? [];
-      expect([...記法].sort()).toEqual(json.filter((k) => !除く.includes(k)).sort());
+      const 記法で除く = JSONだけに無い[層] ?? [];
+      expect([...記法].filter((k) => !記法で除く.includes(k)).sort()).toEqual(
+        json.filter((k) => !除く.includes(k)).sort(),
+      );
     });
   }
 });

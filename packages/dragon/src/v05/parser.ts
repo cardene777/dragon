@@ -80,6 +80,7 @@ import type {
   DslBand,
   DslGroup,
   DslViewport,
+  LayoutPos,
 } from "../types";
 
 export type V05ParseResult = { ok: true; doc: DslDocument } | { ok: false; errors: DslError[] };
@@ -901,6 +902,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
             id,
             ...表で読む(LANE_VALUE_KINDS, opts, `縦列 ${id} の `, it.no, errors),
             label: opts.label,
+            // 位置のずらし (#1971)
+            layoutPos: ずらしにまとめる(
+              表で読む(OFFSET_VALUE_KINDS, opts, `縦列 ${id} の `, it.no, errors),
+            ),
             pos: { line: it.no },
           };
         } else {
@@ -1477,6 +1482,23 @@ export const VIEWPORT_VALUE_KINDS = {
 } as const satisfies Record<Exclude<keyof DslViewport, "pos">, 値の形>;
 
 /**
+ * 位置のずらしの 2 欄 (#1971)。 箱 (縦に並べた形と中括弧の形) と縦列 (中括弧の形) で同じ読み方をする。
+ *
+ * JSON の `pos: { x, y }` と同じ `layoutPos` に入る。 記法の `pos:` は座標 (`posX` / `posY`) の意味で
+ * 使われているため、ずらしは別の名前にする。
+ */
+export const OFFSET_VALUE_KINDS = {
+  offsetX: "数",
+  offsetY: "数",
+} as const satisfies Record<string, 値の形>;
+
+/** 読めたずらしを `layoutPos` にまとめる。 片方だけ書いた時は残りを 0 とする (JSON は 2 欄とも必須) */
+function ずらしにまとめる(v: { offsetX?: number; offsetY?: number }): LayoutPos | undefined {
+  if (v.offsetX === undefined && v.offsetY === undefined) return undefined;
+  return { x: v.offsetX ?? 0, y: v.offsetY ?? 0 };
+}
+
+/**
  * 縦列の欄 (#1306)。 `label` は文字列なので表に載せない (記法の値は全て文字列で、
  * 文字列の欄には読めない値という状態が無い)。
  */
@@ -1488,11 +1510,13 @@ export const LANE_VALUE_KINDS = {
 } as const satisfies Record<string, 値の形>;
 
 /**
- * 縦列の中括弧に書ける項目 (#1968)。 数と真偽の欄は `LANE_VALUE_KINDS` から導き、
- * 表に載せない文字列の `label` だけを足す。
+ * 縦列の中括弧に書ける項目 (#1968)。 数と真偽の欄は `LANE_VALUE_KINDS` と `OFFSET_VALUE_KINDS` から
+ * 導き、表に載せない文字列の `label` だけを足す。
  */
-export const LANE_INLINE_KEYS: readonly (keyof DslLane)[] = [
+export const LANE_INLINE_KEYS: readonly (keyof DslLane | keyof typeof OFFSET_VALUE_KINDS)[] = [
   ...(Object.keys(LANE_VALUE_KINDS) as (keyof typeof LANE_VALUE_KINDS)[]),
+  // 位置のずらし (#1971)。 JSON の縦列の `pos` と同じ `layoutPos` に入る
+  ...(Object.keys(OFFSET_VALUE_KINDS) as (keyof typeof OFFSET_VALUE_KINDS)[]),
   "label",
 ];
 
@@ -2892,6 +2916,17 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "posY":
         out.posY = 数として読む(raw, "箱の posY", ln.no, errors);
         break;
+      // 位置のずらし (#1971)。 中括弧の形と同じ表で読み、片方だけ書いた時は残りを 0 とする
+      case "offsetX":
+      case "offsetY": {
+        const 読めた = 表で読む(OFFSET_VALUE_KINDS, { [key]: raw }, "箱の ", ln.no, errors);
+        const 前 = out.layoutPos;
+        out.layoutPos = ずらしにまとめる({
+          offsetX: key === "offsetX" ? 読めた.offsetX : 前?.x,
+          offsetY: key === "offsetY" ? 読めた.offsetY : 前?.y,
+        });
+        break;
+      }
       case "大きさ":
       case "size": {
         // `大きさ: 400,200` の形。 位置と揃える
@@ -3032,6 +3067,9 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "pos",
   "posX",
   "posY",
+  // 位置のずらし (#1971)
+  "offsetX",
+  "offsetY",
   "大きさ",
   "size",
   "倍率",
@@ -3191,6 +3229,9 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "posY",
   "posW",
   "posH",
+  // 位置のずらし (#1971)。 見本では見本 1 つ分をまとめてずらす欄で、状態の名前としては読まない
+  "offsetX",
+  "offsetY",
   // canvas pivot UX 修正 (B1) = sub-node 単位 override map (nested `nodes: { header: {...} }`)
   "nodes",
   // 図形の倍率 (#1026)。 状態の名前としては読まない
@@ -3375,6 +3416,9 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "posY",
   "posW",
   "posH",
+  // 位置のずらし (#1971)
+  "offsetX",
+  "offsetY",
   // 箱の中に描く図形 (#1374)
   "shape",
   // その箱を出すかどうかの条件 (#1381)
@@ -3669,6 +3713,8 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       scaleKeys: inlineScale.keys.length ? inlineScale.keys : undefined,
       // canvas pivot UX 修正 (B1) = sub-node 単位 override map (`nodes: { header: {posX:..., ...}, ...}`)
       nodes: parseActorNodesField(opts.nodes, line.no, errors),
+      // 位置のずらし (#1971)。 見本 (parts) でも見本 1 つ分をまとめてずらす
+      layoutPos: ずらしにまとめる(表で読む(OFFSET_VALUE_KINDS, opts, "箱の ", line.no, errors)),
       pos: { line: line.no },
     };
   }

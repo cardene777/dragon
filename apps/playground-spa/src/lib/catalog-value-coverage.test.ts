@@ -532,11 +532,11 @@ type 道の覆い方 =
   | { 種類: "画面の切替"; 選択肢: readonly string[] }
   | { 種類: "直してから見本"; Issue: number; 理由: string };
 
-/** 位置の欄の見本は、JSON の位置の欄の不具合を直してから置く */
-const 位置の欄: 道の覆い方 = {
+/** 箱の中の要素ごとの位置の欄は、欄が要素に当たらない不具合を直してから置く */
+const 要素ごとの位置の欄: 道の覆い方 = {
   種類: "直してから見本",
-  Issue: 1971,
-  理由: "位置の欄の見本を JSON で書くと記法と別の図になる",
+  Issue: 1976,
+  理由: "要素ごとの位置の欄がどの図種でも要素に当たらず、書いても置き場所が変わらない",
 };
 /** 見本 (parts) にだけ効く欄は、見本を図に埋める経路を直してから置く */
 const 部品の欄: 道の覆い方 = {
@@ -561,20 +561,11 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.reveal=phase": { 種類: "既定", 別の値: "all" },
   "$.relations=off": { 種類: "既定", 別の値: "hover" },
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
-  "$.actors[].pos": 位置の欄,
-  "$.actors[].pos.x": 位置の欄,
-  "$.actors[].pos.y": 位置の欄,
-  "$.actors[].nodes": 位置の欄,
-  "$.actors[].nodes.*.posX": 位置の欄,
-  "$.actors[].nodes.*.posY": 位置の欄,
-  "$.actors[].nodes.*.posW": 位置の欄,
-  "$.actors[].nodes.*.posH": 位置の欄,
-  "$.flow[].pos": 位置の欄,
-  "$.flow[].pos.x": 位置の欄,
-  "$.flow[].pos.y": 位置の欄,
-  "$.lanes.*.pos": 位置の欄,
-  "$.lanes.*.pos.x": 位置の欄,
-  "$.lanes.*.pos.y": 位置の欄,
+  "$.actors[].nodes": 要素ごとの位置の欄,
+  "$.actors[].nodes.*.posX": 要素ごとの位置の欄,
+  "$.actors[].nodes.*.posY": 要素ごとの位置の欄,
+  "$.actors[].nodes.*.posW": 要素ごとの位置の欄,
+  "$.actors[].nodes.*.posH": 要素ごとの位置の欄,
   "$.actors[].scale": 部品の欄,
   "$.actors[].state": 部品の欄,
   "$.groups": 組の欄,

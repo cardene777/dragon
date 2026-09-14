@@ -185,7 +185,9 @@ export type CompileNotice = {
     // 箱の中の小さな箱に位置を書いたが、その名前の箱が図に無かった (#1466)
     | "sub-node-not-found"
     // 順序図の言づてに、板が描かない飾り (色味 / 添え字 / 寄せ) を書いた (#1466)
-    | "message-option-not-honored";
+    | "message-option-not-honored"
+    // 位置のずらし (`pos` / `offsetX` / `offsetY`) を載せる相手が無いか、書いた量だけ動かせなかった (#1971)
+    | "position-offset-ignored";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -321,6 +323,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportActorKindNotHonored(書いたまま, opts?.onNotice);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
+  reportFlowOffsetNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   reportDirectionNotHonored(書いたまま, opts?.onNotice);
   reportDrawNotHonored(書いたまま, opts?.onNotice);
@@ -558,6 +561,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 20 か所以上あり、そのどれに足しても残りが取り残される
   配色と縞を当てる(merged, doc);
   静止した図の焦点を外す(merged, doc);
+  // 位置のずらしは **配置に効く欄を全て載せた後** に当てる (#1971)。 縦列の幅や視点の間隔を
+  // 足す前に測ると、後から足された分だけ狙いがずれる
+  applyLayoutOffsets(merged, doc, opts?.onNotice);
   return merged;
 }
 
@@ -1046,6 +1052,10 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
       s.tone !== undefined ? "色味" : "",
       s.sub !== undefined ? "添え字" : "",
       s.side !== undefined ? "寄せ" : "",
+      // 名前のずらしも板には載せる先が無い (#1971)。 位置のずらし (`pos`) は名前のずらしに足す欄なので同じ扱い
+      s.layoutPos !== undefined || s.labelOffsetX !== undefined || s.labelOffsetY !== undefined
+        ? "名前のずらし"
+        : "",
     ].filter((x) => x !== "");
     if (効かない.length === 0) continue;
     onNotice({
@@ -1054,6 +1064,28 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
       line: s.pos?.line ?? 0,
       message: `"${truncateForMessage(s.label)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} の板は語と向きと種類だけを描きます)`,
       hint: "板には矢印が無いため飾りを載せる先がありません。 言づての種類 (kind: call / return / fire) で描き分けてください",
+    });
+  }
+}
+
+/**
+ * 名前の無い矢印に書いた位置のずらしを知らせる (#1971)。
+ *
+ * 矢印の位置のずらしは名前をずらす欄に足す。 名前が無い矢印では動くものが無く、書いても図は
+ * 変わらない。 順序図の板は `reportMessageOptionNotHonored` が知らせるので、ここでは見ない。
+ */
+function reportFlowOffsetNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.type === "sequence" || doc.type === "solidity") return;
+  for (const s of doc.flow) {
+    if (s.layoutPos === undefined) continue;
+    if (s.label !== undefined && s.label.trim() !== "") continue;
+    onNotice({
+      kind: "position-offset-ignored",
+      actor: s.from,
+      line: s.pos?.line ?? 0,
+      message: `${s.from} -> ${s.to} の位置のずらしは、名前の無い矢印では動かすものがありません`,
+      hint: "矢印の位置のずらしは名前をずらします。 名前を書くか、ずらしを外す",
     });
   }
 }
@@ -1075,7 +1107,13 @@ function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
        */
       doc.type === "sequence" && a.kindWritten !== false && a.kind !== undefined ? "種類" : "",
       a.posW !== undefined || a.posH !== undefined ? "大きさ" : "",
-      a.posX !== undefined || a.posY !== undefined || a.posRel !== undefined ? "位置" : "",
+      a.posX !== undefined ||
+      a.posY !== undefined ||
+      a.posRel !== undefined ||
+      // 位置のずらし (#1971)。 板は面ごとの箱を持たないので動かす相手が無い
+      a.layoutPos !== undefined
+        ? "位置"
+        : "",
       a.rows !== undefined ? "行" : "",
       a.tone !== undefined ? "色" : "",
       a.eyebrow !== undefined ? "小見出し" : "",
@@ -1794,6 +1832,309 @@ function withPositions(
   };
   applyCanvasPivotPositions(probe, withDocPositions(doc, assign));
   return probe;
+}
+
+/** ずらしを当てる相手 1 つ。 狙いは配置後の位置 (箱は中心、縦列は左上) */
+type ずらしの相手 = {
+  名前: string;
+  line: number;
+  箱: { id: string; 狙いX: number; 狙いY: number }[];
+  縦列: { id: string; 狙いX: number; 狙いY: number }[];
+  /** 縦列に書いたずらしの相手なら、その縦列の id */
+  ずらした縦列?: string;
+};
+
+/**
+ * 書いた位置のずらし (JSON の `pos` / 記法の `offsetX` / `offsetY`) を、配置後の位置に足して置き直す (#1971)。
+ *
+ * **最後の図の上で置き直す**。 配置は縦列の間隔や視点の間隔を足した後でないと決まらず、途中の
+ * 図で測ると、後から足される間隔の分だけ狙いがずれる。
+ *
+ * 手順は 3 つ。
+ *
+ * 1. 1 度配置して、ずらす箱の中心と縦列の左上を測る
+ * 2. 狙い (測った位置 + ずらし) を `posX` / `posY` に書いてもう 1 度配置する
+ * 3. 狙いからずれた分を足して直し (最大 2 回)、それでも 1 を超えてずれる相手は固定を戻して知らせる
+ *
+ * **縦列は 1 本でもずらすなら全ての縦列を固定する**。 1 本だけ固定すると、残りの縦列が左端から
+ * 詰め直されて崩れる (実測 = 3 本のうち最初を動かすと 2 本目が 0 に来た)。 固定する位置と大きさは
+ * 配置後の値なので、ずらさない縦列の配置は変わらない (実測 = 6 図種で一致)。
+ *
+ * **ずらした縦列の箱も同じ量で固定し、他の箱は動いたら元の位置に留める**。 縦列を固定しただけでは、
+ * 中の箱は縦列の並ぶ向きにしか付いて来ず (`topology` / `c4` は縦列自身も縦に 32 ずれた)、最初の
+ * 縦列を縦にずらすと他の縦列の箱まで動く (実測)。 動いた箱を留めるのは手順 3 の直し。
+ *
+ * **近すぎる箱を押し下げるのは止めない**。 ずらした箱に同じ縦列の箱が近づくと、描画側が間隔を保つよう
+ * そちらを動かす (実測 = 静止した flow で下の箱が 100 下がった)。 これは描画側の規則で、ずらした箱
+ * 自身は狙いに置かれる。
+ *
+ * ずらしを持つ相手が 1 つも無い図は何もしない = 配置を 1 度も計算しない。
+ */
+function applyLayoutOffsets(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  onNotice?: (notice: CompileNotice) => void,
+): void {
+  // `mind` は放射に描けない欄として「配置のずらし」 を既に知らせる (`放射で描けない欄の名前`)。 2 度知らせない
+  const ずらす箱 =
+    doc.type === "mind" ? [] : doc.actors.filter((a) => a.layoutPos !== undefined);
+  const ずらす縦列 = Object.entries(doc.lanes ?? {}).filter(([, l]) => l.layoutPos !== undefined);
+  if (ずらす箱.length === 0 && ずらす縦列.length === 0) return;
+  // 順序図の板は面ごとの箱を持たない。 効かないことは `reportActorKindNotHonored` が伝える
+  if (doc.type === "sequence" || doc.type === "solidity") return;
+
+  const 前 = layout(diagram);
+  const 箱の配置 = new Map(前.nodes.map((n) => [n.id, n] as const));
+  const 縦列の配置 = new Map(前.lanes.map((l) => [l.id, l] as const));
+  const 相手たち: ずらしの相手[] = [];
+  const 縦列のずらし = new Map<string, { x: number; y: number }>();
+  /** 箱のずらしだけの狙い (縦列のずらしを足さない)。 縦列をずらす図で、ずらさない箱の基準を取るのに使う */
+  const 箱だけの狙い = new Map<string, { x: number; y: number }>();
+
+  for (const [id, lane] of ずらす縦列) {
+    const laid = 縦列の配置.get(id);
+    const d = lane.layoutPos!;
+    if (!laid) {
+      onNotice?.({
+        kind: "position-offset-ignored",
+        actor: id,
+        line: lane.pos?.line ?? 0,
+        message: `縦列 "${id}" の位置のずらしを載せる縦列が図にありません (type: ${doc.type})`,
+        hint: "縦列を作る図種で書くか、ずらしを外す",
+      });
+      continue;
+    }
+    縦列のずらし.set(id, d);
+    相手たち.push({
+      名前: id,
+      line: lane.pos?.line ?? 0,
+      // 縦列を固定しただけでは、中の箱は縦列の並ぶ向きにしか付いて来ない (実測 = flow の縦列を
+      // 右へ 120、下へ 40 ずらすと、見出しは両方動き箱は右へ 120 だけ動いた)。 箱も同じ量で固定する
+      箱: diagram.nodes.flatMap((n) => {
+        const 箱laid = n.lane === id ? 箱の配置.get(n.id) : undefined;
+        return 箱laid ? [{ id: n.id, 狙いX: 箱laid.cx + d.x, 狙いY: 箱laid.cy + d.y }] : [];
+      }),
+      縦列: [{ id, 狙いX: (laid.x ?? 0) + d.x, 狙いY: (laid.y ?? 0) + d.y }],
+      ずらした縦列: id,
+    });
+  }
+
+  for (const a of ずらす箱) {
+    const d = a.layoutPos!;
+    // 見本は `{名前}__{元の id}` で重なる。 箱と縦列を見本 1 つ分まとめて動かす
+    const 前置き = `${a.name}__`;
+    const 箱 =
+      a.partId !== undefined
+        ? diagram.nodes.filter((n) => n.id.startsWith(前置き))
+        : diagram.nodes.filter((n) => n.id === slugify(a.name));
+    const 縦列 = a.partId !== undefined ? diagram.lanes.filter((l) => l.id.startsWith(前置き)) : [];
+    if (箱.length === 0) {
+      onNotice?.({
+        kind: "position-offset-ignored",
+        actor: a.name,
+        line: a.pos?.line ?? 0,
+        message: `"${truncateForMessage(a.name)}" の位置のずらしを載せる箱が図にありません (type: ${doc.type})`,
+        hint: "箱を描く図種で書くか、ずらしを外す",
+      });
+      continue;
+    }
+    相手たち.push({
+      名前: a.name,
+      line: a.pos?.line ?? 0,
+      箱: 箱.map((n) => {
+        const laid = 箱の配置.get(n.id)!;
+        箱だけの狙い.set(n.id, { x: laid.cx + d.x, y: laid.cy + d.y });
+        // 箱を固定すると縦列を動かしても付いて来ないので、縦列のずらしも狙いに足す
+        const 列 = 縦列のずらし.get(n.lane);
+        return { id: n.id, 狙いX: laid.cx + d.x + (列?.x ?? 0), 狙いY: laid.cy + d.y + (列?.y ?? 0) };
+      }),
+      縦列: 縦列.map((l) => {
+        const laid = 縦列の配置.get(l.id)!;
+        return { id: l.id, 狙いX: (laid.x ?? 0) + d.x, 狙いY: (laid.y ?? 0) + d.y };
+      }),
+    });
+  }
+  if (相手たち.length === 0) return;
+
+  // 固定を戻せるよう、書き換える前の欄を控える
+  const 元の箱 = new Map(diagram.nodes.map((n) => [n.id, { posX: n.posX, posY: n.posY }] as const));
+  const 元の縦列 = new Map(
+    diagram.lanes.map((l) => [l.id, { posX: l.posX, posY: l.posY, posW: l.posW, posH: l.posH }] as const),
+  );
+  const 箱の狙い = new Map<string, { x: number; y: number }>();
+  const 縦列の狙い = new Map<string, { x: number; y: number }>();
+  for (const t of 相手たち) {
+    for (const b of t.箱) 箱の狙い.set(b.id, { x: b.狙いX, y: b.狙いY });
+    for (const l of t.縦列) 縦列の狙い.set(l.id, { x: l.狙いX, y: l.狙いY });
+  }
+  const 縦列を固定する = 縦列の狙い.size > 0;
+
+  /**
+   * 縦列をずらす図で、ずらさない箱を留める位置。
+   *
+   * 描画側は箱を並べ始める高さを最初の縦列に合わせるので、最初の縦列を縦にずらすと固定しない箱が
+   * 全て一緒に動く (実測 = 3 本のうち最初の縦列を 40 下げると他の縦列の箱も 40 下がり、2 本目と
+   * 3 本目を下げても動かない)。 箱のずらしだけを当てた配置を基準に取り、そこから動いた箱をその位置に
+   * 留める。 基準に箱のずらしを含めるのは、近すぎる箱の押し下げを残すため。
+   */
+  const 留める位置 = new Map<string, { x: number; y: number }>();
+  if (縦列を固定する) {
+    let 基準 = 前;
+    if (箱だけの狙い.size > 0) {
+      for (const node of diagram.nodes) {
+        const 狙い = 箱だけの狙い.get(node.id);
+        if (!狙い) continue;
+        node.posX = 狙い.x;
+        node.posY = 狙い.y;
+      }
+      基準 = layout(diagram);
+      for (const node of diagram.nodes) {
+        if (!箱だけの狙い.has(node.id)) continue;
+        const 元 = 元の箱.get(node.id)!;
+        node.posX = 元.posX;
+        node.posY = 元.posY;
+      }
+    }
+    const 基準の箱 = new Map(基準.nodes.map((n) => [n.id, n] as const));
+    // 縦列と一緒に動かす箱は、押し下げを含む基準の位置から縦列のずらしだけ動かす
+    for (const t of 相手たち) {
+      const d = t.ずらした縦列 === undefined ? undefined : 縦列のずらし.get(t.ずらした縦列);
+      if (!d) continue;
+      for (const b of t.箱) {
+        const n = 基準の箱.get(b.id);
+        if (!n || 箱だけの狙い.has(b.id)) continue;
+        箱の狙い.set(b.id, { x: n.cx + d.x, y: n.cy + d.y });
+      }
+    }
+    for (const n of 基準.nodes) {
+      if (!箱の狙い.has(n.id)) 留める位置.set(n.id, { x: n.cx, y: n.cy });
+    }
+  }
+  /** 基準から動いたので固定した、ずらさない箱 */
+  const 留めた箱 = new Set<string>();
+
+  // 手順 2。 縦列を固定する時は、ずらさない縦列も配置後の位置と大きさで固定する
+  const 書く = (直し: ReadonlyMap<string, { x: number; y: number }>): void => {
+    if (縦列を固定する) {
+      for (const lane of diagram.lanes) {
+        const laid = 縦列の配置.get(lane.id);
+        if (!laid) continue;
+        const 狙い = 縦列の狙い.get(lane.id) ?? { x: laid.x ?? 0, y: laid.y ?? 0 };
+        const 差 = 直し.get(`lane:${lane.id}`) ?? { x: 0, y: 0 };
+        lane.posX = 狙い.x - 差.x;
+        lane.posY = 狙い.y - 差.y;
+        lane.posW = laid.width;
+        lane.posH = laid.height;
+      }
+    }
+    for (const node of diagram.nodes) {
+      const 狙い = 箱の狙い.get(node.id);
+      const 留める = 留めた箱.has(node.id) ? 留める位置.get(node.id) : undefined;
+      if (!狙い && !留める) continue;
+      const 差 = 直し.get(狙い ? `node:${node.id}` : `keep:${node.id}`) ?? { x: 0, y: 0 };
+      node.posX = (狙い ?? 留める)!.x - 差.x;
+      node.posY = (狙い ?? 留める)!.y - 差.y;
+    }
+  };
+  /** 狙いと実際の差。 縦列を固定する時は、ずらさない縦列と箱も元の位置に居るかを見る */
+  const 測る = (): Map<string, { x: number; y: number }> => {
+    const 後 = layout(diagram);
+    const 差 = new Map<string, { x: number; y: number }>();
+    for (const n of 後.nodes) {
+      const 狙い = 箱の狙い.get(n.id);
+      if (狙い) 差.set(`node:${n.id}`, { x: n.cx - 狙い.x, y: n.cy - 狙い.y });
+      const 留める = 留める位置.get(n.id);
+      if (留める) 差.set(`keep:${n.id}`, { x: n.cx - 留める.x, y: n.cy - 留める.y });
+    }
+    if (縦列を固定する) {
+      for (const l of 後.lanes) {
+        const laid = 縦列の配置.get(l.id);
+        if (!laid) continue;
+        const 狙い = 縦列の狙い.get(l.id) ?? { x: laid.x ?? 0, y: laid.y ?? 0 };
+        差.set(`lane:${l.id}`, { x: (l.x ?? 0) - 狙い.x, y: (l.y ?? 0) - 狙い.y });
+      }
+    }
+    return 差;
+  };
+  const ずれた = (差: { x: number; y: number } | undefined): boolean =>
+    差 !== undefined && (Math.abs(差.x) > PLACEMENT_TOLERANCE || Math.abs(差.y) > PLACEMENT_TOLERANCE);
+
+  const 直し = new Map<string, { x: number; y: number }>();
+  書く(直し);
+  let 差 = 測る();
+  // 手順 3。 狙いからの差を書いた位置から引いて置き直す。 固定した相手の差は図種ごとに一定なので
+  // 1 度で合う。 基準から動いた箱はその回に初めて固定し、固定で出る差をもう 1 度で直す。
+  //
+  // **ずらす箱と縦列そのものの差 (`node:` / `lane:`) を直す入力は組めていない** (#1971 の実測)。
+  // 縦列だけを固定していた形では `topology` / `c4` の縦列が縦に 32 ずれたが、中の箱も固定する今の形
+  // ではずれない。 試した形 = 7 図種の箱 / 全ての縦列を 1 本ずつ / 箱の無い縦列。 実際に直すのは
+  // 留める箱 (`keep:`) で、最初の縦列を縦にずらした図が通る
+  for (let 回 = 0; 回 < 2 && [...差.values()].some(ずれた); 回++) {
+    for (const [k, v] of 差) {
+      if (!ずれた(v)) continue;
+      const id = k.slice(k.indexOf(":") + 1);
+      if (k.startsWith("keep:") && !留めた箱.has(id)) {
+        留めた箱.add(id);
+        continue;
+      }
+      const 前の直し = 直し.get(k) ?? { x: 0, y: 0 };
+      直し.set(k, { x: 前の直し.x + v.x, y: 前の直し.y + v.y });
+    }
+    書く(直し);
+    差 = 測る();
+  }
+
+  const 戻す箱 = (t: ずらしの相手): void => {
+    for (const b of t.箱) {
+      const node = diagram.nodes.find((n) => n.id === b.id)!;
+      const 元 = 元の箱.get(b.id)!;
+      node.posX = 元.posX;
+      node.posY = 元.posY;
+    }
+  };
+  const 知らせる = (t: ずらしの相手): void =>
+    onNotice?.({
+      kind: "position-offset-ignored",
+      actor: t.名前,
+      line: t.line,
+      message: `"${truncateForMessage(t.名前)}" の位置のずらしは type: ${doc.type} の図では書いた量だけ動かせません`,
+      hint: "ずらしを外すか、座標 (`位置: 300,200`) で置く",
+    });
+
+  // **ここから下の「戻して知らせる」 経路に届く入力は組めていない** (#1971 の実測)。 描画側は
+  // `posX` / `posY` を書いた箱と縦列をそのまま置き、囲いの縦列のずれも 1 度の直しで合う。 試した
+  // 形 = 大きく正と負にずらす / 図の広さを固定してその外へ出す / 7 図種の箱 / 囲いを持つ 2 図種と
+  // クラス図と横長の図の縦列。 描画側が置いた位置を動かす規則を持った時に備えて残す
+  //
+  // 縦列が 1 本でも狙いに置けないか、ずらさない箱を留められなければ、全ての固定を戻して全ての相手を
+  // 知らせる。 縦列を 1 本だけ残すと他が詰め直され、箱の狙いは縦列のずらしを含むので、縦列を戻すと
+  // 箱の狙いも崩れる
+  if ([...差].some(([k, v]) => (k.startsWith("lane:") || k.startsWith("keep:")) && ずれた(v))) {
+    for (const lane of diagram.lanes) {
+      const 元 = 元の縦列.get(lane.id);
+      if (!元) continue;
+      lane.posX = 元.posX;
+      lane.posY = 元.posY;
+      lane.posW = 元.posW;
+      lane.posH = 元.posH;
+    }
+    for (const node of diagram.nodes) {
+      if (!留めた箱.has(node.id)) continue;
+      const 元 = 元の箱.get(node.id)!;
+      node.posX = 元.posX;
+      node.posY = 元.posY;
+    }
+    for (const t of 相手たち) {
+      戻す箱(t);
+      知らせる(t);
+    }
+    return;
+  }
+  for (const t of 相手たち) {
+    if (!t.箱.some((b) => ずれた(差.get(`node:${b.id}`)))) continue;
+    戻す箱(t);
+    知らせる(t);
+  }
 }
 
 /**
@@ -3534,6 +3875,12 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.labelPlate !== undefined) target.labelPlate = s.labelPlate;
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
+  // 矢印の位置のずらし (#1971)。 矢印は自分の位置を持たず、通り道は両端の箱で決まるので、
+  // 動かせるのは名前だけ。 名前のずらしに足す = 両方書いた時は合わせた量だけ動く
+  if (s.layoutPos !== undefined) {
+    target.labelOffsetX = (s.labelOffsetX ?? 0) + s.layoutPos.x;
+    target.labelOffsetY = (s.labelOffsetY ?? 0) + s.layoutPos.y;
+  }
   if (s.overlay !== undefined) target.overlay = s.overlay;
   // 値に追随する 3 欄 (#1396)。 太さ / 色 / 破線の位置が値に合わせて動く。
   // 通り道そのものは動かないので、配置計算と重なり解消には影響しない

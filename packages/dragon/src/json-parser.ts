@@ -177,8 +177,8 @@ export interface DragonJson {
       contain?: boolean;
       lifeline?: boolean;
       /**
-       * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` = auto layout offset。 未指定は
-       * backward compat、 set 済は Phase 2 の applyPosOffset で lane 位置を shift する。
+       * 縦列の位置のずらし (#1971)。 配置後の縦列の左上を (x, y) だけ動かす。 記法の `offsetX` / `offsetY`
+       * と同じで、読み方は `DslLane.layoutPos` が持つ。
        */
       pos?: LayoutPos;
     }
@@ -262,8 +262,8 @@ export interface JsonActor {
   initial?: boolean;
   final?: boolean;
   /**
-   * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` = auto layout offset。 未指定は
-   * backward compat、 set 済は Phase 2 の applyPosOffset で actor 由来 lane / node の位置を shift。
+   * 箱の位置のずらし (#1971)。 配置後の箱の中心を (x, y) だけ動かす。 記法の `offsetX` / `offsetY`
+   * と同じで、読み方は `DslActor.layoutPos` が持つ。
    */
   pos?: LayoutPos;
   /**
@@ -402,8 +402,7 @@ export interface JsonStep {
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
   overlay?: boolean;
   /**
-   * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` = edge label offset。 未指定は
-   * backward compat、 set 済は Phase 2 の applyPosOffset で edge label 位置を shift する。
+   * 矢印の位置のずらし (#1971)。 名前のずらし (`labelOffsetX` / `labelOffsetY`) に足して名前を動かす。
    */
   pos?: LayoutPos;
 }
@@ -1161,7 +1160,7 @@ function checkUnknownKeys(v: unknown, 層: 階層, path: string, errors: JsonDsl
  */
 /**
  * CAR-1693 Phase 1: DSL 表面 `pos: {x, y}` の型 check helper。 finite number pair を必須にし、
- * `NaN` / `Infinity` / non-number は reject する (Phase 2 の applyPosOffset で数値演算するため)。
+ * `NaN` / `Infinity` / non-number は reject する (組み立ての出口 `applyLayoutOffsets` が配置後の位置に足すため)。
  */
 function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): void {
   if (v === undefined) return;

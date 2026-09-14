@@ -91,13 +91,13 @@ export type Position = {
 };
 
 /**
- * canvas pivot (CAR-1693 Phase 1) の DSL 表面 `pos: {x, y}` を保持する型。
- * auto layout の compute value からの offset (dx, dy) を表す。 element の `layoutPos:` が
- * undefined なら auto layout の値をそのまま採用 (catalog 100+ backward compat)、 set 済なら
- * Phase 2 の applyPosOffset pass が offset として適用する。
+ * 自動で決まった位置からのずらし (dx, dy) (#1971)。
  *
- * naming = DSL 表面 syntax は user 提案 wording (`pos:`) を維持、 内部 AST は既存 `pos: Position`
- * (source line/column) との collision 回避のため `layoutPos:` に rename する 2 層設計。
+ * JSON は `pos: { x, y }`、記法は `offsetX` / `offsetY` で書く。 内部では、行番号を持つ
+ * `pos: Position` と名前が重ならないよう `layoutPos` に入れる。
+ *
+ * 書かなければ自動の配置のまま。 書くと組み立ての出口 (`applyLayoutOffsets`) が 1 度配置してから
+ * 配置後の位置に足して置き直す。 箱と縦列は位置が動き、矢印は名前のずらしに足す。
  */
 export type LayoutPos = {
   x: number;
@@ -428,10 +428,9 @@ export type DslActor = {
    */
   nodes?: Record<string, DslActorNodeOverride>;
   /**
-   * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` 由来の layout offset。 未指定は auto
-   * layout の compute value そのまま (backward compat)、 set 済なら Phase 2 の applyPosOffset で
-   * (auto x + layoutPos.x, auto y + layoutPos.y) に shift される。 既存 posX/posY (絶対座標) は
-   * 別 mechanism で、 layoutPos は auto layout からの nudge (dx, dy)。
+   * 箱の位置のずらし (#1971)。 配置後の箱の中心を (x, y) だけ動かす。 `posX` / `posY` (座標) とは
+   * 別の欄で、座標も書いた時は座標で置いた位置からずらす。 見本 (parts) は見本 1 つ分をまとめて動かす。
+   * 同じ縦列の箱に近づくと、描画側が間隔を保つようそちらを押し下げる。
    */
   layoutPos?: LayoutPos;
   pos: Position;
@@ -516,8 +515,8 @@ export type DslStep = {
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
   overlay?: boolean;
   /**
-   * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` 由来の layout offset。 step の edge
-   * label 位置を auto layout compute から (dx, dy) shift する。 未指定は auto、 set 済は Phase 2 で適用。
+   * 矢印の位置のずらし (#1971)。 矢印の通り道は両端の箱で決まるので、名前のずらし
+   * (`labelOffsetX` / `labelOffsetY`) に足して名前だけを動かす。
    */
   layoutPos?: LayoutPos;
   pos: Position;
@@ -532,8 +531,9 @@ export type DslLane = {
   contain?: boolean;
   lifeline?: boolean;
   /**
-   * canvas pivot (CAR-1693 Phase 1) DSL 表面 `pos: {x, y}` 由来の layout offset。 lane の x 座標を
-   * auto layout compute から (dx, dy) shift する。 未指定は auto、 set 済は Phase 2 で適用。
+   * 縦列の位置のずらし (#1971)。 配置後の縦列の左上を (x, y) だけ動かし、中の箱も一緒に動く。
+   * 1 本でもずらすと全ての縦列を配置後の位置と大きさで固定し、動いた箱を元の位置に留めるので、
+   * 他の縦列とその箱は動かない。
    */
   layoutPos?: LayoutPos;
   pos: Position;
