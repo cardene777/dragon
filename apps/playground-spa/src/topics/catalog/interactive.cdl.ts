@@ -1772,87 +1772,132 @@ export const subtitle__inputVariety =
 
 /**
  * 22. new readouts = heat cell + badge + status dot の合わせ技。
+ *
+ * 札の色の付け方を変種で見比べる (#1974)。 札は色の対応 (`map`) を書かなければ色を付けず、
+ * 書くと札の字 (`source` の値) で色を引き、色の出どころ (`colorSource`) も書くとその状態の値で引く。
+ * 札の字は白で描かれるので、状態の色は白い字が読める濃さにして点と札で同じ色を使う。
  */
-export const readoutVariety = diagram("interactive-readout-variety", {
-  topic: "熱セル / バッジ / 状態点の 3 表示を並べる",
-})
-  .lane("heat", { x: 0, width: 220 })
-  .lane("badge", { x: 260, width: 220 })
-  .lane("dot", { x: 520, width: 220 })
-  .input.slider("temp", { min: 0, max: 100, defaultValue: 42, label: "温度" })
-  .input.dropdown("state", {
-    options: ["稼働", "停止", "異常"],
-    defaultValue: "稼働",
-    label: "状態",
+type 札の色の引き方 = "付けない" | "札の字" | "別の状態";
+
+const 状態の色 = [
+  { value: "稼働", color: "#1f7a45" },
+  { value: "停止", color: "#7a6a5c" },
+  { value: "異常", color: "#c0392b" },
+] as const;
+
+const 札の見せ方: Record<
+  札の色の引き方,
+  { 札: Parameters<ReturnType<typeof diagram>["readout"]["badge"]>[1]; 副題: string; 段2: string; 段3: string }
+> = {
+  付けない: {
+    札: { source: "temp", label: "値の札" },
+    副題: "温度 {temp} · 数字を札で出す",
+    段2: "同じ温度を札の数字でも出す。 濃さと数字が同じ値を指す。",
+    段3: "別の状態を色の点で出す。 温度 2 表示と状態 1 表示で計 3 つが並ぶ。",
+  },
+  札の字: {
+    札: { source: "state", map: 状態の色, label: "状態の札" },
+    副題: "状態 {state} · 札の字で色を引く",
+    段2: "状態を札の字で出し、同じ字で札の色を引く。 稼働は緑、停止は茶、異常は赤になる。",
+    段3: "同じ状態を色の点でも出す。 札と点が同じ状態を同じ色で指す。",
+  },
+  別の状態: {
+    札: { source: "temp", colorSource: "state", map: 状態の色, label: "温度の札" },
+    副題: "温度 {temp} · 色は状態で引く",
+    段2: "札の字は温度の数字のまま、札の色は状態の値で引く。 状態を変えると数字はそのまま色だけが変わる。",
+    段3: "状態を色の点でも出す。 札の色と点の色が同じ状態を指す。",
+  },
+};
+
+function 読み出しを並べる図(id: string, 引き方: 札の色の引き方) {
+  const 見せ方 = 札の見せ方[引き方];
+  return diagram(id, {
+    topic: "熱セル / バッジ / 状態点の 3 表示を並べる",
   })
-  .state("temp", { initial: 42 })
-  .state("state", { initial: "稼働" })
-  .node("heatNode", {
-    lane: "heat",
-    stack: 0,
-    kind: "card",
-    title: "熱の升目",
-    subtitle: "温度 {temp} · 色の濃淡",
-  })
-  .node("badgeNode", {
-    lane: "badge",
-    stack: 0,
-    kind: "card",
-    title: "札",
-    subtitle: "温度 {temp} · 数字を札で出す",
-  })
-  .node("dotNode", {
-    lane: "dot",
-    stack: 0,
-    kind: "card",
-    title: "状態の点",
-    subtitle: "状態 {state} · 色で出す",
-  })
-  .readout.heatCell("tempHeat", {
-    source: "temp",
-    min: 0,
-    max: 100,
-    colors: ["#4e9dc4", "#e57373"],
-    label: "温度の濃淡",
-  })
-  .readout.badge("tempBadge", { source: "temp", label: "値の札" })
-  .readout.statusDot("statusRead", {
-    source: "state",
-    map: [
-      { value: "稼働", color: "#22c55e", label: "稼働" },
-      { value: "停止", color: "#a08870", label: "停止" },
-      { value: "異常", color: "#ef4444", label: "異常" },
-    ],
-    label: "状態の点",
-  })
-  .phase(
-    "p1",
-    {
-      duration: 1800,
-      title: "熱の升目を見る",
-      body: "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。",
-    },
-    (p: PhaseBuilder) => p.activate("heatNode"),
-  )
-  .phase(
-    "p2",
-    {
-      duration: 1800,
-      title: "札でも出す",
-      body: "同じ温度を札の数字でも出す。 濃さと数字が同じ値を指す。",
-    },
-    (p: PhaseBuilder) => p.activate("heatNode", "badgeNode"),
-  )
-  .phase(
-    "p3",
-    {
-      duration: 1800,
-      title: "状態の点を見る",
-      body: "別の状態を色の点で出す。 温度 2 表示と状態 1 表示で計 3 つが並ぶ。",
-    },
-    (p: PhaseBuilder) => p.activate("heatNode", "badgeNode", "dotNode"),
-  )
-  .build();
+    .lane("heat", { x: 0, width: 220 })
+    .lane("badge", { x: 260, width: 220 })
+    .lane("dot", { x: 520, width: 220 })
+    .input.slider("temp", { min: 0, max: 100, defaultValue: 42, label: "温度" })
+    .input.dropdown("state", {
+      options: ["稼働", "停止", "異常"],
+      defaultValue: "稼働",
+      label: "状態",
+    })
+    .state("temp", { initial: 42 })
+    .state("state", { initial: "稼働" })
+    .node("heatNode", {
+      lane: "heat",
+      stack: 0,
+      kind: "card",
+      title: "熱の升目",
+      subtitle: "温度 {temp} · 色の濃淡",
+    })
+    .node("badgeNode", {
+      lane: "badge",
+      stack: 0,
+      kind: "card",
+      title: "札",
+      subtitle: 見せ方.副題,
+    })
+    .node("dotNode", {
+      lane: "dot",
+      stack: 0,
+      kind: "card",
+      title: "状態の点",
+      subtitle: "状態 {state} · 色で出す",
+    })
+    .readout.heatCell("tempHeat", {
+      source: "temp",
+      min: 0,
+      max: 100,
+      colors: ["#4e9dc4", "#e57373"],
+      label: "温度の濃淡",
+    })
+    .readout.badge("tempBadge", 見せ方.札)
+    .readout.statusDot("statusRead", {
+      source: "state",
+      map: 状態の色.map((m) => ({ ...m, label: m.value })),
+      label: "状態の点",
+    })
+    .phase(
+      "p1",
+      {
+        duration: 1800,
+        title: "熱の升目を見る",
+        body: "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。",
+      },
+      (p: PhaseBuilder) => p.activate("heatNode"),
+    )
+    .phase(
+      "p2",
+      {
+        duration: 1800,
+        title: "札でも出す",
+        body: 見せ方.段2,
+      },
+      (p: PhaseBuilder) => p.activate("heatNode", "badgeNode"),
+    )
+    .phase(
+      "p3",
+      {
+        duration: 1800,
+        title: "状態の点を見る",
+        body: 見せ方.段3,
+      },
+      (p: PhaseBuilder) => p.activate("heatNode", "badgeNode", "dotNode"),
+    )
+    .build();
+}
+export const readoutVariety = 読み出しを並べる図("interactive-readout-variety", "付けない");
+export const patternBase__readoutVariety = "札に色を付けない";
+export const pattern__readoutVariety__札の字で色を引く = 読み出しを並べる図(
+  "interactive-readout-variety-badge-text-color",
+  "札の字",
+);
+export const pattern__readoutVariety__別の状態で色を引く = 読み出しを並べる図(
+  "interactive-readout-variety-badge-color-source",
+  "別の状態",
+);
 export const subtitle__readoutVariety =
   "温度と状態の値を、色の濃さの升目 / 数の札 / 色の点の 3 つの部品で見せる (heat-cell / badge / status-dot)";
 
@@ -23752,7 +23797,7 @@ inputs:
 readouts:
   tempHeat: { kind: heat-cell, source: "temp", min: 0, max: 100, colors: ["#4e9dc4", "#e57373"], label: "温度の濃淡" }
   tempBadge: { kind: badge, source: "temp", label: "値の札" }
-  statusRead: { kind: status-dot, source: "state", map: [{ value: "稼働", color: "#22c55e", label: "稼働" }, { value: "停止", color: "#a08870", label: "停止" }, { value: "異常", color: "#ef4444", label: "異常" }], label: "状態の点" }
+  statusRead: { kind: status-dot, source: "state", map: [{ value: "稼働", color: "#1f7a45", label: "稼働" }, { value: "停止", color: "#7a6a5c", label: "停止" }, { value: "異常", color: "#c0392b", label: "異常" }], label: "状態の点" }
 
 lanes:
   heat: { x: 0, width: 220 }
@@ -23816,9 +23861,9 @@ export const sourceJson__readoutVariety = `{
       "kind": "status-dot",
       "source": "state",
       "map": [
-        { "value": "稼働", "color": "#22c55e", "label": "稼働" },
-        { "value": "停止", "color": "#a08870", "label": "停止" },
-        { "value": "異常", "color": "#ef4444", "label": "異常" }
+        { "value": "稼働", "color": "#1f7a45", "label": "稼働" },
+        { "value": "停止", "color": "#7a6a5c", "label": "停止" },
+        { "value": "異常", "color": "#c0392b", "label": "異常" }
       ],
       "label": "状態の点"
     }
@@ -23871,6 +23916,293 @@ export const sourceJson__readoutVariety = `{
       "duration": 1.8,
       "focus": ["熱の升目", "札", "状態の点"],
       "body": "別の状態を色の点で出す。 温度 2 表示と状態 1 表示で計 3 つが並ぶ。"
+    }
+  ]
+}`;
+
+export const sourceYaml__pattern__readoutVariety__札の字で色を引く = `title: "熱セル / バッジ / 状態点の 3 表示を並べる"
+type: flow
+
+inputs:
+  temp: { kind: slider, min: 0, max: 100, defaultValue: 42, label: "温度" }
+  state: { kind: dropdown, options: ["稼働", "停止", "異常"], defaultValue: "稼働", label: "状態" }
+
+readouts:
+  tempHeat: { kind: heat-cell, source: "temp", min: 0, max: 100, colors: ["#4e9dc4", "#e57373"], label: "温度の濃淡" }
+  tempBadge: { kind: badge, source: "state", map: [{ value: "稼働", color: "#1f7a45" }, { value: "停止", color: "#7a6a5c" }, { value: "異常", color: "#c0392b" }], label: "状態の札" }
+  statusRead: { kind: status-dot, source: "state", map: [{ value: "稼働", color: "#1f7a45", label: "稼働" }, { value: "停止", color: "#7a6a5c", label: "停止" }, { value: "異常", color: "#c0392b", label: "異常" }], label: "状態の点" }
+
+lanes:
+  heat: { x: 0, width: 220 }
+  badge: { x: 260, width: 220 }
+  dot: { x: 520, width: 220 }
+
+states:
+  temp: 42
+  state: "稼働"
+
+actors:
+  - 熱の升目: { kind: card, lane: heat, stack: 0, subtitle: "温度 {temp} · 色の濃淡" }
+  - 札: { kind: card, lane: badge, stack: 0, subtitle: "状態 {state} · 札の字で色を引く" }
+  - 状態の点: { kind: card, lane: dot, stack: 0, subtitle: "状態 {state} · 色で出す" }
+
+animation:
+  - step: "熱の升目を見る" 1.8s
+    focus: ["熱の升目"]
+    description: "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。"
+  - step: "札でも出す" 1.8s
+    focus: ["熱の升目", "札"]
+    description: "状態を札の字で出し、同じ字で札の色を引く。 稼働は緑、停止は茶、異常は赤になる。"
+  - step: "状態の点を見る" 1.8s
+    focus: ["熱の升目", "札", "状態の点"]
+    description: "同じ状態を色の点でも出す。 札と点が同じ状態を同じ色で指す。"
+`;
+
+export const sourceJson__pattern__readoutVariety__札の字で色を引く = `{
+  "title": "熱セル / バッジ / 状態点の 3 表示を並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "temp",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 42,
+      "label": "温度"
+    },
+    {
+      "id": "state",
+      "kind": "dropdown",
+      "options": ["稼働", "停止", "異常"],
+      "defaultValue": "稼働",
+      "label": "状態"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "tempHeat",
+      "kind": "heat-cell",
+      "source": "temp",
+      "min": 0,
+      "max": 100,
+      "colors": ["#4e9dc4", "#e57373"],
+      "label": "温度の濃淡"
+    },
+    {
+      "id": "tempBadge",
+      "kind": "badge",
+      "source": "state",
+      "map": [
+        { "value": "稼働", "color": "#1f7a45" },
+        { "value": "停止", "color": "#7a6a5c" },
+        { "value": "異常", "color": "#c0392b" }
+      ],
+      "label": "状態の札"
+    },
+    {
+      "id": "statusRead",
+      "kind": "status-dot",
+      "source": "state",
+      "map": [
+        { "value": "稼働", "color": "#1f7a45", "label": "稼働" },
+        { "value": "停止", "color": "#7a6a5c", "label": "停止" },
+        { "value": "異常", "color": "#c0392b", "label": "異常" }
+      ],
+      "label": "状態の点"
+    }
+  ],
+  "lanes": {
+    "heat": { "x": 0, "width": 220 },
+    "badge": { "x": 260, "width": 220 },
+    "dot": { "x": 520, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "熱の升目",
+      "kind": "card",
+      "lane": "heat",
+      "stack": 0,
+      "subtitle": "温度 {temp} · 色の濃淡"
+    },
+    {
+      "name": "札",
+      "kind": "card",
+      "lane": "badge",
+      "stack": 0,
+      "subtitle": "状態 {state} · 札の字で色を引く"
+    },
+    {
+      "name": "状態の点",
+      "kind": "card",
+      "lane": "dot",
+      "stack": 0,
+      "subtitle": "状態 {state} · 色で出す"
+    }
+  ],
+  "flow": [],
+  "states": { "temp": 42, "state": "稼働" },
+  "animation": [
+    {
+      "step": "熱の升目を見る",
+      "duration": 1.8,
+      "focus": ["熱の升目"],
+      "body": "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。"
+    },
+    {
+      "step": "札でも出す",
+      "duration": 1.8,
+      "focus": ["熱の升目", "札"],
+      "body": "状態を札の字で出し、同じ字で札の色を引く。 稼働は緑、停止は茶、異常は赤になる。"
+    },
+    {
+      "step": "状態の点を見る",
+      "duration": 1.8,
+      "focus": ["熱の升目", "札", "状態の点"],
+      "body": "同じ状態を色の点でも出す。 札と点が同じ状態を同じ色で指す。"
+    }
+  ]
+}`;
+
+export const sourceYaml__pattern__readoutVariety__別の状態で色を引く = `title: "熱セル / バッジ / 状態点の 3 表示を並べる"
+type: flow
+
+inputs:
+  temp: { kind: slider, min: 0, max: 100, defaultValue: 42, label: "温度" }
+  state: { kind: dropdown, options: ["稼働", "停止", "異常"], defaultValue: "稼働", label: "状態" }
+
+readouts:
+  tempHeat: { kind: heat-cell, source: "temp", min: 0, max: 100, colors: ["#4e9dc4", "#e57373"], label: "温度の濃淡" }
+  tempBadge: { kind: badge, source: "temp", colorSource: "state", map: [{ value: "稼働", color: "#1f7a45" }, { value: "停止", color: "#7a6a5c" }, { value: "異常", color: "#c0392b" }], label: "温度の札" }
+  statusRead: { kind: status-dot, source: "state", map: [{ value: "稼働", color: "#1f7a45", label: "稼働" }, { value: "停止", color: "#7a6a5c", label: "停止" }, { value: "異常", color: "#c0392b", label: "異常" }], label: "状態の点" }
+
+lanes:
+  heat: { x: 0, width: 220 }
+  badge: { x: 260, width: 220 }
+  dot: { x: 520, width: 220 }
+
+states:
+  temp: 42
+  state: "稼働"
+
+actors:
+  - 熱の升目: { kind: card, lane: heat, stack: 0, subtitle: "温度 {temp} · 色の濃淡" }
+  - 札: { kind: card, lane: badge, stack: 0, subtitle: "温度 {temp} · 色は状態で引く" }
+  - 状態の点: { kind: card, lane: dot, stack: 0, subtitle: "状態 {state} · 色で出す" }
+
+animation:
+  - step: "熱の升目を見る" 1.8s
+    focus: ["熱の升目"]
+    description: "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。"
+  - step: "札でも出す" 1.8s
+    focus: ["熱の升目", "札"]
+    description: "札の字は温度の数字のまま、札の色は状態の値で引く。 状態を変えると数字はそのまま色だけが変わる。"
+  - step: "状態の点を見る" 1.8s
+    focus: ["熱の升目", "札", "状態の点"]
+    description: "状態を色の点でも出す。 札の色と点の色が同じ状態を指す。"
+`;
+
+export const sourceJson__pattern__readoutVariety__別の状態で色を引く = `{
+  "title": "熱セル / バッジ / 状態点の 3 表示を並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "temp",
+      "kind": "slider",
+      "min": 0,
+      "max": 100,
+      "defaultValue": 42,
+      "label": "温度"
+    },
+    {
+      "id": "state",
+      "kind": "dropdown",
+      "options": ["稼働", "停止", "異常"],
+      "defaultValue": "稼働",
+      "label": "状態"
+    }
+  ],
+  "readouts": [
+    {
+      "id": "tempHeat",
+      "kind": "heat-cell",
+      "source": "temp",
+      "min": 0,
+      "max": 100,
+      "colors": ["#4e9dc4", "#e57373"],
+      "label": "温度の濃淡"
+    },
+    {
+      "id": "tempBadge",
+      "kind": "badge",
+      "source": "temp",
+      "colorSource": "state",
+      "map": [
+        { "value": "稼働", "color": "#1f7a45" },
+        { "value": "停止", "color": "#7a6a5c" },
+        { "value": "異常", "color": "#c0392b" }
+      ],
+      "label": "温度の札"
+    },
+    {
+      "id": "statusRead",
+      "kind": "status-dot",
+      "source": "state",
+      "map": [
+        { "value": "稼働", "color": "#1f7a45", "label": "稼働" },
+        { "value": "停止", "color": "#7a6a5c", "label": "停止" },
+        { "value": "異常", "color": "#c0392b", "label": "異常" }
+      ],
+      "label": "状態の点"
+    }
+  ],
+  "lanes": {
+    "heat": { "x": 0, "width": 220 },
+    "badge": { "x": 260, "width": 220 },
+    "dot": { "x": 520, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "熱の升目",
+      "kind": "card",
+      "lane": "heat",
+      "stack": 0,
+      "subtitle": "温度 {temp} · 色の濃淡"
+    },
+    {
+      "name": "札",
+      "kind": "card",
+      "lane": "badge",
+      "stack": 0,
+      "subtitle": "温度 {temp} · 色は状態で引く"
+    },
+    {
+      "name": "状態の点",
+      "kind": "card",
+      "lane": "dot",
+      "stack": 0,
+      "subtitle": "状態 {state} · 色で出す"
+    }
+  ],
+  "flow": [],
+  "states": { "temp": 42, "state": "稼働" },
+  "animation": [
+    {
+      "step": "熱の升目を見る",
+      "duration": 1.8,
+      "focus": ["熱の升目"],
+      "body": "温度をひとつの升目の濃さで出す。 3 表示のうち 1 つ目。"
+    },
+    {
+      "step": "札でも出す",
+      "duration": 1.8,
+      "focus": ["熱の升目", "札"],
+      "body": "札の字は温度の数字のまま、札の色は状態の値で引く。 状態を変えると数字はそのまま色だけが変わる。"
+    },
+    {
+      "step": "状態の点を見る",
+      "duration": 1.8,
+      "focus": ["熱の升目", "札", "状態の点"],
+      "body": "状態を色の点でも出す。 札の色と点の色が同じ状態を指す。"
     }
   ]
 }`;
