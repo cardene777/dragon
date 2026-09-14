@@ -114,7 +114,10 @@ describe("箱の中に描く図形 (#1374)", () => {
     const r = parseTextDslV05(波の記法.replace("frequency: 2", "frequencyy: 2"));
     expect(r.ok, "読めない欄が通ってしまった").toBe(false);
     if (r.ok) return;
-    expect(r.errors.map((e) => e.message).join("\n")).toContain("図形の の項目名が読めません");
+    // 助詞を重ねない (#1968)。 以前は「図形の の」 と出ていた
+    const 文 = r.errors.map((e) => e.message).join("\n");
+    expect(文).toContain('図形の項目名が読めません: "frequencyy"');
+    expect(文).not.toContain("の の");
   });
 
   it("必須の欄が足りなければ知らせる", () => {

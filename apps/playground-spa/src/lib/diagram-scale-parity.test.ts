@@ -35,7 +35,8 @@ const VARIANTS: Array<[string, string]> = [
   ["block", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n${TAIL}`],
   ["block + 空行", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n\n  nodeGap: 40\n${TAIL}`],
   ["block + コメント", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n  # メモ\n  nodeGap: 40\n${TAIL}`],
-  ["block + リスト項目", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n  - x\n  nodeGap: 40\n${TAIL}`],
+  // リスト項目は欄の形 (`- gap: 20`) で書く。 読めない行 (`- x`) は #1968 から parser が誤りにする
+  ["block + リスト項目", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n  - gap: 20\n  nodeGap: 40\n${TAIL}`],
 ];
 
 describe("倍率の読み書きが parser の実値と一致する", () => {
@@ -71,7 +72,7 @@ describe("倍率の読み書きが parser の実値と一致する", () => {
       ["block", `title: "T"\ntype: sequence\nviewport:\n  scale: 2\n${TAIL}`],
       ["block + 空行の後", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n\n  scale: 2\n${TAIL}`],
       ["block + コメントの後", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n  # メモ\n  scale: 2\n${TAIL}`],
-      ["block + リスト項目の後", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n  - x\n  scale: 2\n${TAIL}`],
+      ["block + リスト項目の後", `title: "T"\ntype: sequence\nviewport:\n  laneGap: 300\n  - gap: 20\n  scale: 2\n${TAIL}`],
     ];
     for (const [name, src] of CASES) {
       expect(readDiagramScale(src), `${name}`).toBe(parserScale(src));

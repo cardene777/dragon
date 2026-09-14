@@ -76,9 +76,10 @@ describe("v05 — viewport / lanes / groups", () => {
   });
 
   it("groups block with { } props", () => {
-    const r = parse(`title: "T"\ntype: topology\nactors:\n  - A\nflow:\n  - A -> A: "x"\ngroups:\n  g1: { label: "Group1", members: [A] }`);
+    // 組が束ねるのは縦列 (`lanes`)。 以前は読まれない `members` を書いても通っていた (#1968)
+    const r = parse(`title: "T"\ntype: topology\nlanes:\n  l1: { x: 0, width: 200 }\nactors:\n  - A: { lane: l1 }\nflow:\n  - A -> A: "x"\ngroups:\n  g1: { label: "Group1", lanes: [l1] }`);
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.doc.groups?.g1).toBeDefined();
+    if (r.ok) expect(r.doc.groups?.g1).toMatchObject({ label: "Group1", lanes: ["l1"] });
   });
 });
 
