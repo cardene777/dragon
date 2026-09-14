@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, Copy, Maximize2, Search, X, ZoomIn, ZoomOut } from "lucide-react";
+import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import {
   CATALOG_ITEMS,
@@ -16,6 +16,7 @@ import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
 import { PhaseChrome } from "@/components/PhaseChrome";
+import { DiagramZoomControls } from "@/components/DiagramZoomControls";
 import { useDiagramPanZoom } from "@/components/useDiagramPanZoom";
 import {
   図の速さを変える,
@@ -65,10 +66,7 @@ import {
 
 import {
   収める,
-  収めるの呼び名,
   次の倍率,
-  端か,
-  倍率の表示,
   svgの幅,
   type 倍率の指定,
 } from "@/lib/diagram-zoom";
@@ -425,6 +423,9 @@ export function CategoryPage(): React.ReactElement {
   function 倍率を動かす(向き: "上げる" | "下げる"): void {
     set倍率の状態({ 図: 開いている図, 値: 次の倍率(倍率, 向き, 拡大の操作.収めた倍率) });
   }
+  function 拡大を器に合わせる(): void {
+    set倍率の状態({ 図: 開いている図, 値: 収める });
+  }
 
   // 並べて見る側の倍率 (#1749)。 台は幅 874px で高さの上限が無く、図は幅いっぱいに描かれる =
   // 広い図は縮み (53 枚が 12px 未満)、細い図は伸びる (39 枚が高さ 1200px 超)。
@@ -464,6 +465,9 @@ export function CategoryPage(): React.ReactElement {
   });
   function 並びの倍率を動かす(向き: "上げる" | "下げる"): void {
     set並びの倍率の状態({ 図: 見ている図, 値: 次の倍率(並びの倍率, 向き, 並びの操作.収めた倍率) });
+  }
+  function 並びを器に合わせる(): void {
+    set並びの倍率の状態({ 図: 見ている図, 値: 収める });
   }
 
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
@@ -596,48 +600,15 @@ export function CategoryPage(): React.ReactElement {
                     <p className="catalog-preview-motion">{currentItem.motionNote}</p>
                   </div>
                   <div className="catalog-preview-actions">
-                    {/* 倍率の操作 (#1749)。 台は幅に合わせるので、広い図は縮み細い図は伸びる。
-                        欄は器に収めている時も描かれている倍率を数字で出す (#1961) */}
-                    <div
-                      className="cdl-zoom"
-                      role="group"
-                      aria-label="並びの倍率"
-                      title="⌘ か Ctrl を押しながら図の上で回すか、2 本指でつまむと拡大縮小。 拡げた図は押さえたまま動かせる"
-                    >
-                      <button
-                        type="button"
-                        className="cdl-zoom-btn"
-                        aria-label="並びの倍率を下げる"
-                        disabled={
-                          並びのviewBox幅 === undefined || 端か(並びの倍率, "下げる", 並びの操作.収めた倍率)
-                        }
-                        onClick={() => 並びの倍率を動かす("下げる")}
-                      >
-                        <ZoomOut size={16} />
-                      </button>
-                      <span className="cdl-zoom-value" aria-live="polite">
-                        {倍率の表示(並びの倍率, 並びの操作.収めた倍率)}
-                      </span>
-                      <button
-                        type="button"
-                        className="cdl-zoom-btn"
-                        aria-label="並びの倍率を上げる"
-                        disabled={
-                          並びのviewBox幅 === undefined || 端か(並びの倍率, "上げる", 並びの操作.収めた倍率)
-                        }
-                        onClick={() => 並びの倍率を動かす("上げる")}
-                      >
-                        <ZoomIn size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        className="cdl-zoom-fit"
-                        disabled={並びの倍率 === 収める}
-                        onClick={() => set並びの倍率の状態({ 図: 見ている図, 値: 収める })}
-                      >
-                        {収めるの呼び名.幅だけ}
-                      </button>
-                    </div>
+                    {/* 倍率の操作 (#1749)。 台は幅に合わせるので、広い図は縮み細い図は伸びる */}
+                    <DiagramZoomControls
+                      場所="並び"
+                      倍率={並びの倍率}
+                      収めた倍率={並びの操作.収めた倍率}
+                      使える={並びのviewBox幅 !== undefined}
+                      倍率を動かす={並びの倍率を動かす}
+                      器に合わせる={並びを器に合わせる}
+                    />
                     <button
                       type="button"
                       onClick={() => setModalItem(currentItem)}
@@ -935,44 +906,15 @@ export function CategoryPage(): React.ReactElement {
                 {modalItem && <p className="cdl-modal-motion">{modalItem.motionNote}</p>}
               </div>
               <div className="cdl-modal-actions">
-                {/* 倍率の操作 (#1745)。 器に収めると 4.8px まで縮む図があるため、実寸まで拡げられるようにする。
-                    欄は器に収めている時も描かれている倍率を数字で出す (#1961) */}
-                <div
-                  className="cdl-zoom"
-                  role="group"
-                  aria-label="表示の倍率"
-                  title="図の上で回すか、2 本指でつまむと拡大縮小。 拡げた図は押さえたまま動かせる"
-                >
-                  <button
-                    type="button"
-                    className="cdl-zoom-btn"
-                    aria-label="倍率を下げる"
-                    disabled={拡大のviewBox幅 === undefined || 端か(倍率, "下げる", 拡大の操作.収めた倍率)}
-                    onClick={() => 倍率を動かす("下げる")}
-                  >
-                    <ZoomOut size={16} />
-                  </button>
-                  <span className="cdl-zoom-value" aria-live="polite">
-                    {倍率の表示(倍率, 拡大の操作.収めた倍率)}
-                  </span>
-                  <button
-                    type="button"
-                    className="cdl-zoom-btn"
-                    aria-label="倍率を上げる"
-                    disabled={拡大のviewBox幅 === undefined || 端か(倍率, "上げる", 拡大の操作.収めた倍率)}
-                    onClick={() => 倍率を動かす("上げる")}
-                  >
-                    <ZoomIn size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="cdl-zoom-fit"
-                    disabled={倍率 === 収める}
-                    onClick={() => set倍率の状態({ 図: 開いている図, 値: 収める })}
-                  >
-                    {収めるの呼び名.両方}
-                  </button>
-                </div>
+                {/* 倍率の操作 (#1745)。 器に収めると 4.8px まで縮む図があるため、実寸まで拡げられるようにする */}
+                <DiagramZoomControls
+                  場所="拡大"
+                  倍率={倍率}
+                  収めた倍率={拡大の操作.収めた倍率}
+                  使える={拡大のviewBox幅 !== undefined}
+                  倍率を動かす={倍率を動かす}
+                  器に合わせる={拡大を器に合わせる}
+                />
                 <Dialog.Close asChild>
                   <button type="button" aria-label="閉じる" className="cdl-modal-close">
                     <X size={20} />

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { CdlDiagramView } from "@cardenelabs/cdl";
+import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import { ChevronLeft, ExternalLink, Share2 } from "lucide-react";
 import { PRESETS, presetName } from "@/lib/presets";
 import { CATEGORIES } from "@/lib/catalog";
@@ -10,7 +10,19 @@ import { useToast } from "@/components/Toast";
 import { useLocale } from "@/lib/useLocale";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 import { PhaseChrome } from "@/components/PhaseChrome";
+import { DiagramZoomControls } from "@/components/DiagramZoomControls";
+import { useDiagramPanZoom } from "@/components/useDiagramPanZoom";
+import { 収める, 次の倍率, svgの幅, type 倍率の指定 } from "@/lib/diagram-zoom";
 import "@/styles/compare.css";
+
+/**
+ * 台の中で巻き取る要素 (#1964)。 台 (`.nm-preset-detail-stage`) は段の札を置く基準なので巻き取らせない =
+ * 台に巻き取らせると札も図と一緒に流れる (カタログの並べて見る側と同じ理由、#1749)
+ */
+function 台の巻き取りを探す(台: HTMLElement): HTMLElement | null {
+  const 内側 = 台.querySelector(".nm-preset-detail-stage-inner");
+  return 内側 instanceof HTMLElement ? 内側 : null;
+}
 
 /**
  * この画面が属する分類の呼び名 (#1805)。
@@ -33,6 +45,48 @@ export function PresetDetailPage(): React.ReactElement {
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
 
   const preset = PRESETS.find((p) => p.slug === params.id);
+
+  // 描く図は描画のたびに作り直さない。 作り直すと、倍率を測る部品が図が替わったとみなして測り直し続ける
+  const 描く図 = useMemo(
+    () => (preset ? 図に画面の言語を当てる(preset.diagram, locale) : null),
+    [preset, locale],
+  );
+  // 図の倍率 (#1964)。 台は幅に合わせて描くので、カタログの並べて見る側と同じく広い図は縮み細い図は伸びる。
+  // どのひな形に対する倍率かを一緒に持つ = 前へ / 次へで移ったら、効果で戻さなくても幅に合わせる側へ戻る
+  const [倍率の状態, set倍率の状態] = useState<{ 図: string | null; 値: 倍率の指定 }>({
+    図: null,
+    値: 収める,
+  });
+  const 見ている図 = preset?.slug ?? null;
+  const 倍率 = 倍率の状態.図 === 見ている図 ? 倍率の状態.値 : 収める;
+  const viewBox幅 = useMemo(() => {
+    if (!描く図) return undefined;
+    try {
+      return layout(描く図).viewBox.w;
+    } catch {
+      return undefined;
+    }
+  }, [描く図]);
+  const 指定した幅 = svgの幅(倍率, viewBox幅);
+  // ホイール・つまみ・ドラッグ。 この画面は縦に送って読む画面なので、修飾キー無しのホイールは奪わない
+  const 操作 = useDiagramPanZoom({
+    器: stageEl,
+    巻き取りを探す: 台の巻き取りを探す,
+    倍率,
+    倍率を置く(値) {
+      set倍率の状態({ 図: 見ている図, 値 });
+    },
+    viewBox幅,
+    修飾キー無しで拡大: false,
+    頁も送る: true,
+    図の鍵: 描く図,
+  });
+  function 倍率を動かす(向き: "上げる" | "下げる"): void {
+    set倍率の状態({ 図: 見ている図, 値: 次の倍率(倍率, 向き, 操作.収めた倍率) });
+  }
+  function 器に合わせる(): void {
+    set倍率の状態({ 図: 見ている図, 値: 収める });
+  }
 
   useEffect(() => {
     if (!preset) return;
@@ -163,8 +217,31 @@ export function PresetDetailPage(): React.ReactElement {
         </section>
 
         <section className="nm-presets-section" aria-label={`${presetName(preset, locale)} 詳細`}>
-          <div className="nm-preset-detail-stage" ref={setStageEl}>
-            <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(preset.diagram, locale)} hideHeader />
+          <div className="nm-preset-detail-tools">
+            <DiagramZoomControls
+              場所="詳細"
+              倍率={倍率}
+              収めた倍率={操作.収めた倍率}
+              使える={viewBox幅 !== undefined}
+              倍率を動かす={倍率を動かす}
+              器に合わせる={器に合わせる}
+            />
+          </div>
+          <div
+            className="nm-preset-detail-stage"
+            ref={setStageEl}
+            data-cdl-zoom={指定した幅 === undefined ? undefined : "on"}
+            data-cdl-pannable={操作.動かせる ? "" : undefined}
+            data-cdl-panning={操作.移動中 ? "" : undefined}
+            style={
+              指定した幅 === undefined
+                ? undefined
+                : ({ "--cdl-zoom-width": `${指定した幅}px` } as React.CSSProperties)
+            }
+          >
+            <div className="nm-preset-detail-stage-inner">
+              <CdlDiagramView hideMiniPhaseIndicator diagram={描く図 ?? preset.diagram} hideHeader />
+            </div>
             {/* 設計 (`06 見本の詳細`) は札を左上に描いている (#1239) */}
             <PhaseChrome stage={stageEl} phases={preset.diagram.phases} />
           </div>
