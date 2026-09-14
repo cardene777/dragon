@@ -1095,6 +1095,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         const {
           built: { diagram: d, notices, edgeLines },
           parts,
+          抜かずに描いた部品,
           lineMap,
         } = 図と重ねる部品に分ける(src, partsCatalog, partsItems, (本文) => {
           // 書いたのに効かなかったこと (`位置: Web の下` が順序図で効かない等) を受け取る。
@@ -1132,15 +1133,16 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           bytes: 0,
         });
         if (withPartsOversize) throw new Error(withPartsOversize);
-        // 実体が操作パネルの部品だけの見本は、重ねても図には出ない (#1017)。 場所は確保される
-        // ため「置いたのに見えない」 状態になる。 黙って置くと綴りを疑うことになるので知らせる
-        for (const p of parts) {
+        // 実体が操作パネルの部品だけの見本は、置いても図には出ない (#1017)。 場所は確保される
+        // ため「置いたのに見えない」 状態になる。 黙って置くと綴りを疑うことになるので知らせる。
+        // 組み立て側で部品ごと描いた本文 (部品だけ / 縦列に置く部品がある) も同じく知らせる (#1980)
+        for (const p of [...parts, ...抜かずに描いた部品]) {
           if (partDrawsInDiagram(p.item.diagram)) continue;
           notices.push({
             kind: "part-not-drawn",
             actor: p.id,
             line: 0,
-            message: `"${p.id}" (${p.kind}) は図の中に描く部品を持たないため、重ねても図には出ません。`,
+            message: `"${p.id}" (${p.kind}) は図の中に描く部品を持たないため、置いても図には出ません。`,
             hint: "操作盤の部品として使う見本です",
           });
         }

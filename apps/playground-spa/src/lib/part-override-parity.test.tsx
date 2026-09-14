@@ -139,10 +139,10 @@ describe("部品だけの本文は、抜かずに組み立て側で描く (#1973
     expect(分けた.lineMap).toEqual(src.split("\n").map((_, i) => i + 1));
   });
 
-  it("見本の頁の「部品を箱に使う」 の切替 6 つが、どれも見本の頁と同じ図になる", async () => {
+  it("見本の頁の「部品を箱に使う」 の切替 7 つが、どれも見本の頁と同じ図になる", async () => {
     const 見本 = (await loadPartsItems()).find((i) => i.id === "部品を箱に置き何も書き換えない");
     const 並び = 見本?.patterns ?? [];
-    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(6);
+    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(7);
     for (const p of 並び) {
       const 分けた = await 分ける(p.sourceYaml!);
       expect(分けた.parts, `${p.名} で部品を重ねる側に回した`).toEqual([]);
@@ -159,10 +159,23 @@ describe("部品へ矢印を引いた本文は、抜かずに組み立て側で�
    * 落ちていた (実測 = 「actors に書かれていません」 で矢印が消えた)。
    */
   it.each([
-    ["行き先が部品", `flow:\n  - 受付 -> 印: "送る"\n`, "受付 -> 印__ind"],
-    ["出どころが部品", `flow:\n  - 印 -> 受付: "知らせる"\n`, "印__ind -> 受付"],
-  ])("%s", async (_名, 流れ, 期待する端) => {
-    const src = `title: "t"\ntype: swimlane\n\nactors:\n  - 受付: { kind: card }\n  - 印: { kind: state-indicator }\n\n${流れ}`;
+    [
+      "行き先が部品",
+      `  - 受付: { kind: card }\n  - 印: { kind: state-indicator }\n`,
+      `flow:\n  - 受付 -> 印: "送る"\n`,
+      "受付 -> 印__ind",
+    ],
+    [
+      "出どころが部品",
+      `  - 印: { kind: state-indicator }\n  - 受付: { kind: card }\n`,
+      `flow:\n  - 印 -> 受付: "知らせる"\n`,
+      "印__ind -> 受付",
+    ],
+  ])("%s", async (_名, 登場人物, 流れ, 期待する端) => {
+    // 縦列を共有する `flow` で見る。 `swimlane` の部品は矢印が無くても自分の縦列に入って抜かずに
+    // 描くため (#1980)、矢印を見る判定を外しても通ってしまう。
+    // `flow` は登場人物を書いた順に繋ぐので、矢印の向きに合わせて並べる
+    const src = `title: "t"\ntype: flow\n\nactors:\n${登場人物}\n${流れ}`;
     const 分けた = await 分ける(src);
     const { 一覧 } = await 編集画面の部品();
     expect(分けた.parts, "部品を重ねる側に抜いた").toEqual([]);
@@ -174,8 +187,10 @@ describe("部品へ矢印を引いた本文は、抜かずに組み立て側で�
   });
 
   it("部品へ矢印を引かない本文は、今までどおり部品を重ねる", async () => {
-    // 陰性対照 = 矢印が部品でない箱どうしなら、部品は抜いて重ねる側に回る
-    const src = `title: "t"\ntype: swimlane\n\nactors:\n  - 受付: { kind: card }\n  - 出荷: { kind: card }\n  - 印: { kind: state-indicator }\n\nflow:\n  - 受付 -> 出荷: "送る"\n`;
+    // 陰性対照 = 矢印が部品でない箱どうしなら、部品は抜いて重ねる側に回る。
+    // 縦列を共有する `flow` で見る。 `swimlane` の部品は自分の名前の縦列に入り、矢印の有無に依らず
+    // 抜かずに描く (#1980)
+    const src = `title: "t"\ntype: flow\n\nactors:\n  - 受付: { kind: card }\n  - 出荷: { kind: card }\n  - 印: { kind: state-indicator }\n\nflow:\n  - 受付 -> 出荷: "送る"\n`;
     const 分けた = await 分ける(src);
     expect(分けた.parts.map((p) => p.id)).toEqual(["印"]);
   });

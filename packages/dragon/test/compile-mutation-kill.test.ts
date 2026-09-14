@@ -545,10 +545,13 @@ describe("injectPhasesFallback", () => {
 
 // ── mergePartsFromActors / mergePartIntoDiagram: parts merge ──
 describe("parts merge", () => {
-  function partsCompile() {
+  function partsCompile(
+    type: PresetType = "swimlane",
+    widget: Partial<DslActor> = {},
+  ) {
     const partDiagram = compile("flow");
-    return compileToCdl(makeDoc("swimlane", {
-      actors: [actor("widget", { partId: "flow" }), actor("B")],
+    return compileToCdl(makeDoc(type, {
+      actors: [actor("widget", { partId: "flow", ...widget }), actor("B")],
       flow: [step("widget", "B")],
     }), { partsCatalog: { flow: partDiagram } });
   }
@@ -558,9 +561,17 @@ describe("parts merge", () => {
     expect(d.nodes.some((n) => n.id === "widget__b")).toBe(true);
   });
   it("見本のために作った仮の箱と縦列は削除される", () => {
-    const d = partsCompile();
+    // 位置を書いた見本で見る。 位置を書かない見本は仮の縦列に入るので縦列を残す (#1980、下の検査)
+    const d = partsCompile("swimlane", { posX: 900, posY: 600 });
     expect(d.nodes.some((n) => n.id === "widget"), "仮の箱が残っている").toBe(false);
     expect(d.lanes.some((l) => l.id === "widget"), "仮の縦列が残っている").toBe(false);
+  });
+  it("位置を書かない見本は、仮の箱を消して仮の縦列に入る (#1980)", () => {
+    const d = partsCompile();
+    expect(d.nodes.some((n) => n.id === "widget"), "仮の箱が残っている").toBe(false);
+    expect(d.lanes.some((l) => l.id === "widget"), "見本を入れる縦列を消した").toBe(true);
+    expect(node(d, "widget__a").lane).toBe("widget");
+    expect(d.lanes.some((l) => l.id.startsWith("widget__")), "見本用の縦列を作った").toBe(false);
   });
   it("part は格子の 1 番目 (左端) に配置", () => {
     // 以前は既存 lane の右端 + 300 に置いていたが、 折り返しが無く図が右へ伸び続けた。
@@ -568,7 +579,9 @@ describe("parts merge", () => {
     // 見るのは箱の左端。 縦列の左端は箱より外に出ることがあり (縦列が箱より広い catalog)、
     // 縦列の x で見ると「箱が左端に来ているか」 を確かめられない。
     // 格子が確保するのは図枠なので、 図枠の左端が 0 = 箱は余白のぶん右に来る (#937)
-    const d = partsCompile();
+    //
+    // 格子に並ぶのは縦列を共有する図種 (`flow`)。 `swimlane` の見本は自分の縦列に入る (#1980)
+    const d = partsCompile("flow");
     expect(partLeftEdge(d, "widget")).toBeCloseTo(frameLeftPadding(compile("flow")), 1);
   });
   it("catalog 不在の partId は crash せず無視 (壊さない設計)", () => {
@@ -2320,12 +2333,26 @@ describe("mergePartsFromActors: actor.lane が自身の lane と一致する場�
   });
 
   it("lane 指定なしなら parts actor の lane は削除され part 専用 lane が作られる", () => {
+    // 位置を書いた見本で見る。 位置を書かない見本は自分の名前の縦列に入る (#1980、下の検査)
     const d = compileToCdl(
-      makeDoc("swimlane", { actors: [actor("A"), actor("p1", { partId: "g" })], flow: [step("A", "A")] }),
+      makeDoc("swimlane", {
+        actors: [actor("A"), actor("p1", { partId: "g", posX: 900, posY: 600 })],
+        flow: [step("A", "A")],
+      }),
       { partsCatalog: { g: PART() } },
     );
     expect(d.lanes.some((l) => l.id === "p1")).toBe(false);
     expect(d.lanes.some((l) => l.id === "p1__l")).toBe(true);
+  });
+
+  it("lane 指定も位置も無ければ、parts actor の lane に張替え part 専用 lane を作らない (#1980)", () => {
+    const d = compileToCdl(
+      makeDoc("swimlane", { actors: [actor("A"), actor("p1", { partId: "g" })], flow: [step("A", "A")] }),
+      { partsCatalog: { g: PART() } },
+    );
+    expect(d.lanes.some((l) => l.id === "p1")).toBe(true);
+    expect(node(d, "p1__n").lane).toBe("p1");
+    expect(d.lanes.some((l) => l.id === "p1__l")).toBe(false);
   });
 });
 
