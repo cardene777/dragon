@@ -288,19 +288,23 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
  * 「押すと出て、戻すと消える」 という主張は同じ。 1 種ずつ書くと片方だけ直して drift する。
  */
 test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)", () => {
+  /**
+   * `切替の数` は元の見本を含むパターンの数。 棒グラフだけ 3 = 段の途中で伸ばし終える変種
+   * (`drawRatio`) を同じ見本に束ねている (#1969)。
+   */
   const 種別 = [
-    { 名: "棒グラフ", 役割: "chart-bar-previous", 件数: 4 },
-    { 名: "同心の弧", 役割: "chart-radial-previous", 件数: 4 },
-    { 名: "半円ゲージ", 役割: "chart-gauge-previous", 件数: 3 },
+    { 名: "棒グラフ", 役割: "chart-bar-previous", 件数: 4, 切替の数: 3 },
+    { 名: "同心の弧", 役割: "chart-radial-previous", 件数: 4, 切替の数: 2 },
+    { 名: "半円ゲージ", 役割: "chart-gauge-previous", 件数: 3, 切替の数: 2 },
   ] as const;
 
-  for (const { 名, 役割, 件数 } of 種別) {
+  for (const { 名, 役割, 件数, 切替の数 } of 種別) {
     test(`${名} で 前の値つき を選ぶと前の時点が出る`, async ({ page }) => {
       await 開く(page, 名);
       const 前 = page.locator(`.catalog-preview-stage [data-cdl-role="${役割}"]`);
       await expect(
         page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio"),
-      ).toHaveCount(2);
+      ).toHaveCount(切替の数);
       await expect(page.getByRole("radio", { name: "今だけ" })).toHaveAttribute(
         "aria-checked",
         "true",

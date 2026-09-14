@@ -35,6 +35,15 @@ import { shoot, measure, type Box } from "./helpers/pixel-contrast";
  */
 const 対象 = "catalog/primitives";
 
+/**
+ * 区切り線を持つ見本。 値の欄の上に横線が入る。
+ *
+ * **開いた時の見本に頼らず選ぶ** (#1969)。 一覧の並びは書き出し名の順で、見本を足すと先頭が
+ * 入れ替わる (実測 = `flowDirection` を足すと先頭が `kindActor` から替わり、区切り線が 0 本に
+ * なって `scrollIntoViewIfNeeded` が待ち切れずに落ちた)。
+ */
+const 見本 = "kind-actor";
+
 const 役割 = '[data-cdl-role="node-row-divider"]';
 
 /** 非文字要素の対比の下限 (WCAG 2.x)。 */
@@ -43,6 +52,7 @@ const 下限 = 3.0;
 async function 開く(page: Page, 暗い: boolean): Promise<void> {
   await page.goto(対象);
   await page.waitForLoadState("networkidle");
+  await page.locator("aside.catalog-sidebar .catalog-list-item", { hasText: 見本 }).first().click();
   if (暗い) await page.evaluate(() => document.documentElement.classList.add("dark"));
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(1800);

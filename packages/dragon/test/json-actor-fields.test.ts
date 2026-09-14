@@ -44,6 +44,8 @@ const 対応表: Record<string, 対応> = {
   initial: { 記法: "initial: true", json: { initial: true } },
   final: { 記法: "final: true", json: { final: true } },
   tone: { 記法: "tone: success", json: { tone: "success" } },
+  // 色の欄 (#1969)。 中括弧の形だけが読めなかった。 名前は箱の色、`#` で始まる値は色番号
+  color: { 記法: 'color: "成功"', json: { color: "success" } },
   nodes: {
     記法: "nodes: { header: { posX: 10, posY: 20 } }",
     json: { nodes: { header: { posX: 10, posY: 20 } } },
@@ -95,7 +97,8 @@ const 記法だけの別名: Record<string, string> = {
 /**
  * 見本 (parts) でだけ意味を持つ項目。
  *
- * 記法では見本の状態の上書きとして読まれるため `INLINE_ACTOR_KEYS` には載らない。
+ * 記法の見本では状態の上書きとして読まれる。 `state` は `INLINE_ACTOR_KEYS` に載らず、`color` は
+ * 見本でない箱の色の欄として載る (#1969)。
  * 下の describe が 1 件ずつ実際に効くことを確かめ、schema の検査もここを出どころにする。
  */
 const 見本だけの項目 = ["state", "color"] as const;

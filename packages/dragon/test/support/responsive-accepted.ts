@@ -174,6 +174,8 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       { id: "interactive-formula-text-bare", 器: ["一覧"] },
       { id: "interactive-grid-matrix", 器: ["一覧"] },
       { id: "interactive-input-variety", 器: ["一覧"] },
+      // 文字の入力を日時の入力に替えた変種 (#1969)。 元の図と同じ組み立てで、幅も同じ
+      { id: "スライダ-複数選択-タブ-日時の-4-入力を並べる", 器: ["一覧"] },
       { id: "interactive-kpi-bullet", 器: ["一覧"] },
       { id: "interactive-login-otp-verify", 器: ["一覧"] },
       { id: "interactive-matrix-heatmap", 器: ["一覧"] },

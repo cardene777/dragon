@@ -1,5 +1,6 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { PhaseBuilder } from "@cardenelabs/cdl";
+import { textDslToDiagram } from "@cardenelabs/dragon";
 
 /**
  * Catalog - Interactive ... input widget / reactive state + formula / scroll-driven trigger /
@@ -27515,6 +27516,465 @@ export const sourceJson__eventVariety = `{
     }
   ]
 }`;
+
+// ---- 動かす・落とす操作と、箱の外 (矢印 / 縦列 / 図全体) で受け取る操作 (#1969) ----
+//
+// 出来事の種類 9 つのうち `drag` と `drop` は他の見本に無く、相手も箱 (`box:`) しか見本が無かった。
+// 1 枚の図で残る 2 種類と 3 つの相手を全て受け取り、どれを受け取っても右下の箱が変わる形にする。
+// 受け取り手の中身は `apps/playground-spa/src/lib/catalog-handlers.ts` が持つ。
+export const sourceYaml__eventTargets = `title: "矢印や縦列や図全体でも操作を受け取る"
+type: flow
+
+inputs:
+  lastEvent: { kind: dropdown, options: ["まだ無し", "動かした", "落とした", "矢印を押した", "縦列を押した", "図に入った", "図から出た"], defaultValue: "まだ無し", label: "直近に受け取った操作" }
+  received: { kind: stepper, min: 0, max: 99, defaultValue: 0, label: "受け取った回数" }
+
+lanes:
+  move: { x: 0, width: 300, label: "箱で受け取る" }
+  frame: { x: 380, width: 340, contain: true, label: "縦列で受け取る" }
+
+actors:
+  - 動かす箱: { kind: card, lane: move, stack: 0, subtitle: "押したまま動かす" }
+  - 落とす先: { kind: card, lane: move, stack: 1, subtitle: "選んだ文字を引いて落とす" }
+  - 窓口: { kind: card, lane: frame, stack: 0, subtitle: "矢印の行き先" }
+  - 受け取った結果: { kind: card, lane: frame, stack: 1, subtitle: "{lastEvent} · 累計 {received} 回", posW: 260 }
+
+flow:
+  - 動かす箱 -> 窓口: "押せる矢印" (info)
+
+events:
+  - { on: drag, box: "動かす箱", handler: "on-drag" }
+  - { on: drop, box: "落とす先", handler: "on-drop" }
+  - { on: click, arrow: "動かす箱 -> 窓口", handler: "on-arrow" }
+  - { on: click, lane: frame, handler: "on-lane" }
+  - { on: hover, diagram: true, handler: "on-diagram" }
+
+animation:
+  - step: "箱を動かす・落とす" 1.6s
+    focus: ["動かす箱", "落とす先", "受け取った結果"]
+    description: "左上の箱は押したまま動かすと受け取る。 左下の箱は、画面の文字を選んで引いてきて落とすと受け取る。"
+  - step: "矢印と縦列を押す" 1.6s
+    focus: ["動かす箱", "窓口", "受け取った結果"]
+    description: "2 つの箱を結ぶ矢印を押すと受け取る。 右の点線で囲んだ縦列は、箱の無い所を押すと受け取る。"
+  - step: "図に出入りする" 1.6s
+    focus: ["動かす箱", "落とす先", "窓口", "受け取った結果"]
+    description: "図全体は、指し示す先が図の上に来た時と離れた時の 2 つを受け取る。 どの操作も右下の箱に名前と累計を書く。"
+`;
+
+export const sourceJson__eventTargets = `{
+  "title": "矢印や縦列や図全体でも操作を受け取る",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "lastEvent",
+      "kind": "dropdown",
+      "options": ["まだ無し", "動かした", "落とした", "矢印を押した", "縦列を押した", "図に入った", "図から出た"],
+      "defaultValue": "まだ無し",
+      "label": "直近に受け取った操作"
+    },
+    {
+      "id": "received",
+      "kind": "stepper",
+      "min": 0,
+      "max": 99,
+      "defaultValue": 0,
+      "label": "受け取った回数"
+    }
+  ],
+  "lanes": {
+    "move": { "x": 0, "width": 300, "label": "箱で受け取る" },
+    "frame": { "x": 380, "width": 340, "contain": true, "label": "縦列で受け取る" }
+  },
+  "actors": [
+    { "name": "動かす箱", "kind": "card", "lane": "move", "stack": 0, "subtitle": "押したまま動かす" },
+    { "name": "落とす先", "kind": "card", "lane": "move", "stack": 1, "subtitle": "選んだ文字を引いて落とす" },
+    { "name": "窓口", "kind": "card", "lane": "frame", "stack": 0, "subtitle": "矢印の行き先" },
+    {
+      "name": "受け取った結果",
+      "kind": "card",
+      "lane": "frame",
+      "stack": 1,
+      "subtitle": "{lastEvent} · 累計 {received} 回",
+      "posW": 260
+    }
+  ],
+  "flow": [
+    { "from": "動かす箱", "to": "窓口", "label": "押せる矢印", "tone": "info" }
+  ],
+  "events": [
+    { "on": "drag", "box": "動かす箱", "handler": "on-drag" },
+    { "on": "drop", "box": "落とす先", "handler": "on-drop" },
+    { "on": "click", "arrow": "動かす箱 -> 窓口", "handler": "on-arrow" },
+    { "on": "click", "lane": "frame", "handler": "on-lane" },
+    { "on": "hover", "diagram": true, "handler": "on-diagram" }
+  ],
+  "animation": [
+    {
+      "step": "箱を動かす・落とす",
+      "duration": 1.6,
+      "focus": ["動かす箱", "落とす先", "受け取った結果"],
+      "body": "左上の箱は押したまま動かすと受け取る。 左下の箱は、画面の文字を選んで引いてきて落とすと受け取る。"
+    },
+    {
+      "step": "矢印と縦列を押す",
+      "duration": 1.6,
+      "focus": ["動かす箱", "窓口", "受け取った結果"],
+      "body": "2 つの箱を結ぶ矢印を押すと受け取る。 右の点線で囲んだ縦列は、箱の無い所を押すと受け取る。"
+    },
+    {
+      "step": "図に出入りする",
+      "duration": 1.6,
+      "focus": ["動かす箱", "落とす先", "窓口", "受け取った結果"],
+      "body": "図全体は、指し示す先が図の上に来た時と離れた時の 2 つを受け取る。 どの操作も右下の箱に名前と累計を書く。"
+    }
+  ]
+}`;
+
+export const eventTargets = textDslToDiagram(sourceYaml__eventTargets);
+
+// ==== #1969 入力の欄の見本 ここから ====
+// ---- 時間の入力の速さの選択肢 (speeds / defaultSpeedIdx、#1969) ----
+
+export const patternBase__timelineDrive = "既定の速さ";
+
+export const sourceYaml__pattern__timelineDrive__速さを選ぶ = `title: "速さの選択肢を変えた時間信号で図形 2 種を動かす"
+type: flow
+
+inputs:
+  t: { kind: timeline, duration: 3000, autoplay: true, loop: true, speeds: [0.5, 1, 3], defaultSpeedIdx: 2, label: "時間" }
+
+readouts:
+  timeCu: { kind: countup, source: "bar", unit: "%", label: "時間 (%)" }
+
+formulas:
+  bar: { expression: "t * 100", label: "棒の長さ" }
+  angle: { expression: "t * 270", label: "弧の角度" }
+
+lanes:
+  time: { x: 0, width: 200 }
+  bar: { x: 240, width: 180 }
+  arc: { x: 440, width: 220 }
+
+states:
+  t: 0
+  bar: 0
+  angle: 0
+
+actors:
+  - timeNode: { kind: card, lane: time, stack: 0, subtitle: "t は 0〜1 を 3 秒でくり返す", title: "時間" }
+  - r: { kind: dyn-rect, lane: bar, stack: 0, subtitle: "棒 = t × 100", shape: { kind: rect, source: "{bar}", fillMax: 100, orient: "up", fill: "#8a5a2a" }, posW: 80, posH: 200, title: "棒 (四角)" }
+  - a: { kind: dyn-arc, lane: arc, stack: 0, subtitle: "角度 = t × 270", shape: { kind: arc, angle: "{angle}", startAngle: -135, sweepMax: 270, fill: "#4e9dc4" }, posW: 140, posH: 140, title: "弧" }
+
+flow:
+  - timeNode -> r: "→ 棒" (info)
+  - timeNode -> a: "→ 角度" (accent) { labelOffsetX: -45 }
+
+animation:
+  - step: "時間の元を見る" 1.8s
+    focus: ["timeNode"]
+    description: "時間の入力が元になる。 速さの選択肢を 0.5 / 1 / 3 倍にし、開いた時は 3 つ目の 3 倍で進む。"
+  - step: "四角に届く" 1.8s
+    focus: ["timeNode", "r"]
+    description: "計算式の値で四角の高さが決まる。 時間が進むと自動で変わる。"
+  - step: "弧にも届く" 1.8s
+    focus: ["timeNode", "r", "a"]
+    description: "弧の角度は別の計算式 (時間の 270 倍) で決まる。 同じ時間から別々の値を導く。"
+`;
+
+export const sourceJson__pattern__timelineDrive__速さを選ぶ = `{
+  "title": "速さの選択肢を変えた時間信号で図形 2 種を動かす",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "t",
+      "kind": "timeline",
+      "duration": 3000,
+      "autoplay": true,
+      "loop": true,
+      "speeds": [0.5, 1, 3],
+      "defaultSpeedIdx": 2,
+      "label": "時間"
+    }
+  ],
+  "readouts": [
+    { "id": "timeCu", "kind": "countup", "source": "bar", "unit": "%", "label": "時間 (%)" }
+  ],
+  "formulas": {
+    "bar": { "expression": "t * 100", "label": "棒の長さ" },
+    "angle": { "expression": "t * 270", "label": "弧の角度" }
+  },
+  "lanes": {
+    "time": { "x": 0, "width": 200 },
+    "bar": { "x": 240, "width": 180 },
+    "arc": { "x": 440, "width": 220 }
+  },
+  "actors": [
+    {
+      "name": "timeNode",
+      "kind": "card",
+      "lane": "time",
+      "stack": 0,
+      "subtitle": "t は 0〜1 を 3 秒でくり返す",
+      "title": "時間"
+    },
+    {
+      "name": "r",
+      "kind": "dyn-rect",
+      "lane": "bar",
+      "stack": 0,
+      "subtitle": "棒 = t × 100",
+      "shape": { "kind": "rect", "source": "{bar}", "fillMax": 100, "orient": "up", "fill": "#8a5a2a" },
+      "posW": 80,
+      "posH": 200,
+      "title": "棒 (四角)"
+    },
+    {
+      "name": "a",
+      "kind": "dyn-arc",
+      "lane": "arc",
+      "stack": 0,
+      "subtitle": "角度 = t × 270",
+      "shape": {
+        "kind": "arc",
+        "angle": "{angle}",
+        "startAngle": -135,
+        "sweepMax": 270,
+        "fill": "#4e9dc4"
+      },
+      "posW": 140,
+      "posH": 140,
+      "title": "弧"
+    }
+  ],
+  "flow": [
+    { "from": "timeNode", "to": "r", "label": "→ 棒", "tone": "info" },
+    { "from": "timeNode", "to": "a", "label": "→ 角度", "tone": "accent", "labelOffsetX": -45 }
+  ],
+  "states": { "t": 0, "bar": 0, "angle": 0 },
+  "animation": [
+    {
+      "step": "時間の元を見る",
+      "duration": 1.8,
+      "focus": ["timeNode"],
+      "body": "時間の入力が元になる。 速さの選択肢を 0.5 / 1 / 3 倍にし、開いた時は 3 つ目の 3 倍で進む。"
+    },
+    {
+      "step": "四角に届く",
+      "duration": 1.8,
+      "focus": ["timeNode", "r"],
+      "body": "計算式の値で四角の高さが決まる。 時間が進むと自動で変わる。"
+    },
+    {
+      "step": "弧にも届く",
+      "duration": 1.8,
+      "focus": ["timeNode", "r", "a"],
+      "body": "弧の角度は別の計算式 (時間の 270 倍) で決まる。 同じ時間から別々の値を導く。"
+    }
+  ]
+}`;
+
+export const pattern__timelineDrive__速さを選ぶ = textDslToDiagram(sourceYaml__pattern__timelineDrive__速さを選ぶ);
+
+// ---- 日時の入力 (kind: datetime、#1969) ----
+//
+// 入力の種類のうち日時だけが見本を持たなかった。 4 つの入力を並べる見本の 4 つ目を日時に替える。
+
+export const patternBase__inputVariety = "文字の入力";
+
+export const sourceYaml__pattern__inputVariety__日時の入力 = `title: "スライダー / 複数選択 / タブ / 日時の 4 入力を並べる"
+type: flow
+
+inputs:
+  priceRange: { kind: range, min: 0, max: 1000, defaultLo: 200, defaultHi: 700, label: "価格の範囲" }
+  tags: { kind: multi-select, options: ["新着", "値下げ", "人気", "おすすめ"], defaultValues: ["新着"], label: "札" }
+  view: { kind: tabs, options: ["格子", "一覧", "詰めた一覧"], defaultValue: "格子", label: "表示の形" }
+  due: { kind: datetime, defaultValue: "2026-09-14T10:00", label: "期限" }
+
+lanes:
+  range: { x: 0, width: 360 }
+  multi: { x: 380, width: 360 }
+  tabs: { x: 760, width: 230 }
+  date: { x: 1010, width: 320 }
+
+states:
+  priceRange: "200,700"
+  tags: "新着"
+  view: "格子"
+  due: "2026-09-14T10:00"
+
+actors:
+  - rangeNode: { kind: card, lane: range, stack: 0, subtitle: "価格 = {priceRange}", posW: 310, title: "範囲のつまみ" }
+  - multiNode: { kind: card, lane: multi, stack: 0, subtitle: "札 = {tags}", posW: 310, title: "複数選択" }
+  - tabsNode: { kind: card, lane: tabs, stack: 0, subtitle: "表示 = {view}", posW: 180, title: "タブ" }
+  - dateNode: { kind: card, lane: date, stack: 0, subtitle: "期限 = {due}", posW: 270, title: "日時の入力" }
+
+animation:
+  - step: "数を選ぶ" 1.6s
+    focus: ["rangeNode"]
+    description: "つまみで数の範囲を選ぶ。 4 種類の入力のうち 1 つ目。"
+  - step: "複数選ぶ" 1.6s
+    focus: ["rangeNode", "multiNode"]
+    description: "札を複数選べる入力を加える。 選んだ数だけ値が増える。"
+  - step: "切り替える" 1.6s
+    focus: ["rangeNode", "multiNode", "tabsNode"]
+    description: "タブで表示を切り替える入力を加える。 1 つだけ選ぶ形。"
+  - step: "日時を選ぶ" 1.6s
+    focus: ["rangeNode", "multiNode", "tabsNode", "dateNode"]
+    description: "日時を選ぶ入力まで並ぶ。 選んだ日時は年月日と時刻の文字として状態に入る。"
+`;
+
+export const sourceJson__pattern__inputVariety__日時の入力 = `{
+  "title": "スライダー / 複数選択 / タブ / 日時の 4 入力を並べる",
+  "type": "flow",
+  "inputs": [
+    {
+      "id": "priceRange",
+      "kind": "range",
+      "min": 0,
+      "max": 1000,
+      "defaultLo": 200,
+      "defaultHi": 700,
+      "label": "価格の範囲"
+    },
+    {
+      "id": "tags",
+      "kind": "multi-select",
+      "options": [
+        "新着",
+        "値下げ",
+        "人気",
+        "おすすめ"
+      ],
+      "defaultValues": [
+        "新着"
+      ],
+      "label": "札"
+    },
+    {
+      "id": "view",
+      "kind": "tabs",
+      "options": [
+        "格子",
+        "一覧",
+        "詰めた一覧"
+      ],
+      "defaultValue": "格子",
+      "label": "表示の形"
+    },
+    {
+      "id": "due",
+      "kind": "datetime",
+      "defaultValue": "2026-09-14T10:00",
+      "label": "期限"
+    }
+  ],
+  "lanes": {
+    "range": {
+      "x": 0,
+      "width": 360
+    },
+    "multi": {
+      "x": 380,
+      "width": 360
+    },
+    "tabs": {
+      "x": 760,
+      "width": 230
+    },
+    "date": {
+      "x": 1010,
+      "width": 320
+    }
+  },
+  "actors": [
+    {
+      "name": "rangeNode",
+      "kind": "card",
+      "lane": "range",
+      "stack": 0,
+      "subtitle": "価格 = {priceRange}",
+      "posW": 310,
+      "title": "範囲のつまみ"
+    },
+    {
+      "name": "multiNode",
+      "kind": "card",
+      "lane": "multi",
+      "stack": 0,
+      "subtitle": "札 = {tags}",
+      "posW": 310,
+      "title": "複数選択"
+    },
+    {
+      "name": "tabsNode",
+      "kind": "card",
+      "lane": "tabs",
+      "stack": 0,
+      "subtitle": "表示 = {view}",
+      "posW": 180,
+      "title": "タブ"
+    },
+    {
+      "name": "dateNode",
+      "kind": "card",
+      "lane": "date",
+      "stack": 0,
+      "subtitle": "期限 = {due}",
+      "posW": 270,
+      "title": "日時の入力"
+    }
+  ],
+  "flow": [],
+  "states": {
+    "priceRange": "200,700",
+    "tags": "新着",
+    "view": "格子",
+    "due": "2026-09-14T10:00"
+  },
+  "animation": [
+    {
+      "step": "数を選ぶ",
+      "duration": 1.6,
+      "focus": [
+        "rangeNode"
+      ],
+      "body": "つまみで数の範囲を選ぶ。 4 種類の入力のうち 1 つ目。"
+    },
+    {
+      "step": "複数選ぶ",
+      "duration": 1.6,
+      "focus": [
+        "rangeNode",
+        "multiNode"
+      ],
+      "body": "札を複数選べる入力を加える。 選んだ数だけ値が増える。"
+    },
+    {
+      "step": "切り替える",
+      "duration": 1.6,
+      "focus": [
+        "rangeNode",
+        "multiNode",
+        "tabsNode"
+      ],
+      "body": "タブで表示を切り替える入力を加える。 1 つだけ選ぶ形。"
+    },
+    {
+      "step": "日時を選ぶ",
+      "duration": 1.6,
+      "focus": [
+        "rangeNode",
+        "multiNode",
+        "tabsNode",
+        "dateNode"
+      ],
+      "body": "日時を選ぶ入力まで並ぶ。 選んだ日時は年月日と時刻の文字として状態に入る。"
+    }
+  ]
+}`;
+
+export const pattern__inputVariety__日時の入力 = textDslToDiagram(sourceYaml__pattern__inputVariety__日時の入力);
+// ==== #1969 入力の欄の見本 ここまで ====
 
 export const sourceYaml__scrollNarrative = `title: "スクロール進行に 3 つの段が同時に追随する"
 type: flow

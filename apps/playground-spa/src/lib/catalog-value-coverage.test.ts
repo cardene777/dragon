@@ -34,9 +34,29 @@
  *
  * 図表の中身・工程・枝の色 (`chartData[].tone` 等) は数えない。 `catalog-payload-coverage.test.tsx` が
  * 「色だけが変わる欄は見本を求めない」 と決めており、2 つの検査で判断を分けない。
+ *
+ * ## 記法で書ける欄は型定義から数える (#1969)
+ *
+ * 上の軸は描画側の図 (`CdlDiagram`) の欄を読む。 記法にしか無い欄 (並ぶ向き・始まりと終わりの印・
+ * 矢印の端の塗り・入力の種類など) は図に写ると別の形になるため、軸を並べても数え落とした。
+ * 実測で JSON の型定義の欄と列挙値 552 個のうち 64 個が、カタログのどの JSON にも書かれていなかった。
+ *
+ * そこで記法の JSON の型定義 (`diagramJsonSchema`) を歩いて欄の道と列挙値を全て集め、カタログの
+ * JSON に書かれた道と突き合わせる。 書かれていない道は、下の 4 つの覆い方のどれかに載せる。
+ *
+ * | 覆い方 | 意味 | 裏取り |
+ * |---|---|---|
+ * | 色の別名 | 同じ色の別の書き方 (`成功` は `success`) | 別名の指す色が同じ欄に書かれている |
+ * | 既定 | 書かない図が同じ見え方になる | 書いた図と書かない図の描画が一致する |
+ * | 画面の切替 | 画面の `オプション` の切替が全ての値を持つ | 切替の選択肢の数が値の数と一致する |
+ * | 直してから見本 | 見本を置く前に直す不具合がある | Issue 番号を持ち、道がまだ書かれていない |
  */
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
+import { TONE_ALIAS, diagramJsonSchema, jsonToDiagram } from "@cardenelabs/dragon";
 import {
+  CdlDiagramView,
   EDGE_HEADS,
   EDGE_HEAD_DEFAULT,
   EDGE_HEAD_FILLS,
@@ -57,6 +77,7 @@ import {
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
 import { 円の見せ方の選択肢 } from "./chart-pie-options";
 import { 傾きの見せ方の選択肢 } from "./chart-slope-options";
+import { 配色の選択肢 } from "./palette-switch";
 
 type 覆い方 = "見本" | "既定" | "画面の切替";
 type 素 = Record<string, unknown>;
@@ -424,5 +445,310 @@ describe("欄が取る値を、カタログが全て見せている (#1966)", ()
     expect(値を解く(図, "{気持ち}").sort()).toEqual(["angry", "happy"]);
     expect(値を解く(図, "neutral")).toEqual(["neutral"]);
     expect(値を解く(図, undefined)).toEqual([]);
+  });
+});
+
+/**
+ * 型定義を歩き、欄の道 (`$.actors[].kind`) と列挙値 (`$.actors[].kind=card`) を全て集める。
+ *
+ * 自由な名前を鍵に取る組 (`lanes` や `states`) は `.*` で表す。 同じ型を参照で辿り直す形
+ * (入れ子の組) は、同じ道筋で 2 度目に出会った所で止める。
+ */
+function 型定義の道を集める(): Set<string> {
+  const 根 = diagramJsonSchema as unknown as 素;
+  const 出 = new Set<string>();
+  const 歩く = (s: unknown, 道: string, 通った: ReadonlySet<unknown>): void => {
+    if (!s || typeof s !== "object") return;
+    const 型 = s as 素;
+    if (typeof 型.$ref === "string") {
+      const 先 = 型.$ref
+        .replace(/^#\//, "")
+        .split("/")
+        .reduce<unknown>((a, k) => (a as 素 | undefined)?.[k], 根);
+      // 辿れない参照を黙って飛ばすと、その先の欄が丸ごと数えられない
+      if (先 === undefined) throw new Error(`型定義の参照を辿れない: ${型.$ref}`);
+      if (通った.has(先)) return;
+      歩く(先, 道, new Set([...通った, 先]));
+      return;
+    }
+    for (const 組 of ["oneOf", "anyOf", "allOf"]) {
+      for (const x of (型[組] as unknown[] | undefined) ?? []) 歩く(x, 道, 通った);
+    }
+    if (Array.isArray(型.enum)) for (const v of 型.enum) 出.add(`${道}=${String(v)}`);
+    if (型.const !== undefined) 出.add(`${道}=${String(型.const)}`);
+    for (const [k, v] of Object.entries((型.properties as 素 | undefined) ?? {})) {
+      出.add(`${道}.${k}`);
+      歩く(v, `${道}.${k}`, 通った);
+    }
+    if (型.additionalProperties && typeof 型.additionalProperties === "object") {
+      歩く(型.additionalProperties, `${道}.*`, 通った);
+    }
+    if (型.items && typeof 型.items === "object") 歩く(型.items, `${道}[]`, 通った);
+  };
+  歩く(根, "$", new Set());
+  return 出;
+}
+
+/** 鍵が自由な組の道 (`$.lanes` 等)。 型定義の道のうち `.*` の手前を集める */
+const 鍵が自由な道 = (型の道: ReadonlySet<string>): Set<string> =>
+  new Set(
+    [...型の道].flatMap((p) => {
+      const i = p.indexOf(".*");
+      return i >= 0 ? [p.slice(0, i)] : [];
+    }),
+  );
+
+/** 記法の JSON 1 つに書かれた欄の道と値を集める */
+function 書かれた道(json: unknown, 自由: ReadonlySet<string>): Set<string> {
+  const 出 = new Set<string>();
+  const 歩く = (v: unknown, 道: string): void => {
+    if (Array.isArray(v)) {
+      for (const x of v) 歩く(x, `${道}[]`);
+      return;
+    }
+    if (v && typeof v === "object") {
+      for (const [k, x] of Object.entries(v as 素)) {
+        const 次 = 自由.has(道) ? `${道}.*` : `${道}.${k}`;
+        if (!自由.has(道)) 出.add(次);
+        歩く(x, 次);
+      }
+      return;
+    }
+    出.add(`${道}=${String(v)}`);
+  };
+  歩く(json, "$");
+  return 出;
+}
+
+/** 見本 1 つが持つ記法の JSON。 変種は変種ごとに持つ (`図たち` と同じ数え方) */
+const JSONたち = (item: CatalogItem): string[] =>
+  (item.patterns && item.patterns.length > 0
+    ? item.patterns.map((p) => p.sourceJson)
+    : [item.sourceJson]
+  ).filter((j): j is string => typeof j === "string");
+
+type 道の覆い方 =
+  | { 種類: "既定"; 別の値: string }
+  | { 種類: "画面の切替"; 選択肢: readonly string[] }
+  | { 種類: "直してから見本"; Issue: number; 理由: string };
+
+/** 位置の欄の見本は、JSON の位置の欄の不具合を直してから置く */
+const 位置の欄: 道の覆い方 = {
+  種類: "直してから見本",
+  Issue: 1971,
+  理由: "位置の欄の見本を JSON で書くと記法と別の図になる",
+};
+/** 見本 (parts) にだけ効く欄は、見本を図に埋める経路を直してから置く */
+const 部品の欄: 道の覆い方 = {
+  種類: "直してから見本",
+  Issue: 1973,
+  理由: "見本を埋めた図で状態と倍率が効くことを確かめられる形になっていない",
+};
+/** 組の枠は、枠が縦列を囲まない不具合を直してから置く */
+const 組の欄: 道の覆い方 = {
+  種類: "直してから見本",
+  Issue: 1972,
+  理由: "組の枠が並べた縦列を囲まずに離れた場所へ描かれる",
+};
+
+/**
+ * カタログの JSON に書かれていない道と、その覆い方。
+ *
+ * **色の別名はここに並べない**。 `成功` と `success` の対応は `TONE_ALIAS` が持ち、下の検査が表から導く。
+ */
+const 道の覆い方表: Record<string, 道の覆い方> = {
+  // 書かない図は段ごとに矢印を出し、触れた箱を光らせない
+  "$.reveal=phase": { 種類: "既定", 別の値: "all" },
+  "$.relations=off": { 種類: "既定", 別の値: "hover" },
+  "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
+  "$.actors[].pos": 位置の欄,
+  "$.actors[].pos.x": 位置の欄,
+  "$.actors[].pos.y": 位置の欄,
+  "$.actors[].nodes": 位置の欄,
+  "$.actors[].nodes.*.posX": 位置の欄,
+  "$.actors[].nodes.*.posY": 位置の欄,
+  "$.actors[].nodes.*.posW": 位置の欄,
+  "$.actors[].nodes.*.posH": 位置の欄,
+  "$.flow[].pos": 位置の欄,
+  "$.flow[].pos.x": 位置の欄,
+  "$.flow[].pos.y": 位置の欄,
+  "$.lanes.*.pos": 位置の欄,
+  "$.lanes.*.pos.x": 位置の欄,
+  "$.lanes.*.pos.y": 位置の欄,
+  "$.actors[].scale": 部品の欄,
+  "$.actors[].state": 部品の欄,
+  "$.groups": 組の欄,
+  "$.groups.*.label": 組の欄,
+  "$.groups.*.lanes": 組の欄,
+  "$.readouts[].colorSource": {
+    種類: "直してから見本",
+    Issue: 1974,
+    理由: "札の描画が色の出どころの欄を読まず、書いても札の色が変わらない",
+  },
+};
+
+/** 色の欄に書いた別名 (`$.actors[].tone=成功`) なら、欄の道と別名の指す色を返す */
+function 色の別名(道: string): { 欄の道: string; 色: string } | undefined {
+  const m = /^(.*\.(?:tone|color))=(.+)$/.exec(道);
+  if (!m) return undefined;
+  const [, 欄の道, 値] = m as unknown as [string, string, string];
+  if (!Object.hasOwn(TONE_ALIAS, 値)) return undefined;
+  const 色 = TONE_ALIAS[値]!;
+  return 色 === 値 ? undefined : { 欄の道, 色 };
+}
+
+/** 書かれておらず、覆い方も持たない道 */
+function 覆われない道(型の道: ReadonlySet<string>, 書いた: ReadonlySet<string>): string[] {
+  return [...型の道]
+    .filter((p) => !書いた.has(p) && !(p in 道の覆い方表) && 色の別名(p) === undefined)
+    .sort();
+}
+
+describe("記法の型定義の全ての欄と値を、カタログの JSON が見せている (#1969)", () => {
+  let 型の道 = new Set<string>();
+  let 自由 = new Set<string>();
+  /** JSON ごとの書かれた道 */
+  let JSONごと: Set<string>[] = [];
+  let 書いた = new Set<string>();
+  let JSON文字列: string[] = [];
+  let 読めない: string[] = [];
+
+  beforeAll(async () => {
+    型の道 = 型定義の道を集める();
+    自由 = 鍵が自由な道(型の道);
+    const 見本 = [...Object.values(CATALOG_ITEMS).flat(), ...(await loadPartsItems())];
+    JSON文字列 = 見本.flatMap(JSONたち);
+    for (const j of JSON文字列) {
+      try {
+        JSONごと.push(書かれた道(JSON.parse(j), 自由));
+      } catch (e) {
+        読めない.push(`${j.slice(0, 40)}… (${String(e)})`);
+      }
+    }
+    書いた = new Set(JSONごと.flatMap((s) => [...s]));
+  });
+
+  it("型定義の道とカタログの JSON を走査できている", () => {
+    expect(
+      型の道.size,
+      "型定義の道を 1 つも集められていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    expect(
+      自由.size,
+      "鍵が自由な組を 1 つも見つけられていない (歩き方が型定義と噛み合っていない)",
+    ).toBeGreaterThan(0);
+    expect(
+      JSON文字列.length,
+      "カタログの JSON を 1 つも集められていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    expect(読めない, "読めない JSON がある (読めない分の道を数え落とす)").toEqual([]);
+    expect(JSONごと.length).toBe(JSON文字列.length);
+  });
+
+  it("型定義の道は、カタログの JSON に書かれているか覆い方を持つ", () => {
+    expect(
+      覆われない道(型の道, 書いた),
+      "カタログの JSON に見本の無い欄か値がある (見本を足すか、覆い方を決める)",
+    ).toEqual([]);
+  });
+
+  it("覆い方の表に載せた道は、型定義にあり、まだ書かれていない", () => {
+    const 型に無い = Object.keys(道の覆い方表).filter((p) => !型の道.has(p));
+    expect(型に無い, "覆い方の表に型定義に無い道がある (綴りの誤りか、型定義から消えた)").toEqual(
+      [],
+    );
+    const 書かれた = Object.keys(道の覆い方表).filter((p) => 書いた.has(p));
+    expect(書かれた, "見本が書かれた道が覆い方の表に残っている (表から外す)").toEqual([]);
+  });
+
+  it("色の別名は、別名の指す色が同じ欄に書かれている", () => {
+    const 別名の道 = [...型の道].filter((p) => !書いた.has(p) && 色の別名(p) !== undefined);
+    expect(別名の道.length, "別名の道を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(
+      0,
+    );
+    const 指す色が無い = 別名の道.filter((p) => {
+      const a = 色の別名(p)!;
+      return !書いた.has(`${a.欄の道}=${a.色}`);
+    });
+    expect(指す色が無い, "別名の指す色の見本が無い").toEqual([]);
+  });
+
+  it("既定と書いた値は、書いた図と書かない図の描画が一致する", () => {
+    const 描く = (json: 素): string => {
+      const d = jsonToDiagram(json);
+      return renderToStaticMarkup(
+        createElement(CdlDiagramView, {
+          diagram: d,
+          hideHeader: true,
+          focusPhaseId: d.phases[0]?.id,
+        }),
+      );
+    };
+    let 確かめた = 0;
+    for (const [道, 覆] of Object.entries(道の覆い方表)) {
+      if (覆.種類 !== "既定") continue;
+      const m = /^\$\.([^.=[\]]+)=(.+)$/.exec(道);
+      expect(m, `${道} は図全体の欄の値の形でない (比べ方が決まらない)`).not.toBeNull();
+      const [, 欄, 既定] = m as unknown as [string, string, string];
+      // 既定でない値を書いた見本で比べる。 消すと見え方が変わる図でないと、比べ方の鈍さと既定を分けられない。
+      // 実測の差の中身 = `reveal: all` は 1 段目から矢印の線が描かれ、`relations: hover` は箱が
+      // 触れて操作できる形 (`role="button"`) になる。 どちらも図の外のしるしだけの差ではない
+      const 元 = JSON文字列.map((j) => JSON.parse(j) as 素).find((j) => j[欄] === 覆.別の値);
+      expect(元, `${欄}: ${覆.別の値} を書いた見本が無い (比べる相手が無い)`).toBeDefined();
+      const 置く = (値: string | undefined): 素 => {
+        const 次 = { ...元! };
+        if (値 === undefined) delete 次[欄];
+        else 次[欄] = 値;
+        return 次;
+      };
+      const 書かない = 描く(置く(undefined));
+      expect(描く(置く(既定)), `${欄}: ${既定} を書くと描画が変わる (既定ではない)`).toBe(書かない);
+      expect(
+        描く(元!),
+        `${欄}: ${覆.別の値} を消しても描画が変わらない (比べ方が効いていない)`,
+      ).not.toBe(書かない);
+      確かめた += 1;
+    }
+    expect(確かめた, "既定の道を 1 つも確かめていない (検査が空振りしている)").toBeGreaterThan(0);
+  });
+
+  it("画面の切替と書いた値は、切替の選択肢の数が型定義の値の数と一致する", () => {
+    let 確かめた = 0;
+    for (const [道, 覆] of Object.entries(道の覆い方表)) {
+      if (覆.種類 !== "画面の切替") continue;
+      const 欄の道 = 道.slice(0, 道.indexOf("="));
+      const 値の数 = [...型の道].filter((p) => p.startsWith(`${欄の道}=`)).length;
+      expect(値の数, `${欄の道} の値を型定義から 1 つも読めていない`).toBeGreaterThan(0);
+      expect(覆.選択肢.length, `${欄の道} の切替の選択肢が値の数と違う`).toBe(値の数);
+      確かめた += 1;
+    }
+    expect(確かめた, "画面の切替を 1 つも確かめていない (検査が空振りしている)").toBeGreaterThan(0);
+  });
+
+  it("直してから見本と書いた道は、Issue 番号と理由を持つ", () => {
+    const 直す = Object.entries(道の覆い方表).filter(([, 覆]) => 覆.種類 === "直してから見本");
+    expect(直す.length, "直してから見本を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(
+      0,
+    );
+    for (const [道, 覆] of 直す) {
+      if (覆.種類 !== "直してから見本") continue;
+      expect(覆.Issue, `${道} の Issue 番号が無い`).toBeGreaterThan(0);
+      expect(覆.理由.trim(), `${道} の理由が空`).not.toBe("");
+    }
+  });
+
+  it("最上位の欄を書いた JSON を外すと、その欄が足りないと見つかる (植え込み対照)", () => {
+    const 最上位 = [...書いた].filter((p) => /^\$\.[^.=[\]*]+$/.test(p) && !(p in 道の覆い方表));
+    expect(最上位.length, "最上位の欄を 1 つも見ていない (検査が空振りしている)").toBeGreaterThan(
+      0,
+    );
+    const 見つけられない = 最上位.filter((p) => {
+      const 残り = new Set(JSONごと.filter((s) => !s.has(p)).flatMap((s) => [...s]));
+      return !覆われない道(型の道, 残り).includes(p);
+    });
+    expect(
+      見つけられない,
+      "外しても足りないと見つからない欄がある (突き合わせが効いていない)",
+    ).toEqual([]);
   });
 });

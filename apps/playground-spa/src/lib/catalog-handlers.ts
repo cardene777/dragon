@@ -108,6 +108,83 @@ function createLongPress(label: string): InteractiveHandlerMap[string] {
 }
 
 /**
+ * 押したまま一定の距離を動かした時点で 1 回だけ受け取る (`eventTargets` のドラッグ)。
+ *
+ * `cdl` は `drag` に `pointerdown` / `pointermove` / `pointerup` の 3 つをそのまま渡すだけで、
+ * 距離を測らない。 何もしないと押しただけ・動かすたびに受け取り、1 回のドラッグで累計が数十増える。
+ *
+ * **押下を図の移動へ渡さない**。 カタログの図は掴んで動かせる (`useDiagramPanZoom`)。 押下が
+ * 器まで届くと、動かし始めた時点で器が指を捕まえ、以降の `pointermove` が箱へ届かなくなる。
+ * 箱の側で指を捕まえ直すのは、箱の外まで動かしても動きを追うため。
+ *
+ * 押下は長押しと同じく **要素と指の組** で分ける (一覧と拡大表示が受け取り手を共有する)。
+ */
+const DRAG_THRESHOLD_PX = 6;
+function createDrag(label: string): InteractiveHandlerMap[string] {
+  const pressed = new WeakMap<
+    EventTarget,
+    Map<number, { x: number; y: number; received: boolean }>
+  >();
+  const receive = receiveAs(label);
+
+  return (event, signals) => {
+    const target = event.currentTarget ?? event.target;
+    if (!target) return;
+    const pointer = event as PointerEvent;
+    const pointerId = pointer.pointerId ?? 0;
+    const byPointer =
+      pressed.get(target) ?? new Map<number, { x: number; y: number; received: boolean }>();
+    pressed.set(target, byPointer);
+
+    if (event.type === "pointerdown") {
+      event.stopPropagation();
+      (target as { setPointerCapture?: (id: number) => void }).setPointerCapture?.(pointerId);
+      byPointer.set(pointerId, { x: pointer.clientX, y: pointer.clientY, received: false });
+      return;
+    }
+    const start = byPointer.get(pointerId);
+    if (!start) return;
+    if (event.type !== "pointermove") {
+      byPointer.delete(pointerId);
+      return;
+    }
+    if (start.received) return;
+    if (Math.hypot(pointer.clientX - start.x, pointer.clientY - start.y) < DRAG_THRESHOLD_PX)
+      return;
+    start.received = true;
+    receive(event, signals);
+  };
+}
+
+/**
+ * 落とされた時に受け取る (`eventTargets` の落とす先)。
+ *
+ * `cdl` は `drop` に `dragover` と `drop` の 2 つを渡す。 **`dragover` を止めないと `drop` が
+ * 来ない** (ブラウザは既定で落とすことを許さない)。 `drop` も止める = 止めないとファイルを
+ * 落とした時にブラウザがそのファイルを開き、カタログの画面から離れる。
+ */
+function createDrop(label: string): InteractiveHandlerMap[string] {
+  const receive = receiveAs(label);
+  return (event, signals) => {
+    event.preventDefault();
+    if (event.type !== "drop") return;
+    receive(event, signals);
+  };
+}
+
+/**
+ * 図に入った時と出た時で別の名前を残す (`eventTargets` の図全体)。
+ *
+ * `hover` は `mouseenter` と `mouseleave` の 2 つを渡す。 同じ名前を残すと、出たのか入ったのかが
+ * 画面で区別できない。
+ */
+function createEnterLeave(enter: string, leave: string): InteractiveHandlerMap[string] {
+  const onEnter = receiveAs(enter);
+  const onLeave = receiveAs(leave);
+  return (event, signals) => (event.type === "mouseleave" ? onLeave : onEnter)(event, signals);
+}
+
+/**
  * catalog の図が名指しする受け取り手。 名前は図の `on.*` 第 2 引数と一致する。
  *
  * ここに無い名前を図が使うと、その図は押しても動かない見本として並ぶ。
@@ -123,4 +200,10 @@ export const CATALOG_HANDLERS: InteractiveHandlerMap = {
   "on-blur": receiveAs("外れた"),
   "on-key": receiveAs("キー入力"),
   "on-long": createLongPress("長押し"),
+  // 箱の外 (矢印 / 縦列 / 図全体) と、動かす・落とす操作を受け取る (`eventTargets`、#1969)
+  "on-drag": createDrag("動かした"),
+  "on-drop": createDrop("落とした"),
+  "on-arrow": receiveAs("矢印を押した"),
+  "on-lane": receiveAs("縦列を押した"),
+  "on-diagram": createEnterLeave("図に入った", "図から出た"),
 };
