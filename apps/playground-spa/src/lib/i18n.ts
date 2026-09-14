@@ -386,6 +386,11 @@ export const ITEM_NAME_JA: Record<string, string> = {
   toneInfo: "情報の水色",
   stateActive: "動いている状態の矢印",
   stateInactive: "止まっている状態の矢印",
+  // 欄が取る値を全て並べる見本 (#1966)
+  nodeTone: "節の色6種",
+  edgeHead: "矢印の端の形",
+  edgeSide: "矢印の出る辺",
+  shapeOrient: "形の満ちる向き4種",
   // === styles 実業務シナリオ ===
 
   // === interactive primitive tour (追加分、 DSL機能デモ) ===
@@ -572,6 +577,10 @@ export const ITEM_NAME_EN: Record<string, string> = {
   toneInfo: "Info tone",
   stateActive: "Active edge state",
   stateInactive: "Inactive edge state",
+  nodeTone: "Six node tones",
+  edgeHead: "Edge end shapes",
+  edgeSide: "Edge exit side",
+  shapeOrient: "Four fill directions",
   erc20Transfer: "ERC-20 transfer",
   eip1559Gas: "EIP-1559 gas fee",
   erc4337Flow: "ERC-4337 account abstraction",
