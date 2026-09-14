@@ -98,7 +98,6 @@ flow:
 | `final`         | 状態遷移図で終わりの状態か                                                     |
 | `tone`          | 色                                                                             |
 | `color`         | 色 (`tone` と同じ意味。 両方書いた時は `tone` を採る)                          |
-| `nodes`         | 見本 (parts) の中の箱を差し替える                                              |
 | `touchpoint`    | 体験の道筋で、利用者が触れる場所                                               |
 | `opportunity`   | 体験の道筋で、改善の余地                                                       |
 | `owner`         | 工程の並びで、担当                                                             |

@@ -41,10 +41,6 @@ const 未知を足す: Record<階層, { input: Record<string, unknown>; path: st
     input: 図({ lanes: { L1: {} }, groups: { G1: { lanes: ["L1"], foo: 1 } } }),
     path: "$.groups.G1.foo",
   },
-  actorNode: {
-    input: 図({ actors: [{ name: "A", nodes: { header: { foo: 1 } } }, { name: "B" }] }),
-    path: "$.actors[0].nodes.header.foo",
-  },
   axes: {
     input: 図({ type: "quadrant", axes: { z: { left: "低" } } }),
     path: "$.axes.z",
@@ -118,7 +114,6 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     posY: 20,
     posW: 30,
     posH: 40,
-    nodes: { header: { posX: 1 } },
     scale: 2,
     state: { v: 1 },
     pos: { x: 1, y: 2 },
@@ -190,7 +185,6 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
   },
   lane: { x: 10, width: 300, label: "縦列", contain: true, lifeline: true, pos: { x: 1, y: 2 } },
   group: { label: "群", lanes: ["L1"] },
-  actorNode: { posX: 1, posY: 2, posW: 3, posH: 4 },
   axes: { x: { left: "低" }, y: { bottom: "小" } },
   axesX: { left: "低", right: "高" },
   axesY: { bottom: "小", top: "大" },
@@ -215,7 +209,6 @@ function schemaの項目(層: 階層): string[] {
     viewport: root.viewport.properties,
     lane: root.lanes.additionalProperties.properties,
     group: root.groups.additionalProperties.properties,
-    actorNode: actor.nodes.additionalProperties.properties,
     axes: root.axes.properties,
     axesX: root.axes.properties.x.properties,
     axesY: root.axes.properties.y.properties,
@@ -334,6 +327,17 @@ describe("何も起きない項目を受けない (#1295)", () => {
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.errors.map((e) => e.path)).toContain("$.layout");
+  });
+
+  it("箱の中の要素ごとの位置 (nodes) は誤りになる (#1976)", () => {
+    // どの図種も `{名前}-{要素名}` の箱を作らず、書くと必ず「当たらない」 と知らせるだけの欄だった。
+    // 欄ごと外したので、中身の形に依らず `nodes` そのものを知らない項目として返す
+    for (const nodes of [{ header: { posX: 1, posY: 2 } }, { header: { foo: 1 } }, 1]) {
+      const r = validateDragonJson(図({ actors: [{ name: "A", nodes }, { name: "B" }] }));
+      expect(r.ok, `nodes = ${JSON.stringify(nodes)} が通ってしまう`).toBe(false);
+      if (r.ok) continue;
+      expect(r.errors.map((e) => e.path)).toEqual(["$.actors[0].nodes"]);
+    }
   });
 });
 

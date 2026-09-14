@@ -3129,35 +3129,42 @@ describe("mergePartIntoDiagram: multi-lane part の scale で全 lane の node �
   });
 })
 
-describe("actor.nodes に書いた小さな箱 (#1466)", () => {
+describe("部品が持たない状態の名前を書いた時の知らせ (#1976)", () => {
   /*
-   * この経路が効くのは、図種が 1 人につき複数の箱を作る時だけ。 順序図が名札 / 余白 / 足を
-   * 作っていた頃はそこに当たっていたが、板になって作らなくなった = いまはどの図種も
-   * `{名前}-{小名}` / `{小名}-{名前}` の形の箱を作らない。
-   *
-   * 反映そのものは当たる箱が無いと測れないため、ここでは **黙って落ちない** ことを見る。
+   * 上書きが読むのは部品の状態の名前と `phase` だけで、他の名前は何も変えない。
+   * 箱の中の要素ごとの位置 (`nodes`) を外した後は、部品に書いた `nodes` もこの名前として残る。
+   * 3 件で、名前の判定の 2 条件 (`phase` でない / 状態に無い) を 1 つずつ外す。
    */
-  const 知らせ = (over: Partial<DslDocument>): string[] => {
-    const 出た: string[] = [];
-    compileToCdl(makeDoc("topology", over), {
-      onNotice: (n) => {
-        if (n.kind === "sub-node-not-found") 出た.push(n.actor);
+  const 知らせ = (over: Partial<DslActor>): { actor: string; message: string; hint?: string }[] => {
+    const 出た: { actor: string; message: string; hint?: string }[] = [];
+    compileToCdl(
+      makeDoc("flow", { actors: [actor("A"), actor("p1", { partId: "test", ...over })], flow: [] }),
+      {
+        partsCatalog: { test: makeTestPart() },
+        onNotice: (n) => {
+          if (n.kind === "part-state-missing") 出た.push({ actor: n.actor, message: n.message, hint: n.hint });
+        },
       },
-    });
+    );
     return 出た;
   };
 
-  it("当たる箱が無いことを伝える", () => {
-    expect(知らせ({ actors: [actor("A", { nodes: { header: { posX: 12, posY: 34 } } }), actor("B")] })).toEqual(["A"]);
+  it("部品が持たない名前を書くと、名前と部品の状態を添えて 1 件伝える", () => {
+    expect(知らせ({ stateOverride: { v: 20, vv: 30, nodes: "{ header: { posX: 1 } }" } })).toEqual([
+      {
+        actor: "p1",
+        message: '"p1" (test) は "vv" / "nodes" という状態を持たないため、書いた値は効きません',
+        hint: "この部品の状態 = v",
+      },
+    ]);
   });
 
-  it("位置を片方しか書かない指定は対象にしない (|| 条件)", () => {
-    // 反映しない指定で知らせを出すと、書き途中の記法が毎回鳴る
-    expect(知らせ({ actors: [actor("A", { nodes: { header: { posX: 12 } } }), actor("B")] })).toEqual([]);
-    expect(知らせ({ actors: [actor("A", { nodes: { header: { posY: 34 } } }), actor("B")] })).toEqual([]);
+  it("持っている状態の名前と phase は伝えない (2 条件の片方ずつ)", () => {
+    expect(知らせ({ stateOverride: { v: 20 } })).toEqual([]);
+    expect(知らせ({ stateOverride: { phase: false } })).toEqual([]);
   });
 
-  it("nodes を書かなければ何も伝えない", () => {
-    expect(知らせ({ actors: [actor("A"), actor("B")] })).toEqual([]);
+  it("上書きを書かなければ何も伝えない", () => {
+    expect(知らせ({})).toEqual([]);
   });
 });

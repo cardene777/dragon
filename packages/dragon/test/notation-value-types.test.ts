@@ -28,7 +28,6 @@ import {
   parseTextDslV05,
   VIEWPORT_VALUE_KINDS,
   LANE_VALUE_KINDS,
-  ACTOR_NODE_VALUE_KINDS,
   ACTOR_INLINE_VALUE_KINDS,
   ACTOR_BLOCK_VALUE_KINDS,
   FLOW_INLINE_VALUE_KINDS,
@@ -76,14 +75,6 @@ const 場所 = {
       本文: `title: "t"\ntype: flow\nlanes:\n  L1: { ${欄}: ${v} }\n\nactors:\n  - A\n  - B\n\nflow:\n  - A -> B: "x"\n`,
       行: 4,
       読む: (doc: any) => doc.lanes?.L1?.[欄],
-    }),
-  },
-  "箱の中の要素": {
-    表: ACTOR_NODE_VALUE_KINDS,
-    組む: (欄: string, v: string) => ({
-      本文: `title: "t"\ntype: flow\n\nactors:\n  - A: { kind: card, nodes: { header: { ${欄}: ${v} } } }\n  - B\n\nflow:\n  - A -> B: "x"\n`,
-      行: 5,
-      読む: (doc: any) => doc.actors[0]?.nodes?.header?.[欄],
     }),
   },
   "箱 (中括弧)": {

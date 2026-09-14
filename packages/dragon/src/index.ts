@@ -111,7 +111,6 @@ export { diagramJsonSchema } from "./schema";
 export type {
   DragonJson,
   JsonActor,
-  JsonActorNodeOverride,
   JsonAxes,
   JsonStep,
   JsonPhase,
