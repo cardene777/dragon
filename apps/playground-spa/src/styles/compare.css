@@ -298,6 +298,38 @@
   height: auto;
 }
 
+.nm-preset-detail-stage-inner {
+  width: 100%;
+}
+
+/* ── 倍率の欄 (#1964) ── */
+
+.nm-preset-detail-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+/* ── 倍率を指定した時 (#1964) ──
+ *
+ * カタログの並べて見る側 (#1749) と同じ形。 viewBox の 1 world を 1px として数えた幅を与え、
+ * はみ出す分は内側が巻き取る。 **台に巻き取らせない** = 台は段の札を置く基準なので、台が巻き取ると
+ * 札も図と一緒に流れる。 収まる図は中央、はみ出す図は左端から見せる (`safe center`)。
+ */
+.nm-preset-detail-stage[data-cdl-zoom="on"] .nm-preset-detail-stage-inner {
+  overflow: auto;
+  display: grid;
+  justify-items: safe center;
+}
+
+/* 図自身は行内に `max-width: 100%` を持つので、`max-width` だけは `!important` でないと、幅を与えても
+ * 台の幅で頭打ちになる。 幅と高さは行内に無く、この選択子の強さで図の class (`w-full` / `h-auto`) に勝つ */
+.nm-preset-detail-stage[data-cdl-zoom="on"] .nm-preset-detail-stage-inner svg {
+  width: var(--cdl-zoom-width);
+  max-width: none !important;
+  height: auto;
+}
+
 /* ── 前へ / 次へ ── */
 
 .nm-preset-detail-nav {

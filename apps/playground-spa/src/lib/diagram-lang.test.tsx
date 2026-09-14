@@ -97,6 +97,13 @@ const 変数で渡す入口: { file: string; 渡す値: string; 作る所: strin
     理由: "上と同じ useMemo で作る",
   },
   {
+    file: "../pages/PresetDetailPage.tsx",
+    渡す値: "描く図 ?? preset.diagram",
+    作る所: "図に画面の言語を当てる(preset.diagram, locale)",
+    回数: 1,
+    理由: "倍率を測る部品に同じ図を渡すため、`描く図` を useMemo で 1 回だけ作る (#1964)。 後ろの `preset.diagram` は型の控えで、描く所に着いた時は `preset` が必ずあり `描く図` も null にならない",
+  },
+  {
     file: "../components/CdlEditor.tsx",
     渡す値: "diagram",
     作る所: "図に画面の言語を当てる(",
