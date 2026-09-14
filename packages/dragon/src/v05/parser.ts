@@ -748,6 +748,13 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const inline = head.value?.trim();
       if (inline && inline.startsWith("{") && inline.endsWith("}")) {
         const opts = parseInlineMapping(inline.slice(1, -1));
+        中括弧の知らない項目名を知らせる(
+          inline.slice(1, -1),
+          Object.keys(VIEWPORT_VALUE_KINDS),
+          "viewport の ",
+          line.no,
+          errors,
+        );
         viewport = {
           ...表で読む(VIEWPORT_VALUE_KINDS, opts, "viewport の ", line.no, errors),
           pos: { line: line.no },
@@ -756,15 +763,37 @@ export function parseTextDslV05(src: string): V05ParseResult {
         continue;
       }
       // block: viewport:\n  width: 1400\n  height: 900\n  ...
-      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      // **`collectIndentedList` を使わない** (#1968)。 あちらは `:` を含まない行を黙って捨てるため、
+      // 書き間違えた行が「書かなかった」 と同じになる (`axes:` と同じ理由)
+      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
       const opts: Record<string, string> = {};
       // 知らせは **値を書いた行** を指す (#1306)。 `viewport:` の行を指すと、欄が縦に並ぶ形で
       // どの行を直せばよいか分からない
       const optLines: Record<string, number> = {};
+      const 使える = Object.keys(VIEWPORT_VALUE_KINDS);
       for (const it of items) {
-        const m = it.trimmed.match(/^([a-zA-Z][a-zA-Z0-9_]*)\s*:\s*(.+)$/);
-        if (!m) continue;
+        // 先頭の `- ` を付けて並べる形も受ける (`collectIndentedList` が落としていた分を揃える)
+        const 行 = it.trimmed.replace(/^-\s+/, "");
+        const m = 行.match(/^([a-zA-Z][a-zA-Z0-9_]*)\s*:\s*(.*)$/);
+        if (!m) {
+          errors.push({
+            line: it.no,
+            message: `viewport の行が読めません: "${it.trimmed}"`,
+            hint: `use \`width: 1400\` (使える項目 = ${使える.join(", ")})`,
+          });
+          continue;
+        }
         const 欄 = m[1] ?? "";
+        if (!使える.includes(欄)) {
+          errors.push({
+            line: it.no,
+            message: `viewport の項目名が読めません: "${欄}"`,
+            hint: `使える項目 = ${使える.join(", ")}`,
+          });
+          continue;
+        }
+        // 値を書かなかった形 (`width:`) は「書かなかった」 と同じに扱う (1 行の形と揃える)
+        if ((m[2] ?? "").trim() === "") continue;
         opts[欄] = stripQuotes((m[2] ?? "").trim());
         optLines[欄] = it.no;
       }
@@ -811,6 +840,13 @@ export function parseTextDslV05(src: string): V05ParseResult {
           continue;
         }
         const opts = parseInlineMapping(m[2] ?? "");
+        中括弧の知らない項目名を知らせる(
+          m[2] ?? "",
+          m[1] === "x" ? AXIS_X_KEYS : AXIS_Y_KEYS,
+          `軸 ${m[1]} の `,
+          it.no,
+          errors,
+        );
         if (m[1] === "x") 組み立て.x = { left: opts.left, right: opts.right };
         else 組み立て.y = { bottom: opts.bottom, top: opts.top };
       }
@@ -854,6 +890,13 @@ export function parseTextDslV05(src: string): V05ParseResult {
         if (m) {
           const id = m[1]!;
           const opts = parseInlineMapping(m[2]!);
+          中括弧の知らない項目名を知らせる(
+            m[2]!,
+            LANE_INLINE_KEYS,
+            `縦列 ${id} の `,
+            it.no,
+            errors,
+          );
           lanesMap[id] = {
             id,
             ...表で読む(LANE_VALUE_KINDS, opts, `縦列 ${id} の `, it.no, errors),
@@ -1029,6 +1072,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
         if (m) {
           const id = m[1]!;
           const opts = parseInlineMapping(m[2]!);
+          中括弧の知らない項目名を知らせる(m[2]!, GROUP_INLINE_KEYS, `組 ${id} の `, it.no, errors);
           const lanesList = (opts.lanes ?? "")
             .replace(/^\[|\]$/g, "")
             .split(",")
@@ -1444,6 +1488,29 @@ export const LANE_VALUE_KINDS = {
 } as const satisfies Record<string, 値の形>;
 
 /**
+ * 縦列の中括弧に書ける項目 (#1968)。 数と真偽の欄は `LANE_VALUE_KINDS` から導き、
+ * 表に載せない文字列の `label` だけを足す。
+ */
+export const LANE_INLINE_KEYS: readonly (keyof DslLane)[] = [
+  ...(Object.keys(LANE_VALUE_KINDS) as (keyof typeof LANE_VALUE_KINDS)[]),
+  "label",
+];
+
+/** 組の中括弧に書ける項目 (#1968)。 `groups:` の読み手が拾う欄と揃える */
+export const GROUP_INLINE_KEYS = ["label", "lanes"] as const satisfies readonly Exclude<
+  keyof DslGroup,
+  "id" | "pos"
+>[];
+
+/** 軸の名前の中括弧に書ける項目 (#1968)。 横軸は左右、縦軸は下上 */
+export const AXIS_X_KEYS = ["left", "right"] as const satisfies readonly (keyof NonNullable<
+  DslAxes["x"]
+>)[];
+export const AXIS_Y_KEYS = ["bottom", "top"] as const satisfies readonly (keyof NonNullable<
+  DslAxes["y"]
+>)[];
+
+/**
  * 箱の中に描く図形 (`shape:`) と、値を見せる部品 (`readouts:`) の欄 (#1374)。
  *
  * どちらも描画側 (`CdlDynShape` / `CdlReadout`) の形をそのまま渡す。 記法の値は全て文字列で
@@ -1727,7 +1794,8 @@ function 表に従って読む(
     if (形 === undefined) {
       errors.push({
         line,
-        message: `${接頭}の項目名が読めません: "${欄}"`,
+        // 接頭は呼び手が「の」 まで書く (`図形の ` / `部品 ring の `)。 ここで足すと「の の」 に重なる (#1968)
+        message: `${接頭.trimEnd()}項目名が読めません: "${欄}"`,
         hint: `使える項目 = ${Object.keys(定義.欄).join(", ")}`,
       });
       continue;
@@ -3452,6 +3520,40 @@ function reportUnknownInlineKeys(
   }
 }
 
+/**
+ * 箱以外の中括弧に書かれた読めない項目名を知らせる (#1968)。
+ *
+ * レーン / 視点 / 矢印 / 組 / 軸の名前 の中括弧は、読む欄だけを拾って残りを黙って捨てていた。
+ * 実測 = レーンに `widht: 280` と書くと幅が既定のまま描かれ、 知らせは 1 件も出なかった。
+ * 箱 (`reportUnknownInlineKeys`) と段は知らせるので、 同じ記法の中で書く場所によって扱いが割れていた。
+ *
+ * 項目名は `splitInlineFields` で拾う。 `parseInlineMapping` の結果を見ると値が空の項目
+ * (`{ widht: }`) を拾えず、 空白の有無で知らせが消える (箱の側が #1090 で踏んだ形)。
+ *
+ * `使える` は呼出側が各欄の表から導いて渡す。 ここに一覧を持つと、 表に欄を足した時に
+ * 知らせだけが取り残される。
+ */
+function 中括弧の知らない項目名を知らせる(
+  inner: string,
+  使える: readonly string[],
+  接頭: string,
+  line: number,
+  errors: DslError[],
+): void {
+  for (const field of splitInlineFields(inner)) {
+    const idx = field.indexOf(":");
+    if (idx < 0) continue;
+    const key = field.slice(0, idx).trim();
+    if (!key || 使える.includes(key)) continue;
+    // 接頭は値の欄名に続ける形 (`縦列 l1 の `) で末尾に空白を持つ。 日本語へ続ける時は空白を落とす
+    errors.push({
+      line,
+      message: `${接頭.trimEnd()}項目名が読めません: "${key}"`,
+      hint: `使える項目 = ${使える.join(", ")}`,
+    });
+  }
+}
+
 function parseActor(line: Line, errors: DslError[]): DslActor | null {
   // 5 形式 サポート:
   // 1. `Client`                              ... name のみ、 kind=actor default
@@ -3627,6 +3729,7 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   let 数と真偽: 読んだ結果<typeof FLOW_INLINE_VALUE_KINDS> | undefined;
   if (塊) {
     const opts = parseInlineMapping(塊.中身);
+    中括弧の知らない項目名を知らせる(塊.中身, FLOW_INLINE_KEYS, "矢印の ", line.no, errors);
     // `parseInlineMapping` は値が 1 文字もない `widthBind:` を拾わない。 3 欄は空を
     // 「書かなかった」扱いにせず知らせる契約なので、書かれた値を空も含めて上書きする。
     // 同じ欄を複数回書いた時は通常の mapping と同じく後勝ちにする。
