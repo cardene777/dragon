@@ -1,22 +1,22 @@
 /**
- * Notation lint (author 向け修正システム)。
+ * 記法の検査 (図を書く人向けの修正システム)。
  *
- * cdl / dragon 記法で書かれた CdlDiagram を rule-based に検査し、
- * 「もっと良い書き方」 を suggestion として返す純粋関数。 LLM 不要、 rule のみ。
+ * cdl / dragon の記法で書いた図 (`CdlDiagram`) を決まった規則で検査し、直し方を修正案
+ * (`suggestion`) として返す純粋関数。 言語モデルは使わない。
  *
- * 検知システム (`check:cdl` / `check:dragon` / `check:kind`) は開発陣向けで
- * 「実装バグ」 を検出するが、 本 notation-lint は **author 向け** で
- * 「書き方の癖 / 冗長表現 / 未定義参照 / 空 payload」 等を検出する。
+ * 検知システム (`check:cdl` / `check:dragon` / `check:kind`) は開発者向けで実装の不具合を
+ * 見つける。 こちらは図を書く人向けで、読む人へ伝わらない書き方 (図の説明に入り込んだ実装の
+ * 書き方、無い部品を指す参照、値や項目が空の図表など) を見つける。
  *
  * 使い方:
- *   import { lintDiagram } from "@cardenelabs/dragon";
+ *   import { lintDiagram, autoFix } from "@cardenelabs/dragon";
  *   const report = lintDiagram(diagram);
- *   // report.issues[] = LintIssue[]
- *   // report.fixed = LintIssue[] のうち自動修正で解消される件
- *   // report.autoFix(diagram) = 修正済 CdlDiagram
+ *   // report.issues = LintIssue[]
+ *   // report.autoFixableCount = 自動修正で実際に解消できる指摘の数
+ *   const patched = autoFix(diagram); // 自動修正を当てた新しい図 (元の図は変えない)
  *
- * CLI:
- *   pnpm dragon-lint apps/playground-spa/src/topics/catalog/presets.cdl.ts
+ * 道具:
+ *   node packages/dragon/scripts/dragon-lint.mjs apps/playground-spa/src/topics/catalog/presets.cdl.ts
  */
 import type { CdlDiagram, CdlNode } from "@cardenelabs/cdl";
 

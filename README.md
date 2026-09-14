@@ -437,19 +437,29 @@ esbuild が別に束ね直すので、変換先も別に決まる (`#1528` / `#1
 
 ## 検知システム / 修正システム
 
-**役割分離** = 開発陣向け「検知」 と author 向け「修正」 は完全に別、 両方 LLM 不使用の pure rule / geometry ベース。
+開発者向けの「検知」 と、図を書く人向けの「修正」 は別の仕組み。
+どちらも言語モデルを使わず、図の寸法と決まった規則だけで判定する。
 
-- **検知システム (開発陣向け)** = 3 層 check 機構
-  - 層 1 = SPA route regression = `pnpm check:cdl`
-  - 層 2 = engine geometry sweep = `pnpm check:dragon`
-  - 層 3 = kind 描画品質 (gantt arrow / funnel polygon / mind-map root / edge fill:none 等) = `pnpm check:kind`
-  - 一括 = `pnpm check:all`
-- **修正システム (author 向け)** = notation lint
-  - `pnpm lint:notation` = 冗長 topic / 未定義参照 / 空 payload / 単調減少違反等を rule-based に指摘
-  - `pnpm fix:notation` = auto-fix 可能な rule を自動適用
-  - プログラム API = `import { lintDiagram, autoFix } from "@cardenelabs/dragon"`
+検知システムは 3 層の検査で、実装の不具合を見つける。
 
-**SSOT ドキュメント** = `apps/playground-spa/audit-reports/README.md`
+| 層 | 何を見るか | 命令 |
+|---|---|---|
+| 層 1 = 画面 | 画面の検査を全て走らせる (画面を開いて誤りや重なりが無いかなど) | `pnpm check:cdl` |
+| 層 2 = 図の置き方 | カタログの全ての図を描画エンジンの検査に通す | `pnpm check:dragon` |
+| 層 3 = 型ごとの描き方 | 描いた SVG の形を図の型ごとに測る (工程表の矢印の向き、絞り込み図の幅の減り方など) | `pnpm check:kind` |
+
+`pnpm check:all` は型検査と 3 つの層を順に走らせる。
+
+修正システムは記法の検査で、読む人へ伝わらない書き方を指摘する。
+
+| 命令 | すること |
+|---|---|
+| `pnpm lint:notation` | カタログの図に記法の検査を当て、指摘を端末に出す (図の説明に入り込んだ実装の書き方、無い部品を指す参照、値や項目が空の図表など) |
+| `pnpm fix:notation` | カタログの `presets.cdl.ts` に自動修正を当てた結果を、隣の `presets.lint-fix.json` に書き出す。 元の図は変えない |
+
+プログラムからは `import { lintDiagram, autoFix } from "@cardenelabs/dragon"` で使う。
+
+くわしくは `apps/playground-spa/audit-reports/README.md` にある。
 
 ## license
 

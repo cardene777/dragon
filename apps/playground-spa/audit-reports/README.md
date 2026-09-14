@@ -1,57 +1,65 @@
-# Dragon Check / Lint 機構 SSOT
+# 検知と修正の仕組み
 
-**設置日** = 2026-07-07 / **更新日** = 2026-07-08 (CAR-1064 で 3 層 + notation lint 追加)
-
----
-
-## 役割分離 = 検知システム vs 修正システム
-
-| 系統 | 対象読者 | 目的 | LLM | 実行 |
-|---|---|---|---|---|
-| **検知システム** | 開発陣 (dragon / cdl repo 開発者) | 実装バグの検出、 CI ゲート、 PR 前確認 | **不使用** | `pnpm check:*` |
-| **修正システム** | 記法の author (cdl / dragon DSL を書く人) | 書き方の癖 / 冗長表現 / 未定義参照を rule-based に指摘 + auto-fix | **不使用** | `pnpm lint:notation` / `pnpm fix:notation` |
-
-**両方 LLM 不使用** = pure geometry / pure rule で動作、 コスト 0、 決定論的、 CI に安全に組込可。
+dragon の図と画面の不具合を見つける仕組み (検知) と、図の書き方を直す仕組み (修正) の案内。
+root の `README.md` はこの説明書を正として案内する。
 
 ---
 
-## 検知システム = 3 層 check 機構
+## 役割の分け方 = 検知システムと修正システム
 
-| 層 | 対象 | 実装 | 実行 |
+| 仕組み | 使う人 | 何のためか | 走らせ方 |
 |---|---|---|---|
-| 層 1 = CDL check (SPA UI level) | 全 route × 3 viewport の render / navigation / a11y / console error | `apps/playground-spa/tests/full-regression.spec.ts` | `pnpm check:cdl` |
-| 層 2 = dragon 記法 check (engine geometry level) | 全 100+ diagram の geometry axis (edge-node-cross / row-gap-uniform / lane-border-clearance / clearance / edge-label-overlap 他 12 axis) | `packages/dragon/test/visual-validate-sweep.test.ts` | `pnpm check:dragon` |
-| 層 3 = kind 描画 check (SVG DOM geometry level) | CAR-994 で追加した新 kind (chart / gantt / mind-map / funnel / quadrant / tree / journey) の SVG geometry (arrow 方向 / polygon 単調減少 / root 中央 / edge fill:none 等) | `apps/playground-spa/tests/kind-geometry-check.spec.ts` | `pnpm check:kind` |
+| 検知システム | dragon と描画エンジン (`@cardenelabs/cdl`) を作る開発者 | 実装の不具合を見つける。 取り込む前に手元で回す | `pnpm check:all` など (下の節) |
+| 修正システム | 図を書く人 (`presets.cdl.ts` を書く開発者と、dragon の記法を書く外の利用者) | 読む人へ伝わらない書き方を決まった規則で指摘し、直せるものは直す | `pnpm lint:notation` / `pnpm fix:notation` |
 
-### 統合 command
+どちらも言語モデルを使わない。
+図の寸法と決まった規則だけで判定するので、同じ入力には同じ結果を返し、走らせる費用もかからない。
 
-- `pnpm check:all` = typecheck + 層 1 + 層 2 + 層 3 (positive + proof) を一括実行 (PR 前 CI)
-- `pnpm check:cdl` = 層 1 のみ (SPA route regression)
-- `pnpm check:dragon` = 層 2 のみ (engine visualValidate sweep)
-- `pnpm check:kind` = 層 3 全 (positive `test:kind` + negative proof `test:kind:proof`)
+---
 
-### 検知 axis の実効性証明 (dead axis 回帰防止)
+## 検知システム = 3 層の検査
 
-**動機** = CAR-1064 で追加した gantt arrow axis が実装バグにより 「見た目 OK だが test は pass する」 dead axis 状態になっていた (batch4 で発見)。
+| 層 | 何を見るか | 検査のファイル | 命令 |
+|---|---|---|---|
+| 層 1 = 画面 | 画面の検査を全て走らせる。 画面を開いて見出しが見えること、端末の誤りが出ないこと、図の字や線が重ならないことなど | `apps/playground-spa/tests/` | `pnpm check:cdl` |
+| 層 2 = 図の置き方 | カタログの全ての図を描画エンジンの検査 (`visualValidateAll`) に通し、どの軸でも重さが `error` の違反が無いことを見る | `packages/dragon/test/visual-validate-sweep.test.ts` | `pnpm check:dragon` |
+| 層 3 = 型ごとの描き方 | 描いた SVG の形を図の型ごとに測る (工程表の矢印の向き、絞り込み図の幅の減り方など)。 画面をわざと壊し、判定が違反を見つけることも確かめる | `apps/playground-spa/tests/kind-geometry-check.spec.ts` と `apps/playground-spa/tests/kind-geometry-check.proof.spec.ts` | `pnpm check:kind` |
 
-**対策** = 各 axis に対し 「(clean) OK → (DOM mutate) FAIL」 のペアで実効性を CI 保証。
+`pnpm check:all` は型検査 (`pnpm typecheck`) と 3 つの層を順に走らせる。
+層 1 は画面の検査を全て走らせるので層 3 の 2 本も含み、`pnpm check:all` では層 3 が 2 度走る。
 
-- `pnpm test:kind` = positive test (clean 状態で 8 axis 違反 0)
-- `pnpm test:kind:proof` = negative proof (5 axis に DOM mutation 注入 → 違反 >= 1 を確認)
+画面の検査 (層 1 と層 3) は build 済の画面を見る。
+走らせる前に立てる server と、見に行く先の差し替え方は `CONTRIBUTING.md` の「画面の検査 (Playwright)」 の節にある。
 
-これで 「axis の検査ロジック自体が壊れて全 pass」 になる dead axis 回帰を構造的に排除。
+表の命令が表のファイルを走らせることは、画面側の検査 (`apps/playground-spa/src/lib/audit-readme-detect.test.ts`) が `package.json` を展開して照らす。
+「何を見るか」 の欄は機械で照らしていないので、検査の判定を変えた時は検査のファイルと見比べて直す。
 
-### 層 3 が追加された理由
+### 層 1 の中の全体の回帰検査
 
-CAR-994 で cdl engine に 10 新 kind (chart-line/pie/bar / gantt-timeline / mind-map / mind-radial / funnel-stages / quadrant-matrix / tree-hierarchy / journey-map) を追加した際、 **層 1 / 層 2 のどちらも kind 内部の SVG geometry を検出できなかった** (層 1 = 描画有無のみ、 層 2 = engine LaidDiagram の低位 edge/node のみ)。
+全体の回帰検査 (`apps/playground-spa/tests/full-regression.spec.ts`) は、画面の行き先の型 (`main.tsx` の `<Route path>`) ごとに 1 つ以上の画面と、カタログの全ての分類の画面を開く。
+端末の誤りが 1 件でも出たら落ち、行き先の型に開く画面が対応していない抜けも数える (#1950)。
 
-例 = CAR-1064 で報告された **gantt dependsOn arrow の折れ方バグ**、 **flowchart false edge の 青塗り polygon バグ** は層 1 / 層 2 では検出できず、 user 目視で発見された。 層 3 では以下を検証。
+### 層 2 が見る図と外す図
 
-- gantt-timeline: dependsOn arrow が **右向き着地** (arrow tip が子 bar 左辺の水平方向)
-- funnel-stages: polygon 幅が上→下で **単調減少** (自然な逆三角形)
-- mind-map: root node が canvas 中央 (±10%)
-- chart-line: polyline point 数 = datum 数
-- edge-line: fill が **none** (fill:#XXX 回帰なし = flowchart false edge が polygon 塗りに見えるバグ再発防止)
+見る図は、検査のファイルに並べたカタログの読み込み口 (`sources`) から集める。
+カタログの一覧に載る図が 1 つ残らず対象に入っていることは、同じファイルの検査が確かめる (#1405)。
+
+線が箱を貫くこと自体が図の意図である図は、図と軸の組を名指しして外す (`見逃す組の一覧`)。
+名指しした組が実物でその軸の違反を出していることも確かめ、当たらなくなった組を残さない (#1730)。
+
+### 層 3 の軸と実証
+
+軸 (何を測ってどう判定するか) は `apps/playground-spa/tests/helpers/kind-geometry-axes.ts` の表が持つ。
+本番の検査と実証の検査はどちらもこの表を回し、実証は壊した画面で本番と同じ判定が違反を見つけることを確かめる。
+表の 1 行は壊し方を持たないと組めないので、実証の無い軸は作れない (#1952)。
+
+### 層 3 を足した理由
+
+描画エンジンに図表や工程表などの型を足した時、層 1 と層 2 はどちらも型の中の形を見られなかった。
+層 1 は画面が出るかを見るだけで、層 2 は描画エンジンが置いた箱と線しか見ないため。
+
+例は、工程表の依存の矢印の折れ方の崩れと、流れ図の線が面に塗られて見える崩れ。
+どちらも層 1 と層 2 では見つからず、人が目で見つけた。
 
 ---
 
@@ -135,18 +143,24 @@ const patched = autoFix(diagram); // 自動修正できる指摘を直した新�
 
 ---
 
-## 実装 file 一覧
+## 実装のファイル
 
-- 層 1 = `apps/playground-spa/tests/full-regression.spec.ts`
-- 層 2 = `packages/dragon/test/visual-validate-sweep.test.ts`
-- 層 3 = `apps/playground-spa/tests/kind-geometry-check.spec.ts` (CAR-1064 新規)
-- notation lint = `packages/dragon/src/notation-lint.ts` (CAR-1064 新規)
-- CLI = `packages/dragon/scripts/dragon-lint.mjs` (CAR-1064 新規)
+| 何か | ファイル |
+|---|---|
+| 層 1 の検査の置き場所 | `apps/playground-spa/tests/` |
+| 層 2 の検査 | `packages/dragon/test/visual-validate-sweep.test.ts` |
+| 層 3 の軸の表 | `apps/playground-spa/tests/helpers/kind-geometry-axes.ts` |
+| 記法の検査 | `packages/dragon/src/notation-lint.ts` |
+| 記法の検査の道具 | `packages/dragon/scripts/dragon-lint.mjs` |
+| 説明書を照らす検査 | `apps/playground-spa/src/lib/audit-readme-detect.test.ts` (検知) と `apps/playground-spa/src/lib/audit-readme-lint.test.ts` (修正) |
 
 ---
 
-## 参照
+## 関連する Issue
 
-- CAR-1064 = 3 層 + notation lint 追加、 gantt arrow bug 修正
-- CAR-994 = 10 kind 追加 (chart / gantt / mind-map / mind-radial / funnel / quadrant / tree / journey)
-- CAR-993 / CAR-1034 / CAR-1065 = catalog subtitle / i18n / dark mode 修正 chain
+- #1405 (層 2 の対象に全ての図を入れる)
+- #1730 (層 2 の外す図を実物と照らす)
+- #1948 (修正システムの節を今の挙動に合わせる)
+- #1950 (全体の回帰検査が全ての行き先と分類を開く)
+- #1952 (層 3 の本番と実証を 1 つの表で回す)
+- #1955 (検知システムの節を実物の命令と検査のファイルに合わせる)
