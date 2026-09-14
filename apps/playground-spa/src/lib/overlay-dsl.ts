@@ -754,6 +754,12 @@ export function extractPartsFromSrc(
  * |---|---|
  * | 部品のほかに箱がある | 部品を重ねる。 部品の図には本文に書いた状態の上書きと色番号を当てる |
  * | 部品しかない | 抜かずに組み立て側で部品ごと描く |
+ * | 部品へ矢印を引いている | 抜かずに組み立て側で部品ごと描く (#1979) |
+ *
+ * **部品へ引いた矢印は、重ねた部品に届かない**。 重ねた部品は図の外の層なので矢印の端にできず、
+ * 抜いた本文では矢印が居ない名前を指して落ちる (実測 = 「actors に書かれていません」 で矢印が消えた)。
+ * 組み立て側は矢印を部品の要素へ繋ぐため、カタログと同じ図になる。 順序図も言づてが部品の縦の線に
+ * 届くので同じ扱いにする。
  *
  * **上書きを当てないと、編集画面だけ既定の値で描く**。 重ねる側は部品の図をそのまま描くため、
  * `state: { lvl: 0.4 }` や `color: "#d9534f"` が組み立て側の図にしか届かない。 本文の読み取りは
@@ -773,12 +779,23 @@ export function 図と重ねる部品に分ける<R extends { diagram: CdlDiagra
   組み立てる: (本文: string) => R,
 ): { built: R; parts: OverlayPartParsed[]; lineMap: number[] } {
   const { baseSrc, parts, lineMap } = extractPartsFromSrc(src, partsCatalog, partsItems);
-  const built = 組み立てる(baseSrc);
-  if (parts.length === 0) return { built, parts, lineMap };
-  if (built.diagram.nodes.length === 0) {
-    return { built: 組み立てる(src), parts: [], lineMap: src.split("\n").map((_, i) => i + 1) };
-  }
+  if (parts.length === 0) return { built: 組み立てる(baseSrc), parts, lineMap };
+  const 抜かずに描く = () => ({
+    built: 組み立てる(src),
+    parts: [],
+    lineMap: src.split("\n").map((_, i) => i + 1),
+  });
   const 読んだ = parseTextDslV05(src);
+  if (読んだ.ok) {
+    const 部品の名前 = new Set(
+      (読んだ.doc.actors ?? []).filter((a) => a.partId !== undefined).map((a) => a.name),
+    );
+    if (読んだ.doc.flow.some((s) => 部品の名前.has(s.from) || 部品の名前.has(s.to))) {
+      return 抜かずに描く();
+    }
+  }
+  const built = 組み立てる(baseSrc);
+  if (built.diagram.nodes.length === 0) return 抜かずに描く();
   if (!読んだ.ok) return { built, parts, lineMap };
   // 同じ名前を 2 度書いた時は先の 1 件を使う (組み立て側と同じ)
   const 名前ごと = new Map<string, DslActor>();

@@ -640,6 +640,18 @@
             "type": "boolean",
             "description": "true で説明文を矢印の線の上に重ねる (分岐図の条件ラベル用)"
           },
+          "fromPartNode": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "description": "from が部品の時、矢印を繋ぐ部品の中の要素の id。 要素を 1 つだけ持つ部品は書かなくてもその要素に繋ぐ。 要素を 2 つ以上持つ部品は書かないと矢印を外して知らせる"
+          },
+          "toPartNode": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "description": "to が部品の時、矢印を繋ぐ部品の中の要素の id。 要素を 1 つだけ持つ部品は書かなくてもその要素に繋ぐ。 要素を 2 つ以上持つ部品は書かないと矢印を外して知らせる"
+          },
           "pos": {
             "type": "object",
             "additionalProperties": false,

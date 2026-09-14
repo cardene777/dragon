@@ -507,6 +507,15 @@ export type DslStep = {
    * (`labelOffsetX` / `labelOffsetY`) に足して名前だけを動かす。
    */
   layoutPos?: LayoutPos;
+  /**
+   * 部品 (parts) の端で、矢印を繋ぐ部品の中の要素の id (#1979)。 出どころ側が `fromPartNode`、
+   * 行き先側が `toPartNode`。
+   *
+   * 要素を 1 つだけ持つ部品は書かなくてもその要素に繋ぐ。 要素を 2 つ以上持つ部品は外枠を持たず
+   * 同格の要素が並ぶため、1 つを自動で選ぶと「その要素だけ」 を指す矢印に見える。 書き手が名指しする。
+   */
+  fromPartNode?: string;
+  toPartNode?: string;
   pos: Position;
 };
 

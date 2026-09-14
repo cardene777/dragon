@@ -13,6 +13,13 @@
  * | 状態を上書き (`lvl: 0.4` と `phase: false`) | 56 (140 の 4 割) | `#22c55e` | 140 |
  * | 倍率を変える (`scale: 0.6`) | 0 | `#22c55e` | 84 |
  * | 色番号を変える (`#d9534f`) | 0 | `#d9534f` | 140 |
+ *
+ * 矢印を引く 2 つの切替 (#1979) は、矢印の端が部品の要素の id になり、描いた絵に矢印の線が出ることを見る。
+ *
+ * | 切替 | 部品 | 矢印の端 |
+ * |---|---|---|
+ * | 矢印を繋ぐ | `state-indicator` (要素 1 つ) | 何も足さずに `設備の稼働__ind` |
+ * | 繋ぐ要素を名指しする | `stacked-layer` (要素 3 つ) | `toPartNode: topL` と `fromPartNode: botL` で名指しした層 |
  */
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -46,7 +53,7 @@ function 円(d: CdlDiagram): { 外枠: number; 塗り: number; 色: string }[] {
 }
 
 describe("部品を箱に使う見本 (#1973)", () => {
-  it("部品の頁の最後に並び、4 つの切替を持つ", async () => {
+  it("部品の頁の最後に並び、6 つの切替を持つ", async () => {
     const items = await loadPartsItems();
     expect(items.at(-1)?.id).toBe(見本のid);
     expect((await 見本()).patterns?.map((p) => p.名)).toEqual([
@@ -54,11 +61,16 @@ describe("部品を箱に使う見本 (#1973)", () => {
       "状態を上書き",
       "倍率を変える",
       "色番号を変える",
+      "矢印を繋ぐ",
+      "繋ぐ要素を名指しする",
     ]);
   });
 
   it("切替ごとに、描いた円の半径と塗りの色が書いた欄のとおりに変わる", async () => {
-    const 並び = (await 見本()).patterns ?? [];
+    // 円を見るのは state-indicator を 1 つだけ置く 4 つの切替。 矢印を引く切替は下の検査が見る
+    const 円を見る = new Set(["書かない", "状態を上書き", "倍率を変える", "色番号を変える"]);
+    const 並び = ((await 見本()).patterns ?? []).filter((p) => 円を見る.has(p.名));
+    expect(並び.length, "円を見る切替を集められていない (検査が空振りしている)").toBe(4);
     const 描いた = Object.fromEntries(並び.map((p) => [p.名, 円(p.diagram)]));
     for (const [名, 絵] of Object.entries(描いた)) {
       expect(絵, `${名} で部品の円を 1 つも描いていない (検査が空振りしている)`).toHaveLength(1);
@@ -77,6 +89,33 @@ describe("部品を箱に使う見本 (#1973)", () => {
     expect(値が動く("状態を上書き")).toBe(false);
   });
 
+  it("矢印を引く切替は、矢印の端を部品の要素に繋ぎ、描いた絵に矢印の線を出す (#1979)", async () => {
+    const 並び = (await 見本()).patterns ?? [];
+    const 図 = (名: string): CdlDiagram => {
+      const p = 並び.find((x) => x.名 === 名);
+      if (!p) throw new Error(`切替 ${名} が無い`);
+      return p.diagram;
+    };
+    const 端 = (名: string) => 図(名).edges.map((e) => `${e.from} -> ${e.to}`);
+    expect(端("矢印を繋ぐ")).toEqual(["点検 -> 設備の稼働__ind", "設備の稼働__ind -> 保全"]);
+    expect(端("繋ぐ要素を名指しする")).toEqual([
+      "受注 -> 在庫の内訳__topL",
+      "在庫の内訳__botL -> 出荷",
+    ]);
+    // 繋ぎ先の要素が図に在り、描いた絵にその矢印の線が出る
+    for (const 名 of ["矢印を繋ぐ", "繋ぐ要素を名指しする"]) {
+      const d = 図(名);
+      const 箱 = new Set(d.nodes.map((n) => n.id));
+      for (const e of d.edges) {
+        expect(箱.has(e.from) && 箱.has(e.to), `${名} の ${e.id} が図に無い箱を指す`).toBe(true);
+      }
+      const 絵 = renderToStaticMarkup(<CdlDiagramView diagram={d} hideHeader />);
+      for (const e of d.edges) {
+        expect(絵, `${名} の絵に ${e.id} の線が無い`).toContain(`data-cdl-edge="${e.id}"`);
+      }
+    }
+  });
+
   it("編集画面と同じ部品の一覧で記法を組み立てると、カタログに出す図と同じ図になる", async () => {
     const items = await loadPartsItems();
     // 編集画面は部品の頁の見本から部品だけを残して一覧を作る (`CdlEditor.tsx`)
@@ -84,7 +123,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       items.filter((i) => 部品の図か(i.id)).map((i) => i.diagram),
     );
     const 並び = (await 見本()).patterns ?? [];
-    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(4);
+    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(6);
     for (const p of 並び) {
       const 組み直し = textDslToDiagram(p.sourceYaml!, { partsCatalog: 編集画面の一覧 });
       expect(JSON.stringify(組み直し), `${p.名} が編集画面と違う図になる`).toBe(

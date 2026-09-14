@@ -155,6 +155,11 @@ export type CompileNotice = {
     | "part-color-ignored"
     // 部品に、部品が持たない状態の名前で値を書いた (#1976)。 綴り違いと、外した欄 (`nodes`) を書いた時
     | "part-state-missing"
+    // 部品へ引いた矢印を、部品の中のどの要素にも繋げず外した (#1979)。 要素が 2 つ以上あり名指しが無い時、
+    // 名指しした要素が部品に無い時、部品を取り込まなかった時
+    | "part-edge-dropped"
+    // 矢印に部品の要素の名指し (`fromPartNode` / `toPartNode`) を書いたが、その端が部品でない (#1979)
+    | "part-node-ignored"
     // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
     | "chart-value-unreadable"
     // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
@@ -315,7 +320,10 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // edge と本文の行の対応は表に集めてから 1 edge = 1 回で知らせる (#998)。 経路ごとに
   // その場で呼ぶと、 同じ edge に別の行を 2 度知らせることになる。
   const edgeSourceLines = opts?.onEdgeSource ? new Map<string, number>() : undefined;
-  applyEdgeInlineOptions(diagram, doc, edgeSourceLines);
+  // 矢印ごとに、どの行から来たか。 部品へ引いた矢印を部品の要素へ繋ぎ直す時に、その行に書いた
+  // 名指し (`toPartNode`) を読む (#1979)。 矢印の id は部品の取り込みで変わらない
+  const 矢印の行 = new Map<string, DslStep>();
+  applyEdgeInlineOptions(diagram, doc, edgeSourceLines, 矢印の行);
   const 作った組の枠 = applyGroupContainers(diagram, doc);
   applyNodeTones(diagram, doc);
   // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
@@ -336,6 +344,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
   reportAxesNotHonored(書いたまま, opts?.onNotice);
+  reportPartNodeNotHonored(書いたまま, opts?.onNotice);
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
@@ -355,6 +364,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     opts?.partsCatalog,
     opts?.onNotice,
     inheritedDerivedSourceLines,
+    矢印の行,
   );
   // 箱が 1 つも入らなかった縦列を伝える (#1241)。
   //
@@ -2979,6 +2989,128 @@ function partBoxes(
 }
 
 /**
+ * 部品へ引いた矢印を、部品の図の要素へ繋ぎ直す手順を作る (#1979)。
+ *
+ * 部品を置くと組み立ては仮の箱を消し、部品の図の要素を `{名前}__{要素の id}` で足す。 仮の箱へ
+ * 引いた矢印は繋ぎ先を失うため、以前は知らせも無く消えていた。
+ *
+ * | 部品 | 繋ぎ先 |
+ * |---|---|
+ * | 要素 1 つ | その要素 |
+ * | 要素 2 つ以上 | 矢印の行に書いた `fromPartNode` / `toPartNode` の要素 |
+ *
+ * **要素が 2 つ以上ある部品で 1 つを自動で選ばない**。 カタログの部品は外枠を持たず同格の要素が並ぶ
+ * (信号の 3 灯、星 5 つ、棒 5 本) ため、最初の要素や一番大きい要素を選ぶと「その 1 つだけ」 を
+ * 指す矢印に見える。 名指しが無い時、名指しした要素が無い時、部品を取り込まなかった時 (`part` が
+ * `undefined`) は矢印を外し、矢印ごとに 1 件知らせる。
+ *
+ * **繋ぐのは書いた矢印だけ** = 矢印を書いた行の端の名前が、この部品の名前と一致する時。 静止した
+ * `type: flow` は行を書かなくても箱を並び順で繋ぐが、その矢印は書き手が部品へ引いたものではないので
+ * 従来どおり知らせずに外す。 繋ぐと、部品を本文から抜いて図の上に重ねる編集画面 (行が部品を指す
+ * 本文だけを抜かずに描く) と絵が食い違う (実測 = 箱と部品を並べただけの本文に、組み立て側だけ矢印が出た)。
+ */
+function 部品の要素へ繋ぐ(
+  部品の名前: string,
+  partId: string,
+  part: CdlDiagram | undefined,
+  edgeSteps: Map<string, DslStep> | undefined,
+  onNotice: ((notice: CompileNotice) => void) | undefined,
+): (edge: CdlEdge, 端: { from: boolean; to: boolean }) => CdlEdge | undefined {
+  const 要素 = (part?.nodes ?? []).map((n) => n.id);
+  const 見せる数 = 8;
+  const 要素の一覧 = `${要素.slice(0, 見せる数).map(truncateForMessage).join(", ")}${要素.length > 見せる数 ? ` ほか ${要素.length - 見せる数} 件` : ""}`;
+  return (edge, 端) => {
+    const s = edgeSteps?.get(edge.id);
+    const 繋いだ: CdlEdge = { ...edge };
+    for (const 側 of ["from", "to"] as const) {
+      if (!端[側]) continue;
+      // 書いていない矢印 (並び順で作られた矢印) は知らせずに外す
+      if (s === undefined || s[側] !== 部品の名前) return undefined;
+      const 欄 = 側 === "from" ? "fromPartNode" : "toPartNode";
+      const 名指し = s[欄];
+      let 理由: { message: string; hint: string } | undefined;
+      if (part === undefined) {
+        理由 = {
+          message: "を図に取り込まなかった",
+          hint: "部品が図に入らないため、矢印の端にできません",
+        };
+      } else if (名指し !== undefined) {
+        if (要素.includes(名指し)) 繋いだ[側] = `${部品の名前}__${名指し}`;
+        else
+          理由 = {
+            message: `の中に ${欄} に書いた "${truncateForMessage(名指し)}" という要素が無い`,
+            hint: `この部品の要素 = ${要素の一覧}`,
+          };
+      } else if (要素.length === 1) {
+        繋いだ[側] = `${部品の名前}__${要素[0]}`;
+      } else {
+        理由 =
+          要素.length === 0
+            ? { message: "の中に繋げる要素が無い", hint: "この部品は要素を持たないため、矢印の端にできません" }
+            : {
+                message: "の中のどの要素に繋ぐかが決まらない",
+                hint: `要素が 2 つ以上ある部品は、矢印に ${欄}: <要素の id> を書いて繋ぐ要素を選ぶ (要素 = ${要素の一覧})`,
+              };
+      }
+      if (理由 === undefined) continue;
+      const 矢印 = `"${truncateForMessage(s.from)}" から "${truncateForMessage(s.to)}" への矢印`;
+      onNotice?.({
+        kind: "part-edge-dropped",
+        actor: 部品の名前,
+        line: s.pos.line,
+        message: `${矢印}は、"${truncateForMessage(部品の名前)}" (${truncateForMessage(partId)}) ${理由.message}ため外しました`,
+        hint: 理由.hint,
+      });
+      return undefined;
+    }
+    return 繋いだ;
+  };
+}
+
+/**
+ * 矢印に書いた部品の要素の名指し (`fromPartNode` / `toPartNode`) が効かないことを知らせる (#1979)。
+ *
+ * 名指しは部品の端でだけ読む。 部品でない箱の端に書くと値はどこにも届かず、黙って捨てると
+ * 「書いたのに繋ぎ先が変わらない」 が手掛かりなしで起きる。
+ *
+ * 順序図 (`sequence` / `solidity`) は板の言づてが縦の線に届き、部品の要素へは繋がないため、
+ * 部品の端に書いても効かない。 部品の一覧に無い部品は組み立てが部品を引いてから知らせる。
+ */
+function reportPartNodeNotHonored(
+  doc: DslDocument,
+  onNotice?: (notice: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  const 順序図 = doc.type === "sequence" || doc.type === "solidity";
+  const 部品 = new Set(doc.actors.filter((a) => a.partId !== undefined).map((a) => a.name));
+  const 居る = new Set(doc.actors.map((a) => a.name));
+  for (const s of doc.flow) {
+    for (const [側, 欄] of [
+      ["from", "fromPartNode"],
+      ["to", "toPartNode"],
+    ] as const) {
+      const 値 = s[欄];
+      if (値 === undefined) continue;
+      const 名 = s[側];
+      // 居ない名前は `flow-actor-missing` が知らせる
+      if (!居る.has(名)) continue;
+      if (!順序図 && 部品.has(名)) continue;
+      onNotice({
+        kind: "part-node-ignored",
+        actor: 名,
+        line: s.pos.line,
+        message: 順序図
+          ? `順序図の言づては "${truncateForMessage(名)}" の縦の線に届くため、${欄} に書いた "${truncateForMessage(値)}" は効きません`
+          : `"${truncateForMessage(名)}" は部品ではないため、${欄} に書いた "${truncateForMessage(値)}" は効きません`,
+        hint: 順序図
+          ? "部品の中の要素へ矢印を繋ぐのは、矢印を箱の間に引く図種 (flow / swimlane など)"
+          : "部品の中の要素の名指しは、kind に部品の名前を書いた箱の端にだけ効く",
+      });
+    }
+  }
+}
+
+/**
  * パーツ用に作られた仮の箱 / 線 / 列を掃除する (#1015 で helper 化)。
  *
  * 取り込む時だけでなく **落とす時にも呼ぶ**。 落とした時に残すと、格子から外した後続の見本と
@@ -2988,6 +3120,11 @@ function cleanupPlaceholderActor(
   target: CdlDiagram,
   doc: DslDocument,
   a: { name: string; lane?: string },
+  /**
+   * 仮の箱に繋がっていた矢印を、部品の図の要素へ繋ぎ直す (#1979)。 仮の箱の側の端を受け取り、
+   * 繋ぎ直した矢印を返す。 `undefined` を返した矢印は外す。 渡さなければ全て外す
+   */
+  繋ぎ直す?: (edge: CdlEdge, 端: { from: boolean; to: boolean }) => CdlEdge | undefined,
 ): void {
   const aliasSlug = slugify(a.name);
   const ownedLaneIds = new Set<string>();
@@ -3031,14 +3168,22 @@ function cleanupPlaceholderActor(
   // 仮の箱が入っていた縦列。 仮の箱を消して空になった縦列は下で消す (#1973)
   const 仮の箱の縦列 = new Set(target.nodes.filter((n) => relatedToActor(n.id)).map((n) => n.lane));
   target.nodes = target.nodes.filter((n) => !relatedToActor(n.id));
-  // edge も同経路で削除 (parts actor に接続していた flow を除去、 parts merge 後の flow は user が
-  // 別途書く経路になる)。 削除した edge の id は phase.activate に残ると dangling 参照になるため回収する。
+  // 仮の箱に繋がっていた矢印は、部品の要素へ繋ぎ直せたものだけ残す (#1979)。 以前は全て消しており、
+  // 部品へ引いた矢印が知らせも無く図から消えていた。 繋ぎ直した矢印は id を変えないので、段の
+  // 点灯 (`activate`) からも外さない。 外した矢印の id は `activate` に残ると存在しない参照になるため回収する
   const removedEdgeIds = new Set<string>();
-  target.edges = target.edges.filter((e) => {
-    const drop = relatedToActor(e.from) || relatedToActor(e.to);
-    if (drop) removedEdgeIds.add(e.id);
-    return !drop;
-  });
+  const 残す矢印: CdlEdge[] = [];
+  for (const e of target.edges) {
+    const 端 = { from: relatedToActor(e.from), to: relatedToActor(e.to) };
+    if (!端.from && !端.to) {
+      残す矢印.push(e);
+      continue;
+    }
+    const 繋いだ = 繋ぎ直す?.(e, 端);
+    if (繋いだ) 残す矢印.push(繋いだ);
+    else removedEdgeIds.add(e.id);
+  }
+  target.edges = 残す矢印;
   // lane も削除 = sequence preset は parts actor 用に lane (id = aliasSlug、 label = actor 名) を
   // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
   // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
@@ -3094,6 +3239,8 @@ function mergePartsFromActors(
   partsCatalog?: Record<string, CdlDiagram>,
   onNotice?: (notice: CompileNotice) => void,
   derivedSourceLines?: Map<string, number[]>,
+  /** 矢印の id から、その矢印を書いた行。 行に書いた要素の名指しを読む (#1979) */
+  edgeSteps?: Map<string, DslStep>,
 ): CdlDiagram {
   const partsActors = doc.actors.filter((a) => a.partId !== undefined);
   if (partsActors.length === 0) return target;
@@ -3140,8 +3287,14 @@ function mergePartsFromActors(
           ? `要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えています`
           : `図全体の要素数が上限 (${MAX_INPUT_ELEMENTS}) を超えます`,
       });
-      // 落とす時も仮の箱を掃除する。 残すと格子から外した後続の見本と重なる
-      cleanupPlaceholderActor(target, doc, actor);
+      // 落とす時も仮の箱を掃除する。 残すと格子から外した後続の見本と重なる。
+      // 部品が図に入らないので、部品へ引いた矢印も繋ぎ先が無い = 矢印ごとに知らせて外す
+      cleanupPlaceholderActor(
+        target,
+        doc,
+        actor,
+        部品の要素へ繋ぐ(actor.name, partId, undefined, edgeSteps, onNotice),
+      );
       continue;
     }
     const part = found;
@@ -3150,6 +3303,25 @@ function mergePartsFromActors(
         console.warn(
           `[dragon] parts kind "${partId}" not found in partsCatalog (actor: ${actor.name})`,
         );
+      }
+      // 一覧に無い部品は仮の箱のまま描かれ、矢印も仮の箱に繋がる。 要素の名指しは効かない
+      for (const s of doc.flow) {
+        for (const [側, 欄] of [
+          ["from", "fromPartNode"],
+          ["to", "toPartNode"],
+        ] as const) {
+          const 値 = s[欄];
+          if (値 === undefined || s[側] !== actor.name) continue;
+          // 順序図は部品の有無に依らず名指しが効かない。 そちらの知らせと 2 度出さない
+          if (doc.type === "sequence" || doc.type === "solidity") continue;
+          onNotice?.({
+            kind: "part-node-ignored",
+            actor: actor.name,
+            line: s.pos.line,
+            message: `"${truncateForMessage(actor.name)}" (${truncateForMessage(partId)}) は部品の一覧に無いため、${欄} に書いた "${truncateForMessage(値)}" は効きません`,
+            hint: "kind に部品の名前を書く (綴りを確かめる)",
+          });
+        }
       }
       continue;
     }
@@ -3168,7 +3340,14 @@ function mergePartsFromActors(
     // 厳密収集する。 slug の prefix 推測を挟まないため、 slug 実装差の取りこぼしと、 別 actor を巻き込む
     // 誤削除 (parts actor `a_b` の lane id `a-b` が actor `a-b-c` の `a-b-c-header` に prefix match する)
     // の両方を同時に排除する。
-    cleanupPlaceholderActor(target, doc, actor);
+    //
+    // 仮の箱に繋がっていた矢印は、部品の図の要素へ繋ぎ直す (#1979)
+    cleanupPlaceholderActor(
+      target,
+      doc,
+      actor,
+      部品の要素へ繋ぐ(actor.name, partId, part, edgeSteps, onNotice),
+    );
     const merged = applyColorHex(part, actor.colorHex, actor.stateOverride ?? {});
     // 色番号は部品の色の状態へ入れる。 塗りを図形に直接書いた部品 (`arc-gauge` 等) は入れる先が
     // 無く、書いても絵が変わらない。 黙って既定の色で描くと手掛かりが残らないので知らせる (#1973)
@@ -3814,6 +3993,8 @@ function applyEdgeInlineOptions(
   doc: DslDocument,
   /** 対応が取れた edge を記録する表。 callback は呼ばない (1 edge = 1 回にするため)。 */
   sourceLines?: Map<string, number>,
+  /** 対応が取れた edge の行そのもの。 部品の取り込みが、行に書いた要素の名指しを読む (#1979) */
+  edgeSteps?: Map<string, DslStep>,
 ): void {
   // **静止した `type: flow` は書いた端で対応が取れない** (#1267)。 鎖の規則で先に埋める
   if (鎖でつなぐ形か(doc)) {
@@ -3821,6 +4002,7 @@ function applyEdgeInlineOptions(
       const s = 鎖のどの行から来たか(doc, idx);
       if (s === undefined) return;
       sourceLines?.set(e.id, s.pos.line);
+      edgeSteps?.set(e.id, s);
       矢印へ書き写す(e, s, doc);
     });
     return;
@@ -3839,6 +4021,7 @@ function applyEdgeInlineOptions(
     if (!target) return;
     used.add(target.id);
     sourceLines?.set(target.id, s.pos.line);
+    edgeSteps?.set(target.id, s);
     矢印へ書き写す(target, s, doc);
   });
 }
