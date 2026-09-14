@@ -2471,6 +2471,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
             opportunity: a.opportunity,
           }),
       colorHex: 色.hex,
+      // 部品に書いた色の名前は効かない。 記法と同じく書いた名前として残し、組み立て側が知らせる (#1973)
+      partColorName: isPart ? 色.tone : undefined,
       // 絶対座標と大きさ (#1294)。 `pos` (ずらし幅) とは別経路
       posX: a.posX,
       posY: a.posY,

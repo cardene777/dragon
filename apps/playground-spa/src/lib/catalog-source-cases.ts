@@ -1,11 +1,14 @@
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
+import { 部品の一覧を作る } from "@/lib/parts-catalog";
+
 import * as Animation from "@/topics/catalog/animation.cdl";
 import * as Charts from "@/topics/catalog/charts.cdl";
 import * as Cookbook from "@/topics/catalog/cookbook.cdl";
 import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
 import * as Parts from "@/topics/catalog/parts.cdl";
+import * as PartsInBox from "@/topics/catalog/parts-in-box.cdl";
 import * as Patterns from "@/topics/catalog/patterns.cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
 import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
@@ -14,6 +17,14 @@ import * as Styles from "@/topics/catalog/styles.cdl";
 import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
 
 export type CatalogSourceCase = { key: string; yaml: string; built: CdlDiagram };
+
+/**
+ * 記法を組み立て直す時に渡す部品の一覧 (#1973)。
+ *
+ * 部品を箱に使う見本は、一覧を渡して組み立てた図を書き出している。 検査が一覧を渡さずに
+ * 組み立て直すと部品の箱が中身の無い既定の箱になり、書き出した図と比べられない。
+ */
+export const 部品の一覧 = 部品の一覧を作る(Object.values(Parts));
 
 /**
  * 記法を併記した見本を持つまとまり。
@@ -36,6 +47,7 @@ export const 記法を持つカタログ: readonly [string, Record<string, unkno
   ["cookbook", Cookbook],
   ["ethereum", Ethereum],
   ["parts", Parts],
+  ["parts-in-box", PartsInBox],
   ["interactive", Interactive],
   ["charts", Charts],
   ["text-dsl", TextDsl],

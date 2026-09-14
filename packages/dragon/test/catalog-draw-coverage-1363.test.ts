@@ -13,6 +13,7 @@ import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.
 import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
 import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
+import * as partsInBox from "../../../apps/playground-spa/src/topics/catalog/parts-in-box.cdl";
 import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
 
 /**
@@ -39,6 +40,7 @@ const ページ: Record<string, Record<string, unknown>> = {
   interactive,
   ethereum,
   parts,
+  "parts-in-box": partsInBox,
   charts,
 };
 

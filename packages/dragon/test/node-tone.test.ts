@@ -430,13 +430,24 @@ describe("箱と矢印で同じ色名が使える", () => {
     expect(e?.line).toBe(5);
   });
 
-  it("見本の `color` は従来どおり状態の上書きになる (#1969)", () => {
-    const parsed = parseTextDslV05(
-      [`title: "t"`, `type: flow`, ``, `actors:`, `  - g1: { kind: gauge, color: 成功 }`, `  - API`, ``, `flow:`, `  - g1 -> API: "call"`].join("\n"),
-    );
-    if (!parsed.ok) throw new Error(`parse 失敗: ${parsed.errors.map((e) => e.message).join(" / ")}`);
-    expect(parsed.doc.actors[0]?.tone, "見本の色としては読まない").toBeUndefined();
-    expect(parsed.doc.actors[0]?.stateOverride).toEqual({ color: "成功" });
+  it("見本の `color` は状態の名前として拾わず、色番号は縦に並べた形と同じく色番号になる (#1973)", () => {
+    // #1969 では中括弧の形だけが見本の `color` を状態の上書き `{ color: ... }` として拾っていた。
+    // 縦に並べた形と JSON は色として読むため、同じ `color: "#..."` が書き方で効いたり効かなかったりした
+    const 読む = (行: string) => {
+      const parsed = parseTextDslV05(
+        [`title: "t"`, `type: flow`, ``, `actors:`, 行, `  - API`, ``, `flow:`, `  - g1 -> API: "call"`].join("\n"),
+      );
+      if (!parsed.ok) throw new Error(`parse 失敗: ${parsed.errors.map((e) => e.message).join(" / ")}`);
+      return parsed.doc.actors[0]!;
+    };
+    const 名前 = 読む(`  - g1: { kind: gauge, color: 成功 }`);
+    expect(名前.tone, "見本の色名は箱の色として渡さない").toBeUndefined();
+    expect(名前.stateOverride, "color を状態の名前として拾った").toBeUndefined();
+    const 中括弧 = 読む(`  - g1: { kind: gauge, color: "#d9534f" }`);
+    const 縦 = 読む(`  - g1:\n      kind: gauge\n      color: "#d9534f"`);
+    expect(縦.colorHex, "縦に並べた形で色番号が読めていない (比べる相手が空)").toBe("#d9534f");
+    expect(中括弧.colorHex).toBe(縦.colorHex);
+    expect(中括弧.stateOverride).toBeUndefined();
   });
 
   it("線の種類の指定は色として拾わない", () => {

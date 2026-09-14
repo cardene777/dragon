@@ -19,12 +19,13 @@ import {
 } from "@cardenelabs/dragon";
 import CodeMirror from "@uiw/react-codemirror";
 import { loadPartsItems, type CatalogItem } from "@/lib/catalog-items";
+import { 部品の一覧を作る, 部品の図か } from "@/lib/parts-catalog";
 import { CATEGORIES } from "@/lib/catalog";
 import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
 // 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
 // user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
-import { extractPartsFromSrc, appendActorLine, placeParts, partWorldSize, srcMayUseParts, yamlMayUseParts } from "@/lib/overlay-dsl";
+import { 図と重ねる部品に分ける, appendActorLine, placeParts, partWorldSize, srcMayUseParts, yamlMayUseParts } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
 import { boxesRightPx, readableScaleForFrame, smallestFontWorld } from "@/lib/readable-scale";
@@ -575,7 +576,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPartsLoading(true);
     loadPartsItems()
-      .then((items) => setPartsItems(items))
+      // 部品の頁には部品を箱に使う見本も並ぶ (#1973)。 部品の欄に並べるのは部品そのものだけ
+      .then((items) => setPartsItems(items.filter((it) => 部品の図か(it.id))))
       .catch((e) => {
         // 失敗しても editor 本体は動かす、 sidebar のみ空表示 + hint 出す + 失敗 flag を立てて再試行禁止
         console.error("[CdlEditor] parts load failed", e);
@@ -935,17 +937,11 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // CAR-1657 = parts catalog を CdlEditor 側で load、 textDslToDiagram に inject する経路。
   // parts identifier (arc-gauge / wave-gauge 等) を kind field で書ける unified syntax の compile 時
   // lookup 用。 loadPartsItems が partsItems state を populate する useEffect と同 tab 切替 trigger 利用。
-  const partsCatalog = useMemo(() => {
-    const map: Record<string, CdlDiagram> = {};
-    for (const item of partsItems) {
-      // parts.cdl.ts の id = 'parts-arc-gauge'、 user が syntax で書く時は prefix なし ('arc-gauge')。
-      // 両方を key で登録して parser 側の任意判定に対応。
-      map[item.id] = item.diagram;
-      const stripped = item.id.startsWith("parts-") ? item.id.slice(6) : item.id;
-      map[stripped] = item.diagram;
-    }
-    return map;
-  }, [partsItems]);
+  // 一覧の作り方は、部品を箱に使う見本の file と同じ関数を通す (#1973)
+  const partsCatalog = useMemo(
+    () => 部品の一覧を作る(partsItems.map((item) => item.diagram)),
+    [partsItems],
+  );
 
   /**
    * 組み立てた図を画面に載せ、 位置関係を検査する (#1006)。
@@ -1094,21 +1090,29 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 2026-07-24 architectural refactor = parts を cdl から切離して独立 overlay で管理。
         // extractPartsFromSrc で src から parts 行を除いた baseSrc を作り、 cdl には base のみ渡す。
         // 抽出した parts は overlayParts state に set、 独立 SVG overlay として描画する。
-        const { baseSrc, parts, lineMap } = extractPartsFromSrc(src, partsCatalog, partsItems);
-        // 書いたのに効かなかったこと (`位置: Web の下` が順序図で効かない等) を受け取る。
-        // 判定は組み立て側が持つ。 画面側は受け取って出すだけにして、 規則を二重に持たない
-        const notices: CompileNotice[] = [];
-        // edge が本文のどの行から来たかを受け取る (#998)。 preset によっては書いた step と
-        // 生成される edge が一致しないため、 これが無いと自動修正が別の行を書き換える。
-        const edgeLines = new Map<string, number>();
-        const d = 図に画面の言語を当てる(
-          textDslToDiagram(baseSrc, {
-            partsCatalog,
-            onNotice: (n) => notices.push(n),
-            onEdgeSource: (id, line) => edgeLines.set(id, line),
-          }),
-          locale,
-        );
+        // 部品しかない本文は抜かずに組み立て、重ねる部品には書いた上書きを当てる (#1973)。
+        // 組み立ては呼ぶたびに知らせと矢印の行の器を作り直す = 使わなかった方の知らせを混ぜない
+        const {
+          built: { diagram: d, notices, edgeLines },
+          parts,
+          lineMap,
+        } = 図と重ねる部品に分ける(src, partsCatalog, partsItems, (本文) => {
+          // 書いたのに効かなかったこと (`位置: Web の下` が順序図で効かない等) を受け取る。
+          // 判定は組み立て側が持つ。 画面側は受け取って出すだけにして、 規則を二重に持たない
+          const notices: CompileNotice[] = [];
+          // edge が本文のどの行から来たかを受け取る (#998)。 preset によっては書いた step と
+          // 生成される edge が一致しないため、 これが無いと自動修正が別の行を書き換える。
+          const edgeLines = new Map<string, number>();
+          const diagram = 図に画面の言語を当てる(
+            textDslToDiagram(本文, {
+              partsCatalog,
+              onNotice: (n) => notices.push(n),
+              onEdgeSource: (id, line) => edgeLines.set(id, line),
+            }),
+            locale,
+          );
+          return { diagram, notices, edgeLines };
+        });
         // 組み立て側が返すのはパーツの行を抜いた本文の座標。 元の本文に戻してから持つ。
         setEdgeSource({ src, lines: toSourceLines(edgeLines, lineMap) });
         // パーツの置き場所は図が組み上がってから決まる。 相対で書いたパーツは基準の実座標が

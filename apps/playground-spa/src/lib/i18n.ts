@@ -484,6 +484,8 @@ export const ITEM_NAME_JA: Record<string, string> = {
   layoutOffset: "位置のずらし",
   // 縦列の組の見本 (#1972)
   laneGroup: "縦列の組",
+  // 部品を箱に使う見本 (#1973)
+  partInBox: "部品を箱に使う",
   stackPair: "縦2段の積み",
   stackTriple: "縦3段の積み",
   kPerson: "種別: 人",
@@ -662,6 +664,7 @@ export const ITEM_NAME_EN: Record<string, string> = {
   stateStartEnd: "State start and end",
   layoutOffset: "Position offset",
   laneGroup: "Lane groups",
+  partInBox: "Parts as boxes",
   stackPair: "Two-row stack",
   stackTriple: "Three-row stack",
   shapeFile: "File with dog-ear",

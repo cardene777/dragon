@@ -10,18 +10,13 @@
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram, parseTextDslV05, PRESET_TYPES } from "@cardenelabs/dragon";
 import { loadPartsItems } from "@/lib/catalog-items";
+import { 部品の一覧を作る } from "@/lib/parts-catalog";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { FORMS, buildSample } from "./syntax-forms";
 
-/** パーツを含む例文のために catalog を用意する。 */
+/** パーツを含む例文のために catalog を用意する。 編集画面と同じ作り方を通す (#1973) */
 async function partsCatalog(): Promise<Record<string, CdlDiagram>> {
-  const items = await loadPartsItems();
-  const map: Record<string, CdlDiagram> = {};
-  for (const item of items) {
-    map[item.id] = item.diagram;
-    map[item.id.startsWith("parts-") ? item.id.slice(6) : item.id] = item.diagram;
-  }
-  return map;
+  return 部品の一覧を作る((await loadPartsItems()).map((item) => item.diagram));
 }
 
 describe("記法一覧の書式", () => {

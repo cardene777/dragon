@@ -80,6 +80,24 @@ actors:
 - default = parts phase を既存 phase と同時再生 (parallel merge)、 duration は max を取る
 - opt-out = `- arc1: { kind: arc-gauge, phase: false, v: 50 }` で parts phase を破棄、 static merge のみ
 - 87.5% single-phase 実測 + alias prefix で collision 排除
+- 段が状態を動かす部品 (`state-indicator` の `lvl` 等) は、`phase: false` を書かないと上書きした値が最初の段の値に隠れる
+
+### 2.6.1 色番号 = 初期値が色番号の状態へまとめて入れる (#1973)
+
+- `color: "#d9534f"` は状態の名前 `color` ではなく色番号として読み、部品の状態のうち初期値が色番号のもの全てに入れる
+- 名前を書いて上書きした状態 (`stFill: "#123456"`) はその値が勝つ
+- 中括弧の形・縦に並べた形・JSON の 3 つで同じ図になる
+- 初期値が色番号の状態を 1 つも持たない部品 (`arc-gauge` 等、塗りを図形に直接書く) に書くと `part-color-ignored` を知らせ、塗りは変えない
+- 色の名前 (`color: 成功`) は部品に効かない。 3 つの形とも `part-color-ignored` を知らせ、塗りは変えない (名前の色は描く側の配色の変数で決まり、固定の色番号を持たない)
+
+### 2.6.2 編集画面の本文欄 (#1973)
+
+本文欄は部品を本文から抜いて図の上に重ねる。 抜いた後の扱いは次のとおり。
+
+| 本文 | 扱い |
+|---|---|
+| 部品のほかに箱がある | 部品を重ね、状態の上書きと色番号は `部品に上書きを当てる` で部品の図に当てる (組み立て側と同じ値) |
+| 部品しかない | 抜くと図が空になり組み立てに落ちるため、抜かずに組み立て側で部品ごと描く |
 
 ### 2.7 backward compat = `#!parts` marker auto-convert
 

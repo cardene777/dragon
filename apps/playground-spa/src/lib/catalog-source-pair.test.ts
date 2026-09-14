@@ -29,6 +29,7 @@ import { describe, it, expect } from "vitest";
 import { textDslToDiagram, jsonToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
+import { 部品の一覧を作る } from "./parts-catalog";
 
 /** 全 category の見本を 1 列に並べる (parts は lazy-load なので別途足す) */
 async function 全見本(): Promise<CatalogItem[]> {
@@ -66,24 +67,30 @@ describe("見本の記法が YAML / JSON で揃っている (#1292)", () => {
 
   it("YAML と JSON が同じ図に解決される", async () => {
     const 見本 = await 全見本();
-    const 対 = 見本.filter((i) => i.sourceYaml && i.sourceJson);
+    // 切替の変種も比べる。 部品を箱に使う見本 (#1973) は切替ごとに書き換える欄が違う
+    const 対 = 見本
+      .flatMap((i) => [i, ...(i.patterns ?? []).map((p) => ({ ...p, id: `${i.id} / ${p.名}` }))])
+      .filter((i) => i.sourceYaml && i.sourceJson);
     expect(
       対.length,
       "YAML / JSON の対を 1 件も集められていない (検査が空振りしている)",
     ).toBeGreaterThan(0);
 
+    // 部品の一覧を渡して組み立てる (#1973)。 渡さないと部品の箱は両側とも中身の無い既定の箱になり、
+    // 状態や色番号を片側だけ書き違えても同じ図に見える
+    const 部品の一覧 = 部品の一覧を作る(見本.map((i) => i.diagram));
     const 食い違い: string[] = [];
     for (const i of 対) {
       let y: CdlDiagram;
       let j: CdlDiagram;
       try {
-        y = textDslToDiagram(i.sourceYaml!);
+        y = textDslToDiagram(i.sourceYaml!, { partsCatalog: 部品の一覧 });
       } catch (e) {
         食い違い.push(`${i.id}: YAML が読めない (${(e as Error).message})`);
         continue;
       }
       try {
-        j = jsonToDiagram(JSON.parse(i.sourceJson!));
+        j = jsonToDiagram(JSON.parse(i.sourceJson!), { partsCatalog: 部品の一覧 });
       } catch (e) {
         食い違い.push(`${i.id}: JSON が読めない (${(e as Error).message})`);
         continue;

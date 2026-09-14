@@ -3001,6 +3001,11 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       touchedState = true;
     }
     if (touchedState) out.stateOverride = state;
+    // 色の名前は部品に効かない。 中括弧の形と同じく箱の色から外し、書いた名前として残す (#1973)
+    if (out.tone !== undefined) {
+      out.partColorName = out.tone;
+      delete out.tone;
+    }
     return out;
   }
   /*
@@ -3237,6 +3242,9 @@ const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   // 図形の倍率 (#1026)。 状態の名前としては読まない
   "scale",
   "倍率",
+  // 色番号 (#1973)。 見本の色の状態へまとめて入れる欄で、状態の名前としては読まない。
+  // 縦に並べた形 (`COLOR_KEYS`) と JSON は元から色として読んでいた
+  "color",
   // 日本語の項目名 (#1026)。 中括弧の形が日本語の項目名を読めるようになったため、
   // ここに載せないと状態の名前として拾われる。 縦に並べた形での意味 (位置 / 大きさ 等) は
   // 中括弧の形では未対応なので、これまでどおり落とす方に揃える
@@ -3635,9 +3643,13 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       report読めない色(opts.tone, line.no, errors, { 線種も受ける: false });
     }
     // `color` は縦に並べた形と JSON と同じ振り分けを通す (#1969)。 色の名前は箱の色、`#` で
-    // 始まる値は色番号になる。 見本では状態の上書きとして意味を持つため色として読まない
-    const 色 = !isPart && opts.color !== undefined ? splitColorValue(opts.color) : {};
-    if (!isPart && opts.color !== undefined && !色.tone && !色.hex) {
+    // 始まる値は色番号になる。
+    //
+    // **見本でも色として読む** (#1973)。 縦に並べた形と JSON は見本の `color` を色番号として
+    // 見本の色の状態へ入れる。 中括弧の形だけが状態の名前 `color` として拾い、 その名前の状態を
+    // 持つ見本が無いため黙って捨てていた (実測 = `state-indicator` の塗りが既定の緑のまま)
+    const 色 = opts.color !== undefined ? splitColorValue(opts.color) : {};
+    if (opts.color !== undefined && !色.tone && !色.hex) {
       report読めない色(opts.color, line.no, errors, { 線種も受ける: false });
     }
     const kind = isPart
@@ -3705,6 +3717,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // `tone` と `color` を両方書いた時は `tone` を採る (JSON の読み方と揃える)
       tone: isPart ? undefined : (resolveTone(opts.tone) ?? 色.tone),
       colorHex: 色.hex,
+      partColorName: isPart ? 色.tone : undefined,
       partId: isPart ? kindRaw : undefined,
       stateOverride: isPart ? extractStateOverride(opts) : undefined,
       // canvas pivot 新 spec = 絶対座標 field は `ACTOR_INLINE_VALUE_KINDS` の表が読む (#1306)
