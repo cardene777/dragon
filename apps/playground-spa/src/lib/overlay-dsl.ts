@@ -754,6 +754,7 @@ export function extractPartsFromSrc(
  * |---|---|
  * | 部品のほかに箱がある | 部品を重ねる。 部品の図には本文に書いた状態の上書きと色番号を当てる |
  * | 部品しかない | 抜かずに組み立て側で部品ごと描く |
+ * | 縦列の中に置く部品がある | 抜かずに組み立て側で部品ごと描く (#1980) |
  *
  * **上書きを当てないと、編集画面だけ既定の値で描く**。 重ねる側は部品の図をそのまま描くため、
  * `state: { lvl: 0.4 }` や `color: "#d9534f"` が組み立て側の図にしか届かない。 本文の読み取りは
@@ -763,23 +764,45 @@ export function extractPartsFromSrc(
  * 描く場所が無いので部品も重ねられない (実測 = 見本の頁から開くと「読み込み中」 のまま止まった)。
  * 組み立て側は部品を格子に並べ、重ねる側と同じ場所に置く (`part-placement-parity.test.ts`)。
  *
+ * **縦列の中に置く部品は、図を配置してから縦列の位置を測って置く**。 重ねる側は部品を抜いた図しか
+ * 持たず、部品の幅で広がった縦列の位置を知らない。 抜かずに組み立てれば 2 経路の置き場所が必ず揃う。
+ *
  * 組み立ては呼出側が渡す。 知らせと矢印の行を集める器を呼ぶたびに作れるよう、結果の形は
  * 呼出側が決める。
+ *
+ * 抜かずに描いた時は、本文にあった部品を `抜かずに描いた部品` で返す。 部品ごとの知らせ
+ * (図の中に描く部品を持たない、#1017) は重ねる部品と同じく出す = 返さないと、組み立て側で描く
+ * 本文だけ知らせが消える (実測 = 表の図に操作盤の部品を置くと、縦列に置く側へ回って知らせが出なかった)。
  */
 export function 図と重ねる部品に分ける<R extends { diagram: CdlDiagram }>(
   src: string,
   partsCatalog: Record<string, unknown>,
   partsItems: CatalogItem[],
   組み立てる: (本文: string) => R,
-): { built: R; parts: OverlayPartParsed[]; lineMap: number[] } {
+): {
+  built: R;
+  parts: OverlayPartParsed[];
+  抜かずに描いた部品: OverlayPartParsed[];
+  lineMap: number[];
+} {
   const { baseSrc, parts, lineMap } = extractPartsFromSrc(src, partsCatalog, partsItems);
   const built = 組み立てる(baseSrc);
-  if (parts.length === 0) return { built, parts, lineMap };
-  if (built.diagram.nodes.length === 0) {
-    return { built: 組み立てる(src), parts: [], lineMap: src.split("\n").map((_, i) => i + 1) };
+  if (parts.length === 0) return { built, parts, 抜かずに描いた部品: [], lineMap };
+  const 抜かずに描く = (全体 = 組み立てる(src)) => ({
+    built: 全体,
+    parts: [],
+    抜かずに描いた部品: parts,
+    lineMap: src.split("\n").map((_, i) => i + 1),
+  });
+  if (built.diagram.nodes.length === 0) return 抜かずに描く();
+  // 縦列に置く部品があれば抜かない (#1980)。 位置を書いた部品は縦列に置かれないので、
+  // 書いていない部品がある時だけ組み立てて確かめる
+  if (parts.some((p) => p.posX === undefined)) {
+    const 全体 = 組み立てる(src);
+    if (縦列に置いた部品がある(全体.diagram, parts)) return 抜かずに描く(全体);
   }
   const 読んだ = parseTextDslV05(src);
-  if (!読んだ.ok) return { built, parts, lineMap };
+  if (!読んだ.ok) return { built, parts, 抜かずに描いた部品: [], lineMap };
   // 同じ名前を 2 度書いた時は先の 1 件を使う (組み立て側と同じ)
   const 名前ごと = new Map<string, DslActor>();
   for (const a of 読んだ.doc.actors ?? []) {
@@ -792,8 +815,25 @@ export function 図と重ねる部品に分ける<R extends { diagram: CdlDiagra
       if (!a) return p;
       return { ...p, item: { ...p.item, diagram: 部品に上書きを当てる(p.item.diagram, a) } };
     }),
+    抜かずに描いた部品: [],
     lineMap,
   };
+}
+
+/**
+ * 組み立てた図に、縦列の中に置いた部品があるか (#1980)。
+ *
+ * 組み立て側は、縦列に置かない部品の要素を部品用の縦列 (`名前__l`) に入れ、縦列に置く部品の
+ * 要素を図の縦列 (書いた縦列か、仮の箱の縦列) に入れる。 部品の要素がどちらに入ったかで見分ける。
+ *
+ * **置くかどうかの規則を画面側で書き直さない**。 規則 (`lane:` を書いたか、自分だけの縦列を持つ図か)
+ * を写すと、組み立て側を変えた時に 2 経路の置き場所が黙って食い違う。
+ */
+function 縦列に置いた部品がある(diagram: CdlDiagram, parts: readonly OverlayPartParsed[]): boolean {
+  return parts.some((p) => {
+    const 頭 = `${p.id}__`;
+    return diagram.nodes.some((n) => n.id.startsWith(頭) && !n.lane.startsWith(頭));
+  });
 }
 
 /**

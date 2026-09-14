@@ -23,7 +23,14 @@ import {
   partBoxInFrame,
   MAX_PART_SCALE,
 } from "@cardenelabs/dragon";
-import { extractPartsFromSrc, placeParts, partWorldSize, partBoxRect, partFrameSize } from "./overlay-dsl";
+import {
+  extractPartsFromSrc,
+  placeParts,
+  partWorldSize,
+  partBoxRect,
+  partFrameSize,
+  図と重ねる部品に分ける,
+} from "./overlay-dsl";
 import type { CatalogItem } from "@/lib/catalog-items";
 
 /** 見本のパーツ。 段の数と大きさを変えて作る。 */
@@ -627,6 +634,82 @@ actors:
       expect(scr.get(id)!.cx, `${id} の横がずれている`).toBeCloseTo(lib.get(id)!.cx, 1);
       expect(scr.get(id)!.cy, `${id} の縦がずれている`).toBeCloseTo(lib.get(id)!.cy, 1);
     }
+  });
+});
+
+describe("縦列に置くパーツの置き場所 (#1980)", () => {
+  /*
+   * 縦列に置くパーツは、図を配置してから縦列の位置を測って置く。 重ねる側はパーツを抜いた図しか
+   * 持たず、パーツの幅で広がった縦列の位置を知らないので、抜かずに組み立て側で描く。
+   * 2 経路の置き場所の一致は「画面が描く図 = 組み立て側の図」 で確かめる。
+   */
+  const 分ける = (src: string) =>
+    図と重ねる部品に分ける(src, KIND_SET, ITEMS, (s) => ({
+      diagram: textDslToDiagram(s, { partsCatalog: CATALOG }),
+    }));
+
+  const 縦列を書いた = `title: "t"
+type: swimlane
+
+lanes:
+  a: { label: "A" }
+  b: { label: "B" }
+
+actors:
+  - 受付: { kind: card, lane: a }
+  - 出荷: { kind: card, lane: b }
+  - p: { kind: wide, lane: b }
+`;
+
+  it.each([
+    ["lane: を書いたパーツ", 縦列を書いた, "b"],
+    [
+      "縦列を書かない swimlane のパーツ",
+      `title: "t"\ntype: swimlane\n\nactors:\n  - 受付: { kind: card }\n  - p: { kind: wide }\n\nflow:\n  - 受付 -> 受付: "x"\n`,
+      "p",
+    ],
+  ])("%s は抜かずに描き、縦列の中に置く", (_名, src, 縦列のid) => {
+    const 分けた = 分ける(src);
+    expect(分けた.parts, "パーツを重ねる側に抜いた").toEqual([]);
+    // 部品ごとの知らせ (図の中に描く部品を持たない) を出せるよう、組み立て側で描いた部品を返す
+    expect(分けた.抜かずに描いた部品.map((p) => p.id)).toEqual(["p"]);
+    expect(JSON.stringify(分けた.built.diagram)).toBe(
+      JSON.stringify(textDslToDiagram(src, { partsCatalog: CATALOG })),
+    );
+    expect(分けた.lineMap).toEqual(src.split("\n").map((_, i) => i + 1));
+    const laid = layout(分けた.built.diagram);
+    const 縦列 = laid.lanes.find((l) => l.id === 縦列のid);
+    const 箱 = laid.nodes.filter((n) => n.id.startsWith("p__"));
+    expect(縦列, "縦列が無い (前提が崩れた)").toBeDefined();
+    expect(箱.length, "パーツの箱を集められていない (検査が空振りしている)").toBeGreaterThan(0);
+    for (const n of 箱) {
+      expect(n.cx - n.w / 2, `${n.id} が縦列の左の外`).toBeGreaterThanOrEqual(縦列!.x);
+      expect(n.cx + n.w / 2, `${n.id} が縦列の右の外`).toBeLessThanOrEqual(縦列!.x + 縦列!.width);
+    }
+  });
+
+  it("位置を書いたパーツは、lane: を書いても今までどおり重ねる", () => {
+    // 陰性対照 = 位置を書くと縦列に置かないので、重ねる側に抜く
+    const src = 縦列を書いた.replace("kind: wide, lane: b", "kind: wide, lane: b, posX: 1200, posY: 800");
+    const 分けた = 分ける(src);
+    expect(分けた.parts.map((p) => p.id)).toEqual(["p"]);
+    // 重ねる部品を「抜かずに描いた」 側にも数えると、知らせが 2 度出る
+    expect(分けた.抜かずに描いた部品).toEqual([]);
+  });
+
+  it("縦列を共有する図種 (flow) のパーツは、今までどおり重ねる", () => {
+    // 陰性対照 = 縦列に置かない形は、重ねる側と組み立て側が同じ格子で置く (#937)
+    const src = `title: "t"\ntype: flow\n\nactors:\n  - 受付: { kind: card }\n  - p: { kind: wide }\n`;
+    const 分けた = 分ける(src);
+    expect(分けた.parts.map((p) => p.id)).toEqual(["p"]);
+    expect(分けた.抜かずに描いた部品).toEqual([]);
+  });
+
+  it("パーツだけの本文も、組み立て側で描いた部品として返す (#1973 の経路)", () => {
+    const src = `title: "t"\ntype: flow\n\nactors:\n  - p: { kind: wide }\n`;
+    const 分けた = 分ける(src);
+    expect(分けた.parts).toEqual([]);
+    expect(分けた.抜かずに描いた部品.map((p) => p.id)).toEqual(["p"]);
   });
 });
 

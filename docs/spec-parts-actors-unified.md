@@ -66,6 +66,18 @@ actors:
 - `stack: N` で lane 内 順序指定 (既存 syntax)
 - Phase 3 で `at: { x, y }` 拡張検討、 Phase 2 では lane/stack のみ
 
+位置 (`posX` / `posY` / `位置:`) を書かない部品の置き場所 (#1980)。 実装は `packages/dragon/src/compile.ts` の `縦列に置く部品` / `縦列に置いた部品を揃える` が持つ。
+
+| 部品 | 置き場所 |
+|---|---|
+| `lane:` に図にある縦列を書いた | その縦列の中心。 縦列の他の箱の下端から 120 空け、同じ縦列の部品は書いた順に積む |
+| 登場人物ごとに縦列を作る図種 (`swimlane` / `state` / `er` / `class`) で `lane:` を書かない | 部品の名前の縦列の中心 (部品用の縦列 `名前__l` を足さない) |
+| 縦列を共有する図種 (`flow` / `topology` / `c4`)、図の縦列が 1 本 | 格子 (部品用の縦列 `名前__l`) |
+| 他の箱の位置の基準になる | 格子に置き、`part-lane-ignored` で知らせる |
+
+部品が縦列より広い時は縦列を部品の幅と左右 25 まで広げ、縦列を 2 本持つ部品は要素の横並びを保つ。
+編集画面は、縦列に置く部品がある本文を重ねずに組み立て側で描く (`apps/playground-spa/src/lib/overlay-dsl.ts` の `図と重ねる部品に分ける`)。
+
 ### 2.5 id 命名 = user alias が prefix (auto namespace)
 
 - user が書く actor 名 (`arc1`) が unique namespace prefix になる

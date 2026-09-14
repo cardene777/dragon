@@ -378,8 +378,13 @@ describe("枠の名札も控えた相手だけ戻す (Round 1 r1-f4)", () => {
         phases: [],
       },
     };
+    // 見本に位置を書く。 位置を書かない見本は自分の名前の縦列に入り、見本の枠を作らない (#1980)
     const 図 = textDslToDiagram(
-      記法("swimlane", [...衝突する2人, "見本1: { kind: badge }"], ['foo-bar -> Foo Bar: "x"']),
+      記法(
+        "swimlane",
+        [...衝突する2人, "見本1: { kind: badge, posX: 900, posY: 600 }"],
+        ['foo-bar -> Foo Bar: "x"'],
+      ),
       { partsCatalog: 図録 },
     );
     const 見本の枠 = 図.lanes.find((l) => l.id.includes("__l"));

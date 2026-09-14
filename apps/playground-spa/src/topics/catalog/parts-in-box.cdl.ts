@@ -22,6 +22,11 @@ import * as 部品 from "./parts.cdl";
  *
  * **状態の上書きは `phase: false` と組にする**。 部品は自分の段で状態を動かす (`lvl` を 0 から 1 へ)
  * ため、初期値だけを上書きしても段が終わると 1 に戻る。 部品の段を外すと上書きした値のまま止まる。
+ *
+ * ## 縦列に置く (#1980)
+ *
+ * 位置を書かない部品に `lane:` を書くと、その縦列の中心に置き、縦列の他の箱の下に並べる。
+ * 同じ縦列に普通の箱 (`梱包する`) を置き、部品が縦列の中に収まって普通の箱と縦にそろうことを見せる。
  */
 
 const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
@@ -29,7 +34,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partInBox = "書かない";
 
 export const subtitle__partInBox =
-  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換える";
+  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置く";
 
 export const sourceYaml__partInBox = `title: "部品を箱に置き何も書き換えない"
 type: flow
@@ -109,5 +114,38 @@ export const sourceJson__pattern__partInBox__色番号を変える = `{
 
 export const pattern__partInBox__色番号を変える = textDslToDiagram(
   sourceYaml__pattern__partInBox__色番号を変える,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partInBox__縦列に置く = `title: "設備の稼働を出荷の縦列に置く"
+type: swimlane
+
+lanes:
+  受付: { label: "受付" }
+  出荷: { label: "出荷" }
+
+actors:
+  - 注文を受ける: { kind: card, lane: 受付 }
+  - 梱包する: { kind: card, lane: 出荷 }
+  - 設備の稼働: { kind: state-indicator, lane: 出荷 }
+`;
+
+export const sourceJson__pattern__partInBox__縦列に置く = `{
+  "title": "設備の稼働を出荷の縦列に置く",
+  "type": "swimlane",
+  "lanes": {
+    "受付": { "label": "受付" },
+    "出荷": { "label": "出荷" }
+  },
+  "actors": [
+    { "name": "注文を受ける", "kind": "card", "lane": "受付" },
+    { "name": "梱包する", "kind": "card", "lane": "出荷" },
+    { "name": "設備の稼働", "kind": "state-indicator", "lane": "出荷" }
+  ],
+  "flow": []
+}`;
+
+export const pattern__partInBox__縦列に置く = textDslToDiagram(
+  sourceYaml__pattern__partInBox__縦列に置く,
   { partsCatalog: 部品の一覧 },
 );
