@@ -1,5 +1,6 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { NodeKind, PhaseBuilder } from "@cardenelabs/cdl";
+import { textDslToDiagram } from "@cardenelabs/dragon";
 
 /**
  * Catalog - Primitives ... lane / node の基本パーツ。
@@ -79,6 +80,789 @@ export const laneContain = diagram("lane-contain", { topic: "lane: contain (枠�
   .node("st", { lane: "inner", stack: 1, kind: "storage", title: "保存先" })
   .phase("p", { duration: 1500, title: "contain", body: "lane に contain を付けると、 lane ごと枠で囲んで内と外の境を示す。" }, (p: PhaseBuilder) => p.activate("fn", "st").badge("正常"))
   .build();
+
+// ==== #1969 縦列の縦線と図全体の間隔 ここから ====
+// ---- 縦列の縦の点線 (lifeline) ----
+//
+// 順序図は縦列の中心に縦の点線を引くが、`lifeline: true` は他の図種の縦列にも書ける。 段をずらして
+// 並べた箱で、線の有無だけが違う 2 枚を切り替える。
+
+export const patternBase__laneLifeline = "引かない";
+
+export const subtitle__laneLifeline =
+  "縦列の中心に縦の点線を引く (lifeline)。 段がずれた箱でも、どの縦列に属するかを線で追える";
+
+export const sourceYaml__laneLifeline = `title: "縦列に縦の点線を引かない"
+type: flow
+
+lanes:
+  l1: { width: 280, label: "利用者" }
+  l2: { width: 280, label: "受付の窓口" }
+
+actors:
+  - 注文する: { kind: actor, lane: l1, stack: 0 }
+  - 受け付ける: { kind: function, lane: l2, stack: 1 }
+  - 在庫を引く: { kind: storage, lane: l2, stack: 2 }
+
+flow:
+  - 注文する -> 受け付ける: "注文"
+  - 受け付ける -> 在庫を引く: "引き当て"
+
+animation:
+  - step: "箱の位置だけで縦列を読む" 1.8s
+    focus: ["注文する", "受け付ける", "在庫を引く"]
+    description: "縦列の見出しの下に線は無い。 段がずれて並ぶと、箱がどの縦列に属するかは箱の位置だけで読む"
+`;
+
+export const sourceJson__laneLifeline = `{
+  "title": "縦列に縦の点線を引かない",
+  "type": "flow",
+  "lanes": {
+    "l1": { "width": 280, "label": "利用者" },
+    "l2": { "width": 280, "label": "受付の窓口" }
+  },
+  "actors": [
+    { "name": "注文する", "kind": "actor", "lane": "l1", "stack": 0 },
+    { "name": "受け付ける", "kind": "function", "lane": "l2", "stack": 1 },
+    { "name": "在庫を引く", "kind": "storage", "lane": "l2", "stack": 2 }
+  ],
+  "flow": [
+    { "from": "注文する", "to": "受け付ける", "label": "注文" },
+    { "from": "受け付ける", "to": "在庫を引く", "label": "引き当て" }
+  ],
+  "animation": [
+    {
+      "step": "箱の位置だけで縦列を読む",
+      "duration": 1.8,
+      "focus": ["注文する", "受け付ける", "在庫を引く"],
+      "body": "縦列の見出しの下に線は無い。 段がずれて並ぶと、箱がどの縦列に属するかは箱の位置だけで読む"
+    }
+  ]
+}`;
+
+export const laneLifeline = textDslToDiagram(sourceYaml__laneLifeline);
+
+export const sourceYaml__pattern__laneLifeline__引く = `title: "縦列の中心に縦の点線を引く"
+type: flow
+
+lanes:
+  l1: { width: 280, label: "利用者", lifeline: true }
+  l2: { width: 280, label: "受付の窓口", lifeline: true }
+
+actors:
+  - 注文する: { kind: actor, lane: l1, stack: 0 }
+  - 受け付ける: { kind: function, lane: l2, stack: 1 }
+  - 在庫を引く: { kind: storage, lane: l2, stack: 2 }
+
+flow:
+  - 注文する -> 受け付ける: "注文"
+  - 受け付ける -> 在庫を引く: "引き当て"
+
+animation:
+  - step: "縦の点線で縦列を追う" 1.8s
+    focus: ["注文する", "受け付ける", "在庫を引く"]
+    description: "縦列の中心を縦の点線が通る。 段がずれて並んでも、箱がどの縦列に属するかを線で上から下まで追える"
+`;
+
+export const sourceJson__pattern__laneLifeline__引く = `{
+  "title": "縦列の中心に縦の点線を引く",
+  "type": "flow",
+  "lanes": {
+    "l1": { "width": 280, "label": "利用者", "lifeline": true },
+    "l2": { "width": 280, "label": "受付の窓口", "lifeline": true }
+  },
+  "actors": [
+    { "name": "注文する", "kind": "actor", "lane": "l1", "stack": 0 },
+    { "name": "受け付ける", "kind": "function", "lane": "l2", "stack": 1 },
+    { "name": "在庫を引く", "kind": "storage", "lane": "l2", "stack": 2 }
+  ],
+  "flow": [
+    { "from": "注文する", "to": "受け付ける", "label": "注文" },
+    { "from": "受け付ける", "to": "在庫を引く", "label": "引き当て" }
+  ],
+  "animation": [
+    {
+      "step": "縦の点線で縦列を追う",
+      "duration": 1.8,
+      "focus": ["注文する", "受け付ける", "在庫を引く"],
+      "body": "縦列の中心を縦の点線が通る。 段がずれて並んでも、箱がどの縦列に属するかを線で上から下まで追える"
+    }
+  ]
+}`;
+
+export const pattern__laneLifeline__引く = textDslToDiagram(sourceYaml__pattern__laneLifeline__引く);
+
+// ---- 図全体の間隔と大きさ (viewport) ----
+//
+// 同じ 3 つの箱と 2 本の矢印で、視点の欄を 1 つずつ書いた切替を並べる。 縦列の横の位置 (`x`) は書かない =
+// 書くと縦列がその位置に固定され、縦列の間 (`laneGap`) が効かない (実測)。 縦列の幅 (`laneWidth`) は
+// 箱の幅から決まる最小の幅 (390) より大きい値にする = 小さい値は図に出ない。
+
+export const patternBase__viewportSpacing = "書かない";
+
+export const subtitle__viewportSpacing =
+  "縦列の間・箱の間・名札の余白・縦列の幅・図の広さ・倍率を、図全体の欄 (viewport) で 1 つずつ変える";
+
+export const sourceYaml__viewportSpacing = `title: "図全体の間隔を書かない"
+type: flow
+
+lanes:
+  l1: { width: 240, label: "受付" }
+  l2: { width: 240, label: "処理" }
+
+actors:
+  - 注文: { kind: card, lane: l1, stack: 0 }
+  - 問い合わせ: { kind: card, lane: l1, stack: 1 }
+  - 発送: { kind: card, lane: l2, stack: 0 }
+  - 回答: { kind: card, lane: l2, stack: 1 }
+
+flow:
+  - 注文 -> 発送: "依頼"
+  - 問い合わせ -> 回答: "転送"
+
+animation:
+  - step: "間隔を書かない" 1.8s
+    focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
+    description: "縦列の間も箱の間も名札の余白も書かず、描く側が決めた間隔で並べる"
+`;
+
+export const sourceJson__viewportSpacing = `{
+  "title": "図全体の間隔を書かない",
+  "type": "flow",
+  "lanes": {
+    "l1": { "width": 240, "label": "受付" },
+    "l2": { "width": 240, "label": "処理" }
+  },
+  "actors": [
+    { "name": "注文", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "問い合わせ", "kind": "card", "lane": "l1", "stack": 1 },
+    { "name": "発送", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "回答", "kind": "card", "lane": "l2", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "注文", "to": "発送", "label": "依頼" },
+    { "from": "問い合わせ", "to": "回答", "label": "転送" }
+  ],
+  "animation": [
+    {
+      "step": "間隔を書かない",
+      "duration": 1.8,
+      "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
+      "body": "縦列の間も箱の間も名札の余白も書かず、描く側が決めた間隔で並べる"
+    }
+  ]
+}`;
+
+export const viewportSpacing = textDslToDiagram(sourceYaml__viewportSpacing);
+
+export const sourceYaml__pattern__viewportSpacing__縦列の間 = `title: "縦列の間を広げる"
+type: flow
+
+viewport: { laneGap: 400 }
+
+lanes:
+  l1: { width: 240, label: "受付" }
+  l2: { width: 240, label: "処理" }
+
+actors:
+  - 注文: { kind: card, lane: l1, stack: 0 }
+  - 問い合わせ: { kind: card, lane: l1, stack: 1 }
+  - 発送: { kind: card, lane: l2, stack: 0 }
+  - 回答: { kind: card, lane: l2, stack: 1 }
+
+flow:
+  - 注文 -> 発送: "依頼"
+  - 問い合わせ -> 回答: "転送"
+
+animation:
+  - step: "縦列の間を 400 にする" 1.8s
+    focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
+    description: "受付と処理の縦列の間が 400 に広がり、横に結ぶ 2 本の矢印が長くなる。 同じ縦列の箱の間は変わらない"
+`;
+
+export const sourceJson__pattern__viewportSpacing__縦列の間 = `{
+  "title": "縦列の間を広げる",
+  "type": "flow",
+  "viewport": { "laneGap": 400 },
+  "lanes": {
+    "l1": { "width": 240, "label": "受付" },
+    "l2": { "width": 240, "label": "処理" }
+  },
+  "actors": [
+    { "name": "注文", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "問い合わせ", "kind": "card", "lane": "l1", "stack": 1 },
+    { "name": "発送", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "回答", "kind": "card", "lane": "l2", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "注文", "to": "発送", "label": "依頼" },
+    { "from": "問い合わせ", "to": "回答", "label": "転送" }
+  ],
+  "animation": [
+    {
+      "step": "縦列の間を 400 にする",
+      "duration": 1.8,
+      "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
+      "body": "受付と処理の縦列の間が 400 に広がり、横に結ぶ 2 本の矢印が長くなる。 同じ縦列の箱の間は変わらない"
+    }
+  ]
+}`;
+
+export const pattern__viewportSpacing__縦列の間 = textDslToDiagram(sourceYaml__pattern__viewportSpacing__縦列の間);
+
+export const sourceYaml__pattern__viewportSpacing__箱の間 = `title: "同じ縦列の箱の間を広げる"
+type: flow
+
+viewport: { nodeGap: 80 }
+
+lanes:
+  l1: { width: 240, label: "受付" }
+  l2: { width: 240, label: "処理" }
+
+actors:
+  - 注文: { kind: card, lane: l1, stack: 0 }
+  - 問い合わせ: { kind: card, lane: l1, stack: 1 }
+  - 発送: { kind: card, lane: l2, stack: 0 }
+  - 回答: { kind: card, lane: l2, stack: 1 }
+
+flow:
+  - 注文 -> 発送: "依頼"
+  - 問い合わせ -> 回答: "転送"
+
+animation:
+  - step: "箱の間を 80 にする" 1.8s
+    focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
+    description: "同じ縦列で上下に並ぶ注文と問い合わせ、発送と回答の間が広がる。 縦列の間は変わらない"
+`;
+
+export const sourceJson__pattern__viewportSpacing__箱の間 = `{
+  "title": "同じ縦列の箱の間を広げる",
+  "type": "flow",
+  "viewport": { "nodeGap": 80 },
+  "lanes": {
+    "l1": { "width": 240, "label": "受付" },
+    "l2": { "width": 240, "label": "処理" }
+  },
+  "actors": [
+    { "name": "注文", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "問い合わせ", "kind": "card", "lane": "l1", "stack": 1 },
+    { "name": "発送", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "回答", "kind": "card", "lane": "l2", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "注文", "to": "発送", "label": "依頼" },
+    { "from": "問い合わせ", "to": "回答", "label": "転送" }
+  ],
+  "animation": [
+    {
+      "step": "箱の間を 80 にする",
+      "duration": 1.8,
+      "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
+      "body": "同じ縦列で上下に並ぶ注文と問い合わせ、発送と回答の間が広がる。 縦列の間は変わらない"
+    }
+  ]
+}`;
+
+export const pattern__viewportSpacing__箱の間 = textDslToDiagram(sourceYaml__pattern__viewportSpacing__箱の間);
+
+export const sourceYaml__pattern__viewportSpacing__名札の余白 = `title: "矢印の名札の余白を広げる"
+type: flow
+
+viewport: { labelMargin: 40 }
+
+lanes:
+  l1: { width: 240, label: "受付" }
+  l2: { width: 240, label: "処理" }
+
+actors:
+  - 注文: { kind: card, lane: l1, stack: 0 }
+  - 問い合わせ: { kind: card, lane: l1, stack: 1 }
+  - 発送: { kind: card, lane: l2, stack: 0 }
+  - 回答: { kind: card, lane: l2, stack: 1 }
+
+flow:
+  - 注文 -> 発送: "依頼"
+  - 問い合わせ -> 回答: "転送"
+
+animation:
+  - step: "名札の余白を 40 にする" 1.8s
+    focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
+    description: "依頼と転送の名札が、矢印から離れて上に置かれる。 箱と縦列の位置は変わらない"
+`;
+
+export const sourceJson__pattern__viewportSpacing__名札の余白 = `{
+  "title": "矢印の名札の余白を広げる",
+  "type": "flow",
+  "viewport": { "labelMargin": 40 },
+  "lanes": {
+    "l1": { "width": 240, "label": "受付" },
+    "l2": { "width": 240, "label": "処理" }
+  },
+  "actors": [
+    { "name": "注文", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "問い合わせ", "kind": "card", "lane": "l1", "stack": 1 },
+    { "name": "発送", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "回答", "kind": "card", "lane": "l2", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "注文", "to": "発送", "label": "依頼" },
+    { "from": "問い合わせ", "to": "回答", "label": "転送" }
+  ],
+  "animation": [
+    {
+      "step": "名札の余白を 40 にする",
+      "duration": 1.8,
+      "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
+      "body": "依頼と転送の名札が、矢印から離れて上に置かれる。 箱と縦列の位置は変わらない"
+    }
+  ]
+}`;
+
+export const pattern__viewportSpacing__名札の余白 = textDslToDiagram(sourceYaml__pattern__viewportSpacing__名札の余白);
+
+export const sourceYaml__pattern__viewportSpacing__まとめた間隔 = `title: "間隔をまとめて広げる"
+type: flow
+
+viewport: { gap: 120 }
+
+lanes:
+  l1: { width: 240, label: "受付" }
+  l2: { width: 240, label: "処理" }
+
+actors:
+  - 注文: { kind: card, lane: l1, stack: 0 }
+  - 問い合わせ: { kind: card, lane: l1, stack: 1 }
+  - 発送: { kind: card, lane: l2, stack: 0 }
+  - 回答: { kind: card, lane: l2, stack: 1 }
+
+flow:
+  - 注文 -> 発送: "依頼"
+  - 問い合わせ -> 回答: "転送"
+
+animation:
+  - step: "間隔をまとめて 120 にする" 1.8s
+    focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
+    description: "縦列の間と箱の間と名札の余白を書かない時に、この 1 つの値が 3 つの代わりに使われ、全てが広がる"
+`;
+
+export const sourceJson__pattern__viewportSpacing__まとめた間隔 = `{
+  "title": "間隔をまとめて広げる",
+  "type": "flow",
+  "viewport": { "gap": 120 },
+  "lanes": {
+    "l1": { "width": 240, "label": "受付" },
+    "l2": { "width": 240, "label": "処理" }
+  },
+  "actors": [
+    { "name": "注文", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "問い合わせ", "kind": "card", "lane": "l1", "stack": 1 },
+    { "name": "発送", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "回答", "kind": "card", "lane": "l2", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "注文", "to": "発送", "label": "依頼" },
+    { "from": "問い合わせ", "to": "回答", "label": "転送" }
+  ],
+  "animation": [
+    {
+      "step": "間隔をまとめて 120 にする",
+      "duration": 1.8,
+      "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
+      "body": "縦列の間と箱の間と名札の余白を書かない時に、この 1 つの値が 3 つの代わりに使われ、全てが広がる"
+    }
+  ]
+}`;
+
+export const pattern__viewportSpacing__まとめた間隔 = textDslToDiagram(sourceYaml__pattern__viewportSpacing__まとめた間隔);
+
+export const sourceYaml__pattern__viewportSpacing__縦列の幅 = `title: "全ての縦列の幅を揃える"
+type: flow
+
+viewport: { laneWidth: 520 }
+
+lanes:
+  l1: { width: 240, label: "受付" }
+  l2: { width: 240, label: "処理" }
+
+actors:
+  - 注文: { kind: card, lane: l1, stack: 0 }
+  - 問い合わせ: { kind: card, lane: l1, stack: 1 }
+  - 発送: { kind: card, lane: l2, stack: 0 }
+  - 回答: { kind: card, lane: l2, stack: 1 }
+
+flow:
+  - 注文 -> 発送: "依頼"
+  - 問い合わせ -> 回答: "転送"
+
+animation:
+  - step: "縦列の幅を 520 に揃える" 1.8s
+    focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
+    description: "縦列ごとに書いた幅 240 より、図全体に書いた 520 が勝つ。 箱は広がった縦列の中央に置かれる"
+`;
+
+export const sourceJson__pattern__viewportSpacing__縦列の幅 = `{
+  "title": "全ての縦列の幅を揃える",
+  "type": "flow",
+  "viewport": { "laneWidth": 520 },
+  "lanes": {
+    "l1": { "width": 240, "label": "受付" },
+    "l2": { "width": 240, "label": "処理" }
+  },
+  "actors": [
+    { "name": "注文", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "問い合わせ", "kind": "card", "lane": "l1", "stack": 1 },
+    { "name": "発送", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "回答", "kind": "card", "lane": "l2", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "注文", "to": "発送", "label": "依頼" },
+    { "from": "問い合わせ", "to": "回答", "label": "転送" }
+  ],
+  "animation": [
+    {
+      "step": "縦列の幅を 520 に揃える",
+      "duration": 1.8,
+      "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
+      "body": "縦列ごとに書いた幅 240 より、図全体に書いた 520 が勝つ。 箱は広がった縦列の中央に置かれる"
+    }
+  ]
+}`;
+
+export const pattern__viewportSpacing__縦列の幅 = textDslToDiagram(sourceYaml__pattern__viewportSpacing__縦列の幅);
+
+export const sourceYaml__pattern__viewportSpacing__図の広さ = `title: "図を描く広さを決める"
+type: flow
+
+viewport: { width: 1400, height: 800 }
+
+lanes:
+  l1: { width: 240, label: "受付" }
+  l2: { width: 240, label: "処理" }
+
+actors:
+  - 注文: { kind: card, lane: l1, stack: 0 }
+  - 問い合わせ: { kind: card, lane: l1, stack: 1 }
+  - 発送: { kind: card, lane: l2, stack: 0 }
+  - 回答: { kind: card, lane: l2, stack: 1 }
+
+flow:
+  - 注文 -> 発送: "依頼"
+  - 問い合わせ -> 回答: "転送"
+
+animation:
+  - step: "広さを横 1400 と縦 800 にする" 1.8s
+    focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
+    description: "図を描く広さが横 1400、縦 800 になる。 箱の置き方は変わらず、右と下に余白が残る"
+`;
+
+export const sourceJson__pattern__viewportSpacing__図の広さ = `{
+  "title": "図を描く広さを決める",
+  "type": "flow",
+  "viewport": { "width": 1400, "height": 800 },
+  "lanes": {
+    "l1": { "width": 240, "label": "受付" },
+    "l2": { "width": 240, "label": "処理" }
+  },
+  "actors": [
+    { "name": "注文", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "問い合わせ", "kind": "card", "lane": "l1", "stack": 1 },
+    { "name": "発送", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "回答", "kind": "card", "lane": "l2", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "注文", "to": "発送", "label": "依頼" },
+    { "from": "問い合わせ", "to": "回答", "label": "転送" }
+  ],
+  "animation": [
+    {
+      "step": "広さを横 1400 と縦 800 にする",
+      "duration": 1.8,
+      "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
+      "body": "図を描く広さが横 1400、縦 800 になる。 箱の置き方は変わらず、右と下に余白が残る"
+    }
+  ]
+}`;
+
+export const pattern__viewportSpacing__図の広さ = textDslToDiagram(sourceYaml__pattern__viewportSpacing__図の広さ);
+
+export const sourceYaml__pattern__viewportSpacing__倍率 = `title: "図を大きく描く"
+type: flow
+
+viewport: { scale: 1.5 }
+
+lanes:
+  l1: { width: 240, label: "受付" }
+  l2: { width: 240, label: "処理" }
+
+actors:
+  - 注文: { kind: card, lane: l1, stack: 0 }
+  - 問い合わせ: { kind: card, lane: l1, stack: 1 }
+  - 発送: { kind: card, lane: l2, stack: 0 }
+  - 回答: { kind: card, lane: l2, stack: 1 }
+
+flow:
+  - 注文 -> 発送: "依頼"
+  - 問い合わせ -> 回答: "転送"
+
+animation:
+  - step: "1.5 倍で描く" 1.8s
+    focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
+    description: "箱と字と線を 1.5 倍の大きさで描く。 置き方は書かない図と同じで、描く大きさだけが変わる"
+`;
+
+export const sourceJson__pattern__viewportSpacing__倍率 = `{
+  "title": "図を大きく描く",
+  "type": "flow",
+  "viewport": { "scale": 1.5 },
+  "lanes": {
+    "l1": { "width": 240, "label": "受付" },
+    "l2": { "width": 240, "label": "処理" }
+  },
+  "actors": [
+    { "name": "注文", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "問い合わせ", "kind": "card", "lane": "l1", "stack": 1 },
+    { "name": "発送", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "回答", "kind": "card", "lane": "l2", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "注文", "to": "発送", "label": "依頼" },
+    { "from": "問い合わせ", "to": "回答", "label": "転送" }
+  ],
+  "animation": [
+    {
+      "step": "1.5 倍で描く",
+      "duration": 1.8,
+      "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
+      "body": "箱と字と線を 1.5 倍の大きさで描く。 置き方は書かない図と同じで、描く大きさだけが変わる"
+    }
+  ]
+}`;
+
+export const pattern__viewportSpacing__倍率 = textDslToDiagram(sourceYaml__pattern__viewportSpacing__倍率);
+
+// ==== #1969 縦列の縦線と図全体の間隔 ここまで ====
+
+// ==== #1969 並ぶ向きと始まりと終わり ここから ====
+// ---- 流れ図の並ぶ向き (direction) ----
+//
+// 向きは流れ図と担当の図だけに効く。 箱に縦列を書くと縦列が勝つので、縦列を書かない 2 つの箱で比べる。
+
+export const patternBase__flowDirection = "書かない";
+
+export const subtitle__flowDirection =
+  "流れ図の並ぶ向きを書く (direction)。 縦は 1 つの縦列に積み、横は 1 人ずつ縦列を作る";
+
+export const sourceYaml__flowDirection = `title: "流れ図の並ぶ向きを書かない"
+type: flow
+
+actors:
+  - 申し込む: { kind: card }
+  - 登録する: { kind: card }
+
+flow:
+  - 申し込む -> 登録する: "申込書"
+
+animation:
+  - step: "書かない時の並び" 1.8s
+    focus: ["申し込む", "登録する"]
+    description: "流れ図は向きを書かないと、1 つの縦列に上から積む"
+`;
+
+export const sourceJson__flowDirection = `{
+  "title": "流れ図の並ぶ向きを書かない",
+  "type": "flow",
+  "actors": [
+    { "name": "申し込む", "kind": "card" },
+    { "name": "登録する", "kind": "card" }
+  ],
+  "flow": [
+    { "from": "申し込む", "to": "登録する", "label": "申込書" }
+  ],
+  "animation": [
+    {
+      "step": "書かない時の並び",
+      "duration": 1.8,
+      "focus": ["申し込む", "登録する"],
+      "body": "流れ図は向きを書かないと、1 つの縦列に上から積む"
+    }
+  ]
+}`;
+
+export const flowDirection = textDslToDiagram(sourceYaml__flowDirection);
+
+export const sourceYaml__pattern__flowDirection__縦に積む = `title: "流れ図を縦に積む"
+type: flow
+direction: vertical
+
+actors:
+  - 申し込む: { kind: card }
+  - 登録する: { kind: card }
+
+flow:
+  - 申し込む -> 登録する: "申込書"
+
+animation:
+  - step: "縦に積む" 1.8s
+    focus: ["申し込む", "登録する"]
+    description: "縦に積むと書くと、1 つの縦列に上から積む。 流れ図では書かない時と同じ並びになる"
+`;
+
+export const sourceJson__pattern__flowDirection__縦に積む = `{
+  "title": "流れ図を縦に積む",
+  "type": "flow",
+  "direction": "vertical",
+  "actors": [
+    { "name": "申し込む", "kind": "card" },
+    { "name": "登録する", "kind": "card" }
+  ],
+  "flow": [
+    { "from": "申し込む", "to": "登録する", "label": "申込書" }
+  ],
+  "animation": [
+    {
+      "step": "縦に積む",
+      "duration": 1.8,
+      "focus": ["申し込む", "登録する"],
+      "body": "縦に積むと書くと、1 つの縦列に上から積む。 流れ図では書かない時と同じ並びになる"
+    }
+  ]
+}`;
+
+export const pattern__flowDirection__縦に積む = textDslToDiagram(sourceYaml__pattern__flowDirection__縦に積む);
+
+export const sourceYaml__pattern__flowDirection__横に並べる = `title: "流れ図を横に並べる"
+type: flow
+direction: horizontal
+
+actors:
+  - 申し込む: { kind: card }
+  - 登録する: { kind: card }
+
+flow:
+  - 申し込む -> 登録する: "申込書"
+
+animation:
+  - step: "横に並べる" 1.8s
+    focus: ["申し込む", "登録する"]
+    description: "横に並べると書くと、1 人ずつ縦列を作って左から並べる"
+`;
+
+export const sourceJson__pattern__flowDirection__横に並べる = `{
+  "title": "流れ図を横に並べる",
+  "type": "flow",
+  "direction": "horizontal",
+  "actors": [
+    { "name": "申し込む", "kind": "card" },
+    { "name": "登録する", "kind": "card" }
+  ],
+  "flow": [
+    { "from": "申し込む", "to": "登録する", "label": "申込書" }
+  ],
+  "animation": [
+    {
+      "step": "横に並べる",
+      "duration": 1.8,
+      "focus": ["申し込む", "登録する"],
+      "body": "横に並べると書くと、1 人ずつ縦列を作って左から並べる"
+    }
+  ]
+}`;
+
+export const pattern__flowDirection__横に並べる = textDslToDiagram(sourceYaml__pattern__flowDirection__横に並べる);
+
+// ---- 状態の始まりと終わり (initial / final) ----
+//
+// 書かない図は並びの最初と最後で決まる。 書くと書いた箱だけが始まりと終わりになり、終わりを 2 つ持てる。
+
+export const patternBase__stateStartEnd = "書かない";
+
+export const subtitle__stateStartEnd =
+  "状態の図の始まりと終わりを箱に書く (initial / final)。 書かない図は並びの最初と最後で決まる";
+
+export const sourceYaml__stateStartEnd = `title: "状態の始まりと終わりを書かない"
+type: state
+
+actors:
+  - 受付: { kind: card, posW: 240 }
+  - 完了: { kind: card, posW: 240 }
+  - 取り下げ: { kind: card, posW: 240 }
+
+flow:
+  - 受付 -> 完了: "承認"
+  - 受付 -> 取り下げ: "撤回"
+
+animation:
+  - step: "並びで決まる札" 1.8s
+    focus: ["受付", "完了", "取り下げ"]
+    description: "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる"
+`;
+
+export const sourceJson__stateStartEnd = `{
+  "title": "状態の始まりと終わりを書かない",
+  "type": "state",
+  "actors": [
+    { "name": "受付", "kind": "card", "posW": 240 },
+    { "name": "完了", "kind": "card", "posW": 240 },
+    { "name": "取り下げ", "kind": "card", "posW": 240 }
+  ],
+  "flow": [
+    { "from": "受付", "to": "完了", "label": "承認" },
+    { "from": "受付", "to": "取り下げ", "label": "撤回" }
+  ],
+  "animation": [
+    {
+      "step": "並びで決まる札",
+      "duration": 1.8,
+      "focus": ["受付", "完了", "取り下げ"],
+      "body": "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる"
+    }
+  ]
+}`;
+
+export const stateStartEnd = textDslToDiagram(sourceYaml__stateStartEnd);
+
+export const sourceYaml__pattern__stateStartEnd__書く = `title: "状態の始まりと終わりを書く"
+type: state
+
+actors:
+  - 受付: { kind: card, posW: 240, initial: true }
+  - 完了: { kind: card, posW: 240, final: true }
+  - 取り下げ: { kind: card, posW: 240, final: true }
+
+flow:
+  - 受付 -> 完了: "承認"
+  - 受付 -> 取り下げ: "撤回"
+
+animation:
+  - step: "始まりと終わりの札" 1.8s
+    focus: ["受付", "完了", "取り下げ"]
+    description: "始まりと書いた受付に「初期」、終わりと書いた完了と取り下げの 2 つに「最終」 の札が付く"
+`;
+
+export const sourceJson__pattern__stateStartEnd__書く = `{
+  "title": "状態の始まりと終わりを書く",
+  "type": "state",
+  "actors": [
+    { "name": "受付", "kind": "card", "posW": 240, "initial": true },
+    { "name": "完了", "kind": "card", "posW": 240, "final": true },
+    { "name": "取り下げ", "kind": "card", "posW": 240, "final": true }
+  ],
+  "flow": [
+    { "from": "受付", "to": "完了", "label": "承認" },
+    { "from": "受付", "to": "取り下げ", "label": "撤回" }
+  ],
+  "animation": [
+    {
+      "step": "始まりと終わりの札",
+      "duration": 1.8,
+      "focus": ["受付", "完了", "取り下げ"],
+      "body": "始まりと書いた受付に「初期」、終わりと書いた完了と取り下げの 2 つに「最終」 の札が付く"
+    }
+  ]
+}`;
+
+export const pattern__stateStartEnd__書く = textDslToDiagram(sourceYaml__pattern__stateStartEnd__書く);
+// ==== #1969 並ぶ向きと始まりと終わり ここまで ====
 
 /** 3. Node stack バリエーション */
 export const stackPair = diagram("stack-pair", { topic: "stack: 縦 2 段" })

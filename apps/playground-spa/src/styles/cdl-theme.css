@@ -376,8 +376,11 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
 
 /* 描画側が要素ごと 0.7 の薄さで描くので、 見える色は紙寄りになる。
    それを見込んで、 宣言では枠線より 1 段濃い色を置く */
+/* 塗りを消すと、描画側の既定 (塗った所だけが押せる) では囲いの内側が押せなくなる。
+   縦列を相手にした出来事 (`lane`) は内側を押して受け取るので、塗りの有無に依らず内側で押せる形にする (#1969) */
 [data-cdl-role="lane-container"] {
   fill: none !important;
+  pointer-events: visibleFill;
   stroke: var(--d-text-secondary) !important;
   stroke-width: 1.5 !important;
   stroke-dasharray: 6 4 !important;

@@ -1283,3 +1283,284 @@ export const sourceJson__shapeOrient = `{
 }`;
 
 export const shapeOrient = textDslToDiagram(sourceYaml__shapeOrient);
+
+// ==== #1969 スタイルの欄の見本 ここから ====
+// ---- 節の色を `color` の欄で書く (#1969) ----
+//
+// `color` は `tone` と同じ色の名前を受ける欄。 JSON の型定義にあるのに、カタログのどの見本も書いていなかった。
+
+export const patternBase__nodeTone = "色調の欄で書く";
+
+export const sourceYaml__pattern__nodeTone__色の欄で書く = `title: "節の色 6 種を色の欄で書く"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 280 }
+  l2: { x: 400, width: 280 }
+
+actors:
+  - 主張: { kind: card, lane: l1, stack: 0, color: accent, subtitle: "accent" }
+  - 青緑: { kind: card, lane: l1, stack: 1, color: teal, subtitle: "teal" }
+  - 成功: { kind: card, lane: l1, stack: 2, color: success, subtitle: "success" }
+  - 失敗: { kind: card, lane: l2, stack: 0, color: error, subtitle: "error" }
+  - 注意: { kind: card, lane: l2, stack: 1, color: warning, subtitle: "warning" }
+  - 案内: { kind: card, lane: l2, stack: 2, color: info, subtitle: "info" }
+
+animation:
+  - step: "6 色を並べる" 1.8s
+    focus: ["主張", "青緑", "成功", "失敗", "注意", "案内"]
+    description: "tone の代わりに color と書いても、同じ 6 色で描かれる。 color は部品の色番号 (# で始まる値) も受ける"
+`;
+
+export const sourceJson__pattern__nodeTone__色の欄で書く = `{
+  "title": "節の色 6 種を色の欄で書く",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 280 },
+    "l2": { "x": 400, "width": 280 }
+  },
+  "actors": [
+    { "name": "主張", "kind": "card", "lane": "l1", "stack": 0, "color": "accent", "subtitle": "accent" },
+    { "name": "青緑", "kind": "card", "lane": "l1", "stack": 1, "color": "teal", "subtitle": "teal" },
+    { "name": "成功", "kind": "card", "lane": "l1", "stack": 2, "color": "success", "subtitle": "success" },
+    { "name": "失敗", "kind": "card", "lane": "l2", "stack": 0, "color": "error", "subtitle": "error" },
+    { "name": "注意", "kind": "card", "lane": "l2", "stack": 1, "color": "warning", "subtitle": "warning" },
+    { "name": "案内", "kind": "card", "lane": "l2", "stack": 2, "color": "info", "subtitle": "info" }
+  ],
+  "flow": [],
+  "animation": [
+    {
+      "step": "6 色を並べる",
+      "duration": 1.8,
+      "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内"],
+      "body": "tone の代わりに color と書いても、同じ 6 色で描かれる。 color は部品の色番号 (# で始まる値) も受ける"
+    }
+  ]
+}`;
+
+export const pattern__nodeTone__色の欄で書く = textDslToDiagram(sourceYaml__pattern__nodeTone__色の欄で書く);
+
+// ---- 矢印の端の塗り (#1969) ----
+//
+// 塗り (`headFill` / `tailHeadFill`) はクラス図と ER 図の組み立てが関係の種類から書いており、記法で直接書いた
+// 見本が無かった。 塗りが見分けられる三角と菱形だけを、塗った形と中を抜いた形で並べる。
+
+export const sourceYaml__pattern__edgeHead__先端の塗り = `title: "矢印の先端の塗り 2 種"
+type: flow
+
+lanes:
+  元: { x: 0, width: 240 }
+  先: { x: 600, width: 240 }
+
+actors:
+  - 三角を塗る: { kind: actor, lane: 元, stack: 0 }
+  - 三角を中空にする: { kind: actor, lane: 元, stack: 1 }
+  - 菱形を塗る: { kind: actor, lane: 元, stack: 2 }
+  - 菱形を中空にする: { kind: actor, lane: 元, stack: 3 }
+  - 三角を塗るの行き先: { kind: actor, lane: 先, stack: 0 }
+  - 三角を中空にするの行き先: { kind: actor, lane: 先, stack: 1 }
+  - 菱形を塗るの行き先: { kind: actor, lane: 先, stack: 2 }
+  - 菱形を中空にするの行き先: { kind: actor, lane: 先, stack: 3 }
+
+flow:
+  - 三角を塗る -> 三角を塗るの行き先: "solid" (accent, solid) { head: triangle, headFill: solid }
+  - 三角を中空にする -> 三角を中空にするの行き先: "hollow" (accent, solid) { head: triangle, headFill: hollow }
+  - 菱形を塗る -> 菱形を塗るの行き先: "solid" (accent, solid) { head: diamond, headFill: solid }
+  - 菱形を中空にする -> 菱形を中空にするの行き先: "hollow" (accent, solid) { head: diamond, headFill: hollow }
+
+animation:
+  - step: "先端を塗る形と中空の形" 1.8s
+    focus: ["三角を塗る -> 三角を塗るの行き先", "三角を中空にする -> 三角を中空にするの行き先", "菱形を塗る -> 菱形を塗るの行き先", "菱形を中空にする -> 菱形を中空にするの行き先"]
+    description: "線の行き先の三角と菱形を、塗った形 (solid) と中を抜いた形 (hollow) で並べる。 書かない矢印は塗った形で描かれる"
+`;
+
+export const sourceJson__pattern__edgeHead__先端の塗り = `{
+  "title": "矢印の先端の塗り 2 種",
+  "type": "flow",
+  "lanes": {
+    "元": { "x": 0, "width": 240 },
+    "先": { "x": 600, "width": 240 }
+  },
+  "actors": [
+    { "name": "三角を塗る", "kind": "actor", "lane": "元", "stack": 0 },
+    { "name": "三角を中空にする", "kind": "actor", "lane": "元", "stack": 1 },
+    { "name": "菱形を塗る", "kind": "actor", "lane": "元", "stack": 2 },
+    { "name": "菱形を中空にする", "kind": "actor", "lane": "元", "stack": 3 },
+    { "name": "三角を塗るの行き先", "kind": "actor", "lane": "先", "stack": 0 },
+    { "name": "三角を中空にするの行き先", "kind": "actor", "lane": "先", "stack": 1 },
+    { "name": "菱形を塗るの行き先", "kind": "actor", "lane": "先", "stack": 2 },
+    { "name": "菱形を中空にするの行き先", "kind": "actor", "lane": "先", "stack": 3 }
+  ],
+  "flow": [
+    { "from": "三角を塗る", "to": "三角を塗るの行き先", "label": "solid", "tone": "accent", "style": "solid", "head": "triangle", "headFill": "solid" },
+    { "from": "三角を中空にする", "to": "三角を中空にするの行き先", "label": "hollow", "tone": "accent", "style": "solid", "head": "triangle", "headFill": "hollow" },
+    { "from": "菱形を塗る", "to": "菱形を塗るの行き先", "label": "solid", "tone": "accent", "style": "solid", "head": "diamond", "headFill": "solid" },
+    { "from": "菱形を中空にする", "to": "菱形を中空にするの行き先", "label": "hollow", "tone": "accent", "style": "solid", "head": "diamond", "headFill": "hollow" }
+  ],
+  "animation": [
+    {
+      "step": "先端を塗る形と中空の形",
+      "duration": 1.8,
+      "focus": ["三角を塗る -> 三角を塗るの行き先", "三角を中空にする -> 三角を中空にするの行き先", "菱形を塗る -> 菱形を塗るの行き先", "菱形を中空にする -> 菱形を中空にするの行き先"],
+      "body": "線の行き先の三角と菱形を、塗った形 (solid) と中を抜いた形 (hollow) で並べる。 書かない矢印は塗った形で描かれる"
+    }
+  ]
+}`;
+
+export const pattern__edgeHead__先端の塗り = textDslToDiagram(sourceYaml__pattern__edgeHead__先端の塗り);
+
+export const sourceYaml__pattern__edgeHead__根元の塗り = `title: "矢印の根元の塗り 2 種"
+type: flow
+
+lanes:
+  元: { x: 0, width: 240 }
+  先: { x: 600, width: 240 }
+
+actors:
+  - 三角を塗る: { kind: actor, lane: 元, stack: 0 }
+  - 三角を中空にする: { kind: actor, lane: 元, stack: 1 }
+  - 菱形を塗る: { kind: actor, lane: 元, stack: 2 }
+  - 菱形を中空にする: { kind: actor, lane: 元, stack: 3 }
+  - 三角を塗るの行き先: { kind: actor, lane: 先, stack: 0 }
+  - 三角を中空にするの行き先: { kind: actor, lane: 先, stack: 1 }
+  - 菱形を塗るの行き先: { kind: actor, lane: 先, stack: 2 }
+  - 菱形を中空にするの行き先: { kind: actor, lane: 先, stack: 3 }
+
+flow:
+  - 三角を塗る -> 三角を塗るの行き先: "solid" (accent, solid) { head: none, tailHead: triangle, tailHeadFill: solid }
+  - 三角を中空にする -> 三角を中空にするの行き先: "hollow" (accent, solid) { head: none, tailHead: triangle, tailHeadFill: hollow }
+  - 菱形を塗る -> 菱形を塗るの行き先: "solid" (accent, solid) { head: none, tailHead: diamond, tailHeadFill: solid }
+  - 菱形を中空にする -> 菱形を中空にするの行き先: "hollow" (accent, solid) { head: none, tailHead: diamond, tailHeadFill: hollow }
+
+animation:
+  - step: "根元を塗る形と中空の形" 1.8s
+    focus: ["三角を塗る -> 三角を塗るの行き先", "三角を中空にする -> 三角を中空にするの行き先", "菱形を塗る -> 菱形を塗るの行き先", "菱形を中空にする -> 菱形を中空にするの行き先"]
+    description: "線の出どころの三角と菱形を、塗った形 (solid) と中を抜いた形 (hollow) で並べる。 先端は無しにして根元だけを見せる"
+`;
+
+export const sourceJson__pattern__edgeHead__根元の塗り = `{
+  "title": "矢印の根元の塗り 2 種",
+  "type": "flow",
+  "lanes": {
+    "元": { "x": 0, "width": 240 },
+    "先": { "x": 600, "width": 240 }
+  },
+  "actors": [
+    { "name": "三角を塗る", "kind": "actor", "lane": "元", "stack": 0 },
+    { "name": "三角を中空にする", "kind": "actor", "lane": "元", "stack": 1 },
+    { "name": "菱形を塗る", "kind": "actor", "lane": "元", "stack": 2 },
+    { "name": "菱形を中空にする", "kind": "actor", "lane": "元", "stack": 3 },
+    { "name": "三角を塗るの行き先", "kind": "actor", "lane": "先", "stack": 0 },
+    { "name": "三角を中空にするの行き先", "kind": "actor", "lane": "先", "stack": 1 },
+    { "name": "菱形を塗るの行き先", "kind": "actor", "lane": "先", "stack": 2 },
+    { "name": "菱形を中空にするの行き先", "kind": "actor", "lane": "先", "stack": 3 }
+  ],
+  "flow": [
+    { "from": "三角を塗る", "to": "三角を塗るの行き先", "label": "solid", "tone": "accent", "style": "solid", "head": "none", "tailHead": "triangle", "tailHeadFill": "solid" },
+    { "from": "三角を中空にする", "to": "三角を中空にするの行き先", "label": "hollow", "tone": "accent", "style": "solid", "head": "none", "tailHead": "triangle", "tailHeadFill": "hollow" },
+    { "from": "菱形を塗る", "to": "菱形を塗るの行き先", "label": "solid", "tone": "accent", "style": "solid", "head": "none", "tailHead": "diamond", "tailHeadFill": "solid" },
+    { "from": "菱形を中空にする", "to": "菱形を中空にするの行き先", "label": "hollow", "tone": "accent", "style": "solid", "head": "none", "tailHead": "diamond", "tailHeadFill": "hollow" }
+  ],
+  "animation": [
+    {
+      "step": "根元を塗る形と中空の形",
+      "duration": 1.8,
+      "focus": ["三角を塗る -> 三角を塗るの行き先", "三角を中空にする -> 三角を中空にするの行き先", "菱形を塗る -> 菱形を塗るの行き先", "菱形を中空にする -> 菱形を中空にするの行き先"],
+      "body": "線の出どころの三角と菱形を、塗った形 (solid) と中を抜いた形 (hollow) で並べる。 先端は無しにして根元だけを見せる"
+    }
+  ]
+}`;
+
+export const pattern__edgeHead__根元の塗り = textDslToDiagram(sourceYaml__pattern__edgeHead__根元の塗り);
+
+// ---- 形の線の色 (#1969) ----
+//
+// 形 (`shape`) は塗り (`fill`) と別に外枠の色 (`stroke`) を受ける。 見本は塗りしか書いていなかった。
+
+export const patternBase__shapeOrient = "線の色を書かない";
+
+export const sourceYaml__pattern__shapeOrient__線の色を付ける = `title: "形の満ちる向き 4 種に線の色を付ける"
+type: flow
+
+lanes:
+  o-up: { label: "上へ満ちる (up)", x: 0, width: 200 }
+  o-down: { label: "下へ満ちる (down)", x: 260, width: 200 }
+  o-left: { label: "左へ満ちる (left)", x: 520, width: 200 }
+  o-right: { label: "右へ満ちる (right)", x: 780, width: 200 }
+
+states:
+  level: 60
+
+actors:
+  - 上へ満ちる: { kind: dyn-rect, lane: o-up, stack: 0, posW: 180, posH: 110, shape: { kind: rect, source: "{level}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6, stroke: "#15803d" } }
+  - 下へ満ちる: { kind: dyn-rect, lane: o-down, stack: 0, posW: 180, posH: 110, shape: { kind: rect, source: "{level}", fillMax: 100, orient: down, fill: "#22c55e", radius: 6, stroke: "#15803d" } }
+  - 左へ満ちる: { kind: dyn-rect, lane: o-left, stack: 0, posW: 180, posH: 110, shape: { kind: rect, source: "{level}", fillMax: 100, orient: left, fill: "#22c55e", radius: 6, stroke: "#15803d" } }
+  - 右へ満ちる: { kind: dyn-rect, lane: o-right, stack: 0, posW: 180, posH: 110, shape: { kind: rect, source: "{level}", fillMax: 100, orient: right, fill: "#22c55e", radius: 6, stroke: "#15803d" } }
+
+animation:
+  - step: "同じ値で 4 つの向き" 1.8s
+    focus: ["上へ満ちる", "下へ満ちる", "左へ満ちる", "右へ満ちる"]
+    description: "形の外枠を、書いた線の色 (#15803d) で描く。 書かない形は線の既定の色で描かれる"
+`;
+
+export const sourceJson__pattern__shapeOrient__線の色を付ける = `{
+  "title": "形の満ちる向き 4 種に線の色を付ける",
+  "type": "flow",
+  "lanes": {
+    "o-up": { "label": "上へ満ちる (up)", "x": 0, "width": 200 },
+    "o-down": { "label": "下へ満ちる (down)", "x": 260, "width": 200 },
+    "o-left": { "label": "左へ満ちる (left)", "x": 520, "width": 200 },
+    "o-right": { "label": "右へ満ちる (right)", "x": 780, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "上へ満ちる",
+      "kind": "dyn-rect",
+      "lane": "o-up",
+      "stack": 0,
+      "posW": 180,
+      "posH": 110,
+      "shape": { "kind": "rect", "source": "{level}", "fillMax": 100, "orient": "up", "fill": "#22c55e", "radius": 6, "stroke": "#15803d" }
+    },
+    {
+      "name": "下へ満ちる",
+      "kind": "dyn-rect",
+      "lane": "o-down",
+      "stack": 0,
+      "posW": 180,
+      "posH": 110,
+      "shape": { "kind": "rect", "source": "{level}", "fillMax": 100, "orient": "down", "fill": "#22c55e", "radius": 6, "stroke": "#15803d" }
+    },
+    {
+      "name": "左へ満ちる",
+      "kind": "dyn-rect",
+      "lane": "o-left",
+      "stack": 0,
+      "posW": 180,
+      "posH": 110,
+      "shape": { "kind": "rect", "source": "{level}", "fillMax": 100, "orient": "left", "fill": "#22c55e", "radius": 6, "stroke": "#15803d" }
+    },
+    {
+      "name": "右へ満ちる",
+      "kind": "dyn-rect",
+      "lane": "o-right",
+      "stack": 0,
+      "posW": 180,
+      "posH": 110,
+      "shape": { "kind": "rect", "source": "{level}", "fillMax": 100, "orient": "right", "fill": "#22c55e", "radius": 6, "stroke": "#15803d" }
+    }
+  ],
+  "flow": [],
+  "states": { "level": 60 },
+  "animation": [
+    {
+      "step": "同じ値で 4 つの向き",
+      "duration": 1.8,
+      "focus": ["上へ満ちる", "下へ満ちる", "左へ満ちる", "右へ満ちる"],
+      "body": "形の外枠を、書いた線の色 (#15803d) で描く。 書かない形は線の既定の色で描かれる"
+    }
+  ]
+}`;
+
+export const pattern__shapeOrient__線の色を付ける = textDslToDiagram(sourceYaml__pattern__shapeOrient__線の色を付ける);
+// ==== #1969 スタイルの欄の見本 ここまで ====

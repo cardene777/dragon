@@ -842,7 +842,13 @@ export function CategoryPage(): React.ReactElement {
                     className="catalog-preview-stage-inner"
                     placeholder={<div className="catalog-preview-loading">読み込み中…</div>}
                   >
+                    {/*
+                      項目とパターンの組が変わった時だけ作り直す (#1969)。 描画側の入力の部品は既定値
+                      (時間の速さの番号など) を作った時にしか読まないので、使い回すと前の図の値が残る。
+                      速さや配色の切替では作り直さない = 動いている段を巻き戻さない
+                    */}
                     <CdlDiagramView
+                      key={currentItem.id + "::" + (パターン ?? "")}
                       hideMiniPhaseIndicator
                       diagram={図 ?? 見本?.diagram ?? currentItem.diagram}
                       hideHeader
@@ -936,6 +942,7 @@ export function CategoryPage(): React.ReactElement {
             >
               {modalItem && (
                 <CdlDiagramView
+                  key={modalItem.id + "::" + (パターン ?? "")}
                   hideMiniPhaseIndicator
                   diagram={拡大の図 ?? modalItem.diagram}
                   hideHeader

@@ -3361,6 +3361,9 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   "initial",
   "final",
   "tone",
+  // 色の欄 (#1969)。 縦に並べた形と JSON は `color` を受けるのに、中括弧の形だけが知らない
+  // 項目名として落としていた。 見本 (parts) では従来どおり状態の上書きとして読む
+  "color",
   "nodes",
   // 体験の道筋の欄 (#1251)。 他の図種では組み立て側が知らせる
   "touchpoint",
@@ -3587,6 +3590,12 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     if (!isPart && opts.tone !== undefined && resolveTone(opts.tone) === undefined) {
       report読めない色(opts.tone, line.no, errors, { 線種も受ける: false });
     }
+    // `color` は縦に並べた形と JSON と同じ振り分けを通す (#1969)。 色の名前は箱の色、`#` で
+    // 始まる値は色番号になる。 見本では状態の上書きとして意味を持つため色として読まない
+    const 色 = !isPart && opts.color !== undefined ? splitColorValue(opts.color) : {};
+    if (!isPart && opts.color !== undefined && !色.tone && !色.hex) {
+      report読めない色(opts.color, line.no, errors, { 線種も受ける: false });
+    }
     const kind = isPart
       ? NODE_KIND_DEFAULT
       : resolveNodeKind(NODE_KIND_VALID.has(kindRaw) ? kindRaw : "");
@@ -3649,7 +3658,9 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
         : 値に追随する欄として読む(opts.renderOffsetY, "箱の renderOffsetY ", line.no, errors),
       ...表で読む(ACTOR_INLINE_VALUE_KINDS, opts, "箱の ", line.no, errors),
       // parts では `tone` を状態の上書きとして従来から使えるため、 色として横取りしない
-      tone: isPart ? undefined : resolveTone(opts.tone),
+      // `tone` と `color` を両方書いた時は `tone` を採る (JSON の読み方と揃える)
+      tone: isPart ? undefined : (resolveTone(opts.tone) ?? 色.tone),
+      colorHex: 色.hex,
       partId: isPart ? kindRaw : undefined,
       stateOverride: isPart ? extractStateOverride(opts) : undefined,
       // canvas pivot 新 spec = 絶対座標 field は `ACTOR_INLINE_VALUE_KINDS` の表が読む (#1306)

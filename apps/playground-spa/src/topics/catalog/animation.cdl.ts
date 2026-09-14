@@ -1,5 +1,6 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { PhaseBuilder } from "@cardenelabs/cdl";
+import { textDslToDiagram } from "@cardenelabs/dragon";
 
 /**
  * Catalog - Animation ... phase / state / tween / set / badge の動作。
@@ -1413,6 +1414,243 @@ export const sourceJson__richPipelineDemo = `{
     }
   ]
 }`;
+
+// ==== #1969 数え上げの時間 ここから ====
+// ---- 数え上げの時間 (durationMs、#1969) ----
+//
+// 数え上げは値が変わるたびに前の値から数え直す。 書かない時は 0.6 秒で数え終える。 2.4 秒にすると数字の動きを目で追える。
+
+export const patternBase__richPipelineDemo = "既定の時間";
+
+export const sourceYaml__pattern__richPipelineDemo__ゆっくり数える = `title: "数え上げをゆっくり見せる5段階のCSV処理の進捗"
+type: flow
+
+lanes:
+  col1: { x: 0, width: 190 }
+  col2: { x: 230, width: 190 }
+  col3: { x: 460, width: 190 }
+
+states:
+  s1: 0
+  s2: 0
+  s3: 0
+  s4: 0
+  s5: 0
+  total: 0
+  processed: 0
+
+readouts:
+  ring: { kind: percent-ring, source: total, max: 500, label: "全体進捗" }
+  cu: { kind: countup, source: processed, decimals: 0, unit: " 行", durationMs: 2400, label: "処理済" }
+
+actors:
+  - 検証: { kind: dyn-wave, lane: col1, stack: 0, subtitle: "{s1}%", posW: 140, posH: 200, shape: { kind: wave, level: "{s1}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } }
+  - 変換: { kind: dyn-wave, lane: col1, stack: 1, subtitle: "{s2}%", posW: 140, posH: 200, shape: { kind: wave, level: "{s2}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } }
+  - 加工: { kind: dyn-wave, lane: col2, stack: 0, subtitle: "{s3}%", posW: 140, posH: 200, shape: { kind: wave, level: "{s3}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } }
+  - 重複排除: { kind: dyn-wave, lane: col2, stack: 1, subtitle: "{s4}%", posW: 140, posH: 200, shape: { kind: wave, level: "{s4}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#4e9dc4" } }
+  - 保存: { kind: dyn-wave, lane: col3, stack: 0, subtitle: "{s5}%", posW: 140, posH: 200, shape: { kind: wave, level: "{s5}", amplitude: 100, frequency: 2, waveHeight: 6, fill: "#22c55e" } }
+
+flow:
+  - 検証 -> 変換: "変換" (info)
+  - 変換 -> 加工: "加工" (info)
+  - 加工 -> 重複排除: "排除" (info)
+  - 重複排除 -> 保存: "確定" (success)
+
+animation:
+  - step: "検証中" 1.5s
+    focus: ["検証"]
+    tween:
+      s1: 0 -> 100
+      total: 0 -> 100
+      processed: 0 -> 100
+    badge: "検証"
+  - step: "変換中" 1.5s
+    focus: ["検証", "変換", "検証 -> 変換"]
+    tween:
+      s2: 0 -> 100
+      total: 100 -> 200
+      processed: 100 -> 200
+    badge: "変換"
+  - step: "加工中" 1.5s
+    focus: ["検証", "変換", "加工", "検証 -> 変換", "変換 -> 加工"]
+    tween:
+      s3: 0 -> 100
+      total: 200 -> 300
+      processed: 200 -> 300
+    badge: "加工"
+  - step: "排除中" 1.5s
+    focus: ["検証", "変換", "加工", "重複排除", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除"]
+    tween:
+      s4: 0 -> 100
+      total: 300 -> 400
+      processed: 300 -> 400
+    badge: "排除"
+  - step: "保存完遂" 1.5s
+    focus: ["検証", "変換", "加工", "重複排除", "保存", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除", "重複排除 -> 保存"]
+    tween:
+      s5: 0 -> 100
+      total: 400 -> 500
+      processed: 400 -> 500
+    badge: "保存"
+`;
+
+export const sourceJson__pattern__richPipelineDemo__ゆっくり数える = `{
+  "title": "数え上げをゆっくり見せる5段階のCSV処理の進捗",
+  "type": "flow",
+  "lanes": {
+    "col1": { "x": 0, "width": 190 },
+    "col2": { "x": 230, "width": 190 },
+    "col3": { "x": 460, "width": 190 }
+  },
+  "actors": [
+    {
+      "name": "検証",
+      "kind": "dyn-wave",
+      "lane": "col1",
+      "stack": 0,
+      "subtitle": "{s1}%",
+      "posW": 140,
+      "posH": 200,
+      "shape": {
+        "kind": "wave",
+        "level": "{s1}",
+        "amplitude": 100,
+        "frequency": 2,
+        "waveHeight": 6,
+        "fill": "#4e9dc4"
+      }
+    },
+    {
+      "name": "変換",
+      "kind": "dyn-wave",
+      "lane": "col1",
+      "stack": 1,
+      "subtitle": "{s2}%",
+      "posW": 140,
+      "posH": 200,
+      "shape": {
+        "kind": "wave",
+        "level": "{s2}",
+        "amplitude": 100,
+        "frequency": 2,
+        "waveHeight": 6,
+        "fill": "#4e9dc4"
+      }
+    },
+    {
+      "name": "加工",
+      "kind": "dyn-wave",
+      "lane": "col2",
+      "stack": 0,
+      "subtitle": "{s3}%",
+      "posW": 140,
+      "posH": 200,
+      "shape": {
+        "kind": "wave",
+        "level": "{s3}",
+        "amplitude": 100,
+        "frequency": 2,
+        "waveHeight": 6,
+        "fill": "#4e9dc4"
+      }
+    },
+    {
+      "name": "重複排除",
+      "kind": "dyn-wave",
+      "lane": "col2",
+      "stack": 1,
+      "subtitle": "{s4}%",
+      "posW": 140,
+      "posH": 200,
+      "shape": {
+        "kind": "wave",
+        "level": "{s4}",
+        "amplitude": 100,
+        "frequency": 2,
+        "waveHeight": 6,
+        "fill": "#4e9dc4"
+      }
+    },
+    {
+      "name": "保存",
+      "kind": "dyn-wave",
+      "lane": "col3",
+      "stack": 0,
+      "subtitle": "{s5}%",
+      "posW": 140,
+      "posH": 200,
+      "shape": {
+        "kind": "wave",
+        "level": "{s5}",
+        "amplitude": 100,
+        "frequency": 2,
+        "waveHeight": 6,
+        "fill": "#22c55e"
+      }
+    }
+  ],
+  "flow": [
+    { "from": "検証", "to": "変換", "label": "変換", "tone": "info" },
+    { "from": "変換", "to": "加工", "label": "加工", "tone": "info" },
+    { "from": "加工", "to": "重複排除", "label": "排除", "tone": "info" },
+    { "from": "重複排除", "to": "保存", "label": "確定", "tone": "success" }
+  ],
+  "states": { "s1": 0, "s2": 0, "s3": 0, "s4": 0, "s5": 0, "total": 0, "processed": 0 },
+  "readouts": [
+    { "id": "ring", "kind": "percent-ring", "source": "total", "max": 500, "label": "全体進捗" },
+    {
+      "id": "cu",
+      "kind": "countup",
+      "source": "processed",
+      "decimals": 0,
+      "unit": " 行",
+      "durationMs": 2400,
+      "label": "処理済"
+    }
+  ],
+  "animation": [
+    {
+      "step": "検証中",
+      "duration": 1.5,
+      "focus": ["検証"],
+      "tween": { "s1": [0, 100], "total": [0, 100], "processed": [0, 100] },
+      "badge": "検証"
+    },
+    {
+      "step": "変換中",
+      "duration": 1.5,
+      "focus": ["検証", "変換", "検証 -> 変換"],
+      "tween": { "s2": [0, 100], "total": [100, 200], "processed": [100, 200] },
+      "badge": "変換"
+    },
+    {
+      "step": "加工中",
+      "duration": 1.5,
+      "focus": ["検証", "変換", "加工", "検証 -> 変換", "変換 -> 加工"],
+      "tween": { "s3": [0, 100], "total": [200, 300], "processed": [200, 300] },
+      "badge": "加工"
+    },
+    {
+      "step": "排除中",
+      "duration": 1.5,
+      "focus": ["検証", "変換", "加工", "重複排除", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除"],
+      "tween": { "s4": [0, 100], "total": [300, 400], "processed": [300, 400] },
+      "badge": "排除"
+    },
+    {
+      "step": "保存完遂",
+      "duration": 1.5,
+      "focus": ["検証", "変換", "加工", "重複排除", "保存", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除", "重複排除 -> 保存"],
+      "tween": { "s5": [0, 100], "total": [400, 500], "processed": [400, 500] },
+      "badge": "保存"
+    }
+  ]
+}`;
+
+export const pattern__richPipelineDemo__ゆっくり数える = textDslToDiagram(
+  sourceYaml__pattern__richPipelineDemo__ゆっくり数える,
+);
+// ==== #1969 数え上げの時間 ここまで ====
 
 export const sourceYaml__richServerLoadDashboard = `title: "4台のサーバーのCPU負荷 (朝ピーク→昼安定→夜スケールダウン→深夜アイドル)"
 type: flow

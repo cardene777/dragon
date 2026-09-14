@@ -179,6 +179,77 @@ export const pattern__chartBar__前の値つき = textDslToDiagram(
   sourceYaml__pattern__chartBar__前の値つき,
 );
 
+// ------------------------------------------------------------
+// 1c. 棒を段のどこまでで伸ばし終えるか (`draw: bar 0.4`、#1969)
+//
+// 書かない図は段の終わりに伸ばし終わる。 割合を書くと、その時点で伸ばし終えて残りは伸びた棒を見せる。
+// 違いは段の途中にだけ出るので、同じ図で割合だけを変えた切替にする。
+// ------------------------------------------------------------
+export const sourceYaml__pattern__chartBar__4割で伸ばし終える = `title: "段の 4 割で伸ばし終える経路別の流入"
+type: bar
+
+actors:
+  - 検索: "{search}"
+  - SNS: "{sns}"
+  - 直接: "{direct}"
+  - 紹介: "{referral}"
+
+states:
+  search: 420
+  sns: 310
+  direct: 180
+  referral: 90
+
+animation:
+  - step: "先月" 1.2s
+    draw: bar 0.4
+    description: "棒は段の 4 割で伸びきり、残りの 6 割は伸びた棒で検索の 420 を見せる"
+  - step: "今月" 1.2s
+    tween:
+      search: 420 -> 680
+      sns: 310 -> 420
+      direct: 180 -> 150
+      referral: 90 -> 240
+    description: "紹介が 90 から 240 へ伸びる"
+`;
+
+export const sourceJson__pattern__chartBar__4割で伸ばし終える = `{
+  "title": "段の 4 割で伸ばし終える経路別の流入",
+  "type": "bar",
+  "actors": [
+    { "name": "検索", "subtitle": "{search}" },
+    { "name": "SNS", "subtitle": "{sns}" },
+    { "name": "直接", "subtitle": "{direct}" },
+    { "name": "紹介", "subtitle": "{referral}" }
+  ],
+  "flow": [],
+  "states": { "search": 420, "sns": 310, "direct": 180, "referral": 90 },
+  "animation": [
+    {
+      "step": "先月",
+      "duration": 1.2,
+      "draw": "bar",
+      "drawRatio": 0.4,
+      "body": "棒は段の 4 割で伸びきり、残りの 6 割は伸びた棒で検索の 420 を見せる"
+    },
+    {
+      "step": "今月",
+      "duration": 1.2,
+      "body": "紹介が 90 から 240 へ伸びる",
+      "tween": {
+        "search": [420, 680],
+        "sns": [310, 420],
+        "direct": [180, 150],
+        "referral": [90, 240]
+      }
+    }
+  ]
+}`;
+
+export const pattern__chartBar__4割で伸ばし終える = textDslToDiagram(
+  sourceYaml__pattern__chartBar__4割で伸ばし終える,
+);
+
 // ============================================================
 // 2. 線で追う
 // ============================================================

@@ -69,9 +69,12 @@ describe("一覧の名前 (#1030)", () => {
     // 件数の下限だけだと、取りこぼしても通ってしまう。 catalog ごとの実数で固定する。
     // 図を足したらこの表も更新する = 数が変わったことに気付ける
     const expected: Record<string, number> = {
-      interactive: 129, cookbook: 26, patterns: 12, primitives: 89,
+      // interactive は矢印や縦列や図全体で操作を受け取る見本を足して 129 → 130 (#1969)
+      interactive: 130, cookbook: 26, patterns: 12, primitives: 93,
       // presets はクラス図と ER 図の複雑な版をパターンへ移して 21 → 19 (#1960)
       // styles は欄が取る値を並べる見本を 4 件足して 10 → 14 (#1966)
+      // primitives は縦列の縦の点線 / 図全体の間隔 / 流れ図の並ぶ向き / 状態の始まりと終わり
+      // の見本を足して 89 → 93 (#1969)
       "primitives-extra": 21, animation: 10, styles: 14, presets: 19,
       ethereum: 4, "text-dsl": 15, parts: 80, charts: 15,
     };

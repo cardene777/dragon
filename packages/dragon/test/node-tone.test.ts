@@ -395,6 +395,50 @@ describe("箱と矢印で同じ色名が使える", () => {
     expect(e?.hint, "箱に効かない線種を勧めている").not.toContain("dotted-flow");
   });
 
+  it("中括弧の箱に `color` で書いた色が載る (#1969)", () => {
+    // 縦に並べた形と JSON は `color` を受けるのに、中括弧の形だけが知らない項目名として
+    // 図ごと読めなくしていた
+    const diagram = build("flow", `- Client: { kind: service, color: 成功 }`);
+    expect(tonedNodes(diagram)).toEqual([["client", "success"]]);
+  });
+
+  it("中括弧の `color` と縦に並べた `color` が同じ色になる (#1969)", () => {
+    const 縦 = parseTextDslV05(
+      [`title: "t"`, `type: flow`, ``, `actors:`, `  - Client:`, `      color: 成功`, `  - API`, ``, `flow:`, `  - Client -> API: "call"`].join("\n"),
+    );
+    const 中括弧 = parseTextDslV05(
+      [`title: "t"`, `type: flow`, ``, `actors:`, `  - Client: { color: 成功 }`, `  - API`, ``, `flow:`, `  - Client -> API: "call"`].join("\n"),
+    );
+    if (!縦.ok || !中括弧.ok) throw new Error("parse 失敗");
+    expect(縦.doc.actors[0]?.tone, "縦に並べた形で色が読めていない (比べる相手が空)").toBe("success");
+    expect(中括弧.doc.actors[0]?.tone).toBe(縦.doc.actors[0]?.tone);
+  });
+
+  it("`tone` と `color` を両方書くと `tone` を採る (#1969)", () => {
+    const diagram = build("flow", `- Client: { kind: service, tone: error, color: 成功 }`);
+    expect(tonedNodes(diagram)).toEqual([["client", "error"]]);
+  });
+
+  it("`color` の読めない値は行番号付きで知らせる (#1969)", () => {
+    const parsed = parseTextDslV05(
+      [`title: "t"`, `type: flow`, ``, `actors:`, `  - Client: { color: purple }`, `  - API`, ``, `flow:`, `  - Client -> API: "call"`].join("\n"),
+    );
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    const e = parsed.errors.find((x) => x.message.includes("purple"));
+    expect(e?.message).toBe('色の名前が読めません: "purple"');
+    expect(e?.line).toBe(5);
+  });
+
+  it("見本の `color` は従来どおり状態の上書きになる (#1969)", () => {
+    const parsed = parseTextDslV05(
+      [`title: "t"`, `type: flow`, ``, `actors:`, `  - g1: { kind: gauge, color: 成功 }`, `  - API`, ``, `flow:`, `  - g1 -> API: "call"`].join("\n"),
+    );
+    if (!parsed.ok) throw new Error(`parse 失敗: ${parsed.errors.map((e) => e.message).join(" / ")}`);
+    expect(parsed.doc.actors[0]?.tone, "見本の色としては読まない").toBeUndefined();
+    expect(parsed.doc.actors[0]?.stateOverride).toEqual({ color: "成功" });
+  });
+
   it("線の種類の指定は色として拾わない", () => {
     // 末尾の括弧は色と線の種類の両方を受ける。 色として解決できない値を線の種類に回す
     const src = [

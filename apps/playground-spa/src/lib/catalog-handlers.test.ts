@@ -200,6 +200,126 @@ describe("catalog の受け取り手 (#1038)", () => {
     expect(new Set(names.values()).size, `名前が重複している: ${[...names.values()].join(", ")}`).toBe(4);
   });
 
+  /** 指の位置と、伝わるのを止めたか・既定の動きを止めたかを残す event */
+  function 指の出来事(
+    type: string,
+    target: EventTarget,
+    at: { x: number; y: number },
+    pointerId = 0,
+  ): Event & { 止めた: { 伝わり: boolean; 既定: boolean } } {
+    const 止めた = { 伝わり: false, 既定: false };
+    return {
+      type, currentTarget: target, target, pointerId, clientX: at.x, clientY: at.y, 止めた,
+      stopPropagation: () => { 止めた.伝わり = true; },
+      preventDefault: () => { 止めた.既定 = true; },
+    } as unknown as Event & { 止めた: { 伝わり: boolean; 既定: boolean } };
+  }
+
+  it("動かす操作は閾値を超えた時点で 1 回だけ受け取る (#1969)", () => {
+    // `cdl` は `drag` に pointerdown / pointermove / pointerup をそのまま渡す。 距離を測らないと
+    // 押しただけで受け取り、動かすたびに累計が増える
+    const { calls, signals } = recorder();
+    const h = CATALOG_HANDLERS["on-drag"]!;
+    const el = fakeTarget();
+
+    h(指の出来事("pointerdown", el, { x: 100, y: 100 }), signals);
+    expect(calls, "押しただけで受け取っている").toHaveLength(0);
+    h(指の出来事("pointermove", el, { x: 103, y: 103 }), signals);
+    expect(calls, "閾値 (6px) に届かない動きで受け取っている").toHaveLength(0);
+    h(指の出来事("pointermove", el, { x: 106, y: 100 }), signals);
+    expect(calls, "閾値に届いた動きで受け取っていない").toEqual(["動かした"]);
+    h(指の出来事("pointermove", el, { x: 160, y: 140 }), signals);
+    expect(calls, "同じ押下の中で 2 回受け取っている").toEqual(["動かした"]);
+
+    // 離した後は、次に押して動かすまで受け取らない
+    h(指の出来事("pointerup", el, { x: 160, y: 140 }), signals);
+    h(指の出来事("pointermove", el, { x: 220, y: 140 }), signals);
+    expect(calls, "押していないのに動かしただけで受け取っている").toEqual(["動かした"]);
+    h(指の出来事("pointerdown", el, { x: 0, y: 0 }), signals);
+    h(指の出来事("pointermove", el, { x: 0, y: 10 }), signals);
+    expect(calls, "2 度目の押下で受け取っていない").toEqual(["動かした", "動かした"]);
+  });
+
+  it("動かす操作の押下を図の移動へ渡さず、箱の側で指を捕まえる (#1969)", () => {
+    // カタログの図は掴んで動かせる。 押下が器まで届くと器が指を捕まえ、以降の動きが箱に届かない
+    const { signals } = recorder();
+    const h = CATALOG_HANDLERS["on-drag"]!;
+    const 捕まえた: number[] = [];
+    const el = { setPointerCapture: (id: number) => { 捕まえた.push(id); } } as unknown as EventTarget;
+
+    const 押下 = 指の出来事("pointerdown", el, { x: 0, y: 0 }, 7);
+    h(押下, signals);
+    expect(押下.止めた.伝わり, "押下が図の移動へ伝わる").toBe(true);
+    expect(捕まえた, "箱の側で指を捕まえていない").toEqual([7]);
+
+    // 動かす間は伝わりを止めない = 止めるのは移動の起点になる押下だけ
+    const 動き = 指の出来事("pointermove", el, { x: 30, y: 0 }, 7);
+    h(動き, signals);
+    expect(動き.止めた.伝わり, "動きの伝わりまで止めている").toBe(false);
+  });
+
+  it("動かす操作の押下は表示と指ごとに分かれている (#1969)", () => {
+    const { calls, signals } = recorder();
+    const h = CATALOG_HANDLERS["on-drag"]!;
+    const listView = fakeTarget();
+    const modalView = fakeTarget();
+
+    // 一覧で押して、拡大表示の側で動かしても受け取らない
+    h(指の出来事("pointerdown", listView, { x: 0, y: 0 }), signals);
+    h(指の出来事("pointermove", modalView, { x: 50, y: 0 }), signals);
+    expect(calls, "押していない表示の動きで受け取っている").toHaveLength(0);
+
+    // 同じ要素でも別の指の動きでは受け取らない
+    h(指の出来事("pointermove", listView, { x: 50, y: 0 }, 2), signals);
+    expect(calls, "押していない指の動きで受け取っている").toHaveLength(0);
+    h(指の出来事("pointermove", listView, { x: 50, y: 0 }), signals);
+    expect(calls, "押した指の動きで受け取っていない").toEqual(["動かした"]);
+  });
+
+  it("落とす操作は重ねた時に既定を止め、落とした時だけ受け取る (#1969)", () => {
+    // `dragover` を止めないとブラウザが落とすことを許さず、`drop` が来ない。
+    // `drop` を止めないと、落としたファイルをブラウザが開いてカタログから離れる
+    const { calls, signals } = recorder();
+    const h = CATALOG_HANDLERS["on-drop"]!;
+    const el = fakeTarget();
+
+    const 重ねた = 指の出来事("dragover", el, { x: 0, y: 0 });
+    h(重ねた, signals);
+    expect(重ねた.止めた.既定, "重ねた時に既定を止めていない (drop が来ない)").toBe(true);
+    expect(calls, "重ねただけで受け取っている").toHaveLength(0);
+
+    const 落とした = 指の出来事("drop", el, { x: 0, y: 0 });
+    h(落とした, signals);
+    expect(落とした.止めた.既定, "落とした時に既定を止めていない").toBe(true);
+    expect(calls, "落としても受け取っていない").toEqual(["落とした"]);
+  });
+
+  it("図全体は入った時と出た時で別の名前を残す (#1969)", () => {
+    const { calls, signals } = recorder();
+    const h = CATALOG_HANDLERS["on-diagram"]!;
+    h(new Event("mouseenter"), signals);
+    h(new Event("mouseleave"), signals);
+    expect(calls).toEqual(["図に入った", "図から出た"]);
+  });
+
+  it("矢印と縦列はそれぞれ別の名前を残す (#1969)", () => {
+    const { calls, signals } = recorder();
+    CATALOG_HANDLERS["on-arrow"]!(new Event("click"), signals);
+    CATALOG_HANDLERS["on-lane"]!(new Event("click"), signals);
+    expect(calls).toEqual(["矢印を押した", "縦列を押した"]);
+  });
+
+  it("受け取り手が残す名前は図の選択肢に全て載っている (#1969)", async () => {
+    // 選択肢に無い名前を書くと入力欄の値として扱われず、画面の箱が変わらない
+    const { eventTargets } = await import("@/topics/catalog/interactive.cdl");
+    const 選択肢 = (eventTargets.inputs ?? []).find((i) => i.id === "lastEvent") as { options?: unknown[] } | undefined;
+    const 名前 = (選択肢?.options ?? []).map((o) => (typeof o === "string" ? o : (o as { value: string }).value));
+    expect(名前.length, "選択肢を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
+    for (const 残す of ["動かした", "落とした", "矢印を押した", "縦列を押した", "図に入った", "図から出た"]) {
+      expect(名前, `${残す} が選択肢に無い`).toContain(残す);
+    }
+  });
+
   it("受け取り手を渡さない描画経路が残っていない", () => {
     // 一覧の中と拡大表示の 2 経路がある。 片方だけ渡すと、もう片方が
     // 「押しても動かない」 まま残る (実測 = #1038 はどちらも渡していなかった)
