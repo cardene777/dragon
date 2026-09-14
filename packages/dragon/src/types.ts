@@ -382,6 +382,14 @@ export type DslActor = {
    */
   colorHex?: string;
   /**
+   * 部品に `color:` で書いた色の名前 (`成功` 等) (#1973)。
+   *
+   * 部品の色の状態は色番号しか受けず、色の名前は箱の色 (`tone`) にしか効かない。 部品には
+   * 箱の色を渡さないため、書いても絵が変わらない。 黙って捨てると手掛かりが残らないので、
+   * 書いた名前を残して組み立て側が知らせる。
+   */
+  partColorName?: Tone;
+  /**
    * parts state override (partId set 時のみ有効)。 kind + 既存 reserved fields を除いた
    * inline option の残り (`v: 50` / `count: 100` 等) を state 名 → initial 値 map として保持。
    * compile 時に parts.states[i].initial を上書きする。

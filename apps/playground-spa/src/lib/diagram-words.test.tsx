@@ -639,6 +639,8 @@ const 図の字の天井: Record<string, { 図: number; 語: number; 延べ: num
   "ethereum.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "interactive.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "parts.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
+  // 部品を箱に使う見本 (#1973)。 部品の字をそのまま描くので、部品の頁と同じく 0
+  "parts-in-box.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "patterns.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "presets.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },
   "primitives-extra.cdl.ts": { 図: 0, 語: 0, 延べ: 0 },

@@ -46,6 +46,9 @@ export type { FocusEntry } from "./focus";
 export { writeActorPosition } from "./write-position";
 // 図の上での位置を測る。 editor が現在位置を出すのと、 相対指定を解くので同じ規則を使う。
 export { measureActorBoxes } from "./compile";
+// 本文に書いた部品の状態の上書きと色番号を、部品の図へ当てる。 編集画面が重ねて描く部品にも
+// 組み立て側と同じ値を使う (#1973)
+export { 部品に上書きを当てる } from "./compile";
 // パーツの見た目の大きさと、 位置を書かなかった時の格子。 画面側と組み立て側で同じ規則を使う。
 // 記法が受理する種類の全体。 画面側が「本文が見本を使っているか」 を判定するのに使う (#1022)。
 export { NODE_KIND_VALID } from "./v05/parser";

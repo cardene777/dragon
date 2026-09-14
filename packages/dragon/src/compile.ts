@@ -150,6 +150,9 @@ export type CompileNotice = {
     | "direction-not-honored"
     // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)
     | "scale-reserved"
+    // 部品に書いた色が効かない (#1973)。 色番号を入れる状態を 1 つも持たない部品に色番号を
+    // 書いた時と、色番号でなく色の名前を書いた時
+    | "part-color-ignored"
     // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
     | "chart-value-unreadable"
     // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
@@ -3064,6 +3067,8 @@ function cleanupPlaceholderActor(
   };
   const relatedToActor = (id: string): boolean =>
     ownedLaneIds.size > 0 ? ownedNodeIds.has(id) : matchesAliasSlug(id);
+  // 仮の箱が入っていた縦列。 仮の箱を消して空になった縦列は下で消す (#1973)
+  const 仮の箱の縦列 = new Set(target.nodes.filter((n) => relatedToActor(n.id)).map((n) => n.lane));
   target.nodes = target.nodes.filter((n) => !relatedToActor(n.id));
   // edge も同経路で削除 (parts actor に接続していた flow を除去、 parts merge 後の flow は user が
   // 別途書く経路になる)。 削除した edge の id は phase.activate に残ると dangling 参照になるため回収する。
@@ -3104,6 +3109,10 @@ function cleanupPlaceholderActor(
     if (残る箱を持つ.has(l.id)) return true;
     if (l.label === a.name) return false;
     if (l.id === aliasSlug) return false;
+    // 図種が自動で作った縦列 (`flow` 等) に部品の箱しか無かった図では、仮の箱を消すと縦列が
+    // 空のまま残る (実測 = 部品 1 つだけの図に中身の無い `flow` の縦列)。 書き手が `lanes:` に
+    // 書いた縦列は、空でも書いたとおりに残す (#1973)
+    if (仮の箱の縦列.has(l.id) && !Object.hasOwn(doc.lanes ?? {}, l.id)) return false;
     return true;
   });
   // 削除された node / edge を activate 参照している既存 phase の cleanup (node 削除と同じ判定経路
@@ -3200,6 +3209,29 @@ function mergePartsFromActors(
     // の両方を同時に排除する。
     cleanupPlaceholderActor(target, doc, actor);
     const merged = applyColorHex(part, actor.colorHex, actor.stateOverride ?? {});
+    // 色番号は部品の色の状態へ入れる。 塗りを図形に直接書いた部品 (`arc-gauge` 等) は入れる先が
+    // 無く、書いても絵が変わらない。 黙って既定の色で描くと手掛かりが残らないので知らせる (#1973)
+    if (actor.colorHex && !(part.states ?? []).some((st) => isColorValue(st.initial))) {
+      onNotice?.({
+        kind: "part-color-ignored",
+        actor: actor.name,
+        line: actor.pos?.line ?? 0,
+        message: `"${actor.name}" (${partId}) は色を変えられる状態を持たないため、色番号 ${actor.colorHex} は効きません`,
+        hint: "色を変えられる部品は、初期値が色番号の状態を持つもの (例 = state-indicator)",
+      });
+    }
+    // 色の名前は箱の色にしか効かず、部品の色の状態は色番号しか受けない。 名前の色は描く側の
+    // 配色の変数 (`--cdl-tone-*`) で決まり固定の色番号を持たないため、置き換えて入れることもしない
+    if (actor.partColorName) {
+      onNotice?.({
+        kind: "part-color-ignored",
+        actor: actor.name,
+        line: actor.pos?.line ?? 0,
+        // 残っている名前は読み替えた後の正規の名前 (`成功` なら `success`) なので文には出さない
+        message: `"${actor.name}" (${partId}) の色は色の名前では変わりません`,
+        hint: '部品の色は色番号で書く (例 = color: "#d9534f")',
+      });
+    }
     // 位置を書いていないパーツは格子に並べる。 書いてあればその位置を使う
     let placeX = actor.posX;
     let placeY = actor.posY;
@@ -3295,6 +3327,38 @@ function applyColorHex(
     if (out[st.id] === undefined) out[st.id] = colorHex;
   }
   return out;
+}
+
+/**
+ * 本文に書いた状態の上書きと色番号を、部品の図そのものに当てて返す (#1973)。
+ *
+ * 編集画面の本文欄は、部品を図から抜いて別に重ねて描く。 重ねる側が部品の図をそのまま
+ * 描くと、`state: { lvl: 0.4 }` や `color: "#d9534f"` がカタログの絵にだけ効き、
+ * 編集画面では既定の値で描かれる。 値の決め方は組み立て側と同じ 2 つの関数を通す。
+ *
+ * `phase: false` は組み立て側と同じく部品の段を外す。 段の数は残し、中身 (点灯と値の変化)
+ * だけを空にする = 段を消すと、重ねた部品だけ段の進みが止まらない形になる。
+ *
+ * 色として読めない上書きは組み立て側と同じく捨てる。 知らせは組み立て側が出すため、
+ * ここでは出さない (同じ本文で 2 度出さない)。
+ */
+export function 部品に上書きを当てる(
+  part: CdlDiagram,
+  actor: Pick<DslActor, "stateOverride" | "colorHex">,
+): CdlDiagram {
+  const 上書き = applyColorHex(part, actor.colorHex, actor.stateOverride ?? {});
+  const 段を外す = 上書き["phase"] === false;
+  if (Object.keys(上書き).length === 0) return part;
+  return {
+    ...part,
+    states: part.states.map((st) => ({
+      ...st,
+      initial: resolveStateOverride(st.initial, 上書き[st.id]).initial,
+    })),
+    phases: 段を外す
+      ? part.phases.map((ph) => ({ ...ph, activate: [], tweens: [], sets: [] }))
+      : part.phases,
+  };
 }
 
 /**
@@ -6112,6 +6176,8 @@ type 放射で描けない欄 =
   // 前の時点の値 (#1450)。 放射の枝は 1 時点しか描かない = 2 本目の帯に当たるものが無い
   | "previous"
   | "colorHex"
+  // 部品に書いた色の名前 (#1973)。 色番号と同じく部品にしか残らない
+  | "partColorName"
   | "stateOverride"
   | "posX"
   | "posY"
@@ -6177,6 +6243,7 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   final: "始まり / 終わり の印",
   previous: "前の時点の値",
   colorHex: "色番号",
+  partColorName: "色の名前",
   stateOverride: "状態の上書き",
   // 位置は「登場人物ごとの箱をどこに置くか」 の指定で、 箱が 1 つの図では置く先が無い
   posX: "位置 (座標)",

@@ -14,8 +14,8 @@
  *
  * | 一覧 | 中身 | 扱い |
  * |---|---|---|
- * | 動かすと決めた | `primitives-extra` + `scene-*` + `presets` + `kind-*` + `shape-*` + `charts` | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
- * | 動かさないと決めた | `styles` + `lane-*` + `stack-*` | 並び方と色の見本。 値を足すと見せたいものが埋もれる |
+ * | 動かすと決めた | `primitives-extra` + `scene-*` + `presets` + `kind-*` + `shape-*` + `charts` + `parts-in-box` の部品の段で動く見本 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
+ * | 動かさないと決めた | `styles` + `lane-*` + `stack-*` + `parts-in-box` の状態を上書きして止める変種 | 並び方と色の見本。 値を足すと見せたいものが埋もれる |
  * | まだ動かしていない | 副題を描かない `shape-*`、 `charts` | 別 Issue 待ち。 件数を固定して減り方を追う |
  *
  * **件数はここに書かない**。 一覧ごとの数は下の `一覧ごとの件数が分かる` が SSOT で、
@@ -28,6 +28,7 @@
 import { describe, it, expect } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
+import * as PartsInBox from "../../../apps/playground-spa/src/topics/catalog/parts-in-box.cdl";
 import * as Interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
 import * as Cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
 import * as Patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
@@ -143,6 +144,9 @@ const 動かさないと決めた: Record<string, string> = {
   縦列を組で束ねない: "縦列の組の見本。 見せたいのは枠の囲む範囲",
   "処理と保存の縦列を-1-つの組で囲む": "縦列の組の見本。 同上",
   "組を-2-つ書いて縦列を分けて囲む": "縦列の組の見本。 同上",
+  // 部品を箱に使う見本 (#1973)。 部品の段を外し、上書きした値で止めて見せる
+  "部品の塗りの割合を-4-割で止める":
+    "部品の状態の上書きの見本。 部品の段を外して上書きした値のまま止める",
 };
 
 /**
@@ -241,6 +245,9 @@ function カタログの振り分け(): {
 
   for (const [, d] of diagramsOf(PrimitivesExtra)) 動かす.push(d.id);
   for (const [, d] of diagramsOf(Styles)) 動かさない.push(d.id);
+  // 部品を箱に使う見本 (#1973) は部品の段で動く。 状態を上書きして止める変種だけ動かさない
+  for (const [, d] of diagramsOf(PartsInBox))
+    (動かさないと決めた[d.id] ? 動かさない : 動かす).push(d.id);
   // 図の型の見本は cdl 側に経路がある型だけ動かす (#1194)
   for (const [, d] of diagramsOf(Presets)) (型の見本で残す[d.id] ? まだ : 動かす).push(d.id);
   // 図表の見本は数の欄に状態を書けるようになった分だけ動かす (#1198)
@@ -314,7 +321,8 @@ describe("カタログは 3 つの一覧に分かれる (#1172)", () => {
         diagramsOf(PrimitivesExtra).length +
         diagramsOf(Presets).length +
         diagramsOf(Charts).length +
-        diagramsOf(Styles).length,
+        diagramsOf(Styles).length +
+        diagramsOf(PartsInBox).length,
     );
   });
 
@@ -328,8 +336,9 @@ describe("カタログは 3 つの一覧に分かれる (#1172)", () => {
       // #1969 で流れ図の並ぶ向きと状態の始まりと終わりの見本 5 枚と、スタイルの変種 4 枚 (動かさない) を足した
       // #1971 で位置のずらしの見本 4 枚 (動かさない) を足した
       // #1972 で縦列の組の見本 3 枚 (動かさない) を足した
-      動かす: 148,
-      動かさない: 52,
+      // #1973 で部品を箱に使う見本 3 枚 (動かす) と、状態を上書きして止める変種 1 枚 (動かさない) を足した
+      動かす: 151,
+      動かさない: 53,
       まだ: 6,
     });
   });
@@ -342,7 +351,8 @@ describe("カタログは 3 つの一覧に分かれる (#1172)", () => {
     const 形 = diagramsOf(Primitives).filter(
       ([, d]) => (d.id.startsWith("shape-") || d.id.startsWith("kind-")) && !形の見本で残す[d.id],
     );
-    const 静止 = [...diagramsOf(PrimitivesExtra), ...場面, ...型, ...形]
+    const 部品を箱に = diagramsOf(PartsInBox).filter(([, d]) => !動かさないと決めた[d.id]);
+    const 静止 = [...diagramsOf(PrimitivesExtra), ...場面, ...型, ...形, ...部品を箱に]
       .filter(([, d]) => !moves(d))
       .map(([k]) => k);
     expect(静止, `静止している図: ${静止.join(", ")}`).toEqual([]);

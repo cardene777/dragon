@@ -95,6 +95,7 @@ describe("呼出側に型が届く", () => {
       "declare function resolveRelativePos",
       "declare function writeActorPosition",
       "declare function measureActorBoxes",
+      "declare function 部品に上書きを当てる",
       "type RelativePos",
       "type FocusEntry",
       "type CompileNotice",

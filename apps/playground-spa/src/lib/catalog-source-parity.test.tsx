@@ -30,7 +30,7 @@ import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
 import { 一覧の記法つき, 差分 } from "./catalog-scope";
-import { 記法つき, 記法を持つカタログ } from "./catalog-source-cases";
+import { 記法つき, 記法を持つカタログ, 部品の一覧 } from "./catalog-source-cases";
 
 /**
  * id まで完全に一致する preset。
@@ -931,7 +931,10 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
     //
     // 逆向き (実物にあって宣言に無い欄) は宣言が要らない。 反転したので、宣言していない欄は
     // **既定で比べる** = 増えた欄は必ず比較に入る。
-    const 全部 = [...対象.map((t) => t.built), ...対象.map((t) => textDslToDiagram(t.yaml))];
+    const 全部 = [
+      ...対象.map((t) => t.built),
+      ...対象.map((t) => textDslToDiagram(t.yaml, { partsCatalog: 部品の一覧 })),
+    ];
     const 対象ごと: [string, 中身の欄[], 欄の宣言][] = [
       ["箱", 全部.flatMap((d) => d.nodes), 箱の宣言],
       ["矢印", 全部.flatMap((d) => d.edges), 矢印の宣言],
@@ -948,7 +951,8 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
 
   for (const t of 対象) {
     describe(t.key, () => {
-      const 記法 = textDslToDiagram(t.yaml);
+      // 部品を箱に使う見本 (#1973) は部品の一覧を渡して書き出してあるので、同じ一覧を渡す
+      const 記法 = textDslToDiagram(t.yaml, { partsCatalog: 部品の一覧 });
 
       it("箱の数と題が一致する", () => {
         expect(題(記法.nodes)).toEqual(題(t.built.nodes));
@@ -1145,7 +1149,10 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // 実測 = 箱の名前に空白があると `focus: [働き手 1]` が 2 つの名前として読まれ、
         // どちらも実在しないので何も光らない。 記法は全件を引用符付きで書く。
         const 注意: string[] = [];
-        textDslToDiagram(t.yaml, { onNotice: (n) => 注意.push(`${n.kind}: ${n.message}`) });
+        textDslToDiagram(t.yaml, {
+          partsCatalog: 部品の一覧,
+          onNotice: (n) => 注意.push(`${n.kind}: ${n.message}`),
+        });
         expect(注意, `${t.key} の記法が注意を出している`).toEqual([]);
       });
 

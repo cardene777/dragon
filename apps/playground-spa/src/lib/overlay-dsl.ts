@@ -18,9 +18,13 @@ import {
   isColorValue,
   stripQuotes,
   NODE_KIND_VALID,
+  parseTextDslV05,
+  部品に上書きを当てる,
   type RelativePos,
   type AnchorBox,
+  type DslActor,
 } from "@cardenelabs/dragon";
+import type { CdlDiagram } from "@cardenelabs/cdl";
 
 export type OverlayPartRaw = {
   id: string;
@@ -739,6 +743,57 @@ export function extractPartsFromSrc(
   // 判定が終わらないまま終端に達した分を振り分ける
   flushPending();
   return { baseSrc: baseLines.join("\n"), parts, lineMap };
+}
+
+/**
+ * 本文を、組み立てる図と重ねて描く部品に分ける (#1973)。
+ *
+ * 部品は本文から抜いて図の上に重ねる (`extractPartsFromSrc`)。 抜いた後の扱いを 2 つ決める。
+ *
+ * | 本文 | 扱い |
+ * |---|---|
+ * | 部品のほかに箱がある | 部品を重ねる。 部品の図には本文に書いた状態の上書きと色番号を当てる |
+ * | 部品しかない | 抜かずに組み立て側で部品ごと描く |
+ *
+ * **上書きを当てないと、編集画面だけ既定の値で描く**。 重ねる側は部品の図をそのまま描くため、
+ * `state: { lvl: 0.4 }` や `color: "#d9534f"` が組み立て側の図にしか届かない。 本文の読み取りは
+ * 組み立て側の解析 (`parseTextDslV05`) を使い、画面側で上書きの書き方を読み直さない。
+ *
+ * **部品しかない本文を抜くと、図に何も残らない**。 箱も縦列も 0 件の図は組み立てで落ち、
+ * 描く場所が無いので部品も重ねられない (実測 = 見本の頁から開くと「読み込み中」 のまま止まった)。
+ * 組み立て側は部品を格子に並べ、重ねる側と同じ場所に置く (`part-placement-parity.test.ts`)。
+ *
+ * 組み立ては呼出側が渡す。 知らせと矢印の行を集める器を呼ぶたびに作れるよう、結果の形は
+ * 呼出側が決める。
+ */
+export function 図と重ねる部品に分ける<R extends { diagram: CdlDiagram }>(
+  src: string,
+  partsCatalog: Record<string, unknown>,
+  partsItems: CatalogItem[],
+  組み立てる: (本文: string) => R,
+): { built: R; parts: OverlayPartParsed[]; lineMap: number[] } {
+  const { baseSrc, parts, lineMap } = extractPartsFromSrc(src, partsCatalog, partsItems);
+  const built = 組み立てる(baseSrc);
+  if (parts.length === 0) return { built, parts, lineMap };
+  if (built.diagram.nodes.length === 0) {
+    return { built: 組み立てる(src), parts: [], lineMap: src.split("\n").map((_, i) => i + 1) };
+  }
+  const 読んだ = parseTextDslV05(src);
+  if (!読んだ.ok) return { built, parts, lineMap };
+  // 同じ名前を 2 度書いた時は先の 1 件を使う (組み立て側と同じ)
+  const 名前ごと = new Map<string, DslActor>();
+  for (const a of 読んだ.doc.actors ?? []) {
+    if (a.partId !== undefined && !名前ごと.has(a.name)) 名前ごと.set(a.name, a);
+  }
+  return {
+    built,
+    parts: parts.map((p) => {
+      const a = 名前ごと.get(p.id);
+      if (!a) return p;
+      return { ...p, item: { ...p.item, diagram: 部品に上書きを当てる(p.item.diagram, a) } };
+    }),
+    lineMap,
+  };
 }
 
 /**

@@ -246,20 +246,30 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   charts: moduleToItems(ChartsMod),
 };
 
-/** parts.cdl.ts の N 個 diagram を lazy-load する。 CategoryPage で params.slug === "parts" 時のみ発火。 */
+/**
+ * 部品の頁に並べる見本を後から読む。 CategoryPage で params.slug === "parts" 時のみ発火。
+ *
+ * 部品そのもの (`parts.cdl.ts`) の後ろに、部品を箱に使う見本 (`parts-in-box.cdl.ts`) を並べる (#1973)。
+ * 後者は部品の一覧を組み立てに渡すため `parts.cdl.ts` を読み込み、同じく後から読む。
+ * 部品そのものだけが要る所 (編集画面の部品の欄と組み立ての一覧) は `部品の図か` で絞る。
+ */
 export async function loadPartsItems(): Promise<CatalogItem[]> {
-  const mod = await import("@/topics/catalog/parts.cdl");
-  return moduleToItems(mod);
+  const [mod, 箱に使う] = await Promise.all([
+    import("@/topics/catalog/parts.cdl"),
+    import("@/topics/catalog/parts-in-box.cdl"),
+  ]);
+  return [...moduleToItems(mod), ...moduleToItems(箱に使う)];
 }
 
 /**
- * CatalogIndexPage が総数を出すために使う parts の数。
+ * CatalogIndexPage が総数を出すために使う、部品の頁に並ぶ見本の数。
  *
  * **実 loading せずに数だけ要る**。 parts は初期 chunk から外すため後から読む設計で
  * (`CAR-1613`)、総数の表示のために全件を読み込むと分けた意味が消える。
  *
  * **実物とずれたら検査が落ちる** (`parts-count.test.ts`)。 以前は「人が忘れずに直す」 ことに
  * 依存しており、実際に片方だけ直された記述が残っていた (#1341)。 数を変える時は
- * `parts.cdl.ts` を直せば検査が本 constant のずれを教える。
+ * `parts.cdl.ts` か `parts-in-box.cdl.ts` を直せば検査が本 constant のずれを教える。
+ * 数えるのは頁に並ぶ行で、部品そのもの 80 と部品を箱に使う見本 1 (#1973)。
  */
-export const PARTS_COUNT_ESTIMATE = 80;
+export const PARTS_COUNT_ESTIMATE = 81;
