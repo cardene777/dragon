@@ -6,9 +6,10 @@ import {
   type ClassRelationType,
 } from "@cardenelabs/cdl";
 
+// 複雑な版はクラス図と ER 図の中のパターン「複雑」 として書く (#1960)
 import {
-  presetClassComplex,
-  presetErComplex,
+  pattern__presetClassDiagram__複雑 as presetClassComplex,
+  pattern__presetEr__複雑 as presetErComplex,
 } from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 
 const 関係の種類 = Object.keys(CLASS_RELATION_LOOK) as ClassRelationType[];

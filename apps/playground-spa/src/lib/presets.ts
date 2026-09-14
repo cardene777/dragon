@@ -1,6 +1,9 @@
 /**
- * 21 preset metadata + CdlDiagram export。
+ * 19 preset metadata + CdlDiagram export。
  * SPA なので client/server 分割不要、 1 file で完結。
+ *
+ * クラス図と ER 図の複雑な版は、ひな形を別に持たない (#1960)。 カタログでは元の見本の中の
+ * パターン「複雑」 として切り替える。
  */
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { itemName, type Locale } from "./i18n";
@@ -10,11 +13,9 @@ import {
   presetSequence,
   presetTopology,
   presetEr,
-  presetErComplex,
   presetStateMachine,
   presetInfrastructure,
   presetClassDiagram,
-  presetClassComplex,
   presetTree,
   presetUserJourney,
   presetMindMap,
@@ -76,11 +77,9 @@ export const PRESETS: PresetMetadata[] = [
   { id: "sequence", slug: "sequence", eyebrow: "やり取りの図 / 呼び出しと返事", subtitle: "注文から発送までの呼び出しと返事を、登場する仕組みごとの縦の時間軸に並べた UML のシーケンス図。", tags: ["時間軸", "UML"], diagram: presetSequence },
   { id: "topology", slug: "topology", eyebrow: "配置の図 / どこで動くか", subtitle: "利用者の端末とクラウドを区画に分け、負荷分散・コンテナ・データベースを接続でつないだ構成図。", tags: ["区画", "接続"], diagram: presetTopology },
   { id: "er", slug: "er", eyebrow: "構造の図 / データ設計", subtitle: "3 表 × 3 関係。 主キーと外部キー、識別する関係としない関係、自己参照を示す ER 図。", tags: ["表", "関係"], diagram: presetEr },
-  { id: "erComplex", slug: "er-complex", eyebrow: "構造の図 / データ設計", subtitle: "12 表 × 14 関係。 多対多、自己参照、必須・任意を含む商取引の構造。", tags: ["多対多", "必須と任意"], diagram: presetErComplex },
   { id: "stateMachine", slug: "state-machine", eyebrow: "ふるまいの図 / 切り替わり", subtitle: "注文が下書きから受付・支払を経て終わるか、受付の後に取り消されるかを、状態と遷移の条件で示す状態遷移図。", tags: ["状態", "遷移"], diagram: presetStateMachine },
   { id: "infrastructure", slug: "infrastructure", eyebrow: "積み上げの図 / 全体の見取り", subtitle: "利用者から配信・負荷分散・アプリを経て、データベースとキャッシュに届くまでの階層構成図。", tags: ["クラウド", "階層構成"], diagram: presetInfrastructure },
   { id: "classDiagram", slug: "class", eyebrow: "構造の図 / 設計の型", subtitle: "7 クラス × 6 関係。 継承・実装・集約・コンポジション・関連・依存の 6 種を 1 枚で示す UML クラス図。", tags: ["クラス", "UML"], diagram: presetClassDiagram },
-  { id: "classComplex", slug: "class-complex", eyebrow: "構造の図 / 設計の型", subtitle: "12 クラス × 14 関係。 抽象クラスとインターフェース、6 種の関係を含む決済の仕組み。", tags: ["抽象クラス", "インターフェース"], diagram: presetClassComplex },
   { id: "tree", slug: "tree", eyebrow: "親子の図 / 枝分かれ", subtitle: "社長の下に技術と財務の責任者が並び、技術の下に開発と運用の部門が続く組織図。", tags: ["階層", "組織図"], diagram: presetTree },
   { id: "userJourney", slug: "user-journey", eyebrow: "満足度の図 / 段階ごとの手ごたえ", subtitle: "サイトを訪れてから登録を終えるまでの各段階で、利用者の気持ちと接点が変わる様子を示す体験の図。", tags: ["体験", "気持ちの変化"], diagram: presetUserJourney },
   { id: "mindMap", slug: "mind", eyebrow: "思いつきの図 / 考えの棚卸し", subtitle: "中心の主題から機能・画面の設計・公開の枝を広げ、機能をさらに認証と課金に分ける発想の図。", tags: ["放射", "発想"], diagram: presetMindMap },

@@ -242,9 +242,10 @@ const 描画側の印: Record<string, string> = {
  */
 const 識別子を見せる図: Record<string, string> = {
   presetEr: "表の名前と列の名前と型は SQL に書く識別子",
-  presetErComplex: "表の名前と列の名前と型は SQL に書く識別子",
+  pattern__presetEr__複雑: "表の名前と列の名前と型は SQL に書く識別子 (ER 図の中のパターン、#1960)",
   presetClassDiagram: "クラスの名前と型はコードに書く識別子",
-  presetClassComplex: "クラスの名前と型はコードに書く識別子",
+  pattern__presetClassDiagram__複雑:
+    "クラスの名前と型はコードに書く識別子 (クラス図の中のパターン、#1960)",
   textDslEr: "表の名前と列の名前は SQL に書く識別子 (#1886)",
   textDslErMesh: "表の名前と列の名前と型は SQL に書く識別子 (#1886)",
   textDslClass: "クラスの名前と持ち物はコードに書く識別子 (#1886)",

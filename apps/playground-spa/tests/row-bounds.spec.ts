@@ -12,6 +12,7 @@ import * as styles from "../src/topics/catalog/styles.cdl";
 import * as interactive from "../src/topics/catalog/interactive.cdl";
 import * as ethereum from "../src/topics/catalog/ethereum.cdl";
 import * as parts from "../src/topics/catalog/parts.cdl";
+import { moduleToItems } from "../src/lib/catalog-items";
 
 /**
  * 行の文字が node の枠に収まっているかを **実ブラウザ** で確かめる (cardene777/cdl#390)。
@@ -53,6 +54,20 @@ const SOURCES: Array<{ slug: string; diagrams: CdlDiagram[] }> = [
   { slug: "interactive", diagrams: collect(interactive) },
 ];
 
+/**
+ * パターンの図の `id` から、一覧で押す行の図の `id` とパターンの名前を引く (#1960)。
+ *
+ * パターンは一覧の行を持たないので、`id` で行を探すと見つからない。 行とパターンの対応は
+ * カタログと同じ読み取り (`moduleToItems`) から導く。
+ */
+const パターンの開き方 = new Map(
+  [presets, cookbook, patterns, primitives, primitivesExtra, textDsl, animation, ethereum, parts, styles, interactive]
+    .flatMap((mod) => moduleToItems(mod as Record<string, unknown>))
+    .flatMap((item) =>
+      (item.patterns ?? []).slice(1).map((p) => [p.diagram.id, { 行: item.id, 名: p.名 }] as const),
+    ),
+);
+
 /** その見本が行を持つか。 */
 const hasRows = (d: CdlDiagram): boolean =>
   d.nodes.some((n) => Array.isArray(n.rows) && n.rows.length > 0);
@@ -89,7 +104,7 @@ const EXPECTED: Array<{ slug: string; id: string; rows: number }> = [
   { slug: "presets", id: "er-demo", rows: 11 },
   /*
    * 込み入った 2 図が見本に足された分 (#1709 で実測)。 一覧を直していなかったため
-   * 落ちたまま積み上がっていた。
+   * 落ちたまま積み上がっていた。 2 図とも ER 図とクラス図の中のパターン「複雑」 で開く (#1960)。
    *
    * | 見本 | 行数 | 中身 |
    * |---|---|---|
@@ -121,7 +136,11 @@ const rowCount = (d: CdlDiagram): number =>
 async function openDiagram(page: Page, slug: string, id: string): Promise<void> {
   await page.goto(`catalog/${slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
-  await page.locator(".catalog-list-item").filter({ hasText: id }).first().click();
+  const 開き方 = パターンの開き方.get(id);
+  await page.locator(".catalog-list-item").filter({ hasText: 開き方?.行 ?? id }).first().click();
+  if (開き方) {
+    await page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio", { name: 開き方.名 }).click();
+  }
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
   // font 未読込だと代替 font の字形で測ることになり、 判定が環境に依存する。
   await page.evaluate(() => document.fonts.ready);

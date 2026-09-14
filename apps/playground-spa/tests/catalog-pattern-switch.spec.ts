@@ -353,3 +353,61 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
     }
   });
 });
+
+/**
+ * ひな形のクラス図と ER 図は、簡単な版と複雑な版をパターンで切り替える (#1960)。
+ *
+ * 以前は複雑な版が一覧の別の行 (「クラス図 (複雑)」) だった。 行が残ったままパターンを
+ * 足すと同じ図が 2 か所に出るので、行が消えたことと、押すと図とコードが替わることを両方見る。
+ */
+test.describe("ひな形の簡単な版と複雑な版を切り替える (#1960)", () => {
+  const 規模違い = [
+    {
+      名前: "クラス図",
+      簡単: "class-demo",
+      複雑: "class-complex-demo",
+      複雑の題: "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
+    },
+    {
+      名前: "ER図",
+      簡単: "er-demo",
+      複雑: "er-complex-demo",
+      複雑の題: "商取引の表と必須・任意の関係を表す ER 図",
+    },
+  ] as const;
+
+  test("複雑な版の行が一覧に無い", async ({ page }) => {
+    await page.goto("catalog/presets", { waitUntil: "networkidle" });
+    const 名前たち = (await page.locator(".catalog-list-item-name").allTextContents()).map((s) => s.trim());
+    expect(名前たち.length, "一覧の名前を読めていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(名前たち.filter((s) => s.includes("(複雑)")), "複雑な版が一覧の別の行に残っている").toEqual([]);
+    // 件数の札は `全 {件数} 件` と組み立てるので、字ではなく数を読む
+    const 件数の札 = (await page.locator(".catalog-count").first().textContent()) ?? "";
+    expect(Number(件数の札.match(/\d+/)?.[0]), `件数の札が 19 でない (${件数の札})`).toBe(19);
+    expect(名前たち, "一覧の行の数が件数の札と合わない").toHaveLength(19);
+  });
+
+  for (const { 名前, 簡単, 複雑, 複雑の題 } of 規模違い) {
+    test(`${名前} は 簡単 と 複雑 を押し分けられ、図とコードが替わる`, async ({ page }) => {
+      const 図 = page.locator(".catalog-preview-stage [data-cdl-diagram]").first();
+      await 開く(page, 名前, "presets");
+
+      const 群 = page.getByRole("radiogroup", { name: "パターン" });
+      await expect(群.getByRole("radio")).toHaveCount(2);
+      await expect(群.getByRole("radio", { name: "簡単" })).toHaveAttribute("aria-checked", "true");
+      await expect(図).toHaveAttribute("data-cdl-diagram", 簡単);
+
+      await 群.getByRole("radio", { name: "複雑" }).click();
+      await expect(群.getByRole("radio", { name: "複雑" })).toHaveAttribute("aria-checked", "true");
+      await expect(図).toHaveAttribute("data-cdl-diagram", 複雑);
+
+      await page.getByRole("tab", { name: "コード" }).click();
+      await expect(page.locator(".catalog-source-code").first()).toContainText(複雑の題);
+
+      await 群.getByRole("radio", { name: "簡単" }).click();
+      await expect(page.locator(".catalog-source-code").first()).not.toContainText(複雑の題);
+      await page.getByRole("tab", { name: "図" }).click();
+      await expect(図).toHaveAttribute("data-cdl-diagram", 簡単);
+    });
+  }
+});

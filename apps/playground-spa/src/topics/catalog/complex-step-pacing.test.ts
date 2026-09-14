@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+// 複雑な版はクラス図と ER 図の中のパターン「複雑」 として書く (#1960)
 import {
-  presetClassComplex,
+  pattern__presetClassDiagram__複雑 as presetClassComplex,
   presetClassDiagram,
   presetEr,
-  presetErComplex,
+  pattern__presetEr__複雑 as presetErComplex,
 } from "./presets.cdl";
 
 const 関係の識別子 = /^(?:cr|rel)-\d+-/;
