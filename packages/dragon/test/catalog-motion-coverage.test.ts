@@ -277,7 +277,8 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
       //   + `buildStatusTrafficLight` と `clickToggle` の名前を書かない変種 (#1920)
       //   + 矢印や縦列や図全体で操作を受け取る `eventTargets` (#1969)
       //   + 速さの選択肢を変えた `timelineDrive` と日時の入力に替えた `inputVariety` の変種 (#1969)
-      interactive: 135,
+      //   + 札の色を札の字と別の状態で引く `readoutVariety` の変種 2 つ (#1974)
+      interactive: 137,
       cookbook: 26,
       patterns: 12,
       "text-dsl": 16,

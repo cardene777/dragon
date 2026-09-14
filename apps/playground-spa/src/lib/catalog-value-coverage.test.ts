@@ -554,11 +554,6 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.actors[].nodes.*.posY": 要素ごとの位置の欄,
   "$.actors[].nodes.*.posW": 要素ごとの位置の欄,
   "$.actors[].nodes.*.posH": 要素ごとの位置の欄,
-  "$.readouts[].colorSource": {
-    種類: "直してから見本",
-    Issue: 1974,
-    理由: "札の描画が色の出どころの欄を読まず、書いても札の色が変わらない",
-  },
 };
 
 /** 色の欄に書いた別名 (`$.actors[].tone=成功`) なら、欄の道と別名の指す色を返す */
