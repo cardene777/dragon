@@ -427,9 +427,10 @@
  */
 .catalog-preview-stage[data-cdl-zoom="on"] .catalog-preview-stage-inner {
   overflow: auto;
-  /* 台からはみ出す図は左上から見せる。 中央寄せのままだと左端が巻き取りの外へ出る */
+  /* 台からはみ出す図は左端から見せ、収まる図は中央に置く (#1961)。 `safe` を外して中央寄せにすると
+   * はみ出した左端が巻き取りの外へ出る。 左寄せに固定すると、ホイールで縮めた図が左へ跳ねる */
   display: grid;
-  justify-items: start;
+  justify-items: safe center;
 }
 
 /* 図自身は `style="max-width: 100%"` を行内に持つ。 **行内指定は `!important` でないと外せない** =
@@ -858,8 +859,9 @@
  * 幅は画面から渡す = 図ごとに違い、CSS だけでは出せない。
  */
 .cdl-modal-body[data-cdl-zoom="on"] {
-  /* 収まらない図の左上から見せる。 中央寄せのままだと上と左が巻き取りの外へ出る */
-  place-items: start start;
+  /* 収まらない図は左上から見せ、収まる向きは中央に置く (#1961)。 `safe` を外して中央寄せにすると
+   * 上と左が巻き取りの外へ出る。 左上に固定すると、ホイールで少し拡げただけの図が左上へ跳ねる */
+  place-items: safe center;
 }
 
 .cdl-modal-body[data-cdl-zoom="on"] > * {
@@ -871,6 +873,27 @@
   max-width: none !important;
   height: auto !important;
   max-height: none !important;
+}
+
+/* ── ドラッグで巻き取れる時 (#1961) ──
+ *
+ * 倍率を指定した図は掴んで動かせる。 掴める見た目を出し、掴んでいる間は字の選択を止める
+ * (止めないと、動かした跡が字の選択の色で塗られる)。 押す操作の部品は指の形のまま残す。
+ * 属性は拡大表示と並べて見る側の両方に付くので、選択子に場所を書かない。
+ */
+[data-cdl-pannable] {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+[data-cdl-pannable] :is(button, a, [role="button"], [role="radio"], [role="tab"]) {
+  cursor: pointer;
+}
+
+[data-cdl-panning],
+[data-cdl-panning] * {
+  cursor: grabbing !important;
 }
 
 /* ── 狭い画面 ── */

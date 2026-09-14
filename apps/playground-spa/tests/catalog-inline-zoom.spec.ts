@@ -18,9 +18,15 @@
  *
  * 刻みそのものは `src/lib/diagram-zoom.test.ts` が見る。
  *
+ * 幅に合わせている時も、倍率の欄は実際に描かれた倍率を数字で出す (#1961)。 ボタンで倍率を動かす時は、
+ * その数字から次の刻みへ動く = 幅に合わせて 38% の図を上げると 50% になる。
+ * 幅に合わせている状態かどうかは、「幅に合わせる」 のボタンが押せないことで見る。
+ * ホイールとドラッグは `catalog-panzoom.spec.ts` が見る。
+ *
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test catalog-inline-zoom`
  */
 import { test, expect } from "@playwright/test";
+import { 倍率の刻み } from "../src/lib/diagram-zoom";
 
 type Page = import("@playwright/test").Page;
 
@@ -75,28 +81,60 @@ const 表示 = (page: Page) => page.locator(`${並び} .cdl-zoom-value`);
 const 幅に合わせる = (page: Page) =>
   page.locator(並び).getByRole("button", { name: "幅に合わせる", exact: true });
 
+/** 描かれている倍率より大きい / 小さい、いちばん近い刻み */
+const 上の刻み = (倍率: number): number => {
+  const 刻み = 倍率の刻み.find((s) => s > 倍率 + 1e-6);
+  if (刻み === undefined) throw new Error(`${倍率} より大きい刻みが無い (この図では上げる向きを確かめられない)`);
+  return 刻み;
+};
+const 下の刻み = (倍率: number): number => {
+  const 刻み = [...倍率の刻み].reverse().find((s) => s < 倍率 - 1e-6);
+  if (刻み === undefined) throw new Error(`${倍率} より小さい刻みが無い (この図では下げる向きを確かめられない)`);
+  return 刻み;
+};
+const 百分率 = (倍率: number): string => `${Math.round(倍率 * 100)}%`;
+
 test.describe("並べて見る側の倍率 (#1749)", () => {
-  test("既定は幅に合わせる = 図が台の幅いっぱいに描かれる", async ({ page }) => {
+  test("既定は幅に合わせる = 図が台の幅いっぱいに描かれ、描かれた倍率を欄に出す", async ({ page }) => {
     await 図を選ぶ(page, "presets", "ER図", "複雑");
-    await expect(表示(page)).toHaveText("幅に合わせる");
+    await expect(幅に合わせる(page)).toBeDisabled();
     const s = await 図を測る(page);
     expect(Math.abs(s.幅 - s.器の幅)).toBeLessThan(2);
     // 縮んでいることまで見る = 元から器に収まる図だと下の検査が差を測っていない
     expect(s.幅 / s.vbW).toBeLessThan(1);
+    await expect(表示(page)).toHaveText(百分率(s.幅 / s.vbW));
   });
 
-  test("倍率を上げると viewBox の幅 × 倍率 で描かれる", async ({ page }) => {
+  test("倍率を上げると、描かれていた倍率の次に大きい刻みで viewBox の幅 × 倍率 に描かれる", async ({ page }) => {
     await 図を選ぶ(page, "presets", "ER図", "複雑");
     const 合わせた = await 図を測る(page);
+    const 次 = 上の刻み(合わせた.幅 / 合わせた.vbW);
 
     await 上げる(page).click();
     await page.waitForTimeout(400);
-    await expect(表示(page)).toHaveText("150%");
+    await expect(表示(page)).toHaveText(百分率(次));
     const 拡げた = await 図を測る(page);
 
     expect(拡げた.幅).toBeGreaterThan(合わせた.幅);
-    expect(Math.abs(拡げた.幅 - 拡げた.vbW * 1.5)).toBeLessThan(2);
+    expect(Math.abs(拡げた.幅 - 拡げた.vbW * 次)).toBeLessThan(2);
     expect(Math.abs(拡げた.高さ / 拡げた.幅 - 拡げた.vbH / 拡げた.vbW)).toBeLessThan(0.01);
+    await expect(幅に合わせる(page)).toBeEnabled();
+  });
+
+  test("刻みの上でさらに上げると、刻みを 1 つずつ辿る", async ({ page }) => {
+    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    const 合わせた = await 図を測る(page);
+    const 一つ目 = 上の刻み(合わせた.幅 / 合わせた.vbW);
+    const 二つ目 = 上の刻み(一つ目);
+    await 上げる(page).click();
+    await 上げる(page).click();
+    await page.waitForTimeout(400);
+    await expect(表示(page)).toHaveText(百分率(二つ目));
+    await 下げる(page).click();
+    await page.waitForTimeout(400);
+    await expect(表示(page)).toHaveText(百分率(一つ目));
+    const s = await 図を測る(page);
+    expect(Math.abs(s.幅 - s.vbW * 一つ目)).toBeLessThan(2);
   });
 
   test("台からはみ出す倍率では内側が巻き取れる", async ({ page }) => {
@@ -116,23 +154,26 @@ test.describe("並べて見る側の倍率 (#1749)", () => {
     const 合わせた = await 図を測る(page);
     // 伸ばされていることを先に押さえる = 縮んでいる図だと下げる向きの意味が変わる
     expect(合わせた.幅 / 合わせた.vbW).toBeGreaterThan(1);
+    const 次 = 下の刻み(合わせた.幅 / 合わせた.vbW);
 
     await 下げる(page).click();
     await page.waitForTimeout(400);
-    await expect(表示(page)).toHaveText("75%");
+    await expect(表示(page)).toHaveText(百分率(次));
     const 縮めた = await 図を測る(page);
-    expect(Math.abs(縮めた.幅 - 縮めた.vbW * 0.75)).toBeLessThan(2);
+    expect(Math.abs(縮めた.幅 - 縮めた.vbW * 次)).toBeLessThan(2);
     expect(縮めた.高さ).toBeLessThan(合わせた.高さ);
   });
 
   test("幅に合わせるへ戻すと元の大きさに戻る", async ({ page }) => {
     await 図を選ぶ(page, "presets", "ER図", "複雑");
     const 前 = await 図を測る(page);
+    const 前の表示 = await 表示(page).textContent();
     await 上げる(page).click();
     await page.waitForTimeout(400);
     await 幅に合わせる(page).click();
     await page.waitForTimeout(400);
-    await expect(表示(page)).toHaveText("幅に合わせる");
+    await expect(幅に合わせる(page)).toBeDisabled();
+    await expect(表示(page)).toHaveText(前の表示 ?? "");
     const 後 = await 図を測る(page);
     expect(Math.abs(後.幅 - 前.幅)).toBeLessThan(2);
     expect(Math.abs(後.高さ - 前.高さ)).toBeLessThan(2);
@@ -142,11 +183,13 @@ test.describe("並べて見る側の倍率 (#1749)", () => {
     await 図を選ぶ(page, "presets", "ER図", "複雑");
     await 上げる(page).click();
     await page.waitForTimeout(400);
-    await expect(表示(page)).toHaveText("150%");
+    await expect(幅に合わせる(page)).toBeEnabled();
 
     await page.getByText("スイムレーン", { exact: true }).first().click();
     await page.waitForTimeout(600);
-    await expect(表示(page)).toHaveText("幅に合わせる");
+    await expect(幅に合わせる(page)).toBeDisabled();
+    const s = await 図を測る(page);
+    await expect(表示(page)).toHaveText(百分率(s.幅 / s.vbW));
   });
 
   test("拡大表示の倍率と互いに影響しない", async ({ page }) => {
@@ -157,18 +200,22 @@ test.describe("並べて見る側の倍率 (#1749)", () => {
     await 図を選ぶ(page, "presets", "ER図", "複雑");
     await 上げる(page).click();
     await page.waitForTimeout(400);
-    await expect(表示(page)).toHaveText("150%");
+    const 選んだ表示 = (await 表示(page).textContent()) ?? "";
+    expect(選んだ表示, "倍率の欄を読めていない (検査が空振りしている)").toMatch(/^\d+%$/);
 
     await page.getByRole("button", { name: /を拡大表示$/ }).first().click();
     await expect(page.locator(".cdl-modal-content")).toBeVisible();
     await page.waitForTimeout(600);
-    // 拡大表示は自分の既定から始まる
-    await expect(page.locator(".cdl-modal-content .cdl-zoom-value")).toHaveText("収める");
+    // 拡大表示は自分の既定 (収める) から始まる
+    await expect(
+      page.locator(".cdl-modal-content").getByRole("button", { name: "収める", exact: true }),
+    ).toBeDisabled();
 
     await page.keyboard.press("Escape");
     await expect(page.locator(".cdl-modal-content")).toBeHidden();
     await page.waitForTimeout(400);
     // 並べて見る側は選んだままで残る
-    await expect(表示(page)).toHaveText("150%");
+    await expect(表示(page)).toHaveText(選んだ表示);
+    await expect(幅に合わせる(page)).toBeEnabled();
   });
 });

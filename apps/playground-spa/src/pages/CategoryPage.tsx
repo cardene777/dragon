@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Check, Copy, Maximize2, Minus, Plus, Search, X } from "lucide-react";
+import { Check, Copy, Maximize2, Search, X, ZoomIn, ZoomOut } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import {
   CATALOG_ITEMS,
@@ -16,6 +16,7 @@ import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InViewMount } from "@/components/InViewMount";
 import { PhaseChrome } from "@/components/PhaseChrome";
+import { useDiagramPanZoom } from "@/components/useDiagramPanZoom";
 import {
   図の速さを変える,
   記法の速さを変える,
@@ -73,6 +74,15 @@ import {
 } from "@/lib/diagram-zoom";
 
 import { SyntaxCode } from "../components/SyntaxCode";
+/**
+ * 並べて見る側で巻き取る要素 (#1961)。 台 (`.catalog-preview-stage`) は段の札を置く基準なので巻き取らせず、
+ * 内側に巻き取らせる (理由は `catalog-new.css` の #1749 の節)
+ */
+function 並びの巻き取りを探す(器: HTMLElement): HTMLElement | null {
+  const 内側 = 器.querySelector(".catalog-preview-stage-inner");
+  return 内側 instanceof HTMLElement ? 内側 : null;
+}
+
 /** source 記法 tab (人向け YAML / LLM 向け JSON、 dragon package 2 記法の dogfood 表示) */
 type SourceTab = "yaml" | "json";
 
@@ -388,8 +398,6 @@ export function CategoryPage(): React.ReactElement {
   });
   const 開いている図 = modalItem?.id ?? null;
   const 倍率 = 倍率の状態.図 === 開いている図 ? 倍率の状態.値 : 収める;
-  const 倍率を動かす = (向き: "上げる" | "下げる"): void =>
-    set倍率の状態({ 図: 開いている図, 値: 次の倍率(倍率, 向き) });
   // 実寸は画面の実測でなく viewBox から取る。 描けない図では倍率を指定できない
   const 拡大のviewBox幅 = useMemo(() => {
     const d = 拡大の図 ?? modalItem?.diagram;
@@ -401,6 +409,22 @@ export function CategoryPage(): React.ReactElement {
     }
   }, [拡大の図, modalItem]);
   const 指定した幅 = svgの幅(倍率, 拡大のviewBox幅);
+  // ホイール・つまみ・ドラッグ (#1961)。 拡大表示は図を見るための場所なので、修飾キー無しのホイールも拡大に使う
+  const 拡大の操作 = useDiagramPanZoom({
+    器: modalStageEl,
+    倍率,
+    倍率を置く(値) {
+      set倍率の状態({ 図: 開いている図, 値 });
+    },
+    viewBox幅: 拡大のviewBox幅,
+    修飾キー無しで拡大: true,
+    頁も送る: false,
+    図の鍵: 拡大の図 ?? modalItem?.diagram,
+  });
+  // ＋ / − は、器に収めている時は実際に描かれている倍率を起点にする (#1961)
+  function 倍率を動かす(向き: "上げる" | "下げる"): void {
+    set倍率の状態({ 図: 開いている図, 値: 次の倍率(倍率, 向き, 拡大の操作.収めた倍率) });
+  }
 
   // 並べて見る側の倍率 (#1749)。 台は幅 874px で高さの上限が無く、図は幅いっぱいに描かれる =
   // 広い図は縮み (53 枚が 12px 未満)、細い図は伸びる (39 枚が高さ 1200px 超)。
@@ -413,8 +437,6 @@ export function CategoryPage(): React.ReactElement {
   });
   const 見ている図 = currentItem?.id ?? null;
   const 並びの倍率 = 並びの倍率の状態.図 === 見ている図 ? 並びの倍率の状態.値 : 収める;
-  const 並びの倍率を動かす = (向き: "上げる" | "下げる"): void =>
-    set並びの倍率の状態({ 図: 見ている図, 値: 次の倍率(並びの倍率, 向き) });
   const 並びのviewBox幅 = useMemo(() => {
     const d = 図 ?? 見本?.diagram ?? currentItem?.diagram;
     if (!d) return undefined;
@@ -425,6 +447,24 @@ export function CategoryPage(): React.ReactElement {
     }
   }, [図, 見本, currentItem]);
   const 並びで指定した幅 = svgの幅(並びの倍率, 並びのviewBox幅);
+  // ホイール・つまみ・ドラッグ (#1961)。 並べて見る側は一覧の画面を送る場所なので、
+  // 修飾キー無しのホイールは奪わず、`⌘` / `Ctrl` を押した時 (つまみ操作も同じ形で届く) だけ拡大に使う。
+  // 巻き取りは内側 (`.catalog-preview-stage-inner`) が持ち、縦に溢れた分は頁が送る
+  const 並びの操作 = useDiagramPanZoom({
+    器: stageEl,
+    巻き取りを探す: 並びの巻き取りを探す,
+    倍率: 並びの倍率,
+    倍率を置く(値) {
+      set並びの倍率の状態({ 図: 見ている図, 値 });
+    },
+    viewBox幅: 並びのviewBox幅,
+    修飾キー無しで拡大: false,
+    頁も送る: true,
+    図の鍵: 図 ?? 見本?.diagram ?? currentItem?.diagram,
+  });
+  function 並びの倍率を動かす(向き: "上げる" | "下げる"): void {
+    set並びの倍率の状態({ 図: 見ている図, 値: 次の倍率(並びの倍率, 向き, 並びの操作.収めた倍率) });
+  }
 
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
   const 切替を出すか = 見本 ? 描き方の切替を出すか(見本.diagram) : false;
@@ -556,28 +596,38 @@ export function CategoryPage(): React.ReactElement {
                     <p className="catalog-preview-motion">{currentItem.motionNote}</p>
                   </div>
                   <div className="catalog-preview-actions">
-                    {/* 倍率の操作 (#1749)。 台は幅に合わせるので、広い図は縮み細い図は伸びる */}
-                    <div className="cdl-zoom" role="group" aria-label="並びの倍率">
+                    {/* 倍率の操作 (#1749)。 台は幅に合わせるので、広い図は縮み細い図は伸びる。
+                        欄は器に収めている時も描かれている倍率を数字で出す (#1961) */}
+                    <div
+                      className="cdl-zoom"
+                      role="group"
+                      aria-label="並びの倍率"
+                      title="⌘ か Ctrl を押しながら図の上で回すか、2 本指でつまむと拡大縮小。 拡げた図は押さえたまま動かせる"
+                    >
                       <button
                         type="button"
                         className="cdl-zoom-btn"
                         aria-label="並びの倍率を下げる"
-                        disabled={並びのviewBox幅 === undefined || 端か(並びの倍率, "下げる")}
+                        disabled={
+                          並びのviewBox幅 === undefined || 端か(並びの倍率, "下げる", 並びの操作.収めた倍率)
+                        }
                         onClick={() => 並びの倍率を動かす("下げる")}
                       >
-                        <Minus size={16} />
+                        <ZoomOut size={16} />
                       </button>
                       <span className="cdl-zoom-value" aria-live="polite">
-                        {倍率の表示(並びの倍率, 収めるの呼び名.幅だけ)}
+                        {倍率の表示(並びの倍率, 並びの操作.収めた倍率)}
                       </span>
                       <button
                         type="button"
                         className="cdl-zoom-btn"
                         aria-label="並びの倍率を上げる"
-                        disabled={並びのviewBox幅 === undefined || 端か(並びの倍率, "上げる")}
+                        disabled={
+                          並びのviewBox幅 === undefined || 端か(並びの倍率, "上げる", 並びの操作.収めた倍率)
+                        }
                         onClick={() => 並びの倍率を動かす("上げる")}
                       >
-                        <Plus size={16} />
+                        <ZoomIn size={16} />
                       </button>
                       <button
                         type="button"
@@ -803,6 +853,8 @@ export function CategoryPage(): React.ReactElement {
                   hidden={showSource}
                   ref={setStageEl}
                   data-cdl-zoom={並びで指定した幅 === undefined ? undefined : "on"}
+                  data-cdl-pannable={並びの操作.動かせる ? "" : undefined}
+                  data-cdl-panning={並びの操作.移動中 ? "" : undefined}
                   style={
                     並びで指定した幅 === undefined
                       ? undefined
@@ -883,28 +935,34 @@ export function CategoryPage(): React.ReactElement {
                 {modalItem && <p className="cdl-modal-motion">{modalItem.motionNote}</p>}
               </div>
               <div className="cdl-modal-actions">
-                {/* 倍率の操作 (#1745)。 器に収めると 4.8px まで縮む図があるため、実寸まで拡げられるようにする */}
-                <div className="cdl-zoom" role="group" aria-label="表示の倍率">
+                {/* 倍率の操作 (#1745)。 器に収めると 4.8px まで縮む図があるため、実寸まで拡げられるようにする。
+                    欄は器に収めている時も描かれている倍率を数字で出す (#1961) */}
+                <div
+                  className="cdl-zoom"
+                  role="group"
+                  aria-label="表示の倍率"
+                  title="図の上で回すか、2 本指でつまむと拡大縮小。 拡げた図は押さえたまま動かせる"
+                >
                   <button
                     type="button"
                     className="cdl-zoom-btn"
                     aria-label="倍率を下げる"
-                    disabled={拡大のviewBox幅 === undefined || 端か(倍率, "下げる")}
+                    disabled={拡大のviewBox幅 === undefined || 端か(倍率, "下げる", 拡大の操作.収めた倍率)}
                     onClick={() => 倍率を動かす("下げる")}
                   >
-                    <Minus size={16} />
+                    <ZoomOut size={16} />
                   </button>
                   <span className="cdl-zoom-value" aria-live="polite">
-                    {倍率の表示(倍率, 収めるの呼び名.両方)}
+                    {倍率の表示(倍率, 拡大の操作.収めた倍率)}
                   </span>
                   <button
                     type="button"
                     className="cdl-zoom-btn"
                     aria-label="倍率を上げる"
-                    disabled={拡大のviewBox幅 === undefined || 端か(倍率, "上げる")}
+                    disabled={拡大のviewBox幅 === undefined || 端か(倍率, "上げる", 拡大の操作.収めた倍率)}
                     onClick={() => 倍率を動かす("上げる")}
                   >
-                    <Plus size={16} />
+                    <ZoomIn size={16} />
                   </button>
                   <button
                     type="button"
@@ -926,6 +984,8 @@ export function CategoryPage(): React.ReactElement {
               className="cdl-modal-body"
               ref={setModalStageEl}
               data-cdl-zoom={指定した幅 === undefined ? undefined : "on"}
+              data-cdl-pannable={拡大の操作.動かせる ? "" : undefined}
+              data-cdl-panning={拡大の操作.移動中 ? "" : undefined}
               style={
                 指定した幅 === undefined
                   ? undefined
