@@ -447,6 +447,12 @@ const presetErSteps = withSteps(
 /** 順番を持たない図なので触れて読む形にする (#1757) */
 export const presetEr = 触れて読む(presetErSteps);
 
+/**
+ * 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960)。
+ * 一覧の別の行にすると、同じ種類の図の規模違いを見比べるのに行を選び直すことになる
+ */
+export const patternBase__presetEr = "簡単";
+
 const erComplex = er({
   id: "er-complex-demo",
   topic: "商取引の表と必須・任意の関係を表す ER 図",
@@ -716,8 +722,8 @@ const presetErComplexSteps = withSteps(
     },
   ],
 );
-/** 順番を持たない図なので触れて読む形にする (#1757) */
-export const presetErComplex = 触れて読む(presetErComplexSteps);
+/** 順番を持たない図なので触れて読む形にする (#1757)。 ER 図の中のパターン「複雑」 (#1960) */
+export const pattern__presetEr__複雑 = 触れて読む(presetErComplexSteps);
 
 // stateMachine preset ... 状態遷移図 (設計「箱と行と関係」 の意匠)
 //
@@ -942,6 +948,9 @@ const presetClassDiagramSteps = withSteps(
 /** 順番を持たない図なので触れて読む形にする (#1757) */
 export const presetClassDiagram = 触れて読む(presetClassDiagramSteps);
 
+/** 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960) */
+export const patternBase__presetClassDiagram = "簡単";
+
 // 同じ辺に 2 本以上の関係が付くと、@cardenelabs/cdl が全ての線を辺の中点へ寄せる
 // (`layout/edges.ts` の offset 0) ため、辺から最初の折れまでが必ず重なる。
 // 5 本の関係を持つ Transaction は 4 辺へ割り振れないので、同色の「関連」と「依存」を
@@ -1143,8 +1152,8 @@ const presetClassComplexSteps = withSteps(
     },
   ],
 );
-/** 順番を持たない図なので触れて読む形にする (#1757) */
-export const presetClassComplex = 触れて読む(presetClassComplexSteps);
+/** 順番を持たない図なので触れて読む形にする (#1757)。 クラス図の中のパターン「複雑」 (#1960) */
+export const pattern__presetClassDiagram__複雑 = 触れて読む(presetClassComplexSteps);
 
 // tree preset ... 組織図 / file tree / class 階層
 // 名前を状態から取り、組織の呼び方が変わる様子を見せる (cdl 0.7.0 で名前が状態を読む)。
@@ -1813,7 +1822,7 @@ export const sourceJson__presetEr = `{
   ]
 }`;
 
-export const sourceYaml__presetErComplex = `title: "商取引の表と必須・任意の関係を表す ER 図"
+export const sourceYaml__pattern__presetEr__複雑 = `title: "商取引の表と必須・任意の関係を表す ER 図"
 type: er
 palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
@@ -1895,7 +1904,7 @@ animation:
     body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。"
 `;
 
-export const sourceJson__presetErComplex = JSON.stringify(
+export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
   {
     title: "商取引の表と必須・任意の関係を表す ER 図",
     type: "er",
@@ -3123,7 +3132,7 @@ export const sourceJson__presetClassDiagram = `{
   ]
 }`;
 
-export const sourceYaml__presetClassComplex = `title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図"
+export const sourceYaml__pattern__presetClassDiagram__複雑 = `title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図"
 type: class
 palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
@@ -3194,7 +3203,7 @@ animation:
     body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。"
 `;
 
-export const sourceJson__presetClassComplex = JSON.stringify(
+export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
   {
     "title": "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
     "type": "class",

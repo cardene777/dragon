@@ -44,7 +44,9 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 
-import { PRESETS, presetName } from "../src/lib/presets";
+import { moduleToItems } from "../src/lib/catalog-items";
+import { PRESETS, presetCatalogKey, presetName } from "../src/lib/presets";
+import * as ひな形の見本 from "../src/topics/catalog/presets.cdl";
 
 /** 何が起点から伸びるか。 図種ごとに担い手が違う */
 type 描き手 = "矢印" | "図" | "なし";
@@ -67,11 +69,9 @@ const 描き手たち: Record<string, 描き手> = {
   flow: "矢印",
   topology: "矢印",
   er: "矢印",
-  erComplex: "矢印",
   stateMachine: "矢印",
   infrastructure: "矢印",
   classDiagram: "矢印",
-  classComplex: "矢印",
   flowchart: "矢印",
   network: "矢印",
   stateMachine2: "矢印",
@@ -97,12 +97,26 @@ const 描き手たち: Record<string, 描き手> = {
   quadrant: "なし",
 };
 
-/** 検査が回る見本。 登録簿の並びをそのまま使う */
-const 見本 = PRESETS.map((p) => ({
-  id: p.id,
-  label: presetName(p, "ja"),
-  描き手: 描き手たち[p.id],
-}));
+/**
+ * 検査が回る見本。 登録簿の並びに、見本の中のパターン (元の見本を除く) を足す (#1960)。
+ *
+ * **パターンは一覧の行を持たない**。 行だけを回すと、パターンへ移したクラス図と ER 図の
+ * 複雑な版を 1 度も開かない。 パターンはカタログと同じ読み取り (`moduleToItems`) から導き、
+ * 担い手は元の見本と同じにする (同じ種類の図の規模違いなので、伸びるものは変わらない)。
+ */
+const ひな形の項目 = moduleToItems(ひな形の見本);
+const 見本 = PRESETS.flatMap((p) => {
+  const 元 = {
+    id: p.id,
+    label: presetName(p, "ja"),
+    パターン: undefined as string | undefined,
+    描き手: 描き手たち[p.id],
+  };
+  const 変種 = (ひな形の項目.find((item) => item.title === presetCatalogKey(p))?.patterns ?? [])
+    .slice(1)
+    .map((pattern) => ({ ...元, パターン: pattern.名 }));
+  return [元, ...変種];
+});
 
 /*
  * 1 周が最も長い図で約 20 秒。 待ちと合わせても収まる長さに置く。
@@ -124,14 +138,17 @@ const 観測の上限ms = 60_000;
  */
 const 字そのまま = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** カタログの一覧から名前が完全に一致する見本を開く */
-async function 見本を開く(page: Page, label: string): Promise<void> {
+/** カタログの一覧から名前が完全に一致する見本を開く。 パターンを渡すと、その切替も押す (#1960) */
+async function 見本を開く(page: Page, label: string, パターン?: string): Promise<void> {
   await page.goto("catalog/presets", { waitUntil: "networkidle" });
   await page
     .locator(".catalog-list-item")
     .filter({ has: page.locator(".catalog-list-item-name", { hasText: new RegExp(`^${字そのまま(label)}$`) }) })
     .first()
     .click();
+  if (パターン !== undefined) {
+    await page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio", { name: パターン }).click();
+  }
   await page.waitForSelector("[data-cdl-phase-index]", { timeout: 15_000 });
 }
 
@@ -241,19 +258,27 @@ test.describe("伸びるのは 1 度だけ (#1474 / #1476)", () => {
       .then((xs) => xs.map((x) => x.trim()).sort());
 
     expect(一覧.length, "見本の一覧が読めていない (検査が空振りしている)").toBeGreaterThan(0);
-    expect(一覧, "画面の一覧が登録簿とずれている").toEqual(見本.map((x) => x.label).sort());
+    expect(一覧, "画面の一覧が登録簿とずれている").toEqual(
+      見本.filter((x) => x.パターン === undefined).map((x) => x.label).sort(),
+    );
+
+    // パターンを取りこぼすと、複雑な版を 1 度も開かないまま通る (#1960)
+    expect(
+      見本.filter((x) => x.パターン !== undefined).map((x) => `${x.label} / ${x.パターン}`),
+      "見本の中のパターンを読めていない (複雑な版を開いていない)",
+    ).toEqual(["ER図 / 複雑", "クラス図 / 複雑"]);
 
     // 内訳を出力に残す。 数だけでは、どの担い手が痩せたかが読めない
     const 内訳 = (k: 描き手): number => 見本.filter((x) => x.描き手 === k).length;
     expect(
       { 対象: 見本.length, 矢印: 内訳("矢印"), 図: 内訳("図"), 描かない: 内訳("なし") },
       "母集団の内訳が変わった (担い手の表を見直す)",
-    ).toEqual({ 対象: 登録簿の鍵.length, 矢印: 12, 図: 7, 描かない: 2 });
+    ).toEqual({ 対象: 登録簿の鍵.length + 2, 矢印: 12, 図: 7, 描かない: 2 });
   });
 
-  for (const { label, 描き手 } of 見本) {
-    test(`${label}`, async ({ page }) => {
-      await 見本を開く(page, label);
+  for (const { label, パターン, 描き手 } of 見本) {
+    test(パターン === undefined ? label : `${label} / ${パターン}`, async ({ page }) => {
+      await 見本を開く(page, label, パターン);
       const { 伸びた段, 見た段, 一周した } = await 一周ぶん見る(page);
 
       expect(見た段.size, "段を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
