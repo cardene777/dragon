@@ -1,297 +1,48 @@
 /**
- * Kind geometry check proof (層 3 の 実型証明 harness)。
+ * 図の型ごとの描画の形の検査の実証 (層 3)。
  *
- * kind-geometry-check.spec.ts の各 axis が「本当に bug を検知できるか」 を
- * 意図的な DOM mutation で確認する negative-path test。
+ * 本番の検査 (`kind-geometry-check.spec.ts`) の各軸が、崩れた画面を本当に見つけるかを確かめる。
+ * 画面をわざと壊し、壊す前は違反が無く、壊した後は違反を見つけることを見る。
  *
- * 動機 = 前回の gantt arrow axis は bug 注入しても検知しない dead axis になっていた。
- * axis の実効性を CI で構造的に保証するため、 各 axis に対応する proof を書く。
+ * **本番と同じ表 (`helpers/kind-geometry-axes.ts`) を回す** (#1952)。 以前は判定をここに書き写して
+ * いたため、本番の判定を「常に通る」 形に壊しても実証は自分の写しを試して 5 件とも通った。
+ * 写しでは、実証が本番を守らない。
  *
- * 各 test = 「(1) axis 検査ロジックを inline 再実装 (2) mutate 前 = clean で検査
- * 結果 OK を確認 (3) mutate 後 = fault 注入で検査結果 FAIL を確認」。
- *
- * これで 「axis の検査ロジック自体が壊れて全 pass」 に なる dead axis の回帰を防ぐ。
- *
- * LLM 不要、 pure DOM inspection + assertion。
+ * 表の 1 行は壊し方を持たないと組めないので、実証の無い軸は作れない。
  */
 import { test, expect } from "@playwright/test";
-import { 折れ線の印, 折れ線の札の下限 } from "./helpers/figure-marks";
+import { 層3の軸たち, 見本の一覧を開く, 見本を開く } from "./helpers/kind-geometry-axes";
 
-/**
- * gantt の依存の矢印が出るまで待つ (#1357)。
- *
- * 帯を起点から描く段では、矢印は **帯が出揃ってから** 出る (`cdl` の `draw` の仕様)。
- * 固定の待ち時間だと、描いている途中を読んで 0 件になる。
- *
- * 上限を置いて待ち、出なければそのまま先へ進む = 「1 件以上」 の assert がそこで落ちるので、
- * 本当に出ない形は見逃さない。
- */
-async function 矢印が出るまで待つ(page: import("@playwright/test").Page): Promise<void> {
-  for (let i = 0; i < 60; i++) {
-    const n = await page.evaluate(
-      () => document.querySelectorAll('[data-cdl-role="gantt-arrow"] path').length,
+test.describe("図の型ごとの描画の形の検査の実証 (層 3)", () => {
+  test("軸の表が空でなく、名前が重ならない", () => {
+    expect(層3の軸たち.length, "軸を 1 つも持っていない (検査が空振りしている)").toBeGreaterThan(0);
+    const 名前たち = 層3の軸たち.map((軸) => 軸.名前);
+    expect(new Set(名前たち).size, `軸の名前が重なっている: ${名前たち.join(" / ")}`).toBe(
+      名前たち.length,
     );
-    if (n > 0) return;
-    await page.waitForTimeout(100);
+  });
+
+  for (const 軸 of 層3の軸たち) {
+    test(`[実証] ${軸.名前}`, async ({ page }) => {
+      await 見本の一覧を開く(page);
+      const 開いた図 = await 見本を開く(page, 軸);
+      expect(開いた図, `「${軸.見本}」 を開いたのに、画面に出ている図が見本と違う`).toEqual([
+        軸.図のid,
+      ]);
+
+      const 前 = await 軸.確かめる(page);
+      expect(
+        前.母数,
+        `「${軸.見本}」 で測る対象が下限 (${軸.下限}) に届かない (検査が空振りしている)`,
+      ).toBeGreaterThanOrEqual(軸.下限);
+      expect(前.違反, "壊す前の画面で違反が出た").toEqual([]);
+
+      await 軸.壊す(page);
+      const 後 = await 軸.確かめる(page);
+      expect(
+        後.違反.length,
+        "壊した画面で違反を見つけない (判定が効いていない)",
+      ).toBeGreaterThanOrEqual(1);
+    });
   }
-}
-
-test.describe("kind geometry proof (層 3 axis の実効性証明)", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("catalog/presets", { waitUntil: "networkidle" });
-    await page.waitForTimeout(800);
-  });
-
-  test("[proof] gantt arrow head gap axis = 食い込み状態を注入すると検知される", async ({ page }) => {
-    await page.getByText("工程表", { exact: true }).first().click();
-    await page.waitForTimeout(1000);
-    // 帯を起点から描く段では、矢印は帯が出揃ってから出る (#1357)
-    await 矢印が出るまで待つ(page);
-
-    // 検査ロジックを inline 再実装 (kind-geometry-check.spec.ts と同一)
-    const checkGap = async () => {
-      return await page.evaluate(() => {
-        const bars: Array<{ left: number; top: number; height: number }> = [];
-        document.querySelectorAll('[data-cdl-role="gantt-bar"]').forEach((b) => {
-          bars.push({
-            left: parseFloat(b.getAttribute("x") ?? "0"),
-            top: parseFloat(b.getAttribute("y") ?? "0"),
-            height: parseFloat(b.getAttribute("height") ?? "0"),
-          });
-        });
-        const violations: number[] = [];
-        document.querySelectorAll('[data-cdl-role="gantt-arrow"] path').forEach((p) => {
-          const d = p.getAttribute("d") ?? "";
-          if (!d.includes("Z")) return;
-          const tokens = d.trim().split(/[\s,]+/);
-          const pts: Array<{ x: number; y: number }> = [];
-          for (let i = 0; i < tokens.length; i++) {
-            const t = tokens[i];
-            if (t === "M" || t === "L") {
-              // 続く 2 つが無い = 並びの終わり
-              const xs = tokens[i + 1];
-              const ys = tokens[i + 2];
-              if (xs === undefined || ys === undefined) break;
-              pts.push({ x: parseFloat(xs), y: parseFloat(ys) });
-              i += 2;
-            }
-          }
-          if (pts.length !== 3) return;
-          const tipRight = Math.max(...pts.map((p) => p.x));
-          const tipY = pts.reduce((sum, p) => sum + p.y, 0) / pts.length;
-          const targetBar = bars.find((b) => tipY >= b.top && tipY <= b.top + b.height);
-          if (targetBar) {
-            const gap = targetBar.left - tipRight;
-            if (gap < 4) violations.push(gap);
-          }
-        });
-        return violations;
-      });
-    };
-
-    // clean 状態 = 違反 0 件
-    const cleanViolations = await checkGap();
-    expect(cleanViolations, "clean 状態で違反 0 件").toHaveLength(0);
-
-    // 食い込み状態を DOM に注入 = arrow head 三角形を右に 20px 移動 (bar 内埋没)
-    await page.evaluate(() => {
-      document.querySelectorAll('[data-cdl-role="gantt-arrow"] path').forEach((p) => {
-        const d = p.getAttribute("d") ?? "";
-        if (!d.includes("Z")) return;
-        // path の全 x 座標に +20 加算
-        const shifted = d.replace(/([ML])\s+([\d.]+)\s+([\d.]+)/g, (_, cmd, x, y) => `${cmd} ${parseFloat(x) + 20} ${y}`);
-        p.setAttribute("d", shifted);
-      });
-    });
-
-    const injectedViolations = await checkGap();
-    expect(
-      injectedViolations.length,
-      `bug 注入後 = 検知が実効性ある証明として violation が >= 1 (実測 ${injectedViolations.length} 件): ${JSON.stringify(injectedViolations)}`,
-    ).toBeGreaterThanOrEqual(1);
-  });
-
-  test("[proof] funnel monotonic 幅減少 axis = 逆順に並替えると検知される", async ({ page }) => {
-    await page.getByText("絞り込み図", { exact: true }).first().click();
-    await page.waitForTimeout(1000);
-
-    const checkMonotonic = async () => {
-      return await page.evaluate(() => {
-        const w: number[] = [];
-        document.querySelectorAll('[data-cdl-role="funnel-stage"]').forEach((el) => {
-          w.push((el as SVGGraphicsElement).getBBox().width);
-        });
-        const violations: string[] = [];
-        for (let i = 1; i < w.length; i++) {
-          const 今 = w[i];
-          const 前 = w[i - 1];
-          if (今 === undefined || 前 === undefined) continue;
-          if (今 > 前 + 0.5) violations.push(`stage[${i}] w=${今} > stage[${i - 1}] w=${前}`);
-        }
-        return violations;
-      });
-    };
-
-    const clean = await checkMonotonic();
-    expect(clean, "clean 状態で違反 0").toHaveLength(0);
-
-    // 最後の polygon の幅を「最初より大きく」 なるよう強制拡大
-    await page.evaluate(() => {
-      const stages = document.querySelectorAll('[data-cdl-role="funnel-stage"]');
-      if (stages.length < 2) return;
-      const last = stages[stages.length - 1] as SVGPolygonElement | null;
-      if (!last) return;
-      // 全 point を y は保持したまま x を左端 0 右端 800 に強制展開 = 幅 800 で単調減少違反
-      const pts = (last.getAttribute("points") ?? "").split(/\s+/);
-      const ys = pts.map((p) => p.split(",")[1] ?? "0");
-      const newPoints = [
-        `0,${ys[0]}`,
-        `800,${ys[1]}`,
-        `800,${ys[2]}`,
-        `0,${ys[3]}`,
-      ].join(" ");
-      last.setAttribute("points", newPoints);
-    });
-
-    const injected = await checkMonotonic();
-    expect(injected.length, `bug 注入後 違反 >= 1`).toBeGreaterThanOrEqual(1);
-  });
-
-  test("[proof] chart-line value/axis label 重なり axis = 座標を強制重ねると検知される", async ({ page }) => {
-    await page.getByText("折れ線グラフ", { exact: true }).first().click();
-    await page.waitForTimeout(1000);
-
-    // 札は役割の印で選ぶ (#1838)。 名前は `helpers/figure-marks.ts` に 1 度だけ置き、
-    // 本番の検査と同じ字を使う
-    const checkOverlap = async () => {
-      return await page.evaluate((印) => {
-        const svg = document.querySelector('svg[role="img"]');
-        if (!svg) return { overlaps: [] as string[], 値の札: 0, 軸の札: 0 };
-        const 測る = (役割: string) =>
-          Array.from(svg.querySelectorAll(`[data-cdl-role="${役割}"]`)).map((e) => {
-            const bb = (e as SVGGraphicsElement).getBBox();
-            return { x: bb.x, y: bb.y, w: bb.width, h: bb.height, t: e.textContent ?? "" };
-          });
-        const valueLabels = 測る(印.値の札);
-        const axisLabels = 測る(印.軸の札);
-        const overlaps: string[] = [];
-        for (const v of valueLabels) {
-          for (const a of axisLabels) {
-            if (v.x < a.x + a.w && v.x + v.w > a.x && v.y < a.y + a.h && v.y + v.h > a.y) {
-              overlaps.push(`"${v.t}" ∩ axis "${a.t}"`);
-            }
-          }
-        }
-        return { overlaps, 値の札: valueLabels.length, 軸の札: axisLabels.length };
-      }, 折れ線の印);
-    };
-
-    const clean = await checkOverlap();
-    // 集めた件数の下限。 0 件なら重なりも 0 件になるので、空振りと clean を分ける
-    expect(
-      clean.値の札,
-      `値の札 (${折れ線の印.値の札}) を 1 つも集めていない (検査が空振りしている)`,
-    ).toBeGreaterThanOrEqual(折れ線の札の下限);
-    expect(
-      clean.軸の札,
-      `軸の札 (${折れ線の印.軸の札}) を 1 つも集めていない (検査が空振りしている)`,
-    ).toBeGreaterThanOrEqual(折れ線の札の下限);
-    expect(clean.overlaps, "clean 状態で重なり 0").toHaveLength(0);
-
-    // 全 value label を強制的に axis 位置 (canvas 下端) に移動 = overlap 誘発
-    await page.evaluate((印) => {
-      const svg = document.querySelector('svg[role="img"]');
-      if (!svg) return;
-      const 軸 = svg.querySelector(`[data-cdl-role="${印.軸の札}"]`);
-      if (!軸) return;
-      const 軸のy = 軸.getAttribute("y") ?? "0";
-      const 軸のx = 軸.getAttribute("x") ?? "0";
-      svg.querySelectorAll(`[data-cdl-role="${印.値の札}"]`).forEach((t) => {
-        t.setAttribute("y", 軸のy);
-        t.setAttribute("x", 軸のx);
-      });
-    }, 折れ線の印);
-
-    const injected = await checkOverlap();
-    expect(injected.overlaps.length, `bug 注入後 重なり >= 1`).toBeGreaterThanOrEqual(1);
-  });
-
-  test("[proof] card text overflow axis = subtitle を極端に長く設定すると検知される", async ({ page }) => {
-    await page.getByText("入れ子の状態遷移図", { exact: true }).first().click();
-    await page.waitForTimeout(1000);
-
-    const checkOverflow = async () => {
-      return await page.evaluate(() => {
-        const violations: string[] = [];
-        document.querySelectorAll("[data-cdl-node]").forEach((g) => {
-          const rect = g.querySelector('[data-cdl-role="node-body"]');
-          if (!rect) return;
-          const cardW = parseFloat(rect.getAttribute("width") ?? "0");
-          g.querySelectorAll("text").forEach((t) => {
-            const bb = (t as SVGGraphicsElement).getBBox();
-            if (bb.x + bb.width > cardW + 4) {
-              violations.push(`text "${t.textContent}" endX=${bb.x + bb.width} > cardW=${cardW}`);
-            }
-          });
-        });
-        return violations;
-      });
-    };
-
-    const clean = await checkOverflow();
-    expect(clean, "clean 状態で overflow 0").toHaveLength(0);
-
-    // 任意 text を長文に置換 → SVG は truncate しないので溢れる
-    await page.evaluate(() => {
-      const firstText = document.querySelector('[data-cdl-node] text');
-      if (firstText) {
-        firstText.textContent = "THIS IS A VERY VERY LONG TEXT THAT WILL DEFINITELY OVERFLOW THE CARD BOUNDS";
-      }
-    });
-
-    const injected = await checkOverflow();
-    expect(injected.length, `bug 注入後 overflow >= 1`).toBeGreaterThanOrEqual(1);
-  });
-
-  test("[proof] edge-line fill:none axis = fill を色に変更すると検知される", async ({ page }) => {
-    await page.getByText("流れ図", { exact: true }).first().click();
-    /*
-     * **線が出るまで待つ** (#1479)。
-     *
-     * `#1470` で矢印が段に合わせて出るようになり、開いた直後は 1 本も描かれていない。
-     * 決め打ちの待ち時間だと、何段目で読むかによって 0 件になる (実測 = 1 秒では 0 件)。
-     * 出た時点で先へ進むので、待ち時間を延ばす形より速くて確実。
-     *
-     * **見えているかは待たない** (`state: "attached"`)。 線は段の進みで長さが 0 になる瞬間が
-     * あり、既定の「見えるまで」 だとその瞬間に当たった回が時間切れになる (実測)。
-     * ここで読むのは塗りの指定なので、DOM に在れば足りる。
-     */
-    await page.waitForSelector('[data-cdl-role="edge-line"]', { state: "attached", timeout: 15_000 });
-
-    const checkFill = async () => {
-      return await page.evaluate(() => {
-        const violations: string[] = [];
-        document.querySelectorAll('[data-cdl-role="edge-line"]').forEach((el) => {
-          const fill = getComputedStyle(el).fill;
-          if (!/none|rgba?\(\s*0,\s*0,\s*0,\s*0/.test(fill)) {
-            violations.push(fill);
-          }
-        });
-        return violations;
-      });
-    };
-
-    const clean = await checkFill();
-    expect(clean, "clean 状態で fill:#XXX 違反 0").toHaveLength(0);
-
-    // edge-line の fill を強制的に blue に = 「polygon 塗り」 bug 再現
-    await page.evaluate(() => {
-      document.querySelectorAll('[data-cdl-role="edge-line"]').forEach((el) => {
-        (el as SVGElement).style.fill = "#6ab3d8";
-      });
-    });
-
-    const injected = await checkFill();
-    expect(injected.length, `bug 注入後 fill 違反 >= 1`).toBeGreaterThanOrEqual(1);
-  });
 });
