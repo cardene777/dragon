@@ -55,11 +55,74 @@ async function 円(
 const カタログの図 = "main.catalog-preview svg[data-cdl-stage]";
 
 test.describe("部品を箱に使う見本 (#1973)", () => {
-  test("部品の頁に並び、切替が 4 つ出る", async ({ page }) => {
+  test("部品の頁に並び、切替が 5 つ出る", async ({ page }) => {
     await 開く(page);
     await expect(page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio")).toHaveCount(
-      4,
+      5,
     );
+  });
+
+  test("縦列に置く切替は、部品の円を出荷の縦列の中に描く (#1980)", async ({ page }) => {
+    await 開く(page);
+    await 押す(page, "縦列に置く");
+    const 図 = page.locator(カタログの図).first();
+    // 画面に出た縦列の枠と部品の円の横の範囲を、画面の座標で比べる。 箱は移動の変換を持つので、
+    // 要素ごとの座標 (`getBBox`) では同じ物差しにならない
+    const 測った = await 図.evaluate((svg) => {
+      const 縦列 = [...svg.querySelectorAll("g[data-cdl-lane]")].map((g) => {
+        const r = g.querySelector("rect")!.getBoundingClientRect();
+        return { id: g.getAttribute("data-cdl-lane") ?? "", x0: r.left, x1: r.right };
+      });
+      const 円 = [...svg.querySelectorAll("circle")].find((c) => c.getAttribute("fill") === "none");
+      const r = 円?.getBoundingClientRect();
+      return { 縦列, 円: r ? { x0: r.left, x1: r.right } : undefined };
+    });
+    expect(測った.円, "部品の円を描いていない (検査が空振りしている)").toBeDefined();
+    const 出荷 = 測った.縦列.find((l) => l.id === "出荷");
+    expect(
+      出荷,
+      `出荷の縦列が画面に無い (${測った.縦列.map((l) => l.id).join(" / ")})`,
+    ).toBeDefined();
+    expect(測った.円!.x0).toBeGreaterThanOrEqual(出荷!.x0 - 0.5);
+    expect(測った.円!.x1).toBeLessThanOrEqual(出荷!.x1 + 0.5);
+  });
+
+  test("編集画面で縦列を書いた部品は、重ねずに図の縦列の中に描く (#1980)", async ({ page }) => {
+    const 本文 = [
+      'title: "縦列に置く"',
+      "type: swimlane",
+      "",
+      "lanes:",
+      '  受付: { label: "受付" }',
+      '  出荷: { label: "出荷" }',
+      "",
+      "actors:",
+      "  - 注文を受ける: { kind: card, lane: 受付 }",
+      "  - 梱包する: { kind: card, lane: 出荷 }",
+      "  - 印: { kind: state-indicator, lane: 出荷 }",
+      "",
+    ].join("\n");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`editor#s=${Buffer.from(本文, "utf8").toString("base64")}`);
+    await page.waitForLoadState("networkidle");
+    const 図 = page.locator(".v4-editor-stage svg[data-cdl-stage]").first();
+    await expect(図).toContainText("梱包する", { timeout: 15000 });
+    // 重ねる側に回すと縦列の位置を知らずに描く。 組み立て側の図の中に部品の円がある
+    await expect(page.locator('.v4-editor-stage [data-overlay-part="印"]')).toHaveCount(0);
+    await expect
+      .poll(
+        async () =>
+          図.evaluate((svg) => {
+            const 出荷 = svg.querySelector('g[data-cdl-lane="出荷"] rect')?.getBoundingClientRect();
+            const 円 = [...svg.querySelectorAll("circle")]
+              .find((c) => c.getAttribute("fill") === "none")
+              ?.getBoundingClientRect();
+            if (!出荷 || !円) return "縦列か円が無い";
+            return 円.left >= 出荷.left - 0.5 && 円.right <= 出荷.right + 0.5 ? "中" : "外";
+          }),
+        { timeout: 10000 },
+      )
+      .toBe("中");
   });
 
   test("切替ごとに円の大きさと塗りの色が書いた欄のとおりに変わる", async ({ page }) => {

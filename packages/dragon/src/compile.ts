@@ -155,6 +155,8 @@ export type CompileNotice = {
     | "part-color-ignored"
     // 部品に、部品が持たない状態の名前で値を書いた (#1976)。 綴り違いと、外した欄 (`nodes`) を書いた時
     | "part-state-missing"
+    // 縦列に置くはずの部品が他の箱の位置の基準になっていて、縦列に置けなかった (#1980)
+    | "part-lane-ignored"
     // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
     | "chart-value-unreadable"
     // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
@@ -2855,8 +2857,16 @@ function partGridCenters(
   //
   // merge 側は「縦横どちらも書かなかった時」 に格子へ落とす。 条件が食い違うと、 片方だけ
   // 書いたパーツが格子の枠を 1 つ消費して後続がずれる (実測 = 後続の中心が 200 から 720 に動いた)
+  //
+  // 縦列に置く部品も外す (#1980)。 格子の枠を使うと、縦列へ動かした後に後続の部品との間に
+  // 空きが残る。 相対の位置を解く側 (`partBoxes`) も同じ関数を通るので、基準の位置は揃う
+  const 縦列の部品 = 縦列に置く部品(target, doc).縦列;
   const autoActors = partsActors.filter(
-    (a) => a.posX === undefined && a.posY === undefined && a.posRel === undefined,
+    (a) =>
+      a.posX === undefined &&
+      a.posY === undefined &&
+      a.posRel === undefined &&
+      !縦列の部品.has(a.name),
   );
   if (autoActors.length === 0) return new Map();
   // パーツ自身の仮の箱は数えない。 この時点では未削除で残っており、 数えるとパーツを足すたびに
@@ -2979,6 +2989,118 @@ function partBoxes(
 }
 
 /**
+ * 部品のために作られた仮の箱の id かを見分ける。
+ *
+ * 仮の箱の id は部品の名前の slug か、それを頭に持つ形 (`a-header` / `s0-a`) で作られる。
+ * 仮の箱を消す側 (`cleanupPlaceholderActor`) と、部品を置く縦列を探す側 (`縦列に置く部品`) が
+ * 同じ判定を使う = 別々に持つと、消した箱と縦列を探した箱が食い違う。
+ *
+ * 素の登場人物が持つ id は仮の箱に数えない (#1466)。 名前が重なった素の登場人物は
+ * `重なりを解く` 側で `a-c40bf6` のような id に作り替えられるため、同じ頭で始まり
+ * **本体の箱まで巻き込む** (実測で `flow` / `swimlane` / `er` / `state` / `topology` /
+ * `class` / `c4` の 7 図種すべてで素の箱が黙って消えていた)。
+ *
+ * 名前の頭が自分と重なる別の登場人物 (`設備` に対する `設備-予備`) の仮の箱も数えない (#1980)。
+ * 数えると `設備` の仮の箱が 2 本の縦列にまたがって見え、`設備` を消す時に `設備-予備` の
+ * 仮の箱と縦列まで消す。 部品同士でも起き、後から組み込む `設備-予備` が消えた縦列を指して
+ * 配置が止まっていた (`cdl layout: node "設備-予備__ind" の lane "設備-予備" が定義されていない`)。
+ */
+function 仮の箱のidか(doc: DslDocument, name: string): (id: string) => boolean {
+  const aliasSlug = slugify(name);
+  const 素の箱のid = new Set(
+    doc.actors.filter((x) => x.partId === undefined).map((x) => slugify(x.name)),
+  );
+  const 頭が重なるid = [
+    ...new Set(
+      doc.actors
+        .filter((x) => x.name !== name)
+        .map((x) => slugify(x.name))
+        .filter((s) => s.startsWith(`${aliasSlug}-`) || s.endsWith(`-${aliasSlug}`)),
+    ),
+  ];
+  // sequence step anchor = `s{N}-{slug}` pattern
+  const 自分の形か = (id: string, slug: string): boolean =>
+    id === slug || id.startsWith(`${slug}-`) || (/^s\d+-/.test(id) && id.endsWith(`-${slug}`));
+  return (id: string): boolean => {
+    if (素の箱のid.has(id)) return false;
+    if (頭が重なるid.some((s) => 自分の形か(id, s))) return false;
+    return 自分の形か(id, aliasSlug);
+  };
+}
+
+/**
+ * 縦列の中に置く部品と、その縦列の id (#1980)。
+ *
+ * 位置を書かない部品は格子に並ぶが、格子は縦列の位置を読まない。 部品が縦列に属する図では、
+ * 部品の要素だけが縦列に属し、描く位置は別の縦列の上になっていた (実測 = 縦列 b 480〜890 に
+ * 属する部品が 60〜420 に描かれた)。
+ *
+ * 縦列に置くのは、位置 (`posX` / `posY` / `位置:`) を書かない部品のうち次のどちらかに当たるもの。
+ *
+ * | 形 | 縦列 |
+ * |---|---|
+ * | `lane:` に図にある縦列を書いた | 書いた縦列 |
+ * | 仮の箱が自分だけの縦列を持つ (`swimlane` / `state` / `er` / `class` の作り方) | その縦列 |
+ *
+ * **自分だけの縦列は図の形で見分ける**。 図種の名前で分けると、縦列の作り方を変えた図種で
+ * 黙って外れる。 仮の箱が入った縦列に他の登場人物の箱が無く、図に縦列が 2 本以上ある時に
+ * 限る = 全員が 1 本の縦列を共有する図種 (`flow` / `topology` / `c4`) は格子のまま残る。
+ * 仮の箱が作られない形 (流れに現れない `swimlane` の登場人物) は、名札が部品の名前の空の縦列で引く。
+ *
+ * **順序図 (`sequence` / `solidity`) は対象にしない**。 1 枚の板で描き、縦列を持たない (#1466)。
+ *
+ * **他の箱の位置の基準になっている部品は縦列に置かない**。 相対の位置 (`位置: 印 の右 200`) は
+ * 組み立ての前に格子の位置を基準に解くため、基準の部品だけを縦列へ動かすと書いた位置関係が
+ * 崩れる。 外した部品は `基準のため外した` に入れ、呼出側が知らせる。
+ */
+function 縦列に置く部品(
+  target: CdlDiagram,
+  doc: DslDocument,
+): { 縦列: Map<string, string>; 基準のため外した: Map<string, string> } {
+  const 縦列 = new Map<string, string>();
+  const 基準のため外した = new Map<string, string>();
+  if (doc.type === "sequence" || doc.type === "solidity") return { 縦列, 基準のため外した };
+  const 基準の名前 = new Set(
+    doc.actors.map((a) => a.posRel?.anchor).filter((n): n is string => n !== undefined),
+  );
+  const 縦列のid = new Set(target.lanes.map((l) => l.id));
+  for (const a of doc.actors) {
+    if (a.partId === undefined) continue;
+    // 同じ名前を 2 度書いた時は先の 1 件を使う (組み立て側の他の判定と同じ)
+    if (縦列.has(a.name) || 基準のため外した.has(a.name)) continue;
+    if (a.posX !== undefined || a.posY !== undefined || a.posRel !== undefined) continue;
+    const 置く縦列 = 部品の縦列(target, doc, a, 縦列のid);
+    if (置く縦列 === undefined) continue;
+    if (基準の名前.has(a.name)) 基準のため外した.set(a.name, 置く縦列);
+    else 縦列.set(a.name, 置く縦列);
+  }
+  return { 縦列, 基準のため外した };
+}
+
+/** 部品を置く縦列。 書いた縦列か、仮の箱が自分だけで使う縦列。 どちらも無ければ `undefined` */
+function 部品の縦列(
+  target: CdlDiagram,
+  doc: DslDocument,
+  a: DslActor,
+  縦列のid: ReadonlySet<string>,
+): string | undefined {
+  if (a.lane !== undefined) return 縦列のid.has(a.lane) ? a.lane : undefined;
+  if (target.lanes.length < 2) return undefined;
+  const 仮の箱か = 仮の箱のidか(doc, a.name);
+  const 仮の箱の縦列 = new Set(target.nodes.filter((n) => 仮の箱か(n.id)).map((n) => n.lane));
+  // 2 本にまたがる入力は見つかっていない (実測 = 縦列に置く 7 図種とも仮の箱は登場人物ごとに 1 つ。
+  // 名前の頭が重なる登場人物の箱は `仮の箱のidか` が外す)。 またがった時にどちらかの縦列を選ぶと
+  // 他の縦列を部品が占めるため、格子に残す
+  if (仮の箱の縦列.size > 1) return undefined;
+  const [入っていた] = [...仮の箱の縦列];
+  const 候補 =
+    入っていた ?? target.lanes.find((l) => l.label === a.name && !target.nodes.some((n) => n.lane === l.id))?.id;
+  if (候補 === undefined) return undefined;
+  // 他の登場人物の箱が同じ縦列に居れば、自分だけの縦列ではない
+  return target.nodes.some((n) => n.lane === 候補 && !仮の箱か(n.id)) ? undefined : 候補;
+}
+
+/**
  * パーツ用に作られた仮の箱 / 線 / 列を掃除する (#1015 で helper 化)。
  *
  * 取り込む時だけでなく **落とす時にも呼ぶ**。 落とした時に残すと、格子から外した後続の見本と
@@ -3002,30 +3124,9 @@ function cleanupPlaceholderActor(
   for (const n of target.nodes) {
     if (ownedLaneIds.has(n.lane)) ownedNodeIds.add(n.id);
   }
-  /*
-   * 素の登場人物が持つ id は消さない (#1466)。
-   *
-   * 下の頭一致は、見本のために作られた仮の箱 (`a-header` / `s0-a`) を拾うためのもの。
-   * ところが名前が重なった素の登場人物は `重なりを解く` 側で `a-c40bf6` のような id に
-   * 作り替えられるため、同じ頭で始まり **本体の箱まで巻き込む**。
-   *
-   * 見本と重なる名前を書いた図で、素の箱が黙って消えていた (実測で `flow` / `swimlane` /
-   * `er` / `state` / `topology` / `class` / `c4` の 7 図種すべて)。 順序図だけは面ごとの
-   * 縦列で引けたため免れており、#1466 で板になって縦列が無くなると同じ穴に落ちる。
-   */
-  const 素の箱のid = new Set(
-    doc.actors.filter((x) => x.partId === undefined).map((x) => slugify(x.name)),
-  );
   // actor 専用 lane を引き当てられない経路 (flow / topology 等の共有 lane preset) は従来どおり dragon
   // slug の prefix match に fallback する。 これらは 1 actor = 1 node (id = slug) の生成規則。
-  const matchesAliasSlug = (id: string): boolean => {
-    if (素の箱のid.has(id)) return false;
-    if (id === aliasSlug) return true;
-    if (id.startsWith(`${aliasSlug}-`)) return true;
-    // sequence step anchor = `s{N}-{aliasSlug}` pattern
-    if (/^s\d+-/.test(id) && id.endsWith(`-${aliasSlug}`)) return true;
-    return false;
-  };
+  const matchesAliasSlug = 仮の箱のidか(doc, a.name);
   const relatedToActor = (id: string): boolean =>
     ownedLaneIds.size > 0 ? ownedNodeIds.has(id) : matchesAliasSlug(id);
   // 仮の箱が入っていた縦列。 仮の箱を消して空になった縦列は下で消す (#1973)
@@ -3118,6 +3219,9 @@ function mergePartsFromActors(
   // 格子より先に決める。 後にすると、落とす見本が格子の枠を消費して後続がずれる
   const budget = partsBudget(target, partsActors, partsCatalog);
   const gridCenters = partGridCenters(target, doc, partsCatalog, budget, partsActors);
+  // 縦列の中に置く部品 (#1980)。 仮の箱を消す前に探す = 消した後は自分だけの縦列を見分けられない
+  const { 縦列: 縦列の部品, 基準のため外した } = 縦列に置く部品(target, doc);
+  const 縦列に置いた: 縦列に置いた部品[] = [];
 
   for (const [actorIndex, actor] of partsActors.entries()) {
     const partId = actor.partId;
@@ -3168,7 +3272,25 @@ function mergePartsFromActors(
     // 厳密収集する。 slug の prefix 推測を挟まないため、 slug 実装差の取りこぼしと、 別 actor を巻き込む
     // 誤削除 (parts actor `a_b` の lane id `a-b` が actor `a-b-c` の `a-b-c-header` に prefix match する)
     // の両方を同時に排除する。
-    cleanupPlaceholderActor(target, doc, actor);
+    //
+    // 縦列に置く部品は、仮の箱の縦列を消さずに残す (#1980)。 部品用の縦列 (`名前__l`) を足すと、
+    // 縦列が書いた順ではなく仮に置いた横位置の順に並ぶ (実測 = 3 人目に書いた部品が真ん中になった)
+    const 置く縦列 = 縦列の部品.get(actor.name);
+    cleanupPlaceholderActor(
+      target,
+      doc,
+      置く縦列 !== undefined ? { name: actor.name, lane: 置く縦列 } : actor,
+    );
+    const 外した縦列 = 基準のため外した.get(actor.name);
+    if (外した縦列 !== undefined) {
+      onNotice?.({
+        kind: "part-lane-ignored",
+        actor: actor.name,
+        line: actor.pos?.line ?? 0,
+        message: `"${actor.name}" は他の箱の位置の基準になっているため、縦列 "${target.lanes.find((l) => l.id === 外した縦列)?.label ?? 外した縦列}" には置かず図の下に並べました`,
+        hint: `縦列に置きたい時は、"${actor.name}" を基準にした位置 (位置: ${actor.name} の右 200 など) を座標で書く`,
+      });
+    }
     const merged = applyColorHex(part, actor.colorHex, actor.stateOverride ?? {});
     // 色番号は部品の色の状態へ入れる。 塗りを図形に直接書いた部品 (`arc-gauge` 等) は入れる先が
     // 無く、書いても絵が変わらない。 黙って既定の色で描くと手掛かりが残らないので知らせる (#1973)
@@ -3216,7 +3338,12 @@ function mergePartsFromActors(
     let placeY = actor.posY;
     // 格子に落とすのは縦横どちらも書かなかった時だけ。 片方だけ書いた時に残りを格子で
     // 埋めると、 書いた値と格子が混ざった位置になる (従来の条件をそのまま保つ)
-    if (placeX === undefined && placeY === undefined) {
+    if (置く縦列 !== undefined) {
+      // 縦列の位置は図を配置するまで決まらない。 ここでは座標で置く形にだけして、
+      // 全部の部品を組み込んだ後に縦列へ寄せる (`縦列に置いた部品を揃える`)
+      placeX = 0;
+      placeY = 0;
+    } else if (placeX === undefined && placeY === undefined) {
       const center = gridCenters.get(actor.name);
       placeX = center?.cx;
       placeY = center?.cy;
@@ -3240,12 +3367,13 @@ function mergePartsFromActors(
       }
     }
     const t = partTargetSize(part, actor.posW, actor.posH, actor.scale);
+    const 組み込む前の箱の数 = target.nodes.length;
     mergePartIntoDiagram(
       target,
       part,
       actor.name,
       merged,
-      actor.lane,
+      置く縦列 ?? actor.lane,
       placeX,
       placeY,
       t.w,
@@ -3255,9 +3383,118 @@ function mergePartsFromActors(
       derivedSourceLines,
       値の前置き.get(actor.name),
     );
+    if (置く縦列 !== undefined) {
+      縦列に置いた.push({
+        縦列: 置く縦列,
+        要素: new Set(target.nodes.slice(組み込む前の箱の数).map((n) => n.id)),
+      });
+    }
   }
+  縦列に置いた部品を揃える(target, 縦列に置いた);
   return target;
 }
+
+type 縦列に置いた部品 = { 縦列: string; 要素: ReadonlySet<string> };
+
+/** 部品が縦列より広い時に、縦列の左右に残す余白。 描画側が縦列の中の箱に取る最小の余白と同じ */
+const 部品の縦列の余白 = 25;
+
+/**
+ * 縦列に置いた部品を、縦列の中心と図の下へ動かす (#1980)。
+ *
+ * 部品は座標で置く (部品の中の要素の並びを保つため)。 座標で置いた箱は描画側の配置が動かさないので、
+ * 縦列の位置を知るには図を 1 度配置する。
+ *
+ * **配置は 1 度で足りる**。 縦列の横位置は縦列の幅・中の箱の幅・矢印の札で決まり、座標で置いた箱の
+ * 座標には依らない。 部品を動かしても縦列は動かない。
+ *
+ * | 向き | 置き方 |
+ * |---|---|
+ * | 横 | 部品の中心を縦列の中心に合わせる。 部品が縦列より広ければ縦列を広げ、配置し直す |
+ * | 縦 | 部品以外の箱の一番下から `PARTS_GAP` 空ける。 同じ縦列の部品は書いた順に下へ積む |
+ *
+ * **縦列の段には入れない**。 段の高さは縦列をまたいで共有され、背の高い部品を段に入れると隣の
+ * 縦列の箱まで伸びる (実測 = `受付` の高さが 68 から 380 になった)。
+ *
+ * 配置できない図 (描画側が止める図) では動かさない。 描画でも同じ所で止まるので、ここで
+ * 別の知らせは足さない。
+ */
+function 縦列に置いた部品を揃える(target: CdlDiagram, 置いた: readonly 縦列に置いた部品[]): void {
+  if (置いた.length === 0) return;
+  const 配置する = (): LaidDiagram | undefined => {
+    try {
+      return layout(target);
+    } catch {
+      return undefined;
+    }
+  };
+  let laid = 配置する();
+  if (!laid) return;
+  const 範囲 = (d: LaidDiagram, 要素: ReadonlySet<string>) => {
+    const 箱 = d.nodes.filter((n) => 要素.has(n.id));
+    if (箱.length === 0) return undefined;
+    return {
+      x0: Math.min(...箱.map((n) => n.cx - n.w / 2)),
+      x1: Math.max(...箱.map((n) => n.cx + n.w / 2)),
+      y0: Math.min(...箱.map((n) => n.cy - n.h / 2)),
+      y1: Math.max(...箱.map((n) => n.cy + n.h / 2)),
+    };
+  };
+  // 部品より狭い縦列を広げる。 描画側は縦列を中の箱 1 つの幅までしか広げず、要素を横に並べた
+  // 部品は隣の縦列へはみ出す
+  let 広げた = false;
+  for (const p of 置いた) {
+    const r = 範囲(laid, p.要素);
+    const 縦列 = target.lanes.find((l) => l.id === p.縦列);
+    const 描いた縦列 = laid.lanes.find((l) => l.id === p.縦列);
+    if (!r || !縦列 || !描いた縦列) continue;
+    const 要る幅 = r.x1 - r.x0 + 部品の縦列の余白 * 2;
+    if (要る幅 > 描いた縦列.width && 要る幅 > 縦列.width) {
+      縦列.width = 要る幅;
+      広げた = true;
+    }
+  }
+  if (広げた) {
+    laid = 配置する();
+    if (!laid) return;
+  }
+  // 動かした後に配置し直して確かめ、狙いと合うまで繰り返す。 座標で置いた箱が他の箱と重なると
+  // 描画側は他の箱を下げるため、仮の位置 (図の上端) のまま測った下端は実際より下にずれる
+  // (実測 = 狙った上端 316 が 400 になった)。 部品を図の下へ動かせば重ならなくなり、2 回目で合う
+  const 部品の要素 = new Set(置いた.flatMap((p) => [...p.要素]));
+  for (let 回 = 0; 回 < 部品を揃え直す上限; 回 += 1) {
+    // 下端は部品以外の箱 (格子に並べた部品を含む) と縦列の名札で測る。 箱を囲む縦列 (`contain`) は
+    // 仮に置いた部品まで囲んでいるため数えない = 中の箱は箱として数えている
+    const 他の箱の下端 = Math.max(
+      ...laid.nodes.filter((n) => !部品の要素.has(n.id)).map((n) => n.cy + n.h / 2),
+      ...laid.lanes.filter((l) => !l.contain).map((l) => l.y + l.height),
+    );
+    const 次の上端 = new Map<string, number>();
+    let 動かした = false;
+    for (const p of 置いた) {
+      const r = 範囲(laid, p.要素);
+      const 縦列 = laid.lanes.find((l) => l.id === p.縦列);
+      if (!r || !縦列) continue;
+      const 上端 = 次の上端.get(p.縦列) ?? 他の箱の下端 + PARTS_GAP;
+      const dx = 縦列.x + 縦列.width / 2 - (r.x0 + r.x1) / 2;
+      const dy = 上端 - r.y0;
+      次の上端.set(p.縦列, 上端 + (r.y1 - r.y0) + PARTS_GAP);
+      if (Math.abs(dx) <= PLACEMENT_TOLERANCE && Math.abs(dy) <= PLACEMENT_TOLERANCE) continue;
+      for (const n of target.nodes) {
+        if (!p.要素.has(n.id) || n.posX === undefined || n.posY === undefined) continue;
+        n.posX += dx;
+        n.posY += dy;
+      }
+      動かした = true;
+    }
+    if (!動かした) return;
+    laid = 配置する();
+    if (!laid) return;
+  }
+}
+
+/** 縦列に置いた部品を配置し直して確かめる回数の上限。 実測では 2 回目で動かなくなる */
+const 部品を揃え直す上限 = 3;
 
 /**
  * 状態の初期値に上書きを当てた結果と、 色として読めないため捨てたかどうか。
@@ -3579,8 +3816,13 @@ function mergePartIntoDiagram(
   const rawScaleY = targetH !== undefined && targetH > 0 ? targetH / partOrigH : 1;
   const scaleY = Number.isFinite(rawScaleY) && rawScaleY > 0 ? rawScaleY : 1;
 
+  // 縦列を 2 本以上持つ部品を 1 本の縦列へまとめる時は、要素ごとに別の段番号を振る (#1980)。
+  // 元の段番号のままだと横に並んでいた要素が同じ段で重なり、配置が止まる (実測 =
+  // `lane "b" の stack=1000 に node が重複`)。 座標で置く要素の位置は段番号で決まらないので、
+  // 振り直しても絵は変わらない
+  const 段を振り直す = targetLaneId !== undefined && shouldForcePos && part.lanes.length > 1;
   // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
-  for (const nodeOrig of part.nodes) {
+  for (const [nodeIndex, nodeOrig] of part.nodes.entries()) {
     const mappedLane = laneIdMap.get(nodeOrig.lane) ?? nodeOrig.lane;
     // codex-review MAJOR fix (§ nested shape template) = recursive walk で shape 内 nested object /
     // array の string leaf 全対象、 前実装は 1 depth のみで `fill: { gradient: "{v}" }` 等 miss。
@@ -3651,7 +3893,7 @@ function mergePartIntoDiagram(
       subtitle: rewriteTemplate(nodeOrig.subtitle),
       value: rewriteTemplate(nodeOrig.value),
       // parts stack を target 側と分離 (D2 fix、 posX/posY 明示との 2 段防御)
-      stack: (nodeOrig.stack ?? 0) + stackShiftBase,
+      stack: (段を振り直す ? nodeIndex : (nodeOrig.stack ?? 0)) + stackShiftBase,
       ...(newShape ? { shape: newShape as CdlDiagram["nodes"][number]["shape"] } : {}),
       ...(nodePosX !== undefined ? { posX: nodePosX } : {}),
       ...(nodePosY !== undefined ? { posY: nodePosY } : {}),

@@ -294,9 +294,14 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
    * 大きさは `CdlEditor` が `--cdl-svg-w/h` に入れる。 入れないと `editor.css` の既定値
    * (800x600) に落ち、 縦横比の違うパーツが `preserveAspectRatio` で縮む。 助変数を消しても
    * 単体 test は通ってしまうため (helper の返値と CSS 文字列しか見ていない)、 画面で確かめる。
+   *
+   * 流れ図で見る。 表の図 (`er`) は部品に部品の名前の縦列を作り、組み立て側で縦列の中に描くため
+   * 重ねない (#1980)。 流れ図の部品は全員が共有する縦列に入らないので、今までどおり重ねる
    */
   test("重ねたパーツは図枠の実寸で描かれる", async ({ page }) => {
-    await setup(page);
+    await page.goto("editor#preset=flow", { waitUntil: "networkidle" });
+    await page.waitForSelector(".v4-editor-stage svg[data-cdl-stage]", { timeout: 15000 });
+    await page.waitForTimeout(600);
     await page.click('[data-testid="editor-parts-tab"]');
     await page.waitForTimeout(300);
     await page.click('[data-part-id="parts-horizontal-bar"]');
@@ -498,20 +503,32 @@ flow:
    *
    * この見本 (catalog 80 件中 17 件) は図の中に描く部品を持たない。 場所は確保されるため
    * 「置いたのに見えない」 状態になり、黙って置くと綴りを疑うことになる。
+   *
+   * 2 つの経路で見る。 流れ図は部品を図の上に重ね、表の図 (`er`) は部品の名前の縦列に入れて
+   * 組み立て側で描く (#1980)。 知らせを重ねる部品にしか出さないと、表の図だけ黙る
    */
-  test("パネル部品だけの見本を置くと知らせが出る", async ({ page }) => {
-    await setup(page);
-    await page.click('[data-testid="editor-parts-tab"]');
-    await page.waitForSelector('[data-part-id="parts-percent-ring"]', { timeout: 15000 });
-    await page.waitForTimeout(300);
+  for (const [経路, 開く, 重ねる数] of [
+    ["重ねる (flow)", "editor#preset=flow", 1],
+    ["組み立て側で描く (er)", 見本, 0],
+  ] as const) {
+    test(`パネル部品だけの見本を置くと知らせが出る — ${経路}`, async ({ page }) => {
+      await page.goto(開く, { waitUntil: "networkidle" });
+      await page.waitForSelector(".v4-editor-stage svg[data-cdl-stage]", { timeout: 15000 });
+      await page.waitForTimeout(600);
+      await page.click('[data-testid="editor-parts-tab"]');
+      await page.waitForSelector('[data-part-id="parts-percent-ring"]', { timeout: 15000 });
+      await page.waitForTimeout(300);
 
-    await page.click('[data-part-id="parts-percent-ring"]');
-    await page.waitForTimeout(1500);
-    const shown = await page.evaluate(
-      () => document.querySelector('[data-testid="editor-compile-notices"]')?.textContent ?? "",
-    );
-    expect(shown, "知らせが出ていない").toContain("図の中に描く部品を持たない");
-  });
+      await page.click('[data-part-id="parts-percent-ring"]');
+      await page.waitForTimeout(1500);
+      // 経路の前提 = 重ねる経路だけが重ねた部品の器を持つ。 前提が崩れると 2 件が同じ経路を見る
+      await expect(page.locator(".v4-editor-stage [data-overlay-part]")).toHaveCount(重ねる数);
+      const shown = await page.evaluate(
+        () => document.querySelector('[data-testid="editor-compile-notices"]')?.textContent ?? "",
+      );
+      expect(shown, "知らせが出ていない").toContain("図の中に描く部品を持たない");
+    });
+  }
 
   test("図として描く見本では知らせが出ない", async ({ page }) => {
     await setup(page);

@@ -13,11 +13,15 @@
  * | 状態を上書き (`lvl: 0.4` と `phase: false`) | 56 (140 の 4 割) | `#22c55e` | 140 |
  * | 倍率を変える (`scale: 0.6`) | 0 | `#22c55e` | 84 |
  * | 色番号を変える (`#d9534f`) | 0 | `#d9534f` | 140 |
+ * | 縦列に置く (`lane: 出荷`) | 0 | `#22c55e` | 140 |
+ *
+ * 縦列に置く切替 (#1980) は、配置した後の座標で部品が出荷の縦列の範囲の中にあり、同じ縦列の
+ * `梱包する` の下に来ることも見る。 `lane` の欄だけを見ると、描く位置が別の縦列の上でも通る。
  */
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { textDslToDiagram } from "@cardenelabs/dragon";
-import { CdlDiagramView, type CdlDiagram } from "@cardenelabs/cdl";
+import { CdlDiagramView, layout, type CdlDiagram } from "@cardenelabs/cdl";
 import { loadPartsItems, type CatalogItem } from "./catalog-items";
 import { 部品の一覧を作る, 部品の図か } from "./parts-catalog";
 
@@ -46,7 +50,7 @@ function 円(d: CdlDiagram): { 外枠: number; 塗り: number; 色: string }[] {
 }
 
 describe("部品を箱に使う見本 (#1973)", () => {
-  it("部品の頁の最後に並び、4 つの切替を持つ", async () => {
+  it("部品の頁の最後に並び、5 つの切替を持つ", async () => {
     const items = await loadPartsItems();
     expect(items.at(-1)?.id).toBe(見本のid);
     expect((await 見本()).patterns?.map((p) => p.名)).toEqual([
@@ -54,6 +58,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       "状態を上書き",
       "倍率を変える",
       "色番号を変える",
+      "縦列に置く",
     ]);
   });
 
@@ -67,6 +72,27 @@ describe("部品を箱に使う見本 (#1973)", () => {
     expect(描いた["状態を上書き"]).toEqual([{ 外枠: 140, 塗り: 56, 色: "#22c55e" }]);
     expect(描いた["倍率を変える"]).toEqual([{ 外枠: 84, 塗り: 0, 色: "#22c55e" }]);
     expect(描いた["色番号を変える"]).toEqual([{ 外枠: 140, 塗り: 0, 色: "#d9534f" }]);
+    expect(描いた["縦列に置く"]).toEqual([{ 外枠: 140, 塗り: 0, 色: "#22c55e" }]);
+  });
+
+  it("縦列に置く切替は、部品を出荷の縦列の範囲の中で梱包するの下に描く (#1980)", async () => {
+    const p = ((await 見本()).patterns ?? []).find((x) => x.名 === "縦列に置く");
+    expect(p, "縦列に置く切替が無い (前提が崩れた)").toBeDefined();
+    const laid = layout(p!.diagram);
+    const 出荷 = laid.lanes.find((l) => l.label === "出荷");
+    const 受付 = laid.lanes.find((l) => l.label === "受付");
+    expect(出荷 && 受付, "縦列を集められていない (前提が崩れた)").toBeTruthy();
+    const 要素 = laid.nodes.filter((n) => n.id.startsWith("設備の稼働__"));
+    expect(要素.length, "部品の要素を 1 つも集められていない (検査が空振りしている)").toBe(1);
+    const 印 = 要素[0]!;
+    const 梱包 = laid.nodes.find((n) => n.title === "梱包する")!;
+    expect(印.cx - 印.w / 2, "部品の左端が出荷の縦列の外").toBeGreaterThanOrEqual(出荷!.x);
+    expect(印.cx + 印.w / 2, "部品の右端が出荷の縦列の外").toBeLessThanOrEqual(
+      出荷!.x + 出荷!.width,
+    );
+    // 同じ縦列の普通の箱と縦にそろい、その下から 120 空けて置く
+    expect(印.cx).toBeCloseTo(梱包.cx, 0);
+    expect(印.cy - 印.h / 2).toBeCloseTo(梱包.cy + 梱包.h / 2 + 120, 0);
   });
 
   it("状態を上書きした切替は部品の段を外し、上書きした値のまま止まる", async () => {
@@ -84,7 +110,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       items.filter((i) => 部品の図か(i.id)).map((i) => i.diagram),
     );
     const 並び = (await 見本()).patterns ?? [];
-    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(4);
+    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(5);
     for (const p of 並び) {
       const 組み直し = textDslToDiagram(p.sourceYaml!, { partsCatalog: 編集画面の一覧 });
       expect(JSON.stringify(組み直し), `${p.名} が編集画面と違う図になる`).toBe(
