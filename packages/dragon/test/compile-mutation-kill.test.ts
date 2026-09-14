@@ -470,8 +470,11 @@ describe("applyGroupContainers", () => {
     const d = compileToCdl(makeDoc("topology", {
       // **`members` は `DslGroup` に無い** (正しくは `lanes`)。 この検査は「知らない項目が
       // 混ざっても `group-{id}` の枠は作られる」 ことを見るので、わざと壊れた形を渡す。
-      // `束ね()` を通すと型が正しくなり、見たい形が作れない
-      groups: { g1: { label: "G1", members: ["A"] } } as unknown as DslDocument["groups"],
+      // `束ね()` を通すと型が正しくなり、見たい形が作れない。 束ねる縦列 (`main` = topology が作る
+      // 縦列) を持たない組は枠を作らない (#1972) ので、`lanes` は正しく渡す
+      groups: {
+        g1: { label: "G1", lanes: ["main"], members: ["A"] },
+      } as unknown as DslDocument["groups"],
     }));
     const l = lane(d, "group-g1");
     expect(l.width).toBe(800);
@@ -2409,8 +2412,9 @@ describe("applyEdgeInlineOptions: 非 seq-like で正しい edge に割当てる
 });
 
 describe("applyGroupContainers: container lane 生成と重複回避", () => {
+  // 束ねる縦列を持たない組は枠を作らない (#1972)。 topology が作る縦列 `main` を束ねる
   it("groups から group-{id} lane が contain: true で作られる", () => {
-    const d = compile("topology", { groups: 束ね({ g1: { label: "G1" } }) });
+    const d = compile("topology", { groups: 束ね({ g1: { label: "G1", lanes: ["main"] } }) });
     const l = lane(d, "group-g1");
     expect(l.contain).toBe(true);
     expect(l.width).toBe(800);
@@ -2418,7 +2422,7 @@ describe("applyGroupContainers: container lane 生成と重複回避", () => {
   });
 
   it("label 未指定なら id が label になる (?? 分岐)", () => {
-    const d = compile("topology", { groups: 束ね({ g1: {} }) });
+    const d = compile("topology", { groups: 束ね({ g1: { lanes: ["main"] } }) });
     expect(lane(d, "group-g1").label).toBe("g1");
   });
 
@@ -2439,7 +2443,9 @@ describe("applyGroupContainers: container lane 生成と重複回避", () => {
   });
 
   it("複数 group がすべて lane 化される", () => {
-    const d = compile("topology", { groups: 束ね({ g1: {}, g2: {} }) });
+    const d = compile("topology", {
+      groups: 束ね({ g1: { lanes: ["main"] }, g2: { lanes: ["main"] } }),
+    });
     expect(d.lanes.some((l) => l.id === "group-g1")).toBe(true);
     expect(d.lanes.some((l) => l.id === "group-g2")).toBe(true);
   });

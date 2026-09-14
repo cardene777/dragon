@@ -187,7 +187,11 @@ export type CompileNotice = {
     // 順序図の言づてに、板が描かない飾り (色味 / 添え字 / 寄せ) を書いた (#1466)
     | "message-option-not-honored"
     // 位置のずらし (`pos` / `offsetX` / `offsetY`) を載せる相手が無いか、書いた量だけ動かせなかった (#1971)
-    | "position-offset-ignored";
+    | "position-offset-ignored"
+    // 組 (`groups:`) が束ねる縦列が図に無い (#1972)
+    | "group-lane-missing"
+    // 組が束ねる縦列の間に、束ねない縦列を挟んでいる (#1972)
+    | "group-lanes-apart";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
@@ -309,7 +313,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // その場で呼ぶと、 同じ edge に別の行を 2 度知らせることになる。
   const edgeSourceLines = opts?.onEdgeSource ? new Map<string, number>() : undefined;
   applyEdgeInlineOptions(diagram, doc, edgeSourceLines);
-  applyGroupContainers(diagram, doc);
+  const 作った組の枠 = applyGroupContainers(diagram, doc);
   applyNodeTones(diagram, doc);
   // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
   // 居ないかは記述だけで決まるので 1 か所で見る
@@ -564,6 +568,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 位置のずらしは **配置に効く欄を全て載せた後** に当てる (#1971)。 縦列の幅や視点の間隔を
   // 足す前に測ると、後から足された分だけ狙いがずれる
   applyLayoutOffsets(merged, doc, opts?.onNotice);
+  // 組の枠は **縦列の位置が全て決まった後** に置く (#1972)。 位置のずらしより前に置くと、
+  // ずらした縦列から枠が離れる
+  applyGroupFrames(merged, doc, 作った組の枠, opts?.onNotice);
   return merged;
 }
 
@@ -4490,18 +4497,19 @@ const SINGLE_BOX_KINDS: ReadonlySet<string> = new Set([
  * するため、 #998)。
  */
 /**
- * v0.5+ groups section を topology preset 経由の diagram に container lane として反映。
- * group.lanes に含まれる lane id 集合に対し、 wrap する `group-{id}` lane を contain: true で生成。
+ * v0.5+ groups section を、 束ねる縦列に重ねる枠の縦列 (`group-{id}`、 contain: true) として図に足す。
  *
- * 簡易実装 ... group container lane を独立 lane として並べ、 lane label に group.label を採用。
- * lane の物理的内包 (子 lane を group container の x 内に再配置) は engine layout に委ねる範囲外なので、
- * 本実装は CdlDiagram 上に「contain: true な group container lane」 を追加する最小骨格に留める。
+ * ここでは枠を作るだけで、 位置と大きさは縦列の位置が全て決まった後に `applyGroupFrames` が決める。
+ * 作った枠の id を返す = 同じ id の縦列を書き手が `lanes:` に書いていた時は作らず、 後で置き直さない。
  */
-function applyGroupContainers(diagram: CdlDiagram, doc: DslDocument): void {
-  if (!doc.groups || Object.keys(doc.groups).length === 0) return;
+function applyGroupContainers(diagram: CdlDiagram, doc: DslDocument): Set<string> {
+  const 作った = new Set<string>();
+  if (!doc.groups || Object.keys(doc.groups).length === 0) return 作った;
   for (const [id, g] of Object.entries(doc.groups)) {
     const containerId = `group-${id}`;
-    if (diagram.lanes.some((l) => l.id === containerId)) continue;
+    // 書き手が `lanes:` に同じ id を書いた縦列は、ここより後で図に入る。 枠として作ると書いた縦列と
+    // 重なって 1 本になり、 置き直しが書き手の位置と幅を上書きする
+    if (diagram.lanes.some((l) => l.id === containerId) || doc.lanes?.[containerId]) continue;
     diagram.lanes.push({
       id: containerId,
       width: 800,
@@ -4510,7 +4518,119 @@ function applyGroupContainers(diagram: CdlDiagram, doc: DslDocument): void {
       // 束ねる lane 群に重ねて描く枠。 横に並べる lane ではないので、 engine の間隔調整
       // (lane を詰めた分を幅で埋め合わせる処理) の対象から外す。
       role: "overlay",
+      // 置き直すまでは座標を固定しておく。 固定しない枠は縦列の並びに加わり、 他の縦列の間隔を
+      // 広げる (実測 = 3 本の縦列の 2 本目が 666 から 710 へ動いた)。 並びから外した配置で測らないと、
+      // 枠を置いた後に縦列が詰め直されて枠から外れる
+      posX: 0,
+      posY: 0,
+      posW: 1,
+      posH: 1,
     });
+    作った.add(containerId);
+  }
+  return 作った;
+}
+
+/**
+ * 組の枠と束ねた縦列の間の余白。
+ *
+ * | 向き | 値 | 理由 (実測) |
+ * |---|---|---|
+ * | 上 | 40 | 枠の名札を縦列の名札に重ねない高さ。 0 で 74 重なり、 40 で重ならない |
+ * | 下 | 20 | 箱の下端から枠を離す |
+ * | 横 (囲いを持つ縦列) | 20 | 枠を縦列の囲いの線に重ねない。 囲いを持つ縦列の間は矢印の名前が入る広さがある |
+ * | 横 (囲いの無い縦列) | 0 | 縦列の端は箱から既に離れている。 20 取ると、 縦列の間に置いた矢印の名前を枠の線が貫く (箱の種別 `person` で 8 食い込んだ) |
+ */
+const 組の枠の余白 = { 上: 40, 下: 20, 囲いの横: 20, 囲いの無い横: 0 } as const;
+
+/**
+ * 組 (`groups:`) の枠を、 束ねた縦列とその中の箱を全て囲む位置と大きさに置く (#1972)。
+ *
+ * **縦列の位置が全て決まった後に 1 度だけ配置して測る**。 枠は作った時から座標を固定してあるので、
+ * 枠を置いても他の縦列は動かない (固定した縦列は並びに加わらない)。
+ *
+ * 束ねた縦列の扱い。
+ *
+ * | 状態 | 扱い |
+ * |---|---|
+ * | 図に無い縦列を書いた | その縦列を除いて囲み、 無いことを知らせる |
+ * | 図に在る縦列が 1 本も無い | 枠を作らず、 知らせる (図の端に何も囲まない枠を描かない) |
+ * | 間に束ねない縦列を挟む | 間の縦列ごと囲み、 挟んだ縦列を知らせる (縦列の並びは書いた順を変えない) |
+ */
+function applyGroupFrames(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  作った枠: ReadonlySet<string>,
+  onNotice?: (notice: CompileNotice) => void,
+): void {
+  if (作った枠.size === 0) return;
+  const 置く: { 枠: CdlDiagram["lanes"][number]; 名前: string; line: number; 縦列: string[] }[] = [];
+  for (const [id, g] of Object.entries(doc.groups ?? {})) {
+    const 枠 = diagram.lanes.find((l) => l.id === `group-${id}`);
+    if (!枠 || !作った枠.has(枠.id)) continue;
+    const 書いた = Array.isArray(g.lanes) ? g.lanes : [];
+    const 在る = 書いた.filter((x) => diagram.lanes.some((l) => l.id === x && !作った枠.has(l.id)));
+    const 無い = 書いた.filter((x) => !在る.includes(x));
+    if (在る.length === 0) {
+      diagram.lanes = diagram.lanes.filter((l) => l !== 枠);
+      onNotice?.({
+        kind: "group-lane-missing",
+        actor: id,
+        line: g.pos?.line ?? 0,
+        message:
+          書いた.length === 0
+            ? `組 "${truncateForMessage(id)}" は束ねる縦列を書いていないので、枠を描きません`
+            : `組 "${truncateForMessage(id)}" が束ねる縦列 ${無い.map((x) => `"${truncateForMessage(x)}"`).join(", ")} が図に無いので、枠を描きません`,
+        hint: "`lanes: [縦列の名前, ...]` に `lanes:` で書いた縦列の名前を並べる",
+      });
+      continue;
+    }
+    if (無い.length > 0) {
+      onNotice?.({
+        kind: "group-lane-missing",
+        actor: id,
+        line: g.pos?.line ?? 0,
+        message: `組 "${truncateForMessage(id)}" が束ねる縦列 ${無い.map((x) => `"${truncateForMessage(x)}"`).join(", ")} が図に無いので、残りの縦列だけを囲みます`,
+        hint: "`lanes:` で書いた縦列の名前か確かめる",
+      });
+    }
+    置く.push({ 枠, 名前: id, line: g.pos?.line ?? 0, 縦列: 在る });
+  }
+  if (置く.length === 0) return;
+
+  const 配置 = layout(diagram);
+  const 並びの縦列 = 配置.lanes.filter((l) => !作った枠.has(l.id));
+  for (const { 枠, 名前, line, 縦列 } of 置く) {
+    const 束 = 並びの縦列.filter((l) => 縦列.includes(l.id));
+    const 左 = Math.min(...束.map((l) => l.x ?? 0));
+    const 右 = Math.max(...束.map((l) => (l.x ?? 0) + l.width));
+    // 束ねた縦列の左端と右端の間に入る縦列は、 束ねなくても枠に入る
+    const 挟んだ = 並びの縦列.filter(
+      (l) => !縦列.includes(l.id) && (l.x ?? 0) < 右 && (l.x ?? 0) + l.width > 左,
+    );
+    if (挟んだ.length > 0) {
+      onNotice?.({
+        kind: "group-lanes-apart",
+        actor: 名前,
+        line,
+        message: `組 "${truncateForMessage(名前)}" が束ねる縦列の間に ${挟んだ.map((l) => `"${truncateForMessage(l.id)}"`).join(", ")} があるので、その縦列も枠に入ります`,
+        hint: "束ねる縦列を `lanes:` で隣り合う順に並べる",
+      });
+    }
+    const 囲む縦列 = new Set([...束, ...挟んだ].map((l) => l.id));
+    const 囲む = [...束, ...挟んだ];
+    const 箱 = 配置.nodes.filter((n) => 囲む縦列.has(n.lane));
+    const 上 = Math.min(...囲む.map((l) => l.y ?? 0));
+    const 下 = Math.max(
+      ...囲む.map((l) => (l.y ?? 0) + (l.height ?? 0)),
+      ...箱.map((n) => n.cy + n.h / 2),
+    );
+    const 囲いを持つ = diagram.lanes.some((l) => 囲む縦列.has(l.id) && l.contain === true);
+    const 横 = 囲いを持つ ? 組の枠の余白.囲いの横 : 組の枠の余白.囲いの無い横;
+    枠.posX = 左 - 横;
+    枠.posY = 上 - 組の枠の余白.上;
+    枠.posW = 右 - 左 + 横 * 2;
+    枠.posH = 下 - 上 + 組の枠の余白.上 + 組の枠の余白.下;
   }
 }
 

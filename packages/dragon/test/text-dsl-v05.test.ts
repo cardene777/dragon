@@ -943,16 +943,22 @@ flow:
   });
 
   it("topology の group が contain: true の lane として生成される", () => {
+    // 組が束ねるのは縦列の id。 図に無い縦列だけを束ねた組は枠を描かない (#1972) ので、
+    // 束ねる縦列を書いて箱を入れる
     const r = parseTextDslV05(`
 title: "topo groups"
 type: topology
 
+lanes:
+  edge: { label: "入口" }
+  compute: { label: "計算" }
+
 groups:
-  aws: { label: "AWS Cloud", lanes: [alb, ecs] }
+  aws: { label: "AWS Cloud", lanes: [edge, compute] }
 
 actors:
-  - alb: service
-  - ecs: service
+  - alb: { kind: service, lane: edge }
+  - ecs: { kind: service, lane: compute }
 
 flow:
   - alb -> ecs: "route"

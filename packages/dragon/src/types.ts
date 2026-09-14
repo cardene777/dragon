@@ -539,11 +539,17 @@ export type DslLane = {
   pos: Position;
 };
 
-/** group 宣言 (v0.5+ top-level groups section、 topology preset 専用) */
+/**
+ * 組の宣言 (v0.5+ top-level groups section)。
+ *
+ * `lanes` に並べた縦列とその中の箱を、 縦列の位置が決まった後に 1 つの枠 (`group-{id}`) で囲む (#1972)。
+ * 図に無い縦列は除いて囲み、 1 本も無ければ枠を描かない。 間に束ねない縦列を挟むと、 その縦列ごと囲む。
+ * どちらも知らせで伝える。
+ */
 export type DslGroup = {
   id: string;
   label?: string;
-  lanes: string[]; // 内包する lane id
+  lanes: string[]; // 囲む縦列の id
   pos: Position;
 };
 

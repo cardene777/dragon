@@ -6296,11 +6296,11 @@ exports[`golden: topology preset > T08 with top-level lanes group 1`] = `
       "y": 60,
     },
     {
-      "height": 40,
+      "height": 100,
       "id": "group-cloud",
-      "width": 480,
-      "x": 1620,
-      "y": 28,
+      "width": 1060,
+      "x": 520,
+      "y": -12,
     },
     {
       "height": 40,
@@ -6345,9 +6345,9 @@ exports[`golden: topology preset > T08 with top-level lanes group 1`] = `
   "topic": "T08",
   "viewBox": {
     "h": 900,
-    "w": 2204,
+    "w": 1684,
     "x": -44,
-    "y": -24,
+    "y": -64,
   },
 }
 `;
