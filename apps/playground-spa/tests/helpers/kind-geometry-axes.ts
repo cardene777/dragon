@@ -302,47 +302,69 @@ const 絞り込み図の幅 = 軸を組む<number[]>({
     }),
 });
 
-type 根の位置 = { 幅: number; 高さ: number; 根: 点 | null };
+/** 図の枠 (`viewBox`) と、根の字の中心を枠の座標で測った位置 */
+export type 根の位置 = { 枠: { x: number; y: number; 幅: number; 高さ: number }; 根: 点 | null };
+
+/**
+ * 根の字の中心が、枠の中央から縦横とも枠の 20% 以内にあるかを見る (#1954)。
+ *
+ * **中央は枠の始点を入れて求める**。 見本の枠は `-35 68 865 600` のように始点が 0 でなく、
+ * 幅と高さの半分だけを中央にすると原点寄りの点と比べることになる。
+ */
+export function 根の位置の違反({ 枠, 根 }: 根の位置): string[] {
+  if (!根) return [];
+  const 中央 = { x: 枠.x + 枠.幅 / 2, y: 枠.y + 枠.高さ / 2 };
+  const 違反: string[] = [];
+  if (Math.abs(根.x - 中央.x) >= 枠.幅 * 0.2)
+    違反.push(`根の横の中心 (${根.x}) が枠の中央 (${中央.x}) から枠の幅の 20% 以上ずれている`);
+  if (Math.abs(根.y - 中央.y) >= 枠.高さ * 0.2)
+    違反.push(`根の縦の中心 (${根.y}) が枠の中央 (${中央.y}) から枠の高さの 20% 以上ずれている`);
+  return 違反;
+}
 
 const 枝分かれ図の根 = 軸を組む<根の位置>({
   名前: "枝分かれ図の根が図の中央から縦横とも 20% 以内にある",
   見本: "presetMindMap",
   下限: 1,
   待つ: 一拍待つ,
-  // 根の名前は図の定義から導く (#1838)。 字で書くと、見本を開いた日から噛み合わなくなる
+  /*
+   * 根の名前は図の定義から導く (#1838)。 字で書くと、見本を開いた日から噛み合わなくなる。
+   *
+   * **字の位置は枠の座標に直してから比べる** (#1954)。 根の字の祖先には `translate(25 128)` を
+   * 持つ `g` があり、字の `getBBox` はその移動を含まない局所の座標を返す。 局所の座標で比べていた
+   * 間は、根を持つ箱ごと図の中で動いても字の値は変わらず、判定は気付けなかった。
+   */
   測る: (page) =>
     page.evaluate((名) => {
-      const svg = document.querySelector('svg[role="img"]');
-      if (!svg) return { 幅: 0, 高さ: 0, 根: null };
-      const 枠 = svg.getAttribute("viewBox")?.split(/\s+/).map(Number) ?? [];
-      const 根 = Array.from(svg.querySelectorAll("text")).find((t) => t.textContent === 名);
-      if (!根) return { 幅: 枠[2] ?? 0, 高さ: 枠[3] ?? 0, 根: null };
-      const bb = (根 as SVGGraphicsElement).getBBox();
-      return {
-        幅: 枠[2] ?? 0,
-        高さ: 枠[3] ?? 0,
-        根: { x: bb.x + bb.width / 2, y: bb.y + bb.height / 2 },
-      };
+      const svg = document.querySelector<SVGSVGElement>('svg[role="img"]');
+      const [x = 0, y = 0, 幅 = 0, 高さ = 0] = (svg?.getAttribute("viewBox") ?? "")
+        .split(/\s+/)
+        .map(Number);
+      const 枠 = { x, y, 幅, 高さ };
+      const 根 = Array.from(svg?.querySelectorAll("text") ?? []).find((t) => t.textContent === 名);
+      const 枠へ = svg?.getScreenCTM()?.inverse();
+      const 字から画面へ = 根?.getScreenCTM();
+      if (!根 || !枠へ || !字から画面へ) return { 枠, 根: null };
+      const bb = 根.getBBox();
+      const 中心 = new DOMPoint(bb.x + bb.width / 2, bb.y + bb.height / 2).matrixTransform(
+        枠へ.multiply(字から画面へ),
+      );
+      return { 枠, 根: { x: 中心.x, y: 中心.y } };
     }, 見本の根の名前()),
   母数: ({ 根 }) => (根 ? 1 : 0),
-  // `viewBox` の始点は見ない (今の判定をそのまま移した、 #1952 の範囲外)
-  判定: ({ 幅, 高さ, 根 }) => {
-    if (!根) return [];
-    const 違反: string[] = [];
-    if (Math.abs(根.x - 幅 / 2) >= 幅 * 0.2)
-      違反.push(`根の横の中心 (${根.x}) が図の中央 (${幅 / 2}) から 20% 以上ずれている`);
-    if (Math.abs(根.y - 高さ / 2) >= 高さ * 0.2)
-      違反.push(`根の縦の中心 (${根.y}) が図の中央 (${高さ / 2}) から 20% 以上ずれている`);
-    return 違反;
-  },
-  // 根の字を図の幅の半分だけ右へ動かす
+  判定: 根の位置の違反,
+  // 根の字の親の `g` を枠の幅の半分だけ右へ動かす。 字の局所の座標は変わらない崩れ
   壊す: (page) =>
     page.evaluate((名) => {
       const svg = document.querySelector('svg[role="img"]');
       const 幅 = Number(svg?.getAttribute("viewBox")?.split(/\s+/)[2] ?? 0);
       const 根 = Array.from(svg?.querySelectorAll("text") ?? []).find((t) => t.textContent === 名);
-      if (!根) return;
-      根.setAttribute("x", String(parseFloat(根.getAttribute("x") ?? "0") + 幅 * 0.5));
+      const 親 = 根?.parentElement;
+      if (!親) return;
+      親.setAttribute(
+        "transform",
+        `${親.getAttribute("transform") ?? ""} translate(${幅 * 0.5} 0)`.trim(),
+      );
     }, 見本の根の名前()),
 });
 
