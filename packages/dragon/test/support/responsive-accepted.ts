@@ -8,38 +8,64 @@
  *
  * カタログは同じ図を 2 通りの見せ方で出す。 器が違えば読めるかどうかも変わる。
  *
- * | 器 | 寸法 | 下限を割る枚数 |
- * |---|---|---|
- * | 拡大表示 | 1150 × 630px | 20 |
- * | 一覧に並べた枠 | 幅 874px (高さの上限なし) | 55 |
+ * | 器 | 寸法 |
+ * |---|---|
+ * | 拡大表示 | 1150 × 630px |
+ * | 一覧に並べた枠 | 幅 874px (高さの上限なし) |
  *
- * 重なりは 12 枚。 拡大だけで割る 8 枚は縦に長い図で、一覧は縦を巻き取るので割らない。
- * 一覧だけで割る 43 枚は横に長い図で、拡大表示のほうが器が広いので割らない。
+ * 拡大だけで割るのは縦に長い図で、一覧は縦を巻き取るので割らない。
+ * 一覧だけで割るのは横に長い図で、拡大表示のほうが器が広いので割らない。
+ * 両方で割る図もある。
+ *
+ * **枚数は書かない** = カタログの群を足すたびに動く (実数は下の `受け入れた一覧` が持つ)。
  *
  * ## 図ごとに器を書く
  *
  * 群ごとにまとめられない = 同じ群でも器によって割れ方が違う (`縦にも横にも大きい図` の
  * 5 枚は、拡大では 5 枚とも割るが一覧では 2 枚しか割らない)。
  *
- * ## 一覧は手で書く
+ * ## 受け入れた一覧は手で書き、母集団は走査で作る
  *
- * 実際の集合から作ると、何を書いても通る検査になる。 図を足して境を割ったら落ちるのが
- * この一覧の役目で、落ちた時に「受け入れる (理由付きで足す)」 か「図を直す」 かを決める。
+ * **受け入れた一覧** を実際の集合から作ると、何を書いても通る検査になる。 図を足して境を
+ * 割ったら落ちるのがこの一覧の役目で、落ちた時に「受け入れる (理由付きで足す)」 か
+ * 「図を直す」 かを決める。
+ *
+ * **母集団 (`全図`)** は逆に走査で作る (#2004)。 手で並べると、群を足した時に追記を忘れても
+ * 何も落ちず、検査が見ない群が黙って増える (実際に `parts-in-box.cdl.ts` の 9 枚が
+ * 4 つの検査から漏れていた)。 守りたい集合と検査の母集団を一致させるのは
+ * 検査の側の責務で、受け入れの判断とは向きが逆になる。
  */
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
-import * as cookbook from "../../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
-import * as patterns from "../../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
-import * as presets from "../../../../apps/playground-spa/src/topics/catalog/presets.cdl";
-import * as primitives from "../../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
-import * as primitivesExtra from "../../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
-import * as textDsl from "../../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
-import * as animation from "../../../../apps/playground-spa/src/topics/catalog/animation.cdl";
-import * as styles from "../../../../apps/playground-spa/src/topics/catalog/styles.cdl";
-import * as interactive from "../../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
-import * as ethereum from "../../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
-import * as parts from "../../../../apps/playground-spa/src/topics/catalog/parts.cdl";
-import * as charts from "../../../../apps/playground-spa/src/topics/catalog/charts.cdl";
+/**
+ * dir を走査する Vite の仕掛けの型。
+ *
+ * 本来は `vite/client` が持つが、この package からは `vite` を引けない (pnpm の厳密な解決で
+ * 依存に無い package は見えない)。 使う形だけをここで書く。
+ *
+ * **呼び出しは `import.meta.glob(...)` の形のまま書く**。 括弧で包んだり変数に入れたりすると
+ * Vite が走査の対象と見なさず、実行時に「関数が無い」 で落ちる。
+ */
+declare global {
+  interface ImportMeta {
+    glob: (pattern: string, options: { eager: true }) => Record<string, unknown>;
+  }
+}
+
+/**
+ * カタログの群を **dir の走査で集める** (#2004)。
+ *
+ * 以前は `import` を 1 群ずつ手で並べていた。 群を足した時に追記を忘れても何も落ちず、
+ * 実際に `parts-in-box.cdl.ts` (#1973 で足した 9 枚) が抜けたまま残って、この一覧を読む
+ * 4 つの検査が 1 度も見ていなかった。
+ *
+ * 走査した群が dir の実体と一致することは `test/catalog-population.test.ts` が名前で確かめる
+ * (走査に変えただけでは、走査の書き方を間違えて 0 件になっても気付けない)。
+ */
+const 群ごと: Record<string, unknown> = import.meta.glob(
+  "../../../../apps/playground-spa/src/topics/catalog/*.cdl.ts",
+  { eager: true },
+);
 
 const 図か = (v: unknown): v is CdlDiagram =>
   typeof v === "object" &&
@@ -47,21 +73,21 @@ const 図か = (v: unknown): v is CdlDiagram =>
   Array.isArray((v as CdlDiagram).nodes) &&
   Array.isArray((v as CdlDiagram).lanes);
 
+/**
+ * 走査で見つけたカタログの群の名前 (`*.cdl.ts` の `*`、並べ替え済)。
+ *
+ * dir の実体と突き合わせるために出す。 図の中身ではなく **どの群を読んだか** を見る値で、
+ * 図を 1 枚も持たない群があっても数に入る。
+ */
+export const カタログの群の名 = (): string[] =>
+  Object.keys(群ごと)
+    .map((p) => p.slice(p.lastIndexOf("/") + 1).replace(/\.cdl\.ts$/, ""))
+    .sort();
+
 /** カタログの全図。 枚数は増えるので書かない。 */
-export const 全図: CdlDiagram[] = [
-  cookbook,
-  patterns,
-  presets,
-  primitives,
-  primitivesExtra,
-  textDsl,
-  animation,
-  styles,
-  interactive,
-  ethereum,
-  parts,
-  charts,
-].flatMap((m) => Object.values(m as Record<string, unknown>).filter(図か));
+export const 全図: CdlDiagram[] = Object.keys(群ごと)
+  .sort()
+  .flatMap((k) => Object.values(群ごと[k] as Record<string, unknown>).filter(図か));
 
 /**
  * 画面の実測に使う基準の画面 (px)。 `#1740` 以降の実測は全てこの大きさで取っている
@@ -219,6 +245,18 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       { id: "呼び出しと書き込みと出来事", 器: ["一覧"] },
     ],
   },
+  {
+    群: "部品を箱に使う見本 (#2004)",
+    理由:
+      "幅を決めているのは部品そのものの大きさで、部品を減らすか小さくするしか縮める道がない。" +
+      " どちらも「部品を図の箱として使う」 という見本の中身を削る" +
+      " (#2002 で縦の空きは詰めた。 残るのは部品の実寸)",
+    図: [
+      { id: "受注から在庫の上層へ-在庫の底層から出荷へ矢印を繋ぐ", 器: ["一覧"] },
+      { id: "点検の結果を部品に送り-部品から保全へ知らせる", 器: ["一覧"] },
+      { id: "製造ラインの設備-3-台と乾燥炉の温度-工場の回線を並べる", 器: ["拡大", "一覧"] },
+    ],
+  },
 ];
 
 /** その器で受け入れた図の id (並べ替え済) */
@@ -264,7 +302,7 @@ export interface 縦に長い群 {
  * 一覧の台で `縦に長い線` を超えて描かれる図。 **実物から作らず手で書く**。
  *
  * 伸ばすのをやめる道 (台に伸びの上限を入れる / 高さの頭打ちを入れる) は採らなかった =
- * 444 枚中 238 枚の見え方が変わる一方、読み手には倍率の操作があって縮められる (#1749)。
+ * 決めた当時の 444 枚中 238 枚の見え方が変わる一方、読み手には倍率の操作があって縮められる (#1749)。
  * 詳細は #1753 の判断の記録。
  */
 export const 縦に長い一覧: readonly 縦に長い群[] = [
@@ -356,6 +394,20 @@ export const 縦に長い一覧: readonly 縦に長い群[] = [
       "animation-rich-order-status-flow",
       "er-complex-demo",
       "flow-demo",
+    ],
+  },
+  {
+    群: "部品を箱に使う見本 (#2004)",
+    理由:
+      "部品 1 つを箱として置く 4 枚は縦横がほぼ 1 対 1 (viewBox 514x552 / 351x400) で、" +
+      "幅に合わせると縦も同じだけ伸びる。" +
+      " 流れの途中に部品を置く 1 枚は箱の下に部品を置く形そのもので縦に長い",
+    図: [
+      "注文を受けてから出荷するまでの間に設備の稼働を置く",
+      "部品の塗りの割合を-4-割で止める",
+      "部品の塗りを赤の色番号にする",
+      "部品を-0-6-倍に縮めて置く",
+      "部品を箱に置き何も書き換えない",
     ],
   },
 ];
