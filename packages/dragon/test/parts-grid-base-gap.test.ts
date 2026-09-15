@@ -37,7 +37,7 @@ const 一覧: Record<string, CdlDiagram> = {
 };
 
 const 組み立てる = (本文: string): ReturnType<typeof layout> =>
-  layout(textDslToDiagram(本文, { partsCatalog: 一覧 }) as unknown as CdlDiagram);
+  layout(textDslToDiagram(本文, { partsCatalog: 一覧 }));
 
 /** `名前__` で始まる箱の上端 / 下端。 */
 const 上端 = (laid: ReturnType<typeof layout>, 前置き: string): number =>

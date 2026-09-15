@@ -449,6 +449,42 @@ describe("欄が取る値を、カタログが全て見せている (#1966)", ()
 });
 
 /**
+ * 型定義に書かれた値を、道に入れる文字にする。
+ *
+ * **`String` で作らない**。 組や配列を渡すと `[object Object]` になり、別々の値が同じ道に
+ * 潰れる = 覆い方の数え方が狂う。 いまの型定義に組の値は 0 件だが、足した時に黙って潰れる形は
+ * 残さない。
+ *
+ * 文字列はそのまま使う (`JSON.stringify` だと引用符が付き、道の見た目が変わる)。
+ */
+function 値の字(v: unknown): string {
+  return typeof v === "string" ? v : JSON.stringify(v);
+}
+
+describe("型定義の値を道に入れる文字にする (#2006)", () => {
+  it("中身が違う組は違う道になる", () => {
+    // `String` で作ると両方 `[object Object]` になり、1 つ覆えば両方覆ったことになる
+    expect(値の字({ w: 1 })).not.toBe(値の字({ w: 2 }));
+    expect(値の字({ w: 1 })).toBe('{"w":1}');
+  });
+
+  it("中身が違う並びも違う道になる", () => {
+    // `String` で作ると両方 `x,y` になる
+    expect(値の字(["x", "y"])).not.toBe(値の字(["x,y"]));
+  });
+
+  it("文字列はそのまま使う (引用符を付けない)", () => {
+    expect(値の字("card")).toBe("card");
+  });
+
+  it("数と真偽と null も読める形にする", () => {
+    expect(値の字(3)).toBe("3");
+    expect(値の字(true)).toBe("true");
+    expect(値の字(null)).toBe("null");
+  });
+});
+
+/**
  * 型定義を歩き、欄の道 (`$.actors[].kind`) と列挙値 (`$.actors[].kind=card`) を全て集める。
  *
  * 自由な名前を鍵に取る組 (`lanes` や `states`) は `.*` で表す。 同じ型を参照で辿り直す形
@@ -474,8 +510,8 @@ function 型定義の道を集める(): Set<string> {
     for (const 組 of ["oneOf", "anyOf", "allOf"]) {
       for (const x of (型[組] as unknown[] | undefined) ?? []) 歩く(x, 道, 通った);
     }
-    if (Array.isArray(型.enum)) for (const v of 型.enum) 出.add(`${道}=${String(v)}`);
-    if (型.const !== undefined) 出.add(`${道}=${String(型.const)}`);
+    if (Array.isArray(型.enum)) for (const v of 型.enum) 出.add(`${道}=${値の字(v)}`);
+    if (型.const !== undefined) 出.add(`${道}=${値の字(型.const)}`);
     for (const [k, v] of Object.entries((型.properties as 素 | undefined) ?? {})) {
       出.add(`${道}.${k}`);
       歩く(v, `${道}.${k}`, 通った);
@@ -576,10 +612,10 @@ describe("記法の型定義の全ての欄と値を、カタログの JSON が�
   let 型の道 = new Set<string>();
   let 自由 = new Set<string>();
   /** JSON ごとの書かれた道 */
-  let JSONごと: Set<string>[] = [];
+  const JSONごと: Set<string>[] = [];
   let 書いた = new Set<string>();
   let JSON文字列: string[] = [];
-  let 読めない: string[] = [];
+  const 読めない: string[] = [];
 
   beforeAll(async () => {
     型の道 = 型定義の道を集める();

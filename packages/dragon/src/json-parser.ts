@@ -1523,8 +1523,9 @@ function validateFormulas(v: unknown, inputs: unknown, errors: JsonDslError[]): 
       errors.push({ path, ...valueNameIssue(名前) });
       continue;
     }
-    const 式 = 式の組を検査する(値, path, errors);
-    if (式 === 組が読めない) continue;
+    const 検査結果 = 式の組を検査する(値, path, errors);
+    if (!検査結果.読めた) continue;
+    const 式 = 検査結果.値;
     if (typeof 式 !== "string" || 式.trim() === "") {
       errors.push({
         path,
@@ -1567,22 +1568,24 @@ function validateFormulas(v: unknown, inputs: unknown, errors: JsonDslError[]): 
 }
 
 /**
+ * 式の組を検査した結果 (#1916 / #2006)。
+ *
+ * **読めたかどうかを別の欄に持つ**。 値そのものに合図を混ぜると、`{ a: null }` の `null` が
+ * 合図と区別が付かず、呼び手が「組の誤りは知らせ済み」 と読んで何も知らせずに通してしまう (実測)。
+ *
+ * 印 (`unique symbol`) を値に混ぜる形も採らない。 返す型が `unknown` を含むと印が飲み込まれ、
+ * 呼び手は型で見分けられないまま等値比較に頼ることになる。
+ */
+type 式の検査結果 = { readonly 読めた: true; readonly 値: unknown } | { readonly 読めた: false };
+
+/**
  * 式の値が組の形 (`{ expression, label }`) なら組を検査し、式の文字列を返す (#1916)。
  *
  * 文字列やそれ以外の形は **そのまま返す** = 式の文字列の検査は呼び手が文字列の形と同じ経路で行う。
- * 組に誤りがあれば知らせて `組が読めない` を返す。
- *
- * **誤りの合図を `null` にしない**。 `{ a: null }` の `null` がそのまま返ると合図と区別が付かず、
- * 呼び手が「組の誤りは知らせ済み」 と読んで何も知らせずに通してしまう (実測)。
+ * 組に誤りがあれば知らせて `読めた: false` を返す。
  */
-const 組が読めない: unique symbol = Symbol("組が読めない");
-
-function 式の組を検査する(
-  値: unknown,
-  path: string,
-  errors: JsonDslError[],
-): unknown | typeof 組が読めない {
-  if (!値 || typeof 値 !== "object" || Array.isArray(値)) return 値;
+function 式の組を検査する(値: unknown, path: string, errors: JsonDslError[]): 式の検査結果 {
+  if (!値 || typeof 値 !== "object" || Array.isArray(値)) return { 読めた: true, 値 };
   const 組 = 値 as Record<string, unknown>;
   let 読めた = true;
   for (const 鍵 of Object.keys(組)) {
@@ -1610,7 +1613,7 @@ function 式の組を検査する(
       hint: "名札を付けないなら label を書かない",
     });
   }
-  return 読めた ? 組.expression : 組が読めない;
+  return 読めた ? { 読めた: true, 値: 組.expression } : { 読めた: false };
 }
 
 /**

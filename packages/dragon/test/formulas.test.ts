@@ -343,6 +343,28 @@ describe("JSON でも式を書ける (#1391)", () => {
     if (!r.ok) expect(r.errors.map((e) => e.path)).toContain(場所);
   });
 
+  it("組の誤りを知らせた後、文字列の形の知らせを重ねない (#1916 / #2006)", () => {
+    // 組の検査は「読めたか」 を値と別の欄で返す。 誤りを値 (`null` / 印) で表すと、
+    // 呼び手が組の誤りを素通しの値と取り違えて、同じ場所に 2 つ目の知らせを積む
+    const 組の誤り = validateDragonJson(JSONの図({ a: { label: "名札" } }));
+    expect(組の誤り.ok, "式の無い組が通っている").toBe(false);
+    if (!組の誤り.ok) {
+      const 道 = 組の誤り.errors.map((e) => e.path);
+      expect(道, "組の誤りを知らせていない").toContain("$.formulas.a.expression");
+      expect(道, "組の誤りに文字列の形の知らせが重なっている").not.toContain("$.formulas.a");
+    }
+
+    // 陽性側 = 組でない値は素通しして、文字列の形の検査が `$.formulas.a` を知らせる。
+    // これが出ないなら上の `not.toContain` は空振りで、何を書いても通る
+    const 素通し = validateDragonJson(JSONの図({ a: null }));
+    expect(素通し.ok, "組でない値が通っている").toBe(false);
+    if (!素通し.ok) {
+      expect(素通し.errors.map((e) => e.path), "文字列の形の知らせが出ていない").toContain(
+        "$.formulas.a",
+      );
+    }
+  });
+
   it("組の形の式も、前方参照を拒む (#1916)", () => {
     const r = validateDragonJson(
       JSONの図({
