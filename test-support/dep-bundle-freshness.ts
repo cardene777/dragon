@@ -143,6 +143,27 @@ export function staleBundles(
   return { stale, 見た, 見られなかった };
 }
 
+/**
+ * 束ねが古い時の説明。 古くなければ `null` (#1998)。
+ *
+ * **判定を 1 箇所に閉じる**。 vitest の前処理と画面の検査の 2 経路が同じ古さを見るので、
+ * それぞれで `staleBundles` の結果を読んで組み立てると、片方だけ条件が変わって食い違う。
+ *
+ * 逃し口の案内は呼出側が足す = 外し方が経路ごとに違う (片方は環境変数、もう片方は走らせる
+ * 検査の選び方)。
+ *
+ * 束ねが無い形と読めない形では `null` を返す。 見られなかったことを「古い」 に倒すと、
+ * 開発 server を 1 度も立てていない環境で必ず止まる。 見られた件数が要るなら
+ * `staleBundles` を直接呼ぶ。
+ */
+export function bundleFreshnessProblem(
+  root: string,
+  bundles: readonly Bundle[] = BUNDLES,
+): string | null {
+  const { stale } = staleBundles(root, bundles);
+  return stale.length === 0 ? null : staleBundleReport(stale);
+}
+
 /** 落ちた時の案内。 ずれた実体と次の一手を必ず添える */
 export function staleBundleReport(stale: readonly Stale[]): string {
   return stale

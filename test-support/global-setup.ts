@@ -4,7 +4,7 @@ import { dirname, join, parse } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { staleReport } from "./dist-freshness";
-import { staleBundleReport, staleBundles } from "./dep-bundle-freshness";
+import { bundleFreshnessProblem } from "./dep-bundle-freshness";
 
 /**
  * test の前に、 test が実際に読む `dist` が `src` より古くないかを見る。
@@ -110,10 +110,10 @@ export default function setup(): void {
   //
   // `dist` の古さと分けて出す = 直し方が違う (片方は build、もう片方は server の入れ直し)。
   // まとめると、どちらを直せばよいか読み手が決められない
-  const bundles = staleBundles(ROOT);
-  if (bundles.stale.length > 0) {
+  const bundles = bundleFreshnessProblem(ROOT);
+  if (bundles !== null) {
     throw new Error(
-      `画面が使う依存の束ねが古い。\n\n${staleBundleReport(bundles.stale)}\n\n` +
+      `画面が使う依存の束ねが古い。\n\n${bundles}\n\n` +
         `一時的に外すなら SKIP_DIST_FRESHNESS=1 を付ける。`,
     );
   }
