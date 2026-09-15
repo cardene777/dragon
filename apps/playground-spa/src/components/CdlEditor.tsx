@@ -701,6 +701,23 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // cdl の矢印は stroke 4px の線で、 正確に click するのが実質不可能。 ラベルの text も
   // 当たり判定がグリフの輪郭しかなく、 文字の隙間や周囲の余白では反応しない。
   // 描画は変えずに掴める範囲だけを広げる (詳細 = `lib/svg-hit-area.ts`)。
+  /**
+   * 舞台の要素。 控えと状態の 2 つで持つ。
+   *
+   * 控え (`previewRef`) は、舞台を測る関数と効果が依存に持たずに読むためのもの。
+   * 状態 (`stageEl`) は、舞台に重ねる表示 (`PhaseChrome`) へ渡すためのもの = 控えは最初の描画で
+   * `null` のままで、埋まっても描き直しが起きないので渡せない (#1143)。
+   *
+   * **この 3 つは、控えを読む効果より前に置く** (#2020)。 後ろに置くと、控えを読む効果が先に
+   * 書かれた形になり、静的検査が「効果が読んだ後に書き換えている」 と読む。
+   */
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [stageEl, setStageEl] = useState<HTMLDivElement | null>(null);
+  const setStage = useCallback((el: HTMLDivElement | null) => {
+    previewRef.current = el;
+    setStageEl(el);
+  }, []);
+
   // 文字倍率を SVG に反映する。 再 render で SVG が作り直されるたびに当て直す。
   useEffect(() => {
     const svg = stageSvgOf(previewRef.current);
@@ -755,16 +772,6 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     }
     return () => { for (const o of observers) o.disconnect(); };
   }, [overlayParts, applyOverlayBg]);
-  const previewRef = useRef<HTMLDivElement>(null);
-  /**
-   * 舞台の要素そのもの。 `previewRef` は最初の描画で `null` のままで、 埋まっても再描画が
-   * 起きないため、 舞台に重ねる表示 (`PhaseChrome`) に渡せない (#1143)。
-   */
-  const [stageEl, setStageEl] = useState<HTMLDivElement | null>(null);
-  const setStage = useCallback((el: HTMLDivElement | null) => {
-    previewRef.current = el;
-    setStageEl(el);
-  }, []);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
   // 2026-07-24 fix = finalize 時に clearLiveTransform を遅延実行するための ref。
@@ -1214,7 +1221,12 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     if (!laid) return { x: 0, y: 0 };
     return { x: laid.viewBox.x, y: laid.viewBox.y };
   }, [laid]);
-  worldOriginRef.current = worldOrigin;
+  // 控えへ写すのは描き終えた後にする (#2020)。 読むのは `handleFit` だけで、その関数が走るのは
+  // 押した時と図が変わった後の効果 = どちらも描き終えた後なので、写す時機を遅らせても同じ値を読む。
+  // 控えに写すのは `handleFit` の作り直しを避けるため (作り直すと下の効果が登録し直しになる)
+  useEffect(() => {
+    worldOriginRef.current = worldOrigin;
+  }, [worldOrigin]);
 
   /**
    * 各要素が今どこに居るか。 切り替えが入の時だけ測る。
