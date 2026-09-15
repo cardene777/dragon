@@ -42,6 +42,15 @@ import * as 部品 from "./parts.cdl";
  *
  * 静止した `flow` は登場人物を書いた順に矢印で繋ぐが、どの行にも書かれていない部品は繋ぐ並びに入れず、
  * 図の下の格子に置く。 部品を 2 つの箱の間に書いても、前後の箱が矢印で繋がることを見せる。
+ *
+ * ## 並べる (#1990)
+ *
+ * 位置を書かない部品は格子に並び、登場人物の名前は部品のすぐ上に 1 つだけ出る。 部品を 4 つ置いて
+ * 2 段目に並ぶ部品を作り、2 段目の名前も自分の部品の上に出ることを見せる。
+ *
+ * 縦列を 2 本以上持つ部品 (`gauge-cluster` 等 12 種) は混ぜない。 どれも部品の中の要素の間が 70 に
+ * 届かず、図に置くと間隔の検査に掛かる (実測 = `gauge-cluster` は 60)。 名前を縦列ごとに繰り返さない
+ * ことは組み立て側のテスト (`part-name-label.test.ts`) が見る。
  */
 
 const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
@@ -49,7 +58,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partInBox = "書かない";
 
 export const subtitle__partInBox =
-  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、流れの途中に置く";
+  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、流れの途中に置き、名前を添えて並べる";
 
 export const sourceYaml__partInBox = `title: "部品を箱に置き何も書き換えない"
 type: flow
@@ -258,3 +267,29 @@ export const pattern__partInBox__流れの途中に置く = textDslToDiagram(
   sourceYaml__pattern__partInBox__流れの途中に置く,
   { partsCatalog: 部品の一覧 },
 );
+
+export const sourceYaml__pattern__partInBox__並べる = `title: "製造ラインの設備 3 台と乾燥炉の温度を並べる"
+type: flow
+
+actors:
+  - 成形機: { kind: state-indicator }
+  - 塗装機: { kind: state-indicator }
+  - 乾燥炉: { kind: state-indicator, color: "#d9534f" }
+  - 乾燥炉の温度: { kind: thermometer }
+`;
+
+export const sourceJson__pattern__partInBox__並べる = `{
+  "title": "製造ラインの設備 3 台と乾燥炉の温度を並べる",
+  "type": "flow",
+  "actors": [
+    { "name": "成形機", "kind": "state-indicator" },
+    { "name": "塗装機", "kind": "state-indicator" },
+    { "name": "乾燥炉", "kind": "state-indicator", "color": "#d9534f" },
+    { "name": "乾燥炉の温度", "kind": "thermometer" }
+  ],
+  "flow": []
+}`;
+
+export const pattern__partInBox__並べる = textDslToDiagram(sourceYaml__pattern__partInBox__並べる, {
+  partsCatalog: 部品の一覧,
+});
