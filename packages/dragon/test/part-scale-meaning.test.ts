@@ -153,17 +153,22 @@ describe("倍率の意味 (#1026)", () => {
     expect(jp, `日本語の項目名が読めていない (${jp} / ${en})`).toBeCloseTo(en, 1);
   });
 
-  it("日本語の項目名が状態として拾われない", () => {
+  it("日本語の項目名が状態として拾われず、読めないことを知らせる", () => {
     // 中括弧の形が日本語の項目名を読めるようになった副作用で、縦に並べた形でしか
-    // 意味を持たない項目 (位置 / 大きさ 等) が状態の上書きに流れると、見本の中身が変わる
-    const d = textDslToDiagram(
+    // 意味を持たない項目 (位置 / 大きさ 等) が状態の上書きに流れると、見本の中身が変わる。
+    //
+    // 状態に流れないだけでは足りないことが #1996 で分かった = どの欄も読まないので、
+    // 書いた指定が黙って消えていた。 いまは 3 つとも知らせが出て組み立てまで進まない。
+    // 予約から外して状態に流れるようになれば知らせが消えるため、この検査が落ちる
+    const r = parseTextDslV05(
       `${head}actors:\n  - a: { kind: sample, 位置: 300, 大きさ: 400, 色: 失敗 }\n${tail}`,
-      { partsCatalog: catalog },
     );
-    const ids = (d.states ?? []).map((st) => String(st.id ?? ""));
-    for (const key of ["位置", "大きさ", "色"]) {
-      expect(ids.some((id) => id.endsWith(key)), `${key} が状態になっている (${ids.join(",")})`).toBe(false);
-    }
+    const 知らせ = r.ok
+      ? []
+      : r.errors.filter((e) => e.message.includes("項目名が読めません")).map((e) => e.message);
+    expect(知らせ.sort()).toEqual(
+      ["位置", "大きさ", "色"].map((k) => `項目名が読めません: "${k}"`).sort(),
+    );
   });
 
   it("別名と重複の規則が 2 経路で揃う", () => {

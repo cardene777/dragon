@@ -3204,7 +3204,7 @@ function collectAnimationSteps(
  * `{ v: 50, count: 100 }` state override map に集約する経路。
  * 予約語衝突時は `state: { v: 50 }` 明示 fallback を使う (別 field で処理)。
  */
-const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
+export const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "kind",
   "subtitle",
   "eyebrow",
@@ -3390,8 +3390,28 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
 ]);
 // `state` はパーツでだけ意味を持つ (`extractStateOverride` がパーツの時しか作らない)。
 // 通常の箱で読める扱いにすると `- A: { state: { foo: 1 } }` が黙って消え、 本 file が塞ごうと
-// している経路が予約語で残る (Round 1 review の指摘、 実測で確認)。 パーツ側は `isPart` の
-// 早期 return が先に効くのでここに載せる必要が無い
+// している経路が予約語で残る (Round 1 review の指摘、 実測で確認)。 パーツ側は
+// `PART_INLINE_UNREADABLE_KEYS` が `state` を外すのでここに載せる必要が無い
+
+/**
+ * パーツの中括弧で、予約されているのにどの欄も読まない項目名 (#1996)。
+ *
+ * パーツでは中括弧に書いた名前が状態の上書きになる (`extractStateOverride`) ため、読めない
+ * 名前をまとめて知らせることはできない。 一方 `ACTOR_RESERVED_FIELDS` に載る名前は状態の
+ * 上書きから外れるので、`INLINE_ACTOR_KEYS` にも無い名前はどこにも行かずに消える。
+ *
+ * 実測 = `- 甲: { kind: edge-chain, 大きさ: 900,400 }` は書かない時と 1 ピクセルも変わらず
+ * (どちらも `viewBox 1951x552` / パーツの幅 896)、知らせも 1 件も出なかった。 同じ語を縦に
+ * 並べた形で書けば効き、パーツでない箱に中括弧で書けば知らせが出る = 同じ語の扱いが
+ * 「パーツかどうか」 と「書く場所」 で 3 通りに割れていた。
+ *
+ * **2 つの集合の差から導く**。 手で並べると、予約の一覧に名前を足した時に知らせだけが
+ * 取り残される。 `state` だけは差から外す = `extractStateOverride` が明示欄として読むため、
+ * 予約されていても消える名前ではない。
+ */
+export const PART_INLINE_UNREADABLE_KEYS: ReadonlySet<string> = new Set(
+  [...ACTOR_RESERVED_FIELDS].filter((key) => !INLINE_ACTOR_KEYS.has(key) && key !== "state"),
+);
 
 /**
  * 矢印の中括弧に書ける欄と、その読み方 (#1275)。
@@ -3496,7 +3516,10 @@ export const FLOW_INLINE_KEYS = Object.keys(
  * 5 つの箱すべてで題が捨てられて識別子 (`root` 等) が出ていた。 知らせも出ないため、 書いた
  * 人には「書いたのに図が変わらない」 としか見えない。
  *
- * パーツでは知らせない。 中括弧に書いた名前は状態の上書きとして意味を持つ (`extractStateOverride`)。
+ * パーツでは名前の大半を知らせない。 中括弧に書いた名前は状態の上書きとして意味を持つ
+ * (`extractStateOverride`)。 ただし状態の上書きからも外れる名前 (`PART_INLINE_UNREADABLE_KEYS`)
+ * だけは知らせる = どの欄も読まず状態にも入らないため、黙ると「書いたのに図が変わらない」 が
+ * 手掛かりなしで起きる (#1996)。
  */
 function reportUnknownInlineKeys(
   isPart: boolean,
@@ -3504,7 +3527,6 @@ function reportUnknownInlineKeys(
   line: number,
   errors: DslError[],
 ): void {
-  if (isPart) return;
   // 値が空の形 (`{ title: }`) も見る。 `parseInlineMapping` は値が 1 文字以上ある項目しか
   // 拾わないため、 その結果を走査すると空白の有無で知らせが消える (実測 = `{title:}` と
   // `{ title:}` は黙って通り、 `{ title: }` だけ知らせが出た)。 契約が入力の整形に依存する
@@ -3514,6 +3536,17 @@ function reportUnknownInlineKeys(
     if (idx < 0) continue;
     const key = field.slice(0, idx).trim();
     if (!key) continue;
+    if (isPart) {
+      if (!PART_INLINE_UNREADABLE_KEYS.has(key)) continue;
+      // 行き先を添える。 「読めません」 だけだと、どこにも書けないのか書く場所が違うのかが
+      // 分からない。 この 3 つは縦に並べた形では効く
+      errors.push({
+        line,
+        message: `項目名が読めません: "${key}"`,
+        hint: `1 行の中括弧では読めません。名前の下に段を分けた形で書くと効きます`,
+      });
+      continue;
+    }
     if (INLINE_ACTOR_KEYS.has(key)) continue;
     errors.push({
       line,
