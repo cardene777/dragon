@@ -139,17 +139,33 @@ describe("部品だけの本文は、抜かずに組み立て側で描く (#1973
     expect(分けた.lineMap).toEqual(src.split("\n").map((_, i) => i + 1));
   });
 
-  it("見本の頁の「部品を箱に使う」 の切替 7 つが、どれも見本の頁と同じ図になる", async () => {
+  it("見本の頁の「部品を箱に使う」 の切替 8 つが、どれも見本の頁と同じ図になる", async () => {
     const 見本 = (await loadPartsItems()).find((i) => i.id === "部品を箱に置き何も書き換えない");
     const 並び = 見本?.patterns ?? [];
-    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(7);
+    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(8);
+    let 重ねた数 = 0;
     for (const p of 並び) {
       const 分けた = await 分ける(p.sourceYaml!);
-      expect(分けた.parts, `${p.名} で部品を重ねる側に回した`).toEqual([]);
-      expect(JSON.stringify(分けた.built.diagram), `${p.名} が見本の頁と違う図になる`).toBe(
-        JSON.stringify(p.diagram),
+      if (分けた.parts.length === 0) {
+        expect(JSON.stringify(分けた.built.diagram), `${p.名} が見本の頁と違う図になる`).toBe(
+          JSON.stringify(p.diagram),
+        );
+        continue;
+      }
+      // 部品を重ねる切替 (流れの途中に置く、#1987) は、部品を抜いた図と見本の頁の図で、
+      // 部品でない箱と矢印が揃うことを見る。 部品の要素は重ねる側が描く
+      重ねた数 += 1;
+      const 部品の頭 = 分けた.parts.map((x) => `${x.id}__`);
+      const 部品でない = (d: CdlDiagram) => ({
+        箱: d.nodes.filter((n) => !部品の頭.some((h) => n.id.startsWith(h))).map((n) => n.id),
+        矢印: d.edges.map((e) => `${e.from} -> ${e.to}: ${e.label}`),
+      });
+      expect(部品でない(分けた.built.diagram), `${p.名} の箱か矢印が見本の頁と違う`).toEqual(
+        部品でない(p.diagram),
       );
     }
+    // 重ねる側の比べ方が空振りしていない
+    expect(重ねた数, "部品を重ねる切替が無い (重ねる側の比べ方が空振りしている)").toBe(1);
   });
 });
 
@@ -193,5 +209,38 @@ describe("部品へ矢印を引いた本文は、抜かずに組み立て側で�
     const src = `title: "t"\ntype: flow\n\nactors:\n  - 受付: { kind: card }\n  - 出荷: { kind: card }\n  - 印: { kind: state-indicator }\n\nflow:\n  - 受付 -> 出荷: "送る"\n`;
     const 分けた = await 分ける(src);
     expect(分けた.parts.map((p) => p.id)).toEqual(["印"]);
+  });
+});
+
+describe("静止した流れ図の途中に部品を置いても、カタログと編集画面で同じ矢印になる (#1987)", () => {
+  /*
+   * 編集画面は部品を抜いてから鎖を作り、カタログは部品も鎖に入れていた。 部品が並びの途中にあると
+   * カタログだけ前後の並び順の矢印が外れ、矢印が 0 本になっていた (実測)。
+   */
+  it.each([
+    ["部品が途中、行なし", ["受付", "印", "出荷"], ""],
+    ["部品が先頭、行なし", ["印", "受付", "出荷"], ""],
+    ["部品が末尾、行なし", ["受付", "出荷", "印"], ""],
+    ["部品が途中、部品を指さない行", ["受付", "印", "出荷"], `flow:\n  - 受付 -> 出荷: "出す"\n`],
+  ])("%s", async (_名, 並び, 流れ) => {
+    const 行 = (名: string) =>
+      名 === "印" ? "  - 印: { kind: state-indicator }" : `  - ${名}: { kind: card }`;
+    const src = `title: "t"\ntype: flow\n\nactors:\n${並び.map(行).join("\n")}\n\n${流れ}`;
+    const { 一覧 } = await 編集画面の部品();
+    const 知らせ: string[] = [];
+    const カタログ = textDslToDiagram(src, {
+      partsCatalog: 一覧,
+      onNotice: (n) => 知らせ.push(n.kind),
+    });
+    const 分けた = await 分ける(src);
+    const 矢印 = (d: CdlDiagram) => d.edges.map((e) => `${e.from} -> ${e.to}: ${e.label}`);
+    // 編集画面は部品を重ねる側に回す = 抜いた本文の鎖と比べる
+    expect(
+      分けた.parts.map((p) => p.id),
+      "部品を重ねる側に回していない (前提が崩れた)",
+    ).toEqual(["印"]);
+    expect(矢印(カタログ)).toEqual(矢印(分けた.built.diagram));
+    expect(矢印(カタログ).map((e) => e.split(":")[0])).toEqual(["受付 -> 出荷"]);
+    expect(知らせ.filter((k) => k === "flow-endpoint-not-honored")).toEqual([]);
   });
 });

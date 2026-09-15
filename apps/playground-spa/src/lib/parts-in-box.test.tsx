@@ -24,6 +24,9 @@
  * |---|---|---|
  * | 矢印を繋ぐ | `state-indicator` (要素 1 つ) | 何も足さずに `設備の稼働__ind` |
  * | 繋ぐ要素を名指しする | `stacked-layer` (要素 3 つ) | `toPartNode: topL` と `fromPartNode: botL` で名指しした層 |
+ *
+ * 流れの途中に置く切替 (#1987) は、行に書かれていない部品を前後の箱の間に書いても、前後の箱が
+ * 矢印で繋がり、部品の円も描くことを見る。
  */
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -57,7 +60,7 @@ function 円(d: CdlDiagram): { 外枠: number; 塗り: number; 色: string }[] {
 }
 
 describe("部品を箱に使う見本 (#1973)", () => {
-  it("部品の頁の最後に並び、7 つの切替を持つ", async () => {
+  it("部品の頁の最後に並び、8 つの切替を持つ", async () => {
     const items = await loadPartsItems();
     expect(items.at(-1)?.id).toBe(見本のid);
     expect((await 見本()).patterns?.map((p) => p.名)).toEqual([
@@ -68,7 +71,22 @@ describe("部品を箱に使う見本 (#1973)", () => {
       "縦列に置く",
       "矢印を繋ぐ",
       "繋ぐ要素を名指しする",
+      "流れの途中に置く",
     ]);
+  });
+
+  it("流れの途中に置く切替は、部品の前後の箱を矢印で繋ぎ、部品の円も描く (#1987)", async () => {
+    const p = ((await 見本()).patterns ?? []).find((x) => x.名 === "流れの途中に置く");
+    expect(p, "流れの途中に置く切替が無い (前提が崩れた)").toBeDefined();
+    const d = p!.diagram;
+    // 部品を並びに入れると前後の並び順の矢印が外れ、矢印が 0 本になっていた
+    expect(d.edges.map((e) => `${e.from} -> ${e.to}: ${e.label}`)).toEqual([
+      "注文を受ける -> 出荷する: 引き渡す",
+    ]);
+    const 絵 = renderToStaticMarkup(<CdlDiagramView diagram={d} hideHeader />);
+    expect(絵).toContain(`data-cdl-edge="${d.edges[0]!.id}"`);
+    // 部品が描かれたかを外枠で見る。 塗りの割合は図の段と部品の段の組み合わせで決まり、ここでは見ない
+    expect(円(d).map((c) => c.外枠)).toEqual([140]);
   });
 
   it("切替ごとに、描いた円の半径と塗りの色が書いた欄のとおりに変わる", async () => {
@@ -155,7 +173,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       items.filter((i) => 部品の図か(i.id)).map((i) => i.diagram),
     );
     const 並び = (await 見本()).patterns ?? [];
-    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(7);
+    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(8);
     for (const p of 並び) {
       const 組み直し = textDslToDiagram(p.sourceYaml!, { partsCatalog: 編集画面の一覧 });
       expect(JSON.stringify(組み直し), `${p.名} が編集画面と違う図になる`).toBe(

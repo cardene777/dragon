@@ -55,11 +55,21 @@ async function 円(
 const カタログの図 = "main.catalog-preview svg[data-cdl-stage]";
 
 test.describe("部品を箱に使う見本 (#1973)", () => {
-  test("部品の頁に並び、切替が 7 つ出る", async ({ page }) => {
+  test("部品の頁に並び、切替が 8 つ出る", async ({ page }) => {
     await 開く(page);
     await expect(page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio")).toHaveCount(
-      7,
+      8,
     );
+  });
+
+  test("流れの途中に置く切替は、前後の箱を繋ぐ矢印と部品の円を描く (#1987)", async ({ page }) => {
+    await 開く(page);
+    await 押す(page, "流れの途中に置く");
+    const 図 = page.locator(カタログの図).first();
+    // 部品を並びに入れると前後の矢印が外れ、矢印が 0 本になっていた
+    await expect(図.locator("[data-cdl-edge]")).toHaveCount(1);
+    await expect(図.locator('[data-cdl-edge-label-for$="注文を受ける-出荷する"]')).toHaveCount(1);
+    expect((await 円(page, カタログの図)).外枠).toEqual([140]);
   });
 
   test("縦列に置く切替は、部品の円を出荷の縦列の中に描く (#1980)", async ({ page }) => {
