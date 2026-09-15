@@ -17,7 +17,7 @@ import * as PartsMod from "@/topics/catalog/parts.cdl";
 /** catalog の見本を全件取り出す。 */
 const PARTS: Array<[string, CdlDiagram]> = Object.entries(
   PartsMod as Record<string, unknown>,
-).filter(([, v]) => v !== null && typeof v === "object" && "nodes" in (v as object)) as Array<
+).filter(([, v]) => v !== null && typeof v === "object" && "nodes" in v) as Array<
   [string, CdlDiagram]
 >;
 

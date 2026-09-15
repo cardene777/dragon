@@ -308,7 +308,7 @@ describe("JSON でも押下と巻き上げを書ける (#1393)", () => {
     });
     const v = validateDragonJson(json);
     expect(v.ok, v.ok ? "" : v.errors.map((e) => e.path).join(" ")).toBe(true);
-    const d = jsonToDiagram(json as never) as unknown as 図;
+    const d = jsonToDiagram(json) as unknown as 図;
     expect(d.eventBindings?.[0]?.target).toEqual({ kind: "node", id: "button" });
     expect(d.scrollTriggers).toEqual([{ id: "intro", start: 0.9, end: 0.1 }]);
   });

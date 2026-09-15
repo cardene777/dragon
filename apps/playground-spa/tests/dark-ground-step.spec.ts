@@ -132,7 +132,7 @@ test("暗い画面で線が紙の上で読める", async ({ page }) => {
   const s = await surfaces(page);
   expect(s.線.length, "線を測れていない").toBeGreaterThan(0);
   for (const 色 of s.線) {
-    expect(contrast(s.紙!, 色!), `線 ${色} が紙 ${s.紙} の上で読めない`).toBeGreaterThanOrEqual(4.61);
+    expect(contrast(s.紙!, 色), `線 ${色} が紙 ${s.紙} の上で読めない`).toBeGreaterThanOrEqual(4.61);
   }
 });
 

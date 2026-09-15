@@ -118,7 +118,7 @@ describe("手本の形 (#1033)", () => {
     const kindCount = new Map<string, number>();
     for (const [k, v] of Object.entries(mod)) {
       if (k.startsWith("subtitle__")) continue;
-      for (const r of (v as Diagram).readouts ?? []) {
+      for (const r of (v).readouts ?? []) {
         if (r.kind) kindCount.set(r.kind, (kindCount.get(r.kind) ?? 0) + 1);
       }
     }
@@ -147,7 +147,7 @@ describe("手本の形 (#1033)", () => {
         ...(d.scrollTriggers ?? []).map((t) => t.id),
       ]);
       for (const r of d.readouts ?? []) {
-        const srcs = readoutSources(r as Record<string, unknown>);
+        const srcs = readoutSources(r);
         if (srcs.length === 0) continue;
         // 入力欄 / 計算式が握る表示部品は段では動かせない。 動かせるものだけを対象にする
         if (srcs.every((s) => owned.has(s))) continue;
@@ -228,7 +228,7 @@ describe("手本の形 (#1033)", () => {
         for (const src of [r.source, r.sourceA, r.sourceB].filter(Boolean) as string[]) {
           for (const p of d.phases ?? []) {
             for (const st of p.sets ?? []) {
-              if ((st as { stateId?: string }).stateId !== src) continue;
+              if (st.stateId !== src) continue;
               const raw = String((st as { value?: string | number }).value ?? "");
               if (!raw.startsWith("[")) continue;
               let parsed: unknown;
@@ -299,7 +299,7 @@ describe("手本の形 (#1033)", () => {
         if (axes.every(([, lo, hi]) => lo === undefined && hi === undefined)) continue;
         for (const p of d.phases ?? []) {
           for (const st of p.sets ?? []) {
-            if ((st as { stateId?: string }).stateId !== r.source) continue;
+            if (st.stateId !== r.source) continue;
             const raw = String((st as { value?: string | number }).value ?? "");
             let parsed: unknown;
             try { parsed = JSON.parse(raw); } catch { continue; }
@@ -329,7 +329,7 @@ describe("手本の形 (#1033)", () => {
         if (r.kind !== "sequence-timeline") continue;
         for (const p of d.phases ?? []) {
           for (const st of p.sets ?? []) {
-            if ((st as { stateId?: string }).stateId !== r.source) continue;
+            if (st.stateId !== r.source) continue;
             const raw = String((st as { value?: string | number }).value ?? "");
             let parsed: unknown;
             try { parsed = JSON.parse(raw); } catch { bad.push(`${k}: 読めない`); continue; }
@@ -369,7 +369,7 @@ describe("手本の形 (#1033)", () => {
           const written = new Set<string>();
           for (const p of d.phases ?? []) {
             for (const x of p.sets ?? []) {
-              if ((x as { stateId?: string }).stateId !== st) continue;
+              if (x.stateId !== st) continue;
               const raw = String((x as { value?: string | number }).value ?? "");
               for (const m of raw.matchAll(/-?\d+(?:\.\d+)?/g)) written.add(m[0]);
             }

@@ -4266,7 +4266,7 @@ function mergePartIntoDiagram(
     // codex-review MAJOR fix (§ nested shape template) = recursive walk で shape 内 nested object /
     // array の string leaf 全対象、 前実装は 1 depth のみで `fill: { gradient: "{v}" }` 等 miss。
     let newShape = nodeOrig.shape
-      ? deepRewriteStrings(nodeOrig.shape as unknown, rewriteTemplate)
+      ? deepRewriteStrings(nodeOrig.shape, rewriteTemplate)
       : undefined;
     // parts 全体 resize (I2 forensic): shape 内 radius / outerRadius / innerRadius / thickness に
     // scale 反映 = user が SE handle drag で拡大すると shape の見た目も比例拡大される。 scaleX を採用
@@ -4290,7 +4290,7 @@ function mergePartIntoDiagram(
         }
         return out;
       };
-      newShape = scaleGeom(newShape) as typeof newShape;
+      newShape = scaleGeom(newShape);
     }
     // parts drop 位置 offset 反映:
     //   - node.posX / posY set 済 (parts が座標を持つ) = 横は part 中心基準で scale 変換、縦は offsetY を足す
@@ -4384,7 +4384,7 @@ function mergePartIntoDiagram(
     if (!target.readouts) target.readouts = [];
     for (const readoutOrig of part.readouts) {
       const rewritten = deepRewriteStrings(
-        readoutOrig as unknown,
+        readoutOrig,
         rewriteTemplate,
       ) as CdlDiagram["readouts"] extends readonly (infer R)[] ? R : never;
       // id は shape 全 walk で rewrite されないので個別に prefix
@@ -4460,8 +4460,8 @@ function deepRewriteStrings(
 ): unknown {
   if (typeof value === "string") return rewrite(value) ?? value;
   if (value === null || typeof value !== "object") return value;
-  if (seen.has(value as object)) return value;
-  seen.add(value as object);
+  if (seen.has(value)) return value;
+  seen.add(value);
   if (Array.isArray(value)) {
     return value.map((v) => deepRewriteStrings(v, rewrite, seen));
   }
@@ -6430,7 +6430,7 @@ function compileJourney(doc: DslDocument, onNotice?: (n: CompileNotice) => void)
         読めない.push(a.name);
         continue;
       }
-      data.push({ id: slugify(a.name), title: 箱の題(a), emotion: 語 as never, ...道筋の欄(a) });
+      data.push({ id: slugify(a.name), title: 箱の題(a), emotion: 語, ...道筋の欄(a) });
       continue;
     }
     const e = 気持ち.get(語);
@@ -6543,7 +6543,7 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
         読めない.push(a.name);
         continue;
       }
-      items.push({ id: slugify(a.name), title: 箱の題(a), quadrant: 語 as never });
+      items.push({ id: slugify(a.name), title: 箱の題(a), quadrant: 語 });
       continue;
     }
     const q = 区画.get(語);

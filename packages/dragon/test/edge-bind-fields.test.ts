@@ -129,7 +129,7 @@ describe("矢印の 3 欄が JSON から図に届く (#1396)", () => {
     });
     const v = validateDragonJson(json);
     expect(v.ok, v.ok ? "" : v.errors.map((e) => e.path).join(" ")).toBe(true);
-    const e = 矢印たち(jsonToDiagram(json as never))[0]!;
+    const e = 矢印たち(jsonToDiagram(json))[0]!;
     expect({
       widthBind: e.widthBind,
       strokeBind: e.strokeBind,

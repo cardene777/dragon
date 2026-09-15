@@ -42,7 +42,7 @@ actors:
 `;
 
 const 並べる図 = (二の種類: string) =>
-  textDslToDiagram(本文(二の種類), { partsCatalog: 一覧 }) as CdlDiagram;
+  textDslToDiagram(本文(二の種類), { partsCatalog: 一覧 });
 
 /**
  * 縦列の境目の指摘。 **重大度で絞らない** = 編集画面の位置関係の警告の帯は重大度を問わず全て出すので、

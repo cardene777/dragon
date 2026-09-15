@@ -1168,7 +1168,7 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
 
   /** 宣言 1 つ分の鍵。 並びはそのまま、表は鍵の集まり */
   const 宣言の鍵 = (v: Record<string, unknown> | readonly string[]): readonly string[] =>
-    Array.isArray(v) ? v : Object.keys(v as Record<string, unknown>);
+    Array.isArray(v) ? v : Object.keys(v);
 
   it("宣言が全て実在する preset を指す", () => {
     // 宣言だけ残って対象が消えた形を落とす

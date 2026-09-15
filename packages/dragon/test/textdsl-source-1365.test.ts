@@ -35,7 +35,7 @@ const 記法 = (mod: Record<string, unknown>, key: string): string | undefined =
 };
 
 describe("Text DSL のページは記法を持つ (#1365)", () => {
-  const 図 = 図の一覧(textDsl as Record<string, unknown>);
+  const 図 = 図の一覧(textDsl);
 
   it("図を 16 件集められている", () => {
     // 件数を固定する = 図が増えた時に、記法を足す前に気付ける
@@ -62,7 +62,7 @@ describe("Text DSL のページは記法を持つ (#1365)", () => {
      */
     let 照合した = 0;
     for (const { key, diagram } of 図) {
-      const src = 記法(textDsl as Record<string, unknown>, key);
+      const src = 記法(textDsl, key);
       if (src === undefined) continue;
       照合した += 1;
       expect(textDslToDiagram(src), `${key} の記法から組み立てた図が export と違う`).toEqual(
@@ -123,7 +123,7 @@ describe("Text DSL のページは記法を持つ (#1365)", () => {
     // #1364 で足した 3 件の `draw:` が読めることを確かめる
     const 描く = ["textDslGantt", "textDslPie", "textDslMind"] as const;
     for (const key of 描く) {
-      const src = 記法(textDsl as Record<string, unknown>, key);
+      const src = 記法(textDsl, key);
       expect(src, `${key} の記法が無い`).toBeDefined();
       expect(src, `${key} の記法に draw: が出ていない`).toMatch(/^\s*draw:\s*\S+\s*$/m);
     }
@@ -148,8 +148,8 @@ describe("記法を持たない図では従来どおり (陰性対照、 #1365)"
      */
     const mod: Record<string, unknown> = {
       // 図はあるが `sourceYaml__` を持たない = 記法を登録していない形
-      図あり記法なし: { id: "neg-ctl-a", nodes: [] } as unknown as CdlDiagram,
-      別の図: { id: "neg-ctl-b", nodes: [] } as unknown as CdlDiagram,
+      図あり記法なし: { id: "neg-ctl-a", nodes: [] },
+      別の図: { id: "neg-ctl-b", nodes: [] },
       // 別の key の記法があっても、上の 2 件では引けない
       sourceYaml__無関係: 'title: "x"\ntype: flow\n',
     };

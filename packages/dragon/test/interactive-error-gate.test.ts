@@ -137,7 +137,7 @@ function curveMidY(d: string): number {
     } else if (m[4] !== undefined) {
       // 制御点は y しか使わない (求めるのが `ys` のため)
       const cy = parseFloat(m[3]!);
-      const next: [number, number] = [parseFloat(m[4]!), parseFloat(m[5]!)];
+      const next: [number, number] = [parseFloat(m[4]), parseFloat(m[5]!)];
       // 二次曲線を 16 分割して通る点の平均を取る
       for (let i = 1; i <= 16; i++) {
         const t = i / 16;

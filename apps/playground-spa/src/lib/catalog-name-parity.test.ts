@@ -26,21 +26,21 @@ import * as Charts from "@/topics/catalog/charts.cdl";
 import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
 
 const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
-  ["interactive", Interactive as unknown as Record<string, unknown>],
-  ["cookbook", Cookbook as unknown as Record<string, unknown>],
-  ["patterns", Patterns as unknown as Record<string, unknown>],
-  ["primitives", Primitives as unknown as Record<string, unknown>],
-  ["primitives-extra", PrimitivesExtra as unknown as Record<string, unknown>],
-  ["animation", Animation as unknown as Record<string, unknown>],
-  ["styles", Styles as unknown as Record<string, unknown>],
-  ["presets", Presets as unknown as Record<string, unknown>],
-  ["ethereum", Ethereum as unknown as Record<string, unknown>],
-  ["text-dsl", TextDsl as unknown as Record<string, unknown>],
+  ["interactive", Interactive],
+  ["cookbook", Cookbook],
+  ["patterns", Patterns],
+  ["primitives", Primitives],
+  ["primitives-extra", PrimitivesExtra],
+  ["animation", Animation],
+  ["styles", Styles],
+  ["presets", Presets],
+  ["ethereum", Ethereum],
+  ["text-dsl", TextDsl],
   // parts は画面では遅延読み込みだが、名前の衝突は読み込み方に関係なく起きる
-  ["parts", Parts as unknown as Record<string, unknown>],
+  ["parts", Parts],
   // 部品を箱に使う見本 (#1973)。 部品の頁に並ぶ
-  ["parts-in-box", PartsInBox as unknown as Record<string, unknown>],
-  ["charts", Charts as unknown as Record<string, unknown>],
+  ["parts-in-box", PartsInBox],
+  ["charts", Charts],
 ];
 
 /**
@@ -123,7 +123,7 @@ describe("一覧の名前 (#1030)", () => {
     // 日本語だけを弾くと、他の文字体系 (ハングル / キリル文字 等) が素通りする。
     // 現行 443 件はすべて ASCII なので、ASCII 以外を弾く形が最も狭く正しい
     const bad = Object.entries(ITEM_NAME_EN)
-      // eslint-disable-next-line no-control-regex
+       
       .filter(([, v]) => /[^\x20-\x7e]/.test(v))
       .map(([k, v]) => `${k}: "${v}"`);
     expect(bad, `英語名に ASCII 以外が混ざっている: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);

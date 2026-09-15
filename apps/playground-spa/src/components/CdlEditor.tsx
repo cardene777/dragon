@@ -844,7 +844,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         const sample = SAMPLES.find((s) => s.slug === targetSlug);
         if (sample) {
           // hash 経路 = URL 遷移 = user 意図確定と扱い confirm skip、 lastLoadedSrcRef のみ更新
-          // eslint-disable-next-line react-hooks/set-state-in-effect
+           
           setSrc(sample.code);
           lastLoadedSrcRef.current = sample.code;
           // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -852,7 +852,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           return;
         }
         // 対応 sample なし = user 通知 (silently default load を明示的に伝える)
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         setAutoFixMessage(
           `${分類の呼び名}「${targetSlug}」 に対応する編集できる見本は未登録です。 既定の見本 (${SAMPLES[0].label}) で開きます。`,
         );
@@ -864,10 +864,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
 
     const restored = decodeShare(hash);
     if (restored) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setSrc(restored);
       lastLoadedSrcRef.current = restored;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setActiveSample("共有URL");
     }
   }, [location.hash]);

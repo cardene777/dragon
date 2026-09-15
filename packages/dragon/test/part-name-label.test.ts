@@ -246,7 +246,7 @@ describe("縦列を 2 本以上持つ部品は、名前の名札を 1 つだけ�
     edges: [],
     states: [],
     phases: [],
-  } as CdlDiagram;
+  };
 
   it("左の縦列の要素が低い部品でも、名前の名札は部品全体の上端から 60 上にある", () => {
     const { 配置 } = 組み立てる(
@@ -272,7 +272,7 @@ describe("縦列を 2 本以上持つ部品は、名前の名札を 1 つだけ�
         { id: "a", x: 0, width: 220, label: "左の列" },
         { id: "b", x: 240, width: 220, label: "右の列" },
       ],
-    } as CdlDiagram;
+    };
     const { 配置 } = 組み立てる(
       `title: "t"\ntype: flow\n\nactors:\n  - 受付: { kind: card }\n  - 表: { kind: headed }\n`,
       { headed: 見出し付き, "parts-headed": 見出し付き },
@@ -303,7 +303,7 @@ describe("縦列を 2 本以上持つ部品は、名前の名札を 1 つだけ�
         { id: "high", lane: "a", stack: 0, kind: "card", title: "高", w: 200, h: 120 },
         { id: "low", lane: "b", stack: 1, kind: "card", title: "低", w: 200, h: 120 },
       ] as CdlDiagram["nodes"],
-    } as CdlDiagram;
+    };
     const { 配置 } = 組み立てる(
       `title: "t"\ntype: flow\n\nactors:\n  - 表: { kind: headed-low-right }\n`,
       { "headed-low-right": 右が低い, "parts-headed-low-right": 右が低い },

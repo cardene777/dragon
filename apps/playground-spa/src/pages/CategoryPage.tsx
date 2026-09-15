@@ -285,7 +285,7 @@ export function CategoryPage(): React.ReactElement {
         if (!cancelled) {
           // chunk fetch 失敗 (ネットワーク瞬断 / ad blocker / cache 古い tab 等) を可視化
           // console にも残す = user が devtools で原因把握できる
-          // eslint-disable-next-line no-console
+           
           console.error("[CAR-1613] parts.cdl chunk fetch failed", err);
           setPartsLoadState("error");
         }

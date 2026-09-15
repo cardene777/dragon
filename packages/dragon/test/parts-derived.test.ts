@@ -32,7 +32,7 @@ function 見本(): CdlDiagram {
     states: [{ id: "v", initial: 40 }],
     derived: [{ id: "half", expression: "{v} / 2" }],
     phases: [] as CdlDiagram["phases"],
-  } as CdlDiagram;
+  };
 }
 
 /** 見本を 1 つ (または 2 つ) 重ねた図を組み立てる。 編集画面が見本を渡すのと同じ経路 */

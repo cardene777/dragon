@@ -31,7 +31,7 @@ const SAMPLE_DIAGRAM: CdlDiagram = {
       stack: 0,
       kind: "actor",
       title: "sample",
-    } as CdlDiagram["nodes"][number],
+    },
   ],
   edges: [],
   states: [],
@@ -44,7 +44,7 @@ const SAMPLE_DIAGRAM: CdlDiagram = {
       activate: [],
       tweens: [],
       sets: [],
-    } as CdlDiagram["phases"][number],
+    },
   ],
 };
 

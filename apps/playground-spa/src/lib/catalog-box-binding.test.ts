@@ -254,7 +254,7 @@ function visibleSignature(kind: string, inputs: Array<[string, string]>, max: nu
   }
   if (!rows) return asIs();
   const at = (r: unknown, i: number): number =>
-    Array.isArray(r) && typeof r[i] === "number" ? (r[i] as number) : Number.NaN;
+    Array.isArray(r) && typeof r[i] === "number" ? r[i] : Number.NaN;
   const cut = (n: number) => rows.slice(0, n);
   switch (kind) {
     case "poll-bar": {
@@ -485,10 +485,10 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
             // 並び順がそのまま順位。 先頭ほど大きいとみなすため降順の連番を当てる
             values = shown.map((_, i) => shown.length - i);
           } else if (RANK_INDEX[kind] !== undefined) {
-            const at = RANK_INDEX[kind]!;
+            const at = RANK_INDEX[kind];
             const picked = shown.map((r) => (Array.isArray(r) ? r[at] : undefined));
             if (!picked.every((v) => typeof v === "number")) continue;
-            values = picked as number[];
+            values = picked;
           } else {
             // 行ごとに「ちょうど 1 つの数」 を取る。 取れない行がある配列は順位を付けられない
             const nums = shown.map((r) => (Array.isArray(r) ? r.filter((v) => typeof v === "number") : []));
@@ -731,7 +731,7 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
               const at = claim.axis === "x" ? ax.x : ax.y;
               const vals = rows.map((r) => (Array.isArray(r) ? r[at] : undefined));
               if (!vals.every((v) => typeof v === "number")) continue;
-              const nums = vals as number[];
+              const nums = vals;
               const lo = Math.min(...nums);
               const hi = Math.max(...nums);
               // 端が 1 つに定まらない (全点が同じ座標) 段では、どちら寄りかを判定できない

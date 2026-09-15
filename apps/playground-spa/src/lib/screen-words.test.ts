@@ -436,7 +436,7 @@ function 戻した時に残る英語(files: string[]): { 種: string[]; 走査: 
  * **本番と対照で 1 つの形を使う** = 拾い方を 2 度書くと片方だけ直って食い違う。
  */
 function 数えた形(文: string): string[] {
-  return [...文.matchAll(/\d+\s*(?:種|件|語|箇所|file)/g)].map((m) => m[0]!.replace(/\s+/g, " "));
+  return [...文.matchAll(/\d+\s*(?:種|件|語|箇所|file)/g)].map((m) => m[0].replace(/\s+/g, " "));
 }
 
 /** 相対 path が、宣言した置き場の下にあるか */
