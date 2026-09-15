@@ -55,11 +55,56 @@ async function 円(
 const カタログの図 = "main.catalog-preview svg[data-cdl-stage]";
 
 test.describe("部品を箱に使う見本 (#1973)", () => {
-  test("部品の頁に並び、切替が 8 つ出る", async ({ page }) => {
+  test("部品の頁に並び、切替が 9 つ出る", async ({ page }) => {
     await 開く(page);
     await expect(page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio")).toHaveCount(
-      8,
+      9,
     );
+  });
+
+  test("並べる切替は、部品の名前の名札を部品ごとに 1 つ、その部品のすぐ上に描く (#1990)", async ({
+    page,
+  }) => {
+    await 開く(page);
+    await 押す(page, "並べる");
+    const 図 = page.locator(カタログの図).first();
+    // 名札の字と部品の要素の範囲を、画面の座標で比べる。 図は画面の幅に合わせて縮むので、
+    // 名札の下端と部品の上端の間は倍率を掛けた値になる。 上にあることと、その間が部品の高さより
+    // 小さいことを見る
+    const 測った = await 図.evaluate((svg) => {
+      const 名札 = [...svg.querySelectorAll('[data-cdl-role="lane-label"]')].map((t) => {
+        const r = t.getBoundingClientRect();
+        return { 字: t.textContent ?? "", 左: r.left, 下: r.bottom };
+      });
+      const 部品 = (名前: string) => {
+        const 箱 = [...svg.querySelectorAll(`[data-cdl-node^="${名前}__"]`)].map((g) =>
+          g.getBoundingClientRect(),
+        );
+        if (箱.length === 0) return undefined;
+        return {
+          左: Math.min(...箱.map((r) => r.left)),
+          右: Math.max(...箱.map((r) => r.right)),
+          上: Math.min(...箱.map((r) => r.top)),
+          下: Math.max(...箱.map((r) => r.bottom)),
+        };
+      };
+      return 名札.map((n) => ({ ...n, 部品: 部品(n.字) }));
+    });
+    expect(測った.map((n) => n.字).sort()).toEqual(
+      ["乾燥炉", "乾燥炉の温度", "塗装機", "成形機"].sort(),
+    );
+    for (const n of 測った) {
+      expect(n.部品, `${n.字} の部品の要素が画面に無い (検査が空振りしている)`).toBeDefined();
+      const 部品 = n.部品!;
+      expect(n.下, `${n.字} の名札が部品より下にある`).toBeLessThanOrEqual(部品.上);
+      expect(部品.上 - n.下, `${n.字} の名札が部品から離れている`).toBeLessThan(
+        (部品.下 - 部品.上) / 2,
+      );
+      expect(n.左, `${n.字} の名札が部品の左端より左に出ている`).toBeGreaterThanOrEqual(
+        部品.左 - 2,
+      );
+      expect(n.左, `${n.字} の名札が部品の横の範囲に無い`).toBeLessThan(部品.右);
+    }
   });
 
   test("流れの途中に置く切替は、前後の箱を繋ぐ矢印と部品の円を描く (#1987)", async ({ page }) => {

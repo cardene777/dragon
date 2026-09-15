@@ -3373,6 +3373,7 @@ function mergePartsFromActors(
   // 縦列の中に置く部品 (#1980)。 仮の箱を消す前に探す = 消した後は自分だけの縦列を見分けられない
   const { 縦列: 縦列の部品, 基準のため外した } = 縦列に置く部品(target, doc);
   const 縦列に置いた: 縦列に置いた部品[] = [];
+  const 自分の縦列に置いた: 自分の縦列に置いた部品[] = [];
 
   for (const [actorIndex, actor] of partsActors.entries()) {
     const partId = actor.partId;
@@ -3546,7 +3547,7 @@ function mergePartsFromActors(
     }
     const t = partTargetSize(part, actor.posW, actor.posH, actor.scale);
     const 組み込む前の箱の数 = target.nodes.length;
-    mergePartIntoDiagram(
+    const 作った縦列 = mergePartIntoDiagram(
       target,
       part,
       actor.name,
@@ -3561,15 +3562,115 @@ function mergePartsFromActors(
       derivedSourceLines,
       値の前置き.get(actor.name),
     );
+    const 要素 = new Set(target.nodes.slice(組み込む前の箱の数).map((n) => n.id));
     if (置く縦列 !== undefined) {
-      縦列に置いた.push({
-        縦列: 置く縦列,
-        要素: new Set(target.nodes.slice(組み込む前の箱の数).map((n) => n.id)),
-      });
+      縦列に置いた.push({ 縦列: 置く縦列, 要素 });
+    } else if (作った縦列.length > 0) {
+      自分の縦列に置いた.push({ 名前: actor.name, 縦列: 作った縦列, 要素 });
     }
   }
+  // 部品用の縦列を先に固定する。 縦列に置く部品は配置した縦列の位置に合わせるので、固定する前に
+  // 揃えると、揃えた時の縦列 (部品用の縦列も詰める送りに加わる) と描いた図の縦列が食い違う
+  部品の縦列を部品に固定する(target, 自分の縦列に置いた);
   縦列に置いた部品を揃える(target, 縦列に置いた);
   return target;
+}
+
+type 自分の縦列に置いた部品 = {
+  /** 登場人物の名前。 名札に使う */
+  名前: string;
+  /** 部品用に作った縦列。 部品の縦列の順 */
+  縦列: readonly 部品用の縦列[];
+  要素: ReadonlySet<string>;
+};
+
+type 部品用の縦列 = {
+  id: string;
+  /** 部品自身が縦列に書いた名札 */
+  部品の名札: string | undefined;
+};
+
+/** 部品用の縦列の、部品の要素の上端から縦列の上端までの高さ。 名札 (縦列の上端から 26 下) を収める */
+const 部品の縦列の名札の高さ = 60;
+
+/**
+ * 部品用の縦列を部品の位置に固定し、登場人物の名前の名札を部品のすぐ上に 1 つだけ出す (#1990)。
+ *
+ * 部品の要素は座標で置くが、縦列は描画側が左から詰めて並べ直す。 格子の 2 段目の部品の縦列は
+ * 1 段目の縦列と重なるため右へ送られ、名札が別の部品の上に出て、送った分だけ図が横に伸びた
+ * (実測 = 部品 4 つの流れ図で `稼働2` の名札が `稼働3` の上、図の右に 875 の空き)。 部品が 1 つでも
+ * 名札は図の上端に出て、流れ図の途中に置くと先頭の箱の見出しに見えた。
+ *
+ * 描画側は `posX` と `posY` を両方持つ縦列を置いた位置に置き、詰める送りも幅の自動拡張もしない。
+ * 幅は `posW` が無ければ縦列の `width` を使うので、横は位置だけを書く。
+ *
+ * | 向き | 固定する範囲 |
+ * |---|---|
+ * | 横 | 組み込みで決めた位置と幅のまま (部品が書いた縦列を、置いた位置へ写したもの。 #879 / #880) |
+ * | 縦 | 部品全体の上端より名札の分 (60) 上から、部品全体の下端まで。 部品の縦列は全て同じ |
+ *
+ * | 縦列 | 名札 |
+ * |---|---|
+ * | 左端が最も左の縦列 (同じなら部品の縦列の順で先) | 部品が書いた名札、無ければ登場人物の名前 |
+ * | 他の縦列 | 部品が書いた名札だけ |
+ *
+ * 縦を部品全体に揃えるのは、部品の頁の絵と同じく縦列の名札を 1 列に並べるため (部品の頁では
+ * 縦列が全て同じ上端から始まる)。 縦列ごとの要素に合わせると、左の縦列の要素が他より低い部品で
+ * 名前の名札が下がり、右の縦列の要素と重なる。
+ *
+ * **下に余白を足さない**。 縦列の枠は塗りも線も持たず絵に出ないが、図の大きさには数えられる。
+ * 足すと、部品が一番下にある図だけ図の下の空きが広がる (実測 = 箱だけの図と直す前の図は 60、
+ * 下に 25 足すと 85)。 高さを書かないと縦列は名札の分 (40) に縮み、部品の要素が縦列の外に出る。
+ *
+ * **要素の高さは配置しないと分からない** (種類ごとの既定値で描画側が決める)。 全ての部品を
+ * 組み込んだ後に 1 度だけ配置して測る。 座標で置いた要素は配置で動かないので、測った範囲に
+ * 固定しても要素は動かない。
+ *
+ * 座標で置かない要素を持つ部品は固定しない。 そういう要素は縦列の中心に描かれるため、縦列の
+ * 詰める送りを止めると要素の位置も変わる。 **この分岐はテストで覆えていない** = 本文から入力を
+ * 作れない。 格子の部品は必ず格子の中心を持ち、位置を書いた部品は縦横の両方を持つ (片方だけの
+ * 位置と基準が見つからない位置は読む段階で止まる)。 どちらも座標で置かれる (`shouldForcePos`)。
+ *
+ * 配置できない図 (描画側が止める図) では固定しない。 描画でも同じ所で止まる。
+ */
+function 部品の縦列を部品に固定する(
+  target: CdlDiagram,
+  部品たち: readonly 自分の縦列に置いた部品[],
+): void {
+  const 座標で置いた = (id: string): boolean => {
+    const n = target.nodes.find((x) => x.id === id);
+    return n !== undefined && n.posX !== undefined && n.posY !== undefined;
+  };
+  const 対象 = 部品たち.filter((p) => [...p.要素].every(座標で置いた));
+  if (対象.length === 0) return;
+  let laid: LaidDiagram;
+  try {
+    laid = layout(target);
+  } catch {
+    return;
+  }
+  for (const p of 対象) {
+    const 箱 = laid.nodes.filter((n) => p.要素.has(n.id));
+    if (箱.length === 0) continue;
+    const 上端 = Math.min(...箱.map((n) => n.cy - n.h / 2));
+    const 下端 = Math.max(...箱.map((n) => n.cy + n.h / 2));
+    const 縦列たち = p.縦列.flatMap((l) => {
+      const 縦列 = target.lanes.find((x) => x.id === l.id);
+      return 縦列 ? [{ ...l, 縦列 }] : [];
+    });
+    let 名札の縦列: (typeof 縦列たち)[number] | undefined;
+    for (const l of 縦列たち) {
+      if (名札の縦列 === undefined || (l.縦列.x ?? 0) < (名札の縦列.縦列.x ?? 0)) 名札の縦列 = l;
+    }
+    for (const l of 縦列たち) {
+      l.縦列.posX = l.縦列.x ?? 0;
+      l.縦列.posY = 上端 - 部品の縦列の名札の高さ;
+      l.縦列.posH = 下端 - 上端 + 部品の縦列の名札の高さ;
+      const 名札 = l === 名札の縦列 ? (l.部品の名札 ?? p.名前) : l.部品の名札;
+      if (名札 === undefined) delete l.縦列.label;
+      else l.縦列.label = 名札;
+    }
+  }
 }
 
 type 縦列に置いた部品 = { 縦列: string; 要素: ReadonlySet<string> };
@@ -3843,7 +3944,7 @@ function mergePartIntoDiagram(
    * 登場人物の名前をそのまま使えない。 渡されない経路では従来どおり名前をそのまま使う
    */
   valueAlias?: string,
-): void {
+): 部品用の縦列[] {
   const prefix = (id: string): string => `${alias}__${id}`;
   // 値と状態だけ別の前置きを使う (#1189)。 箱 / 縦列 / 矢印の id は `prefix` のまま
   const 値前置き = valueAlias ?? alias;
@@ -3882,6 +3983,8 @@ function mergePartIntoDiagram(
   // 決定的 lane 参照 = user が書いた lane 指定を優先、 なければ parts 内部 lane を prefix 付きで作る
   const targetLaneId = laneMapping;
   const laneIdMap = new Map<string, string>();
+  // 部品用に作った縦列。 組み込んだ後に部品の位置へ固定する (#1990)
+  const 作った縦列: 部品用の縦列[] = [];
   // parts lane の横位置。
   //   offset (drop / click 座標) 指定時 = part 中心を offsetX に合わせる = user が置いた位置に
   //     parts の中心が来る。 node は lane 中心 (lane.x + laneW/2) に描画されるため、 lane 左端を
@@ -3947,6 +4050,7 @@ function mergePartIntoDiagram(
         x: mapLaneX(geom.x),
         width: geom.w * laneScaleX,
       });
+      作った縦列.push({ id: newLaneId, 部品の名札: laneOrig.label });
     }
   }
 
@@ -4146,7 +4250,7 @@ function mergePartIntoDiagram(
   // は union。 stateOverride.phase === false 時は parts phase 破棄 (opt-out)。
   const phaseOptOut = stateOverride["phase"] === false;
   if (phaseOptOut) {
-    return; // parts phase を破棄、 activate / tweens / sets の rewrite 不要
+    return 作った縦列; // parts phase を破棄、 activate / tweens / sets の rewrite 不要
   }
   if (target.phases.length === 0) {
     // target に phase なし = parts phase をそのまま追加 (prefix 付き)
@@ -4191,6 +4295,7 @@ function mergePartIntoDiagram(
       });
     }
   }
+  return 作った縦列;
 }
 
 /**

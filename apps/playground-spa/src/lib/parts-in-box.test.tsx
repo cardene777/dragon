@@ -27,6 +27,9 @@
  *
  * 流れの途中に置く切替 (#1987) は、行に書かれていない部品を前後の箱の間に書いても、前後の箱が
  * 矢印で繋がり、部品の円も描くことを見る。
+ *
+ * 並べる切替 (#1990) は、描いた絵の名札の字が部品ごとに 1 つずつ、その部品のすぐ上に出ることを見る。
+ * 4 つ目の部品は格子の 2 段目に並び、2 段目の名札も自分の部品の上に出る。
  */
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -60,7 +63,7 @@ function 円(d: CdlDiagram): { 外枠: number; 塗り: number; 色: string }[] {
 }
 
 describe("部品を箱に使う見本 (#1973)", () => {
-  it("部品の頁の最後に並び、8 つの切替を持つ", async () => {
+  it("部品の頁の最後に並び、9 つの切替を持つ", async () => {
     const items = await loadPartsItems();
     expect(items.at(-1)?.id).toBe(見本のid);
     expect((await 見本()).patterns?.map((p) => p.名)).toEqual([
@@ -72,7 +75,46 @@ describe("部品を箱に使う見本 (#1973)", () => {
       "矢印を繋ぐ",
       "繋ぐ要素を名指しする",
       "流れの途中に置く",
+      "並べる",
     ]);
+  });
+
+  it("並べる切替は、描いた絵の名札を部品ごとに 1 つ、その部品のすぐ上に出す (#1990)", async () => {
+    const p = ((await 見本()).patterns ?? []).find((x) => x.名 === "並べる");
+    expect(p, "並べる切替が無い (前提が崩れた)").toBeDefined();
+    const d = p!.diagram;
+    const laid = layout(d);
+    const 絵 = renderToStaticMarkup(<CdlDiagramView diagram={d} hideHeader />);
+    const 名札 = [
+      ...絵.matchAll(
+        /<text data-cdl-role="lane-label" x="([-\d.]+)" y="([-\d.]+)"[^>]*>([^<]*)<\/text>/g,
+      ),
+    ].map((m) => ({ 字: m[3]!, x: Number(m[1]), y: Number(m[2]) }));
+    // 名札は字の順ではなく部品の名前ごとに見る
+    expect(名札.map((n) => n.字).sort()).toEqual(
+      ["乾燥炉", "乾燥炉の温度", "塗装機", "成形機"].sort(),
+    );
+    for (const { 字, x, y } of 名札) {
+      const 要素 = laid.nodes.filter((n) => n.id.startsWith(`${字}__`));
+      expect(
+        要素.length,
+        `${字} の要素を 1 つも集められていない (検査が空振りしている)`,
+      ).toBeGreaterThan(0);
+      const 左端 = Math.min(...要素.map((n) => n.cx - n.w / 2));
+      const 右端 = Math.max(...要素.map((n) => n.cx + n.w / 2));
+      const 上端 = Math.min(...要素.map((n) => n.cy - n.h / 2));
+      // 名札の字は縦列の左上から (24, 26)。 縦列は部品の要素を横に含み、上端は部品の上端から 60 上
+      expect(x, `${字} の名札が部品の左端より左に出ている`).toBeGreaterThanOrEqual(左端 - 1);
+      expect(x, `${字} の名札が部品の横の範囲に無い`).toBeLessThan(右端);
+      expect(y, `${字} の名札が部品のすぐ上に無い`).toBeCloseTo(上端 - 34, 0);
+    }
+    // 4 つ目の部品が 2 段目に並ぶ = 1 段目だけだと、縦列を送らない配置でも名札が合う
+    const 温度 = laid.nodes.filter((n) => n.id.startsWith("乾燥炉の温度__"));
+    const 成形 = laid.nodes.filter((n) => n.id.startsWith("成形機__"));
+    expect(
+      Math.min(...温度.map((n) => n.cy - n.h / 2)),
+      "乾燥炉の温度が 2 段目に並んでいない (前提が崩れた)",
+    ).toBeGreaterThan(Math.max(...成形.map((n) => n.cy + n.h / 2)));
   });
 
   it("流れの途中に置く切替は、部品の前後の箱を矢印で繋ぎ、部品の円も描く (#1987)", async () => {
@@ -173,7 +215,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       items.filter((i) => 部品の図か(i.id)).map((i) => i.diagram),
     );
     const 並び = (await 見本()).patterns ?? [];
-    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(8);
+    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(9);
     for (const p of 並び) {
       const 組み直し = textDslToDiagram(p.sourceYaml!, { partsCatalog: 編集画面の一覧 });
       expect(JSON.stringify(組み直し), `${p.名} が編集画面と違う図になる`).toBe(
