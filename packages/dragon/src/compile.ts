@@ -981,7 +981,8 @@ function reportLaneMixed(doc: DslDocument, onNotice: (n: CompileNotice) => void)
  * ## 鎖にすること自体は変えない
  *
  * 線形の流れを描く図種なので、鎖にするのは仕様。 書いた端どおりに繋ぎたい形は
- * 箱に `lane:` を書けば別の経路へ回る (#1266)。 知らせの hint でそれを案内する。
+ * 箱に `lane:` を書くか (#1266)、`direction:` を書けば別の経路へ回る (#1494)。 知らせの hint で
+ * それを案内する。 `direction: 縦` を先に挙げるのは、箱ごとに書かずに済み、並びも鎖の時と変わらないため。
  *
  * ## 偶然一致する形では知らせない
  *
@@ -1022,7 +1023,7 @@ function reportFlowEndpointNotHonored(
       actor: 書いた名前(s.from),
       line: s.pos.line,
       message: `"${truncateForMessage(書いた名前(s.from))} -> ${truncateForMessage(書いた名前(s.to))}" の端は使われません (type: flow は登場人物を書いた順に繋ぎます)`,
-      hint: "書いた端どおりに繋ぐには、箱に lane: を書いてください (縦列を書いた形は書いた端がそのまま矢印になります)",
+      hint: "書いた端どおりに繋ぐには、direction: 縦 を書くか箱に lane: を書いてください (向きか縦列を書いた形は書いた端がそのまま矢印になります)",
     });
   }
 }
@@ -4362,12 +4363,16 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
 /**
  * 静止した `type: flow` かどうか。 この形だけ矢印を鎖状に作る (`compileFlow`)。
  *
- * 段を持つ形と縦列を書いた形は generic 経路へ回るため鎖にならない。 判定を 1 か所に
- * 集めるのは、`compileFlow` の分岐と食い違うと対応の取り方だけがずれるため。
+ * 段を持つ形・縦列を書いた形・向きを書いた形は generic 経路へ回るため鎖にならない。
+ *
+ * **`compileFlow` の分岐もこの判定を使う**。 判定を 2 か所に書くと、組み立てだけが別経路へ回り、
+ * 行の対応と端の知らせが鎖のまま残る。 向きを書いた形 (#1494) は組み立てにだけ足され、`A -> C` に
+ * 書いた `head` が `C -> B` に載り、書いた端のとおりの矢印に「端は使われません」 が出ていた (#1986)。
  */
 function 鎖でつなぐ形か(doc: DslDocument): boolean {
   if (doc.type !== "flow") return false;
   if (doc.animate && doc.animate.phases.length > 0) return false;
+  if (doc.direction !== undefined) return false;
   return !書いた縦列に置く("flow", doc);
 }
 
@@ -7282,11 +7287,9 @@ function compileFlow(doc: DslDocument): CdlDiagram {
   // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
   // **向きを書いた形も generic 経路へ** (#1494)。 静止図の経路は並びを固定で持つので、
   // ここを通さないと書いた向きが黙って消える (縦列を書いた形と同じ理由)
-  if (
-    (doc.animate && doc.animate.phases.length > 0) ||
-    書いた縦列に置く("flow", doc) ||
-    doc.direction !== undefined
-  ) {
+  //
+  // 振り分けは行の対応と端の知らせと同じ判定で行う (#1986)
+  if (!鎖でつなぐ形か(doc)) {
     return compileGenericWithAnimate(doc, { kind: "flow", laneId: "main", laneWidth: 400 });
   }
   // 登場人物が 0 人なら枠も作らない。 描画側の `flow()` は枠を必ず 1 つ作るため、 そのまま

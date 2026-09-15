@@ -54,6 +54,8 @@ describe("書いた矢印の端が使われないことを知らせる (#1269)",
     const n = 端の知らせ(本文("flow", `  - A -> C: "x"\n`));
     expect(n.length, "知らせが 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
     expect(n[0]?.hint).toContain("lane:");
+    // 向きを書いた形も書いた端のとおりに繋ぐ (#1986)。 箱ごとに縦列を書かずに済む回避策
+    expect(n[0]?.hint).toContain("direction:");
   });
 
   // 陰性。 書いた端がそのまま鎖になる形で知らせると、正しく書いた人にまで出る
@@ -64,6 +66,17 @@ describe("書いた矢印の端が使われないことを知らせる (#1269)",
   it("段のある形では知らせない", () => {
     // generic 経路へ回るため書いた端がそのまま矢印になる
     expect(端の知らせ(本文("flow", `  - A -> C: "x"\n  - C -> B: "y"\n`, 段)).length).toBe(0);
+  });
+
+  it("向きを書いた形では知らせない (#1986)", () => {
+    // generic 経路へ回るため書いた端がそのまま矢印になる。 段・縦列と同じ側に振り分ける
+    for (const 向き of ["direction: 縦", "direction: 横"]) {
+      const yaml = 本文("flow", `  - A -> C: "x"\n  - C -> B: "y"\n`).replace(
+        "type: flow\n",
+        `type: flow\n${向き}\n`,
+      );
+      expect(端の知らせ(yaml).length, 向き).toBe(0);
+    }
   });
 
   it("縦列を書いた形では知らせない", () => {
