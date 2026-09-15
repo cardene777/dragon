@@ -37,6 +37,11 @@ import * as 部品 from "./parts.cdl";
  * 矢印を引く 2 つの切替は `swimlane` で書く。 `flow` と `topology` は部品を他の箱の下の格子に置くため、
  * 矢印が間の箱を貫く (絵の検査で実測)。 `traffic-light-stack` のように要素を縦に詰めた部品は、図に
  * 取り込むと要素の間が 60px になり間隔の検査 (70px) に掛かるので、層の間が広い `stacked-layer` を使う。
+ *
+ * ## 流れの途中に置く (#1987)
+ *
+ * 静止した `flow` は登場人物を書いた順に矢印で繋ぐが、どの行にも書かれていない部品は繋ぐ並びに入れず、
+ * 図の下の格子に置く。 部品を 2 つの箱の間に書いても、前後の箱が矢印で繋がることを見せる。
  */
 
 const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
@@ -44,7 +49,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partInBox = "書かない";
 
 export const subtitle__partInBox =
-  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぐ";
+  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、流れの途中に置く";
 
 export const sourceYaml__partInBox = `title: "部品を箱に置き何も書き換えない"
 type: flow
@@ -221,5 +226,35 @@ export const sourceJson__pattern__partInBox__繋ぐ要素を名指しする = `{
 
 export const pattern__partInBox__繋ぐ要素を名指しする = textDslToDiagram(
   sourceYaml__pattern__partInBox__繋ぐ要素を名指しする,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partInBox__流れの途中に置く = `title: "注文を受けてから出荷するまでの間に設備の稼働を置く"
+type: flow
+
+actors:
+  - 注文を受ける: { kind: card }
+  - 設備の稼働: { kind: state-indicator }
+  - 出荷する: { kind: card }
+
+flow:
+  - 注文を受ける -> 出荷する: "引き渡す"
+`;
+
+export const sourceJson__pattern__partInBox__流れの途中に置く = `{
+  "title": "注文を受けてから出荷するまでの間に設備の稼働を置く",
+  "type": "flow",
+  "actors": [
+    { "name": "注文を受ける", "kind": "card" },
+    { "name": "設備の稼働", "kind": "state-indicator" },
+    { "name": "出荷する", "kind": "card" }
+  ],
+  "flow": [
+    { "from": "注文を受ける", "to": "出荷する", "label": "引き渡す" }
+  ]
+}`;
+
+export const pattern__partInBox__流れの途中に置く = textDslToDiagram(
+  sourceYaml__pattern__partInBox__流れの途中に置く,
   { partsCatalog: 部品の一覧 },
 );

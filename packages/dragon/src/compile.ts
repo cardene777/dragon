@@ -242,7 +242,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       diagram = compileSequence(doc);
       break;
     case "flow":
-      diagram = compileFlow(doc);
+      diagram = compileFlow(doc, opts?.partsCatalog);
       break;
     case "swimlane":
       diagram = compileSwimlane(doc);
@@ -325,7 +325,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 矢印ごとに、どの行から来たか。 部品へ引いた矢印を部品の要素へ繋ぎ直す時に、その行に書いた
   // 名指し (`toPartNode`) を読む (#1979)。 矢印の id は部品の取り込みで変わらない
   const 矢印の行 = new Map<string, DslStep>();
-  applyEdgeInlineOptions(diagram, doc, edgeSourceLines, 矢印の行);
+  applyEdgeInlineOptions(diagram, doc, edgeSourceLines, 矢印の行, opts?.partsCatalog);
   const 作った組の枠 = applyGroupContainers(diagram, doc);
   applyNodeTones(diagram, doc);
   // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
@@ -336,7 +336,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 両端が同じ矢印を伝える (#1227)。 落とす前の `flow` を見る
   // 静止した `type: flow` で書いた矢印の端が使われないことを伝える (#1269)。
   // 自分へ戻る形と居ない名前を指す形は既に落ちた後の `doc` を見る = 上の 2 件と重ねない
-  reportFlowEndpointNotHonored(doc, 分けた.元の名前, opts?.onNotice);
+  reportFlowEndpointNotHonored(doc, 分けた.元の名前, opts?.onNotice, opts?.partsCatalog);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportActorKindNotHonored(書いたまま, opts?.onNotice);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
@@ -1000,6 +1000,8 @@ function reportFlowEndpointNotHonored(
   doc: DslDocument,
   元の名前: Map<string, string>,
   onNotice?: (n: CompileNotice) => void,
+  /** 鎖に並べない部品を決める一覧 (#1987)。 `compileFlow` に渡したものと同じ */
+  partsCatalog?: Record<string, CdlDiagram>,
 ): void {
   if (!onNotice) return;
   if (!鎖でつなぐ形か(doc)) return;
@@ -1011,8 +1013,9 @@ function reportFlowEndpointNotHonored(
   // 鎖が作る組を集める。 登場人物が 1 人以下なら矢印が 1 本も出来ないので、
   // 書いた矢印は全て使われない扱いになる
   const 鎖の組 = new Set<string>();
-  doc.actors.forEach((a, i) => {
-    const 次 = doc.actors[i + 1];
+  const 並び = 鎖に並べる登場人物(doc, partsCatalog);
+  並び.forEach((a, i) => {
+    const 次 = 並び[i + 1];
     if (次 === undefined) return;
     鎖の組.add(`${a.name}\u0000${次.name}`);
   });
@@ -4233,11 +4236,14 @@ function applyEdgeInlineOptions(
   sourceLines?: Map<string, number>,
   /** 対応が取れた edge の行そのもの。 部品の取り込みが、行に書いた要素の名指しを読む (#1979) */
   edgeSteps?: Map<string, DslStep>,
+  /** 鎖に並べない部品を決める一覧 (#1987)。 `compileFlow` に渡したものと同じ */
+  partsCatalog?: Record<string, CdlDiagram>,
 ): void {
   // **静止した `type: flow` は書いた端で対応が取れない** (#1267)。 鎖の規則で先に埋める
   if (鎖でつなぐ形か(doc)) {
+    const 並び = 鎖に並べる登場人物(doc, partsCatalog);
     diagram.edges.forEach((e, idx) => {
-      const s = 鎖のどの行から来たか(doc, idx);
+      const s = 鎖のどの行から来たか(doc, 並び, idx);
       if (s === undefined) return;
       sourceLines?.set(e.id, s.pos.line);
       edgeSteps?.set(e.id, s);
@@ -4377,6 +4383,35 @@ function 鎖でつなぐ形か(doc: DslDocument): boolean {
 }
 
 /**
+ * 静止した流れ図の鎖に並べる登場人物 (#1987)。
+ *
+ * **どの行にも書かれていない部品は鎖に並べない**。 並べると、部品の前後の並び順の矢印は書き手が
+ * 部品へ引いたものではないため部品へ繋がずに外され (#1979)、部品を途中に置いた図から矢印が全て
+ * 消えていた (実測 = `受付 / 印 / 出荷` で矢印 0 本、知らせ 0 件)。 編集画面は部品を本文から抜いてから
+ * 鎖を作るので `受付 -> 出荷` を描き、カタログと絵が食い違っていた。 部品は図の下の格子に置くため、
+ * 鎖から外しても流れの列に空きは生まれない。
+ *
+ * - 部品の一覧に無い部品は仮の箱のまま描かれるので残す (一覧を渡さない組み立ても同じ)
+ * - 大きすぎて取り込まない部品は一覧にあるので外す (図に入らない場所へ鎖を通さない)
+ * - 行の端に書かれた部品は残し、#1979 の繋ぎ方に従う
+ *
+ * 鎖を作る `compileFlow`、行との対応 (`鎖のどの行から来たか`)、端の知らせ
+ * (`reportFlowEndpointNotHonored`) の 3 つがこの並びを使う。 1 つでも `doc.actors` を見ると、
+ * N 本目の矢印と行の対応がずれる。
+ */
+function 鎖に並べる登場人物(
+  doc: DslDocument,
+  partsCatalog: Record<string, CdlDiagram> | undefined,
+): DslActor[] {
+  if (!partsCatalog) return doc.actors;
+  const 行に書かれた = new Set(doc.flow.flatMap((s) => [s.from, s.to]));
+  // 部品でない箱は `partId` を持たず一覧を引けないので、一覧に無い部品と同じく残る
+  return doc.actors.filter(
+    (a) => 行に書かれた.has(a.name) || lookupPartRaw(partsCatalog, a.partId) === undefined,
+  );
+}
+
+/**
  * 鎖の N 本目の矢印が、本文のどの行から来たかを返す (#1267)。
  *
  * `compileFlow` は登場人物を書いた順に繋ぎ、説明文は **その箱を to に持つ行** から拾う。
@@ -4385,8 +4420,12 @@ function 鎖でつなぐ形か(doc: DslDocument): boolean {
  *
  * 説明文を決めた規則と同じ規則で指定も決める = 説明文と指定が必ず同じ行から来る。
  */
-function 鎖のどの行から来たか(doc: DslDocument, edgeIndex: number): DslStep | undefined {
-  const to = doc.actors[edgeIndex + 1];
+function 鎖のどの行から来たか(
+  doc: DslDocument,
+  並び: readonly DslActor[],
+  edgeIndex: number,
+): DslStep | undefined {
+  const to = 並び[edgeIndex + 1];
   if (to === undefined) return undefined;
   return doc.flow.find((s) => s.to === to.name);
 }
@@ -7281,7 +7320,11 @@ function slugLookup(byName: ReadonlyMap<string, string>, wanted: string): string
   return hit;
 }
 
-function compileFlow(doc: DslDocument): CdlDiagram {
+function compileFlow(
+  doc: DslDocument,
+  /** 鎖に並べない部品を決める一覧 (#1987) */
+  partsCatalog?: Record<string, CdlDiagram>,
+): CdlDiagram {
   // v0.4 ... animation あり時 builder 直接経路で複数 phase 注入
   // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
   // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
@@ -7294,8 +7337,10 @@ function compileFlow(doc: DslDocument): CdlDiagram {
   }
   // 登場人物が 0 人なら枠も作らない。 描画側の `flow()` は枠を必ず 1 つ作るため、 そのまま
   // 通すと中身の無い枠が残る (実測 = `title` と `type` だけの本文で枠 `flow` が空)。
-  // 枠を持たない図として返す = `swimlane` / `c4` が 0 人で枠 0 になるのと揃う
-  if (doc.actors.length === 0) {
+  // 枠を持たない図として返す = `swimlane` / `c4` が 0 人で枠 0 になるのと揃う。
+  // 鎖に並べる登場人物で見る = 行に書かれていない部品しか居ない図も枠を作らない (#1987)
+  const 並び = 鎖に並べる登場人物(doc, partsCatalog);
+  if (並び.length === 0) {
     return diagram(slugify(doc.title), { topic: doc.title, type: "flow" }).build();
   }
   // flow preset は actors を順に step として配置、 step 間に edge auto
@@ -7304,8 +7349,9 @@ function compileFlow(doc: DslDocument): CdlDiagram {
     topic: doc.title,
   });
   // 各 actor を step として登録、 edge label は流れ から拾う
-  for (let i = 0; i < doc.actors.length; i++) {
-    const a = doc.actors[i]!;
+  for (const a of 並び) {
+    // 名前から id を作れない時の番号は、書いた順の番号にする (部品を飛ばしても変わらない)
+    const i = doc.actors.indexOf(a);
     // 直前の step との edge label = この actor を to に持つ flow から拾う
     const incomingEdge = doc.flow.find((s) => s.to === a.name);
     const edgeLabel = incomingEdge?.label;
