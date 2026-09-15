@@ -4,12 +4,8 @@ import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
-import {
-  CATALOG_ITEMS,
-  loadPartsItems,
-  選んだ見本,
-  type CatalogItem,
-} from "@/lib/catalog-items";
+import { loadPartsItems, 選んだ見本, type CatalogItem } from "@/lib/catalog-items";
+import { useCategoryItems } from "./category-items";
 import { CATALOG_HANDLERS } from "@/lib/catalog-handlers";
 import { itemName, itemNameEn, itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
@@ -294,8 +290,8 @@ export function CategoryPage(): React.ReactElement {
       cancelled = true;
     };
   }, [params.slug]);
-  const items =
-    params.slug === "parts" ? partsItems : params.slug ? (CATALOG_ITEMS[params.slug] ?? []) : [];
+  // 同じ縦列と同じ部品の一覧なら同じ配列が返る (`category-items.ts` が理由を持つ)
+  const items = useCategoryItems(params.slug, partsItems);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return items;
