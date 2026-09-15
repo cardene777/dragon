@@ -162,7 +162,7 @@ describe("値に追随する 5 欄が JSON から図に届く (#1392)", () => {
     });
     const v = validateDragonJson(json);
     expect(v.ok, v.ok ? "" : v.errors.map((e) => e.path).join(" ")).toBe(true);
-    const n = 箱たち(jsonToDiagram(json as never))[0]!;
+    const n = 箱たち(jsonToDiagram(json))[0]!;
     expect({
       wBind: n.wBind,
       hBind: n.hBind,

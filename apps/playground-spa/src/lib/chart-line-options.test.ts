@@ -34,7 +34,7 @@ function 見本を取る(id: string): CdlDiagram {
 function 折れ線のnode(diagram: CdlDiagram): (CdlDiagram["nodes"][number] & 折れ線の欄)[] {
   return diagram.nodes.filter(
     (node) => node.kind === "chart-line",
-  ) as (CdlDiagram["nodes"][number] & 折れ線の欄)[];
+  );
 }
 
 function 合成の図(): CdlDiagram {

@@ -1137,7 +1137,7 @@ function 編集距離(a: string, b: string, 上限: number): number {
 function checkUnknownKeys(v: unknown, 層: 階層, path: string, errors: JsonDslError[]): void {
   if (!v || typeof v !== "object" || Array.isArray(v)) return;
   const 受ける = ACCEPTED_KEYS[層] as readonly string[];
-  for (const key of Object.keys(v as Record<string, unknown>)) {
+  for (const key of Object.keys(v)) {
     if (受ける.includes(key)) continue;
     const 候補 = 近い項目名(key, 受ける);
     errors.push({
@@ -1378,7 +1378,7 @@ function validateBands(v: unknown, errors: JsonDslError[]): void {
       errors.push({ path: `${path}.actor`, message: "band.actor must be a non-empty string" });
     }
     for (const k of ["from", "to"] as const) {
-      if (typeof o[k] !== "number" || !Number.isInteger(o[k]) || (o[k] as number) < 0) {
+      if (typeof o[k] !== "number" || !Number.isInteger(o[k]) || o[k] < 0) {
         errors.push({ path: `${path}.${k}`, message: `band.${k} must be a non-negative integer` });
       }
     }
@@ -1683,7 +1683,7 @@ function validateEvents(v: unknown, errors: JsonDslError[]): void {
       }
       return;
     }
-    if (typeof o[鍵] !== "string" || (o[鍵] as string).trim() === "") {
+    if (typeof o[鍵] !== "string" || o[鍵].trim() === "") {
       errors.push({ path: `${path}.${鍵}`, message: `${鍵} must be a non-empty string` });
       return;
     }
@@ -2018,7 +2018,7 @@ export function 素のデータに写す(
     // **名前も数に入れる** (Round 5 の指摘)。 値を読む前に名前の一覧を作るため、 値だけを
     // 数えると「名前が 20,000 個ある段を 63 回降りる」 形で 126 万個を並べられる = 上限を
     // 見る前に資源を使い切れる
-    const 名前の並び = Object.keys(v as Record<string, unknown>);
+    const 名前の並び = Object.keys(v);
     項目数 += 名前の並び.length;
     if (項目数 > 写しの最大の項目数) {
       throw new 写せない(path, `項目が多すぎる (上限 ${写しの最大の項目数})`);
@@ -2300,7 +2300,7 @@ function validatePhaseMotion(po: Record<string, unknown>, i: number, errors: Jso
         const t = typeof value;
         if (t !== "number" && t !== "string") {
           errors.push({ path, message: "set value must be a number or string", hint: `got ${t}` });
-        } else if (t === "number" && !Number.isFinite(value as number)) {
+        } else if (t === "number" && !Number.isFinite(value)) {
           errors.push({ path, message: "set value must be a finite number" });
         }
       }
@@ -2334,7 +2334,7 @@ function validateStates(v: unknown, errors: JsonDslError[]): void {
         message: "state initial must be a number or string",
         hint: `got ${t}`,
       });
-    } else if (t === "number" && !Number.isFinite(initial as number)) {
+    } else if (t === "number" && !Number.isFinite(initial)) {
       // `NaN` / `Infinity` は JSON には書けないが、object を直接渡す経路では届く。
       // 描画側は文字列に直して式に流すため、そのまま通すと計算が全て壊れる
       errors.push({ path: `$.states.${name}`, message: "state initial must be a finite number" });
@@ -2400,7 +2400,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       return { name: a, kind: "actor" as NodeKind, kindWritten: false, pos: p0 };
     }
     // CAR-1657 = kind が既存 NodeKind に無い値なら parts identifier 候補、 partId に格納
-    const kindStr = (a.kind ?? "actor") as string;
+    const kindStr = a.kind ?? "actor";
     const isPart = kindStr !== "actor" && !VALID_KIND_SET.has(kindStr);
     // 色は記法と同じ振り分けを通す (#1294)。 `#` で始まれば色番号、それ以外は色の名前。
     // 別々に書くと、同じ値が入口によって色番号にも色名にもなる
@@ -2472,7 +2472,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     to: s.to,
     label: s.label,
     sub: s.sub,
-    side: s.side as "top" | "right" | "bottom" | "left" | undefined,
+    side: s.side,
     // 矢印の先の形 (#1462)。 読めない語は組み立てが落とす
     head: s.head,
     // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)

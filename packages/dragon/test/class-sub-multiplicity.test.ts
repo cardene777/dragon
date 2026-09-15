@@ -69,7 +69,7 @@ describe("クラス図の `tailSub` (#1771)", () => {
       type: "class",
       actors: [{ name: "Admin" }, { name: "Order" }],
       flow: [{ from: "Admin", to: "Order", label: "持つ", relation: "aggregates", sub: "1..*", tailSub: "1" }],
-    } as never);
+    });
     expect(d.edges, "矢印が 1 本も無い (検査が空振りしている)").toHaveLength(1);
     expect(d.edges[0]!.tailLabel).toBe("1");
     expect(d.edges[0]!.headLabel).toBe("1..*");

@@ -221,7 +221,7 @@ describe("実物で確かめる", () => {
     const t = readFileSync(catalog, "utf8");
 
     for (const id of 図たち) {
-      const 本文 = 抜き出す(t, id) as string;
+      const 本文 = 抜き出す(t, id);
       expect(本文, `${id} に export const が無い`).toContain("export const");
     }
   });
@@ -231,7 +231,7 @@ describe("実物で確かめる", () => {
     const t = readFileSync(catalog, "utf8");
 
     for (const id of 図たち) {
-      expect(抜き出す(t, id) as string, `${id} の id が抜き出しに無い`).toContain(`id: "${id}"`);
+      expect(抜き出す(t, id), `${id} の id が抜き出しに無い`).toContain(`id: "${id}"`);
     }
   });
 });

@@ -112,7 +112,7 @@ describe("Axis 24 accessibility-basics (LaidDiagram mutation で意図発火)", 
       phases: [
         { id: "p", duration: 1000, title: "", body: "", activate: [], tweens: [], sets: [] },
       ],
-    } as Partial<CdlDiagram>);
+    });
     expect(countOf(diag)).toBeGreaterThan(0);
   });
 
@@ -121,7 +121,7 @@ describe("Axis 24 accessibility-basics (LaidDiagram mutation で意図発火)", 
       phases: [
         { id: "p", duration: 1000, title: "段の題", body: "段の説明", activate: [], tweens: [], sets: [] },
       ],
-    } as Partial<CdlDiagram>);
+    });
     expect(countOf(diag)).toBe(0);
   });
 
@@ -129,7 +129,7 @@ describe("Axis 24 accessibility-basics (LaidDiagram mutation で意図発火)", 
     const withOnly = (title: string, body: string): CdlDiagram =>
       baseDiagram({
         phases: [{ id: "p", duration: 1000, title, body, activate: [], tweens: [], sets: [] }],
-      } as Partial<CdlDiagram>);
+      });
     expect(countOf(withOnly("段の題", "")), "題だけで発火した").toBe(0);
     expect(countOf(withOnly("", "段の説明")), "説明だけで発火した").toBe(0);
   });
@@ -140,7 +140,7 @@ describe("Axis 24 accessibility-basics (LaidDiagram mutation で意図発火)", 
         { id: "p1", duration: 1000, title: "段 1", body: "説明 1", activate: [], tweens: [], sets: [] },
         { id: "p2", duration: 1000, title: "", body: "", activate: [], tweens: [], sets: [] },
       ],
-    } as Partial<CdlDiagram>);
+    });
     expect(countOf(diag)).toBe(1);
   });
 
@@ -153,7 +153,7 @@ describe("Axis 24 accessibility-basics (LaidDiagram mutation で意図発火)", 
       phases: [
         { id: "p", duration: 1000, title: "段の題", body: "段の説明", activate: [], tweens: [], sets: [] },
       ],
-    } as Partial<CdlDiagram>);
+    });
     expect(countOf(diag)).toBe(0);
   });
 });

@@ -165,7 +165,7 @@ describe("写しそのものの性質", () => {
   });
 
   it("自分を指す入れ子があっても止まる", () => {
-    const 素 = 図の素({ states: { amount: 0 } }) as Record<string, unknown>;
+    const 素 = 図の素({ states: { amount: 0 } });
     素.輪 = 素;
     // 検査は知らない項目を無視するので、 通ること自体が「無限に降りていない」 ことを示す
     expect(() => validateDragonJson(素)).not.toThrow();
@@ -488,7 +488,7 @@ describe("読み取りの誤りの出し方 (Round 2)", () => {
 
   it("投げた場所を path で示す (r1-f1)", () => {
     // `$` としか言えないと、 大きな図でどの項目が原因か追えない
-    const 素 = 図の素({ states: { amount: 0 } }) as Record<string, unknown>;
+    const 素 = 図の素({ states: { amount: 0 } });
     const 入れ子: Record<string, unknown> = {};
     Object.defineProperty(入れ子, "壊れた項目", {
       enumerable: true,

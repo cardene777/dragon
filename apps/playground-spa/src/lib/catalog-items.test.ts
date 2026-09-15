@@ -39,9 +39,9 @@ const pairedKeys = (mod: Mod, prefix: string): Map<string, string> => {
 
 describe("catalog の suffix pair 規約", () => {
   const mods: Array<[string, Mod]> = [
-    ["interactive", InteractiveMod as Mod],
-    ["parts", PartsMod as Mod],
-    ["presets", PresetsMod as Mod],
+    ["interactive", InteractiveMod],
+    ["parts", PartsMod],
+    ["presets", PresetsMod],
   ];
 
   describe.each(mods)("%s module", (_name, mod) => {
@@ -67,7 +67,7 @@ describe("catalog の suffix pair 規約", () => {
 
 describe("CatalogItem.subtitle の決まり方", () => {
   it("subtitle__ がある item はその値を使う", () => {
-    const subs = pairedKeys(InteractiveMod as Mod, "subtitle");
+    const subs = pairedKeys(InteractiveMod, "subtitle");
     expect(subs.size, "interactive に subtitle__ が 1 つも無い").toBeGreaterThan(0);
 
     const items = CATALOG_ITEMS.interactive ?? [];
@@ -82,7 +82,7 @@ describe("CatalogItem.subtitle の決まり方", () => {
   });
 
   it("subtitle__ が無い item は topic に落ちる", () => {
-    const subs = pairedKeys(PresetsMod as Mod, "subtitle");
+    const subs = pairedKeys(PresetsMod, "subtitle");
     expect(subs.size, "presets は subtitle__ を持たない前提").toBe(0);
 
     const items = CATALOG_ITEMS.presets ?? [];

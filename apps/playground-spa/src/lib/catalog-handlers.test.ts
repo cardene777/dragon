@@ -88,9 +88,9 @@ describe("catalog の受け取り手 (#1038)", () => {
       setBool: (id: string, v: boolean) => { if (id === "active") value = v; },
     };
     const toggle = CATALOG_HANDLERS["toggle-active"]!;
-    toggle(new Event("click"), signals as never);
+    toggle(new Event("click"), signals);
     expect(value, "1 回目で入りにならない").toBe(true);
-    toggle(new Event("click"), signals as never);
+    toggle(new Event("click"), signals);
     expect(value, "2 回目で切りに戻らない").toBe(false);
   });
 
@@ -180,7 +180,7 @@ describe("catalog の受け取り手 (#1038)", () => {
       getNumber: () => 99,
       setNumber: (id: string, v: number) => { if (id === "received") written.push(v); },
     };
-    CATALOG_HANDLERS["on-dbl"]!(new Event("x"), signals as never);
+    CATALOG_HANDLERS["on-dbl"]!(new Event("x"), signals);
     expect(written, "上限の次に 0 へ戻っている").toEqual([99]);
   });
 
@@ -194,7 +194,7 @@ describe("catalog の受け取り手 (#1038)", () => {
         getNumber: () => 0,
         setNumber: () => { /* 累計は別 test で見る */ },
       };
-      CATALOG_HANDLERS[id]!(new Event("x"), signals as never);
+      CATALOG_HANDLERS[id]!(new Event("x"), signals);
     }
     expect(names.size, "受け取り手が名前を残していない").toBe(4);
     expect(new Set(names.values()).size, `名前が重複している: ${[...names.values()].join(", ")}`).toBe(4);

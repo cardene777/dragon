@@ -90,7 +90,7 @@ function 動かす値(d: CdlDiagram): Array<{ id: string; from: string; to: stri
 
 /** 状態の初期値を差し替えた図。 元の図は触らない */
 function 初期値を変えた図(d: CdlDiagram, id: string, value: string): CdlDiagram {
-  const copy = structuredClone(d) as CdlDiagram;
+  const copy = structuredClone(d);
   copy.states = (copy.states ?? []).map((s) => (s.id === id ? { ...s, initial: value } : s));
   return copy;
 }
@@ -425,12 +425,10 @@ describe("形の見本は数が段で動く (#1196)", () => {
     // 段の始点と終点をそれぞれ初期値に据えて描き、文字が変わることを見る
     const 出ない: string[] = [];
     for (const [k, d] of 形) {
-      const tw = d.phases.flatMap((p) => p.tweens ?? [])[0] as
-        | { stateId: string; from: number; to: number }
-        | undefined;
+      const tw = d.phases.flatMap((p) => p.tweens ?? [])[0];
       if (!tw) { 出ない.push(`${k}: 動かす値が無い`); continue; }
       const 文字 = (v: number) => {
-        const c = structuredClone(d) as CdlDiagram;
+        const c = structuredClone(d);
         c.states = (c.states ?? []).map((st) => (st.id === tw.stateId ? { ...st, initial: v } : st));
         return 絵の文字(c).join("|");
       };

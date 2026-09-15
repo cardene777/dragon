@@ -9828,7 +9828,7 @@ export const teamThreadSummary = diagram("interactive-team-thread-summary", {
   .lane("unread", { x: 0, width: 220 })
   .lane("participants", { x: 260, width: 220 })
   .lane("activity", { x: 520, width: 260 })
-  .arraySignal("thread", [5, 8, "佐藤", "12 分前"] as unknown as (string | number)[])
+  .arraySignal("thread", [5, 8, "佐藤", "12 分前"])
   .node("unreadCard", {
     lane: "unread",
     stack: 0,
@@ -10341,7 +10341,7 @@ export const opsAlertBanner = diagram("interactive-ops-alert-banner", {
   .lane("trigger", { x: 0, width: 240 })
   .lane("severity", { x: 280, width: 240 })
   .lane("action", { x: 560, width: 220 })
-  .arraySignal("alert", [2, "CPU 92% を 5 分継続 — 調査要"] as unknown as (string | number)[])
+  .arraySignal("alert", [2, "CPU 92% を 5 分継続 — 調査要"])
   .node("triggerCard", {
     lane: "trigger",
     stack: 0,
@@ -10613,9 +10613,7 @@ export const saasPricingTier = diagram("interactive-saas-pricing-tier", {
   .lane("starter", { x: 0, width: 240 })
   .lane("pro", { x: 280, width: 240 })
   .lane("enterprise", { x: 560, width: 260 })
-  .arraySignal("plan", ["標準", 29, "10 席", "優先サポート", "カスタムドメイン"] as unknown as (
-    string | number
-  )[])
+  .arraySignal("plan", ["標準", 29, "10 席", "優先サポート", "カスタムドメイン"])
   .node("starterCard", {
     lane: "starter",
     stack: 0,
@@ -10695,7 +10693,7 @@ export const checkoutCouponApply = diagram("interactive-checkout-coupon-apply", 
   .lane("empty", { x: 0, width: 240 })
   .lane("entered", { x: 280, width: 240 })
   .lane("applied", { x: 560, width: 240 })
-  .arraySignal("coupon", ["春割20", 20] as unknown as (string | number)[])
+  .arraySignal("coupon", ["春割20", 20])
   .node("emptyCard", {
     lane: "empty",
     stack: 0,
@@ -10780,7 +10778,7 @@ export const blogArticlePreview = diagram("interactive-blog-article-preview", {
     "dragon で操作できる図を作る",
     "佐藤",
     "2 時間前",
-  ] as unknown as (string | number)[])
+  ])
   .node("thumbCard", {
     lane: "thumb",
     stack: 0,

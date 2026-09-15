@@ -83,7 +83,7 @@ describe("構造化データの抽出対象外の宣言", () => {
         }
         return { ...n, title: "" };
       }),
-    } as CdlDiagram;
+    };
     expect(namedCount(stripped)).toBe(2);
     expect(axis44(stripped), `${target.id} の名前を減らしても発火しない`).toHaveLength(1);
   });
@@ -92,7 +92,7 @@ describe("構造化データの抽出対象外の宣言", () => {
     for (const id of EXCLUDED) {
       const d = ALL.find((x) => x.id === id)!;
       const withDecl = visualValidate(d).violations.filter((v) => v.axis !== "structured-data-extraction");
-      const without = visualValidate({ ...d, structuredData: "extract" } as CdlDiagram)
+      const without = visualValidate({ ...d, structuredData: "extract" })
         .violations.filter((v) => v.axis !== "structured-data-extraction");
       expect(withDecl.map((v) => `${v.axis}:${v.detail}`), id).toEqual(
         without.map((v) => `${v.axis}:${v.detail}`),

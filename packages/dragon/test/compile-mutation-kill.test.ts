@@ -1586,7 +1586,7 @@ describe("mergePartIntoDiagram: readouts / phase merge の分岐", () => {
 
   it("readouts が空配列なら target.readouts を作らない (length > 0 分岐)", () => {
     const part = makeTestPart();
-    part.readouts = [] as unknown as CdlDiagram["readouts"];
+    part.readouts = [];
     const d = compileWithPart({}, part);
     expect(d.readouts === undefined || d.readouts.length === 0).toBe(true);
   });
@@ -1811,7 +1811,7 @@ function animOf(highlight: string[] = []): DslDocument["animate"] {
     states: [],
     phases: [{ name: "p", durationMs: 1200, highlight, pos: { line: 1 } }],
     pos: { line: 1 },
-  } as unknown as DslDocument["animate"];
+  };
 }
 
 describe("compileGenericWithAnimate: kind 別の lane 構成", () => {
@@ -2994,7 +2994,7 @@ describe("mergePartIntoDiagram: readouts の有無で target.readouts が切り�
 
   it("readouts が空配列の part でも readouts は生えない", () => {
     const part = makeTestPart();
-    part.readouts = [] as unknown as CdlDiagram["readouts"];
+    part.readouts = [];
     const d = compileWithPart({}, part);
     expect(d.readouts).toBeUndefined();
   });

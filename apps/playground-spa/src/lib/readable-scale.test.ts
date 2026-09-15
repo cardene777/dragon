@@ -197,7 +197,7 @@ describe("boxesRightPx", () => {
       (n as unknown as { getBBox: () => DOMRect }).getBBox = () =>
         ({ x: b.x, y: 0, width: b.width, height: 10 }) as DOMRect;
     });
-    return svg as SVGSVGElement;
+    return svg;
   };
 
   it("最も右にある箱の右端を返す", () => {

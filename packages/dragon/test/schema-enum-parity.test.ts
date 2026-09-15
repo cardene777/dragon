@@ -65,7 +65,7 @@ function schemaの語の一覧(): 語の一覧[] {
     if (typeof node !== "object" || node === null) return;
     const o = node as Record<string, unknown>;
     if (Array.isArray(o.enum) && o.enum.every((v) => typeof v === "string")) {
-      out.push({ path, values: o.enum as string[] });
+      out.push({ path, values: o.enum });
     }
     for (const [k, v] of Object.entries(o)) {
       if (k === "enum") continue;

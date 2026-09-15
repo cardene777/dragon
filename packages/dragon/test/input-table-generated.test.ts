@@ -164,7 +164,7 @@ describe("公開している形と記法の表が同じ種類を持つ (#1389)",
   });
 
   it("記法の表の全ての欄が、公開している形にもある", () => {
-    const 公開の欄 = new Set(Object.keys(公開のつまみ.properties as Record<string, unknown>));
+    const 公開の欄 = new Set(Object.keys(公開のつまみ.properties));
     const 無い = [
       ...new Set(Object.values(つまみの表).flatMap((定義) => Object.keys(定義.欄))),
     ].filter((n) => !公開の欄.has(n));
