@@ -29,12 +29,16 @@
  * 矢印で繋がり、部品の円も描くことを見る。
  *
  * 並べる切替 (#1990) は、描いた絵の名札の字が部品ごとに 1 つずつ、その部品のすぐ上に出ることを見る。
- * 4 つ目の部品は格子の 2 段目に並び、2 段目の名札も自分の部品の上に出る。
+ * 4 つ目と 5 つ目の部品は格子の 2 段目に並び、2 段目の名札も自分の部品の上に出る。
+ *
+ * 5 つ目の `bandwidth-meter` は縦列を 2 本持つ (#1992)。 図全体で間隔の検査 (`clearance`) の指摘が
+ * 出ず、部品の中の要素の横の間が部品の頁と同じになることを見る。 直す前は部品が書いた縦列の位置で
+ * 置いていたため、頁で 90 空く上りと下りの間が 60 になり、その組が指摘されていた。
  */
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { textDslToDiagram } from "@cardenelabs/dragon";
-import { CdlDiagramView, layout, type CdlDiagram } from "@cardenelabs/cdl";
+import { CdlDiagramView, layout, visualValidateAll, type CdlDiagram } from "@cardenelabs/cdl";
 import { loadPartsItems, type CatalogItem } from "./catalog-items";
 import { 部品の一覧を作る, 部品の図か } from "./parts-catalog";
 
@@ -44,6 +48,29 @@ async function 見本(): Promise<CatalogItem> {
   const item = (await loadPartsItems()).find((i) => i.id === 見本のid);
   if (!item) throw new Error(`部品の頁に ${見本のid} が無い`);
   return item;
+}
+
+/** 並べる切替で縦列を 2 本持つ部品 (`bandwidth-meter`) に付けた名前 */
+const 回線 = "工場の回線";
+
+async function 並べる図(): Promise<CdlDiagram> {
+  const p = ((await 見本()).patterns ?? []).find((x) => x.名 === "並べる");
+  if (!p) throw new Error("並べる切替が無い (前提が崩れた)");
+  return p.diagram;
+}
+
+/** 横に並んだ箱の、隣どうしの端の間 */
+function 横の間(箱たち: readonly { cx: number; w: number }[]): number[] {
+  const 並び = [...箱たち].sort((a, b) => a.cx - b.cx);
+  return 並び.slice(1).map((b, i) => b.cx - b.w / 2 - (並び[i]!.cx + 並び[i]!.w / 2));
+}
+
+/** 図全体の間隔の検査 (`clearance`) の指摘。 重さを問わず全て拾う */
+function 間隔の指摘(d: CdlDiagram): string[] {
+  return visualValidateAll([d], { profile: "catalog" })
+    .reports.flatMap((r) => r.violations)
+    .filter((v) => v.axis === "clearance")
+    .map((v) => `${v.severity}: ${v.detail}`);
 }
 
 /** 描いた絵の円 (外枠と塗り) を `[半径, 塗り]` で返す */
@@ -92,7 +119,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
     ].map((m) => ({ 字: m[3]!, x: Number(m[1]), y: Number(m[2]) }));
     // 名札は字の順ではなく部品の名前ごとに見る
     expect(名札.map((n) => n.字).sort()).toEqual(
-      ["乾燥炉", "乾燥炉の温度", "塗装機", "成形機"].sort(),
+      ["乾燥炉", "乾燥炉の温度", "塗装機", "成形機", "工場の回線"].sort(),
     );
     for (const { 字, x, y } of 名札) {
       const 要素 = laid.nodes.filter((n) => n.id.startsWith(`${字}__`));
@@ -115,6 +142,44 @@ describe("部品を箱に使う見本 (#1973)", () => {
       Math.min(...温度.map((n) => n.cy - n.h / 2)),
       "乾燥炉の温度が 2 段目に並んでいない (前提が崩れた)",
     ).toBeGreaterThan(Math.max(...成形.map((n) => n.cy + n.h / 2)));
+  });
+
+  it("並べる切替は縦列を 2 本持つ部品を混ぜても間隔の指摘が出ず、部品の中の間が部品の頁と同じ (#1992)", async () => {
+    const d = await 並べる図();
+    const 頁 = (await loadPartsItems()).find((i) => i.id === "parts-bandwidth-meter")?.diagram;
+    expect(頁, "部品の頁に bandwidth-meter が無い (前提が崩れた)").toBeDefined();
+    expect(
+      頁!.lanes.length,
+      "縦列を 2 本以上持つ部品ではない (前提が崩れた)",
+    ).toBeGreaterThanOrEqual(2);
+    const 頁の間 = 横の間(layout(頁!).nodes);
+    // 頁の間が 70 に届かないなら、頁と同じ間で置いても指摘は消えない
+    expect(
+      Math.min(...頁の間),
+      "部品の頁の間が 70 に届かない (前提が崩れた)",
+    ).toBeGreaterThanOrEqual(70);
+    const 置いた = layout(d).nodes.filter((n) => n.id.startsWith(`${回線}__`));
+    expect(置いた.length, "部品の要素を集められていない (検査が空振りしている)").toBe(
+      頁!.nodes.length,
+    );
+    const 置いた間 = 横の間(置いた);
+    expect(置いた間).toHaveLength(頁の間.length);
+    置いた間.forEach((v, i) => expect(v, `${i + 1} 番目の間`).toBeCloseTo(頁の間[i]!, 6));
+    expect(間隔の指摘(d)).toEqual([]);
+  });
+
+  it("並べる切替で部品の要素を直す前の間まで詰めると、間隔の検査がその組を指摘する (植え込み対照)", async () => {
+    const d = structuredClone(await 並べる図());
+    const [上り, 下り] = ["upBar", "dnBar"].map((id) =>
+      d.nodes.find((n) => n.id === `${回線}__${id}`),
+    );
+    expect(上り?.posX, "部品の要素に位置が無い (前提が崩れた)").toBeTypeOf("number");
+    expect(下り?.posX, "部品の要素に位置が無い (前提が崩れた)").toBeTypeOf("number");
+    // 頁の間 90 を、直す前に置いた図と同じ 60 にする
+    下り!.posX = 下り!.posX! - 30;
+    expect(
+      間隔の指摘(d).filter((s) => s.includes(`${回線}__upBar`) && s.includes(`${回線}__dnBar`)),
+    ).toHaveLength(1);
   });
 
   it("流れの途中に置く切替は、部品の前後の箱を矢印で繋ぎ、部品の円も描く (#1987)", async () => {

@@ -61,6 +61,8 @@ import { at } from "./support/at";
  * regex は複数文字 actor 名で差が出る)。 また `partStacks.length > 0` は当初「空 part でしか差が出ない」
  * と誤判定していたが、 stack が 0 始まりでない part (stack 2/3) で minStack が潰れると中心が
  * ずれるため kill 可能で、 本 file の「stack が 0 始まりでない part の中心合わせ」 で kill 済。
+ * この式は #1992 で無くなった (要素の縦位置は部品の頁から取り、段の範囲は縦の基準
+ * `partScaleBase` だけが使う)。 同じ describe が縦の基準の段の範囲を突く。
  *
  * 85% (Stryker high threshold) には到達しない。 残存の主因は到達不能分岐と ObjectLiteral /
  * StringLiteral 系の出力に現れない変異で、 引き上げるなら実装側の冗長性削除が必要になる。
@@ -897,6 +899,19 @@ function makeTestPart(): CdlDiagram {
   };
 }
 
+/**
+ * 部品の頁で配置した要素の縦位置を、要素全体の縦の中心からの差で返す (#1992)。
+ *
+ * 組み込みは要素の縦位置をこの差に `scaleY` を掛けて置く。 段の番号に近似の送り幅 220 を
+ * 掛けて置いていた頃は、頁で段の間が広い部品が置いた図で詰まった。
+ */
+function 頁の縦の差(part: CdlDiagram): Map<string, number> {
+  const 頁 = layout(part);
+  const 縦 = 頁.nodes.map((n) => n.cy);
+  const 中心 = (Math.min(...縦) + Math.max(...縦)) / 2;
+  return new Map(頁.nodes.map((n) => [n.id, n.cy - 中心]));
+}
+
 /** parts actor 1 個を持つ sequence を compile する (partsCatalog 経由)。 */
 function compileWithPart(over: Partial<DslActor> = {}, part: CdlDiagram = makeTestPart()): CdlDiagram {
   return compileToCdl(
@@ -951,22 +966,25 @@ describe("mergePartIntoDiagram: node posX / posY (drop 座標の中心合わせ)
     expect(node(d, "p1__bottom").posX).toBe(1000);
   });
 
-  it("posY = (stack - partCenterStack) * 220 * scaleY + posY で中心が posY に来る", () => {
-    // partCenterStack = (0+1)/2 = 0.5、 scaleY = 1
-    // top    = (0 - 0.5) * 220 * 1 + 500 = 390
-    // bottom = (1 - 0.5) * 220 * 1 + 500 = 610  → 中心 (390+610)/2 = 500 = posY
+  it("posY = (頁の縦位置 - 要素全体の縦の中心) * scaleY + posY で中心が posY に来る (#1992)", () => {
+    // 頁では top (高さ 100) と bottom (高さ 50) の間を 100 空ける = 中心の間 175。 scaleY = 1
+    // top    = -87.5 * 1 + 500 = 412.5
+    // bottom =  87.5 * 1 + 500 = 587.5  → 中心 (412.5+587.5)/2 = 500 = posY
+    const 差 = 頁の縦の差(makeTestPart());
+    expect(差.get("bottom")! - 差.get("top")!, "頁の中心の間が 175 ではない (前提が崩れた)").toBe(175);
     const d = compileWithPart({ posX: 1000, posY: 500 });
-    expect(node(d, "p1__top").posY).toBe(390);
-    expect(node(d, "p1__bottom").posY).toBe(610);
+    expect(node(d, "p1__top").posY).toBe(差.get("top")! + 500);
+    expect(node(d, "p1__bottom").posY).toBe(差.get("bottom")! + 500);
   });
 
   it("posH 指定 = scaleY が posY 間隔に反映される", () => {
-    // partOrigH = (1-0+1)*220 = 440、 scaleY = 880/440 = 2
-    // top    = (0 - 0.5) * 220 * 2 + 500 = 280
-    // bottom = (1 - 0.5) * 220 * 2 + 500 = 720
+    // 縦の基準は段の送り幅の合計 (1-0+1)*220 = 440、 scaleY = 880/440 = 2
+    // top    = -87.5 * 2 + 500 = 325
+    // bottom =  87.5 * 2 + 500 = 675
+    const 差 = 頁の縦の差(makeTestPart());
     const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 });
-    expect(node(d, "p1__top").posY).toBe(280);
-    expect(node(d, "p1__bottom").posY).toBe(720);
+    expect(node(d, "p1__top").posY).toBe(差.get("top")! * 2 + 500);
+    expect(node(d, "p1__bottom").posY).toBe(差.get("bottom")! * 2 + 500);
   });
 
   it("offset 未指定なら格子の座標が入る", () => {
@@ -980,8 +998,8 @@ describe("mergePartIntoDiagram: node posX / posY (drop 座標の中心合わせ)
   it("posX のみ指定でも shouldForcePos が立ち posY も明示される", () => {
     const d = compileWithPart({ posX: 1000 });
     expect(node(d, "p1__top").posX).toBe(1000);
-    // offsetY 未指定 = 0 基準 → top = (0 - 0.5) * 220 = -110
-    expect(node(d, "p1__top").posY).toBe(-110);
+    // offsetY 未指定 = 0 基準 → top = 頁の縦の差 -87.5
+    expect(node(d, "p1__top").posY).toBe(頁の縦の差(makeTestPart()).get("top"));
   });
 });
 
@@ -1477,6 +1495,38 @@ describe("mergePartIntoDiagram: 座標条件の境界と両分岐", () => {
     (at(part.nodes, 0, "part.nodes") as { posY?: number }).posY = 25;
     const d = compileWithPart({ posX: 1000 }, part);
     expect(node(d, "p1__top").posY).toBe(25);
+  });
+
+  it("格子が場所を返さない部品は座標なしで組み込み、要素に書いた位置だけを残す (shouldForcePos の偽側)", () => {
+    // 箱の大きさが最大値の部品を 2 つ並べると、2 つ目は格子の送りが桁溢れして場所を持たない (#1992 で実測)
+    const 巨大 = (): CdlDiagram => ({
+      id: "parts-huge",
+      topic: "huge",
+      lanes: [{ id: "l", x: 0, width: 400 }],
+      nodes: [
+        { id: "big", lane: "l", stack: 0, kind: "card", title: "B", w: Number.MAX_VALUE, h: Number.MAX_VALUE },
+        { id: "pin", lane: "l", stack: 1, kind: "card", title: "P", w: 100, h: 50, posX: 60, posY: 25 },
+      ] as CdlDiagram["nodes"],
+      edges: [],
+      states: [],
+      phases: [] as CdlDiagram["phases"],
+    });
+    const d = compileToCdl(
+      makeDoc("sequence", {
+        actors: [actor("A"), actor("p1", { partId: "huge" }), actor("p2", { partId: "huge" })],
+        flow: [step("A", "A")],
+      }),
+      { partsCatalog: { huge: 巨大() } },
+    );
+    expect(node(d, "p2__big").posX, "格子が場所を返した (前提が崩れた)").toBeUndefined();
+    expect(node(d, "p2__big").posY).toBeUndefined();
+    // 書いた横位置は縦列と同じ写し方で写す = 自分の部品の縦列の中に来る。 写さないと書いた 60 のまま
+    // 図の左端に残る。 座標の桁が大きく差では測れないので、縦列の範囲に入るかで見る
+    const l = lane(d, "p2__l");
+    expect(node(d, "p2__pin").posX).toBeGreaterThanOrEqual(l.x!);
+    expect(node(d, "p2__pin").posX).toBeLessThanOrEqual(l.x! + l.width);
+    // 書いた縦位置は書いた値のまま
+    expect(node(d, "p2__pin").posY).toBe(25);
   });
 
   it("targetW が 0 なら laneScaleX は 1 (targetW > 0 の境界)", () => {
@@ -2991,7 +3041,7 @@ describe("mergePartIntoDiagram: 明示 posX を持つ node も scale 時に中�
 });
 
 describe("mergePartIntoDiagram: stack が 0 始まりでない part の中心合わせ", () => {
-  /** stack 2/3 の part = minStack > 0 で partCenterStack が 0 にならない。 */
+  /** stack 2/3 の part = 段 0 から始まらない。 縦の基準の段の範囲が 0 からにならない */
   function partStackFrom2(): CdlDiagram {
     const p = makeTestPart();
     p.nodes = [
@@ -3001,13 +3051,15 @@ describe("mergePartIntoDiagram: stack が 0 始まりでない part の中心合
     return p;
   }
 
-  it("minStack / maxStack が実 stack 範囲から算出され中心が drop 座標に来る", () => {
-    // minStack=2 / maxStack=3 → partCenterStack=2.5
-    // s2 = (2 - 2.5) * 220 + 500 = 390、 s3 = (3 - 2.5) * 220 + 500 = 610
-    // stack 集計が 0 固定に潰れると s2 = 2*220+500 = 940 になり中心がずれる。
+  it("段の番号ではなく頁の縦位置から置き、中心が drop 座標に来る (#1992)", () => {
+    // 頁は空の段 0 / 1 を詰めて s2 と s3 を並べる = 中心の間 150
+    // s2 = -75 + 500 = 425、 s3 = 75 + 500 = 575
+    // 段の番号から置くと、段 0 からの距離や段の送り幅 220 が位置に混ざる
+    const 差 = 頁の縦の差(partStackFrom2());
+    expect(差.get("s3")! - 差.get("s2")!, "頁の中心の間が 150 ではない (前提が崩れた)").toBe(150);
     const d = compileWithPart({ posX: 1000, posY: 500 }, partStackFrom2());
-    expect(node(d, "p1__s2").posY).toBe(390);
-    expect(node(d, "p1__s3").posY).toBe(610);
+    expect(node(d, "p1__s2").posY).toBe(差.get("s2")! + 500);
+    expect(node(d, "p1__s3").posY).toBe(差.get("s3")! + 500);
   });
 
   it("node 群の縦中心が drop 座標に一致する", () => {
@@ -3017,12 +3069,14 @@ describe("mergePartIntoDiagram: stack が 0 始まりでない part の中心合
     expect((top + bottom) / 2).toBe(500);
   });
 
-  it("partOrigH も実 stack 範囲で算出される (scaleY に反映)", () => {
-    // maxStack-minStack+1 = 2 → partOrigH = 440、 posH 880 で scaleY = 2
-    // s2 = (2 - 2.5) * 220 * 2 + 500 = 280
+  it("縦の基準も実 stack 範囲で算出される (scaleY に反映)", () => {
+    // maxStack-minStack+1 = 2 → 縦の基準 440、 posH 880 で scaleY = 2
+    // s2 = -75 * 2 + 500 = 350、 s3 = 75 * 2 + 500 = 650
+    // stack 集計が 0 固定に潰れると基準が (3-0+1)*220 = 880 になり scaleY = 1 に落ちる
+    const 差 = 頁の縦の差(partStackFrom2());
     const d = compileWithPart({ posX: 1000, posY: 500, posW: 800, posH: 880 }, partStackFrom2());
-    expect(node(d, "p1__s2").posY).toBe(280);
-    expect(node(d, "p1__s3").posY).toBe(720);
+    expect(node(d, "p1__s2").posY).toBe(差.get("s2")! * 2 + 500);
+    expect(node(d, "p1__s3").posY).toBe(差.get("s3")! * 2 + 500);
   });
 });
 

@@ -67,6 +67,17 @@ const KIND_SET: Record<string, unknown> = Object.fromEntries(
   ]),
 );
 
+/**
+ * 部品の頁で配置した縦列の外接の幅。 `大きさ:` の横はこの幅に対する倍率で掛かる (#1992)。
+ *
+ * 部品が書いた縦列の幅ではない。 組み込みは要素を頁の縦列に沿って置くため、倍率も頁の縦列を
+ * 基準にする (`wide` は書いた幅 400、頁では 450)。 実装の値を使わず、頁の配置から独立に出す。
+ */
+function 頁の縦列の幅(part: CdlDiagram): number {
+  const lanes = layout(part).lanes;
+  return Math.max(...lanes.map((l) => l.x + l.width)) - Math.min(...lanes.map((l) => l.x));
+}
+
 /** 図枠の左上から、 箱の外接矩形の左上までの余白。 */
 function framePadding(part: CdlDiagram): { left: number; top: number } {
   const own = layout(part);
@@ -416,17 +427,17 @@ flow:
     const a = placed.find((x) => x.id === "a")!;
     expect(partBoxRect(a).h, "画面側の箱の高さが組み立て側と違う").toBeCloseTo(libH, 1);
     // 余白の伸縮は test 側で独立に出す。 実装の値を足し引きすると打ち消し合って見えなくなる
-    // (横は縦列の幅 400 に対して 2000 で 5 倍、縦は段の送り幅 220 に対して 300 で 1.36 倍)
+    // (横は頁の縦列の幅 450 に対して 2000 で 4.44 倍、縦は段の送り幅 220 に対して 300 で 1.36 倍)
     const pad = framePadding(a.item.diagram);
     expect(a.posY + pad.top * (300 / 220), "画面側の箱の上端が組み立て側と違う").toBeCloseTo(
       libTop,
       1,
     );
     const libLeft = Math.min(...ns.map((n) => n.cx - n.w / 2));
-    expect(a.posX + pad.left * (2000 / 400), "画面側の箱の左端が組み立て側と違う").toBeCloseTo(
-      libLeft,
-      1,
-    );
+    expect(
+      a.posX + pad.left * (2000 / 頁の縦列の幅(PARTS.wide!)),
+      "画面側の箱の左端が組み立て側と違う",
+    ).toBeCloseTo(libLeft, 1);
   });
 
   it("大きさを書いても位置を書かなければ 2 経路で同じ場所になる", () => {
@@ -448,9 +459,12 @@ actors:
     const a = placed.find((x) => x.id === "a")!;
     // 余白の伸縮は test 側で独立に出す。 実装の値を足し引きすると、
     // 余白の誤りが打ち消し合って見えなくなる。
-    // 横は縦列の幅 400 に対して 2000 なので 5 倍、縦は段の送り幅 220 に対して 300 で 1.36 倍
+    // 横は頁の縦列の幅 450 に対して 2000 なので 4.44 倍、縦は段の送り幅 220 に対して 300 で 1.36 倍
     const pad = framePadding(a.item.diagram);
-    expect(a.posX + pad.left * (2000 / 400), "横がずれている").toBeCloseTo(lib.get("a")!.cx, 1);
+    expect(a.posX + pad.left * (2000 / 頁の縦列の幅(PARTS.wide!)), "横がずれている").toBeCloseTo(
+      lib.get("a")!.cx,
+      1,
+    );
     expect(a.posY + pad.top * (300 / 220), "縦がずれている").toBeCloseTo(lib.get("a")!.cy, 1);
   });
 
@@ -463,7 +477,15 @@ actors:
     );
     const a = parsed.parts.find((x) => x.id === "a")!;
     const base = extractPartsFromSrc(`actors:\n  - b: { kind: wide }\n`, KIND_SET, ITEMS).parts[0]!;
-    expect(partBoxRect(a).w / partBoxRect(base).w, "横が効いていない").toBeCloseTo(5, 1);
+    // 頁の縦列が書いた幅 400 のままだと、書いた縦列を基準にした倍率と区別できない
+    expect(
+      頁の縦列の幅(PARTS.wide!),
+      "頁の縦列が書いた幅から広がっていない (前提が崩れた)",
+    ).toBeGreaterThan(400);
+    expect(partBoxRect(a).w / partBoxRect(base).w, "横が効いていない").toBeCloseTo(
+      2000 / 頁の縦列の幅(PARTS.wide!),
+      1,
+    );
     expect(partBoxRect(a).h / partBoxRect(base).h, "縦まで効いている").toBeCloseTo(1, 1);
   });
 

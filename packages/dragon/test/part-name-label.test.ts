@@ -218,9 +218,13 @@ describe("縦列を 2 本以上持つ部品は、名前の名札を 1 つだけ�
     const 範囲 = 部品の範囲(配置, "電波");
     const 縦列 = 名札の縦列(配置, "電波");
     expect(縦列).toHaveLength(1);
-    // 名札は左端の縦列に付く = 縦列が部品の左端を含む。 右の縦列の要素までは含まない
+    // 名札は左端の縦列に付く = 縦列が部品の左端を含み、部品の頁と同じだけ左に出る。
+    // 頁は要素の間を空けるため縦列を広げる (#1992) ので、縦列の余白 (25) より広い
+    const 頁 = layout(一覧["wifi-signal"]!);
+    const 頁の余白 =
+      Math.min(...頁.nodes.map((n) => n.cx - n.w / 2)) - Math.min(...頁.lanes.map((l) => l.x));
     expect(縦列[0]!.x).toBeLessThanOrEqual(範囲.x0 + 0.5);
-    expect(範囲.x0 - 縦列[0]!.x).toBeLessThanOrEqual(横の余白);
+    expect(範囲.x0 - 縦列[0]!.x).toBeCloseTo(頁の余白, 0);
     expect(縦列[0]!.y).toBeCloseTo(範囲.y0 - 上の余白, 0);
   });
 
