@@ -139,10 +139,10 @@ describe("部品だけの本文は、抜かずに組み立て側で描く (#1973
     expect(分けた.lineMap).toEqual(src.split("\n").map((_, i) => i + 1));
   });
 
-  it("見本の頁の「部品を箱に使う」 の切替 9 つが、どれも見本の頁と同じ図になる", async () => {
+  it("見本の頁の「部品を箱に使う」 の切替 11 つが、どれも見本の頁と同じ図になる", async () => {
     const 見本 = (await loadPartsItems()).find((i) => i.id === "部品を箱に置き何も書き換えない");
     const 並び = 見本?.patterns ?? [];
-    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(9);
+    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(11);
     let 重ねた数 = 0;
     for (const p of 並び) {
       const 分けた = await 分ける(p.sourceYaml!);
