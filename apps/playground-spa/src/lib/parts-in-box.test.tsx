@@ -34,10 +34,15 @@
  * | 矢印を分ける | 箱 1 つ → 部品 2 つ (繋ぎ先が 2 つとも部品) |
  * | 部品どうしを繋ぐ | 箱 → 部品 → 部品 (1 本目の繋ぎ先が 2 本目の繋ぎ元) |
  * | 高さの違う部品どうしを繋ぐ | 同上だが 2 つの部品の高さが違い、繋ぎ口が 10 ずれる (#2012) |
+ * | 矢印を集める | 箱 → 部品 2 つ → 箱 (2 つの部品から同じ箱へ集める、#2011) |
  *
  * 高さの違う形は、繋ぎ口のずれ (10) が角の丸み (14) の 2 倍より短く、描画エンジンが丸みを
  * 頭打ちにするまでは角が行き過ぎて線が戻っていた。 `@cardenelabs/cdl` 0.65.0 で直ったので
  * 見本に足した。
+ *
+ * 集める形は、縦列を 1 本飛ばす矢印が間の部品を貫いていた。 部品は高さ 380-400 で普通の箱 (68) より
+ * 深い位置に置かれるため、飛ばした先へ横に走る線が間の部品の中を通る。 `@cardenelabs/cdl` 0.66.0 で
+ * 退く向きを横に走る線で決めるようになり、絵の検査の指摘が 2 件から 0 件になったので見本に足した。
  *
  * 流れの途中に置く切替 (#1987) は、行に書かれていない部品を前後の箱の間に書いても、前後の箱が
  * 矢印で繋がり、部品の円も描くことを見る。
@@ -104,7 +109,7 @@ function 円(d: CdlDiagram): { 外枠: number; 塗り: number; 色: string }[] {
 }
 
 describe("部品を箱に使う見本 (#1973)", () => {
-  it("部品の頁の最後に並び、12 つの切替を持つ", async () => {
+  it("部品の頁の最後に並び、13 つの切替を持つ", async () => {
     const items = await loadPartsItems();
     expect(items.at(-1)?.id).toBe(見本のid);
     expect((await 見本()).patterns?.map((p) => p.名)).toEqual([
@@ -118,6 +123,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       "矢印を分ける",
       "部品どうしを繋ぐ",
       "高さの違う部品どうしを繋ぐ",
+      "矢印を集める",
       "流れの途中に置く",
       "並べる",
     ]);
@@ -283,6 +289,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       "矢印を分ける",
       "部品どうしを繋ぐ",
       "高さの違う部品どうしを繋ぐ",
+      "矢印を集める",
     ]) {
       const d = 図(名);
       const 箱 = new Set(d.nodes.map((n) => n.id));
@@ -365,6 +372,68 @@ describe("部品を箱に使う見本 (#1973)", () => {
     expect((y2! - y1!) * (by! - ay!), `縦の走りが逆を向いている: ${e!.d}`).toBeGreaterThanOrEqual(0);
   });
 
+  it("矢印を集める切替は、縦列を飛ばす矢印が間の部品を貫かない (#2011)", async () => {
+    /*
+     * 2 つの部品から同じ箱へ矢印を集めると、縦列を 1 本飛ばす矢印が出る。 部品は高さ 380-400 で
+     * 普通の箱 (68) より深い位置に置かれるため、飛ばした先へ横に走る線が間の部品の中を通っていた
+     * (`@cardenelabs/cdl` 0.66.0 / cdl#867 で直した)。
+     *
+     * 飛ばす矢印が実際に出ていることを先に見るのは、この見本が **見せたい形を通っていること** を
+     * 確かめるため。 部品を 1 つに減らすと飛ばす矢印が消え、貫通の検査は通ったまま見本だけが
+     * 別の形になる。
+     */
+    const 並び = (await 見本()).patterns ?? [];
+    const p = 並び.find((x) => x.名 === "矢印を集める");
+    expect(p, "矢印を集める切替が無い").toBeDefined();
+    const laid = layout(p!.diagram);
+
+    // 縦列を 1 本飛ばす矢印が出ている = 部品 2 つを横に並べたことで、間の部品を越える線が要る
+    const 縦列の順 = new Map(laid.lanes.map((l, i) => [l.id, i]));
+    const 箱の縦列 = new Map(laid.nodes.map((n) => [n.id, n.lane]));
+    const 飛ばす = laid.edges.filter((e) => {
+      const a = 縦列の順.get(箱の縦列.get(e.from) ?? "");
+      const b = 縦列の順.get(箱の縦列.get(e.to) ?? "");
+      return a !== undefined && b !== undefined && Math.abs(b - a) > 1;
+    });
+    expect(
+      飛ばす.map((e) => `${e.from} -> ${e.to}`),
+      `縦列を飛ばす矢印が出ていない (この見本が見せたい形を通っていない): ${laid.edges.map((e) => `${e.from} -> ${e.to}`).join(" / ")}`,
+    ).toEqual(["検査 -> 塗装機__ind", "成形機__ind -> 記録"]);
+
+    // 2 本の矢印が同じ箱に入る = 集めた形になっている
+    expect(
+      laid.edges.filter((e) => e.to === "記録").map((e) => e.from),
+      "記録へ集める矢印が 2 本ない",
+    ).toEqual(["成形機__ind", "塗装機__ind"]);
+
+    const 貫通 = (d: CdlDiagram): string[] =>
+      visualValidateAll([d], { profile: "catalog" })
+        .reports.flatMap((r) => r.violations)
+        .filter((v) => v.axis === "edge-node-cross")
+        .map((v) => `${v.severity}: ${v.detail}`);
+    expect(貫通(p!.diagram)).toEqual([]);
+
+    /*
+     * 陰性対照 = 同じ並びと同じ矢印を普通の箱だけで書いた図も 0 件のまま (部品だけの特例にしていない)。
+     *
+     * 部品の一覧は見本と同じものを渡す。 空の一覧を渡すと部品の名前が引けずどのみち普通の箱になり、
+     * 「種類を書き換えたから普通の箱になった」 ことを 1 度も測らない。
+     */
+    const items = await loadPartsItems();
+    const 一覧 = 部品の一覧を作る(items.filter((i) => 部品の図か(i.id)).map((i) => i.diagram));
+    const 種類を書き換えた = p!.sourceYaml!.replace(
+      /kind: (state-indicator|thermometer)/g,
+      "kind: card",
+    );
+    expect(種類を書き換えた, "種類を 1 つも書き換えていない").not.toBe(p!.sourceYaml);
+    const 普通の箱だけ = textDslToDiagram(種類を書き換えた, { partsCatalog: 一覧 });
+    expect(
+      普通の箱だけ.nodes.some((n) => n.id.includes("__")),
+      "普通の箱に置き換えられていない (陰性対照が部品のままになっている)",
+    ).toBe(false);
+    expect(貫通(普通の箱だけ)).toEqual([]);
+  });
+
   it("編集画面と同じ部品の一覧で記法を組み立てると、カタログに出す図と同じ図になる", async () => {
     const items = await loadPartsItems();
     // 編集画面は部品の頁の見本から部品だけを残して一覧を作る (`CdlEditor.tsx`)
@@ -372,7 +441,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       items.filter((i) => 部品の図か(i.id)).map((i) => i.diagram),
     );
     const 並び = (await 見本()).patterns ?? [];
-    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(12);
+    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(13);
     for (const p of 並び) {
       const 組み直し = textDslToDiagram(p.sourceYaml!, { partsCatalog: 編集画面の一覧 });
       expect(JSON.stringify(組み直し), `${p.名} が編集画面と違う図になる`).toBe(

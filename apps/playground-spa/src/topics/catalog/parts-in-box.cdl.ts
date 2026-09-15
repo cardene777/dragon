@@ -48,9 +48,14 @@ import * as 部品 from "./parts.cdl";
  * 短く、描画エンジンが丸みを頭打ちにしていなかった頃は角が行き過ぎて線が戻っていた (#2012)。
  * `@cardenelabs/cdl` 0.65.0 で丸みを走りの長さで頭打ちにしたので、同じ書き方で繋がる。
  *
- * **合流する形は見せない**。 2 つの部品から同じ箱へ矢印を集めると、矢印が間の縦列の部品を貫く
- * (実測 = `edge-node-cross` の指摘 2 件)。 同じ形を普通の箱だけで書くと指摘 0 件なので、切替の
- * 性質ではなく部品を置いた時だけの欠陥。 直るまで見本に焼き付けない (#2011)。
+ * ## 矢印を集める (#2011)
+ *
+ * 2 つの部品から同じ箱へ矢印を集める。 部品は高さ 380-400 で普通の箱 (68) より深い位置に置かれる
+ * ため、縦列を 1 本飛ばす矢印が間の部品の中を通っていた (実測 = `edge-node-cross` の指摘 2 件)。
+ *
+ * 描画エンジンは L 字の折れる位置を左右に退けて箱を避けるが、退いた分だけ横に走る線が伸びる。
+ * その線が同じ箱を横切るかを見ていなかったため、避けたはずの部品を貫いていた。
+ * `@cardenelabs/cdl` 0.66.0 で退く向きを横に走る線で決めるようにしたので、同じ書き方で集められる。
  *
  * ## 流れの途中に置く (#1987)
  *
@@ -76,7 +81,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partInBox = "書かない";
 
 export const subtitle__partInBox =
-  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、2 つの部品へ矢印を分け、部品どうしを繋ぎ、高さの違う部品どうしも繋ぎ、流れの途中に置き、名前を添えて並べる";
+  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、2 つの部品へ矢印を分け、部品どうしを繋ぎ、高さの違う部品どうしも繋ぎ、2 つの部品から同じ箱へ集め、流れの途中に置き、名前を添えて並べる";
 
 export const sourceYaml__partInBox = `title: "部品を箱に置き何も書き換えない"
 type: flow
@@ -349,6 +354,44 @@ export const sourceJson__pattern__partInBox__高さの違う部品どうしを�
 
 export const pattern__partInBox__高さの違う部品どうしを繋ぐ = textDslToDiagram(
   sourceYaml__pattern__partInBox__高さの違う部品どうしを繋ぐ,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partInBox__矢印を集める = `title: "成形機と塗装機の稼働を、どちらも記録へ集める"
+type: swimlane
+
+actors:
+  - 検査: { kind: card }
+  - 成形機: { kind: state-indicator }
+  - 塗装機: { kind: state-indicator }
+  - 記録: { kind: card }
+
+flow:
+  - 検査 -> 成形機: "稼働を確かめる"
+  - 検査 -> 塗装機: "稼働を確かめる"
+  - 成形機 -> 記録: "稼働を残す"
+  - 塗装機 -> 記録: "稼働を残す"
+`;
+
+export const sourceJson__pattern__partInBox__矢印を集める = `{
+  "title": "成形機と塗装機の稼働を、どちらも記録へ集める",
+  "type": "swimlane",
+  "actors": [
+    { "name": "検査", "kind": "card" },
+    { "name": "成形機", "kind": "state-indicator" },
+    { "name": "塗装機", "kind": "state-indicator" },
+    { "name": "記録", "kind": "card" }
+  ],
+  "flow": [
+    { "from": "検査", "to": "成形機", "label": "稼働を確かめる" },
+    { "from": "検査", "to": "塗装機", "label": "稼働を確かめる" },
+    { "from": "成形機", "to": "記録", "label": "稼働を残す" },
+    { "from": "塗装機", "to": "記録", "label": "稼働を残す" }
+  ]
+}`;
+
+export const pattern__partInBox__矢印を集める = textDslToDiagram(
+  sourceYaml__pattern__partInBox__矢印を集める,
   { partsCatalog: 部品の一覧 },
 );
 

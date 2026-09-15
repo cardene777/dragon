@@ -55,14 +55,16 @@ async function 円(
 const カタログの図 = "main.catalog-preview svg[data-cdl-stage]";
 
 test.describe("部品を箱に使う見本 (#1973)", () => {
-  test("部品の頁に並び、切替が 12 つ出る", async ({ page }) => {
+  test("部品の頁に並び、切替が 13 つ出る", async ({ page }) => {
     await 開く(page);
     await expect(page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio")).toHaveCount(
-      12,
+      13,
     );
   });
 
-  test("部品を 2 つ置く 3 つの切替が、どれも矢印の線を描く (#2010 / #2012)", async ({ page }) => {
+  test("部品を 2 つ置く 4 つの切替が、どれも矢印の線を描く (#2010 / #2012 / #2011)", async ({
+    page,
+  }) => {
     /*
      * 記法の段では矢印の端が部品の要素になることを組み立て側の検査が見る。
      * ここは画面で実際に線が描かれるところまでを見る = 端が図に在る箱を指していても、
@@ -73,6 +75,7 @@ test.describe("部品を箱に使う見本 (#1973)", () => {
       { 切替: "矢印を分ける", 本数: 2 },
       { 切替: "部品どうしを繋ぐ", 本数: 2 },
       { 切替: "高さの違う部品どうしを繋ぐ", 本数: 2 },
+      { 切替: "矢印を集める", 本数: 4 },
     ]) {
       await 押す(page, 切替);
       const 線 = page.locator(`${カタログの図} [data-cdl-edge]`);
