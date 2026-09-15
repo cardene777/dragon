@@ -235,29 +235,62 @@ test("同じパーツを 2 つ置くと 2 件目に番号が付く", async ({ pa
   expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
 });
 
-test("短い形で書いたパーツも図に出る", async ({ page }) => {
-  // 生成する行を短くした時、 図に出す側が入れ子の形しか読んでいなかった。 行は入るのに
-  // 図には出ない状態になり、 書いた人には理由が分からない。
-  //
-  // パーツの目録はタブを開いた時に読み込まれる。 開かずに書いても図には出ないので、
-  // 実際の使い方 (タブを開いてから書く) に合わせる。
-  await openEditor(page);
-  await page.locator('[data-testid="editor-parts-tab"]').click();
-  await page.waitForTimeout(700);
-  await setDsl(page, [
+/**
+ * 部品の書き方 2 通り。 短い形が図に出るかを見るのが元の目的なので、長い形を対照に置く。
+ * 長い形だけが通る状態になれば、短い形の経路が切れたと分かる。
+ */
+const パーツの書き方 = [
+  ["短い形", "  - 実績: achievement"],
+  ["長い形", "  - 実績: { kind: achievement }"],
+] as const;
+
+const パーツの本文 = (書き方: string, 矢印: boolean): string =>
+  [
     'title: "t"',
     "type: flow",
     "",
     "actors:",
-    "  - 実績: achievement",
+    書き方,
     "  - X",
-    "",
-    "flow:",
-    '  - 実績 -> X: "y"',
-  ].join("\n"));
-  expect(await page.locator("[data-overlay-part]").count(), "パーツが図に出ない").toBe(1);
-  expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
-});
+    ...(矢印 ? ["", "flow:", '  - 実績 -> X: "y"'] : []),
+  ].join("\n");
+
+/**
+ * 部品の目録はタブを開いた時に読み込まれる。 開かずに書いても図には出ないので、
+ * 実際の使い方 (タブを開いてから書く) に合わせる。
+ */
+const パーツのタブを開く = async (page: import("@playwright/test").Page): Promise<void> => {
+  await openEditor(page);
+  await page.locator('[data-testid="editor-parts-tab"]').click();
+  await page.waitForTimeout(700);
+};
+
+for (const [名, 書き方] of パーツの書き方) {
+  test(`${名}で書いたパーツが図に重なる`, async ({ page }) => {
+    // 生成する行を短くした時、 図に出す側が入れ子の形しか読んでいなかった。 行は入るのに
+    // 図には出ない状態になり、 書いた人には理由が分からない。
+    await パーツのタブを開く(page);
+    await setDsl(page, パーツの本文(書き方, false));
+    expect(await page.locator("[data-overlay-part]").count(), "パーツが図に出ない").toBe(1);
+    expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
+  });
+
+  test(`${名}で書いたパーツに矢印を引くと、組み立て側が図に描く`, async ({ page }) => {
+    // #1979 で、部品へ矢印を引いた本文は重ねずに組み立て側で描くようにした (重ねた部品は
+    // 図の外の層にいるため矢印の端にできない)。 重ねた部品は 0 個になるので、
+    // 図の中に部品の要素 (`{名前}__{要素の id}`) が出ることで「図に出た」 を見る。
+    //
+    // 重ねた側の数だけを見ていた間、この本文は 0 個を返して落ち続けていた。
+    await パーツのタブを開く(page);
+    await setDsl(page, パーツの本文(書き方, true));
+    expect(await page.locator("[data-overlay-part]").count(), "重ねた部品が出ている").toBe(0);
+    await expect(
+      page.locator('[data-cdl-node="実績__trophy"]').first(),
+      "部品の要素が図に出ない",
+    ).toBeVisible();
+    expect(await page.locator(".v4-editor-error").count(), "組み立てに失敗した").toBe(0);
+  });
+}
 
 test("パーツが既存の図に重ならない", async ({ page }) => {
   // 図に出す経路 (overlay) と組み立ての経路は別々に座標を決める。 片方だけ直すと画面がずれる。
