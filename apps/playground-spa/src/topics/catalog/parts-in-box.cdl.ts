@@ -35,8 +35,7 @@ import * as 部品 from "./parts.cdl";
  * `fromPartNode` で要素の id を書いて繋ぐ層を選ぶ。
  *
  * 矢印を引く 2 つの切替は `swimlane` で書く。 `flow` と `topology` は部品を他の箱の下の格子に置くため、
- * 矢印が間の箱を貫く (絵の検査で実測)。 `traffic-light-stack` のように要素を縦に詰めた部品は、図に
- * 取り込むと要素の間が 60px になり間隔の検査 (70px) に掛かるので、層の間が広い `stacked-layer` を使う。
+ * 矢印が間の箱を貫く (絵の検査で実測)。
  *
  * ## 流れの途中に置く (#1987)
  *
@@ -45,12 +44,16 @@ import * as 部品 from "./parts.cdl";
  *
  * ## 並べる (#1990)
  *
- * 位置を書かない部品は格子に並び、登場人物の名前は部品のすぐ上に 1 つだけ出る。 部品を 4 つ置いて
+ * 位置を書かない部品は格子に並び、登場人物の名前は部品のすぐ上に 1 つだけ出る。 部品を 5 つ置いて
  * 2 段目に並ぶ部品を作り、2 段目の名前も自分の部品の上に出ることを見せる。
  *
- * 縦列を 2 本以上持つ部品 (`gauge-cluster` 等 12 種) は混ぜない。 どれも部品の中の要素の間が 70 に
- * 届かず、図に置くと間隔の検査に掛かる (実測 = `gauge-cluster` は 60)。 名前を縦列ごとに繰り返さない
- * ことは組み立て側のテスト (`part-name-label.test.ts`) が見る。
+ * 5 つ目には縦列を 2 本持つ `bandwidth-meter` (上り / 下り) を置き、図に置いても部品の中の要素が
+ * 部品の頁と同じ間 (横 90) で並ぶことを見せる (#1992)。 直す前は部品が書いた縦列の位置で置いて
+ * いたため間が 60 になり、間隔の検査 (70) に掛かっていた。 名前を縦列ごとに繰り返さないことは
+ * 組み立て側のテスト (`part-name-label.test.ts`) が見る。
+ *
+ * 縦列を 3 本持つ `gauge-cluster` は使わない。 格子の列の幅は最も広い部品で決まるため図が横に広がり、
+ * 画面の器に収めた時の箱の題が 11.6px から 9.7px に縮む (`responsive-viewport` の実測)。
  */
 
 const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
@@ -268,7 +271,7 @@ export const pattern__partInBox__流れの途中に置く = textDslToDiagram(
   { partsCatalog: 部品の一覧 },
 );
 
-export const sourceYaml__pattern__partInBox__並べる = `title: "製造ラインの設備 3 台と乾燥炉の温度を並べる"
+export const sourceYaml__pattern__partInBox__並べる = `title: "製造ラインの設備 3 台と乾燥炉の温度、工場の回線を並べる"
 type: flow
 
 actors:
@@ -276,16 +279,18 @@ actors:
   - 塗装機: { kind: state-indicator }
   - 乾燥炉: { kind: state-indicator, color: "#d9534f" }
   - 乾燥炉の温度: { kind: thermometer }
+  - 工場の回線: { kind: bandwidth-meter }
 `;
 
 export const sourceJson__pattern__partInBox__並べる = `{
-  "title": "製造ラインの設備 3 台と乾燥炉の温度を並べる",
+  "title": "製造ラインの設備 3 台と乾燥炉の温度、工場の回線を並べる",
   "type": "flow",
   "actors": [
     { "name": "成形機", "kind": "state-indicator" },
     { "name": "塗装機", "kind": "state-indicator" },
     { "name": "乾燥炉", "kind": "state-indicator", "color": "#d9534f" },
-    { "name": "乾燥炉の温度", "kind": "thermometer" }
+    { "name": "乾燥炉の温度", "kind": "thermometer" },
+    { "name": "工場の回線", "kind": "bandwidth-meter" }
   ],
   "flow": []
 }`;

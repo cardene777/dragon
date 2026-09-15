@@ -2310,10 +2310,13 @@ function minOf(values: readonly number[], fallback: number): number {
 }
 
 /**
- * merge がパーツを縦に送る幅。 `mergePartIntoDiagram` の `STACK_PITCH_APPROX` と同じ値。
+ * 段 1 つぶんの送り幅。 2 つの用途で使う。
  *
- * 大きさの見積りは merge が実際に置く形と揃える。 別の規則で見積ると、 間隔が狂う
- * (実測 = 2 段のパーツで 200 空けたいところが 90 になった)。
+ * - `大きさ:` の縦の基準 (`partScaleBase`)。 縦は段の送り幅の合計に対する倍率で掛かる
+ * - 部品の頁を配置できない部品を、書いた値で置く時の段の間 (`書いた置き方`)
+ *
+ * 頁を配置できる部品の要素の縦位置は、頁で配置した位置から取る (#1992)。 この値で置くと、
+ * 頁で段の間が 220 より広い部品 (実測 = `bind-grid-4` は段の中心の間 280) が置いた図で詰まる。
  */
 const PART_STACK_PITCH = 220;
 
@@ -2393,28 +2396,24 @@ export function partTargetSize(
 /**
  * `大きさ:` と `倍率:` が掛かる時の基準の大きさ (#1026)。
  *
- * 横は縦列の外接矩形、縦は段の送り幅の合計。 **図枠 (`partRenderSize`) ではない**。
- * 図枠は余白を含むため、これを基準にすると書いた倍率より大きく掛かる。
+ * 横は部品の頁で配置した縦列の外接矩形 (`部品の置き方を読む`)、縦は段の送り幅の合計。
+ * **図枠 (`partRenderSize`) ではない**。 図枠は余白を含むため、これを基準にすると書いた倍率より
+ * 大きく掛かる。
+ *
+ * 横を頁の縦列にするのは、組み込みが要素を頁の縦列に沿って置くため (#1992)。 書いた縦列を
+ * 基準のまま残すと、頁で縦列が広がる部品は `大きさ:` に書いた幅より広く描かれる。
  *
  * `partTargetScale` と `partTargetSize` が同じ物差しを使うことで、
  * `partTargetScale(part, base.w * k, base.h * k)` が丁度 `k` 倍を返す関係が保たれる。
+ * 組み込み (`mergePartIntoDiagram`) も同じ基準で伸縮する。
  */
 function partScaleBase(part: CdlDiagram): { w: number; h: number } {
-  const lanes = Array.isArray(part.lanes) ? part.lanes : [];
   const nodes = Array.isArray(part.nodes) ? part.nodes : [];
-  const lefts: number[] = [];
-  const rights: number[] = [];
-  for (const l of lanes) {
-    const lx = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
-    const lw = positiveOr(l.width, 400);
-    lefts.push(lx);
-    rights.push(lx + lw);
-  }
   const stacks = nodes.map((n) =>
     typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
   );
   return {
-    w: positiveOr(maxOf(rights, 400) - minOf(lefts, 0), 400),
+    w: 部品の置き方を読む(part).幅,
     h: Math.max(1, (maxOf(stacks, 0) - minOf(stacks, 0) + 1) * PART_STACK_PITCH),
   };
 }
@@ -2458,9 +2457,8 @@ export function partTargetScale(
  * 箱ごとに位置と大きさを見る。 一番高い箱の高さと段の数から概算すると実際の矩形と合わない
  * (実測 = 段 5 だけのパーツで 200 空けたいところが 750、 段 0,5 で高さが違うと 275 になった)。
  *
- * 段の送り幅は merge の近似 (`PART_STACK_PITCH`) を使う。 パーツを自分の図として配置計算した
- * 実寸とは段を持つパーツで 3% ほど違うが (実測 = 3 段で実高 620 に対して 640)、 ここで見たいのは
- * 「merge がどこに置くか」 なので merge の規則に合わせる。
+ * 箱の位置は merge と同じ置き方 (`部品の置き方を読む`) と同じ式 (`部品の要素のずれ`) から出す。
+ * ここで見たいのは「merge がどこに置くか」 なので、merge と別の規則を持たない (#1992)。
  */
 function partExtent(
   part: CdlDiagram,
@@ -2471,27 +2469,8 @@ function partExtent(
   if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return fallback;
   if (part.nodes.length === 0) return fallback;
 
-  // 縦列の位置と幅を先に正す。 catalog は呼出側が渡す値なので、 数でない値を計算に入れない
-  const lanes = new Map<string, { x: number; w: number }>();
-  const laneLefts: number[] = [];
-  const laneRights: number[] = [];
-  for (const l of part.lanes) {
-    const x = typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0;
-    const w = positiveOr(l.width, 400);
-    lanes.set(l.id, { x, w });
-    laneLefts.push(x);
-    laneRights.push(x + w);
-  }
-  const bboxW = positiveOr(maxOf(laneRights, 400) - minOf(laneLefts, 0), 400);
-  const bboxCenterX = minOf(laneLefts, 0) + bboxW / 2;
+  const 置き方 = 部品の置き方を読む(part);
   const { x: scaleX, y: scaleY } = partTargetScale(part, targetW, targetH);
-
-  const stacks = part.nodes.map((n) =>
-    typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
-  );
-  const maxStack = maxOf(stacks, 0);
-  const minStack = minOf(stacks, 0);
-  const centerStack = (minStack + maxStack) / 2;
 
   // 箱ごとに、 merge が置く位置 (基準からの相対) と大きさから上下左右の端を出す
   const tops: number[] = [];
@@ -2499,9 +2478,8 @@ function partExtent(
   const lefts: number[] = [];
   const rights: number[] = [];
   part.nodes.forEach((n, i) => {
-    const lane = lanes.get(n.lane) ?? { x: 0, w: 320 };
-    const cx = (lane.x + lane.w / 2 - bboxCenterX) * scaleX;
-    const cy = ((stacks[i] ?? 0) - centerStack) * PART_STACK_PITCH * scaleY;
+    const 頁 = 置き方.要素[i] ?? { x: 置き方.左端 + 置き方.幅 / 2, y: 0 };
+    const { dx: cx, dy: cy } = 部品の要素のずれ(n, 頁, 置き方, scaleX, scaleY);
     const halfW = (positiveOr(n.w, CDL_DEFAULT_NODE_W) * scaleX) / 2;
     const halfH = (positiveOr(n.h, CDL_DEFAULT_NODE_H) * scaleY) / 2;
     lefts.push(cx - halfW);
@@ -2614,8 +2592,8 @@ export function partBoxInFrame(part: CdlDiagram): {
  * 別名の数だけ組み立て直す (相対指定があると 1 個につき 4 回になる)。 覚えるのは大きさだけで、
  * 色などの見た目は含まないため、 呼出側が色を差し替えても古い値にはならない。
  *
- * 組み立てと違い画面を描くたびに呼ばれるので、 大きすぎる図は測る前に止める。 上限は
- * 組み立て側と同じ物差しを使う (#1005)。 catalog の見本は数十要素なので通常は掛からない。
+ * 配置は `部品の頁を配置する` から受け取る。 置き方 (`部品の置き方を読む`) も同じ配置を読むので、
+ * 部品を 1 つ置いても配置は 1 度で済む。
  *
  * 測れない図では既定の大きさと余白 0 に落とす。
  */
@@ -2635,43 +2613,208 @@ function partFrameGeometry(part: CdlDiagram): PartFrameGeometry {
   if (cached) return cached;
   const fallback = { w: 400, h: 200, left: 0, top: 0, boxW: 400, boxH: 200 };
   let out = fallback;
-  if (countDiagramElements(part) <= MAX_INPUT_ELEMENTS) {
-    try {
-      const own = layout(part);
-      const vb = own.viewBox;
-      const w = positiveOr(vb.w, 400);
-      const h = positiveOr(vb.h, 200);
-      if (own.nodes.length === 0) {
-        // 箱を持たない図では図枠をそのまま箱として扱う。 相対指定の間隔は図枠の縁から測る
-        out = { w, h, left: 0, top: 0, boxW: w, boxH: h };
-      } else {
-        let x0 = Infinity;
-        let y0 = Infinity;
-        let x1 = -Infinity;
-        let y1 = -Infinity;
-        for (const n of own.nodes) {
-          x0 = Math.min(x0, n.cx - n.w / 2);
-          x1 = Math.max(x1, n.cx + n.w / 2);
-          y0 = Math.min(y0, n.cy - n.h / 2);
-          y1 = Math.max(y1, n.cy + n.h / 2);
-        }
-        const left = x0 - vb.x;
-        const top = y0 - vb.y;
-        out = {
-          w,
-          h,
-          left: Number.isFinite(left) ? left : 0,
-          top: Number.isFinite(top) ? top : 0,
-          boxW: positiveOr(x1 - x0, w),
-          boxH: positiveOr(y1 - y0, h),
-        };
+  const own = 部品の頁を配置する(part);
+  if (own !== undefined) {
+    const vb = own.viewBox;
+    const w = positiveOr(vb.w, 400);
+    const h = positiveOr(vb.h, 200);
+    if (own.nodes.length === 0) {
+      // 箱を持たない図では図枠をそのまま箱として扱う。 相対指定の間隔は図枠の縁から測る
+      out = { w, h, left: 0, top: 0, boxW: w, boxH: h };
+    } else {
+      let x0 = Infinity;
+      let y0 = Infinity;
+      let x1 = -Infinity;
+      let y1 = -Infinity;
+      for (const n of own.nodes) {
+        x0 = Math.min(x0, n.cx - n.w / 2);
+        x1 = Math.max(x1, n.cx + n.w / 2);
+        y0 = Math.min(y0, n.cy - n.h / 2);
+        y1 = Math.max(y1, n.cy + n.h / 2);
       }
-    } catch {
-      out = fallback;
+      const left = x0 - vb.x;
+      const top = y0 - vb.y;
+      out = {
+        w,
+        h,
+        left: Number.isFinite(left) ? left : 0,
+        top: Number.isFinite(top) ? top : 0,
+        boxW: positiveOr(x1 - x0, w),
+        boxH: positiveOr(y1 - y0, h),
+      };
     }
   }
   PART_FRAME_CACHE.set(part, out);
   return out;
+}
+
+/**
+ * 部品の頁 (部品の図だけ) を配置した結果。 配置できない図では `undefined` (#1992)。
+ *
+ * 図枠 (`partFrameGeometry`) と置き方 (`部品の置き方を読む`) が同じ結果を読む。 見本ごとに
+ * 覚えておくのは、catalog の見本が複数の別名から同じものを指し、画面を描くたびにも呼ばれるため。
+ *
+ * 大きすぎる図は配置する前に止める。 上限は組み立て側と同じ物差しを使う (#1005)。
+ * catalog の見本は数十要素なので通常は掛からない。
+ */
+const PART_PAGE_CACHE = new WeakMap<CdlDiagram, LaidDiagram | null>();
+
+function 部品の頁を配置する(part: CdlDiagram): LaidDiagram | undefined {
+  const cached = PART_PAGE_CACHE.get(part);
+  if (cached !== undefined) return cached ?? undefined;
+  let out: LaidDiagram | null = null;
+  if (countDiagramElements(part) <= MAX_INPUT_ELEMENTS) {
+    try {
+      out = layout(part);
+    } catch {
+      out = null;
+    }
+  }
+  PART_PAGE_CACHE.set(part, out);
+  return out ?? undefined;
+}
+
+/**
+ * 部品を図に置く時に、縦列と要素をどこに置くか (#1992)。
+ *
+ * 部品の頁で配置した縦列の位置と幅、要素の中心を使う。 組み込み (`mergePartIntoDiagram`)、
+ * 組み込んだ大きさの見積り (`partExtent`)、`大きさ:` の横の基準 (`partScaleBase`) の 3 か所が
+ * これを読む。
+ *
+ * 部品が書いた縦列の位置と幅は、頁で配置した後の値と違う。 描画側が隣と近づきすぎないよう
+ * 縦列を広げ、段の間を箱の高さに合わせて取るため。 書いた値で置くと頁で空いた分が消え、
+ * 置いた図だけが間隔の検査に掛かる (実測 = 80 種のうち 14 種。 `wifi-signal` は頁で要素の間 80、
+ * 書いた値で置くと 40)。
+ *
+ * 頁を配置できない図 (描画側が止める図と、大きすぎて測らない図) は書いた値に落とす
+ * (`書いた置き方`)。 頁の位置が数にならない図も同じ。 描画側は書いた値が数でない時に止めずに
+ * 数でない座標を返す (実測 = 幅を書かない縦列は幅が `NaN`、段が数でない要素は縦が `-Infinity`)。
+ *
+ * 1 つの部品で 2 つを混ぜない。 数にならない縦列や要素が 1 つでもあれば全体を書いた値にする。
+ * 混ぜると、要素ごとに別の物差しで置くことになる。
+ */
+type 部品の置き方 = {
+  /** 縦列ごとの左端と幅 */
+  縦列: ReadonlyMap<string, { x: number; w: number }>;
+  /** 縦列の外接矩形の左端と幅。 横に写す時の中心と、`大きさ:` の横の基準に使う */
+  左端: number;
+  幅: number;
+  /**
+   * 要素ごとの中心 (`part.nodes` と同じ並び)。 横は縦列と同じ座標、縦は要素全体の縦の中心からの差。
+   * どちらも伸縮を掛ける前の値
+   */
+  要素: readonly { x: number; y: number }[];
+};
+
+const 部品の置き方の控え = new WeakMap<CdlDiagram, 部品の置き方>();
+
+function 部品の置き方を読む(part: CdlDiagram): 部品の置き方 {
+  const 控え = 部品の置き方の控え.get(part);
+  if (控え) return 控え;
+  const 置き方 = 頁の置き方(part) ?? 書いた置き方(part);
+  部品の置き方の控え.set(part, 置き方);
+  return 置き方;
+}
+
+/**
+ * 縦列の外接矩形。 幅が正でない時 (縦列が 1 本も無い図) は 400 に落とす。
+ * 1 未満の正の幅はそのまま使う。 1 に切り上げると、その分だけ `大きさ:` の倍率が小さくなる
+ */
+function 縦列の外接(縦列: ReadonlyMap<string, { x: number; w: number }>): { 左端: number; 幅: number } {
+  const 値 = [...縦列.values()];
+  const 左端 = minOf(値.map((g) => g.x), 0);
+  const 右端 = maxOf(値.map((g) => g.x + g.w), 400);
+  return { 左端, 幅: positiveOr(右端 - 左端, 400) };
+}
+
+/**
+ * 部品の頁で配置した縦列と要素の中心。 頁を配置できない時と、頁の位置が数にならない時は
+ * `undefined` を返し、呼出側が書いた値に落とす。
+ *
+ * 縦の中心は、頁に並んだ要素全体の上下の中心 (一番上と一番下の要素の中心の中間)。 書いた値の
+ * 経路が段の番号の中間を中心にするのと同じ取り方で、部品の中心を置く位置に合わせる。
+ *
+ * 部品の要素が頁に見つからない場合も書いた値に落とす。 描画側は部品の要素を全て配置して返す
+ * ため、この場合に届く入力は作れない (実測 = カタログ 80 種で見つからない要素は 0)。 残すのは、
+ * 見つからない要素だけを別の物差しで置かないため。
+ */
+function 頁の置き方(part: CdlDiagram): 部品の置き方 | undefined {
+  if (!Array.isArray(part.lanes) || !Array.isArray(part.nodes)) return undefined;
+  const laid = 部品の頁を配置する(part);
+  if (laid === undefined) return undefined;
+  const 縦列 = new Map<string, { x: number; w: number }>();
+  for (const l of laid.lanes) {
+    if (!Number.isFinite(l.x) || !Number.isFinite(l.width) || !(l.width > 0)) return undefined;
+    縦列.set(l.id, { x: l.x, w: l.width });
+  }
+  const 頁の箱 = new Map(laid.nodes.map((n) => [n.id, n]));
+  const 箱たち: { cx: number; cy: number }[] = [];
+  for (const n of part.nodes) {
+    const 箱 = 頁の箱.get(n.id);
+    if (箱 === undefined || !Number.isFinite(箱.cx) || !Number.isFinite(箱.cy)) return undefined;
+    箱たち.push(箱);
+  }
+  const 縦たち = 箱たち.map((b) => b.cy);
+  const 縦の中心 = (minOf(縦たち, 0) + maxOf(縦たち, 0)) / 2;
+  return {
+    縦列,
+    ...縦列の外接(縦列),
+    要素: 箱たち.map((b) => ({ x: b.cx, y: b.cy - 縦の中心 })),
+  };
+}
+
+/**
+ * 部品が書いた値で置く時の縦列と要素の中心。 頁を配置できない部品だけが使う。
+ *
+ * 横は書いた縦列の中心、縦は段の番号に段の送り幅 (`PART_STACK_PITCH`) を掛けた位置。
+ * 縦列の位置と幅は先に正す。 catalog は呼出側が渡す値で、生値のまま外接矩形を出すと
+ * 拡大の基準が崩れて箱が桁違いに大きくなる (実測 = 指定間隔 200 が -31800 になった)。
+ * 数でない段は 0 として扱う (#1018)。
+ */
+function 書いた置き方(part: CdlDiagram): 部品の置き方 {
+  const lanes = Array.isArray(part.lanes) ? part.lanes : [];
+  const nodes = Array.isArray(part.nodes) ? part.nodes : [];
+  const 縦列 = new Map<string, { x: number; w: number }>();
+  for (const l of lanes) {
+    縦列.set(l.id, {
+      x: typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0,
+      w: positiveOr(l.width, 400),
+    });
+  }
+  const stacks = nodes.map((n) =>
+    typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
+  );
+  const 中央の段 = (minOf(stacks, 0) + maxOf(stacks, 0)) / 2;
+  return {
+    縦列,
+    ...縦列の外接(縦列),
+    要素: nodes.map((n, i) => {
+      const l = 縦列.get(n.lane) ?? { x: 0, w: 320 };
+      return { x: l.x + l.w / 2, y: ((stacks[i] ?? 0) - 中央の段) * PART_STACK_PITCH };
+    }),
+  };
+}
+
+/**
+ * 部品の要素 1 つの中心が、置く位置 (merge に渡す座標) からどれだけずれるか (#1992)。
+ *
+ * 組み込み (`mergePartIntoDiagram`) と見積り (`partExtent`) が同じ式を通る。 別々に書くと、
+ * 格子が確保した場所と実際に置いた場所がずれる。
+ *
+ * 要素が自分で位置を書いていれば、その値を使う。 横は縦列と同じ写し方 (縦列の外接矩形の中心を
+ * 置く位置に合わせて伸縮する) で写し、縦は置く位置に足すだけで伸縮を掛けない。
+ */
+function 部品の要素のずれ(
+  node: { posX?: number; posY?: number },
+  頁: { x: number; y: number },
+  置き方: 部品の置き方,
+  scaleX: number,
+  scaleY: number,
+): { dx: number; dy: number } {
+  return {
+    dx: ((node.posX ?? 頁.x) - (置き方.左端 + 置き方.幅 / 2)) * scaleX,
+    dy: node.posY ?? 頁.y * scaleY,
+  };
 }
 
 /**
@@ -3989,7 +4132,7 @@ function mergePartIntoDiagram(
   //   offset (drop / click 座標) 指定時 = part 中心を offsetX に合わせる = user が置いた位置に
   //     parts の中心が来る。 node は lane 中心 (lane.x + laneW/2) に描画されるため、 lane 左端を
   //     offsetX - laneW/2 に置くと node 中心 = offsetX となり cursor / viewport 中央に一致する
-  //     (縦方向 offsetY と対称、 offsetY 側は partCenterStack で既に中心合わせ済)。
+  //     (縦方向 offsetY と対称、 offsetY 側は要素全体の縦の中心で合わせる = `部品の置き方を読む`)。
   //     従来の auto-adjust (max(offsetX, existingMax + gap) で既存 lane 右端へ強制右寄せ) は user
   //     directive で廃止 (2026-07-21)。 重なりは user の意図位置を優先し、 手動移動で回避する経路。
   //   未指定 (座標なし fallback) 時のみ existingMax + gap で右外配置 (通常経路は drop/click で座標を渡す)。
@@ -4000,37 +4143,26 @@ function mergePartIntoDiagram(
   // scale 基準は part 全体の bbox 幅 (全 lane の最左端〜最右端) にする。 lane[0] 幅だけを基準にすると
   // multi-lane part (複数 lane を横に並べた part) で全体幅を過小評価し、 非先頭 lane の node が自 lane
   // 中心からずれる (#880)。
-  // 縦列の位置と幅を先に正す。 catalog は呼出側が渡す値で、 生値のまま bbox を出すと
-  // 拡大の基準が 1 に落ちて箱が桁違いに大きくなる (実測 = 指定間隔 200 が -31800 になった)
-  const partLaneGeom = new Map<string, { x: number; w: number }>();
-  for (const l of part.lanes) {
-    partLaneGeom.set(l.id, {
-      x: typeof l.x === "number" && Number.isFinite(l.x) ? l.x : 0,
-      w: positiveOr(l.width, 400),
-    });
-  }
-  const laneXs = [...partLaneGeom.values()].map((g) => g.x);
-  const laneRights = [...partLaneGeom.values()].map((g) => g.x + g.w);
-  const partMinLaneX = minOf(laneXs, 0);
-  const partMaxLaneRight = maxOf(laneRights, 400);
-  // 幅は max >= min で常に非負。 正の幅 (極小 sub-pixel 含む) はそのまま scale 基準に使い、
-  // 0 (全 lane が同一 x + 幅 0 の退化ケース) の時だけ除算保護で 1 に fallback する。
-  // Math.max(1, w) だと 0 < w < 1 の正当な幅まで 1 に floor して over-scale するため使わない。
-  const rawBboxW = partMaxLaneRight - partMinLaneX;
-  const partsBboxW = rawBboxW > 0 ? rawBboxW : 1;
+  //
+  // 縦列の位置と幅、要素の中心は部品の頁で配置した値を使う (`部品の置き方を読む`、#1992)。
+  // 書いた値で置くと、頁で描画側が広げた縦列の間と段の間が消え、要素が頁より詰まる。
+  // 伸縮の基準は画面側 (`partScaleFactor`) と同じ関数から取る
+  const 置き方 = 部品の置き方を読む(part);
+  const 伸縮の基準 = partScaleBase(part);
   // 非有限は 1 に倒す。 桁が溢れた `大きさ:` (`Number()` が Infinity を返す長さ) を
   // そのまま掛けると描けない座標になり、 大きさを見積る側 (`partTargetScale`) だけが
   // 1 に倒していたため経路で食い違っていた (#1018)
-  const rawLaneScaleX = targetW !== undefined && targetW > 0 ? targetW / partsBboxW : 1;
+  const rawLaneScaleX = targetW !== undefined && targetW > 0 ? targetW / 伸縮の基準.w : 1;
   const laneScaleX = Number.isFinite(rawLaneScaleX) && rawLaneScaleX > 0 ? rawLaneScaleX : 1;
   // part 全体を「元 bbox 中心 → drop 座標」 の scale 変換で写す単一式 mapLaneX。 lane も node も同じ式で
   // 変換し、 lane.x = mapLaneX(元 lane 左端) にすることで全 lane / 全 node が一貫して drop 座標を中心に
   // scale 配置される (cc-codex #879 の mapPartX と同じ発想を lane push まで前倒し、 #880 root fix)。
-  const partOrigBboxCenterX = partMinLaneX + partsBboxW / 2;
+  // node 側は `部品の要素のずれ` が同じ中心と倍率で写す
+  const partOrigBboxCenterX = 置き方.左端 + 置き方.幅 / 2;
   const dropCenterX =
     offsetX !== undefined
       ? offsetX
-      : existingLaneMaxX + PARTS_LANE_GAP + (partsBboxW * laneScaleX) / 2;
+      : existingLaneMaxX + PARTS_LANE_GAP + (置き方.幅 * laneScaleX) / 2;
   const mapLaneX = (x: number): number => (x - partOrigBboxCenterX) * laneScaleX + dropCenterX;
 
   for (const laneOrig of part.lanes) {
@@ -4042,7 +4174,7 @@ function mergePartIntoDiagram(
       // lane の左端を mapLaneX で変換 = 元 lane 左端 (x) を scale 変換後の位置に置く。 lane 幅も
       // scale して lane 中心が mapLaneX(元 lane 中心) に一致する。 これで multi-lane でも各 lane が
       // part 全体の scale 変換に沿って配置される。
-      const geom = partLaneGeom.get(laneOrig.id) ?? { x: 0, w: 400 };
+      const geom = 置き方.縦列.get(laneOrig.id) ?? { x: 0, w: 400 };
       target.lanes.push({
         ...laneOrig,
         id: newLaneId,
@@ -4061,8 +4193,8 @@ function mergePartIntoDiagram(
   //             (1) 全 parts node に posX/posY 明示 set (CDL layout の絶対配置経路 = stack 計算 skip)
   //             (2) parts の stack 番号を target 側 max stack + STACK_ISOLATION_OFFSET (1000) に shift
   //                 = 万一 layout が rowH で参照しても sequence stack と重ならず影響 0 化
-  //   D1 = drop 座標尊重の縦方向 = parts の元 stack (0..N) から近似 pitch で cy を組み立て、
-  //        offsetY を加算して drop 座標付近に描画。 lane.x + lane.width/2 + offsetX で横位置。
+  //   D1 = drop 座標尊重 = 部品の頁で配置した要素の中心を、部品の中心が drop 座標に来るよう
+  //        写して描画する (#1992、`部品の要素のずれ`)。
   //
   const STACK_ISOLATION_OFFSET = 1000;
   const shouldForcePos = offsetX !== undefined || offsetY !== undefined;
@@ -4077,25 +4209,9 @@ function mergePartIntoDiagram(
   // に対する比率 = scale 係数、 全 sub-node の w / h + cx / cy 相対位置に scale 反映。
   // scaleX は lane push と同じ part bbox 幅基準 (laneScaleX) を使う = multi-lane で lane と node の
   // scale 係数が一致する (#880、 lane[0] 幅基準だと非先頭 lane の node がずれる)。
-  // parts 内部 stack 別の垂直 pitch (world unit)。 CDL layout の実 stackGap (~100) +
-  // 標準 node h (~140-200) の合計相当。 parts の cy を厳密に再現しないが、 渡した座標付近に
-  // parts が中心配置される見た目に十分な近似。
-  //
-  // 実配置に置き換える案を試したが、 拡大の基準 (縦列基準 → 箱基準) まで変わって既存の
-  // 期待 14 件が崩れた。 段を持つパーツ (実 catalog で 80 件中 7 件) の内部比率が実配置と
-  // 3% ずれるが、 見た目の大きさは呼出側が揃えるため観測される差は無い
-  const STACK_PITCH_APPROX = 220;
-  // 数でない段は 0 として扱う。 大きさを見積る側 (`partTargetScale`) が同じ判定をしており、
-  // ここだけ NaN を通すと段の数が NaN になって倍率が経路で食い違う (#1018)
-  const partStacks = part.nodes.map((n) =>
-    typeof n.stack === "number" && Number.isFinite(n.stack) ? n.stack : 0,
-  );
-  const minStack = partStacks.length > 0 ? Math.min(...partStacks) : 0;
-  const maxStack = partStacks.length > 0 ? Math.max(...partStacks) : 0;
-  const partCenterStack = (minStack + maxStack) / 2;
-  const partOrigH = Math.max(1, (maxStack - minStack + 1) * STACK_PITCH_APPROX);
+  // 縦の基準は段の送り幅の合計 (`partScaleBase`)。 `大きさ:` の縦は、この合計に対する倍率で掛かる
   const scaleX = laneScaleX;
-  const rawScaleY = targetH !== undefined && targetH > 0 ? targetH / partOrigH : 1;
+  const rawScaleY = targetH !== undefined && targetH > 0 ? targetH / 伸縮の基準.h : 1;
   const scaleY = Number.isFinite(rawScaleY) && rawScaleY > 0 ? rawScaleY : 1;
 
   // 縦列を 2 本以上持つ部品を 1 本の縦列へまとめる時は、要素ごとに別の段番号を振る (#1980)。
@@ -4136,28 +4252,21 @@ function mergePartIntoDiagram(
       newShape = scaleGeom(newShape) as typeof newShape;
     }
     // parts drop 位置 offset 反映:
-    //   - node.posX set 済 (parts が絶対座標を持つ) = その posX を part 中心基準で scale 変換
-    //   - offsetX 指定時 (drop 経路) で posX 未設定 = node が属する lane 中央を同じ式で変換
-    //   - offset なし (従来経路) は auto layout 継続 (posX undefined)
+    //   - node.posX / posY set 済 (parts が座標を持つ) = 横は part 中心基準で scale 変換、縦は offsetY を足す
+    //   - offset 指定時 (drop 経路) で未設定 = 部品の頁で配置した node の中心を同じ式で変換
+    //   - offset なし (従来経路) は auto layout 継続 (posX / posY undefined)
     //
-    // 明示 posX と auto-layout の両経路を、 lane push と同じ単一式 mapLaneX で変換する
-    // (cc-codex #879 Round 2/3 MAJOR + #880)。 mapLaneX は part bbox 中心 → drop 座標の scale 変換で、
-    // lane / node / 明示 posX / auto-layout の全経路がこの 1 式を共有するため、 lane.x != 0 でも
-    // multi-lane でも node 中心と自 lane 中心が一致する。
-    let nodePosX: number | undefined =
-      nodeOrig.posX !== undefined ? mapLaneX(nodeOrig.posX) : undefined;
-    let nodePosY: number | undefined =
-      nodeOrig.posY !== undefined ? nodeOrig.posY + (offsetY ?? 0) : undefined;
-    if (shouldForcePos && nodePosX === undefined) {
-      // posX を持たない node は所属 lane の中央 (auto layout の cx 相当) を同じ mapLaneX で変換する。
-      const geom = partLaneGeom.get(nodeOrig.lane) ?? { x: 0, w: 320 };
-      nodePosX = mapLaneX(geom.x + geom.w / 2);
-    }
-    if (shouldForcePos && nodePosY === undefined) {
-      // parts の元 stack から近似 pitch で cy を組み立て、 全 parts の中心が offsetY に来るよう調整
-      const stack = nodeOrig.stack ?? 0;
-      nodePosY = (stack - partCenterStack) * STACK_PITCH_APPROX * scaleY + (offsetY ?? 0);
-    }
+    // 明示 posX と頁の中心の両経路を、 lane push と同じ中心と倍率で写す (cc-codex #879 Round 2/3
+    // MAJOR + #880)。 写す式は見積り (`partExtent`) と共有する `部品の要素のずれ` が持つため、
+    // lane.x != 0 でも multi-lane でも node 中心と自 lane 中心が一致し、格子が確保した場所とも一致する。
+    //
+    // offset なしの経路 (格子が場所を返さない部品だけが通る) では、node が書いた縦位置は
+    // `...nodeOrig` がそのまま残す。 足す offsetY が無いので写す必要が無い
+    const 頁 = 置き方.要素[nodeIndex] ?? { x: partOrigBboxCenterX, y: 0 };
+    const ずれ = 部品の要素のずれ(nodeOrig, 頁, 置き方, scaleX, scaleY);
+    const nodePosX =
+      shouldForcePos || nodeOrig.posX !== undefined ? dropCenterX + ずれ.dx : undefined;
+    const nodePosY = shouldForcePos ? (offsetY ?? 0) + ずれ.dy : undefined;
     // parts sub-node の w / h に scale 適用 (I2 forensic 対応、 targetW/H 指定時のみ)
     // catalog の値は呼出側が渡すので、 拡大しない時も数として通るか確かめる。 通さないと
     // 座標が非有限になって図が描けない (実測 = 箱の中心が NaN になった)
