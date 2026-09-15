@@ -19,27 +19,38 @@ const LINKS: Array<{ to: string; ja: string; en: string }> = [
 
 const REPO_URL = "https://github.com/cardene777/dragon";
 
+/**
+ * 描き始める時の配色が暗いか (#2018)。 保存した配色を先に見て、無ければ端末の設定に従う。
+ *
+ * `useState` の初期値として最初の描画で読む。 header は頁ごとに作り直されるので、描いた後の
+ * 効果で読むと、暗い配色の人は頁を移るたびに切替ボタンの印と読み上げの文言が 1 回逆になる。
+ */
+function 描き始めは暗いか(): boolean {
+  try {
+    const t = localStorage.getItem("v4-theme");
+    const prefersDark =
+      !t &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return t === "dark" || prefersDark;
+  } catch {
+    // localStorage / matchMedia 非対応環境では明るい配色を使う
+    return false;
+  }
+}
+
 export function SiteHeader(): React.ReactElement {
   const location = useLocation();
   const pathname = location.pathname;
-  const [isDark, setIsDark] = useState<boolean>(false);
+  const [isDark, setIsDark] = useState<boolean>(描き始めは暗いか);
   const [locale, setLocale] = useLocale();
   const { toast } = useToast();
 
+  // `dark` class は足すだけで外さない。 外すのは切替ボタンだけ = 保存が読めない環境で暗くした後に
+  // 頁を移っても、読み直した「明るい」 で上書きしない
   useEffect(() => {
-    try {
-      const t = localStorage.getItem("v4-theme");
-      const prefersDark =
-        !t &&
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const dark = t === "dark" || prefersDark;
-      if (dark) document.documentElement.classList.add("dark");
-      setIsDark(dark);
-    } catch {
-      // localStorage / matchMedia 非対応環境では default 値を維持
-    }
-  }, []);
+    if (isDark) document.documentElement.classList.add("dark");
+  }, [isDark]);
 
   const toggleTheme = (): void => {
     const cur = document.documentElement.classList.contains("dark") ? "dark" : "light";

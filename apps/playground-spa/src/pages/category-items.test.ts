@@ -12,7 +12,7 @@
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 
-import { useCategoryItems, 部品の頁 } from "./category-items";
+import { useCategoryItems, 部品の読込を見せる, 部品の頁 } from "./category-items";
 import { CATALOG_ITEMS, type CatalogItem } from "../lib/catalog-items";
 
 /** 部品の頁以外で、実際に見本を持つ縦列の名前 */
@@ -102,5 +102,23 @@ describe("頁に出す見本の一覧 (#2016)", () => {
     const 別の部品: CatalogItem[] = [];
     rerender({ 縦列: 部品の頁, 部品: 別の部品 });
     expect(result.current).toBe(別の部品);
+  });
+});
+
+describe("一覧の欄に出す読み込みの状態 (#2018)", () => {
+  it("部品の頁で結果がまだ無ければ読み込み中", () => {
+    expect(部品の読込を見せる(部品の頁, null)).toBe("loading");
+  });
+
+  it("部品の頁では読み込みの結果をそのまま出す", () => {
+    expect(部品の読込を見せる(部品の頁, "loaded")).toBe("loaded");
+    expect(部品の読込を見せる(部品の頁, "error")).toBe("error");
+  });
+
+  it("部品の頁でなければ、結果が残っていても何もしていない", () => {
+    // 結果は部品の頁を離れる時に空へ戻すが、戻す前の描画で残っていても一覧の欄に出さない
+    expect(部品の読込を見せる("charts", "error")).toBe("idle");
+    expect(部品の読込を見せる("charts", null)).toBe("idle");
+    expect(部品の読込を見せる(undefined, "loaded")).toBe("idle");
   });
 });
