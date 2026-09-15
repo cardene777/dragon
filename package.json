@@ -13,7 +13,7 @@
     "deploy:pages": "pnpm --filter dragon-playground-spa run deploy:pages",
     "build:packages": "pnpm --filter @cardenelabs/dragon run build",
     "preview": "pnpm --filter dragon-playground-spa run preview",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 114",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "verify:deps": "node packages/dragon/scripts/verify-dep-integrity.mjs",

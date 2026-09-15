@@ -350,7 +350,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // `位置: Web の右` を実際の配置から絶対座標に直す。 以降は座標を直接書いた時と同じ経路
   const placed = resolveRelativeDoc(diagram, doc, opts?.onNotice, opts?.partsCatalog);
   // canvas pivot 新 spec = 全 preset 共通の post-process で actor.posX/Y を CDL lane / node に伝播
-  applyCanvasPivotPositions(diagram, placed, opts?.onNotice);
+  applyCanvasPivotPositions(diagram, placed);
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const 追加した縦列: DslLane[] = [];
   const extended = applyV05Extensions(diagram, placed, 追加した縦列);
@@ -2198,13 +2198,11 @@ function applyNodeTones(diagram: CdlDiagram, doc: DslDocument): void {
  * preset builder が生成した diagram に対して、 doc.actors の 4 field を絶対座標として反映する。
  * slugify で actor 名 → lane id / node id の逆引き、 posX/Y set 済 actor に対応する lane / node に
  * 座標を書込む。 未指定 actor は従来 auto layout 経路そのまま。
+ *
+ * **知らせは出さない**。 かつて `sub-node-not-found` を出していたが、 その知らせが見ていた
+ * `nodes` の欄を #1976 で外した時に出し所が消えた。 知らせる相手が戻った時に引数を足す。
  */
-function applyCanvasPivotPositions(
-  diagram: CdlDiagram,
-  doc: DslDocument,
-  // 下見 (`probe`) の呼出では渡さない = 同じ知らせが 2 度出る
-  onNotice?: (notice: CompileNotice) => void,
-): void {
+function applyCanvasPivotPositions(diagram: CdlDiagram, doc: DslDocument): void {
   for (const actor of doc.actors) {
     if (actor.partId !== undefined) continue; // parts actor は別経路 (mergePartsFromActors) で処理
     const aliasSlug = slugify(actor.name);
