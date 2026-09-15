@@ -802,7 +802,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    // `setSrcSilent` は `useState` の setter をそのまま別名にしたもので書き換わらない。
+    // 書いても登録し直しは起きないが、書かないと静的検査が「古い値を掴むかもしれない」 と読む
+  }, [setSrcSilent]);
 
 
   /**
@@ -870,7 +872,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
        
       setActiveSample("共有URL");
     }
-  }, [location.hash]);
+    // `setSrc` は空の依存で作るので書き換わらない (以下 3 箇所とも同じ)
+  }, [location.hash, setSrc]);
 
   /**
    * warning 群から DSL を自動修正する。
@@ -918,7 +921,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         : `${result.applied.length} 件を記法に書き戻しました。 ${failed} 件は本文の該当行が見つからず書き戻せていません (記法を書き換えた直後は再描画を待ってから押してください)。`,
     );
     window.setTimeout(() => setAutoFixMessage(null), failed === 0 ? 6000 : 10000);
-  }, [warnings, diagram, src, edgeSource]);
+  }, [warnings, diagram, src, edgeSource, setSrc]);
 
   // test 用 side channel = src の full text を window mirror に同期 (E2E で CodeMirror virtual
   // scrolling を bypass して full buffer 検証する経路、 CAR-1646、 production では読み手なし)
@@ -1182,7 +1185,21 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     // パーツ一覧は遅延して読み込まれる。 本文だけを見ていると、 読み込みが終わっても
     // 抽出をやり直さないため、 パーツが図の中の空の箱のまま残る (実測 = 共有 URL で
     // パーツ入りの本文を開くと、 一覧を開いた後も箱のままだった)
-  }, [src, yamlSrc, activeTab, partsCatalog, partsItems, locale, applyDiagram]);
+    //
+    // `commitBuilt` が見る 5 つ (`activeTab` / `src` / `yamlSrc` / `partsItems` / `locale`) は
+    // 既にこの一覧に在るので、書き足しても走る回数は増えない。
+    // `setDropHintWithReset` は空の依存で作るので書き換わらない
+  }, [
+    src,
+    yamlSrc,
+    activeTab,
+    partsCatalog,
+    partsItems,
+    locale,
+    applyDiagram,
+    commitBuilt,
+    setDropHintWithReset,
+  ]);
 
   /**
    * 図の world 座標の原点が、 画面上のどこに来るか。
