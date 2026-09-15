@@ -37,6 +37,20 @@ import * as 部品 from "./parts.cdl";
  * 矢印を引く 2 つの切替は `swimlane` で書く。 `flow` と `topology` は部品を他の箱の下の格子に置くため、
  * 矢印が間の箱を貫く (絵の検査で実測)。
  *
+ * ## 部品を 2 つ置いて矢印を引く (#2010)
+ *
+ * 1 つの箱から **2 つの部品へ分ける** 形と、**部品から部品へ繋ぐ** 形を見せる。 部品は箱と同じ
+ * 繋ぎ方をするので、部品を繋ぎ先にも繋ぎ元にも書ける。 分ける方は種類の違う部品
+ * (`state-indicator` と `thermometer`) を並べ、大きさの違う部品にも同じ書き方で繋がることを見せる。
+ *
+ * **繋ぐ方は同じ種類の部品どうしにする**。 高さの違う部品を横に繋ぐと、矢印が 10 だけ縦にずれた
+ * 相手へ向かう。 その縦の走りが角の丸み (14) の 2 倍より短く、角が行き過ぎて線が戻る
+ * (角の行き過ぎの検査で実測)。 直るまで見本に焼き付けない (#2012)。
+ *
+ * **合流する形は見せない**。 2 つの部品から同じ箱へ矢印を集めると、矢印が間の縦列の部品を貫く
+ * (実測 = `edge-node-cross` の指摘 2 件)。 同じ形を普通の箱だけで書くと指摘 0 件なので、切替の
+ * 性質ではなく部品を置いた時だけの欠陥。 直るまで見本に焼き付けない (#2011)。
+ *
  * ## 流れの途中に置く (#1987)
  *
  * 静止した `flow` は登場人物を書いた順に矢印で繋ぐが、どの行にも書かれていない部品は繋ぐ並びに入れず、
@@ -61,7 +75,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partInBox = "書かない";
 
 export const subtitle__partInBox =
-  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、流れの途中に置き、名前を添えて並べる";
+  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、2 つの部品へ矢印を分け、部品どうしを繋ぎ、流れの途中に置き、名前を添えて並べる";
 
 export const sourceYaml__partInBox = `title: "部品を箱に置き何も書き換えない"
 type: flow
@@ -238,6 +252,70 @@ export const sourceJson__pattern__partInBox__繋ぐ要素を名指しする = `{
 
 export const pattern__partInBox__繋ぐ要素を名指しする = textDslToDiagram(
   sourceYaml__pattern__partInBox__繋ぐ要素を名指しする,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partInBox__矢印を分ける = `title: "検査の結果を設備の稼働と炉の温度へ分けて送る"
+type: swimlane
+
+actors:
+  - 検査: { kind: card }
+  - 成形機: { kind: state-indicator }
+  - 乾燥炉の温度: { kind: thermometer }
+
+flow:
+  - 検査 -> 成形機: "稼働を確かめる"
+  - 検査 -> 乾燥炉の温度: "温度を読む"
+`;
+
+export const sourceJson__pattern__partInBox__矢印を分ける = `{
+  "title": "検査の結果を設備の稼働と炉の温度へ分けて送る",
+  "type": "swimlane",
+  "actors": [
+    { "name": "検査", "kind": "card" },
+    { "name": "成形機", "kind": "state-indicator" },
+    { "name": "乾燥炉の温度", "kind": "thermometer" }
+  ],
+  "flow": [
+    { "from": "検査", "to": "成形機", "label": "稼働を確かめる" },
+    { "from": "検査", "to": "乾燥炉の温度", "label": "温度を読む" }
+  ]
+}`;
+
+export const pattern__partInBox__矢印を分ける = textDslToDiagram(
+  sourceYaml__pattern__partInBox__矢印を分ける,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partInBox__部品どうしを繋ぐ = `title: "成形機の稼働から塗装機の稼働へ、部品どうしを矢印で繋ぐ"
+type: swimlane
+
+actors:
+  - 検査: { kind: card }
+  - 成形機: { kind: state-indicator }
+  - 塗装機: { kind: state-indicator }
+
+flow:
+  - 検査 -> 成形機: "稼働を確かめる"
+  - 成形機 -> 塗装機: "次の工程へ回す"
+`;
+
+export const sourceJson__pattern__partInBox__部品どうしを繋ぐ = `{
+  "title": "成形機の稼働から塗装機の稼働へ、部品どうしを矢印で繋ぐ",
+  "type": "swimlane",
+  "actors": [
+    { "name": "検査", "kind": "card" },
+    { "name": "成形機", "kind": "state-indicator" },
+    { "name": "塗装機", "kind": "state-indicator" }
+  ],
+  "flow": [
+    { "from": "検査", "to": "成形機", "label": "稼働を確かめる" },
+    { "from": "成形機", "to": "塗装機", "label": "次の工程へ回す" }
+  ]
+}`;
+
+export const pattern__partInBox__部品どうしを繋ぐ = textDslToDiagram(
+  sourceYaml__pattern__partInBox__部品どうしを繋ぐ,
   { partsCatalog: 部品の一覧 },
 );
 
