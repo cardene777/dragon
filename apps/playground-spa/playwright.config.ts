@@ -55,8 +55,20 @@ const 重ねない検査 = /(editor-initial-animation|rendered-contrast|muted-te
  *
  * 代償 = この 3 件は実行中の編集で作り直される側に残り続ける。 壊れた時に「要素が現れない」
  * としか読めない形で落ちないよう、待ちには上限を付ける (#1438)。
+ *
+ * 待ちの上限だけでは「頁が壊れた」 と「server が古い」 を分けられない (#1998)。
+ * 前に `開発serverの下ごしらえ` を置き、束ねの古さを直し方つきで出す。
  */
 const 開発serverの検査 = /row-bounds-offset\.spec\.ts$/;
+
+/**
+ * 開発 server を見る検査の下ごしらえ (#1998)。
+ *
+ * 立てっぱなしの開発 server は起動時に抱えた束ねを配り続けるため、依存の版を上げた後も
+ * 古い描画を返す。 `dev` の `dependencies` に置くと、ここが落ちた時に `dev` の検査が
+ * 走らずに飛ばされる = 時間切れを 3 回待たずに済む。
+ */
+const 開発serverの下ごしらえ = /dev-deps-fresh\.setup\.ts$/;
 
 /**
  * 見に行く server。 既定は **build 済の画面** (`pnpm preview` が配る `PREVIEW_BASE_URL`)。
@@ -94,7 +106,18 @@ export default defineConfig({
   projects: [
     {
       name: "default",
-      testIgnore: [/html-canvas-motion\.spec\.ts$/, 重ねない検査, 開発serverの検査],
+      testIgnore: [
+        /html-canvas-motion\.spec\.ts$/,
+        重ねない検査,
+        開発serverの検査,
+        開発serverの下ごしらえ,
+      ],
+      use: 共通,
+    },
+    {
+      // 開発 server の束ねが古くないかだけを見る。 頁を開かないので相手の server は要らない
+      name: "dev-setup",
+      testMatch: 開発serverの下ごしらえ,
       use: 共通,
     },
     {
@@ -105,6 +128,8 @@ export default defineConfig({
       // 立て直した server へ向けた時に、こちらが古い server に残って気付けない (#1318 の形)
       name: "dev",
       testMatch: 開発serverの検査,
+      // 束ねが古い時はここが飛ばされ、時間切れ 3 回の代わりに直し方が出る (#1998)
+      dependencies: ["dev-setup"],
       use: { ...共通, baseURL: process.env.DEV_SPA_URL ?? DEV_URL },
     },
     {

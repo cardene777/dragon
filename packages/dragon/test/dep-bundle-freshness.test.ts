@@ -9,7 +9,12 @@ import { mkdtempSync, mkdirSync, rmSync, utimesSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 
-import { staleBundles, staleBundleReport, BUNDLES } from "../../../test-support/dep-bundle-freshness";
+import {
+  staleBundles,
+  staleBundleReport,
+  bundleFreshnessProblem,
+  BUNDLES,
+} from "../../../test-support/dep-bundle-freshness";
 
 const 作った: string[] = [];
 const 依存名 = "@cardenelabs/cdl";
@@ -140,6 +145,45 @@ describe("落とさない形 (#1636)", () => {
     rmSync(join(f.root, "apps", "screen", "node_modules", "@cardenelabs"), { recursive: true });
 
     expect(staleBundles(f.root, [f.bundle])).toEqual({ stale: [], 見た: 0, 見られなかった: 1 });
+  });
+});
+
+describe("古さの判定を 1 箇所に閉じる (#1998)", () => {
+  // vitest の前処理と画面の検査の 2 経路が同じ古さを見る。 それぞれで結果を読んで組み立てると
+  // 片方だけ条件が変わって食い違うため、判定は `bundleFreshnessProblem` 1 つに閉じる
+  it("古い束ねでは、ずれた実体と直し方を含む説明を返す", () => {
+    const f = 仮のrepo();
+    const 問題 = bundleFreshnessProblem(f.root, [f.bundle]);
+
+    expect(問題, "古い束ねで説明が返らない").not.toBeNull();
+    expect(問題).toContain(依存名);
+    // 入口 (`.../dist/index.js`) ではなく package の根を出す = 版を見分ける情報はそこにある
+    expect(問題).toContain(f.記録された入口.replace("/dist/index.js", ""));
+    expect(問題).toContain(f.いまの入口.replace("/dist/index.js", ""));
+    expect(問題).toContain(案内);
+  });
+
+  it("記録といまが同じなら null を返す (陰性対照)", () => {
+    const f = 仮のrepo("同じ");
+
+    expect(bundleFreshnessProblem(f.root, [f.bundle]), "同じ実体で説明が返った").toBeNull();
+  });
+
+  it("束ねが無ければ null を返す (初回に止めない)", () => {
+    // 見られなかったことを「古い」 に倒すと、開発 server を 1 度も立てていない環境で必ず止まる
+    const f = 仮のrepo();
+    rmSync(f.deps, { recursive: true });
+
+    expect(bundleFreshnessProblem(f.root, [f.bundle]), "束ねが無いのに説明が返った").toBeNull();
+  });
+
+  it("説明の中身は staleBundleReport と同じ", () => {
+    // 2 つ目の組み立てを作っていないことを見る。 別に組み立てると片方だけ文面が変わる
+    const f = 仮のrepo();
+
+    expect(bundleFreshnessProblem(f.root, [f.bundle])).toBe(
+      staleBundleReport(staleBundles(f.root, [f.bundle]).stale),
+    );
   });
 });
 
