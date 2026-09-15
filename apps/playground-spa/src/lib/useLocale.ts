@@ -18,32 +18,37 @@ type LocaleContextValue = {
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 /**
+ * 開いた時の言語 (#2018)。 URL の `?lang=` を先に見て、無ければ保存した言語、どちらも無ければ `ja`。
+ *
+ * `useState` の初期値として最初の描画で読む。 描いた後の効果で読むと、英語を選んだ人にも
+ * 最初の 1 回は日本語の画面が出る。 画面は `createRoot` で描くので、サーバー側の HTML と
+ * 食い違う心配は無い。
+ */
+function 開いた時の言語(): Locale {
+  try {
+    const qLang = new URL(window.location.href).searchParams.get("lang");
+    if (qLang === "en" || qLang === "ja") return qLang;
+    const lsLang = localStorage.getItem("dragon-locale");
+    if (lsLang === "en" || lsLang === "ja") return lsLang;
+  } catch {
+    // localStorage / URL 解析失敗時は default (ja) を使う
+  }
+  return "ja";
+}
+
+/**
  * app root に配置する Provider。 全 child component が useLocale() で共通 state を受け取る。
  */
 export function LocaleProvider({ children }: { children: ReactNode }): React.ReactElement {
-  const [locale, setLocaleState] = useState<Locale>("ja");
+  const [locale, setLocaleState] = useState<Locale>(開いた時の言語);
 
+  // html[lang] は言語が決まるたびにここで合わせる (切替ボタンからも同じ経路を通る)
   useEffect(() => {
-    try {
-      const url = new URL(window.location.href);
-      const qLang = url.searchParams.get("lang");
-      const lsLang = localStorage.getItem("dragon-locale");
-      const initial: Locale =
-        qLang === "en" || qLang === "ja"
-          ? (qLang)
-          : lsLang === "en" || lsLang === "ja"
-            ? (lsLang)
-            : "ja";
-      setLocaleState(initial);
-      document.documentElement.setAttribute("lang", initial);
-    } catch {
-      // localStorage / URL 解析失敗時は default (ja) を維持
-    }
-  }, []);
+    document.documentElement.setAttribute("lang", locale);
+  }, [locale]);
 
   const setLocale = (v: Locale): void => {
     setLocaleState(v);
-    document.documentElement.setAttribute("lang", v);
     try {
       localStorage.setItem("dragon-locale", v);
     } catch {

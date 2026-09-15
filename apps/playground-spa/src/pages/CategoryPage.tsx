@@ -5,7 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import { loadPartsItems, 選んだ見本, type CatalogItem } from "@/lib/catalog-items";
-import { useCategoryItems } from "./category-items";
+import { useCategoryItems, 部品の読込を見せる, type 部品の読込結果 } from "./category-items";
 import { CATALOG_HANDLERS } from "@/lib/catalog-handlers";
 import { itemName, itemNameEn, itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
@@ -260,21 +260,18 @@ export function CategoryPage(): React.ReactElement {
 
   const category = CATEGORIES.find((c) => c.slug === params.slug);
   // parts は CATALOG_ITEMS で empty placeholder、 useEffect で dynamic import 経由 populate (CAR-1613)
-  // loadState = idle / loading / loaded / error の 4 状態、 chunk fetch 失敗を可視化する
+  // 持つのは読み込みの結果だけで、一覧の欄に出す状態 (idle / loading / loaded / error) は
+  // 縦列と結果から導く (#2018、理由は `category-items.ts` が持つ)
   const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
-  // lazy initializer で初回 render から "loading" にして empty state flash (1 frame) を排除
-  const [partsLoadState, setPartsLoadState] = useState<"idle" | "loading" | "loaded" | "error">(
-    () => (params.slug === "parts" ? "loading" : "idle"),
-  );
+  const [partsLoadResult, setPartsLoadResult] = useState<部品の読込結果>(null);
   useEffect(() => {
     if (params.slug !== "parts") return;
     let cancelled = false;
-    setPartsLoadState("loading");
     loadPartsItems()
       .then((loaded) => {
         if (!cancelled) {
           setPartsItems(loaded);
-          setPartsLoadState("loaded");
+          setPartsLoadResult("loaded");
         }
       })
       .catch((err: unknown) => {
@@ -283,13 +280,16 @@ export function CategoryPage(): React.ReactElement {
           // console にも残す = user が devtools で原因把握できる
            
           console.error("[CAR-1613] parts.cdl chunk fetch failed", err);
-          setPartsLoadState("error");
+          setPartsLoadResult("error");
         }
       });
     return () => {
       cancelled = true;
+      // 部品の頁を離れる時に結果を空へ戻す。 戻った時に前回の失敗を出さず、読み込み中から始める
+      setPartsLoadResult(null);
     };
   }, [params.slug]);
+  const partsLoadState = 部品の読込を見せる(params.slug, partsLoadResult);
   // 同じ縦列と同じ部品の一覧なら同じ配列が返る (`category-items.ts` が理由を持つ)
   const items = useCategoryItems(params.slug, partsItems);
 
