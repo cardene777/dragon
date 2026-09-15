@@ -17,6 +17,7 @@
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import type { CompileNotice } from "../src/compile";
+import { sourceYaml__pattern__flowDirection__書いた端のとおりに繋ぐ as 見本 } from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
 
 /** 記法から図を組み、箱の縦列と知らせを返す。 */
 function 組む(src: string): { 縦列: string[]; 知らせ: CompileNotice[] } {
@@ -111,5 +112,86 @@ describe("図の並ぶ向き (#1494)", () => {
       const r = 組む(記法(type));
       expect(r.知らせ.filter((x) => x.kind === "direction-not-honored"), type).toEqual([]);
     }
+  });
+});
+
+/**
+ * 向きを書いた流れ図の矢印と行の対応 (#1986)。
+ *
+ * 向きを書いた流れ図は書いた端のとおりに矢印を作る。 矢印へ行の指定を書き写す処理と端の知らせが
+ * 「登場人物を書いた順の鎖」 として行と対応させると、N 本目の矢印に N+1 人目を行き先に持つ行の
+ * 指定が載る (実測 = `A -> C` に書いた `head: none` が `C -> B` に載り、行番号も入れ替わった)。
+ *
+ * **書いた端が鎖と食い違う並びで見る**。 `A -> B` / `B -> C` のように鎖と一致する並びでは、
+ * どちらの対応の取り方でも同じ矢印に載り、判定の誤りが現れない。
+ */
+describe("向きを書いた流れ図の矢印 (#1986)", () => {
+  const 本文 = (向き: string | undefined): string =>
+    [
+      'title: "t"',
+      "type: flow",
+      ...(向き === undefined ? [] : [向き]),
+      "",
+      "actors:",
+      "  - A: { kind: card }",
+      "  - B: { kind: card }",
+      "  - C: { kind: card }",
+      "",
+      "flow:",
+      '  - A -> C: "x" { head: none, sub: "補足" }',
+      '  - C -> B: "y"',
+      "",
+    ].join("\n");
+
+  function 組み立てる(src: string): {
+    矢印: { 端: string; head?: string; sub?: string; 行?: number }[];
+    端の知らせ: number[];
+  } {
+    const 知らせ: CompileNotice[] = [];
+    const 行 = new Map<string, number>();
+    const d = textDslToDiagram(src, {
+      onNotice: (n) => 知らせ.push(n),
+      onEdgeSource: (id, line) => 行.set(id, line),
+    });
+    return {
+      矢印: d.edges.map((e) => ({
+        端: `${e.from} -> ${e.to}`,
+        ...(e.head !== undefined ? { head: e.head } : {}),
+        ...(e.sub !== undefined ? { sub: e.sub } : {}),
+        ...(行.has(e.id) ? { 行: 行.get(e.id) } : {}),
+      })),
+      端の知らせ: 知らせ.filter((n) => n.kind === "flow-endpoint-not-honored").map((n) => n.line),
+    };
+  }
+
+  it.each(["direction: 縦", "direction: 横"])(
+    "%s = 書いた行の指定と行番号が、その行の端を持つ矢印に載り、端の知らせが出ない",
+    (向き) => {
+      const r = 組み立てる(本文(向き));
+      // 向きの行が 1 行増えるので、`A -> C` は 11 行目、`C -> B` は 12 行目
+      expect(r.矢印).toEqual([
+        { 端: "a -> c", head: "none", sub: "補足", 行: 11 },
+        { 端: "c -> b", 行: 12 },
+      ]);
+      expect(r.端の知らせ).toEqual([]);
+    },
+  );
+
+  it("カタログの見本は、向きの行を外すと差し戻しの矢印が消える", () => {
+    // 見本が見比べる意味を持つかを見る。 段を書いた流れ図は向きに依らず書いた端を使うため、
+    // 見本に段を足すと向きの行を消しても絵が変わらなくなる (実測)
+    const 矢印 = (src: string): string[] =>
+      textDslToDiagram(src).edges.map((e) => `${e.from} -> ${e.to}: ${e.label}`);
+    expect(矢印(見本)).toEqual(["申し込む -> 登録する: 申込書", "登録する -> 申し込む: 差し戻し"]);
+    const 向きなし = 見本.replace("direction: vertical\n", "");
+    expect(向きなし, "見本の本文に向きの行が無い (検査が空振りしている)").not.toBe(見本);
+    expect(矢印(向きなし)).toEqual(["申し込む -> 登録する: 申込書"]);
+  });
+
+  it("向きを書かなければ鎖になり、端が食い違う 2 行を知らせる", () => {
+    // 陰性対照。 同じ行を静止した鎖で組むと、書いた端は使われない (#1269)
+    const r = 組み立てる(本文(undefined));
+    expect(r.矢印.map((e) => e.端)).toEqual(["a -> b", "b -> c"]);
+    expect(r.端の知らせ).toEqual([10, 11]);
   });
 });
