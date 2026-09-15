@@ -13,7 +13,7 @@ import {
   type OverlayPartParsed,
 } from "./overlay-dsl";
 import { diagram } from "@cardenelabs/cdl";
-import { partRenderSize, partsBaseRows, partsGridCenters } from "@cardenelabs/dragon";
+import { partRenderSize, partsGridCenters } from "@cardenelabs/dragon";
 import type { CatalogItem } from "@/lib/catalog-items";
 
 const catalog: Record<string, unknown> = {
@@ -376,6 +376,8 @@ describe("パーツの置き場所 (placeParts)", () => {
     top: 0,
   });
   const boxes = new Map([["Web", { cx: 500, cy: 300, w: 200, h: 100 }]]);
+  /** 既存の図の下端 (world)。 値そのものに意味は無く、渡した下端より下に並ぶことを見る */
+  const 既存の図の下端 = 400;
   const part = (over: Partial<OverlayPartParsed>): OverlayPartParsed => ({
     id: "p",
     kind: "achievement",
@@ -386,12 +388,12 @@ describe("パーツの置き場所 (placeParts)", () => {
   });
 
   it("座標で書いた中心を、 画面に置く左上に直す", () => {
-    const [p] = placeParts([part({ id: "a", posX: 300, posY: 200 })], boxes, size, 1, undefined, box);
+    const [p] = placeParts([part({ id: "a", posX: 300, posY: 200 })], boxes, size, 既存の図の下端, undefined, box);
     expect(p).toMatchObject({ posX: 250, posY: 150 });
   });
 
   it("相対で書いた分を基準の縁から離して置く", () => {
-    const [p] = placeParts([part({ id: "a", posRel: { anchor: "Web", dir: "right", gap: 50 } })], boxes, size, 1, undefined, box);
+    const [p] = placeParts([part({ id: "a", posRel: { anchor: "Web", dir: "right", gap: 50 } })], boxes, size, 既存の図の下端, undefined, box);
     // 中心 = 500 + 100 (相手の半分) + 50 (間隔) + 50 (自分の半分) = 700、 左上はその半分手前
     expect(p!.posX).toBe(650);
     expect(p!.posY).toBe(250);
@@ -401,7 +403,7 @@ describe("パーツの置き場所 (placeParts)", () => {
     const placed = placeParts([
         part({ id: "a", posX: 300, posY: 200 }),
         part({ id: "b", posRel: { anchor: "a", dir: "right", gap: 100 } }),
-      ], boxes, size, 1, undefined, box);
+      ], boxes, size, 既存の図の下端, undefined, box);
     // a の中心 300 から、 縁 50 + 間隔 100 + 自分の半分 50 = 中心 500、 左上 450
     expect(placed[1]!.posX).toBe(450);
   });
@@ -411,22 +413,22 @@ describe("パーツの置き場所 (placeParts)", () => {
         part({ id: "c", posRel: { anchor: "b", dir: "right", gap: 100 } }),
         part({ id: "b", posRel: { anchor: "a", dir: "right", gap: 100 } }),
         part({ id: "a", posX: 300, posY: 200 }),
-      ], boxes, size, 1, undefined, box);
+      ], boxes, size, 既存の図の下端, undefined, box);
     const byId = new Map(placed.map((p) => [p.id, p]));
     expect(byId.get("b")!.posX).toBeGreaterThan(byId.get("a")!.posX);
     expect(byId.get("c")!.posX).toBeGreaterThan(byId.get("b")!.posX);
   });
 
   it("居ない相手を基準にした分は格子に落とす (図から消さない)", () => {
-    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size, 1, undefined, box);
+    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size, 既存の図の下端, undefined, box);
     expect(p!.posX).toBeGreaterThanOrEqual(0);
     expect(p!.posY).toBeGreaterThanOrEqual(0);
   });
 
   it("位置を書かない分だけで格子の番号を数える", () => {
     // 座標を書いた分を数えると、 1 個座標を書いただけで残りの並びがずれる
-    const withFixed = placeParts([part({ id: "fixed", posX: 0, posY: 0 }), part({ id: "auto1" }), part({ id: "auto2" })], boxes, size, 1, undefined, box);
-    const onlyAuto = placeParts([part({ id: "auto1" }), part({ id: "auto2" })], boxes, size, 1, undefined, box);
+    const withFixed = placeParts([part({ id: "fixed", posX: 0, posY: 0 }), part({ id: "auto1" }), part({ id: "auto2" })], boxes, size, 既存の図の下端, undefined, box);
+    const onlyAuto = placeParts([part({ id: "auto1" }), part({ id: "auto2" })], boxes, size, 既存の図の下端, undefined, box);
     expect(withFixed[1]!.posX).toBe(onlyAuto[0]!.posX);
     expect(withFixed[2]!.posX).toBe(onlyAuto[1]!.posX);
   });
@@ -434,7 +436,7 @@ describe("パーツの置き場所 (placeParts)", () => {
   it("位置を書かない分は箱として重ならない", () => {
     // 座標が違うだけでは足りない。 送り幅が実寸より狭いと、 座標は違っても箱が重なる
     // (実測 = 380 前提で送って実寸 800 のパーツが 300 重なった)
-    const placed = placeParts([part({ id: "a" }), part({ id: "b" }), part({ id: "c" }), part({ id: "d" })], boxes, size, 1, undefined, box);
+    const placed = placeParts([part({ id: "a" }), part({ id: "b" }), part({ id: "c" }), part({ id: "d" })], boxes, size, 既存の図の下端, undefined, box);
     const rects = placed.map((p) => ({ x0: p.posX, y0: p.posY, x1: p.posX + 100, y1: p.posY + 100 }));
     for (let i = 0; i < rects.length; i += 1) {
       for (let j = i + 1; j < rects.length; j += 1) {
@@ -446,41 +448,42 @@ describe("パーツの置き場所 (placeParts)", () => {
     }
   });
 
-  it("図を 1 つの箱で描く種別でも、その高さぶん下に置く (#1481)", () => {
+  it("下端が深い図ほど下に置く (#1481 / #2002)", () => {
     /*
-     * 箱の数で段を数えると、図を丸ごと 1 つの箱で描く種別 (順序図の板) が 1 段に潰れて
-     * パーツが図に重なる。 高さを持つ箱はその高さから段数を出す。
+     * 図を丸ごと 1 つの箱で描く種別 (順序図の板) は、箱の数で段を数えると 1 段に潰れて
+     * パーツが図に重なっていた (#1481)。 いまは段を数えず下端を実測して渡すので、
+     * 板でも段を積んだ図でも同じ深さなら同じ場所に置く。
      *
-     * **同じ高さを 1 箱で持つ図と、段を積んだ図で置き場所が揃うことを見る**。 値そのものを
-     * 書くと、段の高さを変えた時に検査だけが古くなる。
+     * **下端の差がそのまま置き場所の差になることを見る**。 値そのものを書くと、
+     * 図枠の余白を変えた時に検査だけが古くなる。
      */
-    const 板 = partsBaseRows([{ h: 840 }]);
-    const 積んだ = partsBaseRows([{}, {}, {}]);
-    expect(板, "高さ 840 の箱 1 つが 3 段ぶんと数えられていない").toBe(積んだ);
-
-    const 板の位置 = placeParts([part({ id: "a" })], boxes, size, 板)[0]!;
-    const 数で数えた位置 = placeParts([part({ id: "a" })], boxes, size, 1)[0]!;
-    expect(板の位置.posY, "板の下に置けていない").toBeGreaterThan(数で数えた位置.posY);
+    const 浅い = placeParts([part({ id: "a" })], boxes, size, 既存の図の下端)[0]!;
+    const 深い = placeParts([part({ id: "a" })], boxes, size, 既存の図の下端 + 440)[0]!;
+    expect(深い.posY - 浅い.posY, "下端の差だけ下に置けていない").toBe(440);
   });
 
-  it("高さを持たない箱は今までどおり 1 段 (#1481)", () => {
-    // 高さを書かない図の並び方を変えていないことを見る。 変わると既存の図でパーツが動く
-    expect(partsBaseRows([{}, {}, {}, {}])).toBe(4);
-    expect(partsBaseRows([]), "箱が無い図は 0 段").toBe(0);
+  it("既存の箱が無い図は下端を渡さない (#2002)", () => {
+    /*
+     * 「箱が無い」 を下端 0 に潰すと、部品が図の上端へ貼り付く。
+     * 渡さない時の置き場所が、下端 0 を渡した時より下にあることを見る。
+     */
+    const 無し = placeParts([part({ id: "a" })], boxes, size, undefined)[0]!;
+    const 下端ゼロ = placeParts([part({ id: "a" })], boxes, size, 0)[0]!;
+    expect(無し.posY, "箱が無い図と下端 0 の図が同じ場所になっている").toBeGreaterThan(下端ゼロ.posY);
   });
 
   it("実寸が大きいパーツでも重ならない (送り幅を実寸から出す)", () => {
     const big = (): { w: number; h: number } => ({ w: 800, h: 600 });
-    const placed = placeParts([part({ id: "a" }), part({ id: "b" })], boxes, big, 1);
+    const placed = placeParts([part({ id: "a" }), part({ id: "b" })], boxes, big, 既存の図の下端);
     expect(placed[1]!.posX - placed[0]!.posX).toBeGreaterThanOrEqual(800);
   });
 
   it("格子も中心から左上に直す (書いた位置と意味を揃える)", () => {
     // 自動配置だけ中心値を左上として返すと、 同じ数字が経路によって別の場所を指す。
     // 格子の中心を組み立て側の規則から取り、 それを座標で書いた時と一致するか見る
-    const cell = partsGridCenters(1, [{ id: "a", w: 100, h: 100 }]).get("a")!;
-    const [auto] = placeParts([part({ id: "a" })], boxes, size, 1, undefined, box);
-    const [written] = placeParts([part({ id: "a", posX: cell.cx, posY: cell.cy })], boxes, size, 1, undefined, box);
+    const cell = partsGridCenters(既存の図の下端, [{ id: "a", w: 100, h: 100 }]).get("a")!;
+    const [auto] = placeParts([part({ id: "a" })], boxes, size, 既存の図の下端, undefined, box);
+    const [written] = placeParts([part({ id: "a", posX: cell.cx, posY: cell.cy })], boxes, size, 既存の図の下端, undefined, box);
     expect({ posX: auto!.posX, posY: auto!.posY }).toEqual({ posX: written!.posX, posY: written!.posY });
   });
 });
@@ -921,6 +924,8 @@ describe("パーツの置き場所が決まらなかった時の知らせ", () =
     top: 0,
   });
   const boxes = new Map([["Web", { cx: 500, cy: 300, w: 200, h: 100 }]]);
+  /** 既存の図の下端 (world)。 値そのものに意味は無く、渡した下端より下に並ぶことを見る */
+  const 既存の図の下端 = 400;
   const part = (over: Partial<OverlayPartParsed>): OverlayPartParsed => ({
     id: "p", kind: "achievement", item, scale: 1, rotate: 0, ...over,
   });
@@ -968,7 +973,7 @@ describe("パーツの置き場所が決まらなかった時の知らせ", () =
   });
 
   it("知らせを受け取らなくても格子に落ちる", () => {
-    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size, 1, undefined, box);
+    const [p] = placeParts([part({ id: "a", posRel: { anchor: "いない人", dir: "right" } })], boxes, size, 既存の図の下端, undefined, box);
     expect(Number.isFinite(p!.posX)).toBe(true);
   });
 });

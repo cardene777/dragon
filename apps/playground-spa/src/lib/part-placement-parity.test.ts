@@ -21,6 +21,7 @@ import {
   measureActorBoxes,
   partScaleFactor,
   partBoxInFrame,
+  partsBaseBottom,
   MAX_PART_SCALE,
 } from "@cardenelabs/dragon";
 import {
@@ -121,7 +122,7 @@ function screenCenters(src: string): Map<string, { cx: number; cy: number }> {
     parsed.parts,
     measureActorBoxes(base),
     partWorldSize,
-    base.nodes.length,
+    partsBaseBottom(layout(base)),
   );
   const out = new Map<string, { cx: number; cy: number }>();
   for (const p of placed) {
@@ -207,7 +208,7 @@ flow:
     const parsed = extractPartsFromSrc(rel, KIND_SET, ITEMS);
     const base = textDslToDiagram(parsed.baseSrc);
     const boxes = measureActorBoxes(base);
-    const placed = placeParts(parsed.parts, boxes, partWorldSize, base.nodes.length);
+    const placed = placeParts(parsed.parts, boxes, partWorldSize, partsBaseBottom(layout(base)));
     const p = placed.find((x) => x.id === "p")!;
     const pad = framePadding(p.item.diagram);
     const anchor = boxes.get("Web")!;
@@ -239,7 +240,7 @@ flow:
     const parsed = extractPartsFromSrc(below, KIND_SET, ITEMS);
     const base = textDslToDiagram(parsed.baseSrc);
     const boxes = measureActorBoxes(base);
-    const placed = placeParts(parsed.parts, boxes, partWorldSize, base.nodes.length);
+    const placed = placeParts(parsed.parts, boxes, partWorldSize, partsBaseBottom(layout(base)));
     const p = placed.find((x) => x.id === "p")!;
     const pad = framePadding(p.item.diagram);
     const anchor = boxes.get("Web")!;
@@ -283,7 +284,7 @@ flow:
 
     const parsed = extractPartsFromSrc(chain, KIND_SET, ITEMS);
     const base = textDslToDiagram(parsed.baseSrc);
-    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, partsBaseBottom(layout(base)));
     for (const id of ["a", "b", "c"]) {
       const p = placed.find((x) => x.id === id)!;
       const pad = framePadding(p.item.diagram);
@@ -333,7 +334,7 @@ flow:
 
     const parsed = extractPartsFromSrc(fixed, KIND_SET, ITEMS);
     const base = textDslToDiagram(parsed.baseSrc);
-    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, partsBaseBottom(layout(base)));
     const p = placed.find((x) => x.id === "p")!;
     const pad = framePadding(p.item.diagram);
     const own = layout(p.item.diagram);
@@ -395,7 +396,7 @@ flow:
 
     const parsed = extractPartsFromSrc(chain, KIND_SET, ITEMS);
     const base = textDslToDiagram(parsed.baseSrc);
-    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, partsBaseBottom(layout(base)));
     const b = placed.find((x) => x.id === "b")!;
     expect(b.posX + partBoxRect(b).left, "基準の幅が経路で違う").toBeCloseTo(libLeft, 1);
   });
@@ -423,7 +424,7 @@ flow:
 
     const parsed = extractPartsFromSrc(sized, KIND_SET, ITEMS);
     const base = textDslToDiagram(parsed.baseSrc);
-    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, partsBaseBottom(layout(base)));
     const a = placed.find((x) => x.id === "a")!;
     expect(partBoxRect(a).h, "画面側の箱の高さが組み立て側と違う").toBeCloseTo(libH, 1);
     // 余白の伸縮は test 側で独立に出す。 実装の値を足し引きすると打ち消し合って見えなくなる
@@ -455,7 +456,7 @@ actors:
 
     const parsed = extractPartsFromSrc(auto, KIND_SET, ITEMS);
     const base = textDslToDiagram(parsed.baseSrc);
-    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, partsBaseBottom(layout(base)));
     const a = placed.find((x) => x.id === "a")!;
     // 余白の伸縮は test 側で独立に出す。 実装の値を足し引きすると、
     // 余白の誤りが打ち消し合って見えなくなる。
@@ -630,7 +631,7 @@ actors:
 
     const parsed = extractPartsFromSrc(withRing, kinds, items);
     const base = textDslToDiagram(parsed.baseSrc);
-    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, base.nodes.length);
+    const placed = placeParts(parsed.parts, measureActorBoxes(base), partWorldSize, partsBaseBottom(layout(base)));
     const r = placed.find((p) => p.id === "r")!;
     const w = placed.find((p) => p.id === "w")!;
     // 箱を物差しにすると幅 1 の列になって重なる。 図枠なら離れる

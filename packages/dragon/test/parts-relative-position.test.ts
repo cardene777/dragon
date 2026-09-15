@@ -548,21 +548,25 @@ actors:
 });
 
 describe("格子の規則に異常な値を渡した時", () => {
-  it("箱の数が数でなければ 0 として扱う", () => {
+  /** 既存の図の下端 (world)。 値そのものに意味は無い */
+  const 下端 = 400;
+
+  it("下端が数でなければ、箱が無い時と同じに扱う (#2002)", () => {
     const a = partsGridCenters(Number.NaN, [{ id: "x", w: 100, h: 100 }]).get("x")!;
-    const b = partsGridCenters(0, [{ id: "x", w: 100, h: 100 }]).get("x")!;
+    const b = partsGridCenters(undefined, [{ id: "x", w: 100, h: 100 }]).get("x")!;
     expect(a).toEqual(b);
   });
 
-  it("箱の数が負なら 0 として扱う", () => {
-    const a = partsGridCenters(-5, [{ id: "x", w: 100, h: 100 }]).get("x")!;
+  it("下端が負でも捨てない (図は原点より上にも置ける、 #2002)", () => {
+    // 0 で下げ止めると、原点より上にある図の下に無駄な空きが入る
+    const a = partsGridCenters(-500, [{ id: "x", w: 100, h: 100 }]).get("x")!;
     const b = partsGridCenters(0, [{ id: "x", w: 100, h: 100 }]).get("x")!;
-    expect(a).toEqual(b);
+    expect(b.cy - a.cy).toBe(500);
   });
 
   it("桁が溢れる大きさは返さない (描けない座標を渡さない)", () => {
     // 2 個目の列は `送り幅 + 送り幅/2` になるので、 最大値だと桁が溢れる
-    const out = partsGridCenters(1, [
+    const out = partsGridCenters(下端, [
       { id: "x", w: Number.MAX_VALUE, h: Number.MAX_VALUE },
       { id: "y", w: Number.MAX_VALUE, h: Number.MAX_VALUE },
     ]);
@@ -573,17 +577,17 @@ describe("格子の規則に異常な値を渡した時", () => {
   });
 
   it("同じ名前が 2 度来たら先の方を残す", () => {
-    const out = partsGridCenters(1, [
+    const out = partsGridCenters(下端, [
       { id: "x", w: 100, h: 100 },
       { id: "x", w: 900, h: 900 },
     ]);
     expect(out.size).toBe(1);
     const only = out.get("x")!;
-    const first = partsGridCenters(1, [{ id: "x", w: 100, h: 100 }]).get("x")!;
+    const first = partsGridCenters(下端, [{ id: "x", w: 100, h: 100 }]).get("x")!;
     expect(only).toEqual(first);
   });
 
   it("空なら何も返さない", () => {
-    expect(partsGridCenters(1, []).size).toBe(0);
+    expect(partsGridCenters(下端, []).size).toBe(0);
   });
 });

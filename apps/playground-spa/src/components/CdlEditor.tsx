@@ -8,7 +8,7 @@ import {
   partScaleFactor,
   partDrawsInDiagram,
   measureActorBoxes,
-  partsBaseRows,
+  partsBaseBottom,
   writeActorPosition,
   isColorValue,
   stripExternalPaint,
@@ -1152,7 +1152,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         setOverlayParts(
           parts.length === 0
             ? []
-            : placeParts(parts, measureActorBoxes(d, built.laid), partWorldSize, partsBaseRows(d.nodes), (n) => {
+            : placeParts(parts, measureActorBoxes(d, built.laid), partWorldSize, partsBaseBottom(built.laid), (n) => {
                 // パーツは記法の解析より前に抜き出すので組み立て側の知らせに乗らない。
                 // 同じ場所に出すため、 ここで同じ形に直して混ぜる
                 notices.push({

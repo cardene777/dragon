@@ -2884,26 +2884,25 @@ export function partVisualSize(
 /** 格子に並べる時の 1 行あたりの個数と隙間。 */
 const PARTS_PER_ROW = 3;
 const PARTS_GAP = 120;
-/**
- * 既存の図の下に置く時の目安。
- *
- * 既存の箱は自動配置なので、 この時点では座標を持たない。 箱の数から概算する。
- * 1 段あたりの高さは cdl の既定の縦送り幅に合わせる。
- */
-const STACK_PITCH = 280;
 
 /**
- * 既存の図が縦に何段ぶんを占めるかの目安 (#1481)。
+ * 組み立てた図の下端 (#2002)。 箱が 1 つも無ければ `undefined`。
  *
- * **箱の数では数えない**。 数で数えると、図を丸ごと 1 つの箱で描く種別が 1 段に潰れる。
- * 順序図は `#1466` で 1 枚の板になり、高さ 432 の箱 1 つになった = 1 段 (280) と見積もられ、
- * その下に置いたパーツが板に 31px 重なっていた (実測)。
+ * **段数で概算しない**。 かつては箱の数から `箱 1 つ = 1 段 (280)` で見積もっていたが、
+ * `flow` の箱は実際には高さ 68 で 168 おきに並ぶため 1 段あたり 112 ずつ余分に見積もる。
+ * 誤差は箱の数に比例して積み上がり、実測で箱 2 つの図に 496、箱 4 つの図に 720 の空きが
+ * 入っていた (部品どうしの間は 120)。
  *
- * 大きさを自分で持つ箱は、その高さから段数を出す。 持たない箱は今までどおり 1 段と数えるので、
- * 高さを書かない図の並び方は変わらない。
+ * **箱の下端ではなく図枠の下端を返す**。 格子は図枠どうしを `PARTS_GAP` 空けて並べるので、
+ * 既存の図との間も図枠で測らないと、部品どうしの間と既存の図との間が揃わない
+ * (箱で測ると 180、図枠で測ると 240 で、後者が部品どうしの段の間と一致する)。
+ *
+ * **箱が無いことを 0 に潰さない**。 0 を下端として使うと、部品だけを並べた図で部品が
+ * 図の上端へ貼り付く。 呼出側が「箱が無い」 と「下端が 0」 を分けられるように `undefined` を返す。
  */
-export function partsBaseRows(nodes: ReadonlyArray<{ h?: number }>): number {
-  return nodes.reduce((acc, n) => acc + Math.max(1, Math.ceil(positiveOr(n.h, 0) / STACK_PITCH)), 0);
+export function partsBaseBottom(laid: LaidDiagram): number | undefined {
+  if (laid.nodes.length === 0) return undefined;
+  return laid.viewBox.y + laid.viewBox.h;
 }
 
 /**
@@ -2916,18 +2915,24 @@ export function partsBaseRows(nodes: ReadonlyArray<{ h?: number }>): number {
  * 隣と重なる (実測 = 400 の次に 200 を置くと 280 重なった)。 段の高さも段内の最大高で揃える。
  * 縦は自分の高さの半分だけ段の上端から下げて、 段内で上端を揃える。
  *
- * @param baseRows 既存の図が占める段数の目安 (`partsBaseRows`)。 図の下から並べ始めるために使う
+ * @param baseBottom 既存の図の下端 (`partsBaseBottom`)。 その下に間を空けて並べ始める。
+ *   箱が 1 つも無い図では `undefined` を渡す
  */
 export function partsGridCenters(
-  baseRows: number,
+  baseBottom: number | undefined,
   items: ReadonlyArray<{ id: string; w: number; h: number }>,
 ): Map<string, { cx: number; cy: number }> {
   const out = new Map<string, { cx: number; cy: number }>();
   if (items.length === 0) return out;
-  // 公開している関数なので、 呼出側が渡す値を入口で閉じる。 数でない箱の数や桁溢れを
-  // そのまま計算に入れると、 描けない座標を返すことになる
-  const safeCount = Number.isSafeInteger(baseRows) && baseRows >= 0 ? baseRows : 0;
-  const top = safeCount * STACK_PITCH + PARTS_GAP * 2;
+  // 公開している関数なので、 呼出側が渡す値を入口で閉じる。 数でない下端や桁溢れを
+  // そのまま計算に入れると、 描けない座標を返すことになる。
+  //
+  // 負の下端は捨てない = 図は原点より上にも置ける。 0 で下げ止めると、上にある図の下に
+  // 無駄な空きが入る
+  const top =
+    baseBottom === undefined || !Number.isFinite(baseBottom)
+      ? PARTS_GAP * 2
+      : baseBottom + PARTS_GAP;
   // 同じ名前が 2 度来たら先の方だけを見る。 後の分を残すと、 どちらを指したか決められない
   // まま列の送り幅にも影響する
   const seen = new Set<string>();
@@ -2992,6 +2997,44 @@ function partsBudget(
     accepted.add(i);
   });
   return accepted;
+}
+
+/**
+ * パーツを除いた図を組み立てて、その下端を返す (#2002)。 箱が 1 つも無ければ `undefined`。
+ *
+ * **宣言のままの箱は座標を持たない** (`CdlNode` に `cx` / `cy` が無い)。 下端を知るには
+ * 一度組み立てる必要がある。 パーツを除いた図を組み立てるのは、パーツを含めて測ると
+ * パーツを足すたびに下端が下がり、置き場所が自分自身に追随して逃げるため。
+ *
+ * ## 除く 3 つは、いまの呼び出し順では結果を変えない
+ *
+ * 箱 / 縦列 / 矢印の 3 つを除いているが、**この 3 つを残しても下端は 1 も動かない**
+ * (変異試験で 3 つとも、また 3 つ同時でも落ちる検査は 0 件)。 この関数が走るのは
+ * パーツを取り込む前で、その時点のパーツの仮の箱は書いた位置も縦列の段も反映しておらず、
+ * 必ず本体の箱と同じ段に居るため。 図種 5 種 × 段の深さ 2 通り、位置を書いた深さ 3 通り、
+ * 縦列に置いた段数 2 通りを実測して、1 件も差が出なかった。
+ *
+ * それでも残すのは、この関数が「パーツを除いた図を測る」 と読めることに意味があるため。
+ * 呼び出し順が変わった時に黙って下端が動くより、除く形が書いてある方が直しやすい。
+ */
+function baseDiagramBottom(
+  target: CdlDiagram,
+  baseNodes: readonly CdlDiagram["nodes"][number][],
+  partsLaneIds: ReadonlySet<string>,
+): number | undefined {
+  // 箱が 1 つも無い図では組み立てない。 **返す値を変えるための分岐ではない**
+  // (`partsBaseBottom` も箱 0 個で `undefined` を返す) = 組み立て 1 回ぶんを省くためだけの
+  // 早い戻り。 変異試験でこの行を外しても落ちる検査は 0 件で、それが期待どおり
+  if (baseNodes.length === 0) return undefined;
+  const baseIds = new Set(baseNodes.map((n) => n.id));
+  return partsBaseBottom(
+    layout({
+      ...target,
+      lanes: target.lanes.filter((l) => !partsLaneIds.has(l.id)),
+      nodes: [...baseNodes],
+      edges: target.edges.filter((e) => baseIds.has(e.from) && baseIds.has(e.to)),
+    }),
+  );
 }
 
 /**
@@ -3082,7 +3125,7 @@ function partGridCenters(
     extents.set(a.name, partFrameExtent(part, t.w, t.h));
   }
   const centers = partsGridCenters(
-    partsBaseRows(baseNodes),
+    baseDiagramBottom(target, baseNodes, partsLaneIds),
     placedActors.map((a) => ({ id: a.name, ...extents.get(a.name)! })),
   );
   // merge に渡すのは段の中心。 矩形の中心とのずれを引く。 引かないと、 段ごとに箱の高さが
