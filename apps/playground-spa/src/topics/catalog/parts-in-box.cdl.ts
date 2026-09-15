@@ -43,9 +43,10 @@ import * as 部品 from "./parts.cdl";
  * 繋ぎ方をするので、部品を繋ぎ先にも繋ぎ元にも書ける。 分ける方は種類の違う部品
  * (`state-indicator` と `thermometer`) を並べ、大きさの違う部品にも同じ書き方で繋がることを見せる。
  *
- * **繋ぐ方は同じ種類の部品どうしにする**。 高さの違う部品を横に繋ぐと、矢印が 10 だけ縦にずれた
- * 相手へ向かう。 その縦の走りが角の丸み (14) の 2 倍より短く、角が行き過ぎて線が戻る
- * (角の行き過ぎの検査で実測)。 直るまで見本に焼き付けない (#2012)。
+ * 繋ぐ方は同じ種類の部品どうしと、**高さの違う部品どうし** の 2 枚を見せる。 高さが違うと繋ぎ口の
+ * 高さが 10 ずれ、矢印は横に走ってから縦に 10 動く形になる。 この 10 は角の丸み (14) の 2 倍より
+ * 短く、描画エンジンが丸みを頭打ちにしていなかった頃は角が行き過ぎて線が戻っていた (#2012)。
+ * `@cardenelabs/cdl` 0.65.0 で丸みを走りの長さで頭打ちにしたので、同じ書き方で繋がる。
  *
  * **合流する形は見せない**。 2 つの部品から同じ箱へ矢印を集めると、矢印が間の縦列の部品を貫く
  * (実測 = `edge-node-cross` の指摘 2 件)。 同じ形を普通の箱だけで書くと指摘 0 件なので、切替の
@@ -75,7 +76,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partInBox = "書かない";
 
 export const subtitle__partInBox =
-  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、2 つの部品へ矢印を分け、部品どうしを繋ぎ、流れの途中に置き、名前を添えて並べる";
+  "部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、2 つの部品へ矢印を分け、部品どうしを繋ぎ、高さの違う部品どうしも繋ぎ、流れの途中に置き、名前を添えて並べる";
 
 export const sourceYaml__partInBox = `title: "部品を箱に置き何も書き換えない"
 type: flow
@@ -316,6 +317,38 @@ export const sourceJson__pattern__partInBox__部品どうしを繋ぐ = `{
 
 export const pattern__partInBox__部品どうしを繋ぐ = textDslToDiagram(
   sourceYaml__pattern__partInBox__部品どうしを繋ぐ,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partInBox__高さの違う部品どうしを繋ぐ = `title: "成形機の稼働から乾燥炉の温度へ、高さの違う部品どうしを矢印で繋ぐ"
+type: swimlane
+
+actors:
+  - 検査: { kind: card }
+  - 成形機: { kind: state-indicator }
+  - 乾燥炉の温度: { kind: thermometer }
+
+flow:
+  - 検査 -> 成形機: "稼働を確かめる"
+  - 成形機 -> 乾燥炉の温度: "炉の温度を読む"
+`;
+
+export const sourceJson__pattern__partInBox__高さの違う部品どうしを繋ぐ = `{
+  "title": "成形機の稼働から乾燥炉の温度へ、高さの違う部品どうしを矢印で繋ぐ",
+  "type": "swimlane",
+  "actors": [
+    { "name": "検査", "kind": "card" },
+    { "name": "成形機", "kind": "state-indicator" },
+    { "name": "乾燥炉の温度", "kind": "thermometer" }
+  ],
+  "flow": [
+    { "from": "検査", "to": "成形機", "label": "稼働を確かめる" },
+    { "from": "成形機", "to": "乾燥炉の温度", "label": "炉の温度を読む" }
+  ]
+}`;
+
+export const pattern__partInBox__高さの違う部品どうしを繋ぐ = textDslToDiagram(
+  sourceYaml__pattern__partInBox__高さの違う部品どうしを繋ぐ,
   { partsCatalog: 部品の一覧 },
 );
 
