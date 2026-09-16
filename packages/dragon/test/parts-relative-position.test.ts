@@ -176,6 +176,67 @@ actors:
     const clock = boxes.get("時計")!;
     expect(part, "自動配置のパーツが測れない").toBeDefined();
     expect(clock.x0 - part.x1).toBeCloseTo(150, 0);
+    expect(clock.cy, "縦が基準の中心に揃っていない").toBeCloseTo(part.cy, 0);
+    expect(notices).toEqual([]);
+  });
+
+  /**
+   * 格子に置いたパーツを基準に **箱** を置く (#2041)。
+   *
+   * 基準の範囲を出す側 (`partBoxes`) は格子の起点を本体の図の下端から取るが、その本体には
+   * 相対で置く箱も入る。 箱の位置は格子を決めた後に決まるため、1 度目 (基準の範囲を出す時) と
+   * 2 度目 (取り込む時) で起点が動いていた。
+   *
+   * 横の間隔は書いたとおりに空くのに縦だけが外れる形で表に出る
+   * (実測 = 基準が `cy=1118`、置いた箱が `cy=654` で 464 離れた)。
+   *
+   * **横と縦を別々に見る**。 1 つの `toBeCloseTo` にまとめると、横が合っているだけで
+   * 通る形になり、この壊れ方をそのまま見逃す。
+   */
+  const 格子のパーツを基準にする = [
+    ["flow", "flow"],
+    ["topology", "topology"],
+  ] as const;
+
+  for (const [名, 図種] of 格子のパーツを基準にする) {
+    it(`${名}: 格子に置いたパーツを基準にした箱が、縦も基準に揃う (#2041)`, () => {
+      const { boxes, notices } = boxesOf(`title: "t"
+type: ${図種}
+actors:
+  - 実績: achievement
+  - API:
+      kind: service
+      位置: 実績 の右 200
+`);
+      const part = boxes.get("実績")!;
+      const api = boxes.get("API")!;
+      expect(part, "格子に置いたパーツが測れない").toBeDefined();
+      expect(api, "相対で置いた箱が測れない").toBeDefined();
+      expect(api.x0 - part.x1, "横の間隔が書いた値と違う").toBeCloseTo(200, 0);
+      expect(api.cy, "縦が基準の中心に揃っていない").toBeCloseTo(part.cy, 0);
+      expect(notices, "効かないと知らせている").toEqual([]);
+    });
+  }
+
+  it("格子に置いたパーツを基準にした箱が 2 つあっても縦が揃う (#2041)", () => {
+    // 相対で置く箱が増えるほど本体の下端が動く = 起点のずれが大きくなる形
+    const { boxes, notices } = boxesOf(`title: "t"
+type: flow
+actors:
+  - 実績: achievement
+  - API:
+      kind: service
+      位置: 実績 の右 200
+  - DB:
+      kind: service
+      位置: API の右 200
+`);
+    const part = boxes.get("実績")!;
+    const api = boxes.get("API")!;
+    const db = boxes.get("DB")!;
+    expect(api.cy, "1 つ目の縦が揃っていない").toBeCloseTo(part.cy, 0);
+    expect(db.cy, "2 つ目の縦が揃っていない").toBeCloseTo(part.cy, 0);
+    expect(db.x0 - api.x1, "2 つ目の横の間隔が書いた値と違う").toBeCloseTo(200, 0);
     expect(notices).toEqual([]);
   });
 
