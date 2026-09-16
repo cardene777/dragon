@@ -21,6 +21,11 @@ export type GenericOpts = {
   laneWidth: number;
 };
 
+/**
+ * v0.4 ... 5 preset (flow / swimlane / er / state / topology) 共通 animation compile。
+ * sequence preset と異なり header / footer / step box 構造はない、 シンプルな lane + node + edge 構造。
+ * preset kind ごとに lane 配置と layout を切替。
+ */
 export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiagram {
   const { kind, laneWidth } = opts;
   const b = diagram(slugify(doc.title), { topic: doc.title, type: kind });
