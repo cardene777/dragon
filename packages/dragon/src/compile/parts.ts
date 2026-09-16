@@ -888,8 +888,23 @@ function partGridCenters(
     if (sharedLaneIds.has(l.id)) continue;
     partsLaneIds.add(l.id);
   }
+  // 相対で書いた箱も数えない (#2041)。 位置が決まるのは格子を決めた後なので、数えると
+  // **1 度目と 2 度目で起点が動く** = 基準の範囲を出す時 (`partBoxes`) は箱が自動配置の
+  // 位置に居り、取り込む時 (`mergePartsFromActors`) には相対で解いた位置へ移っている。
+  //
+  // 横の間隔は書いたとおりに空くのに縦だけが外れる形で表に出る (実測 = 基準のパーツが
+  // `cy=1118`、その右に置いた箱が `cy=654` で 464 離れた)。 効いたかを見る側
+  // (`verifyPlacement`) も同じ `partBoxes` の値を期待値にするため、実物と期待値が同じ向きに
+  // ずれて一致し、知らせを 1 件も出さないまま絵だけが崩れる。
+  //
+  // **座標で書いた箱は数える**。 こちらは格子より先に位置が決まっており、1 度目と 2 度目で
+  // 動かない。 外すと、座標で下に置いた箱にパーツが重なる。
+  const 相対で置く箱 = new Set(
+    doc.actors.filter((a) => a.posRel !== undefined).map((a) => a.name),
+  );
   const baseNodes = target.nodes.filter(
-    (n) => !partsActorNames.has(n.title) && !partsLaneIds.has(n.lane),
+    (n) =>
+      !partsActorNames.has(n.title) && !partsLaneIds.has(n.lane) && !相対で置く箱.has(n.title),
   );
   // 取り込まれない見本は格子の枠を使わない (#1015)。 枠を使うと、落とした見本の分だけ
   // 後続がずれる (実測 = 隣の見本の左端が 60 から 725 に動いた)
