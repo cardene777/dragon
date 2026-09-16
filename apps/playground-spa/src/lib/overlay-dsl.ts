@@ -699,8 +699,7 @@ export function extractPartsFromSrc(
             const n = Number(trimmed);
             return Number.isFinite(n) ? n : undefined;
           };
-          // 2026-07-26 CAR-2158 correctness fix = bg を parse する。
-          // 旧実装は bg を無視していたため、 color picker で DSL に bg を書いても canvas に反映されなかった。
+          // 背景色 (`bg:`) を読む。 読まないと、本文に書いた色が重ねて描く部品に出ない。
           const bgRaw = readTopLevelField(inner, "bg");
           const bgMatch = bgRaw ? bgRaw.match(/^"([^"]*)"/) : null;
           const item = findItem(kindValue);

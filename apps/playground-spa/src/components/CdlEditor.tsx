@@ -23,8 +23,6 @@ import { 部品の一覧を作る, 部品の図か } from "@/lib/parts-catalog";
 import { CATEGORIES } from "@/lib/catalog";
 import { SyntaxReference } from "@/components/SyntaxReference";
 import { deserializePart, isPartsMarker, PARTS_MARKER } from "@/lib/parts-serializer";
-// 2026-07-24 = canvas-pivot-auto-adjust / canvas-pivot-guideline / viewBoxCompensation を全削除。
-// user 要求「勝手な移動全部削除」 の core、 auto 補正 / 補助線 / pan 補償の 3 経路を完全撤去。
 import { 図と重ねる部品に分ける, appendActorLine, placeParts, partWorldSize, srcMayUseParts, yamlMayUseParts } from "@/lib/overlay-dsl";
 import { buildAndValidate, type BuildResult } from "@/lib/render-pipeline";
 import { fitBounds } from "@/lib/fit-bounds";
@@ -174,8 +172,8 @@ const ZOOM_STEP = 0.2;
  */
 
 /**
- * CAR-1657 = src YAML の actors: block から既存 actor 名を全 collect する helper。
- * drop 時の alias 連番生成 (`arc1` → `arc2`) で衝突回避に使う。
+ * 本文の `actors:` から、書かれている登場人物の名前を全部集める。
+ * 一覧の部品を本文に足す時、名前に付ける番号 (`arc` → `arc2`) を既存の名前と重ならないように選ぶのに使う。
  */
 function collectActorNamesFromSrc(src: string): Set<string> {
   const names = new Set<string>();
@@ -241,8 +239,6 @@ type BuildCacheEntry = {
   notices: CompileNotice[];
 };
 
-// 2026-07-24 = extractPartsFromSrc / writeOverlayPartToDsl は @/lib/overlay-dsl に抽出 (Layer 1 unit test 化)
-
 /**
  * CAR-1678 = YAML tab の初期 buffer (multi-line YAML DSL、 dragon JSON schema と 1:1 対応)。
  * SAMPLES[0] と対等な UX を YAML 派 user にも提供、 title / actors / flow / animation の 4 block 揃え、
@@ -302,8 +298,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // 届くまでの間に書き換わっていたら、 古い入力の結果で新しい図を上書きしない
   const yamlSrcRef = useRef("");
   const activeTabRef = useRef<"cdl" | "yaml">("cdl");
-  // 2026-07-24 setSrc wrapper = history stack に previous src を push (Undo/Redo 用、 Feature 1)。
-  // pop 経路 (undo / redo) からの setSrc は setSrcSilent を使う (history 巻き添え防止)。
+  // 本文を書き換える入口。 書き換える前の本文を取り消しの履歴に積み、やり直しの履歴を空にする。
+  // 取り消し / やり直しで本文を戻す時は `setSrcSilent` を使う (戻す操作そのものを履歴に積まない)。
   const setSrc = useCallback((updater: string | ((prev: string) => string)): void => {
     setSrcRaw((prev) => {
       const nextSrc = typeof updater === "function" ? updater(prev) : updater;
@@ -330,8 +326,6 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // 遅れて届く読み取りの実装から「今の本文 / 今の欄」 を同期的に読むために鏡を保つ (#1007)
   useEffect(() => { yamlSrcRef.current = yamlSrc; }, [yamlSrc]);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
-  // CAR-1947 = HTML div canvas feature flag (URL param `?canvas=html` opt-in、 未指定時は既存 SVG 経路)。
-  // useState + initializer で mount 時 1 回だけ read、 URL 変化での re-eval は Phase 2 以降の課題。
   const [diagram, setDiagram] = useState<CdlDiagram | null>(null);
   /**
    * 配置まで済ませた図 (#1006)。
@@ -343,34 +337,17 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const [laid, setLaid] = useState<LaidDiagram | null>(null);
   /** 欄ごとの組み立て結果。 中身が変わっていない欄に戻った時は、 これを載せ直すだけにする (#1006) */
   const buildCacheRef = useRef<Record<"cdl" | "yaml", BuildCacheEntry | null>>({ cdl: null, yaml: null });
-  // 2026-07-24 architectural refactor = parts を cdl DSL から完全切離、 独立 overlay 化。
-  // cdl は base (Client/API/DB) のみ compile、 parts は React state で管理 + 独立 SVG overlay で描画。
-  // これにより cdl の auto-layout / re-routing / label 再配置が parts drop/drag で発火せず、
-  // base 図の全 lane / arrow / label は 100% 静止 (user 要求「勝手な移動全部削除」 の root architecture)。
+  // 図に重ねて描く部品。 本文から部品の行を抜いて図を組み立て、抜いた部品はこの状態に入れて
+  // 図の上に別に描く。 重ねる部品は組み立てに渡さないので、図の縦列や矢印の配置を動かさない。
+  // 部品を抜かずに組み立て側で描く本文の形は `図と重ねる部品に分ける` が決める。
   type OverlayPart = { id: string; kind: string; posX: number; posY: number; scale: number; rotate: number; bg?: string; posW?: number; posH?: number; item: CatalogItem };
   const [overlayParts, setOverlayParts] = useState<OverlayPart[]>([]);
-  // 2026-07-24 multi selection (Task #86) = 複数 element 選択 state。 overlay parts + cdl 要素 混在対応。
-  // ID 命名規約: `overlay:{alias}` = parts、 `cdl-node:{id}` = cdl node、 `cdl-lane:{id}` = cdl lane、
-  // `cdl-edge:{id}` = cdl edge、 `text:{content}` = arrow label 等。
-  // 2026-07-25 cdl 要素 selection = `cdl:{id}` の selector を保存、 stage-level UI で bbox 再測定に使う
-  // 2026-07-26 CAR-2158 = SVG text element (arrow label 等) に刻む一意 key の連番 counter
-  // 2026-07-27 CAR-2156 = cdl actor drag の state。 mousedown で lane + 配下 node を snapshot し、
-  // mousemove では SVG に live transform、 mouseup で全員に同 delta を書き出す。
-  // 2026-07-27 CAR-2160 = 図中の文字サイズの一律倍率。 cdl の fontSize は固定値なので
-  // viewport の拡大では追従しない。 CSS で属性値を上書きして一律に変える。
+  // 図の中の文字の大きさの倍率。 cdl の文字の大きさは固定の値なので、表示の拡大では変わらない。
+  // 属性の値を CSS で上書きして一律に変える (`applyFontScale`)。
   const [fontScale, setFontScale] = useState(1);
-  // 2026-07-25 text 編集 (double click) = 選択 text 要素の client bbox + 元テキストで stage-level input を描画。
-  // Enter / blur で src.replaceAll(originalText, newText) を試みる (最小実装、 duplicate text は先出し replace)。
-  // 2026-07-24 grouping (Task #88) = group id → member ids の Map。
-  // Cmd+G で group 作成、 Cmd+Shift+G で解除。 group 単位で drag / hover / union bbox 表示。
-  // 2026-07-24 rubber band 選択 (Task #90) = 背景 drag で area 内 全 overlay 選択。
-  // 状態 = { startClientX, startClientY, currentClientX, currentClientY } を rubber band drag 中保持。
-  // 2026-07-24 Undo / Redo (Feature 1) = src の history stack。 過去 50 世代保持、 Cmd+Z で戻る、 Cmd+Shift+Z で進む。
+  // 本文の取り消し / やり直しの履歴。 過去は 50 世代まで持つ。 鍵の操作は下の効果が受ける
   const historyRef = useRef<{ past: string[]; future: string[] }>({ past: [], future: [] });
   const lastCommittedSrcRef = useRef<string>("");
-  // 2026-07-24 clipboard (Feature 3) = 選択 overlay parts の snapshot list を保持。 paste で+30 offset 生成。
-  // 2026-07-24 context menu (Feature 4) = 右クリック時 { x, y, targetOverlayId } を保持、 menu 描画 trigger。
-  // 2026-07-24 color picker (Feature 2) = 選択 overlay part の色変更 popover 表示 trigger。
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<Violation[]>([]);
   /**
@@ -429,10 +406,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const [isDark, setIsDark] = useState(false);
 
   /**
-   * sidebar tab (SAMPLES vs parts、 CAR-1646)。 default = "samples" で従来 UX 維持、
-   * user が "parts" tab に切替えると loadPartsItems() が dynamic import で発火し、
-   * 部品の一覧 (CdlDiagram AST) が sidebar に populate される。 drag source として
-   * draggable=true を付け、 canvas 側 onDrop で parts-serializer 経由で src 置換する。
+   * 脇の一覧の tab (見本 / 部品 / 記法の説明)。 既定は見本。
+   *
+   * 部品の tab を開くと `loadPartsItems()` が部品の一覧を読み込む。 一覧の部品を押すと、
+   * 本文の `actors:` に 1 行足す。
    */
   const [sidebarTab, setSidebarTab] = useState<"samples" | "parts" | "syntax">("samples");
   /**
@@ -466,8 +443,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const dropHintTimerRef = useRef<number | null>(null);
 
   /**
-   * drop hint message を単一 timer で表示、 直前 timer は必ず clear する。
-   * codex-review PR #413 MINOR = 6 秒以内に 2 回 drop で旧 timer が新 message を早期に消す競合を回避。
+   * 舞台の上に短い知らせを出し、`ttlMs` 後に消す。 前の知らせの timer は必ず止める。
+   *
+   * 止めないと、続けて 2 回出した時に前の timer が新しい知らせを早く消す (#413)。
    */
   const setDropHintWithReset = useCallback((msg: string | null, ttlMs = 6000): void => {
     if (dropHintTimerRef.current !== null) {
@@ -492,10 +470,11 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   }, []);
 
   /**
-   * REPLACE 経路 (parts drop / click / samples click / hash preset) 前に user 確認する guard。
-   * user report (CAR-1657) = drag drop で前の編集内容が予告なく消える surprise。
-   * lastLoadedSrcRef で「最後に programmatic に load した src」 を追跡、 current src が異なる = user
-   * 編集済と判定して window.confirm を出す。 一致 = user 未編集で silent replace 継続。
+   * 本文を丸ごと置き換える操作 (見本を選ぶ / 新規ファイル / `actors:` の無い本文に部品を足す) の前に確かめる。
+   * 確かめないと、書き換えていた本文が予告なく消える。
+   *
+   * 画面が最後に読み込んだ本文を `lastLoadedSrcRef` に控える。 今の本文がそれと違えば書き換え済みとみなして
+   * `window.confirm` を出し、同じなら確かめずに置き換える。
    */
   const lastLoadedSrcRef = useRef<string>(SAMPLES[0].code);
   /**
@@ -676,19 +655,6 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const diagramScaleRef = useRef(1);
   /** overlay parts の div 参照。 DSL の `bg:` を実際の図形に当てる時に使う。 */
   const overlayRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  // 2026-07-26 CAR-2158 correctness fix = overlay parts の bg を実 SVG shape に適用する。
-  // 旧実装は DSL に bg を書くだけで canvas に反映されず、 color picker が「押しても何も起きない」 状態だった。
-  // catalog 由来の diagram は共有 object なので mutate せず、 render 後の DOM に fill を上書きする経路を採る。
-  //
-  // 対象 shape の選び方が肝で、 「最大面積」 だけで選ぶと achievement の透明背景 rect が当たり、
-  // 円形の parts が四角く塗り潰される (visual regression で実測。 baseline を採用せず本 fix に至った)。
-  // そのため「実際に色を塗られている shape」 = fill 属性が none / transparent 以外のものに限定し、
-  // その中で最大面積のものを主要 shape とみなす。
-  // 2026-07-27 CAR-2160 = 矢印とラベルに透明な当たり判定を敷く。
-  //
-  // cdl の矢印は stroke 4px の線で、 正確に click するのが実質不可能。 ラベルの text も
-  // 当たり判定がグリフの輪郭しかなく、 文字の隙間や周囲の余白では反応しない。
-  // 描画は変えずに掴める範囲だけを広げる (詳細 = `lib/svg-hit-area.ts`)。
   /**
    * 舞台の要素。 控えと状態の 2 つで持つ。
    *
@@ -712,6 +678,15 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     if (svg) applyFontScale(svg, fontScale);
   });
 
+  /**
+   * 部品に書いた背景色 (`bg:`) を、部品の図の中の図形に当てる。
+   *
+   * 部品の図は一覧と共有する object なので書き換えず、描いた後の DOM の `fill` を上書きする。
+   * 上書きする前の値は `data-original-fill` に控え、`bg:` を消した時に戻す。
+   *
+   * 当てる図形は、色が塗られている図形のうち最も大きいもの (`findPaintedShape`)。 大きさだけで選ぶと
+   * 透明な背景の四角が当たり、丸い部品が四角く塗り潰される (撮影の比較で実測)。
+   */
   const applyOverlayBg = useCallback((parts: readonly OverlayPart[]): void => {
     for (const p of parts) {
       // bg 未指定 かつ 過去にも override していない parts は触らない (走査コスト削減)
@@ -740,13 +715,13 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     return () => cancelAnimationFrame(raf);
   }, [overlayParts, applyOverlayBg]);
 
-  // 2026-07-26 CAR-2158 Round 2 = animation で shape が差し替わると DOM 直書きの fill が失われる。
+  // 背景色を、部品の図が描き直された後にも当て直す。
   //
-  // parts の SVG は cdl 側の animation (rAF / setInterval 駆動) で属性が書き換わったり
-  // node ごと再生成されたりする。 bg は React 管理外の DOM 属性なので、 その度に override が消えて
-  // 色が元に戻ってしまう。 MutationObserver で対象 subtree の変化を拾い、 その都度 再適用する。
+  // 部品の図は cdl の動き (rAF / setInterval) で属性が書き換わったり、要素ごと作り直されたりする。
+  // 背景色は React が持たない DOM の属性なので、そのたびに上書きが消えて元の色に戻る。
+  // `MutationObserver` で部品の中の変化を拾い、その部品にだけ当て直す。
   //
-  // 自分の書込みで再帰しないよう、 適用時は「現在値と違う時だけ」 setAttribute する (上の実装)。
+  // 自分の書き込みで当て直しが続かないよう、`applyOverlayBg` は今の値と違う時だけ書く。
   useEffect(() => {
     const withBg = overlayParts.filter((p) => p.bg);
     if (withBg.length === 0) return;
@@ -762,9 +737,6 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   }, [overlayParts, applyOverlayBg]);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
-  // 2026-07-24 fix = finalize 時に clearLiveTransform を遅延実行するための ref。
-  // drag 開始時の hoveredHandle.rect を save = drag 中 rect 追従計算の基準点
-  // viewBoxCompensation は「勝手な移動」 で user 意図 (drop 位置ぴったり) を破壊するため削除。
 
   // ref 経由で state を読む (useEffect deps 頻繁変化で listener 再登録の性能問題 + stale closure 回避)
   // DSL 本文の取り消し / やり直し。
@@ -800,28 +772,6 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     // `setSrcSilent` は `useState` の setter をそのまま別名にしたもので書き換わらない。
     // 書いても登録し直しは起きないが、書かないと静的検査が「古い値を掴むかもしれない」 と読む
   }, [setSrcSilent]);
-
-
-  /**
-   * viewBox 固定 (2026-07-24 fix、 user feedback「画面全体 pan する」「矢印変形」 の core fix)。
-   *
-   * cdl auto-fit viewBox = content bounding box を毎 render 再計算 → user が achievement を drag すると
-   * trophy world 座標が変わり viewBox が拡大 → 全 content が client px で縮小 → Client / API / DB / arrow
-   * 全部 shrink して「画面全体が pan / 変形」 に見える root cause。
-   *
-   * fix = 初回 render 時 viewBox を capture、 以後 render で svg.viewBox を強制 override して固定。
-   * achievement drag → posX/posY 書出し → cdl re-compile → CdlDiagramView が新 viewBox 生成しても、
-   * この useEffect が override して初回値に戻す = 全 lane / arrow の client px 位置が完全 static。
-   *
-   * trade-off = achievement を viewBox 外に drag すると clip される (spec 上意図的、 user が pan/zoom で
-   * 追跡可能)。 sample 切替時は viewBox 再取得が必要なので initialViewBoxRef を activeSample deps でリセット。
-   */
-  // 2026-07-24 architectural refactor で freeze useEffect / captureFrozenState / frozen*Ref 全削除。
-  // parts を cdl DSL から切離して独立 overlay 化したため、 cdl SVG は base のみ描画 =
-  // achievement drop/drag で cdl re-compile が発火しない = viewBox / edge / text の auto-adjust が起きない。
-  // よって MutationObserver 経由の DOM override 経路は原理的に不要になった。 freeze による副作用 (未完成
-  // path capture / z-order 強制移動 / DOM 上書き) も同時に消える = クリーンな architecture 実現。
-  // pin machinery も同 architecture で不要 (cdl は base しか見ない → parts drop で lane 位置変化なし)。
 
   // URL hash から復元。 2 pattern を処理する。
   // 1. #s=<base64> = share URL 経由の DSL 復元 (decodeShare、 起動時 1 回のみ)
@@ -1051,10 +1001,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         return;
       }
       try {
-        // CAR-1657 = 旧 #!parts JSON escape hatch は backward compat 経路 (deprecated、 auto-convert 前提)。
-        // 既 share URL / user が保存した buffer に marker が残っている可能性があり、 open 時は
-        // 従来通り render 継続する (次回 drop で actors syntax に置換される)。
-        // 新規 drop は parts kind syntax (actors: に kind = parts identifier) を使う。
+        // 部品の図を JSON のまま埋め込む印の形 (`PARTS_MARKER`) を読む。 今の画面はこの形を作らず、
+        // 一覧の部品を押すと `actors:` に種類を書いた行を足す。 共有 URL や保存した本文に印の形が
+        // 残っていることがあるので、開いた時は描く。
         // 埋め込んだ図の定義は記法の解析を通らないため、 大きさの上限も通らない (#1005)。
         // 読み取る前に本文の大きさを見る
         const markerOversize = describeOversizeSource(src);
@@ -1085,9 +1034,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           setError(null);
           return;
         }
-        // 2026-07-24 architectural refactor = parts を cdl から切離して独立 overlay で管理。
-        // extractPartsFromSrc で src から parts 行を除いた baseSrc を作り、 cdl には base のみ渡す。
-        // 抽出した parts は overlayParts state に set、 独立 SVG overlay として描画する。
+        // 本文から部品の行を抜いた本文を組み立て、抜いた部品は `overlayParts` に入れて図に重ねる。
         // 部品しかない本文は抜かずに組み立て、重ねる部品には書いた上書きを当てる (#1973)。
         // 組み立ては呼ぶたびに知らせと矢印の行の器を作り直す = 使わなかった方の知らせを混ぜない
         const {
@@ -1394,10 +1341,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     setTransform((t) => ({ ...t, tx: t.tx + comp.dtx, ty: t.ty + comp.dty }));
   }, [diagram, diagramK]);
 
-  // 初回 diagram load 時のみ自動 Fit、 以降の diagram 変化 (drag / resize / drop) では
-  // viewport 維持 = user 編集動作が正しく viewport に反映される (拡大したら拡大される)。
-  // = user 目視 bug 「拡大したら図がぐっちゃぐちゃ = auto fit で全体縮小」 の root fix。
-  // sample 切替 (activeSample 変化) では明示的に fit 再実行、 それ以外は user 編集動作を尊重。
+  // 自動の表示合わせは、最初に図を読んだ時と見本を切り替えた時だけ走らせる。
+  // 本文の書き換えや図の倍率の変更のたびに合わせ直すと、図を拡大しても全体表示に縮め戻される。
+  // 見本の切替 (`activeSample` の変化) では下の効果が合わせ直しを許す。
   const initialFitDoneRef = useRef(false);
   useEffect(() => {
     if (!diagram || !previewRef.current) return;
@@ -1411,7 +1357,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       handleFit();
       initialFitDoneRef.current = true;
     };
-    // 初回 diagram load or sample 切替時のみ fit、 以降の diagram 変化 (drag / resize / drop) は skip
+    // 最初の読み込みと見本の切替の後だけ合わせる。 それ以降の図の変化では合わせない
     if (!initialFitDoneRef.current) {
       const r1 = window.requestAnimationFrame(() => {
         if (cancelled) return;
@@ -1470,11 +1416,6 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     setSrc((prev) => setDiagramScale(prev, readDiagramScale(prev) * factor));
   };
 
-  // 2026-07-24 全削除 = applyAutoAdjustDuringDrag / applyGuidelinesDuringDrag / clearAutoAdjustShifts
-  // (auto 補正 / 補助線 / shift clear) 3 関数を削除。 user 「勝手な移動全部削除」 の core、 呼出経路 +
-  // 定義本体を根絶する。 canvas-pivot-auto-adjust / canvas-pivot-guideline lib への依存も削除済。
-
-  // 2026-07-25 double click text 編集 = SVG <text> を狙って click したら inline HTML input を開く。
   // 図の平行移動。 図そのものを触る操作 (掴んで動かす / 大きさを変える / 選ぶ) は
   // DSL 入力だけで書く方針に合わせて外したため、 stage に残るのは表示位置の移動だけ。
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
@@ -1844,8 +1785,8 @@ animation:
                   title={cdlWriteDisabled ? cdlOnlyHint : `${p.subtitle}\n${p.motionNote}`}
                   disabled={cdlWriteDisabled}
                   onClick={() => {
-                    // CAR-1657 click = drop と同 semantic = actors: append (additive)。
-                    // actors: block なし = REPLACE fallback (新規 diagram 作成、 confirm dialog 経由)
+                    // 本文の `actors:` の末尾に 1 行足す (他の行は残す)。
+                    // `actors:` が無い本文は、この部品だけの新しい図に置き換える (置き換える前に確かめる)
                     const kindValue = p.id.startsWith("parts-") ? p.id.slice(6) : p.id;
                     const aliasBase = kindValue.replace(/[^a-zA-Z0-9]/g, "");
                     const existingNames = collectActorNamesFromSrc(src);
@@ -2117,9 +2058,6 @@ animation:
             <span className="v4-editor-bar-file-name">実況表示</span>
           </span>
           <span className="v4-editor-bar-gap" />
-          {/* 2026-07-27 CAR-2160 = 図そのものの拡大縮小。
-              zoom (表示倍率) と違い、 DSL に書き出されるので export / 共有にも反映される。
-              文字サイズは cdl 側の固定値なので追従しない = 箱と間隔だけが変わる。 */}
           {/* アイコンだけを置く (#1063)。 文字のままだと 12 個で 811px を占め、
               操作列 (491px) から 320px はみ出して右端が押せなかった。
 
@@ -2146,6 +2084,8 @@ animation:
           >
             <IconTextUp />
           </button>
+          {/* 図そのものの拡大縮小。 表示倍率と違って記法に書き戻すので、書き出しと共有にも残る。
+              文字の大きさは cdl 側の固定の値なので変わらず、箱と間隔だけが変わる。 */}
           <button
             type="button"
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
@@ -2270,11 +2210,8 @@ animation:
                 {/* 配置は組み立ての時に済んでいる。 渡さないと描画側がもう一度計算する (#1006) */}
                 <CdlDiagramView hideMiniPhaseIndicator diagram={diagram} laid={laid ?? undefined} hideHeader emitGeometryWarn={import.meta.env.DEV} />
                 {/* 図全体の倍率。 cdl の SVG は 1 world unit = k px で描かれるので、 同じ world 座標に
-                    置く overlay parts と group 枠にも同じ k を掛ける。 掛けないと図だけが伸びて
+                    置く overlay parts にも同じ k を掛ける。 掛けないと図だけが伸びて
                     parts がその場に取り残される。 倍率の丸めは cdl と同じ規則を使う。 */}
-                {/* group visual = 各 group の member union bbox を 点線 border で表示 (Task #88)。
-                    member が overlay parts の時 posX/Y/scale から bbox 計算、 cdl node は 別途 selector で拾う。 */}
-                
                 {/* parts overlay は cdl の SVG とは別に描く。 cdl は parts を知らないので base 図に
                     影響しない。 位置と大きさは world 座標を `diagramK` 倍して置く (cdl の SVG が
                     1 world unit = diagramK px で描かれるため、 上の注記を参照)。 */}
