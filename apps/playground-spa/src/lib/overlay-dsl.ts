@@ -807,6 +807,11 @@ export function 図と重ねる部品に分ける<R extends { diagram: CdlDiagra
     if (読んだ.doc.flow.some((s) => 部品の名前.has(s.from) || 部品の名前.has(s.to))) {
       return 抜かずに描く();
     }
+    // 部品を基準にして位置を書いた箱があれば抜かない (#2039)。 抜くと基準の名前が本文から消え、
+    // 残った箱が「位置の基準が見つかりません」 で組み立てられなくなる (実測で編集画面が止まった)
+    if ((読んだ.doc.actors ?? []).some((a) => a.posRel && 部品の名前.has(a.posRel.anchor))) {
+      return 抜かずに描く();
+    }
   }
   const built = 組み立てる(baseSrc);
   if (built.diagram.nodes.length === 0) return 抜かずに描く();

@@ -109,7 +109,7 @@ function 円(d: CdlDiagram): { 外枠: number; 塗り: number; 色: string }[] {
 }
 
 describe("部品を箱に使う見本 (#1973)", () => {
-  it("部品の頁の最後に並び、13 つの切替を持つ", async () => {
+  it("部品の頁の最後に並び、14 つの切替を持つ", async () => {
     const items = await loadPartsItems();
     expect(items.at(-1)?.id).toBe(見本のid);
     expect((await 見本()).patterns?.map((p) => p.名)).toEqual([
@@ -126,6 +126,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       "矢印を集める",
       "流れの途中に置く",
       "並べる",
+      "部品を基準にする",
     ]);
   });
 
@@ -441,7 +442,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
       items.filter((i) => 部品の図か(i.id)).map((i) => i.diagram),
     );
     const 並び = (await 見本()).patterns ?? [];
-    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(13);
+    expect(並び.length, "切替を 1 つも集められていない (検査が空振りしている)").toBe(14);
     for (const p of 並び) {
       const 組み直し = textDslToDiagram(p.sourceYaml!, { partsCatalog: 編集画面の一覧 });
       expect(JSON.stringify(組み直し), `${p.名} が編集画面と違う図になる`).toBe(

@@ -4368,6 +4368,132 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
 }
 `;
 
+exports[`部品を置いた図の組み立ての結果を丸ごと固定する (#2038) > sourceYaml__pattern__partInBox__部品を基準にする の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "設備の稼働の右に受付を置き-受付の右に乾燥炉の温度を置く",
+    "lanes": [
+      {
+        "contain": false,
+        "id": "main",
+        "label": "設備の稼働の右に受付を置き、受付の右に乾燥炉の温度を置く",
+        "width": 460,
+      },
+      {
+        "id": "設備の稼働__l",
+        "label": "設備の稼働",
+        "posH": 440,
+        "posX": 195,
+        "posY": 150,
+        "width": 410,
+        "x": 195,
+      },
+      {
+        "id": "乾燥炉の温度__l",
+        "label": "乾燥炉の温度",
+        "posH": 460,
+        "posX": 1275,
+        "posY": 140,
+        "width": 270,
+        "x": 1275,
+      },
+    ],
+    "nodes": [
+      {
+        "id": "受付",
+        "kind": "card",
+        "lane": "main",
+        "posX": 940,
+        "posY": 400,
+        "stack": 1,
+        "title": "受付",
+      },
+      {
+        "h": 380,
+        "id": "設備の稼働__ind",
+        "kind": "dyn-circle",
+        "lane": "設備の稼働__l",
+        "posX": 400,
+        "posY": 400,
+        "shape": {
+          "fill": "{p__stFill}",
+          "fillProgress": "{p__lvl}",
+          "kind": "circle",
+          "radius": 140,
+        },
+        "stack": 1002,
+        "subtitle": "稼働中",
+        "title": "現在の状態",
+        "value": undefined,
+        "w": 360,
+      },
+      {
+        "h": 400,
+        "id": "乾燥炉の温度__mercury",
+        "kind": "dyn-rect",
+        "lane": "乾燥炉の温度__l",
+        "posX": 1410,
+        "posY": 400,
+        "shape": {
+          "fill": "#dc2626",
+          "fillMax": 40,
+          "kind": "rect",
+          "orient": "up",
+          "radius": 12,
+          "source": "{p_2__temp}",
+        },
+        "stack": 2002,
+        "subtitle": "{p_2__temp}°C",
+        "title": "気温",
+        "value": undefined,
+        "w": 220,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [],
+        "badge": "topology",
+        "body": "すべての構成要素と接続を並べた構成。",
+        "duration": 4500,
+        "id": "topo",
+        "sets": [],
+        "title": "設備の稼働の右に受付を置き、受付の右に乾燥炉の温度を置く",
+        "tweens": [
+          {
+            "from": 0,
+            "stateId": "p__lvl",
+            "to": 1,
+          },
+          {
+            "from": 12,
+            "stateId": "p_2__temp",
+            "to": 32,
+          },
+        ],
+      },
+    ],
+    "states": [
+      {
+        "id": "p__stFill",
+        "initial": "#22c55e",
+      },
+      {
+        "id": "p__lvl",
+        "initial": 0,
+      },
+      {
+        "id": "p_2__temp",
+        "initial": 12,
+      },
+    ],
+    "topic": "設備の稼働の右に受付を置き、受付の右に乾燥炉の温度を置く",
+    "type": "topology",
+  },
+  "知らせ": [],
+}
+`;
+
 exports[`部品を置いた図の組み立ての結果を丸ごと固定する (#2038) > sourceYaml__pattern__partInBox__高さの違う部品どうしを繋ぐ の図と知らせが記録と一致する 1`] = `
 {
   "図": {
