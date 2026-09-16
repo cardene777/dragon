@@ -77,7 +77,15 @@ export function 矢印から親を決める(
   return 親;
 }
 
-/** 放射図と木の箱に出す題と添え字。 添え字と値を 1 行にまとめる */
+/**
+ * 放射と木の箱に出す名前と補足 (#1332)。
+ *
+ * **連結しない**。 描画側は名前と補足を別々に受け取れば箱の中で 2 行に積む。 1 つの文字列に
+ * すると 1 行に全部入り、箱幅を超えて末尾が切られる (実測 = 箱 120px に対し文字 163px)。
+ *
+ * `subtitle` と `value` の両方が書かれた場合は空白で繋いで 1 つの補足にする。 描画側の
+ * 補足は 1 行なので、2 つを別々の行にはできない。
+ */
 export function 放射に出す文字(a: DslActor): { title: string; subtitle?: string } {
   const 続き = [a.subtitle, a.value].map((x) => x?.trim()).filter((x): x is string => !!x);
   return { title: 箱の題(a), ...(続き.length > 0 ? { subtitle: 続き.join(" ") } : {}) };

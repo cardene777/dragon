@@ -34,6 +34,8 @@ function 効かない種類(doc: DslDocument): string[] {
   return 出た.filter((n) => n.kind === "actor-kind-not-honored").map((n) => n.actor);
 }
 
+/** 下の 5 つの記法に共通する形。 `Client` は種類を書かない、 `API` は `database` を書く。 記法ごとに書き方が違う。 */
+
 const V04 = `title: "t"
 type: sequence
 
@@ -86,7 +88,6 @@ const JSON_DOC = {
   flow: [{ from: "Client", to: "API", label: "呼ぶ" }],
 };
 
-/** `Client` は種類を書かない、 `API` は `database` を書く。 記法ごとに書き方が違う。 */
 /**
  * 解析の結果から登場人物を取り出す。
  *

@@ -278,6 +278,22 @@ export function foldValueTriggers(
   return 出力;
 }
 
+/**
+ * 記法の `values:` を図に載せる (#1162)。
+ *
+ * `values` は「他の値から自動で決まる値」 で、 時間を持たない。 参照した値が動けば常に
+ * 追随する。 解くのは描画側 (`@cardenelabs/cdl` の `applyDerivedValues`) で、 段の値を出した
+ * 後に参照順で解いて `stateValues` に載せる。 **毎 frame ここを通る**ので、 掛け算や比較の
+ * ように端点 2 点では表せない関係も段の補間の途中で正しい値になる。
+ *
+ * ここは載せるだけで、 式は評価しない。 評価を compile 時に畳むと段の補間中に決まり直せない。
+ *
+ * **出口で 1 度だけ載せる** (`compileToCdl` の出口)。 図種ごとの組み立て器で書くとどれかを
+ * 見落とす (`injectStaticPhase` と同じ理由)。
+ *
+ * 名前が `states` と重なった場合は `values` を優先し、 重なったことを伝える。 spec の
+ * 4 節で決めた挙動で、 黙って一方を捨てると「書いたのに効かない」 が残る。
+ */
 export function attachDerivedValues(
   diagram: CdlDiagram,
   doc: DslDocument,

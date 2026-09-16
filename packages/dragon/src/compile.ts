@@ -815,38 +815,6 @@ function reportFlowEndpointNotHonored(
 }
 
 /**
- * 箱に書いた縦列が効かないことを伝える (#1246)。
- *
- * 縦列は **図種が決める**。 `flow` / `topology` は 1 本にまとめ、 `swimlane` / `er` / `state`
- * は箱ごとに 1 本作り、 `sequence` はそれがそのまま生命線になる。 図全体を 1 箱にする図種
- * (`pie` / `bar` 等) では箱が 1 つしかない。 **どの図種も箱の `lane` を読まない**。
- *
- * 黙って捨てると、 書いた縦列は消え、 `lanes:` で宣言した縦列だけが中身のないまま残る。
- * 実測 = `type: flow` で `lane: ui` / `lane: api` を書くと箱は両方 `flow` に入り、
- * 宣言した `ui` / `api` は空のまま増えた。 知らせは 1 件も出なかった。
- *
- * ## なぜ組み立ての側で伝えるのか
- *
- * 記法の解析は図種を見ずに 1 行ずつ読む。 そこで弾くと **見本 (parts) の張替え先** まで
- * 巻き添えになる = 見本では `lane` が実際に読まれる (`mergePartsFromActors` が唯一の読み手)。
- * 図種を知っているのは組み立ての側なので、 効くかどうかの判断もここに置く。
- *
- * ## 見本と `type: mind` では伝えない
- *
- * 見本は上のとおり実際に効く。 `type: mind` は描けない欄をまとめて 1 件で伝えており
- * (`compileMind` の「名前と副題 / 値、 枝の色しか描けません」)、 そこに `枠の指定` が既に
- * 入っている。 二重に伝えると同じ 1 行について知らせが 2 件並ぶ。
- */
-/**
- * 順序図で面に書いた飾りが使われないことを伝える (#1466)。
- *
- * 順序図は 1 つの板が図を丸ごと描く形になり、面は上端の見出しに **名前と呼び名だけ** で並ぶ。
- * 面ごとの箱が無いので、種類 / 大きさ / 位置 / 行 / 色 / 小見出し / 値 / 図形を載せる先も無い。
- * 黙って落とすと、書いた側は効いていると思い込む。
- *
- * 見本 (`parts`) を重ねた面は対象外 = 見本は別経路で図に取り込まれ、板の見出しには並ばない。
- */
-/**
  * 順序図の言づてに書いた飾りが使われないことを伝える (#1466)。
  *
  * 板は言づてを **語と向きと種類** で描く。 色味 (`tone`) / 添え字 (`sub`) / 寄せ (`side`) を
@@ -899,6 +867,15 @@ function reportFlowOffsetNotHonored(doc: DslDocument, onNotice?: (n: CompileNoti
   }
 }
 
+/**
+ * 順序図で面に書いた飾りが使われないことを伝える (#1466)。
+ *
+ * 順序図は 1 つの板が図を丸ごと描く形になり、面は上端の見出しに **名前と呼び名だけ** で並ぶ。
+ * 面ごとの箱が無いので、種類 / 大きさ / 位置 / 行 / 色 / 小見出し / 値 / 図形を載せる先も無い。
+ * 黙って落とすと、書いた側は効いていると思い込む。
+ *
+ * 見本 (`parts`) を重ねた面は対象外 = 見本は別経路で図に取り込まれ、板の見出しには並ばない。
+ */
 function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
   if (doc.type !== "sequence" && doc.type !== "solidity") return;
@@ -940,6 +917,33 @@ function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
   }
 }
 
+/**
+ * 箱に書いた縦列が効かないことを伝える (#1246)。
+ *
+ * 縦列は **図種が決める**。 `flow` / `topology` は 1 本にまとめ、 `swimlane` / `er` / `state`
+ * は箱ごとに 1 本作り、 `sequence` はそれがそのまま生命線になる。 図全体を 1 箱にする図種
+ * (`pie` / `bar` 等) では箱が 1 つしかない。
+ *
+ * **箱の `lane` を読むのは、 `縦列を選べる図種` で全ての箱が書いた時だけ** (#1263)。
+ * 一部の箱だけが書いた形は `reportLaneMixed` が伝えるので、 ここではそれ以外の図種に書いた
+ * 縦列を伝える。
+ *
+ * 黙って捨てると、 書いた縦列は消え、 `lanes:` で宣言した縦列だけが中身のないまま残る。
+ * 実測 (#1246) = `type: flow` で `lane: ui` / `lane: api` を書くと箱は両方 `flow` に入り、
+ * 宣言した `ui` / `api` は空のまま増えた。 知らせは 1 件も出なかった。
+ *
+ * ## なぜ組み立ての側で伝えるのか
+ *
+ * 記法の解析は図種を見ずに 1 行ずつ読む。 そこで弾くと **見本 (parts) の張替え先** まで
+ * 巻き添えになる = 見本では `lane` が実際に読まれる (`mergePartsFromActors` が読む)。
+ * 図種を知っているのは組み立ての側なので、 効くかどうかの判断もここに置く。
+ *
+ * ## 見本と `type: mind` では伝えない
+ *
+ * 見本は上のとおり実際に効く。 `type: mind` は描けない欄をまとめて 1 件で伝えており
+ * (`compileMind` の「名前と副題 / 値、 枝の色しか描けません」)、 そこに `枠の指定` が既に
+ * 入っている。 二重に伝えると同じ 1 行について知らせが 2 件並ぶ。
+ */
 function reportLaneNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
   if (doc.type === "mind") return;
@@ -1312,22 +1316,6 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
 }
 
 
-/**
- * 記法の `values:` を図に載せる (#1162)。
- *
- * `values` は「他の値から自動で決まる値」 で、 時間を持たない。 参照した値が動けば常に
- * 追随する。 解くのは描画側 (`@cardenelabs/cdl` の `applyDerivedValues`) で、 段の値を出した
- * 後に参照順で解いて `stateValues` に載せる。 **毎 frame ここを通る**ので、 掛け算や比較の
- * ように端点 2 点では表せない関係も段の補間の途中で正しい値になる。
- *
- * ここは載せるだけで、 式は評価しない。 評価を compile 時に畳むと段の補間中に決まり直せない。
- *
- * **出口で 1 度だけ載せる**。 図の種類は 18 あり、 経路ごとに書くとどれかを見落とす
- * (`injectStaticPhase` と同じ理由)。
- *
- * 名前が `states` と重なった場合は `values` を優先し、 重なったことを伝える。 spec の
- * 4 節で決めた挙動で、 黙って一方を捨てると「書いたのに効かない」 が残る。
- */
 
 
 
@@ -1339,27 +1327,6 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
 
 
 
-
-/**
- * `(from, to)` の一致では取れない preset について、 edge と DSL の行の対応を埋める。
- *
- * `type: flow` は **actor を宣言順に一直線に並べ、 隣り合う actor の間に edge を引く**。
- * n 本目の edge は `actors[n]` から `actors[n+1]` へ向かい、 その label は
- * `doc.flow.find((s) => s.to === actors[n+1].name)` で選ばれる (`compileFlow`)。 そのため
- * `a -> c` / `c -> b` と書いても edge は `a -> b` / `b -> c` になり、 `(from, to)` の一致では
- * 1 件も取れない。
- *
- * **label を選ぶのと同じ規則で引く**。 `slugify` を挟んだ照合にすると、 別の名前が同じ slug に
- * なる形 (`API Gateway` と `api-gateway`) で label の出どころと違う step を返す。
- *
- * **汎用の `(from, to)` 照合が入れた値は上書きする**。 `type: flow` では label の出どころが
- * この規則で決まるので、 こちらが正しい。 上書きしないと、 たまたま `(from, to)` が一致した
- * 別の step の行が残る (実測 = `c -> b: いち` / `a -> b: に` の順で書くと、 edge の label は
- * `いち` なのに `に` の行を返した)。
- *
- * 対応が取れない edge には何も入れない (呼出側が「対応が無い」 と「行 0」 を区別できるように
- * するため、 #998)。
- */
 /**
  * v0.5+ groups section を、 束ねる縦列に重ねる枠の縦列 (`group-{id}`、 contain: true) として図に足す。
  *
@@ -1627,40 +1594,6 @@ function reportAxesNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
 }
 
 /**
- * Mind map preset (中央 root + leaf 専用 layout)
- *
- * 設計 ... 1 つ目の actor を root として中央 lane に配置、 残りを leaf として root の左右の
- * lane に交互配置する。 完全な放射状 (8 方向) は実装が大きいので、 簡略実装 layer 1 として
- * left / center (root) / right の 3 lane に leaf を交互配置する。
- *
- * 実装 ... 3 lane (mind-left / mind-center / mind-right)。 root を center に stack=中央 で配置
- * (leaf 数の半分相当の stack で root を中央化)、 leaf を奇数番 → left、 偶数番 → right に分配。
- * kind: card 強制。
- *
- * flow ... 宣言なしなら root → 各 leaf の暗黙 edge を自動生成、 宣言ありならそれを採用。
- */
-/**
- * 記法の `type: mind` を engine の `mind-map` 種別に寄せる (#1177)。
- *
- * 以前は `card` を 3 列 (`mind-left` / `mind-center` / `mind-right`) に並べる別実装で、
- * engine の `mind-map` を使っていなかった。 そのため 2 つの穴があった。
- *
- * | 穴 | 中身 |
- * |---|---|
- * | 枝の親を見る規則が届かない | `ruleMindMapParentReference` は `kind === "mind-map"` かつ `mindData` を持つ node にしか当たらない |
- * | `SINGLE_BOX_KINDS` の `mind-map` が到達しない | 一覧に載っているのに記法から辿り着けない項目として残る |
- *
- * **枝の親は書けない**。 記法の `actors` は「1 つ目が根、 残りが枝」 の並びで、 `parent` を
- * 書く場所が無い。 全ての枝を根の直下に置く。 親子を矢印で書く形は `type: tree` が持っており、
- * `mind` は簡便形として別に残す (Issue の 実装しない条件)。
- *
- * したがって **矢印は描けない**。 書かれていたら伝える = 黙って捨てると「書いたのに効かない」
- * が残る (`type: journey` / `type: quadrant` と同じ扱い)。
- *
- * 絵は変わる (3 列の箱 → 中心から放射)。 破壊的変更として `CHANGELOG` に記録している。
- */
-
-/**
  * 行を組み立て器が加工する図の種類 (#1466)。
  *
  * ここに載る種類では、記法に書いた行をそのまま箱へ載せ直さない = 組み立て器が行頭の印に
@@ -1670,21 +1603,6 @@ function 行を組み立て器が持つ(type: DslDocument["type"]): boolean {
   return type === "class";
 }
 
-/**
- * 書いた語を行頭の印に読み替える (#1466)。
- *
- * **軸の意味は図の種類が決める**。 印そのものは 形 (四角 / 山形) × 塗り (塗る / 中空) の
- * 2 軸で共通だが、その軸が何を指すかは種類ごとに違う。
- *
- * | 種類 | 山形 | 塗り |
- * |---|---|---|
- * | `er` | 外を指す列 (`fk`) | 空にできない (`opt` を書かない) |
- * | `state` | 出入りの瞬間 (`entry` / `exit`) | 続く・入る側 (`entry` / `do`) |
- *
- * ER の `pk` は印の 2 軸とは別の段 (名前の下線) に載るので、`fk` と重ねて書ける。
- *
- * 語を 1 つも知らない図の種類では `null` を返す = 印を付けない。
- */
 /**
  * 行と印を組む (#1466)。 群の分け方は図の種類が決める。
  *
@@ -1716,6 +1634,21 @@ function 行と印を組む(
   };
 }
 
+/**
+ * 書いた語を行頭の印に読み替える (#1466)。
+ *
+ * **軸の意味は図の種類が決める**。 印そのものは 形 (四角 / 山形) × 塗り (塗る / 中空) の
+ * 2 軸で共通だが、その軸が何を指すかは種類ごとに違う。
+ *
+ * | 種類 | 山形 | 塗り |
+ * |---|---|---|
+ * | `er` | 外を指す列 (`fk`) | 空にできない (`opt` を書かない) |
+ * | `state` | 出入りの瞬間 (`entry` / `exit`) | 続く・入る側 (`entry` / `do`) |
+ *
+ * ER の `pk` は印の 2 軸とは別の段 (名前の下線) に載るので、`fk` と重ねて書ける。
+ *
+ * 語を 1 つも知らない図の種類では `null` を返す = 印を付けない。
+ */
 function 行頭の印にする(
   type: DslDocument["type"],
   marks: readonly string[],
@@ -1755,18 +1688,6 @@ function 行頭の印にする(
 
 
 
-/**
- * v0.5+ inline option (subtitle / eyebrow / value / rows / stack / lane) +
- * top-level lanes / viewport / groups を post-process で反映。
- *
- * 設計: preset compile が既に基本 layout を作るので、 後付けで
- * - actor の inline option を該当 node に merge
- * - top-level lanes section の x / width / contain / lifeline / label を該当 lane に merge
- * - viewport の laneWidth (default lane width override) を全 lane に適用
- *
- * これにより v0.5 syntax で 19 機能のうち以下が動く:
- * subtitle / eyebrow / value / rows / contain / lifeline / label / lane.x / lane.width / laneWidth
- */
 /**
  * `lanes:` で作った縦列と、見本 (parts) が作った同一idの縦列を 1 つに重ねる (#1241)。
  *
@@ -1834,6 +1755,18 @@ function reportEmptyDeclaredLanes(
   }
 }
 
+/**
+ * 登場人物に書いた欄と、最上位の `lanes:` / `viewport:` を、組み立て済みの図へ後から重ねる。
+ *
+ * 図種ごとの組み立て器が基本の並びを作った後に、次の 3 つを重ねる。
+ *
+ * - 登場人物に書いた欄を、同じ id の箱へ写す
+ * - `lanes:` に書いた x / width / label / contain / lifeline を、同じ id の縦列へ写す。
+ *   無ければ縦列を作り、`追加した縦列out` に積む
+ * - `viewport:` の `laneWidth` を全ての縦列の幅にし、残りの欄を図の `viewport` にまとめる
+ *
+ * どの欄を写すかは本体が持つ。 `groups:` は `applyGroupContainers` が扱う。
+ */
 function applyV05Extensions(
   diagram: CdlDiagram,
   doc: DslDocument,

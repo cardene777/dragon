@@ -637,10 +637,10 @@ export type DslValue = {
     }
 );
 
-/** ステップ (phase) */
 /** 動いている間の帯 (#1466)。 順序図で、面がいつ動いているかを段の番号で持つ */
 export type DslBand = { actor: string; from: number; to: number };
 
+/** ステップ (phase) */
 export type DslPhase = {
   name: string;
   durationMs: number;

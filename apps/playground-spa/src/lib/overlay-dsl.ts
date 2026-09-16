@@ -41,12 +41,6 @@ export type OverlayPartRaw = {
 };
 
 /**
- * 本文から読んだだけで、 まだ置き場所が決まっていないパーツ。
- *
- * 位置を書いていないパーツは格子に並べるが、 その順番は全部読み終わらないと決まらない。
- * 相対で書いたパーツも、 基準の座標が分かるまで置けない。 読む処理と置く処理を分ける。
- */
-/**
  * パーツの置き場所が書いた通りにならなかった、 という知らせ。
  *
  * パーツは記法の解析より前に本文から抜き出すため、 組み立て側の知らせ経路に乗らない。
@@ -59,6 +53,12 @@ export type PartPlacementNotice = {
   message: string;
 };
 
+/**
+ * 本文から読んだだけで、 まだ置き場所が決まっていないパーツ。
+ *
+ * 位置を書いていないパーツは格子に並べるが、 その順番は全部読み終わらないと決まらない。
+ * 相対で書いたパーツも、 基準の座標が分かるまで置けない。 読む処理と置く処理を分ける。
+ */
 export type OverlayPartParsed = Omit<OverlayPartRaw, "posX" | "posY"> & {
   /** 座標で書かれた中心。 書いていなければ undefined */
   posX?: number;
@@ -80,13 +80,6 @@ export type OverlayPartParsed = Omit<OverlayPartRaw, "posX" | "posY"> & {
  * 懸念が実測で否定されたので greedy 形に戻し、 nested brace の取りこぼしを避ける方を採る。
  */
 const ACTOR_LINE_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|\S+?)(\s*:\s*)\{(.+)\}\s*$/;
-
-/**
- * 入れ子を使わない書き方 (`- 実績: achievement v=50`) の行。
- *
- * 記法を空白区切りに揃えた時、 パーツもこの形で書けるようになった。 入れ子の形だけを見ていると
- * 短い形で書いたパーツが図に出ない。
- */
 
 /**
  * パーツ 1 個が画面上で占める大きさ (world 単位)。
@@ -271,6 +264,12 @@ export function placeParts(
   });
 }
 
+/**
+ * 入れ子を使わない書き方 (`- 実績: achievement v=50`) の行。
+ *
+ * 記法を空白区切りに揃えた時、 パーツもこの形で書けるようになった。 入れ子の形だけを見ていると
+ * 短い形で書いたパーツが図に出ない。
+ */
 const ACTOR_SHORT_RE = /^(\s*-\s*)("(?:[^"\\]|\\.)+"|[^:\s]+)(\s*:\s*)([^{\s][^{]*)$/;
 
 /** quoted alias を素の文字列に戻す (`"a \" b"` → `a " b`)。 unquoted はそのまま。 */
@@ -348,10 +347,6 @@ export function readTopLevelField(inner: string, key: string): string | null {
 }
 
 /**
- * src から parts kind actor 行を抽出、 base src (parts なし) と parts list を返す。
- * cdl compile pipeline 前段で呼び、 cdl には base のみ渡す = parts は cdl の auto-layout 対象外。
- */
-/**
  * 組み込みの種類。 これに載っているものは見本ではない。
  *
  * 記法が受理する種類の全体 (`NODE_KIND_VALID`) をそのまま使う。 手書きの一覧を別に持つと、
@@ -362,26 +357,9 @@ const BUILTIN_KINDS: ReadonlySet<string> = new Set(
 );
 
 /**
- * 本文が見本 (パーツ) を使っている見込みがあるか (#1022)。
- *
- * 見本の一覧は 80 件あるため、開いた時に読む形で遅延させている。 そのため一覧を一度も
- * 開いていない状態で共有 URL を開くと、見本の中身が無いまま組み立てられ、別名がそのまま
- * 箱になる (実測 = `achievement` を置いた本文が `ach` という名前の箱になった)。
- *
- * 本文の側から読み込みを起こすための判定。 見本かどうかは一覧が無いと決められないので、
- * **組み込みの種類でないものが書かれていたら候補とみなす**。 多めに拾う側に倒す
- * (見本を使わない本文で 1 回余分に読むだけで、絵は変わらない)。
- *
- * 見る書き方は `extractPartsFromSrc` と同じ 3 つ。 別々の規則で見ると、
- * 「読み込んだのに使われない」 か「使うのに読み込まない」 のどちらかが起きる。
- * 特に一覧から置いた時に作られる短い形 (`- 実績: achievement`) は、種類の行を持たない。
- *
- * `actors:` の中だけを見る。 外の文字列や注釈に種類の語があっても読み込みを起こさない。
- */
-/**
  * 書かれた種類が見本の候補か。 組み込みの種類なら候補ではない。
  *
- * 除かないと `- Web: service` を書いた本文で毎回 80 件を読み込むことになる。
+ * 除かないと `- Web: service` を書いた本文で毎回見本の一覧を丸ごと読み込むことになる。
  */
 function isPartKindCandidate(kind: string | null | undefined): boolean {
   if (kind === undefined || kind === null) return false;
@@ -430,6 +408,23 @@ function hasPartKindInline(text: string): boolean {
   return isPartKindCandidate(kind);
 }
 
+/**
+ * 本文が見本 (パーツ) を使っている見込みがあるか (#1022)。
+ *
+ * 見本の一覧は大きいため、開いた時に読む形で遅延させている。 そのため一覧を一度も
+ * 開いていない状態で共有 URL を開くと、見本の中身が無いまま組み立てられ、別名がそのまま
+ * 箱になる (実測 = `achievement` を置いた本文が `ach` という名前の箱になった)。
+ *
+ * 本文の側から読み込みを起こすための判定。 見本かどうかは一覧が無いと決められないので、
+ * **組み込みの種類でないものが書かれていたら候補とみなす**。 多めに拾う側に倒す
+ * (見本を使わない本文で 1 回余分に読むだけで、絵は変わらない)。
+ *
+ * 見る書き方は `extractPartsFromSrc` と同じ 3 つ。 別々の規則で見ると、
+ * 「読み込んだのに使われない」 か「使うのに読み込まない」 のどちらかが起きる。
+ * 特に一覧から置いた時に作られる短い形 (`- 実績: achievement`) は、種類の行を持たない。
+ *
+ * `actors:` の中だけを見る。 外の文字列や注釈に種類の語があっても読み込みを起こさない。
+ */
 export function srcMayUseParts(src: string): boolean {
   const lines = src.split(/\r?\n/);
   let inActors = false;
@@ -476,6 +471,10 @@ export function srcMayUseParts(src: string): boolean {
   return false;
 }
 
+/**
+ * src から parts kind actor 行を抽出、 base src (parts なし) と parts list を返す。
+ * cdl compile pipeline 前段で呼び、 cdl には base のみ渡す = parts は cdl の auto-layout 対象外。
+ */
 export function extractPartsFromSrc(
   src: string,
   partsCatalog: Record<string, unknown>,
@@ -966,9 +965,6 @@ function readPositionFromBlock(
  *
  * 数の読み方は中括弧の形と揃える (値全体を数として読み、`normalizePartScale` を通す)。
  * 書いていなければ 1。
- */
-/**
- * 縦に並べて書いた 1 件から倍率を読む (#1020)。
  *
  * **画面側だけの意味**。 組み立て側は `scale` を状態の名前として読む (実測 = 3 つの書き方すべてで
  * `stateOverride.scale` になった)。 重ねたパーツは本文から抜いてから組み立てるため、この値を

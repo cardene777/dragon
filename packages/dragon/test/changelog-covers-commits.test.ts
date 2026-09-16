@@ -34,16 +34,6 @@ const 版 = (
 const git = (...args: string[]): string =>
   execFileSync("git", ["-C", REPO, ...args], { encoding: "utf8" }).trim();
 
-/**
- * 前の版の位置。
- *
- * **いま切ろうとしている版の tag は使わない** (Round 1 の指摘)。 使うと `v0.8.0` を
- * 打った直後に `v0.8.0..HEAD` が空になり、検査が何も見なくなる。
- *
- * 1 つ前の版の tag があればそれを使う。 **無い時は版を最後に変えた commit へ落とす** =
- * この repo は tag を 1 つも持たない状態で 55 commit 積んだ実績があり、tag が無いと
- * 検査ごと止まる形にすると同じことが起きる。
- */
 /** 版を最後に変えた commit。 tag が無い時の起点に使う */
 function 版を上げたcommit(): string | undefined {
   return git("log", "--format=%H", `-S"version": "${版}"`, "--", "packages/dragon/package.json")
@@ -62,6 +52,16 @@ function 今の版のtag(tag: string): boolean {
   return tag === `v${版}` || tag.startsWith(`v${版}-`);
 }
 
+/**
+ * 前の版の位置。
+ *
+ * **いま切ろうとしている版の tag は使わない** (Round 1 の指摘)。 使うと `v0.8.0` を
+ * 打った直後に `v0.8.0..HEAD` が空になり、検査が何も見なくなる。
+ *
+ * 1 つ前の版の tag があればそれを使う。 **無い時は版を最後に変えた commit へ落とす** =
+ * この repo は tag を 1 つも持たない状態で 55 commit 積んだ実績があり、tag が無いと
+ * 検査ごと止まる形にすると同じことが起きる。
+ */
 function 前の版(): string {
   const 前 = git("tag", "--list", "v*", "--sort=-v:refname")
     .split("\n")

@@ -162,7 +162,6 @@ function isGatingViolation(v: Violation & { diagramId?: string }): boolean {
   return !見逃す組の一覧.some((x) => x.diagramId === v.diagramId && x.axis === v.axis);
 }
 
-// group-boundary-clearance / lane-lane-gap / node-vertical-clearance sample 3 件
 /** `warn` のうち中身まで出す軸。 `error` は重さで決めるのでこの一覧に依らない (#1730) */
 const interestingAxes = new Set([
   "group-boundary-clearance",
@@ -202,18 +201,6 @@ const interestingAxes = new Set([
 const ERROR_DUMP_MAX = 10;
 
 /**
- * stderr に流す抜粋を組み立てる (#1730)。
- *
- * **`error` は軸の一覧に依らず必ず中身を出す**。 抜粋の対象を `interestingAxes` という
- * 手書きの一覧で決めていたため、 そこに無い軸は `err(edge-node-cross=1)` と数だけ出て
- * **どの図か辿れなかった**。 `error` は落とすべき重さなので、 数が出た時点で中身も出す。
- *
- * `warn` は従来どおり一覧で絞る。 件数が多く、 全部出すと読めなくなるため。
- *
- * 書き出しと組み立てを分けてあるのは、 **出ることを機械で確かめられるようにする** ため。
- * `process.stderr` に直接書くと、 出たかどうかを検査から見られない。
- */
-/**
  * engine がなぜ直せなかったかを行の末尾に足す (cdl#810、 `Violation.reason`)。
  *
  * `detail` に混ぜずに末尾へ置く = 行の `detail` までの形を読む側を崩さない。
@@ -223,6 +210,18 @@ function 理由を添える(v: Violation): string {
   return v.reason !== undefined ? ` ${v.reason}` : "";
 }
 
+/**
+ * stderr に流す抜粋を組み立てる (#1730)。
+ *
+ * **`error` は軸の一覧に依らず必ず中身を出す**。 抜粋の対象を `interestingAxes` という
+ * 手書きの一覧で決めていたため、 そこに無い軸は `err(edge-node-cross=1)` と数だけ出て
+ * **どの図か辿れなかった**。 `error` は落とすべき重さなので、 数が出た時点で中身も出す。
+ *
+ * `warn` は従来どおり一覧で絞り、 全体で 3 件まで出す。 件数が多く、 全部出すと読めなくなるため。
+ *
+ * 書き出しと組み立てを分けてあるのは、 **出ることを機械で確かめられるようにする** ため。
+ * `process.stderr` に直接書くと、 出たかどうかを検査から見られない。
+ */
 function 違反の抜粋(
   reports: VisualValidationReport[],
   interestingAxes: ReadonlySet<string>,
