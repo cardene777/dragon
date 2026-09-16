@@ -149,6 +149,10 @@ Vite が繋いでいる画面を全再読み込みし、走行中の検査が巻
 port は `apps/playground-spa/ports.ts` が持つ。 開発と preview で別の port を使うので、
 2 つを同時に立てたままにできる。
 
+文書 (この手引きや `README.md`) に書いた `localhost:<数字>` は、`src/lib/ports.test.ts` が
+`ports.ts` と突き合わせる (#2054)。 port を変えたら文書の数字も直す。 preview の URL は
+`/dragon/` まで書く (base path の下にしか配らない)。
+
 **spec の `goto` は先頭 `/` を付けずに書く**。 build 済は `/dragon/` の下に配られ、
 `new URL(path, base)` は先頭 `/` を「origin 直下」 と読んで base を捨てる = `goto("/editor")`
 は base の外を開き、画面が出ないまま落ちる。 `src/lib/spec-base-url.test.ts` が literal の
