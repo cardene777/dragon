@@ -10,7 +10,8 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 const W = 440;
 
 /**
- * 1. NodeKind 全 5 種 (actor / function / storage / event / card)。
+ * 1. 基本の NodeKind (actor / function / storage / event / card)。
+ * 受け付ける種類の一覧は `@cardenelabs/dragon` の `NODE_KIND_VALID` が持つ。
  *
  * **種別ごとに数の出し場所が違う** (#1196 の実測)。 値の欄を描くのは `actor` だけ、
  * `storage` は行、残り 3 種は副題に出る。 種別の説明を潰さないため、数はその種別が
@@ -1364,7 +1365,7 @@ function shapeSample(spec: ShapeSpec) {
 }
 
 
-/** 4. Shape-driven basement 8 (CAR-1099) ... 要素形状自体が意味を持つ SVG path node */
+/** 4. Shape-driven basement (CAR-1099) ... 要素形状自体が意味を持つ SVG path node */
 export const shapeFile = shapeSample({
   id: "shape-file",
   kind: "shape-file",
