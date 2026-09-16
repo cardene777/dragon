@@ -2,12 +2,12 @@
  * sample slug + kind + label 網羅 (iter61、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter61。
- * 全 12 sample の metadata coverage 追加軸を verify。
+ * 全 sample の metadata coverage 追加軸を verify。
  */
 import { describe, it, expect } from "vitest";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
-describe("iter61: 全 12 sample × slug + label + code coverage", () => {
+describe("iter61: 全 sample × slug + label + code coverage", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`label が非空 + 100 char 以下`, () => {

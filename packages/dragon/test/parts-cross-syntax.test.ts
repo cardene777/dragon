@@ -1,13 +1,13 @@
 /**
- * 全 80 parts × 5 sample types cross matrix (iter8、 2026-07-19)。
+ * 全 parts × 5 sample types cross matrix (iter8、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter8。
  * parts unified syntax (`actors: - alias: {kind: parts-id}`) の cross-syntax portability を
  * 5 sample types (flow / mind / c4 / state / swimlane) で verify、 各 sample type において
  * parts が正しく merge されて compile throw なしになることを assert する。
  *
- * 5 × 80 = 400 test で「parts が任意 diagram type に inject 可能」 の invariant を保証。
- * iter7 (sequence 単独 = 80 test) の cross-syntax portability への拡張。
+ * 5 sample types × 全 parts の組み合わせで「parts が任意 diagram type に inject 可能」 の invariant を保証。
+ * iter7 (sequence 単独) の cross-syntax portability への拡張。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
@@ -111,7 +111,7 @@ flow:
   },
 ];
 
-describe("iter8: 全 80 parts × 5 sample types cross matrix (cross-syntax portability)", () => {
+describe("iter8: 全 parts × 5 sample types cross matrix (cross-syntax portability)", () => {
   it(`parts 80 個 export 検出`, () => {
     expect(ALL_PARTS.length, `parts.cdl.ts で少なくとも 60 個以上の parts export (現状: ${ALL_PARTS.length})`).toBeGreaterThanOrEqual(60);
   });

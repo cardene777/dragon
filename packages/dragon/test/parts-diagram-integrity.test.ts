@@ -2,7 +2,7 @@
  * parts diagram integrity 網羅 (iter66、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter66。
- * 全 80 parts の diagram integrity を verify。
+ * 全 parts の diagram integrity を verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";

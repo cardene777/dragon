@@ -2,7 +2,7 @@
  * sample metadata non-empty 網羅 unit test (iter18、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter18。
- * 全 12 EDITOR_SAMPLES + parts.cdl.ts / presets.cdl.ts の全 diagram について、
+ * 全 EDITOR_SAMPLES + parts.cdl.ts / presets.cdl.ts の全 diagram について、
  * title / subtitle / node title / animation step 名 等の text field が
  * 非空 string であることを batch 検証。
  * typo で undefined / null / 空文字混入時の regression 検知 gate。

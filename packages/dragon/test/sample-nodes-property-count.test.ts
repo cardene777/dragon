@@ -2,13 +2,13 @@
  * sample nodes property count 網羅 (iter88、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter88。
- * 全 12 sample の compile 後 nodes property 数 verify。
+ * 全 sample の compile 後 nodes property 数 verify。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
-describe("iter88: 全 12 sample × nodes property count", () => {
+describe("iter88: 全 sample × nodes property count", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`全 node が id property`, () => {

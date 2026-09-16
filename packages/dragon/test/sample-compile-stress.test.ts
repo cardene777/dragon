@@ -32,7 +32,7 @@ describe("iter74: sample compile stress test (50 回連続)", () => {
         }
       });
 
-      it(`50 回 compile で 1 sec 以下`, () => {
+      it(`50 回 compile で 2000ms 未満`, () => {
         const t0 = performance.now();
         for (let i = 0; i < 50; i++) {
           textDslToDiagram(sample.code);

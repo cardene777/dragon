@@ -2,7 +2,7 @@
  * parts node count consistency 網羅 (iter35、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter35。
- * 全 80 parts の nodes 数の妥当性を verify、 typo で無限 loop や 空 nodes になる pattern 検知。
+ * 全 parts の nodes 数の妥当性を verify、 typo で無限 loop や 空 nodes になる pattern 検知。
  *
  * (a) nodes 数 >= 1 (empty diagram なし)
  * (b) nodes 数 <= 50 (parts 1 個で 50 node 超 = design 逸脱)

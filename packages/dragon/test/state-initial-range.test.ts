@@ -2,7 +2,7 @@
  * state.initial 型 / 範囲 網羅 (iter47、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter47。
- * 全 80 parts の全 state.initial について、 型 / 値の範囲を verify。
+ * 全 parts の全 state.initial について、 型 / 値の範囲を verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";

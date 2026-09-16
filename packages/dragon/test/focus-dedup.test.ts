@@ -16,7 +16,7 @@ interface CompiledDiagram {
   }>;
 }
 
-describe("iter46: 全 12 sample × animation focus dedup", () => {
+describe("iter46: 全 sample × animation focus dedup", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`phase.focus 内 dedup`, () => {

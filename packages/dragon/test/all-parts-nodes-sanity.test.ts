@@ -2,7 +2,7 @@
  * 全 parts × nodes sanity 網羅 (iter60、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter60。
- * 全 80 parts の node property の deep check。
+ * 全 parts の node property の deep check。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";

@@ -2,7 +2,7 @@
  * parts states additional property (iter78、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter78。
- * 全 80 parts の state additional property verify。
+ * 全 parts の state additional property verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";

@@ -2,7 +2,7 @@
  * parts node property coverage 網羅 (iter56、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter56。
- * 全 80 parts の node property 型と存在率を verify。
+ * 全 parts の node property 型と存在率を verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";

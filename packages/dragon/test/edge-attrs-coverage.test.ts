@@ -2,7 +2,7 @@
  * edge attrs coverage 網羅 (iter29、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter29。
- * 全 12 sample の edges について attribute の型・存在網羅を verify。
+ * 全 sample の edges について attribute の型・存在網羅を verify。
  *
  * (a) 全 edge が from string / to string / label (?) string の 3 property を持つ
  * (b) label が存在するなら 100 chars 以下 (異常長 label 検知)
@@ -25,7 +25,7 @@ interface CompiledDiagram {
   }>;
 }
 
-describe("iter29: 全 12 sample × edge attrs coverage", () => {
+describe("iter29: 全 sample × edge attrs coverage", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`全 edge が from/to (string) を持つ`, () => {

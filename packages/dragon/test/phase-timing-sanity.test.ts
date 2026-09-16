@@ -2,7 +2,7 @@
  * phase / step timing sanity 網羅 unit test (iter13、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter13。
- * 全 12 EDITOR_SAMPLES の animation phase / step の timing invariant を verify。
+ * 全 EDITOR_SAMPLES の animation phase / step の timing invariant を verify。
  *
  * (a) phase.duration が存在する場合、 正の float (0 超、 NaN / Infinity なし)
  * (b) step.duration が存在する場合、 同上
@@ -32,7 +32,7 @@ function isPositiveFinite(v: unknown): boolean {
   return typeof v === "number" && Number.isFinite(v) && v > 0;
 }
 
-describe("iter13: 全 12 EDITOR_SAMPLES × phase / step timing sanity", () => {
+describe("iter13: 全 EDITOR_SAMPLES × phase / step timing sanity", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label} (${sample.slug})`, () => {
       it(`phase count > 0`, () => {

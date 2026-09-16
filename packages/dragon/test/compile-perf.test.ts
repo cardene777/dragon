@@ -2,7 +2,7 @@
  * compile 時間上限 verify (iter22、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter22。
- * 全 12 sample の textDslToDiagram 呼出が個別 100ms、 集約 500ms 以内で完了することを verify。
+ * 全 sample の textDslToDiagram 呼出が個別 100ms、 集約 500ms 以内で完了することを verify。
  * regression 検知 gate (compile ロジックに N² が混入して sample DSL で 秒級 slow-down する事故を捕捉)。
  */
 import { describe, it, expect } from "vitest";
@@ -20,7 +20,7 @@ describe("iter22: compile 時間上限 verify", () => {
     });
   }
 
-  it(`全 12 sample 通算 compile <= 500ms`, () => {
+  it(`全 sample 通算 compile <= 500ms`, () => {
     const t0 = performance.now();
     for (const sample of EDITOR_SAMPLES) {
       textDslToDiagram(sample.code);

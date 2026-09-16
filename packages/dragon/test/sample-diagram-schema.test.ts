@@ -2,13 +2,13 @@
  * sample diagram schema 網羅 (iter37、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter37。
- * 全 12 sample の compile 結果 schema 検証、 上位 property の存在 / 型を verify。
+ * 全 sample の compile 結果 schema 検証、 上位 property の存在 / 型を verify。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
-describe("iter37: 全 12 sample × diagram schema 網羅", () => {
+describe("iter37: 全 sample × diagram schema 網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`nodes / edges array field 存在 + Array 型`, () => {

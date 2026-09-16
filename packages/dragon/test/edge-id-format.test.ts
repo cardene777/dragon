@@ -2,7 +2,7 @@
  * edge id format 網羅 (iter41、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter41。
- * 全 12 sample の edges で id / label / metadata format spec 検証。
+ * 全 sample の edges で id / label / metadata format spec 検証。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
@@ -12,7 +12,7 @@ interface CompiledDiagram {
   edges: Array<{ id?: string; from: string; to: string; label?: string }>;
 }
 
-describe("iter41: 全 12 sample × edge id / label format", () => {
+describe("iter41: 全 sample × edge id / label format", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`edge id 存在時 e{index} or 意味のある文字列`, () => {

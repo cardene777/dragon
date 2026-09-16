@@ -2,13 +2,13 @@
  * sample compile idempotent (iter90、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter90。
- * 全 12 sample の compile idempotent (同 input → 同 output) verify。
+ * 全 sample の compile idempotent (同 input → 同 output) verify。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
-describe("iter90: 全 12 sample × compile idempotent", () => {
+describe("iter90: 全 sample × compile idempotent", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`2 回 compile で nodes count 一致`, () => {

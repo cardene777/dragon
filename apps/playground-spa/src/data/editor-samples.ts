@@ -1,5 +1,8 @@
 /**
- * Editor SAMPLES 12 diagram の SSOT (CAR-1659)。
+ * Editor SAMPLES の SSOT (CAR-1659)。
+ *
+ * 件数はここにも検査の題にも数字で書かない。 見本を足すたびにずれるため (#2060)。
+ * 件数を数字と比べる宣言は `packages/dragon/test/samples-validate.test.ts` の 1 か所だけが持つ。
  *
  * CdlEditor.tsx (sidebar SAMPLES tab) と packages/dragon/test/samples-validate.test.ts の
  * 双方から import される shared source of truth。 codex-review MINOR 指摘 = hardcoded 配列の

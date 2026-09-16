@@ -2,7 +2,7 @@
  * parts state name format 網羅 (iter49、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter49。
- * 全 80 parts の全 state.id が識別子 format (英数字 + _) を満たすか verify。
+ * 全 parts の全 state.id が識別子 format (英数字 + _) を満たすか verify。
  * typo で reserved word / 記号混入時の regression 検知。
  */
 import { describe, it, expect } from "vitest";

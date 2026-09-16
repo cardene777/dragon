@@ -2,7 +2,7 @@
  * node style consistency (iter30、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter30。
- * 全 12 sample の nodes について style / kind attribute の型・存在 verify。
+ * 全 sample の nodes について style / kind attribute の型・存在 verify。
  *
  * (a) kind 値が定義されるなら string
  * (b) style 値が定義されるなら string / object
@@ -24,7 +24,7 @@ interface CompiledDiagram {
   }>;
 }
 
-describe("iter30: 全 12 sample × node style consistency", () => {
+describe("iter30: 全 sample × node style consistency", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`node.kind 型 spec (string / undefined)`, () => {

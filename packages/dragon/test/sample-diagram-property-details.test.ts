@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
-describe("iter93: 全 12 sample × diagram property details", () => {
+describe("iter93: 全 sample × diagram property details", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`diagram top-level property 数 >= 1`, () => {

@@ -2,7 +2,7 @@
  * parts icon / decoration coverage 網羅 (iter69、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter69。
- * 全 80 parts の icon / decoration / emoji 属性の型 verify。
+ * 全 parts の icon / decoration / emoji 属性の型 verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
