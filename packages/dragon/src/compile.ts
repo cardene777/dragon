@@ -19,6 +19,27 @@ import type {
   DslValue,
   PresetType,
 } from "./types";
+// 図種ごとの組み立てを分けた先 (#2030)。 共有の小道具から順に出している。
+// どれも他の file を取り込まない葉なので、図種ごとの file と両方から呼んでも輪にならない
+import {
+  parseChartValue,
+  数の欄から参照できる名前,
+  参照する名前,
+  図表の大きさ,
+  語の欄から参照できる名前,
+} from "./compile/chart-fields";
+import { 並べる向き, 向きを選べる図種, 後ろへ戻る矢印か } from "./compile/direction";
+import { 矢印から親を決める, 放射に出す文字 } from "./compile/hierarchy";
+import { 縦列を選べる図種, 書いた縦列に置く } from "./compile/lanes";
+import type { CompileNotice } from "./compile/notice";
+// 分けた先の型を、この file から出していた形のまま外へ渡す (#2030)。
+// `index.ts` と 47 個の検査が `./compile` から取り込んでいるので、窓口をここに残す
+export type { CompileNotice } from "./compile/notice";
+import { 段を読み取る } from "./compile/rows";
+import { truncateForMessage, 図の小見出し } from "./compile/subtitle";
+import { 箱の題 } from "./compile/node-title";
+import { ID_MAX, slugify } from "./compile/slug";
+import { 区画, 気持ち } from "./compile/word-state";
 import type {
   CdlDiagram,
   CdlEdge,
@@ -137,78 +158,6 @@ export interface CompileToCdlOpts {
   onEdgeSource?: (edgeId: string, line: number) => void;
 }
 
-/** 図は出せるが書いた通りにならなかった、 という知らせ。 */
-export type CompileNotice = {
-  kind:
-    | "relative-position-ignored"
-    | "focus-target-missing"
-    | "state-override-rejected"
-    | "external-paint-dropped"
-    // 図の中に描く部品を持たない見本を重ねた (#1017)
-    | "part-not-drawn"
-    // 向きが効かない形で `向き:` を書いた (#1494)
-    | "direction-not-honored"
-    // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)
-    | "scale-reserved"
-    // 部品に書いた色が効かない (#1973)。 色番号を入れる状態を 1 つも持たない部品に色番号を
-    // 書いた時と、色番号でなく色の名前を書いた時
-    | "part-color-ignored"
-    // 部品に、部品が持たない状態の名前で値を書いた (#1976)。 綴り違いと、外した欄 (`nodes`) を書いた時
-    | "part-state-missing"
-    // 部品へ引いた矢印を、部品の中のどの要素にも繋げず外した (#1979)。 要素が 2 つ以上あり名指しが無い時、
-    // 名指しした要素が部品に無い時、部品を取り込まなかった時
-    | "part-edge-dropped"
-    // 矢印に部品の要素の名指し (`fromPartNode` / `toPartNode`) を書いたが、その端が部品でない (#1979)
-    | "part-node-ignored"
-    // 縦列に置くはずの部品が他の箱の位置の基準になっていて、縦列に置けなかった (#1980)
-    | "part-lane-ignored"
-    // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
-    | "chart-value-unreadable"
-    // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
-    | "chart-edge-dropped"
-    // 同じ名前を `states` と `values` の両方に書いた (#1162)
-    | "value-shadows-state"
-    // 式を解けず、その値を止めた (輪 / 無い名前 / 読めない式 / 数として読めない値、 #1162)
-    | "value-unresolved"
-    // 同じ名前を `values` に 2 度書いた。 先に書いた式を使う (#1162)
-    | "value-duplicate"
-    // 矢印が `actors` に無い名前を指した (#1209)
-    | "flow-actor-missing"
-    // きっかけ形の値を段に畳めなかった (段が無い / 相手が境目を通らない / 段からはみ出す、 #1161)
-    | "value-trigger-unresolved"
-    // 箱に `lane:` を書いたが、 縦列は図種が決めるため効かなかった (#1246)
-    | "lane-not-honored"
-    // `lanes:` に書いた縦列に箱が 1 つも入らなかった (#1241)
-    | "lane-declared-empty"
-    // 最上位に `eyebrow:` を書いたが、 箱ごとに分かれる図種で相手が決まらなかった (#1247)
-    | "eyebrow-not-honored"
-    // 静止した `type: flow` で、書いた矢印の端が使われなかった (#1269)
-    | "flow-endpoint-not-honored"
-    // 起点から描く動きを持たない図種で段に `draw:` を書いた (#1312)
-    | "draw-not-honored"
-    // `draw:` の語がその図種と食い違う (`type: bar` に `draw: pie`、 #1314)
-    | "draw-target-mismatch"
-    // 式が、どこにも書かれていない名前を読んだ (#1391)
-    | "formula-unresolved"
-    // 出来事が指す相手が図に無い (#1393)
-    | "event-target-missing"
-    // 順序図で面に種類を書いたが、板は名前と呼び名しか描かない (#1466)
-    | "actor-kind-not-honored"
-    // 順序図の言づてに、板が描かない飾り (色味 / 添え字 / 寄せ) を書いた (#1466)
-    | "message-option-not-honored"
-    // 位置のずらし (`pos` / `offsetX` / `offsetY`) を載せる相手が無いか、書いた量だけ動かせなかった (#1971)
-    | "position-offset-ignored"
-    // 組 (`groups:`) が束ねる縦列が図に無い (#1972)
-    | "group-lane-missing"
-    // 組が束ねる縦列の間に、束ねない縦列を挟んでいる (#1972)
-    | "group-lanes-apart";
-  /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
-  actor: string;
-  /** 書かれていた行 */
-  line: number;
-  message: string;
-  hint?: string;
-};
 
 export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiagram {
   // 大きすぎる図は組み立てない (#1005)。 組み立てにかかる時間は要素数の 2 乗で伸び、
@@ -740,11 +689,6 @@ function injectStaticPhase(diagram: CdlDiagram): void {
   });
 }
 
-/** 知らせに載せる値を短く切る。 長い URL をそのまま出すと画面の帯が読めなくなる */
-function truncateForMessage(v: string): string {
-  const s = v.trim();
-  return s.length <= 40 ? s : `${s.slice(0, 37)}...`;
-}
 
 /**
  * 光らせる相手 (`focus:`) が実在しない分を知らせる。
@@ -867,15 +811,6 @@ function dropUnresolvedFlow(doc: DslDocument): DslDocument {
   return flow.length === doc.flow.length ? doc : { ...doc, flow };
 }
 
-/**
- * 図全体を 1 箱にする図種で、 その箱の上に出す小見出しを渡す (#1247)。
- *
- * 書かなければ何も渡さない = 従来どおり小見出しは付かない。 `undefined` を明示して渡すと、
- * 組立て側が「空の小見出しを書いた」 と区別できなくなるので、 項目ごと落とす。
- */
-function 図の小見出し(doc: DslDocument): { eyebrow?: string } {
-  return doc.eyebrow === undefined ? {} : { eyebrow: doc.eyebrow };
-}
 
 /**
  * 箱ごとに分かれる図種で最上位の小見出しを書いた時に伝える (#1247)。
@@ -5750,57 +5685,9 @@ function compileClass(doc: DslDocument): CdlDiagram {
  *
  * flow は通常なし (slice 間に依存関係はない)、 author 明示時のみ edge を描く。
  */
-/**
- * 割合の書き方から数値を読む。 読めなければ `null`。
- *
- * 受けるのは `"45%"` / `"45"` / `"45.5%"` と、 前後の空白。 `"四割"` や `"0.45"` のような
- * 別の言い方は読まない = **黙って 0 にすると、 その分だけ欠けた円が「正しい図」 として出る**。
- * 読めなかったことは呼出側が警告に出す。
- */
-function parseShareValue(raw: string | undefined): number | null {
-  if (raw === undefined) return null;
-  const m = raw.trim().match(/^(-?\d+(?:\.\d+)?)\s*%?$/);
-  if (m === null) return null;
-  const v = Number(m[1]);
-  return Number.isFinite(v) ? v : null;
-}
 
-/**
- * 状態を読む欄かどうか (`{名前}`)。
- *
- * **`{名前}` そのものだけを受ける**。 `{v} 件` のような混ざった形は、描画側が数として
- * 読めず既定値に落ちて印が付くだけになる (`render/payload-binding.ts` は解いた文字列を
- * そのまま数にする)。 書けたのに効かない形を作らない。
- *
- * `%` を付けた形も受けない。 同じ理由で `"45%"` は数に直せるが `"{v}%"` は直せない。
- *
- * 名前に使えるのは英数字と `_` で、読む側 (cdl の `interpolate`) と同じ範囲に合わせる。
- * 決まった accessor (`.sum` 等) は付けてよい。
- */
-function parseBoundValue(raw: string | undefined): string | null {
-  if (raw === undefined) return null;
-  const t = raw.trim();
-  return /^\{\w+(?:\.(?:length|sum|max|min|avg)|\[\d+\])?\}$/.test(t) ? t : null;
-}
 
-/**
- * 図表の数の欄を読む。 数そのものか、状態を読む `{名前}` を返す。
- *
- * 数として解けない `{名前}` は、そのまま図表の中身に渡して描画側が段ごとに解く。
- * 受け取る側の型 (`BoundNumber`) は元から 2 通りを想定している = 入口だけが塞がっていた。
- */
-function parseChartValue(raw: string | undefined): number | string | null {
-  const n = parseShareValue(raw);
-  if (n !== null) return n;
-  return parseBoundValue(raw);
-}
 
-/** 状態を読む欄が指している名前 (`{v.sum}` なら `v`)。 欄でなければ null */
-function 参照する名前(value: number | string | null): string | null {
-  if (typeof value !== "string") return null;
-  const m = value.match(/^\{(\w+)/);
-  return m ? m[1]! : null;
-}
 
 /**
  * 棒 / 折れ線の組立て。 円グラフと **入力の形が同じ**なので 1 つにまとめる。
@@ -5994,139 +5881,19 @@ function compileValueChart(
  * 描画側 (`cdl` の `chart()` preset) は高さを 16 の倍数へ切り上げる。 揃えないと下端が格子から
  * 外れ、 正しい記法でも位置の警告が出る (review 指摘、 360 のまま 5 型が該当していた)。
  */
-/**
- * 図表の箱の大きさ (#1260)。
- *
- * **組立て API と同じ値を使う**。 別の値にすると、同じ内容を書いても描いた図の大きさが変わる
- * (実測 = 記法の `funnel` は 640x368、組立て API は 560x480 で、描いた図の viewBox が
- * 785x488 対 712x600 になっていた)。
- *
- * 組立て API 側は中身の件数で変えない (実測 = 2 / 4 / 8 件のどれでも同じ値)。 そのため
- * こちらも定数で持つ。 `gantt` だけは件数で高さを変える = 8 件目から最後の帯が枠の外に
- * 出るため (`compileGantt` の実測)、組立て API の固定 360 より正しい。
- */
-const 図表の大きさ = {
-  funnel: { w: 560, h: 480 },
-  tree: { w: 720, h: 480 },
-  mind: { w: 720, h: 480 },
-  journey: { w: 720, h: 480 },
-  quadrant: { w: 640, h: 480 },
-} as const;
 
 /** 気持ちの言葉。 書きやすさのため日本語で受ける。 */
 //
 // **`Map` で持つ**。 plain object だと `__proto__` / `constructor` が親から引けてしまい、
 // 書ける語の一覧に無い入力が値として通る (review 指摘)。 型は付いていても中身は object や
 // function になり、 描画側へそのまま流れる。
-const 気持ち = new Map<string, "delighted" | "happy" | "neutral" | "frustrated" | "angry">([
-  ["最高", "delighted"],
-  ["満足", "happy"],
-  ["普通", "neutral"],
-  ["不満", "frustrated"],
-  ["怒り", "angry"],
-]);
 
 /** 区画の言葉。 縦横の位置をそのまま書く。 */
 // 同上の理由で `Map`。
-const 区画 = new Map<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRight">([
-  ["左上", "topLeft"],
-  ["右上", "topRight"],
-  ["左下", "bottomLeft"],
-  ["右下", "bottomRight"],
-]);
 
-/**
- * 図表の欄が `{名前}` で読む値を、**1 か所で** 確かめる (#1200)。
- *
- * 図表には数の欄 (割合 / 段の人数) と語の欄 (気持ち / 区画) があり、どちらも `{名前}` で
- * 状態を読める。 確かめることは欄の種類で違うが、**土台は同じ** = 同じ名前を 2 回書いた時に
- * 後ろが効くこと、段で状態に入る値 (切り替え / 補間) も見ること、の 2 つ。
- *
- * #1198 と #1201 では欄ごとに検査を書き足しており、同じ土台を 3 度書いていた。 3 度とも
- * review で同じ形の穴を指摘されている (最初の宣言で判定する / 段で入る値を見落とす)。
- * 土台を 1 つにして、欄ごとの違いだけを外から渡す。
- *
- * ## 確かめること
- *
- * | 欄 | 通す値 | 段で入る値 |
- * |---|---|---|
- * | 数 | 数として読める (空文字は弾く、`Number("")` が 0 を返すため) | 切り替え先が数 |
- * | 語 | 語表にある語 | 切り替え先が語表にあり、補間されない (補間の行き先は数) |
- *
- * 自動で決まる値 (`values:`) は式の評価結果で必ず数になるため、数の欄からは参照できて
- * 語の欄からは参照できない。 式そのものの不備 (語を読む / 名前が無い) は
- * `value-unresolved` の警告が別に出る (実測で確認済)。
- *
- * ## 責務境界 (#1198 / #1200)
- *
- * **見るのは組み立ての時点で決まっている範囲だけ**。 記法の値は実行時に決まるため、ここで
- * 全部を判定しようとすると式の評価を組み立て側で再現することになる。 実際に #1199 の review で
- * 4 round 続けて同じ形の指摘が出て収束せず、境界を決めて切り分けた (穴を 1 つ塞ぐと別の形が
- * 出る = 塞ぎ方ではなく責務の置き場所の問題だった)。
- *
- * | 見る | 見ない | 見ない理由 |
- * |---|---|---|
- * | 名前が宣言されているか | 段の行き先が負になる形 | 描画側が問題なく描く (負の大きさも `NaN` も出ないことを実測) |
- * | 宣言の時点で読める値か | 式が実行時に返す値 | 式の不備は `value-unresolved` の警告が別に出る (実測で確認) |
- * | 段で状態に入る値 | | |
- *
- * 見ない範囲は描画側が受け持つ = 解けない値は既定値で描いて `data-cdl-unresolved` を付ける。
- */
-function 図表の欄から参照できる名前(
-  doc: DslDocument,
-  欄: {
-    読めるか: (v: number | string) => boolean;
-    補間で壊れるか: boolean;
-    自動の値を許すか: boolean;
-  },
-): Set<string> {
-  // 同じ名前を 2 回宣言した時は後ろが効く。 描画側が後の宣言を有効値として扱うため、
-  // 前の宣言で判定すると「読めると判定したのに読めない値が入る」 状態になる (実測)
-  const 実効 = new Map<string, number | string>();
-  for (const s of doc.animate?.states ?? []) 実効.set(s.name, s.initial);
 
-  const 壊れる = new Set<string>();
-  for (const p of doc.animate?.phases ?? []) {
-    for (const st of p.sets ?? []) if (!欄.読めるか(st.value)) 壊れる.add(st.state);
-    if (欄.補間で壊れるか) for (const tw of p.tweens ?? []) 壊れる.add(tw.state);
-  }
 
-  const out = new Set<string>();
-  for (const [名前, 値] of 実効) {
-    if (!欄.読めるか(値)) continue;
-    if (壊れる.has(名前)) continue;
-    out.add(名前);
-  }
-  if (欄.自動の値を許すか) for (const v of doc.values ?? []) out.add(v.name);
-  return out;
-}
 
-/** 数の欄が読める値か。 空文字と空白だけは弾く (`Number("")` は 0 を返す) */
-function 数として読めるか(v: number | string): boolean {
-  if (typeof v === "number") return Number.isFinite(v);
-  const t = v.trim();
-  if (t === "") return false;
-  return Number.isFinite(Number(t));
-}
-
-function 数の欄から参照できる名前(doc: DslDocument): Set<string> {
-  return 図表の欄から参照できる名前(doc, {
-    読めるか: 数として読めるか,
-    // 補間の行き先は数なので、数の欄では壊れない
-    補間で壊れるか: false,
-    自動の値を許すか: true,
-  });
-}
-
-function 語の欄から参照できる名前(doc: DslDocument, 語表: Map<string, string>): Set<string> {
-  return 図表の欄から参照できる名前(doc, {
-    読めるか: (v) => 語表.has(String(v).trim()),
-    // 補間の行き先は数。 語の欄が読む状態を補間すると、その段で語が数に変わる
-    補間で壊れるか: true,
-    // 式の評価結果は数になるため、語の欄からは読めない
-    自動の値を許すか: false,
-  });
-}
 
 /**
  * 記法の語で書いた状態を、図の語へ直す (#1201)。
@@ -6233,76 +6000,6 @@ function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void):
     funnelData: data,
   });
   return b.build();
-}
-
-/**
- * 矢印から親子を決める (#1251)。
- *
- * 矢印の先が子で、 どこからも指されない名前が根になる。 `type: tree` と `type: mind` が
- * 同じ規則を使う = 同じ本文を書いた時に、 図種を変えただけで親子の解釈が変わらないようにする。
- *
- * **黙って上書きしない**。 同じ子に 2 本来たら後勝ちで消えるし、 書いていない名前を指した
- * 矢印は無い親を作る。 どちらも図が静かに変わるので伝える。
- *
- * 親を辿って自分に戻る形は木にならないため、 その枝を切って伝える。
- */
-function 矢印から親を決める(
-  doc: DslDocument,
-  図種: "tree" | "mind",
-  名前: ReadonlySet<string>,
-  伝える: (名: string, message: string, line?: number) => void,
-): Map<string, string> {
-  const 親 = new Map<string, string>();
-  for (const f of doc.flow) {
-    const 子 = slugify(f.to);
-    const 親名 = slugify(f.from);
-    if (!名前.has(親名)) {
-      伝える(
-        f.from,
-        `type: ${図種} で書いていない名前を親にしています: ${f.from} -> ${f.to}`,
-        f.pos?.line ?? 0,
-      );
-      continue;
-    }
-    // 子の側も見る。 書いていない名前への矢印は、 黙って捨てると図から関係が消える
-    if (!名前.has(子)) {
-      伝える(
-        f.to,
-        `type: ${図種} で書いていない名前を子にしています: ${f.from} -> ${f.to}`,
-        f.pos?.line ?? 0,
-      );
-      continue;
-    }
-    if (子 === 親名) {
-      伝える(f.to, `type: ${図種} で自分を親にしています: ${f.to}`, f.pos?.line ?? 0);
-      continue;
-    }
-    const 既存 = 親.get(子);
-    if (既存 !== undefined && 既存 !== 親名) {
-      伝える(
-        f.to,
-        `type: ${図種} で ${f.to} に親が 2 つあります (後の ${f.from} は使いません)`,
-        f.pos?.line ?? 0,
-      );
-      continue;
-    }
-    親.set(子, 親名);
-  }
-  // 親を辿って自分に戻る形は木にならない。 その枝を切って伝える
-  for (const 子 of [...親.keys()]) {
-    const 見た = new Set<string>([子]);
-    let p2 = 親.get(子);
-    while (p2 !== undefined) {
-      if (見た.has(p2)) {
-        伝える(子, `type: ${図種} で親を辿ると輪になります (${子} の親を外しました)`);
-        親.delete(子);
-        break;
-      }
-      見た.add(p2);
-      p2 = 親.get(p2);
-    }
-  }
-  return 親;
 }
 
 function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
@@ -6582,35 +6279,6 @@ function compileQuadrant(doc: DslDocument, onNotice?: (n: CompileNotice) => void
   return b.build();
 }
 
-/**
- * 段の目印を読み取る。 目印と、 それを落とした残りの説明を返す (#1098)。
- *
- * 目印 (`L1` / `L2` / `L3`) は「どの段に置くか」 を組み立てに伝えるためのもので、 読む人には
- * 意味を持たない。 段の名前は枠のラベル (`全体の見取り図` 等) が出すので二重でもある。
- * 読み取ったら説明から落とす = 書いた人が説明として書いた部分だけが箱に出る。
- *
- * | 書いた文字 | 段 | 残る説明 |
- * |---|---|---|
- * | `"L1"` | 1 | (無し) |
- * | `"L2: container"` | 2 | `container` |
- * | `"L1 利用者"` | 1 | `利用者` |
- * | `"利用者"` | 1 (既定) | `利用者` |
- *
- * 目印の直後の区切り (`:` と空白) も落とす。 残さないと `: container` のように区切りだけが
- * 先頭に残る。 `L2X` のような別の語を目印と読み違えないよう、 数字の直後が英数字でないことを
- * 条件にする。
- */
-function 段を読み取る(subtitle: string | undefined): { 段: number; 説明: string | undefined } {
-  const 元 = (subtitle ?? "").trim();
-  const m = 元.match(/^L([123])(?![0-9A-Za-z])/i);
-  if (m === null) return { 段: 1, 説明: subtitle };
-  // 目印と、 その直後の区切り (`:` / 全角コロン / 空白) を落とす
-  const 残り = 元
-    .slice(m[0].length)
-    .replace(/^[:：\s]+/, "")
-    .trim();
-  return { 段: Number(m[1]), 説明: 残り === "" ? undefined : 残り };
-}
 
 /**
  * C4 preset (C4 model 階層 system context 専用 layout)
@@ -6763,12 +6431,6 @@ type 放射で描ける欄 =
  * 無い。 名前は矢印の端として指すために要るので、名前をそのまま題にすると `begin` の字が
  * 丸の上に乗る (組み立て API 側の `.mark()` は題を空で作る)。 書いた題があればそれを使う。
  */
-const 題を持たない種類: ReadonlySet<string> = new Set(["mark-start", "mark-end"]);
-
-function 箱の題(a: DslActor): string {
-  if (a.title === undefined && a.kind !== undefined && 題を持たない種類.has(a.kind)) return "";
-  return a.title ?? a.name;
-}
 
 /**
  * 行を組み立て器が加工する図の種類 (#1466)。
@@ -6986,11 +6648,6 @@ function 放射で描けない欄を書いたか(a: DslActor, 欄: 放射で描�
  * `subtitle` と `value` の両方が書かれた場合は空白で繋いで 1 つの補足にする。 描画側の
  * 補足は 1 行なので、2 つを別々の行にはできない。
  */
-function 放射に出す文字(a: DslActor): { title: string; subtitle?: string } {
-  const 続き = [a.subtitle, a.value].map((x) => x?.trim()).filter((x): x is string => !!x);
-  return { title: 箱の題(a), ...(続き.length > 0 ? { subtitle: 続き.join(" ") } : {}) };
-}
-
 function compileMind(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   // 図の型は描画側の組み立て関数 `mindMap()` と同じ綴り (cdl 0.63.0 で `mindmap` から `mind` に揃った)
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "mind" });
@@ -7871,57 +7528,6 @@ type GenericOpts = {
 };
 
 /**
- * 後ろへ戻る矢印か (#1260)。
- *
- * 状態の図は、後ろの状態へ戻る矢印を **箱の上を回して** 描く (`routing: "back-detour"`)。
- * 組立て API 側がそうしており、記法側で付けないと **描いた図の高さが変わる**
- * (実測 = viewBox が 404 対 486 で、戻る矢印が箱の右横を回っていた)。
- *
- * 判定は並び順。 指す先が指す元より前にあれば戻る矢印
- * (実測 = `stateMachine()` は c -> a と c -> b の 2 本だけに付け、a -> b と b -> c には付けない)。
- *
- * **状態の図だけに付ける**。 他の図種の組立て API は付けない (実測 = `er()` は付けなかった)。
- */
-function 後ろへ戻る矢印か(
-  kind: GenericKind,
-  fromId: string,
-  toId: string,
-  箱の並び: ReadonlyMap<string, number>,
-): boolean {
-  if (kind !== "state") return false;
-  const 元 = 箱の並び.get(fromId);
-  const 先 = 箱の並び.get(toId);
-  if (元 === undefined || 先 === undefined) return false;
-  return 先 < 元;
-}
-
-/**
- * 向きを選べる図種 (#1494)。
- *
- * **並び方そのものが読み方を担う図種は外す**。 表の図は「1 縦列 1 表」、クラス図と状態の図は
- * 設計が格子に置く形、順序図は 1 枚の板で、どれも向きを入れ替えると図の意味が変わる。
- *
- * `topology` も外す = 入れ物 (`contain`) を持つ図で、縦列の中に箱を囲む作りが向きと結びついている。
- */
-const 向きを選べる図種: ReadonlySet<PresetType> = new Set<PresetType>(["flow", "swimlane"]);
-
-/** その図種の既定の向き。 書かなかった時は今までどおりの並びになる。 */
-function 既定の向き(kind: PresetType): "縦" | "横" {
-  return kind === "flow" || kind === "topology" ? "縦" : "横";
-}
-
-/**
- * 実際に使う向き (#1494)。
- *
- * 書いていない図と、効かない図種に書いた図は既定のまま = **書かない図の並びは 1 つも動かない**。
- */
-function 並べる向き(kind: PresetType, doc: DslDocument): "縦" | "横" {
-  if (doc.direction === undefined) return 既定の向き(kind);
-  if (!向きを選べる図種.has(kind)) return 既定の向き(kind);
-  return doc.direction;
-}
-
-/**
  * 書いた向きが効かない時に伝える (#1494)。
  *
  * 効かない形は 2 つある。 向きを選べない図種に書いた形と、全ての箱が縦列を書いた形。
@@ -7954,52 +7560,7 @@ function reportDirectionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
   }
 }
 
-/**
- * 縦列を選べる図種 (#1263)。
- *
- * 縦列を **箱を並べるための入れ物** として使う図種だけを許す。 順序図と solidity は
- * 縦列がそのまま生命線として描かれる骨格なので許さない (#1248 の判断はこちらに当たる)。
- *
- * `er` は「1 縦列 1 箱」 が図の読み方そのもの (表が横に並ぶ) なので、2 つの箱を同じ縦列へ
- * 入れられる形にはしない。
- *
- * **クラス図と状態遷移図は外した** (#1466)。 設計が格子に置く形になり (クラス 3 列 3 段 /
- * 状態 2 列 5 段)、「箱の 1 つの辺には関係を 1 本まで」 を守るには 1 つの縦列に複数の箱が要る。
- * 「1 縦列 1 箱」 が読み方だった前提はここで崩れている。
- */
-const 縦列を選べる図種: ReadonlySet<PresetType> = new Set<PresetType>([
-  "flow",
-  "topology",
-  "swimlane",
-  "class",
-  "state",
-  /*
-   * ER 図 (#1571)。
-   *
-   * `er` の組み立て器は実体 1 つにつき帯を 1 本作り、必ず段 0 に置く = 表が横 1 列にしか
-   * 並ばない。 関係を 4 本持つ実体があると、どう並べ替えても 2 本は隣を飛び越す
-   * (意匠帳 `docs/design/er/note.md` § 記法の制約 が 4 通りを実測しており、1 列は縦横比 7.0 /
-   * 最長の線 4068、格子は 3.5 / 836)。
-   *
-   * **全ての箱が縦列を書いた時だけ** 効くので、書かない図はいままでどおり組み立て器が並べる。
-   */
-  "er",
-]);
 
-/**
- * 書いた縦列に箱を置く形か (#1263)。
- *
- * **全ての箱が縦列を書いた時だけ** この形にする。 一部だけ書いた形は、書かなかった箱の
- * 行き先を決める規則が要る (既定の縦列に集める / 自分の縦列を作る) が、どちらも
- * 書いた人の意図と一致する保証が無い。 混ざった形は `reportLaneMixed` が知らせる。
- *
- * 見本 (parts) は縦列を張替え先として使うため、この判定からは外す。
- */
-function 書いた縦列に置く(kind: PresetType, doc: DslDocument): boolean {
-  if (!縦列を選べる図種.has(kind)) return false;
-  const 対象 = doc.actors.filter((a) => a.partId === undefined);
-  return 対象.length > 0 && 対象.every((a) => a.lane !== undefined);
-}
 
 function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): CdlDiagram {
   const { kind, laneWidth } = opts;
@@ -8239,19 +7800,6 @@ function resolveHighlightGeneric(
 // ─── helpers ──────────────────────────────────────────────────
 
 /** id の長さの上限。 `slugify` が切る幅で、 尾を付ける側もこの値から余地を決める (#1220) */
-const ID_MAX = 64;
-
-function slugify(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .normalize("NFKC")
-      .replace(/[^a-z0-9ぁ-んァ-ヶ一-龯\-_]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, ID_MAX) || "n"
-  );
-}
-
 const CARDINALITY_PATTERNS: Array<[RegExp, ErRelationCardinality]> = [
   [/1:1/, "1:1"],
   [/1:N/i, "1:N"],
