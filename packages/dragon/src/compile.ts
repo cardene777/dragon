@@ -636,18 +636,6 @@ function injectStaticPhase(diagram: CdlDiagram): void {
 }
 
 /**
- * 光らせる相手 (`focus:`) が実在しない分を知らせる。
- *
- * 名前が当たらなかった指定は静かに消える。 光らせたい相手を書いたのに光らない状態が、
- * 手掛かりなしで起きる。
- *
- * 見るのは記述だけ。 id の形は図種で違うが、 「その名前の箱が居るか」「その矢印が流れに
- * あるか」 は書かれた内容だけで決まる。 図種ごとの解決経路に検査を分けると、 経路が増える
- * たびに検査が取り残される。
- */
-
-
-/**
  * 解決できない矢印を落とした `flow` を返す (#1219)。
  *
  * 落とすのは **組み立てに渡す分だけ**。 知らせ (`reportMissingFlowActors`) は元の `flow` を
@@ -967,13 +955,6 @@ function reportLaneNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
   }
 }
 
-
-
-
-
-
-
-
 /**
  * 矢印が `actors` に無い名前を指したことを知らせる (#1209)。
  *
@@ -1023,6 +1004,16 @@ function reportMissingFlowActors(
   }
 }
 
+/**
+ * 光らせる相手 (`focus:`) が実在しない分を知らせる。
+ *
+ * 名前が当たらなかった指定は静かに消える。 光らせたい相手を書いたのに光らない状態が、
+ * 手掛かりなしで起きる。
+ *
+ * 見るのは記述だけ。 id の形は図種で違うが、 「その名前の箱が居るか」「その矢印が流れに
+ * あるか」 は書かれた内容だけで決まる。 図種ごとの解決経路に検査を分けると、 経路が増える
+ * たびに検査が取り残される。
+ */
 function reportMissingFocusTargets(
   doc: DslDocument,
   onNotice?: (notice: CompileNotice) => void,
@@ -1087,84 +1078,6 @@ function reportMissingFocusTargets(
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * CAR-1657 = parts CdlDiagram (単一 part 内容) を target CdlDiagram に prefix 付きで merge する。
- * alias = user が書く actor 名 ('arc1')、 全 id を '{alias}__{origId}' で prefix、 lane 参照 rename、
- * state initial は stateOverride で上書き可、 shape / subtitle / value 内の '{stateName}' template も
- * '{alias__stateName}' に rewrite する。 phase parallel merge (activate / tweens / sets の id 参照 rename)。
- */
-
-
 
 /**
  * v0.5+ flow inline option (guard / cardinality / labelOffsetX / labelOffsetY / overlay) を
@@ -1315,18 +1228,6 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.dashOffsetBind !== undefined) target.dashOffsetBind = s.dashOffsetBind;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * v0.5+ groups section を、 束ねる縦列に重ねる枠の縦列 (`group-{id}`、 contain: true) として図に足す。
  *
@@ -1464,66 +1365,6 @@ function applyGroupFrames(
     枠.posH = 下 - 上 + 組の枠の余白.上 + 組の枠の余白.下;
   }
 }
-
-/**
- * Gantt preset (横棒 timeline 専用 layout)
- *
- * 設計 ... 各 actor = 1 行 (= 1 task) として、 actor.subtitle ("Q1" / "Q2" / "Q3" / "Q4") を
- * 横軸 (時間軸) 上の位置にマッピングし、 actor を上下に縦 stack する形で「横棒 timeline」 を
- * 視覚的に作る。
- *
- * 寸法 ... 全体 timeline 幅 1400px / 各 task 横棒 w=280 h=64 / 中央 cx は Q1=200 / Q2=600 /
- * Q3=900 / Q4=1200。
- *
- * 実装 ... 背景 container lane (gantt-timeline) を 1 本 + 各 actor 用個別 lane (lane.x 明示) を
- * 1 本ずつ。 actor の stack は row index で、 全 lane 共通の row cy が layout で計算される。
- * kind: card 強制、 w / h を明示することで Gantt bar の視覚 size を担保。
- *
- * flow は依存関係を edge で表現 (横棒間の矢印)。
- */
-
-/**
- * Pie preset (円グラフ風 slice list 専用 layout)
- *
- * 設計 ... 円グラフの SVG arc 描画は engine 改修が大きいため、 簡易版として「slice list + value (%) 表示」
- * で代替する。 1 lane に slice を縦並びにし、 value 属性 (例 "30%") は applyV05Extensions が
- * node.value に merge することで「[Slice A] 30%」 「[Slice B] 25%」 のような pie chart 意図を伝える。
- *
- * 実装 ... 全 slice を 1 lane に縦 stack。 kind: card 強制、 w=480 h=120。
- *
- * flow は通常なし (slice 間に依存関係はない)、 author 明示時のみ edge を描く。
- */
-
-/**
- * 図表 4 種の組立て (#1154 段 2 / 段 3)。
- *
- * 描画側に 1 node で渡す形は値で描く 3 型と同じ。 違うのは **actor から何を読むか**。
- *
- * | 型 | 読むもの | 書き方 |
- * |---|---|---|
- * | `funnel` | 数 | `- 訪問: "12000"` |
- * | `tree` | 親子 | `flow` の矢印 (`親 -> 子`) |
- * | `journey` | 気持ち | `- 登録: "不満"` |
- * | `quadrant` | どの区画か | `- 重複削除: "左上"` |
-
- * `tree` だけ `flow` を読む = 親子は 2 つの名前の関係で、 1 行 1 値では書けないため。
- */
-
-/**
- * 図表の大きさ。 **格子 (16) の倍数にする**。
- *
- * 描画側 (`cdl` の `chart()` preset) は高さを 16 の倍数へ切り上げる。 揃えないと下端が格子から
- * 外れ、 正しい記法でも位置の警告が出る (review 指摘、 360 のまま 5 型が該当していた)。
- */
-
-/** 気持ちの言葉。 書きやすさのため日本語で受ける。 */
-//
-// **`Map` で持つ**。 plain object だと `__proto__` / `constructor` が親から引けてしまい、
-// 書ける語の一覧に無い入力が値として通る (review 指摘)。 型は付いていても中身は object や
-// function になり、 描画側へそのまま流れる。
-
-/** 区画の言葉。 縦横の位置をそのまま書く。 */
-// 同上の理由で `Map`。
 
 /**
  * 体験の道筋の欄を、 それを描けない図種で書いた時に伝える (#1251)。
@@ -1679,14 +1520,6 @@ function 行頭の印にする(
   }
   return null;
 }
-
-
-
-
-
-
-
-
 
 /**
  * `lanes:` で作った縦列と、見本 (parts) が作った同一idの縦列を 1 つに重ねる (#1241)。

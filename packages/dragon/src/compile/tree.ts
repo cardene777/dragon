@@ -6,6 +6,12 @@ import { 矢印から親を決める, 放射に出す文字 } from "./hierarchy"
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
 import { 図の小見出し } from "./subtitle";
+/**
+ * 木 (`type: tree`) の組み立て (#1154)。 描画側に 1 つの箱で渡す。
+ *
+ * 親子を `flow` の矢印で読む (`親 -> 子`)。 他の図表と違って `flow` を読むのは、親子が
+ * 2 つの名前の関係で、 1 行 1 値では書けないため。
+ */
 export function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "tree" });
   const { w: W, h: H } = 図表の大きさ.tree;

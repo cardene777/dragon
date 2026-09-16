@@ -29,7 +29,7 @@ import {
 } from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
 import { at } from "./support/at";
 
-/**
+/*
  * #401 interactive error-0 gate (段階拡張)。
  *
  * #401 の壁打ち (2026-07-22) で「interactive の残 visualValidate error を error-0 に解消し、 全 interactive
@@ -210,7 +210,7 @@ describe("#401 interactive error-0 gate", () => {
   });
 });
 
-/**
+/*
  * #892 = exemplar 3 件の配置を validator とは別経路で固定する。
  *
  * error 0 は validator の判定で、 validator が見ていない崩れは通ってしまう (stage 2 で実証済)。

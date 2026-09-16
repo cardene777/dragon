@@ -7,6 +7,11 @@ import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
 import { 図の小見出し } from "./subtitle";
 import { 区画 } from "./word-state";
+/**
+ * 四象限 (`type: quadrant`) の組み立て (#1154)。 描画側に 1 つの箱で渡す。
+ *
+ * 登場人物ごとに **どの区画か** を読む (`- 重複削除: "左上"`)。 使える語は `区画` が持つ。
+ */
 export function compileQuadrant(
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,

@@ -1882,7 +1882,7 @@ export const shapeCreditCard = shapeSample({
   phase: { title: "shape-credit-card", body: "金色の端子と非接触の波、番号、名義、有効期限、ブランドの印。 実物のクレジットカードを表す。" },
 });
 
-/** 11. 実シーン (Scene) diagram = 複数 shape の連携例、 catalog の実用性向上 */
+/* 11. 実シーン (Scene) diagram = 複数 shape の連携例、 catalog の実用性向上 */
 
 /** S-1. crypto 送金 flow = wallet → exchange → blockchain */
 export const sceneCryptoTransfer = diagram("scene-crypto-transfer", { topic: "scene: crypto 送金 (wallet → exchange → chain)" })

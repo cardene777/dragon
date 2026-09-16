@@ -7,6 +7,11 @@ import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
 import { 図の小見出し } from "./subtitle";
 import { 気持ち } from "./word-state";
+/**
+ * 体験の道筋 (`type: journey`) の組み立て (#1154)。 描画側に 1 つの箱で渡す。
+ *
+ * 登場人物ごとに **気持ち** を読む (`- 登録: "不満"`)。 使える語は `気持ち` が持つ。
+ */
 export function compileJourney(
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
