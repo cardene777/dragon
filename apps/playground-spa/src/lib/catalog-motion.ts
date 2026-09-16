@@ -18,14 +18,6 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
 export type Motion = "continuous" | "step" | "none";
 
 /**
- * 段が触る状態のうち、**入力欄 / 計算式 / スクロールが握っていないもの** を返す。
- *
- * 握られている状態は実行時に上書きされるため、段で動かしても画面に届かない
- * (`interactive-panel.tsx` が入力欄と計算式の値を `stateOverrides` として返し、
- * `render.tsx` がそれを段の値に重ねる)。 これを除かないと、画面が動かない図に
- * 「連続して動く」 と書くことになる。
- */
-/**
  * 図の動きの種類。
  *
  * - `continuous` = 段の中で値が連続して動く (`tween` の始点と終点が違う)
@@ -37,6 +29,10 @@ export type Motion = "continuous" | "step" | "none";
  * 「段の切替で値が一度に変わる」 と書くことになる (実測 = `parts` の 6 図がこれだった)。
  */
 export function motionOf(diagram: CdlDiagram): Motion {
+  // 入力欄 / 計算式 / スクロールが握る状態は、段で動かしても画面に届かないので数えない。
+  // 握られている状態は実行時に上書きされる (`interactive-panel.tsx` が入力欄と計算式の値を
+  // `stateOverrides` として返し、`render.tsx` がそれを段の値に重ねる)。 除かないと、画面が
+  // 動かない図に「連続して動く」 と書くことになる
   const owned = new Set<string>([
     ...(diagram.inputs ?? []).map((i) => i.id),
     ...(diagram.formulas ?? []).map((f) => f.id),

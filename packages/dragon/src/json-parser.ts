@@ -1205,10 +1205,6 @@ function checkUnknownKeys(v: unknown, 層: 階層, path: string, errors: JsonDsl
 }
 
 /**
- * shape validation。 layer 1 = 必須 field + 型 check、 layer 2 は compile 側の validation に委譲。
- * fail-fast ではなく全 error 収集して返す (LLM に一括で修正させるため)。
- */
-/**
  * CAR-1693 Phase 1: DSL 表面 `pos: {x, y}` の型 check helper。 finite number pair を必須にし、
  * `NaN` / `Infinity` / non-number は reject する (組み立ての出口 `applyLayoutOffsets` が配置後の位置に足すため)。
  */
@@ -1323,23 +1319,6 @@ function validateViewport(v: unknown, errors: JsonDslError[]): void {
 }
 
 /**
- * 鍵を利用者が決める入れ物 (縦列 / 群) を見る (#1304)。
- *
- * `lanes` / `groups` は id を鍵に持つため、鍵そのものは縛れない。 縛れるのは
- * 「入れ物が plain object か」 と「各 id の中身の項目名と値の型」 の 2 つ。
- *
- * #1304 まで外側の形が違う入力 (`lanes: 5`) は走査ごと飛ばされ、誤りが 1 件も返らなかった。
- * 形が違うものを黙って捨てると、書いた縦列が 1 つも効かない図が知らせなしで出る。
- */
-/**
- * 図形と部品の中身を、記法と **同じ表** で検査する (#1374)。
- *
- * 表を 2 つ持つと片方だけ直してずれる。 記法側 (`v05/parser.ts`) が持つ表をそのまま引く。
- *
- * 記法は値が全て文字列で届くため読み替えが要るが、JSON は型のまま届く。 ここでは
- * 「知らない種類」 「知らない欄」 「足りない必須の欄」 「欄の型違い」 の 4 つを見る。
- */
-/**
  * 選択肢の並び (`["green", { "value": "red", "label": "失敗" }]`) を要素ごとに検査する (#1920)。
  *
  * 要素は文字列か、`value` と `label` の 2 項目を持つ組。 誤りは要素の場所 (`options[1].label`) で
@@ -1387,6 +1366,14 @@ function 選択肢の並びを検査する(値: unknown, path: string, errors: J
   });
 }
 
+/**
+ * 図形と部品の中身を、記法と **同じ表** で検査する (#1374)。
+ *
+ * 表を 2 つ持つと片方だけ直してずれる。 記法側 (`v05/parser.ts`) が持つ表をそのまま引く。
+ *
+ * 記法は値が全て文字列で届くため読み替えが要るが、JSON は型のまま届く。 ここでは
+ * 「知らない種類」 「知らない欄」 「足りない必須の欄」 「欄の型違い」 の 4 つを見る。
+ */
 function 表で中身を検査する(
   o: Record<string, unknown>,
   表: Record<string, 図形の定義>,
@@ -1472,13 +1459,6 @@ function 表で中身を検査する(
 }
 
 /**
- * 値を見せる部品の並びを検査する (#1374)。
- *
- * **外側の形もここで見る**。 `欄の型表` は「並び」 とだけ宣言し、中身の検査は専用の検査に
- * 委ねる作りなので (`checkFieldType` の `case "並び"`)、ここで見ないと `readouts: 1` が
- * 素通りする。
- */
-/**
  * 順序図の帯の並びを検査する (#1466)。
  *
  * **外側の形もここで見る**。 `欄の型表` は「並び」 とだけ宣言し、中身の検査は専用の検査に
@@ -1512,6 +1492,13 @@ function validateBands(v: unknown, errors: JsonDslError[]): void {
   });
 }
 
+/**
+ * 値を見せる部品の並びを検査する (#1374)。
+ *
+ * **外側の形もここで見る**。 `欄の型表` は「並び」 とだけ宣言し、中身の検査は専用の検査に
+ * 委ねる作りなので (`checkFieldType` の `case "並び"`)、ここで見ないと `readouts: 1` が
+ * 素通りする。
+ */
 function validateReadouts(v: unknown, errors: JsonDslError[]): void {
   if (v === undefined) return;
   if (!Array.isArray(v)) {
@@ -1921,6 +1908,15 @@ function validateActorShape(v: unknown, path: string, errors: JsonDslError[]): v
   表で中身を検査する(v as Record<string, unknown>, 図形の表, path, "shape", errors);
 }
 
+/**
+ * 鍵を利用者が決める入れ物 (縦列 / 群) を見る (#1304)。
+ *
+ * `lanes` / `groups` は id を鍵に持つため、鍵そのものは縛れない。 縛れるのは
+ * 「入れ物が plain object か」 と「各 id の中身の項目名と値の型」 の 2 つ。
+ *
+ * #1304 まで外側の形が違う入力 (`lanes: 5`) は走査ごと飛ばされ、誤りが 1 件も返らなかった。
+ * 形が違うものを黙って捨てると、書いた縦列が 1 つも効かない図が知らせなしで出る。
+ */
 function validateIdMap(
   v: unknown,
   欄: "lanes" | "groups",
@@ -2202,6 +2198,10 @@ export function 素のデータに写す(
   }
 }
 
+/**
+ * shape validation。 layer 1 = 必須 field + 型 check、 layer 2 は compile 側の validation に委譲。
+ * fail-fast ではなく全 error 収集して返す (LLM に一括で修正させるため)。
+ */
 function validateJson(
   json: unknown,
 ): { ok: true; data: DragonJson } | { ok: false; errors: JsonDslError[] } {
@@ -2507,12 +2507,6 @@ function validateValues(v: unknown, errors: JsonDslError[]): void {
 }
 
 /**
- * JSON DSL → DslDocument (AST) 変換。 pos は JSON なので line 情報なし、 全て line 0。
- *
- * CAR-1693 Phase 1: DSL 表面 `pos: {x, y}` → 内部 AST `layoutPos:` の 2 層 mapping の実装 core。
- * test で mapping logic を実 execute するため export する (pos-field.test.ts の regression guard)。
- */
-/**
  * 図表の箱の上の小見出しを、 記法側と同じ形に整える (#1247)。
  *
  * 記法は値を `trim()` してから空かどうかを見る。 JSON でも同じ順で見ないと、 空白だけの値が
@@ -2524,6 +2518,12 @@ function 整えた小見出し(v: string | undefined): string | undefined {
   return t.length > 0 ? t : undefined;
 }
 
+/**
+ * JSON DSL → DslDocument (AST) 変換。 pos は JSON なので line 情報なし、 全て line 0。
+ *
+ * CAR-1693 Phase 1: DSL 表面 `pos: {x, y}` → 内部 AST `layoutPos:` の 2 層 mapping の実装 core。
+ * test で mapping logic を実 execute するため export する (pos-field.test.ts の regression guard)。
+ */
 export function jsonToDoc(json: DragonJson): DslDocument {
   const p0 = { line: 0 };
   const actors: DslActor[] = json.actors.map((a) => {

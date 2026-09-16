@@ -40,7 +40,7 @@ import { at } from "./support/at";
  *
  * 【段階拡張の到達点 (Issue #398)】
  * 「全 interactive diagram を error-0 で gating」 は visual-validate-sweep.test.ts が
- * interactive category 全 129 diagram を収録したことで達成済。 error-0 だけを足す目的で
+ * interactive category の全 diagram を収録したことで達成済。 error-0 だけを足す目的で
  * 下の FIXED に diagram を追加する必要はもう無い。
  * 本 file が引き続き担うのは、 validator が見ていない崩れを座標で直接固定する assert 群
  * (crest Y 実分離 / label と弧の対応 等) = error 0 では検知できない false green の guard。
@@ -66,6 +66,7 @@ import { at } from "./support/at";
  *     green を検知できないため、 下記「crest Y 実分離」 assert で 2 detour edge の主水平区間 Y が実際に
  *     分離していることを座標で固定する (side:"left" に戻すと本 assert が fail する)。
  */
+
 /**
  * 受け入れている error の欄 (#1755)。 **今は 1 件も無い**。
  *
@@ -219,6 +220,7 @@ describe("#401 interactive error-0 gate", () => {
  * 全対の一括 assert だけでは、 offset を 1 つ戻した時に落ちない組合せがある (実測)。 各図で
  * 実際に問題だった対を個別に assert して、 どの offset を戻しても落ちる状態にする。
  */
+
 /** cdl の `computeGap` と同じ計算。 交差していれば 0、 離れていれば最短距離。 */
 const gapOf = (a: BBox, b: BBox): number => {
   const dx = Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w)));

@@ -41,21 +41,12 @@ import { applySvgPixelSize, normalizeScale } from "@/lib/svg-pixel-size";
 import { panCompensation, type ViewBoxOrigin } from "@/lib/viewbox-anchor";
 
 /**
- * overlay div 内の「主要 shape」 を返す。
+ * overlay div 内の「主要 shape」 を返す。 部品の背景色 (`bg`) を塗り替える相手を決める。
  *
- * 選択枠 / align / bg 適用の全てがこの判定を共有する。 painted 判定を入れないと
- * achievement の透明 wrapper rect (fill=none) を掴んでしまい、 実際に見えている図形より
- * 大きい bbox を主要形状とみなす (CAR-2158 Round 3 で align / bg 間の不整合として検出)。
+ * painted 判定を入れないと achievement の透明 wrapper rect (fill=none) を掴んでしまい、
+ * 実際に見えている図形より大きい bbox を主要形状とみなす (CAR-2158 Round 3 で、当時あった
+ * 整列と背景色の間の不整合として検出)。
  */
-/**
- * text 編集の入力欄を「中身が全部見える幅」 に合わせる。
- *
- * 元要素の bbox に固定すると、 元の文字より長く打った途端に先頭が隠れて全文を確認できない。
- * `scrollWidth` は内容の実幅を返すので、 一度 auto に戻してから測り直す。
- * 元要素より狭くはしない (`minWidth` 相当) = 見た目の位置ずれを避ける。
- */
-
-
 function findPaintedShape(div: Element): SVGGraphicsElement | null {
   const shapes = div.querySelectorAll<SVGGraphicsElement>("circle, rect, path, ellipse, polygon");
   let maxArea = 0;
