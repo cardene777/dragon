@@ -6,6 +6,12 @@ import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES } from "@/lib/catalog";
 import { loadPartsItems, 選んだ見本, type CatalogItem } from "@/lib/catalog-items";
 import { useCategoryItems, 部品の読込を見せる, type 部品の読込結果 } from "./category-items";
+import {
+  今の見せ方,
+  開いた時の見せ方,
+  type 見せ方,
+  type 見せ方の持ち主,
+} from "./category-view-state";
 import { CATALOG_HANDLERS } from "@/lib/catalog-handlers";
 import { itemName, itemNameEn, itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
@@ -17,7 +23,6 @@ import { useDiagramPanZoom } from "@/components/useDiagramPanZoom";
 import {
   図の速さを変える,
   記法の速さを変える,
-  既定の速さ,
   速さの選択肢,
   type 速さ,
 } from "@/lib/playback-speed";
@@ -34,30 +39,22 @@ import {
   図の配色を変える,
   配色を選べる,
   配色の選択肢,
-  既定の配色,
-  type 配色,
 } from "@/lib/palette-switch";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 import {
   図の折れ線の見せ方を変える,
   折れ線を選べる,
   折れ線の見せ方の選択肢,
-  既定の折れ線の指定,
-  type 折れ線の指定,
 } from "@/lib/chart-line-options";
 import {
   図の円の見せ方を変える,
   円の見せ方を選べる,
   円の見せ方の選択肢,
-  既定の円の見せ方,
-  type 円の見せ方,
 } from "@/lib/chart-pie-options";
 import {
   図の傾きの見せ方を変える,
   傾きの見せ方を選べる,
   傾きの見せ方の選択肢,
-  既定の傾きの見せ方,
-  type 傾きの見せ方,
 } from "@/lib/chart-slope-options";
 
 import {
@@ -235,23 +232,11 @@ export function CategoryPage(): React.ReactElement {
   const params = useParams<{ slug: string }>();
   const [locale] = useLocale();
   const [modalItem, setModalItem] = useState<CatalogItem | null>(null);
-  // 選んでいるパターンの名前 (#1696)。 `null` は「まだ押していない」 = 元の見本
-  const [パターン, setパターン] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewTab, setPreviewTab] = useState<PreviewTab>("diagram");
-  // 再生速度は **見ている 1 件だけ** に効く (#1355)。 項目を選び直すと既定に戻る
-  const [速さ, set速さ] = useState<速さ>(既定の速さ);
-  // 2 段目以降を描き直すか (#1359)。 速さと同じく、見ている 1 件だけに効く
-  const [描き方, set描き方] = useState<描き方>(既定の描き方);
-  // 図の色味 (#1569)。 速さと同じく、見ている 1 件だけに効く
-  const [配色, set配色] = useState<配色>(既定の配色);
-  // 折れ線の見せ方 (#1624)。 速さと同じく、見ている 1 件だけに効く
-  const [折れ線, set折れ線] = useState<折れ線の指定>(既定の折れ線の指定);
-  // 円グラフの見せ方 (#1645)。 3 つは互いに排他なので 1 つの値で持つ
-  const [円, set円] = useState<円の見せ方>(既定の円の見せ方);
-  // 傾き図の右の列に何を出すか (#1659)。 2 つは互いに排他なので 1 つの値で持つ
-  const [傾き, set傾き] = useState<傾きの見せ方>(既定の傾きの見せ方);
+  // 見せ方 7 つ (速さ / 描き方 / 配色 / 折れ線 / 円 / 傾き / パターン) は
+  // 見ている項目が決まってから持つ (下の `見せ方の状態`、#2022)
   // シーンの表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
   const [modalStageEl, setModalStageEl] = useState<HTMLElement | null>(null);
@@ -316,29 +301,65 @@ export function CategoryPage(): React.ReactElement {
     return filtered[0] ?? null;
   }, [filtered, items, selectedId]);
 
-  // 項目を選び直したら速さを既定へ戻す (#1355)。 残すと、次の図が遅い理由を見失う
   const 見ている項目 = currentItem?.id ?? null;
+  /**
+   * 描き方の初期値だけは図ごとに違う (#1690)。 弧は継ぎ足すと起点を見失うので描き直しから始める。
+   *
+   * **元の見本から導く** (`見本` ではない)。 これは「その項目を開いた時の既定」 で、
+   * 選んだパターンから導くと、パターンを押しただけで既定そのものが動く。
+   */
+  const この図の描き方 = currentItem ? 図ごとの既定の描き方(currentItem.diagram) : 既定の描き方;
+  /**
+   * 見ている 1 件だけに効く見せ方 7 つ (#1355 / #1359 / #1569 / #1624 / #1645 / #1659 / #1696)。
+   *
+   * **どの項目の見せ方かを一緒に持ち、描く時に読み替える** (#2022)。 項目を選び直したら既定へ
+   * 戻す必要があるが、効果で戻すと選び直した最初の 1 コマが前の項目の見せ方で描かれる
+   * (描き方の既定は図ごとに違うので、何も触っていない人にも出る)。 読み替えなら 1 コマ目から
+   * 新しい既定になり、戻し忘れも起きない。
+   *
+   * 同じ画面の拡大表示の倍率 (#1745) と並びの倍率 (#1749) が既に同じ形。
+   */
+  const [見せ方の状態, set見せ方の状態] = useState<見せ方の持ち主>({
+    項目: null,
+    値: 開いた時の見せ方(既定の描き方),
+  });
+  const 見せ方 = useMemo(
+    () => 今の見せ方(見せ方の状態, 見ている項目, この図の描き方),
+    [見せ方の状態, 見ている項目, この図の描き方],
+  );
+  const { 速さ, 描き方, 配色, 折れ線, 円, 傾き, パターン } = 見せ方;
+  /**
+   * 見せ方を書き換える。
+   *
+   * **土台は読み替えた後の値**。 持っている値をそのまま土台にすると、別の項目で選んだ設定が
+   * 選び直した先へ持ち越される。
+   */
+  const 見せ方を置く = (変更: Partial<見せ方>): void => {
+    set見せ方の状態((前) => ({
+      項目: 見ている項目,
+      値: { ...今の見せ方(前, 見ている項目, この図の描き方), ...変更 },
+    }));
+  };
+  /**
+   * 一覧から項目を選ぶ。
+   *
+   * **見せ方も同じ操作で既定へ戻す** (#1624)。 読み替えだけだと、別の見本を挟んで同じ見本へ
+   * 戻った時に持ち主が再び一致し、前に選んだ見せ方が復活する。 「見本を選び直すと切へ戻る」
+   * 約束を保つには、選ぶ操作そのもので戻す必要がある。
+   *
+   * 押した時に戻すので、効果と違って選び直した最初の描画から既定になる (#2022)。
+   * 押さずに見ている項目が変わる経路 (絞り込みで先頭が変わる / 部品の一覧を後から読む) は
+   * 読み替えが受け持つ。
+   */
+  const 項目を選ぶ = (item: CatalogItem): void => {
+    setSelectedId(item.id);
+    set見せ方の状態({ 項目: item.id, 値: 開いた時の見せ方(図ごとの既定の描き方(item.diagram)) });
+  };
   /**
    * 画面に出している見本 (#1696)。 パターンを選んでいればその中身、無ければ元の見本。
    * 図もコードも拡大もここから引く = 引く先が分かれると、選んだものと違う中身が出る。
    */
   const 見本 = 選んだ見本(currentItem, パターン);
-  /**
-   * 描き方の初期値だけは図ごとに違う (#1690)。 弧は継ぎ足すと起点を見失うので描き直しから始める。
-   *
-   * **元の見本から導く** (`見本` ではない)。 下の reset がこの値を見ているので、選んだ
-   * パターンから導くと パターンを押す → 値が変わる → reset が走って選択が消える、になる。
-   */
-  const この図の描き方 = currentItem ? 図ごとの既定の描き方(currentItem.diagram) : 既定の描き方;
-  useEffect(() => {
-    set速さ(既定の速さ);
-    set描き方(この図の描き方);
-    set配色(既定の配色);
-    set折れ線(既定の折れ線の指定);
-    set円(既定の円の見せ方);
-    set傾き(既定の傾きの見せ方);
-    setパターン(null);
-  }, [見ている項目, この図の描き方]);
 
   // 段の長さに倍率を掛けた図。 既定 (1 倍) では元の object がそのまま返るので、
   // 速さを触っていない図は描き直されない
@@ -567,7 +588,7 @@ export function CategoryPage(): React.ReactElement {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setSelectedId(item.id)}
+                      onClick={() => 項目を選ぶ(item)}
                       className={`catalog-list-item${isSelected ? " selected" : ""}`}
                       role="listitem"
                       aria-current={isSelected ? "true" : undefined}
@@ -676,7 +697,7 @@ export function CategoryPage(): React.ReactElement {
                               role="radio"
                               aria-checked={描き方 === v}
                               className={`catalog-speed-btn ${描き方 === v ? "is-active" : ""}`}
-                              onClick={() => set描き方(v)}
+                              onClick={() => 見せ方を置く({ 描き方: v })}
                               title={`2 段目以降を${v}`}
                             >
                               {v}
@@ -698,7 +719,7 @@ export function CategoryPage(): React.ReactElement {
                               role="radio"
                               aria-checked={配色 === v}
                               className={`catalog-speed-btn ${配色 === v ? "is-active" : ""}`}
-                              onClick={() => set配色(v)}
+                              onClick={() => 見せ方を置く({ 配色: v })}
                               title={`図の色味を${v}にする`}
                             >
                               {v}
@@ -719,7 +740,7 @@ export function CategoryPage(): React.ReactElement {
                               type="button"
                               aria-pressed={折れ線[v]}
                               className={`catalog-speed-btn ${折れ線[v] ? "is-active" : ""}`}
-                              onClick={() => set折れ線({ ...折れ線, [v]: !折れ線[v] })}
+                              onClick={() => 見せ方を置く({ 折れ線: { ...折れ線, [v]: !折れ線[v] } })}
                               title={`折れ線の${v}を${折れ線[v] ? "切る" : "入れる"}`}
                             >
                               {v}
@@ -740,7 +761,7 @@ export function CategoryPage(): React.ReactElement {
                               role="radio"
                               aria-checked={円 === v}
                               className={`catalog-speed-btn ${円 === v ? "is-active" : ""}`}
-                              onClick={() => set円(v)}
+                              onClick={() => 見せ方を置く({ 円: v })}
                               title={`円グラフを${v}で描く`}
                             >
                               {v}
@@ -761,7 +782,7 @@ export function CategoryPage(): React.ReactElement {
                               role="radio"
                               aria-checked={傾き === v}
                               className={`catalog-speed-btn ${傾き === v ? "is-active" : ""}`}
-                              onClick={() => set傾き(v)}
+                              onClick={() => 見せ方を置く({ 傾き: v })}
                               title={`傾き図の右の列に${v}を出す`}
                             >
                               {v}
@@ -777,7 +798,7 @@ export function CategoryPage(): React.ReactElement {
                             role="radio"
                             aria-checked={速さ === v}
                             className={`catalog-speed-btn ${速さ === v ? "is-active" : ""}`}
-                            onClick={() => set速さ(v)}
+                            onClick={() => 見せ方を置く({ 速さ: v })}
                             title={`再生速度 ${v}x`}
                           >
                             {v}x
@@ -804,7 +825,7 @@ export function CategoryPage(): React.ReactElement {
                               className={`catalog-speed-btn ${
                                 選んでいるパターン?.名 === p.名 ? "is-active" : ""
                               }`}
-                              onClick={() => setパターン(p.名)}
+                              onClick={() => 見せ方を置く({ パターン: p.名 })}
                               title={`${p.名}の見本を出す`}
                             >
                               {p.名}
