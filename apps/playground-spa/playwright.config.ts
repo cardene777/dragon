@@ -5,9 +5,6 @@ import { DEV_URL, PREVIEW_BASE_URL } from "./ports";
 /**
  * Playwright config。
  *
- * CAR-1983 = motion spec (`html-canvas-motion.spec.ts`) のみ video 常時録画 + slower timeout。
- * 他 spec は既存挙動維持 (trace on-first-retry のみ、 video 無)。 project 分けで overhead を motion spec に限定。
- *
  * ## 並列で回す (#1094)
  *
  * 検査の大半は待っている時間で、 その間 CPU は空いている (実測 = `waitForTimeout` が 244 箇所、
@@ -107,7 +104,6 @@ export default defineConfig({
     {
       name: "default",
       testIgnore: [
-        /html-canvas-motion\.spec\.ts$/,
         重ねない検査,
         開発serverの検査,
         開発serverの下ごしらえ,
@@ -139,22 +135,6 @@ export default defineConfig({
       workers: 1,
       dependencies: ["default"],
       use: 共通,
-    },
-    {
-      name: "motion",
-      testMatch: /html-canvas-motion\.spec\.ts$/,
-      timeout: 60000,
-      workers: 1,
-      dependencies: ["default"],
-      use: {
-        ...共通,
-        // video 常時録画 (WebM)、 viewport 内全描画を記録
-        video: {
-          mode: "on",
-          size: { width: 1280, height: 720 },
-        },
-        viewport: { width: 1280, height: 720 },
-      },
     },
   ],
 });

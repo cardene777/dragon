@@ -1,18 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Layer 4 = visual regression。 Playwright `toHaveScreenshot` で pixel diff。
+ * 編集画面の舞台を撮り、基準画像と画素で比べる検査。
  *
- * 4 baseline snapshot を初回実行時に保存、 以後 実行で pixel diff。 diff threshold 内なら pass。
- * animation は disable (animations: "disabled") で決定的比較を担保。
+ * 撮るのは開いた直後の舞台 1 枚 (`01-init.png`)。 基準画像は初回の実行で保存し、以後は違う画素の
+ * 割合が `maxDiffPixelRatio` を超えたら落ちる。 動きは止めてから撮る (撮るたびに違う瞬間が写らない
+ * ように)。
  *
- * snapshot:
- *   1. 初期 (achievement drop 前) editor stage 全体
- *   2. achievement drop 直後
- *   3. achievement 右 200px drag 後
- *   4. achievement SE corner drag で 1.5x resize 後
+ * 撮影を消す時は、`<この file>-snapshots/` の基準画像も一緒に消す。 残すと `test-leftovers.test.ts` が落ちる。
  */
-
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -30,14 +26,14 @@ async function openEditorStable(page: import("@playwright/test").Page): Promise<
 }
 
 /**
- * 2026-07-26 CAR-2158 = visual regression の flaky 解消。
+ * 撮る直前に、図の動きを止める。
  *
- * dragon の diagram animation は cdl 側で rAF / setInterval 駆動しており、 CSS の animation-duration: 0 では
- * 止まらない。 その結果「どの step が active な瞬間か」 が撮影ごとに変わり、 矢印の描画長が変化して
- * pixel diff が閾値を超えることがあった (実測 = 同一 test が単体では pass、 連続実行では fail する flaky)。
+ * 図の動きは cdl 側が rAF / setInterval で進めるので、CSS の `animation-duration: 0` では
+ * 止まらない。 止めないと撮るたびに違う段の瞬間が写り、矢印の描かれた長さが変わって比べた
+ * 画素の差が上限を超える (実測 = 同じ検査が単体では通り、続けて回すと落ちた)。
  *
- * 撮影直前に rAF / timer を停止して frame を固定することで、 レイアウト差 (真の regression) だけが
- * diff に残るようにする。 閾値を緩めて誤魔化す経路は取らない = 100px 級のズレを見逃す穴になるため。
+ * rAF と timer を止めて画面を固定し、配置の違いだけが差に残るようにする。 上限を緩めて通す形は
+ * 取らない = 100px ほどのずれを見逃すようになるため。
  */
 async function freezeAnimation(page: import("@playwright/test").Page): Promise<void> {
   await page.evaluate(() => {
