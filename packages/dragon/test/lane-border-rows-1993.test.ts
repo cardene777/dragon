@@ -13,7 +13,7 @@
  * | 描画側 0.64.1 (cdl#863) | 0 通り |
  *
  * 矢印に説明文を持つ部品は `edge-chain` の 1 種だけなので、2 段目はこれに固定して 1 段目の
- * 2 つ目を 80 種に入れ替える。
+ * 2 つ目を部品の全種類に入れ替える。
  */
 import { describe, it, expect } from "vitest";
 import { layout, visualValidateAll } from "@cardenelabs/cdl";
@@ -54,7 +54,7 @@ const 境目の指摘 = (図: CdlDiagram) =>
     .filter((v) => v.axis === "lane-border-clearance");
 
 describe("別の段の部品の縦列の境目 (#1993)", () => {
-  it("部品 80 種をどれで並べても、別の段の縦列の境目の指摘が出ない", () => {
+  it("どの部品を並べても、別の段の縦列の境目の指摘が出ない", () => {
     expect(種類.length).toBeGreaterThan(0);
     const 出た: string[] = [];
     for (const kind of 種類) {

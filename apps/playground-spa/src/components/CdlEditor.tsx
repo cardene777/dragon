@@ -144,7 +144,7 @@ const v4EditorThemeDark = EditorView.theme(CODE_THEME_RULES, { dark: true });
  * - 入力 debounce 300ms で parse + render
  * - URL hash で share (`#s=<base64>`)、 起動時に hash から復元
  * - Download SVG ボタン
- * - Reset / Sample 切替ボタン (12 件 scroll 横並び)
+ * - Reset / Sample 切替ボタン (scroll 横並び)
  * - Error 表示 (parse error 時に行番号付き)
  * - pan/zoom ... wheel zoom (cursor 中心、 0.25-8x)、 drag pan、 Fit/Reset/100%/+/- toolbar
  */
@@ -443,7 +443,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   /**
    * sidebar tab (SAMPLES vs parts、 CAR-1646)。 default = "samples" で従来 UX 維持、
    * user が "parts" tab に切替えると loadPartsItems() が dynamic import で発火し、
-   * 60 parts (CdlDiagram AST) が sidebar に populate される。 drag source として
+   * 部品の一覧 (CdlDiagram AST) が sidebar に populate される。 drag source として
    * draggable=true を付け、 canvas 側 onDrop で parts-serializer 経由で src 置換する。
    */
   const [sidebarTab, setSidebarTab] = useState<"samples" | "parts" | "syntax">("samples");

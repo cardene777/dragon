@@ -112,7 +112,7 @@ flow:
 ];
 
 describe("iter8: 全 parts × 5 sample types cross matrix (cross-syntax portability)", () => {
-  it(`parts 80 個 export 検出`, () => {
+  it(`parts を 60 個以上 export している`, () => {
     expect(ALL_PARTS.length, `parts.cdl.ts で少なくとも 60 個以上の parts export (現状: ${ALL_PARTS.length})`).toBeGreaterThanOrEqual(60);
   });
 
