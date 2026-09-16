@@ -1,7 +1,4 @@
 import type { DslDocument, PresetType } from "../types";
-/** 段の有無で経路が分かれる図種。 組み立ての入口が渡す種類と同じ綴り */
-export type GenericKind = "flow" | "swimlane" | "er" | "state" | "topology";
-
 /**
  * 図を並べる向きを決める小道具 (#2030 で `compile.ts` から移した)。
  *
@@ -10,6 +7,9 @@ export type GenericKind = "flow" | "swimlane" | "er" | "state" | "topology";
  * **葉に置く** = 図種ごとの組み立て器と、`compile.ts` に残る「書いたのに効かない」 の知らせの
  * 両方が呼ぶ。 どちらかの側に置くと、もう片方から逆向きの取り込みが生まれる。
  */
+
+/** 段の有無で経路が分かれる図種。 組み立ての入口が渡す種類と同じ綴り */
+export type GenericKind = "flow" | "swimlane" | "er" | "state" | "topology";
 
 /**
  * 向きを選べる図種 (#1494)。

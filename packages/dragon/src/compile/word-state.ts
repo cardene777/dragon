@@ -8,6 +8,13 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * どちらかの側に置くと、もう片方から逆向きの取り込みが生まれる。
  */
 
+/**
+ * 気持ちの言葉。 書きやすさのため日本語で受ける。
+ *
+ * **`Map` で持つ**。 plain object だと `__proto__` / `constructor` が親から引けてしまい、
+ * 書ける語の一覧に無い入力が値として通る (review 指摘)。 型は付いていても中身は object や
+ * function になり、 描画側へそのまま流れる。
+ */
 export const 気持ち = new Map<string, "delighted" | "happy" | "neutral" | "frustrated" | "angry">([
   ["最高", "delighted"],
   ["満足", "happy"],
@@ -16,6 +23,7 @@ export const 気持ち = new Map<string, "delighted" | "happy" | "neutral" | "fr
   ["怒り", "angry"],
 ]);
 
+/** 区画の言葉。 縦横の位置をそのまま書く。 `気持ち` と同じ理由で `Map` で持つ */
 export const 区画 = new Map<string, "topLeft" | "topRight" | "bottomLeft" | "bottomRight">([
   ["左上", "topLeft"],
   ["右上", "topRight"],

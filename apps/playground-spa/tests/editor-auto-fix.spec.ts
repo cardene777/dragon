@@ -216,14 +216,14 @@ flow:
     expect(long, "長いラベルの行に入っていない").toContain("とてもとてもながいラベルの文字列テストです");
   });
 
-  /**
+  /*
    * 行順と edge 順が食い違う形は browser からは作れない。 `type: flow` の preset は actor を
    * 鎖状に繋いだ edge を作り、 DSL の step とは対応しない (実測 = `a -> c` / `c -> b` と書くと
    * `e-a-b: みじかい` / `e-b-c: とてもとても…` になり from/to も label の並びも食い違う)。
    * その形で出る警告は `edge-label-clearance` で、 自動修正の対象外なので button が無効になる。
    *
    * 誤った行に書き込まないことは `lib/auto-fix-dsl.test.ts` の「行の順番と edge の順番が違っても
-   * 正しい行に当てる」 と「対応する行が無ければ unmatched に入れる」 で覆う。 compile 側が
-   * step と edge の対応を持たない点は #998 で扱う。
+   * 正しい行に当てる」 と「対応する行が無ければ unmatched に入れる」 で覆う。 compile 側の
+   * step と edge の対応は、鎖状に繋いだ形も含めて `鎖のどの行から来たか` が持つ (#1000 / #1267)。
    */
 });

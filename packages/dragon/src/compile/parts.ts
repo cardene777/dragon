@@ -1893,6 +1893,13 @@ function 値の前置きを作る(名前たち: readonly string[]): Map<string, 
   return 出力;
 }
 
+/**
+ * CAR-1657 = parts CdlDiagram (単一 part 内容) を target CdlDiagram に prefix 付きで merge する。
+ * alias = user が書く actor 名 ('arc1')、 全 id を '{alias}__{origId}' で prefix、 lane 参照 rename、
+ * state initial は stateOverride で上書き可、 shape / subtitle / value 内の '{stateName}' template は
+ * 値の前置き ('{valueAlias}__{stateName}'、 #1189) に rewrite する。 見本が持つ他の値から決まる値
+ * (`derived`) も同じ前置きで閉じる (#1180)。 phase parallel merge (activate / tweens / sets の id 参照 rename)。
+ */
 function mergePartIntoDiagram(
   target: CdlDiagram,
   part: CdlDiagram,

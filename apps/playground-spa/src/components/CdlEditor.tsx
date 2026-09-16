@@ -126,20 +126,6 @@ const CODE_THEME_RULES = {
 const v4EditorThemeLight = EditorView.theme(CODE_THEME_RULES, { dark: false });
 const v4EditorThemeDark = EditorView.theme(CODE_THEME_RULES, { dark: true });
 
-/**
- * Visual Editor v1.1
- *
- * 設計:
- * - 左 ... DSL textarea (monospace、 line-numbered hint)
- * - 右 ... live preview (CdlDiagramView) + pan/zoom toolbar (Mermaid Live Editor 相当)
- * - 入力 debounce 300ms で parse + render
- * - URL hash で share (`#s=<base64>`)、 起動時に hash から復元
- * - Download SVG ボタン
- * - Reset / Sample 切替ボタン (scroll 横並び)
- * - Error 表示 (parse error 時に行番号付き)
- * - pan/zoom ... wheel zoom (cursor 中心、 0.25-8x)、 drag pan、 Fit/Reset/100%/+/- toolbar
- */
-
 /** SAMPLES の各 sample に slug (kebab-case) を持たせて、 PresetDetail の `#preset=<slug>` と一致検索する。
  *  slug は PRESETS.slug 命名規約 (kebab-case、 `lib/presets.ts` SSOT) と揃える。 複数 sample が同 slug を共有する場合
  *  (例 sequence 系 2 件) は SAMPLES 配列先頭の sample が hash match で優先される (最初の find が勝つ)。
@@ -291,6 +277,17 @@ export interface CdlEditorProps {
   initialTab?: "cdl" | "yaml";
 }
 
+/**
+ * 記法の編集画面 (Visual Editor)。
+ *
+ * - 左 ... 記法の入力欄 (CodeMirror、 行番号付き)。 記法と YAML の 2 つの tab を持つ
+ * - 右 ... 図の preview (CdlDiagramView) と拡大縮小の操作 (wheel は cursor 中心、
+ *   `MIN_SCALE` から `MAX_SCALE` 倍まで)、 drag で動かす、 全体表示 / 元に戻す / 等倍
+ * - 入力は間を置いてから読み直す (記法 300ms / YAML 500ms)
+ * - URL hash で共有する (`#s=<base64>`)。 起動時に hash から復元する
+ * - SVG / PNG で書き出す
+ * - 見本の切替 (横に scroll する並び) と、読めなかった時の行番号付きの表示
+ */
 export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const location = useLocation();
   const { toast } = useToast();

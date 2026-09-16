@@ -12,6 +12,11 @@ import { 箱の題 } from "./node-title";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
 import { 図の小見出し } from "./subtitle";
+/**
+ * 漏斗 (`type: funnel`) の組み立て (#1154)。 描画側に 1 つの箱で渡す。
+ *
+ * 登場人物ごとに **数** を読む (`- 訪問: "12000"`)。 段の人数なので負の数は読めない値として扱う。
+ */
 export function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "funnel" });
   const { w: W, h: H } = 図表の大きさ.funnel;

@@ -204,13 +204,6 @@ export function SourceTabs({
 }
 
 /**
- * /catalog/:slug — React docs / Storybook 風 2 pane 構成の再設計版。
- * left = 検索 + item list (sidebar)、 right = 選択 item preview + 詳細。
- * 拡大 button = card / preview 右上絶対配置、 modal = SVG max 80vh center fit。
- * UI 全日本語化 (breadcrumb / stat / button / label)。
- */
-
-/**
  * catalog の図をエディタで開く時の hash。 記法が無ければ `null`。
  *
  * `#preset=<id>` は使わない。 あれはエディタの見本から slug を引く仕組みで、 catalog の図は
@@ -228,6 +221,12 @@ function catalogEditorHash(item: { sourceYaml?: string; sourceJson?: string }): 
   }
 }
 
+/**
+ * `/catalog/:slug` の画面。 2 列で並べる。
+ *
+ * 左 (`catalog-sidebar`) は検索と項目の一覧、右は選んだ項目の図と詳細。 図は拡大表示で開ける。
+ * 見出しの上に、分類の名前と件数と、一覧へ戻る道筋を置く。
+ */
 export function CategoryPage(): React.ReactElement {
   const params = useParams<{ slug: string }>();
   const [locale] = useLocale();

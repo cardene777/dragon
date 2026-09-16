@@ -792,7 +792,7 @@ describe("cdl が読まない CSS 変数を残さない (cdl#388)", () => {
 });
 
 describe("描く太さの face を読み込んでいる (cdl#391)", () => {
-  /**
+  /*
    * `font-weight: 700` と書いても、 その太さの face を読み込んでいなければ 700 では描かれない。
    *
    * CSS の font matching は、 要求より重い face が無ければ軽い face に落とす。 Chromium は
