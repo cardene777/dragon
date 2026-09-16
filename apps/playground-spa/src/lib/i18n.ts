@@ -216,7 +216,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   // === composite exemplar (dragon-diagram skill 生成) ===
   richLayeredPriorityFee: "3層優先度手数料",
 
-  // === charts = 図表系 12 種 (#1152 / #1446) ===
+  // === charts = 図表系 15 種 (#1152 / #1446) ===
   chartBar: "棒グラフ",
   chartLine: "折れ線グラフ",
   chartPie: "円グラフ",
