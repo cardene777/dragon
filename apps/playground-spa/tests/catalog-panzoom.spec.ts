@@ -449,3 +449,186 @@ test.describe("倍率の欄に出る文字 (#1961)", () => {
     await expect(page.locator(`${拡大} .cdl-zoom-value`)).toHaveText(`${拡大の倍率}%`);
   });
 });
+
+/**
+ * 図を切り替えた直後の倍率の欄 (#2048)。
+ *
+ * engine は図が替わっても同じ svg の中身を書き換えるので、大きさの見張りだけで測り直すと欄が
+ * 1 フレーム遅れて前の図の倍率を出す (#2044 で直した)。 ここでは **操作の前から落ち着くまでの
+ * 全フレーム** で、欄が描かれた倍率と一致していることを見る。
+ *
+ * 外から間隔を空けて読む形にしないのは、1 フレームだけの食い違いを取りこぼすため。 頁の中で
+ * `requestAnimationFrame` ごとに記録する。
+ *
+ * | 見る形 | 何が起きていたら落ちるか |
+ * |---|---|
+ * | 図が替わる切替 (一覧の項目 / パターン / 拡大表示の開き直し) | 欄だけが遅れて前の図の百分率を出す |
+ * | 図の大きさが変わらない切替 (再生速度) | 図の鍵が替わるたびに欄が測れていない表示 (`--%`) を挟む |
+ *
+ * 図がまだ無いフレーム (拡大表示を開いた直後) は比べない。 描く図が無い間は欄に出す値が無い。
+ */
+test.describe("図を切り替えた直後の倍率の欄 (#2048)", () => {
+  /** 1 フレームの記録。 図が無いフレームでは `図` と `描かれた` が `null` */
+  type フレーム = { 経過: number; 図: string | null; 描かれた: string | null; 欄: string | null };
+  type 記録を持つ窓 = { __倍率の記録?: { 止める: boolean; 並び: フレーム[] } };
+
+  /** `場所` の図と `欄` の字を、止めるまで毎フレーム記録する */
+  async function 記録を始める(page: Page, 場所: string, 欄: string): Promise<void> {
+    await page.evaluate(
+      ([場所, 欄]) => {
+        const 記録 = { 止める: false, 並び: [] as フレーム[] };
+        (window as unknown as 記録を持つ窓).__倍率の記録 = 記録;
+        const 始め = performance.now();
+        const 見る = (): void => {
+          const 根 = document.querySelector(場所);
+          const svg = 根
+            ? [...根.querySelectorAll<SVGSVGElement>("[data-cdl-diagram] svg[viewBox]")].sort(
+                (a, b) => b.getBoundingClientRect().width - a.getBoundingClientRect().width,
+              )[0]
+            : undefined;
+          let 描かれた: string | null = null;
+          if (svg) {
+            const r = svg.getBoundingClientRect();
+            const vb = svg.viewBox.baseVal;
+            描かれた = `${Math.round(Math.min(r.width / vb.width, r.height / vb.height) * 100)}%`;
+          }
+          記録.並び.push({
+            経過: Math.round(performance.now() - 始め),
+            図: svg?.closest("[data-cdl-diagram]")?.getAttribute("data-cdl-diagram") ?? null,
+            描かれた,
+            欄: document.querySelector(欄)?.textContent?.trim() ?? null,
+          });
+          if (!記録.止める) requestAnimationFrame(見る);
+        };
+        requestAnimationFrame(見る);
+      },
+      [場所, 欄] as const,
+    );
+  }
+
+  async function 記録を読む(page: Page): Promise<フレーム[]> {
+    return await page.evaluate(() => (window as unknown as 記録を持つ窓).__倍率の記録?.並び ?? []);
+  }
+
+  /** 図が `前の図` から替わったフレームが記録に現れるまで待ち、落ち着くまで記録してから止める */
+  async function 図が替わるまで記録する(page: Page, 前の図: string | null): Promise<フレーム[]> {
+    await expect
+      .poll(async () => (await 記録を読む(page)).some((f) => f.図 !== null && f.図 !== 前の図), {
+        message: `図が ${前の図} から替わらない`,
+        timeout: 10_000,
+      })
+      .toBe(true);
+    return await 落ち着くまで記録して止める(page);
+  }
+
+  /** 遅れて来る食い違いも拾えるよう 500ms 記録を続けてから止める */
+  async function 落ち着くまで記録して止める(page: Page): Promise<フレーム[]> {
+    await page.waitForTimeout(500);
+    await page.evaluate(() => {
+      const 記録 = (window as unknown as 記録を持つ窓).__倍率の記録;
+      if (記録) 記録.止める = true;
+    });
+    const 並び = await 記録を読む(page);
+    expect(並び.length, "フレームを 1 つも記録できていない (検査が空振りしている)").toBeGreaterThan(0);
+    return 並び;
+  }
+
+  /** 図があるのに欄が描かれた倍率と違うフレーム */
+  const 食い違ったフレーム = (並び: フレーム[]): string[] =>
+    並び
+      .filter((f) => f.図 !== null && f.欄 !== f.描かれた)
+      .map((f) => `${f.経過}ms 図 ${f.図} 描かれた倍率 ${f.描かれた} 欄「${f.欄}」`);
+
+  /** いま描いている図の識別子と倍率。 切替の前後で倍率が違う組を選んでいることを確かめるのに使う */
+  async function いまの図(page: Page, 場所: string): Promise<{ 図: string; 倍率: string }> {
+    await 記録を始める(page, 場所, "body");
+    const 並び = await 落ち着くまで記録して止める(page);
+    const 最後 = 並び.at(-1);
+    if (!最後?.図 || !最後.描かれた) throw new Error(`${場所} に図が無い (検査が空振りしている)`);
+    return { 図: 最後.図, 倍率: 最後.描かれた };
+  }
+
+  test("並べて見る側で一覧の項目を押すと、全てのフレームで欄が描かれた倍率と一致する", async ({
+    page,
+  }) => {
+    await page.goto("catalog/presets", { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    await page.locator(".catalog-list-item").nth(1).click();
+    await page.waitForTimeout(800);
+    const 前 = await いまの図(page, 並び);
+
+    await 記録を始める(page, 並び, `${並びの操作} .cdl-zoom-value`);
+    await page.locator(".catalog-list-item").nth(2).click();
+    const 記録 = await 図が替わるまで記録する(page, 前.図);
+
+    const 後 = 記録.at(-1);
+    expect(後?.描かれた, "切替の前後で倍率が同じ (欄が遅れても食い違いが出ない組を選んでいる)").not.toBe(
+      前.倍率,
+    );
+    expect(食い違ったフレーム(記録), "欄が描かれた倍率と食い違ったフレームがある").toEqual([]);
+  });
+
+  test("並べて見る側でパターンを替えると、全てのフレームで欄が描かれた倍率と一致する", async ({
+    page,
+  }) => {
+    await 図を選ぶ(page, "presets", "ER図");
+    const 前 = await いまの図(page, 並び);
+
+    await 記録を始める(page, 並び, `${並びの操作} .cdl-zoom-value`);
+    await page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio", { name: "複雑" }).click();
+    const 記録 = await 図が替わるまで記録する(page, 前.図);
+
+    const 後 = 記録.at(-1);
+    expect(後?.描かれた, "切替の前後で倍率が同じ (欄が遅れても食い違いが出ない組を選んでいる)").not.toBe(
+      前.倍率,
+    );
+    expect(食い違ったフレーム(記録), "欄が描かれた倍率と食い違ったフレームがある").toEqual([]);
+  });
+
+  test("並べて見る側で再生速度を替えても、欄が測れていない表示を挟まない", async ({ page }) => {
+    await 図を選ぶ(page, "presets", "ER図");
+    const 速さの群 = page.getByRole("radiogroup", { name: "再生速度" });
+    // 押す速さは名前で固定する。 「選ばれていない最初の速さ」 のまま持つと、押した後は別の速さを指す
+    const 名前 = (
+      (await 速さの群.locator('[role="radio"][aria-checked="false"]').first().textContent()) ?? ""
+    ).trim();
+    expect(名前, "選ばれていない速さが無い (切替を起こせない)").not.toBe("");
+    const 押す速さ = 速さの群.getByRole("radio", { name: 名前, exact: true });
+
+    await 記録を始める(page, 並び, `${並びの操作} .cdl-zoom-value`);
+    await 押す速さ.click();
+    await expect(押す速さ).toHaveAttribute("aria-checked", "true");
+    const 記録 = await 落ち着くまで記録して止める(page);
+
+    expect(
+      記録.filter((f) => f.図 !== null).length,
+      "図があるフレームを記録できていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    expect(食い違ったフレーム(記録), "欄が描かれた倍率と食い違ったフレームがある").toEqual([]);
+  });
+
+  test("別の項目で拡大表示を開き直すと、全てのフレームで欄が描かれた倍率と一致する", async ({
+    page,
+  }) => {
+    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 拡大を開く(page);
+    const 前 = await いまの図(page, 拡大);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(拡大)).toBeHidden();
+    await page.locator(".catalog-list-item").nth(1).click();
+    await page.waitForTimeout(800);
+
+    await 記録を始める(page, 拡大, `${拡大} .cdl-zoom-value`);
+    await page
+      .getByRole("button", { name: /を拡大表示$/ })
+      .first()
+      .click();
+    const 記録 = await 図が替わるまで記録する(page, 前.図);
+
+    const 後 = 記録.at(-1);
+    expect(後?.描かれた, "開き直す前後で倍率が同じ (欄が遅れても食い違いが出ない組を選んでいる)").not.toBe(
+      前.倍率,
+    );
+    expect(食い違ったフレーム(記録), "欄が描かれた倍率と食い違ったフレームがある").toEqual([]);
+  });
+});
