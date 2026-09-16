@@ -30,11 +30,30 @@ export interface Bundle {
   readonly hint: string;
 }
 
-/** 見る束ね。 画面を出す app が持つもの */
+/**
+ * 見る束ね。 画面を出す app が持つもの
+ *
+ * ## 直し方は port が埋まっている時の手順も持つ (#2052)
+ *
+ * 開発 server の port を別の作業が使っていると、起動し直す手順では直せない。 #2044 から #2050 まで
+ * の 4 回、e2e 全件が束の関門で落ちたまま、開発 server の検査 3 件が走らなかった。
+ *
+ * 空いている port で立てれば、Vite は起動時に lockfile の変化を見て束を作り直す
+ * (`Re-optimizing dependencies because lockfile has changed`)。 束の記録は app の
+ * `node_modules/.vite/deps` に 1 つなので、どの port で立てても関門が見る束が新しくなる。
+ * `dev` project の見に行く先は `DEV_SPA_URL` だけが差し替える (`SPA_URL` は届かない)。
+ *
+ * port の数字は書かない。 数字は `ports.ts` だけが持つ (#1326)。 名前と script は
+ * `apps/playground-spa/src/lib/dev-server-hint.test.ts` が実物と突き合わせる。
+ */
 export const BUNDLES: readonly Bundle[] = [
   {
     dir: "apps/playground-spa/node_modules/.vite/deps",
-    hint: "開発 server を止めて `pnpm dev` で起動し直す",
+    hint:
+      "開発 server を止めて `pnpm dev` で起動し直す。\n" +
+      "    その port を別の作業が使っている時は、空いている port で " +
+      "`pnpm -C apps/playground-spa dev --port <空いている port> --strictPort` を立て (起動時に束を作り直す)、\n" +
+      "    画面の検査に `DEV_SPA_URL=http://localhost:<空いている port>` を付ける",
   },
 ];
 
@@ -90,7 +109,8 @@ function optimizedEntries(metadata: string): [string, unknown][] | null {
     const parsed: unknown = JSON.parse(readFileSync(metadata, "utf8"));
     if (typeof parsed !== "object" || parsed === null || !("optimized" in parsed)) return null;
     const optimized: unknown = parsed.optimized;
-    if (typeof optimized !== "object" || optimized === null || Array.isArray(optimized)) return null;
+    if (typeof optimized !== "object" || optimized === null || Array.isArray(optimized))
+      return null;
     return Object.entries(optimized);
   } catch {
     return null;
@@ -123,7 +143,10 @@ export function staleBundles(
     for (const [key, entry] of entries) {
       const name = packageName(key);
       const src =
-        typeof entry === "object" && entry !== null && "src" in entry && typeof entry.src === "string"
+        typeof entry === "object" &&
+        entry !== null &&
+        "src" in entry &&
+        typeof entry.src === "string"
           ? entry.src
           : null;
       const 記録 = name === null || src === null ? null : recordedPackageRoot(dir, src, name);
@@ -171,7 +194,10 @@ export function staleBundleReport(stale: readonly Stale[]): string {
       (bundle) =>
         `${bundle.dir} がいま解決される依存と違う実体を束ねている。\n` +
         bundle.ずれた
-          .map((dependency) => `  ${dependency.name}\n    記録: ${dependency.記録}\n    いま: ${dependency.いま}`)
+          .map(
+            (dependency) =>
+              `  ${dependency.name}\n    記録: ${dependency.記録}\n    いま: ${dependency.いま}`,
+          )
           .join("\n") +
         `\n  直す: ${bundle.hint}`,
     )
