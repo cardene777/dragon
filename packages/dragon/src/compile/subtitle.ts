@@ -1,5 +1,4 @@
 import type { DslDocument } from "../types";
-
 /**
  * 図の小見出しと、知らせに出す字の切り詰め (#2030 で `compile.ts` から移した)。
  *

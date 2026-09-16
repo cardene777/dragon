@@ -1,5 +1,4 @@
 import type { DslDocument } from "../types";
-
 /**
  * 図表の欄を読む小道具 (#2030 で `compile.ts` から移した)。
  *

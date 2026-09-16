@@ -1,5 +1,4 @@
 import type { DslActor } from "../types";
-
 /**
  * 箱に出す題を決める (#2030 で `compile.ts` から移した)。
  *

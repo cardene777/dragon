@@ -1,5 +1,4 @@
 import type { DslDocument, PresetType } from "../types";
-
 /** 段の有無で経路が分かれる図種。 組み立ての入口が渡す種類と同じ綴り */
 export type GenericKind = "flow" | "swimlane" | "er" | "state" | "topology";
 

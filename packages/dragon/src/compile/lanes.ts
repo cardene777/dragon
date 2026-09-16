@@ -1,5 +1,4 @@
 import type { DslDocument, PresetType } from "../types";
-
 /**
  * 箱に書いた縦列の扱い (#2030 で `compile.ts` から移した)。
  *

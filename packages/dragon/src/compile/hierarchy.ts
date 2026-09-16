@@ -1,7 +1,6 @@
 import type { DslActor, DslDocument } from "../types";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
-
 /**
  * 親子の木を扱う小道具 (#2030 で `compile.ts` から移した)。
  *
