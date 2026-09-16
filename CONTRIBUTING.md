@@ -163,8 +163,19 @@ port は `apps/playground-spa/ports.ts` が持つ。 開発と preview で別の
 | `PROD_BASE_URL` | 本番 build を見る 3 spec | `ports.ts` の `PREVIEW_URL` |
 
 **依存の版を上げた直後は server を立て直す**。 Vite は起動時に依存を抱え込むため、
-動いている server は古い版を配り続ける。 `--force` を付けて別 port で立て、`SPA_URL` で
-そこへ向けると確実。
+動いている server は古い版を配り続ける。
+
+開発 server を見る spec は、開発 server を立て直す。 port を別の作業が使っていて立て直せない時は、
+空いている port で立て、`DEV_SPA_URL` でそこへ向ける (#2052)。 `SPA_URL` は build 済を見る検査の
+差し替えで、開発 server を見る spec には届かない。
+
+```bash
+pnpm -C apps/playground-spa dev --port <空いている port> --strictPort
+DEV_SPA_URL=http://localhost:<空いている port> pnpm -C apps/playground-spa exec playwright test --project dev
+```
+
+立てた時に `Re-optimizing dependencies because lockfile has changed` が出れば、束は作り直されている。
+束が古いかは `dev-deps-fresh.setup.ts` が見て、古ければ直し方を出して止まる。
 
 #### 書いた cmd が実在することを検査で見る
 
