@@ -2,7 +2,7 @@
  * node title 存在率 網羅 (iter42、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter42。
- * 全 12 sample × 全 80 parts の node title / subtitle 存在率と型を verify。
+ * 全 sample × 全 parts の node title / subtitle 存在率と型を verify。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";

@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
-describe("iter96: 全 12 sample × node count details", () => {
+describe("iter96: 全 sample × node count details", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`nodes count >= 1`, () => {

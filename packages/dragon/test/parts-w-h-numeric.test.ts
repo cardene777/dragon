@@ -2,7 +2,7 @@
  * parts w/h numeric range 網羅 (iter75、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter75。
- * 全 80 parts の node w/h 数値範囲 verify。
+ * 全 parts の node w/h 数値範囲 verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";

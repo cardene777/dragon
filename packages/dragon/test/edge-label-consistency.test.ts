@@ -2,7 +2,7 @@
  * edge label consistency 網羅 unit test (iter12、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter12。
- * 全 12 EDITOR_SAMPLES の edges について以下 invariant を verify。
+ * 全 EDITOR_SAMPLES の edges について以下 invariant を verify。
  *
  * (a) edge id 一意性 (dup edge id 検出)
  * (b) from/to の endpoint が nodes に存在 (dangling endpoint 検知)
@@ -20,7 +20,7 @@ interface CompiledDiagram {
   edges: Array<{ id?: string; from: string; to: string; label?: string }>;
 }
 
-describe("iter12: 全 12 EDITOR_SAMPLES × edge label consistency 網羅", () => {
+describe("iter12: 全 EDITOR_SAMPLES × edge label consistency 網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label} (${sample.slug})`, () => {
       it(`edges の endpoint (from/to) が全て nodes に存在`, () => {

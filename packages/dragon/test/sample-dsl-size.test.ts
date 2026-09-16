@@ -13,7 +13,7 @@ interface CompiledDiagram {
   edges: unknown[];
 }
 
-describe("iter55: 全 12 sample × DSL size distribution", () => {
+describe("iter55: 全 sample × DSL size distribution", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`DSL char 数 = 100-5000 範囲`, () => {

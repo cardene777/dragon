@@ -2,7 +2,7 @@
  * sample graph reachability 網羅 (iter53、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter53。
- * 全 12 sample の graph 構造 (BFS 到達性 / 孤立 node / 連結成分) を verify。
+ * 全 sample の graph 構造 (BFS 到達性 / 孤立 node / 連結成分) を verify。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
@@ -41,7 +41,7 @@ function bfs(adj: Map<string, Set<string>>, start: string): Set<string> {
   return visited;
 }
 
-describe("iter53: 全 12 sample × graph reachability", () => {
+describe("iter53: 全 sample × graph reachability", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`最大連結成分 >= 1 (BFS 動作確認)`, () => {

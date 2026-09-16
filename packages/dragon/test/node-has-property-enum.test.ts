@@ -2,7 +2,7 @@
  * node has-property enum coverage (iter72、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter72。
- * 全 12 sample × 全 80 parts の node で property 存在率を verify (has-property enum coverage)。
+ * 全 sample × 全 parts の node で property 存在率を verify (has-property enum coverage)。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";

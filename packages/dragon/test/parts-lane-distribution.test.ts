@@ -2,7 +2,7 @@
  * parts lane distribution 網羅 (iter54、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter54。
- * 全 80 parts の lane 別 node 分布を verify。 極端偏り検知。
+ * 全 parts の lane 別 node 分布を verify。 極端偏り検知。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";

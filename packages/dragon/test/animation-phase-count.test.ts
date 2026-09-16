@@ -2,7 +2,7 @@
  * animation phase / step count 網羅 (iter36、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter36。
- * 全 12 sample の animation phase 数 / step 数 / focus 数の妥当性を verify、
+ * 全 sample の animation phase 数 / step 数 / focus 数の妥当性を verify、
  * 極端に多い phase (100+) / 空 phase / focus 空 の 3 pattern を検知。
  */
 import { describe, it, expect } from "vitest";
@@ -17,7 +17,7 @@ interface CompiledDiagram {
   phases?: Phase[];
 }
 
-describe("iter36: 全 12 sample × animation phase / step count 網羅", () => {
+describe("iter36: 全 sample × animation phase / step count 網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`phase 数 <= 50 (極端多検知)`, () => {

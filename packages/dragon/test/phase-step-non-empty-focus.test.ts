@@ -17,7 +17,7 @@ interface CompiledDiagram {
   }>;
 }
 
-describe("iter48: 全 12 sample × phase / step focus 非空", () => {
+describe("iter48: 全 sample × phase / step focus 非空", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`phase.focus 存在時は非空 array (空 [] は typo signal)`, () => {

@@ -2,7 +2,7 @@
  * edge polarity / direction consistency (iter20、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter20。
- * 全 12 sample の edges について以下 invariant を verify。
+ * 全 sample の edges について以下 invariant を verify。
  *
  * (a) edge polarity (success / error / neutral) が定義されていれば有効 enum
  * (b) self-loop edge (from == to) の許容境界
@@ -20,7 +20,7 @@ interface CompiledDiagram {
 
 const VALID_POLARITIES = new Set(["success", "error", "warning", "info", "neutral", "positive", "negative"]);
 
-describe("iter20: 全 12 sample × edge polarity / direction consistency", () => {
+describe("iter20: 全 sample × edge polarity / direction consistency", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label} (${sample.slug})`, () => {
       it(`edge polarity 定義があれば有効 enum`, () => {

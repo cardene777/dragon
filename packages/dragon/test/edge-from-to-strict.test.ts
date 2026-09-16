@@ -2,7 +2,7 @@
  * edge from/to strict type 網羅 (iter71、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter71。
- * 全 12 sample の edges で from/to を厳格 verify。
+ * 全 sample の edges で from/to を厳格 verify。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
@@ -12,7 +12,7 @@ interface CompiledDiagram {
   edges: Array<{ from: string; to: string; label?: string }>;
 }
 
-describe("iter71: 全 12 sample × edge from/to strict type verify", () => {
+describe("iter71: 全 sample × edge from/to strict type verify", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`全 edge.from が string`, () => {

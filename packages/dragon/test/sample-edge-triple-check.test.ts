@@ -2,7 +2,7 @@
  * sample edge triple check (iter84、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter84。
- * 全 12 sample の edges triple (from/to/label) 詳細 verify。
+ * 全 sample の edges triple (from/to/label) 詳細 verify。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
@@ -12,7 +12,7 @@ interface CompiledDiagram {
   edges: Array<{ from: string; to: string; label?: string; polarity?: string }>;
 }
 
-describe("iter84: 全 12 sample × edge triple check", () => {
+describe("iter84: 全 sample × edge triple check", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`edges 各 element は object`, () => {

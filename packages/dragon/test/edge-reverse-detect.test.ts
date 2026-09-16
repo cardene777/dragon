@@ -2,7 +2,7 @@
  * edge reverse / return-trip detect 網羅 (iter38、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter38。
- * 全 12 sample の edges で「reverse edge」 (A→B と B→A の pair) の合理性を verify。
+ * 全 sample の edges で「reverse edge」 (A→B と B→A の pair) の合理性を verify。
  *
  * (a) reverse edge 存在時 label が異なるべき (両方 "call" 等は semantic 曖昧)
  * (b) reverse edge が sequence sample に多い (期待 pattern)
@@ -17,7 +17,7 @@ interface CompiledDiagram {
   type?: string;
 }
 
-describe("iter38: 全 12 sample × edge reverse / return-trip 網羅", () => {
+describe("iter38: 全 sample × edge reverse / return-trip 網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`reverse edge (A→B + B→A) の label 一致数 < 全 pair 数の 50%`, () => {

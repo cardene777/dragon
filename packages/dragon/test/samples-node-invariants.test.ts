@@ -1,5 +1,5 @@
 /**
- * 全 12 sample × node invariant + compile determinism 網羅 (iter14+15、 2026-07-19)。
+ * 全 sample × node invariant + compile determinism 網羅 (iter14+15、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter14+15。
  *
@@ -19,7 +19,7 @@ interface CompiledDiagram {
   edges: Array<{ id?: string; from: string; to: string }>;
 }
 
-describe("iter14+15: 全 12 sample × node invariant + compile determinism", () => {
+describe("iter14+15: 全 sample × node invariant + compile determinism", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label} (${sample.slug})`, () => {
       it(`node id 全 unique`, () => {

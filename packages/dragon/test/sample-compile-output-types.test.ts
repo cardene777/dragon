@@ -2,13 +2,13 @@
  * sample compile output types 網羅 (iter68、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter68。
- * 全 12 sample の compile 出力の型網羅 verify。
+ * 全 sample の compile 出力の型網羅 verify。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
-describe("iter68: 全 12 sample × compile 出力 型網羅", () => {
+describe("iter68: 全 sample × compile 出力 型網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`diagram top-level が object`, () => {

@@ -1,5 +1,5 @@
 /**
- * 全 25 EDITOR_SAMPLES の animation.focus 参照整合性 網羅 unit test (iter10、 2026-07-19)。
+ * 全 EDITOR_SAMPLES の animation.focus 参照整合性 網羅 unit test (iter10、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter10。
  * 各 sample の animation phase / step の focus[] に列挙される actor / edge 名が、
@@ -54,9 +54,10 @@ function isEdgeRef(ref: string): boolean {
   return ref.includes("->") || ref.includes("→");
 }
 
-describe("iter10: 全 25 EDITOR_SAMPLES × animation focus 参照整合性 網羅", () => {
-  it(`SAMPLES count 25`, () => {
-    expect(EDITOR_SAMPLES.length).toBe(25);
+describe("iter10: 全 EDITOR_SAMPLES × animation focus 参照整合性 網羅", () => {
+  it(`見本が 1 件以上ある (参照整合性の検査が空振りしていない)`, () => {
+    // 件数を数字と比べる宣言は samples-validate.test.ts の 1 か所に置く (#2060)
+    expect(EDITOR_SAMPLES.length, "見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
   });
 
   for (const sample of EDITOR_SAMPLES) {

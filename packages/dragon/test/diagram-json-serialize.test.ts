@@ -15,7 +15,7 @@ interface CompiledDiagram {
   edges: Array<{ from: string; to: string }>;
 }
 
-describe("iter23: 全 12 sample × diagram JSON serialize round-trip", () => {
+describe("iter23: 全 sample × diagram JSON serialize round-trip", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`JSON.stringify + parse で throw なし (circular reference なし)`, () => {

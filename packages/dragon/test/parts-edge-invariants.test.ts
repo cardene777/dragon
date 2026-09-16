@@ -2,7 +2,7 @@
  * parts edge invariants (iter89、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter89。
- * 全 80 parts の edges detailed invariants verify。
+ * 全 parts の edges detailed invariants verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";

@@ -2,7 +2,7 @@
  * sample edge label diversity 網羅 (iter80、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter80。
- * 全 12 sample の edge label の多様性を verify。
+ * 全 sample の edge label の多様性を verify。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
@@ -12,7 +12,7 @@ interface CompiledDiagram {
   edges: Array<{ from: string; to: string; label?: string }>;
 }
 
-describe("iter80: 全 12 sample × edge label diversity", () => {
+describe("iter80: 全 sample × edge label diversity", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`edge label 分布 (unique 数 / total 数)`, () => {

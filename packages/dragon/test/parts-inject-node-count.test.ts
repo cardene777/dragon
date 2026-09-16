@@ -2,7 +2,7 @@
  * parts inject 後の node count 網羅 (iter40、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter40。
- * 全 80 parts を sequence sample に inject した後の合成 diagram で node count が
+ * 全 parts を sequence sample に inject した後の合成 diagram で node count が
  * (base actor 数) + (parts 内部 node 数) 相当の範囲内であることを verify。
  */
 import { describe, it, expect } from "vitest";
@@ -24,7 +24,7 @@ function collectAllParts(mod: unknown): Array<{ name: string; diagram: CdlDiagra
 
 const ALL_PARTS = collectAllParts(PartsMod);
 
-describe("iter40: 全 80 parts × inject 後 node count 網羅", () => {
+describe("iter40: 全 parts × inject 後 node count 網羅", () => {
   it(`parts 検出`, () => {
     expect(ALL_PARTS.length).toBeGreaterThanOrEqual(60);
   });

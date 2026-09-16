@@ -2,7 +2,7 @@
  * sample uniqueness check 網羅 (iter64、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter64。
- * 全 21 sample の一意性を verify (label / code hash / 内部 title 重複)。
+ * 全 sample の一意性を verify (label / code hash / 内部 title 重複)。
  */
 import { describe, it, expect } from "vitest";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
@@ -18,8 +18,9 @@ function hash(s: string): string {
 }
 
 describe("iter64: EDITOR_SAMPLES 一意性 verify", () => {
-  it("count = 25", () => {
-    expect(EDITOR_SAMPLES.length).toBe(25);
+  it("見本が 1 件以上ある (一意性の検査が空振りしていない)", () => {
+    // 件数を数字と比べる宣言は samples-validate.test.ts の 1 か所に置く (#2060)
+    expect(EDITOR_SAMPLES.length, "見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
   });
 
   it("全 label 一意 (labels unique)", () => {

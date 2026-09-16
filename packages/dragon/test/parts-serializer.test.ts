@@ -131,7 +131,7 @@ describe("parts-serializer (CAR-1646)", () => {
   });
 
   // ============================================================
-  // group 4: round-trip (全 80 parts loop)
+  // group 4: round-trip (全 parts loop)
   // ============================================================
   describe("round-trip (parts.cdl.ts 全 80 diagram)", () => {
     it("TC-044 全 parts の serialize → deserialize で id / nodes / phases 保持", () => {

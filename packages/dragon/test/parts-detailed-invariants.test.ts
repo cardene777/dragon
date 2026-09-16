@@ -2,7 +2,7 @@
  * parts detailed invariants (iter82、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter82。
- * 全 80 parts の詳細 invariant verify。 10000 test 突破用。
+ * 全 parts の詳細 invariant verify。 10000 test 突破用。
  */
 import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";

@@ -1,8 +1,8 @@
 /**
- * state-holding parts × 全 21 sample × state override 網羅 (iter21、 2026-07-19)。
+ * state-holding parts × 全 sample × state override 網羅 (iter21、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter21。
- * state を持つ 57 parts × 15 sample = 684 test で「state override が実 sample 環境で有効」
+ * 数値の state を持つ全 parts × 全 sample の組み合わせで「state override が実 sample 環境で有効」
  * を verify。 sample の flow / animation 定義と共存しても state.initial が override 値を
  * 反映することを batch check。
  */
@@ -51,10 +51,11 @@ function injectPartsIntoSampleDsl(sampleDsl: string, alias: string, kind: string
   return [...before, `  - ${alias}: { kind: ${kind}${overrides ? `, ${overrides}` : ""} }`, ...after].join("\n");
 }
 
-describe("iter21: 全 state-holding parts × 全 21 sample × state override 網羅", () => {
+describe("iter21: 全 state-holding parts × 全 sample × state override 網羅", () => {
   it(`state parts 数 + samples 数 sanity`, () => {
     expect(STATE_PARTS.length).toBeGreaterThan(0);
-    expect(EDITOR_SAMPLES.length).toBe(25);
+    // 件数を数字と比べる宣言は samples-validate.test.ts の 1 か所に置く (#2060)
+    expect(EDITOR_SAMPLES.length, "見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
   });
 
   for (const sample of EDITOR_SAMPLES) {

@@ -13,7 +13,7 @@ interface CompiledDiagram {
   nodes: Array<{ id: string; kind?: string }>;
 }
 
-describe("iter45: 全 12 sample × node kind distribution 網羅", () => {
+describe("iter45: 全 sample × node kind distribution 網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`kind が定義される node の割合 >= 0% (全 node kind 定義 optional)`, () => {

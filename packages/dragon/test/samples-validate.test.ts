@@ -8,6 +8,10 @@
  * **件数を文で書かない** = 見本が増えた日にここだけ古くなる (実測で 21 と書いたまま
  * 25 件になっていた)。 件数は下の assert が実物から見る。
  *
+ * **件数を数字と比べるのはこの 1 か所だけにする** (#2060)。 同じ比べ方が 5 file にあった間、
+ * 見本を足すたびに比べる行だけが直され、題と説明の数字は書いた時点のまま残った。 他の検査は
+ * 走査が空振りしていないこと (1 件以上) だけを見る。
+ *
  * codex-review CAR-1659 MINOR fix = SAMPLES を `apps/playground-spa/src/data/editor-samples.ts`
  * (shared SSOT) から import し、 CdlEditor.tsx と本 test の drift を構造的に排除。 sample 追加 /
  * 変更 / 削除は 1 file 更新のみで両方に反映される。
