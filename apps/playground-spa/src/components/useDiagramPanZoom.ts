@@ -88,6 +88,30 @@ function 巻き取る要素(
   return 巻き取りを探す?.(器) ?? 器;
 }
 
+/** 器の中の図を測る。 `svg` が無ければ描かれた倍率は測れていない (`undefined`) */
+function 画面を測る(
+  器: HTMLElement,
+  svg: SVGSVGElement | null,
+  巻き取りを探す: 拡大と移動の設定["巻き取りを探す"],
+): 測った値 {
+  const 巻き取り = 巻き取る要素(器, 巻き取りを探す);
+  return {
+    描かれた倍率: svg ? 描かれた外枠(svg).倍率 : undefined,
+    溢れている:
+      巻き取り.scrollWidth > 巻き取り.clientWidth || 巻き取り.scrollHeight > 巻き取り.clientHeight,
+  };
+}
+
+/** 測り直した値が前と同じなら前をそのまま返す = 状態を置き換えず、描き直しを起こさない */
+function 変わった時だけ置き換える(前: 測った値, 次: 測った値): 測った値 {
+  const 倍率が同じ =
+    前.描かれた倍率 === 次.描かれた倍率 ||
+    (前.描かれた倍率 !== undefined &&
+      次.描かれた倍率 !== undefined &&
+      Math.abs(前.描かれた倍率 - 次.描かれた倍率) < 1e-4);
+  return 前.溢れている === 次.溢れている && 倍率が同じ ? 前 : 次;
+}
+
 /** 0.5px 未満の残りは巻き取りの丸めで消えるので、動かす量として数えない */
 const 残っているか = (量: number): boolean => Math.abs(量) >= 0.5;
 
@@ -200,33 +224,34 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
   /** ホイールで置いたがまだ描かれていない倍率。 描かれる前に続けて回した分を積み上げる */
   const 置いた倍率 = useRef<number | null>(null);
 
+  // **図が替わった描画の中で 1 度測る** (#2044)。
+  //
+  // engine は同じ svg の中身を新しい図へ書き換える。 下の観測は大きさの変化を次のフレームで受け取るので、
+  // それだけだと新しい図が 1 フレームの間、前の図の倍率を欄に出したまま画面に出る。 負荷が高いとこの間が
+  // 伸び、実測では 60% の図の次に 200% の図を開いて 500ms 経っても欄が 60% のままだった。 その間に
+  // 「上げる」 を押すと前の図の倍率を起点に刻みを選ぶため、200% で描かれた図が 75% へ縮む。
+  //
+  // 画面に出す前 (`useLayoutEffect`) に測れば、図と欄が同じフレームで替わる。 図がまだ無ければ
+  // 測れていない値に置き換える = 前の図の倍率を別の図の欄に残さない。
+  useLayoutEffect(() => {
+    if (!器 || viewBox幅 === undefined) return;
+    const 次 = 画面を測る(器, 図のsvgを探す(器), 最新.current.設定.巻き取りを探す);
+    set測った((前) => 変わった時だけ置き換える(前, 次));
+  }, [器, viewBox幅, 図の鍵]);
+
   // 描かれている倍率と、巻き取りが溢れているかを測る。
   //
   // **大きさが変わった時に測る** (`ResizeObserver`)。 図は見える所まで来てから描かれ (`InViewMount`)、
   // 描き直しで svg が差し替わることもあるため、器の中身の出入りも見て、測る svg を付け替える。
   useEffect(() => {
     if (!器 || viewBox幅 === undefined) return;
-    // 観測の手段を持たない環境 (jsdom) では測らない。 倍率の欄は測れていない表示に倒れる
+    // 観測の手段を持たない環境 (jsdom) では観測しない。 大きさが変わっても測り直さない
     if (typeof ResizeObserver === "undefined") return;
     let 見ているsvg: SVGSVGElement | null = null;
     let 予約 = 0;
     const 測る = (): void => {
-      const 巻き取り = 巻き取る要素(器, 最新.current.設定.巻き取りを探す);
-      const 次: 測った値 = {
-        描かれた倍率: 見ているsvg ? 描かれた外枠(見ているsvg).倍率 : undefined,
-        溢れている:
-          巻き取り.scrollWidth > 巻き取り.clientWidth ||
-          巻き取り.scrollHeight > 巻き取り.clientHeight,
-      };
-      set測った((前) =>
-        前.溢れている === 次.溢れている &&
-        (前.描かれた倍率 === 次.描かれた倍率 ||
-          (前.描かれた倍率 !== undefined &&
-            次.描かれた倍率 !== undefined &&
-            Math.abs(前.描かれた倍率 - 次.描かれた倍率) < 1e-4))
-          ? 前
-          : 次,
-      );
+      const 次 = 画面を測る(器, 見ているsvg, 最新.current.設定.巻き取りを探す);
+      set測った((前) => 変わった時だけ置き換える(前, 次));
     };
     const ro = new ResizeObserver(測る);
     const svgを見直す = (): void => {
