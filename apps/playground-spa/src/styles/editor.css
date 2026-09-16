@@ -368,12 +368,6 @@
     padding: 2px 6px;
   }
 
-  .v4-editor-side-part {
-    cursor: grab;
-  }
-  .v4-editor-side-part:active {
-    cursor: grabbing;
-  }
   .v4-editor-side-loading {
     padding: 8px 10px;
     font-family: var(--v4-mono);
@@ -390,27 +384,8 @@
     border-top: 1px dashed var(--v4-line);
   }
 
-  /* ── drop overlay / hint on preview stage (CAR-1646) ── */
-  .v4-editor-stage.drop-over {
-    outline: 2px dashed var(--d-accent);
-    outline-offset: -6px;
-  }
-  .v4-editor-drop-overlay {
-    position: absolute;
-    inset: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--d-accent-soft);
-    color: var(--d-accent);
-    font-family: var(--d-body);
-    font-size: 15px;
-    font-weight: 600;
-    border-radius: var(--d-r-2);
-    pointer-events: none;
-    z-index: 5;
-  }
-  .v4-editor-drop-hint {
+  /* ── 舞台の上の知らせ (部品を足した / 位置を書いた 等) ── */
+  .v4-editor-stage-notice {
     position: absolute;
     top: 12px;
     left: 50%;
@@ -853,19 +828,9 @@
      (実測 = 340x60 の内部 svg が 700x700 になった) */
   .v4-editor-svg-wrap svg[data-cdl-stage] {
     display: block;
-    /* canvas pivot 新 spec = SVG 内 element で drag interaction を受けるため pointer-events all
-       (旧 pointer-events: none は HTML overlay 干渉回避の historical fix、 現状は不要) */
-    pointer-events: auto;
     width: var(--cdl-svg-w, 800px) !important;
     height: var(--cdl-svg-h, 600px) !important;
     max-width: none !important;
-  }
-  /* SVG 内 lane / node / edge element で drag / hover を受ける */
-  .v4-editor-svg-wrap svg [data-cdl-lane],
-  .v4-editor-svg-wrap svg [data-cdl-node],
-  .v4-editor-svg-wrap svg [data-cdl-edge] {
-    pointer-events: auto;
-    cursor: grab;
   }
   .v4-editor-empty {
     color: var(--v4-ink-mute);

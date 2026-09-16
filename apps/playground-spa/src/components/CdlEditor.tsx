@@ -439,32 +439,32 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const [partsItems, setPartsItems] = useState<CatalogItem[]>([]);
   const [partsLoading, setPartsLoading] = useState(false);
   const [partsLoadFailed, setPartsLoadFailed] = useState(false);
-  const [dropHintMessage, setDropHintMessage] = useState<string | null>(null);
-  const dropHintTimerRef = useRef<number | null>(null);
+  const [stageNotice, setStageNotice] = useState<string | null>(null);
+  const stageNoticeTimerRef = useRef<number | null>(null);
 
   /**
    * 舞台の上に短い知らせを出し、`ttlMs` 後に消す。 前の知らせの timer は必ず止める。
    *
    * 止めないと、続けて 2 回出した時に前の timer が新しい知らせを早く消す (#413)。
    */
-  const setDropHintWithReset = useCallback((msg: string | null, ttlMs = 6000): void => {
-    if (dropHintTimerRef.current !== null) {
-      window.clearTimeout(dropHintTimerRef.current);
-      dropHintTimerRef.current = null;
+  const showStageNotice = useCallback((msg: string | null, ttlMs = 6000): void => {
+    if (stageNoticeTimerRef.current !== null) {
+      window.clearTimeout(stageNoticeTimerRef.current);
+      stageNoticeTimerRef.current = null;
     }
-    setDropHintMessage(msg);
+    setStageNotice(msg);
     if (msg !== null && ttlMs > 0) {
-      dropHintTimerRef.current = window.setTimeout(() => {
-        setDropHintMessage(null);
-        dropHintTimerRef.current = null;
+      stageNoticeTimerRef.current = window.setTimeout(() => {
+        setStageNotice(null);
+        stageNoticeTimerRef.current = null;
       }, ttlMs);
     }
   }, []);
 
   useEffect(() => {
     return () => {
-      if (dropHintTimerRef.current !== null) {
-        window.clearTimeout(dropHintTimerRef.current);
+      if (stageNoticeTimerRef.current !== null) {
+        window.clearTimeout(stageNoticeTimerRef.current);
       }
     };
   }, []);
@@ -549,13 +549,13 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 失敗しても editor 本体は動かす、 sidebar のみ空表示 + hint 出す + 失敗 flag を立てて再試行禁止
         console.error("[CdlEditor] parts load failed", e);
         setPartsLoadFailed(true);
-        setDropHintWithReset(
+        showStageNotice(
           `見本を読み込めませんでした。 ${部品の呼び名}の一覧を開き直すと再試行します。`,
           8000,
         );
       })
       .finally(() => setPartsLoading(false));
-  }, [sidebarTab, needsPartsForSrc, partsItems.length, partsLoading, partsLoadFailed, setDropHintWithReset]);
+  }, [sidebarTab, needsPartsForSrc, partsItems.length, partsLoading, partsLoadFailed, showStageNotice]);
 
   // 一覧 tab に切替えた時だけ再試行を許す (#1022)。
   //
@@ -1027,7 +1027,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           // この経路は cdl の組み立てを直接呼ぶため dragon 側の出口の検査を通らないので、
           // ここで図の外を指す値を落とす (#1004)
           for (const dropped of stripExternalPaint(part)) {
-            setDropHintWithReset(`図の外を指す値 (${dropped.path}) は色として使えないため外しました。`, 6000);
+            showStageNotice(`図の外を指す値 (${dropped.path}) は色として使えないため外しました。`, 6000);
           }
           // 組み立てに失敗する図は描画前に捕まえる (`applyDiagram` が投げ、 外側の catch が受ける)
           applyDiagram(part);
@@ -1130,7 +1130,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     //
     // `commitBuilt` が見る 5 つ (`activeTab` / `src` / `yamlSrc` / `partsItems` / `locale`) は
     // 既にこの一覧に在るので、書き足しても走る回数は増えない。
-    // `setDropHintWithReset` は空の依存で作るので書き換わらない
+    // `showStageNotice` は空の依存で作るので書き換わらない
   }, [
     src,
     yamlSrc,
@@ -1140,7 +1140,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     locale,
     applyDiagram,
     commitBuilt,
-    setDropHintWithReset,
+    showStageNotice,
   ]);
 
   /**
@@ -1204,13 +1204,13 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     (name: string, cx: number, cy: number): void => {
       const next = writeActorPosition(src, name, cx, cy);
       if (next === null) {
-        setDropHintWithReset(`"${name}" の行が本文に見つかりませんでした。`, 4000);
+        showStageNotice(`"${name}" の行が本文に見つかりませんでした。`, 4000);
         return;
       }
       setSrc(next);
-      setDropHintWithReset(`"${name}" に 位置: ${Math.round(cx)},${Math.round(cy)} を書きました。`, 4000);
+      showStageNotice(`"${name}" に 位置: ${Math.round(cx)},${Math.round(cy)} を書きました。`, 4000);
     },
-    [src, setSrc, setDropHintWithReset],
+    [src, setSrc, showStageNotice],
   );
 
   // Fit handler ... preview 領域に SVG の bounding を合わせる。
@@ -1779,7 +1779,7 @@ animation:
                 <button
                   key={p.id}
                   type="button"
-                  className={`v4-editor-side-item v4-editor-side-part ${activeSample === p.title ? "active" : ""}`}
+                  className={`v4-editor-side-item ${activeSample === p.title ? "active" : ""}`}
                   data-testid={`editor-part-item-${p.id}`}
                   data-part-id={p.id}
                   title={cdlWriteDisabled ? cdlOnlyHint : `${p.subtitle}\n${p.motionNote}`}
@@ -1822,7 +1822,7 @@ animation:
                     if (appended !== null) {
                       setSrc(appended);
                       lastLoadedSrcRef.current = appended;
-                      setDropHintWithReset(`actors: に "${alias}" (${kindValue}) を追加しました。`, 4000);
+                      showStageNotice(`actors: に "${alias}" (${kindValue}) を追加しました。`, 4000);
                     } else {
                       // REPLACE fallback with confirm
                       if (!confirmReplaceIfDirty(p.title)) return;
@@ -1830,7 +1830,7 @@ animation:
                       setSrc(replaceSrc);
                       lastLoadedSrcRef.current = replaceSrc;
                       setActiveSample(p.title);
-                      setDropHintWithReset(`部品「${p.title}」 を新しい図として読み込みました。`, 4000);
+                      showStageNotice(`部品「${p.title}」 を新しい図として読み込みました。`, 4000);
                     }
                   }}
                 >
@@ -2194,8 +2194,8 @@ animation:
           onMouseLeave={handleMouseUp}
           data-testid="editor-preview-stage"
         >
-          {dropHintMessage && (
-            <div className="v4-editor-drop-hint" role="status">{dropHintMessage}</div>
+          {stageNotice && (
+            <div className="v4-editor-stage-notice" role="status">{stageNotice}</div>
           )}
           <PhaseChrome stage={stageEl} phases={laid?.phases} />
           <div
