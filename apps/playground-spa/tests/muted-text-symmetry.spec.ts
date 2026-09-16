@@ -67,6 +67,12 @@ type 対象 = {
   実効: number;
 };
 
+/**
+ * 集めた要素を頁の中に控える所。 写しを撮った後に **同じ要素** の位置を測り直すために使う
+ * (`控えた要素の位置`)。 文字や並び順で対応を取ると、 DOM が組み替わった時に別の要素どうしを比べる。
+ */
+type 控えを持つ窓 = { __薄い文字の控え?: Element[] };
+
 /** その画面で `--d-text-muted` が実際に当たっている文字を集める。 */
 async function 薄い文字を集める(page: Page): Promise<対象[]> {
   return await page.evaluate(() => {
@@ -84,6 +90,7 @@ async function 薄い文字を集める(page: Page): Promise<対象[]> {
     };
 
     const out: 対象[] = [];
+    const 控え: Element[] = [];
     for (const e of document.querySelectorAll("*")) {
       const 直 = [...e.childNodes]
         .filter((n) => n.nodeType === 3 && n.textContent?.trim())
@@ -143,10 +150,33 @@ async function 薄い文字を集める(page: Page): Promise<対象[]> {
         色: [v[0]!, v[1]!, v[2]!],
         実効,
       });
+      控え.push(e);
     }
+    (window as unknown as 控えを持つ窓).__薄い文字の控え = 控え;
     return out;
   });
 }
+
+/** `薄い文字を集める` が控えた要素を、 いまの位置で測り直す。 頁から外れた要素は `null` */
+async function 控えた要素の位置(page: Page): Promise<(Box | null)[]> {
+  return await page.evaluate(() =>
+    ((window as unknown as 控えを持つ窓).__薄い文字の控え ?? []).map((e) => {
+      if (!e.isConnected) return null;
+      const r = e.getBoundingClientRect();
+      return { x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height };
+    }),
+  );
+}
+
+/** 位置を落ちた時の文面に出す形。 0.5px の動きも読めるよう小数 1 桁まで出す */
+const 位置の字 = (b: Box): string =>
+  `x ${b.x.toFixed(1)} y ${b.y.toFixed(1)} 幅 ${b.width.toFixed(1)} 高さ ${b.height.toFixed(1)}`;
+
+/** 測った時から 0.5px を超えて動いたか。 それ未満は丸めの差で、 写しの画素 (2 倍) で半画素に満たない */
+const 動いたか = (前: Box, 後: Box): boolean =>
+  [前.x - 後.x, 前.y - 後.y, 前.width - 後.width, 前.height - 後.height].some(
+    (d) => Math.abs(d) > 0.5,
+  );
 
 /** 薄い文字を全部隠す / 戻す。 隠した画面が地になる。 */
 async function 隠す(page: Page, 隠すか: boolean): Promise<void> {
@@ -231,21 +261,55 @@ type 測れず = { 文: string; px: number; 理由: string };
  *
  * 測れなかった要素は捨てずに返す。 捨てると、 地と同じ色になって消えた 1 件や写しの外に
  * 出た 1 件があっても、 他の要素で件数条件を満たして通ってしまう。
+ *
+ * ## 撮る間に位置が動いた要素も測れなかった側に入れる (#2046)
+ *
+ * 位置を測ってから 2 枚を撮り終えるまでに要素が動くと、 測った位置の画素は別の場所のものになる。
+ * 文字が無い所を見れば「隠しても画素が変わらない」 になり、 別の薄い文字の上を見れば
+ * **その文字の対比を測って通る**。 どちらも読みやすさの判定として成り立たないので、 画素が
+ * 読めた場合も落とす。
+ *
+ * 実際に `/catalog/interactive` で一覧の箱の下端近くの 2 件が 1 度だけ「隠しても画素が変わらない」
+ * で落ち、 再現しなかった。 落ちた時に位置の前後を出せば、 ずれが原因だったかを 1 回で切り分けられる。
+ *
+ * **測れなかった文字があれば 2 枚の写しを検査の結果に添付する**。 位置が動いていないのに画素が
+ * 変わらない時は、 何が覆っていたかを写しで見るしかない。 通る時は添付しない (重くしない)。
  */
-async function 測る(page: Page): Promise<{ 測れた: 結果[]; 測れず: 測れず[] }> {
+async function 測る(page: Page, 見出し: string): Promise<{ 測れた: 結果[]; 測れず: 測れず[] }> {
   const 対象群 = await 薄い文字を集める(page);
   if (対象群.length === 0) return { 測れた: [], 測れず: [] };
 
   // 薄い文字を隠した画面 = 各文字の位置の地。 半透明の重なりも gradient も、
   // 描画側が合成した結果がそのまま画素に出る
   await 隠す(page, true);
-  const 地画 = PNG.sync.read(await page.screenshot({ fullPage: true }));
+  const 地の写し = await page.screenshot({ fullPage: true });
   await 隠す(page, false);
-  const 字画 = PNG.sync.read(await page.screenshot({ fullPage: true }));
+  const 字の写し = await page.screenshot({ fullPage: true });
+  const 地画 = PNG.sync.read(地の写し);
+  const 字画 = PNG.sync.read(字の写し);
+
+  const 撮った後 = await 控えた要素の位置(page);
+  expect(
+    撮った後.length,
+    `${見出し} で集めた要素を測り直せていない (控えが空 = 位置の比べが空振りしている)`,
+  ).toBe(対象群.length);
 
   const out: 結果[] = [];
   const 不能: 測れず[] = [];
-  for (const t of 対象群) {
+  for (const [i, t] of 対象群.entries()) {
+    const 後 = 撮った後[i];
+    if (後 === null || 後 === undefined) {
+      不能.push({ 文: t.文, px: t.px, 理由: `撮る間に頁から外れた (${位置の字(t.box)})` });
+      continue;
+    }
+    if (動いたか(t.box, 後)) {
+      不能.push({
+        文: t.文,
+        px: t.px,
+        理由: `撮る間に位置が動いた (${位置の字(t.box)} → ${位置の字(後)})`,
+      });
+      continue;
+    }
     const 範囲 = {
       x: t.box.x * 倍率,
       y: t.box.y * 倍率,
@@ -260,7 +324,7 @@ async function 測る(page: Page): Promise<{ 測れた: 結果[]; 測れず: 測
       不能.push({
         文: t.文,
         px: t.px,
-        理由: 芯.kind === "invisible" ? "隠しても画素が変わらない" : 芯.reason,
+        理由: `${芯.kind === "invisible" ? "隠しても画素が変わらない" : 芯.reason} (${位置の字(t.box)})`,
       });
       continue;
     }
@@ -284,6 +348,10 @@ async function 測る(page: Page): Promise<{ 測れた: 結果[]; 測れず: 測
       px: t.px,
       地: 最悪地.join(","),
     });
+  }
+  if (不能.length > 0) {
+    await test.info().attach(`${見出し} 薄い文字を隠した写し`, { body: 地の写し, contentType: "image/png" });
+    await test.info().attach(`${見出し} 薄い文字を出した写し`, { body: 字の写し, contentType: "image/png" });
   }
   return { 測れた: out, 測れず: 不能 };
 }
@@ -311,7 +379,7 @@ for (const 暗い of [false, true]) {
   test(`${名}画面で薄い文字が地の上で読める`, async ({ page }) => {
     for (const { path, 部品 } of 画面) {
       await 開く(page, path, 暗い, 部品);
-      const { 測れた: 件, 測れず } = await 測る(page);
+      const { 測れた: 件, 測れず } = await 測る(page, `${名}画面 ${画面名(path)}`);
       expect(件.length, `${画面名(path)} で薄い文字を 1 つも測れていない (選択子が実装とずれた)`).toBeGreaterThan(0);
       expect(
         測れず.map((x: 測れず) => `「${x.文}」 ${x.px}px (${x.理由})`),
@@ -333,7 +401,7 @@ test("薄い文字の読みやすさが明暗で揃っている", async ({ page 
   // **地が明暗で違うので色そのものは比べられない**。 地に対する対比で比べる。
   const 代表 = async (暗い: boolean): Promise<number> => {
     await 開く(page, "catalog/presets", 暗い);
-    const { 測れた: 件 } = await 測る(page);
+    const { 測れた: 件 } = await 測る(page, `${暗い ? "暗い" : "明るい"}画面 catalog/presets`);
     expect(件.length, `${暗い ? "暗い" : "明るい"}側で薄い文字を測れていない`).toBeGreaterThan(0);
     // 面の上に乗るものが多数派なので中央値を採る (端の 1 件に引きずられない)
     const v = 件.map((x: 結果) => x.比).sort((a: number, b: number) => a - b);
