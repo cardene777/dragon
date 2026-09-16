@@ -71,8 +71,9 @@ export function 取り込みを読む(file: string): 取り込み[] {
       : 行き先;
     結果.push({ file, line, 行き先, 解決先 });
   };
-  for (const m of src.matchAll(取り込み文)) 足す(m[2], m.index);
-  for (const m of src.matchAll(読み込むだけ)) 足す(m[2], m.index);
+  // どちらの形も 2 つ目の括弧が行き先。 一致したなら必ず取れる
+  for (const m of src.matchAll(取り込み文)) 足す(m[2]!, m.index);
+  for (const m of src.matchAll(読み込むだけ)) 足す(m[2]!, m.index);
   return 結果.sort((a, b) => a.line - b.line);
 }
 

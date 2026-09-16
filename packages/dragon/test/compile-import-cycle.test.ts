@@ -63,7 +63,7 @@ describe("植え込み対照", () => {
     );
     const 結果 = 輪を探す(子dir, join(dir, "compile"));
     expect(結果.輪, "輪のある形を見つけられていない").toHaveLength(1);
-    expect(結果.輪[0].line).toBe(1);
+    expect(結果.輪[0]!.line).toBe(1);
     rmSync(子dir, { recursive: true, force: true });
   });
 
@@ -75,7 +75,7 @@ describe("植え込み対照", () => {
     );
     const 結果 = 輪を探す(子dir, join(dir, "compile"));
     expect(結果.輪, "改行を跨ぐ取り込み文を読み飛ばしている").toHaveLength(1);
-    expect(結果.輪[0].line, "行番号が取り込み文の開始行を指していない").toBe(1);
+    expect(結果.輪[0]!.line, "行番号が取り込み文の開始行を指していない").toBe(1);
     rmSync(子dir, { recursive: true, force: true });
   });
 
