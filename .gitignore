@@ -3,8 +3,8 @@ node_modules/
 
 # mutation testing (Stryker) artifacts
 # **root 固定にする** = Stryker の出力先は repo root の `reports/` だけ
-# (`stryker.conf.json` の既定)。 固定しないと `apps/playground-spa/tests/reports/` の
-# 手書き review report まで対象に入り、宣言と実態が食い違う
+# (`stryker.conf.json` の既定)。 固定しないと、下の階層にある同じ名前の dir の file まで
+# 追跡から外れ、宣言と実態が食い違う
 /reports/
 .stryker-tmp/
 
