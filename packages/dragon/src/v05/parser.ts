@@ -47,7 +47,7 @@ import type { EdgeReveal, RelationFocus } from "@cardenelabs/cdl";
 import { TONE_ALIAS, NODE_KIND_ALIAS, DIRECTIONS, resolveDirection, PALETTES, resolvePalette } from "../keywords";
 import type { DslPalette } from "../keywords";
 import type { DslDirection } from "../keywords";
-import { parseRelativePos, orderByDependency } from "../relative-pos";
+import { parseRelativePos, findRelativeProblems, type RelativeProblem } from "../relative-pos";
 import {
   checkValueExpression,
   isTriggerBody,
@@ -3091,48 +3091,51 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
  */
 function validateRelativePositions(actors: DslActor[], errors: DslError[]): void {
   const named = new Set(actors.map((a) => a.name));
-  const broken = new Set<string>();
+  // 解けない書き方の判定は `relative-pos.ts` が持つ。 JSON の入口も同じ判定を呼ぶ (#2039)
+  const problems = findRelativeProblems(actors.map((a) => ({ name: a.name, rel: a.posRel })));
 
+  for (const p of problems) {
+    const a = actors.find((x) => x.name === p.name);
+    errors.push({
+      line: a?.pos.line ?? 1,
+      ...相対の誤り(p, named),
+    });
+  }
+
+  const broken = new Set(problems.map((p) => p.name));
   for (const a of actors) {
-    const rel = a.posRel;
-    if (!rel) continue;
-    if (rel.anchor === a.name) {
-      errors.push({
-        line: a.pos.line,
-        message: `位置の基準が自分自身です: "${a.name}"`,
+    if (broken.has(a.name)) a.posRel = undefined;
+  }
+}
+
+/**
+ * 解けない相対の指定に対する、記法側の誤りの文 (#2039)。
+ *
+ * 判定は `relative-pos.ts` が持ち、文はここが持つ。 JSON 側は欄の場所を添えた別の文を作る。
+ */
+function 相対の誤り(
+  p: RelativeProblem,
+  named: ReadonlySet<string>,
+): { message: string; hint: string } {
+  switch (p.kind) {
+    case "self":
+      return {
+        message: `位置の基準が自分自身です: "${p.name}"`,
         hint: "別の登場人物の名前を書く",
-      });
-      broken.add(a.name);
-      continue;
-    }
-    if (!named.has(rel.anchor)) {
-      errors.push({
-        line: a.pos.line,
-        message: `位置の基準が見つかりません: "${rel.anchor}"`,
+      };
+    case "missing-anchor":
+      return {
+        message: `位置の基準が見つかりません: "${p.anchor ?? ""}"`,
         hint:
           named.size > 0
             ? `actors: に書かれている名前 = ${[...named].join(", ")}`
             : "actors: に基準にする登場人物を書く",
-      });
-      broken.add(a.name);
-    }
-  }
-
-  const { cyclic } = orderByDependency(
-    actors.map((a) => ({ name: a.name, rel: broken.has(a.name) ? undefined : a.posRel })),
-  );
-  for (const name of cyclic) {
-    const a = actors.find((x) => x.name === name);
-    errors.push({
-      line: a?.pos.line ?? 1,
-      message: `位置の基準が互いを指しています: "${name}"`,
-      hint: "どれか 1 つは座標 (`位置: 300,200`) か自動配置にする",
-    });
-    broken.add(name);
-  }
-
-  for (const a of actors) {
-    if (broken.has(a.name)) a.posRel = undefined;
+      };
+    case "cyclic":
+      return {
+        message: `位置の基準が互いを指しています: "${p.name}"`,
+        hint: "どれか 1 つは座標 (`位置: 300,200`) か自動配置にする",
+      };
   }
 }
 

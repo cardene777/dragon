@@ -42,6 +42,7 @@ import {
 } from "../src/v05/parser";
 import { PALETTES, DIRECTIONS, DIRECTION_ALIAS } from "../src/keywords";
 import { EDGE_REVEALS, RELATION_FOCUSES } from "@cardenelabs/cdl";
+import { RELATIVE_DIRECTIONS } from "../src/relative-pos";
 
 /** schema の中の 1 つの語の一覧 */
 interface 語の一覧 {
@@ -126,6 +127,8 @@ const 対応表: Record<string, readonly string[]> = {
   "actors[].oneOf[1].color.anyOf[0]": 書ける色名(),
   "actors[].oneOf[1].shape.kind": Object.keys(図形の表),
   "actors[].oneOf[1].shape.orient": [...SHAPE_ORIENT_VALUES],
+  // 相対で置く時の向き (#2039)。 本文側と同じ一覧から取る
+  "actors[].oneOf[1].posRel.dir": [...RELATIVE_DIRECTIONS],
 };
 
 const 並べ = (x: Iterable<string>): string[] => [...new Set(x)].sort();

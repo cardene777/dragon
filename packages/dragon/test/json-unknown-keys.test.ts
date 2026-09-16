@@ -57,6 +57,12 @@ const 未知を足す: Record<階層, { input: Record<string, unknown>; path: st
     input: 図({ actors: [{ name: "A", pos: { x: 1, y: 2, z: 3 } }, { name: "B" }] }),
     path: "$.actors[0].pos.z",
   },
+  posRel: {
+    input: 図({
+      actors: [{ name: "A", posRel: { anchor: "B", dir: "right", z: 3 } }, { name: "B" }],
+    }),
+    path: "$.actors[0].posRel.z",
+  },
 };
 
 /** 階層ごとに、受ける項目 1 つずつに与える値 (「厳しくしすぎていない」 側の確認に使う) */
@@ -100,6 +106,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     rows: ["ア"],
     // 行頭の印 (#1466)。 行と同じ数だけ並べる
     marks: ["pk"],
+    // 相対で置く指定 (#2039)。 基準は 2 つ目の箱にする
+    posRel: { anchor: "B", dir: "right", gap: 200 },
     lane: "L1",
     stack: 1,
     initial: true,
@@ -192,6 +200,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
   axesX: { left: "低", right: "高" },
   axesY: { bottom: "小", top: "大" },
   layoutPos: { x: 1, y: 2 },
+  posRel: { anchor: "B", dir: "right", gap: 200 },
 };
 
 /** その階層に、受ける項目を 1 つだけ足した入力を組む */
@@ -216,6 +225,7 @@ function schemaの項目(層: 階層): string[] {
     axesX: root.axes.properties.x.properties,
     axesY: root.axes.properties.y.properties,
     layoutPos: actor.pos.properties,
+    posRel: actor.posRel.properties,
   };
   return Object.keys(場所[層]);
 }

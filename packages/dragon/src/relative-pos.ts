@@ -12,8 +12,20 @@
  * 直らない事故を、 規則を共有することで構造的に防ぐ。
  */
 
-/** 基準からどちら側に置くか。 */
-export type RelativeDirection = "right" | "left" | "above" | "below";
+/**
+ * 基準からどちら側に置くか。
+ *
+ * 語の一覧は下の `RELATIVE_DIRECTIONS` が持つ。 型を並べ直さず、一覧から導く。
+ */
+export type RelativeDirection = (typeof RELATIVE_DIRECTIONS)[number];
+
+/**
+ * 向きとして受ける語の一覧。
+ *
+ * 読み取りの入口が 2 つある (本文の `位置: Web の右 200` と JSON の `posRel.dir`) ため、
+ * 一覧を 1 箇所に置いて両方から引く。 2 度書くと、向きを足した時に片方だけが取り残される。
+ */
+export const RELATIVE_DIRECTIONS = ["right", "left", "above", "below"] as const;
 
 /** 相対で書かれた位置の指定。 */
 export type RelativePos = {
@@ -179,4 +191,61 @@ export function orderByDependency(
     }
   }
   return { order, cyclic: [...cyclic] };
+}
+
+/** 解けない書き方の種類。 誤りの文は入口ごとに作るので、ここでは種類だけを返す */
+export type RelativeProblemKind = "self" | "missing-anchor" | "cyclic";
+
+/** 解けない書き方 1 件。 `anchor` は相手が居ない時だけ持つ */
+export type RelativeProblem = {
+  name: string;
+  kind: RelativeProblemKind;
+  anchor?: string;
+};
+
+/**
+ * 解けない相対の指定を挙げる (#2039)。
+ *
+ * 解けない書き方は 3 通りある。 相手が居ない / 自分を基準にした / 基準が輪になっている。
+ * どれも「書いたのに図が変わらない」 形で表に出るため、図を出す前に知らせる。
+ *
+ * **判定は本 file に 1 つだけ置く**。 読み取りの入口が 2 つある (本文と JSON) ため、
+ * 片方だけに判定を持つと、同じ書き方が入口によって通ったり通らなかったりする。
+ * 実際 JSON 側には判定が無く、相対で置く欄そのものが無かった。
+ *
+ * 誤りの文は返さない。 本文側は行番号を、JSON 側は欄の場所を添えるため、文の組み立ては
+ * 入口に任せる。 ここが返すのは「誰の」「どの種類の」 解けなさか だけ。
+ *
+ * 呼ぶ側は、挙がった名前から相対の指定を外す。 残したままだと、誤りを無視して読み込んだ
+ * 経路で解決できない指定が組み立てまで届く。
+ */
+export function findRelativeProblems(
+  items: ReadonlyArray<{ name: string; rel?: RelativePos }>,
+): RelativeProblem[] {
+  const named = new Set(items.map((i) => i.name));
+  const broken = new Set<string>();
+  const out: RelativeProblem[] = [];
+
+  for (const it of items) {
+    const rel = it.rel;
+    if (!rel) continue;
+    if (rel.anchor === it.name) {
+      out.push({ name: it.name, kind: "self" });
+      broken.add(it.name);
+      continue;
+    }
+    if (!named.has(rel.anchor)) {
+      out.push({ name: it.name, kind: "missing-anchor", anchor: rel.anchor });
+      broken.add(it.name);
+    }
+  }
+
+  // 輪は、既に解けないと判った分を外してから探す。 外さないと「相手が居ない」 1 件が
+  // 「輪になっている」 としても挙がり、同じ 1 つの誤りが 2 通りの直し方で出る
+  const { cyclic } = orderByDependency(
+    items.map((i) => ({ name: i.name, rel: broken.has(i.name) ? undefined : i.rel })),
+  );
+  for (const name of cyclic) out.push({ name, kind: "cyclic" });
+
+  return out;
 }

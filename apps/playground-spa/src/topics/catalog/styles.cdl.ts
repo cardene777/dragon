@@ -1564,3 +1564,189 @@ export const sourceJson__pattern__shapeOrient__線の色を付ける = `{
 
 export const pattern__shapeOrient__線の色を付ける = textDslToDiagram(sourceYaml__pattern__shapeOrient__線の色を付ける);
 // ==== #1969 スタイルの欄の見本 ここまで ====
+
+// ==== #2039 位置を他の要素からの相対で書く見本 ここから ====
+//
+// 座標の代わりに「誰の」「どちら側に」「どれだけ離して」 を書く。 書く人も LLM も座標を知らないので、
+// 数値を当てさせずに並びを決められる。
+//
+// **向きを 4 つとも見せる**。 1 つだけ載せると、記法が受ける残り 3 つが画面のどこにも出ない。
+// 記法の欄と値がカタログに出ていることは `catalog-value-coverage.test.ts` が見る。
+//
+// 箱は普通の箱 (`card`) にする。 部品を使うと図が縦に伸び (部品は高さ 380-400、普通の箱は 68)、
+// 一覧の台に描ける高さ (900) を超える。 部品を基準にする形は「部品を箱に使う」 の頁が見せる。
+//
+// **図の種類は `topology` で、縦列の囲みを外す**。 `flow` は登場人物を書いた順に矢印で繋ぐので、
+// 位置だけを見せたい図に矢印が出て、その根元の長さが下限 (40) を割る (実測 = 絵の検査に 4 件出た)。
+// `topology` は矢印を作らないが、既定で縦列に破線の囲みを引き、相対で置いた箱だけが囲みの外に出る
+// (実測 = 右に置いた図は囲みの中が 1 箱、外が 1 箱に割れ、上に置いた図は 2 箱とも中に入った)。
+// `contain: false` を書くと囲みが消え、置いた位置だけが見える。
+//
+// **上に置いた図だけ、題が 2 つの箱の間に出る** (実測)。 題は図の原点の上に描かれるが、上に置いた
+// 箱は原点より上へ出るため、題を越えて更に上に来る。 描いているのは cdl の側で、この repo からは
+// 動かせない。 4 つとも同じ書き方に揃える方を採り、基準の箱へ座標を足して図ごと下げることはしない
+// (座標を書くと「座標を知らなくても並べられる」 という見本の主旨が濁る)。
+
+export const patternBase__relativePos = "右に置く";
+
+export const subtitle__relativePos =
+  "位置を座標ではなく、他の箱からの向きと間隔で書く。 右 / 左 / 上 / 下 の 4 つを書ける";
+
+export const sourceYaml__relativePos = `title: "受付の右に確認を置く"
+type: topology
+
+lanes:
+  main: { contain: false }
+
+actors:
+  - 受付: { kind: card }
+  - 確認する:
+      kind: card
+      位置: 受付 の右 200
+`;
+
+export const sourceJson__relativePos = `{
+  "title": "受付の右に確認を置く",
+  "type": "topology",
+  "lanes": { "main": { "contain": false } },
+  "actors": [
+    { "name": "受付", "kind": "card" },
+    {
+      "name": "確認する",
+      "kind": "card",
+      "posRel": { "anchor": "受付", "dir": "right", "gap": 200 }
+    }
+  ],
+  "flow": []
+}`;
+
+export const relativePos = textDslToDiagram(sourceYaml__relativePos);
+
+export const sourceYaml__pattern__relativePos__左に置く = `title: "受付の左に確認を置く"
+type: topology
+
+lanes:
+  main: { contain: false }
+
+actors:
+  - 受付: { kind: card }
+  - 確認する:
+      kind: card
+      位置: 受付 の左 200
+`;
+
+export const sourceJson__pattern__relativePos__左に置く = `{
+  "title": "受付の左に確認を置く",
+  "type": "topology",
+  "lanes": { "main": { "contain": false } },
+  "actors": [
+    { "name": "受付", "kind": "card" },
+    {
+      "name": "確認する",
+      "kind": "card",
+      "posRel": { "anchor": "受付", "dir": "left", "gap": 200 }
+    }
+  ],
+  "flow": []
+}`;
+
+export const pattern__relativePos__左に置く = textDslToDiagram(
+  sourceYaml__pattern__relativePos__左に置く,
+);
+
+export const sourceYaml__pattern__relativePos__上に置く = `title: "受付の上に確認を置く"
+type: topology
+
+lanes:
+  main: { contain: false }
+
+actors:
+  - 受付: { kind: card }
+  - 確認する:
+      kind: card
+      位置: 受付 の上 120
+`;
+
+export const sourceJson__pattern__relativePos__上に置く = `{
+  "title": "受付の上に確認を置く",
+  "type": "topology",
+  "lanes": { "main": { "contain": false } },
+  "actors": [
+    { "name": "受付", "kind": "card" },
+    {
+      "name": "確認する",
+      "kind": "card",
+      "posRel": { "anchor": "受付", "dir": "above", "gap": 120 }
+    }
+  ],
+  "flow": []
+}`;
+
+export const pattern__relativePos__上に置く = textDslToDiagram(
+  sourceYaml__pattern__relativePos__上に置く,
+);
+
+export const sourceYaml__pattern__relativePos__下に置く = `title: "受付の下に確認を置く"
+type: topology
+
+lanes:
+  main: { contain: false }
+
+actors:
+  - 受付: { kind: card }
+  - 確認する:
+      kind: card
+      位置: 受付 の下 120
+`;
+
+export const sourceJson__pattern__relativePos__下に置く = `{
+  "title": "受付の下に確認を置く",
+  "type": "topology",
+  "lanes": { "main": { "contain": false } },
+  "actors": [
+    { "name": "受付", "kind": "card" },
+    {
+      "name": "確認する",
+      "kind": "card",
+      "posRel": { "anchor": "受付", "dir": "below", "gap": 120 }
+    }
+  ],
+  "flow": []
+}`;
+
+export const pattern__relativePos__下に置く = textDslToDiagram(
+  sourceYaml__pattern__relativePos__下に置く,
+);
+
+export const sourceYaml__pattern__relativePos__間隔を書かない = `title: "間隔を書かずに受付の右へ置く"
+type: topology
+
+lanes:
+  main: { contain: false }
+
+actors:
+  - 受付: { kind: card }
+  - 確認する:
+      kind: card
+      位置: 受付 の右
+`;
+
+export const sourceJson__pattern__relativePos__間隔を書かない = `{
+  "title": "間隔を書かずに受付の右へ置く",
+  "type": "topology",
+  "lanes": { "main": { "contain": false } },
+  "actors": [
+    { "name": "受付", "kind": "card" },
+    {
+      "name": "確認する",
+      "kind": "card",
+      "posRel": { "anchor": "受付", "dir": "right" }
+    }
+  ],
+  "flow": []
+}`;
+
+export const pattern__relativePos__間隔を書かない = textDslToDiagram(
+  sourceYaml__pattern__relativePos__間隔を書かない,
+);
+// ==== #2039 位置を他の要素からの相対で書く見本 ここまで ====

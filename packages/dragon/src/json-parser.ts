@@ -72,6 +72,12 @@ import type {
 } from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
 import { compileToCdl } from "./compile";
+import {
+  RELATIVE_DIRECTIONS,
+  findRelativeProblems,
+  type RelativeDirection,
+  type RelativePos,
+} from "./relative-pos";
 
 /**
  * LLM 向け JSON DSL の入力 shape。 YAML DSL と 1:1 対応、 top-level は flat な object。
@@ -211,6 +217,24 @@ export interface DragonJson {
   palette?: DslPalette;
 }
 
+/**
+ * 位置を他の要素からの相対で書く指定の、JSON 側の形 (#2039)。
+ *
+ * 記法の `位置: Web の右 200` を 3 つの欄に開いたもの。 内側の値は `RelativePos` と同じで、
+ * 向きの語も同じ 4 つ (`right` / `left` / `above` / `below`) を使う。
+ *
+ * **向きの語を並べ直さない**。 `RelativeDirection` をそのまま使うことで、本文側に向きを
+ * 足した時に JSON 側が黙って取り残される形を作らない。
+ */
+export interface JsonRelativePos {
+  /** 基準にする相手の名前。 `actors:` に書かれた名前をそのまま書く */
+  anchor: string;
+  /** 基準からどちら側に置くか */
+  dir: RelativeDirection;
+  /** 相手との間隔。 書かなければ `RELATIVE_GAP_DEFAULT` */
+  gap?: number;
+}
+
 export interface JsonActor {
   name: string;
   /**
@@ -266,6 +290,17 @@ export interface JsonActor {
    * と同じで、読み方は `DslActor.layoutPos` が持つ。
    */
   pos?: LayoutPos;
+  /**
+   * 位置を他の要素からの相対で書く指定 (#2039)。 記法の `位置: Web の右 200` と同じ。
+   *
+   * 記法は 1 本の文字列に「誰の」「どちら側に」「どれだけ離して」 を詰めるが、JSON では
+   * 3 つの欄に分ける。 文字列を組み立てて渡す形にすると、書く側が記法の並び順と区切りを
+   * 覚える必要が出る = JSON を書くのは主に LLM で、読み取りの規則は欄の名前で示す方が短い。
+   *
+   * 組み立ての段階で基準の実座標から `posX` / `posY` に直すため、解決した後は座標を直接
+   * 書いた時と同じ経路を通る。 `pos` (配置後のずらし幅) とは別の欄。
+   */
+  posRel?: JsonRelativePos;
   /**
    * CAR-1657 parts state override (kind = parts identifier 時のみ有効)。
    * LLM JSON DSL では nested 明示 = `{ "state": { "v": 50 } }` が natural、 human 側の
@@ -557,6 +592,8 @@ export const ACCEPTED_KEYS = {
     "renderOffsetY",
     // 行頭の印 (#1466)。 行ごとに 1 つ、図の種類ごとの語で書く
     "marks",
+    // 位置を他の要素からの相対で書く指定 (#2039)
+    "posRel",
   ],
   step: [
     "from",
@@ -602,6 +639,8 @@ export const ACCEPTED_KEYS = {
   axesX: ["left", "right"],
   axesY: ["bottom", "top"],
   layoutPos: ["x", "y"],
+  // 位置を他の要素からの相対で書く指定 (#2039)。 間隔は書かなくてよい
+  posRel: ["anchor", "dir", "gap"],
 } as const satisfies Record<string, readonly string[]>;
 
 /** 受ける項目を持つ階層の名前 */
@@ -643,6 +682,8 @@ export type 欄の型 =
   | "線種"
   | "辺"
   | "端の形"
+  // 相対で置く時の向き (#2039)。 書けば必ず要る = 向きが無いとどちら側か決まらない
+  | "必須の向き"
   | "色か色番号"
   | "描くもの"
   | "必須の図種"
@@ -724,6 +765,8 @@ export const 欄の型表 = {
     renderOffsetY: "数か文字列",
     // 行頭の印 (#1466)
     marks: "文字列の並び",
+    // 相対で置く指定 (#2039)。 中身の形は `validateRelativePos` が見る
+    posRel: "object",
   },
   step: {
     from: "必須の文字列",
@@ -795,6 +838,8 @@ export const 欄の型表 = {
   axesY: { bottom: "文字列", top: "文字列" },
   // 位置は書けば x と y の両方が要る。 片方だけでは寄せ幅が決まらない
   layoutPos: { x: "必須の数", y: "必須の数" },
+  // 相対で置く指定 (#2039)。 相手と向きは必ず要り、間隔は書かなければ既定で置く
+  posRel: { anchor: "必須の非空文字列", dir: "必須の向き", gap: "数" },
 } as const satisfies {
   [層 in 階層]: { [欄 in (typeof ACCEPTED_KEYS)[層][number]]: 欄の型 };
 };
@@ -997,6 +1042,17 @@ function 値を検査(
         });
       }
       return;
+    case "必須の向き":
+      // 受ける語は記法と同じ一覧を見る (`RELATIVE_DIRECTIONS`)。 写すと向きが増えた時に
+      // 片方だけ古くなる
+      if (typeof v !== "string" || !(RELATIVE_DIRECTIONS as readonly string[]).includes(v)) {
+        errors.push({
+          path,
+          message: `${名前} must be one of: ${RELATIVE_DIRECTIONS.join(", ")}`,
+          hint: typeof v === "string" ? `got "${v}"` : `got ${v === undefined ? "nothing" : typeof v}`,
+        });
+      }
+      return;
     case "端の形":
       if (v === undefined) return;
       // 受ける語は記法と同じ一覧を見る (`EDGE_HEAD_VALUES`)。 写すと描画側が形を増やした時に
@@ -1165,6 +1221,77 @@ function validateLayoutPos(v: unknown, path: string, errors: JsonDslError[]): vo
   const p = v as Record<string, unknown>;
   checkUnknownKeys(p, "layoutPos", path, errors);
   表で検査(p, "layoutPos", path, "pos", errors);
+}
+
+/**
+ * 相対で置く指定の形を見る (#2039)。
+ *
+ * 相手の名前が実在するかはここでは見ない。 組み立て側 (`resolveRelativeDoc`) が figure 全体を
+ * 組んだ後に照合し、いない相手を指した時は知らせを出す。 入口ごとに別の場所で判定すると、
+ * 本文で書いた時と JSON で書いた時で返るものが変わる。
+ */
+function validateRelativePos(v: unknown, path: string, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({ path, message: "posRel must be an object with anchor and dir" });
+    return;
+  }
+  const p = v as Record<string, unknown>;
+  checkUnknownKeys(p, "posRel", path, errors);
+  表で検査(p, "posRel", path, "posRel", errors);
+}
+
+/**
+ * 図全体として相対の指定が解けるかを見る (#2039)。
+ *
+ * 判定は `relative-pos.ts` の `findRelativeProblems` が持つ。 記法側も同じ判定を呼ぶので、
+ * 同じ書き方が入口によって通ったり通らなかったりしない。
+ *
+ * 誤りの文だけをここで作る = 記法側は行番号を、こちらは欄の場所を添えるため。
+ */
+function validateRelativeAnchors(actors: readonly unknown[], errors: JsonDslError[]): void {
+  const items: Array<{ name: string; rel?: RelativePos }> = [];
+  const 場所 = new Map<string, number>();
+  actors.forEach((a, i) => {
+    if (!a || typeof a !== "object" || Array.isArray(a)) return;
+    const o = a as Record<string, unknown>;
+    if (typeof o.name !== "string") return;
+    const rel = o.posRel;
+    // 形の誤りは `validateRelativePos` が既に返している。 ここは形の整った指定だけを見る
+    const 整った =
+      rel !== null &&
+      typeof rel === "object" &&
+      !Array.isArray(rel) &&
+      typeof (rel as Record<string, unknown>).anchor === "string" &&
+      typeof (rel as Record<string, unknown>).dir === "string";
+    items.push({ name: o.name, rel: 整った ? (rel as RelativePos) : undefined });
+    if (!場所.has(o.name)) 場所.set(o.name, i);
+  });
+
+  const named = items.map((i) => i.name);
+  for (const p of findRelativeProblems(items)) {
+    const i = 場所.get(p.name) ?? 0;
+    errors.push({
+      path: `$.actors[${i}].posRel`,
+      ...(p.kind === "self"
+        ? {
+            message: `posRel.anchor must not be the actor itself: "${p.name}"`,
+            hint: "別の登場人物の名前を書く",
+          }
+        : p.kind === "missing-anchor"
+          ? {
+              message: `posRel.anchor must name an actor: "${p.anchor ?? ""}"`,
+              hint:
+                named.length > 0
+                  ? `actors に書かれている名前 = ${named.join(", ")}`
+                  : "actors に基準にする登場人物を書く",
+            }
+          : {
+              message: `posRel.anchor must not form a cycle: "${p.name}"`,
+              hint: "どれか 1 つは posX / posY か自動配置にする",
+            }),
+    });
+  }
 }
 
 /**
@@ -2195,7 +2322,11 @@ function validateJson(
       }
       // CAR-1693 Phase 1: actor DSL 表面 pos の validation
       validateLayoutPos(ao.pos, `$.actors[${i}].pos`, errors);
+      // 相対で置く指定 (#2039)
+      validateRelativePos(ao.posRel, `$.actors[${i}].posRel`, errors);
     });
+    // 解けない相対の指定 (#2039)。 欄ごとの形を見た後に、図全体として解けるかを見る
+    validateRelativeAnchors(j.actors, errors);
   }
   if (!Array.isArray(j.flow)) {
     errors.push({ path: "$.flow", message: "flow must be an array" });
@@ -2460,6 +2591,8 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       stateOverride: isPart ? a.state : undefined,
       // CAR-1693 Phase 1: DSL 表面 pos → 内部 AST layoutPos の 2 層 mapping (naming collision 回避)
       layoutPos: a.pos,
+      // 相対で置く指定 (#2039)。 欄の名前が内部と同じなのでそのまま渡す
+      posRel: a.posRel,
       pos: p0,
     };
   });

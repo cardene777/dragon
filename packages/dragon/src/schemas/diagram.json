@@ -262,6 +262,36 @@
                   }
                 }
               },
+              "posRel": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "位置を他の要素からの相対で書く指定。 座標を知らなくても「誰の」「どちら側に」「どれだけ離して」 で置ける。 解決した後は posX / posY を書いた時と同じ経路を通る。",
+                "required": [
+                  "anchor",
+                  "dir"
+                ],
+                "properties": {
+                  "anchor": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "基準にする相手の名前。 actors に書かれた名前をそのまま書く。"
+                  },
+                  "dir": {
+                    "type": "string",
+                    "enum": [
+                      "right",
+                      "left",
+                      "above",
+                      "below"
+                    ],
+                    "description": "基準からどちら側に置くか。"
+                  },
+                  "gap": {
+                    "type": "number",
+                    "description": "相手の縁との間隔。 書かなければ 160 で置く。"
+                  }
+                }
+              },
               "visibleIf": {
                 "type": "string",
                 "description": "その箱を出すかどうかの条件。 状態を差し込める文字列で、\"0\" / \"false\" / 空文字が偽、それ以外は真。"

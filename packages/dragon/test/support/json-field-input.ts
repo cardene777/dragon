@@ -61,6 +61,15 @@ export function 欄に値を置く(層: 階層, key: string, v: unknown): Record
       return 図({ type: "quadrant", axes: { y: { [key]: v } } });
     case "layoutPos":
       return 図({ actors: [{ name: "A", pos: { x: 1, y: 2, [key]: v } }, { name: "B" }] });
+    case "posRel": {
+      // 相対で置く指定 (#2039)。 基準は 2 つ目の箱にする = 自分を基準にすると別の誤りが混ざる
+      const rel = { anchor: "B", dir: "right", [key]: v };
+      // **基準に置いた名前は実在させる**。 実在しない名前は「相手が居ない」 の誤りになり、
+      // いま測りたい欄の型の誤りと混ざる。 型として読めない値 (数 / 空文字) はそのまま置く =
+      // その形は型の側が誤りにするので、居ない相手としては数えられない
+      const 足す = typeof v === "string" && v !== "" && key === "anchor" ? [{ name: v }] : [];
+      return 図({ actors: [{ name: "A", posRel: rel }, { name: "B" }, ...足す] });
+    }
   }
 }
 
@@ -89,5 +98,7 @@ export function 欄のpath(層: 階層, key: string): string {
       return `$.axes.y.${key}`;
     case "layoutPos":
       return `$.actors[0].pos.${key}`;
+    case "posRel":
+      return `$.actors[0].posRel.${key}`;
   }
 }

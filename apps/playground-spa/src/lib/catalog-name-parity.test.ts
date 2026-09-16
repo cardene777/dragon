@@ -75,11 +75,12 @@ describe("一覧の名前 (#1030)", () => {
       // interactive は矢印や縦列や図全体で操作を受け取る見本を足して 129 → 130 (#1969)
       interactive: 130, cookbook: 26, patterns: 12, primitives: 95,
       // presets はクラス図と ER 図の複雑な版をパターンへ移して 21 → 19 (#1960)
-      // styles は欄が取る値を並べる見本を 4 件足して 10 → 14 (#1966)
+      // styles は欄が取る値を並べる見本を 4 件足して 10 → 14 (#1966)、
+      // 位置を相対で書く見本を足して 14 → 15 (#2039)
       // primitives は縦列の縦の点線 / 図全体の間隔 / 流れ図の並ぶ向き / 状態の始まりと終わり
       // の見本を足して 89 → 93 (#1969)、位置のずらしの見本を足して 93 → 94 (#1971)、
       // 縦列の組の見本を足して 94 → 95 (#1972)
-      "primitives-extra": 21, animation: 10, styles: 14, presets: 19,
+      "primitives-extra": 21, animation: 10, styles: 15, presets: 19,
       // parts-in-box は部品を箱に使う見本 (#1973)
       ethereum: 4, "text-dsl": 15, parts: 80, "parts-in-box": 1, charts: 15,
     };

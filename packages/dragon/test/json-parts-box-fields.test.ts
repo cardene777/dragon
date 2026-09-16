@@ -41,6 +41,8 @@ const 箱の値: Record<string, unknown> = {
   rows: ["ア"],
   // 行頭の印 (#1466)。 行と同じ数だけ並べる
   marks: ["pk"],
+  // 相対で置く指定 (#2039)。 基準は図に居る別の箱にする
+  posRel: { anchor: "A", dir: "right", gap: 200 },
   lane: "L1",
   stack: 1,
   initial: true,

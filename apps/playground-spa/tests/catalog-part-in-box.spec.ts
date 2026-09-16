@@ -55,10 +55,10 @@ async function 円(
 const カタログの図 = "main.catalog-preview svg[data-cdl-stage]";
 
 test.describe("部品を箱に使う見本 (#1973)", () => {
-  test("部品の頁に並び、切替が 13 つ出る", async ({ page }) => {
+  test("部品の頁に並び、切替が 14 つ出る", async ({ page }) => {
     await 開く(page);
     await expect(page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio")).toHaveCount(
-      13,
+      14,
     );
   });
 
