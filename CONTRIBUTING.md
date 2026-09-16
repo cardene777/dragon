@@ -33,62 +33,37 @@ engine (`@cardenelabs/cdl`) は別 repo (`github.com/cardene777/cdl`) SSOT。
 
 ## 残作業の数え方
 
-この repo の issue は **Linear と GitHub の 2 箇所**にある。 片方だけ見ると残作業が見えない。
+この repo の残作業は **GitHub の Issue と PR** で数える。 片方だけ見ると残作業が見えない。
+取り込まれていない PR は、対応する Issue を閉じていても終わっていない作業にあたる。
 
 「残りゼロ」 と判断する前に、両方を実測する。
 
-### Linear 側
-
-完了扱いの状態は `Done` / `Canceled` / `Duplicate` の 3 つで、**それ以外は全て残作業**。
-状態は後から増えるため、残っている状態を数え上げるのではなく
-**完了扱いの 3 つを除いた残り全部**として数える。
-
-```text
-mcp__linear__list_issue_statuses  team=Cardene
-mcp__linear__list_issues  team=Cardene  state=<完了扱いでない状態>
-```
-
-**team 全体で数えて、dragon の話かどうかは本文で判定する。**
-`project=dragon` で絞ると、project が未設定の issue が丸ごと消える。 未設定は起票直後に
-起きやすいが `Triage` に限らず、どの状態でも起こりうる。 件数が多くて絞りたい時も、
-project で絞った数を「残り全部」 として報告しない。
-
-実測すると、`Backlog` と `In Progress` を `project=dragon` で数えるだけでは
-**この手順そのものの issue (`CAR-2948`) が数から消える**。 `Triage` にあり project が未設定のため。
-
-### GitHub 側
-
 ```bash
-gh issue list -R cardene777/dragon --state open --limit 200
-gh pr list -R cardene777/dragon --state open --limit 200
+gh issue list -R cardene777/dragon --state open --limit 200; echo "終了コード $?"
+gh pr list -R cardene777/dragon --state open --limit 200; echo "終了コード $?"
 ```
 
 `--limit` を省くと **30 件で黙って打ち切られる**。 返ってきた件数が `--limit` と同じなら
 まだ先があるので、上限を上げて数え直す。
 
-### Linear の tool が見当たらない時
+### 数えられなかった時
 
-**「tool が無い」 を「Linear は非該当」 と読み替えない。** これがそのまま数え漏れになる。
+**出力が空でも 0 件とは限らない。** 開いているものが 0 件の時も、`gh` が失敗した時も、
+標準出力は空になる。 見分けられるのは終了コードだけで、0 なら数えられている。
 
-`.mcp.json` に Linear の登録があることは、**server が登録済である**ことしか示さない。
-tool が出ない理由は他にもある。
+0 以外の終了コードは、実測で次の形で出た。
 
-| 理由 | 確かめ方 |
-|---|---|
-| 未認証 | 下記の command で認証すると出る |
-| client が MCP 未対応、または server を無効にしている | client 側の設定を見る |
-| 接続の許可をまだ与えていない | client が確認を出していないか見る |
-| network から Linear に届いていない | 他の外部通信が通るか見る |
-| workspace に招待されていない | 認証まで進んでも issue が見えない |
+| 終了コード | 理由 | 標準エラーに出る文 |
+|---|---|---|
+| 4 | 未認証 | `To get started with GitHub CLI, please run:  gh auth login` |
+| 1 | token が無効 | `HTTP 401: Bad credentials` |
+| 1 | repo が見えない (招待されていない / 名前の誤り) | `Could not resolve to a Repository` |
 
-認証の command は client ごとに違う。
+network に届かない時や呼出の上限に達した時など、表に無い理由でも 0 以外になる。
+**0 以外なら理由を問わず、報告に「GitHub は数えていない」 と書く。** 数えていない source を 0 件として書かない。
 
-- Claude Code ... `claude mcp login linear` (`/mcp` から選んでもよい)
-- Codex CLI ... `codex mcp login linear`
-
-**Linear は private な workspace で、外部の contributor は招待されていない。**
-その場合は GitHub 側だけを数え、報告に **「Linear は数えていない」 と明記する**。
-数えていない source を 0 件として書かない。
+出力を `wc -l` などの別の command に渡すと、終了コードは後ろの command のものに置き換わる。
+未認証のまま `gh issue list ... | wc -l` とすると `0` が返り、失敗が 0 件に化ける。
 
 ### なぜこの手順があるか
 
@@ -97,12 +72,15 @@ tool が出ない理由は他にもある。
 Backlog 7 件 / In Progress 4 件が残っていた。 そのまま報告していれば 11 件を見落として
 「残作業 0」 と書くところだった。
 
-**この手順の最初の版も同じ誤り方をしていた。** 認証後に数えた 2 つの状態
-(`Backlog` / `In Progress`) をそのまま手順に書いたため、`Triage` にある project 未設定の
-issue が数から漏れた。 数え方を「見た状態の列挙」 で書くと、見ていない状態が
-最初から存在しないことになる。 だから完了扱いを除く形で書いてある。
+当時は Linear と GitHub の 2 箇所を数える手順だった。 2026-08-25 に共通設定から Linear を外し
+([agent-configs #1299](https://github.com/cardene777/agent-configs/issues/1299))、この repo の起票も
+GitHub だけになった (2026-08-24 以降の commit は Linear の番号 `CAR-` を持たない)。
+だから数える先は GitHub だけにしてある。 コードの注釈に残る `CAR-` の番号は当時の記録で、残作業ではない。
 
-経緯は `#1055` と `#1056` に残っている。
+**数える先が 1 つになっても、同じ誤り方は残る。** `gh` が失敗した時の空の出力は、
+Linear の tool が出なかった時と同じく「0 件」 に見える。 だから終了コードで分ける手順を置いている。
+
+経緯は `#1055` / `#1056` / `#2056` に残っている。
 
 ## Tests
 
