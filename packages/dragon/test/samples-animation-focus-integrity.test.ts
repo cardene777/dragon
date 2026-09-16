@@ -8,8 +8,7 @@
  * dangling reference (存在しない actor / edge を focus に指定) を検知することで、
  * sample DSL 修正時の regression を防ぐ integrity gate として機能する。
  *
- * 検証 phase / step / focus は samples 定義 (15 sample) × 各 4-6 phase = 60+ focus reference
- * を全件 traverse。
+ * 全見本の phase / step ごとの focus 参照を全件 traverse。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";

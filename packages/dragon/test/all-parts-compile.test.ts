@@ -2,7 +2,7 @@
  * 全 parts × sequence sample の compile 網羅 unit test (iter7、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応。
- * parts.cdl.ts の全 export (80 件) を sequence DSL に 「actor unified syntax」 で追加し、
+ * parts.cdl.ts の全 export を sequence DSL に 「actor unified syntax」 で追加し、
  * textDslToDiagram + compile で throw なし + 有意 node 出力を assert する batch 検証。
  * e2e で 1 個ずつ click するのは時間コスト高、 unit で全網羅する経路。
  */
@@ -27,7 +27,7 @@ function collectAllParts(mod: unknown): Array<{ name: string; diagram: CdlDiagra
 const ALL_PARTS = collectAllParts(PartsMod);
 
 describe("iter7: 全 parts × sequence sample の compile 網羅 (throw なし + 有意 node 出力)", () => {
-  it(`parts 80 個 export 検出`, () => {
+  it(`parts を 60 個以上 export している`, () => {
     expect(ALL_PARTS.length, `parts.cdl.ts で少なくとも 60 個以上の parts export (現状: ${ALL_PARTS.length})`).toBeGreaterThanOrEqual(60);
   });
 
