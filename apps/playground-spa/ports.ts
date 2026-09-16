@@ -10,6 +10,10 @@
  *
  * 調査用の `scripts/*.mjs` は literal のままにする。 実行のたびに人が port を選ぶもので、
  * 決まった経路ではない。
+ *
+ * 手引きの類 (追跡中の Markdown、`CHANGELOG.md` を除く) は、読む人がそのまま開けるよう数字を
+ * 書いてよい。 書いた `localhost:<数字>` は `src/lib/ports.test.ts` がここと突き合わせ、
+ * 無い port / base path の付け忘れ / 開発 server への base path の付け足しで落ちる (#2054)。
  */
 
 /** 開発 server (`pnpm dev`)。 記法を書きながら図を見る画面を配る */
