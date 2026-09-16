@@ -1,0 +1,2679 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > bar の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "経路別の流入",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "chartData": [
+          {
+            "label": "検索",
+            "value": 420,
+          },
+          {
+            "label": "SNS",
+            "value": 310,
+          },
+          {
+            "label": "直接",
+            "value": 180,
+          },
+          {
+            "label": "紹介",
+            "value": 90,
+          },
+        ],
+        "h": 368,
+        "id": "経路別の流入-chart",
+        "kind": "chart-bar",
+        "lane": "chart",
+        "stack": 0,
+        "title": "経路別の流入",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "経路別の流入-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "経路別の流入",
+    "type": "chart",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > c4 の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "利用者",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "利用者-システム",
+        "label": "利用",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "システム",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "システム",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "システム-api",
+        "label": "要求",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "api",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "api",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "api-db",
+        "label": "問い合わせ",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "db",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+    ],
+    "id": "c4コンテキストモデル",
+    "lanes": [
+      {
+        "contain": true,
+        "id": "c4-l1",
+        "label": "全体の見取り図",
+        "width": 400,
+        "x": 0,
+      },
+      {
+        "contain": true,
+        "id": "c4-l2",
+        "label": "動かす単位",
+        "width": 400,
+        "x": 480,
+      },
+    ],
+    "nodes": [
+      {
+        "id": "利用者",
+        "kind": "person",
+        "lane": "c4-l1",
+        "stack": 0,
+        "subtitle": "図を使う人",
+        "title": "利用者",
+      },
+      {
+        "id": "システム",
+        "kind": "service",
+        "lane": "c4-l1",
+        "stack": 1,
+        "subtitle": "対象のシステム全体",
+        "title": "システム",
+      },
+      {
+        "id": "api",
+        "kind": "service",
+        "lane": "c4-l2",
+        "stack": 0,
+        "subtitle": "要求を受ける入口",
+        "title": "API",
+      },
+      {
+        "id": "db",
+        "kind": "database",
+        "lane": "c4-l2",
+        "stack": 1,
+        "subtitle": "データを保つ",
+        "title": "DB",
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "利用者",
+          "システム",
+          "利用者-システム",
+        ],
+        "body": "",
+        "duration": 1200,
+        "id": "use",
+        "sets": [],
+        "title": "use",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "システム",
+          "api",
+          "システム-api",
+        ],
+        "body": "",
+        "duration": 1200,
+        "id": "request",
+        "sets": [],
+        "title": "request",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "api",
+          "db",
+          "api-db",
+        ],
+        "body": "",
+        "duration": 1200,
+        "id": "query",
+        "sets": [],
+        "title": "query",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "C4コンテキストモデル",
+    "type": "infrastructure",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > class の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "犬",
+        "guard": undefined,
+        "head": "open",
+        "headFill": "solid",
+        "headLabel": undefined,
+        "id": "cr-0-犬-動物",
+        "label": "extends",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": "dashed",
+        "sub": undefined,
+        "tailHead": "none",
+        "tailHeadFill": "solid",
+        "tailLabel": undefined,
+        "to": "動物",
+        "tone": "success",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "猫",
+        "guard": undefined,
+        "head": "open",
+        "headFill": "solid",
+        "headLabel": undefined,
+        "id": "cr-1-猫-動物",
+        "label": "extends",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": "dashed",
+        "sub": undefined,
+        "tailHead": "none",
+        "tailHeadFill": "solid",
+        "tailLabel": undefined,
+        "to": "動物",
+        "tone": "success",
+        "widthBind": undefined,
+      },
+    ],
+    "id": "動物クラス階層",
+    "lanes": [
+      {
+        "id": "lane-動物",
+        "width": 450,
+      },
+      {
+        "id": "lane-犬",
+        "width": 450,
+      },
+      {
+        "id": "lane-猫",
+        "width": 450,
+      },
+    ],
+    "nodes": [
+      {
+        "id": "動物",
+        "kind": "storage",
+        "lane": "lane-動物",
+        "rowMarks": [
+          {
+            "filled": true,
+            "shape": "square",
+          },
+          {
+            "filled": true,
+            "shape": "square",
+          },
+          {
+            "filled": true,
+            "shape": "chevron",
+          },
+        ],
+        "rowStripe": true,
+        "rows": [
+          "name: string",
+          "age: int",
+          "speak: void",
+        ],
+        "stack": 0,
+        "title": "動物",
+        "w": 400,
+      },
+      {
+        "id": "犬",
+        "kind": "storage",
+        "lane": "lane-犬",
+        "rowMarks": [
+          {
+            "filled": true,
+            "shape": "square",
+          },
+          {
+            "filled": true,
+            "shape": "chevron",
+          },
+        ],
+        "rowStripe": true,
+        "rows": [
+          "breed: string",
+          "bark: void",
+        ],
+        "stack": 0,
+        "title": "犬",
+        "w": 400,
+      },
+      {
+        "id": "猫",
+        "kind": "storage",
+        "lane": "lane-猫",
+        "rowMarks": [
+          {
+            "filled": true,
+            "shape": "square",
+          },
+          {
+            "filled": true,
+            "shape": "chevron",
+          },
+        ],
+        "rowStripe": true,
+        "rows": [
+          "indoor: boolean",
+          "meow: void",
+        ],
+        "stack": 0,
+        "title": "猫",
+        "w": 400,
+      },
+    ],
+    "palette": "kinari",
+    "phases": [
+      {
+        "activate": [
+          "動物",
+          "犬",
+          "猫",
+          "cr-0-犬-動物",
+          "cr-1-猫-動物",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "動物クラス階層",
+    "type": "class",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > er の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [
+      {
+        "cardinality": "1:N",
+        "dashOffsetBind": undefined,
+        "from": "利用者",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e0-利用者-投稿",
+        "label": "投稿する (1:N)",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "投稿",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": "1:N",
+        "dashOffsetBind": undefined,
+        "from": "投稿",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e1-投稿-コメント",
+        "label": "コメント持つ (1:N)",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "コメント",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+    ],
+    "id": "利用者-投稿-コメントのスキ-マ",
+    "lanes": [
+      {
+        "id": "lane-利用者",
+        "width": 450,
+      },
+      {
+        "id": "lane-投稿",
+        "width": 450,
+      },
+      {
+        "id": "lane-コメント",
+        "width": 450,
+      },
+    ],
+    "nodes": [
+      {
+        "id": "利用者",
+        "kind": "storage",
+        "lane": "lane-利用者",
+        "rowStripe": true,
+        "rows": [
+          "id: PK",
+          "email: string",
+          "name: string",
+        ],
+        "stack": 0,
+        "title": "利用者",
+      },
+      {
+        "id": "投稿",
+        "kind": "storage",
+        "lane": "lane-投稿",
+        "rowStripe": true,
+        "rows": [
+          "id: PK",
+          "userId: FK",
+          "title: string",
+          "body: text",
+        ],
+        "stack": 0,
+        "title": "投稿",
+      },
+      {
+        "id": "コメント",
+        "kind": "storage",
+        "lane": "lane-コメント",
+        "rowStripe": true,
+        "rows": [
+          "id: PK",
+          "postId: FK",
+          "body: text",
+        ],
+        "stack": 0,
+        "title": "コメント",
+      },
+    ],
+    "palette": "kinari",
+    "phases": [
+      {
+        "activate": [
+          "利用者",
+          "投稿",
+          "コメント",
+          "e0-利用者-投稿",
+          "e1-投稿-コメント",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "利用者・投稿・コメントのスキーマ",
+    "type": "er",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > flow の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "プッシュ",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e0-プッシュ-ビルド",
+        "label": "トリガー",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "ビルド",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "ビルド",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e1-ビルド-テスト",
+        "label": "成果物",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "テスト",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "テスト",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e2-テスト-デプロイ",
+        "label": "合格",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "デプロイ",
+        "tone": "success",
+        "widthBind": undefined,
+      },
+    ],
+    "id": "ciパイプライン",
+    "lanes": [
+      {
+        "id": "main",
+        "label": "CIパイプライン",
+        "width": 400,
+      },
+    ],
+    "nodes": [
+      {
+        "id": "プッシュ",
+        "kind": "event",
+        "lane": "main",
+        "stack": 0,
+        "title": "プッシュ",
+      },
+      {
+        "id": "ビルド",
+        "kind": "function",
+        "lane": "main",
+        "stack": 1,
+        "title": "ビルド",
+      },
+      {
+        "id": "テスト",
+        "kind": "function",
+        "lane": "main",
+        "stack": 2,
+        "title": "テスト",
+      },
+      {
+        "id": "デプロイ",
+        "kind": "function",
+        "lane": "main",
+        "stack": 3,
+        "title": "デプロイ",
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "プッシュ",
+          "ビルド",
+          "e0-プッシュ-ビルド",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1200,
+        "id": "trigger",
+        "sets": [],
+        "title": "trigger",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "ビルド",
+          "テスト",
+          "e1-ビルド-テスト",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1500,
+        "id": "build",
+        "sets": [],
+        "title": "build",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "テスト",
+          "デプロイ",
+          "e2-テスト-デプロイ",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1500,
+        "id": "test",
+        "sets": [],
+        "title": "test",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "デプロイ",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1200,
+        "id": "deploy",
+        "sets": [],
+        "title": "deploy",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "CIパイプライン",
+    "type": "flow",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > funnel の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "申込みまでの絞り込み",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 624,
+      },
+    ],
+    "nodes": [
+      {
+        "funnelData": [
+          {
+            "count": 12000,
+            "id": "訪問",
+            "title": "訪問",
+          },
+          {
+            "count": 3400,
+            "id": "会員登録",
+            "title": "会員登録",
+          },
+          {
+            "count": 1200,
+            "id": "カ-ト投入",
+            "title": "カート投入",
+          },
+          {
+            "count": 480,
+            "id": "申込み",
+            "title": "申込み",
+          },
+        ],
+        "h": 480,
+        "id": "申込みまでの絞り込み-chart",
+        "kind": "funnel-stages",
+        "lane": "chart",
+        "stack": 0,
+        "title": "申込みまでの絞り込み",
+        "w": 560,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [],
+        "body": "",
+        "duration": 1000,
+        "id": "static",
+        "sets": [],
+        "title": "申込みまでの絞り込み",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "申込みまでの絞り込み",
+    "type": "funnel",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > gantt の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "四半期ロ-ドマップ",
+    "lanes": [
+      {
+        "id": "gantt",
+        "width": 720,
+      },
+    ],
+    "nodes": [
+      {
+        "ganttData": [
+          {
+            "endIdx": 0,
+            "endLabel": "1期",
+            "id": "設計",
+            "startIdx": 0,
+            "startLabel": "1期",
+            "title": "設計",
+          },
+          {
+            "endIdx": 1,
+            "endLabel": "2期",
+            "id": "実装",
+            "startIdx": 1,
+            "startLabel": "2期",
+            "title": "実装",
+          },
+          {
+            "endIdx": 2,
+            "endLabel": "3期",
+            "id": "テスト",
+            "startIdx": 2,
+            "startLabel": "3期",
+            "title": "テスト",
+          },
+          {
+            "endIdx": 3,
+            "endLabel": "4期",
+            "id": "リリ-ス",
+            "startIdx": 3,
+            "startLabel": "4期",
+            "title": "リリース",
+          },
+        ],
+        "h": 360,
+        "id": "四半期ロ-ドマップ-chart",
+        "kind": "gantt-timeline",
+        "lane": "gantt",
+        "stack": 0,
+        "title": "四半期ロードマップ",
+        "w": 720,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "四半期ロ-ドマップ-chart",
+        ],
+        "body": "",
+        "duration": 1000,
+        "id": "q1",
+        "sets": [],
+        "title": "Q1",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "四半期ロ-ドマップ-chart",
+        ],
+        "body": "",
+        "duration": 1000,
+        "id": "q2",
+        "sets": [],
+        "title": "Q2",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "四半期ロ-ドマップ-chart",
+        ],
+        "body": "",
+        "duration": 1000,
+        "id": "q3",
+        "sets": [],
+        "title": "Q3",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "四半期ロ-ドマップ-chart",
+        ],
+        "body": "",
+        "duration": 1000,
+        "id": "q4",
+        "sets": [],
+        "title": "Q4",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "四半期ロードマップ",
+    "type": "gantt",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > gauge の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "今期の売上進捗",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "chartData": [
+          {
+            "label": "契約済",
+            "value": 680,
+          },
+          {
+            "label": "商談中",
+            "value": 240,
+          },
+          {
+            "label": "未着手",
+            "value": 180,
+          },
+        ],
+        "h": 320,
+        "id": "今期の売上進捗-chart",
+        "kind": "chart-gauge",
+        "lane": "chart",
+        "stack": 0,
+        "title": "今期の売上進捗",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "今期の売上進捗-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "今期の売上進捗",
+    "type": "chart",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > journey の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "初めて使うまで",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 784,
+      },
+    ],
+    "nodes": [
+      {
+        "h": 480,
+        "id": "初めて使うまで-chart",
+        "journeyData": [
+          {
+            "emotion": "neutral",
+            "id": "記事で知る",
+            "title": "記事で知る",
+          },
+          {
+            "emotion": "frustrated",
+            "id": "登録画面",
+            "title": "登録画面",
+          },
+          {
+            "emotion": "angry",
+            "id": "メ-ル確認",
+            "title": "メール確認",
+          },
+          {
+            "emotion": "neutral",
+            "id": "初期設定",
+            "title": "初期設定",
+          },
+          {
+            "emotion": "happy",
+            "id": "見本を開く",
+            "title": "見本を開く",
+          },
+          {
+            "emotion": "delighted",
+            "id": "初めて描けた",
+            "title": "初めて描けた",
+          },
+          {
+            "emotion": "happy",
+            "id": "共有する",
+            "title": "共有する",
+          },
+        ],
+        "kind": "journey-map",
+        "lane": "chart",
+        "stack": 0,
+        "title": "初めて使うまで",
+        "w": 720,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [],
+        "body": "",
+        "duration": 1000,
+        "id": "static",
+        "sets": [],
+        "title": "初めて使うまで",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "初めて使うまで",
+    "type": "journey",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > line の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "週ごとの応答時間",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "chartData": [
+          {
+            "label": "1週",
+            "value": 180,
+          },
+          {
+            "label": "2週",
+            "value": 240,
+          },
+          {
+            "label": "3週",
+            "value": 210,
+          },
+          {
+            "label": "4週",
+            "value": 120,
+          },
+          {
+            "label": "5週",
+            "value": 95,
+          },
+        ],
+        "h": 368,
+        "id": "週ごとの応答時間-chart",
+        "kind": "chart-line",
+        "lane": "chart",
+        "stack": 0,
+        "title": "週ごとの応答時間",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "週ごとの応答時間-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "週ごとの応答時間",
+    "type": "chart",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > mind の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "プロジェクト構想",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 784,
+      },
+    ],
+    "nodes": [
+      {
+        "h": 480,
+        "id": "プロジェクト構想-chart",
+        "kind": "mind-map",
+        "lane": "chart",
+        "mindData": {
+          "branches": [
+            {
+              "id": "機能",
+              "parent": "新プロジェクト",
+              "title": "機能",
+            },
+            {
+              "id": "デザイン",
+              "parent": "新プロジェクト",
+              "title": "デザイン",
+            },
+            {
+              "id": "リリ-ス",
+              "parent": "新プロジェクト",
+              "title": "リリース",
+            },
+            {
+              "id": "マ-ケット",
+              "parent": "新プロジェクト",
+              "title": "マーケット",
+            },
+          ],
+          "rootId": "新プロジェクト",
+          "rootTitle": "新プロジェクト",
+        },
+        "stack": 0,
+        "title": "プロジェクト構想",
+        "w": 720,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "プロジェクト構想-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "プロジェクト構想",
+    "type": "mind",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > pie の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "言語シェア",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "chartData": [
+          {
+            "label": "TypeScript",
+            "value": 45,
+          },
+          {
+            "label": "Python",
+            "value": 30,
+          },
+          {
+            "label": "Rust",
+            "value": 15,
+          },
+          {
+            "label": "Go",
+            "value": 10,
+          },
+        ],
+        "h": 320,
+        "id": "言語シェア-chart",
+        "kind": "chart-pie",
+        "lane": "chart",
+        "stack": 0,
+        "title": "言語シェア",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "言語シェア-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "言語シェア",
+    "type": "chart",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > quadrant の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "着手の順番",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "h": 480,
+        "id": "着手の順番-chart",
+        "kind": "quadrant-matrix",
+        "lane": "chart",
+        "quadrantData": {
+          "items": [
+            {
+              "id": "重複削除",
+              "quadrant": "topLeft",
+              "title": "重複削除",
+            },
+            {
+              "id": "警告の文面",
+              "quadrant": "topLeft",
+              "title": "警告の文面",
+            },
+            {
+              "id": "描画刷新",
+              "quadrant": "topRight",
+              "title": "描画刷新",
+            },
+            {
+              "id": "記法の拡張",
+              "quadrant": "topRight",
+              "title": "記法の拡張",
+            },
+            {
+              "id": "配色統一",
+              "quadrant": "bottomLeft",
+              "title": "配色統一",
+            },
+            {
+              "id": "用語の統一",
+              "quadrant": "bottomLeft",
+              "title": "用語の統一",
+            },
+            {
+              "id": "旧記法",
+              "quadrant": "bottomRight",
+              "title": "旧記法",
+            },
+            {
+              "id": "実験機能",
+              "quadrant": "bottomRight",
+              "title": "実験機能",
+            },
+          ],
+          "quadrantLabels": {
+            "bottomLeft": "左下",
+            "bottomRight": "右下",
+            "topLeft": "左上",
+            "topRight": "右上",
+          },
+          "xAxis": {
+            "left": "小さい",
+            "right": "大きい",
+          },
+          "yAxis": {
+            "bottom": "小さい",
+            "top": "大きい",
+          },
+        },
+        "stack": 0,
+        "title": "着手の順番",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [],
+        "body": "",
+        "duration": 1000,
+        "id": "static",
+        "sets": [],
+        "title": "着手の順番",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "着手の順番",
+    "type": "quadrant",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > radial の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "機能ごとの利用率",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "chartData": [
+          {
+            "label": "検索",
+            "value": 72,
+          },
+          {
+            "label": "保存",
+            "value": 45,
+          },
+          {
+            "label": "共有",
+            "value": 28,
+          },
+          {
+            "label": "書き出し",
+            "value": 12,
+          },
+        ],
+        "h": 320,
+        "id": "機能ごとの利用率-chart",
+        "kind": "chart-radial",
+        "lane": "chart",
+        "stack": 0,
+        "title": "機能ごとの利用率",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "機能ごとの利用率-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "機能ごとの利用率",
+    "type": "chart",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > sequence の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "ログインapi呼び出し",
+    "lanes": [
+      {
+        "id": "seq",
+        "width": 926,
+      },
+    ],
+    "nodes": [
+      {
+        "h": 432,
+        "id": "ログインapi呼び出し",
+        "kind": "sequence-board",
+        "lane": "seq",
+        "sequenceData": {
+          "actors": [
+            {
+              "name": "利用者",
+            },
+            {
+              "name": "API",
+            },
+            {
+              "name": "DB",
+            },
+          ],
+          "bands": [
+            {
+              "actor": 0,
+              "from": 0,
+              "to": 3,
+            },
+            {
+              "actor": 1,
+              "from": 0,
+              "to": 3,
+            },
+            {
+              "actor": 2,
+              "from": 1,
+              "to": 2,
+            },
+          ],
+          "messages": [
+            {
+              "from": 0,
+              "kind": "call",
+              "label": "ログイン要求",
+              "to": 1,
+            },
+            {
+              "from": 1,
+              "kind": "call",
+              "label": "利用者検索",
+              "to": 2,
+            },
+            {
+              "from": 2,
+              "kind": "call",
+              "label": "結果",
+              "to": 1,
+            },
+            {
+              "from": 1,
+              "kind": "return",
+              "label": "認証成功",
+              "to": 0,
+            },
+          ],
+        },
+        "sequenceStep": "{seq_step}",
+        "stack": 0,
+        "title": "",
+        "tone": "accent",
+        "w": 876,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "ログインapi呼び出し",
+        ],
+        "body": "",
+        "duration": 1400,
+        "id": "p0",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 0,
+          },
+        ],
+        "title": "call",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "ログインapi呼び出し",
+        ],
+        "body": "",
+        "duration": 1400,
+        "id": "p1",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 1,
+          },
+        ],
+        "title": "query",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "ログインapi呼び出し",
+        ],
+        "body": "",
+        "duration": 1400,
+        "id": "p2",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 2,
+          },
+        ],
+        "title": "return",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "ログインapi呼び出し",
+        ],
+        "body": "",
+        "duration": 1400,
+        "id": "p3",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 3,
+          },
+        ],
+        "title": "ok",
+        "tweens": [],
+      },
+    ],
+    "states": [
+      {
+        "id": "seq_step",
+        "initial": "0",
+      },
+    ],
+    "topic": "ログインAPI呼び出し",
+    "type": "sequence",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > sequence-checkout の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "注文チェックアウト",
+    "lanes": [
+      {
+        "id": "seq",
+        "width": 882,
+      },
+    ],
+    "nodes": [
+      {
+        "h": 368,
+        "id": "注文チェックアウト",
+        "kind": "sequence-board",
+        "lane": "seq",
+        "sequenceData": {
+          "actors": [
+            {
+              "name": "利用者",
+            },
+            {
+              "name": "買い物かご",
+            },
+            {
+              "name": "支払い",
+            },
+          ],
+          "bands": [
+            {
+              "actor": 0,
+              "from": 0,
+              "to": 2,
+            },
+            {
+              "actor": 1,
+              "from": 0,
+              "to": 1,
+            },
+            {
+              "actor": 2,
+              "from": 1,
+              "to": 2,
+            },
+          ],
+          "messages": [
+            {
+              "from": 0,
+              "kind": "call",
+              "label": "商品追加",
+              "to": 1,
+            },
+            {
+              "from": 1,
+              "kind": "call",
+              "label": "課金",
+              "to": 2,
+            },
+            {
+              "from": 2,
+              "kind": "return",
+              "label": "領収書",
+              "to": 0,
+            },
+          ],
+        },
+        "sequenceStep": "{seq_step}",
+        "stack": 0,
+        "title": "",
+        "tone": "accent",
+        "w": 832,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "注文チェックアウト",
+        ],
+        "body": "",
+        "duration": 1200,
+        "id": "p0",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 0,
+          },
+        ],
+        "title": "add",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "注文チェックアウト",
+        ],
+        "body": "",
+        "duration": 1500,
+        "id": "p1",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 1,
+          },
+        ],
+        "title": "charge",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "注文チェックアウト",
+        ],
+        "body": "",
+        "duration": 1200,
+        "id": "p2",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 2,
+          },
+        ],
+        "title": "receipt",
+        "tweens": [],
+      },
+    ],
+    "states": [
+      {
+        "id": "seq_step",
+        "initial": "0",
+      },
+    ],
+    "topic": "注文チェックアウト",
+    "type": "sequence",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > slope の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "経路別の申込み",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "chartData": [
+          {
+            "label": "検索",
+            "previous": 380,
+            "value": 420,
+          },
+          {
+            "label": "SNS",
+            "previous": 190,
+            "value": 310,
+          },
+          {
+            "label": "メール",
+            "previous": 240,
+            "value": 180,
+          },
+        ],
+        "h": 368,
+        "id": "経路別の申込み-chart",
+        "kind": "chart-slope",
+        "lane": "chart",
+        "stack": 0,
+        "title": "経路別の申込み",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "経路別の申込み-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "経路別の申込み",
+    "type": "chart",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > solidity の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "投票コントラクト",
+    "lanes": [
+      {
+        "id": "seq",
+        "width": 930,
+      },
+    ],
+    "nodes": [
+      {
+        "h": 368,
+        "id": "投票コントラクト",
+        "kind": "sequence-board",
+        "lane": "seq",
+        "sequenceData": {
+          "actors": [
+            {
+              "name": "有権者",
+            },
+            {
+              "name": "投票箱",
+            },
+            {
+              "name": "集計",
+            },
+          ],
+          "bands": [
+            {
+              "actor": 0,
+              "from": 0,
+              "to": 2,
+            },
+            {
+              "actor": 1,
+              "from": 0,
+              "to": 1,
+            },
+            {
+              "actor": 2,
+              "from": 1,
+              "to": 2,
+            },
+          ],
+          "messages": [
+            {
+              "from": 0,
+              "kind": "call",
+              "label": "vote(id)",
+              "to": 1,
+            },
+            {
+              "from": 1,
+              "kind": "call",
+              "label": "tally()",
+              "to": 2,
+            },
+            {
+              "from": 2,
+              "kind": "call",
+              "label": "結果",
+              "to": 0,
+            },
+          ],
+        },
+        "sequenceStep": "{seq_step}",
+        "stack": 0,
+        "title": "",
+        "tone": "accent",
+        "w": 880,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "投票コントラクト",
+        ],
+        "body": "",
+        "duration": 1500,
+        "id": "p0",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 0,
+          },
+        ],
+        "title": "投票",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "投票コントラクト",
+        ],
+        "body": "",
+        "duration": 1500,
+        "id": "p1",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 0,
+          },
+        ],
+        "title": "集計",
+        "tweens": [],
+      },
+    ],
+    "states": [
+      {
+        "id": "seq_step",
+        "initial": "0",
+      },
+    ],
+    "topic": "投票コントラクト",
+    "type": "sequence",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > stacked の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "契約の内訳",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "chartData": [
+          {
+            "label": "新規",
+            "previous": 280,
+            "value": 320,
+          },
+          {
+            "label": "継続",
+            "previous": 210,
+            "value": 180,
+          },
+          {
+            "label": "乗換",
+            "previous": 90,
+            "value": 140,
+          },
+        ],
+        "h": 368,
+        "id": "契約の内訳-chart",
+        "kind": "chart-stacked-bar",
+        "lane": "chart",
+        "stack": 0,
+        "title": "契約の内訳",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "契約の内訳-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "契約の内訳",
+    "type": "chart",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > stat の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "今月の解約率",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "chartData": [
+          {
+            "label": "解約率",
+            "previous": 38,
+            "value": 24,
+          },
+        ],
+        "h": 320,
+        "id": "今月の解約率-chart",
+        "kind": "chart-stat",
+        "lane": "chart",
+        "stack": 0,
+        "title": "今月の解約率",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "今月の解約率-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "今月の解約率",
+    "type": "chart",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > state-machine の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "待機",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e0-待機-検証中",
+        "label": "送信",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "検証中",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "検証中",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e1-検証中-完了",
+        "label": "認証成功",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "完了",
+        "tone": "success",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "検証中",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e2-検証中-待機",
+        "label": "認証失敗・再試行",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": "back-detour",
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "待機",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+    ],
+    "id": "認証状態遷移",
+    "lanes": [
+      {
+        "id": "lane-待機",
+        "width": 360,
+      },
+      {
+        "id": "lane-検証中",
+        "width": 360,
+      },
+      {
+        "id": "lane-完了",
+        "width": 360,
+      },
+    ],
+    "nodes": [
+      {
+        "eyebrow": "初期",
+        "id": "待機",
+        "kind": "card",
+        "lane": "lane-待機",
+        "stack": 0,
+        "title": "待機",
+      },
+      {
+        "id": "検証中",
+        "kind": "card",
+        "lane": "lane-検証中",
+        "stack": 0,
+        "title": "検証中",
+      },
+      {
+        "eyebrow": "最終",
+        "id": "完了",
+        "kind": "card",
+        "lane": "lane-完了",
+        "stack": 0,
+        "title": "完了",
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "待機",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1000,
+        "id": "idle",
+        "sets": [],
+        "title": "idle",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "検証中",
+          "e0-待機-検証中",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1200,
+        "id": "submit",
+        "sets": [],
+        "title": "submit",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "完了",
+          "e1-検証中-完了",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1000,
+        "id": "success",
+        "sets": [],
+        "title": "success",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "待機",
+          "e2-検証中-待機",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1000,
+        "id": "fail",
+        "sets": [],
+        "title": "fail",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "認証状態遷移",
+    "type": "state",
+    "viewport": {
+      "height": 420,
+    },
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > swimlane の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "利用者",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e0-利用者-認証",
+        "label": "登録要求",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "認証",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "認証",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e1-認証-メ-ル",
+        "label": "歓迎メール送信",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "メ-ル",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "メ-ル",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e2-メ-ル-利用者",
+        "label": "メール到着",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "利用者",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+    ],
+    "id": "利用者登録",
+    "lanes": [
+      {
+        "id": "lane-利用者",
+        "label": "利用者",
+        "width": 400,
+      },
+      {
+        "id": "lane-認証",
+        "label": "認証",
+        "width": 400,
+      },
+      {
+        "id": "lane-メ-ル",
+        "label": "メール",
+        "width": 400,
+      },
+    ],
+    "nodes": [
+      {
+        "id": "利用者",
+        "kind": "actor",
+        "lane": "lane-利用者",
+        "stack": 0,
+        "title": "利用者",
+      },
+      {
+        "id": "認証",
+        "kind": "service",
+        "lane": "lane-認証",
+        "stack": 0,
+        "title": "認証",
+      },
+      {
+        "id": "メ-ル",
+        "kind": "service",
+        "lane": "lane-メ-ル",
+        "stack": 0,
+        "title": "メール",
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "利用者",
+          "認証",
+          "e0-利用者-認証",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1400,
+        "id": "register",
+        "sets": [],
+        "title": "register",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "認証",
+          "メ-ル",
+          "e1-認証-メ-ル",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1400,
+        "id": "notify",
+        "sets": [],
+        "title": "notify",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "メ-ル",
+          "利用者",
+          "e2-メ-ル-利用者",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1400,
+        "id": "deliver",
+        "sets": [],
+        "title": "deliver",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "利用者登録",
+    "type": "swimlane",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > topology の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "負荷分散",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e0-負荷分散-web",
+        "label": "振り分け",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "web",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "web",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e1-web-キャッシュ",
+        "label": "参照",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "キャッシュ",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+      {
+        "cardinality": undefined,
+        "dashOffsetBind": undefined,
+        "from": "web",
+        "guard": undefined,
+        "head": undefined,
+        "headFill": undefined,
+        "headLabel": undefined,
+        "id": "e2-web-db",
+        "label": "問い合わせ",
+        "labelOffsetX": undefined,
+        "labelOffsetY": undefined,
+        "labelPlate": undefined,
+        "overlay": undefined,
+        "role": undefined,
+        "routing": undefined,
+        "side": undefined,
+        "strokeBind": undefined,
+        "style": undefined,
+        "sub": undefined,
+        "tailHead": undefined,
+        "tailHeadFill": undefined,
+        "tailLabel": undefined,
+        "to": "db",
+        "tone": "accent",
+        "widthBind": undefined,
+      },
+    ],
+    "id": "システム構成",
+    "lanes": [
+      {
+        "contain": true,
+        "id": "main",
+        "label": "システム構成",
+        "width": 460,
+      },
+    ],
+    "nodes": [
+      {
+        "id": "負荷分散",
+        "kind": "cloud",
+        "lane": "main",
+        "stack": 0,
+        "subtitle": "ロードバランサー",
+        "title": "負荷分散",
+      },
+      {
+        "id": "web",
+        "kind": "service",
+        "lane": "main",
+        "stack": 1,
+        "subtitle": "APIサーバー",
+        "title": "Web",
+      },
+      {
+        "id": "キャッシュ",
+        "kind": "cache",
+        "lane": "main",
+        "stack": 2,
+        "subtitle": "Redis",
+        "title": "キャッシュ",
+      },
+      {
+        "id": "db",
+        "kind": "database",
+        "lane": "main",
+        "stack": 3,
+        "subtitle": "Postgres",
+        "title": "DB",
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "負荷分散",
+          "web",
+          "e0-負荷分散-web",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1200,
+        "id": "ingress",
+        "sets": [],
+        "title": "ingress",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "web",
+          "キャッシュ",
+          "e1-web-キャッシュ",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1200,
+        "id": "cache",
+        "sets": [],
+        "title": "cache",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "web",
+          "db",
+          "e2-web-db",
+        ],
+        "badge": undefined,
+        "body": "",
+        "duration": 1500,
+        "id": "fallback",
+        "sets": [],
+        "title": "fallback",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "システム構成",
+    "type": "topology",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > tree の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "配布物の構成",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 784,
+      },
+    ],
+    "nodes": [
+      {
+        "h": 480,
+        "id": "配布物の構成-chart",
+        "kind": "tree-hierarchy",
+        "lane": "chart",
+        "stack": 0,
+        "title": "配布物の構成",
+        "treeData": [
+          {
+            "id": "dragon",
+            "title": "dragon",
+          },
+          {
+            "id": "記法",
+            "parent": "dragon",
+            "title": "記法",
+          },
+          {
+            "id": "描画",
+            "parent": "dragon",
+            "title": "描画",
+          },
+          {
+            "id": "読み取り",
+            "parent": "記法",
+            "title": "読み取り",
+          },
+          {
+            "id": "配置",
+            "parent": "描画",
+            "title": "配置",
+          },
+        ],
+        "w": 720,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [],
+        "body": "",
+        "duration": 1000,
+        "id": "static",
+        "sets": [],
+        "title": "配布物の構成",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "配布物の構成",
+    "type": "tree",
+  },
+  "知らせ": [],
+}
+`;
+
+exports[`組み立ての結果を丸ごと固定する (#2030) > waffle の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "対応済みの問い合わせ",
+    "lanes": [
+      {
+        "id": "chart",
+        "width": 704,
+      },
+    ],
+    "nodes": [
+      {
+        "chartData": [
+          {
+            "label": "対応済",
+            "value": 62,
+          },
+          {
+            "label": "対応中",
+            "value": 23,
+          },
+          {
+            "label": "未着手",
+            "value": 15,
+          },
+        ],
+        "h": 320,
+        "id": "対応済みの問い合わせ-chart",
+        "kind": "chart-waffle",
+        "lane": "chart",
+        "stack": 0,
+        "title": "対応済みの問い合わせ",
+        "w": 640,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "対応済みの問い合わせ-chart",
+        ],
+        "body": "",
+        "duration": 2000,
+        "id": "reveal",
+        "sets": [],
+        "title": "reveal",
+        "tweens": [],
+      },
+    ],
+    "states": [],
+    "topic": "対応済みの問い合わせ",
+    "type": "chart",
+  },
+  "知らせ": [],
+}
+`;
