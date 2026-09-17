@@ -10,6 +10,7 @@ import { describe, it, expect } from "vitest";
 import * as PartsMod from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import * as PresetsMod from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { 並べた名前, 見本の名前 } from "../../../apps/playground-spa/src/lib/preset-exports";
 
 function collectDiagramExports(mod: unknown): Array<{ name: string; diagram: CdlDiagram }> {
   const out: Array<{ name: string; diagram: CdlDiagram }> = [];
@@ -64,8 +65,8 @@ describe("iter16: topic catalog integrity", () => {
   });
 
   describe("presets.cdl.ts", () => {
-    it(`preset export 数 = 19`, () => {
-      expect(ALL_PRESETS.length).toBe(21);
+    it("集めた見本が見本の一覧と一致する", () => {
+      expect(並べた名前(ALL_PRESETS.map((p) => p.name))).toEqual(並べた名前(見本の名前));
     });
 
     it(`全 preset の id が一意`, () => {

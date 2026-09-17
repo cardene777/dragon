@@ -832,6 +832,106 @@ export const presetInfrastructure = withSteps(
   ],
 );
 
+/** 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960) */
+export const patternBase__presetInfrastructure = "簡単";
+
+// 構成図の複雑な版 (#2139)。 注文を受けてから発送の知らせを送るまでを 12 箱で追う。
+//
+// 簡単な版に無い 4 つの形を入れる = 順路から外れる枝 (S3) / 待ち行列の後ろの処理 (SQS → 発送係) /
+// 2 か所から書く台帳 (注文 API と発送係) / 写しへの複製 (RDS 主 → 複製)。
+//
+// 置き場所は下書きで 3 通り組んで決めた。 同じ段に空いた列を挟むと段の間隔の揃い
+// (`row-gap-uniform`) に掛かるので、段ごとに列を詰めて置く。 線は全て隣の枠へ引く。
+//
+//   段 0          S3          Cognito   Redis     RDS 複製
+//   段 1  ブラウザ  CloudFront  ALB       注文 API  RDS 主
+//   段 2                                 SQS       発送係
+//   段 3                                           SES
+//
+// 箱は段ごとに上から宣言するので、最初に現れる列は 1 になる。 組み立て器は現れた順に縦列を
+// 作るため、そのままでは列 0 (ブラウザ) が右端に回る = `orderGridColumns` で番号順に戻す
+export const pattern__presetInfrastructure__複雑 = withSteps(
+  orderGridColumns(
+    infrastructure({
+      id: "infra-complex-demo",
+      topic: "注文を受けてから発送の知らせを送るまでのクラウド構成図",
+    })
+      // `storage` は表を持つ箱 (ER 図の実体) の種類で、説明の字を描かない。 保存先は円柱で描く
+      .node({ id: "s3", kind: "database", title: "S3", eyebrow: "静的ファイル", subtitle: "画像と画面の部品", col: 1, row: 0 })
+      .node({ id: "auth", kind: "service", title: "Cognito", eyebrow: "認証", subtitle: "ログインを確かめる", col: 2, row: 0 })
+      .node({ id: "cache", kind: "cache", title: "Redis", eyebrow: "一時保存", subtitle: "在庫数を覚えておく", col: 3, row: 0 })
+      .node({ id: "replica", kind: "database", title: "RDS 複製", eyebrow: "読み取り", subtitle: "集計に使う写し", col: 4, row: 0 })
+      .node({ id: "user", kind: "person", title: "ブラウザ", eyebrow: "利用者", subtitle: "注文する人の画面", col: 0, row: 1 })
+      .node({ id: "cdn", kind: "cdn", title: "CloudFront", eyebrow: "配信", subtitle: "近い拠点から返す", col: 1, row: 1 })
+      .node({ id: "alb", kind: "service", title: "ALB", eyebrow: "振り分け", subtitle: "空いたタスクへ渡す", col: 2, row: 1 })
+      .node({ id: "app", kind: "service", title: "注文 API", eyebrow: "処理", subtitle: "ECS のタスク", col: 3, row: 1 })
+      .node({ id: "db", kind: "database", title: "RDS 主", eyebrow: "書き込み", subtitle: "注文の台帳", col: 4, row: 1 })
+      .node({ id: "queue", kind: "queue", title: "SQS", eyebrow: "待ち行列", subtitle: "注文の知らせを溜める", col: 3, row: 2 })
+      .node({ id: "worker", kind: "service", title: "発送係", eyebrow: "後ろの処理", subtitle: "Lambda の関数", col: 4, row: 2 })
+      .node({ id: "mail", kind: "service", title: "SES", eyebrow: "送信", subtitle: "発送の知らせを送る", col: 4, row: 3 })
+      // 順路 = 要求が通る 1 本道 (cdl#618)。 ブラウザから台帳に書くまでの 4 本だけを順路にする
+      .connect({ from: "user", to: "cdn", label: "HTTPS", role: "main", labelPlate: false })
+      .connect({ from: "cdn", to: "s3", label: "静的ファイル", labelPlate: false })
+      .connect({ from: "cdn", to: "alb", label: "オリジン", role: "main", labelPlate: false })
+      .connect({ from: "alb", to: "auth", label: "ログインを確かめる", labelPlate: false })
+      .connect({ from: "alb", to: "app", label: "転送", role: "main", labelPlate: false })
+      .connect({ from: "app", to: "cache", label: "GET/SET", labelPlate: false })
+      .connect({ from: "app", to: "db", label: "SQL", role: "main", labelPlate: false })
+      .connect({ from: "db", to: "replica", label: "複製", labelPlate: false })
+      .connect({ from: "app", to: "queue", label: "注文の知らせ", labelPlate: false })
+      .connect({ from: "queue", to: "worker", label: "取り出す", labelPlate: false })
+      .connect({ from: "worker", to: "db", label: "発送済みを書く", labelPlate: false })
+      .connect({ from: "worker", to: "mail", label: "送る", labelPlate: false })
+      .build(),
+  ),
+  [
+    {
+      ids: ["user", "cdn", "i0-user-cdn"],
+      title: "1. 近い拠点へ繋ぐ",
+      body: "ブラウザは近い拠点の CloudFront に HTTPS で繋ぐ。 ここから台帳に書くまでの 4 本が、要求の通る順路。",
+    },
+    {
+      ids: ["s3", "i1-cdn-s3"],
+      title: "2. 画面の部品は S3 から",
+      body: "画像や画面の部品は、CloudFront が S3 から返す。 この線は順路から外れる枝で、アプリまで届かない。",
+    },
+    {
+      ids: ["alb", "auth", "i2-cdn-alb", "i3-alb-auth"],
+      title: "3. 振り分けの前にログインを確かめる",
+      body: "画面の部品以外の要求は、オリジンの ALB へ渡る。 ALB は Cognito でログインを確かめてから通す。",
+    },
+    {
+      ids: ["app", "i4-alb-app"],
+      title: "4. 注文 API へ転送する",
+      body: "ALB は空いている ECS のタスクへ転送する。 タスクを増やしても入口は ALB の 1 つのまま。",
+    },
+    {
+      ids: ["cache", "i5-app-cache"],
+      title: "5. 在庫数を一時保存から読む",
+      body: "在庫数は Redis に覚えておく。 注文のたびに台帳を読まずに済む。",
+    },
+    {
+      ids: ["db", "replica", "i6-app-db", "i7-db-replica"],
+      title: "6. 台帳に書いて写しを作る",
+      body: "注文は RDS 主に SQL で書く。 主は写しを RDS 複製へ送り、集計の読み取りは複製が受ける。",
+    },
+    {
+      ids: ["queue", "i8-app-queue"],
+      title: "7. 知らせを待ち行列に置く",
+      body: "注文 API は発送の手配を待たない。 SQS に知らせを置いた時点で、ブラウザへ返事を返す。",
+    },
+    {
+      ids: ["worker", "i9-queue-worker", "i10-worker-db"],
+      title: "8. 発送係が引き取る",
+      body: "Lambda の発送係が知らせを取り出して手配する。 済んだら同じ RDS 主に発送済みを書く = 台帳へ書く線が 2 本入る。",
+    },
+    {
+      ids: ["mail", "i11-worker-mail"],
+      body: "発送係は SES で発送の知らせを送る。 注文を受けた処理と知らせを送る処理が、待ち行列で切り離されている。",
+    },
+  ],
+);
+
 // classDiagram preset ... UML クラス図 (設計「箱と行と関係」 の意匠)
 //
 // **6 種すべてを 1 枚で使う**。 見本にあって図に無い記法は、読み手が確かめられない決まりに
@@ -3985,3 +4085,157 @@ export const sourceJson__presetInfrastructure = `{
     }
   ]
 }`;
+
+export const sourceYaml__pattern__presetInfrastructure__複雑 = `title: "注文を受けてから発送の知らせを送るまでのクラウド構成図"
+# 記法に構成図の型が無いため、簡単な版と同じく flow で書く。
+# 列を縦列に、段を stack に置く = 同じ段に空いた列を挟まない
+type: flow
+
+lanes:
+  col-0: { width: 380 }
+  col-1: { width: 380 }
+  col-2: { width: 380 }
+  col-3: { width: 380 }
+  col-4: { width: 380 }
+
+actors:
+  - S3: { kind: database, lane: col-1, stack: 0, eyebrow: "静的ファイル", subtitle: "画像と画面の部品" }
+  - Cognito: { kind: service, lane: col-2, stack: 0, eyebrow: "認証", subtitle: "ログインを確かめる" }
+  - Redis: { kind: cache, lane: col-3, stack: 0, eyebrow: "一時保存", subtitle: "在庫数を覚えておく" }
+  - RDS 複製: { kind: database, lane: col-4, stack: 0, eyebrow: "読み取り", subtitle: "集計に使う写し" }
+  - ブラウザ: { kind: person, lane: col-0, stack: 1, eyebrow: "利用者", subtitle: "注文する人の画面" }
+  - CloudFront: { kind: cdn, lane: col-1, stack: 1, eyebrow: "配信", subtitle: "近い拠点から返す" }
+  - ALB: { kind: service, lane: col-2, stack: 1, eyebrow: "振り分け", subtitle: "空いたタスクへ渡す" }
+  - 注文 API: { kind: service, lane: col-3, stack: 1, eyebrow: "処理", subtitle: "ECS のタスク" }
+  - RDS 主: { kind: database, lane: col-4, stack: 1, eyebrow: "書き込み", subtitle: "注文の台帳" }
+  - SQS: { kind: queue, lane: col-3, stack: 2, eyebrow: "待ち行列", subtitle: "注文の知らせを溜める" }
+  - 発送係: { kind: service, lane: col-4, stack: 2, eyebrow: "後ろの処理", subtitle: "Lambda の関数" }
+  - SES: { kind: service, lane: col-4, stack: 3, eyebrow: "送信", subtitle: "発送の知らせを送る" }
+
+# role: main はブラウザから台帳に書くまでの 4 本だけに書く
+flow:
+  - ブラウザ -> CloudFront: "HTTPS" (accent, solid) { role: main, labelPlate: false }
+  - CloudFront -> S3: "静的ファイル" (accent, solid) { labelPlate: false }
+  - CloudFront -> ALB: "オリジン" (accent, solid) { role: main, labelPlate: false }
+  - ALB -> Cognito: "ログインを確かめる" (accent, solid) { labelPlate: false }
+  - ALB -> 注文 API: "転送" (accent, solid) { role: main, labelPlate: false }
+  - 注文 API -> Redis: "GET/SET" (accent, solid) { labelPlate: false }
+  - 注文 API -> RDS 主: "SQL" (accent, solid) { role: main, labelPlate: false }
+  - RDS 主 -> RDS 複製: "複製" (accent, solid) { labelPlate: false }
+  - 注文 API -> SQS: "注文の知らせ" (accent, solid) { labelPlate: false }
+  - SQS -> 発送係: "取り出す" (accent, solid) { labelPlate: false }
+  - 発送係 -> RDS 主: "発送済みを書く" (accent, solid) { labelPlate: false }
+  - 発送係 -> SES: "送る" (accent, solid) { labelPlate: false }
+
+animation:
+  - step: "1. 近い拠点へ繋ぐ" 0.9s
+    badge: "infrastructure"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront"]
+    body: "ブラウザは近い拠点の CloudFront に HTTPS で繋ぐ。 ここから台帳に書くまでの 4 本が、要求の通る順路。"
+  - step: "2. 画面の部品は S3 から" 0.9s
+    badge: "infrastructure"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3"]
+    body: "画像や画面の部品は、CloudFront が S3 から返す。 この線は順路から外れる枝で、アプリまで届かない。"
+  - step: "3. 振り分けの前にログインを確かめる" 0.9s
+    badge: "infrastructure"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito"]
+    body: "画面の部品以外の要求は、オリジンの ALB へ渡る。 ALB は Cognito でログインを確かめてから通す。"
+  - step: "4. 注文 API へ転送する" 0.9s
+    badge: "infrastructure"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API"]
+    body: "ALB は空いている ECS のタスクへ転送する。 タスクを増やしても入口は ALB の 1 つのまま。"
+  - step: "5. 在庫数を一時保存から読む" 0.9s
+    badge: "infrastructure"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis"]
+    body: "在庫数は Redis に覚えておく。 注文のたびに台帳を読まずに済む。"
+  - step: "6. 台帳に書いて写しを作る" 0.9s
+    badge: "infrastructure"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis", "RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製"]
+    body: "注文は RDS 主に SQL で書く。 主は写しを RDS 複製へ送り、集計の読み取りは複製が受ける。"
+  - step: "7. 知らせを待ち行列に置く" 0.9s
+    badge: "infrastructure"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis", "RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製", SQS, "注文 API -> SQS"]
+    body: "注文 API は発送の手配を待たない。 SQS に知らせを置いた時点で、ブラウザへ返事を返す。"
+  - step: "8. 発送係が引き取る" 0.9s
+    badge: "infrastructure"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis", "RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製", SQS, "注文 API -> SQS", 発送係, "SQS -> 発送係", "発送係 -> RDS 主"]
+    body: "Lambda の発送係が知らせを取り出して手配する。 済んだら同じ RDS 主に発送済みを書く = 台帳へ書く線が 2 本入る。"
+  - step: "注文を受けてから発送の知らせを送るまでのクラウド構成図" 0.9s
+    badge: "infrastructure"
+    focus: [ブラウザ, CloudFront, "ブラウザ -> CloudFront", S3, "CloudFront -> S3", ALB, Cognito, "CloudFront -> ALB", "ALB -> Cognito", "注文 API", "ALB -> 注文 API", Redis, "注文 API -> Redis", "RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製", SQS, "注文 API -> SQS", 発送係, "SQS -> 発送係", "発送係 -> RDS 主", SES, "発送係 -> SES"]
+    body: "発送係は SES で発送の知らせを送る。 注文を受けた処理と知らせを送る処理が、待ち行列で切り離されている。"
+`;
+
+/** 複雑な構成図の段で光る先。 記法の JSON は段ごとに前の段の分を積み上げて書く */
+const infraComplexFocus: readonly (readonly string[])[] = [
+  ["ブラウザ", "CloudFront", "ブラウザ -> CloudFront"],
+  ["S3", "CloudFront -> S3"],
+  ["ALB", "Cognito", "CloudFront -> ALB", "ALB -> Cognito"],
+  ["注文 API", "ALB -> 注文 API"],
+  ["Redis", "注文 API -> Redis"],
+  ["RDS 主", "RDS 複製", "注文 API -> RDS 主", "RDS 主 -> RDS 複製"],
+  ["SQS", "注文 API -> SQS"],
+  ["発送係", "SQS -> 発送係", "発送係 -> RDS 主"],
+  ["SES", "発送係 -> SES"],
+];
+
+export const sourceJson__pattern__presetInfrastructure__複雑 = JSON.stringify(
+  {
+    title: "注文を受けてから発送の知らせを送るまでのクラウド構成図",
+    type: "flow",
+    lanes: {
+      "col-0": { width: 380 },
+      "col-1": { width: 380 },
+      "col-2": { width: 380 },
+      "col-3": { width: 380 },
+      "col-4": { width: 380 },
+    },
+    actors: [
+      { name: "S3", kind: "database", lane: "col-1", stack: 0, eyebrow: "静的ファイル", subtitle: "画像と画面の部品" },
+      { name: "Cognito", kind: "service", lane: "col-2", stack: 0, eyebrow: "認証", subtitle: "ログインを確かめる" },
+      { name: "Redis", kind: "cache", lane: "col-3", stack: 0, eyebrow: "一時保存", subtitle: "在庫数を覚えておく" },
+      { name: "RDS 複製", kind: "database", lane: "col-4", stack: 0, eyebrow: "読み取り", subtitle: "集計に使う写し" },
+      { name: "ブラウザ", kind: "person", lane: "col-0", stack: 1, eyebrow: "利用者", subtitle: "注文する人の画面" },
+      { name: "CloudFront", kind: "cdn", lane: "col-1", stack: 1, eyebrow: "配信", subtitle: "近い拠点から返す" },
+      { name: "ALB", kind: "service", lane: "col-2", stack: 1, eyebrow: "振り分け", subtitle: "空いたタスクへ渡す" },
+      { name: "注文 API", kind: "service", lane: "col-3", stack: 1, eyebrow: "処理", subtitle: "ECS のタスク" },
+      { name: "RDS 主", kind: "database", lane: "col-4", stack: 1, eyebrow: "書き込み", subtitle: "注文の台帳" },
+      { name: "SQS", kind: "queue", lane: "col-3", stack: 2, eyebrow: "待ち行列", subtitle: "注文の知らせを溜める" },
+      { name: "発送係", kind: "service", lane: "col-4", stack: 2, eyebrow: "後ろの処理", subtitle: "Lambda の関数" },
+      { name: "SES", kind: "service", lane: "col-4", stack: 3, eyebrow: "送信", subtitle: "発送の知らせを送る" },
+    ],
+    flow: [
+      { from: "ブラウザ", to: "CloudFront", label: "HTTPS", tone: "accent", style: "solid", role: "main", labelPlate: false },
+      { from: "CloudFront", to: "S3", label: "静的ファイル", tone: "accent", style: "solid", labelPlate: false },
+      { from: "CloudFront", to: "ALB", label: "オリジン", tone: "accent", style: "solid", role: "main", labelPlate: false },
+      { from: "ALB", to: "Cognito", label: "ログインを確かめる", tone: "accent", style: "solid", labelPlate: false },
+      { from: "ALB", to: "注文 API", label: "転送", tone: "accent", style: "solid", role: "main", labelPlate: false },
+      { from: "注文 API", to: "Redis", label: "GET/SET", tone: "accent", style: "solid", labelPlate: false },
+      { from: "注文 API", to: "RDS 主", label: "SQL", tone: "accent", style: "solid", role: "main", labelPlate: false },
+      { from: "RDS 主", to: "RDS 複製", label: "複製", tone: "accent", style: "solid", labelPlate: false },
+      { from: "注文 API", to: "SQS", label: "注文の知らせ", tone: "accent", style: "solid", labelPlate: false },
+      { from: "SQS", to: "発送係", label: "取り出す", tone: "accent", style: "solid", labelPlate: false },
+      { from: "発送係", to: "RDS 主", label: "発送済みを書く", tone: "accent", style: "solid", labelPlate: false },
+      { from: "発送係", to: "SES", label: "送る", tone: "accent", style: "solid", labelPlate: false },
+    ],
+    animation: [
+      ["1. 近い拠点へ繋ぐ", "ブラウザは近い拠点の CloudFront に HTTPS で繋ぐ。 ここから台帳に書くまでの 4 本が、要求の通る順路。"],
+      ["2. 画面の部品は S3 から", "画像や画面の部品は、CloudFront が S3 から返す。 この線は順路から外れる枝で、アプリまで届かない。"],
+      ["3. 振り分けの前にログインを確かめる", "画面の部品以外の要求は、オリジンの ALB へ渡る。 ALB は Cognito でログインを確かめてから通す。"],
+      ["4. 注文 API へ転送する", "ALB は空いている ECS のタスクへ転送する。 タスクを増やしても入口は ALB の 1 つのまま。"],
+      ["5. 在庫数を一時保存から読む", "在庫数は Redis に覚えておく。 注文のたびに台帳を読まずに済む。"],
+      ["6. 台帳に書いて写しを作る", "注文は RDS 主に SQL で書く。 主は写しを RDS 複製へ送り、集計の読み取りは複製が受ける。"],
+      ["7. 知らせを待ち行列に置く", "注文 API は発送の手配を待たない。 SQS に知らせを置いた時点で、ブラウザへ返事を返す。"],
+      ["8. 発送係が引き取る", "Lambda の発送係が知らせを取り出して手配する。 済んだら同じ RDS 主に発送済みを書く = 台帳へ書く線が 2 本入る。"],
+      ["注文を受けてから発送の知らせを送るまでのクラウド構成図", "発送係は SES で発送の知らせを送る。 注文を受けた処理と知らせを送る処理が、待ち行列で切り離されている。"],
+    ].map(([step, body], i) => ({
+      step,
+      duration: 0.9,
+      focus: infraComplexFocus.slice(0, i + 1).flat(),
+      body,
+      badge: "infrastructure",
+    })),
+  },
+  null,
+  2,
+);

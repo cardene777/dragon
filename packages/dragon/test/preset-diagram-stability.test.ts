@@ -2,7 +2,7 @@
  * preset diagram stability 網羅 (iter25、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter25。
- * presets.cdl.ts の全 21 preset diagram に対して以下 invariant を verify。
+ * presets.cdl.ts の全 preset diagram に対して以下 invariant を verify。
  *
  * (a) 各 preset の nodes / edges が空でない
  * (b) 各 preset の nodes id が内部 unique
@@ -13,6 +13,7 @@
 import { describe, it, expect } from "vitest";
 import * as PresetsMod from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { 並べた名前, 見本の名前 } from "../../../apps/playground-spa/src/lib/preset-exports";
 
 function collectDiagramExports(mod: unknown): Array<{ name: string; diagram: CdlDiagram }> {
   const out: Array<{ name: string; diagram: CdlDiagram }> = [];
@@ -28,9 +29,9 @@ function collectDiagramExports(mod: unknown): Array<{ name: string; diagram: Cdl
 
 const ALL_PRESETS = collectDiagramExports(PresetsMod);
 
-describe("iter25: 全 21 preset × diagram stability 網羅", () => {
-  it(`preset 数 = 21`, () => {
-    expect(ALL_PRESETS.length).toBe(21);
+describe("iter25: 全 preset × diagram stability 網羅", () => {
+  it("集めた見本が見本の一覧と一致する", () => {
+    expect(並べた名前(ALL_PRESETS.map((p) => p.name))).toEqual(並べた名前(見本の名前));
   });
 
   for (const { name, diagram } of ALL_PRESETS) {

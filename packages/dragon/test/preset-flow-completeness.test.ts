@@ -2,11 +2,12 @@
  * preset flow completeness 網羅 (iter81、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter81。
- * 全 21 preset diagram の flow / edge 完全性 verify。
+ * 全 preset diagram の flow / edge 完全性 verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PresetsMod from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { 並べた名前, 見本の名前 } from "../../../apps/playground-spa/src/lib/preset-exports";
 
 function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiagram }> {
   const out: Array<{ name: string; diagram: CdlDiagram }> = [];
@@ -22,9 +23,9 @@ function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiag
 
 const ALL_PRESETS = collectAllPresets(PresetsMod);
 
-describe("iter81: 全 21 preset × flow completeness", () => {
-  it(`preset 数 = 21`, () => {
-    expect(ALL_PRESETS.length).toBe(21);
+describe("iter81: 全 preset × flow completeness", () => {
+  it("集めた見本が見本の一覧と一致する", () => {
+    expect(並べた名前(ALL_PRESETS.map((p) => p.name))).toEqual(並べた名前(見本の名前));
   });
 
   for (const { name, diagram } of ALL_PRESETS) {

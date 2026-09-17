@@ -22,6 +22,7 @@ import * as Prim from "@/topics/catalog/primitives.cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
 import * as Charts from "@/topics/catalog/charts.cdl";
 import { motionOf } from "./catalog-motion";
+import { 並べた名前, 見本の名前 } from "./preset-exports";
 
 /**
  * 動かすと決めた見本 (#1172 の対象、 `primitives-extra`)。 件数は下の `it` の題が SSOT。
@@ -299,18 +300,18 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     .filter(([, d]) => !経路無し.has(d.id))
     .map(([k, d]) => [k, d] as const);
 
-  it("対象が 21 件ある", () => {
-    // preset を足し引きすると以下が空振りする
-    expect(型).toHaveLength(21);
+  it("対象が見本の一覧と一致する", () => {
+    // preset を足し引きすると以下が空振りする。 数を書くと見本を足すたびに直すので、名前で見る (#2139)
+    expect(並べた名前(型.map(([k]) => k))).toEqual(並べた名前(見本の名前));
   });
 
-  it("21 件すべてが 2 段以上を持つ", () => {
+  it("全ての見本が 2 段以上を持つ", () => {
     // preset の `build()` は段を 1 つだけ作り、全要素を光らせて終わる
     const 足りない = 型.filter(([, d]) => d.phases.length < 2).map(([k, d]) => `${k}: ${d.phases.length}`);
     expect(足りない, `段が 1 つのまま: ${足りない.join(", ")}`).toHaveLength(0);
   });
 
-  it("21 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
+  it("全ての見本で、最初の段と最後の段で図の中の見える部分が変わる", () => {
     // **本 describe の中核**。 段を足しても図が変わらなければ、開いた人には静止画と同じ
     const 変わらない: string[] = [];
     for (const [k, d] of 型) {
@@ -321,9 +322,11 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
   });
 
-  it("箱を複数持つ 12 件は、段ごとに光る箱が増える", () => {
+  it("箱を複数持つ見本は、段ごとに光る箱が増える", () => {
     const 対象 = 型.filter(([, d]) => !箱が1つ.has(d.id));
-    expect(対象, "箱が 1 つの型の一覧が実物とずれている").toHaveLength(12);
+    // 箱が 1 つの一覧の全件が実物にあれば、残りの数は差で決まる
+    expect(対象.length, "箱が 1 つの型の一覧が実物とずれている").toBe(型.length - 箱が1つ.size);
+    expect(対象.length, "箱を複数持つ見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
 
     const 進まない: string[] = [];
     for (const [k, d] of 対象) {

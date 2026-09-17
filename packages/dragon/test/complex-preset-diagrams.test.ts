@@ -6,10 +6,11 @@ import {
   type ClassRelationType,
 } from "@cardenelabs/cdl";
 
-// 複雑な版はクラス図と ER 図の中のパターン「複雑」 として書く (#1960)
+// 複雑な版は見本の中のパターン「複雑」 として書く (#1960)
 import {
   pattern__presetClassDiagram__複雑 as presetClassComplex,
   pattern__presetEr__複雑 as presetErComplex,
+  pattern__presetInfrastructure__複雑 as presetInfraComplex,
 } from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 
 const 関係の種類 = Object.keys(CLASS_RELATION_LOOK) as ClassRelationType[];
@@ -61,6 +62,49 @@ describe("複雑な ER 図", () => {
     expect(presetErComplex.edges.length, "自己参照を探す対象が 1 件も無い").toBeGreaterThan(0);
     const loops = presetErComplex.edges.filter((edge) => edge.from === edge.to);
     expect(loops.length, `自己参照: ${loops.map((edge) => edge.id).join(", ") || "無し"}`).toBe(1);
+  });
+});
+
+/** 線を向きどおりに辿って、起点から届く箱を集める */
+function 届く箱(diagram: CdlDiagram, 起点: string): Set<string> {
+  const 届いた = new Set([起点]);
+  const 待ち = [起点];
+  while (待ち.length > 0) {
+    const 今 = 待ち.pop()!;
+    for (const edge of diagram.edges) {
+      if (edge.from !== 今 || 届いた.has(edge.to)) continue;
+      届いた.add(edge.to);
+      待ち.push(edge.to);
+    }
+  }
+  return 届いた;
+}
+
+describe("複雑なクラウド構成図 (#2139)", () => {
+  it("12 箱と 12 本の線を持つ", () => {
+    expect(presetInfraComplex.nodes.length).toBe(12);
+    expect(presetInfraComplex.edges.length).toBe(12);
+  });
+
+  it("全ての箱がブラウザから線を辿って届く", () => {
+    expect(presetInfraComplex.nodes.length, "辿る対象が 1 件も無い").toBeGreaterThan(0);
+    const 届いた = 届く箱(presetInfraComplex, "user");
+    const 届かない = presetInfraComplex.nodes.map((node) => node.id).filter((id) => !届いた.has(id));
+    expect(届かない, "ブラウザから届かない箱").toEqual([]);
+  });
+
+  it("順路の線がブラウザから台帳まで途切れずに繋がる", () => {
+    const 順路 = presetInfraComplex.edges.filter((edge) => edge.role === "main");
+    expect(順路.map((edge) => `${edge.from}->${edge.to}`)).toEqual([
+      "user->cdn",
+      "cdn->alb",
+      "alb->app",
+      "app->db",
+    ]);
+  });
+
+  it("段が 9 つある", () => {
+    expect(presetInfraComplex.phases.length).toBe(9);
   });
 });
 
