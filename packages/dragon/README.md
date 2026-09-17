@@ -233,7 +233,8 @@ flow:
 
 **JSON DSL (LLM 向け)**
 
-- `jsonToDiagram(json: unknown): CdlDiagram` ... JSON DSL → CdlDiagram、 validation error は throw
+- `jsonToDiagram(json: unknown, opts?): CdlDiagram` ... JSON DSL → CdlDiagram、 validation error は throw。 `opts` は部品の一覧 (`partsCatalog`)、 書いた通りにならなかったことの受け取り口 (`onNotice`)、 書いた場所から行を引く表 (`行の表`) の 3 つ
+- `書いた場所の鍵(...道): string` ... `行の表` の鍵を作る (`書いた場所の鍵("actors", 1)` が `/actors/1`)。 本文の行が分かる入口 (編集画面の YAML 欄) が表を作る時に使い、`jsonToDiagram` が同じ関数で引く
 - `validateDragonJson(json: unknown): { ok, data | errors }` ... compile なしで validation のみ
 - `diagramJsonSchema` ... JSON Schema (Draft 7)、 LLM の tool schema にそのまま注入可能
 
