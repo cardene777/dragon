@@ -215,7 +215,7 @@
               },
               "end": {
                 "type": "string",
-                "description": "gantt の工程が終わる時期。"
+                "description": "gantt の工程が終わる時期。 始まりより前の時期は始まりと同じに倒し、知らせを出す。"
               },
               "touchpoint": {
                 "type": "string",

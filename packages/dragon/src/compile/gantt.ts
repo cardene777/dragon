@@ -2,6 +2,9 @@ import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
 
+import { actorRefTable } from "./actors";
+import { 書いた多重度を読む } from "./er-relation";
+import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
 import { 箱の題 } from "./node-title";
 import { truncateForMessage, 図の小見出し } from "./subtitle";
@@ -9,19 +12,31 @@ import { truncateForMessage, 図の小見出し } from "./subtitle";
  * 工程表 (`type: gantt`) の組み立て (#2030 で `compile.ts` から移した)。
  */
 
-export function compileGantt(doc: DslDocument): CdlDiagram {
+export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "gantt" });
   const CHART_W = 720;
   b.lane("gantt", { width: CHART_W });
+
+  /**
+   * 書いたのに効かない形を伝える。 **`console.warn` だけにしない** (#2111) = 編集画面は知らせだけを
+   * 画面に出すため、log だけだと書いている人に理由が見えない。 値の図 (`value-chart.ts`) と同じ形
+   */
+  const 伝える = (種類: CompileNotice["kind"], 名前: string, message: string, line = 0): void => {
+    onNotice?.({ kind: 種類, actor: 名前, line, message });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  };
 
   // 目盛りは **書かれた順** に並べる。 以前は `Q1=200 / Q2=600 / ...` の決め打ちで、 Q1-Q4 以外は
   // 全て同じ位置に落ちていた。 順に並べれば月名でも週番号でも同じ規則で置ける
   const 目盛り: string[] = [];
   const 目盛りなし: string[] = [];
+  // 最初に時期を読めなかった項目の行。 画面が案内できるようにする (値の図と同じ)
+  let 目盛りなし行 = 0;
   const タスク: {
     name: string;
     title: string;
     label: string;
+    line: number;
     tone?: DslDocument["actors"][number]["tone"];
     owner?: string;
     end?: string;
@@ -29,6 +44,7 @@ export function compileGantt(doc: DslDocument): CdlDiagram {
   for (const a of doc.actors) {
     const label = (a.value ?? a.subtitle ?? "").trim();
     if (label === "") {
+      if (目盛りなし.length === 0) 目盛りなし行 = a.pos?.line ?? 0;
       目盛りなし.push(a.name);
       continue;
     }
@@ -38,56 +54,62 @@ export function compileGantt(doc: DslDocument): CdlDiagram {
       name: a.name,
       title: 箱の題(a),
       label,
+      line: a.pos?.line ?? 0,
       ...(a.tone !== undefined ? { tone: a.tone } : {}),
       ...(a.owner !== undefined ? { owner: a.owner } : {}),
       ...(a.end !== undefined ? { end: a.end } : {}),
     });
   }
-  if (目盛りなし.length > 0 && typeof console !== "undefined" && console.warn) {
-    console.warn(
-      `[dragon] type: gantt で時期を読めない項目があります (帯に載せません): ${目盛りなし.join(", ")}。` +
+  if (目盛りなし.length > 0) {
+    伝える(
+      "chart-value-unreadable",
+      目盛りなし[0]!,
+      `type: gantt で時期を読めない項目があります (帯に載せません): ${目盛りなし.join(", ")}。` +
         ` \`- 設計: "Q1"\` の形で書いてください`,
+      目盛りなし行,
     );
   }
 
   // 矢印は依存として読む (`- 設計 -> 実装` = 実装は設計の後)。 帯どうしを結ぶ線は描画側が
-  // 依存として描くので、 書いた矢印を捨てずに使う。 居ない名前を指した矢印は伝える
+  // 依存として描くので、 書いた矢印を捨てずに使う
   const タスク名 = new Set(タスク.map((t) => t.name));
+  // 矢印の端の名前を引く表。 全ての図種に共通の「居ない名前」 の知らせと同じ表を使う
+  const 名前の表 = actorRefTable(doc);
   const 依存元 = new Map<string, string>();
-  const 居ない: string[] = [];
-  const 装飾つき: string[] = [];
   for (const s of doc.flow) {
+    const line = s.pos?.line ?? 0;
+    const 矢印 = `${truncateForMessage(s.from)} -> ${truncateForMessage(s.to)}`;
     if (!タスク名.has(s.from) || !タスク名.has(s.to)) {
-      居ない.push(`${s.from} -> ${s.to}`);
+      // `actors` に居ない名前を指す矢印は、全ての図種に共通の知らせ (`flow-actor-missing`) が
+      // 書いた行で伝えている。 ここでも伝えると同じ行に 2 件並ぶ (#2111)
+      if (!名前の表.has(s.from) || !名前の表.has(s.to)) continue;
+      const 時期なし = [s.from, s.to].filter((n) => !タスク名.has(n)).map(truncateForMessage);
+      伝える(
+        "chart-edge-dropped",
+        s.from,
+        `type: gantt で ${矢印} の依存を結べません (${時期なし.join(" / ")} に時期がありません)`,
+        line,
+      );
       continue;
     }
     依存元.set(s.to, s.from);
-    // 帯の依存は「どちらが先か」 だけを持つ。 矢印に書いた文字や色は描けないので伝える
-    if (
-      (s.label ?? "") !== "" ||
-      (s.sub ?? "") !== "" ||
-      s.tone !== undefined ||
-      s.style !== undefined
-    ) {
-      装飾つき.push(`${s.from} -> ${s.to}`);
+    // 帯の依存は「どちらが先か」 だけを持つ。 矢印に書いた文字や色は描けないので伝える。
+    // 多重度もここに含める = 多重度の知らせ (#2107) と同じ行に 2 件並べない
+    const 効かない = [
+      (s.label ?? "") !== "" || (s.sub ?? "") !== "" ? "文字" : "",
+      s.tone !== undefined ? "色" : "",
+      s.style !== undefined ? "線種" : "",
+      書いた多重度を読む(s.cardinality) !== undefined ? "多重度" : "",
+    ].filter((x) => x !== "");
+    if (効かない.length > 0) {
+      伝える(
+        "edge-option-not-honored",
+        s.from,
+        `type: gantt で ${矢印} に書いた ${効かない.join(" / ")} は描けません (工程表の矢印は前後の関係だけを使います)`,
+        line,
+      );
     }
   }
-  if (居ない.length > 0 && typeof console !== "undefined" && console.warn) {
-    console.warn(
-      `[dragon] type: gantt で依存を結べない矢印があります (居ない項目か時期なし): ${居ない.join(", ")}`,
-    );
-  }
-  if (装飾つき.length > 0 && typeof console !== "undefined" && console.warn) {
-    console.warn(
-      `[dragon] type: gantt の矢印は前後の関係だけを使います (文字 / 色 / 線種は描けません): ${装飾つき.join(", ")}`,
-    );
-  }
-
-  // 帯の向きの誤りは `console.warn` に出す。 この図種の他の知らせ (時期なし / 依存が結べない /
-  // 矢印の飾り) が同じ経路を使っており、揃えないとどれが出るかが書き方で変わる
-  const 逆向きを伝える = (_名: string, message: string): void => {
-    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
-  };
 
   // 高さは件数から決める。 描画側は 1 行 28 以上 + 行間 20 で積み、 上下に 32 / 44 の余白を取る
   // (`kinds/gantt.tsx`)。 360 の固定だと 8 件目から最後の帯が枠の外に出る (実測 = 8 件で 56 はみ出す)
@@ -104,6 +126,9 @@ export function compileGantt(doc: DslDocument): CdlDiagram {
     ganttData: タスク.map((t) => {
       const idx = 目盛り.indexOf(t.label);
       const from = 依存元.get(t.name);
+      // 帯の向きの誤りは、その項目を書いた行で伝える
+      const 逆向きを伝える = (名: string, message: string): void =>
+        伝える("gantt-end-before-start", 名, message, t.line);
       const 終わり = 終わる位置(t.end, idx, 目盛り, t.name, 逆向きを伝える, doc);
       return {
         id: slugify(t.name) || t.name,
