@@ -14,6 +14,7 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
 import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import * as partsInBox from "../../../apps/playground-spa/src/topics/catalog/parts-in-box.cdl";
+import * as partsMotion from "../../../apps/playground-spa/src/topics/catalog/parts-motion.cdl";
 import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
 
 /**
@@ -41,6 +42,7 @@ const ページ: Record<string, Record<string, unknown>> = {
   ethereum,
   parts,
   "parts-in-box": partsInBox,
+  "parts-motion": partsMotion,
   charts,
 };
 

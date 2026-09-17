@@ -67,6 +67,7 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
 import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
 import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import * as partsInBox from "../../../apps/playground-spa/src/topics/catalog/parts-in-box.cdl";
+import * as partsMotion from "../../../apps/playground-spa/src/topics/catalog/parts-motion.cdl";
 import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
 
 type ModuleLike = Record<string, unknown>;
@@ -287,6 +288,7 @@ const sources: Array<{ name: string; mod: ModuleLike }> = [
   { name: "ethereum", mod: ethereum },
   { name: "parts", mod: parts },
   { name: "parts-in-box", mod: partsInBox },
+  { name: "parts-motion", mod: partsMotion },
   { name: "charts", mod: charts },
 ];
 

@@ -109,9 +109,12 @@ function 円(d: CdlDiagram): { 外枠: number; 塗り: number; 色: string }[] {
 }
 
 describe("部品を箱に使う見本 (#1973)", () => {
-  it("部品の頁の最後に並び、14 つの切替を持つ", async () => {
+  it("部品の頁の後ろから 2 番目に並び、14 つの切替を持つ", async () => {
     const items = await loadPartsItems();
-    expect(items.at(-1)?.id).toBe(見本のid);
+    // 並びは「部品そのもの → 箱として置く → 繋いで動かす」 で、最後は #2125 で足した
+    // 繋いで動かす見本になった。 位置を見るのは、後から読む頁の順が崩れると
+    // 「置き方を読む前に動かし方が来る」 ため
+    expect(items.at(-2)?.id).toBe(見本のid);
     expect((await 見本()).patterns?.map((p) => p.名)).toEqual([
       "書かない",
       "状態を上書き",

@@ -250,15 +250,19 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
  * 部品の頁に並べる見本を後から読む。 CategoryPage で params.slug === "parts" 時のみ発火。
  *
  * 部品そのもの (`parts.cdl.ts`) の後ろに、部品を箱に使う見本 (`parts-in-box.cdl.ts`) を並べる (#1973)。
- * 後者は部品の一覧を組み立てに渡すため `parts.cdl.ts` を読み込み、同じく後から読む。
+ * その後ろに、部品を繋いだまま動かす見本 (`parts-motion.cdl.ts`) を並べる (#2125)。
+ * 後ろの 2 つは部品の一覧を組み立てに渡すため `parts.cdl.ts` を読み込み、同じく後から読む。
  * 部品そのものだけが要る所 (編集画面の部品の欄と組み立ての一覧) は `部品の図か` で絞る。
+ *
+ * 並びは「部品そのもの → 箱として置く → 繋いで動かす」 の順で、後ろほど前の頁を前提にする。
  */
 export async function loadPartsItems(): Promise<CatalogItem[]> {
-  const [mod, 箱に使う] = await Promise.all([
+  const [mod, 箱に使う, 繋いで動かす] = await Promise.all([
     import("@/topics/catalog/parts.cdl"),
     import("@/topics/catalog/parts-in-box.cdl"),
+    import("@/topics/catalog/parts-motion.cdl"),
   ]);
-  return [...moduleToItems(mod), ...moduleToItems(箱に使う)];
+  return [...moduleToItems(mod), ...moduleToItems(箱に使う), ...moduleToItems(繋いで動かす)];
 }
 
 /**
@@ -269,7 +273,8 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  *
  * **実物とずれたら検査が落ちる** (`parts-count.test.ts`)。 以前は「人が忘れずに直す」 ことに
  * 依存しており、実際に片方だけ直された記述が残っていた (#1341)。 数を変える時は
- * `parts.cdl.ts` か `parts-in-box.cdl.ts` を直せば検査が本 constant のずれを教える。
- * 数えるのは頁に並ぶ行で、部品そのもの 80 と部品を箱に使う見本 1 (#1973)。
+ * `parts.cdl.ts` か `parts-in-box.cdl.ts` か `parts-motion.cdl.ts` を直せば検査が本 constant の
+ * ずれを教える。 数えるのは頁に並ぶ行で、部品そのもの 80 と部品を箱に使う見本 1 (#1973) と
+ * 部品を繋いで動かす見本 1 (#2125)。 切替を持つ見本は 1 行として数える。
  */
-export const PARTS_COUNT_ESTIMATE = 81;
+export const PARTS_COUNT_ESTIMATE = 82;

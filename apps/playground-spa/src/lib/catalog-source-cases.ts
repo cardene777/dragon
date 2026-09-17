@@ -9,6 +9,7 @@ import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
 import * as Parts from "@/topics/catalog/parts.cdl";
 import * as PartsInBox from "@/topics/catalog/parts-in-box.cdl";
+import * as PartsMotion from "@/topics/catalog/parts-motion.cdl";
 import * as Patterns from "@/topics/catalog/patterns.cdl";
 import * as Presets from "@/topics/catalog/presets.cdl";
 import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
@@ -48,6 +49,7 @@ export const 記法を持つカタログ: readonly [string, Record<string, unkno
   ["ethereum", Ethereum],
   ["parts", Parts],
   ["parts-in-box", PartsInBox],
+  ["parts-motion", PartsMotion],
   ["interactive", Interactive],
   ["charts", Charts],
   ["text-dsl", TextDsl],

@@ -29,6 +29,7 @@ import { describe, it, expect } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import * as PartsInBox from "../../../apps/playground-spa/src/topics/catalog/parts-in-box.cdl";
+import * as PartsMotion from "../../../apps/playground-spa/src/topics/catalog/parts-motion.cdl";
 import * as Interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
 import * as Cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
 import * as Patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
@@ -44,6 +45,8 @@ import * as Styles from "../../../apps/playground-spa/src/topics/catalog/styles.
 /** 動きが意味を持つ分類。 カタログ (primitives 等) は別の 3 一覧で扱う */
 const 対象: Array<[string, Record<string, unknown>]> = [
   ["parts", Parts],
+  // 部品を繋いで動かす見本 (#2125)。 5 件とも段で値が動くので、動きが意味を持つ側に入る
+  ["parts-motion", PartsMotion],
   ["interactive", Interactive],
   ["cookbook", Cookbook],
   ["patterns", Patterns],
@@ -279,6 +282,8 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
     const 件数 = Object.fromEntries(対象.map(([n, m]) => [n, diagramsOf(m).length]));
     expect(件数).toEqual({
       parts: 80,
+      // 部品を繋いで動かす見本 5 件 (#2125)
+      "parts-motion": 5,
       // 135 = 129 図 + `formulaTextBind` の名札を書かない変種 (#1916)
       //   + `buildStatusTrafficLight` と `clickToggle` の名前を書かない変種 (#1920)
       //   + 矢印や縦列や図全体で操作を受け取る `eventTargets` (#1969)
