@@ -112,6 +112,13 @@ const 図種の既知の差: Record<string, 図種の差> = {
     組み立て器経路: "infrastructure",
     理由: "dragon の記法に infrastructure が無く、flow として書くため",
   },
+  // 同じ見本の複雑な版 (#2143)。 差の理由は簡単な版と同じ
+  pattern__presetFlowchart__複雑: {
+    見本: "pattern__presetFlowchart__複雑",
+    記法経路: "swimlane",
+    組み立て器経路: "flowchart",
+    理由: "dragon の記法に flowchart が無く、swimlane として書くため",
+  },
   // 同じ見本の複雑な版 (#2139)。 差の理由は簡単な版と同じ
   pattern__presetInfrastructure__複雑: {
     見本: "pattern__presetInfrastructure__複雑",

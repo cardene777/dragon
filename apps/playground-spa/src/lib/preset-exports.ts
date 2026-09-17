@@ -34,6 +34,7 @@ export const 見本の名前: readonly string[] = [
   "presetChartLine",
   "presetGantt",
   "presetFlowchart",
+  "pattern__presetFlowchart__複雑",
   "presetNetwork",
   "presetStateMachine2",
 ];

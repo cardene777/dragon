@@ -64,17 +64,17 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
     }
   });
 
-  it("走査した複雑な版に、以前から並べていた 2 件と構成図の版が入っている", () => {
+  it("走査した複雑な版に、以前から並べていた 2 件と構成図と流れ図の版が入っている", () => {
     // 集め方を誤って 0 件になっても、上の 3 本は空の配列を回して通ってしまう
     expect(
       new Set(複雑見本たち.map((見本) => 見本.id)),
       "走査できた複雑な版の識別子が実物と一致せず、検査が空振りしている",
-    ).toEqual(new Set(["class-complex-demo", "er-complex-demo", "infra-complex-demo"]));
+    ).toEqual(new Set(["class-complex-demo", "er-complex-demo", "infra-complex-demo", "flowchart-complex-demo"]));
     // 元の見本も名前から引く。 名前の切り出しを誤ると複雑な版だけが残る
     expect(
       new Set(元の見本の名前.map((名前) => 図を引く(名前).id)),
       "複雑な版の名前から元の見本を引けていない",
-    ).toEqual(new Set(["class-demo", "er-demo", "infra-demo"]));
+    ).toEqual(new Set(["class-demo", "er-demo", "infra-demo", "flowchart-demo"]));
   });
 
   it("段ごとの増分を累積した activate から数えられる", () => {
