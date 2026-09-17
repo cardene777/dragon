@@ -279,6 +279,10 @@ YAML 欄は本文を `load()` で素の値に変えてから組み立てる。 �
 - 見本は `apps/playground-spa/src/topics/catalog/parts-motion.cdl.ts`。
   中身の性質は `apps/playground-spa/src/lib/parts-motion-content.test.ts` が数え、段で部品が光ることは
   `packages/dragon/test/part-focus.test.ts` が数える
+- 繋ぎ方の部品どうし (振り分け器の出口 A / B → 合流点の入口 A / B) を繋ぐ見本は「振り分けて合流させる」 (#2149)。
+  矢印の両端を `fromPartNode` / `toPartNode` で名指しし、段では入口だけ・出口と入口だけを要素の名前で光らせる。
+  繋いで使う部品の中の線の札は数字にしない = 振り分け器が 7 割を送った先で合流点が 6 割と書く食い違いが出るため、
+  割合は箱の上の読み取りに任せる (中の線の札に数字が無いことを内容の検査が数える)
 
 ### 2.7 backward compat = `#!parts` marker auto-convert
 

@@ -31,7 +31,7 @@ import * as 部品 from "./parts.cdl";
  * `flow` と `topology` は部品を他の箱の下の格子に置くため、矢印が間の箱を貫く (#1979 の実測)。
  * 繋ぎ方の頁と同じ理由で `swimlane` を使う。
  *
- * ## 5 つの切替
+ * ## 6 つの切替
  *
  * | 切替 | 見せること |
  * |---|---|
@@ -40,12 +40,24 @@ import * as 部品 from "./parts.cdl";
  * | 分ける | 1 つの箱から 2 つの部品へ分け、同じ段で 2 つの値を別々に動かす |
  * | 集める | 2 つの部品から 1 つの箱へ集め、集める段で 2 本の矢印を同時に光らせる |
  * | 部品の段を残す | 部品の段のままの部品と、宿主が動かす部品を並べる |
+ * | 振り分けて合流させる | 振り分け器の出口 A / B を合流点の入口 A / B へ繋ぎ、段で入口だけ・出口と入口だけを名指しして光らせる (#2149 / #2151) |
  *
- * ## 分けると集めるを 1 枚にまとめない
+ * ## 分けると集めるを箱と計器の 1 枚にまとめない
  *
- * 4 つの箱で「1 → 2 → 1」 を 1 枚に書くと、縦列が 4 本になって図が 2634 × 780 になり、
+ * 箱と計器の 4 つで「1 → 2 → 1」 を 1 枚に書くと、縦列が 4 本になって図が 2634 × 780 になり、
  * 一覧の器 (1150 × 630) に収めた時に箱の題が 9.6px まで縮む (下限 12px、実測)。
  * 3 本ずつの 2 枚に割ると 1 枚あたりの縦列が 3 本になり、どちらも指摘 0 件で収まる。
+ *
+ * 「振り分けて合流させる」 は 1 枚で「1 → 2 → 1」 を描く。 振り分け器と合流点は 1 つの部品が
+ * 入口と出口の 2 本の縦列を持ち、縦列の幅が 200 と狭いため、4 本の縦列でも図が 1580 幅に収まり、
+ * どちらの器でも指摘 0 件になる (実測)。 部品の中の線の札は数字にしない = 振り分け器が「7 割」 を
+ * 送った先で合流点が「6 割」 と書く食い違いが出るため、割合は箱の上の読み取りに任せる。
+ *
+ * ## 段で部品の中を名指しして光らせる
+ *
+ * 部品の名前を `focus` に書くと部品の要素と中の線が全て光る (#2150)。 1 段目は入口だけ、3 段目は
+ * 渡す出口と受ける入口だけを見せたいので、`split__inP` のように `{部品の名前}__{要素}` で名指しする
+ * (#2151)。 2 段目と 4 段目は部品の中で値が動くので、部品の名前で全体を光らせる。
  *
  * 右側の計器に温度計 (`thermometer`) を使うと図の高さが 780 から 2279 に跳ね、
  * 矢印の札が隣の縦列の境を貫く (実測)。 幅 220 の部品と幅 360 の部品が横に並ぶ形を避け、
@@ -57,7 +69,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partsMotion = "流れに沿って動かす";
 
 export const subtitle__partsMotion =
-  "部品を矢印で繋いだまま段で動かし、繋いだ先へ値を渡し、要素を名指しして層ごとに動かし、2 つの部品へ分け、2 つの部品から 1 つの箱へ集め、部品の段のままの部品と宿主が動かす部品を並べる";
+  "部品を矢印で繋いだまま段で動かし、繋いだ先へ値を渡し、要素を名指しして層ごとに動かし、2 つの部品へ分け、2 つの部品から 1 つの箱へ集め、部品の段のままの部品と宿主が動かす部品を並べ、振り分け器の出口を合流点の入口へ繋いで段で入口や出口だけを光らせる";
 
 export const sourceYaml__partsMotion = `title: "入ってくる量を溜めて送り出す"
 type: swimlane
@@ -436,5 +448,119 @@ export const sourceJson__pattern__partsMotion__部品の段を残す = `{
 
 export const pattern__partsMotion__部品の段を残す = textDslToDiagram(
   sourceYaml__pattern__partsMotion__部品の段を残す,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__振り分けて合流させる = `title: "注文を 2 つの窓口へ振り分けてから 1 つにまとめる"
+type: swimlane
+viewport: { laneWidth: 240 }
+
+# 縦列の見出しは日本語で書き、部品の名前 (値の名前の前置き) は英字のままにする
+lanes:
+  振り分け: { label: "振り分け" }
+  合流: { label: "合流" }
+
+actors:
+  - split: { kind: split-router, phase: false, lane: 振り分け }
+  - merge: { kind: merge-junction, phase: false, lane: 合流 }
+
+# 振り分け器の出口 A / B を、合流点の入口 A / B へそれぞれ繋ぐ
+flow:
+  - split -> merge: "A 便" { fromPartNode: outA, toPartNode: inA }
+  - split -> merge: "B 便" { fromPartNode: outB, toPartNode: inB }
+
+animation:
+  - step: "1. 注文が入る" 1.2s
+    focus: [split__inP]
+    badge: "受付"
+    tween:
+      split__inLv: 0 -> 100
+    body: "振り分け器の入口に注文が溜まる。 光るのは入口だけ。"
+  - step: "2. 2 つの窓口へ分ける" 1.4s
+    focus: [split]
+    badge: "振り分け"
+    tween:
+      split__inLv: 100 -> 0
+      split__aLv: 0 -> 70
+      split__bLv: 0 -> 30
+    body: "入口の注文が出口 A へ 70、出口 B へ 30 に分かれる。 振り分け器の全体が光る。"
+  - step: "3. 合流点へ渡す" 1.4s
+    focus: [split__outA, split__outB, merge__inA, merge__inB, "split -> merge"]
+    badge: "受け渡し"
+    tween:
+      split__aLv: 70 -> 0
+      split__bLv: 30 -> 0
+      merge__aLv: 0 -> 70
+      merge__bLv: 0 -> 30
+    body: "出口 A は合流点の入口 A へ、出口 B は入口 B へ渡る。 光るのは渡す出口と受ける入口と 2 本の矢印。"
+  - step: "4. 1 つにまとめる" 1.4s
+    focus: [merge]
+    badge: "合流"
+    tween:
+      merge__aLv: 70 -> 0
+      merge__bLv: 30 -> 0
+      merge__sumLv: 0 -> 100
+    body: "2 つの入口の分が合流点の出口で 100 にまとまる。 合流点の全体が光る。"
+`;
+
+export const sourceJson__pattern__partsMotion__振り分けて合流させる = `{
+  "title": "注文を 2 つの窓口へ振り分けてから 1 つにまとめる",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 240 },
+  "lanes": {
+    "振り分け": { "label": "振り分け" },
+    "合流": { "label": "合流" }
+  },
+  "actors": [
+    { "name": "split", "kind": "split-router", "phase": false, "lane": "振り分け" },
+    { "name": "merge", "kind": "merge-junction", "phase": false, "lane": "合流" }
+  ],
+  "flow": [
+    { "from": "split", "to": "merge", "label": "A 便", "fromPartNode": "outA", "toPartNode": "inA" },
+    { "from": "split", "to": "merge", "label": "B 便", "fromPartNode": "outB", "toPartNode": "inB" }
+  ],
+  "animation": [
+    {
+      "step": "1. 注文が入る",
+      "duration": 1.2,
+      "focus": ["split__inP"],
+      "badge": "受付",
+      "tween": { "split__inLv": [0, 100] },
+      "body": "振り分け器の入口に注文が溜まる。 光るのは入口だけ。"
+    },
+    {
+      "step": "2. 2 つの窓口へ分ける",
+      "duration": 1.4,
+      "focus": ["split"],
+      "badge": "振り分け",
+      "tween": { "split__inLv": [100, 0], "split__aLv": [0, 70], "split__bLv": [0, 30] },
+      "body": "入口の注文が出口 A へ 70、出口 B へ 30 に分かれる。 振り分け器の全体が光る。"
+    },
+    {
+      "step": "3. 合流点へ渡す",
+      "duration": 1.4,
+      "focus": ["split__outA", "split__outB", "merge__inA", "merge__inB", "split -> merge"],
+      "badge": "受け渡し",
+      "tween": {
+        "split__aLv": [70, 0],
+        "split__bLv": [30, 0],
+        "merge__aLv": [0, 70],
+        "merge__bLv": [0, 30]
+      },
+      "body": "出口 A は合流点の入口 A へ、出口 B は入口 B へ渡る。 光るのは渡す出口と受ける入口と 2 本の矢印。"
+    },
+    {
+      "step": "4. 1 つにまとめる",
+      "duration": 1.4,
+      "focus": ["merge"],
+      "badge": "合流",
+      "tween": { "merge__aLv": [70, 0], "merge__bLv": [30, 0], "merge__sumLv": [0, 100] },
+      "body": "2 つの入口の分が合流点の出口で 100 にまとまる。 合流点の全体が光る。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__振り分けて合流させる = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__振り分けて合流させる,
   { partsCatalog: 部品の一覧 },
 );
