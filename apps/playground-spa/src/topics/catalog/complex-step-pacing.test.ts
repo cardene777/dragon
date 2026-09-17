@@ -50,8 +50,12 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
     }
   });
 
-  it("複雑な版の 2 段目には線が 1 本以上ある", () => {
-    for (const 見本 of 複雑見本たち) {
+  it("線を持つ複雑な版の 2 段目には線が 1 本以上ある", () => {
+    // 順序図は言づてを線ではなく 1 つの箱の中の行として描き、段は値 (`seq_step`) を進めるだけなので
+    // 線を 1 本も持たない (#2161)。 線を持つ版だけを見る = 線が無い図に線を要求すると必ず落ちる
+    const 線を持つ版 = 複雑見本たち.filter((見本) => 見本.edges.length > 0);
+    expect(線を持つ版.length, "線を持つ複雑な版が 1 件も無い (検査が空振りしている)").toBeGreaterThanOrEqual(4);
+    for (const 見本 of 線を持つ版) {
       const 線 = new Set(見本.edges.map((edge) => edge.id));
       const 二段目の線 = (段ごとの増分(見本.phases)[1] ?? []).filter((要素) => 線.has(要素));
       expect(二段目の線.length, `${見本.id} の 2 段目の線が ${二段目の線.length} 本`).toBeGreaterThanOrEqual(1);
@@ -64,17 +68,25 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
     }
   });
 
-  it("走査した複雑な版に、以前から並べていた 2 件と構成図と流れ図の版が入っている", () => {
+  it("走査した複雑な版に、関係と構成と流れと順序の版が入っている", () => {
     // 集め方を誤って 0 件になっても、上の 3 本は空の配列を回して通ってしまう
     expect(
       new Set(複雑見本たち.map((見本) => 見本.id)),
       "走査できた複雑な版の識別子が実物と一致せず、検査が空振りしている",
-    ).toEqual(new Set(["class-complex-demo", "er-complex-demo", "infra-complex-demo", "flowchart-complex-demo"]));
+    ).toEqual(
+      new Set([
+        "class-complex-demo",
+        "er-complex-demo",
+        "infra-complex-demo",
+        "flowchart-complex-demo",
+        "seq-complex-demo",
+      ]),
+    );
     // 元の見本も名前から引く。 名前の切り出しを誤ると複雑な版だけが残る
     expect(
       new Set(元の見本の名前.map((名前) => 図を引く(名前).id)),
       "複雑な版の名前から元の見本を引けていない",
-    ).toEqual(new Set(["class-demo", "er-demo", "infra-demo", "flowchart-demo"]));
+    ).toEqual(new Set(["class-demo", "er-demo", "infra-demo", "flowchart-demo", "seq-demo"]));
   });
 
   it("段ごとの増分を累積した activate から数えられる", () => {
