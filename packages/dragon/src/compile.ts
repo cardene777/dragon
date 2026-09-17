@@ -54,6 +54,7 @@ export {
 } from "./compile/parts";
 import { SINGLE_BOX_KINDS, 図種の作り } from "./compile/kinds";
 import { collectRenamedTargets, disambiguateActorIds, restoreActorNames } from "./compile/actor-ids";
+import { 書いた多重度を読む, 端の形が決まる語 } from "./compile/er-relation";
 import { attachDerivedValues, foldValueTriggers, 鎖のどの行から来たか } from "./compile/values";
 import {
   applyCanvasPivotPositions,
@@ -125,11 +126,24 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 解決できない矢印を組み立てから外す (#1219)。 残すと、 存在しない箱や枠を指す図ができて
   // 描画の直前で落ちる (実測 = 8 図種)
   doc = dropUnresolvedFlow(doc);
+  // 多重度の知らせは落とした後の矢印を見る (#2107)。 落とした矢印の行は居ない名前の知らせが既に指している
+  const 端が解決した文書 = doc;
 
   // 名前から作る id が重なる分を解く (#1220)。 **矢印を落とした後**に見る = 落とした矢印の
   // 端にしか出てこない名前で id を分けても、 その箱は作られない
   const 分けた = disambiguateActorIds(doc, opts?.onNotice);
   doc = 分けた.doc;
+
+  // 図種の組み立てが矢印を捨てたと知らせた行を控える (#2107)。 同じ行に多重度の知らせを重ねない。
+  // 捨てる図種を手で並べず、実際に出た知らせで決める
+  const 受け取り口 = opts?.onNotice;
+  const 矢印を捨てた行 = new Set<number>();
+  const 図種の知らせ = 受け取り口
+    ? (n: CompileNotice): void => {
+        if (n.kind === "chart-edge-dropped") 矢印を捨てた行.add(n.line);
+        受け取り口(n);
+      }
+    : undefined;
 
   let diagram: CdlDiagram;
   switch (doc.type) {
@@ -161,49 +175,49 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       diagram = compileClass(doc);
       break;
     case "pie":
-      diagram = compileValueChart(doc, "pie", "chart-pie", opts?.onNotice);
+      diagram = compileValueChart(doc, "pie", "chart-pie", 図種の知らせ);
       break;
     case "bar":
-      diagram = compileValueChart(doc, "bar", "chart-bar", opts?.onNotice);
+      diagram = compileValueChart(doc, "bar", "chart-bar", 図種の知らせ);
       break;
     case "line":
-      diagram = compileValueChart(doc, "line", "chart-line", opts?.onNotice);
+      diagram = compileValueChart(doc, "line", "chart-line", 図種の知らせ);
       break;
     case "gauge":
-      diagram = compileValueChart(doc, "gauge", "chart-gauge", opts?.onNotice);
+      diagram = compileValueChart(doc, "gauge", "chart-gauge", 図種の知らせ);
       break;
     case "radial":
-      diagram = compileValueChart(doc, "radial", "chart-radial", opts?.onNotice);
+      diagram = compileValueChart(doc, "radial", "chart-radial", 図種の知らせ);
       break;
     case "stat":
-      diagram = compileValueChart(doc, "stat", "chart-stat", opts?.onNotice);
+      diagram = compileValueChart(doc, "stat", "chart-stat", 図種の知らせ);
       break;
     case "waffle":
-      diagram = compileValueChart(doc, "waffle", "chart-waffle", opts?.onNotice);
+      diagram = compileValueChart(doc, "waffle", "chart-waffle", 図種の知らせ);
       break;
     case "stacked":
-      diagram = compileValueChart(doc, "stacked", "chart-stacked-bar", opts?.onNotice);
+      diagram = compileValueChart(doc, "stacked", "chart-stacked-bar", 図種の知らせ);
       break;
     case "slope":
-      diagram = compileValueChart(doc, "slope", "chart-slope", opts?.onNotice);
+      diagram = compileValueChart(doc, "slope", "chart-slope", 図種の知らせ);
       break;
     case "funnel":
-      diagram = compileFunnel(doc, opts?.onNotice);
+      diagram = compileFunnel(doc, 図種の知らせ);
       break;
     case "tree":
-      diagram = compileTree(doc, opts?.onNotice);
+      diagram = compileTree(doc, 図種の知らせ);
       break;
     case "journey":
-      diagram = compileJourney(doc, opts?.onNotice);
+      diagram = compileJourney(doc, 図種の知らせ);
       break;
     case "quadrant":
-      diagram = compileQuadrant(doc, opts?.onNotice);
+      diagram = compileQuadrant(doc, 図種の知らせ);
       break;
     case "c4":
       diagram = compileC4(doc);
       break;
     case "mind":
-      diagram = compileMind(doc, opts?.onNotice);
+      diagram = compileMind(doc, 図種の知らせ);
       break;
     default:
       // switch case で全 type を網羅済のため default は unreachable、 template expression で
@@ -235,6 +249,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportActorKindNotHonored(書いたまま, opts?.onNotice);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
+  reportCardinalityNotHonored(端が解決した文書, 矢印を捨てた行, opts?.onNotice);
   reportFlowOffsetNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   reportDirectionNotHonored(書いたまま, opts?.onNotice);
@@ -821,6 +836,8 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
       s.layoutPos !== undefined || s.labelOffsetX !== undefined || s.labelOffsetY !== undefined
         ? "名前のずらし"
         : "",
+      // 多重度も板には描く先が無い (#2107)。 他の図種は `reportCardinalityNotHonored` が知らせる
+      書いた多重度を読む(s.cardinality) !== undefined ? "多重度" : "",
     ].filter((x) => x !== "");
     if (効かない.length === 0) continue;
     onNotice({
@@ -829,6 +846,64 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
       line: s.pos?.line ?? 0,
       message: `"${truncateForMessage(s.label)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} の板は語と向きと種類だけを描きます)`,
       hint: "板には矢印が無いため飾りを載せる先がありません。 言づての種類 (kind: call / return / fire) で描き分けてください",
+    });
+  }
+}
+
+/**
+ * 矢印に書いた多重度 (`cardinality`) から端の形を描けない時に伝える (#2107)。
+ *
+ * 多重度で端の形が決まるのは `type: er` の 6 語だけ (描画側の `ER_CARDINALITY_HEAD`)。
+ * `er` でそれ以外の語を書くと名前に `(語)` と添えるだけで、`er` 以外では何も描かない。
+ * 黙って通すと、書いた側は端の形が付くと思い込む (`N:M` の代わりに `N:N` と書く形で起きる)。
+ *
+ * `er` で端を両方とも書いていれば、描かない端が無いので伝えない = 6 語に無い個数 (`2..5`) を
+ * 名前に添えて、端は自分で描く書き方を止めない。
+ *
+ * 同じ行に 2 件並べない。 順序図の板は `reportMessageOptionNotHonored` が他の飾りと合わせて伝え、
+ * 図種の組み立てが矢印を捨てたと知らせた行 (`chart-edge-dropped`) は見ない。 値の図 (`pie` 等) は
+ * 捨てた本数を最初の矢印の行でまとめて伝えるため、2 本目以降の矢印に書いた多重度はここで伝わる。
+ */
+function reportCardinalityNotHonored(
+  doc: DslDocument,
+  矢印を捨てた行: ReadonlySet<number>,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  if (doc.type === "sequence" || doc.type === "solidity") return;
+  for (const s of doc.flow) {
+    const 書いた = 書いた多重度を読む(s.cardinality);
+    if (書いた === undefined) continue;
+    const line = s.pos?.line ?? 0;
+    if (矢印を捨てた行.has(line)) continue;
+    const 矢印 = `${truncateForMessage(s.from)} -> ${truncateForMessage(s.to)}`;
+    const 字 = truncateForMessage(書いた.字);
+    if (doc.type !== "er") {
+      onNotice({
+        kind: "cardinality-not-honored",
+        actor: s.from,
+        line,
+        message: `${矢印} に書いた多重度 "${字}" は効きません (type: ${doc.type} は多重度を描きません)`,
+        // クラス図は多重度を別の欄で受け取り、端の横に添える (`compile/class.ts`)
+        hint:
+          doc.type === "class"
+            ? "クラス図の多重度は、行き先の側を sub、出どころの側を tailSub に書いてください"
+            : "多重度から両端の形を描くのは type: er です",
+      });
+      continue;
+    }
+    if (書いた.語 !== null) continue;
+    const 描かない端 = [
+      s.tailHead === undefined ? "出どころ側" : "",
+      s.head === undefined ? "行き先側" : "",
+    ].filter((x) => x !== "");
+    if (描かない端.length === 0) continue;
+    onNotice({
+      kind: "cardinality-not-honored",
+      actor: s.from,
+      line,
+      message: `${矢印} の多重度 "${字}" は端の形が決まる語ではないため、${描かない端.length === 2 ? "両端" : 描かない端[0]}の形を描きません (名前に (${字}) と添えるだけです)`,
+      hint: `端の形が決まる語は ${端の形が決まる語.join(" / ")} です。 それ以外の個数を示す時は、端の形を tailHead / head に書いてください`,
     });
   }
 }
@@ -1088,8 +1163,8 @@ function reportMissingFocusTargets(
  *   topology: c{idx}-..、 flow preset: e-{prev}-{node}、 swimlane: e{idx}-..) ため、 id 直接マッチは脆い。
  * - 代わりに doc.flow の 1 step に対し、 同じ (slugified-from, slugified-to) を持つ未マッチ edge を
  *   順に 1 つ消費する double-pointer 走査で対応付ける。 同 from-to の重複は出現順で順番に対応。
- * - ER preset で cardinality が author 明示なら、 既存の label "places (1:N)" に "(1:N)" を再付与せず、
- *   既に label に含まれている場合はスキップ (`label.includes(cardinality)` で判定)。
+ * - ER の多重度は名前にも端にも写さない。 名前 / 名前の下の行 / 両端は組み立ての時に
+ *   `compile/er-relation.ts` が決めている (#2105)。
  */
 function applyEdgeInlineOptions(
   diagram: CdlDiagram,
@@ -1882,18 +1957,3 @@ function reportDirectionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
     });
   }
 }
-
-// ─── helpers ──────────────────────────────────────────────────
-
-// cardinality token を「単語の途中でない」 境界で囲んだ RegExp を作る (parse / strip で共有する SSOT)。
-// 前後が identifier 文字 (英数字 + アンダースコア) なら token とみなさない = `column:Metadata` の `n:M` /
-// `10:11:12` の `1:1` / `field_1:N` の `1:N` を cardinality と誤認して壊すのを防ぐ
-// (cc-codex #879 Round 9/10/11)。 `_` を含むのは ER label が DB schema 由来で snake_case 命名が多く、
-// `_` 直後に cardinality 様の部分列が来る label が現実的に起こるため (`field_1:N` / `parent_N:M_child`)。
-// strip と parse で別々に pattern.test / replace すると境界規則が drift するため、 この 1 関数を両経路で使う。
-
-// stripCardinality が「水平空白」 として畳んでよい文字を明示列挙する (space / tab / 全角空白 U+3000)。
-// 改行系 (LF / CR / U+2028 line separator / U+2029 paragraph separator / vertical tab / form feed) は
-// 含めない = これらは label の行構造として保持する (cc-codex #879 Round 5/6 指摘 = `\s` / `[^\S\r\n]`
-// では Unicode 行区切りや CRLF を誤って畳んでしまう)。 括弧除去側と正規化側で同じ class を共有する。
-
