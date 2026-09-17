@@ -69,7 +69,7 @@ import { EDITOR_SAMPLES, type EditorSample } from "@/data/editor-samples";
 import { formatYamlError, type YamlAdapterError } from "@/lib/yaml-error";
 import { stageSvgOf } from "@/lib/stage-svg";
 import { useToast } from "@/components/Toast";
-import { applyOffsetsToFlow, toSourceLines, usableEdgeLines } from "@/lib/auto-fix-dsl";
+import { applyOffsetsToFlow, toSourceLines, usableEdgeLines, 知らせの行を元の本文へ戻す } from "@/lib/auto-fix-dsl";
 import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from "@/lib/auto-fix-offsets";
 import { 直せない軸の案内, まとめて直せない案内 } from "@/lib/axis-names";
 import { yaml } from "@codemirror/lang-yaml";
@@ -1038,7 +1038,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 部品しかない本文は抜かずに組み立て、重ねる部品には書いた上書きを当てる (#1973)。
         // 組み立ては呼ぶたびに知らせと矢印の行の器を作り直す = 使わなかった方の知らせを混ぜない
         const {
-          built: { diagram: d, notices, edgeLines },
+          built: { diagram: d, notices: 抜いた本文の知らせ, edgeLines },
           parts,
           抜かずに描いた部品,
           lineMap,
@@ -1060,7 +1060,9 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           return { diagram, notices, edgeLines };
         });
         // 組み立て側が返すのはパーツの行を抜いた本文の座標。 元の本文に戻してから持つ。
+        // 知らせの行も同じ座標なので、 知らせの欄に出す前に戻す (#2113)
         setEdgeSource({ src, lines: toSourceLines(edgeLines, lineMap) });
+        const notices = 知らせの行を元の本文へ戻す(抜いた本文の知らせ, lineMap);
         // パーツの置き場所は図が組み上がってから決まる。 相対で書いたパーツは基準の実座標が
         // 要るため、 図を測ってから置く。 位置を書いていないパーツは従来通り格子に並ぶ。
         //

@@ -106,7 +106,7 @@
               },
               "kind": {
                 "type": "string",
-                "description": "node kind。 shape-* を指定して 49 shape 中から選ぶ。 例: 'shape-wallet' / 'shape-smart-contract' / 'shape-cloud' / 'shape-file' / 'actor' (default) / 'function' / 'storage' / 'event' 等"
+                "description": "node kind。 shape-* を指定して 49 shape 中から選ぶ。 例: 'shape-wallet' / 'shape-smart-contract' / 'shape-cloud' / 'shape-file' / 'actor' (default) / 'function' / 'storage' / 'event' 等。 種別に無い名前は部品の名前として部品の一覧 (partsCatalog) から引き、一覧にも無ければ種別を書かなかった箱になる。 部品を持つ一覧を渡した時は知らせを出し、綴りの近い名前を案内する。"
               },
               "subtitle": {
                 "type": "string",

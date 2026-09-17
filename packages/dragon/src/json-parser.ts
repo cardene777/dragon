@@ -71,6 +71,7 @@ import type {
   DslDynShape,
 } from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
+import { 近い名前 } from "./near-name";
 import { compileToCdl } from "./compile";
 import {
   RELATIVE_DIRECTIONS,
@@ -1144,48 +1145,6 @@ function 表で検査(
 }
 
 /**
- * 綴り違いの候補を返す (#1295)。
- *
- * 「知らない項目です」 だけだと、`animations` と書いた人は正しい綴りを探しに行く必要がある。
- * 1 文字の違い (足りない / 多い / 入れ替わり / 別の字) までを候補とする。
- *
- * 遠い名前は勧めない。 無関係な項目名を勧めると、書いた人がそちらへ直して二度手間になる。
- */
-function 近い項目名(key: string, 候補: readonly string[]): string | undefined {
-  const 小文字 = key.toLowerCase();
-  let 最短: { 名: string; 距離: number } | undefined;
-  for (const c of 候補) {
-    const d = 編集距離(小文字, c.toLowerCase(), 2);
-    if (d <= 2 && (最短 === undefined || d < 最短.距離)) 最短 = { 名: c, 距離: d };
-  }
-  return 最短?.名;
-}
-
-/**
- * 2 つの語の編集距離 (上限付き)。
- *
- * 上限を持つのは、長い語どうしで表を全部埋めないため。 上限を超えた時点で打ち切る。
- */
-function 編集距離(a: string, b: string, 上限: number): number {
-  if (Math.abs(a.length - b.length) > 上限) return 上限 + 1;
-  let 前 = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i += 1) {
-    const 今: number[] = [i];
-    let 行の最小 = i;
-    for (let j = 1; j <= b.length; j += 1) {
-      const 費用 = a[i - 1] === b[j - 1] ? 0 : 1;
-      const v = Math.min(今[j - 1]! + 1, 前[j]! + 1, 前[j - 1]! + 費用);
-      今.push(v);
-      if (v < 行の最小) 行の最小 = v;
-    }
-    // その行の最小が上限を超えたら、以降どう進んでも上限以下にはならない
-    if (行の最小 > 上限) return 上限 + 1;
-    前 = 今;
-  }
-  return 前[b.length]!;
-}
-
-/**
  * 知らない項目を誤りとして積む (#1295)。
  *
  * 対象は plain object だけ。 形が違う入力は呼出側が別に誤りを積むため、ここでは何もしない
@@ -1196,7 +1155,7 @@ function checkUnknownKeys(v: unknown, 層: 階層, path: string, errors: JsonDsl
   const 受ける = ACCEPTED_KEYS[層] as readonly string[];
   for (const key of Object.keys(v)) {
     if (受ける.includes(key)) continue;
-    const 候補 = 近い項目名(key, 受ける);
+    const 候補 = 近い名前(key, 受ける);
     errors.push({
       path: `${path}.${key}`,
       message: `unknown key "${key}"`,

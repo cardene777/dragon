@@ -11,6 +11,8 @@ import { lookupPartRaw } from "./parts-lookup";
 import { PLACEMENT_TOLERANCE } from "./placement";
 import { slugify } from "./slug";
 import { truncateForMessage } from "./subtitle";
+import { 近い名前 } from "../near-name";
+import { NODE_KIND_VALID } from "../v05/parser";
 /**
  * 見本 (parts) の取り込み (#2034 で `compile.ts` から移した)。
  *
@@ -1321,9 +1323,51 @@ function cleanupPlaceholderActor(
 }
 
 /**
+ * 種類に書いた名前が箱の種類にも部品の一覧にも無いことを、書いた行で伝える (#2113)。
+ *
+ * 記法は箱の種類に無い名前を部品の名前とみなすため、箱の種類の綴り違い (`evnet`) もここに来る。
+ * 図は種類を書かなかった箱になる。 `console.warn` だけに出すと編集画面に理由が見えないので、
+ * 知らせと `console.warn` の両方へ同じ文を出す。
+ *
+ * 案内には、箱の種類と一覧の部品の名前から綴りの近い名前を 1 つ出す。 部品の名前は `parts-` の
+ * 前置きを外した形で勧める = どちらの形でも引けるので、短い方を書けば足りる。
+ *
+ * **部品を 1 つも持たない一覧では知らせない**。 比べる部品の名前が無く、部品を書いたのか綴りを
+ * 間違えたのかを決められない (一覧を渡さない時と同じ)。 編集画面は部品を読み込み終わる前と
+ * 読み込みに失敗した後に空の一覧を渡すため、知らせると正しい部品の名前にも注意が出る。
+ * 図は一覧を渡さない時と同じなので、知らせの有無だけを揃える。
+ */
+function 部品が一覧に無いことを伝える(
+  actor: DslActor,
+  partId: string,
+  partsCatalog: Record<string, CdlDiagram>,
+  onNotice?: (notice: CompileNotice) => void,
+): void {
+  const 部品の名前 = new Set(Object.keys(partsCatalog).map((k) => k.replace(/^parts-/, "")));
+  const message = `"${truncateForMessage(actor.name)}" の種類 "${truncateForMessage(partId)}" は、箱の種類にも部品の一覧にもありません (種類を書かなかった箱として描きます)`;
+  if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  if (部品の名前.size === 0) return;
+  // 書いた側の `parts-` も外して比べる = 前置きの 6 文字が距離に入ると、どの部品も遠くなる
+  const 近い = 近い名前(partId.replace(/^parts-/, ""), [...NODE_KIND_VALID, ...部品の名前]);
+  onNotice?.({
+    kind: "part-not-found",
+    actor: actor.name,
+    line: actor.pos?.line ?? 0,
+    message,
+    hint:
+      近い === undefined
+        ? "kind には、箱の種類か、部品の一覧にある部品の名前を書いてください"
+        : `近い名前は ${近い} (${NODE_KIND_VALID.has(近い) ? "箱の種類" : "部品"}) です`,
+  });
+}
+
+/**
  * CAR-1657 = doc.actors 中の partId set actor を検出、 partsCatalog から CdlDiagram を lookup、
- * mergePartIntoDiagram で target に prefix 付き統合する。 partsCatalog 未渡し or 該当 partId
- * 未登録なら warn を残して skip、 diagram render は継続 (壊さない設計)。
+ * mergePartIntoDiagram で target に prefix 付き統合する。 diagram render は継続 (壊さない設計)。
+ *
+ * 部品の一覧を渡さない時は `console.warn` だけに出し、知らせない (#2113)。 一覧が無いと、書いた名前が
+ * 部品なのか箱の種類の書き間違いなのかを決められない。 一覧を渡して名前が無かった時は
+ * `部品が一覧に無いことを伝える` が決める (部品を持つ一覧なら書いた行で知らせる)。
  */
 export function mergePartsFromActors(
   target: CdlDiagram,
@@ -1342,7 +1386,9 @@ export function mergePartsFromActors(
   if (!partsCatalog) {
     if (typeof console !== "undefined" && console.warn) {
       const names = partsActors.map((a) => `${a.name} (kind: ${a.partId ?? "?"})`).join(", ");
-      console.warn(`[dragon] parts kind actors detected but no partsCatalog provided: ${names}`);
+      console.warn(
+        `[dragon] 部品の一覧 (partsCatalog) を渡していないため、次の箱を部品として描けません (種類を書かなかった箱として描きます): ${names}`,
+      );
     }
     return target;
   }
@@ -1395,11 +1441,7 @@ export function mergePartsFromActors(
     }
     const part = found;
     if (!part) {
-      if (typeof console !== "undefined" && console.warn) {
-        console.warn(
-          `[dragon] parts kind "${partId}" not found in partsCatalog (actor: ${actor.name})`,
-        );
-      }
+      部品が一覧に無いことを伝える(actor, partId, partsCatalog, onNotice);
       // 一覧に無い部品は仮の箱のまま描かれ、矢印も仮の箱に繋がる。 要素の名指しは効かない
       for (const s of doc.flow) {
         for (const [側, 欄] of [
