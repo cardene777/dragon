@@ -64,7 +64,7 @@ export type CompileNotice = {
     | "event-target-missing"
     // 順序図で面に種類を書いたが、板は名前と呼び名しか描かない (#1466)
     | "actor-kind-not-honored"
-    // 順序図の言づてに、板が描かない飾り (色味 / 添え字 / 寄せ) を書いた (#1466)
+    // 順序図の言づてに、板が描かない飾りを書いた (#1466)。 数える飾りは `reportMessageOptionNotHonored` の一覧が持つ
     | "message-option-not-honored"
     // 位置のずらし (`pos` / `offsetX` / `offsetY`) を載せる相手が無いか、書いた量だけ動かせなかった (#1971)
     | "position-offset-ignored"
