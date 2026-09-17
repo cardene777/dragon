@@ -23,6 +23,15 @@ export const CARDINALITY_PATTERNS: Array<[RegExp, ErRelationCardinality]> = [
   [/1\.\.\*/, "1..*"],
 ];
 
+/** 多重度から端の形が決まる語。 知らせに並べる時は手で書かず、描画側の表から導く (#2107) */
+export const 端の形が決まる語 = Object.keys(ER_CARDINALITY_HEAD) as ErRelationCardinality[];
+
+// cardinality token を「単語の途中でない」 境界で囲んだ RegExp を作る (parse / strip で共有する SSOT)。
+// 前後が identifier 文字 (英数字 + アンダースコア) なら token とみなさない = `column:Metadata` の `n:M` /
+// `10:11:12` の `1:1` / `field_1:N` の `1:N` を cardinality と誤認して壊すのを防ぐ
+// (cc-codex #879 Round 9/10/11)。 `_` を含むのは ER label が DB schema 由来で snake_case 命名が多く、
+// `_` 直後に cardinality 様の部分列が来る label が現実的に起こるため (`field_1:N` / `parent_N:M_child`)。
+// strip と parse で別々に pattern.test / replace すると境界規則が drift するため、 この 1 関数を両経路で使う。
 export function boundedCardinalityRegExp(pattern: RegExp, extraFlags = ""): RegExp {
   const base = pattern.flags.includes("i") ? "i" : "";
   return new RegExp(`(?<![A-Za-z0-9_])(?:${pattern.source})(?![A-Za-z0-9_])`, base + extraFlags);
@@ -35,6 +44,10 @@ export function parseCardinalityFromLabel(label: string): ErRelationCardinality 
   return null;
 }
 
+// stripCardinality が「水平空白」 として畳んでよい文字を明示列挙する (space / tab / 全角空白 U+3000)。
+// 改行系 (LF / CR / U+2028 line separator / U+2029 paragraph separator / vertical tab / form feed) は
+// 含めない = これらは label の行構造として保持する (cc-codex #879 Round 5/6 指摘 = `\s` / `[^\S\r\n]`
+// では Unicode 行区切りや CRLF を誤って畳んでしまう)。 括弧除去側と正規化側で同じ class を共有する。
 export const HORIZONTAL_WS = " \\t\\u3000";
 
 export const HWS = `[${HORIZONTAL_WS}]`;
@@ -98,6 +111,20 @@ function 欄の語(書いた: string): ErRelationCardinality | null {
   return null;
 }
 
+/**
+ * 矢印の欄に書いた多重度を読む。 空白だけの欄は書かなかったものとして `undefined` を返す。
+ *
+ * `語` は 6 語のどれかそのものならその語、そうでなければ `null` (名前に `(字)` と添えるだけで端を決めない形)。
+ * 組み立てが名前と端を決める時と、効かない形を知らせる時 (#2107) の両方がこれを読む = 判定が割れない
+ */
+export function 書いた多重度を読む(
+  欄: string | undefined,
+): { 字: string; 語: ErRelationCardinality | null } | undefined {
+  const 字 = 欄?.trim();
+  if (!字) return undefined;
+  return { 字, 語: 欄の語(字) };
+}
+
 /** 組み立て API の `er().relation` に渡す指定のうち、多重度と名前と端に関わる分 */
 export type ERの関係の指定 = {
   label?: string;
@@ -113,7 +140,8 @@ export type ERの関係の指定 = {
  * (名前が語だけなら、名前を書かなかったものとして扱う = 組み立て API が語を名前として出す)。
  *
  * 欄に 6 語以外を書いた時 (`2..5` 等) は、名前に `(2..5)` と添えて端は決めない。 組み立て API の語は
- * 6 語に限られ、それ以外を渡す口が無い。 書いた字を消さずに読み手へ見せる形にする。
+ * 6 語に限られ、それ以外を渡す口が無い。 書いた字を消さずに読み手へ見せる形にし、
+ * 描かない端があることは組み立ての知らせ (`cardinality-not-honored`、#2107) が伝える。
  */
 export function ERの関係の指定を作る(
   s: Pick<DslStep, "label" | "cardinality" | "head" | "tailHead">,
@@ -122,12 +150,11 @@ export function ERの関係の指定を作る(
     ...(s.head !== undefined ? { head: s.head } : {}),
     ...(s.tailHead !== undefined ? { tailHead: s.tailHead } : {}),
   };
-  const 欄 = s.cardinality?.trim();
-  const 欄に書いた語 = 欄 ? 欄の語(欄) : null;
-  if (欄 && 欄に書いた語 === null) {
-    return { label: s.label ? `${s.label} (${欄})` : `(${欄})`, ...端 };
+  const 書いた = 書いた多重度を読む(s.cardinality);
+  if (書いた && 書いた.語 === null) {
+    return { label: s.label ? `${s.label} (${書いた.字})` : `(${書いた.字})`, ...端 };
   }
-  const 語 = 欄に書いた語 ?? parseCardinalityFromLabel(s.label);
+  const 語 = 書いた?.語 ?? parseCardinalityFromLabel(s.label);
   if (語 === null) return { ...(s.label ? { label: s.label } : {}), ...端 };
   // 欄に書いた時も名前の語は外す。 残すと、名前と名前の下の行に語が 2 度並ぶ (欄の語が勝つ)
   const 名前 = 語を外した名前(s.label);

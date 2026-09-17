@@ -71,7 +71,10 @@ export type CompileNotice = {
     // 組 (`groups:`) が束ねる縦列が図に無い (#1972)
     | "group-lane-missing"
     // 組が束ねる縦列の間に、束ねない縦列を挟んでいる (#1972)
-    | "group-lanes-apart";
+    | "group-lanes-apart"
+    // 矢印に書いた多重度 (`cardinality`) から端の形を描けない (#2107)。 `er` で端の形が決まる 6 語以外を
+    // 書き、端を両方は書いていない時と、`er` 以外の図種に書いた時
+    | "cardinality-not-honored";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */
