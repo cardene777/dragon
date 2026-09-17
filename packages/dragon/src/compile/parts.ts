@@ -1590,6 +1590,7 @@ export function mergePartsFromActors(
       actor.pos?.line ?? 0,
       derivedSourceLines,
       値の前置き.get(actor.name),
+      置く縦列 !== undefined,
     );
     const 要素 = new Set(target.nodes.slice(組み込む前の箱の数).map((n) => n.id));
     if (置く縦列 !== undefined) {
@@ -1702,6 +1703,64 @@ function 部品の縦列を部品に固定する(
   }
 }
 
+/**
+ * 縦列に置く部品の 2 本目以降の縦列を、図の縦列として宿主の縦列のすぐ右に差し込む (#2145)。
+ *
+ * 以前は部品の縦列を全て宿主の縦列 1 本にまとめていた。 部品の要素は座標で置くので横並びは
+ * 保たれるが、同じ縦列の中に中心の違う箱が並び、図の検査が揃いの誤りを出していた
+ * (実測 = `split-router` を `swimlane` に置いて 5 件、`split-router` から `queue-depth` へ繋いで 9 件)。
+ *
+ * | 部品の縦列 | 要素を入れる縦列 |
+ * |---|---|
+ * | 1 本目 (頁で一番左) | 宿主の縦列。 画面側が「部品用の縦列の外にある要素」 で縦列に置いた部品を見分けるため残す |
+ * | 2 本目以降 | 宿主の縦列の右に、部品の縦列の順で差し込んだ縦列 |
+ *
+ * **差し込む縦列は座標を持たない普通の縦列にする**。 座標で固定した縦列は、描画側が並べる処理と
+ * 矢印の札のために縦列の間を広げる処理の両方から外れる。 試作では部品どうしを繋ぐ矢印の札が
+ * 宿主の縦列の境を貫いた (`lane-border-clearance`)。 普通の縦列なら並びも札の間も描画側が決め、
+ * 要素を縦列の中心へ寄せるのは `縦列に置いた部品を揃える` が縦列ごとに行う。
+ *
+ * **名札を付けない**。 宿主の縦列の名札 (登場人物の名前) が部品全体の見出しになり、2 本目以降に
+ * 部品の縦列の名札 (`出口` 等) を出すと、図の縦列の見出しの行に登場人物と部品の中の名前が混ざる。
+ *
+ * 同じ縦列に置いた部品どうしは、同じ番目の縦列を共有する (幅は広い方)。 要素は縦列の中心に
+ * 揃うので、積んだ部品の 2 本目どうしも同じ中心に並ぶ。
+ *
+ * 返り値は、部品の縦列の id から要素を入れる図の縦列の id。 1 本目と要素を持たない縦列は入れない。
+ * 要素を持つ縦列が 1 本以下の部品は何も差し込まず `undefined` を返す。
+ */
+function 部品の縦列を図に差し込む(
+  target: CdlDiagram,
+  part: CdlDiagram,
+  宿主: string,
+  置き方: 部品の置き方,
+  倍率: number,
+): Map<string, string> | undefined {
+  const 要素を持つ = new Set(part.nodes.map((n) => n.lane));
+  const 列 = part.lanes
+    .map((l, 書いた順) => ({ l, 書いた順, x: 置き方.縦列.get(l.id)?.x ?? l.x ?? 0 }))
+    .filter((c) => 要素を持つ.has(c.l.id))
+    .sort((p, q) => p.x - q.x || p.書いた順 - q.書いた順);
+  if (列.length < 2) return undefined;
+  const 行き先 = new Map<string, string>();
+  let 前 = 宿主;
+  for (const [番目, c] of 列.entries()) {
+    if (番目 === 0) continue;
+    const id = `${宿主}__列${番目 + 1}`;
+    const 幅 = (置き方.縦列.get(c.l.id)?.w ?? c.l.width) * 倍率;
+    const 既に = target.lanes.find((l) => l.id === id);
+    if (既に) {
+      既に.width = Math.max(既に.width, 幅);
+    } else {
+      const 前の位置 = target.lanes.findIndex((l) => l.id === 前);
+      target.lanes.splice(前の位置 < 0 ? target.lanes.length : 前の位置 + 1, 0, { id, width: 幅 });
+    }
+    行き先.set(c.l.id, id);
+    前 = id;
+  }
+  return 行き先;
+}
+
 type 縦列に置いた部品 = { 縦列: string; 要素: ReadonlySet<string> };
 
 /** 部品が縦列より広い時に、縦列の左右に残す余白。 描画側が縦列の中の箱に取る最小の余白と同じ */
@@ -1718,8 +1777,12 @@ const 部品の縦列の余白 = 25;
  *
  * | 向き | 置き方 |
  * |---|---|
- * | 横 | 部品の中心を縦列の中心に合わせる。 部品が縦列より広ければ縦列を広げ、配置し直す |
- * | 縦 | 部品以外の箱の一番下から `PARTS_GAP` 空ける。 同じ縦列の部品は書いた順に下へ積む |
+ * | 横 | 要素を入れた縦列ごとに、その要素の中心を縦列の中心に合わせる。 要素が縦列より広ければ縦列を広げ、配置し直す |
+ * | 縦 | 部品以外の箱の一番下から `PARTS_GAP` 空ける。 同じ縦列の部品は書いた順に下へ積む。 部品の要素は全て同じだけ動かす |
+ *
+ * 縦列を 2 本以上持つ部品は、要素が宿主の縦列と差し込んだ縦列に分かれている
+ * (`部品の縦列を図に差し込む`、#2145)。 横を部品全体の中心で合わせると、差し込んだ縦列の要素が
+ * 自分の縦列の中心からずれるので、縦列ごとに合わせる。
  *
  * **縦列の段には入れない**。 段の高さは縦列をまたいで共有され、背の高い部品を段に入れると隣の
  * 縦列の箱まで伸びる (実測 = `受付` の高さが 68 から 380 になった)。
@@ -1748,18 +1811,31 @@ function 縦列に置いた部品を揃える(target: CdlDiagram, 置いた: rea
       y1: Math.max(...箱.map((n) => n.cy + n.h / 2)),
     };
   };
-  // 部品より狭い縦列を広げる。 描画側は縦列を中の箱 1 つの幅までしか広げず、要素を横に並べた
-  // 部品は隣の縦列へはみ出す
+  // 部品の要素を、入れた縦列ごとに分ける。 縦列を 1 本しか持たない部品は宿主の縦列 1 つになる
+  const 縦列ごと = (要素: ReadonlySet<string>): Map<string, Set<string>> => {
+    const 出力 = new Map<string, Set<string>>();
+    for (const n of target.nodes) {
+      if (!要素.has(n.id)) continue;
+      const 組 = 出力.get(n.lane) ?? new Set<string>();
+      組.add(n.id);
+      出力.set(n.lane, 組);
+    }
+    return 出力;
+  };
+  // 要素より狭い縦列を広げる。 描画側は縦列を中の箱 1 つの幅までしか広げず、同じ縦列の中で
+  // 要素を横に並べた部品は隣の縦列へはみ出す
   let 広げた = false;
   for (const p of 置いた) {
-    const r = 範囲(laid, p.要素);
-    const 縦列 = target.lanes.find((l) => l.id === p.縦列);
-    const 描いた縦列 = laid.lanes.find((l) => l.id === p.縦列);
-    if (!r || !縦列 || !描いた縦列) continue;
-    const 要る幅 = r.x1 - r.x0 + 部品の縦列の余白 * 2;
-    if (要る幅 > 描いた縦列.width && 要る幅 > 縦列.width) {
-      縦列.width = 要る幅;
-      広げた = true;
+    for (const [縦列のid, 組] of 縦列ごと(p.要素)) {
+      const r = 範囲(laid, 組);
+      const 縦列 = target.lanes.find((l) => l.id === 縦列のid);
+      const 描いた縦列 = laid.lanes.find((l) => l.id === 縦列のid);
+      if (!r || !縦列 || !描いた縦列) continue;
+      const 要る幅 = r.x1 - r.x0 + 部品の縦列の余白 * 2;
+      if (要る幅 > 描いた縦列.width && 要る幅 > 縦列.width) {
+        縦列.width = 要る幅;
+        広げた = true;
+      }
     }
   }
   if (広げた) {
@@ -1781,19 +1857,23 @@ function 縦列に置いた部品を揃える(target: CdlDiagram, 置いた: rea
     let 動かした = false;
     for (const p of 置いた) {
       const r = 範囲(laid, p.要素);
-      const 縦列 = laid.lanes.find((l) => l.id === p.縦列);
-      if (!r || !縦列) continue;
+      if (!r || !laid.lanes.some((l) => l.id === p.縦列)) continue;
       const 上端 = 次の上端.get(p.縦列) ?? 他の箱の下端 + PARTS_GAP;
-      const dx = 縦列.x + 縦列.width / 2 - (r.x0 + r.x1) / 2;
       const dy = 上端 - r.y0;
       次の上端.set(p.縦列, 上端 + (r.y1 - r.y0) + PARTS_GAP);
-      if (Math.abs(dx) <= PLACEMENT_TOLERANCE && Math.abs(dy) <= PLACEMENT_TOLERANCE) continue;
-      for (const n of target.nodes) {
-        if (!p.要素.has(n.id) || n.posX === undefined || n.posY === undefined) continue;
-        n.posX += dx;
-        n.posY += dy;
+      for (const [縦列のid, 組] of 縦列ごと(p.要素)) {
+        const 組の範囲 = 範囲(laid, 組);
+        const 縦列 = laid.lanes.find((l) => l.id === 縦列のid);
+        if (!組の範囲 || !縦列) continue;
+        const dx = 縦列.x + 縦列.width / 2 - (組の範囲.x0 + 組の範囲.x1) / 2;
+        if (Math.abs(dx) <= PLACEMENT_TOLERANCE && Math.abs(dy) <= PLACEMENT_TOLERANCE) continue;
+        for (const n of target.nodes) {
+          if (!組.has(n.id) || n.posX === undefined || n.posY === undefined) continue;
+          n.posX += dx;
+          n.posY += dy;
+        }
+        動かした = true;
       }
-      動かした = true;
     }
     if (!動かした) return;
     laid = 配置する();
@@ -1974,6 +2054,12 @@ function mergePartIntoDiagram(
    * 登場人物の名前をそのまま使えない。 渡されない経路では従来どおり名前をそのまま使う
    */
   valueAlias?: string,
+  /**
+   * 部品を図の縦列の中に置くか (#1980)。 置く時は、部品の 2 本目以降の縦列を図の縦列として
+   * 差し込む (`部品の縦列を図に差し込む`、#2145)。 位置を書いた部品は `laneMapping` を持っても
+   * 縦列の中に置かないので渡さない
+   */
+  縦列の中に置く = false,
 ): 部品用の縦列[] {
   const prefix = (id: string): string => `${alias}__${id}`;
   // 値と状態だけ別の前置きを使う (#1189)。 箱 / 縦列 / 矢印の id は `prefix` のまま
@@ -2052,9 +2138,13 @@ function mergePartIntoDiagram(
       : existingLaneMaxX + PARTS_LANE_GAP + (置き方.幅 * laneScaleX) / 2;
   const mapLaneX = (x: number): number => (x - partOrigBboxCenterX) * laneScaleX + dropCenterX;
 
+  const 差し込んだ縦列 =
+    targetLaneId !== undefined && 縦列の中に置く
+      ? 部品の縦列を図に差し込む(target, part, targetLaneId, 置き方, laneScaleX)
+      : undefined;
   for (const laneOrig of part.lanes) {
     if (targetLaneId) {
-      laneIdMap.set(laneOrig.id, targetLaneId);
+      laneIdMap.set(laneOrig.id, 差し込んだ縦列?.get(laneOrig.id) ?? targetLaneId);
     } else {
       const newLaneId = prefix(laneOrig.id);
       laneIdMap.set(laneOrig.id, newLaneId);
@@ -2101,10 +2191,11 @@ function mergePartIntoDiagram(
   const rawScaleY = targetH !== undefined && targetH > 0 ? targetH / 伸縮の基準.h : 1;
   const scaleY = Number.isFinite(rawScaleY) && rawScaleY > 0 ? rawScaleY : 1;
 
-  // 縦列を 2 本以上持つ部品を 1 本の縦列へまとめる時は、要素ごとに別の段番号を振る (#1980)。
-  // 元の段番号のままだと横に並んでいた要素が同じ段で重なり、配置が止まる (実測 =
-  // `lane "b" の stack=1000 に node が重複`)。 座標で置く要素の位置は段番号で決まらないので、
-  // 振り直しても絵は変わらない
+  // 縦列を 2 本以上持つ部品を図の縦列に入れる時は、要素ごとに別の段番号を振る (#1980)。
+  // 位置を書いた部品は縦列を 1 本へまとめるので、元の段番号のままだと横に並んでいた要素が同じ段で
+  // 重なり、配置が止まる (実測 = `lane "b" の stack=1000 に node が重複`)。 縦列の中に置く部品は
+  // 2 本目以降を別の縦列に入れる (#2145) が、振り直しても重ならない側に倒れるだけなので分けない。
+  // 座標で置く要素の位置は段番号で決まらないので、振り直しても絵は変わらない
   const 段を振り直す = targetLaneId !== undefined && shouldForcePos && part.lanes.length > 1;
   // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
   for (const [nodeIndex, nodeOrig] of part.nodes.entries()) {
