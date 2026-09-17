@@ -2744,14 +2744,18 @@ export const partsSplitRouter = diagram("parts-split-router", {
   .state("inLv", { initial: 0 })
   .state("aLv", { initial: 0 })
   .state("bLv", { initial: 0 })
+  // 入口を 2 つの出口の真ん中の段 (1) に置き、出口 A を 0、出口 B を 2 に置く (#2154)。 合流点も
+  // 出口を真ん中に置くので、繋いだ時に出口 A と入口 A、出口 B と入口 B が同じ段に並び、部品どうしの
+  // 矢印が真横に引ける。 3 段にして図が縦に伸びる分、箱を 180 から 150 にする (実測 = 繋いだ見本が
+  // 1475 × 922 で、拡大の器で箱の題が 15.0px、一覧の器で 13.0px)
   .node("inP", {
     lane: "sl1",
-    stack: 0,
+    stack: 1,
     kind: "dyn-rect",
     title: "入口",
     subtitle: "{inLv}%",
-    w: 180,
-    h: 180,
+    w: 150,
+    h: 150,
     shape: {
       kind: "rect",
       source: "{inLv}",
@@ -2767,8 +2771,8 @@ export const partsSplitRouter = diagram("parts-split-router", {
     kind: "dyn-rect",
     title: "出口 A",
     subtitle: "{aLv}%",
-    w: 180,
-    h: 180,
+    w: 150,
+    h: 150,
     shape: {
       kind: "rect",
       source: "{aLv}",
@@ -2780,12 +2784,12 @@ export const partsSplitRouter = diagram("parts-split-router", {
   })
   .node("outB", {
     lane: "sl2",
-    stack: 1,
+    stack: 2,
     kind: "dyn-rect",
     title: "出口 B",
     subtitle: "{bLv}%",
-    w: 180,
-    h: 180,
+    w: 150,
+    h: 150,
     shape: {
       kind: "rect",
       source: "{bLv}",
@@ -2820,14 +2824,18 @@ export const partsMergeJunction = diagram("parts-merge-junction", {
   .state("aLv", { initial: 0 })
   .state("bLv", { initial: 0 })
   .state("sumLv", { initial: 0 })
+  // 出口を 2 つの入口の真ん中の段 (1) に置く (#2154)。 入口 A と同じ段に置くと、描画側が同じ辺に入る
+  // 2 本の終点を辺に沿って離すため、真横に入るはずの線が出口の手前で 28 の小さな段を作っていた
+  // (実測 = `M 210 218 L 250 218 L 250 190 L 438 190`)。 真ん中に置けば 2 本が上下対称に折れて入る。
+  // 箱の大きさは振り分け器と揃える
   .node("inA", {
     lane: "ml1",
     stack: 0,
     kind: "dyn-rect",
     title: "入口 A",
     subtitle: "{aLv}%",
-    w: 180,
-    h: 180,
+    w: 150,
+    h: 150,
     shape: {
       kind: "rect",
       source: "{aLv}",
@@ -2839,12 +2847,12 @@ export const partsMergeJunction = diagram("parts-merge-junction", {
   })
   .node("inB", {
     lane: "ml1",
-    stack: 1,
+    stack: 2,
     kind: "dyn-rect",
     title: "入口 B",
     subtitle: "{bLv}%",
-    w: 180,
-    h: 180,
+    w: 150,
+    h: 150,
     shape: {
       kind: "rect",
       source: "{bLv}",
@@ -2856,12 +2864,12 @@ export const partsMergeJunction = diagram("parts-merge-junction", {
   })
   .node("outP", {
     lane: "ml2",
-    stack: 0,
+    stack: 1,
     kind: "dyn-rect",
     title: "出口",
     subtitle: "{sumLv}%",
-    w: 180,
-    h: 180,
+    w: 150,
+    h: 150,
     shape: {
       kind: "rect",
       source: "{sumLv}",
@@ -3119,9 +3127,12 @@ export const partsMiniNetwork = diagram("parts-mini-network", {
   .state("p2", { initial: 0 })
   .state("p3", { initial: 0 })
   .state("p4", { initial: 0 })
+  // 起点と終点を上下の中継の真ん中の段 (1) に置き、上の中継を 0、下の中継を 2 に置く (#2154)。
+  // 終点を上の中継と同じ段に置くと、描画側が同じ辺に入る 2 本の終点を辺に沿って離すため、
+  // 上の中継からの線が終点の手前で 28 の小さな段を作っていた (実測 = `M 642 218 L 682 218 L 682 190 L 894 190`)
   .node("nw1", {
     lane: "nl1",
-    stack: 0,
+    stack: 1,
     kind: "dyn-circle",
     title: "起点",
     subtitle: "{p1}",
@@ -3141,7 +3152,7 @@ export const partsMiniNetwork = diagram("parts-mini-network", {
   })
   .node("nw3", {
     lane: "nl2",
-    stack: 1,
+    stack: 2,
     kind: "dyn-circle",
     title: "下の中継",
     subtitle: "{p3}",
@@ -3151,7 +3162,7 @@ export const partsMiniNetwork = diagram("parts-mini-network", {
   })
   .node("nw4", {
     lane: "nl3",
-    stack: 0,
+    stack: 1,
     kind: "dyn-circle",
     title: "終点",
     subtitle: "{p4}",
@@ -8772,9 +8783,9 @@ states:
   bLv: 0
 
 actors:
-  - 入口: { kind: dyn-rect, lane: sl1, stack: 0, subtitle: "{inLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{inLv}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
-  - 出口 A: { kind: dyn-rect, lane: sl2, stack: 0, subtitle: "{aLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{aLv}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
-  - 出口 B: { kind: dyn-rect, lane: sl2, stack: 1, subtitle: "{bLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{bLv}", fillMax: 100, orient: up, fill: "#f59e0b", radius: 6 } }
+  - 入口: { kind: dyn-rect, lane: sl1, stack: 1, subtitle: "{inLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{inLv}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 出口 A: { kind: dyn-rect, lane: sl2, stack: 0, subtitle: "{aLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{aLv}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
+  - 出口 B: { kind: dyn-rect, lane: sl2, stack: 2, subtitle: "{bLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{bLv}", fillMax: 100, orient: up, fill: "#f59e0b", radius: 6 } }
 
 flow:
   - 入口 -> 出口 A: "A へ" (success)
@@ -8801,10 +8812,10 @@ export const sourceJson__partsSplitRouter = `{
       "name": "入口",
       "kind": "dyn-rect",
       "lane": "sl1",
-      "stack": 0,
+      "stack": 1,
       "subtitle": "{inLv}%",
-      "posW": 180,
-      "posH": 180,
+      "posW": 150,
+      "posH": 150,
       "shape": {
         "kind": "rect",
         "source": "{inLv}",
@@ -8820,8 +8831,8 @@ export const sourceJson__partsSplitRouter = `{
       "lane": "sl2",
       "stack": 0,
       "subtitle": "{aLv}%",
-      "posW": 180,
-      "posH": 180,
+      "posW": 150,
+      "posH": 150,
       "shape": {
         "kind": "rect",
         "source": "{aLv}",
@@ -8835,10 +8846,10 @@ export const sourceJson__partsSplitRouter = `{
       "name": "出口 B",
       "kind": "dyn-rect",
       "lane": "sl2",
-      "stack": 1,
+      "stack": 2,
       "subtitle": "{bLv}%",
-      "posW": 180,
-      "posH": 180,
+      "posW": 150,
+      "posH": 150,
       "shape": {
         "kind": "rect",
         "source": "{bLv}",
@@ -8877,9 +8888,9 @@ states:
   sumLv: 0
 
 actors:
-  - 入口 A: { kind: dyn-rect, lane: ml1, stack: 0, subtitle: "{aLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{aLv}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
-  - 入口 B: { kind: dyn-rect, lane: ml1, stack: 1, subtitle: "{bLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{bLv}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 6 } }
-  - 出口: { kind: dyn-rect, lane: ml2, stack: 0, subtitle: "{sumLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{sumLv}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
+  - 入口 A: { kind: dyn-rect, lane: ml1, stack: 0, subtitle: "{aLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{aLv}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 入口 B: { kind: dyn-rect, lane: ml1, stack: 2, subtitle: "{bLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{bLv}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 6 } }
+  - 出口: { kind: dyn-rect, lane: ml2, stack: 1, subtitle: "{sumLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{sumLv}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
 
 flow:
   - 入口 A -> 出口: "足す" (info)
@@ -8908,8 +8919,8 @@ export const sourceJson__partsMergeJunction = `{
       "lane": "ml1",
       "stack": 0,
       "subtitle": "{aLv}%",
-      "posW": 180,
-      "posH": 180,
+      "posW": 150,
+      "posH": 150,
       "shape": {
         "kind": "rect",
         "source": "{aLv}",
@@ -8923,10 +8934,10 @@ export const sourceJson__partsMergeJunction = `{
       "name": "入口 B",
       "kind": "dyn-rect",
       "lane": "ml1",
-      "stack": 1,
+      "stack": 2,
       "subtitle": "{bLv}%",
-      "posW": 180,
-      "posH": 180,
+      "posW": 150,
+      "posH": 150,
       "shape": {
         "kind": "rect",
         "source": "{bLv}",
@@ -8940,10 +8951,10 @@ export const sourceJson__partsMergeJunction = `{
       "name": "出口",
       "kind": "dyn-rect",
       "lane": "ml2",
-      "stack": 0,
+      "stack": 1,
       "subtitle": "{sumLv}%",
-      "posW": 180,
-      "posH": 180,
+      "posW": 150,
+      "posH": 150,
       "shape": {
         "kind": "rect",
         "source": "{sumLv}",
@@ -9299,10 +9310,10 @@ states:
   p4: 0
 
 actors:
-  - 起点: { kind: dyn-circle, lane: nl1, stack: 0, subtitle: "{p1}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p1}", fill: "#4e9dc4" } }
+  - 起点: { kind: dyn-circle, lane: nl1, stack: 1, subtitle: "{p1}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p1}", fill: "#4e9dc4" } }
   - 上の中継: { kind: dyn-circle, lane: nl2, stack: 0, subtitle: "{p2}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p2}", fill: "#8b5cf6" } }
-  - 下の中継: { kind: dyn-circle, lane: nl2, stack: 1, subtitle: "{p3}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p3}", fill: "#f59e0b" } }
-  - 終点: { kind: dyn-circle, lane: nl3, stack: 0, subtitle: "{p4}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p4}", fill: "#22c55e" } }
+  - 下の中継: { kind: dyn-circle, lane: nl2, stack: 2, subtitle: "{p3}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p3}", fill: "#f59e0b" } }
+  - 終点: { kind: dyn-circle, lane: nl3, stack: 1, subtitle: "{p4}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p4}", fill: "#22c55e" } }
 
 flow:
   - 起点 -> 上の中継: "上の道" (info)
@@ -9333,7 +9344,7 @@ export const sourceJson__partsMiniNetwork = `{
       "name": "起点",
       "kind": "dyn-circle",
       "lane": "nl1",
-      "stack": 0,
+      "stack": 1,
       "subtitle": "{p1}",
       "posW": 180,
       "posH": 180,
@@ -9353,7 +9364,7 @@ export const sourceJson__partsMiniNetwork = `{
       "name": "下の中継",
       "kind": "dyn-circle",
       "lane": "nl2",
-      "stack": 1,
+      "stack": 2,
       "subtitle": "{p3}",
       "posW": 180,
       "posH": 180,
@@ -9363,7 +9374,7 @@ export const sourceJson__partsMiniNetwork = `{
       "name": "終点",
       "kind": "dyn-circle",
       "lane": "nl3",
-      "stack": 0,
+      "stack": 1,
       "subtitle": "{p4}",
       "posW": 180,
       "posH": 180,
