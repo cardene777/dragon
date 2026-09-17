@@ -31,7 +31,7 @@ import * as 部品 from "./parts.cdl";
  * `flow` と `topology` は部品を他の箱の下の格子に置くため、矢印が間の箱を貫く (#1979 の実測)。
  * 繋ぎ方の頁と同じ理由で `swimlane` を使う。
  *
- * ## 8 つの切替
+ * ## 9 つの切替
  *
  * | 切替 | 見せること |
  * |---|---|
@@ -43,6 +43,7 @@ import * as 部品 from "./parts.cdl";
  * | 振り分けて合流させる | 振り分け器の出口 A / B を合流点の入口 A / B へ繋ぎ、段で入口だけ・出口と入口だけを名指しして光らせる (#2149 / #2151) |
  * | 配ってから写す | 負荷分散器の出口 3 つのうち真ん中の 1 つだけを複製器の発行へ繋ぎ、分けると写すの違いを 1 枚で見せる (#2159) |
  * | 仕分けてから溜める | 仕分け箱の 3 つの出口のうち「注文」 だけをまとめ箱の届くへ繋ぎ、分けた分だけが溜まることを見せる (#2173) |
+ * | やり直してから倒す | やり直しの輪の通るを切替器の入口へ繋ぎ、戻る線を持つ部品も他の部品と組めることを見せる (#2175) |
  *
  * ## 分けると集めるを箱と計器の 1 枚にまとめない
  *
@@ -56,6 +57,8 @@ import * as 部品 from "./parts.cdl";
  * 「配ってから写す」 は縦列 2 本の部品 2 枚で 4 本に収め、幅 200 で 1515 × 922 になる。
  * 「仕分けてから溜める」 も同じ 4 本で、幅 200 で 1587 × 922 になる。 幅 240 だと 1607 に伸び、
  * 一覧の器で箱の題が 12.0px の境に乗る (実測)。
+ * 「やり直してから倒す」 は札を 3 字にして 1533 × 960 に収めた。 4 字の「通った分」 だと 1605 に伸び、
+ * 同じ境に乗る (実測)。
  * 札の字も短くする = 負荷分散器の札を「真ん中へ」 にすると図が 1659 に伸び、一覧の器で
  * 箱の題が 11.6px になった (実測)。 幅は 1602 までなら 12px に届く。
  *
@@ -82,7 +85,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partsMotion = "流れに沿って動かす";
 
 export const subtitle__partsMotion =
-  "部品を矢印で繋いだまま段で動かし、繋いだ先へ値を渡し、要素を名指しして層ごとに動かし、2 つの部品へ分け、2 つの部品から 1 つの箱へ集め、部品の段のままの部品と宿主が動かす部品を並べ、振り分け器の出口を合流点の入口へ繋ぎ、負荷分散器の出口 1 つを複製器へ繋いで分けると写すの違いを見せ、仕分け箱の出口 1 つをまとめ箱へ繋いで分けた分だけが溜まることを見せる";
+  "部品を矢印で繋いだまま段で動かし、繋いだ先へ値を渡し、要素を名指しして層ごとに動かし、2 つの部品へ分け、2 つの部品から 1 つの箱へ集め、部品の段のままの部品と宿主が動かす部品を並べ、振り分け器の出口を合流点の入口へ繋ぎ、負荷分散器の出口 1 つを複製器へ繋いで分けると写すの違いを見せ、仕分け箱の出口 1 つをまとめ箱へ繋いで分けた分だけが溜まることを見せ、やり直しの輪の通るを切替器の入口へ繋いで戻る線を持つ部品も組めることを見せる";
 
 export const sourceYaml__partsMotion = `title: "入ってくる量を溜めて送り出す"
 type: swimlane
@@ -784,5 +787,110 @@ export const sourceJson__pattern__partsMotion__仕分けてから溜める = `{
 
 export const pattern__partsMotion__仕分けてから溜める = textDslToDiagram(
   sourceYaml__pattern__partsMotion__仕分けてから溜める,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__やり直してから倒す = `title: "やり直して通った分を送り、常用が落ちたら予備へ倒す"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  やり直す: { label: "やり直す" }
+  倒す: { label: "倒す" }
+
+# 繋ぐ向きはやり直しの輪から切替器にする。 逆向き (切替器の予備 -> やり直しの輪の試す) は、
+# 予備が段 2 で試すが段 0 のため組み立て器が 2 枚を縦にずらして置き、図が 1605x1502 に伸びる
+# (拡大の器で箱の題が 9.2px、下限 12px)。 通る (段 1) と入口 (段 1) は同じ段なので 960 に収まる
+actors:
+  - rt: { kind: retry-loop, phase: false, lane: やり直す }
+  - sw: { kind: failover-switch, phase: false, lane: 倒す }
+
+# 札は 3 字にする。 「通った分」 だと図が 1605 に伸び、一覧の器で箱の題が 12.0px の境に乗る
+flow:
+  - rt -> sw: "通る分" { fromPartNode: okP, toPartNode: inP }
+
+animation:
+  - step: "1. 試す" 1.2s
+    focus: [rt__tryP]
+    badge: "試行"
+    tween:
+      rt__tryN: 0 -> 12
+    body: "12 件を試す。 まだ通ったか落ちたかは分かれていない。"
+  - step: "2. 落ちた分を戻す" 1.4s
+    focus: [rt]
+    badge: "やり直し"
+    tween:
+      rt__okN: 0 -> 9
+      rt__ngN: 0 -> 3
+      rt__againN: 0 -> 3
+    body: "9 件が通り、3 件が落ちてやり直す箱へ戻る。"
+  - step: "3. 通った分を送る" 1.4s
+    focus: [rt__okP, sw__inP, "rt -> sw"]
+    badge: "受け渡し"
+    tween:
+      rt__okN: 9 -> 12
+    body: "やり直した 3 件も通り、12 件が切替器の入口へ入る。"
+  - step: "4. 予備へ倒れる" 1.4s
+    focus: [sw]
+    badge: "切替"
+    tween:
+      sw__mainLv: 100 -> 0
+      sw__subLv: 0 -> 100
+    body: "常用が 0% まで落ち、同じ量が予備へ倒れる。 入口の量は変わらない。"
+`;
+
+export const sourceJson__pattern__partsMotion__やり直してから倒す = `{
+  "title": "やり直して通った分を送り、常用が落ちたら予備へ倒す",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "やり直す": { "label": "やり直す" },
+    "倒す": { "label": "倒す" }
+  },
+  "actors": [
+    { "name": "rt", "kind": "retry-loop", "phase": false, "lane": "やり直す" },
+    { "name": "sw", "kind": "failover-switch", "phase": false, "lane": "倒す" }
+  ],
+  "flow": [
+    { "from": "rt", "to": "sw", "label": "通る分", "fromPartNode": "okP", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 試す",
+      "duration": 1.2,
+      "focus": ["rt__tryP"],
+      "badge": "試行",
+      "tween": { "rt__tryN": [0, 12] },
+      "body": "12 件を試す。 まだ通ったか落ちたかは分かれていない。"
+    },
+    {
+      "step": "2. 落ちた分を戻す",
+      "duration": 1.4,
+      "focus": ["rt"],
+      "badge": "やり直し",
+      "tween": { "rt__okN": [0, 9], "rt__ngN": [0, 3], "rt__againN": [0, 3] },
+      "body": "9 件が通り、3 件が落ちてやり直す箱へ戻る。"
+    },
+    {
+      "step": "3. 通った分を送る",
+      "duration": 1.4,
+      "focus": ["rt__okP", "sw__inP", "rt -> sw"],
+      "badge": "受け渡し",
+      "tween": { "rt__okN": [9, 12] },
+      "body": "やり直した 3 件も通り、12 件が切替器の入口へ入る。"
+    },
+    {
+      "step": "4. 予備へ倒れる",
+      "duration": 1.4,
+      "focus": ["sw"],
+      "badge": "切替",
+      "tween": { "sw__mainLv": [100, 0], "sw__subLv": [0, 100] },
+      "body": "常用が 0% まで落ち、同じ量が予備へ倒れる。 入口の量は変わらない。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__やり直してから倒す = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__やり直してから倒す,
   { partsCatalog: 部品の一覧 },
 );
