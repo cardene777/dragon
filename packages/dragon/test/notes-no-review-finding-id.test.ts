@@ -7,20 +7,28 @@ import { dirname, join } from "node:path";
 /**
  * 注記と検査の題が、指摘に振った番号で中身を名乗っていないことの検証 (#2082)。
  *
- * 探すのは指摘の重さを表す語 (`CRITICAL` / `MAJOR` / `MINOR`) と、指摘の束を指す言い回し
- * (`fix lock` / `codex-review`)。 これらを主語にした題は、一覧が repo の中にも外にも残っていないため
- * 読み手が辿れない。 実測では 36 か所 / 12 file が残っていた。
+ * 探すのは、指摘の重さを表す 3 語と、指摘の束を指す 2 つの言い回し。 綴りは下の `探す語` が持つ。
+ * これらを主語にした題は、一覧が repo の中にも外にも残っていないため読み手が辿れない。
+ * 実測では 36 か所 / 12 file が残っていた。
  *
  * ## 出所を添える形は止めない
  *
  * 規則を本文に書いた上で出所を括弧で添える形 (`… を破壊した (cc-codex #879 Round 5 指摘)`) は残す。
- * 規則が読めるので、出所を辿れなくても中身が分かる。 探す語を上の 5 つに絞ったのはこのため =
+ * 規則が読めるので、出所を辿れなくても中身が分かる。 探す語を 5 つに絞ったのはこのため =
  * `Round` や `指摘` まで止めると、この形を巻き込む。
  *
- * ## 探す語は繋いで作る
+ * ## 綴りは `探す語` 1 か所だけが持つ
  *
- * この file に通しの綴りを書くと、自分自身が検出される。 繋いだ形なら走査対象に入ったままでも
- * 自分を拾わない (`notes-no-this-pr-reference.test.ts` が同じ形を採っている)。
+ * この file のどこかに通しの綴りを書くと、自分自身が検出される。 繋いだ形 (`["MAJ", "OR"].join("")`)
+ * なら走査対象に入ったままでも自分を拾わない (`notes-no-this-pr-reference.test.ts` が同じ形を採っている)。
+ *
+ * **説明文にも書かない** (#2092)。 足した時は説明文に 5 つの綴りをそのまま並べており、取り込んだ
+ * 瞬間に自分を検出して落ちた。 書いている間は未追跡で走査対象に入らないため気付けなかった。
+ *
+ * ## 未追跡の file も走査する (#2092)
+ *
+ * 追跡している file だけを見ると、新しく書いた file は取り込むまで判定を受けない。
+ * 無視設定 (`.gitignore`) を尊重したまま未追跡の file も足すことで、書いている最中から同じ判定になる。
  */
 
 const ここ = dirname(fileURLToPath(import.meta.url));
@@ -40,17 +48,31 @@ function 指摘の番号を名乗る(中身: string): boolean {
   return 探す語.some((語) => new RegExp(`\\b${語}\\b`, "u").test(中身));
 }
 
+/** `git ls-files` を引いて、空行を落とした一覧 */
+function git一覧(...追加: string[]): string[] {
+  return execFileSync(
+    "git",
+    ["-C", REPO, "ls-files", ...追加, "*.ts", "*.tsx", "*.mts", "*.mjs"],
+    { encoding: "utf8" },
+  )
+    .split("\n")
+    .filter((p) => p !== "");
+}
+
+/** 2 つの一覧を重複なく 1 つにまとめる */
+function まとめる(追跡: string[], 未追跡: string[]): string[] {
+  return [...new Set([...追跡, ...未追跡])].sort();
+}
+
+/** 未追跡だが無視されていない file (`.gitignore` に載る配布物は入らない) */
+const 未追跡file: string[] = git一覧("--others", "--exclude-standard");
+
 /**
- * 走査対象 = 追跡している `ts` / `tsx` / `mts` / `mjs`。
- * 配布物 (`dist`) は追跡外なので、除外を書かなくても入らない。
+ * 走査対象 = 追跡している `ts` / `tsx` / `mts` / `mjs` と、未追跡だが無視されていない同じ拡張子 (#2092)。
+ *
+ * 配布物 (`dist`) は `.gitignore` に載っているため、どちらの一覧にも入らない。
  */
-const 走査したfile: string[] = execFileSync(
-  "git",
-  ["-C", REPO, "ls-files", "*.ts", "*.tsx", "*.mts", "*.mjs"],
-  { encoding: "utf8" },
-)
-  .split("\n")
-  .filter((p) => p !== "");
+const 走査したfile: string[] = まとめる(git一覧(), 未追跡file);
 
 function 持っているfile(): string[] {
   return 走査したfile.filter((p) => 指摘の番号を名乗る(readFileSync(join(REPO, p), "utf8")));
@@ -79,6 +101,17 @@ describe("注記と題が指摘の番号を名乗っていない (#2082)", () =>
         `拡張子 ${拡張子} を走査していない`,
       ).toBe(true);
     }
+  });
+
+  it("未追跡の file も走査対象に入る (#2092)", () => {
+    // 追跡される前は判定を受けない形だと、書いた本人は取り込むまで気付けない
+    expect(まとめる(["追跡.ts"], ["未追跡.ts"]), "未追跡の一覧を捨てている").toEqual([
+      "未追跡.ts",
+      "追跡.ts",
+    ]);
+    expect(まとめる(["同じ.ts"], ["同じ.ts"]), "重複を残している").toEqual(["同じ.ts"]);
+    const 漏れ = 未追跡file.filter((p) => !走査したfile.includes(p));
+    expect(漏れ, "未追跡の file が走査対象から漏れている").toEqual([]);
   });
 
   it("どの file も指摘の番号を名乗っていない", () => {
