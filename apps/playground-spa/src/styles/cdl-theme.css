@@ -281,9 +281,22 @@
   stroke-width: 7 !important;
 }
 
-/* 塗る印 (三角 / 菱 の塗った側) */
+/* 塗る印 (三角 / 菱 の塗った側)。
+
+   **矢じりの色は、使う線の色を `context-stroke` で継ぐ** (#2141)。 矢じりの名前は色味だけで決まり、
+   順路 (`role: main`) と枝が同じ色味なら同じ矢じりを共有する。 名前で色を当てると、順路の線だけ
+   強調の色になり、矢じりが墨色のまま残る。
+
+   **色味の色を先に書き、`context-stroke` を後に重ねる**。 対応しない閲覧ソフトは読めない後の宣言を
+   捨てるので、前の色味の色が残る。 `@supports` で包まないのは、テーマを設計資料の面へ閉じ込める変換
+   (`packages/dragon/scripts/design-theme-css.mjs`) が入れ子の規則を読まないため。 下の白抜き /
+   開いた矢 / 三又 / ER の端も、輪郭に同じ 2 行を書く。
+
+   塗った後の矢じりの計算値は色ではなく `context-stroke` という語になる。 描いた色は画素で測る
+   (`tests/main-route-edge-color.spec.ts`)。 */
 [data-cdl-role="edge-arrowhead"] {
   fill: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
+  fill: context-stroke !important;
   stroke: none !important;
 }
 
@@ -321,6 +334,7 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head-fill="hollow"] {
   fill: var(--d-surface) !important;
   stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
+  stroke: context-stroke !important;
   stroke-width: 2.18 !important;
 }
 
@@ -330,6 +344,7 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="crow"] {
   fill: none !important;
   stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
+  stroke: context-stroke !important;
   /* 2 倍に描く形なので、線との比 (#1598 の 4.98) を保つ半分の値 */
   stroke-width: 2.49 !important;
 }
@@ -340,6 +355,7 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
 [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="zero-many"] {
   fill: none !important;
   stroke: var(--dragon-edge-tone, var(--d-text-secondary)) !important;
+  stroke: context-stroke !important;
   stroke-width: 4.98 !important;
 }
 
@@ -364,6 +380,18 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
 [id^="cdl-arrow-error"] { --dragon-edge-tone: var(--d-err); }
 [id^="cdl-arrow-warning"] { --dragon-edge-tone: var(--d-warn); }
 [id^="cdl-arrow-info"] { --dragon-edge-tone: var(--d-dg-4); }
+
+/* 順路の線 (#2141)。
+   役目 `role: main` を書いた線は、描画エンジンが色の属性を `var(--cdl-now, #c0421f)` にして出す。
+   上の線の規則は全ての線を `--dragon-edge-tone` で上書きするため、順路も枝も同じ墨色になっていた
+   (実測 = 明 `rgb(34, 24, 17)` / 暗 `rgb(236, 223, 201)`)。 役目は印の属性として出ないので、
+   **色の属性の書き出しで選ぶ**。 属性の形が変わると `tests/main-route-edge-color.spec.ts` が落ちる。
+
+   配色 (`data-cdl-palette`) を持つ図は下の配色の規則が `--cdl-now` を線の色に置き換えているので、
+   ここを通っても線の色のまま変わらない (クラス図と ER 図は書かなくても配色が付く)。 */
+[data-cdl-role="edge-line"][stroke^="var(--cdl-now"] {
+  stroke: var(--cdl-now) !important;
+}
 
 /* 線に添える札。
    面は箱と同じ `--d-surface-2` (#1468)。 箱を 1 段明るくした後もここだけ `-3` のままだと、
