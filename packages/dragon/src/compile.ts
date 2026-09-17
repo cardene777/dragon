@@ -820,9 +820,12 @@ function reportFlowEndpointNotHonored(
 /**
  * 順序図の言づてに書いた飾りが使われないことを伝える (#1466)。
  *
- * 板は言づてを **語と向きと種類** で描く。 色味 (`tone`) / 添え字 (`sub`) / 寄せ (`side`) を
- * 載せる場所が無い = 矢印だった頃はその 3 つが矢印に付いていたが、板では行になった。
+ * 板は言づてを **語と向きと種類** で描き、それ以外の飾りを載せる場所が無い = 矢印だった頃は
+ * 色味 (`tone`) / 添え字 (`sub`) / 寄せ (`side`) が矢印に付いていたが、板では行になった。
  * 黙って落とすと、書いた側は効いていると思い込む。
+ *
+ * 同じ理由で、後から名前のずらし (#1971) と多重度 (#2107) も数える。 数える飾りは下の一覧が持ち、
+ * 説明には写さない。
  */
 function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
