@@ -22,6 +22,7 @@ export const 見本の名前: readonly string[] = [
   "presetEr",
   "pattern__presetEr__複雑",
   "presetStateMachine",
+  "pattern__presetStateMachine__複雑",
   "presetInfrastructure",
   "pattern__presetInfrastructure__複雑",
   "presetClassDiagram",

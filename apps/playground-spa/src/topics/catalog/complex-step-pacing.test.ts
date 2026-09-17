@@ -80,13 +80,14 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
         "infra-complex-demo",
         "flowchart-complex-demo",
         "seq-complex-demo",
+        "fsm-complex-demo",
       ]),
     );
     // 元の見本も名前から引く。 名前の切り出しを誤ると複雑な版だけが残る
     expect(
       new Set(元の見本の名前.map((名前) => 図を引く(名前).id)),
       "複雑な版の名前から元の見本を引けていない",
-    ).toEqual(new Set(["class-demo", "er-demo", "infra-demo", "flowchart-demo", "seq-demo"]));
+    ).toEqual(new Set(["class-demo", "er-demo", "infra-demo", "flowchart-demo", "seq-demo", "fsm-demo"]));
   });
 
   it("段ごとの増分を累積した activate から数えられる", () => {
