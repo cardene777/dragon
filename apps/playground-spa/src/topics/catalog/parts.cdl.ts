@@ -2722,6 +2722,457 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
   .build();
 
 // ============================================================
+// 繋ぎ方そのものを表す部品 (#2129)
+// ============================================================
+//
+// ここから 6 枚は **入口と出口を名前で選べる** 部品。 宿主の図から
+// `{ toPartNode: <要素の名前> }` / `{ fromPartNode: <要素の名前> }` で繋ぎ先を指す (#1979)。
+//
+// 要素が 1 つの部品は矢印が自動でそこに付くが、2 つ以上ある部品は名指ししないと矢印が落ちる。
+// 既存の 18 枚は「並べて見せる」 部品 (ゲージ 3 連 / 星 5 つ) で、入口と出口の区別を持たない。
+//
+// **要素の名前は英字で書く**。 宿主の段が `{部品の名前}__{値の名前}` で中の値を動かすとき、
+// 値の名前は英字と `_` しか受け付けない (#2125)。 要素の名前も同じ綴りで書けるほうが、
+// 繋ぐ時と動かす時で書き方が割れない。
+
+// parts 81: 振り分け器 — 1 本の流れを 2 つへ分ける
+export const partsSplitRouter = diagram("parts-split-router", {
+  topic: "振り分け器 — 入口 1 つを 2 つの出口へ分ける",
+})
+  .lane("sl1", { x: 0, width: 200, label: "入口" })
+  .lane("sl2", { x: 220, width: 200, label: "出口" })
+  .state("inLv", { initial: 0 })
+  .state("aLv", { initial: 0 })
+  .state("bLv", { initial: 0 })
+  .node("inP", {
+    lane: "sl1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "入口",
+    subtitle: "{inLv}%",
+    w: 180,
+    h: 180,
+    shape: {
+      kind: "rect",
+      source: "{inLv}",
+      fillMax: 100,
+      orient: "up",
+      fill: "#4e9dc4",
+      radius: 6,
+    },
+  })
+  .node("outA", {
+    lane: "sl2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "出口 A",
+    subtitle: "{aLv}%",
+    w: 180,
+    h: 180,
+    shape: {
+      kind: "rect",
+      source: "{aLv}",
+      fillMax: 100,
+      orient: "up",
+      fill: "#22c55e",
+      radius: 6,
+    },
+  })
+  .node("outB", {
+    lane: "sl2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "出口 B",
+    subtitle: "{bLv}%",
+    w: 180,
+    h: 180,
+    shape: {
+      kind: "rect",
+      source: "{bLv}",
+      fillMax: 100,
+      orient: "up",
+      fill: "#f59e0b",
+      radius: 6,
+    },
+  })
+  .edge("inP", "outA", { id: "sr-a", label: "7 割", tone: "success" })
+  .edge("inP", "outB", { id: "sr-b", label: "3 割", tone: "warning" })
+  .phase("p", { duration: 4000, title: "2 つへ分かれる", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "outA", "outB", "sr-a", "sr-b")
+      .tween("inLv", 0, 100)
+      .tween("aLv", 0, 70)
+      .tween("bLv", 0, 30),
+  )
+  .build();
+
+export const subtitle__partsSplitRouter =
+  "入口 1 つを 2 つの出口へ分ける。 分けた割合が両方の棒に出る";
+
+// parts 82: 合流点 — 2 本の流れを 1 つへ集める
+export const partsMergeJunction = diagram("parts-merge-junction", {
+  topic: "合流点 — 入口 2 つを 1 つの出口へ集める",
+})
+  .lane("ml1", { x: 0, width: 200, label: "入口" })
+  .lane("ml2", { x: 220, width: 200, label: "出口" })
+  .state("aLv", { initial: 0 })
+  .state("bLv", { initial: 0 })
+  .state("sumLv", { initial: 0 })
+  .node("inA", {
+    lane: "ml1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "入口 A",
+    subtitle: "{aLv}%",
+    w: 180,
+    h: 180,
+    shape: {
+      kind: "rect",
+      source: "{aLv}",
+      fillMax: 100,
+      orient: "up",
+      fill: "#4e9dc4",
+      radius: 6,
+    },
+  })
+  .node("inB", {
+    lane: "ml1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "入口 B",
+    subtitle: "{bLv}%",
+    w: 180,
+    h: 180,
+    shape: {
+      kind: "rect",
+      source: "{bLv}",
+      fillMax: 100,
+      orient: "up",
+      fill: "#8b5cf6",
+      radius: 6,
+    },
+  })
+  .node("outP", {
+    lane: "ml2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "出口",
+    subtitle: "{sumLv}%",
+    w: 180,
+    h: 180,
+    shape: {
+      kind: "rect",
+      source: "{sumLv}",
+      fillMax: 100,
+      orient: "up",
+      fill: "#22c55e",
+      radius: 6,
+    },
+  })
+  .edge("inA", "outP", { id: "mj-a", label: "6 割", tone: "info" })
+  .edge("inB", "outP", { id: "mj-b", label: "4 割", tone: "info" })
+  .phase("p", { duration: 4000, title: "1 つへ集まる", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inA", "inB", "outP", "mj-a", "mj-b")
+      .tween("aLv", 0, 60)
+      .tween("bLv", 0, 40)
+      .tween("sumLv", 0, 100),
+  )
+  .build();
+
+export const subtitle__partsMergeJunction =
+  "入口 2 つを 1 つの出口へ集める。 合計が出口の棒に出る";
+
+// parts 83: 待ち行列の深さ — 入る量と出る量の差が溜まる
+export const partsQueueDepth = diagram("parts-queue-depth", {
+  topic: "待ち行列の深さ — 入る量と出る量の差が中央に溜まる",
+})
+  .lane("ql1", { x: 0, width: 180, label: "入る" })
+  .lane("ql2", { x: 200, width: 200, label: "待ち" })
+  .lane("ql3", { x: 420, width: 180, label: "出る" })
+  .state("inRate", { initial: 12 })
+  .state("depth", { initial: 0 })
+  .state("outRate", { initial: 5 })
+  .node("qIn", {
+    lane: "ql1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "入る",
+    subtitle: "{inRate} 件/秒",
+    w: 160,
+    h: 320,
+    shape: {
+      kind: "rect",
+      source: "{inRate}",
+      fillMax: 20,
+      orient: "up",
+      fill: "#4e9dc4",
+      radius: 6,
+    },
+  })
+  .node("qBody", {
+    lane: "ql2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "待ち行列",
+    subtitle: "{depth} 件",
+    w: 180,
+    h: 320,
+    shape: {
+      kind: "rect",
+      source: "{depth}",
+      fillMax: 50,
+      orient: "up",
+      fill: "#f59e0b",
+      radius: 6,
+    },
+  })
+  .node("qOut", {
+    lane: "ql3",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "出る",
+    subtitle: "{outRate} 件/秒",
+    w: 160,
+    h: 320,
+    shape: {
+      kind: "rect",
+      source: "{outRate}",
+      fillMax: 20,
+      orient: "up",
+      fill: "#22c55e",
+      radius: 6,
+    },
+  })
+  .edge("qIn", "qBody", { id: "qd-in", label: "届く", tone: "info" })
+  .edge("qBody", "qOut", { id: "qd-out", label: "捌く", tone: "success" })
+  .phase("p", { duration: 4000, title: "捌ききれず溜まる", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("qIn", "qBody", "qOut", "qd-in", "qd-out")
+      .tween("depth", 0, 38)
+      .tween("outRate", 5, 9),
+  )
+  .build();
+
+export const subtitle__partsQueueDepth =
+  "入る量と出る量の差が中央に溜まる。 捌く速さを上げても残りは増え続ける";
+
+// parts 84: 弁の開き — 開度で通る量が決まる
+export const partsValveFlow = diagram("parts-valve-flow", {
+  topic: "弁の開き — 中央の開度で出口の量が決まる",
+})
+  .lane("vl1", { x: 0, width: 180, label: "元の流れ" })
+  .lane("vl2", { x: 200, width: 220, label: "弁" })
+  .lane("vl3", { x: 440, width: 180, label: "通った量" })
+  .state("inF", { initial: 100 })
+  .state("open", { initial: 0 })
+  .state("outF", { initial: 0 })
+  .node("vIn", {
+    lane: "vl1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "元の流れ",
+    subtitle: "{inF}%",
+    w: 160,
+    h: 280,
+    shape: {
+      kind: "rect",
+      source: "{inF}",
+      fillMax: 100,
+      orient: "up",
+      fill: "#4e9dc4",
+      radius: 6,
+    },
+  })
+  .node("vGate", {
+    lane: "vl2",
+    stack: 0,
+    kind: "dyn-arc",
+    title: "弁",
+    subtitle: "開き {open}%",
+    w: 200,
+    h: 280,
+    shape: {
+      kind: "arc",
+      angle: "{open}",
+      sweepMax: 100,
+      outerRadius: 90,
+      innerRadius: 55,
+      fill: "#f59e0b",
+    },
+  })
+  .node("vOut", {
+    lane: "vl3",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "通った量",
+    subtitle: "{outF}%",
+    w: 160,
+    h: 280,
+    shape: {
+      kind: "rect",
+      source: "{outF}",
+      fillMax: 100,
+      orient: "up",
+      fill: "#22c55e",
+      radius: 6,
+    },
+  })
+  .edge("vIn", "vGate", { id: "vf-in", label: "押す", tone: "info" })
+  .edge("vGate", "vOut", { id: "vf-out", label: "通る", tone: "success" })
+  .phase("p", { duration: 4000, title: "弁を開ける", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("vIn", "vGate", "vOut", "vf-in", "vf-out")
+      .tween("open", 0, 65)
+      .tween("outF", 0, 65),
+  )
+  .build();
+
+export const subtitle__partsValveFlow =
+  "中央の弁の開きで、出口へ通る量が決まる";
+
+// parts 85: 三段の漏斗 — 段ごとに幅と数が減る
+export const partsFunnel3 = diagram("parts-funnel-3", {
+  topic: "三段の漏斗 — 段ごとに幅が狭くなり残る数が減る",
+})
+  .lane("fl", { x: 0, width: 380, label: "訪問から購入まで" })
+  .state("tN", { initial: 0 })
+  .state("mN", { initial: 0 })
+  .state("bN", { initial: 0 })
+  .node("fTop", {
+    lane: "fl",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "訪れた人",
+    subtitle: "{tN}%",
+    w: 360,
+    h: 130,
+    shape: {
+      kind: "rect",
+      source: "{tN}",
+      fillMax: 100,
+      orient: "right",
+      fill: "#4e9dc4",
+      radius: 6,
+    },
+  })
+  .node("fMid", {
+    lane: "fl",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "登録した人",
+    subtitle: "{mN}%",
+    w: 260,
+    h: 130,
+    shape: {
+      kind: "rect",
+      source: "{mN}",
+      fillMax: 100,
+      orient: "right",
+      fill: "#8b5cf6",
+      radius: 6,
+    },
+  })
+  .node("fBot", {
+    lane: "fl",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "買った人",
+    subtitle: "{bN}%",
+    w: 160,
+    h: 130,
+    shape: {
+      kind: "rect",
+      source: "{bN}",
+      fillMax: 100,
+      orient: "right",
+      fill: "#22c55e",
+      radius: 6,
+    },
+  })
+  .edge("fTop", "fMid", { id: "fn-1", label: "6 割が残る", tone: "info" })
+  .edge("fMid", "fBot", { id: "fn-2", label: "4 割が残る", tone: "success" })
+  .phase("p", { duration: 4000, title: "段ごとに絞られる", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("fTop", "fMid", "fBot", "fn-1", "fn-2")
+      .tween("tN", 0, 100)
+      .tween("mN", 0, 62)
+      .tween("bN", 0, 24),
+  )
+  .build();
+
+export const subtitle__partsFunnel3 =
+  "上から下へ 3 段で絞る。 段ごとに箱の幅と残る割合が減る";
+
+// parts 86: 小さな網 — 2 つの経路で 4 点を結ぶ
+export const partsMiniNetwork = diagram("parts-mini-network", {
+  topic: "小さな網 — 起点から終点まで 2 つの経路が並ぶ",
+})
+  .lane("nl1", { x: 0, width: 200, label: "起点" })
+  .lane("nl2", { x: 220, width: 200, label: "中継" })
+  .lane("nl3", { x: 440, width: 200, label: "終点" })
+  .state("p1", { initial: 0 })
+  .state("p2", { initial: 0 })
+  .state("p3", { initial: 0 })
+  .state("p4", { initial: 0 })
+  .node("nw1", {
+    lane: "nl1",
+    stack: 0,
+    kind: "dyn-circle",
+    title: "起点",
+    subtitle: "{p1}",
+    w: 180,
+    h: 180,
+    shape: { kind: "circle", radius: 70, fillProgress: "{p1}", fill: "#4e9dc4" },
+  })
+  .node("nw2", {
+    lane: "nl2",
+    stack: 0,
+    kind: "dyn-circle",
+    title: "上の中継",
+    subtitle: "{p2}",
+    w: 180,
+    h: 180,
+    shape: { kind: "circle", radius: 70, fillProgress: "{p2}", fill: "#8b5cf6" },
+  })
+  .node("nw3", {
+    lane: "nl2",
+    stack: 1,
+    kind: "dyn-circle",
+    title: "下の中継",
+    subtitle: "{p3}",
+    w: 180,
+    h: 180,
+    shape: { kind: "circle", radius: 70, fillProgress: "{p3}", fill: "#f59e0b" },
+  })
+  .node("nw4", {
+    lane: "nl3",
+    stack: 0,
+    kind: "dyn-circle",
+    title: "終点",
+    subtitle: "{p4}",
+    w: 180,
+    h: 180,
+    shape: { kind: "circle", radius: 70, fillProgress: "{p4}", fill: "#22c55e" },
+  })
+  .edge("nw1", "nw2", { id: "mn-12", label: "上の道", tone: "info" })
+  .edge("nw1", "nw3", { id: "mn-13", label: "下の道", tone: "warning" })
+  .edge("nw2", "nw4", { id: "mn-24", label: "合流", tone: "info" })
+  .edge("nw3", "nw4", { id: "mn-34", label: "合流", tone: "warning" })
+  .phase("p", { duration: 4000, title: "2 つの道を通る", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("nw1", "nw2", "nw3", "nw4", "mn-12", "mn-13", "mn-24", "mn-34")
+      .tween("p1", 0, 1)
+      .tween("p2", 0, 1)
+      .tween("p3", 0, 1)
+      .tween("p4", 0, 1),
+  )
+  .build();
+
+export const subtitle__partsMiniNetwork =
+  "起点から終点まで、上下 2 つの経路を並べて見せる";
+
+// ============================================================
 // 記法 (#1381)
 // ============================================================
 //
@@ -8296,6 +8747,638 @@ export const sourceJson__partsBindComprehensive = `{
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
       "set": { "status": "healthy" }
+    }
+  ]
+}`;
+
+// ============================================================
+// 繋ぎ方そのものを表す部品の記法 (#2129)
+// ============================================================
+
+export const sourceYaml__partsSplitRouter = `title: "振り分け器 — 入口 1 つを 2 つの出口へ分ける"
+type: flow
+
+lanes:
+  sl1: { x: 0, width: 200, label: "入口" }
+  sl2: { x: 220, width: 200, label: "出口" }
+
+states:
+  inLv: 0
+  aLv: 0
+  bLv: 0
+
+actors:
+  - 入口: { kind: dyn-rect, lane: sl1, stack: 0, subtitle: "{inLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{inLv}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 出口 A: { kind: dyn-rect, lane: sl2, stack: 0, subtitle: "{aLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{aLv}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
+  - 出口 B: { kind: dyn-rect, lane: sl2, stack: 1, subtitle: "{bLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{bLv}", fillMax: 100, orient: up, fill: "#f59e0b", radius: 6 } }
+
+flow:
+  - 入口 -> 出口 A: "7 割" (success)
+  - 入口 -> 出口 B: "3 割" (warning)
+
+animation:
+  - step: "2 つへ分かれる" 4s
+    focus: ["入口", "出口 A", "出口 B", "入口 -> 出口 A", "入口 -> 出口 B"]
+    tween:
+      inLv: 0 -> 100
+      aLv: 0 -> 70
+      bLv: 0 -> 30
+`;
+
+export const sourceJson__partsSplitRouter = `{
+  "title": "振り分け器 — 入口 1 つを 2 つの出口へ分ける",
+  "type": "flow",
+  "lanes": {
+    "sl1": { "x": 0, "width": 200, "label": "入口" },
+    "sl2": { "x": 220, "width": 200, "label": "出口" }
+  },
+  "actors": [
+    {
+      "name": "入口",
+      "kind": "dyn-rect",
+      "lane": "sl1",
+      "stack": 0,
+      "subtitle": "{inLv}%",
+      "posW": 180,
+      "posH": 180,
+      "shape": {
+        "kind": "rect",
+        "source": "{inLv}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "出口 A",
+      "kind": "dyn-rect",
+      "lane": "sl2",
+      "stack": 0,
+      "subtitle": "{aLv}%",
+      "posW": 180,
+      "posH": 180,
+      "shape": {
+        "kind": "rect",
+        "source": "{aLv}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "出口 B",
+      "kind": "dyn-rect",
+      "lane": "sl2",
+      "stack": 1,
+      "subtitle": "{bLv}%",
+      "posW": 180,
+      "posH": 180,
+      "shape": {
+        "kind": "rect",
+        "source": "{bLv}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#f59e0b",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    { "from": "入口", "to": "出口 A", "label": "7 割", "tone": "success" },
+    { "from": "入口", "to": "出口 B", "label": "3 割", "tone": "warning" }
+  ],
+  "states": { "inLv": 0, "aLv": 0, "bLv": 0 },
+  "animation": [
+    {
+      "step": "2 つへ分かれる",
+      "duration": 4,
+      "focus": ["入口", "出口 A", "出口 B", "入口 -> 出口 A", "入口 -> 出口 B"],
+      "tween": { "inLv": [0, 100], "aLv": [0, 70], "bLv": [0, 30] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsMergeJunction = `title: "合流点 — 入口 2 つを 1 つの出口へ集める"
+type: flow
+
+lanes:
+  ml1: { x: 0, width: 200, label: "入口" }
+  ml2: { x: 220, width: 200, label: "出口" }
+
+states:
+  aLv: 0
+  bLv: 0
+  sumLv: 0
+
+actors:
+  - 入口 A: { kind: dyn-rect, lane: ml1, stack: 0, subtitle: "{aLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{aLv}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 入口 B: { kind: dyn-rect, lane: ml1, stack: 1, subtitle: "{bLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{bLv}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 6 } }
+  - 出口: { kind: dyn-rect, lane: ml2, stack: 0, subtitle: "{sumLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{sumLv}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 入口 A -> 出口: "6 割" (info)
+  - 入口 B -> 出口: "4 割" (info)
+
+animation:
+  - step: "1 つへ集まる" 4s
+    focus: ["入口 A", "入口 B", "出口", "入口 A -> 出口", "入口 B -> 出口"]
+    tween:
+      aLv: 0 -> 60
+      bLv: 0 -> 40
+      sumLv: 0 -> 100
+`;
+
+export const sourceJson__partsMergeJunction = `{
+  "title": "合流点 — 入口 2 つを 1 つの出口へ集める",
+  "type": "flow",
+  "lanes": {
+    "ml1": { "x": 0, "width": 200, "label": "入口" },
+    "ml2": { "x": 220, "width": 200, "label": "出口" }
+  },
+  "actors": [
+    {
+      "name": "入口 A",
+      "kind": "dyn-rect",
+      "lane": "ml1",
+      "stack": 0,
+      "subtitle": "{aLv}%",
+      "posW": 180,
+      "posH": 180,
+      "shape": {
+        "kind": "rect",
+        "source": "{aLv}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "入口 B",
+      "kind": "dyn-rect",
+      "lane": "ml1",
+      "stack": 1,
+      "subtitle": "{bLv}%",
+      "posW": 180,
+      "posH": 180,
+      "shape": {
+        "kind": "rect",
+        "source": "{bLv}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#8b5cf6",
+        "radius": 6
+      }
+    },
+    {
+      "name": "出口",
+      "kind": "dyn-rect",
+      "lane": "ml2",
+      "stack": 0,
+      "subtitle": "{sumLv}%",
+      "posW": 180,
+      "posH": 180,
+      "shape": {
+        "kind": "rect",
+        "source": "{sumLv}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    { "from": "入口 A", "to": "出口", "label": "6 割", "tone": "info" },
+    { "from": "入口 B", "to": "出口", "label": "4 割", "tone": "info" }
+  ],
+  "states": { "aLv": 0, "bLv": 0, "sumLv": 0 },
+  "animation": [
+    {
+      "step": "1 つへ集まる",
+      "duration": 4,
+      "focus": ["入口 A", "入口 B", "出口", "入口 A -> 出口", "入口 B -> 出口"],
+      "tween": { "aLv": [0, 60], "bLv": [0, 40], "sumLv": [0, 100] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsQueueDepth = `title: "待ち行列の深さ — 入る量と出る量の差が中央に溜まる"
+type: flow
+
+lanes:
+  ql1: { x: 0, width: 180, label: "入る" }
+  ql2: { x: 200, width: 200, label: "待ち" }
+  ql3: { x: 420, width: 180, label: "出る" }
+
+states:
+  inRate: 12
+  depth: 0
+  outRate: 5
+
+actors:
+  - 入る: { kind: dyn-rect, lane: ql1, stack: 0, subtitle: "{inRate} 件/秒", posW: 160, posH: 320, shape: { kind: rect, source: "{inRate}", fillMax: 20, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 待ち行列: { kind: dyn-rect, lane: ql2, stack: 0, subtitle: "{depth} 件", posW: 180, posH: 320, shape: { kind: rect, source: "{depth}", fillMax: 50, orient: up, fill: "#f59e0b", radius: 6 } }
+  - 出る: { kind: dyn-rect, lane: ql3, stack: 0, subtitle: "{outRate} 件/秒", posW: 160, posH: 320, shape: { kind: rect, source: "{outRate}", fillMax: 20, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 入る -> 待ち行列: "届く" (info)
+  - 待ち行列 -> 出る: "捌く" (success)
+
+animation:
+  - step: "捌ききれず溜まる" 4s
+    focus: ["入る", "待ち行列", "出る", "入る -> 待ち行列", "待ち行列 -> 出る"]
+    tween:
+      depth: 0 -> 38
+      outRate: 5 -> 9
+`;
+
+export const sourceJson__partsQueueDepth = `{
+  "title": "待ち行列の深さ — 入る量と出る量の差が中央に溜まる",
+  "type": "flow",
+  "lanes": {
+    "ql1": { "x": 0, "width": 180, "label": "入る" },
+    "ql2": { "x": 200, "width": 200, "label": "待ち" },
+    "ql3": { "x": 420, "width": 180, "label": "出る" }
+  },
+  "actors": [
+    {
+      "name": "入る",
+      "kind": "dyn-rect",
+      "lane": "ql1",
+      "stack": 0,
+      "subtitle": "{inRate} 件/秒",
+      "posW": 160,
+      "posH": 320,
+      "shape": {
+        "kind": "rect",
+        "source": "{inRate}",
+        "fillMax": 20,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "待ち行列",
+      "kind": "dyn-rect",
+      "lane": "ql2",
+      "stack": 0,
+      "subtitle": "{depth} 件",
+      "posW": 180,
+      "posH": 320,
+      "shape": {
+        "kind": "rect",
+        "source": "{depth}",
+        "fillMax": 50,
+        "orient": "up",
+        "fill": "#f59e0b",
+        "radius": 6
+      }
+    },
+    {
+      "name": "出る",
+      "kind": "dyn-rect",
+      "lane": "ql3",
+      "stack": 0,
+      "subtitle": "{outRate} 件/秒",
+      "posW": 160,
+      "posH": 320,
+      "shape": {
+        "kind": "rect",
+        "source": "{outRate}",
+        "fillMax": 20,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    { "from": "入る", "to": "待ち行列", "label": "届く", "tone": "info" },
+    { "from": "待ち行列", "to": "出る", "label": "捌く", "tone": "success" }
+  ],
+  "states": { "inRate": 12, "depth": 0, "outRate": 5 },
+  "animation": [
+    {
+      "step": "捌ききれず溜まる",
+      "duration": 4,
+      "focus": ["入る", "待ち行列", "出る", "入る -> 待ち行列", "待ち行列 -> 出る"],
+      "tween": { "depth": [0, 38], "outRate": [5, 9] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsValveFlow = `title: "弁の開き — 中央の開度で出口の量が決まる"
+type: flow
+
+lanes:
+  vl1: { x: 0, width: 180, label: "元の流れ" }
+  vl2: { x: 200, width: 220, label: "弁" }
+  vl3: { x: 440, width: 180, label: "通った量" }
+
+states:
+  inF: 100
+  open: 0
+  outF: 0
+
+actors:
+  - 元の流れ: { kind: dyn-rect, lane: vl1, stack: 0, subtitle: "{inF}%", posW: 160, posH: 280, shape: { kind: rect, source: "{inF}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 弁: { kind: dyn-arc, lane: vl2, stack: 0, subtitle: "開き {open}%", posW: 200, posH: 280, shape: { kind: arc, angle: "{open}", sweepMax: 100, outerRadius: 90, innerRadius: 55, fill: "#f59e0b" } }
+  - 通った量: { kind: dyn-rect, lane: vl3, stack: 0, subtitle: "{outF}%", posW: 160, posH: 280, shape: { kind: rect, source: "{outF}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 元の流れ -> 弁: "押す" (info)
+  - 弁 -> 通った量: "通る" (success)
+
+animation:
+  - step: "弁を開ける" 4s
+    focus: ["元の流れ", "弁", "通った量", "元の流れ -> 弁", "弁 -> 通った量"]
+    tween:
+      open: 0 -> 65
+      outF: 0 -> 65
+`;
+
+export const sourceJson__partsValveFlow = `{
+  "title": "弁の開き — 中央の開度で出口の量が決まる",
+  "type": "flow",
+  "lanes": {
+    "vl1": { "x": 0, "width": 180, "label": "元の流れ" },
+    "vl2": { "x": 200, "width": 220, "label": "弁" },
+    "vl3": { "x": 440, "width": 180, "label": "通った量" }
+  },
+  "actors": [
+    {
+      "name": "元の流れ",
+      "kind": "dyn-rect",
+      "lane": "vl1",
+      "stack": 0,
+      "subtitle": "{inF}%",
+      "posW": 160,
+      "posH": 280,
+      "shape": {
+        "kind": "rect",
+        "source": "{inF}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "弁",
+      "kind": "dyn-arc",
+      "lane": "vl2",
+      "stack": 0,
+      "subtitle": "開き {open}%",
+      "posW": 200,
+      "posH": 280,
+      "shape": {
+        "kind": "arc",
+        "angle": "{open}",
+        "sweepMax": 100,
+        "outerRadius": 90,
+        "innerRadius": 55,
+        "fill": "#f59e0b"
+      }
+    },
+    {
+      "name": "通った量",
+      "kind": "dyn-rect",
+      "lane": "vl3",
+      "stack": 0,
+      "subtitle": "{outF}%",
+      "posW": 160,
+      "posH": 280,
+      "shape": {
+        "kind": "rect",
+        "source": "{outF}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    { "from": "元の流れ", "to": "弁", "label": "押す", "tone": "info" },
+    { "from": "弁", "to": "通った量", "label": "通る", "tone": "success" }
+  ],
+  "states": { "inF": 100, "open": 0, "outF": 0 },
+  "animation": [
+    {
+      "step": "弁を開ける",
+      "duration": 4,
+      "focus": ["元の流れ", "弁", "通った量", "元の流れ -> 弁", "弁 -> 通った量"],
+      "tween": { "open": [0, 65], "outF": [0, 65] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsFunnel3 = `title: "三段の漏斗 — 段ごとに幅が狭くなり残る数が減る"
+type: flow
+
+lanes:
+  fl: { x: 0, width: 380, label: "訪問から購入まで" }
+
+states:
+  tN: 0
+  mN: 0
+  bN: 0
+
+actors:
+  - 訪れた人: { kind: dyn-rect, lane: fl, stack: 0, subtitle: "{tN}%", posW: 360, posH: 130, shape: { kind: rect, source: "{tN}", fillMax: 100, orient: right, fill: "#4e9dc4", radius: 6 } }
+  - 登録した人: { kind: dyn-rect, lane: fl, stack: 1, subtitle: "{mN}%", posW: 260, posH: 130, shape: { kind: rect, source: "{mN}", fillMax: 100, orient: right, fill: "#8b5cf6", radius: 6 } }
+  - 買った人: { kind: dyn-rect, lane: fl, stack: 2, subtitle: "{bN}%", posW: 160, posH: 130, shape: { kind: rect, source: "{bN}", fillMax: 100, orient: right, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 訪れた人 -> 登録した人: "6 割が残る" (info)
+  - 登録した人 -> 買った人: "4 割が残る" (success)
+
+animation:
+  - step: "段ごとに絞られる" 4s
+    focus: ["訪れた人", "登録した人", "買った人", "訪れた人 -> 登録した人", "登録した人 -> 買った人"]
+    tween:
+      tN: 0 -> 100
+      mN: 0 -> 62
+      bN: 0 -> 24
+`;
+
+export const sourceJson__partsFunnel3 = `{
+  "title": "三段の漏斗 — 段ごとに幅が狭くなり残る数が減る",
+  "type": "flow",
+  "lanes": {
+    "fl": { "x": 0, "width": 380, "label": "訪問から購入まで" }
+  },
+  "actors": [
+    {
+      "name": "訪れた人",
+      "kind": "dyn-rect",
+      "lane": "fl",
+      "stack": 0,
+      "subtitle": "{tN}%",
+      "posW": 360,
+      "posH": 130,
+      "shape": {
+        "kind": "rect",
+        "source": "{tN}",
+        "fillMax": 100,
+        "orient": "right",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "登録した人",
+      "kind": "dyn-rect",
+      "lane": "fl",
+      "stack": 1,
+      "subtitle": "{mN}%",
+      "posW": 260,
+      "posH": 130,
+      "shape": {
+        "kind": "rect",
+        "source": "{mN}",
+        "fillMax": 100,
+        "orient": "right",
+        "fill": "#8b5cf6",
+        "radius": 6
+      }
+    },
+    {
+      "name": "買った人",
+      "kind": "dyn-rect",
+      "lane": "fl",
+      "stack": 2,
+      "subtitle": "{bN}%",
+      "posW": 160,
+      "posH": 130,
+      "shape": {
+        "kind": "rect",
+        "source": "{bN}",
+        "fillMax": 100,
+        "orient": "right",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    { "from": "訪れた人", "to": "登録した人", "label": "6 割が残る", "tone": "info" },
+    { "from": "登録した人", "to": "買った人", "label": "4 割が残る", "tone": "success" }
+  ],
+  "states": { "tN": 0, "mN": 0, "bN": 0 },
+  "animation": [
+    {
+      "step": "段ごとに絞られる",
+      "duration": 4,
+      "focus": ["訪れた人", "登録した人", "買った人", "訪れた人 -> 登録した人", "登録した人 -> 買った人"],
+      "tween": { "tN": [0, 100], "mN": [0, 62], "bN": [0, 24] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsMiniNetwork = `title: "小さな網 — 起点から終点まで 2 つの経路が並ぶ"
+type: flow
+
+lanes:
+  nl1: { x: 0, width: 200, label: "起点" }
+  nl2: { x: 220, width: 200, label: "中継" }
+  nl3: { x: 440, width: 200, label: "終点" }
+
+states:
+  p1: 0
+  p2: 0
+  p3: 0
+  p4: 0
+
+actors:
+  - 起点: { kind: dyn-circle, lane: nl1, stack: 0, subtitle: "{p1}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p1}", fill: "#4e9dc4" } }
+  - 上の中継: { kind: dyn-circle, lane: nl2, stack: 0, subtitle: "{p2}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p2}", fill: "#8b5cf6" } }
+  - 下の中継: { kind: dyn-circle, lane: nl2, stack: 1, subtitle: "{p3}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p3}", fill: "#f59e0b" } }
+  - 終点: { kind: dyn-circle, lane: nl3, stack: 0, subtitle: "{p4}", posW: 180, posH: 180, shape: { kind: circle, radius: 70, fillProgress: "{p4}", fill: "#22c55e" } }
+
+flow:
+  - 起点 -> 上の中継: "上の道" (info)
+  - 起点 -> 下の中継: "下の道" (warning)
+  - 上の中継 -> 終点: "合流" (info)
+  - 下の中継 -> 終点: "合流" (warning)
+
+animation:
+  - step: "2 つの道を通る" 4s
+    focus: ["起点", "上の中継", "下の中継", "終点", "起点 -> 上の中継", "起点 -> 下の中継", "上の中継 -> 終点", "下の中継 -> 終点"]
+    tween:
+      p1: 0 -> 1
+      p2: 0 -> 1
+      p3: 0 -> 1
+      p4: 0 -> 1
+`;
+
+export const sourceJson__partsMiniNetwork = `{
+  "title": "小さな網 — 起点から終点まで 2 つの経路が並ぶ",
+  "type": "flow",
+  "lanes": {
+    "nl1": { "x": 0, "width": 200, "label": "起点" },
+    "nl2": { "x": 220, "width": 200, "label": "中継" },
+    "nl3": { "x": 440, "width": 200, "label": "終点" }
+  },
+  "actors": [
+    {
+      "name": "起点",
+      "kind": "dyn-circle",
+      "lane": "nl1",
+      "stack": 0,
+      "subtitle": "{p1}",
+      "posW": 180,
+      "posH": 180,
+      "shape": { "kind": "circle", "radius": 70, "fillProgress": "{p1}", "fill": "#4e9dc4" }
+    },
+    {
+      "name": "上の中継",
+      "kind": "dyn-circle",
+      "lane": "nl2",
+      "stack": 0,
+      "subtitle": "{p2}",
+      "posW": 180,
+      "posH": 180,
+      "shape": { "kind": "circle", "radius": 70, "fillProgress": "{p2}", "fill": "#8b5cf6" }
+    },
+    {
+      "name": "下の中継",
+      "kind": "dyn-circle",
+      "lane": "nl2",
+      "stack": 1,
+      "subtitle": "{p3}",
+      "posW": 180,
+      "posH": 180,
+      "shape": { "kind": "circle", "radius": 70, "fillProgress": "{p3}", "fill": "#f59e0b" }
+    },
+    {
+      "name": "終点",
+      "kind": "dyn-circle",
+      "lane": "nl3",
+      "stack": 0,
+      "subtitle": "{p4}",
+      "posW": 180,
+      "posH": 180,
+      "shape": { "kind": "circle", "radius": 70, "fillProgress": "{p4}", "fill": "#22c55e" }
+    }
+  ],
+  "flow": [
+    { "from": "起点", "to": "上の中継", "label": "上の道", "tone": "info" },
+    { "from": "起点", "to": "下の中継", "label": "下の道", "tone": "warning" },
+    { "from": "上の中継", "to": "終点", "label": "合流", "tone": "info" },
+    { "from": "下の中継", "to": "終点", "label": "合流", "tone": "warning" }
+  ],
+  "states": { "p1": 0, "p2": 0, "p3": 0, "p4": 0 },
+  "animation": [
+    {
+      "step": "2 つの道を通る",
+      "duration": 4,
+      "focus": ["起点", "上の中継", "下の中継", "終点", "起点 -> 上の中継", "起点 -> 下の中継", "上の中継 -> 終点", "下の中継 -> 終点"],
+      "tween": { "p1": [0, 1], "p2": [0, 1], "p3": [0, 1], "p4": [0, 1] }
     }
   ]
 }`;
