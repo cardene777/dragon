@@ -1978,6 +1978,88 @@ export const presetChartLine = withSteps(
   LINE_POINTS.map((p) => ({ id: p.id, initial: p.plan })),
 );
 
+export const patternBase__presetChartLine = "簡単";
+
+/**
+ * 折れ線の複雑な版 (#2177)。
+ *
+ * 簡単な版は 4 点で、計画と実績が 2 本とも同じ向きに伸びる。 実際に読み取りが要るのは
+ * 「一度落ち込んでから追い越す」 形で、4 点では描けない。
+ *
+ * **図表は板 1 枚で描くので、点を増やしても図の大きさが変わらない** (実測 = 4 点も 12 点も
+ * 792x488 で、重い指摘は 0 件)。 箱の数で大きさが決まる他の図と違い、点を増やす方向に
+ * 制約が無い。 12 か月ぶんを並べて、四半期ごとに置き換える段を作る。
+ */
+const LINE_COMPLEX_POINTS = [
+  { id: "lc_1", label: "1月", plan: 1000, actual: 1000 },
+  { id: "lc_2", label: "2月", plan: 1100, actual: 1120 },
+  { id: "lc_3", label: "3月", plan: 1200, actual: 1180 },
+  { id: "lc_4", label: "4月", plan: 1300, actual: 1050 },
+  { id: "lc_5", label: "5月", plan: 1400, actual: 980 },
+  { id: "lc_6", label: "6月", plan: 1500, actual: 1020 },
+  { id: "lc_7", label: "7月", plan: 1600, actual: 1180 },
+  { id: "lc_8", label: "8月", plan: 1700, actual: 1400 },
+  { id: "lc_9", label: "9月", plan: 1800, actual: 1650 },
+  { id: "lc_10", label: "10月", plan: 1900, actual: 1880 },
+  { id: "lc_11", label: "11月", plan: 2000, actual: 2100 },
+  { id: "lc_12", label: "12月", plan: 2100, actual: 2400 },
+] as const;
+
+const lineComplexBuilder = chart({
+  id: "chart-line-complex-demo",
+  topic: "1 年の計画と実績が落ち込んでから追い越す折れ線",
+  type: "line",
+});
+for (const p of LINE_COMPLEX_POINTS) {
+  lineComplexBuilder.datum({ id: p.id, label: p.label, value: p.plan });
+}
+
+/** 四半期ごとの置き換え。 1 段で動かす点を 3 つに揃える */
+const 四半期 = (先頭: number) =>
+  LINE_COMPLEX_POINTS.slice(先頭, 先頭 + 3).map((p) => ({ id: p.id, from: p.plan, to: p.actual }));
+
+export const pattern__presetChartLine__複雑 = withSteps(
+  bindFirstNode(lineComplexBuilder.build(), (n) => ({
+    ...n,
+    // `chartData` は `LINE_COMPLEX_POINTS` を回す `for` で 1:1 に作るので長さは常に一致する
+    chartData: n.chartData?.map((c, i) => {
+      const p = LINE_COMPLEX_POINTS[i];
+      return p === undefined ? c : { ...c, value: `{${p.id}}` };
+    }),
+  })),
+  [
+    {
+      ids: ["chart-line-complex-demo-chart"],
+      // 左端から右へ線が伸びる (#1351)。 開いた瞬間に全長で出ると静止画と区別が付かない
+      draw: ["chart-line-complex-demo-chart"],
+      // 描く段は伸ばす (#1353)。 12 点を追うので簡単な版より更に長く取る
+      duration: DRAW_DURATION,
+      title: "1 年の計画",
+      body: "1 月の 1000 から 12 月の 2100 まで、毎月 100 ずつ積む計画を引く。",
+    },
+    {
+      title: "春は計画どおり",
+      body: "1 月から 3 月を実績に置き換える。 3 点とも計画とほぼ重なる。",
+      tweens: 四半期(0),
+    },
+    {
+      title: "夏に落ち込む",
+      body: "4 月から 6 月で実績が計画を大きく下回る。 5 月の 980 が谷になる。",
+      tweens: 四半期(3),
+    },
+    {
+      title: "秋に戻す",
+      body: "7 月から 9 月で実績が戻り始める。 9 月の 1650 で差が 150 まで縮む。",
+      tweens: 四半期(6),
+    },
+    {
+      body: "10 月から 12 月で実績が計画を追い越す。 12 月の 2400 が計画を 300 上回る。",
+      tweens: 四半期(9),
+    },
+  ],
+  LINE_COMPLEX_POINTS.map((p) => ({ id: p.id, initial: p.plan })),
+);
+
 // gantt preset ... sprint / release timeline
 // 帯の終わりを状態から取り、作り込みが 1 期ぶん延びる様子を見せる。
 export const presetGantt = withSteps(
