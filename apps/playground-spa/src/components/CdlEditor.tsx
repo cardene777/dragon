@@ -1971,8 +1971,8 @@ animation:
         {activeTab === "cdl" && error && <pre className="v4-editor-error">{error}</pre>}
         {/* 書いたのに効かなかったこと。 誤りではない (図は出る) が、 黙って捨てると
             書いた人が理由を追えないので、 行番号と直し方を添えて出す。
-            本文の行番号を指すので、 その本文を映していない YAML 欄では出さない。 */}
-        {/* **欄で絞らない**。 知らせは記法欄でも YAML 欄でも同じように出す (review 指摘) */}
+            **欄で絞らない**。 知らせは記法欄でも YAML 欄でも同じように出す (review 指摘)。
+            行番号はどちらの欄も、 その欄が映している本文の行を指す (YAML 欄は #2117 で持つようになった)。 */}
         {!error && !yamlError && compileNotices.length > 0 && (
           <div className="v4-editor-notices" data-testid="editor-compile-notices">
             {compileNotices.map((n, i) => (

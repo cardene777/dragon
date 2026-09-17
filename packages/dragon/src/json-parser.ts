@@ -72,6 +72,7 @@ import type {
 } from "./types";
 import { checkValueExpression, isValueName, valueNameIssue } from "./value-syntax";
 import { 近い名前 } from "./near-name";
+import { 書いた場所の鍵, type 書いた行の表 } from "./json-line-map";
 import { compileToCdl } from "./compile";
 import {
   RELATIVE_DIRECTIONS,
@@ -2481,16 +2482,23 @@ function 整えた小見出し(v: string | undefined): string | undefined {
 }
 
 /**
- * JSON DSL → DslDocument (AST) 変換。 pos は JSON なので line 情報なし、 全て line 0。
+ * JSON DSL → DslDocument (AST) 変換。
+ *
+ * 行番号は `行の表` を渡した時だけ入る (#2117)。 JSON そのものは書いた場所を持たないため、
+ * 本文の行が分かる入口 (編集画面の YAML 欄) が場所ごとの行を集めて渡す。 渡さない呼出は
+ * 全ての要素が 0 行になる = 「行が分からない」 ことを 0 で表す。
  *
  * CAR-1693 Phase 1: DSL 表面 `pos: {x, y}` → 内部 AST `layoutPos:` の 2 層 mapping の実装 core。
  * test で mapping logic を実 execute するため export する (pos-field.test.ts の regression guard)。
  */
-export function jsonToDoc(json: DragonJson): DslDocument {
-  const p0 = { line: 0 };
-  const actors: DslActor[] = json.actors.map((a) => {
+export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): DslDocument {
+  // 書いた場所から行を引く。 引けない場所は 0 行 = 表を渡さない呼出と同じ状態になる
+  const 位置 = (...道: readonly (string | number)[]): { line: number } => ({
+    line: 行の表?.get(書いた場所の鍵(...道)) ?? 0,
+  });
+  const actors: DslActor[] = json.actors.map((a, i) => {
     if (typeof a === "string") {
-      return { name: a, kind: "actor" as NodeKind, kindWritten: false, pos: p0 };
+      return { name: a, kind: "actor" as NodeKind, kindWritten: false, pos: 位置("actors", i) };
     }
     // CAR-1657 = kind が既存 NodeKind に無い値なら parts identifier 候補、 partId に格納
     const kindStr = a.kind ?? "actor";
@@ -2555,7 +2563,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       layoutPos: a.pos,
       // 相対で置く指定 (#2039)。 欄の名前が内部と同じなのでそのまま渡す
       posRel: a.posRel,
-      pos: p0,
+      pos: 位置("actors", i),
     };
   });
   // 図の配色 (#1553)。 解くのは 1 度だけにする
@@ -2599,7 +2607,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     ...(s.toPartNode !== undefined ? { toPartNode: s.toPartNode } : {}),
     // CAR-1693 Phase 1: DSL 表面 pos → 内部 AST layoutPos
     layoutPos: s.pos,
-    pos: p0,
+    pos: 位置("flow", i),
   }));
   // 状態は段が無くても図に載る (#1162 で組み立ての出口が載せる)。 **段の有無で分けない** =
   // 分けると `states` だけを書いた JSON で値が 1 つも届かない (記法側で起きていた形、 #1181)
@@ -2612,7 +2620,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
    *
    * 相手は名前のまま持ち、識別子への読み替えは組み立てが行う = 2 つの入口で同じ経路を通る。
    */
-  const events: DslEventBinding[] | undefined = json.events?.map((e) => ({
+  const events: DslEventBinding[] | undefined = json.events?.map((e, i) => ({
     event: e.on as DslEventBinding["event"],
     target:
       e.diagram === true
@@ -2627,7 +2635,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
             ? ({ kind: "lane" as const, name: e.lane } as const)
             : ({ kind: "node" as const, name: e.box ?? "" } as const),
     handlerId: e.handler.trim(),
-    pos: p0,
+    pos: 位置("events", i),
   }));
   const scrolls: DslScrollTrigger[] | undefined = json.scrolls
     ? Object.entries(json.scrolls).map(([id, spec]) => ({ id, ...spec }))
@@ -2637,28 +2645,28 @@ export function jsonToDoc(json: DragonJson): DslDocument {
   const formulas: DslFormula[] | undefined = json.formulas
     ? Object.entries(json.formulas).map(([id, 値]) =>
         typeof 値 === "string"
-          ? { id, expression: 値, pos: p0 }
+          ? { id, expression: 値, pos: 位置("formulas", id) }
           : {
               id,
               expression: 値.expression,
               ...(値.label !== undefined ? { label: 値.label } : {}),
-              pos: p0,
+              pos: 位置("formulas", id),
             },
       )
     : undefined;
   const states: DslState[] = Object.entries(json.states ?? {}).map(([name, initial]) => ({
     name,
     initial,
-    pos: p0,
+    pos: 位置("states", name),
   }));
-  const phases: DslPhase[] = (json.animation ?? []).map((p) => ({
+  const phases: DslPhase[] = (json.animation ?? []).map((p, i) => ({
     name: p.step,
     durationMs: Math.round((p.duration ?? 1.4) * 1000),
     highlight: p.focus,
     body: p.body,
     badge: p.badge,
     // 書いた段だけが欄を持つ。 空文字を置くと「書いた」 と「書いていない」 が同じ形になる
-    ...(p.draw !== undefined ? { draw: p.draw, drawPos: p0 } : {}),
+    ...(p.draw !== undefined ? { draw: p.draw, drawPos: 位置("animation", i, "draw") } : {}),
     // 割合は `draw` がある段にだけ写す。 単独で書いても描く相手が決まらず何も起きないので、
     // 記法側 (同じ行に書かせる形) と同じ状態に揃える
     ...(p.draw !== undefined && p.drawRatio !== undefined ? { drawRatio: p.drawRatio } : {}),
@@ -2670,17 +2678,27 @@ export function jsonToDoc(json: DragonJson): DslDocument {
             state,
             from,
             to,
-            pos: p0,
+            pos: 位置("animation", i, "tween", state),
           })),
         }
       : {}),
     ...(p.set && Object.keys(p.set).length > 0
-      ? { sets: Object.entries(p.set).map(([state, value]) => ({ state, value, pos: p0 })) }
+      ? {
+          sets: Object.entries(p.set).map(([state, value]) => ({
+            state,
+            value,
+            pos: 位置("animation", i, "set", state),
+          })),
+        }
       : {}),
-    pos: p0,
+    pos: 位置("animation", i),
   }));
   const animate: DslAnimate | undefined =
-    states.length > 0 || phases.length > 0 ? { states, phases, pos: p0 } : undefined;
+    states.length > 0 || phases.length > 0
+      ? // 動きの塊そのものには書いた場所が無い。 段がある文書は `animation`、無い文書は
+        // `states` を指す = どちらも「動きを書き始めた場所」 になる
+        { states, phases, pos: phases.length > 0 ? 位置("animation") : 位置("states") }
+      : undefined;
   return {
     title: json.title,
     type: json.type,
@@ -2688,12 +2706,12 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     // 空かどうかを判定するため、 揃えないと **空白だけの値で入口ごとに図が変わる**
     // (記法は書かなかった扱い、 JSON は中身のない帯を描く。 Round 2 の指摘で実測)
     ...(整えた小見出し(json.eyebrow) !== undefined
-      ? { eyebrow: 整えた小見出し(json.eyebrow), eyebrowPos: p0 }
+      ? { eyebrow: 整えた小見出し(json.eyebrow), eyebrowPos: 位置("eyebrow") }
       : {}),
     // 2 軸で仕分ける図の軸の名前 (#1294)。 中身の無い形は「書かなかった」 と同じにする =
     // 空の軸を渡すと、書いていない側の名前が空文字で描かれる (記法側と同じ扱い)
     ...(json.axes && (json.axes.x !== undefined || json.axes.y !== undefined)
-      ? { axes: json.axes, axesPos: p0 }
+      ? { axes: json.axes, axesPos: 位置("axes") }
       : {}),
     actors,
     flow,
@@ -2701,16 +2719,20 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     // 他の値から決まる値 (#1181)。 書いた順に並べる = 解く順は参照から決まるので順序に
     // 意味は無いが、知らせの並びが書いた順になる
     values: json.values
-      ? Object.entries(json.values).map(([name, expression]) => ({ name, expression, pos: p0 }))
+      ? Object.entries(json.values).map(([name, expression]) => ({
+          name,
+          expression,
+          pos: 位置("values", name),
+        }))
       : undefined,
-    viewport: json.viewport ? { ...json.viewport, pos: p0 } : undefined,
+    viewport: json.viewport ? { ...json.viewport, pos: 位置("viewport") } : undefined,
     lanes: json.lanes
       ? Object.fromEntries(
           Object.entries(json.lanes).map(([id, l]) => {
             // CAR-1693 Phase 1: DSL 表面 pos → 内部 AST layoutPos の 2 層 mapping。
             // JSON input の { pos, x, width, ... } を分離し、 pos のみ layoutPos に rename する。
             const { pos: layoutPos, ...laneRest } = l;
-            return [id, { id, ...laneRest, layoutPos, pos: p0 }];
+            return [id, { id, ...laneRest, layoutPos, pos: 位置("lanes", id) }];
           }),
         )
       : undefined,
@@ -2718,7 +2740,7 @@ export function jsonToDoc(json: DragonJson): DslDocument {
       ? Object.fromEntries(
           Object.entries(json.groups).map(([id, g]) => [
             id,
-            { id, label: g.label, lanes: g.lanes, pos: p0 },
+            { id, label: g.label, lanes: g.lanes, pos: 位置("groups", id) },
           ]),
         )
       : undefined,
@@ -2733,12 +2755,18 @@ export function jsonToDoc(json: DragonJson): DslDocument {
     reveal: json.reveal,
     // 箱に触れると関係する線だけを光らせるか (#1757)
     relations: json.relations,
-    // 図の並ぶ向き (#1494)。 JSON は英語で書くので、記法と同じ語に直してから渡す
-    ...(json.direction !== undefined ? { direction: json.direction === "horizontal" ? ("横" as const) : ("縦" as const) } : {}),
+    // 図の並ぶ向き (#1494)。 JSON は英語で書くので、記法と同じ語に直してから渡す。
+    // 書いた行も記法と同じく持つ = 持たないと、向きの知らせが文書の行 (1 行目) を指す
+    ...(json.direction !== undefined
+      ? {
+          direction: json.direction === "horizontal" ? ("横" as const) : ("縦" as const),
+          directionPos: 位置("direction"),
+        }
+      : {}),
     // 図の配色 (#1553)。 記法と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方がずれない。
     // 読めない語は渡さない = 上流の型検査が語を絞っているので、ここに来るのは書き間違いだけ
     ...(配色 !== null ? { palette: 配色 } : {}),
-    pos: p0,
+    pos: 位置(),
   };
 }
 
@@ -2768,7 +2796,17 @@ export function jsonToDiagram(
   // **`onNotice` も通す**。 記法経路だけに通知を付けていたため、 同じ型を受ける JSON / YAML
   // 経路では読めない値や捨てた矢印が利用者へ届かなかった (review 指摘)。 エディタの YAML タブは
   // ここを通る
-  opts?: { partsCatalog?: Record<string, CdlDiagram>; onNotice?: CompileToCdlOpts["onNotice"] },
+  opts?: {
+    partsCatalog?: Record<string, CdlDiagram>;
+    onNotice?: CompileToCdlOpts["onNotice"];
+    /**
+     * 本文の場所から書いた行を引く表 (#2117)。 渡すと知らせが書いた行を指す。
+     *
+     * JSON そのものは書いた場所を持たないため、本文の行が分かる入口 (編集画面の YAML 欄) が
+     * 集めて渡す。 渡さない呼出は今までどおり全ての知らせが 0 行になる。
+     */
+    行の表?: 書いた行の表;
+  },
 ): CdlDiagram {
   const v = validateJson(json);
   if (!v.ok) {
@@ -2777,7 +2815,7 @@ export function jsonToDiagram(
       .join("\n");
     throw new Error(`Dragon JSON DSL validation error:\n${msg}`);
   }
-  const doc = jsonToDoc(v.data);
+  const doc = jsonToDoc(v.data, opts?.行の表);
   return compileToCdl(doc, opts);
 }
 

@@ -2,6 +2,7 @@ import { load, YAMLException } from "js-yaml";
 import { jsonToDiagram, describeOversizeSource } from "@cardenelabs/dragon";
 import type { CompileNotice } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { 書いた行を読む } from "@/lib/yaml-lines";
 import type { YamlObjectResult, YamlDiagramResult } from "@/lib/yaml-error";
 
 // 型と誤りの整形は `yaml-error.ts` に分けてある。 本 file は YAML 欄を開いた時だけ
@@ -100,6 +101,10 @@ export function yamlToObject(src: string): YamlObjectResult {
  * 順に呼び、 どちらの stage で error が起きても `{ ok: false, error }` で返す。
  * caller は成功時 diagram を CdlDiagramView に流し、 失敗時 error.line / message を preview 上部の
  * error banner に描画する (前回 render は消さない、 spec AC 4 の要件)。
+ *
+ * **書いた場所ごとの行も一緒に渡す** (#2117)。 素の値になった時点で書いた場所は消えるため、
+ * 本文をもう一度 (事象の並びとして) 読んで場所と行を対応させる。 渡さないと、この経路の
+ * 知らせは全て 0 行になり、画面が `L{行}` を出せない。
  */
 export function yamlToDiagram(
   src: string,
@@ -111,7 +116,7 @@ export function yamlToDiagram(
   if (!parseResult.ok) return parseResult;
   try {
     // jsonToDiagram は unknown を受けて中で形を検査する。 合わない形は throw される
-    const diagram = jsonToDiagram(parseResult.value, opts);
+    const diagram = jsonToDiagram(parseResult.value, { ...opts, 行の表: 書いた行を読む(src) });
     return { ok: true, diagram };
   } catch (e) {
     return {

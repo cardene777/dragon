@@ -107,6 +107,10 @@ export type { InputSize } from "./input-size";
 
 // LLM 向け JSON DSL (Issue #208)
 export { jsonToDiagram, validateDragonJson } from "./json-parser";
+// JSON / YAML の本文で書いた場所を指す鍵 (#2117)。 表を作る側 (画面の YAML 欄) と引く側
+// (`json-parser.ts`) が同じ規則を使うために公開する
+export { 書いた場所の鍵 } from "./json-line-map";
+export type { 書いた行の表 } from "./json-line-map";
 export { diagramJsonSchema } from "./schema";
 export type {
   DragonJson,
