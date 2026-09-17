@@ -277,4 +277,4 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  * ずれを教える。 数えるのは頁に並ぶ行で、部品そのもの 80 と部品を箱に使う見本 1 (#1973) と
  * 部品を繋いで動かす見本 1 (#2125)。 切替を持つ見本は 1 行として数える。
  */
-export const PARTS_COUNT_ESTIMATE = 88;
+export const PARTS_COUNT_ESTIMATE = 92;

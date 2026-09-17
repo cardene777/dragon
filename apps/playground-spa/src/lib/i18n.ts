@@ -539,6 +539,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsValveFlow: "繋ぐ: 弁の開きで量が決まる",
   partsFunnel3: "繋ぐ: 三段で絞り込む",
   partsMiniNetwork: "繋ぐ: 2つの経路で結ぶ",
+  partsLoadBalancer: "繋ぐ: 3つへ同じ量ずつ配る",
+  partsFanoutCopy: "繋ぐ: 全員へ同じものを写す",
+  partsRateLimiter: "繋ぐ: 札の数だけ通す",
+  partsPriorityQueue: "繋ぐ: 急ぎを先に出す",
 };
 
 /**
@@ -1011,6 +1015,10 @@ export const ITEM_NAME_EN: Record<string, string> = {
   partsValveFlow: "Wire: valve opening sets the flow",
   partsFunnel3: "Wire: narrow down in three steps",
   partsMiniNetwork: "Wire: two routes across four nodes",
+  partsLoadBalancer: "Wire: share the load across three outlets",
+  partsFanoutCopy: "Wire: copy the same payload to everyone",
+  partsRateLimiter: "Wire: pass while tokens last",
+  partsPriorityQueue: "Wire: urgent items go first",
 };
 
 /**
