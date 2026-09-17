@@ -53,7 +53,7 @@ function 部品の値を動かす段(図: CdlDiagram): string[] {
 const 一覧の見本 = 見本たち();
 
 describe("部品を繋いだまま動かす頁 (#2125)", () => {
-  it("部品の頁の最後に並び、6 つの切替を持つ", async () => {
+  it("部品の頁の最後に並び、7 つの切替を持つ", async () => {
     const { loadPartsItems } = await import("@/lib/catalog-items");
     const items = await loadPartsItems();
     // 並びは「部品そのもの → 箱として置く → 繋いで動かす」。 置き方を読んでから動かし方を読む
@@ -65,12 +65,13 @@ describe("部品を繋いだまま動かす頁 (#2125)", () => {
       "集める",
       "部品の段を残す",
       "振り分けて合流させる",
+      "配ってから写す",
     ]);
   });
 
-  it("見本が 6 件ある", () => {
+  it("見本が 7 件ある", () => {
     // 空振り防止。 0 件なら下の it.each が 1 件も走らず、全部通ったように見える
-    expect(一覧の見本.map((x) => x.key)).toHaveLength(6);
+    expect(一覧の見本.map((x) => x.key)).toHaveLength(7);
   });
 
   it.each(一覧の見本)("$key は矢印と段を両方持つ", ({ 図 }) => {
@@ -184,6 +185,30 @@ describe("部品を繋いだまま動かす頁 (#2125)", () => {
     }
     expect(名指し, "段で部品の中の要素を名指しした見本が無い").not.toHaveLength(0);
     expect(外れ).toEqual([]);
+  });
+
+  it("両端の要素を名指しして繋いだ矢印は折れない (#2159)", () => {
+    // 名指しは「どの出口からどの入口へ渡したか」 を読ませる書き方なので、渡す側と受ける側が同じ段に
+    // 並ぶ組を選ぶ。 端の出口へ繋ぎ替えると段がずれ、矢印が途中で折れて別の要素を指しているように見える。
+    // 要素を名指ししていない矢印 (部品の要素が 1 つで自動で付く形) は、箱の高さの違いで折れてよい
+    const 名指しの矢印 = /^\s*-\s*(\S+)\s*->\s*(\S+):.*fromPartNode:\s*(\w+).*toPartNode:\s*(\w+)/;
+    const 折れ: string[] = [];
+    const 見た: string[] = [];
+    for (const { key, yaml, 図 } of 一覧の見本) {
+      const laid = layout(図);
+      for (const 行 of yaml.split("\n")) {
+        const m = 行.match(名指しの矢印);
+        if (!m) continue;
+        const [元, 先] = [`${m[1]}__${m[3]}`, `${m[2]}__${m[4]}`];
+        const e = laid.edges.find((x) => x.from === 元 && x.to === 先);
+        expect(e, `${key}: ${元} -> ${先} の矢印が図に無い`).toBeDefined();
+        見た.push(`${key}: ${元} -> ${先}`);
+        const 縦 = [...e!.d.matchAll(/[ML]\s*-?\d+(?:\.\d+)?\s+(-?\d+(?:\.\d+)?)/g)].map((x) => Math.round(Number(x[1])));
+        if (new Set(縦).size > 1) 折れ.push(`${key}: ${e!.id} ${e!.d.replace(/\s+/g, " ")}`);
+      }
+    }
+    expect(見た, "両端を名指しした矢印が 1 本も無い (検査が空振りしている)").not.toHaveLength(0);
+    expect(折れ).toEqual([]);
   });
 
   it.each(一覧の見本)("$key は差し込んだ縦列が宿主のすぐ右に並ぶ (#2149)", ({ 図 }) => {

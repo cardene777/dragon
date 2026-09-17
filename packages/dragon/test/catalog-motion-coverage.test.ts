@@ -286,7 +286,7 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
     expect(件数).toEqual({
       parts: 90,
       // 部品を繋いで動かす見本 5 件 (#2125) + 振り分け器と合流点を繋ぐ見本 (#2149)
-      "parts-motion": 6,
+      "parts-motion": 7,
       // 135 = 129 図 + `formulaTextBind` の名札を書かない変種 (#1916)
       //   + `buildStatusTrafficLight` と `clickToggle` の名前を書かない変種 (#1920)
       //   + 矢印や縦列や図全体で操作を受け取る `eventTargets` (#1969)

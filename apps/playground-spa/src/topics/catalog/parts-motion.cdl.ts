@@ -31,7 +31,7 @@ import * as 部品 from "./parts.cdl";
  * `flow` と `topology` は部品を他の箱の下の格子に置くため、矢印が間の箱を貫く (#1979 の実測)。
  * 繋ぎ方の頁と同じ理由で `swimlane` を使う。
  *
- * ## 6 つの切替
+ * ## 7 つの切替
  *
  * | 切替 | 見せること |
  * |---|---|
@@ -41,12 +41,20 @@ import * as 部品 from "./parts.cdl";
  * | 集める | 2 つの部品から 1 つの箱へ集め、集める段で 2 本の矢印を同時に光らせる |
  * | 部品の段を残す | 部品の段のままの部品と、宿主が動かす部品を並べる |
  * | 振り分けて合流させる | 振り分け器の出口 A / B を合流点の入口 A / B へ繋ぎ、段で入口だけ・出口と入口だけを名指しして光らせる (#2149 / #2151) |
+ * | 配ってから写す | 負荷分散器の出口 3 つのうち真ん中の 1 つだけを複製器の発行へ繋ぎ、分けると写すの違いを 1 枚で見せる (#2159) |
  *
  * ## 分けると集めるを箱と計器の 1 枚にまとめない
  *
  * 箱と計器の 4 つで「1 → 2 → 1」 を 1 枚に書くと、縦列が 4 本になって図が 2634 × 780 になり、
  * 一覧の器 (1150 × 630) に収めた時に箱の題が 9.6px まで縮む (下限 12px、実測)。
  * 3 本ずつの 2 枚に割ると 1 枚あたりの縦列が 3 本になり、どちらも指摘 0 件で収まる。
+ *
+ * 繋ぐ部品の縦列の本数も同じ理由で選ぶ。 縦列 3 本の部品 (流量制限 / 優先度の並べ替え) を混ぜると
+ * 縦列が 5 本以上になり、一覧の器で箱の題が 9.6px まで縮む (実測)。 縦列の幅 (`viewport.laneWidth`)
+ * を 240 から 150 まで下げても横幅は 2033 から 2013 までしか縮まないので、本数で収める。
+ * 「配ってから写す」 は縦列 2 本の部品 2 枚で 4 本に収め、幅 200 で 1515 × 922 になる。
+ * 札の字も短くする = 負荷分散器の札を「真ん中へ」 にすると図が 1659 に伸び、一覧の器で
+ * 箱の題が 11.6px になった (実測)。 幅は 1602 までなら 12px に届く。
  *
  * 「振り分けて合流させる」 は 1 枚で「1 → 2 → 1」 を描く。 振り分け器と合流点は 1 つの部品が
  * 入口と出口の 2 本の縦列を持ち、縦列の幅が 200 と狭いため、4 本の縦列でも図が 1475 × 922 に収まり、
@@ -71,7 +79,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partsMotion = "流れに沿って動かす";
 
 export const subtitle__partsMotion =
-  "部品を矢印で繋いだまま段で動かし、繋いだ先へ値を渡し、要素を名指しして層ごとに動かし、2 つの部品へ分け、2 つの部品から 1 つの箱へ集め、部品の段のままの部品と宿主が動かす部品を並べ、振り分け器の出口を合流点の入口へ繋いで段で入口や出口だけを光らせる";
+  "部品を矢印で繋いだまま段で動かし、繋いだ先へ値を渡し、要素を名指しして層ごとに動かし、2 つの部品へ分け、2 つの部品から 1 つの箱へ集め、部品の段のままの部品と宿主が動かす部品を並べ、振り分け器の出口を合流点の入口へ繋ぎ、負荷分散器の出口 1 つを複製器へ繋いで分けると写すの違いを見せる";
 
 export const sourceYaml__partsMotion = `title: "入ってくる量を溜めて送り出す"
 type: swimlane
@@ -564,5 +572,110 @@ export const sourceJson__pattern__partsMotion__振り分けて合流させる = 
 
 export const pattern__partsMotion__振り分けて合流させる = textDslToDiagram(
   sourceYaml__pattern__partsMotion__振り分けて合流させる,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__配ってから写す = `title: "3 つへ配った分のうち 1 つを 3 つの控えへ写す"
+type: swimlane
+# 縦列の幅は 200 にする。 240 だと図が 1607 になり、一覧の器 (幅 874) で箱の題が 12px を割る
+viewport: { laneWidth: 200 }
+
+lanes:
+  配る: { label: "配る" }
+  写す: { label: "写す" }
+
+actors:
+  - balance: { kind: load-balancer, phase: false, lane: 配る }
+  - copy: { kind: fanout-copy, phase: false, lane: 写す }
+
+# 繋ぐのは真ん中の出口 (out2)。 端の出口だと段がずれて矢印が折れる
+flow:
+  - balance -> copy: "中の分" { fromPartNode: out2, toPartNode: pubP }
+
+animation:
+  - step: "1. 届く" 1.2s
+    focus: [balance__inP]
+    badge: "受付"
+    tween:
+      balance__inLv: 0 -> 90
+    body: "負荷分散器の入口に 90 件/秒が届く。 光るのは入口だけ。"
+  - step: "2. 3 つへ配る" 1.4s
+    focus: [balance]
+    badge: "配る"
+    tween:
+      balance__inLv: 90 -> 0
+      balance__o1: 0 -> 30
+      balance__o2: 0 -> 30
+      balance__o3: 0 -> 30
+    body: "入口の分が 3 つの出口へ 30 件/秒ずつ分かれる。 配った後も合計は 90 のまま。"
+  - step: "3. 控えへ渡す" 1.4s
+    focus: [balance__out2, copy__pubP, "balance -> copy"]
+    badge: "受け渡し"
+    tween:
+      copy__pub: 0 -> 30
+    body: "真ん中の出口が受けた 30 件を複製器の発行へ渡す。 光るのは渡す出口と受ける発行と矢印。"
+  - step: "4. 3 つの控えへ写す" 1.4s
+    focus: [copy]
+    badge: "写す"
+    tween:
+      copy__s1: 0 -> 30
+      copy__s2: 0 -> 30
+      copy__s3: 0 -> 30
+    body: "発行の 30 件が控え 3 つへ 30 件ずつ写る。 分けた時と違い、合計は 90 に増える。"
+`;
+
+export const sourceJson__pattern__partsMotion__配ってから写す = `{
+  "title": "3 つへ配った分のうち 1 つを 3 つの控えへ写す",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "配る": { "label": "配る" },
+    "写す": { "label": "写す" }
+  },
+  "actors": [
+    { "name": "balance", "kind": "load-balancer", "phase": false, "lane": "配る" },
+    { "name": "copy", "kind": "fanout-copy", "phase": false, "lane": "写す" }
+  ],
+  "flow": [
+    { "from": "balance", "to": "copy", "label": "中の分", "fromPartNode": "out2", "toPartNode": "pubP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 届く",
+      "duration": 1.2,
+      "focus": ["balance__inP"],
+      "badge": "受付",
+      "tween": { "balance__inLv": [0, 90] },
+      "body": "負荷分散器の入口に 90 件/秒が届く。 光るのは入口だけ。"
+    },
+    {
+      "step": "2. 3 つへ配る",
+      "duration": 1.4,
+      "focus": ["balance"],
+      "badge": "配る",
+      "tween": { "balance__inLv": [90, 0], "balance__o1": [0, 30], "balance__o2": [0, 30], "balance__o3": [0, 30] },
+      "body": "入口の分が 3 つの出口へ 30 件/秒ずつ分かれる。 配った後も合計は 90 のまま。"
+    },
+    {
+      "step": "3. 控えへ渡す",
+      "duration": 1.4,
+      "focus": ["balance__out2", "copy__pubP", "balance -> copy"],
+      "badge": "受け渡し",
+      "tween": { "copy__pub": [0, 30] },
+      "body": "真ん中の出口が受けた 30 件を複製器の発行へ渡す。 光るのは渡す出口と受ける発行と矢印。"
+    },
+    {
+      "step": "4. 3 つの控えへ写す",
+      "duration": 1.4,
+      "focus": ["copy"],
+      "badge": "写す",
+      "tween": { "copy__s1": [0, 30], "copy__s2": [0, 30], "copy__s3": [0, 30] },
+      "body": "発行の 30 件が控え 3 つへ 30 件ずつ写る。 分けた時と違い、合計は 90 に増える。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__配ってから写す = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__配ってから写す,
   { partsCatalog: 部品の一覧 },
 );

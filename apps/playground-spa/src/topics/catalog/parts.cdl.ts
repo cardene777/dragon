@@ -3240,9 +3240,11 @@ export const partsLoadBalancer = diagram("parts-load-balancer", {
     h: 150,
     shape: { kind: "rect", source: "{o3}", fillMax: 90, orient: "up", fill: "#22c55e", radius: 6 },
   })
-  .edge("inP", "out1", { id: "lb-1", label: "1 番", tone: "success" })
-  .edge("inP", "out2", { id: "lb-2", label: "2 番", tone: "success" })
-  .edge("inP", "out3", { id: "lb-3", label: "3 番", tone: "success" })
+  // 札は出口の番号ではなく向きの言葉にする (#2149)。 繋いで使う部品の中の札に数字を書くと、
+  // 渡した先の部品が別の数字を書いた時に絵の中で食い違う。 どの出口かは箱の並びで読める
+  .edge("inP", "out1", { id: "lb-1", label: "上へ", tone: "success" })
+  .edge("inP", "out2", { id: "lb-2", label: "中へ", tone: "success" })
+  .edge("inP", "out3", { id: "lb-3", label: "下へ", tone: "success" })
   .phase("p", { duration: 4000, title: "3 つへ同じ量ずつ配る", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("inP", "out1", "out2", "out3", "lb-1", "lb-2", "lb-3")
@@ -9693,9 +9695,9 @@ actors:
   - 出口 3: { kind: dyn-rect, lane: lb2, stack: 2, subtitle: "{o3} 件/秒", posW: 150, posH: 150, shape: { kind: rect, source: "{o3}", fillMax: 90, orient: up, fill: "#22c55e", radius: 6 } }
 
 flow:
-  - 入口 -> 出口 1: "1 番" (success)
-  - 入口 -> 出口 2: "2 番" (success)
-  - 入口 -> 出口 3: "3 番" (success)
+  - 入口 -> 出口 1: "上へ" (success)
+  - 入口 -> 出口 2: "中へ" (success)
+  - 入口 -> 出口 3: "下へ" (success)
 
 animation:
   - step: "3 つへ同じ量ずつ配る" 4s
@@ -9757,9 +9759,9 @@ export const sourceJson__partsLoadBalancer = `{
     }
   ],
   "flow": [
-    { "from": "入口", "to": "出口 1", "label": "1 番", "tone": "success" },
-    { "from": "入口", "to": "出口 2", "label": "2 番", "tone": "success" },
-    { "from": "入口", "to": "出口 3", "label": "3 番", "tone": "success" }
+    { "from": "入口", "to": "出口 1", "label": "上へ", "tone": "success" },
+    { "from": "入口", "to": "出口 2", "label": "中へ", "tone": "success" },
+    { "from": "入口", "to": "出口 3", "label": "下へ", "tone": "success" }
   ],
   "states": { "inLv": 0, "o1": 0, "o2": 0, "o3": 0 },
   "animation": [
