@@ -82,6 +82,7 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
         "seq-complex-demo",
         "fsm-complex-demo",
         "network-complex-demo",
+        "topo-complex-demo",
       ]),
     );
     // 元の見本も名前から引く。 名前の切り出しを誤ると複雑な版だけが残る
@@ -89,7 +90,16 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
       new Set(元の見本の名前.map((名前) => 図を引く(名前).id)),
       "複雑な版の名前から元の見本を引けていない",
     ).toEqual(
-      new Set(["class-demo", "er-demo", "infra-demo", "flowchart-demo", "seq-demo", "fsm-demo", "network-demo"]),
+      new Set([
+        "class-demo",
+        "er-demo",
+        "infra-demo",
+        "flowchart-demo",
+        "seq-demo",
+        "fsm-demo",
+        "network-demo",
+        "topo-demo",
+      ]),
     );
   });
 
