@@ -1150,13 +1150,19 @@ function reportMissingFocusTargets(
   const 名前へ = actorRefTable(doc);
   const 揃える = (ref: string): string => 名前へ.get(ref) ?? ref;
 
+  // 部品の中の要素と線は `{部品の名前}__{要素}` で名指しする (#2151)。 ここでは部品の一覧を持たず、
+  // 要素があるかは部品を取り込んだ後にしか決まらない = 名前の前半が部品の名前なら知らせず、
+  // 取り込む側 (`部品の名前で光らせる`) に任せる。 両方で知らせると同じ名前に 2 件出る
+  const 部品の名前 = doc.actors.filter((a) => a.partId !== undefined).map((a) => a.name);
+  const 部品の中を指す = (name: string): boolean => 部品の名前.some((p) => name.startsWith(`${p}__`));
+
   for (const phase of doc.animate.phases) {
     for (const raw of phase.highlight ?? []) {
       const entry = parseFocusEntry(raw, names);
       const found =
         entry.kind === "edge"
           ? (steps.get(揃える(entry.from))?.has(揃える(entry.to)) ?? false)
-          : accepted.has(entry.name);
+          : accepted.has(entry.name) || 部品の中を指す(entry.name);
       if (found) continue;
       onNotice({
         kind: "focus-target-missing",

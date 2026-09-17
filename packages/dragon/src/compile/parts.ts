@@ -1607,7 +1607,7 @@ export function mergePartsFromActors(
   // 揃えると、揃えた時の縦列 (部品用の縦列も詰める送りに加わる) と描いた図の縦列が食い違う
   部品の縦列を部品に固定する(target, 自分の縦列に置いた);
   縦列に置いた部品を揃える(target, 縦列に置いた);
-  部品の名前で光らせる(target, doc, 取り込んだ部品);
+  部品の名前で光らせる(target, doc, 取り込んだ部品, onNotice);
   return target;
 }
 
@@ -1626,7 +1626,15 @@ export function mergePartsFromActors(
  * | 書いた相手 | 足すもの |
  * |---|---|
  * | 部品の名前 (か、他の名前と重ならない slug の形) | 部品の要素 (`{部品の名前}__{要素}`) と部品の中の線 (`{部品の名前}__{線}`) |
+ * | `{部品の名前}__{要素}` / `{部品の名前}__{中の線}` (#2151) | その要素か線だけ。 部品に無ければ知らせる |
  * | それ以外 (箱の名前 / 矢印) | 足さない。 図種ごとの解決が既に光らせている |
+ *
+ * 要素の名指しの前半は、取り込んだ部品の名前のうち **一番長く一致するもの** で決める。 部品の名前
+ * そのものが `__` を含む時 (`印` と `印__2`)、短い名前に当てると `印__2__inP` を `印` の要素 `2__inP` と
+ * 読み、無い要素として知らせてしまう。 登場人物の名前と完全に一致する名前は、箱の名前として読む。
+ *
+ * 部品に無い名前はここで知らせる。 組み立ての入口 (`reportMissingFocusTargets`) は部品の一覧を持たず、
+ * 前半が部品の名前なら中身を確かめずに通す = 知らせる所をここ 1 か所にし、同じ名前に 2 件出さない。
  *
  * 書いた段と組み立てた段は題 (`title` は書いた段の名前) で先頭から順に突き合わせる。 部品が宿主より
  * 多くの段を持つと組み立てた段が後ろに増えるが、書いた段は同じ順に並ぶ。 同じ id は 2 度入れない。
@@ -1635,18 +1643,29 @@ function 部品の名前で光らせる(
   target: CdlDiagram,
   doc: DslDocument,
   取り込んだ: ReadonlyMap<string, CdlDiagram>,
+  onNotice?: (notice: CompileNotice) => void,
 ): void {
   const 書いた段 = doc.animate?.phases ?? [];
   if (書いた段.length === 0 || 取り込んだ.size === 0) return;
   const 箱 = new Set(target.nodes.map((n) => n.id));
   const 線 = new Set(target.edges.map((e) => e.id));
   const 部品の相手 = new Map<string, string[]>();
+  /** 部品ごとに、図に入った要素と中の線の元の id。 名指しの照合と、無い名前を知らせる時の案内に使う */
+  const 部品の中 = new Map<string, { 要素: string[]; 線: string[] }>();
   for (const [名前, part] of 取り込んだ) {
-    部品の相手.set(名前, [
-      ...part.nodes.map((n) => `${名前}__${n.id}`).filter((id) => 箱.has(id)),
-      ...part.edges.map((e) => `${名前}__${e.id}`).filter((id) => 線.has(id)),
-    ]);
+    const 中 = {
+      要素: part.nodes.map((n) => n.id).filter((id) => 箱.has(`${名前}__${id}`)),
+      線: part.edges.map((e) => e.id).filter((id) => 線.has(`${名前}__${id}`)),
+    };
+    部品の中.set(名前, 中);
+    部品の相手.set(名前, [...中.要素, ...中.線].map((id) => `${名前}__${id}`));
   }
+  const 長い名前から = [...取り込んだ.keys()].sort((a, b) => b.length - a.length);
+  const 見せる数 = 8;
+  const 並べる = (ids: readonly string[]): string =>
+    ids.length === 0
+      ? "なし"
+      : `${ids.slice(0, 見せる数).map(truncateForMessage).join(", ")}${ids.length > 見せる数 ? ` ほか ${ids.length - 見せる数} 件` : ""}`;
   // 図種ごとの解決は、名前が見つからない時に slug の形でも探す (`slugLookup`)。 同じ書き方で
   // 部品だけが光らない状態を作らないよう揃える。 2 つ以上の名前が同じ slug になる時は引かない
   const 書いた名前 = new Set(doc.actors.map((a) => a.name));
@@ -1658,14 +1677,32 @@ function 部品の名前で光らせる(
   }
   let 次に見る = 0;
   for (const 段 of 書いた段) {
-    const 番目 = target.phases.findIndex((p, i) => i >= 次に見る && p.title === 段.name);
-    if (番目 < 0) continue;
-    次に見る = 番目 + 1;
+    // 光らせる相手を先に決める。 段の突き合わせに外れても、部品に無い名前は知らせる
     const 足す = (段.highlight ?? []).flatMap((書いた) => {
       const entry = parseFocusEntry(書いた, 書いた名前);
       if (entry.kind !== "node") return [];
-      return 部品の相手.get(entry.name) ?? (書いた名前.has(entry.name) ? [] : (slugから.get(entry.name) ?? []));
+      const 部品全体 = 部品の相手.get(entry.name);
+      if (部品全体 !== undefined) return 部品全体;
+      if (書いた名前.has(entry.name)) return [];
+      const slugで引いた = slugから.get(entry.name);
+      if (slugで引いた !== undefined) return slugで引いた;
+      const 名前 = 長い名前から.find((p) => entry.name.startsWith(`${p}__`));
+      if (名前 === undefined) return [];
+      const 中 = 部品の中.get(名前)!;
+      const 名指し = entry.name.slice(名前.length + 2);
+      if (中.要素.includes(名指し) || 中.線.includes(名指し)) return [entry.name];
+      onNotice?.({
+        kind: "focus-target-missing",
+        actor: 書いた,
+        line: 段.pos.line,
+        message: `光らせる相手が部品 "${truncateForMessage(名前)}" の中にありません: "${truncateForMessage(書いた)}"`,
+        hint: `この部品の要素 = ${並べる(中.要素)} / 中の線 = ${並べる(中.線)}`,
+      });
+      return [];
     });
+    const 番目 = target.phases.findIndex((p, i) => i >= 次に見る && p.title === 段.name);
+    if (番目 < 0) continue;
+    次に見る = 番目 + 1;
     if (足す.length === 0) continue;
     const 組み立てた段 = target.phases[番目]!;
     組み立てた段.activate = [...new Set([...組み立てた段.activate, ...足す])];

@@ -16,9 +16,14 @@
  * | 部品の段を外さない部品 | 部品の段と宿主の段が合わさっても、宿主の段で書いた部品が光る |
  * | 同じ部品を 2 度書く / 部品の段も同じ要素を光らせる | 同じ id を 2 度入れない |
  */
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import { textDslToDiagram } from "../src/index";
+import { textDslToDiagram, type CompileNotice } from "../src/index";
+import { 部品の一覧を作る } from "../../../apps/playground-spa/src/lib/parts-catalog";
+import * as カタログの部品 from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import * as 繋いで動かす見本 from "../../../apps/playground-spa/src/topics/catalog/parts-motion.cdl";
 
 /** 入口 1 つを出口 2 つへ分ける部品。 要素 3 つと中の線 2 本を持つ (カタログの振り分け器と同じ形) */
@@ -154,5 +159,115 @@ describe("段の focus に書いた部品の名前で、部品を光らせる (#
     const 図 = 組み立てる(本文("swimlane", "").replace("focus: [印]", "focus: [印, 印]"));
     const 光らせる相手 = 図.phases[0]!.activate;
     expect(光らせる相手.length).toBe(new Set(光らせる相手).size);
+  });
+});
+
+/**
+ * 段の `focus` に `{部品の名前}__{要素}` / `{部品の名前}__{中の線}` を書いて、その 1 つだけを光らせる (#2151)。
+ *
+ * 部品の名前で光らせると要素と中の線が全て光る (#2150)。 振り分け器の入口だけ、出口 A だけを見せたい段で
+ * 光る所が広すぎた。 書き方は宿主の段で部品の中の値を動かす書き方 (`印__lv`) と揃える。
+ *
+ * | 形 | 見ること |
+ * |---|---|
+ * | 要素 / 中の線を名指し | その 1 つだけが光り、知らせが出ない |
+ * | 部品に無い名前 | 知らせが 1 件出て、部品の要素と線の名前を案内する。 何も光らない |
+ * | 部品でない登場人物の名前に `__` を続けた名前 | 今と同じく見つからない知らせが出る |
+ * | 部品の名前が別の部品の名前で始まる | 一番長く一致する部品の要素を光らせる |
+ */
+describe("段の focus で部品の中の要素や線を名指しして光らせる (#2151)", () => {
+  const 名指しの本文 = (型: string, 名指し: string, 足す部品 = "") => `title: "t"
+type: ${型}
+
+actors:
+  - 受付: { kind: card }
+  - 印: { kind: split2, phase: false }
+${足す部品}
+flow:
+  - 受付 -> 印: "届く" { toPartNode: inP }
+
+animation:
+  - step: "1. 入口" 1s
+    focus: [${名指し}]
+  - step: "2. 受ける" 1s
+    focus: [受付]
+`;
+
+  function 知らせごと組み立てる(src: string): { 図: CdlDiagram; 見つからない: CompileNotice[] } {
+    const 知らせ: CompileNotice[] = [];
+    const 図 = textDslToDiagram(src, { partsCatalog: 部品の一覧, onNotice: (n) => 知らせ.push(n) });
+    return { 図, 見つからない: 知らせ.filter((n) => n.kind === "focus-target-missing") };
+  }
+
+  const 部品の中で光る = (図: CdlDiagram, 段: number, 名前 = "印") =>
+    図.phases[段]!.activate.filter((id) => id.startsWith(`${名前}__`));
+
+  it("要素を名指しした段では、その要素だけが光り、知らせが出ない", () => {
+    const { 図, 見つからない } = 知らせごと組み立てる(名指しの本文("swimlane", "印__inP"));
+    expect(部品の中で光る(図, 0)).toEqual(["印__inP"]);
+    expect(見つからない).toEqual([]);
+  });
+
+  it("部品の中の線を名指しした段では、その線だけが光る", () => {
+    const { 図, 見つからない } = 知らせごと組み立てる(名指しの本文("swimlane", "印__a"));
+    // 線が図に入っている (入っていなければ下の期待は前提から崩れている)
+    expect(図.edges.map((e) => e.id)).toContain("印__a");
+    expect(部品の中で光る(図, 0)).toEqual(["印__a"]);
+    expect(見つからない).toEqual([]);
+  });
+
+  it.each(["swimlane", "flow", "sequence"])("%s でも名指しした要素が光る", (型) => {
+    const { 図, 見つからない } = 知らせごと組み立てる(名指しの本文(型, "印__outA"));
+    expect(図.phases.length, "段が組み立っていない").toBeGreaterThanOrEqual(2);
+    expect(部品の中で光る(図, 0)).toEqual(["印__outA"]);
+    expect(部品の中で光る(図, 1)).toEqual([]);
+    expect(見つからない).toEqual([]);
+  });
+
+  it("部品に無い名前を書くと、知らせが 1 件出て部品の要素と線の名前を案内し、何も光らない", () => {
+    const { 図, 見つからない } = 知らせごと組み立てる(名指しの本文("swimlane", "印__nope"));
+    expect(見つからない).toHaveLength(1);
+    const 知らせ = 見つからない[0]!;
+    expect(知らせ.actor).toBe("印__nope");
+    // 段を書いた行を指す (`- step:` は本文の 12 行目)
+    expect(知らせ.line).toBe(12);
+    expect(知らせ.hint).toContain("inP, outA, outB");
+    expect(知らせ.hint).toContain("中の線 = a, b");
+    expect(部品の中で光る(図, 0)).toEqual([]);
+  });
+
+  it("部品でない登場人物の名前に __ を続けた名前は、今と同じく見つからない知らせが出る", () => {
+    const { 見つからない } = 知らせごと組み立てる(名指しの本文("swimlane", "受付__x"));
+    expect(見つからない.map((n) => n.actor)).toEqual(["受付__x"]);
+  });
+
+  it("部品の名前が別の部品の名前で始まっても、一番長く一致する部品の要素を光らせる", () => {
+    // `印` と `印__2` の 2 部品。 `印__2__inP` を短い `印` に当てると、要素 `2__inP` を探して見つからない
+    const { 図, 見つからない } = 知らせごと組み立てる(
+      名指しの本文("swimlane", "印__2__inP", "  - 印__2: { kind: split2, phase: false }"),
+    );
+    expect(部品の中で光る(図, 0, "印__2")).toEqual(["印__2__inP"]);
+    expect(見つからない).toEqual([]);
+  });
+
+  it("README の例をカタログの振り分け器で組み立てると、段ごとに書いた所だけが光り、知らせが出ない", () => {
+    // 書き方を写して使う例。 写した本文が光らなければ README が誤りを配る
+    const md = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "README.md"), "utf8");
+    const 見出し = md.indexOf("### 段の `focus:` で部品の全体か中の 1 つを光らせる");
+    expect(見出し, "README に書き方の節が無い").toBeGreaterThanOrEqual(0);
+    const 例 = /```yaml\n([\s\S]*?)```/.exec(md.slice(見出し))?.[1];
+    if (例 === undefined) throw new Error("README の節から yaml の例を読めない");
+    const 知らせ: CompileNotice[] = [];
+    const 図 = textDslToDiagram(例, {
+      partsCatalog: 部品の一覧を作る(Object.values(カタログの部品)),
+      onNotice: (n) => 知らせ.push(n),
+    });
+    expect(知らせ.map((n) => `${n.kind}: ${n.message}`)).toEqual([]);
+    expect(図.phases.length, "段が組み立っていない").toBe(3);
+    expect(部品の中で光る(図, 0, "split")).toEqual(["split__inP"]);
+    expect(部品の中で光る(図, 1, "split").sort()).toEqual(["split__outA", "split__sr-a"]);
+    expect(部品の中で光る(図, 2, "split").sort()).toEqual(
+      ["split__inP", "split__outA", "split__outB", "split__sr-a", "split__sr-b"].sort(),
+    );
   });
 });
