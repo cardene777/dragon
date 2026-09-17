@@ -3652,7 +3652,8 @@ export const partsBatchCollector = diagram("parts-batch-collector", {
     h: 150,
     shape: { kind: "rect", source: "{sendN}", fillMax: 3, orient: "up", fill: "#22c55e", radius: 6 },
   })
-  .edge("inP", "pool", { id: "bt-in", label: "1 件ずつ", tone: "info" })
+  // 部品の中の線の札に数字を置かない (#2149)。 繋いだ先の部品が別の数を書くと絵の中で食い違う
+  .edge("inP", "pool", { id: "bt-in", label: "ひとつずつ", tone: "info" })
   .edge("pool", "sendP", { id: "bt-send", label: "満ちたら", tone: "success" })
   // 出る側の単位は「件」 ではなく「回」。 30 件が 10 件ずつ 3 回で出ることを、右の棒が数える
   .phase("p", { duration: 4000, title: "満ちたら送る", body: "" }, (p: PhaseBuilder) =>
@@ -10548,7 +10549,7 @@ actors:
   - まとめて送る: { kind: dyn-rect, lane: bt2, stack: 1, subtitle: "{sendN} 回", posW: 150, posH: 150, shape: { kind: rect, source: "{sendN}", fillMax: 3, orient: up, fill: "#22c55e", radius: 6 } }
 
 flow:
-  - 届く -> 溜まり: "1 件ずつ" (info)
+  - 届く -> 溜まり: "ひとつずつ" (info)
   - 溜まり -> まとめて送る: "満ちたら" (success)
 
 animation:
@@ -10600,7 +10601,7 @@ export const sourceJson__partsBatchCollector = `{
     }
   ],
   "flow": [
-    { "from": "届く", "to": "溜まり", "label": "1 件ずつ", "tone": "info" },
+    { "from": "届く", "to": "溜まり", "label": "ひとつずつ", "tone": "info" },
     { "from": "溜まり", "to": "まとめて送る", "label": "満ちたら", "tone": "success" }
   ],
   "states": { "inN": 0, "poolN": 0, "sendN": 0 },
