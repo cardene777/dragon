@@ -1,8 +1,7 @@
 /**
  * visualValidateLaid API を使った残 axis の real defect assertion (extended)。
  *
- * 前 PR #120 で Axis 1/10/53/54 を assertion 化、 本 PR で Axis 8/14/55/56 を追加。
- * 位置関係 core 8 → 12 axis に拡張。
+ * 見るのは Axis 8/14/55/56 の 4 本。 Axis 1/10/53/54 は `axis-laid-mutations.test.ts` が見る。
  */
 import { describe, it, expect } from "vitest";
 import { visualValidateLaid, layout } from "@cardenelabs/cdl";

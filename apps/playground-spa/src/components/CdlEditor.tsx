@@ -480,7 +480,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   /**
    * CAR-1678 = YAML tab 側の「最後に programmatic に load した src」 追跡。
    * tab 切替時の dirty 判定 (yamlSrc.trim() !== yamlLastLoadedSrcRef.current.trim()) で使う。
-   * default = DEFAULT_YAML_SRC、 URL 経由の share 復元経路は本 PR 対象外 (spec § out)。
+   * default = DEFAULT_YAML_SRC。 共有 URL (`#s=`) からの復元は本文欄の控え (lastLoadedSrcRef)
+   * だけを更新し、 この控えは触らない = YAML 欄は開くまで読み込みが起きないため。
    */
   const yamlLastLoadedSrcRef = useRef<string>(DEFAULT_YAML_SRC);
   const confirmReplaceIfDirty = useCallback((newSrcPreviewLabel: string): boolean => {

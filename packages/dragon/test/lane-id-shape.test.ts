@@ -95,7 +95,7 @@ describe("書き間違いが別の縦列として通らない (Round 1 の指摘
   });
 
   it("組み立て側が作る字は通る (陰性対照)", () => {
-    // 絞りすぎると自動生成の縦列を指せなくなる = 本 PR の目的が消える
+    // 絞りすぎると自動で作られた縦列を指せなくなる = hyphen と日本語を受ける意味が消える
     for (const id of ["main", "chart", "lane-idle", "lane-sign-up", "lane_1", "lane-待機", "c4-l1"]) {
       const src = `title: "T"\ntype: state\nlanes:\n  ${id}: { width: 370 }\n\n` +
         `actors:\n  - Idle\n  - Loading\nflow:\n  - Idle -> Loading: "x"\n`;

@@ -13,7 +13,7 @@
  *
  * 見本の中身側 (名前と題の一致 / 識別子の一意性) は単体 test が全件を見る
  * (`packages/dragon/test/editor-samples-identity.test.ts`)。 ここでは **その 1 行が実際に動くか**
- * だけを見る = 既存の識別子で 1 件、 本 PR で足した識別子で 1 件。
+ * だけを見る = カタログ (`lib/presets.ts`) からの識別子で 1 件、 2 件目の見本に与えた識別子で 1 件。
  */
 import { test, expect } from "@playwright/test";
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
@@ -29,8 +29,8 @@ async function 開いた題(page: import("@playwright/test").Page, slug: string)
   }));
 }
 
-test("本 PR で足した識別子で 2 件目が開く (#1092)", async ({ page }) => {
-  // 変更前はこの識別子が存在せず、 2 件目に URL が無かった
+test("2 件目の見本に与えた識別子で 2 件目が開く (#1092)", async ({ page }) => {
+  // この識別子を与える前は、 2 件目を URL で開く手段が無かった
   const m = await 開いた題(page, "sequence-checkout");
   expect(m.題, `別の見本が開いた: ${m.題}`).toBe("注文チェックアウト");
   expect(m.知らせ, `未登録として扱われた: ${m.知らせ}`).not.toContain("未登録");
