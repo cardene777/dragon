@@ -183,6 +183,25 @@
   stroke-width: 2.5 !important;
 }
 
+/* 光らせた墨のベタの箱は、字を面に合わせて塗り直す (#2137)。
+ *
+ * `service` の箱は engine が墨のベタに紙の色の字で抜く (`data-cdl-look="solid"`)。 上の規則は
+ * その箱の面も橙の面に替えるが、字は紙の色のまま残るため、面と字がほぼ同じ色になって題も説明も
+ * 消えていた (実測 = 暗で面 `rgb(61, 33, 22)` / 題 `rgb(47, 41, 32)`、対比 1.02。 カタログの 9 枚)。
+ *
+ * **面は他の光った箱と揃える**。 墨のベタのまま枠だけ橙にすると、光った箱のうち 1 種類だけ
+ * 見た目が変わり、「今の段の箱」 の合図が揃わない。
+ *
+ * 光っていない墨のベタの箱には当てない = engine の墨のベタと紙の色の字をそのまま残す。
+ * 題の字は属性 3 つで、下の書体の規則 (属性 1 つ) と `:not(:has(...))` の規則より強い。 */
+[data-cdl-active="true"] [data-cdl-role="node-body"][data-cdl-look="solid"] text {
+  fill: var(--d-text-secondary) !important;
+}
+
+[data-cdl-active="true"] [data-cdl-role="node-body"][data-cdl-look="solid"] [data-cdl-role="node-label"] {
+  fill: var(--d-text-primary) !important;
+}
+
 /* 節の色を書いた箱は、強調した枠をその色で描く (#1966)。
  *
  * engine は強調した箱の枠を節の色 (`tone`) で描き、強調していない箱は色を持たない枠で描く。
