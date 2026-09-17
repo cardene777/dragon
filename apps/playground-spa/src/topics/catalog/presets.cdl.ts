@@ -911,6 +911,154 @@ export const presetStateMachine = withSteps(
   ],
 );
 
+/**
+ * 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960)。
+ * 一覧の別の行にすると、同じ種類の図の規模違いを見比べるのに行を選び直すことになる
+ */
+export const patternBase__presetStateMachine = "簡単";
+
+/**
+ * 状態遷移図の複雑な版 (#2163)。
+ *
+ * 簡単な版は注文が下書きから支払済へ進む 1 本道で、終わり方が 2 つ、条件付きの遷移が 0 本。
+ * 実物の状態は「何度まで直せるか」 のような条件で分かれるので、`guard` を使った見本を置く。
+ * 題材を記事にしたのは、注文を題材にした複雑な版が ER 図 / クラス図 / 順序図に既にあるため。
+ *
+ * **主な道を左の 1 列に置き、外れる道を右へ出す**。 線は縦か横の隣どうしだけで結ぶ。
+ * 斜めに結ぶと間の箱を貫く = 査読待ち (0 列 2 段) から直し中 (1 列 1 段) へ引いた線は
+ * 下書きを貫き、その戻りは始まりの丸を貫いた (実測の重い指摘 2 件)。
+ * そのため直しは自分へ戻る輪 1 本にまとめ、直し中の状態は置いていない。
+ *
+ * **箱の幅 (`stateWidth`) は図の大きさを変えない**。 320 / 280 / 240 のどれでも
+ * 2212 × 1488 のままだった (実測)。 幅を決めているのは列の間隔で、箱の幅ではない。
+ *
+ * 器の倍率は拡大で 9.3px、一覧で 8.7px になる。 段を減らすか横に並べ替えれば縮むが、
+ * 3 通りの終わり方を列で分ける置き方そのものが見本の中身なので、受け入れ一覧に足している。
+ */
+const fsmComplex = stateMachine({
+  id: "fsm-complex-demo",
+  topic: "記事が下書きから公開と取り下げへ進む状態",
+})
+  .mark({ id: "begin", kind: "start", col: 0, row: 0 })
+  .state({
+    id: "draft",
+    title: "下書き",
+    col: 0,
+    row: 1,
+    initial: true,
+    actions: [
+      { when: "entry", label: "自動で保存を始める" },
+      { when: "internal", label: "下書きを保つ", note: "30 秒ごと" },
+    ],
+  })
+  .state({
+    id: "review",
+    title: "査読待ち",
+    col: 0,
+    row: 2,
+    actions: [{ when: "entry", label: "査読者に知らせる" }],
+  })
+  .state({
+    id: "rejected",
+    title: "見送り",
+    col: 1,
+    row: 2,
+    final: true,
+    actions: [{ when: "entry", label: "見送った訳を残す" }],
+  })
+  .mark({ id: "closed1", kind: "end", col: 2, row: 2 })
+  .state({
+    id: "scheduled",
+    title: "予約済",
+    col: 0,
+    row: 3,
+    actions: [{ when: "do", label: "時刻が来るのを待つ" }],
+  })
+  .state({
+    id: "canceled",
+    title: "取り消し",
+    col: 1,
+    row: 3,
+    final: true,
+    actions: [{ when: "exit", label: "枠を空ける" }],
+  })
+  .mark({ id: "closed2", kind: "end", col: 2, row: 3 })
+  .state({
+    id: "published",
+    title: "公開中",
+    col: 0,
+    row: 4,
+    final: true,
+    actions: [{ when: "do", label: "読まれた数を数える" }],
+  })
+  .state({
+    id: "withdrawn",
+    title: "取り下げ",
+    col: 1,
+    row: 4,
+    final: true,
+    actions: [{ when: "exit", label: "検索から消す" }],
+  })
+  .mark({ id: "closed3", kind: "end", col: 2, row: 4 })
+  .transition({ from: "begin", to: "draft", trigger: "" })
+  // 自分へ戻る輪 (#1464)。 書き足しても状態は下書きのまま
+  .transition({ from: "draft", to: "draft", trigger: "書き足す" })
+  .transition({ from: "draft", to: "review", trigger: "出す" })
+  // 条件付きの遷移。 同じきっかけでも回数で行き先が分かれる
+  .transition({ from: "review", to: "review", trigger: "直して出し直す", guard: "3 度まで" })
+  .transition({ from: "review", to: "rejected", trigger: "見送られる", guard: "4 度目", tone: "error" })
+  .transition({ from: "rejected", to: "closed1", trigger: "" })
+  .transition({ from: "review", to: "scheduled", trigger: "認められる", tone: "success" })
+  .transition({ from: "scheduled", to: "canceled", trigger: "取りやめる" })
+  .transition({ from: "canceled", to: "closed2", trigger: "" })
+  .transition({ from: "scheduled", to: "published", trigger: "時刻になる", tone: "success" })
+  .transition({ from: "published", to: "withdrawn", trigger: "誤りが見つかる", tone: "error" })
+  .transition({ from: "withdrawn", to: "closed3", trigger: "" })
+  .build();
+
+export const pattern__presetStateMachine__複雑 = withSteps(fsmComplex, [
+  {
+    ids: ["begin", "draft", "t0-begin-draft", "t1-draft-draft"],
+    title: "1. 下書きで書き始める",
+    body: "塗った丸が始まり。 自分へ戻る輪は、書き足しても状態が変わらないこと。",
+  },
+  {
+    ids: ["review", "t2-draft-review"],
+    title: "2. 出して査読を待つ",
+    body: "山形を塗った行は、その状態に入った瞬間に 1 度だけすること。",
+  },
+  {
+    ids: ["t3-review-review"],
+    title: "3. 直して出し直す",
+    body: "札の 2 行目が条件。 3 度目までは査読待ちのまま戻る。",
+  },
+  {
+    ids: ["rejected", "closed1", "t4-review-rejected", "t5-rejected-closed1"],
+    title: "4. 4 度目は見送りで終わる",
+    body: "同じ査読でも回数で行き先が分かれる。 輪で囲んだ印が 1 つ目の終わり。",
+  },
+  {
+    ids: ["scheduled", "t6-review-scheduled"],
+    title: "5. 認められて予約に入る",
+    body: "四角を塗った行は、その状態にいる間ずっと続くこと。",
+  },
+  {
+    ids: ["canceled", "closed2", "t7-scheduled-canceled", "t8-canceled-closed2"],
+    title: "6. 公開の前に取りやめる",
+    body: "山形の外枠だけの行は、その状態から出る瞬間に 1 度だけすること。 2 つ目の終わり。",
+  },
+  {
+    ids: ["published", "t9-scheduled-published"],
+    title: "7. 時刻が来て公開する",
+    body: "主な道はここまで。 左の 1 列が下書きから公開までの道になっている。",
+  },
+  {
+    ids: ["withdrawn", "closed3", "t10-published-withdrawn", "t11-withdrawn-closed3"],
+    title: "8. 誤りが見つかって取り下げる",
+    body: "公開の後にも外れる道がある。 3 つ目の終わりで、右の列に終わり方が 3 つ並ぶ。",
+  },
+]);
+
 // ───────────── 新図種 12 種 (cdl v0.6+) ─────────────
 
 // infrastructure preset ... cloud / system 構成図 (col + row grid)
