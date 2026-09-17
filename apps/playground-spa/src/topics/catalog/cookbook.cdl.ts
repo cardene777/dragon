@@ -1444,15 +1444,20 @@ export const healthCheck = withId("health-check", textDslToDiagram(sourceYaml__h
  *
  * **わざと逆順で書いている**。 出来事から書いても図は人から始まる = 並べ替えが働いている
  * ことが見本そのもので分かる。 順に書くと `sequence` との違いが見えない。
+ *
+ * **種別を書かない箱は `actor` として左端に並ぶ** (#2131)。 全ての箱で書かないと並べ替えの鍵が
+ * 揃い、書いた順のまま並ぶ。 この見本は 4 つとも種別を書いていなかったので、題が謳う並びと
+ * 逆 (出来事から始まる) に出ていた。
+ * 見本が並べ替えを実演していることは `lib/solidity-sample-order.test.ts` が固定する。
  */
 export const sourceYaml__tokenTransferSolidity = `title: "ERC-20 の送金 (種別ごとに縦列が並ぶ)"
 type: solidity
 
 actors:
-  - Transfer
-  - 残高表
-  - トークン契約
-  - 利用者
+  - Transfer: { kind: event }
+  - 残高表: { kind: storage }
+  - トークン契約: { kind: contract }
+  - 利用者: { kind: eoa }
 
 flow:
   - 利用者 -> トークン契約: "transfer(花子, 100)"
@@ -1479,10 +1484,10 @@ export const sourceJson__tokenTransferSolidity = `{
   "title": "ERC-20 の送金 (種別ごとに縦列が並ぶ)",
   "type": "solidity",
   "actors": [
-    { "name": "Transfer" },
-    { "name": "残高表" },
-    { "name": "トークン契約" },
-    { "name": "利用者" }
+    { "name": "Transfer", "kind": "event" },
+    { "name": "残高表", "kind": "storage" },
+    { "name": "トークン契約", "kind": "contract" },
+    { "name": "利用者", "kind": "eoa" }
   ],
   "flow": [
     { "from": "利用者", "to": "トークン契約", "label": "transfer(花子, 100)" },
