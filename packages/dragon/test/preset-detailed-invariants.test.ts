@@ -2,11 +2,12 @@
  * preset detailed invariants (iter91、 2026-07-19)。
  *
  * user 「テスト観点たくさんあるでしょ？」 対応 iter91。
- * 全 21 preset の詳細 verify。
+ * 全 preset の詳細 verify。
  */
 import { describe, it, expect } from "vitest";
 import * as PresetsMod from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { 並べた名前, 見本の名前 } from "../../../apps/playground-spa/src/lib/preset-exports";
 
 function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiagram }> {
   const out: Array<{ name: string; diagram: CdlDiagram }> = [];
@@ -22,9 +23,9 @@ function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiag
 
 const ALL_PRESETS = collectAllPresets(PresetsMod);
 
-describe("iter91: 全 21 preset × detailed invariants", () => {
-  it(`preset 数 = 21`, () => {
-    expect(ALL_PRESETS.length).toBe(21);
+describe("iter91: 全 preset × detailed invariants", () => {
+  it("集めた見本が見本の一覧と一致する", () => {
+    expect(並べた名前(ALL_PRESETS.map((p) => p.name))).toEqual(並べた名前(見本の名前));
   });
 
   for (const { name, diagram } of ALL_PRESETS) {

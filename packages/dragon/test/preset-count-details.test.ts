@@ -4,6 +4,7 @@
 import { describe, it, expect } from "vitest";
 import * as PresetsMod from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { 並べた名前, 見本の名前 } from "../../../apps/playground-spa/src/lib/preset-exports";
 
 function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiagram }> {
   const out: Array<{ name: string; diagram: CdlDiagram }> = [];
@@ -19,9 +20,9 @@ function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiag
 
 const ALL_PRESETS = collectAllPresets(PresetsMod);
 
-describe("iter97: 全 21 preset × count details", () => {
-  it(`preset 数 = 21`, () => {
-    expect(ALL_PRESETS.length).toBe(21);
+describe("iter97: 全 preset × count details", () => {
+  it("集めた見本が見本の一覧と一致する", () => {
+    expect(並べた名前(ALL_PRESETS.map((p) => p.name))).toEqual(並べた名前(見本の名前));
   });
 
   for (const { name, diagram } of ALL_PRESETS) {

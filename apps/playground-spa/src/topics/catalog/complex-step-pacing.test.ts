@@ -1,18 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-// 複雑な版はクラス図と ER 図の中のパターン「複雑」 として書く (#1960)
-import {
-  pattern__presetClassDiagram__複雑 as presetClassComplex,
-  presetClassDiagram,
-  presetEr,
-  pattern__presetEr__複雑 as presetErComplex,
-} from "./presets.cdl";
+// 複雑な版は見本の中のパターン「複雑」 として書く (#1960)
+import * as カタログの定義 from "./presets.cdl";
 
-const 関係の識別子 = /^(?:cr|rel)-\d+-/;
 const 一段の最大増分 = 4;
 const 複雑見本の最大段数 = 10;
 
-type 見本 = Pick<CdlDiagram, "id" | "phases">;
+type 見本 = Pick<CdlDiagram, "id" | "phases" | "edges">;
 
 /**
  * `activate` は累積値なので、前段との差だけを見ると一度に読む量を測れる。
@@ -23,13 +17,30 @@ const 段ごとの増分 = (段: readonly Pick<CdlDiagram["phases"][number], "ac
     return 現在の段.activate.filter((要素) => !前段までに光った要素.has(要素));
   });
 
-const 見本たち: readonly 見本[] = [presetClassDiagram, presetClassComplex, presetEr, presetErComplex];
-const 複雑見本たち = 見本たち.filter(
-  (見本) => 見本.id === "class-complex-demo" || 見本.id === "er-complex-demo",
-);
+/**
+ * 複雑な版と、その元の見本を **export から集める** (#2139)。
+ *
+ * 以前はクラス図と ER 図の 4 件を名前で並べていた。 他の図に複雑な版を足しても
+ * 並べ忘れれば何も落ちず、足した版だけが段の進み方の検査を受けない。
+ * 複雑な版の名前は `pattern__<元の見本>__複雑` と決まっているので、そこから導く。
+ */
+const 定義 = カタログの定義 as unknown as Record<string, unknown>;
+const 複雑な版の名前 = Object.keys(定義)
+  .filter((名前) => /^pattern__[^_]+__複雑$/.test(名前))
+  .sort();
+const 元の見本の名前 = 複雑な版の名前.map((名前) => 名前.slice("pattern__".length, -"__複雑".length));
+
+const 図を引く = (名前: string): 見本 => {
+  const 図 = 定義[名前];
+  if (typeof 図 !== "object" || 図 === null) throw new Error(`${名前} が図の export ではない`);
+  return 図 as 見本;
+};
+
+const 複雑見本たち: readonly 見本[] = 複雑な版の名前.map(図を引く);
+const 見本たち: readonly 見本[] = [...元の見本の名前.map(図を引く), ...複雑見本たち];
 
 describe("複雑なカタログの段の進み方 (#1599)", () => {
-  it("4 見本すべてのどの段も増分が 4 件以下である", () => {
+  it("複雑な版と元の見本のどの段も増分が 4 件以下である", () => {
     for (const 見本 of 見本たち) {
       for (const [段番号, 増分] of 段ごとの増分(見本.phases).entries()) {
         expect(増分.length, `${見本.id} の ${段番号 + 1} 段目の増分が ${増分.length} 件`).toBeLessThanOrEqual(
@@ -39,29 +50,31 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
     }
   });
 
-  it("複雑な 2 見本の 2 段目には関係が 1 本以上ある", () => {
+  it("複雑な版の 2 段目には線が 1 本以上ある", () => {
     for (const 見本 of 複雑見本たち) {
-      const 二段目の関係 = (段ごとの増分(見本.phases)[1] ?? []).filter((要素) => 関係の識別子.test(要素));
-      expect(二段目の関係.length, `${見本.id} の 2 段目の関係が ${二段目の関係.length} 本`).toBeGreaterThanOrEqual(1);
+      const 線 = new Set(見本.edges.map((edge) => edge.id));
+      const 二段目の線 = (段ごとの増分(見本.phases)[1] ?? []).filter((要素) => 線.has(要素));
+      expect(二段目の線.length, `${見本.id} の 2 段目の線が ${二段目の線.length} 本`).toBeGreaterThanOrEqual(1);
     }
   });
 
-  it("複雑な 2 見本の段数は 10 以下である", () => {
+  it("複雑な版の段数は 10 以下である", () => {
     for (const 見本 of 複雑見本たち) {
       expect(見本.phases.length, `${見本.id} の段数が ${見本.phases.length} 段`).toBeLessThanOrEqual(複雑見本の最大段数);
     }
   });
 
-  it("走査できた見本が 4 件ちょうどである", () => {
-    expect(見本たち.length, `走査できた見本が ${見本たち.length} 件で、検査が空振りしている`).toBe(4);
+  it("走査した複雑な版に、以前から並べていた 2 件と構成図の版が入っている", () => {
+    // 集め方を誤って 0 件になっても、上の 3 本は空の配列を回して通ってしまう
     expect(
-      new Set(見本たち.map((見本) => 見本.id)),
-      "走査できた見本の識別子が実物と一致せず、検査が空振りしている",
-    ).toEqual(new Set(["class-demo", "class-complex-demo", "er-demo", "er-complex-demo"]));
+      new Set(複雑見本たち.map((見本) => 見本.id)),
+      "走査できた複雑な版の識別子が実物と一致せず、検査が空振りしている",
+    ).toEqual(new Set(["class-complex-demo", "er-complex-demo", "infra-complex-demo"]));
+    // 元の見本も名前から引く。 名前の切り出しを誤ると複雑な版だけが残る
     expect(
-      複雑見本たち.length,
-      `走査できた複雑な見本が ${複雑見本たち.length} 件で、検査が空振りしている`,
-    ).toBe(2);
+      new Set(元の見本の名前.map((名前) => 図を引く(名前).id)),
+      "複雑な版の名前から元の見本を引けていない",
+    ).toEqual(new Set(["class-demo", "er-demo", "infra-demo"]));
   });
 
   it("段ごとの増分を累積した activate から数えられる", () => {
