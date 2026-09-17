@@ -1593,6 +1593,89 @@ export const presetFlowchart = withSteps(
   ],
 );
 
+/** 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960) */
+export const patternBase__presetFlowchart = "簡単";
+
+// 流れ図の複雑な版 (#2143)。 経費の申請から振込までを 8 箱で追う。
+//
+// 簡単な版に無い形と筋を入れる = 繰り返し (`loop`) / 判断を 2 つ続ける / 2 つの道が照合で合流する /
+// 差し戻して最初の申請に戻る線 / 終わり方が 2 つ (振込と却下)。
+//
+// 組み立て器は段を選べず、縦列ごとに宣言した順に上から積む。 下書きで 3 通り組み、金額の判断を
+// 照合の後に置く形は上長から振込への線が関係の無い箱 2 つを貫いたので、金額で先に道を分ける。
+//
+//   段   申請者                  経理                    上長
+//   0    領収書を添えて申請する  10 万円を超えるか        上長が認めるか
+//   1    直して出し直す          明細を 1 行ずつ見る      却下を知らせる
+//   2                            領収書と金額が合うか
+//   3                            次の給与日に振り込む
+export const pattern__presetFlowchart__複雑 = withSteps(
+  flowchart({
+    id: "flowchart-complex-demo",
+    topic: "経費の申請を金額と領収書で分けて振込まで追う流れ図",
+    lanes: ["申請者", "経理", "上長"],
+  })
+    .node({ id: "submit", title: "領収書を添えて申請する", shape: "start", lane: "申請者" })
+    .node({ id: "fix", title: "直して出し直す", shape: "process", lane: "申請者" })
+    .node({ id: "amount", title: "10 万円を超えるか", shape: "decision", lane: "経理" })
+    .node({ id: "lines", title: "明細を 1 行ずつ見る", shape: "loop", lane: "経理" })
+    .node({ id: "check", title: "領収書と金額が合うか", shape: "decision", lane: "経理" })
+    .node({ id: "pay", title: "次の給与日に振り込む", shape: "end", lane: "経理" })
+    .node({ id: "boss", title: "上長が認めるか", shape: "decision", lane: "上長" })
+    .node({ id: "reject", title: "却下を知らせる", shape: "end", lane: "上長" })
+    .edge({ from: "submit", to: "amount" })
+    .edge({ from: "amount", to: "boss", label: "はい", tone: "warning" })
+    .edge({ from: "amount", to: "lines", label: "いいえ", tone: "success" })
+    .edge({ from: "boss", to: "lines", label: "はい", tone: "success" })
+    .edge({ from: "boss", to: "reject", label: "いいえ", tone: "error" })
+    .edge({ from: "lines", to: "check" })
+    .edge({ from: "check", to: "fix", label: "いいえ", tone: "warning" })
+    .edge({ from: "fix", to: "submit", label: "出し直す" })
+    .edge({ from: "check", to: "pay", label: "はい", tone: "success" })
+    .build(),
+  [
+    {
+      ids: ["submit"],
+      title: "1. 領収書を添えて申請する",
+      body: "申請者が領収書を添えて経費を申請する。 流れはここから始まり、振込か却下のどちらかで終わる。",
+    },
+    {
+      ids: ["amount", "fc-0-submit-amount"],
+      title: "2. 金額で道を分ける",
+      body: "経理は最初に、合計が 10 万円を超えるかを見る。 超えない申請は上長を通さずに照合へ進む。",
+    },
+    {
+      ids: ["boss", "fc-1-amount-boss"],
+      title: "3. 高い申請は上長に回す",
+      body: "10 万円を超える申請だけ、上長が認めるかを判断する。 判断が 2 つ続く道になる。",
+    },
+    {
+      ids: ["reject", "fc-4-boss-reject"],
+      title: "4. 認めなければ却下で終える",
+      body: "上長が認めない申請は、却下を知らせて終わる。 この流れの 1 つ目の終わり方。",
+    },
+    {
+      ids: ["lines", "fc-2-amount-lines", "fc-3-boss-lines"],
+      title: "5. 2 つの道が照合で合流する",
+      body: "10 万円以下の申請と、上長が認めた申請が同じ照合に入る。 経理は明細を 1 行ずつ、最後の行まで繰り返し見る。",
+    },
+    {
+      ids: ["check", "fc-5-lines-check"],
+      title: "6. 領収書と金額が合うかを判断する",
+      body: "全ての行を見終えたら、領収書と金額が合うかを判断する。",
+    },
+    {
+      ids: ["fix", "fc-6-check-fix", "fc-7-fix-submit"],
+      title: "7. 合わなければ差し戻す",
+      body: "合わない申請は申請者に戻る。 申請者が直して出し直すと、最初の申請へ戻ってもう一度流れる。",
+    },
+    {
+      ids: ["pay", "fc-8-check-pay"],
+      body: "合う申請は次の給与日に振り込んで終わる。 この流れの 2 つ目の終わり方。",
+    },
+  ],
+);
+
 // network preset ... NW topology
 export const presetNetwork = withSteps(
   network({ id: "network-demo", topic: "ネットワーク機器とセグメントの接続関係を示す図" })
@@ -3839,7 +3922,136 @@ export const sourceJson__presetFlowchart = `{
   ]
 }`;
 
-export const sourceYaml__presetNetwork = `title: "ネットワーク機器とセグメントの接続関係を示す図"
+export const sourceYaml__pattern__presetFlowchart__複雑 = `title: "経費の申請を金額と領収書で分けて振込まで追う流れ図"
+# 簡単な版と同じく swimlane で書く。 縦列の中は書いた順に上から積む
+type: swimlane
+
+lanes:
+  applicant: { width: 380, label: "申請者" }
+  accounting: { width: 380, label: "経理" }
+  manager: { width: 380, label: "上長" }
+
+actors:
+  - 領収書を添えて申請する: { kind: event, eyebrow: "開始", lane: applicant }
+  - 直して出し直す: { kind: function, eyebrow: "処理", lane: applicant }
+  - 10 万円を超えるか: { kind: card, eyebrow: "判断", lane: accounting }
+  - 明細を 1 行ずつ見る: { kind: card, eyebrow: "繰り返し", lane: accounting }
+  - 領収書と金額が合うか: { kind: card, eyebrow: "判断", lane: accounting }
+  - 次の給与日に振り込む: { kind: event, eyebrow: "終了", lane: accounting }
+  - 上長が認めるか: { kind: card, eyebrow: "判断", lane: manager }
+  - 却下を知らせる: { kind: event, eyebrow: "終了", lane: manager }
+
+# 「はい」 と「いいえ」 は線の上に重ねる (overlay: true)。 それ以外の名前は線から離して置く
+flow:
+  - 領収書を添えて申請する -> 10 万円を超えるか: "" (accent, solid) { overlay: false }
+  - 10 万円を超えるか -> 上長が認めるか: "はい" (warning, solid) { overlay: true }
+  - 10 万円を超えるか -> 明細を 1 行ずつ見る: "いいえ" (success, solid) { overlay: true }
+  - 上長が認めるか -> 明細を 1 行ずつ見る: "はい" (success, solid) { overlay: true }
+  - 上長が認めるか -> 却下を知らせる: "いいえ" (error, solid) { overlay: true }
+  - 明細を 1 行ずつ見る -> 領収書と金額が合うか: "" (accent, solid) { overlay: false }
+  - 領収書と金額が合うか -> 直して出し直す: "いいえ" (warning, solid) { overlay: true }
+  - 直して出し直す -> 領収書を添えて申請する: "出し直す" (accent, solid) { overlay: false }
+  - 領収書と金額が合うか -> 次の給与日に振り込む: "はい" (success, solid) { overlay: true }
+
+animation:
+  - step: "1. 領収書を添えて申請する" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する]
+    body: "申請者が領収書を添えて経費を申請する。 流れはここから始まり、振込か却下のどちらかで終わる。"
+  - step: "2. 金額で道を分ける" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか"]
+    body: "経理は最初に、合計が 10 万円を超えるかを見る。 超えない申請は上長を通さずに照合へ進む。"
+  - step: "3. 高い申請は上長に回す" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか"]
+    body: "10 万円を超える申請だけ、上長が認めるかを判断する。 判断が 2 つ続く道になる。"
+  - step: "4. 認めなければ却下で終える" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる"]
+    body: "上長が認めない申請は、却下を知らせて終わる。 この流れの 1 つ目の終わり方。"
+  - step: "5. 2 つの道が照合で合流する" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る"]
+    body: "10 万円以下の申請と、上長が認めた申請が同じ照合に入る。 経理は明細を 1 行ずつ、最後の行まで繰り返し見る。"
+  - step: "6. 領収書と金額が合うかを判断する" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る", 領収書と金額が合うか, "明細を 1 行ずつ見る -> 領収書と金額が合うか"]
+    body: "全ての行を見終えたら、領収書と金額が合うかを判断する。"
+  - step: "7. 合わなければ差し戻す" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る", 領収書と金額が合うか, "明細を 1 行ずつ見る -> 領収書と金額が合うか", 直して出し直す, "領収書と金額が合うか -> 直して出し直す", "直して出し直す -> 領収書を添えて申請する"]
+    body: "合わない申請は申請者に戻る。 申請者が直して出し直すと、最初の申請へ戻ってもう一度流れる。"
+  - step: "経費の申請を金額と領収書で分けて振込まで追う流れ図" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る", 領収書と金額が合うか, "明細を 1 行ずつ見る -> 領収書と金額が合うか", 直して出し直す, "領収書と金額が合うか -> 直して出し直す", "直して出し直す -> 領収書を添えて申請する", 次の給与日に振り込む, "領収書と金額が合うか -> 次の給与日に振り込む"]
+    body: "合う申請は次の給与日に振り込んで終わる。 この流れの 2 つ目の終わり方。"
+`;
+
+/** 複雑な流れ図の段で光る先。 記法の JSON は段ごとに前の段の分を積み上げて書く */
+const flowchartComplexFocus: readonly (readonly string[])[] = [
+  ["領収書を添えて申請する"],
+  ["10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか"],
+  ["上長が認めるか", "10 万円を超えるか -> 上長が認めるか"],
+  ["却下を知らせる", "上長が認めるか -> 却下を知らせる"],
+  ["明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る"],
+  ["領収書と金額が合うか", "明細を 1 行ずつ見る -> 領収書と金額が合うか"],
+  ["直して出し直す", "領収書と金額が合うか -> 直して出し直す", "直して出し直す -> 領収書を添えて申請する"],
+  ["次の給与日に振り込む", "領収書と金額が合うか -> 次の給与日に振り込む"],
+];
+
+export const sourceJson__pattern__presetFlowchart__複雑 = JSON.stringify(
+  {
+    title: "経費の申請を金額と領収書で分けて振込まで追う流れ図",
+    type: "swimlane",
+    lanes: {
+      applicant: { width: 380, label: "申請者" },
+      accounting: { width: 380, label: "経理" },
+      manager: { width: 380, label: "上長" },
+    },
+    actors: [
+      { name: "領収書を添えて申請する", kind: "event", eyebrow: "開始", lane: "applicant" },
+      { name: "直して出し直す", kind: "function", eyebrow: "処理", lane: "applicant" },
+      { name: "10 万円を超えるか", kind: "card", eyebrow: "判断", lane: "accounting" },
+      { name: "明細を 1 行ずつ見る", kind: "card", eyebrow: "繰り返し", lane: "accounting" },
+      { name: "領収書と金額が合うか", kind: "card", eyebrow: "判断", lane: "accounting" },
+      { name: "次の給与日に振り込む", kind: "event", eyebrow: "終了", lane: "accounting" },
+      { name: "上長が認めるか", kind: "card", eyebrow: "判断", lane: "manager" },
+      { name: "却下を知らせる", kind: "event", eyebrow: "終了", lane: "manager" },
+    ],
+    flow: [
+      { from: "領収書を添えて申請する", to: "10 万円を超えるか", label: "", tone: "accent", style: "solid", overlay: false },
+      { from: "10 万円を超えるか", to: "上長が認めるか", label: "はい", tone: "warning", style: "solid", overlay: true },
+      { from: "10 万円を超えるか", to: "明細を 1 行ずつ見る", label: "いいえ", tone: "success", style: "solid", overlay: true },
+      { from: "上長が認めるか", to: "明細を 1 行ずつ見る", label: "はい", tone: "success", style: "solid", overlay: true },
+      { from: "上長が認めるか", to: "却下を知らせる", label: "いいえ", tone: "error", style: "solid", overlay: true },
+      { from: "明細を 1 行ずつ見る", to: "領収書と金額が合うか", label: "", tone: "accent", style: "solid", overlay: false },
+      { from: "領収書と金額が合うか", to: "直して出し直す", label: "いいえ", tone: "warning", style: "solid", overlay: true },
+      { from: "直して出し直す", to: "領収書を添えて申請する", label: "出し直す", tone: "accent", style: "solid", overlay: false },
+      { from: "領収書と金額が合うか", to: "次の給与日に振り込む", label: "はい", tone: "success", style: "solid", overlay: true },
+    ],
+    animation: [
+      ["1. 領収書を添えて申請する", "申請者が領収書を添えて経費を申請する。 流れはここから始まり、振込か却下のどちらかで終わる。"],
+      ["2. 金額で道を分ける", "経理は最初に、合計が 10 万円を超えるかを見る。 超えない申請は上長を通さずに照合へ進む。"],
+      ["3. 高い申請は上長に回す", "10 万円を超える申請だけ、上長が認めるかを判断する。 判断が 2 つ続く道になる。"],
+      ["4. 認めなければ却下で終える", "上長が認めない申請は、却下を知らせて終わる。 この流れの 1 つ目の終わり方。"],
+      ["5. 2 つの道が照合で合流する", "10 万円以下の申請と、上長が認めた申請が同じ照合に入る。 経理は明細を 1 行ずつ、最後の行まで繰り返し見る。"],
+      ["6. 領収書と金額が合うかを判断する", "全ての行を見終えたら、領収書と金額が合うかを判断する。"],
+      ["7. 合わなければ差し戻す", "合わない申請は申請者に戻る。 申請者が直して出し直すと、最初の申請へ戻ってもう一度流れる。"],
+      ["経費の申請を金額と領収書で分けて振込まで追う流れ図", "合う申請は次の給与日に振り込んで終わる。 この流れの 2 つ目の終わり方。"],
+    ].map(([step, body], i) => ({
+      step,
+      duration: 0.9,
+      focus: flowchartComplexFocus.slice(0, i + 1).flat(),
+      body,
+      badge: "flowchart",
+    })),
+  },
+  null,
+  2,
+);
+
+export const sourceYaml__presetNetwork =`title: "ネットワーク機器とセグメントの接続関係を示す図"
 type: flow
 
 lanes:

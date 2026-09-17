@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   CLASS_RELATION_LOOK,
+  flowchart,
   type CdlDiagram,
   type CdlEdge,
   type ClassRelationType,
+  type FlowchartNodeShape,
 } from "@cardenelabs/cdl";
 
 // 複雑な版は見本の中のパターン「複雑」 として書く (#1960)
 import {
   pattern__presetClassDiagram__複雑 as presetClassComplex,
   pattern__presetEr__複雑 as presetErComplex,
+  pattern__presetFlowchart__複雑 as presetFlowchartComplex,
   pattern__presetInfrastructure__複雑 as presetInfraComplex,
 } from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 
@@ -105,6 +108,68 @@ describe("複雑なクラウド構成図 (#2139)", () => {
 
   it("段が 9 つある", () => {
     expect(presetInfraComplex.phases.length).toBe(9);
+  });
+});
+
+/**
+ * 流れ図の組み立て器が持つ形の一覧。 **型で閉じる** = 描画側に形が増えると、ここに足すまで型の検査が落ちる。
+ * 形は箱の上の名前 (`eyebrow`) にしか残らないので、形ごとに 1 箱の図を組んで名前を導く。
+ */
+const 流れ図の形 = Object.keys({
+  start: true,
+  end: true,
+  process: true,
+  decision: true,
+  loop: true,
+} satisfies Record<FlowchartNodeShape, true>) as FlowchartNodeShape[];
+
+const 形の名前 = new Map(
+  流れ図の形.map((形) => {
+    const 図 = flowchart({ id: "shape-probe", topic: "形", lanes: ["列"] })
+      .node({ id: "n", title: "箱", shape: 形, lane: "列" })
+      .build();
+    return [形, 図.nodes[0]?.eyebrow ?? ""] as const;
+  }),
+);
+
+describe("複雑な流れ図 (#2143)", () => {
+  it("8 箱と 9 本の線を持つ", () => {
+    expect(presetFlowchartComplex.nodes.length).toBe(8);
+    expect(presetFlowchartComplex.edges.length).toBe(9);
+  });
+
+  it("組み立て器が持つ形を全て使う", () => {
+    expect(new Set(形の名前.values()).size, "形ごとの名前を導けていない").toBe(流れ図の形.length);
+    const 使った名前 = new Set(presetFlowchartComplex.nodes.map((node) => node.eyebrow));
+    const 使っていない = 流れ図の形.filter((形) => !使った名前.has(形の名前.get(形)));
+    expect(使っていない, "複雑な版で使っていない形").toEqual([]);
+  });
+
+  it("全ての箱が最初の申請から線を辿って届く", () => {
+    expect(presetFlowchartComplex.nodes.length, "辿る対象が 1 件も無い").toBeGreaterThan(0);
+    const 届いた = 届く箱(presetFlowchartComplex, "submit");
+    const 届かない = presetFlowchartComplex.nodes.map((node) => node.id).filter((id) => !届いた.has(id));
+    expect(届かない, "最初の申請から届かない箱").toEqual([]);
+  });
+
+  it("2 つの道が照合で合流し、差し戻しが最初の申請へ戻る", () => {
+    const 照合へ = presetFlowchartComplex.edges.filter((edge) => edge.to === "lines").map((edge) => edge.from);
+    expect(照合へ.sort(), "照合に入る線の出どころ").toEqual(["amount", "boss"]);
+    const 戻る = presetFlowchartComplex.edges.filter((edge) => edge.to === "submit").map((edge) => edge.from);
+    expect(戻る, "最初の申請へ戻る線の出どころ").toEqual(["fix"]);
+  });
+
+  it("終わり方が 2 つあり、どちらも出ていく線を持たない", () => {
+    const 終わり = presetFlowchartComplex.nodes
+      .filter((node) => node.eyebrow === 形の名前.get("end"))
+      .map((node) => node.id);
+    expect(終わり.sort()).toEqual(["pay", "reject"]);
+    const 出ていく = presetFlowchartComplex.edges.filter((edge) => 終わり.includes(edge.from));
+    expect(出ていく.map((edge) => edge.id), "終わりの箱から出ていく線").toEqual([]);
+  });
+
+  it("段が 8 つある", () => {
+    expect(presetFlowchartComplex.phases.length).toBe(8);
   });
 });
 
