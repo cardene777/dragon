@@ -178,6 +178,9 @@ animation:
   - step: "同意の確認" 1.5s
     focus: [認可窓口, 利用者]
     badge: "同意の確認"
+  - step: "許可" 1.0s
+    focus: ["利用者 -> 認可窓口"]
+    badge: "許可"
   - step: "引き換え" 1.2s
     focus: [本体, 認可窓口]
     badge: "認可の番号"
@@ -213,6 +216,7 @@ export const sourceJson__oauthFlow = `{
       "badge": "転送"
     },
     { "step": "同意の確認", "duration": 1.5, "focus": ["認可窓口", "利用者"], "badge": "同意の確認" },
+    { "step": "許可", "duration": 1, "focus": ["利用者 -> 認可窓口"], "badge": "許可" },
     { "step": "引き換え", "duration": 1.2, "focus": ["本体", "認可窓口"], "badge": "認可の番号" },
     { "step": "利用", "duration": 1, "focus": ["本体", "API"], "badge": "鍵" }
   ]
@@ -302,15 +306,21 @@ flow:
   - 処理側 -> 閲覧ソフト: "200"
 
 animation:
-  - step: "発行" 1.2s
-    focus: [閲覧ソフト, 処理側]
-    badge: "発行"
   - step: "保管" 1.2s
     focus: [処理側, 利用中の記録]
     badge: "保管"
-  - step: "送信" 1.5s
-    focus: [閲覧ソフト, 処理側, 利用中の記録]
+  - step: "発行" 1.2s
+    focus: ["処理側 -> 閲覧ソフト"]
+    badge: "発行"
+  - step: "送信" 1.2s
+    focus: ["閲覧ソフト -> 処理側"]
+    badge: "POST"
+  - step: "照合" 1.2s
+    focus: [処理側, 利用中の記録]
     badge: "照合"
+  - step: "受理" 1.0s
+    focus: ["処理側 -> 閲覧ソフト"]
+    badge: "200"
 `;
 
 export const sourceJson__csrfToken = `{
@@ -330,14 +340,11 @@ export const sourceJson__csrfToken = `{
     { "from": "処理側", "to": "閲覧ソフト", "label": "200" }
   ],
   "animation": [
-    { "step": "発行", "duration": 1.2, "focus": ["閲覧ソフト", "処理側"], "badge": "発行" },
     { "step": "保管", "duration": 1.2, "focus": ["処理側", "利用中の記録"], "badge": "保管" },
-    {
-      "step": "送信",
-      "duration": 1.5,
-      "focus": ["閲覧ソフト", "処理側", "利用中の記録"],
-      "badge": "照合"
-    }
+    { "step": "発行", "duration": 1.2, "focus": ["処理側 -> 閲覧ソフト"], "badge": "発行" },
+    { "step": "送信", "duration": 1.2, "focus": ["閲覧ソフト -> 処理側"], "badge": "POST" },
+    { "step": "照合", "duration": 1.2, "focus": ["処理側", "利用中の記録"], "badge": "照合" },
+    { "step": "受理", "duration": 1, "focus": ["処理側 -> 閲覧ソフト"], "badge": "200" }
   ]
 }`;
 
@@ -474,14 +481,20 @@ flow:
   - API -> 利用者側: "200"
 
 animation:
-  - step: "無い" 1.5s
-    focus: [利用者側, API, 一時置き場, DB]
+  - step: "探す" 1.0s
+    focus: ["API -> 一時置き場"]
+    badge: "探す"
+  - step: "無い" 1.2s
+    focus: ["一時置き場 -> API"]
     badge: "無い"
+  - step: "DB から引く" 1.5s
+    focus: [API, DB]
+    badge: "SELECT"
   - step: "埋める" 1.2s
-    focus: [API, 一時置き場]
+    focus: ["API -> 一時置き場"]
     badge: "置く"
   - step: "返す" 1.0s
-    focus: [API, 利用者側]
+    focus: ["API -> 利用者側"]
     badge: "200"
 `;
 
@@ -504,14 +517,11 @@ export const sourceJson__cacheReadThrough = `{
     { "from": "API", "to": "利用者側", "label": "200" }
   ],
   "animation": [
-    {
-      "step": "無い",
-      "duration": 1.5,
-      "focus": ["利用者側", "API", "一時置き場", "DB"],
-      "badge": "無い"
-    },
-    { "step": "埋める", "duration": 1.2, "focus": ["API", "一時置き場"], "badge": "置く" },
-    { "step": "返す", "duration": 1, "focus": ["API", "利用者側"], "badge": "200" }
+    { "step": "探す", "duration": 1, "focus": ["API -> 一時置き場"], "badge": "探す" },
+    { "step": "無い", "duration": 1.2, "focus": ["一時置き場 -> API"], "badge": "無い" },
+    { "step": "DB から引く", "duration": 1.5, "focus": ["API", "DB"], "badge": "SELECT" },
+    { "step": "埋める", "duration": 1.2, "focus": ["API -> 一時置き場"], "badge": "置く" },
+    { "step": "返す", "duration": 1, "focus": ["API -> 利用者側"], "badge": "200" }
   ]
 }`;
 
@@ -642,13 +652,16 @@ flow:
 
 animation:
   - step: "埋める" 1.0s
-    focus: [利用者, 入力欄]
+    focus: ["利用者 -> 入力欄"]
     badge: "埋める"
+  - step: "押す" 0.8s
+    focus: ["利用者 -> 入力欄"]
+    badge: "送信"
   - step: "送信" 1.2s
     focus: [入力欄, 処理側]
     badge: "POST"
   - step: "受け取った" 1.0s
-    focus: [入力欄, 利用者]
+    focus: ["入力欄 -> 利用者"]
     badge: "正常"
 `;
 
@@ -668,9 +681,10 @@ export const sourceJson__formSubmit = `{
     { "from": "入力欄", "to": "利用者", "label": "成功の知らせ" }
   ],
   "animation": [
-    { "step": "埋める", "duration": 1, "focus": ["利用者", "入力欄"], "badge": "埋める" },
+    { "step": "埋める", "duration": 1, "focus": ["利用者 -> 入力欄"], "badge": "埋める" },
+    { "step": "押す", "duration": 0.8, "focus": ["利用者 -> 入力欄"], "badge": "送信" },
     { "step": "送信", "duration": 1.2, "focus": ["入力欄", "処理側"], "badge": "POST" },
-    { "step": "受け取った", "duration": 1, "focus": ["入力欄", "利用者"], "badge": "正常" }
+    { "step": "受け取った", "duration": 1, "focus": ["入力欄 -> 利用者"], "badge": "正常" }
   ]
 }`;
 

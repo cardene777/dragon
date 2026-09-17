@@ -1874,10 +1874,26 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > solidity の図
         "sets": [
           {
             "stateId": "seq_step",
-            "value": 0,
+            "value": 1,
           },
         ],
         "title": "集計",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "投票コントラクト",
+        ],
+        "body": "",
+        "duration": 1200,
+        "id": "p2",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 2,
+          },
+        ],
+        "title": "結果",
         "tweens": [],
       },
     ],
