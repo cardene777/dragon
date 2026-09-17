@@ -120,6 +120,11 @@ function deltaE(a: Rgb, b: Rgb): number {
  * 描いた矢印だけを読む。 6 色すべてを見るのは 六色の記法 を開いたエディタ側が担う。
  *
  * 矢頭は `<defs><marker>` の中にあり矢印の子孫ではないので、`marker-end` から実物を辿る。
+ *
+ * **矢頭の計算値が `context-stroke` なら線の色に読み替える** (#2141)。 矢頭は参照した線の色を
+ * この語で継ぐので、計算値は色にならない。 語の意味は「この矢頭を使う線の色」 そのもの。
+ * 閲覧ソフトが実際にその色で塗ったかは計算値に出ないため、`main-route-edge-color.spec.ts` が
+ * 描いた画素で確かめる。
  */
 async function readToneColors(
   page: Page,
@@ -144,10 +149,9 @@ async function readToneColors(
       const marker = ref ? document.getElementById(ref) : null;
       const head = marker?.querySelector('[data-cdl-role="edge-arrowhead"]');
       if (!head) throw new Error(`${tone} の矢頭 (${ref || "指定なし"}) が引けない`);
-      out[tone] = {
-        stroke: getComputedStyle(line).stroke,
-        head: getComputedStyle(head).fill,
-      };
+      const stroke = getComputedStyle(line).stroke;
+      const fill = getComputedStyle(head).fill;
+      out[tone] = { stroke, head: fill === "context-stroke" ? stroke : fill };
     }
     return { paper, tones: out };
   });
@@ -299,11 +303,13 @@ test("実在する edge も tone の色で描かれる (複製ではなく本物
       const ref = (line.getAttribute("marker-end") ?? "").replace(/^url\(#|\)$/g, "");
       const marker = ref ? document.getElementById(ref) : null;
       const head = marker?.querySelector('[data-cdl-role="edge-arrowhead"]');
+      // 計算値が `context-stroke` なら線の色 (読み替えの理由は readToneColors の説明)
+      const fill = head ? getComputedStyle(head).fill : null;
       out.push({
         tone,
         stroke: cs.stroke,
         opacity: Number(cs.strokeOpacity),
-        head: head ? getComputedStyle(head).fill : null,
+        head: fill === "context-stroke" ? cs.stroke : fill,
       });
     }
     return out;

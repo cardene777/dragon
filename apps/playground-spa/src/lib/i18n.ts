@@ -390,6 +390,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   nodeTone: "節の色6種",
   edgeHead: "矢印の端の形",
   edgeSide: "矢印の出る辺",
+  edgeRole: "線の役目",
   shapeOrient: "形の満ちる向き4種",
   relativePos: "位置を相対で書く",
   // === styles 実業務シナリオ ===
@@ -601,6 +602,7 @@ export const ITEM_NAME_EN: Record<string, string> = {
   nodeTone: "Six node tones",
   edgeHead: "Edge end shapes",
   edgeSide: "Edge exit side",
+  edgeRole: "Edge role",
   shapeOrient: "Four fill directions",
   relativePos: "Relative placement",
   erc20Transfer: "ERC-20 transfer",

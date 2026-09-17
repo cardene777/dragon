@@ -1188,6 +1188,161 @@ export const sourceJson__pattern__edgeSide__左 = `{
 
 export const pattern__edgeSide__左 = textDslToDiagram(sourceYaml__pattern__edgeSide__左);
 
+// ---- 線の役目 (#2141) ----
+//
+// 役目 `role: main` を書いた線は、強調した箱の枠と同じ色で引く。 図の中に主となる 1 本道と、そこから
+// 分かれる線がある時、どこから読むかを色で決めるための欄。
+//
+// **書かない形と書いた形で、箱と線と名前を揃える**。 切替で見比べた時に変わるのが線の色だけになり、
+// 色が変わった線が役目を書いた線だと読める。
+//
+// 通り道は横 1 列に置き、分かれる 2 本は縦に下ろす。 分かれる線を右の縦列の上下へ斜めに引くと、
+// その縦列で箱の間が 64 と 236 に割れて図の検査の揃えの決まりに触れた (実測)。 線の名前を 2-4 字に
+// 抑えるのは、横の間が名前の幅で広がり、一覧の器 (874px) で箱の題が 12px を割るため (実測 = 5-7 字で
+// 図の幅 1705)。
+
+export const patternBase__edgeRole = "書かない";
+
+export const sourceYaml__edgeRole = `title: "線の役目を書かない"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 280 }
+  l2: { x: 400, width: 280 }
+  l3: { x: 800, width: 280 }
+
+actors:
+  - ブラウザ: { kind: card, lane: l1, stack: 0 }
+  - 注文 API: { kind: card, lane: l2, stack: 0 }
+  - 台帳: { kind: card, lane: l3, stack: 0 }
+  - 受付の知らせ: { kind: card, lane: l2, stack: 1 }
+  - 台帳の写し: { kind: card, lane: l3, stack: 1 }
+
+flow:
+  - ブラウザ -> 注文 API: "送る" (accent, solid)
+  - 注文 API -> 台帳: "書く" (accent, solid)
+  - 注文 API -> 受付の知らせ: "知らせる" (accent, solid)
+  - 台帳 -> 台帳の写し: "写す" (accent, solid)
+
+animation:
+  - step: "どの線も同じ色で引く" 1.8s
+    focus: ["ブラウザ", "注文 API", "台帳", "受付の知らせ", "台帳の写し", "ブラウザ -> 注文 API", "注文 API -> 台帳", "注文 API -> 受付の知らせ", "台帳 -> 台帳の写し"]
+    description: "役目を書かないと 4 本とも同じ色になる。 ブラウザから台帳に書くまでの通り道と、知らせや写しへ分かれる線を色で見分けられない"
+`;
+
+export const sourceJson__edgeRole = `{
+  "title": "線の役目を書かない",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 280 },
+    "l2": { "x": 400, "width": 280 },
+    "l3": { "x": 800, "width": 280 }
+  },
+  "actors": [
+    { "name": "ブラウザ", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "注文 API", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "台帳", "kind": "card", "lane": "l3", "stack": 0 },
+    { "name": "受付の知らせ", "kind": "card", "lane": "l2", "stack": 1 },
+    { "name": "台帳の写し", "kind": "card", "lane": "l3", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "ブラウザ", "to": "注文 API", "label": "送る", "tone": "accent", "style": "solid" },
+    { "from": "注文 API", "to": "台帳", "label": "書く", "tone": "accent", "style": "solid" },
+    { "from": "注文 API", "to": "受付の知らせ", "label": "知らせる", "tone": "accent", "style": "solid" },
+    { "from": "台帳", "to": "台帳の写し", "label": "写す", "tone": "accent", "style": "solid" }
+  ],
+  "animation": [
+    {
+      "step": "どの線も同じ色で引く",
+      "duration": 1.8,
+      "focus": [
+        "ブラウザ",
+        "注文 API",
+        "台帳",
+        "受付の知らせ",
+        "台帳の写し",
+        "ブラウザ -> 注文 API",
+        "注文 API -> 台帳",
+        "注文 API -> 受付の知らせ",
+        "台帳 -> 台帳の写し"
+      ],
+      "body": "役目を書かないと 4 本とも同じ色になる。 ブラウザから台帳に書くまでの通り道と、知らせや写しへ分かれる線を色で見分けられない"
+    }
+  ]
+}`;
+
+export const edgeRole = textDslToDiagram(sourceYaml__edgeRole);
+
+export const sourceYaml__pattern__edgeRole__main = `title: "通り道の線に役目を書く"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 280 }
+  l2: { x: 400, width: 280 }
+  l3: { x: 800, width: 280 }
+
+actors:
+  - ブラウザ: { kind: card, lane: l1, stack: 0 }
+  - 注文 API: { kind: card, lane: l2, stack: 0 }
+  - 台帳: { kind: card, lane: l3, stack: 0 }
+  - 受付の知らせ: { kind: card, lane: l2, stack: 1 }
+  - 台帳の写し: { kind: card, lane: l3, stack: 1 }
+
+flow:
+  - ブラウザ -> 注文 API: "送る" (accent, solid) { role: main }
+  - 注文 API -> 台帳: "書く" (accent, solid) { role: main }
+  - 注文 API -> 受付の知らせ: "知らせる" (accent, solid)
+  - 台帳 -> 台帳の写し: "写す" (accent, solid)
+
+animation:
+  - step: "通り道だけを強調の色で引く" 1.8s
+    focus: ["ブラウザ", "注文 API", "台帳", "受付の知らせ", "台帳の写し", "ブラウザ -> 注文 API", "注文 API -> 台帳", "注文 API -> 受付の知らせ", "台帳 -> 台帳の写し"]
+    description: "ブラウザから台帳に書くまでの 2 本に role: main を書くと、その 2 本を強調した箱の枠と同じ色で引く。 知らせと写しへ分かれる 2 本は役目を書かないので、色味の色のまま"
+`;
+
+export const sourceJson__pattern__edgeRole__main = `{
+  "title": "通り道の線に役目を書く",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 280 },
+    "l2": { "x": 400, "width": 280 },
+    "l3": { "x": 800, "width": 280 }
+  },
+  "actors": [
+    { "name": "ブラウザ", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "注文 API", "kind": "card", "lane": "l2", "stack": 0 },
+    { "name": "台帳", "kind": "card", "lane": "l3", "stack": 0 },
+    { "name": "受付の知らせ", "kind": "card", "lane": "l2", "stack": 1 },
+    { "name": "台帳の写し", "kind": "card", "lane": "l3", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "ブラウザ", "to": "注文 API", "label": "送る", "tone": "accent", "style": "solid", "role": "main" },
+    { "from": "注文 API", "to": "台帳", "label": "書く", "tone": "accent", "style": "solid", "role": "main" },
+    { "from": "注文 API", "to": "受付の知らせ", "label": "知らせる", "tone": "accent", "style": "solid" },
+    { "from": "台帳", "to": "台帳の写し", "label": "写す", "tone": "accent", "style": "solid" }
+  ],
+  "animation": [
+    {
+      "step": "通り道だけを強調の色で引く",
+      "duration": 1.8,
+      "focus": [
+        "ブラウザ",
+        "注文 API",
+        "台帳",
+        "受付の知らせ",
+        "台帳の写し",
+        "ブラウザ -> 注文 API",
+        "注文 API -> 台帳",
+        "注文 API -> 受付の知らせ",
+        "台帳 -> 台帳の写し"
+      ],
+      "body": "ブラウザから台帳に書くまでの 2 本に role: main を書くと、その 2 本を強調した箱の枠と同じ色で引く。 知らせと写しへ分かれる 2 本は役目を書かないので、色味の色のまま"
+    }
+  ]
+}`;
+
+export const pattern__edgeRole__main = textDslToDiagram(sourceYaml__pattern__edgeRole__main);
+
 // ---- 形の満ちる向き ----
 //
 // 四角の形 (`dyn-rect`) は、値に合わせて中を塗る向きを 4 つ取る。 同じ値 (6 割) で 4 つを並べ、塗りが
