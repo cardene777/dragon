@@ -326,6 +326,116 @@ export const presetSequence = withSteps(
   [{ id: "seq_step", initial: "0" }],
 );
 
+/**
+ * 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960)。
+ * 一覧の別の行にすると、同じ種類の図の規模違いを見比べるのに行を選び直すことになる
+ */
+export const patternBase__presetSequence = "簡単";
+
+/**
+ * 順序図の複雑な版 (#2161)。
+ *
+ * 簡単な版は呼ぶ / 返す / 投げる の 3 種を 1 本ずつ並べた記法の見本で、**失敗して戻る道が無い**。
+ * 実物の注文はまず支払いで弾かれ、押さえを延ばして別の払い方を聞き、もう一度引き落とす。
+ * その往復を 5 つの面と 13 本の言づてで描く。
+ *
+ * **面と言づての数は器で決まる**。 面 6 つだと図の幅が 1701 になり、縦列の幅を 180 まで下げても
+ * 動かないため、一覧の器 (幅 874) で箱の題が 11.3px になる (下限 12px、幅 1602 まで)。
+ * 言づては 1 本が縦 64px で、14 本だと高さ 1192 になり拡大の器 (1150 × 630) でも 11.6px になる。
+ * 面 5 つ × 言づて 13 本の 1501 × 1128 が、どちらの器でも指摘 0 件になる形 (実測)。
+ *
+ * **枝分かれの枠 (`alt`) と繰り返しの枠 (`loop`) は記法に無い**。 失敗した道は、返ってきた札
+ * (「残高が足りない」) とその後の言づての並びで表す。 枠が要るかは、この見本を読んで判断する。
+ *
+ * **帯は面ごとに書く**。 書かないと「最初に関わった段から最後まで」 の 1 本になり、
+ * 鍵が 2 段目で手を離すことや、支払が 2 度呼ばれる間に空く区間が絵から消える。
+ */
+const seqComplex = sequence({
+  id: "seq-complex-demo",
+  topic: "支払いに 1 度失敗してからやり直す注文のやり取り",
+  actors: [
+    { name: "ブラウザ", subtitle: "画面" },
+    { name: "API", subtitle: "受付" },
+    { name: "認証", subtitle: "鍵" },
+    { name: "在庫", subtitle: "台帳" },
+    { name: "決済", subtitle: "支払" },
+  ],
+  bands: [
+    // 画面は答えを待つ間 手を離す = 別の払い方を聞かれてから再び動く
+    { actor: "ブラウザ", from: 0, to: 8 },
+    { actor: "ブラウザ", from: 9, to: 12 },
+    { actor: "API", from: 0, to: 12 },
+    { actor: "認証", from: 1, to: 2 },
+    { actor: "在庫", from: 3, to: 4 },
+    { actor: "在庫", from: 7, to: 7 },
+    { actor: "決済", from: 5, to: 6 },
+    { actor: "決済", from: 10, to: 11 },
+  ],
+})
+  .step({ from: "ブラウザ", to: "API", label: "注文を出す", kind: "call" })
+  .step({ from: "API", to: "認証", label: "合言葉を確かめる", kind: "call" })
+  .step({ from: "認証", to: "API", label: "本人と確かめた", kind: "return" })
+  .step({ from: "API", to: "在庫", label: "数を押さえる", sub: "30 分だけ", kind: "call" })
+  .step({ from: "在庫", to: "API", label: "押さえた", kind: "return" })
+  .step({ from: "API", to: "決済", label: "引き落とす", kind: "call" })
+  .step({ from: "決済", to: "API", label: "残高が足りない", kind: "return", tone: "error" })
+  // 投げる = 返事を待たない。 押さえを解かずに延ばすので、次のやり取りを待たせない
+  .step({ from: "API", to: "在庫", label: "押さえを延ばす", kind: "fire" })
+  .step({ from: "API", to: "ブラウザ", label: "別の払い方を聞く", kind: "return", tone: "warning" })
+  .step({ from: "ブラウザ", to: "API", label: "別の方法で払う", kind: "call" })
+  .step({ from: "API", to: "決済", label: "もう一度引き落とす", kind: "call" })
+  .step({ from: "決済", to: "API", label: "引き落とした", kind: "return", tone: "success" })
+  .step({ from: "API", to: "ブラウザ", label: "受け付けた", kind: "return", tone: "success" })
+  .build();
+
+export const pattern__presetSequence__複雑 = withSteps(
+  seqComplex,
+  [
+    {
+      ids: ["seq-complex-demo"],
+      title: "1. 注文を出す",
+      body: "画面から受付へ。 実線に塗った矢は、相手にやらせて待つ言づて。",
+      sets: [{ id: "seq_step", value: 0 }],
+    },
+    {
+      title: "2. 合言葉を確かめる",
+      body: "鍵の帯は 2 本目の言づてで終わる。 確かめ終われば手が空く。",
+      sets: [{ id: "seq_step", value: 2 }],
+    },
+    {
+      title: "3. 数を押さえる",
+      body: "台帳が 30 分だけ押さえる。 札の 2 行目は言づての補足。",
+      sets: [{ id: "seq_step", value: 4 }],
+    },
+    {
+      title: "4. 支払いが弾かれる",
+      body: "返る線は破線。 赤い札は、頼んだことが成り立たなかった返事。",
+      sets: [{ id: "seq_step", value: 6 }],
+    },
+    {
+      title: "5. 押さえを延ばす",
+      body: "矢を閉じない線は返事を待たない言づて。 台帳の返事を待たずに次へ進む。",
+      sets: [{ id: "seq_step", value: 7 }],
+    },
+    {
+      title: "6. 別の払い方を聞く",
+      body: "画面の帯がここで 1 度切れる。 人が選ぶまで受付は待つ。",
+      sets: [{ id: "seq_step", value: 9 }],
+    },
+    {
+      title: "7. もう一度引き落とす",
+      body: "支払の帯は 2 本。 1 度目と 2 度目の間は手が空いている。",
+      sets: [{ id: "seq_step", value: 11 }],
+    },
+    {
+      title: "8. 受け付けて返す",
+      body: "緑の返事が画面へ戻り、往復が閉じる。 帯が残るのは受付だけ。",
+      sets: [{ id: "seq_step", value: 12 }],
+    },
+  ],
+  [{ id: "seq_step", initial: "0" }],
+);
+
 // topology preset ... 構成図 / deployment diagram、 group で container を囲む
 const topo = topology({
   id: "topo-demo",
