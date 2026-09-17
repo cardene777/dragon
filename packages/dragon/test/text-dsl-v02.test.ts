@@ -71,7 +71,7 @@ describe("Text DSL v0.2 ... 残 5 preset 対応", () => {
       expect(diag.edges.length).toBe(2);
     });
 
-    it("cardinality 省略時は 1:N がデフォルト (edge sub に表示)", () => {
+    it("cardinality 省略時は語を補わない (#2105、組み立て API と段を持つ図に揃える)", () => {
       const src = `
 タイトル: T
 種類: er
@@ -82,9 +82,10 @@ describe("Text DSL v0.2 ... 残 5 preset 対応", () => {
   1. A → B: links
 `;
       const diag = textDslToDiagram(src);
-      // er preset は label がある時 → cardinality は sub に
+      // 書いていない語は名前の下の行にも端にも出さない
       expect(diag.edges[0]!.label).toBe("links");
-      expect(diag.edges[0]!.sub).toBe("1:N");
+      expect(diag.edges[0]!.sub).toBeUndefined();
+      expect(diag.edges[0]!.head).toBeUndefined();
     });
   });
 

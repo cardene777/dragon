@@ -54,10 +54,10 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   "states": [],
   "topic": "E01",
   "viewBox": {
-    "h": 261.5,
+    "h": 235,
     "w": 1213,
     "x": -35,
-    "y": 41.5,
+    "y": 68,
   },
 }
 `;
@@ -137,10 +137,10 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   "states": [],
   "topic": "E02",
   "viewBox": {
-    "h": 261.5,
+    "h": 235,
     "w": 1941,
     "x": -35,
-    "y": 41.5,
+    "y": 68,
   },
 }
 `;
@@ -151,7 +151,7 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
     {
       "from": "user",
       "id": "rel-0-user-order",
-      "label": "places (1:N)",
+      "label": "places",
       "to": "order",
     },
   ],
@@ -168,7 +168,7 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
       "height": 40,
       "id": "lane-order",
       "width": 450,
-      "x": 740,
+      "x": 668,
       "y": 28,
     },
   ],
@@ -182,7 +182,7 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
       "w": 400,
     },
     {
-      "cx": 965,
+      "cx": 893,
       "cy": 186,
       "h": 115,
       "id": "order",
@@ -200,7 +200,7 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   "topic": "E03",
   "viewBox": {
     "h": 261.5,
-    "w": 1285,
+    "w": 1213,
     "x": -35,
     "y": 41.5,
   },
@@ -261,10 +261,10 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   "states": [],
   "topic": "E04",
   "viewBox": {
-    "h": 261.5,
+    "h": 235,
     "w": 1297,
     "x": -35,
-    "y": 41.5,
+    "y": 68,
   },
 }
 `;
@@ -323,10 +323,10 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "states": [],
   "topic": "E05",
   "viewBox": {
-    "h": 261.5,
+    "h": 235,
     "w": 1213,
     "x": -35,
-    "y": 41.5,
+    "y": 68,
   },
 }
 `;
@@ -372,21 +372,21 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
       "height": 40,
       "id": "lane-b",
       "width": 450,
-      "x": 666,
+      "x": 664,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-c",
       "width": 450,
-      "x": 1332,
+      "x": 1328,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-d",
       "width": 450,
-      "x": 1998,
+      "x": 1992,
       "y": 28,
     },
   ],
@@ -400,7 +400,7 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
       "w": 400,
     },
     {
-      "cx": 891,
+      "cx": 889,
       "cy": 186,
       "h": 115,
       "id": "b",
@@ -408,7 +408,7 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
       "w": 400,
     },
     {
-      "cx": 1557,
+      "cx": 1553,
       "cy": 186,
       "h": 115,
       "id": "c",
@@ -416,7 +416,7 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
       "w": 400,
     },
     {
-      "cx": 2223,
+      "cx": 2217,
       "cy": 186,
       "h": 115,
       "id": "d",
@@ -433,10 +433,10 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "states": [],
   "topic": "E06",
   "viewBox": {
-    "h": 369,
-    "w": 2543,
+    "h": 337,
+    "w": 2537,
     "x": -35,
-    "y": -66,
+    "y": -34,
   },
 }
 `;
@@ -447,7 +447,7 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
     {
       "from": "user",
       "id": "rel-0-user-profile",
-      "label": "has (1:1)",
+      "label": "has",
       "to": "profile",
     },
   ],
@@ -464,7 +464,7 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
       "height": 40,
       "id": "lane-profile",
       "width": 450,
-      "x": 696,
+      "x": 628,
       "y": 28,
     },
   ],
@@ -478,7 +478,7 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
       "w": 400,
     },
     {
-      "cx": 921,
+      "cx": 853,
       "cy": 186,
       "h": 115,
       "id": "profile",
@@ -496,7 +496,7 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   "topic": "E07",
   "viewBox": {
     "h": 261.5,
-    "w": 1241,
+    "w": 1173,
     "x": -35,
     "y": 41.5,
   },
@@ -571,7 +571,7 @@ exports[`golden: er preset > E09 自己参照は輪として残る (#1227 → #1
     {
       "from": "employee",
       "id": "rel-0-employee-employee",
-      "label": "manages (1:N)",
+      "label": "manages",
       "to": "employee",
     },
   ],
@@ -605,7 +605,7 @@ exports[`golden: er preset > E09 自己参照は輪として残る (#1227 → #1
   "topic": "E09",
   "viewBox": {
     "h": 235,
-    "w": 862,
+    "w": 790,
     "x": -35,
     "y": 68,
   },
@@ -653,28 +653,28 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
       "height": 40,
       "id": "lane-dima",
       "width": 450,
-      "x": 666,
+      "x": 658,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-dimb",
       "width": 450,
-      "x": 1332,
+      "x": 1316,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-dimc",
       "width": 450,
-      "x": 1998,
+      "x": 1974,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-dimd",
       "width": 450,
-      "x": 2664,
+      "x": 2632,
       "y": 28,
     },
   ],
@@ -688,7 +688,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
       "w": 400,
     },
     {
-      "cx": 891,
+      "cx": 883,
       "cy": 186,
       "h": 115,
       "id": "dima",
@@ -696,7 +696,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
       "w": 400,
     },
     {
-      "cx": 1557,
+      "cx": 1541,
       "cy": 186,
       "h": 115,
       "id": "dimb",
@@ -704,7 +704,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
       "w": 400,
     },
     {
-      "cx": 2223,
+      "cx": 2199,
       "cy": 186,
       "h": 115,
       "id": "dimc",
@@ -712,7 +712,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
       "w": 400,
     },
     {
-      "cx": 2889,
+      "cx": 2857,
       "cy": 186,
       "h": 115,
       "id": "dimd",
@@ -729,10 +729,10 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   "states": [],
   "topic": "E10",
   "viewBox": {
-    "h": 369,
-    "w": 3209,
+    "h": 337,
+    "w": 3177,
     "x": -35,
-    "y": -66,
+    "y": -34,
   },
 }
 `;
@@ -2084,7 +2084,7 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
     {
       "from": "user",
       "id": "rel-0-user-order",
-      "label": "places (1:N)",
+      "label": "places",
       "to": "order",
     },
   ],
@@ -2101,7 +2101,7 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
       "height": 40,
       "id": "lane-order",
       "width": 450,
-      "x": 740,
+      "x": 668,
       "y": 28,
     },
   ],
@@ -2115,7 +2115,7 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
       "w": 400,
     },
     {
-      "cx": 965,
+      "cx": 893,
       "cy": 186,
       "h": 115,
       "id": "order",
@@ -2133,7 +2133,7 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
   "topic": "X06",
   "viewBox": {
     "h": 269.5,
-    "w": 1285,
+    "w": 1213,
     "x": -35,
     "y": 33.5,
   },

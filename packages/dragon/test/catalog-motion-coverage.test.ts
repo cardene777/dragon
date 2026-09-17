@@ -287,7 +287,8 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
       interactive: 137,
       cookbook: 26,
       patterns: 12,
-      "text-dsl": 16,
+      // ER 図に多重度を全て並べる変種を足して 16 → 17 (#2105)
+      "text-dsl": 17,
       // 数え上げの時間を延ばした `richPipelineDemo` の変種を足して 10 → 11 (#1969)
       animation: 11,
       ethereum: 4,
