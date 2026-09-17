@@ -223,6 +223,41 @@ flow:
 部品の中の要素どうしが間隔の検査に掛からない。 頁の配置が使えない部品だけは、部品に書いた縦列の位置と
 段の番号で置く。
 
+### 段の `focus:` で部品の全体か中の 1 つを光らせる
+
+段の `focus:` に部品の名前を書くと、部品の要素と部品の中の線が全て光る。
+中の 1 つだけを光らせる時は `{部品の名前}__{要素の id}` か `{部品の名前}__{中の線の id}` を書く。
+要素の id は矢印の `fromPartNode` / `toPartNode` に書く id と同じ。
+
+```yaml
+title: "注文を 2 つの窓口へ分ける"
+type: swimlane
+
+actors:
+  - 受注: { kind: card }
+  - split: { kind: split-router, phase: false }
+
+flow:
+  - 受注 -> split: "注文" { toPartNode: inP }
+
+animation:
+  - step: "注文が入る" 1.2s
+    focus: [split__inP]
+  - step: "A へ渡す" 1.2s
+    focus: [split__outA, split__sr-a]
+  - step: "まとめて見せる" 1.2s
+    focus: [split]
+```
+
+| 段 | 光る所 |
+|---|---|
+| 注文が入る | 振り分け器の入口 (`inP`) だけ |
+| A へ渡す | 出口 A (`outA`) と、入口から出口 A への中の線 (`sr-a`) |
+| まとめて見せる | 振り分け器の要素と中の線の全て |
+
+部品に無い名前を書くと何も光らず、知らせ (`focus-target-missing`) が部品の要素と中の線の名前を案内する。
+部品の名前そのものが `__` を含む時は、一番長く一致する部品の名前で読む。
+
 ### 順序図の段は `focus:` で強調する言づてを選ぶ
 
 `sequence` / `solidity` の図は 1 枚の板に言づてを行で並べる。 段ごとに 1 通を強調し、それより前は
