@@ -1979,7 +1979,8 @@ animation:
               // 同じ名前 / 同じ行で種類だけ違う知らせが並ぶ (箱を持たない見本に効かない相対指定を
               // 書いた形)。 種類と並び順まで入れないと React が行を取り違える
               <div key={`${n.kind}-${n.actor}-${n.line}-${i}`} className="v4-editor-notice">
-                {/* 行が分からない知らせ (パーツ経由) では番号を出さない */}
+                {/* 行が分からない知らせでは番号を出さない。 本文欄は部品を抜いた本文の行が
+                    元の本文の表に無い時、 YAML 欄は別名の取り込みなど場所を作れない書き方の時 */}
                 {n.line > 0 && <span className="v4-editor-notice-line">L{n.line}</span>}
                 <span className="v4-editor-notice-text">{n.message}</span>
                 {n.hint && <span className="v4-editor-notice-hint">{n.hint}</span>}
