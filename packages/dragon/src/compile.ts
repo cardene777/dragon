@@ -126,21 +126,19 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 解決できない矢印を組み立てから外す (#1219)。 残すと、 存在しない箱や枠を指す図ができて
   // 描画の直前で落ちる (実測 = 8 図種)
   doc = dropUnresolvedFlow(doc);
-  // 多重度の知らせは落とした後の矢印を見る (#2107)。 落とした矢印の行は居ない名前の知らせが既に指している
-  const 端が解決した文書 = doc;
 
   // 名前から作る id が重なる分を解く (#1220)。 **矢印を落とした後**に見る = 落とした矢印の
   // 端にしか出てこない名前で id を分けても、 その箱は作られない
   const 分けた = disambiguateActorIds(doc, opts?.onNotice);
   doc = 分けた.doc;
 
-  // 図種の組み立てが矢印を捨てたと知らせた行を控える (#2107)。 同じ行に多重度の知らせを重ねない。
-  // 捨てる図種を手で並べず、実際に出た知らせで決める
+  // 図種の組み立てが知らせた行を控える (#2107 / #2111)。 同じ行に多重度の知らせを重ねない。
+  // 知らせる図種も知らせの種類も手で並べず、実際に出た知らせで決める
   const 受け取り口 = opts?.onNotice;
-  const 矢印を捨てた行 = new Set<number>();
+  const 図種が知らせた行 = new Set<number>();
   const 図種の知らせ = 受け取り口
     ? (n: CompileNotice): void => {
-        if (n.kind === "chart-edge-dropped") 矢印を捨てた行.add(n.line);
+        図種が知らせた行.add(n.line);
         受け取り口(n);
       }
     : undefined;
@@ -169,7 +167,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       diagram = compileSolidity(doc);
       break;
     case "gantt":
-      diagram = compileGantt(doc);
+      diagram = compileGantt(doc, 図種の知らせ);
       break;
     case "class":
       diagram = compileClass(doc);
@@ -249,7 +247,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportActorKindNotHonored(書いたまま, opts?.onNotice);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
-  reportCardinalityNotHonored(端が解決した文書, 矢印を捨てた行, opts?.onNotice);
+  reportCardinalityNotHonored(書いたまま, 図種が知らせた行, opts?.onNotice);
   reportFlowOffsetNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   reportDirectionNotHonored(書いたまま, opts?.onNotice);
@@ -826,11 +824,16 @@ function reportFlowEndpointNotHonored(
  *
  * 同じ理由で、後から名前のずらし (#1971) と多重度 (#2107) も数える。 数える飾りは下の一覧が持ち、
  * 説明には写さない。
+ *
+ * `actors` に無い名前を指す言づては見ない (#2111)。 その言づては組み立ての前に落ちて板に載らず、
+ * 同じ行を居ない名前の知らせ (`reportMissingFlowActors`) が指している。
  */
 function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
   if (doc.type !== "sequence" && doc.type !== "solidity") return;
+  const 名前の表 = actorRefTable(doc);
   for (const s of doc.flow) {
+    if (!名前の表.has(s.from) || !名前の表.has(s.to)) continue;
     const 効かない = [
       s.tone !== undefined ? "色味" : "",
       s.sub !== undefined ? "添え字" : "",
@@ -863,22 +866,35 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
  * `er` で端を両方とも書いていれば、描かない端が無いので伝えない = 6 語に無い個数 (`2..5`) を
  * 名前に添えて、端は自分で描く書き方を止めない。
  *
- * 同じ行に 2 件並べない。 順序図の板は `reportMessageOptionNotHonored` が他の飾りと合わせて伝え、
- * 図種の組み立てが矢印を捨てたと知らせた行 (`chart-edge-dropped`) は見ない。 値の図 (`pie` 等) は
- * 捨てた本数を最初の矢印の行でまとめて伝えるため、2 本目以降の矢印に書いた多重度はここで伝わる。
+ * 同じ行に 2 件並べない。 避ける行は 3 つあり、どれも知らせる図種や知らせの種類を並べずに決める。
+ *
+ * | 避ける行 | 決め方 | 既に知らせているもの |
+ * |---|---|---|
+ * | 順序図の板の言づて | 図種 | `reportMessageOptionNotHonored` が他の飾りと合わせて伝える |
+ * | `actors` に無い名前を指す矢印 | 名前の解決に使う表 (`actorRefTable`) | 居ない名前の知らせ (`reportMissingFlowActors`) |
+ * | 図種の組み立てが知らせた行 | 実際に出た知らせ | 捨てた矢印 / 自分を親にする矢印 / 工程表の矢印の飾り (多重度を含む) など |
+ *
+ * 値の図 (`pie` 等) は捨てた本数を最初の矢印の行でまとめて伝えるため、2 本目以降の矢印に書いた
+ * 多重度はここで伝わる。
+ *
+ * 行は、図種の知らせと矢印を結ぶ唯一の手掛かり。 行を持たない矢印 (JSON から読んだ文書) は全て 0 行に
+ * なり、図種の組み立てが 0 行を指して 1 件でも知らせると、その文書の多重度の知らせは出ない。
+ * 矢印を見分けられない以上、同じ矢印に 2 件出す側ではなく重ねない側に倒す。
  */
 function reportCardinalityNotHonored(
   doc: DslDocument,
-  矢印を捨てた行: ReadonlySet<number>,
+  図種が知らせた行: ReadonlySet<number>,
   onNotice?: (n: CompileNotice) => void,
 ): void {
   if (!onNotice) return;
   if (doc.type === "sequence" || doc.type === "solidity") return;
+  const 名前の表 = actorRefTable(doc);
   for (const s of doc.flow) {
     const 書いた = 書いた多重度を読む(s.cardinality);
     if (書いた === undefined) continue;
+    if (!名前の表.has(s.from) || !名前の表.has(s.to)) continue;
     const line = s.pos?.line ?? 0;
-    if (矢印を捨てた行.has(line)) continue;
+    if (図種が知らせた行.has(line)) continue;
     const 矢印 = `${truncateForMessage(s.from)} -> ${truncateForMessage(s.to)}`;
     const 字 = truncateForMessage(書いた.字);
     if (doc.type !== "er") {

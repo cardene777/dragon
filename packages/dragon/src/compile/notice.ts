@@ -32,9 +32,11 @@ export type CompileNotice = {
     | "part-node-ignored"
     // 縦列に置くはずの部品が他の箱の位置の基準になっていて、縦列に置けなかった (#1980)
     | "part-lane-ignored"
-    // 値で描く図 (`pie` / `bar` / `line`) で値を読めなかった (#1154)
+    // 箱ごとの値や時期を読んで 1 つの図に描く図種で、読めない項目があった (#1154)。 使う図種は
+    // 各図種の組み立て (`compile/*.ts`) が決める
     | "chart-value-unreadable"
-    // 同上で矢印を書いた。 これらの図は関係を描けない (#1154)
+    // 同じ図種で、書いた矢印を描かなかった (#1154)。 関係を描かない図種と、端を描けない矢印 (工程表で
+    // 時期の無い項目を指す等、#2111)
     | "chart-edge-dropped"
     // 同じ名前を `states` と `values` の両方に書いた (#1162)
     | "value-shadows-state"
@@ -74,7 +76,12 @@ export type CompileNotice = {
     | "group-lanes-apart"
     // 矢印に書いた多重度 (`cardinality`) から端の形を描けない (#2107)。 `er` で端の形が決まる 6 語以外を
     // 書き、端を両方は書いていない時と、`er` 以外の図種に書いた時
-    | "cardinality-not-honored";
+    | "cardinality-not-honored"
+    // 矢印に、その図種が描かない飾り (文字 / 色 / 線種 / 多重度) を書いた (#2111)。 工程表の矢印は
+    // 前後の関係だけを使う
+    | "edge-option-not-honored"
+    // 工程表の項目の終わりが始まりより前か、状態で決まる終わりが始まりより前の値を取る (#2111)
+    | "gantt-end-before-start";
   /** 対象の名前。 光らせる相手なら書かれた指定そのまま */
   actor: string;
   /** 書かれていた行 */

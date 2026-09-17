@@ -907,8 +907,8 @@ actors:
   - 作業 3: { kind: card, subtitle: "Q3" }
 
 flow:
-  - 作業 1 -> 作業 2: "前提"
-  - 作業 2 -> 作業 3: "前提"
+  - 作業 1 -> 作業 2
+  - 作業 2 -> 作業 3
 
 states:
   task1_progress: 0
@@ -955,12 +955,12 @@ export const sourceJson__textDslGantt = `{
     {
       "from": "作業 1",
       "to": "作業 2",
-      "label": "前提"
+      "label": ""
     },
     {
       "from": "作業 2",
       "to": "作業 3",
-      "label": "前提"
+      "label": ""
     }
   ],
   "states": {
