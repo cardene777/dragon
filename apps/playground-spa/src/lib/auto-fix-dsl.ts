@@ -277,6 +277,25 @@ export function toSourceLines(
   return out;
 }
 
+/**
+ * 組み立て側が出した知らせの行を、 元の本文の座標に戻す (#2113)。
+ *
+ * 矢印の行 (`toSourceLines`) と同じく、 部品の行を抜いた本文を組み立てると行番号がその座標になる。
+ * 戻さないと、 部品の行より後ろの行の知らせが編集画面で 1 行ずつ手前を指す (実測 = 11 行目の
+ * 知らせが `L10`)。
+ *
+ * 表に無い行は 0 (行を持たない知らせ) にする。 **知らせそのものは捨てない** = 行が分からなくても
+ * 文は読める。 矢印の行と違い、 誤った行を書き換える操作には使わないため、 行だけを外せば足りる。
+ *
+ * @param lineMap 抜いた後の本文の行 (0 始まり) → 元の本文の行番号 (1 始まり)
+ */
+export function 知らせの行を元の本文へ戻す<N extends { readonly line: number }>(
+  notices: readonly N[],
+  lineMap: readonly number[],
+): N[] {
+  return notices.map((n) => (n.line > 0 ? { ...n, line: lineMap[n.line - 1] ?? 0 } : n));
+}
+
 /** 組み立てた時の本文と、 その時の edge → 行の対応。 */
 export interface EdgeSourceSnapshot {
   readonly src: string;
