@@ -15,6 +15,7 @@
  */
 export const 見本の名前: readonly string[] = [
   "presetSwimlane",
+  "pattern__presetSwimlane__複雑",
   "presetFlow",
   "presetSequence",
   "pattern__presetSequence__複雑",
