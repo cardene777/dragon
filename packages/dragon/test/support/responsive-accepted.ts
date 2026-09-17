@@ -382,6 +382,8 @@ export const 縦に長い一覧: readonly 縦に長い群[] = [
       "parts-bind-cascade-3",
       "parts-bind-split-fill",
       "parts-bookmark",
+      // 上から下へ絞る形そのものが図の中身 (#2129)。 横に並べると「段ごとに狭くなる」 が消える
+      "parts-funnel-3",
       "parts-rainbow-stack",
       "parts-rating-stars",
       "parts-stacked-layer",

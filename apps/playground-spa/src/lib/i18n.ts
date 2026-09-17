@@ -532,6 +532,12 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsBind5DigitCounter: "連動: 5桁を別々に動かす",
   partsBindGrowShrink: "連動: 伸びてから縮む",
   partsBindComprehensive: "連動: 7つの値を3つの図形に",
+  partsSplitRouter: "繋ぐ: 2つへ振り分ける",
+  partsMergeJunction: "繋ぐ: 1つへ合流する",
+  partsQueueDepth: "繋ぐ: 待ち行列が溜まる",
+  partsValveFlow: "繋ぐ: 弁の開きで量が決まる",
+  partsFunnel3: "繋ぐ: 三段で絞り込む",
+  partsMiniNetwork: "繋ぐ: 2つの経路で結ぶ",
 };
 
 /**
@@ -997,6 +1003,12 @@ export const ITEM_NAME_EN: Record<string, string> = {
   partsBind5DigitCounter: "Bind: five-digit counter",
   partsBindGrowShrink: "Bind: grow then shrink",
   partsBindComprehensive: "Bind: seven states across three shapes",
+  partsSplitRouter: "Wire: split into two outlets",
+  partsMergeJunction: "Wire: merge into one outlet",
+  partsQueueDepth: "Wire: queue builds up",
+  partsValveFlow: "Wire: valve opening sets the flow",
+  partsFunnel3: "Wire: narrow down in three steps",
+  partsMiniNetwork: "Wire: two routes across four nodes",
 };
 
 /**
