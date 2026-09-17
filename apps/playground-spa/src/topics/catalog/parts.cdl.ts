@@ -3465,6 +3465,277 @@ export const subtitle__partsPriorityQueue =
   "急ぎ 6 件と通常 8 件が 1 列に並び、急ぎが先に出る。 残る 8 件は通常の待ち";
 
 // ============================================================
+// 前へ進むだけではない繋ぎ方の部品 (#2171)
+// ============================================================
+//
+// ここから 4 枚は **入った分が前へ進むだけではない** 繋ぎ方を表す。 既存の 10 枚は
+// 割合を変えたり数を増やしたりしても、入口から出口へ一方向に流れる形だった。
+//
+// 倒す (どちらか一方だけへ流す) / 戻す (落ちた分が前の段へ返る) /
+// 溜める (1 件ずつ入れて、まとまってから 1 回で出す) / 仕分ける (中身の種類で行き先が変わる)
+// の 4 つは、どれも既存の部品では書けない。
+//
+// 要素と値の名前は既存の 10 枚と同じく英字で書く (#2125)。
+
+// parts 91: 切替器 — 常用が落ちると予備へ倒れる
+export const partsFailoverSwitch = diagram("parts-failover-switch", {
+  topic: "切替器 — 常用が落ちると予備へ倒れる",
+})
+  .lane("fo1", { x: 0, width: 200, label: "入口" })
+  .lane("fo2", { x: 220, width: 200, label: "行き先" })
+  .state("inLv", { initial: 100 })
+  .state("mainLv", { initial: 100 })
+  .state("subLv", { initial: 0 })
+  // 入口を 2 つの行き先の真ん中の段 (1) に置く (#2154)。 振り分け器と同じ置き方で、
+  // 「両方へ分ける」 と「どちらか一方へ倒す」 の違いが棒の高さだけで見比べられる
+  .node("inP", {
+    lane: "fo1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "入口",
+    subtitle: "{inLv}%",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inLv}", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("mainO", {
+    lane: "fo2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "常用",
+    subtitle: "{mainLv}%",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{mainLv}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("subO", {
+    lane: "fo2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "予備",
+    subtitle: "{subLv}%",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{subLv}", fillMax: 100, orient: "up", fill: "#f59e0b", radius: 6 },
+  })
+  .edge("inP", "mainO", { id: "fo-main", label: "常用へ", tone: "success" })
+  .edge("inP", "subO", { id: "fo-sub", label: "倒す", tone: "warning" })
+  // 入口は 100% のまま動かさない = 入る量が減ったのではなく行き先が入れ替わったことを見せる
+  .phase("p", { duration: 4000, title: "予備へ倒れる", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "mainO", "subO", "fo-main", "fo-sub")
+      .tween("mainLv", 100, 0)
+      .tween("subLv", 0, 100),
+  )
+  .build();
+
+export const subtitle__partsFailoverSwitch =
+  "入口は 100% のまま、常用が 0% まで落ちて予備が 100% まで上がる。 分けるのではなく行き先が入れ替わる";
+
+// parts 92: やり直しの輪 — 落ちた分をもう一度試す
+export const partsRetryLoop = diagram("parts-retry-loop", {
+  topic: "やり直しの輪 — 落ちた分をもう一度試して通す",
+})
+  .lane("rt1", { x: 0, width: 200, label: "試す" })
+  .lane("rt2", { x: 220, width: 200, label: "結果" })
+  .state("tryN", { initial: 0 })
+  .state("okN", { initial: 0 })
+  .state("ngN", { initial: 0 })
+  .state("againN", { initial: 0 })
+  // 戻す先を「やり直す」 という別の箱にする。 落ちる箱から試す箱へ直に戻すと、戻る線の名札が
+  // 試す箱の 12px まで寄って重い指摘が出る (下限 32px、実測 2 件)。 落ちる箱を試す側の縦列へ
+  // 移す形は指摘 0 件になるが、縦列の見出し「試す」 の下に「落ちる」 が並んで読み手が迷う。
+  //
+  // 通る箱には試す箱とやり直す箱の 2 本が入るので、2 つの出どころの真ん中の段 (1) に置く (#2154)。
+  // 試すを段 0、やり直すを段 2 に置くと真ん中が段 1 になる。 段 0 と段 1 の 2 段で組むと真ん中が
+  // 無く、線が通る箱の手前で長さ 28 の縦の段を作る (実測)。
+  //
+  // 落ちる箱は段 2 (やり直す箱と同じ高さ) に置く。 段 0 に置くと、試す箱から入る線と
+  // やり直す箱へ出る線が同じ左の辺に並び、描画側が 2 本の端を 56 だけ離して段を作る (実測)。
+  // 段 2 なら入る線は上の辺から、出る線は左の辺からになり、辺を分け合わない
+  .node("tryP", {
+    lane: "rt1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "試す",
+    subtitle: "{tryN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{tryN}", fillMax: 12, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("againP", {
+    lane: "rt1",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "やり直す",
+    subtitle: "{againN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{againN}", fillMax: 12, orient: "up", fill: "#f59e0b", radius: 6 },
+  })
+  .node("okP", {
+    lane: "rt2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "通る",
+    subtitle: "{okN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{okN}", fillMax: 12, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("ngP", {
+    lane: "rt2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "落ちる",
+    subtitle: "{ngN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{ngN}", fillMax: 12, orient: "up", fill: "#dc2626", radius: 6 },
+  })
+  .edge("tryP", "okP", { id: "rt-ok", label: "通る", tone: "success" })
+  .edge("tryP", "ngP", { id: "rt-ng", label: "落ちる", tone: "error" })
+  .edge("ngP", "againP", { id: "rt-back", label: "戻す", tone: "warning" })
+  .edge("againP", "okP", { id: "rt-again", label: "通る", tone: "success" })
+  // 12 件のうち 9 件が通り 3 件が落ちる。 落ちた 3 件をやり直すと通る側が 12 件になり、
+  // 数が合う = 戻した分がどこへ行ったかを読み手が追える
+  .phase("p", { duration: 4000, title: "落ちた分をもう一度試す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("tryP", "againP", "okP", "ngP", "rt-ok", "rt-ng", "rt-back", "rt-again")
+      .tween("tryN", 0, 12)
+      .tween("okN", 0, 12)
+      .tween("ngN", 0, 3)
+      .tween("againN", 0, 3),
+  )
+  .build();
+
+export const subtitle__partsRetryLoop =
+  "12 件のうち 3 件が落ち、その 3 件をやり直して通る側が 12 件に戻る。 落ちた分が前の段へ返る";
+
+// parts 93: まとめ箱 — 1 件ずつ溜めてまとめて送る
+export const partsBatchCollector = diagram("parts-batch-collector", {
+  topic: "まとめ箱 — 1 件ずつ溜めて、満ちたらまとめて送る",
+})
+  .lane("bt1", { x: 0, width: 200, label: "溜める" })
+  .lane("bt2", { x: 220, width: 200, label: "送る" })
+  .state("inN", { initial: 0 })
+  .state("poolN", { initial: 0 })
+  .state("sendN", { initial: 0 })
+  // 届く箱と溜まりを同じ縦列の上下に置く = 「1 件ずつ入る」 と「溜まっている」 が同じ場所で起きる
+  .node("inP", {
+    lane: "bt1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "届く",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 30, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("pool", {
+    lane: "bt1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "溜まり",
+    subtitle: "{poolN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{poolN}", fillMax: 10, orient: "up", fill: "#f59e0b", radius: 6 },
+  })
+  .node("sendP", {
+    lane: "bt2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "まとめて送る",
+    subtitle: "{sendN} 回",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{sendN}", fillMax: 3, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .edge("inP", "pool", { id: "bt-in", label: "1 件ずつ", tone: "info" })
+  .edge("pool", "sendP", { id: "bt-send", label: "満ちたら", tone: "success" })
+  // 出る側の単位は「件」 ではなく「回」。 30 件が 10 件ずつ 3 回で出ることを、右の棒が数える
+  .phase("p", { duration: 4000, title: "満ちたら送る", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "pool", "sendP", "bt-in", "bt-send")
+      .tween("inN", 0, 30)
+      .tween("poolN", 0, 10)
+      .tween("sendN", 0, 3),
+  )
+  .build();
+
+export const subtitle__partsBatchCollector =
+  "30 件が 1 件ずつ溜まり、10 件たまるごとに 1 回で出る。 右の棒は件数ではなく送った回数を数える";
+
+// parts 94: 仕分け箱 — 中身の種類で行き先が変わる
+export const partsContentSorter = diagram("parts-content-sorter", {
+  topic: "仕分け箱 — 中身の種類で 3 つの行き先へ分ける",
+})
+  .lane("cs1", { x: 0, width: 200, label: "見る" })
+  .lane("cs2", { x: 220, width: 200, label: "行き先" })
+  .state("inN", { initial: 0 })
+  .state("aN", { initial: 0 })
+  .state("bN", { initial: 0 })
+  .state("cN", { initial: 0 })
+  // 見る箱を 3 つの行き先の真ん中の段 (1) に置く (#2154)。 負荷分散器は同じ量ずつ配るが、
+  // こちらは種類ごとに数が違う = 3 本の棒の高さが揃わないことが図の中身
+  .node("inP", {
+    lane: "cs1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "中身を見る",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 20, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("outA", {
+    lane: "cs2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "注文",
+    subtitle: "{aN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{aN}", fillMax: 20, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("outB", {
+    lane: "cs2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "問い合わせ",
+    subtitle: "{bN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{bN}", fillMax: 20, orient: "up", fill: "#8b5cf6", radius: 6 },
+  })
+  .node("outC", {
+    lane: "cs2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "その他",
+    subtitle: "{cN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{cN}", fillMax: 20, orient: "up", fill: "#94a3b8", radius: 6 },
+  })
+  .edge("inP", "outA", { id: "cs-a", label: "注文", tone: "success" })
+  .edge("inP", "outB", { id: "cs-b", label: "問い", tone: "info" })
+  .edge("inP", "outC", { id: "cs-c", label: "残り", tone: "warning" })
+  .phase("p", { duration: 4000, title: "種類で分ける", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "outA", "outB", "outC", "cs-a", "cs-b", "cs-c")
+      .tween("inN", 0, 20)
+      .tween("aN", 0, 11)
+      .tween("bN", 0, 6)
+      .tween("cN", 0, 3),
+  )
+  .build();
+
+export const subtitle__partsContentSorter =
+  "20 件を中身の種類で 3 つへ分ける。 注文 11 件と問い合わせ 6 件とその他 3 件で、棒の高さが揃わない";
+
+// ============================================================
 // 記法 (#1381)
 // ============================================================
 //
@@ -10071,6 +10342,373 @@ export const sourceJson__partsPriorityQueue = `{
       "duration": 4,
       "focus": ["急ぎ", "通常", "並べる", "出る", "急ぎ -> 並べる", "通常 -> 並べる", "並べる -> 出る"],
       "tween": { "hiN": [0, 6], "loN": [0, 8], "depth": [0, 8], "outN": [0, 6] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsFailoverSwitch = `title: "切替器 — 常用が落ちると予備へ倒れる"
+type: flow
+
+lanes:
+  fo1: { x: 0, width: 200, label: "入口" }
+  fo2: { x: 220, width: 200, label: "行き先" }
+
+states:
+  inLv: 100
+  mainLv: 100
+  subLv: 0
+
+actors:
+  - 入口: { kind: dyn-rect, lane: fo1, stack: 1, subtitle: "{inLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{inLv}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 常用: { kind: dyn-rect, lane: fo2, stack: 0, subtitle: "{mainLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{mainLv}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
+  - 予備: { kind: dyn-rect, lane: fo2, stack: 2, subtitle: "{subLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{subLv}", fillMax: 100, orient: up, fill: "#f59e0b", radius: 6 } }
+
+flow:
+  - 入口 -> 常用: "常用へ" (success)
+  - 入口 -> 予備: "倒す" (warning)
+
+animation:
+  - step: "予備へ倒れる" 4s
+    focus: ["入口", "常用", "予備", "入口 -> 常用", "入口 -> 予備"]
+    tween:
+      mainLv: 100 -> 0
+      subLv: 0 -> 100
+`;
+
+export const sourceJson__partsFailoverSwitch = `{
+  "title": "切替器 — 常用が落ちると予備へ倒れる",
+  "type": "flow",
+  "lanes": {
+    "fo1": { "x": 0, "width": 200, "label": "入口" },
+    "fo2": { "x": 220, "width": 200, "label": "行き先" }
+  },
+  "actors": [
+    {
+      "name": "入口",
+      "kind": "dyn-rect",
+      "lane": "fo1",
+      "stack": 1,
+      "subtitle": "{inLv}%",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{inLv}", "fillMax": 100, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "常用",
+      "kind": "dyn-rect",
+      "lane": "fo2",
+      "stack": 0,
+      "subtitle": "{mainLv}%",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{mainLv}", "fillMax": 100, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "予備",
+      "kind": "dyn-rect",
+      "lane": "fo2",
+      "stack": 2,
+      "subtitle": "{subLv}%",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{subLv}", "fillMax": 100, "orient": "up", "fill": "#f59e0b", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "入口", "to": "常用", "label": "常用へ", "tone": "success" },
+    { "from": "入口", "to": "予備", "label": "倒す", "tone": "warning" }
+  ],
+  "states": { "inLv": 100, "mainLv": 100, "subLv": 0 },
+  "animation": [
+    {
+      "step": "予備へ倒れる",
+      "duration": 4,
+      "focus": ["入口", "常用", "予備", "入口 -> 常用", "入口 -> 予備"],
+      "tween": { "mainLv": [100, 0], "subLv": [0, 100] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsRetryLoop = `title: "やり直しの輪 — 落ちた分をもう一度試して通す"
+type: flow
+
+lanes:
+  rt1: { x: 0, width: 200, label: "試す" }
+  rt2: { x: 220, width: 200, label: "結果" }
+
+states:
+  tryN: 0
+  okN: 0
+  ngN: 0
+  againN: 0
+
+actors:
+  - 試す: { kind: dyn-rect, lane: rt1, stack: 0, subtitle: "{tryN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{tryN}", fillMax: 12, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - やり直す: { kind: dyn-rect, lane: rt1, stack: 2, subtitle: "{againN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{againN}", fillMax: 12, orient: up, fill: "#f59e0b", radius: 6 } }
+  - 通る: { kind: dyn-rect, lane: rt2, stack: 1, subtitle: "{okN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{okN}", fillMax: 12, orient: up, fill: "#22c55e", radius: 6 } }
+  - 落ちる: { kind: dyn-rect, lane: rt2, stack: 2, subtitle: "{ngN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{ngN}", fillMax: 12, orient: up, fill: "#dc2626", radius: 6 } }
+
+flow:
+  - 試す -> 通る: "通る" (success)
+  - 試す -> 落ちる: "落ちる" (error)
+  - 落ちる -> やり直す: "戻す" (warning)
+  - やり直す -> 通る: "通る" (success)
+
+animation:
+  - step: "落ちた分をもう一度試す" 4s
+    focus: ["試す", "やり直す", "通る", "落ちる", "試す -> 通る", "試す -> 落ちる", "落ちる -> やり直す", "やり直す -> 通る"]
+    tween:
+      tryN: 0 -> 12
+      okN: 0 -> 12
+      ngN: 0 -> 3
+      againN: 0 -> 3
+`;
+
+export const sourceJson__partsRetryLoop = `{
+  "title": "やり直しの輪 — 落ちた分をもう一度試して通す",
+  "type": "flow",
+  "lanes": {
+    "rt1": { "x": 0, "width": 200, "label": "試す" },
+    "rt2": { "x": 220, "width": 200, "label": "結果" }
+  },
+  "actors": [
+    {
+      "name": "試す",
+      "kind": "dyn-rect",
+      "lane": "rt1",
+      "stack": 0,
+      "subtitle": "{tryN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{tryN}", "fillMax": 12, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "やり直す",
+      "kind": "dyn-rect",
+      "lane": "rt1",
+      "stack": 2,
+      "subtitle": "{againN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{againN}", "fillMax": 12, "orient": "up", "fill": "#f59e0b", "radius": 6 }
+    },
+    {
+      "name": "通る",
+      "kind": "dyn-rect",
+      "lane": "rt2",
+      "stack": 1,
+      "subtitle": "{okN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{okN}", "fillMax": 12, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "落ちる",
+      "kind": "dyn-rect",
+      "lane": "rt2",
+      "stack": 2,
+      "subtitle": "{ngN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{ngN}", "fillMax": 12, "orient": "up", "fill": "#dc2626", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "試す", "to": "通る", "label": "通る", "tone": "success" },
+    { "from": "試す", "to": "落ちる", "label": "落ちる", "tone": "error" },
+    { "from": "落ちる", "to": "やり直す", "label": "戻す", "tone": "warning" },
+    { "from": "やり直す", "to": "通る", "label": "通る", "tone": "success" }
+  ],
+  "states": { "tryN": 0, "okN": 0, "ngN": 0, "againN": 0 },
+  "animation": [
+    {
+      "step": "落ちた分をもう一度試す",
+      "duration": 4,
+      "focus": ["試す", "やり直す", "通る", "落ちる", "試す -> 通る", "試す -> 落ちる", "落ちる -> やり直す", "やり直す -> 通る"],
+      "tween": { "tryN": [0, 12], "okN": [0, 12], "ngN": [0, 3], "againN": [0, 3] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsBatchCollector = `title: "まとめ箱 — 1 件ずつ溜めて、満ちたらまとめて送る"
+type: flow
+
+lanes:
+  bt1: { x: 0, width: 200, label: "溜める" }
+  bt2: { x: 220, width: 200, label: "送る" }
+
+states:
+  inN: 0
+  poolN: 0
+  sendN: 0
+
+actors:
+  - 届く: { kind: dyn-rect, lane: bt1, stack: 0, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 30, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 溜まり: { kind: dyn-rect, lane: bt1, stack: 1, subtitle: "{poolN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{poolN}", fillMax: 10, orient: up, fill: "#f59e0b", radius: 6 } }
+  - まとめて送る: { kind: dyn-rect, lane: bt2, stack: 1, subtitle: "{sendN} 回", posW: 150, posH: 150, shape: { kind: rect, source: "{sendN}", fillMax: 3, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 届く -> 溜まり: "1 件ずつ" (info)
+  - 溜まり -> まとめて送る: "満ちたら" (success)
+
+animation:
+  - step: "満ちたら送る" 4s
+    focus: ["届く", "溜まり", "まとめて送る", "届く -> 溜まり", "溜まり -> まとめて送る"]
+    tween:
+      inN: 0 -> 30
+      poolN: 0 -> 10
+      sendN: 0 -> 3
+`;
+
+export const sourceJson__partsBatchCollector = `{
+  "title": "まとめ箱 — 1 件ずつ溜めて、満ちたらまとめて送る",
+  "type": "flow",
+  "lanes": {
+    "bt1": { "x": 0, "width": 200, "label": "溜める" },
+    "bt2": { "x": 220, "width": 200, "label": "送る" }
+  },
+  "actors": [
+    {
+      "name": "届く",
+      "kind": "dyn-rect",
+      "lane": "bt1",
+      "stack": 0,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{inN}", "fillMax": 30, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "溜まり",
+      "kind": "dyn-rect",
+      "lane": "bt1",
+      "stack": 1,
+      "subtitle": "{poolN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{poolN}", "fillMax": 10, "orient": "up", "fill": "#f59e0b", "radius": 6 }
+    },
+    {
+      "name": "まとめて送る",
+      "kind": "dyn-rect",
+      "lane": "bt2",
+      "stack": 1,
+      "subtitle": "{sendN} 回",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{sendN}", "fillMax": 3, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "届く", "to": "溜まり", "label": "1 件ずつ", "tone": "info" },
+    { "from": "溜まり", "to": "まとめて送る", "label": "満ちたら", "tone": "success" }
+  ],
+  "states": { "inN": 0, "poolN": 0, "sendN": 0 },
+  "animation": [
+    {
+      "step": "満ちたら送る",
+      "duration": 4,
+      "focus": ["届く", "溜まり", "まとめて送る", "届く -> 溜まり", "溜まり -> まとめて送る"],
+      "tween": { "inN": [0, 30], "poolN": [0, 10], "sendN": [0, 3] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsContentSorter = `title: "仕分け箱 — 中身の種類で 3 つの行き先へ分ける"
+type: flow
+
+lanes:
+  cs1: { x: 0, width: 200, label: "見る" }
+  cs2: { x: 220, width: 200, label: "行き先" }
+
+states:
+  inN: 0
+  aN: 0
+  bN: 0
+  cN: 0
+
+actors:
+  - 中身を見る: { kind: dyn-rect, lane: cs1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 20, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 注文: { kind: dyn-rect, lane: cs2, stack: 0, subtitle: "{aN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{aN}", fillMax: 20, orient: up, fill: "#22c55e", radius: 6 } }
+  - 問い合わせ: { kind: dyn-rect, lane: cs2, stack: 1, subtitle: "{bN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{bN}", fillMax: 20, orient: up, fill: "#8b5cf6", radius: 6 } }
+  - その他: { kind: dyn-rect, lane: cs2, stack: 2, subtitle: "{cN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{cN}", fillMax: 20, orient: up, fill: "#94a3b8", radius: 6 } }
+
+flow:
+  - 中身を見る -> 注文: "注文" (success)
+  - 中身を見る -> 問い合わせ: "問い" (info)
+  - 中身を見る -> その他: "残り" (warning)
+
+animation:
+  - step: "種類で分ける" 4s
+    focus: ["中身を見る", "注文", "問い合わせ", "その他", "中身を見る -> 注文", "中身を見る -> 問い合わせ", "中身を見る -> その他"]
+    tween:
+      inN: 0 -> 20
+      aN: 0 -> 11
+      bN: 0 -> 6
+      cN: 0 -> 3
+`;
+
+export const sourceJson__partsContentSorter = `{
+  "title": "仕分け箱 — 中身の種類で 3 つの行き先へ分ける",
+  "type": "flow",
+  "lanes": {
+    "cs1": { "x": 0, "width": 200, "label": "見る" },
+    "cs2": { "x": 220, "width": 200, "label": "行き先" }
+  },
+  "actors": [
+    {
+      "name": "中身を見る",
+      "kind": "dyn-rect",
+      "lane": "cs1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{inN}", "fillMax": 20, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "注文",
+      "kind": "dyn-rect",
+      "lane": "cs2",
+      "stack": 0,
+      "subtitle": "{aN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{aN}", "fillMax": 20, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "問い合わせ",
+      "kind": "dyn-rect",
+      "lane": "cs2",
+      "stack": 1,
+      "subtitle": "{bN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{bN}", "fillMax": 20, "orient": "up", "fill": "#8b5cf6", "radius": 6 }
+    },
+    {
+      "name": "その他",
+      "kind": "dyn-rect",
+      "lane": "cs2",
+      "stack": 2,
+      "subtitle": "{cN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{cN}", "fillMax": 20, "orient": "up", "fill": "#94a3b8", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "中身を見る", "to": "注文", "label": "注文", "tone": "success" },
+    { "from": "中身を見る", "to": "問い合わせ", "label": "問い", "tone": "info" },
+    { "from": "中身を見る", "to": "その他", "label": "残り", "tone": "warning" }
+  ],
+  "states": { "inN": 0, "aN": 0, "bN": 0, "cN": 0 },
+  "animation": [
+    {
+      "step": "種類で分ける",
+      "duration": 4,
+      "focus": ["中身を見る", "注文", "問い合わせ", "その他", "中身を見る -> 注文", "中身を見る -> 問い合わせ", "中身を見る -> その他"],
+      "tween": { "inN": [0, 20], "aN": [0, 11], "bN": [0, 6], "cN": [0, 3] }
     }
   ]
 }`;

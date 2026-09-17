@@ -284,7 +284,8 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
     // import を書き間違えると以下が素通りする
     const 件数 = Object.fromEntries(対象.map(([n, m]) => [n, diagramsOf(m).length]));
     expect(件数).toEqual({
-      parts: 90,
+      // 前へ進むだけではない繋ぎ方の部品 4 枚を足して 94 (#2171)
+      parts: 94,
       // 部品を繋いで動かす見本 5 件 (#2125) + 振り分け器と合流点を繋ぐ見本 (#2149)
       "parts-motion": 7,
       // 135 = 129 図 + `formulaTextBind` の名札を書かない変種 (#1916)

@@ -458,7 +458,7 @@ describe("部品を箱に使う見本 (#1973)", () => {
     const items = await loadPartsItems();
     const 一覧 = 部品の一覧を作る(items.map((i) => i.diagram));
     const 部品の数 = items.filter((i) => 部品の図か(i.id)).length;
-    expect(部品の数, "部品を 1 つも数えられていない (検査が空振りしている)").toBe(90);
+    expect(部品の数, "部品を 1 つも数えられていない (検査が空振りしている)").toBe(94);
     // 頭付きと頭なしの 2 通りで引ける
     expect(Object.keys(一覧)).toHaveLength(部品の数 * 2);
     expect(一覧["state-indicator"]?.id).toBe("parts-state-indicator");
