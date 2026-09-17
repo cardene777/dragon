@@ -10,7 +10,7 @@
  * |---|---|
  * | `lane:` を書いた部品 | 書いた縦列の範囲の中に描く。 他の箱の位置は変えない |
  * | 登場人物ごとに縦列を作る図種 (`swimlane` / `state` / `er` / `class`) | 部品の名前の縦列の中に描き、縦列は書いた順に並ぶ |
- * | 縦列を 2 本持つ部品 | 要素の横並びを保ち、縦列を部品の幅まで広げる |
+ * | 縦列を 2 本以上持つ部品 | 1 本目の要素は書いた縦列、2 本目以降はすぐ右に差し込んだ縦列に入れる。 図の検査で誤りを出さない (#2145) |
  * | 縦 | 他の箱の下端から 120。 同じ縦列の部品は書いた順に積む |
  * | 位置を書いた部品 | `lane:` を書いても書いた位置 |
  * | 他の箱の位置の基準になる部品 | 縦列に置かず、知らせる |
@@ -21,7 +21,7 @@
  * 上でも通る (直す前の状態がそれだった)。
  */
 import { describe, it, expect } from "vitest";
-import { diagram, layout } from "@cardenelabs/cdl";
+import { diagram, layout, visualValidateAll } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "../src/index";
 import type { CompileNotice } from "../src/compile";
@@ -63,7 +63,59 @@ const 横二つ: CdlDiagram = {
   phases: [] as CdlDiagram["phases"],
 };
 
-const 部品の一覧: Record<string, CdlDiagram> = { one: 一灯, stack3: 三段, side2: 横二つ };
+/**
+ * 入口 1 つを出口 2 つへ分ける部品 (#2145)。 カタログの `parts-split-router` と同じ形 =
+ * 左の縦列に入口、右の縦列に出口を 2 つ縦に積み、部品の中に矢印を 2 本持つ
+ */
+const 分岐: CdlDiagram = {
+  id: "parts-split2",
+  topic: "split2",
+  lanes: [
+    { id: "sl1", x: 0, width: 200, label: "入口" },
+    { id: "sl2", x: 220, width: 200, label: "出口" },
+  ],
+  nodes: [
+    { id: "inP", lane: "sl1", stack: 0, kind: "card", title: "入口", w: 180, h: 180 },
+    { id: "outA", lane: "sl2", stack: 0, kind: "card", title: "出口 A", w: 180, h: 180 },
+    { id: "outB", lane: "sl2", stack: 1, kind: "card", title: "出口 B", w: 180, h: 180 },
+  ] as CdlDiagram["nodes"],
+  edges: [
+    { id: "a", from: "inP", to: "outA", label: "7 割", tone: "success" },
+    { id: "b", from: "inP", to: "outB", label: "3 割", tone: "warning" },
+  ] as CdlDiagram["edges"],
+  states: [],
+  phases: [] as CdlDiagram["phases"],
+};
+
+/** 縦列を 3 本持ち、要素を 1 つずつ横に並べる部品 (#2145)。 カタログの `parts-queue-depth` と同じ形 */
+const 三列: CdlDiagram = {
+  id: "parts-queue3",
+  topic: "queue3",
+  lanes: [
+    { id: "q1", x: 0, width: 180, label: "入る" },
+    { id: "q2", x: 200, width: 200, label: "待ち" },
+    { id: "q3", x: 420, width: 180, label: "出る" },
+  ],
+  nodes: [
+    { id: "qIn", lane: "q1", stack: 0, kind: "card", title: "入る", w: 160, h: 320 },
+    { id: "qBody", lane: "q2", stack: 0, kind: "card", title: "待ち行列", w: 180, h: 320 },
+    { id: "qOut", lane: "q3", stack: 0, kind: "card", title: "出る", w: 160, h: 320 },
+  ] as CdlDiagram["nodes"],
+  edges: [
+    { id: "in", from: "qIn", to: "qBody", label: "届く", tone: "info" },
+    { id: "out", from: "qBody", to: "qOut", label: "捌く", tone: "success" },
+  ] as CdlDiagram["edges"],
+  states: [],
+  phases: [] as CdlDiagram["phases"],
+};
+
+const 部品の一覧: Record<string, CdlDiagram> = {
+  one: 一灯,
+  stack3: 三段,
+  side2: 横二つ,
+  split2: 分岐,
+  queue3: 三列,
+};
 
 type 範囲 = { x0: number; x1: number; y0: number; y1: number };
 
@@ -255,27 +307,123 @@ describe("部品の形を保つ (#1980)", () => {
     ).toBe(true);
   });
 
-  it("縦列を 2 本持つ部品は横並びを保ち、縦列を部品の幅まで広げる", () => {
-    // 部品の頁での要素の中心の間隔 (#1992)。 書いた縦列の中心の間隔 (340) より広い
-    const 頁 = layout(横二つ);
-    const 中心 = (id: string) => 頁.nodes.find((n) => n.id === id)!.cx;
-    const 単体の間 = 中心("right") - 中心("left");
-    expect(単体の間, "頁が書いた縦列の間隔より広げていない (前提が崩れた)").toBeGreaterThan(340);
+  it("縦列を 2 本持つ部品は、左の要素を書いた縦列に、右の要素をそのすぐ右の縦列に入れる", () => {
     const { 箱, 縦列 } = 配置する(
       Issueの本文.replace("kind: one, lane: b", "kind: side2, lane: b"),
     );
     const 左 = 箱.get("印__left")!;
     const 右 = 箱.get("印__right")!;
-    expect((右.x0 + 右.x1) / 2 - (左.x0 + 左.x1) / 2).toBeCloseTo(単体の間, 0);
-    const b = 縦列.find((l) => l.id === "b")!;
-    const 印 = 部品の範囲(箱, "印");
-    expect(縦列の中にある(印, b), `印 ${印.x0}〜${印.x1} が縦列 b ${b.x0}〜${b.x1} の外`).toBe(
-      true,
-    );
-    expect(b.x1 - b.x0, "縦列を広げていない").toBeGreaterThanOrEqual(印.x1 - 印.x0 + 50);
-    // 広げた縦列が隣の縦列 a に重ならない
+    const 並び = [...縦列].sort((p, q) => p.x0 - q.x0);
+    const bの位置 = 並び.findIndex((l) => l.id === "b");
+    expect(左.lane).toBe("b");
+    expect(右.lane, "右の要素が b のすぐ右の縦列に入っていない").toBe(並び[bの位置 + 1]?.id);
+    // 部品の頁の並び (左 → 右) を保つ
+    expect((右.x0 + 右.x1) / 2).toBeGreaterThan((左.x0 + 左.x1) / 2);
+    // どちらも自分の縦列の中心に揃う
+    for (const 要素 of [左, 右]) {
+      const l = 縦列.find((x) => x.id === 要素.lane)!;
+      expect((要素.x0 + 要素.x1) / 2).toBeCloseTo((l.x0 + l.x1) / 2, 0);
+      expect(縦列の中にある(要素, l)).toBe(true);
+    }
+    // 縦列 a の受付と重ならない
     const a = 縦列.find((l) => l.id === "a")!;
-    expect(a.x1).toBeLessThanOrEqual(b.x0);
+    expect(a.x1).toBeLessThanOrEqual(縦列.find((l) => l.id === "b")!.x0);
+  });
+});
+
+/**
+ * 図の検査 (`visualValidateAll`) の誤り。 警告 (器の幅など) は数えない。
+ *
+ * 座標だけを見ると、同じ縦列に中心の違う箱が並んでも通る (#2145 まで既存の検査はそうだった)。
+ */
+function 検査の誤り(図: CdlDiagram): string[] {
+  const r = visualValidateAll([図], { profile: "catalog" });
+  return r.reports
+    .flatMap((x) => x.violations)
+    .filter((v) => v.severity === "error")
+    .map((v) => `${v.axis} — ${v.detail}`);
+}
+
+describe("縦列を 2 本以上持つ部品を縦列に置いても、図の検査で誤りを出さない (#2145)", () => {
+  const 一つ置く = (種類: string, 繋ぎ先: string) => `title: "t"
+type: swimlane
+
+actors:
+  - 受付: { kind: card }
+  - 部品: { kind: ${種類} }
+
+flow:
+  - 受付 -> 部品: "届く" { toPartNode: ${繋ぎ先} }
+`;
+
+  it.each([
+    ["side2", "left"],
+    ["split2", "inP"],
+    ["queue3", "qIn"],
+  ])("%s を登場人物の縦列に置く", (種類, 繋ぎ先) => {
+    const { 図 } = 配置する(一つ置く(種類, 繋ぎ先));
+    expect(図.nodes.filter((n) => n.id.startsWith("部品__")).length).toBeGreaterThan(1);
+    expect(検査の誤り(図)).toEqual([]);
+  });
+
+  it("分岐の出口から三列の入口へ要素を名指しして繋ぐ", () => {
+    const { 図 } = 配置する(`title: "t"
+type: swimlane
+
+actors:
+  - 受付: { kind: card }
+  - router: { kind: split2 }
+  - queue: { kind: queue3 }
+
+flow:
+  - 受付 -> router: "届く" { toPartNode: inP }
+  - router -> queue: "7 割を回す" { fromPartNode: outA, toPartNode: qIn }
+`);
+    // 繋いだ矢印が残っている (繋ぎ先を落とすと検査は矢印の無い図を見て通ってしまう)
+    expect(図.edges.map((e) => `${e.from} -> ${e.to}`)).toContain("router__outA -> queue__qIn");
+    expect(検査の誤り(図)).toEqual([]);
+  });
+
+  it("2 本目以降の縦列は部品の縦列の順に宿主の縦列の右へ並び、名札を持たない", () => {
+    const { 箱, 縦列, 図 } = 配置する(一つ置く("queue3", "qIn"));
+    const 並び = [...縦列].sort((p, q) => p.x0 - q.x0).map((l) => l.id);
+    const 入り先 = ["部品__qIn", "部品__qBody", "部品__qOut"].map((id) => 箱.get(id)!.lane);
+    const 宿主 = 箱.get("受付")!.lane === 入り先[0] ? undefined : 入り先[0];
+    expect(宿主, "1 本目の要素が宿主の縦列に入っていない").toBeDefined();
+    const 宿主の位置 = 並び.indexOf(宿主!);
+    expect(入り先).toEqual(並び.slice(宿主の位置, 宿主の位置 + 3));
+    for (const id of 入り先.slice(1)) {
+      expect(図.lanes.find((l) => l.id === id)?.label, `${id} に名札がある`).toBeUndefined();
+    }
+  });
+
+  it("同じ縦列に分岐を 2 つ積むと、2 本目の縦列を共有して揃う", () => {
+    const { 箱, 図 } = 配置する(
+      Issueの本文.replace("kind: one, lane: b", "kind: split2, lane: b") +
+        "  - 予備: { kind: split2, lane: b }\n",
+    );
+    expect(箱.get("印__outA")!.lane).toBe(箱.get("予備__outA")!.lane);
+    // 同じ名前の縦列を 2 本作っていない (名前だけ比べると、2 本目を作っても上の比較は通る)
+    const 縦列の名前 = 図.lanes.map((l) => l.id);
+    expect(縦列の名前.length, `縦列の名前が重なる: ${縦列の名前.join(", ")}`).toBe(
+      new Set(縦列の名前).size,
+    );
+    expect(箱.get("印__inP")!.lane).toBe("b");
+    expect(箱.get("予備__inP")!.lane).toBe("b");
+    // 揃いの誤りだけを見る。 間隔のばらつき (`column-gap-uniform`) は残る = 2 つ目は 1 つ目の
+    // 一番下 (2 本目の縦列の出口 B) から 120 空けて置くので、1 本目の縦列だけ間が 400 に開く
+    // (実測)。 部品は形を保って丸ごと動かすため、縦列ごとに詰めることはしない
+    expect(
+      検査の誤り(図).filter((e) => e.startsWith("alignment") || e.startsWith("column-alignment")),
+    ).toEqual([]);
+  });
+
+  it("縦列を 1 本しか持たない部品は、書いた縦列だけを使い縦列を足さない", () => {
+    const 本文 = Issueの本文.replace("kind: one, lane: b", "kind: stack3, lane: b");
+    const { 図 } = 配置する(本文);
+    const 部品なし = 配置する(本文.replace("  - 印: { kind: stack3, lane: b }\n", "")).図;
+    expect(図.lanes.map((l) => l.id)).toEqual(部品なし.lanes.map((l) => l.id));
+    expect(図.nodes.filter((n) => n.id.startsWith("印__")).every((n) => n.lane === "b")).toBe(true);
   });
 });
 
