@@ -100,10 +100,24 @@ describe("画面を配る port (#1326)", () => {
  * | `localhost:<preview の port>` | path が base path で始まる (#1438) |
  * | それ以外の数字 | 通さない |
  *
- * 対象は追跡中の Markdown から導き、`CHANGELOG.md` だけを外す。 変更履歴は過去の版の記録で、
- * 書いた当時の数字を残す。 調査用の `scripts/*.mjs` も対象にしない (`ports.ts` の説明の通り)。
+ * 対象は走査した Markdown から導く。 外す file は下の `外すfile` が理由と一緒に持つ。
+ * 調査用の `scripts/*.mjs` も対象にしない (`ports.ts` の説明の通り)。
  */
 const ROOT = join(import.meta.dirname, "..", "..", "..", "..");
+
+/**
+ * 走査した一覧から外す file と、その理由。
+ *
+ * 外す file 名を引く場所と理由を書く場所が離れると、片方だけ直っても気付けない
+ * (`notes-no-this-pr-reference.test.ts` が同じ形を採っている)。
+ *
+ * **「外さないと落ちる」 ことは確かめない**。 変更履歴が今書いている数字は今の `ports.ts` と
+ * 一致しており、外さなくても通る。 外す理由は これから port を変えた時に、過去の版の記録が
+ * 当時の数字を残すことなので、今この瞬間に落ちる中身を求めると書いた日から落ち続ける。
+ */
+const 外すfile: Record<string, string> = {
+  "CHANGELOG.md": "過去の版の記録で、書いた当時の数字をそのまま残す (今の設定と一致させる対象ではない)",
+};
 
 /** 本文から `localhost:<数字>` を拾い、`ports.ts` と食い違うものを理由付きで返す */
 function portの食い違い(本文: string): { 拾った: number; 食い違い: string[] } {
@@ -125,10 +139,20 @@ function portの食い違い(本文: string): { 拾った: number; 食い違い:
   return { 拾った, 食い違い };
 }
 
+/** 走査した Markdown。 未追跡も見る = 書いている最中に落ちないと、取り込んでから直すことになる (#2095) */
+const 走査したmd: string[] = 走査するfile(ROOT, "*.md");
+
 describe("文書に書いた port (#2054)", () => {
+  it("外す file が走査対象に実在し、理由を持つ", () => {
+    // 消えた file の宣言が残ると、外したつもりの名前が誰にも当たらないまま残る
+    for (const [p, 理由] of Object.entries(外すfile)) {
+      expect(走査したmd, `外す file が走査対象に無い: ${p}`).toContain(p);
+      expect(理由.length, `外す file に理由が無い: ${p}`).toBeGreaterThan(10);
+    }
+  });
+
   it("Markdown に書いた port が ports.ts と一致する", () => {
-    // 未追跡の Markdown も見る = 書いている最中に落ちないと、取り込んでから直すことになる (#2095)
-    const 文書 = 走査するfile(ROOT, "*.md").filter((p) => p !== "CHANGELOG.md");
+    const 文書 = 走査したmd.filter((p) => !(p in 外すfile));
     expect(文書.length, "Markdown を 1 つも拾えていない (検査が空振りしている)").toBeGreaterThan(0);
 
     let 拾った = 0;
