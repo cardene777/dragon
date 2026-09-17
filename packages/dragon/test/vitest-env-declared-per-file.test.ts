@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it, expect } from "vitest";
+import { 走査するfile } from "../../../test-support/scan-targets";
 
 /**
  * 検査が走る環境が、読んだ通りに決まることの検証 (#2089)。
@@ -58,26 +59,14 @@ const 窓 = ["win", "dow"].join("");
 /** file 冒頭の環境の指定 */
 const 環境の指定 = /@vitest-environment\s+jsdom/u;
 
-/** `git ls-files` を引いて、空行を落とした一覧 */
-function git一覧(...追加: string[]): string[] {
-  return execFileSync(
-    "git",
-    ["-C", REPO, "ls-files", ...追加, "*.test.ts", "*.test.tsx"],
-    { encoding: "utf8" },
-  )
-    .split("\n")
-    .filter((p) => p !== "");
-}
-
 /**
- * 走査対象 = 追跡している検査 file と、未追跡だが無視されていない検査 file (#2092 と同じ形)。
+ * 走査対象 = 追跡している検査 file と、未追跡だが無視されていない検査 file。
  *
  * 追跡している file だけを見ると、新しく書いた検査は取り込むまで判定を受けない。
  * この検査自身がその穴に落ちた (書いている間は自分を走査せず、取り込んだ回で初めて落ちた)。
+ * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
  */
-const 検査file: string[] = [
-  ...new Set([...git一覧(), ...git一覧("--others", "--exclude-standard")]),
-].sort();
+const 検査file: string[] = 走査するfile(REPO, "*.test.ts", "*.test.tsx");
 
 const 中身 = new Map(検査file.map((p) => [p, readFileSync(join(REPO, p), "utf8")]));
 

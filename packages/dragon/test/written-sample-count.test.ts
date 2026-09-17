@@ -9,17 +9,17 @@
  * 題に件数を出したい時は `${EDITOR_SAMPLES.length}` のように実物から組む。 この形は数字を
  * 書いていないので拾わない。
  *
- * 対象は追跡中の `*.ts` / `*.tsx` に限る。 `docs/` の Markdown に残る件数は
+ * 対象は`*.ts` / `*.tsx` に限る。 `docs/` の Markdown に残る件数は
  * 書いた時点の実測の記録で、その時の数字が正しい。
  *
  * 名詞を先に置いた書き方 (見本の語に件数を続ける形) は別の判定で見る (#2062)。 「全」 を
  * 付けない形は検査の中で決めた個数と文字の上で区別できないため、見る場所を検査の題に、
  * 見る file を見本か部品の一覧を丸ごと読み込む file に絞る。
  */
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
+import { 走査するfile } from "../../../test-support/scan-targets";
 
 const REPO = join(import.meta.dirname, "..", "..", "..");
 
@@ -39,11 +39,14 @@ function 書いた件数(本文: string): string[] {
 /** 植え込み対照に使う形。 この file 自身が走査に掛からないよう、数字と語を分けて組む */
 const 組む = (...部分: string[]): string => 部分.join(" ");
 
-/** 追跡中の `*.ts` / `*.tsx` (repo からの相対 path) */
-function 追跡中のfile(): string[] {
-  return execFileSync("git", ["-C", REPO, "ls-files", "*.ts", "*.tsx"], { encoding: "utf8" })
-    .split("\n")
-    .filter((p) => p !== "");
+/**
+ * 走査する `*.ts` / `*.tsx` (repo からの相対 path)。
+ *
+ * 未追跡の file も入れる = 書いている最中に落ちないと、取り込んでから直すことになる (#2095)。
+ * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ。
+ */
+function 走査中のfile(): string[] {
+  return 走査するfile(REPO, "*.ts", "*.tsx");
 }
 
 /**
@@ -96,7 +99,7 @@ const 読み込む = {
 
 describe("見本と部品の件数を数字で書かない (#2060)", () => {
   it("追跡中の *.ts / *.tsx に件数を数字で書いた箇所が無い", () => {
-    const 対象 = 追跡中のfile();
+    const 対象 = 走査中のfile();
     expect(対象.length, "file を 1 つも拾えていない (検査が空振りしている)").toBeGreaterThan(0);
 
     const 見つけた: string[] = [];
@@ -138,7 +141,7 @@ describe("見本と部品の件数を数字で書かない (#2060)", () => {
 
 describe("名詞を先に置いた件数を検査の題に書かない (#2062)", () => {
   it("見本か部品の一覧を丸ごと読み込む file の題に件数を数字で書いていない", () => {
-    const 対象 = 追跡中のfile();
+    const 対象 = 走査中のfile();
     let 一覧を読み込むfile = 0;
     const 見つけた: string[] = [];
     for (const rel of 対象) {

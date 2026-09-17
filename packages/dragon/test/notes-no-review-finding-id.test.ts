@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { 走査するfile, 未追跡のfile } from "../../../test-support/scan-targets";
 
 /**
  * 注記と検査の題が、指摘に振った番号で中身を名乗っていないことの検証 (#2082)。
@@ -48,31 +48,15 @@ function 指摘の番号を名乗る(中身: string): boolean {
   return 探す語.some((語) => new RegExp(`\\b${語}\\b`, "u").test(中身));
 }
 
-/** `git ls-files` を引いて、空行を落とした一覧 */
-function git一覧(...追加: string[]): string[] {
-  return execFileSync(
-    "git",
-    ["-C", REPO, "ls-files", ...追加, "*.ts", "*.tsx", "*.mts", "*.mjs"],
-    { encoding: "utf8" },
-  )
-    .split("\n")
-    .filter((p) => p !== "");
-}
-
-/** 2 つの一覧を重複なく 1 つにまとめる */
-function まとめる(追跡: string[], 未追跡: string[]): string[] {
-  return [...new Set([...追跡, ...未追跡])].sort();
-}
+/**
+ * 走査対象 = 追跡している `ts` / `tsx` / `mts` / `mjs` と、未追跡だが無視されていない同じ拡張子。
+ *
+ * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
+ */
+const 走査したfile: string[] = 走査するfile(REPO, "*.ts", "*.tsx", "*.mts", "*.mjs");
 
 /** 未追跡だが無視されていない file (`.gitignore` に載る配布物は入らない) */
-const 未追跡file: string[] = git一覧("--others", "--exclude-standard");
-
-/**
- * 走査対象 = 追跡している `ts` / `tsx` / `mts` / `mjs` と、未追跡だが無視されていない同じ拡張子 (#2092)。
- *
- * 配布物 (`dist`) は `.gitignore` に載っているため、どちらの一覧にも入らない。
- */
-const 走査したfile: string[] = まとめる(git一覧(), 未追跡file);
+const 未追跡file: string[] = 未追跡のfile(REPO, "*.ts", "*.tsx", "*.mts", "*.mjs");
 
 function 持っているfile(): string[] {
   return 走査したfile.filter((p) => 指摘の番号を名乗る(readFileSync(join(REPO, p), "utf8")));
@@ -104,12 +88,8 @@ describe("注記と題が指摘の番号を名乗っていない (#2082)", () =>
   });
 
   it("未追跡の file も走査対象に入る (#2092)", () => {
-    // 追跡される前は判定を受けない形だと、書いた本人は取り込むまで気付けない
-    expect(まとめる(["追跡.ts"], ["未追跡.ts"]), "未追跡の一覧を捨てている").toEqual([
-      "未追跡.ts",
-      "追跡.ts",
-    ]);
-    expect(まとめる(["同じ.ts"], ["同じ.ts"]), "重複を残している").toEqual(["同じ.ts"]);
+    // 追跡される前は判定を受けない形だと、書いた本人は取り込むまで気付けない。
+    // 集め方そのものは `scan-targets.test.ts` が見る
     const 漏れ = 未追跡file.filter((p) => !走査したfile.includes(p));
     expect(漏れ, "未追跡の file が走査対象から漏れている").toEqual([]);
   });
