@@ -543,6 +543,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsFanoutCopy: "繋ぐ: 全員へ同じものを写す",
   partsRateLimiter: "繋ぐ: 札の数だけ通す",
   partsPriorityQueue: "繋ぐ: 急ぎを先に出す",
+  partsFailoverSwitch: "繋ぐ: 常用から予備へ倒す",
+  partsRetryLoop: "繋ぐ: 落ちた分をやり直す",
+  partsBatchCollector: "繋ぐ: 溜めてまとめて送る",
+  partsContentSorter: "繋ぐ: 中身の種類で仕分ける",
 };
 
 /**
@@ -1019,6 +1023,10 @@ export const ITEM_NAME_EN: Record<string, string> = {
   partsFanoutCopy: "Wire: copy the same payload to everyone",
   partsRateLimiter: "Wire: pass while tokens last",
   partsPriorityQueue: "Wire: urgent items go first",
+  partsFailoverSwitch: "Wire: fall over from primary to standby",
+  partsRetryLoop: "Wire: send failures back for another try",
+  partsBatchCollector: "Wire: collect one by one, send in batches",
+  partsContentSorter: "Wire: route by what the item contains",
 };
 
 /**
