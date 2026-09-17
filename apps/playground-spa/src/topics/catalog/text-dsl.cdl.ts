@@ -1153,93 +1153,107 @@ export const sourceJson__textDslPie = `{
   ]
 }`;
 
-// ─── c4 preset (system context) ─────
+/*
+ * ─── c4 preset (全体の見取り図 → 動かす単位 → 部品) ─────
+ *
+ * **箱の説明の先頭に段の目印 (`L1` / `L2` / `L3`) を書く** (#2135)。 目印を書かない箱は全て
+ * 「全体の見取り図」 に入り、C4 の図が他の図種と違う点 (段で見る粒度を分ける) が出ない。
+ * 以前の見本は目印を 1 つも書かず、4 つの箱が 1 列に縦積みになっていた。
+ *
+ * 矢印は段の中の流れと、上の段の箱から下の段の箱へ「中を開く」 矢印の 2 種類。 1 つの箱から
+ * 右の段へ 2 本出す繋ぎ方は、矢印の端と縦の間隔の検査に掛かるため採らない。
+ * 見本が 3 段を使うことは `lib/c4-sample-levels.test.ts` が固定する。
+ */
 export const sourceYaml__textDslC4 = `
-title: "C4 の系統図"
+title: "ネット注文の C4 系統図"
 type: c4
 
 actors:
-  - 利用者: { kind: person, subtitle: "末端の利用者" }
-  - 画面: { kind: service, subtitle: "画面側" }
-  - API: { kind: api, subtitle: "処理側" }
-  - DB: { kind: database, subtitle: "PostgreSQL" }
+  - 購入者: { kind: person, subtitle: "L1 画面から注文する人" }
+  - 注文の仕組み: { kind: service, subtitle: "L1 注文を受けて在庫を引き当てる系統" }
+  - 画面: { kind: service, subtitle: "L2 閲覧ソフトで動く" }
+  - 注文の受け口: { kind: api, subtitle: "L2 要求を受けて処理する" }
+  - 注文の記録: { kind: database, subtitle: "L2 注文と在庫を保つ" }
+  - 認証部品: { kind: service, subtitle: "L3 鍵を確かめる" }
+  - 在庫部品: { kind: service, subtitle: "L3 在庫を引き当てる" }
 
 flow:
-  - 利用者 -> 画面: "使う"
-  - 画面 -> API: "呼ぶ"
-  - API -> DB: "読む"
+  - 購入者 -> 注文の仕組み: "注文する"
+  - 注文の仕組み -> 画面: "中を開く"
+  - 画面 -> 注文の受け口: "POST 注文"
+  - 注文の受け口 -> 注文の記録: "書く"
+  - 注文の受け口 -> 認証部品: "中を開く"
+  - 認証部品 -> 在庫部品: "通す"
 
 animation:
-  - step: "要求" 1s
-    focus: [利用者, 画面]
-    badge: "アクセス"
-  - step: "取得" 1s
-    focus: [API, DB]
-    badge: "DB 参照"
+  - step: "全体の見取り図" 1.4s
+    focus: [購入者, 注文の仕組み, "購入者 -> 注文の仕組み"]
+    badge: "L1"
+    body: "系統を 1 つの箱として置き、使う人との関係だけを描く"
+  - step: "中を開く" 1.4s
+    focus: ["注文の仕組み -> 画面", 画面, 注文の受け口, 注文の記録]
+    badge: "L2"
+    body: "系統の中を、単体で動かす画面と受け口と記録に分ける"
+  - step: "動かす単位の間" 1.2s
+    focus: ["画面 -> 注文の受け口", "注文の受け口 -> 注文の記録"]
+    badge: "POST 注文"
+    body: "画面が受け口を呼び、受け口が記録へ書く"
+  - step: "部品まで開く" 1.4s
+    focus: ["注文の受け口 -> 認証部品", 認証部品, 在庫部品, "認証部品 -> 在庫部品"]
+    badge: "L3"
+    body: "受け口の中を、鍵を確かめる部品と在庫を引き当てる部品に分ける"
 `;
 
 export const textDslC4 = textDslToDiagram(sourceYaml__textDslC4);
 
 export const sourceJson__textDslC4 = `{
-  "title": "C4 の系統図",
+  "title": "ネット注文の C4 系統図",
   "type": "c4",
   "actors": [
-    {
-      "name": "利用者",
-      "kind": "person",
-      "subtitle": "末端の利用者"
-    },
-    {
-      "name": "画面",
-      "kind": "service",
-      "subtitle": "画面側"
-    },
-    {
-      "name": "API",
-      "kind": "api",
-      "subtitle": "処理側"
-    },
-    {
-      "name": "DB",
-      "kind": "database",
-      "subtitle": "PostgreSQL"
-    }
+    { "name": "購入者", "kind": "person", "subtitle": "L1 画面から注文する人" },
+    { "name": "注文の仕組み", "kind": "service", "subtitle": "L1 注文を受けて在庫を引き当てる系統" },
+    { "name": "画面", "kind": "service", "subtitle": "L2 閲覧ソフトで動く" },
+    { "name": "注文の受け口", "kind": "api", "subtitle": "L2 要求を受けて処理する" },
+    { "name": "注文の記録", "kind": "database", "subtitle": "L2 注文と在庫を保つ" },
+    { "name": "認証部品", "kind": "service", "subtitle": "L3 鍵を確かめる" },
+    { "name": "在庫部品", "kind": "service", "subtitle": "L3 在庫を引き当てる" }
   ],
   "flow": [
-    {
-      "from": "利用者",
-      "to": "画面",
-      "label": "使う"
-    },
-    {
-      "from": "画面",
-      "to": "API",
-      "label": "呼ぶ"
-    },
-    {
-      "from": "API",
-      "to": "DB",
-      "label": "読む"
-    }
+    { "from": "購入者", "to": "注文の仕組み", "label": "注文する" },
+    { "from": "注文の仕組み", "to": "画面", "label": "中を開く" },
+    { "from": "画面", "to": "注文の受け口", "label": "POST 注文" },
+    { "from": "注文の受け口", "to": "注文の記録", "label": "書く" },
+    { "from": "注文の受け口", "to": "認証部品", "label": "中を開く" },
+    { "from": "認証部品", "to": "在庫部品", "label": "通す" }
   ],
   "animation": [
     {
-      "step": "要求",
-      "duration": 1,
-      "focus": [
-        "利用者",
-        "画面"
-      ],
-      "badge": "アクセス"
+      "step": "全体の見取り図",
+      "duration": 1.4,
+      "focus": ["購入者", "注文の仕組み", "購入者 -> 注文の仕組み"],
+      "badge": "L1",
+      "body": "系統を 1 つの箱として置き、使う人との関係だけを描く"
     },
     {
-      "step": "取得",
-      "duration": 1,
-      "focus": [
-        "API",
-        "DB"
-      ],
-      "badge": "DB 参照"
+      "step": "中を開く",
+      "duration": 1.4,
+      "focus": ["注文の仕組み -> 画面", "画面", "注文の受け口", "注文の記録"],
+      "badge": "L2",
+      "body": "系統の中を、単体で動かす画面と受け口と記録に分ける"
+    },
+    {
+      "step": "動かす単位の間",
+      "duration": 1.2,
+      "focus": ["画面 -> 注文の受け口", "注文の受け口 -> 注文の記録"],
+      "badge": "POST 注文",
+      "body": "画面が受け口を呼び、受け口が記録へ書く"
+    },
+    {
+      "step": "部品まで開く",
+      "duration": 1.4,
+      "focus": ["注文の受け口 -> 認証部品", "認証部品", "在庫部品", "認証部品 -> 在庫部品"],
+      "badge": "L3",
+      "body": "受け口の中を、鍵を確かめる部品と在庫を引き当てる部品に分ける"
     }
   ]
 }`;
