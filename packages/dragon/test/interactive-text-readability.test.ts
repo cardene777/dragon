@@ -17,7 +17,7 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
  * 本 test は 2 つを固定する。
  * 1. interactive 全 diagram の text-readability warn を全件検査し、 許容 13 件 (下記 ALLOWED) 以外が
  *    0 件かつ総数が 13 を超えないことを assert する。 代表 diagram だけでなく全体を lock するため、
- *    未検証 diagram での warn 再発も検知できる (cc-codex #885 MAJOR = coverage gap の対応)。 これが
+ *    未検証 diagram での warn 再発も検知できる (代表の図だけを見る形では届かない範囲)。 これが
  *    本 test の本丸。
  * 2. cross-lane overlap の heuristic guard (補助 check)。 本 change 自体の overlap 安全性は「diff が
  *    node.w / lane を一切変えない」 width invariant で担保する (title/subtitle 短縮のみ)。 本 guard は

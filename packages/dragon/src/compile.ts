@@ -1775,8 +1775,8 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
   }
 
   // highlight 解決関数 = actor 名 or "A -> B" / "A → B" を node.id / edge.id に変換。
-  // codex-review CAR-1659 MAJOR fix = 全角矢印 `→` を対応 (generic 経路との互換)、
-  // 同 from/to で複数 edge がある場合は全件 activate (`.find` → filter loop)。
+  // 矢印は半角 (`->`) と全角 (`→`) の両方を受ける (他の経路が全角で書かれても同じ結果になる)。
+  // 同じ from / to の線が複数ある時は 1 本目で止めず、全件を光らせる。
   // 実在する名前。 矢印を含む名前 (`"A -> B"`) を矢印と読み違えないために渡す
   const knownNames = new Set(doc.actors.map((a) => a.name));
   // 図全体を 1 つの箱で描く種類は、 登場人物ごとの箱を持たない。

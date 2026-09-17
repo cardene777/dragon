@@ -2778,10 +2778,10 @@ describe("mergePartIntoDiagram: target が空の diagram への merge", () => {
   });
 });
 
-// ── 第 4 弾 (j): cc-codex #879 review 指摘への対応 ──
-// MAJOR 2 = scale 時の lane 中心 / node 中心の複合不変量
-// MAJOR 3 = 等価と誤判定していた 4 種を実際に kill する test
-// MINOR 4-5 = 弱い assertion の強化 + part edge merge の未検証経路
+// ── 第 4 弾 (j) ──
+// 拡大した時に、帯の中心と箱の中心が置いた座標と一致すること
+// 変えても落ちなかった 4 種類を、実際に落とす形にした検査
+// 緩かった判定の締め直しと、部品の線を取り込む経路の検査
 
 describe("mergePartIntoDiagram: scale 時も lane 中心と node 中心が drop 座標に一致する", () => {
   it("posW 指定時 lane は拡張後の幅で drop 座標に中心합わせされる", () => {
@@ -3000,7 +3000,7 @@ describe("mergePartIntoDiagram: readouts の有無で target.readouts が切り�
   });
 });
 
-// ── 第 4 弾 (k): cc-codex #879 Round 2 指摘への対応 ──
+// ── 第 4 弾 (k): 明示した座標を持つ箱が、拡大しても中心を保つこと ──
 
 describe("mergePartIntoDiagram: 明示 posX を持つ node も scale 時に中心が保たれる", () => {
   /** node が絶対座標 (posX) を持つ part。 */
@@ -3196,7 +3196,7 @@ describe("mergePartIntoDiagram: multi-lane part の scale で全 lane の node �
       return (l2.x! + l2.width / 2) - (l1.x! + l1.width / 2);
     };
     // scaleX 2 で lane 間中心距離がちょうど 2 倍になる (500→1000)。 translate-only なら不変、
-    // 1.6〜1.9 倍の中途半端な誤 scale も toBe で pin して落とす (cc-codex MINOR 2 対応)。
+    // 1.6〜1.9 倍のような中途半端な倍率も、`toBe` で 1 つの値に固定して落とす。
     expect(gap(scaled)).toBe(gap(noScale) * 2);
   });
 

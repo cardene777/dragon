@@ -2301,8 +2301,8 @@ function validateJson(
           });
         }
       }
-      // codex-review MAJOR fix = state override は plain object + 値は primitive (number / string / boolean) 限定、
-      // `{ v: {} }` 等 nested object や null が流入すると CdlState.initial に不正な型が入り compile 崩れる。
+      // 値の上書き (`state`) は素の object に限り、中の値も数 / 文字 / 真偽のいずれかに限る。
+      // `{ v: {} }` のような入れ子や null を通すと、値の初期値に扱えない型が入って組み立てが崩れる。
       if (ao.state !== undefined) {
         if (!ao.state || typeof ao.state !== "object" || Array.isArray(ao.state)) {
           errors.push({

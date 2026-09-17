@@ -485,9 +485,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
    */
   const yamlLastLoadedSrcRef = useRef<string>(DEFAULT_YAML_SRC);
   const confirmReplaceIfDirty = useCallback((newSrcPreviewLabel: string): boolean => {
-    // codex-review CAR-1659 CRITICAL fix = length > 20 guard 削除、 strict 比較のみで dirty 判定。
-    // 短い編集 (削除 / 部分修正) でも user 意図した変更なら必ず confirm すべき、 length 閾値は
-    // silent data loss の抜け穴。
+    // 編集されたかは、控えとの一致だけで判定する (文字数の下限は設けない)。
+    // 下限を置くと、1 文字消しただけの編集が「触っていない」 扱いになって黙って消える。
     const userEdited = src.trim() !== (lastLoadedSrcRef.current ?? "").trim();
     if (!userEdited) return true;
     const ok = window.confirm(
@@ -526,8 +525,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   }, [activeTab, confirmTabSwitchIfDirty]);
 
   // parts tab 切替時に 1 回だけ dynamic import で parts を load (CategoryPage と同経路、 CAR-1613)。
-  // codex-review PR #413 MAJOR fix = partsLoadFailed で終了状態を保持、 失敗後は明示的な reset
-  // (samples tab に切替) までは自動再試行しない。 無限 retry loop を防ぐ。
+  // 失敗したことを `partsLoadFailed` に持ち、明示的な作り直し (見本の tab へ切り替える) までは
+  // 自動で読み直さない。 読み直すと、失敗するたびに次の読み込みが始まって止まらなくなる。
   // cancelled guard は使わない ... dep 変化で cleanup 発火 → promise callback が cancelled=true 判定
   // で setPartsItems 呼ばない React footgun を回避するため、 単純に partsLoadFailed flag のみで制御。
   // 本文が種類を書いている時も読み込む (#1022)。 一覧を開くまで読まない形だと、共有 URL で
