@@ -38,6 +38,7 @@ export const 見本の名前: readonly string[] = [
   "presetFlowchart",
   "pattern__presetFlowchart__複雑",
   "presetNetwork",
+  "pattern__presetNetwork__複雑",
   "presetStateMachine2",
 ];
 
