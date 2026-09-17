@@ -2795,8 +2795,10 @@ export const partsSplitRouter = diagram("parts-split-router", {
       radius: 6,
     },
   })
-  .edge("inP", "outA", { id: "sr-a", label: "7 割", tone: "success" })
-  .edge("inP", "outB", { id: "sr-b", label: "3 割", tone: "warning" })
+  // 札は割合の数字ではなく向きの言葉にする (#2149)。 繋いだ先の部品が別の割合で書いた札と
+  // 食い違うため。 割合は箱の上の読み取り (`70 / 100`) に出る
+  .edge("inP", "outA", { id: "sr-a", label: "A へ", tone: "success" })
+  .edge("inP", "outB", { id: "sr-b", label: "B へ", tone: "warning" })
   .phase("p", { duration: 4000, title: "2 つへ分かれる", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("inP", "outA", "outB", "sr-a", "sr-b")
@@ -2869,8 +2871,10 @@ export const partsMergeJunction = diagram("parts-merge-junction", {
       radius: 6,
     },
   })
-  .edge("inA", "outP", { id: "mj-a", label: "6 割", tone: "info" })
-  .edge("inB", "outP", { id: "mj-b", label: "4 割", tone: "info" })
+  // 札は割合の数字ではなく働きの言葉にする (#2149)。 振り分け器と同じ理由。 「A から」 は
+  // 3 字を超え、繋いだ図の縦列の間隔を全て広げて一覧の器で箱の題が 12px を割る (実測 11.6px)
+  .edge("inA", "outP", { id: "mj-a", label: "足す", tone: "info" })
+  .edge("inB", "outP", { id: "mj-b", label: "足す", tone: "info" })
   .phase("p", { duration: 4000, title: "1 つへ集まる", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("inA", "inB", "outP", "mj-a", "mj-b")
@@ -8773,8 +8777,8 @@ actors:
   - 出口 B: { kind: dyn-rect, lane: sl2, stack: 1, subtitle: "{bLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{bLv}", fillMax: 100, orient: up, fill: "#f59e0b", radius: 6 } }
 
 flow:
-  - 入口 -> 出口 A: "7 割" (success)
-  - 入口 -> 出口 B: "3 割" (warning)
+  - 入口 -> 出口 A: "A へ" (success)
+  - 入口 -> 出口 B: "B へ" (warning)
 
 animation:
   - step: "2 つへ分かれる" 4s
@@ -8846,8 +8850,8 @@ export const sourceJson__partsSplitRouter = `{
     }
   ],
   "flow": [
-    { "from": "入口", "to": "出口 A", "label": "7 割", "tone": "success" },
-    { "from": "入口", "to": "出口 B", "label": "3 割", "tone": "warning" }
+    { "from": "入口", "to": "出口 A", "label": "A へ", "tone": "success" },
+    { "from": "入口", "to": "出口 B", "label": "B へ", "tone": "warning" }
   ],
   "states": { "inLv": 0, "aLv": 0, "bLv": 0 },
   "animation": [
@@ -8878,8 +8882,8 @@ actors:
   - 出口: { kind: dyn-rect, lane: ml2, stack: 0, subtitle: "{sumLv}%", posW: 180, posH: 180, shape: { kind: rect, source: "{sumLv}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
 
 flow:
-  - 入口 A -> 出口: "6 割" (info)
-  - 入口 B -> 出口: "4 割" (info)
+  - 入口 A -> 出口: "足す" (info)
+  - 入口 B -> 出口: "足す" (info)
 
 animation:
   - step: "1 つへ集まる" 4s
@@ -8951,8 +8955,8 @@ export const sourceJson__partsMergeJunction = `{
     }
   ],
   "flow": [
-    { "from": "入口 A", "to": "出口", "label": "6 割", "tone": "info" },
-    { "from": "入口 B", "to": "出口", "label": "4 割", "tone": "info" }
+    { "from": "入口 A", "to": "出口", "label": "足す", "tone": "info" },
+    { "from": "入口 B", "to": "出口", "label": "足す", "tone": "info" }
   ],
   "states": { "aLv": 0, "bLv": 0, "sumLv": 0 },
   "animation": [

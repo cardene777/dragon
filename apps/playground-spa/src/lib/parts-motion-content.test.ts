@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { textDslToDiagram, type CompileNotice } from "@cardenelabs/dragon";
-import type { CdlDiagram } from "@cardenelabs/cdl";
+import { layout, type CdlDiagram } from "@cardenelabs/cdl";
 
 import { 部品の一覧を作る } from "@/lib/parts-catalog";
 import * as 部品 from "@/topics/catalog/parts.cdl";
@@ -13,13 +13,15 @@ import * as 見本 from "@/topics/catalog/parts-motion.cdl";
  * (`parts.cdl.ts`) が矢印を 1 本も持たないため。 **どちらか片方に戻ったら落とす** のが本 file の役目で、
  * 見本の題や本文が変わっても落ちないように、数えるのは中身の性質だけにする。
  *
- * 数える性質は 4 つ。
+ * 数える性質は 6 つ。
  *
  * | 性質 | なぜ要るか |
  * |---|---|
  * | 矢印と段を両方持つ | 片方だけなら既存の 2 頁と同じで、この頁が在る意味が消える |
  * | 宿主の段が部品の中の値を動かす | 部品が自分の段で動くだけなら「繋いだ先へ渡る」 が見えない |
  * | 要素を名指しして繋ぐ | 要素を 2 つ以上持つ部品の繋ぎ方はこの書き方でしか見せられない |
+ * | 要素を 2 つ以上持つ部品どうしを、両端とも要素で繋ぐ (#2149) | 繋ぎ方の部品 (振り分け器 / 合流点) を繋ぐ形。 片端だけの名指しでは部品の出口から次の部品の入口へ渡る絵にならない |
+ * | 差し込んだ縦列が宿主のすぐ右に並ぶ (#2149) | 縦列を 2 本持つ部品を縦列に置くと 2 本目の縦列が足される。 隣の部品の縦列より右へ回ると、線が箱を貫く (#2147) |
  * | 知らせが 0 件 | 見本が書き方の手本になるため、警告が出る形を置かない |
  *
  * **知らせは呼び出しの合図で受け取る**。 組み立てた図に `notices` の欄は無く、
@@ -50,7 +52,7 @@ function 部品の値を動かす段(図: CdlDiagram): string[] {
 const 一覧の見本 = 見本たち();
 
 describe("部品を繋いだまま動かす頁 (#2125)", () => {
-  it("部品の頁の最後に並び、5 つの切替を持つ", async () => {
+  it("部品の頁の最後に並び、6 つの切替を持つ", async () => {
     const { loadPartsItems } = await import("@/lib/catalog-items");
     const items = await loadPartsItems();
     // 並びは「部品そのもの → 箱として置く → 繋いで動かす」。 置き方を読んでから動かし方を読む
@@ -61,12 +63,13 @@ describe("部品を繋いだまま動かす頁 (#2125)", () => {
       "分ける",
       "集める",
       "部品の段を残す",
+      "振り分けて合流させる",
     ]);
   });
 
-  it("見本が 5 件ある", () => {
+  it("見本が 6 件ある", () => {
     // 空振り防止。 0 件なら下の it.each が 1 件も走らず、全部通ったように見える
-    expect(一覧の見本.map((x) => x.key)).toHaveLength(5);
+    expect(一覧の見本.map((x) => x.key)).toHaveLength(6);
   });
 
   it.each(一覧の見本)("$key は矢印と段を両方持つ", ({ 図 }) => {
@@ -105,5 +108,59 @@ describe("部品を繋いだまま動かす頁 (#2125)", () => {
     // 仮の箱のままなら端は `stock` になる。 繋ぎ直されていれば `stock__topL` の形になる
     const 端 = 名指し.図.edges.flatMap((e) => [e.from, e.to]);
     expect(端.filter((n) => n.includes("__")), "部品の中の要素に繋がっていない").not.toHaveLength(0);
+  });
+
+  it("要素を 2 つ以上持つ部品どうしを、両端とも要素で繋ぐ見本がある (#2149)", () => {
+    // 要素が 1 つの部品は名指ししなくても矢印がその要素に付き、端は `inflow__bar` の形になる。
+    // 端の形だけを見ると、最初の見本 (棒 → 波 → 弧) でも通ってしまう。 部品の要素の数で分ける
+    const 部品どうし = 一覧の見本.flatMap(({ key, 図 }) => {
+      const 要素の数 = (頭: string) => 図.nodes.filter((n) => n.id.startsWith(`${頭}__`)).length;
+      const 部品の名前 = (id: string) => (id.includes("__") ? id.slice(0, id.indexOf("__")) : undefined);
+      return 図.edges
+        .filter((e) => {
+          const 元 = 部品の名前(e.from);
+          const 先 = 部品の名前(e.to);
+          return 元 !== undefined && 先 !== undefined && 元 !== 先 && 要素の数(元) > 1 && 要素の数(先) > 1;
+        })
+        .map((e) => `${key}: ${e.from} -> ${e.to}`);
+    });
+    expect(部品どうし, "要素を 2 つ以上持つ部品どうしを繋ぐ矢印が無い").not.toHaveLength(0);
+  });
+
+  it("部品どうしを繋ぐ見本では、部品の中の線の札が数字を持たない (#2149)", () => {
+    // 振り分け器が「7 割」 を送った先で合流点が「6 割」 と書く絵になっていた。 値は箱の上の読み取りに
+    // 出るので、繋いで使う部品の札は向きや働きの言葉にする
+    const 数字の札 = 一覧の見本.flatMap(({ key, 図 }) => {
+      const 部品の名前 = (id: string) => (id.includes("__") ? id.slice(0, id.indexOf("__")) : undefined);
+      const 繋いだ部品 = new Set(
+        図.edges
+          .filter((e) => {
+            const 元 = 部品の名前(e.from);
+            const 先 = 部品の名前(e.to);
+            return 元 !== undefined && 先 !== undefined && 元 !== 先;
+          })
+          .flatMap((e) => [部品の名前(e.from)!, 部品の名前(e.to)!]),
+      );
+      return 図.edges
+        .filter((e) => {
+          const 元 = 部品の名前(e.from);
+          return 元 !== undefined && 繋いだ部品.has(元) && 元 === 部品の名前(e.to);
+        })
+        .filter((e) => /[0-9０-９]/.test(e.label ?? ""))
+        .map((e) => `${key}: ${e.from} -> ${e.to} "${e.label}"`);
+    });
+    expect(数字の札).toEqual([]);
+  });
+
+  it.each(一覧の見本)("$key は差し込んだ縦列が宿主のすぐ右に並ぶ (#2149)", ({ 図 }) => {
+    // 縦列を 2 本持つ部品を縦列に置くと `{宿主}__列2` が足される。 左隣が宿主 (か 1 つ前の
+    // 差し込んだ縦列) でなければ、部品の要素の間に別の縦列が挟まり、線が箱を貫く (#2147)
+    const 左から = [...layout(図).lanes].sort((p, q) => p.x - q.x).map((l) => l.id);
+    for (const [i, id] of 左から.entries()) {
+      const m = id.match(/^(.*)__列(\d+)$/);
+      if (!m) continue;
+      const 左隣として正しい = Number(m[2]) === 2 ? m[1] : `${m[1]}__列${Number(m[2]) - 1}`;
+      expect(左から[i - 1], `${id} の左隣 (並び ${左から.join(" → ")})`).toBe(左隣として正しい);
+    }
   });
 });
