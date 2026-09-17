@@ -223,6 +223,99 @@ export const presetSwimlane = withSteps(swim.build(), [
   { ids: ["ev", "emit"] },
 ]);
 
+/**
+ * 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960)。
+ * 一覧の別の行にすると、同じ種類の図の規模違いを見比べるのに行を選び直すことになる
+ */
+export const patternBase__presetSwimlane = "簡単";
+
+/**
+ * 帯図の複雑な版 (#2169)。
+ *
+ * 簡単な版は縦列 3 本に 1 箱ずつの 1 本道で、**縦列を往き来する道も枝分かれも無い**。
+ * 帯図の値打ちは「どの持ち場が今それを持っているか」 を横の位置で示すことなので、
+ * 持ち場を渡って戻ってくる形を見せないと、この図を選ぶ理由が絵に出ない。
+ *
+ * **線は隣の縦列どうしか同じ縦列の中だけで引く**。 縦列を 1 本飛ばすと札が間の縦列の縁を
+ * 貫いて重い指摘 (`lane-border-clearance`) になる (実測)。 受付が利用者と在庫と支払の
+ * 3 つと話す形にすると必ずどれかを飛ばすので、支払からの戻りを在庫に受けさせている。
+ *
+ * **1 本の縦列の中では段を連番にする**。 段を飛ばすと箱の間隔が揃わず、重い指摘
+ * (`column-gap-uniform`、間隔の差 308 world が上限 40 を超える) になる (実測)。
+ *
+ * **縦列の幅 (`laneWidth`) は 320 以下で頭打ちになる**。 520 の 2502 が 320 で 2362 まで
+ * 縮み、260 に下げても 2362 のまま (実測)。
+ */
+const swimComplex = swimlane({
+  id: "swim-complex-demo",
+  topic: "注文が 4 つの持ち場を往き来して返るまで",
+  lanes: ["利用者", "受付", "在庫", "支払"],
+  laneWidth: 320,
+});
+swimComplex
+  .node("order", { lane: swimComplex.laneId("利用者"), stack: 0, kind: "actor", title: "注文する" })
+  .node("see", { lane: swimComplex.laneId("利用者"), stack: 1, kind: "actor", title: "結果を見る" })
+  .node("accept", { lane: swimComplex.laneId("受付"), stack: 0, kind: "function", title: "受け取る" })
+  .node("check", { lane: swimComplex.laneId("受付"), stack: 1, kind: "function", title: "数を確かめる" })
+  .node("reply", { lane: swimComplex.laneId("受付"), stack: 2, kind: "event", title: "返事を作る" })
+  .node("hold", { lane: swimComplex.laneId("在庫"), stack: 0, kind: "service", title: "押さえる" })
+  .node("ship", { lane: swimComplex.laneId("在庫"), stack: 1, kind: "service", title: "出荷を頼む" })
+  .node("charge", { lane: swimComplex.laneId("支払"), stack: 0, kind: "service", title: "引き落とす" })
+  .node("receipt", { lane: swimComplex.laneId("支払"), stack: 1, kind: "service", title: "控えを作る" })
+  .edge("order", "accept", { id: "sw1", label: "出す", style: "dotted-flow" })
+  .edge("accept", "check", { id: "sw2", label: "渡す" })
+  .edge("check", "hold", { id: "sw3", label: "頼む" })
+  // 途中で分かれる道。 返事を作る箱へ入る 2 本目で、上の辺から入る
+  .edge("check", "reply", { id: "sw4", label: "数が足りない", tone: "error" })
+  .edge("hold", "charge", { id: "sw5", label: "押さえた", tone: "success" })
+  .edge("charge", "receipt", { id: "sw6", label: "引けた", tone: "success" })
+  .edge("receipt", "ship", { id: "sw7", label: "出してよい" })
+  .edge("ship", "reply", { id: "sw8", label: "手配した" })
+  .edge("reply", "see", { id: "sw9", label: "返す", style: "dotted-flow" });
+
+export const pattern__presetSwimlane__複雑 = withSteps(swimComplex.build(), [
+  {
+    ids: ["order", "accept", "sw1"],
+    title: "1. 注文が受付に渡る",
+    body: "縦列は持ち場。 点で描いた線は、外から入ってくる呼び出し。",
+  },
+  {
+    ids: ["check", "sw2"],
+    title: "2. 数を確かめる",
+    body: "同じ縦列の中で下へ進む。 持ち場が変わらない仕事は縦に積む。",
+  },
+  {
+    ids: ["hold", "sw3"],
+    title: "3. 在庫を押さえる",
+    body: "隣の縦列へ渡る。 ここから持ち場が受付を離れる。",
+  },
+  {
+    ids: ["charge", "sw5"],
+    title: "4. 引き落とす",
+    body: "さらに隣へ渡る。 3 本目の縦列を飛ばさずに 1 本ずつ進む。",
+  },
+  {
+    ids: ["receipt", "sw6"],
+    title: "5. 控えを作る",
+    body: "支払の縦列の中で下へ。 ここが一番遠い持ち場になる。",
+  },
+  {
+    ids: ["ship", "sw7"],
+    title: "6. 出荷を頼む",
+    body: "ここから戻り始める。 支払から在庫へ、隣どうしで返る。",
+  },
+  {
+    ids: ["reply", "sw8", "sw4"],
+    title: "7. 2 つの道が合流する",
+    body: "うまく行った道は右から、数が足りなかった道は上から入る。 別の辺から入るので重ならない。",
+  },
+  {
+    ids: ["see", "sw9"],
+    title: "8. 結果が利用者へ返る",
+    body: "4 本の縦列を往って還る 1 周が閉じる。 点の線は外へ出る返事。",
+  },
+]);
+
 // flow preset ... 1 lane に縦 stack、 前 step → 次 step 自動接続
 export const presetFlow = withSteps(
   flow({
