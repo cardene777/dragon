@@ -2635,7 +2635,7 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     const invisibles = ["", "﻿", "​", "\u200c", "\u200d", "\u2060"];
     for (const ch of invisibles) {
       const d = compile("er", { flow: [step("A", "B", { label: `1:N${ch}` })] });
-      // 名前は語だけだったとみなし、不可視の名前ではなく語を名前として出す (#2105)
+      // 名前は語だけだったとみなし、見えない名前ではなく語を名前として出す (#2105)
       expect(d.edges[0]!.label, JSON.stringify(ch)).toBe("1:N");
     }
   });
@@ -2648,11 +2648,11 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
 
   it("default-ignorable 不可視文字 (variation selector / Hangul filler / Mongolian VS) のみ残る label は語を名前として出す (cc-codex #879 Round 9 → #2105)", () => {
     // Cf/Cc/White_Space に入らない不可視文字 (Mn の VS、 Lo の filler) も \p{Default_Ignorable_Code_Point}
-    // で捕捉して fallback する。 Braille blank U+2800 は不可視でないため content 維持。
+    // で捕捉し、除去後に見える字が残らないと判定する。 Braille blank U+2800 は不可視でないため content 維持。
     const ignorables = ["\uFE0F", "\uFE00", "\u3164", "\u115F", "\u180B"];
     for (const ch of ignorables) {
       const d = compile("er", { flow: [step("A", "B", { label: `1:N${ch}` })] });
-      // \u540D\u524D\u306F\u8A9E\u3060\u3051\u3060\u3063\u305F\u3068\u307F\u306A\u3057\u3001\u8A9E\u3092\u540D\u524D\u3068\u3057\u3066\u51FA\u3059 (#2105)
+      // 名前は語だけだったとみなし、見えない名前ではなく語を名前として出す (#2105)
       expect(d.edges[0]!.label, JSON.stringify(ch)).toBe("1:N");
     }
     // Braille blank は content 扱い = 除去後も残る (fallback しない)
