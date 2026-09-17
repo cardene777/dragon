@@ -1808,10 +1808,15 @@ function applyV05Extensions(
         if (laneOpt.contain !== undefined) lane.contain = laneOpt.contain;
         if (laneOpt.lifeline !== undefined) lane.lifeline = laneOpt.lifeline;
       } else {
-        // lane が preset で作られていなければ新規追加
+        // lane が preset で作られていなければ新規追加。
+        //
+        // **横位置を書いていなければ横位置を持たせない** (#2147)。 描画側は横位置を持たない縦列を
+        // 書いた順に前の縦列の右へ並べ、横位置を持つ縦列は横位置の順に並べる。 0 を入れると、
+        // 型が作った縦列 (横位置を持たない) の間に割り込む (実測 = 登場人物 受付 / 出荷 の後に書いた
+        // `置き場` が 受付 と 出荷 の間に描かれた)
         diagram.lanes.push({
           id,
-          x: laneOpt.x ?? 0,
+          ...(laneOpt.x !== undefined ? { x: laneOpt.x } : {}),
           width: laneOpt.width ?? 320,
           label: laneOpt.label,
           contain: laneOpt.contain,

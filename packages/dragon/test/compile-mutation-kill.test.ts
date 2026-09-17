@@ -1311,10 +1311,12 @@ describe("applyV05Extensions: lanes section", () => {
     expect(l.lifeline).toBe(true);
   });
 
-  it("preset に無い lane id は新規追加 (default x 0 / width 320)", () => {
+  it("preset に無い lane id は新規追加 (横位置を書かなければ横位置なし / width 320)", () => {
+    // 横位置 0 を入れると、描画側が横位置を持たない縦列 (型が作った縦列) の間に割り込ませる (#2147)。
+    // 書かなかった横位置は持たせず、描画側が書いた順に右へ並べる
     const d = compile("swimlane", { lanes: 縦列({ extra: {} }) });
     const l = lane(d, "extra");
-    expect(l.x).toBe(0);
+    expect("x" in l, "横位置を書いていないのに横位置の欄がある").toBe(false);
     expect(l.width).toBe(320);
   });
 
