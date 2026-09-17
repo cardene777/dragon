@@ -14,7 +14,7 @@
     "build:packages": "pnpm --filter @cardenelabs/dragon run build",
     "preview": "pnpm --filter dragon-playground-spa run preview",
     "lint": "eslint . --max-warnings 0",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b && tsc -p tsconfig.config-files.json --noEmit",
     "test": "vitest run",
     "verify:deps": "node packages/dragon/scripts/verify-dep-integrity.mjs",
     "test:watch": "vitest",

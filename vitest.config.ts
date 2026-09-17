@@ -45,14 +45,20 @@ export default defineConfig({
       "**/tests/**/*.spec.ts",
       "**/tests/**/*.spec.tsx",
     ],
+    /*
+     * 既定は node。 画面の部品を要る検査は、file 冒頭に `// @vitest-environment jsdom` を書く (#2089)。
+     *
+     * ここで glob と環境の対応表 (`environmentMatchGlobs`) を持っていたが、今の vitest はこの指定を
+     * 読まない。 実測 = vitest 4.1.11 の配布物に字が 1 つも無く、当たるはずの検査
+     * (`catalog-motion-render.test.tsx`) の実行時間の `environment` が 0ms だった (jsdom を組み立てていない)。
+     * 対応表を消しても走る環境は 1 file も変わらない。
+     *
+     * file 冒頭に書く形を採るのは、要る検査だけが jsdom を組み立てるため。
+     * 実測では素の `document` / `window` を使う 14 file が全て既にこの指定を持っていた。
+     * 書き忘れは `packages/dragon/test/vitest-env-declared-per-file.test.ts` が落とす。
+     */
     environment: "node",
     globals: false,
-    environmentMatchGlobs: [
-      ["packages/**/test/**/*.test.tsx", "jsdom"],
-      // apps/ 側 DOM helper (document.createElement 等) 使う test は jsdom を強制
-      ["apps/**/src/**/*.test.ts", "jsdom"],
-      ["apps/**/src/**/*.test.tsx", "jsdom"],
-    ],
     // bench mode default include は **/*.{bench,benchmark}.* のみ。
     // chainome は test/bench.test.ts に bench を集約する規約のため明示 override。
     benchmark: {
