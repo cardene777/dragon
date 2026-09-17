@@ -3187,6 +3187,281 @@ export const partsMiniNetwork = diagram("parts-mini-network", {
 export const subtitle__partsMiniNetwork =
   "起点から終点まで、上下 2 つの経路を並べて見せる";
 
+// parts 87: 負荷分散器 — 1 本の流れを 3 つへ同じ量ずつ配る
+export const partsLoadBalancer = diagram("parts-load-balancer", {
+  topic: "負荷分散器 — 入口 1 つを 3 つの出口へ同じ量ずつ配る",
+})
+  .lane("lb1", { x: 0, width: 200, label: "入口" })
+  .lane("lb2", { x: 220, width: 200, label: "配る先" })
+  .state("inLv", { initial: 0 })
+  .state("o1", { initial: 0 })
+  .state("o2", { initial: 0 })
+  .state("o3", { initial: 0 })
+  // 入口を 3 つの出口の真ん中の段 (1) に置く (#2154)。 端の段に置くと 3 本のうち 2 本が同じ向きへ
+  // 折れ、配る先が揃っていることが絵から読めない。 出口の目盛りは 3 つとも入口と同じ 90 にする =
+  // 3 つの棒が入口の 3 分の 1 まで伸びる形で「同じ量ずつ」 が出る
+  .node("inP", {
+    lane: "lb1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "入口",
+    subtitle: "{inLv} 件/秒",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inLv}", fillMax: 90, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("out1", {
+    lane: "lb2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "出口 1",
+    subtitle: "{o1} 件/秒",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{o1}", fillMax: 90, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("out2", {
+    lane: "lb2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "出口 2",
+    subtitle: "{o2} 件/秒",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{o2}", fillMax: 90, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("out3", {
+    lane: "lb2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "出口 3",
+    subtitle: "{o3} 件/秒",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{o3}", fillMax: 90, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .edge("inP", "out1", { id: "lb-1", label: "1 番", tone: "success" })
+  .edge("inP", "out2", { id: "lb-2", label: "2 番", tone: "success" })
+  .edge("inP", "out3", { id: "lb-3", label: "3 番", tone: "success" })
+  .phase("p", { duration: 4000, title: "3 つへ同じ量ずつ配る", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "out1", "out2", "out3", "lb-1", "lb-2", "lb-3")
+      .tween("inLv", 0, 90)
+      .tween("o1", 0, 30)
+      .tween("o2", 0, 30)
+      .tween("o3", 0, 30),
+  )
+  .build();
+
+export const subtitle__partsLoadBalancer =
+  "入口の 90 件/秒を 3 つの出口へ 30 件/秒ずつ配る。 配った後も合計は変わらない";
+
+// parts 88: 複製器 — 1 つの中身を 3 つの受け手へ同じまま写す
+export const partsFanoutCopy = diagram("parts-fanout-copy", {
+  topic: "複製器 — 発行した中身を 3 つの受け手へ同じまま写す",
+})
+  .lane("fc1", { x: 0, width: 200, label: "発行" })
+  .lane("fc2", { x: 220, width: 200, label: "受け手" })
+  .state("pub", { initial: 0 })
+  .state("s1", { initial: 0 })
+  .state("s2", { initial: 0 })
+  .state("s3", { initial: 0 })
+  // 配る部品 (`load-balancer`) と同じ並べ方にして、値だけを変える = 3 つの棒が発行と同じ高さまで
+  // 伸びるので、「分ける」 と「写す」 の違いが 2 枚を見比べた時に値から読める
+  .node("pubP", {
+    lane: "fc1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "発行",
+    subtitle: "{pub} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{pub}", fillMax: 100, orient: "up", fill: "#8b5cf6", radius: 6 },
+  })
+  .node("sub1", {
+    lane: "fc2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "受け手 1",
+    subtitle: "{s1} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{s1}", fillMax: 100, orient: "up", fill: "#8b5cf6", radius: 6 },
+  })
+  .node("sub2", {
+    lane: "fc2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "受け手 2",
+    subtitle: "{s2} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{s2}", fillMax: 100, orient: "up", fill: "#8b5cf6", radius: 6 },
+  })
+  .node("sub3", {
+    lane: "fc2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "受け手 3",
+    subtitle: "{s3} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{s3}", fillMax: 100, orient: "up", fill: "#8b5cf6", radius: 6 },
+  })
+  .edge("pubP", "sub1", { id: "fc-1", label: "写す", tone: "accent" })
+  .edge("pubP", "sub2", { id: "fc-2", label: "写す", tone: "accent" })
+  .edge("pubP", "sub3", { id: "fc-3", label: "写す", tone: "accent" })
+  .phase("p", { duration: 4000, title: "全員へ同じものを写す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("pubP", "sub1", "sub2", "sub3", "fc-1", "fc-2", "fc-3")
+      .tween("pub", 0, 100)
+      .tween("s1", 0, 100)
+      .tween("s2", 0, 100)
+      .tween("s3", 0, 100),
+  )
+  .build();
+
+export const subtitle__partsFanoutCopy =
+  "発行した 100 件が 3 つの受け手へ 100 件ずつ届く。 配る部品と違い、受け手の数だけ合計が増える";
+
+// parts 89: 流量制限 — 札の数だけ通し、超えた分を断る
+export const partsRateLimiter = diagram("parts-rate-limiter", {
+  topic: "流量制限 — 札の数だけ通し、札が尽きた分を断る",
+})
+  .lane("rl1", { x: 0, width: 200, label: "届く" })
+  .lane("rl2", { x: 220, width: 200, label: "札" })
+  .lane("rl3", { x: 440, width: 200, label: "行き先" })
+  .state("inN", { initial: 0 })
+  .state("tokens", { initial: 10 })
+  .state("passN", { initial: 0 })
+  .state("rejectN", { initial: 0 })
+  // 通す先を届く箱と同じ段 (0) に置き、断る先だけを下の段に落とす。 通る道が真横の 1 本になり、
+  // 断る道が本筋から外れる形で出る。 断る先へ入る線は 1 本だけなので終点は離れない (#2154)
+  .node("inP", {
+    lane: "rl1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "届く",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 16, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("bucket", {
+    lane: "rl2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "札",
+    subtitle: "残り {tokens} 枚",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{tokens}", fillMax: 10, orient: "up", fill: "#f59e0b", radius: 6 },
+  })
+  .node("pass", {
+    lane: "rl3",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "通す",
+    subtitle: "{passN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{passN}", fillMax: 16, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("reject", {
+    lane: "rl3",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "断る",
+    subtitle: "{rejectN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{rejectN}", fillMax: 16, orient: "up", fill: "#dc2626", radius: 6 },
+  })
+  .edge("inP", "bucket", { id: "rl-in", label: "1 枚ずつ", tone: "info" })
+  .edge("bucket", "pass", { id: "rl-pass", label: "通す", tone: "success" })
+  .edge("bucket", "reject", { id: "rl-reject", label: "断る", tone: "error" })
+  .phase("p", { duration: 4000, title: "札の数だけ通す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "bucket", "pass", "reject", "rl-in", "rl-pass", "rl-reject")
+      .tween("inN", 0, 16)
+      .tween("tokens", 10, 0)
+      .tween("passN", 0, 10)
+      .tween("rejectN", 0, 6),
+  )
+  .build();
+
+export const subtitle__partsRateLimiter =
+  "届いた 16 件のうち、札 10 枚が尽きるまでの 10 件を通し、残る 6 件を断る";
+
+// parts 90: 優先度の並べ替え — 急ぎと通常を 1 列に並べ、急ぎを先に出す
+export const partsPriorityQueue = diagram("parts-priority-queue", {
+  topic: "優先度の並べ替え — 急ぎと通常を 1 列に並べ、急ぎを先に出す",
+})
+  .lane("pq1", { x: 0, width: 200, label: "届く" })
+  .lane("pq2", { x: 220, width: 200, label: "並べる" })
+  .lane("pq3", { x: 440, width: 200, label: "出る" })
+  .state("hiN", { initial: 0 })
+  .state("loN", { initial: 0 })
+  .state("depth", { initial: 0 })
+  .state("outN", { initial: 0 })
+  // 並べる箱を 2 つの入口の真ん中の段 (1) に置く (#2154)。 片方と同じ段に置くと、もう 1 本の線が
+  // 並べる箱の手前で小さな段を作る
+  .node("hiIn", {
+    lane: "pq1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "急ぎ",
+    subtitle: "{hiN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{hiN}", fillMax: 10, orient: "up", fill: "#dc2626", radius: 6 },
+  })
+  .node("loIn", {
+    lane: "pq1",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "通常",
+    subtitle: "{loN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{loN}", fillMax: 10, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("queue", {
+    lane: "pq2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "並べる",
+    subtitle: "{depth} 件待ち",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{depth}", fillMax: 14, orient: "up", fill: "#f59e0b", radius: 6 },
+  })
+  .node("outP", {
+    lane: "pq3",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "出る",
+    subtitle: "{outN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{outN}", fillMax: 14, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .edge("hiIn", "queue", { id: "pq-hi", label: "先に", tone: "error" })
+  .edge("loIn", "queue", { id: "pq-lo", label: "後に", tone: "info" })
+  .edge("queue", "outP", { id: "pq-out", label: "出す", tone: "success" })
+  .phase("p", { duration: 4000, title: "急ぎを先に出す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("hiIn", "loIn", "queue", "outP", "pq-hi", "pq-lo", "pq-out")
+      .tween("hiN", 0, 6)
+      .tween("loN", 0, 8)
+      .tween("depth", 0, 8)
+      .tween("outN", 0, 6),
+  )
+  .build();
+
+export const subtitle__partsPriorityQueue =
+  "急ぎ 6 件と通常 8 件が 1 列に並び、急ぎが先に出る。 残る 8 件は通常の待ち";
+
 // ============================================================
 // 記法 (#1381)
 // ============================================================
@@ -9394,6 +9669,406 @@ export const sourceJson__partsMiniNetwork = `{
       "duration": 4,
       "focus": ["起点", "上の中継", "下の中継", "終点", "起点 -> 上の中継", "起点 -> 下の中継", "上の中継 -> 終点", "下の中継 -> 終点"],
       "tween": { "p1": [0, 1], "p2": [0, 1], "p3": [0, 1], "p4": [0, 1] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsLoadBalancer = `title: "負荷分散器 — 入口 1 つを 3 つの出口へ同じ量ずつ配る"
+type: flow
+
+lanes:
+  lb1: { x: 0, width: 200, label: "入口" }
+  lb2: { x: 220, width: 200, label: "配る先" }
+
+states:
+  inLv: 0
+  o1: 0
+  o2: 0
+  o3: 0
+
+actors:
+  - 入口: { kind: dyn-rect, lane: lb1, stack: 1, subtitle: "{inLv} 件/秒", posW: 150, posH: 150, shape: { kind: rect, source: "{inLv}", fillMax: 90, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 出口 1: { kind: dyn-rect, lane: lb2, stack: 0, subtitle: "{o1} 件/秒", posW: 150, posH: 150, shape: { kind: rect, source: "{o1}", fillMax: 90, orient: up, fill: "#22c55e", radius: 6 } }
+  - 出口 2: { kind: dyn-rect, lane: lb2, stack: 1, subtitle: "{o2} 件/秒", posW: 150, posH: 150, shape: { kind: rect, source: "{o2}", fillMax: 90, orient: up, fill: "#22c55e", radius: 6 } }
+  - 出口 3: { kind: dyn-rect, lane: lb2, stack: 2, subtitle: "{o3} 件/秒", posW: 150, posH: 150, shape: { kind: rect, source: "{o3}", fillMax: 90, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 入口 -> 出口 1: "1 番" (success)
+  - 入口 -> 出口 2: "2 番" (success)
+  - 入口 -> 出口 3: "3 番" (success)
+
+animation:
+  - step: "3 つへ同じ量ずつ配る" 4s
+    focus: ["入口", "出口 1", "出口 2", "出口 3", "入口 -> 出口 1", "入口 -> 出口 2", "入口 -> 出口 3"]
+    tween:
+      inLv: 0 -> 90
+      o1: 0 -> 30
+      o2: 0 -> 30
+      o3: 0 -> 30
+`;
+
+export const sourceJson__partsLoadBalancer = `{
+  "title": "負荷分散器 — 入口 1 つを 3 つの出口へ同じ量ずつ配る",
+  "type": "flow",
+  "lanes": {
+    "lb1": { "x": 0, "width": 200, "label": "入口" },
+    "lb2": { "x": 220, "width": 200, "label": "配る先" }
+  },
+  "actors": [
+    {
+      "name": "入口",
+      "kind": "dyn-rect",
+      "lane": "lb1",
+      "stack": 1,
+      "subtitle": "{inLv} 件/秒",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{inLv}", "fillMax": 90, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "出口 1",
+      "kind": "dyn-rect",
+      "lane": "lb2",
+      "stack": 0,
+      "subtitle": "{o1} 件/秒",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{o1}", "fillMax": 90, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "出口 2",
+      "kind": "dyn-rect",
+      "lane": "lb2",
+      "stack": 1,
+      "subtitle": "{o2} 件/秒",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{o2}", "fillMax": 90, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "出口 3",
+      "kind": "dyn-rect",
+      "lane": "lb2",
+      "stack": 2,
+      "subtitle": "{o3} 件/秒",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{o3}", "fillMax": 90, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "入口", "to": "出口 1", "label": "1 番", "tone": "success" },
+    { "from": "入口", "to": "出口 2", "label": "2 番", "tone": "success" },
+    { "from": "入口", "to": "出口 3", "label": "3 番", "tone": "success" }
+  ],
+  "states": { "inLv": 0, "o1": 0, "o2": 0, "o3": 0 },
+  "animation": [
+    {
+      "step": "3 つへ同じ量ずつ配る",
+      "duration": 4,
+      "focus": ["入口", "出口 1", "出口 2", "出口 3", "入口 -> 出口 1", "入口 -> 出口 2", "入口 -> 出口 3"],
+      "tween": { "inLv": [0, 90], "o1": [0, 30], "o2": [0, 30], "o3": [0, 30] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsFanoutCopy = `title: "複製器 — 発行した中身を 3 つの受け手へ同じまま写す"
+type: flow
+
+lanes:
+  fc1: { x: 0, width: 200, label: "発行" }
+  fc2: { x: 220, width: 200, label: "受け手" }
+
+states:
+  pub: 0
+  s1: 0
+  s2: 0
+  s3: 0
+
+actors:
+  - 発行: { kind: dyn-rect, lane: fc1, stack: 1, subtitle: "{pub} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{pub}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 6 } }
+  - 受け手 1: { kind: dyn-rect, lane: fc2, stack: 0, subtitle: "{s1} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{s1}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 6 } }
+  - 受け手 2: { kind: dyn-rect, lane: fc2, stack: 1, subtitle: "{s2} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{s2}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 6 } }
+  - 受け手 3: { kind: dyn-rect, lane: fc2, stack: 2, subtitle: "{s3} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{s3}", fillMax: 100, orient: up, fill: "#8b5cf6", radius: 6 } }
+
+flow:
+  - 発行 -> 受け手 1: "写す" (accent)
+  - 発行 -> 受け手 2: "写す" (accent)
+  - 発行 -> 受け手 3: "写す" (accent)
+
+animation:
+  - step: "全員へ同じものを写す" 4s
+    focus: ["発行", "受け手 1", "受け手 2", "受け手 3", "発行 -> 受け手 1", "発行 -> 受け手 2", "発行 -> 受け手 3"]
+    tween:
+      pub: 0 -> 100
+      s1: 0 -> 100
+      s2: 0 -> 100
+      s3: 0 -> 100
+`;
+
+export const sourceJson__partsFanoutCopy = `{
+  "title": "複製器 — 発行した中身を 3 つの受け手へ同じまま写す",
+  "type": "flow",
+  "lanes": {
+    "fc1": { "x": 0, "width": 200, "label": "発行" },
+    "fc2": { "x": 220, "width": 200, "label": "受け手" }
+  },
+  "actors": [
+    {
+      "name": "発行",
+      "kind": "dyn-rect",
+      "lane": "fc1",
+      "stack": 1,
+      "subtitle": "{pub} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{pub}", "fillMax": 100, "orient": "up", "fill": "#8b5cf6", "radius": 6 }
+    },
+    {
+      "name": "受け手 1",
+      "kind": "dyn-rect",
+      "lane": "fc2",
+      "stack": 0,
+      "subtitle": "{s1} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{s1}", "fillMax": 100, "orient": "up", "fill": "#8b5cf6", "radius": 6 }
+    },
+    {
+      "name": "受け手 2",
+      "kind": "dyn-rect",
+      "lane": "fc2",
+      "stack": 1,
+      "subtitle": "{s2} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{s2}", "fillMax": 100, "orient": "up", "fill": "#8b5cf6", "radius": 6 }
+    },
+    {
+      "name": "受け手 3",
+      "kind": "dyn-rect",
+      "lane": "fc2",
+      "stack": 2,
+      "subtitle": "{s3} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{s3}", "fillMax": 100, "orient": "up", "fill": "#8b5cf6", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "発行", "to": "受け手 1", "label": "写す", "tone": "accent" },
+    { "from": "発行", "to": "受け手 2", "label": "写す", "tone": "accent" },
+    { "from": "発行", "to": "受け手 3", "label": "写す", "tone": "accent" }
+  ],
+  "states": { "pub": 0, "s1": 0, "s2": 0, "s3": 0 },
+  "animation": [
+    {
+      "step": "全員へ同じものを写す",
+      "duration": 4,
+      "focus": ["発行", "受け手 1", "受け手 2", "受け手 3", "発行 -> 受け手 1", "発行 -> 受け手 2", "発行 -> 受け手 3"],
+      "tween": { "pub": [0, 100], "s1": [0, 100], "s2": [0, 100], "s3": [0, 100] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsRateLimiter = `title: "流量制限 — 札の数だけ通し、札が尽きた分を断る"
+type: flow
+
+lanes:
+  rl1: { x: 0, width: 200, label: "届く" }
+  rl2: { x: 220, width: 200, label: "札" }
+  rl3: { x: 440, width: 200, label: "行き先" }
+
+states:
+  inN: 0
+  tokens: 10
+  passN: 0
+  rejectN: 0
+
+actors:
+  - 届く: { kind: dyn-rect, lane: rl1, stack: 0, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 16, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 札: { kind: dyn-rect, lane: rl2, stack: 0, subtitle: "残り {tokens} 枚", posW: 150, posH: 150, shape: { kind: rect, source: "{tokens}", fillMax: 10, orient: up, fill: "#f59e0b", radius: 6 } }
+  - 通す: { kind: dyn-rect, lane: rl3, stack: 0, subtitle: "{passN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{passN}", fillMax: 16, orient: up, fill: "#22c55e", radius: 6 } }
+  - 断る: { kind: dyn-rect, lane: rl3, stack: 1, subtitle: "{rejectN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{rejectN}", fillMax: 16, orient: up, fill: "#dc2626", radius: 6 } }
+
+flow:
+  - 届く -> 札: "1 枚ずつ" (info)
+  - 札 -> 通す: "通す" (success)
+  - 札 -> 断る: "断る" (error)
+
+animation:
+  - step: "札の数だけ通す" 4s
+    focus: ["届く", "札", "通す", "断る", "届く -> 札", "札 -> 通す", "札 -> 断る"]
+    tween:
+      inN: 0 -> 16
+      tokens: 10 -> 0
+      passN: 0 -> 10
+      rejectN: 0 -> 6
+`;
+
+export const sourceJson__partsRateLimiter = `{
+  "title": "流量制限 — 札の数だけ通し、札が尽きた分を断る",
+  "type": "flow",
+  "lanes": {
+    "rl1": { "x": 0, "width": 200, "label": "届く" },
+    "rl2": { "x": 220, "width": 200, "label": "札" },
+    "rl3": { "x": 440, "width": 200, "label": "行き先" }
+  },
+  "actors": [
+    {
+      "name": "届く",
+      "kind": "dyn-rect",
+      "lane": "rl1",
+      "stack": 0,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{inN}", "fillMax": 16, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "札",
+      "kind": "dyn-rect",
+      "lane": "rl2",
+      "stack": 0,
+      "subtitle": "残り {tokens} 枚",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{tokens}", "fillMax": 10, "orient": "up", "fill": "#f59e0b", "radius": 6 }
+    },
+    {
+      "name": "通す",
+      "kind": "dyn-rect",
+      "lane": "rl3",
+      "stack": 0,
+      "subtitle": "{passN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{passN}", "fillMax": 16, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "断る",
+      "kind": "dyn-rect",
+      "lane": "rl3",
+      "stack": 1,
+      "subtitle": "{rejectN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{rejectN}", "fillMax": 16, "orient": "up", "fill": "#dc2626", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "届く", "to": "札", "label": "1 枚ずつ", "tone": "info" },
+    { "from": "札", "to": "通す", "label": "通す", "tone": "success" },
+    { "from": "札", "to": "断る", "label": "断る", "tone": "error" }
+  ],
+  "states": { "inN": 0, "tokens": 10, "passN": 0, "rejectN": 0 },
+  "animation": [
+    {
+      "step": "札の数だけ通す",
+      "duration": 4,
+      "focus": ["届く", "札", "通す", "断る", "届く -> 札", "札 -> 通す", "札 -> 断る"],
+      "tween": { "inN": [0, 16], "tokens": [10, 0], "passN": [0, 10], "rejectN": [0, 6] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsPriorityQueue = `title: "優先度の並べ替え — 急ぎと通常を 1 列に並べ、急ぎを先に出す"
+type: flow
+
+lanes:
+  pq1: { x: 0, width: 200, label: "届く" }
+  pq2: { x: 220, width: 200, label: "並べる" }
+  pq3: { x: 440, width: 200, label: "出る" }
+
+states:
+  hiN: 0
+  loN: 0
+  depth: 0
+  outN: 0
+
+actors:
+  - 急ぎ: { kind: dyn-rect, lane: pq1, stack: 0, subtitle: "{hiN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{hiN}", fillMax: 10, orient: up, fill: "#dc2626", radius: 6 } }
+  - 通常: { kind: dyn-rect, lane: pq1, stack: 2, subtitle: "{loN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{loN}", fillMax: 10, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 並べる: { kind: dyn-rect, lane: pq2, stack: 1, subtitle: "{depth} 件待ち", posW: 150, posH: 150, shape: { kind: rect, source: "{depth}", fillMax: 14, orient: up, fill: "#f59e0b", radius: 6 } }
+  - 出る: { kind: dyn-rect, lane: pq3, stack: 1, subtitle: "{outN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{outN}", fillMax: 14, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 急ぎ -> 並べる: "先に" (error)
+  - 通常 -> 並べる: "後に" (info)
+  - 並べる -> 出る: "出す" (success)
+
+animation:
+  - step: "急ぎを先に出す" 4s
+    focus: ["急ぎ", "通常", "並べる", "出る", "急ぎ -> 並べる", "通常 -> 並べる", "並べる -> 出る"]
+    tween:
+      hiN: 0 -> 6
+      loN: 0 -> 8
+      depth: 0 -> 8
+      outN: 0 -> 6
+`;
+
+export const sourceJson__partsPriorityQueue = `{
+  "title": "優先度の並べ替え — 急ぎと通常を 1 列に並べ、急ぎを先に出す",
+  "type": "flow",
+  "lanes": {
+    "pq1": { "x": 0, "width": 200, "label": "届く" },
+    "pq2": { "x": 220, "width": 200, "label": "並べる" },
+    "pq3": { "x": 440, "width": 200, "label": "出る" }
+  },
+  "actors": [
+    {
+      "name": "急ぎ",
+      "kind": "dyn-rect",
+      "lane": "pq1",
+      "stack": 0,
+      "subtitle": "{hiN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{hiN}", "fillMax": 10, "orient": "up", "fill": "#dc2626", "radius": 6 }
+    },
+    {
+      "name": "通常",
+      "kind": "dyn-rect",
+      "lane": "pq1",
+      "stack": 2,
+      "subtitle": "{loN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{loN}", "fillMax": 10, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "並べる",
+      "kind": "dyn-rect",
+      "lane": "pq2",
+      "stack": 1,
+      "subtitle": "{depth} 件待ち",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{depth}", "fillMax": 14, "orient": "up", "fill": "#f59e0b", "radius": 6 }
+    },
+    {
+      "name": "出る",
+      "kind": "dyn-rect",
+      "lane": "pq3",
+      "stack": 1,
+      "subtitle": "{outN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{outN}", "fillMax": 14, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "急ぎ", "to": "並べる", "label": "先に", "tone": "error" },
+    { "from": "通常", "to": "並べる", "label": "後に", "tone": "info" },
+    { "from": "並べる", "to": "出る", "label": "出す", "tone": "success" }
+  ],
+  "states": { "hiN": 0, "loN": 0, "depth": 0, "outN": 0 },
+  "animation": [
+    {
+      "step": "急ぎを先に出す",
+      "duration": 4,
+      "focus": ["急ぎ", "通常", "並べる", "出る", "急ぎ -> 並べる", "通常 -> 並べる", "並べる -> 出る"],
+      "tween": { "hiN": [0, 6], "loN": [0, 8], "depth": [0, 8], "outN": [0, 6] }
     }
   ]
 }`;
