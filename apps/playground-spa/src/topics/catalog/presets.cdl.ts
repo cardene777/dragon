@@ -1953,6 +1953,98 @@ export const presetNetwork = withSteps(
   ],
 );
 
+/**
+ * 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960)。
+ * 一覧の別の行にすると、同じ種類の図の規模違いを見比べるのに行を選び直すことになる
+ */
+export const patternBase__presetNetwork = "簡単";
+
+/**
+ * ネットワーク図の複雑な版 (#2165)。
+ *
+ * 簡単な版は 境界 → 交換機 → サーバー 2 台の 1 本道で、**二重にした経路が 1 つも無い**。
+ * 実物は回線も壁も交換機も 2 つ用意し、片方が落ちても通るように組む。
+ * 同じ役目を 2 台並べ、その間を横に結ぶ書き方をここで見せる。
+ *
+ * **列を役目で分け、線は縦か横の隣どうしだけで結ぶ** (#2163)。 斜めに結ぶと間の箱を貫く。
+ * 0 列が外の回線、1 列が境の壁、2 列が交換機、3 列がサーバーと端末になる。
+ *
+ * **図の幅は列の数だけで決まる**。 縦列の幅 (`laneWidth`) を 260 / 200 に下げても、
+ * 機器の題を 3 字に縮めても 4 列なら 2389 のまま (実測)。 そのため器の倍率の指摘は
+ * 受け入れ一覧に足している (拡大 10.6px / 一覧 8.0px)。
+ */
+const networkComplex = network({
+  id: "network-complex-demo",
+  topic: "回線と壁と交換機を二重にした事務所のネットワーク",
+})
+  .device({ id: "line1", title: "外の回線 A", kind: "router", col: 0, row: 0, segment: "外" })
+  .device({ id: "line2", title: "外の回線 B", kind: "router", col: 0, row: 1, segment: "外" })
+  .device({ id: "fw1", title: "境の壁 A", kind: "firewall", col: 1, row: 0, segment: "DMZ" })
+  .device({ id: "fw2", title: "境の壁 B", kind: "firewall", col: 1, row: 1, segment: "DMZ" })
+  .device({ id: "core1", title: "中心の交換機 A", kind: "switch", col: 2, row: 0, segment: "LAN" })
+  .device({ id: "core2", title: "中心の交換機 B", kind: "switch", col: 2, row: 1, segment: "LAN" })
+  .device({ id: "mgmt", title: "管理の交換機", kind: "switch", col: 2, row: 2, segment: "管理" })
+  // 区画の名前に機器の種別と同じ語を置かない。 肩の字が「サーバー / サーバー」 と重なる (画面で確認)
+  .device({ id: "app", title: "仕事のサーバー", kind: "server", col: 3, row: 0, segment: "仕事" })
+  .device({ id: "db", title: "台帳のサーバー", kind: "server", col: 3, row: 1, segment: "仕事" })
+  .device({ id: "desk", title: "事務所の端末", kind: "client", col: 3, row: 2, segment: "管理" })
+  .link({ from: "line1", to: "fw1", protocol: "光 1G" })
+  .link({ from: "line2", to: "fw2", protocol: "光 1G" })
+  // 同じ役目の 2 台を横に結ぶ線。 片方が落ちたことを互いに見張る
+  .link({ from: "fw1", to: "fw2", protocol: "生死を見る", tone: "warning" })
+  .link({ from: "fw1", to: "core1", protocol: "VLAN 10" })
+  .link({ from: "fw2", to: "core2", protocol: "VLAN 10" })
+  .link({ from: "core1", to: "core2", protocol: "2 本を束ねる" })
+  .link({ from: "core2", to: "mgmt", protocol: "VLAN 99" })
+  .link({ from: "core1", to: "app", protocol: "TCP 443" })
+  .link({ from: "core2", to: "db", protocol: "TCP 5432" })
+  .link({ from: "mgmt", to: "desk", protocol: "TCP 22" })
+  .link({ from: "app", to: "db", protocol: "読み書き" })
+  .build();
+
+export const pattern__presetNetwork__複雑 = withSteps(networkComplex, [
+  {
+    ids: ["line1", "line2"],
+    title: "1. 外の回線を 2 本引く",
+    body: "同じ役目の機器を 2 台並べる。 片方が落ちても残る形の出発点。",
+  },
+  {
+    ids: ["fw1", "fw2", "nl-0-line1-fw1", "nl-1-line2-fw2"],
+    title: "2. 境の壁で受ける",
+    body: "回線 1 本に壁 1 台を割り当てる。 区画の名前が箱の肩に出る。",
+  },
+  {
+    ids: ["nl-2-fw1-fw2"],
+    title: "3. 壁どうしで生死を見る",
+    body: "同じ役目の 2 台を横に結ぶ線。 色を変えて中の道と見分ける。",
+  },
+  {
+    ids: ["core1", "core2", "nl-3-fw1-core1", "nl-4-fw2-core2"],
+    title: "4. 中心の交換機へ渡す",
+    body: "壁から中へ入る 2 本。 札に書いた区画の番号がどちらも同じ。",
+  },
+  {
+    ids: ["nl-5-core1-core2"],
+    title: "5. 交換機 2 台を束ねる",
+    body: "2 本の線を 1 本として扱う繋ぎ方。 どちらの壁から来ても両方へ届く。",
+  },
+  {
+    ids: ["app", "db", "nl-7-core1-app", "nl-8-core2-db"],
+    title: "6. サーバーを 2 台ぶら下げる",
+    body: "交換機 1 台にサーバー 1 台。 札は使う口の番号。",
+  },
+  {
+    ids: ["nl-10-app-db"],
+    title: "7. サーバーどうしが読み書きする",
+    body: "外を通らずに中だけで繋がる線。 区画が同じなので壁を越えない。",
+  },
+  {
+    ids: ["mgmt", "desk", "nl-6-core2-mgmt", "nl-9-mgmt-desk"],
+    title: "8. 手入れの道を分ける",
+    body: "管理の区画は仕事の道と別に置く。 事務所の端末はここからだけ入る。",
+  },
+]);
+
 // stateMachine2 preset ... 拡張 FSM (nested + action)
 // 箱の既定幅 320 のままだと 4 状態を横に並べた図が幅 2439 world / 縦横比 6.04 になり、
 // 親幅に収めた時に帯状に潰れて中身が読めない。 状態の幅を 280 に絞って 5.64 に収める
