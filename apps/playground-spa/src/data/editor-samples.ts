@@ -430,6 +430,8 @@ animation:
     focus: [有権者, 投票箱]
   - step: "集計" 1.5s
     focus: [投票箱, 集計]
+  - step: "結果" 1.2s
+    focus: ["集計 -> 有権者"]
 `,
   },
   {
