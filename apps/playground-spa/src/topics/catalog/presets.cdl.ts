@@ -462,6 +462,106 @@ export const presetTopology = withSteps(topo.build(), [
   { ids: ["rds", "c2-ecs-rds"], body: "コンテナが PgBouncer を経て PostgreSQL に繋がる。" },
 ]);
 
+/**
+ * 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960)。
+ * 一覧の別の行にすると、同じ種類の図の規模違いを見比べるのに行を選び直すことになる
+ */
+export const patternBase__presetTopology = "簡単";
+
+/**
+ * 枠で囲む構成図の複雑な版 (#2167)。
+ *
+ * 簡単な版は枠 2 つに 4 箱を置く 1 本道で、**枠の中で完結する線が 1 本も無い**。
+ * 実物の構成は入口と動かす場所としまう場所を分けて書き、枠の中だけで繋がる部分も出る。
+ *
+ * **枠をまたぐ線は前向き (左の枠から右の枠) だけにする**。 後ろ向きに引くと線の端が箱の辺の
+ * 中心から 56 world ずれ、重い指摘 (`arrow-endpoint-center`) になる (実測 2 件)。
+ * 順番待ちと後でやる役を同じ枠に置いたのはこのため = しまう場所に置くと後ろ向きの線になる。
+ *
+ * **枠の幅 (`groupWidth`) は 320 以下で頭打ちになる**。 既定 (360) の 2454 が 320 で 2364 まで
+ * 縮み、280 / 240 に下げても 2364 のまま (実測)。 320 を書いて縮む分だけ縮めている。
+ */
+const topoComplex = topology({
+  id: "topo-complex-demo",
+  topic: "利用者から しまう場所までを 4 つの枠で分けた構成",
+  defaultTone: "teal",
+  groupWidth: 320,
+});
+topoComplex
+  .group("client", { label: "利用者側" })
+  .add({ id: "browser", kind: "frontend", title: "ブラウザ", eyebrow: "画面" })
+  .add({ id: "mobile", kind: "frontend", title: "携帯のアプリ", eyebrow: "画面" });
+topoComplex
+  .group("edge", { label: "入口" })
+  .add({ id: "cdn", kind: "cdn", title: "配信網", eyebrow: "静的な物" })
+  // 箱の肩に枠の名前と同じ語を置かない。 枠が「入口」 なので肩も「入口」 だと同じ語が 2 度出る (#2165)
+  .add({ id: "alb", kind: "service", title: "振り分け", eyebrow: "宛先を選ぶ" });
+topoComplex
+  .group("app", { label: "動かす場所" })
+  .add({ id: "web", kind: "service", title: "画面を返す役", eyebrow: "コンテナ" })
+  .add({ id: "api", kind: "service", title: "仕事をする役", eyebrow: "コンテナ" })
+  .add({ id: "queue", kind: "queue", title: "順番待ち", eyebrow: "仕事の列" })
+  .add({ id: "worker", kind: "service", title: "後でやる役", eyebrow: "コンテナ" });
+topoComplex
+  .group("store", { label: "しまう場所" })
+  .add({ id: "cache", kind: "cache", title: "覚え書き", eyebrow: "Redis" })
+  .add({ id: "db", kind: "database", title: "台帳", eyebrow: "PostgreSQL" });
+topoComplex
+  .connect("browser", "cdn", { label: "画面を取る" })
+  .connect("mobile", "alb", { label: "呼び出す" })
+  // 枠の中だけで繋がる線。 枠をまたぐ線と違って枠の縁を越えない
+  .connect("cdn", "alb", { label: "無い分を回す" })
+  .connect("alb", "web", { label: "画面の求め" })
+  .connect("alb", "api", { label: "仕事の求め" })
+  .connect("api", "queue", { label: "後の分を積む" })
+  .connect("queue", "worker", { label: "1 件ずつ渡す" })
+  .connect("web", "cache", { label: "先に見る" })
+  .connect("api", "db", { label: "読み書き", tone: "success" })
+  .connect("worker", "db", { label: "書き足す", tone: "success" });
+
+export const pattern__presetTopology__複雑 = withSteps(topoComplex.build(), [
+  {
+    ids: ["browser", "mobile"],
+    title: "1. 利用者は 2 通りで来る",
+    body: "1 つの枠に 2 箱を置く。 枠の名前が左肩に出る。",
+  },
+  {
+    ids: ["cdn", "alb", "c0-browser-cdn", "c1-mobile-alb"],
+    title: "2. 入口で受ける",
+    body: "枠をまたぐ線は左から右へ引く。 画面は配信網へ、呼び出しは振り分けへ。",
+  },
+  {
+    ids: ["c2-cdn-alb"],
+    title: "3. 無い分を振り分けへ回す",
+    body: "同じ枠の中だけで繋がる線。 枠の縁を越えないので短く引かれる。",
+  },
+  {
+    ids: ["web", "api", "c3-alb-web", "c4-alb-api"],
+    title: "4. 動かす場所へ渡す",
+    body: "1 つの箱から 2 本に分かれる。 求めの種類で行き先が変わる。",
+  },
+  {
+    ids: ["queue", "c5-api-queue"],
+    title: "5. 後でやる分を積む",
+    body: "順番待ちを同じ枠に置く。 しまう場所に置くと戻る線になり、端が辺の中心からずれる。",
+  },
+  {
+    ids: ["worker", "c6-queue-worker"],
+    title: "6. 1 件ずつ取り出す",
+    body: "積んだ順に渡す。 この 2 本も枠の中だけの線。",
+  },
+  {
+    ids: ["cache", "c7-web-cache"],
+    title: "7. 覚え書きを先に見る",
+    body: "しまう場所の枠へ入る 1 本目。 画面を返す役だけが使う。",
+  },
+  {
+    ids: ["db", "c8-api-db", "c9-worker-db"],
+    title: "8. 台帳へ読み書きする",
+    body: "2 つの役が同じ台帳を使う。 色を変えて残す道だと分かるようにした。",
+  },
+]);
+
 // er preset ... ER 図 (設計「箱と行と関係」 の意匠)
 //
 // `users` が `orders` を注文し、`orders` が `order_items` を明細として持つ。 `users` は自分自身を
