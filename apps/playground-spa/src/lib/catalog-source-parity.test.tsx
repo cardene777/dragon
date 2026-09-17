@@ -363,14 +363,16 @@ function 見た目(
 }
 
 /**
- * 描いた図の大きさ。 viewBox をそのまま読む。
+ * 描いた図の大きさ。 `見た目` が返した絵の `<svg>` の `viewBox` を読む。
  *
  * **中身ではなく絵で見る**。 箱の大きさや矢印の回し方は中身の比較に現れないが、
  * 読む人には図の大きさとして届く。
+ *
+ * **描き直さない**。 描画側は `<svg>` の `viewBox` と外側の `data-cdl-viewbox` を同じ値から作るため、
+ * 絵から読めば大きさのためだけにもう 1 度描く必要が無い。
  */
-function 描いた大きさ(d: Diagram): string {
-  const svg = 時刻を止めて描く(() => renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />));
-  return svg.match(/data-cdl-viewbox="([^"]+)"/)?.[1] ?? "(読めない)";
+function 描いた大きさ(絵: string): string {
+  return 絵.match(/^<svg[^>]*\sviewBox="([^"]+)"/u)?.[1] ?? "(読めない)";
 }
 const ids = (a: readonly { id: string }[] | undefined): string[] => (a ?? []).map((x) => x.id);
 const 題 = (a: readonly { title?: string }[] | undefined): string[] =>
@@ -945,14 +947,18 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
 
   for (const t of 対象) {
     describe(t.key, () => {
-      // 部品を箱に使う見本 (#1973) は部品の一覧を渡して書き出してあるので、同じ一覧を渡す
-      const 記法 = textDslToDiagram(t.yaml, { partsCatalog: 部品の一覧 });
-
-      it("箱の数と題が一致する", () => {
-        expect(題(記法.nodes)).toEqual(題(t.built.nodes));
+      // 部品を箱に使う見本 (#1973) は部品の一覧を渡して書き出してあるので、同じ一覧を渡す。
+      // 注意もこの 1 回で集める = 注意を受け取っても組み立ての結果は変わらない
+      const 注意: string[] = [];
+      const 記法 = textDslToDiagram(t.yaml, {
+        partsCatalog: 部品の一覧,
+        onNotice: (n) => 注意.push(`${n.kind}: ${n.message}`),
       });
 
       it("箱の中身が一致する", () => {
+        // **題を先に比べる**。 中身は題も比べるので、題が違えば中身も違う。 先に比べるのは
+        // 落ちた時に題の並びだけの差を読めるようにするため
+        expect(題(記法.nodes), "箱の数か題が違う").toEqual(題(t.built.nodes));
         // 題だけを見ていると、行や小見出しが落ちた記法を通してしまう (実測 = er の行を
         // 1 つ削っても題は変わらず素通りした)。 読む人が見るのは中身なので、そこまで比べる
         expect(中身(記法.nodes, t.built.nodes, 縦列の見出しを引く(記法))).toEqual(
@@ -965,11 +971,10 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         expect(状態(記法.states, t.built.states)).toEqual(状態(t.built.states, 記法.states));
       });
 
-      it("矢印の数と説明が一致する", () => {
-        expect(説明(記法.edges)).toEqual(説明(t.built.edges));
-      });
-
       it("矢印の中身が一致する", () => {
+        // **説明を先に比べる**。 矢印の中身は説明も比べるので、説明が違えば中身も違う。
+        // 先に比べるのは落ちた時に説明の並びだけの差を読めるようにするため
+        expect(説明(記法.edges), "矢印の数か説明が違う").toEqual(説明(t.built.edges));
         expect(矢印の中身(記法, t.built)).toEqual(矢印の中身(t.built, 記法));
       });
 
@@ -998,18 +1003,18 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         // 組み立て器が図種を持たない見本と、記法に同じ図種が無い見本は、SVG の属性だけを
         // 外す。図種そのものの契約は下の専用検査と catalog-diagram-type が分担して見る
         const 図種を外す = t.built.type == null || t.key in 差の宣言.図種の既知の差;
-        expect(見た目(記法, new Set(), 図種を外す), "描いた図が違う").toBe(
-          見た目(t.built, 外す, 図種を外す),
-        );
-      });
+        const 記法の絵 = 見た目(記法, new Set(), 図種を外す);
+        const 組立の絵 = 見た目(t.built, 外す, 図種を外す);
 
-      it("描いた図の大きさが一致する", () => {
-        // **中身だけを比べても足りない** (#1260)。 箱の題も矢印も段も同じなのに、
-        // 描くと大きさの違う図が 7 件通っていた (実測 = viewBox が 785x488 対 712x600 等)。
+        // **大きさを先に比べる** (#1260)。 箱の題も矢印も段も同じなのに、描くと大きさの違う図が
+        // 7 件通っていた (実測 = viewBox が 785x488 対 712x600 等)。 原因は図表の箱の大きさと、
+        // 後ろへ戻る矢印の回し方の 2 系統で、どちらも中身の比較には現れない。
         //
-        // 原因は 2 系統。 図表の箱の大きさが組立て API と違っていたことと、
-        // 後ろへ戻る矢印の回し方が違っていたこと。 どちらも中身の比較には現れない。
-        expect(描いた大きさ(記法), "描いた図の大きさが違う").toBe(描いた大きさ(t.built));
+        // 大きさは絵に含まれるので、絵が一致すれば大きさも一致する。 先に比べるのは、落ちた時に
+        // 絵の全文ではなく 4 つの数の差を読めるようにするため。 読めないまま通さない
+        expect(描いた大きさ(組立の絵), "組立て API 側の絵から大きさを読めない").not.toBe("(読めない)");
+        expect(描いた大きさ(記法の絵), "描いた図の大きさが違う").toBe(描いた大きさ(組立の絵));
+        expect(記法の絵, "描いた図が違う").toBe(組立の絵);
       });
 
       it("縦列の中身が一致する", () => {
@@ -1142,11 +1147,6 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
         //
         // 実測 = 箱の名前に空白があると `focus: [働き手 1]` が 2 つの名前として読まれ、
         // どちらも実在しないので何も光らない。 記法は全件を引用符付きで書く。
-        const 注意: string[] = [];
-        textDslToDiagram(t.yaml, {
-          partsCatalog: 部品の一覧,
-          onNotice: (n) => 注意.push(`${n.kind}: ${n.message}`),
-        });
         expect(注意, `${t.key} の記法が注意を出している`).toEqual([]);
       });
 
