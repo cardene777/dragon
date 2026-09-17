@@ -363,6 +363,17 @@ export interface JsonActor {
    * 読めない項目名として知らせる)。
    */
   scale?: number;
+  /**
+   * 見本が持つ段を使うか (#2125)。 記法の `{ kind: wave-gauge, phase: false }` と同じ。
+   *
+   * 既定 (書かない) は見本の段を書いた段と番号ごとに並べて再生する。 `false` を書くと
+   * 見本の段の中身 (点灯と値の変化) を空にし、値は書いた段だけが動かす。
+   *
+   * 見本 (parts) にしか効かない。 中身は状態の上書き (`state`) に `phase` として入る =
+   * `"state": { "phase": false }` と同じ所へ届く。 記法が中括弧の中に 1 つの名前として
+   * 書ける以上、JSON でも同じ名前で書けるようにする (入口で書き方が分かれない)。
+   */
+  phase?: boolean;
   /** 行頭の印 (#1466)。 行と対で読む。 語の意味は図の種類が決める */
   marks?: string[];
 }
@@ -599,6 +610,8 @@ export const ACCEPTED_KEYS = {
     "marks",
     // 位置を他の要素からの相対で書く指定 (#2039)
     "posRel",
+    // 見本が持つ段を使うか (#2125)
+    "phase",
   ],
   step: [
     "from",
@@ -772,6 +785,8 @@ export const 欄の型表 = {
     marks: "文字列の並び",
     // 相対で置く指定 (#2039)。 中身の形は `validateRelativePos` が見る
     posRel: "object",
+    // 見本が持つ段を使うか (#2125)
+    phase: "真偽",
   },
   step: {
     from: "必須の文字列",
@@ -889,6 +904,8 @@ function JSONの色名か(v: string): boolean {
 export const 見本にしか効かない欄 = [
   "state",
   "scale",
+  // 見本が持つ段を使うか (#2125)。 普通の箱は自分の段を持たないので効かない
+  "phase",
 ] as const satisfies readonly (typeof ACCEPTED_KEYS.actor)[number][];
 
 /**
@@ -2240,6 +2257,7 @@ function validateJson(
       const 代わりに使う欄: Record<(typeof 見本にしか効かない欄)[number], string> = {
         state: "箱の見た目を変えるなら tone / color を使う",
         scale: "大きさを変えるなら posW / posH を使う",
+        phase: "普通の箱は自分の段を持たない。 動かす段は animation に書く",
       };
       if (!見本か) {
         for (const 欄 of 見本にしか効かない欄) {
@@ -2482,6 +2500,22 @@ function 整えた小見出し(v: string | undefined): string | undefined {
 }
 
 /**
+ * 見本の状態の上書きに、段を使うかどうか (`phase`) を混ぜる (#2125)。
+ *
+ * 組み立て側は段を外す指定を状態の上書きの中の `phase` として読む
+ * (`compile/parts.ts` の `段を外す`)。 記法は中括弧に書いた名前をすべて上書きへ入れるため
+ * `{ kind: wave-gauge, phase: false }` がそのまま届くが、JSON は欄ごとに型を宣言する形なので、
+ * 欄として受けたものを同じ場所へ入れ直す。
+ *
+ * **書かなかった時は欄を作らない**。 `{ phase: undefined }` を混ぜると、上書きの有無で
+ * 分岐する側から見て「書いた」 ことになる。
+ */
+function 段を含めた上書き(a: JsonActor): Record<string, number | string | boolean> | undefined {
+  if (a.phase === undefined) return a.state;
+  return { ...(a.state ?? {}), phase: a.phase };
+}
+
+/**
  * JSON DSL → DslDocument (AST) 変換。
  *
  * 行番号は `行の表` を渡した時だけ入る (#2117)。 JSON そのものは書いた場所を持たないため、
@@ -2558,7 +2592,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       scale: isPart ? a.scale : undefined,
       scaleKeys: isPart && a.scale !== undefined ? ["scale"] : undefined,
       partId: isPart ? kindStr : undefined,
-      stateOverride: isPart ? a.state : undefined,
+      stateOverride: isPart ? 段を含めた上書き(a) : undefined,
       // CAR-1693 Phase 1: DSL 表面 pos → 内部 AST layoutPos の 2 層 mapping (naming collision 回避)
       layoutPos: a.pos,
       // 相対で置く指定 (#2039)。 欄の名前が内部と同じなのでそのまま渡す

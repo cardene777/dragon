@@ -123,6 +123,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     posW: 30,
     posH: 40,
     scale: 2,
+    // 見本が持つ段を使うか (#2125)
+    phase: false,
     state: { v: 1 },
     pos: { x: 1, y: 2 },
     // 箱の中に描く図形 (#1374)

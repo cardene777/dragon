@@ -59,6 +59,8 @@ const 箱の値: Record<string, unknown> = {
   posH: 40,
   nodes: { header: { posX: 1 } },
   scale: 2,
+  // 見本が持つ段を使うか (#2125)。 既定と違う側を書く = 書いたことが図に出る
+  phase: false,
   state: { v: 1 },
   pos: { x: 1, y: 2 },
   shape: { kind: "wave", level: 50, amplitude: 100 },

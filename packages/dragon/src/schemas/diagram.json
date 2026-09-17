@@ -245,6 +245,10 @@
                 "type": "number",
                 "description": "parts の描画倍率。 kind に parts identifier を指定した時だけ使える。"
               },
+              "phase": {
+                "type": "boolean",
+                "description": "parts が持つ段を使うか。 既定は書いた段と番号ごとに並べて再生する。 false を書くと parts の段の中身を空にし、値は animation に書いた段だけが動かす。 kind に parts identifier を指定した時だけ使える。"
+              },
               "pos": {
                 "type": "object",
                 "additionalProperties": false,

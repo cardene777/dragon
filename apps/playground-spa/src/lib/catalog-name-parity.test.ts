@@ -22,6 +22,7 @@ import * as Ethereum from "@/topics/catalog/ethereum.cdl";
 import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
 import * as Parts from "@/topics/catalog/parts.cdl";
 import * as PartsInBox from "@/topics/catalog/parts-in-box.cdl";
+import * as PartsMotion from "@/topics/catalog/parts-motion.cdl";
 import * as Charts from "@/topics/catalog/charts.cdl";
 import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
 
@@ -40,6 +41,8 @@ const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
   ["parts", Parts],
   // 部品を箱に使う見本 (#1973)。 部品の頁に並ぶ
   ["parts-in-box", PartsInBox],
+  // 部品を繋いで動かす見本 (#2125)。 同じく部品の頁に並ぶ
+  ["parts-motion", PartsMotion],
   ["charts", Charts],
 ];
 
@@ -82,7 +85,7 @@ describe("一覧の名前 (#1030)", () => {
       // 縦列の組の見本を足して 94 → 95 (#1972)
       "primitives-extra": 21, animation: 10, styles: 15, presets: 19,
       // parts-in-box は部品を箱に使う見本 (#1973)
-      ethereum: 4, "text-dsl": 15, parts: 80, "parts-in-box": 1, charts: 15,
+      ethereum: 4, "text-dsl": 15, parts: 80, "parts-in-box": 1, "parts-motion": 1, charts: 15,
     };
     const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));
     expect(actual, "図の数が変わっている (足したら期待値も更新する)").toEqual(expected);
