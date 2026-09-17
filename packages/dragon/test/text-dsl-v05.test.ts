@@ -922,7 +922,7 @@ flow:
     expect(edge!.sub).toBe("isValid");
   });
 
-  it("cardinality が ER preset の edge label に '(1:N)' 形式で含まれる", () => {
+  it("cardinality が ER preset の名前の下の行と両端に届く (#2105)", () => {
     const r = parseTextDslV05(`
 title: "er card"
 type: er
@@ -939,7 +939,9 @@ flow:
     const edge = diagram.edges.find((e) => e.from === "user" && e.to === "order");
     expect(edge).toBeDefined();
     expect(edge!.cardinality).toBe("1:N");
-    expect(edge!.label).toContain("(1:N)");
+    expect(edge!.label).toBe("places");
+    expect(edge!.sub).toBe("1:N");
+    expect([edge!.tailHead, edge!.head]).toEqual(["one", "many"]);
   });
 
   it("topology の group が contain: true の lane として生成される", () => {

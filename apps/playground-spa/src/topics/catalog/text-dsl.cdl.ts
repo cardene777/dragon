@@ -580,6 +580,113 @@ animation:
 
 export const textDslEr = textDslToDiagram(sourceYaml__textDslEr);
 
+/**
+ * 多重度の語を全て並べる形 (#2105)。
+ *
+ * 多重度の欄 (`cardinality`) は 6 語を受け、語ごとに両端の形が決まる (`ER_CARDINALITY_HEAD`)。
+ * 元の見本は `1:N` の 1 語しか書いておらず、残る 5 語の端がどう描かれるかをカタログで見られなかった。
+ * 同じ見本の切替にして、語と端の形を 1 枚で見比べられるようにする。
+ *
+ * 語は関係の意味に合うものを 1 つずつ当てる。 表は 2 列に置き、6 本の関係が全て隣り合う表を
+ * 縦か横に結ぶようにする (斜めの線と交わる線を作らない)。 一覧の枠 (幅 874px) に 3 列で置くと
+ * 読めない倍率まで縮む。
+ */
+export const patternBase__textDslEr = "1 つの関係";
+
+export const sourceYaml__pattern__textDslEr__多重度を全て並べる = `
+title: "通販の表と 6 通りの多重度"
+type: er
+# 順番を持たない図なので、触れた箱の関係を光らせる (#1757)。
+# 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
+relations: hover
+reveal: all
+
+# 表を 2 列に置く。 どの関係も隣り合う表を縦か横に結ぶ
+lanes:
+  c0: { width: 470 }
+  c1: { width: 470 }
+
+actors:
+  - 会員証: { lane: c0, stack: 0 }
+  - 利用者: { lane: c0, stack: 1 }
+  - 注文: { lane: c0, stack: 2 }
+  - 支払い: { lane: c0, stack: 3 }
+  - 届け先: { lane: c1, stack: 1 }
+  - 店舗: { lane: c1, stack: 2 }
+  - 商品: { lane: c1, stack: 3 }
+
+# 語ごとに両端の形が決まる。 語は名前の下の行に出る
+flow:
+  - 利用者 -> 会員証: "発行を受ける" (info) { cardinality: "1:1" }
+  - 利用者 -> 注文: "注文する" (info) { cardinality: "1:N" }
+  - 注文 -> 店舗: "受け付けられる" (info) { cardinality: "N:1" }
+  - 店舗 -> 商品: "取り扱う" (info) { cardinality: "N:M" }
+  - 利用者 -> 届け先: "既定に選ぶ" (info) { cardinality: "0..1" }
+  - 注文 -> 支払い: "支払われる" (info) { cardinality: "1..*" }
+
+# 最初の段は表だけを光らせる。 一覧の縮小図は最初の段を描くので、線を光らせると引き始めの姿で止まる
+animation:
+  - step: "7 つの表" 1s
+    focus: [会員証, 利用者, 注文, 支払い, 届け先, 店舗, 商品]
+    badge: "表"
+  - step: "ちょうど 1 つずつ" 1s
+    focus: [利用者, 会員証, "利用者 -> 会員証"]
+    badge: "1:1"
+  - step: "1 つから多数" 1s
+    focus: [利用者, 注文, "利用者 -> 注文"]
+    badge: "1:N"
+  - step: "多数から 1 つ" 1s
+    focus: [注文, 店舗, "注文 -> 店舗"]
+    badge: "N:1"
+  - step: "多数どうし" 1s
+    focus: [店舗, 商品, "店舗 -> 商品"]
+    badge: "N:M"
+  - step: "無いか 1 つ" 1s
+    focus: [利用者, 届け先, "利用者 -> 届け先"]
+    badge: "0..1"
+  - step: "1 つ以上" 1s
+    focus: [注文, 支払い, "注文 -> 支払い"]
+    badge: "1..*"
+`;
+
+export const sourceJson__pattern__textDslEr__多重度を全て並べる = `{
+  "title": "通販の表と 6 通りの多重度",
+  "type": "er",
+  "relations": "hover",
+  "reveal": "all",
+  "lanes": { "c0": { "width": 470 }, "c1": { "width": 470 } },
+  "actors": [
+    { "name": "会員証", "lane": "c0", "stack": 0 },
+    { "name": "利用者", "lane": "c0", "stack": 1 },
+    { "name": "注文", "lane": "c0", "stack": 2 },
+    { "name": "支払い", "lane": "c0", "stack": 3 },
+    { "name": "届け先", "lane": "c1", "stack": 1 },
+    { "name": "店舗", "lane": "c1", "stack": 2 },
+    { "name": "商品", "lane": "c1", "stack": 3 }
+  ],
+  "flow": [
+    { "from": "利用者", "to": "会員証", "label": "発行を受ける", "tone": "info", "cardinality": "1:1" },
+    { "from": "利用者", "to": "注文", "label": "注文する", "tone": "info", "cardinality": "1:N" },
+    { "from": "注文", "to": "店舗", "label": "受け付けられる", "tone": "info", "cardinality": "N:1" },
+    { "from": "店舗", "to": "商品", "label": "取り扱う", "tone": "info", "cardinality": "N:M" },
+    { "from": "利用者", "to": "届け先", "label": "既定に選ぶ", "tone": "info", "cardinality": "0..1" },
+    { "from": "注文", "to": "支払い", "label": "支払われる", "tone": "info", "cardinality": "1..*" }
+  ],
+  "animation": [
+    { "step": "7 つの表", "duration": 1, "focus": ["会員証", "利用者", "注文", "支払い", "届け先", "店舗", "商品"], "badge": "表" },
+    { "step": "ちょうど 1 つずつ", "duration": 1, "focus": ["利用者", "会員証", "利用者 -> 会員証"], "badge": "1:1" },
+    { "step": "1 つから多数", "duration": 1, "focus": ["利用者", "注文", "利用者 -> 注文"], "badge": "1:N" },
+    { "step": "多数から 1 つ", "duration": 1, "focus": ["注文", "店舗", "注文 -> 店舗"], "badge": "N:1" },
+    { "step": "多数どうし", "duration": 1, "focus": ["店舗", "商品", "店舗 -> 商品"], "badge": "N:M" },
+    { "step": "無いか 1 つ", "duration": 1, "focus": ["利用者", "届け先", "利用者 -> 届け先"], "badge": "0..1" },
+    { "step": "1 つ以上", "duration": 1, "focus": ["注文", "支払い", "注文 -> 支払い"], "badge": "1..*" }
+  ]
+}`;
+
+export const pattern__textDslEr__多重度を全て並べる = textDslToDiagram(
+  sourceYaml__pattern__textDslEr__多重度を全て並べる,
+);
+
 export const sourceJson__textDslEr = `{
   "title": "表と関係の設計",
   "type": "er",

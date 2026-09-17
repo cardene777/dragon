@@ -319,9 +319,12 @@ describe("compileEr", () => {
     expect(e.sub).toBe("1:N");
     expect(e.label).toBe("所有");
   });
-  it("cardinality 表記なし label は default 1:N", () => {
+  it("cardinality 表記なし label は語も端も補わない (#2105)", () => {
+    // 書いていない `1:N` を名前の下の行と端に出していた = 組み立て API と段を持つ図は何も出さない
     const d = compile("er", { flow: [step("A", "B", { label: "関連" })] });
-    expect(d.edges[0]!.sub).toBe("1:N");
+    expect(d.edges[0]!.sub).toBeUndefined();
+    expect(d.edges[0]!.head).toBeUndefined();
+    expect(d.edges[0]!.tailHead).toBeUndefined();
     expect(d.edges[0]!.label).toBe("関連");
   });
   it("N:M cardinality も認識", () => {
@@ -683,11 +686,17 @@ describe("injectPhasesFallback 詳細", () => {
   });
 });
 
-// ── applyEdgeInlineOptions: er の cardinality label 併記 ──
-describe("applyEdgeInlineOptions er cardinality label", () => {
-  it("er で step.cardinality を label に (1:N) 形式で併記 (完全一致)", () => {
-    const d = compile("er", { flow: [step("A", "B", { cardinality: "1:N", label: "owns" })] });
-    expect(d.edges[0]!.label).toBe("owns (1:N)");
+// ── er の欄に書いた cardinality: 名前に併記せず、名前の下の行と両端に出す (#2105) ──
+describe("er の欄に書いた cardinality", () => {
+  it("名前はそのまま、語は名前の下の行、両端は語の表から引く (完全一致)", () => {
+    const d = compile("er", { flow: [step("A", "B", { cardinality: "0..1", label: "owns" })] });
+    const e = d.edges[0]!;
+    expect({ label: e.label, sub: e.sub, tailHead: e.tailHead, head: e.head }).toEqual({
+      label: "owns",
+      sub: "0..1",
+      tailHead: "one",
+      head: "zero-one",
+    });
   });
 });
 
@@ -704,10 +713,15 @@ const GEN_ANIM = {
 } as unknown as DslDocument["animate"];
 
 describe("compileGenericWithAnimate 網羅", () => {
-  it("er + animate: cardinality を label に (1:N) 併記", () => {
-    const d = compileToCdl(makeDoc("er", { animate: GEN_ANIM, flow: [step("A", "B", { cardinality: "1:N", label: "rel" })] }));
+  it("er + animate: cardinality を名前の下の行と両端に出す (#2105)", () => {
+    const d = compileToCdl(makeDoc("er", { animate: GEN_ANIM, flow: [step("A", "B", { cardinality: "N:1", label: "rel" })] }));
     const e = d.edges.find((x) => x.id === "e0-a-b")!;
-    expect(e.label).toBe("rel (1:N)");
+    expect({ label: e.label, sub: e.sub, tailHead: e.tailHead, head: e.head }).toEqual({
+      label: "rel",
+      sub: "N:1",
+      tailHead: "many",
+      head: "one",
+    });
   });
   it("state + animate: initial/final eyebrow", () => {
     const d = compileToCdl(makeDoc("state", { animate: GEN_ANIM, actors: [actor("A"), actor("B"), actor("C")], flow: [step("A", "B"), step("B", "C")] }));
@@ -1666,16 +1680,17 @@ describe("applyEdgeInlineOptions: edge 検索条件の分岐", () => {
     expect(d.edges.find((e) => e.guard === "cond")?.sub).toBeUndefined();
   });
 
-  it("er preset は cardinality を label に併記", () => {
+  it("er preset は cardinality を名前の下の行に出す (#2105)", () => {
     const d = compile("er", { flow: [step("A", "B", { label: "owns", cardinality: "1:N" })] });
     const e = d.edges.find((x) => x.cardinality === "1:N");
-    expect(e?.label).toContain("1:N");
+    expect(e?.label).toBe("owns");
+    expect(e?.sub).toBe("1:N");
   });
 
-  it("label に既に cardinality を含む場合は二重併記しない", () => {
+  it("label に既に cardinality を含む場合は名前と名前の下の行で二重に出さない", () => {
     const d = compile("er", { flow: [step("A", "B", { label: "owns (1:N)", cardinality: "1:N" })] });
     const e = d.edges.find((x) => x.cardinality === "1:N");
-    expect((e?.label.match(/1:N/g) ?? []).length).toBe(1);
+    expect((`${e?.label} ${e?.sub ?? ""}`.match(/1:N/g) ?? []).length).toBe(1);
   });
 
   it("er 以外は cardinality を label に併記しない", () => {
@@ -1856,18 +1871,20 @@ describe("compileGenericWithAnimate: kind 別の lane 構成", () => {
     expect(d.nodes.length).toBe(1);
   });
 
-  it("er preset は cardinality を label に併記", () => {
+  it("er preset は cardinality を名前の下の行に出す (#2105)", () => {
     const d = compileToCdl(makeDoc("er", {
       animate: animOf(), flow: [step("A", "B", { label: "owns", cardinality: "1:N" })],
     }));
-    expect(d.edges[0]!.label).toContain("1:N");
+    expect(d.edges[0]!.label).toBe("owns");
+    expect(d.edges[0]!.sub).toBe("1:N");
   });
 
-  it("er で label が既に cardinality を含むなら二重併記しない", () => {
+  it("er で label が既に cardinality を含むなら名前と名前の下の行で二重に出さない", () => {
     const d = compileToCdl(makeDoc("er", {
       animate: animOf(), flow: [step("A", "B", { label: "owns (1:N)", cardinality: "1:N" })],
     }));
-    expect((d.edges[0]!.label.match(/1:N/g) ?? []).length).toBe(1);
+    const e = d.edges[0]!;
+    expect((`${e.label} ${e.sub ?? ""}`.match(/1:N/g) ?? []).length).toBe(1);
   });
 
   it("er 以外は cardinality があっても label に併記しない", () => {
@@ -2592,14 +2609,13 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(wide.edges[0]!.label).toBe("A　B");
   });
 
-  it("cardinality-only + 改行 は元 label に fallback する (cc-codex #879 Round 6)", () => {
-    // 除去後に改行しか残らない場合、 不可視 label にせず元 label を維持する。
-    const nl = compile("er", { flow: [step("A", "B", { label: "1:N\n" })] });
-    expect(nl.edges[0]!.label).toBe("1:N\n");
-    const wrap = compile("er", { flow: [step("A", "B", { label: "\n1:N\n" })] });
-    expect(wrap.edges[0]!.label).toBe("\n1:N\n");
-    const spaced = compile("er", { flow: [step("A", "B", { label: "  1:N  " })] });
-    expect(spaced.edges[0]!.label).toBe("  1:N  ");
+  it("cardinality-only + 改行 は不可視の名前にせず、語を名前として出す (cc-codex #879 Round 6 → #2105)", () => {
+    // 除去後に改行しか残らない場合、 不可視 label にしない。 名前は語だけだったとみなし、
+    // 組み立て API と同じく語を名前として 1 度だけ出す (名前の下の行に同じ語を重ねない)。
+    for (const label of ["1:N\n", "\n1:N\n", "  1:N  "]) {
+      const e = compile("er", { flow: [step("A", "B", { label })] }).edges[0]!;
+      expect({ label: e.label, sub: e.sub }, JSON.stringify(label)).toEqual({ label: "1:N", sub: undefined });
+    }
   });
 
   it("Unicode 行区切り (U+2028/U+2029) / vertical tab / form feed / NEL は改行系として保持する", () => {
@@ -2613,13 +2629,14 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     }
   });
 
-  it("不可視文字 (NEL / BOM / ZWSP / ZWNJ / ZWJ / WORD JOINER) のみ残る cardinality label は元 label に fallback する (cc-codex #879 Round 7/8)", () => {
+  it("不可視文字 (NEL / BOM / ZWSP / ZWNJ / ZWJ / WORD JOINER) のみ残る cardinality label は語を名前として出す (cc-codex #879 Round 7/8 → #2105)", () => {
     // fallback 判定を Unicode カテゴリ (White_Space + Cf + Cc を除く可視文字判定) にすることで、
     // 個別の不可視文字を列挙せず構造的に「除去後に視覚的な内容が残らない」 ケースを塞ぐ。
     const invisibles = ["", "﻿", "​", "\u200c", "\u200d", "\u2060"];
     for (const ch of invisibles) {
       const d = compile("er", { flow: [step("A", "B", { label: `1:N${ch}` })] });
-      expect(d.edges[0]!.label).toBe(`1:N${ch}`);
+      // 名前は語だけだったとみなし、見えない名前ではなく語を名前として出す (#2105)
+      expect(d.edges[0]!.label, JSON.stringify(ch)).toBe("1:N");
     }
   });
 
@@ -2629,13 +2646,14 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     expect(d.edges[0]!.label).toBe("and");
   });
 
-  it("default-ignorable 不可視文字 (variation selector / Hangul filler / Mongolian VS) のみ残る label は fallback する (cc-codex #879 Round 9)", () => {
+  it("default-ignorable 不可視文字 (variation selector / Hangul filler / Mongolian VS) のみ残る label は語を名前として出す (cc-codex #879 Round 9 → #2105)", () => {
     // Cf/Cc/White_Space に入らない不可視文字 (Mn の VS、 Lo の filler) も \p{Default_Ignorable_Code_Point}
-    // で捕捉して fallback する。 Braille blank U+2800 は不可視でないため content 維持。
+    // で捕捉し、除去後に見える字が残らないと判定する。 Braille blank U+2800 は不可視でないため content 維持。
     const ignorables = ["\uFE0F", "\uFE00", "\u3164", "\u115F", "\u180B"];
     for (const ch of ignorables) {
       const d = compile("er", { flow: [step("A", "B", { label: `1:N${ch}` })] });
-      expect(d.edges[0]!.label).toBe(`1:N${ch}`);
+      // 名前は語だけだったとみなし、見えない名前ではなく語を名前として出す (#2105)
+      expect(d.edges[0]!.label, JSON.stringify(ch)).toBe("1:N");
     }
     // Braille blank は content 扱い = 除去後も残る (fallback しない)
     const braille = compile("er", { flow: [step("A", "B", { label: "\u2800 1:N" })] });
@@ -2672,7 +2690,7 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     // 境界クラスに `_` を含めることで、 DB schema 由来の snake_case label (`field_1:N` 等) を壊さない。
     const f1 = compile("er", { flow: [step("A", "B", { label: "field_1:N" })] });
     expect(f1.edges[0]!.label).toBe("field_1:N");
-    expect(f1.edges[0]!.sub).toBe("1:N"); // cardinality 誤認せず default
+    expect(f1.edges[0]!.sub).toBeUndefined(); // cardinality と誤認しない = 語が無いので名前の下の行を作らない (#2105)
     const f2 = compile("er", { flow: [step("A", "B", { label: "parent_N:M_child" })] });
     expect(f2.edges[0]!.label).toBe("parent_N:M_child");
     const f3 = compile("er", { flow: [step("A", "B", { label: "maps_to_1:N" })] });
@@ -2683,8 +2701,8 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     // parse (sub 反映) と strip (label 除去) が同じ単語境界 matcher を共有するため乖離しない。
     // `column:Metadata` は cardinality と誤認しないので sub に cardinality が入らない。
     const col = compile("er", { flow: [step("A", "B", { label: "column:Metadata" })] });
-    // sub は cardinality 由来。 token 誤認しなければ default "1:N" が入る (ER preset の既定)。
-    expect(col.edges[0]!.sub).toBe("1:N");
+    // sub は cardinality 由来。 token 誤認しなければ語が無いので何も入らない (#2105 で既定の "1:N" を外した)。
+    expect(col.edges[0]!.sub).toBeUndefined();
     // 正当な cardinality は認識される (対照)
     const real = compile("er", { flow: [step("A", "B", { label: "owns (0..1)" })] });
     expect(real.edges[0]!.sub).toBe("0..1");

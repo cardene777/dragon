@@ -50,6 +50,14 @@
  * | 既定 | 書かない図が同じ見え方になる | 書いた図と書かない図の描画が一致する |
  * | 画面の切替 | 画面の `オプション` の切替が全ての値を持つ | 切替の選択肢の数が値の数と一致する |
  * | 直してから見本 | 見本を置く前に直す不具合がある | Issue 番号を持ち、道がまだ書かれていない |
+ *
+ * ## 自由な文字列の欄に書く語は、描画側の一覧から数える (#2105)
+ *
+ * 型定義を歩く上の軸は列挙値しか数えない。 多重度 (`cardinality`) や行頭の印 (`marks`) は自由な文字列の
+ * 欄に語を書くので、語ごとの見本を求めていなかった。 実測で多重度の 6 語のうちカタログが書いていたのは
+ * `1:N` の 1 語だけで、残る 5 語は書くと端の形が食い違う不具合を抱えたまま見本が無かった。
+ *
+ * 描画側が語の一覧を公開している語は、その一覧から導いて数える。
  */
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -62,6 +70,8 @@ import {
   EDGE_HEAD_FILLS,
   EDGE_HEAD_FILL_DEFAULT,
   EDGE_STYLES,
+  ER_CARDINALITY_HEAD,
+  FSM_ACTION_MARK,
   TONES,
   layout,
   type CdlDiagram,
@@ -755,5 +765,77 @@ describe("記法の型定義の全ての欄と値を、カタログの JSON が�
       見つけられない,
       "外しても足りないと見つからない欄がある (突き合わせが効いていない)",
     ).toEqual([]);
+  });
+});
+
+/**
+ * 自由な文字列の欄に書く語のうち、描画側が語の一覧を公開しているもの (#2105)。
+ *
+ * | 語 | 書く図と欄 | 一覧 |
+ * |---|---|---|
+ * | 多重度 | ER 図の関係の `cardinality` | `ER_CARDINALITY_HEAD` |
+ * | 行頭の印 | 状態遷移図の箱の `marks` | `FSM_ACTION_MARK` |
+ *
+ * ER 図の行頭の印 (`pk` / `fk` / `opt`) は数えない。 描画側が一覧を公開しておらず、ここに写すと
+ * 語を足した時にずれる。
+ */
+const 語の一覧たち: Array<{ 名: string; 語たち: readonly string[]; 読む: (doc: 素) => string[] }> = [
+  {
+    名: "ER 図の多重度 (cardinality)",
+    語たち: Object.keys(ER_CARDINALITY_HEAD),
+    読む: (doc) =>
+      doc.type !== "er" || !Array.isArray(doc.flow)
+        ? []
+        : (doc.flow as 素[]).flatMap((s) => (typeof s.cardinality === "string" ? [s.cardinality.trim()] : [])),
+  },
+  {
+    名: "状態遷移図の行頭の印 (marks)",
+    語たち: Object.keys(FSM_ACTION_MARK),
+    読む: (doc) =>
+      doc.type !== "state" || !Array.isArray(doc.actors)
+        ? []
+        : (doc.actors as 素[]).flatMap((a) =>
+            Array.isArray(a.marks) ? a.marks.flatMap((m) => (typeof m === "string" ? [m.trim()] : [])) : [],
+          ),
+  },
+];
+
+/** 一覧ごとに、JSON に書かれていない語 (`<一覧>: <語>`) */
+function 書かれていない語(docs: readonly 素[]): string[] {
+  return 語の一覧たち.flatMap((一覧) => {
+    const 書いた = new Set(docs.flatMap(一覧.読む));
+    return 一覧.語たち.filter((語) => !書いた.has(語)).map((語) => `${一覧.名}: ${語}`);
+  });
+}
+
+describe("自由な文字列の欄に書く語を、描画側の一覧どおりカタログの JSON が全て書いている (#2105)", () => {
+  let docs: 素[] = [];
+
+  beforeAll(async () => {
+    const 見本 = [...Object.values(CATALOG_ITEMS).flat(), ...(await loadPartsItems())];
+    docs = 見本.flatMap(JSONたち).map((j) => JSON.parse(j) as 素);
+  });
+
+  it("一覧ごとに語を導けていて、その語を書く JSON を 1 つ以上読めている", () => {
+    for (const 一覧 of 語の一覧たち) {
+      expect(一覧.語たち.length, `${一覧.名} の語を描画側から 1 つも導けていない`).toBeGreaterThan(0);
+      expect(
+        docs.filter((d) => 一覧.読む(d).length > 0).length,
+        `${一覧.名} を書いた JSON を 1 つも読めていない (読み方が JSON の形と噛み合っていない)`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("描画側の一覧の語は、カタログのどこかの JSON に書かれている", () => {
+    expect(書かれていない語(docs), "カタログの JSON に見本の無い語がある (見本を足す)").toEqual([]);
+  });
+
+  it("語を書いた JSON を外すと、その語が足りないと見つかる (植え込み対照)", () => {
+    const 見つけた = 語の一覧たち.filter((一覧) => {
+      const 語 = 一覧.語たち[0]!;
+      const 外した = docs.filter((d) => !一覧.読む(d).includes(語));
+      return 書かれていない語(外した).includes(`${一覧.名}: ${語}`);
+    });
+    expect(見つけた.map((x) => x.名)).toEqual(語の一覧たち.map((x) => x.名));
   });
 });

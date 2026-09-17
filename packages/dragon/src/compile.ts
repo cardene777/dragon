@@ -1190,13 +1190,9 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
     // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
     if (doc.type === "state" && target.sub === undefined) target.sub = s.guard;
   }
-  if (s.cardinality !== undefined) {
-    target.cardinality = s.cardinality;
-    // ER preset の場合 label に "(1:N)" 形式で併記 (既に含まれていればスキップ)
-    if (doc.type === "er" && !target.label.includes(s.cardinality)) {
-      target.label = target.label ? `${target.label} (${s.cardinality})` : `(${s.cardinality})`;
-    }
-  }
+  // ER の多重度が名前と端にどう出るかは組み立ての時に決まっている (`compile/er-relation.ts`、#2105)。
+  // ここで名前へ `(1:N)` を足すと、組み立てが名前の下の行に出した語と 2 度並ぶ
+  if (s.cardinality !== undefined) target.cardinality = s.cardinality;
   // 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ
   if (s.side !== undefined) target.side = s.side;
   // 矢印の先の形 (#1462)。 書かない矢印には値を入れない = 既存の図が変わらない。

@@ -4,6 +4,7 @@ import { parseFocusEntry } from "../focus";
 import type { DslDocument, DslPhase } from "../types";
 import { 始まりと終わりの決め方 } from "./actors";
 import { 並べる向き, 後ろへ戻る矢印か, type GenericKind } from "./direction";
+import { ERの関係の指定を作る, ERの関係の矢印 } from "./er-relation";
 import { 描ける種別 } from "./kinds";
 import { 書いた縦列に置く } from "./lanes";
 import { 箱の題 } from "./node-title";
@@ -164,19 +165,18 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     const toId = actorToNodeId.get(s.to);
     if (fromId === undefined || toId === undefined) return;
     const edgeId = `e${idx}-${fromId}-${toId}`;
-    // ER preset では cardinality を label に "(1:N)" 形式で併記、 他 preset は label そのまま。
-    const labelWithCard =
-      kind === "er" && s.cardinality && !s.label.includes(s.cardinality)
-        ? s.label
-          ? `${s.label} (${s.cardinality})`
-          : `(${s.cardinality})`
-        : s.label;
+    // ER の多重度は、段の無い図 (`compileEr`) と同じ 1 か所から名前と名前の下の行と両端を作る (#2105)。
+    // 札に `(1:N)` と添えるだけだった間、段を持つ ER 図には端の形が 1 つも付かなかった
+    const 関係 = kind === "er" ? ERの関係の矢印(ERの関係の指定を作る(s)) : undefined;
     b.edge(fromId, toId, {
       id: edgeId,
-      label: labelWithCard,
+      label: 関係?.label ?? s.label,
       ...(後ろへ戻る矢印か(kind, fromId, toId, 箱の並び)
         ? { routing: "back-detour" as const }
         : {}),
+      ...(関係?.sub ? { sub: 関係.sub } : {}),
+      ...(関係?.head ? { head: 関係.head } : {}),
+      ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
 
