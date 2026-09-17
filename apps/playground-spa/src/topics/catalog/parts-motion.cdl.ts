@@ -31,7 +31,7 @@ import * as 部品 from "./parts.cdl";
  * `flow` と `topology` は部品を他の箱の下の格子に置くため、矢印が間の箱を貫く (#1979 の実測)。
  * 繋ぎ方の頁と同じ理由で `swimlane` を使う。
  *
- * ## 7 つの切替
+ * ## 8 つの切替
  *
  * | 切替 | 見せること |
  * |---|---|
@@ -42,6 +42,7 @@ import * as 部品 from "./parts.cdl";
  * | 部品の段を残す | 部品の段のままの部品と、宿主が動かす部品を並べる |
  * | 振り分けて合流させる | 振り分け器の出口 A / B を合流点の入口 A / B へ繋ぎ、段で入口だけ・出口と入口だけを名指しして光らせる (#2149 / #2151) |
  * | 配ってから写す | 負荷分散器の出口 3 つのうち真ん中の 1 つだけを複製器の発行へ繋ぎ、分けると写すの違いを 1 枚で見せる (#2159) |
+ * | 仕分けてから溜める | 仕分け箱の 3 つの出口のうち「注文」 だけをまとめ箱の届くへ繋ぎ、分けた分だけが溜まることを見せる (#2173) |
  *
  * ## 分けると集めるを箱と計器の 1 枚にまとめない
  *
@@ -53,6 +54,8 @@ import * as 部品 from "./parts.cdl";
  * 縦列が 5 本以上になり、一覧の器で箱の題が 9.6px まで縮む (実測)。 縦列の幅 (`viewport.laneWidth`)
  * を 240 から 150 まで下げても横幅は 2033 から 2013 までしか縮まないので、本数で収める。
  * 「配ってから写す」 は縦列 2 本の部品 2 枚で 4 本に収め、幅 200 で 1515 × 922 になる。
+ * 「仕分けてから溜める」 も同じ 4 本で、幅 200 で 1587 × 922 になる。 幅 240 だと 1607 に伸び、
+ * 一覧の器で箱の題が 12.0px の境に乗る (実測)。
  * 札の字も短くする = 負荷分散器の札を「真ん中へ」 にすると図が 1659 に伸び、一覧の器で
  * 箱の題が 11.6px になった (実測)。 幅は 1602 までなら 12px に届く。
  *
@@ -79,7 +82,7 @@ const 部品の一覧 = 部品の一覧を作る(Object.values(部品));
 export const patternBase__partsMotion = "流れに沿って動かす";
 
 export const subtitle__partsMotion =
-  "部品を矢印で繋いだまま段で動かし、繋いだ先へ値を渡し、要素を名指しして層ごとに動かし、2 つの部品へ分け、2 つの部品から 1 つの箱へ集め、部品の段のままの部品と宿主が動かす部品を並べ、振り分け器の出口を合流点の入口へ繋ぎ、負荷分散器の出口 1 つを複製器へ繋いで分けると写すの違いを見せる";
+  "部品を矢印で繋いだまま段で動かし、繋いだ先へ値を渡し、要素を名指しして層ごとに動かし、2 つの部品へ分け、2 つの部品から 1 つの箱へ集め、部品の段のままの部品と宿主が動かす部品を並べ、振り分け器の出口を合流点の入口へ繋ぎ、負荷分散器の出口 1 つを複製器へ繋いで分けると写すの違いを見せ、仕分け箱の出口 1 つをまとめ箱へ繋いで分けた分だけが溜まることを見せる";
 
 export const sourceYaml__partsMotion = `title: "入ってくる量を溜めて送り出す"
 type: swimlane
@@ -677,5 +680,109 @@ export const sourceJson__pattern__partsMotion__配ってから写す = `{
 
 export const pattern__partsMotion__配ってから写す = textDslToDiagram(
   sourceYaml__pattern__partsMotion__配ってから写す,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__仕分けてから溜める = `title: "中身の種類で分けた注文だけを溜めてまとめて送る"
+type: swimlane
+# 縦列の幅は 200 にする。 240 だと図が 1607 になり、一覧の器 (幅 874) で箱の題が 12.0px の境に乗る
+viewport: { laneWidth: 200 }
+
+lanes:
+  仕分ける: { label: "仕分ける" }
+  溜める: { label: "溜める" }
+
+actors:
+  - so: { kind: content-sorter, phase: false, lane: 仕分ける }
+  - bt: { kind: batch-collector, phase: false, lane: 溜める }
+
+# 繋ぐのは 3 つの出口のうち「注文」 だけ。 3 つとも繋ぐと「種類で分ける」 と「全部を溜める」 が
+# 同じ絵になり、仕分けた意味が消える
+flow:
+  - so -> bt: "注文の分" { fromPartNode: outA, toPartNode: inP }
+
+animation:
+  - step: "1. 中身を見る" 1.2s
+    focus: [so__inP]
+    badge: "受付"
+    tween:
+      so__inN: 0 -> 20
+    body: "20 件が届く。 まだどの行き先にも分かれていない。"
+  - step: "2. 種類で分ける" 1.4s
+    focus: [so]
+    badge: "仕分け"
+    tween:
+      so__aN: 0 -> 11
+      so__bN: 0 -> 6
+      so__cN: 0 -> 3
+    body: "注文 11 件、問い合わせ 6 件、その他 3 件に分かれる。 棒の高さが揃わない。"
+  - step: "3. 注文だけ渡す" 1.4s
+    focus: [so__outA, bt__inP, "so -> bt"]
+    badge: "受け渡し"
+    tween:
+      bt__inN: 0 -> 11
+    body: "注文の 11 件だけがまとめ箱へ渡る。 他の 2 つの行き先は渡らない。"
+  - step: "4. 溜めてまとめて送る" 1.4s
+    focus: [bt]
+    badge: "まとめ"
+    tween:
+      bt__poolN: 0 -> 10
+      bt__sendN: 0 -> 1
+    body: "10 件たまったところで 1 回送る。 残る 1 件は次の分を待つ。"
+`;
+
+export const sourceJson__pattern__partsMotion__仕分けてから溜める = `{
+  "title": "中身の種類で分けた注文だけを溜めてまとめて送る",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "仕分ける": { "label": "仕分ける" },
+    "溜める": { "label": "溜める" }
+  },
+  "actors": [
+    { "name": "so", "kind": "content-sorter", "phase": false, "lane": "仕分ける" },
+    { "name": "bt", "kind": "batch-collector", "phase": false, "lane": "溜める" }
+  ],
+  "flow": [
+    { "from": "so", "to": "bt", "label": "注文の分", "fromPartNode": "outA", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 中身を見る",
+      "duration": 1.2,
+      "focus": ["so__inP"],
+      "badge": "受付",
+      "tween": { "so__inN": [0, 20] },
+      "body": "20 件が届く。 まだどの行き先にも分かれていない。"
+    },
+    {
+      "step": "2. 種類で分ける",
+      "duration": 1.4,
+      "focus": ["so"],
+      "badge": "仕分け",
+      "tween": { "so__aN": [0, 11], "so__bN": [0, 6], "so__cN": [0, 3] },
+      "body": "注文 11 件、問い合わせ 6 件、その他 3 件に分かれる。 棒の高さが揃わない。"
+    },
+    {
+      "step": "3. 注文だけ渡す",
+      "duration": 1.4,
+      "focus": ["so__outA", "bt__inP", "so -> bt"],
+      "badge": "受け渡し",
+      "tween": { "bt__inN": [0, 11] },
+      "body": "注文の 11 件だけがまとめ箱へ渡る。 他の 2 つの行き先は渡らない。"
+    },
+    {
+      "step": "4. 溜めてまとめて送る",
+      "duration": 1.4,
+      "focus": ["bt"],
+      "badge": "まとめ",
+      "tween": { "bt__poolN": [0, 10], "bt__sendN": [0, 1] },
+      "body": "10 件たまったところで 1 回送る。 残る 1 件は次の分を待つ。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__仕分けてから溜める = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__仕分けてから溜める,
   { partsCatalog: 部品の一覧 },
 );
