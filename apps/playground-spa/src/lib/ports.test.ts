@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { execFileSync } from "node:child_process";
+import { 走査するfile } from "../../../../test-support/scan-targets";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -126,10 +126,9 @@ function portの食い違い(本文: string): { 拾った: number; 食い違い:
 }
 
 describe("文書に書いた port (#2054)", () => {
-  it("追跡中の Markdown に書いた port が ports.ts と一致する", () => {
-    const 文書 = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
-      .split("\n")
-      .filter((p) => p !== "" && p !== "CHANGELOG.md");
+  it("Markdown に書いた port が ports.ts と一致する", () => {
+    // 未追跡の Markdown も見る = 書いている最中に落ちないと、取り込んでから直すことになる (#2095)
+    const 文書 = 走査するfile(ROOT, "*.md").filter((p) => p !== "CHANGELOG.md");
     expect(文書.length, "Markdown を 1 つも拾えていない (検査が空振りしている)").toBeGreaterThan(0);
 
     let 拾った = 0;

@@ -10,10 +10,10 @@
  * 空行を挟んで離れた説明は拾わない。 空行の有無だけでは、節や file 全体の説明と区別できないため。
  * 節の説明を塊で書く時は、続く説明との間に空行を 1 行置く。
  */
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
+import { 走査するfile } from "../../../test-support/scan-targets";
 
 const REPO = join(import.meta.dirname, "..", "..", "..");
 
@@ -55,10 +55,9 @@ function 積み重なった説明(本文: string): { 塊: number; 箇所: number
 }
 
 describe("説明の塊を別の説明の上に積まない (#2066)", () => {
-  it("追跡中の *.ts / *.tsx に、空行を挟まずに続く説明の塊が無い", () => {
-    const 対象 = execFileSync("git", ["-C", REPO, "ls-files", "*.ts", "*.tsx"], { encoding: "utf8" })
-      .split("\n")
-      .filter((p) => p !== "");
+  it("*.ts / *.tsx に、空行を挟まずに続く説明の塊が無い", () => {
+    // 未追跡の file も見る = 書いている最中に落ちないと、取り込んでから直すことになる (#2095)
+    const 対象 = 走査するfile(REPO, "*.ts", "*.tsx");
     expect(対象.length, "file を 1 つも拾えていない (検査が空振りしている)").toBeGreaterThan(0);
 
     let 数えた塊 = 0;

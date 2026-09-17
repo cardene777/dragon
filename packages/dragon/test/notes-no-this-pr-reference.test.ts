@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { 走査するfile } from "../../../test-support/scan-targets";
 
 /**
  * 注記と検査の題が、いま出している変更を指す書き方を持たないことの検証 (#2081)。
@@ -34,13 +34,13 @@ const 例外: Record<string, string> = {
     "変更履歴に書く commit の件名の例として、文字列の中に写している (注記が自分の変更を指しているのではない)",
 };
 
-const 走査したfile: string[] = execFileSync(
-  "git",
-  ["-C", REPO, "ls-files", "*.ts", "*.tsx", "*.mts", "*.mjs"],
-  { encoding: "utf8" },
-)
-  .split("\n")
-  .filter((p) => p !== "" && !p.includes("/dist/"));
+/**
+ * 走査対象 = 追跡している `ts` / `tsx` / `mts` / `mjs` と、未追跡だが無視されていない同じ拡張子。
+ *
+ * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
+ * 配布物 (`dist`) は無視設定に載っているので、どちらの一覧にも入らない。
+ */
+const 走査したfile: string[] = 走査するfile(REPO, "*.ts", "*.tsx", "*.mts", "*.mjs");
 
 function 持っているfile(): string[] {
   return 走査したfile.filter((p) => 探す字.test(readFileSync(join(REPO, p), "utf8")));

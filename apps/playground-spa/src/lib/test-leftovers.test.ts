@@ -1,9 +1,9 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { 追跡しているfile } from "../../../../test-support/scan-targets";
 
 /**
  * 画面の検査を消した時に、その検査のためだけに置いたものが残らないことの検証 (#2071)。
@@ -168,8 +168,9 @@ function 当たらない正規表現(正規表現たち: readonly RegExp[], file
 
 describe("消えた検査のために置いたものが残らない (#2071)", () => {
   it("追跡中の基準画像は、同じ名前の spec が同じ撮影名で撮っている", () => {
-    const 画像 = execFileSync("git", ["-C", APP, "ls-files", "--", "tests"], { encoding: "utf8" })
-      .split("\n")
+    // **追跡している画像だけを見る** (#2095)。 この検査が見るのは「repo に残ってしまった基準画像」 で、
+    // 未追跡の png は手元で撮った実行結果なので残骸ではない。 入れると撮り直すたびに落ちる
+    const 画像 = 追跡しているfile(APP, "tests")
       .filter((p) => /-snapshots\/[^/]+\.png$/u.test(p))
       .map((p) => join(APP, p));
     expect(画像.length, "基準画像を 1 枚も拾えていない (検査が空振りしている)").toBeGreaterThan(0);

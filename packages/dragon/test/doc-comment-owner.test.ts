@@ -16,10 +16,10 @@
  * 置いたもの。 節の説明は `/**` ではなく `/*` で書く = TypeScript は `/**` を直後の宣言の説明として
  * 読むので、節の説明を `/**` で書くと最初の宣言の説明として表示される。
  */
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it, expect } from "vitest";
+import { 走査するfile } from "../../../test-support/scan-targets";
 
 const REPO = join(import.meta.dirname, "..", "..", "..");
 
@@ -84,10 +84,9 @@ function 持ち主のない説明(本文: string): { 塊: number; 箇所: number
 }
 
 describe("説明の塊の後ろに持ち主の宣言が来る (#2067)", () => {
-  it("追跡中の *.ts / *.tsx に、持ち主の宣言が来ない説明の塊が無い", () => {
-    const 対象 = execFileSync("git", ["-C", REPO, "ls-files", "*.ts", "*.tsx"], { encoding: "utf8" })
-      .split("\n")
-      .filter((p) => p !== "");
+  it("*.ts / *.tsx に、持ち主の宣言が来ない説明の塊が無い", () => {
+    // 未追跡の file も見る = 書いている最中に落ちないと、取り込んでから直すことになる (#2095)
+    const 対象 = 走査するfile(REPO, "*.ts", "*.tsx");
     expect(対象.length, "file を 1 つも拾えていない (検査が空振りしている)").toBeGreaterThan(0);
 
     let 数えた塊 = 0;
