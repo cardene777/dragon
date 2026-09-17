@@ -1,6 +1,7 @@
 import { layout, parseFormula } from "@cardenelabs/cdl";
 import type { CdlDiagram, CdlEdge, FormulaAst, LaidDiagram } from "@cardenelabs/cdl";
 import { isColorValue } from "../color";
+import { parseFocusEntry } from "../focus";
 import { MAX_INPUT_ELEMENTS, countDiagramElements } from "../input-size";
 import { type AnchorBox } from "../relative-pos";
 import type { DslActor, DslDocument, DslStep } from "../types";
@@ -1407,6 +1408,8 @@ export function mergePartsFromActors(
   const { 縦列: 縦列の部品, 基準のため外した } = 縦列に置く部品(target, doc);
   const 縦列に置いた: 縦列に置いた部品[] = [];
   const 自分の縦列に置いた: 自分の縦列に置いた部品[] = [];
+  /** 図に取り込んだ部品。 段の `focus` に書いた部品の名前を要素へ広げる時に引く (#2150) */
+  const 取り込んだ部品 = new Map<string, CdlDiagram>();
 
   for (const [actorIndex, actor] of partsActors.entries()) {
     const partId = actor.partId;
@@ -1593,6 +1596,7 @@ export function mergePartsFromActors(
       置く縦列 !== undefined,
     );
     const 要素 = new Set(target.nodes.slice(組み込む前の箱の数).map((n) => n.id));
+    取り込んだ部品.set(actor.name, part);
     if (置く縦列 !== undefined) {
       縦列に置いた.push({ 縦列: 置く縦列, 要素 });
     } else if (作った縦列.length > 0) {
@@ -1603,7 +1607,69 @@ export function mergePartsFromActors(
   // 揃えると、揃えた時の縦列 (部品用の縦列も詰める送りに加わる) と描いた図の縦列が食い違う
   部品の縦列を部品に固定する(target, 自分の縦列に置いた);
   縦列に置いた部品を揃える(target, 縦列に置いた);
+  部品の名前で光らせる(target, doc, 取り込んだ部品);
   return target;
+}
+
+/**
+ * 段の `focus` に書いた部品の名前を、部品の要素と部品の中の線に広げる (#2150)。
+ *
+ * 組み立ては部品の名前を仮の箱として置き、段の `focus` を仮の箱の id に解決する。 部品を取り込む時に
+ * 仮の箱を消し、段の光らせる相手からも外す (`cleanupPlaceholderActor`)。 外すだけでは、部品の名前を
+ * 書いた段が何も光らせない (実測 = 部品を繋いで動かす頁の 5 見本で、部品の名前を書いた 13 段が
+ * 1 つも部品を光らせていなかった)。
+ *
+ * **仮の箱を消す所で置き換えず、書いた `focus` を読み直す**。 仮の箱の id の形は図種で違い
+ * (順序図は縦列の上端 / 下端 / 手順箱、流れ図は箱 1 つ)、置き換えると図種ごとに規則が要る。
+ * 書いた名前から引けば、図種に依らず同じ規則で足せる。
+ *
+ * | 書いた相手 | 足すもの |
+ * |---|---|
+ * | 部品の名前 (か、他の名前と重ならない slug の形) | 部品の要素 (`{部品の名前}__{要素}`) と部品の中の線 (`{部品の名前}__{線}`) |
+ * | それ以外 (箱の名前 / 矢印) | 足さない。 図種ごとの解決が既に光らせている |
+ *
+ * 書いた段と組み立てた段は題 (`title` は書いた段の名前) で先頭から順に突き合わせる。 部品が宿主より
+ * 多くの段を持つと組み立てた段が後ろに増えるが、書いた段は同じ順に並ぶ。 同じ id は 2 度入れない。
+ */
+function 部品の名前で光らせる(
+  target: CdlDiagram,
+  doc: DslDocument,
+  取り込んだ: ReadonlyMap<string, CdlDiagram>,
+): void {
+  const 書いた段 = doc.animate?.phases ?? [];
+  if (書いた段.length === 0 || 取り込んだ.size === 0) return;
+  const 箱 = new Set(target.nodes.map((n) => n.id));
+  const 線 = new Set(target.edges.map((e) => e.id));
+  const 部品の相手 = new Map<string, string[]>();
+  for (const [名前, part] of 取り込んだ) {
+    部品の相手.set(名前, [
+      ...part.nodes.map((n) => `${名前}__${n.id}`).filter((id) => 箱.has(id)),
+      ...part.edges.map((e) => `${名前}__${e.id}`).filter((id) => 線.has(id)),
+    ]);
+  }
+  // 図種ごとの解決は、名前が見つからない時に slug の形でも探す (`slugLookup`)。 同じ書き方で
+  // 部品だけが光らない状態を作らないよう揃える。 2 つ以上の名前が同じ slug になる時は引かない
+  const 書いた名前 = new Set(doc.actors.map((a) => a.name));
+  const slugの数 = new Map<string, number>();
+  for (const 名前 of 書いた名前) slugの数.set(slugify(名前), (slugの数.get(slugify(名前)) ?? 0) + 1);
+  const slugから = new Map<string, string[]>();
+  for (const [名前, 相手] of 部品の相手) {
+    if (slugの数.get(slugify(名前)) === 1) slugから.set(slugify(名前), 相手);
+  }
+  let 次に見る = 0;
+  for (const 段 of 書いた段) {
+    const 番目 = target.phases.findIndex((p, i) => i >= 次に見る && p.title === 段.name);
+    if (番目 < 0) continue;
+    次に見る = 番目 + 1;
+    const 足す = (段.highlight ?? []).flatMap((書いた) => {
+      const entry = parseFocusEntry(書いた, 書いた名前);
+      if (entry.kind !== "node") return [];
+      return 部品の相手.get(entry.name) ?? (書いた名前.has(entry.name) ? [] : (slugから.get(entry.name) ?? []));
+    });
+    if (足す.length === 0) continue;
+    const 組み立てた段 = target.phases[番目]!;
+    組み立てた段.activate = [...new Set([...組み立てた段.activate, ...足す])];
+  }
 }
 
 type 自分の縦列に置いた部品 = {
