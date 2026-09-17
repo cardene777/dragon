@@ -85,6 +85,7 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
         "topo-complex-demo",
         "swim-complex-demo",
         "chart-line-complex-demo",
+        "chart-pie-complex-demo",
       ]),
     );
     // 元の見本も名前から引く。 名前の切り出しを誤ると複雑な版だけが残る
@@ -103,6 +104,7 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
         "topo-demo",
         "swim-demo",
         "chart-line-demo",
+        "chart-pie-demo",
       ]),
     );
   });

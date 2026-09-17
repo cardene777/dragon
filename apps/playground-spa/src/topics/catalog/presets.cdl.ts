@@ -1935,6 +1935,92 @@ export const presetChartPie = withSteps(
   PIE_SLICES.map((s) => ({ id: s.id, initial: s.last })),
 );
 
+export const patternBase__presetChartPie = "簡単";
+
+/**
+ * 円グラフの複雑な版 (#2179)。
+ *
+ * 簡単な版は 3 区分で、扇が 3 枚しかない。 実際に読み取りが要るのは
+ * 「細かい区分が並んでいて、上位と下位が入れ替わる」 形で、3 枚では描けない。
+ *
+ * **図表は板 1 枚で描くので、区分を増やしても図の大きさが変わらない** (実測 = 6 区分も
+ * 8 区分も 9 区分も 792x440 で、指摘は重さを問わず 0 件)。 箱の数で大きさが決まる他の図と
+ * 違い、区分を増やす方向に制約が無い。 9 区分を並べ、半年で上位 3 つが入れ替わる様子を見せる。
+ *
+ * **減る扇と増える扇を同じ段で動かし、どの段でも合計を 100 に保つ** (#2179)。 円グラフは
+ * 扇に「その時の合計に対する割合」 を書くので、合計が動くと **触っていない扇の表示まで動く**
+ * (実測 = 上の 3 つだけ減らした段で合計が 80 になり、値が 12 のままの支払いが 12% から 15% に
+ * 変わった)。 それでは「この種類が増えた」 と「他が減った」 を読み分けられない。
+ */
+const PIE_COMPLEX_SLICES = [
+  { id: "pc_change", label: "注文の変更", before: 22, after: 14 },
+  { id: "pc_delivery", label: "配送の問い合わせ", before: 18, after: 11 },
+  { id: "pc_return", label: "返品", before: 14, after: 9 },
+  { id: "pc_payment", label: "支払い", before: 12, after: 13 },
+  { id: "pc_signup", label: "会員登録", before: 10, after: 10 },
+  { id: "pc_bug", label: "不具合の報告", before: 8, after: 6 },
+  { id: "pc_howto", label: "使い方の質問", before: 7, after: 15 },
+  { id: "pc_stock", label: "在庫の確認", before: 5, after: 12 },
+  { id: "pc_other", label: "その他", before: 4, after: 10 },
+] as const;
+
+const pieComplexBuilder = chart({
+  id: "chart-pie-complex-demo",
+  topic: "問い合わせの種類ごとの割合が半年で入れ替わる円グラフ",
+  type: "pie",
+});
+for (const s of PIE_COMPLEX_SLICES) {
+  pieComplexBuilder.datum({ id: s.id, label: s.label, value: s.before });
+}
+
+/**
+ * 名前で選んで置き換える。 減る扇と増える扇を同じ段に入れ、その段の増減を釣り合わせる。
+ * 動く量が同じなので、動いている途中も合計は 100 のまま保たれる。
+ */
+const 扇を動かす = (...名前: readonly string[]) =>
+  名前.map((名) => {
+    const s = PIE_COMPLEX_SLICES.find((x) => x.id === 名);
+    if (s === undefined) throw new Error(`${名} は円グラフの複雑な版に無い`);
+    return { id: s.id, from: s.before, to: s.after };
+  });
+
+export const pattern__presetChartPie__複雑 = withSteps(
+  bindFirstNode(pieComplexBuilder.build(), (n) => ({
+    ...n,
+    // `chartData` は `PIE_COMPLEX_SLICES` を回す `for` で 1:1 に作るので長さは常に一致する
+    chartData: n.chartData?.map((c, i) => {
+      const s = PIE_COMPLEX_SLICES[i];
+      return s === undefined ? c : { ...c, value: `{${s.id}}` };
+    }),
+  })),
+  [
+    {
+      ids: ["chart-pie-complex-demo-chart"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["chart-pie-complex-demo-chart"],
+      // 描く段は伸ばす (#1353)。 9 枚を追うので簡単な版より長く取る
+      duration: DRAW_DURATION,
+      title: "半年前の内訳",
+      body: "注文の変更 22 を先頭に、9 種類が大きい順に並ぶ。 合計は 100。",
+    },
+    {
+      title: "注文の変更が使い方の質問へ移る",
+      body: "注文の変更が 22 から 14 へ 8 減り、同じ 8 が使い方の質問に乗って 7 から 15 になる。",
+      tweens: 扇を動かす("pc_change", "pc_howto"),
+    },
+    {
+      title: "配送の問い合わせが在庫の確認へ移る",
+      body: "配送の問い合わせが 18 から 11 へ 7 減り、同じ 7 が在庫の確認に乗って 5 から 12 になる。",
+      tweens: 扇を動かす("pc_delivery", "pc_stock"),
+    },
+    {
+      body: "返品 5 と不具合の報告 2 のぶんが、その他 6 と支払い 1 へ移る。 上位 3 つが入れ替わる。",
+      tweens: 扇を動かす("pc_return", "pc_bug", "pc_other", "pc_payment"),
+    },
+  ],
+  PIE_COMPLEX_SLICES.map((s) => ({ id: s.id, initial: s.before })),
+);
+
 // chart preset (line) ... 時系列
 // 折れ線の高さを状態から取り、計画と実績を同じ図で見る。
 const LINE_POINTS = [
