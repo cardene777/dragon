@@ -1,0 +1,25 @@
+{
+  // repo の根に置く設定 file を型検査する時だけ使う設定 (#2089)。
+  //
+  // 3 つの project (`packages/dragon` / `apps/playground-spa` / `test-support`) はどれも
+  // 自分の dir の中しか見ないため、`vitest.config.ts` は `tsc -b` の対象に入らない。
+  // その間に、今の vitest が受け付けない指定 (`environmentMatchGlobs`) が黙って残っていた。
+  //
+  // `tsconfig.eslint.json` も この file を `include` に持つが、eslint は TypeScript の型の誤りを
+  // 報告しないため見つからない (`typecheck-ratchet.test.ts` が書いているのと同じ穴)。
+  //
+  // 誤り 0 件であることは `packages/dragon/test/vitest-env-declared-per-file.test.ts` が見る。
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["vitest.config.ts"]
+}
