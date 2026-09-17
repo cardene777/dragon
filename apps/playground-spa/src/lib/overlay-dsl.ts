@@ -283,7 +283,7 @@ function unquoteAlias(raw: string): string {
  *
  * `kind: achievement, shape: { kind: wave, posX: 1 }, posX: 10` のような nested map を
  * 単純な `,` split や正規表現で扱うと、 入れ子の中の `posX` / `kind` を top-level のものと
- * 取り違えて誤抽出・データ欠落を起こす (CAR-2158 Round 3 CRITICAL)。
+ * 取り違えて誤抽出・データ欠落を起こす (CAR-2158 Round 3)。
  * brace の深さを数えて、 深さ 0 の `,` でだけ区切る。
  */
 export function splitTopLevelFields(inner: string): string[] {
@@ -292,7 +292,7 @@ export function splitTopLevelFields(inner: string): string[] {
   let start = 0;
   // double / single の 2 種を追跡する。 single を見ていなかった頃は
   // `label: 'x,y'` を 2 field に割り、 `label: 'p, posX: 999'` の内側を top-level の
-  // posX と誤読して DSL を壊していた (CAR-2158 Round 6 CRITICAL)。
+  // posX と誤読して DSL を壊していた (CAR-2158 Round 6)。
   let quote: '"' | "'" | null = null;
   // 直前の非空白文字。 quote の開始を「値の先頭」 に限るために持つ。
   let prev: string | null = null;
@@ -1089,7 +1089,7 @@ function readAtToken(values: string[]): { posX?: number; posY?: number } {
  *
  * 行と改行コードを分けて扱う (偶数 index = 行、 奇数 index = separator)。
  * LF 固定で挿入すると CRLF の DSL に LF 行が混ざり、 以後の座標更新で
- * 無関係な行の改行まで巻き込まれる (CAR-2158 Round 6 MAJOR)。
+ * 無関係な行の改行まで巻き込まれる (CAR-2158 Round 6)。
  */
 export function appendActorLine(src: string, newLine: string): string | null {
   const seg = src.split(/(\r\n|\n)/);

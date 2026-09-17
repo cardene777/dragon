@@ -98,7 +98,7 @@ describe("表示する件数と実際に当たる件数が一致する", () => {
     // 実装に戻しても他の fixture は全部通る (実測)。
     ["対応軸だが id を取り出せない警告だけ", [W("clearance", "node:api ↔ node:db gap=4")]],
     // 距離を読み取れない proximity も同じ形。 軸も id も揃っているのに当てる値が決まらない
-    // = 数えると 1 件、 当たるのは 0 件になる (codex review Round 1 の MINOR)。
+    // = 数えると 1 件、 当たるのは 0 件になる (codex review Round 1 の指摘)。
     ["距離を読み取れない proximity だけ", [W("edge-label-proximity", 'edge "e1" label が path から遠い')]],
   ])("%s", (_label, warnings) => {
     const applied = buildAutoFixOffsets(warnings);

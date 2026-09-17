@@ -12,9 +12,8 @@
  * 見本を足すたびに比べる行だけが直され、題と説明の数字は書いた時点のまま残った。 他の検査は
  * 走査が空振りしていないこと (1 件以上) だけを見る。
  *
- * codex-review CAR-1659 MINOR fix = SAMPLES を `apps/playground-spa/src/data/editor-samples.ts`
- * (shared SSOT) から import し、 CdlEditor.tsx と本 test の drift を構造的に排除。 sample 追加 /
- * 変更 / 削除は 1 file 更新のみで両方に反映される。
+ * 見本の実体は `apps/playground-spa/src/data/editor-samples.ts` の 1 か所が持ち、
+ * 編集画面と本検査の両方がそこから読む。 2 か所が別々に配列を持つと片方だけ直って食い違う。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "@cardenelabs/dragon";

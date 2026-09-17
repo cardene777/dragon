@@ -1,21 +1,17 @@
 /**
- * injectPhasesFallback assert test (CAR-1659、 codex-review fix 実効 lock)。
+ * 縦列が書かれていない本文に、光らせる対象を補って組み立てる経路の検証 (CAR-1659)。
  *
- * codex adversarial review が指摘した MAJOR fix 3 件の実効を assert する。
- * 単に「fix 反映済」 で満足せず、 fix が意図通り動くことを test で lock する
- * (decision-log 2026-07-17-codex-fix-lock-with-assert-test)。
- *
- * cover 対象。
- * - MAJOR 1 = 全角矢印 `→` を含む focus で edge id が解決される
- * - MAJOR 2 = 同 from/to 複数 edge で全件 activate される (.find → filter loop)
- * - 「fix reflected + assert」 lock = highlight resolution の全体 count (node + edge) が期待通り
+ * 見るのは 3 点。
+ * - 全角の矢印 `→` を含む指定から、線を指す名前が解けること
+ * - 同じ from / to の線が 2 本ある時、1 件の指定で 2 本とも光ること
+ * - 光らせた対象の合計 (箱 + 線) が、指定した数と一致すること
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import { compile } from "@cardenelabs/cdl";
 
-describe("injectPhasesFallback (CAR-1659 codex fix lock)", () => {
-  describe("MAJOR 1 = 全角矢印 `→` 解決", () => {
+describe("縦列が無い本文に光らせる対象を補う (CAR-1659)", () => {
+  describe("全角の矢印 `→` から線を解く", () => {
     it("class preset で focus に `A → B` (全角) を含めても edge が activate される", () => {
       const src = `title: "arrow-fullwidth-test"
 type: class
@@ -70,7 +66,7 @@ animation:
     });
   });
 
-  describe("MAJOR 2 = 同 from/to 複数 edge の全件 activate", () => {
+  describe("同じ from / to の線を全件光らせる", () => {
     it("同 from/to で 2 本 edge がある場合、 focus 1 件で 2 edge 全件 activate", () => {
       const src = `title: "multi-edge-test"
 type: class

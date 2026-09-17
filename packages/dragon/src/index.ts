@@ -211,14 +211,11 @@ export function textDslToDiagram(src: string, opts?: CompileOpts): CdlDiagram {
 }
 
 function isV05Source(src: string): boolean {
-  // CAR-1657 (+ codex-review MAJOR fix) = v0.5 default + v0.4 marker detect。
+  // 既定は v0.5 で、v0.4 の目印を 1 つでも見つけた時だけ v0.4 として読む (CAR-1657)。
+  // v0.4 は 2026-12-31 に廃止予定なので、新しく書かれた本文は v0.5 として扱うのが当たりやすい。
   //
-  // v0.4 は 2026-12-31 廃止予定、 新規 source は v0.5 前提で default を v0.5 に倒す。
-  // v0.4 marker (Japanese header + v0.4-specific English syntax) を 1 個でも検出したら v0.4 route。
-  //
-  // codex 指摘 = v0.4 も英語 alias `animate:` / `animation:` を受理するため、 header 名だけでは
-  // 判定不足。 v0.4-specific syntax (`step "..." Xs` = colon なし step / `^\d+\.\s+` = 番号 flow) を
-  // negative marker に追加。
+  // 目印に見出しの名前だけを使うと足りない = v0.4 も英語の別名 (`animate:` / `animation:`) を受けるため。
+  // v0.4 にしかない書き方 (`step "..." Xs` = コロンの無い段、`^\d+\.\s+` = 番号付きの流れ) も目印に足す。
   const V04_KEYWORDS = [
     // Japanese v0.4 専用 keyword (v0.5 は英語のみ)。
     //

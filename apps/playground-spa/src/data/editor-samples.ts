@@ -5,8 +5,8 @@
  * 件数を数字と比べる宣言は `packages/dragon/test/samples-validate.test.ts` の 1 か所だけが持つ。
  *
  * CdlEditor.tsx (sidebar SAMPLES tab) と packages/dragon/test/samples-validate.test.ts の
- * 双方から import される shared source of truth。 codex-review MINOR 指摘 = hardcoded 配列の
- * drift risk を構造的に解消するため、 samples をここに集約。
+ * 双方から import される shared source of truth。 2 か所が別々に配列を持つと、片方だけ直して
+ * 食い違うため、見本の実体はここ 1 か所に集約している。
  *
  * slug は PRESETS.slug 命名規約 (`lib/presets.ts` SSOT) と揃える、 hash preset 経路
  * (#preset=<slug>) で editor が対応 sample を find する。

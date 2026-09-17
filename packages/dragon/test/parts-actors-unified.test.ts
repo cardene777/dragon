@@ -184,9 +184,8 @@ animation:
       // state initial が override 反映 (v: 75)
       const vState = diagram.states.find((s) => s.id === "arc1__v");
       expect(vState?.initial).toBe(75);
-      // codex-review MAJOR fix (§ phase parallel merge) = parts phase は target 側の既存 phase に
-      // merge される (別 phase として append されない)、 activate に arc1__arc が含まれ、
-      // tweens.stateId に arc1__v が含まれる。 duration は max。
+      // 部品の縦列は、取り込み先の縦列に重なる (後ろに別の縦列として足されない)。
+      // 光らせる対象に `arc1__arc` が入り、動かす値に `arc1__v` が入る。 長さは長い方を採る。
       const firstPhase = diagram.phases[0]!;
       expect(firstPhase.activate).toContain("arc1__arc");
       const arcTween = firstPhase.tweens.find((t) => t.stateId === "arc1__v");
@@ -264,8 +263,8 @@ flow:
     });
   });
 
-  describe("codex-review fix lock (CRITICAL 1 + MAJOR 5)", () => {
-    it("CRITICAL fix = readouts field 統合 (percent-ring 等の readout parts)", () => {
+  describe("部品を登場人物として取り込む時の決まり", () => {
+    it("数値を表示する部品は readouts も取り込まれ、参照先に名前の前置きが付く", () => {
       const readoutPart: CdlDiagram = {
         id: "parts-percent-ring",
         topic: "test",
@@ -292,7 +291,7 @@ actors:
       expect((readout as { source?: string } | undefined)?.source).toBe("{ring1__v}");
     });
 
-    it("MAJOR fix = 英語 v0.4 (step \"...\" 1s = colon なし) が v0.5 誤 route されない", () => {
+    it("コロンの無い段を持つ英語の v0.4 が、v0.5 として読まれない", () => {
       const src = `title: "legacy"
 type: sequence
 
@@ -323,7 +322,7 @@ animate:
       expect(warns.some((w) => w.includes("v0.4") || w.includes("deprecated"))).toBe(true);
     });
 
-    it("MAJOR fix = sequence preset で parts actor の header/spacer/footer/step-anchor が削除", () => {
+    it("順番に並べる型では、部品の登場人物が作る見出しと余白と足元の箱が消える", () => {
       const src = `title: "test"
 type: sequence
 
@@ -428,7 +427,7 @@ actors:
       expect(diagram.lanes.filter((l) => l.label === "ゲージ１").length).toBeLessThanOrEqual(1);
     });
 
-    it("slug が prefix 関係にある別 actor を巻き込まない (cc-codex MAJOR fix、 a_b vs a-b-c)", () => {
+    it("名前の先頭が一致するだけの別の登場人物を巻き込まない (a_b と a-b-c)", () => {
       // parts actor `a_b` の lane id は `a-b` (cdl slug)。 prefix match で sweep すると通常 actor
       // `a-b-c` の `a-b-c-header` / `-footer` / step anchor / edge まで誤削除し、 activate に dangling
       // 参照が残る。 exact set (node.lane 由来) 方式で巻き込みゼロを保証する。
@@ -465,7 +464,7 @@ flow:
       }
     });
 
-    it("非 seq-like preset (flow) の共有 lane は削除しない (cc-codex MAJOR fix)", () => {
+    it("順番に並べない型 (flow) では、共有している帯を消さない", () => {
       // flow preset は全 actor を共有 lane "flow" の step node にする (sequence の 1 actor = 1 lane と
       // 異なる)。 parts actor 名が共有 lane id "flow" と一致しても lane を消してはいけない、
       // 消すと通常 actor "other" の node が削除済 lane を参照する不正 diagram になる。
@@ -488,7 +487,7 @@ flow:
       expect(otherNode?.lane).toBe("flow");
     });
 
-    it("MAJOR fix = phase parallel merge (append ではなく既存 phase に union)", () => {
+    it("部品の縦列は後ろに足されず、同じ順番の縦列に重なる", () => {
       const src = `title: "test"
 type: sequence
 
@@ -513,7 +512,7 @@ animation:
       expect(merged.activate.includes("arc1__arc")).toBe(true);
     });
 
-    it("MAJOR fix = phase: false opt-out で parts phase 破棄", () => {
+    it("本文が phase: false と書いた時、部品の縦列を捨てる", () => {
       const src = `title: "test"
 type: sequence
 
@@ -535,7 +534,7 @@ animation:
       expect(p.tweens.find((t) => t.stateId === "arc1__v")).toBeUndefined();
     });
 
-    it("MAJOR fix = 再帰 template rewrite (nested shape / readout object 対応)", () => {
+    it("形と数値表示の入れ子の底まで、差し込み文字が書き換わる", () => {
       const nestedPart: CdlDiagram = {
         id: "parts-nested",
         topic: "test",
@@ -567,7 +566,7 @@ actors:
       expect(shape?.fill?.gradient).toBe("{obj1__v}");
     });
 
-    it("MAJOR fix = partsCatalog Object.hasOwn で prototype pollution 対策", () => {
+    it("部品の一覧が自分で持たない名前 (__proto__ 等) は部品として当たらない", () => {
       const src = `title: "test"
 type: sequence
 
@@ -588,7 +587,7 @@ actors:
       }
     });
 
-    it("MAJOR fix = LLM JSON DSL state validation (nested object / null で reject)", () => {
+    it("JSON で書いた値の上書きは、入れ子や null を受け付けない", () => {
       // LLM が state に不正 value (nested object) を返した場合、 validation error で reject
       expect(() =>
         jsonToDiagram({

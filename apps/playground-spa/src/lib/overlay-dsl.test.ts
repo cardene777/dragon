@@ -235,7 +235,7 @@ describe("extractPartsFromSrc の行の対応 (#998)", () => {
 
 
 
-describe("nested brace を含む actor 行 (CAR-2158 CRITICAL regression detector)", () => {
+describe("nested brace を含む actor 行 (CAR-2158 の再発を捕まえる)", () => {
   it("state: { ... } を持つ parts 行を落とさない", () => {
     // `[^}]*` 形の regex は最初の `}` で打ち切られ、 この行全体が非 match になる。
     // その結果 parts が overlay から消え、 drag / resize が保存されなくなる。
@@ -261,7 +261,7 @@ describe("nested brace を含む actor 行 (CAR-2158 CRITICAL regression detecto
   });
 });
 
-describe("nested map の depth-aware 処理 (CAR-2158 Round 3 CRITICAL detector)", () => {
+describe("nested map の depth-aware 処理 (CAR-2158 Round 3 の再発を捕まえる)", () => {
   it("nested nodes 内の posX を top-level と取り違えない", () => {
     // `nodes: { header: { posX: 50 } }` の posX を top-level として読むと座標が 50 になる。
     const src = `actors:
@@ -287,7 +287,7 @@ describe("nested map の depth-aware 処理 (CAR-2158 Round 3 CRITICAL detector)
 
 });
 
-describe("quote / escape 処理 (CAR-2158 Round 4 CRITICAL detector)", () => {
+describe("quote / escape 処理 (CAR-2158 Round 4 の再発を捕まえる)", () => {
   it("escaped quote を含む値で field 分割が壊れない", () => {
     // `\"` を quote 終端と誤認すると、 以降の `,` を field 区切りとして拾い
     // posX の抽出と書き出しが壊れる (二重書き出しになる)。

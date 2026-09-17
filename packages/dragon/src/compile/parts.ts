@@ -1284,7 +1284,7 @@ function cleanupPlaceholderActor(
   // 1 actor = 1 lane (lane.label === a.name、 lane.id は actor 名の slug) の生成規則が成立し、
   // parts actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数
   // actor が共有 lane (id = "main" 等) を参照するため、 一致 lane を消すと通常 actor の node が
-  // 削除済 lane を参照する不正 diagram になる (cc-codex MAJOR 指摘)。
+  // 削除済 lane を参照する不正 diagram になる。
   //
   // leftover lane の特定は lane.label === a.name を第一に使う。 seq-like preset は非 animate 経路
   // (cdl preset の slugify) と animate 経路 (dragon の slugify) で lane.id の slug 規則が異なり
@@ -1364,9 +1364,9 @@ export function mergePartsFromActors(
 
   for (const [actorIndex, actor] of partsActors.entries()) {
     const partId = actor.partId;
-    // codex-review CAR-1657 MAJOR fix (§ security) = partsCatalog は untrusted、 Object.hasOwn で
-    // inherited property (`__proto__` 等) を除外する prototype pollution 対策。 `parts-` prefix 経路も
-    // Object.hasOwn 経由で確認する。
+    // 部品の一覧は外から渡される = 自分が持つ key だけを見る (`Object.hasOwn`)。
+    // 見ないと `__proto__` のような受け継いだ名前が部品として当たり、渡していない中身が図に入る。
+    // `parts-` で始まる名前の経路も同じ確認を通す。
     if (typeof partId !== "string" || partId.length === 0) continue;
     const found = lookupPartRaw(partsCatalog, partId);
     // 見つかっても大きすぎる図は取り込まない (#1015)。 黙って落とすと「書いたのに出ない」 に
@@ -1421,9 +1421,9 @@ export function mergePartsFromActors(
       }
       continue;
     }
-    // codex-review MAJOR fix (§ sequence header/footer/spacer 削除) = preset (sequence 等) が生成した
-    // parts actor 由来の node/edge を alias 経由で全削除する。 sequence は `{slug}-header / -spacer /
-    // -footer / s{N}-{slug}` を生成、 slug prefix match で全 sweep。
+    // 型 (`sequence` 等) が作った、部品の登場人物に由来する箱と線を別名も辿って全て消す。
+    // `sequence` は `{slug}-header` / `-spacer` / `-footer` / `s{N}-{slug}` を作るので、
+    // slug で始まる名前をまとめて対象にする。
     //
     // sweep に使う slug は 2 系統ある (#873)。 dragon の slugify は `_` / 全角を保持するが、 非 animate
     // sequence / solidity の node は cdl preset 側の slugify (`_` → `-` 置換、 NFKC なし) で生成される
@@ -2067,8 +2067,8 @@ function mergePartIntoDiagram(
   // node merge = id prefix + lane 参照 rewrite + shape / subtitle / value 内 template rewrite
   for (const [nodeIndex, nodeOrig] of part.nodes.entries()) {
     const mappedLane = laneIdMap.get(nodeOrig.lane) ?? nodeOrig.lane;
-    // codex-review MAJOR fix (§ nested shape template) = recursive walk で shape 内 nested object /
-    // array の string leaf 全対象、 前実装は 1 depth のみで `fill: { gradient: "{v}" }` 等 miss。
+    // 形の中の文字は、入れ子の底まで辿って差し替える。
+    // 1 段だけ見る形だと `fill: { gradient: "{v}" }` のような書き方が置き換わらずに残る。
     let newShape = nodeOrig.shape
       ? deepRewriteStrings(nodeOrig.shape, rewriteTemplate)
       : undefined;
@@ -2102,7 +2102,7 @@ function mergePartIntoDiagram(
     //   - offset なし (従来経路) は auto layout 継続 (posX / posY undefined)
     //
     // 明示 posX と頁の中心の両経路を、 lane push と同じ中心と倍率で写す (cc-codex #879 Round 2/3
-    // MAJOR + #880)。 写す式は見積り (`partExtent`) と共有する `部品の要素のずれ` が持つため、
+    // + #880)。 写す式は見積り (`partExtent`) と共有する `部品の要素のずれ` が持つため、
     // lane.x != 0 でも multi-lane でも node 中心と自 lane 中心が一致し、格子が確保した場所とも一致する。
     //
     // offset なしの経路 (格子が場所を返さない部品だけが通る) では、node が書いた縦位置は
@@ -2181,9 +2181,9 @@ function mergePartIntoDiagram(
     });
   }
 
-  // codex-review CRITICAL fix (§ readouts merge) = readout 系 parts (percent-ring / sparkline /
-  // donut / KPI 等) は node/state だけでは render されず、 readouts field が必須。 全 readout の
-  // id prefix + source / historySource / *Source field の state template rewrite で対応。
+  // 数値を表示する部品 (`percent-ring` / `sparkline` / `donut` / KPI 等) は、箱と値だけでは描かれず
+  // `readouts` が要る。 取り込む時は全ての `readouts` に名前の前置きを付け、
+  // 参照先 (`source` / `historySource` / `*Source`) の差し込み文字も書き換える。
   if (part.readouts && part.readouts.length > 0) {
     if (!target.readouts) target.readouts = [];
     for (const readoutOrig of part.readouts) {
@@ -2199,9 +2199,9 @@ function mergePartIntoDiagram(
     }
   }
 
-  // codex-review MAJOR fix (§ phase parallel merge) = 前実装は append (sequential)、 spec は parallel
-  // default = parts phase を target 側 phase 個別に merge、 duration は max、 activate / tweens / sets
-  // は union。 stateOverride.phase === false 時は parts phase 破棄 (opt-out)。
+  // 部品の縦列は、取り込み先の縦列の後ろに足すのではなく同じ順番の縦列に重ねる (既定は同時進行)。
+  // 長さは長い方を採り、光らせる対象と動きと値の設定は両方を合わせる。
+  // 本文が `phase: false` と書いている時は、部品側の縦列を捨てる。
   const phaseOptOut = stateOverride["phase"] === false;
   if (phaseOptOut) {
     return 作った縦列; // parts phase を破棄、 activate / tweens / sets の rewrite 不要

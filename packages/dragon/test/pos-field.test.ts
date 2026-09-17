@@ -125,10 +125,10 @@ describe("#CAR-1693 Phase 1: DSL 表面 pos field", () => {
   });
 
   describe("AST mapping (DSL 表面 pos → 内部 AST layoutPos、 jsonToDoc 実 execute)", () => {
-    // cc-codex review MAJOR fix = jsonToDoc を実 call して mapping logic を execute する。
-    // 従来 DslDocument を直接組み立てる shortcut で mapping を bypass していたため、 json-parser
-    // 側 mapping を削除しても silent regression する経路が open だった。 本 test で mapping を実 exercise
-    // することで Phase 2 (applyPosOffset) が依存する pos → layoutPos の引き渡しを gate する。
+    // `jsonToDoc` を実際に呼んで、対応付けの処理そのものを走らせる。
+    // 内部の形を手で組み立てる近道を使うと対応付けを通らないため、`json-parser` 側から
+    // その処理を消しても検査が落ちなかった。 実際に呼ぶことで、置いた座標が内部の座標へ
+    // 渡ることを見る (後段のずらし処理がこの受け渡しに依存している)。
 
     it("actor.pos が jsonToDoc で AST layoutPos に mapping され、 既存 pos: Position (source loc) と並存する", () => {
       const input: DragonJson = {

@@ -5,9 +5,10 @@
  */
 
 /**
- * codex-review MAJOR fix = shape / readout の nested object / array 内 string leaf を全て
- * rewrite 関数に通す再帰 walk。 非 string leaf (number / boolean / null) は保持、
- * 循環参照は Set で防御 (現状 shape / readout は tree 構造で cycle なし想定、 defensive)。
+ * 形 (`shape`) と数値の表示 (`readout`) の入れ子にある文字の葉を、全て書き換え関数に通す。
+ * 文字でない葉 (数 / 真偽 / null) はそのまま残す。
+ * 同じ object を 2 度辿らないよう `WeakSet` で覚える = 今の形は木なので輪にはならないが、
+ * 輪ができた時に戻らなくなるのを防ぐため。
  */
 export function deepRewriteStrings(
   value: unknown,
