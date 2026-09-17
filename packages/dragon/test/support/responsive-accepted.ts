@@ -403,8 +403,14 @@ export const 縦に長い一覧: readonly 縦に長い群[] = [
       "parts-bookmark",
       // 上から下へ絞る形そのものが図の中身 (#2129)。 横に並べると「段ごとに狭くなる」 が消える
       "parts-funnel-3",
+      // 入口 2 つを上下に置き、出口をその真ん中の段に置く (#2154)。 出口を入口と同じ段に置くと、
+      // 描画側が同じ辺に入る 2 本の終点を離すため、真横の線が出口の手前で小さな段を作る
+      "parts-merge-junction",
       "parts-rainbow-stack",
       "parts-rating-stars",
+      // 合流点と同じ理由で、入口を 2 つの出口の真ん中の段に置く (#2154)。 繋いだ見本で出口と
+      // 合流点の入口が同じ段に並び、部品どうしの矢印が真横に引ける
+      "parts-split-router",
       "parts-stacked-layer",
       "parts-thermometer",
       "parts-traffic-light-stack",
