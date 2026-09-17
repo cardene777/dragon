@@ -260,8 +260,15 @@ YAML 欄は本文を `load()` で素の値に変えてから組み立てる。 �
 - JSON も箱の欄として `"phase": false` を書く。 欄で受けた値は状態の上書きの `phase` へ
   入れ直すので、`"state": { "phase": false }` と書いた形と同じ図になる。 普通の箱に書くと
   誤りとして返す (`state` / `scale` と同じ向き、§ 2.3)
+- **段の `focus` に部品の名前を書くと、部品の要素と部品の中の線が光る** (#2150)。
+  組み立ては部品の名前を仮の箱に解決し、部品を取り込む時に仮の箱を光らせる相手から外すため、
+  取り込んだ後に書いた `focus` を読み直して `{部品の名前}__{要素}` と `{部品の名前}__{線}` を足す
+  (`packages/dragon/src/compile/parts.ts` の `部品の名前で光らせる`)。 図種で仮の箱の id の形が
+  違うので、仮の箱を置き換える形にはしない。 書いた段と組み立てた段は題で先頭から突き合わせる。
+  部品の名前は slug の形 (`split-box`) でも引き、他の名前と slug が重なる時は引かない
 - 見本は `apps/playground-spa/src/topics/catalog/parts-motion.cdl.ts`。
-  中身の性質は `apps/playground-spa/src/lib/parts-motion-content.test.ts` が数える
+  中身の性質は `apps/playground-spa/src/lib/parts-motion-content.test.ts` が数え、段で部品が光ることは
+  `packages/dragon/test/part-focus.test.ts` が数える
 
 ### 2.7 backward compat = `#!parts` marker auto-convert
 
