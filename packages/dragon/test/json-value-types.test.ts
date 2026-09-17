@@ -295,8 +295,9 @@ describe("列挙の一覧は engine から取る (#1304)", () => {
   });
 
   it("色を受ける 3 欄で、schema が受ける値と parser が受ける値が一致する", () => {
-    // 本 PR は parser を狭めた。 schema を `type: string` のままにすると、schema が許した値を
-    // parser が後から拒む = schema を入口にする意味が消える (review Round 1 の指摘)。
+    // parser は受ける色の値を書ける色名だけに絞っている。 schema を `type: string` のままに
+    // すると、schema が許した値を parser が後から拒む = schema を入口にする意味が消える
+    // (review Round 1 の指摘)。
     //
     // 逆向きのずれも見る。 記法の `resolveTone` は前後の空白と引用符を落として小文字に寄せる
     // ため、それを JSON でも通すと schema の `enum` が拒む値を parser が受ける

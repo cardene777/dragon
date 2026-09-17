@@ -5,10 +5,10 @@
  * layout 済 LaidDiagram を直接 mutation することで各 axis の real defect を意図的に発生させ、
  * axis 判定 logic が正しく検知する事を assertion 化する。
  *
- * 前 PR #117-119 では CdlDiagram レベル fixture では layout が defect を prevent する axis
+ * CdlDiagram を組み立てて渡す形では、 layout が崩れを直してしまう axis がある
  * (Axis 10 node-overlap は自動 re-position、 Axis 11 edge-crossing は routing detour、
- * Axis 53 node-inside-viewbox は viewport fallback 自動拡張) の real defect assertion が
- * 不可能だった。 本 PR で完全解消。
+ * Axis 53 node-inside-viewbox は viewport fallback 自動拡張)。 layout 済の LaidDiagram を
+ * 直接崩すこの形なら、 その 3 axis にも実際の崩れを起こして判定を確かめられる。
  */
 import { describe, it, expect } from "vitest";
 import { visualValidate, visualValidateLaid, layout } from "@cardenelabs/cdl";

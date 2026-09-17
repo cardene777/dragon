@@ -125,7 +125,8 @@ describe("配信の掃除が dotfile に届く (#1347)", () => {
   });
 
   it("既定の pattern では dotfile が残る (陰性対照)", () => {
-    // 本 PR の前の状態。 これが残ることを見せないと、掃除の対象を変えた意味が読めない
+    // 掃除の対象を絞る前の既定の pattern。 これで dotfile が残ることを見せないと、対象を
+    // 変えた意味が読めない
     const 消える = 掃除される(["."]);
     expect(消える, "既定でも dotfile が消えている (前提が変わっている)").not.toContain(".npmrc");
     expect(消える, "既定で成果物が消えない").toContain("index.html");

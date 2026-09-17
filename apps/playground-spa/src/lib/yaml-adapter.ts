@@ -17,7 +17,7 @@ export { formatYamlError } from "@/lib/yaml-error";
  * 統一 form に mapping して呼出側 (CdlEditor preview 領域) が inline 表示できる shape で返す。
  *
  * 非目標 = anchor / merge key / multi-document YAML の対応、 CDL 独自 syntax の再現、
- * YAML → text DSL の逆変換。 いずれも本 PR 対象外 (spec § out)。
+ * YAML → text DSL の逆変換。 いずれもこの橋渡しでは扱わない。
  */
 
 /**
