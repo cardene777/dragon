@@ -1456,11 +1456,30 @@ function 表で中身を検査する(
   }
 }
 
+/** 帯に書く相手の項目。 値が文字列で、他の 2 つと型が違う */
+const 帯の相手の項目 = ["actor"] as const;
+/** 帯に書く段の項目。 値が 0 以上の整数 */
+const 帯の段の項目 = ["from", "to"] as const;
+/**
+ * 帯が受ける項目。 判定と知らせの両方がここから作る (#2258)。
+ *
+ * 公開 schema の `$.bands` も同じ 3 語を閉じた集合として宣言しており、
+ * `closed-level-coverage.test.ts` が両者の一致を見る。
+ */
+export const 帯の項目: readonly string[] = [...帯の相手の項目, ...帯の段の項目];
+
 /**
  * 順序図の帯の並びを検査する (#1466)。
  *
  * **外側の形もここで見る**。 `欄の型表` は「並び」 とだけ宣言し、中身の検査は専用の検査に
  * 委ねる作りなので、ここで見ないと `bands: 1` が素通りする。
+ *
+ * ## 知らない項目も見る (#2262)
+ *
+ * 書いてある 3 つの型だけを見て、**知らない項目があるかを確かめていなかった**。
+ * 公開 schema は `$.bands` を閉じた階層として宣言しているので、
+ * schema を信じて書いた入力がこちらでは通り、schema 検証器では落ちる状態だった。
+ * 公開 schema が閉じた階層のうち、素通りしていたのはここだけだった。
  */
 function validateBands(v: unknown, errors: JsonDslError[]): void {
   if (v === undefined) return;
@@ -1479,10 +1498,20 @@ function validateBands(v: unknown, errors: JsonDslError[]): void {
       return;
     }
     const o = b as Record<string, unknown>;
-    if (typeof o.actor !== "string" || o.actor === "") {
-      errors.push({ path: `${path}.actor`, message: "band.actor must be a non-empty string" });
+    for (const k of Object.keys(o)) {
+      if (帯の項目.includes(k)) continue;
+      errors.push({
+        path: `${path}.${k}`,
+        message: `unknown key "${k}"`,
+        hint: `使える項目 = ${帯の項目.join(", ")}`,
+      });
     }
-    for (const k of ["from", "to"] as const) {
+    for (const k of 帯の相手の項目) {
+      if (typeof o[k] !== "string" || o[k] === "") {
+        errors.push({ path: `${path}.${k}`, message: `band.${k} must be a non-empty string` });
+      }
+    }
+    for (const k of 帯の段の項目) {
       if (typeof o[k] !== "number" || !Number.isInteger(o[k]) || o[k] < 0) {
         errors.push({ path: `${path}.${k}`, message: `band.${k} must be a non-negative integer` });
       }
