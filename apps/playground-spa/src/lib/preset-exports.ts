@@ -36,6 +36,7 @@ export const 見本の名前: readonly string[] = [
   "presetFunnel",
   "pattern__presetFunnel__複雑",
   "presetQuadrant",
+  "pattern__presetQuadrant__複雑",
   "presetChartPie",
   "pattern__presetChartPie__複雑",
   "presetChartLine",
