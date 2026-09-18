@@ -3737,6 +3737,254 @@ export const subtitle__partsContentSorter =
   "20 件を中身の種類で 3 つへ分ける。 注文 11 件と問い合わせ 6 件とその他 3 件で、棒の高さが揃わない";
 
 // ============================================================
+// 入った分をそのまま出さない部品 (#2193)
+// ============================================================
+//
+// ここから 4 枚は **入った分がそのまま出てこない** 繋ぎ方を表す。 既存の 14 枚は行き先と
+// 割合が変わるだけで、入った分はいずれどこかへ出る形だった。
+//
+// 止める (落ちる分が増えたので送るのをやめる) / 省く (手元に写しがあるので奥まで行かない) /
+// 待つ (相手が来るまで出さない) / 捨てる (同じものなので片方を捨てる) の 4 つは、
+// どれも既存の部品では書けない。
+//
+// 要素と値の名前は既存の 14 枚と同じく英字で書く (#2125)。
+
+// parts 95: 遮断器 — 落ちる分が増えると送るのをやめる
+export const partsCircuitBreaker = diagram("parts-circuit-breaker", {
+  topic: "遮断器 — 落ちる分が増えると送るのをやめる",
+})
+  .lane("cb1", { x: 0, width: 200, label: "入口" })
+  .lane("cb2", { x: 220, width: 200, label: "結果" })
+  .state("inN", { initial: 0 })
+  .state("okN", { initial: 0 })
+  .state("ngN", { initial: 0 })
+  .state("cutN", { initial: 0 })
+  // 行き先を 3 つにするのは本部品だけ。 通った分と落ちた分を並べて見せないと、
+  // 「落ちる分が増えたから断りに回った」 という順番が図から読めない
+  .node("inP", {
+    lane: "cb1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "送る",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 20, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("okP", {
+    lane: "cb2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "通る",
+    subtitle: "{okN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{okN}", fillMax: 20, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("ngP", {
+    lane: "cb2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "落ちる",
+    subtitle: "{ngN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{ngN}", fillMax: 20, orient: "up", fill: "#ef4444", radius: 6 },
+  })
+  .node("cutP", {
+    lane: "cb2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "断る",
+    subtitle: "{cutN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{cutN}", fillMax: 20, orient: "up", fill: "#94a3b8", radius: 6 },
+  })
+  // 部品の中の線の札に数字を置かない (#2149)
+  .edge("inP", "okP", { id: "cb-ok", label: "通る", tone: "success" })
+  .edge("inP", "ngP", { id: "cb-ng", label: "落ちる", tone: "error" })
+  .edge("inP", "cutP", { id: "cb-cut", label: "試さない", tone: "warning" })
+  // 6 + 6 + 8 = 20 で入った分と合う。 断った 8 件は相手に届いていない = 落ちた分とは別物
+  .phase("p", { duration: 4000, title: "落ちる分が増えて遮断する", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "okP", "ngP", "cutP", "cb-ok", "cb-ng", "cb-cut")
+      .tween("inN", 0, 20)
+      .tween("okN", 0, 6)
+      .tween("ngN", 0, 6)
+      .tween("cutN", 0, 8),
+  )
+  .build();
+
+export const subtitle__partsCircuitBreaker =
+  "20 件のうち 6 件が通り 6 件が落ちた所で遮断し、残る 8 件は試さずに断る。 断った分は相手に届かない";
+
+// parts 96: 写し箱 — 手元に写しがある分は奥まで行かない
+export const partsCacheBox = diagram("parts-cache-box", {
+  topic: "写し箱 — 手元に写しがある分は奥まで行かない",
+})
+  .lane("ca1", { x: 0, width: 200, label: "問う" })
+  .lane("ca2", { x: 220, width: 200, label: "返す" })
+  .state("askN", { initial: 0 })
+  .state("hitN", { initial: 0 })
+  .state("missN", { initial: 0 })
+  .node("askP", {
+    lane: "ca1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "問い合わせ",
+    subtitle: "{askN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{askN}", fillMax: 24, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  // 手元から返す方を上に置く = 多い方が上に来て、奥へ行く分が少ないことが棒の高さで分かる
+  .node("hitP", {
+    lane: "ca2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "手元から",
+    subtitle: "{hitN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{hitN}", fillMax: 24, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("missP", {
+    lane: "ca2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "奥から",
+    subtitle: "{missN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{missN}", fillMax: 24, orient: "up", fill: "#f59e0b", radius: 6 },
+  })
+  .edge("askP", "hitP", { id: "ca-hit", label: "写しがある", tone: "success" })
+  .edge("askP", "missP", { id: "ca-miss", label: "写しが無い", tone: "warning" })
+  .phase("p", { duration: 4000, title: "写しで返す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("askP", "hitP", "missP", "ca-hit", "ca-miss")
+      .tween("askN", 0, 24)
+      .tween("hitN", 0, 18)
+      .tween("missN", 0, 6),
+  )
+  .build();
+
+export const subtitle__partsCacheBox =
+  "24 件の問い合わせのうち 18 件が手元の写しで返り、奥まで行くのは 6 件だけ。 同じものを二度読まない";
+
+// parts 97: 待ち合わせ箱 — 両方そろうまで出さない
+export const partsBarrierBox = diagram("parts-barrier-box", {
+  topic: "待ち合わせ箱 — 両方そろった分だけ出す",
+})
+  .lane("bw1", { x: 0, width: 200, label: "届く" })
+  .lane("bw2", { x: 220, width: 200, label: "出す" })
+  .state("aN", { initial: 0 })
+  .state("bN", { initial: 0 })
+  .state("outN", { initial: 0 })
+  // 2 本の線を受ける箱は出どころの真ん中の段に置く (#2154)。 左を段 0、右を段 2 に離すと
+  // 出る箱が段 1 に来て、線が他の箱を貫かない
+  .node("aP", {
+    lane: "bw1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "左から",
+    subtitle: "{aN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{aN}", fillMax: 12, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("bP", {
+    lane: "bw1",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "右から",
+    subtitle: "{bN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{bN}", fillMax: 12, orient: "up", fill: "#8b5cf6", radius: 6 },
+  })
+  // 単位は「件」 ではなく「組」。 左右の 1 件ずつが 1 組になる = 出る数は少ない方に合う
+  .node("outP", {
+    lane: "bw2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "そろった分",
+    subtitle: "{outN} 組",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{outN}", fillMax: 12, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .edge("aP", "outP", { id: "bw-a", label: "左が来る", tone: "info" })
+  .edge("bP", "outP", { id: "bw-b", label: "右が来る", tone: "info" })
+  // 左 12 と右 7 で出るのは 7 組。 左に残る 5 件は相手が来るまで出ないので、棒の高さが 3 つとも違う
+  .phase("p", { duration: 4000, title: "そろった分だけ出す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("aP", "bP", "outP", "bw-a", "bw-b")
+      .tween("aN", 0, 12)
+      .tween("bN", 0, 7)
+      .tween("outN", 0, 7),
+  )
+  .build();
+
+export const subtitle__partsBarrierBox =
+  "左から 12 件と右から 7 件が届き、両方そろった 7 組だけが出る。 左に残る 5 件は相手が来るまで出ない";
+
+// parts 98: 重なり消し箱 — 二度目に来たものを捨てる
+export const partsDedupeBox = diagram("parts-dedupe-box", {
+  topic: "重なり消し箱 — 二度目に来たものを捨てる",
+})
+  .lane("dd1", { x: 0, width: 200, label: "入口" })
+  .lane("dd2", { x: 220, width: 200, label: "行き先" })
+  .state("inN", { initial: 0 })
+  .state("keepN", { initial: 0 })
+  .state("dropN", { initial: 0 })
+  .node("inP", {
+    lane: "dd1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "届く",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 30, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("keepP", {
+    lane: "dd2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "残す",
+    subtitle: "{keepN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{keepN}", fillMax: 30, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("dropP", {
+    lane: "dd2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "捨てる",
+    subtitle: "{dropN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{dropN}", fillMax: 30, orient: "up", fill: "#94a3b8", radius: 6 },
+  })
+  .edge("inP", "keepP", { id: "dd-keep", label: "初めて", tone: "success" })
+  .edge("inP", "dropP", { id: "dd-drop", label: "二度目", tone: "warning" })
+  // 捨てた 12 件はどこへも行かない = 遮断器と違い、断られた相手が居ない
+  .phase("p", { duration: 4000, title: "重なりを消す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "keepP", "dropP", "dd-keep", "dd-drop")
+      .tween("inN", 0, 30)
+      .tween("keepN", 0, 18)
+      .tween("dropN", 0, 12),
+  )
+  .build();
+
+export const subtitle__partsDedupeBox =
+  "30 件のうち初めて見る 18 件だけを残し、同じものが二度来た 12 件は捨てる。 出る数が入る数より少ない";
+
+// ============================================================
 // 記法 (#1381)
 // ============================================================
 //
@@ -10710,6 +10958,361 @@ export const sourceJson__partsContentSorter = `{
       "duration": 4,
       "focus": ["中身を見る", "注文", "問い合わせ", "その他", "中身を見る -> 注文", "中身を見る -> 問い合わせ", "中身を見る -> その他"],
       "tween": { "inN": [0, 20], "aN": [0, 11], "bN": [0, 6], "cN": [0, 3] }
+    }
+  ]
+}`;
+
+// ============================================================
+// 入った分をそのまま出さない部品の記法 (#2193)
+// ============================================================
+
+export const sourceYaml__partsCircuitBreaker = `title: "遮断器 — 落ちる分が増えると送るのをやめる"
+type: flow
+
+lanes:
+  cb1: { x: 0, width: 200, label: "入口" }
+  cb2: { x: 220, width: 200, label: "結果" }
+
+states:
+  inN: 0
+  okN: 0
+  ngN: 0
+  cutN: 0
+
+actors:
+  - 送る: { kind: dyn-rect, lane: cb1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 20, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 通る: { kind: dyn-rect, lane: cb2, stack: 0, subtitle: "{okN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{okN}", fillMax: 20, orient: up, fill: "#22c55e", radius: 6 } }
+  - 落ちる: { kind: dyn-rect, lane: cb2, stack: 1, subtitle: "{ngN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{ngN}", fillMax: 20, orient: up, fill: "#ef4444", radius: 6 } }
+  - 断る: { kind: dyn-rect, lane: cb2, stack: 2, subtitle: "{cutN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{cutN}", fillMax: 20, orient: up, fill: "#94a3b8", radius: 6 } }
+
+flow:
+  - 送る -> 通る: "通る" (success)
+  - 送る -> 落ちる: "落ちる" (error)
+  - 送る -> 断る: "試さない" (warning)
+
+animation:
+  - step: "落ちる分が増えて遮断する" 4s
+    focus: ["送る", "通る", "落ちる", "断る", "送る -> 通る", "送る -> 落ちる", "送る -> 断る"]
+    tween:
+      inN: 0 -> 20
+      okN: 0 -> 6
+      ngN: 0 -> 6
+      cutN: 0 -> 8
+`;
+
+export const sourceJson__partsCircuitBreaker = `{
+  "title": "遮断器 — 落ちる分が増えると送るのをやめる",
+  "type": "flow",
+  "lanes": {
+    "cb1": { "x": 0, "width": 200, "label": "入口" },
+    "cb2": { "x": 220, "width": 200, "label": "結果" }
+  },
+  "actors": [
+    {
+      "name": "送る",
+      "kind": "dyn-rect",
+      "lane": "cb1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{inN}", "fillMax": 20, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "通る",
+      "kind": "dyn-rect",
+      "lane": "cb2",
+      "stack": 0,
+      "subtitle": "{okN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{okN}", "fillMax": 20, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "落ちる",
+      "kind": "dyn-rect",
+      "lane": "cb2",
+      "stack": 1,
+      "subtitle": "{ngN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{ngN}", "fillMax": 20, "orient": "up", "fill": "#ef4444", "radius": 6 }
+    },
+    {
+      "name": "断る",
+      "kind": "dyn-rect",
+      "lane": "cb2",
+      "stack": 2,
+      "subtitle": "{cutN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{cutN}", "fillMax": 20, "orient": "up", "fill": "#94a3b8", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "送る", "to": "通る", "label": "通る", "tone": "success" },
+    { "from": "送る", "to": "落ちる", "label": "落ちる", "tone": "error" },
+    { "from": "送る", "to": "断る", "label": "試さない", "tone": "warning" }
+  ],
+  "states": { "inN": 0, "okN": 0, "ngN": 0, "cutN": 0 },
+  "animation": [
+    {
+      "step": "落ちる分が増えて遮断する",
+      "duration": 4,
+      "focus": ["送る", "通る", "落ちる", "断る", "送る -> 通る", "送る -> 落ちる", "送る -> 断る"],
+      "tween": { "inN": [0, 20], "okN": [0, 6], "ngN": [0, 6], "cutN": [0, 8] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsCacheBox = `title: "写し箱 — 手元に写しがある分は奥まで行かない"
+type: flow
+
+lanes:
+  ca1: { x: 0, width: 200, label: "問う" }
+  ca2: { x: 220, width: 200, label: "返す" }
+
+states:
+  askN: 0
+  hitN: 0
+  missN: 0
+
+actors:
+  - 問い合わせ: { kind: dyn-rect, lane: ca1, stack: 1, subtitle: "{askN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{askN}", fillMax: 24, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 手元から: { kind: dyn-rect, lane: ca2, stack: 0, subtitle: "{hitN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{hitN}", fillMax: 24, orient: up, fill: "#22c55e", radius: 6 } }
+  - 奥から: { kind: dyn-rect, lane: ca2, stack: 2, subtitle: "{missN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{missN}", fillMax: 24, orient: up, fill: "#f59e0b", radius: 6 } }
+
+flow:
+  - 問い合わせ -> 手元から: "写しがある" (success)
+  - 問い合わせ -> 奥から: "写しが無い" (warning)
+
+animation:
+  - step: "写しで返す" 4s
+    focus: ["問い合わせ", "手元から", "奥から", "問い合わせ -> 手元から", "問い合わせ -> 奥から"]
+    tween:
+      askN: 0 -> 24
+      hitN: 0 -> 18
+      missN: 0 -> 6
+`;
+
+export const sourceJson__partsCacheBox = `{
+  "title": "写し箱 — 手元に写しがある分は奥まで行かない",
+  "type": "flow",
+  "lanes": {
+    "ca1": { "x": 0, "width": 200, "label": "問う" },
+    "ca2": { "x": 220, "width": 200, "label": "返す" }
+  },
+  "actors": [
+    {
+      "name": "問い合わせ",
+      "kind": "dyn-rect",
+      "lane": "ca1",
+      "stack": 1,
+      "subtitle": "{askN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{askN}", "fillMax": 24, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "手元から",
+      "kind": "dyn-rect",
+      "lane": "ca2",
+      "stack": 0,
+      "subtitle": "{hitN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{hitN}", "fillMax": 24, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "奥から",
+      "kind": "dyn-rect",
+      "lane": "ca2",
+      "stack": 2,
+      "subtitle": "{missN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{missN}", "fillMax": 24, "orient": "up", "fill": "#f59e0b", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "問い合わせ", "to": "手元から", "label": "写しがある", "tone": "success" },
+    { "from": "問い合わせ", "to": "奥から", "label": "写しが無い", "tone": "warning" }
+  ],
+  "states": { "askN": 0, "hitN": 0, "missN": 0 },
+  "animation": [
+    {
+      "step": "写しで返す",
+      "duration": 4,
+      "focus": ["問い合わせ", "手元から", "奥から", "問い合わせ -> 手元から", "問い合わせ -> 奥から"],
+      "tween": { "askN": [0, 24], "hitN": [0, 18], "missN": [0, 6] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsBarrierBox = `title: "待ち合わせ箱 — 両方そろった分だけ出す"
+type: flow
+
+lanes:
+  bw1: { x: 0, width: 200, label: "届く" }
+  bw2: { x: 220, width: 200, label: "出す" }
+
+states:
+  aN: 0
+  bN: 0
+  outN: 0
+
+actors:
+  - 左から: { kind: dyn-rect, lane: bw1, stack: 0, subtitle: "{aN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{aN}", fillMax: 12, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 右から: { kind: dyn-rect, lane: bw1, stack: 2, subtitle: "{bN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{bN}", fillMax: 12, orient: up, fill: "#8b5cf6", radius: 6 } }
+  - そろった分: { kind: dyn-rect, lane: bw2, stack: 1, subtitle: "{outN} 組", posW: 150, posH: 150, shape: { kind: rect, source: "{outN}", fillMax: 12, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 左から -> そろった分: "左が来る" (info)
+  - 右から -> そろった分: "右が来る" (info)
+
+animation:
+  - step: "そろった分だけ出す" 4s
+    focus: ["左から", "右から", "そろった分", "左から -> そろった分", "右から -> そろった分"]
+    tween:
+      aN: 0 -> 12
+      bN: 0 -> 7
+      outN: 0 -> 7
+`;
+
+export const sourceJson__partsBarrierBox = `{
+  "title": "待ち合わせ箱 — 両方そろった分だけ出す",
+  "type": "flow",
+  "lanes": {
+    "bw1": { "x": 0, "width": 200, "label": "届く" },
+    "bw2": { "x": 220, "width": 200, "label": "出す" }
+  },
+  "actors": [
+    {
+      "name": "左から",
+      "kind": "dyn-rect",
+      "lane": "bw1",
+      "stack": 0,
+      "subtitle": "{aN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{aN}", "fillMax": 12, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "右から",
+      "kind": "dyn-rect",
+      "lane": "bw1",
+      "stack": 2,
+      "subtitle": "{bN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{bN}", "fillMax": 12, "orient": "up", "fill": "#8b5cf6", "radius": 6 }
+    },
+    {
+      "name": "そろった分",
+      "kind": "dyn-rect",
+      "lane": "bw2",
+      "stack": 1,
+      "subtitle": "{outN} 組",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{outN}", "fillMax": 12, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "左から", "to": "そろった分", "label": "左が来る", "tone": "info" },
+    { "from": "右から", "to": "そろった分", "label": "右が来る", "tone": "info" }
+  ],
+  "states": { "aN": 0, "bN": 0, "outN": 0 },
+  "animation": [
+    {
+      "step": "そろった分だけ出す",
+      "duration": 4,
+      "focus": ["左から", "右から", "そろった分", "左から -> そろった分", "右から -> そろった分"],
+      "tween": { "aN": [0, 12], "bN": [0, 7], "outN": [0, 7] }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsDedupeBox = `title: "重なり消し箱 — 二度目に来たものを捨てる"
+type: flow
+
+lanes:
+  dd1: { x: 0, width: 200, label: "入口" }
+  dd2: { x: 220, width: 200, label: "行き先" }
+
+states:
+  inN: 0
+  keepN: 0
+  dropN: 0
+
+actors:
+  - 届く: { kind: dyn-rect, lane: dd1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 30, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 残す: { kind: dyn-rect, lane: dd2, stack: 0, subtitle: "{keepN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{keepN}", fillMax: 30, orient: up, fill: "#22c55e", radius: 6 } }
+  - 捨てる: { kind: dyn-rect, lane: dd2, stack: 2, subtitle: "{dropN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{dropN}", fillMax: 30, orient: up, fill: "#94a3b8", radius: 6 } }
+
+flow:
+  - 届く -> 残す: "初めて" (success)
+  - 届く -> 捨てる: "二度目" (warning)
+
+animation:
+  - step: "重なりを消す" 4s
+    focus: ["届く", "残す", "捨てる", "届く -> 残す", "届く -> 捨てる"]
+    tween:
+      inN: 0 -> 30
+      keepN: 0 -> 18
+      dropN: 0 -> 12
+`;
+
+export const sourceJson__partsDedupeBox = `{
+  "title": "重なり消し箱 — 二度目に来たものを捨てる",
+  "type": "flow",
+  "lanes": {
+    "dd1": { "x": 0, "width": 200, "label": "入口" },
+    "dd2": { "x": 220, "width": 200, "label": "行き先" }
+  },
+  "actors": [
+    {
+      "name": "届く",
+      "kind": "dyn-rect",
+      "lane": "dd1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{inN}", "fillMax": 30, "orient": "up", "fill": "#4e9dc4", "radius": 6 }
+    },
+    {
+      "name": "残す",
+      "kind": "dyn-rect",
+      "lane": "dd2",
+      "stack": 0,
+      "subtitle": "{keepN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{keepN}", "fillMax": 30, "orient": "up", "fill": "#22c55e", "radius": 6 }
+    },
+    {
+      "name": "捨てる",
+      "kind": "dyn-rect",
+      "lane": "dd2",
+      "stack": 2,
+      "subtitle": "{dropN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": { "kind": "rect", "source": "{dropN}", "fillMax": 30, "orient": "up", "fill": "#94a3b8", "radius": 6 }
+    }
+  ],
+  "flow": [
+    { "from": "届く", "to": "残す", "label": "初めて", "tone": "success" },
+    { "from": "届く", "to": "捨てる", "label": "二度目", "tone": "warning" }
+  ],
+  "states": { "inN": 0, "keepN": 0, "dropN": 0 },
+  "animation": [
+    {
+      "step": "重なりを消す",
+      "duration": 4,
+      "focus": ["届く", "残す", "捨てる", "届く -> 残す", "届く -> 捨てる"],
+      "tween": { "inN": [0, 30], "keepN": [0, 18], "dropN": [0, 12] }
     }
   ]
 }`;

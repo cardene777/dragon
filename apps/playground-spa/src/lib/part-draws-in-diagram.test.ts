@@ -39,9 +39,9 @@ function boxRatio(part: CdlDiagram): number {
 }
 
 describe("図の中に描かれるかの判定 (#1017)", () => {
-  it("catalog が 94 件ある", () => {
+  it("catalog が 98 件ある", () => {
     // 判定の根拠が実データの分布なので、件数が変わったら見直す
-    expect(PARTS.length).toBe(94);
+    expect(PARTS.length).toBe(98);
   });
 
   it("2 群は操作パネルの部品の有無で完全に分かれる", () => {
@@ -52,7 +52,7 @@ describe("図の中に描かれるかの判定 (#1017)", () => {
       ([, d]) => ((d as { readouts?: unknown[] }).readouts ?? []).length === 0,
     );
     expect(withReadouts.length, "パネル部品を持つ見本の数が変わった").toBe(17);
-    expect(withoutReadouts.length, "図として描く見本の数が変わった").toBe(77);
+    expect(withoutReadouts.length, "図として描く見本の数が変わった").toBe(81);
 
     // 境目に入る件が無いことが、閾値ではなく構造で分けられる根拠
     const maxWith = Math.max(...withReadouts.map(([, d]) => boxRatio(d)));
