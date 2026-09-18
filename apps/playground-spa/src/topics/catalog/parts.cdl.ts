@@ -4216,7 +4216,9 @@ export const partsSplitBox = diagram("parts-split-box", {
   })
   .edge("bigP", "smallP", { id: "sp-small", label: "割る", tone: "success" })
   .edge("smallP", "tagP", { id: "sp-tag", label: "札を貼る", tone: "info" })
-  // 出る数が入る数より多い唯一の部品。 3 個が 24 個になり、札も 24 枚に増える
+  // 出る数が入る数より多い部品の 1 つ。 3 個が 24 個になり、札も 24 枚に増える。
+  // 他は複製器 (3 つの受け手へ丸ごと写す) と、控え取り箱と先返し箱 (#2220)。
+  // この部品だけは **写すのではなく割る** ので、元の 3 個は出口に残らない
   .phase("p", { duration: 4000, title: "割って札を貼り直す", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("bigP", "smallP", "tagP", "sp-small", "sp-tag")
@@ -4619,6 +4621,150 @@ export const partsLockGate = diagram("parts-lock-gate", {
 
 export const subtitle__partsLockGate =
   "18 件が同時に来ても中に入れるのは 1 件だけ。 残る 17 件は捨てられず戸の前で待ち、順に入る";
+
+// ============================================================
+// 本筋を減らさずに脇へ写す部品 (#2220)
+// ============================================================
+//
+// ここからの節は **脇へ出しても本筋の数が変わらない** 繋ぎ方を表す。 脇へ出す形を持つ
+// 他の部品 (仕分け箱 / 重なり消し箱 / よけ道箱) はどれも本筋から取り去るので、
+// 入口の数と出口の数の合計が必ず等しい。 ここの 2 枚は写すので合計のほうが多くなる。
+//
+// 写す形は複製器 (`parts-fanout-copy`) が先例だが、3 つの受け手へ丸ごと写す形なので、
+// 「本筋はそのままで一部だけ控える」 も「返事と片づけを別の時機に分ける」 も描けない。
+//
+// 要素と値の名前は繋ぎ方の他の部品と同じく英字で書く (#2125)。
+
+// parts 109: 控え取り箱 — 流れを止めずに一部だけ控える
+export const partsSampleTap = diagram("parts-sample-tap", {
+  topic: "控え取り箱 — 流れを止めずに一部だけ控える",
+})
+  .lane("st1", { x: 0, width: 200, label: "入口" })
+  .lane("st2", { x: 220, width: 200, label: "行き先" })
+  .state("inN", { initial: 0 })
+  .state("thruN", { initial: 0 })
+  .state("keepN", { initial: 0 })
+  // 入口を 2 つの出口の真ん中の段 (1) に置く (#2154)。 端の段に置くと 2 本が同じ向きへ寄る
+  .node("inP", {
+    lane: "st1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "全部通る",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 16, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("thruP", {
+    lane: "st2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "そのまま先へ",
+    subtitle: "{thruN} 件",
+    w: 150,
+    h: 150,
+    shape: {
+      kind: "rect",
+      source: "{thruN}",
+      fillMax: 16,
+      orient: "up",
+      fill: "#22c55e",
+      radius: 6,
+    },
+  })
+  .node("keepP", {
+    lane: "st2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "控えに取る",
+    subtitle: "{keepN} 件",
+    w: 150,
+    h: 150,
+    shape: {
+      kind: "rect",
+      source: "{keepN}",
+      fillMax: 16,
+      orient: "up",
+      fill: "#8b5cf6",
+      radius: 6,
+    },
+  })
+  // 部品の中の線の札に数字を置かない (#2149)
+  .edge("inP", "thruP", { id: "st-thru", label: "全部", tone: "success" })
+  .edge("inP", "keepP", { id: "st-keep", label: "写す", tone: "accent" })
+  // 16 + 3 = 19 で入った分より多い。 本筋の棒が入口と同じ高さのままなのが写す形の印
+  .phase("p", { duration: 4000, title: "流れを止めずに一部を控える", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "thruP", "keepP", "st-thru", "st-keep")
+      .tween("inN", 0, 16)
+      .tween("thruN", 0, 16)
+      .tween("keepN", 0, 3),
+  )
+  .build();
+
+export const subtitle__partsSampleTap =
+  "16 件が 1 件も減らずに先へ進み、そのうち 3 件の写しが控えに残る。 仕分け箱と違い本筋が減らない";
+
+// parts 110: 先返し箱 — 受け取りだけ先に返して後で片づける
+export const partsAckFirst = diagram("parts-ack-first", {
+  topic: "先返し箱 — 受け取りだけ先に返して後で片づける",
+})
+  .lane("af1", { x: 0, width: 200, label: "頼む側" })
+  .lane("af2", { x: 220, width: 200, label: "返しと片づけ" })
+  .state("inN", { initial: 0 })
+  .state("ackN", { initial: 0 })
+  .state("doneN", { initial: 0 })
+  .node("inP", {
+    lane: "af1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "頼まれる",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 12, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("ackP", {
+    lane: "af2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "すぐ返事する",
+    subtitle: "{ackN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{ackN}", fillMax: 12, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("doneP", {
+    lane: "af2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "あとで片づく",
+    subtitle: "{doneN} 件",
+    w: 150,
+    h: 150,
+    shape: {
+      kind: "rect",
+      source: "{doneN}",
+      fillMax: 12,
+      orient: "up",
+      fill: "#f59e0b",
+      radius: 6,
+    },
+  })
+  .edge("inP", "ackP", { id: "af-ack", label: "すぐ", tone: "success" })
+  .edge("inP", "doneP", { id: "af-done", label: "あとで", tone: "warning" })
+  // 返事は 12 件とも返り、片づけは 5 件しか進んでいない。 返す時機と片づける時機が分かれる
+  .phase("p", { duration: 4000, title: "受け取りだけ先に返す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "ackP", "doneP", "af-ack", "af-done")
+      .tween("inN", 0, 12)
+      .tween("ackN", 0, 12)
+      .tween("doneN", 0, 5),
+  )
+  .build();
+
+export const subtitle__partsAckFirst =
+  "12 件とも受け取りの返事はすぐ返り、片づけが済んだのは 5 件。 返す時機と片づける時機が分かれる";
 
 // ============================================================
 // 記法 (#1381)
@@ -13415,6 +13561,299 @@ export const sourceJson__partsLockGate = `{
         "waitN": [
           0,
           17
+        ]
+      }
+    }
+  ]
+}`;
+
+
+export const sourceYaml__partsSampleTap = `title: "控え取り箱 — 流れを止めずに一部だけ控える"
+type: flow
+
+lanes:
+  st1: { x: 0, width: 200, label: "入口" }
+  st2: { x: 220, width: 200, label: "行き先" }
+
+states:
+  inN: 0
+  thruN: 0
+  keepN: 0
+
+actors:
+  - 全部通る: { kind: dyn-rect, lane: st1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 16, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - そのまま先へ: { kind: dyn-rect, lane: st2, stack: 0, subtitle: "{thruN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{thruN}", fillMax: 16, orient: up, fill: "#22c55e", radius: 6 } }
+  - 控えに取る: { kind: dyn-rect, lane: st2, stack: 2, subtitle: "{keepN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{keepN}", fillMax: 16, orient: up, fill: "#8b5cf6", radius: 6 } }
+
+flow:
+  - 全部通る -> そのまま先へ: "全部" (success)
+  - 全部通る -> 控えに取る: "写す" (accent)
+
+animation:
+  - step: "流れを止めずに一部を控える" 4s
+    focus: ["全部通る", "そのまま先へ", "控えに取る", "全部通る -> そのまま先へ", "全部通る -> 控えに取る"]
+    tween:
+      inN: 0 -> 16
+      thruN: 0 -> 16
+      keepN: 0 -> 3
+`;
+
+export const sourceJson__partsSampleTap = `{
+  "title": "控え取り箱 — 流れを止めずに一部だけ控える",
+  "type": "flow",
+  "lanes": {
+    "st1": {
+      "x": 0,
+      "width": 200,
+      "label": "入口"
+    },
+    "st2": {
+      "x": 220,
+      "width": 200,
+      "label": "行き先"
+    }
+  },
+  "actors": [
+    {
+      "name": "全部通る",
+      "kind": "dyn-rect",
+      "lane": "st1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{inN}",
+        "fillMax": 16,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "そのまま先へ",
+      "kind": "dyn-rect",
+      "lane": "st2",
+      "stack": 0,
+      "subtitle": "{thruN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{thruN}",
+        "fillMax": 16,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "控えに取る",
+      "kind": "dyn-rect",
+      "lane": "st2",
+      "stack": 2,
+      "subtitle": "{keepN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{keepN}",
+        "fillMax": 16,
+        "orient": "up",
+        "fill": "#8b5cf6",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "全部通る",
+      "to": "そのまま先へ",
+      "label": "全部",
+      "tone": "success"
+    },
+    {
+      "from": "全部通る",
+      "to": "控えに取る",
+      "label": "写す",
+      "tone": "accent"
+    }
+  ],
+  "states": {
+    "inN": 0,
+    "thruN": 0,
+    "keepN": 0
+  },
+  "animation": [
+    {
+      "step": "流れを止めずに一部を控える",
+      "duration": 4,
+      "focus": [
+        "全部通る",
+        "そのまま先へ",
+        "控えに取る",
+        "全部通る -> そのまま先へ",
+        "全部通る -> 控えに取る"
+      ],
+      "tween": {
+        "inN": [
+          0,
+          16
+        ],
+        "thruN": [
+          0,
+          16
+        ],
+        "keepN": [
+          0,
+          3
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsAckFirst = `title: "先返し箱 — 受け取りだけ先に返して後で片づける"
+type: flow
+
+lanes:
+  af1: { x: 0, width: 200, label: "頼む側" }
+  af2: { x: 220, width: 200, label: "返しと片づけ" }
+
+states:
+  inN: 0
+  ackN: 0
+  doneN: 0
+
+actors:
+  - 頼まれる: { kind: dyn-rect, lane: af1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 12, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - すぐ返事する: { kind: dyn-rect, lane: af2, stack: 0, subtitle: "{ackN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{ackN}", fillMax: 12, orient: up, fill: "#22c55e", radius: 6 } }
+  - あとで片づく: { kind: dyn-rect, lane: af2, stack: 2, subtitle: "{doneN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{doneN}", fillMax: 12, orient: up, fill: "#f59e0b", radius: 6 } }
+
+flow:
+  - 頼まれる -> すぐ返事する: "すぐ" (success)
+  - 頼まれる -> あとで片づく: "あとで" (warning)
+
+animation:
+  - step: "受け取りだけ先に返す" 4s
+    focus: ["頼まれる", "すぐ返事する", "あとで片づく", "頼まれる -> すぐ返事する", "頼まれる -> あとで片づく"]
+    tween:
+      inN: 0 -> 12
+      ackN: 0 -> 12
+      doneN: 0 -> 5
+`;
+
+export const sourceJson__partsAckFirst = `{
+  "title": "先返し箱 — 受け取りだけ先に返して後で片づける",
+  "type": "flow",
+  "lanes": {
+    "af1": {
+      "x": 0,
+      "width": 200,
+      "label": "頼む側"
+    },
+    "af2": {
+      "x": 220,
+      "width": 200,
+      "label": "返しと片づけ"
+    }
+  },
+  "actors": [
+    {
+      "name": "頼まれる",
+      "kind": "dyn-rect",
+      "lane": "af1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{inN}",
+        "fillMax": 12,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "すぐ返事する",
+      "kind": "dyn-rect",
+      "lane": "af2",
+      "stack": 0,
+      "subtitle": "{ackN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{ackN}",
+        "fillMax": 12,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "あとで片づく",
+      "kind": "dyn-rect",
+      "lane": "af2",
+      "stack": 2,
+      "subtitle": "{doneN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{doneN}",
+        "fillMax": 12,
+        "orient": "up",
+        "fill": "#f59e0b",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "頼まれる",
+      "to": "すぐ返事する",
+      "label": "すぐ",
+      "tone": "success"
+    },
+    {
+      "from": "頼まれる",
+      "to": "あとで片づく",
+      "label": "あとで",
+      "tone": "warning"
+    }
+  ],
+  "states": {
+    "inN": 0,
+    "ackN": 0,
+    "doneN": 0
+  },
+  "animation": [
+    {
+      "step": "受け取りだけ先に返す",
+      "duration": 4,
+      "focus": [
+        "頼まれる",
+        "すぐ返事する",
+        "あとで片づく",
+        "頼まれる -> すぐ返事する",
+        "頼まれる -> あとで片づく"
+      ],
+      "tween": {
+        "inN": [
+          0,
+          12
+        ],
+        "ackN": [
+          0,
+          12
+        ],
+        "doneN": [
+          0,
+          5
         ]
       }
     }

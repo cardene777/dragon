@@ -282,4 +282,4 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  * 以前は「部品そのもの 80」 と書いてあったが実物は 94 で、検査が見ない数だったため
  * 気付かれないまま残っていた。 内訳が要る時は上の 3 つの file を数える。
  */
-export const PARTS_COUNT_ESTIMATE = 110;
+export const PARTS_COUNT_ESTIMATE = 112;

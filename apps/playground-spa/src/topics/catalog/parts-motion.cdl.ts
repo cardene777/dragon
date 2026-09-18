@@ -59,6 +59,8 @@ import * as 部品 from "./parts.cdl";
  * | 釣り合わせてから順に戻す | 釣り合い箱の出すを順番戻し箱の届くへ繋ぎ、交互に出すと元の順でなくなる形を見せる (#2210) |
  * | よけてから溜める | よけ道箱の先へ進むをまとめ箱の届くへ繋ぎ、諦めた分が次の箱へ渡らない形を見せる (#2218) |
  * | 問い合わせを一人ずつ通す | 仕分け箱の問い合わせを一人ずつ箱の同時に来るへ繋ぎ、分けた先で順番待ちが起きる形を見せる (#2218) |
+ * | 控えを取っても束は変わらない | 控え取り箱のそのまま先へをまとめ箱の届くへ繋ぎ、控えても本筋も束の数も減らない形を見せる (#2220) |
+ * | そろってから先に返す | 待ち合わせ箱のそろった分を先返し箱の頼まれるへ繋ぎ、待たせる場所が前の箱だけになる形を見せる (#2220) |
  *
  * ## 繋ぐ先の段は数字ではなく詰めた後の並びで決まる (#2204 の実測)
  *
@@ -2266,5 +2268,212 @@ export const sourceJson__pattern__partsMotion__問い合わせを一人ずつ通
 
 export const pattern__partsMotion__問い合わせを一人ずつ通す = textDslToDiagram(
   sourceYaml__pattern__partsMotion__問い合わせを一人ずつ通す,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__控えを取っても束は変わらない = `title: "控えを取っても先へ行く数と束の数は変わらない"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  控える: { label: "控える" }
+  溜める: { label: "溜める" }
+
+# そのまま先へ (上から 1 行目) と届く (上から 1 行目) で矢印が真横に引ける。
+# 控え取り箱は段 0 / 1 / 2 を全て使い、まとめ箱は段 0 / 1 しか使わないので、
+# **どちらも出入口が 1 行目に来る** (段の数字ではなく詰めた後の行で決まる、#2204 の実測)
+actors:
+  - st: { kind: sample-tap, phase: false, lane: 控える }
+  - bt: { kind: batch-collector, phase: false, lane: 溜める }
+
+# 控えに 3 件取っても先へ行くのは 16 件のまま。 束の数も控えのせいでは減らない
+flow:
+  - st -> bt: "全部" { fromPartNode: thruP, toPartNode: inP }
+
+animation:
+  - step: "1. 全部通る" 1.2s
+    focus: [st__inP]
+    badge: "到着"
+    tween:
+      st__inN: 0 -> 16
+    body: "16 件が届く。 まだ 1 件も控えていない。"
+  - step: "2. 一部を控える" 1.4s
+    focus: [st]
+    badge: "控え"
+    tween:
+      st__thruN: 0 -> 16
+      st__keepN: 0 -> 3
+    body: "3 件の写しが控えに残るが、先へ行くのは 16 件のまま。 本筋は 1 件も減らない。"
+  - step: "3. 溜める" 1.4s
+    focus: [st__thruP, bt__inP, "st -> bt"]
+    badge: "受渡"
+    tween:
+      bt__inN: 0 -> 16
+      bt__poolN: 0 -> 10
+    body: "控えた分を引かずに 16 件が溜まり、10 件で溜まりが満ちる。"
+  - step: "4. まとめて送る" 1.4s
+    focus: [bt]
+    badge: "送出"
+    tween:
+      bt__sendN: 0 -> 1
+    body: "10 件で 1 回送る。 残る 6 件は次の束が満ちるまで出ない。 控えは束の数を変えていない。"
+`;
+
+export const sourceJson__pattern__partsMotion__控えを取っても束は変わらない = `{
+  "title": "控えを取っても先へ行く数と束の数は変わらない",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "控える": { "label": "控える" },
+    "溜める": { "label": "溜める" }
+  },
+  "actors": [
+    { "name": "st", "kind": "sample-tap", "phase": false, "lane": "控える" },
+    { "name": "bt", "kind": "batch-collector", "phase": false, "lane": "溜める" }
+  ],
+  "flow": [
+    { "from": "st", "to": "bt", "label": "全部", "fromPartNode": "thruP", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 全部通る",
+      "duration": 1.2,
+      "focus": ["st__inP"],
+      "badge": "到着",
+      "tween": { "st__inN": [0, 16] },
+      "body": "16 件が届く。 まだ 1 件も控えていない。"
+    },
+    {
+      "step": "2. 一部を控える",
+      "duration": 1.4,
+      "focus": ["st"],
+      "badge": "控え",
+      "tween": { "st__thruN": [0, 16], "st__keepN": [0, 3] },
+      "body": "3 件の写しが控えに残るが、先へ行くのは 16 件のまま。 本筋は 1 件も減らない。"
+    },
+    {
+      "step": "3. 溜める",
+      "duration": 1.4,
+      "focus": ["st__thruP", "bt__inP", "st -> bt"],
+      "badge": "受渡",
+      "tween": { "bt__inN": [0, 16], "bt__poolN": [0, 10] },
+      "body": "控えた分を引かずに 16 件が溜まり、10 件で溜まりが満ちる。"
+    },
+    {
+      "step": "4. まとめて送る",
+      "duration": 1.4,
+      "focus": ["bt"],
+      "badge": "送出",
+      "tween": { "bt__sendN": [0, 1] },
+      "body": "10 件で 1 回送る。 残る 6 件は次の束が満ちるまで出ない。 控えは束の数を変えていない。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__控えを取っても束は変わらない = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__控えを取っても束は変わらない,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__そろってから先に返す = `title: "両方そろった分の受け取りだけ先に返す"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  待ち合わせ: { label: "待ち合わせ" }
+  先に返す: { label: "先に返す" }
+
+# そろった分 (上から 2 行目) と頼まれる (上から 2 行目) で矢印が真横に引ける。
+# **どちらの部品も段 0 / 1 / 2 を全て使うので段は詰まらない** = 段の数字がそのまま行になる
+actors:
+  - ba: { kind: barrier-box, phase: false, lane: 待ち合わせ }
+  - af: { kind: ack-first, phase: false, lane: 先に返す }
+
+# そろうまで待つ箱の次に、待たせずに返す箱を置く。 待つ場所が前の箱に寄っている
+flow:
+  - ba -> af: "そろい" { fromPartNode: outP, toPartNode: inP }
+
+animation:
+  - step: "1. 左右から届く" 1.2s
+    focus: [ba__aP, ba__bP]
+    badge: "到着"
+    tween:
+      ba__aN: 0 -> 12
+      ba__bN: 0 -> 7
+    body: "左から 12 件、右から 7 件が届く。 まだ 1 組も出ていない。"
+  - step: "2. そろった分だけ出す" 1.4s
+    focus: [ba]
+    badge: "待合"
+    tween:
+      ba__outN: 0 -> 7
+    body: "相手が来た 7 組だけが出る。 左の残り 5 件は相手待ちで止まる。"
+  - step: "3. 頼まれる" 1.4s
+    focus: [ba__outP, af__inP, "ba -> af"]
+    badge: "受渡"
+    tween:
+      af__inN: 0 -> 7
+    body: "そろった 7 組が頼みごととして届く。 まだ 1 件も返事していない。"
+  - step: "4. 受け取りだけ先に返す" 1.4s
+    focus: [af]
+    badge: "先返"
+    tween:
+      af__ackN: 0 -> 7
+      af__doneN: 0 -> 3
+    body: "7 件とも返事はすぐ返り、片づけが済んだのは 3 件。 待たせる場所が前の箱だけになる。"
+`;
+
+export const sourceJson__pattern__partsMotion__そろってから先に返す = `{
+  "title": "両方そろった分の受け取りだけ先に返す",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "待ち合わせ": { "label": "待ち合わせ" },
+    "先に返す": { "label": "先に返す" }
+  },
+  "actors": [
+    { "name": "ba", "kind": "barrier-box", "phase": false, "lane": "待ち合わせ" },
+    { "name": "af", "kind": "ack-first", "phase": false, "lane": "先に返す" }
+  ],
+  "flow": [
+    { "from": "ba", "to": "af", "label": "そろい", "fromPartNode": "outP", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 左右から届く",
+      "duration": 1.2,
+      "focus": ["ba__aP", "ba__bP"],
+      "badge": "到着",
+      "tween": { "ba__aN": [0, 12], "ba__bN": [0, 7] },
+      "body": "左から 12 件、右から 7 件が届く。 まだ 1 組も出ていない。"
+    },
+    {
+      "step": "2. そろった分だけ出す",
+      "duration": 1.4,
+      "focus": ["ba"],
+      "badge": "待合",
+      "tween": { "ba__outN": [0, 7] },
+      "body": "相手が来た 7 組だけが出る。 左の残り 5 件は相手待ちで止まる。"
+    },
+    {
+      "step": "3. 頼まれる",
+      "duration": 1.4,
+      "focus": ["ba__outP", "af__inP", "ba -> af"],
+      "badge": "受渡",
+      "tween": { "af__inN": [0, 7] },
+      "body": "そろった 7 組が頼みごととして届く。 まだ 1 件も返事していない。"
+    },
+    {
+      "step": "4. 受け取りだけ先に返す",
+      "duration": 1.4,
+      "focus": ["af"],
+      "badge": "先返",
+      "tween": { "af__ackN": [0, 7], "af__doneN": [0, 3] },
+      "body": "7 件とも返事はすぐ返り、片づけが済んだのは 3 件。 待たせる場所が前の箱だけになる。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__そろってから先に返す = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__そろってから先に返す,
   { partsCatalog: 部品の一覧 },
 );

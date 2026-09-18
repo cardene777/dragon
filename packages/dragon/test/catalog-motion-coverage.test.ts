@@ -284,12 +284,12 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
     // import を書き間違えると以下が素通りする
     const 件数 = Object.fromEntries(対象.map(([n, m]) => [n, diagramsOf(m).length]));
     expect(件数).toEqual({
-      // 同じ所を何度も通ってから行き先が決まる部品 2 枚を足して 108 (#2218)
-      parts: 108,
+      // 本筋を減らさずに脇へ写す部品 2 枚を足して 110 (#2220)
+      parts: 110,
       // 内訳の件数はここに書かない (`rules/quality.md § 導出可能記述は人手で書かない` の経路 2)。
       // 以前は「見本 5 件 + 1 件 + 3 件」 と書いてあったが実物は 12 で、検査が見ない数だったため
       // 気付かれないまま残っていた。 内訳が要る時は `parts-motion.cdl.ts` の冒頭の表を読む
-      "parts-motion": 22,
+      "parts-motion": 24,
       // 135 = 129 図 + `formulaTextBind` の名札を書かない変種 (#1916)
       //   + `buildStatusTrafficLight` と `clickToggle` の名前を書かない変種 (#1920)
       //   + 矢印や縦列や図全体で操作を受け取る `eventTargets` (#1969)
