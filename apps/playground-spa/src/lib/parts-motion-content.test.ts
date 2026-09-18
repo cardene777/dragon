@@ -53,7 +53,7 @@ function 部品の値を動かす段(図: CdlDiagram): string[] {
 const 一覧の見本 = 見本たち();
 
 describe("部品を繋いだまま動かす頁 (#2125)", () => {
-  it("部品の頁の最後に並び、9 つの切替を持つ", async () => {
+  it("部品の頁の最後に並び、12 の切替を持つ", async () => {
     const { loadPartsItems } = await import("@/lib/catalog-items");
     const items = await loadPartsItems();
     // 並びは「部品そのもの → 箱として置く → 繋いで動かす」。 置き方を読んでから動かし方を読む
@@ -68,12 +68,15 @@ describe("部品を繋いだまま動かす頁 (#2125)", () => {
       "配ってから写す",
       "仕分けてから溜める",
       "やり直してから倒す",
+      "重なりを消してから溜める",
+      "写してから待ち合わせる",
+      "そろってから遮断する",
     ]);
   });
 
-  it("見本が 9 件ある", () => {
+  it("見本が 12 件ある", () => {
     // 空振り防止。 0 件なら下の it.each が 1 件も走らず、全部通ったように見える
-    expect(一覧の見本.map((x) => x.key)).toHaveLength(9);
+    expect(一覧の見本.map((x) => x.key)).toHaveLength(12);
   });
 
   it.each(一覧の見本)("$key は矢印と段を両方持つ", ({ 図 }) => {
