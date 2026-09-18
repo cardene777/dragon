@@ -21,12 +21,17 @@
  *
  * #1801 は走査先を意匠帳 (`docs/design/`) に限っており、repo の入口である `README.md` が
  * 外に残っていた。 #1803 で説明書全体へ広げた。
+ *
+ * **2 度とも見る先を名指しで持っていた**。 #1803 の形 (`docs/` と `.claude/` と根の直下)
+ * でも、配る package の説明書 (`packages/dragon/README.md` と `examples/`) が外に残っていた。
+ * #2236 で名指しをやめ、集め方を `test-support/scan-targets.ts` へ寄せた。
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { CATEGORIES } from "./catalog";
+import { 走査するfile, 絶対path } from "../../../../test-support/scan-targets";
 
 /** この file から見た repo の根 (`apps/playground-spa/src/lib/` の 4 つ上) */
 const 根 = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -67,35 +72,41 @@ const 導ける量: { 名: string; 導き方: string; 語: RegExp }[] = [
     導き方: "同じく `.pen` を読み、変数を指している所と直書きの所を数える",
     語: /\d+\s*箇所[^\n]*?(変数|直書き)|(変数|直書き)[^\n]*?\d+\s*箇所/,
   },
+  {
+    名: "つまみの種類の数",
+    導き方:
+      "`packages/dragon/src/v05/input-table.generated.ts` の `つまみの表` の鍵を数える (表は描画側の型から生成しており、描画側が増やせば増える)",
+    語: /つまみ[^\n]*?\d+\s*種|\d+\s*種[^\n]*?つまみ/,
+  },
 ];
 
-function md一覧(dir: string): string[] {
-  const out: string[] = [];
-  for (const e of readdirSync(dir)) {
-    const p = join(dir, e);
-    if (statSync(p).isDirectory()) out.push(...md一覧(p));
-    else if (e.endsWith(".md")) out.push(p);
-  }
-  return out;
-}
-
 /**
- * 走査しない根の直下の md。
+ * 走査しない md。
  *
  * 変更履歴は「その版で何が起きたか」 を書く場所で、決めた日の記録そのもの。
  * 今を指す数として読むと、過去の版の記述を今の実物に合わせて書き換えることになる。
  */
 const 走査しない = new Set(["CHANGELOG.md"]);
 
-/** 説明書として走査する md (意匠帳を含む `docs/` 全体 + 手順書 + 根の直下) */
+/**
+ * 説明書として走査する md。
+ *
+ * **置き場所を名指ししない** (`rules/quality.md § 全件走査は除外を書く`)。
+ * 見る先を挙げる形は、書き手が思い付いた場所が上限になる。 #1801 は意匠帳だけを見て
+ * 紹介文を落とし、#1803 は `docs/` と `.claude/` と根の直下を挙げて
+ * **配る package の説明書** (`packages/dragon/README.md` と `examples/`) を落とした。
+ * `package.json` の `files` に入る 2 つは `npm` で最初に読まれる面で、
+ * repo の入口より読まれる場面が多い。
+ *
+ * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
+ * 無視設定に載る `dist` / `.context/` / `node_modules` は入らず、書いている最中の
+ * 未追跡の md は入る。
+ */
 export function 説明書のfile一覧(): string[] {
-  return [
-    ...md一覧(join(根, "docs")),
-    ...md一覧(join(根, ".claude")),
-    ...readdirSync(根)
-      .filter((e) => e.endsWith(".md") && !走査しない.has(e))
-      .map((e) => join(根, e)),
-  ];
+  return 絶対path(
+    根,
+    走査するfile(根, "*.md").filter((p) => !走査しない.has(basename(p))),
+  );
 }
 
 /**
@@ -155,6 +166,25 @@ describe("説明書が実物から導ける値を人手で書いていない (#1
       files.some((f) => f === join(根, "README.md")),
       "紹介文を見ていない (#1803 が広げた先)",
     ).toBe(true);
+    // 配る package の説明書 (#2236 が広げた先)。 `package.json` の `files` に入るため
+    // `npm` で最初に読まれる面で、repo の入口より読まれる場面が多い
+    expect(
+      files.some((f) => f === join(根, "packages/dragon/README.md")),
+      "配る package の説明書を見ていない (#2236 が広げた先)",
+    ).toBe(true);
+    expect(
+      files.some((f) => f === join(根, "packages/dragon/examples/quick-start.md")),
+      "配る package の手引きを見ていない (#2236 が広げた先)",
+    ).toBe(true);
+    // 外す側が効いていること。 辿ってしまうと外から取ってきた md が母数に混ざる
+    expect(
+      files.filter((f) => f.includes("/node_modules/") || f.includes("/.stryker-tmp/")),
+      "辿らない dir の md が混ざっている",
+    ).toEqual([]);
+    expect(
+      files.some((f) => f.endsWith("CHANGELOG.md")),
+      "変更履歴を走査している (決めた日の記録を今の数として読むことになる)",
+    ).toBe(false);
     let 行数 = 0;
     const 残る: string[] = [];
     for (const f of files) {
@@ -191,6 +221,10 @@ describe("説明書が実物から導ける値を人手で書いていない (#1
     expect(数で書いた量("直書きは透明 2 箇所だけなので、 変数を直せば図全体に届く。")).toEqual([
       "色変数を参照する箇所の数",
     ]);
+    // 配る説明書の直す前の文面 (#2236)
+    expect(
+      数で書いた量("| `inputs` | 読む人が動かすつまみ (すべり / 選び / 入り切り など 14 種。 ...) |"),
+    ).toEqual(["つまみの種類の数"]);
   });
 
   it("決めた日の実測は拾わない (対象外の対照)", () => {
@@ -211,6 +245,13 @@ describe("説明書が実物から導ける値を人手で書いていない (#1
     const 文 = "catalog 422 件のうち 65% が静止画で、";
     expect(数で書いた量(`実測すると ${文}`), "測った時点の記録を拾っている").toEqual([]);
     expect(数で書いた量(文), "実測の語を外しても拾えていない (除外が広すぎる)").toEqual(["画面の検査の件数"]);
+
+    // つまみの種類の数も同じ 1 対で見る (#2236)
+    const つまみの文 = "つまみを持つ図は 3 種だった。";
+    expect(数で書いた量(`実測すると${つまみの文}`), "測った時点の記録を拾っている").toEqual([]);
+    expect(数で書いた量(つまみの文), "実測の語を外しても拾えていない (除外が広すぎる)").toEqual([
+      "つまみの種類の数",
+    ]);
   });
 
   it("分類の表が CATEGORIES の呼び名と丸ごと一致する", () => {

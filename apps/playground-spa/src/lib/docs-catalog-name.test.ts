@@ -10,13 +10,14 @@
  * また並べ直すことになる (#1788 で直したのと同じ形)。
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { join } from "node:path";
+import { basename } from "node:path";
 import { CATEGORIES } from "./catalog";
+import { 走査するfile, 絶対path } from "../../../../test-support/scan-targets";
 
 /** この file から見た repo の根 (`apps/playground-spa/src/lib/` の 4 つ上) */
-const 説明書の置き場 = join(fileURLToPath(new URL("../../../../", import.meta.url)), "docs");
+const 根 = fileURLToPath(new URL("../../../../", import.meta.url));
 
 /**
  * 説明書がカタログの頁を指す形。
@@ -27,14 +28,26 @@ const 説明書の置き場 = join(fileURLToPath(new URL("../../../../", import.
  */
 const 頁の指し方 = /カタログの\s*([^。、\n]{1,20}?)\s*の頁/g;
 
-function 説明書のfile一覧(dir = 説明書の置き場): string[] {
-  const out: string[] = [];
-  for (const e of readdirSync(dir)) {
-    const p = join(dir, e);
-    if (statSync(p).isDirectory()) out.push(...説明書のfile一覧(p));
-    else if (e.endsWith(".md")) out.push(p);
-  }
-  return out;
+/**
+ * 変更履歴だけ外す。 その版で何が起きたかの記録なので、当時の呼び名がそのまま残るのが正しい。
+ */
+const 走査しない = new Set(["CHANGELOG.md"]);
+
+/**
+ * 説明書として走査する md。
+ *
+ * **置き場所を名指ししない** (`rules/quality.md § 全件走査は除外を書く`)。
+ * `docs/` だけを見ていた間、配る package の説明書 (`packages/dragon/README.md` と
+ * `examples/`) が外に残っていた。 同じ抜けを隣の検査 (`docs-derived-values.test.ts`) も
+ * 持っており、集め方を別々に書いていたことが原因 (#2236)。
+ *
+ * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
+ */
+function 説明書のfile一覧(): string[] {
+  return 絶対path(
+    根,
+    走査するfile(根, "*.md").filter((p) => !走査しない.has(basename(p))),
+  );
 }
 
 /** 本文から、カタログの頁を指している名前を取り出す。 本番と植え込み対照が同じ関数を使う */
@@ -53,7 +66,7 @@ describe("説明書が指すカタログの頁の呼び名 (#1799)", () => {
     for (const f of files) {
       for (const 名 of 指している呼び名(readFileSync(f, "utf8"))) {
         拾えた += 1;
-        if (!呼び名.has(名)) 合わない.push(`${f.slice(説明書の置き場.length + 1)}: カタログの ${名} の頁`);
+        if (!呼び名.has(名)) 合わない.push(`${f.slice(根.length)}: カタログの ${名} の頁`);
       }
     }
     console.log(`[頁の指し方] md=${files.length} 指している所=${拾えた} 合わない=${合わない.length}`);
