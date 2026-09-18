@@ -274,7 +274,12 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  * **実物とずれたら検査が落ちる** (`parts-count.test.ts`)。 以前は「人が忘れずに直す」 ことに
  * 依存しており、実際に片方だけ直された記述が残っていた (#1341)。 数を変える時は
  * `parts.cdl.ts` か `parts-in-box.cdl.ts` か `parts-motion.cdl.ts` を直せば検査が本 constant の
- * ずれを教える。 数えるのは頁に並ぶ行で、部品そのもの 102 と部品を箱に使う見本 1 (#1973) と
- * 部品を繋いで動かす見本 1 (#2125)。 切替を持つ見本は 1 行として数える。
+ * ずれを教える。 数えるのは頁に並ぶ行で、部品そのもの (`parts.cdl.ts`) と
+ * 部品を箱に使う見本 (`parts-in-box.cdl.ts`、#1973) と
+ * 部品を繋いで動かす見本 (`parts-motion.cdl.ts`、#2125) の 3 つ。 切替を持つ見本は 1 行として数える。
+ *
+ * **内訳の件数はここに書かない** (`rules/quality.md § 導出可能記述は人手で書かない` の経路 2)。
+ * 以前は「部品そのもの 80」 と書いてあったが実物は 94 で、検査が見ない数だったため
+ * 気付かれないまま残っていた。 内訳が要る時は上の 3 つの file を数える。
  */
 export const PARTS_COUNT_ESTIMATE = 104;
