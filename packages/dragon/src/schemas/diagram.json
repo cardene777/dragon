@@ -2355,7 +2355,7 @@
     },
     "events": {
       "type": "array",
-      "description": "押下などの出来事で動く仕掛け。 相手は名前で指す (box / lane / arrow / diagram のどれか 1 つ)。",
+      "description": "押下などの出来事で動く仕掛け。 相手は名前で指し、指し方の項目をちょうど 1 つだけ書く。",
       "items": {
         "type": "object",
         "required": [

@@ -34,6 +34,7 @@ import {
   部品の組の表,
   つまみの表,
   EVENT_KINDS,
+  EVENT_TARGET_KEYS,
   type 図形の定義,
 } from "./v05/parser";
 // 図の配色 (#1553)。 記法の読み手と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方が
@@ -1726,7 +1727,9 @@ function validateEvents(v: unknown, errors: JsonDslError[]): void {
     });
     return;
   }
-  const 相手の鍵 = ["box", "lane", "arrow", "diagram"];
+  // 相手の指し方は記法の側が 1 か所で決める (#2256)。 同じ 4 語をここにも並べていた間、
+  // 1:1 を名乗りながら受ける項目が両側で別々に決まっていた
+  const 相手の鍵: readonly string[] = EVENT_TARGET_KEYS;
   v.forEach((e, i) => {
     const path = `$.events[${i}]`;
     if (!e || typeof e !== "object" || Array.isArray(e)) {
