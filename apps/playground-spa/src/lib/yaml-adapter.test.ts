@@ -1,7 +1,12 @@
 /**
- * CAR-1678 = yaml-adapter unit test。 spec `docs/spec/pr1-editor-multiline-yaml-tab.md` AC 3-4 の
- * core logic (js-yaml.load → jsonToDiagram bridge + error mapping) を behavior test で検証する。
- * playground-spa 側の CdlEditor tab UI (AC 1-2) と Playwright e2e (AC 5) は別 file で担保。
+ * YAML を図に変える橋渡しの検査。
+ *
+ * **仕様書を名指ししない** (#2252)。 以前は `docs/spec` の下の 1 枚を名指ししていたが、
+ * その dir はこの repo に無い。 ここで見るのは、YAML を読み込んで図に変える経路と、
+ * 読めなかった時の知らせの形の 2 つ (下の判定基準がその中身)。
+ *
+ * 画面側の欄の切り替えと、画面を動かして確かめる経路は別の file が持つ
+ * (`apps/playground-spa/tests/editor-yaml-tab.spec.ts`)。
  *
  * 判定基準:
  * - AC 3 = 有効 YAML source が CdlDiagram に変換され、 render pipeline に流せる shape になる

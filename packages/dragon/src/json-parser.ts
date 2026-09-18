@@ -6,7 +6,7 @@
  * で確実に生成できるよう、 flat な object array を優先した shape になっている。
  *
  * 使い方 (LLM):
- *   1. `packages/dragon/schemas/diagram.json` の JSON Schema を LLM の tool schema に注入
+ *   1. `packages/dragon/src/schemas/diagram.json` の JSON Schema を LLM の tool schema に注入
  *   2. LLM が JSON を返す
  *   3. `jsonToDiagram(json)` で CdlDiagram に変換
  *   4. validation error は throw、 retry loop で LLM に修正させる

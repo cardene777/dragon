@@ -13,7 +13,7 @@
  *   });
  *   const diagram = jsonToDiagram(res.content[0].input);
  *
- * schema JSON は `packages/dragon/schemas/diagram.json` が SSOT、 本 file は import して再 export するだけ。
+ * schema JSON は `packages/dragon/src/schemas/diagram.json` が SSOT、 本 file は import して再 export するだけ。
  */
 
 import schemaJson from "./schemas/diagram.json" with { type: "json" };

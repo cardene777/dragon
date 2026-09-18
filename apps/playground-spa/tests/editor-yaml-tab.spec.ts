@@ -1,8 +1,18 @@
 /**
- * CAR-1678 editor multi-line YAML tab E2E spec。
- * spec `docs/spec/pr1-editor-multiline-yaml-tab.md` の AC 1 / 2 / 3 / 4 を Playwright で verify する。
- * AC 5 (catalog byte-identical) は既存 sweep test (`sweep-5-category.spec.ts` 他) に責務、
- * 本 file は「YAML tab UI が spec 通り動くか」 に集約する。
+ * 編集画面の YAML 欄を、画面を動かして確かめる。
+ *
+ * **仕様書を名指ししない** (#2252)。 以前は `docs/spec` の下の 1 枚を「この仕様を確かめる」 と
+ * 名指ししていたが、その dir はこの repo に無い。 確かめる中身は下の 4 つで、
+ * 検査の中の見出しが同じ 4 つに分かれている。
+ *
+ * | 見出し | 確かめること |
+ * |---|---|
+ * | AC 1 | 場所の指定と拡張子で、開いた時にどちらの欄が選ばれているか |
+ * | AC 2 | 書きかけのまま欄を切り替えた時に、確認の窓が出て取り消せるか |
+ * | AC 3 | YAML を直すと絵が描き直されるか |
+ * | AC 4 | 読めない YAML で知らせが出て、前の絵が消えないか |
+ *
+ * 見本が文字まで同じかは、別の一括確認 (`sweep-5-category.spec.ts` 他) が持つ。
  *
  * 前提 = dev server が起動していること (port は `ports.ts` の `DEV_PORT` が SSOT)。
  */
