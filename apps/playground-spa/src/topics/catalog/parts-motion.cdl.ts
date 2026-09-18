@@ -31,7 +31,7 @@ import * as 部品 from "./parts.cdl";
  * `flow` と `topology` は部品を他の箱の下の格子に置くため、矢印が間の箱を貫く (#1979 の実測)。
  * 繋ぎ方の頁と同じ理由で `swimlane` を使う。
  *
- * ## 12 の切替
+ * ## 16 の切替
  *
  * | 切替 | 見せること |
  * |---|---|
@@ -47,6 +47,21 @@ import * as 部品 from "./parts.cdl";
  * | 重なりを消してから溜める | 重なり消し箱の残すをまとめ箱の届くへ繋ぎ、減った分だけが溜まって送る回数が減ることを見せる (#2195) |
  * | 写してから待ち合わせる | 写し箱の 2 つの出口を待ち合わせ箱の左右へ繋ぎ、2 本の線で受ける唯一の形を見せる (#2195) |
  * | そろってから遮断する | 待ち合わせ箱のそろった分を遮断器の入口へ繋ぎ、2 段構えで減る形を見せる (#2195) |
+ * | 割ってから溜める | 割り箱の小さい荷物をまとめ箱の届くへ繋ぎ、割って増えた分を溜め直す形を見せる (#2204) |
+ * | 割ってから詰まらせる | 割り箱の小さい荷物を押し戻し箱の送るへ繋ぎ、増えた分が後ろを詰まらせる形を見せる (#2204) |
+ * | そろってから押し出す | 待ち合わせ箱のそろった分を押し出し箱の届くへ繋ぎ、置き場に入り切らない分が出る形を見せる (#2204) |
+ * | 落ちた分が消える | 遮断器の落ちるを期限切れ箱の置くへ繋ぎ、誰も消しに行かないのに減る形を見せる (#2204) |
+ *
+ * ## 繋ぐ先の段は数字ではなく詰めた後の並びで決まる (#2204 の実測)
+ *
+ * まとめ箱の「まとめて送る」 (段 1) を押し戻し箱の「送る」 (段 1) へ繋ぐと、矢印が折れた
+ * (実測 `M 601 513 L 725 513 Q 739 513, 739 499 L 739 277 Q 739 263, 753 263 L 877 263`)。
+ * **段の数字は同じでも、部品が使っていない段は詰められる**。 まとめ箱は段 0 と 1 を使うので
+ * 「まとめて送る」 は上から 2 行目に、押し戻し箱は段 1 と 2 を使うので「送る」 は上から 1 行目に来る。
+ *
+ * 指摘は拡大の器でも一覧の器でも 0 件で、板の大きさも 1587 × 672 と普通だった。
+ * 気付けるのは `両端の要素を名指しして繋いだ矢印は折れない` (#2159) の道筋の検査だけ。
+ * 繋ぐ組を選ぶ時は、段の数字ではなく **その部品が使っている段を上から数え直した位置** を見る。
  *
  * ## 分けると集めるを箱と計器の 1 枚にまとめない
  *
@@ -1209,5 +1224,413 @@ export const sourceJson__pattern__partsMotion__そろってから遮断する = 
 
 export const pattern__partsMotion__そろってから遮断する = textDslToDiagram(
   sourceYaml__pattern__partsMotion__そろってから遮断する,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__割ってから溜める = `title: "割って増えた小分けを溜め直して送る"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  割る: { label: "割る" }
+  溜める: { label: "溜める" }
+
+# 小さい荷物も届くも、それぞれの部品で上から 1 行目に来るので矢印が真横に引ける
+actors:
+  - sp: { kind: split-box, phase: false, lane: 割る }
+  - bt: { kind: batch-collector, phase: false, lane: 溜める }
+
+# 増えた数をもう一度まとめ直す。 割り箱だけが出る数を入る数より多くできる
+flow:
+  - sp -> bt: "小分け" { fromPartNode: smallP, toPartNode: inP }
+
+animation:
+  - step: "1. 届く" 1.2s
+    focus: [sp__bigP]
+    badge: "到着"
+    tween:
+      sp__bigN: 0 -> 3
+    body: "3 個の大きい荷物が届く。 まだ 1 個も割れていない。"
+  - step: "2. 割れる" 1.4s
+    focus: [sp]
+    badge: "分割"
+    tween:
+      sp__smallN: 0 -> 20
+      sp__tagN: 0 -> 20
+    body: "20 個の小さい荷物に割れ、貼り直す札も 20 枚に増える。 3 個が 20 個になった。"
+  - step: "3. 溜める" 1.4s
+    focus: [sp__smallP, bt__inP, "sp -> bt"]
+    badge: "受渡"
+    tween:
+      bt__inN: 0 -> 20
+      bt__poolN: 0 -> 10
+    body: "20 個が 1 個ずつ溜まり、10 個で溜まりが満ちる。"
+  - step: "4. まとめて送る" 1.4s
+    focus: [bt]
+    badge: "送出"
+    tween:
+      bt__sendN: 0 -> 2
+    body: "10 個ずつ 2 回でまとめて送る。 3 個で届いたものが 20 個に割れ、2 回にまとまった。"
+`;
+
+export const sourceJson__pattern__partsMotion__割ってから溜める = `{
+  "title": "割って増えた小分けを溜め直して送る",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "割る": { "label": "割る" },
+    "溜める": { "label": "溜める" }
+  },
+  "actors": [
+    { "name": "sp", "kind": "split-box", "phase": false, "lane": "割る" },
+    { "name": "bt", "kind": "batch-collector", "phase": false, "lane": "溜める" }
+  ],
+  "flow": [
+    { "from": "sp", "to": "bt", "label": "小分け", "fromPartNode": "smallP", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 届く",
+      "duration": 1.2,
+      "focus": ["sp__bigP"],
+      "badge": "到着",
+      "tween": { "sp__bigN": [0, 3] },
+      "body": "3 個の大きい荷物が届く。 まだ 1 個も割れていない。"
+    },
+    {
+      "step": "2. 割れる",
+      "duration": 1.4,
+      "focus": ["sp"],
+      "badge": "分割",
+      "tween": { "sp__smallN": [0, 20], "sp__tagN": [0, 20] },
+      "body": "20 個の小さい荷物に割れ、貼り直す札も 20 枚に増える。 3 個が 20 個になった。"
+    },
+    {
+      "step": "3. 溜める",
+      "duration": 1.4,
+      "focus": ["sp__smallP", "bt__inP", "sp -> bt"],
+      "badge": "受渡",
+      "tween": { "bt__inN": [0, 20], "bt__poolN": [0, 10] },
+      "body": "20 個が 1 個ずつ溜まり、10 個で溜まりが満ちる。"
+    },
+    {
+      "step": "4. まとめて送る",
+      "duration": 1.4,
+      "focus": ["bt"],
+      "badge": "送出",
+      "tween": { "bt__sendN": [0, 2] },
+      "body": "10 個ずつ 2 回でまとめて送る。 3 個で届いたものが 20 個に割れ、2 回にまとまった。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__割ってから溜める = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__割ってから溜める,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__割ってから詰まらせる = `title: "割って数が増えた分を送ると後ろが詰まって入口が絞られる"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  割る: { label: "割る" }
+  詰まる: { label: "詰まる" }
+
+# 押し戻し箱は段 1 と 2 しか使わないので、送るが上から 1 行目に来る。 小さい荷物と同じ行になる
+actors:
+  - sp: { kind: split-box, phase: false, lane: 割る }
+  - bp: { kind: backpressure, phase: false, lane: 詰まる }
+
+# 割ってから溜めるの裏返し。 同じ出口が、繋ぐ相手で逆の結果になる
+flow:
+  - sp -> bp: "小分け" { fromPartNode: smallP, toPartNode: inP }
+
+animation:
+  - step: "1. 届く" 1.2s
+    focus: [sp__bigP]
+    badge: "到着"
+    tween:
+      sp__bigN: 0 -> 2
+    body: "2 個の大きい荷物が届く。 受け側の待ちはまだ空いている。"
+  - step: "2. 割れる" 1.4s
+    focus: [sp]
+    badge: "分割"
+    tween:
+      sp__smallN: 0 -> 20
+      sp__tagN: 0 -> 20
+    body: "20 個の小さい荷物に割れ、札も 20 枚に増える。 送る数が 10 倍になった。"
+  - step: "3. 積む" 1.4s
+    focus: [sp__smallP, bp__inP, bp__qP, "sp -> bp"]
+    badge: "受渡"
+    tween:
+      bp__qLv: 0 -> 100
+    body: "増えた 20 個が送られ、受け側の待ちが 100% まで積む。"
+  - step: "4. 絞られる" 1.4s
+    focus: [bp]
+    badge: "抑制"
+    tween:
+      bp__inLv: 100 -> 40
+    body: "送る側が 100% から 40% へ絞られる。 出す側は 40% のまま動かない。 割った側が自分で減らされた。"
+`;
+
+export const sourceJson__pattern__partsMotion__割ってから詰まらせる = `{
+  "title": "割って数が増えた分を送ると後ろが詰まって入口が絞られる",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "割る": { "label": "割る" },
+    "詰まる": { "label": "詰まる" }
+  },
+  "actors": [
+    { "name": "sp", "kind": "split-box", "phase": false, "lane": "割る" },
+    { "name": "bp", "kind": "backpressure", "phase": false, "lane": "詰まる" }
+  ],
+  "flow": [
+    { "from": "sp", "to": "bp", "label": "小分け", "fromPartNode": "smallP", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 届く",
+      "duration": 1.2,
+      "focus": ["sp__bigP"],
+      "badge": "到着",
+      "tween": { "sp__bigN": [0, 2] },
+      "body": "2 個の大きい荷物が届く。 受け側の待ちはまだ空いている。"
+    },
+    {
+      "step": "2. 割れる",
+      "duration": 1.4,
+      "focus": ["sp"],
+      "badge": "分割",
+      "tween": { "sp__smallN": [0, 20], "sp__tagN": [0, 20] },
+      "body": "20 個の小さい荷物に割れ、札も 20 枚に増える。 送る数が 10 倍になった。"
+    },
+    {
+      "step": "3. 積む",
+      "duration": 1.4,
+      "focus": ["sp__smallP", "bp__inP", "bp__qP", "sp -> bp"],
+      "badge": "受渡",
+      "tween": { "bp__qLv": [0, 100] },
+      "body": "増えた 20 個が送られ、受け側の待ちが 100% まで積む。"
+    },
+    {
+      "step": "4. 絞られる",
+      "duration": 1.4,
+      "focus": ["bp"],
+      "badge": "抑制",
+      "tween": { "bp__inLv": [100, 40] },
+      "body": "送る側が 100% から 40% へ絞られる。 出す側は 40% のまま動かない。 割った側が自分で減らされた。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__割ってから詰まらせる = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__割ってから詰まらせる,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__そろってから押し出す = `title: "そろった分を置き場に入れると古いものから押し出される"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  待つ: { label: "待つ" }
+  置く: { label: "置く" }
+
+# そろった分 (上から 2 行目) と届く (上から 2 行目) で矢印が真横に引ける
+actors:
+  - bw: { kind: barrier-box, phase: false, lane: 待つ }
+  - ev: { kind: evict-box, phase: false, lane: 置く }
+
+# 待ち合わせで減った分が、置き場の大きさでもう一度減る。 減る理由が 2 回とも違う
+flow:
+  - bw -> ev: "そろい" { fromPartNode: outP, toPartNode: inP }
+
+animation:
+  - step: "1. 両方届く" 1.2s
+    focus: [bw__aP, bw__bP]
+    badge: "到着"
+    tween:
+      bw__aN: 0 -> 12
+      bw__bN: 0 -> 9
+    body: "左から 12 件、右から 9 件が届く。 まだ 1 組も出ていない。"
+  - step: "2. そろう" 1.4s
+    focus: [bw]
+    badge: "そろい"
+    tween:
+      bw__outN: 0 -> 9
+    body: "両方そろった 9 組が出る。 左に残る 3 件は相手が来るまで出ない。"
+  - step: "3. 置き場へ" 1.4s
+    focus: [bw__outP, ev__inP, "bw -> ev"]
+    badge: "受渡"
+    tween:
+      ev__inN: 0 -> 18
+    body: "9 組を 1 件ずつに戻した 18 件が置き場に届く。"
+  - step: "4. 押し出される" 1.4s
+    focus: [ev]
+    badge: "押出"
+    tween:
+      ev__keepN: 0 -> 10
+      ev__pushN: 0 -> 8
+    body: "置けるのは 10 件だけで、古い 8 件が押し出される。 そろえた分の半分近くがここで消える。"
+`;
+
+export const sourceJson__pattern__partsMotion__そろってから押し出す = `{
+  "title": "そろった分を置き場に入れると古いものから押し出される",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "待つ": { "label": "待つ" },
+    "置く": { "label": "置く" }
+  },
+  "actors": [
+    { "name": "bw", "kind": "barrier-box", "phase": false, "lane": "待つ" },
+    { "name": "ev", "kind": "evict-box", "phase": false, "lane": "置く" }
+  ],
+  "flow": [
+    { "from": "bw", "to": "ev", "label": "そろい", "fromPartNode": "outP", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 両方届く",
+      "duration": 1.2,
+      "focus": ["bw__aP", "bw__bP"],
+      "badge": "到着",
+      "tween": { "bw__aN": [0, 12], "bw__bN": [0, 9] },
+      "body": "左から 12 件、右から 9 件が届く。 まだ 1 組も出ていない。"
+    },
+    {
+      "step": "2. そろう",
+      "duration": 1.4,
+      "focus": ["bw"],
+      "badge": "そろい",
+      "tween": { "bw__outN": [0, 9] },
+      "body": "両方そろった 9 組が出る。 左に残る 3 件は相手が来るまで出ない。"
+    },
+    {
+      "step": "3. 置き場へ",
+      "duration": 1.4,
+      "focus": ["bw__outP", "ev__inP", "bw -> ev"],
+      "badge": "受渡",
+      "tween": { "ev__inN": [0, 18] },
+      "body": "9 組を 1 件ずつに戻した 18 件が置き場に届く。"
+    },
+    {
+      "step": "4. 押し出される",
+      "duration": 1.4,
+      "focus": ["ev"],
+      "badge": "押出",
+      "tween": { "ev__keepN": [0, 10], "ev__pushN": [0, 8] },
+      "body": "置けるのは 10 件だけで、古い 8 件が押し出される。 そろえた分の半分近くがここで消える。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__そろってから押し出す = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__そろってから押し出す,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__落ちた分が消える = `title: "落ちた分を置いておくと時が過ぎて自分で消える"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  遮る: { label: "遮る" }
+  置く: { label: "置く" }
+
+# 落ちる (上から 2 行目) と置く (上から 2 行目) で矢印が真横に引ける
+actors:
+  - cb: { kind: circuit-breaker, phase: false, lane: 遮る }
+  - tt: { kind: expire-box, phase: false, lane: 置く }
+
+# 遮断器の 3 つの出口のうち、落ちる分だけを置き場へ送る。 通った分と断った分はここに来ない
+flow:
+  - cb -> tt: "落ちた分" { fromPartNode: ngP, toPartNode: putP }
+
+animation:
+  - step: "1. 試す" 1.2s
+    focus: [cb__inP]
+    badge: "到着"
+    tween:
+      cb__inN: 0 -> 20
+    body: "20 件を試す。 まだ通るか落ちるかは分かれていない。"
+  - step: "2. 分かれる" 1.4s
+    focus: [cb]
+    badge: "遮断"
+    tween:
+      cb__okN: 0 -> 6
+      cb__ngN: 0 -> 8
+      cb__cutN: 0 -> 6
+    body: "6 件が通り 8 件が落ちた所で遮断し、残る 6 件は試さずに断る。"
+  - step: "3. 置いておく" 1.4s
+    focus: [cb__ngP, tt__putP, "cb -> tt"]
+    badge: "受渡"
+    tween:
+      tt__putN: 0 -> 8
+    body: "落ちた 8 件だけを置いておく。 通った 6 件と断った 6 件はここに来ない。"
+  - step: "4. 時が過ぎる" 1.4s
+    focus: [tt]
+    badge: "期限"
+    tween:
+      tt__liveN: 0 -> 3
+      tt__goneN: 0 -> 5
+    body: "時が来た 5 件が自分で消え、3 件だけ残る。 誰も消しに行っていないのに減った。"
+`;
+
+export const sourceJson__pattern__partsMotion__落ちた分が消える = `{
+  "title": "落ちた分を置いておくと時が過ぎて自分で消える",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "遮る": { "label": "遮る" },
+    "置く": { "label": "置く" }
+  },
+  "actors": [
+    { "name": "cb", "kind": "circuit-breaker", "phase": false, "lane": "遮る" },
+    { "name": "tt", "kind": "expire-box", "phase": false, "lane": "置く" }
+  ],
+  "flow": [
+    { "from": "cb", "to": "tt", "label": "落ちた分", "fromPartNode": "ngP", "toPartNode": "putP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 試す",
+      "duration": 1.2,
+      "focus": ["cb__inP"],
+      "badge": "到着",
+      "tween": { "cb__inN": [0, 20] },
+      "body": "20 件を試す。 まだ通るか落ちるかは分かれていない。"
+    },
+    {
+      "step": "2. 分かれる",
+      "duration": 1.4,
+      "focus": ["cb"],
+      "badge": "遮断",
+      "tween": { "cb__okN": [0, 6], "cb__ngN": [0, 8], "cb__cutN": [0, 6] },
+      "body": "6 件が通り 8 件が落ちた所で遮断し、残る 6 件は試さずに断る。"
+    },
+    {
+      "step": "3. 置いておく",
+      "duration": 1.4,
+      "focus": ["cb__ngP", "tt__putP", "cb -> tt"],
+      "badge": "受渡",
+      "tween": { "tt__putN": [0, 8] },
+      "body": "落ちた 8 件だけを置いておく。 通った 6 件と断った 6 件はここに来ない。"
+    },
+    {
+      "step": "4. 時が過ぎる",
+      "duration": 1.4,
+      "focus": ["tt"],
+      "badge": "期限",
+      "tween": { "tt__liveN": [0, 3], "tt__goneN": [0, 5] },
+      "body": "時が来た 5 件が自分で消え、3 件だけ残る。 誰も消しに行っていないのに減った。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__落ちた分が消える = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__落ちた分が消える,
   { partsCatalog: 部品の一覧 },
 );
