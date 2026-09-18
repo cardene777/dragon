@@ -349,6 +349,73 @@ export const 受け入れた図の名 = (器: 器): string[] =>
     .map((d) => d.id)
     .sort();
 
+/** 代表的な図 1 枚。 器ごとの箱の題の大きさは、境の内側に入る器では `null` を書く。 */
+export interface 代表的な図の行 {
+  /** カタログの図の id */
+  readonly id: string;
+  /** 描いた時の viewBox */
+  readonly viewBox: { readonly w: number; readonly h: number };
+  /** 拡大表示 (1150 × 630px) での箱の題の大きさ (px)。 境の内側なら `null` */
+  readonly 拡大: number | null;
+  /** 一覧に並べた枠 (幅 874px) での箱の題の大きさ (px)。 境の内側なら `null` */
+  readonly 一覧: number | null;
+  /** この 1 枚が何を代表しているか */
+  readonly 役目: string;
+}
+
+/**
+ * 読みにくさの度合いを示す代表的な図 (#2214)。
+ *
+ * ## 枚数ではなく数枚の実寸を持つ
+ *
+ * 「何枚が下限を割るか」 は `受け入れた一覧` と `縦に長い一覧` の行数が持つ。
+ * ここが持つのは **どのくらい読みにくいか** で、その度合いは枚数からは分からない
+ * (`er-complex-demo` の 4.8px と `scene-web-infra` の 11.9px は同じ 1 枚と数えられる)。
+ *
+ * ## 4 枚で割れ方の幅を覆う
+ *
+ * 1 枚だけだと、器と辺の組み合わせのうち 1 通りしか見えない。
+ * 両方の器で割る図、片方だけで割る図、伸びる側に振れる図を 1 枚ずつ持つ。
+ *
+ * ## 数字はここ 1 箇所に置く
+ *
+ * 以前は同じ表が `diagram-zoom.ts` と `catalog-inline-zoom.spec.ts` と
+ * `responsive-viewport-width-1738.test.ts` の 3 箇所に手書きされており、
+ * `er-complex-demo` の viewBox が 3 箇所とも 2190×2904 のまま (実物は 2310×2904)、
+ * 並べて見る側の大きさが 8.8px のまま (実物は 8.3px) 残っていた。
+ * `readability-representative.test.ts` が各行を両方の器で描き直して突き合わせる。
+ */
+export const 代表的な図: readonly 代表的な図の行[] = [
+  {
+    id: "er-complex-demo",
+    viewBox: { w: 2310, h: 2904 },
+    拡大: 4.8,
+    一覧: 8.3,
+    役目: "縦にも横にも大きく、どちらの器でも下限の半分以下まで縮む",
+  },
+  {
+    id: "class-complex-demo",
+    viewBox: { w: 3537, h: 2380 },
+    拡大: 5.8,
+    一覧: 5.4,
+    役目: "カタログで最も横に広く、一覧の枠のほうが小さくなる",
+  },
+  {
+    id: "swim-demo",
+    viewBox: { w: 1916, h: 285 },
+    拡大: null,
+    一覧: 10.0,
+    役目: "横に長く縦が短い。 縦を巻き取る一覧の枠でだけ下限を割る",
+  },
+  {
+    id: "scene-web-infra",
+    viewBox: { w: 510, h: 1160 },
+    拡大: 11.9,
+    一覧: null,
+    役目: "縦に長く幅が狭い。 幅に合わせる一覧の枠では逆に伸びる (高さ 1988px)",
+  },
+];
+
 /**
  * 一覧の台に描かれる高さ (px)。
  *
