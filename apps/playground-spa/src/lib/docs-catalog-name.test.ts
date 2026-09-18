@@ -12,9 +12,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { basename } from "node:path";
 import { CATEGORIES } from "./catalog";
-import { 走査するfile, 絶対path } from "../../../../test-support/scan-targets";
+import { 説明書のfile } from "../../../../test-support/scan-targets";
 
 /** この file から見た repo の根 (`apps/playground-spa/src/lib/` の 4 つ上) */
 const 根 = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -29,25 +28,15 @@ const 根 = fileURLToPath(new URL("../../../../", import.meta.url));
 const 頁の指し方 = /カタログの\s*([^。、\n]{1,20}?)\s*の頁/g;
 
 /**
- * 変更履歴だけ外す。 その版で何が起きたかの記録なので、当時の呼び名がそのまま残るのが正しい。
- */
-const 走査しない = new Set(["CHANGELOG.md"]);
-
-/**
  * 説明書として走査する md。
  *
- * **置き場所を名指ししない** (`rules/quality.md § 全件走査は除外を書く`)。
- * `docs/` だけを見ていた間、配る package の説明書 (`packages/dragon/README.md` と
- * `examples/`) が外に残っていた。 同じ抜けを隣の検査 (`docs-derived-values.test.ts`) も
- * 持っており、集め方を別々に書いていたことが原因 (#2236)。
- *
- * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
+ * **どの md を見るかは `test-support/scan-targets.ts` が 1 か所で持つ** (#2240)。
+ * `docs/` だけを見ていた間、配る package の説明書が外に残っていた (#2236)。
+ * その時は隣の検査 (`docs-derived-values.test.ts`) と同じ 1 行を両方に書いており、
+ * 集合を 2 か所に持つ形そのものが直っていなかった。
  */
 function 説明書のfile一覧(): string[] {
-  return 絶対path(
-    根,
-    走査するfile(根, "*.md").filter((p) => !走査しない.has(basename(p))),
-  );
+  return 説明書のfile(根);
 }
 
 /** 本文から、カタログの頁を指している名前を取り出す。 本番と植え込み対照が同じ関数を使う */
