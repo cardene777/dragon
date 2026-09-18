@@ -5,9 +5,17 @@
  * parse (Text DSL → DslDocument) / compile (DslDocument → CdlDiagram) / layout (CdlDiagram → LaidDiagram)
  * の 3 stage 別に処理時間を計測し、 baseline を確立する。
  *
- * vitest bench mode 起動 ... `pnpm --filter @cardenelabs/cdl exec vitest bench --run`
- * baseline 保存 ... `.context/scratch/bench-baseline.{txt,json}`
+ * 起動 = `pnpm run test:bench`。
  *
+ * **workspace に無い package を選ぶ書き方を置かない** (#2248)。 以前ここには
+ * `--filter` で外から入れている依存を選ぶ書き方が載っており、打つと
+ * `No projects matched the filters` と出たうえで **成功として終わる** =
+ * 打った人には通ったように見え、1 件も測っていないことに気付けない。
+ *
+ * 測った値は repo に残さない。 残す場所を注記に書いていた時期があるが、
+ * 書いた場所は git の追跡外で日ごとに掃除されるため、在ると書いても保てなかった。
+ *
+
  * NOTE ... `textDslToDiagram` の auto-detect (isV05Source) は src 先頭 60 行で判定するため、
  * 100 actor 超では flow / animation 行が検出窓外に出て v0.4 fallback に誤 routing される。
  * bench では明示的に v0.5 parser を直接呼び出して 3 stage を個別計測する。
