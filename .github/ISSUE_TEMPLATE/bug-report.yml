@@ -1,5 +1,5 @@
 name: Bug report
-description: cdl の動作が想定と違うときに使う template
+description: dragon の動作が想定と違うときに使う template
 title: "[bug] "
 labels: ["bug"]
 body:
@@ -12,9 +12,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: cdl version
-      description: 使っている `@chainome/cdl` の version (package.json 参照)
-      placeholder: "0.5.0"
+      label: dragon version
+      description: 使っている `@cardenelabs/dragon` の version (package.json 参照)
+      placeholder: "0.29.0"
     validations:
       required: true
 
@@ -32,7 +32,7 @@ body:
     attributes:
       label: 何が起きたか
       description: 観測した現象を 1-3 文で
-      placeholder: "sequence preset の step に sub を渡すと SVG が空で render される"
+      placeholder: "flow の行に (success) を付けても、矢印の色が既定のまま変わらない"
     validations:
       required: true
 
@@ -41,7 +41,7 @@ body:
     attributes:
       label: 期待する動作
       description: あるべき挙動
-      placeholder: "sub label が arrow の下に表示される"
+      placeholder: "成功を表す色で矢印が描かれる"
     validations:
       required: true
 
@@ -49,14 +49,22 @@ body:
     id: reproduction
     attributes:
       label: 再現手順
-      description: 最小再現コード (TypeScript) または playground URL
+      description: 最小再現コード (dragon 記法) または playground URL
       render: tsx
       placeholder: |
-        import { sequence } from "@chainome/cdl";
+        import { textDslToDiagram } from "@cardenelabs/dragon";
 
-        const seq = sequence({ id: "x", topic: "X", actors: ["A", "B"] })
-          .step({ from: "A", to: "B", label: "msg", sub: "details" })
-          .build();
+        const diagram = textDslToDiagram(`
+        title: "最小再現"
+        type: sequence
+
+        actors:
+          - A
+          - B
+
+        flow:
+          - A -> B: "msg" (success)
+        `);
     validations:
       required: true
 

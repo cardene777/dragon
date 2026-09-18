@@ -126,7 +126,7 @@ detail は本 repo `docs/diagram-skills/dragon-diagram-forge/` の各 reference 
 | **役割** | 記法層 = 人 / LLM 向け DSL parser + catalog SPA | engine = shape 描画 + builder API + layout + render |
 | **提供物** | YAML DSL (人向け) / JSON DSL (LLM 向け) / catalog の実例 | 49 shape kind / TypeScript builder / layout engine / animation runtime |
 | **書く主体** | 人 / LLM が書く | dragon が裏で呼ぶ (人 / LLM は直接触らない前提) |
-| **npm package** | `@cardenelabs/dragon` | `@cardenelabs/cdl` / `@cardenelabs/anim` |
+| **npm package** | `@cardenelabs/dragon` | `@cardenelabs/cdl` (描画の出口は `@cardenelabs/cdl/react`) |
 
 **流れ**。
 

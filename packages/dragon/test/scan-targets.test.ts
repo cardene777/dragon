@@ -10,6 +10,8 @@ import {
   未追跡のfile,
   説明書のfile,
   注釈を読むfile,
+  いまを述べるfile,
+  いまを述べないfile,
 } from "../../../test-support/scan-targets";
 
 /**
@@ -147,6 +149,30 @@ describe("走査する検査が集める file の一覧 (#2095)", () => {
     expect(
       src.filter((p) => p.includes("/node_modules/") || p.includes("/dist/")),
       "無視設定の dir の source が混ざっている",
+    ).toEqual([]);
+  });
+
+  it("いまを述べる集合が、置き場所を限らず外す 2 つを外す", () => {
+    const 全部 = いまを述べるfile(REPO);
+    expect(全部.length, "file を 1 つも集められていない (空振り)").toBeGreaterThan(100);
+    // 用紙は説明書の集合 (md) にも注釈の集合 (source) にも入らない。 ここだけが拾える (#2246)
+    expect(
+      全部.some((p) => p.includes(join("/.github", "ISSUE_TEMPLATE"))),
+      "問い合わせの用紙が入っていない",
+    ).toBe(true);
+    expect(
+      全部.filter((p) => p.endsWith(変更履歴)),
+      "過去の版の記録が入っている (いまの実物を述べた文として読むことになる)",
+    ).toEqual([]);
+    expect(
+      全部.filter((p) => p.endsWith("pnpm-lock.yaml")),
+      "機械が書く一覧が入っている (依存の依存まで全ての名前を持つ)",
+    ).toEqual([]);
+    // 外す entry に理由が無いと、なぜ外れているかが読み手に分からないまま増える
+    const 理由なし = Object.entries(いまを述べないfile).filter(([, 理由]) => 理由.trim() === "");
+    expect(
+      理由なし.map(([f]) => f),
+      "外す file に理由が書かれていない",
     ).toEqual([]);
   });
 
