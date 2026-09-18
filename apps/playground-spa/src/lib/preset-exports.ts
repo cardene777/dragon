@@ -34,6 +34,7 @@ export const 見本の名前: readonly string[] = [
   "presetUserJourney",
   "pattern__presetUserJourney__複雑",
   "presetMindMap",
+  "pattern__presetMindMap__複雑",
   "presetFunnel",
   "pattern__presetFunnel__複雑",
   "presetQuadrant",

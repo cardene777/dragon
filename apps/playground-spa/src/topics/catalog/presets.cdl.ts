@@ -2012,6 +2012,101 @@ export const presetMindMap = withSteps(
   [{ id: "theme", initial: "新しい企画" }],
 );
 
+export const patternBase__presetMindMap = "簡単";
+
+/**
+ * 枝分かれ図の複雑な版 (#2191)。
+ *
+ * 簡単な版は 6 箱 (中心 + 枝 5) で、動くのは中心の呼び方だけ。 実際に読み取りが要るのは
+ * 「書き出した案を見比べて、先に作る所と後にする所を決める」 形で、1 回の言い換えでは描けない。
+ *
+ * **動かせるのは名前と 2 行目の補足だけ**。 枝のぶら下げ先は状態から取れず、`parent` に
+ * `{...}` を書くと枝が中心から切り離されて図の外れた所に浮く (`validate` の警告は 0 件で
+ * 重い指摘も出ない)。 階層図 (#2189) と同じ形の制約。
+ *
+ * そこで **中心と 4 つの観点の 2 行目に決めたことを書き込む形**にする。 枝の繋がりは動かさず、
+ * 段が進むにつれて「先に作る」「後にする」 が埋まり、最後に中心の方針が決まる。
+ *
+ * **中心から出す枝は 8 まで、1 つの枝にぶら下げる数は 5 まで収まる** (実測で 3 / 4 / 5 / 6 / 8 本と
+ * 1 枝に 2 / 3 / 4 / 5 個を描いて撮り、どれも名前が切れなかった)。 ここでは 4 本 + 6 個の 11 箱。
+ */
+const MIND_COMPLEX_BRANCHES = [
+  { id: "mc_collect", title: "集める", subtitle: "{mc_collect_s}", parent: "mc_root" },
+  { id: "mc_store", title: "貯める", subtitle: "{mc_store_s}", parent: "mc_root" },
+  { id: "mc_show", title: "見せる", subtitle: "{mc_show_s}", parent: "mc_root" },
+  { id: "mc_send", title: "配る", subtitle: "{mc_send_s}", parent: "mc_root" },
+  { id: "mc_form", title: "入力の画面", parent: "mc_collect" },
+  // 枝の名前は 5 文字まで。 6 文字の「読み込みの口」 は「読み込み…」 に切れた (画面で確かめた)
+  { id: "mc_api", title: "読み込む口", parent: "mc_collect" },
+  { id: "mc_place", title: "置き場所", parent: "mc_store" },
+  { id: "mc_erase", title: "消し方", parent: "mc_store" },
+  { id: "mc_list", title: "一覧", parent: "mc_show" },
+  { id: "mc_detail", title: "詳しい画面", parent: "mc_show" },
+] as const;
+
+const mindComplexBuilder = mindMap({
+  id: "mind-complex-demo",
+  topic: "書き出した観点を先と後に仕分けて中心の方針が決まる枝分かれ図",
+  rootId: "mc_root",
+  rootTitle: "新しい仕組み",
+});
+for (const b of MIND_COMPLEX_BRANCHES) {
+  mindComplexBuilder.branch({ id: b.id, title: b.title, parent: b.parent });
+}
+
+export const pattern__presetMindMap__複雑 = withSteps(
+  bindFirstNode(mindComplexBuilder.build(), (n) => ({
+    ...n,
+    mindData: n.mindData && {
+      ...n.mindData,
+      rootSubtitle: "{mc_root_s}",
+      // `branches` は `MIND_COMPLEX_BRANCHES` を回す `for` で 1:1 に作るので長さは常に一致する
+      branches: n.mindData.branches.map((br, i) => {
+        const 元 = MIND_COMPLEX_BRANCHES[i];
+        return 元 === undefined || !("subtitle" in 元) ? br : { ...br, subtitle: 元.subtitle };
+      }),
+    },
+  })),
+  [
+    {
+      ids: ["mind-complex-demo-mind"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["mind-complex-demo-mind"],
+      // 描く段は伸ばす (#1353)。 11 箱を追うので簡単な版より長く取る
+      duration: DRAW_DURATION,
+      title: "書き出した時",
+      body: "4 つの観点と 6 つの枝を並べた。 どれを先に作るかはまだ決めていない。",
+    },
+    {
+      title: "先に作る所を決める",
+      body: "集めると貯めるが無いと何も始まらないので、この 2 つを先に作る。",
+      sets: [
+        { id: "mc_collect_s", value: "先に作る" },
+        { id: "mc_store_s", value: "先に作る" },
+      ],
+    },
+    {
+      title: "後にする所を決める",
+      body: "見せると配るは貯めた後でよいので、後に回す。 4 つの観点すべてに順番が付いた。",
+      sets: [
+        { id: "mc_show_s", value: "後にする" },
+        { id: "mc_send_s", value: "後にする" },
+      ],
+    },
+    {
+      body: "中心の 2 行目が「集めて貯める所まで作る」 に変わる。 枝を見比べて方針が決まった。",
+      sets: [{ id: "mc_root_s", value: "集めて貯める所まで作る" }],
+    },
+  ],
+  [
+    { id: "mc_root_s", initial: "まだ決めていない" },
+    { id: "mc_collect_s", initial: "未定" },
+    { id: "mc_store_s", initial: "未定" },
+    { id: "mc_show_s", initial: "未定" },
+    { id: "mc_send_s", initial: "未定" },
+  ],
+);
+
 // funnel preset ... Sales / marketing funnel
 // 段の人数を状態から取り、先月と今月を同じ図で見る。
 const FUNNEL_STAGES = [
