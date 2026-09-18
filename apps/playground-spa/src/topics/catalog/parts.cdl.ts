@@ -4230,6 +4230,258 @@ export const subtitle__partsSplitBox =
   "3 個の大きな荷物が 24 個の小さな荷物に割れ、札も 24 枚に増える。 出る数が入る数より多い";
 
 // ============================================================
+// 他の件との関係で行き先が決まる部品 (#2206)
+// ============================================================
+//
+// ここから 4 枚は **1 件だけを見ても行き先が決まらない** 繋ぎ方を表す。 既存の 22 枚は
+// 入口に入れた数と割合 (18 枚) か、入口の外側の事情 (4 枚、#2199) で決まり、
+// どちらも他の件を見ずに 1 件ごとに決まる。
+//
+// 前の件 (順番戻し箱) / 同じ鍵の件 (鍵割り箱) / 同時に来た件 (相乗り箱) /
+// 他の送り主 (釣り合い箱) の 4 つは、隣の件を見ないと行き先も順番も決まらない。
+//
+// 要素と値の名前は既存の 22 枚と同じく英字で書く (#2125)。
+
+// parts 103: 順番戻し箱 — 前の番が来るまで出せない
+export const partsReorderBox = diagram("parts-reorder-box", {
+  topic: "順番戻し箱 — ばらばらに届いた順を元に戻す",
+})
+  .lane("ro1", { x: 0, width: 200, label: "入口" })
+  .lane("ro2", { x: 220, width: 200, label: "順に並べる" })
+  .state("inN", { initial: 0 })
+  .state("outN", { initial: 0 })
+  .state("holdN", { initial: 0 })
+  .node("inP", {
+    lane: "ro1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "ばらばらに届く",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 20, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  // 出せる方を上に置く = 出せない分が下に溜まることが棒の高さで読める
+  .node("outP", {
+    lane: "ro2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "順に出せる",
+    subtitle: "{outN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{outN}", fillMax: 20, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("holdP", {
+    lane: "ro2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "番を待つ",
+    subtitle: "{holdN} 件",
+    w: 150,
+    h: 150,
+    shape: {
+      kind: "rect",
+      source: "{holdN}",
+      fillMax: 20,
+      orient: "up",
+      fill: "#f59e0b",
+      radius: 6,
+    },
+  })
+  // 部品の中の線の札に数字を置かない (#2149)
+  .edge("inP", "outP", { id: "ro-out", label: "出せる", tone: "success" })
+  .edge("inP", "holdP", { id: "ro-hold", label: "出せない", tone: "warning" })
+  // 12 + 8 = 20 で入った分と合う。 待つ 8 件は捨てられておらず、前の番が来れば出る
+  .phase("p", { duration: 4000, title: "番が来た分だけ出す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "outP", "holdP", "ro-out", "ro-hold")
+      .tween("inN", 0, 20)
+      .tween("outN", 0, 12)
+      .tween("holdN", 0, 8),
+  )
+  .build();
+
+export const subtitle__partsReorderBox =
+  "20 件が順ばらばらに届き、番が来た 12 件だけが出る。 前の番を待つ 8 件は捨てられずに残る";
+
+// parts 104: 鍵割り箱 — 同じ鍵は必ず同じ行き先へ行く
+export const partsKeyRouter = diagram("parts-key-router", {
+  topic: "鍵割り箱 — 同じ鍵は必ず同じ行き先へ行く",
+})
+  .lane("kr1", { x: 0, width: 200, label: "入口" })
+  .lane("kr2", { x: 220, width: 200, label: "鍵の先" })
+  .state("inN", { initial: 0 })
+  .state("aN", { initial: 0 })
+  .state("bN", { initial: 0 })
+  .node("inP", {
+    lane: "kr1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "届く",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 24, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("aP", {
+    lane: "kr2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "同じ鍵の先",
+    subtitle: "{aN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{aN}", fillMax: 24, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("bP", {
+    lane: "kr2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "別の鍵の先",
+    subtitle: "{bN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{bN}", fillMax: 24, orient: "up", fill: "#8b5cf6", radius: 6 },
+  })
+  // 振り分け器は割合を書き換えれば偏りを直せるが、こちらは鍵が決めるので直せない。
+  // 18 と 6 の偏りは「鍵がそう分かれている」 ことそのもの
+  .edge("inP", "aP", { id: "kr-a", label: "鍵が同じ", tone: "success" })
+  .edge("inP", "bP", { id: "kr-b", label: "鍵が違う", tone: "info" })
+  .phase("p", { duration: 4000, title: "鍵で行き先が決まる", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "aP", "bP", "kr-a", "kr-b")
+      .tween("inN", 0, 24)
+      .tween("aN", 0, 18)
+      .tween("bN", 0, 6),
+  )
+  .build();
+
+export const subtitle__partsKeyRouter =
+  "24 件が鍵で分かれ、18 件と 6 件に偏る。 鍵が行き先を決めるので、割合を変えても偏りは直らない";
+
+// parts 105: 相乗り箱 — 同時に来た同じ問いを 1 本にまとめる
+export const partsSingleFlight = diagram("parts-single-flight", {
+  topic: "相乗り箱 — 同時に来た同じ問いを 1 本にまとめる",
+})
+  .lane("sf1", { x: 0, width: 200, label: "重なる問い" })
+  .lane("sf2", { x: 220, width: 200, label: "返す" })
+  .state("askN", { initial: 0 })
+  .state("oneN", { initial: 0 })
+  .state("allN", { initial: 0 })
+  .node("askP", {
+    lane: "sf1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "同じ問い",
+    subtitle: "{askN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{askN}", fillMax: 24, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  // 奥へ行く本数と配る件数を同じ上限にそろえる。 2 本と 24 件を同じ目盛りで見て初めて
+  // 「24 件の問いが 2 本になった」 が棒の高さの差で読める
+  .node("oneP", {
+    lane: "sf2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "奥へ行く",
+    subtitle: "{oneN} 本",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{oneN}", fillMax: 24, orient: "up", fill: "#f59e0b", radius: 6 },
+  })
+  .node("allP", {
+    lane: "sf2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "皆へ配る",
+    subtitle: "{allN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{allN}", fillMax: 24, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  // 重なり消し箱は二度目を捨てるが、こちらは捨てずに待たせて同じ答えを配る。
+  // 入る件数と出る件数が同じで、減るのは奥へ行く本数だけ
+  .edge("askP", "oneP", { id: "sf-one", label: "まとめる", tone: "success" })
+  .edge("askP", "allP", { id: "sf-all", label: "同じ答え", tone: "info" })
+  .phase("p", { duration: 4000, title: "1 本にまとめて皆へ配る", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("askP", "oneP", "allP", "sf-one", "sf-all")
+      .tween("askN", 0, 24)
+      .tween("oneN", 0, 2)
+      .tween("allN", 0, 24),
+  )
+  .build();
+
+export const subtitle__partsSingleFlight =
+  "24 件の同じ問いが 2 本にまとまって奥へ行き、返った答えは 24 件へ配られる。 捨てずに待たせる";
+
+// parts 106: 釣り合い箱 — 送り主ごとに順番に出す
+export const partsFairQueue = diagram("parts-fair-queue", {
+  topic: "釣り合い箱 — たくさん送る人が他の人を待たせない",
+})
+  .lane("fq1", { x: 0, width: 200, label: "送り主" })
+  .lane("fq2", { x: 220, width: 200, label: "出口" })
+  .state("bigN", { initial: 0 })
+  .state("smallN", { initial: 0 })
+  .state("outN", { initial: 0 })
+  // 送り主 2 人を上下に置き、出口を真ん中の段に置く (#2154)。 2 本の線が上下対称に入る
+  .node("bigP", {
+    lane: "fq1",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "たくさん送る",
+    subtitle: "{bigN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{bigN}", fillMax: 30, orient: "up", fill: "#8b5cf6", radius: 6 },
+  })
+  .node("smallP", {
+    lane: "fq1",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "少しだけ送る",
+    subtitle: "{smallN} 件",
+    w: 150,
+    h: 150,
+    shape: {
+      kind: "rect",
+      source: "{smallN}",
+      fillMax: 30,
+      orient: "up",
+      fill: "#4e9dc4",
+      radius: 6,
+    },
+  })
+  .node("outP", {
+    lane: "fq2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "順に出す",
+    subtitle: "{outN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{outN}", fillMax: 30, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  // 札は 2 本とも同じ言葉にする (合流点と同じ理由、#2149)。 送り主で扱いを変えないことが札の同じさに出る
+  .edge("bigP", "outP", { id: "fq-big", label: "順番に", tone: "info" })
+  .edge("smallP", "outP", { id: "fq-small", label: "順番に", tone: "info" })
+  // 30 件送った人からも 6 件送った人からも 6 件ずつで、出るのは 12 件。
+  // 多い方の棒は満杯のまま動かず、待っている 24 件がそこに残る
+  .phase("p", { duration: 4000, title: "送り主ごとに同じだけ出す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("bigP", "smallP", "outP", "fq-big", "fq-small")
+      .tween("bigN", 0, 30)
+      .tween("smallN", 0, 6)
+      .tween("outN", 0, 12),
+  )
+  .build();
+
+export const subtitle__partsFairQueue =
+  "30 件送った人も 6 件送った人も、出るのは同じ 6 件ずつ。 多く送る人の残り 24 件は次の順番まで待つ";
+
+// ============================================================
 // 記法 (#1381)
 // ============================================================
 //
@@ -12148,6 +12400,590 @@ export const sourceJson__partsSplitBox = `{
         "tagN": [
           0,
           24
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsReorderBox = `title: "順番戻し箱 — ばらばらに届いた順を元に戻す"
+type: flow
+
+lanes:
+  ro1: { x: 0, width: 200, label: "入口" }
+  ro2: { x: 220, width: 200, label: "順に並べる" }
+
+states:
+  inN: 0
+  outN: 0
+  holdN: 0
+
+actors:
+  - ばらばらに届く: { kind: dyn-rect, lane: ro1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 20, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 順に出せる: { kind: dyn-rect, lane: ro2, stack: 0, subtitle: "{outN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{outN}", fillMax: 20, orient: up, fill: "#22c55e", radius: 6 } }
+  - 番を待つ: { kind: dyn-rect, lane: ro2, stack: 2, subtitle: "{holdN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{holdN}", fillMax: 20, orient: up, fill: "#f59e0b", radius: 6 } }
+
+flow:
+  - ばらばらに届く -> 順に出せる: "出せる" (success)
+  - ばらばらに届く -> 番を待つ: "出せない" (warning)
+
+animation:
+  - step: "番が来た分だけ出す" 4s
+    focus: ["ばらばらに届く", "順に出せる", "番を待つ", "ばらばらに届く -> 順に出せる", "ばらばらに届く -> 番を待つ"]
+    tween:
+      inN: 0 -> 20
+      outN: 0 -> 12
+      holdN: 0 -> 8
+`;
+
+export const sourceJson__partsReorderBox = `{
+  "title": "順番戻し箱 — ばらばらに届いた順を元に戻す",
+  "type": "flow",
+  "lanes": {
+    "ro1": {
+      "x": 0,
+      "width": 200,
+      "label": "入口"
+    },
+    "ro2": {
+      "x": 220,
+      "width": 200,
+      "label": "順に並べる"
+    }
+  },
+  "actors": [
+    {
+      "name": "ばらばらに届く",
+      "kind": "dyn-rect",
+      "lane": "ro1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{inN}",
+        "fillMax": 20,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "順に出せる",
+      "kind": "dyn-rect",
+      "lane": "ro2",
+      "stack": 0,
+      "subtitle": "{outN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{outN}",
+        "fillMax": 20,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "番を待つ",
+      "kind": "dyn-rect",
+      "lane": "ro2",
+      "stack": 2,
+      "subtitle": "{holdN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{holdN}",
+        "fillMax": 20,
+        "orient": "up",
+        "fill": "#f59e0b",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "ばらばらに届く",
+      "to": "順に出せる",
+      "label": "出せる",
+      "tone": "success"
+    },
+    {
+      "from": "ばらばらに届く",
+      "to": "番を待つ",
+      "label": "出せない",
+      "tone": "warning"
+    }
+  ],
+  "states": {
+    "inN": 0,
+    "outN": 0,
+    "holdN": 0
+  },
+  "animation": [
+    {
+      "step": "番が来た分だけ出す",
+      "duration": 4,
+      "focus": [
+        "ばらばらに届く",
+        "順に出せる",
+        "番を待つ",
+        "ばらばらに届く -> 順に出せる",
+        "ばらばらに届く -> 番を待つ"
+      ],
+      "tween": {
+        "inN": [
+          0,
+          20
+        ],
+        "outN": [
+          0,
+          12
+        ],
+        "holdN": [
+          0,
+          8
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsKeyRouter = `title: "鍵割り箱 — 同じ鍵は必ず同じ行き先へ行く"
+type: flow
+
+lanes:
+  kr1: { x: 0, width: 200, label: "入口" }
+  kr2: { x: 220, width: 200, label: "鍵の先" }
+
+states:
+  inN: 0
+  aN: 0
+  bN: 0
+
+actors:
+  - 届く: { kind: dyn-rect, lane: kr1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 24, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 同じ鍵の先: { kind: dyn-rect, lane: kr2, stack: 0, subtitle: "{aN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{aN}", fillMax: 24, orient: up, fill: "#22c55e", radius: 6 } }
+  - 別の鍵の先: { kind: dyn-rect, lane: kr2, stack: 2, subtitle: "{bN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{bN}", fillMax: 24, orient: up, fill: "#8b5cf6", radius: 6 } }
+
+flow:
+  - 届く -> 同じ鍵の先: "鍵が同じ" (success)
+  - 届く -> 別の鍵の先: "鍵が違う" (info)
+
+animation:
+  - step: "鍵で行き先が決まる" 4s
+    focus: ["届く", "同じ鍵の先", "別の鍵の先", "届く -> 同じ鍵の先", "届く -> 別の鍵の先"]
+    tween:
+      inN: 0 -> 24
+      aN: 0 -> 18
+      bN: 0 -> 6
+`;
+
+export const sourceJson__partsKeyRouter = `{
+  "title": "鍵割り箱 — 同じ鍵は必ず同じ行き先へ行く",
+  "type": "flow",
+  "lanes": {
+    "kr1": {
+      "x": 0,
+      "width": 200,
+      "label": "入口"
+    },
+    "kr2": {
+      "x": 220,
+      "width": 200,
+      "label": "鍵の先"
+    }
+  },
+  "actors": [
+    {
+      "name": "届く",
+      "kind": "dyn-rect",
+      "lane": "kr1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{inN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "同じ鍵の先",
+      "kind": "dyn-rect",
+      "lane": "kr2",
+      "stack": 0,
+      "subtitle": "{aN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{aN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "別の鍵の先",
+      "kind": "dyn-rect",
+      "lane": "kr2",
+      "stack": 2,
+      "subtitle": "{bN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{bN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#8b5cf6",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "届く",
+      "to": "同じ鍵の先",
+      "label": "鍵が同じ",
+      "tone": "success"
+    },
+    {
+      "from": "届く",
+      "to": "別の鍵の先",
+      "label": "鍵が違う",
+      "tone": "info"
+    }
+  ],
+  "states": {
+    "inN": 0,
+    "aN": 0,
+    "bN": 0
+  },
+  "animation": [
+    {
+      "step": "鍵で行き先が決まる",
+      "duration": 4,
+      "focus": [
+        "届く",
+        "同じ鍵の先",
+        "別の鍵の先",
+        "届く -> 同じ鍵の先",
+        "届く -> 別の鍵の先"
+      ],
+      "tween": {
+        "inN": [
+          0,
+          24
+        ],
+        "aN": [
+          0,
+          18
+        ],
+        "bN": [
+          0,
+          6
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsSingleFlight = `title: "相乗り箱 — 同時に来た同じ問いを 1 本にまとめる"
+type: flow
+
+lanes:
+  sf1: { x: 0, width: 200, label: "重なる問い" }
+  sf2: { x: 220, width: 200, label: "返す" }
+
+states:
+  askN: 0
+  oneN: 0
+  allN: 0
+
+actors:
+  - 同じ問い: { kind: dyn-rect, lane: sf1, stack: 1, subtitle: "{askN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{askN}", fillMax: 24, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 奥へ行く: { kind: dyn-rect, lane: sf2, stack: 0, subtitle: "{oneN} 本", posW: 150, posH: 150, shape: { kind: rect, source: "{oneN}", fillMax: 24, orient: up, fill: "#f59e0b", radius: 6 } }
+  - 皆へ配る: { kind: dyn-rect, lane: sf2, stack: 2, subtitle: "{allN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{allN}", fillMax: 24, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 同じ問い -> 奥へ行く: "まとめる" (success)
+  - 同じ問い -> 皆へ配る: "同じ答え" (info)
+
+animation:
+  - step: "1 本にまとめて皆へ配る" 4s
+    focus: ["同じ問い", "奥へ行く", "皆へ配る", "同じ問い -> 奥へ行く", "同じ問い -> 皆へ配る"]
+    tween:
+      askN: 0 -> 24
+      oneN: 0 -> 2
+      allN: 0 -> 24
+`;
+
+export const sourceJson__partsSingleFlight = `{
+  "title": "相乗り箱 — 同時に来た同じ問いを 1 本にまとめる",
+  "type": "flow",
+  "lanes": {
+    "sf1": {
+      "x": 0,
+      "width": 200,
+      "label": "重なる問い"
+    },
+    "sf2": {
+      "x": 220,
+      "width": 200,
+      "label": "返す"
+    }
+  },
+  "actors": [
+    {
+      "name": "同じ問い",
+      "kind": "dyn-rect",
+      "lane": "sf1",
+      "stack": 1,
+      "subtitle": "{askN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{askN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "奥へ行く",
+      "kind": "dyn-rect",
+      "lane": "sf2",
+      "stack": 0,
+      "subtitle": "{oneN} 本",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{oneN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#f59e0b",
+        "radius": 6
+      }
+    },
+    {
+      "name": "皆へ配る",
+      "kind": "dyn-rect",
+      "lane": "sf2",
+      "stack": 2,
+      "subtitle": "{allN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{allN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "同じ問い",
+      "to": "奥へ行く",
+      "label": "まとめる",
+      "tone": "success"
+    },
+    {
+      "from": "同じ問い",
+      "to": "皆へ配る",
+      "label": "同じ答え",
+      "tone": "info"
+    }
+  ],
+  "states": {
+    "askN": 0,
+    "oneN": 0,
+    "allN": 0
+  },
+  "animation": [
+    {
+      "step": "1 本にまとめて皆へ配る",
+      "duration": 4,
+      "focus": [
+        "同じ問い",
+        "奥へ行く",
+        "皆へ配る",
+        "同じ問い -> 奥へ行く",
+        "同じ問い -> 皆へ配る"
+      ],
+      "tween": {
+        "askN": [
+          0,
+          24
+        ],
+        "oneN": [
+          0,
+          2
+        ],
+        "allN": [
+          0,
+          24
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsFairQueue = `title: "釣り合い箱 — たくさん送る人が他の人を待たせない"
+type: flow
+
+lanes:
+  fq1: { x: 0, width: 200, label: "送り主" }
+  fq2: { x: 220, width: 200, label: "出口" }
+
+states:
+  bigN: 0
+  smallN: 0
+  outN: 0
+
+actors:
+  - たくさん送る: { kind: dyn-rect, lane: fq1, stack: 0, subtitle: "{bigN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{bigN}", fillMax: 30, orient: up, fill: "#8b5cf6", radius: 6 } }
+  - 少しだけ送る: { kind: dyn-rect, lane: fq1, stack: 2, subtitle: "{smallN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{smallN}", fillMax: 30, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 順に出す: { kind: dyn-rect, lane: fq2, stack: 1, subtitle: "{outN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{outN}", fillMax: 30, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - たくさん送る -> 順に出す: "順番に" (info)
+  - 少しだけ送る -> 順に出す: "順番に" (info)
+
+animation:
+  - step: "送り主ごとに同じだけ出す" 4s
+    focus: ["たくさん送る", "少しだけ送る", "順に出す", "たくさん送る -> 順に出す", "少しだけ送る -> 順に出す"]
+    tween:
+      bigN: 0 -> 30
+      smallN: 0 -> 6
+      outN: 0 -> 12
+`;
+
+export const sourceJson__partsFairQueue = `{
+  "title": "釣り合い箱 — たくさん送る人が他の人を待たせない",
+  "type": "flow",
+  "lanes": {
+    "fq1": {
+      "x": 0,
+      "width": 200,
+      "label": "送り主"
+    },
+    "fq2": {
+      "x": 220,
+      "width": 200,
+      "label": "出口"
+    }
+  },
+  "actors": [
+    {
+      "name": "たくさん送る",
+      "kind": "dyn-rect",
+      "lane": "fq1",
+      "stack": 0,
+      "subtitle": "{bigN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{bigN}",
+        "fillMax": 30,
+        "orient": "up",
+        "fill": "#8b5cf6",
+        "radius": 6
+      }
+    },
+    {
+      "name": "少しだけ送る",
+      "kind": "dyn-rect",
+      "lane": "fq1",
+      "stack": 2,
+      "subtitle": "{smallN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{smallN}",
+        "fillMax": 30,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "順に出す",
+      "kind": "dyn-rect",
+      "lane": "fq2",
+      "stack": 1,
+      "subtitle": "{outN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{outN}",
+        "fillMax": 30,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "たくさん送る",
+      "to": "順に出す",
+      "label": "順番に",
+      "tone": "info"
+    },
+    {
+      "from": "少しだけ送る",
+      "to": "順に出す",
+      "label": "順番に",
+      "tone": "info"
+    }
+  ],
+  "states": {
+    "bigN": 0,
+    "smallN": 0,
+    "outN": 0
+  },
+  "animation": [
+    {
+      "step": "送り主ごとに同じだけ出す",
+      "duration": 4,
+      "focus": [
+        "たくさん送る",
+        "少しだけ送る",
+        "順に出す",
+        "たくさん送る -> 順に出す",
+        "少しだけ送る -> 順に出す"
+      ],
+      "tween": {
+        "bigN": [
+          0,
+          30
+        ],
+        "smallN": [
+          0,
+          6
+        ],
+        "outN": [
+          0,
+          12
         ]
       }
     }

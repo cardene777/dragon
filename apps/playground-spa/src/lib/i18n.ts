@@ -555,6 +555,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsExpireBox: "繋ぐ: 時が過ぎた分が消える",
   partsBackpressure: "繋ぐ: 詰まると入口を絞る",
   partsSplitBox: "繋ぐ: 大きいものを割る",
+  partsReorderBox: "繋ぐ: 前の番が来るまで出さない",
+  partsKeyRouter: "繋ぐ: 鍵で行き先が決まる",
+  partsSingleFlight: "繋ぐ: 同時の同じ問いを 1 本にする",
+  partsFairQueue: "繋ぐ: 送り主ごとに同じだけ出す",
 };
 
 /**
@@ -1043,6 +1047,10 @@ export const ITEM_NAME_EN: Record<string, string> = {
   partsExpireBox: "Wire: entries vanish once they age out",
   partsBackpressure: "Wire: throttle the sender when backed up",
   partsSplitBox: "Wire: break one large item into many",
+  partsReorderBox: "Wire: hold an item until its turn arrives",
+  partsKeyRouter: "Wire: the key decides where it goes",
+  partsSingleFlight: "Wire: merge simultaneous identical asks",
+  partsFairQueue: "Wire: give every sender the same share",
 };
 
 /**
