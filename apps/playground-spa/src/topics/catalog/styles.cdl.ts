@@ -22,7 +22,7 @@ function smallPair(id: string, style: EdgeStyle, tone: Tone, label: string, topi
 export const styleSolid = smallPair("style-solid", "solid", "accent", "solid", "solid style (実線 + 矢頭、 edge の default)", "実線 + 矢頭");
 export const styleDottedFlow = smallPair("style-dotted-flow", "dotted-flow", "accent", "dotted-flow", "dotted-flow style (点線 + 粒子、 動的 flow 表現)", "点線 + 粒子");
 
-/** 2. Tone 全 6 種 (solid edge で色差を確認) = 色 identity の違いを比較 */
+/** 2. Tone (`Tone` が持つ全ての色を solid edge で並べる) = 色 identity の違いを比較 */
 export const toneAccent = smallPair("tone-accent", "solid", "accent", "accent", "accent tone (主張色、 dark navy)");
 export const toneTeal = smallPair("tone-teal", "solid", "teal", "teal", "teal tone (青緑、 secondary emphasis)");
 export const toneSuccess = smallPair("tone-success", "solid", "success", "success", "success tone (green、 成功状態)");

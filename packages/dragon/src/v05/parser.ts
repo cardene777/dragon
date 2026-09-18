@@ -1551,7 +1551,7 @@ export const AXIS_Y_KEYS = ["bottom", "top"] as const satisfies readonly (keyof 
 // `parser.ts` に置いたままだと 生成した表 → parser → 生成した表 の輪ができる
 export type { 欄の形, 図形の定義 } from "./parser-types";
 
-/** 描ける図形と、その欄 (`CdlDynShape` の全 5 種を覆う) */
+/** 描ける図形と、その欄 (`CdlDynShape` の全種を覆う) */
 export const 図形の表: Record<string, 図形の定義> = {
   rect: {
     必須: ["source", "fillMax"],
