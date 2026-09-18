@@ -16,6 +16,10 @@
  * その場で画面から拾えば、 名前が変わっても追随する。 図が消えれば件数が減るので、 それも
  * 出力に出す。
  *
+ * **分類の一覧も同じ** (#2244)。 識別子だけを画面から拾い、分類は書き写したままだったため、
+ * 後から足した 3 分類を一度も撮っていなかった (綴りは `CATEGORIES` が持つ)。
+ * 一覧に無いので回らず、撮れなかった記録にも出ないので出力からは気付けない。
+ *
  * ## 既定は分類ごとに 3 件
  *
  * 1 枚あたり 4.3 秒かかる (実測)。 catalog の図は足すたびに増えるので、全件撮ると
@@ -44,20 +48,34 @@ const OUT = "test-results/zoom";
 const 全件 = process.env.SHOOT_ALL === "1";
 const 指定 = Number.parseInt(process.env.SHOOT_LIMIT ?? "", 10);
 const 上限 = 全件 ? Number.POSITIVE_INFINITY : Number.isFinite(指定) && 指定 > 0 ? 指定 : 3;
-const category = [
-  "presets",
-  "patterns",
-  "cookbook",
-  "text-dsl",
-  "primitives",
-  "animation",
-  "styles",
-  "interactive",
-];
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
 await page.setViewportSize({ width: 1440, height: 900 });
+
+/**
+ * 分類の一覧を分類の頁から拾う (#2244)。
+ *
+ * **書き写さない**。 書き写していた間、後から足した 3 分類を一度も撮っていなかった。
+ * 一覧に無いので回らず、撮れなかった記録にも出ないため、出力を見ても欠けに気付けない。
+ * 上の「固定の一覧を持たない」 を分類にも適用する。
+ *
+ * **拾えなければ撮らずに止める**。 0 件を「分類が無い」 として静かに終わると、
+ * いま直している欠けと同じ形になる。
+ */
+await page.goto(`${BASE}/catalog`, { waitUntil: "networkidle" });
+await page.waitForTimeout(1000);
+const category = await page.evaluate(() =>
+  [...document.querySelectorAll("a.catalog-index-card")]
+    .map((a) => a.getAttribute("href")?.split("/catalog/")[1] ?? "")
+    .filter((s) => s !== ""),
+);
+if (category.length === 0) {
+  console.error(`分類の一覧を ${BASE}/catalog から拾えなかった。 開発サーバーを確かめる`);
+  await browser.close();
+  process.exit(1);
+}
+console.log(`分類 ${category.length} 件を分類の頁から拾った: ${category.join(" ")}`);
 
 let 撮った = 0;
 const 失敗 = [];
