@@ -22,12 +22,14 @@ body:
     id: proposal
     attributes:
       label: 提案する解
-      description: API イメージ / 動作仕様 / 代替案との比較
+      description: 書きたい記法のイメージ / 動作仕様 / 代替案との比較
       render: tsx
       placeholder: |
-        er({ id, topic })
-          .entity({ id: "user_role", title: "UserRole",
-            rows: ["userId: PK+FK", "roleId: PK+FK"] })
+        # こう書けると嬉しい、という記法のイメージ
+        type: er
+
+        actors:
+          - user_role: { kind: storage, rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] }
     validations:
       required: true
 
@@ -43,11 +45,11 @@ body:
       label: 影響範囲
       multiple: true
       options:
-        - "@chainome/cdl (core lib)"
-        - "@chainome/anim (runtime)"
-        - apps/playground (editor / catalog)
-        - docs
-        - text DSL parser
+        - "@cardenelabs/dragon (記法の parser / compiler)"
+        - dragon 記法そのもの (書ける欄を増やす)
+        - apps/playground-spa (editor / catalog)
+        - docs / README
+        - "@cardenelabs/cdl (engine、別 repo で直す)"
     validations:
       required: true
 

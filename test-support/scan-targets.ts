@@ -97,6 +97,35 @@ export function 説明書のfile(repo: string): string[] {
 }
 
 /**
+ * いまの実物を述べていない file と、外す理由 (#2246)。
+ *
+ * **理由を entry の隣に置く**。 外す file の一覧と理由を別の場所に分けると、
+ * 片方だけ直って食い違う。 理由が空の entry は `scan-targets.test.ts` が落とす。
+ */
+export const いまを述べないfile: Record<string, string> = {
+  "CHANGELOG.md": "その版で何が起きたかの記録。 過去の版の記述で、いまの実物を指す文ではない",
+  "pnpm-lock.yaml":
+    "機械が書く一覧。 依存の依存まで全ての名前を持つので、人が述べた文として数えない",
+};
+
+/**
+ * いまの実物を述べている file の絶対 path。
+ *
+ * 「書いた綴りが実物に在るか」 のように、**置き場所も拡張子も限れない判定**が使う。
+ * package 名は説明書にも source にも `.github` 配下の用紙 (YAML) にも書けるので、
+ * 見る先を挙げた瞬間に書き手が思い付いた場所が上限になる (#2236 / #2242)。
+ *
+ * 中身が文字でない file (画像など) は、読む側が 1 つ目の 0 byte を見て落とす。
+ * 拡張子を並べて外す形にすると、並べ忘れた形式がそのまま母数から消える。
+ */
+export function いまを述べるfile(repo: string): string[] {
+  return 絶対path(
+    repo,
+    走査するfile(repo).filter((p) => !(basename(p) in いまを述べないfile)),
+  );
+}
+
+/**
  * 注釈を読む source の拡張子。
  *
  * **`.mjs` と `.mts` を入れる** (#2242)。 入れていなかった間、`scripts/` の 26 file を
