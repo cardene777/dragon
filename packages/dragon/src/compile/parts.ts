@@ -17,14 +17,14 @@ import { NODE_KIND_VALID } from "../v05/parser";
 /**
  * 見本 (parts) の取り込み (#2034 で `compile.ts` から移した)。
  *
- * 見本帳から引いた 1 つの図を、本文の図に重ねて 1 枚にする。 `compile.ts` の 38% を
- * 占めていた区画で、宣言 64 個が中で閉じている。
+ * 見本帳から引いた 1 つの図を、本文の図に重ねて 1 枚にする。 移した時点で
+ * `compile.ts` の 38% を占めていた区画で、その中の宣言はここで閉じている。
  *
  * 外へ出す口は 4 つ。 入口 (`compileToCdl`) が呼ぶ `mergePartsFromActors` と
  * `reportPartNodeNotHonored`、相対の配置 (`resolveRelativeDoc`) が呼ぶ `partBoxes` と
- * `partSizes`。 残る 60 個はこの file の中だけで使う。
+ * `partSizes`。 残りはこの file の中だけで使う。
  *
- * ほかに `index.ts` と画面が読む宣言を 13 個持つ。 それらは `compile.ts` が再輸出するので、
+ * ほかに `index.ts` と画面が読む宣言も持つ。 それらは `compile.ts` が再輸出するので、
  * 取り込む側の書き方は変わらない。
  */
 
