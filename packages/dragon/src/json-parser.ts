@@ -35,6 +35,7 @@ import {
   つまみの表,
   EVENT_KINDS,
   EVENT_TARGET_KEYS,
+  EVENT_REQUIRED_KEYS,
   type 図形の定義,
 } from "./v05/parser";
 // 図の配色 (#1553)。 記法の読み手と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方が
@@ -1300,6 +1301,14 @@ function validateViewport(v: unknown, errors: JsonDslError[]): void {
 }
 
 /**
+ * 選択肢の組が受ける項目。 どれも必ず書く (#2258)。
+ *
+ * **判定と知らせが同じ集合を読む**。 別々に並べていた間、判定に項目を足しても
+ * 知らせは古い一覧を教え続ける形だった。
+ */
+const 選択肢の項目 = ["value", "label"] as const;
+
+/**
  * 選択肢の並び (`["green", { "value": "red", "label": "失敗" }]`) を要素ごとに検査する (#1920)。
  *
  * 要素は文字列か、`value` と `label` の 2 項目を持つ組。 誤りは要素の場所 (`options[1].label`) で
@@ -1327,13 +1336,21 @@ function 選択肢の並びを検査する(値: unknown, path: string, errors: J
     }
     const 組 = x as Record<string, unknown>;
     for (const k of Object.keys(組)) {
-      if (k === "value" || k === "label") continue;
-      errors.push({ path: `${here}.${k}`, message: `unknown key "${k}"`, hint: "使える項目 = value, label" });
+      if ((選択肢の項目 as readonly string[]).includes(k)) continue;
+      errors.push({
+        path: `${here}.${k}`,
+        message: `unknown key "${k}"`,
+        hint: `使える項目 = ${選択肢の項目.join(", ")}`,
+      });
     }
-    for (const k of ["value", "label"] as const) {
+    for (const k of 選択肢の項目) {
       const v = 組[k];
       if (v === undefined) {
-        errors.push({ path: `${here}.${k}`, message: `${k} is required`, hint: "必須の項目 = value, label" });
+        errors.push({
+          path: `${here}.${k}`,
+          message: `${k} is required`,
+          hint: `必須の項目 = ${選択肢の項目.join(", ")}`,
+        });
       } else if (typeof v !== "string") {
         errors.push({ path: `${here}.${k}`, message: `${k} must be 文字列`, hint: `got ${v === null ? "null" : typeof v}` });
       } else if (v === "") {
@@ -1674,6 +1691,11 @@ function validateFormulas(v: unknown, inputs: unknown, errors: JsonDslError[]): 
 type 式の検査結果 = { readonly 読めた: true; readonly 値: unknown } | { readonly 読めた: false };
 
 /**
+ * 式の組が受ける項目 (#2258)。 判定と知らせが同じ集合を読む。
+ */
+const 式の組の項目 = ["expression", "label"] as const;
+
+/**
  * 式の値が組の形 (`{ expression, label }`) なら組を検査し、式の文字列を返す (#1916)。
  *
  * 文字列やそれ以外の形は **そのまま返す** = 式の文字列の検査は呼び手が文字列の形と同じ経路で行う。
@@ -1684,12 +1706,12 @@ function 式の組を検査する(値: unknown, path: string, errors: JsonDslErr
   const 組 = 値 as Record<string, unknown>;
   let 読めた = true;
   for (const 鍵 of Object.keys(組)) {
-    if (鍵 === "expression" || 鍵 === "label") continue;
+    if ((式の組の項目 as readonly string[]).includes(鍵)) continue;
     読めた = false;
     errors.push({
       path: `${path}.${鍵}`,
       message: `unknown formula field: ${鍵}`,
-      hint: "使える項目 = expression, label",
+      hint: `使える項目 = ${式の組の項目.join(", ")}`,
     });
   }
   if (typeof 組.expression !== "string" || 組.expression.trim() === "") {
@@ -1728,8 +1750,10 @@ function validateEvents(v: unknown, errors: JsonDslError[]): void {
     return;
   }
   // 相手の指し方は記法の側が 1 か所で決める (#2256)。 同じ 4 語をここにも並べていた間、
-  // 1:1 を名乗りながら受ける項目が両側で別々に決まっていた
+  // 1:1 を名乗りながら受ける項目が両側で別々に決まっていた。
+  // 必ず書く 2 つも同じ定数から取る (#2258) = 知らせが判定と別に並べる形をやめる
   const 相手の鍵: readonly string[] = EVENT_TARGET_KEYS;
+  const 出来事の項目: readonly string[] = [...EVENT_REQUIRED_KEYS, ...EVENT_TARGET_KEYS];
   v.forEach((e, i) => {
     const path = `$.events[${i}]`;
     if (!e || typeof e !== "object" || Array.isArray(e)) {
@@ -1738,11 +1762,11 @@ function validateEvents(v: unknown, errors: JsonDslError[]): void {
     }
     const o = e as Record<string, unknown>;
     for (const k of Object.keys(o)) {
-      if (k === "on" || k === "handler" || 相手の鍵.includes(k)) continue;
+      if (出来事の項目.includes(k)) continue;
       errors.push({
         path: `${path}.${k}`,
         message: `unknown key "${k}"`,
-        hint: `使える項目 = on, handler, ${相手の鍵.join(", ")}`,
+        hint: `使える項目 = ${出来事の項目.join(", ")}`,
       });
     }
     if (typeof o.on !== "string" || !(EVENT_KINDS as readonly string[]).includes(o.on)) {
@@ -1798,6 +1822,16 @@ function validateEvents(v: unknown, errors: JsonDslError[]): void {
 }
 
 /**
+ * 巻き上げに応じて進む値が受ける項目 (#2258)。
+ *
+ * **数を書く項目と文字を書く項目を分けて持つ** = 受け方が違うので判定が分かれるが、
+ * 知らせは 2 つを繋いで 1 つの一覧として出す。 別々に並べていた間、判定が 3 語で
+ * 知らせが 4 語という食い違いが同じ関数の中にあった。
+ */
+const 送りの数の項目 = ["start", "end", "scrub"] as const;
+const 送りの文の項目 = ["label"] as const;
+
+/**
  * 巻き上げに応じて進む値を検査する (#1393)。
  *
  * 形は `{ 名前: { start, end, scrub, label } }`。 名前の規則は状態と揃える。
@@ -1846,17 +1880,17 @@ function validateScrolls(
       continue;
     }
     for (const [k, x] of Object.entries(spec as Record<string, unknown>)) {
-      if (k === "label") {
+      if ((送りの文の項目 as readonly string[]).includes(k)) {
         if (typeof x !== "string") {
-          errors.push({ path: `${path}.label`, message: "label must be a string" });
+          errors.push({ path: `${path}.${k}`, message: `${k} must be a string` });
         }
         continue;
       }
-      if (k !== "start" && k !== "end" && k !== "scrub") {
+      if (!(送りの数の項目 as readonly string[]).includes(k)) {
         errors.push({
           path: `${path}.${k}`,
           message: `unknown key "${k}"`,
-          hint: "使える項目 = start, end, scrub, label",
+          hint: `使える項目 = ${[...送りの数の項目, ...送りの文の項目].join(", ")}`,
         });
         continue;
       }
