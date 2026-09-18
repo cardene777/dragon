@@ -1,9 +1,8 @@
 /**
- * Performance benchmark suite
+ * 速さを測る道具。
  *
- * 5 case (small / medium / large / huge / animation-heavy) で
- * parse (Text DSL → DslDocument) / compile (DslDocument → CdlDiagram) / layout (CdlDiagram → LaidDiagram)
- * の 3 stage 別に処理時間を計測し、 baseline を確立する。
+ * 5 通りの入力 (small / medium / large / huge / animation-heavy) について、
+ * 読み取り (記法 → doc) / 組み立て (doc → 図) / 配置 (図 → 置いた図) の 3 段を別々に測る。
  *
  * 起動 = `pnpm run test:bench`。
  *
@@ -15,97 +14,61 @@
  * 測った値は repo に残さない。 残す場所を注記に書いていた時期があるが、
  * 書いた場所は git の追跡外で日ごとに掃除されるため、在ると書いても保てなかった。
  *
-
- * NOTE ... `textDslToDiagram` の auto-detect (isV05Source) は src 先頭 60 行で判定するため、
- * 100 actor 超では flow / animation 行が検出窓外に出て v0.4 fallback に誤 routing される。
- * bench では明示的に v0.5 parser を直接呼び出して 3 stage を個別計測する。
+ * ## 段によって図の種類を変える (#2250)
+ *
+ * 3 段とも `sequence` で測っていた間、**配置の 5 行が全て同じ値だった**
+ * (10 箱で 373,359 回/秒、1000 箱で 405,231 回/秒。 大きいほうが速い)。
+ *
+ * `sequence` は箱が何個あっても **1 枚の板**に組み上がり、箱と矢印は板の中の値になる。
+ * 配置が並べるのは板 1 枚なので、箱を 100 倍にしても配置の仕事は増えない。
+ * 同じ箱数を `flow` で組むと箱がそのままの数だけ出るので、配置は大きさに反応する。
+ *
+ * | 段 | 使う種類 | なぜ |
+ * |---|---|---|
+ * | 読み取り | `sequence` | 記法の行数に反応する。 種類を変える理由が無い |
+ * | 組み立て | `sequence` | 板の中に詰める値が箱の数だけ増えるので反応する |
+ * | 配置 | `flow` | `sequence` では板 1 枚しか置かないため、大きさに反応しない |
+ *
+ * この前提 (`sequence` は 1 枚 / `flow` は箱の数だけ) は `bench-cases-scale.test.ts` が
+ * 実際に組み上げて確かめる。 前提が変われば そちらが落ちる。
+ *
+ * ## 読み取りは v0.5 の入口を直に呼ぶ
+ *
+ * `textDslToDiagram` の種類の見分けは記法の先頭 60 行だけを見るため、100 箱を超えると
+ * 矢印と動きの行が窓の外に出て、古い入口へ回される。
+ * ここでは 3 段を別々に測るので、v0.5 の入口を直に呼ぶ。
  */
 import { bench, describe } from "vitest";
 import { parseTextDslV05, compileToCdl } from "@cardenelabs/dragon";
 import { layout } from "@cardenelabs/cdl";
 import type { DslDocument } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { CASES, 記法を作る, type 図の種類 } from "./bench-cases";
 
-function generateDiagramSource(
-  nodeCount: number,
-  edgeCount: number,
-  phaseCount: number,
-  tweenCount: number = 0,
-): string {
-  const actors = Array.from({ length: nodeCount }, (_, i) => `  - actor${i}`).join("\n");
-  const flow =
-    edgeCount > 0
-      ? Array.from(
-          { length: edgeCount },
-          (_, i) => `  - actor${i % nodeCount} -> actor${(i + 1) % nodeCount}: "msg${i}"`,
-        ).join("\n")
-      : `  - actor0 -> actor${Math.min(1, nodeCount - 1)}: "msg0"`;
-
-  let statesBlock = "";
-  let animationBlock = "";
-  if (phaseCount > 0) {
-    if (tweenCount > 0) {
-      const states = Array.from({ length: tweenCount }, (_, i) => `  s${i}: 0`).join("\n");
-      statesBlock = `\nstates:\n${states}\n`;
-    }
-    const phases = Array.from({ length: phaseCount }, (_, i) => {
-      const focusTarget = `actor${i % nodeCount}`;
-      const tweens =
-        tweenCount > 0
-          ? `\n    tween:\n${Array.from({ length: Math.min(tweenCount, 3) }, (_, ti) => `      s${(i + ti) % tweenCount}: ${i} -> ${i + 1}`).join("\n")}`
-          : "";
-      return `  - step: "p${i}" 1s\n    focus: [${focusTarget}]${tweens}`;
-    }).join("\n");
-    animationBlock = `\nanimation:\n${phases}`;
-  }
-
-  return `title: "bench"
-type: sequence
-actors:
-${actors}
-flow:
-${flow}${statesBlock}${animationBlock}
-`;
-}
-
-interface BenchCase {
-  label: string;
-  nodes: number;
-  edges: number;
-  phases: number;
-  tweens: number;
-}
-
-const CASES: BenchCase[] = [
-  { label: "small (10 node / 5 edge / 0 phase)", nodes: 10, edges: 5, phases: 0, tweens: 0 },
-  { label: "medium (100 node / 50 edge / 5 phase)", nodes: 100, edges: 50, phases: 5, tweens: 0 },
-  { label: "large (500 node / 200 edge / 20 phase)", nodes: 500, edges: 200, phases: 20, tweens: 0 },
-  { label: "huge (1000 node / 500 edge / 50 phase)", nodes: 1000, edges: 500, phases: 50, tweens: 0 },
-  {
-    label: "animation-heavy (100 node / 100 phase / 50 tween)",
-    nodes: 100,
-    edges: 50,
-    phases: 100,
-    tweens: 50,
-  },
-];
-
-const PREPARED: Record<string, { src: string; doc: DslDocument; cdl: CdlDiagram }> = {};
-for (const c of CASES) {
-  const src = generateDiagramSource(c.nodes, c.edges, c.phases, c.tweens);
+function 組み上げる(種類: 図の種類, label: string): { src: string; doc: DslDocument; cdl: CdlDiagram } {
+  const c = CASES.find((x) => x.label === label)!;
+  const src = 記法を作る(種類, c);
   const r = parseTextDslV05(src);
   if (!r.ok) {
     throw new Error(
-      `bench setup failed for ${c.label}: ${r.errors.map((e) => `L${e.line} ${e.message}`).join(", ")}`,
+      `bench の下ごしらえが ${種類} / ${label} で失敗した: ${r.errors.map((e) => `L${e.line} ${e.message}`).join(", ")}`,
     );
   }
-  const cdl = compileToCdl(r.doc);
-  PREPARED[c.label] = { src, doc: r.doc, cdl };
+  return { src, doc: r.doc, cdl: compileToCdl(r.doc) };
+}
+
+/** 読み取りと組み立てが測る入力 */
+const 板の入力: Record<string, { src: string; doc: DslDocument; cdl: CdlDiagram }> = {};
+/** 配置が測る入力 (箱が入力の数だけ出る種類) */
+const 箱の入力: Record<string, { src: string; doc: DslDocument; cdl: CdlDiagram }> = {};
+for (const c of CASES) {
+  板の入力[c.label] = 組み上げる("sequence", c.label);
+  箱の入力[c.label] = 組み上げる("flow", c.label);
 }
 
 describe("parse (Text DSL → DslDocument)", () => {
   for (const c of CASES) {
-    const { src } = PREPARED[c.label]!;
+    const { src } = 板の入力[c.label]!;
     bench(c.label, () => {
       const r = parseTextDslV05(src);
       if (!r.ok) throw new Error("parse failed during bench");
@@ -115,7 +78,7 @@ describe("parse (Text DSL → DslDocument)", () => {
 
 describe("compile (DslDocument → CdlDiagram)", () => {
   for (const c of CASES) {
-    const { doc } = PREPARED[c.label]!;
+    const { doc } = 板の入力[c.label]!;
     bench(c.label, () => {
       compileToCdl(doc);
     });
@@ -124,7 +87,7 @@ describe("compile (DslDocument → CdlDiagram)", () => {
 
 describe("layout (CdlDiagram → LaidDiagram)", () => {
   for (const c of CASES) {
-    const { cdl } = PREPARED[c.label]!;
+    const { cdl } = 箱の入力[c.label]!;
     bench(c.label, () => {
       layout(cdl);
     });
