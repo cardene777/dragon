@@ -3859,8 +3859,8 @@ export const partsCacheBox = diagram("parts-cache-box", {
     h: 150,
     shape: { kind: "rect", source: "{missN}", fillMax: 24, orient: "up", fill: "#f59e0b", radius: 6 },
   })
-  .edge("askP", "hitP", { id: "ca-hit", label: "写しがある", tone: "success" })
-  .edge("askP", "missP", { id: "ca-miss", label: "写しが無い", tone: "warning" })
+  .edge("askP", "hitP", { id: "ca-hit", label: "写しあり", tone: "success" })
+  .edge("askP", "missP", { id: "ca-miss", label: "写しなし", tone: "warning" })
   .phase("p", { duration: 4000, title: "写しで返す", body: "" }, (p: PhaseBuilder) =>
     p
       .activate("askP", "hitP", "missP", "ca-hit", "ca-miss")
@@ -11083,8 +11083,8 @@ actors:
   - 奥から: { kind: dyn-rect, lane: ca2, stack: 2, subtitle: "{missN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{missN}", fillMax: 24, orient: up, fill: "#f59e0b", radius: 6 } }
 
 flow:
-  - 問い合わせ -> 手元から: "写しがある" (success)
-  - 問い合わせ -> 奥から: "写しが無い" (warning)
+  - 問い合わせ -> 手元から: "写しあり" (success)
+  - 問い合わせ -> 奥から: "写しなし" (warning)
 
 animation:
   - step: "写しで返す" 4s
@@ -11135,8 +11135,8 @@ export const sourceJson__partsCacheBox = `{
     }
   ],
   "flow": [
-    { "from": "問い合わせ", "to": "手元から", "label": "写しがある", "tone": "success" },
-    { "from": "問い合わせ", "to": "奥から", "label": "写しが無い", "tone": "warning" }
+    { "from": "問い合わせ", "to": "手元から", "label": "写しあり", "tone": "success" },
+    { "from": "問い合わせ", "to": "奥から", "label": "写しなし", "tone": "warning" }
   ],
   "states": { "askN": 0, "hitN": 0, "missN": 0 },
   "animation": [
