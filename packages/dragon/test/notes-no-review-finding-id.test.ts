@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { 走査するfile, 未追跡のfile } from "../../../test-support/scan-targets";
+import { 注釈を読むfile, 未追跡の注釈を読むfile } from "../../../test-support/scan-targets";
 
 /**
  * 注記と検査の題が、指摘に振った番号で中身を名乗っていないことの検証 (#2082)。
@@ -49,17 +49,18 @@ function 指摘の番号を名乗る(中身: string): boolean {
 }
 
 /**
- * 走査対象 = 追跡している `ts` / `tsx` / `mts` / `mjs` と、未追跡だが無視されていない同じ拡張子。
+ * 走査対象 = 注釈を読む source の全て (追跡と未追跡の両方)。
  *
- * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
+ * 集める処理も、どの拡張子を見るかも `test-support/scan-targets.ts` が 1 か所で持つ
+ * (#2095 / #2242)。 拡張子を呼び出しごとに並べていた間、同じ目的の集合が 2 通りあった。
  */
-const 走査したfile: string[] = 走査するfile(REPO, "*.ts", "*.tsx", "*.mts", "*.mjs");
+const 走査したfile: string[] = 注釈を読むfile(REPO);
 
 /** 未追跡だが無視されていない file (`.gitignore` に載る配布物は入らない) */
-const 未追跡file: string[] = 未追跡のfile(REPO, "*.ts", "*.tsx", "*.mts", "*.mjs");
+const 未追跡file: string[] = 未追跡の注釈を読むfile(REPO);
 
 function 持っているfile(): string[] {
-  return 走査したfile.filter((p) => 指摘の番号を名乗る(readFileSync(join(REPO, p), "utf8")));
+  return 走査したfile.filter((p) => 指摘の番号を名乗る(readFileSync(p, "utf8")));
 }
 
 describe("注記と題が指摘の番号を名乗っていない (#2082)", () => {
@@ -72,11 +73,11 @@ describe("注記と題が指摘の番号を名乗っていない (#2082)", () =>
     // 片側だけを見る形だと、もう片側に同じ書き方が戻っても通る。
     // 実測では `packages/dragon/src` と `apps/playground-spa/src` の両方に残っていた
     expect(
-      走査したfile.some((p) => p.startsWith("packages/dragon/")),
+      走査したfile.some((p) => p.startsWith(join(REPO, "packages/dragon"))),
       "packages 側を走査していない",
     ).toBe(true);
     expect(
-      走査したfile.some((p) => p.startsWith("apps/playground-spa/")),
+      走査したfile.some((p) => p.startsWith(join(REPO, "apps/playground-spa"))),
       "apps 側を走査していない",
     ).toBe(true);
     for (const 拡張子 of [".ts", ".tsx", ".mts", ".mjs"]) {

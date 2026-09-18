@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import { 走査するfile } from "../../../test-support/scan-targets";
+import { dirname, join, relative } from "node:path";
+import { 注釈を読むfile } from "../../../test-support/scan-targets";
 
 /**
  * 注記と検査の題が、いま出している変更を指す書き方を持たないことの検証 (#2081)。
@@ -35,15 +35,21 @@ const 例外: Record<string, string> = {
 };
 
 /**
- * 走査対象 = 追跡している `ts` / `tsx` / `mts` / `mjs` と、未追跡だが無視されていない同じ拡張子。
+ * 走査対象 = 注釈を読む source の全て (追跡と未追跡の両方)。
  *
- * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
- * 配布物 (`dist`) は無視設定に載っているので、どちらの一覧にも入らない。
+ * 集める処理も、どの拡張子を見るかも `test-support/scan-targets.ts` が 1 か所で持つ
+ * (#2095 / #2242)。 配布物 (`dist`) は無視設定に載っているので入らない。
+ *
+ * **宣言の鍵は repo から見た path で書く**。 走査は絶対 path を返すので、
+ * 突き合わせる時だけ repo からの path に直す。
  */
-const 走査したfile: string[] = 走査するfile(REPO, "*.ts", "*.tsx", "*.mts", "*.mjs");
+const 走査したfile: string[] = 注釈を読むfile(REPO);
+
+/** 走査した絶対 path を、宣言の鍵と同じ形 (repo から見た path) に直す */
+const 宣言の鍵 = (p: string): string => relative(REPO, p);
 
 function 持っているfile(): string[] {
-  return 走査したfile.filter((p) => 探す字.test(readFileSync(join(REPO, p), "utf8")));
+  return 走査したfile.filter((p) => 探す字.test(readFileSync(p, "utf8")));
 }
 
 describe("注記がいま出している変更を指していない (#2081)", () => {
@@ -54,8 +60,9 @@ describe("注記がいま出している変更を指していない (#2081)", ()
 
   it("宣言した file が実在し、理由を持つ", () => {
     // 消えた file の宣言が残ると、同じ字が別の file に出た時に黙って通る
+    const 走査した鍵 = 走査したfile.map(宣言の鍵);
     for (const [p, 理由] of Object.entries(例外)) {
-      expect(走査したfile, `宣言した file が走査対象に無い: ${p}`).toContain(p);
+      expect(走査した鍵, `宣言した file が走査対象に無い: ${p}`).toContain(p);
       expect(理由.length, `宣言に理由が無い: ${p}`).toBeGreaterThan(10);
     }
   });
@@ -70,7 +77,9 @@ describe("注記がいま出している変更を指していない (#2081)", ()
   });
 
   it("宣言していない file がその字を持っていない", () => {
-    const 残る = 持っているfile().filter((p) => !(p in 例外));
+    const 残る = 持っているfile()
+      .map(宣言の鍵)
+      .filter((p) => !(p in 例外));
     expect(残る, "注記がいま出している変更を指している").toEqual([]);
   });
 

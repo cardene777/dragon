@@ -97,11 +97,38 @@ export function 説明書のfile(repo: string): string[] {
 }
 
 /**
+ * 注釈を読む source の拡張子。
+ *
+ * **`.mjs` と `.mts` を入れる** (#2242)。 入れていなかった間、`scripts/` の 26 file を
+ * 1 つも見ておらず、撮影の道具の注釈に古い件数が 3 つ残っていた
+ * (catalog の図を 328 件、分類を 8 と書いており、実物は分類だけで 11)。
+ *
+ * 注記を見る検査 (`notes-no-review-finding-id` / `notes-no-this-pr-reference`) は
+ * 最初からこの 4 つを見ており、**同じ「source の注釈を読む」 目的で集合が 2 通りあった**。
+ */
+const 注釈を読む拡張子 = ["*.ts", "*.tsx", "*.mts", "*.mjs"];
+
+/**
  * 注釈を読む source の絶対 path。
  *
  * 注釈の言い回しを見る検査が使う。 入口を並べていた頃は `test-support/` と根の設定 file と
  * 意匠帳の見本が外に残っており、そこに書いた注釈は止まらなかった (#2238)。
  */
 export function 注釈を読むfile(repo: string): string[] {
-  return 絶対path(repo, 走査するfile(repo, "*.ts", "*.tsx"));
+  return 絶対path(repo, 走査するfile(repo, ...注釈を読む拡張子));
+}
+
+/**
+ * 注釈を読む source のうち、追跡しているものだけ。
+ *
+ * 「repo に残っているもの」 を数える検査が使う。 手元で作った file を母数に入れると、
+ * 作業中の file が判定に混ざる。
+ */
+export function 追跡している注釈を読むfile(repo: string): string[] {
+  return 絶対path(repo, 追跡しているfile(repo, ...注釈を読む拡張子));
+}
+
+/** 注釈を読む source のうち、未追跡だが無視されていないもの */
+export function 未追跡の注釈を読むfile(repo: string): string[] {
+  return 絶対path(repo, 未追跡のfile(repo, ...注釈を読む拡張子));
 }
