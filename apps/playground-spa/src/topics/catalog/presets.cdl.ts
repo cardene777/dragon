@@ -1781,6 +1781,91 @@ export const presetUserJourney = withSteps(
   [{ id: "form_mood", initial: "frustrated" }],
 );
 
+export const patternBase__presetUserJourney = "簡単";
+
+/**
+ * 体験の道筋の複雑な版 (#2183)。
+ *
+ * 簡単な版は 4 段階で、動くのは 1 段階の気持ちだけ。 実際に読み取りが要るのは
+ * 「何段階かの落ち込みを順に直すと、道筋全体の形が変わる」 形で、1 段階の上下では描けない。
+ *
+ * 買い物の体験を 6 段階に分け、探しにくさと支払いの選び方の 2 か所で気持ちが落ちる形にする。
+ * 直す順に段を分けるので、どの改善がどの谷を埋めたかが読み取れる。
+ *
+ * **段階は 6 が上限**。 段階の名札は横に等間隔で並ぶので、8 段階にすると隣の名札に重なる
+ * (画面で「3. 内容を読む」 と「4. かごに入れる」 が重なり、後ろの 4 つは互いに潰れた)。
+ * 直しどころの札も隣り合うと重なるので、落ちる段階は 1 つ空けて置く。
+ *
+ * **これらは数の検査に出ない**。 板 1 枚で描く図は段階を増やしても `viewBox` が 865x600 の
+ * まま変わらず指摘も 0 件で、画面で見て初めて分かる (進捗図でも同じことが起きた、#2181)。
+ */
+const JOURNEY_COMPLEX_STEPS = [
+  { id: "jc_ad", title: "広告を見る", emotion: "neutral", touchpoint: "広告" },
+  { id: "jc_find", title: "商品を探す", emotion: "{jc_find_mood}", touchpoint: "検索" },
+  { id: "jc_cart", title: "かごに入れる", emotion: "happy", touchpoint: "買い物かご" },
+  { id: "jc_pay", title: "支払いを選ぶ", emotion: "{jc_pay_mood}", touchpoint: "支払い画面" },
+  { id: "jc_check", title: "注文を確かめる", emotion: "neutral", touchpoint: "確認画面" },
+  { id: "jc_wait", title: "届くのを待つ", emotion: "{jc_wait_mood}", touchpoint: "お知らせ" },
+] as const;
+
+const journeyComplexBuilder = userJourney({
+  id: "journey-complex-demo",
+  topic: "買い物の道筋にある 2 つの落ち込みを順に直す図",
+});
+for (const s of JOURNEY_COMPLEX_STEPS) {
+  // 組み立ての段では落ち込んだ側の気持ちを置き、状態は下の `bindFirstNode` で差し替える
+  journeyComplexBuilder.step({
+    id: s.id,
+    title: s.title,
+    emotion: "neutral",
+    touchpoint: s.touchpoint,
+    ...(s.id === "jc_find" ? { opportunity: "探しやすさを直す" } : {}),
+    // 札は 8 文字まで。 10 文字にすると札の枠から字がはみ出す (画面で確かめた)
+    ...(s.id === "jc_pay" ? { opportunity: "支払いを直す" } : {}),
+  });
+}
+
+export const pattern__presetUserJourney__複雑 = withSteps(
+  bindFirstNode(journeyComplexBuilder.build(), (n) => ({
+    ...n,
+    // `journeyData` は `JOURNEY_COMPLEX_STEPS` を回す `for` で 1:1 に作るので長さは常に一致する
+    journeyData: n.journeyData?.map((s, i) => {
+      const 元 = JOURNEY_COMPLEX_STEPS[i];
+      return 元 === undefined ? s : { ...s, emotion: 元.emotion };
+    }),
+  })),
+  [
+    {
+      ids: ["journey-complex-demo-journey"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["journey-complex-demo-journey"],
+      // 描く段は伸ばす (#1353)。 8 段階を追うので簡単な版より長く取る
+      duration: DRAW_DURATION,
+      title: "直す前",
+      body: "商品を探す段階と支払いを選ぶ段階の 2 か所で気持ちが落ちる。 道筋が 2 つの谷を作る。",
+    },
+    {
+      title: "探しやすさを直す",
+      body: "絞り込みを足すと、商品を探す段階の谷が満足まで上がる。 残る谷は 1 つ。",
+      sets: [{ id: "jc_find_mood", value: "happy" }],
+    },
+    {
+      title: "支払いの選び方を直す",
+      body: "よく使う手立てを先頭に出すと、支払いの谷も埋まる。 谷が無くなる。",
+      sets: [{ id: "jc_pay_mood", value: "happy" }],
+    },
+    {
+      body: "2 つ直した後は、届くのを待つ段階が最も高くなる。 道筋全体が右上がりになった。",
+      sets: [{ id: "jc_wait_mood", value: "delighted" }],
+    },
+  ],
+  [
+    { id: "jc_find_mood", initial: "frustrated" },
+    { id: "jc_pay_mood", initial: "frustrated" },
+    { id: "jc_wait_mood", initial: "happy" },
+  ],
+);
+
 // mindMap preset ... 中心 + 放射 branch
 // 中心の主題を状態から取り、主題が定まる様子を見せる (cdl 0.7.0 で名前が状態を読む)。
 export const presetMindMap = withSteps(
