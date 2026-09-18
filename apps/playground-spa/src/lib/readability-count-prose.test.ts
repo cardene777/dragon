@@ -1,7 +1,8 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
+import { 走査するfile, 絶対path } from "../../../../test-support/scan-targets";
 
 /**
  * 読みにくい図の枚数を、注釈に手で書き戻させない (#2214)。
@@ -39,8 +40,10 @@ import { describe, it, expect } from "vitest";
  * ## 走査は対象ではなく除外で決める
  *
  * 走査する file を並べると、書き手が思い付いた場所が上限になる
- * (`rules/quality.md § 全件走査は除外を書く`)。 dir を降りて `.ts` / `.tsx` を全て読み、
- * 生成物の dir だけ外す。
+ * (`rules/quality.md § 全件走査は除外を書く`)。
+ *
+ * **入口を 4 つ並べていた間、説明文だけがこう書いてあった** (#2238)。 集め方は
+ * `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
  *
  * ## 走査した件数を出す
  *
@@ -50,46 +53,17 @@ import { describe, it, expect } from "vitest";
 const ここ = dirname(fileURLToPath(import.meta.url));
 const 根 = join(ここ, "..", "..", "..", "..");
 
-/** 降りない dir。 対象を並べる代わりに外す側を書く */
-const 降りない = new Set([
-  "node_modules",
-  "dist",
-  ".git",
-  ".context",
-  "coverage",
-  "playwright-report",
-]);
-
-/** 走査する入口 */
-const 入口 = [
-  join(根, "apps", "playground-spa", "src"),
-  join(根, "apps", "playground-spa", "tests"),
-  join(根, "packages", "dragon", "src"),
-  join(根, "packages", "dragon", "test"),
-];
-
-function fileを集める(dir: string): string[] {
-  const 出た: string[] = [];
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
-    if (降りない.has(e.name)) continue;
-    const p = join(dir, e.name);
-    if (e.isDirectory()) 出た.push(...fileを集める(p));
-    else if (/\.tsx?$/.test(e.name)) 出た.push(p);
-  }
-  return 出た;
-}
-
 /** 注釈の 1 行 (`//` の行と、ブロック注釈の `*` 始まりの行) */
 const 注釈の行か = (行: string): boolean => /^\s*(\/\/|\*|\/\*)/.test(行);
 
-const 注釈: Array<{ file: string; 行: string }> = 入口
-  .flatMap((d) => fileを集める(d))
-  .flatMap((p) =>
-    readFileSync(p, "utf8")
-      .split("\n")
-      .filter(注釈の行か)
-      .map((行) => ({ file: relative(根, p), 行: 行.trim() })),
-  );
+const 走査したfile = 絶対path(根, 走査するfile(根, "*.ts", "*.tsx"));
+
+const 注釈: Array<{ file: string; 行: string }> = 走査したfile.flatMap((p) =>
+  readFileSync(p, "utf8")
+    .split("\n")
+    .filter(注釈の行か)
+    .map((行) => ({ file: relative(根, p), 行: 行.trim() })),
+);
 
 /**
  * 下限や高さの線を割る図の枚数を書いた形。
@@ -108,7 +82,21 @@ const 拾う = (行: string): boolean => 枚数の形.some((r) => r.test(行));
 describe("読みにくい図の枚数を注釈に書かない (#2214)", () => {
   it("注釈を 1 行以上走査できている", () => {
     // 走査できていなければ、下の 0 件は「該当なし」 ではなく「測っていない」 になる
+    console.log(`[枚数の注釈] file=${走査したfile.length} 注釈=${注釈.length} 行`);
     expect(注釈.length, "走査した dir から注釈を 1 行も読めていない").toBeGreaterThan(1000);
+    // 入口を並べていた頃に外れていた場所 (#2238)。 減らすと同じ抜けに戻る
+    expect(
+      走査したfile.some((p) => p === join(根, "test-support", "scan-targets.ts")),
+      "走査の集め方そのものを見ていない (#2238 が広げた先)",
+    ).toBe(true);
+    expect(
+      走査したfile.some((p) => p === join(根, "vitest.config.ts")),
+      "根の設定 file を見ていない (#2238 が広げた先)",
+    ).toBe(true);
+    expect(
+      走査したfile.filter((p) => p.includes("/node_modules/") || p.includes("/dist/")),
+      "無視設定の dir の file が混ざっている",
+    ).toEqual([]);
   });
 
   it("枚数を書いた注釈が無い", () => {
