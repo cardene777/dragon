@@ -302,6 +302,8 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     "funnel-complex-demo",
     // 四象限図も同じ (#2187)。 項目が 12 でも箱は 1 つで、段は居る枠の値を置き換える
     "quad-complex-demo",
+    // 階層図も同じ (#2189)。 箱が 12 でも図としては 1 つで、段は名前と人数の値を置き換える
+    "tree-complex-demo",
   ]);
   // cdl 0.7.0 で木と放射も名前が状態を読むようになり、対象外は 0 件になった
   const 経路無し = new Set<string>();
@@ -356,10 +358,10 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     expect(進まない, `光る箱が積み上がらない: ${進まない.join(", ")}`).toHaveLength(0);
   });
 
-  it("箱が 1 つの 16 件は、段が図表の中身を動かす", () => {
+  it("箱が 1 つの 17 件は、段が図表の中身を動かす", () => {
     // 箱が 1 つしか無いので光らせ方では動かせない。 値を動かす宣言を持つことを見る
     const 対象 = 型.filter(([, d]) => 箱が1つ.has(d.id));
-    expect(対象).toHaveLength(16);
+    expect(対象).toHaveLength(17);
 
     const 動かさない = 対象
       .filter(([, d]) => !d.phases.some((p) => (p.tweens?.length ?? 0) > 0 || (p.sets?.length ?? 0) > 0))
