@@ -551,6 +551,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsCacheBox: "繋ぐ: 手元の写しで返す",
   partsBarrierBox: "繋ぐ: 両方そろってから出す",
   partsDedupeBox: "繋ぐ: 二度目を捨てる",
+  partsEvictBox: "繋ぐ: 満ちたら古い順に押し出す",
+  partsExpireBox: "繋ぐ: 時が過ぎた分が消える",
+  partsBackpressure: "繋ぐ: 詰まると入口を絞る",
+  partsSplitBox: "繋ぐ: 大きいものを割る",
 };
 
 /**
@@ -1035,6 +1039,10 @@ export const ITEM_NAME_EN: Record<string, string> = {
   partsCacheBox: "Wire: answer from the local copy",
   partsBarrierBox: "Wire: release only once both sides arrive",
   partsDedupeBox: "Wire: drop the second copy",
+  partsEvictBox: "Wire: evict the oldest when full",
+  partsExpireBox: "Wire: entries vanish once they age out",
+  partsBackpressure: "Wire: throttle the sender when backed up",
+  partsSplitBox: "Wire: break one large item into many",
 };
 
 /**
