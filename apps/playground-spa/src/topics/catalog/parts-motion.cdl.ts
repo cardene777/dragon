@@ -31,7 +31,7 @@ import * as 部品 from "./parts.cdl";
  * `flow` と `topology` は部品を他の箱の下の格子に置くため、矢印が間の箱を貫く (#1979 の実測)。
  * 繋ぎ方の頁と同じ理由で `swimlane` を使う。
  *
- * ## 16 の切替
+ * ## 20 の切替
  *
  * | 切替 | 見せること |
  * |---|---|
@@ -51,6 +51,10 @@ import * as 部品 from "./parts.cdl";
  * | 割ってから詰まらせる | 割り箱の小さい荷物を押し戻し箱の送るへ繋ぎ、増えた分が後ろを詰まらせる形を見せる (#2204) |
  * | そろってから押し出す | 待ち合わせ箱のそろった分を押し出し箱の届くへ繋ぎ、置き場に入り切らない分が出る形を見せる (#2204) |
  * | 落ちた分が消える | 遮断器の落ちるを期限切れ箱の置くへ繋ぎ、誰も消しに行かないのに減る形を見せる (#2204) |
+ * | 鍵の偏りを釣り合わせる | 鍵割り箱の 2 つの先を釣り合い箱の送り主 2 人へ繋ぎ、鍵が作った偏りが出口で均される形を見せる (#2210) |
+ * | 落ちた分が相乗りする | 遮断器の落ちるを相乗り箱の問いへ繋ぎ、いっせいの問い直しが 1 本にまとまる形を見せる (#2210) |
+ * | 順に戻してから溜める | 順番戻し箱の出せるをまとめ箱の届くへ繋ぎ、番が来た分だけが束になる形を見せる (#2210) |
+ * | 釣り合わせてから順に戻す | 釣り合い箱の出すを順番戻し箱の届くへ繋ぎ、交互に出すと元の順でなくなる形を見せる (#2210) |
  *
  * ## 繋ぐ先の段は数字ではなく詰めた後の並びで決まる (#2204 の実測)
  *
@@ -77,10 +81,15 @@ import * as 部品 from "./parts.cdl";
  * 一覧の器で箱の題が 12.0px の境に乗る (実測)。
  * 「やり直してから倒す」 は札を 3 字にして 1533 × 960 に収めた。 4 字の「通った分」 だと 1605 に伸び、
  * 同じ境に乗る (実測)。
- * **部品の中の札の長さは、その部品を繋いだ板の幅に効く** (#2195 の実測)。 写し箱の中の札が
- * 5 字 (「写しがある」) の時、繋いだ板は 1659 に伸びて箱の題が 11.6px になった。 札を 4 字
- * (「写しあり」) にすると部品そのものが 764 から 740 に縮み、繋いだ板も 1587 に収まった。
- * 繋ぐ側の札を短くしても変わらない = 伸びているのは部品の中で、繋ぐ線ではない。
+ * **5 字の札が 1 つあると板が 1659 に伸びる。 部品の中でも繋ぐ線でも同じ** (#2195 / #2210 の実測)。
+ * 写し箱の中の札が 5 字 (「写しがある」) の時、繋いだ板は 1659 に伸びて箱の題が 11.6px になった。
+ * 札を 4 字 (「写しあり」) にすると部品そのものが 764 から 740 に縮み、繋いだ板も 1587 に収まった。
+ * 繋ぐ線の札でも同じで、5 字 (「順に出た分」) で 1659、4 字 (「出せた分」) で 1587 になる (#2210)。
+ *
+ * #2195 の時点では「繋ぐ側の札を短くしても変わらない」 と書いていたが、それはあの図で
+ * **部品の中にもっと長い札があった** ためで、繋ぐ線が幅に効かないという意味ではない。
+ * 効くのは **その列で一番長い札** で、部品の中か繋ぐ線かは問わない。 帯の札は幅を変えない
+ * (「並べ直す」 を「戻す」 にしても 1659 のまま、実測)。
  * 札の字も短くする = 負荷分散器の札を「真ん中へ」 にすると図が 1659 に伸び、一覧の器で
  * 箱の題が 11.6px になった (実測)。 幅は 1602 までなら 12px に届く。
  *
@@ -1632,5 +1641,418 @@ export const sourceJson__pattern__partsMotion__落ちた分が消える = `{
 
 export const pattern__partsMotion__落ちた分が消える = textDslToDiagram(
   sourceYaml__pattern__partsMotion__落ちた分が消える,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__鍵の偏りを釣り合わせる = `title: "鍵で偏った分を出口で釣り合わせる"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  割る: { label: "割る" }
+  釣り合わせる: { label: "釣り合わせる" }
+
+# 2 枚の間に線を 2 本引く 2 つ目の切替。 鍵の先 (上から 1 行目と 3 行目) を
+# 送り主 2 人 (同じ 1 行目と 3 行目) へ繋ぐと、どちらも真横に引ける
+actors:
+  - kr: { kind: key-router, phase: false, lane: 割る }
+  - fq: { kind: fair-queue, phase: false, lane: 釣り合わせる }
+
+# 鍵が作った偏りを出口が均す。 偏りを作る側と均す側を 1 枚に並べる
+flow:
+  - kr -> fq: "多い方" { fromPartNode: aP, toPartNode: bigP }
+  - kr -> fq: "少ない方" { fromPartNode: bP, toPartNode: smallP }
+
+animation:
+  - step: "1. 届く" 1.2s
+    focus: [kr__inP]
+    badge: "到着"
+    tween:
+      kr__inN: 0 -> 24
+    body: "24 件が届く。 まだどちらの鍵へ行くかは分かれていない。"
+  - step: "2. 鍵で偏る" 1.4s
+    focus: [kr]
+    badge: "偏り"
+    tween:
+      kr__aN: 0 -> 18
+      kr__bN: 0 -> 6
+    body: "鍵で 18 件と 6 件に分かれる。 割合を変えても直せない偏りができた。"
+  - step: "3. 出口へ送る" 1.4s
+    focus: [kr__aP, kr__bP, fq__bigP, fq__smallP, "kr -> fq"]
+    badge: "受渡"
+    tween:
+      fq__bigN: 0 -> 18
+      fq__smallN: 0 -> 6
+    body: "多い方が 18 件、少ない方が 6 件で出口に並ぶ。 同じ上限 30 の目盛りで比べる。"
+  - step: "4. 釣り合う" 1.4s
+    focus: [fq]
+    badge: "均し"
+    tween:
+      fq__outN: 0 -> 12
+    body: "どちらからも 6 件ずつで 12 件が出る。 多い方に残る 12 件は次の順番まで待つ。"
+`;
+
+export const sourceJson__pattern__partsMotion__鍵の偏りを釣り合わせる = `{
+  "title": "鍵で偏った分を出口で釣り合わせる",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "割る": { "label": "割る" },
+    "釣り合わせる": { "label": "釣り合わせる" }
+  },
+  "actors": [
+    { "name": "kr", "kind": "key-router", "phase": false, "lane": "割る" },
+    { "name": "fq", "kind": "fair-queue", "phase": false, "lane": "釣り合わせる" }
+  ],
+  "flow": [
+    { "from": "kr", "to": "fq", "label": "多い方", "fromPartNode": "aP", "toPartNode": "bigP" },
+    { "from": "kr", "to": "fq", "label": "少ない方", "fromPartNode": "bP", "toPartNode": "smallP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 届く",
+      "duration": 1.2,
+      "focus": ["kr__inP"],
+      "badge": "到着",
+      "tween": { "kr__inN": [0, 24] },
+      "body": "24 件が届く。 まだどちらの鍵へ行くかは分かれていない。"
+    },
+    {
+      "step": "2. 鍵で偏る",
+      "duration": 1.4,
+      "focus": ["kr"],
+      "badge": "偏り",
+      "tween": { "kr__aN": [0, 18], "kr__bN": [0, 6] },
+      "body": "鍵で 18 件と 6 件に分かれる。 割合を変えても直せない偏りができた。"
+    },
+    {
+      "step": "3. 出口へ送る",
+      "duration": 1.4,
+      "focus": ["kr__aP", "kr__bP", "fq__bigP", "fq__smallP", "kr -> fq"],
+      "badge": "受渡",
+      "tween": { "fq__bigN": [0, 18], "fq__smallN": [0, 6] },
+      "body": "多い方が 18 件、少ない方が 6 件で出口に並ぶ。 同じ上限 30 の目盛りで比べる。"
+    },
+    {
+      "step": "4. 釣り合う",
+      "duration": 1.4,
+      "focus": ["fq"],
+      "badge": "均し",
+      "tween": { "fq__outN": [0, 12] },
+      "body": "どちらからも 6 件ずつで 12 件が出る。 多い方に残る 12 件は次の順番まで待つ。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__鍵の偏りを釣り合わせる = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__鍵の偏りを釣り合わせる,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__落ちた分が相乗りする = `title: "落ちた分を問い直すと同時の問いが 1 本にまとまる"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  遮る: { label: "遮る" }
+  相乗り: { label: "相乗り" }
+
+# 落ちる (上から 2 行目) と問い (上から 2 行目) で矢印が真横に引ける
+actors:
+  - cb: { kind: circuit-breaker, phase: false, lane: 遮る }
+  - sf: { kind: single-flight, phase: false, lane: 相乗り }
+
+# 落ちた分がいっせいに問い直す形。 遮断だけでは奥への本数が減らないことを見せる
+flow:
+  - cb -> sf: "落ちた分" { fromPartNode: ngP, toPartNode: askP }
+
+animation:
+  - step: "1. 試す" 1.2s
+    focus: [cb__inP]
+    badge: "到着"
+    tween:
+      cb__inN: 0 -> 20
+    body: "20 件を試す。 まだ通るか落ちるかは分かれていない。"
+  - step: "2. 落ちる" 1.4s
+    focus: [cb]
+    badge: "遮断"
+    tween:
+      cb__okN: 0 -> 4
+      cb__ngN: 0 -> 12
+      cb__cutN: 0 -> 4
+    body: "4 件が通り 12 件が落ち、残る 4 件は試さずに断る。"
+  - step: "3. 問い直す" 1.4s
+    focus: [cb__ngP, sf__askP, "cb -> sf"]
+    badge: "受渡"
+    tween:
+      sf__askN: 0 -> 12
+    body: "落ちた 12 件がいっせいに問い直す。 このままだと奥へ 12 本行く。"
+  - step: "4. 相乗りする" 1.4s
+    focus: [sf]
+    badge: "相乗"
+    tween:
+      sf__oneN: 0 -> 2
+      sf__allN: 0 -> 12
+    body: "12 件が 2 本にまとまって奥へ行き、返った答えは 12 件へ配られる。 1 件も捨てていない。"
+`;
+
+export const sourceJson__pattern__partsMotion__落ちた分が相乗りする = `{
+  "title": "落ちた分を問い直すと同時の問いが 1 本にまとまる",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "遮る": { "label": "遮る" },
+    "相乗り": { "label": "相乗り" }
+  },
+  "actors": [
+    { "name": "cb", "kind": "circuit-breaker", "phase": false, "lane": "遮る" },
+    { "name": "sf", "kind": "single-flight", "phase": false, "lane": "相乗り" }
+  ],
+  "flow": [
+    { "from": "cb", "to": "sf", "label": "落ちた分", "fromPartNode": "ngP", "toPartNode": "askP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 試す",
+      "duration": 1.2,
+      "focus": ["cb__inP"],
+      "badge": "到着",
+      "tween": { "cb__inN": [0, 20] },
+      "body": "20 件を試す。 まだ通るか落ちるかは分かれていない。"
+    },
+    {
+      "step": "2. 落ちる",
+      "duration": 1.4,
+      "focus": ["cb"],
+      "badge": "遮断",
+      "tween": { "cb__okN": [0, 4], "cb__ngN": [0, 12], "cb__cutN": [0, 4] },
+      "body": "4 件が通り 12 件が落ち、残る 4 件は試さずに断る。"
+    },
+    {
+      "step": "3. 問い直す",
+      "duration": 1.4,
+      "focus": ["cb__ngP", "sf__askP", "cb -> sf"],
+      "badge": "受渡",
+      "tween": { "sf__askN": [0, 12] },
+      "body": "落ちた 12 件がいっせいに問い直す。 このままだと奥へ 12 本行く。"
+    },
+    {
+      "step": "4. 相乗りする",
+      "duration": 1.4,
+      "focus": ["sf"],
+      "badge": "相乗",
+      "tween": { "sf__oneN": [0, 2], "sf__allN": [0, 12] },
+      "body": "12 件が 2 本にまとまって奥へ行き、返った答えは 12 件へ配られる。 1 件も捨てていない。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__落ちた分が相乗りする = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__落ちた分が相乗りする,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__順に戻してから溜める = `title: "番が来た分だけ順に戻して溜める"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  並べ直す: { label: "並べ直す" }
+  溜める: { label: "溜める" }
+
+# 出せる (上から 1 行目) と届く (上から 1 行目) で矢印が真横に引ける。
+# 繋ぐ札は 4 字まで = 5 字にすると板が 1659 に伸びて箱の題が 11.6px になる (#2210 の実測)
+actors:
+  - ro: { kind: reorder-box, phase: false, lane: 並べ直す }
+  - bt: { kind: batch-collector, phase: false, lane: 溜める }
+
+# 順番で減り、束の大きさでもう一度減る。 減る理由が 2 回とも違う
+flow:
+  - ro -> bt: "出せた分" { fromPartNode: outP, toPartNode: inP }
+
+animation:
+  - step: "1. ばらばらに届く" 1.2s
+    focus: [ro__inP]
+    badge: "到着"
+    tween:
+      ro__inN: 0 -> 20
+    body: "20 件がばらばらの順で届く。 まだ 1 件も出せていない。"
+  - step: "2. 番で分かれる" 1.4s
+    focus: [ro]
+    badge: "順番"
+    tween:
+      ro__outN: 0 -> 12
+      ro__holdN: 0 -> 8
+    body: "番が来た 12 件が出せ、前を待つ 8 件は捨てられずに残る。"
+  - step: "3. 溜める" 1.4s
+    focus: [ro__outP, bt__inP, "ro -> bt"]
+    badge: "受渡"
+    tween:
+      bt__inN: 0 -> 12
+      bt__poolN: 0 -> 10
+    body: "順に出た 12 件が 1 件ずつ溜まり、10 件で溜まりが満ちる。"
+  - step: "4. まとめて送る" 1.4s
+    focus: [bt]
+    badge: "送出"
+    tween:
+      bt__sendN: 0 -> 1
+    body: "10 件で 1 回送る。 残る 2 件は次の束が満ちるまで出ない。"
+`;
+
+export const sourceJson__pattern__partsMotion__順に戻してから溜める = `{
+  "title": "番が来た分だけ順に戻して溜める",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "並べ直す": { "label": "並べ直す" },
+    "溜める": { "label": "溜める" }
+  },
+  "actors": [
+    { "name": "ro", "kind": "reorder-box", "phase": false, "lane": "並べ直す" },
+    { "name": "bt", "kind": "batch-collector", "phase": false, "lane": "溜める" }
+  ],
+  "flow": [
+    { "from": "ro", "to": "bt", "label": "出せた分", "fromPartNode": "outP", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. ばらばらに届く",
+      "duration": 1.2,
+      "focus": ["ro__inP"],
+      "badge": "到着",
+      "tween": { "ro__inN": [0, 20] },
+      "body": "20 件がばらばらの順で届く。 まだ 1 件も出せていない。"
+    },
+    {
+      "step": "2. 番で分かれる",
+      "duration": 1.4,
+      "focus": ["ro"],
+      "badge": "順番",
+      "tween": { "ro__outN": [0, 12], "ro__holdN": [0, 8] },
+      "body": "番が来た 12 件が出せ、前を待つ 8 件は捨てられずに残る。"
+    },
+    {
+      "step": "3. 溜める",
+      "duration": 1.4,
+      "focus": ["ro__outP", "bt__inP", "ro -> bt"],
+      "badge": "受渡",
+      "tween": { "bt__inN": [0, 12], "bt__poolN": [0, 10] },
+      "body": "順に出た 12 件が 1 件ずつ溜まり、10 件で溜まりが満ちる。"
+    },
+    {
+      "step": "4. まとめて送る",
+      "duration": 1.4,
+      "focus": ["bt"],
+      "badge": "送出",
+      "tween": { "bt__sendN": [0, 1] },
+      "body": "10 件で 1 回送る。 残る 2 件は次の束が満ちるまで出ない。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__順に戻してから溜める = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__順に戻してから溜める,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__釣り合わせてから順に戻す = `title: "交互に出した分を元の順に並べ直す"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  釣り合わせる: { label: "釣り合わせる" }
+  並べ直す: { label: "並べ直す" }
+
+# 出す (上から 2 行目) と届く (上から 2 行目) で矢印が真横に引ける
+actors:
+  - fq: { kind: fair-queue, phase: false, lane: 釣り合わせる }
+  - ro: { kind: reorder-box, phase: false, lane: 並べ直す }
+
+# 釣り合い箱は渡す側にも受ける側にもなる (「鍵の偏りを釣り合わせる」 では受ける側)
+flow:
+  - fq -> ro: "交互の分" { fromPartNode: outP, toPartNode: inP }
+
+animation:
+  - step: "1. 送り主が並ぶ" 1.2s
+    focus: [fq__bigP, fq__smallP]
+    badge: "到着"
+    tween:
+      fq__bigN: 0 -> 30
+      fq__smallN: 0 -> 6
+    body: "30 件送る人と 6 件送る人が並ぶ。 まだ 1 件も出ていない。"
+  - step: "2. 交互に出る" 1.4s
+    focus: [fq]
+    badge: "均し"
+    tween:
+      fq__outN: 0 -> 12
+    body: "どちらからも 6 件ずつで 12 件が出る。 多く送る人の棒は満杯のまま動かない。"
+  - step: "3. 並べ直しへ" 1.4s
+    focus: [fq__outP, ro__inP, "fq -> ro"]
+    badge: "受渡"
+    tween:
+      ro__inN: 0 -> 12
+    body: "交互に出た 12 件は元の順ではないので、並べ直しへ入る。"
+  - step: "4. 番が来た分だけ出す" 1.4s
+    focus: [ro]
+    badge: "順番"
+    tween:
+      ro__outN: 0 -> 7
+      ro__holdN: 0 -> 5
+    body: "番が来た 7 件が出せ、前を待つ 5 件は残る。 釣り合わせた代わりに順が乱れた。"
+`;
+
+export const sourceJson__pattern__partsMotion__釣り合わせてから順に戻す = `{
+  "title": "交互に出した分を元の順に並べ直す",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "釣り合わせる": { "label": "釣り合わせる" },
+    "並べ直す": { "label": "並べ直す" }
+  },
+  "actors": [
+    { "name": "fq", "kind": "fair-queue", "phase": false, "lane": "釣り合わせる" },
+    { "name": "ro", "kind": "reorder-box", "phase": false, "lane": "並べ直す" }
+  ],
+  "flow": [
+    { "from": "fq", "to": "ro", "label": "交互の分", "fromPartNode": "outP", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 送り主が並ぶ",
+      "duration": 1.2,
+      "focus": ["fq__bigP", "fq__smallP"],
+      "badge": "到着",
+      "tween": { "fq__bigN": [0, 30], "fq__smallN": [0, 6] },
+      "body": "30 件送る人と 6 件送る人が並ぶ。 まだ 1 件も出ていない。"
+    },
+    {
+      "step": "2. 交互に出る",
+      "duration": 1.4,
+      "focus": ["fq"],
+      "badge": "均し",
+      "tween": { "fq__outN": [0, 12] },
+      "body": "どちらからも 6 件ずつで 12 件が出る。 多く送る人の棒は満杯のまま動かない。"
+    },
+    {
+      "step": "3. 並べ直しへ",
+      "duration": 1.4,
+      "focus": ["fq__outP", "ro__inP", "fq -> ro"],
+      "badge": "受渡",
+      "tween": { "ro__inN": [0, 12] },
+      "body": "交互に出た 12 件は元の順ではないので、並べ直しへ入る。"
+    },
+    {
+      "step": "4. 番が来た分だけ出す",
+      "duration": 1.4,
+      "focus": ["ro"],
+      "badge": "順番",
+      "tween": { "ro__outN": [0, 7], "ro__holdN": [0, 5] },
+      "body": "番が来た 7 件が出せ、前を待つ 5 件は残る。 釣り合わせた代わりに順が乱れた。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__釣り合わせてから順に戻す = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__釣り合わせてから順に戻す,
   { partsCatalog: 部品の一覧 },
 );
