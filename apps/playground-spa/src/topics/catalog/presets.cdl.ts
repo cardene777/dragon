@@ -2185,6 +2185,96 @@ export const presetGantt = withSteps(
   [{ id: "build_end", initial: 1 }],
 );
 
+export const patternBase__presetGantt = "簡単";
+
+/**
+ * 進捗図の複雑な版 (#2181)。
+ *
+ * 簡単な版は 4 作業を四半期ごとに 1 つずつ並べた形で、遅れも 1 本の帯が 1 期ぶん延びるだけ。
+ * 実際に読み取りが要るのは「1 つの遅れが後ろの作業を次々と押し出す」 形で、4 作業では描けない。
+ *
+ * **動かすのは帯の終わりだけで、始まりは動かさない**。 目盛りの月名は帯が持つ月名から作られ、
+ * **始まりの月名が終わりの月名より強い**。 始まりを状態から動かすと、動いた先の列に古い月名を
+ * 置いてしまう (実測 = 外部と繋ぐの始まりを 8 月から 9 月の列へ動かしたら、その列の見出しが
+ * 「9月」 から「8月」 に化けた)。 月名そのものを状態から取る書き方も試したが、`{...}` が
+ * そのまま文字として出た。
+ *
+ * そこで **月の数だけ作業を置き、1 つの月に 1 つの始まりを置く**。 どの段でも 6 列ぶんの
+ * 見出しが埋まるので、終わりが右隣の列へ伸びても目盛りは崩れない。 簡単な版の 4 作業も
+ * 同じ形になっている。
+ *
+ * **作業は 6 件が上限**。 板の高さは 480 で固定され、月の見出しは常に y=334 に置かれる。
+ * 行は 6 件までその上に収まる (最後の行が y=310) が、7 件で y=358 になって見出しより下に出る。
+ * 実測で 7 件以上は最後の行が板の外に切れ、月の見出しが図の途中に現れた。
+ * **板の大きさは 865x480 のまま変わらないので、数の検査ではこのはみ出しを捕まえられない**。
+ */
+const GANTT_COMPLEX_TASKS = [
+  { id: "gc_hear", title: "要望を聞く", start: "4月", end: "4月", owner: "企画" },
+  { id: "gc_design", title: "画面を決める", start: "5月", end: "5月", owner: "デザイナー", dependsOn: "gc_hear" },
+  { id: "gc_base", title: "土台を作る", start: "6月", end: "6月", owner: "開発", dependsOn: "gc_design" },
+  { id: "gc_screen", title: "画面を作る", start: "7月", end: "7月", owner: "開発", dependsOn: "gc_base" },
+  { id: "gc_verify", title: "検証する", start: "8月", end: "8月", owner: "品質保証", dependsOn: "gc_screen" },
+  { id: "gc_ship", title: "公開する", start: "9月", end: "9月", owner: "企画", dependsOn: "gc_verify" },
+] as const;
+
+const ganttComplexBuilder = gantt({
+  id: "gantt-complex-demo",
+  topic: "土台の 1 月の遅れが後ろの作業へ次々と波及する進捗図",
+});
+for (const t of GANTT_COMPLEX_TASKS) ganttComplexBuilder.task({ ...t });
+
+/**
+ * 終わりを状態から取る帯。 4 月を 0 とした月の番号で動かす。
+ *
+ * 動かす帯だけを状態にする。 動かさない帯まで状態にすると、どれが遅れの波及で
+ * 動いたのかが定義から読み取れなくなる。
+ */
+const 遅れる帯 = {
+  gc_base: { endIdx: "{gc_base_end}" },
+  gc_screen: { endIdx: "{gc_screen_end}" },
+  gc_verify: { endIdx: "{gc_verify_end}" },
+} as const;
+
+export const pattern__presetGantt__複雑 = withSteps(
+  bindFirstNode(ganttComplexBuilder.build(), (n) => ({
+    ...n,
+    ganttData: n.ganttData?.map((t) => {
+      const 差し替え = 遅れる帯[t.id as keyof typeof 遅れる帯];
+      return 差し替え === undefined ? t : { ...t, ...差し替え };
+    }),
+  })),
+  [
+    {
+      ids: ["gantt-complex-demo-gantt"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["gantt-complex-demo-gantt"],
+      // 描く段は伸ばす (#1353)。 10 本の帯を追うので簡単な版より長く取る
+      duration: DRAW_DURATION,
+      title: "当初の計画",
+      body: "4 月から 9 月の 6 か月に 6 つの作業を 1 月ずつ置く。 公開は 9 月の予定。",
+    },
+    {
+      title: "土台が1月延びる",
+      body: "土台を作るの終わりが 6 月から 7 月へ動く。 帯が右へ 1 つぶん伸びて画面を作る月に重なる。",
+      tweens: [{ id: "gc_base_end", from: 2, to: 3 }],
+    },
+    {
+      title: "画面を作るも延びる",
+      body: "土台の後ろなので、終わりが 7 月から 8 月へ動く。 要望を聞くと画面を決めるは前なので動かない。",
+      tweens: [{ id: "gc_screen_end", from: 3, to: 4 }],
+    },
+    {
+      body: "検証の終わりが 8 月から 9 月へ届き、公開の月に重なる。 1 つの遅れが 3 本の帯を伸ばした。",
+      tweens: [{ id: "gc_verify_end", from: 4, to: 5 }],
+    },
+  ],
+  [
+    { id: "gc_base_end", initial: 2 },
+    { id: "gc_screen_end", initial: 3 },
+    { id: "gc_verify_end", initial: 4 },
+  ],
+);
+
 // flowchart preset ... swimlane + decision
 export const presetFlowchart = withSteps(
   flowchart({

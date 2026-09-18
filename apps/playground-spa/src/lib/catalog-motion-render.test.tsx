@@ -294,6 +294,8 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     "chart-line-complex-demo",
     // 円グラフも同じ (#2179)。 区分が 9 でも箱は 1 つで、段は扇の値を置き換える
     "chart-pie-complex-demo",
+    // 進捗図も同じ (#2181)。 帯が 10 本でも箱は 1 つで、段は帯の始まりと終わりを動かす
+    "gantt-complex-demo",
   ]);
   // cdl 0.7.0 で木と放射も名前が状態を読むようになり、対象外は 0 件になった
   const 経路無し = new Set<string>();
@@ -348,10 +350,10 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     expect(進まない, `光る箱が積み上がらない: ${進まない.join(", ")}`).toHaveLength(0);
   });
 
-  it("箱が 1 つの 12 件は、段が図表の中身を動かす", () => {
+  it("箱が 1 つの 13 件は、段が図表の中身を動かす", () => {
     // 箱が 1 つしか無いので光らせ方では動かせない。 値を動かす宣言を持つことを見る
     const 対象 = 型.filter(([, d]) => 箱が1つ.has(d.id));
-    expect(対象).toHaveLength(12);
+    expect(対象).toHaveLength(13);
 
     const 動かさない = 対象
       .filter(([, d]) => !d.phases.some((p) => (p.tweens?.length ?? 0) > 0 || (p.sets?.length ?? 0) > 0))
