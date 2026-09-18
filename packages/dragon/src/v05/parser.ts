@@ -2080,8 +2080,18 @@ export const EVENT_KINDS = [
   "blur",
 ] as const;
 
-/** 出来事の相手を指す書き方。 ちょうど 1 つだけ書く */
-const EVENT_TARGET_KEYS = ["box", "lane", "arrow", "diagram"] as const;
+/**
+ * 出来事の相手を指す書き方。 ちょうど 1 つだけ書く。
+ *
+ * **ここが唯一の置き場所** (#2256)。 同じ 4 語が JSON の記法にも書かれていた間、
+ * 1:1 を名乗りながら受ける項目が両側で別々に決まっており、片方に 5 つ目を足すと
+ * 記法では通るのに JSON では弾かれる状態が黙って生まれる形だった。
+ * 公開 schema の項目の鍵とは `event-target-keys-parity.test.ts` が突き合わせる。
+ */
+export const EVENT_TARGET_KEYS = ["box", "lane", "arrow", "diagram"] as const;
+
+/** 出来事に必ず書く項目。 相手の指し方と合わせて schema の項目の鍵になる */
+export const EVENT_REQUIRED_KEYS = ["on", "handler"] as const;
 
 /**
  * 押下などの出来事で動く仕掛けを 1 件読む (#1393)。
