@@ -3985,6 +3985,251 @@ export const subtitle__partsDedupeBox =
   "30 件のうち初めて見る 18 件だけを残し、同じものが二度来た 12 件は捨てる。 出る数が入る数より少ない";
 
 // ============================================================
+// 入口の外側が出る分を決める部品 (#2199)
+// ============================================================
+//
+// ここから 4 枚は **入口に入れた数と割合では決まらない** 繋ぎ方を表す。 既存の 18 枚は
+// 「入口に何件入れたか」 が出発点で、そこから先の割合が図の中身だった。
+//
+// 置き場の大きさ (押し出し箱) / 置いてからの時間 (期限切れ箱) /
+// 後ろの詰まり (押し戻し箱) / 中身の形 (割り箱) の 4 つは、
+// どれも入口の外側が出る分を決めるので、既存の部品では書けない。
+//
+// 要素と値の名前は既存の 18 枚と同じく英字で書く (#2125)。
+
+// parts 99: 押し出し箱 — 置き場が満ちると古いものから押し出される
+export const partsEvictBox = diagram("parts-evict-box", {
+  topic: "押し出し箱 — 置き場が満ちると古いものから押し出される",
+})
+  .lane("ev1", { x: 0, width: 200, label: "入口" })
+  .lane("ev2", { x: 220, width: 200, label: "行き先" })
+  .state("inN", { initial: 0 })
+  .state("keepN", { initial: 0 })
+  .state("pushN", { initial: 0 })
+  .node("inP", {
+    lane: "ev1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "届く",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 30, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  // 置ける方を上に置く = 置き場より押し出す分が多いことが棒の高さで読める
+  .node("keepP", {
+    lane: "ev2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "置ける",
+    subtitle: "{keepN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{keepN}", fillMax: 30, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("pushP", {
+    lane: "ev2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "押し出す",
+    subtitle: "{pushN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{pushN}", fillMax: 30, orient: "up", fill: "#94a3b8", radius: 6 },
+  })
+  // 部品の中の線の札に数字を置かない (#2149)
+  .edge("inP", "keepP", { id: "ev-keep", label: "置く", tone: "success" })
+  .edge("inP", "pushP", { id: "ev-push", label: "古い順", tone: "warning" })
+  // 10 + 20 = 30 で入った分と合う。 置き場が 10 しか無いことが、置ける棒の低さに出る
+  .phase("p", { duration: 4000, title: "古いものから押し出す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "keepP", "pushP", "ev-keep", "ev-push")
+      .tween("inN", 0, 30)
+      .tween("keepN", 0, 10)
+      .tween("pushN", 0, 20),
+  )
+  .build();
+
+export const subtitle__partsEvictBox =
+  "30 件が届いても置けるのは 10 件まで。 残る 20 件は古い順に押し出される。 新しい方が残る";
+
+// parts 100: 期限切れ箱 — 置いてから時が過ぎたものが自分で消える
+export const partsExpireBox = diagram("parts-expire-box", {
+  topic: "期限切れ箱 — 置いてから時が過ぎたものが自分で消える",
+})
+  .lane("tt1", { x: 0, width: 200, label: "置く" })
+  .lane("tt2", { x: 220, width: 200, label: "時が経つ" })
+  .state("putN", { initial: 0 })
+  .state("liveN", { initial: 0 })
+  .state("goneN", { initial: 0 })
+  .node("putP", {
+    lane: "tt1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "置く",
+    subtitle: "{putN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{putN}", fillMax: 24, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("liveP", {
+    lane: "tt2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "まだ残る",
+    subtitle: "{liveN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{liveN}", fillMax: 24, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("goneP", {
+    lane: "tt2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "消える",
+    subtitle: "{goneN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{goneN}", fillMax: 24, orient: "up", fill: "#94a3b8", radius: 6 },
+  })
+  // 押し出し箱は場所が決め、こちらは時が決める。 消す側が居ない = 誰も消しに行かない
+  .edge("putP", "liveP", { id: "tt-live", label: "新しい", tone: "success" })
+  .edge("putP", "goneP", { id: "tt-gone", label: "時が来た", tone: "warning" })
+  .phase("p", { duration: 4000, title: "時が過ぎた分が消える", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("putP", "liveP", "goneP", "tt-live", "tt-gone")
+      .tween("putN", 0, 24)
+      .tween("liveN", 0, 9)
+      .tween("goneN", 0, 15),
+  )
+  .build();
+
+export const subtitle__partsExpireBox =
+  "24 件を置くと、時が過ぎた 15 件が自分で消えて 9 件だけ残る。 誰も消しに行かないのに減る";
+
+// parts 101: 押し戻し箱 — 後ろが詰まると入口の勢いが絞られる
+export const partsBackpressure = diagram("parts-backpressure", {
+  topic: "押し戻し箱 — 後ろが詰まると入口の勢いが絞られる",
+})
+  .lane("bp1", { x: 0, width: 200, label: "送る" })
+  .lane("bp2", { x: 220, width: 200, label: "受ける" })
+  .state("inLv", { initial: 100 })
+  .state("qLv", { initial: 0 })
+  .state("outLv", { initial: 40 })
+  // 送ると待ちの箱を同じ段に置く = 繋ぐ線が真横に引ける。 やり直しの輪 (#2171) は
+  // 落ちた件数が前の段へ返る形だが、こちらは戻る線が入口の勢いそのものを変える。
+  //
+  // **戻る線は同じ 2 箱の間に引かない**。 送る → 待ち と 待ち → 送る の往復にすると、
+  // 描画側が同じ 2 箱を結ぶ 2 本を離すため、記法と組み立て API で線の高さが 32 ずれる (実測)。
+  // 戻る線は出す箱から出す。
+  //
+  // **戻る線がまたぐ帯は 1 つまで**。 3 つの帯に横 1 列で並べて 2 帯をまたがせると、
+  // 板の高さが記法 372 と組み立て API 464 に割れる (実測)。
+  //
+  // 待ちと出すは同じ帯の上下に置く。 縦の矢印は受け手の読み取り値を割るが、
+  // これはまとめ箱 (#2171) でも同じに出ている画面側の話で、本部品だけの形ではない (#2200)。
+  .node("inP", {
+    lane: "bp1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "送る",
+    subtitle: "{inLv}%",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inLv}", fillMax: 100, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("qP", {
+    lane: "bp2",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "待ち",
+    subtitle: "{qLv}%",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{qLv}", fillMax: 100, orient: "up", fill: "#f59e0b", radius: 6 },
+  })
+  .node("outP", {
+    lane: "bp2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "出す",
+    subtitle: "{outLv}%",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{outLv}", fillMax: 100, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .edge("inP", "qP", { id: "bp-in", label: "積む", tone: "info" })
+  .edge("qP", "outP", { id: "bp-out", label: "出す", tone: "success" })
+  .edge("outP", "inP", { id: "bp-back", label: "絞る", tone: "warning" })
+  // 出す側は 40% のまま動かない。 動くのは待ちと送る側だけ = 後ろの力が前を変える
+  .phase("p", { duration: 4000, title: "詰まって入口が絞られる", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "qP", "outP", "bp-in", "bp-out", "bp-back")
+      .tween("qLv", 0, 100)
+      .tween("inLv", 100, 40),
+  )
+  .build();
+
+export const subtitle__partsBackpressure =
+  "待ちが 100% まで積むと、送る側が 100% から 40% に絞られる。 出す側は 40% のまま動かない";
+
+// parts 102: 割り箱 — 1 つの大きいものが多くの小さいものに割れる
+export const partsSplitBox = diagram("parts-split-box", {
+  topic: "割り箱 — 1 つの大きいものが多くの小さいものに割れる",
+})
+  .lane("sp1", { x: 0, width: 200, label: "届く" })
+  .lane("sp2", { x: 220, width: 200, label: "割った後" })
+  .state("bigN", { initial: 0 })
+  .state("smallN", { initial: 0 })
+  .state("tagN", { initial: 0 })
+  // 3 つとも上限を 24 にそろえる。 大きい荷物だけ上限を 3 にすると棒が満杯になり、
+  // 小さい荷物の満杯と見分けが付かず「3 個が 24 個になる」 が読めない (画面で確かめた)
+  .node("bigP", {
+    lane: "sp1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "大きい荷物",
+    subtitle: "{bigN} 個",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{bigN}", fillMax: 24, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("smallP", {
+    lane: "sp2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "小さい荷物",
+    subtitle: "{smallN} 個",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{smallN}", fillMax: 24, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("tagP", {
+    lane: "sp2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "貼り直す札",
+    subtitle: "{tagN} 枚",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{tagN}", fillMax: 24, orient: "up", fill: "#8b5cf6", radius: 6 },
+  })
+  .edge("bigP", "smallP", { id: "sp-small", label: "割る", tone: "success" })
+  .edge("smallP", "tagP", { id: "sp-tag", label: "札を貼る", tone: "info" })
+  // 出る数が入る数より多い唯一の部品。 3 個が 24 個になり、札も 24 枚に増える
+  .phase("p", { duration: 4000, title: "割って札を貼り直す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("bigP", "smallP", "tagP", "sp-small", "sp-tag")
+      .tween("bigN", 0, 3)
+      .tween("smallN", 0, 24)
+      .tween("tagN", 0, 24),
+  )
+  .build();
+
+export const subtitle__partsSplitBox =
+  "3 個の大きな荷物が 24 個の小さな荷物に割れ、札も 24 枚に増える。 出る数が入る数より多い";
+
+// ============================================================
 // 記法 (#1381)
 // ============================================================
 //
@@ -11313,6 +11558,598 @@ export const sourceJson__partsDedupeBox = `{
       "duration": 4,
       "focus": ["届く", "残す", "捨てる", "届く -> 残す", "届く -> 捨てる"],
       "tween": { "inN": [0, 30], "keepN": [0, 18], "dropN": [0, 12] }
+    }
+  ]
+}`;
+
+
+// ============================================================
+// 入口の外側が出る分を決める部品の記法 (#2199)
+// ============================================================
+
+export const sourceYaml__partsEvictBox = `title: "押し出し箱 — 置き場が満ちると古いものから押し出される"
+type: flow
+
+lanes:
+  ev1: { x: 0, width: 200, label: "入口" }
+  ev2: { x: 220, width: 200, label: "行き先" }
+
+states:
+  inN: 0
+  keepN: 0
+  pushN: 0
+
+actors:
+  - 届く: { kind: dyn-rect, lane: ev1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 30, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 置ける: { kind: dyn-rect, lane: ev2, stack: 0, subtitle: "{keepN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{keepN}", fillMax: 30, orient: up, fill: "#22c55e", radius: 6 } }
+  - 押し出す: { kind: dyn-rect, lane: ev2, stack: 2, subtitle: "{pushN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{pushN}", fillMax: 30, orient: up, fill: "#94a3b8", radius: 6 } }
+
+flow:
+  - 届く -> 置ける: "置く" (success)
+  - 届く -> 押し出す: "古い順" (warning)
+
+animation:
+  - step: "古いものから押し出す" 4s
+    focus: ["届く", "置ける", "押し出す", "届く -> 置ける", "届く -> 押し出す"]
+    tween:
+      inN: 0 -> 30
+      keepN: 0 -> 10
+      pushN: 0 -> 20
+`;
+
+export const sourceJson__partsEvictBox = `{
+  "title": "押し出し箱 — 置き場が満ちると古いものから押し出される",
+  "type": "flow",
+  "lanes": {
+    "ev1": {
+      "x": 0,
+      "width": 200,
+      "label": "入口"
+    },
+    "ev2": {
+      "x": 220,
+      "width": 200,
+      "label": "行き先"
+    }
+  },
+  "actors": [
+    {
+      "name": "届く",
+      "kind": "dyn-rect",
+      "lane": "ev1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{inN}",
+        "fillMax": 30,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "置ける",
+      "kind": "dyn-rect",
+      "lane": "ev2",
+      "stack": 0,
+      "subtitle": "{keepN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{keepN}",
+        "fillMax": 30,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "押し出す",
+      "kind": "dyn-rect",
+      "lane": "ev2",
+      "stack": 2,
+      "subtitle": "{pushN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{pushN}",
+        "fillMax": 30,
+        "orient": "up",
+        "fill": "#94a3b8",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "届く",
+      "to": "置ける",
+      "label": "置く",
+      "tone": "success"
+    },
+    {
+      "from": "届く",
+      "to": "押し出す",
+      "label": "古い順",
+      "tone": "warning"
+    }
+  ],
+  "states": {
+    "inN": 0,
+    "keepN": 0,
+    "pushN": 0
+  },
+  "animation": [
+    {
+      "step": "古いものから押し出す",
+      "duration": 4,
+      "focus": [
+        "届く",
+        "置ける",
+        "押し出す",
+        "届く -> 置ける",
+        "届く -> 押し出す"
+      ],
+      "tween": {
+        "inN": [
+          0,
+          30
+        ],
+        "keepN": [
+          0,
+          10
+        ],
+        "pushN": [
+          0,
+          20
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsExpireBox = `title: "期限切れ箱 — 置いてから時が過ぎたものが自分で消える"
+type: flow
+
+lanes:
+  tt1: { x: 0, width: 200, label: "置く" }
+  tt2: { x: 220, width: 200, label: "時が経つ" }
+
+states:
+  putN: 0
+  liveN: 0
+  goneN: 0
+
+actors:
+  - 置く: { kind: dyn-rect, lane: tt1, stack: 1, subtitle: "{putN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{putN}", fillMax: 24, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - まだ残る: { kind: dyn-rect, lane: tt2, stack: 0, subtitle: "{liveN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{liveN}", fillMax: 24, orient: up, fill: "#22c55e", radius: 6 } }
+  - 消える: { kind: dyn-rect, lane: tt2, stack: 2, subtitle: "{goneN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{goneN}", fillMax: 24, orient: up, fill: "#94a3b8", radius: 6 } }
+
+flow:
+  - 置く -> まだ残る: "新しい" (success)
+  - 置く -> 消える: "時が来た" (warning)
+
+animation:
+  - step: "時が過ぎた分が消える" 4s
+    focus: ["置く", "まだ残る", "消える", "置く -> まだ残る", "置く -> 消える"]
+    tween:
+      putN: 0 -> 24
+      liveN: 0 -> 9
+      goneN: 0 -> 15
+`;
+
+export const sourceJson__partsExpireBox = `{
+  "title": "期限切れ箱 — 置いてから時が過ぎたものが自分で消える",
+  "type": "flow",
+  "lanes": {
+    "tt1": {
+      "x": 0,
+      "width": 200,
+      "label": "置く"
+    },
+    "tt2": {
+      "x": 220,
+      "width": 200,
+      "label": "時が経つ"
+    }
+  },
+  "actors": [
+    {
+      "name": "置く",
+      "kind": "dyn-rect",
+      "lane": "tt1",
+      "stack": 1,
+      "subtitle": "{putN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{putN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "まだ残る",
+      "kind": "dyn-rect",
+      "lane": "tt2",
+      "stack": 0,
+      "subtitle": "{liveN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{liveN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "消える",
+      "kind": "dyn-rect",
+      "lane": "tt2",
+      "stack": 2,
+      "subtitle": "{goneN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{goneN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#94a3b8",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "置く",
+      "to": "まだ残る",
+      "label": "新しい",
+      "tone": "success"
+    },
+    {
+      "from": "置く",
+      "to": "消える",
+      "label": "時が来た",
+      "tone": "warning"
+    }
+  ],
+  "states": {
+    "putN": 0,
+    "liveN": 0,
+    "goneN": 0
+  },
+  "animation": [
+    {
+      "step": "時が過ぎた分が消える",
+      "duration": 4,
+      "focus": [
+        "置く",
+        "まだ残る",
+        "消える",
+        "置く -> まだ残る",
+        "置く -> 消える"
+      ],
+      "tween": {
+        "putN": [
+          0,
+          24
+        ],
+        "liveN": [
+          0,
+          9
+        ],
+        "goneN": [
+          0,
+          15
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsBackpressure = `title: "押し戻し箱 — 後ろが詰まると入口の勢いが絞られる"
+type: flow
+
+lanes:
+  bp1: { x: 0, width: 200, label: "送る" }
+  bp2: { x: 220, width: 200, label: "受ける" }
+
+states:
+  inLv: 100
+  qLv: 0
+  outLv: 40
+
+actors:
+  - 送る: { kind: dyn-rect, lane: bp1, stack: 1, subtitle: "{inLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{inLv}", fillMax: 100, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 待ち: { kind: dyn-rect, lane: bp2, stack: 1, subtitle: "{qLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{qLv}", fillMax: 100, orient: up, fill: "#f59e0b", radius: 6 } }
+  - 出す: { kind: dyn-rect, lane: bp2, stack: 2, subtitle: "{outLv}%", posW: 150, posH: 150, shape: { kind: rect, source: "{outLv}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 } }
+
+flow:
+  - 送る -> 待ち: "積む" (info)
+  - 待ち -> 出す: "出す" (success)
+  - 出す -> 送る: "絞る" (warning)
+
+animation:
+  - step: "詰まって入口が絞られる" 4s
+    focus: ["送る", "待ち", "出す", "送る -> 待ち", "待ち -> 出す", "出す -> 送る"]
+    tween:
+      qLv: 0 -> 100
+      inLv: 100 -> 40
+`;
+
+export const sourceJson__partsBackpressure = `{
+  "title": "押し戻し箱 — 後ろが詰まると入口の勢いが絞られる",
+  "type": "flow",
+  "lanes": {
+    "bp1": {
+      "x": 0,
+      "width": 200,
+      "label": "送る"
+    },
+    "bp2": {
+      "x": 220,
+      "width": 200,
+      "label": "受ける"
+    }
+  },
+  "actors": [
+    {
+      "name": "送る",
+      "kind": "dyn-rect",
+      "lane": "bp1",
+      "stack": 1,
+      "subtitle": "{inLv}%",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{inLv}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "待ち",
+      "kind": "dyn-rect",
+      "lane": "bp2",
+      "stack": 1,
+      "subtitle": "{qLv}%",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{qLv}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#f59e0b",
+        "radius": 6
+      }
+    },
+    {
+      "name": "出す",
+      "kind": "dyn-rect",
+      "lane": "bp2",
+      "stack": 2,
+      "subtitle": "{outLv}%",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{outLv}",
+        "fillMax": 100,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "送る",
+      "to": "待ち",
+      "label": "積む",
+      "tone": "info"
+    },
+    {
+      "from": "待ち",
+      "to": "出す",
+      "label": "出す",
+      "tone": "success"
+    },
+    {
+      "from": "出す",
+      "to": "送る",
+      "label": "絞る",
+      "tone": "warning"
+    }
+  ],
+  "states": {
+    "inLv": 100,
+    "qLv": 0,
+    "outLv": 40
+  },
+  "animation": [
+    {
+      "step": "詰まって入口が絞られる",
+      "duration": 4,
+      "focus": [
+        "送る",
+        "待ち",
+        "出す",
+        "送る -> 待ち",
+        "待ち -> 出す",
+        "出す -> 送る"
+      ],
+      "tween": {
+        "qLv": [
+          0,
+          100
+        ],
+        "inLv": [
+          100,
+          40
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsSplitBox = `title: "割り箱 — 1 つの大きいものが多くの小さいものに割れる"
+type: flow
+
+lanes:
+  sp1: { x: 0, width: 200, label: "届く" }
+  sp2: { x: 220, width: 200, label: "割った後" }
+
+states:
+  bigN: 0
+  smallN: 0
+  tagN: 0
+
+actors:
+  - 大きい荷物: { kind: dyn-rect, lane: sp1, stack: 1, subtitle: "{bigN} 個", posW: 150, posH: 150, shape: { kind: rect, source: "{bigN}", fillMax: 24, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 小さい荷物: { kind: dyn-rect, lane: sp2, stack: 0, subtitle: "{smallN} 個", posW: 150, posH: 150, shape: { kind: rect, source: "{smallN}", fillMax: 24, orient: up, fill: "#22c55e", radius: 6 } }
+  - 貼り直す札: { kind: dyn-rect, lane: sp2, stack: 2, subtitle: "{tagN} 枚", posW: 150, posH: 150, shape: { kind: rect, source: "{tagN}", fillMax: 24, orient: up, fill: "#8b5cf6", radius: 6 } }
+
+flow:
+  - 大きい荷物 -> 小さい荷物: "割る" (success)
+  - 小さい荷物 -> 貼り直す札: "札を貼る" (info)
+
+animation:
+  - step: "割って札を貼り直す" 4s
+    focus: ["大きい荷物", "小さい荷物", "貼り直す札", "大きい荷物 -> 小さい荷物", "小さい荷物 -> 貼り直す札"]
+    tween:
+      bigN: 0 -> 3
+      smallN: 0 -> 24
+      tagN: 0 -> 24
+`;
+
+export const sourceJson__partsSplitBox = `{
+  "title": "割り箱 — 1 つの大きいものが多くの小さいものに割れる",
+  "type": "flow",
+  "lanes": {
+    "sp1": {
+      "x": 0,
+      "width": 200,
+      "label": "届く"
+    },
+    "sp2": {
+      "x": 220,
+      "width": 200,
+      "label": "割った後"
+    }
+  },
+  "actors": [
+    {
+      "name": "大きい荷物",
+      "kind": "dyn-rect",
+      "lane": "sp1",
+      "stack": 1,
+      "subtitle": "{bigN} 個",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{bigN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "小さい荷物",
+      "kind": "dyn-rect",
+      "lane": "sp2",
+      "stack": 0,
+      "subtitle": "{smallN} 個",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{smallN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "貼り直す札",
+      "kind": "dyn-rect",
+      "lane": "sp2",
+      "stack": 2,
+      "subtitle": "{tagN} 枚",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{tagN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#8b5cf6",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "大きい荷物",
+      "to": "小さい荷物",
+      "label": "割る",
+      "tone": "success"
+    },
+    {
+      "from": "小さい荷物",
+      "to": "貼り直す札",
+      "label": "札を貼る",
+      "tone": "info"
+    }
+  ],
+  "states": {
+    "bigN": 0,
+    "smallN": 0,
+    "tagN": 0
+  },
+  "animation": [
+    {
+      "step": "割って札を貼り直す",
+      "duration": 4,
+      "focus": [
+        "大きい荷物",
+        "小さい荷物",
+        "貼り直す札",
+        "大きい荷物 -> 小さい荷物",
+        "小さい荷物 -> 貼り直す札"
+      ],
+      "tween": {
+        "bigN": [
+          0,
+          3
+        ],
+        "smallN": [
+          0,
+          24
+        ],
+        "tagN": [
+          0,
+          24
+        ]
+      }
     }
   ]
 }`;
