@@ -1938,6 +1938,84 @@ export const presetFunnel = withSteps(
   FUNNEL_STAGES.map((s) => ({ id: s.id, initial: s.last })),
 );
 
+export const patternBase__presetFunnel = "簡単";
+
+/**
+ * 漏斗の複雑な版 (#2185)。
+ *
+ * 簡単な版は 4 段階で、2 つの月の人数を丸ごと置き換えるだけ。 実際に読み取りが要るのは
+ * 「どの段階で最も抜けるかを見つけて、そこだけ直す」 形で、丸ごと動かす見せ方では描けない。
+ *
+ * **入口の 3 段階はどの段でも動かさない**。 全部が増えると「集客を増やしたのか、途中を
+ * 直したのか」 が読み分けられない。 真ん中の 1 か所だけを動かし、その後ろが順に増える形にする。
+ *
+ * 減り方の割合は隣の段階との差から出るので、**1 か所を直すと次の段階の割合が跳ねる**。
+ * 二度目に使うを直した段で見積りの抜けが 25% から 69% になり、見積りを直した段では
+ * 続けて使うが 13% から 64% になる。 詰まりが 1 つずつ後ろへ移る様子がそのまま図に出る。
+ *
+ * **段階は画面で 8 まで収まることを確かめてある** (7 にしたのは余裕を持たせるため)。
+ * 板 1 枚で描く図は段階を増やしても `viewBox` が 712x600 のまま変わらず重い指摘も 0 件なので、
+ * 数の検査では収まりを判定できない (#2181 / #2183 で同じことが起きた)。
+ */
+const FUNNEL_COMPLEX_STAGES = [
+  { id: "fc_visit", title: "訪問", before: 10000, after: 10000 },
+  { id: "fc_signup", title: "登録", before: 3000, after: 3000 },
+  { id: "fc_trial", title: "試用を始める", before: 2100, after: 2100 },
+  { id: "fc_again", title: "二度目に使う", before: 520, after: 1260 },
+  { id: "fc_quote", title: "見積りを見る", before: 390, after: 950 },
+  { id: "fc_paid", title: "有料へ移る", before: 300, after: 730 },
+  { id: "fc_keep", title: "続けて使う", before: 260, after: 630 },
+] as const;
+
+const funnelComplexBuilder = funnel({
+  id: "funnel-complex-demo",
+  topic: "抜けが最も大きい一か所を直すと後ろが順に増える漏斗",
+});
+for (const s of FUNNEL_COMPLEX_STAGES) {
+  funnelComplexBuilder.stage({ id: s.id, title: s.title, count: s.before });
+}
+
+/** 名前で選んで置き換える。 入口の 3 段階は選ばないので動かない */
+const 段階を動かす = (...名前: readonly string[]) =>
+  名前.map((名) => {
+    const s = FUNNEL_COMPLEX_STAGES.find((x) => x.id === 名);
+    if (s === undefined) throw new Error(`${名} は漏斗の複雑な版に無い`);
+    return { id: s.id, from: s.before, to: s.after };
+  });
+
+export const pattern__presetFunnel__複雑 = withSteps(
+  bindFirstNode(funnelComplexBuilder.build(), (n) => ({
+    ...n,
+    funnelData: n.funnelData?.map((s) => ({ ...s, count: `{${s.id}}` })),
+  })),
+  [
+    {
+      ids: ["funnel-complex-demo-funnel"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["funnel-complex-demo-funnel"],
+      // 描く段は伸ばす (#1353)。 7 段階を追うので簡単な版より長く取る
+      duration: DRAW_DURATION,
+      title: "直す前",
+      body: "訪問 10000 から続けて使う 260 まで。 二度目に使う段階で 75% が抜ける。",
+    },
+    {
+      title: "二度目の使い方を直す",
+      body: "初日の案内を足すと 520 が 1260 へ。 抜けは 40% に縮むが、次の見積りが 69% に跳ねる。",
+      tweens: 段階を動かす("fc_again"),
+    },
+    {
+      title: "詰まりが後ろへ移る",
+      body: "見積りが 950、有料が 730 になる。 今度は続けて使うの抜けが 64% に跳ねて、詰まりがまた 1 つ後ろへ移る。",
+      tweens: 段階を動かす("fc_quote", "fc_paid"),
+    },
+    {
+      body: "続けて使う人が 630 になり、どの段階も 40% を超えない。 入口を増やさずに 2.4 倍になった。",
+      tweens: 段階を動かす("fc_keep"),
+    },
+  ],
+  FUNNEL_COMPLEX_STAGES.map((s) => ({ id: s.id, initial: s.before })),
+);
+
 // quadrant preset ... 2 軸 matrix (4 象限完全配置、 cdl PR #32 で stack 衝突 bug 修正済)
 // 1 項目の居場所を状態から取り、優先度の見直しで枠を移る様子を見せる。
 export const presetQuadrant = withSteps(
