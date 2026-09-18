@@ -1606,9 +1606,9 @@ export const 図形の表: Record<string, 図形の定義> = {
 /**
  * 記法が受ける部品と、その欄。
  *
- * **手で書かず、描画側の型定義から生成する** (#1385)。 描画側は 107 種を持ち欄は 510 個あり、
- * 手で写すと写し間違いと描画側の変更への drift が残る (`rules/quality.md § 導出可能記述は
- * 人手で書かない`)。
+ * **手で書かず、描画側の型定義から生成する** (#1385)。 描画側が持つ種類も、種類ごとの欄も
+ * 多く、手で写すと写し間違いと描画側の変更への drift が残る (`rules/quality.md § 導出可能記述は
+ * 人手で書かない`)。 いくつあるかは `readout-table.generated.ts` を数えれば出る。
  *
  * 作り直す = `node packages/dragon/scripts/gen-readout-table.mjs`
  * ずれの検知 = `packages/dragon/test/readout-table-generated.test.ts`
@@ -1619,8 +1619,9 @@ import { 部品の表, 部品の組の表 } from "./readout-table.generated";
 /**
  * 記法が受けるつまみと、その欄 (#1389)。
  *
- * **部品の表と同じく、描画側の型定義から生成する**。 14 種それぞれ欄が違い、手で写すと
+ * **部品の表と同じく、描画側の型定義から生成する**。 種類ごとに欄が違い、手で写すと
  * 描画側が種類を足した時に drift が残る (`rules/quality.md § 導出可能記述は人手で書かない`)。
+ * いくつあるかは `input-table.generated.ts` を数えれば出る。
  *
  * 作り直す = `node packages/dragon/scripts/gen-input-table.mjs`
  * ずれの検知 = `packages/dragon/test/input-table-generated.test.ts`
