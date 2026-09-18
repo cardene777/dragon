@@ -547,6 +547,10 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsRetryLoop: "繋ぐ: 落ちた分をやり直す",
   partsBatchCollector: "繋ぐ: 溜めてまとめて送る",
   partsContentSorter: "繋ぐ: 中身の種類で仕分ける",
+  partsCircuitBreaker: "繋ぐ: 落ちる分が増えたら断る",
+  partsCacheBox: "繋ぐ: 手元の写しで返す",
+  partsBarrierBox: "繋ぐ: 両方そろってから出す",
+  partsDedupeBox: "繋ぐ: 二度目を捨てる",
 };
 
 /**
@@ -1027,6 +1031,10 @@ export const ITEM_NAME_EN: Record<string, string> = {
   partsRetryLoop: "Wire: send failures back for another try",
   partsBatchCollector: "Wire: collect one by one, send in batches",
   partsContentSorter: "Wire: route by what the item contains",
+  partsCircuitBreaker: "Wire: stop sending once failures pile up",
+  partsCacheBox: "Wire: answer from the local copy",
+  partsBarrierBox: "Wire: release only once both sides arrive",
+  partsDedupeBox: "Wire: drop the second copy",
 };
 
 /**
