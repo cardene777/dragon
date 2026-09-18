@@ -1,54 +1,73 @@
 /**
- * spec の「今書ける形」 の例が、実際に図へ組み立てられることの検査 (#1207)。
+ * 書いた見本が、実際に図へ組み立てられることの検査 (#1207 / #2254)。
  *
- * `docs/spec-reactive-diagram.md` は「実装着手前の SSOT」 = 計画文書で、5 段の変更計画を持つ。
- * 段 1 (`values` を式のみで足す) と段 2 (トリガー) は入ったが、段 3 (図表が値を読む) は未実装。
+ * ## 何を対象にするか
  *
- * **計画部分に紛れて、計画とは無関係な誤りが気付かれない状態だった**。 起票時に § 3 の例を
- * そのまま `parseTextDslV05` に通すと 25 件の error が出て、内訳に `type: pipeline`
- * (`PRESET_TYPES` に存在しない) と点付きの値名 (`invalid value name`) が含まれていた。
- * どちらも段 2-3 が入っても解けるようにならない。
+ * 対象は **題を持つ塊**。 記法として完結した文書は `title` と `type` を必須に持つため、
+ * `title:` で始まることが「組み立てられるべき見本」 の印になる。
+ * 一部だけを見せる見本 (`type:` から始める形) は完結していないので対象外。
  *
- * そこで例を 2 つに分け、今の記法で書いた側だけをここで解かせる。 未実装の計画は解けないのが
- * 正しいので対象にしない。
+ * **題が空の塊も対象外** (#2254)。 `title: ""` はこれから足す欄を書くための器で、
+ * 計画の文書がその形を使う。 題を持たないので「完結した見本」 の条件を満たさない。
+ * 名指しの宣言で外すのではなく、決まりを 1 段細かくして外す。
  *
- * 対象の選び方は **`title:` で始まる block**。 記法として完結した文書は `title` と `type` を
- * 必須に持つため、`title:` で始まることが「解けるべき例」 の印になる。 計画の例は `title:` を
- * 書かないことで外れる。
+ * ## 置き場所を名指ししない (#2254)
+ *
+ * 決まりの文は一般なのに、読む先を 1 枚の文書に固定していた。
+ * そのため **配る package の説明書の見本を 1 つも見ておらず**、説明書の見本が壊れても
+ * この検査は緑のまま通った。 走査が「何を見るか」 を名指しで決めると、後から足した文書が
+ * 黙って外れる (#2236 から #2244 で 5 回続けて踏んだ形)。
+ *
+ * 集める処理は `test-support/scan-targets.ts` の説明書の集合に寄せる (#2240)。
+ *
+ * ## なぜ計画の例を対象にしないか
+ *
+ * 計画の文書は「これから足す欄」 を書く。 解けないのが正しいので、対象に入れると
+ * 計画を消す方向の圧力になる。 題の有無で分かれるため、宣言を 1 件も持たずに済む。
  */
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join, relative } from "node:path";
 import { describe, it, expect } from "vitest";
 import { compile } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "../src/index";
+import { 説明書のfile } from "../../../test-support/scan-targets";
 
-const SPEC_URL = new URL("../../../docs/spec-reactive-diagram.md", import.meta.url);
+const ここ = dirname(fileURLToPath(import.meta.url));
+const REPO = join(ここ, "..", "..", "..");
+
+interface 見本 {
+  場所: string;
+  本文: string;
+}
 
 /**
- * spec の fenced block のうち `title:` で始まるものを取り出す。
+ * 題を持つ塊を 1 つの md から取り出す。
  *
  * 言語指定 (```text 等) は落とす。 開き fence と閉じ fence を交互に数える素朴な走査で足りる
- * (spec に入れ子の fence は無い)。
+ * (この repo の md に入れ子の fence は無い)。
  */
-function 解けるべき例(): string[] {
-  const src = readFileSync(SPEC_URL, "utf8");
-  const lines = src.split("\n");
-  const blocks: string[] = [];
-  let inBlock = false;
+function 題を持つ塊(src: string, 場所: string): 見本[] {
+  const 出: 見本[] = [];
+  let 中 = false;
   let buf: string[] = [];
-
-  for (const line of lines) {
+  let 開いた行 = 0;
+  src.split("\n").forEach((line, i) => {
     if (line.startsWith("```")) {
-      if (inBlock) {
-        const body = buf.join("\n");
-        if (body.trimStart().startsWith("title:")) blocks.push(body);
+      if (中) {
+        const 本文 = buf.join("\n");
+        // 題が空の塊はこれから足す欄を書く器で、完結した見本ではない
+        if (/^title:\s*"[^"]/.test(本文.trimStart())) 出.push({ 場所: `${場所}:${開いた行}`, 本文 });
         buf = [];
+      } else {
+        開いた行 = i + 1;
       }
-      inBlock = !inBlock;
-      continue;
+      中 = !中;
+      return;
     }
-    if (inBlock) buf.push(line);
-  }
-  return blocks;
+    if (中) buf.push(line);
+  });
+  return 出;
 }
 
 /**
@@ -61,38 +80,75 @@ function 解けるべき例(): string[] {
  *
  * 1 度だけ評価すれば、`it.each` が受け取る配列と assert が見る配列が同一になる。
  *
- * **この形は変異試験で覆えていない**。 検査ごとの呼出へ戻すだけでは 3 件とも通る
- * (collection と execution の間で file が変わらない限り顕在化しない)。 落ちる入力を作れない
- * ため、構造で閉じてある。
+ * **この形は変異試験で覆えていない**。 検査ごとの呼出へ戻すだけでは通る
+ * (収集と実行の間で file が変わらない限り顕在化しない)。 落ちる入力を作れないため、
+ * 構造で閉じてある。
  */
-const 解けるべき例一覧 = 解けるべき例();
-const SPEC_SRC = readFileSync(SPEC_URL, "utf8");
+const 走査したmd: string[] = 説明書のfile(REPO);
+const 組み立てるべき見本: 見本[] = 走査したmd.flatMap((p) =>
+  題を持つ塊(readFileSync(p, "utf8"), relative(REPO, p)),
+);
 
-describe("spec の「今書ける形」 が図へ組み立てられる (#1207)", () => {
-  it("走査が空振りしていない", () => {
-    // 0 件だと `it.each` が case を 1 つも登録せず、以下の検査が「全て通った」 として素通りする。
-    // fence の書き方が変わった時と、例そのものが消えた時の両方をここで捕まえる
-    expect(解けるべき例一覧.length, "`title:` で始まる block を 1 件も取れていない (検査が空振りしている)").toBeGreaterThan(0);
+describe("書いた見本が図へ組み立てられる (#1207 / #2254)", () => {
+  it("説明書を走査できている", () => {
+    // 集められていなければ、以下の検査は見るものが無いまま通る
+    expect(走査したmd.length, "説明書を 1 枚も集められていない").toBeGreaterThan(20);
   });
 
-  it.each(解けるべき例一覧.map((body, i) => [i + 1, body] as const))(
-    "%i 件目の例が図へ組み立てられる",
-    (_index, body) => {
+  it("走査が空振りしていない", () => {
+    // 0 件だと `it.each` が case を 1 つも登録せず、以下の検査が「全て通った」 として素通りする。
+    // fence の書き方が変わった時と、見本そのものが消えた時の両方をここで捕まえる
+    expect(
+      組み立てるべき見本.length,
+      "題を持つ塊を 1 件も取れていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+  });
+
+  it("配る説明書の見本が対象に入る (#2254)", () => {
+    // 1 枚の文書だけを見ていた間、配る面の見本は 1 つも見ていなかった
+    expect(
+      組み立てるべき見本.some((v) => v.場所.startsWith("packages/dragon/README.md")),
+      "配る説明書の見本が対象に入っていない",
+    ).toBe(true);
+  });
+
+  it.each(組み立てるべき見本.map((v) => [v.場所, v.本文] as const))(
+    "%s の見本が図へ組み立てられる",
+    (_場所, 本文) => {
       // 公開変換経路を通し、parse / Dragon 側の組立てだけでなく CDL compile まで完走することを保証する。
-      // parse error は `textDslToDiagram` が行番号付きで投げるため、spec 内の箇所も追える。
-      expect(() => compile(textDslToDiagram(body))).not.toThrow();
+      // parse error は `textDslToDiagram` が行番号付きで投げるため、md 内の箇所も追える。
+      expect(() => compile(textDslToDiagram(本文))).not.toThrow();
     },
   );
 
-  it("計画の例は対象に入らない", () => {
-    // 段 3 の形は解けないのが正しい。 対象に入ると計画を消す方向の圧力になる
-    expect(SPEC_SRC).toContain("### 3.2 段 2-3 の後に書ける形 (未実装)");
-    expect(解けるべき例一覧.some((b) => b.includes("reads:"))).toBe(false);
+  it("題が空の計画の例は対象に入らない (植え込み対照)", () => {
+    // 宣言ではなく決まりで外していることを、その場で作った塊で確かめる
+    expect(題を持つ塊('```\ntitle: ""\ntype: sequence\n```', "仮"), "題が空の塊を拾っている").toEqual(
+      [],
+    );
+    expect(
+      題を持つ塊('```\ntitle: "ある"\ntype: sequence\n```', "仮").length,
+      "題を持つ塊を拾えていない",
+    ).toBe(1);
+    expect(題を持つ塊("```\ntype: sequence\n```", "仮"), "題を書かない塊を拾っている").toEqual([]);
   });
 
-  it("段 2 で入った書き方は対象に入る", () => {
+  it("計画の書き方は対象に入らない", () => {
+    // これから足す欄は解けないのが正しい。 対象に入ると計画を消す方向の圧力になる
+    expect(組み立てるべき見本.some((v) => v.本文.includes("reads:")), "計画の欄が対象に入っている").toBe(
+      false,
+    );
+    expect(組み立てるべき見本.some((v) => v.本文.includes("parts:")), "計画の欄が対象に入っている").toBe(
+      false,
+    );
+  });
+
+  it("入った記法は対象に入る", () => {
     // `trigger:` は #1161 段 2 で入った。 計画側に置いたままにすると、入った記法が
     // 「解けないのが正しい」 側で固定され、壊れても検査が気付かない
-    expect(解けるべき例一覧.some((b) => b.includes("trigger:"))).toBe(true);
+    expect(
+      組み立てるべき見本.some((v) => v.本文.includes("trigger:")),
+      "入った記法が対象に入っていない",
+    ).toBe(true);
   });
 });
