@@ -2094,6 +2094,14 @@ export const EVENT_TARGET_KEYS = ["box", "lane", "arrow", "diagram"] as const;
 export const EVENT_REQUIRED_KEYS = ["on", "handler"] as const;
 
 /**
+ * 出来事が受ける項目の全体 (#2258)。
+ *
+ * **判定と知らせが同じ集合を読む**。 知らせが先頭 2 語だけを手で並べていた間、
+ * 必ず書く項目を増やしても知らせは古い一覧を教え続ける形だった。
+ */
+const EVENT_ITEM_KEYS: readonly string[] = [...EVENT_REQUIRED_KEYS, ...EVENT_TARGET_KEYS];
+
+/**
  * 押下などの出来事で動く仕掛けを 1 件読む (#1393)。
  *
  * 形は `{ on: click, box: Button, handler: toggle }`。 相手の指し方は 4 つあり、
@@ -2118,12 +2126,11 @@ function 出来事として読む(
   }
   const opts = parseInlineMapping(t.slice(1, -1));
   for (const k of Object.keys(opts)) {
-    if (k === "on" || k === "handler" || (EVENT_TARGET_KEYS as readonly string[]).includes(k))
-      continue;
+    if (EVENT_ITEM_KEYS.includes(k)) continue;
     errors.push({
       line,
       message: `出来事の項目名が読めません: "${k}"`,
-      hint: `使える項目 = on, handler, ${EVENT_TARGET_KEYS.join(", ")}`,
+      hint: `使える項目 = ${EVENT_ITEM_KEYS.join(", ")}`,
     });
     return undefined;
   }
