@@ -30,6 +30,7 @@ export const 見本の名前: readonly string[] = [
   "presetClassDiagram",
   "pattern__presetClassDiagram__複雑",
   "presetTree",
+  "pattern__presetTree__複雑",
   "presetUserJourney",
   "pattern__presetUserJourney__複雑",
   "presetMindMap",

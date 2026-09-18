@@ -1781,6 +1781,114 @@ export const presetUserJourney = withSteps(
   [{ id: "form_mood", initial: "frustrated" }],
 );
 
+export const patternBase__presetTree = "簡単";
+
+/**
+ * 階層図の複雑な版 (#2189)。
+ *
+ * 簡単な版は 5 箱 2 階層で、動くのは 1 箱の呼び方だけ。 実際に読み取りが要るのは
+ * 「組織が育つにつれて課が部になり、人数が増える」 形で、5 箱の 1 回の言い換えでは描けない。
+ *
+ * **ぶら下げ先は状態から取れない**。 `parent` に `{...}` を書くと箱が親から切り離され、
+ * 図の外れた所に 1 つだけ置かれる (実測、`validate` の警告は 0 件で重い指摘も出ない)。
+ * 動かせるのは名前と 2 行目の補足の 2 つなので、**組み替えではなく呼び方と規模が変わる形**にする。
+ *
+ * **1 つの親にぶら下げる数は 8 まで**。 箱の幅は横に並ぶ数で決まるので、名前が長いと切れる
+ * (実測 = 2 行目の補足を持たない箱なら 5 文字の名前を 8 つ並べても切れないが、7 文字は 7 つで切れた)。
+ * 深さは 4 階層まで収まる。 ここでは 1 つの親に 3 つまでにして、3 階層 12 箱に収めた。
+ *
+ * **2 行目の補足を持つ箱の名前は 4 文字まで**。 3 つ並べた所で 5 文字の「品質保証部」 が
+ * 「品質保…」 に切れた (画面で確かめた)。 補足の分だけ名前に使える幅が狭くなる。
+ */
+const TREE_COMPLEX_NODES = [
+  { id: "tc_ceo", title: "社長", subtitle: "1 人" },
+  { id: "tc_tech", title: "技術本部", subtitle: "{tc_tech_n}", parent: "tc_ceo" },
+  { id: "tc_biz", title: "事業本部", subtitle: "10 人", parent: "tc_ceo" },
+  { id: "tc_admin", title: "管理本部", subtitle: "{tc_admin_n}", parent: "tc_ceo" },
+  { id: "tc_design", title: "{tc_design_t}", subtitle: "{tc_design_n}", parent: "tc_tech" },
+  { id: "tc_dev", title: "{tc_dev_t}", subtitle: "{tc_dev_n}", parent: "tc_tech" },
+  { id: "tc_qa", title: "{tc_qa_t}", subtitle: "{tc_qa_n}", parent: "tc_tech" },
+  { id: "tc_sales", title: "営業部", subtitle: "6 人", parent: "tc_biz" },
+  { id: "tc_support", title: "支援部", subtitle: "4 人", parent: "tc_biz" },
+  { id: "tc_acct", title: "経理部", subtitle: "2 人", parent: "tc_admin" },
+  { id: "tc_hr", title: "人事部", subtitle: "2 人", parent: "tc_admin" },
+  { id: "tc_legal", title: "{tc_legal_t}", subtitle: "{tc_legal_n}", parent: "tc_admin" },
+] as const;
+
+const treeComplexBuilder = tree({
+  id: "tree-complex-demo",
+  topic: "立ち上げから育つにつれて課が部になり人数が増える組織図",
+});
+for (const n of TREE_COMPLEX_NODES) {
+  // 組み立ての段では文字を決め打ちし、状態を読む欄は下の `bindFirstNode` で差し替える
+  treeComplexBuilder.node({
+    id: n.id,
+    title: n.title.startsWith("{") ? n.id : n.title,
+    ...("parent" in n ? { parent: n.parent } : {}),
+  });
+}
+
+export const pattern__presetTree__複雑 = withSteps(
+  bindFirstNode(treeComplexBuilder.build(), (n) => ({
+    ...n,
+    // `treeData` は `TREE_COMPLEX_NODES` を回す `for` で 1:1 に作るので長さは常に一致する
+    treeData: n.treeData?.map((t, i) => {
+      const 元 = TREE_COMPLEX_NODES[i];
+      return 元 === undefined ? t : { ...t, title: 元.title, subtitle: 元.subtitle };
+    }),
+  })),
+  [
+    {
+      ids: ["tree-complex-demo-tree"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["tree-complex-demo-tree"],
+      // 描く段は伸ばす (#1353)。 12 箱を追うので簡単な版より長く取る
+      duration: DRAW_DURATION,
+      title: "立ち上げた時",
+      body: "3 つの本部の下はどれも課と担当。 作る側は 3 つ合わせて 10 人。",
+    },
+    {
+      title: "作る部門が部になる",
+      body: "設計課と開発課が部になり、2 つで 10 人から 22 人へ。 技術本部は 28 人になる。",
+      sets: [
+        { id: "tc_design_t", value: "設計部" },
+        { id: "tc_design_n", value: "8 人" },
+        { id: "tc_dev_t", value: "開発部" },
+        { id: "tc_dev_n", value: "14 人" },
+      ],
+    },
+    {
+      title: "品質を独立させる",
+      body: "品質課が品質部になり 2 人から 6 人へ。 作る側の 3 つが全部「部」 で揃う。",
+      sets: [
+        { id: "tc_qa_t", value: "品質部" },
+        { id: "tc_qa_n", value: "6 人" },
+        { id: "tc_tech_n", value: "28 人" },
+      ],
+    },
+    {
+      body: "法務担当が法務部になり 1 人から 3 人へ。 12 箱のうち 4 つの呼び方が変わった。",
+      sets: [
+        { id: "tc_legal_t", value: "法務部" },
+        { id: "tc_legal_n", value: "3 人" },
+        { id: "tc_admin_n", value: "7 人" },
+      ],
+    },
+  ],
+  [
+    { id: "tc_tech_n", initial: "10 人" },
+    { id: "tc_admin_n", initial: "5 人" },
+    { id: "tc_design_t", initial: "設計課" },
+    { id: "tc_design_n", initial: "3 人" },
+    { id: "tc_dev_t", initial: "開発課" },
+    { id: "tc_dev_n", initial: "5 人" },
+    { id: "tc_qa_t", initial: "品質課" },
+    { id: "tc_qa_n", initial: "2 人" },
+    { id: "tc_legal_t", initial: "法務担当" },
+    { id: "tc_legal_n", initial: "1 人" },
+  ],
+);
+
 export const patternBase__presetUserJourney = "簡単";
 
 /**
