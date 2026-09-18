@@ -31,7 +31,9 @@ import * as 部品 from "./parts.cdl";
  * `flow` と `topology` は部品を他の箱の下の格子に置くため、矢印が間の箱を貫く (#1979 の実測)。
  * 繋ぎ方の頁と同じ理由で `swimlane` を使う。
  *
- * ## 20 の切替
+ * ## 切替の一覧
+ *
+ * 数は書かない = 切替を足すたびに動く (実数は `parts-motion-content.test.ts` が名前で持つ)。
  *
  * | 切替 | 見せること |
  * |---|---|
@@ -55,6 +57,8 @@ import * as 部品 from "./parts.cdl";
  * | 落ちた分が相乗りする | 遮断器の落ちるを相乗り箱の問いへ繋ぎ、いっせいの問い直しが 1 本にまとまる形を見せる (#2210) |
  * | 順に戻してから溜める | 順番戻し箱の出せるをまとめ箱の届くへ繋ぎ、番が来た分だけが束になる形を見せる (#2210) |
  * | 釣り合わせてから順に戻す | 釣り合い箱の出すを順番戻し箱の届くへ繋ぎ、交互に出すと元の順でなくなる形を見せる (#2210) |
+ * | よけてから溜める | よけ道箱の先へ進むをまとめ箱の届くへ繋ぎ、諦めた分が次の箱へ渡らない形を見せる (#2218) |
+ * | 問い合わせを一人ずつ通す | 仕分け箱の問い合わせを一人ずつ箱の同時に来るへ繋ぎ、分けた先で順番待ちが起きる形を見せる (#2218) |
  *
  * ## 繋ぐ先の段は数字ではなく詰めた後の並びで決まる (#2204 の実測)
  *
@@ -2054,5 +2058,213 @@ export const sourceJson__pattern__partsMotion__釣り合わせてから順に戻
 
 export const pattern__partsMotion__釣り合わせてから順に戻す = textDslToDiagram(
   sourceYaml__pattern__partsMotion__釣り合わせてから順に戻す,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__よけてから溜める = `title: "やり直して通った分だけを溜めてまとめて送る"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  よける: { label: "よける" }
+  溜める: { label: "溜める" }
+
+# 先へ進む (上から 1 行目) と届く (上から 1 行目) で矢印が真横に引ける。
+# 繋ぐ札は 4 字まで = 5 字にすると板が 1659 に伸びて箱の題が 11.6px になる (#2210 の実測)
+actors:
+  - dl: { kind: dead-letter, phase: false, lane: よける }
+  - bt: { kind: batch-collector, phase: false, lane: 溜める }
+
+# 脇へ出た分は次の箱へ渡らない。 減る理由が「諦めた」 と「束が満ちていない」 で 2 回とも違う
+flow:
+  - dl -> bt: "通った分" { fromPartNode: okP, toPartNode: inP }
+
+animation:
+  - step: "1. 何度もやり直す" 1.2s
+    focus: [dl__inP]
+    badge: "再試"
+    tween:
+      dl__inN: 0 -> 24
+    body: "24 件が何度もやり直されている。 まだ行き先は決まっていない。"
+  - step: "2. 諦めた分が分かれる" 1.4s
+    focus: [dl]
+    badge: "よけ"
+    tween:
+      dl__okN: 0 -> 21
+      dl__deadN: 0 -> 3
+    body: "21 件はやり直して通り、3 件は脇へ出る。 脇の 3 件は入口へ戻らない。"
+  - step: "3. 溜める" 1.4s
+    focus: [dl__okP, bt__inP, "dl -> bt"]
+    badge: "受渡"
+    tween:
+      bt__inN: 0 -> 21
+      bt__poolN: 0 -> 10
+    body: "通った 21 件が 1 件ずつ溜まり、10 件で溜まりが満ちる。"
+  - step: "4. まとめて送る" 1.4s
+    focus: [bt]
+    badge: "送出"
+    tween:
+      bt__sendN: 0 -> 2
+    body: "10 件ずつ 2 回送る。 残る 1 件は次の束が満ちるまで出ない。"
+`;
+
+export const sourceJson__pattern__partsMotion__よけてから溜める = `{
+  "title": "やり直して通った分だけを溜めてまとめて送る",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "よける": { "label": "よける" },
+    "溜める": { "label": "溜める" }
+  },
+  "actors": [
+    { "name": "dl", "kind": "dead-letter", "phase": false, "lane": "よける" },
+    { "name": "bt", "kind": "batch-collector", "phase": false, "lane": "溜める" }
+  ],
+  "flow": [
+    { "from": "dl", "to": "bt", "label": "通った分", "fromPartNode": "okP", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 何度もやり直す",
+      "duration": 1.2,
+      "focus": ["dl__inP"],
+      "badge": "再試",
+      "tween": { "dl__inN": [0, 24] },
+      "body": "24 件が何度もやり直されている。 まだ行き先は決まっていない。"
+    },
+    {
+      "step": "2. 諦めた分が分かれる",
+      "duration": 1.4,
+      "focus": ["dl"],
+      "badge": "よけ",
+      "tween": { "dl__okN": [0, 21], "dl__deadN": [0, 3] },
+      "body": "21 件はやり直して通り、3 件は脇へ出る。 脇の 3 件は入口へ戻らない。"
+    },
+    {
+      "step": "3. 溜める",
+      "duration": 1.4,
+      "focus": ["dl__okP", "bt__inP", "dl -> bt"],
+      "badge": "受渡",
+      "tween": { "bt__inN": [0, 21], "bt__poolN": [0, 10] },
+      "body": "通った 21 件が 1 件ずつ溜まり、10 件で溜まりが満ちる。"
+    },
+    {
+      "step": "4. まとめて送る",
+      "duration": 1.4,
+      "focus": ["bt"],
+      "badge": "送出",
+      "tween": { "bt__sendN": [0, 2] },
+      "body": "10 件ずつ 2 回送る。 残る 1 件は次の束が満ちるまで出ない。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__よけてから溜める = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__よけてから溜める,
+  { partsCatalog: 部品の一覧 },
+);
+
+export const sourceYaml__pattern__partsMotion__問い合わせを一人ずつ通す = `title: "問い合わせだけを一度に一つずつ通す"
+type: swimlane
+viewport: { laneWidth: 200 }
+
+lanes:
+  仕分ける: { label: "仕分ける" }
+  一人ずつ: { label: "一人ずつ" }
+
+# 問い合わせ (上から 2 行目) と同時に来る (上から 2 行目) で矢印が真横に引ける。
+# **どちらの部品も段 0 / 1 / 2 を全て使うので段は詰まらない** = 段の数字がそのまま行になる
+# (詰まる形は #2204 の実測)。 繋ぐ札は 4 字まで = 5 字にすると板が 1659 に伸びる (#2210 の実測)
+actors:
+  - cs: { kind: content-sorter, phase: false, lane: 仕分ける }
+  - lg: { kind: lock-gate, phase: false, lane: 一人ずつ }
+
+# 中身で 3 つに分かれた 1 つだけが戸へ向かう。 戸の中に入れるのは何件来ても 1 件だけ
+flow:
+  - cs -> lg: "問合せ" { fromPartNode: outB, toPartNode: inP }
+
+animation:
+  - step: "1. 中身を見る" 1.2s
+    focus: [cs__inP]
+    badge: "到着"
+    tween:
+      cs__inN: 0 -> 20
+    body: "20 件が届く。 中身はまだ見ていないので、行き先は決まっていない。"
+  - step: "2. 種類で分かれる" 1.4s
+    focus: [cs]
+    badge: "仕分"
+    tween:
+      cs__aN: 0 -> 11
+      cs__bN: 0 -> 6
+      cs__cN: 0 -> 3
+    body: "注文 11 件、問い合わせ 6 件、その他 3 件に分かれる。 合わせて 20 件で入った分と合う。"
+  - step: "3. 戸へ向かう" 1.4s
+    focus: [cs__outB, lg__inP, "cs -> lg"]
+    badge: "受渡"
+    tween:
+      lg__inN: 0 -> 6
+    body: "問い合わせの 6 件が戸の前へ同時に着く。 まだ 1 件も中に入っていない。"
+  - step: "4. 一度に一つだけ入る" 1.4s
+    focus: [lg]
+    badge: "排他"
+    tween:
+      lg__nowN: 0 -> 1
+      lg__waitN: 0 -> 5
+    body: "中に入れるのは 1 件だけ。 残る 5 件は捨てられず戸の前で待ち、順に入る。"
+`;
+
+export const sourceJson__pattern__partsMotion__問い合わせを一人ずつ通す = `{
+  "title": "問い合わせだけを一度に一つずつ通す",
+  "type": "swimlane",
+  "viewport": { "laneWidth": 200 },
+  "lanes": {
+    "仕分ける": { "label": "仕分ける" },
+    "一人ずつ": { "label": "一人ずつ" }
+  },
+  "actors": [
+    { "name": "cs", "kind": "content-sorter", "phase": false, "lane": "仕分ける" },
+    { "name": "lg", "kind": "lock-gate", "phase": false, "lane": "一人ずつ" }
+  ],
+  "flow": [
+    { "from": "cs", "to": "lg", "label": "問合せ", "fromPartNode": "outB", "toPartNode": "inP" }
+  ],
+  "animation": [
+    {
+      "step": "1. 中身を見る",
+      "duration": 1.2,
+      "focus": ["cs__inP"],
+      "badge": "到着",
+      "tween": { "cs__inN": [0, 20] },
+      "body": "20 件が届く。 中身はまだ見ていないので、行き先は決まっていない。"
+    },
+    {
+      "step": "2. 種類で分かれる",
+      "duration": 1.4,
+      "focus": ["cs"],
+      "badge": "仕分",
+      "tween": { "cs__aN": [0, 11], "cs__bN": [0, 6], "cs__cN": [0, 3] },
+      "body": "注文 11 件、問い合わせ 6 件、その他 3 件に分かれる。 合わせて 20 件で入った分と合う。"
+    },
+    {
+      "step": "3. 戸へ向かう",
+      "duration": 1.4,
+      "focus": ["cs__outB", "lg__inP", "cs -> lg"],
+      "badge": "受渡",
+      "tween": { "lg__inN": [0, 6] },
+      "body": "問い合わせの 6 件が戸の前へ同時に着く。 まだ 1 件も中に入っていない。"
+    },
+    {
+      "step": "4. 一度に一つだけ入る",
+      "duration": 1.4,
+      "focus": ["lg"],
+      "badge": "排他",
+      "tween": { "lg__nowN": [0, 1], "lg__waitN": [0, 5] },
+      "body": "中に入れるのは 1 件だけ。 残る 5 件は捨てられず戸の前で待ち、順に入る。"
+    }
+  ]
+}`;
+
+export const pattern__partsMotion__問い合わせを一人ずつ通す = textDslToDiagram(
+  sourceYaml__pattern__partsMotion__問い合わせを一人ずつ通す,
   { partsCatalog: 部品の一覧 },
 );

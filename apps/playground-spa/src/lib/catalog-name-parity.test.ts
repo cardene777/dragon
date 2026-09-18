@@ -85,7 +85,7 @@ describe("一覧の名前 (#1030)", () => {
       // 縦列の組の見本を足して 94 → 95 (#1972)
       "primitives-extra": 21, animation: 10, styles: 16, presets: 19,
       // parts-in-box は部品を箱に使う見本 (#1973)
-      ethereum: 4, "text-dsl": 15, parts: 106, "parts-in-box": 1, "parts-motion": 1, charts: 15,
+      ethereum: 4, "text-dsl": 15, parts: 108, "parts-in-box": 1, "parts-motion": 1, charts: 15,
     };
     const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));
     expect(actual, "図の数が変わっている (足したら期待値も更新する)").toEqual(expected);

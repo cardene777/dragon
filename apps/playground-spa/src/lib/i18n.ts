@@ -559,6 +559,8 @@ export const ITEM_NAME_JA: Record<string, string> = {
   partsKeyRouter: "繋ぐ: 鍵で行き先が決まる",
   partsSingleFlight: "繋ぐ: 同時の同じ問いを 1 本にする",
   partsFairQueue: "繋ぐ: 送り主ごとに同じだけ出す",
+  partsDeadLetter: "繋ぐ: やり直しても駄目な分を脇へ出す",
+  partsLockGate: "繋ぐ: 一度に一つだけ通す",
 };
 
 /**
@@ -1051,6 +1053,8 @@ export const ITEM_NAME_EN: Record<string, string> = {
   partsKeyRouter: "Wire: the key decides where it goes",
   partsSingleFlight: "Wire: merge simultaneous identical asks",
   partsFairQueue: "Wire: give every sender the same share",
+  partsDeadLetter: "Wire: set aside what still fails after retries",
+  partsLockGate: "Wire: let only one through at a time",
 };
 
 /**

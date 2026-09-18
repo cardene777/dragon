@@ -4482,6 +4482,145 @@ export const subtitle__partsFairQueue =
   "30 件送った人も 6 件送った人も、出るのは同じ 6 件ずつ。 多く送る人の残り 24 件は次の順番まで待つ";
 
 // ============================================================
+// 同じ所を何度も通ってから行き先が決まる部品 (#2218)
+// ============================================================
+//
+// ここからの節は **1 件が部品を 1 度通っただけでは行き先が決まらない** 繋ぎ方を表す。
+// ここより前の繋ぎ方の部品は、入口に入れた数と割合か、入口の外側の事情 (#2199) か、
+// 他の件との関係 (#2206) で決まるが、どれも 1 度通れば決まる。
+//
+// やり直し箱 (`parts-retry-loop`) は繰り返しを表す唯一の先例だが、落ちた分を入口へ戻す
+// ところまでで、戻し続けても駄目だった分の行き止まりを持たない。 よけ道箱がその先を描く。
+// 一人ずつ箱は、待つ理由が **中に他の件が居ること** である形を描く = 順番戻し箱が待つのは
+// 前の番が来ていないからで、中に誰が居るかは見ていない。
+//
+// 要素と値の名前は繋ぎ方の他の部品と同じく英字で書く (#2125)。
+
+// parts 107: よけ道箱 — やり直しても駄目な分を脇へ出す
+export const partsDeadLetter = diagram("parts-dead-letter", {
+  topic: "よけ道箱 — やり直しても駄目な分を脇へ出す",
+})
+  .lane("dl1", { x: 0, width: 200, label: "入口" })
+  .lane("dl2", { x: 220, width: 200, label: "行き先" })
+  .state("inN", { initial: 0 })
+  .state("okN", { initial: 0 })
+  .state("deadN", { initial: 0 })
+  // 入口を 2 つの出口の真ん中の段 (1) に置く (#2154)。 端の段に置くと 2 本が同じ向きへ寄る
+  .node("inP", {
+    lane: "dl1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "何度もやり直す",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 24, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("okP", {
+    lane: "dl2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "先へ進む",
+    subtitle: "{okN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{okN}", fillMax: 24, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("deadP", {
+    lane: "dl2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "脇へ出す",
+    subtitle: "{deadN} 件",
+    w: 150,
+    h: 150,
+    shape: {
+      kind: "rect",
+      source: "{deadN}",
+      fillMax: 24,
+      orient: "up",
+      fill: "#dc2626",
+      radius: 6,
+    },
+  })
+  // 部品の中の線の札に数字を置かない (#2149)
+  .edge("inP", "okP", { id: "dl-ok", label: "通った", tone: "success" })
+  .edge("inP", "deadP", { id: "dl-dead", label: "諦めた", tone: "error" })
+  // 21 + 3 = 24 で入った分と合う。 脇へ出た 3 件は入口へ戻らない = やり直し箱との違いがここに出る
+  .phase("p", { duration: 4000, title: "やり直しの末に分かれる", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "okP", "deadP", "dl-ok", "dl-dead")
+      .tween("inN", 0, 24)
+      .tween("okN", 0, 21)
+      .tween("deadN", 0, 3),
+  )
+  .build();
+
+export const subtitle__partsDeadLetter =
+  "24 件のうち 21 件はやり直して通り、3 件は脇へ出る。 やり直し箱と違い、諦めた分が入口へ戻らない";
+
+// parts 108: 一人ずつ箱 — 中に入れるのは一度に一つだけ
+export const partsLockGate = diagram("parts-lock-gate", {
+  topic: "一人ずつ箱 — 中に入れるのは一度に一つだけ",
+})
+  .lane("lg1", { x: 0, width: 200, label: "入口" })
+  .lane("lg2", { x: 220, width: 200, label: "戸の内と外" })
+  .state("inN", { initial: 0 })
+  .state("nowN", { initial: 0 })
+  .state("waitN", { initial: 0 })
+  .node("inP", {
+    lane: "lg1",
+    stack: 1,
+    kind: "dyn-rect",
+    title: "同時に来る",
+    subtitle: "{inN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{inN}", fillMax: 18, orient: "up", fill: "#4e9dc4", radius: 6 },
+  })
+  .node("nowP", {
+    lane: "lg2",
+    stack: 0,
+    kind: "dyn-rect",
+    title: "中に入る",
+    subtitle: "{nowN} 件",
+    w: 150,
+    h: 150,
+    shape: { kind: "rect", source: "{nowN}", fillMax: 18, orient: "up", fill: "#22c55e", radius: 6 },
+  })
+  .node("waitP", {
+    lane: "lg2",
+    stack: 2,
+    kind: "dyn-rect",
+    title: "戸の前で待つ",
+    subtitle: "{waitN} 件",
+    w: 150,
+    h: 150,
+    shape: {
+      kind: "rect",
+      source: "{waitN}",
+      fillMax: 18,
+      orient: "up",
+      fill: "#f59e0b",
+      radius: 6,
+    },
+  })
+  .edge("inP", "nowP", { id: "lg-now", label: "入れる", tone: "success" })
+  .edge("inP", "waitP", { id: "lg-wait", label: "待つ", tone: "warning" })
+  // 1 + 17 = 18 で入った分と合う。 中の 1 件が出れば次が入るので、待つ 17 件は捨てられていない
+  .phase("p", { duration: 4000, title: "一度に一つだけ通す", body: "" }, (p: PhaseBuilder) =>
+    p
+      .activate("inP", "nowP", "waitP", "lg-now", "lg-wait")
+      .tween("inN", 0, 18)
+      .tween("nowN", 0, 1)
+      .tween("waitN", 0, 17),
+  )
+  .build();
+
+export const subtitle__partsLockGate =
+  "18 件が同時に来ても中に入れるのは 1 件だけ。 残る 17 件は捨てられず戸の前で待ち、順に入る";
+
+// ============================================================
 // 記法 (#1381)
 // ============================================================
 //
@@ -12984,6 +13123,298 @@ export const sourceJson__partsFairQueue = `{
         "outN": [
           0,
           12
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsDeadLetter = `title: "よけ道箱 — やり直しても駄目な分を脇へ出す"
+type: flow
+
+lanes:
+  dl1: { x: 0, width: 200, label: "入口" }
+  dl2: { x: 220, width: 200, label: "行き先" }
+
+states:
+  inN: 0
+  okN: 0
+  deadN: 0
+
+actors:
+  - 何度もやり直す: { kind: dyn-rect, lane: dl1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 24, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 先へ進む: { kind: dyn-rect, lane: dl2, stack: 0, subtitle: "{okN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{okN}", fillMax: 24, orient: up, fill: "#22c55e", radius: 6 } }
+  - 脇へ出す: { kind: dyn-rect, lane: dl2, stack: 2, subtitle: "{deadN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{deadN}", fillMax: 24, orient: up, fill: "#dc2626", radius: 6 } }
+
+flow:
+  - 何度もやり直す -> 先へ進む: "通った" (success)
+  - 何度もやり直す -> 脇へ出す: "諦めた" (error)
+
+animation:
+  - step: "やり直しの末に分かれる" 4s
+    focus: ["何度もやり直す", "先へ進む", "脇へ出す", "何度もやり直す -> 先へ進む", "何度もやり直す -> 脇へ出す"]
+    tween:
+      inN: 0 -> 24
+      okN: 0 -> 21
+      deadN: 0 -> 3
+`;
+
+export const sourceJson__partsDeadLetter = `{
+  "title": "よけ道箱 — やり直しても駄目な分を脇へ出す",
+  "type": "flow",
+  "lanes": {
+    "dl1": {
+      "x": 0,
+      "width": 200,
+      "label": "入口"
+    },
+    "dl2": {
+      "x": 220,
+      "width": 200,
+      "label": "行き先"
+    }
+  },
+  "actors": [
+    {
+      "name": "何度もやり直す",
+      "kind": "dyn-rect",
+      "lane": "dl1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{inN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "先へ進む",
+      "kind": "dyn-rect",
+      "lane": "dl2",
+      "stack": 0,
+      "subtitle": "{okN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{okN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "脇へ出す",
+      "kind": "dyn-rect",
+      "lane": "dl2",
+      "stack": 2,
+      "subtitle": "{deadN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{deadN}",
+        "fillMax": 24,
+        "orient": "up",
+        "fill": "#dc2626",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "何度もやり直す",
+      "to": "先へ進む",
+      "label": "通った",
+      "tone": "success"
+    },
+    {
+      "from": "何度もやり直す",
+      "to": "脇へ出す",
+      "label": "諦めた",
+      "tone": "error"
+    }
+  ],
+  "states": {
+    "inN": 0,
+    "okN": 0,
+    "deadN": 0
+  },
+  "animation": [
+    {
+      "step": "やり直しの末に分かれる",
+      "duration": 4,
+      "focus": [
+        "何度もやり直す",
+        "先へ進む",
+        "脇へ出す",
+        "何度もやり直す -> 先へ進む",
+        "何度もやり直す -> 脇へ出す"
+      ],
+      "tween": {
+        "inN": [
+          0,
+          24
+        ],
+        "okN": [
+          0,
+          21
+        ],
+        "deadN": [
+          0,
+          3
+        ]
+      }
+    }
+  ]
+}`;
+
+export const sourceYaml__partsLockGate = `title: "一人ずつ箱 — 中に入れるのは一度に一つだけ"
+type: flow
+
+lanes:
+  lg1: { x: 0, width: 200, label: "入口" }
+  lg2: { x: 220, width: 200, label: "戸の内と外" }
+
+states:
+  inN: 0
+  nowN: 0
+  waitN: 0
+
+actors:
+  - 同時に来る: { kind: dyn-rect, lane: lg1, stack: 1, subtitle: "{inN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{inN}", fillMax: 18, orient: up, fill: "#4e9dc4", radius: 6 } }
+  - 中に入る: { kind: dyn-rect, lane: lg2, stack: 0, subtitle: "{nowN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{nowN}", fillMax: 18, orient: up, fill: "#22c55e", radius: 6 } }
+  - 戸の前で待つ: { kind: dyn-rect, lane: lg2, stack: 2, subtitle: "{waitN} 件", posW: 150, posH: 150, shape: { kind: rect, source: "{waitN}", fillMax: 18, orient: up, fill: "#f59e0b", radius: 6 } }
+
+flow:
+  - 同時に来る -> 中に入る: "入れる" (success)
+  - 同時に来る -> 戸の前で待つ: "待つ" (warning)
+
+animation:
+  - step: "一度に一つだけ通す" 4s
+    focus: ["同時に来る", "中に入る", "戸の前で待つ", "同時に来る -> 中に入る", "同時に来る -> 戸の前で待つ"]
+    tween:
+      inN: 0 -> 18
+      nowN: 0 -> 1
+      waitN: 0 -> 17
+`;
+
+export const sourceJson__partsLockGate = `{
+  "title": "一人ずつ箱 — 中に入れるのは一度に一つだけ",
+  "type": "flow",
+  "lanes": {
+    "lg1": {
+      "x": 0,
+      "width": 200,
+      "label": "入口"
+    },
+    "lg2": {
+      "x": 220,
+      "width": 200,
+      "label": "戸の内と外"
+    }
+  },
+  "actors": [
+    {
+      "name": "同時に来る",
+      "kind": "dyn-rect",
+      "lane": "lg1",
+      "stack": 1,
+      "subtitle": "{inN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{inN}",
+        "fillMax": 18,
+        "orient": "up",
+        "fill": "#4e9dc4",
+        "radius": 6
+      }
+    },
+    {
+      "name": "中に入る",
+      "kind": "dyn-rect",
+      "lane": "lg2",
+      "stack": 0,
+      "subtitle": "{nowN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{nowN}",
+        "fillMax": 18,
+        "orient": "up",
+        "fill": "#22c55e",
+        "radius": 6
+      }
+    },
+    {
+      "name": "戸の前で待つ",
+      "kind": "dyn-rect",
+      "lane": "lg2",
+      "stack": 2,
+      "subtitle": "{waitN} 件",
+      "posW": 150,
+      "posH": 150,
+      "shape": {
+        "kind": "rect",
+        "source": "{waitN}",
+        "fillMax": 18,
+        "orient": "up",
+        "fill": "#f59e0b",
+        "radius": 6
+      }
+    }
+  ],
+  "flow": [
+    {
+      "from": "同時に来る",
+      "to": "中に入る",
+      "label": "入れる",
+      "tone": "success"
+    },
+    {
+      "from": "同時に来る",
+      "to": "戸の前で待つ",
+      "label": "待つ",
+      "tone": "warning"
+    }
+  ],
+  "states": {
+    "inN": 0,
+    "nowN": 0,
+    "waitN": 0
+  },
+  "animation": [
+    {
+      "step": "一度に一つだけ通す",
+      "duration": 4,
+      "focus": [
+        "同時に来る",
+        "中に入る",
+        "戸の前で待つ",
+        "同時に来る -> 中に入る",
+        "同時に来る -> 戸の前で待つ"
+      ],
+      "tween": {
+        "inN": [
+          0,
+          18
+        ],
+        "nowN": [
+          0,
+          1
+        ],
+        "waitN": [
+          0,
+          17
         ]
       }
     }
