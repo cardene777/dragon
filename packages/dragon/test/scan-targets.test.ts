@@ -133,6 +133,17 @@ describe("走査する検査が集める file の一覧 (#2095)", () => {
       // 入口を 4 つ並べていた頃はどちらも外にあり、そこに書いた注釈は止まらなかった (#2238)
       expect(src, `${相対} が入っていない`).toContain(join(REPO, 相対));
     }
+    // 拡張子を `.ts` と `.tsx` に絞っていた頃、`scripts/` の道具が丸ごと外にあり、
+    // 撮影の道具の注釈に古い件数が 3 つ残っていた (#2242)
+    expect(src, "撮影の道具が入っていない").toContain(
+      join(REPO, "apps/playground-spa/scripts/shoot-zoom.mjs"),
+    );
+    for (const 拡張子 of [".ts", ".tsx", ".mts", ".mjs"]) {
+      expect(
+        src.some((p) => p.endsWith(拡張子)),
+        `拡張子 ${拡張子} を集めていない`,
+      ).toBe(true);
+    }
     expect(
       src.filter((p) => p.includes("/node_modules/") || p.includes("/dist/")),
       "無視設定の dir の source が混ざっている",
