@@ -12,8 +12,8 @@ parts.cdl.ts の 80 diagram (arc-gauge / wave-gauge 等) を editor で drag →
 ## 1. 前提事実
 
 - dragon には 2 DSL が既存: **Human YAML DSL** (`v05/parser.ts`) + **LLM JSON DSL** (`json-parser.ts`)、 両 DSL は独立 parser で入口分離、 `compileToCdl` で共通の CdlDiagram AST に落ちる
-- 既存 kind list = 28 個 (`actor / function / service / database / cache / queue / api / person / entity / state / container / card / lambda / kms / secret / alb / ecs / rds / s3 / iam / user / browser / contract / eoa / multisig / proxy / library / interface`)、 `NODE_KIND_VALID` set で管理
-- parts identifier list = 80 個 (`parts-arc-gauge` / `parts-wave-gauge` / etc.、 全て `parts-*` prefix、 内部 kind は `dyn-arc` / `dyn-wave` 等の別体系)
+- 既存 kind list は `v05/parser.ts` の `NODE_KIND_VALID` が SSOT (`NODE_KINDS` と `DSL_ONLY_KINDS` と `INFRA_KIND_ALIAS` の鍵を合わせた集合)、 数も綴りもその定義が持つ
+- parts identifier list は `apps/playground-spa/src/topics/catalog/parts.cdl.ts` の export が SSOT (全て `parts-*` prefix、 内部 kind は `dyn-arc` / `dyn-wave` 等の別体系)
 - 既存 SAMPLES 12 個は全て `actors:` inline mapping (`- API: { kind: function }`) を活用済、 backward compat 必須
 
 ## 2. 決定事項 (前 decision-log 反映)
@@ -46,7 +46,7 @@ actors:
 - **採用** = `kind: arc-gauge` (prefix なし、 short、 human 手書きやすい)
 - **却下** = `kind: parts-arc-gauge` (typing 長、 冗長)
 - **命名保証** = parts.cdl.ts の全 export id は `parts-{name}` prefix だが、 syntax で書く時は `{name}` のみ、 内部 lookup で `parts-{name}` に mapping
-- **衝突回避** = parts identifier (80 個の `{name}`) が既存 28 kind と重ならないことを parts 命名規約で保証、 現状衝突なし (arc-gauge / wave-gauge / dyn-* 全て distinct)
+- **衝突回避** = parts identifier の `{name}` が既存 kind と重ならないことを parts 命名規約で保証、 現状衝突なし (arc-gauge / wave-gauge / dyn-* 全て distinct)
 
 ### 2.3 state override = inline 拡散 + `state: {}` fallback
 
