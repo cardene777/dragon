@@ -29,9 +29,9 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { CATEGORIES } from "./catalog";
-import { 走査するfile, 絶対path } from "../../../../test-support/scan-targets";
+import { 説明書のfile } from "../../../../test-support/scan-targets";
 
 /** この file から見た repo の根 (`apps/playground-spa/src/lib/` の 4 つ上) */
 const 根 = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -81,32 +81,13 @@ const 導ける量: { 名: string; 導き方: string; 語: RegExp }[] = [
 ];
 
 /**
- * 走査しない md。
- *
- * 変更履歴は「その版で何が起きたか」 を書く場所で、決めた日の記録そのもの。
- * 今を指す数として読むと、過去の版の記述を今の実物に合わせて書き換えることになる。
- */
-const 走査しない = new Set(["CHANGELOG.md"]);
-
-/**
  * 説明書として走査する md。
  *
- * **置き場所を名指ししない** (`rules/quality.md § 全件走査は除外を書く`)。
- * 見る先を挙げる形は、書き手が思い付いた場所が上限になる。 #1801 は意匠帳だけを見て
- * 紹介文を落とし、#1803 は `docs/` と `.claude/` と根の直下を挙げて
- * **配る package の説明書** (`packages/dragon/README.md` と `examples/`) を落とした。
- * `package.json` の `files` に入る 2 つは `npm` で最初に読まれる面で、
- * repo の入口より読まれる場面が多い。
- *
- * 集め方は `test-support/scan-targets.ts` が 1 か所で持つ (#2095)。
- * 無視設定に載る `dist` / `.context/` / `node_modules` は入らず、書いている最中の
- * 未追跡の md は入る。
+ * **どの md を見るかは `test-support/scan-targets.ts` が 1 か所で持つ** (#2240)。
+ * 外す md の一覧も、集め方 (#2095) も、置き場所を名指ししない理由 (#2236) もそちら。
  */
 export function 説明書のfile一覧(): string[] {
-  return 絶対path(
-    根,
-    走査するfile(根, "*.md").filter((p) => !走査しない.has(basename(p))),
-  );
+  return 説明書のfile(根);
 }
 
 /**
@@ -166,25 +147,9 @@ describe("説明書が実物から導ける値を人手で書いていない (#1
       files.some((f) => f === join(根, "README.md")),
       "紹介文を見ていない (#1803 が広げた先)",
     ).toBe(true);
-    // 配る package の説明書 (#2236 が広げた先)。 `package.json` の `files` に入るため
-    // `npm` で最初に読まれる面で、repo の入口より読まれる場面が多い
-    expect(
-      files.some((f) => f === join(根, "packages/dragon/README.md")),
-      "配る package の説明書を見ていない (#2236 が広げた先)",
-    ).toBe(true);
-    expect(
-      files.some((f) => f === join(根, "packages/dragon/examples/quick-start.md")),
-      "配る package の手引きを見ていない (#2236 が広げた先)",
-    ).toBe(true);
-    // 外す側が効いていること。 辿ってしまうと外から取ってきた md が母数に混ざる
-    expect(
-      files.filter((f) => f.includes("/node_modules/") || f.includes("/.stryker-tmp/")),
-      "辿らない dir の md が混ざっている",
-    ).toEqual([]);
-    expect(
-      files.some((f) => f.endsWith("CHANGELOG.md")),
-      "変更履歴を走査している (決めた日の記録を今の数として読むことになる)",
-    ).toBe(false);
+    // 集合そのものの形 (配る説明書が入る / 変更履歴が入らない / 外から取ってきた md が
+    // 混ざらない) は `scan-targets.test.ts` が 1 か所で見る (#2240)。
+    // ここは自分が使う側として、意匠帳と紹介文という母数の中身だけを確かめる
     let 行数 = 0;
     const 残る: string[] = [];
     for (const f of files) {

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
-import { 走査するfile, 絶対path } from "../../../../test-support/scan-targets";
+import { 注釈を読むfile } from "../../../../test-support/scan-targets";
 
 /**
  * 読みにくい図の枚数を、注釈に手で書き戻させない (#2214)。
@@ -56,7 +56,7 @@ const 根 = join(ここ, "..", "..", "..", "..");
 /** 注釈の 1 行 (`//` の行と、ブロック注釈の `*` 始まりの行) */
 const 注釈の行か = (行: string): boolean => /^\s*(\/\/|\*|\/\*)/.test(行);
 
-const 走査したfile = 絶対path(根, 走査するfile(根, "*.ts", "*.tsx"));
+const 走査したfile = 注釈を読むfile(根);
 
 const 注釈: Array<{ file: string; 行: string }> = 走査したfile.flatMap((p) =>
   readFileSync(p, "utf8")
@@ -84,19 +84,7 @@ describe("読みにくい図の枚数を注釈に書かない (#2214)", () => {
     // 走査できていなければ、下の 0 件は「該当なし」 ではなく「測っていない」 になる
     console.log(`[枚数の注釈] file=${走査したfile.length} 注釈=${注釈.length} 行`);
     expect(注釈.length, "走査した dir から注釈を 1 行も読めていない").toBeGreaterThan(1000);
-    // 入口を並べていた頃に外れていた場所 (#2238)。 減らすと同じ抜けに戻る
-    expect(
-      走査したfile.some((p) => p === join(根, "test-support", "scan-targets.ts")),
-      "走査の集め方そのものを見ていない (#2238 が広げた先)",
-    ).toBe(true);
-    expect(
-      走査したfile.some((p) => p === join(根, "vitest.config.ts")),
-      "根の設定 file を見ていない (#2238 が広げた先)",
-    ).toBe(true);
-    expect(
-      走査したfile.filter((p) => p.includes("/node_modules/") || p.includes("/dist/")),
-      "無視設定の dir の file が混ざっている",
-    ).toEqual([]);
+    // 集合そのものの形は `scan-targets.test.ts` が 1 か所で見る (#2240)
   });
 
   it("枚数を書いた注釈が無い", () => {

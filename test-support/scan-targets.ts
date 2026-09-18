@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 /**
  * 走査する検査が集める file の一覧 (#2095)。
@@ -68,4 +68,40 @@ export function 走査するfile(repo: string, ...glob: string[]): string[] {
 /** `走査するfile` が返した path を、絶対 path に直す */
 export function 絶対path(repo: string, 相対: readonly string[]): string[] {
   return 相対.map((p) => join(repo, p));
+}
+
+/**
+ * 説明書として走査しない md。
+ *
+ * 変更履歴は「その版で何が起きたか」 を書く場所で、決めた日の記録そのもの。
+ * 今を指す数として読むと、過去の版の記述を今の実物に合わせて書き換えることになる。
+ *
+ * **ここが唯一の置き場所** (#2240)。 同じ集合を検査ごとに組み立てていた間、
+ * 2 本が同じ 1 行を持っており、片方に外す md を足しても もう片方は見続ける形だった。
+ */
+const 説明書として走査しない = new Set(["CHANGELOG.md"]);
+
+/**
+ * 説明書として走査する md の絶対 path。
+ *
+ * **置き場所を名指ししない** (`rules/quality.md § 全件走査は除外を書く`)。
+ * 見る先を挙げる形は、書き手が思い付いた場所が上限になる。 #1801 は意匠帳だけを見て
+ * 紹介文を落とし、#1803 は `docs/` と `.claude/` と根の直下を挙げて
+ * **配る package の説明書** (`packages/dragon/README.md` と `examples/`) を落とした (#2236)。
+ */
+export function 説明書のfile(repo: string): string[] {
+  return 絶対path(
+    repo,
+    走査するfile(repo, "*.md").filter((p) => !説明書として走査しない.has(basename(p))),
+  );
+}
+
+/**
+ * 注釈を読む source の絶対 path。
+ *
+ * 注釈の言い回しを見る検査が使う。 入口を並べていた頃は `test-support/` と根の設定 file と
+ * 意匠帳の見本が外に残っており、そこに書いた注釈は止まらなかった (#2238)。
+ */
+export function 注釈を読むfile(repo: string): string[] {
+  return 絶対path(repo, 走査するfile(repo, "*.ts", "*.tsx"));
 }
