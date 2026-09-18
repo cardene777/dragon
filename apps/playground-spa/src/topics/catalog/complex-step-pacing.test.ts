@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 // 複雑な版は見本の中のパターン「複雑」 として書く (#1960)
 import * as カタログの定義 from "./presets.cdl";
+import { 複雑な版を作らない見本 } from "./complex-variant-policy";
 
 const 一段の最大増分 = 4;
 const 複雑見本の最大段数 = 10;
@@ -119,6 +120,53 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
         "mind-demo",
       ]),
     );
+  });
+
+  describe("複雑な版を持たない見本 (#2197)", () => {
+    /**
+     * 見本の名前を実物の export から集める。
+     *
+     * 見本は `preset<名前>` で、変種は `pattern__<見本>__<名前>`。
+     * 変種を除いた上で、図の export であることを確かめてから数える。
+     */
+    const 見本の名前 = Object.entries(定義)
+      .filter(([名前]) => /^preset[A-Za-z0-9]+$/.test(名前))
+      .filter(([, 値]) => typeof 値 === "object" && 値 !== null && "id" in 値)
+      .map(([名前]) => 名前)
+      .sort();
+    const 複雑な版を持つ見本 = new Set(元の見本の名前);
+    const 持たない見本 = 見本の名前.filter((名前) => !複雑な版を持つ見本.has(名前));
+
+    it("見本と複雑な版を 1 件以上数えられている", () => {
+      // 0 件だと下の突き合わせが「何も無いので一致」 になり、永久に通る
+      expect(見本の名前.length, "見本を 1 件も数えられていない (検査が空振りしている)").toBeGreaterThan(0);
+      expect(複雑な版を持つ見本.size, "複雑な版を 1 件も数えられていない").toBeGreaterThan(0);
+    });
+
+    it("複雑な版を持たない見本が、作らないと決めた表と一致する", () => {
+      expect(
+        持たない見本,
+        `複雑な版の無い見本が表とずれている。 複雑な版を足すか、complex-variant-policy.ts に理由を書く (見本 ${見本の名前.length} 種を走査)`,
+      ).toEqual(Object.keys(複雑な版を作らない見本).sort());
+    });
+
+    it("表の理由が空でない", () => {
+      const 空の行 = Object.entries(複雑な版を作らない見本)
+        .filter(([, 理由]) => 理由.trim() === "")
+        .map(([名前]) => 名前);
+      expect(Object.keys(複雑な版を作らない見本).length, "表が空 (検査が空振りしている)").toBeGreaterThan(0);
+      expect(空の行, "理由が空の行がある").toEqual([]);
+    });
+
+    it("表から 1 行外すと差が出る (植え込み対照)", () => {
+      // 上の 2 件はどちらも一致を期待する。 突き合わせ方が何も見つけない形だと永久に通るため、
+      // 本番と同じ突き合わせ方に **1 行欠けた表** を通して 1 件見つかることを確かめる
+      const 一行欠け = Object.keys(複雑な版を作らない見本).sort().slice(1);
+      const 差 = 持たない見本.filter((名前) => !一行欠け.includes(名前));
+      expect(差, "表から 1 行外しても差が出ない (突き合わせが効いていない)").toEqual([
+        Object.keys(複雑な版を作らない見本).sort()[0],
+      ]);
+    });
   });
 
   it("段ごとの増分を累積した activate から数えられる", () => {
