@@ -59,10 +59,18 @@ export default defineConfig({
      */
     environment: "node",
     globals: false,
-    // bench mode default include は **/*.{bench,benchmark}.* のみ。
-    // chainome は test/bench.test.ts に bench を集約する規約のため明示 override。
+    /*
+     * 速さの計測は `test/bench.test.ts` 1 file に集める (この repo の決まり)。
+     * bench mode が既定で見るのは `*.bench.*` と `*.benchmark.*` だけなので、明示で上書きする。
+     *
+     * **先頭を `packages/` で留める** (#2248)。 どこからでも当たる形にしていた間、
+     * 変異試験が残した作業用 dir (`.stryker-tmp` の下) の写しを 10 件拾い、
+     * そのどれもが package を解決できずに落ちていた。
+     * 実際の計測は出ているのに、走り終わりは失敗で返る。
+     * 検査の側 (`include`) が最初から `packages/` で留めており、そちらは巻き込まれていない。
+     */
     benchmark: {
-      include: ["**/test/bench.test.ts"],
+      include: ["packages/**/test/bench.test.ts"],
     },
   },
 });
