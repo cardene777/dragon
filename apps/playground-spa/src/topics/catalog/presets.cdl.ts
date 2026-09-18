@@ -2056,6 +2056,113 @@ export const presetQuadrant = withSteps(
   [{ id: "fill_in_at", initial: "bottomLeft" }],
 );
 
+export const patternBase__presetQuadrant = "簡単";
+
+/**
+ * 四象限図の複雑な版 (#2187)。
+ *
+ * 簡単な版は 4 項目 (各枠に 1 つ) で、動くのは 1 項目が枠を 1 回移るだけ。 実際に読み取りが
+ * 要るのは「見直しで何件かが枠を移り、どの枠が厚くなるか」 で、1 項目の 1 回の移動では描けない。
+ *
+ * 改善の候補 12 件を価値と労力で仕分け、手間の見積りと価値の見積りを分けて直す。
+ * **どちらの見積りを直したかで移る向きが変わる** = 手間の見直しは左右に、価値の見直しは
+ * 上下に動く。 段を分けておくと、どの見直しが効いたのかが図から読み取れる。
+ *
+ * **1 つの枠に描かれる項目は 3 つまで**。 4 つ目を置いても 3 つしか描かれず、**消えた 1 件は
+ * 何も知らせない** (実測 = 1 枠に 2 / 3 / 4 / 5 件を置いて描いた結果が 2 / 3 / 3 / 3 件、
+ * 板は 792x600 のまま、指摘も同じ 1 件)。
+ *
+ * そのため **どの段でも 4 つの枠を 3 件ずつに保つ**。 動かす時は 2 件を入れ替える。
+ * 見直しをしても枠の厚みは変わらず中身だけが入れ替わるので、
+ * 「優先度の見直しは総量を減らさない」 ことが図から読み取れる。
+ */
+const QUADRANT_COMPLEX_ITEMS = [
+  { id: "qc_word", title: "文言を直す", quadrant: "topLeft" },
+  { id: "qc_speed", title: "読み込みを速く", quadrant: "topLeft" },
+  { id: "qc_guide", title: "手引きの更新", quadrant: "{qc_guide_at}" },
+  { id: "qc_pay", title: "決済の作り直し", quadrant: "topRight" },
+  { id: "qc_search", title: "検索の作り直し", quadrant: "{qc_search_at}" },
+  { id: "qc_role", title: "権限の見直し", quadrant: "topRight" },
+  { id: "qc_color", title: "色の調整", quadrant: "bottomLeft" },
+  { id: "qc_notify", title: "通知の作り直し", quadrant: "bottomLeft" },
+  { id: "qc_order", title: "並び順の変更", quadrant: "{qc_order_at}" },
+  { id: "qc_device", title: "旧端末の対応", quadrant: "bottomRight" },
+  { id: "qc_legacy", title: "古い画面の移行", quadrant: "{qc_legacy_at}" },
+  { id: "qc_report", title: "帳票の作り直し", quadrant: "{qc_report_at}" },
+] as const;
+
+const quadrantComplexBuilder = quadrant({
+  id: "quad-complex-demo",
+  topic: "手間と価値の見積りを分けて直し、枠の中身だけが入れ替わる四象限図",
+  xAxis: { left: "労力が小さい", right: "労力が大きい" },
+  yAxis: { bottom: "価値が低い", top: "価値が高い" },
+});
+for (const it of QUADRANT_COMPLEX_ITEMS) {
+  // 組み立ての段では枠を決め打ちし、状態を読む欄は下の `bindFirstNode` で差し替える
+  quadrantComplexBuilder.item({
+    id: it.id,
+    title: it.title,
+    quadrant: it.quadrant.startsWith("{") ? "topLeft" : it.quadrant,
+  });
+}
+
+export const pattern__presetQuadrant__複雑 = withSteps(
+  bindFirstNode(quadrantComplexBuilder.build(), (n) => ({
+    ...n,
+    quadrantData: n.quadrantData && {
+      ...n.quadrantData,
+      // `items` は `QUADRANT_COMPLEX_ITEMS` を回す `for` で 1:1 に作るので長さは常に一致する
+      items: n.quadrantData.items.map((it, i) => {
+        const 元 = QUADRANT_COMPLEX_ITEMS[i];
+        return 元 === undefined ? it : { ...it, quadrant: 元.quadrant };
+      }),
+    },
+  })),
+  [
+    {
+      title: "仕分けた直後",
+      body: "改善の候補 12 件を 4 つの枠に 3 件ずつ置いた。 すぐやる枠には文言と読み込みと手引きが入る。",
+      sets: [
+        { id: "qc_guide_at", value: "topLeft" },
+        { id: "qc_search_at", value: "topRight" },
+        { id: "qc_order_at", value: "bottomLeft" },
+        { id: "qc_legacy_at", value: "bottomRight" },
+        { id: "qc_report_at", value: "bottomRight" },
+      ],
+    },
+    {
+      title: "手間の見積りを直す",
+      body: "検索は既にある部品で作れ、手引きは図を全部描き直すと分かる。 上の 2 件が左右に入れ替わる。",
+      sets: [
+        { id: "qc_search_at", value: "topLeft" },
+        { id: "qc_guide_at", value: "topRight" },
+      ],
+    },
+    {
+      title: "価値の見積りを直す",
+      body: "古い画面は法の改正で急ぐことになり、手引きは問い合わせを減らさないと分かる。 右の 2 件が上下に入れ替わる。",
+      sets: [
+        { id: "qc_legacy_at", value: "topRight" },
+        { id: "qc_guide_at", value: "bottomRight" },
+      ],
+    },
+    {
+      body: "並び順は端末ごとの作り分けが要り、帳票は外に頼めると分かる。 3 回見直しても、どの枠も 3 件のまま。",
+      sets: [
+        { id: "qc_order_at", value: "bottomRight" },
+        { id: "qc_report_at", value: "bottomLeft" },
+      ],
+    },
+  ],
+  [
+    { id: "qc_guide_at", initial: "topLeft" },
+    { id: "qc_search_at", initial: "topRight" },
+    { id: "qc_order_at", initial: "bottomLeft" },
+    { id: "qc_legacy_at", initial: "bottomRight" },
+    { id: "qc_report_at", initial: "bottomRight" },
+  ],
+);
+
 // chart preset (pie) ... 統計チャート
 // 扇の大きさを状態から取り、昨年と今年の内訳を同じ図で見る。
 const PIE_SLICES = [
