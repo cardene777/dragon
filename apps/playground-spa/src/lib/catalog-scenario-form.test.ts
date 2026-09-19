@@ -11,58 +11,12 @@
  */
 import { describe, it, expect } from "vitest";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
+import { 段が動かす見本, 入力欄が握る見本 } from "./catalog-interactive-groups";
 
 
-/**
- * 段で表示部品を動かせる図。
- *
- * #1033 の 9 件に、#1032 の 1 本目 13 件を加えた。
- *
- * 表示部品が見る状態を入力欄も計算式も持たないため、段の `tween` / `set` がそのまま表示に届く。
- */
-const DRIVEN = [
-  "arraySignalHistogram", "arrayLineChart", "arrayStackedBar", "arrayWaterfall",
-  "eip1559GasFlow", "interactiveOauthFlow", "portfolioDonut", "abTestResult",
-  "canvasMiniMap",
-  // #1032 の 1 本目 (表示部品の見本、いずれも入力欄も計算式も持たない)
-  "matrixHeatmap", "taskProgressGroup", "skillRadar", "perfBubbleChart",
-  "contributionHeatmap", "priceCandlestick", "userVenn", "scoreSlope",
-  "salesFunnel", "projectGantt", "resourceTreemap", "trafficSankey",
-  "activityPolar",
-  // #1032 の 2 本目
-  "playerLeaderboard", "techTagCloud", "teamActivityFeed", "supportChat",
-  "sprintChecklist",
-  // #1032 の 3 本目 (いずれも表示部品が見る配列を入力欄も計算式も持たない)
-  "postReactions", "techPills", "dashboardMetricsGrid", "kpiIconTile",
-  "cryptoWallet", "worldMapPins", "tournamentPodium", "featurePoll",
-  "reviewerStack", "gitCommitList", "serverEventLog", "searchResults",
-  "yearRoadmap", "weekWeather",
-  // #1032 の 4 本目
-  "tutorialVideoCards", "teamAttendanceGrid", "globalTimezoneClock", "signupFormSummary",
-  "monthCalendarView", "cliTerminalSession", "chessStartingBoard", "sprintKanbanBoard",
-  "docsBreadcrumb", "dayScheduleTimeline", "serverUptimeStatus", "weekCalendarView",
-  "teamKpiComparison", "publishWorkflowSteps",
-  // #1032 の 5 本目 (残り 17 件、 これで 84 件が完了)
-  "teamPresenceStatus", "feedbackThumbRating", "startupOrgChart", "npsTrendKpi",
-  "postReactionPoll", "voiceMessagePlayback", "teamThreadSummary", "loginOtpVerify",
-  "prodLogTail", "opsAlertBanner", "serviceHealthGrid", "checkoutCartSummary",
-  "saasPricingTier", "checkoutCouponApply", "blogArticlePreview", "docsTocNav",
-  "socialShareButtons",
-] as const;
+const DRIVEN = 段が動かす見本;
 
-/**
- * 表示部品が見る状態を **入力欄または計算式** が握っている 16 件。
- *
- * `interactive-panel.tsx` は signals (入力欄) と computeds (計算式) を `stateOverrides` として返し、
- * `render.tsx` がそれを段の値に重ねる。 どちらが持つ状態も段で動かしても効かない。
- * これらは #1034 と同じ基準 (段ごとに注目する箱が変わる) を使う。
- */
-const INPUT_DRIVEN = [
-  "visualBindBar", "visualBindOpacity", "xypadNavigate", "stepperControl",
-  "numberSparkline", "radioSelect", "colorPickerTheme", "dynamicReadouts",
-  "timelineDrive", "readoutVariety", "gridLayoutMatrix", "pathProgressDemo",
-  "kpiDashboard", "revenueKpiCard", "kpiBullet", "buildStatusTrafficLight",
-] as const;
+const INPUT_DRIVEN = 入力欄が握る見本;
 
 type Diagram = {
   inputs?: Array<{ id?: string }>;
