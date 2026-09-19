@@ -69,16 +69,26 @@ const 開かない経路 = new Set(["/__render", "*"]);
 const 対象の経路 = 画面の経路().filter((p) => !開かない経路.has(p));
 
 /**
- * 開いただけで図が出る経路。 **母集団ではなく期待値**。
+ * 頁を送って図が出る経路。 **母集団ではなく期待値**。
  *
- * カタログの図は札を押して開くため、開いただけでは 1 枚も出ない (実測 = 11 分類とも 0 件)。
  * 「図が 0 件」 を「該当なし」 と読むと、画面が壊れて図が出なくなった時に素通りする。
  * どの経路で図が出るはずかを書いておき、実測の集合と突き合わせる。
  *
  * `/editor/:filename` は走査で作った母集団が拾った。 横はみ出しを見る `mobile-overflow.spec.ts` は
  * 経路を手で並べており、この 1 件を 1 度も見ていない (#2270 で直す)。
+ *
+ * **`/catalog/:slug` は「開いただけでは 0 件」 を期待値に書いていた** (#2283)。 図を置く台が
+ * 頁の下にあり (実測 = 幅 390px で上から 1725px)、見える所に入るまで描かれないためで、
+ * 送っていないから出ないのを「図を持たない画面」 として固定していた。
+ * 送ってから測ると 11 分類のうち 10 枚が出る。
  */
-const 図を出す経路 = new Set(["/", "/editor", "/editor/:filename", "/preset/:id"]);
+const 図を出す経路 = new Set([
+  "/",
+  "/catalog/:slug",
+  "/editor",
+  "/editor/:filename",
+  "/preset/:id",
+]);
 
 /**
  * いま下限に届かない画面と、その理由。 **経路の形ではなく、実際に開く path で持つ** (#2269)。
@@ -99,6 +109,29 @@ const 宣言: ReadonlyMap<string, string> = new Map([
       " 下限まで拡げると札からはみ出し、押して分類へ移る導線が壊れる。" +
       " 読む先はカタログとひな形の詳細で、札はそこへの入口。 直す対象にしない",
   ],
+  // 分類の画面 8 件は #2283 で母数に入ったばかりで、まだ 1 度も直していない。
+  // 原因は 1 つ = 読める下限を課す仕掛け (`readableScaleForWidth`) が `CategoryPage` の
+  // `useDiagramPanZoom` 2 か所に繋がっていない (#2269 は 3 画面のうち 1 つだけを繋いだ)。
+  // 8 件とも下限の倍率が 1.0 未満なので、繋げば実寸 100% に当たらず 10.0px に乗る。
+  // 直すのは #2284。 直った行から順に消える
+  ...([
+    ["ethereum", "1722x432", 10.5, 1.72],
+    ["text-dsl", "1696x710", 17, 2.83],
+    ["patterns", "1848x426", 20, 3.06],
+    ["presets", "792x488", 11, 3.92],
+    ["charts", "792x488", 11, 3.92],
+    ["interactive", "1329x257", 19, 4.04],
+    ["styles", "1235x901", 22, 5.03],
+    ["cookbook", "1133x552", 24, 5.98],
+  ] as const).map(
+    ([分類, viewBox, 指定, 実寸]) =>
+      [
+        `catalog/${分類}`,
+        `図 (viewBox ${viewBox}) が幅 283px の台に収まるだけ縮み、指定 ${指定} の文字が ${実寸}px になる。` +
+          ` 読める下限が \`CategoryPage\` の 2 か所に繋がっていない (#2284 で繋ぐ)。` +
+          ` 繋げば下限の倍率 ${(10 / 指定).toFixed(3)} で 10.0px に乗る`,
+      ] as const,
+  ),
 ]);
 
 /**
@@ -155,6 +188,29 @@ async function 測る(page: import("@playwright/test").Page): Promise<図の実�
     }
     return 図たち;
   });
+}
+
+/**
+ * 頁を上から下まで送る (#2283)。
+ *
+ * **図は台が見える所に入ってから描かれる** (`InViewMount`)。 カタログの分類の画面は台が
+ * 頁の下にあり (実測 = 幅 390px で上から 1725px)、開いただけでは `<text>` が頁全体で 0 件になる。
+ * 送ると 11 分類のうち 10 枚が出て、そのうち 8 枚が下限を割っていた (最小 1.24px)。
+ *
+ * **台を名指しして送らない**。 名指しすると、次に別の場所へ図を置いた時に同じ取りこぼしが
+ * 起きる。 頁を送れば、どこに置かれていても見える所を通る。
+ *
+ * 送り終えたら先頭へ戻す = 戻さないと測る位置が画面ごとに変わり、`getScreenCTM` が返す
+ * 値の意味が揃わない。
+ */
+async function 頁を送る(page: import("@playwright/test").Page): Promise<void> {
+  const 高さ = await page.evaluate(() => document.documentElement.scrollHeight);
+  for (let y = 0; y < 高さ; y += Math.floor(携帯の高さ * 0.8)) {
+    await page.evaluate((v) => globalThis.scrollTo(0, v), y);
+    await page.waitForTimeout(300);
+  }
+  await page.evaluate(() => globalThis.scrollTo(0, 0));
+  await page.waitForTimeout(600);
 }
 
 /** 測り直す回数と間隔。 工程表は 2.1 秒で静止し、1 周は 7 秒 (#2279 の実測) */
@@ -221,8 +277,9 @@ for (const 経路 of 対象の経路) {
   const 開く先 = 経路を広げる(経路, 欄の値);
 
   test(`幅 ${携帯の幅}px の ${経路} の図の文字が読める大きさに届く`, async ({ page }, info) => {
-    // 見本の 19 件のように 1 つの経路が多くの画面に広がる。 1 画面あたり 2 秒を見込む
-    info.setTimeout(30_000 + 開く先.length * 8_000);
+    // 見本の 19 件のように 1 つの経路が多くの画面に広がる。
+    // 1 画面あたり 開く 1.2 秒 + 頁を送る往復 + 割った時の測り直し 2.8 秒 を見込む
+    info.setTimeout(30_000 + 開く先.length * 14_000);
     await page.setViewportSize({ width: 携帯の幅, height: 携帯の高さ });
 
     let 図の数 = 0;
@@ -236,6 +293,7 @@ for (const 経路 of 対象の経路) {
     for (const path of 開く先) {
       await page.goto(path, { waitUntil: "networkidle" });
       await page.waitForTimeout(1200);
+      await 頁を送る(page);
       let 図たち = await 測る(page);
       // **割った時だけ測り直す** = 全 40 画面で毎回 4 回測ると検査が 2 分伸びる。
       // 届いている画面は 1 回で判る (最大を取るので、測り直しても下がらない)
