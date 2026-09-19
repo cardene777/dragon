@@ -6,11 +6,19 @@
  *
  * | 読む側 | 何に使うか |
  * |---|---|
- * | `test/support/responsive-accepted.ts` の `全図` | 4 つの検査の母集団 |
+ * | `test/support/responsive-accepted.ts` の `全図` | 走査の母集団 |
  * | `package.json` の `lint:notation` の引数 | 記法の検査の対象 |
  *
  * 実際に `parts-in-box.cdl.ts` (#1973 で足した 9 枚) が `全図` に入っておらず、
  * 4 つの検査が 1 度も見ていなかった。
+ *
+ * ## 突き合わせをここに閉じ込めない (#2314)
+ *
+ * この検査は `全図` を読む側を守るが、**自分で群を並べている走査** は守れない。
+ * 実際に 6 本が手で並べたまま残り、同じ `parts-in-box` が 6 本すべてで抜けていた。
+ *
+ * その 6 本は走査で導く形に変わり、各自が `support/catalog-groups.ts` の `実在する群` と
+ * 突き合わせる。 この検査はそれとは別に、記法の検査の対象を見る役目が残る。
  *
  * ## 件数ではなく名前で突き合わせる
  *
@@ -27,17 +35,18 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { 全図, カタログの群の名 } from "./support/responsive-accepted";
+import { 実在する群, カタログの置き場 } from "./support/catalog-groups";
 
 const ここ = dirname(fileURLToPath(import.meta.url));
 const 根 = join(ここ, "..", "..", "..");
-const カタログの置き場 = join(根, "apps", "playground-spa", "src", "topics", "catalog");
 
-/** dir にあるカタログの群の file 名 (`*.cdl.ts` の `*` の部分)。 */
-const 置き場の群 = (): string[] =>
-  readdirSync(カタログの置き場)
-    .filter((f) => f.endsWith(".cdl.ts"))
-    .map((f) => f.slice(0, -".cdl.ts".length))
-    .sort();
+/**
+ * dir にあるカタログの群の file 名 (`*.cdl.ts` の `*` の部分)。
+ *
+ * 実体は `support/catalog-groups.ts` が持つ (#2314)。 同じ走査を 2 つ書くと、片方だけ
+ * 直した日に 2 つの検査が違う答えを出す。
+ */
+const 置き場の群 = 実在する群;
 
 describe("カタログの群を数える所が実物と一致する (#2004)", () => {
   const 実物 = 置き場の群();

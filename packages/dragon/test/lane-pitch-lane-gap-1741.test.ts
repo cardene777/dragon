@@ -16,40 +16,8 @@ import { describe, it, expect } from "vitest";
 import { visualValidate, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
-import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
-import * as patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
-import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
-import * as primitives from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
-import * as primitivesExtra from "../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
-import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
-import * as animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
-import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
-import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
-import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
-import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
-import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
-
-const 図か = (v: unknown): v is CdlDiagram =>
-  typeof v === "object" &&
-  v !== null &&
-  Array.isArray((v as CdlDiagram).nodes) &&
-  Array.isArray((v as CdlDiagram).lanes);
-
-/** カタログの全図。 枚数は増えるので書かない。 */
-const 全図: CdlDiagram[] = [
-  cookbook,
-  patterns,
-  presets,
-  primitives,
-  primitivesExtra,
-  textDsl,
-  animation,
-  styles,
-  interactive,
-  ethereum,
-  parts,
-  charts,
-].flatMap((m) => Object.values(m as Record<string, unknown>).filter(図か));
+import { 全図, カタログの群の名 } from "./support/responsive-accepted";
+import { 実在する群 } from "./support/catalog-groups";
 
 /** 隙間の足りなさが出る軸。 名札どうし / 名札と経路 / 経路どうし の 3 通り。 */
 const 隙間の軸 = ["edge-label-overlap", "edge-label-proximity", "edge-crossing"] as const;
@@ -71,10 +39,24 @@ const 探す = (d: CdlDiagram): string[] =>
     .map((v) => `${v.axis}: ${v.detail}`);
 
 describe("帯の間隔を書いて確保した図 (#1741)", () => {
+  it("走査した群が dir の実体と 1 件も違わない (#2314)", () => {
+    /*
+     * 群を手で並べていた頃は `parts-in-box` と `parts-motion` が抜けており、下の
+     * 「カタログの全図で 0 件」 が 546 枚しか見ていなかった。 走査に変えただけでは
+     * 走査の書き方を間違えた時に気付けないので、別の経路 (`readdirSync`) と突き合わせる。
+     */
+    expect(カタログの群の名(), `dir にある群 ${実在する群().length} 件と突き合わせた`).toEqual(
+      実在する群(),
+    );
+  });
+
   it("対象の図がカタログにある", () => {
     // 空振り防止 = id を書き換えた時に「0 件だから通る」 にならないようにする。
     for (const { id } of 間隔を書いた図) {
-      expect(全図.some((d) => d.id === id), `${id} がカタログに無い`).toBe(true);
+      expect(
+        全図.some((d) => d.id === id),
+        `${id} がカタログに無い`,
+      ).toBe(true);
     }
     expect(間隔を書いた図.length, "対象が 0 件 (検査が空振りしている)").toBeGreaterThan(0);
   });

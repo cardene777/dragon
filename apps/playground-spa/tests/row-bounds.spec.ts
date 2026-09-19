@@ -12,7 +12,11 @@ import * as styles from "../src/topics/catalog/styles.cdl";
 import * as interactive from "../src/topics/catalog/interactive.cdl";
 import * as ethereum from "../src/topics/catalog/ethereum.cdl";
 import * as parts from "../src/topics/catalog/parts.cdl";
+import * as partsInBox from "../src/topics/catalog/parts-in-box.cdl";
+import * as partsMotion from "../src/topics/catalog/parts-motion.cdl";
+import * as charts from "../src/topics/catalog/charts.cdl";
 import { moduleToItems } from "../src/lib/catalog-items";
+import { 実在する群 } from "../../../packages/dragon/test/support/catalog-groups";
 
 /**
  * 行の文字が node の枠に収まっているかを **実ブラウザ** で確かめる (cardene777/cdl#390)。
@@ -41,18 +45,36 @@ const isCdlDiagram = (v: unknown): v is CdlDiagram => {
 const collect = (mod: Record<string, unknown>): CdlDiagram[] =>
   Object.values(mod).filter(isCdlDiagram);
 
-const SOURCES: Array<{ slug: string; diagrams: CdlDiagram[] }> = [
-  { slug: "presets", diagrams: collect(presets) },
-  { slug: "cookbook", diagrams: collect(cookbook) },
-  { slug: "patterns", diagrams: collect(patterns) },
-  { slug: "primitives", diagrams: [...collect(primitives), ...collect(primitivesExtra)] },
-  { slug: "text-dsl", diagrams: collect(textDsl) },
-  { slug: "animation", diagrams: collect(animation) },
-  { slug: "ethereum", diagrams: collect(ethereum) },
-  { slug: "parts", diagrams: collect(parts) },
-  { slug: "styles", diagrams: collect(styles) },
-  { slug: "interactive", diagrams: collect(interactive) },
+/**
+ * 群と、その群を並べる頁の名前 (#2314)。
+ *
+ * **群の名前は file 名と同じにする**。 頁の名前とは 1 対 1 にならない
+ * (`primitives` と `primitives-extra` は同じ頁、部品の 3 群も同じ頁) ので、
+ * 頁の名前だけでは dir の実体と突き合わせられない。
+ *
+ * 以前は 11 群しか並べておらず、`charts` `parts-in-box` `parts-motion` の 66 図を
+ * 1 度も開いていなかった。 § 走査した群が dir の実体と 1 件も違わない が突き合わせる。
+ */
+const 群ごとの頁: Array<{ 群: string; slug: string; mod: Record<string, unknown> }> = [
+  { 群: "presets", slug: "presets", mod: presets },
+  { 群: "cookbook", slug: "cookbook", mod: cookbook },
+  { 群: "patterns", slug: "patterns", mod: patterns },
+  { 群: "primitives", slug: "primitives", mod: primitives },
+  { 群: "primitives-extra", slug: "primitives", mod: primitivesExtra },
+  { 群: "text-dsl", slug: "text-dsl", mod: textDsl },
+  { 群: "animation", slug: "animation", mod: animation },
+  { 群: "ethereum", slug: "ethereum", mod: ethereum },
+  { 群: "parts", slug: "parts", mod: parts },
+  { 群: "parts-in-box", slug: "parts", mod: partsInBox },
+  { 群: "parts-motion", slug: "parts", mod: partsMotion },
+  { 群: "styles", slug: "styles", mod: styles },
+  { 群: "interactive", slug: "interactive", mod: interactive },
+  { 群: "charts", slug: "charts", mod: charts },
 ];
+
+const SOURCES: Array<{ slug: string; diagrams: CdlDiagram[] }> = 群ごとの頁.map(
+  ({ slug, mod }) => ({ slug, diagrams: collect(mod) }),
+);
 
 /**
  * パターンの図の `id` から、一覧で押す行の図の `id` とパターンの名前を引く (#1960)。
@@ -61,8 +83,8 @@ const SOURCES: Array<{ slug: string; diagrams: CdlDiagram[] }> = [
  * カタログと同じ読み取り (`moduleToItems`) から導く。
  */
 const パターンの開き方 = new Map(
-  [presets, cookbook, patterns, primitives, primitivesExtra, textDsl, animation, ethereum, parts, styles, interactive]
-    .flatMap((mod) => moduleToItems(mod as Record<string, unknown>))
+  群ごとの頁
+    .flatMap(({ mod }) => moduleToItems(mod))
     .flatMap((item) =>
       (item.patterns ?? []).slice(1).map((p) => [p.diagram.id, { 行: item.id, 名: p.名 }] as const),
     ),
@@ -145,9 +167,16 @@ async function openDiagram(page: Page, slug: string, id: string): Promise<void> 
   await page.goto(`catalog/${slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
   const 開き方 = パターンの開き方.get(id);
-  await page.locator(".catalog-list-item").filter({ hasText: 開き方?.行 ?? id }).first().click();
+  await page
+    .locator(".catalog-list-item")
+    .filter({ hasText: 開き方?.行 ?? id })
+    .first()
+    .click();
   if (開き方) {
-    await page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio", { name: 開き方.名 }).click();
+    await page
+      .getByRole("radiogroup", { name: "パターン" })
+      .getByRole("radio", { name: 開き方.名 })
+      .click();
   }
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
   // font 未読込だと代替 font の字形で測ることになり、 判定が環境に依存する。
@@ -155,12 +184,23 @@ async function openDiagram(page: Page, slug: string, id: string): Promise<void> 
 }
 
 test.describe("行の文字が枠に収まっている (cdl#390)", () => {
+  test("走査した群が dir の実体と 1 件も違わない (#2314)", () => {
+    /*
+     * 群を手で並べていた頃は `charts` `parts-in-box` `parts-motion` が抜けており、66 図を
+     * 1 度も開いていなかった。 その 3 群に行を持つ見本は今 0 件だが、生まれても下の
+     * 期待一覧は動かない。 別の経路 (`readdirSync`) で数えた群と名前で突き合わせる。
+     */
+    expect([...群ごとの頁.map((g) => g.群)].sort()).toEqual(実在する群());
+  });
+
   test("行を持つ見本の一覧が期待どおり", () => {
     // 見本から `rows` が消えた / 増えた / category が落ちた を検知する。 対象が減ると
     // 以下の test は残った分だけで通ってしまい、 減ったことに気付けない。
-    const actual = TARGETS
-      .map(({ slug, diagram }) => ({ slug, id: diagram.id, rows: rowCount(diagram) }))
-      .sort((a, b) => (a.slug + a.id).localeCompare(b.slug + b.id));
+    const actual = TARGETS.map(({ slug, diagram }) => ({
+      slug,
+      id: diagram.id,
+      rows: rowCount(diagram),
+    })).sort((a, b) => (a.slug + a.id).localeCompare(b.slug + b.id));
     const expected = [...EXPECTED].sort((a, b) => (a.slug + a.id).localeCompare(b.slug + b.id));
     expect(actual).toEqual(expected);
   });
@@ -177,7 +217,9 @@ test.describe("行の文字が枠に収まっている (cdl#390)", () => {
       expect(measured, `${diagram.id} の行が DOM に出ている`).toBeGreaterThan(0);
 
       const report = await verifyAllDiagramsDom(page, [diagram], {
-        skipBbox: true, skipParticle: true, skipPhase: true,
+        skipBbox: true,
+        skipParticle: true,
+        skipPhase: true,
       });
       const overflow = report.discrepancies.filter(
         (d: Discrepancy) => d.kind === "node-row-overflow",
@@ -211,7 +253,9 @@ test.describe("行の文字が枠に収まっている (cdl#390)", () => {
 
     const sel = `[data-cdl-diagram="${target.diagram.id}"] [data-cdl-node] [data-cdl-role="node-row"]`;
     const before = await verifyAllDiagramsDom(page, [target.diagram], {
-      skipBbox: true, skipParticle: true, skipPhase: true,
+      skipBbox: true,
+      skipParticle: true,
+      skipPhase: true,
     });
     expect(
       before.discrepancies.filter((d: Discrepancy) => d.kind === "node-row-overflow"),
@@ -234,7 +278,9 @@ test.describe("行の文字が枠に収まっている (cdl#390)", () => {
     expect(applied, "差し替える対象の行がある").toBe(true);
 
     const after = await verifyAllDiagramsDom(page, [target.diagram], {
-      skipBbox: true, skipParticle: true, skipPhase: true,
+      skipBbox: true,
+      skipParticle: true,
+      skipPhase: true,
     });
     const overflow = after.discrepancies.filter((d: Discrepancy) => d.kind === "node-row-overflow");
     expect(overflow.length, "字形が枠を越えたことを検知する").toBeGreaterThan(0);
@@ -265,20 +311,30 @@ test.describe("行の文字が枠に収まっている (cdl#390)", () => {
     const details: string[] = [];
     let detected = false;
     for (const mark of MARKS) {
-      const applied = await page.evaluate(([s, m]) => {
-        const el = document.querySelectorAll(s)[0];
-        if (!el) return false;
-        el.textContent = "y" + m.repeat(60);
-        return true;
-      }, [sel, mark] as const);
+      const applied = await page.evaluate(
+        ([s, m]) => {
+          const el = document.querySelectorAll(s)[0];
+          if (!el) return false;
+          el.textContent = "y" + m.repeat(60);
+          return true;
+        },
+        [sel, mark] as const,
+      );
       expect(applied, "差し替える対象の行がある").toBe(true);
 
       const after = await verifyAllDiagramsDom(page, [target.diagram], {
-        skipBbox: true, skipParticle: true, skipPhase: true,
+        skipBbox: true,
+        skipParticle: true,
+        skipPhase: true,
       });
-      const overflow = after.discrepancies.filter((d: Discrepancy) => d.kind === "node-row-overflow");
+      const overflow = after.discrepancies.filter(
+        (d: Discrepancy) => d.kind === "node-row-overflow",
+      );
       details.push(...overflow.map((d) => d.detail));
-      if (overflow.some((d) => /上 [\d.]+px/.test(d.detail))) { detected = true; break; }
+      if (overflow.some((d) => /上 [\d.]+px/.test(d.detail))) {
+        detected = true;
+        break;
+      }
     }
     expect(detected, `上方向の超過が報告される: ${details.join(" | ") || "(報告なし)"}`).toBe(true);
   });

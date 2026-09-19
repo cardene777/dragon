@@ -23,44 +23,9 @@
  */
 import { describe, it, expect } from "vitest";
 import { visualValidateAll } from "@cardenelabs/cdl";
-import type { CdlDiagram } from "@cardenelabs/cdl";
 
-import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
-import * as patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
-import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
-import * as primitives from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
-import * as primitivesExtra from "../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
-import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
-import * as animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
-import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
-import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
-import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
-import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
-import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
-
-const 束: ReadonlyArray<Record<string, unknown>> = [
-  cookbook,
-  patterns,
-  presets,
-  primitives,
-  primitivesExtra,
-  textDsl,
-  animation,
-  styles,
-  interactive,
-  ethereum,
-  parts,
-  charts,
-];
-
-const 図か = (v: unknown): v is CdlDiagram =>
-  typeof v === "object" &&
-  v !== null &&
-  Array.isArray((v as CdlDiagram).nodes) &&
-  Array.isArray((v as CdlDiagram).lanes);
-
-/** カタログの全図。 枚数は増えるので書かない (`rules/quality.md § 導出可能記述は人手で書かない`)。 */
-const 全図: CdlDiagram[] = 束.flatMap((m) => Object.values(m).filter(図か));
+import { 全図, カタログの群の名 } from "./support/responsive-accepted";
+import { 実在する群 } from "./support/catalog-groups";
 
 /** 3 周を 1 度だけ回して使い回す (444 枚 × 3 周を検査ごとに繰り返さない)。 */
 const 周: ReadonlyArray<{ 件数: number; 文面: string[]; 軸がある: boolean }> = [0, 1, 2].map(() => {
@@ -75,8 +40,20 @@ const 周: ReadonlyArray<{ 件数: number; 文面: string[]; 軸がある: boole
 
 describe("速さの判定が周ごとに変わらない (#1736)", () => {
   it("カタログの図を 1 枚以上集められている (空振り防止)", () => {
-    expect(全図.length, "カタログの図を 1 枚も集められていない (検査が空振りしている)").toBeGreaterThan(
-      0,
+    expect(
+      全図.length,
+      "カタログの図を 1 枚も集められていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+  });
+
+  it("走査した群が dir の実体と 1 件も違わない (#2314)", () => {
+    /*
+     * 群を手で並べていた頃は `parts-in-box` と `parts-motion` が抜けており、母数が
+     * 546 枚しかなかった。 走査に変えただけでは走査の書き方を間違えた時に気付けないので、
+     * 別の経路 (`readdirSync`) で数えた群と名前で突き合わせる。
+     */
+    expect(カタログの群の名(), `dir にある群 ${実在する群().length} 件と突き合わせた`).toEqual(
+      実在する群(),
     );
   });
 
