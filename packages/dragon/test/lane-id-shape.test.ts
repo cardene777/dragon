@@ -67,7 +67,7 @@ describe("読み取りを壊す形は受けない (陰性対照)", () => {
   ])("%s 形を伝える", (_name, 行) => {
     // 何でも受けると、書き間違えた行が別の縦列として通ってしまう
     const 出た = 誤り(記法(`lanes:\n${行}\n`));
-    expect(出た.some((m) => m.startsWith("invalid lane entry")), 出た.join(" / ")).toBe(true);
+    expect(出た.some((m) => m.startsWith("縦列の行が読めません")), 出た.join(" / ")).toBe(true);
   });
 
   it("正しい形では誤りが出ない", () => {
@@ -91,7 +91,7 @@ describe("書き間違いが別の縦列として通らない (Round 1 の指摘
     ["絵文字", "  lane-idle🙂: { width: 370 }"],
   ])("%s は誤りとして伝える", (_name, 行) => {
     const 出た = 誤り(記法(`lanes:\n${行}\n`));
-    expect(出た.some((m) => m.startsWith("invalid lane entry")), 出た.join(" / ")).toBe(true);
+    expect(出た.some((m) => m.startsWith("縦列の行が読めません")), 出た.join(" / ")).toBe(true);
   });
 
   it("組み立て側が作る字は通る (陰性対照)", () => {

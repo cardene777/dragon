@@ -485,6 +485,20 @@ type Line = {
   no: number;
 };
 
+/**
+ * 読めなかった最上位の項目名を、行から取り出す (#2341)。
+ *
+ * **行ではなく名前だけを引用する**。 行をまるごと引用すると、値に引用符がある時に
+ * `"題: "t""` のように入れ子になって、どこまでが名前か読めない (実測)。
+ *
+ * 箱 / 矢印 / 縦列の読めない項目名はどれも名前だけを引用しており、最上位だけが
+ * 揃っていなかった。 `:` を持たない行はそのまま返す = その時は行全体が名前の位置にある。
+ */
+function 最上位の項目名(trimmed: string): string {
+  const idx = trimmed.indexOf(":");
+  return (idx < 0 ? trimmed : trimmed.slice(0, idx)).trim();
+}
+
 export function parseTextDslV05(src: string): V05ParseResult {
   const errors: DslError[] = [];
   const lines = tokenize(src);
@@ -527,8 +541,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
     if (!head || !isTopLevelKey(head.key)) {
       errors.push({
         line: line.no,
-        message: `unknown top-level key: "${line.trimmed}"`,
-        hint: `expected one of: ${TOP_LEVEL_KEYS.join(", ")}`,
+        message: `最上位の項目名が読めません: "${最上位の項目名(line.trimmed)}"`,
+        hint: `使える項目 = ${TOP_LEVEL_KEYS.join(", ")}`,
       });
       i += 1;
       continue;
@@ -536,7 +550,11 @@ export function parseTextDslV05(src: string): V05ParseResult {
     if (head.key === "title") {
       title = head.value ?? null;
       if (!title) {
-        errors.push({ line: line.no, message: "title is required", hint: 'use `title: "..."`' });
+        errors.push({
+          line: line.no,
+          message: "title が書かれていません",
+          hint: "`title: \"...\"` の形で書く",
+        });
       }
       i += 1;
       continue;
@@ -650,8 +668,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
       if (!PRESET_TYPES.has(v as PresetType)) {
         errors.push({
           line: line.no,
-          message: `unknown type: "${v}"`,
-          hint: `expected: ${Array.from(PRESET_TYPES).join(", ")}`,
+          message: `図種が読めません: "${v}"`,
+          hint: `使える図種 = ${Array.from(PRESET_TYPES).join(", ")}`,
         });
       } else {
         type = v as PresetType;
@@ -668,8 +686,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         if (base === null) {
           errors.push({
             line: entry[0]!.no,
-            message: `invalid actor entry: "${entry[0]!.trimmed}"`,
-            hint: "use `- Client` or `- Client: storage`",
+            message: `登場人物の行が読めません: "${entry[0]!.trimmed}"`,
+            hint: "`- Client` または `- Client: storage` の形で書く",
           });
           continue;
         }
@@ -690,8 +708,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         } else {
           errors.push({
             line: it.no,
-            message: `invalid flow entry: "${it.trimmed}"`,
-            hint: 'use `- A -> B: "label"` or `- A -> B: "label" (success)`',
+            message: `矢印の行が読めません: "${it.trimmed}"`,
+            hint: '`- A -> B: "label"` または `- A -> B: "label" (success)` の形で書く',
           });
         }
       }
@@ -719,8 +737,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         else
           errors.push({
             line: it.no,
-            message: `invalid state entry: "${it.trimmed}"`,
-            hint: "use `name: initial`",
+            message: `状態の行が読めません: "${it.trimmed}"`,
+            hint: "`name: initial` の形で書く",
           });
       }
       i = next;
@@ -858,8 +876,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         if (!m) {
           errors.push({
             line: it.no,
-            message: `invalid axes entry: "${it.trimmed}"`,
-            hint: 'use `x: { left: "...", right: "..." }` or `y: { bottom: "...", top: "..." }`',
+            message: `軸の行が読めません: "${it.trimmed}"`,
+            hint: '`x: { left: "...", right: "..." }` または `y: { bottom: "...", top: "..." }` の形で書く',
           });
           continue;
         }
@@ -896,7 +914,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
           errors.push({
             line: it.no,
             message: `帯の書き方が読めません: "${it.trimmed}"`,
-            hint: "use `- DB: 1..2` (面の名前と、段の番号の区間)",
+            hint: "`- DB: 1..2` の形で書く (面の名前と、段の番号の区間)",
           });
           continue;
         }
@@ -934,8 +952,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         } else {
           errors.push({
             line: it.no,
-            message: `invalid lane entry: "${it.trimmed}"`,
-            hint: 'use `id: { x: 0, width: 320, label: "..." }`',
+            message: `縦列の行が読めません: "${it.trimmed}"`,
+            hint: '`id: { x: 0, width: 320, label: "..." }` の形で書く',
           });
         }
       }
@@ -966,8 +984,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         } else {
           errors.push({
             line: it.no,
-            message: `invalid readout entry: "${it.trimmed}"`,
-            hint: "use `id: { kind: percent-ring, source: total, max: 500 }`",
+            message: `読み取り値の行が読めません: "${it.trimmed}"`,
+            hint: "`id: { kind: percent-ring, source: total, max: 500 }` の形で書く",
           });
         }
       }
@@ -998,8 +1016,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         } else {
           errors.push({
             line: it.no,
-            message: `invalid input entry: "${it.trimmed}"`,
-            hint: "use `id: { kind: slider, min: 0, max: 100, defaultValue: 50 }`",
+            message: `つまみの行が読めません: "${it.trimmed}"`,
+            hint: "`id: { kind: slider, min: 0, max: 100, defaultValue: 50 }` の形で書く",
           });
         }
       }
@@ -1083,8 +1101,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         } else {
           errors.push({
             line: it.no,
-            message: `invalid scroll entry: "${it.trimmed}"`,
-            hint: "use `id: { start: 0.9, end: 0.1, scrub: 1 }`",
+            message: `巻き上げの行が読めません: "${it.trimmed}"`,
+            hint: "`id: { start: 0.9, end: 0.1, scrub: 1 }` の形で書く",
           });
         }
       }
@@ -1115,8 +1133,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         } else {
           errors.push({
             line: it.no,
-            message: `invalid group entry: "${it.trimmed}"`,
-            hint: 'use `id: { label: "...", lanes: [a, b] }`',
+            message: `組の行が読めません: "${it.trimmed}"`,
+            hint: '`id: { label: "...", lanes: [a, b] }` の形で書く',
           });
         }
       }
@@ -1127,12 +1145,21 @@ export function parseTextDslV05(src: string): V05ParseResult {
   }
 
   if (!title)
-    errors.push({ line: 1, message: "title is required", hint: 'add `title: "..."` at top' });
+    errors.push({
+      line: 1,
+      message: "title が書かれていません",
+      hint: "`title: \"...\"` を最上位に書く",
+    });
   if (!type)
     errors.push({
       line: 1,
-      message: "type is required",
-      hint: "add `type: sequence|flow|swimlane|er|state|topology|solidity|gantt|class|pie|c4|mind`",
+      message: "type が書かれていません",
+      /*
+       * **図種の一覧を手で並べない** (#2341)。 並べていた間、ここは実装が受ける図種の
+       * 半分しか挙げず、値を並べる図種 (棒 / 折れ線 / 木 など) がまるごと抜けていた。
+       * すぐ上の `図種が読めません` は元から実装を読んでおり、2 つの一覧が食い違っていた。
+       */
+      hint: `\`type: flow\` の形で最上位に書く (使える図種 = ${Array.from(PRESET_TYPES).join(", ")})`,
     });
 
   // つまみ・式・巻き上げは同じ名前空間で値を作る。 重なると後から作る値が効かない。
@@ -4099,7 +4126,7 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
   if (!m) {
     errors.push({
       line: lineNo,
-      message: `invalid value entry: "${text}"`,
+      message: `値の行が読めません: "${text}"`,
       hint: '`waiting: "{inflow} - {done}"` の形で書く',
     });
     return null;
@@ -4130,7 +4157,7 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
   if (expression === "") {
     errors.push({
       line: lineNo,
-      message: `empty expression for "${name}"`,
+      message: `式が空です: "${name}"`,
       hint: '`"{a} + {b}"` のように式を書く',
     });
     return null;
@@ -4183,8 +4210,8 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
   if (!m) {
     errors.push({
       line: head.no,
-      message: `invalid step header: "${head.trimmed}"`,
-      hint: 'use `- step: "name" 1.5s`',
+      message: `段の見出しが読めません: "${head.trimmed}"`,
+      hint: '`- step: "name" 1.5s` の形で書く',
     });
     return null;
   }
@@ -4194,8 +4221,8 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
   if (!headParse) {
     errors.push({
       line: head.no,
-      message: `invalid step value: "${headRest}"`,
-      hint: 'use `"name" 1.5s` (duration in s)',
+      message: `段の値が読めません: "${headRest}"`,
+      hint: '`"name" 1.5s` の形で書く (長さは秒)',
     });
     return null;
   }
@@ -4260,7 +4287,7 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
         errors.push({
           line: ln.no,
           message: `draw に書ける項目は語と割合の 2 つまでです: "${stripQuotes(value).trim()}"`,
-          hint: "use `draw: line 0.4`",
+          hint: "`draw: line 0.4` の形で書く",
         });
       } else {
         phase.draw = 語;
@@ -4296,8 +4323,8 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
         else
           errors.push({
             line: ln.no,
-            message: `invalid tween: "${value}"`,
-            hint: "use `tween: name 100 -> 90`",
+            message: `変化の書き方が読めません: "${value}"`,
+            hint: "`tween: name 100 -> 90` の形で書く",
           });
         i += 1;
         continue;
@@ -4313,8 +4340,8 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
         else
           errors.push({
             line: nx.no,
-            message: `invalid tween entry: "${nx.trimmed}"`,
-            hint: "use `name: 100 -> 90`",
+            message: `変化の行が読めません: "${nx.trimmed}"`,
+            hint: "`name: 100 -> 90` の形で書く",
           });
         j += 1;
       }

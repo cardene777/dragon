@@ -87,11 +87,11 @@ describe("記法として書けない形は読む時に弾く", () => {
   });
 
   it("式が空", () => {
-    expect(errs(`values:\n  a: ""`).join()).toContain("empty expression");
+    expect(errs(`values:\n  a: ""`).join()).toContain("式が空です");
   });
 
   it("組になっていない", () => {
-    expect(errs(`values:\n  a`).join()).toContain("invalid value entry");
+    expect(errs(`values:\n  a`).join()).toContain("値の行が読めません");
   });
 
   it("余り (%) は書けない", () => {
@@ -147,12 +147,12 @@ describe("状態の名前も値と同じ規則で見る (#1181)", () => {
   // 範囲なので、日本語の名前を受け付けると「書けたのに置き換わらない」 図ができる。
 
   it("`states:` の名前が規則を外れたら誤りにする", () => {
-    expect(errs(`states:\n  流入: 0`).join()).toContain("invalid state entry");
+    expect(errs(`states:\n  流入: 0`).join()).toContain("状態の行が読めません");
   });
 
   it("`tween` の状態名が規則を外れたら誤りにする", () => {
     const src = `animation:\n  - step: "動く" 1.4s\n    tween: 流入 0 -> 10`;
-    expect(errs(src).join()).toContain("invalid tween");
+    expect(errs(src).join()).toContain("変化の書き方が読めません");
   });
 
   it("`set` の状態名が規則を外れても図に載せない", () => {

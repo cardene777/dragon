@@ -117,7 +117,7 @@ describe("書き方の誤りを伝える", () => {
     const r = parseTextDslV05(仕分け(`axes:\n  z: { left: "x" }\n`));
     expect(r.ok, "誤りを通している").toBe(false);
     const 本文 = r.ok ? [] : r.errors.map((e) => e.message);
-    expect(本文.some((m) => m.startsWith("invalid axes entry")), 本文.join(" / ")).toBe(true);
+    expect(本文.some((m) => m.startsWith("軸の行が読めません")), 本文.join(" / ")).toBe(true);
   });
 });
 
@@ -131,7 +131,7 @@ describe("書き間違えた行を黙って捨てない (Round 1 の指摘)", ()
     // `collectIndentedList` は `:` を含まない行を黙って捨てる。 捨てると書き間違えた行が
     // 「書かなかった」 と同じになり、軸を書いたつもりの本文が既定のまま描かれる
     const 出た = 誤り(仕分け(`axes:\n  コロンの無い行\n`));
-    expect(出た.some((m) => m.startsWith("invalid axes entry")), 出た.join(" / ")).toBe(true);
+    expect(出た.some((m) => m.startsWith("軸の行が読めません")), 出た.join(" / ")).toBe(true);
   });
 
   it("1 行にまとめて書く形を伝える", () => {
