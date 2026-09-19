@@ -134,6 +134,8 @@ export const 実物に出ない字: Record<string, string> = {
     "検査が自分で作る落ちた時の文 (`rendered-contrast.spec.ts` の `judge()`)。 画面には出ない",
   植えた例外:
     "画面の script 例外を拾えるかの植え込み対照。 検査が投げて検査が拾う",
+  植えた字:
+    "小さすぎる文字を拾えるかの植え込み対照 (`phone-diagram-legibility.spec.ts`)。 検査が図に置いて検査が拾う",
 };
 
 type 形 = "呼び出し" | "一覧" | "置き場";
