@@ -6,7 +6,11 @@ import {
   type 倍率の指定,
   type 区間,
 } from "@/lib/diagram-zoom";
-import { readableScaleForWidth, smallestFontWorld } from "@/lib/readable-scale";
+import {
+  effectiveSmallestFontWorld,
+  readableScaleForWidth,
+  smallestFontWorld,
+} from "@/lib/readable-scale";
 
 /**
  * 図の拡大縮小と移動を受け持つ部品 (#1961)。
@@ -151,6 +155,39 @@ export function 忘れない最小(
   if (覚えた === undefined) return 次;
   return Math.min(覚えた, 次);
 }
+
+/**
+ * 窓の中で最も大きい実効の大きさ (#2287)。 **上りの動きの終わりを拾う**。
+ *
+ * 入れ子の縮小は 2 通りある。 描き出しの動きが掛ける縮小は 0 倍から 1 倍へ上がり
+ * (実測 = 工程表の帯の中の名前が 0.4651 → 0.968 → 1)、図が持つ縮小は動かない
+ * (実測 = `ethereum` の `ハッシュ` は 10 回測っても 0.719)。
+ *
+ * **どちらも同じ `transform` 属性に書かれるので、書かれた場所では見分けられない**。
+ * 見分けられるのは時間だけで、上りの動きの最大は静止した値に一致し、動かない値の最大は
+ * その値そのものになる = 最大を採れば 2 通りとも静止した姿になる。
+ *
+ * 2 回続けて同じ値なら静止した、とはしない。 動きの途中で同じ値を 2 回拾うと、
+ * 静止した姿より小さい母数で下限が決まり、図が要る以上に拡がる。
+ *
+ * 測れていない標本 (`次` が `undefined`) は数えない = 図がまだ描かれていない間の標本で
+ * 窓を埋めない。
+ */
+export function 動き終わりの実効(
+  覚えた: number | undefined,
+  次: number | undefined,
+): number | undefined {
+  if (次 === undefined) return 覚えた;
+  if (覚えた === undefined) return 次;
+  return Math.max(覚えた, 次);
+}
+
+/**
+ * 実効の大きさを測る窓。 工程表の描き出しは 2.1 秒で静止する (#2279 の実測) ので、
+ * 3.0 秒まで見て最大を採る。 **回数に上限を持つ** = 静止しない図で測り続けない。
+ */
+const 実効を測る回数 = 6;
+const 実効を測る間隔 = 500;
 
 /** 測り直した値が前と同じなら前をそのまま返す = 状態を置き換えず、描き直しを起こさない */
 function 変わった時だけ置き換える(前: 測った値, 次: 測った値): 測った値 {
@@ -342,6 +379,33 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
       覚えた最小.current = 忘れない最小(覚えた最小.current, 次.最小の文字);
       set測った((前) => 変わった時だけ置き換える(前, { ...次, 最小の文字: 覚えた最小.current }));
     };
+
+    // **入れ子の縮小は動きの間も動く** (#2287)。 節点の出入りを見る観測は属性の書き換えでは
+    // 呼ばれないので、窓の回数だけ自分で測り、最大 (= 静止した姿) を母数へ入れる。
+    // 窓が閉じるまでは指定だけで下限が決まる = 開いた瞬間に図の大きさが跳ねない
+    let 実効の最大: number | undefined;
+    let 残り = 0;
+    let 時計: ReturnType<typeof setInterval> | undefined;
+    const 窓を閉じる = (): void => {
+      if (時計 === undefined) return;
+      clearInterval(時計);
+      時計 = undefined;
+    };
+    const 実効を測り始める = (): void => {
+      窓を閉じる();
+      実効の最大 = undefined;
+      残り = 実効を測る回数;
+      時計 = setInterval(() => {
+        const 実効 = 見ているsvg ? effectiveSmallestFontWorld(見ているsvg) : 0;
+        実効の最大 = 動き終わりの実効(実効の最大, 実効 > 0 ? 実効 : undefined);
+        残り -= 1;
+        if (残り > 0) return;
+        窓を閉じる();
+        覚えた最小.current = 忘れない最小(覚えた最小.current, 実効の最大);
+        測る();
+      }, 実効を測る間隔);
+    };
+
     const ro = new ResizeObserver(測る);
     const 中身が変わった = (): void => {
       予約 = 0;
@@ -351,6 +415,8 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
         見ているsvg = svg;
         // 観測を始めると最初の 1 回が必ず届く = 付け替えた直後に測られる
         if (svg) ro.observe(svg);
+        // 図が現れた / 差し替わった所から窓を開き直す = 描かれる前の標本で窓を埋めない
+        if (svg) 実効を測り始める();
         return;
       }
       // **同じ svg の中で文字が増える** (#2280)。 svg が替わったかだけを見ると、
@@ -367,6 +433,7 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
     return () => {
       mo.disconnect();
       ro.disconnect();
+      窓を閉じる();
       if (予約 !== 0) cancelAnimationFrame(予約);
     };
   }, [器, viewBox幅, 図の鍵]);

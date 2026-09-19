@@ -4,6 +4,7 @@ import {
   readableFloorScale,
   applyReadableFloor,
   smallestFontWorld,
+  effectiveSmallestFontWorld,
   readableScaleForFrame,
   readableScaleForWidth,
   boxesRightPx,
@@ -417,5 +418,96 @@ describe("smallestFontWorld — 描き出しの動きに引きずられない (#
       return svg;
     };
     expect(smallestFontWorld(作る(0.19))).toBe(smallestFontWorld(作る(1)));
+  });
+});
+
+describe("effectiveSmallestFontWorld — 入れ子の縮小まで含める (#2287)", () => {
+  const svgWith = (html: string): SVGSVGElement => {
+    const host = document.createElement("div");
+    host.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${html}</svg>`;
+    return host.querySelector("svg")!;
+  };
+
+  /** 仮想 DOM は `getScreenCTM` を持たない。 倍率だけを持つ行列を差し込む */
+  const 倍率を差し込む = (el: Element, 倍率: number): void => {
+    (el as unknown as { getScreenCTM: () => DOMMatrix }).getScreenCTM = () =>
+      ({ a: 倍率, b: 0, c: 0, d: 倍率 }) as DOMMatrix;
+  };
+
+  it("指定に入れ子の縮小を掛けた値を返す", () => {
+    // カタログの `ethereum` の実測。 指定 10.5 の `ハッシュ` の親に scale(0.719) が掛かり、
+    // 図そのものは 0.9524 で描かれている
+    const svg = svgWith(`<text font-size="10.5">ハッシュ</text>`);
+    倍率を差し込む(svg, 0.9524);
+    倍率を差し込む(svg.querySelector("text")!, 0.9524 * 0.719);
+    expect(effectiveSmallestFontWorld(svg)).toBeCloseTo(10.5 * 0.719, 5);
+  });
+
+  it("**表示倍率を変えても返る値は変わらない**", () => {
+    // 根の倍率で割るので、図を何倍で表示していても入れ子の積だけが残る。
+    // 割らないと、下限で拡げた次の測りで母数が大きくなり、拡げたぶんだけ下限が緩む
+    const 作る = (表示: number): SVGSVGElement => {
+      const svg = svgWith(`<text font-size="10.5">ハッシュ</text>`);
+      倍率を差し込む(svg, 表示);
+      倍率を差し込む(svg.querySelector("text")!, 表示 * 0.719);
+      return svg;
+    };
+    expect(effectiveSmallestFontWorld(作る(0.2))).toBeCloseTo(effectiveSmallestFontWorld(作る(1)), 5);
+  });
+
+  it("入れ子が掛かっていない文字では指定と同じになる", () => {
+    const svg = svgWith(`<text font-size="11">Q1</text><text font-size="20">名</text>`);
+    倍率を差し込む(svg, 0.9091);
+    for (const t of svg.querySelectorAll("text")) 倍率を差し込む(t, 0.9091);
+    expect(effectiveSmallestFontWorld(svg)).toBeCloseTo(11, 5);
+    expect(effectiveSmallestFontWorld(svg)).toBeCloseTo(smallestFontWorld(svg), 5);
+  });
+
+  it("指定がいちばん小さい文字と、実効がいちばん小さい文字が違っても実効で選ぶ", () => {
+    // 指定 11 は縮んでおらず 11、指定 20 は 0.4 倍で 8。 実効の最小は 8 の側
+    const svg = svgWith(`<text font-size="11">Q1</text><text font-size="20">名</text>`);
+    const [小さい指定, 大きい指定] = [...svg.querySelectorAll("text")];
+    倍率を差し込む(svg, 1);
+    倍率を差し込む(小さい指定!, 1);
+    倍率を差し込む(大きい指定!, 0.4);
+    expect(smallestFontWorld(svg)).toBe(11);
+    expect(effectiveSmallestFontWorld(svg)).toBeCloseTo(8, 5);
+  });
+
+  it("**測る時刻で変わる** = 動きの途中は小さく返る", () => {
+    // これは欠陥ではなく性質。 描き出しの動きも同じ transform を書き換えるので、
+    // 静止した姿が要る呼出側が何度か測って最大を採る (`動き終わりの実効`)
+    const 作る = (入れ子: number): SVGSVGElement => {
+      const svg = svgWith(`<text font-size="11">デザイナー</text>`);
+      倍率を差し込む(svg, 0.9091);
+      倍率を差し込む(svg.querySelector("text")!, 0.9091 * 入れ子);
+      return svg;
+    };
+    expect(effectiveSmallestFontWorld(作る(0.4651))).toBeLessThan(effectiveSmallestFontWorld(作る(1)));
+    expect(effectiveSmallestFontWorld(作る(1))).toBeCloseTo(11, 5);
+  });
+
+  it("変換を取れない時は 0 = 測れていない", () => {
+    // 0 を「文字が無い」 と同じ値で返すのは `smallestFontWorld` と揃えるため。
+    // 呼出側はどちらも「母数に入れない」 として扱う
+    const svg = svgWith(`<text font-size="11">名</text>`);
+    expect(effectiveSmallestFontWorld(svg)).toBe(0);
+    expect(effectiveSmallestFontWorld(null)).toBe(0);
+    expect(effectiveSmallestFontWorld(undefined)).toBe(0);
+  });
+
+  it("根の変換だけ取れない時も 0", () => {
+    const svg = svgWith(`<text font-size="11">名</text>`);
+    倍率を差し込む(svg.querySelector("text")!, 0.5);
+    expect(effectiveSmallestFontWorld(svg)).toBe(0);
+  });
+
+  it("中身の空の文字と画面に出ていない文字は数えない", () => {
+    const svg = svgWith(
+      `<text font-size="4"></text><text font-size="5" style="display:none">隠</text><text font-size="11">名</text>`,
+    );
+    倍率を差し込む(svg, 1);
+    for (const t of svg.querySelectorAll("text")) 倍率を差し込む(t, 1);
+    expect(effectiveSmallestFontWorld(svg)).toBeCloseTo(11, 5);
   });
 });

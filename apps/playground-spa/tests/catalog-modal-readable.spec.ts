@@ -57,11 +57,12 @@ const 測れない分類 = new Set(["parts"]);
 const 宣言: ReadonlyMap<string, string> = new Map([
   [
     "ethereum",
-    "下限は効いていて、図は 1722 の viewBox を 1640px で描く (倍率 0.952 = 下限の 10/10.5)。" +
-      " それでも `ハッシュ` は 7.19px にしかならない = この文字だけ `transform` に" +
-      " `scale(0.719)` が掛かっており、下限の母数 (`smallestFontWorld`) は指定の 10.5 しか" +
-      " 見ていない。 実効は 10.5 × 0.719 = 7.55 で、そこに 0.952 を掛けた値が 7.19px。" +
-      " 母数の取り方を直す作業は #2287",
+    "**下限は上限に当たっている**。 `ハッシュ` は指定 10.5 の親に `scale(0.719)` が掛かり、" +
+      " 実効は 7.55 (#2287 で母数に入れた)。 下限は 10 / 7.55 = 1.32 を要求するが、" +
+      " 実寸 100% を超えて引き伸ばさない決まり (`READABLE_MAX_SCALE`、#1084) で 1.0 に切られる。" +
+      " その結果、図は 1722 の viewBox を 1722px で描き (100%)、`ハッシュ` は 7.55px になる。" +
+      " ここから先は図の側が 100% で 7.55px の文字を持っている話で、記法の engine の" +
+      " 文字の大きさを変えないと動かない (#2289)",
   ],
 ]);
 
@@ -191,6 +192,49 @@ test.describe("拡大表示の文字が読める大きさに届く (#2284)", () 
       割った,
       `拡大表示の文字が下限 ${下限}px を割っている (${母数})\n${割った.join("\n")}`,
     ).toEqual([]);
+  });
+
+  test("入れ子の縮小が掛かった文字を母数に入れている (#2287)", async ({ page }) => {
+    /*
+     * `ethereum` の `ハッシュ` は指定 10.5 の親に `scale(0.719)` が掛かり、実効は 7.55。
+     * 母数が指定のままだと下限は `10 / 10.5 = 0.952` で、図は viewBox の 95.2% に描かれる。
+     * 実効を母数にすると `10 / 7.55 = 1.32` を要求し、上限 (実寸 100%) で 1.0 に切られる
+     * = 図は viewBox と同じ幅になる。 **描かれた幅の違いがそのまま母数の違いを表す**。
+     *
+     * 7.55px でも下限は割るので、上の宣言から `ethereum` は外れない (行き先は #2289)。
+     */
+    await page.goto("catalog/ethereum", { waitUntil: "networkidle" });
+    await page.waitForTimeout(1200);
+    await 頁を送る(page);
+    await page.getByRole("button", { name: /を拡大表示$/ }).first().click();
+    await expect(page.locator(".cdl-modal-content")).toBeVisible();
+    // 実効を測る窓が閉じるまで待つ (`useDiagramPanZoom` は 500ms × 6 回)
+    await page.waitForTimeout(4500);
+
+    const 図 = await page.evaluate(() => {
+      const svgたち = [...document.querySelectorAll(".cdl-modal-body svg[viewBox]")]
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          const vb = (el.getAttribute("viewBox") ?? "").split(/[ ,]+/).map(Number);
+          return { 幅: r.width, vbW: vb[2] ?? 0 };
+        })
+        .filter((x) => x.vbW > 200)
+        .sort((a, b) => b.幅 - a.幅);
+      return svgたち[0] ?? null;
+    });
+    expect(図, "拡大表示の中に図が見つからない (検査が空振りしている)").not.toBeNull();
+
+    const 描かれた倍率 = 図!.幅 / 図!.vbW;
+    expect(
+      描かれた倍率,
+      `母数が指定のままなら 0.952 で描かれる (実測 ${描かれた倍率.toFixed(3)})`,
+    ).toBeGreaterThan(0.99);
+
+    const 測定 = await 拡大の最小の文字(page);
+    expect(測定.字).toBe("ハッシュ");
+    // 指定 10.5 × 入れ子 0.719 × 実寸 100% = 7.55
+    expect(測定.最小).toBeGreaterThan(7.4);
+    expect(測定.最小, "上限 (実寸 100%) を超えて引き伸ばしている").toBeLessThan(7.7);
   });
 
   test("小さすぎる文字はちゃんと拾える (植え込み対照)", async ({ page }) => {

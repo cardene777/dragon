@@ -18,7 +18,7 @@
  */
 import { afterEach, describe, it, expect } from "vitest";
 import { cleanup, renderHook } from "@testing-library/react";
-import { useDiagramPanZoom, 忘れない最小 } from "./useDiagramPanZoom";
+import { useDiagramPanZoom, 忘れない最小, 動き終わりの実効 } from "./useDiagramPanZoom";
 import { 収める } from "@/lib/diagram-zoom";
 
 afterEach(() => {
@@ -144,6 +144,42 @@ describe("忘れない最小 — 開いた後に増えた文字 (#2280)", () => 
 
   it("覚えていなければ測れた値をそのまま採る", () => {
     expect(忘れない最小(undefined, 14)).toBe(14);
+  });
+});
+
+describe("動き終わりの実効 — 動きと静止を時間で分ける (#2287)", () => {
+  it("**大きい方へしか動かない**", () => {
+    // 描き出しの動きは実効を上へ動かす (実測 = 工程表の帯の中の名前が 0.4651 → 0.968 → 1)。
+    // 最大を採れば動き終わりの値になる
+    expect(動き終わりの実効(5.1, 10.6)).toBe(10.6);
+    expect(動き終わりの実効(10.6, 5.1), "小さい方へ戻ると動きの途中を母数にする").toBe(10.6);
+  });
+
+  it("動かない縮小では窓の長さによらず同じ値になる", () => {
+    // `ethereum` の `ハッシュ` は 10 回測っても実効 7.55 のまま
+    const 標本 = [7.55, 7.55, 7.55, 7.55, 7.55, 7.55];
+    expect(標本.reduce<number | undefined>(動き終わりの実効, undefined)).toBe(7.55);
+    expect(標本.slice(0, 2).reduce<number | undefined>(動き終わりの実効, undefined)).toBe(7.55);
+  });
+
+  it("上りの動きでは最後の値に一致する", () => {
+    const 標本 = [11 * 0.4651, 11 * 0.968, 11, 11];
+    expect(標本.reduce<number | undefined>(動き終わりの実効, undefined)).toBe(11);
+  });
+
+  it("測れていない標本で窓を埋めない", () => {
+    // 図がまだ描かれていない間は変換が取れない。 その回を数えると動き終わりを取り逃がす
+    expect(動き終わりの実効(undefined, undefined)).toBeUndefined();
+    expect(動き終わりの実効(7.55, undefined)).toBe(7.55);
+    expect(動き終わりの実効(undefined, 7.55)).toBe(7.55);
+  });
+
+  it("2 回続けて同じでも、そこで止めれば動きの途中を拾いうる", () => {
+    // 「2 回続けて同じなら静止」 とする案を退けた理由。 途中の平らな所を 2 回拾うと
+    // 静止した姿より小さい母数で下限が決まり、図が要る以上に拡がる
+    const 途中で平ら = [5.1, 5.1, 8.0, 11];
+    expect(途中で平ら.slice(0, 2).reduce<number | undefined>(動き終わりの実効, undefined)).toBe(5.1);
+    expect(途中で平ら.reduce<number | undefined>(動き終わりの実効, undefined)).toBe(11);
   });
 });
 
