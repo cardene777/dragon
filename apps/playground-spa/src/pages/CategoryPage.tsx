@@ -422,7 +422,6 @@ export function CategoryPage(): React.ReactElement {
       return undefined;
     }
   }, [拡大の図, modalItem]);
-  const 指定した幅 = svgの幅(倍率, 拡大のviewBox幅);
   // ホイール・つまみ・ドラッグ (#1961)。 拡大表示は図を見るための場所なので、修飾キー無しのホイールも拡大に使う
   const 拡大の操作 = useDiagramPanZoom({
     器: modalStageEl,
@@ -434,7 +433,13 @@ export function CategoryPage(): React.ReactElement {
     修飾キー無しで拡大: true,
     頁も送る: false,
     図の鍵: 拡大の図 ?? modalItem?.diagram,
+    // 拡大表示は図を読むために開く場所。 携帯の幅では器が狭く、収めるだけだと文字が
+    // 4.4px から 6.7px になる (#2284 で実測)。 下限まで拡げ、器から出た分はドラッグで辿る
+    読める下限を課す: true,
   });
+  // 幅に合わせる指定でも、読める下限を割る図は下限の倍率で描く (#2269 と同じ形)
+  const 指定した幅 =
+    svgの幅(倍率, 拡大のviewBox幅) ?? svgの幅(拡大の操作.読める下限の倍率 ?? 収める, 拡大のviewBox幅);
   // ＋ / − は、器に収めている時は実際に描かれている倍率を起点にする (#1961)
   function 倍率を動かす(向き: "上げる" | "下げる"): void {
     set倍率の状態({ 図: 開いている図, 値: 次の倍率(倍率, 向き, 拡大の操作.収めた倍率) });
@@ -465,7 +470,6 @@ export function CategoryPage(): React.ReactElement {
       return undefined;
     }
   }, [図, 見本, currentItem]);
-  const 並びで指定した幅 = svgの幅(並びの倍率, 並びのviewBox幅);
   // ホイール・つまみ・ドラッグ (#1961)。 並べて見る側は一覧の画面を送る場所なので、
   // 修飾キー無しのホイールは奪わず、`⌘` / `Ctrl` を押した時 (つまみ操作も同じ形で届く) だけ拡大に使う。
   // 巻き取りは内側 (`.catalog-preview-stage-inner`) が持ち、縦に溢れた分は頁が送る
@@ -480,7 +484,12 @@ export function CategoryPage(): React.ReactElement {
     修飾キー無しで拡大: false,
     頁も送る: true,
     図の鍵: 図 ?? 見本?.diagram ?? currentItem?.diagram,
+    // **ここには読める下限を課さない** (#2284)。 並べて見る側は一覧を眺める面で、
+    // 幅に合わせるのが既定であることを 5 本の検査が固定している (図が台の幅いっぱいに
+    // 描かれる / 収めている図はドラッグで巻き取らない 等)。 下限を課すと既定が
+    // 「台より広く描いて辿る」 に変わるため、既定を変えるかの判断が要る (#2286)
   });
+  const 並びで指定した幅 = svgの幅(並びの倍率, 並びのviewBox幅);
   function 並びの倍率を動かす(向き: "上げる" | "下げる"): void {
     set並びの倍率の状態({ 図: 見ている図, 値: 次の倍率(並びの倍率, 向き, 並びの操作.収めた倍率) });
   }
