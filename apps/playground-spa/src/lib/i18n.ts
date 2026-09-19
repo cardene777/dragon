@@ -95,6 +95,8 @@ export const ITEM_NAME_JA: Record<string, string> = {
   textDslCode: "テキスト記法のコード",
   textDslValues: "テキスト記法の値どうしの関係",
   textDslStateMarks: "テキスト記法の始点終点の印",
+  textDslActorKeys: "テキスト記法の箱の項目名",
+  textDslValueKeys: "テキスト記法の値と前の値",
 
   // === shape-driven basement 8 = 基本形状 ===
   shapeFile: "角を折ったファイル",
@@ -686,6 +688,8 @@ export const ITEM_NAME_EN: Record<string, string> = {
   textDslCode: "Text DSL code",
   textDslValues: "Text DSL derived values",
   textDslStateMarks: "Text DSL start/end marks",
+  textDslActorKeys: "Text DSL actor field names",
+  textDslValueKeys: "Text DSL value and previous field names",
   kindActor: "External actor",
   kindFunction: "Function call",
   kindStorage: "Stored data",
