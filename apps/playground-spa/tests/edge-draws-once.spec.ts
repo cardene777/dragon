@@ -42,11 +42,25 @@
  *
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test edge-draws-once`
  */
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { test, expect, type Page } from "@playwright/test";
 
 import { moduleToItems } from "../src/lib/catalog-items";
 import { PRESETS, presetCatalogKey, presetName } from "../src/lib/presets";
 import * as ひな形の見本 from "../src/topics/catalog/presets.cdl";
+
+/**
+ * 見本を書いた記法の file を字として読んだもの (#2274)。
+ *
+ * 読み取り (`moduleToItems`) とは別の経路でパターンを数えるために使う。
+ * 同じ source を 2 通りに数え、ずれたら読み取り側が落としていると判る。
+ */
+const 記法の字 = readFileSync(
+  fileURLToPath(new URL("../src/topics/catalog/presets.cdl.ts", import.meta.url)),
+  "utf8",
+);
 
 /** 何が起点から伸びるか。 図種ごとに担い手が違う */
 type 描き手 = "矢印" | "図" | "なし";
@@ -262,18 +276,43 @@ test.describe("伸びるのは 1 度だけ (#1474 / #1476)", () => {
       見本.filter((x) => x.パターン === undefined).map((x) => x.label).sort(),
     );
 
-    // パターンを取りこぼすと、複雑な版を 1 度も開かないまま通る (#1960)
+    /*
+     * パターンを取りこぼすと、複雑な版を 1 度も開かないまま通る (#1960)。
+     *
+     * **期待値は記法の file を字として読む** (#2274)。 名前を手で並べていた頃は、複雑な版を
+     * 足す PR が 15 本続けてこの行を直さず、`main` が 5 日間赤いまま積み上がった。
+     *
+     * 字として数えるのは `moduleToItems` と **別の経路** なので、読み取り側がパターンを
+     * 落とした時に 2 つの数がずれる = この判定が守りたかったものは残る。
+     */
+    const 記法のパターン数 = [
+      ...記法の字.matchAll(/^export const pattern__[\p{L}\p{N}_]+ =/gmu),
+    ].length;
+    expect(記法のパターン数, "記法の file からパターンを 1 つも読めていない").toBeGreaterThan(0);
     expect(
-      見本.filter((x) => x.パターン !== undefined).map((x) => `${x.label} / ${x.パターン}`),
+      見本.filter((x) => x.パターン !== undefined).length,
       "見本の中のパターンを読めていない (複雑な版を開いていない)",
-    ).toEqual(["ER図 / 複雑", "クラス図 / 複雑"]);
+    ).toBe(記法のパターン数);
 
-    // 内訳を出力に残す。 数だけでは、どの担い手が痩せたかが読めない
-    const 内訳 = (k: 描き手): number => 見本.filter((x) => x.描き手 === k).length;
+    // 内訳を出力に残す。 数だけでは、どの担い手が痩せたかが読めない。
+    // **登録簿の分だけを数える** = パターンは元の見本と同じ担い手を継ぐので、足すたびに
+    // 内訳が動いて同じ直し忘れが起きる。 担い手の表が痩せたかは登録簿の分で読める
+    const 登録簿の内訳 = (k: 描き手): number =>
+      PRESETS.filter((p) => 描き手たち[p.id] === k).length;
     expect(
-      { 対象: 見本.length, 矢印: 内訳("矢印"), 図: 内訳("図"), 描かない: 内訳("なし") },
+      {
+        対象: 見本.length,
+        矢印: 登録簿の内訳("矢印"),
+        図: 登録簿の内訳("図"),
+        描かない: 登録簿の内訳("なし"),
+      },
       "母集団の内訳が変わった (担い手の表を見直す)",
-    ).toEqual({ 対象: 登録簿の鍵.length + 2, 矢印: 12, 図: 7, 描かない: 2 });
+    ).toEqual({
+      対象: 登録簿の鍵.length + 記法のパターン数,
+      矢印: 10,
+      図: 7,
+      描かない: 2,
+    });
   });
 
   for (const { label, パターン, 描き手 } of 見本) {

@@ -116,6 +116,14 @@ const EXPECTED: Array<{ slug: string; id: string; rows: number }> = [
   // 8 表 8 関係の ER 図 (#1573)。 中継表 3 つを含めて 17 行
   { slug: "text-dsl", id: "多対多が-2-組-8-表-8-関係", rows: 17 },
   { slug: "presets", id: "fsm-demo", rows: 4 },
+  /*
+   * 状態遷移図の複雑な版 (#2164)。 `actions` を 8 個持つので行を持つ側に入った。
+   *
+   * **`collect()` は module の export を種類で選ばず全件拾う** ので、見本の中のパターン
+   * (`pattern__*` から引ける複雑な版) も母集団に入る。 行を持つ図を足した PR が
+   * この一覧を直さないと落ちる = 直さないまま 15 本積み上がった (#2274)。
+   */
+  { slug: "presets", id: "fsm-complex-demo", rows: 8 },
   { slug: "patterns", id: "pattern-call-rw", rows: 1 },
   { slug: "patterns", id: "pattern-rollback", rows: 1 },
   { slug: "patterns", id: "pattern-validate-process", rows: 1 },
