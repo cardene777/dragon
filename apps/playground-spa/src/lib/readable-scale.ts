@@ -273,23 +273,96 @@ function 見えない(t: Element): boolean {
  *
  * 描き出しの動きは文字に入れ子の拡大率を掛けて 0 倍から 1 倍まで動かす (実測 = 工程表の
  * 帯の中の名前が 0.19 → 0.46 → 0.74 → 1.0)。 その途中を読むと、同じ図が測る時刻だけで
- * 別の下限を出す。 **指定は動きの間も変わらない** ので、静止した姿の下限をそのまま導ける。
+ * 別の下限を出す。 **指定は動きの間も変わらない** ので、1 回の測りで済む。
+ *
+ * 指定だけでは、静止した入れ子の縮小を持つ図で下限を割る (#2287)。 そちらは
+ * `effectiveSmallestFontWorld` が扱い、何度か測って静止した姿を採る。
  */
 export function smallestFontWorld(svg: SVGSVGElement | null | undefined): number {
   if (!svg) return 0;
   let min = Number.POSITIVE_INFINITY;
   for (const t of svg.querySelectorAll("text")) {
-    if ((t.textContent ?? "").trim().length === 0) continue;
-    if (見えない(t)) continue;
-    let size = Number.NaN;
-    if (typeof globalThis.getComputedStyle === "function") {
-      size = Number.parseFloat(globalThis.getComputedStyle(t).fontSize);
-    }
-    if (!Number.isFinite(size) || size <= 0) {
-      size = Number.parseFloat(t.getAttribute("font-size") ?? "");
-    }
-    if (!Number.isFinite(size) || size <= 0) continue;
+    if (数えない(t)) continue;
+    const size = 文字の指定(t);
+    if (size === undefined) continue;
     min = Math.min(min, size);
+  }
+  return Number.isFinite(min) ? min : 0;
+}
+
+/** 下限の母数に数えない文字か。 中身が空のものと、画面に出ていないもの */
+function 数えない(t: Element): boolean {
+  if ((t.textContent ?? "").trim().length === 0) return true;
+  return 見えない(t);
+}
+
+/**
+ * 文字に書かれた大きさ (世界座標)。 読めなければ `undefined`。
+ *
+ * **1 か所に置く**。 指定を読む手順 (計算値を先に見て、取れなければ属性に落ちる) を 2 か所に
+ * 書くと、片方だけ直した時に指定と実効で別の文字を母数にしてしまう。
+ */
+function 文字の指定(t: Element): number | undefined {
+  let size = Number.NaN;
+  if (typeof globalThis.getComputedStyle === "function") {
+    size = Number.parseFloat(globalThis.getComputedStyle(t).fontSize);
+  }
+  if (!Number.isFinite(size) || size <= 0) {
+    size = Number.parseFloat(t.getAttribute("font-size") ?? "");
+  }
+  return Number.isFinite(size) && size > 0 ? size : undefined;
+}
+
+/**
+ * その要素が画面へ出るまでに掛かる拡大率。 変換を取れなければ `undefined`。
+ *
+ * 回転や傾きが混ざっても面積の比から 1 つの拡大率を出せる (行列式の平方根)。
+ */
+function 画面への倍率(el: Element): number | undefined {
+  const ctm = (el as SVGGraphicsElement).getScreenCTM?.();
+  if (!ctm) return undefined;
+  const k = Math.sqrt(Math.abs(ctm.a * ctm.d - ctm.b * ctm.c));
+  return Number.isFinite(k) && k > 0 ? k : undefined;
+}
+
+/**
+ * 入れ子の縮小まで含めた、図の中で最も小さい文字 (世界座標)。 1 つも取れなければ 0 (#2287)。
+ *
+ * ## 指定だけでは足りない
+ *
+ * 文字の親に `transform` の縮小が掛かっていると、書かれた指定より小さく描かれる
+ * (実測 = カタログの `ethereum` の `ハッシュ` は指定 10.5 の親に `scale(0.719)` が掛かり、
+ * 実効は 7.55)。 指定を母数に取ると下限の倍率が `10 / 10.5 = 0.952` になり、
+ * 描かれた実寸は 7.19px で下限を割る。
+ *
+ * ## 表示倍率を混ぜない
+ *
+ * `getScreenCTM` は図の座標から画面までの変換をまとめて返すので、そのままでは
+ * 「いま何倍で表示しているか」 まで入る。 それを母数にすると、下限で図を拡げた次の測りで
+ * 母数が大きくなり、拡げたぶんだけ下限が緩む往復になる。
+ *
+ * **svg の根の倍率で割る**。 割った値は svg の中だけの入れ子の積で、表示倍率が変わっても動かない。
+ *
+ * ## 返り値は動く
+ *
+ * 描き出しの動きも同じ `transform` を書き換えるため (実測 = 工程表の帯の中の名前は
+ * 0.4651 → 0.968 → 1 と上がる)、**この関数の返り値は測る時刻で変わる**。
+ * 静止した姿が要る呼出側は、何度か測って最も大きい値を採る (`useDiagramPanZoom`)。
+ */
+export function effectiveSmallestFontWorld(svg: SVGSVGElement | null | undefined): number {
+  if (!svg) return 0;
+  const 根の倍率 = 画面への倍率(svg);
+  if (根の倍率 === undefined) return 0;
+  let min = Number.POSITIVE_INFINITY;
+  for (const t of svg.querySelectorAll("text")) {
+    if (数えない(t)) continue;
+    const 指定 = 文字の指定(t);
+    if (指定 === undefined) continue;
+    const 文字の倍率 = 画面への倍率(t);
+    if (文字の倍率 === undefined) continue;
+    const 入れ子 = 文字の倍率 / 根の倍率;
+    if (!Number.isFinite(入れ子) || 入れ子 <= 0) continue;
+    min = Math.min(min, 指定 * 入れ子);
   }
   return Number.isFinite(min) ? min : 0;
 }
