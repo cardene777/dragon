@@ -67,7 +67,6 @@ export function PresetDetailPage(): React.ReactElement {
       return undefined;
     }
   }, [描く図]);
-  const 指定した幅 = svgの幅(倍率, viewBox幅);
   // ホイール・つまみ・ドラッグ。 この画面は縦に送って読む画面なので、修飾キー無しのホイールは奪わない
   const 操作 = useDiagramPanZoom({
     器: stageEl,
@@ -80,7 +79,12 @@ export function PresetDetailPage(): React.ReactElement {
     修飾キー無しで拡大: false,
     頁も送る: true,
     図の鍵: 描く図,
+    // ここは見本を読む面。 携帯の幅では台が狭く、幅に合わせるだけだと箱の名前が 2.0px まで
+    // 縮んで 1 文字も読めない (#2268 で実測)。 下限まで拡げ、器から出た分はドラッグで辿る
+    読める下限を課す: true,
   });
+  // 幅に合わせる指定でも、読める下限を割る図は下限の倍率で描く (#2269)
+  const 指定した幅 = svgの幅(倍率, viewBox幅) ?? svgの幅(操作.読める下限の倍率 ?? 収める, viewBox幅);
   function 倍率を動かす(向き: "上げる" | "下げる"): void {
     set倍率の状態({ 図: 見ている図, 値: 次の倍率(倍率, 向き, 操作.収めた倍率) });
   }

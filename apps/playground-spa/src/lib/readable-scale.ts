@@ -149,6 +149,60 @@ export function readableScaleForFrame(args: {
 }
 
 /**
+ * 幅だけで器に合わせる場所で、収めると文字が読めなくなる図に使う倍率 (#2269)。
+ *
+ * ひな形の詳細のように **縦に伸びる台** では、収める倍率は器の幅だけで決まる。
+ * `readableScaleForFrame` が要る判定 (箱が枠から出るか) はここでは要らない =
+ * 台から出た分はドラッグとホイールで辿れるので、譲る下限へ落とす理由が無い。
+ *
+ * ## 土台に「いま描かれている倍率」 を渡してはいけない
+ *
+ * 描かれている倍率は、下限で幅を与えた後は **与えた倍率そのもの** になる。 それを土台に判定すると
+ * 「もう下限に届いている」 と読んで幅を外し、外した次の測りでまた割って幅を与える =
+ * 2 つの状態を行き来する (実測で同じ画面が 2.9px と 10.0px の間で揺れた)。
+ *
+ * 渡すのは **器の幅**。 図に幅を与えても器の幅は変わらないので、何度測っても同じ値を返す。
+ *
+ * ## 返り値
+ *
+ * 収める倍率で既に下限へ届いている図は `undefined` = 呼出側は今まで通り器に合わせる。
+ * 測れていない値 (文字が 1 つも無い / 器の幅や viewBox の幅が正でない) も `undefined` に倒す
+ * = 測れないことを理由に図の大きさを動かさない。
+ */
+export function readableScaleForWidth(args: {
+  /** 器 (巻き取る要素) の内側の幅 (px) */
+  frameWidth: number;
+  /** 図の viewBox の幅。 描けない図では `undefined` */
+  viewBoxWidth: number | undefined;
+  /** 図の中で最も小さい文字 (世界座標)。 測れていなければ `undefined` */
+  minFontWorld: number | undefined;
+  minPx?: number;
+  maxScale?: number;
+}): number | undefined {
+  const {
+    frameWidth,
+    viewBoxWidth,
+    minFontWorld,
+    minPx = READABLE_MIN_PX,
+    maxScale = READABLE_MAX_SCALE,
+  } = args;
+  if (minFontWorld === undefined || !Number.isFinite(minFontWorld) || minFontWorld <= 0) {
+    return undefined;
+  }
+  if (viewBoxWidth === undefined || !Number.isFinite(viewBoxWidth) || viewBoxWidth <= 0) {
+    return undefined;
+  }
+  if (!Number.isFinite(frameWidth) || frameWidth <= 0) return undefined;
+  const 収める倍率 = frameWidth / viewBoxWidth;
+  const 下限 = applyReadableFloor(
+    収める倍率,
+    readableFloorScale(minFontWorld, 1, minPx),
+    maxScale,
+  );
+  return 下限 > 収める倍率 ? 下限 : undefined;
+}
+
+/**
  * 箱の右端を、 倍率をかける前の px 座標で返す。 箱が 1 つも無ければ null。
  *
  * `getBBox` は利用者座標を返すので 2 段の変換が要る。 まず `viewBoxX` を引いて図の左上を原点に

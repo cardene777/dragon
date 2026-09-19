@@ -6,6 +6,7 @@ import {
   type 倍率の指定,
   type 区間,
 } from "@/lib/diagram-zoom";
+import { readableScaleForWidth, smallestFontWorld } from "@/lib/readable-scale";
 
 /**
  * 図の拡大縮小と移動を受け持つ部品 (#1961)。
@@ -57,6 +58,13 @@ export type 拡大と移動の設定 = {
   頁も送る: boolean;
   /** 描く図が替わった時に測り直すための鍵。 図そのもの (同じ図なら同じ値) を渡す */
   図の鍵?: unknown;
+  /**
+   * 器に収めた結果が読める下限を割る時、下限まで拡げた倍率を返すか (#2269)。
+   *
+   * **場所ごとに決める**。 読ませる面 (ひな形の詳細) では下限まで拡げ、溢れた分はドラッグで辿る。
+   * 札の中の見本のように読ませない面で課すと、器から出た図が切れたまま辿れなくなる。
+   */
+  読める下限を課す?: boolean;
 };
 
 export type 拡大と移動の状態 = {
@@ -66,10 +74,25 @@ export type 拡大と移動の状態 = {
   動かせる: boolean;
   /** いまドラッグで巻き取っているか */
   移動中: boolean;
+  /**
+   * 器に収めると文字が読めなくなる図で、代わりに使う倍率 (#2269)。
+   *
+   * 収めた倍率で下限に届いている図と、`読める下限を課す` を渡していない場所では `undefined` =
+   * 呼出側は今まで通り器に合わせる。 文字を測れない図でも `undefined` になる
+   * (測れないことを理由に図の大きさを動かさない)。
+   */
+  読める下限の倍率: number | undefined;
 };
 
 /** 画面の測り結果。 変わった時だけ状態を置き換える */
-type 測った値 = { 描かれた倍率: number | undefined; 溢れている: boolean };
+type 測った値 = {
+  描かれた倍率: number | undefined;
+  溢れている: boolean;
+  /** 図の中で最も小さい文字 (世界座標)。 測れなければ `undefined` */
+  最小の文字: number | undefined;
+  /** 巻き取る要素の内側の幅 (px)。 図に幅を与えても変わらない = 収めた時の倍率の土台になる */
+  器の幅: number;
+};
 
 /** 器の中の図の svg。 図の外の印 (段の札の絵文字や矢印の定義) を拾わないよう、図の根の中だけを探す */
 function 図のsvgを探す(器: HTMLElement): SVGSVGElement | null {
@@ -95,10 +118,15 @@ function 画面を測る(
   巻き取りを探す: 拡大と移動の設定["巻き取りを探す"],
 ): 測った値 {
   const 巻き取り = 巻き取る要素(器, 巻き取りを探す);
+  // 0 は「文字が 1 つも無い」 と「値を読めない」 の両方を表す。 下限を課すかの判定に使うので、
+  // 測れていない側へ倒して図の大きさを動かさない
+  const 文字 = svg ? smallestFontWorld(svg) : 0;
   return {
     描かれた倍率: svg ? 描かれた外枠(svg).倍率 : undefined,
     溢れている:
       巻き取り.scrollWidth > 巻き取り.clientWidth || 巻き取り.scrollHeight > 巻き取り.clientHeight,
+    最小の文字: 文字 > 0 ? 文字 : undefined,
+    器の幅: 巻き取り.clientWidth,
   };
 }
 
@@ -109,7 +137,12 @@ function 変わった時だけ置き換える(前: 測った値, 次: 測った�
     (前.描かれた倍率 !== undefined &&
       次.描かれた倍率 !== undefined &&
       Math.abs(前.描かれた倍率 - 次.描かれた倍率) < 1e-4);
-  return 前.溢れている === 次.溢れている && 倍率が同じ ? 前 : 次;
+  return 前.溢れている === 次.溢れている &&
+    倍率が同じ &&
+    前.最小の文字 === 次.最小の文字 &&
+    前.器の幅 === 次.器の幅
+    ? 前
+    : 次;
 }
 
 /** 0.5px 未満の残りは巻き取りの丸めで消えるので、動かす量として数えない */
@@ -204,12 +237,33 @@ function 描かれた外枠(svg: SVGSVGElement): { x: 区間; y: 区間; 倍率:
 
 export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と移動の状態 {
   const { 器, 倍率, viewBox幅, 図の鍵 } = 設定;
-  const [測った, set測った] = useState<測った値>({ 描かれた倍率: undefined, 溢れている: false });
+  const [測った, set測った] = useState<測った値>({
+    描かれた倍率: undefined,
+    溢れている: false,
+    最小の文字: undefined,
+    器の幅: 0,
+  });
   const [移動中, set移動中] = useState(false);
 
+  const 読める下限の倍率 =
+    設定.読める下限を課す === true
+      ? readableScaleForWidth({
+          frameWidth: 測った.器の幅,
+          viewBoxWidth: viewBox幅,
+          minFontWorld: 測った.最小の文字,
+        })
+      : undefined;
+  // **下限が効く時は下限そのものを返す** (#2269)。 下限で幅を与えると描かれた倍率も下限になるが、
+  // それが測り直されるのは次の描画なので、欄が 1 フレーム前の倍率を出したまま図だけ替わる。
+  // 下限は器の幅と図の文字から出るので、幅を与えるのと同じ描画で確定している
+  const 収めた倍率 =
+    viewBox幅 === undefined ? undefined : (読める下限の倍率 ?? 測った.描かれた倍率);
+  // 下限で拡げた図は器から出るので、収めている間もドラッグで辿れるようにする。
+  // 下限を課していない場所では今まで通り、倍率を指定した時だけ掴める
   const 動かせる =
-    viewBox幅 !== undefined && 倍率 !== 収める && (設定.頁も送る || 測った.溢れている);
-  const 収めた倍率 = viewBox幅 === undefined ? undefined : 測った.描かれた倍率;
+    viewBox幅 !== undefined &&
+    (倍率 !== 収める || 読める下限の倍率 !== undefined) &&
+    (設定.頁も送る || 測った.溢れている);
 
   // 登録した操作の受け口は器が替わるまで作り直さない。 毎回の描画で変わる値はここから読む
   const 最新 = useRef({ 設定, 収めた倍率, 動かせる });
@@ -401,5 +455,5 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
     };
   }, [器]);
 
-  return { 収めた倍率, 動かせる, 移動中: 移動中 && 動かせる };
+  return { 収めた倍率, 動かせる, 移動中: 移動中 && 動かせる, 読める下限の倍率 };
 }

@@ -5,6 +5,7 @@ import {
   applyReadableFloor,
   smallestFontWorld,
   readableScaleForFrame,
+  readableScaleForWidth,
   boxesRightPx,
   READABLE_MIN_PX,
   READABLE_MAX_SCALE,
@@ -177,6 +178,57 @@ describe("readableScaleForFrame", () => {
     expect(readableScaleForFrame({ ...素, boxesRight: 2000 })).toBe(
       readableScaleForFrame({ ...素, boxesRight: 2000, relaxedPx: 8 }),
     );
+  });
+});
+
+describe("readableScaleForWidth (#2269)", () => {
+  /** 携帯の幅の台に、横に長い図を収めた形 (`preset/swimlane` の実測) */
+  const 素 = { frameWidth: 275, viewBoxWidth: 1916, minFontWorld: 20 };
+
+  it("収めると下限を割る図は、下限を満たす倍率を返す", () => {
+    // 収める倍率 = 275/1916 = 0.144 → 文字は 20 × 0.144 = 2.9px
+    // 下限 10px に要る倍率 = 10/20 = 0.5
+    expect(readableScaleForWidth(素)).toBeCloseTo(0.5, 5);
+  });
+
+  it("収めた時点で下限に届く図は undefined (器に合わせたままにする)", () => {
+    // 収める倍率 = 600/800 = 0.75 → 文字は 20 × 0.75 = 15px
+    expect(
+      readableScaleForWidth({ frameWidth: 600, viewBoxWidth: 800, minFontWorld: 20 }),
+    ).toBeUndefined();
+  });
+
+  it("実寸 (100%) を超えては拡げない", () => {
+    // 文字が 7.6 世界単位の図は、100% でも 7.6px にしかならない (`preset/gantt` の実測)
+    expect(readableScaleForWidth({ ...素, minFontWorld: 7.6 })).toBeCloseTo(1, 5);
+  });
+
+  it("**返した倍率を器の幅として渡し直しても、同じ答えに落ち着く**", () => {
+    // 描かれている倍率を土台にすると 2 つの状態を行き来する (実測で 2.9px と 10.0px が交互に出た)。
+    // 器の幅は図に幅を与えても変わらないので、何度測っても同じ値を返す
+    const 一度目 = readableScaleForWidth(素);
+    expect(一度目).toBeCloseTo(0.5, 5);
+    expect(readableScaleForWidth(素), "2 度目で答えが変わった (行き来する)").toBe(一度目);
+    // 図に与えた幅 (viewBox 幅 × 返した倍率) を器の幅と取り違えた形は、下限を割らないと読む
+    expect(
+      readableScaleForWidth({ ...素, frameWidth: 素.viewBoxWidth * 一度目! }),
+      "描かれた幅を土台にすると『もう届いている』 と読む (この形は渡してはいけない)",
+    ).toBeUndefined();
+  });
+
+  it("測れていない値は undefined に倒す (図の大きさを動かさない)", () => {
+    expect(readableScaleForWidth({ ...素, minFontWorld: undefined })).toBeUndefined();
+    expect(readableScaleForWidth({ ...素, viewBoxWidth: undefined })).toBeUndefined();
+    for (const v of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(readableScaleForWidth({ ...素, frameWidth: v }), `器の幅=${v}`).toBeUndefined();
+      expect(readableScaleForWidth({ ...素, viewBoxWidth: v }), `viewBox=${v}`).toBeUndefined();
+      expect(readableScaleForWidth({ ...素, minFontWorld: v }), `文字=${v}`).toBeUndefined();
+    }
+  });
+
+  it("下限と上限を渡せる", () => {
+    expect(readableScaleForWidth({ ...素, minPx: 8 })).toBeCloseTo(0.4, 5);
+    expect(readableScaleForWidth({ ...素, minFontWorld: 5, maxScale: 1.5 })).toBeCloseTo(1.5, 5);
   });
 });
 
