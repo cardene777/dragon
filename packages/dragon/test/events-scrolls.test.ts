@@ -96,9 +96,12 @@ describe("押下が記法から図に届く (#1393)", () => {
     expect(d.eventBindings?.map((e) => e.id)).toEqual(["evt-1", "evt-2"]);
   });
 
-  it("順序図では指す矢印が無く、相手を解けないことを伝える", () => {
+  it("順序図では指す矢印が無く、この図種では付かないことを伝える", () => {
     // #1466 で順序図は 1 枚の板になり、言づては矢印ではなく板の中の行になった =
     // `arrow:` で指す相手が図に無い
+    //
+    // **書いた名前は本文に在るので「見つからない」 ではない** (#2336)。 綴り違いと同じ
+    // 知らせにすると「名前で書く」 と案内され、既にそう書いている人が書き直しを繰り返す
     const 出た: string[] = [];
     const d = textDslToDiagram(`title: "t"
 type: sequence
@@ -113,7 +116,8 @@ animation:
   - step: "p" 1s
 `, { onNotice: (n) => 出た.push(n.kind) }) as unknown as 図;
     expect(d.eventBindings?.[0]?.target, "指せない相手を解いている").toBeUndefined();
-    expect(出た, "相手を解けないことを伝えていない").toContain("event-target-missing");
+    expect(出た, "この図種では付かないことを伝えていない").toContain("event-target-not-honored");
+    expect(出た, "綴り違いの知らせを出している").not.toContain("event-target-missing");
   });
 
   it("名前から作る識別子が重なっても箱と矢印を指せる", () => {

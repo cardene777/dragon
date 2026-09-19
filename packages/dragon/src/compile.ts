@@ -454,13 +454,34 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     for (const e of doc.events) {
       const 相手 = 出来事の相手を解く(merged, doc, e);
       if (相手 === undefined) {
-        opts?.onNotice?.({
-          kind: "event-target-missing",
-          actor: e.handlerId,
-          line: e.pos.line,
-          message: `出来事 "${e.handlerId}" が指す相手が見つかりません`,
-          hint: "box は箱の名前、 lane は縦列の名前、 arrow は `A -> B` で書く",
-        });
+        /*
+         * **原因を 2 つに分ける** (#2336)。 書いた名前が本文に在るかで、直し方が正反対になる。
+         *
+         * 無い = 綴り違いなので「名前で書く」 の案内が効く。
+         * 在る = その図種が登場人物を箱 / 矢印にしないので、同じ案内に従っても永久に直らない。
+         * 1 つの知らせにまとめていた間、後者は書き直しの繰り返しに入る形だった
+         * (実測 = 24 図種のうち箱を指せるのは 7 図種)。
+         */
+        const 呼び名 = 出来事の相手の呼び名[e.target.kind];
+        opts?.onNotice?.(
+          出来事の相手が本文に在る(doc, e)
+            ? {
+                kind: "event-target-not-honored",
+                actor: e.handlerId,
+                line: e.pos.line,
+                message:
+                  `type: ${doc.type} は書いた名前を${呼び名}にしないため、` +
+                  ` 出来事 "${e.handlerId}" を付けられません`,
+                hint: `名前の書き方の問題ではありません。 図そのもの (\`diagram: true\`) を指すか、${呼び名}を作る図種に変えてください`,
+              }
+            : {
+                kind: "event-target-missing",
+                actor: e.handlerId,
+                line: e.pos.line,
+                message: `出来事 "${e.handlerId}" が指す相手が見つかりません`,
+                hint: "box は箱の名前、 lane は縦列の名前、 arrow は `A -> B` で書く",
+              },
+        );
         continue;
       }
       載せる.push({
@@ -1290,6 +1311,48 @@ function 出来事の相手を解く(
   const 列 = (diagram.lanes ?? []).find((l) => l.id === slug || l.id === 名 || l.label === 名);
   return 列 ? { kind: "lane", id: 列.id } : undefined;
 }
+
+/**
+ * 出来事が指す名前を、書いた人が本文に書いているか (#2336)。
+ *
+ * 相手が解けなかった原因を 2 つに分けるために使う。 **本文に在るなら書き直しても直らない** =
+ * その図種が登場人物を箱にしない (値を並べる図種は図全体で 1 つの箱、 順序図と solidity は
+ * 1 枚の板)。 本文に無いなら綴り違いで、書き直せば直る。
+ *
+ * 分けないと、直る件と直らない件に同じ「名前で書く」 という案内が付く。 案内に従っても
+ * 直らない側では、書いた人は綴りを疑って何度も書き直すことになる (実測 = 24 図種のうち
+ * 箱を指せるのは 7 図種)。
+ *
+ * 照合は図の識別子と同じ作り方に揃える = 箱は名前と題の両方で探し (`出来事の相手を解く` と
+ * 同じ 2 経路)、矢印は両端の名前から作った識別子で突き合わせる。 ここだけ厳しくすると、
+ * 正しく書いた名前を綴り違いとして知らせてしまう。
+ */
+function 出来事の相手が本文に在る(doc: DslDocument, e: DslEventBinding): boolean {
+  if (e.target.kind === "diagram") return true;
+  if (e.target.kind === "edge") {
+    const from = slugify(e.target.from);
+    const to = slugify(e.target.to);
+    return doc.flow.some((s) => slugify(s.from) === from && slugify(s.to) === to);
+  }
+  const 名 = e.target.name;
+  const slug = slugify(名);
+  if (e.target.kind === "node") {
+    return doc.actors.some(
+      (a) => a.name === 名 || slugify(a.name) === slug || (a.title ?? a.name) === 名,
+    );
+  }
+  return Object.entries(doc.lanes ?? {}).some(
+    ([id, 列]) => id === 名 || slugify(id) === slug || 列.label === 名,
+  );
+}
+
+/** 出来事の相手の呼び名。 知らせの本文で「何を指したか」 を言うために使う */
+const 出来事の相手の呼び名: Record<DslEventBinding["target"]["kind"], string> = {
+  node: "箱",
+  lane: "縦列",
+  edge: "矢印",
+  diagram: "図そのもの",
+};
 
 /** 本文に書いた矢印の指定を、対応が取れた矢印へ書き写す。 対応の取り方は呼出側が決める。 */
 function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): void {

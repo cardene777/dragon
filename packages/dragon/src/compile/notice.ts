@@ -65,8 +65,12 @@ export type CompileNotice = {
     | "draw-target-mismatch"
     // 式が、どこにも書かれていない名前を読んだ (#1391)
     | "formula-unresolved"
-    // 出来事が指す相手が図に無い (#1393)
+    // 出来事が指す相手が図に無い (#1393)。 書いた名前が本文のどこにも無い時に出す = 書き直せば直る
     | "event-target-missing"
+    // 出来事が指す名前は本文に在るが、この図種はそれを箱 / 矢印にしない (#2336)。
+    // 値を並べる図種は図全体で 1 つの箱になり、 順序図と solidity は 1 枚の板になる。
+    // `event-target-missing` と分けるのは、こちらが **書き直しても直らない** 側だから
+    | "event-target-not-honored"
     // 順序図で面に種類を書いたが、板は名前と呼び名しか描かない (#1466)
     | "actor-kind-not-honored"
     // 順序図の言づてに、板が描かない飾りを書いた (#1466)。 数える飾りは `reportMessageOptionNotHonored` の一覧が持つ
