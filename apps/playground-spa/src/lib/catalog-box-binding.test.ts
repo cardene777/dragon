@@ -15,36 +15,17 @@ import { describe, it, expect } from "vitest";
 import { layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import * as Interactive from "@/topics/catalog/interactive.cdl";
+import { 段が動かす見本, 束ねだけ見る見本 } from "./catalog-interactive-groups";
 import { computeStateValues, interpolate } from "@cardenelabs/cdl";
 
-/** 段で表示部品を動かす図 (#1032 / #1033 の対象)。 */
-const DRIVEN = [
-  "arraySignalHistogram", "arrayLineChart", "arrayStackedBar", "arrayWaterfall",
-  "eip1559GasFlow", "interactiveOauthFlow", "portfolioDonut", "abTestResult",
-  "canvasMiniMap", "matrixHeatmap", "taskProgressGroup", "skillRadar",
-  "perfBubbleChart", "contributionHeatmap", "priceCandlestick", "userVenn",
-  "scoreSlope", "salesFunnel", "projectGantt", "resourceTreemap",
-  "trafficSankey", "activityPolar",
-  // #1032 の 2 本目
-  "playerLeaderboard", "techTagCloud", "teamActivityFeed", "supportChat",
-  "sprintChecklist", "pathProgressDemo",
-  // #1032 の 3 本目
-  "postReactions", "techPills", "dashboardMetricsGrid", "kpiIconTile",
-  "cryptoWallet", "worldMapPins", "tournamentPodium", "featurePoll",
-  "reviewerStack", "gitCommitList", "serverEventLog", "searchResults",
-  "yearRoadmap", "weekWeather",
-  // #1032 の 4 本目
-  "tutorialVideoCards", "teamAttendanceGrid", "globalTimezoneClock", "signupFormSummary",
-  "monthCalendarView", "cliTerminalSession", "chessStartingBoard", "sprintKanbanBoard",
-  "docsBreadcrumb", "dayScheduleTimeline", "serverUptimeStatus", "weekCalendarView",
-  "teamKpiComparison", "publishWorkflowSteps",
-  // #1032 の 5 本目 (残り 17 件、 これで 84 件が完了)
-  "teamPresenceStatus", "feedbackThumbRating", "startupOrgChart", "npsTrendKpi",
-  "postReactionPoll", "voiceMessagePlayback", "teamThreadSummary", "loginOtpVerify",
-  "prodLogTail", "opsAlertBanner", "serviceHealthGrid", "checkoutCartSummary",
-  "saasPricingTier", "checkoutCouponApply", "blogArticlePreview", "docsTocNav",
-  "socialShareButtons",
-] as const;
+/**
+ * 束ねの検査を当てる見本。
+ *
+ * 段が動かす見本に、束ねだけ見る見本 (`pathProgressDemo`) を足す (#2318)。
+ * 以前はこの file だけが `pathProgressDemo` を「段が動かす」 側に持っており、
+ * `catalog-scenario-form.test.ts` の同名の一覧と 1 件食い違っていた。
+ */
+const DRIVEN = [...段が動かす見本, ...束ねだけ見る見本] as const;
 
 const mod = Interactive as unknown as Record<string, CdlDiagram>;
 
@@ -563,6 +544,13 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
     // engine の `computeStateValues` を通して段ごとの実効値を取り (段が触らない状態は
     // 前段の値を持ち越す)、種別ごとの射影で「画面に出る形」 に変えてから比べる。
     const bad: string[] = [];
+    // 当たった見本と表示部品を数える (#2318)。 下の `fields.length === 0` で飛ばす形が
+    // あるため、宣言に在っても 1 件も当たらない図が居る (実測 = `pathProgressDemo` は
+    // 表示部品 2 件がどちらも入力欄と計算式の持つ状態を見るので 2 件とも飛ぶ)。
+    // 数えないと、宣言から外しても足しても結果が変わらない。
+    const 当たった見本 = new Set<string>();
+    let 当たった表示部品 = 0;
+    const 当たらなかった見本: string[] = [];
     for (const k of DRIVEN) {
       const d = mod[k]!;
       const laid = layout(d) as never;
@@ -582,6 +570,8 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
           .filter(([, s]) => !owned.has(s))
           .sort((a, b) => a[0].localeCompare(b[0]));
         if (fields.length === 0) continue;
+        当たった見本.add(k);
+        当たった表示部品 += 1;
         const kind = typeof r.kind === "string" ? r.kind : "";
         const max = typeof r.max === "number" ? r.max : undefined;
         // 積み上げ棒は `min` と `max` の 2 つで高さを正規化する
@@ -603,7 +593,24 @@ describe("箱の束ねが実際に解決する (#1032)", () => {
         }
       }
     }
-    expect(bad, `段を進めても表示が変わらない: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+    for (const k of DRIVEN) if (!当たった見本.has(k)) 当たらなかった見本.push(k);
+    /*
+     * 0 件を期待する形なので母数を併記する (#2318)。
+     * 「表示が変わらない図が無い」 と「この検査が 1 件も見ていない」 を分ける。
+     */
+    expect(当たった表示部品, "表示部品を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(0);
+    expect(
+      bad,
+      `見本 ${当たった見本.size}/${DRIVEN.length} 件 / 表示部品 ${当たった表示部品} 件を見た。 段を進めても表示が変わらない: ${bad.slice(0, 6).join(", ")}`,
+    ).toHaveLength(0);
+    /*
+     * **当たらなかった見本を宣言する**。 入力欄と計算式が状態を握る見本はこの検査の
+     * 対象外で、段ごとに注目する箱が変わることを `catalog-scenario-form.test.ts` が見る。
+     * 名前で固定すると、新しく当たらなくなった見本がここで落ちる。
+     */
+    expect([...当たらなかった見本].sort(), "この検査が 1 件も当たらない見本の一覧が変わった").toEqual([
+      ...束ねだけ見る見本,
+    ]);
   });
 
   it("箱が語る有無が、段の渡す真偽と一致する", () => {
