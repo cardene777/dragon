@@ -538,3 +538,178 @@ describe("一覧に載る図が 1 つ残らず sweep の対象に入っている
     expect(余り, "重なりの検査を通っているが一覧に出ない図").toEqual([]);
   });
 });
+
+/**
+ * 軽い違反 (`warn`) を軸と図の名前で固定する (#2310)。
+ *
+ * 重い違反 (`error`) は `isGatingViolation` が 0 件で固定し、除外は `見逃す組の一覧` が
+ * 理由つきで持つ。 一方 **軽い違反は数える場所が無かった**。
+ *
+ * 出す側は 2 段で絞っている。
+ *
+ * ```ts
+ * for (const s of withId("warn").filter((v) => interestingAxes.has(v.axis)).slice(0, 3))
+ * ```
+ *
+ * `interestingAxes` は手で並べた一覧なので、そこに無い軸は 1 件も出ない。
+ * 実測で `text-readability` と `edge-label-proximity` が一覧に無く、どれだけ増えても
+ * 画面に出ない状態だった。 一覧に在る軸も 3 件で打ち切られる。
+ *
+ * 中身は軽くない = 読める下限を割る、箱どうしが縦に重なる、箱の題が枠を超える、が並ぶ。
+ *
+ * **数える側は `interestingAxes` を見ない**。 出す側の絞り (読みやすさのため) と、
+ * 数える側の母数 (漏らさないため) は目的が違う。
+ */
+const 軽い違反を認める図: Record<string, { 理由: string; 図: readonly string[] }> = {
+  "responsive-viewport": {
+    理由:
+      "カタログの一覧は幅に合わせたままにし、読むのは拡大表示で行うと決めた (#2286)。" +
+      " 器 (1150x630px) に丸ごと収めると大きい図の字が下限 12px を割るが、" +
+      " 一覧は「どんな図があるか」 を見比べる面で、1 枚を読み込む面ではない。" +
+      " 読む手段は拡大表示が受け持つ (#2284 で 10.0px に乗せた)",
+    図: [
+      "class-complex-demo",
+      "class-demo",
+      "er-complex-demo",
+      "fsm-complex-demo",
+      "fsm-demo",
+      "infra-complex-demo",
+      "infra-demo",
+      "interactive-exemplar-payment-flow",
+      "interactive-kpi-dashboard",
+      "interactive-oauth-flow",
+      "interactive-price-candlestick",
+      "interactive-year-roadmap",
+      "network-complex-demo",
+      "pattern-passthrough",
+      "scene-banking-flow",
+      "scene-ec-order",
+      "scene-stock-trading",
+      "scene-token-deploy",
+      "scene-web-infra",
+      "sm2-demo",
+      "swim-complex-demo",
+      "topo-complex-demo",
+      "多対多が-2-組-8-表-8-関係",
+      "成形機と塗装機の稼働を-どちらも記録へ集める",
+      "注文の状態",
+      "製造ラインの設備-3-台と乾燥炉の温度-工場の回線を並べる",
+      "認証の状態遷移",
+    ],
+  },
+  "group-boundary-clearance": {
+    理由:
+      "位置を相対で書く見本。 自動の配置の並びから外して置くこと自体が見本の意図で、" +
+      " 縦列の幅は自動で置いた時の値のまま残る。 `見逃す組の一覧` が同じ 3 図の" +
+      " `alignment` / `column-alignment` を同じ理由で除外している",
+    図: [
+      "受付の右に確認を置く",
+      "受付の左に確認を置く",
+      "箱を自動で決まった位置からずらす",
+      "設備の稼働の右に受付を置き-受付の右に乾燥炉の温度を置く",
+      "間隔を書かずに受付の右へ置く",
+    ],
+  },
+  "text-readability": {
+    理由:
+      "箱の題が長い見本。 題を縮めると「長い名前を書いた時にどう見えるか」 が見本から消える。" +
+      " 実物の題 (`product_categories` 等) をそのまま見せることが見本の役目",
+    図: ["er-complex-demo", "scene-edge-compute", "scene-mobile-api"],
+  },
+  "node-vertical-clearance": {
+    理由: "`group-boundary-clearance` と同じ 3 図。 相対で置いた結果、縦の間隔が詰まる",
+    図: ["受付の右に確認を置く", "受付の左に確認を置く", "間隔を書かずに受付の右へ置く"],
+  },
+  "edge-label-proximity": {
+    理由:
+      "矢印の名前が線から離れる見本。 `interactive-oauth-flow` は線が往復して交差しており" +
+      " (#2302 で名指しで固定)、名前を線に寄せると交差した線の上に載る。" +
+      " `間隔をまとめて広げる` は間隔を広げること自体が見本の題",
+    図: ["interactive-oauth-flow", "間隔をまとめて広げる"],
+  },
+  "print-media-compat": {
+    理由:
+      "多重度を見せる見本で、6 本の線を色ではなく表記の違いで見分ける。" +
+      " 線の見た目を変えると多重度の書き分けが見本から消える",
+    図: ["通販の表と-6-通りの多重度"],
+  },
+};
+
+describe("軽い違反を軸と図の名前で固定する (#2310)", () => {
+  /** 全ての頁の図を 1 度に検査へ通し、軽い違反を軸ごとに図の名前で集める */
+  const 集める = (): { 軸ごと: Map<string, string[]>; 件数: number; 図の数: number } => {
+    const 全部 = sources.flatMap(({ name, mod }) => collectDiagrams(mod, name));
+    const report = visualValidateAll(全部, { profile: "catalog" });
+    const 軸ごと = new Map<string, Set<string>>();
+    let 件数 = 0;
+    for (const r of report.reports) {
+      for (const v of r.violations) {
+        if (v.severity !== "warn") continue;
+        件数++;
+        const s = 軸ごと.get(v.axis) ?? new Set<string>();
+        s.add(r.diagramId);
+        軸ごと.set(v.axis, s);
+      }
+    }
+    return {
+      軸ごと: new Map([...軸ごと].map(([k, s]) => [k, [...s].sort()])),
+      件数,
+      図の数: 全部.length,
+    };
+  };
+
+  const 集めた = 集める();
+
+  it("図を通して軽い違反を集められている (空振り検知)", () => {
+    // 0 件だと下の検査が全部「差が無い」 で通る
+    expect(集めた.図の数, "図を 1 件も集められていない").toBeGreaterThan(0);
+    expect(
+      集めた.件数,
+      `図 ${集めた.図の数} 件を通したが軽い違反を 1 件も集められていない`,
+    ).toBeGreaterThan(0);
+  });
+
+  it("宣言の各軸に理由が書かれている", () => {
+    const 空 = Object.entries(軽い違反を認める図)
+      .filter(([, v]) => v.理由.trim().length === 0)
+      .map(([k]) => k);
+    expect(空, "理由の無い宣言").toEqual([]);
+  });
+
+  it("宣言に無い軸で軽い違反が出ていない", () => {
+    const 出た軸 = [...集めた.軸ごと.keys()].sort();
+    expect(
+      出た軸.filter((a) => !(a in 軽い違反を認める図)),
+      `軽い違反 ${集めた.件数} 件 / 軸 ${出た軸.join(" / ")}`,
+    ).toEqual([]);
+  });
+
+  it("宣言した軸が実際に出ている (直った宣言を残さない)", () => {
+    const 出た軸 = new Set(集めた.軸ごと.keys());
+    expect(
+      Object.keys(軽い違反を認める図).filter((a) => !出た軸.has(a)),
+      "宣言に在るのに 1 件も出ない軸。 宣言ごと外す",
+    ).toEqual([]);
+  });
+
+  it("軸ごとの図が、宣言した一覧と 1 件も違わない", () => {
+    // 増えた向きと消えた向きを 1 つの比較で見る。 図を足して新しく違反が出たら落ち、
+    // 図を直して違反が消えても落ちる
+    const 実測: Record<string, string[]> = {};
+    for (const [軸, 図] of 集めた.軸ごと) 実測[軸] = 図;
+    const 宣言: Record<string, string[]> = {};
+    for (const [軸, v] of Object.entries(軽い違反を認める図)) 宣言[軸] = [...v.図].sort();
+    expect(実測, `図 ${集めた.図の数} 件 / 軽い違反 ${集めた.件数} 件`).toEqual(宣言);
+  });
+
+  it("数える側が、出す側の手書きの軸の一覧に依っていない", () => {
+    // `interestingAxes` に無い軸でも宣言に入っていることを見る。 依ってしまうと、
+    // 一覧に足し忘れた軸の違反が永久に数から漏れる (実際に 2 軸が漏れていた)
+    const 一覧に無い = Object.keys(軽い違反を認める図).filter((a) => !interestingAxes.has(a));
+    expect(
+      一覧に無い.length,
+      `出す側の一覧に無い軸が宣言に 1 つも無い = 依っていないことの根拠にならない` +
+        ` (宣言の軸 ${Object.keys(軽い違反を認める図).join(" / ")})`,
+    ).toBeGreaterThan(0);
+  });
+});
