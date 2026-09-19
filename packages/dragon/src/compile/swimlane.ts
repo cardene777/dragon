@@ -1,22 +1,15 @@
 import { swimlane } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
-import { compileGenericWithAnimate } from "./generic";
+import { compileGenericWithAnimate, 共通の組み立てへ回す } from "./generic";
 import { 描ける種別 } from "./kinds";
-import { 書いた縦列に置く } from "./lanes";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
 export function compileSwimlane(doc: DslDocument): CdlDiagram {
-  // v0.4 ... animation あり時 builder 直接経路 (各 actor 別 lane で配置)
-  // **縦列を書いた形は動きの有無に関わらず generic 経路へ** (#1263)。 動く図だけで効かせると、
-  // 同じ記法でも静止図では指定が黙って消える (実測 = 縦列 3 本のはずが 1 本になり知らせも出ない)
-  // **向きを書いた形も generic 経路へ** (#1494)。 静止図の経路は並びを固定で持つので、
+  // 動きを書いた形と縦列を書いた形は共通の組み立てへ (#1263 / #2348 で 1 箇所にまとめた)。
+  // **向きを書いた形も** (#1494)。 静止図の経路は並びを固定で持つので、
   // ここを通さないと書いた向きが黙って消える (縦列を書いた形と同じ理由)
-  if (
-    (doc.animate && doc.animate.phases.length > 0) ||
-    書いた縦列に置く("swimlane", doc) ||
-    doc.direction !== undefined
-  ) {
+  if (共通の組み立てへ回す("swimlane", doc, doc.direction !== undefined)) {
     return compileGenericWithAnimate(doc, { kind: "swimlane", laneWidth: 400 });
   }
   // swimlane preset は lane 配置 + 自由 node/edge。
