@@ -1,19 +1,3 @@
-import { describe, expect, it } from "vitest";
-import { NODE_KINDS } from "@cardenelabs/cdl";
-
-import * as Interactive from "@/topics/catalog/interactive.cdl";
-import * as Cookbook from "@/topics/catalog/cookbook.cdl";
-import * as Patterns from "@/topics/catalog/patterns.cdl";
-import * as Primitives from "@/topics/catalog/primitives.cdl";
-import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
-import * as Animation from "@/topics/catalog/animation.cdl";
-import * as Styles from "@/topics/catalog/styles.cdl";
-import * as Presets from "@/topics/catalog/presets.cdl";
-import * as Ethereum from "@/topics/catalog/ethereum.cdl";
-import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
-import * as Parts from "@/topics/catalog/parts.cdl";
-import * as Charts from "@/topics/catalog/charts.cdl";
-
 /**
  * cdl が描ける種別すべてに catalog の見本がある (#1152)。
  *
@@ -32,31 +16,46 @@ import * as Charts from "@/topics/catalog/charts.cdl";
  * 落ちる。
  */
 
-const MODULES = [
-  Interactive,
-  Cookbook,
-  Patterns,
-  Primitives,
-  PrimitivesExtra,
-  Animation,
-  Styles,
-  Presets,
-  Ethereum,
-  TextDsl,
-  Parts,
-  Charts,
-] as unknown as Array<Record<string, unknown>>;
+import { describe, expect, it } from "vitest";
+import { NODE_KINDS } from "@cardenelabs/cdl";
+
+import { 実在する群 } from "../../../../packages/dragon/test/support/catalog-groups";
+
+/**
+ * カタログの群を **dir の走査で集める** (#2314)。
+ *
+ * 以前は `import` を 1 群ずつ手で並べており、`parts-in-box` と `parts-motion` が抜けていた。
+ * 抜けた群にしか無い種別が出た日に「見本が無い」 と誤って落ちる。
+ *
+ * 走査は `packages/dragon/test/support/responsive-accepted.ts` にも在るが、あちらは
+ * `vite/client` を引けない都合で `import.meta.glob` の型を自前で宣言しており、
+ * 画面側から読むと型が衝突する。 走査は各側に置き、**突き合わせる相手** だけを共有する。
+ */
+const 群ごと: Record<string, unknown> = import.meta.glob("@/topics/catalog/*.cdl.ts", {
+  eager: true,
+});
+
+/** 走査で見つけた群の名前 (`*.cdl.ts` の `*`、並べ替え済)。 */
+const カタログの群の名 = (): string[] =>
+  Object.keys(群ごと)
+    .map((p) => p.slice(p.lastIndexOf("/") + 1).replace(/\.cdl\.ts$/, ""))
+    .sort();
+
+/** 走査で見つけた全ての図。 枚数は増えるので書かない。 */
+const 全図 = Object.keys(群ごと)
+  .sort()
+  .flatMap((k) => Object.values(群ごと[k] as Record<string, unknown>))
+  .filter(
+    (v): v is { nodes: Array<{ kind?: string }> } =>
+      typeof v === "object" && v !== null && Array.isArray((v as { nodes?: unknown }).nodes),
+  );
+
 
 /** catalog の全 module から、 図の node が使っている種別を集める。 */
 function 使われている種別(): Set<string> {
   const out = new Set<string>();
-  for (const mod of MODULES) {
-    for (const v of Object.values(mod)) {
-      if (typeof v !== "object" || v === null) continue;
-      const nodes = (v as { nodes?: Array<{ kind?: string }> }).nodes;
-      if (!Array.isArray(nodes)) continue;
-      for (const n of nodes) if (typeof n.kind === "string") out.add(n.kind);
-    }
+  for (const v of 全図) {
+    for (const n of v.nodes) if (typeof n.kind === "string") out.add(n.kind);
   }
   return out;
 }
@@ -75,10 +74,25 @@ function 使われている種別(): Set<string> {
 const 対象外: ReadonlyArray<string> = [];
 
 describe("cdl の種別に見本がある (#1152)", () => {
+  it("走査した群が dir の実体と 1 件も違わない (#2314)", () => {
+    /*
+     * 群を手で並べていた頃は `parts-in-box` と `parts-motion` が抜けており、38 図を 1 度も
+     * 見ていなかった。 抜けた群にしか無い種別が出た日に「見本が無い」 と誤って落ちる。
+     * 走査に変えただけでは走査の書き方を間違えた時に気付けないので、別の経路
+     * (`readdirSync`) で数えた群と名前で突き合わせる。
+     */
+    expect(カタログの群の名(), `dir にある群 ${実在する群().length} 件と突き合わせた`).toEqual(
+      実在する群(),
+    );
+  });
+
   it("見本の無い種別が無い", () => {
     const 使用 = 使われている種別();
     const 無い = [...NODE_KINDS].filter((k) => !使用.has(k) && !対象外.includes(k)).sort();
-    expect(無い, `見本の無い種別がある (catalog に足すか、 対象外に理由つきで載せる): ${無い.join(", ")}`).toEqual([]);
+    expect(
+      無い,
+      `見本の無い種別がある (catalog に足すか、 対象外に理由つきで載せる): ${無い.join(", ")}`,
+    ).toEqual([]);
   });
 
   it("対象外に載せた種別は実在する", () => {

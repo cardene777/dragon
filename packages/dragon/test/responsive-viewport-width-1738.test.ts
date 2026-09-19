@@ -27,42 +27,9 @@
  */
 import { describe, it, expect } from "vitest";
 import { visualValidateAll, layout } from "@cardenelabs/cdl";
-import type { CdlDiagram } from "@cardenelabs/cdl";
 
-import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
-import * as patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
-import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
-import * as primitives from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
-import * as primitivesExtra from "../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
-import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
-import * as animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
-import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
-import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
-import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
-import * as parts from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
-import * as charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
-
-const 図か = (v: unknown): v is CdlDiagram =>
-  typeof v === "object" &&
-  v !== null &&
-  Array.isArray((v as CdlDiagram).nodes) &&
-  Array.isArray((v as CdlDiagram).lanes);
-
-/** カタログの全図。 枚数は増えるので書かない。 */
-const 全図: CdlDiagram[] = [
-  cookbook,
-  patterns,
-  presets,
-  primitives,
-  primitivesExtra,
-  textDsl,
-  animation,
-  styles,
-  interactive,
-  ethereum,
-  parts,
-  charts,
-].flatMap((m) => Object.values(m as Record<string, unknown>).filter(図か));
+import { 全図, カタログの群の名 } from "./support/responsive-accepted";
+import { 実在する群 } from "./support/catalog-groups";
 
 const 結果 = visualValidateAll(全図);
 
@@ -124,8 +91,7 @@ const 境を読む = (文面: string): 境 | undefined => {
 const 届く倍率 = (b: 境): number => (b.効いた辺 === "横" ? b.器の幅 : b.器の高さ) / b.届く寸法;
 
 /** 器に収めた時に効く倍率。 engine と同じ式。 */
-const 効く倍率 = (b: 境, w: number, h: number): number =>
-  Math.min(b.器の幅 / w, b.器の高さ / h);
+const 効く倍率 = (b: 境, w: number, h: number): number => Math.min(b.器の幅 / w, b.器の高さ / h);
 
 /** 図ごとの viewBox。 layout に失敗する図と描画不能な寸法は外す。 */
 const 寸法: ReadonlyArray<{ id: string; w: number; h: number }> = 全図.flatMap((d) => {
@@ -147,8 +113,22 @@ const 丸めの帯 = 0.002;
 
 describe("読みにくいの注意が画面上の字と一致する (#1738)", () => {
   it("カタログの図を 1 枚以上集められている (空振り防止)", () => {
-    expect(全図.length, "カタログの図を 1 枚も集められていない (検査が空振りしている)").toBeGreaterThan(
-      0,
+    expect(
+      全図.length,
+      "カタログの図を 1 枚も集められていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+  });
+
+  it("走査した群が dir の実体と 1 件も違わない (#2314)", () => {
+    /*
+     * 群を手で並べていた頃は `parts-in-box` と `parts-motion` が抜けており、38 図を 1 度も
+     * 見ていなかった。 主題の `responsive-viewport` の注意が、その 38 図の中に 2 件あった。
+     *
+     * 走査に変えただけでは走査の書き方を間違えた時に気付けないので、別の経路 (`readdirSync`)
+     * で数えた群と名前で突き合わせる。
+     */
+    expect(カタログの群の名(), `dir にある群 ${実在する群().length} 件と突き合わせた`).toEqual(
+      実在する群(),
     );
   });
 
@@ -157,9 +137,10 @@ describe("読みにくいの注意が画面上の字と一致する (#1738)", ()
      * 0 件だと下の一致は自明に成り立つ。 いま実際に境を割る図があることを押さえる。
      * 全ての図が境の内側に入ったらこの行を消す判断をする (その時は上の表も直す)。
      */
-    expect(注意.length, "responsive-viewport の注意が 1 件も無い (検査が空振りしている)").toBeGreaterThan(
-      0,
-    );
+    expect(
+      注意.length,
+      "responsive-viewport の注意が 1 件も無い (検査が空振りしている)",
+    ).toBeGreaterThan(0);
   });
 
   it("文面から器と倍率を読み取れる (幅だけの判定に戻っていない)", () => {

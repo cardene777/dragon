@@ -1,16 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { layout, requiredNearClearance } from "@cardenelabs/cdl";
 import type { CdlDiagram, LaidDiagram } from "@cardenelabs/cdl";
-import * as interactive from "../../../apps/playground-spa/src/topics/catalog/interactive.cdl";
-import * as patterns from "../../../apps/playground-spa/src/topics/catalog/patterns.cdl";
-import * as presets from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
-import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
-import * as cookbook from "../../../apps/playground-spa/src/topics/catalog/cookbook.cdl";
-import * as animation from "../../../apps/playground-spa/src/topics/catalog/animation.cdl";
-import * as styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
-import * as primitives from "../../../apps/playground-spa/src/topics/catalog/primitives.cdl";
-import * as primitivesExtra from "../../../apps/playground-spa/src/topics/catalog/primitives-extra.cdl";
-import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ethereum.cdl";
+import { 全図, カタログの群の名 } from "./support/responsive-accepted";
+import { 実在する群 } from "./support/catalog-groups";
 
 /**
  * #941 = 同じ 2 点を結ぶ edge が複数あるとき、 座標が完全に一致して 1 本に見える問題の guard。
@@ -27,21 +19,13 @@ import * as ethereum from "../../../apps/playground-spa/src/topics/catalog/ether
 function isCdlDiagram(v: unknown): v is CdlDiagram {
   if (typeof v !== "object" || v === null) return false;
   const o = v as Record<string, unknown>;
-  return typeof o.id === "string" && Array.isArray(o.nodes) && Array.isArray(o.edges) && Array.isArray(o.lanes);
+  return (
+    typeof o.id === "string" &&
+    Array.isArray(o.nodes) &&
+    Array.isArray(o.edges) &&
+    Array.isArray(o.lanes)
+  );
 }
-
-const MODS = [
-  interactive,
-  patterns,
-  presets,
-  textDsl,
-  cookbook,
-  animation,
-  styles,
-  primitives,
-  primitivesExtra,
-  ethereum,
-];
 
 /** cdl の `PATH_NUMBER` と同じ数値表現。 指数表記を受理する。 */
 const NUM = String.raw`-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?`;
@@ -90,7 +74,10 @@ function normalizedPath(d: string): string {
   const parsed = parsePath(d);
   if (!parsed) return d.replace(/\s+/g, " ").trim();
   const { start, segs } = parsed;
-  const fwd = [fmt(start), ...segs.map((sg) => `${sg.cmd}(${sg.ctrls.map(fmt).join(";")})->${fmt(sg.end)}`)].join(" ");
+  const fwd = [
+    fmt(start),
+    ...segs.map((sg) => `${sg.cmd}(${sg.ctrls.map(fmt).join(";")})->${fmt(sg.end)}`),
+  ].join(" ");
   const pts: Pt[] = [start, ...segs.map((sg) => sg.end)];
   const revSegs: string[] = [];
   for (let i = segs.length - 1; i >= 0; i--) {
@@ -105,7 +92,14 @@ function normalizedPath(d: string): string {
 function bowPoints(d: string, steps = 400): Array<[number, number]> | null {
   const m = RE_BOW.exec(d);
   if (!m) return null;
-  const [x1, y1, cx, cy, x2, y2] = m.slice(1).map(Number) as [number, number, number, number, number, number];
+  const [x1, y1, cx, cy, x2, y2] = m.slice(1).map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
   const pts: Array<[number, number]> = [];
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
@@ -119,7 +113,14 @@ function bowPoints(d: string, steps = 400): Array<[number, number]> | null {
 function chordPoints(d: string, steps = 400): Array<[number, number]> | null {
   const m = RE_BOW.exec(d);
   if (!m) return null;
-  const [x1, y1, , , x2, y2] = m.slice(1).map(Number) as [number, number, number, number, number, number];
+  const [x1, y1, , , x2, y2] = m.slice(1).map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
   const pts: Array<[number, number]> = [];
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
@@ -128,21 +129,32 @@ function chordPoints(d: string, steps = 400): Array<[number, number]> | null {
   return pts;
 }
 
-function distToRect(px: number, py: number, r: { x: number; y: number; w: number; h: number }): number {
+function distToRect(
+  px: number,
+  py: number,
+  r: { x: number; y: number; w: number; h: number },
+): number {
   const dx = Math.max(r.x - px, 0, px - (r.x + r.w));
   const dy = Math.max(r.y - py, 0, py - (r.y + r.h));
   return Math.hypot(dx, dy);
 }
-function minDist(pts: Array<[number, number]>, r: { x: number; y: number; w: number; h: number }): number {
+function minDist(
+  pts: Array<[number, number]>,
+  r: { x: number; y: number; w: number; h: number },
+): number {
   let best = Infinity;
   for (const [px, py] of pts) best = Math.min(best, distToRect(px, py, r));
   return best;
 }
 
 /** catalog 全図を 1 度だけ layout する。 例外は捨てずに集める。 */
-function layoutAll(): { laid: Array<{ id: string; laid: LaidDiagram }>; failures: string[]; count: number } {
+function layoutAll(): {
+  laid: Array<{ id: string; laid: LaidDiagram }>;
+  failures: string[];
+  count: number;
+} {
   const diagrams: CdlDiagram[] = [];
-  for (const mod of MODS) for (const [, v] of Object.entries(mod)) if (isCdlDiagram(v)) diagrams.push(v);
+  for (const v of 全図) if (isCdlDiagram(v)) diagrams.push(v);
   const laid: Array<{ id: string; laid: LaidDiagram }> = [];
   const failures: string[] = [];
   for (const d of diagrams) {
@@ -169,6 +181,17 @@ const KNOWN_BOWED = [
 
 describe("#941 同じ 2 点を結ぶ edge が重ならない", () => {
   const LABEL_MIN = requiredNearClearance("edge-label", "edge-path");
+
+  it("走査した群が dir の実体と 1 件も違わない (#2314)", () => {
+    /*
+     * 群を手で並べていた頃は `charts` `parts` `parts-in-box` `parts-motion` が抜けており、
+     * 584 図のうち 176 図 (30%) を 1 度も見ていなかった。 走査に変えただけでは走査の
+     * 書き方を間違えた時に気付けないので、別の経路 (`readdirSync`) と突き合わせる。
+     */
+    expect(カタログの群の名(), `dir にある群 ${実在する群().length} 件と突き合わせた`).toEqual(
+      実在する群(),
+    );
+  });
 
   it("catalog 全図が layout できる (例外を捨てずに数える)", () => {
     expect(ALL.count, "catalog の図が読めていない").toBeGreaterThan(300);
@@ -224,8 +247,10 @@ describe("#941 同じ 2 点を結ぶ edge が重ならない", () => {
           for (const n of laid.nodes) {
             // 端点は縁に着くので、 縁より 1 world 内側に入ったかを見る (cdl の余裕と同値)
             if (
-              px > n.cx - n.w / 2 + 1 && px < n.cx + n.w / 2 - 1 &&
-              py > n.cy - n.h / 2 + 1 && py < n.cy + n.h / 2 - 1
+              px > n.cx - n.w / 2 + 1 &&
+              px < n.cx + n.w / 2 - 1 &&
+              py > n.cy - n.h / 2 + 1 &&
+              py < n.cy + n.h / 2 - 1
             ) {
               inside.add(`${id}: ${e.id} が node ${n.id} の内側`);
             }
@@ -250,7 +275,8 @@ describe("#941 同じ 2 点を結ぶ edge が重ならない", () => {
         for (const b of labels) {
           if (minDist(chord, b) < LABEL_MIN) continue; // 弦の時点で既に近い = 対象外
           const after = minDist(pts, b);
-          if (after < LABEL_MIN) tight.push(`${id}: ${e.id} ↔ label ${b.id} gap ${after.toFixed(1)}`);
+          if (after < LABEL_MIN)
+            tight.push(`${id}: ${e.id} ↔ label ${b.id} gap ${after.toFixed(1)}`);
         }
       }
     }
@@ -308,7 +334,8 @@ describe("#941 同じ 2 点を結ぶ edge が重ならない", () => {
             const a = mid(group[i]!.mid);
             const b = mid(group[j]!.mid);
             const dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
-            if (dist <= 5) narrow.push(`${id}: ${group[i]!.id} ↔ ${group[j]!.id} 中点間隔 ${dist.toFixed(1)}`);
+            if (dist <= 5)
+              narrow.push(`${id}: ${group[i]!.id} ↔ ${group[j]!.id} 中点間隔 ${dist.toFixed(1)}`);
           }
         }
       }
