@@ -1,13 +1,13 @@
 ---
 name: dragon-diagram
-description: dragon 記法 (cdl) で animated diagram を生成する汎用 skill。 theme (「EIP-1559 gas fee」 「incident response」 等) を入力すると、 既存 parts catalog を活用しつつ必要に応じて新規 parts を作成、 意味のある composite exemplar を animation.cdl.ts に追加する。 新規 parts 発生時は user 確認後、 dragon repo に GitHub Issue を起票して parts catalog 標準化議論に載せる。 skill は「parts 主義 + 意味のある図」 の 2 原則で品質担保、 dyn-wave 規約 + narrative title + 日本語 label を強制。
+description: dragon 記法 (cdl) で animated diagram を生成する汎用 skill。 theme (「EIP-1559 gas fee」 「incident response」 等) を入力すると、 既存 parts catalog を活用し、 登録簿のどれとも異なる shape kind / metaphor が要る時だけ新規 parts を作成、 意味のある composite exemplar を animation.cdl.ts に追加する。 新規 parts 発生時は user 確認後、 dragon repo に GitHub Issue を起票して parts catalog 標準化議論に載せる。 skill は「parts 主義 + 意味のある図」 の 2 原則で品質担保、 dyn-wave 規約 + narrative title + 日本語 label を強制。
 ---
 
 # dragon-diagram — dragon 記法で animated diagram を生成する汎用 skill
 
 ## 位置付け
 
-dragon repo 内で animation catalog に rich exemplar を追加する時の SSOT 経路。 「20 parts を使い回す」 のは理想論、 実際は theme 固有の parts が必要になることが多い。 本 skill が theme を受取り、 既存 parts で組立てるか / 新規 parts が必要か を判定して自動処理する。
+dragon repo 内で animation catalog に rich exemplar を追加する時の SSOT 経路。 「登録簿の parts だけを使い回す」 のは理想論、 実際は theme 固有の parts が必要になることが多い。 本 skill が theme を受取り、 既存 parts で組立てるか / 新規 parts が必要か を判定して自動処理する。
 
 ## 起動 trigger
 
@@ -42,30 +42,22 @@ user 入力 theme を分析、 以下を特定:
 
 ### Step 2. Parts catalog Read (SSOT 参照)
 
-`apps/playground-spa/src/topics/catalog/parts.cdl.ts` を Read。 現状 20 parts:
+`apps/playground-spa/src/topics/catalog/parts.cdl.ts` を Read する。
+**この file が登録簿そのもので、ここに写しは置かない** (#2264)。
 
-| # | parts | 用途 |
-|---|---|---|
-| 1 | 波打つ矩形ゲージ (partsWaveGauge) | 液面 metaphor で進捗 |
-| 2 | バケット貯留 (partsBucketReservoir) | 大 wave 容器で残量 |
-| 3 | 縦積み層バー (partsStackedLayer) | 合計値の内訳 (3 層) |
-| 4 | 状態インジケーター (partsStateIndicator) | 大 circle 色遷移 |
-| 5 | 横進捗バー (partsHorizontalBar) | 左→右 fill |
-| 6 | アークゲージ (partsArcGauge) | 円弧 % 表現 |
-| 7 | カウンタ表示 (partsCounterActor) | 数値 subtitle template |
-| 8 | 3灯シグナル (partsTrafficLightStack) | 縦積み 3 circle |
-| 9 | 円サイズ競争 (partsCircleSizeRace) | radius で強さ比較 |
-| 10 | エッジ連鎖 (partsEdgeChain) | 3 node + 2 edge 順次 activate |
-| 11 | パーセントリング (partsPercentRing) | 0-100% DOM ring |
-| 12 | カウントアップ (partsCountup) | DOM count up |
-| 13 | スパークライン (partsSparkline) | 履歴 trend |
-| 14 | ドーナツチャート (partsDonut) | N segment 割合 |
-| 15 | レーダーポリゴン (partsRadar) | N 軸 polygon balance |
-| 16 | ステップ進捗 (partsStepProgress) | wizard step |
-| 17 | ステータスドット (partsStatusDot) | 小 dot 状態 |
-| 18 | 通知カード (partsNotification) | 4 kind alert |
-| 19 | KPIカード (partsKpiCard) | 数値 + delta + sparkline |
-| 20 | タイムライン帯 (partsTimelineStrip) | 時系列 status band |
+写しを置いていた間、表は 20 行で止まったまま登録簿が 5 倍以上に増えており、
+下の Step 3 が **表に無い部品と同じものを「真に新規」 と判定していた**。
+手順書が防ごうとしている失敗 (同じ部品を二重に作る) を、手順書自身が起こす形だった。
+
+一覧の出し方。
+
+```bash
+# 名前と、図の中の題を並べる
+grep -n '^export const parts' apps/playground-spa/src/topics/catalog/parts.cdl.ts
+```
+
+`export const parts{名前} = diagram("parts-{綴り}", { … })` の形で 1 件 1 つ。
+用途は各 entry の `title` と `subtitle` が持つ。
 
 theme の visual metaphor と照合し、 既存 parts で 100% 賄えるか判定。
 
@@ -74,7 +66,7 @@ theme の visual metaphor と照合し、 既存 parts で 100% 賄えるか判�
 既存 parts で 覆えない visual element が theme に含まれる場合、 新規 parts 候補を列挙:
 
 **判定基準** — 以下いずれか該当時のみ新規 parts 検討:
-- 既存 20 parts のどれとも異なる shape kind / metaphor
+- 登録簿のどれとも異なる shape kind / metaphor
 - 既存 parts の変形 (color / size 違い) で対応可能なら新規禁止 (composite 側で調整)
 - 既存 parts の組合せで代替できるなら新規禁止
 
@@ -160,7 +152,7 @@ theme = "{user 入力 theme}" の生成で新規 parts が必要と判定。
 - shape spec: {source / fillMax / orient / fill 等}
 
 ## 既存 parts で代替不可の理由
-{既存 20 parts を検討したが以下の理由で代替不可}
+{登録簿の parts を検討したが以下の理由で代替不可}
 {...}
 
 ## 使用実績
@@ -196,7 +188,7 @@ user に以下 report:
 
 ## SSOT 参照
 
-- **parts catalog** = `apps/playground-spa/src/topics/catalog/parts.cdl.ts` (現 20 parts)
+- **parts catalog** = `apps/playground-spa/src/topics/catalog/parts.cdl.ts` (登録簿そのもの。 件数と一覧はこの file が持つ)
 - **composite 置場** = `apps/playground-spa/src/topics/catalog/animation.cdl.ts`
 - **i18n** = `apps/playground-spa/src/lib/i18n.ts`
 - **情報伝達第一主義** = 「見た目 rich かつ意味明確」 の設計原則 (V/V-R/V-C/P6 = visual richness / visual reasoning / visual clarity / P6 逆算設計) を各 parts / composite で遵守する
@@ -246,7 +238,7 @@ user: /dragon-diagram メッシュ状の 5-node network topology
 
 skill:
   1. theme 分析 = 「5 node が全対全接続の network、 中央 node hub」
-  2. parts 照合 = 既存 20 parts に該当なし (エッジ連鎖は 3 直列、 mesh 非対応)
+  2. parts 照合 = 登録簿に該当なし (エッジ連鎖は 3 直列、 mesh 非対応)
   3. 新規 parts 候補 = "partsMeshTopology" (5 node + 10 edge の star/mesh レイアウト)
   4. AskUserQuestion: 「新規 parts 追加 + Issue 起票 / composite inline / abort」
   5. user が A 選択 → parts.cdl.ts に追加 + composite 生成 + Issue 起票

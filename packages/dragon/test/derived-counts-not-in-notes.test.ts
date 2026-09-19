@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative } from "node:path";
-import { 説明書のfile } from "../../../test-support/scan-targets";
+import { 説明書のfile, いまを述べる説明書 } from "../../../test-support/scan-targets";
 
 /**
  * 走査すれば出る件数を、注記に手で書いていないことの検証 (#2080)。
@@ -103,10 +103,39 @@ function 主語と数が並ぶ(line: string): boolean {
   return /\d+\s*(件|個|種)/u.test(line);
 }
 
+/**
+ * 登録簿そのものを単位にして大きさを名乗る形 (#2264)。
+ *
+ * 上の `主語と数が並ぶ` は「数 + 件 / 個 / 種」 を見るので、
+ * **数えるものの名前が単位になっている書き方**が素通りしていた。
+ * 図の部品の手順書が「既存 20 parts のどれとも異なるか」 を判定基準に置いており、
+ * 登録簿の実物 110 件に対して 5 か所が 20 のまま止まっていた。
+ *
+ * ## 「いま何件あるか」 と読める形だけを見る
+ *
+ * 数と名前が並ぶだけの形を止めると、その数を持つものを指す言い回し
+ * (`3 parts 並置`) と、原則を述べた文 (`1 parts = 1 concept`) を巻き込む。
+ *
+ * **全体を指す語が前に付く形**に絞る = `現状 / 現 / 既存 / 全` は
+ * 「数えるとこうなる」 としか読めない。 実測で当たる 8 行のうち、
+ * 5 行が止まっていた手順書、3 行が履歴として残した文書だった。
+ */
+const 全体を指す語 = ["現状", "現", "既存", "全"];
+const 登録簿の大きさ = new RegExp(`(${全体を指す語.join("|")})\\s*[0-9]+\\s*parts\\b`, "u");
+
 const 走査したfile = 走査する木.flatMap((d) => file一覧(join(REPO, d)));
 
-/** いまを述べる説明書 (`CHANGELOG.md` は過去の版の記録なので入らない) */
-const 走査した説明書 = 説明書のfile(REPO);
+/**
+ * いまを述べる説明書。
+ *
+ * `CHANGELOG.md` は過去の版の記録なので入らず、
+ * 履歴として残したと自分で宣言した md (`status = superseded`) も入らない (#2264)。
+ * 当時の数がそのまま書いてあるのが正しい文書なので、いまの実物と突き合わせない。
+ */
+const 走査した説明書 = いまを述べる説明書(REPO);
+
+/** 履歴として外した説明書。 0 でないものを 0 と書かないための数 */
+const 履歴として外した = 説明書のfile(REPO).length - 走査した説明書.length;
 
 /**
  * その file で人に読ませる文の行か。
@@ -123,20 +152,27 @@ interface 当たり {
   行: string;
 }
 
-function 走る(files: string[]): { 主語のある行: number; 当たり: 当たり[] } {
+function 走る(files: string[]): {
+  主語のある行: number;
+  当たり: 当たり[];
+  登録簿: 当たり[];
+} {
   const 当たり: 当たり[] = [];
+  const 登録簿: 当たり[] = [];
   let 主語のある行 = 0;
   for (const p of files) {
     readFileSync(p, "utf8")
       .split("\n")
       .forEach((line, i) => {
         if (!述べる行(p, line)) return;
+        const 場所 = `${relative(REPO, p)}:${i + 1}`;
+        if (登録簿の大きさ.test(line)) 登録簿.push({ 場所, 行: line.trim() });
         if (!主語.some((s) => line.includes(s))) return;
         主語のある行 += 1;
-        if (主語と数が並ぶ(line)) 当たり.push({ 場所: `${relative(REPO, p)}:${i + 1}`, 行: line.trim() });
+        if (主語と数が並ぶ(line)) 当たり.push({ 場所, 行: line.trim() });
       });
   }
-  return { 主語のある行, 当たり };
+  return { 主語のある行, 当たり, 登録簿 };
 }
 
 const source側 = 走る(走査したfile);
@@ -171,6 +207,16 @@ describe("走査すれば出る件数を注記に書いていない (#2080)", ()
     expect(一覧, "一覧の件数を説明書に手で書いている (件数は一覧そのものが持つ)").toEqual([]);
   });
 
+  it("登録簿の大きさを数で名乗る行が無い (#2264)", () => {
+    const 一覧 = [...source側.登録簿, ...説明書側.登録簿].map((h) => `${h.場所} ${h.行}`);
+    expect(一覧, "登録簿の大きさを手で書いている (大きさは登録簿そのものが持つ)").toEqual([]);
+  });
+
+  it("履歴として外した枚数を数えている (#2264)", () => {
+    // 0 でないものを 0 と書かないための数。 印を書いた文書が消えたら気付ける
+    expect(履歴として外した, "履歴として残したと宣言した説明書が 1 枚も無い").toBeGreaterThan(0);
+  });
+
   it("主語と件数が並んだ行を拾える (植え込み対照)", () => {
     // 拾えない判定だと、上の検査は書いてあっても通る
     expect(主語と数が並ぶ(" * 既存 NodeKind (28 個) に加えて parts identifier を accept する"), "").toBe(
@@ -181,6 +227,22 @@ describe("走査すれば出る件数を注記に書いていない (#2080)", ()
     // 行の見方を分けていないと拾えない
     const 説明書の行 = "- 既存 kind list = 28 個、 `NODE_KIND_VALID` set で管理";
     expect(述べる行("docs/spec.md", 説明書の行) && 主語と数が並ぶ(説明書の行), "").toBe(true);
+  });
+
+  it("登録簿の大きさを名乗る形を拾える (植え込み対照)", () => {
+    // **この file 自身が走査の母数に入る**ので、通しの綴りは繋いで作る
+    // (literal で書くと自分が当たる、 #2092 / #2244 / #2246 / #2258 で 4 回踏んだ形)
+    for (const 語 of 全体を指す語) {
+      expect(登録簿の大きさ.test([語, " 20 parts のどれとも異なる"].join("")), `拾えていない: ${語}`).toBe(
+        true,
+      );
+    }
+  });
+
+  it("その数を持つものを指す言い回しは拾わない (陰性対照)", () => {
+    // 全体を指す語を持たない形。 登録簿の大きさを言っていない
+    expect(登録簿の大きさ.test("- `widgets-multi` = 3 parts 並置 (arc + bar + counter)"), "").toBe(false);
+    expect(登録簿の大きさ.test("- **1 parts = 1 concept** — parts は minimal、 混在禁止"), "").toBe(false);
   });
 
   it("主語の無い行と、数の無い行は拾わない (陰性対照)", () => {
