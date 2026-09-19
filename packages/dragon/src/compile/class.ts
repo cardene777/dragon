@@ -88,6 +88,7 @@ export function compileClass(doc: DslDocument): CdlDiagram {
   }
 
   const built = b.build();
+  宣言した縦列の名前へ付け替える(built, 列番号, doc.lanes);
   /*
    * 記法が段を書いた図では、組み立て器が作る 1 つの段を捨てる (#1466)。
    *
@@ -97,4 +98,43 @@ export function compileClass(doc: DslDocument): CdlDiagram {
    */
   const 書いた段がある = (doc.animate?.phases.length ?? 0) > 0;
   return 書いた段がある ? { ...built, phases: [] } : built;
+}
+
+/**
+ * 組み立て器が作った列の名前を、宣言した縦列の名前へ付け替える (#2350)。
+ *
+ * クラス図は `lane:` を列の番号として読み、自分で `col-0` / `col-1` の列を作る。
+ * 書いた名前 (`c0`) はどこにも残らないため、`lanes:` で宣言すると **その名前の列が
+ * 別に作られ、空のまま図に残る** (実測 = 宣言ありで列が 2 本から 4 本に増え、
+ * 書いた幅 320 は箱の入っていない方に付き、箱の入る列は既定の 450 のままだった)。
+ *
+ * 名前を付け替えると、後から `lanes:` を重ねる経路が同じ列を見つけるので、
+ * 書いた幅と横位置がそのまま効き、「どの箱も入らない縦列です」 の知らせも消える。
+ *
+ * **付け替えるのは宣言した名前だけ**。 `lanes:` に書いていない名前は重ねる相手が
+ * 居ないので、付け替えても図は 1 つも変わらない = 宣言しない図の列の名前を
+ * 変えない側に倒す。
+ *
+ * **2 段で付け替える**。 宣言した名前が組み立て器の名前と重なることがあるため
+ * (`lane: col-1` を 1 つ目の列に書いた形)、いきなり書き換えると 2 つの列が同じ名前になる。
+ * 一度ぶつからない名前へ逃がしてから入れ直す。
+ */
+function 宣言した縦列の名前へ付け替える(
+  diagram: CdlDiagram,
+  列番号: ReadonlyMap<string, number>,
+  宣言: DslDocument["lanes"],
+): void {
+  if (列番号.size === 0 || 宣言 === undefined) return;
+  const 仮の名 = (i: number): string => `__class-col-${i}__`;
+  const 対応 = [...列番号]
+    .filter(([書いた名]) => Object.hasOwn(宣言, 書いた名))
+    .map(([書いた名, i]) => ({ 組み立て器の名: `col-${i}`, 書いた名, 仮: 仮の名(i) }));
+  for (const { 組み立て器の名, 仮 } of 対応) {
+    for (const lane of diagram.lanes) if (lane.id === 組み立て器の名) lane.id = 仮;
+    for (const node of diagram.nodes) if (node.lane === 組み立て器の名) node.lane = 仮;
+  }
+  for (const { 仮, 書いた名 } of 対応) {
+    for (const lane of diagram.lanes) if (lane.id === 仮) lane.id = 書いた名;
+    for (const node of diagram.nodes) if (node.lane === 仮) node.lane = 書いた名;
+  }
 }
