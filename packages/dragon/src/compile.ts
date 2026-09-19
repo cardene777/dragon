@@ -235,7 +235,6 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   const 矢印の行 = new Map<string, DslStep>();
   applyEdgeInlineOptions(diagram, doc, edgeSourceLines, 矢印の行, opts?.partsCatalog);
   const 作った組の枠 = applyGroupContainers(diagram, doc);
-  applyNodeTones(diagram, doc);
   // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
   // 居ないかは記述だけで決まるので 1 か所で見る
   reportMissingFocusTargets(書いたまま, opts?.onNotice);
@@ -263,6 +262,19 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // CAR-1657 = parts kind actor を merge (opts.partsCatalog 経由)、 applyV05Extensions 後段で実行
   const 追加した縦列: DslLane[] = [];
   const extended = applyV05Extensions(diagram, placed, 追加した縦列);
+  /*
+   * 書いた色を箱に載せる (#2333)。 **題を写した後に呼ぶ**。
+   *
+   * 照合は箱に出る題で行う (理由は `applyNodeTones` の説明)。 その題が箱に入る時点が
+   * 図種で 2 つに割れており、15 図種は組み立て器が `箱の題` で入れる一方、
+   * 順序図 / solidity / 帯図 / c4 は登場人物の名前で箱を作り、`applyV05Extensions` が
+   * 題へ書き換える。 書き換えより前に照合すると、後者の 4 図種で題と名前が食い違う。
+   *
+   * 実測 = ここより前で呼んでいた間、題を書いた箱の色が 5 図種 (流れ図 / 構成図 /
+   * 状態遷移 / クラス図 / ER 図) で消え、名前で照合していたため帯図と c4 だけが通っていた。
+   * 呼ぶ位置を変えずに照合だけを題へ寄せると、今度は帯図と c4 が落ちる (実測)。
+   */
+  applyNodeTones(extended, placed);
   // 値の知らせは、本文なら値を書いた行、見本なら見本を置いた行を指す。 `derived` 自体には
   // source position が無いため、見本を重ねる間だけ別表で宣言元を持ち回る (#1180)。
   const inheritedDerivedSourceLines = opts?.onNotice ? new Map<string, number[]>() : undefined;

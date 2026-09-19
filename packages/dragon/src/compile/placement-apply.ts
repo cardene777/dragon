@@ -8,6 +8,7 @@ import {
 } from "../relative-pos";
 import type { DslDocument } from "../types";
 import type { CompileNotice } from "./notice";
+import { 箱の題 } from "./node-title";
 import { partBoxes, partSizes } from "./parts";
 import { PLACEMENT_TOLERANCE } from "./placement";
 import { slugify } from "./slug";
@@ -616,6 +617,20 @@ export function applyLayoutOffsets(
  *
  * 対応付けは箱に表示される名前との一致で行う。 id は使わない。
  *
+ * **表示される名前は `箱の題` が決める** (#2333)。 `actor.name` と直接比べていた間、
+ * **題 (`title`) を書いた箱の色が黙って消えていた** = 題を書くと箱に出るのは題なので、
+ * 名前と比べた照合が外れる。 実測で箱になる 7 図種のうち 5 図種 (流れ図 / 構成図 /
+ * 状態遷移 / クラス図 / ER 図) が落ちており、知らせも出ないため「書いたのに色が付かない」
+ * だけが残った。
+ *
+ * **呼ぶ位置も合わせて決まる**。 題が箱に入る時点は図種で 2 つに割れ、帯図と c4 は登場人物の
+ * 名前で箱を作って `applyV05Extensions` が後から題へ書き換える。 そのため本関数は書き換えの
+ * 後に呼ぶ (呼出側の説明が SSOT)。 前に呼んだまま照合だけを題へ寄せると、今度はその 2 図種で
+ * 色が落ちる (実測)。
+ *
+ * 題を持たない箱 (始まりと終わりの印、順序図の間隔用) は `箱の題` が空を返す。
+ * 空のまま照合すると同じく空の別の箱を巻き込むので、空は対象から外す。
+ *
  * id での対応付けは 2 通りに壊れる。 id は名前を slug に変換して作るが、 その変換規則が
  * dragon と cdl で違い、 記号を含む名前では一致しない (実測 = `A_B` が dragon 側で `a_b`、
  * cdl 側で `a-b`)。 逆に、 生成した id (`{slug}-header`) をそのまま名前に持つ登場人物が
@@ -631,8 +646,10 @@ export function applyLayoutOffsets(
 export function applyNodeTones(diagram: CdlDiagram, doc: DslDocument): void {
   for (const actor of doc.actors) {
     if (actor.tone === undefined) continue;
+    const 題 = 箱の題(actor);
+    if (題 === "") continue;
     for (const node of diagram.nodes) {
-      if (node.title === actor.name) node.tone = actor.tone;
+      if (node.title === 題) node.tone = actor.tone;
     }
   }
 }

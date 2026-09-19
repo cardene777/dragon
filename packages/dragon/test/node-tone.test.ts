@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { TONES } from "@cardenelabs/cdl";
-import { parseTextDslV05 } from "../src/v05/parser";
+import { parseTextDslV05, PRESET_TYPES } from "../src/v05/parser";
 import { compileToCdl } from "../src/compile";
 import { TONE_ALIAS } from "../src/keywords";
 import type { DslError } from "../src/types";
@@ -10,8 +10,8 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * 登場人物に書いた色 (`tone`) が、 どの図種でも実際に箱に届くかを見る。
  *
  * 箱を作る経路は図種ごとに違う。 cdl の preset を経由する図種 (流れ図 / ER / 状態遷移 /
- * 構成図) は preset の入力型が色の項目を持たないため、 compile の後処理で id を突き合わせて
- * 載せている。 この対応付けが崩れると、 DSL に書いても黙って何も起きない状態になる。
+ * 構成図) は preset の入力型が色の項目を持たないため、 compile の後処理で **箱に出る題を**
+ * 突き合わせて載せている。 この対応付けが崩れると、 DSL に書いても黙って何も起きない状態になる。
  *
  * 測るのは「後処理が動いたか」 ではなく「対象の箱に色が載ったか」。
  */
@@ -38,25 +38,90 @@ const build = (type: string, actorLine: string): CdlDiagram => {
 };
 
 /**
- * 対象の全図種。
+ * 対象の全図種は実装 (`PRESET_TYPES`) から導く (#2333)。
  *
- * 図種を追加した時、 その図種が対応付けから漏れると下の test が落ちる。 漏れたまま
- * 出荷すると「書いても何も起きない」 になるため、 一覧を手書きして固定する。
+ * 以前はここに 12 件を手で並べていたが、実装は 24 件を受け付けていた = 手で並べた側に
+ * 入らなかった 12 図種は、色が届くかを 1 度も見られていなかった。 図種を足した日に
+ * 一覧を直し忘れると、その図種だけ「書いても何も起きない」 が素通りする。
  */
-const TYPES = [
-  "sequence", "flow", "swimlane", "er", "state",
-  "topology", "solidity", "gantt", "class", "pie", "c4", "mind",
-] as const;
+const 全図種 = [...PRESET_TYPES];
 
-/** 順序図系は #1466 で 1 枚の板になり、面ごとの箱を持たない = 色を載せる先が無い。 */
-const 板になる図種 = new Set(["sequence", "solidity"]);
+/**
+ * 題と色の書き方を変えて 1 枚組み立て、対象の箱に載った色を返す (#2333)。
+ *
+ * 題を書いた時は箱に出る字が題に変わるので、探す相手も題に変える。 返す値は 3 通りで、
+ * 「箱なし」 (その図種は登場人物 1 人を 1 箱にしない) と「色なし」 (箱はあるが色が載って
+ * いない) を分ける = 2 つを同じ値に潰すと、色が消えた図種が「箱が無いだけ」 に見える。
+ */
+const 箱の色 = (type: string, 書く: { 題?: boolean; 色?: boolean }): string => {
+  const 欄 = ["kind: service"];
+  if (書く.色 === true) 欄.push("tone: error");
+  if (書く.題 === true) 欄.push(`title: "だい"`);
+  const src = [
+    `title: "t"`,
+    `type: ${type}`,
+    ``,
+    `actors:`,
+    `  - Client: { ${欄.join(", ")} }`,
+    `  - API`,
+    ``,
+    `flow:`,
+    `  - Client -> API: "call"`,
+  ].join("\n");
+  const parsed = parseTextDslV05(src);
+  if (!parsed.ok) throw new Error(`parse 失敗: ${parsed.errors.map((e) => e.message).join(" / ")}`);
+  // 知らせは受け口を渡して黙らせる。 渡さないと画面に出る図種があり、検査の出力が読めなくなる
+  const diagram = compileToCdl(parsed.doc, { onNotice: () => {} });
+  const node = diagram.nodes.find((n) => n.title === (書く.題 === true ? "だい" : "Client"));
+  if (node === undefined) return "箱なし";
+  return node.tone ?? "色なし";
+};
+
+/** 登場人物 1 人が 1 つの箱になる図種。 実物を組み立てて導く */
+const 箱になる図種 = 全図種.filter((t) => 箱の色(t, { 色: true }) !== "箱なし");
+
+/**
+ * 登場人物 1 人を 1 箱にしない図種と、その図種で色をどこに載せるか。
+ *
+ * 実物から導いた一覧と両方向で突き合わせる。 片方向 (箱になる側) だけを見ると、箱を持た
+ * ない図種を新しく足した日に、その図種が黙ってどちらの検査からも外れる。
+ */
+const 箱にならない図種: Record<string, string> = {
+  sequence: "#1466 で 1 枚の板になり、面ごとの箱を持たない (書いた色が落ちることは下の専用 test)",
+  solidity: "同じく 1 枚の板になる",
+  gantt: "帯を描く 1 箱。 帯ごとの色は `ganttData` が持つ (下の専用 test)",
+  pie: "扇を描く 1 箱。 扇ごとの色は `chartData` が持つ (下の専用 test)",
+  bar: "値を並べる 1 箱。 色は `chartData` が持つ",
+  line: "値を並べる 1 箱。 色は `chartData` が持つ",
+  gauge: "値を並べる 1 箱。 色は `chartData` が持つ",
+  radial: "値を並べる 1 箱。 色は `chartData` が持つ",
+  stat: "値を並べる 1 箱。 色は `chartData` が持つ",
+  waffle: "値を並べる 1 箱。 色は `chartData` が持つ",
+  stacked: "値を並べる 1 箱。 色は `chartData` が持つ",
+  slope: "値を並べる 1 箱。 色は `chartData` が持つ",
+  funnel: "段を積む 1 箱",
+  tree: "根から枝を描く 1 箱",
+  journey: "気持ちの線を描く 1 箱",
+  quadrant: "区画に置く 1 箱",
+  mind: "#1177 で枝の色に寄せた。 枝ごとの色は `mindData` が持つ (下の専用 test)",
+};
 
 describe("登場人物の色が箱に届く", () => {
-  for (const type of TYPES) {
-    // 円グラフ / ガント / 放射は図全体を 1 箱で描くので、 箱ごとの色を持たない。
-    // 放射は #1177 で `mind-map` 種別に寄せた時にこちら側へ移った (枝の色は下の専用 test で見る)
-    if (type === "pie" || type === "gantt" || type === "mind") continue;
-    if (板になる図種.has(type)) continue;
+  it("箱になる図種と、ならない図種の理由が、実物と揃う (#2333)", () => {
+    const ならない = 全図種.filter((t) => !箱になる図種.includes(t));
+    // 両方向で比べる = 箱を持つようになった図種と、持たなくなった図種のどちらでも落ちる
+    expect(Object.keys(箱にならない図種).sort()).toEqual([...ならない].sort());
+    for (const [図種, 理由] of Object.entries(箱にならない図種)) {
+      expect(理由.length, `${図種} の理由が空`).toBeGreaterThan(0);
+    }
+    // 空振り防止 = 走査した図種の数を出し、箱になる側が 0 件でないことを見る
+    expect(
+      箱になる図種.length,
+      `図種 ${全図種.length} 件を走査したが、箱になる図種が 1 件も無い`,
+    ).toBeGreaterThan(0);
+  });
+
+  for (const type of 箱になる図種) {
     it(`${type} で色が載る`, () => {
       const diagram = build(type, `- Client: { kind: service, tone: error }`);
       // 「1 つ以上に載った」 では、 意図しない箱だけが染まっても通る。 対象の登場人物を
@@ -209,6 +274,42 @@ describe("登場人物の色が箱に届く", () => {
     if (!parsed.ok) throw new Error("parse 失敗");
     const diagram = compileToCdl(parsed.doc);
     expect(tonedNodes(diagram)).toEqual([["client", "error"]]);
+  });
+});
+
+describe("題と色を一緒に書いた箱が色を保つ (#2333)", () => {
+  /*
+   * 箱に題を書くと、同じ箱に書いた色が黙って消えていた。
+   *
+   * 色を載せる後処理は箱に出る字で対応付けるが、その字が箱に入る時点が図種で 2 つに割れる。
+   * 15 図種は組み立て器が題を入れ、帯図 / c4 / 順序図 / solidity は登場人物の名前で箱を作って
+   * 後から題へ書き換える。 書き換えより前に対応付けていたため、前者では題と名前が食い違って
+   * 色が落ち、後者だけが通っていた (実測 = 箱になる 7 図種のうち 5 図種で消えていた)。
+   */
+
+  it("色だけ書いた時と、色と題を書いた時で、載る色が変わらない", () => {
+    const 色だけ = 箱になる図種.map((t) => [t, 箱の色(t, { 色: true })]);
+    const 色と題 = 箱になる図種.map((t) => [t, 箱の色(t, { 題: true, 色: true })]);
+    // 両方向で比べる = 題を書いた側だけを見ると、色だけ書いた側が壊れた日に気づけない
+    expect(色と題).toEqual(色だけ);
+    // 片方が丸ごと「色なし」 でも上の比較は通る。 実際に色が載っていることを別に見る
+    expect(色だけ).toEqual(箱になる図種.map((t) => [t, "error"]));
+  });
+
+  it("題だけ書いた箱には色が付かない", () => {
+    const 付いた = 箱になる図種.filter((t) => 箱の色(t, { 題: true }) !== "色なし");
+    expect(付いた, "色を書いていないのに色が載っている").toEqual([]);
+  });
+
+  it("色を渡さない形に戻すと、色が載る図種が 0 件になる (植え込み対照)", () => {
+    const 色なしで載る = 箱になる図種.filter((t) => 箱の色(t, { 題: true, 色: false }) === "error");
+    expect(色なしで載る, "色を書かない形でも色が載る = 判定が色を見ていない").toEqual([]);
+    // 0 件が「判定が効いた」 か「1 件も測っていない」 かを分ける
+    const 色ありで載る = 箱になる図種.filter((t) => 箱の色(t, { 題: true, 色: true }) === "error");
+    expect(
+      色ありで載る.length,
+      `図種 ${全図種.length} 件のうち箱になる ${箱になる図種.length} 件を走査したが、色が載る図種が 0 件`,
+    ).toBe(箱になる図種.length);
   });
 });
 
