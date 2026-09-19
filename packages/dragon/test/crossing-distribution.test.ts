@@ -76,27 +76,95 @@ function segmentsIntersect(a: Segment, b: Segment): boolean {
 }
 
 /**
+ * 道筋の命令ごとの引数の数 (#2306)。
+ *
+ * **数えないと円弧でずれる**。 円弧は `A rx ry 回転 大きい弧か 向き x y` の 7 個で奇数なので、
+ * 文字を消して 2 つずつ組にすると位置が 1 つずれ、その後ろの点が全部ずれる。
+ *
+ * ```
+ * M 105 278 ... L 229 530 A 11 11 0 0 1 251 530 L 493 530 ...
+ * 直す前が作る点 ... (229,530) (11,11) (0,0) (1,251) (530,507) ...
+ * ```
+ *
+ * `(11,11)` と `(0,0)` は道筋のどこにも無く、図の左上を突き抜ける折れ線になる。
+ */
+const 引数の数: Record<string, number> = {
+  M: 2,
+  L: 2,
+  T: 2,
+  H: 1,
+  V: 1,
+  Q: 4,
+  S: 4,
+  C: 6,
+  A: 7,
+  Z: 0,
+};
+
+/**
  * 線の道筋を折れ線にする。
  *
  * 曲線の制御点をそのまま折れ線の角とみなす **近似** で、曲線そのものは辿らない。
  * 画面で線の上の点を 4 ずつ取って数え直したところ、この近似が出す交差と一致したため
- * (`interactive-oauth-flow` と `parts-retry-loop` の 3 箇所) そのまま使う。
+ * (`interactive-oauth-flow` と `parts-retry-loop`) そのまま使う。
+ *
+ * **円弧は終点だけを使う**。 engine が出す円弧は半径 11 の「飛び越し」 で、
+ * 線が線を跨ぐ時に描かれる。 跨いでいる相手との交差は飛び越しの前後の直線が既に持つので、
+ * 弧そのものを折れ線にすると同じ交差を二重に数えるだけになる。
+ *
+ * **小文字 (相対座標) は読まない**。 engine は大文字しか出さない (実測 = 図 584 件の道筋に
+ * 出る命令は `M` / `L` / `Q` / `C` / `A` の 5 種)。 出るようになったら下の検査が落ちる。
  */
 function extractPathSegments(d: string): Segment[] {
-  const out: Segment[] = [];
-  const tokens = d
-    .replace(/[A-Za-z]/g, " ")
-    .trim()
-    .split(/[\s,]+/)
-    .filter(Boolean);
+  const tok = d.match(/[A-Za-z]|-?\d*\.?\d+(?:e[-+]?\d+)?/gi) ?? [];
   const points: Array<{ x: number; y: number }> = [];
-  for (let i = 0; i + 1 < tokens.length; i += 2) {
-    const x = parseFloat(tokens[i]!);
-    const y = parseFloat(tokens[i + 1]!);
-    if (Number.isFinite(x) && Number.isFinite(y)) points.push({ x, y });
+  let cmd = "";
+  let cx = 0;
+  let cy = 0;
+  let i = 0;
+  while (i < tok.length) {
+    if (/[A-Za-z]/.test(tok[i]!)) {
+      cmd = tok[i]!;
+      i++;
+      if (cmd === "Z" || cmd === "z") continue;
+    }
+    const n = 引数の数[cmd];
+    if (n === undefined) {
+      i++;
+      continue;
+    }
+    const a = tok.slice(i, i + n).map(Number);
+    i += n;
+    if (a.length < n || a.some((v) => !Number.isFinite(v))) break;
+    if (cmd === "M" || cmd === "L" || cmd === "T") {
+      cx = a[0]!;
+      cy = a[1]!;
+      points.push({ x: cx, y: cy });
+    } else if (cmd === "H") {
+      cx = a[0]!;
+      points.push({ x: cx, y: cy });
+    } else if (cmd === "V") {
+      cy = a[0]!;
+      points.push({ x: cx, y: cy });
+    } else if (cmd === "Q" || cmd === "S") {
+      points.push({ x: a[0]!, y: a[1]! });
+      cx = a[2]!;
+      cy = a[3]!;
+      points.push({ x: cx, y: cy });
+    } else if (cmd === "C") {
+      points.push({ x: a[0]!, y: a[1]! }, { x: a[2]!, y: a[3]! });
+      cx = a[4]!;
+      cy = a[5]!;
+      points.push({ x: cx, y: cy });
+    } else if (cmd === "A") {
+      cx = a[5]!;
+      cy = a[6]!;
+      points.push({ x: cx, y: cy });
+    }
   }
-  for (let i = 0; i + 1 < points.length; i++) {
-    out.push({ x1: points[i]!.x, y1: points[i]!.y, x2: points[i + 1]!.x, y2: points[i + 1]!.y });
+  const out: Segment[] = [];
+  for (let k = 0; k + 1 < points.length; k++) {
+    out.push({ x1: points[k]!.x, y1: points[k]!.y, x2: points[k + 1]!.x, y2: points[k + 1]!.y });
   }
   return out;
 }
@@ -164,11 +232,13 @@ const 交差を認める図: Record<string, { 箇所: number; 理由: string }> 
       " `consent-client` × `client-api` が (384.7, 176.5)",
   },
   "interactive-traffic-sankey": {
-    箇所: 3,
+    // #2302 では 3 と書いていた。 円弧の引数を座標として読んでいた分が乗っていた (#2306)
+    箇所: 1,
     理由: "流れの太さを見せる図で、流れが分かれて合流する形そのものが交差を生む",
   },
   "parts-retry-loop": {
-    箇所: 2,
+    // #2302 では 2 と書いていた。 画面で線を辿って数えた 1 箇所と、直した数え方が一致する (#2306)
+    箇所: 1,
     理由:
       "やり直しの輪で、落ちた先から戻る線が先へ進む線を跨ぐ。" +
       " 実測は `rt-ng` × `rt-again` が (239.0, 519.1)",
@@ -178,6 +248,102 @@ const 交差を認める図: Record<string, { 箇所: number; 理由: string }> 
     理由: "やり直しの輪と倒し先への切替を 1 枚に並べており、輪から出る線が切替の線を跨ぐ",
   },
 };
+
+/**
+ * 道筋を折れ線にする式が、命令ごとの引数の数を守っているかの検証 (#2306)。
+ *
+ * 守らないと円弧 (引数 7 個で奇数) で組にする位置が 1 つずれ、道筋のどこにも無い点が出る。
+ * 上の検査は件数を見るので、ずれても「数が違う図が在る」 としか出ない。
+ */
+describe("道筋を折れ線にする式が、命令ごとの引数の数を守る (#2306)", () => {
+  /** `parts-retry-loop` の `e1-試す-落ちる` の実物。 円弧の飛び越しを持つ */
+  const 円弧のある道筋 =
+    "M 105 278 L 105 516 Q 105 530, 119 530 L 229 530 A 11 11 0 0 1 251 530" +
+    " L 493 530 Q 507 530, 507 544 L 507 628";
+
+  /** 直す前の読み方。 文字を全部消して 2 つずつ組にする */
+  function 壊れた読み方(d: string): Array<{ x: number; y: number }> {
+    const t = d
+      .replace(/[A-Za-z]/g, " ")
+      .trim()
+      .split(/[\s,]+/)
+      .filter(Boolean);
+    const p: Array<{ x: number; y: number }> = [];
+    for (let i = 0; i + 1 < t.length; i += 2) {
+      const x = parseFloat(t[i]!);
+      const y = parseFloat(t[i + 1]!);
+      if (Number.isFinite(x) && Number.isFinite(y)) p.push({ x, y });
+    }
+    return p;
+  }
+
+  it("折れ線の点が全て道筋の上にある", () => {
+    // 道筋に書かれた点 = 命令の終点と制御点。 折れ線の点がこの中に収まっていれば、
+    // 引数を取り違えていない
+    const 道筋の点 = new Set([
+      "105,278",
+      "105,516",
+      "105,530",
+      "119,530",
+      "229,530",
+      "251,530",
+      "493,530",
+      "507,530",
+      "507,544",
+      "507,628",
+    ]);
+    const 出た = extractPathSegments(円弧のある道筋).map((s) => `${s.x1},${s.y1}`);
+    expect(出た.length, "折れ線が 1 本も出ない").toBeGreaterThan(0);
+    expect(
+      出た.filter((p) => !道筋の点.has(p)),
+      "道筋に無い点が折れ線に出ている",
+    ).toEqual([]);
+  });
+
+  it("壊れた読み方は道筋に無い点を作る (植え込み対照)", () => {
+    // 上の 0 件が「検査が何も見ていない」 でないことの根拠。 同じ道筋を直す前の読み方に
+    // 通すと、道筋のどこにも無い `(11,11)` と `(0,0)` が出る
+    const 出た = 壊れた読み方(円弧のある道筋).map((p) => `${p.x},${p.y}`);
+    expect(出た, "壊れた読み方が (11,11) を作らない").toContain("11,11");
+    expect(出た, "壊れた読み方が (0,0) を作らない").toContain("0,0");
+  });
+
+  it("円弧を含む図がカタログに 1 件以上ある (空振り検知)", () => {
+    // 0 件だと、上の検査が守っている形がカタログのどこにも無いことになる
+    const 円弧のある図 = allDiagrams.filter((d) => {
+      let L;
+      try {
+        L = layout(d);
+      } catch {
+        return false;
+      }
+      return L.edges.some((e) => /[Aa]/.test(e.d));
+    });
+    expect(円弧のある図.length, `図 ${allDiagrams.length} 件に円弧を持つ図が無い`).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it("engine が出す命令が引数の数の表に載っている", () => {
+    // 表に無い命令が出ると、その命令の引数を読み飛ばせず位置がずれる。
+    // 小文字 (相対座標) もここで捕まる
+    const 出る命令 = new Set<string>();
+    for (const d of allDiagrams) {
+      let L;
+      try {
+        L = layout(d);
+      } catch {
+        continue;
+      }
+      for (const e of L.edges) for (const c of e.d.match(/[A-Za-z]/g) ?? []) 出る命令.add(c);
+    }
+    expect(出る命令.size, "道筋から命令を 1 つも拾えていない").toBeGreaterThan(0);
+    expect(
+      [...出る命令].filter((c) => 引数の数[c] === undefined).sort(),
+      `表に無い命令が出ている (出た命令 ${[...出る命令].sort().join(" ")})`,
+    ).toEqual([]);
+  });
+});
 
 describe("線どうしが交差している図を名指しで固定する (#2302)", () => {
   it("図を 1 件以上集められている", () => {
