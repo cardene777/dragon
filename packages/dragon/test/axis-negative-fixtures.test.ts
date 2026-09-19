@@ -3,8 +3,10 @@
  *
  * ## 設計背景
  *
- * cdl visualValidate は 66 axis 実装、 各 axis の real defect 検知能力を fixture で保証する。
- * 本 file が counts field の存在を確かめるのは、 そのうち列挙した 55 axis。
+ * cdl visualValidate が持つ軸の real defect 検知能力を fixture で保証する。
+ * 本 file は engine が返す軸をすべて列挙し、engine の軸と 1 件も違わないことを見る
+ * (**軸の数は engine が SSOT で、ここには書かない**。 書けば必ずずれる = 以前ここには
+ * 66 / 55 / 53 と書いてあり、実物は 67 / 51 / 50 だった、#2316)。
  * 但し CdlDiagram レベルで意図的 defect を仕込んでも layout logic が prevent する axis が多い
  * (Axis 10 node-overlap は同 stack node が発生しても layout の re-position で解消、 Axis 11
  * edge-crossing は routing の detour で解消、 Axis 53 node-inside-viewbox は viewport 明示で
@@ -15,7 +17,7 @@
  *
  * ## 2 種類の axis 保証
  *
- * ### A. catalog real defect 保証 (1 axis)
+ * ### A. catalog real defect 保証
  * catalog に intentional な defect が存在、 fixture で assertion 化して axis 判定 logic の
  * regression を検出可能。 Axis 3 は PR #392 (sequence actor auto-size) 以降 catalog real defect
  * が消えたため、 manual defect injection fixture に移行 (下記 Axis 3 describe block 参照):
@@ -24,9 +26,9 @@
  * Axis 7 (edge-label-proximity) は cdl PR #217 で catalog の defect が解消し class B へ移した。
  * `visualValidateLaid` で label を path から引き離す fixture で axis 判定 logic の生存を保証する。
  *
- * ### B. layout regression safety net (53 axis)
- * 現状の layout が正しく defect を prevent、 発火 0 が正常。 layout implementation の
- * 破壊的変更が入った時に初めて発火して regression を検出:
+ * ### B. layout regression safety net
+ * A に挙げた軸以外はすべてこちら。 現状の layout が正しく defect を prevent、 発火 0 が正常。
+ * layout implementation の破壊的変更が入った時に初めて発火して regression を検出:
  * - Axis 1 (node-visibility) / Axis 8 (arrow-endpoint-anchoring) / Axis 10 (node-overlap) /
  *   Axis 11 (edge-crossing) / Axis 14 (label-inside-viewbox) / Axis 53 (node-inside-viewbox) /
  *   Axis 54 (node-inside-lane) 等
@@ -221,8 +223,8 @@ describe("Axis 集約検証 (fixture-driven, 真の defect あり catalog)", () 
   });
 });
 
-describe("axis 発火 count field (列挙した軸で counts field 存在)", () => {
-  it("visualValidate report.counts に列挙した軸の field が存在", () => {
+describe("axis 発火 count field (列挙した軸と engine の軸が一致)", () => {
+  it("列挙した軸が engine の軸と 1 件も違わない (#2316)", () => {
     const report = visualValidate(baseDiagram());
     const expectedAxes = [
       "node-visibility",
@@ -276,18 +278,50 @@ describe("axis 発火 count field (列挙した軸で counts field 存在)", () 
       "node-inside-lane",
       "edge-inside-viewbox",
       "lane-label-inside-viewbox",
+      // ここから下は #2316 で足した 16 軸。 engine に在るのに一覧に無く、両方向で
+      // 突き合わせていなかったため 1 度も判定の外に居た (うち `column-alignment` は
+      // カタログで実際に 7 件発火していた)
+      "arrow-endpoint-center",
+      "box-line-dropped",
+      "column-alignment",
+      "column-gap-uniform",
+      "detour-slot-distinct",
+      "edge-stubout-min",
+      "fan-origin-single-point",
+      "lane-border-clearance",
+      "lane-label-overlap",
+      "malformed-input",
+      "row-alignment",
+      "row-gap-uniform",
+      "rows-not-rendered",
+      "shape-label-dropped",
+      "title-row-overlap",
+      "validation-interrupted",
     ];
+    /*
+     * **両方向で見る** (#2316)。
+     *
+     * 以前は `for (const axis of expectedAxes)` で「一覧に在る軸が engine に在る」 だけを
+     * 見ていた。 engine が軸を足してもこの一覧は動かず、実測で 16 軸が判定の外に居た
+     * (engine 67 / 一覧 51)。 そのうち `column-alignment` はカタログで 7 件発火していた。
+     *
+     * **一覧を消して導出だけにしない**。 engine の鍵を engine の鍵と比べる形になり、
+     * 何も見なくなる。 一覧が在ることで、軸が増えた時に人が中身を見る機会が残る。
+     *
+     * **数を literal で書かない** (`rules/quality.md § 導出可能記述は人手で書かない`)。
+     * 軸は増減するので必ずずれる = 実際にこの file の冒頭は 66 / 55 / 53 と書いてあり、
+     * 実物は 67 / 51 / 50 だった。
+     */
+    const engineの軸 = Object.keys(report.counts).sort();
+    expect(engineの軸.length, "engine の軸を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(
+      0,
+    );
+    expect([...expectedAxes].sort(), `engine が返した軸 ${engineの軸.length} 件と突き合わせた`).toEqual(
+      engineの軸,
+    );
     for (const axis of expectedAxes) {
-      expect(report.counts).toHaveProperty(axis);
       expect(typeof report.counts[axis as keyof typeof report.counts]).toBe("number");
     }
-    // **数を literal で書かない** (`rules/quality.md § 導出可能記述は人手で書かない`)。
-    // 軸は増減するので必ずずれる = 実際にこの直前の comment は 55、assert は 53 と
-    // 食い違っていた (cdl#366 で 1 つ、cdl#775 で 1 つ消えている)。
-    //
-    // 見るのは空振り防止だけにする。 「列挙した名前が engine に在る」 は上の loop が
-    // 1 件ずつ見ており、消えた軸の名前が残れば そこで落ちる。
-    expect(expectedAxes.length, "列挙が空 (検査が空振りしている)").toBeGreaterThan(0);
   });
 });
 
