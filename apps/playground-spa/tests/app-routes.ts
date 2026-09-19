@@ -67,3 +67,43 @@ export function 画面の経路(): string[] {
     readFileSync(fileURLToPath(new URL("../src/main.tsx", import.meta.url)), "utf8"),
   );
 }
+
+/**
+ * 経路の形に値を入れて、実際に開く path を全件作る (#2270)。
+ *
+ * `/catalog/:slug` のような欄を持つ経路は、`欄の値` に並べた値ごとに 1 本へ広がる。
+ * 欄を 2 つ持つ経路は組み合わせの数だけ広がる。
+ *
+ * **入れる値が無い欄は例外にして落とす**。 黙って飛ばすと、経路が増えた日にその画面だけ
+ * 対象から外れ、検査は「全件通した」 と報告しながら実際には見ていない状態になる。
+ *
+ * 当たらなかった時の受け皿 (`*`) も `欄の値` の鍵として扱う = router に在る経路なので、
+ * 検査の側で「存在しない path」 を思い付きで書かずに済む。
+ *
+ * 先頭の `/` は落とす。 `new URL(path, base)` が先頭 `/` を origin 直下と読んで base path を
+ * 捨てるため、付けたままだと base の外を開く (#1438 で 291 件が同じ形で落ちた)。
+ */
+export function 経路を広げる(経路: string, 欄の値: Record<string, readonly string[]>): string[] {
+  let 組: string[][] = [[]];
+  for (const 節 of 経路.split("/")) {
+    const 候補 = 節.startsWith(":") || 節 === "*" ? 欄の値[節] : undefined;
+    if ((節.startsWith(":") || 節 === "*") && 候補 === undefined) {
+      throw new Error(`経路の欄に入れる値が無い: ${節} (${経路})`);
+    }
+    組 = 組.flatMap((x) => (候補 ?? [節]).map((v) => [...x, v]));
+  }
+  return 組.map((x) => x.join("/").replace(/^\//u, ""));
+}
+
+/**
+ * 経路の中で、値を入れないと開けない節 (`:欄` と受け皿の `*`)。
+ *
+ * 検査の側はこれを `欄の値` の鍵と突き合わせる = router に欄が増えた時、表を直すまで落ちる。
+ */
+export function 値を入れる節(経路たち: readonly string[]): string[] {
+  return [
+    ...new Set(
+      経路たち.flatMap((p) => p.split("/").filter((x) => x.startsWith(":") || x === "*")),
+    ),
+  ];
+}
