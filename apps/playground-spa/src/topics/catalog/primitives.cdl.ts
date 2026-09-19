@@ -900,6 +900,68 @@ export const sourceJson__pattern__stateStartEnd__書く = `{
 }`;
 
 export const pattern__stateStartEnd__書く = textDslToDiagram(sourceYaml__pattern__stateStartEnd__書く);
+
+// 段を分けて書く形 (#2346)。
+//
+// 始まりと終わりの印 (`initial` / `final`) と箱の目次 (`eyebrow`) は、
+// **1 行の中括弧にしか書き方が無かった**。 段を分けて書くと綴りの誤りとして落ちるので、
+// 他の項目を段で並べた本文でも この 3 つだけ中括弧に戻す必要があった。
+//
+// 目次は始まりと終わりの箱に書かない。 始まりと終わりの札そのものが目次の位置に出るため、
+// 両方書くと後から書いた方だけが残る。 途中の箱 (審査) に書いて重ならない形にしてある。
+
+export const sourceYaml__pattern__stateStartEnd__段を分けて書く = `title: "状態の始まりと終わりを段を分けて書く"
+type: state
+
+actors:
+  - 受付:
+      kind: card
+      大きさ: 240,96
+      initial: true
+  - 審査:
+      kind: card
+      大きさ: 240,96
+      eyebrow: "途中"
+  - 完了:
+      kind: card
+      大きさ: 240,96
+      final: true
+
+flow:
+  - 受付 -> 審査: "提出"
+  - 審査 -> 完了: "承認"
+
+animation:
+  - step: "段を分けて書いた札" 1.8s
+    focus: ["受付", "審査", "完了"]
+    description: "始まりと終わりの印も目次も、名前の下に段を分けて並べられる。 中括弧に書いた時と同じ札が付く"
+`;
+
+export const sourceJson__pattern__stateStartEnd__段を分けて書く = `{
+  "title": "状態の始まりと終わりを段を分けて書く",
+  "type": "state",
+  "actors": [
+    { "name": "受付", "kind": "card", "posW": 240, "posH": 96, "initial": true },
+    { "name": "審査", "kind": "card", "posW": 240, "posH": 96, "eyebrow": "途中" },
+    { "name": "完了", "kind": "card", "posW": 240, "posH": 96, "final": true }
+  ],
+  "flow": [
+    { "from": "受付", "to": "審査", "label": "提出" },
+    { "from": "審査", "to": "完了", "label": "承認" }
+  ],
+  "animation": [
+    {
+      "step": "段を分けて書いた札",
+      "duration": 1.8,
+      "focus": ["受付", "審査", "完了"],
+      "body": "始まりと終わりの印も目次も、名前の下に段を分けて並べられる。 中括弧に書いた時と同じ札が付く"
+    }
+  ]
+}`;
+
+export const pattern__stateStartEnd__段を分けて書く = textDslToDiagram(
+  sourceYaml__pattern__stateStartEnd__段を分けて書く,
+);
 // ==== #1969 並ぶ向きと始まりと終わり ここまで ====
 
 // ==== #1971 位置のずらし ここから ====
