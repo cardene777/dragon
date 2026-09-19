@@ -1429,8 +1429,16 @@ function applyGroupFrames(
   }
   if (置く.length === 0) return;
 
-  const 配置 = layout(diagram);
-  const 並びの縦列 = 配置.lanes.filter((l) => !作った枠.has(l.id));
+  // **ここで作った枠を測る図から外す** (#2300)。 枠はまだ置いていない = `posX: 0, posY: 0` の
+  // 仮置きなので、 渡すと組の名札が全部同じ `x = 16` に積み上がり、 記法の engine が
+  // 実物と合わない重なりを知らせる (組を 2 つ書くと `1994px²`、 組を N 個書くと最大 N(N-1)/2 件)。
+  // 出来上がった図では 1 度も重ならない (名札の箱は `16.0..87.2` と `564.0..682.4`)。
+  //
+  // 外しても測る値は変わらない。 枠は `posX` と `posY` を持つ縦列として並べ直しの対象から
+  // 外れており (`role: "overlay"` で間隔の調整からも外れる)、 結果からは元から捨てていた。
+  // 渡す時点で外すだけで、 縦列と箱の位置は 1 単位も動かない。
+  const 配置 = layout({ ...diagram, lanes: diagram.lanes.filter((l) => !作った枠.has(l.id)) });
+  const 並びの縦列 = 配置.lanes;
   for (const { 枠, 名前, line, 縦列 } of 置く) {
     const 束 = 並びの縦列.filter((l) => 縦列.includes(l.id));
     const 左 = Math.min(...束.map((l) => l.x ?? 0));
