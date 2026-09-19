@@ -130,6 +130,28 @@ function 画面を測る(
   };
 }
 
+/**
+ * これまでに見た中で最も小さい文字 (#2280)。 **一度見た小ささを忘れない**。
+ *
+ * 図は開いた後も文字が増える (実測 = 漏斗図は指定 14 の 4 件で始まり、指定 11 を含む 11 件になる)。
+ * その時々の最小をそのまま使うと、開いた瞬間の 4 件で下限が決まり、後から増えた小さい文字が
+ * 読めないまま残る。
+ *
+ * **下がる向きにしか動かさない**。 上げ下げの両方を許すと、下限で幅を与える → 文字が減る →
+ * 下限が緩む → 幅を外す、の往復になる (#2269 で踏んだ形)。
+ *
+ * 測れていない時 (`次` が `undefined`) は覚えている値を残す = 文字が一瞬消えたことを理由に
+ * 図の大きさを動かさない。
+ */
+export function 忘れない最小(
+  覚えた: number | undefined,
+  次: number | undefined,
+): number | undefined {
+  if (次 === undefined) return 覚えた;
+  if (覚えた === undefined) return 次;
+  return Math.min(覚えた, 次);
+}
+
 /** 測り直した値が前と同じなら前をそのまま返す = 状態を置き換えず、描き直しを起こさない */
 function 変わった時だけ置き換える(前: 測った値, 次: 測った値): 測った値 {
   const 倍率が同じ =
@@ -271,6 +293,17 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
     最新.current = { 設定, 収めた倍率, 動かせる };
   });
 
+  /**
+   * これまでに見た最小の文字 (#2280)。 **図が替わるまで忘れない**。
+   *
+   * 図が替わったら捨てる = 前の図の小ささを次の図の下限に持ち越すと、文字の大きい図まで
+   * 実寸に張り付く。 捨てる効果は下の測り直しが同じ描画で埋める。
+   */
+  const 覚えた最小 = useRef<number | undefined>(undefined);
+  useLayoutEffect(() => {
+    覚えた最小.current = undefined;
+  }, [図の鍵]);
+
   /** ホイールで倍率を置いてから描き直されるまでの、画面に出ている図の外枠とカーソル */
   const 巻き取りの保留 = useRef<{ x: 区間; y: 区間; カーソル: { x: number; y: number } } | null>(
     null,
@@ -290,7 +323,8 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
   useLayoutEffect(() => {
     if (!器 || viewBox幅 === undefined) return;
     const 次 = 画面を測る(器, 図のsvgを探す(器), 最新.current.設定.巻き取りを探す);
-    set測った((前) => 変わった時だけ置き換える(前, 次));
+    覚えた最小.current = 忘れない最小(覚えた最小.current, 次.最小の文字);
+    set測った((前) => 変わった時だけ置き換える(前, { ...次, 最小の文字: 覚えた最小.current }));
   }, [器, viewBox幅, 図の鍵]);
 
   // 描かれている倍率と、巻き取りが溢れているかを測る。
@@ -305,22 +339,29 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
     let 予約 = 0;
     const 測る = (): void => {
       const 次 = 画面を測る(器, 見ているsvg, 最新.current.設定.巻き取りを探す);
-      set測った((前) => 変わった時だけ置き換える(前, 次));
+      覚えた最小.current = 忘れない最小(覚えた最小.current, 次.最小の文字);
+      set測った((前) => 変わった時だけ置き換える(前, { ...次, 最小の文字: 覚えた最小.current }));
     };
     const ro = new ResizeObserver(測る);
-    const svgを見直す = (): void => {
+    const 中身が変わった = (): void => {
       予約 = 0;
       const svg = 図のsvgを探す(器);
-      if (svg === 見ているsvg) return;
-      if (見ているsvg) ro.unobserve(見ているsvg);
-      見ているsvg = svg;
-      // 観測を始めると最初の 1 回が必ず届く = 付け替えた直後に測られる
-      if (svg) ro.observe(svg);
+      if (svg !== 見ているsvg) {
+        if (見ているsvg) ro.unobserve(見ているsvg);
+        見ているsvg = svg;
+        // 観測を始めると最初の 1 回が必ず届く = 付け替えた直後に測られる
+        if (svg) ro.observe(svg);
+        return;
+      }
+      // **同じ svg の中で文字が増える** (#2280)。 svg が替わったかだけを見ると、
+      // 開いた後に現れる文字が下限の母数に入らない (漏斗図は 4 件から 11 件になる)。
+      // 節点の出入りだけを見ているので、動きが毎フレーム掛ける変換では呼ばれない
+      測る();
     };
     const mo = new MutationObserver(() => {
-      if (予約 === 0) 予約 = requestAnimationFrame(svgを見直す);
+      if (予約 === 0) 予約 = requestAnimationFrame(中身が変わった);
     });
-    svgを見直す();
+    中身が変わった();
     ro.observe(器);
     mo.observe(器, { childList: true, subtree: true });
     return () => {
