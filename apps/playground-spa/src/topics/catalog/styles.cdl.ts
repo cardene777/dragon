@@ -604,6 +604,66 @@ export const sourceJson__nodeTone = `{
 
 export const nodeTone = textDslToDiagram(sourceYaml__nodeTone);
 
+// 題を書いた箱にも色が乗ることを、切替で並べて見せる (#2333)。
+//
+// この組み合わせはカタログに 1 件も無く (実測 = 記法 571 件のうち、同じ箱に題と色を書いた所が
+// 0 件)、書ける形なのに誰も試していなかった。 その間、色を載せる後処理が名前と突き合わせて
+// いたため、題を書くと箱になる 7 図種のうち 5 図種で色が黙って消えていた。
+//
+// **名前と題を別の字にする**。 同じ字にすると、名前で突き合わせても題で突き合わせても通って
+// しまい、見本としてこの組み合わせを示せない。
+//
+// 元の見本の名前 (`patternBase__nodeTone`) は #1969 の変種が既に置いている。
+
+export const sourceYaml__pattern__nodeTone__題も書く = `title: "節の色 6 種 (題も書く)"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 280 }
+  l2: { x: 400, width: 280 }
+
+actors:
+  - 主張: { kind: card, lane: l1, stack: 0, tone: accent, title: "accent", subtitle: "名前は 主張" }
+  - 青緑: { kind: card, lane: l1, stack: 1, tone: teal, title: "teal", subtitle: "名前は 青緑" }
+  - 成功: { kind: card, lane: l1, stack: 2, tone: success, title: "success", subtitle: "名前は 成功" }
+  - 失敗: { kind: card, lane: l2, stack: 0, tone: error, title: "error", subtitle: "名前は 失敗" }
+  - 注意: { kind: card, lane: l2, stack: 1, tone: warning, title: "warning", subtitle: "名前は 注意" }
+  - 案内: { kind: card, lane: l2, stack: 2, tone: info, title: "info", subtitle: "名前は 案内" }
+
+animation:
+  - step: "題を書いても色は残る" 1.8s
+    focus: ["主張", "青緑", "成功", "失敗", "注意", "案内"]
+    description: "箱に出る字は題で、色は書いたとおりに残る。 強調や矢印が指すのは題ではなく名前"
+`;
+
+export const sourceJson__pattern__nodeTone__題も書く = `{
+  "title": "節の色 6 種 (題も書く)",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 280 },
+    "l2": { "x": 400, "width": 280 }
+  },
+  "actors": [
+    { "name": "主張", "kind": "card", "lane": "l1", "stack": 0, "tone": "accent", "title": "accent", "subtitle": "名前は 主張" },
+    { "name": "青緑", "kind": "card", "lane": "l1", "stack": 1, "tone": "teal", "title": "teal", "subtitle": "名前は 青緑" },
+    { "name": "成功", "kind": "card", "lane": "l1", "stack": 2, "tone": "success", "title": "success", "subtitle": "名前は 成功" },
+    { "name": "失敗", "kind": "card", "lane": "l2", "stack": 0, "tone": "error", "title": "error", "subtitle": "名前は 失敗" },
+    { "name": "注意", "kind": "card", "lane": "l2", "stack": 1, "tone": "warning", "title": "warning", "subtitle": "名前は 注意" },
+    { "name": "案内", "kind": "card", "lane": "l2", "stack": 2, "tone": "info", "title": "info", "subtitle": "名前は 案内" }
+  ],
+  "flow": [],
+  "animation": [
+    {
+      "step": "題を書いても色は残る",
+      "duration": 1.8,
+      "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内"],
+      "body": "箱に出る字は題で、色は書いたとおりに残る。 強調や矢印が指すのは題ではなく名前"
+    }
+  ]
+}`;
+
+export const pattern__nodeTone__題も書く = textDslToDiagram(sourceYaml__pattern__nodeTone__題も書く);
+
 // ---- 矢印の端の形 ----
 //
 // 先端 (`head`) と根元 (`tailHead`) は同じ 9 形を取る。 9 本を 1 枚に縦に積むと台の高さを超え、横に 2 列に
