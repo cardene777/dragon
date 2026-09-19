@@ -161,13 +161,13 @@ describe("倍率の意味 (#1026)", () => {
     // 書いた指定が黙って消えていた。 いまは 3 つとも知らせが出て組み立てまで進まない。
     // 予約から外して状態に流れるようになれば知らせが消えるため、この検査が落ちる
     const r = parseTextDslV05(
-      `${head}actors:\n  - a: { kind: sample, 位置: 300, 大きさ: 400, 色: 失敗 }\n${tail}`,
+      `${head}actors:\n  - a: { kind: sample, 位置: 300, 大きさ: 400 }\n${tail}`,
     );
     const 知らせ = r.ok
       ? []
       : r.errors.filter((e) => e.message.includes("項目名が読めません")).map((e) => e.message);
     expect(知らせ.sort()).toEqual(
-      ["位置", "大きさ", "色"].map((k) => `項目名が読めません: "${k}"`).sort(),
+      ["位置", "大きさ"].map((k) => `項目名が読めません: "${k}"`).sort(),
     );
   });
 

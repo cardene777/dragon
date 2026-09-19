@@ -1885,6 +1885,93 @@ export const pattern__textDslActorKeys__日本語で書く = textDslToDiagram(
   sourceYaml__pattern__textDslActorKeys__日本語で書く,
 );
 
+// ─── 日本語の項目名を 1 行にまとめて書く (#2344) ─────
+//
+// 中括弧の形でも日本語の項目名を読む。 ただし `位置` と `大きさ` は英語 (`pos` / `size`) も
+// 中括弧では読まないので、段を分けて書く。 上の 2 つと出来上がる図は同じ。
+
+export const sourceYaml__pattern__textDslActorKeys__1行にまとめて書く = `title: "箱の項目名を1行にまとめて書く"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 420 }
+  l2: { x: 520, width: 420 }
+
+states:
+  progress: 20
+
+actors:
+  - 受付: { lane: l1, stack: 0, 種類: card, 題: "受け付け", 補足: "入口", 色: 成功 }
+  - 記録: { lane: l1, stack: 1, 種類: storage, 行: ["番号: 数", "名前: 文字"], 印: ["pk", ""] }
+  - 進み: { lane: l2, stack: 0, 種類: dyn-rect, 値: "{progress}%", 出す条件: "progress > 0" }
+      大きさ: 200,96
+      図形: { kind: rect, source: "{progress}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 }
+
+flow:
+  - 受付 -> 記録: "書き込む"
+  - 記録 -> 進み: "読み出す"
+
+animation:
+  - step: "受け付けて記録する" 1.4s
+    focus: ["受付", "記録"]
+    description: "1 行にまとめても、段を分けて書いた時と同じ図になる"
+  - step: "進みを上げる" 1.6s
+    focus: ["記録", "進み"]
+    tween:
+      progress: 20 -> 80
+    description: "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+`;
+
+// JSON の欄名は英語だけで、1 行にまとめるかどうかの違いも持たない。
+// 上の 2 つと同じ内容を、この見本の題と説明文で置いてある。
+export const sourceJson__pattern__textDslActorKeys__1行にまとめて書く = `{
+  "title": "箱の項目名を1行にまとめて書く",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 420 },
+    "l2": { "x": 520, "width": 420 }
+  },
+  "states": { "progress": 20 },
+  "actors": [
+    { "name": "受付", "lane": "l1", "stack": 0, "kind": "card", "title": "受け付け", "subtitle": "入口", "color": "成功" },
+    { "name": "記録", "lane": "l1", "stack": 1, "kind": "storage", "rows": ["番号: 数", "名前: 文字"], "marks": ["pk", ""] },
+    {
+      "name": "進み",
+      "lane": "l2",
+      "stack": 0,
+      "kind": "dyn-rect",
+      "posW": 200,
+      "posH": 96,
+      "shape": { "kind": "rect", "source": "{progress}", "fillMax": 100, "orient": "up", "fill": "#22c55e", "radius": 6 },
+      "value": "{progress}%",
+      "visibleIf": "progress > 0"
+    }
+  ],
+  "flow": [
+    { "from": "受付", "to": "記録", "label": "書き込む" },
+    { "from": "記録", "to": "進み", "label": "読み出す" }
+  ],
+  "animation": [
+    {
+      "step": "受け付けて記録する",
+      "duration": 1.4,
+      "focus": ["受付", "記録"],
+      "body": "1 行にまとめても、段を分けて書いた時と同じ図になる"
+    },
+    {
+      "step": "進みを上げる",
+      "duration": 1.6,
+      "focus": ["記録", "進み"],
+      "tween": { "progress": [20, 80] },
+      "body": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+    }
+  ]
+}`;
+
+export const pattern__textDslActorKeys__1行にまとめて書く = textDslToDiagram(
+  sourceYaml__pattern__textDslActorKeys__1行にまとめて書く,
+);
+
 // ─── 値と前の値を日本語で書く (#2332) ─────
 //
 // `前の値` は値を並べる図でだけ効く。 上の流れ図に書いても図は 1 ピクセルも変わらないので、

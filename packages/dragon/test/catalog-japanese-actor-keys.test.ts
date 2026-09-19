@@ -155,6 +155,33 @@ describe("英語で書いた見本と日本語で書いた見本が同じ図に�
     });
   }
 
+  it("1 行にまとめた見本の箱が、段を分けた見本と同じになる (#2344)", () => {
+    /*
+     * **箱だけを比べる**。 段の説明文は見本ごとに違う (どの書き方かを読み手に伝える) ので、
+     * 図まるごとの比較には入れられない。 この見本が見せたいのは項目名の読み方なので、
+     * 箱が 1 つも違わないことを見れば足りる。
+     */
+    const 箱 = (記法: string): unknown => {
+      const parsed = parseTextDslV05(記法);
+      if (!parsed.ok) {
+        throw new Error(`parse 失敗: ${parsed.errors.map((e) => e.message).join(" / ")}`);
+      }
+      return compileToCdl(parsed.doc, { onNotice: () => {} }).nodes;
+    };
+    const 一行 = 箱(TextDsl.sourceYaml__pattern__textDslActorKeys__1行にまとめて書く);
+    expect(一行).toEqual(箱(TextDsl.sourceYaml__pattern__textDslActorKeys__日本語で書く));
+    // 箱を 1 つも作れていないと、上の比較は空同士で通る
+    expect((一行 as unknown[]).length, "箱が 1 つも無い").toBeGreaterThan(0);
+  });
+
+  it("1 行にまとめた見本が、中括弧の中に日本語の項目名を書いている (空振り防止)", () => {
+    const src = TextDsl.sourceYaml__pattern__textDslActorKeys__1行にまとめて書く;
+    // 中括弧の行に日本語の項目名が 1 件も無ければ、この見本は何も見せていない
+    const 中括弧の行 = src.split("\n").filter((l) => l.includes("{") && l.trimStart().startsWith("-"));
+    const 書いた = 日本語の項目.filter((k) => 項目として出る回数(中括弧の行, k) > 0);
+    expect(書いた.length, `中括弧の行 ${中括弧の行.length} 行`).toBeGreaterThan(0);
+  });
+
   it("題を揃える置き換えが効いている (植え込み対照)", () => {
     // 効いていないと、上の比較は題の差で必ず落ちる = 通っていること自体が保証にならない
     const 英 = TextDsl.sourceYaml__textDslActorKeys;

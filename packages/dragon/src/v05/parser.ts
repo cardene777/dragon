@@ -3433,46 +3433,16 @@ function reportScaleOnNonPart(
 }
 
 /**
- * 中括弧の形で読める日本語と、その英語名 (#1301)。
- *
- * **英語が中括弧で読める欄だけを載せる**。 `位置` / `大きさ` / `色` は英語側
- * (`pos` / `size` / `color`) も中括弧では読めないため載せない = 英語で出来ないことを
- * 日本語で出来るようにはしない。
- *
- * 載せる前は、同じ意味の語が縦書きでは通り中括弧では「項目名が読めません」 になっていた。
- * 書き方によって日本語だけが落ちる状態を無くす。
- */
-export const INLINE_ACTOR_ALIASES: Record<string, string> = {
-  種類: "kind",
-  補足: "subtitle",
-  値: "value",
-  前の値: "previous",
-  行: "rows",
-  印: "marks",
-};
-
-/** 中括弧に書かれた日本語の項目名を、同じ意味の英語名に寄せる (#1301) */
-function 中括弧の別名を寄せる(opts: Record<string, string>): Record<string, string> {
-  let 触った = false;
-  const out: Record<string, string> = { ...opts };
-  for (const [日, 英] of Object.entries(INLINE_ACTOR_ALIASES)) {
-    if (!(日 in out)) continue;
-    触った = true;
-    // 英語を併記した時は英語を優先する (縦書き形が後勝ちなのと違い、こちらは 1 行に同居する)
-    if (!(英 in out)) out[英] = out[日]!;
-    delete out[日];
-  }
-  return 触った ? out : opts;
-}
-
-/**
- * 中括弧の形で読める項目名。
+ * 中括弧の形で読める英語の項目名 (#2344 で `INLINE_ACTOR_KEYS` から分けた)。
  *
  * ここに無い名前は、 パーツでない箱ではどこにも入らずに消える。 `ACTOR_ITEM_KEYS` (縦に
  * 並べた形) とは別に持つ = 中括弧の形は位置や大きさ (`pos` / `size` / `scale`) を未対応にしてあり、
  * 同じ集合にすると「知らせない」 側がずれる。
+ *
+ * **日本語の別名を混ぜない**。 別名は `ACTOR_ITEM_ALIASES` をこの集合で絞って導くため、
+ * 混ぜると導く側と導かれる側が輪になる。 日本語も含む一覧は `INLINE_ACTOR_KEYS` が持つ。
  */
-export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
+const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   "kind",
   "subtitle",
   "eyebrow",
@@ -3517,7 +3487,70 @@ export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
   // 同じ名前で 2 度知らせることになる
   "scale",
   "倍率",
-  // 英語が読める欄の日本語別名 (#1301)。 一覧は `INLINE_ACTOR_ALIASES` が持つ
+]);
+
+/**
+ * 箱の項目名の、日本語と英語の対応 (#1301 / #2344)。
+ *
+ * **段を分けた形が読む日本語名をすべて載せる**。 中括弧で読めるかはここでは決めず、
+ * `INLINE_ACTOR_ALIASES` が英語側の可否で絞る。
+ *
+ * 載せる場所を 1 つにしたのは、**中括弧の別名を別に手で並べていた間、英語の欄を
+ * 中括弧に足した日に日本語名だけが取り残された**ため (`title` は #1381、`tone` は #1969、
+ * `shape` は #1374 で足り、日本語名は 3 件とも置き去りになっていた)。
+ *
+ * `倍率` は箱の欄を持たない (部品にだけ効く、#1026)。 ここには載せず、
+ * `PARTS_ONLY_ITEM_KEYS` と `reportScaleOnNonPart` が受け持つ。
+ */
+export const ACTOR_ITEM_ALIASES: Record<string, string> = {
+  種類: "kind",
+  題: "title",
+  補足: "subtitle",
+  色: "tone",
+  行: "rows",
+  印: "marks",
+  大きさ: "size",
+  図形: "shape",
+  値: "value",
+  前の値: "previous",
+  位置: "pos",
+  出す条件: "visibleIf",
+};
+
+/**
+ * 中括弧の形で読める日本語と、その英語名 (#1301 / #2344)。
+ *
+ * **英語が中括弧で読める欄だけに絞る** = 英語で出来ないことを日本語で出来るようにはしない。
+ * `位置` (`pos`) と `大きさ` (`size`) はここで落ちる。
+ *
+ * **絞り込みは実装から導く**。 手で並べていた間、`題` / `色` / `図形` / `出す条件` の 4 件が
+ * 英語側は中括弧で読めるのに日本語だけ落ちていた (実測)。
+ */
+export const INLINE_ACTOR_ALIASES: Record<string, string> = Object.fromEntries(
+  Object.entries(ACTOR_ITEM_ALIASES).filter(([, 英]) => INLINE_ACTOR_ENGLISH_KEYS.has(英)),
+);
+
+/** 中括弧に書かれた日本語の項目名を、同じ意味の英語名に寄せる (#1301) */
+function 中括弧の別名を寄せる(opts: Record<string, string>): Record<string, string> {
+  let 触った = false;
+  const out: Record<string, string> = { ...opts };
+  for (const [日, 英] of Object.entries(INLINE_ACTOR_ALIASES)) {
+    if (!(日 in out)) continue;
+    触った = true;
+    // 英語を併記した時は英語を優先する (縦書き形が後勝ちなのと違い、こちらは 1 行に同居する)
+    if (!(英 in out)) out[英] = out[日]!;
+    delete out[日];
+  }
+  return 触った ? out : opts;
+}
+
+/**
+ * 中括弧の形で読める項目名 (英語と、英語が読める欄の日本語別名)。
+ *
+ * 別名は `INLINE_ACTOR_ALIASES` が `ACTOR_ITEM_ALIASES` から導く (#1301 / #2344)。
+ */
+export const INLINE_ACTOR_KEYS: ReadonlySet<string> = new Set([
+  ...INLINE_ACTOR_ENGLISH_KEYS,
   ...Object.keys(INLINE_ACTOR_ALIASES),
 ]);
 // `state` はパーツでだけ意味を持つ (`extractStateOverride` がパーツの時しか作らない)。
@@ -3680,10 +3713,23 @@ function reportUnknownInlineKeys(
       continue;
     }
     if (INLINE_ACTOR_KEYS.has(key)) continue;
+    /*
+     * **段を分けて書けば効く名前には、その行き先を添える** (#2344)。
+     *
+     * `位置` / `大きさ` は段を分けた形では読める (英語の `pos` / `size` も同じ)。
+     * 使える項目の一覧だけを返すと、書いた人はその名前を諦めて別の書き方を探すことになる。
+     * 部品の箱は同じ状況を #1996 で既にこの文言で知らせており、こちらだけが外れていた。
+     *
+     * 判定は段を分けた形が読む一覧 (`ACTOR_ITEM_KEYS`) で行う = 日本語と英語を分けない。
+     * `size` を中括弧に書いた人も、同じ行き先を知りたい。
+     */
+    const 段を分ければ効く = ACTOR_ITEM_KEYS.has(key);
     errors.push({
       line,
       message: `項目名が読めません: "${key}"`,
-      hint: `使える項目 = ${[...INLINE_ACTOR_KEYS].join(", ")}`,
+      hint: 段を分ければ効く
+        ? `1 行の中括弧では読めません。名前の下に段を分けた形で書くと効きます`
+        : `使える項目 = ${[...INLINE_ACTOR_KEYS].join(", ")}`,
     });
   }
 }

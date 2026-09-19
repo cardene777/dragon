@@ -30,10 +30,11 @@ const 読めない項目 = (r: ReturnType<typeof parseTextDslV05>): string[] =>
 const 最初の箱 = (r: ReturnType<typeof parseTextDslV05>) => (r.ok ? r.doc.actors[0] : undefined);
 
 describe("部品の 1 行の形で読まない予約名を知らせる (#1996)", () => {
+  // `色` はここに居たが、英語側 (`color` / `tone`) が中括弧で読めるようになった時
+  // (#1969) に取り残されていただけだった (#2344 で読める側へ移した)
   for (const [key, 値] of [
     ["位置", "300,200"],
     ["大きさ", "900,400"],
-    ["色", "失敗"],
   ] as const) {
     it(`${key} を部品の 1 行の形に書くと知らせが出る`, () => {
       const r = 解析(`  - 甲: { kind: edge-chain, ${key}: ${値} }`);
@@ -140,7 +141,7 @@ describe("知らせる名前を実物の 2 集合から導く (#1996)", () => {
 });
 
 describe("普通の箱の知らせは変わらない (#1996)", () => {
-  for (const key of ["色", "位置", "大きさ"]) {
+  for (const key of ["位置", "大きさ"]) {
     it(`${key} を普通の箱の 1 行の形に書くと今までどおり知らせが出る`, () => {
       expect(読めない項目(解析(`  - A: { ${key}: "x" }`))).toEqual([
         `項目名が読めません: "${key}"`,
