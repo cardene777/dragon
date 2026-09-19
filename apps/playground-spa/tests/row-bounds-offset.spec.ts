@@ -15,7 +15,30 @@ import { verifyAllDiagramsDom, type CdlDiagram, type Discrepancy } from "@carden
  * (`/__render`) に図を渡して描く。
  */
 
-/** 図を base64url にして `/__render` を開く。 */
+/**
+ * 図を base64url にして `/__render` を開く。
+ *
+ * ## 2 枚目を渡す時は空の頁を 1 度挟む (#2298)
+ *
+ * 図は URL の hash (`#d=...`) に載る。 **hash だけが変わる移動は頁を描き直さない** ので、
+ * 続けて別の図を渡すと前の図が画面に残ったまま測ることになる。
+ *
+ * ```ts
+ * await page.goto("about:blank");   // ← これが要る
+ * await render(page, 2 枚目の図);
+ * ```
+ *
+ * 見え方が 2 通りあり、 どちらも「測れている」 ように見える = 2 枚目が 1 枚目と同じ値を返すか、
+ * 下の `waitForSelector` が時間切れになって「図が描かれない」 と出る (画面には前の図の字が
+ * 見えている)。
+ *
+ * この形で誤った測定が 2 回記録に残った。 #2200 の「`side: right` を書くと道筋が 1 点になり
+ * 線が消える」 は作り直すと再現せず、 線は道筋 584.5 で描かれていた。 同じ調べ直しの最初の
+ * 試みも、 4 通りとも「図が描かれない」 を返した。
+ *
+ * **ここでは挟まない**。 本 file の検査は 1 つにつき 1 枚しか描かず (検査ごとに頁が分かれる)、
+ * 毎回 2 回開くと実行が延びるだけになる。 2 枚以上描く側が挟む。
+ */
 async function render(page: Page, diagram: CdlDiagram): Promise<void> {
   const b64 = Buffer.from(JSON.stringify(diagram), "utf-8")
     .toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
