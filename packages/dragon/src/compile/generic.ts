@@ -55,6 +55,25 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
   const { kind, laneWidth } = opts;
   const b = diagram(slugify(doc.title), { topic: doc.title, type: kind });
 
+  /*
+   * 始まりと終わりの札 (#2349)。
+   *
+   * **並べ方の分岐ごとに書かない**。 3 つある並べ方のうち 1 つにしか札の処理が無く、
+   * 縦列を書いた状態の図では `initial: true` を書いても札が 1 つも出なかった
+   * (知らせも無い = 縦列を足しただけで別の意味の図になっていた)。
+   *
+   * 札を出すのは状態の図だけ。 どの箱が始まり / 終わりかは `始まりと終わりの決め方` が
+   * 1 箇所で決める。 **書いた値はどの並べ方でも効き**、1 つも書いていない時の既定
+   * (並びの最初と最後) は、並びが意味を持つ並べ方でだけ効く。
+   */
+  const 決め方 = 始まりと終わりの決め方(doc, { 並びで決める: !書いた縦列に置く(kind, doc) });
+  const 札 = (a: (typeof doc.actors)[number], idx: number): { eyebrow?: string } => {
+    if (kind !== "state") return {};
+    if (決め方.始まり(a, idx)) return { eyebrow: "初期" };
+    if (決め方.終わり(a, idx)) return { eyebrow: "最終" };
+    return {};
+  };
+
   // lane / node 配置 ... preset kind に応じて切替
   const actorToNodeId = new Map<string, string>();
   if (書いた縦列に置く(kind, doc)) {
@@ -115,6 +134,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         stack,
         kind: 描ける種別(a.kind),
         title: 箱の題(a),
+        ...札(a, idx),
       });
     });
   } else if (並べる向き(kind, doc) === "縦") {
@@ -139,6 +159,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         stack: idx,
         kind: 描ける種別(a.kind),
         title: 箱の題(a),
+        ...札(a, idx),
       });
     });
   } else {
@@ -153,22 +174,17 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     // `er` の縦列は表を並べるための入れ物、 `state` の縦列は状態を並べるための入れ物で、
     // どちらも読む人に見せる意味を持たない (組立て API 側も見出しを空のまま置く)。
     const 見出しを付ける = kind === "swimlane";
-    const 決め方2 = 始まりと終わりの決め方(doc);
     doc.actors.forEach((a, idx) => {
       const lid = `lane-${slugify(a.name) || idx}`;
       b.lane(lid, { width: laneWidth, ...(見出しを付ける ? { label: a.name } : {}) });
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
-      // er は entity、 state は initial/final marker、 swimlane はそのまま actor
-      const isInitial = kind === "state" && 決め方2.始まり(a, idx);
-      const isFinal = kind === "state" && 決め方2.終わり(a, idx);
       b.node(id, {
         lane: lid,
         stack: 0,
         kind: 描ける種別(a.kind),
         title: 箱の題(a),
-        ...(isInitial ? { eyebrow: "初期" } : {}),
-        ...(isFinal ? { eyebrow: "最終" } : {}),
+        ...札(a, idx),
       });
     });
   }
