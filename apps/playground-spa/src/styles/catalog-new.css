@@ -441,6 +441,15 @@
   height: auto !important;
 }
 
+/* **読み取り値などの飾りは図の幅を継がない** (#2284)。
+ * 上の指定は台の中の svg を全部拾うが、図の隣には操作の部品 (`.cdl-ip-root`) が並び、
+ * その中の svg も幅を受け取る。 実測 = 図に 1640px を与えたら輪が 1640x1640 になり、
+ * 台の高さが 71px から 2194px に伸びた。 飾りは自分の大きさのままにする */
+.catalog-preview-stage[data-cdl-zoom="on"] .catalog-preview-stage-inner .cdl-ip-root svg {
+  width: auto !important;
+  max-width: 100% !important;
+}
+
 .catalog-preview-loading {
   font-family: var(--d-body);
   font-size: 13px;
@@ -872,6 +881,13 @@
   width: var(--cdl-zoom-width) !important;
   max-width: none !important;
   height: auto !important;
+  max-height: none !important;
+}
+
+/* 拡大表示でも飾りは図の幅を継がない (#2284、上の台と同じ理由) */
+.cdl-modal-body[data-cdl-zoom="on"] .cdl-ip-root svg {
+  width: auto !important;
+  max-width: 100% !important;
   max-height: none !important;
 }
 
