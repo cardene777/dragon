@@ -18,7 +18,7 @@
 import { describe, it, expect } from "vitest";
 import { jsonToDoc, type DragonJson, type JsonActor } from "../src/json-parser";
 import { diagramJsonSchema, validateDragonJson } from "@cardenelabs/dragon";
-import { parseTextDslV05, INLINE_ACTOR_KEYS } from "../src/v05/parser";
+import { parseTextDslV05, INLINE_ACTOR_ALIASES, INLINE_ACTOR_KEYS } from "../src/v05/parser";
 import type { DslActor } from "../src/types";
 
 /** 記法の 1 行 (中括弧の中身) と、同じ意味の JSON の項目 */
@@ -82,16 +82,14 @@ const 対応表: Record<string, 対応> = {
  *
  * 別名は書かれた名前そのものを `scaleKeys` に残す (見本が同じ名前の状態を持つ時の知らせに使う)
  * ため、JSON に写すと名前が変わってしまう。 意味が同じことは別の検査で確かめる。
+ *
+ * **実装から導く** (#2344)。 ここに手で並べていた間、中括弧が読む別名が増えた日に
+ * この一覧だけが取り残され、本 file の検査が「対応表に無い項目がある」 で落ちた。
+ * `倍率` だけは中括弧の別名ではなく別経路 (`reportScaleOnNonPart`) が持つので足す。
  */
 const 記法だけの別名: Record<string, string> = {
   倍率: "scale",
-  // #1301 で中括弧の形でも読めるようになった日本語。 JSON は英語名だけを持つ
-  種類: "kind",
-  補足: "subtitle",
-  値: "value",
-  前の値: "previous",
-  行: "rows",
-  印: "marks",
+  ...INLINE_ACTOR_ALIASES,
 };
 
 /**
