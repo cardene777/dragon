@@ -436,6 +436,64 @@ function partFrameGeometry(part: CdlDiagram): PartFrameGeometry {
   return out;
 }
 
+/** 測るためだけの配置が受け取った知らせの数 (#2312)。 */
+let 測るために受け取った知らせ = 0;
+
+/**
+ * **測るためだけに配置する** (#2312)。
+ *
+ * 部品を置く処理は、縦列の位置や部品の図枠を知るために図を配置する。 その配置は読むだけで、
+ * 画面にも書き出しにも出ない。 部品はこの後に動かすので、測った時の並びは残らない。
+ *
+ * ところが記法の engine は配置のたびに重なりを `console.warn` に出す。 測るためだけの配置でも
+ * 出るので、**描かれない図についての知らせ** が端末に流れていた。 カタログの群 14 file を
+ * 読み込むだけで 481 行 (箱どうしの重なり 48 件は、出来上がった図では 1 件も重ならない)。
+ *
+ * engine の `layout()` は引数を 1 つしか取らず、知らせを止める口が無い。 呼ぶ側で受け取る。
+ *
+ * **黙って捨てない**。 受け取った数を覚えておき、`測るために受け取った知らせの数()` で読める。
+ * 数えないと「知らせが無い」 と「この経路を通っていない」 が区別できず、読み込み時の知らせを
+ * 0 行で固定する検査が空振りしても気付けない。
+ *
+ * 記法の engine 以外の知らせ (`[dragon]` で始まる組み立て側の知らせなど) はそのまま通す。
+ * 止めるのは engine が配置のたびに出す分に限る。
+ *
+ * 出来上がった図についての知らせは止めない。 画面を描く側の配置は別の経路で、
+ * そちらの知らせは `layout-warn-ledger` が宣言と突き合わせている (#2308)。
+ *
+ * **配置できない図の扱いは呼ぶ側のまま**。 例外はそのまま返す = ここで握ると、今まで
+ * 例外を投げていた呼び出し (`partsBaseBottomWithoutParts`) が黙って `undefined` を返す形に
+ * 変わる。 知らせを受け取ること以外は何も変えない。
+ */
+function 測るために配置する(d: CdlDiagram): LaidDiagram {
+  const 元 =
+    typeof console !== "undefined" && typeof console.warn === "function" ? console.warn : undefined;
+  if (元) {
+    console.warn = (...a: unknown[]) => {
+      if (a.map(String).join(" ").includes("[cdl layout]")) {
+        測るために受け取った知らせ++;
+        return;
+      }
+      元(...(a as []));
+    };
+  }
+  try {
+    return layout(d);
+  } finally {
+    if (元) console.warn = 元;
+  }
+}
+
+/**
+ * 測るためだけの配置が受け取った知らせの数 (#2312)。
+ *
+ * 読み込み時の知らせを 0 行で固定する検査が、母数として読む。 0 件なら「知らせが無い」 では
+ * なく「測るための配置を 1 度も通っていない」 = 検査が空振りしている。
+ */
+export function 測るために受け取った知らせの数(): number {
+  return 測るために受け取った知らせ;
+}
+
 /**
  * 部品の頁 (部品の図だけ) を配置した結果。 配置できない図では `undefined` (#1992)。
  *
@@ -453,7 +511,7 @@ function 部品の頁を配置する(part: CdlDiagram): LaidDiagram | undefined 
   let out: LaidDiagram | null = null;
   if (countDiagramElements(part) <= MAX_INPUT_ELEMENTS) {
     try {
-      out = layout(part);
+      out = 測るために配置する(part);
     } catch {
       out = null;
     }
@@ -508,10 +566,19 @@ function 部品の置き方を読む(part: CdlDiagram): 部品の置き方 {
  * 縦列の外接矩形。 幅が正でない時 (縦列が 1 本も無い図) は 400 に落とす。
  * 1 未満の正の幅はそのまま使う。 1 に切り上げると、その分だけ `大きさ:` の倍率が小さくなる
  */
-function 縦列の外接(縦列: ReadonlyMap<string, { x: number; w: number }>): { 左端: number; 幅: number } {
+function 縦列の外接(縦列: ReadonlyMap<string, { x: number; w: number }>): {
+  左端: number;
+  幅: number;
+} {
   const 値 = [...縦列.values()];
-  const 左端 = minOf(値.map((g) => g.x), 0);
-  const 右端 = maxOf(値.map((g) => g.x + g.w), 400);
+  const 左端 = minOf(
+    値.map((g) => g.x),
+    0,
+  );
+  const 右端 = maxOf(
+    値.map((g) => g.x + g.w),
+    400,
+  );
   return { 左端, 幅: positiveOr(右端 - 左端, 400) };
 }
 
@@ -816,8 +883,9 @@ function baseDiagramBottom(
   // 早い戻り。 変異試験でこの行を外しても落ちる検査は 0 件で、それが期待どおり
   if (baseNodes.length === 0) return undefined;
   const baseIds = new Set(baseNodes.map((n) => n.id));
+  // 部品を外した並びの下端を測るだけで、この配置は残らない (#2312)
   return partsBaseBottom(
-    layout({
+    測るために配置する({
       ...target,
       lanes: target.lanes.filter((l) => !partsLaneIds.has(l.id)),
       nodes: [...baseNodes],
@@ -902,12 +970,9 @@ function partGridCenters(
   //
   // **座標で書いた箱は数える**。 こちらは格子より先に位置が決まっており、1 度目と 2 度目で
   // 動かない。 外すと、座標で下に置いた箱にパーツが重なる。
-  const 相対で置く箱 = new Set(
-    doc.actors.filter((a) => a.posRel !== undefined).map((a) => a.name),
-  );
+  const 相対で置く箱 = new Set(doc.actors.filter((a) => a.posRel !== undefined).map((a) => a.name));
   const baseNodes = target.nodes.filter(
-    (n) =>
-      !partsActorNames.has(n.title) && !partsLaneIds.has(n.lane) && !相対で置く箱.has(n.title),
+    (n) => !partsActorNames.has(n.title) && !partsLaneIds.has(n.lane) && !相対で置く箱.has(n.title),
   );
   // 取り込まれない見本は格子の枠を使わない (#1015)。 枠を使うと、落とした見本の分だけ
   // 後続がずれる (実測 = 隣の見本の左端が 60 から 725 に動いた)
@@ -1050,7 +1115,10 @@ function 部品の要素へ繋ぐ(
       } else {
         理由 =
           要素.length === 0
-            ? { message: "の中に繋げる要素が無い", hint: "この部品は要素を持たないため、矢印の端にできません" }
+            ? {
+                message: "の中に繋げる要素が無い",
+                hint: "この部品は要素を持たないため、矢印の端にできません",
+              }
             : {
                 message: "の中のどの要素に繋ぐかが決まらない",
                 hint: `要素が 2 つ以上ある部品は、矢印に ${欄}: <要素の id> を書いて繋ぐ要素を選ぶ (要素 = ${要素の一覧})`,
@@ -1220,7 +1288,8 @@ function 部品の縦列(
   if (仮の箱の縦列.size > 1) return undefined;
   const [入っていた] = [...仮の箱の縦列];
   const 候補 =
-    入っていた ?? target.lanes.find((l) => l.label === a.name && !target.nodes.some((n) => n.lane === l.id))?.id;
+    入っていた ??
+    target.lanes.find((l) => l.label === a.name && !target.nodes.some((n) => n.lane === l.id))?.id;
   if (候補 === undefined) return undefined;
   // 他の登場人物の箱が同じ縦列に居れば、自分だけの縦列ではない
   return target.nodes.some((n) => n.lane === 候補 && !仮の箱か(n.id)) ? undefined : 候補;
@@ -1658,7 +1727,10 @@ function 部品の名前で光らせる(
       線: part.edges.map((e) => e.id).filter((id) => 線.has(`${名前}__${id}`)),
     };
     部品の中.set(名前, 中);
-    部品の相手.set(名前, [...中.要素, ...中.線].map((id) => `${名前}__${id}`));
+    部品の相手.set(
+      名前,
+      [...中.要素, ...中.線].map((id) => `${名前}__${id}`),
+    );
   }
   const 長い名前から = [...取り込んだ.keys()].sort((a, b) => b.length - a.length);
   const 見せる数 = 8;
@@ -1670,7 +1742,8 @@ function 部品の名前で光らせる(
   // 部品だけが光らない状態を作らないよう揃える。 2 つ以上の名前が同じ slug になる時は引かない
   const 書いた名前 = new Set(doc.actors.map((a) => a.name));
   const slugの数 = new Map<string, number>();
-  for (const 名前 of 書いた名前) slugの数.set(slugify(名前), (slugの数.get(slugify(名前)) ?? 0) + 1);
+  for (const 名前 of 書いた名前)
+    slugの数.set(slugify(名前), (slugの数.get(slugify(名前)) ?? 0) + 1);
   const slugから = new Map<string, string[]>();
   for (const [名前, 相手] of 部品の相手) {
     if (slugの数.get(slugify(名前)) === 1) slugから.set(slugify(名前), 相手);
@@ -1778,7 +1851,8 @@ function 部品の縦列を部品に固定する(
   if (対象.length === 0) return;
   let laid: LaidDiagram;
   try {
-    laid = layout(target);
+    // 部品の要素の上下端を測るだけで、この配置は残らない (#2312)
+    laid = 測るために配置する(target);
   } catch {
     return;
   }
@@ -1951,9 +2025,10 @@ const 部品の縦列の余白 = 25;
  */
 function 縦列に置いた部品を揃える(target: CdlDiagram, 置いた: readonly 縦列に置いた部品[]): void {
   if (置いた.length === 0) return;
+  // 揃える前の並びを測るだけで、この配置は残らない。 知らせは呼ぶ側で受け取る (#2312)
   const 配置する = (): LaidDiagram | undefined => {
     try {
-      return layout(target);
+      return 測るために配置する(target);
     } catch {
       return undefined;
     }
@@ -2361,9 +2436,7 @@ function mergePartIntoDiagram(
     const mappedLane = laneIdMap.get(nodeOrig.lane) ?? nodeOrig.lane;
     // 形の中の文字は、入れ子の底まで辿って差し替える。
     // 1 段だけ見る形だと `fill: { gradient: "{v}" }` のような書き方が置き換わらずに残る。
-    let newShape = nodeOrig.shape
-      ? deepRewriteStrings(nodeOrig.shape, rewriteTemplate)
-      : undefined;
+    let newShape = nodeOrig.shape ? deepRewriteStrings(nodeOrig.shape, rewriteTemplate) : undefined;
     // parts 全体 resize (I2 forensic): shape 内 radius / outerRadius / innerRadius / thickness に
     // scale 反映 = user が SE handle drag で拡大すると shape の見た目も比例拡大される。 scaleX を採用
     // (等比 scale 相当、 縦方向 scaleY と乖離する場合は近似)、 shape 内数値 field のうち幾何寸法系

@@ -51,6 +51,7 @@ export {
   partsBaseBottom,
   partsGridCenters,
   部品に上書きを当てる,
+  測るために受け取った知らせの数,
 } from "./compile/parts";
 import { SINGLE_BOX_KINDS, 図種の作り } from "./compile/kinds";
 import { collectRenamedTargets, disambiguateActorIds, restoreActorNames } from "./compile/actor-ids";
