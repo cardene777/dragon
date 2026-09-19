@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
 /**
@@ -94,6 +95,45 @@ export function 説明書のfile(repo: string): string[] {
     repo,
     走査するfile(repo, "*.md").filter((p) => !説明書として走査しない.has(basename(p))),
   );
+}
+
+/**
+ * 履歴として残したと自分で宣言している印 (#2264)。
+ *
+ * 仕様書は先頭で `status` を名乗る決まりで、`superseded` は
+ * 「別の文書に置き換わったが、当時の検討を残すために置いてある」 ことを指す。
+ * 実際に `spec-widgets-syntax.md` は「本 file は履歴として残している」 と本文にも書く。
+ */
+const 履歴の印 = /^\*\*status\*\*\s*=\s*superseded\b/mu;
+
+/**
+ * 履歴として残した説明書かどうか。
+ *
+ * **中身の宣言で決める**。 file 名や置き場所で決めると、印を書いた文書が増えても
+ * 一覧を書き換えるまで外れない (`いまを述べないfile` は名前で決める形なので、
+ * 変更履歴のように名前が決まっているものだけを持つ)。
+ */
+export function 履歴として残したfile(path: string): boolean {
+  try {
+    return 履歴の印.test(readFileSync(path, "utf8"));
+  } catch {
+    // 読めない file は「履歴ではない」 側に倒す = 走査の母数から黙って消えないようにする
+    return false;
+  }
+}
+
+/**
+ * いまの実物を述べている説明書の絶対 path (#2264)。
+ *
+ * `説明書のfile` から、履歴として残したと宣言している md を外す。
+ * 当時の数や一覧がそのまま書いてあるのが正しい文書なので、
+ * 「いまの実物と合っているか」 を見る判定の母数に入れない。
+ *
+ * **見本が組み立つかのような、いまを問わない判定は `説明書のfile` のままにする**。
+ * 履歴の文書に書いた見本も組み立てられるべきで、外すと母数が減るだけになる。
+ */
+export function いまを述べる説明書(repo: string): string[] {
+  return 説明書のfile(repo).filter((p) => !履歴として残したfile(p));
 }
 
 /**
