@@ -1,7 +1,7 @@
 /**
  * `TOP_LEVEL_KEYS` が、記法が実際に処理する項目と一致することの検査 (#1190)。
  *
- * この配列は 2 つの読み手を持つ。 読めない行の案内 (`expected one of: ...`) と、記法一覧の
+ * この配列は 2 つの読み手を持つ。 読めない行の案内 (`使える項目 = ...`) と、記法一覧の
  * 網羅検査 (`apps/playground-spa/src/lib/values-example.test.tsx`)。 どちらも「記法が受ける
  * 項目はこれで全部」 という前提で動く。
  *
@@ -40,7 +40,7 @@ describe("top-level 項目の一覧が実装と一致する (#1190)", () => {
     const result = parseTextDslV05(`${key}:`);
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.errors.filter((error) => error.message.startsWith("unknown top-level key"))).toEqual([]);
+    expect(result.errors.filter((error) => error.message.startsWith("最上位の項目名が読めません"))).toEqual([]);
   });
 
   it("一覧外の識別子形式の項目を拒否する", () => {
@@ -49,14 +49,14 @@ describe("top-level 項目の一覧が実装と一致する (#1190)", () => {
     if (result.ok) return;
     expect(result.errors).toContainEqual({
       line: 3,
-      message: 'unknown top-level key: "future: value"',
-      hint: `expected one of: ${TOP_LEVEL_KEYS.join(", ")}`,
+      message: '最上位の項目名が読めません: "future"',
+      hint: `使える項目 = ${TOP_LEVEL_KEYS.join(", ")}`,
     });
   });
 
   it("読めない行の案内が一覧をそのまま出す", () => {
     // 案内を手で書くと、項目を足した時に案内だけが取り残される
     const src = readFileSync(new URL("../src/v05/parser.ts", import.meta.url), "utf8");
-    expect(src).toContain("expected one of: ${TOP_LEVEL_KEYS.join(\", \")}");
+    expect(src).toContain("使える項目 = ${TOP_LEVEL_KEYS.join(\", \")}");
   });
 });

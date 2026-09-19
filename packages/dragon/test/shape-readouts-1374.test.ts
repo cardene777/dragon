@@ -270,7 +270,7 @@ describe("値を見せる部品 (#1374)", () => {
     );
     expect(壊れた行.ok, "コロンの無い部品が黙って消えた").toBe(false);
     if (!壊れた行.ok) {
-      expect(壊れた行.errors.map((e) => e.message).join("\n")).toContain("invalid readout entry");
+      expect(壊れた行.errors.map((e) => e.message).join("\n")).toContain("読み取り値の行が読めません");
     }
 
     const 一行 = parseTextDslV05(
