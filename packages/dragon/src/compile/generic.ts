@@ -1,11 +1,12 @@
 import { diagram } from "@cardenelabs/cdl";
-import type { CdlDiagram } from "@cardenelabs/cdl";
+import type { CdlDiagram, NodeKind } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "../focus";
 import type { DslDocument, DslPhase } from "../types";
 import { 始まりと終わりの決め方 } from "./actors";
 import { 並べる向き, 後ろへ戻る矢印か, type GenericKind } from "./direction";
 import { ERの関係の指定を作る, ERの関係の矢印 } from "./er-relation";
 import { 描ける種別 } from "./kinds";
+import { 状態の図の既定の種類 } from "./state";
 import { 書いた縦列に置く } from "./lanes";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
@@ -56,7 +57,22 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
   const b = diagram(slugify(doc.title), { topic: doc.title, type: kind });
 
   /*
-   * 始まりと終わりの札 (#2349)。
+   * 状態の図で、書かなかった時の既定 (#2352)。
+   *
+   * 状態の図には組み立ての経路が 2 つあり、**書かなかった時の既定が揃っていなかった**。
+   * 同じ本文でも動きの段を 1 つ足すだけで、箱が札の形から人の形に変わっていた
+   * (実測 = 記法の頁の「認証の状態遷移」 が人の形で描かれていた)。
+   *
+   * 既定の種類は `状態の図の既定の種類` が 1 箇所で持つ。 書いた種類はそのまま通す。
+   *
+   * **書いたかどうかは `kindWritten` で見る**。 書かなかった箱の `kind` には既定の
+   * `actor` が入るので、値だけでは「`actor` と書いた」 と「書かなかった」 を分けられない。
+   */
+  const 箱の種類 = (a: (typeof doc.actors)[number]): NodeKind =>
+    kind === "state" && a.kindWritten !== true ? 状態の図の既定の種類 : 描ける種別(a.kind);
+
+  /*
+   * 始まりと終わりと途中の札 (#2349 / #2352)。
    *
    * **並べ方の分岐ごとに書かない**。 3 つある並べ方のうち 1 つにしか札の処理が無く、
    * 縦列を書いた状態の図では `initial: true` を書いても札が 1 つも出なかった
@@ -65,13 +81,18 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
    * 札を出すのは状態の図だけ。 どの箱が始まり / 終わりかは `始まりと終わりの決め方` が
    * 1 箇所で決める。 **書いた値はどの並べ方でも効き**、1 つも書いていない時の既定
    * (並びの最初と最後) は、並びが意味を持つ並べ方でだけ効く。
+   *
+   * **札を出すのは既定の形の箱だけ** (#2352)。 印の箱 (`mark-start` / `mark-end`) は
+   * 形そのものが始点と終点を表すので、字を重ねると同じことを 2 度言う
+   * (実測 = #2349 で既定を無条件に配った時、印の箱に「初期」 の字が出て見本が壊れた)。
    */
   const 決め方 = 始まりと終わりの決め方(doc, { 並びで決める: !書いた縦列に置く(kind, doc) });
   const 札 = (a: (typeof doc.actors)[number], idx: number): { eyebrow?: string } => {
     if (kind !== "state") return {};
+    if (箱の種類(a) !== 状態の図の既定の種類) return {};
     if (決め方.始まり(a, idx)) return { eyebrow: "初期" };
     if (決め方.終わり(a, idx)) return { eyebrow: "最終" };
-    return {};
+    return { eyebrow: "状態" };
   };
 
   // lane / node 配置 ... preset kind に応じて切替
@@ -132,7 +153,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       b.node(id, {
         lane: lid,
         stack,
-        kind: 描ける種別(a.kind),
+        kind: 箱の種類(a),
         title: 箱の題(a),
         ...札(a, idx),
       });
@@ -157,7 +178,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       b.node(id, {
         lane: lid,
         stack: idx,
-        kind: 描ける種別(a.kind),
+        kind: 箱の種類(a),
         title: 箱の題(a),
         ...札(a, idx),
       });
@@ -182,7 +203,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       b.node(id, {
         lane: lid,
         stack: 0,
-        kind: 描ける種別(a.kind),
+        kind: 箱の種類(a),
         title: 箱の題(a),
         ...札(a, idx),
       });

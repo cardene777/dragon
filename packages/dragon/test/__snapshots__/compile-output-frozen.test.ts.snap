@@ -2131,6 +2131,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > state-machine �
         "title": "待機",
       },
       {
+        "eyebrow": "状態",
         "id": "検証中",
         "kind": "card",
         "lane": "lane-検証中",

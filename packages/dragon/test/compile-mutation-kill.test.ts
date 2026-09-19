@@ -2980,9 +2980,13 @@ describe("state preset: initial / final marker の実値検証 (assertion 強化
     const first = node(d, "a");
     const mid = node(d, "b");
     const last = node(d, "c");
-    // 中間 actor は initial / final どちらの marker も持たない基準点になる
-    const keysOf = (n: typeof first) => Object.keys(n).sort().join(",");
-    expect(keysOf(first) !== keysOf(mid) || keysOf(last) !== keysOf(mid)).toBe(true);
+    /*
+     * **欄の名前ではなく値で比べる** (#2352)。
+     *
+     * 中間の箱にも「状態」 の札が付くようになったため、3 つとも同じ欄を持つ。
+     * 欄の名前を並べて比べると、札の字が違っていても同じに見える。
+     */
+    expect(first.eyebrow !== mid.eyebrow || last.eyebrow !== mid.eyebrow).toBe(true);
   });
 
   it("actor 1 個なら initial のみで final は付かない", () => {
@@ -3110,12 +3114,14 @@ describe("state preset: initial / final marker の eyebrow 実値検証", () => 
     expect(node(d, "c").eyebrow).toBe("最終");
   });
 
-  it("中間 actor には marker eyebrow が付かない", () => {
+  it("中間 actor には状態の札が付く", () => {
+    // 始まりでも終わりでもない箱は「状態」 (#2352)。 組み立て器を通る経路と揃えた =
+    // 以前はこの経路だけ札が付かず、動きを書いただけで札が消えていた
     const d = compileToCdl(makeDoc("state", {
       animate: animOf(), actors: [actor("A"), actor("B"), actor("C")],
       flow: [step("A", "B"), step("B", "C")],
     }));
-    expect(node(d, "b").eyebrow).toBeUndefined();
+    expect(node(d, "b").eyebrow).toBe("状態");
   });
 
   it("actor 1 個なら初期のみで最終は付かない (length > 1 条件)", () => {
