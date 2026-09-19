@@ -23,6 +23,30 @@ export type GenericOpts = {
 };
 
 /**
+ * この共通の組み立てへ回すか (#2348)。
+ *
+ * **条件を 1 箇所に集める**。 図種ごとの入口が同じ条件を手で並べていた間、
+ * 「縦列を書いた形」 が 2 図種 (状態の図 / 表の図) で抜け落ちていた =
+ * 動きを書かない図では、書いた縦列に箱が入らず、代わりに箱ごとの縦列が作られ、
+ * 「どの箱も入らない縦列です」 という **事実と逆の知らせ** だけが出ていた。
+ *
+ * 2 つの条件はどちらも「静止図の経路が持っていない並べ方を書いた」 ことを意味する。
+ * 静止図の経路は並びを固定で持つため、通すと書いた指定が黙って消える (#1263)。
+ *
+ * `図種ごとの理由` はその図種にしか無い条件 (泳法図の向き / 状態の図の種類) を渡す。
+ * 流れ図は `鎖でつなぐ形か` が同じ判定を内側に持つため、ここは通らない。
+ */
+export function 共通の組み立てへ回す(
+  kind: GenericKind,
+  doc: DslDocument,
+  図種ごとの理由 = false,
+): boolean {
+  if (doc.animate !== undefined && doc.animate.phases.length > 0) return true;
+  if (書いた縦列に置く(kind, doc)) return true;
+  return 図種ごとの理由;
+}
+
+/**
  * v0.4 ... 5 preset (flow / swimlane / er / state / topology) 共通 animation compile。
  * sequence preset と異なり header / footer / step box 構造はない、 シンプルな lane + node + edge 構造。
  * preset kind ごとに lane 配置と layout を切替。

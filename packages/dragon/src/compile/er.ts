@@ -4,13 +4,14 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
 
 import { ERの関係の指定を作る } from "./er-relation";
-import { compileGenericWithAnimate } from "./generic";
+import { compileGenericWithAnimate, 共通の組み立てへ回す } from "./generic";
 
 import { slugify } from "./slug";
 
 export function compileEr(doc: DslDocument): CdlDiagram {
-  // v0.4 ... animation あり時 builder 直接経路 (entity を box として配置)
-  if (doc.animate && doc.animate.phases.length > 0) {
+  // 動きを書いた形と縦列を書いた形は共通の組み立てへ (#1263 / #2348)。
+  // 縦列は #2348 まで抜けており、動きを書かない図では書いた縦列が黙って消えていた
+  if (共通の組み立てへ回す("er", doc)) {
     // 460 は preset 側の旧既定に合わせた値だった。 preset が箱 400 + 余白 25 × 2 = 450 を
     // 宣言するようになった (cardene777/cdl#359) ので、 同じ図が animate の有無で 10 world
     // ずれないようここも 450 にする。

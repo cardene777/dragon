@@ -4,18 +4,18 @@ import { 箱の題 } from "./node-title";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
 
-import { compileGenericWithAnimate } from "./generic";
+import { compileGenericWithAnimate, 共通の組み立てへ回す } from "./generic";
 import { 描ける種別 } from "./kinds";
 
 import { slugify } from "./slug";
 import { 始まりと終わりの決め方 } from "./actors";
 export function compileState(doc: DslDocument): CdlDiagram {
-  // v0.4 ... animation あり時 builder 直接経路 (各 state を lane で配置、 transition を edge)
+  // 動きを書いた形と縦列を書いた形は共通の組み立てへ (#1263 / #2348 で 1 箇所にまとめた)。
+  // 縦列は #2348 まで抜けており、動きを書かない図では書いた縦列が黙って消えていた。
   //
-  // **種類を書いた形は動きの有無に関わらず generic 経路へ** (#1450、 #1263 と同じ理由)。
-  // 動く図だけで効かせると、同じ記法でも静止図では指定が黙って消える
-  // (実測 = `kind: mark-start` を書いた箱が `card` になり知らせも出ない)
-  if ((doc.animate && doc.animate.phases.length > 0) || 既定と違う種類を書いた(doc)) {
+  // **種類を書いた形も** (#1450、 #1263 と同じ理由)。 静止図の経路は種類を持たないため、
+  // 通すと `kind: mark-start` を書いた箱が `card` になり知らせも出ない
+  if (共通の組み立てへ回す("state", doc, 既定と違う種類を書いた(doc))) {
     return compileGenericWithAnimate(doc, { kind: "state", laneWidth: 360 });
   }
   // stateMachine preset ... actors を state に、 流れ を transition に
