@@ -61,8 +61,10 @@ const 宣言: ReadonlyMap<string, string> = new Map([
       " 実効は 7.55 (#2287 で母数に入れた)。 下限は 10 / 7.55 = 1.32 を要求するが、" +
       " 実寸 100% を超えて引き伸ばさない決まり (`READABLE_MAX_SCALE`、#1084) で 1.0 に切られる。" +
       " その結果、図は 1722 の viewBox を 1722px で描き (100%)、`ハッシュ` は 7.55px になる。" +
-      " ここから先は図の側が 100% で 7.55px の文字を持っている話で、記法の engine の" +
-      " 文字の大きさを変えないと動かない (#2289)",
+      " 入れ子の図を原寸で描いてから枠に収まる倍率で丸ごと縮めており、文字も一緒に縮む" +
+      " (同じ `<g>` の中に指定 10.5 の文字が 4 件)。 縮める側で文字の指定を打ち消す形に直すと決め" +
+      " (#2289 で 3 案を比べた)、記法の engine へ `cardene777/cdl#871` として起票した。" +
+      " 直した版が出たらこの行が落ちる",
   ],
 ]);
 
@@ -246,12 +248,16 @@ test.describe("拡大表示の文字が読める大きさに届く (#2284)", () 
      * 実効を母数にすると `10 / 7.55 = 1.32` を要求し、上限 (実寸 100%) で 1.0 に切られる
      * = 図は viewBox と同じ幅になる。 **描かれた幅の違いがそのまま母数の違いを表す**。
      *
-     * 7.55px でも下限は割るので、上の宣言から `ethereum` は外れない (行き先は #2289)。
+     * 7.55px でも下限は割るので、上の宣言から `ethereum` は外れない
+     * (行き先は記法の engine の `cardene777/cdl#871`、#2289 で 3 案を比べて決めた)。
      */
     await page.goto("catalog/ethereum", { waitUntil: "networkidle" });
     await page.waitForTimeout(1200);
     await 頁を送る(page);
-    await page.getByRole("button", { name: /を拡大表示$/ }).first().click();
+    await page
+      .getByRole("button", { name: /を拡大表示$/ })
+      .first()
+      .click();
     await expect(page.locator(".cdl-modal-content")).toBeVisible();
     // 実効を測る窓が閉じるまで待つ (`useDiagramPanZoom` は 500ms × 6 回)
     await page.waitForTimeout(4500);
@@ -288,12 +294,17 @@ test.describe("拡大表示の文字が読める大きさに届く (#2284)", () 
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(1200);
     await 頁を送る(page);
-    await page.getByRole("button", { name: /を拡大表示$/ }).first().click();
+    await page
+      .getByRole("button", { name: /を拡大表示$/ })
+      .first()
+      .click();
     await expect(page.locator(".cdl-modal-content")).toBeVisible();
     await page.waitForTimeout(2500);
 
     const 植える前 = await 拡大の最小の文字(page);
-    expect(植える前.最小, "植える前から下限を割っている (対照にならない)").toBeGreaterThanOrEqual(下限);
+    expect(植える前.最小, "植える前から下限を割っている (対照にならない)").toBeGreaterThanOrEqual(
+      下限,
+    );
 
     await page.evaluate(() => {
       const svg = document.querySelector(".cdl-modal-body svg");
@@ -307,7 +318,9 @@ test.describe("拡大表示の文字が読める大きさに届く (#2284)", () 
     });
 
     const 植えた後 = await 拡大の最小の文字(page);
-    expect(植えた後.字, "小さい文字を置いても拾えない (測り方が実物と噛み合っていない)").toBe("植えた字");
+    expect(植えた後.字, "小さい文字を置いても拾えない (測り方が実物と噛み合っていない)").toBe(
+      "植えた字",
+    );
     expect(植えた後.最小).toBeLessThan(下限);
   });
 });
@@ -340,11 +353,13 @@ test.describe("飾りは図の幅を継がない (#2284)", () => {
     await page.waitForTimeout(500);
 
     const 後 = await 輪を測る();
-    expect(後!.幅, `倍率を上げたら飾りが図の幅を継いだ (前 ${前!.幅}px → 後 ${後!.幅}px)`).toBeLessThanOrEqual(
-      前!.幅 + 1,
-    );
-    expect(後!.台の高さ, `飾りが伸びて台の高さが跳ねた (前 ${前!.台の高さ}px → 後 ${後!.台の高さ}px)`).toBeLessThan(
-      前!.台の高さ + 400,
-    );
+    expect(
+      後!.幅,
+      `倍率を上げたら飾りが図の幅を継いだ (前 ${前!.幅}px → 後 ${後!.幅}px)`,
+    ).toBeLessThanOrEqual(前!.幅 + 1);
+    expect(
+      後!.台の高さ,
+      `飾りが伸びて台の高さが跳ねた (前 ${前!.台の高さ}px → 後 ${後!.台の高さ}px)`,
+    ).toBeLessThan(前!.台の高さ + 400);
   });
 });
