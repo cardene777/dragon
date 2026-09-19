@@ -384,3 +384,38 @@ describe("smallestFontWorld — 画面に出ていない文字 (Round 1 review �
     expect(smallestFontWorld(svg)).toBe(0);
   });
 });
+
+describe("smallestFontWorld — 描き出しの動きに引きずられない (#2279)", () => {
+  const svgWith = (html: string): SVGSVGElement => {
+    const host = document.createElement("div");
+    host.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${html}</svg>`;
+    return host.querySelector("svg")!;
+  };
+
+  /** 仮想 DOM は `getScreenCTM` を持たない。 倍率だけを持つ行列を差し込む */
+  const 倍率を差し込む = (el: Element, 倍率: number): void => {
+    (el as unknown as { getScreenCTM: () => DOMMatrix }).getScreenCTM = () =>
+      ({ a: 倍率, b: 0, c: 0, d: 倍率 }) as DOMMatrix;
+  };
+
+  it("**入れ子の倍率が掛かっていても返る値は指定のまま**", () => {
+    // 描き出しの動きは文字に 0 倍から 1 倍までの拡大率を掛ける (実測 = 工程表の帯の中の名前が
+    // 0.19 → 0.46 → 0.74 → 1.0)。 途中を読むと同じ図が測る時刻だけで別の下限を出す
+    const svg = svgWith(`<text font-size="11">デザイナー</text><text font-size="20">Q1</text>`);
+    const [動いている, 止まっている] = [...svg.querySelectorAll("text")];
+    倍率を差し込む(svg, 0.9091);
+    倍率を差し込む(動いている!, 0.9091 * 0.19);
+    倍率を差し込む(止まっている!, 0.9091);
+    expect(smallestFontWorld(svg), "描かれている大きさを読んでいる").toBe(11);
+  });
+
+  it("動きの途中でも動き終わりでも同じ値を返す", () => {
+    const 作る = (入れ子: number): SVGSVGElement => {
+      const svg = svgWith(`<text font-size="11">名</text>`);
+      倍率を差し込む(svg, 0.9091);
+      倍率を差し込む(svg.querySelector("text")!, 0.9091 * 入れ子);
+      return svg;
+    };
+    expect(smallestFontWorld(作る(0.19))).toBe(smallestFontWorld(作る(1)));
+  });
+});
