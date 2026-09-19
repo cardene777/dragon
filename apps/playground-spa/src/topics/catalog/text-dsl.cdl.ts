@@ -1677,3 +1677,341 @@ export const sourceJson__textDslStateMarks = `{
     }
   ]
 }`;
+
+
+// ─── 箱の項目名を日本語で書く (#2332) ─────
+//
+// 記法は箱の項目名を日本語でも読む (#1026 / #1301) のに、**カタログには 1 枚も見本が無かった**
+// (実測 = 記法 570 件 17303 行を走査して、日本語の項目名は `位置` の 7 件だけ。 その 7 件も
+// 値の書き方が日本語なので一緒に出ているだけだった)。 記法を学ぶ場はカタログしかないので、
+// 書ける形が見えないまま残っていた。
+//
+// **同じ図を 2 通りで書いて切替で並べる**。 別々の図にすると「書き方が違う」 のか
+// 「別の意味なのか」 が読めない。 題だけを変えて項目名を入れ替え、出来上がる図が同じことを
+// `packages/dragon/test/catalog-japanese-actor-keys.test.ts` が突き合わせる。
+//
+// **JSON の欄名は英語だけ**。 日本語の別名は記法 (YAML) の読み手が持ち、JSON に書くと
+// 読めない欄として弾かれる。 切替のどちらでも JSON の欄は英語のまま出る。
+
+export const sourceYaml__textDslActorKeys = `title: "箱の項目名を英語で書く"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 420 }
+  l2: { x: 520, width: 420 }
+
+states:
+  progress: 20
+
+actors:
+  - 受付:
+      lane: l1
+      stack: 0
+      kind: card
+      title: "受け付け"
+      subtitle: "入口"
+      color: 成功
+  - 記録:
+      lane: l1
+      stack: 1
+      kind: storage
+      rows: ["番号: 数", "名前: 文字"]
+      marks: ["pk", ""]
+  - 進み:
+      lane: l2
+      stack: 0
+      kind: dyn-rect
+      size: 200,96
+      shape: { kind: rect, source: "{progress}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 }
+      value: "{progress}%"
+      visibleIf: "progress > 0"
+
+flow:
+  - 受付 -> 記録: "書き込む"
+  - 記録 -> 進み: "読み出す"
+
+animation:
+  - step: "受け付けて記録する" 1.4s
+    focus: ["受付", "記録"]
+    description: "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+  - step: "進みを上げる" 1.6s
+    focus: ["記録", "進み"]
+    tween:
+      progress: 20 -> 80
+    description: "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+`;
+
+export const sourceJson__textDslActorKeys = `{
+  "title": "箱の項目名を英語で書く",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 420 },
+    "l2": { "x": 520, "width": 420 }
+  },
+  "states": { "progress": 20 },
+  "actors": [
+    { "name": "受付", "lane": "l1", "stack": 0, "kind": "card", "title": "受け付け", "subtitle": "入口", "color": "成功" },
+    { "name": "記録", "lane": "l1", "stack": 1, "kind": "storage", "rows": ["番号: 数", "名前: 文字"], "marks": ["pk", ""] },
+    {
+      "name": "進み",
+      "lane": "l2",
+      "stack": 0,
+      "kind": "dyn-rect",
+      "posW": 200,
+      "posH": 96,
+      "shape": { "kind": "rect", "source": "{progress}", "fillMax": 100, "orient": "up", "fill": "#22c55e", "radius": 6 },
+      "value": "{progress}%",
+      "visibleIf": "progress > 0"
+    }
+  ],
+  "flow": [
+    { "from": "受付", "to": "記録", "label": "書き込む" },
+    { "from": "記録", "to": "進み", "label": "読み出す" }
+  ],
+  "animation": [
+    {
+      "step": "受け付けて記録する",
+      "duration": 1.4,
+      "focus": ["受付", "記録"],
+      "body": "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+    },
+    {
+      "step": "進みを上げる",
+      "duration": 1.6,
+      "focus": ["記録", "進み"],
+      "tween": { "progress": [20, 80] },
+      "body": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+    }
+  ]
+}`;
+
+export const textDslActorKeys = textDslToDiagram(sourceYaml__textDslActorKeys);
+
+export const patternBase__textDslActorKeys = "英語で書く";
+
+export const sourceYaml__pattern__textDslActorKeys__日本語で書く = `title: "箱の項目名を日本語で書く"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 420 }
+  l2: { x: 520, width: 420 }
+
+states:
+  progress: 20
+
+actors:
+  - 受付:
+      lane: l1
+      stack: 0
+      種類: card
+      題: "受け付け"
+      補足: "入口"
+      色: 成功
+  - 記録:
+      lane: l1
+      stack: 1
+      種類: storage
+      行: ["番号: 数", "名前: 文字"]
+      印: ["pk", ""]
+  - 進み:
+      lane: l2
+      stack: 0
+      種類: dyn-rect
+      大きさ: 200,96
+      図形: { kind: rect, source: "{progress}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 }
+      値: "{progress}%"
+      出す条件: "progress > 0"
+
+flow:
+  - 受付 -> 記録: "書き込む"
+  - 記録 -> 進み: "読み出す"
+
+animation:
+  - step: "受け付けて記録する" 1.4s
+    focus: ["受付", "記録"]
+    description: "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+  - step: "進みを上げる" 1.6s
+    focus: ["記録", "進み"]
+    tween:
+      progress: 20 -> 80
+    description: "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+`;
+
+export const sourceJson__pattern__textDslActorKeys__日本語で書く = `{
+  "title": "箱の項目名を日本語で書く",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 420 },
+    "l2": { "x": 520, "width": 420 }
+  },
+  "states": { "progress": 20 },
+  "actors": [
+    { "name": "受付", "lane": "l1", "stack": 0, "kind": "card", "title": "受け付け", "subtitle": "入口", "color": "成功" },
+    { "name": "記録", "lane": "l1", "stack": 1, "kind": "storage", "rows": ["番号: 数", "名前: 文字"], "marks": ["pk", ""] },
+    {
+      "name": "進み",
+      "lane": "l2",
+      "stack": 0,
+      "kind": "dyn-rect",
+      "posW": 200,
+      "posH": 96,
+      "shape": { "kind": "rect", "source": "{progress}", "fillMax": 100, "orient": "up", "fill": "#22c55e", "radius": 6 },
+      "value": "{progress}%",
+      "visibleIf": "progress > 0"
+    }
+  ],
+  "flow": [
+    { "from": "受付", "to": "記録", "label": "書き込む" },
+    { "from": "記録", "to": "進み", "label": "読み出す" }
+  ],
+  "animation": [
+    {
+      "step": "受け付けて記録する",
+      "duration": 1.4,
+      "focus": ["受付", "記録"],
+      "body": "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+    },
+    {
+      "step": "進みを上げる",
+      "duration": 1.6,
+      "focus": ["記録", "進み"],
+      "tween": { "progress": [20, 80] },
+      "body": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+    }
+  ]
+}`;
+
+export const pattern__textDslActorKeys__日本語で書く = textDslToDiagram(
+  sourceYaml__pattern__textDslActorKeys__日本語で書く,
+);
+
+// ─── 値と前の値を日本語で書く (#2332) ─────
+//
+// `前の値` は値を並べる図でだけ効く。 上の流れ図に書いても図は 1 ピクセルも変わらないので、
+// 帯で内訳を出す図に分けて見せる。
+
+export const sourceYaml__textDslValueKeys = `title: "値と前の値を英語で書く"
+type: stacked
+
+states:
+  mail: 120
+
+actors:
+  - 直販:
+      value: "420"
+      previous: "380"
+  - 代理店:
+      value: "260"
+      previous: "300"
+  - 通販:
+      value: "{mail}"
+      previous: "120"
+
+flow:
+
+animation:
+  - step: "今の内訳を見る" 1.4s
+    draw: stacked
+    focus: ["直販", "代理店"]
+    description: "値に書いた数が帯の長さになる"
+  - step: "通販が伸びる" 1.6s
+    focus: ["通販"]
+    tween:
+      mail: 120 -> 180
+    description: "前の値に書いた数が、増えた分と減った分の向きを決める"
+`;
+
+export const sourceJson__textDslValueKeys = `{
+  "title": "値と前の値を英語で書く",
+  "type": "stacked",
+  "states": { "mail": 120 },
+  "actors": [
+    { "name": "直販", "value": "420", "previous": "380" },
+    { "name": "代理店", "value": "260", "previous": "300" },
+    { "name": "通販", "value": "{mail}", "previous": "120" }
+  ],
+  "flow": [],
+  "animation": [
+    {
+      "step": "今の内訳を見る",
+      "duration": 1.4,
+      "draw": "stacked",
+      "focus": ["直販", "代理店"],
+      "body": "値に書いた数が帯の長さになる"
+    },
+    {
+      "step": "通販が伸びる",
+      "duration": 1.6,
+      "focus": ["通販"],
+      "tween": { "mail": [120, 180] },
+      "body": "前の値に書いた数が、増えた分と減った分の向きを決める"
+    }
+  ]
+}`;
+
+export const textDslValueKeys = textDslToDiagram(sourceYaml__textDslValueKeys);
+
+export const patternBase__textDslValueKeys = "英語で書く";
+
+export const sourceYaml__pattern__textDslValueKeys__日本語で書く = `title: "値と前の値を日本語で書く"
+type: stacked
+
+states:
+  mail: 120
+
+actors:
+  - 直販:
+      値: "420"
+      前の値: "380"
+  - 代理店:
+      値: "260"
+      前の値: "300"
+  - 通販:
+      値: "{mail}"
+      前の値: "120"
+
+flow:
+
+animation:
+  - step: "今の内訳を見る" 1.4s
+    draw: stacked
+    focus: ["直販", "代理店"]
+    description: "値に書いた数が帯の長さになる"
+  - step: "通販が伸びる" 1.6s
+    focus: ["通販"]
+    tween:
+      mail: 120 -> 180
+    description: "前の値に書いた数が、増えた分と減った分の向きを決める"
+`;
+
+export const sourceJson__pattern__textDslValueKeys__日本語で書く = `{
+  "title": "値と前の値を日本語で書く",
+  "type": "stacked",
+  "states": { "mail": 120 },
+  "actors": [
+    { "name": "直販", "value": "420", "previous": "380" },
+    { "name": "代理店", "value": "260", "previous": "300" },
+    { "name": "通販", "value": "{mail}", "previous": "120" }
+  ],
+  "flow": [],
+  "animation": [
+    {
+      "step": "今の内訳を見る",
+      "duration": 1.4,
+      "draw": "stacked",
+      "focus": ["直販", "代理店"],
+      "body": "値に書いた数が帯の長さになる"
+    },
+    {
+      "step": "通販が伸びる",
+      "duration": 1.6,
+      "focus": ["通販"],
+      "tween": { "mail": [120, 180] },
+      "body": "前の値に書いた数が、増えた分と減った分の向きを決める"
+    }
+  ]
+}`;
+
+export const pattern__textDslValueKeys__日本語で書く = textDslToDiagram(
+  sourceYaml__pattern__textDslValueKeys__日本語で書く,
+);
