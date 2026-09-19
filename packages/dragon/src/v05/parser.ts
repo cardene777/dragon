@@ -41,10 +41,36 @@
  * 出力は v0.4 と同じ DslDocument。 既存 compile.ts で CdlDiagram に変換できる。
  */
 
-import type { NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
-import { TONES, NODE_KINDS, EDGE_HEADS, EDGE_HEAD_FILLS, EDGE_STYLES, EDGE_REVEALS, RELATION_FOCUSES, CLASS_RELATION_LOOK, SEQUENCE_MESSAGE_LOOK, parseFormula } from "@cardenelabs/cdl";
+import type {
+  NodeKind,
+  Tone,
+  EdgeStyle,
+  EdgeHead,
+  EdgeHeadFill,
+  ClassRelationType,
+  SequenceMessageKind,
+} from "@cardenelabs/cdl";
+import {
+  TONES,
+  NODE_KINDS,
+  EDGE_HEADS,
+  EDGE_HEAD_FILLS,
+  EDGE_STYLES,
+  EDGE_REVEALS,
+  RELATION_FOCUSES,
+  CLASS_RELATION_LOOK,
+  SEQUENCE_MESSAGE_LOOK,
+  parseFormula,
+} from "@cardenelabs/cdl";
 import type { EdgeReveal, RelationFocus } from "@cardenelabs/cdl";
-import { TONE_ALIAS, NODE_KIND_ALIAS, DIRECTIONS, resolveDirection, PALETTES, resolvePalette } from "../keywords";
+import {
+  TONE_ALIAS,
+  NODE_KIND_ALIAS,
+  DIRECTIONS,
+  resolveDirection,
+  PALETTES,
+  resolvePalette,
+} from "../keywords";
 import type { DslPalette } from "../keywords";
 import type { DslDirection } from "../keywords";
 import { parseRelativePos, findRelativeProblems, type RelativeProblem } from "../relative-pos";
@@ -1732,7 +1758,11 @@ function 選択肢の並びとして読む(
 ): (string | { value: string; label: string })[] | undefined {
   const 中身 = 値.trim();
   if (!中身.startsWith("[") || !中身.endsWith("]")) {
-    errors.push({ line, message: `${名} の並びが読めません: "${値}"`, hint: '`["green", { value: "red", label: "失敗" }]` の形で書く' });
+    errors.push({
+      line,
+      message: `${名} の並びが読めません: "${値}"`,
+      hint: '`["green", { value: "red", label: "失敗" }]` の形で書く',
+    });
     return undefined;
   }
   const 出: (string | { value: string; label: string })[] = [];
@@ -1745,19 +1775,35 @@ function 選択肢の並びとして読む(
       return;
     }
     if (!要素.endsWith("}")) {
-      errors.push({ line, message: `${名}[${i}] の組が読めません: "${要素}"`, hint: '`{ value: "red", label: "失敗" }` の形で書く' });
+      errors.push({
+        line,
+        message: `${名}[${i}] の組が読めません: "${要素}"`,
+        hint: '`{ value: "red", label: "失敗" }` の形で書く',
+      });
       return;
     }
     const 組 = parseInlineMapping(要素.slice(1, -1));
     for (const k of Object.keys(組)) {
       if ((選択肢の組の項目 as readonly string[]).includes(k)) continue;
-      errors.push({ line, message: `${名}[${i}] の項目名が読めません: "${k}"`, hint: `使える項目 = ${選択肢の組の項目.join(", ")}` });
+      errors.push({
+        line,
+        message: `${名}[${i}] の項目名が読めません: "${k}"`,
+        hint: `使える項目 = ${選択肢の組の項目.join(", ")}`,
+      });
     }
     for (const k of 選択肢の組の項目) {
       if (組[k] === undefined) {
-        errors.push({ line, message: `${名}[${i}].${k} は必ず書きます`, hint: `必須の項目 = ${選択肢の組の項目.join(", ")}` });
+        errors.push({
+          line,
+          message: `${名}[${i}].${k} は必ず書きます`,
+          hint: `必須の項目 = ${選択肢の組の項目.join(", ")}`,
+        });
       } else if (組[k] === "") {
-        errors.push({ line, message: `${名}[${i}].${k} が空です`, hint: k === "label" ? "名前を書かないなら文字列だけを並べる" : "値を 1 文字以上書く" });
+        errors.push({
+          line,
+          message: `${名}[${i}].${k} が空です`,
+          hint: k === "label" ? "名前を書かないなら文字列だけを並べる" : "値を 1 文字以上書く",
+        });
       }
     }
     if (組.value && 組.label) 出.push({ value: 組.value, label: 組.label });
@@ -2315,7 +2361,12 @@ function 式として読む(行: string, line: number, errors: DslError[]): DslF
     });
     return undefined;
   }
-  return { id: 名前, expression: 式, ...(名札 !== undefined ? { label: 名札 } : {}), pos: { line } };
+  return {
+    id: 名前,
+    expression: 式,
+    ...(名札 !== undefined ? { label: 名札 } : {}),
+    pos: { line },
+  };
 }
 
 /** 組の中の項目名の形。 `parseInlineMapping` が項目名として受ける字と同じ */
@@ -2348,7 +2399,9 @@ function 式の組を読む(
 ): { expression: string; label?: string } | undefined {
   const 使える = ["expression", "label"];
   const 読めた: Record<string, string> = {};
-  for (const 欄 of splitInlineFields(中身).map((s) => s.trim()).filter((s) => s !== "")) {
+  for (const 欄 of splitInlineFields(中身)
+    .map((s) => s.trim())
+    .filter((s) => s !== "")) {
     const m = 欄.match(組の項目名);
     if (!m) {
       errors.push({
@@ -3019,7 +3072,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     errors.push({
       line: u.line,
       message: `項目名が読めません: "${u.key}"`,
-      hint: `使える項目 = ${[...ACTOR_ITEM_KEYS].join(", ")}`,
+      hint: 弾いた項目の案内(u.key),
     });
   }
   return out;
@@ -3081,6 +3134,31 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "owner",
   "end",
 ]);
+
+/**
+ * 部品の箱にだけ効く項目 (#1026)。
+ *
+ * 普通の箱に書いた時は綴りの誤りとして知らせる。 黙って捨てると
+ * 「書いたのに大きさが変わらない」 が手掛かりなしで起きるため。
+ */
+export const PARTS_ONLY_ITEM_KEYS: ReadonlySet<string> = new Set(["倍率", "scale"]);
+
+/**
+ * 項目名を弾いた時の案内 (#2330)。
+ *
+ * **いま弾いた名前を「使える項目」 として並べない**。 語彙には `倍率` と `scale` が
+ * 入っているので、そのまま並べると読み手は同じ名前を書き直して同じ知らせを受ける
+ * (実測 = 語彙のうち普通の箱で弾かれるのはこの 2 件だけ)。
+ *
+ * 部品にだけ効く項目は **どこでなら書けるか** を出す。 綴りの誤りは語彙を並べる =
+ * そちらは弾いた名前が語彙に無いので食い違わない。
+ */
+function 弾いた項目の案内(key: string): string {
+  if (PARTS_ONLY_ITEM_KEYS.has(key)) {
+    return "`倍率` と `scale` は部品の箱 (`kind` に部品の名前を書いた箱) にだけ効きます";
+  }
+  return `使える項目 = ${[...ACTOR_ITEM_KEYS].filter((k) => k !== key).join(", ")}`;
+}
 
 /**
  * 相対で書かれた位置が解けるかを確かめる。
@@ -3304,6 +3382,14 @@ function coerceStateValue(raw: string): number | string | boolean {
  * 倍率はパーツにしか効かない。 黙って捨てると「書いたのに大きさが変わらない」 が手掛かり
  * なしで起きる。 3 つの書き方すべてで同じ知らせを出す (縦に並べた形だけ知らせて他が黙る、
  * という状態を作らない)。
+ *
+ * **案内に語彙を並べない** (#2330)。 語彙には `倍率` と `scale` が入っているので、
+ * 並べると **いま弾いた名前を「使える項目」 として出す** ことになる。 読み手は同じ名前を
+ * 書き直して同じ知らせを受ける (実測 = 案内の 39 項目のうち、弾かれるのはこの 2 件だけ)。
+ *
+ * 弾く理由はここが知っている (`isPart === false`) ので、**どこでなら書けるか** を出す。
+ * 綴りの誤りを知らせる側 (`unknownKeys`) は語彙を並べたままにする = そちらは弾いた名前が
+ * 語彙に無いため食い違わない。
  */
 function reportScaleOnNonPart(
   isPart: boolean,
@@ -3315,7 +3401,7 @@ function reportScaleOnNonPart(
   errors.push({
     line,
     message: `項目名が読めません: "${key}"`,
-    hint: `使える項目 = ${[...ACTOR_ITEM_KEYS].join(", ")}`,
+    hint: 弾いた項目の案内(key),
   });
 }
 

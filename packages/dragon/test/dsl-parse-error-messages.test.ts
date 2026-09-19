@@ -10,7 +10,7 @@ import { describe, it, expect } from "vitest";
 import { readFile } from "node:fs/promises";
 import { textDslToDiagram } from "../src/index";
 import { parseTextDslV05 } from "../src/v05";
-import { ACTOR_ITEM_KEYS } from "../src/v05/parser";
+import { ACTOR_ITEM_KEYS, PARTS_ONLY_ITEM_KEYS } from "../src/v05/parser";
 
 describe("iter27: DSL parse error messages coverage", () => {
   it("空 DSL は空 diagram or throw (silent-empty regression check)", () => {
@@ -189,7 +189,7 @@ flow:
    * 倍率は図形の大きさを変えるもので、普通の箱には効かない。 普通の箱に書いた時は
    * 「書いたのに図が変わらない」 を避けるため綴り誤りとして知らせる。
    */
-  const PARTS_ONLY = new Set(["倍率", "scale"]);
+  const PARTS_ONLY = PARTS_ONLY_ITEM_KEYS;
 
   /** パーツの中に項目を 1 行置いた本文。 */
   const wrapPart = (item: string): string => `title: "t"
@@ -242,6 +242,63 @@ flow:
         `${name} の知らせが無い (${r.errors.map((e) => e.message).join(" / ")})`,
       ).toBe(true);
     }
+  });
+
+  it("弾いた項目名が、その知らせの案内に並ばない (#2330)", () => {
+    /*
+     * 案内のとおりに同じ名前を書き直すと同じ知らせを受ける、という形を止める。
+     * 語彙に在るのに普通の箱で弾かれるのは部品にだけ効く 2 件で、
+     * 綴りの誤り (`補足文` 等) は語彙に無いので食い違わない。
+     */
+    let 弾かれた = 0;
+    const 並んでいた: string[] = [];
+    for (const key of ACTOR_ITEM_KEYS) {
+      const value = VALUE_OF[key];
+      expect(value, `${key} の値の例が test に無い`).toBeDefined();
+      const r = parseTextDslV05(wrap(`      ${key}: ${value}`));
+      if (r.ok) continue;
+      const e = r.errors.find((x) => x.message.includes(`項目名が読めません: "${key}"`));
+      if (!e) continue;
+      弾かれた += 1;
+      // 見るのは「使える項目」 の一覧だけ。 どこで書けるかを述べる文が名前に触れるのは正しい
+      const 頭 = "使える項目 = ";
+      const hint = e.hint ?? "";
+      if (!hint.startsWith(頭)) continue;
+      const 一覧 = hint
+        .slice(頭.length)
+        .split(",")
+        .map((x) => x.trim());
+      if (一覧.includes(key)) 並んでいた.push(`${key}: ${hint}`);
+    }
+    // 0 件を期待するので、1 件以上弾かれたことを先に見る (空振り検知)
+    expect(
+      弾かれた,
+      `語彙 ${ACTOR_ITEM_KEYS.size} 件を普通の箱に書いたが 1 件も弾かれない`,
+    ).toBeGreaterThan(0);
+    expect(並んでいた, `弾かれた ${弾かれた} 件の案内を見た`).toEqual([]);
+  });
+
+  it("部品にだけ効く項目の案内が、書ける場所を述べている (#2330)", () => {
+    const r = parseTextDslV05(wrap("      倍率: 2"));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    const e = r.errors.find((x) => x.message.includes("項目名が読めません"));
+    expect(e).toBeDefined();
+    expect(e!.hint, "書ける場所を述べていない").toContain("部品の箱");
+    // 植え込み対照 = 語彙を並べる形に戻すと、上の検査が拾う文になる
+    const 戻した = `使える項目 = ${[...ACTOR_ITEM_KEYS].join(", ")}`;
+    expect(戻した.includes("倍率"), "語彙に倍率が無いので対照にならない").toBe(true);
+    expect(e!.hint).not.toBe(戻した);
+  });
+
+  it("綴りの誤りには語彙を並べたままにする (#2330)", () => {
+    // 弾いた名前が語彙に無い側まで案内を削ると、直し方が読めなくなる
+    const r = parseTextDslV05(wrap('      補足文: "APIサーバー"'));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    const e = r.errors.find((x) => x.message.includes("項目名が読めません"));
+    expect(e!.hint).toContain("使える項目");
+    expect(e!.hint).toContain("補足");
   });
 
   it("別名を 2 つ書いたら先に並べた名前を採る", () => {
