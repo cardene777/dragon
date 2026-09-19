@@ -410,7 +410,9 @@ describe("名指しした見逃しが実物で当たっている (#1730)", () =>
 
     const 行 = 違反の抜粋(実物!.reports, interestingAxes);
     const errorLines = 行.filter((l) => l.startsWith("  error: "));
-    expect(errorLines.length, "error の違反があるのに中身の行が 1 本も出ていない").toBeGreaterThan(0);
+    expect(errorLines.length, "error の違反があるのに中身の行が 1 本も出ていない").toBeGreaterThan(
+      0,
+    );
 
     // 軸 / 中身 / 図の名前 の 3 つが揃っていること。 どれが欠けても辿れない
     const 見本 = 実物!.reports.flatMap((r) =>
@@ -443,8 +445,19 @@ describe("名指しした見逃しが実物で当たっている (#1730)", () =>
       counts: {},
       skippedAxes: [],
       violations: [
-        { axis: "clearance", diagramId: "d", severity: "error", detail: "edge-label:a ↔ edge-path:b gap=10.0px (need 14px)", reason: 理由 },
-        { axis: "clearance", diagramId: "d", severity: "error", detail: "node:n1 ↔ node:n2 gap=6.0px (need 70px)" },
+        {
+          axis: "clearance",
+          diagramId: "d",
+          severity: "error",
+          detail: "edge-label:a ↔ edge-path:b gap=10.0px (need 14px)",
+          reason: 理由,
+        },
+        {
+          axis: "clearance",
+          diagramId: "d",
+          severity: "error",
+          detail: "node:n1 ↔ node:n2 gap=6.0px (need 70px)",
+        },
       ],
     } as unknown as VisualValidationReport;
 
@@ -452,7 +465,11 @@ describe("名指しした見逃しが実物で当たっている (#1730)", () =>
       `  error: clearance — edge-label:a ↔ edge-path:b gap=10.0px (need 14px) (diag=d) ${理由}`,
       "  error: clearance — node:n1 ↔ node:n2 gap=6.0px (need 70px) (diag=d)",
     ]);
-    expect(formatReport([報告]).split("\n").filter((l) => l.startsWith("      - "))).toEqual([
+    expect(
+      formatReport([報告])
+        .split("\n")
+        .filter((l) => l.startsWith("      - ")),
+    ).toEqual([
       `      - edge-label:a ↔ edge-path:b gap=10.0px (need 14px) ${理由}`,
       "      - node:n1 ↔ node:n2 gap=6.0px (need 70px)",
     ]);
@@ -600,7 +617,7 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
   "group-boundary-clearance": {
     理由:
       "位置を相対で書く見本。 自動の配置の並びから外して置くこと自体が見本の意図で、" +
-      " 縦列の幅は自動で置いた時の値のまま残る。 `見逃す組の一覧` が同じ 3 図の" +
+      " 縦列の幅は自動で置いた時の値のまま残る。 この一覧の一部は `見逃す組の一覧` でも" +
       " `alignment` / `column-alignment` を同じ理由で除外している",
     図: [
       "受付の右に確認を置く",
@@ -617,7 +634,9 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
     図: ["er-complex-demo", "scene-edge-compute", "scene-mobile-api"],
   },
   "node-vertical-clearance": {
-    理由: "`group-boundary-clearance` と同じ 3 図。 相対で置いた結果、縦の間隔が詰まる",
+    理由:
+      "`group-boundary-clearance` の一覧の一部。 相対で置いた結果、縦の間隔まで詰まる図だけが入る" +
+      " (どの図が入るかは `軸ごとの図が、宣言した一覧と 1 件も違わない` が実測と突き合わせる)",
     図: ["受付の右に確認を置く", "受付の左に確認を置く", "間隔を書かずに受付の右へ置く"],
   },
   "edge-label-proximity": {
@@ -674,6 +693,71 @@ describe("軽い違反を軸と図の名前で固定する (#2310)", () => {
       .filter(([, v]) => v.理由.trim().length === 0)
       .map(([k]) => k);
     expect(空, "理由の無い宣言").toEqual([]);
+  });
+
+  /*
+   * 理由が別の宣言を名指しして図の数を書いた時、その宣言の一覧と一致することを見る (#2324)。
+   *
+   * #2310 で足した理由が `` `group-boundary-clearance` と同じ 3 図 `` と書いており、
+   * 実物は 5 図だった。 一覧が育ってずれたのではなく、隣の `見逃す組の一覧` (3 図) の数を
+   * 写していた = 書いた commit と一覧が 5 図になった commit が同じ。
+   *
+   * 宣言は検査を止める仕掛けで、妥当かを人が確かめる材料は理由しかない。
+   * 数が違うと「2 図が後から足された」 と「3 図に減らすべき」 を読み手が分けられない。
+   *
+   * 数を止める既存の 3 本はどれも当たらない。 `derived-counts-not-in-notes` は主語 5 語の
+   * 固定一覧と同じ行だけを見るが、宣言の名前は主語に無い。 宣言が増えるたびに主語へ足す形は
+   * 導出にならないので、**表が同じ file にあることを使って走査で突き合わせる**。
+   */
+  const 理由が名指しした数 = (): Array<{ 軸: string; 名: string; 書いた: number }> => {
+    const out: Array<{ 軸: string; 名: string; 書いた: number }> = [];
+    for (const [軸, v] of Object.entries(軽い違反を認める図)) {
+      for (const m of v.理由.matchAll(/`([^`]+)`[^`。]*?(\d+) ?図/g)) {
+        out.push({ 軸, 名: m[1]!, 書いた: Number(m[2]) });
+      }
+    }
+    return out;
+  };
+
+  it("理由が名指しした宣言の図の数が、その一覧と一致する (#2324)", () => {
+    const 食い違い = 理由が名指しした数()
+      .map(({ 軸, 名, 書いた }) => {
+        const 実物 = 軽い違反を認める図[名]?.図.length;
+        if (実物 === undefined) return `${軸}: 理由が名指しした \`${名}\` が宣言に無い`;
+        if (実物 !== 書いた) return `${軸}: \`${名}\` を ${書いた} 図と書いたが実物は ${実物} 図`;
+        return undefined;
+      })
+      .filter((x): x is string => x !== undefined);
+    expect(食い違い, `宣言 ${Object.keys(軽い違反を認める図).length} 件の理由を走査した`).toEqual(
+      [],
+    );
+  });
+
+  it("数の食い違いと解決できない名指しを、どちらも見つけられる (植え込み対照)", () => {
+    /*
+     * 直した後は当たる行が 0 件になる。 判定が何も見ていない形でも上が通るので、
+     * 本番と同じ探し方に **わざと壊した理由** を通して落ちることを確かめる。
+     */
+    const 実在 = Object.keys(軽い違反を認める図)[0]!;
+    const 実物 = 軽い違反を認める図[実在]!.図.length;
+    const 探す = (理由: string): Array<{ 名: string; 書いた: number }> =>
+      [...理由.matchAll(/`([^`]+)`[^`。]*?(\d+) ?図/g)].map((m) => ({
+        名: m[1]!,
+        書いた: Number(m[2]),
+      }));
+
+    const ずらした = 探す(`\`${実在}\` と同じ ${実物 + 1} 図`);
+    expect(ずらした.length, "名指しと数を拾えていない").toBe(1);
+    expect(軽い違反を認める図[ずらした[0]!.名]?.図.length).not.toBe(ずらした[0]!.書いた);
+
+    const 無い名 = 探す("`存在しない宣言` と同じ 3 図");
+    expect(無い名.length, "名指しを拾えていない").toBe(1);
+    expect(軽い違反を認める図[無い名[0]!.名]).toBeUndefined();
+
+    // 数を書いていない理由は拾わない (いまの正しい形)
+    expect(探す("`group-boundary-clearance` の一覧の一部")).toEqual([]);
+    // 一覧を指さない数 (`6 本の線` 等) も拾わない
+    expect(探す("6 本の線を色ではなく表記の違いで見分ける")).toEqual([]);
   });
 
   it("宣言に無い軸で軽い違反が出ていない", () => {
