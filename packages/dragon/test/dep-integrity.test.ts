@@ -33,7 +33,13 @@ const { 中身を突き合わせる, 結果を文にする, fileを並べる } =
   中身を突き合わせる: (
     配布物: string,
     実物: string,
-  ) => { 余分: string[]; 欠け: string[]; 中身違い: string[]; 比べた数: number };
+  ) => {
+    余分: string[];
+    欠け: string[];
+    中身違い: string[];
+    比べた数: number;
+    道具が置いた: string[];
+  };
   結果を文にする: (名: string, 版: string, r: unknown) => string;
   fileを並べる: (root: string) => string[];
 };
@@ -126,6 +132,54 @@ describe("dir の外は見ない (#1456)", () => {
   });
 });
 
+describe("入れる道具が置いた file は差と数えない (#2322)", () => {
+  it("配る側が `node_modules/` を持たないなら、入れた側のそれは数えない", () => {
+    /*
+     * 実測の形。 pnpm は入れた package の dir に起動用の台本を置くが、
+     * 配っている tarball に `node_modules/` は入らない (`js-yaml@5.4.1` で 0 件)。
+     */
+    const 実物 = 仮のdir({ ...配布物の中身, "node_modules/.bin/x": "#!/bin/sh\n" });
+    const r = 中身を突き合わせる(仮のdir(配布物の中身), 実物);
+    expect(r.余分, "入れる道具の配置を手元の書き加えと数えている").toEqual([]);
+    expect(r.道具が置いた).toEqual([join("node_modules", ".bin", "x")]);
+    expect(r.比べた数, "比べた数まで減らしている").toBe(3);
+  });
+
+  it("配る側が同じ入れ物を持つなら、その下の余分は数える", () => {
+    /*
+     * `bundleDependencies` を持つ package は `npm pack` の時に `node_modules/<名>/` を
+     * tarball へ載せる。 一律に外すと、そこに足された file が見えなくなる。
+     */
+    const 配る = { ...配布物の中身, "node_modules/argparse/index.js": "module.exports = 1;\n" };
+    const 実物 = 仮のdir({ ...配る, "node_modules/argparse/足した.js": "足した\n" });
+    const r = 中身を突き合わせる(仮のdir(配る), 実物);
+    expect(r.余分, "束ねた依存に足された file を見逃している").toEqual([
+      join("node_modules", "argparse", "足した.js"),
+    ]);
+    expect(r.道具が置いた).toEqual([]);
+  });
+
+  it("同じ run で、束ねた入れ物と道具の入れ物を分けて数える", () => {
+    const 配る = { ...配布物の中身, "node_modules/argparse/index.js": "module.exports = 1;\n" };
+    const 実物 = 仮のdir({
+      ...配る,
+      "node_modules/argparse/足した.js": "足した\n",
+      "node_modules/.bin/x": "#!/bin/sh\n",
+    });
+    const r = 中身を突き合わせる(仮のdir(配る), 実物);
+    expect(r.余分).toEqual([join("node_modules", "argparse", "足した.js")]);
+    expect(r.道具が置いた).toEqual([join("node_modules", ".bin", "x")]);
+  });
+
+  it("`node_modules/` の外の余分は、これまでどおり数える (植え込み対照)", () => {
+    // 判定を緩めていないことの対照。 これが無いと「全部数えない」 実装でも上が通る
+    const 実物 = 仮のdir({ ...配布物の中身, "dist/render-BBB.d.ts": "type B = 2;\n" });
+    const r = 中身を突き合わせる(仮のdir(配布物の中身), 実物);
+    expect(r.余分).toEqual([join("dist", "render-BBB.d.ts")]);
+    expect(r.道具が置いた).toEqual([]);
+  });
+});
+
 describe("結果の文 (#1456)", () => {
   const 一致 = () => 中身を突き合わせる(仮のdir(配布物の中身), 仮のdir(配布物の中身));
 
@@ -140,6 +194,19 @@ describe("結果の文 (#1456)", () => {
     expect(文).toContain("公開されている中身と違います");
     expect(文).toContain("pnpm install --force");
     expect(文).toContain("手元で書き加わった");
+  });
+
+  it("数えなかった file があれば件数を添える (#2322)", () => {
+    // 0 件が「該当なし」 か「見ていない」 かを読み手が分けられるようにする
+    const 実物 = 仮のdir({ ...配布物の中身, "node_modules/.bin/x": "#!/bin/sh\n" });
+    const 文 = 結果を文にする("x", "1.0.0", 中身を突き合わせる(仮のdir(配布物の中身), 実物));
+    expect(文).toContain("一致 (3 file");
+    expect(文).toContain("入れる道具が置いた 1 file は数えない");
+  });
+
+  it("数えなかった file が 0 件なら、一致の文に注釈を足さない (#2322)", () => {
+    // 常に付くと、付いている意味が薄れる
+    expect(結果を文にする("x", "1.0.0", 一致())).not.toContain("数えない");
   });
 
   it("比べた数が 0 の時は「一致」 と言わない", () => {
