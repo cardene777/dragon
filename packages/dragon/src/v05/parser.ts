@@ -2501,11 +2501,18 @@ export const ACTOR_INLINE_VALUE_KINDS = {
   posH: "数",
 } as const satisfies Record<string, 値の形>;
 
-/** 縦に並べる形で箱に書ける、数と真偽の欄 (#1306)。 `posW` / `posH` は `大きさ:` が受ける */
+/**
+ * 縦に並べる形で箱に書ける、数と真偽の欄 (#1306)。 `posW` / `posH` は `大きさ:` が受ける。
+ *
+ * 始まりと終わりの印 (`initial` / `final`) は #2346 で足した。 中括弧の表にはあったのに
+ * こちらに無く、**段を分けた側には書き方が 1 つも無かった** = 書くと綴りの誤りとして落ちる
+ */
 export const ACTOR_BLOCK_VALUE_KINDS = {
   stack: "数",
   posX: "数",
   posY: "数",
+  initial: "真偽",
+  final: "真偽",
 } as const satisfies Record<string, 値の形>;
 
 /** 矢印の中括弧に書ける、数と真偽の欄 (#1306) */
@@ -2881,6 +2888,25 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "補足":
         out.subtitle = stripQuotes(raw);
         break;
+      /*
+       * 箱の目次と、始まりと終わりの印 (#2346)。
+       *
+       * 中括弧の形にしか無く、段を分けて書くと綴りの誤りとして落ちていた。
+       * 中括弧と同じく **見本 (parts) でも横取りしない** = この 3 つは
+       * `ACTOR_RESERVED_FIELDS` が状態の上書きから外しているので、どちらの形で書いても
+       * 見本の状態にはならない。
+       */
+      case "eyebrow":
+        out.eyebrow = stripQuotes(raw);
+        break;
+      case "initial":
+      case "final": {
+        // 中括弧と同じ表で読む。 読めない値の知らせも同じ文になる
+        const 読めた = 表で読む(ACTOR_BLOCK_VALUE_KINDS, { [key]: raw }, "箱の ", ln.no, errors);
+        if (key === "initial") out.initial = 読めた.initial;
+        else out.final = 読めた.final;
+        break;
+      }
       case "value":
       case "値":
         out.value = stripQuotes(raw);
@@ -3160,6 +3186,10 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   // 工程の並びの欄 (#1251)
   "owner",
   "end",
+  // 箱の目次と、始まりと終わりの印 (#2346)。 中括弧にしか書き方が無かった 3 件
+  "eyebrow",
+  "initial",
+  "final",
 ]);
 
 /**
@@ -3183,6 +3213,16 @@ export const PARTS_ONLY_ITEM_KEYS: ReadonlySet<string> = new Set(["倍率", "sca
 function 弾いた項目の案内(key: string): string {
   if (PARTS_ONLY_ITEM_KEYS.has(key)) {
     return "`倍率` と `scale` は部品の箱 (`kind` に部品の名前を書いた箱) にだけ効きます";
+  }
+  /*
+   * 1 行の中括弧でだけ読める名前 (#2346)。
+   *
+   * 語彙を並べるだけだと、**同じ名前が別の書き方で効くこと**が伝わらない =
+   * 読み手は綴りを誤ったと受け取り、正しい名前を書いたまま直しようがなくなる。
+   * #2344 で足した逆向きの案内 (中括弧で弾いた名前に段を分けた形を案内する) と対にする。
+   */
+  if (INLINE_ACTOR_KEYS.has(key)) {
+    return `段を分けた形では読めません。 \`- 名前: { ${key}: 値 }\` のように 1 行の中括弧に書くと効きます`;
   }
   return `使える項目 = ${[...ACTOR_ITEM_KEYS].filter((k) => k !== key).join(", ")}`;
 }
