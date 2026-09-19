@@ -32,7 +32,7 @@
  */
 import { test, expect } from "@playwright/test";
 
-import { 画面の経路 } from "./app-routes";
+import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
 import { CATEGORIES } from "../src/lib/catalog";
 import { PRESETS } from "../src/lib/presets";
 
@@ -118,22 +118,6 @@ const 宣言: ReadonlyMap<string, string> = new Map([
  */
 const 画面名 = (path: string): string => path || "トップ";
 
-/** 経路の形から、実際に開く path を全件作る */
-function 開く先たち(経路: string): string[] {
-  let 組: string[][] = [[]];
-  for (const 節 of 経路.split("/")) {
-    if (節.startsWith(":")) {
-      const 候補 = 欄の値[節];
-      if (候補 === undefined) throw new Error(`経路の欄に入れる値が無い: ${節} (${経路})`);
-      組 = 組.flatMap((x) => 候補.map((v) => [...x, v]));
-      continue;
-    }
-    組 = 組.map((x) => [...x, 節]);
-  }
-  // 先頭の `/` を落とす。 `new URL(path, base)` が origin 直下と読んで base path を捨てるため
-  return 組.map((x) => x.join("/").replace(/^\//u, ""));
-}
-
 /** 1 枚の図の測定結果 */
 interface 図の実寸 {
   /** 画面の上での最小の文字 (px) */
@@ -188,9 +172,8 @@ test("経路と見本を実装から読めている (空振り検知)", () => {
   expect(PRESETS.length, "見本の一覧が空").toBeGreaterThan(0);
   expect(CATEGORIES.length, "分類の一覧が空").toBeGreaterThan(0);
 
-  const 使う欄 = new Set(対象の経路.flatMap((p) => p.split("/").filter((x) => x.startsWith(":"))));
   expect(
-    [...使う欄].sort(),
+    値を入れる節(対象の経路).sort(),
     "経路に出る欄と、入れる値の表がずれている (表を直す)",
   ).toEqual(Object.keys(欄の値).sort());
 
@@ -199,7 +182,7 @@ test("経路と見本を実装から読めている (空振り検知)", () => {
   }
   // 宣言は開く path で持つので、図が出る経路を広げた集合と突き合わせる = 綴りを間違えた行が
   // 「直った」 側に化けて黙って消えるのを止める
-  const 図が出る画面 = new Set([...図を出す経路].flatMap((p) => 開く先たち(p)));
+  const 図が出る画面 = new Set([...図を出す経路].flatMap((p) => 経路を広げる(p, 欄の値)));
   for (const [path, 理由] of 宣言) {
     expect(
       [...図が出る画面],
@@ -210,7 +193,7 @@ test("経路と見本を実装から読めている (空振り検知)", () => {
 });
 
 for (const 経路 of 対象の経路) {
-  const 開く先 = 開く先たち(経路);
+  const 開く先 = 経路を広げる(経路, 欄の値);
 
   test(`幅 ${携帯の幅}px の ${経路} の図の文字が読める大きさに届く`, async ({ page }, info) => {
     // 見本の 19 件のように 1 つの経路が多くの画面に広がる。 1 画面あたり 2 秒を見込む
