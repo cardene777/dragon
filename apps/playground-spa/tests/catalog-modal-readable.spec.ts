@@ -194,6 +194,51 @@ test.describe("拡大表示の文字が読める大きさに届く (#2284)", () 
     ).toEqual([]);
   });
 
+  test("読む先への入口が、どの分類でも指で押せる (#2286)", async ({ page }, info) => {
+    /*
+     * #2286 は並べて見る側を「幅に合わせたまま」 に決めた = 携帯では図が 1.7px から 6.0px の
+     * ままで、読むのは拡大表示で行う。 **その決めは受け皿が在ることを前提にしている** ので、
+     * 入口が在って押せることをここで固定する。 入口が消えたり小さくなったりしたら、
+     * 一覧の図が読めないことに行き先が無くなる。
+     *
+     * 44px は指の的の目安。 既定 (卓上) は 72x33px なので、狭い画面でだけ高さを足している。
+     */
+    info.setTimeout(30_000 + CATEGORIES.length * 12_000);
+    const 的の下限 = 44;
+
+    const 小さい: string[] = [];
+    const 無い: string[] = [];
+    let 測った = 0;
+
+    for (const 分類 of CATEGORIES) {
+      await page.goto(`catalog/${分類.slug}`, { waitUntil: "networkidle" });
+      await page.waitForTimeout(900);
+
+      const ボタン = page.getByRole("button", { name: /を拡大表示$/ }).first();
+      if ((await ボタン.count()) === 0) {
+        無い.push(分類.slug);
+        continue;
+      }
+      await expect(ボタン, `${分類.slug} の入口が見えていない`).toBeVisible();
+      const 枠 = await ボタン.boundingBox();
+      expect(枠, `${分類.slug} の入口の大きさを測れない`).not.toBeNull();
+      測った++;
+      if (枠!.height < 的の下限 || 枠!.width < 的の下限) {
+        小さい.push(`${分類.slug} ${Math.round(枠!.width)}x${Math.round(枠!.height)}px`);
+      }
+    }
+
+    const 母数 = `分類 ${CATEGORIES.length} 件 / 測った ${測った} 件`;
+    await info.attach("母数", { body: 母数, contentType: "text/plain" });
+
+    expect(測った, `入口を 1 件も測れていない (${母数})`).toBeGreaterThan(0);
+    expect(無い, `拡大表示への入口を持たない分類がある (${母数})\n${無い.join("\n")}`).toEqual([]);
+    expect(
+      小さい,
+      `入口が指の的 (${的の下限}px) より小さい (${母数})\n${小さい.join("\n")}`,
+    ).toEqual([]);
+  });
+
   test("入れ子の縮小が掛かった文字を母数に入れている (#2287)", async ({ page }) => {
     /*
      * `ethereum` の `ハッシュ` は指定 10.5 の親に `scale(0.719)` が掛かり、実効は 7.55。
