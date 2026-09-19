@@ -103,15 +103,12 @@ export default defineConfig({
   projects: [
     {
       name: "default",
-      testIgnore: [
-        重ねない検査,
-        開発serverの検査,
-        開発serverの下ごしらえ,
-      ],
+      testIgnore: [重ねない検査, 開発serverの検査, 開発serverの下ごしらえ],
       use: 共通,
     },
     {
-      // 開発 server の束ねが古くないかだけを見る。 頁を開かないので相手の server は要らない
+      // 開発 server に dragon が居るかと、配る束ねが古くないかを見る。
+      // 相手を 1 回引くだけで図は描かせないので、`dev` と同じ見に行く先は要らない (#2295)
       name: "dev-setup",
       testMatch: 開発serverの下ごしらえ,
       use: 共通,

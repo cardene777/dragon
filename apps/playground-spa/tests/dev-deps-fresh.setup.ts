@@ -3,6 +3,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { bundleFreshnessProblem, staleBundles } from "../../../test-support/dep-bundle-freshness";
+import {
+  画面の題,
+  相手の問題,
+  相手を見分ける,
+  頁を引く,
+} from "../../../test-support/dev-server-identity";
+import { DEV_URL } from "../ports";
 
 /**
  * 開発 server を見る検査の前に、その server が配る束ねが古くないかを見る (#1998)。
@@ -29,9 +36,43 @@ import { bundleFreshnessProblem, staleBundles } from "../../../test-support/dep-
  * 開発 server を 1 度も立てていない環境では束ねが無い。 見られなかったことを「古い」 に倒すと
  * 初回に必ず止まるため、`bundleFreshnessProblem` は `null` を返す。
  * 代わりに見た件数を記録に残し、0 件で通った回を後から読めるようにする。
+ *
+ * ## 束ねの古さだけでは足りない (#2295)
+ *
+ * 束ねは **disk の記録** で、相手の server に 1 度も触らない。 そのため `DEV_URL` に
+ * 別の画面が居ても、そもそも何も居なくても、この関門は通る。
+ * 実測 = その port を別のリポジトリの preview が押さえており、関門が通ったうえで 3 件が
+ * 15 秒ずつ「要素が現れない」 とだけ言って落ちた。 #1998 が消した読めない落ち方が、
+ * 別の原因で戻っていた。
+ *
+ * 相手を 1 回引いて、名乗る題が `index.html` と同じかを先に見る。
+ * 見る順は **相手 → 束ね**。 相手が居ないなら束ねの新しさは意味を持たない。
  */
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+
+/**
+ * `dev` project が実際に見に行く先。
+ *
+ * **`test.info().project.use.baseURL` は使えない** = この検査は `dev-setup` project に
+ * 属していて、そちらの見に行く先は本番 build の側。 `playwright.config.ts` の `dev` と
+ * 同じ式をここでも書く。
+ */
+const 開発serverのURL = process.env.DEV_SPA_URL ?? DEV_URL;
+
+test("開発 server に dragon の画面が居る", async () => {
+  const 期待 = 画面の題(ROOT);
+  const 相手 = 相手を見分ける(期待, await 頁を引く(開発serverのURL));
+  const 問題 = 相手の問題(開発serverのURL, 相手);
+  test.info().annotations.push({ type: "相手", description: `${開発serverのURL} → ${相手.種類}` });
+  expect(
+    問題,
+    問題 === null
+      ? ""
+      : `${問題}\n\n` +
+          `この検査だけを外すなら --project default を付ける (開発 server を見る検査は走らない)。`,
+  ).toBeNull();
+});
 
 test("開発 server が配る束ねが、いま入っている依存と同じ", () => {
   const 問題 = bundleFreshnessProblem(ROOT);
@@ -45,6 +86,6 @@ test("開発 server が配る束ねが、いま入っている依存と同じ", 
     問題 === null
       ? ""
       : `開発 server が古い束ねを配っている。\n\n${問題}\n\n` +
-        `この検査だけを外すなら --project default を付ける (開発 server を見る検査は走らない)。`,
+          `この検査だけを外すなら --project default を付ける (開発 server を見る検査は走らない)。`,
   ).toBeNull();
 });
