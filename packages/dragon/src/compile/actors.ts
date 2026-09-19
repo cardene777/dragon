@@ -60,15 +60,29 @@ export function canonicalizeFlowActors(doc: DslDocument): DslDocument {
  * 1 つも書いていなければ従来どおり位置で決める = 書かない記法の図は変わらない。
  * 片方だけ書いた形も、書いた側だけが切り替わる。
  */
-export function 始まりと終わりの決め方(doc: DslDocument): {
+export function 始まりと終わりの決め方(
+  doc: DslDocument,
+  /**
+   * 並びで決める既定を使うか (#2349)。
+   *
+   * **格子に置く形では並びが始まりと終わりを意味しない**。 縦列と段を書いた図は
+   * 書いた順に左から並ぶわけではないので、「最初に書いた箱」 を初期とみなす既定は
+   * 図の見た目と合わない (実測 = 印の箱を持つ見本で、既に形が始点を示している箱へ
+   * 「初期」 の字が重ねて出た)。 書いた値はどの並べ方でも効く。
+   */
+  opts: { 並びで決める?: boolean } = {},
+): {
   始まり: (a: DslActor, idx: number) => boolean;
   終わり: (a: DslActor, idx: number) => boolean;
 } {
+  const 並びで決める = opts.並びで決める ?? true;
   const 書いた始まり = doc.actors.some((a) => a.initial === true);
   const 書いた終わり = doc.actors.some((a) => a.final === true);
   return {
-    始まり: (a, idx) => (書いた始まり ? a.initial === true : idx === 0),
+    始まり: (a, idx) => (書いた始まり ? a.initial === true : 並びで決める && idx === 0),
     終わり: (a, idx) =>
-      書いた終わり ? a.final === true : idx === doc.actors.length - 1 && doc.actors.length > 1,
+      書いた終わり
+        ? a.final === true
+        : 並びで決める && idx === doc.actors.length - 1 && doc.actors.length > 1,
   };
 }
