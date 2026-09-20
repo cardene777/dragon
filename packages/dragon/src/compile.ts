@@ -1238,6 +1238,11 @@ function reportValueChartActorOptionNotHonored(
  * 状態遷移図を族に入れた時に 2 つが誤りになった = 読み手は既に状態遷移図に居るのに
  * 「始まりと終わりの印は type: state が描きます」 と読まされ、印については
  * 「type: er が描きます」 と読まされる (状態遷移図も描く。 足りないのは行のほう)。
+ *
+ * 段 (`stack`) は **図 1 枚ごとに読むかが決まる** (#2386)。 書いた番号の段に置くのは
+ * 全ての箱が縦列を書いた図だけで、1 つでも書いていない箱があると図全体が別の並べ方に落ち、
+ * 段はどの箱でも読まれない。 図種では表せない条件なので、置く側と同じ関数
+ * (`書いた縦列に置く`) に聞く。
  */
 function reportSkeletonActorOptionNotHonored(
   doc: DslDocument,
@@ -1245,7 +1250,7 @@ function reportSkeletonActorOptionNotHonored(
 ): void {
   if (!onNotice) return;
   if (!骨組みの図種.has(doc.type)) return;
-  const 伝えない欄 = 骨組みの図が伝えない箱の欄(doc.type);
+  const 伝えない欄 = 段も足した伝えない箱の欄(doc);
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
     const 判定で外す: string[] = [];
@@ -1269,6 +1274,27 @@ function reportSkeletonActorOptionNotHonored(
       hint: 骨組みの図の案内(doc.type, 効かない),
     });
   }
+}
+
+/**
+ * その図で、効かないと伝えない箱の欄 (#2386)。
+ *
+ * 図種ごとの違いは族の表 (`骨組みの図種`) が持つ。 段 (`stack`) だけは **図 1 枚ごとに**
+ * 読むかが決まるので、表では表せず、ここで足し引きする。
+ *
+ * 置く側と同じ関数に聞く = 条件を 2 か所に写すと、置く側を直した日に伝える側が古くなる。
+ *
+ * @param doc 組み立てる本文
+ * @returns 族の除外に、段を読む図なら段を足した集合
+ */
+function 段も足した伝えない箱の欄(doc: DslDocument): ReadonlySet<string> {
+  const 族の除外 = 骨組みの図が伝えない箱の欄(doc.type);
+  // 段を読まない図では伝える側へ回す = 除外から抜く。 既に抜けている図種 (c4) はそのまま
+  if (書いた縦列に置く(doc.type, doc)) return 族の除外;
+  if (!族の除外.has("stack")) return 族の除外;
+  const 残り = new Set(族の除外);
+  残り.delete("stack");
+  return 残り;
 }
 
 /**
@@ -1296,6 +1322,14 @@ const 行頭の印を読む図種: readonly string[] = [...骨組みの図種.ke
  */
 function 骨組みの図の案内(図種: string, 効かない: readonly string[]): string | undefined {
   const 案内: string[] = [];
+  /*
+   * 段は **縦列を選べる図種でだけ** 書き方の行き先を持つ (#2386)。 その図種で伝えたということは
+   * 縦列を書いていない箱が在ったということなので、足せば効く。
+   * 縦列を選べない図種 (構成の図) では、どう書いても効かないので行き先が無い。
+   */
+  if (効かない.includes("段") && 縦列を選べる図種.has(図種 as never)) {
+    案内.push("段は全ての箱に縦列 (lane) を書いた図で効きます");
+  }
   if (効かない.includes("始まりの印") || 効かない.includes("終わりの印")) {
     案内.push("始まりと終わりの印は type: state が描きます");
   }
