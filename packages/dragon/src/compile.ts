@@ -248,6 +248,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportActorKindNotHonored(書いたまま, opts?.onNotice);
   reportTreeActorOptionNotHonored(書いたまま, opts?.onNotice);
   reportHalfWrittenPosition(書いたまま, opts?.onNotice);
+  // 出した行を `図種が知らせた行` に控える = 多重度の知らせ (#2107) を同じ行に重ねない
+  reportSkeletonEdgeOptionNotHonored(書いたまま, 図種が知らせた行, 図種の知らせ);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
   reportCardinalityNotHonored(書いたまま, 図種が知らせた行, opts?.onNotice);
   reportFlowOffsetNotHonored(書いたまま, opts?.onNotice);
@@ -874,12 +876,16 @@ const 板が伝えない矢印の欄: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * 効かない欄の呼び名 (#2356)。 **並べた順に知らせへ出す**。
+ * 効かない矢印の欄の呼び名 (#2356)。 **並べた順に知らせへ出す**。
  *
  * 呼び名を持たない欄は名前をそのまま出すので、ここに足し忘れても知らせは消えない。
  * 複数の欄が 1 つの呼び名を持つ形 (名前のずらしが 3 欄) は、1 度だけ出す。
+ *
+ * **図種をまたいで 1 つの表にする** (#2364)。 同じ欄を図種ごとに別の文言で呼ぶと、
+ * 図種を変えた読み手が同じ飾りだと気付けない。 どの欄を伝えるかは図種ごとの除外が決める。
  */
-const 板で効かない矢印の欄の呼び名: readonly (readonly [string, string])[] = [
+const 効かない矢印の欄の呼び名: readonly (readonly [string, string])[] = [
+  ["label", "文字"],
   ["tone", "色味"],
   ["style", "線の種類"],
   ["sub", "添え字"],
@@ -931,7 +937,7 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
         .map(([欄]) => 欄),
     );
     const 効かない: string[] = [];
-    for (const [欄, 呼び名] of 板で効かない矢印の欄の呼び名) {
+    for (const [欄, 呼び名] of 効かない矢印の欄の呼び名) {
       if (!残り.delete(欄)) continue;
       if (!効かない.includes(呼び名)) 効かない.push(呼び名);
     }
@@ -1154,6 +1160,94 @@ function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} の板は名前と呼び名だけを描きます)`,
       hint: "板には面ごとの箱が無いため飾りを載せる先がありません。 呼び名 (subtitle) に書くか、箱を持つ図種を使ってください",
+    });
+  }
+}
+
+/**
+ * 矢印を骨格として描く図種 (#2364)。
+ *
+ * 木の図と思考の地図は矢印を親子のつながりとして描き、線の形も向きも階層から決める。
+ * 飾りを載せる先が無い。
+ *
+ * 工程表 (`gantt`) も同じ性質を持つが、知らせを図種ごとの組み立て (`compile/gantt.ts`) の
+ * 中で出しているので、ここには入れない。
+ */
+const 矢印を骨格にする図種: ReadonlySet<string> = new Set(["tree", "mind"]);
+
+/**
+ * 骨格の図で、効かないと伝えない矢印の欄 (#2364)。
+ *
+ * **除外側を書く**。 効かない欄を並べる形にすると、矢印に欄を足した日にその欄だけが
+ * 一覧から漏れ、書いた人には「書いたのに何も起きない」 としか見えない。
+ *
+ * | 区分 | 欄 |
+ * |---|---|
+ * | 矢印が描く | 出どころ / 行き先 と、行番号と書いた場所 |
+ * | 別の知らせが受け持つ | 部品の端 (`part-node-ignored`) |
+ *
+ * 文字 (`label`) は除外しない = 骨格の図では描かれないので伝える。
+ * ただし記法は矢印の行に必ず文字の欄を作るため、**空の時だけ書いていない扱い** にする。
+ *
+ * **多重度 (`cardinality`) も除外しない**。 同じ行に 2 件並べない決まりがあり、
+ * 文字を書いた矢印ではこの知らせが先に出るため、多重度だけ別の知らせに回すと
+ * 1 行に 2 件並ぶ。 工程表 (`compile/gantt.ts`) も同じ理由で多重度を自分の知らせに含めている。
+ */
+const 骨格の図が伝えない矢印の欄: ReadonlySet<string> = new Set([
+  "no",
+  "from",
+  "to",
+  "pos",
+  "fromPartNode",
+  "toPartNode",
+]);
+
+/**
+ * 矢印を骨格として描く図で、矢印に書いた飾りが使われないことを伝える (#2364)。
+ *
+ * 実測 = 矢印に書ける 21 項目のうち 18 件が、図も変わらず知らせも出なかった (2 図種とも)。
+ * 文字を足すと 19 件になる。
+ *
+ * 呼び名は板と同じ表を使う (`効かない矢印の欄の呼び名`) = 同じ欄を 2 つの文言で呼ぶと、
+ * 図種を変えた読み手が同じ飾りだと気付けない。
+ */
+function reportSkeletonEdgeOptionNotHonored(
+  doc: DslDocument,
+  図種が知らせた行: ReadonlySet<number>,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  if (!矢印を骨格にする図種.has(doc.type)) return;
+  const 名前の表 = actorRefTable(doc);
+  for (const s of doc.flow) {
+    if (!名前の表.has(s.from) || !名前の表.has(s.to)) continue;
+    /*
+     * 図種の組み立てが知らせた行には重ねない (#2107 と同じ決まり)。
+     *
+     * 捨てた矢印 (自分を親にする形など) は組み立てが既に伝えており、そこへ飾りの知らせを
+     * 足すと同じ行に 2 件並ぶ。 実測 = `A -> A` に多重度を書いた木の図で 2 件出た。
+     */
+    if (図種が知らせた行.has(s.pos?.line ?? 0)) continue;
+    const 残り = new Set(
+      Object.entries(s as unknown as Record<string, unknown>)
+        .filter(([欄, 値]) => 値 !== undefined && !骨格の図が伝えない矢印の欄.has(欄))
+        .map(([欄]) => 欄),
+    );
+    if ((s.label ?? "") === "") 残り.delete("label");
+    const 効かない: string[] = [];
+    for (const [欄, 呼び名] of 効かない矢印の欄の呼び名) {
+      if (!残り.delete(欄)) continue;
+      if (!効かない.includes(呼び名)) 効かない.push(呼び名);
+    }
+    // 呼び名を持たない欄は名前をそのまま出す = 読みにくい名前でも、黙って落とすよりは伝わる
+    効かない.push(...[...残り].sort());
+    if (効かない.length === 0) continue;
+    onNotice({
+      kind: "edge-option-not-honored",
+      actor: s.from,
+      line: s.pos?.line ?? 0,
+      message: `type: ${doc.type} で "${truncateForMessage(s.from)} -> ${truncateForMessage(s.to)}" に書いた ${効かない.join(" / ")} は描けません (矢印は親子のつながりだけを描きます)`,
+      hint: "つながりの線は階層から決まるため飾りを載せる先がありません。 箱の名前で伝えるか、矢印を自分で引く図種を使ってください",
     });
   }
 }
