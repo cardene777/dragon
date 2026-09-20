@@ -234,14 +234,8 @@ actors:
   - リリース: "4期"
 
 animation:
-  - step: "Q1" 1.0s
-    focus: [設計]
-  - step: "Q2" 1.0s
-    focus: [実装]
-  - step: "Q3" 1.0s
-    focus: [テスト]
-  - step: "Q4" 1.0s
-    focus: [リリース]
+  - step: "reveal" 2.0s
+    focus: [設計, 実装, テスト, リリース]
 `,
   },
   {

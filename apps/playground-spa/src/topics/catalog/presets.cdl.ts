@@ -3547,12 +3547,12 @@ states:
 animation:
   - step: "昨年の内訳" 2.4s
     badge: "pie"
-    focus: [ウェブ]
+    focus: [ウェブ, アプリ, API]
     draw: pie
     body: "ウェブ 45 / アプリ 35 / API 20。"
   - step: "全体に対する内訳の割合を示す円グラフ" 0.9s
     badge: "pie"
-    focus: [ウェブ]
+    focus: [ウェブ, アプリ, API]
     tween:
       pie_web: 45 -> 30
       pie_mobile: 35 -> 45
@@ -3575,7 +3575,7 @@ export const sourceJson__presetChartPie = `{
     {
       "step": "昨年の内訳",
       "duration": 2.4,
-      "focus": ["ウェブ"],
+      "focus": ["ウェブ", "アプリ", "API"],
       "draw": "pie",
       "body": "ウェブ 45 / アプリ 35 / API 20。",
       "badge": "pie"
@@ -3583,7 +3583,7 @@ export const sourceJson__presetChartPie = `{
     {
       "step": "全体に対する内訳の割合を示す円グラフ",
       "duration": 0.9,
-      "focus": ["ウェブ"],
+      "focus": ["ウェブ", "アプリ", "API"],
       "body": "今年はアプリが 45 まで伸びる。 扇の大きさを状態から取っている。",
       "badge": "pie",
       "tween": { "pie_web": [45, 30], "pie_mobile": [35, 45], "pie_api": [20, 25] }
@@ -3610,12 +3610,12 @@ states:
 animation:
   - step: "計画" 2.4s
     badge: "line"
-    focus: [1月]
+    focus: [1月, 2月, 3月, 4月]
     draw: line
     body: "月ごとの見込みを引いた線。 左から順に引かれる。"
   - step: "時系列データの推移を線で示す折れ線グラフ" 0.9s
     badge: "line"
-    focus: [1月]
+    focus: [1月, 2月, 3月, 4月]
     tween:
       line_jan: 1000 -> 900
       line_feb: 1300 -> 1400
@@ -3640,7 +3640,7 @@ export const sourceJson__presetChartLine = `{
     {
       "step": "計画",
       "duration": 2.4,
-      "focus": ["1月"],
+      "focus": ["1月", "2月", "3月", "4月"],
       "draw": "line",
       "body": "月ごとの見込みを引いた線。 左から順に引かれる。",
       "badge": "line"
@@ -3648,7 +3648,7 @@ export const sourceJson__presetChartLine = `{
     {
       "step": "時系列データの推移を線で示す折れ線グラフ",
       "duration": 0.9,
-      "focus": ["1月"],
+      "focus": ["1月", "2月", "3月", "4月"],
       "body": "実績に置き換えると 2 月以降が計画を上回る。 点の高さを状態から取っている。",
       "badge": "line",
       "tween": {
@@ -3683,12 +3683,12 @@ states:
 animation:
   - step: "先月" 2.4s
     badge: "funnel"
-    focus: [訪問]
+    focus: [訪問, 登録, 試用, 有料]
     draw: funnel
     body: "訪問 8200 から有料 130 まで絞られる。"
   - step: "各段階での離脱率を示す絞込みの図" 0.9s
     badge: "funnel"
-    focus: [訪問]
+    focus: [訪問, 登録, 試用, 有料]
     tween:
       visit: 8200 -> 10000
       signup: 1100 -> 1500
@@ -3714,7 +3714,7 @@ export const sourceJson__presetFunnel = `{
     {
       "step": "先月",
       "duration": 2.4,
-      "focus": ["訪問"],
+      "focus": ["訪問", "登録", "試用", "有料"],
       "draw": "funnel",
       "body": "訪問 8200 から有料 130 まで絞られる。",
       "badge": "funnel"
@@ -3722,7 +3722,7 @@ export const sourceJson__presetFunnel = `{
     {
       "step": "各段階での離脱率を示す絞込みの図",
       "duration": 0.9,
-      "focus": ["訪問"],
+      "focus": ["訪問", "登録", "試用", "有料"],
       "body": "今月は訪問 10000 / 有料 200。 段の人数を状態から取るので、同じ図が別の月を映す。",
       "badge": "funnel",
       "tween": {
@@ -3761,12 +3761,12 @@ flow:
 animation:
   - step: "組織を作った時" 2.4s
     badge: "tree"
-    focus: [社長]
+    focus: [社長, 技術責任者, 財務責任者, "{eng}", 運用部長]
     draw: tree
     body: "開発の責任者を開発部長と呼んでいる。"
   - step: "親子関係を縦階層で示す組織図・木構造" 0.9s
     badge: "tree"
-    focus: [社長]
+    focus: [社長, 技術責任者, 財務責任者, "{eng}", 運用部長]
     set:
       eng: "開発本部長"
     body: "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。"
@@ -3795,7 +3795,7 @@ export const sourceJson__presetTree = `{
     {
       "step": "組織を作った時",
       "duration": 2.4,
-      "focus": ["社長"],
+      "focus": ["社長", "技術責任者", "財務責任者", "{eng}", "運用部長"],
       "draw": "tree",
       "body": "開発の責任者を開発部長と呼んでいる。",
       "badge": "tree"
@@ -3803,7 +3803,7 @@ export const sourceJson__presetTree = `{
     {
       "step": "親子関係を縦階層で示す組織図・木構造",
       "duration": 0.9,
-      "focus": ["社長"],
+      "focus": ["社長", "技術責任者", "財務責任者", "{eng}", "運用部長"],
       "body": "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。",
       "badge": "tree",
       "set": { "eng": "開発本部長" }
@@ -3836,12 +3836,12 @@ flow:
 animation:
   - step: "書き出した時" 2.4s
     badge: "mind"
-    focus: [機能]
+    focus: ["{theme}", 機能, 画面の設計, 公開, 認証, 課金]
     draw: mind
     body: "中心はまだ「新しい企画」 のまま。"
   - step: "中心の主題から発想を放射状に広げる図" 0.9s
     badge: "mind"
-    focus: [機能]
+    focus: ["{theme}", 機能, 画面の設計, 公開, 認証, 課金]
     set:
       theme: "認証と課金の刷新"
     body: "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。"
@@ -3869,7 +3869,7 @@ export const sourceJson__presetMindMap = `{
     {
       "step": "書き出した時",
       "duration": 2.4,
-      "focus": ["機能"],
+      "focus": ["{theme}", "機能", "画面の設計", "公開", "認証", "課金"],
       "draw": "mind",
       "body": "中心はまだ「新しい企画」 のまま。",
       "badge": "mind"
@@ -3877,7 +3877,7 @@ export const sourceJson__presetMindMap = `{
     {
       "step": "中心の主題から発想を放射状に広げる図",
       "duration": 0.9,
-      "focus": ["機能"],
+      "focus": ["{theme}", "機能", "画面の設計", "公開", "認証", "課金"],
       "body": "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。",
       "badge": "mind",
       "set": { "theme": "認証と課金の刷新" }
@@ -3904,14 +3904,14 @@ states:
 animation:
   - step: "改善前" 2.4s
     badge: "journey"
-    focus: ["サイトを訪れる"]
+    focus: ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"]
     draw: journey
     set:
       form_mood: "不満"
     body: "登録の入力で気持ちが落ちる。"
   - step: "ユーザー体験の感情変化をステップ順に示す図" 0.9s
     badge: "journey"
-    focus: ["サイトを訪れる"]
+    focus: ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"]
     set:
       form_mood: "満足"
     body: "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。"
@@ -3939,7 +3939,7 @@ export const sourceJson__presetUserJourney = `{
     {
       "step": "改善前",
       "duration": 2.4,
-      "focus": ["サイトを訪れる"],
+      "focus": ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"],
       "draw": "journey",
       "body": "登録の入力で気持ちが落ちる。",
       "badge": "journey",
@@ -3948,7 +3948,7 @@ export const sourceJson__presetUserJourney = `{
     {
       "step": "ユーザー体験の感情変化をステップ順に示す図",
       "duration": 0.9,
-      "focus": ["サイトを訪れる"],
+      "focus": ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"],
       "body": "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。",
       "badge": "journey",
       "set": { "form_mood": "満足" }
@@ -3976,13 +3976,13 @@ states:
 animation:
   - step: "見直し前" 0.9s
     badge: "quadrant"
-    focus: ["文言の直し"]
+    focus: ["文言の直し", "決済の作り直し", "検索の絞り込み", "古い画面の移行"]
     set:
       fill_in_at: "左下"
     body: "検索の絞り込みは、価値も労力も低い枠に置いてある。"
   - step: "2 つの軸で 4 象限に分けて優先度を決める図" 0.9s
     badge: "quadrant"
-    focus: ["文言の直し"]
+    focus: ["文言の直し", "決済の作り直し", "検索の絞り込み", "古い画面の移行"]
     set:
       fill_in_at: "左上"
     body: "見直しで検索の絞り込みを価値の高い枠へ移す。 どの枠に居るかを状態から取っている。"
@@ -4008,7 +4008,7 @@ export const sourceJson__presetQuadrant = `{
     {
       "step": "見直し前",
       "duration": 0.9,
-      "focus": ["文言の直し"],
+      "focus": ["文言の直し", "決済の作り直し", "検索の絞り込み", "古い画面の移行"],
       "body": "検索の絞り込みは、価値も労力も低い枠に置いてある。",
       "badge": "quadrant",
       "set": { "fill_in_at": "左下" }
@@ -4016,7 +4016,7 @@ export const sourceJson__presetQuadrant = `{
     {
       "step": "2 つの軸で 4 象限に分けて優先度を決める図",
       "duration": 0.9,
-      "focus": ["文言の直し"],
+      "focus": ["文言の直し", "決済の作り直し", "検索の絞り込み", "古い画面の移行"],
       "body": "見直しで検索の絞り込みを価値の高い枠へ移す。 どの枠に居るかを状態から取っている。",
       "badge": "quadrant",
       "set": { "fill_in_at": "左上" }
@@ -4045,12 +4045,12 @@ flow:
 animation:
   - step: "当初の計画" 2.4s
     badge: "gantt"
-    focus: [設計]
+    focus: [設計, 実装, 検証, 公開]
     draw: gantt
     body: "実装は Q2 で終わる想定。"
   - step: "タスクの期間と依存関係を横棒で示す進捗図" 0.9s
     badge: "gantt"
-    focus: [設計]
+    focus: [設計, 実装, 検証, 公開]
     tween:
       build_end: 1 -> 2
     body: "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。"
@@ -4076,7 +4076,7 @@ export const sourceJson__presetGantt = `{
     {
       "step": "当初の計画",
       "duration": 2.4,
-      "focus": ["設計"],
+      "focus": ["設計", "実装", "検証", "公開"],
       "draw": "gantt",
       "body": "実装は Q2 で終わる想定。",
       "badge": "gantt"
@@ -4084,7 +4084,7 @@ export const sourceJson__presetGantt = `{
     {
       "step": "タスクの期間と依存関係を横棒で示す進捗図",
       "duration": 0.9,
-      "focus": ["設計"],
+      "focus": ["設計", "実装", "検証", "公開"],
       "body": "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。",
       "badge": "gantt",
       "tween": { "build_end": [1, 2] }

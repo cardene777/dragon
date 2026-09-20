@@ -71,6 +71,10 @@ export type CompileNotice = {
     // 値を並べる図種は図全体で 1 つの箱になり、 順序図と solidity は 1 枚の板になる。
     // `event-target-missing` と分けるのは、こちらが **書き直しても直らない** 側だから
     | "event-target-not-honored"
+    // 段の注目先に書いた名前は本文に在るが、この図種はそれを箱 / 矢印にしない (#2398)。
+    // `focus-target-missing` と分けるのは、こちらが **書き直しても直らない** 側だから。
+    // 出来事の側の `event-target-not-honored` と同じ性質で、同じ 7 図種でだけ相手を選べる
+    | "focus-target-not-honored"
     // 順序図で面に種類を書いたが、板は名前と呼び名しか描かない (#1466)
     | "actor-kind-not-honored"
     // 箱に、その図種が描かない指定を書いた (#2360)。 木の図は位置も大きさも親子関係から決めるため
