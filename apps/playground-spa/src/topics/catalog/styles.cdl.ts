@@ -1403,6 +1403,98 @@ export const sourceJson__pattern__edgeRole__main = `{
 
 export const pattern__edgeRole__main = textDslToDiagram(sourceYaml__pattern__edgeRole__main);
 
+// ---- 矢印の飾り ----
+//
+// 矢印には色味 (`情報`) と線の種類 (`dashed`) と根元に添える字 (`tailSub`) を書ける。 色味と
+// 線の種類は説明文の後ろに続けて書き、根元の字だけ中括弧に入れる。
+//
+// **縦列を書いた形と書かない形を並べる**。 流れ図は動き / 向き / 縦列のどれも書かないと、箱を
+// 鎖のように 1 本につなぐ別の組み立てへ回る。 かつてその経路は矢印に説明文しか渡しておらず、
+// 3 つとも黙って消えていた (#2394)。 書き手には経路の違いが見えないので、同じ飾りを書いた
+// 2 枚を切替で見比べられる形にする。
+//
+// 箱と飾りは 2 枚で揃える = 切替で変わるのが並び方だけになり、飾りがどちらでも同じに出ることが読める。
+// **箱は 2 つに絞る** = 鎖の形は箱を縦に積むので、3 つ置くと一覧の台で 954px になり
+// 1 画面に収まらない (`packages/dragon/test/inline-stage-height.test.ts` の 900px の線)。
+
+export const patternBase__edgeDeco = "縦列を書く";
+
+export const sourceYaml__edgeDeco = `title: "縦列を書いて矢印を飾る"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 260 }
+  l2: { x: 460, width: 260 }
+
+actors:
+  - 受付: { kind: card, lane: l1, stack: 0 }
+  - 台帳: { kind: card, lane: l2, stack: 0 }
+
+flow:
+  - 受付 -> 台帳: "書く" 情報 dashed { tailSub: "1", sub: "1..*" }
+`;
+
+export const sourceJson__edgeDeco = `{
+  "title": "縦列を書いて矢印を飾る",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 260 },
+    "l2": { "x": 460, "width": 260 }
+  },
+  "actors": [
+    { "name": "受付", "kind": "card", "lane": "l1", "stack": 0 },
+    { "name": "台帳", "kind": "card", "lane": "l2", "stack": 0 }
+  ],
+  "flow": [
+    {
+      "from": "受付",
+      "to": "台帳",
+      "label": "書く",
+      "sub": "1..*",
+      "tone": "info",
+      "style": "dashed",
+      "tailSub": "1"
+    }
+  ]
+}`;
+
+export const edgeDeco = textDslToDiagram(sourceYaml__edgeDeco);
+
+export const sourceYaml__pattern__edgeDeco__縦列を書かない = `title: "縦列を書かずに矢印を飾る"
+type: flow
+
+actors:
+  - 受付: card
+  - 台帳: card
+
+flow:
+  - 受付 -> 台帳: "書く" 情報 dashed { tailSub: "1", sub: "1..*" }
+`;
+
+export const sourceJson__pattern__edgeDeco__縦列を書かない = `{
+  "title": "縦列を書かずに矢印を飾る",
+  "type": "flow",
+  "actors": [
+    { "name": "受付", "kind": "card" },
+    { "name": "台帳", "kind": "card" }
+  ],
+  "flow": [
+    {
+      "from": "受付",
+      "to": "台帳",
+      "label": "書く",
+      "sub": "1..*",
+      "tone": "info",
+      "style": "dashed",
+      "tailSub": "1"
+    }
+  ]
+}`;
+
+export const pattern__edgeDeco__縦列を書かない = textDslToDiagram(
+  sourceYaml__pattern__edgeDeco__縦列を書かない,
+);
+
 // ---- 形の満ちる向き ----
 //
 // 四角の形 (`dyn-rect`) は、値に合わせて中を塗る向きを 4 つ取る。 同じ値 (6 割) で 4 つを並べ、塗りが

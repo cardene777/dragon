@@ -79,8 +79,6 @@ export function compileClass(doc: DslDocument): CdlDiagram {
       ...(s2.sub ? { cardinality: s2.sub } : {}),
       // 出どころ側の多重度 (#1771)。 engine が出どころの端に添える (cdl#825)
       ...(s2.tailSub ? { tailCardinality: s2.tailSub } : {}),
-      ...(s2.tone ? { tone: s2.tone } : {}),
-      ...(s2.style ? { style: s2.style } : {}),
       ...(s2.head ? { head: s2.head } : {}),
       ...(s2.headFill ? { headFill: s2.headFill } : {}),
       ...(s2.tailHead ? { tailHead: s2.tailHead } : {}),

@@ -48,9 +48,6 @@ export function compileSwimlane(doc: DslDocument): CdlDiagram {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
-
-      ...(s.tone ? { tone: s.tone } : {}),
-      ...(s.style ? { style: s.style } : {}),
     });
   }
 

@@ -394,6 +394,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   edgeHead: "矢印の端の形",
   edgeSide: "矢印の出る辺",
   edgeRole: "線の役目",
+  edgeDeco: "矢印の飾り",
   shapeOrient: "形の満ちる向き4種",
   relativePos: "位置を相対で書く",
   // === styles 実業務シナリオ ===
@@ -630,6 +631,7 @@ export const ITEM_NAME_EN: Record<string, string> = {
   edgeHead: "Edge end shapes",
   edgeSide: "Edge exit side",
   edgeRole: "Edge role",
+  edgeDeco: "Edge decorations",
   shapeOrient: "Four fill directions",
   relativePos: "Relative placement",
   erc20Transfer: "ERC-20 transfer",

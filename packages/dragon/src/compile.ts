@@ -1771,6 +1771,21 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
     // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
     if (doc.type === "state" && target.sub === undefined) target.sub = s.guard;
   }
+  // 色味と線の種類も、図種ごとの組み立てではなくここで写す (#2394)。
+  //
+  // **渡す側を図種ごとに並べる形にしない**。 この 2 欄は図種ごとの組み立てが個別に渡していて、
+  // 渡し忘れた図種でそのまま落ちていた (実測 = 線の種類は `er` / `state` / 鎖でつないだ `flow`、
+  // 色味は鎖でつないだ `flow` で黙って消える)。 図種を足した日に同じ落とし方が再発するため、
+  // 矢印を描く図種が必ず通るここへ移す。 図種ごとの組み立てに置いていた同じ受け渡しは外した =
+  // 2 か所に置くと、片方だけ直した日に食い違う。 板になる 2 図種 (`sequence` / `solidity`) は
+  // 矢印を作らずここを通らないので、そちらは組み立てが持ったまま
+  if (s.tone !== undefined) target.tone = s.tone;
+  if (s.style !== undefined) target.style = s.style;
+  // 出どころの端に添える字 (#2394)。 engine は `tailLabel` として端に置く (cdl#825)。
+  //
+  // **クラス図だけ写さない** = 組み立てが既に `tailCardinality` として渡しており、
+  // ここで重ねると同じ字が端に 2 度出る (`sub` を外すのと同じ理由)
+  if (s.tailSub !== undefined && doc.type !== "class") target.tailLabel = s.tailSub;
   // ER の多重度が名前と端にどう出るかは組み立ての時に決まっている (`compile/er-relation.ts`、#2105)。
   // ここで名前へ `(1:N)` を足すと、組み立てが名前の下の行に出した語と 2 度並ぶ
   if (s.cardinality !== undefined) target.cardinality = s.cardinality;

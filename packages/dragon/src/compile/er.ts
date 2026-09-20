@@ -49,7 +49,6 @@ export function compileEr(doc: DslDocument): CdlDiagram {
       from: slugify(s.from),
       to: slugify(s.to),
       ...ERの関係の指定を作る(s),
-      ...(s.tone ? { tone: s.tone } : {}),
     });
   }
   return erBuilder.build();

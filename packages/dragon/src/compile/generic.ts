@@ -240,9 +240,6 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
-
-      ...(s.tone ? { tone: s.tone } : {}),
-      ...(s.style ? { style: s.style } : {}),
     });
     edgeIds.push(edgeId);
   });
