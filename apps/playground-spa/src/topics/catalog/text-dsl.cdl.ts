@@ -916,14 +916,14 @@ states:
 
 animation:
   - step: "Q1 進行" 2.4s
-    focus: ["作業 1"]
+    focus: ["作業 1", "作業 2", "作業 3"]
     draw: gantt
     tween:
       task1_progress: 0 -> 100
     badge: "Q1 完了"
 
   - step: "Q2 開始" 1.2s
-    focus: ["作業 1", "作業 2"]
+    focus: ["作業 1", "作業 2", "作業 3"]
     tween:
       task2_progress: 0 -> 50
     badge: "Q2 進行中"
@@ -972,7 +972,9 @@ export const sourceJson__textDslGantt = `{
       "step": "Q1 進行",
       "duration": 2.4,
       "focus": [
-        "作業 1"
+        "作業 1",
+        "作業 2",
+        "作業 3"
       ],
       "draw": "gantt",
       "badge": "Q1 完了",
@@ -988,7 +990,8 @@ export const sourceJson__textDslGantt = `{
       "duration": 1.2,
       "focus": [
         "作業 1",
-        "作業 2"
+        "作業 2",
+        "作業 3"
       ],
       "badge": "Q2 進行中",
       "tween": {
@@ -1170,7 +1173,7 @@ states:
 
 animation:
   - step: "シェア更新" 2.4s
-    focus: [A, B]
+    focus: [A, B, C]
     draw: pie
     tween:
       a_share: 30 -> 40
@@ -1211,7 +1214,8 @@ export const sourceJson__textDslPie = `{
       "duration": 2.4,
       "focus": [
         "A",
-        "B"
+        "B",
+        "C"
       ],
       "draw": "pie",
       "badge": "再分配",
@@ -2073,10 +2077,10 @@ flow:
 animation:
   - step: "今の内訳を見る" 1.4s
     draw: stacked
-    focus: ["直販", "代理店"]
+    focus: ["直販", "代理店", "通販"]
     description: "値に書いた数が帯の長さになる"
   - step: "通販が伸びる" 1.6s
-    focus: ["通販"]
+    focus: ["直販", "代理店", "通販"]
     tween:
       mail: 120 -> 180
     description: "前の値に書いた数が、増えた分と減った分の向きを決める"
@@ -2097,13 +2101,13 @@ export const sourceJson__textDslValueKeys = `{
       "step": "今の内訳を見る",
       "duration": 1.4,
       "draw": "stacked",
-      "focus": ["直販", "代理店"],
+      "focus": ["直販", "代理店", "通販"],
       "body": "値に書いた数が帯の長さになる"
     },
     {
       "step": "通販が伸びる",
       "duration": 1.6,
-      "focus": ["通販"],
+      "focus": ["直販", "代理店", "通販"],
       "tween": { "mail": [120, 180] },
       "body": "前の値に書いた数が、増えた分と減った分の向きを決める"
     }
@@ -2136,10 +2140,10 @@ flow:
 animation:
   - step: "今の内訳を見る" 1.4s
     draw: stacked
-    focus: ["直販", "代理店"]
+    focus: ["直販", "代理店", "通販"]
     description: "値に書いた数が帯の長さになる"
   - step: "通販が伸びる" 1.6s
-    focus: ["通販"]
+    focus: ["直販", "代理店", "通販"]
     tween:
       mail: 120 -> 180
     description: "前の値に書いた数が、増えた分と減った分の向きを決める"
@@ -2160,13 +2164,13 @@ export const sourceJson__pattern__textDslValueKeys__日本語で書く = `{
       "step": "今の内訳を見る",
       "duration": 1.4,
       "draw": "stacked",
-      "focus": ["直販", "代理店"],
+      "focus": ["直販", "代理店", "通販"],
       "body": "値に書いた数が帯の長さになる"
     },
     {
       "step": "通販が伸びる",
       "duration": 1.6,
-      "focus": ["通販"],
+      "focus": ["直販", "代理店", "通販"],
       "tween": { "mail": [120, 180] },
       "body": "前の値に書いた数が、増えた分と減った分の向きを決める"
     }

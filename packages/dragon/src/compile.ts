@@ -88,7 +88,7 @@ import { 段を読み取る } from "./compile/rows";
 import { truncateForMessage } from "./compile/subtitle";
 import { slugify } from "./compile/slug";
 import { 語の状態を図の語へ直す } from "./compile/word-state";
-import type { CdlDiagram, CdlEdge, RowMark } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlEdge, CdlNode, RowMark } from "@cardenelabs/cdl";
 import { FSM_ACTION_MARK, layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS } from "./v05/parser";
@@ -249,8 +249,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   applyEdgeInlineOptions(diagram, doc, edgeSourceLines, 矢印の行, opts?.partsCatalog);
   const 作った組の枠 = applyGroupContainers(diagram, doc);
   // 光らせる相手が実在するかを確かめる。 id への解決は図種ごとに違うが、 名前が居るか
-  // 居ないかは記述だけで決まるので 1 か所で見る
-  reportMissingFocusTargets(書いたまま, opts?.onNotice);
+  // 居ないかは記述だけで決まるので 1 か所で見る。
+  // 記法にはあるのに図がその相手を持たない形 (#2398) は、組み上がった図と突き合わせる
+  reportMissingFocusTargets(書いたまま, opts?.onNotice, diagram);
   // 矢印が指す名前が actors に居るかを確かめる。 図種ごとの解決より前に、 記述だけで決まる
   reportMissingFlowActors(書いたまま, opts?.onNotice);
   // 両端が同じ矢印を伝える (#1227)。 落とす前の `flow` を見る
@@ -1538,18 +1539,48 @@ function reportMissingFlowActors(
 }
 
 /**
- * 光らせる相手 (`focus:`) が実在しない分を知らせる。
+ * 光らせる相手 (`focus:`) が届かない分を知らせる。 理由で 2 通りに分ける。
  *
  * 名前が当たらなかった指定は静かに消える。 光らせたい相手を書いたのに光らない状態が、
  * 手掛かりなしで起きる。
  *
- * 見るのは記述だけ。 id の形は図種で違うが、 「その名前の箱が居るか」「その矢印が流れに
- * あるか」 は書かれた内容だけで決まる。 図種ごとの解決経路に検査を分けると、 経路が増える
- * たびに検査が取り残される。
+ * | 理由 | 見るもの | 知らせ |
+ * |---|---|---|
+ * | 記法にその名前が無い | 記述だけ | `focus-target-missing` (綴り違い) |
+ * | 記法にはあるが、書いたとおりに光らない | 組み上がった図 | `focus-target-not-honored` (#2398) |
+ *
+ * **2 つを 1 つにまとめない**。 直し方が正反対で、前者は書き直せば直り、後者は同じ案内に
+ * 従っても永久に直らない。 出来事 (`events:`) の側は #2336 で同じ分け方を持っており、
+ * 注目先の側だけ持っていなかった。
+ *
+ * 綴り違いの側は **記述だけを見る**。 id の形は図種で違うが「その名前の箱が居るか」
+ * 「その矢印が流れにあるか」 は書かれた内容だけで決まる。 図種ごとの解決経路に検査を分けると、
+ * 経路が増えるたびに検査が取り残される。
+ *
+ * ## 何が光るかは図種で 3 通りに分かれる (実測)
+ *
+ * | 光り方 | 図種 | 知らせる条件 |
+ * |---|---|---|
+ * | 書いた箱 / 矢印が光る | `c4` `class` `er` `flow` `state` `swimlane` `topology` | 図がその相手を持たない時 |
+ * | 書いた名前に合う言づてまで板が進む | `sequence` `solidity` | 知らせない (下記) |
+ * | 図全体の 1 箱が光る | 残る 15 図種 | 書かなかった箱がある時と、矢印を書いた時 |
+ *
+ * **板の 2 図種では知らせない**。 板は箱も矢印も持たないが、書いた名前は捨てられておらず
+ * 板が何通目まで描くかを決めている (`段の番号`、 実測 = 3 通の図で `focus: ["あ -> い"]` が
+ * 0 通目、 `["う -> あ"]` が 2 通目)。 図に相手が居ないことだけを見ると、効いている指定に
+ * 「選べません」 と知らせることになる。
+ *
+ * **図全体が光る図種でも、全ての箱を書いた段では知らせない**。 光る結果 (全ての箱) と
+ * 書いたこと (全ての箱) が一致するため、伝えることが無い。 知らせるのは **書かなかった箱も
+ * 光る時** = 4 本の棒のうち 1 本だけを書いても 4 本とも光る形で、ここだけが書いたとおりに
+ * ならない。
+ *
+ * @param diagram 組み上がった図。 渡さない時は綴り違いだけを見る
  */
 function reportMissingFocusTargets(
   doc: DslDocument,
   onNotice?: (notice: CompileNotice) => void,
+  diagram?: CdlDiagram,
 ): void {
   if (!onNotice || !doc.animate) return;
   const names = new Set(doc.actors.map((a) => a.name));
@@ -1592,30 +1623,143 @@ function reportMissingFocusTargets(
   const 部品の名前 = doc.actors.filter((a) => a.partId !== undefined).map((a) => a.name);
   const 部品の中を指す = (name: string): boolean => 部品の名前.some((p) => name.startsWith(`${p}__`));
 
+  // 部品そのものの名前は、取り込む側が図の相手を決める (`部品の名前で光らせる`)。
+  // ここで図を見ると、取り込む前の図にしか当たらず「選べません」 の誤報になる
+  const 部品そのもの = new Set(部品の名前);
+
+  // 板の 2 図種は書いた名前を板の番号に使う (doc comment の表)。 図と突き合わせない
+  const 板になる = doc.type === "sequence" || doc.type === "solidity";
+  const 見比べる図 = 板になる ? undefined : diagram;
+
+  // 綴り違いの補足は **1 度だけ作る**。 知らせごとに全ての名前を並べ直すと、名前も注目先も
+  // 上限 (各 1,000) まで書いた図で知らせが数百 MB になる (矢印の端の知らせが #1209 で踏んだ形)
+  const 名前の案内 = `actors: に書かれている名前 = ${並べて切る([...names])}`;
+
   for (const phase of doc.animate.phases) {
+    /** 記法には書いてあるのに、書いたとおりに光らない指定 (#2398) */
+    const 選べない: string[] = [];
+    /** その段が名指しした箱。 図全体が光る図種で「書かなかった箱があるか」 を見る */
+    const 書いた箱 = new Set<string>();
+    /** 選べない指定に矢印が混じったか。 図全体が光る図種は矢印を 1 本も描かない */
+    let 矢印も書いた = false;
+    /** 書いた箱のうち 1 つでも図に居たか。 居るなら図全体が光る形ではない */
+    let 箱が図に居た = false;
     for (const raw of phase.highlight ?? []) {
       const entry = parseFocusEntry(raw, names);
       const found =
         entry.kind === "edge"
           ? (steps.get(揃える(entry.from))?.has(揃える(entry.to)) ?? false)
           : accepted.has(entry.name) || 部品の中を指す(entry.name);
-      if (found) continue;
-      onNotice({
-        kind: "focus-target-missing",
-        actor: raw,
-        line: phase.pos.line,
-        message:
-          entry.kind === "edge"
-            ? `光らせる矢印が流れにありません: "${raw}"`
-            : `光らせる相手が見つかりません: "${raw}"`,
-        hint:
-          entry.kind === "edge"
-            ? "flow: に書いた矢印と同じ向きで書く"
-            : `actors: に書かれている名前 = ${[...names].join(", ")}`,
-        // 縦列の id は受理しないので、 その旨は hint に出さない (光らせられないため)
-      });
+      if (!found) {
+        onNotice({
+          kind: "focus-target-missing",
+          actor: raw,
+          line: phase.pos.line,
+          message:
+            entry.kind === "edge"
+              ? `光らせる矢印が流れにありません: "${truncateForMessage(raw)}"`
+              : `光らせる相手が見つかりません: "${truncateForMessage(raw)}"`,
+          hint: entry.kind === "edge" ? "flow: に書いた矢印と同じ向きで書く" : 名前の案内,
+          // 縦列の id は受理しないので、 その旨は hint に出さない (光らせられないため)
+        });
+        continue;
+      }
+      if (見比べる図 === undefined) continue;
+      if (entry.kind === "node") 書いた箱.add(揃える(entry.name));
+      if (entry.kind === "node" && (部品そのもの.has(entry.name) || 部品の中を指す(entry.name)))
+        continue;
+      const 相手 =
+        entry.kind === "edge"
+          ? 図の矢印を探す(見比べる図, doc, entry.from, entry.to)
+          : 図の箱を探す(見比べる図, entry.name);
+      if (相手 === undefined) {
+        選べない.push(raw);
+        if (entry.kind === "edge") 矢印も書いた = true;
+      } else if (entry.kind === "node") 箱が図に居た = true;
     }
+    if (選べない.length === 0) continue;
+    /*
+     * 全ての箱を書いた段は、光る結果 (図全体) と書いたことが一致する (doc comment の表)。
+     *
+     * **1 つでも図に居た段はここへ入れない**。 箱を 1 つずつ選べる図種で 1 箱だけが図から
+     * 落ちた時、全ての名前を書いていると「一致している」 と読めてしまう。 図全体が光る図種は
+     * どの名前も図に当たらないので、この条件で落ちることはない
+     */
+    if (!矢印も書いた && !箱が図に居た && [...names].every((n) => 書いた箱.has(n))) continue;
+    /*
+     * **1 行に 1 件だけ出す** (#2398)。 同じ段に書いた名前はどれも同じ理由で選べないので、
+     * 1 つずつ知らせると同じ文が 1 行に並ぶ。 書いた名前は文に並べる。
+     */
+    const 書かなかった箱 = [...names].filter((n) => !書いた箱.has(n));
+    onNotice({
+      kind: "focus-target-not-honored",
+      actor: 選べない[0]!,
+      line: phase.pos.line,
+      message:
+        `type: ${doc.type} は箱を 1 つずつ選べず図全体が光るため、` +
+        ` ${並べて切る(選べない, (x) => `"${x}"`)} を注目先に書いても` +
+        (書かなかった箱.length > 0
+          ? ` 書かなかった箱 (${並べて切る(書かなかった箱)}) も光ります`
+          : " 図全体が光ります"),
+      hint: "名前の書き方の問題ではありません。 全ての箱を書くか、箱を 1 つずつ選べる図種 (flow / class など) に変えてください",
+    });
   }
+}
+
+/**
+ * 知らせの本文に名前を並べる。 件数も 1 件あたりの長さも切る (#2398)。
+ *
+ * **件数だけを絞っても足りない**。 名前は外から来る文字列なので、1 つが 2 万字なら
+ * 知らせも 2 万字になる (矢印の端の知らせが #1209 で踏んだ形)。 箱の上限は 1,000 件で、
+ * 全て並べると 1 件の知らせが数百 KB になる。
+ */
+function 並べて切る(一覧: readonly string[], 包む = (s: string): string => s): string {
+  const 見せる数 = 8;
+  const 並び = 一覧.slice(0, 見せる数).map((x) => 包む(truncateForMessage(x)));
+  const 残り = 一覧.length - 見せる数;
+  return 残り > 0 ? `${並び.join(" / ")} ほか ${残り} 件` : 並び.join(" / ");
+}
+
+/**
+ * 図の中から、書いた名前の箱を探す (#2336 / #2398)。
+ *
+ * 名前から作った識別子と、名前そのものと、描かれる題の 3 通りで探す。 記法は名前で書き、
+ * 図の識別子はそこから作られるが、見本を重ねた図など識別子が名前と揃わない形もある。
+ *
+ * **出来事の相手と注目先が同じ探し方を使う**。 片方だけ厳しくすると、正しく書いた名前が
+ * 一方では光り、もう一方では「見つからない」 と知らされる。
+ */
+function 図の箱を探す(diagram: CdlDiagram, 名: string): CdlNode | undefined {
+  const slug = slugify(名);
+  return diagram.nodes.find((n) => n.id === slug || n.id === 名 || n.title === 名);
+}
+
+/**
+ * 図の中から、書いた両端の矢印を探す (#2336 / #2398)。
+ *
+ * 板になる 2 図種 (`sequence` / `solidity`) は識別子に行の番号が入るので、書いた組が
+ * 流れの何番目かを先に引いてから照合する。
+ */
+function 図の矢印を探す(
+  diagram: CdlDiagram,
+  doc: DslDocument,
+  fromName: string,
+  toName: string,
+): CdlEdge | undefined {
+  const from = slugify(fromName);
+  const to = slugify(toName);
+  if (doc.type === "sequence" || doc.type === "solidity") {
+    const stepIdx = doc.flow.findIndex(
+      (step) => slugify(step.from) === from && slugify(step.to) === to,
+    );
+    if (stepIdx < 0) return undefined;
+    return diagram.edges.find(
+      (x) =>
+        (x.from === `s${stepIdx}-${from}` || x.from === from) &&
+        (x.to === `s${stepIdx}-${to}` || x.from === x.to),
+    );
+  }
+  return diagram.edges.find((x) => x.from === from && x.to === to);
 }
 
 /**
@@ -1685,31 +1829,15 @@ function 出来事の相手を解く(
 ): NonNullable<CdlDiagram["eventBindings"]>[number]["target"] | undefined {
   if (e.target.kind === "diagram") return { kind: "diagram" };
   if (e.target.kind === "edge") {
-    const from = slugify(e.target.from);
-    const to = slugify(e.target.to);
-    let 矢印: CdlEdge | undefined;
-    if (doc.type === "sequence" || doc.type === "solidity") {
-      const stepIdx = doc.flow.findIndex(
-        (step) => slugify(step.from) === from && slugify(step.to) === to,
-      );
-      if (stepIdx >= 0) {
-        矢印 = diagram.edges.find(
-          (x) =>
-            (x.from === `s${stepIdx}-${from}` || x.from === from) &&
-            (x.to === `s${stepIdx}-${to}` || x.from === x.to),
-        );
-      }
-    } else {
-      矢印 = diagram.edges.find((x) => x.from === from && x.to === to);
-    }
+    const 矢印 = 図の矢印を探す(diagram, doc, e.target.from, e.target.to);
     return 矢印 ? { kind: "edge", id: 矢印.id } : undefined;
   }
   const 名 = e.target.name;
-  const slug = slugify(名);
   if (e.target.kind === "node") {
-    const 箱 = diagram.nodes.find((n) => n.id === slug || n.id === 名 || n.title === 名);
+    const 箱 = 図の箱を探す(diagram, 名);
     return 箱 ? { kind: "node", id: 箱.id } : undefined;
   }
+  const slug = slugify(名);
   const 列 = (diagram.lanes ?? []).find((l) => l.id === slug || l.id === 名 || l.label === 名);
   return 列 ? { kind: "lane", id: 列.id } : undefined;
 }
