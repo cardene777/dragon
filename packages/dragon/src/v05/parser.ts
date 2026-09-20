@@ -4398,6 +4398,14 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
     // 拾った上で、知らない名前は下で誤りとして知らせる
     const propMatch = t.match(/^([^\s:]+)\s*:\s*(.*)$/);
     if (!propMatch) {
+      // **項目名として読めなかった行も捨てない** (#2403)。 すぐ下で「知らない項目名」 は
+      // 知らせているのに、ここだけが黙っていた = コロンを書き落とすと、その行が
+      // 知らせにも図にも現れない (実測 = 段の中に `focus` と書くと誤り 0 件で何も起きない)
+      errors.push({
+        line: ln.no,
+        message: `段の行が項目名として読めません: "${t}"`,
+        hint: `\`項目名: 値\` の形で書く (使える項目 = ${段の項目の英語.join(", ")})`,
+      });
       i += 1;
       continue;
     }
@@ -4470,33 +4478,22 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
       continue;
     }
     if (key === "tween") {
-      // inline (tween: client_bal 100 -> 90) or block
+      // 1 行にまとめた形 (tween: client_bal 100 -> 90) と縦に並べた形の両方を受ける。
+      // 読めない行の文は読み手が持つ (#2403)
       if (value) {
-        const tw = parseTweenLine(value, ln.no);
+        const tw = parseTweenLine(value, ln.no, errors);
         if (tw) phase.tweens!.push(tw);
-        else
-          errors.push({
-            line: ln.no,
-            message: `変化の書き方が読めません: "${value}"`,
-            hint: "`tween: name 100 -> 90` の形で書く",
-          });
         i += 1;
         continue;
       }
-      // block ... 後続の同 indent + 1 以上の行を取り込む
+      // 縦に並べた形 ... 後続の同 indent + 1 以上の行を取り込む
       const baseIndent = ln.indent;
       let j = i + 1;
       while (j < block.length) {
         const nx = block[j]!;
         if (nx.indent <= baseIndent) break;
-        const tw = parseTweenLine(nx.trimmed, nx.no);
+        const tw = parseTweenLine(nx.trimmed, nx.no, errors);
         if (tw) phase.tweens!.push(tw);
-        else
-          errors.push({
-            line: nx.no,
-            message: `変化の行が読めません: "${nx.trimmed}"`,
-            hint: "`name: 100 -> 90` の形で書く",
-          });
         j += 1;
       }
       i = j;
@@ -4504,7 +4501,7 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
     }
     if (key === "set") {
       if (value) {
-        const st = parseSetLine(value, ln.no);
+        const st = parseSetLine(value, ln.no, errors);
         if (st) phase.sets!.push(st);
         i += 1;
         continue;
@@ -4514,7 +4511,7 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
       while (j < block.length) {
         const nx = block[j]!;
         if (nx.indent <= baseIndent) break;
-        const st = parseSetLine(nx.trimmed, nx.no);
+        const st = parseSetLine(nx.trimmed, nx.no, errors);
         if (st) phase.sets!.push(st);
         j += 1;
       }
@@ -4720,13 +4717,33 @@ function parseFocusList(s: string): string[] {
   return out;
 }
 
-function parseTweenLine(s: string, lineNo: number): DslTween | null {
-  // `client_bal 100 -> 90` / `client_bal: 100 -> 90`
+/**
+ * `client_bal 100 -> 90` / `client_bal: 100 -> 90` を 1 件の変化として読む。
+ *
+ * **2 つの断り方を分けて自分で報告する** (#2403、 #2401 と同じ形)。 どちらも `null` に
+ * まとめると、名前の規則を外れただけの行にも形の案内が返り、案内に従っても直らない
+ * (実測 = `すすみ 0 -> 1` に「`tween: name 100 -> 90` の形で書く」 が返った)。
+ *
+ * **形の案内には 2 つの書き方を両方載せる**。 呼出側は 1 行にまとめた形と縦に並べた形の
+ * 2 つあり、文を呼出側へ戻すと「呼出しを足した日に書き忘れる」 形が戻る。 文を 1 か所に
+ * 置いたまま、どちらで書いた人にも直し方が伝わるようにする。
+ */
+function parseTweenLine(s: string, lineNo: number, errors: DslError[]): DslTween | null {
   const cleaned = s.replace(/^-\s*/, "").trim();
   const m = cleaned.match(/^([^:\s]+)\s*[:\s]\s*(-?\d+(?:\.\d+)?)\s*->\s*(-?\d+(?:\.\d+)?)$/);
-  if (!m) return null;
+  if (!m) {
+    errors.push({
+      line: lineNo,
+      message: `変化の行が読めません: "${cleaned}"`,
+      hint: "`tween: name 100 -> 90` の形で書く (縦に並べる時は `name: 100 -> 90`)",
+    });
+    return null;
+  }
   const state = m[1] ?? "";
-  if (!isValueName(state)) return null;
+  if (!isValueName(state)) {
+    errors.push({ line: lineNo, ...valueNameIssue(state) });
+    return null;
+  }
   return {
     state,
     from: parseFloat(m[2] ?? "0"),
@@ -4735,13 +4752,32 @@ function parseTweenLine(s: string, lineNo: number): DslTween | null {
   };
 }
 
-function parseSetLine(s: string, lineNo: number): DslSet | null {
-  // `status: "loading"` / `status loading`
+/**
+ * `status: "loading"` / `status loading` を 1 件の書き換えとして読む。
+ *
+ * **2 つの断り方を分けて自分で報告する** (#2403)。 直す前は断り方を分けないどころか、
+ * 呼出側が `null` を握り潰していた = 4 通りの書き損じ (1 行 / 縦 × 名前が規則外 / 区切りが無い)
+ * すべてで知らせが 0 件になり、段に書き換えも入らなかった。
+ *
+ * 隣に並ぶ `tween` は知らせを出しており、**同じ段の中で片方だけが黙っていた**。
+ * 文の置き場所を読み手 1 か所にすると、呼出しを足した日に書き忘れても黙らない。
+ */
+function parseSetLine(s: string, lineNo: number, errors: DslError[]): DslSet | null {
   const cleaned = s.replace(/^-\s*/, "").trim();
   const m = cleaned.match(/^([^:\s]+)\s*[:\s]\s*(.+)$/);
-  if (!m) return null;
+  if (!m) {
+    errors.push({
+      line: lineNo,
+      message: `値の書き換えが読めません: "${cleaned}"`,
+      hint: '`set: name "done"` の形で書く (縦に並べる時は `name: "done"`)',
+    });
+    return null;
+  }
   const state = m[1] ?? "";
-  if (!isValueName(state)) return null;
+  if (!isValueName(state)) {
+    errors.push({ line: lineNo, ...valueNameIssue(state) });
+    return null;
+  }
   const raw = (m[2] ?? "").trim();
   const stripped = stripQuotes(raw);
   const asNum = Number(stripped);
