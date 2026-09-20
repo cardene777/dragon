@@ -1,7 +1,7 @@
 /**
  * 箱に書いた指定が効かない時の、伝える欄の割り出しと呼び名 (#2368 で 1 箇所にまとめた)。
  *
- * 同じ判定を 3 経路が使う。
+ * 同じ判定を図種の族ごとの経路が使う (経路の数は下の表ではなく実装が SSOT)。
  *
  * | 経路 | 図種 | 起点 |
  * |---|---|---|
@@ -57,6 +57,28 @@ export const 効かない箱の欄の呼び名: readonly (readonly [string, stri
 ];
 
 /**
+ * 体験と工程の欄 (#2380)。 **どの族の除外にも入る**。
+ *
+ * 担当 (`owner`) と終わる時期 (`end`) は工程表が、接点 (`touchpoint`) と伸びしろ
+ * (`opportunity`) は体験の地図が描く。 描けない図種で書いた時は
+ * `reportChartFieldsNotHonored` が図種ごとの行き先を添えて伝える。
+ *
+ * 箱の知らせが同じ欄を重ねて伝えると、1 つの欄が 2 つの名前で呼ばれる (「担当」 と `owner`)
+ * うえ、案内が食い違う = 箱の知らせは「箱を持つ図種へ」 と言うが、担当は箱を持つ図種でも
+ * 効かない。
+ *
+ * **1 か所に置いて各族が読む**。 4 欄を族ごとに書き並べると、5 つ目を足した日に
+ * 直し忘れた族だけが 2 件並べるようになる (実測 = 板の族だけが 4 欄を持たず、
+ * `sequence` / `solidity` の 8 通りで知らせが 2 件並んでいた)。
+ */
+export const 体験と工程の欄: ReadonlySet<string> = new Set([
+  "owner",
+  "end",
+  "touchpoint",
+  "opportunity",
+]);
+
+/**
  * 板の面で、効かないと伝えない箱の欄 (#2358)。
  *
  * **除外側を書く**。 効かない欄を並べる形にすると、箱に欄を足した日にその欄だけが
@@ -65,7 +87,7 @@ export const 効かない箱の欄の呼び名: readonly (readonly [string, stri
  * | 区分 | 欄 |
  * |---|---|
  * | 板が描く | 名前 / 題 / 呼び名 と、書いた場所と種類を書いたかの印 |
- * | 別の知らせが受け持つ | 縦列 (`reportLaneNotHonored` が伝える) |
+ * | 別の知らせが受け持つ | 縦列 (`reportLaneNotHonored`) / 体験と工程の 4 欄 (#2380) |
  *
  * 種類 (`kind`) は図種で分かれるので、判定の側で足す。
  */
@@ -76,6 +98,7 @@ export const 板が伝えない箱の欄: ReadonlySet<string> = new Set([
   "pos",
   "kindWritten",
   "lane",
+  ...体験と工程の欄,
 ]);
 
 /**
@@ -87,7 +110,7 @@ export const 板が伝えない箱の欄: ReadonlySet<string> = new Set([
  * | 別の知らせが受け持つ | 縦列 / 位置のずらし / 体験と工程の 4 欄 |
  *
  * 別の知らせは順に `lane-not-honored` / `position-offset-ignored` / `chart-value-unreadable`。
- * 除かないと同じ箱に 2 件並ぶ。
+ * 除かないと同じ箱に 2 件並ぶ。 体験と工程の 4 欄は `体験と工程の欄` から読む (#2380)。
  */
 export const 木の図が伝えない箱の欄: ReadonlySet<string> = new Set([
   "name",
@@ -98,10 +121,7 @@ export const 木の図が伝えない箱の欄: ReadonlySet<string> = new Set([
   "kindWritten",
   "lane",
   "layoutPos",
-  "owner",
-  "end",
-  "touchpoint",
-  "opportunity",
+  ...体験と工程の欄,
 ]);
 
 /**
@@ -119,8 +139,8 @@ export const 木の図が伝えない箱の欄: ReadonlySet<string> = new Set([
  * 記法の `offsetX` / `offsetY` は `layoutPos` に入る (`position-offset-ignored` が受け持つ)。
  * 欄の名前で判定するので、記法の項目名ではなく入った先の欄を書く。
  *
- * 体験と工程の 4 欄 (`owner` / `end` / `touchpoint` / `opportunity`) は、読む図種と
- * 別の知らせが受け持つ図種に分かれる。 どちらも伝えないので 1 つにまとめて除く。
+ * 体験と工程の 4 欄 (`体験と工程の欄`) は、読む図種と別の知らせが受け持つ図種に分かれる。
+ * どちらも伝えないので 1 つにまとめて除く。
  */
 const 値として読む図に共通の除外: ReadonlySet<string> = new Set([
   "name",
@@ -131,10 +151,7 @@ const 値として読む図に共通の除外: ReadonlySet<string> = new Set([
   "kindWritten",
   "lane",
   "layoutPos",
-  "owner",
-  "end",
-  "touchpoint",
-  "opportunity",
+  ...体験と工程の欄,
 ]);
 
 /**
@@ -228,10 +245,7 @@ const 骨組みの図に共通の除外: ReadonlySet<string> = new Set([
   "renderOffsetX",
   "renderOffsetY",
   "lane",
-  "owner",
-  "end",
-  "touchpoint",
-  "opportunity",
+  ...体験と工程の欄,
 ]);
 
 /**
