@@ -679,7 +679,15 @@ export function parseTextDslV05(src: string): V05ParseResult {
     }
     if (head.key === "actors") {
       // 1 行で書いた形と、 続く字下げ行に項目を並べた形の両方を受け付ける
-      const { items, next } = collectActorEntries(lines, i + 1, line.indent);
+      const { items, 届かない, next } = collectActorEntries(lines, i + 1, line.indent);
+      // 1 件の頭にも続きにもならなかった行を知らせる (#2400)。 捨てると箱が黙って消える
+      for (const ln of 届かない) {
+        errors.push({
+          line: ln.no,
+          message: `登場人物の行が読めません: "${ln.trimmed}"`,
+          hint: "`- Client` の形で書く (先頭の `- ` を落とすと 1 件として読めない)",
+        });
+      }
       actors = [];
       for (const entry of items) {
         const base = parseActor(entry[0]!, errors);
@@ -776,8 +784,16 @@ export function parseTextDslV05(src: string): V05ParseResult {
     }
     if (head.key === "animation") {
       // animation: は step を list で並べる
-      const { items: stepBlocks, next } = collectAnimationSteps(lines, i + 1, line.indent);
+      const { items: stepBlocks, 届かない, next } = collectAnimationSteps(lines, i + 1, line.indent);
       animate = ensureAnimate(animate, line.no);
+      // どの段にも属さなかった行を知らせる (#2400)。 捨てると段が丸ごと黙って消える
+      for (const ln of 届かない) {
+        errors.push({
+          line: ln.no,
+          message: `段の行が読めません: "${ln.trimmed}"`,
+          hint: '`- step: "名前" 1.2s` の形で書く (先頭の `- ` を落とすと段として読めない)',
+        });
+      }
       for (const block of stepBlocks) {
         const ph = parsePhase(block, errors);
         if (ph) animate.phases.push(ph);
@@ -2700,6 +2716,24 @@ function splitInlineFields(inner: string): string[] {
   return 見た.閉じた ? 見た.parts : 引用符を見て割る(false).parts;
 }
 
+/**
+ * 字下げした行を 1 行も落とさずに集める (#2400)。
+ *
+ * 形が合うかを **ここでは見ない**。 集めた行は呼出側の読み手 (`parseFlowStep` /
+ * `parseStateEntry` / `parseLane` 等) へ渡し、読めない行は読み手が「…の行が読めません」 として
+ * 報告する。
+ *
+ * **形の合わない行をここで捨てない**。 捨てると知らせにも図にも現れず、書いた人には
+ * 「1 行書いたのに増えない」 だけが残る (実測 = `states:` に `progress 0` と書くと
+ * 知らせ 0 件でその状態が消えた)。 判定を読み手 1 か所に寄せると、受ける形を広げた日に
+ * 集める側を直し忘れて黙る形も生まれない。
+ *
+ * 同じ考えで書かれた `collectIndentedRaw` (値の節、 #1169) と揃えた。
+ *
+ * **空行とコメント行はここで飛ばす**。 読み手はどれも「書いた指定」 として読むため、
+ * 渡すとコメントが誤りとして報告される (実測 = コロンを含むコメント `# めも: あ` が
+ * `状態の行が読めません` になっていた)。
+ */
 function collectIndentedList(
   lines: Line[],
   start: number,
@@ -2709,17 +2743,13 @@ function collectIndentedList(
   let i = start;
   while (i < lines.length) {
     const ln = lines[i]!;
-    if (!ln.trimmed) {
+    if (!ln.trimmed || ln.trimmed.startsWith("#")) {
       i += 1;
       continue;
     }
     if (ln.indent <= parentIndent) break;
-    if (ln.trimmed.startsWith("- ")) {
-      items.push({ ...ln, trimmed: ln.trimmed.slice(2).trim() });
-    } else if (ln.trimmed.includes(":")) {
-      // YAML 風 inline (key: value) は state 用 block で許容
-      items.push(ln);
-    }
+    // 先頭の `- ` を外して渡す。 外した形と、 YAML 風の `key: value` を読み手が同じに読む
+    items.push(ln.trimmed.startsWith("- ") ? { ...ln, trimmed: ln.trimmed.slice(2).trim() } : ln);
     i += 1;
   }
   return { items, next: i };
@@ -3304,14 +3334,16 @@ function collectActorEntries(
   lines: Line[],
   start: number,
   parentIndent: number,
-): { items: Line[][]; next: number } {
+): { items: Line[][]; 届かない: Line[]; next: number } {
   const items: Line[][] = [];
+  /** 1 件の頭にも続きにもならなかった行 (#2400)。 呼出側が知らせにする */
+  const 届かない: Line[] = [];
   let cur: Line[] | null = null;
   let headIndent = -1;
   let i = start;
   while (i < lines.length) {
     const ln = lines[i]!;
-    if (!ln.trimmed) {
+    if (!ln.trimmed || ln.trimmed.startsWith("#")) {
       i += 1;
       continue;
     }
@@ -3323,25 +3355,34 @@ function collectActorEntries(
     } else if (cur && ln.indent > headIndent) {
       // 頭より深い字下げは、 直前の 1 件の続き
       cur.push(ln);
+    } else {
+      // 続きにも頭にもならない行を **捨てない** (#2400)。 呼出側が「読めません」 として知らせる。
+      // 捨てると `- ` を書き落とした 1 行が知らせにも図にも現れない (実測 = 箱が 1 つ消えた)
+      //
+      // **ここで 1 件の頭にはしない**。 `- Web:` と同じ深さに書いた `補足: "..."` が
+      // 登場人物 `補足` になり、書き間違いが別の意味に化ける (#1367 の検査が守っている形)
+      届かない.push(ln);
     }
     i += 1;
   }
   if (cur) items.push(cur);
-  return { items, next: i };
+  return { items, 届かない, next: i };
 }
 
 function collectAnimationSteps(
   lines: Line[],
   start: number,
   parentIndent: number,
-): { items: Line[][]; next: number } {
+): { items: Line[][]; 届かない: Line[]; next: number } {
   // 各 `- step: "..."` 開始を 1 block の頭として識別、 後続の同 indent 以下を block 本文として吸収
   const out: Line[][] = [];
+  /** どの段にも属さなかった行 (#2400)。 呼出側が知らせにする */
+  const 届かない: Line[] = [];
   let i = start;
   let cur: Line[] | null = null;
   while (i < lines.length) {
     const ln = lines[i]!;
-    if (!ln.trimmed) {
+    if (!ln.trimmed || ln.trimmed.startsWith("#")) {
       i += 1;
       continue;
     }
@@ -3355,11 +3396,15 @@ function collectAnimationSteps(
     } else if (cur) {
       // 続く property line (focus / tween / set / badge / description)
       cur.push(ln);
+    } else {
+      // 最初の段が始まる前の行を **捨てない** (#2400)。 呼出側が「読めません」 として知らせる。
+      // 捨てると `- ` を書き落とした段が丸ごと黙って消える
+      届かない.push(ln);
     }
     i += 1;
   }
   if (cur) out.push(cur);
-  return { items: out, next: i };
+  return { items: out, 届かない, next: i };
 }
 
 /**
