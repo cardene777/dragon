@@ -10,7 +10,7 @@
 import { describe, expect, it } from "vitest";
 import { compileToCdl } from "../src/compile";
 import { 骨組みの図種, 骨組みの図が伝えない箱の欄 } from "../src/compile/actor-option-notice";
-import { parseTextDslV05 } from "../src/v05/parser";
+import { PRESET_TYPES, parseTextDslV05 } from "../src/v05/parser";
 
 /**
  * 図種ごとに、その図種が読める最小の本文を作る。
@@ -99,6 +99,8 @@ const 読まない欄: readonly (readonly [string, string, string])[] = [
   ["前の値", "previous", "previous: 2"],
   // 行 (`rows`) と組にした形は別に見る (読み替えられる図種では効く)
   ["印", "marks", "marks: [ok]"],
+  // 色番号 (#2384)。 部品を置いた箱でだけ効くので、ふつうの箱では届く先が無い
+  ["色", "colorHex", 'color: "#123456"'],
 ];
 
 /** その図種が読む欄を差し引いた、読まない欄の一覧 */
@@ -419,7 +421,7 @@ describe("状態遷移図の箱に書いた指定が使われないことを伝�
     expect(出ない).toEqual([]);
   });
 
-  it("始まりの印と終わりの印と、行と組にした印には知らせが出ず図が変わる", () => {
+  it("始まりの印と終わりの印と、行と組にした印には知らせが出ず図が変わる (state)", () => {
     const 素 = JSON.stringify(組む(本文("state", "")).図);
     const 違う: string[] = [];
     for (const [名, 書く] of [
@@ -432,5 +434,82 @@ describe("状態遷移図の箱に書いた指定が使われないことを伝�
       if (JSON.stringify(組む(本文("state", 書く)).図) === 素) 違う.push(`${名}: 図が変わらない`);
     }
     expect(違う).toEqual([]);
+  });
+});
+
+describe("箱に書いた色番号が使われないことを伝える (#2384)", () => {
+  /** どの図種でも読める本文。 図種ごとに値の書き方だけ変える */
+  function 色の本文(図種: string, 箱の欄: string): string {
+    const 値 =
+      図種 === "gantt" ? '"1月"' : 図種 === "journey" ? '"満足"' : 図種 === "quadrant" ? '"左上"' : "10";
+    return `title: "しらべ"
+type: ${図種}
+
+actors:
+  - ぜろ: { value: ${値} }
+  - あ: { value: ${値}${箱の欄 === "" ? "" : `, ${箱の欄}`} }
+  - い: { value: ${値} }
+
+flow:
+  - ぜろ -> あ: "はじめ"
+  - あ -> い: "つなぐ"
+`;
+  }
+
+  it("どの図種でも、色番号が黙って消えることが無い", () => {
+    /*
+     * **図種の一覧を検査に写さない**。 記法が受ける図種 (`PRESET_TYPES`) を全部回し、
+     * 図が変わるか知らせが増えるかのどちらかが起きることを見る。
+     * 0 件を出す検査なので、走査した図種の数を併記する。
+     */
+    const 黙る: string[] = [];
+    let 走査 = 0;
+    for (const t of [...PRESET_TYPES].sort()) {
+      const 素p = parseTextDslV05(色の本文(t, ""));
+      if (!素p.ok) continue;
+      const 素文: string[] = [];
+      const 素図 = JSON.stringify(
+        compileToCdl(素p.doc, { onNotice: (n) => 素文.push(n.message) }),
+      );
+      const p = parseTextDslV05(色の本文(t, 'color: "#123456"'));
+      if (!p.ok) continue;
+      走査 += 1;
+      const 文: string[] = [];
+      const 図 = JSON.stringify(compileToCdl(p.doc, { onNotice: (n) => 文.push(n.message) }));
+      const 増えた = 文.filter((m) => !素文.includes(m));
+      if (図 === 素図 && 増えた.length === 0) 黙る.push(t);
+    }
+    expect(走査, "走査が 0 件 (空振り)").toBeGreaterThan(0);
+    expect(黙る, `走査 ${走査} 図種`).toEqual([]);
+  });
+
+  it("部品を置いた箱では鳴らず、ふつうの箱では鳴る", () => {
+    // 部品の側の知らせ (`compile/parts.ts`) が受け持つ。 判定の入口で飛ばしている
+    const 部品 = 箱の知らせ("flow", 'kind: state-indicator, color: "#123456"').filter(
+      (n) => n.kind === "actor-option-not-honored",
+    );
+    const ふつう = 箱の知らせ("flow", 'color: "#123456"').filter(
+      (n) => n.kind === "actor-option-not-honored",
+    );
+    expect(部品.map((n) => n.message), "部品を置いた箱で鳴っている").toEqual([]);
+    expect(ふつう.length, "ふつうの箱で鳴っていない (空振り)").toBe(1);
+  });
+
+  it("色の名前で書いた形は鳴らず、図が変わる", () => {
+    // 記法の `色:` は 16 進数なら色番号に、名前なら箱の色 (`tone`) に入る
+    const 知 = 箱の知らせ("flow", "color: 成功").filter((n) => n.kind === "actor-option-not-honored");
+    expect(知.map((n) => n.message)).toEqual([]);
+    expect(
+      JSON.stringify(組む(本文("flow", "color: 成功")).図),
+      "色の名前で図が変わらない (空振り)",
+    ).not.toBe(JSON.stringify(組む(本文("flow", "")).図));
+  });
+
+  it("案内が色番号の行き先を書く", () => {
+    const 案内 =
+      箱の知らせ("flow", 'color: "#123456"').find((n) => n.kind === "actor-option-not-honored")
+        ?.hint ?? "";
+    expect(案内, `案内 "${案内}"`).toContain("部品");
+    expect(案内, `案内 "${案内}"`).toContain("色の名前");
   });
 });
