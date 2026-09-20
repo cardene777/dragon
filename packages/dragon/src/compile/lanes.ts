@@ -47,10 +47,33 @@ export const 縦列を選べる図種: ReadonlySet<PresetType> = new Set<PresetT
  * 行き先を決める規則が要る (既定の縦列に集める / 自分の縦列を作る) が、どちらも
  * 書いた人の意図と一致する保証が無い。 混ざった形は `reportLaneMixed` が知らせる。
  *
- * 見本 (parts) は縦列を張替え先として使うため、この判定からは外す。
+ * 数える箱は `縦列の判定に数える箱` が決める (#2372)。
  */
 export function 書いた縦列に置く(kind: PresetType, doc: DslDocument): boolean {
   if (!縦列を選べる図種.has(kind)) return false;
-  const 対象 = doc.actors.filter((a) => a.partId === undefined);
+  const 対象 = 縦列の判定に数える箱(doc);
   return 対象.length > 0 && 対象.every((a) => a.lane !== undefined);
+}
+
+/**
+ * 縦列の判定で数える箱 (#2372)。
+ *
+ * **見本 (`parts`) は縦列を書いた時だけ数える**。 見本の縦列は張替え先の指定で、
+ * 箱を並べる話ではない = 書いていない見本を数に入れると、普通の箱が全部書いた図まで
+ * 「一部だけ書いた」 に倒れる。
+ *
+ * 逆に見本を **常に** 外すと、箱が全部見本の図で対象が 0 件になり
+ * 「全ての箱が縦列を書いた」 が成立しない。 結果は 3 つ重なる =
+ * 書いた縦列に箱が入らない / 宣言した縦列が空のまま残る / 誤って「どの箱も入らない」 と知らせる
+ * (実測 = カタログの見本 19 枚で知らせが 38 件)。
+ *
+ * 見本が混ざった図では普通の箱が対象になって成立し、**見本も一緒に書いた縦列へ入っていた**
+ * = 見本を縦列へ入れられないわけではなく、数え方だけが割れていた。
+ *
+ * **置く側と知らせる側で同じ数え方を使う**。 別々に数えると、見本だけの図で
+ * 「一部だけ書いた」 形が知らせずに落ちる。
+ */
+export function 縦列の判定に数える箱(doc: DslDocument): DslDocument["actors"] {
+  const 見本が縦列を書いた = doc.actors.some((a) => a.partId !== undefined && a.lane !== undefined);
+  return 見本が縦列を書いた ? doc.actors : doc.actors.filter((a) => a.partId === undefined);
 }

@@ -77,7 +77,7 @@ import {
 // 箱を測る物差しを、この file から出していた形のまま外へ渡す (#2036)。
 // `index.ts` が画面側の測りに使う
 export { measureActorBoxes } from "./compile/placement-apply";
-import { 縦列を選べる図種, 書いた縦列に置く } from "./compile/lanes";
+import { 縦列を選べる図種, 書いた縦列に置く, 縦列の判定に数える箱 } from "./compile/lanes";
 import type { CompileNotice } from "./compile/notice";
 // 分けた先の型を、この file から出していた形のまま外へ渡す (#2030)。
 // `index.ts` と 47 個の検査が `./compile` から取り込んでいるので、窓口をここに残す
@@ -799,9 +799,12 @@ const DRAWABLE_DOC_TYPES: ReadonlySet<PresetType> = new Set<PresetType>(DRAW_TAR
  * 書いた人の意図と一致する保証が無い。 **全部書くか 1 つも書かないか** を求める。
  *
  * 1 つも書いていない形は従来どおりの並びになるだけなので知らせない。
+ *
+ * 数える箱は置く側と同じ `縦列の判定に数える箱` から採る (#2372)。 別々に数えると、
+ * 見本だけの図で「一部だけ書いた」 形が知らせずに落ちる。
  */
 function reportLaneMixed(doc: DslDocument, onNotice: (n: CompileNotice) => void): void {
-  const 対象 = doc.actors.filter((a) => a.partId === undefined);
+  const 対象 = 縦列の判定に数える箱(doc);
   const 書いた = 対象.filter((a) => a.lane !== undefined);
   if (書いた.length === 0 || 書いた.length === 対象.length) return;
   const 書いていない = 対象.filter((a) => a.lane === undefined);
