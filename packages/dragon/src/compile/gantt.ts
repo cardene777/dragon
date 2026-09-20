@@ -3,7 +3,7 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
 
 import { actorRefTable } from "./actors";
-import { 書いた多重度を読む } from "./er-relation";
+import { 効かない矢印の欄を並べる, 向きだけを使う図が伝えない矢印の欄 } from "./edge-option-notice";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
 import { 箱の題 } from "./node-title";
@@ -93,14 +93,16 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       continue;
     }
     依存元.set(s.to, s.from);
-    // 帯の依存は「どちらが先か」 だけを持つ。 矢印に書いた文字や色は描けないので伝える。
-    // 多重度もここに含める = 多重度の知らせ (#2107) と同じ行に 2 件並べない
-    const 効かない = [
-      (s.label ?? "") !== "" || (s.sub ?? "") !== "" ? "文字" : "",
-      s.tone !== undefined ? "色" : "",
-      s.style !== undefined ? "線種" : "",
-      書いた多重度を読む(s.cardinality) !== undefined ? "多重度" : "",
-    ].filter((x) => x !== "");
+    /*
+     * 帯の依存は「どちらが先か」 だけを持つ。 矢印に書いた飾りは描けないので伝える。
+     *
+     * **伝える欄を並べない** (#2366)。 以前は 文字 / 色 / 線種 / 多重度 の 4 種を手で並べて
+     * いたため、後から足した項目がどこにも入らなかった (実測 = 矢印に書ける 21 項目のうち
+     * 17 件が、図も変わらず知らせも出ないまま落ちていた)。 矢印が使う欄を除いた残り全部を伝える。
+     *
+     * 多重度もここに含める = 多重度の知らせ (#2107) と同じ行に 2 件並べない。
+     */
+    const 効かない = 効かない矢印の欄を並べる(s, 向きだけを使う図が伝えない矢印の欄);
     if (効かない.length > 0) {
       伝える(
         "edge-option-not-honored",
