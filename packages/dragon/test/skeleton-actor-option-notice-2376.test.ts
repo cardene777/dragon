@@ -10,6 +10,7 @@
 import { describe, expect, it } from "vitest";
 import { compileToCdl } from "../src/compile";
 import { 骨組みの図種, 骨組みの図が伝えない箱の欄 } from "../src/compile/actor-option-notice";
+import { 縦列を選べる図種 } from "../src/compile/lanes";
 import { PRESET_TYPES, parseTextDslV05 } from "../src/v05/parser";
 
 /**
@@ -82,6 +83,41 @@ function 組む(src: string): { 知: 知[]; 図: ReturnType<typeof compileToCdl>
 function 箱の知らせ(図種: string, 箱の欄: string): 知[] {
   const { 知 } = 組む(本文(図種, 箱の欄));
   const 素 = 組む(本文(図種, "")).知;
+  return 知.filter((n) => !素.some((s) => s.kind === n.kind && s.line === n.line));
+}
+
+/**
+ * 全ての箱が縦列を書いた本文 (#2386)。
+ *
+ * 段 (`stack`) は **図 1 枚ごとに** 読むかが決まり、縦列を書かない図ではどの図種でも伝える。
+ * 図種ごとの違いを見る検査はその条件を満たした形で測る = 満たさない形で測ると、
+ * 図種の違いと図の書き方の違いが混ざる。
+ */
+function 縦列を書いた本文(図種: string, 箱の欄: string): string {
+  const 行 = 図種 === "class" ? ['rows: ["+ よ()"]'] : [];
+  const 面 = `: { ${["lane: m", ...行].join(", ")} }`;
+  const あ = ["lane: m", ...行, ...(箱の欄 === "" ? [] : [箱の欄])];
+  return `title: "しらべ"
+type: ${図種}
+
+lanes:
+  m: { label: "ま" }
+
+actors:
+  - ぜろ${面}
+  - あ: { ${あ.join(", ")} }
+  - い${面}
+
+flow:
+  - ぜろ -> あ: "はじめ"
+  - あ -> い: "つなぐ"
+`;
+}
+
+/** 縦列を書いた本文で、最初の箱の行に出た知らせ */
+function 縦列を書いた知らせ(図種: string, 箱の欄: string): 知[] {
+  const { 知 } = 組む(縦列を書いた本文(図種, 箱の欄));
+  const 素 = 組む(縦列を書いた本文(図種, "")).知;
   return 知.filter((n) => !素.some((s) => s.kind === n.kind && s.line === n.line));
 }
 
@@ -211,14 +247,15 @@ describe("骨組みの図で箱に書いた指定が使われないことを伝�
   });
 
   it("行き先を持たない欄には案内を付けない (#2382)", () => {
-    // 段 (`stack`) は移す先が無い。 当たり障りのない 1 文で埋めない
+    // 構成の図の段 (`stack`) は、縦列を書いても効かないので移す先が無い (#2386)。
+    // 当たり障りのない 1 文で埋めない
     const 書き方: Record<string, string> = { stack: "stack: 1", kind: "kind: actor" };
     const 付いた: string[] = [];
     let 走査 = 0;
     for (const [図種, 違い] of 骨組みの図種) {
       for (const 欄 of 違い.読まない ?? []) {
         走査 += 1;
-        const 知 = 箱の知らせ(図種, 書き方[欄]!).find((n) => n.kind === "actor-option-not-honored");
+        const 知 = 縦列を書いた知らせ(図種, 書き方[欄]!).find((n) => n.kind === "actor-option-not-honored");
         if (知?.hint !== undefined) 付いた.push(`${図種} / ${欄}: "${知.hint}"`);
       }
     }
@@ -345,7 +382,7 @@ describe("骨組みの図で箱に書いた指定が使われないことを伝�
         const 書く = 書き方[欄];
         expect(書く, `欄 "${欄}" の書き方を検査が持っていない`).toBeDefined();
         走査した.push(`${図種}/${欄}`);
-        const 知 = 箱の知らせ(図種, 書く!).filter((n) => n.kind === "actor-option-not-honored");
+        const 知 = 縦列を書いた知らせ(図種, 書く!).filter((n) => n.kind === "actor-option-not-honored");
         if (知.length !== 1) 出ない.push(`${図種} / ${欄}: ${知.length} 件`);
       }
     }
@@ -361,7 +398,7 @@ describe("骨組みの図で箱に書いた指定が使われないことを伝�
         for (const 他 of 図種一覧) {
           if (他 === 図種) continue;
           if ((骨組みの図種.get(他)?.読まない ?? []).includes(欄)) continue;
-          const 知 = 箱の知らせ(他, 書き方[欄]!).filter((n) => n.kind === "actor-option-not-honored");
+          const 知 = 縦列を書いた知らせ(他, 書き方[欄]!).filter((n) => n.kind === "actor-option-not-honored");
           if (知.length > 0) 出た.push(`${他} / ${欄}`);
         }
       }
@@ -511,5 +548,118 @@ flow:
         ?.hint ?? "";
     expect(案内, `案内 "${案内}"`).toContain("部品");
     expect(案内, `案内 "${案内}"`).toContain("色の名前");
+  });
+});
+
+describe("箱に書いた段が使われないことを伝える (#2386)", () => {
+  /*
+   * 段 (`stack`) が効くのは「書いた縦列に箱を置く形」 に入った図だけで、その形に入る条件は
+   * 全ての箱が縦列を書いていること。 図種ではなく図 1 枚ごとに決まる。
+   */
+  const 段の図種 = 図種一覧.filter((t) => 縦列を選べる図種.has(t as never));
+
+  /** 縦列を書いた形と書かない形を作り分ける。 クラス図だけは行が要る */
+  function 段の本文(図種: string, 縦列: "全部" | "一部" | "無し", 段を書く: boolean): string {
+    const 行 = 図種 === "class" ? ['rows: ["+ よ()"]'] : [];
+    const 面 = (書く: boolean): string => {
+      const 中 = [...(書く ? ["lane: m"] : []), ...行];
+      return 中.length === 0 ? "" : `: { ${中.join(", ")} }`;
+    };
+    const あ = [
+      ...(縦列 === "無し" ? [] : ["lane: m"]),
+      ...行,
+      ...(段を書く ? ["stack: 3"] : []),
+    ];
+    return `title: "しらべ"
+type: ${図種}
+${縦列 === "無し" ? "" : '\nlanes:\n  m: { label: "ま" }\n'}
+actors:
+  - ぜろ${面(縦列 === "全部")}
+  - あ${あ.length === 0 ? "" : `: { ${あ.join(", ")} }`}
+  - い${面(縦列 === "全部")}
+
+flow:
+  - ぜろ -> あ: "はじめ"
+  - あ -> い: "つなぐ"
+`;
+  }
+
+  /** 素の本文で出た文を差し引いた、段を書いた時の知らせ */
+  function 段の知らせ(図種: string, 縦列: "全部" | "一部" | "無し"): 知[] {
+    const 素 = 組む(段の本文(図種, 縦列, false)).知;
+    return 組む(段の本文(図種, 縦列, true)).知.filter(
+      (n) => !素.some((s) => s.kind === n.kind && s.line === n.line),
+    );
+  }
+
+  it("縦列を選べる図種を走査できている (空振り防止)", () => {
+    expect(段の図種.length, "縦列を選べる図種を 1 件も拾えていない").toBeGreaterThan(0);
+  });
+
+  it("縦列を書かない図では鳴り、全ての箱が書いた図では鳴らず図が変わる", () => {
+    const 違う: string[] = [];
+    let 鳴る図 = 0;
+    let 鳴らない図 = 0;
+    for (const t of 段の図種) {
+      const 無し = 段の知らせ(t, "無し").filter((n) => n.kind === "actor-option-not-honored");
+      if (無し.length !== 1) 違う.push(`${t} / 縦列なし: ${無し.length} 件`);
+      else 鳴る図 += 1;
+      const 全部 = 段の知らせ(t, "全部").filter((n) => n.kind === "actor-option-not-honored");
+      if (全部.length !== 0) 違う.push(`${t} / 全部が縦列: ${全部.length} 件`);
+      else 鳴らない図 += 1;
+      const 素図 = JSON.stringify(組む(段の本文(t, "全部", false)).図);
+      if (JSON.stringify(組む(段の本文(t, "全部", true)).図) === 素図) {
+        違う.push(`${t}: 全ての箱が縦列を書いても図が変わらない`);
+      }
+    }
+    expect(違う, `図種 ${段の図種.length} 件`).toEqual([]);
+    expect(鳴る図, "鳴る図が 0 件 (空振り)").toBeGreaterThan(0);
+    expect(鳴らない図, "鳴らない図が 0 件 (空振り)").toBeGreaterThan(0);
+  });
+
+  it("一部の箱だけが縦列を書いた図でも鳴る", () => {
+    const 出ない: string[] = [];
+    for (const t of 段の図種) {
+      const 知 = 段の知らせ(t, "一部").filter((n) => n.kind === "actor-option-not-honored");
+      if (知.length !== 1) 出ない.push(`${t}: ${知.length} 件`);
+    }
+    expect(出ない, `図種 ${段の図種.length} 件`).toEqual([]);
+  });
+
+  it("同じ行に知らせが 2 件以上並ばない (縦列の混在の知らせと重ねない)", () => {
+    const 並んだ: string[] = [];
+    for (const t of 段の図種) {
+      for (const 縦列 of ["無し", "一部", "全部"] as const) {
+        const 行ごと = new Map<number, string[]>();
+        for (const n of 組む(段の本文(t, 縦列, true)).知) {
+          行ごと.set(n.line, [...(行ごと.get(n.line) ?? []), n.kind]);
+        }
+        for (const [行, 種] of 行ごと) {
+          if (種.length > 1) 並んだ.push(`${t} / 縦列${縦列}: 行 ${行} に ${種.join(" + ")}`);
+        }
+      }
+    }
+    expect(並んだ, `図種 ${段の図種.length} 件 × 3 通り`).toEqual([]);
+  });
+
+  it("案内は縦列を選べる図種にだけ付く", () => {
+    // 縦列を選べない図種 (構成の図) では、どう書いても段が効かないので行き先が無い
+    const 違う: string[] = [];
+    let 付く図種 = 0;
+    let 付かない図種 = 0;
+    for (const t of 図種一覧) {
+      const 知 = 段の知らせ(t, "無し").find((n) => n.kind === "actor-option-not-honored");
+      if (知 === undefined) continue;
+      if (縦列を選べる図種.has(t as never)) {
+        付く図種 += 1;
+        if (!(知.hint ?? "").includes("lane")) 違う.push(`${t}: 案内が無い "${知.hint ?? ""}"`);
+      } else {
+        付かない図種 += 1;
+        if (知.hint !== undefined) 違う.push(`${t}: 行き先が無いのに案内が付く "${知.hint}"`);
+      }
+    }
+    expect(違う, `図種 ${図種一覧.length} 件`).toEqual([]);
+    expect(付く図種, "案内が付く図種が 0 件 (空振り)").toBeGreaterThan(0);
+    expect(付かない図種, "案内が付かない図種が 0 件 (空振り)").toBeGreaterThan(0);
   });
 });
