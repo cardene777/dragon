@@ -186,8 +186,10 @@ export const FORMS: Section[] = [
       slot: "palette",
       type: "er",
       actors: [
-        '  - users: { kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }',
-        '  - orders: { kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint"], marks: ["pk", "fk"] }',
+        // 種類 (`kind`) は書かない (#2388)。 縦列も動きも書かない ER 図は実体 1 つにつき
+        // 表の箱を作る経路で組むので、書いても届かない
+        '  - users: { subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }',
+        '  - orders: { subtitle: "注文", rows: ["id: bigint", "user_id: bigint"], marks: ["pk", "fk"] }',
       ],
       flow: ['  - users -> orders: "注文する"'],
     },
