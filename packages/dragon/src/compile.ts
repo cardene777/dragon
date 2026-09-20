@@ -16,7 +16,7 @@ import { 向きを選べる図種 } from "./compile/direction";
 import { actorRefTable, canonicalizeFlowActors } from "./compile/actors";
 import { compileC4 } from "./compile/c4";
 import { compileClass } from "./compile/class";
-import { 鎖でつなぐ形か, 鎖に並べる登場人物 } from "./compile/chain";
+import { 鎖でつなぐ形か, 鎖に並べる登場人物, 鎖にしない書き方の案内 } from "./compile/chain";
 import { compileEr } from "./compile/er";
 import { compileFlow } from "./compile/flow";
 import { compileFunnel } from "./compile/funnel";
@@ -875,7 +875,7 @@ function reportFlowEndpointNotHonored(
       actor: 書いた名前(s.from),
       line: s.pos.line,
       message: `"${truncateForMessage(書いた名前(s.from))} -> ${truncateForMessage(書いた名前(s.to))}" の端は使われません (type: flow は登場人物を書いた順に繋ぎます)`,
-      hint: "書いた端どおりに繋ぐには、direction: 縦 を書くか箱に lane: を書いてください (向きか縦列を書いた形は書いた端がそのまま矢印になります)",
+      hint: `書いた端どおりに繋ぐには次のどれかを書いてください: ${鎖にしない書き方の案内()} (どれも書いた端がそのまま矢印になります)`,
     });
   }
 }
