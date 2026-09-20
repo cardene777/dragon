@@ -731,7 +731,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
         const inner = inlineMatch.slice(1, -1).trim();
         animate = ensureAnimate(animate, line.no);
         for (const pair of splitTopLevelCommas(inner)) {
-          const st = parseStateEntry(pair, line.no);
+          const st = parseStateEntry(pair, line.no, errors);
           if (st) animate.states.push(st);
         }
         i += 1;
@@ -740,14 +740,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       animate = ensureAnimate(animate, line.no);
       for (const it of items) {
-        const st = parseStateEntry(it.trimmed.replace(/^-\s*/, ""), it.no);
+        // 断り方ごとの文は読み手が持つ (#2401)。 ここで `null` をまとめて叱ると、
+        // 名前の規則を外れただけの行に形の案内が返る
+        const st = parseStateEntry(it.trimmed.replace(/^-\s*/, ""), it.no, errors);
         if (st) animate.states.push(st);
-        else
-          errors.push({
-            line: it.no,
-            message: `状態の行が読めません: "${it.trimmed}"`,
-            hint: "`name: initial` の形で書く",
-          });
       }
       i = next;
       continue;
@@ -772,8 +768,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
         i += 1;
         continue;
       }
-      // `collectIndentedList` は `:` を含まない行を黙って捨てる。 捨てられると
-      // 書き間違えた行が「書かなかった」 と同じになり、 値が 1 つ消えたことに気付けない
+      // 字下げした行を 1 行も落とさずに集める。 捨てられると書き間違えた行が
+      // 「書かなかった」 と同じになり、 値が 1 つ消えたことに気付けない
       const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
       for (const it of items) {
         const v = parseValueEntry(it.trimmed.replace(/^-\s*/, ""), it.no, errors);
@@ -4206,12 +4202,35 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   };
 }
 
-function parseStateEntry(text: string, lineNo: number): DslState | null {
-  // `client_bal: 100` / `status: "idle"`
+/**
+ * `client_bal: 100` / `status: "idle"` を 1 件の状態として読む。
+ *
+ * **2 つの断り方を分けて自分で報告する** (#2401)。 どちらも `null` にまとめると呼出側は
+ * 区別できず、名前の規則を外れただけの行にも形の案内が返る。 書いた本文は案内どおりの形なので
+ * **案内に従って書き直しても同じ案内が返り続ける** (実測 = `すすみ: 0` に
+ * 「`name: initial` の形で書く」 が返った)。
+ *
+ * 名前の判定と案内は `value-syntax.ts` が持つ。 値の節 (`parseValueEntry`) と同じ文を使うことで、
+ * 状態と値 × 記法と JSON の 4 経路で同じ理由が返る。
+ *
+ * 報告をここに置くと、呼出しを足した日に書き忘れても黙らない。 1 行にまとめた形の呼出しは
+ * 実際に分岐を 1 つも持たず、規則外の名前の状態が知らせも無く消えていた。
+ */
+function parseStateEntry(text: string, lineNo: number, errors: DslError[]): DslState | null {
   const m = text.match(/^([^:]+?)\s*:\s*(.+)$/);
-  if (!m) return null;
+  if (!m) {
+    errors.push({
+      line: lineNo,
+      message: `状態の行が読めません: "${text}"`,
+      hint: "`name: initial` の形で書く",
+    });
+    return null;
+  }
   const name = (m[1] ?? "").trim();
-  if (!isValueName(name)) return null;
+  if (!isValueName(name)) {
+    errors.push({ line: lineNo, ...valueNameIssue(name) });
+    return null;
+  }
   const raw = (m[2] ?? "").trim();
   const stripped = stripQuotes(raw);
   const asNum = Number(stripped);
@@ -4223,8 +4242,12 @@ function parseStateEntry(text: string, lineNo: number): DslState | null {
 /**
  * 字下げした行を 1 行も落とさずに集める。
  *
- * `collectIndentedList` は形が合わない行を黙って捨てるが、 `values` では捨てずに
- * 読み手 (`parseValueEntry`) へ渡して書き間違いとして報告させる。
+ * 捨てずに読み手 (`parseValueEntry`) へ渡すことで、読めない行を読み手が
+ * 「値の行が読めません」 として報告できる。
+ *
+ * **`collectIndentedList` との違いは、先頭の `- ` を外さないことだけになった**。
+ * 形が合わない行を捨てない振る舞いは #1169 で本 file が先に採り、 #2400 で
+ * `collectIndentedList` も同じ形へ揃えた。 2 つを 1 つにまとめる話は #2406。
  */
 function collectIndentedRaw(
   lines: Line[],
