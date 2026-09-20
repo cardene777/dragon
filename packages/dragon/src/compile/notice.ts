@@ -73,6 +73,9 @@ export type CompileNotice = {
     | "event-target-not-honored"
     // 順序図で面に種類を書いたが、板は名前と呼び名しか描かない (#1466)
     | "actor-kind-not-honored"
+    // 箱に、その図種が描かない指定を書いた (#2360)。 木の図は位置も大きさも親子関係から決めるため
+    // 箱ごとの飾りを載せる先が無い。 板の 2 図種は `actor-kind-not-honored` が受け持つ
+    | "actor-option-not-honored"
     // 順序図の言づてに、板が描かない飾りを書いた (#1466)。 数える飾りは `reportMessageOptionNotHonored` の一覧が持つ
     | "message-option-not-honored"
     // 位置のずらし (`pos` / `offsetX` / `offsetY`) を載せる相手が無いか、書いた量だけ動かせなかった (#1971)

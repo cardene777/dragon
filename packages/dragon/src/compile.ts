@@ -246,6 +246,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportFlowEndpointNotHonored(doc, 分けた.元の名前, opts?.onNotice, opts?.partsCatalog);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportActorKindNotHonored(書いたまま, opts?.onNotice);
+  reportTreeActorOptionNotHonored(書いたまま, opts?.onNotice);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
   reportCardinalityNotHonored(書いたまま, 図種が知らせた行, opts?.onNotice);
   reportFlowOffsetNotHonored(書いたまま, opts?.onNotice);
@@ -1065,12 +1066,15 @@ const 板が伝えない箱の欄: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * 効かない欄の呼び名 (#2358)。 **並べた順に知らせへ出す**。
+ * 効かない箱の欄の呼び名 (#2358)。 **並べた順に知らせへ出す**。
  *
  * 呼び名を持たない欄は名前をそのまま出すので、ここに足し忘れても知らせは消えない。
  * 複数の欄が 1 つの呼び名を持つ形 (位置が 4 欄) は、1 度だけ出す。
+ *
+ * **図種をまたいで 1 つの表にする** (#2360)。 同じ欄を図種ごとに別の文言で呼ぶと、
+ * 図種を変えた読み手が同じ指定だと気付けない。 どの欄を伝えるかは図種ごとの除外が決める。
  */
-const 板で効かない箱の欄の呼び名: readonly (readonly [string, string])[] = [
+const 効かない箱の欄の呼び名: readonly (readonly [string, string])[] = [
   ["kind", "種類"],
   ["posW", "大きさ"],
   ["posH", "大きさ"],
@@ -1136,7 +1140,7 @@ function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
      */
     if (doc.type !== "sequence" || a.kindWritten === false) 残り.delete("kind");
     const 効かない: string[] = [];
-    for (const [欄, 呼び名] of 板で効かない箱の欄の呼び名) {
+    for (const [欄, 呼び名] of 効かない箱の欄の呼び名) {
       if (!残り.delete(欄)) continue;
       if (!効かない.includes(呼び名)) 効かない.push(呼び名);
     }
@@ -1149,6 +1153,78 @@ function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} の板は名前と呼び名だけを描きます)`,
       hint: "板には面ごとの箱が無いため飾りを載せる先がありません。 呼び名 (subtitle) に書くか、箱を持つ図種を使ってください",
+    });
+  }
+}
+
+/**
+ * 木の図で、効かないと伝えない箱の欄 (#2360)。
+ *
+ * **除外側を書く**。 効かない欄を並べる形にすると、箱に欄を足した日にその欄だけが
+ * 一覧から漏れ、書いた人には「書いたのに何も起きない」 としか見えない。
+ *
+ * | 区分 | 欄 |
+ * |---|---|
+ * | 木の図が描く | 名前 / 題 / 呼び名 / 値 と、書いた場所と種類を書いたかの印 |
+ * | 別の知らせが受け持つ | 縦列 / 位置のずらし / 体験と工程の 4 欄 |
+ *
+ * 別の知らせは順に `lane-not-honored` / `position-offset-ignored` / `chart-value-unreadable`。
+ * 除かないと同じ箱に 2 件並ぶ。
+ */
+const 木の図が伝えない箱の欄: ReadonlySet<string> = new Set([
+  "name",
+  "title",
+  "subtitle",
+  "value",
+  "pos",
+  "kindWritten",
+  "lane",
+  "layoutPos",
+  "owner",
+  "end",
+  "touchpoint",
+  "opportunity",
+]);
+
+/**
+ * 木の図で、箱に書いた指定が使われないことを伝える (#2360)。
+ *
+ * 木の図は箱を階層の節として描き、位置も大きさも親子関係から決める。 箱ごとの飾りを
+ * 載せる先が無いのは設計どおりだが、**書いても知らせが出なかった** (実測 = 箱に書ける
+ * 31 項目のうち 21 件が、図も変わらず知らせも出ない)。
+ *
+ * 呼び名は板と同じ表を使う (`箱の欄の呼び名`) = 同じ欄を 2 つの文言で呼ぶと、
+ * 図種を変えた読み手が同じ指定だと気付けない。
+ */
+function reportTreeActorOptionNotHonored(
+  doc: DslDocument,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  if (doc.type !== "tree") return;
+  for (const a of doc.actors) {
+    if (a.partId !== undefined) continue;
+    const 残り = new Set(
+      Object.entries(a as unknown as Record<string, unknown>)
+        .filter(([欄, 値]) => 値 !== undefined && !木の図が伝えない箱の欄.has(欄))
+        .map(([欄]) => 欄),
+    );
+    // 種類は書かなくても既定の `actor` が入るため、値ではなく書いたかどうかの印で見る (#1058)
+    if (a.kindWritten === false) 残り.delete("kind");
+    const 効かない: string[] = [];
+    for (const [欄, 呼び名] of 効かない箱の欄の呼び名) {
+      if (!残り.delete(欄)) continue;
+      if (!効かない.includes(呼び名)) 効かない.push(呼び名);
+    }
+    // 呼び名を持たない欄は名前をそのまま出す = 読みにくい名前でも、黙って落とすよりは伝わる
+    効かない.push(...[...残り].sort());
+    if (効かない.length === 0) continue;
+    onNotice({
+      kind: "actor-option-not-honored",
+      actor: a.name,
+      line: a.pos?.line ?? 0,
+      message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: tree は名前と値だけを描き、位置も大きさも親子関係から決めます)`,
+      hint: "木の図の箱は階層の節なので飾りを載せる先がありません。 呼び名 (subtitle) に書くか、箱を並べる図種を使ってください",
     });
   }
 }
