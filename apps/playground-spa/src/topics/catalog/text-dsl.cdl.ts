@@ -1716,7 +1716,6 @@ actors:
       stack: 1
       kind: storage
       rows: ["番号: 数", "名前: 文字"]
-      marks: ["pk", ""]
   - 進み:
       lane: l2
       stack: 0
@@ -1751,7 +1750,7 @@ export const sourceJson__textDslActorKeys = `{
   "states": { "progress": 20 },
   "actors": [
     { "name": "受付", "lane": "l1", "stack": 0, "kind": "card", "title": "受け付け", "subtitle": "入口", "color": "成功" },
-    { "name": "記録", "lane": "l1", "stack": 1, "kind": "storage", "rows": ["番号: 数", "名前: 文字"], "marks": ["pk", ""] },
+    { "name": "記録", "lane": "l1", "stack": 1, "kind": "storage", "rows": ["番号: 数", "名前: 文字"] },
     {
       "name": "進み",
       "lane": "l2",
@@ -1812,7 +1811,6 @@ actors:
       stack: 1
       種類: storage
       行: ["番号: 数", "名前: 文字"]
-      印: ["pk", ""]
   - 進み:
       lane: l2
       stack: 0
@@ -1847,7 +1845,7 @@ export const sourceJson__pattern__textDslActorKeys__日本語で書く = `{
   "states": { "progress": 20 },
   "actors": [
     { "name": "受付", "lane": "l1", "stack": 0, "kind": "card", "title": "受け付け", "subtitle": "入口", "color": "成功" },
-    { "name": "記録", "lane": "l1", "stack": 1, "kind": "storage", "rows": ["番号: 数", "名前: 文字"], "marks": ["pk", ""] },
+    { "name": "記録", "lane": "l1", "stack": 1, "kind": "storage", "rows": ["番号: 数", "名前: 文字"] },
     {
       "name": "進み",
       "lane": "l2",
@@ -1902,7 +1900,7 @@ states:
 
 actors:
   - 受付: { lane: l1, stack: 0, 種類: card, 題: "受け付け", 補足: "入口", 色: 成功 }
-  - 記録: { lane: l1, stack: 1, 種類: storage, 行: ["番号: 数", "名前: 文字"], 印: ["pk", ""] }
+  - 記録: { lane: l1, stack: 1, 種類: storage, 行: ["番号: 数", "名前: 文字"] }
   - 進み: { lane: l2, stack: 0, 種類: dyn-rect, 値: "{progress}%", 出す条件: "progress > 0" }
       大きさ: 200,96
       図形: { kind: rect, source: "{progress}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 }
@@ -1934,7 +1932,7 @@ export const sourceJson__pattern__textDslActorKeys__1行にまとめて書く = 
   "states": { "progress": 20 },
   "actors": [
     { "name": "受付", "lane": "l1", "stack": 0, "kind": "card", "title": "受け付け", "subtitle": "入口", "color": "成功" },
-    { "name": "記録", "lane": "l1", "stack": 1, "kind": "storage", "rows": ["番号: 数", "名前: 文字"], "marks": ["pk", ""] },
+    { "name": "記録", "lane": "l1", "stack": 1, "kind": "storage", "rows": ["番号: 数", "名前: 文字"] },
     {
       "name": "進み",
       "lane": "l2",
@@ -2101,4 +2099,128 @@ export const sourceJson__pattern__textDslValueKeys__日本語で書く = `{
 
 export const pattern__textDslValueKeys__日本語で書く = textDslToDiagram(
   sourceYaml__pattern__textDslValueKeys__日本語で書く,
+);
+
+// ─── 行と印を日本語で書く (#2377) ─────
+//
+// `印` は行頭の記号を決める項目で、ER 図と状態遷移図でだけ効く。 流れ図に書いても
+// 図は 1 ピクセルも変わらず知らせが 1 件出るので、鍵と外を指す列を持つ図に分けて見せる。
+
+export const sourceYaml__textDslRowMarkKeys = `title: "行と印を英語で書く"
+type: er
+# 順番を持たない図なので触れて読む形にする (#1757)
+relations: hover
+reveal: all
+
+actors:
+  - 会員:
+      kind: storage
+      subtitle: "会員の表"
+      rows: ["番号: 数", "所属の番号: 数", "連絡先: 文字"]
+      marks: ["pk", "fk", ""]
+  - 組:
+      kind: storage
+      subtitle: "組の表"
+      rows: ["番号: 数", "名前: 文字"]
+      marks: ["pk", ""]
+
+flow:
+  - 会員 -> 組: "所属する" (info, solid) { tailHead: many, head: one }
+
+animation:
+  - step: "鍵に下線が付く" 1.2s
+    focus: [会員]
+    description: "印に pk と書いた行は、名前に下線が付く"
+  - step: "外を指す列が山形になる" 1.2s
+    focus: [会員, 組, "会員 -> 組"]
+    description: "印に fk と書いた行は、行頭の記号が山形になる"
+`;
+
+export const sourceJson__textDslRowMarkKeys = `{
+  "title": "行と印を英語で書く",
+  "type": "er",
+  "relations": "hover",
+  "reveal": "all",
+  "actors": [
+    {
+      "name": "会員",
+      "kind": "storage",
+      "subtitle": "会員の表",
+      "rows": ["番号: 数", "所属の番号: 数", "連絡先: 文字"],
+      "marks": ["pk", "fk", ""]
+    },
+    {
+      "name": "組",
+      "kind": "storage",
+      "subtitle": "組の表",
+      "rows": ["番号: 数", "名前: 文字"],
+      "marks": ["pk", ""]
+    }
+  ],
+  "flow": [
+    {
+      "from": "会員",
+      "to": "組",
+      "label": "所属する",
+      "tone": "info",
+      "style": "solid",
+      "tailHead": "many",
+      "head": "one"
+    }
+  ],
+  "animation": [
+    {
+      "step": "鍵に下線が付く",
+      "duration": 1.2,
+      "focus": ["会員"],
+      "body": "印に pk と書いた行は、名前に下線が付く"
+    },
+    {
+      "step": "外を指す列が山形になる",
+      "duration": 1.2,
+      "focus": ["会員", "組", "会員 -> 組"],
+      "body": "印に fk と書いた行は、行頭の記号が山形になる"
+    }
+  ]
+}`;
+
+export const textDslRowMarkKeys = textDslToDiagram(sourceYaml__textDslRowMarkKeys);
+
+export const patternBase__textDslRowMarkKeys = "英語で書く";
+
+export const sourceYaml__pattern__textDslRowMarkKeys__日本語で書く = `title: "行と印を日本語で書く"
+type: er
+# 順番を持たない図なので触れて読む形にする (#1757)
+relations: hover
+reveal: all
+
+actors:
+  - 会員:
+      種類: storage
+      補足: "会員の表"
+      行: ["番号: 数", "所属の番号: 数", "連絡先: 文字"]
+      印: ["pk", "fk", ""]
+  - 組:
+      種類: storage
+      補足: "組の表"
+      行: ["番号: 数", "名前: 文字"]
+      印: ["pk", ""]
+
+flow:
+  - 会員 -> 組: "所属する" (info, solid) { tailHead: many, head: one }
+
+animation:
+  - step: "鍵に下線が付く" 1.2s
+    focus: [会員]
+    description: "印に pk と書いた行は、名前に下線が付く"
+  - step: "外を指す列が山形になる" 1.2s
+    focus: [会員, 組, "会員 -> 組"]
+    description: "印に fk と書いた行は、行頭の記号が山形になる"
+`;
+
+export const sourceJson__pattern__textDslRowMarkKeys__日本語で書く =
+  sourceJson__textDslRowMarkKeys.replace('"行と印を英語で書く"', '"行と印を日本語で書く"');
+
+export const pattern__textDslRowMarkKeys__日本語で書く = textDslToDiagram(
+  sourceYaml__pattern__textDslRowMarkKeys__日本語で書く,
 );
