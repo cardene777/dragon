@@ -166,6 +166,11 @@ const EXPECTED: Array<{ slug: string; id: string; rows: number }> = [
    */
   { slug: "text-dsl", id: "行と印を英語で書く", rows: 5 },
   { slug: "text-dsl", id: "行と印を日本語で書く", rows: 5 },
+  /*
+   * クラスの関係をクラス図で書く切替 (#2396)。 4 つの箱が持ち物と振る舞いを合わせて
+   * 7 行持つ (区切りの行は組み立ての時に捨てるので数に入らない)。
+   */
+  { slug: "text-dsl", id: "クラスの関係をクラス図で書く", rows: 7 },
 ];
 
 /** 行を持つ見本だけを `{slug, diagram}` に展開する。 */
