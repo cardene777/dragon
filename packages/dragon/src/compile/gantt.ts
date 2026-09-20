@@ -128,10 +128,10 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
     ganttData: タスク.map((t) => {
       const idx = 目盛り.indexOf(t.label);
       const from = 依存元.get(t.name);
-      // 帯の向きの誤りは、その項目を書いた行で伝える
-      const 逆向きを伝える = (名: string, message: string): void =>
-        伝える("gantt-end-before-start", 名, message, t.line);
-      const 終わり = 終わる位置(t.end, idx, 目盛り, t.name, 逆向きを伝える, doc);
+      // 帯の誤りは、その項目を書いた行で伝える。 知らせの種類は呼ばれる側が決める (#2392)
+      const 帯を伝える = (種類: CompileNotice["kind"], 名: string, message: string): void =>
+        伝える(種類, 名, message, t.line);
+      const 終わり = 終わる位置(t.end, idx, 目盛り, t.name, 帯を伝える, doc);
       return {
         id: slugify(t.name) || t.name,
         title: t.title,
@@ -193,14 +193,16 @@ function 状態が取る値(参照: string, doc: DslDocument): number[] {
  * 帯の端に出す字が段ごとに変わるわけではない。
  *
  * 時期の名前を書いたら、その名前の位置に終わる。 書いた名前が目盛りに無い形は始まりと同じに
- * 倒す = 目盛りは書かれた順に作るため、載っていない名前は位置を持たない。
+ * 倒し、**読めないことを伝える** (#2392) = 目盛りは書かれた順に作るため載っていない名前は
+ * 位置を持たないが、黙って倒すと「書いたのに 1 コマのまま」 になる。
+ * 始まりより前を書いた時 (下の分岐) と同じ扱いにする。
  */
 function 終わる位置(
   end: string | undefined,
   始まり: number,
   目盛り: readonly string[],
   名前: string,
-  伝える: (名: string, message: string) => void,
+  伝える: (種類: CompileNotice["kind"], 名: string, message: string) => void,
   doc: DslDocument,
 ): { idx: number | string; label?: string } {
   if (end === undefined) return { idx: 始まり };
@@ -213,6 +215,7 @@ function 終わる位置(
     const 低い = 状態が取る値(end, doc).filter((v) => v < 始まり);
     if (低い.length > 0) {
       伝える(
+        "gantt-end-before-start",
         名前,
         `type: gantt で ${truncateForMessage(名前)} の終わり (${truncateForMessage(end)}) が始まりより前になる値を取ります (${[...new Set(低い)].join(", ")})。 始まりは ${始まり} 番目です`,
       );
@@ -220,11 +223,22 @@ function 終わる位置(
     return { idx: end };
   }
   const i = 目盛り.indexOf(end);
-  if (i < 0) return { idx: 始まり };
+  // 目盛りは箱に書いた時期から作るので、どの箱も書いていない時期は位置を持たない。
+  // 読めた時期を並べて伝える = 目盛りは図ごとに変わるため、固定の一覧を文に書けない
+  if (i < 0) {
+    伝える(
+      "chart-value-unreadable",
+      名前,
+      `type: gantt で ${truncateForMessage(名前)} の終わり (${truncateForMessage(end)}) は目盛りにありません (帯を伸ばしません)。` +
+        ` 目盛りは箱に書いた時期から作ります = ${目盛り.map((x) => truncateForMessage(x)).join(" / ")} のどれかを書いてください`,
+    );
+    return { idx: 始まり };
+  }
   // 始まりより前に終わる帯は描けない。 そのまま渡すと横幅が負になり、帯が始まりの位置から
   // 左へはみ出す。 始まりと同じに倒して伝える (黙って倒すと「書いたのに 1 コマのまま」 になる)
   if (i < 始まり) {
     伝える(
+      "gantt-end-before-start",
       名前,
       `type: gantt で ${truncateForMessage(名前)} の終わり (${truncateForMessage(end)}) が始まりより前です (始まりと同じに倒しました)`,
     );
