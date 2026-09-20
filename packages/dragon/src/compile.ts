@@ -247,6 +247,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportLaneNotHonored(書いたまま, opts?.onNotice);
   reportActorKindNotHonored(書いたまま, opts?.onNotice);
   reportTreeActorOptionNotHonored(書いたまま, opts?.onNotice);
+  reportHalfWrittenPosition(書いたまま, opts?.onNotice);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
   reportCardinalityNotHonored(書いたまま, 図種が知らせた行, opts?.onNotice);
   reportFlowOffsetNotHonored(書いたまま, opts?.onNotice);
@@ -1225,6 +1226,37 @@ function reportTreeActorOptionNotHonored(
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: tree は名前と値だけを描き、位置も大きさも親子関係から決めます)`,
       hint: "木の図の箱は階層の節なので飾りを載せる先がありません。 呼び名 (subtitle) に書くか、箱を並べる図種を使ってください",
+    });
+  }
+}
+
+/**
+ * 箱の座標を片方だけ書いた時に伝える (#2362)。
+ *
+ * 座標を図に写す処理 (`applyCanvasPivotPositions`) は **横と縦の両方が書かれている** 時だけ
+ * 動く。 片方だけの時は何もしないまま通るため、図が 1 bit も変わらず知らせも出なかった
+ * (実測 = 座標が効く 5 図種すべてで消えた)。
+ *
+ * **効かせる側には倒さない**。 片方だけ動かす書き方は既にずらし (`offsetX` / `offsetY`) が
+ * 受け持っており、座標に同じ役目を持たせると 2 つの書き方が同じことをする。
+ *
+ * 大きさ (`posW` / `posH`) は片方だけでも効くので見ない (実測)。
+ * 部品として置いた箱は別経路 (`mergePartsFromActors`) が位置を決めるので外す。
+ */
+function reportHalfWrittenPosition(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  for (const a of doc.actors) {
+    if (a.partId !== undefined) continue;
+    const 書いた = a.posX !== undefined ? "posX" : a.posY !== undefined ? "posY" : undefined;
+    if (書いた === undefined) continue;
+    if (a.posX !== undefined && a.posY !== undefined) continue;
+    const 足りない = 書いた === "posX" ? "posY" : "posX";
+    onNotice({
+      kind: "position-axis-missing",
+      actor: a.name,
+      line: a.pos?.line ?? 0,
+      message: `"${truncateForMessage(a.name)}" に書いた ${書いた} だけでは位置が決まりません (${足りない} も書くと効きます)`,
+      hint: `横と縦を両方書くか、片方だけ動かすなら ずらし (offsetX / offsetY) を使ってください`,
     });
   }
 }
