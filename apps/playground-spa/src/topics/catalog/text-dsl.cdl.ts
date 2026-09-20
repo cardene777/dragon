@@ -1084,9 +1084,9 @@ title: "内訳の割合を書く例"
 type: pie
 
 actors:
-  - A: { kind: card, value: "30%" }
-  - B: { kind: card, value: "50%" }
-  - C: { kind: card, value: "20%" }
+  - A: { value: "30%" }
+  - B: { value: "50%" }
+  - C: { value: "20%" }
 
 states:
   a_share: 30

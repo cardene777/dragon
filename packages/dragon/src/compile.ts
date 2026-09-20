@@ -34,6 +34,13 @@ import { compileTree } from "./compile/tree";
 import { compileValueChart } from "./compile/value-chart";
 import { deepRewriteStrings } from "./compile/deep-rewrite";
 import {
+  効かない箱の欄を並べる,
+  板が伝えない箱の欄,
+  木の図が伝えない箱の欄,
+  値の図が伝えない箱の欄,
+  じょうごが伝えない箱の欄,
+} from "./compile/actor-option-notice";
+import {
   効かない矢印の欄を並べる,
   向きだけを使う図が伝えない矢印の欄,
 } from "./compile/edge-option-notice";
@@ -249,9 +256,22 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 自分へ戻る形と居ない名前を指す形は既に落ちた後の `doc` を見る = 上の 2 件と重ねない
   reportFlowEndpointNotHonored(doc, 分けた.元の名前, opts?.onNotice, opts?.partsCatalog);
   reportLaneNotHonored(書いたまま, opts?.onNotice);
-  reportActorKindNotHonored(書いたまま, opts?.onNotice);
-  reportTreeActorOptionNotHonored(書いたまま, opts?.onNotice);
-  reportHalfWrittenPosition(書いたまま, opts?.onNotice);
+  /*
+   * 箱の知らせが出た行を控える (#2368)。 片方だけの位置の知らせ (#2362) を同じ行に重ねない。
+   *
+   * 知らせる図種も知らせの種類も手で並べず、実際に出た知らせで決める (`図種の知らせ` と同じ形)。
+   */
+  const 箱に知らせた行 = new Set<number>();
+  const 箱の知らせ = 受け取り口
+    ? (n: CompileNotice): void => {
+        箱に知らせた行.add(n.line);
+        受け取り口(n);
+      }
+    : undefined;
+  reportActorKindNotHonored(書いたまま, 箱の知らせ);
+  reportTreeActorOptionNotHonored(書いたまま, 箱の知らせ);
+  reportValueChartActorOptionNotHonored(書いたまま, 箱の知らせ);
+  reportHalfWrittenPosition(書いたまま, 箱に知らせた行, opts?.onNotice);
   // 出した行を `図種が知らせた行` に控える = 多重度の知らせ (#2107) を同じ行に重ねない
   reportSkeletonEdgeOptionNotHonored(書いたまま, 図種が知らせた行, 図種の知らせ);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
@@ -1008,69 +1028,6 @@ function reportFlowOffsetNotHonored(doc: DslDocument, onNotice?: (n: CompileNoti
 }
 
 /**
- * 板の面で、効かないと伝えない箱の欄 (#2358)。
- *
- * **除外側を書く**。 効かない欄を並べる形にすると、箱に欄を足した日にその欄だけが
- * 一覧から漏れ、書いた人には「書いたのに何も起きない」 としか見えない。
- *
- * | 区分 | 欄 |
- * |---|---|
- * | 板が描く | 名前 / 題 / 呼び名 と、書いた場所と種類を書いたかの印 |
- * | 別の知らせが受け持つ | 縦列 (`reportLaneNotHonored` が伝える) |
- *
- * 種類 (`kind`) は図種で分かれるので、判定の側で足す。
- */
-const 板が伝えない箱の欄: ReadonlySet<string> = new Set([
-  "name",
-  "title",
-  "subtitle",
-  "pos",
-  "kindWritten",
-  "lane",
-]);
-
-/**
- * 効かない箱の欄の呼び名 (#2358)。 **並べた順に知らせへ出す**。
- *
- * 呼び名を持たない欄は名前をそのまま出すので、ここに足し忘れても知らせは消えない。
- * 複数の欄が 1 つの呼び名を持つ形 (位置が 4 欄) は、1 度だけ出す。
- *
- * **図種をまたいで 1 つの表にする** (#2360)。 同じ欄を図種ごとに別の文言で呼ぶと、
- * 図種を変えた読み手が同じ指定だと気付けない。 どの欄を伝えるかは図種ごとの除外が決める。
- */
-const 効かない箱の欄の呼び名: readonly (readonly [string, string])[] = [
-  ["kind", "種類"],
-  ["posW", "大きさ"],
-  ["posH", "大きさ"],
-  ["posX", "位置"],
-  ["posY", "位置"],
-  ["posRel", "位置"],
-  // 位置のずらし (#1971)。 板は面ごとの箱を持たないので動かす相手が無い
-  ["layoutPos", "位置"],
-  ["rows", "行"],
-  ["tone", "色"],
-  ["colorHex", "色"],
-  ["eyebrow", "小見出し"],
-  ["value", "値"],
-  ["shape", "図形"],
-  ["previous", "前の値"],
-  ["marks", "印"],
-  ["stack", "段"],
-  ["initial", "始まりの印"],
-  ["final", "終わりの印"],
-  ["visibleIf", "出す条件"],
-  ["opacity", "透け具合"],
-  ["wBind", "値への追随"],
-  ["hBind", "値への追随"],
-  ["renderOffsetX", "値への追随"],
-  ["renderOffsetY", "値への追随"],
-  ["owner", "担当"],
-  ["end", "終わる時期"],
-  ["touchpoint", "接点"],
-  ["opportunity", "伸びしろ"],
-];
-
-/**
  * 順序図で面に書いた飾りが使われないことを伝える (#1466)。
  *
  * 順序図は 1 つの板が図を丸ごと描く形になり、面は上端の見出しに **名前と呼び名だけ** で並ぶ。
@@ -1088,11 +1045,6 @@ function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
   if (doc.type !== "sequence" && doc.type !== "solidity") return;
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
-    const 残り = new Set(
-      Object.entries(a as unknown as Record<string, unknown>)
-        .filter(([欄, 値]) => 値 !== undefined && !板が伝えない箱の欄.has(欄))
-        .map(([欄]) => 欄),
-    );
     /*
      * 種類は `sequence` でだけ落ちる。
      *
@@ -1102,14 +1054,8 @@ function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
      * 記法を通すと既定の `actor` が必ず入るため、値ではなく書いたかどうかの印で見る。
      * 記法を通さず直接組み立てた場合はこの印が無いので、種類を置いたこと自体を「書いた」 とみなす
      */
-    if (doc.type !== "sequence" || a.kindWritten === false) 残り.delete("kind");
-    const 効かない: string[] = [];
-    for (const [欄, 呼び名] of 効かない箱の欄の呼び名) {
-      if (!残り.delete(欄)) continue;
-      if (!効かない.includes(呼び名)) 効かない.push(呼び名);
-    }
-    // 呼び名を持たない欄は名前をそのまま出す = 読みにくい名前でも、黙って落とすよりは伝わる
-    効かない.push(...[...残り].sort());
+    const 判定で外す = doc.type !== "sequence" || a.kindWritten === false ? ["kind"] : [];
+    const 効かない = 効かない箱の欄を並べる(a, 板が伝えない箱の欄, 判定で外す);
     if (効かない.length === 0) continue;
     onNotice({
       kind: "actor-kind-not-honored",
@@ -1171,35 +1117,6 @@ function reportSkeletonEdgeOptionNotHonored(
 }
 
 /**
- * 木の図で、効かないと伝えない箱の欄 (#2360)。
- *
- * **除外側を書く**。 効かない欄を並べる形にすると、箱に欄を足した日にその欄だけが
- * 一覧から漏れ、書いた人には「書いたのに何も起きない」 としか見えない。
- *
- * | 区分 | 欄 |
- * |---|---|
- * | 木の図が描く | 名前 / 題 / 呼び名 / 値 と、書いた場所と種類を書いたかの印 |
- * | 別の知らせが受け持つ | 縦列 / 位置のずらし / 体験と工程の 4 欄 |
- *
- * 別の知らせは順に `lane-not-honored` / `position-offset-ignored` / `chart-value-unreadable`。
- * 除かないと同じ箱に 2 件並ぶ。
- */
-const 木の図が伝えない箱の欄: ReadonlySet<string> = new Set([
-  "name",
-  "title",
-  "subtitle",
-  "value",
-  "pos",
-  "kindWritten",
-  "lane",
-  "layoutPos",
-  "owner",
-  "end",
-  "touchpoint",
-  "opportunity",
-]);
-
-/**
  * 木の図で、箱に書いた指定が使われないことを伝える (#2360)。
  *
  * 木の図は箱を階層の節として描き、位置も大きさも親子関係から決める。 箱ごとの飾りを
@@ -1217,20 +1134,12 @@ function reportTreeActorOptionNotHonored(
   if (doc.type !== "tree") return;
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
-    const 残り = new Set(
-      Object.entries(a as unknown as Record<string, unknown>)
-        .filter(([欄, 値]) => 値 !== undefined && !木の図が伝えない箱の欄.has(欄))
-        .map(([欄]) => 欄),
-    );
     // 種類は書かなくても既定の `actor` が入るため、値ではなく書いたかどうかの印で見る (#1058)
-    if (a.kindWritten === false) 残り.delete("kind");
-    const 効かない: string[] = [];
-    for (const [欄, 呼び名] of 効かない箱の欄の呼び名) {
-      if (!残り.delete(欄)) continue;
-      if (!効かない.includes(呼び名)) 効かない.push(呼び名);
-    }
-    // 呼び名を持たない欄は名前をそのまま出す = 読みにくい名前でも、黙って落とすよりは伝わる
-    効かない.push(...[...残り].sort());
+    const 効かない = 効かない箱の欄を並べる(
+      a,
+      木の図が伝えない箱の欄,
+      a.kindWritten === false ? ["kind"] : [],
+    );
     if (効かない.length === 0) continue;
     onNotice({
       kind: "actor-option-not-honored",
@@ -1238,6 +1147,64 @@ function reportTreeActorOptionNotHonored(
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: tree は名前と値だけを描き、位置も大きさも親子関係から決めます)`,
       hint: "木の図の箱は階層の節なので飾りを載せる先がありません。 呼び名 (subtitle) に書くか、箱を並べる図種を使ってください",
+    });
+  }
+}
+
+/**
+ * 箱を名前と値の組として読む図種 (#2368)。
+ *
+ * どれも箱ごとの絵を持たず、全体を 1 枚の図にまとめて描く。 じょうご (`funnel`) も同じ性質を
+ * 持つが読む欄が 2 つ少ないので、除外の集合を分けて扱う。
+ *
+ * 工程表 (`gantt`) は読む欄が 2 つ多い (`owner` / `end`) ので、ここには入れない。
+ */
+const 値として読む図種: ReadonlySet<string> = new Set([
+  "pie",
+  "bar",
+  "line",
+  "gauge",
+  "radial",
+  "stat",
+  "waffle",
+  "stacked",
+  "slope",
+]);
+
+/**
+ * 値の図とじょうごで、箱に書いた指定が使われないことを伝える (#2368)。
+ *
+ * 実測 = 箱に書ける 31 項目のうち 17 件 (じょうごは 19 件) が、図も変わらず知らせも出なかった。
+ * 位置 (`posX` + `posY`) は片方だけだと別の知らせ (#2362) が出るため、1 項目ずつ足す走査では
+ * 「知らせる」 に数えられ、組で書いた時の穴が隠れていた。
+ *
+ * 呼び名は板と木の図と同じ表を使う (`効かない箱の欄の呼び名`) = 同じ欄を 2 つの文言で呼ぶと、
+ * 図種を変えた読み手が同じ指定だと気付けない。
+ */
+function reportValueChartActorOptionNotHonored(
+  doc: DslDocument,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  const じょうご = doc.type === "funnel";
+  if (!じょうご && !値として読む図種.has(doc.type)) return;
+  const 伝えない欄 = じょうご ? じょうごが伝えない箱の欄 : 値の図が伝えない箱の欄;
+  const 読む欄 = じょうご ? "名前と値" : "名前と値と色";
+  for (const a of doc.actors) {
+    if (a.partId !== undefined) continue;
+    // 種類は書かなくても既定の `actor` が入るため、値ではなく書いたかどうかの印で見る (#1058)
+    const 効かない = 効かない箱の欄を並べる(
+      a,
+      伝えない欄,
+      a.kindWritten === false ? ["kind"] : [],
+    );
+    if (効かない.length === 0) continue;
+    onNotice({
+      kind: "actor-option-not-honored",
+      actor: a.name,
+      line: a.pos?.line ?? 0,
+      message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} は${読む欄}だけを読み、1 枚の図にまとめて描きます)`,
+      hint: "値の図は箱ごとの絵を持たないため飾りを載せる先がありません。 箱を並べる図種を使ってください",
     });
   }
 }
@@ -1255,10 +1222,21 @@ function reportTreeActorOptionNotHonored(
  * 大きさ (`posW` / `posH`) は片方だけでも効くので見ない (実測)。
  * 部品として置いた箱は別経路 (`mergePartsFromActors`) が位置を決めるので外す。
  */
-function reportHalfWrittenPosition(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+function reportHalfWrittenPosition(
+  doc: DslDocument,
+  箱に知らせた行: ReadonlySet<number>,
+  onNotice?: (n: CompileNotice) => void,
+): void {
   if (!onNotice) return;
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
+    /*
+     * 箱の知らせが出た行には重ねない (#2368)。
+     *
+     * 位置そのものが効かない図種では「片方だけでは決まらない」 という案内が誤りになる
+     * (両方書いても効かない)。 その図種では箱の知らせが位置を含めて伝えている。
+     */
+    if (箱に知らせた行.has(a.pos?.line ?? 0)) continue;
     const 書いた = a.posX !== undefined ? "posX" : a.posY !== undefined ? "posY" : undefined;
     if (書いた === undefined) continue;
     if (a.posX !== undefined && a.posY !== undefined) continue;
