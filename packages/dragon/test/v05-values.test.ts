@@ -153,14 +153,17 @@ describe("状態の名前も値と同じ規則で見る (#1181)", () => {
   });
 
   it("`tween` の状態名が規則を外れたら誤りにする", () => {
+    // 返る理由を名前の案内へ寄せた (#2403)。 形の案内を返していた頃は、書いた本文が
+    // その形そのものなので **案内に従っても直らなかった**
     const src = `animation:\n  - step: "動く" 1.4s\n    tween: 流入 0 -> 10`;
-    expect(errs(src).join()).toContain("変化の書き方が読めません");
+    expect(errs(src).join()).toContain("invalid value name");
   });
 
-  it("`set` の状態名が規則を外れても図に載せない", () => {
-    // `set` は読めない行を黙って捨てる (誤りにしない) ので、載っていないことで見る
-    const doc = ok(`animation:\n  - step: "動く" 1.4s\n    set: 流入 5`);
-    expect(doc.animate?.phases[0]?.sets ?? []).toHaveLength(0);
+  it("`set` の状態名が規則を外れたら誤りにする", () => {
+    // 直す前は読めない行を黙って捨てていた (#2403)。 載っていないことだけを見ていると、
+    // 知らせが 0 件のままでも通る
+    const src = `animation:\n  - step: "動く" 1.4s\n    set: 流入 5`;
+    expect(errs(src).join()).toContain("invalid value name");
   });
 
   it("規則に合う名前は今まで通り読む", () => {
