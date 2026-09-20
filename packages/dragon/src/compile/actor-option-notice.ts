@@ -13,6 +13,7 @@
  *
  * 矢印の側は `edge-option-notice.ts` が同じ形を持つ (#2366)。
  */
+import type { DslActor } from "../types";
 
 /**
  * 効かない箱の欄の呼び名 (#2358)。 **並べた順に知らせへ出す**。
@@ -22,8 +23,12 @@
  *
  * **図種をまたいで 1 つの表にする** (#2360)。 同じ欄を図種ごとに別の文言で呼ぶと、
  * 図種を変えた読み手が同じ指定だと気付けない。 どの欄を伝えるかは図種ごとの除外が決める。
+ *
+ * **箱に無い欄名を書けないようにする** (#2384)。 表と除外は箱の欄と文字で突き合わせるので、
+ * 綴りが箱と違う行は静かに何とも一致しない。 実測 = 記法の `色:` に引きずられて書いた
+ * `color` が、箱に生まれない欄名のまま残っていた (箱に入るのは `colorHex` か `tone`)。
  */
-export const 効かない箱の欄の呼び名: readonly (readonly [string, string])[] = [
+export const 効かない箱の欄の呼び名 = [
   ["kind", "種類"],
   ["posW", "大きさ"],
   ["posH", "大きさ"],
@@ -35,7 +40,6 @@ export const 効かない箱の欄の呼び名: readonly (readonly [string, stri
   ["rows", "行"],
   ["tone", "色"],
   ["colorHex", "色"],
-  ["color", "色"],
   ["eyebrow", "小見出し"],
   ["value", "値"],
   ["shape", "図形"],
@@ -54,7 +58,7 @@ export const 効かない箱の欄の呼び名: readonly (readonly [string, stri
   ["end", "終わる時期"],
   ["touchpoint", "接点"],
   ["opportunity", "伸びしろ"],
-];
+] as const satisfies readonly (readonly [keyof DslActor, string])[];
 
 /**
  * 体験と工程の欄 (#2380)。 **どの族の除外にも入る**。
@@ -202,11 +206,15 @@ export function 値として読む図が伝えない箱の欄(図種: string): R
  * | 骨組みの図が描く | 名前 / 題 / 呼び名 / 小見出し / 値 / 行 / 色味 / 図形 / 種類 / 段 / 透け具合 / 出す条件 |
  * | 位置と大きさ | `posX` / `posY` / `posW` / `posH` / `posRel` / `layoutPos` |
  * | 値への追随 | `wBind` / `hBind` / `renderOffsetX` / `renderOffsetY` |
- * | 別の知らせが受け持つ | 縦列 / 色番号 / 体験と工程の 4 欄 |
+ * | 別の知らせが受け持つ | 縦列 / 体験と工程の 4 欄 |
  *
- * 色番号 (`colorHex`) を除くのは、**部品を置いた箱でだけ効く** 欄だから。
- * 部品が色を変えられる状態を持たない時は `compile/parts.ts` が別に伝えるので、
- * ここで鳴らすと同じことを 2 度言う。
+ * 色番号 (`colorHex`) は除かない (#2384)。 部品を置いた箱でだけ効く欄なので
+ * 「部品の側が伝えるから重ねない」 として除いていたが、**呼び元が部品を置いた箱を
+ * 判定の入口で飛ばす** (`a.partId !== undefined`) ため重なりようがなかった。
+ * 除いた結果、部品でない箱では誰も伝えず、7 図種で黙って消えていた。
+ *
+ * 記法の `色:` は 16 進数なら `colorHex` に、色の名前なら `tone` に入る。
+ * 名前で書いた形は箱の色として効くので、伝えるのは 16 進数で書いた形だけになる。
  *
  * 印 (`marks`) は除かない (#2377)。 行頭の記号に読み替えるのは ER 図と状態遷移図だけ
  * (`行頭の印にする`) で、骨組みの残りの図種では行と組にしても効かない。
@@ -235,8 +243,6 @@ const 骨組みの図に共通の除外: ReadonlySet<string> = new Set([
   "stack",
   "opacity",
   "visibleIf",
-  "colorHex",
-  "color",
   "posX",
   "posY",
   "posW",
