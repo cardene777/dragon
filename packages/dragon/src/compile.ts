@@ -39,6 +39,8 @@ import {
   木の図が伝えない箱の欄,
   値として読む図種,
   値として読む図が伝えない箱の欄,
+  骨組みの図種,
+  骨組みの図が伝えない箱の欄,
 } from "./compile/actor-option-notice";
 import {
   効かない矢印の欄を並べる,
@@ -271,6 +273,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportActorKindNotHonored(書いたまま, 箱の知らせ);
   reportTreeActorOptionNotHonored(書いたまま, 箱の知らせ);
   reportValueChartActorOptionNotHonored(書いたまま, 箱の知らせ);
+  reportSkeletonActorOptionNotHonored(書いたまま, 箱の知らせ);
   reportHalfWrittenPosition(書いたまま, 箱に知らせた行, opts?.onNotice);
   // 出した行を `図種が知らせた行` に控える = 多重度の知らせ (#2107) を同じ行に重ねない
   reportSkeletonEdgeOptionNotHonored(書いたまま, 図種が知らせた行, 図種の知らせ);
@@ -1211,6 +1214,44 @@ function reportValueChartActorOptionNotHonored(
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} は${読む欄}だけを読み、1 枚の図にまとめて描きます)`,
       hint: "値の図は箱ごとの絵を持たないため飾りを載せる先がありません。 箱を並べる図種を使ってください",
+    });
+  }
+}
+
+/**
+ * 箱を並べて線で繋ぐ図で、箱に書いた指定が使われないことを伝える (#2376)。
+ *
+ * 対象の図種と、図種ごとに読まない欄は `骨組みの図種` が持つ (実装が SSOT)。
+ *
+ * 実測 = 流れ図 447 枚 ・ 泳路の図 35 枚 ・ 配置の図 8 枚の見本すべてで、始まりの印
+ * (`initial`) ・ 終わりの印 (`final`) ・ 印 (`marks`) ・ 前の値 (`previous`) の 4 件が、
+ * 図も変わらず知らせも出なかった。 構成の図とクラス図はこれに 1 件ずつ足した形になる。
+ *
+ * 始まりと終わりの印を読むのは状態遷移図だけ (`compile/generic.ts` の札)。
+ * 同じ記法を流れ図に書いても札は出ないが、書き手には状態遷移図と同じに見える。
+ *
+ * 印 (`marks`) はここでは伝えない。 骨組みの図では行と組にしても効かないが、伝える側に
+ * 回すとカタログの見本 3 枚と日本語の項目の見本が同時に動く (#2377 で切り出した)。
+ */
+function reportSkeletonActorOptionNotHonored(
+  doc: DslDocument,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  if (!骨組みの図種.has(doc.type)) return;
+  const 伝えない欄 = 骨組みの図が伝えない箱の欄(doc.type);
+  for (const a of doc.actors) {
+    if (a.partId !== undefined) continue;
+    // 種類は書かなくても既定の `actor` が入るため、値ではなく書いたかどうかの印で見る (#1058)
+    const 判定で外す = a.kindWritten === false ? ["kind"] : [];
+    const 効かない = 効かない箱の欄を並べる(a, 伝えない欄, 判定で外す);
+    if (効かない.length === 0) continue;
+    onNotice({
+      kind: "actor-option-not-honored",
+      actor: a.name,
+      line: a.pos?.line ?? 0,
+      message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} は箱を並べて線で繋ぐ図です)`,
+      hint: "始まりと終わりの印は type: state が、前の値は値を並べる図が描きます",
     });
   }
 }

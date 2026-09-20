@@ -9,6 +9,7 @@
  * | 木の図 | `tree` | #2360 |
  * | 値の図とじょうご | `pie` ほか 9 図種 + `funnel` | #2368 |
  * | 工程表と体験の地図と四象限 | `gantt` / `journey` / `quadrant` | #2370 |
+ * | 骨組みの図 | `flow` / `swimlane` / `topology` / `c4` / `class` | #2376 |
  *
  * 矢印の側は `edge-option-notice.ts` が同じ形を持つ (#2366)。
  */
@@ -174,6 +175,99 @@ export function 値として読む図が伝えない箱の欄(図種: string): R
   const 読む欄 = 値として読む図種.get(図種) ?? [];
   if (読む欄.length === 0) return 値として読む図に共通の除外;
   return new Set([...値として読む図に共通の除外, ...読む欄]);
+}
+
+/**
+ * 箱を並べて線で繋ぐ図 (骨組みの図) で、どの図種でも効かないと伝えない箱の欄 (#2376)。
+ *
+ * | 区分 | 欄 |
+ * |---|---|
+ * | 骨組みの図が描く | 名前 / 題 / 呼び名 / 小見出し / 値 / 行 / 色味 / 図形 / 種類 / 段 / 透け具合 / 出す条件 |
+ * | 位置と大きさ | `posX` / `posY` / `posW` / `posH` / `posRel` / `layoutPos` |
+ * | 値への追随 | `wBind` / `hBind` / `renderOffsetX` / `renderOffsetY` |
+ * | 別の知らせが受け持つ | 縦列 / 色番号 / 体験と工程の 4 欄 |
+ *
+ * 色番号 (`colorHex`) を除くのは、**部品を置いた箱でだけ効く** 欄だから。
+ * 部品が色を変えられる状態を持たない時は `compile/parts.ts` が別に伝えるので、
+ * ここで鳴らすと同じことを 2 度言う。
+ *
+ * 印 (`marks`) も除く。 行頭の記号に読み替えるのは ER 図と状態遷移図だけ
+ * (`行頭の印にする`) で、骨組みの図では行と組にしても効かない。 **ここで伝えないのは、
+ * 伝える側に回すとカタログの見本 3 枚と日本語の項目の見本が同時に動くため** =
+ * 行と印の扱いは別に切り出す (#2377)。
+ *
+ * 残るのは始まりの印 / 終わりの印 / 前の値の 3 つ。
+ * 実測 = 流れ図 447 枚 ・ 泳路の図 35 枚 ・ 配置の図 8 枚の見本すべてで、この 3 件が
+ * 図も変えず知らせも出さなかった。
+ */
+const 骨組みの図に共通の除外: ReadonlySet<string> = new Set([
+  "name",
+  "title",
+  "subtitle",
+  "pos",
+  "kindWritten",
+  "value",
+  "eyebrow",
+  "tone",
+  "rows",
+  "shape",
+  "kind",
+  "stack",
+  "marks",
+  "opacity",
+  "visibleIf",
+  "colorHex",
+  "color",
+  "posX",
+  "posY",
+  "posW",
+  "posH",
+  "posRel",
+  "layoutPos",
+  "wBind",
+  "hBind",
+  "renderOffsetX",
+  "renderOffsetY",
+  "lane",
+  "owner",
+  "end",
+  "touchpoint",
+  "opportunity",
+]);
+
+/**
+ * 箱を並べて線で繋ぐ図種と、共通の除外から外す欄 (#2376)。
+ *
+ * 外す欄 = その図種だけが読まない欄。 図種ごとの組み立て器が箱を自前で作るため、
+ * 共通の経路が写す欄の一部が届かない。
+ *
+ * | 図種 | 外す欄 | 理由 |
+ * |---|---|---|
+ * | 流れ図 / 泳路の図 / 配置の図 / ER 図 | 無し | `compile/generic.ts` が共通の経路で箱を作る |
+ * | 構成の図 (`c4`) | 段 (`stack`) | `compile/c4.ts` が `a.stack` を読まない |
+ * | クラス図 (`class`) | 種類 (`kind`) | `compile/class.ts` が種類を行の形から決める |
+ */
+export const 骨組みの図種: ReadonlyMap<string, readonly string[]> = new Map([
+  ["flow", []],
+  ["swimlane", []],
+  ["topology", []],
+  ["er", []],
+  ["c4", ["stack"]],
+  ["class", ["kind"]],
+]);
+
+/**
+ * その図種で、効かないと伝えない箱の欄を返す (#2376)。
+ *
+ * @param 図種 `骨組みの図種` に載っている図種
+ * @returns 共通の除外から、その図種が読まない欄を抜いた集合
+ */
+export function 骨組みの図が伝えない箱の欄(図種: string): ReadonlySet<string> {
+  const 読まない欄 = 骨組みの図種.get(図種) ?? [];
+  if (読まない欄.length === 0) return 骨組みの図に共通の除外;
+  const 残り = new Set(骨組みの図に共通の除外);
+  for (const 欄 of 読まない欄) 残り.delete(欄);
+  return 残り;
 }
 
 /**

@@ -208,9 +208,9 @@ animation:
 type: class
 
 actors:
-  - 動物: storage ["+name: string", "+age: int", "+speak(): void"]
-  - 犬: storage ["+breed: string", "+bark(): void"]
-  - 猫: storage ["+indoor: boolean", "+meow(): void"]
+  - 動物: ["+name: string", "+age: int", "+speak(): void"]
+  - 犬: ["+breed: string", "+bark(): void"]
+  - 猫: ["+indoor: boolean", "+meow(): void"]
 
 flow:
   - 犬 -> 動物: "extends"
