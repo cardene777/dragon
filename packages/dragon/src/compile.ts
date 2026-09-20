@@ -1043,11 +1043,75 @@ function reportFlowOffsetNotHonored(doc: DslDocument, onNotice?: (n: CompileNoti
 }
 
 /**
+ * 板の面で、効かないと伝えない箱の欄 (#2358)。
+ *
+ * **除外側を書く**。 効かない欄を並べる形にすると、箱に欄を足した日にその欄だけが
+ * 一覧から漏れ、書いた人には「書いたのに何も起きない」 としか見えない。
+ *
+ * | 区分 | 欄 |
+ * |---|---|
+ * | 板が描く | 名前 / 題 / 呼び名 と、書いた場所と種類を書いたかの印 |
+ * | 別の知らせが受け持つ | 縦列 (`reportLaneNotHonored` が伝える) |
+ *
+ * 種類 (`kind`) は図種で分かれるので、判定の側で足す。
+ */
+const 板が伝えない箱の欄: ReadonlySet<string> = new Set([
+  "name",
+  "title",
+  "subtitle",
+  "pos",
+  "kindWritten",
+  "lane",
+]);
+
+/**
+ * 効かない欄の呼び名 (#2358)。 **並べた順に知らせへ出す**。
+ *
+ * 呼び名を持たない欄は名前をそのまま出すので、ここに足し忘れても知らせは消えない。
+ * 複数の欄が 1 つの呼び名を持つ形 (位置が 4 欄) は、1 度だけ出す。
+ */
+const 板で効かない箱の欄の呼び名: readonly (readonly [string, string])[] = [
+  ["kind", "種類"],
+  ["posW", "大きさ"],
+  ["posH", "大きさ"],
+  ["posX", "位置"],
+  ["posY", "位置"],
+  ["posRel", "位置"],
+  // 位置のずらし (#1971)。 板は面ごとの箱を持たないので動かす相手が無い
+  ["layoutPos", "位置"],
+  ["rows", "行"],
+  ["tone", "色"],
+  ["colorHex", "色"],
+  ["eyebrow", "小見出し"],
+  ["value", "値"],
+  ["shape", "図形"],
+  ["previous", "前の値"],
+  ["marks", "印"],
+  ["stack", "段"],
+  ["initial", "始まりの印"],
+  ["final", "終わりの印"],
+  ["visibleIf", "出す条件"],
+  ["opacity", "透け具合"],
+  ["wBind", "値への追随"],
+  ["hBind", "値への追随"],
+  ["renderOffsetX", "値への追随"],
+  ["renderOffsetY", "値への追随"],
+  ["owner", "担当"],
+  ["end", "終わる時期"],
+  ["touchpoint", "接点"],
+  ["opportunity", "伸びしろ"],
+];
+
+/**
  * 順序図で面に書いた飾りが使われないことを伝える (#1466)。
  *
  * 順序図は 1 つの板が図を丸ごと描く形になり、面は上端の見出しに **名前と呼び名だけ** で並ぶ。
  * 面ごとの箱が無いので、種類 / 大きさ / 位置 / 行 / 色 / 小見出し / 値 / 図形を載せる先も無い。
  * 黙って落とすと、書いた側は効いていると思い込む。
+ *
+ * **伝える欄を並べない** (#2358)。 以前は 8 種を手で並べていたため、後から足した項目が
+ * どこにも入らなかった (実測 = 箱に書ける 31 項目のうち 11 件が、図も変わらず知らせも出ない)。
+ * 板が描く欄を **除いた残り全部** を伝える。
  *
  * 見本 (`parts`) を重ねた面は対象外 = 見本は別経路で図に取り込まれ、板の見出しには並ばない。
  */
@@ -1056,31 +1120,28 @@ function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
   if (doc.type !== "sequence" && doc.type !== "solidity") return;
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
-    const 効かない = [
-      /*
-       * 種類は `sequence` でだけ落ちる。
-       *
-       * `solidity` は種類で **面の並びを決める** (`compileSolidity`) ので、絵にならなくても
-       * 書いた意味は figure に出ている。 落ちたと伝えると、正しく効いている指定に毎回鳴る。
-       *
-       * 記法を通すと既定の `actor` が必ず入るため、値ではなく書いたかどうかの印で見る。
-       * 記法を通さず直接組み立てた場合はこの印が無いので、種類を置いたこと自体を「書いた」 とみなす
-       */
-      doc.type === "sequence" && a.kindWritten !== false && a.kind !== undefined ? "種類" : "",
-      a.posW !== undefined || a.posH !== undefined ? "大きさ" : "",
-      a.posX !== undefined ||
-      a.posY !== undefined ||
-      a.posRel !== undefined ||
-      // 位置のずらし (#1971)。 板は面ごとの箱を持たないので動かす相手が無い
-      a.layoutPos !== undefined
-        ? "位置"
-        : "",
-      a.rows !== undefined ? "行" : "",
-      a.tone !== undefined ? "色" : "",
-      a.eyebrow !== undefined ? "小見出し" : "",
-      a.value !== undefined ? "値" : "",
-      a.shape !== undefined ? "図形" : "",
-    ].filter((x) => x !== "");
+    const 残り = new Set(
+      Object.entries(a as unknown as Record<string, unknown>)
+        .filter(([欄, 値]) => 値 !== undefined && !板が伝えない箱の欄.has(欄))
+        .map(([欄]) => 欄),
+    );
+    /*
+     * 種類は `sequence` でだけ落ちる。
+     *
+     * `solidity` は種類で **面の並びを決める** (`compileSolidity`) ので、絵にならなくても
+     * 書いた意味は figure に出ている。 落ちたと伝えると、正しく効いている指定に毎回鳴る。
+     *
+     * 記法を通すと既定の `actor` が必ず入るため、値ではなく書いたかどうかの印で見る。
+     * 記法を通さず直接組み立てた場合はこの印が無いので、種類を置いたこと自体を「書いた」 とみなす
+     */
+    if (doc.type !== "sequence" || a.kindWritten === false) 残り.delete("kind");
+    const 効かない: string[] = [];
+    for (const [欄, 呼び名] of 板で効かない箱の欄の呼び名) {
+      if (!残り.delete(欄)) continue;
+      if (!効かない.includes(呼び名)) 効かない.push(呼び名);
+    }
+    // 呼び名を持たない欄は名前をそのまま出す = 読みにくい名前でも、黙って落とすよりは伝わる
+    効かない.push(...[...残り].sort());
     if (効かない.length === 0) continue;
     onNotice({
       kind: "actor-kind-not-honored",
