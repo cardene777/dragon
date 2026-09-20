@@ -1631,6 +1631,10 @@ function reportMissingFocusTargets(
   const 板になる = doc.type === "sequence" || doc.type === "solidity";
   const 見比べる図 = 板になる ? undefined : diagram;
 
+  // 綴り違いの補足は **1 度だけ作る**。 知らせごとに全ての名前を並べ直すと、名前も注目先も
+  // 上限 (各 1,000) まで書いた図で知らせが数百 MB になる (矢印の端の知らせが #1209 で踏んだ形)
+  const 名前の案内 = `actors: に書かれている名前 = ${並べて切る([...names])}`;
+
   for (const phase of doc.animate.phases) {
     /** 記法には書いてあるのに、書いたとおりに光らない指定 (#2398) */
     const 選べない: string[] = [];
@@ -1653,12 +1657,9 @@ function reportMissingFocusTargets(
           line: phase.pos.line,
           message:
             entry.kind === "edge"
-              ? `光らせる矢印が流れにありません: "${raw}"`
-              : `光らせる相手が見つかりません: "${raw}"`,
-          hint:
-            entry.kind === "edge"
-              ? "flow: に書いた矢印と同じ向きで書く"
-              : `actors: に書かれている名前 = ${[...names].join(", ")}`,
+              ? `光らせる矢印が流れにありません: "${truncateForMessage(raw)}"`
+              : `光らせる相手が見つかりません: "${truncateForMessage(raw)}"`,
+          hint: entry.kind === "edge" ? "flow: に書いた矢印と同じ向きで書く" : 名前の案内,
           // 縦列の id は受理しないので、 その旨は hint に出さない (光らせられないため)
         });
         continue;
@@ -1696,13 +1697,27 @@ function reportMissingFocusTargets(
       line: phase.pos.line,
       message:
         `type: ${doc.type} は箱を 1 つずつ選べず図全体が光るため、` +
-        ` ${選べない.map((x) => `"${truncateForMessage(x)}"`).join(" / ")} を注目先に書いても` +
+        ` ${並べて切る(選べない, (x) => `"${x}"`)} を注目先に書いても` +
         (書かなかった箱.length > 0
-          ? ` 書かなかった箱 (${書かなかった箱.map((x) => truncateForMessage(x)).join(" / ")}) も光ります`
+          ? ` 書かなかった箱 (${並べて切る(書かなかった箱)}) も光ります`
           : " 図全体が光ります"),
       hint: "名前の書き方の問題ではありません。 全ての箱を書くか、箱を 1 つずつ選べる図種 (flow / class など) に変えてください",
     });
   }
+}
+
+/**
+ * 知らせの本文に名前を並べる。 件数も 1 件あたりの長さも切る (#2398)。
+ *
+ * **件数だけを絞っても足りない**。 名前は外から来る文字列なので、1 つが 2 万字なら
+ * 知らせも 2 万字になる (矢印の端の知らせが #1209 で踏んだ形)。 箱の上限は 1,000 件で、
+ * 全て並べると 1 件の知らせが数百 KB になる。
+ */
+function 並べて切る(一覧: readonly string[], 包む = (s: string): string => s): string {
+  const 見せる数 = 8;
+  const 並び = 一覧.slice(0, 見せる数).map((x) => 包む(truncateForMessage(x)));
+  const 残り = 一覧.length - 見せる数;
+  return 残り > 0 ? `${並び.join(" / ")} ほか ${残り} 件` : 並び.join(" / ");
 }
 
 /**

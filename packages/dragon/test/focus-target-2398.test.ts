@@ -206,6 +206,63 @@ describe("書いたとおりに光らない図種は、そのことを知らせ�
     expect(n.hint ?? "", `補足: ${n.hint ?? ""}`).toContain("名前の書き方の問題ではありません");
   });
 
+  it("箱が多くても名前が長くても、知らせの長さが抑えられる", () => {
+    /*
+     * 箱は 1,000 件まで書け、名前の長さにも上限が無い。 全てを本文に並べると 1 件の知らせが
+     * 数百 KB になる (矢印の端の知らせが #1209 で踏んだ形)。 **件数と 1 件あたりの長さを
+     * 両方切る** = 件数だけ絞っても、名前 1 つが 2 万字なら知らせも 2 万字になる。
+     */
+    const 長い名前 = "あ".repeat(500);
+    const 箱 = [長い名前, ...Array.from({ length: 60 }, (_, i) => `箱${i}`)];
+    const src = `title: "しらべ"
+type: bar
+
+actors:
+${箱.map((n) => `  - "${n}": { value: 10 }`).join("\n")}
+
+animation:
+  - step: "s1" 1s
+    focus: ["箱0"]
+    body: "b"
+`;
+    const p = parseTextDslV05(src);
+    if (!p.ok) throw new Error(p.errors.map((e) => e.message).join(" / "));
+    const 知らせ: CompileNotice[] = [];
+    compileToCdl(p.doc, { onNotice: (n) => 知らせ.push(n) });
+    const 出た = 知らせ.filter((n) => n.kind === "focus-target-not-honored");
+    expect(出た.length, "知らせが 1 件でない").toBe(1);
+    const 本文 = 出た[0]!.message;
+    expect(本文.length, `本文が ${本文.length} 字`).toBeLessThan(600);
+    expect(本文, "長い名前がそのまま入っている").not.toContain(長い名前);
+    // 並べ切れなかった件数を出す = 切ったことが読み手に分かる
+    expect(本文, `本文: ${本文}`).toContain("ほか");
+  });
+
+  it("綴り違いの補足も、名前が多いと切り詰める", () => {
+    // 補足は知らせごとに作られる。 切らないと、名前 1,000 件 × 注目先 1,000 件で膨らむ
+    const 箱 = Array.from({ length: 60 }, (_, i) => `箱${i}`);
+    const src = `title: "しらべ"
+type: flow
+
+actors:
+${箱.map((n) => `  - ${n}`).join("\n")}
+
+animation:
+  - step: "s1" 1s
+    focus: [居ない箱]
+    body: "b"
+`;
+    const p = parseTextDslV05(src);
+    if (!p.ok) throw new Error(p.errors.map((e) => e.message).join(" / "));
+    const 知らせ: CompileNotice[] = [];
+    compileToCdl(p.doc, { onNotice: (n) => 知らせ.push(n) });
+    const 出た = 知らせ.filter((n) => n.kind === "focus-target-missing");
+    expect(出た.length, "知らせが 1 件でない").toBe(1);
+    const 補足 = 出た[0]!.hint ?? "";
+    expect(補足.length, `補足が ${補足.length} 字`).toBeLessThan(200);
+    expect(補足, `補足: ${補足}`).toContain("ほか");
+  });
+
   it("段を持たない図では知らせを出さない (対照)", () => {
     const src = `title: "しらべ"
 type: bar
