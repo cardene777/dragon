@@ -8,10 +8,21 @@ import { compileGenericWithAnimate, 共通の組み立てへ回す } from "./gen
 
 import { slugify } from "./slug";
 
-export function compileEr(doc: DslDocument): CdlDiagram {
+/**
+ * この ER 図を共通の組み立て (箱を並べて線で繋ぐ経路) で組むか (#2388)。
+ *
+ * 表の経路は実体 1 つにつき表の箱を作るので、箱に書いた種類 (`kind`) を持たない。
+ * 共通の組み立てへ回った図でだけ種類が届くため、**効かないと伝える側も同じ判定を呼ぶ**。
+ * 判定を写すと、回す条件を足した日に伝える側だけが古くなる (#2386 と同じ判断)。
+ */
+export function ERを共通の組み立てで組むか(doc: DslDocument): boolean {
   // 動きを書いた形と縦列を書いた形は共通の組み立てへ (#1263 / #2348)。
   // 縦列は #2348 まで抜けており、動きを書かない図では書いた縦列が黙って消えていた
-  if (共通の組み立てへ回す("er", doc)) {
+  return 共通の組み立てへ回す("er", doc);
+}
+
+export function compileEr(doc: DslDocument): CdlDiagram {
+  if (ERを共通の組み立てで組むか(doc)) {
     // 460 は preset 側の旧既定に合わせた値だった。 preset が箱 400 + 余白 25 × 2 = 450 を
     // 宣言するようになった (cardene777/cdl#359) ので、 同じ図が animate の有無で 10 world
     // ずれないようここも 450 にする。

@@ -1243,6 +1243,10 @@ function reportValueChartActorOptionNotHonored(
  * 全ての箱が縦列を書いた図だけで、1 つでも書いていない箱があると図全体が別の並べ方に落ち、
  * 段はどの箱でも読まれない。 図種では表せない条件なので、置く側と同じ関数
  * (`書いた縦列に置く`) に聞く。
+ *
+ * ER 図の種類 (`kind`) も同じ形 (#2388)。 表の経路は実体 1 つにつき表の箱を作るので種類を
+ * 持たないが、縦列や動きを書いた図は共通の組み立てへ回って種類が届く。 同じ図種の中で
+ * 2 通りに分かれるため、組む側と同じ判定 (`ERを共通の組み立てで組むか`) に聞く。
  */
 function reportSkeletonActorOptionNotHonored(
   doc: DslDocument,
@@ -1250,7 +1254,7 @@ function reportSkeletonActorOptionNotHonored(
 ): void {
   if (!onNotice) return;
   if (!骨組みの図種.has(doc.type)) return;
-  const 伝えない欄 = 段も足した伝えない箱の欄(doc);
+  const 伝えない欄 = 図ごとの条件も見た伝えない箱の欄(doc);
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
     const 判定で外す: string[] = [];
@@ -1277,24 +1281,30 @@ function reportSkeletonActorOptionNotHonored(
 }
 
 /**
- * その図で、効かないと伝えない箱の欄 (#2386)。
+ * その図で、効かないと伝えない箱の欄 (#2386 / #2388)。
  *
- * 図種ごとの違いは族の表 (`骨組みの図種`) が持つ。 段 (`stack`) だけは **図 1 枚ごとに**
- * 読むかが決まるので、表では表せず、ここで足し引きする。
+ * 図種ごとの違いは族の表 (`骨組みの図種`) が持つ。 **図 1 枚ごとに** 読むかが決まる欄は
+ * 表では表せないので、ここで読まない図から抜いて伝える側へ回す。
  *
- * 置く側と同じ関数に聞く = 条件を 2 か所に写すと、置く側を直した日に伝える側が古くなる。
+ * 条件は使う側と同じ関数に聞く = 2 か所に写すと、使う側を直した日に伝える側が古くなる。
+ * 段 (`stack`) は縦列を選べる図種すべてに同じ条件が掛かるので `書いた縦列に置く` を直に呼び、
+ * 図種ごとに違う条件 (ER 図の種類) は族の表が関数を持つ。
  *
  * @param doc 組み立てる本文
- * @returns 族の除外に、段を読む図なら段を足した集合
+ * @returns 族の除外から、この図では読まない欄を抜いた集合
  */
-function 段も足した伝えない箱の欄(doc: DslDocument): ReadonlySet<string> {
+function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): ReadonlySet<string> {
   const 族の除外 = 骨組みの図が伝えない箱の欄(doc.type);
-  // 段を読まない図では伝える側へ回す = 除外から抜く。 既に抜けている図種 (c4) はそのまま
-  if (書いた縦列に置く(doc.type, doc)) return 族の除外;
-  if (!族の除外.has("stack")) return 族の除外;
+  const 読まない欄: string[] = [];
+  // 段を読まない図では伝える側へ回す。 既に抜けている図種 (c4) は下の `delete` が空振りする
+  if (!書いた縦列に置く(doc.type, doc)) 読まない欄.push("stack");
+  for (const [欄, 読む] of 骨組みの図種.get(doc.type)?.図ごと ?? []) {
+    if (!読む(doc)) 読まない欄.push(欄);
+  }
   const 残り = new Set(族の除外);
-  残り.delete("stack");
-  return 残り;
+  let 抜いた = false;
+  for (const 欄 of 読まない欄) if (残り.delete(欄)) 抜いた = true;
+  return 抜いた ? 残り : 族の除外;
 }
 
 /**
@@ -1329,6 +1339,14 @@ function 骨組みの図の案内(図種: string, 効かない: readonly string[
    */
   if (効かない.includes("段") && 縦列を選べる図種.has(図種 as never)) {
     案内.push("段は全ての箱に縦列 (lane) を書いた図で効きます");
+  }
+  /*
+   * 種類も **図 1 枚ごとに決まる図種でだけ** 行き先を持つ (#2388)。 ER 図は共通の組み立てへ
+   * 回った図で種類を読むので、縦列を足せば効く。 どう書いても読まない図種 (クラス図) では
+   * 行き先が無いので、族の表に聞いて分ける。
+   */
+  if (効かない.includes("種類") && (骨組みの図種.get(図種)?.図ごと ?? []).some(([欄]) => 欄 === "kind")) {
+    案内.push("種類は全ての箱に縦列 (lane) を書いた図で効きます");
   }
   if (効かない.includes("始まりの印") || 効かない.includes("終わりの印")) {
     案内.push("始まりと終わりの印は type: state が描きます");

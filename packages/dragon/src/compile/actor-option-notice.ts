@@ -13,7 +13,8 @@
  *
  * 矢印の側は `edge-option-notice.ts` が同じ形を持つ (#2366)。
  */
-import type { DslActor } from "../types";
+import type { DslActor, DslDocument } from "../types";
+import { ERを共通の組み立てで組むか } from "./er";
 
 /**
  * 効かない箱の欄の呼び名 (#2358)。 **並べた順に知らせへ出す**。
@@ -269,6 +270,13 @@ export type 骨組みの図の違い = {
   readonly 読まない?: readonly string[];
   /** その図種だけが読む欄。 共通の除外に足して、伝えない側へ回す */
   readonly 読む?: readonly string[];
+  /**
+   * 図 1 枚ごとに読むかが決まる欄と、その条件 (#2388)。
+   *
+   * **条件は使う側の関数をそのまま持つ** (#2386 と同じ判断)。 図種で決まる欄と同じ表に
+   * 書くと、同じ図種の書き方が違う 2 通りが 1 つに潰れる。
+   */
+  readonly 図ごと?: readonly (readonly [欄: string, 読む: (doc: DslDocument) => boolean])[];
 };
 
 /**
@@ -276,16 +284,17 @@ export type 骨組みの図の違い = {
  *
  * | 図種 | 違い | 理由 |
  * |---|---|---|
- * | 流れ図 / 泳路の図 / 配置の図 / ER 図 | 無し | `compile/generic.ts` が共通の経路で箱を作る |
+ * | 流れ図 / 泳路の図 / 配置の図 | 無し | `compile/generic.ts` が共通の経路で箱を作る |
  * | 構成の図 (`c4`) | 段 (`stack`) を読まない | `compile/c4.ts` が `a.stack` を読まない |
  * | クラス図 (`class`) | 種類 (`kind`) を読まない | `compile/class.ts` が種類を行の形から決める |
+ * | ER 図 (`er`) | 種類 (`kind`) を図 1 枚ごとに読む | 表の経路は実体 1 つにつき表の箱を作るので種類を持たず、共通の組み立てへ回った図でだけ届く (#2388) |
  * | 状態遷移図 (`state`) | 始まりの印と終わりの印を読む | `compile/generic.ts` の札がこの図種でだけ出る |
  */
 export const 骨組みの図種: ReadonlyMap<string, 骨組みの図の違い> = new Map([
   ["flow", {}],
   ["swimlane", {}],
   ["topology", {}],
-  ["er", {}],
+  ["er", { 図ごと: [["kind", ERを共通の組み立てで組むか]] }],
   ["c4", { 読まない: ["stack"] }],
   ["class", { 読まない: ["kind"] }],
   ["state", { 読む: ["initial", "final"] }],

@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { compileToCdl } from "../src/compile";
 import { 骨組みの図種, 骨組みの図が伝えない箱の欄 } from "../src/compile/actor-option-notice";
 import { 縦列を選べる図種 } from "../src/compile/lanes";
-import { PRESET_TYPES, parseTextDslV05 } from "../src/v05/parser";
+import { INLINE_ACTOR_KEYS, PRESET_TYPES, parseTextDslV05 } from "../src/v05/parser";
 
 /**
  * 図種ごとに、その図種が読める最小の本文を作る。
@@ -661,5 +661,279 @@ flow:
     expect(違う, `図種 ${図種一覧.length} 件`).toEqual([]);
     expect(付く図種, "案内が付く図種が 0 件 (空振り)").toBeGreaterThan(0);
     expect(付かない図種, "案内が付かない図種が 0 件 (空振り)").toBeGreaterThan(0);
+  });
+});
+
+describe("箱に書いた種類が使われないことを伝える (#2388)", () => {
+  /*
+   * 種類 (`kind`) を読むかは、図種だけでは決まらない。 ER 図は実体 1 つにつき表の箱を作る
+   * 経路では読まないが、縦列や動きを書いた図は共通の組み立てへ回って読む。
+   *
+   * **図種の一覧を検査に写さず、組み上がった箱の種類で分ける** = 種類を読む図種を足した日に、
+   * 検査が古い一覧のまま通ることを防ぐ。
+   */
+  type 箱 = { title?: string; kind?: string };
+
+  /** 組み上がった箱 `あ` の種類 */
+  function 箱の種類(本文: string): string | undefined {
+    const 図 = 組む(本文).図 as unknown as { nodes?: 箱[] };
+    return 図.nodes?.find((n) => n.title === "あ")?.kind;
+  }
+
+  /**
+   * 書いた種類が箱に届くか。
+   *
+   * **既定の種類と比べない**。 流れ図の既定は `actor` なので、`kind: actor` だけを書いて
+   * 既定と比べると「届いているのに変わらない」 になる。 種類を 2 通り書いて、
+   * 組み上がった箱の種類が分かれるかで見る。
+   */
+  const 書く種類 = ["kind: actor", "kind: storage"] as const;
+
+  it("種類が効く図種では鳴らず箱の種類が分かれ、効かない図種では鳴る", () => {
+    const 違う: string[] = [];
+    let 効く図種 = 0;
+    let 効かない図種 = 0;
+    for (const t of 図種一覧) {
+      const 種類 = 書く種類.map((書く) => 箱の種類(縦列を書いた本文(t, 書く)));
+      const 知 = 書く種類.map((書く) =>
+        縦列を書いた知らせ(t, 書く).filter((n) => n.kind === "actor-option-not-honored"),
+      );
+      if (種類[0] !== 種類[1]) {
+        効く図種 += 1;
+        const 鳴った = 知.filter((k) => k.length > 0).length;
+        if (鳴った > 0) 違う.push(`${t}: 種類が ${種類.join(" / ")} に分かれるのに ${鳴った} 通りで鳴る`);
+      } else {
+        効かない図種 += 1;
+        const 鳴らない = 知.filter((k) => k.length !== 1).length;
+        if (鳴らない > 0) 違う.push(`${t}: 種類が ${種類[0]} のまま分かれないのに ${鳴らない} 通りで鳴らない`);
+      }
+    }
+    expect(違う, `図種 ${図種一覧.length} 件 × 種類 ${書く種類.length} 通り`).toEqual([]);
+    // 両側に 1 件以上あることを見る = 片側だけだと判定が壊れても通る
+    expect(効く図種, "種類が効く図種が 0 件 (空振り)").toBeGreaterThan(0);
+    expect(効かない図種, "種類が効かない図種が 0 件 (空振り)").toBeGreaterThan(0);
+  });
+
+  it("種類を書かない箱では、どの図種でも知らせが 0 件", () => {
+    const 出た = 図種一覧
+      .map((t) => ({
+        t,
+        知: 縦列を書いた知らせ(t, "").filter((n) => n.kind === "actor-option-not-honored"),
+      }))
+      .filter(({ 知 }) => 知.length > 0)
+      .map(({ t, 知 }) => `${t}: ${知.map((n) => n.message).join(" / ")}`);
+    expect(出た, `図種 ${図種一覧.length} 件`).toEqual([]);
+  });
+
+  it("図 1 枚ごとに決まる欄は、読む図で鳴らず読まない図で鳴る", () => {
+    /*
+     * 条件は族の表が関数として持つ (`図ごと`)。 検査は **その関数に聞いて期待を決める** =
+     * 条件を写すと、条件を直した日に検査だけが古くなる。
+     *
+     * 縦列を書かない形と全ての箱が書いた形の 2 通りで、条件が両方向に分かれることも見る。
+     */
+    const 違う: string[] = [];
+    let 読む図 = 0;
+    let 読まない図 = 0;
+    for (const [図種, 違い] of 骨組みの図種) {
+      for (const [欄, 読むか] of 違い.図ごと ?? []) {
+        const 書く = 欄 === "kind" ? "kind: queue" : undefined;
+        expect(書く, `欄 "${欄}" の書き方を検査が持っていない`).toBeDefined();
+        for (const [形, 作る, 知らせ] of [
+          ["縦列なし", 本文, 箱の知らせ],
+          ["縦列あり", 縦列を書いた本文, 縦列を書いた知らせ],
+        ] as const) {
+          const p = parseTextDslV05(作る(図種, 書く!));
+          expect(p.ok, `${図種} / ${形} の本文が読めない`).toBe(true);
+          if (!p.ok) continue;
+          const 知 = 知らせ(図種, 書く!).filter((n) => n.kind === "actor-option-not-honored");
+          if (読むか(p.doc)) {
+            読む図 += 1;
+            if (知.length > 0) 違う.push(`${図種} / ${欄} / ${形}: 読むのに知らせが ${知.length} 件`);
+            const 素 = 箱の種類(作る(図種, ""));
+            if (箱の種類(作る(図種, 書く!)) === 素) {
+              違う.push(`${図種} / ${欄} / ${形}: 読む側なのに箱が ${素} のまま`);
+            }
+          } else {
+            読まない図 += 1;
+            if (知.length !== 1) 違う.push(`${図種} / ${欄} / ${形}: 読まないのに知らせが ${知.length} 件`);
+          }
+        }
+      }
+    }
+    expect(違う, `図種 ${図種一覧.length} 件`).toEqual([]);
+    expect(読む図, "読む側の図が 0 件 (空振り)").toBeGreaterThan(0);
+    expect(読まない図, "読まない側の図が 0 件 (空振り)").toBeGreaterThan(0);
+  });
+
+  it("案内は図 1 枚ごとに決まる図種にだけ付く", () => {
+    /*
+     * 縦列を足せば効く図種では行き先を書き、どう書いても読まない図種 (クラス図) では
+     * 当たり障りのない 1 文で埋めない (#2382 の決まり)。
+     */
+    const 違う: string[] = [];
+    let 付く図種 = 0;
+    let 付かない図種 = 0;
+    for (const t of 図種一覧) {
+      const 知 = 箱の知らせ(t, "kind: queue").find((n) => n.kind === "actor-option-not-honored");
+      if (知 === undefined) continue;
+      const 図ごと = (骨組みの図種.get(t)?.図ごと ?? []).some(([欄]) => 欄 === "kind");
+      if (図ごと) {
+        付く図種 += 1;
+        if (!(知.hint ?? "").includes("lane")) 違う.push(`${t}: 案内が無い "${知.hint ?? ""}"`);
+      } else {
+        付かない図種 += 1;
+        if (知.hint !== undefined) 違う.push(`${t}: 行き先が無いのに案内が付く "${知.hint}"`);
+      }
+    }
+    expect(違う, `図種 ${図種一覧.length} 件`).toEqual([]);
+    expect(付く図種, "案内が付く図種が 0 件 (空振り)").toBeGreaterThan(0);
+    expect(付かない図種, "案内が付かない図種が 0 件 (空振り)").toBeGreaterThan(0);
+  });
+
+  it("ER 図が図 1 枚ごとに決まる側に入っている", () => {
+    /*
+     * **図種の名前をここに書く** (#2382 と同じ形)。 上の 3 件は族の表から図種を取るので、
+     * ER 図を表から落としても「走査対象が減った」 だけになり落ちない。
+     */
+    expect(
+      (骨組みの図種.get("er")?.図ごと ?? []).map(([欄]) => 欄),
+      "ER 図の種類が図 1 枚ごとに決まる側から外れている",
+    ).toContain("kind");
+    // 表の経路は表の箱しか作らない = どの種類を書いても同じ
+    expect(箱の種類(本文("er", "kind: actor")), "ER 図の表の経路で種類が効いている").toBe(
+      箱の種類(本文("er", "kind: service")),
+    );
+    // 縦列を全部書いた図は共通の組み立てへ回るので届く
+    expect(
+      箱の種類(縦列を書いた本文("er", "kind: actor")),
+      "縦列を書いた ER 図で種類が届いていない",
+    ).not.toBe(箱の種類(縦列を書いた本文("er", "kind: service")));
+  });
+});
+
+describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
+  /*
+   * 欄を 3 区分に分けて測る。 **効く (図が変わる) / 知らせる / 黙って消える** の 3 つで、
+   * 3 つ目が 0 件であることを見る。
+   *
+   * **走査する欄を検査に写さない**。 記法が中括弧で読む項目名 (`INLINE_ACTOR_KEYS`) を
+   * 全部回すので、項目を足した日に書き方の無い項目で落ちる。
+   *
+   * **縦列を書かない形で測る** (#2386 / #2388)。 段 (`stack`) のように図 1 枚ごとに
+   * 読むかが決まる欄は、縦列を書いた形だと読む側へ回って走査から外れる。
+   */
+  const 書き方: Record<string, string> = {
+    // 既定の種類 (`actor`) を避ける = 既定を書いた形は何も変えないのが正しい
+    kind: "kind: queue",
+    title: 'title: "だい"',
+    subtitle: 'subtitle: "そえ"',
+    eyebrow: 'eyebrow: "みだし"',
+    value: "value: 3",
+    previous: "previous: 2",
+    rows: 'rows: ["よむ"]',
+    marks: "marks: [pk]",
+    lane: "lane: m",
+    stack: "stack: 2",
+    initial: "initial: true",
+    final: "final: true",
+    tone: "tone: info",
+    color: 'color: "#123456"',
+    touchpoint: 'touchpoint: "まどぐち"',
+    opportunity: 'opportunity: "のびしろ"',
+    owner: 'owner: "たんとう"',
+    end: 'end: "3月"',
+    posX: "posX: 100",
+    posY: "posY: 100",
+    posW: "posW: 200",
+    posH: "posH: 80",
+    offsetX: "offsetX: 10",
+    offsetY: "offsetY: 10",
+    shape: "shape: { kind: rect, source: 10, fillMax: 100 }",
+    visibleIf: 'visibleIf: "{あたい}"',
+    wBind: 'wBind: "{あたい}"',
+    hBind: 'hBind: "{あたい}"',
+    opacity: "opacity: 0.5",
+    renderOffsetX: 'renderOffsetX: "{あたい}"',
+    renderOffsetY: 'renderOffsetY: "{あたい}"',
+    scale: "scale: 1.5",
+  };
+
+  /** 日本語の別名は英語名と同じ欄に入るので、英語名だけを走査する */
+  const 走査する項目 = [...INLINE_ACTOR_KEYS].filter((k) => /^[a-zA-Z]/.test(k)).sort();
+
+  /**
+   * 1 欄だけを書いた本文。 縦列 (`lane`) を測る時だけ縦列の並びを足す。
+   *
+   * クラス図は行 (`rows`) が無いと箱が空になるので、行を測る時以外は土台に足す。
+   */
+  function 全欄の本文(図種: string, 項目: string, 書く: string): string {
+    const 行 = 図種 === "class" ? 'rows: ["+ よ()"]' : "";
+    const 面 = 行 === "" ? "" : `: { ${行} }`;
+    const あ = [...(行 !== "" && 項目 !== "rows" ? [行] : []), ...(書く === "" ? [] : [書く])];
+    const 縦列 = 項目 === "lane" ? '\nlanes:\n  m: { label: "ま" }\n' : "";
+    return `title: "しらべ"
+type: ${図種}
+${縦列}
+actors:
+  - ぜろ${面}
+  - あ${あ.length === 0 ? "" : `: { ${あ.join(", ")} }`}
+  - い${面}
+
+flow:
+  - ぜろ -> あ: "はじめ"
+  - あ -> い: "つなぐ"
+`;
+  }
+
+  it("走査する項目すべてに書き方を持っている (空振り防止)", () => {
+    const 無い = 走査する項目.filter((k) => 書き方[k] === undefined);
+    expect(無い, `記法の項目 ${走査する項目.length} 件`).toEqual([]);
+    expect(走査する項目.length, "記法の項目を 1 件も拾えていない").toBeGreaterThan(0);
+  });
+
+  it("効く / 知らせる / 黙って消える の 3 区分で、黙って消える欄が 0 件", () => {
+    /*
+     * 記法が項目そのものを断る形 (`scale` は部品にだけ効く) も、書いた人には届く。
+     * 別に数えて 3 区分から外す = 断られた組み合わせを黙る側にも知らせる側にも混ぜない。
+     */
+    const 黙る: string[] = [];
+    const 土台が読めない: string[] = [];
+    let 走査 = 0;
+    let 効く = 0;
+    let 知らせる = 0;
+    let 記法が断る = 0;
+    for (const t of 図種一覧) {
+      for (const k of 走査する項目) {
+        const 素p = parseTextDslV05(全欄の本文(t, k, ""));
+        if (!素p.ok) {
+          土台が読めない.push(`${t} / ${k}: ${素p.errors.map((e) => e.message).join(" / ")}`);
+          continue;
+        }
+        const 素文: string[] = [];
+        const 素図 = JSON.stringify(compileToCdl(素p.doc, { onNotice: (n) => 素文.push(n.message) }));
+        走査 += 1;
+        const p = parseTextDslV05(全欄の本文(t, k, 書き方[k]!));
+        if (!p.ok) {
+          記法が断る += 1;
+          continue;
+        }
+        const 文: string[] = [];
+        const 図 = JSON.stringify(compileToCdl(p.doc, { onNotice: (n) => 文.push(n.message) }));
+        // 素の本文で出た文を差し引く = 知らせの文面の形で探すと、箱の名前の書き方が
+        // 図種で違う分だけ取りこぼす (#2384 で踏んだ形)
+        const 増えた = 文.filter((m) => !素文.includes(m));
+        if (図 !== 素図) 効く += 1;
+        else if (増えた.length > 0) 知らせる += 1;
+        else 黙る.push(`${t} / ${k}`);
+      }
+    }
+    expect(土台が読めない, "欄を書かない本文が読めない組み合わせ").toEqual([]);
+    expect(走査, "走査が 0 件 (空振り)").toBeGreaterThan(0);
+    const 内訳 = `走査 ${走査} 通り (図種 ${図種一覧.length} 件 × 項目 ${走査する項目.length} 件) / 効く ${効く} 件 / 知らせる ${知らせる} 件 / 記法が断る ${記法が断る} 件`;
+    expect(黙る, 内訳).toEqual([]);
+    // 3 区分の両端に 1 件以上あることを見る = 片側だけだと判定が壊れても通る
+    expect(効く, `効く欄が 0 件 (空振り) — ${内訳}`).toBeGreaterThan(0);
+    expect(知らせる, `知らせる欄が 0 件 (空振り) — ${内訳}`).toBeGreaterThan(0);
   });
 });
