@@ -42,7 +42,6 @@ export function compileState(doc: DslDocument): CdlDiagram {
       to: slugify(s.to),
       trigger: s.label,
       ...(s.sub ? { guard: s.sub } : {}),
-      ...(s.tone ? { tone: s.tone } : {}),
     });
   }
   return fsm.build();

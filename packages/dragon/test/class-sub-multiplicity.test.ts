@@ -75,8 +75,19 @@ describe("クラス図の `tailSub` (#1771)", () => {
     expect(d.edges[0]!.headLabel).toBe("1..*");
   });
 
-  it("陰性対照: クラス図でない図は `tailSub` を読まない (関係の語と同じ)", () => {
+  /*
+   * ここは #1771 では「クラス図でない図は読まない」 としていた。 実測すると読まないのではなく
+   * **黙って消えていた** = 矢印を描く 6 図種で、書いた字が端にも札にも出ず知らせも鳴らない
+   * (#2394)。 出どころの端の字は engine が図種を問わず置くので、写す側を共通にした。
+   */
+  it("クラス図でない図でも出どころの端の字になる (#2394)", () => {
     const d = compileToCdl(文書("flow", [step("Admin", "Order", { tailSub: "1" })]));
+    expect(d.edges.length, "矢印が 1 本も無い (検査が空振りしている)").toBeGreaterThan(0);
+    expect(d.edges.map((e) => e.tailLabel)).toContain("1");
+  });
+
+  it("陰性対照: `tailSub` を書かないクラス図でない図は端の字を持たない", () => {
+    const d = compileToCdl(文書("flow", [step("Admin", "Order")]));
     expect(d.edges.length, "矢印が 1 本も無い (検査が空振りしている)").toBeGreaterThan(0);
     expect(d.edges.every((e) => e.tailLabel === undefined)).toBe(true);
   });

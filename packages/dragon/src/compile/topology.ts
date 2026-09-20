@@ -38,9 +38,6 @@ export function compileTopology(doc: DslDocument): CdlDiagram {
       label: s.label,
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
-
-      ...(s.tone ? { tone: s.tone } : {}),
-      ...(s.style ? { style: s.style } : {}),
     });
   }
   return topo.build();
