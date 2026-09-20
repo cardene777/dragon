@@ -127,9 +127,15 @@ describe("切れ目を間違えない", () => {
     expect(r.doc.flow).toHaveLength(1);
   });
 
-  it("字下げが浅い行は続きに含めない", () => {
-    // `- Web:` と同じ深さに書かれた項目は、 その登場人物の続きではない。 含めると
-    // 書き間違いが黙って別の意味になる
+  it("字下げが浅い行は続きに含めず、読めない行として知らせる", () => {
+    /*
+     * `- Web:` と同じ深さに書かれた項目は、 その登場人物の続きではない。 含めると
+     * 書き間違いが黙って別の意味になる。
+     *
+     * **含めない代わりに知らせる** (#2400)。 以前はこの行を捨てていたので、書いた人には
+     * 「1 行書いたのに何も増えない」 だけが残った。 1 件の頭にもしない = `補足` という
+     * 名前の登場人物になり、書き間違いが別の意味に化ける
+     */
     const src = [
       `title: "t"`, `type: flow`, ``, `actors:`,
       `  - Web:`, `      kind: service`,
@@ -138,9 +144,11 @@ describe("切れ目を間違えない", () => {
       `flow:`, `  - Web -> B: "x"`,
     ].join("\n");
     const r = parseTextDslV05(src);
-    if (!r.ok) throw new Error("parse 失敗");
-    expect(r.doc.actors[0]!.subtitle, "浅い行を吸い込んだ").toBeUndefined();
-    expect(r.doc.actors.map((a) => a.name)).toEqual(["Web", "B"]);
+    expect(r.ok, "浅い行を知らせていない").toBe(false);
+    if (r.ok) return;
+    expect(r.errors.map((e) => `L${e.line} ${e.message}`)).toEqual([
+      `L7 登場人物の行が読めません: "補足: "浅い字下げ""`,
+    ]);
   });
 
   it("1 行と複数行を混ぜられる", () => {
