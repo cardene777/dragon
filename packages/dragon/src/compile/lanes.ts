@@ -77,3 +77,54 @@ export function 縦列の判定に数える箱(doc: DslDocument): DslDocument["a
   const 見本が縦列を書いた = doc.actors.some((a) => a.partId !== undefined && a.lane !== undefined);
   return 見本が縦列を書いた ? doc.actors : doc.actors.filter((a) => a.partId === undefined);
 }
+
+/**
+ * 縦列ごとに箱の段を決める (#1394 / #2396)。
+ *
+ * 段は **書いた番号をそのまま持つ**。 書き順で 0 から詰め直すと、`stack: 1` と書いた箱が
+ * 0 へ落ちる = 決定木のように「同じ高さに並ばない」 ことが図の意味そのものになる形では、
+ * 詰めた瞬間に別の図になる (実測 = 3 段の木の根が 1 段目へ上がった)。
+ *
+ * 書かなかった箱は、その縦列で **空いている一番小さい段** に置く。 単に数え上げると
+ * 書いた番号と重なり、2 つの箱が同じ段に載る。
+ *
+ * **箱を並べる図種すべてが同じ決め方を使う** (#2396)。 クラス図だけこの決め方を持たず、
+ * 段を書かない箱を全て 0 に残していた。 同じ縦列に箱を 2 つ置くと配置の計算が
+ * 「同じ場所に 2 つある」 として投げ、図が 1 枚も描けない (実測 = 24 図種で落ちるのは
+ * クラス図だけ)。
+ *
+ * @param actors 記法から読んだ箱を書いた順に並べたもの
+ * @returns 段を持つ箱だけの表。 縦列も段も書かない箱は入らない (呼出側が既定に任せる)
+ */
+export function 縦列ごとの段を決める(
+  actors: DslDocument["actors"],
+): ReadonlyMap<DslDocument["actors"][number], number> {
+  const 埋まった段 = new Map<string, Set<number>>();
+  const 埋める = (lid: string, stack: number): void => {
+    const 集合 = 埋まった段.get(lid) ?? new Set<number>();
+    集合.add(stack);
+    埋まった段.set(lid, 集合);
+  };
+  // 書いた番号を先に全て埋める = 書き順が後の箱の番号とも重ならない
+  for (const a of actors) {
+    if (a.lane !== undefined && a.stack !== undefined) 埋める(a.lane, a.stack);
+  }
+  const 決めた = new Map<DslDocument["actors"][number], number>();
+  for (const a of actors) {
+    if (a.lane === undefined) {
+      // 縦列を書かない箱は縦列の中の段を持たない。 段だけ書いた箱はその番号を渡す
+      if (a.stack !== undefined) 決めた.set(a, a.stack);
+      continue;
+    }
+    if (a.stack !== undefined) {
+      決めた.set(a, a.stack);
+      continue;
+    }
+    let stack = 0;
+    const 集合 = 埋まった段.get(a.lane);
+    while (集合?.has(stack)) stack += 1;
+    埋める(a.lane, stack);
+    決めた.set(a, stack);
+  }
+  return 決めた;
+}

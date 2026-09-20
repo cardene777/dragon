@@ -7,7 +7,7 @@ import { 並べる向き, 後ろへ戻る矢印か, type GenericKind } from "./d
 import { ERの関係の指定を作る, ERの関係の矢印 } from "./er-relation";
 import { 描ける種別 } from "./kinds";
 import { 状態の図の既定の種類 } from "./state";
-import { 書いた縦列に置く } from "./lanes";
+import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lanes";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
 /**
@@ -120,39 +120,16 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     for (const lid of 並び) {
       b.lane(lid, { width: laneWidth, ...(kind === "topology" ? { contain: true } : {}) });
     }
-    /*
-     * 段は **書いた番号をそのまま持つ** (#1394)。
-     *
-     * 書き順で 0 から詰め直していた間、`stack: 1` と書いた箱が 0 へ落ちていた。
-     * 決定木のように「同じ高さに並ばない」 ことが図の意味そのものになる形では、
-     * 詰めた瞬間に別の図になる (実測 = 3 段の木の根が 1 段目へ上がった)。
-     *
-     * 書かなかった箱は、その縦列で **空いている一番小さい段** に置く。 単に数え上げると
-     * 書いた番号と重なり、2 つの箱が同じ段に載る。
-     */
-    const 埋まった段 = new Map<string, Set<number>>();
-    const 埋める = (lid: string, stack: number): void => {
-      const 集合 = 埋まった段.get(lid) ?? new Set<number>();
-      集合.add(stack);
-      埋まった段.set(lid, 集合);
-    };
-    for (const a of doc.actors) {
-      if (a.lane !== undefined && a.stack !== undefined) 埋める(a.lane, a.stack);
-    }
+    // 段の決め方は `縦列ごとの段を決める` が持つ (#1394 / #2396)。
+    // 箱を並べる図種すべてが同じ決め方を使う = 2 か所に置くと片方だけ直した日に食い違う
+    const 段 = 縦列ごとの段を決める(doc.actors);
     doc.actors.forEach((a, idx) => {
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
       const lid = a.lane!;
-      let stack = a.stack;
-      if (stack === undefined) {
-        stack = 0;
-        const 集合 = 埋まった段.get(lid);
-        while (集合?.has(stack)) stack += 1;
-        埋める(lid, stack);
-      }
       b.node(id, {
         lane: lid,
-        stack,
+        stack: 段.get(a) ?? 0,
         kind: 箱の種類(a),
         title: 箱の題(a),
         ...札(a, idx),

@@ -2,6 +2,7 @@ import { diagram, classDiagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
 
+import { 縦列ごとの段を決める } from "./lanes";
 import { 箱の題 } from "./node-title";
 
 import { slugify } from "./slug";
@@ -46,6 +47,17 @@ export function compileClass(doc: DslDocument): CdlDiagram {
     if (!列番号.has(a.lane)) 列番号.set(a.lane, 列番号.size);
   }
 
+  /*
+   * 段を書かない箱も段を持つ (#2396)。
+   *
+   * 書いた箱にだけ段を渡していた間、同じ縦列の箱が全て段 0 に載っていた。
+   * 配置を計算する側は「同じ場所に 2 つある」 として投げるため、同じ縦列に箱を 2 つ置いた
+   * クラス図は **1 枚も描けなかった** (実測 = 24 図種で落ちるのはクラス図だけ)。
+   *
+   * 決め方は箱を並べる図種すべてで共通のものを使う。 書き写すと片方だけ直した日に食い違う。
+   */
+  const 段 = 縦列ごとの段を決める(doc.actors);
+
   for (const a of doc.actors) {
     /*
      * 行を持ち物と振る舞いに割る (#1466)。 **1 行ずつ括弧の有無で見る**。
@@ -65,7 +77,7 @@ export function compileClass(doc: DslDocument): CdlDiagram {
       ...(methods.length > 0 ? { methods: [...methods] } : {}),
       ...(a.eyebrow ? { stereotype: a.eyebrow } : {}),
       ...(a.lane !== undefined ? { col: 列番号.get(a.lane) ?? 0 } : {}),
-      ...(a.stack !== undefined ? { row: a.stack } : {}),
+      ...(段.get(a) !== undefined ? { row: 段.get(a) } : {}),
     });
   }
 
