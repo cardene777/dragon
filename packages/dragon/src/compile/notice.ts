@@ -80,6 +80,8 @@ export type CompileNotice = {
     | "message-option-not-honored"
     // 位置のずらし (`pos` / `offsetX` / `offsetY`) を載せる相手が無いか、書いた量だけ動かせなかった (#1971)
     | "position-offset-ignored"
+    // 箱の座標を横と縦のどちらか一方だけ書いた (#2362)。 座標は両方書いた時だけ効く
+    | "position-axis-missing"
     // 組 (`groups:`) が束ねる縦列が図に無い (#1972)
     | "group-lane-missing"
     // 組が束ねる縦列の間に、束ねない縦列を挟んでいる (#1972)
