@@ -8,6 +8,7 @@
  * | 板の面 | `sequence` / `solidity` | #2358 |
  * | 木の図 | `tree` | #2360 |
  * | 値の図とじょうご | `pie` ほか 9 図種 + `funnel` | #2368 |
+ * | 工程表と体験の地図と四象限 | `gantt` / `journey` / `quadrant` | #2370 |
  *
  * 矢印の側は `edge-option-notice.ts` が同じ形を持つ (#2366)。
  */
@@ -103,27 +104,28 @@ export const 木の図が伝えない箱の欄: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * 値の図で、効かないと伝えない箱の欄 (#2368)。
+ * 箱を名前と値の組として読む図で、どの図種でも効かないと伝えない箱の欄 (#2368 / #2370)。
  *
  * | 区分 | 欄 |
  * |---|---|
- * | 値の図が読む | 名前 / 題 / 呼び名 / 値 / 色味 / 前の値 と、書いた場所と種類を書いたかの印 |
+ * | どの図種も読む | 名前 / 題 / 呼び名 / 値 と、書いた場所と種類を書いたかの印 |
  * | 別の知らせが受け持つ | 縦列 / 位置のずらし / 体験と工程の 4 欄 |
  *
  * 呼び名 (`subtitle`) は値を書いていない箱で **値として読まれる** (`a.value ?? a.subtitle`)
- * ので除く。 位置 (`posX` / `posY`) は除かない = 値の図では両方書いても効かないため、
+ * ので除く。 位置 (`posX` / `posY`) は除かない = この図種では両方書いても効かないため、
  * 片方だけの知らせ (#2362) ではなくこちらが伝える。
  *
  * 記法の `offsetX` / `offsetY` は `layoutPos` に入る (`position-offset-ignored` が受け持つ)。
  * 欄の名前で判定するので、記法の項目名ではなく入った先の欄を書く。
+ *
+ * 体験と工程の 4 欄 (`owner` / `end` / `touchpoint` / `opportunity`) は、読む図種と
+ * 別の知らせが受け持つ図種に分かれる。 どちらも伝えないので 1 つにまとめて除く。
  */
-export const 値の図が伝えない箱の欄: ReadonlySet<string> = new Set([
+const 値として読む図に共通の除外: ReadonlySet<string> = new Set([
   "name",
   "title",
   "subtitle",
   "value",
-  "tone",
-  "previous",
   "pos",
   "kindWritten",
   "lane",
@@ -135,14 +137,44 @@ export const 値の図が伝えない箱の欄: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * じょうごで、効かないと伝えない箱の欄 (#2368)。
+ * 箱を名前と値の組として読む図種と、共通に加えて読む欄 (#2368 / #2370)。
  *
- * 値の図との違いは **色味と前の値を読まない** こと (`compile/funnel.ts` は値だけを使う)。
- * 同じ集合を使い回すと、じょうごで効かない 2 欄が黙って落ちる。
+ * **表で持つ**。 図種ごとに除外の集合を丸ごと書くと、共通部分が図種の数だけ写され、
+ * 1 つ直した日に他が古いまま残る (実測 = 値の図とじょうごで 2 つに分かれていた)。
+ *
+ * | 図種 | 共通に加えて読む欄 |
+ * |---|---|
+ * | 値の図 9 図種 | 色味 (`tone`) / 前の値 (`previous`) |
+ * | じょうご / 体験の地図 / 四象限 | 無し (名前と値だけを読む) |
+ * | 工程表 | 色味 (`tone`)。 担当と終わる時期は共通の除外に入っている |
  */
-export const じょうごが伝えない箱の欄: ReadonlySet<string> = new Set(
-  [...値の図が伝えない箱の欄].filter((欄) => 欄 !== "tone" && 欄 !== "previous"),
-);
+export const 値として読む図種: ReadonlyMap<string, readonly string[]> = new Map([
+  ["pie", ["tone", "previous"]],
+  ["bar", ["tone", "previous"]],
+  ["line", ["tone", "previous"]],
+  ["gauge", ["tone", "previous"]],
+  ["radial", ["tone", "previous"]],
+  ["stat", ["tone", "previous"]],
+  ["waffle", ["tone", "previous"]],
+  ["stacked", ["tone", "previous"]],
+  ["slope", ["tone", "previous"]],
+  ["funnel", []],
+  ["gantt", ["tone"]],
+  ["journey", []],
+  ["quadrant", []],
+]);
+
+/**
+ * その図種で、効かないと伝えない箱の欄を返す (#2370)。
+ *
+ * @param 図種 `値として読む図種` に載っている図種
+ * @returns 共通の除外に、その図種が読む欄を足した集合
+ */
+export function 値として読む図が伝えない箱の欄(図種: string): ReadonlySet<string> {
+  const 読む欄 = 値として読む図種.get(図種) ?? [];
+  if (読む欄.length === 0) return 値として読む図に共通の除外;
+  return new Set([...値として読む図に共通の除外, ...読む欄]);
+}
 
 /**
  * 箱に書いた欄のうち、効かないものの呼び名を並べる (#2368)。

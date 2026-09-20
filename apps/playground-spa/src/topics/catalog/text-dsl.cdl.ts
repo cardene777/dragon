@@ -902,9 +902,9 @@ title: "四半期の計画を書く例"
 type: gantt
 
 actors:
-  - 作業 1: { kind: card, subtitle: "Q1" }
-  - 作業 2: { kind: card, subtitle: "Q2" }
-  - 作業 3: { kind: card, subtitle: "Q3" }
+  - 作業 1: { subtitle: "Q1" }
+  - 作業 2: { subtitle: "Q2" }
+  - 作業 3: { subtitle: "Q3" }
 
 flow:
   - 作業 1 -> 作業 2
