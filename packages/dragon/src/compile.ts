@@ -1230,8 +1230,9 @@ function reportValueChartActorOptionNotHonored(
  * 始まりと終わりの印を読むのは状態遷移図だけ (`compile/generic.ts` の札)。
  * 同じ記法を流れ図に書いても札は出ないが、書き手には状態遷移図と同じに見える。
  *
- * 印 (`marks`) はここでは伝えない。 骨組みの図では行と組にしても効かないが、伝える側に
- * 回すとカタログの見本 3 枚と日本語の項目の見本が同時に動く (#2377 で切り出した)。
+ * 印 (`marks`) は **行と組にして読み替えられる図種でだけ** 外す (#2377)。
+ * 読み替えの表は `行頭の印にする` が持つので、図種の一覧をここに写さず関数に聞く。
+ * 行を書いていない印は、どの図種でも読み替える先が無いので伝える。
  */
 function reportSkeletonActorOptionNotHonored(
   doc: DslDocument,
@@ -1242,8 +1243,17 @@ function reportSkeletonActorOptionNotHonored(
   const 伝えない欄 = 骨組みの図が伝えない箱の欄(doc.type);
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
+    const 判定で外す: string[] = [];
     // 種類は書かなくても既定の `actor` が入るため、値ではなく書いたかどうかの印で見る (#1058)
-    const 判定で外す = a.kindWritten === false ? ["kind"] : [];
+    if (a.kindWritten === false) 判定で外す.push("kind");
+    // 行と組にして読み替えられる印は効く = 効いている指定には鳴らさない
+    if (
+      a.rows !== undefined &&
+      a.marks !== undefined &&
+      行頭の印にする(doc.type, a.marks) !== null
+    ) {
+      判定で外す.push("marks");
+    }
     const 効かない = 効かない箱の欄を並べる(a, 伝えない欄, 判定で外す);
     if (効かない.length === 0) continue;
     onNotice({
@@ -1251,7 +1261,7 @@ function reportSkeletonActorOptionNotHonored(
       actor: a.name,
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} は箱を並べて線で繋ぐ図です)`,
-      hint: "始まりと終わりの印は type: state が、前の値は値を並べる図が描きます",
+      hint: "始まりと終わりの印は type: state が、前の値は値を並べる図が、行頭の印は type: er が描きます",
     });
   }
 }
