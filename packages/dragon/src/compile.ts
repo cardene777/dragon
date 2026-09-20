@@ -850,14 +850,69 @@ function reportFlowEndpointNotHonored(
 }
 
 /**
+ * 板の言づてで、効かないと伝えない矢印の欄 (#2356)。
+ *
+ * **除外側を書く**。 効かない欄を並べる形にすると、矢印に欄を足した日にその欄だけが
+ * 一覧から漏れ、書いた人には「書いたのに何も起きない」 としか見えない。
+ *
+ * | 区分 | 欄 |
+ * |---|---|
+ * | 板が描く | 出どころ / 行き先 / 語 / 言づての種類 と、行番号と書いた場所 |
+ * | 別の知らせが受け持つ | 部品の端 (`part-node-ignored` が 1 件ずつ伝える) |
+ */
+const 板が伝えない矢印の欄: ReadonlySet<string> = new Set([
+  "no",
+  "from",
+  "to",
+  "label",
+  "msgKind",
+  "pos",
+  "fromPartNode",
+  "toPartNode",
+]);
+
+/**
+ * 効かない欄の呼び名 (#2356)。 **並べた順に知らせへ出す**。
+ *
+ * 呼び名を持たない欄は名前をそのまま出すので、ここに足し忘れても知らせは消えない。
+ * 複数の欄が 1 つの呼び名を持つ形 (名前のずらしが 3 欄) は、1 度だけ出す。
+ */
+const 板で効かない矢印の欄の呼び名: readonly (readonly [string, string])[] = [
+  ["tone", "色味"],
+  ["style", "線の種類"],
+  ["sub", "添え字"],
+  ["tailSub", "出どころ側の添え字"],
+  ["side", "寄せ"],
+  // 名前のずらしも板には載せる先が無い (#1971)。 位置のずらし (`pos`) は名前のずらしに足す欄なので同じ扱い
+  ["labelOffsetX", "名前のずらし"],
+  ["labelOffsetY", "名前のずらし"],
+  ["layoutPos", "名前のずらし"],
+  ["labelPlate", "名前の下地"],
+  // 多重度も板には描く先が無い (#2107)。 他の図種は `reportCardinalityNotHonored` が知らせる
+  ["cardinality", "多重度"],
+  ["head", "端の形"],
+  ["tailHead", "端の形"],
+  ["headFill", "端の塗り"],
+  ["tailHeadFill", "端の塗り"],
+  ["relation", "関係の種類"],
+  ["guard", "条件"],
+  ["role", "役目"],
+  ["overlay", "線への重ね"],
+  ["widthBind", "値への追随"],
+  ["strokeBind", "値への追随"],
+  ["dashOffsetBind", "値への追随"],
+];
+
+/**
  * 順序図の言づてに書いた飾りが使われないことを伝える (#1466)。
  *
  * 板は言づてを **語と向きと種類** で描き、それ以外の飾りを載せる場所が無い = 矢印だった頃は
  * 色味 (`tone`) / 添え字 (`sub`) / 寄せ (`side`) が矢印に付いていたが、板では行になった。
  * 黙って落とすと、書いた側は効いていると思い込む。
  *
- * 同じ理由で、後から名前のずらし (#1971) と多重度 (#2107) も数える。 数える飾りは下の一覧が持ち、
- * 説明には写さない。
+ * **伝える欄を並べない** (#2356)。 以前は色味 / 添え字 / 寄せ / 名前のずらし / 多重度 を手で並べて
+ * いたため、後から足した項目がどこにも入らなかった (実測 = 矢印に書ける 21 項目のうち 13 件が、
+ * 図も変わらず知らせも出ないまま落ちていた)。 板が描く欄を **除いた残り全部** を伝える。
  *
  * `actors` に無い名前を指す言づては見ない (#2111)。 その言づては組み立ての前に落ちて板に載らず、
  * 同じ行を居ない名前の知らせ (`reportMissingFlowActors`) が指している。
@@ -868,17 +923,18 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
   const 名前の表 = actorRefTable(doc);
   for (const s of doc.flow) {
     if (!名前の表.has(s.from) || !名前の表.has(s.to)) continue;
-    const 効かない = [
-      s.tone !== undefined ? "色味" : "",
-      s.sub !== undefined ? "添え字" : "",
-      s.side !== undefined ? "寄せ" : "",
-      // 名前のずらしも板には載せる先が無い (#1971)。 位置のずらし (`pos`) は名前のずらしに足す欄なので同じ扱い
-      s.layoutPos !== undefined || s.labelOffsetX !== undefined || s.labelOffsetY !== undefined
-        ? "名前のずらし"
-        : "",
-      // 多重度も板には描く先が無い (#2107)。 他の図種は `reportCardinalityNotHonored` が知らせる
-      書いた多重度を読む(s.cardinality) !== undefined ? "多重度" : "",
-    ].filter((x) => x !== "");
+    const 残り = new Set(
+      Object.entries(s as unknown as Record<string, unknown>)
+        .filter(([欄, 値]) => 値 !== undefined && !板が伝えない矢印の欄.has(欄))
+        .map(([欄]) => 欄),
+    );
+    const 効かない: string[] = [];
+    for (const [欄, 呼び名] of 板で効かない矢印の欄の呼び名) {
+      if (!残り.delete(欄)) continue;
+      if (!効かない.includes(呼び名)) 効かない.push(呼び名);
+    }
+    // 呼び名を持たない欄は名前をそのまま出す = 読みにくい名前でも、黙って落とすよりは伝わる
+    効かない.push(...[...残り].sort());
     if (効かない.length === 0) continue;
     onNotice({
       kind: "message-option-not-honored",
