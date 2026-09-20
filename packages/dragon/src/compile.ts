@@ -1201,21 +1201,48 @@ function reportValueChartActorOptionNotHonored(
   const 読む欄 = 図種が読むものの呼び名.get(doc.type) ?? "名前と値";
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
+    const 判定で外す: string[] = [];
     // 種類は書かなくても既定の `actor` が入るため、値ではなく書いたかどうかの印で見る (#1058)
-    const 効かない = 効かない箱の欄を並べる(
-      a,
-      伝えない欄,
-      a.kindWritten === false ? ["kind"] : [],
-    );
+    if (a.kindWritten === false) 判定で外す.push("kind");
+    /*
+     * 呼び名は **値を書いていない箱でだけ** 値として読まれる (#2390)。
+     * 読む側と同じ式 (`a.value ?? a.subtitle`) に合わせる = 条件を写すと、
+     * 読む側を直した日に伝える側が古くなる。
+     */
+    if (a.value === undefined) 判定で外す.push("subtitle");
+    const 効かない = 効かない箱の欄を並べる(a, 伝えない欄, 判定で外す);
     if (効かない.length === 0) continue;
     onNotice({
       kind: "actor-option-not-honored",
       actor: a.name,
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} は${読む欄}だけを読み、1 枚の図にまとめて描きます)`,
-      hint: "値の図は箱ごとの絵を持たないため飾りを載せる先がありません。 箱を並べる図種を使ってください",
+      hint: 値として読む図の案内(効かない),
     });
   }
+}
+
+/**
+ * 値として読む図の案内を、伝えた欄から組み立てる (#2390)。
+ *
+ * **固定の 1 文を添えない** (#2382 の決まり)。 飾りの欄 (位置 / 大きさ / 図形 ほか) は
+ * 「箱を並べる図種を使ってください」 が行き先になるが、呼び名の行き先は同じ図種の中にある =
+ * 値を消せば値として読まれ、題 (`title`) を書けば箱に出る。
+ * 1 文で済ませると、呼び名だけを書いた読み手が図種を変えろと読まされる。
+ */
+function 値として読む図の案内(効かない: readonly string[]): string | undefined {
+  const 案内: string[] = [];
+  if (効かない.includes("呼び名")) {
+    案内.push(
+      "呼び名を値として読ませるなら同じ箱の値 (value) を消します。 箱に題を出すなら title を書きます",
+    );
+  }
+  if (効かない.some((欄) => 欄 !== "呼び名")) {
+    案内.push(
+      "値の図は箱ごとの絵を持たないため飾りを載せる先がありません。 箱を並べる図種を使ってください",
+    );
+  }
+  return 案内.length === 0 ? undefined : 案内.join("、");
 }
 
 /**
