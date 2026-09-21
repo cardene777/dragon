@@ -20,6 +20,7 @@ import { InViewMount } from "@/components/InViewMount";
 import { PhaseChrome } from "@/components/PhaseChrome";
 import { DiagramZoomControls } from "@/components/DiagramZoomControls";
 import { useDiagramPanZoom } from "@/components/useDiagramPanZoom";
+import { useScrollEdges } from "@/components/useScrollEdges";
 import {
   図の速さを変える,
   記法の速さを変える,
@@ -440,6 +441,9 @@ export function CategoryPage(): React.ReactElement {
   // 幅に合わせる指定でも、読める下限を割る図は下限の倍率で描く (#2269 と同じ形)
   const 指定した幅 =
     svgの幅(倍率, 拡大のviewBox幅) ?? svgの幅(拡大の操作.読める下限の倍率 ?? 収める, 拡大のviewBox幅);
+  // 続きが隠れている端 (#2429)。 拡大表示も読ませるために開く場所で、見本の頁と同じく
+  // 読める下限の倍率で描いて余りを巻き取る
+  const 隠れた端 = useScrollEdges({ 器: modalStageEl, 図の鍵: 拡大の図 ?? modalItem?.diagram });
   // ＋ / − は、器に収めている時は実際に描かれている倍率を起点にする (#1961)
   function 倍率を動かす(向き: "上げる" | "下げる"): void {
     set倍率の状態({ 図: 開いている図, 値: 次の倍率(倍率, 向き, 拡大の操作.収めた倍率) });
@@ -955,6 +959,9 @@ export function CategoryPage(): React.ReactElement {
                 </Dialog.Close>
               </div>
             </div>
+            {/* 巻き取る役 (`.cdl-modal-body`) と、続きの手がかりを置く基準を分ける (#2429)。
+              * 同じ要素に兼ねさせると、`position: absolute` で置いた飾りが中身と一緒に流れる */}
+            <div className="cdl-modal-stage" data-cdl-more={隠れた端 === "無し" ? undefined : 隠れた端}>
             <div
               className="cdl-modal-body"
               ref={setModalStageEl}
@@ -981,6 +988,7 @@ export function CategoryPage(): React.ReactElement {
                 phases={(拡大の図 ?? modalItem?.diagram)?.phases}
                 align="right"
               />
+            </div>
             </div>
           </Dialog.Content>
         </Dialog.Portal>
