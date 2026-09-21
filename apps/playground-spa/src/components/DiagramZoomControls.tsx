@@ -1,5 +1,6 @@
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { 収める, 収めるの呼び名, 倍率の表示, 端か, type 倍率の指定 } from "@/lib/diagram-zoom";
+import { useLocale } from "@/lib/useLocale";
 
 /**
  * 図の倍率の欄 (#1964)。 下げる・今の倍率・上げる・器に合わせる のボタンを 1 列に並べる。
@@ -14,36 +15,50 @@ import { 収める, 収めるの呼び名, 倍率の表示, 端か, type 倍率�
 /** 欄を置く場所。 場所で器の形 (縦横とも収めるか、幅にだけ合わせるか) と、ホイールの受け方が違う */
 export type 倍率の欄の場所 = "並び" | "拡大" | "詳細";
 
+/** 2 言語の 1 組。 どちらかだけを書くと、書き忘れた側が無言で日本語のまま出る */
+interface 二言語 {
+  ja: string;
+  en: string;
+}
+
 /** 幅にだけ合わせる場所の案内。 修飾キー無しのホイールは画面を送るので、押す鍵を名指しする */
-const 幅に合わせる場所の案内 =
-  "⌘ か Ctrl を押しながら図の上で回すか、2 本指でつまむと拡大縮小。 拡げた図は押さえたまま動かせる";
+const 幅に合わせる場所の案内: 二言語 = {
+  ja: "⌘ か Ctrl を押しながら図の上で回すか、2 本指でつまむと拡大縮小。 拡げた図は押さえたまま動かせる",
+  en: "Hold ⌘ or Ctrl and scroll over the diagram, or pinch with two fingers, to zoom. Drag an enlarged diagram to move it",
+};
 
 /**
  * 場所ごとの呼び名。 **ボタンの名前は場所ごとに違える** = 1 つの画面に並べて見る側と拡大表示が
  * 同時に出るので、同じ名前だと読み上げでも検査でもどちらのボタンか区別できない。
+ *
+ * 2 言語とも持つ (#2453)。 場所で名前を違えるのは読み上げと検査の都合なので、
+ * **英語でも 3 つの名前が重ならないようにする**。
  */
 const 場所ごとの呼び名: Record<
   倍率の欄の場所,
-  { 群: string; 下げる: string; 上げる: string; 収める: string; 案内: string }
+  { 群: 二言語; 下げる: 二言語; 上げる: 二言語; 収める: 二言語; 案内: 二言語 }
 > = {
   並び: {
-    群: "並びの倍率",
-    下げる: "並びの倍率を下げる",
-    上げる: "並びの倍率を上げる",
+    群: { ja: "並びの倍率", en: "Zoom for the list view" },
+    下げる: { ja: "並びの倍率を下げる", en: "Zoom out the list view" },
+    上げる: { ja: "並びの倍率を上げる", en: "Zoom in the list view" },
     収める: 収めるの呼び名.幅だけ,
     案内: 幅に合わせる場所の案内,
   },
   拡大: {
-    群: "表示の倍率",
-    下げる: "倍率を下げる",
-    上げる: "倍率を上げる",
+    群: { ja: "表示の倍率", en: "Zoom for the enlarged view" },
+    下げる: { ja: "倍率を下げる", en: "Zoom out the enlarged view" },
+    上げる: { ja: "倍率を上げる", en: "Zoom in the enlarged view" },
     収める: 収めるの呼び名.両方,
-    案内: "図の上で回すか、2 本指でつまむと拡大縮小。 拡げた図は押さえたまま動かせる",
+    案内: {
+      ja: "図の上で回すか、2 本指でつまむと拡大縮小。 拡げた図は押さえたまま動かせる",
+      en: "Scroll over the diagram, or pinch with two fingers, to zoom. Drag an enlarged diagram to move it",
+    },
   },
   詳細: {
-    群: "図の倍率",
-    下げる: "図の倍率を下げる",
-    上げる: "図の倍率を上げる",
+    群: { ja: "図の倍率", en: "Zoom for the diagram" },
+    下げる: { ja: "図の倍率を下げる", en: "Zoom out the diagram" },
+    上げる: { ja: "図の倍率を上げる", en: "Zoom in the diagram" },
     収める: 収めるの呼び名.幅だけ,
     案内: 幅に合わせる場所の案内,
   },
@@ -67,7 +82,15 @@ export function DiagramZoomControls({
   倍率を動かす: (向き: "上げる" | "下げる") => void;
   器に合わせる: () => void;
 }): React.ReactElement {
-  const 名 = 場所ごとの呼び名[場所];
+  const [locale] = useLocale();
+  const 組 = 場所ごとの呼び名[場所];
+  const 名 = {
+    群: 組.群[locale],
+    下げる: 組.下げる[locale],
+    上げる: 組.上げる[locale],
+    収める: 組.収める[locale],
+    案内: 組.案内[locale],
+  };
   return (
     <div className="cdl-zoom" role="group" aria-label={名.群} title={名.案内}>
       <button

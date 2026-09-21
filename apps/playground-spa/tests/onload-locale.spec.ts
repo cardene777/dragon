@@ -67,12 +67,12 @@ const 開かない経路 = new Set(["/__render"]);
  */
 const 日本語の残り: Record<string, number> = {
   "/": 12,
-  "/catalog": 51,
-  "/catalog/:slug": 28,
-  "/editor": 55,
+  "/catalog": 0,
+  "/catalog/:slug": 12,
+  "/editor": 52,
   "/editor/:filename": 35,
   "/docs": 0,
-  "/preset/:id": 15,
+  "/preset/:id": 10,
   "/release-notes": 17,
   "/contribute": 26,
   "*": 0,

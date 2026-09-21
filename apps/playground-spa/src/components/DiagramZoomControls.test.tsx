@@ -64,7 +64,7 @@ describe("図の倍率の欄 (#1964)", () => {
   it("器に合わせるボタンの呼び名は、縦横とも収める拡大表示だけ違う", () => {
     for (const 場所 of 全ての場所) {
       置く({ 場所, 倍率: 1 });
-      const 期待 = 場所 === "拡大" ? 収めるの呼び名.両方 : 収めるの呼び名.幅だけ;
+      const 期待 = 場所 === "拡大" ? 収めるの呼び名.両方.ja : 収めるの呼び名.幅だけ.ja;
       expect(screen.getByRole("button", { name: 期待 }), `${場所} の呼び名`).toBeTruthy();
       cleanup();
     }
@@ -73,7 +73,7 @@ describe("図の倍率の欄 (#1964)", () => {
   it("器に収めている時は描かれた倍率を欄に出し、器に合わせるボタンは押せない", () => {
     置く({ 倍率: 収める, 収めた倍率: 0.62 });
     expect(document.querySelector(".cdl-zoom-value")?.textContent).toBe("62%");
-    expect(screen.getByRole("button", { name: 収めるの呼び名.幅だけ })).toHaveProperty(
+    expect(screen.getByRole("button", { name: 収めるの呼び名.幅だけ.ja })).toHaveProperty(
       "disabled",
       true,
     );
@@ -82,7 +82,7 @@ describe("図の倍率の欄 (#1964)", () => {
   it("倍率を指定している時はその倍率を出し、器に合わせるボタンを押すと呼出側へ知らせる", () => {
     const { 合わせる } = 置く({ 倍率: 1.5, 収めた倍率: undefined });
     expect(document.querySelector(".cdl-zoom-value")?.textContent).toBe("150%");
-    const ボタン = screen.getByRole("button", { name: 収めるの呼び名.幅だけ });
+    const ボタン = screen.getByRole("button", { name: 収めるの呼び名.幅だけ.ja });
     expect(ボタン).toHaveProperty("disabled", false);
     fireEvent.click(ボタン);
     expect(合わせる).toHaveBeenCalledTimes(1);

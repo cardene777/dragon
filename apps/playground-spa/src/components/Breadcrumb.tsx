@@ -17,6 +17,14 @@ export interface 道筋の段 {
 }
 
 /**
+ * 見た目の class。 画面によって 2 つある (#2453)。
+ *
+ * カタログの 2 画面は `catalog-crumb`、他は `nm-crumb`。 見た目は別々の CSS が持つので、
+ * **この部品では揃えない**。 揃えると見た目が変わり、訳す作業が見た目の変更を巻き込む。
+ */
+export type 道筋の見た目 = "nm-crumb" | "catalog-crumb";
+
+/**
  * 画面の上部に出る道筋 (#2451)。
  *
  * 見本の詳細 / 更新履歴 / 参加方法 の 3 画面が同じ markup を別々に書いていた。
@@ -26,14 +34,20 @@ export interface 道筋の段 {
  * 見た目は `src/styles/` の `.nm-crumb` が持つ。 markup の形は 3 画面と同じにしてあるので、
  * 見た目は変わらない。
  */
-export function Breadcrumb({ 段 }: { 段: readonly 道筋の段[] }): React.ReactElement {
+export function Breadcrumb({
+  段,
+  見た目 = "nm-crumb",
+}: {
+  段: readonly 道筋の段[];
+  見た目?: 道筋の見た目;
+}): React.ReactElement {
   const [locale] = useLocale();
   // 段が無い道筋は出さない。 空の `<nav>` を残すと読み上げに空の目印だけが載る
   if (段.length === 0) {
     throw new Error("道筋の段が 1 つも無い");
   }
   return (
-    <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="nm-crumb">
+    <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className={見た目}>
       {段.map((s, i) => {
         const 字 = s.字 ?? (s.行き先 === undefined ? undefined : 画面の名前を引く(s.行き先, locale));
         if (字 === undefined) {

@@ -1,4 +1,5 @@
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import type { Locale } from "./i18n";
 
 /**
  * 図の動きの種類を、実装から導き出す (#1043)。
@@ -87,6 +88,45 @@ export function motionOf(diagram: CdlDiagram): Motion {
 }
 
 /**
+ * 動きの一文の全文 (#2453)。
+ *
+ * 6 通りしか無いので表で持つ。 語をつなげて組み立てると、日本語と英語で語順が違うため
+ * どちらかの文が不自然になる。
+ */
+const 一文の表 = {
+  continuous: {
+    描く: {
+      ja: "段の中で図が起点から描かれ、値も連続して動く",
+      en: "the diagram draws from its start point and the values move continuously within a phase",
+    },
+    描かない: {
+      ja: "段の中で値が連続して動く",
+      en: "the values move continuously within a phase",
+    },
+  },
+  step: {
+    描く: {
+      ja: "段の中で図が起点から描かれ、段の切替で値が一度に変わる",
+      en: "the diagram draws from its start point, and the values change at once when the phase switches",
+    },
+    描かない: {
+      ja: "段の切替で値が一度に変わる",
+      en: "the values change at once when the phase switches",
+    },
+  },
+  none: {
+    描く: {
+      ja: "段の中で図が起点から描かれる",
+      en: "the diagram draws from its start point",
+    },
+    描かない: {
+      ja: "段を進めても値は変わらない",
+      en: "the values stay put as the phases advance",
+    },
+  },
+} as const satisfies Record<Motion, Record<"描く" | "描かない", { ja: string; en: string }>>;
+
+/**
  * 動きの種類を表す 1 文。 **どの図にも必ず付く** (#1053)。
  *
  * 動かない図にも付けるのは 2 つの理由による。
@@ -98,23 +138,13 @@ export function motionOf(diagram: CdlDiagram): Motion {
  * 2 つ目は読み手にとって情報だから。 動く見本が並ぶ catalog では「なぜ動かないのか」 が
  * 疑問になる。 動かないことを明示する方が、何も書かないより読み手の助けになる。
  */
-export function motionNote(diagram: CdlDiagram): string {
+export function motionNote(diagram: CdlDiagram, locale: Locale): string {
   // 起点から描かれる動きは値の動きと別軸 (#1312 / #1318)。 対象は語と図種の対応表
   // (`DRAW_TARGETS`) が持つ図種で、語を足すたびに増えるため
   // 「線が」 とは書かない (棒は上へ伸び、扇は開き、枝は中心から広がる)。 描画側は
   // 状態を 1 つも触らないため `motionOf` からは見えない。 併記しないと、図が描かれる見本に
   // 「段を進めても値は変わらない」 と書くことになる
   const 起点から描く = (diagram.phases ?? []).some((p) => (p.draw ?? []).length > 0);
-  switch (motionOf(diagram)) {
-    case "continuous":
-      return 起点から描く
-        ? "段の中で図が起点から描かれ、値も連続して動く"
-        : "段の中で値が連続して動く";
-    case "step":
-      return 起点から描く
-        ? "段の中で図が起点から描かれ、段の切替で値が一度に変わる"
-        : "段の切替で値が一度に変わる";
-    case "none":
-      return 起点から描く ? "段の中で図が起点から描かれる" : "段を進めても値は変わらない";
-  }
+  const 文 = 一文の表[motionOf(diagram)][起点から描く ? "描く" : "描かない"];
+  return locale === "ja" ? 文.ja : 文.en;
 }

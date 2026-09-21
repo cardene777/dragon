@@ -38,9 +38,18 @@ function 開いた時の言語(): Locale {
 
 /**
  * app root に配置する Provider。 全 child component が useLocale() で共通 state を受け取る。
+ *
+ * `初期値` は開いた時の言語を外から差し込む口 (#2453)。 画面を英語で描いて字を数える検査が
+ * 使う。 本番では渡さず、`開いた時の言語()` (URL の `?lang=` → 保存した言語 → `ja`) に従う。
  */
-export function LocaleProvider({ children }: { children: ReactNode }): React.ReactElement {
-  const [locale, setLocaleState] = useState<Locale>(開いた時の言語);
+export function LocaleProvider({
+  children,
+  初期値,
+}: {
+  children: ReactNode;
+  初期値?: Locale;
+}): React.ReactElement {
+  const [locale, setLocaleState] = useState<Locale>(() => 初期値 ?? 開いた時の言語());
 
   // html[lang] は言語が決まるたびにここで合わせる (切替ボタンからも同じ経路を通る)
   useEffect(() => {
