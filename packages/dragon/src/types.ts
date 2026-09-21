@@ -26,8 +26,14 @@ import type { RelativePos } from "./relative-pos";
  */
 export type DslDynShape = NonNullable<CdlDiagram["nodes"][number]["shape"]>;
 
-/** 値を見せる部品 (#1374)。 図形と同じ理由で描画側の型をそのまま使う */
-export type DslReadout = NonNullable<CdlDiagram["readouts"]>[number];
+/**
+ * 値を見せる部品 (#1374)。 図形と同じ理由で描画側の型をそのまま使う。
+ *
+ * `pos` は書いた行 (#2405)。 読む元の名前を突き合わせた知らせが、直す行を指すのに使う。
+ * **図へ載せる時に外す** (`compile.ts` の読み取り値を載せる所) = 残すと、行を足しただけで
+ * 組み上がる図が変わる。 JSON から読んだ文書は行を持たないため `undefined` になる。
+ */
+export type DslReadout = NonNullable<CdlDiagram["readouts"]>[number] & { pos?: Position };
 
 /** 読む人が動かすつまみ (#1389)。 部品と同じ理由で描画側の型をそのまま使う */
 export type DslInput = NonNullable<CdlDiagram["inputs"]>[number];

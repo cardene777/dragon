@@ -75,6 +75,10 @@ export type CompileNotice = {
     | "draw-target-mismatch"
     // 式が、どこにも書かれていない名前を読んだ (#1391)
     | "formula-unresolved"
+    // 値を見せる部品が、どこにも書かれていない名前を読んだ (#2405)。 読む元は `states` /
+    // `inputs` / `formulas` の 3 つ。 見る欄は `source` の 1 つではなく、 綴りの規則
+    // (`source` / `〜Source` / `sourceA`) に当たる全ての欄
+    | "readout-source-missing"
     // 出来事が指す相手が図に無い (#1393)。 書いた名前が本文のどこにも無い時に出す = 書き直せば直る
     | "event-target-missing"
     // 出来事が指す名前は本文に在るが、この図種はそれを箱 / 矢印にしない (#2336)。

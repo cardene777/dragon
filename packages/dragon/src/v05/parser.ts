@@ -2145,7 +2145,7 @@ function 部品として読む(
   const 読めた = 表に従って読む(定義, opts, `部品 ${id} の `, line, errors);
   部品の組を検査する(kind, 読めた, line, errors);
   for (const 欄 of 定義.必須) if (読めた[欄] === undefined) return undefined;
-  return { id, kind, ...読めた } as DslReadout;
+  return { id, kind, ...読めた, pos: { line } } as DslReadout;
 }
 
 /**
