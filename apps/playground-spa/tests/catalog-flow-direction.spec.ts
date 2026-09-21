@@ -1,14 +1,14 @@
 /**
- * 流れ図の並ぶ向きの見本で、向きを書いた切替が書いた端のとおりに矢印を引くことの確認 (#1986)。
+ * フローの並ぶ向きの見本で、向きを書いた切替が書いた端のとおりに矢印を引くことの確認 (#1986)。
  *
- * 向きを書かない流れ図は登場人物を書いた順に鎖で繋ぐため、`登録する -> 申し込む` の差し戻しは
+ * 向きを書かないフローは登場人物を書いた順に鎖で繋ぐため、`登録する -> 申し込む` の差し戻しは
  * 矢印にならない。 向きを書くと行に書いた端のとおりに引き、差し戻しも出る。
  *
  * **矢印の名札が付く矢印の id で見る**。 本数だけだと、2 本目が差し戻しではなく別の矢印でも通る。
  */
 import { test, expect, type Page } from "@playwright/test";
 
-const 見本 = "流れ図の並ぶ向きを書かない";
+const 見本 = "フローの並ぶ向きを書かない";
 const 図 = "main.catalog-preview svg[data-cdl-stage]";
 
 async function 押す(page: Page, 名: string): Promise<void> {
@@ -32,7 +32,7 @@ async function 名札(page: Page): Promise<{ 字: string; 矢印: string }[]> {
     );
 }
 
-test.describe("流れ図の並ぶ向きの見本 (#1986)", () => {
+test.describe("フローの並ぶ向きの見本 (#1986)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("catalog/primitives", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);

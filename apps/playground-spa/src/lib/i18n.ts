@@ -39,7 +39,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   presetChartPie: "円グラフ",
   presetChartLine: "折れ線グラフ",
   presetGantt: "工程表",
-  presetFlowchart: "流れ図",
+  presetFlowchart: "フローチャート",
   presetNetwork: "ネットワーク図",
   presetStateMachine2: "入れ子の状態遷移図",
 
@@ -484,7 +484,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   // 記法で書ける値を全て見せる見本 (#1969)
   laneLifeline: "縦列の縦の点線",
   viewportSpacing: "図全体の間隔と大きさ",
-  flowDirection: "流れ図の並ぶ向き",
+  flowDirection: "フローの並ぶ向き",
   stateStartEnd: "状態の始まりと終わり",
   // 位置のずらしの見本 (#1971)
   layoutOffset: "位置のずらし",

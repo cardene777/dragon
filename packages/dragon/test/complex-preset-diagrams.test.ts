@@ -112,10 +112,10 @@ describe("複雑なクラウド構成図 (#2139)", () => {
 });
 
 /**
- * 流れ図の組み立て器が持つ形の一覧。 **型で閉じる** = 描画側に形が増えると、ここに足すまで型の検査が落ちる。
+ * フローチャートの組み立て器が持つ形の一覧。 **型で閉じる** = 描画側に形が増えると、ここに足すまで型の検査が落ちる。
  * 形は箱の上の名前 (`eyebrow`) にしか残らないので、形ごとに 1 箱の図を組んで名前を導く。
  */
-const 流れ図の形 = Object.keys({
+const フローチャートの形 = Object.keys({
   start: true,
   end: true,
   process: true,
@@ -124,7 +124,7 @@ const 流れ図の形 = Object.keys({
 } satisfies Record<FlowchartNodeShape, true>) as FlowchartNodeShape[];
 
 const 形の名前 = new Map(
-  流れ図の形.map((形) => {
+  フローチャートの形.map((形) => {
     const 図 = flowchart({ id: "shape-probe", topic: "形", lanes: ["列"] })
       .node({ id: "n", title: "箱", shape: 形, lane: "列" })
       .build();
@@ -132,16 +132,16 @@ const 形の名前 = new Map(
   }),
 );
 
-describe("複雑な流れ図 (#2143)", () => {
+describe("複雑なフローチャート (#2143)", () => {
   it("8 箱と 9 本の線を持つ", () => {
     expect(presetFlowchartComplex.nodes.length).toBe(8);
     expect(presetFlowchartComplex.edges.length).toBe(9);
   });
 
   it("組み立て器が持つ形を全て使う", () => {
-    expect(new Set(形の名前.values()).size, "形ごとの名前を導けていない").toBe(流れ図の形.length);
+    expect(new Set(形の名前.values()).size, "形ごとの名前を導けていない").toBe(フローチャートの形.length);
     const 使った名前 = new Set(presetFlowchartComplex.nodes.map((node) => node.eyebrow));
-    const 使っていない = 流れ図の形.filter((形) => !使った名前.has(形の名前.get(形)));
+    const 使っていない = フローチャートの形.filter((形) => !使った名前.has(形の名前.get(形)));
     expect(使っていない, "複雑な版で使っていない形").toEqual([]);
   });
 

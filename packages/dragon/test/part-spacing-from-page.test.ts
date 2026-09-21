@@ -48,7 +48,7 @@ const 詰まっていた部品 = [
 type 配置 = ReturnType<typeof layout>;
 type 箱 = 配置["nodes"][number];
 
-/** `受付` の箱と部品を 1 つ並べた流れ図 */
+/** `受付` の箱と部品を 1 つ並べたフロー */
 function 置く(本文の部品: string, 部品の一覧: Record<string, CdlDiagram> = 一覧) {
   const 図 = textDslToDiagram(
     `title: "t"\ntype: flow\n\nactors:\n  - 受付: { kind: card }\n  - 部品:\n${本文の部品}`,

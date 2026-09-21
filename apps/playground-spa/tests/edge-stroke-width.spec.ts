@@ -37,7 +37,7 @@ flow:
   - users -> orders: "注文する" { tailHead: one, head: zero-many }
 `;
 
-const 流れ図の記法 = `title: "流れ図の線幅"
+const フローの記法 = `title: "フローの線幅"
 type: flow
 reveal: all
 
@@ -87,15 +87,15 @@ test("ER 図の関係の線幅も 7", async ({ page }) => {
   expect(new Set(太さ), `ER 図の線幅が揃っていない: ${太さ.join(" / ")}`).toEqual(new Set([7]));
 });
 
-test("流れ図の関係の線幅も 7", async ({ page }) => {
-  await 図を開く(page, 流れ図の記法);
+test("フローの関係の線幅も 7", async ({ page }) => {
+  await 図を開く(page, フローの記法);
   const 太さ = await 線幅を測る(page, "flow");
 
   expect(
     太さ.length,
-    "流れ図の関係の線を 1 本も測れていない (検査が空振りしている)",
+    "フローの関係の線を 1 本も測れていない (検査が空振りしている)",
   ).toBeGreaterThan(0);
-  expect(new Set(太さ), `流れ図の線幅が揃っていない: ${太さ.join(" / ")}`).toEqual(new Set([7]));
+  expect(new Set(太さ), `フローの線幅が揃っていない: ${太さ.join(" / ")}`).toEqual(new Set([7]));
 });
 
 test('クラス図の絵の根は data-cdl-type="class" を持つ', async ({ page }) => {

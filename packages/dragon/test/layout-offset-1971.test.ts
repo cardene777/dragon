@@ -29,8 +29,8 @@ const 縦列の枠 = (d: CdlDiagram): Map<string, { x: number; y: number; w: num
     ),
   );
 
-/** 3 本の縦列に 4 つの箱を置いた流れ図。 `A` と `B` は同じ縦列 */
-const 流れ図 = (差し替え: { actors?: Json[]; lanes?: Json; flow?: Json[] } = {}): Json => ({
+/** 3 本の縦列に 4 つの箱を置いたフロー。 `A` と `B` は同じ縦列 */
+const フロー = (差し替え: { actors?: Json[]; lanes?: Json; flow?: Json[] } = {}): Json => ({
   title: "t",
   type: "flow",
   lanes: 差し替え.lanes ?? { l1: { width: 300 }, l2: { width: 300 }, l3: { width: 300 } },
@@ -48,10 +48,10 @@ const 流れ図 = (差し替え: { actors?: Json[]; lanes?: Json; flow?: Json[] 
 
 describe("JSON の箱の pos で箱が書いた量だけ動く (#1971)", () => {
   it("箱 A の中心が (60, 40) 動き、別の縦列の箱と同じ縦列の離れた箱は動かない", () => {
-    const 前 = 箱の中心(組む(流れ図()));
+    const 前 = 箱の中心(組む(フロー()));
     const 後 = 箱の中心(
       組む(
-        流れ図({
+        フロー({
           actors: [
             { name: "A", lane: "l1", pos: { x: 60, y: 40 } },
             { name: "B", lane: "l1", stack: 1 },
@@ -70,7 +70,7 @@ describe("JSON の箱の pos で箱が書いた量だけ動く (#1971)", () => {
   });
 
   it("同じ縦列ですぐ下の箱に近づくと、ずらした箱は狙いに置かれ、下の箱は描画側が押し下げる", () => {
-    // 静止した流れ図は 1 本の縦列に上から積む。 A を 40 下げると B との間が描画側の下限を割る
+    // 静止したフローは 1 本の縦列に上から積む。 A を 40 下げると B との間が描画側の下限を割る
     const 基 = (a: Json): Json => ({
       title: "t",
       type: "flow",
@@ -88,7 +88,7 @@ describe("JSON の箱の pos で箱が書いた量だけ動く (#1971)", () => {
 
   it("座標 (posX / posY) も書いた箱は、座標で置いた位置からずらす", () => {
     const 基 = (a: Json): Json =>
-      流れ図({
+      フロー({
         actors: [
           a,
           { name: "B", lane: "l1", stack: 1 },
@@ -101,7 +101,7 @@ describe("JSON の箱の pos で箱が書いた量だけ動く (#1971)", () => {
       組む(基({ name: "A", lane: "l1", posX: 500, posY: 600, pos: { x: 60, y: 40 } })),
     );
     expect(
-      座標だけ.get("a")!.cx - 箱の中心(組む(流れ図())).get("a")!.cx,
+      座標だけ.get("a")!.cx - 箱の中心(組む(フロー())).get("a")!.cx,
       "座標が効いていない",
     ).not.toBeCloseTo(0, 0);
     expect(両方.get("a")!.cx - 座標だけ.get("a")!.cx).toBeCloseTo(60, 0);
@@ -137,9 +137,9 @@ describe("JSON の箱の pos で箱が書いた量だけ動く (#1971)", () => {
 
 describe("JSON の縦列の pos で縦列が書いた量だけ動く (#1971)", () => {
   it("縦列 l1 の左端が 100 動き、幅と高さと他の縦列は書かない図と同じ", () => {
-    const 前 = 縦列の枠(組む(流れ図()));
+    const 前 = 縦列の枠(組む(フロー()));
     const 後図 = 組む(
-      流れ図({
+      フロー({
         lanes: {
           l1: { width: 300, pos: { x: 100, y: 0 } },
           l2: { width: 300 },
@@ -159,10 +159,10 @@ describe("JSON の縦列の pos で縦列が書いた量だけ動く (#1971)", (
 
   it("縦列の中の箱は縦列と一緒に横にも縦にも動く", () => {
     // 縦にもずらす。 縦列を固定しただけでは箱は縦列の並ぶ向き (横) にしか付いて来ない (実測)
-    const 前 = 箱の中心(組む(流れ図()));
+    const 前 = 箱の中心(組む(フロー()));
     const 後 = 箱の中心(
       組む(
-        流れ図({
+        フロー({
           lanes: {
             l1: { width: 300, pos: { x: 100, y: 40 } },
             l2: { width: 300 },
@@ -188,7 +188,7 @@ describe("JSON の縦列の pos で縦列が書いた量だけ動く (#1971)", (
     // 別の縦列をずらすと、ずらさない箱を元の位置に留める。 留める基準に箱のずらしを含めないと、
     // 押し下げられた箱が元の位置へ戻されて重なる
     const 基 = (a: Json, lanes: Json): Json =>
-      流れ図({
+      フロー({
         lanes,
         actors: [
           a,
@@ -256,7 +256,7 @@ describe("JSON の縦列の pos で縦列が書いた量だけ動く (#1971)", (
 describe("JSON の矢印の pos は名前のずらしに足す (#1971)", () => {
   it("pos だけを書くと labelOffsetX / labelOffsetY がその値になる", () => {
     const d = 組む(
-      流れ図({
+      フロー({
         flow: [
           { from: "A", to: "C", label: "x", pos: { x: 10, y: 5 } },
           { from: "B", to: "D", label: "y" },
@@ -271,7 +271,7 @@ describe("JSON の矢印の pos は名前のずらしに足す (#1971)", () => {
 
   it("名前のずらしと両方書くと足した量になる", () => {
     const d = 組む(
-      流れ図({
+      フロー({
         flow: [
           {
             from: "A",
@@ -291,7 +291,7 @@ describe("JSON の矢印の pos は名前のずらしに足す (#1971)", () => {
 
   it("名前の無い矢印に書くと動かすものが無いと知らせる", () => {
     const 知らせ: CompileNotice[] = [];
-    組む(流れ図({ flow: [{ from: "A", to: "C", label: "", pos: { x: 10, y: 5 } }] }), 知らせ);
+    組む(フロー({ flow: [{ from: "A", to: "C", label: "", pos: { x: 10, y: 5 } }] }), 知らせ);
     const 該当 = 知らせ.filter((n) => n.kind === "position-offset-ignored");
     expect(該当).toHaveLength(1);
     expect(該当[0]!.message).toContain("名前の無い矢印");
@@ -432,7 +432,7 @@ describe("ずらしを載せる相手が無い図では知らせる (#1971)", ()
   });
 
   it("ずらしを書かない図は箱にも縦列にも座標を書かない", () => {
-    const d = 組む(流れ図());
+    const d = 組む(フロー());
     expect(d.nodes.length, "箱が無い (検査が空振りしている)").toBeGreaterThan(0);
     expect(d.nodes.filter((n) => n.posX !== undefined)).toEqual([]);
     expect(d.lanes.filter((l) => l.posX !== undefined)).toEqual([]);

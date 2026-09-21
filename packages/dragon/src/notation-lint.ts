@@ -132,7 +132,7 @@ const KIND_TO_JA: Record<string, { shows: string; name: string }> = {
   funnel: { shows: "段階ごとに残る数と離れる数", name: "絞り込み図" },
   quadrant: { shows: "2 つの軸で分けた項目の位置", name: "四象限図" },
   gantt: { shows: "作業の期間と前後の関係", name: "工程表" },
-  flowchart: { shows: "分岐や判定を含む処理の順番", name: "流れ図" },
+  flowchart: { shows: "分岐や判定を含む処理の順番", name: "フローチャート" },
   network: { shows: "機器と区画のつながり", name: "ネットワーク図" },
 };
 

@@ -35,7 +35,7 @@ export type GenericOpts = {
  * 静止図の経路は並びを固定で持つため、通すと書いた指定が黙って消える (#1263)。
  *
  * `図種ごとの理由` はその図種にしか無い条件 (泳法図の向き / 状態の図の種類) を渡す。
- * 流れ図は `鎖でつなぐ形か` が同じ判定を内側に持つため、ここは通らない。
+ * フローは `鎖でつなぐ形か` が同じ判定を内側に持つため、ここは通らない。
  */
 export function 共通の組み立てへ回す(
   kind: GenericKind,
@@ -162,7 +162,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     });
   } else {
     // actor ごとに 1 lane (横並び)。 `swimlane` / `er` / `state` の既定と、
-    // `向き: 横` を書いた流れ図がここに来る (#1494)
+    // `向き: 横` を書いたフローがここに来る (#1494)
     //
     // **見出しを付けるのは `swimlane` だけ** (#1241)。 3 図種とも箱を 1 つずつ持ち、
     // その箱が既に名前を描く。 縦列にも同じ名前を渡すと **同じ字が縦に 2 つ並ぶ**
@@ -287,7 +287,7 @@ export function resolveHighlightGeneric(
     }
     // actor 名 → node id。 見つからなければ slug の形でも探す。
     // 順序図だけが slug を受理する状態にすると、 同じ記述が図種で別の意味になる
-    // (実測 = `api-gateway` が順序図では光り、 流れ図では何も光らなかった)
+    // (実測 = `api-gateway` が順序図では光り、 フローでは何も光らなかった)
     const nodeId = actorToNodeId.get(entry.name) ?? slugLookup(actorToNodeId, entry.name);
     if (nodeId) {
       out.push(nodeId);
