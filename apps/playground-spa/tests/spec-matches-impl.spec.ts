@@ -306,6 +306,47 @@ test("ドキュメントの節が実装と揃っている", async ({ page }) => 
   expect([...仕様].sort(), "仕様書のドキュメントの節と実装の節が違う").toEqual([...実装].sort());
 });
 
+/**
+ * 節が本文を持つと言える下限の字数 (#2439)。
+ *
+ * 直した後の 7 節は最も短いもので 247 字、最も長いもので 794 字 (窓の既定で実測)。
+ * 直す前の札は説明文が 19-25 字だったので、200 に置けば 2 つを分けられる。
+ *
+ * **片側だけ測って置かない**。 直した後の値だけを見て余裕をみた数を選ぶと、
+ * 直す前の形も通ってしまい植え込みが素通りする。
+ */
+const 本文の下限 = 200;
+
+test("ドキュメントの節が本文を持つ (#2439)", async ({ page }) => {
+  // 字が揃っているだけでは通らないようにする。 以前は 7 節のうち 6 つが他の画面へ飛ぶ
+  // 札で、本文を持つ節は 1 つだけだったが、見出しの字が 7 件揃うため上の検査は緑だった
+  const 表 = 表を読む(節.ドキュメント);
+  expect(表.length, "ドキュメントの節の表を読めていない").toBeGreaterThan(0);
+
+  await page.goto("docs");
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(1200);
+
+  const 測った = await page.evaluate(() => {
+    const out: { 題: string; 字数: number }[] = [];
+    for (const 見出し of document.querySelectorAll("h2")) {
+      const 節 = 見出し.closest("section");
+      if (節 === null) continue;
+      const 全体 = (節.textContent ?? "").trim();
+      const 題 = (見出し.textContent ?? "").trim();
+      out.push({ 題, 字数: 全体.length - 題.length });
+    }
+    return out;
+  });
+
+  expect(測った.length, "/docs から節を 1 つも読めていない").toBe(表.length);
+  const 足りない = 測った.filter((x) => x.字数 < 本文の下限);
+  expect(
+    足りない.map((x) => `${x.題} (${x.字数} 字)`),
+    `本文が ${本文の下限} 字に届かない節がある (${測った.length} 節を走査)`,
+  ).toEqual([]);
+});
+
 test("参加方法の項目が実装と揃っている", async ({ page }) => {
   const 手段 = 表を読む(節.参加方法);
   expect(手段.length, "参加方法の手段の表を読めていない").toBeGreaterThan(0);
