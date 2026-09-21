@@ -42,6 +42,7 @@
  * 4. 小さい `shape-` の箱では、書いた説明が絵の帯に譲られる (`#1320`)
  */
 import { test, expect } from "@playwright/test";
+import { 図の箱が出るまで待つ } from "./wait-for-render";
 import { NODE_KINDS } from "@cardenelabs/cdl";
 import { 記法をURLに載せる, 箱と矢印の記法 } from "./box-and-edge-figure";
 
@@ -80,7 +81,8 @@ async function labelFits(page: import("@playwright/test").Page): Promise<実測[
 async function 記法を開く(page: import("@playwright/test").Page, src: string): Promise<void> {
   await page.goto(`editor#s=${記法をURLに載せる(src)}`);
   await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(1500);
+  // 固定の待ち時間だと一式実行の負荷で足りず、描き終わる前に種類を読んで `null` が返る (#2458)
+  await 図の箱が出るまで待つ(page, "編集画面");
 }
 
 test("エディタで箱の文字が箱に収まる", async ({ page }) => {
@@ -88,7 +90,7 @@ test("エディタで箱の文字が箱に収まる", async ({ page }) => {
   // 箱が 1 つも出ないため測る対象を失う。 箱が在る図を開く。
   await page.goto(`editor#s=${記法をURLに載せる(箱と矢印の記法)}`);
   await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2500);
+  await 図の箱が出るまで待つ(page, "編集画面");
 
   const nodes = await labelFits(page);
   expect(nodes.length, "箱が 1 つも測れていない (選択子が実装とずれた)").toBeGreaterThan(0);

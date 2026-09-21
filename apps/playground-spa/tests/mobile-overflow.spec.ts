@@ -25,6 +25,7 @@
  * 併せて見る。
  */
 import { test, expect } from "@playwright/test";
+import { 本文が出るまで待つ } from "./wait-for-render";
 
 import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
 import { CATEGORIES } from "../src/lib/catalog";
@@ -97,13 +98,17 @@ test("広い画面のカードの並びは変わらない", async ({ page }) => 
   expect(m.行数, "1 行あたりの枚数が動いた").toBe(1);
 });
 
+/** 本文が出たとみなす下限。 待つ側と判定する側で同じ値を使う */
+const 本文の下限 = 20;
+
 for (const 幅 of 幅一覧) {
   for (const path of 経路) {
     test(`幅 ${幅}px の ${画面名(path)} が横にはみ出さない`, async ({ page }) => {
       await page.setViewportSize({ width: 幅, height: 780 });
       await page.goto(path);
       await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(1500);
+      // 固定の待ち時間だと一式実行の負荷で足りず、真っ白な画面を測る (#2458)
+      await 本文が出るまで待つ(page, 画面名(path), 本文の下限);
 
       const m = await page.evaluate(() => {
         const doc = document.documentElement;
@@ -129,7 +134,7 @@ for (const 幅 of 幅一覧) {
       });
 
       // 真っ白な画面は横スクロールが 0 になる。 中身が出ていることを先に見る
-      expect(m.文字数, `${画面名(path)} の本文が空 (検査が空振りしている)`).toBeGreaterThan(20);
+      expect(m.文字数, `${画面名(path)} の本文が空 (検査が空振りしている)`).toBeGreaterThan(本文の下限);
       // 数 px の誤差は許容 (scrollbar 分)
       expect(
         m.はみ出し,
