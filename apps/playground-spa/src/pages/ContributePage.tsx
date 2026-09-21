@@ -1,5 +1,6 @@
-import { Link } from "react-router";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Breadcrumb } from "@/components/Breadcrumb";
+import { 画面の名前を引く } from "@/lib/site-destinations";
 import { useLocale } from "@/lib/useLocale";
 import "@/styles/compare.css";
 
@@ -56,11 +57,7 @@ export function ContributePage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="nm-crumb">
-            <Link to="/">概要</Link>
-            <span aria-hidden="true">›</span>
-            <span className="cur">参加方法</span>
-          </nav>
+          <Breadcrumb 段={[{ 行き先: "/" }, { 字: 画面の名前を引く("/contribute", locale) }]} />
           <span className="nm-eyebrow">参加のしかた · みんなで作る</span>
           <h1 className="nm-hero-title">
             <span className="nm-gradient-accent">dragon</span> に参加する
