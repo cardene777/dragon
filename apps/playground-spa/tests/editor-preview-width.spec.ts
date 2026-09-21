@@ -14,10 +14,23 @@
  * 実測で「中身を減らす」 と「読める下限を下げる」 のどちらか一方では解けないことが確定したため、
  * 両方を使う。 ただし下限を下げるのは **箱が枠から出る図に限る** (`readableScaleForFrame`)。
  * `swimlane` と `state-machine` は登場人物を 1 つ減らし、 `er` は減らさずに下限だけで収めた。
+ *
+ * ## 収まらない見本が 1 件出た (#2432)
+ *
+ * #2424 でフローの既定の向きを横にしたため、`flow` は 4 縦列に広がって
+ * **10px でも 8px でも箱が枠から出る** ようになった。 下限を下げても収まらないので、
+ * `readableScaleForFrame` は好ましい下限 (10px) に留める = 文字は読めるが箱が枠を出る。
+ *
+ * この状態を「0 件」 で測ることはできないため、`readable-floor.ts` の
+ * `譲っても収まらない見本` を外して数える。 **一覧をここに書き写さない** =
+ * 片方だけ直すと、文字の大きさの検査と収まりの検査が別の見本を指す。
+ *
+ * 枠を出た図は左端に寄せて描かれ、送れば読める (`editor-fit-anchor.spec.ts` の
+ * 「収まらない図では左端が見える」)。 手がかりを出す話は #2433 で扱う。
  */
 import { test, expect } from "@playwright/test";
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
-import { 下限 as 文字の下限 } from "./readable-floor";
+import { 下限 as 文字の下限, 譲っても収まらない見本 } from "./readable-floor";
 
 /** 画面の外に出ている箱の名前 */
 async function 画面外の箱(page: import("@playwright/test").Page, slug: string) {
@@ -130,17 +143,30 @@ test("収まらない見本が 1 件も無い (#1102)", async ({ page }) => {
   // 残りのどれかが将来画面外へ出ても緑のまま通る (`#1100` Round 1 review の指摘 1 点目)。
   // 手書きで並べるのも同じ穴が残る = SSOT に 13 件目が増えた時に検査が追随しない (同 2 点目)。
   const 収まらない: string[] = [];
+  /** 宣言したのに収まるようになった見本。 宣言が古いので外す */
+  const 収まるようになった: string[] = [];
   let 測れた = 0;
   for (const { slug } of EDITOR_SAMPLES) {
     const m = await 画面外の箱(page, slug);
     if (m === null) continue;
     測れた += 1;
-    if (m.外.length > 0) 収まらない.push(`${slug} (${m.外.join(" / ")})`);
+    const 宣言済 = 譲っても収まらない見本.includes(slug);
+    if (m.外.length > 0 && !宣言済) 収まらない.push(`${slug} (${m.外.join(" / ")})`);
+    if (m.外.length === 0 && 宣言済) 収まるようになった.push(slug);
   }
   // 空振り防止。 SSOT が空でないことと、 全件を実際に測れたことの 2 つを見る
   expect(EDITOR_SAMPLES.length, "SSOT に見本が無い").toBeGreaterThan(0);
   expect(測れた, "測れなかった見本がある (検査が空振りしている)").toBe(EDITOR_SAMPLES.length);
-  expect(収まらない.sort(), "画面の外に出ている見本がある").toEqual([]);
+  // **宣言が古くなったら落とす**。 収まるようになった見本を宣言に残すと、
+  // 次に本当に出た時と区別が付かない
+  expect(
+    収まるようになった.sort(),
+    `宣言が古い。 枠に収まるようになったので 譲っても収まらない見本 から外す (${EDITOR_SAMPLES.length} 件中)`,
+  ).toEqual([]);
+  expect(
+    収まらない.sort(),
+    `画面の外に出ている見本がある (宣言 ${譲っても収まらない見本.length} 件を除く)`,
+  ).toEqual([]);
 });
 
 /** 図の中で画面上いちばん小さい文字の大きさ。 表示倍率を掛けた実寸で返す。 */
