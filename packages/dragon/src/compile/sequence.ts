@@ -1,6 +1,6 @@
 import { sequence, sequenceStepId } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import type { DslDocument } from "../types";
+import type { DslActor, DslDocument } from "../types";
 
 import { parseFocusEntry } from "../focus";
 import { 箱の題 } from "./node-title";
@@ -16,31 +16,24 @@ export function compileSequence(doc: DslDocument): CdlDiagram {
    * 順序図は 1 つの箱が図を丸ごと描く形になり、言づては箱の中の行になった。 段ごとに
    * 別経路で箱と縦線を組む形 (`compileSequenceWithAnimate`) では、その骨格が出ない。
    */
-  const seqBuilder = sequence({
-    id: slugify(doc.title),
-    topic: doc.title,
-    /*
-     * 見出しに出すのは **書いた題** (#1466)。 名前は矢印の端として指すためのもので、
-     * `title:` を書いたらそちらを出す (`箱の題`)。 板でも他の図種と同じ規約にする。
-     */
-    actors: doc.actors.map((a) =>
-      a.subtitle ? { name: 箱の題(a), subtitle: a.subtitle } : 箱の題(a),
-    ),
-    ...(doc.bands && doc.bands.length > 0 ? { bands: doc.bands } : {}),
-  });
-  for (const s of doc.flow) {
-    seqBuilder.step({
-      from: s.from,
-      to: s.to,
-      label: s.label,
-      ...(s.sub ? { sub: s.sub } : {}),
-      ...(s.side ? { side: s.side } : {}),
-      ...(s.tone ? { tone: s.tone } : {}),
-      ...(s.style ? { style: s.style } : {}),
-      ...(s.msgKind ? { kind: s.msgKind } : {}),
-    });
-  }
-  const built = seqBuilder.build();
+  /*
+   * **見出しと端の番号を別の組み立てで決める** (#2408)。
+   *
+   * 見出しに出すのは書いた題 (#1466)、 矢印の端と帯は名前で指す (`箱の題` の doc comment)。
+   * 組み立て器は渡された面の名前 1 つから「見出し」 と「端を引く表」 の両方を作るため、
+   * 題を渡すと名前で指した端が 1 度も見つからず、 番号 0 (先頭の面) に倒れる
+   * (実測 = 全ての面に題を付けると、 言づてが全て先頭の面の自分宛てになった)。
+   *
+   * 板の幅と高さは見出しの字幅と言づての文字と件数から決まり、 端の番号には依らない
+   * (組み立て器の `sequenceBoardMetrics`)。 そこで題で組んだ板を土台にし、 端の番号と帯だけを
+   * 名前で組んだ板から写す。 名前は図の中で 1 つに決まるので、 題が重なる図でも番号は正しい。
+   *
+   * 題と名前がどの面でも同じなら 2 回目は組まない = 題を書かない図は組み上がりが変わらない。
+   */
+  const 見出しの板 = 板を組む(doc, 箱の題);
+  const built = doc.actors.some((a) => 箱の題(a) !== a.name)
+    ? 端を写す(見出しの板, 板を組む(doc, (a) => a.name))
+    : 見出しの板;
   const 段 = doc.animate?.phases ?? [];
   if (段.length === 0) return built;
   /*
@@ -74,6 +67,63 @@ export function compileSequence(doc: DslDocument): CdlDiagram {
           { stateId: 状態名, value: 番 },
         ],
         tweens: (p.tweens ?? []).map((t) => ({ stateId: t.state, from: t.from, to: t.to })),
+      };
+    }),
+  };
+}
+
+/**
+ * 順序図の板を 1 枚組む。 面の名前として組み立て器へ渡すものだけを `面の名` で差し替える。
+ *
+ * 組み立て器はこの名前から見出しと「端を引く表」 を作る。 言づての端と帯は書いた名前のまま渡す。
+ */
+function 板を組む(doc: DslDocument, 面の名: (a: DslActor) => string): CdlDiagram {
+  const b = sequence({
+    id: slugify(doc.title),
+    topic: doc.title,
+    actors: doc.actors.map((a) =>
+      a.subtitle ? { name: 面の名(a), subtitle: a.subtitle } : 面の名(a),
+    ),
+    ...(doc.bands && doc.bands.length > 0 ? { bands: doc.bands } : {}),
+  });
+  for (const s of doc.flow) {
+    b.step({
+      from: s.from,
+      to: s.to,
+      label: s.label,
+      ...(s.sub ? { sub: s.sub } : {}),
+      ...(s.side ? { side: s.side } : {}),
+      ...(s.tone ? { tone: s.tone } : {}),
+      ...(s.style ? { style: s.style } : {}),
+      ...(s.msgKind ? { kind: s.msgKind } : {}),
+    });
+  }
+  return b.build();
+}
+
+/**
+ * 見出しで組んだ板へ、 名前で組んだ板の「言づての端」 と「帯」 を写す (#2408)。
+ *
+ * 写すのはこの 2 つだけ。 板の大きさ・見出し・言づての文字は見出しで組んだ板のものを使う。
+ * 帯は書かない時も組み立て器が言づての端から導くため、 端と一緒に写さないと導いた帯がずれる。
+ */
+function 端を写す(見出し: CdlDiagram, 名前: CdlDiagram): CdlDiagram {
+  const 名前の板 = 名前.nodes.find((n) => n.kind === "sequence-board")?.sequenceData;
+  if (!名前の板) return 見出し;
+  return {
+    ...見出し,
+    nodes: 見出し.nodes.map((n) => {
+      if (n.kind !== "sequence-board" || !n.sequenceData) return n;
+      return {
+        ...n,
+        sequenceData: {
+          ...n.sequenceData,
+          messages: n.sequenceData.messages.map((m, i) => {
+            const 正 = 名前の板.messages[i];
+            return 正 ? { ...m, from: 正.from, to: 正.to } : m;
+          }),
+          bands: 名前の板.bands,
+        },
       };
     }),
   };
