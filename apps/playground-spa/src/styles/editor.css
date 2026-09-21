@@ -924,3 +924,31 @@
     color: var(--d-on-accent);
     font-weight: 600;
   }
+
+  /* ── 続きが隠れている端 (#2433) ──
+   *
+   * 帯と山形そのものは `catalog-new.css` の `[data-cdl-more]` が描く。 見本の頁と拡大表示と
+   * 同じ形を出すため、こちらでは **地の色と縁の詰め方だけ** を編集画面に合わせる。
+   *
+   * 地の色 ... 台の地は `--d-bg` (#1480 でカタログの紙に揃えた)。 カタログ側の規則は
+   * `--d-surface` から溶かすので、そのままだと帯だけ色が違って板が貼ってあるように見える。
+   *
+   * 縁の詰め方 ... カタログの台は 1px の縁と丸みを持つので 1px 内側から描くが、
+   * 編集画面の台は縁も丸みも持たない。 内側に寄せると帯の外に 1px の筋が残る。
+   */
+  .v4-editor-stage[data-cdl-more]::before,
+  .v4-editor-stage[data-cdl-more]::after {
+    top: 0;
+    bottom: 0;
+    border-radius: 0;
+  }
+  .v4-editor-stage[data-cdl-more="右"]::after,
+  .v4-editor-stage[data-cdl-more="両方"]::after {
+    right: 0;
+    background: linear-gradient(to left, var(--d-bg) 24%, transparent);
+  }
+  .v4-editor-stage[data-cdl-more="左"]::before,
+  .v4-editor-stage[data-cdl-more="両方"]::before {
+    left: 0;
+    background: linear-gradient(to right, var(--d-bg) 24%, transparent);
+  }
