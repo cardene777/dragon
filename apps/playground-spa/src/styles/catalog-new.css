@@ -912,6 +912,61 @@
   cursor: grabbing !important;
 }
 
+/* ── 続きが隠れている端 (#2427) ──
+ *
+ * 器に入らない図は内側が巻き取って余りを隠す (#2268 / #2269)。 それを示すのは掴める形の
+ * カーソルだけで、**触れないと出ず、どちら側に続くかも言わない** = 携帯には hover が無い。
+ *
+ * 隠れている側の端に、台の地の色へ溶ける帯と山形を 1 つ描く。
+ *
+ * **山形は字で描く**。 gradient を重ねる形は帯の下に隠れ、色を濃くすると帯が濃く見える。
+ * 字なら色を `--d-text-muted` から取れるので、明るい地と暗い地の両方で同じ濃さになる。
+ *
+ * **押す操作を止めない** (`pointer-events: none`)。 帯の下には箱と矢印が居る。
+ *
+ * **強調色を使わない**。 強調色は選んだ所を指す色なので、続きがあることに使うと
+ * 1 つの色が 2 つの意味を持つ。 地の色と控えめな字の色だけで描く。
+ */
+[data-cdl-more="右"]::after,
+[data-cdl-more="両方"]::after {
+  content: "\203A";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  right: 1px;
+  width: 52px;
+  display: grid;
+  place-items: center end;
+  padding-right: 13px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--d-text-muted);
+  background: linear-gradient(to left, var(--d-surface) 24%, transparent);
+  border-radius: 0 var(--d-r-3) var(--d-r-3) 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+[data-cdl-more="左"]::before,
+[data-cdl-more="両方"]::before {
+  content: "\2039";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 1px;
+  width: 52px;
+  display: grid;
+  place-items: center start;
+  padding-left: 13px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--d-text-muted);
+  background: linear-gradient(to right, var(--d-surface) 24%, transparent);
+  border-radius: var(--d-r-3) 0 0 var(--d-r-3);
+  pointer-events: none;
+  z-index: 2;
+}
+
 /* ── 狭い画面 ── */
 
 @media (max-width: 1100px) {
