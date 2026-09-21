@@ -69,6 +69,7 @@ import { EDITOR_SAMPLES, type EditorSample } from "@/data/editor-samples";
 import { formatYamlError, type YamlAdapterError } from "@/lib/yaml-error";
 import { stageSvgOf } from "@/lib/stage-svg";
 import { useToast } from "@/components/Toast";
+import { usePanEdges } from "@/components/usePanEdges";
 import { applyOffsetsToFlow, toSourceLines, usableEdgeLines, 知らせの行を元の本文へ戻す } from "@/lib/auto-fix-dsl";
 import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from "@/lib/auto-fix-offsets";
 import { 直せない軸の案内, まとめて直せない案内 } from "@/lib/axis-names";
@@ -271,6 +272,15 @@ animation:
  */
 export interface CdlEditorProps {
   initialTab?: "cdl" | "yaml";
+}
+
+/**
+ * 台の中で動く要素 (#2433)。 台 (`.v4-editor-stage`) は段の札と手がかりを置く基準なので
+ * 動かさない = 台を動かすと札と手がかりも図と一緒に流れる (見本の頁と同じ理由、#1964)
+ */
+function 動く中身を探す(台: HTMLElement): HTMLElement | null {
+  const 中身 = 台.querySelector(".v4-editor-pan");
+  return 中身 instanceof HTMLElement ? 中身 : null;
 }
 
 /**
@@ -671,6 +681,13 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     previewRef.current = el;
     setStageEl(el);
   }, []);
+
+  /**
+   * 続きが隠れている端 (#2433)。 台は `overflow: hidden` で中身を `transform` で動かすため、
+   * 送りが出る仕掛け (`useScrollEdges`) ではなく矩形を測る側を使う。
+   * 鍵に `transform` を渡すのは、動かしても大きさは変わらず見張りでは捕まえられないため。
+   */
+  const 隠れた端 = usePanEdges({ 台: stageEl, 動く中身を探す, 位置の鍵: transform });
 
   // 文字倍率を SVG に反映する。 再 render で SVG が作り直されるたびに当て直す。
   useEffect(() => {
@@ -2190,6 +2207,7 @@ animation:
         <div
           className={`v4-editor-stage ${showGrid ? "has-grid" : ""}`}
           ref={setStage}
+          data-cdl-more={隠れた端 === "無し" ? undefined : 隠れた端}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
