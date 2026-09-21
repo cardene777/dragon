@@ -6,6 +6,7 @@ import { PRESETS, presetName } from "@/lib/presets";
 import { CATEGORIES } from "@/lib/catalog";
 import { motionNote } from "@/lib/catalog-motion";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { useToast } from "@/components/Toast";
 import { useLocale } from "@/lib/useLocale";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
@@ -178,15 +179,15 @@ export function PresetDetailPage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="nm-crumb">
-            <Link to="/">概要</Link>
-            <span aria-hidden="true">›</span>
-            <Link to="/catalog">カタログ</Link>
-            <span aria-hidden="true">›</span>
-            <Link to="/catalog/presets">{分類の呼び名}</Link>
-            <span aria-hidden="true">›</span>
-            <span className="cur">{preset.slug}</span>
-          </nav>
+          <Breadcrumb
+            段={[
+              { 行き先: "/" },
+              { 行き先: "/catalog" },
+              // 分類の呼び名は名前の表に無い (分類ごとに変わる) ので字を直に渡す
+              { 行き先: "/catalog/presets", 字: 分類の呼び名 },
+              { 字: preset.slug },
+            ]}
+          />
           <span className="nm-eyebrow">{preset.eyebrow}</span>
           {/* 見出しは識別子ではなく言語に応じた名前を出す (#1047) */}
           <h1 className="nm-hero-title">

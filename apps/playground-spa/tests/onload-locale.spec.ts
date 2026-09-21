@@ -59,9 +59,9 @@ const 日本語の残り: Record<string, number> = {
   "/editor": 55,
   "/editor/:filename": 35,
   "/docs": 62,
-  "/preset/:id": 17,
-  "/release-notes": 19,
-  "/contribute": 28,
+  "/preset/:id": 15,
+  "/release-notes": 17,
+  "/contribute": 26,
   "*": 0,
 };
 

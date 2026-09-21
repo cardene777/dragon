@@ -1,5 +1,7 @@
 import { Link } from "react-router";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Breadcrumb } from "@/components/Breadcrumb";
+import { 画面の名前を引く } from "@/lib/site-destinations";
 import { useLocale } from "@/lib/useLocale";
 import { CATEGORIES } from "@/lib/catalog";
 import { PRESETS } from "@/lib/presets";
@@ -19,11 +21,7 @@ export function ReleaseNotesPage(): React.ReactElement {
       <SiteHeader />
       <main>
         <section className="nm-hero">
-          <nav aria-label={locale === "ja" ? "道筋" : "Breadcrumb"} className="nm-crumb">
-            <Link to="/">概要</Link>
-            <span aria-hidden="true">›</span>
-            <span className="cur">更新履歴</span>
-          </nav>
+          <Breadcrumb 段={[{ 行き先: "/" }, { 字: 画面の名前を引く("/release-notes", locale) }]} />
           <span className="nm-eyebrow">公開の記録 · v0.5 が最新</span>
           <h1 className="nm-hero-title">
             更新<span className="nm-gradient-accent">履歴</span>

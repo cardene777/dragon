@@ -3,19 +3,21 @@ import { Link, useLocation } from "react-router";
 import { Link2, Moon, Sun } from "lucide-react";
 import { useLocale } from "@/lib/useLocale";
 import { useToast } from "@/components/Toast";
+import { 画面の名前を引く } from "@/lib/site-destinations";
 
 /**
- * 全 page 共通の header。 見た目の SSOT = docs/design/app.pen の C / TopBar、
- * class の中身は src/styles/header.css。
- * 明暗は html 要素の dark class 1 本で切替わり、 その値は localStorage に残る。
+ * 帯に出す行き先と、その並び。 名前は `site-destinations.ts` の表から引く (#2451)。
+ *
+ * 名前をここにも書くと、道筋と帯で同じ画面が別の名前になる。
+ * 並びはここが持つ = 表に在る行き先が全部帯に出る訳ではない (参加方法は帯に出さない)。
  */
-const LINKS: Array<{ to: string; ja: string; en: string }> = [
-  { to: "/", ja: "概要", en: "home" },
-  { to: "/catalog", ja: "カタログ", en: "catalog" },
-  { to: "/editor", ja: "編集画面", en: "editor" },
-  { to: "/docs", ja: "使い方", en: "docs" },
-  { to: "/release-notes", ja: "更新履歴", en: "releases" },
-];
+const 帯に出す行き先 = ["/", "/catalog", "/editor", "/docs", "/release-notes"] as const;
+
+const LINKS: Array<{ to: string; ja: string; en: string }> = 帯に出す行き先.map((to) => ({
+  to,
+  ja: 画面の名前を引く(to, "ja"),
+  en: 画面の名前を引く(to, "en"),
+}));
 
 const REPO_URL = "https://github.com/cardene777/dragon";
 
@@ -39,6 +41,11 @@ function 描き始めは暗いか(): boolean {
   }
 }
 
+/**
+ * 全 page 共通の header。 見た目の SSOT = docs/design/app.pen の C / TopBar、
+ * class の中身は src/styles/header.css。
+ * 明暗は html 要素の dark class 1 本で切替わり、 その値は localStorage に残る。
+ */
 export function SiteHeader(): React.ReactElement {
   const location = useLocation();
   const pathname = location.pathname;
