@@ -834,10 +834,26 @@
   color: var(--d-accent);
 }
 
+/* 巻き取る役と、続きの手がかりを置く基準を分ける入れ物 (#2429)。
+ *
+ * **自分は巻き取らない**。 `.cdl-modal-body` に両方を兼ねさせていた間は、
+ * `position: absolute` で置いた飾りが中身と一緒に流れ、隠れている端を指さなくなる。
+ *
+ * 大きさの決め方 (`flex: 1` / `min-height: 0`) をここへ移し、中の巻き取りは
+ * 高さいっぱいに広げる = 見た目は 1 枚挟む前と変わらない。
+ */
+.cdl-modal-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 .cdl-modal-body {
   /* シーンの表示を重ねる基準 (#1239) */
   position: relative;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: grid;
   place-items: center;
