@@ -637,8 +637,16 @@ export type DslValue = {
     }
 );
 
-/** 動いている間の帯 (#1466)。 順序図で、面がいつ動いているかを段の番号で持つ */
-export type DslBand = { actor: string; from: number; to: number };
+/**
+ * 動いている間の帯 (#1466)。 順序図で、面がいつ動いているかを言づての番号で持つ。
+ *
+ * `from` / `to` が指すのは **板に載る言づての行** で、0 から数える (#2404 で実測)。
+ * 段 (`animation` の `step`) ではない = 数も起点も違う。
+ *
+ * `pos` は書いた行 (#2404)。 名前と番号を突き合わせた知らせが、直す行を指すのに使う。
+ * JSON から読んだ文書は行を持たないため `undefined` になる (矢印の飾りの知らせと同じ扱い)。
+ */
+export type DslBand = { actor: string; from: number; to: number; pos?: Position };
 
 /** ステップ (phase) */
 export type DslPhase = {

@@ -912,7 +912,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
     }
     if (head.key === "bands") {
       /*
-       * 動いている間の帯 (#1466)。 `- DB: 1..2` の形で、段の番号の区間を書く。
+       * 動いている間の帯 (#1466)。 `- DB: 1..2` の形で、言づての番号の区間を書く。
+       * 番号は板に載る言づての行で 0 から数える (#2404 で実測、 段ではない)。
        *
        * 面ごとに 2 行以上書ける = 途中で手が空く面はそこで切れる。 書かない図は
        * 組み立て器が「最初に関わった段から最後まで」 の 1 本にする。
@@ -926,11 +927,11 @@ export function parseTextDslV05(src: string): V05ParseResult {
           errors.push({
             line: it.no,
             message: `帯の書き方が読めません: "${it.trimmed}"`,
-            hint: "`- DB: 1..2` の形で書く (面の名前と、段の番号の区間)",
+            hint: "`- DB: 1..2` の形で書く (面の名前と、言づての番号の区間。 番号は 0 から数える)",
           });
           continue;
         }
-        bands.push({ actor: m[1]!, from: Number(m[2]), to: Number(m[3]) });
+        bands.push({ actor: m[1]!, from: Number(m[2]), to: Number(m[3]), pos: { line: it.no } });
       }
       i = next;
       continue;

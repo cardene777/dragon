@@ -279,6 +279,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 出した行を `図種が知らせた行` に控える = 多重度の知らせ (#2107) を同じ行に重ねない
   reportSkeletonEdgeOptionNotHonored(書いたまま, 図種が知らせた行, 図種の知らせ);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
+  reportBandProblems(書いたまま, diagram, opts?.onNotice);
   reportCardinalityNotHonored(書いたまま, 図種が知らせた行, opts?.onNotice);
   reportFlowOffsetNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
@@ -939,6 +940,120 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
 }
 
 /**
+ * 順序図の帯 (`bands:`) に書いた面の名前と言づての番号を突き合わせて知らせる (#2404)。
+ *
+ * ## なぜ誤りにせず知らせにするか
+ *
+ * 帯が 1 本ずれても図は出る。 「別の所に書いた名前を指す」 欄は 4 つとも知らせで扱っており
+ * (箱の `lane` / 組の `lanes` / 出来事の `box` / 矢印の端)、 帯だけを誤りにする理由が無い。
+ *
+ * ## 帯を描かない図種は、 それを先に知らせて打ち切る
+ *
+ * 帯は板の縦線に重ねる四角なので、 板を作らない図種には載せる先が無い
+ * (実測 = 24 図種のうち 22 図種が `bands:` を読んだうえで黙って捨てていた)。
+ * その図で名前や番号を直しても帯は出ないため、 直しても直らない案内を返さない。
+ *
+ * **図種を手で並べない**。 組み上がった図が板を持つかで決める = 図種を足した日にずれない
+ * (`rules/quality.md` の導出可能記述)。
+ *
+ * ## なぜ読む側ではなくここで確かめるか
+ *
+ * 記法は `bands:` を `actors:` より前に書ける = 読む途中では面の一覧が揃っていない。
+ * 板に載る言づての数も `flow:` を読み終えるまで決まらない。 組み立ての入口は両方を持っている。
+ *
+ * ## 突き合わせ先は「書いた `actors`」
+ *
+ * 板の図種は箱が 1 つしか無く、 面は箱の中の行になる = 組み上がった図と突き合わせる相手が居ない
+ * (段の注目先 #2398 と同じ)。 名前の受け方は矢印の端と同じ表 (`actorRefTable`) を使うので、
+ * id の形 (`api-gateway`) で書いた指定も通る。
+ *
+ * ## 番号が指すのは言づての行で、 0 から数える
+ *
+ * 記法の `- DB: 1..2` は段 (`animation` の `step`) ではなく **板に載る言づての行**を指す
+ * (実測 = 描く側は `rowY(from)` と `rowY(to)` で四角の上下を決め、 `rowY(i)` は i 通目の
+ * 言づての高さを返す)。 見本もその読み方で書かれている (面 4 つ ・ 言づて 7 通の図で
+ * `ブラウザ: 0..5` / `DB: 6..6`)。
+ *
+ * 段と言づては数も起点も違う = 段で数えると、 正しく書いた見本を範囲外として知らせてしまう。
+ *
+ * ## 板に載らない言づてを数に入れない
+ *
+ * `actors` に無い名前を指す言づては組み立ての前に落ちて板に載らない (実測 = 3 通のうち 1 通が
+ * 落ちて 2 通になる)。 書いた行数で数えると、 落ちた分だけ上限が広がって範囲外を見逃す。
+ *
+ * ## 言づてが 1 通も無い図でも黙らない
+ *
+ * 比べる相手が無いからと飛ばすと、 帯を書いたのに何も描かれない図が黙る経路になる。
+ * 範囲を示せないので、 理由を「言づてが 1 通も無い」 に変えて同じ知らせを出す。
+ *
+ * ## 負の番号はここで見ない
+ *
+ * 記法は数字だけを受ける形 (`\d+`) で読み、 JSON は「0 以上の整数」 を要求する = 2 つの入口が
+ * どちらも先に断っている。 ここに枝を置いても 1 度も通らない。 入口の側が緩んだら気付けるよう、
+ * 断ることそのものを検査で固定する。
+ *
+ * ## 名前と番号で打ち切らない
+ *
+ * 両方外れた帯には 2 件とも出す。 片方で止めると、 名前を直した次の回に番号の誤りが初めて出る。
+ */
+function reportBandProblems(
+  doc: DslDocument,
+  diagram: CdlDiagram,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  const 帯 = doc.bands ?? [];
+  if (帯.length === 0) return;
+  const 板がある = diagram.nodes.some((n) => n.sequenceData !== undefined);
+  if (!板がある) {
+    for (const b of 帯) {
+      onNotice({
+        kind: "band-not-honored",
+        actor: b.actor,
+        line: b.pos?.line ?? 0,
+        message: `type: ${doc.type} は帯を描きません (書いた帯は図に出ません)`,
+        hint: "帯は板の縦線に重ねる四角なので、 type: sequence か type: solidity で使う",
+      });
+    }
+    return;
+  }
+  const 名前の表 = actorRefTable(doc);
+  const hint = 書ける面の案内(doc);
+  const 言づての数 = doc.flow.filter((s) => 名前の表.has(s.from) && 名前の表.has(s.to)).length;
+  for (const b of 帯) {
+    const line = b.pos?.line ?? 0;
+    if (!名前の表.has(b.actor)) {
+      onNotice({
+        kind: "band-actor-missing",
+        actor: b.actor,
+        line,
+        message: `帯が "${truncateForMessage(b.actor)}" を指していますが、 actors に書かれていません (先頭の面に帯が出ます)`,
+        hint,
+      });
+    }
+    const 外れ =
+      言づての数 === 0
+        ? "板に載る言づてが 1 通もありません"
+        : b.to > 言づての数 - 1
+          ? `板に載る言づては ${言づての数} 通で、 最後は ${言づての数 - 1} 番です`
+          : b.from > b.to
+            ? "始まりが終わりより後ろです"
+            : undefined;
+    if (外れ === undefined) continue;
+    onNotice({
+      kind: "band-row-out-of-range",
+      actor: b.actor,
+      line,
+      message: `帯 "${truncateForMessage(b.actor)}: ${b.from}..${b.to}" の区間が言づての並びに収まりません (${外れ})`,
+      hint:
+        言づての数 === 0
+          ? "帯は言づての行に重ねる四角なので、 flow に言づてを書く"
+          : `0..${言づての数 - 1} の範囲で、 始まりを終わり以下にする (番号は flow に書いた言づての行、 段ではありません)`,
+    });
+  }
+}
+
+/**
  * 矢印に書いた多重度 (`cardinality`) から端の形を描けない時に伝える (#2107)。
  *
  * 多重度で端の形が決まるのは `type: er` の 6 語だけ (描画側の `ER_CARDINALITY_HEAD`)。
@@ -1490,6 +1605,29 @@ function reportLaneNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
 }
 
 /**
+ * 「actors に書いた名前で指す」 の直し方を 1 本作る (#1209、 #2404 で帯と共有)。
+ *
+ * **1 度だけ作る**。 知らせごとに全ての面の名前を並べ直すと、 名前も矢印も上限 (各 1,000) まで
+ * 書いた図で数百 MB になる。 並べる数にも上限を置く。
+ *
+ * **1 件ずつの長さも切る**。 件数だけを絞っても、 名前 1 つが 2 万字なら知らせも 2 万字になる
+ * (実測)。 名前も指定も外から来る文字列なので、 表示に使う所はすべて `truncateForMessage` を通す。
+ *
+ * 矢印の端と帯で同じ文を使う = 同じ「actors に無い名前を指した」 という誤りに、 欄ごとに違う
+ * 直し方が返らないようにする。
+ */
+function 書ける面の案内(doc: DslDocument): string {
+  const 見せる数 = 8;
+  if (doc.actors.length === 0) return "actors に登場人物を書く";
+  const 名前一覧 = doc.actors
+    .slice(0, 見せる数)
+    .map((a) => truncateForMessage(a.name))
+    .join(" / ");
+  const 残り = doc.actors.length - 見せる数;
+  return `actors に書いた名前で指す (${名前一覧}${残り > 0 ? ` ほか ${残り} 件` : ""})`;
+}
+
+/**
  * 矢印が `actors` に無い名前を指したことを知らせる (#1209)。
  *
  * 知らせずに通すと、 **どちらに転んでも書いた人の意図が消える**。 動きを書いていない図では
@@ -1512,16 +1650,7 @@ function reportMissingFlowActors(
   // **1 件ずつの長さも切る**。 件数だけを絞っても、 名前 1 つが 2 万字なら知らせも 2 万字に
   // なる (Round 4 の実測)。 名前も矢印の指定も外から来る文字列なので、 表示に使う所は
   // すべて `truncateForMessage` を通す (光らせる相手の知らせと同じ扱い)。
-  const 見せる数 = 8;
-  const 名前一覧 = doc.actors
-    .slice(0, 見せる数)
-    .map((a) => truncateForMessage(a.name))
-    .join(" / ");
-  const 残り = doc.actors.length - 見せる数;
-  const hint =
-    doc.actors.length > 0
-      ? `actors に書いた名前で指す (${名前一覧}${残り > 0 ? ` ほか ${残り} 件` : ""})`
-      : "actors に登場人物を書く";
+  const hint = 書ける面の案内(doc);
   const 知らせた = new Set<string>();
   for (const s of doc.flow) {
     for (const ref of [s.from, s.to]) {
