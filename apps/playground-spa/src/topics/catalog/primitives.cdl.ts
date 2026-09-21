@@ -705,7 +705,7 @@ flow:
 animation:
   - step: "縦に積む" 1.8s
     focus: ["申し込む", "登録する"]
-    description: "縦に積むと書くと、1 つの縦列に上から積む。 フローでは書かない時と同じ並びになる"
+    description: "縦に積むと書くと、1 つの縦列に上から積む。 フローの既定は縦なので書かない時と同じ並びになり、記法は行を外せることを知らせる"
 `;
 
 export const sourceJson__pattern__flowDirection__縦に積む = `{
@@ -724,7 +724,7 @@ export const sourceJson__pattern__flowDirection__縦に積む = `{
       "step": "縦に積む",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "body": "縦に積むと書くと、1 つの縦列に上から積む。 フローでは書かない時と同じ並びになる"
+      "body": "縦に積むと書くと、1 つの縦列に上から積む。 フローの既定は縦なので書かない時と同じ並びになり、記法は行を外せることを知らせる"
     }
   ]
 }`;

@@ -12,7 +12,7 @@
 import type { DslDocument, DslLane, DslStep, DslEventBinding, PresetType } from "./types";
 // 図種ごとの組み立てを分けた先 (#2030)。 共有の小道具から順に出している。
 // どれも他の file を取り込まない葉なので、図種ごとの file と両方から呼んでも輪にならない
-import { 向きを選べる図種 } from "./compile/direction";
+import { 向きを選べる図種, 既定の向き } from "./compile/direction";
 import { actorRefTable, canonicalizeFlowActors } from "./compile/actors";
 import { compileC4 } from "./compile/c4";
 import { compileClass } from "./compile/class";
@@ -20,6 +20,7 @@ import { 鎖でつなぐ形か, 鎖に並べる登場人物, 鎖にしない書�
 import { compileEr } from "./compile/er";
 import { compileFlow } from "./compile/flow";
 import { compileFunnel } from "./compile/funnel";
+import { 共通の組み立てへ回す } from "./compile/generic";
 import { compileGantt } from "./compile/gantt";
 
 import { compileJourney } from "./compile/journey";
@@ -2871,10 +2872,40 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
 }
 
 /**
- * 書いた向きが効かない時に伝える (#1494)。
+ * 向きの行を外しても、同じ組み立ての経路を通るか (#2421)。
  *
- * 効かない形は 2 つある。 向きを選べない図種に書いた形と、全ての箱が縦列を書いた形。
- * 後者は書いた縦列が勝つので、向きだけが黙って捨てられる。
+ * **向きを書くこと自体が経路を切り替える**。 フローは鎖をやめて書いた端のとおりに繋ぎ
+ * (`鎖にしない書き方`)、担当の図は静止図の組み立てから共通の組み立てへ回る
+ * (`共通の組み立てへ回す` の図種ごとの理由)。
+ *
+ * だから「既定と同じ値なら何もしない」 は成り立たない。 実測 = 動きを書かないフローに
+ * `direction: 縦` を足すと、viewBox が 490×539 から 504×631 に変わり、矢印の線種も変わる。
+ *
+ * 同じ経路を通る時だけ、書いた向きは本当に何もしない。 その経路の中で向きを読むのは
+ * `並べる向き` だけで、既定と同じ値ならそこも同じ値を返す。
+ *
+ * **判定は経路を決める関数から導く**。 条件を手で並べると、`鎖にしない書き方` に行が増えた日に
+ * ここだけ古くなる。
+ */
+function 向きを外しても同じ経路か(doc: DslDocument): boolean {
+  const 向きなし: DslDocument = { ...doc, direction: undefined };
+  if (doc.type === "flow") return 鎖でつなぐ形か(向きなし) === 鎖でつなぐ形か(doc);
+  if (doc.type === "swimlane") {
+    return 共通の組み立てへ回す("swimlane", 向きなし, false) === 共通の組み立てへ回す("swimlane", doc, true);
+  }
+  return false;
+}
+
+/**
+ * 書いた向きが図を変えない時に伝える (#1494 / #2421)。
+ *
+ * 変えない形は 3 つある。 向きを選べない図種に書いた形と、全ての箱が縦列を書いた形と、
+ * 既定と同じ向きを書いて経路も変わらない形。
+ * 前の 2 つは書いた向きが捨てられる形なので `direction-not-honored`、
+ * 3 つ目は書いても書かなくても同じ図になる形なので `direction-same-as-default`。
+ *
+ * **読み手が次に取る手が違うので 1 つにまとめない**。 前者は書き方を変えれば効くが、
+ * 後者は既に効いている値と同じで、行を外すか別の値を書くかの選択になる。
  *
  * 黙って捨てると「書いたのに変わらない」 が手掛かりなしで起きる。
  */
@@ -2899,6 +2930,17 @@ function reportDirectionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
       line: 行,
       message: "書いた direction は効きません (全ての箱が縦列を書いているので、そちらが優先されます)",
       hint: "direction で並べたい時は箱の `lane` を外してください",
+    });
+    return;
+  }
+  const 既定 = 既定の向き(doc.type);
+  if (doc.direction === 既定 && 向きを外しても同じ経路か(doc)) {
+    onNotice({
+      kind: "direction-same-as-default",
+      actor: doc.title,
+      line: 行,
+      message: `書いた direction は図を変えません (${既定} は type: ${doc.type} の既定で、この図は向きの行を外しても同じ並びになります)`,
+      hint: `並びを変えるなら ${既定 === "縦" ? "横" : "縦"} を書いてください。 今の並びのままにするなら direction の行は外せます`,
     });
   }
 }
