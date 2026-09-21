@@ -1013,7 +1013,7 @@ function reportBandProblems(doc: DslDocument, onNotice?: (n: CompileNotice) => v
           : undefined;
     if (外れ === undefined) continue;
     onNotice({
-      kind: "band-step-out-of-range",
+      kind: "band-row-out-of-range",
       actor: b.actor,
       line,
       message: `帯 "${truncateForMessage(b.actor)}: ${b.from}..${b.to}" の区間が言づての並びに収まりません (${外れ})`,

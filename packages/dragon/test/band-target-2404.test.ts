@@ -195,7 +195,7 @@ bands:
     if (!p.ok) throw new Error(p.errors.map((e) => e.message).join(" / "));
     const 知らせ: CompileNotice[] = [];
     compileToCdl(p.doc, { onNotice: (n) => 知らせ.push(n) });
-    const 帯 = 知らせ.filter((n) => n.kind === "band-step-out-of-range");
+    const 帯 = 知らせ.filter((n) => n.kind === "band-row-out-of-range");
     expect(帯, "落ちた言づてを数に入れている").toHaveLength(1);
     expect(帯[0]?.hint).toContain("0..1");
   });
@@ -203,7 +203,7 @@ bands:
   it("名前も番号も外れた帯には、2 件とも出る", () => {
     // 片方で打ち切ると、名前を直した次の回に番号の誤りが初めて出る
     const k = 帯の知らせ(測る(["ZZZ: 5..9"])).map((n) => n.kind);
-    expect([...k].sort()).toEqual(["band-actor-missing", "band-step-out-of-range"]);
+    expect([...k].sort()).toEqual(["band-actor-missing", "band-row-out-of-range"]);
   });
 });
 
