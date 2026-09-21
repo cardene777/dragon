@@ -295,11 +295,16 @@ test.describe("editor の preview 操作が図の svg を対象にする (#985)"
    * (800x600) に落ち、 縦横比の違うパーツが `preserveAspectRatio` で縮む。 助変数を消しても
    * 単体 test は通ってしまうため (helper の返値と CSS 文字列しか見ていない)、 画面で確かめる。
    *
-   * フローで見る。 表の図 (`er`) は部品に部品の名前の縦列を作り、組み立て側で縦列の中に描くため
-   * 重ねない (#1980)。 フローの部品は全員が共有する縦列に入らないので、今までどおり重ねる
+   * 縦に積む図 (`topology`) で見る。 縦列を全員で共有する図だけが部品を図の上に重ねる。
+   * 縦列を 1 人ずつ作る図 (表の図 `er` と、#2424 以降の `flow`) は部品にも縦列を作り、
+   * 組み立て側が縦列の中に描くため重ねない (#1980 / #2432)。
+   *
+   * **見本を `flow` から `topology` に替えた** (#2432)。 #2424 でフローの既定の向きが
+   * 横になり、1 人 1 縦列になったため重ねる側から外れた (実測 = 部品を置いても
+   * `[data-overlay-part]` が 0 件)。
    */
   test("重ねたパーツは図枠の実寸で描かれる", async ({ page }) => {
-    await page.goto("editor#preset=flow", { waitUntil: "networkidle" });
+    await page.goto("editor#preset=topology", { waitUntil: "networkidle" });
     await page.waitForSelector(".v4-editor-stage svg[data-cdl-stage]", { timeout: 15000 });
     await page.waitForTimeout(600);
     await page.click('[data-testid="editor-parts-tab"]');
@@ -504,11 +509,16 @@ flow:
    * この見本 (catalog 80 件中 17 件) は図の中に描く部品を持たない。 場所は確保されるため
    * 「置いたのに見えない」 状態になり、黙って置くと綴りを疑うことになる。
    *
-   * 2 つの経路で見る。 フローは部品を図の上に重ね、表の図 (`er`) は部品の名前の縦列に入れて
-   * 組み立て側で描く (#1980)。 知らせを重ねる部品にしか出さないと、表の図だけ黙る
+   * 2 つの経路で見る。 縦に積む図 (`topology`) は部品を図の上に重ね、表の図 (`er`) は
+   * 部品の名前の縦列に入れて組み立て側で描く (#1980)。
+   * 知らせを重ねる部品にしか出さないと、表の図だけ黙る。
+   *
+   * **重ねる側の見本を `flow` から `topology` に替えた** (#2432)。 #2424 でフローの
+   * 既定の向きが横になり、1 人 1 縦列になったため組み立て側で描く経路へ移った
+   * (実測 = `flow` / `er` が 0 件、`topology` が 1 件)。 知らせは 3 件とも出ている
    */
   for (const [経路, 開く, 重ねる数] of [
-    ["重ねる (flow)", "editor#preset=flow", 1],
+    ["重ねる (topology)", "editor#preset=topology", 1],
     ["組み立て側で描く (er)", 見本, 0],
   ] as const) {
     test(`パネル部品だけの見本を置くと知らせが出る — ${経路}`, async ({ page }) => {
