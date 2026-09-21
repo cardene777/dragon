@@ -6,7 +6,8 @@
  * **向きを書くこと自体が組み立ての経路を切り替える**。 フローは鎖をやめて書いた端のとおりに
  * 繋ぎ (`鎖にしない書き方`)、担当の図は静止図の組み立てから共通の組み立てへ回る。
  *
- * だから既定と同じ値を書いても、経路が切り替わる図では絵が変わる。 画面で突き合わせた実測。
+ * だから向きを書くと、経路が切り替わる図では絵が変わる。 既定と同じ値でも同じ。
+ * 画面で突き合わせた実測 (#2424 で既定を横にする前に測ったので、書いた値は `縦`)。
  *
  * | 図 | 書かない | `direction: 縦` |
  * |---|---|---|
@@ -24,7 +25,21 @@
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram, PRESET_TYPES } from "../src/index";
+import { 既定の向き } from "../src/compile/direction";
 import type { CompileNotice } from "../src/compile";
+import type { PresetType } from "../src/types";
+
+/**
+ * 図種ごとの既定と、その言い換え (#2424)。
+ *
+ * **実装から導く**。 図種の既定は変わりうる値なので (#2424 でフローを縦から横へ変えた)、
+ * 検査に書き写すと片方だけ古くなる。
+ */
+const 既定 = (type: string): "縦" | "横" => 既定の向き(type as PresetType);
+const 既定の言い換え = (type: string): string[] =>
+  既定(type) === "縦" ? ["縦", "vertical"] : ["横", "horizontal"];
+const 既定でない語 = (type: string): string[] =>
+  既定(type) === "縦" ? ["横", "horizontal"] : ["縦", "vertical"];
 
 type 形 = {
   type: string;
@@ -73,33 +88,26 @@ function 組む(src: string): { 種類: string[]; 文: string[]; 形: string } {
 const 同じ種類だけ = (r: { 種類: string[] }, kind: string): string[] => r.種類.filter((k) => k === kind);
 
 describe("既定と同じ向きを書いた時の知らせ (#2421)", () => {
-  it("動きを書いたフローに既定の向きを書くと、1 件出る", () => {
-    for (const 向き of ["縦", "vertical"]) {
-      const r = 組む(記法({ type: "flow", 向き, 動き: true }));
-      expect(同じ種類だけ(r, "direction-same-as-default"), `flow ${向き}`).toHaveLength(1);
-      expect(r.文.join(" "), `flow ${向き} の知らせに既定が読める`).toContain("縦 は type: flow の既定");
-    }
-  });
-
-  it("動きを書いた担当の図に既定の向きを書くと、1 件出る", () => {
-    for (const 向き of ["横", "horizontal"]) {
-      const r = 組む(記法({ type: "swimlane", 向き, 動き: true }));
-      expect(同じ種類だけ(r, "direction-same-as-default"), `swimlane ${向き}`).toHaveLength(1);
-      expect(r.文.join(" "), `swimlane ${向き} の知らせに既定が読める`).toContain("横 は type: swimlane の既定");
+  it("動きを書いた図に既定の向きを書くと、1 件出る", () => {
+    for (const type of ["flow", "swimlane"]) {
+      for (const 向き of 既定の言い換え(type)) {
+        const r = 組む(記法({ type, 向き, 動き: true }));
+        expect(同じ種類だけ(r, "direction-same-as-default"), `${type} ${向き}`).toHaveLength(1);
+        expect(r.文.join(" "), `${type} ${向き} の知らせに既定が読める`).toContain(
+          `${既定(type)} は type: ${type} の既定`,
+        );
+      }
     }
   });
 
   it("既定と違う向きでは出ない", () => {
     // 効いている向きに「書かなくても同じ」 と言うと嘘になる
-    for (const [type, 向き] of [
-      ["flow", "横"],
-      ["flow", "horizontal"],
-      ["swimlane", "縦"],
-      ["swimlane", "vertical"],
-    ] as const) {
-      for (const 動き of [false, true]) {
-        const r = 組む(記法({ type, 向き, 動き }));
-        expect(同じ種類だけ(r, "direction-same-as-default"), `${type} ${向き} 動き=${動き}`).toEqual([]);
+    for (const type of ["flow", "swimlane"]) {
+      for (const 向き of 既定でない語(type)) {
+        for (const 動き of [false, true]) {
+          const r = 組む(記法({ type, 向き, 動き }));
+          expect(同じ種類だけ(r, "direction-same-as-default"), `${type} ${向き} 動き=${動き}`).toEqual([]);
+        }
       }
     }
   });
@@ -116,8 +124,8 @@ describe("既定と同じ向きを書いた時の知らせ (#2421)", () => {
 
   it("経路が切り替わる図では、既定と同じ値でも出ない (絵が変わるため)", () => {
     // **本 Issue の要**。 動きを書かないフローは向きを書くと鎖をやめるので、
-    // 既定と同じ「縦」 でも出来上がりが変わる
-    const 書いた = 組む(記法({ type: "flow", 向き: "縦" }));
+    // 既定と同じ値でも出来上がりが変わる
+    const 書いた = 組む(記法({ type: "flow", 向き: 既定("flow") }));
     const 書かない = 組む(記法({ type: "flow", 向き: null }));
     expect(書いた.形, "向きを書くと描かれる形が変わる").not.toBe(書かない.形);
     expect(同じ種類だけ(書いた, "direction-same-as-default"), "絵が変わる形では出さない").toEqual([]);
@@ -125,10 +133,8 @@ describe("既定と同じ向きを書いた時の知らせ (#2421)", () => {
 
   it("知らせが出る形では、向きの行を外しても描かれる形が変わらない", () => {
     // 知らせの主張そのものを測る = 「書かなくても同じ」 が本当かを出来上がりで見る
-    for (const [type, 向き] of [
-      ["flow", "縦"],
-      ["swimlane", "横"],
-    ] as const) {
+    for (const type of ["flow", "swimlane"]) {
+      const 向き = 既定(type);
       const 書いた = 組む(記法({ type, 向き, 動き: true }));
       const 書かない = 組む(記法({ type, 向き: null, 動き: true }));
       expect(同じ種類だけ(書いた, "direction-same-as-default"), `${type} で知らせが出ている`).toHaveLength(1);
@@ -138,7 +144,7 @@ describe("既定と同じ向きを書いた時の知らせ (#2421)", () => {
 
   it("全ての箱が縦列を書いた形では、捨てられた側の知らせだけが出る", () => {
     // 縦列が勝つ形は「効かない」 なので、`direction-same-as-default` に混ぜない
-    const r = 組む(記法({ type: "flow", 向き: "縦", 縦列: true, 動き: true }));
+    const r = 組む(記法({ type: "flow", 向き: 既定("flow"), 縦列: true, 動き: true }));
     expect(同じ種類だけ(r, "direction-not-honored"), "捨てられた知らせが 1 件").toHaveLength(1);
     expect(同じ種類だけ(r, "direction-same-as-default"), "既定と同じの知らせは出さない").toEqual([]);
   });
@@ -155,7 +161,7 @@ describe("既定と同じ向きを書いた時の知らせ (#2421)", () => {
     for (const type of 対象) {
       let r;
       try {
-        r = 組む(記法({ type, 向き: "縦" }));
+        r = 組む(記法({ type, 向き: "横" }));
       } catch {
         // その図種が受け取らない本文は「測れなかった」。 0 件の側に数えない
         組めなかった.push(type);
@@ -179,7 +185,6 @@ describe("既定と同じ向きを書いた時の知らせ (#2421)", () => {
   it("24 図種 × 向き 4 通りを走査して、知らせと出来上がりが食い違わない", () => {
     // 植え込み対照の代わりに、主張と実物の食い違いを全件で数える。
     // 嘘 = 知らせが出たのに形が変わる / 取りこぼし = 形が同じで既定と同じ値なのに黙る
-    const 既定 = (type: string): string[] => (type === "flow" ? ["縦", "vertical"] : ["横", "horizontal"]);
     const 嘘: string[] = [];
     const 取りこぼし: string[] = [];
     let 走査 = 0;
@@ -199,7 +204,7 @@ describe("既定と同じ向きを書いた時の知らせ (#2421)", () => {
               const 出た = 同じ種類だけ(書いた, "direction-same-as-default").length > 0;
               const 捨てられた = 同じ種類だけ(書いた, "direction-not-honored").length > 0;
               if (出た && !同じ形) 嘘.push(名);
-              if (!出た && !捨てられた && 同じ形 && 既定(type).includes(向き)) 取りこぼし.push(名);
+              if (!出た && !捨てられた && 同じ形 && 既定の言い換え(type).includes(向き)) 取りこぼし.push(名);
             }
           }
         }

@@ -666,7 +666,7 @@ flow:
 animation:
   - step: "書かない時の並び" 1.8s
     focus: ["申し込む", "登録する"]
-    description: "フローは向きを書かないと、1 つの縦列に上から積む"
+    description: "動きを持つフローは向きを書かないと、1 人ずつ縦列を作って左から並べる"
 `;
 
 export const sourceJson__flowDirection = `{
@@ -684,7 +684,7 @@ export const sourceJson__flowDirection = `{
       "step": "書かない時の並び",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "body": "フローは向きを書かないと、1 つの縦列に上から積む"
+      "body": "動きを持つフローは向きを書かないと、1 人ずつ縦列を作って左から並べる"
     }
   ]
 }`;
@@ -705,7 +705,7 @@ flow:
 animation:
   - step: "縦に積む" 1.8s
     focus: ["申し込む", "登録する"]
-    description: "縦に積むと書くと、1 つの縦列に上から積む。 フローの既定は縦なので書かない時と同じ並びになり、記法は行を外せることを知らせる"
+    description: "縦に積むと書くと、1 つの縦列に上から積む。 動きを持つフローの既定は横なので、向きの行を外すと横並びに戻る"
 `;
 
 export const sourceJson__pattern__flowDirection__縦に積む = `{
@@ -724,7 +724,7 @@ export const sourceJson__pattern__flowDirection__縦に積む = `{
       "step": "縦に積む",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "body": "縦に積むと書くと、1 つの縦列に上から積む。 フローの既定は縦なので書かない時と同じ並びになり、記法は行を外せることを知らせる"
+      "body": "縦に積むと書くと、1 つの縦列に上から積む。 動きを持つフローの既定は横なので、向きの行を外すと横並びに戻る"
     }
   ]
 }`;
@@ -745,7 +745,7 @@ flow:
 animation:
   - step: "横に並べる" 1.8s
     focus: ["申し込む", "登録する"]
-    description: "横に並べると書くと、1 人ずつ縦列を作って左から並べる"
+    description: "横に並べると、1 人ずつ縦列を作って左から並べる。 動きを持つフローの既定と同じなので、記法は向きの行を外せることを知らせる"
 `;
 
 export const sourceJson__pattern__flowDirection__横に並べる = `{
@@ -764,7 +764,7 @@ export const sourceJson__pattern__flowDirection__横に並べる = `{
       "step": "横に並べる",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "body": "横に並べると書くと、1 人ずつ縦列を作って左から並べる"
+      "body": "横に並べると、1 人ずつ縦列を作って左から並べる。 動きを持つフローの既定と同じなので、記法は向きの行を外せることを知らせる"
     }
   ]
 }`;

@@ -1832,18 +1832,35 @@ function animOf(highlight: string[] = []): DslDocument["animate"] {
 }
 
 describe("compileGenericWithAnimate: kind 別の lane 構成", () => {
-  it("flow は 1 lane (main) に全 actor を縦 stack", () => {
+  it("flow は 1 人 1 lane に横並び (#2424 で既定を横にした)", () => {
     const d = compileToCdl(makeDoc("flow", { animate: animOf() }));
+    expect(d.lanes.length).toBe(2);
+    expect(node(d, "a").lane).not.toBe(node(d, "b").lane);
+    expect(node(d, "a").stack).toBe(0);
+    expect(node(d, "b").stack).toBe(0);
+  });
+
+  it("flow に縦を書くと 1 lane (main) に縦 stack へ戻る", () => {
+    // 既定を変えても、書いた向きは効いたままであることを見る
+    const d = compileToCdl(makeDoc("flow", { animate: animOf(), direction: "縦" }));
     expect(d.lanes.length).toBe(1);
     expect(d.lanes[0]!.id).toBe("main");
     expect(node(d, "a").stack).toBe(0);
     expect(node(d, "b").stack).toBe(1);
   });
 
-  it("flow の lane label は doc.title、 contain は付かない", () => {
-    const d = compileToCdl(makeDoc("flow", { animate: animOf(), title: "MyFlow" }));
+  it("縦に積む flow の lane label は doc.title、 contain は付かない", () => {
+    const d = compileToCdl(
+      makeDoc("flow", { animate: animOf(), title: "MyFlow", direction: "縦" }),
+    );
     expect(d.lanes[0]!.label).toBe("MyFlow");
     expect(d.lanes[0]!.contain).toBeUndefined();
+  });
+
+  it("横に並べた flow の lane は見出しを持たない", () => {
+    // 箱の題が名前を描くので、縦列にも同じ字を渡すと 2 度出る (#1241 と同じ理由)
+    const d = compileToCdl(makeDoc("flow", { animate: animOf(), title: "MyFlow" }));
+    expect(d.lanes.map((l) => l.label)).toEqual([undefined, undefined]);
   });
 
   it("topology は同じ 1 lane 構成だが contain: true が付く", () => {
@@ -2358,8 +2375,14 @@ describe("animate guard: phases 空なら非 animate 経路を通る", () => {
   });
 
   it("phases が 1 個以上なら animate 経路に入る (guard の true 側)", () => {
-    const d = compileToCdl(makeDoc("flow", { animate: animOf() }));
-    expect(d.lanes.map((l) => l.id)).toEqual(["main"]);
+    // **2 経路の差で見る**。 縦列の id を書き写すと、既定の向きを変えた日に
+    // ここだけ古くなる (#2424 で実際に古くなった)
+    const 動く = compileToCdl(makeDoc("flow", { animate: animOf() }));
+    const 動かない = compileToCdl(makeDoc("flow", { animate: EMPTY_ANIM }));
+    expect(動かない.lanes.map((l) => l.id), "鎖の経路は 1 縦列").toHaveLength(1);
+    expect(動く.lanes.map((l) => l.id), "動きを書くと別の経路を通る").not.toEqual(
+      動かない.lanes.map((l) => l.id),
+    );
   });
 });
 

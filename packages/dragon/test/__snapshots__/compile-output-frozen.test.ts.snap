@@ -655,8 +655,19 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > flow の図と�
     "id": "ciパイプライン",
     "lanes": [
       {
-        "id": "main",
-        "label": "CIパイプライン",
+        "id": "lane-プッシュ",
+        "width": 400,
+      },
+      {
+        "id": "lane-ビルド",
+        "width": 400,
+      },
+      {
+        "id": "lane-テスト",
+        "width": 400,
+      },
+      {
+        "id": "lane-デプロイ",
         "width": 400,
       },
     ],
@@ -664,29 +675,29 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > flow の図と�
       {
         "id": "プッシュ",
         "kind": "event",
-        "lane": "main",
+        "lane": "lane-プッシュ",
         "stack": 0,
         "title": "プッシュ",
       },
       {
         "id": "ビルド",
         "kind": "function",
-        "lane": "main",
-        "stack": 1,
+        "lane": "lane-ビルド",
+        "stack": 0,
         "title": "ビルド",
       },
       {
         "id": "テスト",
         "kind": "function",
-        "lane": "main",
-        "stack": 2,
+        "lane": "lane-テスト",
+        "stack": 0,
         "title": "テスト",
       },
       {
         "id": "デプロイ",
         "kind": "function",
-        "lane": "main",
-        "stack": 3,
+        "lane": "lane-デプロイ",
+        "stack": 0,
         "title": "デプロイ",
       },
     ],

@@ -73,7 +73,7 @@ export function presetName(preset: PresetMetadata, locale: Locale): string {
 
 export const PRESETS: PresetMetadata[] = [
   { id: "swimlane", slug: "swimlane", eyebrow: "流れの図 / 担当の切り分け", subtitle: "3 つの縦列で呼び出す側・処理する側・知らせる側を分け、依頼が役割をまたいで進む様子を追う図。", tags: ["縦列", "役割の分担"], diagram: presetSwimlane },
-  { id: "flow", slug: "flow", eyebrow: "道筋の図 / 順を追う", subtitle: "ログインの要求が受付の窓口・認証・利用者の表の順に進む様子を、上から下への 1 本の流れで示す図。", tags: ["一本の流れ", "上から下"], diagram: presetFlow },
+  { id: "flow", slug: "flow", eyebrow: "道筋の図 / 順を追う", subtitle: "ログインの要求が受付の窓口・認証・利用者の表の順に進む様子を、左から右への 1 本の流れで示す図。", tags: ["一本の流れ", "左から右"], diagram: presetFlow },
   { id: "sequence", slug: "sequence", eyebrow: "やり取りの図 / 呼び出しと返事", subtitle: "注文から発送までの呼び出しと返事を、登場する仕組みごとの縦の時間軸に並べた UML のシーケンス図。", tags: ["時間軸", "UML"], diagram: presetSequence },
   { id: "topology", slug: "topology", eyebrow: "配置の図 / どこで動くか", subtitle: "利用者の端末とクラウドを区画に分け、負荷分散・コンテナ・データベースを接続でつないだ構成図。", tags: ["区画", "接続"], diagram: presetTopology },
   { id: "er", slug: "er", eyebrow: "構造の図 / データ設計", subtitle: "3 表 × 3 関係。 主キーと外部キー、識別する関係としない関係、自己参照を示す ER 図。", tags: ["表", "関係"], diagram: presetEr },
