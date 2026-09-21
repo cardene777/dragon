@@ -201,8 +201,8 @@ export const FORMS: Section[] = [
   },
   {
     title: "動いている間の帯 (bands:)",
-    // 帯は順序図だけの項目。 面が動いている段の範囲を書く = 書かなければ
-    // 「最初に関わった段から最後まで」 の 1 本になる
+    // 帯は順序図だけの項目。 面が動いている言づての範囲を 0 から数えて書く = 書かなければ
+    // 「最初に関わった言づてから最後まで」 の 1 本になる
     sample: {
       slot: "bands",
       type: "sequence",
@@ -210,7 +210,7 @@ export const FORMS: Section[] = [
       flow: ['  - Browser -> API: "頼む"', '  - API -> DB: "引く"', '  - DB -> API: "返す"'],
     },
     lines: [
-      { code: "  - Browser: 0..2", note: "面と、動いている段の範囲" },
+      { code: "  - Browser: 0..2", note: "面と、動いている言づての範囲 (0 から数える)" },
       { code: "  - DB: 1..1", note: "途中で手が空く面は区間を分けて書く" },
     ],
   },
