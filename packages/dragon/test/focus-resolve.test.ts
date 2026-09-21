@@ -83,7 +83,7 @@ describe("名前に `-` を含む箱が光る (図種で割れない)", () => {
     });
 
     it(`${type}: \`-\` を含む名前も光る`, () => {
-      // 以前は順序図では光らず、 流れ図では名前に部分一致した矢印が光った (実測)
+      // 以前は順序図では光らず、 フローでは名前に部分一致した矢印が光った (実測)
       const ids = activated(type, "api-gateway", "Client, api-gateway");
       expect(ids.some((id) => id.includes("api-gateway")), JSON.stringify(ids)).toBe(true);
       // 箱を指定したのに矢印が光ってはいけない

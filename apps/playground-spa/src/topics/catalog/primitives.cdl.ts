@@ -644,16 +644,16 @@ export const pattern__viewportSpacing__倍率 = textDslToDiagram(sourceYaml__pat
 // ==== #1969 縦列の縦線と図全体の間隔 ここまで ====
 
 // ==== #1969 並ぶ向きと始まりと終わり ここから ====
-// ---- 流れ図の並ぶ向き (direction) ----
+// ---- フローの並ぶ向き (direction) ----
 //
-// 向きは流れ図と担当の図だけに効く。 箱に縦列を書くと縦列が勝つので、縦列を書かない 2 つの箱で比べる。
+// 向きはフローと担当の図だけに効く。 箱に縦列を書くと縦列が勝つので、縦列を書かない 2 つの箱で比べる。
 
 export const patternBase__flowDirection = "書かない";
 
 export const subtitle__flowDirection =
-  "流れ図の並ぶ向きを書く (direction)。 縦は 1 つの縦列に積み、横は 1 人ずつ縦列を作る。 向きを書くと矢印は書いた端のとおりに引く";
+  "フローの並ぶ向きを書く (direction)。 縦は 1 つの縦列に積み、横は 1 人ずつ縦列を作る。 向きを書くと矢印は書いた端のとおりに引く";
 
-export const sourceYaml__flowDirection = `title: "流れ図の並ぶ向きを書かない"
+export const sourceYaml__flowDirection = `title: "フローの並ぶ向きを書かない"
 type: flow
 
 actors:
@@ -666,11 +666,11 @@ flow:
 animation:
   - step: "書かない時の並び" 1.8s
     focus: ["申し込む", "登録する"]
-    description: "流れ図は向きを書かないと、1 つの縦列に上から積む"
+    description: "フローは向きを書かないと、1 つの縦列に上から積む"
 `;
 
 export const sourceJson__flowDirection = `{
-  "title": "流れ図の並ぶ向きを書かない",
+  "title": "フローの並ぶ向きを書かない",
   "type": "flow",
   "actors": [
     { "name": "申し込む", "kind": "card" },
@@ -684,14 +684,14 @@ export const sourceJson__flowDirection = `{
       "step": "書かない時の並び",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "body": "流れ図は向きを書かないと、1 つの縦列に上から積む"
+      "body": "フローは向きを書かないと、1 つの縦列に上から積む"
     }
   ]
 }`;
 
 export const flowDirection = textDslToDiagram(sourceYaml__flowDirection);
 
-export const sourceYaml__pattern__flowDirection__縦に積む = `title: "流れ図を縦に積む"
+export const sourceYaml__pattern__flowDirection__縦に積む = `title: "フローを縦に積む"
 type: flow
 direction: vertical
 
@@ -705,11 +705,11 @@ flow:
 animation:
   - step: "縦に積む" 1.8s
     focus: ["申し込む", "登録する"]
-    description: "縦に積むと書くと、1 つの縦列に上から積む。 流れ図では書かない時と同じ並びになる"
+    description: "縦に積むと書くと、1 つの縦列に上から積む。 フローでは書かない時と同じ並びになる"
 `;
 
 export const sourceJson__pattern__flowDirection__縦に積む = `{
-  "title": "流れ図を縦に積む",
+  "title": "フローを縦に積む",
   "type": "flow",
   "direction": "vertical",
   "actors": [
@@ -724,14 +724,14 @@ export const sourceJson__pattern__flowDirection__縦に積む = `{
       "step": "縦に積む",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "body": "縦に積むと書くと、1 つの縦列に上から積む。 流れ図では書かない時と同じ並びになる"
+      "body": "縦に積むと書くと、1 つの縦列に上から積む。 フローでは書かない時と同じ並びになる"
     }
   ]
 }`;
 
 export const pattern__flowDirection__縦に積む = textDslToDiagram(sourceYaml__pattern__flowDirection__縦に積む);
 
-export const sourceYaml__pattern__flowDirection__横に並べる = `title: "流れ図を横に並べる"
+export const sourceYaml__pattern__flowDirection__横に並べる = `title: "フローを横に並べる"
 type: flow
 direction: horizontal
 
@@ -749,7 +749,7 @@ animation:
 `;
 
 export const sourceJson__pattern__flowDirection__横に並べる = `{
-  "title": "流れ図を横に並べる",
+  "title": "フローを横に並べる",
   "type": "flow",
   "direction": "horizontal",
   "actors": [
@@ -771,13 +771,13 @@ export const sourceJson__pattern__flowDirection__横に並べる = `{
 
 export const pattern__flowDirection__横に並べる = textDslToDiagram(sourceYaml__pattern__flowDirection__横に並べる);
 
-// 向きを書かない流れ図は登場人物を書いた順に鎖で繋ぎ、`登録する -> 申し込む` の差し戻しは引かない
+// 向きを書かないフローは登場人物を書いた順に鎖で繋ぎ、`登録する -> 申し込む` の差し戻しは引かない
 // (端の知らせが出る)。 向きを書くと行に書いた端のとおりに矢印を引く (#1986)
 //
-// **この切替だけ段を書かない**。 段を書いた流れ図は向きを書かなくても書いた端のとおりに引くため、
+// **この切替だけ段を書かない**。 段を書いたフローは向きを書かなくても書いた端のとおりに引くため、
 // 段を残すと向きの行を消しても絵が変わらず、見比べる意味が無くなる (実測 = 段を書いた本文から
 // 向きを外しても矢印は 2 本のまま、段と向きの両方を外すと 1 本になり知らせが出た)
-export const sourceYaml__pattern__flowDirection__書いた端のとおりに繋ぐ = `title: "流れ図の矢印を書いた端のとおりに繋ぐ"
+export const sourceYaml__pattern__flowDirection__書いた端のとおりに繋ぐ = `title: "フローの矢印を書いた端のとおりに繋ぐ"
 type: flow
 direction: vertical
 
@@ -791,7 +791,7 @@ flow:
 `;
 
 export const sourceJson__pattern__flowDirection__書いた端のとおりに繋ぐ = `{
-  "title": "流れ図の矢印を書いた端のとおりに繋ぐ",
+  "title": "フローの矢印を書いた端のとおりに繋ぐ",
   "type": "flow",
   "direction": "vertical",
   "actors": [

@@ -163,7 +163,7 @@ export const FORMS: Section[] = [
   },
   {
     title: "図の並ぶ向き (direction:)",
-    // 流れ図と泳法図でだけ効く。 例文は既定と逆の向きを書いて、変わることが読めるようにする
+    // フローと泳法図でだけ効く。 例文は既定と逆の向きを書いて、変わることが読めるようにする
     sample: {
       slot: "direction",
       type: "flow",
@@ -171,7 +171,7 @@ export const FORMS: Section[] = [
       flow: ['  - Web -> API: "頼む"'],
     },
     lines: [
-      { code: "direction: 横", note: "1 人ずつ縦列を作る (流れ図の既定は縦)" },
+      { code: "direction: 横", note: "1 人ずつ縦列を作る (フローの既定は縦)" },
       { code: "direction: 縦", note: "1 つの縦列に積む (泳法図の既定は横)" },
       // 別名は同じ画面の「向き」 の区画が記法から引いて並べる (#1850)。
       // ここに綴りを書くと、同じ値を 2 箇所に置くことになる

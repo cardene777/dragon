@@ -1084,7 +1084,7 @@ export const sourceJson__textDslClass = `{
 /**
  * 同じ関係を `type: class` で書く形 (#2396)。
  *
- * 元の見本は流れ図で 2 箱を繋いでいる。 クラス図で書くと、行 (`rows:`) が持ち物と
+ * 元の見本はフローで 2 箱を繋いでいる。 クラス図で書くと、行 (`rows:`) が持ち物と
  * 振る舞いに割れ (括弧の有無で分かれる)、関係の種類 (`relation:`) が線と端の形を決める。
  *
  * **段 (`stack:`) を書かずに縦列だけ書く**。 段を書かない箱は、その縦列の空いている
@@ -1092,7 +1092,7 @@ export const sourceJson__textDslClass = `{
  *
  * 順番を持たない図なので触れて読む形にする (#1757)。 線は最初から全部出す。
  */
-export const patternBase__textDslClass = "流れ図で書く";
+export const patternBase__textDslClass = "フローで書く";
 
 export const sourceYaml__pattern__textDslClass__クラス図で書く = `title: "クラスの関係をクラス図で書く"
 type: class
@@ -2052,7 +2052,7 @@ export const pattern__textDslActorKeys__1行にまとめて書く = textDslToDia
 
 // ─── 値と前の値を日本語で書く (#2332) ─────
 //
-// `前の値` は値を並べる図でだけ効く。 上の流れ図に書いても図は 1 ピクセルも変わらないので、
+// `前の値` は値を並べる図でだけ効く。 上のフローに書いても図は 1 ピクセルも変わらないので、
 // 帯で内訳を出す図に分けて見せる。
 
 export const sourceYaml__textDslValueKeys = `title: "値と前の値を英語で書く"
@@ -2183,7 +2183,7 @@ export const pattern__textDslValueKeys__日本語で書く = textDslToDiagram(
 
 // ─── 行と印を日本語で書く (#2377) ─────
 //
-// `印` は行頭の記号を決める項目で、ER 図と状態遷移図でだけ効く。 流れ図に書いても
+// `印` は行頭の記号を決める項目で、ER 図と状態遷移図でだけ効く。 フローに書いても
 // 図は 1 ピクセルも変わらず知らせが 1 件出るので、鍵と外を指す列を持つ図に分けて見せる。
 
 export const sourceYaml__textDslRowMarkKeys = `title: "行と印を英語で書く"

@@ -88,7 +88,7 @@ export const PRESETS: PresetMetadata[] = [
   { id: "chartPie", slug: "chart-pie", eyebrow: "数の図 / 内訳", subtitle: "利用の経路ごとの内訳を、全体に対する割合で示す円グラフ。", tags: ["グラフ", "割合"], diagram: presetChartPie },
   { id: "chartLine", slug: "chart-line", eyebrow: "数の図 / 上がり下がり", subtitle: "月ごとの計画と実績を 1 本の折れ線で比べ、どの月で計画を上回ったかを示す折れ線グラフ。", tags: ["グラフ", "推移"], diagram: presetChartLine },
   { id: "gantt", slug: "gantt", eyebrow: "時間の図 / 工程の割り当て", subtitle: "設計・実装・検証・公開の工程を期ごとの横棒で並べ、前の工程が終わってから次が始まる関係を示す工程表。", tags: ["工程", "期間"], diagram: presetGantt },
-  { id: "flowchart", slug: "flowchart", eyebrow: "手順の図 / 分かれ道", subtitle: "2 つの縦列で申請者と承認者を分け、承認されるか差し戻されるかに分かれる申請の流れ図。", tags: ["承認", "分岐"], diagram: presetFlowchart },
+  { id: "flowchart", slug: "flowchart", eyebrow: "手順の図 / 分かれ道", subtitle: "2 つの縦列で申請者と承認者を分け、承認されるか差し戻されるかに分かれる申請のフローチャート。", tags: ["承認", "分岐"], diagram: presetFlowchart },
   { id: "network", slug: "network", eyebrow: "つながりの図 / 通り道", subtitle: "ファイアウォールからスイッチを経て、アプリとデータベースのサーバーにつながる社内ネットワークの接続図。", tags: ["ネットワーク", "接続"], diagram: presetNetwork },
   { id: "stateMachine2", slug: "state-machine-2", eyebrow: "ふるまいの図 / 入れ子", subtitle: "状態の中に状態を入れ子にし、入る時と出る時の処理を添えた、階層を持つ状態遷移図。", tags: ["入れ子の状態", "入る時と出る時の処理"], diagram: presetStateMachine2 },
 ];
