@@ -479,6 +479,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   }
   // **3 つの節を全て載せ終えてから呼ぶ** = 読む元は `states` / `inputs` / `formulas` に散っており、
   // 途中で呼ぶと、後から載る節の名前を「無い」 と知らせる
+  // **つまみを載せ終えてから呼ぶ** = 記法は `states:` を `inputs:` より前に書けるため、
+  // 途中で呼ぶと後から載るつまみを見落とす
+  reportStateInputMismatch(doc, merged, opts?.onNotice);
   reportReadoutSourceMissing(doc, merged, opts?.onNotice);
   /*
    * 押下などの出来事で動く仕掛けを図に載せる (#1393)。
@@ -1017,6 +1020,61 @@ function reportReadoutSourceMissing(
         hint,
       });
     }
+  }
+}
+
+/**
+ * 状態 (`states:`) とつまみ (`inputs:`) に同じ名前を書いて、 値がずれたことを知らせる (#2413)。
+ *
+ * ## 両方に書くこと自体は意図された書き方
+ *
+ * 状態が静止した図の値を決め、 つまみが読み手に値を変えさせる。 カタログの見本 105 箇所が
+ * この形で書かれているので、 重なりそのものは誤りにしない。
+ *
+ * ## ずれると状態の初期値は図のどこにも出ない
+ *
+ * 描く側は `mergeStateValues(base, overrides)` でつまみの既定値を状態の上に塗り、
+ * 静止した最初の一枚にもつまみの既定値が入る。 見本 77 組は 1 組もずれておらず、
+ * 書き手が全部手で揃えている決まりなのに、 守れているかを見る仕組みが無かった。
+ *
+ * ## 効く既定値を自前で導かない
+ *
+ * 種類によって値の作り方が違い、 欄の名前からは導けない (`timeline` は `defaultSpeedIdx` を
+ * 持つが効く既定値は 0)。 描く側が書き出している `inputDefaultValue` をそのまま呼ぶ。
+ *
+ * ## 突き合わせは文字列で行う
+ *
+ * 描く側が `merged[key] = String(v)` で文字列にしてから塗るため、 `42` と `"42"` は
+ * 同じ値として扱う。
+ *
+ * ## 式と巻き上げは対象にしない
+ *
+ * 静止した最初の一枚 (`serverSnapshot`) に入るのはつまみの既定値だけで、 式や巻き上げが
+ * 値を作るまでは状態の初期値が見える。 置き値として役に立つので、 ずれていても誤りにならない。
+ */
+function reportStateInputMismatch(
+  doc: DslDocument,
+  merged: CdlDiagram,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  const つまみ = merged.inputs ?? [];
+  if (つまみ.length === 0) return;
+  const 状態 = new Map((doc.animate?.states ?? []).map((s) => [s.name, s]));
+  if (状態.size === 0) return;
+  for (const input of つまみ) {
+    const s = 状態.get(input.id);
+    if (s === undefined) continue;
+    const 既定 = inputDefaultValue(input);
+    if (既定 === undefined) continue;
+    if (String(s.initial) === String(既定)) continue;
+    onNotice({
+      kind: "state-shadowed-by-input",
+      actor: input.id,
+      line: s.pos.line,
+      message: `"${truncateForMessage(input.id)}" を states と inputs の両方に書いていますが、 値が違います (states の ${truncateForMessage(String(s.initial))} は出ません。 つまみの ${truncateForMessage(String(既定))} が使われます)`,
+      hint: `states の初期値をつまみの既定値 ${truncateForMessage(String(既定))} に揃えるか、 どちらか一方だけに書く`,
+    });
   }
 }
 

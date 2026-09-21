@@ -43,6 +43,10 @@ export type CompileNotice = {
     | "chart-edge-dropped"
     // 同じ名前を `states` と `values` の両方に書いた (#1162)
     | "value-shadows-state"
+    // 同じ名前を `states` と `inputs` の両方に書き、 値がずれた (#2413)。 両方に書くこと自体は
+    // 意図された書き方 (見本 105 箇所) だが、 描く側はつまみの既定値で状態を塗るため、
+    // ずれると状態の初期値は図のどの瞬間にも出ない
+    | "state-shadowed-by-input"
     // 式を解けず、その値を止めた (輪 / 無い名前 / 読めない式 / 数として読めない値、 #1162)
     | "value-unresolved"
     // 同じ名前を `values` に 2 度書いた。 先に書いた式を使う (#1162)
