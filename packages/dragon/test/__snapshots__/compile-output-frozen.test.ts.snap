@@ -482,7 +482,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > er の図と知
         "widthBind": undefined,
       },
     ],
-    "id": "利用者-投稿-コメントのスキ-マ",
+    "id": "利用者-投稿-コメントのスキーマ",
     "lanes": [
       {
         "id": "lane-利用者",
@@ -791,7 +791,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > funnel の図�
           },
           {
             "count": 1200,
-            "id": "カ-ト投入",
+            "id": "カート投入",
             "title": "カート投入",
           },
           {
@@ -832,7 +832,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > gantt の図と
 {
   "図": {
     "edges": [],
-    "id": "四半期ロ-ドマップ",
+    "id": "四半期ロードマップ",
     "lanes": [
       {
         "id": "gantt",
@@ -869,14 +869,14 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > gantt の図と
           {
             "endIdx": 3,
             "endLabel": "4期",
-            "id": "リリ-ス",
+            "id": "リリース",
             "startIdx": 3,
             "startLabel": "4期",
             "title": "リリース",
           },
         ],
         "h": 360,
-        "id": "四半期ロ-ドマップ-chart",
+        "id": "四半期ロードマップ-chart",
         "kind": "gantt-timeline",
         "lane": "gantt",
         "stack": 0,
@@ -887,7 +887,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > gantt の図と
     "phases": [
       {
         "activate": [
-          "四半期ロ-ドマップ-chart",
+          "四半期ロードマップ-chart",
         ],
         "body": "",
         "duration": 2000,
@@ -990,7 +990,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > journey の図�
           },
           {
             "emotion": "angry",
-            "id": "メ-ル確認",
+            "id": "メール確認",
             "title": "メール確認",
           },
           {
@@ -1135,12 +1135,12 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > mind の図と�
               "title": "デザイン",
             },
             {
-              "id": "リリ-ス",
+              "id": "リリース",
               "parent": "新プロジェクト",
               "title": "リリース",
             },
             {
-              "id": "マ-ケット",
+              "id": "マーケット",
               "parent": "新プロジェクト",
               "title": "マーケット",
             },
@@ -2228,7 +2228,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > swimlane の図
         "head": undefined,
         "headFill": undefined,
         "headLabel": undefined,
-        "id": "e1-認証-メ-ル",
+        "id": "e1-認証-メール",
         "label": "歓迎メール送信",
         "labelOffsetX": undefined,
         "labelOffsetY": undefined,
@@ -2243,19 +2243,19 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > swimlane の図
         "tailHead": undefined,
         "tailHeadFill": undefined,
         "tailLabel": undefined,
-        "to": "メ-ル",
+        "to": "メール",
         "tone": "accent",
         "widthBind": undefined,
       },
       {
         "cardinality": undefined,
         "dashOffsetBind": undefined,
-        "from": "メ-ル",
+        "from": "メール",
         "guard": undefined,
         "head": undefined,
         "headFill": undefined,
         "headLabel": undefined,
-        "id": "e2-メ-ル-利用者",
+        "id": "e2-メール-利用者",
         "label": "メール到着",
         "labelOffsetX": undefined,
         "labelOffsetY": undefined,
@@ -2288,7 +2288,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > swimlane の図
         "width": 400,
       },
       {
-        "id": "lane-メ-ル",
+        "id": "lane-メール",
         "label": "メール",
         "width": 400,
       },
@@ -2309,9 +2309,9 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > swimlane の図
         "title": "認証",
       },
       {
-        "id": "メ-ル",
+        "id": "メール",
         "kind": "service",
-        "lane": "lane-メ-ル",
+        "lane": "lane-メール",
         "stack": 0,
         "title": "メール",
       },
@@ -2334,8 +2334,8 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > swimlane の図
       {
         "activate": [
           "認証",
-          "メ-ル",
-          "e1-認証-メ-ル",
+          "メール",
+          "e1-認証-メール",
         ],
         "badge": undefined,
         "body": "",
@@ -2347,9 +2347,9 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > swimlane の図
       },
       {
         "activate": [
-          "メ-ル",
+          "メール",
           "利用者",
-          "e2-メ-ル-利用者",
+          "e2-メール-利用者",
         ],
         "badge": undefined,
         "body": "",
