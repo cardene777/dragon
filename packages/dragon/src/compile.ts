@@ -375,8 +375,12 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   if (doc.readouts && doc.readouts.length > 0) {
     // 出口の paint 検査は diagram を直接書き換える。 doc の object を共有すると、検査が
     // compileToCdl の入力まで書き換えて入力不変性を壊すため、nested field も含めて写す。
-    const ownReadouts = doc.readouts.map(
-      (readout) => deepRewriteStrings(readout, (value) => value) as typeof readout,
+    //
+    // **書いた行は図へ載せない** (#2405)。 行は読む元の名前を突き合わせた知らせのために持つ。
+    // 残すと、行を足しただけで組み上がる図が変わる。
+    type 図の読み取り値 = NonNullable<CdlDiagram["readouts"]>[number];
+    const ownReadouts = doc.readouts.map(({ pos: _書いた行, ...readout }) =>
+      deepRewriteStrings(readout, (value) => value) as 図の読み取り値,
     );
     merged.readouts = [...(merged.readouts ?? []), ...ownReadouts];
   }
@@ -473,6 +477,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     if (載せる式.length > 0) merged.formulas = 載せる式;
     else delete merged.formulas;
   }
+  // **3 つの節を全て載せ終えてから呼ぶ** = 読む元は `states` / `inputs` / `formulas` に散っており、
+  // 途中で呼ぶと、後から載る節の名前を「無い」 と知らせる
+  reportReadoutSourceMissing(doc, merged, opts?.onNotice);
   /*
    * 押下などの出来事で動く仕掛けを図に載せる (#1393)。
    *
@@ -937,6 +944,95 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
       hint: "板には矢印が無いため飾りを載せる先がありません。 言づての種類 (kind: call / return / fire) で描き分けてください",
     });
   }
+}
+
+/**
+ * 名前を指す欄かどうかを、 綴りで決める (#2405)。
+ *
+ * 部品の表 (`readout-table.generated.ts`) の 107 種が持つ欄のうち、 別の所に書いた値を名前で
+ * 指すのは `source` / `〜Source` / `sourceA` の 3 つの形。 表そのものは「文字列」 としか
+ * 言わないため、 どの文字列が名前かは綴りからしか決められない。
+ *
+ * **規則から外れた綴りで名前の欄が足されると、 その欄だけが黙る**。 規則に当たらない欄の
+ * 一覧を検査で固定し、 増えた日に人が 1 件ずつ見分ける形にする
+ * (`test/readout-source-2405.test.ts`)。
+ */
+function 名前を指す欄(欄名: string): boolean {
+  return 欄名 === "source" || 欄名.endsWith("Source") || /^source[A-Z]$/.test(欄名);
+}
+
+/**
+ * 値を見せる部品 (`readouts:`) が読む元の名前を突き合わせて知らせる (#2405)。
+ *
+ * ## 直す前に起きていたこと
+ *
+ * 読み取り値は `source: done` の形で、 別の所に書いた値を名前で指す。 **その名前が在るかを
+ * 誰も見ていなかった** = 状態を指す図も、 どこにも無い名前を指す図も、 大文字小文字を
+ * 間違えた図も、 すべて知らせ 0 件で同じ形のまま描く側へ渡っていた (実測 6 通り)。
+ * 描く側は知らない名前を読むと何も出さないので、 書いた人には「部品を置いたのに数字が
+ * 出ない」 だけが残る。
+ *
+ * ## 読む元は 3 つ
+ *
+ * `states` / `inputs` / `formulas`。 式の名前の突き合わせ (`formula-unresolved`) は
+ * つまみと先に書いた式の 2 つしか見ないが、 読み取り値は状態も読めるので 3 つを合わせる。
+ *
+ * ## 3 つの節を全て載せ終えてから呼ぶ
+ *
+ * 記法は `readouts:` を 3 つの節より前に書ける。 途中で呼ぶと、 後から載る節の名前を
+ * 「無い」 と知らせる。
+ *
+ * ## 見る欄を `source` だけにしない
+ *
+ * `stacked-bar` は `source` を持たず `sourceA` / `sourceB` だけを持つ。 `source` だけを
+ * 見る形にすると、 その種類が丸ごと黙ったまま残る (表の 107 種が持つ名前の欄は 24 種類)。
+ *
+ * ## 1 つの部品で 2 つ外れたら 2 件とも出す
+ *
+ * 片方で打ち切ると、 直した次の回にもう片方が初めて出る。
+ */
+function reportReadoutSourceMissing(
+  doc: DslDocument,
+  merged: CdlDiagram,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice) return;
+  const 読み取り値 = doc.readouts ?? [];
+  if (読み取り値.length === 0) return;
+  const 書かれた名前 = new Set<string>([
+    ...(merged.states ?? []).map((x) => x.id),
+    ...(merged.inputs ?? []).map((x) => x.id),
+    ...(merged.formulas ?? []).map((x) => x.id),
+  ]);
+  const hint = 書ける値の案内(書かれた名前);
+  for (const r of 読み取り値) {
+    for (const [欄, 値] of Object.entries(r)) {
+      if (!名前を指す欄(欄) || typeof 値 !== "string") continue;
+      if (書かれた名前.has(値)) continue;
+      onNotice({
+        kind: "readout-source-missing",
+        actor: 値,
+        line: r.pos?.line ?? 0,
+        message: `部品 "${truncateForMessage(r.id)}" の ${欄} が、 状態でもつまみでも式でもない名前 "${truncateForMessage(値)}" を読んでいます`,
+        hint,
+      });
+    }
+  }
+}
+
+/**
+ * 「states / inputs / formulas に書いた名前で指す」 の直し方を 1 本作る (#2405)。
+ *
+ * 並べる件数と 1 件ずつの長さを切るのは `書ける面の案内` と同じ理由 = 名前を上限まで書いた
+ * 図で知らせが数百 MB になる。
+ */
+function 書ける値の案内(書かれた名前: ReadonlySet<string>): string {
+  const 見せる数 = 8;
+  const 全部 = [...書かれた名前];
+  if (全部.length === 0) return "states / inputs / formulas のどれかに値を書く";
+  const 一覧 = 全部.slice(0, 見せる数).map(truncateForMessage).join(" / ");
+  const 残り = 全部.length - 見せる数;
+  return `states / inputs / formulas に書いた名前で指す (${一覧}${残り > 0 ? ` ほか ${残り} 件` : ""})`;
 }
 
 /**

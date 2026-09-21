@@ -249,7 +249,9 @@ export const FORMS: Section[] = [
       slot: "readouts",
       type: "flow",
       actors: ['  - 処理: { kind: card, value: "{done}" }'],
-      states: ["  done: 0", "  total: 100"],
+      // 部品が読む元は全て `states` に在ること。 無い名前を指した見本は、
+      // それに沿って書いた人がまず躓く (#2405 で `hist` の書き落としを検出)
+      states: ["  done: 0", "  total: 100", "  hist: 0"],
     },
     lines: [
       {
