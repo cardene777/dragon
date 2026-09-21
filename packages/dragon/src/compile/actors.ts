@@ -59,6 +59,17 @@ export function canonicalizeFlowActors(doc: DslDocument): DslDocument {
  *
  * 1 つも書いていなければ従来どおり位置で決める = 書かない記法の図は変わらない。
  * 片方だけ書いた形も、書いた側だけが切り替わる。
+ *
+ * ## 打ち消し (`initial: false`) は書いた箱にだけ効く (#2418)
+ *
+ * 書いたかどうかを `true` だけで数えていた間、`false` しか書かれていない図は
+ * 「1 つも書いていない」 扱いになって位置で決める既定へ落ちていた。 その既定は
+ * 「1 番目の箱が始まり」 なので、**打ち消しを書いた当の箱に札が出ていた** (知らせも 0 件)。
+ *
+ * 位置で決める既定から、打ち消しを書いた箱だけを外す。
+ *
+ * **「どれか 1 つでも書いたら既定を捨てる」 形にはしない** = 途中の箱に書いた
+ * `initial: false` が 1 番目の箱の札まで消す。 書き手は途中の箱のことしか言っていない。
  */
 export function 始まりと終わりの決め方(
   doc: DslDocument,
@@ -79,10 +90,14 @@ export function 始まりと終わりの決め方(
   const 書いた始まり = doc.actors.some((a) => a.initial === true);
   const 書いた終わり = doc.actors.some((a) => a.final === true);
   return {
-    始まり: (a, idx) => (書いた始まり ? a.initial === true : 並びで決める && idx === 0),
+    始まり: (a, idx) =>
+      書いた始まり ? a.initial === true : 並びで決める && idx === 0 && a.initial !== false,
     終わり: (a, idx) =>
       書いた終わり
         ? a.final === true
-        : 並びで決める && idx === doc.actors.length - 1 && doc.actors.length > 1,
+        : 並びで決める &&
+          idx === doc.actors.length - 1 &&
+          doc.actors.length > 1 &&
+          a.final !== false,
   };
 }
