@@ -49,6 +49,9 @@ export type CompileNotice = {
     | "value-duplicate"
     // 矢印が `actors` に無い名前を指した (#1209)
     | "flow-actor-missing"
+    // 帯 (`bands:`) を、 帯を描かない図種に書いた (#2404)。 帯は板の縦線に重ねる四角なので、
+    // 板を作らない図種には載せる先が無い (実測 = 24 図種のうち 22 図種が黙って捨てていた)
+    | "band-not-honored"
     // 順序図の帯 (`bands:`) が `actors` に無い名前を指した (#2404)。 描く側は見つからない名前を
     // 先頭の面に倒すため、 綴り違いの帯は正しく書いた帯と同じ図になり、 書き間違いが見えない
     | "band-actor-missing"

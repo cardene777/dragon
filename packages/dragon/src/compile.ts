@@ -279,7 +279,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 出した行を `図種が知らせた行` に控える = 多重度の知らせ (#2107) を同じ行に重ねない
   reportSkeletonEdgeOptionNotHonored(書いたまま, 図種が知らせた行, 図種の知らせ);
   reportMessageOptionNotHonored(書いたまま, opts?.onNotice);
-  reportBandProblems(書いたまま, opts?.onNotice);
+  reportBandProblems(書いたまま, diagram, opts?.onNotice);
   reportCardinalityNotHonored(書いたまま, 図種が知らせた行, opts?.onNotice);
   reportFlowOffsetNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
@@ -947,6 +947,15 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
  * 帯が 1 本ずれても図は出る。 「別の所に書いた名前を指す」 欄は 4 つとも知らせで扱っており
  * (箱の `lane` / 組の `lanes` / 出来事の `box` / 矢印の端)、 帯だけを誤りにする理由が無い。
  *
+ * ## 帯を描かない図種は、 それを先に知らせて打ち切る
+ *
+ * 帯は板の縦線に重ねる四角なので、 板を作らない図種には載せる先が無い
+ * (実測 = 24 図種のうち 22 図種が `bands:` を読んだうえで黙って捨てていた)。
+ * その図で名前や番号を直しても帯は出ないため、 直しても直らない案内を返さない。
+ *
+ * **図種を手で並べない**。 組み上がった図が板を持つかで決める = 図種を足した日にずれない
+ * (`rules/quality.md` の導出可能記述)。
+ *
  * ## なぜ読む側ではなくここで確かめるか
  *
  * 記法は `bands:` を `actors:` より前に書ける = 読む途中では面の一覧が揃っていない。
@@ -972,9 +981,10 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
  * `actors` に無い名前を指す言づては組み立ての前に落ちて板に載らない (実測 = 3 通のうち 1 通が
  * 落ちて 2 通になる)。 書いた行数で数えると、 落ちた分だけ上限が広がって範囲外を見逃す。
  *
- * ## 言づてが 1 通も無い図では番号を見ない
+ * ## 言づてが 1 通も無い図でも黙らない
  *
- * 比べる相手が無い。 番号が何であれ、 描く側は帯を描けない。
+ * 比べる相手が無いからと飛ばすと、 帯を書いたのに何も描かれない図が黙る経路になる。
+ * 範囲を示せないので、 理由を「言づてが 1 通も無い」 に変えて同じ知らせを出す。
  *
  * ## 負の番号はここで見ない
  *
@@ -986,10 +996,27 @@ function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileN
  *
  * 両方外れた帯には 2 件とも出す。 片方で止めると、 名前を直した次の回に番号の誤りが初めて出る。
  */
-function reportBandProblems(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+function reportBandProblems(
+  doc: DslDocument,
+  diagram: CdlDiagram,
+  onNotice?: (n: CompileNotice) => void,
+): void {
   if (!onNotice) return;
   const 帯 = doc.bands ?? [];
   if (帯.length === 0) return;
+  const 板がある = diagram.nodes.some((n) => n.sequenceData !== undefined);
+  if (!板がある) {
+    for (const b of 帯) {
+      onNotice({
+        kind: "band-not-honored",
+        actor: b.actor,
+        line: b.pos?.line ?? 0,
+        message: `type: ${doc.type} は帯を描きません (書いた帯は図に出ません)`,
+        hint: "帯は板の縦線に重ねる四角なので、 type: sequence か type: solidity で使う",
+      });
+    }
+    return;
+  }
   const 名前の表 = actorRefTable(doc);
   const hint = 書ける面の案内(doc);
   const 言づての数 = doc.flow.filter((s) => 名前の表.has(s.from) && 名前の表.has(s.to)).length;
@@ -1004,20 +1031,24 @@ function reportBandProblems(doc: DslDocument, onNotice?: (n: CompileNotice) => v
         hint,
       });
     }
-    if (言づての数 === 0) continue;
     const 外れ =
-      b.to > 言づての数 - 1
-        ? `板に載る言づては ${言づての数} 通で、 最後は ${言づての数 - 1} 番です`
-        : b.from > b.to
-          ? "始まりが終わりより後ろです"
-          : undefined;
+      言づての数 === 0
+        ? "板に載る言づてが 1 通もありません"
+        : b.to > 言づての数 - 1
+          ? `板に載る言づては ${言づての数} 通で、 最後は ${言づての数 - 1} 番です`
+          : b.from > b.to
+            ? "始まりが終わりより後ろです"
+            : undefined;
     if (外れ === undefined) continue;
     onNotice({
       kind: "band-row-out-of-range",
       actor: b.actor,
       line,
       message: `帯 "${truncateForMessage(b.actor)}: ${b.from}..${b.to}" の区間が言づての並びに収まりません (${外れ})`,
-      hint: `0..${言づての数 - 1} の範囲で、 始まりを終わり以下にする (番号は flow に書いた言づての行、 段ではありません)`,
+      hint:
+        言づての数 === 0
+          ? "帯は言づての行に重ねる四角なので、 flow に言づてを書く"
+          : `0..${言づての数 - 1} の範囲で、 始まりを終わり以下にする (番号は flow に書いた言づての行、 段ではありません)`,
     });
   }
 }
