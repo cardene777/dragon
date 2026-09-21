@@ -118,7 +118,9 @@ test.describe("CAR-1678 editor YAML tab", () => {
     });
 
     test("CDL tab で unsaved change あり = 切替時 confirm dialog、 cancel で切替中止", async ({ page }) => {
-      await page.goto("editor", { waitUntil: "networkidle" });
+      // 言語を指定して開く。 確認文言は画面の言語に付いてくるので (#2447)、
+      // 既定に任せると保存された言語で結果が変わる
+      await page.goto("editor?lang=ja", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
       // CDL 側 buffer を意図的に編集して dirty state を作る
       await page.locator('[data-testid="editor-code-body-cdl"] .cm-content').click();
@@ -133,8 +135,8 @@ test.describe("CAR-1678 editor YAML tab", () => {
       });
       await page.getByTestId("editor-tab-yaml").click();
       await page.waitForTimeout(300);
-      // spec § AC 2 の確認文言 SSOT
-      expect(dialogMessage).toContain("Unsaved changes will be lost");
+      // 英語の側は tests/after-action-locale.spec.ts が見る
+      expect(dialogMessage).toContain("書きかけの内容が消えます");
       // cancel なので CDL tab のまま
       expect(await getActiveTab(page)).toBe("cdl");
     });

@@ -500,10 +500,12 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const userEdited = src.trim() !== (lastLoadedSrcRef.current ?? "").trim();
     if (!userEdited) return true;
     const ok = window.confirm(
-      `編集中の内容が「${newSrcPreviewLabel}」 に置き換わります。 元に戻すには Cmd+Z で undo 可能。\n\n続けますか？`,
+      locale === "ja"
+        ? `編集中の内容が「${newSrcPreviewLabel}」 に置き換わります。 元に戻すには Cmd+Z で undo 可能。\n\n続けますか？`
+        : `Your edits will be replaced with "${newSrcPreviewLabel}". Cmd+Z undoes it.\n\nContinue?`,
     );
     return ok;
-  }, [src]);
+  }, [src, locale]);
 
   /**
    * CAR-1678 = YAML tab の dirty 判定 (yamlSrc.trim() !== yamlLastLoadedSrcRef.current.trim())。
@@ -517,10 +519,15 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     // 切替元 tab の dirty 判定に基づき confirm を出す (切替後 tab の buffer は保持される)。
     const sourceDirty = activeTab === "cdl" ? cdlDirty : yamlDirty;
     if (!sourceDirty) return true;
-    // spec AC 2 = `Unsaved changes will be lost. Continue?` の文言 SSOT。
+    // spec AC 2 = `Unsaved changes will be lost. Continue?` の文言 SSOT (英語の側)。
+    // 画面の言語に付いてくる (#2447)。 以前は日本語で使っていても英語で聞いていた。
     // native confirm dialog なので Playwright test は page.on("dialog") で捕捉する。
-    return window.confirm("Unsaved changes will be lost. Continue?");
-  }, [activeTab, src, yamlSrc]);
+    return window.confirm(
+      locale === "ja"
+        ? "書きかけの内容が消えます。 続けますか？"
+        : "Unsaved changes will be lost. Continue?",
+    );
+  }, [activeTab, src, yamlSrc, locale]);
 
   const handleTabSwitch = useCallback((next: "cdl" | "yaml"): void => {
     if (next === activeTab) return;
@@ -1522,12 +1529,18 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const url = `${window.location.origin}${window.location.pathname}#s=${encoded}`;
     try {
       await navigator.clipboard.writeText(url);
-      toast({ type: "success", title: "URL をコピーしました" });
+      toast({ type: "success", title: locale === "ja" ? "URL をコピーしました" : "Copied the URL" });
     } catch {
       // 写せない時は知らせを出した上で URL 自体も見せる。 知らせだけだと、 写せなかった人が
       // URL を手に入れる道が残らない
-      toast({ type: "error", title: "コピーに失敗しました" });
-      window.prompt("共有 URL をコピーしてください:", url);
+      toast({
+        type: "error",
+        title: locale === "ja" ? "コピーに失敗しました" : "Could not copy the URL",
+      });
+      window.prompt(
+        locale === "ja" ? "共有 URL をコピーしてください:" : "Copy this share URL:",
+        url,
+      );
     }
   };
 

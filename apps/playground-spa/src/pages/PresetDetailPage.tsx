@@ -158,14 +158,17 @@ export function PresetDetailPage(): React.ReactElement {
       await navigator.clipboard.writeText(window.location.href);
       toast({
         type: "success",
-        title: "URL をコピーしました",
+        title: locale === "ja" ? "URL をコピーしました" : "Copied the URL",
         description: `/preset/${preset.slug}`,
       });
     } catch {
       toast({
         type: "error",
-        title: "コピーできませんでした",
-        description: "この画面からは書き写し先に触れません",
+        title: locale === "ja" ? "コピーできませんでした" : "Could not copy the URL",
+        description:
+          locale === "ja"
+          ? "この画面からは書き写し先に触れません"
+          : "This page cannot reach the clipboard",
       });
     }
   };
