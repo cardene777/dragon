@@ -139,11 +139,12 @@ const 図種の既知の差: Record<string, 図種の差> = {
  * 別の取りこぼし (`focus-target-missing` 等) が混ざっても落ちない。
  */
 const 注意が出る見本: Record<string, { 種類: readonly string[]; 理由: string }> = {
-  pattern__flowDirection__縦に積む: {
+  pattern__flowDirection__横に並べる: {
     種類: ["direction-same-as-default"],
     理由:
       "既定と同じ向きを明に書ける形を見せる見本。 この図は動きを書いているので向きの行を外しても同じ並びになり、" +
-      "組み立てはそれを注意として伝える (#2421)",
+      "組み立てはそれを注意として伝える (#2421)。 #2424 でフローの既定が横になったので、宣言の相手が" +
+      "「縦に積む」 から「横に並べる」 へ移った",
   },
 };
 

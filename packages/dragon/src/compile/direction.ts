@@ -21,9 +21,21 @@ export type GenericKind = "flow" | "swimlane" | "er" | "state" | "topology";
  */
 export const 向きを選べる図種: ReadonlySet<PresetType> = new Set<PresetType>(["flow", "swimlane"]);
 
-/** その図種の既定の向き。 書かなかった時は今までどおりの並びになる。 */
+/**
+ * その図種の既定の向き (#2424 で `flow` を横にした)。
+ *
+ * **フローは横に並べる**。 縦に積むと描く広さが幅より高くなり、一覧の台は幅に合わせて
+ * 伸ばすので縦に長い図になる (実測 = 見本の頁の「フロー」 が 576×920 で、器 1150×630px に
+ * 収まらなかった)。 横に並べると 1 人 1 縦列になり、幅の側へ伸びる。
+ *
+ * `topology` だけ縦のまま = 入れ物 (`contain`) を持つ図で、縦列の中に箱を囲む作りが
+ * 向きと結びついている。
+ *
+ * **動きを書かないフローはここを読まない**。 その形は箱を鎖のように繋ぐ別の組み立てを通る
+ * (`鎖でつなぐ形か`)。 既定を変えても鎖の並びは 1 件も動かない。
+ */
 export function 既定の向き(kind: PresetType): "縦" | "横" {
-  return kind === "flow" || kind === "topology" ? "縦" : "横";
+  return kind === "topology" ? "縦" : "横";
 }
 
 /**

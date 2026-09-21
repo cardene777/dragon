@@ -588,6 +588,8 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       "class-complex-demo",
       "class-demo",
       "er-complex-demo",
+      // #2424 でフローの既定を横にした。 4 段を横に並べると幅が 2536 になる
+      "flow-demo",
       "fsm-complex-demo",
       "fsm-demo",
       "infra-complex-demo",

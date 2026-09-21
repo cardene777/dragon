@@ -1,6 +1,6 @@
 import {
+  diagram,
   swimlane,
-  flow,
   sequence,
   topology,
   er,
@@ -317,25 +317,73 @@ export const pattern__presetSwimlane__複雑 = withSteps(swimComplex.build(), [
 ]);
 
 // flow preset ... 1 lane に縦 stack、 前 step → 次 step 自動接続
-export const presetFlow = withSteps(
-  flow({
-    id: "flow-demo",
-    topic: "処理の順番を上から下へ 1 本の流れで示す図",
-    laneLabel: "ログインの流れ",
-    defaultTone: "teal",
-  })
-    .step({ id: "user", kind: "person", title: "利用者", eyebrow: "人" })
-    .step({ id: "api", kind: "api", title: "POST /login", eyebrow: "API" }, "ログイン要求")
-    .step({ id: "auth", kind: "service", title: "認証サービス", eyebrow: "サービス" }, "認証処理")
-    .step({ id: "db", kind: "database", title: "利用者の表", eyebrow: "DB" }, "パスワードの照合")
-    .build(),
-  [
-    { ids: ["user"], title: "1. 利用者", body: "ログインしようとする人から始まる。" },
-    { ids: ["api", "e-user-api"], title: "2. POST /login", body: "ログイン要求を受け取る。" },
-    { ids: ["auth", "e-api-auth"], title: "3. 認証サービス", body: "認証の処理に渡す。" },
-    { ids: ["db", "e-auth-db"], body: "認証サービスが利用者の表でパスワードを照合する。" },
-  ],
+/*
+ * フローの見本を横並びで組む (#2424)。
+ *
+ * **`flow()` を使えない**。 描画側の `flow()` は「1 本の縦列に全段を縦に積む」 と定義されており
+ * (`FlowPreset` の `laneLabel` が `lane label (1 本のみ、 全 step が縦 stack で並ぶ)`)、
+ * 横に並べた形を作れない。 記法の側は `direction` の既定を横にしたので、同じ図にするには
+ * 組み立て器の側も 1 人 1 縦列で組む必要がある。
+ *
+ * **`swimlane()` も使わない**。 あちらは縦列に見出しを付ける図で、横に並べたフローの縦列は
+ * 見出しを持たない (箱の題が名前を描くので、縦列にも同じ字を渡すと 2 度出る)。
+ * 素の組み立て器で記法と同じ形を組む。
+ */
+const flowLanes = ["lane-利用者", "lane-post-login", "lane-認証サ-ビス", "lane-利用者の表"];
+const flowBox = [
+  { id: "利用者", kind: "person" as const, title: "利用者", eyebrow: "人" },
+  { id: "post-login", kind: "api" as const, title: "POST /login", eyebrow: "API" },
+  { id: "認証サ-ビス", kind: "service" as const, title: "認証サービス", eyebrow: "サービス" },
+  { id: "利用者の表", kind: "database" as const, title: "利用者の表", eyebrow: "DB" },
+];
+const flowEdge = [
+  { id: "e0-利用者-post-login", from: "利用者", to: "post-login", label: "ログイン要求" },
+  { id: "e1-post-login-認証サ-ビス", from: "post-login", to: "認証サ-ビス", label: "認証処理" },
+  { id: "e2-認証サ-ビス-利用者の表", from: "認証サ-ビス", to: "利用者の表", label: "パスワードの照合" },
+];
+const flowB = diagram("flow-demo", {
+  topic: "処理の順番を左から右へ 1 本の流れで示す図",
+  type: "flow",
+});
+for (const lid of flowLanes) flowB.lane(lid, { width: 400 });
+flowBox.forEach((b, i) => {
+  flowB.node(b.id, { lane: flowLanes[i]!, stack: 0, kind: b.kind, title: b.title, eyebrow: b.eyebrow });
+});
+for (const e of flowEdge) {
+  flowB.edge(e.from, e.to, { id: e.id, label: e.label, tone: "teal", style: "dotted-flow" });
+}
+// 段を 1 つ置く = `withSteps()` は最初の段から札と題の既定を引く。 置かないと札が消え、
+// 題を書かない段の題が空になる (記法の側は図の題を使う)
+flowB.phase(
+  "p",
+  {
+    duration: 900,
+    title: "処理の順番を左から右へ 1 本の流れで示す図",
+    body: "認証サービスが利用者の表でパスワードを照合する。",
+  },
+  (p: PhaseBuilder) =>
+    p
+      .activate(...flowBox.map((b) => b.id), ...flowEdge.map((e) => e.id))
+      .badge("flow"),
 );
+
+export const presetFlow = withSteps(flowB.build(), [
+  { ids: ["利用者"], title: "1. 利用者", body: "ログインしようとする人から始まる。" },
+  {
+    ids: ["post-login", "e0-利用者-post-login"],
+    title: "2. POST /login",
+    body: "ログイン要求を受け取る。",
+  },
+  {
+    ids: ["認証サ-ビス", "e1-post-login-認証サ-ビス"],
+    title: "3. 認証サービス",
+    body: "認証の処理に渡す。",
+  },
+  {
+    ids: ["利用者の表", "e2-認証サ-ビス-利用者の表"],
+    body: "認証サービスが利用者の表でパスワードを照合する。",
+  },
+]);
 
 // sequence preset ... 時系列のやり取り (設計「箱と行と関係」 の意匠)
 //
@@ -3419,10 +3467,8 @@ export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
   2,
 );
 
-export const sourceYaml__presetFlow = `title: "処理の順番を上から下へ 1 本の流れで示す図"
+export const sourceYaml__presetFlow = `title: "処理の順番を左から右へ 1 本の流れで示す図"
 type: flow
-lanes:
-  main: { label: "ログインの流れ" }
 actors:
   - 利用者: { kind: person, eyebrow: "人" }
   - POST /login: { kind: api, eyebrow: "API" }
@@ -3445,16 +3491,15 @@ animation:
     badge: "flow"
     focus: [利用者, "POST /login", 認証サービス, "利用者 -> POST /login", "POST /login -> 認証サービス"]
     body: "認証の処理に渡す。"
-  - step: "処理の順番を上から下へ 1 本の流れで示す図" 0.9s
+  - step: "処理の順番を左から右へ 1 本の流れで示す図" 0.9s
     badge: "flow"
     focus: [利用者, "POST /login", 認証サービス, "利用者の表", "利用者 -> POST /login", "POST /login -> 認証サービス", "認証サービス -> 利用者の表"]
     body: "認証サービスが利用者の表でパスワードを照合する。"
 `;
 
 export const sourceJson__presetFlow = `{
-  "title": "処理の順番を上から下へ 1 本の流れで示す図",
+  "title": "処理の順番を左から右へ 1 本の流れで示す図",
   "type": "flow",
-  "lanes": { "main": {"label": "ログインの流れ"} },
   "actors": [
     { "name": "利用者", "kind": "person", "eyebrow": "人" },
     { "name": "POST /login", "kind": "api", "eyebrow": "API" },
@@ -3513,7 +3558,7 @@ export const sourceJson__presetFlow = `{
       "badge": "flow"
     },
     {
-      "step": "処理の順番を上から下へ 1 本の流れで示す図",
+      "step": "処理の順番を左から右へ 1 本の流れで示す図",
       "duration": 0.9,
       "focus": [
         "利用者",
