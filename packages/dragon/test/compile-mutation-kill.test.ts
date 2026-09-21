@@ -2301,14 +2301,18 @@ describe("applyV05Extensions / applyCanvasPivotPositions: id 一致経路の分�
   });
 
   it("非 ASCII actor 名 (slug != 名前) でも slug 一致で反映", () => {
-    // dragon slugify は長音「ー」を `-` に変換するため id は "ユ-ザ" になる。
+    // 名前の中の空白が `-` になるため id は "ユーザ-一覧" になる。
     // actor 名そのままではなく slug 側で一致させる経路を検証する。
+    //
+    // **伸ばす音だけでは差が出ない** (#2431)。 以前は "ユーザー" が "ユ-ザ" になることを
+    // 使っていたが、伸ばす音を残すようにしたので名前と slug が一致してしまい、
+    // 「slug != 名前」 という前提が崩れる = 検査が空振りする。
     const d = compile("swimlane", {
-      actors: [actor("ユーザー", { posX: 5, posY: 6 }), actor("B")],
-      flow: [step("ユーザー", "B")],
+      actors: [actor("ユーザ 一覧", { posX: 5, posY: 6 }), actor("B")],
+      flow: [step("ユーザ 一覧", "B")],
     });
-    expect(node(d, "ユ-ザ").posX).toBe(5);
-    expect(node(d, "ユ-ザ").posY).toBe(6);
+    expect(node(d, "ユーザ-一覧").posX).toBe(5);
+    expect(node(d, "ユーザ-一覧").posY).toBe(6);
   });
 
   it("actor option は header 無し preset (swimlane) の node にも merge される", () => {

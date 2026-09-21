@@ -329,17 +329,17 @@ export const pattern__presetSwimlane__複雑 = withSteps(swimComplex.build(), [
  * 見出しを持たない (箱の題が名前を描くので、縦列にも同じ字を渡すと 2 度出る)。
  * 素の組み立て器で記法と同じ形を組む。
  */
-const flowLanes = ["lane-利用者", "lane-post-login", "lane-認証サ-ビス", "lane-利用者の表"];
+const flowLanes = ["lane-利用者", "lane-post-login", "lane-認証サービス", "lane-利用者の表"];
 const flowBox = [
   { id: "利用者", kind: "person" as const, title: "利用者", eyebrow: "人" },
   { id: "post-login", kind: "api" as const, title: "POST /login", eyebrow: "API" },
-  { id: "認証サ-ビス", kind: "service" as const, title: "認証サービス", eyebrow: "サービス" },
+  { id: "認証サービス", kind: "service" as const, title: "認証サービス", eyebrow: "サービス" },
   { id: "利用者の表", kind: "database" as const, title: "利用者の表", eyebrow: "DB" },
 ];
 const flowEdge = [
   { id: "e0-利用者-post-login", from: "利用者", to: "post-login", label: "ログイン要求" },
-  { id: "e1-post-login-認証サ-ビス", from: "post-login", to: "認証サ-ビス", label: "認証処理" },
-  { id: "e2-認証サ-ビス-利用者の表", from: "認証サ-ビス", to: "利用者の表", label: "パスワードの照合" },
+  { id: "e1-post-login-認証サービス", from: "post-login", to: "認証サービス", label: "認証処理" },
+  { id: "e2-認証サービス-利用者の表", from: "認証サービス", to: "利用者の表", label: "パスワードの照合" },
 ];
 const flowB = diagram("flow-demo", {
   topic: "処理の順番を左から右へ 1 本の流れで示す図",
@@ -375,12 +375,12 @@ export const presetFlow = withSteps(flowB.build(), [
     body: "ログイン要求を受け取る。",
   },
   {
-    ids: ["認証サ-ビス", "e1-post-login-認証サ-ビス"],
+    ids: ["認証サービス", "e1-post-login-認証サービス"],
     title: "3. 認証サービス",
     body: "認証の処理に渡す。",
   },
   {
-    ids: ["利用者の表", "e2-認証サ-ビス-利用者の表"],
+    ids: ["利用者の表", "e2-認証サービス-利用者の表"],
     body: "認証サービスが利用者の表でパスワードを照合する。",
   },
 ]);
