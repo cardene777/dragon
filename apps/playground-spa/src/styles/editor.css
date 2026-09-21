@@ -663,11 +663,34 @@
       font-size: 13px;
     }
   }
+  /* 札と押しボタンを 1 段目、知らせの文を 2 段目に置く (#2437)。
+   *
+   * 3 つを横一列に並べていた頃、記法欄の幅 340px のうち札 (117px) と押しボタン (102px) と
+   * 間隔で 231px を取るため、文には 64px しか残らなかった。 文の置き場所は `flex: 1`
+   * (= `flex: 1 1 0%`) で下限を持たないので、42 文字が 5 文字ずつ 9 行に折れ、
+   * 帯の高さの上限を 156px 超えて大半が隠れていた (窓 1440x900 で実測)。
+   *
+   * **文に下限の幅を与える形は採らない**。 札と押しボタンが先に 231px を取るので、
+   * 下限を与えると帯そのものが横に溢れる。 折り返す先を増やすのが正しい。
+   *
+   * 押しボタンは 1 段目の右端に残す (`margin-left: auto`)。 押す位置が段の左へ動くと、
+   * 手が覚えた場所とずれる。 並べ替えるのは見た目だけで、DOM の並びは変えない
+   * (押しボタン以外は焦点を取らないので、キーボードの順番は動かない)。
+   */
   .v4-editor-warnings-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    column-gap: 12px;
+    row-gap: 6px;
     margin-bottom: 8px;
+  }
+  .v4-editor-warnings-head > .v4-editor-warnings-badge {
+    order: 1;
+  }
+  .v4-editor-warnings-head > .v4-editor-warnings-apply {
+    order: 2;
+    margin-left: auto;
   }
   .v4-editor-warnings-badge {
     display: inline-block;
@@ -681,9 +704,11 @@
     font-weight: 600;
   }
   .v4-editor-warnings-hint {
+    order: 3;
+    /* 段いっぱいを使い、縮まない (縮ませると 1 段目へ戻ろうとして元の細さに潰れる) */
+    flex: 1 0 100%;
     color: var(--d-text-secondary);
     font-size: 12.5px;
-    flex: 1;
   }
   .v4-editor-warnings-apply {
     display: inline-flex;
@@ -725,9 +750,16 @@
     flex-direction: column;
     gap: 4px;
   }
+  /* 1 件の注意も、軸の名札を 1 段目、説明を 2 段目に置く (#2437)。
+   *
+   * 帯の頭と同じ理由。 名札 (`responsive-viewport` で 134px) を横に置くと、記法欄の幅
+   * 307px のうち説明に 163px しか残らず、118 文字が 12 行に折れて帯の見える範囲から出る。
+   */
   .v4-editor-warning-item {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    column-gap: 10px;
+    row-gap: 2px;
     align-items: baseline;
     padding: 4px 0;
     font-family: var(--d-body);
@@ -750,6 +782,8 @@
     font-size: 10.5px;
   }
   .v4-editor-warning-detail {
+    /* 段いっぱいを使い、縮まない (名札の横に戻ると元の細さに潰れる) */
+    flex: 1 0 100%;
     color: var(--d-text-primary);
     font-size: 12.5px;
     line-height: 1.7;
