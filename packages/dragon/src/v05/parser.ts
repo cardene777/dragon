@@ -753,8 +753,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
       // 入る (`min({a}, {b})`) ため、 `states` が使う素朴な `,` 分割では式が壊れる。
       //
       // **`{` で始まるかを見てはいけない** (#1169)。 `values: a: "{b} + 1"` は `{` で始まらない
-      // ため判定を通り抜け、 その後 `collectIndentedRaw` が次行以降しか見ないので **値が
-      // 1 件も読まれずに黙って消える**。 書き間違いを黙って捨てないという `collectIndentedRaw`
+      // ため判定を通り抜け、 その後 `collectIndentedList` が次行以降しか見ないので **値が
+      // 1 件も読まれずに黙って消える**。 書き間違いを黙って捨てないという `collectIndentedList`
       // を自前で持った理由と矛盾する。
       //
       // 同じ行に何か書いてあれば形を問わず弾く = 1 行形は全て受けないという規則そのもの。
@@ -770,7 +770,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       }
       // 字下げした行を 1 行も落とさずに集める。 捨てられると書き間違えた行が
       // 「書かなかった」 と同じになり、 値が 1 つ消えたことに気付けない
-      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       for (const it of items) {
         const v = parseValueEntry(it.trimmed.replace(/^-\s*/, ""), it.no, errors);
         if (v) values.push(v);
@@ -819,7 +819,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       // block: viewport:\n  width: 1400\n  height: 900\n  ...
       // **`collectIndentedList` を使わない** (#1968)。 あちらは `:` を含まない行を黙って捨てるため、
       // 書き間違えた行が「書かなかった」 と同じになる (`axes:` と同じ理由)
-      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       const opts: Record<string, string> = {};
       // 知らせは **値を書いた行** を指す (#1306)。 `viewport:` の行を指すと、欄が縦に並ぶ形で
       // どの行を直せばよいか分からない
@@ -880,7 +880,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       }
       // **`collectIndentedList` を使わない** (Round 1 の指摘)。 あちらは `:` を含まない行を
       // 黙って捨てるため、書き間違えた行が「書かなかった」 と同じになる
-      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       axesLine = line.no;
       const 組み立て: DslAxes = {};
       for (const it of items) {
@@ -987,7 +987,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       }
       // `collectIndentedList` は `:` の無い行を落とす。 部品を綴り違えた行も知らせるため、
       // 字下げした行を全て読み手へ渡す。
-      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       readoutsList = [];
       for (const it of items) {
         const m = 名前と中括弧に割る(it.trimmed);
@@ -1019,7 +1019,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       }
       // `collectIndentedList` は `:` の無い行を落とす。 つまみを綴り違えた行も知らせるため、
       // 字下げした行を全て読み手へ渡す。
-      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       inputsList = [];
       for (const it of items) {
         const m = 名前と中括弧に割る(it.trimmed);
@@ -1052,7 +1052,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
         continue;
       }
       // 字下げした行を全て読み手へ渡す = 綴りを誤った行も知らせるため
-      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       formulasList = [];
       for (const it of items) {
         const f = 式として読む(it.trimmed.replace(/^-\s*/, ""), it.no, errors);
@@ -1072,7 +1072,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
         i += 1;
         continue;
       }
-      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       eventsList = [];
       for (const it of items) {
         const e = 出来事として読む(it.trimmed.replace(/^-\s*/, ""), it.no, errors);
@@ -1092,7 +1092,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
         i += 1;
         continue;
       }
-      const { items, next } = collectIndentedRaw(lines, i + 1, line.indent);
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
       scrollsList = [];
       scrollLines = new Map();
       for (const it of items) {
@@ -2725,7 +2725,14 @@ function splitInlineFields(inner: string): string[] {
  * 知らせ 0 件でその状態が消えた)。 判定を読み手 1 か所に寄せると、受ける形を広げた日に
  * 集める側を直し忘れて黙る形も生まれない。
  *
- * 同じ考えで書かれた `collectIndentedRaw` (値の節、 #1169) と揃えた。
+ * **記法が受ける全ての節がここを通る** (#2406)。 以前は先頭の `- ` を外す版と外さない版の
+ * 2 つに分かれていたが、 形の合わない行を捨てない振る舞いが #2400 で揃った時点で違いが
+ * 「`- ` を外すかどうか」 の 1 行だけになり、 外す側へ寄せて 1 つにした。
+ *
+ * **外す側へ寄せると、 受ける形が増える節がある**。 まとめる前に測ると、 11 節のうち 8 節は
+ * 既に `- ` を受けており (5 節はここで外し、 3 節は読み手が自分で外していた)、 受けないのは
+ * `readouts` / `inputs` / `scrolls` の 3 節だけだった。 寄せると この 3 節も受ける =
+ * **既にある図の意味は 1 つも変わらず**、 節によって受ける形が違う不揃いが消える。
  *
  * **空行とコメント行はここで飛ばす**。 読み手はどれも「書いた指定」 として読むため、
  * 渡すとコメントが誤りとして報告される (実測 = コロンを含むコメント `# めも: あ` が
@@ -4240,35 +4247,6 @@ function parseStateEntry(text: string, lineNo: number, errors: DslError[]): DslS
   return { name, initial, pos: { line: lineNo } };
 }
 
-/**
- * 字下げした行を 1 行も落とさずに集める。
- *
- * 捨てずに読み手 (`parseValueEntry`) へ渡すことで、読めない行を読み手が
- * 「値の行が読めません」 として報告できる。
- *
- * **`collectIndentedList` との違いは、先頭の `- ` を外さないことだけになった**。
- * 形が合わない行を捨てない振る舞いは #1169 で本 file が先に採り、 #2400 で
- * `collectIndentedList` も同じ形へ揃えた。 2 つを 1 つにまとめる話は #2406。
- */
-function collectIndentedRaw(
-  lines: Line[],
-  start: number,
-  parentIndent: number,
-): { items: Line[]; next: number } {
-  const items: Line[] = [];
-  let i = start;
-  while (i < lines.length) {
-    const ln = lines[i];
-    if (!ln || !ln.trimmed || ln.trimmed.startsWith("#")) {
-      i += 1;
-      continue;
-    }
-    if (ln.indent <= parentIndent) break;
-    items.push(ln);
-    i += 1;
-  }
-  return { items, next: i };
-}
 
 /**
  * `waiting: "{inflow} - {done}"` を 1 件の値として読む。

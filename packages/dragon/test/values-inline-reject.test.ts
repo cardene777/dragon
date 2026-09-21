@@ -6,7 +6,7 @@
  * 判定を通り抜けた。 その後の読み取りは次行以降しか見ないので、**値が 1 件も読まれずに
  * 黙って消える**。
  *
- * 書き間違いを黙って捨てないという `collectIndentedRaw` を自前で持った理由と矛盾していた。
+ * 書き間違いを黙って捨てないという `collectIndentedList` の理由と矛盾していた。
  */
 import { describe, it, expect } from "vitest";
 import { countDocElements, parseTextDslV05 } from "../src/index";
