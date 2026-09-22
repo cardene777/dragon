@@ -12,43 +12,58 @@ interface CompiledDiagram {
   edges: Array<{ from: string; to: string; label?: string }>;
 }
 
+/**
+ * 札を持つ見本だけを集める。 札が 1 本も無い見本 (円グラフ 等) は
+ * 「札の性質」 を持たないので、判定の母数から外す。
+ *
+ * **検査の本文で抜けない** (#2500)。 抜ける形は、母数が空になった日に
+ * 何も確かめずに通る形と見分けが付かない。
+ */
+const 札を持つ見本 = EDITOR_SAMPLES.map((sample) => {
+  const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
+  const labels = d.edges.map((e) => e.label ?? "").filter((l) => l.length > 0);
+  return { sample, d, labels };
+}).filter((x) => x.labels.length > 0);
+
+/** 矢印を持つ見本。 上と同じ理由で母数から外す */
+const 矢印を持つ見本 = EDITOR_SAMPLES.map((sample) => ({
+  sample,
+  d: textDslToDiagram(sample.code) as unknown as CompiledDiagram,
+})).filter((x) => x.d.edges.length > 0);
+
 describe("iter80: 全 sample × edge label diversity", () => {
-  for (const sample of EDITOR_SAMPLES) {
-    describe(`sample = ${sample.label}`, () => {
-      it(`edge label 分布 (unique 数 / total 数)`, () => {
-        const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
-        const labels = d.edges.map((e) => e.label ?? "").filter((l) => l.length > 0);
-        // 同 label edge 過多 (単一 label > 50%) の検知
-        const counts = new Map<string, number>();
-        for (const l of labels) counts.set(l, (counts.get(l) ?? 0) + 1);
-        for (const [l, c] of counts) {
-          if (labels.length > 0) {
-            expect(c / labels.length, `label "${l}" ratio`).toBeLessThanOrEqual(1);
-          }
-        }
-      });
+  it("札を持つ見本と矢印を持つ見本が 1 件以上ある (走査の生存確認)", () => {
+    // 0 件だと、下の検査が全部何も確かめずに通る
+    expect(札を持つ見本.length, `見本 ${EDITOR_SAMPLES.length} 件のどれも札を持たない`).toBeGreaterThan(0);
+    expect(矢印を持つ見本.length, `見本 ${EDITOR_SAMPLES.length} 件のどれも矢印を持たない`).toBeGreaterThan(0);
+  });
 
-      it(`空 label edge 比率 == 100% or < 100% (mind 図等の全空 label は許容)`, () => {
-        const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
-        if (d.edges.length === 0) return;
-        const empty = d.edges.filter((e) => !e.label || e.label.length === 0).length;
-        expect(empty / d.edges.length).toBeLessThanOrEqual(1);
-      });
+  // 消した 2 件 (#2500)。
+  //
+  // 「edge label 分布」 は `単一 label / 全 label <= 1` を見ており、部分を全体で割った値は
+  // 常に 1 以下なので何も確かめていなかった。 comment は「単一 label > 50% の検知」 と
+  // 書くが、実測では動物クラス階層が同じ札を 2 本とも使う (100%) = 継承の図では正しい形で、
+  // 50% は守るべき性質ではない。
+  //
+  // 「空 label edge 比率 == 100% or < 100%」 は名前が全ての場合を覆っており、
+  // 守る性質が 1 つも書かれていない。
 
-      it(`label 平均長 <= 60`, () => {
-        const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
-        const labels = d.edges.map((e) => e.label ?? "").filter((l) => l.length > 0);
-        if (labels.length === 0) return;
-        const avg = labels.reduce((sum, l) => sum + l.length, 0) / labels.length;
-        expect(avg).toBeLessThanOrEqual(60);
-      });
+  for (const { sample, labels } of 札を持つ見本) {
+    it(`${sample.label}: 札の平均の長さが 60 字以下`, () => {
+      const avg = labels.reduce((sum, l) => sum + l.length, 0) / labels.length;
+      expect(avg, `札 ${labels.length} 本の平均`).toBeLessThanOrEqual(60);
+    });
+  }
 
-      it(`edge の from ≠ to 比率 >= 40% (実 flow 検知)`, () => {
-        const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
-        if (d.edges.length === 0) return;
-        const nonLoop = d.edges.filter((e) => e.from !== e.to).length;
-        expect(nonLoop / d.edges.length).toBeGreaterThanOrEqual(0);
-      });
+  for (const { sample, d } of 矢印を持つ見本) {
+    it(`${sample.label}: 行き先が違う矢印が全体の 40% 以上 (実 flow 検知)`, () => {
+      // **名前は 40% と言い、本文は 0 以上を見ていた** (#2500)。 名前の側に揃えた。
+      // 実測 (2026-09-22) では矢印を持つ 7 図すべてで 100%。
+      const nonLoop = d.edges.filter((e) => e.from !== e.to).length;
+      expect(
+        nonLoop / d.edges.length,
+        `${sample.label} で行き先が違う矢印が ${nonLoop} / ${d.edges.length} 本`,
+      ).toBeGreaterThanOrEqual(0.4);
     });
   }
 });

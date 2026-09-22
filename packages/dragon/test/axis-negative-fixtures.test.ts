@@ -143,7 +143,7 @@ describe("Axis 54 node-inside-lane (negative fixture)", () => {
 // ────────────────────────────────────────────────────────────
 
 describe("Axis 12 edge-node-cross (真の negative fixture)", () => {
-  it("同 lane 内 3 node で 1 番目 → 3 番目 edge が 2 番目 node を貫通、 発火 > 0", () => {
+  it("同 lane 内 3 node を貫く矢印を手で組んでも発火しない (layout が防いでいる)", () => {
     // 同 lane 内 stack 0/1/2 に 3 node、 stack 0 と stack 2 を結ぶ edge が stack 1 node を貫通
     const diag: CdlDiagram = {
       id: "cross-3-nodes",
@@ -159,10 +159,19 @@ describe("Axis 12 edge-node-cross (真の negative fixture)", () => {
       states: [],
     };
     const report = visualValidate(diag);
-    // edge-node-cross または edge-crossing が発火するはず (mid node を跨ぐ layout)
+    // **名前は「発火 > 0」 と言い、本文は「0 以上」 を見ていた** (#2500)。 数え上げた値は
+    // 必ず 0 以上なので何も確かめていない。 `> 0` へ直すと落ちる = **この形では発火しない**
+    // (実測 2026-09-22 で 0 件)。 file 冒頭が書くとおり、CdlDiagram の段で defect を仕込んでも
+    // layout が位置を組み直して解消する。
+    //
+    // そこで **0 件であること** を見る。 layout が組み直しをやめた日にここが落ちる
+    // = 冒頭が言う「layout regression の safety net」 として働く。
+    // 真の defect を持つ図での発火は、下の pattern-passthrough の 1 件が見ている。
     const crossViolations = findAxis(report, "edge-node-cross").length + findAxis(report, "edge-crossing").length;
-    expect(crossViolations).toBeGreaterThanOrEqual(0);
-    // 少なくとも counts field で確認
+    expect(
+      crossViolations,
+      "手で組んだ貫通が発火した。 layout が位置を組み直さなくなった可能性がある",
+    ).toBe(0);
     expect(report.counts).toHaveProperty("edge-node-cross");
     expect(report.counts).toHaveProperty("edge-crossing");
   });
@@ -208,11 +217,9 @@ describe("Axis 集約検証 (fixture-driven, 真の defect あり catalog)", () 
     const passthrough = Object.values(patterns)
       .filter(isDiag)
       .find((v) => v.id === "pattern-passthrough");
-    if (!passthrough) {
-      // 存在しない場合は skip (id 変更等の可能性)
-      return;
-    }
-    const report = visualValidate(passthrough);
+    // **抜ける形にしない** (#2500)。 図が消えた日に何も確かめずに通る
+    expect(passthrough, "pattern-passthrough が catalog に無い (id が変わった可能性)").toBeDefined();
+    const report = visualValidate(passthrough!);
     // pattern-passthrough は intentional な edge-node-cross error を含む
     // 発火数 > 0 なら axis 判定 logic が真の defect を検知できている証拠
     const crossCount = report.counts["edge-node-cross"];

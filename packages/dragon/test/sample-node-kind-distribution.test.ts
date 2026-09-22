@@ -16,11 +16,9 @@ interface CompiledDiagram {
 describe("iter45: 全 sample × node kind distribution 網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
-      it(`kind が定義される node の割合 >= 0% (全 node kind 定義 optional)`, () => {
-        const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
-        const withKind = d.nodes.filter((n) => typeof n.kind === "string" && n.kind.length > 0);
-        expect(withKind.length).toBeGreaterThanOrEqual(0);
-      });
+      // 「kind を持つ箱の割合が 0% 以上」 を見ていた 1 件を消した (#2500)。
+      // 数え上げた結果は必ず 0 以上で、kind は任意なので下限も上限も置けない。
+      // kind の中身は下の 2 件 (制御文字 / 空白なし、200 字以下) が見ている。
 
       it(`unique kind 数が nodes 総数以下`, () => {
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;

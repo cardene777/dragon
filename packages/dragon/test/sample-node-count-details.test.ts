@@ -33,15 +33,8 @@ describe("iter96: 全 sample × node count details", () => {
         expect(d.phases.length).toBeLessThanOrEqual(50);
       });
 
-      it(`nodes count が integer`, () => {
-        const d = textDslToDiagram(sample.code);
-        expect(Number.isInteger(d.nodes.length)).toBe(true);
-      });
-
-      it(`nodes count が negative でない`, () => {
-        const d = textDslToDiagram(sample.code);
-        expect(d.nodes.length).toBeGreaterThanOrEqual(0);
-      });
+      // 「整数」 と「負でない」 を見ていた 2 件を消した (#2500)。 配列の長さは必ず
+      // 0 以上の整数で、箱の数の下限は上の `nodes count >= 1` が見ている。
     });
   }
 });

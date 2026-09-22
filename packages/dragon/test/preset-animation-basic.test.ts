@@ -28,15 +28,32 @@ describe("iter63: 全 preset × animation property verify", () => {
     expect(並べた名前(ALL_PRESETS.map((p) => p.name))).toEqual(並べた名前(見本の名前));
   });
 
-  for (const { name, diagram } of ALL_PRESETS) {
-    it(`${name}: phases 存在時 array + phase 内部 sanity`, () => {
-      const phases = (diagram as unknown as { phases?: Array<{ focus?: unknown; steps?: unknown }> }).phases;
-      if (phases === undefined) return;
+  // **検査の本文で抜けない** (#2500)。 段は任意なので、持つ見本だけを母数にする。
+  // 抜ける形にすると、全ての見本が段を持たなくなった日に何も確かめずに通る
+  const 段を持つ見本 = ALL_PRESETS.map((p) => ({
+    name: p.name,
+    phases: (p.diagram as unknown as { phases?: Array<{ focus?: unknown; steps?: unknown }> }).phases,
+  })).filter((x): x is { name: string; phases: Array<{ focus?: unknown; steps?: unknown }> } =>
+    x.phases !== undefined,
+  );
+
+  it("段を持つ見本が 1 件以上ある (走査の生存確認)", () => {
+    expect(
+      段を持つ見本.length,
+      `見本 ${ALL_PRESETS.length} 件のどれも段を持たない`,
+    ).toBeGreaterThan(0);
+  });
+
+  for (const { name, phases } of 段を持つ見本) {
+    it(`${name}: 段が配列で、中身が物である`, () => {
       expect(Array.isArray(phases)).toBe(true);
       for (const p of phases) {
         expect(typeof p).toBe("object");
       }
     });
+  }
+
+  for (const { name, diagram } of ALL_PRESETS) {
 
     it(`${name}: nodes 各 node に id 存在`, () => {
       for (const n of diagram.nodes) {

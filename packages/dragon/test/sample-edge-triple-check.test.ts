@@ -54,15 +54,8 @@ describe("iter84: 全 sample × edge triple check", () => {
         }
       });
 
-      it(`edges array length integer`, () => {
-        const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
-        expect(Number.isInteger(d.edges.length)).toBe(true);
-      });
-
-      it(`edges array length >= 0`, () => {
-        const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
-        expect(d.edges.length).toBeGreaterThanOrEqual(0);
-      });
+      // 「配列の長さが整数」 と「長さが 0 以上」 を見ていた 2 件を消した (#2500)。
+      // 配列の長さは必ず 0 以上の整数なので、製品の性質を 1 つも見ていない。
     });
   }
 });

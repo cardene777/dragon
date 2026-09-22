@@ -42,18 +42,8 @@ describe("iter100: sample milestone additional check", () => {
         expect(ok).toBe(true);
       });
 
-      it(`nodes.length + edges.length + states.length + phases.length integer`, () => {
-        const d = textDslToDiagram(sample.code);
-        expect(Number.isInteger(d.nodes.length + d.edges.length + d.states.length + d.phases.length)).toBe(true);
-      });
-
-      it(`total counts >= 0`, () => {
-        const d = textDslToDiagram(sample.code);
-        expect(d.nodes.length).toBeGreaterThanOrEqual(0);
-        expect(d.edges.length).toBeGreaterThanOrEqual(0);
-        expect(d.states.length).toBeGreaterThanOrEqual(0);
-        expect(d.phases.length).toBeGreaterThanOrEqual(0);
-      });
+      // 「4 つの長さの合計が整数」 と「4 つとも 0 以上」 を見ていた 2 件を消した (#2500)。
+      // 配列の長さは必ず 0 以上の整数なので、製品の性質を 1 つも見ていない。
     });
   }
 });

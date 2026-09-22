@@ -57,10 +57,17 @@ describe("layoutWithValidation", () => {
   });
 
   it("全 patterns diagram で報告される axis 数の合計が visualValidate と一致", () => {
+    // **名前が言う照合を本文でしていなかった** (#2500)。 `visualValidate` を呼ばず
+    // 「0 以上」 を見ており、配列の長さは必ず 0 以上なので何も確かめていなかった。
+    expect(patternsDiagrams.length, "パターンの図を 1 枚も集められていない").toBeGreaterThan(0);
     for (const d of patternsDiagrams) {
-      const result = layoutWithValidation(d, { fix: false });
-      // fix:false なので violations は visualValidate 単発と同じ
-      expect(result.report.violations.length).toBeGreaterThanOrEqual(0);
+      const 通した = layoutWithValidation(d, { fix: false }).report.violations;
+      // fix:false なので violations は visualValidate 単発と同じになるはず
+      const 単発 = visualValidate(d).violations;
+      expect(
+        通した.map((v) => v.axis).sort(),
+        `${d.id} で報告される軸が visualValidate と違う`,
+      ).toEqual(単発.map((v) => v.axis).sort());
     }
   });
 

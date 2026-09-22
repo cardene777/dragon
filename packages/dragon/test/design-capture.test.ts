@@ -133,13 +133,16 @@ describe("実物で確かめる", () => {
    * 実物は `.context/` にしか無く commit されないため、無い時は飛ばす = 検査が
    * 落ちるのではなく「見ていない」 ことが判る形にする。
    */
-  it("納めた look.svg は引き終わっている", () => {
+  it("納めた look.svg は引き終わっている", (ctx) => {
     const repo = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
     const 対象 = ["er-demo", "seq-demo", "infra-demo", "chart-line-demo"]
       .map((id) => join(repo, "docs/design/notation/presets", id, "look.svg"))
       .filter((p) => existsSync(p));
 
-    if (対象.length === 0) return;
+    // **抜けるのではなく飛ばす** (#2500)。 裸の `return` は通ったのと見分けが付かない。
+    // `ctx.skip()` なら報告に「飛ばした」 と出るので、上の doc が言う
+    // 「落ちるのではなく見ていないことが判る形」 が実際に成り立つ
+    if (対象.length === 0) ctx.skip();
 
     for (const p of 対象) {
       const r = 引き終わり(readFileSync(p, "utf8")) as 状態;
