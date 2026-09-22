@@ -29,13 +29,14 @@ describe("iter58: 全 preset × node density 網羅", () => {
   });
 
   for (const { name, diagram } of ALL_PRESETS) {
-    it(`${name}: edge density (edges/nodes) が 0-10 範囲`, () => {
+    it(`${name}: 矢印の数が箱の数の 10 倍以下`, () => {
+      // 下限の「0 以上」 は数え上げた値なので常に真だった (#2500)。 上限だけを見る。
       const n = diagram.nodes.length;
-      if (n > 0) {
-        const density = diagram.edges.length / n;
-        expect(density).toBeGreaterThanOrEqual(0);
-        expect(density).toBeLessThanOrEqual(10);
-      }
+      expect(n, `${name} が箱を 1 つも持たない`).toBeGreaterThan(0);
+      expect(
+        diagram.edges.length / n,
+        `${name} で矢印 ${diagram.edges.length} 本 / 箱 ${n} 個`,
+      ).toBeLessThanOrEqual(10);
     });
 
     it(`${name}: node id が preset 内 unique`, () => {

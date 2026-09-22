@@ -77,12 +77,11 @@ describe("呼出側に型が届く", () => {
     expect(mapped![0]).toContain("packages/dragon/src");
   });
 
-  it("束ねた d.ts が実体を持つ (相対 re-export だけになっていない)", async () => {
+  it("束ねた d.ts が実体を持つ (相対 re-export だけになっていない)", async (ctx) => {
     const dts = new URL("dist/index.d.ts", PKG);
-    if (!(await exists(dts))) {
-      // build 前は確かめられない。 出力先の分離は上の 2 件が見ている
-      return;
-    }
+    // **抜けるのではなく飛ばす** (#2500)。 裸の `return` は通ったのと見分けが付かない。
+    // build 前は確かめられない (出力先の分離は上の 2 件が見ている)
+    if (!(await exists(dts))) ctx.skip();
     const body = await readFile(dts, "utf8");
     // 自 package 内への相対 re-export が残っていたら、 参照先が dist に無く型が解決しない
     const relativeReExports = [...body.matchAll(/^export .* from ["']\.\/.*["'];$/gm)].map((m) => m[0]);

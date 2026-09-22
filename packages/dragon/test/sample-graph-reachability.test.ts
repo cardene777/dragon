@@ -44,13 +44,23 @@ function bfs(adj: Map<string, Set<string>>, start: string): Set<string> {
 describe("iter53: 全 sample × graph reachability", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
-      it(`最大連結成分 >= 1 (BFS 動作確認)`, () => {
+      it(`先頭の箱から辿れる箱が、箱の数を超えない`, () => {
+        // **名前は「最大連結成分 >= 1」 と言い、本文も 1 以上を見ていたが、
+        // 起点の箱は必ず自分に辿り着くので常に真だった** (#2500)。
+        // 辿った数が箱の総数を超えないことと、起点が含まれることを見る形にした。
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
-        if (d.nodes.length === 0) return;
+        if (d.nodes.length === 0) {
+          expect(d.edges, `${sample.label} は箱が無いのに矢印を持つ`).toEqual([]);
+          return;
+        }
         const adj = buildAdjacency(d);
         const startId = at(d.nodes, 0, "d.nodes").id;
         const reachable = bfs(adj, startId);
-        expect(reachable.size).toBeGreaterThanOrEqual(1);
+        expect(reachable.has(startId), `${sample.label} の起点が辿れた集合に無い`).toBe(true);
+        expect(
+          reachable.size,
+          `${sample.label} で辿れた箱 ${reachable.size} 個 / 全部で ${d.nodes.length} 個`,
+        ).toBeLessThanOrEqual(d.nodes.length);
       });
 
       it(`edge から node 参照が正当 (dangling edge なし)`, () => {

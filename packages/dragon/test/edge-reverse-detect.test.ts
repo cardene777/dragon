@@ -14,6 +14,7 @@ import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-sam
 
 interface CompiledDiagram {
   edges: Array<{ from: string; to: string; label?: string }>;
+  nodes: Array<{ id: string }>;
   type?: string;
 }
 
@@ -59,10 +60,19 @@ describe("iter38: 全 sample × edge reverse / return-trip 網羅", () => {
         }
       });
 
-      it(`edge from-to endpoint list が単調 (empty → 単一 → 複数)`, () => {
+      it(`矢印の数が箱の数の 10 倍以下`, () => {
+        // **名前と comment と本文が 3 つとも違っていた** (#2500)。 名前は「endpoint list が
+        // 単調」、comment は「10 倍以下」、本文は「0 以上」 を見ており、配列の長さは
+        // 必ず 0 以上なので何も確かめていなかった。 comment の言う性質に揃えた。
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
-        // edges 数 が nodes 数の 10 倍以下 (edge density 上限)
-        expect(d.edges.length).toBeGreaterThanOrEqual(0);
+        if (d.nodes.length === 0) {
+          expect(d.edges, `${sample.label} は箱が無いのに矢印を持つ`).toEqual([]);
+          return;
+        }
+        expect(
+          d.edges.length / d.nodes.length,
+          `${sample.label} で矢印 ${d.edges.length} 本 / 箱 ${d.nodes.length} 個`,
+        ).toBeLessThanOrEqual(10);
       });
     });
   }

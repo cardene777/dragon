@@ -205,7 +205,9 @@ describe("実物で確かめる", () => {
   const 図たち = ["er-demo", "seq-demo", "infra-demo", "chart-line-demo"];
 
   it("catalog の 4 図で落ちる名前が 0 件", () => {
-    if (!existsSync(catalog)) return;
+    // **抜ける形にしない** (#2500)。 この file は commit されているので、
+    // 無い時は検査が見ていないのではなく、置き場所が変わっている
+    expect(existsSync(catalog), `${catalog} が無い`).toBe(true);
     const t = readFileSync(catalog, "utf8");
 
     expect(図たち.length, "図を 1 件も見ていない (検査が空振りしている)").toBeGreaterThan(0);
@@ -217,7 +219,7 @@ describe("実物で確かめる", () => {
   });
 
   it("catalog の 4 図が export const を 1 つ以上含む", () => {
-    if (!existsSync(catalog)) return;
+    expect(existsSync(catalog), `${catalog} が無い`).toBe(true);
     const t = readFileSync(catalog, "utf8");
 
     for (const id of 図たち) {
@@ -227,7 +229,7 @@ describe("実物で確かめる", () => {
   });
 
   it("catalog の 4 図が id を含む", () => {
-    if (!existsSync(catalog)) return;
+    expect(existsSync(catalog), `${catalog} が無い`).toBe(true);
     const t = readFileSync(catalog, "utf8");
 
     for (const id of 図たち) {
