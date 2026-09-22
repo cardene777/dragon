@@ -57,6 +57,113 @@ export async function 描き終わりを待つ<渡す物>(
 }
 
 /**
+ * 形が窓の間だけ変わらなくなるまで待つ (#2496)。
+ *
+ * ## なぜ `描き終わりを待つ` と分けるか
+ *
+ * `描き終わりを待つ` は「そうなるはずの形か」 を 1 回の評価で答えられる待ち方で、
+ * 前回の評価を覚えておく必要が無い。
+ * 落ち着きを見る待ち方は前回と比べるため、**評価をまたいで値を持つ置き場が要る**。
+ *
+ * `page.waitForFunction` に渡す関数は browser の中で動いて外の変数を読めないので、
+ * そこで比べる形にすると前回の値を `window` に預けることになる。
+ * 預けるには鍵が要り、鍵は呼び手ごとに増える。 実際に 3 つ増え、
+ * うち 1 つは検査の file に置いたために画面の字として拾われ、2 度の後始末を生んだ
+ * (#2486 で登録し、#2492 で助けの側へ移して登録を外した)。
+ * 同じ 8 行を写すうちに欄の名前も割れた (`位置` と `形`)。
+ *
+ * **比べる所を呼ぶ側に移すと、預け先ごと消える**。 中で動かす関数は形を表す字を返すだけ、
+ * 前回との比較と窓の判定はここが持つ。
+ *
+ * ## まだ測れない時は `null` を返す
+ *
+ * 図が描かれる前は矩形の幅が 0 で、その値を「形」 として覚えると
+ * **描かれていない状態で落ち着いたことになる**。 測れない間は `null` を返し、
+ * 覚えている形を捨てて数え直す。
+ *
+ * @param 形を出す browser の中で動く。 形を表す字を返す。 まだ測れない時は `null`
+ * @param 窓 同じ字がこの時間だけ続いたら落ち着いたとみなす (ミリ秒)
+ */
+async function 繰り返し測る<渡す物, 測った物>(
+  page: Page,
+  何を: string,
+  測る: (渡す: 渡す物) => 測った物 | null,
+  渡す: 渡す物,
+  見極め: (いま: 測った物 | null) => { 終わり: true; 値: 測った物 } | { 終わり: false },
+  お好み: { 上限ミリ秒?: number; 出ない時の言い方?: string },
+): Promise<{ 値: 測った物; 待った: number }> {
+  const 上限ミリ秒 = お好み.上限ミリ秒 ?? 20_000;
+  const 始め = Date.now();
+  // 型合わせの理由は `描き終わりを待つ` と同じ (playwright は `Unboxed<T>` で受け取る)
+  const 中で動かす = 測る as unknown as (渡す: unknown) => 測った物 | null;
+
+  while (Date.now() - 始め < 上限ミリ秒) {
+    const 判断 = 見極め(await page.evaluate(中で動かす, 渡す as unknown));
+    if (判断.終わり) return { 値: 判断.値, 待った: Date.now() - 始め };
+    // `描き終わりを待つ` の `polling: 100` と同じ間隔で測る
+    await page.waitForTimeout(100);
+  }
+
+  const 待った = ((Date.now() - 始め) / 1000).toFixed(1);
+  throw new Error(
+    `${何を} が ${待った} 秒待っても${お好み.出ない時の言い方 ?? "落ち着かない"}。` +
+      ` 画面が出ていないか、この検査が待つ対象を取り違えている`,
+  );
+}
+
+export async function 形が落ち着くまで待つ<渡す物>(
+  page: Page,
+  何を: string,
+  形を出す: (渡す: 渡す物) => string | null,
+  渡す: 渡す物,
+  お好み: { 窓?: number; 上限ミリ秒?: number; 出ない時の言い方?: string } = {},
+): Promise<number> {
+  const 窓 = お好み.窓 ?? 600;
+  let 前: { 形: string; 時刻: number } | undefined;
+
+  const { 待った } = await 繰り返し測る(page, 何を, 形を出す, 渡す, (いま) => {
+    if (いま === null) {
+      前 = undefined;
+      return { 終わり: false };
+    }
+    if (前 === undefined || 前.形 !== いま) {
+      前 = { 形: いま, 時刻: Date.now() };
+      return { 終わり: false };
+    }
+    return Date.now() - 前.時刻 >= 窓 ? { 終わり: true, 値: いま } : { 終わり: false };
+  }, お好み);
+
+  return 待った;
+}
+
+/**
+ * 測れる状態になった瞬間の値を受け取る (#2496)。
+ *
+ * 待つ側と測る側を分けられない時に使う。 分けると、待ち終わってから測るまでの間に
+ * 画面が次の状態へ進む (実測 = 矢印は 5 秒で伸び切り、7 秒でまた短い、#2482)。
+ *
+ * **落ち着きは見ない**。 測れた 1 回目の値をそのまま返す。
+ * 同じ値が 2 度続くことを求めると、測るたびに動く画面では永久に揃わない。
+ */
+export async function 測れた値を受け取る<渡す物, 測った物>(
+  page: Page,
+  何を: string,
+  測る: (渡す: 渡す物) => 測った物 | null,
+  渡す: 渡す物,
+  お好み: { 上限ミリ秒?: number; 出ない時の言い方?: string } = {},
+): Promise<測った物> {
+  const { 値 } = await 繰り返し測る(
+    page,
+    何を,
+    測る,
+    渡す,
+    (いま) => (いま === null ? { 終わり: false } : { 終わり: true, 値: いま }),
+    { 出ない時の言い方: "測れない", ...お好み },
+  );
+  return 値;
+}
+
+/**
  * 本文が出るまで待つ。 真っ白な画面を測らないため。
  *
  * 下限は **呼ぶ側の判定と同じ値を渡す**。 待つ側だけ緩いと、
@@ -100,29 +207,16 @@ export async function 位置が落ち着くまで待つ(
   画面: string,
   窓 = 600,
 ): Promise<number> {
-  return 描き終わりを待つ(
+  return 形が落ち着くまで待つ(
     page,
     `${画面} の位置`,
-    (指す: { 中身: string; 窓: number; 鍵: string }) => {
-      const 覚え書き = window as unknown as Record<
-        string,
-        { 位置: string; 時刻: number } | undefined
-      >;
+    (指す: { 中身: string }) => {
       const 絵 = document.querySelector(指す.中身)?.getBoundingClientRect();
-      if (!絵 || 絵.width === 0 || 絵.height === 0) {
-        覚え書き[指す.鍵] = undefined;
-        return false;
-      }
-      const いま = `${Math.round(絵.left)},${Math.round(絵.top)},${Math.round(絵.width)}`;
-      const 前 = 覚え書き[指す.鍵];
-      if (前 === undefined || 前.位置 !== いま) {
-        覚え書き[指す.鍵] = { 位置: いま, 時刻: Date.now() };
-        return false;
-      }
-      return Date.now() - 前.時刻 >= 指す.窓;
+      if (!絵 || 絵.width === 0 || 絵.height === 0) return null;
+      return `${Math.round(絵.left)},${Math.round(絵.top)},${Math.round(絵.width)}`;
     },
-    { 中身: ".v4-editor-pan", 窓, 鍵: "#2476の覚え書き" },
-    { 出ない時の言い方: "落ち着かない" },
+    { 中身: ".v4-editor-pan" },
+    { 窓 },
   );
 }
 
@@ -145,30 +239,17 @@ export async function 一覧が落ち着くまで待つ(
   画面: string,
   窓 = 600,
 ): Promise<number> {
-  return 描き終わりを待つ(
+  return 形が落ち着くまで待つ(
     page,
     `${画面} の一覧`,
-    (指す: { 行: string; 窓: number; 鍵: string }) => {
-      const 覚え書き = window as unknown as Record<
-        string,
-        { 形: string; 時刻: number } | undefined
-      >;
+    (指す: { 行: string }) => {
       const 行 = document.querySelectorAll(指す.行);
       const 先頭 = 行[0]?.getBoundingClientRect();
-      if (行.length === 0 || !先頭 || 先頭.height === 0) {
-        覚え書き[指す.鍵] = undefined;
-        return false;
-      }
-      const いま = `${行.length},${Math.round(先頭.top)},${Math.round(先頭.height)}`;
-      const 前 = 覚え書き[指す.鍵];
-      if (前 === undefined || 前.形 !== いま) {
-        覚え書き[指す.鍵] = { 形: いま, 時刻: Date.now() };
-        return false;
-      }
-      return Date.now() - 前.時刻 >= 指す.窓;
+      if (行.length === 0 || !先頭 || 先頭.height === 0) return null;
+      return `${行.length},${Math.round(先頭.top)},${Math.round(先頭.height)}`;
     },
-    { 行: ".catalog-list .catalog-list-item", 窓, 鍵: "#2488の覚え書き" },
-    { 出ない時の言い方: "落ち着かない" },
+    { 行: ".catalog-list .catalog-list-item" },
+    { 窓 },
   );
 }
 
@@ -203,23 +284,23 @@ export interface 重なりの数え {
  * **終点だけでは足りない**。 曲がった矢印 (`Q` を含む道筋) の終点を `M x y L x y` の形で
  * 読めず、2 枚が 20 秒待っても条件を満たさなかった (実際に踏んだ)。
  *
- * ## 鍵は助けの側が持つ (#2492)
+ * ## 測った値は返り値で持ち出す (#2496)
  *
- * 検査 (`tests/*.spec.ts`) に `const` で字を置くと、名指しした字が実物に出るかを見る検査が
- * 画面の字として拾う。 走査の対象は検査の file だけなので、ここに置けば当たらない。
- * `位置が落ち着くまで待つ` と `一覧が落ち着くまで待つ` も同じ形になる。
+ * かつては伸び切りを待つ関数の中で測り、結果を `window` に預けて後から読み出していた。
+ * 預けるには鍵が要り、その鍵を検査の file に置いたために画面の字として拾われ、
+ * 2 度の後始末を生んだ (#2486 で登録し、#2492 で助けの側へ移して登録を外した)。
+ * いまは測った値をそのまま返すので、預け先も鍵も要らない。
  */
 export async function 重なりを数える(page: Page, 画面: string): Promise<重なりの数え> {
-  const 鍵 = "#2482の数えた結果";
-  await 描き終わりを待つ(
+  return 測れた値を受け取る<Record<string, never>, 重なりの数え>(
     page,
     `${画面} の矢印`,
-    (指す: { 鍵: string }) => {
+    () => {
       const svg = document.querySelector("[data-cdl-node]")?.closest("svg");
-      if (!svg) return false;
+      if (!svg) return null;
 
       const 組 = [...svg.querySelectorAll("g[data-cdl-edge]")];
-      if (組.length === 0) return false;
+      if (組.length === 0) return null;
 
       const 縦の線: Element[] = [];
       let 読めない組 = 0;
@@ -232,7 +313,7 @@ export async function 重なりを数える(page: Page, 画面: string): Promise
         }
         const 今 = (線.getAttribute("d") ?? "").replace(/\s+/g, " ").trim();
         const 元 = (下地.getAttribute("d") ?? "").replace(/\s+/g, " ").trim();
-        if (今 === "" || 元 === "" || 今 !== 元) return false;
+        if (今 === "" || 元 === "" || 今 !== 元) return null;
         const m = 元.match(/^M ([\d.-]+) ([\d.-]+) L ([\d.-]+) ([\d.-]+)$/);
         if (
           m &&
@@ -265,15 +346,9 @@ export async function 重なりを数える(page: Page, 画面: string): Promise
         }
       }
 
-      const 置き場 = window as unknown as Record<string, unknown>;
-      置き場[指す.鍵] = { 読み取り値: 読み取り値.length, 縦の矢印: 縦の線.length, 重なり, 中身, 読めない組 };
-      return true;
+      return { 読み取り値: 読み取り値.length, 縦の矢印: 縦の線.length, 重なり, 中身, 読めない組 };
     },
-    { 鍵 },
+    {},
     { 出ない時の言い方: "伸び切らない" },
   );
-  return (await page.evaluate(
-    (k) => (window as unknown as Record<string, unknown>)[k],
-    鍵,
-  )) as 重なりの数え;
 }
