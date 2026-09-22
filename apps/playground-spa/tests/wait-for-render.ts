@@ -171,3 +171,109 @@ export async function 一覧が落ち着くまで待つ(
     { 出ない時の言い方: "落ち着かない" },
   );
 }
+
+/** 読み取り値と縦の矢印の重なりを数えた結果 (#2482 / #2492) */
+export interface 重なりの数え {
+  /** 箱の上に出た読み取り値 (`5 / 10` の形) の個数 */
+  読み取り値: number;
+  /** まっすぐ 1 本の縦の矢印の本数 */
+  縦の矢印: number;
+  /** 読み取り値の矩形と縦の矢印の矩形が重なった組の数 */
+  重なり: number;
+  /** 重なった組の中身 (落ちた時に何と何かを言うため) */
+  中身: string[];
+  /** 線と下地の対が揃わず、縦かどうかを判定できなかった組。 0 に潰さず数える */
+  読めない組: number;
+}
+
+/**
+ * 矢印が伸び切った瞬間に、読み取り値との重なりを数える (#2482)。
+ *
+ * ## なぜ待つ側と数える側を分けないか
+ *
+ * 矢印は繰り返し伸びて戻る (実測 = 5 秒で伸び切り、7 秒でまた短い)。
+ * 伸び切るのを待ってから測ると、その間に線が戻る。
+ * **伸び切ったと判定した評価の中でそのまま測る** 必要がある。
+ *
+ * ## 伸び切りの見分け方
+ *
+ * 線 (`edge-line`) は描いている途中の形を持ち、下地 (`edge-glow`) は最初から最終の形を持つ。
+ * 2 つの道筋が一致したら伸び切り。
+ *
+ * **終点だけでは足りない**。 曲がった矢印 (`Q` を含む道筋) の終点を `M x y L x y` の形で
+ * 読めず、2 枚が 20 秒待っても条件を満たさなかった (実際に踏んだ)。
+ *
+ * ## 鍵は助けの側が持つ (#2492)
+ *
+ * 検査 (`tests/*.spec.ts`) に `const` で字を置くと、名指しした字が実物に出るかを見る検査が
+ * 画面の字として拾う。 走査の対象は検査の file だけなので、ここに置けば当たらない。
+ * `位置が落ち着くまで待つ` と `一覧が落ち着くまで待つ` も同じ形になる。
+ */
+export async function 重なりを数える(page: Page, 画面: string): Promise<重なりの数え> {
+  const 鍵 = "#2482の数えた結果";
+  await 描き終わりを待つ(
+    page,
+    `${画面} の矢印`,
+    (指す: { 鍵: string }) => {
+      const svg = document.querySelector("[data-cdl-node]")?.closest("svg");
+      if (!svg) return false;
+
+      const 組 = [...svg.querySelectorAll("g[data-cdl-edge]")];
+      if (組.length === 0) return false;
+
+      const 縦の線: Element[] = [];
+      let 読めない組 = 0;
+      for (const g of 組) {
+        const 線 = g.querySelector('[data-cdl-role="edge-line"]');
+        const 下地 = g.querySelector('[data-cdl-role="edge-glow"]');
+        if (!線 || !下地) {
+          読めない組 += 1;
+          continue;
+        }
+        const 今 = (線.getAttribute("d") ?? "").replace(/\s+/g, " ").trim();
+        const 元 = (下地.getAttribute("d") ?? "").replace(/\s+/g, " ").trim();
+        if (今 === "" || 元 === "" || 今 !== 元) return false;
+        const m = 元.match(/^M ([\d.-]+) ([\d.-]+) L ([\d.-]+) ([\d.-]+)$/);
+        if (
+          m &&
+          Math.abs(Number(m[3]) - Number(m[1])) < 1 &&
+          Math.abs(Number(m[4]) - Number(m[2])) > 1
+        ) {
+          縦の線.push(線);
+        }
+      }
+
+      const 読み取り値 = [...svg.querySelectorAll("text")].filter((t) =>
+        /^\s*\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?\s*$/.test(t.textContent ?? ""),
+      );
+
+      const 重なる = (a: DOMRect, b: DOMRect): boolean =>
+        a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+      const 中身: string[] = [];
+      let 重なり = 0;
+      for (const 字 of 読み取り値) {
+        const r = 字.getBoundingClientRect();
+        for (const 線 of 縦の線) {
+          const s = 線.getBoundingClientRect();
+          // 縦の線は幅が 0 に近い。 そのままでは矩形の重なりが成立しないので、線の太さぶん広げる
+          const 太さ = new DOMRect(s.left - 2, s.top, Math.max(s.width, 4), s.height);
+          if (重なる(r, 太さ)) {
+            重なり += 1;
+            中身.push(`${(字.textContent ?? "").trim()} と 縦の矢印`);
+          }
+        }
+      }
+
+      const 置き場 = window as unknown as Record<string, unknown>;
+      置き場[指す.鍵] = { 読み取り値: 読み取り値.length, 縦の矢印: 縦の線.length, 重なり, 中身, 読めない組 };
+      return true;
+    },
+    { 鍵 },
+    { 出ない時の言い方: "伸び切らない" },
+  );
+  return (await page.evaluate(
+    (k) => (window as unknown as Record<string, unknown>)[k],
+    鍵,
+  )) as 重なりの数え;
+}
