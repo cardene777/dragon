@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { DIRECTION_ALIAS, DRAW_WORDS, PRESET_TYPES, TONE_ALIAS } from "@cardenelabs/dragon";
 import { NODE_KINDS } from "@cardenelabs/cdl";
-import { FORMS } from "@/lib/syntax-forms";
+import { FORMS, sectionTitle, lineNote } from "@/lib/syntax-forms";
 import { SyntaxInline } from "./SyntaxCode";
 import { useLocale } from "@/lib/useLocale";
 import { 編集画面の字 } from "@/lib/editor-text";
@@ -47,7 +47,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
     <div className="v4-editor-side-samples-body" data-testid="editor-syntax-panel">
       {FORMS.map((sec) => (
         <div key={sec.title} className="v4-editor-syntax-section">
-          <div className="v4-editor-syntax-title">{sec.title}</div>
+          <div className="v4-editor-syntax-title">{sectionTitle(sec, locale)}</div>
           {sec.lines.map((l) => (
             <button
               key={l.code}
@@ -59,7 +59,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
             >
               {/* 色は分解器と `styles/syntax.css` が持つ (#1310) */}
               <SyntaxInline src={l.code} />
-              <span className="v4-editor-syntax-note">{l.note}</span>
+              <span className="v4-editor-syntax-note">{lineNote(l, locale)}</span>
             </button>
           ))}
         </div>
@@ -98,7 +98,11 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
           {tones.map(([tone, aliases]) => (
             <div key={tone} className="v4-editor-syntax-row">
               <code className="v4-editor-syntax-code tok-色名" data-tone={tone}>{tone}</code>
-              <span className="v4-editor-syntax-note">{aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}</span>
+              {/* 別名は記法に書く値そのもの (`失敗` / `成功`)。 人が読む添え書きと同じ見た目だが
+                  訳す対象ではないので、印を付けて画面の言語を数える検査から外す (#2463) */}
+              <span className="v4-editor-syntax-note" data-notation="">
+                {aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}
+              </span>
             </div>
           ))}
         </div>
@@ -110,7 +114,11 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
           {directions.map(([dir, aliases]) => (
             <div key={dir} className="v4-editor-syntax-row">
               <code className="v4-editor-syntax-code" data-direction={dir}>{dir}</code>
-              <span className="v4-editor-syntax-note">{aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}</span>
+              {/* 別名は記法に書く値そのもの (`失敗` / `成功`)。 人が読む添え書きと同じ見た目だが
+                  訳す対象ではないので、印を付けて画面の言語を数える検査から外す (#2463) */}
+              <span className="v4-editor-syntax-note" data-notation="">
+                {aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}
+              </span>
             </div>
           ))}
         </div>

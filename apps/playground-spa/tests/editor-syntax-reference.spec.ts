@@ -324,3 +324,67 @@ test("パーツが既存の図に重ならない", async ({ page }) => {
   }
   expect(hits, `既存の図に重なった: ${hits.join(" / ")}`).toEqual([]);
 });
+
+/**
+ * 記法一覧が画面の言語で出ることの検証 (#2463)。
+ *
+ * 一覧は開いた直後には出ない (最初に出るのは見本のタブ) ので、英語で開いた時の件数を数える
+ * 歯止め (`onload-locale.spec.ts`) には現れない。 タブを押してから数える。
+ *
+ * **書式の例は数えない**。 記法そのものなので言語で変えない = `<pre>` を外しているのと
+ * 同じ範囲。 数えるのは節の見出しと添え書きの 2 つだけ。
+ */
+const 日本語 =
+  /[\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Han}]/u;
+
+/**
+ * 人が読む字だけを指す。
+ *
+ * 色と向きの別名 (`失敗` / `成功`) は記法に書く値そのもので、添え書きと同じ見た目だが
+ * 訳す対象ではない。 印 (`data-notation`) が付いた側を外す。
+ */
+const 人が読む字 = ".v4-editor-syntax-title, .v4-editor-syntax-note:not([data-notation])";
+
+/** 外した側。 0 件なら印の付け方が変わったということなので、外れていること自体を確かめる */
+const 記法の値 = ".v4-editor-syntax-note[data-notation]";
+
+async function 記法タブの字(
+  page: import("@playwright/test").Page,
+  言語: "ja" | "en",
+): Promise<string[]> {
+  await page.goto(`editor?lang=${言語}`);
+  await page.waitForSelector('[data-testid="editor-preview-stage"]');
+  await page.locator('[data-testid="editor-syntax-tab"]').click();
+  await page.waitForSelector('[data-testid="editor-syntax-panel"]');
+  return page.locator(人が読む字).allTextContents();
+}
+
+test("記法のタブを英語で開くと日本語が残らない (#2463)", async ({ page }) => {
+  const 字 = await 記法タブの字(page, "en");
+  // 空振り防止。 字が 1 つも取れていないなら、残り 0 件は何も言っていない
+  expect(字.length, "記法の一覧から字を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(100);
+  const 残り = 字.filter((t) => 日本語.test(t));
+  expect(残り, `英語で開いたのに日本語が残る:\n${残り.slice(0, 10).join("\n")}`).toEqual([]);
+});
+
+test("外した記法の値が実在する (空振り検知、#2463)", async ({ page }) => {
+  // 印を付け替えた日に、外す側が 0 件になって「外している」 つもりだけが残るのを止める
+  await page.goto("editor?lang=en");
+  await page.waitForSelector('[data-testid="editor-preview-stage"]');
+  await page.locator('[data-testid="editor-syntax-tab"]').click();
+  await page.waitForSelector('[data-testid="editor-syntax-panel"]');
+  const 外した = await page.locator(記法の値).allTextContents();
+  expect(外した.length, "記法の値を 1 つも外していない (印の付け方が変わった)").toBeGreaterThan(5);
+  expect(
+    外した.some((t) => 日本語.test(t)),
+    "外した側に日本語が 1 つも無い (外す必要が無くなったなら印を消す)",
+  ).toBe(true);
+});
+
+test("記法のタブを日本語で開くと日本語で出る (収容対照、#2463)", async ({ page }) => {
+  // 英語の側だけを見ると、両方を英語にした形も通ってしまう
+  const 字 = await 記法タブの字(page, "ja");
+  expect(字.length, "記法の一覧から字を 1 つも読めていない").toBeGreaterThan(100);
+  const 日本語の行 = 字.filter((t) => 日本語.test(t));
+  expect(日本語の行.length, "日本語で開いたのに日本語が 1 つも出ない").toBeGreaterThan(100);
+});
