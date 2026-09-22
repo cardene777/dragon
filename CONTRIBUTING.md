@@ -109,6 +109,45 @@ pnpm dev
 pnpm --filter dragon-playground-spa test:e2e
 ```
 
+#### 回す枠の一覧
+
+`playwright.config.ts` は検査を枠 (`projects`) に分ける。
+**枠を絞って回した run は「全件通過」 ではない**。
+
+| 枠 | 何を回すか | 見に行く先 |
+| --- | --- | --- |
+| `default` | 大半の検査 | 本番 build の preview |
+| `dev-setup` | 開発 server が居るかを先に見る | 開発 server |
+| `dev` | 開発時だけの頁 (`/__render`) を使う検査 | 開発 server |
+| `serial` | 1 件ずつ回す 3 file (同時に走ると標本を取り損ねる) | 本番 build の preview |
+
+この表と `playwright.config.ts` の `projects` が一致することを
+`src/lib/playwright-projects.test.ts` が見る。 枠を足したらこの表も直す。
+
+**取り込みの前は 2 回に分けて回す**。 1 回で全ての枠を回すと、開発 server (Vite) と
+検査が同じ機械の CPU を取り合い、固定の待ちを並べた検査が時間切れで落ちる
+(実測 = `phone-diagram-legibility` の 2 件と `row-divider-tone` の 1 件が
+`Test timeout of 44000ms exceeded`、開発 server を止めると 14 件とも通る)。
+
+```bash
+# 1 回目 … 開発 server を止めて回す (default と serial、実測 904 件)
+cd apps/playground-spa && npx playwright test --project serial
+
+# 2 回目 … 開発 server を立てて回す (dev-setup と dev、実測 5 件)
+pnpm dev
+npx playwright test --project dev-setup --project dev
+```
+
+1 回目に `--project serial` と書くのは、`serial` が `default` を先に回すため
+(`dependencies`)。 `--project default` だけを付けると `serial` の 3 file が走らない。
+
+開発 server の port が別の作業で埋まっている時は、空いている port で立てて
+`DEV_SPA_URL` で向ける (下の 見に行く先を差し替える表 と同じ経路)。
+
+**枠を絞った run を取り込みの関門にしない**。 作業中に絞るのは速さのためで、
+絞ったまま「どこも落ちていない」 と書くと、走っていない検査の赤が見えないまま溜まる
+(実測 = `muted-text-symmetry.spec.ts` が 1 ヶ月以上赤いまま取り込まれ続けていた、#2496)。
+
 **検査は build 済の画面を見る**。 開発 server を見ていた間、実行中に file を編集すると
 Vite が繋いでいる画面を全再読み込みし、走行中の検査が巻き添えで落ちていた (#1438)。
 落ち方が「要素が現れず時間切れ」 に見えるため flake と区別が付かない。 build 済の画面は
