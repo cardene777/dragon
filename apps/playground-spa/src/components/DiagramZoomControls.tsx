@@ -1,6 +1,7 @@
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { 収める, 収めるの呼び名, 倍率の表示, 端か, type 倍率の指定 } from "@/lib/diagram-zoom";
 import { useLocale } from "@/lib/useLocale";
+import type { 二言語 } from "@/lib/bilingual";
 
 /**
  * 図の倍率の欄 (#1964)。 下げる・今の倍率・上げる・器に合わせる のボタンを 1 列に並べる。
@@ -15,11 +16,6 @@ import { useLocale } from "@/lib/useLocale";
 /** 欄を置く場所。 場所で器の形 (縦横とも収めるか、幅にだけ合わせるか) と、ホイールの受け方が違う */
 export type 倍率の欄の場所 = "並び" | "拡大" | "詳細";
 
-/** 2 言語の 1 組。 どちらかだけを書くと、書き忘れた側が無言で日本語のまま出る */
-interface 二言語 {
-  ja: string;
-  en: string;
-}
 
 /** 幅にだけ合わせる場所の案内。 修飾キー無しのホイールは画面を送るので、押す鍵を名指しする */
 const 幅に合わせる場所の案内: 二言語 = {

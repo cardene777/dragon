@@ -13,12 +13,7 @@
  */
 
 import type { Locale } from "./i18n";
-
-/** 2 言語の 1 組。 片方だけ書くと、書き忘れた側が無言で日本語のまま出る */
-interface 二言語 {
-  ja: string;
-  en: string;
-}
+import type { 二言語 } from "./bilingual";
 
 /** 軸の識別子 → 2 言語の呼び名 */
 export const AXIS_NAMES: Record<string, 二言語> = {
