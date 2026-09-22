@@ -45,6 +45,12 @@ import { PRESETS } from "../src/lib/presets";
  * **`node -e` で確かめない**。 手元の `node` は `U+00B7` を数えないと答えた (`false`)。
  * 判定するのは画面を描く browser なので、確かめるなら browser 上で確かめる。
  *
+ * ## 分類の画面は開く分類で残り方が違う
+ *
+ * 表が見るのは `primitives` の 1 つ (`欄の値` が決める)。 他の分類には図の段の題と
+ * 見せ方の札が残る (#2461 / #2460)。 表の 0 は「この 1 分類で 0」 であって
+ * 「全分類で 0」 ではない。
+ *
  * ## `/preset/:id` の 1 件は図が持つ段の題
  *
  * 見本の詳細に残る 1 件は、図の段の題 (`phases[].title`) を図の外の札として出したもの (#2455)。
@@ -80,7 +86,7 @@ const 開かない経路 = new Set(["/__render"]);
 const 日本語の残り: Record<string, number> = {
   "/": 0,
   "/catalog": 0,
-  "/catalog/:slug": 12,
+  "/catalog/:slug": 0,
   "/editor": 1,
   "/editor/:filename": 0,
   "/docs": 0,

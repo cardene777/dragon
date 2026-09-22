@@ -219,7 +219,11 @@ describe("部品の頁の読み込み中の表示 (#2018)", () => {
       読み込み.終える(見本);
       await Promise.resolve();
     });
-    expect(今の一覧()).toContain(見本[0]!.id);
+    // 識別子は画面に出さなくなった (#2461) ので、字ではなく `data-item-id` で並びを確かめる
+    expect(
+      document.querySelector(`.catalog-list [data-item-id="${見本[0]!.id}"]`),
+      `読み込みが終わったのに ${見本[0]!.id} が一覧に並ばない`,
+    ).not.toBeNull();
   });
 
   it("読み込みに失敗した後に別の縦列へ移って戻ると、戻った描画から読み込み中を出す", async () => {

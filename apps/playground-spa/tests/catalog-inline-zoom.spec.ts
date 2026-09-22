@@ -25,6 +25,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { 倍率の刻み } from "../src/lib/diagram-zoom";
+import { 一覧の行 } from "./catalog-item-pick";
 
 type Page = import("@playwright/test").Page;
 
@@ -66,7 +67,7 @@ async function 図を測る(page: Page): Promise<{
 async function 図を選ぶ(page: Page, 分類: string, 名前: string, パターン?: string): Promise<void> {
   await page.goto(`catalog/${分類}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
-  await page.getByText(名前, { exact: true }).first().click();
+  await 一覧の行(page, 名前, true).click();
   if (パターン !== undefined) {
     await page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio", { name: パターン }).click();
   }

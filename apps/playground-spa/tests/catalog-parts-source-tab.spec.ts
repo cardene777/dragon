@@ -11,13 +11,14 @@
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test catalog-parts-source-tab`
  */
 import { test, expect } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 type Page = import("@playwright/test").Page;
 
 async function 開く(page: Page, 名前: string): Promise<void> {
   await page.goto("catalog/parts", { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
-  await page.locator("aside.catalog-sidebar").getByText(名前, { exact: false }).first().click();
+  await 一覧の行(page, 名前, false).click();
   await page.waitForTimeout(300);
 }
 

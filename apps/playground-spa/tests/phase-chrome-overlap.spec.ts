@@ -4,6 +4,7 @@ import {
   PHASE_CHROME_BOTTOM_SPACE_PX,
   PHASE_CHROME_TOP_SPACE_PX,
 } from "../src/lib/phase-chrome-space";
+import { 一覧の行 } from "./catalog-item-pick";
 
 type 被り = {
   上: number;
@@ -31,7 +32,7 @@ async function 開く(page: Page, path: string): Promise<void> {
 
 async function カタログで図を選ぶ(page: Page): Promise<void> {
   await 開く(page, "catalog/presets");
-  const 項目 = page.locator(".catalog-list-item").filter({ hasText: 見本.一覧の識別子 }).first();
+  const 項目 = 一覧の行(page, 見本.一覧の識別子);
   await expect(項目, `${見本.一覧の識別子} を一覧から選べない`).toBeVisible();
   await 項目.click();
 }

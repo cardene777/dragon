@@ -20,6 +20,7 @@
  * 合わせるため。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /** 縞を持つ見本。 配色を書いた図から選ぶ */
 const 見本 = [
@@ -30,7 +31,7 @@ const 見本 = [
 async function 開く(page: Page, slug: string, id: string): Promise<void> {
   await page.goto(`catalog/${slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
-  await page.locator(".catalog-list-item").filter({ hasText: id }).first().click();
+  await 一覧の行(page, id).click();
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
   await page.evaluate(() => document.fonts.ready);
 }

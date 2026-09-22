@@ -308,12 +308,6 @@
   font-weight: 600;
 }
 
-.catalog-list-item-id {
-  font-family: var(--d-mono);
-  font-size: 10.5px;
-  color: var(--d-text-muted);
-}
-
 /* ── 実物の殻 ── */
 
 .catalog-preview {
@@ -335,13 +329,6 @@
   justify-content: space-between;
   gap: 16px;
   padding: 20px 22px;
-}
-
-.catalog-preview-id {
-  margin-bottom: 6px;
-  font-family: var(--d-mono);
-  font-size: 11px;
-  color: var(--d-text-muted);
 }
 
 .catalog-preview-title {

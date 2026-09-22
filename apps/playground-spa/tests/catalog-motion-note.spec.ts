@@ -5,6 +5,7 @@
  * 書かれた時、隣に正しい導出文が無いため読み手が気付けない (#1051 の review 指摘)。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 const NOTES = [
   "段の中で値が連続して動く",
@@ -15,7 +16,7 @@ const NOTES = [
 async function openItem(page: Page, category: string, label: string): Promise<void> {
   await page.goto(`catalog/${category}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(700);
-  await page.locator("aside.catalog-sidebar").getByText(label, { exact: false }).first().click();
+  await 一覧の行(page, label, false).click();
   await page.waitForTimeout(500);
 }
 

@@ -9,6 +9,7 @@
  * 受け取らせる。 押した結果が画面に出ることを e2e で固定する。
  */
 import { test, expect, type Page, type Locator } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 const ITEM_LABEL = "クリックで状態切替";
 
@@ -16,7 +17,7 @@ const ITEM_LABEL = "クリックで状態切替";
 async function openClickToggle(page: Page): Promise<Locator> {
   await page.goto("catalog/interactive", { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
-  await page.locator("aside.catalog-sidebar").getByText(ITEM_LABEL, { exact: false }).first().click();
+  await 一覧の行(page, ITEM_LABEL, false).click();
   await page.waitForTimeout(400);
   const preview = page.locator("main.catalog-preview");
   await expect(preview.locator("svg").first()).toBeVisible();

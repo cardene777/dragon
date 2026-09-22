@@ -14,12 +14,13 @@
  * 出る側だけだと、全ての図から切替が消えた形でも通る。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /** 見本を id で名指しして開く */
 async function 開く(page: Page, slug: string, id: string): Promise<void> {
   await page.goto(`catalog/${slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
-  await page.locator(".catalog-list-item").filter({ hasText: id }).first().click();
+  await 一覧の行(page, id).click();
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
   await page.evaluate(() => document.fonts.ready);
 }
@@ -78,7 +79,7 @@ test("項目を選び直すと既定へ戻る (#1569)", async ({ page }) => {
   await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
   await expect.poll(async () => await 配色(page, "er-demo"), { timeout: 5000 }).toBe("celadon");
 
-  await page.locator(".catalog-list-item").filter({ hasText: "class-demo" }).first().click();
+  await 一覧の行(page, "class-demo").click();
   await page.waitForSelector('[data-cdl-diagram="class-demo"]', { timeout: 15000 });
   await expect
     .poll(async () => await 配色(page, "class-demo"), { timeout: 5000 })

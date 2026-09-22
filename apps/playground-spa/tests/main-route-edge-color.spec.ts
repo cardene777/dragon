@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { cores, shoot, type Box } from "./helpers/pixel-contrast";
 import { 記法をURLに載せる } from "./box-and-edge-figure";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /**
  * 役目 `role: main` を書いた線 (順路) を強調の色で引き、矢じりも同じ色にする (#2141)。
@@ -200,7 +201,7 @@ const 同じ色 = (a: Rgb, b: Rgb): boolean => a.every((v, i) => Math.abs(v - b[
 test("カタログの線の役目: 切替で main を選ぶと通り道の 2 本だけを強調の色で引く", async ({ page }) => {
   await page.goto("catalog/styles", { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
-  await page.locator("aside.catalog-sidebar").getByText("線の役目", { exact: true }).first().click();
+  await 一覧の行(page, "線の役目", true).click();
   await page.waitForTimeout(1500);
   const 色 = await 強調の色(page);
 

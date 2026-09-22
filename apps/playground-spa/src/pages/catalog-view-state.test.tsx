@@ -115,11 +115,12 @@ function 今の印(): string {
 /**
  * 一覧からその項目を選ぶ。
  *
- * 探すのは一覧の欄の中だけ = id は右側の詳細にも出るので、画面全体から引くと 2 つ当たる。
+ * 探すのは一覧の欄の中だけ = 同じ属性は右側の詳細にも付くので、画面全体から引くと 2 つ当たる。
+ * 識別子は画面に出さなくなった (#2461) ので、字ではなく属性で引く。
  */
 function 選ぶ(item: CatalogItem): void {
   const 行 = [...document.querySelectorAll(".catalog-list .catalog-list-item")].find(
-    (el) => el.querySelector(".catalog-list-item-id")?.textContent === item.id,
+    (el) => el.getAttribute("data-item-id") === item.id,
   );
   if (!(行 instanceof HTMLElement))
     throw new Error(`一覧に ${item.id} が無い (検査の前提が崩れた)`);

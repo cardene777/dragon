@@ -282,6 +282,18 @@ describe("動きの記述 (#1043)", () => {
     expect(bad, `説明と実装の動きが合わない:\n${bad.join("\n")}`).toHaveLength(0);
   });
 
+  /**
+   * 説明を画面へ出している行の見分け方。
+   *
+   * 素の `.subtitle` だけを見ていると、言語で出し分ける関数へ包んだ瞬間に
+   * その表示が母集団から消える。 検査は緑のままなのに見る対象が減る形になる
+   * (実測 = `PresetDetailPage` が `presetSubtitle()` へ移った時に 1 件、
+   * `CategoryPage` が `itemSubtitle()` へ移った時に 2 件が黙って落ちた)。
+   *
+   * 関数を足す時はここへ 1 つ足す。 足し忘れは下の「1 つも見つからない」 の歯止めが拾う。
+   */
+  const 説明を出す行 = /\.subtitle|itemSubtitle\(|presetSubtitle\(/;
+
   it("説明を出す箇所ごとに、導いた一文が隣にある", () => {
     // **file 単位で見ない** (#1053)。 file のどこかに `motionNote` があれば通る形だと、
     // 同じ file に説明だけの表示を足しても気付けない (Round 2 の指摘)。
@@ -292,7 +304,7 @@ describe("動きの記述 (#1043)", () => {
     for (const { name, src } of screenSources()) {
       const lines = src.split("\n");
       lines.forEach((line, i) => {
-        if (!line.includes(".subtitle")) return;
+        if (!説明を出す行.test(line)) return;
         // 絞り込みの述語は表示ではない (`p.subtitle.toLowerCase().includes(q)` 等)
         if (/\.toLowerCase\(\)|\.includes\(|\.match\(|\.test\(/.test(line)) return;
         sinks += 1;
