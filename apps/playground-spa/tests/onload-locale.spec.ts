@@ -44,6 +44,12 @@ import { PRESETS } from "../src/lib/presets";
  *
  * **`node -e` で確かめない**。 手元の `node` は `U+00B7` を数えないと答えた (`false`)。
  * 判定するのは画面を描く browser なので、確かめるなら browser 上で確かめる。
+ *
+ * ## `/editor` の 1 件は記法の engine が出す字
+ *
+ * 編集画面に残る 1 件は、走査の engine (`@cardenelabs/cdl`) が返す指摘の本文で、この repo に
+ * 実体が無い (#2454)。 本文には見本の記法に書かれた題も入るため、engine を英語にしても
+ * 日本語の題は残る。 0 にするには engine 側と見本の記法の両方が要る。
  */
 
 /** 経路の `:欄` に入れる値。 経路に出る欄が増えると下の突き合わせが落ちる */
@@ -69,8 +75,8 @@ const 日本語の残り: Record<string, number> = {
   "/": 12,
   "/catalog": 0,
   "/catalog/:slug": 12,
-  "/editor": 52,
-  "/editor/:filename": 35,
+  "/editor": 1,
+  "/editor/:filename": 0,
   "/docs": 0,
   "/preset/:id": 10,
   "/release-notes": 17,
@@ -122,8 +128,11 @@ for (const 経路 of 対象の経路) {
       while ((n = walk.nextNode())) {
         const t = (n.textContent ?? "").trim();
         if (!t) continue;
-        // 記法の見本は日本語で書かれており、訳す対象ではない
+        // 記法の見本は日本語で書かれており、訳す対象ではない。
+        // **記法が出る所は 2 つある** (#2454)。 見せるだけの所は `<pre>`、書き換えられる所は
+        // 編集画面の本文の欄で、こちらは `<pre>` を使わない。 同じ「記法の見本」 なので同じく外す
         if (n.parentElement?.closest("pre")) continue;
+        if (n.parentElement?.closest(".v4-editor-code-body")) continue;
         // 図の中の字も別の話 (図そのものの訳)
         if (n.parentElement?.closest("[data-cdl-diagram]")) continue;
         out.push(t);

@@ -12,9 +12,24 @@
  * (#preset=<slug>) で editor が対応 sample を find する。
  */
 export interface EditorSample {
+  /**
+   * 日本語の名前。 **見本を指す identity も兼ねる** = 選んでいる見本の判定と、
+   * 群 (`(sequence)` の中身) の導出と、検索の突き合わせがこの値を見る。
+   * 画面に出す字は言語で選ぶので、identity として使う所では `label` のまま扱う。
+   */
   label: string;
+  /**
+   * 英語の名前 (#2454)。 画面の言語が英語の時に出す。
+   * 群を導けるように、`label` と同じく `(<図の型>)` を末尾に付ける。
+   */
+  labelEn: string;
   slug: string;
   code: string;
+}
+
+/** 一覧と書類名に出す名前。 identity は `label` のまま、出す字だけを言語で選ぶ (#2454) */
+export function sampleLabel(sample: EditorSample, locale: "ja" | "en"): string {
+  return locale === "ja" ? sample.label : sample.labelEn;
 }
 
 // **必ず 1 件以上持つ**。 編集画面は先頭を初期値に使うため、空にすると本文も名前も
@@ -22,6 +37,7 @@ export interface EditorSample {
 export const EDITOR_SAMPLES: [EditorSample, ...EditorSample[]] = [
   {
     label: "ログインAPI呼び出し (sequence)",
+    labelEn: "Login API call (sequence)",
     slug: "sequence",
     code: `title: "ログインAPI呼び出し"
 type: sequence
@@ -50,6 +66,7 @@ animation:
   },
   {
     label: "注文チェックアウト (sequence)",
+    labelEn: "Order checkout (sequence)",
     slug: "sequence-checkout",
     code: `title: "注文チェックアウト"
 type: sequence
@@ -75,6 +92,7 @@ animation:
   },
   {
     label: "CIパイプライン (flow)",
+    labelEn: "CI pipeline (flow)",
     slug: "flow",
     code: `title: "CIパイプライン"
 type: flow
@@ -103,6 +121,7 @@ animation:
   },
   {
     label: "利用者登録 (swimlane)",
+    labelEn: "User sign-up (swimlane)",
     slug: "swimlane",
     code: `title: "利用者登録"
 type: swimlane
@@ -128,6 +147,7 @@ animation:
   },
   {
     label: "システム構成 (topology)",
+    labelEn: "System layout (topology)",
     slug: "topology",
     code: `title: "システム構成"
 type: topology
@@ -154,6 +174,7 @@ animation:
   },
   {
     label: "利用者・投稿・コメントのスキーマ (er)",
+    labelEn: "Users, posts and comments (er)",
     slug: "er",
     code: `title: "利用者・投稿・コメントのスキーマ"
 type: er
@@ -174,6 +195,7 @@ animation:
   },
   {
     label: "認証状態遷移 (state)",
+    labelEn: "Sign-in state changes (state)",
     slug: "state-machine",
     code: `title: "認証状態遷移"
 type: state
@@ -203,6 +225,7 @@ animation:
   },
   {
     label: "動物クラス階層 (class)",
+    labelEn: "Animal class hierarchy (class)",
     slug: "class",
     code: `title: "動物クラス階層"
 type: class
@@ -223,6 +246,7 @@ animation:
   },
   {
     label: "四半期ロードマップ (gantt)",
+    labelEn: "Quarterly roadmap (gantt)",
     slug: "gantt",
     code: `title: "四半期ロードマップ"
 type: gantt
@@ -240,6 +264,7 @@ animation:
   },
   {
     label: "プロジェクト構想 (mind)",
+    labelEn: "Project outline (mind)",
     slug: "mind",
     code: `title: "プロジェクト構想"
 type: mind
@@ -258,6 +283,7 @@ animation:
   },
   {
     label: "言語シェア (pie)",
+    labelEn: "Language share (pie)",
     slug: "pie",
     code: `title: "言語シェア"
 type: pie
@@ -275,6 +301,7 @@ animation:
   },
   {
     label: "経路別の流入 (bar)",
+    labelEn: "Traffic by channel (bar)",
     slug: "bar",
     code: `title: "経路別の流入"
 type: bar
@@ -292,6 +319,7 @@ animation:
   },
   {
     label: "今期の売上進捗 (gauge)",
+    labelEn: "Sales progress this term (gauge)",
     slug: "gauge",
     code: `title: "今期の売上進捗"
 type: gauge
@@ -308,6 +336,7 @@ animation:
   },
   {
     label: "機能ごとの利用率 (radial)",
+    labelEn: "Usage by feature (radial)",
     slug: "radial",
     code: `title: "機能ごとの利用率"
 type: radial
@@ -325,6 +354,7 @@ animation:
   },
   {
     label: "今月の解約率 (stat)",
+    labelEn: "Churn this month (stat)",
     slug: "stat",
     code: `title: "今月の解約率"
 type: stat
@@ -339,6 +369,7 @@ animation:
   },
   {
     label: "対応済みの問い合わせ (waffle)",
+    labelEn: "Tickets handled (waffle)",
     slug: "waffle",
     code: `title: "対応済みの問い合わせ"
 type: waffle
@@ -355,6 +386,7 @@ animation:
   },
   {
     label: "契約の内訳 (stacked)",
+    labelEn: "Contract breakdown (stacked)",
     slug: "stacked",
     code: `title: "契約の内訳"
 type: stacked
@@ -371,6 +403,7 @@ animation:
   },
   {
     label: "経路別の申込み (slope)",
+    labelEn: "Sign-ups by channel (slope)",
     slug: "slope",
     code: `title: "経路別の申込み"
 type: slope
@@ -387,6 +420,7 @@ animation:
   },
   {
     label: "週ごとの応答時間 (line)",
+    labelEn: "Response time by week (line)",
     slug: "line",
     code: `title: "週ごとの応答時間"
 type: line
@@ -405,6 +439,7 @@ animation:
   },
   {
     label: "投票コントラクト (solidity)",
+    labelEn: "Voting contract (solidity)",
     slug: "solidity",
     code: `title: "投票コントラクト"
 type: solidity
@@ -430,6 +465,7 @@ animation:
   },
   {
     label: "申込みまでの絞り込み (funnel)",
+    labelEn: "Funnel to sign-up (funnel)",
     slug: "funnel",
     code: `title: "申込みまでの絞り込み"
 type: funnel
@@ -443,6 +479,7 @@ actors:
   },
   {
     label: "配布物の構成 (tree)",
+    labelEn: "What ships (tree)",
     slug: "tree",
     code: `title: "配布物の構成"
 type: tree
@@ -463,6 +500,7 @@ flow:
   },
   {
     label: "初めて使うまで (journey)",
+    labelEn: "First run (journey)",
     slug: "journey",
     code: `title: "初めて使うまで"
 type: journey
@@ -479,6 +517,7 @@ actors:
   },
   {
     label: "着手の順番 (quadrant)",
+    labelEn: "What to tackle first (quadrant)",
     slug: "quadrant",
     code: `title: "着手の順番"
 type: quadrant
@@ -496,6 +535,7 @@ actors:
   },
   {
     label: "C4コンテキストモデル (c4)",
+    labelEn: "C4 context model (c4)",
     slug: "c4",
     code: `title: "C4コンテキストモデル"
 type: c4
