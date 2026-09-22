@@ -7,6 +7,7 @@
  * ## 何を数えるか
  *
  * 検査の本文 (`it` / `test` に渡した関数の中) で、`expect` より前に現れる `return` を数える。
+ * 単体の検査 (`*.test.ts` / `*.test.tsx`) と画面の検査 (`*.spec.ts`) の両方を見る。
  * 条件が成立しないと判定に届かないまま通るので、**落ちる検査と見分けが付かない**。
  *
  * 数えないものが 2 つある。
@@ -38,9 +39,16 @@ import { 走査するfile } from "../../../test-support/scan-targets";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-/** 未追跡の検査も見る = 書いている最中の file が判定を受けないと、取り込んだ回で初めて落ちる */
+/**
+ * 未追跡の検査も見る = 書いている最中の file が判定を受けないと、取り込んだ回で初めて落ちる。
+ *
+ * **画面の検査 (`*.spec.ts`) も入れる** (#2502)。 足す前は単体の検査だけを走査しており、
+ * 画面の検査に抜ける形を書いた日に誰も気付けなかった。 判定は同じで足りる。
+ */
 function 検査のfile(): string[] {
-  return 走査するfile(repo, "*.test.ts", "*.test.tsx").filter((f) => !f.includes("node_modules"));
+  return 走査するfile(repo, "*.test.ts", "*.test.tsx", "*.spec.ts").filter(
+    (f) => !f.includes("node_modules"),
+  );
 }
 
 /** `it` / `test` に渡した関数の本文 (block) を返す。 検査の呼出でなければ `null` */
