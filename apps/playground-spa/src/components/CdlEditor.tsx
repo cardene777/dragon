@@ -73,6 +73,7 @@ import { usePanEdges } from "@/components/usePanEdges";
 import { applyOffsetsToFlow, toSourceLines, usableEdgeLines, 知らせの行を元の本文へ戻す } from "@/lib/auto-fix-dsl";
 import { buildAutoFixOffsets, countFixableWarnings, FIXABLE_WARNING_AXES } from "@/lib/auto-fix-offsets";
 import { 直せない軸の案内, まとめて直せない案内 } from "@/lib/axis-names";
+import { 指摘の本文 } from "@/lib/audit-detail";
 import { yaml } from "@codemirror/lang-yaml";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -2116,7 +2117,7 @@ animation:
               {warnings.slice(0, 6).map((w, i) => (
                 <li key={i} className={`v4-editor-warning-item v4-editor-warning-${w.severity}`}>
                   <span className="v4-editor-warning-axis">{w.axis}</span>
-                  <span className="v4-editor-warning-detail">{w.detail}</span>
+                  <span className="v4-editor-warning-detail">{指摘の本文(w, locale)}</span>
                 </li>
               ))}
               {warnings.length > 6 && (
