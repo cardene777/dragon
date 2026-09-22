@@ -393,6 +393,12 @@ describe("色名の受理範囲", () => {
     for (const tone of TONES) expect(parseTone(tone), tone).toBe(tone);
   });
 
+  it("色名と別名を 1 件以上読めている (空振り防止)", () => {
+    // 下の 3 件は一覧を回して 1 件ずつ見る。 一覧が空だと 1 度も判定へ入らずに通る
+    expect(TONES.length, "cdl の色名を 1 件も読めていない").toBeGreaterThan(0);
+    expect(Object.keys(TONE_ALIAS).length, "色の別名を 1 件も読めていない").toBeGreaterThan(0);
+  });
+
   it("別名でも書ける", () => {
     for (const [alias, resolved] of Object.entries(TONE_ALIAS)) {
       expect(parseTone(alias), alias).toBe(resolved);
@@ -457,6 +463,11 @@ describe("箱と矢印で同じ色名が使える", () => {
     const diagram = build("flow", `- Client: { kind: service, tone: ${value} }`);
     return diagram.nodes.find((n) => n.title === "Client")?.tone;
   };
+
+  it("別名を 1 件以上読めている (空振り防止)", () => {
+    // 下の 1 件は一覧を回して 1 件ずつ見る。 一覧が空だと 1 度も判定へ入らずに通る
+    expect(Object.keys(TONE_ALIAS).length, "色の別名を 1 件も読めていない").toBeGreaterThan(0);
+  });
 
   it("別名が両方で通る", () => {
     // 説明文が「矢印と同じ名前と別名」 と書いている以上、 受理範囲が食い違ってはいけない
