@@ -49,6 +49,8 @@ describe("layoutWithValidation", () => {
 
   it("maxFixLoops: 0 は 修復 skip", () => {
     const target = patternsDiagrams.find((d) => d.id === "pattern-passthrough");
+    // 実在を先に確かめる (#2494)。 確かめないと、図を消した日に黙って通る
+    expect(target, "pattern-passthrough が見つからない").toBeDefined();
     if (!target) return;
     const result = layoutWithValidation(target, { fix: true, maxFixLoops: 0 });
     expect(result.fixLoops).toBe(0);
@@ -84,6 +86,7 @@ describe("layoutWithValidation", () => {
 
   it("修復 loop 数が maxFixLoops を超えない (振動防止)", () => {
     const target = patternsDiagrams.find((d) => d.id === "pattern-passthrough");
+    expect(target, "pattern-passthrough が見つからない").toBeDefined();
     if (!target) return;
     const result = layoutWithValidation(target, { fix: true, maxFixLoops: 3 });
     expect(result.fixLoops).toBeLessThanOrEqual(3);
@@ -92,6 +95,7 @@ describe("layoutWithValidation", () => {
 
   it("修復 heuristics 適用時に元の diagram は破壊されない (immutable 契約)", () => {
     const target = patternsDiagrams.find((d) => d.id === "pattern-passthrough");
+    expect(target, "pattern-passthrough が見つからない").toBeDefined();
     if (!target) return;
     const originalEdges = JSON.parse(JSON.stringify(target.edges));
     layoutWithValidation(target, { fix: true, maxFixLoops: 3 });
@@ -99,55 +103,55 @@ describe("layoutWithValidation", () => {
     expect(target.edges).toEqual(originalEdges);
   });
 
-  it("h1 label-offset-reset 適用で labelOffsetX/Y が実際に 0 化される", () => {
-    // labelOffsetX/Y を手動で大きくずらした sample を作り、 h1 が呼ばれた後に diagram が
-    // 更新されて offset 0 になることを assert する。
-    const dragForH1: CdlDiagram = {
-      id: "h1-test",
-      topic: "h1 test",
-      lanes: [{ id: "l1", x: 0, width: 400 }],
-      nodes: [
-        { id: "a", lane: "l1", stack: 0, kind: "service", title: "A" },
-        { id: "b", lane: "l1", stack: 1, kind: "service", title: "B" },
-      ],
-      edges: [
-        {
-          id: "e1",
-          from: "a",
-          to: "b",
-          label: "M".repeat(80), // 極長 label → 予測 bbox が viewBox 越え → label-inside-viewbox 発火
-          tone: "accent",
-          labelOffsetX: 500,
-          labelOffsetY: 500,
-        },
-      ],
-      states: [],
-      phases: [],
-    };
-    const before = visualValidate(dragForH1);
-    const hasInsideViewbox = before.violations.some((v) => v.axis === "label-inside-viewbox");
-    // label-inside-viewbox が発火するのは viewBox 外に label が出るケース、 発火しなければ本 test skip
-    if (!hasInsideViewbox) return;
+  /**
+   * 自然発火しない軸を待つ形をやめた (#2494)。
+   *
+   * ここには「`label-inside-viewbox` が出たら h1 の手が呼ばれる」 と
+   * 「`node-overlap` が出たら h2 の手が呼ばれる」 の 2 件が在った。
+   * どちらも条件が成立せず、**何も確かめずに通っていた**。
+   *
+   * | 待っていた軸 | 実測 (2026-09-22) |
+   * |---|---|
+   * | `label-inside-viewbox` | 極長の札と大きなずらしを与えても発火しない |
+   * | `node-overlap` | パターンの図 12 枚のうち 0 枚 |
+   *
+   * 描画側は「正常なカタログでは自然発火しない軸」 の一覧を持ち、2 つともそこに載っている。
+   * 待っても永久に来ない。
+   *
+   * **手が効くことは確かめられない**。 描画側の注記が「発火するのは型どおりでない入力を
+   * 作った時 (検査の変異 等)」 と書いており、記法からその入力を作れない。
+   * 確かめられないことをここに書いて残す。
+   *
+   * 代わりに **カタログの全図でその 2 軸が 0 件** を見る。 0 件が意味を持つよう、
+   * 走査した枚数を併記する = 0 枚を走査した時の 0 件と区別が付かなくなるため。
+   */
+  const 自然発火しない軸 = ["label-inside-viewbox", "node-overlap"] as const;
 
-    const fixed = layoutWithValidation(dragForH1, { fix: true, maxFixLoops: 2 });
-    expect(fixed.appliedHeuristics).toContain("h1-label-offset-reset");
+  it.each(自然発火しない軸)("パターンの図で %s が出ない", (軸) => {
+    // 空振り防止。 走査する図が 0 枚なら、下の 0 件は何も言っていない
+    expect(patternsDiagrams.length, "パターンの図を 1 枚も集められていない").toBeGreaterThan(0);
+
+    const 出た = patternsDiagrams
+      .filter((d) => visualValidate(d).violations.some((v) => v.axis === 軸))
+      .map((d) => d.id);
+
+    expect(
+      出た,
+      `${軸} がパターンの図で出た (${patternsDiagrams.length} 枚を走査)。` +
+        ` 描画側がこの軸を自然発火なしとする一覧から外したか、図の側に異常が入った`,
+    ).toEqual([]);
   });
 
-  it("h2 node-shift-down 適用で node-overlap が実際に減る", () => {
-    // patterns の中で node-overlap が発生する diagram を探す
-    for (const d of patternsDiagrams) {
-      const before = visualValidate(d);
-      const beforeOverlap = before.violations.filter((v) => v.axis === "node-overlap");
-      if (beforeOverlap.length === 0) continue;
-      const fixed = layoutWithValidation(d, { fix: true, maxFixLoops: 3 });
-      const afterOverlap = fixed.report.violations.filter((v) => v.axis === "node-overlap");
-      // 修復後の overlap は前より少ない or 同数
-      expect(afterOverlap.length).toBeLessThanOrEqual(beforeOverlap.length);
-      // h2 heuristic が呼ばれている
-      expect(fixed.appliedHeuristics).toContain("h2-node-shift-down");
-      return;
-    }
-    // node-overlap が発生する diagram が無ければ test は success (h2 側 skip)
+  it("走査した図が発火する軸を 1 つ以上持つ (判定の生存確認)", () => {
+    /*
+     * 上の 2 件はどちらも 0 件を期待する。 走査の仕方が何も見つけない形になっていると
+     * 永久に通るため、**同じ走査で 1 件以上見つかる軸** があることを確かめる。
+     */
+    const 何か出た = patternsDiagrams.filter((d) => visualValidate(d).violations.length > 0);
+    expect(
+      何か出た.length,
+      `パターンの図 ${patternsDiagrams.length} 枚のどれも違反を 1 件も出さない (走査が効いていない)`,
+    ).toBeGreaterThan(0);
   });
 
   it("修復 heuristics が「不要な axis」 まで trigger しない (副作用なし)", () => {
