@@ -19,6 +19,7 @@
  * 出ていても色が動かなければ進み具合は伝わらない。 中身と色の変化を直接見る。
  */
 import { test, expect } from "@playwright/test";
+import { 位置が落ち着くまで待つ } from "./wait-for-render";
 import { 箱と矢印の記法 } from "./box-and-edge-figure";
 import { 段の呼び名 } from "../src/components/PhaseChrome";
 
@@ -27,7 +28,9 @@ async function 開く(page: import("@playwright/test").Page, hash = ""): Promise
   await page.goto(`editor${hash}`);
   await page.waitForLoadState("networkidle");
   await page.waitForSelector(".v4-editor-stage svg", { timeout: 30000 });
-  await page.waitForTimeout(1500);
+  // 固定の待ち時間だと、一式で回した時の負荷で枠に収める処理が終わる前に測る (#2476)。
+  // 掴んで引く検査はその後の合わせ直しが引いた分を元に戻すため、引けたのに落ちる
+  await 位置が落ち着くまで待つ(page, "編集画面");
 }
 
 /** 共有 URL の形。 `CdlEditor` の `decodeShare` と対になる */
@@ -123,15 +126,21 @@ test.describe("段の表示 (#1143)", () => {
     await page.mouse.down();
     await page.mouse.move(札.x + 札.width / 2 + 90, 札.y + 札.height / 2 + 60, { steps: 6 });
     await page.mouse.up();
-    expect(await 位置(), "札の上から掴んでも図が動かない").not.toBe(前);
+    // 描き直しを待つ。 その場で読むと、引いた結果が画面へ出る前の値を読むことがある
+    await expect.poll(() => 位置(), { timeout: 2000 }).not.toBe(前);
   });
 
   test("拡大しても札の位置と大きさが変わらない", async ({ page }) => {
     await 開く(page);
     const 前 = await page.locator(".cdl-phase-chip").boundingBox();
+    const 倍率 = page.locator(".v4-editor-bar-zoom");
+    const 前の倍率 = await 倍率.textContent();
     await page.getByTestId("editor-zoom-in").click();
     await page.getByTestId("editor-zoom-in").click();
-    await page.waitForTimeout(400);
+    // 拡大が画面へ出るのを待つ。 固定の待ち時間だと、まだ拡大していない画面を測って
+    // 「変わっていない」 と答える = 検査が空振りする (#2476)
+    await expect.poll(() => 倍率.textContent(), { timeout: 4000 }).not.toBe(前の倍率);
+    await 位置が落ち着くまで待つ(page, "拡大した後の編集画面");
     const 後 = await page.locator(".cdl-phase-chip").boundingBox();
     expect(後?.x).toBeCloseTo(前?.x ?? -1, 0);
     expect(後?.y).toBeCloseTo(前?.y ?? -1, 0);
