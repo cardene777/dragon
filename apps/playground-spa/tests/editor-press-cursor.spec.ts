@@ -15,6 +15,7 @@
  * 実際に計算された cursor を、比べる相手 (見本の button / 舞台の空いた所) と同じ回で読む。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 位置が落ち着くまで待つ } from "./wait-for-render";
 
 const 舞台 = "editor-preview-stage";
 
@@ -23,7 +24,9 @@ async function 開く(page: Page, 見本: string): Promise<void> {
   await page.goto(`editor#preset=${見本}`);
   await page.waitForLoadState("networkidle");
   await page.waitForSelector(".v4-editor-preview svg[data-cdl-stage]", { timeout: 15000 });
-  await page.waitForTimeout(1000);
+  // 固定の待ち時間だと、一式で回した時の負荷で枠に収める処理が終わる前に点を測る (#2476)。
+  // 測った後に合わせ直しが走ると、拾った箱の点が図ごとずれて別の物を押すことになる
+  await 位置が落ち着くまで待つ(page, `編集画面 (${見本})`);
 }
 
 /**

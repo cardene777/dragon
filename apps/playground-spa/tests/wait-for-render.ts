@@ -80,3 +80,48 @@ export async function 図の箱が出るまで待つ(page: Page, 画面: string,
     下限,
   );
 }
+
+/**
+ * 編集画面の位置合わせが落ち着くまで待つ (#2476)。
+ *
+ * 編集画面は図を読んでから枠に収めるまでに 3 度位置を計算し直す
+ * (`CdlEditor` の初回合わせが描画の直後と 100ms 後と 400ms 後に走る)。
+ * 合わせ終わる前に測ると、**その後の合わせ直しが測った点と掴んで引いた分を捨てる**。
+ *
+ * 最後の 1 回より長く動かないことを合わせ終わりとみなす。
+ * 位置が動くたびに数え直すので、一式で回して合わせ直しが遅れた回にも付いていく。
+ * 実装側の 400ms を変える時はここも変える。
+ *
+ * **箱の数は見ない**。 順序図は 1 枚の板として描かれて箱を 1 つも持たないので
+ * (#1466)、箱を待つと図種によって永久に返らない。 動く中身の矩形だけで見る。
+ */
+export async function 位置が落ち着くまで待つ(
+  page: Page,
+  画面: string,
+  窓 = 600,
+): Promise<number> {
+  return 描き終わりを待つ(
+    page,
+    `${画面} の位置`,
+    (指す: { 中身: string; 窓: number; 鍵: string }) => {
+      const 覚え書き = window as unknown as Record<
+        string,
+        { 位置: string; 時刻: number } | undefined
+      >;
+      const 絵 = document.querySelector(指す.中身)?.getBoundingClientRect();
+      if (!絵 || 絵.width === 0 || 絵.height === 0) {
+        覚え書き[指す.鍵] = undefined;
+        return false;
+      }
+      const いま = `${Math.round(絵.left)},${Math.round(絵.top)},${Math.round(絵.width)}`;
+      const 前 = 覚え書き[指す.鍵];
+      if (前 === undefined || 前.位置 !== いま) {
+        覚え書き[指す.鍵] = { 位置: いま, 時刻: Date.now() };
+        return false;
+      }
+      return Date.now() - 前.時刻 >= 指す.窓;
+    },
+    { 中身: ".v4-editor-pan", 窓, 鍵: "#2476の覚え書き" },
+    { 出ない時の言い方: "落ち着かない" },
+  );
+}
