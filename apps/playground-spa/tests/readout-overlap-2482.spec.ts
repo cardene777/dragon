@@ -18,23 +18,16 @@
  * **いまの件数を記録し、増えたら落ちる** 形にする。 部品を 1 枚足した日に同じ壊れ方をしても、
  * いまは画面を開いた人が目で見るまで分からない。
  *
- * ## 画面の矩形で見る
+ * ## 測る仕組みは助けの側が持つ (#2492)
  *
- * 組み立て側は読み取り値の矩形を持たないため、そこから推定すると描画側の決まりを写すことに
- * なり、描画側が変わった日に黙ってずれる。 実際に描かれた要素の矩形どうしで判定する。
+ * 矢印が伸び切った瞬間に測る仕組みと、結果を受け渡す鍵は `wait-for-render.ts` にある。
+ * 検査に `const` で字を置くと、名指しした字が実物に出るかを見る検査が画面の字として拾う
+ * (#2486 で踏んだ)。 名指しの検査が走査するのは検査の file だけなので、助けの側なら当たらない。
  *
- * ## 伸び切った瞬間に測る
- *
- * 矢印は繰り返し伸びて戻る (実測 = 5 秒で伸び切り、7 秒でまた短い)。
- * 描いている途中は線が短く、重なりを見逃す。
- *
- * 伸び切りは、線 (`edge-line`) の道筋が同じ組の下地 (`edge-glow`) の道筋と一致したことで判る。
- * 下地は最初から最終の形を持つ。 曲がった矢印もあるため終点だけでなく道筋そのものを比べる。
- *
- * **一致した評価の中でそのまま測る** = 待ってから測ると、その間に線が戻ってしまう。
+ * ここが持つのは **どれを開くか** と **数えた結果をどう突き合わせるか** の 2 つになる。
  */
 import { test, expect } from "@playwright/test";
-import { 描き終わりを待つ, 図の箱が出るまで待つ } from "./wait-for-render";
+import { 図の箱が出るまで待つ, 重なりを数える } from "./wait-for-render";
 import { 一覧の行 } from "./catalog-item-pick";
 import { layout } from "@cardenelabs/cdl";
 import { loadPartsItems } from "../src/lib/catalog-items";
@@ -71,93 +64,10 @@ async function 縦の矢印を持つ部品(): Promise<string[]> {
   return out;
 }
 
-/** 画面で数えた結果 */
-interface 数えた結果 {
-  読み取り値: number;
-  縦の矢印: number;
-  重なり: number;
-  中身: string[];
-  /** 線と下地の対が揃わず、縦かどうかを判定できなかった組。 0 に潰さず数える */
-  読めない組: number;
-}
-
-/**
- * 伸び切った瞬間に重なりを数え、`window` に置く。
- *
- * playwright の評価の中で動くため、外の値を参照できない。 引数だけで閉じる。
- */
-function 伸び切って数えた(指す: { 鍵: string }): boolean {
-  const svg = document.querySelector("[data-cdl-node]")?.closest("svg");
-  if (!svg) return false;
-
-  const 組 = [...svg.querySelectorAll("g[data-cdl-edge]")];
-  if (組.length === 0) return false;
-
-  // 下地 (最初から最終の形を持つ) と線 (伸びている途中) の道筋が揃うまで待つ。
-  // 曲がった矢印もあるため、終点だけでなく道筋そのものを比べる
-  const 縦の線: Element[] = [];
-  let 読めない組 = 0;
-  for (const g of 組) {
-    const 線 = g.querySelector('[data-cdl-role="edge-line"]');
-    const 下地 = g.querySelector('[data-cdl-role="edge-glow"]');
-    if (!線 || !下地) {
-      読めない組 += 1;
-      continue;
-    }
-    const 今 = (線.getAttribute("d") ?? "").replace(/\s+/g, " ").trim();
-    const 元 = (下地.getAttribute("d") ?? "").replace(/\s+/g, " ").trim();
-    if (今 === "" || 元 === "" || 今 !== 元) return false;
-    // 縦の矢印 = まっすぐ 1 本で、横の伸びが 1 未満、縦の伸びが 1 を超える。
-    // 曲がった矢印は縦に走る区間があっても、読み取り値の上を通る形ではない
-    const m = 元.match(/^M ([\d.-]+) ([\d.-]+) L ([\d.-]+) ([\d.-]+)$/);
-    if (m && Math.abs(Number(m[3]) - Number(m[1])) < 1 && Math.abs(Number(m[4]) - Number(m[2])) > 1) {
-      縦の線.push(線);
-    }
-  }
-
-  // 読み取り値 = 数と区切りと数の形をした字
-  const 読み取り値 = [...svg.querySelectorAll("text")].filter((t) =>
-    /^\s*\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?\s*$/.test(t.textContent ?? ""),
-  );
-
-  const 重なる = (a: DOMRect, b: DOMRect): boolean =>
-    a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-
-  const 中身: string[] = [];
-  let 重なり = 0;
-  for (const 字 of 読み取り値) {
-    const r = 字.getBoundingClientRect();
-    for (const 線 of 縦の線) {
-      const s = 線.getBoundingClientRect();
-      // 縦の線は幅が 0 に近い。 そのままでは矩形の重なりが成立しないので、線の太さぶん広げる
-      const 太さ = new DOMRect(s.left - 2, s.top, Math.max(s.width, 4), s.height);
-      if (重なる(r, 太さ)) {
-        重なり += 1;
-        中身.push(`${(字.textContent ?? "").trim()} と 縦の矢印`);
-      }
-    }
-  }
-
-  const 置き場 = window as unknown as Record<string, unknown>;
-  置き場[指す.鍵] = {
-    読み取り値: 読み取り値.length,
-    縦の矢印: 縦の線.length,
-    重なり,
-    中身,
-    読めない組,
-  };
-  return true;
-}
-
-const 鍵 = "#2482の数えた結果";
-
 test.describe("読み取り値と縦の矢印の重なり (#2482)", () => {
   test("縦の矢印を持つ部品が 1 枚以上ある (検査の空振り検知)", async () => {
     const 対象 = await 縦の矢印を持つ部品();
-    expect(
-      対象,
-      "縦の矢印を持つ部品が 1 枚も無い (対象の拾い方が実装とずれた)",
-    ).not.toEqual([]);
+    expect(対象, "縦の矢印を持つ部品が 1 枚も無い (対象の拾い方が実装とずれた)").not.toEqual([]);
   });
 
   test("重なっている件数が記録と一致する", async ({ page }) => {
@@ -172,10 +82,7 @@ test.describe("読み取り値と縦の矢印の重なり (#2482)", () => {
     for (const id of 対象) {
       await 一覧の行(page, id).click();
       await 図の箱が出るまで待つ(page, `部品 ${id}`);
-      await 描き終わりを待つ(page, `部品 ${id} の矢印`, 伸び切って数えた, { 鍵 }, {
-        出ない時の言い方: "伸び切らない",
-      });
-      const m = (await page.evaluate((k) => (window as unknown as Record<string, unknown>)[k], 鍵)) as 数えた結果;
+      const m = await 重なりを数える(page, `部品 ${id}`);
 
       // 空振り防止。 読み取り値も縦の矢印も 0 個なら、重なり 0 は何も言っていない
       expect(m.縦の矢印, `${id} で縦の矢印が 1 本も見つからない`).toBeGreaterThan(0);
