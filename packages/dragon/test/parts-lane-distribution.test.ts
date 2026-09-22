@@ -28,6 +28,11 @@ describe("iter54: 全 parts × lane distribution", () => {
   });
 
   for (const { name, diagram } of ALL_PARTS) {
+    it(`${name}: 箱を 1 つ以上持つ (空振り防止)`, () => {
+      // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+      expect(diagram.nodes.length, `${name} に箱が 1 つも無い`).toBeGreaterThan(0);
+    });
+
     it(`${name}: lane 名は英数字 + hyphen / underscore`, () => {
       const invalid: string[] = [];
       for (const node of diagram.nodes) {
@@ -49,6 +54,8 @@ describe("iter54: 全 parts × lane distribution", () => {
           laneCounts.set(lane, (laneCounts.get(lane) ?? 0) + 1);
         }
       }
+      // 縦列が 1 つも取れないと、下の繰り返しが 1 度も回らずに通る
+      expect(laneCounts.size, `${name} で縦列を 1 つも数えられていない`).toBeGreaterThan(0);
       for (const [lane, count] of laneCounts) {
         expect(count, `${name}:lane[${lane}] = ${count}`).toBeLessThanOrEqual(20);
       }

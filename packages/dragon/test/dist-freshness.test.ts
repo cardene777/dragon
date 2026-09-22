@@ -273,6 +273,7 @@ describe("検知の全体", () => {
 describe("この repo の対象指定", () => {
   it("並べた package が全て解決できる", () => {
     // 対象指定が実体とずれると検査が丸ごと無効になる。 実際に 1 度そうなった。
+    expect(TARGETS.length, "見る package を 1 つも並べていない").toBeGreaterThan(0);
     for (const t of TARGETS) {
       expect(resolvePkgDir(t.name, t.from), t.name).not.toBeNull();
     }

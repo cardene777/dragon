@@ -457,6 +457,8 @@ describe("64 字を超える名前の id (Round 2)", () => {
 
   it("作り替えた id に尾が入る", () => {
     const { 図 } = 組む(記法("state", [長い("x"), 長い("y")]));
+    // 2 人を渡しているので箱は 2 つ。 0 だと下の繰り返しが 1 度も回らずに通る
+    expect(図.nodes.length, "箱が 2 つ作られていない").toBe(2);
     for (const n of 図.nodes) {
       expect(n.id, `尾が入っていない: ${n.id}`).not.toBe("a".repeat(64));
       expect(n.id.length).toBeLessThanOrEqual(64);

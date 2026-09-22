@@ -27,6 +27,12 @@ describe("iter92: 全 parts × state property details", () => {
   });
 
   for (const { name, diagram } of ALL_PARTS) {
+    it(`${name}: 状態を 1 つ以上持つ (空振り防止)`, () => {
+      // 下の検査は状態を回して 1 件ずつ見る。 状態が無いと 1 度も判定へ入らずに通る
+      const states = (diagram as unknown as { states?: unknown[] }).states ?? [];
+      expect(states.length, `${name} に状態が 1 つも無い`).toBeGreaterThan(0);
+    });
+
     it(`${name}: states array (存在時)`, () => {
       const states = (diagram as unknown as { states?: unknown }).states;
       if (states !== undefined) {

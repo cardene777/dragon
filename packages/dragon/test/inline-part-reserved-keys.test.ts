@@ -131,6 +131,7 @@ describe("知らせる名前を実物の 2 集合から導く (#1996)", () => {
 
   it("1 行で読める名前は 1 件も知らせを出さない", () => {
     // 集合の外側からも挟む。 差の取り方を誤ると読める名前まで知らせに落ちる
+    expect(INLINE_ACTOR_KEYS.size, "読める名前の一覧が空").toBeGreaterThan(0);
     for (const key of INLINE_ACTOR_KEYS) {
       expect(
         PART_INLINE_UNREADABLE_KEYS.has(key),

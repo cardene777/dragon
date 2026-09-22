@@ -79,6 +79,8 @@ flow:
         // numeric state のみ verify (state stateNames 対象 = number 型のみ、 string 型 state は除外)
         const numericStateIds = new Set(info.stateNames.map((n) => `st1__${n}`));
         const rtNumericStates = rt.states.filter((s: { id: string }) => numericStateIds.has(s.id));
+        // 往復して 0 件になると、下の繰り返しが 1 度も回らずに通る
+        expect(rtNumericStates.length, `${info.name} の数の状態が往復で消えた`).toBeGreaterThan(0);
         for (const s of rtNumericStates) {
           expect(typeof s.initial, `state ${s.id} initial number`).toBe("number");
           expect(Number.isFinite(s.initial), `state ${s.id} finite`).toBe(true);

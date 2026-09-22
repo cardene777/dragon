@@ -147,6 +147,8 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
 
   it("別名が実装に残っている", () => {
     // 別名を除いて比べているので、除いた名前が実装から消えたら宣言も外す
+    // 別名が 0 件だと、下の繰り返しが 1 度も回らずに通る
+    expect(別名.size, "別名を 1 つも宣言していない").toBeGreaterThan(0);
     for (const k of 別名) {
       expect(INLINE_ACTOR_KEYS.has(k), `別名 "${k}" が実装に無い。 宣言から外すこと`).toBe(true);
     }

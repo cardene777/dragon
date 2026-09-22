@@ -28,6 +28,11 @@ describe("iter75: 全 parts × w/h numeric range 網羅", () => {
   });
 
   for (const { name, diagram } of ALL_PARTS) {
+    it(`${name}: 箱を 1 つ以上持つ (空振り防止)`, () => {
+      // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+      expect(diagram.nodes.length, `${name} に箱が 1 つも無い`).toBeGreaterThan(0);
+    });
+
     it(`${name}: 全 node w が 存在時 20-2000 範囲 (現実的サイズ)`, () => {
       for (const n of diagram.nodes) {
         const w = n.w;

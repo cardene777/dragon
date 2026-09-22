@@ -99,6 +99,8 @@ describe("記法一覧の書式", () => {
 
 describe("記法一覧の例文の組み立て", () => {
   it("題名と図種を必ず持つ", () => {
+    // 一覧が空だと下の繰り返しが 1 度も回らずに通る
+    expect(FORMS.length, "記法の節を 1 つも読めていない").toBeGreaterThan(0);
     for (const sec of FORMS) {
       const src = buildSample(sec);
       expect(src, sec.title).toMatch(/^title\s*:/m);
@@ -107,6 +109,8 @@ describe("記法一覧の例文の組み立て", () => {
   });
 
   it("一覧に出す行をそのまま含む (test 用に書き換えない)", () => {
+    // 一覧が空だと下の繰り返しが 1 度も回らずに通る
+    expect(FORMS.length, "記法の節を 1 つも読めていない").toBeGreaterThan(0);
     for (const sec of FORMS) {
       const src = buildSample(sec);
       for (const l of sec.lines) {

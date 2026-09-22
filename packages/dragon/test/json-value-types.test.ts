@@ -387,6 +387,7 @@ describe("列挙の一覧は engine から取る (#1304)", () => {
 
   it("正規の色名が一覧に全て入っている", () => {
     // 別名だけを並べて正規名が抜ける形を防ぐ
+    expect(TONES.length, "正規の色名を 1 つも読めていない").toBeGreaterThan(0);
     for (const t of TONES) expect(書ける色名(), t).toContain(t);
   });
 });

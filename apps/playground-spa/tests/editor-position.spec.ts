@@ -110,6 +110,8 @@ test.describe("位置調整", () => {
     const names = await page
       .locator(".v4-editor-pos-mark")
       .evaluateAll((els) => els.map((el) => (el as HTMLElement).dataset.posName ?? ""));
+    // 札が 1 つも出ていないと、下の繰り返しが 1 度も回らずに通る
+    expect(names.length, "位置の札が 1 つも出ていない").toBeGreaterThan(0);
     for (const n of names) {
       expect(RELATIVE_DSL).toContain(`- ${n}`);
     }

@@ -64,6 +64,8 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
   });
 
   it("複雑な版の段数は 10 以下である", () => {
+    // 集め方を誤って 0 件になると、下の繰り返しが 1 度も回らずに通る
+    expect(複雑見本たち.length, "複雑な版を 1 件も集められていない").toBeGreaterThan(0);
     for (const 見本 of 複雑見本たち) {
       expect(見本.phases.length, `${見本.id} の段数が ${見本.phases.length} 段`).toBeLessThanOrEqual(複雑見本の最大段数);
     }

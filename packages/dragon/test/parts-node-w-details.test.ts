@@ -25,6 +25,11 @@ describe("iter95: 全 parts × node w details", () => {
   });
 
   for (const { name, diagram } of ALL_PARTS) {
+    it(`${name}: 箱を 1 つ以上持つ (空振り防止)`, () => {
+      // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+      expect(diagram.nodes.length, `${name} に箱が 1 つも無い`).toBeGreaterThan(0);
+    });
+
     it(`${name}: 全 node w 型 number or undefined`, () => {
       for (const n of diagram.nodes) {
         if (n.w !== undefined) {

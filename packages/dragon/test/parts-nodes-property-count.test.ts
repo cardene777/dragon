@@ -28,6 +28,11 @@ describe("iter86: 全 parts × nodes property count 網羅", () => {
   });
 
   for (const { name, diagram } of ALL_PARTS) {
+    it(`${name}: 箱を 1 つ以上持つ (空振り防止)`, () => {
+      // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+      expect(diagram.nodes.length, `${name} に箱が 1 つも無い`).toBeGreaterThan(0);
+    });
+
     it(`${name}: 全 node が id property`, () => {
       for (const n of diagram.nodes) {
         expect("id" in n).toBe(true);

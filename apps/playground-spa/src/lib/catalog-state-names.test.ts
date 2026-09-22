@@ -134,6 +134,8 @@ describe("見本の値の名前 (#1330)", () => {
   it("段の項目の語をすべて検出できる", () => {
     // **見本が直った後は、語の一覧から何を落としても重なりは 0 件のまま**。 一覧が痩せた
     // ことに気付けないので、語ごとに 1 件ずつ突く (実測で `draw` を落として 0 件 FAIL だった)
+    // 語が 1 つも無いと下の繰り返しが 1 度も回らずに通る
+    expect(PHASE_ITEM_WORDS.length, "段の項目の語を 1 つも読めていない").toBeGreaterThan(0);
     for (const 語 of PHASE_ITEM_WORDS) {
       const 作り物 = [{ file: "(作り物)", key: "t", yaml: `states:\n  ${語}: 0\n` }];
       expect(重なり(作り物), `値の名前の "${語}" を検出できていない`).toHaveLength(1);

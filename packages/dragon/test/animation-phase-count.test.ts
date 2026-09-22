@@ -20,6 +20,12 @@ interface CompiledDiagram {
 describe("iter36: 全 sample × animation phase / step count 網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
+      it(`段を 1 つ以上持つ (空振り防止)`, () => {
+        // 下の検査は段を回して 1 件ずつ見る。 段が無いと 1 度も判定へ入らずに通る
+        const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
+        expect(d.phases?.length ?? 0, "段が 1 つも無い").toBeGreaterThan(0);
+      });
+
       it(`phase 数 <= 50 (極端多検知)`, () => {
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
         expect(d.phases?.length ?? 0).toBeLessThanOrEqual(50);

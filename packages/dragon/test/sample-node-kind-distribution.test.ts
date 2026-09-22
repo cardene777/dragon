@@ -16,6 +16,12 @@ interface CompiledDiagram {
 describe("iter45: 全 sample × node kind distribution 網羅", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
+      it(`箱を 1 つ以上作れている (空振り防止)`, () => {
+        // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+        const d = textDslToDiagram(sample.code);
+        expect(d.nodes.length, "箱が 1 つも無い").toBeGreaterThan(0);
+      });
+
       // 「kind を持つ箱の割合が 0% 以上」 を見ていた 1 件を消した (#2500)。
       // 数え上げた結果は必ず 0 以上で、kind は任意なので下限も上限も置けない。
       // kind の中身は下の 2 件 (制御文字 / 空白なし、200 字以下) が見ている。

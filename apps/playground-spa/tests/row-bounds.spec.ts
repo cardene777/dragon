@@ -362,6 +362,7 @@ test.describe("行の文字が枠に収まっている (cdl#390)", () => {
     // 宣言と描画の数を突き合わせて、 検査の網羅を数で押さえる。
     //
     // 1 行が左右 2 つの `<text>` に分かれるので、 DOM 上の数は宣言の 2 倍になる。
+    expect(TARGETS.length, "見る図を 1 つも宣言していない").toBeGreaterThan(0);
     for (const { slug, diagram } of TARGETS) {
       await openDiagram(page, slug, diagram.id);
       const measured = await page
