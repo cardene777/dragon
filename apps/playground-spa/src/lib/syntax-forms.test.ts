@@ -12,7 +12,7 @@ import { textDslToDiagram, parseTextDslV05, PRESET_TYPES } from "@cardenelabs/dr
 import { loadPartsItems } from "@/lib/catalog-items";
 import { 部品の一覧を作る } from "@/lib/parts-catalog";
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import { FORMS, buildSample } from "./syntax-forms";
+import { FORMS, buildSample, sectionTitle, lineNote, type Section } from "./syntax-forms";
 
 /** パーツを含む例文のために catalog を用意する。 編集画面と同じ作り方を通す (#1973) */
 async function partsCatalog(): Promise<Record<string, CdlDiagram>> {
@@ -121,5 +121,83 @@ describe("記法一覧の例文の組み立て", () => {
     const src = buildSample(sec!);
     expect(src.match(/^title\s*:/gm)).toHaveLength(1);
     expect(src.match(/^type\s*:/gm)).toHaveLength(1);
+  });
+});
+
+/**
+ * 節の見出しと添え書きが 2 言語とも埋まっていることの検証 (#2463)。
+ *
+ * 片方だけ足すと、英語の画面に日本語の行が混ざる。 数を書かず実物を走査して突き合わせる。
+ *
+ * **英語の側に日本語を書かない**。 記法の日本語の値 (`direction: 縦` / `palette: 青磁`) は
+ * すぐ左の例が見せているので、添え書きで繰り返す必要がない。
+ */
+const 日本語の字 =
+  /[\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Han}]/u;
+
+/** 節と行を 1 本に並べる。 走査の母数はここから導く (手で並べない) */
+function 全部の字(): { 所: string; ja: string; en: string }[] {
+  const out: { 所: string; ja: string; en: string }[] = [];
+  for (const sec of FORMS) {
+    out.push({ 所: `${sec.title} の見出し`, ja: sec.title, en: sec.titleEn });
+    for (const l of sec.lines) {
+      out.push({ 所: `${sec.title} の ${l.code}`, ja: l.note, en: l.noteEn });
+    }
+  }
+  return out;
+}
+
+describe("記法一覧の 2 言語 (#2463)", () => {
+  it("走査した件数を出す", () => {
+    const 全部 = 全部の字();
+    console.log(`[記法一覧の字] 節=${FORMS.length} 走査=${全部.length} 件`);
+    expect(FORMS.length, "節を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(20);
+    expect(全部.length, "字を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(100);
+  });
+
+  it("日本語の側が空なら英語の側も空、埋まっていれば両方埋まっている", () => {
+    const 片方だけ = 全部の字()
+      .filter((x) => (x.ja.trim() === "") !== (x.en.trim() === ""))
+      .map((x) => `${x.所}: ja=${JSON.stringify(x.ja)} en=${JSON.stringify(x.en)}`);
+    expect(片方だけ, `片方だけ埋まっている:\n${片方だけ.join("\n")}`).toEqual([]);
+  });
+
+  it("英語の側に日本語が残っていない", () => {
+    const 残る = 全部の字()
+      .filter((x) => 日本語の字.test(x.en))
+      .map((x) => `${x.所}: ${x.en}`);
+    expect(残る, `英語の側に日本語が残る:\n${残る.join("\n")}`).toEqual([]);
+  });
+
+  it("日本語の側が日本語のまま (訳しすぎ検知)", () => {
+    // 英語を足す時に日本語の側を書き換えると、日本語で開いた画面の字が変わる
+    const 日本語を持つ = 全部の字().filter((x) => x.ja.trim() !== "" && 日本語の字.test(x.ja));
+    expect(日本語を持つ.length, "日本語の字を 1 つも読めていない").toBeGreaterThan(100);
+  });
+
+  it("引く側が言語を見ている", () => {
+    const sec = FORMS[0]!;
+    expect(sectionTitle(sec, "ja")).toBe(sec.title);
+    expect(sectionTitle(sec, "en")).toBe(sec.titleEn);
+    const l = sec.lines[0]!;
+    expect(lineNote(l, "ja")).toBe(l.note);
+    expect(lineNote(l, "en")).toBe(l.noteEn);
+  });
+
+  it("片方だけ埋まった形を拾える (植え込み対照)", () => {
+    // 探し方が何にも当たらない形に壊れていると、上の 2 件は必ず通る
+    const 植えた: Section = {
+      title: "植えた節",
+      titleEn: "",
+      sample: { slot: "root" },
+      lines: [{ code: "a", note: "あ", noteEn: "a" }],
+    };
+    const 片方だけ = (x: { ja: string; en: string }): boolean =>
+      (x.ja.trim() === "") !== (x.en.trim() === "");
+    expect(片方だけ({ ja: 植えた.title, en: 植えた.titleEn })).toBe(true);
+    expect(片方だけ({ ja: "あ", en: "a" })).toBe(false);
+    expect(片方だけ({ ja: "", en: "" })).toBe(false);
+    expect(日本語の字.test("Celadon with sumi ink")).toBe(false);
+    expect(日本語の字.test("日本語でも書ける")).toBe(true);
   });
 });
