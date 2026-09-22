@@ -55,7 +55,7 @@ function 見本(記法: { yaml?: string; json?: string }): CatalogItem {
 
 /** タブの節を描いて、`role="tab"` のボタンを名前と押せるかで並べる */
 function 描いたタブ(item: CatalogItem): { 名前: string; 押せる: boolean }[] {
-  const html = renderToStaticMarkup(<SourceTabs item={item} 速さ={1} 描き方="動かすだけ" />);
+  const html = renderToStaticMarkup(<SourceTabs item={item} 速さ={1} 描き方="hold" />);
   return [...html.matchAll(/<button[^>]*role="tab"[^>]*>([^<]*)<\/button>/g)].map((m) => ({
     名前: (m[1] ?? "").trim(),
     押せる: !/\sdisabled(?:=|\s|>)/.test(m[0]),
@@ -67,7 +67,7 @@ describe("記法の有無でタブの押せる側が変わる (#1383)", () => {
     const item = 見本({});
     expect(記法を持つか(item), "記法を持たない見本が持つと判定されている").toBe(false);
     expect(
-      renderToStaticMarkup(<SourceTabs item={item} 速さ={1} 描き方="動かすだけ" />),
+      renderToStaticMarkup(<SourceTabs item={item} 速さ={1} 描き方="hold" />),
       "記法を持たないのにタブが描かれている",
     ).toBe("");
   });
@@ -108,7 +108,7 @@ describe("記法の有無でタブの押せる側が変わる (#1383)", () => {
   it("持たない側を選んだ状態では、未登録であることを画面に出す", () => {
     // 押せないタブを選べる実装に変えた時、空欄が黙って出るのではなく理由が出る
     const html = renderToStaticMarkup(
-      <SourceTabs item={見本({ json: JSON_ })} 速さ={1} 描き方="動かすだけ" />,
+      <SourceTabs item={見本({ json: JSON_ })} 速さ={1} 描き方="hold" />,
     );
     expect(html, "初期に選ぶのは yaml のはず").toContain("(この図の記法はまだ登録されていません)");
   });

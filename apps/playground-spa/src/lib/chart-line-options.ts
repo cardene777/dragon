@@ -1,4 +1,6 @@
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { 字を引く, type 二言語 } from "./bilingual";
+import type { Locale } from "./i18n";
 
 /**
  * カタログから、折れ線の塗り / 値のせり上げ / 経路のなぞりを切り替えられるようにする (#1624)。
@@ -11,22 +13,33 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * (`palette-switch.ts` と同じ理由)。
  */
 
-/** 表に出す名前と、図に書く欄の対応 */
-const 表と欄 = {
-  塗り: "chartFillUnder",
-  せり上げ: "chartValueRise",
-  なぞり: "chartTrace",
-} as const;
+/**
+ * 図に書く欄と、画面に出す札 (#2460)。
+ *
+ * **欄の側を key にする**。 札の字をそのまま値にしていた間、英語で開いても札だけ日本語で
+ * 出ていた = 字を訳すと型と状態の値が同時に変わるため、訳す側だけを動かせなかった。
+ */
+const 欄と札 = {
+  chartFillUnder: { ja: "塗り", en: "Fill" },
+  chartValueRise: { ja: "せり上げ", en: "Rise" },
+  chartTrace: { ja: "なぞり", en: "Trace" },
+} as const satisfies Record<string, 二言語>;
 
-export const 折れ線の見せ方の選択肢 = ["塗り", "せり上げ", "なぞり"] as const;
-export type 折れ線の見せ方 = (typeof 折れ線の見せ方の選択肢)[number];
+/** 画面に出す順は、欄を並べた順に従う (塗り → せり上げ → なぞり) */
+export const 折れ線の見せ方の選択肢 = Object.keys(欄と札) as 折れ線の見せ方[];
+export type 折れ線の見せ方 = keyof typeof 欄と札;
+
+/** 画面に出す札を引く */
+export function 折れ線の見せ方の札(見せ方: 折れ線の見せ方, locale: Locale): string {
+  return 字を引く(欄と札[見せ方], locale);
+}
 export type 折れ線の指定 = Record<折れ線の見せ方, boolean>;
 
 /** 既定。 engine が書かない図をどう描くかに揃える (3 つとも切) */
 export const 既定の折れ線の指定: 折れ線の指定 = {
-  塗り: false,
-  せり上げ: false,
-  なぞり: false,
+  chartFillUnder: false,
+  chartValueRise: false,
+  chartTrace: false,
 };
 
 /** その図に、見せ方を切り替えられる折れ線があるか */
@@ -42,9 +55,9 @@ export function 図の折れ線の見せ方を変える(diagram: CdlDiagram, 指
     .filter((n) => n.kind === "chart-line")
     .every((n) => {
       const 現在: 折れ線の指定 = {
-        塗り: n.chartFillUnder ?? false,
-        せり上げ: n.chartValueRise ?? false,
-        なぞり: n.chartTrace ?? false,
+        chartFillUnder: n.chartFillUnder ?? false,
+        chartValueRise: n.chartValueRise ?? false,
+        chartTrace: n.chartTrace ?? false,
       };
       return 折れ線の見せ方の選択肢.every((v) => 現在[v] === 指定[v]);
     });
@@ -54,12 +67,7 @@ export function 図の折れ線の見せ方を変える(diagram: CdlDiagram, 指
     ...diagram,
     nodes: diagram.nodes.map((n) =>
       n.kind === "chart-line"
-        ? {
-            ...n,
-            [表と欄.塗り]: 指定.塗り,
-            [表と欄.せり上げ]: 指定.せり上げ,
-            [表と欄.なぞり]: 指定.なぞり,
-          }
+        ? { ...n, ...指定 }
         : n,
     ),
   };

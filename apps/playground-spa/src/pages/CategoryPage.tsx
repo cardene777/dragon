@@ -41,6 +41,7 @@ import {
   描き方の切替を出すか,
   記法の描き方を変える,
   描き方の選択肢,
+  描き方の札,
   既定の描き方,
   type 描き方,
 } from "@/lib/redraw-mode";
@@ -48,22 +49,26 @@ import {
   図の配色を変える,
   配色を選べる,
   配色の選択肢,
+  配色の札,
 } from "@/lib/palette-switch";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 import {
   図の折れ線の見せ方を変える,
   折れ線を選べる,
   折れ線の見せ方の選択肢,
+  折れ線の見せ方の札,
 } from "@/lib/chart-line-options";
 import {
   図の円の見せ方を変える,
   円の見せ方を選べる,
   円の見せ方の選択肢,
+  円の見せ方の札,
 } from "@/lib/chart-pie-options";
 import {
   図の傾きの見せ方を変える,
   傾きの見せ方を選べる,
   傾きの見せ方の選択肢,
+  傾きの見せ方の札,
 } from "@/lib/chart-slope-options";
 
 import {
@@ -760,9 +765,13 @@ export function CategoryPage(): React.ReactElement {
                               aria-checked={描き方 === v}
                               className={`catalog-speed-btn ${描き方 === v ? "is-active" : ""}`}
                               onClick={() => 見せ方を置く({ 描き方: v })}
-                              title={isJa ? `2 段目以降を${v}` : `From the second phase on: ${v}`}
+                              title={
+                                isJa
+                                  ? `2 段目以降を${描き方の札(v, locale)}`
+                                  : `From the second phase on, ${描き方の札(v, locale).toLowerCase()}`
+                              }
                             >
-                              {v}
+                              {描き方の札(v, locale)}
                             </button>
                           ))}
                         </div>
@@ -782,9 +791,13 @@ export function CategoryPage(): React.ReactElement {
                               aria-checked={配色 === v}
                               className={`catalog-speed-btn ${配色 === v ? "is-active" : ""}`}
                               onClick={() => 見せ方を置く({ 配色: v })}
-                              title={isJa ? `図の色味を${v}にする` : `Draw the diagram in ${v}`}
+                              title={
+                                isJa
+                                  ? `図の色味を${配色の札(v, locale)}にする`
+                                  : `Draw the diagram in ${配色の札(v, locale).toLowerCase()}`
+                              }
                             >
-                              {v}
+                              {配色の札(v, locale)}
                             </button>
                           ))}
                         </div>
@@ -805,11 +818,11 @@ export function CategoryPage(): React.ReactElement {
                               onClick={() => 見せ方を置く({ 折れ線: { ...折れ線, [v]: !折れ線[v] } })}
                               title={
                                 isJa
-                                  ? `折れ線の${v}を${折れ線[v] ? "切る" : "入れる"}`
-                                  : `${折れ線[v] ? "Turn off" : "Turn on"} ${v}`
+                                  ? `折れ線の${折れ線の見せ方の札(v, locale)}を${折れ線[v] ? "切る" : "入れる"}`
+                                  : `${折れ線[v] ? "Turn off" : "Turn on"} ${折れ線の見せ方の札(v, locale).toLowerCase()}`
                               }
                             >
-                              {v}
+                              {折れ線の見せ方の札(v, locale)}
                             </button>
                           ))}
                         </div>
@@ -828,9 +841,13 @@ export function CategoryPage(): React.ReactElement {
                               aria-checked={円 === v}
                               className={`catalog-speed-btn ${円 === v ? "is-active" : ""}`}
                               onClick={() => 見せ方を置く({ 円: v })}
-                              title={isJa ? `円グラフを${v}で描く` : `Draw the pie chart as ${v}`}
+                              title={
+                                isJa
+                                  ? `円グラフを${円の見せ方の札(v, locale)}で描く`
+                                  : `Draw the pie chart as ${円の見せ方の札(v, locale).toLowerCase()}`
+                              }
                             >
-                              {v}
+                              {円の見せ方の札(v, locale)}
                             </button>
                           ))}
                         </div>
@@ -849,9 +866,13 @@ export function CategoryPage(): React.ReactElement {
                               aria-checked={傾き === v}
                               className={`catalog-speed-btn ${傾き === v ? "is-active" : ""}`}
                               onClick={() => 見せ方を置く({ 傾き: v })}
-                              title={isJa ? `傾き図の右の列に${v}を出す` : `Show ${v} in the right column`}
+                              title={
+                                isJa
+                                  ? `傾き図の右の列に${傾きの見せ方の札(v, locale)}を出す`
+                                  : `Show the ${傾きの見せ方の札(v, locale).toLowerCase()} in the right column`
+                              }
                             >
-                              {v}
+                              {傾きの見せ方の札(v, locale)}
                             </button>
                           ))}
                         </div>

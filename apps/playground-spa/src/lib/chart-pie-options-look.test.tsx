@@ -64,7 +64,7 @@ describe("円グラフの見せ方を描いた絵で見る (#1645)", () => {
     const 数 = 系列の数(元);
 
     // When
-    const svg = 描く(図の円の見せ方を変える(元, "積層の弧"));
+    const svg = 描く(図の円の見せ方を変える(元, "arcs"));
 
     // Then
     expect(roleの数(svg, "chart-pie-arc"), "弧の数が系列と合わない").toBe(数);
@@ -79,7 +79,7 @@ describe("円グラフの見せ方を描いた絵で見る (#1645)", () => {
     const 数 = 系列の数(元);
 
     // When
-    const svg = 描く(図の円の見せ方を変える(元, "銘板"));
+    const svg = 描く(図の円の見せ方を変える(元, "table"));
 
     // Then
     expect(roleの数(svg, "chart-pie-table-rule"), "罫の数が行数と合わない").toBe(数 + 1);
@@ -92,7 +92,7 @@ describe("円グラフの見せ方を描いた絵で見る (#1645)", () => {
     const 元 = 円の図();
 
     // When
-    const svg = 描く(図の円の見せ方を変える(元, "銘板"));
+    const svg = 描く(図の円の見せ方を変える(元, "table"));
 
     // Then = 見出しの罫だけが出る。 行は扇が開くのに合わせて増える
     expect(roleの数(svg, "chart-pie-table-rule"), "最初から行が出ている").toBe(1);
@@ -101,7 +101,7 @@ describe("円グラフの見せ方を描いた絵で見る (#1645)", () => {
   it("3 つの絵は互いに違う (陰性対照の裏返し)", () => {
     // Given = 同じ図を 3 つの見せ方で描く
     const 元 = 円の図();
-    const 絵 = (["輪", "積層の弧", "銘板"] as const).map((v) =>
+    const 絵 = (["ring", "arcs", "table"] as const).map((v) =>
       idを伏せる(描く(図の円の見せ方を変える(元, v))),
     );
 

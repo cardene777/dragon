@@ -60,9 +60,9 @@ vi.mock("@cardenelabs/cdl", async (importOriginal) => {
  */
 function 既定の描き方が違う2件(): { 縦列: string; 先に見る: CatalogItem; 後に見る: CatalogItem } {
   for (const [縦列, items] of Object.entries(CATALOG_ITEMS)) {
-    const 先に見る = items.find((i) => 図ごとの既定の描き方(i.diagram) === "描き直す");
+    const 先に見る = items.find((i) => 図ごとの既定の描き方(i.diagram) === "redraw");
     const 後に見る = items.find(
-      (i) => 図ごとの既定の描き方(i.diagram) === "動かすだけ" && 描き方を選べる(i.diagram),
+      (i) => 図ごとの既定の描き方(i.diagram) === "hold" && 描き方を選べる(i.diagram),
     );
     if (先に見る && 後に見る && 先に見る.diagram.topic !== 後に見る.diagram.topic)
       return { 縦列, 先に見る, 後に見る };

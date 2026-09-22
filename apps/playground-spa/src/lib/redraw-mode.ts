@@ -1,4 +1,6 @@
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { 字を引く, type 二言語 } from "./bilingual";
+import type { Locale } from "./i18n";
 
 /**
  * 2 段目以降の描き方 (#1359)。
@@ -15,12 +17,30 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * 速度の切替 (`playback-speed.ts`) と同じく、図とコードタブの両方に同じ変換を掛ける。
  */
 
-export const 描き方の選択肢 = ["動かすだけ", "描き直す"] as const;
+/**
+ * 画面の状態が持つ値と、画面に出す札 (#2460)。
+ *
+ * **値の側を key にする**。 札の字をそのまま値にしていた間、英語で開いても札だけ日本語で
+ * 出ていた = 字を訳すと型と状態の値が同時に変わるため、訳す側だけを動かせなかった。
+ * 円グラフと傾き図 (`chart-pie-options.ts` / `chart-slope-options.ts`) が既に採っている形。
+ */
+const 値と札 = {
+  hold: { ja: "動かすだけ", en: "Move only" },
+  redraw: { ja: "描き直す", en: "Redraw" },
+} as const satisfies Record<string, 二言語>;
 
-export type 描き方 = (typeof 描き方の選択肢)[number];
+/** 画面に出す順は、値を並べた順に従う (動かすだけ → 描き直す) */
+export const 描き方の選択肢 = Object.keys(値と札) as 描き方[];
+
+export type 描き方 = keyof typeof 値と札;
+
+/** 画面に出す札を引く */
+export function 描き方の札(描き方: 描き方, locale: Locale): string {
+  return 字を引く(値と札[描き方], locale);
+}
 
 /** 既定。 見本の source に書いたとおり (1 段目だけ描く) */
-export const 既定の描き方: 描き方 = "動かすだけ";
+export const 既定の描き方: 描き方 = "hold";
 
 /**
  * その図で切替えられるか。
@@ -61,7 +81,7 @@ function 描き直すに閉じる図(diagram: CdlDiagram): boolean {
  * 閉じる図では `描き直す`、それ以外は `既定の描き方`。
  */
 export function 図ごとの既定の描き方(diagram: CdlDiagram): 描き方 {
-  return 描き直すに閉じる図(diagram) ? "描き直す" : 既定の描き方;
+  return 描き直すに閉じる図(diagram) ? "redraw" : 既定の描き方;
 }
 
 /**
@@ -95,7 +115,7 @@ export function 描き方の切替を出すか(diagram: CdlDiagram): boolean {
  * (`playback-speed.ts` と同じ理由)。
  */
 export function 図の描き方を変える(diagram: CdlDiagram, 描き方: 描き方): CdlDiagram {
-  if (描き方 !== "描き直す" || !描き方を選べる(diagram)) return diagram;
+  if (描き方 !== "redraw" || !描き方を選べる(diagram)) return diagram;
   // `描き方を選べる` が 1 段目の `draw` を見ているので必ず引ける
   const 一段目 = diagram.phases[0];
   if (一段目 === undefined) return diagram;
@@ -218,6 +238,6 @@ function jsonの描き方を変える(source: string): string {
  * **「動かすだけ」 では元の文字列をそのまま返す** (`playback-speed.ts` と同じ理由)。
  */
 export function 記法の描き方を変える(source: string, 描き方: 描き方, 種別: 記法の種別): string {
-  if (描き方 !== "描き直す") return source;
+  if (描き方 !== "redraw") return source;
   return 種別 === "yaml" ? yamlの描き方を変える(source) : jsonの描き方を変える(source);
 }

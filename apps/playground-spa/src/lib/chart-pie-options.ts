@@ -1,4 +1,6 @@
 import type { CdlDiagram, ChartPieForm } from "@cardenelabs/cdl";
+import { 字を引く, type 二言語 } from "./bilingual";
+import type { Locale } from "./i18n";
 
 /**
  * カタログから、円グラフの見せ方を切り替えられるようにする (#1645)。
@@ -18,29 +20,29 @@ import type { CdlDiagram, ChartPieForm } from "@cardenelabs/cdl";
  */
 
 /**
- * 図に書く値と、表に出す名前の対応。
+ * 図に書く値と、画面に出す札 (#2460)。
  *
- * **値の側を key にする**。 `Record<ChartPieForm, string>` を満たす形にしてあるので、
+ * **値の側を key にする**。 `Record<ChartPieForm, 二言語>` を満たす形にしてあるので、
  * engine が 4 つ目の見せ方を足した時に `tsc` が落ちる = 選択肢から黙って漏れない。
  * 名前の側を key にすると部分集合でも通り、漏れが検査まで届かない。
  */
-const 値と表 = {
-  ring: "輪",
-  arcs: "積層の弧",
-  table: "銘板",
-} as const satisfies Record<ChartPieForm, string>;
+const 値と札 = {
+  ring: { ja: "輪", en: "Ring" },
+  arcs: { ja: "積層の弧", en: "Stacked arcs" },
+  table: { ja: "銘板", en: "Plate" },
+} as const satisfies Record<ChartPieForm, 二言語>;
 
-/** 表に出す順は、値を並べた順に従う (輪 → 積層の弧 → 銘板) */
-export const 円の見せ方の選択肢 = Object.values(値と表);
-export type 円の見せ方 = (typeof 円の見せ方の選択肢)[number];
+/** 画面に出す順は、値を並べた順に従う */
+export const 円の見せ方の選択肢 = Object.keys(値と札) as 円の見せ方[];
+export type 円の見せ方 = keyof typeof 値と札;
 
-/** 名前から値を引く。 上の対応を 2 度書かずに裏返す */
-const 表と値 = Object.fromEntries(
-  Object.entries(値と表).map(([値, 表]) => [表, 値]),
-) as Record<円の見せ方, ChartPieForm>;
+/** 画面に出す札を引く */
+export function 円の見せ方の札(見せ方: 円の見せ方, locale: Locale): string {
+  return 字を引く(値と札[見せ方], locale);
+}
 
 /** 既定。 engine が欄を書かない図をどう描くかに揃える */
-export const 既定の円の見せ方: 円の見せ方 = 値と表.ring;
+export const 既定の円の見せ方: 円の見せ方 = "ring";
 
 /**
  * 前の時点を持つ円グラフの節か (#1702)。
@@ -73,7 +75,7 @@ export function 円の見せ方を選べる(diagram: CdlDiagram): boolean {
 export function 図の円の見せ方を変える(diagram: CdlDiagram, 見せ方: 円の見せ方): CdlDiagram {
   if (!円の見せ方を選べる(diagram)) return diagram;
 
-  const 値 = 表と値[見せ方];
+  const 値 = 見せ方;
   const 全て同じ = diagram.nodes
     .filter((n) => n.kind === "chart-pie")
     .every((n) => (n.chartPieForm ?? "ring") === 値);
