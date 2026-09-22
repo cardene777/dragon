@@ -90,7 +90,7 @@ describe("選んだ見せ方が node の欄に届く (#1659)", () => {
   it("どの見せ方も傾き図 node に書かれる", () => {
     // Given
     const 元 = 傾きの図();
-    const 期待 = { 今の値: "values", 増減: "delta", 順位: "rank" } as const;
+    // 画面の状態が持つ値は engine の欄の値そのもの (#2460)。 札は別の表が持つ
 
     // When / Then
     for (const 見せ方 of 傾きの見せ方の選択肢) {
@@ -98,7 +98,7 @@ describe("選んだ見せ方が node の欄に届く (#1659)", () => {
       // 欄を書かない図を engine は今の値で描く。 今の値では欄が空のまま = 効く値で見る
       const 欄 = 傾きのnode(出た).map((n) => n.chartSlopeForm ?? "values");
       expect(欄.length, `${見せ方} で傾き図 node が無い`).toBeGreaterThan(0);
-      for (const v of 欄) expect(v, `${見せ方} が届いていない`).toBe(期待[見せ方]);
+      for (const v of 欄) expect(v, `${見せ方} が届いていない`).toBe(見せ方);
     }
   });
 
@@ -110,7 +110,7 @@ describe("選んだ見せ方が node の欄に届く (#1659)", () => {
     expect(他.length, "傾き図以外の node が無い (検査が空振りしている)").toBeGreaterThan(0);
 
     // When
-    const 出た = 図の傾きの見せ方を変える(元, "増減");
+    const 出た = 図の傾きの見せ方を変える(元, "delta");
 
     // Then = 傾き図以外は同じ object のまま
     for (const n of 他) expect(出た.nodes, `${n.id} が作り直されている`).toContain(n);
@@ -124,7 +124,7 @@ describe("選んだ見せ方が node の欄に届く (#1659)", () => {
     const 二つ: CdlDiagram = { ...元, nodes: [傾き!, { ...傾き!, id: `${傾き!.id}-2` }] };
 
     // When
-    const 出た = 図の傾きの見せ方を変える(二つ, "増減");
+    const 出た = 図の傾きの見せ方を変える(二つ, "delta");
 
     // Then
     expect(傾きのnode(出た).map((n) => n.chartSlopeForm)).toEqual(["delta", "delta"]);
@@ -146,10 +146,10 @@ describe("触っていない図を描き直さない (#1659)", () => {
 
   it("同じ見せ方を 2 度渡しても作り直さない", () => {
     // Given
-    const 増減 = 図の傾きの見せ方を変える(傾きの図(), "増減");
+    const 増減 = 図の傾きの見せ方を変える(傾きの図(), "delta");
 
     // When / Then
-    expect(図の傾きの見せ方を変える(増減, "増減"), "同じ値で作り直している").toBe(増減);
+    expect(図の傾きの見せ方を変える(増減, "delta"), "同じ値で作り直している").toBe(増減);
   });
 
   it("傾き図を持たない図はそのまま返る", () => {
@@ -158,7 +158,7 @@ describe("触っていない図を描き直さない (#1659)", () => {
     expect(元, "傾き図以外の見本が無い (検査が空振りしている)").toBeDefined();
 
     // When / Then
-    expect(図の傾きの見せ方を変える(元!.diagram, "増減"), "対象外の図を作り直している").toBe(
+    expect(図の傾きの見せ方を変える(元!.diagram, "delta"), "対象外の図を作り直している").toBe(
       元!.diagram,
     );
   });

@@ -1,4 +1,6 @@
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { 字を引く, type 二言語 } from "./bilingual";
+import type { Locale } from "./i18n";
 
 /**
  * 図の色味の切替 (#1569)。
@@ -13,18 +15,29 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * 速さ (`playback-speed.ts`) / 描き方 (`redraw-mode.ts`) と同じ形にしてある。
  */
 
-/** 表に出す名前と、図に載せる名前の対応 */
-const 表と名前 = {
-  生成りに茶: "kinari",
-  青磁に墨: "celadon",
-} as const;
+/**
+ * 図に載せる名前と、画面に出す札 (#2460)。
+ *
+ * **値の側を key にする**。 札の字をそのまま値にしていた間、英語で開いても札だけ日本語で
+ * 出ていた = 字を訳すと型と状態の値が同時に変わるため、訳す側だけを動かせなかった。
+ */
+const 値と札 = {
+  kinari: { ja: "生成りに茶", en: "Ecru and brown" },
+  celadon: { ja: "青磁に墨", en: "Celadon and ink" },
+} as const satisfies Record<string, 二言語>;
 
-export const 配色の選択肢 = ["生成りに茶", "青磁に墨"] as const;
+/** 画面に出す順は、値を並べた順に従う (生成りに茶 → 青磁に墨) */
+export const 配色の選択肢 = Object.keys(値と札) as 配色[];
 
-export type 配色 = (typeof 配色の選択肢)[number];
+export type 配色 = keyof typeof 値と札;
+
+/** 画面に出す札を引く */
+export function 配色の札(配色: 配色, locale: Locale): string {
+  return 字を引く(値と札[配色], locale);
+}
 
 /** 既定。 見本の source に書いたとおり (ER 図とクラス図は生成りに茶) */
-export const 既定の配色: 配色 = "生成りに茶";
+export const 既定の配色: 配色 = "kinari";
 
 /**
  * その図で切替えられるか。
@@ -47,7 +60,6 @@ export function 配色を選べる(diagram: CdlDiagram): boolean {
  */
 export function 図の配色を変える(diagram: CdlDiagram, 配色: 配色): CdlDiagram {
   if (!配色を選べる(diagram)) return diagram;
-  const 名前 = 表と名前[配色];
-  if (diagram.palette === 名前) return diagram;
-  return { ...diagram, palette: 名前 };
+  if (diagram.palette === 配色) return diagram;
+  return { ...diagram, palette: 配色 };
 }

@@ -1,4 +1,6 @@
 import type { CdlDiagram, ChartSlopeForm } from "@cardenelabs/cdl";
+import { 字を引く, type 二言語 } from "./bilingual";
+import type { Locale } from "./i18n";
 
 /**
  * カタログから、傾き図の見せ方を切り替えられるようにする (#1659 / #1664)。
@@ -21,32 +23,32 @@ import type { CdlDiagram, ChartSlopeForm } from "@cardenelabs/cdl";
  */
 
 /**
- * 図に書く値と、表に出す名前の対応。
+ * 図に書く値と、画面に出す札 (#2460)。
  *
- * **値の側を key にする**。 `Record<ChartSlopeForm, string>` を満たす形にしてあるので、
+ * **値の側を key にする**。 `Record<ChartSlopeForm, 二言語>` を満たす形にしてあるので、
  * engine が見せ方を足した時に `tsc` が落ちる = 選択肢から黙って漏れない。
  * 名前の側を key にすると部分集合でも通り、漏れが検査まで届かない。
  *
  * 実際に効いた = engine を `0.37.0` へ上げた時 (#1664) に、この行が
  * `Property 'rank' is missing` で落ちて `rank` の漏れを止めた。
  */
-const 値と表 = {
-  values: "今の値",
-  delta: "増減",
-  rank: "順位",
-} as const satisfies Record<ChartSlopeForm, string>;
+const 値と札 = {
+  values: { ja: "今の値", en: "Current value" },
+  delta: { ja: "増減", en: "Change" },
+  rank: { ja: "順位", en: "Rank" },
+} as const satisfies Record<ChartSlopeForm, 二言語>;
 
-/** 表に出す順は、値を並べた順に従う (今の値 → 増減 → 順位) */
-export const 傾きの見せ方の選択肢 = Object.values(値と表);
-export type 傾きの見せ方 = (typeof 傾きの見せ方の選択肢)[number];
+/** 画面に出す順は、値を並べた順に従う */
+export const 傾きの見せ方の選択肢 = Object.keys(値と札) as 傾きの見せ方[];
+export type 傾きの見せ方 = keyof typeof 値と札;
 
-/** 名前から値を引く。 上の対応を 2 度書かずに裏返す */
-const 表と値 = Object.fromEntries(
-  Object.entries(値と表).map(([値, 表]) => [表, 値]),
-) as Record<傾きの見せ方, ChartSlopeForm>;
+/** 画面に出す札を引く */
+export function 傾きの見せ方の札(見せ方: 傾きの見せ方, locale: Locale): string {
+  return 字を引く(値と札[見せ方], locale);
+}
 
 /** 既定。 engine が欄を書かない図をどう描くかに揃える */
-export const 既定の傾きの見せ方: 傾きの見せ方 = 値と表.values;
+export const 既定の傾きの見せ方: 傾きの見せ方 = "values";
 
 /** その図に、見せ方を切り替えられる傾き図があるか */
 export function 傾きの見せ方を選べる(diagram: CdlDiagram): boolean {
@@ -57,7 +59,7 @@ export function 傾きの見せ方を選べる(diagram: CdlDiagram): boolean {
 export function 図の傾きの見せ方を変える(diagram: CdlDiagram, 見せ方: 傾きの見せ方): CdlDiagram {
   if (!傾きの見せ方を選べる(diagram)) return diagram;
 
-  const 値 = 表と値[見せ方];
+  const 値 = 見せ方;
   const 全て同じ = diagram.nodes
     .filter((n) => n.kind === "chart-slope")
     .every((n) => (n.chartSlopeForm ?? "values") === 値);

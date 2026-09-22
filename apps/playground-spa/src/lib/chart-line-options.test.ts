@@ -79,9 +79,9 @@ describe("図の折れ線の見せ方を変える (#1624)", () => {
   });
 
   it.each([
-    ["塗り", "chartFillUnder"],
-    ["せり上げ", "chartValueRise"],
-    ["なぞり", "chartTrace"],
+    ["chartFillUnder", "chartFillUnder"],
+    ["chartValueRise", "chartValueRise"],
+    ["chartTrace", "chartTrace"],
   ] as const)("%s を入れると %s が true になる", (見せ方, 欄) => {
     // Given
     const 元 = 見本を取る("chart-line-demo");
@@ -116,7 +116,7 @@ describe("図の折れ線の見せ方を変える (#1624)", () => {
     const 棒 = 元.nodes.find((node) => node.kind === "chart-bar")!;
 
     // When
-    const 後 = 図の折れ線の見せ方を変える(元, { ...既定の折れ線の指定, 塗り: true });
+    const 後 = 図の折れ線の見せ方を変える(元, { ...既定の折れ線の指定, chartFillUnder: true });
 
     // Then
     expect(
@@ -135,7 +135,7 @@ describe("図の折れ線の見せ方を変える (#1624)", () => {
     };
 
     // When
-    const 後 = 図の折れ線の見せ方を変える(二本の図, { ...既定の折れ線の指定, なぞり: true });
+    const 後 = 図の折れ線の見せ方を変える(二本の図, { ...既定の折れ線の指定, chartTrace: true });
 
     // Then
     expect(
@@ -147,7 +147,7 @@ describe("図の折れ線の見せ方を変える (#1624)", () => {
   it("折れ線を持たない図はどの指定でも元の object を返す", () => {
     // Given
     const 元 = 見本を取る("経路別の流入");
-    const 指定: 折れ線の指定 = { 塗り: true, せり上げ: true, なぞり: true };
+    const 指定: 折れ線の指定 = { chartFillUnder: true, chartValueRise: true, chartTrace: true };
 
     // When
     const 後 = 図の折れ線の見せ方を変える(元, 指定);

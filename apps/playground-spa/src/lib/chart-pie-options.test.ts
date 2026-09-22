@@ -80,7 +80,7 @@ describe("選んだ見せ方が node の欄に届く (#1645)", () => {
   it("3 つとも円グラフ node に書かれる", () => {
     // Given
     const 元 = 見本を取る("chart-pie-demo");
-    const 期待 = { 輪: "ring", 積層の弧: "arcs", 銘板: "table" } as const;
+    // 画面の状態が持つ値は engine の欄の値そのもの (#2460)。 札は別の表が持つ
 
     // When / Then
     for (const 見せ方 of 円の見せ方の選択肢) {
@@ -88,7 +88,7 @@ describe("選んだ見せ方が node の欄に届く (#1645)", () => {
       // 欄を書かない図を engine は輪として描く。 輪では欄が空のまま = 効く値で見る
       const 欄 = 円のnode(出た).map((n) => n.chartPieForm ?? "ring");
       expect(欄.length, `${見せ方} で円グラフ node が無い`).toBeGreaterThan(0);
-      for (const v of 欄) expect(v, `${見せ方} が届いていない`).toBe(期待[見せ方]);
+      for (const v of 欄) expect(v, `${見せ方} が届いていない`).toBe(見せ方);
     }
   });
 
@@ -100,7 +100,7 @@ describe("選んだ見せ方が node の欄に届く (#1645)", () => {
     expect(他.length, "円グラフ以外の node が無い (検査が空振りしている)").toBeGreaterThan(0);
 
     // When
-    const 出た = 図の円の見せ方を変える(元, "銘板");
+    const 出た = 図の円の見せ方を変える(元, "table");
 
     // Then = 円グラフ以外は同じ object のまま
     for (const n of 他) expect(出た.nodes, `${n.id} が作り直されている`).toContain(n);
@@ -114,7 +114,7 @@ describe("選んだ見せ方が node の欄に届く (#1645)", () => {
     const 二つ: CdlDiagram = { ...元, nodes: [円!, { ...円!, id: `${円!.id}-2` }] };
 
     // When
-    const 出た = 図の円の見せ方を変える(二つ, "積層の弧");
+    const 出た = 図の円の見せ方を変える(二つ, "arcs");
 
     // Then
     expect(円のnode(出た).map((n) => n.chartPieForm)).toEqual(["arcs", "arcs"]);
@@ -136,10 +136,10 @@ describe("触っていない図を描き直さない (#1645)", () => {
 
   it("同じ見せ方を 2 度渡しても作り直さない", () => {
     // Given
-    const 弧 = 図の円の見せ方を変える(見本を取る("chart-pie-demo"), "積層の弧");
+    const 弧 = 図の円の見せ方を変える(見本を取る("chart-pie-demo"), "arcs");
 
     // When / Then
-    expect(図の円の見せ方を変える(弧, "積層の弧"), "同じ値で作り直している").toBe(弧);
+    expect(図の円の見せ方を変える(弧, "arcs"), "同じ値で作り直している").toBe(弧);
   });
 
   it("円グラフを持たない図はそのまま返る", () => {
@@ -148,7 +148,7 @@ describe("触っていない図を描き直さない (#1645)", () => {
     expect(元, "円グラフ以外の見本が無い (検査が空振りしている)").toBeDefined();
 
     // When / Then
-    expect(図の円の見せ方を変える(元!.diagram, "銘板"), "対象外の図を作り直している").toBe(
+    expect(図の円の見せ方を変える(元!.diagram, "table"), "対象外の図を作り直している").toBe(
       元!.diagram,
     );
   });

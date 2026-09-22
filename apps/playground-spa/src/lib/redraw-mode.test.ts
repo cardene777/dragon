@@ -89,12 +89,12 @@ describe("図の 2 段目以降に描く指定が写る (#1359)", () => {
   it("描き直すと 2 段目以降にも付く", () => {
     const 元 = 折れ線().diagram;
     expect(描く段(元), "元は 1 段目だけが描く").toEqual([true, false]);
-    expect(描く段(図の描き方を変える(元, "描き直す"))).toEqual([true, true]);
+    expect(描く段(図の描き方を変える(元, "redraw"))).toEqual([true, true]);
   });
 
   it("写した相手は 1 段目と同じ箱", () => {
     const 元 = 折れ線().diagram;
-    const 後 = 図の描き方を変える(元, "描き直す");
+    const 後 = 図の描き方を変える(元, "redraw");
     const 一段目 = 元.phases[0];
     expect(一段目, "元の見本に段が 1 つも無い").toBeDefined();
     if (一段目 === undefined) return;
@@ -109,7 +109,7 @@ describe("図の 2 段目以降に描く指定が写る (#1359)", () => {
   it("起点から描けない図は描き直しても変わらない", () => {
     const 描けない = 見本().find((x) => (x.diagram.phases[0]?.draw ?? []).length === 0);
     expect(描けない, "描けない見本が見つからない").toBeDefined();
-    expect(図の描き方を変える(描けない!.diagram, "描き直す")).toBe(描けない!.diagram);
+    expect(図の描き方を変える(描けない!.diagram, "redraw")).toBe(描けない!.diagram);
   });
 });
 
@@ -126,7 +126,7 @@ describe("図ごとの描き方の初期値 (#1690)", () => {
   it("弧の見本は描き直すから始まる", () => {
     let 測れた = 0;
     for (const x of 種別で集める("chart-radial")) {
-      expect(図ごとの既定の描き方(x.diagram), `${x.id} が描き直すにならない`).toBe("描き直す");
+      expect(図ごとの既定の描き方(x.diagram), `${x.id} が描き直すにならない`).toBe("redraw");
       測れた += 1;
     }
     expect(測れた, "1 件も測れていない (検査が空振りしている)").toBeGreaterThan(0);
@@ -137,7 +137,7 @@ describe("図ごとの描き方の初期値 (#1690)", () => {
     const 対象 = [...種別で集める("chart-bar"), ...種別で集める("chart-line")];
     expect(対象.length, "棒と折れ線の見本が 1 件も無い").toBeGreaterThan(0);
     for (const x of 対象)
-      expect(図ごとの既定の描き方(x.diagram), `${x.id} が動かすだけにならない`).toBe("動かすだけ");
+      expect(図ごとの既定の描き方(x.diagram), `${x.id} が動かすだけにならない`).toBe("hold");
   });
 
   it("段が 1 つしかない弧は動かすだけのまま", () => {
@@ -147,7 +147,7 @@ describe("図ごとの描き方の初期値 (#1690)", () => {
     if (元 === undefined) return;
     const 一段だけ: CdlDiagram = { ...元.diagram, phases: 元.diagram.phases.slice(0, 1) };
     expect(描き方を選べる(一段だけ), "段を削っても切替が出せてしまう").toBe(false);
-    expect(図ごとの既定の描き方(一段だけ)).toBe("動かすだけ");
+    expect(図ごとの既定の描き方(一段だけ)).toBe("hold");
   });
 
   it("弧を持たない見本は 1 件も描き直すにならない", () => {
@@ -155,7 +155,7 @@ describe("図ごとの描き方の初期値 (#1690)", () => {
     const 弧でない = 見本().filter((x) => !x.diagram.nodes.some((n) => n.kind === "chart-radial"));
     expect(弧でない.length, "弧を持たない見本が 1 件も無い").toBeGreaterThan(0);
     for (const x of 弧でない)
-      expect(図ごとの既定の描き方(x.diagram), `${x.id} が描き直すになった`).toBe("動かすだけ");
+      expect(図ごとの既定の描き方(x.diagram), `${x.id} が描き直すになった`).toBe("hold");
   });
 });
 
@@ -175,7 +175,7 @@ describe("描き方の切替を画面に出すか (#1692)", () => {
     expect(弧, "弧の見本が見つからない").toBeDefined();
     if (弧 === undefined) return;
     expect(描き方を選べる(弧.diagram), "写せる判定まで false になっている").toBe(true);
-    expect(描く段(図の描き方を変える(弧.diagram, "描き直す")).every(Boolean)).toBe(true);
+    expect(描く段(図の描き方を変える(弧.diagram, "redraw")).every(Boolean)).toBe(true);
   });
 
   it("棒と折れ線では切替を出す", () => {
@@ -207,7 +207,7 @@ describe("記法の 2 段目以降に描く指定が写る (#1359)", () => {
     expect(元.length, "段を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(1);
     expect(元[1], "元は 2 段目に語が無い").toBe("");
 
-    const 後 = yamlの描く語(記法の描き方を変える(x.yaml!, "描き直す", "yaml"));
+    const 後 = yamlの描く語(記法の描き方を変える(x.yaml!, "redraw", "yaml"));
     expect(後.length, "段の数が変わっている").toBe(元.length);
     expect(後.every((w) => w === 元[0])).toBe(true);
   });
@@ -218,14 +218,14 @@ describe("記法の 2 段目以降に描く指定が写る (#1359)", () => {
     expect(元.length, "段を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(1);
     expect(元[1], "元は 2 段目に語が無い").toBe("");
 
-    const 後 = jsonの描く語(記法の描き方を変える(x.json!, "描き直す", "json"));
+    const 後 = jsonの描く語(記法の描き方を変える(x.json!, "redraw", "json"));
     expect(後.length, "段の数が変わっている").toBe(元.length);
     expect(後.every((w) => w === 元[0])).toBe(true);
   });
 
   it("直した JSON が読める形のまま", () => {
     // 文字を差し込む形なので、壊れると読めなくなる
-    const 直した = 記法の描き方を変える(折れ線().json!, "描き直す", "json");
+    const 直した = 記法の描き方を変える(折れ線().json!, "redraw", "json");
     expect(() => JSON.parse(直した)).not.toThrow();
   });
 
@@ -243,7 +243,7 @@ describe("記法の 2 段目以降に描く指定が写る (#1359)", () => {
 
   it("本文は変わらない", () => {
     const x = 折れ線();
-    const 後 = 記法の描き方を変える(x.yaml!, "描き直す", "yaml");
+    const 後 = 記法の描き方を変える(x.yaml!, "redraw", "yaml");
     expect(後.split("body:").length, "本文の数が変わっている").toBe(x.yaml!.split("body:").length);
   });
 
@@ -255,7 +255,7 @@ describe("記法の 2 段目以降に描く指定が写る (#1359)", () => {
     expect(前.length, "段が 2 つ以上ある").toBeGreaterThan(1);
     expect(new Set(前).size, "元から揃っていると揃えた効果が見えない").toBeGreaterThan(1);
 
-    const 後 = 秒を読む(記法の描き方を変える(x.yaml!, "描き直す", "yaml"));
+    const 後 = 秒を読む(記法の描き方を変える(x.yaml!, "redraw", "yaml"));
     expect(後.length, "段の数が変わっている").toBe(前.length);
     expect(new Set(後).size, `揃っていない: ${JSON.stringify(後)}`).toBe(1);
     expect(後[0], "1 段目の秒数と違う値に揃っている").toBe(前[0]);
@@ -269,9 +269,9 @@ describe("描き方と速さを同時に掛けても図とコードが一致す�
       if (x.yaml === undefined || !描き方を選べる(x.diagram)) continue;
       見た += 1;
 
-      const 図 = 図の速さを変える(図の描き方を変える(x.diagram, "描き直す"), 速さ);
+      const 図 = 図の速さを変える(図の描き方を変える(x.diagram, "redraw"), 速さ);
       const 記法 = 記法の速さを変える(
-        記法の描き方を変える(x.yaml, "描き直す", "yaml"),
+        記法の描き方を変える(x.yaml, "redraw", "yaml"),
         速さ,
         "yaml",
       );

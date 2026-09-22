@@ -47,8 +47,8 @@ describe("折れ線の見せ方を描いた絵で見る (#1624)", () => {
   });
 
   it.each([
-    ["塗り", "chart-line-fill-under"],
-    ["せり上げ", "chart-line-value-rise"],
+    ["chartFillUnder", "chart-line-fill-under"],
+    ["chartValueRise", "chart-line-value-rise"],
   ] as const)("%s は入れると %s が出て、切ると消える", (見せ方, role) => {
     // Given
     const 元 = 折れ線の図();
@@ -70,7 +70,7 @@ describe("折れ線の見せ方を描いた絵で見る (#1624)", () => {
   it("なぞりは引き切るまで値を出さない", () => {
     // Given
     const 元 = 折れ線の図();
-    const 入れる: 折れ線の指定 = { ...既定の折れ線の指定, なぞり: true };
+    const 入れる: 折れ線の指定 = { ...既定の折れ線の指定, chartTrace: true };
 
     // When
     const 切った絵 = 描く(図の折れ線の見せ方を変える(元, 既定の折れ線の指定));

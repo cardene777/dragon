@@ -106,7 +106,7 @@ describe("傾き図の見せ方を描いた絵で見る (#1659 / #1664)", () => 
     expect(roleの数(描く(元), "chart-slope-value"), "既定で右の列が出ていない").toBe(数 * 2);
 
     // When
-    const svg = 描く(図の傾きの見せ方を変える(元, "増減"));
+    const svg = 描く(図の傾きの見せ方を変える(元, "delta"));
 
     // Then = 増減が系列の数だけ出て、値は左の列 (前の値) だけになる
     expect(roleの数(svg, "chart-slope-delta"), "増減の数が系列と合わない").toBe(数);
@@ -126,7 +126,7 @@ describe("傾き図の見せ方を描いた絵で見る (#1659 / #1664)", () => 
     ).map((差) => (差 > 0 ? `+${差.toLocaleString("en-US")}` : 差.toLocaleString("en-US")));
 
     // When
-    const svg = 描く(図の傾きの見せ方を変える(元, "増減"));
+    const svg = 描く(図の傾きの見せ方を変える(元, "delta"));
 
     // Then
     expect(roleの字(svg, "chart-slope-delta"), "増減の字が値と噛み合っていない").toEqual(期待);
@@ -139,7 +139,7 @@ describe("傾き図の見せ方を描いた絵で見る (#1659 / #1664)", () => 
     expect(前.length, "左の列を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
 
     // When
-    const svg = 描く(図の傾きの見せ方を変える(元, "増減"));
+    const svg = 描く(図の傾きの見せ方を変える(元, "delta"));
 
     // Then = 残った値の字が、既定の左の列と一致する
     expect(roleの字(svg, "chart-slope-value"), "左の列が変わっている").toEqual(前);
@@ -153,7 +153,7 @@ describe("傾き図の見せ方を描いた絵で見る (#1659 / #1664)", () => 
     expect(等間隔か(段たち(描く(元))), "既定の段がもともと等間隔 (前提が崩れている)").toBe(false);
 
     // When
-    const svg = 描く(図の傾きの見せ方を変える(元, "順位"));
+    const svg = 描く(図の傾きの見せ方を変える(元, "rank"));
 
     // Then = 段が系列の数だけ等間隔に並ぶ
     const 段 = 段たち(svg);
@@ -168,7 +168,7 @@ describe("傾き図の見せ方を描いた絵で見る (#1659 / #1664)", () => 
     const 既定の字 = roleの字(描く(元), "chart-slope-value");
 
     // When
-    const svg = 描く(図の傾きの見せ方を変える(元, "順位"));
+    const svg = 描く(図の傾きの見せ方を変える(元, "rank"));
 
     // Then = 増減には切り替わらず、左右 2 列とも既定と同じ字が出る
     expect(roleの数(svg, "chart-slope-delta"), "順位で増減が出ている").toBe(0);

@@ -76,7 +76,7 @@ describe("起点から描く見本の段の長さ (#1444)", () => {
     const ずれ: string[] = [];
     for (const 名 of 描く見本) {
       const 元 = mod[名] as CdlDiagram;
-      const 変えた = 図の描き方を変える(元, "描き直す") as unknown as 図;
+      const 変えた = 図の描き方を変える(元, "redraw") as unknown as 図;
       const 段群 = 変えた.phases ?? [];
       const 期待 = 段群[0]?.duration;
       expect(期待, `${名} の 1 段目に長さが無い`).toBeDefined();
@@ -90,7 +90,7 @@ describe("起点から描く見本の段の長さ (#1444)", () => {
     // 陰性対照。 これが無いと「常に揃える」 実装でも上の検査が通る
     for (const 名 of 描く見本) {
       const 元 = mod[名] as CdlDiagram;
-      const 変えた = 図の描き方を変える(元, "動かすだけ");
+      const 変えた = 図の描き方を変える(元, "hold");
       expect(変えた, `${名} で別の object が返っている (図が最初へ戻る)`).toBe(元);
     }
   });
@@ -116,12 +116,12 @@ describe("起点から描く見本の段の長さ (#1444)", () => {
         const 読む = 種 === "yaml" ? yamlの秒数 : jsonの秒数;
 
         // 切 = 元のまま
-        if (記法の描き方を変える(src, "動かすだけ", 種) !== src) {
+        if (記法の描き方を変える(src, "hold", 種) !== src) {
           ずれ.push(`${名} の ${種}: 動かすだけで記法が書き換わっている`);
         }
 
         // 入 = 全段が 1 段目に揃う
-        const 揃えた = 読む(記法の描き方を変える(src, "描き直す", 種));
+        const 揃えた = 読む(記法の描き方を変える(src, "redraw", 種));
         const 期待 = 揃えた[0];
         if (揃えた.length > 1 && 揃えた.some((v) => v !== 期待)) {
           ずれ.push(`${名} の ${種}: ${JSON.stringify(揃えた)} (1 段目は ${期待})`);
