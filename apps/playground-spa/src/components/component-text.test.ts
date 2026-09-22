@@ -22,6 +22,23 @@ import { 残る英単語, 日本語の字 } from "@/lib/screen-words";
 
 const 置き場 = fileURLToPath(new URL(".", import.meta.url));
 
+/**
+ * 枠の字を集めた表 (#2454)。
+ *
+ * 編集画面の字を 2 言語にした時、地の文として書いていた案内はこの表へ移った
+ * (`{locale === "ja" ? "…" : "…"}` を枠の中に 70 か所置くと組み立てが読めなくなるため)。
+ * 移した先を見ないと、枠の地の文が 0 件になった時に「英語が残っていない」 と
+ * 「1 件も見ていない」 が同じ緑になる。
+ */
+const 枠の字の表 = fileURLToPath(new URL("../lib/editor-text.ts", import.meta.url));
+
+/** 表の中の、日本語を含む字。 本番と収容対照が同じ関数を使う */
+function 表の字(): string[] {
+  return 引用符の文言(コメントを外す(readFileSync(枠の字の表, "utf8"))).filter((t) =>
+    日本語の字.test(t),
+  );
+}
+
 /** 画面に出ない文字列。 見た目の札 (`className`) と検査の目印 (`data-testid`) */
 const 画面に出ない = /(?:className|class|classList|data-testid)\s*=\s*$/;
 
@@ -189,7 +206,15 @@ describe("画面の枠の文言 (#1795)", () => {
     console.log(
       `[地の文] file=${files.length} 日本語の地の文=${拾えた} 改行をまたぐ区間=${またぐ} 開ける英単語が残る=${残る.length}`,
     );
-    expect(拾えた, "日本語の地の文を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(3);
+    // **枠の地の文は 0 件でよい** (#2454)。 2 言語にした時に案内は `lib/editor-text.ts` へ移り、
+    // 枠には差し込みだけが残った。 母数が 0 のまま緑になるのを防ぐため、移した先を直接見る
+    const 表 = 表の字();
+    console.log(`[枠の字の表] 日本語の字=${表.length}`);
+    expect(表.length, "枠の字の表が空 (移した先ごと消えている)").toBeGreaterThan(20);
+    expect(
+      表.flatMap(開ける英単語),
+      `枠の字の表に開ける英語が残る:\n${表.filter((t) => 開ける英単語(t).length > 0).join("\n")}`,
+    ).toEqual([]);
     // 改行をまたぐ字を 1 つも拾えていないなら、#1812 で直した経路が死んでいる。
     // 件数ではなく「その形を見ているか」 を見るので、下限は 1 に置く
     expect(またぐ, "改行をまたぐ地の文を 1 つも拾えていない (#1812 の経路が死んでいる)").toBeGreaterThan(0);
@@ -231,10 +256,13 @@ describe("画面の枠の文言 (#1795)", () => {
 
   it("直した字が母集団に残る (収容対照、#1812)", () => {
     // 直すと候補から消える探し方だと、直した file を 1 件も見ていないのと同じになる
-    const files = 画面のfile一覧(/\.tsx$/);
-    const 全文 = files.flatMap(
-      (f) => 地の文(見本を外す(コメントを外す(readFileSync(f, "utf8"))).字).文,
-    );
+    // 直した字は #2454 で `lib/editor-text.ts` の表へ移った。 探す先も移す
+    const 全文 = [
+      ...画面のfile一覧(/\.tsx$/).flatMap(
+        (f) => 地の文(見本を外す(コメントを外す(readFileSync(f, "utf8"))).字).文,
+      ),
+      ...表の字(),
+    ];
     const 該当 = 全文.filter((t) => t.includes("変えたい時は記法に posX / posY を書きます"));
     expect(該当, "英語を直した字が母集団から消えている").toHaveLength(1);
     expect(開ける英単語(該当[0]!), "直した字に開ける英語が残っている").toEqual([]);

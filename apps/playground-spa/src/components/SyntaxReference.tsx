@@ -3,6 +3,8 @@ import { DIRECTION_ALIAS, DRAW_WORDS, PRESET_TYPES, TONE_ALIAS } from "@cardenel
 import { NODE_KINDS } from "@cardenelabs/cdl";
 import { FORMS } from "@/lib/syntax-forms";
 import { SyntaxInline } from "./SyntaxCode";
+import { useLocale } from "@/lib/useLocale";
+import { 編集画面の字 } from "@/lib/editor-text";
 
 /**
  * 記法一覧。 editor の左に出して「何が書けるか」 を調べられるようにする。
@@ -30,6 +32,8 @@ function 正式名ごとの別名(表: Record<string, string>): [string, string[
 }
 
 export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => void }): React.JSX.Element {
+  const [locale] = useLocale();
+  const 字 = 編集画面の字(locale);
   // 実装が受け付ける値をそのまま並べる
   const types = useMemo(() => [...PRESET_TYPES].sort(), []);
   const kinds = useMemo(() => [...NODE_KINDS].sort(), []);
@@ -49,7 +53,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
               key={l.code}
               type="button"
               className="v4-editor-syntax-row"
-              title={onInsert ? "押すと入力欄の末尾に足す" : undefined}
+              title={onInsert ? 字.押すと末尾に足す : undefined}
               onClick={onInsert ? () => onInsert(l.code) : undefined}
               data-syntax-code={l.code}
             >
@@ -62,7 +66,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
       ))}
 
       <div className="v4-editor-syntax-section">
-        <div className="v4-editor-syntax-title">図種 ({types.length})</div>
+        <div className="v4-editor-syntax-title">{字.図種} ({types.length})</div>
         <div className="v4-editor-syntax-chips" data-testid="editor-syntax-types">
           {types.map((t) => (
             <code key={t} className="v4-editor-syntax-chip">{t}</code>
@@ -71,7 +75,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
       </div>
 
       <div className="v4-editor-syntax-section">
-        <div className="v4-editor-syntax-title">箱の種類 ({kinds.length})</div>
+        <div className="v4-editor-syntax-title">{字.箱の種類} ({kinds.length})</div>
         <div className="v4-editor-syntax-chips" data-testid="editor-syntax-kinds">
           {kinds.map((k) => (
             <code key={k} className="v4-editor-syntax-chip">{k}</code>
@@ -80,7 +84,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
       </div>
 
       <div className="v4-editor-syntax-section">
-        <div className="v4-editor-syntax-title">起点から描ける図種 ({draws.length})</div>
+        <div className="v4-editor-syntax-title">{字.起点から描ける図種} ({draws.length})</div>
         <div className="v4-editor-syntax-chips" data-testid="editor-syntax-draws">
           {draws.map((d) => (
             <code key={d} className="v4-editor-syntax-chip">{d}</code>
@@ -89,24 +93,24 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
       </div>
 
       <div className="v4-editor-syntax-section">
-        <div className="v4-editor-syntax-title">色 ({tones.length})</div>
+        <div className="v4-editor-syntax-title">{字.色} ({tones.length})</div>
         <div className="v4-editor-syntax-tones" data-testid="editor-syntax-tones">
           {tones.map(([tone, aliases]) => (
             <div key={tone} className="v4-editor-syntax-row">
               <code className="v4-editor-syntax-code tok-色名" data-tone={tone}>{tone}</code>
-              <span className="v4-editor-syntax-note">{aliases.length > 0 ? aliases.join(" / ") : "別名なし"}</span>
+              <span className="v4-editor-syntax-note">{aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}</span>
             </div>
           ))}
         </div>
       </div>
 
       <div className="v4-editor-syntax-section">
-        <div className="v4-editor-syntax-title">向き ({directions.length})</div>
+        <div className="v4-editor-syntax-title">{字.向き} ({directions.length})</div>
         <div className="v4-editor-syntax-tones" data-testid="editor-syntax-directions">
           {directions.map(([dir, aliases]) => (
             <div key={dir} className="v4-editor-syntax-row">
               <code className="v4-editor-syntax-code" data-direction={dir}>{dir}</code>
-              <span className="v4-editor-syntax-note">{aliases.length > 0 ? aliases.join(" / ") : "別名なし"}</span>
+              <span className="v4-editor-syntax-note">{aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}</span>
             </div>
           ))}
         </div>

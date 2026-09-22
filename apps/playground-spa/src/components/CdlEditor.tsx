@@ -79,6 +79,10 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { 記法の色分け } from "@/lib/syntax-decoration";
 import { useLocale } from "@/lib/useLocale";
+import { 編集画面の字, 編集画面の文 } from "@/lib/editor-text";
+import { sampleLabel } from "@/data/editor-samples";
+import { categoryLabel } from "@/lib/catalog";
+import type { Locale } from "@/lib/i18n";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 
 // 記述の色分け。 値は globals.css の変数から取るので、 明暗の切替は html.dark 1 本で済む。
@@ -132,8 +136,11 @@ const v4EditorThemeDark = EditorView.theme(CODE_THEME_RULES, { dark: true });
  *  実体は `@/data/editor-samples.ts` に移設済 (CAR-1659、 samples-validate test との drift 回避で shared SSOT 化)。 */
 const SAMPLES = EDITOR_SAMPLES;
 
-/** 知らせの中で分類を指す時の呼び名 (#1805)。 出どころは `CATEGORIES[].label` 1 つ (#1788) */
-const 分類の呼び名 = CATEGORIES.find((c) => c.slug === "presets")?.label ?? "";
+/** 知らせの中で分類を指す時の呼び名 (#1805)。 出どころは `CATEGORIES` 1 つ (#1788) */
+const 分類の呼び名 = (locale: Locale): string => {
+  const c = CATEGORIES.find((x) => x.slug === "presets");
+  return c === undefined ? "" : categoryLabel(c, locale);
+};
 
 /**
  * 図に重ねる小部品の呼び名 (#1811)。 出どころは同じく `CATEGORIES[].label` 1 つ。
@@ -141,7 +148,23 @@ const 分類の呼び名 = CATEGORIES.find((c) => c.slug === "presets")?.label ?
  * この画面は一覧の見出しと知らせで 5 箇所この語を出す。 字で書くと、#1805 のように
  * カタログの側だけ呼び名が変わった時に、この画面だけ古い呼び名が残る。
  */
-const 部品の呼び名 = CATEGORIES.find((c) => c.slug === "parts")?.label ?? "";
+const 部品の呼び名 = (locale: Locale): string => {
+  const c = CATEGORIES.find((x) => x.slug === "parts");
+  return c === undefined ? "" : categoryLabel(c, locale);
+};
+
+/**
+ * 見本ではない時の `activeSample` の値 (#2454)。
+ *
+ * `activeSample` は「いまどの見本を開いているか」 の identity で、書類名にも出る。
+ * **値そのものは言語で変えない** = 変えると言語を切り替えた瞬間に選んでいる見本を見失う。
+ * 画面に出す時だけ言語で選ぶ (`書類名`)。
+ *
+ * 字は表の日本語の側から引く。 同じ字を 2 か所に書くと、片方だけ直した日に
+ * 書類名の突き合わせが外れる。
+ */
+const 共有から開いた = 編集画面の字("ja").共有の呼び名;
+const 新しい書類 = 編集画面の字("ja").新規ファイル;
 
 function encodeShare(src: string): string {
   try {
@@ -300,6 +323,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   // 図を画面の言語で描く (#1910)。 配置 (`buildAndValidate`) の前に当てる = 配置の結果が
   // 言語を持ち越して形の部品に届けるので、配置の後に当てても形の字は変わらない
   const [locale] = useLocale();
+  // 画面に出す字は 1 つの表から引く (#2454)。 鍵を打ち間違えると `tsc` が落ちる
+  const 字 = 編集画面の字(locale);
+  const 分類 = 分類の呼び名(locale);
+  const 部品 = 部品の呼び名(locale);
   const [src, setSrcRaw] = useState<string>(SAMPLES[0].code);
   // keydown handler から最新 src を同期的に読むための mirror
   const srcRef = useRef(src);
@@ -408,11 +435,23 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     () =>
       直せない軸の案内(
         Array.from(new Set(warnings.filter((w) => !FIXABLE_WARNING_AXES.has(w.axis)).map((w) => w.axis))),
+        locale,
       ),
-    [warnings],
+    [warnings, locale],
   );
   const [search, setSearch] = useState("");
   const [activeSample, setActiveSample] = useState(SAMPLES[0].label);
+  /**
+   * 書類名に出す字 (#2454)。 `activeSample` は identity なので日本語のまま持ち、
+   * 出す時だけ言語で選ぶ。 見本にも決まり字にも当たらない値 (部品の題) はそのまま出す。
+   */
+  const 書類名 = ((): string => {
+    const 見本 = SAMPLES.find((x) => x.label === activeSample);
+    if (見本 !== undefined) return sampleLabel(見本, locale);
+    if (activeSample === 共有から開いた) return 字.共有の呼び名;
+    if (activeSample === 新しい書類) return 字.新規ファイル;
+    return activeSample;
+  })();
   const [isDark, setIsDark] = useState(false);
 
   /**
@@ -501,7 +540,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     if (!userEdited) return true;
     const ok = window.confirm(
       locale === "ja"
-        ? `編集中の内容が「${newSrcPreviewLabel}」 に置き換わります。 元に戻すには Cmd+Z で undo 可能。\n\n続けますか？`
+        ? 編集画面の文.中身が置き換わる(newSrcPreviewLabel, locale)
         : `Your edits will be replaced with "${newSrcPreviewLabel}". Cmd+Z undoes it.\n\nContinue?`,
     );
     return ok;
@@ -524,7 +563,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     // native confirm dialog なので Playwright test は page.on("dialog") で捕捉する。
     return window.confirm(
       locale === "ja"
-        ? "書きかけの内容が消えます。 続けますか？"
+        ? 字.書きかけが消える
         : "Unsaved changes will be lost. Continue?",
     );
   }, [activeTab, src, yamlSrc, locale]);
@@ -567,7 +606,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         console.error("[CdlEditor] parts load failed", e);
         setPartsLoadFailed(true);
         showStageNotice(
-          `見本を読み込めませんでした。 ${部品の呼び名}の一覧を開き直すと再試行します。`,
+          編集画面の文.見本を読み込めない(部品, locale),
           8000,
         );
       })
@@ -825,7 +864,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         // 対応 sample なし = user 通知 (silently default load を明示的に伝える)
          
         setAutoFixMessage(
-          `${分類の呼び名}「${targetSlug}」 に対応する編集できる見本は未登録です。 既定の見本 (${SAMPLES[0].label}) で開きます。`,
+          編集画面の文.編集できる見本が無い(分類, targetSlug, sampleLabel(SAMPLES[0], locale), locale),
         );
         window.setTimeout(() => setAutoFixMessage(null), 8000);
       }
@@ -839,7 +878,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       setSrc(restored);
       lastLoadedSrcRef.current = restored;
        
-      setActiveSample("共有URL");
+      setActiveSample(共有から開いた);
     }
     // `setSrc` は空の依存で作るので書き換わらない (以下 3 箇所とも同じ)
   }, [location.hash, setSrc]);
@@ -869,7 +908,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       const unsupportedAxes = Array.from(
         new Set(warnings.filter((w) => !FIXABLE_WARNING_AXES.has(w.axis)).map((w) => w.axis)),
       );
-      setAutoFixMessage(まとめて直せない案内(unsupportedAxes));
+      setAutoFixMessage(まとめて直せない案内(unsupportedAxes, locale));
       window.setTimeout(() => setAutoFixMessage(null), 10000);
       return;
     }
@@ -886,8 +925,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const failed = result.unmatched.length;
     setAutoFixMessage(
       failed === 0
-        ? `${result.applied.length} 件の線の名札の位置を記法に書き戻しました。`
-        : `${result.applied.length} 件を記法に書き戻しました。 ${failed} 件は本文の該当行が見つからず書き戻せていません (記法を書き換えた直後は再描画を待ってから押してください)。`,
+        ? 編集画面の文.名札の位置を書き戻した(result.applied.length, locale)
+        : 編集画面の文.一部を書き戻せなかった(result.applied.length, failed, locale),
     );
     window.setTimeout(() => setAutoFixMessage(null), failed === 0 ? 6000 : 10000);
   }, [warnings, diagram, src, edgeSource, setSrc]);
@@ -1018,7 +1057,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
             setYamlError({
               kind: "validation",
               line: null,
-              message: `YAML の読み取りを読み込めませんでした。 頁を開き直してください (${e instanceof Error ? e.message : String(e)})`,
+              message: 編集画面の文.読み取りを読み込めない(e instanceof Error ? e.message : String(e), locale),
               reason: null,
             });
           });
@@ -1038,7 +1077,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         if (isPartsMarker(src)) {
           const part = deserializePart(src);
           if (!part) {
-            setError(`${PARTS_MARKER} の印はあるが JSON が壊れています。 印を消して記法に戻すか、 JSON を直してください。`);
+            setError(編集画面の文.印はあるがJSONが壊れている(PARTS_MARKER, locale));
             return;
           }
           // 記法を通らないので要素数の上限も効かない。 図の側で数えて止める (#1005)
@@ -1051,7 +1090,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
           // この経路は cdl の組み立てを直接呼ぶため dragon 側の出口の検査を通らないので、
           // ここで図の外を指す値を落とす (#1004)
           for (const dropped of stripExternalPaint(part)) {
-            showStageNotice(`図の外を指す値 (${dropped.path}) は色として使えないため外しました。`, 6000);
+            showStageNotice(編集画面の文.図の外の値は色にできない(dropped.path, locale), 6000);
           }
           // 組み立てに失敗する図は描画前に捕まえる (`applyDiagram` が投げ、 外側の catch が受ける)
           applyDiagram(part);
@@ -1113,8 +1152,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
             kind: "part-not-drawn",
             actor: p.id,
             line: 0,
-            message: `"${p.id}" (${p.kind}) は図の中に描く部品を持たないため、置いても図には出ません。`,
-            hint: "操作盤の部品として使う見本です",
+            message: 編集画面の文.描く部品を持たない(p.id, p.kind, locale),
+            hint: 字.部品として使う見本,
           });
         }
         // 先に組み立てて配置を得る。 パーツの置き場所を測る `measureActorBoxes` も配置を要るので、
@@ -1131,7 +1170,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
                   actor: n.part,
                   line: 0,
                   message: n.message,
-                  hint: "actors: に書いた名前を基準にする",
+                  hint: 字.名前の基準,
                 });
               }),
         );
@@ -1230,11 +1269,11 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     (name: string, cx: number, cy: number): void => {
       const next = writeActorPosition(src, name, cx, cy);
       if (next === null) {
-        showStageNotice(`"${name}" の行が本文に見つかりませんでした。`, 4000);
+        showStageNotice(編集画面の文.行が見つからない(name, locale), 4000);
         return;
       }
       setSrc(next);
-      showStageNotice(`"${name}" に 位置: ${Math.round(cx)},${Math.round(cy)} を書きました。`, 4000);
+      showStageNotice(編集画面の文.位置を書いた(name, Math.round(cx), Math.round(cy), locale), 4000);
     },
     [src, setSrc, showStageNotice],
   );
@@ -1529,16 +1568,16 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     const url = `${window.location.origin}${window.location.pathname}#s=${encoded}`;
     try {
       await navigator.clipboard.writeText(url);
-      toast({ type: "success", title: locale === "ja" ? "URL をコピーしました" : "Copied the URL" });
+      toast({ type: "success", title: 字.写した });
     } catch {
       // 写せない時は知らせを出した上で URL 自体も見せる。 知らせだけだと、 写せなかった人が
       // URL を手に入れる道が残らない
       toast({
         type: "error",
-        title: locale === "ja" ? "コピーに失敗しました" : "Could not copy the URL",
+        title: 字.写せなかった,
       });
       window.prompt(
-        locale === "ja" ? "共有 URL をコピーしてください:" : "Copy this share URL:",
+        字.手で写してほしい,
         url,
       );
     }
@@ -1661,7 +1700,7 @@ animation:
   - step: "step 1" 1.2s
     focus: [A, B]
 `;
-    if (!confirmReplaceIfDirty("新規ファイル")) return;
+    if (!confirmReplaceIfDirty(新しい書類)) return;
     setSrc(blank);
     lastLoadedSrcRef.current = blank;
     setActiveSample("new");
@@ -1678,7 +1717,7 @@ animation:
    */
   const cdlWriteDisabled = activeTab !== "cdl";
   /** 押せない時に出す理由。 button の `title` に入れる (無効の理由が読めないと故障に見える) */
-  const cdlOnlyHint = "本文欄 (CDL) でのみ使えます";
+  const cdlOnlyHint = 字.本文欄でのみ使える;
 
   return (
     <div className={`v4-editor${sideOpen ? " side-open" : ""}`}>
@@ -1688,7 +1727,7 @@ animation:
         <button
           type="button"
           className="v4-editor-side-backdrop"
-          aria-label="一覧を閉じる"
+          aria-label={字.一覧を閉じる}
           // 押しても focus を受け取らない。 受け取ると、 閉じた瞬間に自分が消えて focus が
           // 行き場を失う (実測 = body に落ちる)。 押す前の位置に残す
           onMouseDown={(e) => e.preventDefault()}
@@ -1707,7 +1746,7 @@ animation:
           data-testid="editor-new-file"
         >
           <span className="v4-editor-side-new-plus">+</span>
-          <span>新規ファイル</span>
+          <span>{字.新規ファイル}</span>
         </button>
         <div className="v4-editor-side-tabs" role="tablist" aria-label="sidebar tabs">
           <button
@@ -1718,7 +1757,7 @@ animation:
             onClick={() => setSidebarTab("samples")}
             data-testid="editor-samples-tab"
           >
-            見本
+            {字.見本のタブ}
           </button>
           <button
             type="button"
@@ -1728,7 +1767,7 @@ animation:
             onClick={() => setSidebarTab("parts")}
             data-testid="editor-parts-tab"
           >
-            {部品の呼び名}
+            {部品}
           </button>
           <button
             type="button"
@@ -1738,7 +1777,7 @@ animation:
             onClick={() => setSidebarTab("syntax")}
             data-testid="editor-syntax-tab"
           >
-            記法
+            {字.記法のタブ}
           </button>
         </div>
         {sidebarTab === "syntax" && (
@@ -1760,7 +1799,7 @@ animation:
             <input
               className="v4-editor-search"
               type="text"
-              placeholder="🔍 検索…"
+              placeholder={字.検索の欄}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -1779,7 +1818,7 @@ animation:
                       disabled={cdlWriteDisabled}
                       title={cdlWriteDisabled ? cdlOnlyHint : undefined}
                     >
-                      {s.label.replace(/\s*\([^)]*\)\s*$/, "")}
+                      {sampleLabel(s, locale).replace(/\s*\([^)]*\)\s*$/, "")}
                     </button>
                   ))}
                 </div>
@@ -1792,16 +1831,20 @@ animation:
             <input
               className="v4-editor-search"
               type="text"
-              placeholder="🔍 検索…"
+              placeholder={字.検索の欄}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            {partsLoading && <div className="v4-editor-side-loading">読み込み中… ({filteredParts.length} 件)</div>}
+            {partsLoading && (
+              <div className="v4-editor-side-loading">
+                {編集画面の文.読み込み中の件数(filteredParts.length, locale)}
+              </div>
+            )}
             {!partsLoading && filteredParts.length === 0 && (
               <div className="v4-editor-side-loading">
                 {partsItems.length === 0
-                  ? "最初の読み込みを待っています…"
-                  : `検索条件に一致する${部品の呼び名}がありません。`}
+                  ? 字.最初の読み込み待ち
+                  : 編集画面の文.一致する部品が無い(部品, locale)}
               </div>
             )}
             {/* 説明 (`subtitle`) を出す画面は、導いた動きの一文も併せて出す (#1053)。
@@ -1854,7 +1897,7 @@ animation:
                     if (appended !== null) {
                       setSrc(appended);
                       lastLoadedSrcRef.current = appended;
-                      showStageNotice(`actors: に "${alias}" (${kindValue}) を追加しました。`, 4000);
+                      showStageNotice(編集画面の文.名前を足した(alias, kindValue, locale), 4000);
                     } else {
                       // REPLACE fallback with confirm
                       if (!confirmReplaceIfDirty(p.title)) return;
@@ -1862,7 +1905,7 @@ animation:
                       setSrc(replaceSrc);
                       lastLoadedSrcRef.current = replaceSrc;
                       setActiveSample(p.title);
-                      showStageNotice(`部品「${p.title}」 を新しい図として読み込みました。`, 4000);
+                      showStageNotice(編集画面の文.部品を図として読み込んだ(p.title, locale), 4000);
                     }
                   }}
                 >
@@ -1871,7 +1914,7 @@ animation:
               ))}
             </div>
             <div className="v4-editor-side-hint">
-              押すと actors: に 1 行追加します。 位置は自動で決まるので、 変えたい時は記法に posX / posY を書きます。
+              {字.押すと1行足す}
             </div>
           </div>
         )}
@@ -1886,10 +1929,10 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon v4-editor-side-toggle"
             ref={sideToggleRef}
             onClick={() => setSideOpen((v) => !v)}
-            aria-label={`見本と${部品の呼び名}の一覧`}
+            aria-label={編集画面の文.見本と部品の一覧(部品, locale)}
             aria-expanded={sideOpen}
             aria-controls="editor-side"
-            title={`見本と${部品の呼び名}の一覧を出す`}
+            title={編集画面の文.見本と部品の一覧を出す(部品, locale)}
             data-testid="editor-side-toggle"
           >
             <IconList />
@@ -1921,7 +1964,7 @@ animation:
               `text-overflow: ellipsis` が効かず、 狭い画面で省略記号なしに切れる。 */}
           <span className="v4-editor-bar-file">
             <span className="v4-editor-bar-file-name">
-              {activeTab === "cdl" ? `▲ ${activeSample}.dragon` : "▲ diagram.yml"}
+              {activeTab === "cdl" ? `▲ ${書類名}.dragon` : "▲ diagram.yml"}
             </span>
           </span>
           <span className="v4-editor-bar-gap" />
@@ -1934,8 +1977,8 @@ animation:
               void handleShare();
             }}
             disabled={cdlWriteDisabled}
-            aria-label="共有URL"
-            title={cdlWriteDisabled ? cdlOnlyHint : "この図を開ける URL を作って写す"}
+            aria-label={字.共有の呼び名}
+            title={cdlWriteDisabled ? cdlOnlyHint : 字.共有の説明}
             data-testid="editor-share"
           >
             <IconShare />
@@ -1945,25 +1988,25 @@ animation:
               type="button"
               className="v4-editor-bar-btn v4-editor-bar-btn-icon v4-editor-bar-btn-primary"
               disabled={!diagram}
-              aria-label="書き出す"
+              aria-label={字.書き出すの呼び名}
               aria-haspopup="menu"
               data-testid="editor-export"
-              title="画像として書き出す (SVG / PNG)"
+              title={字.書き出すの説明}
             >
               <IconExport />
             </button>
             <div className="v4-editor-export-menu">
               <button type="button" onClick={handleExportAnimatedSvg} disabled={!diagram}>
-                <strong>動く SVG</strong>
-                <span>単一ファイルで動く / GitHub README / Notion</span>
+                <strong>{字.動くSVG}</strong>
+                <span>{字.動くSVGの説明}</span>
               </button>
               <button type="button" onClick={handleExportStaticSvg} disabled={!diagram}>
-                <strong>静止 SVG</strong>
-                <span>今の段の静止 1 こま / Keynote / PDF</span>
+                <strong>{字.静止SVG}</strong>
+                <span>{字.静止SVGの説明}</span>
               </button>
               <button type="button" onClick={() => void handleExportPng()} disabled={!diagram}>
                 <strong>PNG</strong>
-                <span>点で描く 2 倍の密度 / Slack / Twitter</span>
+                <span>{字.PNGの説明}</span>
               </button>
             </div>
           </div>
@@ -2024,12 +2067,12 @@ animation:
             <div className="v4-editor-warnings-head">
               <span className="v4-editor-warnings-badge">
                 {warnings.filter((w) => w.severity === "error").length > 0
-                  ? "位置の関係が崩れている"
-                  : `位置関係の警告 ${warnings.length}件`}
+                  ? 字.位置が崩れている
+                  : 編集画面の文.位置関係の警告(warnings.length, locale)}
               </span>
               <span className="v4-editor-warnings-hint">
                 {fixableWarningCount > 0
-                  ? `記法の labelOffsetX / labelOffsetY で箱との位置を調整できます (自動で直せるもの ${fixableWarningCount} 件)`
+                  ? 編集画面の文.名札の位置を調整できる(fixableWarningCount, locale)
                   : unfixableAxisHint}
               </span>
               <button
@@ -2044,11 +2087,13 @@ animation:
                   cdlWriteDisabled
                     ? cdlOnlyHint
                     : fixableWarningCount > 0
-                      ? `${fixableWarningCount} 件の名札の位置を記法にまとめて書き戻す`
-                      : "自動で直せる注意はありません"
+                      ? 編集画面の文.まとめて書き戻す(fixableWarningCount, locale)
+                      : 字.直せる注意なし
                 }
               >
-                {fixableWarningCount > 0 ? `一括反映 (${fixableWarningCount}) ✨` : "直せるものなし"}
+                {fixableWarningCount > 0
+                  ? 編集画面の文.一括反映(fixableWarningCount, locale)
+                  : 字.直せるものなし}
               </button>
             </div>
             {autoFixMessage && (
@@ -2075,7 +2120,9 @@ animation:
                 </li>
               ))}
               {warnings.length > 6 && (
-                <li className="v4-editor-warning-more">…他 {warnings.length - 6} 件</li>
+                <li className="v4-editor-warning-more">
+                  {編集画面の文.他に何件(warnings.length - 6, locale)}
+                </li>
               )}
             </ul>
           </div>
@@ -2088,7 +2135,7 @@ animation:
           <span className="v4-editor-bar-file">
             <span className="v4-editor-live" />
             {/* 名前は span で包む (#1063)。 裸の文字だと縮まず、 狭い画面で 55px を占め続ける */}
-            <span className="v4-editor-bar-file-name">実況表示</span>
+            <span className="v4-editor-bar-file-name">{字.実況表示}</span>
           </span>
           <span className="v4-editor-bar-gap" />
           {/* アイコンだけを置く (#1063)。 文字のままだと 12 個で 811px を占め、
@@ -2102,8 +2149,8 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-font-scale-down"
             onClick={() => setFontScale((v) => clampFontScale(v / 1.15))}
-            aria-label="文字を小さく"
-            title="図の中の文字を一律で小さくする"
+            aria-label={字.文字を小さく}
+            title={字.文字を小さくの説明}
           >
             <IconTextDown />
           </button>
@@ -2112,8 +2159,8 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-font-scale-up"
             onClick={() => setFontScale((v) => clampFontScale(v * 1.15))}
-            aria-label="文字を大きく"
-            title="図の中の文字を一律で大きくする"
+            aria-label={字.文字を大きく}
+            title={字.文字を大きくの説明}
           >
             <IconTextUp />
           </button>
@@ -2125,8 +2172,8 @@ animation:
             data-testid="editor-diagram-scale-down"
             onClick={() => scaleWholeDiagram(1 / 1.25)}
             disabled={cdlWriteDisabled}
-            aria-label="図を縮小"
-            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを縮める (表示倍率ではなく記法に書き戻す)"}
+            aria-label={字.図を縮小}
+            title={cdlWriteDisabled ? cdlOnlyHint : 字.図を縮小の説明}
           >
             <IconShrink />
           </button>
@@ -2136,8 +2183,8 @@ animation:
             data-testid="editor-diagram-scale-up"
             onClick={() => scaleWholeDiagram(1.25)}
             disabled={cdlWriteDisabled}
-            aria-label="図を拡大"
-            title={cdlWriteDisabled ? cdlOnlyHint : "図そのものを広げる (表示倍率ではなく記法に書き戻す)"}
+            aria-label={字.図を拡大}
+            title={cdlWriteDisabled ? cdlOnlyHint : 字.図を拡大の説明}
           >
             <IconGrow />
           </button>
@@ -2149,8 +2196,8 @@ animation:
             onClick={() => setShowPositions((v) => !v)}
             // 札は本文欄にしか書き戻せない。 YAML 欄では押しても何も出ないので押せなくする
             disabled={cdlWriteDisabled}
-            aria-label="位置を表示"
-            title={cdlWriteDisabled ? cdlOnlyHint : "各要素が今どこに居るかを図に重ねて出す"}
+            aria-label={字.位置を表示}
+            title={cdlWriteDisabled ? cdlOnlyHint : 字.位置を表示の説明}
           >
             <IconPositions />
           </button>
@@ -2160,8 +2207,8 @@ animation:
             data-testid="editor-toggle-grid"
             aria-pressed={showGrid}
             onClick={() => setShowGrid((v) => !v)}
-            aria-label="方眼を表示"
-            title="舞台に点の方眼を出す (掴んで動かす時の目安)"
+            aria-label={字.方眼を表示}
+            title={字.方眼を表示の説明}
           >
             <IconGrid />
           </button>
@@ -2170,8 +2217,8 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-fit"
             onClick={handleFit}
-            aria-label="枠に合わせる"
-            title="図が枠に収まるように表示を合わせる"
+            aria-label={字.枠に合わせる}
+            title={字.枠に合わせるの説明}
           >
             <IconFit />
           </button>
@@ -2180,8 +2227,8 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-reset"
             onClick={handleReset}
-            aria-label="表示を戻す"
-            title="表示を最初の状態に戻す (Esc)"
+            aria-label={字.表示を戻す}
+            title={字.表示を戻すの説明}
           >
             <IconReset />
           </button>
@@ -2190,8 +2237,8 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-actual-size"
             onClick={handle100}
-            aria-label="等倍表示"
-            title="等倍で表示する"
+            aria-label={字.等倍表示}
+            title={字.等倍表示の説明}
           >
             <IconActualSize />
           </button>
@@ -2200,8 +2247,8 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-zoom-out"
             onClick={handleZoomOut}
-            aria-label="縮小"
-            title="表示を縮小する"
+            aria-label={字.縮小}
+            title={字.縮小の説明}
           >
             <IconZoomOut />
           </button>
@@ -2210,8 +2257,8 @@ animation:
             className="v4-editor-bar-btn v4-editor-bar-btn-icon"
             data-testid="editor-zoom-in"
             onClick={handleZoomIn}
-            aria-label="拡大"
-            title="表示を拡大する"
+            aria-label={字.拡大}
+            title={字.拡大の説明}
           >
             <IconZoomIn />
           </button>
@@ -2266,7 +2313,7 @@ animation:
                       // 図を縮めた時に札も一緒に縮んで数字が読めない (実測)
                       transform: `translate(-50%, -50%) scale(${1 / transform.scale})`,
                     }}
-                    title={`"${m.name}" に 位置: ${Math.round(m.cx)},${Math.round(m.cy)} を書く`}
+                    title={編集画面の文.位置を書く(m.name, Math.round(m.cx), Math.round(m.cy), locale)}
                     onClick={() => handleWritePosition(m.name, m.cx, m.cy)}
                   >
                     {Math.round(m.cx)},{Math.round(m.cy)}
@@ -2310,7 +2357,7 @@ animation:
                 })}
               </div>
             ) : (
-              <div className="v4-editor-empty">読み込み中...</div>
+              <div className="v4-editor-empty">{字.読み込み中}</div>
             )}
           </div>
         </div>
