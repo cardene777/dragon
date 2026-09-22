@@ -88,6 +88,8 @@ flow:
 `;
         const partsCatalog: Record<string, CdlDiagram> = { [info.diagram.id]: info.diagram };
         const compiled = textDslToDiagram(dsl, { partsCatalog });
+        // 状態の名前が 0 件だと、下の繰り返しが 1 度も回らずに通る
+        expect(info.stateNames.length, `${info.name} の状態の名前が 0 件`).toBeGreaterThan(0);
         for (const stateName of info.stateNames) {
           const prefixedId = `${alias}__${stateName}`;
           const state = compiled.states.find((s) => s.id === prefixedId);

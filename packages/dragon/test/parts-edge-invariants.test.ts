@@ -23,6 +23,16 @@ function collectAllParts(mod: unknown): Array<{ name: string; diagram: CdlDiagra
 const ALL_PARTS = collectAllParts(PartsMod);
 
 describe("iter89: 全 parts × edges detailed invariants", () => {
+  it("矢印を持つ部品が 1 件以上ある (空振り防止)", () => {
+    /*
+     * 矢印を持たない部品が 110 件中 79 件ある (箱だけの部品)。 1 件ずつ矢印の件数を見ると
+     * その 79 件で落ちるので、**全体で 1 件以上** を見る。
+     * engine が矢印を作らなくなった時、下の繰り返しは 1 度も回らずに通ってしまう。
+     */
+    const 矢印あり = ALL_PARTS.filter(({ diagram }) => diagram.edges.length > 0);
+    expect(矢印あり.length, "矢印を持つ部品が 1 件も無い").toBeGreaterThan(0);
+  });
+
   it(`parts 検出`, () => {
     expect(ALL_PARTS.length).toBeGreaterThanOrEqual(60);
   });

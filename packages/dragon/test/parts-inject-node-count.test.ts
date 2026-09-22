@@ -63,6 +63,8 @@ flow:
         .filter((n) => n.id.startsWith("injB__"))
         .map((n) => n.id.slice("injB__".length));
       const partsIds = diagram.nodes.map((n) => n.id);
+      // 差し込んだ箱が 0 個だと、下の繰り返しが 1 度も回らずに通る
+      expect(injectedIds.length, `${name} で箱が 1 つも差し込まれていない`).toBeGreaterThan(0);
       // 各 injected sub-node は parts.nodes.id に含まれる
       for (const id of injectedIds) {
         expect(partsIds.includes(id), `${id} in parts nodes ${partsIds.join(",")}`).toBe(true);

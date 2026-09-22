@@ -612,6 +612,8 @@ describe("applyV05Extensions", () => {
     const d = compileToCdl(makeDoc("swimlane", {
       viewport: 図全体({ laneWidth: 555 }),
     }));
+    // 縦列が 0 本だと下の繰り返しが 1 度も回らずに通る
+    expect(d.lanes.length, "縦列が 1 本も無い").toBeGreaterThan(0);
     for (const l of d.lanes) expect(l.width).toBe(555);
   });
   it("doc.lanes → 既存 lane に x / width / label を merge", () => {
@@ -1334,6 +1336,8 @@ describe("applyV05Extensions: lanes section", () => {
 describe("applyV05Extensions: viewport", () => {
   it("laneWidth は全 lane の width を override", () => {
     const d = compile("swimlane", { viewport: 図全体({ laneWidth: 999 }) });
+    // 縦列が 0 本だと下の繰り返しが 1 度も回らずに通る
+    expect(d.lanes.length, "縦列が 1 本も無い").toBeGreaterThan(0);
     for (const l of d.lanes) expect(l.width).toBe(999);
   });
 

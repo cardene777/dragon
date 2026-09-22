@@ -43,6 +43,8 @@ describe("iter64: EDITOR_SAMPLES 一意性 verify", () => {
     for (const t of titles) {
       counts.set(t, (counts.get(t) ?? 0) + 1);
     }
+    // 題を 1 つも拾えないと、下の繰り返しが 1 度も回らずに通る
+    expect(counts.size, "見本の題を 1 つも拾えていない").toBeGreaterThan(0);
     for (const [t, c] of counts) {
       expect(c, `title "${t}" dup count ${c}`).toBeLessThanOrEqual(3);
     }

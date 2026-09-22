@@ -114,6 +114,8 @@ describe("locality — 局所変更が無関係な出力を変えない", () => 
     const three = compileToCdl(doc("タイトル: T\n種類: swimlane\n登場人物:\n  - A\n  - B\n  - C\n流れ:\n  1. A → B: x"));
     const laneIds2 = two.lanes.map((l) => l.id).sort();
     const laneIds3 = three.lanes.map((l) => l.id).sort();
+    // 2 人を渡しているので縦列は 2 本。 0 だと下の繰り返しが 1 度も回らずに通る
+    expect(laneIds2.length, "縦列が 2 本作られていない").toBe(2);
     // 既存 2 lane は three に含まれる (C 追加で消えない)
     for (const id of laneIds2) expect(laneIds3).toContain(id);
   });

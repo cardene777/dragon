@@ -42,6 +42,17 @@ function bfs(adj: Map<string, Set<string>>, start: string): Set<string> {
 }
 
 describe("iter53: 全 sample × graph reachability", () => {
+  it("矢印を持つ見本が 1 件以上ある (空振り防止)", () => {
+    /*
+     * 矢印を持たない見本が 25 件中 18 件ある (図表 / 樹形図 / 見出しの見本)。
+     * 1 件ずつ矢印の件数を見るとその 18 件で落ちるので、**全体で 1 件以上** を見る。
+     * engine が矢印を作らなくなった時、矢印を回す繰り返しは 1 度も回らずに通ってしまう。
+     * 見本ごとの宣言は `empty-population-scan-2505.test.ts` の空でよい元が持つ。
+     */
+    const 矢印あり = EDITOR_SAMPLES.filter((s) => textDslToDiagram(s.code).edges.length > 0);
+    expect(矢印あり.length, "矢印を持つ見本が 1 件も無い").toBeGreaterThan(0);
+  });
+
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
       it(`先頭の箱から辿れる箱が、箱の数を超えない`, () => {

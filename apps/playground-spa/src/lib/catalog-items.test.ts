@@ -94,6 +94,8 @@ describe("catalog の suffix pair 規約", () => {
 
   it("string export が CatalogItem 化されない", () => {
     // `subtitle__` 等は string なので item にならない。 なると一覧に空 card が出る。
+    // 一覧が空だと下の繰り返しが 1 度も回らずに通る
+    expect(Object.values(CATALOG_ITEMS).length, "見本の一覧が空").toBeGreaterThan(0);
     for (const items of Object.values(CATALOG_ITEMS)) {
       for (const item of items) {
         expect(item.diagram, `${item.id} の diagram が object でない`).toBeTypeOf("object");

@@ -11,6 +11,13 @@ import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-sam
 describe("iter88: 全 sample × nodes property count", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
+      it(`箱を 1 つ以上作れている (空振り防止)`, () => {
+        // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+        const d = textDslToDiagram(sample.code);
+        expect(d.nodes.length, "箱が 1 つも無い").toBeGreaterThan(0);
+        expect(d.phases.length, "段が 1 つも無い").toBeGreaterThan(0);
+      });
+
       it(`全 node が id property`, () => {
         const d = textDslToDiagram(sample.code);
         for (const n of d.nodes) {

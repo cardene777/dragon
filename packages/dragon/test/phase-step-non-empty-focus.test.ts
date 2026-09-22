@@ -20,6 +20,12 @@ interface CompiledDiagram {
 describe("iter48: 全 sample × phase / step focus 非空", () => {
   for (const sample of EDITOR_SAMPLES) {
     describe(`sample = ${sample.label}`, () => {
+      it(`段を 1 つ以上持つ (空振り防止)`, () => {
+        // 下の検査は段を回して 1 件ずつ見る。 段が無いと 1 度も判定へ入らずに通る
+        const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
+        expect(d.phases?.length ?? 0, "段が 1 つも無い").toBeGreaterThan(0);
+      });
+
       it(`phase.focus 存在時は非空 array (空 [] は typo signal)`, () => {
         const d = textDslToDiagram(sample.code) as unknown as CompiledDiagram;
         for (let p = 0; p < (d.phases ?? []).length; p++) {

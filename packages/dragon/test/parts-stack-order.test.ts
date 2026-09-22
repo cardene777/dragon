@@ -28,6 +28,11 @@ describe("iter79: 全 parts × stack order 網羅", () => {
   });
 
   for (const { name, diagram } of ALL_PARTS) {
+    it(`${name}: 箱を 1 つ以上持つ (空振り防止)`, () => {
+      // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+      expect(diagram.nodes.length, `${name} に箱が 1 つも無い`).toBeGreaterThan(0);
+    });
+
     it(`${name}: stack 属性 (存在時) が number`, () => {
       for (const n of diagram.nodes) {
         const stack = (n as unknown as { stack?: unknown }).stack;
@@ -69,6 +74,8 @@ describe("iter79: 全 parts × stack order 網羅", () => {
       }
       // 重複 stack がある lane は node 数 > distinct stack 数
       // ただし parts は密 stack で重ねることがあるので 5 overlap まで許容
+      // 縦列が 1 つも取れないと、下の繰り返しが 1 度も回らずに通る
+      expect(laneStack.size, `${name} で縦列を 1 つも数えられていない`).toBeGreaterThan(0);
       for (const [lane, stacks] of laneStack) {
         const nodes = diagram.nodes.filter((n) => (n as unknown as { lane?: string }).lane === lane);
         const overlap = nodes.length - stacks.size;

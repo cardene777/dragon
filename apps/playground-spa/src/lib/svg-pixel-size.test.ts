@@ -61,6 +61,8 @@ describe("applySvgPixelSize", () => {
     // を持つ。 important を落とすと stylesheet 側が勝ち、 図が 800x600 に潰れる。
     const { calls, el } = fakeSvg();
     applySvgPixelSize(el, { width: 100, height: 50 }, 2);
+    // 1 件も焼き込まれないと、下の繰り返しが 1 度も回らずに通る
+    expect(calls.length, "style を 1 つも焼き込んでいない").toBeGreaterThan(0);
     for (const [name, , priority] of calls) {
       expect(priority, name).toBe("important");
     }

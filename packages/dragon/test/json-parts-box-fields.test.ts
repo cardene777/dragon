@@ -149,6 +149,7 @@ describe("見本の箱に書いた欄は誤りになる (#1308)", () => {
 
   it("誤りは state を使う道を案内する", () => {
     // 「効かない」 だけを伝えると、書いた人は別の綴りを試し続けることになる
+    expect(見本に効かない欄.length, "表が空 (検査が空振りしている)").toBeGreaterThan(0);
     for (const 欄 of 見本に効かない欄) {
       const r = validateDragonJson(見本の箱(欄, 箱の値[欄]));
       expect(r.ok).toBe(false);
@@ -191,6 +192,7 @@ describe("見本の箱に書いた欄は誤りになる (#1308)", () => {
 
 describe("鏡の向き (#1294) は変わっていない", () => {
   it("見本にしか効かない欄を普通の箱に書くと誤りになる", () => {
+    expect(見本にしか効かない欄.length, "鏡の表が空 (検査が空振りしている)").toBeGreaterThan(0);
     for (const 欄 of 見本にしか効かない欄) {
       const r = validateDragonJson(
         図({ actors: [{ name: "A", kind: "card", [欄]: 箱の値[欄] }, { name: "Z" }] }),
@@ -203,6 +205,7 @@ describe("鏡の向き (#1294) は変わっていない", () => {
   });
 
   it("見本にしか効かない欄を見本の箱に書くと通る", () => {
+    expect(見本にしか効かない欄.length, "鏡の表が空 (検査が空振りしている)").toBeGreaterThan(0);
     for (const 欄 of 見本にしか効かない欄) {
       const r = validateDragonJson(
         図({ actors: [{ name: "g1", kind: "arc-gauge", [欄]: 箱の値[欄] }, { name: "Z" }] }),

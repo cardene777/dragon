@@ -27,6 +27,12 @@ const ALL_PARTS = collectAllParts(PartsMod);
 describe("iter72: node has-property enum coverage", () => {
   describe("EDITOR_SAMPLES", () => {
     for (const sample of EDITOR_SAMPLES) {
+      it(`${sample.label}: 箱を 1 つ以上作れている (空振り防止)`, () => {
+        // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+        const d = textDslToDiagram(sample.code);
+        expect(d.nodes.length, `${sample.label} に箱が 1 つも無い`).toBeGreaterThan(0);
+      });
+
       it(`${sample.label}: node は少なくとも id property を持つ`, () => {
         const d = textDslToDiagram(sample.code);
         for (const n of d.nodes) {
@@ -45,6 +51,11 @@ describe("iter72: node has-property enum coverage", () => {
 
   describe("parts.cdl.ts", () => {
     for (const { name, diagram } of ALL_PARTS) {
+      it(`${name}: 箱を 1 つ以上持つ (空振り防止)`, () => {
+        // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+        expect(diagram.nodes.length, `${name} に箱が 1 つも無い`).toBeGreaterThan(0);
+      });
+
       it(`${name}: 全 node が id property を持つ`, () => {
         for (const n of diagram.nodes) {
           expect("id" in n).toBe(true);

@@ -24,6 +24,15 @@ function collectAllPresets(mod: unknown): Array<{ name: string; diagram: CdlDiag
 const ALL_PRESETS = collectAllPresets(PresetsMod);
 
 describe("iter87: 全 preset × edges / states 網羅", () => {
+  it("矢印を持つ見本が 1 件以上ある (空振り防止)", () => {
+    /*
+     * 矢印を持たない見本が 36 件中 18 件ある (図表 / 樹形図 の見本)。 1 件ずつ矢印の件数を
+     * 見るとその 18 件で落ちるので、**全体で 1 件以上** を見る。
+     */
+    const 矢印あり = ALL_PRESETS.filter(({ diagram }) => diagram.edges.length > 0);
+    expect(矢印あり.length, "矢印を持つ見本が 1 件も無い").toBeGreaterThan(0);
+  });
+
   it("集めた見本が見本の一覧と一致する", () => {
     expect(並べた名前(ALL_PRESETS.map((p) => p.name))).toEqual(並べた名前(見本の名前));
   });

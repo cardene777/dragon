@@ -28,6 +28,12 @@ describe("iter62: 全 parts × animate / animation property 型 verify", () => {
   });
 
   for (const { name, diagram } of ALL_PARTS) {
+    it(`${name}: 段を 1 つ以上持つ (空振り防止)`, () => {
+      // 下の検査は段を回して 1 件ずつ見る。 段が無いと 1 度も判定へ入らずに通る
+      const phases = (diagram as unknown as { phases?: unknown[] }).phases ?? [];
+      expect(phases.length, `${name} に段が 1 つも無い`).toBeGreaterThan(0);
+    });
+
     it(`${name}: phases 属性が存在するなら array`, () => {
       const phases = (diagram as unknown as { phases?: unknown }).phases;
       if (phases !== undefined) {

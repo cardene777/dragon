@@ -29,6 +29,11 @@ describe("iter81: 全 preset × flow completeness", () => {
   });
 
   for (const { name, diagram } of ALL_PRESETS) {
+    it(`${name}: 箱を 1 つ以上持つ (空振り防止)`, () => {
+      // 下の検査は箱を回して 1 件ずつ見る。 箱が無いと 1 度も判定へ入らずに通る
+      expect(diagram.nodes.length, `${name} に箱が 1 つも無い`).toBeGreaterThan(0);
+    });
+
     it(`${name}: 全 edge from が nodes に含まれる`, () => {
       const ids = new Set(diagram.nodes.map((n) => n.id));
       for (const e of diagram.edges) {

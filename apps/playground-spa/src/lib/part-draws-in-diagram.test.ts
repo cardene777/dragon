@@ -73,6 +73,8 @@ describe("図の中に描かれるかの判定 (#1017)", () => {
   });
 
   it("図として描く見本は全件通す", () => {
+    // 見本が空だと下の繰り返しが 1 度も回らずに通る
+    expect(PARTS.length, "部品の見本を 1 件も読めていない").toBeGreaterThan(0);
     for (const [id, d] of PARTS) {
       const hasReadouts = ((d as { readouts?: unknown[] }).readouts ?? []).length > 0;
       if (hasReadouts) continue;

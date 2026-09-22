@@ -430,6 +430,8 @@ actors:
     const d = textDslToDiagram(src, { partsCatalog: catalog });
     // 異常値をそのまま計算に入れると、 座標が非有限になって図が描けない
     const laid = layout(d);
+    // 2 人を渡しているので箱は 2 つ以上。 0 だと下の繰り返しが 1 度も回らずに通る
+    expect(laid.nodes.length, "箱が 1 つも無い").toBeGreaterThanOrEqual(2);
     for (const n of laid.nodes) {
       expect(Number.isFinite(n.cx), `${n.id} の横位置が数でない`).toBe(true);
       expect(Number.isFinite(n.cy), `${n.id} の縦位置が数でない`).toBe(true);

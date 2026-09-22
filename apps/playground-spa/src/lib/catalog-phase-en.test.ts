@@ -94,6 +94,8 @@ describe("段の題の対訳 (#2469)", () => {
   });
 
   it("日本語では題をそのまま返す", async () => {
+    // 題が 1 つも無いと下の繰り返しが 1 度も回らずに通る
+    expect((await 実物の題()).length, "段の題を 1 つも読めていない").toBeGreaterThan(0);
     for (const { 題 } of await 実物の題()) {
       expect(phaseTitle(題, "ja"), "日本語の題が訳す前と変わっている").toBe(題);
     }

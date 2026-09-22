@@ -31,6 +31,12 @@ describe("iter49: 全 parts × state name format", () => {
   });
 
   for (const { name, diagram } of ALL_PARTS) {
+    it(`${name}: 状態を 1 つ以上持つ (空振り防止)`, () => {
+      // 下の検査は状態を回して 1 件ずつ見る。 状態が無いと 1 度も判定へ入らずに通る
+      const states = (diagram as unknown as { states?: unknown[] }).states ?? [];
+      expect(states.length, `${name} に状態が 1 つも無い`).toBeGreaterThan(0);
+    });
+
     it(`${name}: 全 state.id が [a-zA-Z_][a-zA-Z0-9_]* format`, () => {
       const states = ((diagram as unknown as { states?: Array<{ id: string }> }).states ?? []);
       for (const s of states) {

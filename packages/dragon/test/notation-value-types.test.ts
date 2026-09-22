@@ -252,6 +252,7 @@ describe("同じ欄は書き方が違っても同じ知らせが出る (#1306)",
   });
 
   it("図全体の欄は中括弧でも縦でも同じ文で知らせる", () => {
+    expect(Object.keys(VIEWPORT_VALUE_KINDS).length, "図全体の欄を 1 つも読めていない").toBeGreaterThan(0);
     for (const 欄 of Object.keys(VIEWPORT_VALUE_KINDS)) {
       const 文 = (場所名: string): string[] => {
         const { 本文 } = (場所 as any)[場所名].組む(欄, "q");
