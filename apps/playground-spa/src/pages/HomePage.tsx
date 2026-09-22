@@ -14,7 +14,11 @@ import { 区間, 区間のspan } from "@/components/SyntaxCode";
  */
 
 /**
- * ヒーローに出す記法 (#1310)。
+ * ヒーローに出す記法 (#1310 / #2455)。
+ *
+ * **言語ごとに 1 本ずつ持つ**。 英語で開いた画面に日本語の記法が出ていると、最初に目に入る
+ * 実物が読めない。 2 本とも記法として通ることを検査が固定する (`home-notation.test.ts`)。
+ * 光らせる行を共有するので、行の並びは 2 本で揃える。
  *
  * かつては 1 行ずつ手で `<span>` を貼っていた (`.t-k` / `.t-v` / `.t-p` / `.t-id` / `.t-a`)。
  * 実装から導けるものを人手で書いていたため検査が無く、**記法として通らない本文が出ていた**
@@ -22,7 +26,8 @@ import { 区間, 区間のspan } from "@/components/SyntaxCode";
  *
  * 本文を 1 つ持ち、色は分解器が決める。 記法として通ることは検査が固定する。
  */
-const DEMO_SRC = `title: ログイン処理
+const DEMO_SRC = {
+  ja: `title: ログイン処理
 type: sequence
 
 actors:
@@ -41,9 +46,30 @@ animation:
     focus: [User, API]
   - step: "2. 照会" 0.6s
     focus: [API, DB]
-`;
+`,
+  en: `title: Login flow
+type: sequence
 
-/** いま光らせる行 (1 始まり)。 右の図の段と対になる */
+actors:
+  - User: { subtitle: "Screen" }
+  - API: { subtitle: "Front desk" }
+  - DB: { subtitle: "Ledger" }
+
+flow:
+  - User -> API: "POST /login" { kind: call }
+  - API -> DB: "SELECT user" { kind: call }
+  - DB -> API: "row" { kind: return }
+  - API -> User: "200 OK" { kind: return }
+
+animation:
+  - step: "1. Auth request" 0.6s
+    focus: [User, API]
+  - step: "2. Lookup" 0.6s
+    focus: [API, DB]
+`,
+} as const;
+
+/** いま光らせる行 (1 始まり)。 右の図の段と対になる。 2 言語で同じ行を指す */
 const DEMO_HIGHLIGHT_LINE = 11;
 
 /** 3 手順の 2 つ目に添える短い記述 */
@@ -59,6 +85,10 @@ const STEP_CODE = [
 export function HomePage(): React.ReactElement {
   const [locale] = useLocale();
   const isJa = locale === "ja";
+  const 記法 = isJa ? DEMO_SRC.ja : DEMO_SRC.en;
+  // 区切りの中黒は英語の側で `•` にする (#2455)。 `·` は片仮名の中黒の代わりに使われる字なので、
+  // 画面を描く browser は日本語として数える
+  const 区切り = isJa ? "·" : "•";
   return (
     <div>
       <SiteHeader />
@@ -67,7 +97,9 @@ export function HomePage(): React.ReactElement {
         <div className="hero-eyebrow">
           {/* 版は `packages/dragon/package.json` から差し込む (#1320)。 手で書くと追随しない */}
           <span className="chip">v{__DRAGON_VERSION__.split(".").slice(0, 2).join(".")}</span>
-          <span className="chip">49 種の形 × 時間軸 × 絶対配置</span>
+          <span className="chip">
+            {isJa ? "49 種の形 × 時間軸 × 絶対配置" : "49 shapes × timeline × absolute placement"}
+          </span>
         </div>
         <h1>
           {isJa ? (
@@ -103,12 +135,12 @@ export function HomePage(): React.ReactElement {
               <span className="file">api-call.dragon</span>
             </div>
             <span className="phase">
-              <span className="live-dot"></span> phase 2 / 4 · API → DB
+              <span className="live-dot"></span> phase 2 / 4 {区切り} API → DB
             </span>
           </div>
           <div className="canvas-body">
             <div className="canvas-code">
-              {DEMO_SRC.replace(/\n$/, "").split("\n").map((行, i) => {
+              {記法.replace(/\n$/, "").split("\n").map((行, i) => {
                 const no = i + 1;
                 const 字下げ = 行.startsWith("    ") ? 2 : 行.startsWith("  ") ? 1 : 0;
                 return (
@@ -172,16 +204,16 @@ export function HomePage(): React.ReactElement {
                 </text>
 
                 <text className="phase-text phase-1" x="300" y="30">
-                  phase 1 · call · 1.4s
+                  phase 1 {区切り} call {区切り} 1.4s
                 </text>
                 <text className="phase-text phase-2" x="300" y="30">
-                  phase 2 · query · 1.4s
+                  phase 2 {区切り} query {区切り} 1.4s
                 </text>
                 <text className="phase-text phase-3" x="300" y="30">
-                  phase 3 · return · 1.4s
+                  phase 3 {区切り} return {区切り} 1.4s
                 </text>
                 <text className="phase-text phase-4" x="300" y="30">
-                  phase 4 · ok · 1.4s
+                  phase 4 {区切り} ok {区切り} 1.4s
                 </text>
               </svg>
               <div className="stage-progress" aria-hidden="true">

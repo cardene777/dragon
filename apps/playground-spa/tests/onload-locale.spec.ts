@@ -45,6 +45,12 @@ import { PRESETS } from "../src/lib/presets";
  * **`node -e` で確かめない**。 手元の `node` は `U+00B7` を数えないと答えた (`false`)。
  * 判定するのは画面を描く browser なので、確かめるなら browser 上で確かめる。
  *
+ * ## `/preset/:id` の 1 件は図が持つ段の題
+ *
+ * 見本の詳細に残る 1 件は、図の段の題 (`phases[].title`) を図の外の札として出したもの (#2455)。
+ * 題は見本の記法 (`topics/catalog/presets.cdl.ts`) が持つ図の中の字で、カタログの一覧にも
+ * 同じ字が出る。 2 画面で同じ出どころを直すことになるため #2461 に寄せた。
+ *
  * ## `/editor` の 1 件は記法の engine が出す字
  *
  * 編集画面に残る 1 件は、走査の engine (`@cardenelabs/cdl`) が返す指摘の本文で、この repo に
@@ -72,15 +78,15 @@ const 開かない経路 = new Set(["/__render"]);
  * 0 になった画面はその画面の訳が終わったことを表す。
  */
 const 日本語の残り: Record<string, number> = {
-  "/": 12,
+  "/": 0,
   "/catalog": 0,
   "/catalog/:slug": 12,
   "/editor": 1,
   "/editor/:filename": 0,
   "/docs": 0,
-  "/preset/:id": 10,
-  "/release-notes": 17,
-  "/contribute": 26,
+  "/preset/:id": 1,
+  "/release-notes": 0,
+  "/contribute": 0,
   "*": 0,
 };
 

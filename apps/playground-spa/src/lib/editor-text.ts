@@ -1,4 +1,5 @@
 import type { Locale } from "./i18n";
+import type { 二言語 } from "./bilingual";
 
 /**
  * 編集画面に出る字の 2 言語表 (#2454)。
@@ -14,10 +15,6 @@ import type { Locale } from "./i18n";
  * 画面は `categoryLabel(c, locale)` で引く。
  */
 
-interface 二言語 {
-  ja: string;
-  en: string;
-}
 
 const 表 = {
   // 上の帯

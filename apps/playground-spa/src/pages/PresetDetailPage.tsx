@@ -2,8 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import { ChevronLeft, ExternalLink, Share2 } from "lucide-react";
-import { PRESETS, presetName } from "@/lib/presets";
-import { CATEGORIES } from "@/lib/catalog";
+import {
+  PRESETS,
+  presetName,
+  presetEyebrow,
+  presetSubtitle,
+  presetTags,
+} from "@/lib/presets";
+import { CATEGORIES, categoryLabel } from "@/lib/catalog";
 import { motionNote } from "@/lib/catalog-motion";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -27,12 +33,17 @@ function 台の巻き取りを探す(台: HTMLElement): HTMLElement | null {
 }
 
 /**
- * この画面が属する分類の呼び名 (#1805)。
+ * この画面が属する分類 (#1805)。
  *
- * 出どころは `CATEGORIES[].label` 1 つ (#1788)。 画面側に字で持つと、呼び名を変えた日に
- * 見本の詳細だけが古い呼び名で分類を指す。
+ * 出どころは `CATEGORIES` 1 つ (#1788)。 画面側に字で持つと、呼び名を変えた日に
+ * 見本の詳細だけが古い呼び名で分類を指す。 呼び名は言語で引き分ける (#2455)。
  */
-const 分類の呼び名 = CATEGORIES.find((c) => c.slug === "presets")?.label ?? "";
+const 指す分類 = CATEGORIES.find((c) => c.slug === "presets");
+
+/** 分類の呼び名を言語で引く。 引けない時は空にする (呼び名の代わりに識別子を出さない) */
+function 分類の呼び名を引く(locale: "ja" | "en"): string {
+  return 指す分類 === undefined ? "" : categoryLabel(指す分類, locale);
+}
 
 /**
  * /preset/:slug = 単一 preset の detail page (Neumorphism style)。
@@ -45,6 +56,9 @@ export function PresetDetailPage(): React.ReactElement {
   const [locale] = useLocale();
   // シーンの表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
+
+  const isJa = locale === "ja";
+  const 分類の呼び名 = 分類の呼び名を引く(locale);
 
   const preset = PRESETS.find((p) => p.slug === params.id);
 
@@ -132,13 +146,13 @@ export function PresetDetailPage(): React.ReactElement {
         <SiteHeader />
         <div className="flex min-h-[calc(100vh-60px)] flex-col items-center justify-center gap-4 px-6">
           <p className="text-[16px] text-[var(--d-text-secondary)]">
-            {分類の呼び名}が見つかりません
+            {isJa ? `${分類の呼び名}が見つかりません` : `No such ${分類の呼び名.toLowerCase()} item`}
           </p>
           <Link
             to="/catalog/presets"
             className="text-[14px] text-[var(--d-accent)] underline"
           >
-            {分類の呼び名}の一覧に戻る →
+            {isJa ? `${分類の呼び名}の一覧に戻る →` : `Back to the ${分類の呼び名.toLowerCase()} list →`}
           </Link>
         </div>
       </div>
@@ -188,19 +202,19 @@ export function PresetDetailPage(): React.ReactElement {
               { 字: preset.slug },
             ]}
           />
-          <span className="nm-eyebrow">{preset.eyebrow}</span>
+          <span className="nm-eyebrow">{presetEyebrow(preset, locale)}</span>
           {/* 見出しは識別子ではなく言語に応じた名前を出す (#1047) */}
           <h1 className="nm-hero-title">
             {/* 名前だけを別要素にする = 検査が添えの語と分けて実名で照合できる (#1047) */}
             <span className="nm-hero-title-name">{presetName(preset, locale)}</span>{" "}
             <span className="nm-gradient-accent">{locale === "ja" ? 分類の呼び名 : "preset"}</span>
           </h1>
-          <p className="nm-hero-subtitle">{preset.subtitle}</p>
+          <p className="nm-hero-subtitle">{presetSubtitle(preset, locale)}</p>
           {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す (#1053) */}
           <p className="nm-hero-motion">{motionNote(preset.diagram, locale)}</p>
           <div className="nm-hero-actions">
             <Link to={`/editor#preset=${preset.slug}`} className="nm-hero-btn nm-hero-btn-primary">
-              <span>編集画面で開く</span>
+              <span>{isJa ? "編集画面で開く" : "Open in the editor"}</span>
               <span className="nm-hero-btn-arrow" aria-hidden="true">
                 <ExternalLink size={14} />
               </span>
@@ -212,14 +226,14 @@ export function PresetDetailPage(): React.ReactElement {
               }}
               className="nm-hero-btn nm-hero-btn-secondary"
             >
-              <span>URL コピー</span>
+              <span>{isJa ? "URL コピー" : "Copy URL"}</span>
               <span className="nm-hero-btn-arrow" aria-hidden="true">
                 <Share2 size={14} />
               </span>
             </button>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            {preset.tags.map((t) => (
+            {presetTags(preset, locale).map((t) => (
               <span key={t} className="nm-preset-tag">
                 {t}
               </span>
@@ -227,7 +241,14 @@ export function PresetDetailPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="nm-presets-section" aria-label={`${presetName(preset, locale)} 詳細`}>
+        <section
+          className="nm-presets-section"
+          aria-label={
+            isJa
+              ? `${presetName(preset, locale)} 詳細`
+              : `${presetName(preset, locale)} in detail`
+          }
+        >
           <div className="nm-preset-detail-tools">
             <DiagramZoomControls
               場所="詳細"
@@ -261,10 +282,14 @@ export function PresetDetailPage(): React.ReactElement {
             <Link
               to={`/preset/${prevPreset.slug}`}
               className="nm-preset-detail-nav-btn"
-              aria-label={`前へ: ${presetName(prevPreset, locale)}`}
+              aria-label={
+                isJa
+                  ? `前へ: ${presetName(prevPreset, locale)}`
+                  : `Back to ${presetName(prevPreset, locale)}`
+              }
             >
               <ChevronLeft size={13} />
-              <span className="opacity-70">前へ</span>
+              <span className="opacity-70">{isJa ? "前へ" : "Back"}</span>
               <span className="font-semibold">{presetName(prevPreset, locale)}</span>
             </Link>
             <span className="font-mono text-[11px] text-[var(--d-text-muted)]">
@@ -273,9 +298,13 @@ export function PresetDetailPage(): React.ReactElement {
             <Link
               to={`/preset/${nextPreset.slug}`}
               className="nm-preset-detail-nav-btn"
-              aria-label={`次へ: ${presetName(nextPreset, locale)}`}
+              aria-label={
+                isJa
+                  ? `次へ: ${presetName(nextPreset, locale)}`
+                  : `On to ${presetName(nextPreset, locale)}`
+              }
             >
-              <span className="opacity-70">次へ</span>
+              <span className="opacity-70">{isJa ? "次へ" : "Next"}</span>
               <span className="font-semibold">{presetName(nextPreset, locale)}</span>
               <ChevronLeft size={13} className="rotate-180" />
             </Link>
