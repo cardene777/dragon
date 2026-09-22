@@ -108,23 +108,23 @@ describe("動きの記述 (#1043)", () => {
   it("線が伸びる動きを一文に併記する (#1312)", () => {
     // 描画側は段の `draw` を進みで描くだけで状態を 1 つも触らないため、`motionOf` からは
     // 見えない。 併記しないと、線が伸びる図に「段を進めても値は変わらない」 と書くことになる
-    expect(motionNote(diagramWith({ draw: ["chart"] })), "線だけが動く図").toBe(
+    expect(motionNote(diagramWith({ draw: ["chart"] }), "ja"), "線だけが動く図").toBe(
       "段の中で図が起点から描かれる",
     );
-    expect(motionNote(diagramWith({ draw: ["chart"], tweens: ["a"] })), "線と値が動く図").toBe(
+    expect(motionNote(diagramWith({ draw: ["chart"], tweens: ["a"] }), "ja"), "線と値が動く図").toBe(
       "段の中で図が起点から描かれ、値も連続して動く",
     );
-    expect(motionNote(diagramWith({ draw: ["chart"], sets: ["a"] })), "線が動き値は段で変わる図").toBe(
+    expect(motionNote(diagramWith({ draw: ["chart"], sets: ["a"] }), "ja"), "線が動き値は段で変わる図").toBe(
       "段の中で図が起点から描かれ、段の切替で値が一度に変わる",
     );
   });
 
   it("`draw` を書かない図の一文は変わらない (#1312)", () => {
-    expect(motionNote(diagramWith({}))).toBe("段を進めても値は変わらない");
-    expect(motionNote(diagramWith({ tweens: ["a"] }))).toBe("段の中で値が連続して動く");
-    expect(motionNote(diagramWith({ sets: ["a"] }))).toBe("段の切替で値が一度に変わる");
+    expect(motionNote(diagramWith({}), "ja")).toBe("段を進めても値は変わらない");
+    expect(motionNote(diagramWith({ tweens: ["a"] }), "ja")).toBe("段の中で値が連続して動く");
+    expect(motionNote(diagramWith({ sets: ["a"] }), "ja")).toBe("段の切替で値が一度に変わる");
     // 空の並びは「書いていない」 と同じ扱いにする = 欄だけ置いた図で文が変わらない
-    expect(motionNote(diagramWith({ draw: [] }))).toBe("段を進めても値は変わらない");
+    expect(motionNote(diagramWith({ draw: [] }), "ja")).toBe("段を進めても値は変わらない");
   });
 
   it("線が伸びても値の動きの判定は変わらない (#1312)", () => {
@@ -205,9 +205,9 @@ describe("動きの記述 (#1043)", () => {
   it("動かない図にも一文を付ける", () => {
     // 付けないと、静的な図の説明に語彙の外の言い回しで動きを書かれた時に
     // 誤った説明が単独で出る (#1053)
-    expect(motionNote(diagramWith({}))).toBe("段を進めても値は変わらない");
-    expect(motionNote(diagramWith({ tweens: ["a"] }))).toBe("段の中で値が連続して動く");
-    expect(motionNote(diagramWith({ sets: ["a"] }))).toBe("段の切替で値が一度に変わる");
+    expect(motionNote(diagramWith({}), "ja")).toBe("段を進めても値は変わらない");
+    expect(motionNote(diagramWith({ tweens: ["a"] }), "ja")).toBe("段の中で値が連続して動く");
+    expect(motionNote(diagramWith({ sets: ["a"] }), "ja")).toBe("段の切替で値が一度に変わる");
   });
 
   it("全ての項目が導いた一文を持っている", async () => {
@@ -230,7 +230,7 @@ describe("動きの記述 (#1043)", () => {
     ]);
     const bad: string[] = [];
     for (const { where, name, diagram } of items) {
-      const note = motionNote(diagram);
+      const note = motionNote(diagram, "ja");
       if (!allowed.has(note)) bad.push(`${where}/${name}: ${note}`);
     }
     expect(bad, `想定外の一文がある: ${bad.join(" / ")}`).toHaveLength(0);

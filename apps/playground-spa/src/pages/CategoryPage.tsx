@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
-import { CATEGORIES } from "@/lib/catalog";
+import { CATEGORIES, categoryLabel, categoryDesc } from "@/lib/catalog";
 import { loadPartsItems, 選んだ見本, type CatalogItem } from "@/lib/catalog-items";
 import { useCategoryItems, 部品の読込を見せる, type 部品の読込結果 } from "./category-items";
 import {
@@ -16,6 +16,8 @@ import { CATALOG_HANDLERS } from "@/lib/catalog-handlers";
 import { itemName, itemNameEn, itemNameJa } from "@/lib/i18n";
 import { useLocale } from "@/lib/useLocale";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Breadcrumb } from "@/components/Breadcrumb";
+import { motionNote } from "@/lib/catalog-motion";
 import { InViewMount } from "@/components/InViewMount";
 import { PhaseChrome } from "@/components/PhaseChrome";
 import { DiagramZoomControls } from "@/components/DiagramZoomControls";
@@ -83,6 +85,8 @@ type PreviewTab = "diagram" | "source";
 
 /** copy-to-clipboard button (2 秒間 チェック表示) */
 function CopyButton({ text }: { text: string }): React.ReactElement {
+  const [locale] = useLocale();
+  const isJa = locale === "ja";
   const [copied, setCopied] = useState(false);
   const doCopy = async (): Promise<void> => {
     try {
@@ -99,11 +103,15 @@ function CopyButton({ text }: { text: string }): React.ReactElement {
       onClick={() => {
         void doCopy();
       }}
-      aria-label={copied ? "コピー完了" : "コードをコピー"}
+      aria-label={
+        isJa ? (copied ? "コピー完了" : "コードをコピー") : copied ? "Copied" : "Copy the code"
+      }
       className="catalog-source-copy"
     >
       {copied ? <Check size={13} /> : <Copy size={13} />}
-      <span>{copied ? "コピーしました" : "コードをコピー"}</span>
+      <span>
+        {isJa ? (copied ? "コピーしました" : "コードをコピー") : copied ? "Copied" : "Copy the code"}
+      </span>
     </button>
   );
 }
@@ -149,6 +157,8 @@ export function SourceTabs({
   /** 画面で選んだ 2 段目以降の描き方 (#1359)。 出す描く指定をこれに合わせる */
   描き方: 描き方;
 }): React.ReactElement | null {
+  const [locale] = useLocale();
+  const isJa = locale === "ja";
   const [tab, setTab] = useState<SourceTab>("yaml");
   if (!記法を持つか(item)) return null;
   const 元 = tab === "yaml" ? item.sourceYaml : item.sourceJson;
@@ -161,7 +171,11 @@ export function SourceTabs({
       ? undefined
       : 記法の速さを変える(記法の描き方を変える(元, 描き方, tab), 速さ, tab);
   return (
-    <section className="catalog-source-section" aria-label="この図の記法" hidden={hidden}>
+    <section
+      className="catalog-source-section"
+      aria-label={isJa ? "この図の記法" : "Notation for this diagram"}
+      hidden={hidden}
+    >
       <div className="catalog-source-tabs" role="tablist">
         <button
           role="tab"
@@ -170,7 +184,7 @@ export function SourceTabs({
           className={`catalog-source-tab ${tab === "yaml" ? "is-active" : ""}`}
           onClick={() => setTab("yaml")}
           disabled={!item.sourceYaml}
-          title="YAML (人向け)"
+          title={isJa ? "YAML (人向け)" : "YAML (for people)"}
         >
           yaml
         </button>
@@ -181,7 +195,7 @@ export function SourceTabs({
           className={`catalog-source-tab ${tab === "json" ? "is-active" : ""}`}
           onClick={() => setTab("json")}
           disabled={!item.sourceJson}
-          title="JSON (LLM 向け)"
+          title={isJa ? "JSON (LLM 向け)" : "JSON (for an LLM)"}
         >
           json
         </button>
@@ -189,7 +203,11 @@ export function SourceTabs({
       </div>
       {activeSource === undefined ? (
         <pre className="catalog-source-code" data-lang={tab}>
-          <code>(この図の記法はまだ登録されていません)</code>
+          <code>
+            {isJa
+              ? "(この図の記法はまだ登録されていません)"
+              : "(no notation is registered for this diagram yet)"}
+          </code>
         </pre>
       ) : (
         // 色は分解器と `styles/syntax.css` が持つ (#1310)。 ここでは種別だけを渡す
@@ -231,6 +249,7 @@ function catalogEditorHash(item: { sourceYaml?: string; sourceJson?: string }): 
 export function CategoryPage(): React.ReactElement {
   const params = useParams<{ slug: string }>();
   const [locale] = useLocale();
+  const isJa = locale === "ja";
   const [modalItem, setModalItem] = useState<CatalogItem | null>(null);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -525,14 +544,21 @@ export function CategoryPage(): React.ReactElement {
       <div>
         <SiteHeader />
         <div className="flex min-h-[calc(100vh-60px)] items-center justify-center">
-          <p className="text-[15px] text-[var(--d-text-secondary)]">分類が見つかりません</p>
+          <p className="text-[15px] text-[var(--d-text-secondary)]">
+            {isJa ? "分類が見つかりません" : "No such group"}
+          </p>
         </div>
       </div>
     );
   }
 
-  // 呼び名の出どころは `CATEGORIES[].label` 1 つ (#1788)。 画面側で上書きしない
-  const jaLabel = category.label;
+  // 呼び名の出どころは `CATEGORIES[]` 1 つ (#1788)。 画面側で上書きしない
+  const 分類の名前 = categoryLabel(category, locale);
+
+  // 拡大表示に出す説明と、図から導いた動きの一文 (#1043)。 動きは人が書かず図から導くので、
+  // 説明の隣で 1 組にして決める。 動かない図にも必ず出す (#1053)
+  const 拡大の説明 = modalItem?.subtitle ?? "";
+  const 拡大の動きの一文 = modalItem ? motionNote(modalItem.diagram, locale) : "";
 
   return (
     <div>
@@ -540,23 +566,19 @@ export function CategoryPage(): React.ReactElement {
       <div className="catalog-page">
         {/* breadcrumb + hero (簡潔) */}
         <div className="catalog-hero">
-          <nav
-            aria-label={locale === "ja" ? "道筋" : "Breadcrumb"}
-            className="catalog-crumb"
-          >
-            <Link to="/">概要</Link>
-            <span aria-hidden="true">›</span>
-            <Link to="/catalog">カタログ</Link>
-            <span aria-hidden="true">›</span>
-            <span className="cur">{jaLabel}</span>
-          </nav>
-          <h1 className="catalog-title">{jaLabel}</h1>
-          <p className="catalog-desc">{category.desc}</p>
+          <Breadcrumb
+            見た目="catalog-crumb"
+            段={[{ 行き先: "/" }, { 行き先: "/catalog" }, { 字: 分類の名前 }]}
+          />
+          <h1 className="catalog-title">{分類の名前}</h1>
+          <p className="catalog-desc">{categoryDesc(category, locale)}</p>
           <div className="catalog-meta">
-            <span className="catalog-count">全 {items.length} 件</span>
+            <span className="catalog-count">
+              {isJa ? `全 ${items.length} 件` : `${items.length} entries`}
+            </span>
             {filtered.length !== items.length && (
               <span className="catalog-count catalog-count-filter">
-                {filtered.length} 件 表示中
+                {isJa ? `${filtered.length} 件 表示中` : `showing ${filtered.length}`}
               </span>
             )}
           </div>
@@ -564,23 +586,23 @@ export function CategoryPage(): React.ReactElement {
 
         {/* 2 pane = sidebar (list) + preview */}
         <div className="catalog-body">
-          <aside className="catalog-sidebar" aria-label="項目一覧">
+          <aside className="catalog-sidebar" aria-label={isJa ? "項目一覧" : "Entry list"}>
             <div className="catalog-search-wrap">
               <Search size={14} className="catalog-search-icon" />
               <input
                 type="text"
                 className="catalog-search"
-                placeholder="検索 (名前 / 説明 / ID)"
+                placeholder={isJa ? "検索 (名前 / 説明 / ID)" : "Search (name / description / id)"}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label="項目を検索"
+                aria-label={isJa ? "項目を検索" : "Search entries"}
               />
               {query && (
                 <button
                   type="button"
                   className="catalog-search-clear"
                   onClick={() => setQuery("")}
-                  aria-label="検索語を消す"
+                  aria-label={isJa ? "検索語を消す" : "Clear the search"}
                 >
                   <X size={12} />
                 </button>
@@ -588,13 +610,17 @@ export function CategoryPage(): React.ReactElement {
             </div>
             <div className="catalog-list" role="list">
               {params.slug === "parts" && partsLoadState === "loading" ? (
-                <div className="catalog-list-empty">読み込み中…</div>
+                <div className="catalog-list-empty">{isJa ? "読み込み中…" : "Loading…"}</div>
               ) : params.slug === "parts" && partsLoadState === "error" ? (
                 <div className="catalog-list-empty">
-                  読み込みに失敗しました。 ページを再読込してください。
+                  {isJa
+                    ? "読み込みに失敗しました。 ページを再読込してください。"
+                    : "Could not load them. Reload the page."}
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="catalog-list-empty">該当する項目がありません</div>
+                <div className="catalog-list-empty">
+                  {isJa ? "該当する項目がありません" : "No entry matches"}
+                </div>
               ) : (
                 filtered.map((item) => {
                   const isSelected = currentItem?.id === item.id;
@@ -616,7 +642,7 @@ export function CategoryPage(): React.ReactElement {
             </div>
           </aside>
 
-          <main className="catalog-preview" aria-label="図の表示">
+          <main className="catalog-preview" aria-label={isJa ? "図の表示" : "Diagram"}>
             {currentItem ? (
               <article className="catalog-preview-card">
                 <header className="catalog-preview-head">
@@ -628,7 +654,7 @@ export function CategoryPage(): React.ReactElement {
                     )}
                     {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す
                         (出さないと説明が単独で出る、 #1053)。 SSOT = catalog-motion.ts */}
-                    <p className="catalog-preview-motion">{currentItem.motionNote}</p>
+                    <p className="catalog-preview-motion">{motionNote(currentItem.diagram, locale)}</p>
                   </div>
                   <div className="catalog-preview-actions">
                     {/* 倍率の操作 (#1749)。 台は幅に合わせるので、広い図は縮み細い図は伸びる */}
@@ -643,11 +669,15 @@ export function CategoryPage(): React.ReactElement {
                     <button
                       type="button"
                       onClick={() => setModalItem(currentItem)}
-                      aria-label={`${displayName(currentItem)} を拡大表示`}
+                      aria-label={
+                        isJa
+                          ? `${displayName(currentItem)} を拡大表示`
+                          : `Enlarge ${displayName(currentItem)}`
+                      }
                       className="catalog-expand-btn"
                     >
                       <Maximize2 size={14} />
-                      <span>拡大</span>
+                      <span>{isJa ? "拡大" : "Enlarge"}</span>
                     </button>
                   </div>
                 </header>
@@ -655,7 +685,11 @@ export function CategoryPage(): React.ReactElement {
                   図とコードは **どちらも DOM に残したまま** 表示だけ入れ替える (#1236)。
                   外すと切り替えるたびに図を描き直すことになり、記法の選択も毎回戻る。
                 */}
-                <div className="catalog-preview-tabs" role="tablist" aria-label="表示の切替">
+                <div
+                  className="catalog-preview-tabs"
+                  role="tablist"
+                  aria-label={isJa ? "表示の切替" : "What to show"}
+                >
                   <button
                     role="tab"
                     type="button"
@@ -663,7 +697,7 @@ export function CategoryPage(): React.ReactElement {
                     className={`catalog-preview-tab ${!showSource ? "is-active" : ""}`}
                     onClick={() => setPreviewTab("diagram")}
                   >
-                    図
+                    {isJa ? "図" : "Diagram"}
                   </button>
                   <button
                     role="tab"
@@ -672,9 +706,15 @@ export function CategoryPage(): React.ReactElement {
                     className={`catalog-preview-tab ${showSource ? "is-active" : ""}`}
                     onClick={() => setPreviewTab("source")}
                     disabled={!hasSource}
-                    title={hasSource ? undefined : "この図に記法は登録されていません"}
+                    title={
+                      hasSource
+                        ? undefined
+                        : isJa
+                          ? "この図に記法は登録されていません"
+                          : "No notation is registered for this diagram"
+                    }
                   >
-                    コード
+                    {isJa ? "コード" : "Code"}
                   </button>
                   {/*
                     再生速度の切替 (#1355)。 **コードのタブでも出したまま** にする =
@@ -696,14 +736,14 @@ export function CategoryPage(): React.ReactElement {
                   <div className="catalog-toggle-groups">
                     <div className="catalog-toggle-group">
                       <span className="catalog-toggle-group-label" aria-hidden="true">
-                        オプション
+                        {isJa ? "オプション" : "Options"}
                       </span>
                       {/*
                         2 段目以降の描き方 (#1359)。 起点から描ける図でだけ出す = 描けない図では
                         押しても何も変わらないため、置くと「効かない操作」 になる。
                       */}
                       {切替を出すか && (
-                        <div className="catalog-redraw" role="radiogroup" aria-label="2 段目以降">
+                        <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "2 段目以降" : "From the second phase on"}>
                           {描き方の選択肢.map((v) => (
                             <button
                               key={v}
@@ -712,7 +752,7 @@ export function CategoryPage(): React.ReactElement {
                               aria-checked={描き方 === v}
                               className={`catalog-speed-btn ${描き方 === v ? "is-active" : ""}`}
                               onClick={() => 見せ方を置く({ 描き方: v })}
-                              title={`2 段目以降を${v}`}
+                              title={isJa ? `2 段目以降を${v}` : `From the second phase on: ${v}`}
                             >
                               {v}
                             </button>
@@ -725,7 +765,7 @@ export function CategoryPage(): React.ReactElement {
                         「着せ替える」 道具になる。
                       */}
                       {配色を選べるか && (
-                        <div className="catalog-redraw" role="radiogroup" aria-label="図の色味">
+                        <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "図の色味" : "Diagram colours"}>
                           {配色の選択肢.map((v) => (
                             <button
                               key={v}
@@ -734,7 +774,7 @@ export function CategoryPage(): React.ReactElement {
                               aria-checked={配色 === v}
                               className={`catalog-speed-btn ${配色 === v ? "is-active" : ""}`}
                               onClick={() => 見せ方を置く({ 配色: v })}
-                              title={`図の色味を${v}にする`}
+                              title={isJa ? `図の色味を${v}にする` : `Draw the diagram in ${v}`}
                             >
                               {v}
                             </button>
@@ -747,7 +787,7 @@ export function CategoryPage(): React.ReactElement {
                         するため、 `radiogroup` ではなく押した状態を持つ 1 つの `group` にする。
                       */}
                       {折れ線を選べるか && (
-                        <div className="catalog-redraw" role="group" aria-label="折れ線の見せ方">
+                        <div className="catalog-redraw" role="group" aria-label={isJa ? "折れ線の見せ方" : "Line chart look"}>
                           {折れ線の見せ方の選択肢.map((v) => (
                             <button
                               key={v}
@@ -755,7 +795,11 @@ export function CategoryPage(): React.ReactElement {
                               aria-pressed={折れ線[v]}
                               className={`catalog-speed-btn ${折れ線[v] ? "is-active" : ""}`}
                               onClick={() => 見せ方を置く({ 折れ線: { ...折れ線, [v]: !折れ線[v] } })}
-                              title={`折れ線の${v}を${折れ線[v] ? "切る" : "入れる"}`}
+                              title={
+                                isJa
+                                  ? `折れ線の${v}を${折れ線[v] ? "切る" : "入れる"}`
+                                  : `${折れ線[v] ? "Turn off" : "Turn on"} ${v}`
+                              }
                             >
                               {v}
                             </button>
@@ -767,7 +811,7 @@ export function CategoryPage(): React.ReactElement {
                         効かず「効かない操作」 になる。 3 つは互いに排他なので `radiogroup` にする。
                       */}
                       {円を選べるか && (
-                        <div className="catalog-redraw" role="radiogroup" aria-label="円グラフの見せ方">
+                        <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "円グラフの見せ方" : "Pie chart look"}>
                           {円の見せ方の選択肢.map((v) => (
                             <button
                               key={v}
@@ -776,7 +820,7 @@ export function CategoryPage(): React.ReactElement {
                               aria-checked={円 === v}
                               className={`catalog-speed-btn ${円 === v ? "is-active" : ""}`}
                               onClick={() => 見せ方を置く({ 円: v })}
-                              title={`円グラフを${v}で描く`}
+                              title={isJa ? `円グラフを${v}で描く` : `Draw the pie chart as ${v}`}
                             >
                               {v}
                             </button>
@@ -788,7 +832,7 @@ export function CategoryPage(): React.ReactElement {
                         効かず「効かない操作」 になる。 2 つは互いに排他なので `radiogroup` にする。
                       */}
                       {傾きを選べるか && (
-                        <div className="catalog-redraw" role="radiogroup" aria-label="傾き図の見せ方">
+                        <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "傾き図の見せ方" : "Slope chart look"}>
                           {傾きの見せ方の選択肢.map((v) => (
                             <button
                               key={v}
@@ -797,14 +841,14 @@ export function CategoryPage(): React.ReactElement {
                               aria-checked={傾き === v}
                               className={`catalog-speed-btn ${傾き === v ? "is-active" : ""}`}
                               onClick={() => 見せ方を置く({ 傾き: v })}
-                              title={`傾き図の右の列に${v}を出す`}
+                              title={isJa ? `傾き図の右の列に${v}を出す` : `Show ${v} in the right column`}
                             >
                               {v}
                             </button>
                           ))}
                         </div>
                       )}
-                      <div className="catalog-speed" role="radiogroup" aria-label="再生速度">
+                      <div className="catalog-speed" role="radiogroup" aria-label={isJa ? "再生速度" : "Playback speed"}>
                         {速さの選択肢.map((v) => (
                           <button
                             key={v}
@@ -813,7 +857,7 @@ export function CategoryPage(): React.ReactElement {
                             aria-checked={速さ === v}
                             className={`catalog-speed-btn ${速さ === v ? "is-active" : ""}`}
                             onClick={() => 見せ方を置く({ 速さ: v })}
-                            title={`再生速度 ${v}x`}
+                            title={isJa ? `再生速度 ${v}x` : `Playback speed ${v}x`}
                           >
                             {v}x
                           </button>
@@ -827,9 +871,13 @@ export function CategoryPage(): React.ReactElement {
                     {パターンの並び.length > 0 && (
                       <div className="catalog-toggle-group">
                         <span className="catalog-toggle-group-label" aria-hidden="true">
-                          パターン
+                          {isJa ? "パターン" : "Variants"}
                         </span>
-                        <div className="catalog-redraw" role="radiogroup" aria-label="パターン">
+                        <div
+                          className="catalog-redraw"
+                          role="radiogroup"
+                          aria-label={isJa ? "パターン" : "Variants"}
+                        >
                           {パターンの並び.map((p) => (
                             <button
                               key={p.名}
@@ -840,7 +888,7 @@ export function CategoryPage(): React.ReactElement {
                                 選んでいるパターン?.名 === p.名 ? "is-active" : ""
                               }`}
                               onClick={() => 見せ方を置く({ パターン: p.名 })}
-                              title={`${p.名}の見本を出す`}
+                              title={isJa ? `${p.名}の見本を出す` : `Show the ${p.名} sample`}
                             >
                               {p.名}
                             </button>
@@ -871,7 +919,7 @@ export function CategoryPage(): React.ReactElement {
                   <InViewMount
                     keepMounted
                     className="catalog-preview-stage-inner"
-                    placeholder={<div className="catalog-preview-loading">読み込み中…</div>}
+                    placeholder={<div className="catalog-preview-loading">{isJa ? "読み込み中…" : "Loading…"}</div>}
                   >
                     {/*
                       項目とパターンの組が変わった時だけ作り直す (#1969)。 描画側の入力の部品は既定値
@@ -907,17 +955,19 @@ export function CategoryPage(): React.ReactElement {
                       to={`/editor${catalogEditorHash(見本 ?? currentItem)}`}
                       className="catalog-preview-link"
                     >
-                      編集画面で開く →
+                      {isJa ? "編集画面で開く →" : "Open in the editor →"}
                     </Link>
                   ) : (
                     <span className="catalog-preview-note" aria-disabled="true">
-                      記法が無いので開けません
+                      {isJa ? "記法が無いので開けません" : "No notation, so it cannot be opened"}
                     </span>
                   )}
                 </footer>
               </article>
             ) : (
-              <div className="catalog-preview-empty">項目を選択してください</div>
+              <div className="catalog-preview-empty">
+                {isJa ? "項目を選択してください" : "Pick an entry"}
+              </div>
             )}
           </main>
         </div>
@@ -934,13 +984,12 @@ export function CategoryPage(): React.ReactElement {
                 <Dialog.Title className="cdl-modal-title">
                   {modalItem ? displayName(modalItem) : ""}
                 </Dialog.Title>
-                {modalItem?.subtitle && (
-                  <Dialog.Description className="cdl-modal-desc">
-                    {modalItem.subtitle}
-                  </Dialog.Description>
+                {拡大の説明 !== "" && (
+                  <Dialog.Description className="cdl-modal-desc">{拡大の説明}</Dialog.Description>
                 )}
-                {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す (#1053) */}
-                {modalItem && <p className="cdl-modal-motion">{modalItem.motionNote}</p>}
+                {拡大の動きの一文 !== "" && (
+                  <p className="cdl-modal-motion">{拡大の動きの一文}</p>
+                )}
               </div>
               <div className="cdl-modal-actions">
                 {/* 倍率の操作 (#1745)。 器に収めると 4.8px まで縮む図があるため、実寸まで拡げられるようにする */}
@@ -953,7 +1002,7 @@ export function CategoryPage(): React.ReactElement {
                   器に合わせる={拡大を器に合わせる}
                 />
                 <Dialog.Close asChild>
-                  <button type="button" aria-label="閉じる" className="cdl-modal-close">
+                  <button type="button" aria-label={isJa ? "閉じる" : "Close"} className="cdl-modal-close">
                     <X size={20} />
                   </button>
                 </Dialog.Close>

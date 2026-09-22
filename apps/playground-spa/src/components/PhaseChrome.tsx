@@ -22,14 +22,27 @@
  */
 import { useEffect, useState, type JSX } from "react";
 import type { CdlPhase } from "@cardenelabs/cdl";
+import { useLocale } from "@/lib/useLocale";
 
 /**
  * 札の頭に出す、図が切り替わる単位の呼び名 (#1819)。
  *
  * **検査もここから引く**。 字で書いた検査は、呼び名を直した日にまとめて落ちる
  * (#1811 で編集画面の見出しを直した時に実ブラウザの検査 2 件が落ちた)。
+ *
+ * 2 言語とも持つ (#2453)。 既定の `段の呼び名` は日本語で、検査はこちらを引く。
  */
-export const 段の呼び名 = "段";
+export const 段の呼び名の表 = { ja: "段", en: "Phase" } as const;
+export const 段の呼び名 = 段の呼び名の表.ja;
+
+/**
+ * 区切りの中黒。 **英語では `·` (U+00B7) を使わない** (#2452 で実測)。
+ * この字は片仮名の中黒の代わりに使われるため、画面を描く browser は日本語として数える。
+ */
+const 区切り = { ja: "·", en: "•" } as const;
+
+/** 繰り返す、を表す字 */
+const 繰り返しの字 = { ja: "繰り返し", en: "loops" } as const;
 
 /** 段が 1 つ以下の図では何も出さない。進み具合を示す先が無い。 */
 const 出す下限 = 2;
@@ -88,6 +101,7 @@ export function PhaseChrome({
    */
   align?: "left" | "right";
 }): JSX.Element | null {
+  const [locale] = useLocale();
   const idx = usePhaseIndex(stage);
   const 一覧 = phases ?? [];
 
@@ -107,9 +121,13 @@ export function PhaseChrome({
       <div className={`cdl-phase-chip is-${align}`}>
         <span className="cdl-phase-dot" />
         <span>
-          {段の呼び名} {今 + 1} / {一覧.length}
+          {段の呼び名の表[locale]} {今 + 1} / {一覧.length}
         </span>
-        {段.title !== "" && <span className="cdl-phase-title">· {段.title}</span>}
+        {段.title !== "" && (
+          <span className="cdl-phase-title">
+            {区切り[locale]} {段.title}
+          </span>
+        )}
       </div>
       <div className="cdl-phase-foot">
         <div className="cdl-phase-bar">
@@ -117,7 +135,9 @@ export function PhaseChrome({
             <span key={p.id} className={`cdl-phase-seg ${i <= 今 ? "is-done" : ""}`} />
           ))}
         </div>
-        <div className="cdl-phase-meta">{Math.round(段.duration)}ms · 繰り返し</div>
+        <div className="cdl-phase-meta">
+          {Math.round(段.duration)}ms {区切り[locale]} {繰り返しの字[locale]}
+        </div>
       </div>
     </div>
   );

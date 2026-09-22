@@ -21,6 +21,8 @@ import { CATEGORIES } from "@/lib/catalog";
 import { カタカナの連なり } from "@/lib/screen-words";
 import { PRESETS } from "@/lib/presets";
 import { ToastProvider } from "@/components/Toast";
+import { LocaleProvider } from "@/lib/useLocale";
+import type { Locale } from "@/lib/i18n";
 import { CatalogIndexPage } from "./CatalogIndexPage";
 import { CategoryPage } from "./CategoryPage";
 import { EditorPage } from "./EditorPage";
@@ -124,15 +126,17 @@ function 画面のfile一覧(): string[] {
   return readdirSync(画面の置き場).filter((f) => f.endsWith(".tsx") && !f.includes(".test."));
 }
 
-function 一覧の画面(): string {
+function 一覧の画面(言語: Locale = "ja"): string {
   return renderToStaticMarkup(
-    <ToastProvider>
-      <MemoryRouter initialEntries={["/catalog"]}>
-        <Routes>
-          <Route path="/catalog" element={<CatalogIndexPage />} />
-        </Routes>
-      </MemoryRouter>
-    </ToastProvider>,
+    <LocaleProvider 初期値={言語}>
+      <ToastProvider>
+        <MemoryRouter initialEntries={["/catalog"]}>
+          <Routes>
+            <Route path="/catalog" element={<CatalogIndexPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
+    </LocaleProvider>,
   );
 }
 
@@ -171,16 +175,26 @@ export function 目印の字(html: string, 目印: string): string | null {
   return m ? m[1]! : null;
 }
 
-function 分類の画面(slug: string): string {
+function 分類の画面(slug: string, 言語: Locale = "ja"): string {
   return renderToStaticMarkup(
-    <ToastProvider>
-      <MemoryRouter initialEntries={[`/catalog/${slug}`]}>
-        <Routes>
-          <Route path="/catalog/:slug" element={<CategoryPage />} />
-        </Routes>
-      </MemoryRouter>
-    </ToastProvider>,
+    <LocaleProvider 初期値={言語}>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[`/catalog/${slug}`]}>
+          <Routes>
+            <Route path="/catalog/:slug" element={<CategoryPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
+    </LocaleProvider>,
   );
+}
+
+/** 一覧と全分類を 2 言語で描いた markup。 表の欄が 2 言語ぶん在るため (#2453) */
+function 全言語の画面(): string[] {
+  return (["ja", "en"] as const).flatMap((言語) => [
+    一覧の画面(言語),
+    ...CATEGORIES.map((c) => 分類の画面(c.slug, 言語)),
+  ]);
 }
 
 describe("分類の呼び名の出どころ (#1788)", () => {
@@ -228,7 +242,9 @@ describe("分類の呼び名の出どころ (#1788)", () => {
     // 以前はここで前置き (`eyebrow`) が呼び名と同じ字でないことを見ていたが、前置きは #188 で
     // 画面から消えていた。 画面に出ない字を「出る」 前提で確かめる形を作らないよう、欄ごと外し、
     // 表の欄が描いた画面に出ることを見る
-    const 画面 = [一覧の画面(), ...CATEGORIES.map((c) => 分類の画面(c.slug))];
+    // **2 言語とも描く** (#2453)。 表は日本語と英語の欄を持つので、片方の言語だけ描くと
+    // もう片方の欄が「画面に出ない」 と読まれる
+    const 画面 = 全言語の画面();
     const 欄 = new Set(CATEGORIES.flatMap((c) => Object.keys(c)));
     console.log(`[分類の表の欄] 分類=${CATEGORIES.length} 欄=${[...欄].join(" / ")} 画面=${画面.length}`);
     expect(欄.size, "分類の表の欄を 1 つも見ていない (検査が空振りしている)").toBeGreaterThanOrEqual(3);
@@ -236,7 +252,7 @@ describe("分類の呼び名の出どころ (#1788)", () => {
   });
 
   it("画面に出ない欄を見つけ、出る欄は咎めない (植え込み対照 + 対象外の対照、#1932)", () => {
-    const 画面 = [一覧の画面(), ...CATEGORIES.map((c) => 分類の画面(c.slug))];
+    const 画面 = 全言語の画面();
     // 対象外の対照 = 画面に出る 3 つの欄だけの表は咎めない
     expect(画面に出ない欄(CATEGORIES, 画面)).toEqual([]);
     // 植え込み対照 = 画面に描かれない字の欄を 1 つ足すと、全分類ぶん見つける

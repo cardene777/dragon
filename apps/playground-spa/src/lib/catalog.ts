@@ -12,64 +12,102 @@
 
 export interface CategoryMeta {
   slug: string;
+  /** 日本語の名前。 設計の表 (`docs/design/specs/screens.md` § 2) と突き合わせる側 */
   label: string;
+  /** 英語の名前 (#2453)。 画面の言語が英語の時に出す */
+  labelEn: string;
+  /** 日本語の説明 */
   desc: string;
+  /** 英語の説明 (#2453) */
+  descEn: string;
+}
+
+/** 画面の言語に合わせた分類の名前 */
+export function categoryLabel(c: CategoryMeta, locale: "ja" | "en"): string {
+  return locale === "ja" ? c.label : c.labelEn;
+}
+
+/** 画面の言語に合わせた分類の説明 */
+export function categoryDesc(c: CategoryMeta, locale: "ja" | "en"): string {
+  return locale === "ja" ? c.desc : c.descEn;
 }
 
 export const CATEGORIES: CategoryMeta[] = [
   {
     slug: "presets",
     label: "ひな形",
+    labelEn: "Templates",
     desc: "「シーケンス図が欲しい」 「ER 図で書きたい」 と決まった時の最短経路。 1 行で骨格ができるので、 手を動かす前に完成形の当たりをつけたい時に使う。",
+    descEn: "The shortest route when the kind is already decided — \"I want a sequence diagram\", \"I'll write this as an ER diagram\". One line gives you the skeleton, so it suits the moment you want a sense of the finished shape before doing the work.",
   },
   {
     slug: "cookbook",
     label: "実用例",
+    labelEn: "Worked examples",
     desc: "本番でよく議論される要件をそのまま図にした集合。 認証の流れ / データ操作 / 非同期処理などを動く形のまま写し取り、 会議での議論の起点として使う。",
+    descEn: "A set built straight from the requirements that come up most in production. Sign-in flows, reading and writing records, work that carries on without waiting — captured as diagrams that already move, to be the starting point of a discussion in a meeting.",
   },
   {
     slug: "patterns",
     label: "組み方の型",
+    labelEn: "Assembly shapes",
     desc: "図の組立てで繰返し出る汎用構造の型。 「今描きたいのは直結か分岐か繰り返しか」 を先に選ぶと、 描き方を毎回考えなくて済む。 部品を何に配線するかの参照書。",
+    descEn: "The general-purpose shapes that keep recurring when you assemble a diagram. Choose first whether what you are drawing runs straight through, branches or repeats, and you stop working the drawing out from scratch each time. A reference for what to wire each part into.",
   },
   {
     slug: "primitives",
     label: "基本要素",
+    labelEn: "Building blocks",
     desc: "dragon のテキスト記法の最小の部品 (縦列 / 箱 / 矢印 / 段 / 値) と、 用途ごとの箱の種類を確認する場。 「この種類は何を描くか」 を学習する起点、 部品を選ぶ前の予備知識に。",
+    descEn: "The smallest parts of dragon's text notation (lane, box, arrow, phase, readout) and the box kinds for each use. The place to learn what each kind draws, and the background to have before choosing parts.",
   },
   {
     slug: "text-dsl",
     label: "テキスト記法",
+    labelEn: "Text notation",
     desc: "TypeScript を書かず箇条書きだけで図を書く経路。 覚え書きと同じ感覚の 5 つの塊で済むので、 書き留めた箇条書きから図を起こしたい / 書き慣れていない人にも書かせたい時の入口。",
+    descEn: "The route where you write a diagram as a list, with no TypeScript at all. Five blocks, written much like a note to yourself — the way in when you want to raise a diagram from notes you already jotted down, or to let someone write one without practice.",
   },
   {
     slug: "animation",
     label: "動く図",
+    labelEn: "Diagrams that move",
     desc: "段で状態が推移 / 数値が滑らか補間 / 即時切替 / 名札で段の題を出す の 4 要素を組合せて時間軸の物語を作る。 静止図では伝わらない「変化」 「順序」 を語りたい時に。",
+    descEn: "Combine four elements — state moving on a phase, numbers interpolating smoothly, switching at once, a label showing the phase title — to tell a story along time. For when you want to convey change and order, which a still picture cannot.",
   },
   {
     slug: "ethereum",
     label: "イーサリアム",
+    labelEn: "Ethereum",
     desc: "ブロックチェーンの中で何が起きているかを、 数値が動く様子で説明する図。 残高が付け替わる / 手数料が上下する / ブロックが積まれる といった変化そのものを見せるので、 静止した箱と矢印では掴みにくい仕組みが直感的に分かる。",
+    descEn: "Diagrams that explain what is happening inside a blockchain by showing numbers in motion. Balances moving across, fees rising and falling, blocks stacking up — showing the change itself makes mechanisms intuitive that still boxes and arrows do not convey.",
   },
   {
     slug: "charts",
     label: "図表",
+    labelEn: "Charts",
     desc: "数そのものを見せる図。 大小を棒の高さで比べる / 移り変わりを線で追う / 全体に占める割合を扇で見る といった、 箱と矢印では表せない量の関係を扱う。 値を持たせて描くので、 そのまま自分の数に差し替えて使える。",
+    descEn: "Diagrams that show the numbers themselves. Comparing size by bar height, following change along a line, seeing a share of the whole as a sector — relations of quantity that boxes and arrows cannot express. They are drawn with real values, so you can swap in your own.",
   },
   {
     slug: "parts",
     label: "部品",
+    labelEn: "Components",
     desc: "凝った図を組立てる時に「これ使いたい」 と選ぶ小部品の見本市。 入れ物 / 計器 / 指標 / 時系列 等、 1 つで 1 概念を体現する完成物、 動く図の一覧の側で複数の部品を合成して物語を作る。",
+    descEn: "A showcase of the small components you pick from when assembling an elaborate diagram. Containers, gauges, indicators, time series — each one a finished piece embodying a single idea, which the moving-diagram list then combines into a story.",
   },
   {
     slug: "styles",
     label: "線と色",
+    labelEn: "Lines and colours",
     desc: "実線 / 点線流れ / 6 つの色調 (中立 / teal / 成功 / 失敗 / 警告 / 情報) の組合せで、 図の中に意味の階層 (通常経路 / 例外 / 成功 / 失敗) を差込む。 描く前の設計段階でどの色調をどこに割当てるか決める為の見本。",
+    descEn: "Solid and dashed flowing lines, combined with six tones (neutral, teal, success, failure, warning, information), let you insert a hierarchy of meaning into a diagram — the normal route, the exception, success, failure. A reference for deciding which tone goes where before you draw.",
   },
   {
     slug: "interactive",
     label: "操作で動く",
+    labelEn: "Driven by the reader",
     desc: "読む人がつまみを動かすと数値が追随、 巻き上げに応じて段が進む、 押下で切替わる 等の対話的仕組みを図に組込む部品集。 静止図では表せない「試して理解する」 探索的可視化を作りたい時に。",
+    descEn: "A set of parts that build interaction into a diagram — numbers following a slider, phases advancing as the reader scrolls, a press switching the view. For exploratory pictures where understanding comes from trying, which a still diagram cannot offer.",
   },
 ];

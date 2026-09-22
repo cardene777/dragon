@@ -151,7 +151,7 @@ export function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
       id: d.id,
       title: key,
       subtitle: subtitleMap.get(key) ?? d.topic ?? "",
-      motionNote: motionNote(withPhase),
+      motionNote: motionNote(withPhase, "ja"),
       diagram: withPhase,
       sourceYaml: sourceYamlMap.get(key),
       sourceJson: sourceJsonMap.get(key),
