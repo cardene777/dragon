@@ -7,13 +7,14 @@
  * **5 種を個別に確かめる**。 1 つ動けば通る形だと、残り 4 つが死んでいても気付けない。
  */
 import { test, expect, type Page, type Locator } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 const ITEM_LABEL = "5種の操作の受け取り";
 
 async function open(page: Page): Promise<Locator> {
   await page.goto("catalog/interactive", { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
-  await page.locator("aside.catalog-sidebar").getByText(ITEM_LABEL, { exact: false }).first().click();
+  await 一覧の行(page, ITEM_LABEL, false).click();
   await page.waitForTimeout(500);
   // 字が届くと文字の幅が変わり、 その下にある図の位置が動く。 座標を測ってから押す形
   // (長押し) は、 測った後に動くと押す先が外れる。 落ち着くまで待ってから返す。

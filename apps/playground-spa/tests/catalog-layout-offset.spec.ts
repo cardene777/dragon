@@ -8,6 +8,7 @@
  * **動かない相手も見る**。 ずらした相手が動くだけだと、図全体が一緒に動く形を見逃す。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /** 一覧の行に出る見本の id (ずらさない図の題から決まる) */
 const 見本 = "位置をずらさない";
@@ -20,7 +21,7 @@ type 点 = { x: number; y: number };
 async function 開く(page: Page): Promise<void> {
   await page.goto("catalog/primitives", { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
-  await page.locator("aside.catalog-sidebar .catalog-list-item", { hasText: 見本 }).first().click();
+  await 一覧の行(page, 見本).click();
   await page.waitForTimeout(800);
   await expect(page.locator("main.catalog-preview svg[data-cdl-stage]").first()).toBeVisible();
 }

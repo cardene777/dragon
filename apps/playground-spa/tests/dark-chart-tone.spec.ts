@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /**
  * dark の図の tone を固定する (#383)。
@@ -250,7 +251,7 @@ const contrastsOf = (page: Page, id: string) =>
 async function open(page: Page, id: string): Promise<void> {
   await page.goto("catalog/presets", { waitUntil: "networkidle" });
   await page.waitForTimeout(1200);
-  await page.locator(".catalog-list-item").filter({ hasText: id }).first().click();
+  await 一覧の行(page, id).click();
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
 }
 

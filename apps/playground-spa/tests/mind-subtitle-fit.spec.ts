@@ -13,6 +13,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 import { sourceYaml__mindMap } from "../src/topics/catalog/charts.cdl";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /** 切り詰めに使われる字 (`@cardenelabs/cdl` の `幅で切る`) */
 const 省略 = "…";
@@ -109,7 +110,7 @@ async function 測る(page: Page): Promise<測り結果> {
 async function 開く(page: Page): Promise<void> {
   await page.goto("catalog/charts", { waitUntil: "networkidle" });
   await page.waitForTimeout(700);
-  await page.locator("aside.catalog-sidebar").getByText("枝分かれ図", { exact: false }).first().click();
+  await 一覧の行(page, "枝分かれ図", false).click();
   await page.waitForTimeout(500);
 }
 

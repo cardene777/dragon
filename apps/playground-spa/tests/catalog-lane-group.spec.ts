@@ -7,6 +7,7 @@
  * **囲まない相手も見る**。 枠が図全体に広がる形は、囲むべき字を含むだけでは見逃す。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /** 一覧の行に出る見本の id (組を書かない図の題から決まる) */
 const 見本 = "縦列を組で束ねない";
@@ -16,7 +17,7 @@ type 矩形 = { x: number; y: number; 右: number; 下: number };
 async function 開く(page: Page): Promise<void> {
   await page.goto("catalog/primitives", { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
-  await page.locator("aside.catalog-sidebar .catalog-list-item", { hasText: 見本 }).first().click();
+  await 一覧の行(page, 見本).click();
   await page.waitForTimeout(800);
   await expect(page.locator("main.catalog-preview svg[data-cdl-stage]").first()).toBeVisible();
 }

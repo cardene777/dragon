@@ -17,6 +17,7 @@ import * as partsMotion from "../src/topics/catalog/parts-motion.cdl";
 import * as charts from "../src/topics/catalog/charts.cdl";
 import { moduleToItems } from "../src/lib/catalog-items";
 import { 実在する群 } from "../../../packages/dragon/test/support/catalog-groups";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /**
  * 行の文字が node の枠に収まっているかを **実ブラウザ** で確かめる (cardene777/cdl#390)。
@@ -187,10 +188,7 @@ async function openDiagram(page: Page, slug: string, id: string): Promise<void> 
   await page.goto(`catalog/${slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
   const 開き方 = パターンの開き方.get(id);
-  await page
-    .locator(".catalog-list-item")
-    .filter({ hasText: 開き方?.行 ?? id })
-    .first()
+  await 一覧の行(page, 開き方?.行 ?? id)
     .click();
   if (開き方) {
     await page

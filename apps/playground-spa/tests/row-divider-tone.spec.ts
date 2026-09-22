@@ -21,6 +21,7 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { shoot, measure, type Box } from "./helpers/pixel-contrast";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /**
  * 区切り線を持つ画面。 名前と行の間に横線が入る。
@@ -52,7 +53,7 @@ const 下限 = 3.0;
 async function 開く(page: Page, 暗い: boolean): Promise<void> {
   await page.goto(対象);
   await page.waitForLoadState("networkidle");
-  await page.locator("aside.catalog-sidebar .catalog-list-item", { hasText: 見本 }).first().click();
+  await 一覧の行(page, 見本).click();
   if (暗い) await page.evaluate(() => document.documentElement.classList.add("dark"));
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(1800);

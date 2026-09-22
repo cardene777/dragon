@@ -10,6 +10,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { ITEM_NAME_JA } from "../src/lib/i18n";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /**
  * 見る 4 例の識別子。 **画面に出る名前は書かない** (#1834)。
@@ -59,7 +60,7 @@ test.describe("interactive catalog category (CAR #231)", () => {
     const preview = page.locator("main.catalog-preview");
     for (const label of examples) {
       // sidebar 側の該当 item を click
-      await page.locator("aside.catalog-sidebar").getByText(label, { exact: false }).first().click();
+      await 一覧の行(page, label, false).click();
       await page.waitForTimeout(300);
       // preview 側に SVG が存在
       const previewSvg = preview.locator("svg").first();

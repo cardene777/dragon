@@ -9,13 +9,14 @@
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test catalog-pattern-switch`
  */
 import { test, expect } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 type Page = import("@playwright/test").Page;
 
 async function 開く(page: Page, 名前: string, 分類 = "charts"): Promise<void> {
   await page.goto(`catalog/${分類}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
-  await page.getByText(名前, { exact: true }).first().click();
+  await 一覧の行(page, 名前, true).click();
   await page.waitForTimeout(400);
 }
 

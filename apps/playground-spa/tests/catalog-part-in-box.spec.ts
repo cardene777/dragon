@@ -13,13 +13,14 @@
  * | 箱と並べた部品 | 重ねた部品が既定の値 (塗り 0 と緑) のまま |
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 const 見本 = "部品を箱に置き何も書き換えない";
 
 async function 開く(page: Page): Promise<void> {
   await page.goto("catalog/parts", { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
-  await page.locator("aside.catalog-sidebar .catalog-list-item", { hasText: 見本 }).first().click();
+  await 一覧の行(page, 見本).click();
   await page.waitForTimeout(800);
   await expect(page.locator("main.catalog-preview svg[data-cdl-stage]").first()).toBeVisible();
 }

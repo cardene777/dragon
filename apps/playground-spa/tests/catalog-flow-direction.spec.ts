@@ -7,6 +7,7 @@
  * **矢印の名札が付く矢印の id で見る**。 本数だけだと、2 本目が差し戻しではなく別の矢印でも通る。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 一覧の行 } from "./catalog-item-pick";
 
 const 見本 = "フローの並ぶ向きを書かない";
 const 図 = "main.catalog-preview svg[data-cdl-stage]";
@@ -36,10 +37,7 @@ test.describe("フローの並ぶ向きの見本 (#1986)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("catalog/primitives", { waitUntil: "networkidle" });
     await page.waitForTimeout(600);
-    await page
-      .locator("aside.catalog-sidebar .catalog-list-item", { hasText: 見本 })
-      .first()
-      .click();
+    await 一覧の行(page, 見本).click();
     await page.waitForTimeout(800);
     await expect(page.locator(図).first()).toBeVisible();
   });

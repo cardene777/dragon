@@ -10,6 +10,7 @@ import {
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { 一覧の行 } from "./catalog-item-pick";
 
 /**
  * edge label の **描画結果** の対比を実ブラウザで測る (#977)。
@@ -75,7 +76,7 @@ type Label = { key: string; box: Box; px: number; weight: number; text: string; 
 async function open(page: Page, target: { slug: string; id: string }, mode: string): Promise<void> {
   await page.goto(`catalog/${target.slug}`);
   await page.waitForSelector(".catalog-list-item", { timeout: 20000 });
-  await page.locator(".catalog-list-item").filter({ hasText: target.id }).first().click();
+  await 一覧の行(page, target.id).click();
   await page.waitForSelector(`[data-cdl-diagram="${target.id}"]`, { timeout: 20000 });
   await page.evaluate((m) => {
     document.documentElement.classList.toggle("dark", m === "dark");
