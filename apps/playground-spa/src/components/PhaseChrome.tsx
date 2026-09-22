@@ -23,6 +23,7 @@
 import { useEffect, useState, type JSX } from "react";
 import type { CdlPhase } from "@cardenelabs/cdl";
 import { useLocale } from "@/lib/useLocale";
+import { phaseTitle } from "@/lib/catalog-phase-en";
 
 /**
  * 札の頭に出す、図が切り替わる単位の呼び名 (#1819)。
@@ -115,6 +116,10 @@ export function PhaseChrome({
   // 引けない形は札を出さない = 出す下限を満たさない時と同じ扱い
   if (段 === undefined) return null;
 
+  // 段の題は図のデータが持ち、日本語の 1 本しか無い。 英語では対訳を引く (#2469)。
+  // **引けない時は空になる** = 日本語へ落とさないので、英語の札は段の数だけになる
+  const 題 = phaseTitle(段.title, locale);
+
   return (
     // 掴む操作を邪魔しない。エディタの舞台はここを掴んで動かすので、重ねたものは受け取らない
     <div className="cdl-phase" aria-hidden="true">
@@ -123,9 +128,9 @@ export function PhaseChrome({
         <span>
           {段の呼び名の表[locale]} {今 + 1} / {一覧.length}
         </span>
-        {段.title !== "" && (
+        {題 !== "" && (
           <span className="cdl-phase-title">
-            {区切り[locale]} {段.title}
+            {区切り[locale]} {題}
           </span>
         )}
       </div>

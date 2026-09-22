@@ -189,6 +189,8 @@ export function 残るカタカナ語(字: string): string[] {
 export const 外す材料: Record<string, string> = {
   "syntax-forms.ts":
     "説明文に出る英語が記法の綴りしかない file。 残してよい語へ足すと `start` / `text` のような一般語が画面のどこでも通るので、この file だけを見る検査が全語を記法と照合する (#1827)",
+  "catalog-phase-en.ts":
+    "外した置き場 (`topics/`) が持つ段の題を、鍵として写した対訳の表 (#2469)。 入れると `topics/` を外した宣言が横から無効になる = 記法そのものの字が `lib/` 経由で母集団へ戻る。 この file だけを見る検査 (`catalog-phase-en.test.ts`) が実物の見本を走査して、対訳の抜けと英語側に残る日本語を照合する",
   "editor-samples.ts":
     "編集画面の見本の記法を持つ file。 名前が `ログインAPI呼び出し (sequence)` の形で、画面に出る英語は図の型と記法の印と、宣言した見本の識別子に限る。 残してよい語へ足すと `line` / `class` / `state` のような一般語が画面のどこでも通るので、この file だけを見る検査が全語を照合する (#1842 / #1846)",
 };
