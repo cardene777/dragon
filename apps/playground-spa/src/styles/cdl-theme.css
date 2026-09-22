@@ -239,6 +239,20 @@
   stroke: var(--dragon-edge-tone) !important;
 }
 
+/* 押せる箱に押せる形の cursor を出す (#2077)。
+   engine は押せる箱へ `style={{ cursor: "pointer" }}` を渡すが、同じ要素の後ろで
+   動きの指定を `style` で渡し直しており、**後の値が前の値を丸ごと置き換える**。
+   その結果、要素に残る `style` は `transition` だけになる。
+
+   `!important` を付けない = 要素に残る `style` に `cursor` が無いので、
+   ふつうの規則で当たる。 付けると engine が `style` を 1 つにまとめた日に
+   こちらが勝ち続け、engine の指定が効かなくなったことに気付けない。
+
+   舞台は掴んで動かす側が `grab` を出すので、押せる箱だけを上書きする。 */
+[data-cdl-node][role="button"] {
+  cursor: pointer;
+}
+
 /* 見せ方を持つ箱の中の字は engine が決める (cdl#620)。 墨のベタの上では紙の色で抜くので、
    ここで文字色を上書きすると黒地に黒で消える。 書体と太さは揃えたいので色だけ外す */
 [data-cdl-role="node-label"] {
