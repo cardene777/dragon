@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { 図の箱が出るまで待つ } from "./wait-for-render";
 
 import { 画面の経路 } from "./app-routes";
+import { CATEGORIES } from "../src/lib/catalog";
 import { PRESETS } from "../src/lib/presets";
 
 /**
@@ -45,17 +47,17 @@ import { PRESETS } from "../src/lib/presets";
  * **`node -e` で確かめない**。 手元の `node` は `U+00B7` を数えないと答えた (`false`)。
  * 判定するのは画面を描く browser なので、確かめるなら browser 上で確かめる。
  *
- * ## 分類の画面は開く分類で残り方が違う
+ * ## 分類の画面は 1 分類だけでは足りない
  *
- * 表が見るのは `primitives` の 1 つ (`欄の値` が決める)。 他の分類には図の段の題と
- * 見せ方の札が残る (#2461 / #2460)。 表の 0 は「この 1 分類で 0」 であって
- * 「全分類で 0」 ではない。
+ * 上の表が見るのは `primitives` の 1 つ (`欄の値` が決める)。 分類ごとに出る字が違うので、
+ * この 1 件の 0 は「全分類で 0」 を意味しない。 全分類を開く検査を別に置く (#2469)。
  *
- * ## `/preset/:id` の 1 件は図が持つ段の題
+ * ## 段の題は対訳表から引く
  *
- * 見本の詳細に残る 1 件は、図の段の題 (`phases[].title`) を図の外の札として出したもの (#2455)。
- * 題は見本の記法 (`topics/catalog/presets.cdl.ts`) が持つ図の中の字で、カタログの一覧にも
- * 同じ字が出る。 2 画面で同じ出どころを直すことになるため #2461 に寄せた。
+ * 図の段の題 (`phases[].title`) は図のデータが持ち、日本語の 1 本しか無い。
+ * 図の外の札 (`PhaseChrome`) はそれを `src/lib/catalog-phase-en.ts` の表で引き直す (#2469)。
+ * 引けない時は題を出さないので、表に抜けがあっても日本語が英語の画面へ出ることはない。
+ * 抜けそのものは `catalog-phase-en.test.ts` が実物を走査して落とす。
  *
  * ## `/editor` の指摘の本文は画面の側で組み直している
  *
@@ -94,7 +96,7 @@ const 日本語の残り: Record<string, number> = {
   "/editor": 0,
   "/editor/:filename": 0,
   "/docs": 0,
-  "/preset/:id": 1,
+  "/preset/:id": 0,
   "/release-notes": 0,
   "/contribute": 0,
   "*": 0,
@@ -166,5 +168,42 @@ for (const 経路 of 対象の経路) {
       残り.length,
       `英語で開いた時に残る日本語が表と合わない。 例: ${残り.slice(0, 5).join(" / ").slice(0, 200)}`,
     ).toBe(日本語の残り[経路]);
+  });
+}
+
+/**
+ * 分類の画面を全部開いて、英語で日本語が残らないことを見る (#2469)。
+ *
+ * 上の表は `/catalog/:slug` を 1 分類 (`primitives`) でしか開かない。
+ * 分類ごとに出る字が違うので、1 件の 0 は全分類の 0 を意味しない。
+ *
+ * **`parts` は遅れて読み込む**。 箱が出るまで待たないと、まだ何も描かれていない画面を測る。
+ */
+for (const 分類 of CATEGORIES) {
+  test(`分類 ${分類.slug} を英語で開いた時に日本語が残らない`, async ({ page }) => {
+    await page.goto(`catalog/${分類.slug}?lang=en`, { waitUntil: "networkidle" });
+    await 図の箱が出るまで待つ(page, `分類 ${分類.slug}`);
+
+    const 字 = await page.evaluate(() => {
+      const out: string[] = [];
+      const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let n: Node | null;
+      while ((n = walk.nextNode())) {
+        const t = (n.textContent ?? "").trim();
+        if (!t) continue;
+        if (n.parentElement?.closest("pre")) continue;
+        if (n.parentElement?.closest(".v4-editor-code-body")) continue;
+        if (n.parentElement?.closest("[data-cdl-diagram]")) continue;
+        out.push(t);
+      }
+      return out;
+    });
+
+    expect(字.length, "画面から字を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
+
+    const 日本語 =
+      /[\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Han}]/u;
+    const 残り = 字.filter((t) => 日本語.test(t));
+    expect(残り, `分類 ${分類.slug} の英語の画面に日本語が残っている`).toEqual([]);
   });
 }
