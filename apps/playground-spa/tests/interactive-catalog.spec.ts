@@ -68,14 +68,30 @@ test.describe("interactive catalog category (CAR #231)", () => {
     }
   });
 
-  test("domain-neutral: catalog 内に crypto / finance 系 domain 語彙が含まれない", async ({ page }) => {
+  test("使い方の 4 例に crypto / finance の題材が出ない", async ({ page }) => {
+    // **見るのは 4 例だけ** (#2470)。 元は画面全体の字を見ていたが、分類そのものは
+    // 題材を持つ見本を意図して並べており (`interactive.cdl.ts` が
+    // `domain example = EIP-1559 gas cost model` と書いて置いた見本が 1 件ある)、
+    // 画面全体で見ると「題材の見本を 1 件でも足したら落ちる」 形になる。
+    //
+    // この file が守るのは冒頭の 4 例 = 仕組みの使い方を見せる tour で、そこに題材が
+    // 混ざると「仕組みを見る」 のに題材の知識が要る。 対象をその 4 例に閉じる。
     await page.goto("catalog/interactive", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    const bodyText = await page.locator("body").innerText();
-    // domain 特化語 (crypto / chain / gas / merkle) が interactive category 内に出ないこと
-    const bannedTerms = ["EIP-1559", "arc-intro", "blockchain", "merkle"];
-    for (const term of bannedTerms) {
-      expect(bodyText.toLowerCase()).not.toContain(term.toLowerCase());
+    const preview = page.locator("main.catalog-preview");
+    const 出てはいけない字 = ["EIP-1559", "arc-intro", "blockchain", "merkle"];
+    const 混ざる = (字: string): string[] =>
+      出てはいけない字.filter((t) => 字.toLowerCase().includes(t.toLowerCase()));
+
+    // 植え込み対照 = 判定そのものが空振りしていないこと
+    expect(混ざる("これは EIP-1559 の図"), "判定が題材の字を拾えていない").toEqual(["EIP-1559"]);
+
+    for (const label of 例の名前()) {
+      await 一覧の行(page, label, false).click();
+      await page.waitForTimeout(300);
+      const 字 = await preview.innerText();
+      expect(字.length, `${label} の詳細が空 (検査が空振りしている)`).toBeGreaterThan(0);
+      expect(混ざる(字), `${label} の詳細に題材の字が混ざっている`).toEqual([]);
     }
   });
 });
