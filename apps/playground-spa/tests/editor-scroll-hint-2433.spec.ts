@@ -36,7 +36,7 @@
  * 待つ側が常に通る形に壊れても気付けるよう、末尾に植え込みの対照を 1 件置く。
  */
 import { test, expect, type Page } from "@playwright/test";
-import { 描き終わりを待つ } from "./wait-for-render";
+import { 描き終わりを待つ, 形が落ち着くまで待つ } from "./wait-for-render";
 
 const 台 = ".v4-editor-stage";
 const 中身 = ".v4-editor-pan";
@@ -54,49 +54,38 @@ const 中身 = ".v4-editor-pan";
 const 落ち着き窓 = 600;
 
 /**
- * 収まり具合が目標に揃い、そのまま落ち着いたかを画面の中で見る (#2466)。
+ * 収まり具合が目標に揃っているかを画面の中で見る (#2466)。
  *
  * 固定の待ち時間で測ると、一式で回した時の負荷で収める前の位置を読む。
  * 目標が揃った瞬間に返してもいけない = その後の合わせ直しが、掴んで引いた分を元に戻す
  * (実測 = 218px 引いたのに位置が変わらないまま 5 秒経った)。
+ * **揃ったまま落ち着くのを待つ** 側は `形が落ち着くまで待つ` が持つ (#2496)。
  *
  * **箱が出ていることを先に見る**。 図が描かれる前は動く中身の幅が 0 で、
  * `余り` が大きな負の数になる = 枠に入る側の目標が空の画面で成立してしまう。
  *
+ * まだ目標に揃っていない間は `null` を返す。 揃っていない位置を「落ち着いた形」 として
+ * 覚えられると、**収める前の位置で落ち着いたことになる**。
+ *
  * 判定は browser 側で動いて外の変数を読めないため、選択子も目標も引数で渡す。
- * 前回見た位置は画面側に預ける (呼び出しをまたいで持てる置き場がここしかない)。
  */
 const 収まり具合 = (指す: {
   台: string;
   中身: string;
   枠に入らない: boolean;
-  窓: number;
-  鍵: string;
-}): boolean => {
-  const 覚え書き = window as unknown as Record<string, { 位置: string; 時刻: number } | undefined>;
-  const 忘れる = (): boolean => {
-    覚え書き[指す.鍵] = undefined;
-    return false;
-  };
-
+}): string | null => {
   const 枠 = document.querySelector(指す.台)?.getBoundingClientRect();
   const 絵 = document.querySelector(指す.中身)?.getBoundingClientRect();
-  if (!枠 || !絵 || 絵.width === 0) return 忘れる();
-  if (document.querySelectorAll("svg [data-cdl-node]").length === 0) return 忘れる();
+  if (!枠 || !絵 || 絵.width === 0) return null;
+  if (document.querySelectorAll("svg [data-cdl-node]").length === 0) return null;
 
   const 余り = 絵.width - 枠.width;
   const 左 = 絵.left - 枠.left;
   // 数は下の `はみ出し` を使う判定と同じ値。 待つ側だけ緩いと、待ち終わってから判定で落ちる
   const 揃った = 指す.枠に入らない ? 余り > 2 && 左 > -2 : 余り <= 1;
-  if (!揃った) return 忘れる();
+  if (!揃った) return null;
 
-  const いま = `${Math.round(左)},${Math.round(絵.width)}`;
-  const 前 = 覚え書き[指す.鍵];
-  if (前 === undefined || 前.位置 !== いま) {
-    覚え書き[指す.鍵] = { 位置: いま, 時刻: Date.now() };
-    return false;
-  }
-  return Date.now() - 前.時刻 >= 指す.窓;
+  return `${Math.round(左)},${Math.round(絵.width)}`;
 };
 
 const 端 = (page: Page): Promise<string | null> =>
@@ -124,12 +113,12 @@ async function はみ出し(page: Page): Promise<{ 余り: number; 左: number }
  */
 async function 見本を開く(page: Page, slug: string, 枠に入らない: boolean): Promise<void> {
   await page.goto(`editor#preset=${slug}`, { waitUntil: "networkidle" });
-  await 描き終わりを待つ(
+  await 形が落ち着くまで待つ(
     page,
     `見本 ${slug} が${枠に入らない ? "枠に入らない" : "枠に入る"}状態`,
     収まり具合,
-    { 台, 中身, 枠に入らない, 窓: 落ち着き窓, 鍵: "#2466の覚え書き" },
-    { 出ない時の言い方: "揃わない" },
+    { 台, 中身, 枠に入らない },
+    { 窓: 落ち着き窓, 出ない時の言い方: "揃わない" },
   );
 }
 
@@ -153,7 +142,7 @@ async function 引く(page: Page, 量: number): Promise<void> {
   await 描き終わりを待つ(
     page,
     `${Math.round(量)}px 引いた後の図の位置 (引く前は左端から ${Math.round(前)}px)`,
-    (指す) => {
+    (指す: { 台: string; 中身: string; 前: number }) => {
       const 枠 = document.querySelector(指す.台)?.getBoundingClientRect();
       const 絵 = document.querySelector(指す.中身)?.getBoundingClientRect();
       if (!枠 || !絵) return false;
@@ -217,12 +206,12 @@ test.describe("編集画面の手がかり (#2433)", () => {
     // 空振り防止をこの待ちに移した以上、待ちが利いていることを別に見る必要がある。
     await page.goto("editor#preset=flow", { waitUntil: "networkidle" });
 
-    const 文 = await 描き終わりを待つ(
+    const 文 = await 形が落ち着くまで待つ(
       page,
       "植え込みの目標 (枠に入らない図を、枠に入る側で待つ)",
       収まり具合,
-      { 台, 中身, 枠に入らない: false, 窓: 落ち着き窓, 鍵: "#2466の覚え書き" },
-      { 上限ミリ秒: 3_000, 出ない時の言い方: "揃わない" },
+      { 台, 中身, 枠に入らない: false },
+      { 窓: 落ち着き窓, 上限ミリ秒: 3_000, 出ない時の言い方: "揃わない" },
     ).then(
       () => null,
       (e: Error) => e.message,

@@ -48,6 +48,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import { contrast, cores, requiredRatio, type Box } from "./helpers/pixel-contrast";
+import { 一覧が落ち着くまで待つ } from "./wait-for-render";
 
 const 倍率 = 2;
 test.use({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 倍率 });
@@ -235,11 +236,18 @@ async function 開く(page: Page, path: string, 暗い: boolean, 部品?: string
   }, 暗い);
   await page.waitForTimeout(1200);
   if (部品) {
-    // 一覧の中の選択は URL に出ないので押して開く (`CategoryPage` が state で持つ)
+    // 一覧の中の選択は URL に出ないので押して開く (`CategoryPage` が state で持つ)。
+    //
+    // **識別子ではなく `data-item-id` で引く** (#2496)。 #2461 で識別子を画面に出さなく
+    // したため、行の字から探す形は一致しなくなっていた。 `serial` の枠は取り込みの前に
+    // 回していなかったので、赤いまま 1 度も見えていない。
+    await 一覧が落ち着くまで待つ(page, 画面名(path));
     const 押せた = await page.evaluate((id) => {
-      const 札 = [...document.querySelectorAll(".catalog-list-item")].find((e) =>
-        (e.textContent ?? "").includes(id),
-      );
+      const 札 =
+        document.querySelector(`.catalog-list-item[data-item-id="${id}"]`) ??
+        [...document.querySelectorAll(".catalog-list-item")].find((e) =>
+          (e.textContent ?? "").includes(id),
+        );
       if (!札) return false;
       (札 as HTMLElement).scrollIntoView({ block: "center" });
       (札 as HTMLElement).click();
