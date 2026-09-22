@@ -68,9 +68,16 @@ function 画面を開く(): void {
   act(() => driveIntersection(true));
 }
 
+/**
+ * 一覧からその見本を選ぶ。
+ *
+ * 識別子は画面に出さなくなった (#2461) ので、字ではなく `data-item-id` で引く。
+ * 一覧の欄に絞るのは、同じ属性が右側の詳細にも付くため。
+ */
 function 一覧から選ぶ(item: (typeof チャート一覧)[number]): void {
-  const id = screen.getByText(item.id);
-  const button = id.closest("button");
+  const button = document.querySelector(
+    `.catalog-list .catalog-list-item[data-item-id="${item.id}"]`,
+  );
   expect(button, `${item.id} の一覧ボタンが見つからない`).not.toBeNull();
   fireEvent.click(button!);
 }

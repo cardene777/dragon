@@ -45,6 +45,7 @@ function 見本(記法: { yaml?: string; json?: string }): CatalogItem {
     id: "neg-ctl",
     title: "対照",
     subtitle: "検査が組み立てた見本",
+    subtitleEn: "A sample the test builds",
     motionNote: "動かない",
     diagram: 見本の図,
     ...(記法.yaml !== undefined ? { sourceYaml: 記法.yaml } : {}),

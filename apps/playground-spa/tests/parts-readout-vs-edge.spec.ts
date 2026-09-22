@@ -149,10 +149,8 @@ const 宣言: ReadonlyMap<string, string> = new Map([
 async function 部品を開く(page: Page, id: string): Promise<void> {
   await page.goto("catalog/parts", { waitUntil: "networkidle" });
   await page.waitForTimeout(1200);
-  await page
-    .locator(".catalog-list-item-id", { hasText: new RegExp(`^${id}$`) })
-    .first()
-    .click();
+  // 識別子は画面に出さなくなった (#2461)。 行は属性で引く
+  await page.locator(`.catalog-list-item[data-item-id="${id}"]`).first().click();
   await page.waitForTimeout(2000);
 }
 

@@ -5,6 +5,8 @@
  * 該当 items 配列を CategoryPage の 2 pane grid で表示。
  */
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { ITEM_SUBTITLE_EN, PATTERN_NAME_EN } from "./catalog-item-en";
+import type { Locale } from "./i18n";
 import { motionNote } from "./catalog-motion";
 
 // --- category: presets ---
@@ -38,6 +40,13 @@ export interface CatalogItem {
   title: string;
   subtitle: string;
   /**
+   * 英語で開いた時の説明 (#2461)。 出どころは `catalog-item-en.ts` の 1 つ。
+   *
+   * **引けない時は空にする**。 日本語のまま返すと、英語の画面に日本語が混ざったことが
+   * 表の抜けなのか訳し忘れなのか読めない。 抜けは検査が実物の見本を走査して落とす。
+   */
+  subtitleEn: string;
+  /**
    * 動きの種類を表す 1 文 (#1043)。 **人は書かず、図の実装から導く**。
    *
    * 説明 (`subtitle`) に動きを書くと実装とずれ、ずれは言い回しの列挙では止められない。
@@ -65,6 +74,8 @@ export interface CatalogItem {
 export interface CatalogPattern {
   /** 切替に出す名前 */
   名: string;
+  /** 英語で開いた時の名前 (#2461)。 引けない時は空にする (説明と同じ扱い) */
+  名En: string;
   /**
    * この見本の export 名 (元は `<key>`、変種は `pattern__<key>__<名>`)。
    *
@@ -133,6 +144,7 @@ export function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
     const 束 = patternMap.get(元) ?? [];
     束.push({
       名,
+      名En: PATTERN_NAME_EN[名] ?? "",
       鍵: key,
       diagram: ensurePhase(d),
       sourceYaml: sourceYamlMap.get(key),
@@ -151,6 +163,7 @@ export function moduleToItems(mod: Record<string, unknown>): CatalogItem[] {
       id: d.id,
       title: key,
       subtitle: subtitleMap.get(key) ?? d.topic ?? "",
+      subtitleEn: ITEM_SUBTITLE_EN[key] ?? "",
       motionNote: motionNote(withPhase, "ja"),
       diagram: withPhase,
       sourceYaml: sourceYamlMap.get(key),
@@ -196,6 +209,7 @@ function 変種を束ねる(引数: {
     patterns: [
       {
         名: 元の名,
+        名En: PATTERN_NAME_EN[元の名] ?? "",
         鍵: key,
         diagram: 元の図,
         sourceYaml: sourceYamlMap.get(key),
@@ -283,3 +297,18 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  * 気付かれないまま残っていた。 内訳が要る時は上の 3 つの file を数える。
  */
 export const PARTS_COUNT_ESTIMATE = 112;
+
+/**
+ * 画面に出す説明を言語で引く (#2461)。
+ *
+ * **英語が無い時は日本語へ落とさない**。 落とすと英語の画面に日本語が混ざり、
+ * 表の抜けが「そういう見本だ」 と読める形で残る。 抜けは検査が落とす。
+ */
+export function itemSubtitle(item: CatalogItem, locale: Locale): string {
+  return locale === "ja" ? item.subtitle : item.subtitleEn;
+}
+
+/** 変種の名前を言語で引く (#2461)。 落とさない理由は説明と同じ */
+export function patternName(p: CatalogPattern, locale: Locale): string {
+  return locale === "ja" ? p.名 : p.名En;
+}

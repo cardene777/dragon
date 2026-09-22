@@ -4,7 +4,13 @@ import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES, categoryLabel, categoryDesc } from "@/lib/catalog";
-import { loadPartsItems, 選んだ見本, type CatalogItem } from "@/lib/catalog-items";
+import {
+  loadPartsItems,
+  選んだ見本,
+  itemSubtitle,
+  patternName,
+  type CatalogItem,
+} from "@/lib/catalog-items";
 import { useCategoryItems, 部品の読込を見せる, type 部品の読込結果 } from "./category-items";
 import {
   今の見せ方,
@@ -557,7 +563,7 @@ export function CategoryPage(): React.ReactElement {
 
   // 拡大表示に出す説明と、図から導いた動きの一文 (#1043)。 動きは人が書かず図から導くので、
   // 説明の隣で 1 組にして決める。 動かない図にも必ず出す (#1053)
-  const 拡大の説明 = modalItem?.subtitle ?? "";
+  const 拡大の説明 = modalItem ? itemSubtitle(modalItem, locale) : "";
   const 拡大の動きの一文 = modalItem ? motionNote(modalItem.diagram, locale) : "";
 
   return (
@@ -632,9 +638,12 @@ export function CategoryPage(): React.ReactElement {
                       className={`catalog-list-item${isSelected ? " selected" : ""}`}
                       role="listitem"
                       aria-current={isSelected ? "true" : undefined}
+                      data-item-id={item.id}
                     >
+                      {/* 記法の識別子は画面に出さない (#2461)。 設計 (`screens.md § 3`) が項目に
+                          出す 4 つに入っておらず、分類によって英語の識別子だったり日本語の文
+                          だったりする。 行を指し示す用は属性が持つ */}
                       <div className="catalog-list-item-name">{displayName(item)}</div>
-                      <div className="catalog-list-item-id">{item.id}</div>
                     </button>
                   );
                 })
@@ -644,13 +653,12 @@ export function CategoryPage(): React.ReactElement {
 
           <main className="catalog-preview" aria-label={isJa ? "図の表示" : "Diagram"}>
             {currentItem ? (
-              <article className="catalog-preview-card">
+              <article className="catalog-preview-card" data-item-id={currentItem.id}>
                 <header className="catalog-preview-head">
                   <div>
-                    <div className="catalog-preview-id">{currentItem.id}</div>
                     <h2 className="catalog-preview-title">{displayName(currentItem)}</h2>
-                    {currentItem.subtitle && (
-                      <p className="catalog-preview-sub">{currentItem.subtitle}</p>
+                    {itemSubtitle(currentItem, locale) && (
+                      <p className="catalog-preview-sub">{itemSubtitle(currentItem, locale)}</p>
                     )}
                     {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す
                         (出さないと説明が単独で出る、 #1053)。 SSOT = catalog-motion.ts */}
@@ -888,9 +896,13 @@ export function CategoryPage(): React.ReactElement {
                                 選んでいるパターン?.名 === p.名 ? "is-active" : ""
                               }`}
                               onClick={() => 見せ方を置く({ パターン: p.名 })}
-                              title={isJa ? `${p.名}の見本を出す` : `Show the ${p.名} sample`}
+                              title={
+                                isJa
+                                  ? `${p.名}の見本を出す`
+                                  : `Show the ${patternName(p, locale)} sample`
+                              }
                             >
-                              {p.名}
+                              {patternName(p, locale)}
                             </button>
                           ))}
                         </div>
