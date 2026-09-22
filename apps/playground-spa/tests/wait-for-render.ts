@@ -125,3 +125,49 @@ export async function 位置が落ち着くまで待つ(
     { 出ない時の言い方: "落ち着かない" },
   );
 }
+
+/**
+ * 見本の一覧が組み終わるまで待つ (#2488)。
+ *
+ * 一覧を開いてから行を押す検査は、決め打ちの 800 ミリ秒だけ待っていた。
+ * 押す側は要素が動かなくなるまで待つため、一覧がまだ組み替わっていると待ち続ける。
+ * 束が大きいほど描き終わりが遅れ、押す所で 30 秒待ち切って落ちる
+ * (実測 = 194 件の束で 2 件が落ち、165 件では全件通った)。
+ *
+ * **時間を伸ばす形では直らない**。 束の大きさで必要な時間が変わるので、
+ * どの数を選んでも別の束で足りなくなる。
+ *
+ * 行の数と先頭の行の位置の両方を見る。 数だけだと、行が出揃ってから位置が動く間に押してしまう。
+ * 位置だけだと、行が 1 つも無い間も「動いていない」 とみなす。
+ */
+export async function 一覧が落ち着くまで待つ(
+  page: Page,
+  画面: string,
+  窓 = 600,
+): Promise<number> {
+  return 描き終わりを待つ(
+    page,
+    `${画面} の一覧`,
+    (指す: { 行: string; 窓: number; 鍵: string }) => {
+      const 覚え書き = window as unknown as Record<
+        string,
+        { 形: string; 時刻: number } | undefined
+      >;
+      const 行 = document.querySelectorAll(指す.行);
+      const 先頭 = 行[0]?.getBoundingClientRect();
+      if (行.length === 0 || !先頭 || 先頭.height === 0) {
+        覚え書き[指す.鍵] = undefined;
+        return false;
+      }
+      const いま = `${行.length},${Math.round(先頭.top)},${Math.round(先頭.height)}`;
+      const 前 = 覚え書き[指す.鍵];
+      if (前 === undefined || 前.形 !== いま) {
+        覚え書き[指す.鍵] = { 形: いま, 時刻: Date.now() };
+        return false;
+      }
+      return Date.now() - 前.時刻 >= 指す.窓;
+    },
+    { 行: ".catalog-list .catalog-list-item", 窓, 鍵: "#2488の覚え書き" },
+    { 出ない時の言い方: "落ち着かない" },
+  );
+}

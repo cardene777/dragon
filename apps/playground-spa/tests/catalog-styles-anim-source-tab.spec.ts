@@ -15,12 +15,14 @@
  */
 import { test, expect } from "@playwright/test";
 import { 一覧の行 } from "./catalog-item-pick";
+import { 一覧が落ち着くまで待つ } from "./wait-for-render";
 
 type Page = import("@playwright/test").Page;
 
 async function 開く(page: Page, ページ: string, 名前: string): Promise<void> {
   await page.goto(`catalog/${ページ}`, { waitUntil: "networkidle" });
-  await page.waitForTimeout(800);
+  // 一覧が組み終わる前に押すと、押す側が要素の動きを待ち続けて 30 秒で落ちる (#2488)
+  await 一覧が落ち着くまで待つ(page, ページ);
   await 一覧の行(page, 名前, false).click();
   await page.waitForTimeout(300);
 }
@@ -49,7 +51,7 @@ test.describe("見た目の見本で記法が読める (#1373)", () => {
 
   test("一覧の全件でコードが空にならない", async ({ page }) => {
     await page.goto("catalog/styles", { waitUntil: "networkidle" });
-    await page.waitForTimeout(800);
+    await 一覧が落ち着くまで待つ(page, "styles");
 
     const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");
     const 件数 = await 行.count();
