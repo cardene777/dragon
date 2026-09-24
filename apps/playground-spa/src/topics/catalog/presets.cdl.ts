@@ -5120,22 +5120,26 @@ export const sourceJson__presetTopology = `{
 }`;
 
 export const sourceYaml__presetFlowchart = `title: "分岐や判定を含む処理の流れを示す図"
-type: swimlane
+type: flowchart
 
-lanes:
-  user: { width: 380, label: "申請者" }
-  manager: { width: 380, label: "承認者" }
-
+# 箱の形は種類で書く。 分かれ道は decision、 始まりと終わりの印は mark-start / mark-end。
+# 印は既定で題を持たないため、 題を出す時だけ title: を書く
 actors:
-  - 申請を出す: { kind: event, eyebrow: "開始", lane: user }
-  - 審査: { kind: card, eyebrow: "判断", lane: manager }
-  - 承認: { kind: event, eyebrow: "終了", lane: manager }
-  - 直して出し直す: { kind: function, eyebrow: "処理", lane: user }
+  - 申請を出す: mark-start
+    title: "申請を出す"
+    lane: 申請者
+  - 審査: decision
+    lane: 承認者
+  - 承認: mark-end
+    title: "承認"
+    lane: 承認者
+  - 直して出し直す
+    lane: 申請者
 
 flow:
-  - 申請を出す -> 審査: "" (accent, solid) { overlay: false }
-  - 審査 -> 承認: "はい" (success, solid) { overlay: true }
-  - 審査 -> 直して出し直す: "いいえ" (warning, solid) { overlay: true }
+  - 申請を出す -> 審査
+  - 審査 -> 承認: "はい" 成功
+  - 審査 -> 直して出し直す: "いいえ" 警告
 
 animation:
   - step: "1. 申請を出す" 0.9s
@@ -5158,42 +5162,17 @@ animation:
 
 export const sourceJson__presetFlowchart = `{
   "title": "分岐や判定を含む処理の流れを示す図",
-  "type": "swimlane",
-  "lanes": {
-    "user": { "width": 380, "label": "申請者" },
-    "manager": { "width": 380, "label": "承認者" }
-  },
+  "type": "flowchart",
   "actors": [
-    { "name": "申請を出す", "kind": "event", "eyebrow": "開始", "lane": "user" },
-    { "name": "審査", "kind": "card", "eyebrow": "判断", "lane": "manager" },
-    { "name": "承認", "kind": "event", "eyebrow": "終了", "lane": "manager" },
-    { "name": "直して出し直す", "kind": "function", "eyebrow": "処理", "lane": "user" }
+    { "name": "申請を出す", "kind": "mark-start", "title": "申請を出す", "lane": "申請者" },
+    { "name": "審査", "kind": "decision", "lane": "承認者" },
+    { "name": "承認", "kind": "mark-end", "title": "承認", "lane": "承認者" },
+    { "name": "直して出し直す", "lane": "申請者" }
   ],
   "flow": [
-    {
-      "from": "申請を出す",
-      "to": "審査",
-      "label": "",
-      "tone": "accent",
-      "style": "solid",
-      "overlay": false
-    },
-    {
-      "from": "審査",
-      "to": "承認",
-      "label": "はい",
-      "tone": "success",
-      "style": "solid",
-      "overlay": true
-    },
-    {
-      "from": "審査",
-      "to": "直して出し直す",
-      "label": "いいえ",
-      "tone": "warning",
-      "style": "solid",
-      "overlay": true
-    }
+    { "from": "申請を出す", "to": "審査", "label": "" },
+    { "from": "審査", "to": "承認", "label": "はい", "tone": "success" },
+    { "from": "審査", "to": "直して出し直す", "label": "いいえ", "tone": "warning" }
   ],
   "animation": [
     {
@@ -5242,7 +5221,9 @@ export const sourceJson__presetFlowchart = `{
 }`;
 
 export const sourceYaml__pattern__presetFlowchart__複雑 = `title: "経費の申請を金額と領収書で分けて振込まで追うフローチャート"
-# 簡単な版と同じく swimlane で書く。 縦列の中は書いた順に上から積む
+# この版は swimlane で書く。 繰り返しの箱 (「明細を 1 行ずつ見る」) を
+# 分かれ道の図の記法が持たないため、 簡単な版と書き方が分かれる
+# 縦列の中は書いた順に上から積む
 type: swimlane
 
 lanes:
