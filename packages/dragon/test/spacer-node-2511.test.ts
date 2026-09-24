@@ -66,7 +66,7 @@ describe("見えない支えの箱 (#2511)", () => {
       const 外した = {
         ...diagram,
         nodes: diagram.nodes.filter((n) => (n as { id?: string }).id !== 支えの名),
-      } as CdlDiagram;
+      };
       if (板(diagram) === 板(外した)) 変わらない.push(diagram.id);
     }
     expect(

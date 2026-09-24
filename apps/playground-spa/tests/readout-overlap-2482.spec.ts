@@ -58,7 +58,7 @@ async function 縦の矢印を持つ部品(): Promise<string[]> {
   const items = await loadPartsItems();
   const out: string[] = [];
   for (const item of items) {
-    const laid = layout(item.diagram as never) as unknown as { edges?: { d?: string }[] };
+    const laid = layout(item.diagram) as unknown as { edges?: { d?: string }[] };
     if ((laid.edges ?? []).some((e) => 縦の道筋(e.d ?? ""))) out.push(item.id);
   }
   return out;
