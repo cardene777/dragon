@@ -5221,37 +5221,44 @@ export const sourceJson__presetFlowchart = `{
 }`;
 
 export const sourceYaml__pattern__presetFlowchart__複雑 = `title: "経費の申請を金額と領収書で分けて振込まで追うフローチャート"
-# この版は swimlane で書く。 繰り返しの箱 (「明細を 1 行ずつ見る」) を
-# 分かれ道の図の記法が持たないため、 簡単な版と書き方が分かれる
+type: flowchart
+
+# 箱の形は種類で書く。 分かれ道は decision、 繰り返しは loop、 始まりと終わりの印は
+# mark-start / mark-end。 印は既定で題を持たないため、 題を出す時だけ title: を書く
 # 縦列の中は書いた順に上から積む
-type: swimlane
-
-lanes:
-  applicant: { width: 380, label: "申請者" }
-  accounting: { width: 380, label: "経理" }
-  manager: { width: 380, label: "上長" }
-
 actors:
-  - 領収書を添えて申請する: { kind: event, eyebrow: "開始", lane: applicant }
-  - 直して出し直す: { kind: function, eyebrow: "処理", lane: applicant }
-  - 10 万円を超えるか: { kind: card, eyebrow: "判断", lane: accounting }
-  - 明細を 1 行ずつ見る: { kind: card, eyebrow: "繰り返し", lane: accounting }
-  - 領収書と金額が合うか: { kind: card, eyebrow: "判断", lane: accounting }
-  - 次の給与日に振り込む: { kind: event, eyebrow: "終了", lane: accounting }
-  - 上長が認めるか: { kind: card, eyebrow: "判断", lane: manager }
-  - 却下を知らせる: { kind: event, eyebrow: "終了", lane: manager }
+  - 領収書を添えて申請する: mark-start
+    title: "領収書を添えて申請する"
+    lane: 申請者
+  - 直して出し直す
+    lane: 申請者
+  - 10 万円を超えるか: decision
+    lane: 経理
+  - 明細を 1 行ずつ見る: loop
+    lane: 経理
+  - 領収書と金額が合うか: decision
+    lane: 経理
+  - 次の給与日に振り込む: mark-end
+    title: "次の給与日に振り込む"
+    lane: 経理
+  - 上長が認めるか: decision
+    lane: 上長
+  - 却下を知らせる: mark-end
+    title: "却下を知らせる"
+    lane: 上長
 
-# 「はい」 と「いいえ」 は線の上に重ねる (overlay: true)。 それ以外の名前は線から離して置く
+# 「はい」 と「いいえ」 は線の上に重ねる (overlay: true)。 分かれ道の図では書かなくても
+# 同じ値になるが、書ける欄なので明示する。 それ以外の名前は線から離して置く
 flow:
-  - 領収書を添えて申請する -> 10 万円を超えるか: "" (accent, solid) { overlay: false }
-  - 10 万円を超えるか -> 上長が認めるか: "はい" (warning, solid) { overlay: true }
-  - 10 万円を超えるか -> 明細を 1 行ずつ見る: "いいえ" (success, solid) { overlay: true }
-  - 上長が認めるか -> 明細を 1 行ずつ見る: "はい" (success, solid) { overlay: true }
-  - 上長が認めるか -> 却下を知らせる: "いいえ" (error, solid) { overlay: true }
-  - 明細を 1 行ずつ見る -> 領収書と金額が合うか: "" (accent, solid) { overlay: false }
-  - 領収書と金額が合うか -> 直して出し直す: "いいえ" (warning, solid) { overlay: true }
-  - 直して出し直す -> 領収書を添えて申請する: "出し直す" (accent, solid) { overlay: false }
-  - 領収書と金額が合うか -> 次の給与日に振り込む: "はい" (success, solid) { overlay: true }
+  - 領収書を添えて申請する -> 10 万円を超えるか
+  - 10 万円を超えるか -> 上長が認めるか: "はい" 警告 { overlay: true }
+  - 10 万円を超えるか -> 明細を 1 行ずつ見る: "いいえ" 成功 { overlay: true }
+  - 上長が認めるか -> 明細を 1 行ずつ見る: "はい" 成功 { overlay: true }
+  - 上長が認めるか -> 却下を知らせる: "いいえ" 失敗 { overlay: true }
+  - 明細を 1 行ずつ見る -> 領収書と金額が合うか
+  - 領収書と金額が合うか -> 直して出し直す: "いいえ" 警告 { overlay: true }
+  - 直して出し直す -> 領収書を添えて申請する: "出し直す" { overlay: false }
+  - 領収書と金額が合うか -> 次の給与日に振り込む: "はい" 成功 { overlay: true }
 
 animation:
   - step: "1. 領収書を添えて申請する" 0.9s
@@ -5303,32 +5310,27 @@ const flowchartComplexFocus: readonly (readonly string[])[] = [
 export const sourceJson__pattern__presetFlowchart__複雑 = JSON.stringify(
   {
     title: "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
-    type: "swimlane",
-    lanes: {
-      applicant: { width: 380, label: "申請者" },
-      accounting: { width: 380, label: "経理" },
-      manager: { width: 380, label: "上長" },
-    },
+    type: "flowchart",
     actors: [
-      { name: "領収書を添えて申請する", kind: "event", eyebrow: "開始", lane: "applicant" },
-      { name: "直して出し直す", kind: "function", eyebrow: "処理", lane: "applicant" },
-      { name: "10 万円を超えるか", kind: "card", eyebrow: "判断", lane: "accounting" },
-      { name: "明細を 1 行ずつ見る", kind: "card", eyebrow: "繰り返し", lane: "accounting" },
-      { name: "領収書と金額が合うか", kind: "card", eyebrow: "判断", lane: "accounting" },
-      { name: "次の給与日に振り込む", kind: "event", eyebrow: "終了", lane: "accounting" },
-      { name: "上長が認めるか", kind: "card", eyebrow: "判断", lane: "manager" },
-      { name: "却下を知らせる", kind: "event", eyebrow: "終了", lane: "manager" },
+      { name: "領収書を添えて申請する", kind: "mark-start", title: "領収書を添えて申請する", lane: "申請者" },
+      { name: "直して出し直す", lane: "申請者" },
+      { name: "10 万円を超えるか", kind: "decision", lane: "経理" },
+      { name: "明細を 1 行ずつ見る", kind: "loop", lane: "経理" },
+      { name: "領収書と金額が合うか", kind: "decision", lane: "経理" },
+      { name: "次の給与日に振り込む", kind: "mark-end", title: "次の給与日に振り込む", lane: "経理" },
+      { name: "上長が認めるか", kind: "decision", lane: "上長" },
+      { name: "却下を知らせる", kind: "mark-end", title: "却下を知らせる", lane: "上長" },
     ],
     flow: [
-      { from: "領収書を添えて申請する", to: "10 万円を超えるか", label: "", tone: "accent", style: "solid", overlay: false },
-      { from: "10 万円を超えるか", to: "上長が認めるか", label: "はい", tone: "warning", style: "solid", overlay: true },
-      { from: "10 万円を超えるか", to: "明細を 1 行ずつ見る", label: "いいえ", tone: "success", style: "solid", overlay: true },
-      { from: "上長が認めるか", to: "明細を 1 行ずつ見る", label: "はい", tone: "success", style: "solid", overlay: true },
-      { from: "上長が認めるか", to: "却下を知らせる", label: "いいえ", tone: "error", style: "solid", overlay: true },
-      { from: "明細を 1 行ずつ見る", to: "領収書と金額が合うか", label: "", tone: "accent", style: "solid", overlay: false },
-      { from: "領収書と金額が合うか", to: "直して出し直す", label: "いいえ", tone: "warning", style: "solid", overlay: true },
-      { from: "直して出し直す", to: "領収書を添えて申請する", label: "出し直す", tone: "accent", style: "solid", overlay: false },
-      { from: "領収書と金額が合うか", to: "次の給与日に振り込む", label: "はい", tone: "success", style: "solid", overlay: true },
+      { from: "領収書を添えて申請する", to: "10 万円を超えるか", label: "" },
+      { from: "10 万円を超えるか", to: "上長が認めるか", label: "はい", tone: "warning", overlay: true },
+      { from: "10 万円を超えるか", to: "明細を 1 行ずつ見る", label: "いいえ", tone: "success", overlay: true },
+      { from: "上長が認めるか", to: "明細を 1 行ずつ見る", label: "はい", tone: "success", overlay: true },
+      { from: "上長が認めるか", to: "却下を知らせる", label: "いいえ", tone: "error", overlay: true },
+      { from: "明細を 1 行ずつ見る", to: "領収書と金額が合うか", label: "" },
+      { from: "領収書と金額が合うか", to: "直して出し直す", label: "いいえ", tone: "warning", overlay: true },
+      { from: "直して出し直す", to: "領収書を添えて申請する", label: "出し直す", overlay: false },
+      { from: "領収書と金額が合うか", to: "次の給与日に振り込む", label: "はい", tone: "success", overlay: true },
     ],
     animation: [
       ["1. 領収書を添えて申請する", "申請者が領収書を添えて経費を申請する。 流れはここから始まり、振込か却下のどちらかで終わる。"],

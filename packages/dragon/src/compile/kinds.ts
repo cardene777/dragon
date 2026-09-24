@@ -32,6 +32,7 @@ import type { PresetType } from "../types";
  * | `contract` / `proxy` / `library` / `interface` | `card` | 契約は札で表す (`solidity` の置き換え先に合わせた) |
  * | `eoa` | `person` | 人が持つ財布 |
  * | `multisig` | `signer` | 複数人で署名する (`solidity` の置き換え先に合わせた) |
+ * | `loop` | `card` | 繰り返しは札で表す。 分かれ道の図では形に読み替わるのでここを通らない (#2523) |
  *
  * **表は `DSL_ONLY_KINDS` を鍵にして書く**。 種類を足した時に読み替え先が無いと
  * 型検査が落ちるので、足し忘れが残らない。
@@ -46,6 +47,7 @@ export const 記法だけの種類の読み替え: Readonly<Record<(typeof DSL_O
     interface: "card",
     eoa: "person",
     multisig: "signer",
+    loop: "card",
   };
 
 /** 描画側へ渡せる種類にする。 記法だけの種類はここで読み替わる (#1420) */
