@@ -567,7 +567,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         ? 字.書きかけが消える
         : "Unsaved changes will be lost. Continue?",
     );
-  }, [activeTab, src, yamlSrc, locale]);
+  }, [activeTab, src, yamlSrc, locale, 字.書きかけが消える]);
 
   const handleTabSwitch = useCallback((next: "cdl" | "yaml"): void => {
     if (next === activeTab) return;
@@ -612,7 +612,19 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         );
       })
       .finally(() => setPartsLoading(false));
-  }, [sidebarTab, needsPartsForSrc, partsItems.length, partsLoading, partsLoadFailed, showStageNotice]);
+    // 言語と部品の呼び名は、読み込みに失敗した時の知らせに使う (#2517)。 足しても走る回数は
+    // 増えない = 上の 4 つの早い戻り (読み込み済 / 読み込み中 / 失敗済 / 要らない) が、
+    // 言語を切り替えただけの走り直しを全て止める
+  }, [
+    sidebarTab,
+    needsPartsForSrc,
+    partsItems.length,
+    partsLoading,
+    partsLoadFailed,
+    showStageNotice,
+    locale,
+    部品,
+  ]);
 
   // 一覧 tab に切替えた時だけ再試行を許す (#1022)。
   //
@@ -882,6 +894,11 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       setActiveSample(共有から開いた);
     }
     // `setSrc` は空の依存で作るので書き換わらない (以下 3 箇所とも同じ)
+    //
+    // **言語と分類の呼び名は足さない** (#2517)。 どちらも見本が見つからなかった時の知らせに
+    // しか使わないが、依存に足すと言語を切り替えるたびにこの処理が走り直し、`#preset=` で
+    // 開いた本文を書き戻して書きかけを捨てる。 知らせの言語より書きかけを守る側を採る
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.hash, setSrc]);
 
   /**
@@ -930,7 +947,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
         : 編集画面の文.一部を書き戻せなかった(result.applied.length, failed, locale),
     );
     window.setTimeout(() => setAutoFixMessage(null), failed === 0 ? 6000 : 10000);
-  }, [warnings, diagram, src, edgeSource, setSrc]);
+  }, [warnings, diagram, src, edgeSource, setSrc, locale]);
 
   // test 用 side channel = src の full text を window mirror に同期 (E2E で CodeMirror virtual
   // scrolling を bypass して full buffer 検証する経路、 CAR-1646、 production では読み手なし)
@@ -1207,6 +1224,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
     applyDiagram,
     commitBuilt,
     showStageNotice,
+    字.名前の基準,
+    字.部品として使う見本,
   ]);
 
   /**
@@ -1276,7 +1295,7 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       setSrc(next);
       showStageNotice(編集画面の文.位置を書いた(name, Math.round(cx), Math.round(cy), locale), 4000);
     },
-    [src, setSrc, showStageNotice],
+    [src, setSrc, showStageNotice, locale],
   );
 
   // Fit handler ... preview 領域に SVG の bounding を合わせる。
