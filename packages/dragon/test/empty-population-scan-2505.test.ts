@@ -413,24 +413,38 @@ function 走査(): {
       if (本文) {
         検査数 += 1;
         let 外にexpect = false;
-        let 該当: string | null = null;
+        /*
+         * 見つけた回す元は **入れ物に入れて持つ** (#2515)。
+         *
+         * 入れるのが入れ子の関数 (`歩く`) の中なので、ただの変数だと型の検査が
+         * 「入ることはない」 と読んで `string | null` を `null` に狭める。 その後の
+         * `!== null` が `never` になり、文に埋めた所で書き方の検査が落ちる。
+         * 入れ物の中の値は関数を呼ぶたびに狭めが解けるため、元の幅のまま読める。
+         */
+        const 見つけた: { 元: string | null } = { 元: null };
 
         const 歩く = (m: ts.Node, 中: boolean): void => {
           if (!中 && expect呼出(m)) 外にexpect = true;
           const 元 = 回す元(m);
           // 確かめる文を含まない回す処理 (字の整形など) は、確かめる回す処理ではない
           const 確かめる回す = 元 !== null && m.getText(src).includes("expect(");
-          if (確かめる回す && !中 && 該当 === null && (検査が選んだ元(元, 固定の名, 空にならない) || 材料の元(元, 固定の名))) {
-            該当 = 正規化した元(元);
+          if (
+            確かめる回す &&
+            !中 &&
+            見つけた.元 === null &&
+            (検査が選んだ元(元, 固定の名, 空にならない) || 材料の元(元, 固定の名))
+          ) {
+            見つけた.元 = 正規化した元(元);
           }
           ts.forEachChild(m, (c) => 歩く(c, 中 || 元 !== null));
         };
         ts.forEachChild(本文, (c) => 歩く(c, false));
 
-        if (!外にexpect && 該当 !== null && !塞がれている(n.getStart(src), 該当)) {
+        const 回した元 = 見つけた.元;
+        if (!外にexpect && 回した元 !== null && !塞がれている(n.getStart(src), 回した元)) {
           const 行 = src.getLineAndCharacterOfPosition(n.getStart(src)).line + 1;
-          if (空でよい[f]?.[該当] !== undefined) 宣言で外した.add(`${f}\t${該当}`);
-          else hits.push(`${f}:${行} (回す元 = ${該当})`);
+          if (空でよい[f]?.[回した元] !== undefined) 宣言で外した.add(`${f}\t${回した元}`);
+          else hits.push(`${f}:${行} (回す元 = ${回した元})`);
         }
       }
       ts.forEachChild(n, 辿る);
