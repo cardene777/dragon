@@ -29,6 +29,7 @@ import { compileQuadrant } from "./compile/quadrant";
 import { compileSequence } from "./compile/sequence";
 import { compileSolidity } from "./compile/solidity";
 import { compileState } from "./compile/state";
+import { compileFlowchart } from "./compile/flowchart";
 import { compileSwimlane } from "./compile/swimlane";
 import { compileTopology } from "./compile/topology";
 import { compileTree } from "./compile/tree";
@@ -165,6 +166,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
       break;
     case "flow":
       diagram = compileFlow(doc, opts?.partsCatalog);
+      break;
+    case "flowchart":
+      diagram = compileFlowchart(doc);
       break;
     case "swimlane":
       diagram = compileSwimlane(doc);

@@ -63,6 +63,9 @@ const 型と種類 = {
   sequence: ["sequence-board"],
   flow: ["actor"],
   swimlane: ["actor"],
+  // #2513 で足した。 描く側は手順の箱を `function`、 分かれ道を `card`、
+  // 始まり / 終わりの印を `event` にする。 種類を書かない箱は手順の箱になる
+  flowchart: ["function"],
   er: ["storage"],
   state: ["card"],
   topology: ["actor"],

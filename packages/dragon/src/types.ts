@@ -68,6 +68,7 @@ export type DslEventBinding = {
 export type PresetType =
   | "sequence"
   | "flow"
+  | "flowchart"
   | "swimlane"
   | "er"
   | "state"

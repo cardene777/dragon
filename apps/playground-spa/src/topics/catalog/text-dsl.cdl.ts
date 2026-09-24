@@ -358,6 +358,135 @@ export const sourceJson__textDslSwimlane = `{
   ]
 }`;
 
+// ─── flowchart (分かれ道と担当) ─────
+export const sourceYaml__textDslFlowchart = `
+title: "経費申請の承認"
+type: flowchart
+
+actors:
+  - 申請を出す: mark-start
+    title: "申請"
+    lane: 申請者
+  - 金額を確かめる
+    lane: 承認者
+  - 5 万円を超えるか: decision
+    lane: 承認者
+  - 部長が承認する
+    lane: 承認者
+  - 支払う: mark-end
+    title: "支払"
+    lane: 承認者
+
+flow:
+  - 申請を出す -> 金額を確かめる: "提出"
+  - 金額を確かめる -> 5 万円を超えるか: "確認"
+  - 5 万円を超えるか -> 部長が承認する: "超える"
+  - 5 万円を超えるか -> 支払う: "超えない"
+  - 部長が承認する -> 支払う: "承認"
+
+animation:
+  - step: "受け取る" 1.2s
+    focus: ["申請を出す", "金額を確かめる"]
+    badge: "提出"
+
+  - step: "分かれ道" 1.2s
+    focus: ["5 万円を超えるか"]
+    badge: "判断"
+
+  - step: "決まる" 1.2s
+    focus: ["部長が承認する", "支払う"]
+    badge: "承認"
+`;
+
+export const textDslFlowchart = textDslToDiagram(sourceYaml__textDslFlowchart);
+
+export const sourceJson__textDslFlowchart = `{
+  "title": "経費申請の承認",
+  "type": "flowchart",
+  "actors": [
+    {
+      "name": "申請を出す",
+      "kind": "mark-start",
+      "title": "申請",
+      "lane": "申請者"
+    },
+    {
+      "name": "金額を確かめる",
+      "lane": "承認者"
+    },
+    {
+      "name": "5 万円を超えるか",
+      "kind": "decision",
+      "lane": "承認者"
+    },
+    {
+      "name": "部長が承認する",
+      "lane": "承認者"
+    },
+    {
+      "name": "支払う",
+      "kind": "mark-end",
+      "title": "支払",
+      "lane": "承認者"
+    }
+  ],
+  "flow": [
+    {
+      "from": "申請を出す",
+      "to": "金額を確かめる",
+      "label": "提出"
+    },
+    {
+      "from": "金額を確かめる",
+      "to": "5 万円を超えるか",
+      "label": "確認"
+    },
+    {
+      "from": "5 万円を超えるか",
+      "to": "部長が承認する",
+      "label": "超える"
+    },
+    {
+      "from": "5 万円を超えるか",
+      "to": "支払う",
+      "label": "超えない"
+    },
+    {
+      "from": "部長が承認する",
+      "to": "支払う",
+      "label": "承認"
+    }
+  ],
+  "animation": [
+    {
+      "step": "受け取る",
+      "duration": 1.2,
+      "focus": [
+        "申請を出す",
+        "金額を確かめる"
+      ],
+      "badge": "提出"
+    },
+    {
+      "step": "分かれ道",
+      "duration": 1.2,
+      "focus": [
+        "5 万円を超えるか"
+      ],
+      "badge": "判断"
+    },
+    {
+      "step": "決まる",
+      "duration": 1.2,
+      "focus": [
+        "部長が承認する",
+        "支払う"
+      ],
+      "badge": "承認"
+    }
+  ]
+}`;
+
 // ─── state + animation (FSM) ─────
 export const sourceYaml__textDslStateMachine = `
 title: "認証の状態遷移"

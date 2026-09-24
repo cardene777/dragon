@@ -91,6 +91,8 @@ const 空の形の逃げ先: Record<PresetType, string[]> = {
   sequence: ["actor-"],
   solidity: ["actor-"],
   swimlane: ["lane-"],
+  // 分かれ道の図も縦列を持ち、 描画側は縦列の名前から箱を作る (`swimlane` と同じ逃げ先)
+  flowchart: ["lane-"],
   flow: [],
   er: [],
   state: [],
