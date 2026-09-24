@@ -95,8 +95,9 @@ type 図種の差 = {
 /**
  * dragon の記法では組み立て器と同じ図種で書けない見本。
  *
- * 書けない理由は 2 通りある = 記法に同名の図種が無い (`network` / `infrastructure`) か、
- * 図種は在っても その図に要る箱の形が無い (複雑な版の繰り返しの箱)。 理由の欄に書き分ける。
+ * 書けない理由は記法に同名の図種が無いこと (`network` / `infrastructure`)。
+ * 別の理由 (図種は在っても要る箱の形が無い) で載っていた分かれ道の図の複雑な版は、
+ * 繰り返しの箱を記法に足して (#2523) 解消した。
  */
 const 図種の既知の差: Record<string, 図種の差> = {
   presetNetwork: {
@@ -110,15 +111,6 @@ const 図種の既知の差: Record<string, 図種の差> = {
     記法経路: "flow",
     組み立て器経路: "infrastructure",
     理由: "dragon の記法に infrastructure が無く、flow として書くため",
-  },
-  // 同じ見本の複雑な版 (#2143)。 簡単な版は #2521 で記法を揃えたが、この版は揃えられない
-  pattern__presetFlowchart__複雑: {
-    見本: "pattern__presetFlowchart__複雑",
-    記法経路: "swimlane",
-    組み立て器経路: "flowchart",
-    理由:
-      "繰り返しの箱 (「明細を 1 行ずつ見る」) を分かれ道の図の記法が持たないため、" +
-      "この版だけ swimlane として書く (#2521)",
   },
   // 同じ見本の複雑な版 (#2139)。 差の理由は簡単な版と同じ
   pattern__presetInfrastructure__複雑: {

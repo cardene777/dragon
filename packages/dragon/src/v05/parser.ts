@@ -380,6 +380,10 @@ export const DSL_ONLY_KINDS = [
   "proxy",
   "library",
   "interface",
+  // 繰り返しの箱 (#2523)。 描画側は分かれ道の図の形としてだけ持ち、種類としては持たないため
+  // ここに置く。 分かれ道の図では形に読み替わり (`compile/flowchart.ts`)、それ以外の図種では
+  // `記法だけの種類の読み替え` が札に落とす
+  "loop",
 ] as const;
 
 /** 記法だけが持つ種類。 描画側の `NodeKind` には含まれない */
