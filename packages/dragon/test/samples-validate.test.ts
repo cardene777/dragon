@@ -21,8 +21,8 @@ import { compile } from "@cardenelabs/cdl";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
 
 describe("editor SAMPLES validate", () => {
-  it("SAMPLES count が 25 (期待値、 CdlEditor.tsx 側と drift しない SSOT check)", () => {
-    expect(EDITOR_SAMPLES.length).toBe(25);
+  it("SAMPLES count が 26 (期待値、 CdlEditor.tsx 側と drift しない SSOT check)", () => {
+    expect(EDITOR_SAMPLES.length).toBe(26);
   });
 
   for (const s of EDITOR_SAMPLES) {

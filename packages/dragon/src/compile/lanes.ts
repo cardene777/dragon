@@ -25,6 +25,13 @@ export const 縦列を選べる図種: ReadonlySet<PresetType> = new Set<PresetT
   "flow",
   "topology",
   "swimlane",
+  /*
+   * 分かれ道の図 (#2513)。
+   *
+   * この図種は **縦列が役割で、箱はその中に置く**。 1 人の役割の中に複数の箱が並ぶ形
+   * (申請を出す / 直して出し直す) が図の読み方そのものなので、書いた縦列をそのまま使う。
+   */
+  "flowchart",
   "class",
   "state",
   /*

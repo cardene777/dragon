@@ -291,6 +291,7 @@ export type 骨組みの図の違い = {
  * | 図種 | 違い | 理由 |
  * |---|---|---|
  * | フロー / 泳路の図 / 配置の図 | 無し | `compile/generic.ts` が共通の経路で箱を作る |
+ * | 分かれ道の図 (`flowchart`) | 無し | `compile/flowchart.ts` が種類と段を共通の決め方に合わせる (#2513) |
  * | 構成の図 (`c4`) | 段 (`stack`) を読まない | `compile/c4.ts` が `a.stack` を読まない |
  * | クラス図 (`class`) | 種類 (`kind`) を読まない | `compile/class.ts` が種類を行の形から決める |
  * | ER 図 (`er`) | 種類 (`kind`) を図 1 枚ごとに読む | 表の経路は実体 1 つにつき表の箱を作るので種類を持たず、共通の組み立てへ回った図でだけ届く (#2388) |
@@ -298,6 +299,7 @@ export type 骨組みの図の違い = {
  */
 export const 骨組みの図種: ReadonlyMap<string, 骨組みの図の違い> = new Map([
   ["flow", {}],
+  ["flowchart", {}],
   ["swimlane", {}],
   ["topology", {}],
   ["er", { 図ごと: [["kind", ERを共通の組み立てで組むか]] }],

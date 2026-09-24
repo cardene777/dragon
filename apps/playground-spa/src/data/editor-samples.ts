@@ -120,6 +120,30 @@ animation:
 `,
   },
   {
+    label: "申請の承認 (flowchart)",
+    labelEn: "Request approval (flowchart)",
+    slug: "flowchart",
+    code: `title: "申請の承認"
+type: flowchart
+
+actors:
+  - 申請を出す: mark-start
+    lane: 申請者
+  - 審査: decision
+    lane: 承認者
+  - 承認: mark-end
+    lane: 承認者
+  - 直して出し直す
+    lane: 申請者
+
+flow:
+  - 申請を出す -> 審査
+  - 審査 -> 承認: "はい"
+  - 審査 -> 直して出し直す: "いいえ"
+  - 直して出し直す -> 審査: "再提出"
+`,
+  },
+  {
     label: "利用者登録 (swimlane)",
     labelEn: "User sign-up (swimlane)",
     slug: "swimlane",

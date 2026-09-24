@@ -82,6 +82,7 @@ export const 図種の作り: Record<PresetType, "登場人物ごとに箱" | "�
   // 矢印の端と登場人物の名前が、 そのまま箱や枠の id になる
   sequence: "登場人物ごとに箱",
   flow: "登場人物ごとに箱",
+  flowchart: "登場人物ごとに箱",
   swimlane: "登場人物ごとに箱",
   er: "登場人物ごとに箱",
   state: "登場人物ごとに箱",

@@ -334,6 +334,7 @@ function isTopLevelKey(key: string): key is (typeof TOP_LEVEL_KEYS)[number] {
 export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "sequence",
   "flow",
+  "flowchart",
   "swimlane",
   "er",
   "state",

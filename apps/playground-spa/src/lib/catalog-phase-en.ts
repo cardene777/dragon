@@ -45,6 +45,9 @@ export const 日本語を含む = (字: string): boolean =>
  * 表からは読めなくなる)。
  */
 export const PHASE_TITLE_EN: Record<string, string> = {
+  "受け取る": "Receive",
+  "分かれ道": "Branch",
+  "決まる": "Decide",
   // --- ethereum ---
   "① やりたいことを書いて出す": "1. Write what you want and send it",
   "① 取引が溜まっていく": "1. Transactions pile up",
