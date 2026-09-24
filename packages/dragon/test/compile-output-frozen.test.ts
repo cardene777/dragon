@@ -10,9 +10,9 @@
  *
  * `golden.test.ts` は 7 図種 100 件を覆うが、見ているのは骨格 (枠・箱・矢印の数と位置、
  * `viewBox`) だけ。 知らせ (`notices`) ・ 色 ・ 式の名札 ・ 部品の上書きは骨格に入らないので、
- * そこが変わっても通る。 覆う図種も 24 種のうち 7 種にとどまる。
+ * そこが変わっても通る。 覆う図種も記法が受ける図種の一部 (7 種) にとどまる。
  *
- * ここでは `compileToCdl` が返すもの全体と知らせ全体を、24 図種すべてについて記録する。
+ * ここでは `compileToCdl` が返すもの全体と知らせ全体を、記法が受ける図種すべてについて記録する。
  *
  * ## 記録は動かす前に取る
  *
@@ -21,7 +21,7 @@
  *
  * ## 母集団は 2 つある
  *
- * 1 つ目は図種の網。 `EDITOR_SAMPLES` は 24 図種すべてを 1 件以上覆う。 図種を足した時に見本も
+ * 1 つ目は図種の網。 `EDITOR_SAMPLES` は記法が受ける図種すべてを 1 件以上覆う。 図種を足した時に見本も
  * 足す作りなので、ここを母集団にすると新しい図種が自動で網に入る。 覆えた図種の数を検査の中で
  * 数え、1 種でも落ちたら空振りとして落とす。
  *
@@ -57,35 +57,22 @@ import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-sam
 import { 部品の一覧を作る } from "../../../apps/playground-spa/src/lib/parts-catalog";
 import * as 部品 from "../../../apps/playground-spa/src/topics/catalog/parts.cdl";
 import * as 部品を箱に置く見本 from "../../../apps/playground-spa/src/topics/catalog/parts-in-box.cdl";
-import { textDslToDiagram } from "../src";
+import { PRESET_TYPES, textDslToDiagram } from "../src";
 
-/** 分岐表が持つ図種。 `compileToCdl` の `switch (doc.type)` と 1 対 1 で並ぶ */
-const 図種 = [
-  "sequence",
-  "flow",
-  "swimlane",
-  "er",
-  "state",
-  "topology",
-  "solidity",
-  "gantt",
-  "class",
-  "pie",
-  "bar",
-  "line",
-  "gauge",
-  "radial",
-  "stat",
-  "waffle",
-  "stacked",
-  "slope",
-  "funnel",
-  "tree",
-  "journey",
-  "quadrant",
-  "c4",
-  "mind",
-] as const;
+/**
+ * 分岐表が持つ図種を **実物から導く** (#2530)。
+ *
+ * 手で並べていた間、`flowchart` を足した回 (#2513) にここへ足し忘れ、
+ * **分かれ道の図が網に入らないまま通っていた**。 一覧が古いことは注記にも現れず、
+ * 「`switch (doc.type)` と 1 対 1 で並ぶ」 という注記だけが残っていた。
+ *
+ * 記法が受ける図種 (`PRESET_TYPES`) と分岐表の `case` が 1 対 1 であることは
+ * `preset-type-registration-2513.test.ts` が別に見るので、ここはその一覧を読むだけでよい。
+ * 図種を足すと自動でこの網に入る (`rules/quality.md § 導出可能記述は人手で書かない` 経路 1)。
+ *
+ * 数はここに書かない = 実装が SSOT。
+ */
+const 図種: readonly string[] = Array.from(PRESET_TYPES);
 
 /**
  * 見本 1 件を組み立てて、図と知らせの両方を返す。
@@ -179,12 +166,19 @@ describe("部品の網が部品の経路を通っている (#2038)", () => {
 });
 
 describe("網が図種を取りこぼしていない (#2030)", () => {
-  it("分岐表の 24 図種を 1 件以上ずつ覆う", () => {
+  it("分岐表の図種を 1 件以上ずつ覆う", () => {
     // 覆えていない図種があると、その組み立て器を動かしても記録が 1 行も動かない。
     // 「差分 0 行」 が移動の証拠になるのは、全ての枝を通している時だけ。
     const 抜け = 図種.filter((t) => !覆えた.has(t));
 
-    expect(抜け, `見本が無い図種がある (見本 ${EDITOR_SAMPLES.length} 件を走査)`).toEqual([]);
+    expect(
+      図種.length,
+      "図種の一覧を 1 件も読めていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    expect(
+      抜け,
+      `見本が無い図種がある (図種 ${図種.length} 種 / 見本 ${EDITOR_SAMPLES.length} 件を走査)`,
+    ).toEqual([]);
     expect(覆えた.size, "図種を 1 つも読み取れていない (検査が空振りしている)").toBeGreaterThan(0);
   });
 
