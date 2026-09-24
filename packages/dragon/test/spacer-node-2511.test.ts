@@ -40,7 +40,7 @@ function 支えを持つ部品(): Array<{ name: string; diagram: CdlDiagram }> {
     if (!val || typeof val !== "object") continue;
     const d = val as Partial<CdlDiagram>;
     if (typeof d.id !== "string" || !Array.isArray(d.nodes)) continue;
-    if (d.nodes.some((n) => (n as { id?: string }).id === 支えの名)) {
+    if (d.nodes.some((n) => n.id === 支えの名)) {
       out.push({ name, diagram: d as CdlDiagram });
     }
   }
@@ -65,7 +65,7 @@ describe("見えない支えの箱 (#2511)", () => {
     for (const { diagram } of 部品) {
       const 外した = {
         ...diagram,
-        nodes: diagram.nodes.filter((n) => (n as { id?: string }).id !== 支えの名),
+        nodes: diagram.nodes.filter((n) => n.id !== 支えの名),
       };
       if (板(diagram) === 板(外した)) 変わらない.push(diagram.id);
     }
