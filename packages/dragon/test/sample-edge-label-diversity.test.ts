@@ -28,7 +28,7 @@ const 札を持つ見本 = EDITOR_SAMPLES.map((sample) => {
 /** 矢印を持つ見本。 上と同じ理由で母数から外す */
 const 矢印を持つ見本 = EDITOR_SAMPLES.map((sample) => ({
   sample,
-  d: textDslToDiagram(sample.code) as unknown as CompiledDiagram,
+  d: textDslToDiagram(sample.code),
 })).filter((x) => x.d.edges.length > 0);
 
 describe("iter80: 全 sample × edge label diversity", () => {
