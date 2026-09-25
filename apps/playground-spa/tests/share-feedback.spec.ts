@@ -17,24 +17,11 @@ const 知らせ = (page: import("@playwright/test").Page) =>
     hasText: /コピー/,
   });
 
-test("上端の帯の共有を押すと知らせが出る (#1082)", async ({ page, context }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("editor");
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2000);
-
-  await expect(知らせ(page), "押す前から知らせが出ている").toHaveCount(0);
-  await page.locator(".v4-nav-share-btn").click();
-
-  await expect(知らせ(page).first(), "押しても知らせが出ない").toContainText(
-    "URL をコピーしました",
-    { timeout: 4000 },
-  );
-  // 写した中身も見る。 知らせだけ出て中身が空だと、 押した人は気付けないまま貼り付ける
-  const url = await page.evaluate(() => navigator.clipboard.readText());
-  expect(url, `写した URL が違う: ${url}`).toContain("/editor");
-});
+/*
+ * 上端の帯の共有は #2539 で外した。
+ * 帯の右端は携帯でも残る場所で、URL はブラウザの URL 欄にそのまま出ているため置く価値が薄い。
+ * 編集画面の側の共有は URL に図の中身が乗るので残す (以下 3 件)。
+ */
 
 test("エディタの共有を押すと知らせが出て絵が残る (#1082)", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);

@@ -196,6 +196,20 @@
   filter: brightness(0.94);
 }
 
+/* ── 狭い幅の折りたたみ (#2539) ──
+ *
+ * 720px 以下で行き先の列が消えるのに代わりが無く、携帯からどこへも移れなかった。
+ * **落とす側の規則は変えない** = 広い画面の帯を 1 画素も動かさないため、
+ * 開く口と、開いた時に出る面だけを足す。
+ *
+ * 既定を落とす規則より **前** に置く = 同じ強さの指定は後に書いた方が勝つため、
+ * 後ろに置くと 720px 以下の `flex` を打ち消して開く口が永久に出ない。
+ */
+
+.v4-nav-menu-btn {
+  display: none;
+}
+
 /* ── 幅が足りない時は外側から落とす ── */
 
 @media (max-width: 1100px) {
@@ -220,5 +234,87 @@
 @media (max-width: 720px) {
   .v4-nav-links {
     display: none;
+  }
+  /* 落とした行き先を開く口。 広い画面では出さない (#2539) */
+  .v4-nav-menu-btn {
+    display: flex;
+  }
+}
+
+/* ── 狭い幅の折りたたみ、開いた時に出る面 (#2539) ── */
+
+.v4-nav-scrim {
+  position: fixed;
+  inset: var(--d-topbar-h) 0 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--d-text-primary) 28%, transparent);
+}
+
+.v4-nav-sheet {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 2px;
+  background: var(--d-surface);
+  border-bottom: 1px solid var(--d-border);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--d-text-primary) 14%, transparent);
+}
+
+.v4-nav-sheet-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: var(--d-r-1);
+  font-family: var(--d-body);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--d-text-secondary);
+  text-decoration: none;
+}
+
+.v4-nav-sheet-link:hover {
+  background: var(--d-surface-3);
+  color: var(--d-text-primary);
+}
+
+.v4-nav-sheet-link.active {
+  color: var(--d-text-primary);
+  font-weight: 600;
+  /* 見ている画面は左の帯で示す。 色だけだと明暗どちらかで差が潰れる */
+  box-shadow: inset 3px 0 0 var(--d-accent);
+}
+
+.v4-nav-sheet-cta {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: var(--d-r-1);
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-family: var(--d-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+}
+
+.v4-nav-sheet-cta:hover {
+  filter: brightness(1.08);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .v4-nav-sheet {
+    animation: v4-nav-sheet-in 140ms ease-out;
+  }
+  @keyframes v4-nav-sheet-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
   }
 }
