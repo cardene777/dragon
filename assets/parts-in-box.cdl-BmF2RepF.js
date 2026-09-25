@@ -1,4 +1,4 @@
-import{_ as t}from"./index-3PnXOqFp.js";import{a as n}from"./parts-catalog-e30MGwJj.js";import{部 as o}from"./parts.cdl-gCtEBDKX.js";const a=n(Object.values(o)),u="書かない",b="部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、2 つの部品へ矢印を分け、部品どうしを繋ぎ、高さの違う部品どうしも繋ぎ、2 つの部品から同じ箱へ集め、流れの途中に置き、名前を添えて並べ、部品を基準にして箱を置く",e=`title: "部品を箱に置き何も書き換えない"
+import{_ as t}from"./index-DTSkV9nf.js";import{a as n}from"./parts-catalog-e30MGwJj.js";import{部 as o}from"./parts.cdl-C0xJwCWS.js";const a=n(Object.values(o)),u="書かない",b="部品の名前を種類に書いて箱として置き、状態と倍率と色番号を書き換え、縦列に置き、部品の中の要素へ矢印を繋ぎ、2 つの部品へ矢印を分け、部品どうしを繋ぎ、高さの違う部品どうしも繋ぎ、2 つの部品から同じ箱へ集め、流れの途中に置き、名前を添えて並べ、部品を基準にして箱を置く",e=`title: "部品を箱に置き何も書き換えない"
 type: flow
 
 actors:
