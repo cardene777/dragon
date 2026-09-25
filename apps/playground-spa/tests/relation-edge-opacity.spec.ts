@@ -72,14 +72,13 @@ async function 線の対比を測る(page: Page): Promise<{ 比: number; 本数:
   const 印 = "data-opacity-probe";
 
   const 本数 = await page.locator(線).evaluateAll((線たち, 属性) => {
-    線たち.forEach((要素, i) =>要素.setAttribute(属性, String(i)));
+    線たち.forEach((要素, i) => 要素.setAttribute(属性, String(i)));
     return 線たち.length;
   }, 印);
 
   const 隠す = async (i: number, 本人も: boolean) => {
     await page.evaluate(
-      ([属性, 番, 本人, ...rest]) => {
-        void rest;
+      ({ 属性, 番, 本人 }: { 属性: string; 番: number; 本人: boolean }) => {
         document.getElementById("薄さ検査")?.remove();
         const s = document.createElement("style");
         s.id = "薄さ検査";
@@ -87,11 +86,11 @@ async function 線の対比を測る(page: Page): Promise<{ 比: number; 本数:
           '[data-cdl-role="edge-arrowhead"]',
           `[data-cdl-role="edge-line"]:not([${属性}="${番}"])`,
         ];
-        if (本人 === "1") 対象.push(`[${属性}="${番}"]`);
+        if (本人) 対象.push(`[${属性}="${番}"]`);
         s.textContent = `${対象.join(",")}{visibility:hidden !important}`;
         document.head.appendChild(s);
       },
-      [印, String(i), 本人も ? "1" : "0"] as string[],
+      { 属性: 印, 番: i, 本人: 本人も },
     );
     await page.waitForTimeout(150);
   };
