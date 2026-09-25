@@ -26,20 +26,37 @@ const 折りたたむ幅 = 720;
 const 広い幅の条件 = `(min-width: ${折りたたむ幅 + 1}px)`;
 
 /**
+ * 幅の判定を引く。 持たない環境では `null` を返す。
+ *
+ * jsdom は `matchMedia` を持たない。 素で呼ぶと帯を描く検査が全部落ちる
+ * (実測 = 帯を含む 4 file 19 件)。 同じ file の配色の判定も try で包んでいる。
+ */
+function 幅の判定(): MediaQueryList | null {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return null;
+  try {
+    return window.matchMedia(広い幅の条件);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 画面が広いかを外の仕組みから読む (#2539)。
  *
  * 幅を state に写して効果で同期すると、幅が変わった瞬間と描き直しの間に古い値が出る。
  * `useSyncExternalStore` なら React が描くたびに今の値を読むので、写す必要が無い。
  */
 function 幅を見張る(通知: () => void): () => void {
-  const 監視 = window.matchMedia(広い幅の条件);
-  監視.addEventListener("change", 通知);
-  return () => 監視.removeEventListener("change", 通知);
+  const 判定 = 幅の判定();
+  if (!判定 || typeof 判定.addEventListener !== "function") return () => {};
+  判定.addEventListener("change", 通知);
+  return () => 判定.removeEventListener("change", 通知);
 }
 
-const 今広いか = (): boolean => window.matchMedia(広い幅の条件).matches;
+// 判定を引けない時は「広い」 = 折りたたみを閉じた側に倒す。 開いたまま閉じられない形を作らない
+const 今広いか = (): boolean => 幅の判定()?.matches ?? true;
 
-// 画面が無い所で描く時は「広い」 = 折りたたみを閉じた側に倒す
+// 画面が無い所で描く時も同じく「広い」
 const 描き出しは広い = (): boolean => true;
 
 /**
