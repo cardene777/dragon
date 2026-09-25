@@ -35,6 +35,9 @@
 .catalog-crumb a {
   color: var(--d-text-muted);
   text-decoration: none;
+  /* 押せる範囲を 18px から 26px へ。 配置は動かない (globals.css の `--d-tap-pad`) */
+  padding-block: var(--d-tap-pad);
+  margin-block: calc(var(--d-tap-pad) * -1);
 }
 
 .catalog-crumb a:hover {
@@ -190,7 +193,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 38px;
+  /*
+   * 縦に詰まった所でも縮ませない (#2541)。
+   *
+   * 一覧の脇は幅 860px 以下で高さ 340px に制限される。 `height` だけだと flex の縮みが効いて
+   * **22px まで潰れ**、押せる的が下限 (24px) を割る。 幅 390px で実測した。
+   */
+  min-height: 38px;
+  flex-shrink: 0;
   padding: 0 12px;
   background: var(--d-surface-2);
   border: 1px solid var(--d-border);
@@ -225,6 +235,12 @@
 .catalog-search {
   flex: 1;
   min-width: 0;
+  /*
+   * 囲みいっぱいに伸ばす (#2541)。 伸ばす前は中の字の高さ (20px) しか押せず、囲みが 38px ある
+   * ぶん上下 9px ずつが死んでいた。 **押せそうに見える範囲と実際に押せる範囲が食い違う** 形で、
+   * 見た目は 1 画素も変わらないまま押しづらい。
+   */
+  align-self: stretch;
   background: transparent;
   border: none;
   outline: none;
@@ -241,8 +257,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  /* 指の的の下限 24px (#2541)。 囲みが 38px なので収まる */
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: none;
   border-radius: 999px;
@@ -661,6 +678,9 @@
   font-weight: 600;
   color: var(--d-accent);
   text-decoration: none;
+  /* 押せる範囲を 20px から 28px へ (globals.css の `--d-tap-pad`) */
+  padding-block: var(--d-tap-pad);
+  margin-block: calc(var(--d-tap-pad) * -1);
 }
 
 .catalog-preview-link:hover {

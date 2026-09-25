@@ -217,6 +217,9 @@
 
 .docs-sec-cta {
   align-self: flex-start;
+  /* 押せる範囲を 20px から 28px へ (globals.css の `--d-tap-pad`) */
+  padding-block: var(--d-tap-pad);
+  margin-block: calc(var(--d-tap-pad) * -1);
   font-family: var(--d-body);
   font-size: 13.5px;
   color: var(--d-accent);
