@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
+import { 開く口, 開いた状態ごとに } from "./phone-openers";
 import { CATEGORIES } from "../src/lib/catalog";
 import { PRESETS } from "../src/lib/presets";
 
@@ -58,14 +59,6 @@ const 画面名 = (path: string): string => path || "トップ";
 
 const 押せるもの = 'a[href], button, input, select, textarea, [role="button"], [role="tab"], summary';
 
-/**
- * その画面が持つ「開く口」。 **全部押してから数える** (#2539 の測定で踏んだ)。
- *
- * 1 つでも押し残すと、開けば届くものが「押せない」 側に混ざる
- * (編集画面の脇の板を押さずに数えて 31 件の偽の落ちを出した)。
- */
-const 開く口 = [".v4-nav-menu-btn", '[data-testid="editor-side-toggle"]'];
-
 type 箱 = { 字: string; 幅: number; 高: number; 文の中: boolean };
 
 /**
@@ -111,22 +104,21 @@ async function 測る(page: Page, 選び方: string): Promise<箱[]> {
   }, 選び方);
 }
 
+/**
+ * 閉じた状態と、開く口を 1 つずつ開いた状態の的を全部集める。
+ *
+ * 開く口の一覧と押し方は `phone-openers.ts` が 1 か所で持つ (#2545)。 押し残すと開けば
+ * 届くものが「押せない」 側に混ざる。
+ */
 async function 開いて測る(page: Page, 道: string): Promise<箱[]> {
   await page.setViewportSize(携帯);
   await page.goto(道);
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(1200);
 
-  let 集めた = await 測る(page, 押せるもの);
-  for (const 口 of 開く口) {
-    if ((await page.locator(口).count()) === 0) continue;
-    await page.locator(口).first().click();
-    await page.waitForTimeout(700);
-    集めた = [...集めた, ...(await 測る(page, 押せるもの))];
-    await page.locator(口).first().click({ timeout: 3000 }).catch(() => {});
-    await page.waitForTimeout(400);
-  }
-  return 集めた;
+  const 閉じた状態 = await 測る(page, 押せるもの);
+  const 開いた状態 = await 開いた状態ごとに(page, () => 測る(page, 押せるもの));
+  return [...閉じた状態, ...開いた状態.flatMap((x) => x.値)];
 }
 
 test("測る画面を実装から読めている (空振り検知)", () => {
@@ -246,7 +238,9 @@ test.describe("開く口", () => {
     await page.waitForTimeout(1500);
 
     const 押す前 = await 測る(page, 押せるもの);
-    const 口 = page.locator('[data-testid="editor-side-toggle"]');
+    const 脇の板 = 開く口.find((x) => x.名 === "編集画面の脇の板");
+    expect(脇の板, "共通の一覧から編集画面の脇の板が消えている").toBeDefined();
+    const 口 = page.locator(脇の板?.選び方 ?? "(見つからない)");
     expect(await 口.count(), "編集画面に脇の板を開く口が無い").toBe(1);
 
     await 口.click();

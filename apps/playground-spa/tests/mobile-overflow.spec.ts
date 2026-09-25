@@ -23,11 +23,22 @@
  *
  * 画面が真っ白でも横スクロールは 0 になる。 中身が実際に描かれていること (本文の文字数) を
  * 併せて見る。
+ *
+ * ## 開いた状態も測る (#2545)
+ *
+ * 初めは閉じた状態しか測っていなかった。 携帯の幅では帯の行き先も編集画面の脇の板も画面の
+ * 外に置かれ、押して初めて出てくる。 **開いた面は幅いっぱいに広がるので、はみ出しがいちばん
+ * 出やすい形** なのに、それが全 38 道筋のうち 1 本でしか測られていなかった
+ * (`header-mobile-menu.spec.ts` が `catalog/presets` だけを見る)。
+ *
+ * 道筋ごとに頁を開き直さず、同じ頁で押して測る = 頁を開く時間が増えない。
+ * 開く口の一覧と押し方は `phone-openers.ts` が 1 か所で持つ。
  */
 import { test, expect } from "@playwright/test";
 import { 本文が出るまで待つ } from "./wait-for-render";
 
 import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
+import { 開いた状態ごとに } from "./phone-openers";
 import { CATEGORIES } from "../src/lib/catalog";
 import { PRESETS } from "../src/lib/presets";
 
@@ -110,7 +121,8 @@ for (const 幅 of 幅一覧) {
       // 固定の待ち時間だと一式実行の負荷で足りず、真っ白な画面を測る (#2458)
       await 本文が出るまで待つ(page, 画面名(path), 本文の下限);
 
-      const m = await page.evaluate(() => {
+      const 測る = (): Promise<{ はみ出し: number; 外: string[]; 文字数: number }> =>
+        page.evaluate(() => {
         const doc = document.documentElement;
         // どの要素が外に出ているかまで出す。 数値だけだと直す場所が分からない
         const 外: string[] = [];
@@ -133,6 +145,8 @@ for (const 幅 of 幅一覧) {
         };
       });
 
+      const m = await 測る();
+
       // 真っ白な画面は横スクロールが 0 になる。 中身が出ていることを先に見る
       expect(m.文字数, `${画面名(path)} の本文が空 (検査が空振りしている)`).toBeGreaterThan(本文の下限);
       // 数 px の誤差は許容 (scrollbar 分)
@@ -140,6 +154,25 @@ for (const 幅 of 幅一覧) {
         m.はみ出し,
         `${画面名(path)} が ${m.はみ出し}px はみ出している: ${m.外.join(", ")}`,
       ).toBeLessThan(20);
+
+      // 開く口を 1 つずつ開いて、同じ測り方をもう 1 度走らせる (#2545)
+      const 開いた状態 = await 開いた状態ごとに(page, 測る);
+      /*
+       * **0 件で通さない**。 開く口が見つからないと loop が 1 周も回らず、閉じた状態だけを
+       * 測って通る = 広げたつもりの判定が黙って消える。 帯はどの画面にも出るので、
+       * 携帯の幅なら必ず 1 件以上になる。
+       */
+      expect(
+        開いた状態.map((x) => x.名),
+        `${画面名(path)} で開く口を 1 つも開けていない (判定が空振りしている)`,
+      ).toContain("帯の折りたたみ");
+
+      for (const 開いた of 開いた状態) {
+        expect(
+          開いた.値.はみ出し,
+          `${画面名(path)} の${開いた.名}を開くと ${開いた.値.はみ出し}px はみ出す: ${開いた.値.外.join(", ")}`,
+        ).toBeLessThan(20);
+      }
     });
   }
 }
