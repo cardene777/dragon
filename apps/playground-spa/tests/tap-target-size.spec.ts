@@ -1,5 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { 画面の経路, 経路を広げる, 値を入れる節 } from "./app-routes";
+import { CATEGORIES } from "../src/lib/catalog";
+import { PRESETS } from "../src/lib/presets";
+
 /*
  * 携帯の幅で押せる的が 24px 以上あることを見る (#2541)。
  *
@@ -8,23 +12,49 @@ import { expect, test, type Page } from "@playwright/test";
  *
  * **押せる的の箱を実物から測る** = class 名の一覧を手で持たない。 手で持つと、新しく足した
  * 行き先がその一覧に入っていない限り永久に見えない。
+ *
+ * ## 測る画面も実装から導く (#2543)
+ *
+ * 初めは **手で並べた 9 件の配列** を見ていた。 画面を足した人がそこに 1 行足さない限り
+ * その画面は永久に測られず、しかも検査は「全件通った」 と報告するので表に出ない。
+ * 的の class を実物から拾っておきながら、画面の側は手で持っていた。
+ *
+ * `mobile-overflow.spec.ts` と同じく `画面の経路()` から読む。 欄 (`:slug` / `:id` /
+ * `:filename`) は分類とひな形の一覧で全件に広げるので、画面が増えても見本が増えても、
+ * 追記を忘れて対象から外れることが無い。
  */
 
 const 携帯 = { width: 390, height: 844 };
 const 下限 = 24;
 
-/** 測る画面。 `main.tsx` の道筋のうち、人が開く 9 つ */
-const 画面 = [
-  ["", "概要"],
-  ["catalog", "カタログの入口"],
-  ["catalog/presets", "カタログ (ひな形)"],
-  ["catalog/charts", "カタログ (グラフ)"],
-  ["editor", "編集画面"],
-  ["docs", "使い方"],
-  ["preset/flowchart", "ひな形の詳細"],
-  ["release-notes", "更新履歴"],
-  ["contribute", "参加方法"],
-] as const;
+/**
+ * 経路の欄に入れる値 (#2543)。
+ *
+ * 分類とひな形は **全件に広げる** = 画面の中身で出る行き先が変わるので、1 つ選ぶと残りが
+ * 黙って対象から外れる。
+ *
+ * `*` は当たらなかった時の受け皿で、router が持つ経路。 検査の側で「存在しない path」 を
+ * 思い付きで書かずに、受け皿へ落ちる値を 1 つ渡す。
+ */
+const 欄の値: Record<string, readonly string[]> = {
+  ":slug": CATEGORIES.map((c) => c.slug),
+  ":id": PRESETS.map((p) => p.slug),
+  ":filename": ["diagram.yaml"],
+  "*": ["does-not-exist"],
+};
+
+/** 開発時にしか繋がらない経路。 build 済の画面には route が無いので開けない */
+const 開かない経路 = new Set(["/__render"]);
+
+const 対象の経路 = 画面の経路().filter((p) => !開かない経路.has(p));
+const 画面 = 対象の経路.flatMap((p) => 経路を広げる(p, 欄の値));
+
+/**
+ * test の名前。
+ *
+ * 経路は base 相対で書くため、トップだけ空文字になる (#1438)。 そのまま出すと名前に穴が空く。
+ */
+const 画面名 = (path: string): string => path || "トップ";
 
 const 押せるもの = 'a[href], button, input, select, textarea, [role="button"], [role="tab"], summary';
 
@@ -99,9 +129,23 @@ async function 開いて測る(page: Page, 道: string): Promise<箱[]> {
   return 集めた;
 }
 
+test("測る画面を実装から読めている (空振り検知)", () => {
+  expect(対象の経路.length, "main.tsx から経路を 1 つも読めていない").toBeGreaterThan(0);
+  expect(画面.length, "広げた先の画面が 0 件").toBeGreaterThan(対象の経路.length);
+  expect(PRESETS.length, "見本の一覧が空").toBeGreaterThan(0);
+  expect(CATEGORIES.length, "分類の一覧が空").toBeGreaterThan(0);
+  expect(
+    値を入れる節(対象の経路).sort(),
+    "経路に出る欄と、入れる値の表がずれている (表を直す)",
+  ).toEqual(Object.keys(欄の値).sort());
+  // 手で並べていた頃に抜けていた経路。 広げた先に居ることを名指しで押さえる (#2543)
+  expect(画面, "図を出す編集画面が対象から外れている").toContain("editor/diagram.yaml");
+  expect(画面, "当たらなかった時の受け皿が対象から外れている").toContain("does-not-exist");
+});
+
 test.describe("携帯で押せる的の大きさ", () => {
-  for (const [道, 名] of 画面) {
-    test(`${名} の的が 24px を下回らない`, async ({ page }) => {
+  for (const 道 of 画面) {
+    test(`${画面名(道)} の的が 24px を下回らない`, async ({ page }) => {
       const 全部 = await 開いて測る(page, 道);
 
       // 空振り防止 = 選び方が壊れて 0 件になった回を「下回りなし」 と読まない
@@ -183,6 +227,36 @@ test.describe("広げ方", () => {
     expect(見た?.囲み, "囲みが潰れている").toBeGreaterThanOrEqual(38);
     // 欄は囲みの内側 (枠を除いた分) をすべて占める
     expect(見た ? 見た.囲み - 見た.枠 - 見た.欄 : 1, "欄が囲みの内側を埋めていない").toBeLessThanOrEqual(0.5);
+  });
+});
+
+test.describe("開く口", () => {
+  test("編集画面は開く口を押すと測れる的が増える (対照)", async ({ page }) => {
+    /*
+     * 開く口を押さずに数えると、**開けば届くものが「押せない」 側に混ざる**。
+     * #2541 の測定で、編集画面の脇の板 (幅 390px では `x = -303` に置かれる) を押さずに
+     * 数えて 31 件の偽の落ちを出した。
+     *
+     * 上の 9 件は押した後の数を見るので、押す処理が黙って効かなくなっても気付けない
+     * (押せる的が減れば下限を割る的も減り、むしろ通りやすくなる)。 ここで効果を押さえる。
+     */
+    await page.setViewportSize(携帯);
+    await page.goto("editor");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1500);
+
+    const 押す前 = await 測る(page, 押せるもの);
+    const 口 = page.locator('[data-testid="editor-side-toggle"]');
+    expect(await 口.count(), "編集画面に脇の板を開く口が無い").toBe(1);
+
+    await 口.click();
+    await page.waitForTimeout(700);
+    const 押した後 = await 測る(page, 押せるもの);
+
+    expect(
+      押した後.length - 押す前.length,
+      `押しても測れる的が増えない (前 ${押す前.length} / 後 ${押した後.length})`,
+    ).toBeGreaterThan(20);
   });
 });
 
