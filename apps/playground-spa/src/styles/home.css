@@ -80,6 +80,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  /* 押せる範囲を 21px から 29px へ (globals.css の `--d-tap-pad`) */
+  padding-block: var(--d-tap-pad);
+  margin-block: calc(var(--d-tap-pad) * -1);
   font-family: var(--d-body);
   font-size: 14px;
   font-weight: 600;

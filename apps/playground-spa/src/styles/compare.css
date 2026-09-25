@@ -29,6 +29,9 @@
 .nm-crumb a {
   color: var(--d-text-muted);
   text-decoration: none;
+  /* 押せる範囲を 18px から 26px へ。 配置は動かない (globals.css の `--d-tap-pad`) */
+  padding-block: var(--d-tap-pad);
+  margin-block: calc(var(--d-tap-pad) * -1);
 }
 
 .nm-crumb a:hover {
