@@ -206,7 +206,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
     });
   }
 
-  test("工程表: 帯の倍率が動く", async ({ page }) => {
+  test("工程表: 帯の幅が動く", async ({ page }) => {
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.getByText("工程表", { exact: true }).first().click();
@@ -214,9 +214,9 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
     const 値 = new Set<string>();
     for (let i = 0; i < 60; i++) {
       const 倍率 = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('[data-cdl-role="gantt-bar"]'))
-          .map((el) => el.parentElement?.getAttribute("transform") ?? "")
-          .filter((t) => t.includes("scale(")),
+        Array.from(document.querySelectorAll('[data-cdl-role="gantt-bar"]')).map(
+          (el) => el.getAttribute("width") ?? "",
+        ),
       );
       for (const t of 倍率) 値.add(t);
       if (値.size >= 2) break;
