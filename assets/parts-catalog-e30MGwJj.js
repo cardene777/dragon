@@ -1,0 +1,1 @@
+function i(t){return t.startsWith("parts-")}function s(t){const n={};for(const r of t)!o(r)||!i(r.id)||(n[r.id]=r,n[r.id.slice(6)]=r);return n}function o(t){if(typeof t!="object"||t===null)return!1;const n=t;return typeof n.id=="string"&&Array.isArray(n.nodes)}export{s as a,i as 部};
