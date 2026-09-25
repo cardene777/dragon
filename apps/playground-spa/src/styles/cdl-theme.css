@@ -478,6 +478,33 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
 [data-cdl-role="journey-chip"] { stroke-opacity: var(--d-journey-chip-opacity) !important; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+ * クラス図と表のつながりの図で、箱をつなぐ線 (#2535)
+ *
+ * 上の枝と逆向きで、cdl が描いた濃さを **下げる**。 線は丸い端の破線なので一粒ずつが
+ * 点として読め、その点が箱の枠より濃く出ていた。 値の SSOT は `globals.css`。
+ *
+ * **図種で囲う**。 `edge-line` は線を引く全図種が共有する役割で、囲わずに書くと
+ * 分かれ道の図も網の図も薄くなる。 舞台 (`svg`) に出る `data-cdl-type` を見て
+ * `er` と `class` だけに当てる。
+ *
+ * **光っている線は別に書く**。 cdl は光る線を 0.95、それ以外を 0.9 で描き分けている。
+ * 1 本の規則で束ねると差が消え、どの線が光っているかが濃さから読めなくなる。
+ *
+ * **矢印の先 (`edge-arrowhead`) は薄くしない**。 表のつながりの図は先の形 (烏の足) で
+ * 「1 対多」 を表し、クラス図は先の形で継承と所有を分ける。 線が薄くなるぶん、
+ * 意味を持つ先は cdl の濃さで残す。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage][data-cdl-type="er"] [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-type="class"] [data-cdl-role="edge-line"] {
+  stroke-opacity: var(--d-relation-edge-opacity) !important;
+}
+
+svg[data-cdl-stage][data-cdl-type="er"] [data-cdl-active="true"] [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-type="class"] [data-cdl-active="true"] [data-cdl-role="edge-line"] {
+  stroke-opacity: var(--d-relation-edge-opacity-active) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
  * 図の配色 (#1553)
  *
  * cdl は色を持たない。 `palette:` に書いた名前が `data-cdl-palette` として舞台 (`svg`) に
