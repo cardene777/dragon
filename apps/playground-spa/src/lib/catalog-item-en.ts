@@ -452,6 +452,7 @@ export const PATTERN_NAME_EN: Record<string, string> = {
   "下": "Down",
   "下に置く": "Placed below",
   "並べる": "Side by side",
+  "担当者なし": "No owner",
   "今だけ": "Now only",
   "仕分けてから溜める": "Sorts, then queues",
   "倍率": "Scale",

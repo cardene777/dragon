@@ -2796,6 +2796,45 @@ export const pattern__presetGantt__複雑 = withSteps(
   ],
 );
 
+/**
+ * 担当者を書かない版 (#2549)。
+ *
+ * `owner` を書くと帯の真ん中に担当者の字が出る。 書かない側はその字が 1 つも出ず、
+ * 帯は期間と前後の関係だけを示す。
+ *
+ * **同じ見本の切替で並べる**。 別の行に分けると、書いた時に何が増えるのかを見比べられない
+ * (`catalog-payload-coverage.test.tsx` が中身の欄ごとに両側を要求する)。
+ */
+export const pattern__presetGantt__担当者なし = withSteps(
+  bindFirstNode(
+    gantt({ id: "gantt-noowner-demo", topic: "担当者を書かずに期間と前後の関係だけを示す進捗図" })
+      .task({ id: "design", title: "設計", start: "Q1", end: "Q1" })
+      .task({ id: "build", title: "実装", start: "Q2", end: "Q2", dependsOn: "design" })
+      .task({ id: "test", title: "検証", start: "Q3", end: "Q3", dependsOn: "build" })
+      .task({ id: "ship", title: "公開", start: "Q4", end: "Q4", dependsOn: "test" })
+      .build(),
+    (n) => ({
+      ...n,
+      ganttData: n.ganttData?.map((t) => (t.id === "build" ? { ...t, endIdx: "{noowner_build_end}" } : t)),
+    }),
+  ),
+  [
+    {
+      ids: ["gantt-noowner-demo-gantt"],
+      // 起点から描く (#1357)。 開いた瞬間に全部出ると静止画と区別が付かない
+      draw: ["gantt-noowner-demo-gantt"],
+      duration: DRAW_DURATION,
+      title: "担当者なし",
+      body: "帯の中に字が出ない。 どの期間にどの工程が入るかと、前後の関係だけを読む。",
+    },
+    {
+      body: "作り込みが Q3 まで延びる。 担当者を書かなくても帯は同じように伸び縮みする。",
+      tweens: [{ id: "noowner_build_end", from: 1, to: 2 }],
+    },
+  ],
+  [{ id: "noowner_build_end", initial: 1 }],
+);
+
 // flowchart preset ... swimlane + decision
 export const presetFlowchart = withSteps(
   flowchart({

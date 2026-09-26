@@ -78,16 +78,16 @@ test.describe("プリセットの見本も起点から描かれる (#1357)", () 
     expect(値.size, `切り抜きの形が変わらない (観測できた形 = ${[...値].join(", ")})`).toBeGreaterThanOrEqual(2);
   });
 
-  test("工程表: 帯の倍率が動く", async ({ page }) => {
+  test("工程表: 帯の幅が動く", async ({ page }) => {
     await 開く(page, "工程表");
     const 値 = await 値の種類(page, () =>
       page.evaluate(() =>
-        Array.from(document.querySelectorAll('[data-cdl-role="gantt-bar"]'))
-          .map((el) => el.parentElement?.getAttribute("transform") ?? "")
-          .filter((t) => t.includes("scale(")),
+        Array.from(document.querySelectorAll('[data-cdl-role="gantt-bar"]')).map(
+          (el) => el.getAttribute("width") ?? "",
+        ),
       ),
     );
-    expect(値.size, `倍率が動かない (観測できた値 = ${[...値].join(" | ")})`).toBeGreaterThanOrEqual(2);
+    expect(値.size, `幅が動かない (観測できた値 = ${[...値].join(" | ")})`).toBeGreaterThanOrEqual(2);
   });
 
   test("絞り込み図: 切り抜きの高さが動く", async ({ page }) => {

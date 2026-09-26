@@ -419,6 +419,9 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "土台の 1 月の遅れが後ろの作業へ次々と波及する進捗図": "A progress chart where a one-month slip in the groundwork ripples through everything after it",
   "夏に落ち込む": "It dips in summer",
   "当初の計画": "The original plan",
+  "担当者なし": "No owner",
+  "担当者を書かずに期間と前後の関係だけを示す進捗図":
+    "A schedule showing only spans and their order, with no owner written",
   "後にする所を決める": "Decide what to leave for later",
   "手間と価値の見積りを分けて直し、枠の中身だけが入れ替わる四象限図": "A four-quadrant chart where effort and value are revised separately and only the contents of the boxes move",
   "手間の見積りを直す": "Revise the effort estimates",
