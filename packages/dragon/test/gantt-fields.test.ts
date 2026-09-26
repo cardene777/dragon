@@ -100,11 +100,11 @@ describe("工程の並びでない図種では伝える", () => {
     expect(効かない知らせ(他図種("flow", 'kind: storage'))).toEqual([]);
   });
 
-  it("体験の道筋の欄とは別に伝える", () => {
+  it("ユーザージャーニーの欄とは別に伝える", () => {
     // 2 種類の欄を同時に書いたら、それぞれの直し方で 2 件出る = 片方だけ直しても残りが分かる
     const { 知らせ } = 組み立てる(他図種("flow", 'owner: "Eng", touchpoint: "x"'));
     expect(知らせ.filter((n) => n.message.includes("工程の並びの欄がありません"))).toHaveLength(1);
-    expect(知らせ.filter((n) => n.message.includes("体験の道筋の欄がありません"))).toHaveLength(1);
+    expect(知らせ.filter((n) => n.message.includes("ユーザージャーニーの欄がありません"))).toHaveLength(1);
   });
 
   it("放射の図では二重に知らせない", () => {

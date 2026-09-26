@@ -1,5 +1,5 @@
 /*
- * 工程表の箱に書いた終わる時期が、目盛りに無い語だと黙って消えていた (#2392)。
+ * ガントチャートの箱に書いた終わる時期が、目盛りに無い語だと黙って消えていた (#2392)。
  *
  * 目盛りは箱に書いた時期 (`value:`) から **書かれた順に** 作る。 終わる時期はその目盛りと
  * 突き合わせるので、どの箱も書いていない語は位置を持たない。 始まりと同じに倒すだけで
@@ -21,7 +21,7 @@ function 組む(src: string): { 知: CompileNotice[]; 図: string; 帯: 帯[] } 
 
 type 帯 = { id: string; startIdx: number | string; endIdx: number | string; endLabel: string };
 
-/** 目盛りを 3 つ持つ工程表。 測る箱 `実装` を先頭にも末尾にも置かない */
+/** 目盛りを 3 つ持つガントチャート。 測る箱 `実装` を先頭にも末尾にも置かない */
 const 工程 = (欄 = "") =>
   `title: "し"
 type: gantt
@@ -36,7 +36,7 @@ actors:
 const 終わりの知らせ = (src: string): CompileNotice[] =>
   組む(src).知.filter((n) => n.kind === "chart-value-unreadable" && n.message.includes("終わり"));
 
-describe("工程表の終わる時期が目盛りに無い時に伝える (#2392)", () => {
+describe("ガントチャートの終わる時期が目盛りに無い時に伝える (#2392)", () => {
   it("目盛りにある語では鳴らず、帯が伸びる", () => {
     const 知 = 終わりの知らせ(工程(', end: "Q3"'));
     expect(知.map((n) => n.message), "目盛りにある語で鳴っている").toEqual([]);

@@ -3,7 +3,7 @@ import { parseTextDslV05 } from "../src/v05";
 import { compileToCdl, type CompileNotice } from "../src/compile";
 
 /**
- * 体験の道筋に場所と改善の余地を書けることの検証 (#1251)。
+ * ユーザージャーニーに場所と改善の余地を書けることの検証 (#1251)。
  *
  * 組み立て API の段は `touchpoint` (どこで起きたか) と `opportunity` (何を直せるか) を
  * 持つが、記法には書く場所が無かった。 記法で書き直すと 2 つとも落ちていた。
@@ -24,12 +24,12 @@ const 段 = (src: string) =>
     .journeyData;
 
 const 効かない知らせ = (src: string) =>
-  組み立てる(src).知らせ.filter((n) => n.message.includes("体験の道筋の欄がありません"));
+  組み立てる(src).知らせ.filter((n) => n.message.includes("ユーザージャーニーの欄がありません"));
 
 const 道筋 = (欄: string) =>
   `title: "T"\ntype: journey\n\nactors:\n  - 登録: { value: "不満"${欄} }\n`;
 
-describe("体験の道筋に場所と改善の余地を書ける (#1251)", () => {
+describe("ユーザージャーニーに場所と改善の余地を書ける (#1251)", () => {
   it("場所が段に届く", () => {
     expect(段(道筋(', touchpoint: "申込み画面"'))?.[0]?.touchpoint).toBe("申込み画面");
   });
@@ -52,7 +52,7 @@ describe("体験の道筋に場所と改善の余地を書ける (#1251)", () =>
     expect(s && "opportunity" in s, "書いていないのに項目がある").toBe(false);
   });
 
-  it("体験の道筋では知らせない", () => {
+  it("ユーザージャーニーでは知らせない", () => {
     expect(効かない知らせ(道筋(', touchpoint: "申込み画面"'))).toEqual([]);
   });
 });
@@ -86,9 +86,9 @@ describe("描けない図種では伝える", () => {
     // `compileMind` が描けない欄をまとめて 1 件で伝えており、そこに 2 つとも入っている
     const src = `title: "T"\ntype: mind\n\nactors:\n  - 中心\n  - A: { touchpoint: "x" }\n`;
     const { 知らせ } = 組み立てる(src);
-    expect(知らせ.filter((n) => n.message.includes("体験の道筋の欄がありません")), "二重に伝えている").toEqual([]);
+    expect(知らせ.filter((n) => n.message.includes("ユーザージャーニーの欄がありません")), "二重に伝えている").toEqual([]);
     expect(
-      知らせ.some((n) => n.message.includes("場所 (体験の道筋の欄)")),
+      知らせ.some((n) => n.message.includes("場所 (ユーザージャーニーの欄)")),
       "放射の図の知らせから落ちている",
     ).toBe(true);
   });

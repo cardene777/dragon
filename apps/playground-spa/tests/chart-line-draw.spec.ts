@@ -173,13 +173,13 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
    *
    * | 見本 | 観測するもの |
    * |---|---|
-   * | 体験の道筋 / 放射 / 木 | `stroke-dashoffset` が 2 種類以上出る |
-   * | 工程表 | 帯の包みの倍率が 2 種類以上出る |
+   * | ユーザージャーニー / 放射 / 木 | `stroke-dashoffset` が 2 種類以上出る |
+   * | ガントチャート | 帯の包みの倍率が 2 種類以上出る |
    * | 漏斗 | 切り抜きの高さが 2 種類以上出る |
    */
   const 観測 = {
-    "体験の道筋": 'document.querySelectorAll(\'[data-cdl-role="journey-line"]\')',
-    "枝分かれ図": 'document.querySelectorAll(\'[data-cdl-role="mind-edge"]\')',
+    "ユーザージャーニー": 'document.querySelectorAll(\'[data-cdl-role="journey-line"]\')',
+    "マインドマップ": 'document.querySelectorAll(\'[data-cdl-role="mind-edge"]\')',
     "階層図": 'document.querySelectorAll(\'[data-cdl-role="tree-edge"]\')',
   } as const;
 
@@ -193,7 +193,7 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
       for (let i = 0; i < 60; i++) {
         const 残り = await page.evaluate((name: string) => {
           const role =
-            name === "体験の道筋" ? "journey-line" : name === "枝分かれ図" ? "mind-edge" : "tree-edge";
+            name === "ユーザージャーニー" ? "journey-line" : name === "マインドマップ" ? "mind-edge" : "tree-edge";
           return Array.from(document.querySelectorAll(`[data-cdl-role="${role}"]`))
             .map((el) => el.getAttribute("stroke-dashoffset"))
             .filter((v): v is string => v !== null);
@@ -206,10 +206,10 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
     });
   }
 
-  test("工程表: 帯の幅が動く", async ({ page }) => {
+  test("ガントチャート: 帯の幅が動く", async ({ page }) => {
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    await page.getByText("工程表", { exact: true }).first().click();
+    await page.getByText("ガントチャート", { exact: true }).first().click();
 
     const 値 = new Set<string>();
     for (let i = 0; i < 60; i++) {
@@ -225,10 +225,10 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
     expect(値.size, `倍率が動かない (観測できた値 = ${[...値].join(" | ")})`).toBeGreaterThanOrEqual(2);
   });
 
-  test("絞り込み図: 切り抜きの高さが動く", async ({ page }) => {
+  test("ファネル図: 切り抜きの高さが動く", async ({ page }) => {
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    await page.getByText("絞り込み図", { exact: true }).first().click();
+    await page.getByText("ファネル図", { exact: true }).first().click();
 
     const 値 = new Set<string>();
     for (let i = 0; i < 60; i++) {

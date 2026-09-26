@@ -608,8 +608,8 @@ export const FORMS: Section[] = [
     ],
   },
   {
-    // 体験の道筋の段だけが持つ欄。 他の図種で書くと組み立て側が知らせる (#1251)
-    title: "体験の道筋の欄 (touchpoint: / opportunity:)",
+    // ユーザージャーニーの段だけが持つ欄。 他の図種で書くと組み立て側が知らせる (#1251)
+    title: "ユーザージャーニーの欄 (touchpoint: / opportunity:)",
     titleEn: "Journey fields (touchpoint: / opportunity:)",
     sample: {
       slot: "actors",

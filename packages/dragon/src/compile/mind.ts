@@ -124,8 +124,8 @@ export type _放射の欄が重なっていない = 空であること<Extract<�
 const 放射で描けない欄の名前: Record<放射で描けない欄, string> = {
   kind: "種類",
   eyebrow: "上の小見出し",
-  touchpoint: "場所 (体験の道筋の欄)",
-  opportunity: "改善の余地 (体験の道筋の欄)",
+  touchpoint: "場所 (ユーザージャーニーの欄)",
+  opportunity: "改善の余地 (ユーザージャーニーの欄)",
   owner: "担当 (工程の並びの欄)",
   end: "終わる時期 (工程の並びの欄)",
   rows: "行",

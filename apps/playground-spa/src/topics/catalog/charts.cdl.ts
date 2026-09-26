@@ -553,7 +553,7 @@ export const ganttTimeline = textDslToDiagram(sourceYaml__ganttTimeline);
 /**
  * 前後の矢印を書かない形 (#1706)。
  *
- * `dependsOn` を書くと `gantt-arrow` が出る。 カタログの工程表は 3 件とも前後を書いており、
+ * `dependsOn` を書くと `gantt-arrow` が出る。 カタログのガントチャートは 3 件とも前後を書いており、
  * **矢印の無い段取りがどこにも出ていなかった**。 期日だけを並べる使い方はよくあるので、
  * 同じ見本の切替で見比べられるようにする。
  */

@@ -1940,7 +1940,7 @@ export const pattern__presetTree__複雑 = withSteps(
 export const patternBase__presetUserJourney = "簡単";
 
 /**
- * 体験の道筋の複雑な版 (#2183)。
+ * ユーザージャーニーの複雑な版 (#2183)。
  *
  * 簡単な版は 4 段階で、動くのは 1 段階の気持ちだけ。 実際に読み取りが要るのは
  * 「何段階かの落ち込みを順に直すと、道筋全体の形が変わる」 形で、1 段階の上下では描けない。
@@ -2063,7 +2063,7 @@ export const presetMindMap = withSteps(
 export const patternBase__presetMindMap = "簡単";
 
 /**
- * 枝分かれ図の複雑な版 (#2191)。
+ * マインドマップの複雑な版 (#2191)。
  *
  * 簡単な版は 6 箱 (中心 + 枝 5) で、動くのは中心の呼び方だけ。 実際に読み取りが要るのは
  * 「書き出した案を見比べて、先に作る所と後にする所を決める」 形で、1 回の言い換えでは描けない。
@@ -2094,7 +2094,7 @@ const MIND_COMPLEX_BRANCHES = [
 
 const mindComplexBuilder = mindMap({
   id: "mind-complex-demo",
-  topic: "書き出した観点を先と後に仕分けて中心の方針が決まる枝分かれ図",
+  topic: "書き出した観点を先と後に仕分けて中心の方針が決まるマインドマップ",
   rootId: "mc_root",
   rootTitle: "新しい仕組み",
 });

@@ -23,7 +23,7 @@ root の `README.md` はこの説明書を正として案内する。
 |---|---|---|---|
 | 層 1 = 画面 | 画面の検査を全て走らせる。 画面を開いて見出しが見えること、端末の誤りが出ないこと、図の字や線が重ならないことなど | `apps/playground-spa/tests/` | `pnpm check:cdl` |
 | 層 2 = 図の置き方 | カタログの全ての図を描画エンジンの検査 (`visualValidateAll`) に通し、どの軸でも重さが `error` の違反が無いことを見る | `packages/dragon/test/visual-validate-sweep.test.ts` | `pnpm check:dragon` |
-| 層 3 = 型ごとの描き方 | 描いた SVG の形を図の型ごとに測る (工程表の矢印の向き、絞り込み図の幅の減り方など)。 画面をわざと壊し、判定が違反を見つけることも確かめる | `apps/playground-spa/tests/kind-geometry-check.spec.ts` と `apps/playground-spa/tests/kind-geometry-check.proof.spec.ts` | `pnpm check:kind` |
+| 層 3 = 型ごとの描き方 | 描いた SVG の形を図の型ごとに測る (ガントチャートの矢印の向き、ファネル図の幅の減り方など)。 画面をわざと壊し、判定が違反を見つけることも確かめる | `apps/playground-spa/tests/kind-geometry-check.spec.ts` と `apps/playground-spa/tests/kind-geometry-check.proof.spec.ts` | `pnpm check:kind` |
 
 `pnpm check:all` は型検査 (`pnpm typecheck`) と 3 つの層を順に走らせる。
 層 1 は画面の検査を全て走らせるので層 3 の 2 本も含み、`pnpm check:all` では層 3 が 2 度走る。
@@ -55,10 +55,10 @@ root の `README.md` はこの説明書を正として案内する。
 
 ### 層 3 を足した理由
 
-描画エンジンに図表や工程表などの型を足した時、層 1 と層 2 はどちらも型の中の形を見られなかった。
+描画エンジンに図表やガントチャートなどの型を足した時、層 1 と層 2 はどちらも型の中の形を見られなかった。
 層 1 は画面が出るかを見るだけで、層 2 は描画エンジンが置いた箱と線しか見ないため。
 
-例は、工程表の依存の矢印の折れ方の崩れと、フローの線が面に塗られて見える崩れ。
+例は、ガントチャートの依存の矢印の折れ方の崩れと、フローの線が面に塗られて見える崩れ。
 どちらも層 1 と層 2 では見つからず、人が目で見つけた。
 
 ---
@@ -70,7 +70,7 @@ root の `README.md` はこの説明書を正として案内する。
 図の書き手 (`presets.cdl.ts` を書く開発者と、dragon の記法を書く外の利用者) が、見た目は動くのに読む人へ伝わらない図を作った時に、決まった規則で指摘する。
 見るのは、図の説明に入り込んだ実装の書き方、無い部品を指す参照、値や項目が空の図表と四象限図。
 
-例は、図の説明が `chart preset (SVG polyline + 縦軸目盛)` のように作り手の書き方になっている図、工程表の作業の `dependsOn` が無い作業を指す図、枝分かれ図の枝の `parent` が無い枝を指す図。
+例は、図の説明が `chart preset (SVG polyline + 縦軸目盛)` のように作り手の書き方になっている図、ガントチャートの作業の `dependsOn` が無い作業を指す図、マインドマップの枝の `parent` が無い枝を指す図。
 
 ### 規則の一覧
 
@@ -79,12 +79,12 @@ root の `README.md` はこの説明書を正として案内する。
 | `topic-redundant-implementation-detail` | ⚠ 注意 | できる (条件は下の節) | 図の説明に実装の書き方 (`preset (…)` / `render 未実装` / `SVG` の描き方の名前 (`polyline` など) / `polygon`) が入っている |
 | `chart-empty-datum` | ⚠ 注意 | できない | 図表 (`chart-line` / `chart-pie` / `chart-bar`) に値 (`datum`) が 1 件も無い |
 | `chart-single-datum` | ℹ 参考 | できない | 図表の値が 1 件だけ |
-| `gantt-unknown-depends-on` | ⚠ 注意 | できない | 工程表の作業の `dependsOn` が、無い作業を指している |
-| `mindmap-unknown-parent` | ⚠ 注意 | できない | 枝分かれ図の枝の `parent` が、中心にも他の枝にも無い |
+| `gantt-unknown-depends-on` | ⚠ 注意 | できない | ガントチャートの作業の `dependsOn` が、無い作業を指している |
+| `mindmap-unknown-parent` | ⚠ 注意 | できない | マインドマップの枝の `parent` が、中心にも他の枝にも無い |
 | `tree-unknown-parent` | ⚠ 注意 | できない | 階層図の項目の `parent` が、無い項目を指している |
 | `quadrant-empty` | ⚠ 注意 | できない | 四象限図に項目 (`item`) が 1 件も無い |
 | `quadrant-single-quadrant` | ℹ 参考 | できない | 四象限図の項目が 4 件以上あり、すべて 1 つの区画に入っている |
-| `funnel-increasing-count` | ⚠ 注意 | できない | 絞り込み図の段階の数が、前の段階より多い (状態から取る `{名前}` の数は比べない) |
+| `funnel-increasing-count` | ⚠ 注意 | できない | ファネル図の段階の数が、前の段階より多い (状態から取る `{名前}` の数は比べない) |
 
 重さの呼び名は、記法の検査の道具が端末に出す呼び名と同じ。
 表の規則・重さ・自動修正の 3 つの欄は、画面側の検査 (`apps/playground-spa/src/lib/audit-readme-lint.test.ts`) が記法の検査の実物と照らす。
@@ -120,8 +120,8 @@ node packages/dragon/scripts/dragon-lint.mjs --fix path/to/your.cdl.ts
 例。
 
 - `chart preset (SVG polyline + tone 別 slice)` → `項目ごとの数値を示すグラフ`
-- `gantt preset (Release timeline)` → `作業の期間と前後の関係を示す工程表`
-- `mindMap preset (Project ideas)` → `中心の主題から広がる発想を示す枝分かれ図`
+- `gantt preset (Release timeline)` → `作業の期間と前後の関係を示すガントチャート`
+- `mindMap preset (Project ideas)` → `中心の主題から広がる発想を示すマインドマップ`
 - `ログイン (render 未実装)` → `ログイン`
 
 括弧の外に実装の言葉がある説明 (`SVG polyline を使う`) は、自動修正を当てても字が変わらない。

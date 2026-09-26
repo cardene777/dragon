@@ -9,7 +9,7 @@ import { slugify } from "./slug";
 import { 箱の題 } from "./node-title";
 import { truncateForMessage, 図の小見出し } from "./subtitle";
 /**
- * 工程表 (`type: gantt`) の組み立て (#2030 で `compile.ts` から移した)。
+ * ガントチャート (`type: gantt`) の組み立て (#2030 で `compile.ts` から移した)。
  */
 
 export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
@@ -107,7 +107,7 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       伝える(
         "edge-option-not-honored",
         s.from,
-        `type: gantt で ${矢印} に書いた ${効かない.join(" / ")} は描けません (工程表の矢印は前後の関係だけを使います)`,
+        `type: gantt で ${矢印} に書いた ${効かない.join(" / ")} は描けません (ガントチャートの矢印は前後の関係だけを使います)`,
         line,
       );
     }

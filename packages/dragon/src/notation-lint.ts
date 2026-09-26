@@ -107,7 +107,7 @@ export function autoFix(d: CdlDiagram): CdlDiagram {
  * `lint-topic-names.test.ts` が持つ (この package は画面側の file を読まない)。
  *
  * 説明の末尾を型の名前にするのは、 名前の多くが `図` で終わるため。 旧い文型
- * 「{名前} を示す図」 のまま名前を差し替えると `工程表 を示す図` / `状態遷移図 を示す図` の
+ * 「{名前} を示す図」 のまま名前を差し替えると `ガントチャート を示す図` / `状態遷移図 を示す図` の
  * ように図が重なる。 カタログの見本の説明 (`全体に対する内訳の割合を示す円グラフ`) と同じ並びにした。
  *
  * `chart` と `bar chart` はカタログに同じ型の見本が無いので、 図表の日常語で呼ぶ。
@@ -127,11 +127,11 @@ const KIND_TO_JA: Record<string, { shows: string; name: string }> = {
   infrastructure: { shows: "クラウドとネットワークの構成", name: "階層構成図" },
   classDiagram: { shows: "クラスどうしの関係", name: "クラス図" },
   tree: { shows: "組織や分類の親子の関係", name: "階層図" },
-  userJourney: { shows: "利用者の気持ちの移り変わり", name: "体験の道筋" },
-  mindMap: { shows: "中心の主題から広がる発想", name: "枝分かれ図" },
-  funnel: { shows: "段階ごとに残る数と離れる数", name: "絞り込み図" },
+  userJourney: { shows: "利用者の気持ちの移り変わり", name: "ユーザージャーニー" },
+  mindMap: { shows: "中心の主題から広がる発想", name: "マインドマップ" },
+  funnel: { shows: "段階ごとに残る数と離れる数", name: "ファネル図" },
   quadrant: { shows: "2 つの軸で分けた項目の位置", name: "四象限図" },
-  gantt: { shows: "作業の期間と前後の関係", name: "工程表" },
+  gantt: { shows: "作業の期間と前後の関係", name: "ガントチャート" },
   flowchart: { shows: "分岐や判定を含む処理の順番", name: "フローチャート" },
   network: { shows: "機器と区画のつながり", name: "ネットワーク図" },
 };
@@ -350,7 +350,7 @@ function ruleFunnelMonotonicCount(d: CdlDiagram): LintIssue[] {
             rule: "funnel-increasing-count",
             severity: "warn",
             target: stages[i]!.id,
-            message: `段階 \`${stages[i]!.id}\` の数 (${今}) が前の段階 (${前}) より多い。 絞り込み図は段階が進むほど数が減る`,
+            message: `段階 \`${stages[i]!.id}\` の数 (${今}) が前の段階 (${前}) より多い。 ファネル図は段階が進むほど数が減る`,
             suggestion: `段階の順番を確かめる。 数が増える流れを示すなら、 折れ線グラフ (\`chart-line\`) などの別の図にする`,
             autoFixable: false,
           });

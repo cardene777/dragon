@@ -342,11 +342,11 @@ export interface JsonActor {
    */
   end?: string;
   /**
-   * 体験の道筋 (`type: journey`) で、その段階が起きる場所 (#1294)。 記法の `touchpoint:` と同じ。
+   * ユーザージャーニー (`type: journey`) で、その段階が起きる場所 (#1294)。 記法の `touchpoint:` と同じ。
    */
   touchpoint?: string;
   /**
-   * 体験の道筋 (`type: journey`) で、その段階の改善の余地 (#1294)。 記法の `opportunity:` と同じ。
+   * ユーザージャーニー (`type: journey`) で、その段階の改善の余地 (#1294)。 記法の `opportunity:` と同じ。
    */
   opportunity?: string;
   /**

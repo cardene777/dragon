@@ -108,7 +108,7 @@ describe("書いた行を読む", () => {
 
 describe("YAML 欄の知らせ", () => {
   /** 画面の YAML 欄に貼る本文。 3 種の知らせが別々の行から出る */
-  const 工程表 = [
+  const ガントチャート = [
     'title: "t"', // 1
     "type: gantt", // 2
     "actors:", // 3
@@ -121,7 +121,7 @@ describe("YAML 欄の知らせ", () => {
   ].join("\n");
 
   it("3 件の知らせが、書いた行を指す", () => {
-    const 知らせ = 知らせを集める((onNotice) => yamlToDiagram(工程表, { onNotice }));
+    const 知らせ = 知らせを集める((onNotice) => yamlToDiagram(ガントチャート, { onNotice }));
     expect(知らせ.map((n) => [n.kind, n.line])).toEqual([
       ["chart-value-unreadable", 5],
       ["flow-actor-missing", 7],
@@ -130,17 +130,17 @@ describe("YAML 欄の知らせ", () => {
   });
 
   it("行を持たない知らせが 1 件も無い", () => {
-    const 知らせ = 知らせを集める((onNotice) => yamlToDiagram(工程表, { onNotice }));
+    const 知らせ = 知らせを集める((onNotice) => yamlToDiagram(ガントチャート, { onNotice }));
     // 空振りの確認 = 知らせ自体は 1 件以上出ている
     expect(知らせ.length).toBeGreaterThan(0);
     expect(知らせ.filter((n) => n.line === 0)).toEqual([]);
   });
 
   it("行を載せても、図は 1 文字も変わらない", () => {
-    const 読んだ = yamlToObject(工程表);
+    const 読んだ = yamlToObject(ガントチャート);
     expect(読んだ.ok).toBe(true);
     if (!読んだ.ok) return;
-    const 行あり = yamlToDiagram(工程表);
+    const 行あり = yamlToDiagram(ガントチャート);
     expect(行あり.ok).toBe(true);
     if (!行あり.ok) return;
     expect(JSON.stringify(行あり.diagram)).toBe(JSON.stringify(jsonToDiagram(読んだ.value)));
