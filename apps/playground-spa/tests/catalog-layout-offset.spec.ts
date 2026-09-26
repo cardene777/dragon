@@ -9,35 +9,82 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import { 一覧の行 } from "./catalog-item-pick";
+import { 一覧が落ち着くまで待つ, 形が落ち着くまで待つ } from "./wait-for-render";
 
 /** 一覧の行に出る見本の id (ずらさない図の題から決まる) */
 const 見本 = "位置をずらさない";
 
+/** 図が描かれる場所 */
+const 舞台 = "main.catalog-preview svg[data-cdl-stage]";
+
 /** 字の中心の許す差。 字の幅は図の座標で測るので、描画の丸めの分だけ見る */
 const 許す差 = 1.5;
 
+/** 図に書かれていて、動きを追う字 */
+const 字たち = ["注文する", "受け付ける", "在庫を引く", "利用者", "受付の窓口", "注文"] as const;
+
 type 点 = { x: number; y: number };
+
+/**
+ * 図の字が動かなくなるまで待つ (#2555)。
+ *
+ * かつては押してから 600 ミリ秒 待っていた。 一式で回すと描き終わりが遅れ、**動く前の位置を
+ * 測って「動いた量が 0」 と言う** 形になる (#2458 と同じ落ち方)。
+ *
+ * 追う字は下の判定と同じ 6 つ。 1 つでも欠けている間は `null` を返して数え直す =
+ * 描き途中の図で落ち着いたことにしない。
+ */
+async function 字が落ち着くまで待つ(page: Page): Promise<number> {
+  return 形が落ち着くまで待つ(
+    page,
+    "位置のずらしの見本の字",
+    (指す: { 舞台: string; 字たち: readonly string[] }) => {
+      const svg = document.querySelector(指す.舞台);
+      if (!svg) return null;
+      const 出: string[] = [];
+      for (const 字 of 指す.字たち) {
+        const el = [...svg.querySelectorAll("text")].find((t) => t.textContent?.trim() === 字);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0) return null;
+        出.push(`${Math.round(r.x)},${Math.round(r.y)}`);
+      }
+      return 出.join("|");
+    },
+    { 舞台, 字たち },
+    { 出ない時の言い方: "動かなくならない" },
+  );
+}
 
 async function 開く(page: Page): Promise<void> {
   await page.goto("catalog/primitives", { waitUntil: "networkidle" });
-  await page.waitForTimeout(600);
+  // 一覧が組み替わっている間に押すと、押す側が動かなくなるのを待って 30 秒で切れる (#2488)
+  await 一覧が落ち着くまで待つ(page, "位置のずらしの見本の一覧");
   await 一覧の行(page, 見本).click();
-  await page.waitForTimeout(800);
-  await expect(page.locator("main.catalog-preview svg[data-cdl-stage]").first()).toBeVisible();
+  await expect(page.locator(舞台).first()).toBeVisible();
+  await 字が落ち着くまで待つ(page);
 }
 
+/**
+ * 押して、押せたことまで確かめる。
+ *
+ * **図の落ち着きはここで待たない**。 コードの欄を開いている間は図が出ておらず、
+ * 字を待つと必ず時間切れになる (下の最後の判定がその形)。 図を測る呼出側が
+ * `字が落ち着くまで待つ` を続けて呼ぶ。
+ */
 async function 押す(page: Page, 名: string): Promise<void> {
-  await page
+  const ボタン = page
     .getByRole("radiogroup", { name: "パターン" })
-    .getByRole("radio", { name: 名, exact: true })
-    .click();
-  await page.waitForTimeout(600);
+    .getByRole("radio", { name: 名, exact: true });
+  await ボタン.click();
+  // 押せたことを確かめてから戻る。 押す前の形のまま「落ち着いた」 と判定しないため
+  await expect(ボタン).toHaveAttribute("aria-checked", "true");
 }
 
 /** 図に書かれた字ごとの中心 (図の座標)。 同じ字が複数あれば最初の 1 つ */
 async function 字の中心(page: Page, 字たち: readonly string[]): Promise<Record<string, 点>> {
   return page
-    .locator("main.catalog-preview svg[data-cdl-stage]")
+    .locator(舞台)
     .first()
     .evaluate((svg, 探す) => {
       const 根 = svg as SVGSVGElement;
@@ -54,16 +101,16 @@ async function 字の中心(page: Page, 字たち: readonly string[]): Promise<R
     }, 字たち);
 }
 
-const 字たち = ["注文する", "受け付ける", "在庫を引く", "利用者", "受付の窓口", "注文"] as const;
-
 /** ずらさない図と比べた、字ごとの動いた量 */
 async function 動いた量(page: Page, 名: string): Promise<Record<string, 点>> {
   await 押す(page, "ずらさない");
+  await 字が落ち着くまで待つ(page);
   const 前 = await 字の中心(page, 字たち);
   expect(Object.keys(前), "字を 1 つも見つけられていない (検査が空振りしている)").toEqual([
     ...字たち,
   ]);
   await 押す(page, 名);
+  await 字が落ち着くまで待つ(page);
   const 後 = await 字の中心(page, 字たち);
   expect(Object.keys(後), `${名} で字を見失った`).toEqual([...字たち]);
   return Object.fromEntries(
