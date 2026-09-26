@@ -12,14 +12,33 @@ import type { DslDocument, PresetType } from "../types";
 export type GenericKind = "flow" | "swimlane" | "er" | "state" | "topology";
 
 /**
- * 向きを選べる図種 (#1494)。
+ * 向きを選べる図種 (#1494、 #2524 で `flowchart` を足した)。
  *
  * **並び方そのものが読み方を担う図種は外す**。 表の図は「1 縦列 1 表」、クラス図と状態の図は
  * 設計が格子に置く形、順序図は 1 枚の板で、どれも向きを入れ替えると図の意味が変わる。
  *
  * `topology` も外す = 入れ物 (`contain`) を持つ図で、縦列の中に箱を囲む作りが向きと結びついている。
+ *
+ * 分かれ道の図は #2513 で足した時に外していた。 描く側の入口が向きを受けなかったためで、
+ * 図の意味が向きと結びついているからではない。 入口が受けるようになったので足す
+ * ([cardene777/cdl#880](https://github.com/cardene777/cdl/issues/880))。
  */
-export const 向きを選べる図種: ReadonlySet<PresetType> = new Set<PresetType>(["flow", "swimlane"]);
+export const 向きを選べる図種: ReadonlySet<PresetType> = new Set<PresetType>([
+  "flow",
+  "swimlane",
+  "flowchart",
+]);
+
+/**
+ * 縦列を書いた図でも向きが勝つ図種 (#2524)。
+ *
+ * 他の図種は、全ての箱が縦列を書いた時に **縦列のほうが勝つ**。 書いた縦列に箱を置く形が
+ * 向きより具体的な指定だからで、その時は書いた向きが捨てられたと知らせる。
+ *
+ * 分かれ道の図だけは逆にする。 この図種は **縦列が役割** で、書く人はほぼ必ず全ての箱に
+ * 役割を書く。 縦列が勝つ形にすると向きの行が 1 度も効かず、選べるようにした意味が消える。
+ */
+export const 縦列より向きが勝つ図種: ReadonlySet<PresetType> = new Set<PresetType>(["flowchart"]);
 
 /**
  * その図種の既定の向き (#2424 で `flow` を横にした)。

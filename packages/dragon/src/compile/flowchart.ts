@@ -3,6 +3,7 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslActor, DslDocument } from "../types";
 import { 箱の題 } from "./node-title";
 import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lanes";
+import { 並べる向き } from "./direction";
 import { slugify } from "./slug";
 /**
  * 記法の `type: flowchart` を分かれ道の図に直す (#2513)。
@@ -85,11 +86,22 @@ function 縦列の並び(doc: DslDocument): string[] {
 export function compileFlowchart(doc: DslDocument): CdlDiagram {
   const lanes = 縦列の並び(doc);
   const 既定の縦列 = lanes[0];
+  /*
+   * 並べる向きを描く側へ渡す (#2524)。
+   *
+   * 記法の 縦 / 横 と描く側の綴りは 1 対 1 で対応する。 既定は 横 で、書かない図は
+   * 1 枚も並びが動かない (`既定の向き` が `topology` 以外に 横 を返す)。
+   *
+   * 縦 は縦列 1 本に全部の箱を積む形で、役割の名前は箱の上の小さな字へ移る
+   * (描く側が `承認者 · 判断` の形にする)。
+   */
+  const 縦に積む = 並べる向き("flowchart", doc) === "縦";
 
   const fc = flowchart({
     id: slugify(doc.title),
     topic: doc.title,
     lanes,
+    direction: 縦に積む ? "vertical" : "horizontal",
   });
 
   /*
@@ -163,8 +175,12 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
    * 描画側は書いた順に 0 から詰めるため、書いた番号がそのまま消える。 全ての箱に縦列を
    * 書いた図でだけ効かせるのは、縦列を書かない箱の段は残る図種でも効かないため = ここだけ
    * 効かせると、効かないと伝える知らせのほうが誤りになる。
+   *
+   * **縦に積む図では触らない** (#2524)。 描く側が縦列 1 本に 0 から順に積んだ後で段を
+   * 書き直すと、同じ縦列に同じ段の箱が 2 つ並んで描く側が落ちる
+   * (`lane "flowchart-main" の stack=0 に node が重複`)。
    */
-  if (書いた縦列に置く("flowchart", doc)) {
+  if (!縦に積む && 書いた縦列に置く("flowchart", doc)) {
     const 段 = 縦列ごとの段を決める(doc.actors);
     doc.actors.forEach((a, i) => {
       const v = 段.get(a);
