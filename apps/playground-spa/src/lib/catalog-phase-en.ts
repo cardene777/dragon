@@ -410,6 +410,7 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "全体に対する内訳の割合を示す円グラフ": "A pie chart showing each part's share of the whole",
   "処理の順番を左から右へ 1 本の流れで示す図": "A chart showing the order of work as one line from left to right",
   "処理を役割ごとに縦列に分けて流れを示す図": "A chart splitting the work into lanes by role to show the flow",
+  "分岐や判定を含む処理の流れを縦に積んで示す図": "A chart showing a flow that branches and decides, stacked vertically",
   "分岐や判定を含む処理の流れを示す図": "A chart showing a flow that branches and decides",
   "半年前の内訳": "The split six months ago",
   "各段階での離脱率を示す絞込みの図": "A funnel showing how many drop away at each stage",

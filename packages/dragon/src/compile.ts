@@ -12,7 +12,7 @@
 import type { DslDocument, DslLane, DslStep, DslEventBinding, PresetType } from "./types";
 // 図種ごとの組み立てを分けた先 (#2030)。 共有の小道具から順に出している。
 // どれも他の file を取り込まない葉なので、図種ごとの file と両方から呼んでも輪にならない
-import { 向きを選べる図種, 既定の向き } from "./compile/direction";
+import { 向きを選べる図種, 縦列より向きが勝つ図種, 既定の向き } from "./compile/direction";
 import { actorRefTable, canonicalizeFlowActors } from "./compile/actors";
 import { compileC4 } from "./compile/c4";
 import { compileClass } from "./compile/class";
@@ -2897,6 +2897,11 @@ function 向きを外しても同じ経路か(doc: DslDocument): boolean {
   if (doc.type === "swimlane") {
     return 共通の組み立てへ回す("swimlane", 向きなし, false) === 共通の組み立てへ回す("swimlane", doc, true);
   }
+  /*
+   * 分かれ道の図は向きで経路が変わらない (#2524)。 組み立ては 1 本で、向きは中で
+   * 「縦列 1 本に積むか」 の 1 点だけを切り替える。 既定と同じ値を書いた図は同じ並びになる。
+   */
+  if (doc.type === "flowchart") return true;
   return false;
 }
 
@@ -2927,7 +2932,7 @@ function reportDirectionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
     });
     return;
   }
-  if (書いた縦列に置く(doc.type, doc)) {
+  if (!縦列より向きが勝つ図種.has(doc.type) && 書いた縦列に置く(doc.type, doc)) {
     onNotice({
       kind: "direction-not-honored",
       actor: doc.title,

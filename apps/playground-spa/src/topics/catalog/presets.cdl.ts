@@ -2956,6 +2956,46 @@ export const pattern__presetFlowchart__複雑 = withSteps(
   ],
 );
 
+/**
+ * 縦に積む版 (#2524)。
+ *
+ * 分かれ道の図は縦列を横に並べる形だけだったが、描く側の入口が向きを受けるようになった
+ * ([cardene777/cdl#880](https://github.com/cardene777/cdl/issues/880))。
+ * 記法では `direction: 縦` と書く。
+ *
+ * 縦列 1 本に全部の箱を書いた順で積むので、役割の名前を出す場所が無くなる。
+ * 落とさないため、描く側が役割を箱の上の小さな字へ移す (`承認者 · 判断` の形)。
+ *
+ * 簡単な版と同じ 4 箱で並べ方だけを変える = 中身を変えると、向きの違いなのか中身の違いなのかが
+ * 見比べられない。
+ */
+export const pattern__presetFlowchart__縦に積む = withSteps(
+  flowchart({
+    id: "flowchart-vertical-demo",
+    topic: "分岐や判定を含む処理の流れを縦に積んで示す図",
+    lanes: ["申請者", "承認者"],
+    direction: "vertical",
+  })
+    .node({ id: "submit", title: "申請を出す", shape: "start", lane: "申請者" })
+    .node({ id: "review", title: "審査", shape: "decision", lane: "承認者" })
+    .node({ id: "approve", title: "承認", shape: "end", lane: "承認者" })
+    .node({ id: "revise", title: "直して出し直す", shape: "process", lane: "申請者" })
+    .edge({ from: "submit", to: "review" })
+    .edge({ from: "review", to: "approve", label: "はい", tone: "success" })
+    .edge({ from: "review", to: "revise", label: "いいえ", tone: "warning" })
+    .build(),
+  [
+    { ids: ["submit"], title: "1. 申請を出す", body: "申請者が申請を出す。" },
+    { ids: ["review", "fc-0-submit-review"], title: "2. 審査", body: "承認者が審査して判断する。" },
+    {
+      ids: ["approve", "fc-1-review-approve"],
+      title: "3. はいなら承認",
+      body: "承認して終わる枝。",
+    },
+    { ids: ["revise", "fc-2-review-revise"], body: "いいえなら申請者に差し戻し、直して出し直す。" },
+  ],
+);
+
 // network preset ... NW topology
 export const presetNetwork = withSteps(
   network({ id: "network-demo", topic: "ネットワーク機器とセグメントの接続関係を示す図" })
@@ -5269,6 +5309,110 @@ export const sourceJson__presetFlowchart = `{
     }
   ]
 }`;
+
+export const sourceJson__pattern__presetFlowchart__縦に積む = `{
+  "title": "分岐や判定を含む処理の流れを縦に積んで示す図",
+  "type": "flowchart",
+  "direction": "縦",
+  "actors": [
+    { "name": "申請を出す", "kind": "mark-start", "title": "申請を出す", "lane": "申請者" },
+    { "name": "審査", "kind": "decision", "lane": "承認者" },
+    { "name": "承認", "kind": "mark-end", "title": "承認", "lane": "承認者" },
+    { "name": "直して出し直す", "lane": "申請者" }
+  ],
+  "flow": [
+    { "from": "申請を出す", "to": "審査", "label": "" },
+    { "from": "審査", "to": "承認", "label": "はい", "tone": "success" },
+    { "from": "審査", "to": "直して出し直す", "label": "いいえ", "tone": "warning" }
+  ],
+  "animation": [
+    {
+      "step": "1. 申請を出す",
+      "duration": 0.9,
+      "focus": ["申請を出す"],
+      "body": "申請者が申請を出す。",
+      "badge": "flowchart"
+    },
+    {
+      "step": "2. 審査",
+      "duration": 0.9,
+      "focus": ["申請を出す", "審査", "申請を出す -> 審査"],
+      "body": "承認者が審査して判断する。",
+      "badge": "flowchart"
+    },
+    {
+      "step": "3. はいなら承認",
+      "duration": 0.9,
+      "focus": [
+        "申請を出す",
+        "審査",
+        "申請を出す -> 審査",
+        "承認",
+        "審査 -> 承認"
+      ],
+      "body": "承認して終わる枝。",
+      "badge": "flowchart"
+    },
+    {
+      "step": "分岐や判定を含む処理の流れを縦に積んで示す図",
+      "duration": 0.9,
+      "focus": [
+        "申請を出す",
+        "審査",
+        "申請を出す -> 審査",
+        "承認",
+        "審査 -> 承認",
+        "直して出し直す",
+        "審査 -> 直して出し直す"
+      ],
+      "body": "いいえなら申請者に差し戻し、直して出し直す。",
+      "badge": "flowchart"
+    }
+  ]
+}`;
+
+export const sourceYaml__pattern__presetFlowchart__縦に積む = `title: "分岐や判定を含む処理の流れを縦に積んで示す図"
+type: flowchart
+
+# 並べる向きを書く。 縦 は縦列 1 本に全部の箱を書いた順で積む形で、
+# 役割の名前は箱の上の小さな字へ移る (承認者 · 判断 の形)
+direction: 縦
+
+actors:
+  - 申請を出す: mark-start
+    title: "申請を出す"
+    lane: 申請者
+  - 審査: decision
+    lane: 承認者
+  - 承認: mark-end
+    title: "承認"
+    lane: 承認者
+  - 直して出し直す
+    lane: 申請者
+
+flow:
+  - 申請を出す -> 審査
+  - 審査 -> 承認: "はい" 成功
+  - 審査 -> 直して出し直す: "いいえ" 警告
+
+animation:
+  - step: "1. 申請を出す" 0.9s
+    badge: "flowchart"
+    focus: ["申請を出す"]
+    body: "申請者が申請を出す。"
+  - step: "2. 審査" 0.9s
+    badge: "flowchart"
+    focus: ["申請を出す", 審査, "申請を出す -> 審査"]
+    body: "承認者が審査して判断する。"
+  - step: "3. はいなら承認" 0.9s
+    badge: "flowchart"
+    focus: ["申請を出す", 審査, "申請を出す -> 審査", 承認, "審査 -> 承認"]
+    body: "承認して終わる枝。"
+  - step: "分岐や判定を含む処理の流れを縦に積んで示す図" 0.9s
+    badge: "flowchart"
+    focus: ["申請を出す", 審査, "申請を出す -> 審査", 承認, "審査 -> 承認", 直して出し直す, "審査 -> 直して出し直す"]
+    body: "いいえなら申請者に差し戻し、直して出し直す。"
+`;
 
 export const sourceYaml__pattern__presetFlowchart__複雑 = `title: "経費の申請を金額と領収書で分けて振込まで追うフローチャート"
 type: flowchart

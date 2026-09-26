@@ -48,6 +48,7 @@ export const 見本の名前: readonly string[] = [
   "pattern__presetGantt__担当者なし",
   "presetFlowchart",
   "pattern__presetFlowchart__複雑",
+  "pattern__presetFlowchart__縦に積む",
   "presetNetwork",
   "pattern__presetNetwork__複雑",
   "presetStateMachine2",

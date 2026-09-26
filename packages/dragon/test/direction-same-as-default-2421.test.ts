@@ -25,7 +25,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram, PRESET_TYPES } from "../src/index";
-import { 既定の向き } from "../src/compile/direction";
+import { 既定の向き, 向きを選べる図種 } from "../src/compile/direction";
 import type { CompileNotice } from "../src/compile";
 import type { PresetType } from "../src/types";
 
@@ -151,8 +151,8 @@ describe("既定と同じ向きを書いた時の知らせ (#2421)", () => {
 
   it("向きを選べない図種は、これまでどおり捨てられた側の知らせを出す", () => {
     // 走査した件数を併記する = 0 件が「該当なし」 か「測っていない」 かを分ける
-    const 選べる = ["flow", "swimlane"];
-    const 対象 = [...PRESET_TYPES].filter((t) => !選べる.includes(t));
+    // 選べる側は実物から引く (#2524)。 手で並べると図種を足した日にここだけ古くなる
+    const 対象 = [...PRESET_TYPES].filter((t) => !向きを選べる図種.has(t));
     expect(対象.length, "向きを選べない図種が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
     const 既定と同じが出た: string[] = [];
     const 捨てられたが出なかった: string[] = [];
