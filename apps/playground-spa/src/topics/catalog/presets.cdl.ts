@@ -346,8 +346,19 @@ const flowB = diagram("flow-demo", {
   type: "flow",
 });
 for (const lid of flowLanes) flowB.lane(lid, { width: 400 });
+/*
+ * 箱の幅を 180 にする (#2426)。
+ *
+ * 種別ごとの既定 (person 280 / api 320 / service 320 / database 320) のままだと、
+ * 帯の間隔が `箱の半幅の和 + 札の幅 + 余白` で決まるため図の幅が 2536 になり、
+ * 一覧の器 (1150x630px) では 0.45 倍まで縮んで箱の題が 10.0px になる。
+ *
+ * 箱の中でいちばん長い字は `POST /login` の 114.3px (20px で実測) なので、
+ * 180 でも左右に 33px ずつ余る。 180 にすると間隔が 692 から 552 に下がり、
+ * 図の幅は 2066 になって拡大表示の境 (2108) の内側に入る。
+ */
 flowBox.forEach((b, i) => {
-  flowB.node(b.id, { lane: flowLanes[i]!, stack: 0, kind: b.kind, title: b.title, eyebrow: b.eyebrow });
+  flowB.node(b.id, { lane: flowLanes[i]!, stack: 0, kind: b.kind, title: b.title, eyebrow: b.eyebrow, w: 180 });
 });
 for (const e of flowEdge) {
   flowB.edge(e.from, e.to, { id: e.id, label: e.label, tone: "teal", style: "dotted-flow" });
@@ -3509,10 +3520,10 @@ export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
 export const sourceYaml__presetFlow = `title: "処理の順番を左から右へ 1 本の流れで示す図"
 type: flow
 actors:
-  - 利用者: { kind: person, eyebrow: "人" }
-  - POST /login: { kind: api, eyebrow: "API" }
-  - 認証サービス: { kind: service, eyebrow: "サービス" }
-  - 利用者の表: { kind: database, eyebrow: "DB" }
+  - 利用者: { kind: person, eyebrow: "人", posW: 180 }
+  - POST /login: { kind: api, eyebrow: "API", posW: 180 }
+  - 認証サービス: { kind: service, eyebrow: "サービス", posW: 180 }
+  - 利用者の表: { kind: database, eyebrow: "DB", posW: 180 }
 flow:
   - 利用者 -> POST /login: "ログイン要求" (teal, dotted-flow)
   - POST /login -> 認証サービス: "認証処理" (teal, dotted-flow)
@@ -3540,10 +3551,10 @@ export const sourceJson__presetFlow = `{
   "title": "処理の順番を左から右へ 1 本の流れで示す図",
   "type": "flow",
   "actors": [
-    { "name": "利用者", "kind": "person", "eyebrow": "人" },
-    { "name": "POST /login", "kind": "api", "eyebrow": "API" },
-    { "name": "認証サービス", "kind": "service", "eyebrow": "サービス" },
-    { "name": "利用者の表", "kind": "database", "eyebrow": "DB" }
+    { "name": "利用者", "kind": "person", "eyebrow": "人", "posW": 180 },
+    { "name": "POST /login", "kind": "api", "eyebrow": "API", "posW": 180 },
+    { "name": "認証サービス", "kind": "service", "eyebrow": "サービス", "posW": 180 },
+    { "name": "利用者の表", "kind": "database", "eyebrow": "DB", "posW": 180 }
   ],
   "flow": [
     {
