@@ -588,8 +588,6 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       "class-complex-demo",
       "class-demo",
       "er-complex-demo",
-      // #2424 でフローの既定を横にした。 4 段を横に並べると幅が 2536 になる
-      "flow-demo",
       "fsm-complex-demo",
       "fsm-demo",
       "infra-complex-demo",
@@ -632,8 +630,12 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
   "text-readability": {
     理由:
       "箱の題が長い見本。 題を縮めると「長い名前を書いた時にどう見えるか」 が見本から消える。" +
-      " 実物の題 (`product_categories` 等) をそのまま見せることが見本の役目",
-    図: ["er-complex-demo", "scene-edge-compute", "scene-mobile-api"],
+      " 実物の題 (`product_categories` 等) をそのまま見せることが見本の役目。" +
+      " `flow-demo` だけは別の理由で、この軸は題の字数に 22px を掛けて幅を見積もる。" +
+      " 日本語の字を前提にした数なので、英数字の題では実際の 2 倍を超える。" +
+      " `POST /login` は 11 字なので見積もりが 294px になるが、20px で描いた実測は 114.3px で、" +
+      " #2426 で 180px に絞った箱にも収まっている",
+    図: ["er-complex-demo", "flow-demo", "scene-edge-compute", "scene-mobile-api"],
   },
   "node-vertical-clearance": {
     理由:
