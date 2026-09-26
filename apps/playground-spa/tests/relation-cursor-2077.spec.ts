@@ -5,15 +5,20 @@
  * (`role="button"` と `aria-pressed` が付き、押すと繋がる線と相手の箱が光ったまま残る)。
  * ところが押せる箱を指しても cursor が変わらず、読み手は触れて光るだけの箱だと読む。
  *
- * ## 描画側は直せないが、こちらで出せる
+ * ## 出しているのは描画側 (0.80.0 から、#2574)
  *
- * engine (`@cardenelabs/cdl`) は押せる箱へ `style={{ cursor: "pointer" }}` を渡すが、
- * 同じ要素の後ろで動きの指定を `style` で渡し直しており、**後の値が前の値を丸ごと
- * 置き換える**。 要素に残る `style` は `transition` だけになる。
+ * 0.79.0 までは engine が押せる箱へ `style={{ cursor: "pointer" }}` を渡しつつ、同じ要素の
+ * 後ろで動きの指定を `style` で渡し直していた。 後の値が前の値を丸ごと置き換えるため、
+ * 要素に残る `style` は `transition` だけだった。 そこで一度は **こちらの style sheet で
+ * 出す** 形にして閉じている (`!important` を付けず、要素に `cursor` が無いことに頼った)。
  *
- * 起票時は「描画側が `style` を 1 つにまとめた版を取り込む」 としていたが、
- * **要素に `cursor` が残っていないので、こちらの style sheet が普通に当たる**。
- * 外部の版を待たずに閉じられる (実測 = `auto` から `pointer` へ変わった)。
+ * 0.80.0 で engine が `style` を 1 つにまとめた ([cardene777/cdl#869](https://github.com/cardene777/cdl/issues/869))。
+ * こちらの規則は消し、**出所を engine 1 つに戻した**。 二重に持つと、engine の指定が
+ * 効かなくなった日にこちらが勝ち続けて気付けない。
+ *
+ * **出所も測る**。 計算済みの値だけを見ると、engine が出しても style sheet が出しても
+ * `pointer` になって区別できない。 要素に直接載っている値 (`el.style.cursor`) を併せて見れば、
+ * engine が渡しているかが分かる = 渡さなくなった日にここで落ちる。
  *
  * ## 母集団は実物から導く
  *
@@ -53,6 +58,8 @@ for (const 見本 of 触れて読む見本) {
         箱: document.querySelectorAll("[data-cdl-node]").length,
         押せる: 押せる.length,
         cursor: [...new Set(押せる.map((e) => getComputedStyle(e).cursor))],
+        // 要素に直接載っている値。 engine が渡しているかを区別する
+        素の指定: [...new Set(押せる.map((e) => (e as SVGElement).style.cursor || "なし"))],
       };
     });
 
@@ -64,6 +71,10 @@ for (const 見本 of 触れて読む見本) {
     ).toBeGreaterThan(0);
 
     expect(m.cursor, `押せる箱 ${m.押せる} 個の cursor`).toEqual(["pointer"]);
+    expect(
+      m.素の指定,
+      `engine が箱へ cursor を渡していない (押せる箱 ${m.押せる} 個)`,
+    ).toEqual(["pointer"]);
   });
 }
 
