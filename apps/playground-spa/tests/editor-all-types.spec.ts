@@ -1,4 +1,8 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+import { 見本が開けたことを確かめる } from "./opened-sample";
+import { 位置が落ち着くまで待つ, 形が落ち着くまで待つ, 描き終わりを待つ } from "./wait-for-render";
 
 /**
  * 全 diagram type で editor の基本操作が成立することを保証する (CAR-2160)。
@@ -11,26 +15,84 @@ import { test, expect } from "@playwright/test";
 test.use({ viewport: { width: 1920, height: 1080 } });
 
 /**
+ * この file の 50 件を並べて回す (#2557)。
+ *
+ * 並べて回す単位は既定では file なので、50 件が 1 つの走らせ役に並んでいた。
+ * 他の file が終わってもこの 1 本が残り、**一式の終わりがこの file の長さで決まっていた**
+ * (一式 19.3 分のうち 5.2 分)。
+ *
+ * 触れ合わないので並べてよい。 50 件はそれぞれ自分の頁を開いて読むだけで、書き換える先を
+ * 共有していない。
+ *
+ * **走らせ役の数は増えない**。 4 つという数は [#1094](https://github.com/cardene777/dragon/issues/1094)
+ * が 1 / 4 / 6 を実測して選んだ値で、ここでは変えない。 変わるのは 50 件が 4 つに散ることだけ。
+ */
+test.describe.configure({ mode: "parallel" });
+
+const DIAGRAM_SVG = '[data-testid="editor-preview-stage"] svg[viewBox]';
+
+/**
  * 脇の一覧の「見本」 の見出しから slug 指定で開く。
  *
  * **字ではなく目印で掴む** (#1811)。 字で掴むと呼び名を直した日に検査が落ちる。
+ *
+ * **決め打ちで待たない** (#2557)。 かつては開いて 2000ms、欄を開いて 300ms、押して 1800ms を
+ * 待っていた。 一式で回すと足りなくなり、単独では通る形になる (#2458 / #2555 と同じ落ち方)。
+ * 押し所が出るのは押す側が待ち、図が組み終わるのは編集画面向けの助けが待つ。
  */
-async function openSample(page: import("@playwright/test").Page, slug: string): Promise<void> {
+async function openSample(page: Page, slug: string): Promise<void> {
   await page.goto("editor");
   await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2000);
-  await page.locator(`[data-testid="editor-samples-tab"]`).click();
-  await page.waitForTimeout(300);
+  await page.locator('[data-testid="editor-samples-tab"]').click();
+
   const btn = page.locator(`[data-testid="editor-sample-${slug}"]`).first();
-  if ((await btn.count()) === 0) throw new Error(`sample not found: ${slug}`);
+  try {
+    await btn.waitFor({ state: "visible", timeout: 10_000 });
+  } catch {
+    throw new Error(`見本 ${slug} の押し所が出ない (slug が消えたか、見本の欄が開いていない)`);
+  }
   await btn.click();
-  await page.waitForTimeout(1800);
+
+  await 見本が開けたことを確かめる(page, slug);
+  // 編集画面は図を読んでから枠に収めるまでに 3 度位置を計算し直す (#2476)
+  await 位置が落ち着くまで待つ(page, `編集画面の ${slug}`);
 }
 
-/** 図の SVG (viewBox を持つもの) を返す。 icon の SVG を掴まないための絞り込み。 */
-import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+/** 図の実描画の大きさが動かなくなるまで待つ */
+async function 大きさが落ち着くまで待つ(page: Page, 何を: string): Promise<number> {
+  return 形が落ち着くまで待つ(
+    page,
+    `${何を} の図の大きさ`,
+    (指す: { sel: string }) => {
+      const r = document.querySelector(指す.sel)?.getBoundingClientRect();
+      if (!r || r.width === 0) return null;
+      return `${Math.round(r.width)},${Math.round(r.height)}`;
+    },
+    { sel: DIAGRAM_SVG },
+    { 窓: 300 },
+  );
+}
 
-const DIAGRAM_SVG = '[data-testid="editor-preview-stage"] svg[viewBox]';
+/**
+ * 変わるはずの値が変わるまで待つ。
+ *
+ * 落ち着きだけを見ると、**押す前の値のまま落ち着いたことにできる**。 押してから描き直しが
+ * 300 ミリ秒を超えて遅れた回に、変わっていない値を測って進んでしまう。
+ *
+ * **変わらないまま時間切れになった時は、ここで落とさず下の判定に言わせる**。
+ * 何がどう違うかは判定の文のほうが詳しい (倍率 / 縦横比 / 座標系のどれが崩れたかまで出る)。
+ */
+async function 変わるまで待つ(
+  page: Page,
+  何を: string,
+  渡す: { sel: string; 前: number },
+  読む: (渡す: { sel: string; 前: number }) => boolean,
+): Promise<void> {
+  await 描き終わりを待つ(page, 何を, 読む, 渡す, {
+    上限ミリ秒: 5_000,
+    出ない時の言い方: "変わらない",
+  }).catch(() => undefined);
+}
 
 /**
  * 対象 type の代表 sample。 label の部分一致で引く。
@@ -44,8 +106,6 @@ const TYPES: Array<{ type: string; label: string }> = EDITOR_SAMPLES.map((s) => 
 }).filter((t, i, a) => t.type !== "" && a.findIndex((x) => x.type === t.type) === i);
 
 for (const { type, label } of TYPES) {
-
-
   test(`全 type: ${type} = 図の倍率が等比で効く`, async ({ page }) => {
     await openSample(page, label);
     // 測るのは **実描画サイズ** (getBoundingClientRect)。
@@ -61,7 +121,11 @@ for (const { type, label } of TYPES) {
       }, DIAGRAM_SVG);
     const b = await size();
     await page.locator('[data-testid="editor-diagram-scale-up"]').click();
-    await page.waitForTimeout(1200);
+    await 変わるまで待つ(page, `${type} の図の幅`, { sel: DIAGRAM_SVG, 前: b.w }, (渡す) => {
+      const r = document.querySelector(渡す.sel)?.getBoundingClientRect();
+      return r !== undefined && Math.abs(r.width - 渡す.前) > 1;
+    });
+    await 大きさが落ち着くまで待つ(page, type);
     const a = await size();
     // 縦横とも拡大し、 縦横比が保たれる (歪まない)
     expect(a.w, `${type} の描画幅`).toBeGreaterThan(b.w);
@@ -83,7 +147,15 @@ for (const { type, label } of TYPES) {
     const b = await font();
     expect(b, `${type} に text がある`).toBeGreaterThan(0);
     await page.locator('[data-testid="editor-font-scale-up"]').click();
-    await page.waitForTimeout(700);
+    await 変わるまで待つ(
+      page,
+      `${type} の文字の大きさ`,
+      { sel: `${DIAGRAM_SVG} text`, 前: b },
+      (渡す) => {
+        const t = document.querySelector(渡す.sel);
+        return t !== null && Math.abs(parseFloat(getComputedStyle(t).fontSize) - 渡す.前) > 0.01;
+      },
+    );
     expect(await font(), `${type} の文字`).toBeGreaterThan(b);
   });
 }
