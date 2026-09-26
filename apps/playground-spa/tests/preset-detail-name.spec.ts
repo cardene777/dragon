@@ -53,7 +53,7 @@ test.describe("preset 詳細の見出し (#1047)", () => {
     for (const identifier of ["mindMap", "mind", "presetMindMap"]) {
       expect(name, `識別子がそのまま出ている: ${identifier}`).not.toBe(identifier);
     }
-    expect(name, "日本語名が出ない").toBe("枝分かれ図");
+    expect(name, "日本語名が出ない").toBe("マインドマップ");
   });
 
   test("見出しに識別子がそのまま出ない", async ({ page }) => {

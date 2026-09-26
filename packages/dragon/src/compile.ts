@@ -1228,7 +1228,7 @@ function reportBandProblems(
  * |---|---|---|
  * | 順序図の板の言づて | 図種 | `reportMessageOptionNotHonored` が他の飾りと合わせて伝える |
  * | `actors` に無い名前を指す矢印 | 名前の解決に使う表 (`actorRefTable`) | 居ない名前の知らせ (`reportMissingFlowActors`) |
- * | 図種の組み立てが知らせた行 | 実際に出た知らせ | 捨てた矢印 / 自分を親にする矢印 / 工程表の矢印の飾り (多重度を含む) など |
+ * | 図種の組み立てが知らせた行 | 実際に出た知らせ | 捨てた矢印 / 自分を親にする矢印 / ガントチャートの矢印の飾り (多重度を含む) など |
  *
  * 値の図 (`pie` 等) は捨てた本数を最初の矢印の行でまとめて伝えるため、2 本目以降の矢印に書いた
  * 多重度はここで伝わる。
@@ -1354,7 +1354,7 @@ function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
  * 木の図と思考の地図は矢印を親子のつながりとして描き、線の形も向きも階層から決める。
  * 飾りを載せる先が無い。
  *
- * 工程表 (`gantt`) も同じ性質を持つが、知らせを図種ごとの組み立て (`compile/gantt.ts`) の
+ * ガントチャート (`gantt`) も同じ性質を持つが、知らせを図種ごとの組み立て (`compile/gantt.ts`) の
  * 中で出しているので、ここには入れない。
  */
 const 矢印を骨格にする図種: ReadonlySet<string> = new Set(["tree", "mind"]);
@@ -1457,7 +1457,7 @@ const 図種が読むものの呼び名: ReadonlyMap<string, string> = new Map([
  * 対象の図種と、図種ごとに読む欄は `値として読む図種` が持つ (実装が SSOT)。
  *
  * 実測 = 箱に書ける 30 項目のうち、値の図で 17 件 / じょうごで 19 件 /
- * 工程表と体験の地図と四象限で 22-23 件が、図も変わらず知らせも出なかった。
+ * ガントチャートと体験の地図と四象限で 22-23 件が、図も変わらず知らせも出なかった。
  *
  * 位置 (`posX` + `posY`) は片方だけだと別の知らせ (#2362) が出るため、1 項目ずつ足す走査では
  * 「知らせる」 に数えられ、組で書いた時の穴が隠れていた。
@@ -2383,7 +2383,7 @@ function applyGroupFrames(
 }
 
 /**
- * 体験の道筋の欄を、 それを描けない図種で書いた時に伝える (#1251)。
+ * ユーザージャーニーの欄を、 それを描けない図種で書いた時に伝える (#1251)。
  *
  * `touchpoint` と `opportunity` は `type: journey` の段だけが持つ。 他の図種では相手が無く、
  * 黙って捨てると「書いたのに出ない」 が手掛かりなしで起きる。
@@ -2415,8 +2415,8 @@ function reportChartFieldsNotHonored(
         kind: "chart-value-unreadable",
         actor: a.name,
         line: a.pos?.line ?? 0,
-        message: `"${truncateForMessage(a.name)}" に書いた ${道筋.join(" / ")} は効きません (type: ${doc.type} には体験の道筋の欄がありません)`,
-        hint: "体験の道筋を描くなら type: journey を使ってください",
+        message: `"${truncateForMessage(a.name)}" に書いた ${道筋.join(" / ")} は効きません (type: ${doc.type} にはユーザージャーニーの欄がありません)`,
+        hint: "ユーザージャーニーを描くなら type: journey を使ってください",
       });
     }
     if (工程.length > 0) {

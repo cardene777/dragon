@@ -39,7 +39,7 @@ const ALL = [...DRIVEN, ...INPUT_DRIVEN];
 /**
  * 表示部品が状態を指す field の値。
  *
- * `source` 1 つとは限らない。 積み上げ棒は `sourceA` / `sourceB`、パンくずと工程表は
+ * `source` 1 つとは限らない。 積み上げ棒は `sourceA` / `sourceB`、パンくずとガントチャートは
  * `currentSource` / `stepsSource` を持つ。 `source` だけを見ると、`source` の指す状態を
  * 段が動かさない図が「動いていない」 と誤判定される (実測 = `docsBreadcrumb` は
  * `path` を固定したまま `cur` を動かす)。

@@ -177,7 +177,7 @@ describe("autoFix — topic 変換", () => {
   });
 
   it("名前が `図` で終わる型でも図が重ならない (#1934)", () => {
-    expect(autoFix(diagram({ topic: "gantt preset (詳細)" })).topic).toBe("作業の期間と前後の関係を示す工程表");
+    expect(autoFix(diagram({ topic: "gantt preset (詳細)" })).topic).toBe("作業の期間と前後の関係を示すガントチャート");
     expect(autoFix(diagram({ topic: "stateMachine2 の例" })).topic).toBe(
       "親の状態の中に置いた子の状態と遷移の条件を示す入れ子の状態遷移図",
     );

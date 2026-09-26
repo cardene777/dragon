@@ -220,8 +220,8 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
     await expect(説明).not.toHaveCount(0);
   });
 
-  test("工程表で 帯だけ を選ぶと前後の矢印が消える", async ({ page }) => {
-    await 開く(page, "工程表");
+  test("ガントチャートで 帯だけ を選ぶと前後の矢印が消える", async ({ page }) => {
+    await 開く(page, "ガントチャート");
     const 矢印 = page.locator('.catalog-preview-stage [data-cdl-role="gantt-arrow"]');
     await expect(page.getByRole("radio", { name: "前後つき" })).toHaveAttribute(
       "aria-checked",
@@ -233,8 +233,8 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
     await expect(矢印).toHaveCount(0);
   });
 
-  test("体験の道筋で 接点つき を選ぶと接点の札が出る", async ({ page }) => {
-    await 開く(page, "体験の道筋");
+  test("ユーザージャーニーで 接点つき を選ぶと接点の札が出る", async ({ page }) => {
+    await 開く(page, "ユーザージャーニー");
     const 札 = page.locator('.catalog-preview-stage [data-cdl-role="journey-chip"]');
     await expect(page.getByRole("radio", { name: "気持ちだけ" })).toHaveAttribute(
       "aria-checked",
@@ -246,8 +246,8 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
     await expect(札).not.toHaveCount(0);
   });
 
-  test("枝分かれ図で 見出しだけ を選ぶと説明が消える", async ({ page }) => {
-    await 開く(page, "枝分かれ図");
+  test("マインドマップで 見出しだけ を選ぶと説明が消える", async ({ page }) => {
+    await 開く(page, "マインドマップ");
     const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="mind-node-subtitle"]');
     await expect(page.getByRole("radio", { name: "説明つき" })).toHaveAttribute(
       "aria-checked",
@@ -274,7 +274,7 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
 
   test("変種を持たない図ではパターンの群が出ない (陰性対照)", async ({ page }) => {
     // 「どの図でも出る」 形なら上の 5 件は通っても意味を持たない
-    await 開く(page, "絞り込み図");
+    await 開く(page, "ファネル図");
     await expect(page.getByRole("radiogroup", { name: "パターン" })).toHaveCount(0);
   });
 });

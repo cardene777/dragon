@@ -8,7 +8,7 @@
  * | 板の面 | `sequence` / `solidity` | #2358 |
  * | 木の図 | `tree` | #2360 |
  * | 値の図とじょうご | `pie` ほか 9 図種 + `funnel` | #2368 |
- * | 工程表と体験の地図と四象限 | `gantt` / `journey` / `quadrant` | #2370 |
+ * | ガントチャートと体験の地図と四象限 | `gantt` / `journey` / `quadrant` | #2370 |
  * | 骨組みの図 | `flow` / `swimlane` / `topology` / `er` / `c4` / `class` / `state` | #2376 / #2382 |
  *
  * 矢印の側は `edge-option-notice.ts` が同じ形を持つ (#2366)。
@@ -66,7 +66,7 @@ export const 効かない箱の欄の呼び名 = [
 /**
  * 体験と工程の欄 (#2380)。 **どの族の除外にも入る**。
  *
- * 担当 (`owner`) と終わる時期 (`end`) は工程表が、接点 (`touchpoint`) と伸びしろ
+ * 担当 (`owner`) と終わる時期 (`end`) はガントチャートが、接点 (`touchpoint`) と伸びしろ
  * (`opportunity`) は体験の地図が描く。 描けない図種で書いた時は
  * `reportChartFieldsNotHonored` が図種ごとの行き先を添えて伝える。
  *
@@ -175,7 +175,7 @@ const 値として読む図に共通の除外: ReadonlySet<string> = new Set([
  * |---|---|
  * | 値の図 9 図種 | 色味 (`tone`) / 前の値 (`previous`) |
  * | じょうご / 体験の地図 / 四象限 | 無し (名前と値だけを読む) |
- * | 工程表 | 色味 (`tone`)。 担当と終わる時期は共通の除外に入っている |
+ * | ガントチャート | 色味 (`tone`)。 担当と終わる時期は共通の除外に入っている |
  */
 export const 値として読む図種: ReadonlyMap<string, readonly string[]> = new Map([
   ["pie", ["tone", "previous"]],

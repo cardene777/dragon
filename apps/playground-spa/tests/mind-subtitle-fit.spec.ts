@@ -106,11 +106,11 @@ async function 測る(page: Page): Promise<測り結果> {
   });
 }
 
-/** カタログの枝分かれ図を開く */
+/** カタログのマインドマップを開く */
 async function 開く(page: Page): Promise<void> {
   await page.goto("catalog/charts", { waitUntil: "networkidle" });
   await page.waitForTimeout(700);
-  await 一覧の行(page, "枝分かれ図", false).click();
+  await 一覧の行(page, "マインドマップ", false).click();
   await page.waitForTimeout(500);
 }
 

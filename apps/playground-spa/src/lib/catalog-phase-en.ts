@@ -434,7 +434,7 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "時系列のやり取りを縦の時間軸で並べる図": "A chart laying out an exchange over time down a vertical axis",
   "時系列データの推移を線で示す折れ線グラフ": "A line chart showing how values move over time",
   "書き出した時": "When it was written out",
-  "書き出した観点を先と後に仕分けて中心の方針が決まる枝分かれ図": "A branching chart where the points written out are sorted into now and later, settling the direction at the centre",
+  "書き出した観点を先と後に仕分けて中心の方針が決まるマインドマップ": "A branching chart where the points written out are sorted into now and later, settling the direction at the centre",
   "注文の変更が使い方の質問へ移る": "Order changes give way to questions about use",
   "注文を受けてから発送の知らせを送るまでのクラウド構成図": "A cloud layout from taking an order to sending the dispatch notice",
   "画面を作るも延びる": "Building the screens slips too",

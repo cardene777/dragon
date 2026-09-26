@@ -40,8 +40,8 @@ async function 状態の種類(page: Page, 読む: () => Promise<string[]>): Pro
 }
 
 test.describe("Text DSL の見本も起点から描かれる (#1363)", () => {
-  test("工程表: 帯の幅が動く", async ({ page }) => {
-    await 開く(page, "テキスト記法の工程表");
+  test("ガントチャート: 帯の幅が動く", async ({ page }) => {
+    await 開く(page, "テキスト記法のガントチャート");
     const 値 = await 状態の種類(page, () =>
       page.evaluate(() =>
         Array.from(document.querySelectorAll('[data-cdl-role="gantt-bar"]')).map(
@@ -63,8 +63,8 @@ test.describe("Text DSL の見本も起点から描かれる (#1363)", () => {
     expect(値.size, `切り抜きの形が変わらない (観測できた形 = ${[...値].join(", ")})`).toBeGreaterThanOrEqual(2);
   });
 
-  test("枝分かれ図: 枝の残りが動く", async ({ page }) => {
-    await 開く(page, "テキスト記法の枝分かれ図");
+  test("マインドマップ: 枝の残りが動く", async ({ page }) => {
+    await 開く(page, "テキスト記法のマインドマップ");
     const 値 = await 状態の種類(page, () =>
       page.evaluate(() =>
         Array.from(document.querySelectorAll('[data-cdl-role="mind-edge"]'))

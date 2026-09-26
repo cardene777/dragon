@@ -158,14 +158,14 @@ describe("jsonToDoc が行を載せる", () => {
 
 describe("jsonToDiagram の知らせ", () => {
   /** 画面の YAML 欄に貼る本文と同じ形。 行番号は本文の行に合わせてある */
-  const 工程表 = {
+  const ガントチャート = {
     title: "t",
     type: "gantt",
     actors: [{ name: "設計", value: "Q1" }, { name: "実装" }],
     flow: [{ from: "設計", to: "試験", label: "" }],
     values: { sales: "1 +" },
   };
-  const 工程表の表 = new Map([
+  const ガントチャートの表 = new Map([
     [書いた場所の鍵("actors", 1), 5],
     [書いた場所の鍵("flow", 0), 7],
     [書いた場所の鍵("values", "sales"), 9],
@@ -173,7 +173,7 @@ describe("jsonToDiagram の知らせ", () => {
 
   it("表を渡すと、3 件の知らせが書いた行を指す", () => {
     const 知らせ = 知らせを集める((onNotice) =>
-      jsonToDiagram(工程表, { onNotice, 行の表: 工程表の表 }),
+      jsonToDiagram(ガントチャート, { onNotice, 行の表: ガントチャートの表 }),
     );
     expect(知らせ.map((n) => [n.kind, n.line])).toEqual([
       ["chart-value-unreadable", 5],
@@ -183,7 +183,7 @@ describe("jsonToDiagram の知らせ", () => {
   });
 
   it("表を渡さないと、同じ 3 件が 0 行のままになる", () => {
-    const 知らせ = 知らせを集める((onNotice) => jsonToDiagram(工程表, { onNotice }));
+    const 知らせ = 知らせを集める((onNotice) => jsonToDiagram(ガントチャート, { onNotice }));
     expect(知らせ.map((n) => [n.kind, n.line])).toEqual([
       ["chart-value-unreadable", 0],
       ["flow-actor-missing", 0],
@@ -192,8 +192,8 @@ describe("jsonToDiagram の知らせ", () => {
   });
 
   it("行を渡しても図は 1 文字も変わらない", () => {
-    const 行あり = jsonToDiagram(工程表, { 行の表: 工程表の表 });
-    const 行なし = jsonToDiagram(工程表);
+    const 行あり = jsonToDiagram(ガントチャート, { 行の表: ガントチャートの表 });
+    const 行なし = jsonToDiagram(ガントチャート);
     expect(JSON.stringify(行あり)).toBe(JSON.stringify(行なし));
   });
 

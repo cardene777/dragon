@@ -148,7 +148,7 @@ test.describe("拡大表示の文字が読める大きさに届く (#2284)", () 
       }
       await ボタン.click();
       await expect(page.locator(".cdl-modal-content")).toBeVisible();
-      // 描き出しの動きが静止するまで待つ (#2279 の実測で工程表は 2.1 秒)
+      // 描き出しの動きが静止するまで待つ (#2279 の実測でガントチャートは 2.1 秒)
       await page.waitForTimeout(2500);
 
       const 測定 = await 拡大の最小の文字(page);

@@ -153,7 +153,7 @@ describe("監査の説明書の記法の検査の節 (#1948)", () => {
   it("植え込み対照: #1934 より前の自動修正の例は、自動修正の値と違うものとして見つける", () => {
     const 古い例 = [{ 前: "gantt preset (Release timeline)", 後: "ガントチャート を示す図" }];
     expect(例とずれるもの(古い例, autoFix)).toEqual([
-      "gantt preset (Release timeline): 説明書は ガントチャート を示す図、自動修正は 作業の期間と前後の関係を示す工程表",
+      "gantt preset (Release timeline): 説明書は ガントチャート を示す図、自動修正は 作業の期間と前後の関係を示すガントチャート",
     ]);
   });
 });

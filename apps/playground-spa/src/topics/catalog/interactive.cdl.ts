@@ -4247,7 +4247,7 @@ export const projectGantt = diagram("interactive-project-gantt", {
     viewW: 320,
     viewH: 140,
     color: "#2563eb",
-    label: "工程表 (横棒)",
+    label: "ガントチャート (横棒)",
   })
   .phase(
     "p1",
@@ -4284,7 +4284,7 @@ export const projectGantt = diagram("interactive-project-gantt", {
   )
   .build();
 export const subtitle__projectGantt =
-  "設計 → 実装 → テスト → 公開の 4 工程を矢印で引き継ぎ、期間を横棒の工程表で見せる (gantt)";
+  "設計 → 実装 → テスト → 公開の 4 工程を矢印で引き継ぎ、期間を横棒のガントチャートで見せる (gantt)";
 
 /**
  * 50. resource treemap = 6 team の share 割合を hierarchical rectangles で表示。
@@ -13317,7 +13317,7 @@ export const sourceYaml__projectGantt = `title: "4 工程の期間を横棒で�
 type: flow
 
 readouts:
-  g: { kind: gantt, source: "tasks", min: 0, max: 10, viewW: 320, viewH: 140, color: "#2563eb", label: "工程表 (横棒)" }
+  g: { kind: gantt, source: "tasks", min: 0, max: 10, viewW: 320, viewH: 140, color: "#2563eb", label: "ガントチャート (横棒)" }
 
 lanes:
   col1: { x: 0, width: 370 }
@@ -13368,7 +13368,7 @@ export const sourceJson__projectGantt = `{
       "viewW": 320,
       "viewH": 140,
       "color": "#2563eb",
-      "label": "工程表 (横棒)"
+      "label": "ガントチャート (横棒)"
     }
   ],
   "lanes": {

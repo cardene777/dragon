@@ -2867,7 +2867,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
   /** 倍率を名前ごとに最後に書いた行。 別名の優先順と行番号を取り違えないために保持する。 */
   const scaleLines = new Map<string, number>();
   /**
-   * 縦に並べて書かれた体験の道筋の欄 (#1251)。
+   * 縦に並べて書かれたユーザージャーニーの欄 (#1251)。
    *
    * パーツでは状態の上書きとして意味を持つため、どちらに入れるかは block を読み終わってから
    * 決める。 `kind:` の行が後ろに書かれることもあり、読んだ時点ではパーツか分からない。
@@ -3114,7 +3114,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     out.scale = s.scale;
     out.scaleKeys = [...new Set([...(actor.scaleKeys ?? []), ...s.keys])];
   }
-  // 体験の道筋の欄は、パーツなら状態の上書き、そうでなければ道筋の欄として入れる
+  // ユーザージャーニーの欄は、パーツなら状態の上書き、そうでなければ道筋の欄として入れる
   for (const [key, v] of 図種ごとの欄) {
     if (out.partId !== undefined) {
       state[key] = coerceStateValue(v);
@@ -3219,7 +3219,7 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "scale",
   "lane",
   "stack",
-  // 体験の道筋の欄 (#1251)
+  // ユーザージャーニーの欄 (#1251)
   "touchpoint",
   "opportunity",
   // 工程の並びの欄 (#1251)
@@ -3435,7 +3435,7 @@ export const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "initial",
   "final",
   "state",
-  // 体験の道筋の欄 (`touchpoint` / `opportunity`) はここに載せない (#1251 Round 1 の指摘)。
+  // ユーザージャーニーの欄 (`touchpoint` / `opportunity`) はここに載せない (#1251 Round 1 の指摘)。
   // 載せるとパーツで同じ名前の状態を書いた時に横取りされる = 既に動いている見本が静かに変わる。
   // パーツでない箱でだけ道筋の欄として読む (`parseActor` / `applyContinuationLines` が分岐する)
   // canvas pivot 新 spec = 絶対座標 4 field (dragon canvas pivot spec §layout-role-conversion)
@@ -3552,7 +3552,7 @@ const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   // 色の欄 (#1969)。 縦に並べた形と JSON は `color` を受けるのに、中括弧の形だけが知らない
   // 項目名として落としていた。 見本 (parts) では従来どおり状態の上書きとして読む
   "color",
-  // 体験の道筋の欄 (#1251)。 他の図種では組み立て側が知らせる
+  // ユーザージャーニーの欄 (#1251)。 他の図種では組み立て側が知らせる
   "touchpoint",
   "opportunity",
   // 工程の並びの欄 (#1251)
