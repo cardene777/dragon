@@ -38,6 +38,23 @@ const 携帯の高さ = 844;
 const 下限 = 8;
 
 /**
+ * 下限の倍率が目指す大きさ (px)。
+ *
+ * `src/lib/readable-scale.ts` の `READABLE_MIN_PX` と同じ値を **書き写す** (上の 下限 と同じ判断)。
+ * 下限の倍率は `この大きさ / 図の中でいちばん小さい文字` で決まる。
+ */
+const 目指す大きさ = 10;
+
+/**
+ * 植える字の指定と、その親に掛ける縮小 (#2287 の対照で使う)。 実効は 30 × 0.5 = 15。
+ *
+ * 指定は植え先の図の最小 (24) より **大きく** 採る = 指定を母数にすると 1px も動かない。
+ * 実効 15 を母数にすると下限は 10 / 15 = 0.6667 で、実寸 100% の上限には当たらない。
+ */
+const 植える指定 = 30;
+const 植える縮小 = 0.5;
+
+/**
  * 測る文字を持たない分類。 **母集団ではなく期待値**。
  *
  * `parts` は部品の一覧で、拡大表示は開くが中に `<text>` が 1 つも無い
@@ -53,20 +70,13 @@ const 測れない分類 = new Set(["parts"]);
  *
  * **理由と行き先を必ず書く**。 宣言した分類は「まだ割っていること」 を確かめるので、
  * 直ったらこの検査が落ちて、直した PR が行を外すまで気付ける。
+ *
+ * **空でも消さない**。 次に割る分類が出た時、宣言の形と決まりをここから引く。
+ * `ethereum` は #2562 で外した = 記法の engine が 0.73.0 で縮めた分を字の指定で打ち消す
+ * ようになり ([cardene777/cdl#871](https://github.com/cardene777/cdl/issues/871))、
+ * `ハッシュ` の実効が 7.55 から 10.5 に戻って下限を割らなくなった。
  */
-const 宣言: ReadonlyMap<string, string> = new Map([
-  [
-    "ethereum",
-    "**下限は上限に当たっている**。 `ハッシュ` は指定 10.5 の親に `scale(0.719)` が掛かり、" +
-      " 実効は 7.55 (#2287 で母数に入れた)。 下限は 10 / 7.55 = 1.32 を要求するが、" +
-      " 実寸 100% を超えて引き伸ばさない決まり (`READABLE_MAX_SCALE`、#1084) で 1.0 に切られる。" +
-      " その結果、図は 1722 の viewBox を 1722px で描き (100%)、`ハッシュ` は 7.55px になる。" +
-      " 入れ子の図を原寸で描いてから枠に収まる倍率で丸ごと縮めており、文字も一緒に縮む" +
-      " (同じ `<g>` の中に指定 10.5 の文字が 4 件)。 縮める側で文字の指定を打ち消す形に直すと決め" +
-      " (#2289 で 3 案を比べた)、記法の engine へ `cardene777/cdl#871` として起票した。" +
-      " 直した版が出たらこの行が落ちる",
-  ],
-]);
+const 宣言: ReadonlyMap<string, string> = new Map<string, string>();
 
 /** 拡大表示の中の図の、いちばん小さい文字 */
 async function 拡大の最小の文字(page: Page): Promise<{ 最小: number; 字: string; 文字数: number }> {
@@ -116,6 +126,116 @@ async function 頁を送る(page: Page): Promise<void> {
   }
   await page.evaluate(() => globalThis.scrollTo(0, 0));
   await page.waitForTimeout(500);
+}
+
+/**
+ * 拡大表示の中の図と、その中でいちばん小さい文字を測る。
+ *
+ * 図は `.cdl-modal-body` の中で最も広い svg を採る = 読み取り値の輪のような飾りの svg が
+ * 同じ器に並ぶため (`useDiagramPanZoom` の `図のsvgを探す` と同じ選び方)。
+ *
+ * **指定と実効を両方返す**。 下限の母数がどちらかは 2 つの差にしか現れないので、
+ * 片方だけを測っても判定できない。
+ */
+async function 拡大の図を測る(
+  page: Page,
+): Promise<{ 倍率: number; 指定の最小: number; 実効の最小: number; 字: string }> {
+  return page.evaluate(() => {
+    const 本体 = document.querySelector(".cdl-modal-body");
+    if (!本体) throw new Error("拡大表示が開いていない (検査が空振りしている)");
+    let 図: SVGSVGElement | null = null;
+    for (const svg of 本体.querySelectorAll<SVGSVGElement>("svg[viewBox]")) {
+      if (!図 || svg.getBoundingClientRect().width > 図.getBoundingClientRect().width) 図 = svg;
+    }
+    if (!図) throw new Error("拡大表示の中に図が無い (検査が空振りしている)");
+    const 枠 = 図.getBoundingClientRect();
+    const vb横 = Number((図.getAttribute("viewBox") ?? "").split(/[ ,]+/)[2]);
+    if (!Number.isFinite(vb横) || vb横 <= 0) throw new Error("図の viewBox を読めない");
+    const 根 = 図.getScreenCTM();
+    if (!根) throw new Error("図の変換を読めない");
+    // 回転や傾きが混ざっても面積の比から 1 つの拡大率を出せる (行列式の平方根)
+    const 根の倍率 = Math.sqrt(Math.abs(根.a * 根.d - 根.b * 根.c));
+    let 指定の最小 = Number.POSITIVE_INFINITY;
+    let 実効の最小 = Number.POSITIVE_INFINITY;
+    let 字 = "";
+    for (const t of 図.querySelectorAll("text")) {
+      const 中身 = (t.textContent ?? "").trim();
+      if (中身 === "") continue;
+      const cs = getComputedStyle(t);
+      if (cs.display === "none" || cs.visibility === "hidden" || cs.visibility === "collapse") {
+        continue;
+      }
+      if (Number.parseFloat(cs.opacity) === 0) continue;
+      const ctm = t.getScreenCTM?.();
+      const 指定 = Number.parseFloat(cs.fontSize);
+      if (!ctm || !Number.isFinite(指定) || 指定 <= 0) continue;
+      const 拡大率 = Math.sqrt(Math.abs(ctm.a * ctm.d - ctm.b * ctm.c));
+      if (!Number.isFinite(拡大率) || 拡大率 <= 0) continue;
+      指定の最小 = Math.min(指定の最小, 指定);
+      // 表示倍率を混ぜない = 根で割った値は svg の中だけの入れ子の積 (#2287)
+      const 実効 = 指定 * (拡大率 / 根の倍率);
+      if (実効 < 実効の最小) {
+        実効の最小 = 実効;
+        字 = 中身.slice(0, 16);
+      }
+    }
+    return { 倍率: 枠.width / vb横, 指定の最小, 実効の最小, 字 };
+  });
+}
+
+/** 分類の頁を開き、最初の拡大表示を開いて中の図を測る */
+async function 拡大を開いて測る(page: Page, slug: string): ReturnType<typeof 拡大の図を測る> {
+  await page.goto(`catalog/${slug}`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(1200);
+  await 頁を送る(page);
+  await page
+    .getByRole("button", { name: /を拡大表示$/ })
+    .first()
+    .click();
+  await expect(page.locator(".cdl-modal-content")).toBeVisible();
+  // 実効を測る窓が閉じるまで待つ (`useDiagramPanZoom` は 500ms × 6 回)
+  await page.waitForTimeout(4500);
+  return 拡大の図を測る(page);
+}
+
+/**
+ * 拡大表示の図が現れたその場へ、**指定は大きいのに実効は小さい字** を植える。
+ *
+ * 次に開く頁から効く (`page.addInitScript` は頁の script より先に入る)。
+ *
+ * **後から植えても効かない**。 実効を測る窓は図が現れた所から 500ms × 6 回で閉じ、
+ * 閉じた後の測り直しは指定しか見ない (`useDiagramPanZoom`)。 窓の中の全ての標本に
+ * 入っている必要もある = 窓は標本の最大を採るので、途中から植えると植える前の値が勝つ。
+ *
+ * 観測の相手は `document` にする。 `document.documentElement` は この script が走る時点で
+ * まだ無く、`observe` が投げて植え込みごと落ちる (落ちても頁は動くので気付けない)。
+ */
+async function 植え込みを仕込む(page: Page): Promise<void> {
+  await page.addInitScript(
+    ({ 指定, 縮小 }: { 指定: number; 縮小: number }) => {
+      const 植える = (): void => {
+        const 本体 = document.querySelector(".cdl-modal-body");
+        if (!本体) return;
+        let 図: SVGSVGElement | null = null;
+        for (const svg of 本体.querySelectorAll<SVGSVGElement>("svg[viewBox]")) {
+          if (!図 || svg.getBoundingClientRect().width > 図.getBoundingClientRect().width) 図 = svg;
+        }
+        if (!図 || 図.querySelector("[data-uekomi]")) return;
+        const 包み = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        包み.setAttribute("transform", `scale(${縮小})`);
+        包み.setAttribute("data-uekomi", "1");
+        const 字 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        字.setAttribute("x", "200");
+        字.setAttribute("y", "200");
+        字.setAttribute("font-size", String(指定));
+        字.textContent = "植えた字";
+        包み.append(字);
+        図.append(包み);
+      };
+      new MutationObserver(植える).observe(document, { childList: true, subtree: true });
+    },
+    { 指定: 植える指定, 縮小: 植える縮小 },
+  );
 }
 
 test.describe("拡大表示の文字が読める大きさに届く (#2284)", () => {
@@ -241,51 +361,62 @@ test.describe("拡大表示の文字が読める大きさに届く (#2284)", () 
     ).toEqual([]);
   });
 
-  test("入れ子の縮小が掛かった文字を母数に入れている (#2287)", async ({ page }) => {
+  test("入れ子の縮小が掛かった文字を母数に入れている (#2287)", async ({ page }, info) => {
     /*
-     * `ethereum` の `ハッシュ` は指定 10.5 の親に `scale(0.719)` が掛かり、実効は 7.55。
-     * 母数が指定のままだと下限は `10 / 10.5 = 0.952` で、図は viewBox の 95.2% に描かれる。
-     * 実効を母数にすると `10 / 7.55 = 1.32` を要求し、上限 (実寸 100%) で 1.0 に切られる
-     * = 図は viewBox と同じ幅になる。 **描かれた幅の違いがそのまま母数の違いを表す**。
+     * 下限の母数は **書かれた指定** ではなく **画面に出る実効** (指定 × 入れ子の縮小)。
+     * 2 つは入れ子の縮小を持つ図でしか違わないので、その図をこの検査が自分で作る。
      *
-     * 7.55px でも下限は割るので、上の宣言から `ethereum` は外れない
-     * (行き先は記法の engine の `cardene777/cdl#871`、#2289 で 3 案を比べて決めた)。
+     * ## カタログの図には頼らない
+     *
+     * 元は `ethereum` の `ハッシュ` (指定 10.5 の親に `scale(0.719)`、実効 7.55) を材料に
+     * していた。 記法の engine が 0.73.0 で縮めた分を字の指定で打ち消すようになり
+     * ([cardene777/cdl#871](https://github.com/cardene777/cdl/issues/871))、実効が指定と
+     * 一致して差が消えた (#2562)。 **同じことが次の見本でも起きる** ので、材料を植え込みに
+     * 変える = どの図が何を持つかに左右されない。
+     *
+     * ## 対照で母数を読み分ける
+     *
+     * `cookbook` はいちばん小さい字が指定 24 で、下限は 10 / 24 = 0.4167 で描かれる。
+     * 植える字の指定 30 は 24 より **大きい** ので、指定を母数にすると 1px も動かない。
+     * 実効 15 を母数にすると 10 / 15 = 0.6667 になる。
+     * 実寸 100% の上限には当たらない = 上限の頭打ちではなく母数の違いを測っている。
      */
-    await page.goto("catalog/ethereum", { waitUntil: "networkidle" });
-    await page.waitForTimeout(1200);
-    await 頁を送る(page);
-    await page
-      .getByRole("button", { name: /を拡大表示$/ })
-      .first()
-      .click();
-    await expect(page.locator(".cdl-modal-content")).toBeVisible();
-    // 実効を測る窓が閉じるまで待つ (`useDiagramPanZoom` は 500ms × 6 回)
-    await page.waitForTimeout(4500);
+    info.setTimeout(120_000);
+    const 分類 = "cookbook";
 
-    const 図 = await page.evaluate(() => {
-      const svgたち = [...document.querySelectorAll(".cdl-modal-body svg[viewBox]")]
-        .map((el) => {
-          const r = el.getBoundingClientRect();
-          const vb = (el.getAttribute("viewBox") ?? "").split(/[ ,]+/).map(Number);
-          return { 幅: r.width, vbW: vb[2] ?? 0 };
-        })
-        .filter((x) => x.vbW > 200)
-        .sort((a, b) => b.幅 - a.幅);
-      return svgたち[0] ?? null;
-    });
-    expect(図, "拡大表示の中に図が見つからない (検査が空振りしている)").not.toBeNull();
-
-    const 描かれた倍率 = 図!.幅 / 図!.vbW;
+    const 対照 = await 拡大を開いて測る(page, 分類);
+    expect(対照.字, "植える前から植えた字が居る (検査が空振りしている)").not.toBe("植えた字");
     expect(
-      描かれた倍率,
-      `母数が指定のままなら 0.952 で描かれる (実測 ${描かれた倍率.toFixed(3)})`,
-    ).toBeGreaterThan(0.99);
+      植える指定,
+      "植える字の指定が図の最小より小さいと、指定を母数にしても描かれ方が動く = 対照にならない",
+    ).toBeGreaterThan(対照.指定の最小);
+    expect(
+      対照.倍率,
+      `植える前の図が下限で描かれていない (実測 ${対照.倍率.toFixed(4)})`,
+    ).toBeCloseTo(目指す大きさ / 対照.指定の最小, 2);
 
-    const 測定 = await 拡大の最小の文字(page);
-    expect(測定.字).toBe("ハッシュ");
-    // 指定 10.5 × 入れ子 0.719 × 実寸 100% = 7.55
-    expect(測定.最小).toBeGreaterThan(7.4);
-    expect(測定.最小, "上限 (実寸 100%) を超えて引き伸ばしている").toBeLessThan(7.7);
+    await 植え込みを仕込む(page);
+    const 植えた = await 拡大を開いて測る(page, 分類);
+
+    await info.attach("測り", {
+      body:
+        `対照 倍率 ${対照.倍率.toFixed(4)} / 指定の最小 ${対照.指定の最小}` +
+        ` / 実効の最小 ${対照.実効の最小.toFixed(2)} "${対照.字}"\n` +
+        `植えた 倍率 ${植えた.倍率.toFixed(4)} / 指定の最小 ${植えた.指定の最小}` +
+        ` / 実効の最小 ${植えた.実効の最小.toFixed(2)} "${植えた.字}"`,
+      contentType: "text/plain",
+    });
+
+    expect(植えた.字, "植えた字が図に入っていない (検査が空振りしている)").toBe("植えた字");
+    expect(植えた.実効の最小).toBeCloseTo(植える指定 * 植える縮小, 1);
+    expect(
+      植えた.指定の最小,
+      "植えた字が指定の最小を下げている = 指定を母数にしても動くので対照にならない",
+    ).toBe(対照.指定の最小);
+    expect(
+      植えた.倍率,
+      `母数が指定のままなら ${対照.倍率.toFixed(4)} のまま動かない (実測 ${植えた.倍率.toFixed(4)})`,
+    ).toBeCloseTo(目指す大きさ / (植える指定 * 植える縮小), 2);
   });
 
   test("小さすぎる文字はちゃんと拾える (植え込み対照)", async ({ page }) => {
