@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 
 import { 一覧の行 } from "./catalog-item-pick";
+import { 一覧が落ち着くまで待つ, 形が落ち着くまで待つ } from "./wait-for-render";
 
 /*
  * 線の上を走る丸が、線と見分けられて、かつ線のそばの文字を横切らないことを見る (#2537)。
@@ -23,11 +24,68 @@ const 時刻 = [0.15, 0.45, 0.75, 1.05, 1.35, 1.65, 1.9];
 
 type 枠 = { 文: string; x: number; y: number; w: number; h: number };
 
+/**
+ * 図が組み終わるまで待つ (#2555)。
+ *
+ * かつては一覧の行を押して 3500 ミリ秒 待っていた。 一式で回すと一覧の組み替えが遅れ、
+ * 押す側が要素の動かなくなるのを待って 30 秒で切れる (#2488 と同じ落ち方)。
+ *
+ * 箱の数と、最初と最後の箱の位置を見る。 数だけだと出揃ってから動く間に測ってしまい、
+ * 位置だけだと箱が 1 つも無い間も動いていないことになる。
+ */
+async function 図が落ち着くまで待つ(page: Page, id: string): Promise<number> {
+  return 形が落ち着くまで待つ(
+    page,
+    `${id} の図`,
+    (指す: { 舞台: string }) => {
+      const s = document.querySelector(指す.舞台);
+      if (!s) return null;
+      const 箱 = [...s.querySelectorAll("[data-cdl-node]")];
+      if (箱.length === 0) return null;
+      const 先 = 箱[0]!.getBoundingClientRect();
+      const 後 = 箱[箱.length - 1]!.getBoundingClientRect();
+      if (先.width === 0) return null;
+      return [箱.length, 先.x, 先.y, 後.x, 後.y].map(Math.round).join(",");
+    },
+    { 舞台 },
+  );
+}
+
+/**
+ * 指を乗せた箱から走る丸が出揃うまで待つ (#2555)。
+ *
+ * かつては 700 ミリ秒 待って、出ていなければ **その箱を黙って飛ばしていた**。
+ * 実測では丸は 1-3 ミリ秒で出て、飛ばす経路は待ちが足りなかった時にしか通らない
+ * (class-demo は 7 個中 7 個、er-demo は 3 個中 3 個の箱から出る)。
+ * 飛ばすと「被りなし」 が、見なかったことを意味するようになる。
+ *
+ * 丸そのものは線の上を動き続けるので位置では落ち着かない。 **どの線に付いているか** を見る。
+ * 隣の箱へ移る間は古い丸が消えて新しい丸が出るまでの隙間があり、そこで一瞬 0 本になるため、
+ * 0 本も形の 1 つとして数える (窓の間 0 本が続いた箱は、丸の出ない箱として呼出側が数える)。
+ */
+async function 丸が落ち着くまで待つ(page: Page, id: string): Promise<number> {
+  return 形が落ち着くまで待つ(
+    page,
+    `${id} の走る丸`,
+    (指す: { 舞台: string }) => {
+      const s = document.querySelector(指す.舞台);
+      if (!s) return null;
+      return [...s.querySelectorAll('[data-cdl-role="edge-flow"]')]
+        .map((e) => e.closest("g[data-cdl-edge]")?.getAttribute("data-cdl-edge") ?? "(親なし)")
+        .sort()
+        .join("|");
+    },
+    { 舞台 },
+    { 窓: 300, 出ない時の言い方: "出揃わない" },
+  );
+}
+
 async function 見本を開く(page: Page, id: string) {
   await page.goto("catalog/presets");
   await page.waitForLoadState("networkidle");
+  await 一覧が落ち着くまで待つ(page, `${id} の一覧`);
   await 一覧の行(page, id).click();
-  await page.waitForTimeout(3500);
+  await 図が落ち着くまで待つ(page, id);
 }
 
 async function 写す(page: Page, t: number, 丸あり: boolean) {
@@ -45,7 +103,20 @@ async function 写す(page: Page, t: number, 丸あり: boolean) {
     },
     [t, 丸あり] as const,
   );
-  await page.waitForTimeout(70);
+  /*
+   * 描き直した面が出るまで待つ (#2555)。
+   *
+   * かつては 70 ミリ秒 待っていた。 これも負荷で足りなくなる形で、足りないと **前の面を撮る** =
+   * 丸ありと丸なしが同じ絵になり、被りが 0% と出る。 落ちずに通るので気付けない。
+   *
+   * 面が 2 度出るのを待つ。 1 度目は書き換えを反映する前のことがある。
+   */
+  await page.evaluate(
+    () =>
+      new Promise<void>((戻す) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => 戻す()));
+      }),
+  );
   return PNG.sync.read(await page.screenshot());
 }
 
@@ -70,31 +141,64 @@ function 変わった割合(あり: PNG, なし: PNG, f: 枠, 倍: number) {
 /**
  * 全部の箱に順に指を乗せ、丸が走る度に文字の枠を測る。
  * 1 本も走らなかった場合は 0 を返さず、走った本数を一緒に返して呼出側で確かめる。
+ * 丸の出なかった箱も飛ばさずに数えて返す (#2555)。
  */
-async function 横切りを測る(page: Page, 倍: number) {
+async function 横切りを測る(page: Page, id: string, 倍: number) {
   const 箱 = page.locator(`${舞台} [data-cdl-node]`);
   const 箱数 = await 箱.count();
   expect(箱数, "箱が 1 つも無い").toBeGreaterThan(0);
 
   let 走った = 0;
+  const 丸の出ない箱: number[] = [];
   const 最悪 = new Map<string, number>();
 
   for (let n = 0; n < 箱数; n++) {
     await 箱.nth(n).hover();
-    await page.waitForTimeout(700);
+    await 丸が落ち着くまで待つ(page, id);
     const 本数 = await page.locator(流れ).count();
-    if (本数 === 0) continue;
+    if (本数 === 0) {
+      丸の出ない箱.push(n);
+      continue;
+    }
     走った += 本数;
 
     await page.evaluate(() =>
       (document.querySelector("svg[data-cdl-stage]") as SVGSVGElement).pauseAnimations(),
     );
+
+    // 丸あり と 丸なし の 2 枚が本当に違う絵になるかを、画素を撮る前に確かめる (#2555)。
+    // 同じ絵だと被りは必ず 0% になり、検査は黙って通る
+    const 見え方 = await page.evaluate(() => {
+      const s = document.querySelector("svg[data-cdl-stage]") as SVGSVGElement;
+      const 丸 = [...s.querySelectorAll('[data-cdl-role="edge-flow"]')];
+      const 隠れている = () => 丸.every((e) => getComputedStyle(e).visibility === "hidden");
+      document.getElementById("丸を消す")?.remove();
+      const 出ている = 丸.some((e) => {
+        const r = e.getBoundingClientRect();
+        return getComputedStyle(e).visibility !== "hidden" && r.width > 0 && r.height > 0;
+      });
+      const st = document.createElement("style");
+      st.id = "丸を消す";
+      st.textContent = '[data-cdl-role="edge-flow"]{visibility:hidden !important}';
+      document.head.appendChild(st);
+      const 消せる = 隠れている();
+      st.remove();
+      return { 出ている, 消せる };
+    });
+    expect(見え方.出ている, `箱 ${n} で丸が出ていない (撮る 2 枚が同じ絵になる)`).toBe(true);
+    expect(見え方.消せる, `箱 ${n} で丸を消せていない (撮る 2 枚が同じ絵になる)`).toBe(true);
     const 枠々: 枠[] = await page.evaluate(() => {
       const s = document.querySelector("svg[data-cdl-stage]") as SVGSVGElement;
       return [...s.querySelectorAll("text")]
         .map((e) => {
           const r = e.getBoundingClientRect();
-          return { 文: (e.textContent ?? "").slice(0, 10), x: r.x, y: r.y, w: r.width, h: r.height };
+          return {
+            文: (e.textContent ?? "").slice(0, 10),
+            x: r.x,
+            y: r.y,
+            w: r.width,
+            h: r.height,
+          };
         })
         .filter(
           (r) =>
@@ -117,17 +221,20 @@ async function 横切りを測る(page: Page, 倍: number) {
       }
     }
   }
-  return { 走った, 最悪 };
+  return { 走った, 最悪, 丸の出ない箱, 箱数 };
 }
 
 test.describe("線の上を走る丸", () => {
   test("クラス図で、線のそばの文字を横切らない", async ({ page }, info) => {
     const 倍 = info.project.use.deviceScaleFactor ?? 1;
     await 見本を開く(page, "class-demo");
-    const { 走った, 最悪 } = await 横切りを測る(page, 倍);
+    const { 走った, 最悪, 丸の出ない箱, 箱数 } = await 横切りを測る(page, "class-demo", 倍);
 
     // 1 本も走らなければ「被りなし」 も意味を持たない
     expect(走った, "丸が 1 本も走らなかった").toBeGreaterThan(0);
+    // 実測では 7 個の箱すべてから丸が出る。 出ない箱を飛ばすと、そのそばの文字が
+    // 1 度も確かめられないまま「被りなし」 になる (#2555)
+    expect(丸の出ない箱, `箱 ${箱数} 個のうち、丸の出ない箱`).toEqual([]);
 
     const 超過 = [...最悪].filter(([, v]) => v >= 被りの上限);
     expect(
@@ -139,9 +246,11 @@ test.describe("線の上を走る丸", () => {
   test("表どうしのつながりを描く図で、文字を横切らない", async ({ page }, info) => {
     const 倍 = info.project.use.deviceScaleFactor ?? 1;
     await 見本を開く(page, "er-demo");
-    const { 走った, 最悪 } = await 横切りを測る(page, 倍);
+    const { 走った, 最悪, 丸の出ない箱, 箱数 } = await 横切りを測る(page, "er-demo", 倍);
 
     expect(走った, "丸が 1 本も走らなかった").toBeGreaterThan(0);
+    // 実測では 3 個の箱すべてから丸が出る (理由はクラス図と同じ)
+    expect(丸の出ない箱, `箱 ${箱数} 個のうち、丸の出ない箱`).toEqual([]);
     const 超過 = [...最悪].filter(([, v]) => v >= 被りの上限);
     expect(超過.map(([文, v]) => `${文} ${(v * 100).toFixed(1)}%`).join(" / ")).toBe("");
   });
