@@ -4683,10 +4683,10 @@ export const onboardingStepper = diagram("interactive-onboarding-stepper", {
     colorPending: "#cbd5e1",
     label: "進み具合 (点の並び)",
   })
-  .phase("p1", { duration: 1200, title: "最初の 2 段", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "最初の 2 段", body: "登録と自己紹介は、利用者の情報をそろえる前半の 2 段。 どちらも入力を受け取るだけで、設定には進まない。" }, (p: PhaseBuilder) =>
     p.activate("signupNode").badge("手順"),
   )
-  .phase("p2", { duration: 1200, title: "中ほどまで", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "中ほどまで", body: "好みの設定は 5 段の真ん中で、初期値のいまの段でもある。 ここまでの矢印は青で、前半のつながりを表す。" }, (p: PhaseBuilder) =>
     p.activate("signupNode", "profileNode", "prefsNode").badge("手順"),
   )
   .phase(
@@ -4842,10 +4842,10 @@ export const revenueScoreboard = diagram("interactive-revenue-scoreboard", {
     caption: "目標 $500M と比べる",
     label: "売上 (大きな数字)",
   })
-  .phase("p1", { duration: 1200, title: "現在を見る", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "現在を見る", body: "いまの売上はつまみで動く唯一の値。 下の大きな数字はこの箱をそのまま映す。" }, (p: PhaseBuilder) =>
     p.activate("currentNode").badge("大きな数字"),
   )
-  .phase("p2", { duration: 1200, title: "目標を並べる", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "目標を並べる", body: "目標は第 3 四半期の決まった額で、つまみでは動かない。 売上と並べると届いているかが読める。" }, (p: PhaseBuilder) =>
     p.activate("currentNode", "targetNode").badge("大きな数字"),
   )
   .phase(
@@ -5315,10 +5315,10 @@ export const productRating = diagram("interactive-product-rating", {
     color: "#eab308",
     label: "評価 (星の数)",
   })
-  .phase("p1", { duration: 1200, title: "帯を並べる", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "帯を並べる", body: "帯は評価の範囲を 3 つに区切る目安で、評価そのものではない。 星 0〜1.5 の低い帯は不満の範囲。" }, (p: PhaseBuilder) =>
     p.activate("lowNode").badge("評価"),
   )
-  .phase("p2", { duration: 1200, title: "現在の帯", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "現在の帯", body: "星 2〜3.5 の中の帯はふつうの範囲。 3 つの帯は重ならず、境目で次の帯に移る。" }, (p: PhaseBuilder) =>
     p.activate("lowNode", "midNode").badge("評価"),
   )
   .phase(
@@ -5402,10 +5402,10 @@ export const alertNotification = diagram("interactive-alert-notification", {
     bodySource: "alertBody",
     label: "通知 (色と記号)",
   })
-  .phase("p1", { duration: 1200, title: "情報と注意", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "情報と注意", body: "青の お知らせ と黄の 注意 は、読み手に伝えるだけの弱い側。 4 種は色と記号の組で見分ける。" }, (p: PhaseBuilder) =>
     p.activate("infoNode").badge("通知"),
   )
-  .phase("p2", { duration: 1200, title: "異常と成功", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "異常と成功", body: "赤の 異常 と緑の 成功 は、処理の結末を表す強い側。 記号は ✕ と ✓ で対になる。" }, (p: PhaseBuilder) =>
     p.activate("infoNode", "warnNode", "errorNode").badge("通知"),
   )
   .phase(
@@ -5470,10 +5470,10 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
     colorDel: "#ef4444",
     label: "差分 (+N / -N の棒)",
   })
-  .phase("p1", { duration: 1200, title: "追加を見る", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "追加を見る", body: "追加は緑で、増減の操作で行数を動かせる。 左に置いて増える側を表す。" }, (p: PhaseBuilder) =>
     p.activate("addCard").badge("差分"),
   )
-  .phase("p2", { duration: 1200, title: "削除を並べる", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "削除を並べる", body: "削除は赤で、右に置いて減る側を表す。 追加が削除を上回ると行が増える。" }, (p: PhaseBuilder) =>
     p.activate("addCard", "addDetail").badge("差分"),
   )
   .phase(
@@ -5632,10 +5632,10 @@ export const userAvatar = diagram("interactive-user-avatar", {
   .edge("inputNode", "initialsNode", { label: "切り出す", tone: "info" })
   .edge("initialsNode", "circleNode", { label: "描く", tone: "success" })
   .readout.avatar("av", { source: "user", size: 56, color: "#2563eb", label: "アイコン (描いた結果)" })
-  .phase("p1", { duration: 1200, title: "名前を受ける", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "名前を受ける", body: "入力欄に書いた名前が出発点。 ここを書き換えると後の 2 段が一緒に変わる。" }, (p: PhaseBuilder) =>
     p.activate("inputNode").badge("アイコン"),
   )
-  .phase("p2", { duration: 1200, title: "頭文字を取る", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "頭文字を取る", body: "頭文字は語ごとの頭の 1 字を 2 つまで拾う。 佐藤 花子 は 佐花 になる。" }, (p: PhaseBuilder) =>
     p.activate("inputNode", "initialsNode").badge("アイコン"),
   )
   .phase(
@@ -5796,10 +5796,10 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
     viewH: 160,
     label: "回転計 (270° の目盛盤)",
   })
-  .phase("p1", { duration: 1200, title: "通常と巡航", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "通常と巡航", body: "帯は回転数の範囲を 3 つに区切る。 0〜2000 rpm の通常の帯は緑。" }, (p: PhaseBuilder) =>
     p.activate("idleNode").badge("回転計"),
   )
-  .phase("p2", { duration: 1200, title: "過回転まで", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "過回転まで", body: "2000〜5000 rpm の巡航の帯は黄で、初期値の 3500 rpm がここに入る。" }, (p: PhaseBuilder) =>
     p.activate("idleNode", "cruiseNode").badge("回転計"),
   )
   .phase(
@@ -5862,10 +5862,10 @@ export const productPriceTag = diagram("interactive-product-price-tag", {
     colorDiscount: "#ef4444",
     label: "値札 (3 つの値)",
   })
-  .phase("p1", { duration: 1200, title: "旧価格", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "旧価格", body: "旧価格は動かない値で、取り消し線を付けて示す。 割引の元になる額。" }, (p: PhaseBuilder) =>
     p.activate("oldNode").badge("値札"),
   )
-  .phase("p2", { duration: 1200, title: "新価格", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "新価格", body: "新価格は増減の操作で動く値。 旧価格との差がそのまま割引率になる。" }, (p: PhaseBuilder) =>
     p.activate("oldNode", "newNode").badge("値札"),
   )
   .phase(
@@ -5942,10 +5942,10 @@ export const deploySpinner = diagram("interactive-deploy-spinner", {
     color: "#2563eb",
     label: "配備 (回る輪と文)",
   })
-  .phase("p1", { duration: 1200, title: "実行中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "実行中", body: "実行中は青で、輪が回っている間は結果が決まっていない。" }, (p: PhaseBuilder) =>
     p.activate("runningNode").badge("配備中"),
   )
-  .phase("p2", { duration: 1200, title: "完了と失敗", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "完了と失敗", body: "完了は緑、失敗は赤で、どちらも輪が止まった後の結末を表す。" }, (p: PhaseBuilder) =>
     p.activate("runningNode", "doneNode").badge("配備中"),
   )
   .phase(
@@ -5994,10 +5994,10 @@ export const examGrade = diagram("interactive-exam-grade", {
     subtitle: "点数 = {score} / 100",
   })
   .readout.grade("g", { source: "score", max: 100, label: "成績 (A〜F の帯)" })
-  .phase("p1", { duration: 1200, title: "上の 2 段階", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "上の 2 段階", body: "5 段階はいずれも点数の範囲で区切る。 90 以上が A、80〜89 が B。" }, (p: PhaseBuilder) =>
     p.activate("aNode", "bNode").badge("成績"),
   )
-  .phase("p2", { duration: 1200, title: "下の 3 段階", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "下の 3 段階", body: "70 台が C、60 台が D、60 未満が F。 初期値の点数は B に入る。" }, (p: PhaseBuilder) =>
     p.activate("aNode", "bNode", "cNode", "dNode").badge("成績"),
   )
   .phase(
@@ -6059,10 +6059,10 @@ export const timerStopwatch = diagram("interactive-timer-stopwatch", {
     color: "#241c14",
     label: "時計 (分:秒.ms)",
   })
-  .phase("p1", { duration: 1200, title: "秒数", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "秒数", body: "秒数は 0〜3600 の値。 1000 倍したものが下の時計の経過になる。" }, (p: PhaseBuilder) =>
     p.activate("secNode").badge("時計"),
   )
-  .phase("p2", { duration: 1200, title: "実行状態", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "実行状態", body: "動作中は時計を動かすか止めるかの切り替え。 秒数と 2 つで表示が決まる。" }, (p: PhaseBuilder) =>
     p.activate("secNode", "runNode").badge("時計"),
   )
   .phase(
@@ -6125,10 +6125,10 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
     viewH: 40,
     label: "確信度 (3 つの帯)",
   })
-  .phase("p1", { duration: 1200, title: "低い帯", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "低い帯", body: "40% 未満の低い帯は赤で、推論が答えを決めきれていない範囲。" }, (p: PhaseBuilder) =>
     p.activate("lowNode").badge("確信度"),
   )
-  .phase("p2", { duration: 1200, title: "高い帯まで", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "高い帯まで", body: "40〜74% の中の帯は黄。 上にも下にも寄りうる境目の範囲。" }, (p: PhaseBuilder) =>
     p.activate("lowNode", "midNode").badge("確信度"),
   )
   .phase(
@@ -6373,10 +6373,10 @@ export const deviceBattery = diagram("interactive-device-battery", {
     viewH: 32,
     label: "残量 (10 区切りの棒)",
   })
-  .phase("p1", { duration: 1200, title: "低い帯", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "低い帯", body: "帯は残量を 3 つに区切る。 20% 未満の低い帯は赤で、すぐ充電が要る範囲。" }, (p: PhaseBuilder) =>
     p.activate("lowNode").badge("電池"),
   )
-  .phase("p2", { duration: 1200, title: "高い帯まで", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "高い帯まで", body: "20〜60% の中の帯は黄で、そろそろ充電する範囲。 初期値の 72% はその上の帯に入る。" }, (p: PhaseBuilder) =>
     p.activate("lowNode", "midNode").badge("電池"),
   )
   .phase(
@@ -6531,10 +6531,10 @@ export const roomThermometer = diagram("interactive-room-thermometer", {
     unit: "°C",
     label: "室温 (縦の棒)",
   })
-  .phase("p1", { duration: 1200, title: "寒い帯", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "寒い帯", body: "帯は室温を 3 つに区切る。 15°C 未満の寒い帯は青で、暖房が要る範囲。" }, (p: PhaseBuilder) =>
     p.activate("coldNode").badge("室温"),
   )
-  .phase("p2", { duration: 1200, title: "暑い帯まで", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "暑い帯まで", body: "15〜25°C の快適な帯は緑。 初期値の 24°C はこの帯に入る。" }, (p: PhaseBuilder) =>
     p.activate("coldNode", "comfortNode").badge("室温"),
   )
   .phase(
@@ -6873,10 +6873,10 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
     textSource: "desc",
     label: "優先度 (札と記号と文)",
   })
-  .phase("p1", { duration: 1200, title: "高い優先度", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "高い優先度", body: "▲ 高 は赤で、落ちる不具合と戻った不具合が入る。 記号と色の組で優先度を表す。" }, (p: PhaseBuilder) =>
     p.activate("highNode").badge("課題"),
   )
-  .phase("p2", { duration: 1200, title: "低い優先度まで", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "低い優先度まで", body: "● 中 は黄でふつうの不具合、▼ 低 は灰であると良いものが入る。" }, (p: PhaseBuilder) =>
     p.activate("highNode", "medNode").badge("課題"),
   )
   .phase(
@@ -7326,10 +7326,10 @@ export const audioPlayer = diagram("interactive-audio-player", {
     viewW: 320,
     label: "再生 (記号と進み具合と分:秒)",
   })
-  .phase("p1", { duration: 1200, title: "再生位置", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "再生位置", body: "再生位置は 240 秒のうちどこにいるかを表す値。 つまみで動かせる。" }, (p: PhaseBuilder) =>
     p.activate("currentNode").badge("再生"),
   )
-  .phase("p2", { duration: 1200, title: "再生状態", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "再生状態", body: "再生の切り替えは ▶ と ❚❚ を入れ替える。 再生位置と 2 つで時間の表示が決まる。" }, (p: PhaseBuilder) =>
     p.activate("currentNode", "toggleNode").badge("再生"),
   )
   .phase(
@@ -7943,10 +7943,10 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
     color: "#2563eb",
     label: "配送状況 (記号の帯)",
   })
-  .phase("p1", { duration: 1200, title: "梱包と発送", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "梱包と発送", body: "梱包済みは倉庫で箱に詰めた段階、発送済みは運送会社に渡した段階。" }, (p: PhaseBuilder) =>
     p.activate("packedNode").badge("追跡"),
   )
-  .phase("p2", { duration: 1200, title: "配達中まで", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "配達中まで", body: "配達中は向かっている段階で、初期値がここ。 配達完了で受け取りが済む。" }, (p: PhaseBuilder) =>
     p.activate("packedNode", "shippedNode").badge("追跡"),
   )
   .phase(
@@ -8321,10 +8321,10 @@ export const playlistSongQueue = diagram("interactive-playlist-queue", {
     color: "#2563eb",
     label: "再生待ち (いまの曲を強調)",
   })
-  .phase("p1", { duration: 1200, title: "再生済", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "再生済", body: "✓ の付いた曲は聴き終えている。 5 曲は再生済 / 再生中 / 次に の 3 列に分かれる。" }, (p: PhaseBuilder) =>
     p.activate("song0").badge("曲"),
   )
-  .phase("p2", { duration: 1200, title: "再生中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "再生中", body: "▶ の付いた曲がいま鳴っている 1 曲。 曲の番号を動かすとこの印が移る。" }, (p: PhaseBuilder) =>
     p.activate("song0", "song1", "song2").badge("曲"),
   )
   .phase(
@@ -20529,9 +20529,11 @@ animation:
   - step: "情報と注意" 1.2s
     focus: ["infoNode"]
     badge: "通知"
+    description: "青の お知らせ と黄の 注意 は、読み手に伝えるだけの弱い側。 4 種は色と記号の組で見分ける。"
   - step: "異常と成功" 1.2s
     focus: ["infoNode", "warnNode", "errorNode"]
     badge: "通知"
+    description: "赤の 異常 と緑の 成功 は、処理の結末を表す強い側。 記号は ✕ と ✓ で対になる。"
   - step: "いまの通知" 1.2s
     focus: ["infoNode", "warnNode", "errorNode", "successNode", "currentAlert"]
     badge: "通知"
@@ -20620,11 +20622,12 @@ export const sourceJson__alertNotification = `{
     "alertBody": "本番用に v1.2.3 を組み立て中"
   },
   "animation": [
-    { "step": "情報と注意", "duration": 1.2, "focus": ["infoNode"], "badge": "通知" },
+    { "step": "情報と注意", "duration": 1.2, "focus": ["infoNode"], "body": "青の お知らせ と黄の 注意 は、読み手に伝えるだけの弱い側。 4 種は色と記号の組で見分ける。", "badge": "通知" },
     {
       "step": "異常と成功",
       "duration": 1.2,
       "focus": ["infoNode", "warnNode", "errorNode"],
+      "body": "赤の 異常 と緑の 成功 は、処理の結末を表す強い側。 記号は ✕ と ✓ で対になる。",
       "badge": "通知"
     },
     {
@@ -20800,9 +20803,11 @@ animation:
   - step: "再生位置" 1.2s
     focus: ["currentNode"]
     badge: "再生"
+    description: "再生位置は 240 秒のうちどこにいるかを表す値。 つまみで動かせる。"
   - step: "再生状態" 1.2s
     focus: ["currentNode", "toggleNode"]
     badge: "再生"
+    description: "再生の切り替えは ▶ と ❚❚ を入れ替える。 再生位置と 2 つで時間の表示が決まる。"
   - step: "時間表示" 1.2s
     focus: ["currentNode", "toggleNode", "durationNode"]
     badge: "再生"
@@ -20872,11 +20877,12 @@ export const sourceJson__audioPlayer = `{
   ],
   "states": { "current": 65, "duration": 240, "playing": "true" },
   "animation": [
-    { "step": "再生位置", "duration": 1.2, "focus": ["currentNode"], "badge": "再生" },
+    { "step": "再生位置", "duration": 1.2, "focus": ["currentNode"], "body": "再生位置は 240 秒のうちどこにいるかを表す値。 つまみで動かせる。", "badge": "再生" },
     {
       "step": "再生状態",
       "duration": 1.2,
       "focus": ["currentNode", "toggleNode"],
+      "body": "再生の切り替えは ▶ と ❚❚ を入れ替える。 再生位置と 2 つで時間の表示が決まる。",
       "badge": "再生"
     },
     {
@@ -21411,9 +21417,11 @@ animation:
   - step: "追加を見る" 1.2s
     focus: ["+ 追加"]
     badge: "差分"
+    description: "追加は緑で、増減の操作で行数を動かせる。 左に置いて増える側を表す。"
   - step: "削除を並べる" 1.2s
     focus: ["+ 追加", "追加が多い時"]
     badge: "差分"
+    description: "削除は赤で、右に置いて減る側を表す。 追加が削除を上回ると行が増える。"
   - step: "差し引き" 1.2s
     focus: ["+ 追加", "追加が多い時", "- 削除", "片付け"]
     badge: "差分"
@@ -21493,8 +21501,8 @@ export const sourceJson__commitDiffCounter = `{
   ],
   "states": { "add": 120, "del": 45 },
   "animation": [
-    { "step": "追加を見る", "duration": 1.2, "focus": ["+ 追加"], "badge": "差分" },
-    { "step": "削除を並べる", "duration": 1.2, "focus": ["+ 追加", "追加が多い時"], "badge": "差分" },
+    { "step": "追加を見る", "duration": 1.2, "focus": ["+ 追加"], "body": "追加は緑で、増減の操作で行数を動かせる。 左に置いて増える側を表す。", "badge": "差分" },
+    { "step": "削除を並べる", "duration": 1.2, "focus": ["+ 追加", "追加が多い時"], "body": "削除は赤で、右に置いて減る側を表す。 追加が削除を上回ると行が増える。", "badge": "差分" },
     {
       "step": "差し引き",
       "duration": 1.2,
@@ -21534,9 +21542,11 @@ animation:
   - step: "実行中" 1.2s
     focus: ["runningNode"]
     badge: "配備中"
+    description: "実行中は青で、輪が回っている間は結果が決まっていない。"
   - step: "完了と失敗" 1.2s
     focus: ["runningNode", "doneNode"]
     badge: "配備中"
+    description: "完了は緑、失敗は赤で、どちらも輪が止まった後の結末を表す。"
   - step: "いまの状態" 1.2s
     focus: ["runningNode", "doneNode", "errorNode", "currentState"]
     badge: "配備中"
@@ -21619,11 +21629,12 @@ export const sourceJson__deploySpinner = `{
   "flow": [],
   "states": { "status": "running", "msg": "本番用に組み立てています" },
   "animation": [
-    { "step": "実行中", "duration": 1.2, "focus": ["runningNode"], "badge": "配備中" },
+    { "step": "実行中", "duration": 1.2, "focus": ["runningNode"], "body": "実行中は青で、輪が回っている間は結果が決まっていない。", "badge": "配備中" },
     {
       "step": "完了と失敗",
       "duration": 1.2,
       "focus": ["runningNode", "doneNode"],
+      "body": "完了は緑、失敗は赤で、どちらも輪が止まった後の結末を表す。",
       "badge": "配備中"
     },
     {
@@ -21663,9 +21674,11 @@ animation:
   - step: "低い帯" 1.2s
     focus: ["低い帯"]
     badge: "電池"
+    description: "帯は残量を 3 つに区切る。 20% 未満の低い帯は赤で、すぐ充電が要る範囲。"
   - step: "高い帯まで" 1.2s
     focus: ["低い帯", "中の帯"]
     badge: "電池"
+    description: "20〜60% の中の帯は黄で、そろそろ充電する範囲。 初期値の 72% はその上の帯に入る。"
   - step: "いまの残量" 1.2s
     focus: ["低い帯", "中の帯", "高い帯", "◆ いまの残量"]
     badge: "電池"
@@ -21736,8 +21749,8 @@ export const sourceJson__deviceBattery = `{
   "flow": [],
   "states": { "battery": 72 },
   "animation": [
-    { "step": "低い帯", "duration": 1.2, "focus": ["低い帯"], "badge": "電池" },
-    { "step": "高い帯まで", "duration": 1.2, "focus": ["低い帯", "中の帯"], "badge": "電池" },
+    { "step": "低い帯", "duration": 1.2, "focus": ["低い帯"], "body": "帯は残量を 3 つに区切る。 20% 未満の低い帯は赤で、すぐ充電が要る範囲。", "badge": "電池" },
+    { "step": "高い帯まで", "duration": 1.2, "focus": ["低い帯", "中の帯"], "body": "20〜60% の中の帯は黄で、そろそろ充電する範囲。 初期値の 72% はその上の帯に入る。", "badge": "電池" },
     {
       "step": "いまの残量",
       "duration": 1.2,
@@ -21920,9 +21933,11 @@ animation:
   - step: "通常と巡航" 1.2s
     focus: ["idleNode"]
     badge: "回転計"
+    description: "帯は回転数の範囲を 3 つに区切る。 0〜2000 rpm の通常の帯は緑。"
   - step: "過回転まで" 1.2s
     focus: ["idleNode", "cruiseNode"]
     badge: "回転計"
+    description: "2000〜5000 rpm の巡航の帯は黄で、初期値の 3500 rpm がここに入る。"
   - step: "いまの回転数" 1.2s
     focus: ["idleNode", "cruiseNode", "redlineNode", "currentRpm"]
     badge: "回転計"
@@ -21998,11 +22013,12 @@ export const sourceJson__engineTachometer = `{
   "flow": [],
   "states": { "rpm": 3500 },
   "animation": [
-    { "step": "通常と巡航", "duration": 1.2, "focus": ["idleNode"], "badge": "回転計" },
+    { "step": "通常と巡航", "duration": 1.2, "focus": ["idleNode"], "body": "帯は回転数の範囲を 3 つに区切る。 0〜2000 rpm の通常の帯は緑。", "badge": "回転計" },
     {
       "step": "過回転まで",
       "duration": 1.2,
       "focus": ["idleNode", "cruiseNode"],
+      "body": "2000〜5000 rpm の巡航の帯は黄で、初期値の 3500 rpm がここに入る。",
       "badge": "回転計"
     },
     {
@@ -22046,9 +22062,11 @@ animation:
   - step: "上の 2 段階" 1.2s
     focus: ["A", "B"]
     badge: "成績"
+    description: "5 段階はいずれも点数の範囲で区切る。 90 以上が A、80〜89 が B。"
   - step: "下の 3 段階" 1.2s
     focus: ["A", "B", "C", "D"]
     badge: "成績"
+    description: "70 台が C、60 台が D、60 未満が F。 初期値の点数は B に入る。"
   - step: "いまの成績" 1.2s
     focus: ["A", "B", "C", "D", "F", "◆ いまの成績"]
     badge: "成績"
@@ -22107,8 +22125,8 @@ export const sourceJson__examGrade = `{
   "flow": [],
   "states": { "score": 85 },
   "animation": [
-    { "step": "上の 2 段階", "duration": 1.2, "focus": ["A", "B"], "badge": "成績" },
-    { "step": "下の 3 段階", "duration": 1.2, "focus": ["A", "B", "C", "D"], "badge": "成績" },
+    { "step": "上の 2 段階", "duration": 1.2, "focus": ["A", "B"], "body": "5 段階はいずれも点数の範囲で区切る。 90 以上が A、80〜89 が B。", "badge": "成績" },
+    { "step": "下の 3 段階", "duration": 1.2, "focus": ["A", "B", "C", "D"], "body": "70 台が C、60 台が D、60 未満が F。 初期値の点数は B に入る。", "badge": "成績" },
     {
       "step": "いまの成績",
       "duration": 1.2,
@@ -22750,9 +22768,11 @@ animation:
   - step: "高い優先度" 1.2s
     focus: ["highNode"]
     badge: "課題"
+    description: "▲ 高 は赤で、落ちる不具合と戻った不具合が入る。 記号と色の組で優先度を表す。"
   - step: "低い優先度まで" 1.2s
     focus: ["highNode", "medNode"]
     badge: "課題"
+    description: "● 中 は黄でふつうの不具合、▼ 低 は灰であると良いものが入る。"
   - step: "いまの課題" 1.2s
     focus: ["highNode", "medNode", "lowNode", "currentIssue"]
     badge: "課題"
@@ -22834,8 +22854,8 @@ export const sourceJson__issuePriorityBadge = `{
   "flow": [],
   "states": { "prio": "high", "desc": "起動で落ちる不具合" },
   "animation": [
-    { "step": "高い優先度", "duration": 1.2, "focus": ["highNode"], "badge": "課題" },
-    { "step": "低い優先度まで", "duration": 1.2, "focus": ["highNode", "medNode"], "badge": "課題" },
+    { "step": "高い優先度", "duration": 1.2, "focus": ["highNode"], "body": "▲ 高 は赤で、落ちる不具合と戻った不具合が入る。 記号と色の組で優先度を表す。", "badge": "課題" },
+    { "step": "低い優先度まで", "duration": 1.2, "focus": ["highNode", "medNode"], "body": "● 中 は黄でふつうの不具合、▼ 低 は灰であると良いものが入る。", "badge": "課題" },
     {
       "step": "いまの課題",
       "duration": 1.2,
@@ -22998,9 +23018,11 @@ animation:
   - step: "低い帯" 1.2s
     focus: ["低い帯"]
     badge: "確信度"
+    description: "40% 未満の低い帯は赤で、推論が答えを決めきれていない範囲。"
   - step: "高い帯まで" 1.2s
     focus: ["低い帯", "中の帯"]
     badge: "確信度"
+    description: "40〜74% の中の帯は黄。 上にも下にも寄りうる境目の範囲。"
   - step: "いまの確信度" 1.2s
     focus: ["低い帯", "中の帯", "高い帯", "◆ いまの確信度"]
     badge: "確信度"
@@ -23070,8 +23092,8 @@ export const sourceJson__mlConfidenceMeter = `{
   "flow": [],
   "states": { "conf": 82 },
   "animation": [
-    { "step": "低い帯", "duration": 1.2, "focus": ["低い帯"], "badge": "確信度" },
-    { "step": "高い帯まで", "duration": 1.2, "focus": ["低い帯", "中の帯"], "badge": "確信度" },
+    { "step": "低い帯", "duration": 1.2, "focus": ["低い帯"], "body": "40% 未満の低い帯は赤で、推論が答えを決めきれていない範囲。", "badge": "確信度" },
+    { "step": "高い帯まで", "duration": 1.2, "focus": ["低い帯", "中の帯"], "body": "40〜74% の中の帯は黄。 上にも下にも寄りうる境目の範囲。", "badge": "確信度" },
     {
       "step": "いまの確信度",
       "duration": 1.2,
@@ -23224,9 +23246,11 @@ animation:
   - step: "最初の 2 段" 1.2s
     focus: ["登録"]
     badge: "手順"
+    description: "登録と自己紹介は、利用者の情報をそろえる前半の 2 段。 どちらも入力を受け取るだけで、設定には進まない。"
   - step: "中ほどまで" 1.2s
     focus: ["登録", "自己紹介", "好みの設定"]
     badge: "手順"
+    description: "好みの設定は 5 段の真ん中で、初期値のいまの段でもある。 ここまでの矢印は青で、前半のつながりを表す。"
   - step: "最後まで" 1.2s
     focus: ["登録", "自己紹介", "好みの設定", "本人確認", "完了"]
     badge: "手順"
@@ -23314,11 +23338,12 @@ export const sourceJson__onboardingStepper = `{
   ],
   "states": { "current": 2, "steps": "[\\"登録\\",\\"自己紹介\\",\\"好みの設定\\",\\"本人確認\\",\\"完了\\"]" },
   "animation": [
-    { "step": "最初の 2 段", "duration": 1.2, "focus": ["登録"], "badge": "手順" },
+    { "step": "最初の 2 段", "duration": 1.2, "focus": ["登録"], "body": "登録と自己紹介は、利用者の情報をそろえる前半の 2 段。 どちらも入力を受け取るだけで、設定には進まない。", "badge": "手順" },
     {
       "step": "中ほどまで",
       "duration": 1.2,
       "focus": ["登録", "自己紹介", "好みの設定"],
+      "body": "好みの設定は 5 段の真ん中で、初期値のいまの段でもある。 ここまでの矢印は青で、前半のつながりを表す。",
       "badge": "手順"
     },
     {
@@ -23360,9 +23385,11 @@ animation:
   - step: "再生済" 1.2s
     focus: ["✓ 紙飛行機"]
     badge: "曲"
+    description: "✓ の付いた曲は聴き終えている。 5 曲は再生済 / 再生中 / 次に の 3 列に分かれる。"
   - step: "再生中" 1.2s
     focus: ["✓ 紙飛行機", "▶ 十一月の港", "星図"]
     badge: "曲"
+    description: "▶ の付いた曲がいま鳴っている 1 曲。 曲の番号を動かすとこの印が移る。"
   - step: "次に続く" 1.2s
     focus: ["✓ 紙飛行機", "▶ 十一月の港", "星図", "雨上がり", "遠い約束"]
     badge: "曲"
@@ -23441,11 +23468,12 @@ export const sourceJson__playlistSongQueue = `{
     "queue": "[[\\"紙飛行機の午後\\",\\"灯台守\\",\\"5:55\\"],[\\"十一月の港\\",\\"港町の二人\\",\\"6:30\\"],[\\"星図をひらく\\",\\"北窓\\",\\"8:02\\"],[\\"雨上がりの路線図\\",\\"小春日和\\",\\"5:56\\"],[\\"遠い約束\\",\\"白帆\\",\\"3:03\\"]]"
   },
   "animation": [
-    { "step": "再生済", "duration": 1.2, "focus": ["✓ 紙飛行機"], "badge": "曲" },
+    { "step": "再生済", "duration": 1.2, "focus": ["✓ 紙飛行機"], "body": "✓ の付いた曲は聴き終えている。 5 曲は再生済 / 再生中 / 次に の 3 列に分かれる。", "badge": "曲" },
     {
       "step": "再生中",
       "duration": 1.2,
       "focus": ["✓ 紙飛行機", "▶ 十一月の港", "星図"],
+      "body": "▶ の付いた曲がいま鳴っている 1 曲。 曲の番号を動かすとこの印が移る。",
       "badge": "曲"
     },
     {
@@ -23488,9 +23516,11 @@ animation:
   - step: "旧価格" 1.2s
     focus: ["旧価格"]
     badge: "値札"
+    description: "旧価格は動かない値で、取り消し線を付けて示す。 割引の元になる額。"
   - step: "新価格" 1.2s
     focus: ["旧価格", "新価格"]
     badge: "値札"
+    description: "新価格は増減の操作で動く値。 旧価格との差がそのまま割引率になる。"
   - step: "割引率" 1.2s
     focus: ["旧価格", "新価格", "割引率 (%)"]
     badge: "値札"
@@ -23560,8 +23590,8 @@ export const sourceJson__productPriceTag = `{
   ],
   "states": { "newPrice": 65, "oldPrice": 100 },
   "animation": [
-    { "step": "旧価格", "duration": 1.2, "focus": ["旧価格"], "badge": "値札" },
-    { "step": "新価格", "duration": 1.2, "focus": ["旧価格", "新価格"], "badge": "値札" },
+    { "step": "旧価格", "duration": 1.2, "focus": ["旧価格"], "body": "旧価格は動かない値で、取り消し線を付けて示す。 割引の元になる額。", "badge": "値札" },
+    { "step": "新価格", "duration": 1.2, "focus": ["旧価格", "新価格"], "body": "新価格は増減の操作で動く値。 旧価格との差がそのまま割引率になる。", "badge": "値札" },
     {
       "step": "割引率",
       "duration": 1.2,
@@ -23599,9 +23629,11 @@ animation:
   - step: "帯を並べる" 1.2s
     focus: ["低い帯"]
     badge: "評価"
+    description: "帯は評価の範囲を 3 つに区切る目安で、評価そのものではない。 星 0〜1.5 の低い帯は不満の範囲。"
   - step: "現在の帯" 1.2s
     focus: ["低い帯", "中の帯"]
     badge: "評価"
+    description: "星 2〜3.5 の中の帯はふつうの範囲。 3 つの帯は重ならず、境目で次の帯に移る。"
   - step: "いまの評価" 1.2s
     focus: ["低い帯", "中の帯", "高い帯", "◆ いまの評価"]
     badge: "評価"
@@ -23670,8 +23702,8 @@ export const sourceJson__productRating = `{
   "flow": [],
   "states": { "score": 3.5 },
   "animation": [
-    { "step": "帯を並べる", "duration": 1.2, "focus": ["低い帯"], "badge": "評価" },
-    { "step": "現在の帯", "duration": 1.2, "focus": ["低い帯", "中の帯"], "badge": "評価" },
+    { "step": "帯を並べる", "duration": 1.2, "focus": ["低い帯"], "body": "帯は評価の範囲を 3 つに区切る目安で、評価そのものではない。 星 0〜1.5 の低い帯は不満の範囲。", "badge": "評価" },
+    { "step": "現在の帯", "duration": 1.2, "focus": ["低い帯", "中の帯"], "body": "星 2〜3.5 の中の帯はふつうの範囲。 3 つの帯は重ならず、境目で次の帯に移る。", "badge": "評価" },
     {
       "step": "いまの評価",
       "duration": 1.2,
@@ -24363,9 +24395,11 @@ animation:
   - step: "現在を見る" 1.2s
     focus: ["◆ いまの売上"]
     badge: "大きな数字"
+    description: "いまの売上はつまみで動く唯一の値。 下の大きな数字はこの箱をそのまま映す。"
   - step: "目標を並べる" 1.2s
     focus: ["◆ いまの売上", "目標"]
     badge: "大きな数字"
+    description: "目標は第 3 四半期の決まった額で、つまみでは動かない。 売上と並べると届いているかが読める。"
   - step: "差を出す" 1.2s
     focus: ["◆ いまの売上", "目標", "差"]
     badge: "大きな数字"
@@ -24434,11 +24468,12 @@ export const sourceJson__revenueScoreboard = `{
   ],
   "states": { "rev": 234 },
   "animation": [
-    { "step": "現在を見る", "duration": 1.2, "focus": ["◆ いまの売上"], "badge": "大きな数字" },
+    { "step": "現在を見る", "duration": 1.2, "focus": ["◆ いまの売上"], "body": "いまの売上はつまみで動く唯一の値。 下の大きな数字はこの箱をそのまま映す。", "badge": "大きな数字" },
     {
       "step": "目標を並べる",
       "duration": 1.2,
       "focus": ["◆ いまの売上", "目標"],
+      "body": "目標は第 3 四半期の決まった額で、つまみでは動かない。 売上と並べると届いているかが読める。",
       "badge": "大きな数字"
     },
     {
@@ -24478,9 +24513,11 @@ animation:
   - step: "寒い帯" 1.2s
     focus: ["寒い帯"]
     badge: "室温"
+    description: "帯は室温を 3 つに区切る。 15°C 未満の寒い帯は青で、暖房が要る範囲。"
   - step: "暑い帯まで" 1.2s
     focus: ["寒い帯", "快適な帯"]
     badge: "室温"
+    description: "15〜25°C の快適な帯は緑。 初期値の 24°C はこの帯に入る。"
   - step: "いまの室温" 1.2s
     focus: ["寒い帯", "快適な帯", "暑い帯", "◆ いまの室温"]
     badge: "室温"
@@ -24552,11 +24589,12 @@ export const sourceJson__roomThermometer = `{
   "flow": [],
   "states": { "temp": 24 },
   "animation": [
-    { "step": "寒い帯", "duration": 1.2, "focus": ["寒い帯"], "badge": "室温" },
+    { "step": "寒い帯", "duration": 1.2, "focus": ["寒い帯"], "body": "帯は室温を 3 つに区切る。 15°C 未満の寒い帯は青で、暖房が要る範囲。", "badge": "室温" },
     {
       "step": "暑い帯まで",
       "duration": 1.2,
       "focus": ["寒い帯", "快適な帯"],
+      "body": "15〜25°C の快適な帯は緑。 初期値の 24°C はこの帯に入る。",
       "badge": "室温"
     },
     {
@@ -25190,9 +25228,11 @@ animation:
   - step: "梱包と発送" 1.2s
     focus: ["📦 梱包済み"]
     badge: "追跡"
+    description: "梱包済みは倉庫で箱に詰めた段階、発送済みは運送会社に渡した段階。"
   - step: "配達中まで" 1.2s
     focus: ["📦 梱包済み", "🚚 発送済み"]
     badge: "追跡"
+    description: "配達中は向かっている段階で、初期値がここ。 配達完了で受け取りが済む。"
   - step: "配達完了" 1.2s
     focus: ["📦 梱包済み", "🚚 発送済み", "🏠 配達中", "✅ 配達完了"]
     badge: "追跡"
@@ -25267,11 +25307,12 @@ export const sourceJson__shippingOrderStatus = `{
   ],
   "states": { "current": 2, "steps": "[\\"梱包済み\\",\\"発送済み\\",\\"配達中\\",\\"配達完了\\"]" },
   "animation": [
-    { "step": "梱包と発送", "duration": 1.2, "focus": ["📦 梱包済み"], "badge": "追跡" },
+    { "step": "梱包と発送", "duration": 1.2, "focus": ["📦 梱包済み"], "body": "梱包済みは倉庫で箱に詰めた段階、発送済みは運送会社に渡した段階。", "badge": "追跡" },
     {
       "step": "配達中まで",
       "duration": 1.2,
       "focus": ["📦 梱包済み", "🚚 発送済み"],
+      "body": "配達中は向かっている段階で、初期値がここ。 配達完了で受け取りが済む。",
       "badge": "追跡"
     },
     {
@@ -25431,9 +25472,11 @@ animation:
   - step: "名前を受ける" 1.2s
     focus: ["文字の入力"]
     badge: "アイコン"
+    description: "入力欄に書いた名前が出発点。 ここを書き換えると後の 2 段が一緒に変わる。"
   - step: "頭文字を取る" 1.2s
     focus: ["文字の入力", "頭文字"]
     badge: "アイコン"
+    description: "頭文字は語ごとの頭の 1 字を 2 つまで拾う。 佐藤 花子 は 佐花 になる。"
   - step: "絵にする" 1.2s
     focus: ["文字の入力", "頭文字", "丸"]
     badge: "アイコン"
@@ -25499,11 +25542,12 @@ export const sourceJson__userAvatar = `{
   ],
   "states": { "user": "佐藤 花子" },
   "animation": [
-    { "step": "名前を受ける", "duration": 1.2, "focus": ["文字の入力"], "badge": "アイコン" },
+    { "step": "名前を受ける", "duration": 1.2, "focus": ["文字の入力"], "body": "入力欄に書いた名前が出発点。 ここを書き換えると後の 2 段が一緒に変わる。", "badge": "アイコン" },
     {
       "step": "頭文字を取る",
       "duration": 1.2,
       "focus": ["文字の入力", "頭文字"],
+      "body": "頭文字は語ごとの頭の 1 字を 2 つまで拾う。 佐藤 花子 は 佐花 になる。",
       "badge": "アイコン"
     },
     {
@@ -27174,9 +27218,11 @@ animation:
   - step: "秒数" 1.2s
     focus: ["secNode"]
     badge: "時計"
+    description: "秒数は 0〜3600 の値。 1000 倍したものが下の時計の経過になる。"
   - step: "実行状態" 1.2s
     focus: ["secNode", "runNode"]
     badge: "時計"
+    description: "動作中は時計を動かすか止めるかの切り替え。 秒数と 2 つで表示が決まる。"
   - step: "時計表示" 1.2s
     focus: ["secNode", "runNode", "displayNode"]
     badge: "時計"
@@ -27247,8 +27293,8 @@ export const sourceJson__timerStopwatch = `{
   ],
   "states": { "sec": 125, "running": "true", "elapsed": 125000 },
   "animation": [
-    { "step": "秒数", "duration": 1.2, "focus": ["secNode"], "badge": "時計" },
-    { "step": "実行状態", "duration": 1.2, "focus": ["secNode", "runNode"], "badge": "時計" },
+    { "step": "秒数", "duration": 1.2, "focus": ["secNode"], "body": "秒数は 0〜3600 の値。 1000 倍したものが下の時計の経過になる。", "badge": "時計" },
+    { "step": "実行状態", "duration": 1.2, "focus": ["secNode", "runNode"], "body": "動作中は時計を動かすか止めるかの切り替え。 秒数と 2 つで表示が決まる。", "badge": "時計" },
     {
       "step": "時計表示",
       "duration": 1.2,

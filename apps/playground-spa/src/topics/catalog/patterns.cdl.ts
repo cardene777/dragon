@@ -77,9 +77,11 @@ animation:
   - step: "送り手" 1.2s
     focus: ["利用者側"]
     badge: "直結"
+    description: "送り手の 利用者側 から出す形。 送り手と受け手の間に何も挟まない。"
   - step: "受け手まで" 1.2s
     focus: ["利用者側", "処理側"]
     badge: "直結"
+    description: "受け手の 処理側 は隣の縦列に置く。 矢印は縦列をまたいで 1 本だけ通る。"
   - step: "直結" 2.4s
     focus: ["利用者側", "処理側", "利用者側 -> 処理側"]
     badge: "直結"
@@ -108,8 +110,8 @@ export const sourceJson__patternDirect = `{
     }
   ],
   "animation": [
-    { "step": "送り手", "duration": 1.2, "focus": ["利用者側"], "badge": "直結" },
-    { "step": "受け手まで", "duration": 1.2, "focus": ["利用者側", "処理側"], "badge": "直結" },
+    { "step": "送り手", "duration": 1.2, "focus": ["利用者側"], "body": "送り手の 利用者側 から出す形。 送り手と受け手の間に何も挟まない。", "badge": "直結" },
+    { "step": "受け手まで", "duration": 1.2, "focus": ["利用者側", "処理側"], "body": "受け手の 処理側 は隣の縦列に置く。 矢印は縦列をまたいで 1 本だけ通る。", "badge": "直結" },
     {
       "step": "直結",
       "duration": 2.4,
@@ -127,8 +129,8 @@ export const patternDirect = diagram("pattern-direct", { topic: "pattern: Direct
   .node("a", { lane: "l1", stack: 0, kind: "actor", title: "利用者側" })
   .node("b", { lane: "l2", stack: 0, kind: "function", title: "処理側" })
   .edge("a", "b", { id: "e", label: "要求", sub: "箱の端で止まる", tone: "accent", style: "dotted-flow" })
-  .phase("p1", { duration: 1200, title: "送り手", body: "" }, (p: PhaseBuilder) => p.activate("a").badge("直結"))
-  .phase("p2", { duration: 1200, title: "受け手まで", body: "" }, (p: PhaseBuilder) => p.activate("a", "b").badge("直結"))
+  .phase("p1", { duration: 1200, title: "送り手", body: "送り手の 利用者側 から出す形。 送り手と受け手の間に何も挟まない。" }, (p: PhaseBuilder) => p.activate("a").badge("直結"))
+  .phase("p2", { duration: 1200, title: "受け手まで", body: "受け手の 処理側 は隣の縦列に置く。 矢印は縦列をまたいで 1 本だけ通る。" }, (p: PhaseBuilder) => p.activate("a", "b").badge("直結"))
   .phase("p3", { duration: 2400, title: "直結", body: "粒子は利用者側の端から処理側の端で止まり、箱の中には入らない。" }, (p: PhaseBuilder) => p.activate("a", "b", "e").badge("直結"))
   .build();
 
@@ -152,9 +154,11 @@ animation:
   - step: "送り手" 1.2s
     focus: ["利用者側"]
     badge: "貫通"
+    description: "送り手の 利用者側 から出す形。 受け手までの間に 1 箱を挟む。"
   - step: "中継まで" 1.2s
     focus: ["利用者側", "入口"]
     badge: "貫通"
+    description: "入口は利用者側の求めを処理側へ渡す代理の形。 矢印の道筋はこの箱の上を通る。"
   - step: "貫通" 2.8s
     focus: ["利用者側", "入口", "処理側", "利用者側 -> 処理側"]
     badge: "貫通"
@@ -190,8 +194,8 @@ export const sourceJson__patternPassthrough = `{
     }
   ],
   "animation": [
-    { "step": "送り手", "duration": 1.2, "focus": ["利用者側"], "badge": "貫通" },
-    { "step": "中継まで", "duration": 1.2, "focus": ["利用者側", "入口"], "badge": "貫通" },
+    { "step": "送り手", "duration": 1.2, "focus": ["利用者側"], "body": "送り手の 利用者側 から出す形。 受け手までの間に 1 箱を挟む。", "badge": "貫通" },
+    { "step": "中継まで", "duration": 1.2, "focus": ["利用者側", "入口"], "body": "入口は利用者側の求めを処理側へ渡す代理の形。 矢印の道筋はこの箱の上を通る。", "badge": "貫通" },
     {
       "step": "貫通",
       "duration": 2.8,
@@ -211,8 +215,8 @@ export const patternPassthrough = diagram("pattern-passthrough", { topic: "patte
   .node("router", { lane: "l2", stack: 0, kind: "function", title: "入口", subtitle: "利用者側から処理側へ中継する (代理の形)" })
   .node("c", { lane: "l3", stack: 0, kind: "function", title: "処理側" })
   .edge("a", "c", { id: "e", label: "利用者側 → 処理側", sub: "入口を経由", tone: "accent", style: "dotted-flow" })
-  .phase("p1", { duration: 1200, title: "送り手", body: "" }, (p: PhaseBuilder) => p.activate("a").badge("貫通"))
-  .phase("p2", { duration: 1200, title: "中継まで", body: "" }, (p: PhaseBuilder) => p.activate("a", "router").badge("貫通"))
+  .phase("p1", { duration: 1200, title: "送り手", body: "送り手の 利用者側 から出す形。 受け手までの間に 1 箱を挟む。" }, (p: PhaseBuilder) => p.activate("a").badge("貫通"))
+  .phase("p2", { duration: 1200, title: "中継まで", body: "入口は利用者側の求めを処理側へ渡す代理の形。 矢印の道筋はこの箱の上を通る。" }, (p: PhaseBuilder) => p.activate("a", "router").badge("貫通"))
   .phase("p3", { duration: 2800, title: "貫通", body: "矢印の道筋が入口の上を通るため、描画側が自動の判定で粒子を入口の中央まで動かす。" }, (p: PhaseBuilder) => p.activate("a", "router", "c", "e").badge("貫通"))
   .build();
 
@@ -355,9 +359,11 @@ animation:
   - step: "関数" 1.2s
     focus: ["注文を処理する(...)"]
     badge: "出来事を出す"
+    description: "関数は中で処理を終えてから外へ知らせる。 知らせる先は関数の外にある。"
   - step: "受け皿まで" 1.2s
     focus: ["注文を処理する(...)", "注文ができた"]
     badge: "出来事を出す"
+    description: "注文ができた は知らせの受け皿。 括弧の中は知らせに載る値。"
   - step: "出来事を出す" 2.4s
     focus: ["注文を処理する(...)", "注文ができた", "注文を処理する(...) -> 注文ができた"]
     badge: "出来事を出す"
@@ -390,11 +396,12 @@ export const sourceJson__patternEmit = `{
     }
   ],
   "animation": [
-    { "step": "関数", "duration": 1.2, "focus": ["注文を処理する(...)"], "badge": "出来事を出す" },
+    { "step": "関数", "duration": 1.2, "focus": ["注文を処理する(...)"], "body": "関数は中で処理を終えてから外へ知らせる。 知らせる先は関数の外にある。", "badge": "出来事を出す" },
     {
       "step": "受け皿まで",
       "duration": 1.2,
       "focus": ["注文を処理する(...)", "注文ができた"],
+      "body": "注文ができた は知らせの受け皿。 括弧の中は知らせに載る値。",
       "badge": "出来事を出す"
     },
     {
@@ -414,8 +421,8 @@ export const patternEmit = diagram("pattern-emit", { topic: "pattern: Emit Event
   .node("fn", { lane: "c", stack: 0, kind: "function", title: "注文を処理する(...)", w: 426 })
   .node("ev", { lane: "o", stack: 0, kind: "event", title: "注文ができた", subtitle: "(注文の番号, 利用者の番号, 金額)" })
   .edge("fn", "ev", { id: "emit", label: "出来事を出す", tone: "success", style: "dotted-flow" })
-  .phase("p1", { duration: 1200, title: "関数", body: "" }, (p: PhaseBuilder) => p.activate("fn").badge("出来事を出す"))
-  .phase("p2", { duration: 1200, title: "受け皿まで", body: "" }, (p: PhaseBuilder) => p.activate("fn", "ev").badge("出来事を出す"))
+  .phase("p1", { duration: 1200, title: "関数", body: "関数は中で処理を終えてから外へ知らせる。 知らせる先は関数の外にある。" }, (p: PhaseBuilder) => p.activate("fn").badge("出来事を出す"))
+  .phase("p2", { duration: 1200, title: "受け皿まで", body: "注文ができた は知らせの受け皿。 括弧の中は知らせに載る値。" }, (p: PhaseBuilder) => p.activate("fn", "ev").badge("出来事を出す"))
   .phase("p3", { duration: 2400, title: "出来事を出す", body: "関数の中で出した出来事が、流し場と記録に書き込まれる。" }, (p: PhaseBuilder) => p.activate("fn", "ev", "emit").badge("出来事を出す"))
   .build();
 
