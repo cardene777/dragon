@@ -90,7 +90,10 @@ describe("一覧の名前 (#1030)", () => {
       ethereum: 4, "text-dsl": 19, parts: 110, "parts-in-box": 1, "parts-motion": 1, charts: 15,
     };
     const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));
-    expect(actual, "図の数が変わっている (足したら期待値も更新する)").toEqual(expected);
+    expect(
+      actual,
+      "図の数が変わっている (書く場所 = この file の expected。 図を足した / 移した時に直す)",
+    ).toEqual(expected);
     expect(total, "総数が合わない").toBe(Object.values(expected).reduce((a, b) => a + b, 0));
   });
 
@@ -108,7 +111,10 @@ describe("一覧の名前 (#1030)", () => {
     // 名前が無いと一覧に export 名がそのまま出る
     const keys = byCatalog.find(([n]) => n === "interactive")![1];
     const missing = keys.filter((k) => ITEM_NAME_JA[k] === undefined);
-    expect(missing, `一覧に名前が無い: ${missing.join(", ")}`).toHaveLength(0);
+    expect(
+      missing,
+      `一覧に名前が無い (書く場所 = i18n.ts の ITEM_NAME_JA): ${missing.join(", ")}`,
+    ).toHaveLength(0);
   });
 
   it("名前の表と図の集合が双方向で一致する (#1035)", () => {
@@ -116,11 +122,22 @@ describe("一覧の名前 (#1030)", () => {
     // 表にあって図に無い = 死んだ entry で、両言語に同じ死んだ key を足すと
     // 集合の一致だけを見る検査は通ってしまう。 **図を基準に双方向で見る**
     const diagrams = new Set(byCatalog.flatMap(([, keys]) => keys));
-    for (const [label, table] of [["日本語名", ITEM_NAME_JA], ["英語名", ITEM_NAME_EN]] as const) {
+    // 表の名前も一緒に持つ = 落ちた文がどの表に書けばよいかを名指しできる (#2597)
+    const 表たち = [
+      ["日本語名", "ITEM_NAME_JA", ITEM_NAME_JA],
+      ["英語名", "ITEM_NAME_EN", ITEM_NAME_EN],
+    ] as const;
+    for (const [label, 表の名前, table] of 表たち) {
       const missing = [...diagrams].filter((k) => table[k] === undefined);
-      expect(missing, `${label}が無い図: ${missing.slice(0, 8).join(", ")}`).toHaveLength(0);
+      expect(
+        missing,
+        `${label}が無い図 (書く場所 = i18n.ts の ${表の名前}): ${missing.slice(0, 8).join(", ")}`,
+      ).toHaveLength(0);
       const dead = Object.keys(table).filter((k) => !diagrams.has(k));
-      expect(dead, `${label}の表に図の無い entry: ${dead.slice(0, 8).join(", ")}`).toHaveLength(0);
+      expect(
+        dead,
+        `${label}の表に図の無い entry (外す場所 = i18n.ts の ${表の名前}): ${dead.slice(0, 8).join(", ")}`,
+      ).toHaveLength(0);
     }
   });
 
