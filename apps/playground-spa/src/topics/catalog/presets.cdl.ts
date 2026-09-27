@@ -1571,8 +1571,12 @@ const presetClassDiagramSteps = withSteps(
     },
     {
       ids: ["Sku", "Receipt", "cr-5-Line-Sku", "cr-3-Order-Receipt"],
-      title: "6. 関連と依存",
-      body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。",
+      title: "6. 関連と依存と色の群",
+      // 色の話は最後の段に置く (#2601)。 群は段をまたぐ (継承が 2 段目 / 実装が 3 段目) ので、
+      // 段ごとに色を書くと「この 2 つが同じ色」 という対応が 1 つの画面に揃わない。
+      // 色だけを説明する段は足せない = 光る要素が増えない段は静止画と区別が付かず、
+      // `catalog-motion-render.test.tsx` が落とす。 6 本が出揃う最後の段が唯一の置き場になる
+      body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。 6 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。",
     },
   ],
 );
@@ -1778,8 +1782,9 @@ const presetClassComplexSteps = withSteps(
     },
     {
       ids: ["Notification", "cr-5-RiskCheck-Notification", "cr-13-Transaction-Notification"],
-      title: "8. 通知への依存",
-      body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。",
+      title: "8. 通知への依存と色の群",
+      // 簡単な版と同じ置き方 (#2601)。 こちらだけ開いた人にも色の決まりが届くようにする
+      body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。 13 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。",
     },
   ],
 );
@@ -4599,10 +4604,10 @@ animation:
     badge: "class"
     focus: [User, Admin, Auditable, Order, Line, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line"]
     body: "菱を塗る。 部分の寿命は全体と同じで、全体を消すと部分も消える。"
-  - step: "6. 関連と依存" 0.9s
+  - step: "6. 関連と依存と色の群" 0.9s
     badge: "class"
     focus: [User, Admin, Auditable, Order, Line, Sku, Receipt, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"]
-    body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
+    body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。 6 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。"
 `;
 
 export const sourceJson__presetClassDiagram = `{
@@ -4736,10 +4741,10 @@ export const sourceJson__presetClassDiagram = `{
       "badge": "class"
     },
     {
-      "step": "6. 関連と依存",
+      "step": "6. 関連と依存と色の群",
       "duration": 0.9,
       "focus": ["User", "Admin", "Auditable", "Order", "Line", "Sku", "Receipt", "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"],
-      "body": "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。",
+      "body": "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。 6 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。",
       "badge": "class"
     }
   ]
@@ -4810,10 +4815,10 @@ animation:
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry", RiskCheck, "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck"]
     badge: "class"
     body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
-  - step: "8. 通知への依存" 0.9s
+  - step: "8. 通知への依存と色の群" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry", RiskCheck, "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", Notification, "RiskCheck -> Notification", "Transaction -> Notification"]
     badge: "class"
-    body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。"
+    body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。 13 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。"
 `;
 
 export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
@@ -5103,11 +5108,11 @@ export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
         "body": "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
       },
       {
-        "step": "8. 通知への依存",
+        "step": "8. 通知への依存と色の群",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", "Notification", "RiskCheck -> Notification", "Transaction -> Notification"],
         "badge": "class",
-        "body": "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。"
+        "body": "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。 13 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。"
       }
     ]
   },
