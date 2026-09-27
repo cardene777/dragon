@@ -217,7 +217,11 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       // 状態が移る印は 1 種類だけ = 実線に開いた矢 (#2591)。 描く側の状態遷移の組み立てが
       // 同じ値を渡しており、こちらを通る図 (動きか縦列か種類を書いた図) だけが端を渡さず
       // 既定の三角に落ちていた。 書いた端は後から `矢印へ書き写す` が上書きするので勝つ
-      ...(kind === "state" ? { head: "open" as const } : {}),
+      //
+      // **線の種類も同じ決まりの半分** (#2595)。 描く側は「実線に開いた矢」 と名乗っており、
+      // 端だけを渡すと決まりの片側しか届かない。 既定が実線なので見た目は変わらないが、
+      // 渡さないままだと「この図種は実線」 と書いた場所がどこにも無くなる
+      ...(kind === "state" ? { head: "open" as const, style: "solid" as const } : {}),
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
