@@ -27,10 +27,13 @@
  * 一式を回すと同じ入力でも値が動く。 図 599 枚を 3 周する形を 10 回 (単独 5 回 / 一式 5 回)
  * 測った実測。
  *
- * | 測り方 | 全 30 周の幅 | 境 5000ms に対する最悪 |
- * |---|---|---|
- * | 壁時計 | 296..1990ms (6.72 倍) | 39.8% |
- * | CPU 時間 | 329.7..861.7ms (2.61 倍) | 17.2% |
+ * | 測り方 | 全 30 周の幅 |
+ * |---|---|
+ * | 壁時計 | 296..1990ms (6.72 倍) |
+ * | CPU 時間 | 329.7..861.7ms (2.61 倍) |
+ *
+ * 境に対する割合は書かない。 境は描く側が決める数なので、写すと描く側が変えた時に この表だけが
+ * 黙って間違いになる。 § 測った最悪値が今の境のどこに居るか が入口から読んだ境で割って出す。
  *
  * `0.81.0` で engine が CPU 時間で測るようになった (`cardene777/cdl#897`)。
  * 待っている間は増えないため、一式を回した時の幅が 2.90 倍から 1.87 倍に縮む。
@@ -50,8 +53,10 @@
  * CPU 時間が読めない環境では engine が壁時計に落ちる。 落ちたことは超過の文面にしか出ない
  * ので、超過していない周では分からない。 § CPU 時間で測れている で返り値を直接見る。
  */
+import { readFileSync } from "node:fs";
+
 import { describe, it, expect } from "vitest";
-import { visualValidateAll } from "@cardenelabs/cdl";
+import { visualValidateAll, PERF_BUDGET_TOTAL_MS } from "@cardenelabs/cdl";
 
 import { 全図, カタログの群の名 } from "./support/responsive-accepted";
 import { 実在する群 } from "./support/catalog-groups";
@@ -106,6 +111,44 @@ describe("速さの判定が周ごとに変わらない (#1736)", () => {
     for (const [i, r] of 周.entries()) {
       expect(r.測り方, `${i + 1} 周目が CPU 時間で測れていない`).toBe("cpu");
     }
+  });
+
+  it("境を写していない (#2577)", () => {
+    /*
+     * 境は描く側 (`@cardenelabs/cdl`) が持つ数で、こちらが決めた数ではない。 この file に
+     * 書き写すと、描く側が境を変えた時に説明文だけが黙って間違いになる (機械が読む箇所は
+     * 無いので検査は落ちない = 落ちないことが問題)。 自分の中身を読んで literal を数える。
+     */
+    const 本文 = readFileSync(new URL(import.meta.url), "utf8");
+    const 境の桁 = String(PERF_BUDGET_TOTAL_MS);
+    const 写した行 = 本文
+      .split("\n")
+      .map((l, i) => [i + 1, l] as const)
+      .filter(([, l]) => l.includes(境の桁) && !l.includes("PERF_BUDGET_TOTAL_MS"));
+    expect(写した行.map(([i, l]) => `${i}: ${l.trim()}`), "境を literal で書いている").toEqual([]);
+  });
+
+  it("入口から境が届いている (#2577)", () => {
+    /*
+     * 版を上げても入口から出ていなければ `undefined` が来る。 上の検査は `String(undefined)`
+     * を探して 0 件になり通ってしまうので、届いていること自体を別に押さえる。
+     */
+    expect(typeof PERF_BUDGET_TOTAL_MS, "境が数で届いていない").toBe("number");
+    expect(PERF_BUDGET_TOTAL_MS).toBeGreaterThan(0);
+  });
+
+  it("測った最悪値が今の境のどこに居るか (#2577)", () => {
+    /*
+     * 上の表の実測のうち最も重かった 1 件。 ms は測った事実なので残し、境に対する割合は
+     * 入口から読んだ境で割って出す。 判定はせず、失敗の文面に出すための行として置く
+     * (何 % なら正しいかの根拠が無いため、新しい境を足さない)。
+     */
+    const 測った最悪 = 861.7;
+    const 割合 = (測った最悪 / PERF_BUDGET_TOTAL_MS) * 100;
+    expect(
+      割合 < 100,
+      `測った最悪 ${測った最悪}ms は今の境 ${PERF_BUDGET_TOTAL_MS}ms の ${割合.toFixed(1)}%`,
+    ).toBe(true);
   });
 
   it("軸そのものが残っている", () => {
