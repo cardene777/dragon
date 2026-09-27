@@ -93,3 +93,27 @@
   font-size: 10.5px;
   color: var(--d-text-muted);
 }
+
+/* 段の説明 (#2609)。 **枠の外に置く** = `.cdl-phase` の中に入れると図の描画領域を削る。
+   置く側は台の兄弟として並べ、台の幅に合わせる。
+
+   全ての段の説明を同じ升へ重ね、いま光っている 1 つだけを見せる。 高さは最も長い説明で
+   決まるので、段が進んでも図の下が動かない。 行数で打ち切る形は採らない = 実測で 4 行の
+   説明が 2 行で切れ、後ろ半分が読めなかった。 */
+.cdl-phase-note {
+  display: grid;
+  margin-top: 8px;
+}
+
+.cdl-phase-note-line {
+  grid-area: 1 / 1;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--d-text-muted);
+  visibility: hidden;
+}
+
+.cdl-phase-note-line[data-now] {
+  visibility: visible;
+}

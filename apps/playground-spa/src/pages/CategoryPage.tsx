@@ -25,7 +25,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { motionNote } from "@/lib/catalog-motion";
 import { InViewMount } from "@/components/InViewMount";
-import { PhaseChrome } from "@/components/PhaseChrome";
+import { PhaseChrome, PhaseNote } from "@/components/PhaseChrome";
 import { DiagramZoomControls } from "@/components/DiagramZoomControls";
 import { useDiagramPanZoom } from "@/components/useDiagramPanZoom";
 import { useScrollEdges } from "@/components/useScrollEdges";
@@ -974,6 +974,13 @@ export function CategoryPage(): React.ReactElement {
                     align="right"
                   />
                 </div>
+                {/* 段の説明は枠の外に置く (#2609)。 中に入れると図の描画領域を削る */}
+                {!showSource && (
+                  <PhaseNote
+                    stage={stageEl}
+                    phases={(図 ?? 見本?.diagram ?? currentItem.diagram).phases}
+                  />
+                )}
                 <SourceTabs item={見本 ?? currentItem} hidden={!showSource} 速さ={速さ} 描き方={描き方} />
                 <footer className="catalog-preview-foot">
                   {/*
@@ -1071,6 +1078,8 @@ export function CategoryPage(): React.ReactElement {
                 align="right"
               />
             </div>
+            {/* 同じ理由で枠の外に置く (#2609) */}
+            <PhaseNote stage={modalStageEl} phases={(拡大の図 ?? modalItem?.diagram)?.phases} />
             </div>
           </Dialog.Content>
         </Dialog.Portal>

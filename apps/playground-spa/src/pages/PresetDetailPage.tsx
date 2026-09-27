@@ -16,7 +16,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { useToast } from "@/components/Toast";
 import { useLocale } from "@/lib/useLocale";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
-import { PhaseChrome } from "@/components/PhaseChrome";
+import { PhaseChrome, PhaseNote } from "@/components/PhaseChrome";
 import { DiagramZoomControls } from "@/components/DiagramZoomControls";
 import { useDiagramPanZoom } from "@/components/useDiagramPanZoom";
 import { useScrollEdges } from "@/components/useScrollEdges";
@@ -278,6 +278,8 @@ export function PresetDetailPage(): React.ReactElement {
             {/* 設計 (`06 見本の詳細`) は札を左上に描いている (#1239) */}
             <PhaseChrome stage={stageEl} phases={preset.diagram.phases} />
           </div>
+          {/* 段の説明は枠の外に置く (#2609)。 中に入れると図の描画領域を削る */}
+          <PhaseNote stage={stageEl} phases={preset.diagram.phases} />
           <div className="nm-preset-detail-nav">
             <Link
               to={`/preset/${prevPreset.slug}`}
