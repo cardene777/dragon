@@ -28,8 +28,41 @@ engine (`@cardenelabs/cdl`) は別 repo (`github.com/cardene777/cdl`) SSOT。
 1. issue を起票
 2. `feature/{N}-{slug}` で branch 切り
 3. test 先行 (TDD 推奨、 動作証明のないコードは merge 対象外)
-4. `pnpm test` + `pnpm typecheck` + `pnpm build` が緑になるか確認
+4. 提出の関門を 1 本通す
+
+   ```bash
+   pnpm verify
+   ```
+
 5. pull request を起票
+
+`pnpm verify` は型と build と字と検査の 4 つを、短い側から順に回す。
+
+### 絞り込んだ結果を提出の根拠にしない
+
+**変更した dir と、その file を読む検査の dir は一致しない**。
+`apps/playground-spa` の見本を 1 枚足しただけでも、`packages/dragon/test` にある
+見本の実物を読む検査 30 file 以上が影響を受ける。
+
+絞り込んで回して緑を見て提出し、取り込んだ後に赤が残ったことを 3 度続けた (`#2602`)。
+4 file / 6 件が積み上がり、次の作業で一式を回すまで 1 度も表に出なかった。
+
+絞り込む理由は実測に対して薄い。
+
+| 段 | cmd | 実測 |
+|---|---|---|
+| 1 | `pnpm typecheck` | 6.7 秒 |
+| 2 | `pnpm build` | 9.0 秒 |
+| 3 | `pnpm lint` | 20.1 秒 |
+| 4 | `pnpm test` | 47.3 秒 (516 file / 43719 件) |
+
+通しで回すと 72.9 秒 (段ごとに測った和より短い)。
+節約できる時間より、積み上がった赤を切り分ける時間のほうが長い。
+
+`build` が 2 番目に居るのは、検査が dist の新しさを見るため。
+古い dist が残っていると検査は「dist が src より古い package がある」 で止まる。
+
+個別の cmd は消していない。 落ちた所を切り分ける時に使う (`Tests` 節)。
 
 ## 残作業の数え方
 
@@ -84,11 +117,16 @@ Linear の tool が出なかった時と同じく「0 件」 に見える。 だ
 
 ## Tests
 
+提出の関門は `pnpm verify` 1 本 (開発フローの 4 番目)。
+下の個別の cmd は **落ちた所を切り分ける時に使う**。
+
 ```bash
+pnpm verify                                      # 関門。 型 → build → 字 → 検査を順に回す
 pnpm test                                        # vitest 全件 (unit + integration)
 pnpm test:watch                                  # vitest watch mode
 pnpm lint                                        # eslint
 pnpm typecheck                                   # tsc -b 全 workspace
+pnpm build                                       # 記法の package と画面
 ```
 
 新機能を追加する PR は test を必ず添える。 test の置き場所は `packages/dragon/test/` または `apps/playground-spa/tests/` のいずれか。
