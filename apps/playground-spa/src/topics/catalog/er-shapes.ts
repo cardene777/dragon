@@ -24,9 +24,17 @@
  *
  * ## 4 枚とも同じ書き方で作る
  *
- * 形の違いだけを見せたいので、表の書き方 (鍵を上へ / 外を指す列に山形の印) と関係の書き方
- * (必須は実線、任意は破線) を 4 枚で揃える。 揃えないと、読み手は形の違いと書き方の違いを
- * 区別できない。
+ * 形の違いだけを見せたいので、表の書き方と関係の書き方を 4 枚で揃える。
+ * 揃えないと、読み手は形の違いと書き方の違いを区別できない。
+ *
+ * | 書くもの | 決め方 |
+ * |---|---|
+ * | 行の印 | 鍵は名前に下線、外を指す列は山形、空を許す列は中空 (形 x 塗りの 2 軸) |
+ * | 線の種類 | 端が 0 を許さない関係は実線、0 を許す関係は破線 |
+ * | 段の説明 | その段で何を読めばよいかを 1-2 文。 画面の「コード」 のタブに出る |
+ *
+ * 線の種類の決め方は見本帳の ER 図に共通で、線の種類を書いた矢印に例外が無い (#2585 で実測)。
+ * `packages/dragon/test/er-line-style.test.ts` が崩れた時に落とす。
  *
  * ## 器に収まる置き方を実測で決めた
  *
@@ -82,9 +90,11 @@ animation:
   - step: "1. 表を出す" 1.2s
     focus: ["users", "orders", "order_items"]
     badge: "3 表"
+    body: "鍵は名前に下線。 外を指す列は山形の印。"
   - step: "2. 一直線に繋ぐ" 1.4s
     focus: ["users", "orders", "order_items", "users -> orders", "orders -> order_items"]
     badge: "2 関係"
+    body: "破線は 0 を許す関係、実線は 0 を許さない関係。 明細は親の鍵を主キーに含む。"
 `;
 export const erShapeSmall = textDslToDiagram(sourceYaml__erShapeSmall);
 
@@ -185,7 +195,8 @@ export const sourceJson__erShapeSmall = `{
         "orders",
         "order_items"
       ],
-      "badge": "3 表"
+      "badge": "3 表",
+      "body": "鍵は名前に下線。 外を指す列は山形の印。"
     },
     {
       "step": "2. 一直線に繋ぐ",
@@ -197,7 +208,8 @@ export const sourceJson__erShapeSmall = `{
         "users -> orders",
         "orders -> order_items"
       ],
-      "badge": "2 関係"
+      "badge": "2 関係",
+      "body": "破線は 0 を許す関係、実線は 0 を許さない関係。 明細は親の鍵を主キーに含む。"
     }
   ]
 }`;
@@ -239,12 +251,15 @@ animation:
   - step: "1. 表を出す" 1.2s
     focus: ["addresses", "sessions", "users", "reviews", "orders", "payments"]
     badge: "6 表"
+    body: "鍵は名前に下線。 外を指す列は山形の印。"
   - step: "2. 中心へ集める" 1.4s
     focus: ["users", "addresses", "sessions", "orders", "reviews", "users -> addresses", "users -> sessions", "users -> orders", "users -> reviews"]
     badge: "1 表に 4 本"
+    body: "破線は 0 を許す関係。 届け先も注文も 1 件も持たない利用者がいる。"
   - step: "3. 先へ繋ぐ" 1.2s
     focus: ["orders", "payments", "orders -> payments"]
     badge: "先は 1 対 1"
+    body: "端が両方とも棒。 1 件の注文に支払いが 1 件で、どちらも欠けない。"
 `;
 export const erShapeHub = textDslToDiagram(sourceYaml__erShapeHub);
 
@@ -420,7 +435,8 @@ export const sourceJson__erShapeHub = `{
         "orders",
         "payments"
       ],
-      "badge": "6 表"
+      "badge": "6 表",
+      "body": "鍵は名前に下線。 外を指す列は山形の印。"
     },
     {
       "step": "2. 中心へ集める",
@@ -436,7 +452,8 @@ export const sourceJson__erShapeHub = `{
         "users -> orders",
         "users -> reviews"
       ],
-      "badge": "1 表に 4 本"
+      "badge": "1 表に 4 本",
+      "body": "破線は 0 を許す関係。 届け先も注文も 1 件も持たない利用者がいる。"
     },
     {
       "step": "3. 先へ繋ぐ",
@@ -446,7 +463,8 @@ export const sourceJson__erShapeHub = `{
         "payments",
         "orders -> payments"
       ],
-      "badge": "先は 1 対 1"
+      "badge": "先は 1 対 1",
+      "body": "端が両方とも棒。 1 件の注文に支払いが 1 件で、どちらも欠けない。"
     }
   ]
 }`;
@@ -488,9 +506,11 @@ animation:
   - step: "1. 表を出す" 1.2s
     focus: ["tenants", "projects", "boards", "cards", "comments", "attachments"]
     badge: "6 表"
+    body: "鍵は名前に下線。 外を指す列は山形の印。"
   - step: "2. 端から端へ繋ぐ" 1.6s
     focus: ["tenants", "projects", "boards", "cards", "comments", "attachments", "tenants -> projects", "projects -> boards", "boards -> cards", "cards -> comments", "comments -> attachments"]
     badge: "5 段の階層"
+    body: "実線は 0 を許さない関係。 掲示板だけは付箋を 1 枚以上持つ。"
 `;
 export const erShapeChain = textDslToDiagram(sourceYaml__erShapeChain);
 
@@ -662,7 +682,8 @@ export const sourceJson__erShapeChain = `{
         "comments",
         "attachments"
       ],
-      "badge": "6 表"
+      "badge": "6 表",
+      "body": "鍵は名前に下線。 外を指す列は山形の印。"
     },
     {
       "step": "2. 端から端へ繋ぐ",
@@ -680,7 +701,8 @@ export const sourceJson__erShapeChain = `{
         "cards -> comments",
         "comments -> attachments"
       ],
-      "badge": "5 段の階層"
+      "badge": "5 段の階層",
+      "body": "実線は 0 を許さない関係。 掲示板だけは付箋を 1 枚以上持つ。"
     }
   ]
 }`;
@@ -708,7 +730,7 @@ actors:
   - grants: { lane: c1, stack: 0, kind: storage, subtitle: "役割の割当", rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] }
   - taggings: { lane: c1, stack: 1, kind: storage, subtitle: "案件の名札", rows: ["project_id: bigint", "tag_id: bigint"], marks: ["pk fk", "pk fk"] }
   - users: { lane: c2, stack: 0, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }
-  - projects: { lane: c2, stack: 1, kind: storage, subtitle: "案件", rows: ["id: bigint", "team_id: bigint", "owner_id: bigint"], marks: ["pk", "fk", "fk"] }
+  - projects: { lane: c2, stack: 1, kind: storage, subtitle: "案件", rows: ["id: bigint", "team_id: bigint", "owner_id: bigint"], marks: ["pk", "fk", "fk opt"] }
   - teams: { lane: c3, stack: 0, kind: storage, subtitle: "班", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
   - members: { lane: c3, stack: 1, kind: storage, subtitle: "班の一員", rows: ["team_id: bigint", "user_id: bigint"], marks: ["pk fk", "pk fk"] }
 
@@ -721,19 +743,22 @@ flow:
   - teams -> projects: "進める" (info, dashed) { tailHead: one, head: zero-many }
   - projects -> taggings: "付ける" (info, solid) { tailHead: one, head: many }
   - tags -> taggings: "貼る" (info, solid) { tailHead: one, head: many }
-  - users -> projects: "受け持つ" (info, dashed) { tailHead: one, head: zero-many }
+  - users -> projects: "受け持つ" (info, dashed) { tailHead: zero-one, head: zero-many }
 
 # 線も段に載せる。 段が名指ししていない線は光っていない合図として刻まれる
 animation:
   - step: "1. 実体の表を出す" 1.2s
     focus: ["roles", "tags", "users", "projects", "teams"]
     badge: "5 つの実体"
+    body: "鍵は名前に下線、外を指す列は山形の印。 空を許す列は中空 (案件の受け持ち)。"
   - step: "2. 中間の表を出す" 1.2s
     focus: ["grants", "taggings", "members"]
     badge: "鍵だけの 3 表"
+    body: "中間の表は全ての列が鍵。 2 つの鍵がそのまま主キーになる。"
   - step: "3. 両側から繋ぐ" 1.6s
     focus: ["users", "roles", "grants", "teams", "members", "projects", "tags", "taggings", "users -> grants", "roles -> grants", "users -> members", "teams -> members", "projects -> taggings", "tags -> taggings", "teams -> projects", "users -> projects"]
     badge: "中間の表が 3 つ"
+    body: "実線は 0 を許さない関係。 破線の 2 本は担当と受け持ちで、どちらも決まっていないことがある。"
 `;
 export const erShapeMesh = textDslToDiagram(sourceYaml__erShapeMesh);
 
@@ -847,7 +872,7 @@ export const sourceJson__erShapeMesh = `{
       "marks": [
         "pk",
         "fk",
-        "fk"
+        "fk opt"
       ]
     },
     {
@@ -951,7 +976,7 @@ export const sourceJson__erShapeMesh = `{
       "label": "受け持つ",
       "tone": "info",
       "style": "dashed",
-      "tailHead": "one",
+      "tailHead": "zero-one",
       "head": "zero-many"
     }
   ],
@@ -966,7 +991,8 @@ export const sourceJson__erShapeMesh = `{
         "projects",
         "teams"
       ],
-      "badge": "5 つの実体"
+      "badge": "5 つの実体",
+      "body": "鍵は名前に下線、外を指す列は山形の印。 空を許す列は中空 (案件の受け持ち)。"
     },
     {
       "step": "2. 中間の表を出す",
@@ -976,7 +1002,8 @@ export const sourceJson__erShapeMesh = `{
         "taggings",
         "members"
       ],
-      "badge": "鍵だけの 3 表"
+      "badge": "鍵だけの 3 表",
+      "body": "中間の表は全ての列が鍵。 2 つの鍵がそのまま主キーになる。"
     },
     {
       "step": "3. 両側から繋ぐ",
@@ -999,7 +1026,8 @@ export const sourceJson__erShapeMesh = `{
         "teams -> projects",
         "users -> projects"
       ],
-      "badge": "中間の表が 3 つ"
+      "badge": "中間の表が 3 つ",
+      "body": "実線は 0 を許さない関係。 破線の 2 本は担当と受け持ちで、どちらも決まっていないことがある。"
     }
   ]
 }`;
