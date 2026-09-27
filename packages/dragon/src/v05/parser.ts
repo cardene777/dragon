@@ -71,6 +71,7 @@ import {
   PALETTES,
   resolvePalette,
 } from "../keywords";
+import { PHASE_BODY_KEYS } from "../keywords";
 import type { DslPalette } from "../keywords";
 import type { DslDirection } from "../keywords";
 import { parseRelativePos, findRelativeProblems, type RelativeProblem } from "../relative-pos";
@@ -4331,8 +4332,8 @@ function ensureAnimate(a: DslAnimate | undefined, lineNo: number): DslAnimate {
 export const PHASE_ITEM_WORDS = [
   "focus",
   "badge",
-  "body",
-  "description",
+  // 説明の語は `PHASE_BODY_KEYS` から導く (#2621)。 ここに書き写すと JSON の入口とずれる
+  ...PHASE_BODY_KEYS,
   "tween",
   "set",
   "draw",
@@ -4456,7 +4457,7 @@ function parsePhase(block: Line[], errors: DslError[]): DslPhase | null {
       i += 1;
       continue;
     }
-    if (key === "description" || key === "body") {
+    if ((PHASE_BODY_KEYS as readonly string[]).includes(key)) {
       phase.body = stripQuotes(value);
       i += 1;
       continue;

@@ -40,7 +40,7 @@ import {
 } from "./v05/parser";
 // 図の配色 (#1553)。 記法の読み手と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方が
 // 記法と JSON でずれない
-import { resolvePalette } from "./keywords";
+import { resolvePalette, PHASE_BODY_KEYS } from "./keywords";
 import type { DslPalette } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
@@ -459,6 +459,13 @@ export interface JsonPhase {
   focus?: string[];
   /** body 説明文 */
   body?: string;
+  /**
+   * 説明文の別名 (#2621)。 記法が `description:` を受けるので JSON でも受ける。
+   *
+   * **正の語は `body`**。 両方書いた段は `body` を採る = 正の語を優先すると決めておくと、
+   * 読み手が「どちらが効くのか」 を実装を読まずに判断できる。
+   */
+  description?: string;
   /** badge label */
   badge?: string;
   /**
@@ -651,7 +658,8 @@ export const ACCEPTED_KEYS = {
     "fromPartNode",
     "toPartNode",
   ],
-  phase: ["step", "duration", "focus", "body", "badge", "tween", "set", "draw", "drawRatio"],
+  // 説明の語は `PHASE_BODY_KEYS` から導く (#2621)。 書き写すと記法の入口とずれる
+  phase: ["step", "duration", "focus", ...PHASE_BODY_KEYS, "badge", "tween", "set", "draw", "drawRatio"],
   viewport: ["width", "height", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
   lane: ["x", "width", "label", "contain", "lifeline", "pos"],
   group: ["label", "lanes"],
@@ -829,7 +837,9 @@ export const 欄の型表 = {
     step: "必須の非空文字列",
     duration: "数",
     focus: "文字列の並び",
+    // 説明は正の語と別名のどちらでも同じ型。 表の欄は `ACCEPTED_KEYS.phase` と揃える (#2621)
     body: "文字列",
+    description: "文字列",
     badge: "文字列",
     tween: "object",
     set: "object",
@@ -2554,6 +2564,20 @@ function validateValues(v: unknown, errors: JsonDslError[]): void {
 }
 
 /**
+ * 段の説明を取り出す (#2621)。 受ける語は `PHASE_BODY_KEYS` が持つ。
+ *
+ * **正の語 (`body`) を先に見る**。 表の先頭が正の語なので、並び順のまま最初に値を持つ語を
+ * 採れば「どちらが効くか」 の規則を別に書かなくて済む。
+ */
+function 段の説明(p: JsonPhase): string | undefined {
+  for (const key of PHASE_BODY_KEYS) {
+    const v = p[key];
+    if (typeof v === "string") return v;
+  }
+  return undefined;
+}
+
+/**
  * 図表の箱の上の小見出しを、 記法側と同じ形に整える (#1247)。
  *
  * 記法は値を `trim()` してから空かどうかを見る。 JSON でも同じ順で見ないと、 空白だけの値が
@@ -2763,7 +2787,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     name: p.step,
     durationMs: Math.round((p.duration ?? 1.4) * 1000),
     highlight: p.focus,
-    body: p.body,
+    body: 段の説明(p),
     badge: p.badge,
     // 書いた段だけが欄を持つ。 空文字を置くと「書いた」 と「書いていない」 が同じ形になる
     ...(p.draw !== undefined ? { draw: p.draw, drawPos: 位置("animation", i, "draw") } : {}),

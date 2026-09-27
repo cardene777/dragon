@@ -180,6 +180,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     duration: 1.2,
     focus: ["A"],
     body: "説明",
+    // 説明の別名 (#2621)。 記法が受ける語を JSON でも受けるので、値の表にも並べる
+    description: "説明",
     badge: "印",
     tween: { v: [0, 1] },
     set: { v: 2 },

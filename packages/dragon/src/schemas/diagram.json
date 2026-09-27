@@ -794,6 +794,10 @@
             "type": "string",
             "description": "phase 説明文"
           },
+          "description": {
+            "type": "string",
+            "description": "phase 説明文の別名 (記法の description: と同じ)。 正の語は body で、 両方書いた段は body が効く"
+          },
           "badge": {
             "type": "string",
             "description": "phase 中に表示する badge label"
