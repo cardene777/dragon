@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 
 import { PHASE_ITEM_WORDS } from "../src/v05/parser";
-import { textDslToDiagram } from "../src/index";
+import { PHASE_BODY_KEYS, PHASE_BODY_CANONICAL } from "../src/keywords";
+import { textDslToDiagram, jsonToDiagram } from "../src/index";
 
 /**
  * 段の項目の一覧と、実際に受理される項目が一致することの検証 (#1330)。
@@ -76,5 +77,83 @@ describe("段の項目の一覧 (#1330)", () => {
     expect(() => textDslToDiagram(記法("focus").replace("    focus:", "    foo:"))).toThrow(
       /段の項目名が読めません/u,
     );
+  });
+});
+
+/**
+ * 段の説明の語が 2 形で揃っている (#2621)。
+ *
+ * 記法は `body:` でも `description:` でも受けるのに、JSON は `"body"` しか受けず
+ * `"description"` を書くと組み上げが落ちていた。 受ける語の一覧 (`ACCEPTED_KEYS.phase` と
+ * `PHASE_ITEM_WORDS`) を突き合わせる検査は #1968 で入っていたが、対象の層を手で挙げており
+ * 段の層が抜けていた (`dsl-unknown-keys-1968.test.ts` で足した)。
+ *
+ * ここでは **語ごとに実際に組み上げて、同じ説明になること** を見る。 一覧が揃っていても
+ * 写す先が片方だけ `body` を読んでいれば値が届かない = 一覧の一致では捕まらない。
+ */
+describe("段の説明の語が 2 形で揃っている (#2621)", () => {
+  const 記法で組む = (語: string): string =>
+    [
+      'title: "t"',
+      "type: flow",
+      "",
+      "actors:",
+      "  - A",
+      "  - B",
+      "",
+      "flow:",
+      '  - A -> B: "x"',
+      "",
+      "animation:",
+      '  - step: "s" 1.0s',
+      `    ${語}: "同じ説明"`,
+      "",
+    ].join("\n");
+
+  const JSONで組む = (語: string): Record<string, unknown> => ({
+      title: "t",
+      type: "flow",
+      actors: ["A", "B"],
+      flow: [{ from: "A", to: "B", label: "x" }],
+    animation: [{ step: "s", duration: 1, [語]: "同じ説明" }],
+  });
+
+  it("受ける語が 2 語以上ある (検査が空振りしていない)", () => {
+    expect(PHASE_BODY_KEYS.length).toBeGreaterThan(1);
+  });
+
+  it("どちらの語でも記法が同じ説明になる", () => {
+    for (const 語 of PHASE_BODY_KEYS) {
+      const d = textDslToDiagram(記法で組む(語));
+      expect(d.phases[0]?.body, `記法の "${語}" が説明にならない`).toBe("同じ説明");
+    }
+  });
+
+  it("どちらの語でも JSON が同じ説明になる", () => {
+    for (const 語 of PHASE_BODY_KEYS) {
+      const d = jsonToDiagram(JSONで組む(語));
+      expect(d.phases[0]?.body, `JSON の "${語}" が説明にならない`).toBe("同じ説明");
+    }
+  });
+
+  it("両方書いた段は正の語が効く", () => {
+    // どちらが効くかを実装を読まずに判断できるようにする。 表の先頭が正の語
+    const 別名 = PHASE_BODY_KEYS.filter((k) => k !== PHASE_BODY_CANONICAL);
+    expect(別名.length, "別名が無い (検査が空振りしている)").toBeGreaterThan(0);
+    const j = {
+      title: "t",
+      type: "flow",
+      actors: ["A", "B"],
+      flow: [{ from: "A", to: "B", label: "x" }],
+      animation: [
+        {
+          step: "s",
+          duration: 1,
+          [PHASE_BODY_CANONICAL]: "正の語",
+          ...Object.fromEntries(別名.map((k) => [k, "別名"])),
+        },
+      ],
+    };
+    expect(jsonToDiagram(j).phases[0]?.body).toBe("正の語");
   });
 });

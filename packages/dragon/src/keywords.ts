@@ -121,6 +121,21 @@ export const TONE_ALIAS: Record<string, Tone> = {
   teal: "teal",
 };
 
+/**
+ * 段の説明を受ける語 (#2621)。 先頭が正の語で、後ろは同じ意味の別名。
+ *
+ * **2 形 (記法 / JSON) の入口と、公開している schema はここから導く**。 3 か所に別々に
+ * 書いていたため、記法は `description` を受けるのに JSON は弾く状態が生まれた
+ * (実測 = `$.animation[N].description: unknown key`)。
+ *
+ * 別名を落とさないのは、見本の記法の中に `description:` が 859 行あり、利用者が書いた
+ * 記法も同じ語を使えるため。 落とすと外から見える壊し方になる。
+ */
+export const PHASE_BODY_KEYS = ["body", "description"] as const;
+
+/** 段の説明の正の語 (別名を写す先) */
+export const PHASE_BODY_CANONICAL = PHASE_BODY_KEYS[0];
+
 /** アニメ サブキー */
 export const ANIM_SUBKEYS = {
   state: ["状態", "state"],

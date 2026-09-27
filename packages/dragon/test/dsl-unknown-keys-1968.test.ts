@@ -18,6 +18,7 @@ import {
   AXIS_Y_KEYS,
   GROUP_INLINE_KEYS,
   LANE_INLINE_KEYS,
+  PHASE_ITEM_WORDS,
   TOP_LEVEL_KEYS,
   VIEWPORT_VALUE_KINDS,
   parseTextDslV05,
@@ -315,7 +316,12 @@ describe("使える項目の一覧が JSON の入口と揃っている (#1968)",
    * 縦列の位置のずらしは、JSON が `pos` 1 欄、記法が `offsetX` / `offsetY` の 2 欄で書く (#1971)。
    * 記法の `pos:` は箱の座標の意味で使われているため別の名前にしてあり、どちらも同じ `layoutPos` に入る。
    */
-  const 記法だけに無い: Record<string, readonly string[]> = { lane: ["pos"] };
+  const 記法だけに無い: Record<string, readonly string[]> = {
+    lane: ["pos"],
+    // 段は段の見出しの行に名前と長さを書き (`- step: "名前" 1.2s`)、割合は `draw: line 0.4` の
+    // 後半に書く。 いずれも項目の行にならないため記法の一覧に現れない (#2621)
+    phase: ["step", "duration", "drawRatio"],
+  };
   const JSONだけに無い: Record<string, readonly string[]> = { lane: ["offsetX", "offsetY"] };
 
   const 組: [string, readonly string[], readonly string[]][] = [
@@ -324,6 +330,9 @@ describe("使える項目の一覧が JSON の入口と揃っている (#1968)",
     ["group", GROUP_INLINE_KEYS, ACCEPTED_KEYS.group],
     ["axesX", AXIS_X_KEYS, ACCEPTED_KEYS.axesX],
     ["axesY", AXIS_Y_KEYS, ACCEPTED_KEYS.axesY],
+    // 段の層 (#2621)。 #1968 で入れた時に 4 層しか挙げておらず、説明の語が 2 形で
+    // 割れていることを 1 度も落とさなかった
+    ["phase", PHASE_ITEM_WORDS, ACCEPTED_KEYS.phase],
   ];
 
   for (const [層, 記法, json] of 組) {
