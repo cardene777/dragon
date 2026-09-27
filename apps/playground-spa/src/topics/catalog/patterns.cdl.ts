@@ -1403,3 +1403,29 @@ export const patternValidateProcess = diagram("pattern-validate-process", { topi
   .phase("ok", { duration: 1500, title: "合格", body: "確かめられたら処理へ進む。" }, (p: PhaseBuilder) => p.activate("validate", "process", "e3").badge("合格"))
   .phase("ng", { duration: 1500, title: "不合格", body: "失敗した時は検証の失敗を出す。" }, (p: PhaseBuilder) => p.activate("validate", "err", "e4").badge("不合格"))
   .build();
+
+/**
+ * 表の繋がり方の型 4 種 (#2583)。 記法と図の中身は `./er-shapes` が持つ。
+ *
+ * 伝言の流れ方の型 12 件に対して、こちらは静的な構造の型。 どちらも図の組立てで繰返し出る。
+ */
+export {
+  sourceYaml__erShapeSmall,
+  erShapeSmall,
+  sourceJson__erShapeSmall,
+  sourceYaml__erShapeHub,
+  erShapeHub,
+  sourceJson__erShapeHub,
+  sourceYaml__erShapeChain,
+  erShapeChain,
+  sourceJson__erShapeChain,
+  sourceYaml__erShapeMesh,
+  erShapeMesh,
+  sourceJson__erShapeMesh,
+} from "./er-shapes";
+
+export const subtitle__erShapeSmall = "表が 3 つ以下で枝分かれしない形。 繋がりを一直線に追える";
+export const subtitle__erShapeHub = "1 つの表に何本も集まる形。 利用者を中心に据えると出る";
+export const subtitle__erShapeChain = "端から端まで一直線に繋がる形。 所有が階層になると出る";
+export const subtitle__erShapeMesh =
+  "中間の表を挟んで両側から繋がる組がある形。 割当や貼り付けを表すと出る";

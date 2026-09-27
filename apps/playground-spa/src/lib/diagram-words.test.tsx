@@ -250,6 +250,10 @@ const 識別子を見せる図: Record<string, string> = {
   pattern__presetClassDiagram__複雑:
     "クラスの名前と型はコードに書く識別子 (クラス図の中のパターン、#1960)",
   textDslEr: "表の名前と列の名前は SQL に書く識別子 (#1886)",
+  erShapeSmall: "表の名前と列の名前と型は SQL に書く識別子 (表の繋がり方の型、#2583)",
+  erShapeHub: "表の名前と列の名前と型は SQL に書く識別子 (表の繋がり方の型、#2583)",
+  erShapeChain: "表の名前と列の名前と型は SQL に書く識別子 (表の繋がり方の型、#2583)",
+  erShapeMesh: "表の名前と列の名前と型は SQL に書く識別子 (表の繋がり方の型、#2583)",
   textDslErMesh: "表の名前と列の名前と型は SQL に書く識別子 (#1886)",
   textDslClass: "クラスの名前と持ち物はコードに書く識別子 (#1886)",
   pattern__formulaTextBind__名前のまま描く:
