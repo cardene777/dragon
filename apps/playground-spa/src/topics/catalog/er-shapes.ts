@@ -30,11 +30,17 @@
  * | 書くもの | 決め方 |
  * |---|---|
  * | 行の印 | 鍵は名前に下線、外を指す列は山形、空を許す列は中空 (形 x 塗りの 2 軸) |
- * | 線の種類 | 端が 0 を許さない関係は実線、0 を許す関係は破線 |
+ * | 線の種類 | 親の鍵が子の主キーに入る関係は実線、入らない関係は破線 |
+ * | 端の記号 | 個数 (棒 = 1 / 三又 = 多) と、0 を許すか (丸) |
  * | 段の説明 | その段で何を読めばよいかを 1-2 文。 画面の「コード」 のタブに出る |
  *
- * 線の種類の決め方は見本帳の ER 図に共通で、線の種類を書いた矢印に例外が無い (#2585 で実測)。
- * `packages/dragon/test/er-line-style.test.ts` が崩れた時に落とす。
+ * 線の種類と端の記号は **別のことを表す** (#2587)。 線は親の鍵が子の主キーに入るか、
+ * 端は個数と 0 を許すか。 以前はどちらも「0 を許すか」 を表しており、線から読めることが
+ * 端から読めることの写しになっていた。 標準の記法 (Mermaid の ER 図、ERwin 系) に合わせて
+ * 2 軸に分けた。
+ *
+ * 集まる形と連なる形は識別する関係を 1 本も持たないので、全ての線が破線になる。
+ * `packages/dragon/test/er-line-style.test.ts` が対応の崩れを落とす。
  *
  * ## 器に収まる置き方を実測で決めた
  *
@@ -94,7 +100,7 @@ animation:
   - step: "2. 一直線に繋ぐ" 1.4s
     focus: ["users", "orders", "order_items", "users -> orders", "orders -> order_items"]
     badge: "2 関係"
-    body: "破線は 0 を許す関係、実線は 0 を許さない関係。 明細は親の鍵を主キーに含む。"
+    body: "実線は識別する関係で、明細は親の鍵を主キーに含む。 破線は識別しない関係。"
 `;
 export const erShapeSmall = textDslToDiagram(sourceYaml__erShapeSmall);
 
@@ -209,7 +215,7 @@ export const sourceJson__erShapeSmall = `{
         "orders -> order_items"
       ],
       "badge": "2 関係",
-      "body": "破線は 0 を許す関係、実線は 0 を許さない関係。 明細は親の鍵を主キーに含む。"
+      "body": "実線は識別する関係で、明細は親の鍵を主キーに含む。 破線は識別しない関係。"
     }
   ]
 }`;
@@ -244,7 +250,7 @@ flow:
   - users -> sessions: "接続する" (info, dashed) { tailHead: one, head: zero-many }
   - users -> orders: "注文する" (info, dashed) { tailHead: one, head: zero-many }
   - users -> reviews: "感想を書く" (info, dashed) { tailHead: one, head: zero-many }
-  - orders -> payments: "支払う" (info, solid) { tailHead: one, head: one }
+  - orders -> payments: "支払う" (info, dashed) { tailHead: one, head: one }
 
 # 線も段に載せる。 段が名指ししていない線は光っていない合図として刻まれる
 animation:
@@ -255,7 +261,7 @@ animation:
   - step: "2. 中心へ集める" 1.4s
     focus: ["users", "addresses", "sessions", "orders", "reviews", "users -> addresses", "users -> sessions", "users -> orders", "users -> reviews"]
     badge: "1 表に 4 本"
-    body: "破線は 0 を許す関係。 届け先も注文も 1 件も持たない利用者がいる。"
+    body: "どれも識別しない関係で破線。 0 を許すかは端の丸で読む (届け先も注文も 0 件でよい)。"
   - step: "3. 先へ繋ぐ" 1.2s
     focus: ["orders", "payments", "orders -> payments"]
     badge: "先は 1 対 1"
@@ -418,7 +424,7 @@ export const sourceJson__erShapeHub = `{
       "to": "payments",
       "label": "支払う",
       "tone": "info",
-      "style": "solid",
+      "style": "dashed",
       "tailHead": "one",
       "head": "one"
     }
@@ -453,7 +459,7 @@ export const sourceJson__erShapeHub = `{
         "users -> reviews"
       ],
       "badge": "1 表に 4 本",
-      "body": "破線は 0 を許す関係。 届け先も注文も 1 件も持たない利用者がいる。"
+      "body": "どれも識別しない関係で破線。 0 を許すかは端の丸で読む (届け先も注文も 0 件でよい)。"
     },
     {
       "step": "3. 先へ繋ぐ",
@@ -497,7 +503,7 @@ actors:
 flow:
   - tenants -> projects: "持つ" (info, dashed) { tailHead: one, head: zero-many }
   - projects -> boards: "並べる" (info, dashed) { tailHead: one, head: zero-many }
-  - boards -> cards: "含む" (info, solid) { tailHead: one, head: many }
+  - boards -> cards: "含む" (info, dashed) { tailHead: one, head: many }
   - cards -> comments: "受ける" (info, dashed) { tailHead: one, head: zero-many }
   - comments -> attachments: "添える" (info, dashed) { tailHead: one, head: zero-many }
 
@@ -510,7 +516,7 @@ animation:
   - step: "2. 端から端へ繋ぐ" 1.6s
     focus: ["tenants", "projects", "boards", "cards", "comments", "attachments", "tenants -> projects", "projects -> boards", "boards -> cards", "cards -> comments", "comments -> attachments"]
     badge: "5 段の階層"
-    body: "実線は 0 を許さない関係。 掲示板だけは付箋を 1 枚以上持つ。"
+    body: "どれも識別しない関係で破線。 掲示板だけは付箋を 1 枚以上持つ (端が三又)。"
 `;
 export const erShapeChain = textDslToDiagram(sourceYaml__erShapeChain);
 
@@ -647,7 +653,7 @@ export const sourceJson__erShapeChain = `{
       "to": "cards",
       "label": "含む",
       "tone": "info",
-      "style": "solid",
+      "style": "dashed",
       "tailHead": "one",
       "head": "many"
     },
@@ -702,7 +708,7 @@ export const sourceJson__erShapeChain = `{
         "comments -> attachments"
       ],
       "badge": "5 段の階層",
-      "body": "実線は 0 を許さない関係。 掲示板だけは付箋を 1 枚以上持つ。"
+      "body": "どれも識別しない関係で破線。 掲示板だけは付箋を 1 枚以上持つ (端が三又)。"
     }
   ]
 }`;
@@ -758,7 +764,7 @@ animation:
   - step: "3. 両側から繋ぐ" 1.6s
     focus: ["users", "roles", "grants", "teams", "members", "projects", "tags", "taggings", "users -> grants", "roles -> grants", "users -> members", "teams -> members", "projects -> taggings", "tags -> taggings", "teams -> projects", "users -> projects"]
     badge: "中間の表が 3 つ"
-    body: "実線は 0 を許さない関係。 破線の 2 本は担当と受け持ちで、どちらも決まっていないことがある。"
+    body: "実線は識別する関係。 中間の表は両側の鍵をそのまま主キーに持つ。"
 `;
 export const erShapeMesh = textDslToDiagram(sourceYaml__erShapeMesh);
 
@@ -1027,7 +1033,7 @@ export const sourceJson__erShapeMesh = `{
         "users -> projects"
       ],
       "badge": "中間の表が 3 つ",
-      "body": "実線は 0 を許さない関係。 破線の 2 本は担当と受け持ちで、どちらも決まっていないことがある。"
+      "body": "実線は識別する関係。 中間の表は両側の鍵をそのまま主キーに持つ。"
     }
   ]
 }`;

@@ -2334,7 +2334,7 @@ actors:
       marks: ["pk", ""]
 
 flow:
-  - 会員 -> 組: "所属する" (info, solid) { tailHead: many, head: one }
+  - 会員 -> 組: "所属する" (info, dashed) { tailHead: many, head: one }
 
 animation:
   - step: "鍵に下線が付く" 1.2s
@@ -2372,7 +2372,7 @@ export const sourceJson__textDslRowMarkKeys = `{
       "to": "組",
       "label": "所属する",
       "tone": "info",
-      "style": "solid",
+      "style": "dashed",
       "tailHead": "many",
       "head": "one"
     }
@@ -2416,7 +2416,7 @@ actors:
       印: ["pk", ""]
 
 flow:
-  - 会員 -> 組: "所属する" (info, solid) { tailHead: many, head: one }
+  - 会員 -> 組: "所属する" (info, dashed) { tailHead: many, head: one }
 
 animation:
   - step: "鍵に下線が付く" 1.2s
