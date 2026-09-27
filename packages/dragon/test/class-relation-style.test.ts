@@ -56,10 +56,17 @@ import { 全図 } from "./support/responsive-accepted";
 /** カタログのクラス図。 種類は図が自分で持つ (`type: class`) */
 const クラス図 = 全図.filter((d) => d.type === "class");
 
-/** 矢印の描き方。 名前を決めるのに要る 5 欄だけを持つ */
+/** 矢印の描き方。 名前を決めるのに要る 6 欄だけを持つ */
 interface 描き方 {
   /** 線の種類 */
   readonly style: string;
+  /**
+   * 線の色。 **関係そのものではなく群を表す** (#2599)。
+   *
+   * 決まりは `cdl-theme.css` が持つ = 関係は 6 種あるが色を置くのは 3 群まで。
+   * 群の中の 2 種は線か印の塗りで既に分かれているので、色まで足すと同じことを 2 回言う。
+   */
+  readonly tone: string;
   /** 先の端の形 */
   readonly head: string;
   /** 元の端の形 */
@@ -76,13 +83,17 @@ interface 描き方 {
  * 新しい関係の種類を足す時は、ここに行を足すことが要る = 足さずに描くと検査が落ちる。
  */
 const 対応表: Record<string, 描き方> = {
-  継承: { style: "solid", head: "triangle", tailHead: "none", headFill: "hollow", tailHeadFill: "solid" },
-  実装: { style: "dashed", head: "triangle", tailHead: "none", headFill: "hollow", tailHeadFill: "solid" },
-  関連: { style: "solid", head: "open", tailHead: "none", headFill: "solid", tailHeadFill: "solid" },
-  依存: { style: "dashed", head: "open", tailHead: "none", headFill: "solid", tailHeadFill: "solid" },
-  集約: { style: "solid", head: "none", tailHead: "diamond", headFill: "solid", tailHeadFill: "hollow" },
+  // 縦の関係。 線の色をそのまま使う (増やした 2 口を読まない)
+  継承: { style: "solid", tone: "accent", head: "triangle", tailHead: "none", headFill: "hollow", tailHeadFill: "solid" },
+  実装: { style: "dashed", tone: "accent", head: "triangle", tailHead: "none", headFill: "hollow", tailHeadFill: "solid" },
+  // 向きだけの関係
+  関連: { style: "solid", tone: "success", head: "open", tailHead: "none", headFill: "solid", tailHeadFill: "solid" },
+  依存: { style: "dashed", tone: "success", head: "open", tailHead: "none", headFill: "solid", tailHeadFill: "solid" },
+  // 所有の関係
+  集約: { style: "solid", tone: "teal", head: "none", tailHead: "diamond", headFill: "solid", tailHeadFill: "hollow" },
   コンポジション: {
     style: "solid",
+    tone: "teal",
     head: "none",
     tailHead: "diamond",
     headFill: "solid",
@@ -90,12 +101,16 @@ const 対応表: Record<string, 描き方> = {
   },
 };
 
+/** 色を置く群の数。 決まりが「3 群まで」 と定めた上限そのもの (#2599) */
+const 群の数 = 3;
+
 /** 矢印から描き方を読む。 書かれていない欄は「なし」 として持つ (既定値に倒さない) */
 function 描き方を読む(e: unknown): 描き方 {
   const x = e as Record<string, unknown>;
   const 字 = (v: unknown): string => (typeof v === "string" ? v : "なし");
   return {
     style: 字(x.style),
+    tone: 字(x.tone),
     head: 字(x.head),
     tailHead: 字(x.tailHead),
     headFill: 字(x.headFill),
@@ -105,13 +120,14 @@ function 描き方を読む(e: unknown): 描き方 {
 
 const 同じ描き方 = (a: 描き方, b: 描き方): boolean =>
   a.style === b.style &&
+  a.tone === b.tone &&
   a.head === b.head &&
   a.tailHead === b.tailHead &&
   a.headFill === b.headFill &&
   a.tailHeadFill === b.tailHeadFill;
 
 const 描き方の字 = (d: 描き方): string =>
-  `線=${d.style} 先=${d.head}(${d.headFill}) 元=${d.tailHead}(${d.tailHeadFill})`;
+  `線=${d.style} 色=${d.tone} 先=${d.head}(${d.headFill}) 元=${d.tailHead}(${d.tailHeadFill})`;
 
 /** 矢印 1 本の見出し。 落ちた時にどの図のどの線かが分かる形にする */
 const 名 = (d: CdlDiagram, e: { from: string; to: string }): string =>
@@ -190,6 +206,46 @@ describe("クラス図の関係の名前と描き方 (#2589)", () => {
       死んだ行,
       `対応表に実物へ出ない行がある (クラス図 ${クラス図.length} 枚 / 矢印 ${矢印の数(クラス図)} 本を走査)`,
     ).toEqual([]);
+  });
+
+  it("色を置くのは 3 群まで", () => {
+    /*
+     * 決まりは色を関係ごとではなく群ごとに置く (#2599)。 群の中の 2 種は線か印の塗りで
+     * 既に分かれているので、色まで足すと同じことを 2 回言うことになる。
+     *
+     * **対応表の側を見る** = 実物は上の判定が対応表と突き合わせるので、表が崩れれば
+     * 実物も一緒に崩れる。 ここは表が決まりの形を保っているかを見る。
+     */
+    const 色ごと = new Map<string, string[]>();
+    for (const [名前, v] of Object.entries(対応表))
+      色ごと.set(v.tone, [...(色ごと.get(v.tone) ?? []), 名前]);
+
+    expect(
+      [...色ごと.keys()].sort(),
+      `色の種類が ${群の数} を超えた = 群の中の 2 種に別の色が付いている`,
+    ).toHaveLength(群の数);
+
+    // 群の中は 2 種ずつ。 1 種だけの群があれば、関係を足した時に色を足し忘れている
+    const 偏り = [...色ごと.entries()].filter(([, v]) => v.length !== 2);
+    expect(
+      偏り.map(([色, v]) => `${色}: ${v.join(" / ")}`),
+      "群の中が 2 種ずつになっていない",
+    ).toEqual([]);
+  });
+
+  it("植え込み対照 ... 色を別の群の色に入れ替えると落ちる", () => {
+    // 1 本だけ色を入れ替えた写しを作る。 実物には触らない
+    const 元 = クラス図.find((d) => d.edges.some((e) => 関係の名前(e) === "継承"));
+    expect(元, "継承の矢印を持つクラス図が 1 枚も無い").toBeDefined();
+    const 対象 = 元!.edges.find((e) => 関係の名前(e) === "継承");
+    expect(対象, `${元!.id} に継承の矢印が無い`).toBeDefined();
+
+    const 写し: CdlDiagram = {
+      ...元!,
+      // 所有の群の色に入れ替える = 縦の関係が所有の関係に見える
+      edges: 元!.edges.map((e) => (e === 対象 ? { ...e, tone: "teal" as const } : e)),
+    };
+    expect(食い違い([写し]), "色を入れ替えても判定が気付かない").toHaveLength(1);
   });
 
   it("線の種類は端の形から決まらない", () => {
