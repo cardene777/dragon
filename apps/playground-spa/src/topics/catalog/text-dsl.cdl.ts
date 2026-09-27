@@ -202,12 +202,14 @@ animation:
     tween:
       progress: 0 -> 50
     badge: "進行中"
+    description: "開始から確認へ進み、進み具合の値が 0 から 50 へ動く。 まだ完了へは繋がっていない。"
 
   - step: "完了" 1s
     focus: [確認, 完了]
     tween:
       progress: 50 -> 100
     badge: "完了"
+    description: "確認から完了へ進み、値が 100 になる。 成功の色で描かれた線が最後の 1 本。"
 `;
 
 export const textDslFlow = textDslToDiagram(sourceYaml__textDslFlow);
@@ -259,7 +261,8 @@ export const sourceJson__textDslFlow = `{
           0,
           50
         ]
-      }
+      },
+      "description": "開始から確認へ進み、進み具合の値が 0 から 50 へ動く。 まだ完了へは繋がっていない。"
     },
     {
       "step": "完了",
@@ -274,7 +277,8 @@ export const sourceJson__textDslFlow = `{
           50,
           100
         ]
-      }
+      },
+      "description": "確認から完了へ進み、値が 100 になる。 成功の色で描かれた線が最後の 1 本。"
     }
   ]
 }`;
@@ -297,10 +301,12 @@ animation:
   - step: "振り分け" 1.5s
     focus: ["役務 A", "役務 B"]
     badge: "A → B"
+    description: "役務 A から役務 B へ振り分けが渡る。 帯が持ち場を分けるので、どこで処理しているかが横の位置で分かる。"
 
   - step: "転送" 1.5s
     focus: ["役務 B", "役務 C"]
     badge: "B → C"
+    description: "役務 B から役務 C へ転送される。 帯をまたぐ線が処理の受け渡しを表す。"
 `;
 
 export const textDslSwimlane = textDslToDiagram(sourceYaml__textDslSwimlane);
@@ -344,7 +350,8 @@ export const sourceJson__textDslSwimlane = `{
         "役務 A",
         "役務 B"
       ],
-      "badge": "A → B"
+      "badge": "A → B",
+      "description": "役務 A から役務 B へ振り分けが渡る。 帯が持ち場を分けるので、どこで処理しているかが横の位置で分かる。"
     },
     {
       "step": "転送",
@@ -353,7 +360,8 @@ export const sourceJson__textDslSwimlane = `{
         "役務 B",
         "役務 C"
       ],
-      "badge": "B → C"
+      "badge": "B → C",
+      "description": "役務 B から役務 C へ転送される。 帯をまたぐ線が処理の受け渡しを表す。"
     }
   ]
 }`;
@@ -388,14 +396,17 @@ animation:
   - step: "受け取る" 1.2s
     focus: ["申請を出す", "金額を確かめる"]
     badge: "提出"
+    description: "申請が出され、承認者が金額を確かめる段へ移る。 始まりの印が付いた箱から入る。"
 
   - step: "分かれ道" 1.2s
     focus: ["5 万円を超えるか"]
     badge: "判断"
+    description: "5 万円を超えるかで道が 2 つに分かれる。 菱形の箱が分かれ道を表す。"
 
   - step: "決まる" 1.2s
     focus: ["部長が承認する", "支払う"]
     badge: "承認"
+    description: "超える時は部長の承認を経て、超えない時は直に支払いへ進む。 どちらの道も終わりの印の箱へ着く。"
 `;
 
 export const textDslFlowchart = textDslToDiagram(sourceYaml__textDslFlowchart);
@@ -465,7 +476,8 @@ export const sourceJson__textDslFlowchart = `{
         "申請を出す",
         "金額を確かめる"
       ],
-      "badge": "提出"
+      "badge": "提出",
+      "description": "申請が出され、承認者が金額を確かめる段へ移る。 始まりの印が付いた箱から入る。"
     },
     {
       "step": "分かれ道",
@@ -473,7 +485,8 @@ export const sourceJson__textDslFlowchart = `{
       "focus": [
         "5 万円を超えるか"
       ],
-      "badge": "判断"
+      "badge": "判断",
+      "description": "5 万円を超えるかで道が 2 つに分かれる。 菱形の箱が分かれ道を表す。"
     },
     {
       "step": "決まる",
@@ -482,7 +495,8 @@ export const sourceJson__textDslFlowchart = `{
         "部長が承認する",
         "支払う"
       ],
-      "badge": "承認"
+      "badge": "承認",
+      "description": "超える時は部長の承認を経て、超えない時は直に支払いへ進む。 どちらの道も終わりの印の箱へ着く。"
     }
   ]
 }`;
@@ -513,12 +527,14 @@ animation:
     tween:
       counter: 0 -> 1
     badge: "送信"
+    description: "待機から読込中へ移る。 数える値が 1 へ増え、遷移した回数を表す。"
 
   - step: "成功" 1s
     focus: [読込中, 完了]
     tween:
       counter: 1 -> 2
     badge: "完了"
+    description: "読込中から完了へ移る。 この線には条件が添えてあり、入力が正しい時だけ通る。"
 `;
 
 export const textDslStateMachine = textDslToDiagram(sourceYaml__textDslStateMachine);
@@ -582,7 +598,8 @@ export const sourceJson__textDslStateMachine = `{
           0,
           1
         ]
-      }
+      },
+      "description": "待機から読込中へ移る。 数える値が 1 へ増え、遷移した回数を表す。"
     },
     {
       "step": "成功",
@@ -597,7 +614,8 @@ export const sourceJson__textDslStateMachine = `{
           1,
           2
         ]
-      }
+      },
+      "description": "読込中から完了へ移る。 この線には条件が添えてあり、入力が正しい時だけ通る。"
     }
   ]
 }`;
@@ -620,10 +638,12 @@ animation:
   - step: "要求" 1s
     focus: [閲覧ソフト, API]
     badge: "要求中"
+    description: "閲覧ソフトから API へ要求が渡る。 線の脇に何で繋ぐかを書く。"
 
   - step: "問い合わせ" 1s
     focus: [API, DB]
     badge: "問合中"
+    description: "API から DB へ問い合わせが渡る。 箱の種別で処理役と保存先が描き分けられる。"
 `;
 
 export const textDslTopology = textDslToDiagram(sourceYaml__textDslTopology);
@@ -665,7 +685,8 @@ export const sourceJson__textDslTopology = `{
         "閲覧ソフト",
         "API"
       ],
-      "badge": "要求中"
+      "badge": "要求中",
+      "description": "閲覧ソフトから API へ要求が渡る。 線の脇に何で繋ぐかを書く。"
     },
     {
       "step": "問い合わせ",
@@ -674,7 +695,8 @@ export const sourceJson__textDslTopology = `{
         "API",
         "DB"
       ],
-      "badge": "問合中"
+      "badge": "問合中",
+      "description": "API から DB へ問い合わせが渡る。 箱の種別で処理役と保存先が描き分けられる。"
     }
   ]
 }`;
@@ -699,12 +721,15 @@ animation:
   - step: "片方" 1s
     focus: [User]
     badge: "User"
+    description: "User の表だけを見る。 線は最初から全部出ているので、段は引く代わりに見る先を移す。"
   - step: "つながり" 1s
     focus: ["User -> Order"]
     badge: "注文する"
+    description: "User と Order を結ぶ関係を見る。 線の脇の語が何の関係かを表す。"
   - step: "全体" 1s
     focus: [User, Order]
     badge: "1:N"
+    description: "2 つの表と関係をまとめて見る。 1 対多なので、Order の側の端が三又になる。"
 `;
 
 export const textDslEr = textDslToDiagram(sourceYaml__textDslEr);
@@ -758,24 +783,31 @@ animation:
   - step: "7 つの表" 1s
     focus: [会員証, 利用者, 注文, 支払い, 届け先, 店舗, 商品]
     badge: "表"
+    description: "7 つの表を先に見せる。 一覧の縮小図はこの段を描くので、線は光らせない。"
   - step: "ちょうど 1 つずつ" 1s
     focus: [利用者, 会員証, "利用者 -> 会員証"]
     badge: "1:1"
+    description: "利用者と会員証を結ぶ関係を見る。 両端がどちらも 1 なので、相手はちょうど 1 つ。"
   - step: "1 つから多数" 1s
     focus: [利用者, 注文, "利用者 -> 注文"]
     badge: "1:N"
+    description: "利用者と注文の関係を見る。 注文の側が多数で、1 人が何件でも持てる。"
   - step: "多数から 1 つ" 1s
     focus: [注文, 店舗, "注文 -> 店舗"]
     badge: "N:1"
+    description: "注文と店舗の関係を見る。 向きが逆で、多数の注文が 1 つの店舗に属する。"
   - step: "多数どうし" 1s
     focus: [店舗, 商品, "店舗 -> 商品"]
     badge: "N:M"
+    description: "店舗と商品の関係を見る。 両端が多数なので、間に中継の表を置くのが普通。"
   - step: "無いか 1 つ" 1s
     focus: [利用者, 届け先, "利用者 -> 届け先"]
     badge: "0..1"
+    description: "利用者と届け先の関係を見る。 無くてもよい相手なので、端に 0 の印が付く。"
   - step: "1 つ以上" 1s
     focus: [注文, 支払い, "注文 -> 支払い"]
     badge: "1..*"
+    description: "注文と支払いの関係を見る。 少なくとも 1 つは要るので、0 件は許されない。"
 `;
 
 export const sourceJson__pattern__textDslEr__多重度を全て並べる = `{
@@ -802,13 +834,13 @@ export const sourceJson__pattern__textDslEr__多重度を全て並べる = `{
     { "from": "注文", "to": "支払い", "label": "支払われる", "tone": "info", "cardinality": "1..*" }
   ],
   "animation": [
-    { "step": "7 つの表", "duration": 1, "focus": ["会員証", "利用者", "注文", "支払い", "届け先", "店舗", "商品"], "badge": "表" },
-    { "step": "ちょうど 1 つずつ", "duration": 1, "focus": ["利用者", "会員証", "利用者 -> 会員証"], "badge": "1:1" },
-    { "step": "1 つから多数", "duration": 1, "focus": ["利用者", "注文", "利用者 -> 注文"], "badge": "1:N" },
-    { "step": "多数から 1 つ", "duration": 1, "focus": ["注文", "店舗", "注文 -> 店舗"], "badge": "N:1" },
-    { "step": "多数どうし", "duration": 1, "focus": ["店舗", "商品", "店舗 -> 商品"], "badge": "N:M" },
-    { "step": "無いか 1 つ", "duration": 1, "focus": ["利用者", "届け先", "利用者 -> 届け先"], "badge": "0..1" },
-    { "step": "1 つ以上", "duration": 1, "focus": ["注文", "支払い", "注文 -> 支払い"], "badge": "1..*" }
+    { "step": "7 つの表", "duration": 1, "focus": ["会員証", "利用者", "注文", "支払い", "届け先", "店舗", "商品"], "badge": "表", "description": "7 つの表を先に見せる。 一覧の縮小図はこの段を描くので、線は光らせない。" },
+    { "step": "ちょうど 1 つずつ", "duration": 1, "focus": ["利用者", "会員証", "利用者 -> 会員証"], "badge": "1:1", "description": "利用者と会員証を結ぶ関係を見る。 両端がどちらも 1 なので、相手はちょうど 1 つ。" },
+    { "step": "1 つから多数", "duration": 1, "focus": ["利用者", "注文", "利用者 -> 注文"], "badge": "1:N", "description": "利用者と注文の関係を見る。 注文の側が多数で、1 人が何件でも持てる。" },
+    { "step": "多数から 1 つ", "duration": 1, "focus": ["注文", "店舗", "注文 -> 店舗"], "badge": "N:1", "description": "注文と店舗の関係を見る。 向きが逆で、多数の注文が 1 つの店舗に属する。" },
+    { "step": "多数どうし", "duration": 1, "focus": ["店舗", "商品", "店舗 -> 商品"], "badge": "N:M", "description": "店舗と商品の関係を見る。 両端が多数なので、間に中継の表を置くのが普通。" },
+    { "step": "無いか 1 つ", "duration": 1, "focus": ["利用者", "届け先", "利用者 -> 届け先"], "badge": "0..1", "description": "利用者と届け先の関係を見る。 無くてもよい相手なので、端に 0 の印が付く。" },
+    { "step": "1 つ以上", "duration": 1, "focus": ["注文", "支払い", "注文 -> 支払い"], "badge": "1..*", "description": "注文と支払いの関係を見る。 少なくとも 1 つは要るので、0 件は許されない。" }
   ]
 }`;
 
@@ -845,7 +877,8 @@ export const sourceJson__textDslEr = `{
       "focus": [
         "User"
       ],
-      "badge": "User"
+      "badge": "User",
+      "description": "User の表だけを見る。 線は最初から全部出ているので、段は引く代わりに見る先を移す。"
     },
     {
       "step": "つながり",
@@ -853,7 +886,8 @@ export const sourceJson__textDslEr = `{
       "focus": [
         "User -> Order"
       ],
-      "badge": "注文する"
+      "badge": "注文する",
+      "description": "User と Order を結ぶ関係を見る。 線の脇の語が何の関係かを表す。"
     },
     {
       "step": "全体",
@@ -862,7 +896,8 @@ export const sourceJson__textDslEr = `{
         "User",
         "Order"
       ],
-      "badge": "1:N"
+      "badge": "1:N",
+      "description": "2 つの表と関係をまとめて見る。 1 対多なので、Order の側の端が三又になる。"
     }
   ]
 }`;
@@ -913,15 +948,19 @@ animation:
   - step: "1. 実体の表" 1.2s
     focus: [roles, users, teams, tags]
     badge: "5 つの実体"
+    description: "それ自体で意味を持つ 4 つの表を見る。 鍵の列は名前に下線が付く。"
   - step: "2. 中継表" 1.2s
     focus: [user_roles, team_members, project_tags]
     badge: "鍵だけの 3 表"
+    description: "鍵だけで出来た 3 つの表を見る。 多対多を 2 つの 1 対多に分けるために置く。"
   - step: "3. 多対多の 2 組" 1.4s
     focus: [users, user_roles, roles, teams, team_members, users -> user_roles, roles -> user_roles, users -> team_members, teams -> team_members]
     badge: "役割とチーム"
+    description: "役割の割当とチームの所属を、両側の表と一緒に見る。 中継表の左右から線が 1 本ずつ入る。"
   - step: "4. 案件とタグ" 1.4s
     focus: [projects, project_tags, tags, teams, users, projects -> project_tags, tags -> project_tags, teams -> projects, users -> projects]
     badge: "案件とタグ"
+    description: "案件とタグの組を見る。 担当と責任者の 2 本は破線で、相手が無くてもよいことを表す。"
 `;
 
 export const textDslErMesh = textDslToDiagram(sourceYaml__textDslErMesh);
@@ -1018,10 +1057,10 @@ export const sourceJson__textDslErMesh = `{
     { "from": "users", "to": "projects", "label": "責任者になる", "tone": "info", "style": "dashed", "tailHead": "one", "head": "zero-many" }
   ],
   "animation": [
-    { "step": "1. 実体の表", "duration": 1.2, "focus": ["roles", "users", "teams", "tags"], "badge": "5 つの実体" },
-    { "step": "2. 中継表", "duration": 1.2, "focus": ["user_roles", "team_members", "project_tags"], "badge": "鍵だけの 3 表" },
-    { "step": "3. 多対多の 2 組", "duration": 1.4, "focus": ["users", "user_roles", "roles", "teams", "team_members", "users -> user_roles", "roles -> user_roles", "users -> team_members", "teams -> team_members"], "badge": "役割とチーム" },
-    { "step": "4. 案件とタグ", "duration": 1.4, "focus": ["projects", "project_tags", "tags", "teams", "users", "projects -> project_tags", "tags -> project_tags", "teams -> projects", "users -> projects"], "badge": "案件とタグ" }
+    { "step": "1. 実体の表", "duration": 1.2, "focus": ["roles", "users", "teams", "tags"], "badge": "5 つの実体", "description": "それ自体で意味を持つ 4 つの表を見る。 鍵の列は名前に下線が付く。" },
+    { "step": "2. 中継表", "duration": 1.2, "focus": ["user_roles", "team_members", "project_tags"], "badge": "鍵だけの 3 表", "description": "鍵だけで出来た 3 つの表を見る。 多対多を 2 つの 1 対多に分けるために置く。" },
+    { "step": "3. 多対多の 2 組", "duration": 1.4, "focus": ["users", "user_roles", "roles", "teams", "team_members", "users -> user_roles", "roles -> user_roles", "users -> team_members", "teams -> team_members"], "badge": "役割とチーム", "description": "役割の割当とチームの所属を、両側の表と一緒に見る。 中継表の左右から線が 1 本ずつ入る。" },
+    { "step": "4. 案件とタグ", "duration": 1.4, "focus": ["projects", "project_tags", "tags", "teams", "users", "projects -> project_tags", "tags -> project_tags", "teams -> projects", "users -> projects"], "badge": "案件とタグ", "description": "案件とタグの組を見る。 担当と責任者の 2 本は破線で、相手が無くてもよいことを表す。" }
   ]
 }`;
 
@@ -1050,12 +1089,14 @@ animation:
     tween:
       task1_progress: 0 -> 100
     badge: "Q1 完了"
+    description: "Q1 の帯が引かれ、進み具合が 100 まで動く。 帯の長さが期間、塗りが進み具合。"
 
   - step: "Q2 開始" 1.2s
     focus: ["作業 1", "作業 2", "作業 3"]
     tween:
       task2_progress: 0 -> 50
     badge: "Q2 進行中"
+    description: "Q2 の進み具合が 50 まで進む。 Q1 の帯は引き終わったまま残る。"
 `;
 
 export const textDslGantt = textDslToDiagram(sourceYaml__textDslGantt);
@@ -1112,7 +1153,8 @@ export const sourceJson__textDslGantt = `{
           0,
           100
         ]
-      }
+      },
+      "description": "Q1 の帯が引かれ、進み具合が 100 まで動く。 帯の長さが期間、塗りが進み具合。"
     },
     {
       "step": "Q2 開始",
@@ -1128,7 +1170,8 @@ export const sourceJson__textDslGantt = `{
           0,
           50
         ]
-      }
+      },
+      "description": "Q2 の進み具合が 50 まで進む。 Q1 の帯は引き終わったまま残る。"
     }
   ]
 }`;
@@ -1149,12 +1192,15 @@ animation:
   - step: "親" 1s
     focus: [User]
     badge: "User"
+    description: "親にあたる User だけを見る。 箱の下の行に持ち物と操作を書く。"
   - step: "つながり" 1s
     focus: ["User -> Admin"]
     badge: "extends"
+    description: "User と Admin を結ぶ線を見る。 線の脇の語が継承を表す。"
   - step: "子まで" 1s
     focus: [User, Admin]
     badge: "Admin extends User"
+    description: "親と子をまとめて見る。 Admin は User の持ち物を受け継いだ上で自分の分を足している。"
 `;
 
 export const textDslClass = textDslToDiagram(sourceYaml__textDslClass);
@@ -1188,7 +1234,8 @@ export const sourceJson__textDslClass = `{
       "focus": [
         "User"
       ],
-      "badge": "User"
+      "badge": "User",
+      "description": "親にあたる User だけを見る。 箱の下の行に持ち物と操作を書く。"
     },
     {
       "step": "つながり",
@@ -1196,7 +1243,8 @@ export const sourceJson__textDslClass = `{
       "focus": [
         "User -> Admin"
       ],
-      "badge": "extends"
+      "badge": "extends",
+      "description": "User と Admin を結ぶ線を見る。 線の脇の語が継承を表す。"
     },
     {
       "step": "子まで",
@@ -1205,7 +1253,8 @@ export const sourceJson__textDslClass = `{
         "User",
         "Admin"
       ],
-      "badge": "Admin extends User"
+      "badge": "Admin extends User",
+      "description": "親と子をまとめて見る。 Admin は User の持ち物を受け継いだ上で自分の分を足している。"
     }
   ]
 }`;
@@ -1490,14 +1539,17 @@ animation:
     set:
       stage: "下書き"
     badge: "発想"
+    description: "中心から枝が引かれる。 差し替えの値は下書きのまま。"
   - step: "案が出る" 1s
     set:
       stage: "比べる"
     badge: "案 1"
+    description: "枝の先に案が並ぶ。 値が比べるへ替わり、題の文字も一緒に変わる。"
   - step: "広がる" 1s
     set:
       stage: "選ぶ"
     badge: "案 3"
+    description: "さらに枝が広がり、値が選ぶへ替わる。 名前に値を埋めておくと段ごとに題が変わる。"
 `;
 
 export const textDslMind = textDslToDiagram(sourceYaml__textDslMind);
@@ -1531,7 +1583,8 @@ export const sourceJson__textDslMind = `{
       "badge": "発想",
       "set": {
         "stage": "下書き"
-      }
+      },
+      "description": "中心から枝が引かれる。 差し替えの値は下書きのまま。"
     },
     {
       "step": "案が出る",
@@ -1539,7 +1592,8 @@ export const sourceJson__textDslMind = `{
       "badge": "案 1",
       "set": {
         "stage": "比べる"
-      }
+      },
+      "description": "枝の先に案が並ぶ。 値が比べるへ替わり、題の文字も一緒に変わる。"
     },
     {
       "step": "広がる",
@@ -1547,7 +1601,8 @@ export const sourceJson__textDslMind = `{
       "badge": "案 3",
       "set": {
         "stage": "選ぶ"
-      }
+      },
+      "description": "さらに枝が広がり、値が選ぶへ替わる。 名前に値を埋めておくと段ごとに題が変わる。"
     }
   ]
 }`;
@@ -1575,14 +1630,17 @@ animation:
   - step: "呼び出し" 1.2s
     focus: [利用者側, 処理側]
     badge: "要求"
+    description: "利用者側から処理側へ要求が渡る。 記録はまだ動いていない。"
   - step: "書き込み" 1.5s
     focus: [処理側, DB]
     tween:
       count: 100 -> 99
     badge: "DB を更新"
+    description: "処理側が DB を更新し、残数が 100 から 99 へ減る。 記録が変わるのはこの段だけ。"
   - step: "出来事" 0.8s
     focus: [処理側, OrderCreated]
     badge: "OrderCreated"
+    description: "注文が作られたことを出来事として出す。 受け取る先は図に描かれていなくてよい。"
 `;
 
 export const textDslCode = textDslToDiagram(sourceYaml__textDslCode);
@@ -1635,7 +1693,8 @@ export const sourceJson__textDslCode = `{
         "利用者側",
         "処理側"
       ],
-      "badge": "要求"
+      "badge": "要求",
+      "description": "利用者側から処理側へ要求が渡る。 記録はまだ動いていない。"
     },
     {
       "step": "書き込み",
@@ -1650,7 +1709,8 @@ export const sourceJson__textDslCode = `{
           100,
           99
         ]
-      }
+      },
+      "description": "処理側が DB を更新し、残数が 100 から 99 へ減る。 記録が変わるのはこの段だけ。"
     },
     {
       "step": "出来事",
@@ -1659,7 +1719,8 @@ export const sourceJson__textDslCode = `{
         "処理側",
         "OrderCreated"
       ],
-      "badge": "OrderCreated"
+      "badge": "OrderCreated",
+      "description": "注文が作られたことを出来事として出す。 受け取る先は図に描かれていなくてよい。"
     }
   ]
 }`;
