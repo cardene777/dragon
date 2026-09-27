@@ -40,14 +40,20 @@ describe("カタログの見本の英語 (#2461)", () => {
     const 抜け = (await 全部の見本())
       .filter((x) => 日本語の字.test(x.subtitle) && x.subtitleEn.trim() === "")
       .map((x) => `${x.title}: ${x.subtitle.slice(0, 40)}`);
-    expect(抜け, `英語の説明が無い見本:\n${抜け.join("\n")}`).toEqual([]);
+    expect(
+      抜け,
+      `英語の説明が無い見本 (書く場所 = catalog-item-en.ts の ITEM_SUBTITLE_EN):\n${抜け.join("\n")}`,
+    ).toEqual([]);
   });
 
   it("英語の説明に日本語が残っていない", async () => {
     const 残る = (await 全部の見本())
       .filter((x) => 日本語の字.test(x.subtitleEn))
       .map((x) => `${x.title}: ${x.subtitleEn.slice(0, 60)}`);
-    expect(残る, `英語の説明に日本語が残る:\n${残る.join("\n")}`).toEqual([]);
+    expect(
+      残る,
+      `英語の説明に日本語が残る (直す場所 = catalog-item-en.ts の ITEM_SUBTITLE_EN):\n${残る.join("\n")}`,
+    ).toEqual([]);
   });
 
   it("日本語の名前を持つ変種は英語の名前も持つ", async () => {
@@ -55,7 +61,10 @@ describe("カタログの見本の英語 (#2461)", () => {
       .flatMap((x) => (x.patterns ?? []).map((p) => ({ 見本: x.title, p })))
       .filter((v) => 日本語の字.test(v.p.名) && v.p.名En.trim() === "")
       .map((v) => `${v.見本}: ${v.p.名}`);
-    expect(抜け, `英語の名前が無い変種:\n${抜け.join("\n")}`).toEqual([]);
+    expect(
+      抜け,
+      `英語の名前が無い変種 (書く場所 = catalog-item-en.ts の PATTERN_NAME_EN):\n${抜け.join("\n")}`,
+    ).toEqual([]);
   });
 
   it("英語の名前に日本語が残っていない", async () => {
@@ -63,7 +72,10 @@ describe("カタログの見本の英語 (#2461)", () => {
       .flatMap((x) => x.patterns ?? [])
       .filter((p) => 日本語の字.test(p.名En))
       .map((p) => `${p.鍵}: ${p.名En}`);
-    expect(残る, `英語の名前に日本語が残る:\n${残る.join("\n")}`).toEqual([]);
+    expect(
+      残る,
+      `英語の名前に日本語が残る (直す場所 = catalog-item-en.ts の PATTERN_NAME_EN):\n${残る.join("\n")}`,
+    ).toEqual([]);
   });
 
   it("引く側が言語を見ている", async () => {
