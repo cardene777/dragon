@@ -947,10 +947,24 @@ const erComplex = er({
     tailHead: "one",
     head: "zero-many",
   })
-  .relation({ from: "users", to: "orders", label: "注文する", tailHead: "one", head: "many" })
+  .relation({
+    from: "users",
+    to: "orders",
+    label: "注文する",
+    style: "dashed",
+    tailHead: "one",
+    head: "many",
+  })
   .relation({ from: "users", to: "user_roles", label: "役割を持つ", tailHead: "one", head: "many" })
   .relation({ from: "roles", to: "user_roles", label: "割り当てる", tailHead: "one", head: "many" })
-  .relation({ from: "orders", to: "order_items", label: "含む", tailHead: "one", head: "many" })
+  .relation({
+    from: "orders",
+    to: "order_items",
+    label: "含む",
+    style: "dashed",
+    tailHead: "one",
+    head: "many",
+  })
   .relation({
     from: "orders",
     to: "payments",
@@ -983,7 +997,14 @@ const erComplex = er({
     tailHead: "one",
     head: "zero-many",
   })
-  .relation({ from: "products", to: "order_items", label: "注文される", tailHead: "one", head: "many" })
+  .relation({
+    from: "products",
+    to: "order_items",
+    label: "注文される",
+    style: "dashed",
+    tailHead: "one",
+    head: "many",
+  })
   .relation({ from: "products", to: "inventory", label: "在庫を持つ", tailHead: "one", head: "one" })
   .relation({
     from: "products",
@@ -1040,7 +1061,7 @@ const presetErComplexSteps = withSteps(
     {
       ids: ["order_items", "products", "rel-4-orders-order_items", "rel-9-products-order_items"],
       title: "2. 明細に商品が並ぶ",
-      body: "実線は 0 を許さない関係。 1 件の注文に明細が 1 行以上並ぶ。",
+      body: "破線は識別しない関係。 明細は自分の鍵 id を持ち、親の鍵は主キーに入らない。",
     },
     {
       ids: ["inventory", "rel-10-products-inventory"],
@@ -3446,15 +3467,15 @@ actors:
 
 flow:
   - users -> addresses: "登録する" (info, dashed) { tailHead: one, head: zero-many }
-  - users -> orders: "注文する" (info, solid) { tailHead: one, head: many }
+  - users -> orders: "注文する" (info, dashed) { tailHead: one, head: many }
   - users -> user_roles: "役割を持つ" (info, solid) { tailHead: one, head: many }
   - roles -> user_roles: "割り当てる" (info, solid) { tailHead: one, head: many }
-  - orders -> order_items: "含む" (info, solid) { tailHead: one, head: many }
+  - orders -> order_items: "含む" (info, dashed) { tailHead: one, head: many }
   - orders -> payments: "支払う" (info, dashed) { tailHead: one, head: zero-one }
   - orders -> shipments: "発送する" (info, dashed) { tailHead: one, head: zero-one }
   - addresses -> shipments: "届け先" (info, dashed) { tailHead: one, head: zero-many }
   - addresses -> orders: "請求先" (info, dashed) { tailHead: one, head: zero-many }
-  - products -> order_items: "注文される" (info, solid) { tailHead: one, head: many }
+  - products -> order_items: "注文される" (info, dashed) { tailHead: one, head: many }
   - products -> inventory: "在庫を持つ" (info, solid) { tailHead: one, head: one }
   - products -> product_categories: "属する" (info, solid) { tailHead: one, head: many }
   - categories -> product_categories: "商品を含む" (info, solid) { tailHead: one, head: many }
@@ -3468,7 +3489,7 @@ animation:
   - step: "2. 明細に商品が並ぶ" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items"]
     badge: "er"
-    body: "実線は 0 を許さない関係。 1 件の注文に明細が 1 行以上並ぶ。"
+    body: "破線は識別しない関係。 明細は自分の鍵 id を持ち、親の鍵は主キーに入らない。"
   - step: "3. 在庫を持つ" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory"]
     badge: "er"
@@ -3527,15 +3548,15 @@ export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
     ],
     flow: [
       { from: "users", to: "addresses", label: "登録する", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
-      { from: "users", to: "orders", label: "注文する", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "users", to: "orders", label: "注文する", tone: "info", style: "dashed", tailHead: "one", head: "many" },
       { from: "users", to: "user_roles", label: "役割を持つ", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "roles", to: "user_roles", label: "割り当てる", tone: "info", style: "solid", tailHead: "one", head: "many" },
-      { from: "orders", to: "order_items", label: "含む", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "orders", to: "order_items", label: "含む", tone: "info", style: "dashed", tailHead: "one", head: "many" },
       { from: "orders", to: "payments", label: "支払う", tone: "info", style: "dashed", tailHead: "one", head: "zero-one" },
       { from: "orders", to: "shipments", label: "発送する", tone: "info", style: "dashed", tailHead: "one", head: "zero-one" },
       { from: "addresses", to: "shipments", label: "届け先", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
       { from: "addresses", to: "orders", label: "請求先", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
-      { from: "products", to: "order_items", label: "注文される", tone: "info", style: "solid", tailHead: "one", head: "many" },
+      { from: "products", to: "order_items", label: "注文される", tone: "info", style: "dashed", tailHead: "one", head: "many" },
       { from: "products", to: "inventory", label: "在庫を持つ", tone: "info", style: "solid", tailHead: "one", head: "one" },
       { from: "products", to: "product_categories", label: "属する", tone: "info", style: "solid", tailHead: "one", head: "many" },
       { from: "categories", to: "product_categories", label: "商品を含む", tone: "info", style: "solid", tailHead: "one", head: "many" },
@@ -3543,7 +3564,7 @@ export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
     ],
     animation: [
       { step: "1. 利用者が注文する", duration: 0.9, focus: ["users", "orders", "users -> orders"], badge: "er", body: "1 人の利用者が 1 件以上の注文をする。 端の棒と鳥の足で数を読む。" },
-      { step: "2. 明細に商品が並ぶ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items"], badge: "er", body: "実線は 0 を許さない関係。 1 件の注文に明細が 1 行以上並ぶ。" },
+      { step: "2. 明細に商品が並ぶ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items"], badge: "er", body: "破線は識別しない関係。 明細は自分の鍵 id を持ち、親の鍵は主キーに入らない。" },
       { step: "3. 在庫を持つ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory"], badge: "er", body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。" },
       { step: "4. 商品を分類する", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories"], badge: "er", body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。" },
       { step: "5. 分類の親子", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories"], badge: "er", body: "破線で同じ表へ戻る。 親を持たない最上位の分類もある。" },
