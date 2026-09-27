@@ -4684,7 +4684,7 @@ export const onboardingStepper = diagram("interactive-onboarding-stepper", {
     label: "進み具合 (点の並び)",
   })
   .phase("p1", { duration: 1200, title: "最初の 2 段", body: "登録と自己紹介は、利用者の情報をそろえる前半の 2 段。 どちらも入力を受け取るだけで、設定には進まない。" }, (p: PhaseBuilder) =>
-    p.activate("signupNode").badge("手順"),
+    p.activate("signupNode", "profileNode").badge("手順"),
   )
   .phase("p2", { duration: 1200, title: "中ほどまで", body: "好みの設定は 5 段の真ん中で、初期値のいまの段でもある。 ここまでの矢印は青で、前半のつながりを表す。" }, (p: PhaseBuilder) =>
     p.activate("signupNode", "profileNode", "prefsNode").badge("手順"),
@@ -5403,10 +5403,10 @@ export const alertNotification = diagram("interactive-alert-notification", {
     label: "通知 (色と記号)",
   })
   .phase("p1", { duration: 1200, title: "情報と注意", body: "青の お知らせ と黄の 注意 は、読み手に伝えるだけの弱い側。 4 種は色と記号の組で見分ける。" }, (p: PhaseBuilder) =>
-    p.activate("infoNode").badge("通知"),
+    p.activate("infoNode", "warnNode").badge("通知"),
   )
   .phase("p2", { duration: 1200, title: "異常と成功", body: "赤の 異常 と緑の 成功 は、処理の結末を表す強い側。 記号は ✕ と ✓ で対になる。" }, (p: PhaseBuilder) =>
-    p.activate("infoNode", "warnNode", "errorNode").badge("通知"),
+    p.activate("infoNode", "warnNode", "errorNode", "successNode").badge("通知"),
   )
   .phase(
     "p3",
@@ -5474,7 +5474,7 @@ export const commitDiffCounter = diagram("interactive-commit-diff", {
     p.activate("addCard").badge("差分"),
   )
   .phase("p2", { duration: 1200, title: "削除を並べる", body: "削除は赤で、右に置いて減る側を表す。 追加が削除を上回ると行が増える。" }, (p: PhaseBuilder) =>
-    p.activate("addCard", "addDetail").badge("差分"),
+    p.activate("addCard", "addDetail", "delCard").badge("差分"),
   )
   .phase(
     "p3",
@@ -5797,10 +5797,10 @@ export const engineTachometer = diagram("interactive-engine-tachometer", {
     label: "回転計 (270° の目盛盤)",
   })
   .phase("p1", { duration: 1200, title: "通常と巡航", body: "帯は回転数の範囲を 3 つに区切る。 0〜2000 rpm の通常の帯は緑。" }, (p: PhaseBuilder) =>
-    p.activate("idleNode").badge("回転計"),
+    p.activate("idleNode", "cruiseNode").badge("回転計"),
   )
   .phase("p2", { duration: 1200, title: "過回転まで", body: "2000〜5000 rpm の巡航の帯は黄で、初期値の 3500 rpm がここに入る。" }, (p: PhaseBuilder) =>
-    p.activate("idleNode", "cruiseNode").badge("回転計"),
+    p.activate("idleNode", "cruiseNode", "redlineNode").badge("回転計"),
   )
   .phase(
     "p3",
@@ -5946,7 +5946,7 @@ export const deploySpinner = diagram("interactive-deploy-spinner", {
     p.activate("runningNode").badge("配備中"),
   )
   .phase("p2", { duration: 1200, title: "完了と失敗", body: "完了は緑、失敗は赤で、どちらも輪が止まった後の結末を表す。" }, (p: PhaseBuilder) =>
-    p.activate("runningNode", "doneNode").badge("配備中"),
+    p.activate("runningNode", "doneNode", "errorNode").badge("配備中"),
   )
   .phase(
     "p3",
@@ -5998,7 +5998,7 @@ export const examGrade = diagram("interactive-exam-grade", {
     p.activate("aNode", "bNode").badge("成績"),
   )
   .phase("p2", { duration: 1200, title: "下の 3 段階", body: "70 台が C、60 台が D、60 未満が F。 初期値の点数は B に入る。" }, (p: PhaseBuilder) =>
-    p.activate("aNode", "bNode", "cNode", "dNode").badge("成績"),
+    p.activate("aNode", "bNode", "cNode", "dNode", "fNode").badge("成績"),
   )
   .phase(
     "p3",
@@ -6129,7 +6129,7 @@ export const mlConfidenceMeter = diagram("interactive-ml-confidence", {
     p.activate("lowNode").badge("確信度"),
   )
   .phase("p2", { duration: 1200, title: "高い帯まで", body: "40〜74% の中の帯は黄。 上にも下にも寄りうる境目の範囲。" }, (p: PhaseBuilder) =>
-    p.activate("lowNode", "midNode").badge("確信度"),
+    p.activate("lowNode", "midNode", "highNode").badge("確信度"),
   )
   .phase(
     "p3",
@@ -6377,7 +6377,7 @@ export const deviceBattery = diagram("interactive-device-battery", {
     p.activate("lowNode").badge("電池"),
   )
   .phase("p2", { duration: 1200, title: "高い帯まで", body: "20〜60% の中の帯は黄で、そろそろ充電する範囲。 初期値の 72% はその上の帯に入る。" }, (p: PhaseBuilder) =>
-    p.activate("lowNode", "midNode").badge("電池"),
+    p.activate("lowNode", "midNode", "highNode").badge("電池"),
   )
   .phase(
     "p3",
@@ -6535,7 +6535,7 @@ export const roomThermometer = diagram("interactive-room-thermometer", {
     p.activate("coldNode").badge("室温"),
   )
   .phase("p2", { duration: 1200, title: "暑い帯まで", body: "15〜25°C の快適な帯は緑。 初期値の 24°C はこの帯に入る。" }, (p: PhaseBuilder) =>
-    p.activate("coldNode", "comfortNode").badge("室温"),
+    p.activate("coldNode", "comfortNode", "hotNode").badge("室温"),
   )
   .phase(
     "p3",
@@ -6877,7 +6877,7 @@ export const issuePriorityBadge = diagram("interactive-issue-priority", {
     p.activate("highNode").badge("課題"),
   )
   .phase("p2", { duration: 1200, title: "低い優先度まで", body: "● 中 は黄でふつうの不具合、▼ 低 は灰であると良いものが入る。" }, (p: PhaseBuilder) =>
-    p.activate("highNode", "medNode").badge("課題"),
+    p.activate("highNode", "medNode", "lowNode").badge("課題"),
   )
   .phase(
     "p3",
@@ -7944,10 +7944,10 @@ export const shippingOrderStatus = diagram("interactive-shipping-status", {
     label: "配送状況 (記号の帯)",
   })
   .phase("p1", { duration: 1200, title: "梱包と発送", body: "梱包済みは倉庫で箱に詰めた段階、発送済みは運送会社に渡した段階。" }, (p: PhaseBuilder) =>
-    p.activate("packedNode").badge("追跡"),
+    p.activate("packedNode", "shippedNode").badge("追跡"),
   )
   .phase("p2", { duration: 1200, title: "配達中まで", body: "配達中は向かっている段階で、初期値がここ。 配達完了で受け取りが済む。" }, (p: PhaseBuilder) =>
-    p.activate("packedNode", "shippedNode").badge("追跡"),
+    p.activate("packedNode", "shippedNode", "deliveryNode").badge("追跡"),
   )
   .phase(
     "p3",
@@ -20527,11 +20527,11 @@ actors:
 
 animation:
   - step: "情報と注意" 1.2s
-    focus: ["infoNode"]
+    focus: ["infoNode", "warnNode"]
     badge: "通知"
     description: "青の お知らせ と黄の 注意 は、読み手に伝えるだけの弱い側。 4 種は色と記号の組で見分ける。"
   - step: "異常と成功" 1.2s
-    focus: ["infoNode", "warnNode", "errorNode"]
+    focus: ["infoNode", "warnNode", "errorNode", "successNode"]
     badge: "通知"
     description: "赤の 異常 と緑の 成功 は、処理の結末を表す強い側。 記号は ✕ と ✓ で対になる。"
   - step: "いまの通知" 1.2s
@@ -20622,11 +20622,11 @@ export const sourceJson__alertNotification = `{
     "alertBody": "本番用に v1.2.3 を組み立て中"
   },
   "animation": [
-    { "step": "情報と注意", "duration": 1.2, "focus": ["infoNode"], "body": "青の お知らせ と黄の 注意 は、読み手に伝えるだけの弱い側。 4 種は色と記号の組で見分ける。", "badge": "通知" },
+    { "step": "情報と注意", "duration": 1.2, "focus": ["infoNode", "warnNode"], "body": "青の お知らせ と黄の 注意 は、読み手に伝えるだけの弱い側。 4 種は色と記号の組で見分ける。", "badge": "通知" },
     {
       "step": "異常と成功",
       "duration": 1.2,
-      "focus": ["infoNode", "warnNode", "errorNode"],
+      "focus": ["infoNode", "warnNode", "errorNode", "successNode"],
       "body": "赤の 異常 と緑の 成功 は、処理の結末を表す強い側。 記号は ✕ と ✓ で対になる。",
       "badge": "通知"
     },
@@ -21419,7 +21419,7 @@ animation:
     badge: "差分"
     description: "追加は緑で、増減の操作で行数を動かせる。 左に置いて増える側を表す。"
   - step: "削除を並べる" 1.2s
-    focus: ["+ 追加", "追加が多い時"]
+    focus: ["+ 追加", "追加が多い時", "- 削除"]
     badge: "差分"
     description: "削除は赤で、右に置いて減る側を表す。 追加が削除を上回ると行が増える。"
   - step: "差し引き" 1.2s
@@ -21502,7 +21502,7 @@ export const sourceJson__commitDiffCounter = `{
   "states": { "add": 120, "del": 45 },
   "animation": [
     { "step": "追加を見る", "duration": 1.2, "focus": ["+ 追加"], "body": "追加は緑で、増減の操作で行数を動かせる。 左に置いて増える側を表す。", "badge": "差分" },
-    { "step": "削除を並べる", "duration": 1.2, "focus": ["+ 追加", "追加が多い時"], "body": "削除は赤で、右に置いて減る側を表す。 追加が削除を上回ると行が増える。", "badge": "差分" },
+    { "step": "削除を並べる", "duration": 1.2, "focus": ["+ 追加", "追加が多い時", "- 削除"], "body": "削除は赤で、右に置いて減る側を表す。 追加が削除を上回ると行が増える。", "badge": "差分" },
     {
       "step": "差し引き",
       "duration": 1.2,
@@ -21544,7 +21544,7 @@ animation:
     badge: "配備中"
     description: "実行中は青で、輪が回っている間は結果が決まっていない。"
   - step: "完了と失敗" 1.2s
-    focus: ["runningNode", "doneNode"]
+    focus: ["runningNode", "doneNode", "errorNode"]
     badge: "配備中"
     description: "完了は緑、失敗は赤で、どちらも輪が止まった後の結末を表す。"
   - step: "いまの状態" 1.2s
@@ -21633,7 +21633,7 @@ export const sourceJson__deploySpinner = `{
     {
       "step": "完了と失敗",
       "duration": 1.2,
-      "focus": ["runningNode", "doneNode"],
+      "focus": ["runningNode", "doneNode", "errorNode"],
       "body": "完了は緑、失敗は赤で、どちらも輪が止まった後の結末を表す。",
       "badge": "配備中"
     },
@@ -21676,7 +21676,7 @@ animation:
     badge: "電池"
     description: "帯は残量を 3 つに区切る。 20% 未満の低い帯は赤で、すぐ充電が要る範囲。"
   - step: "高い帯まで" 1.2s
-    focus: ["低い帯", "中の帯"]
+    focus: ["低い帯", "中の帯", "高い帯"]
     badge: "電池"
     description: "20〜60% の中の帯は黄で、そろそろ充電する範囲。 初期値の 72% はその上の帯に入る。"
   - step: "いまの残量" 1.2s
@@ -21750,7 +21750,7 @@ export const sourceJson__deviceBattery = `{
   "states": { "battery": 72 },
   "animation": [
     { "step": "低い帯", "duration": 1.2, "focus": ["低い帯"], "body": "帯は残量を 3 つに区切る。 20% 未満の低い帯は赤で、すぐ充電が要る範囲。", "badge": "電池" },
-    { "step": "高い帯まで", "duration": 1.2, "focus": ["低い帯", "中の帯"], "body": "20〜60% の中の帯は黄で、そろそろ充電する範囲。 初期値の 72% はその上の帯に入る。", "badge": "電池" },
+    { "step": "高い帯まで", "duration": 1.2, "focus": ["低い帯", "中の帯", "高い帯"], "body": "20〜60% の中の帯は黄で、そろそろ充電する範囲。 初期値の 72% はその上の帯に入る。", "badge": "電池" },
     {
       "step": "いまの残量",
       "duration": 1.2,
@@ -21931,11 +21931,11 @@ actors:
 
 animation:
   - step: "通常と巡航" 1.2s
-    focus: ["idleNode"]
+    focus: ["idleNode", "cruiseNode"]
     badge: "回転計"
     description: "帯は回転数の範囲を 3 つに区切る。 0〜2000 rpm の通常の帯は緑。"
   - step: "過回転まで" 1.2s
-    focus: ["idleNode", "cruiseNode"]
+    focus: ["idleNode", "cruiseNode", "redlineNode"]
     badge: "回転計"
     description: "2000〜5000 rpm の巡航の帯は黄で、初期値の 3500 rpm がここに入る。"
   - step: "いまの回転数" 1.2s
@@ -22013,11 +22013,11 @@ export const sourceJson__engineTachometer = `{
   "flow": [],
   "states": { "rpm": 3500 },
   "animation": [
-    { "step": "通常と巡航", "duration": 1.2, "focus": ["idleNode"], "body": "帯は回転数の範囲を 3 つに区切る。 0〜2000 rpm の通常の帯は緑。", "badge": "回転計" },
+    { "step": "通常と巡航", "duration": 1.2, "focus": ["idleNode", "cruiseNode"], "body": "帯は回転数の範囲を 3 つに区切る。 0〜2000 rpm の通常の帯は緑。", "badge": "回転計" },
     {
       "step": "過回転まで",
       "duration": 1.2,
-      "focus": ["idleNode", "cruiseNode"],
+      "focus": ["idleNode", "cruiseNode", "redlineNode"],
       "body": "2000〜5000 rpm の巡航の帯は黄で、初期値の 3500 rpm がここに入る。",
       "badge": "回転計"
     },
@@ -22064,7 +22064,7 @@ animation:
     badge: "成績"
     description: "5 段階はいずれも点数の範囲で区切る。 90 以上が A、80〜89 が B。"
   - step: "下の 3 段階" 1.2s
-    focus: ["A", "B", "C", "D"]
+    focus: ["A", "B", "C", "D", "F"]
     badge: "成績"
     description: "70 台が C、60 台が D、60 未満が F。 初期値の点数は B に入る。"
   - step: "いまの成績" 1.2s
@@ -22126,7 +22126,7 @@ export const sourceJson__examGrade = `{
   "states": { "score": 85 },
   "animation": [
     { "step": "上の 2 段階", "duration": 1.2, "focus": ["A", "B"], "body": "5 段階はいずれも点数の範囲で区切る。 90 以上が A、80〜89 が B。", "badge": "成績" },
-    { "step": "下の 3 段階", "duration": 1.2, "focus": ["A", "B", "C", "D"], "body": "70 台が C、60 台が D、60 未満が F。 初期値の点数は B に入る。", "badge": "成績" },
+    { "step": "下の 3 段階", "duration": 1.2, "focus": ["A", "B", "C", "D", "F"], "body": "70 台が C、60 台が D、60 未満が F。 初期値の点数は B に入る。", "badge": "成績" },
     {
       "step": "いまの成績",
       "duration": 1.2,
@@ -22770,7 +22770,7 @@ animation:
     badge: "課題"
     description: "▲ 高 は赤で、落ちる不具合と戻った不具合が入る。 記号と色の組で優先度を表す。"
   - step: "低い優先度まで" 1.2s
-    focus: ["highNode", "medNode"]
+    focus: ["highNode", "medNode", "lowNode"]
     badge: "課題"
     description: "● 中 は黄でふつうの不具合、▼ 低 は灰であると良いものが入る。"
   - step: "いまの課題" 1.2s
@@ -22855,7 +22855,7 @@ export const sourceJson__issuePriorityBadge = `{
   "states": { "prio": "high", "desc": "起動で落ちる不具合" },
   "animation": [
     { "step": "高い優先度", "duration": 1.2, "focus": ["highNode"], "body": "▲ 高 は赤で、落ちる不具合と戻った不具合が入る。 記号と色の組で優先度を表す。", "badge": "課題" },
-    { "step": "低い優先度まで", "duration": 1.2, "focus": ["highNode", "medNode"], "body": "● 中 は黄でふつうの不具合、▼ 低 は灰であると良いものが入る。", "badge": "課題" },
+    { "step": "低い優先度まで", "duration": 1.2, "focus": ["highNode", "medNode", "lowNode"], "body": "● 中 は黄でふつうの不具合、▼ 低 は灰であると良いものが入る。", "badge": "課題" },
     {
       "step": "いまの課題",
       "duration": 1.2,
@@ -23020,7 +23020,7 @@ animation:
     badge: "確信度"
     description: "40% 未満の低い帯は赤で、推論が答えを決めきれていない範囲。"
   - step: "高い帯まで" 1.2s
-    focus: ["低い帯", "中の帯"]
+    focus: ["低い帯", "中の帯", "高い帯"]
     badge: "確信度"
     description: "40〜74% の中の帯は黄。 上にも下にも寄りうる境目の範囲。"
   - step: "いまの確信度" 1.2s
@@ -23093,7 +23093,7 @@ export const sourceJson__mlConfidenceMeter = `{
   "states": { "conf": 82 },
   "animation": [
     { "step": "低い帯", "duration": 1.2, "focus": ["低い帯"], "body": "40% 未満の低い帯は赤で、推論が答えを決めきれていない範囲。", "badge": "確信度" },
-    { "step": "高い帯まで", "duration": 1.2, "focus": ["低い帯", "中の帯"], "body": "40〜74% の中の帯は黄。 上にも下にも寄りうる境目の範囲。", "badge": "確信度" },
+    { "step": "高い帯まで", "duration": 1.2, "focus": ["低い帯", "中の帯", "高い帯"], "body": "40〜74% の中の帯は黄。 上にも下にも寄りうる境目の範囲。", "badge": "確信度" },
     {
       "step": "いまの確信度",
       "duration": 1.2,
@@ -23244,7 +23244,7 @@ flow:
 
 animation:
   - step: "最初の 2 段" 1.2s
-    focus: ["登録"]
+    focus: ["登録", "自己紹介"]
     badge: "手順"
     description: "登録と自己紹介は、利用者の情報をそろえる前半の 2 段。 どちらも入力を受け取るだけで、設定には進まない。"
   - step: "中ほどまで" 1.2s
@@ -23338,7 +23338,7 @@ export const sourceJson__onboardingStepper = `{
   ],
   "states": { "current": 2, "steps": "[\\"登録\\",\\"自己紹介\\",\\"好みの設定\\",\\"本人確認\\",\\"完了\\"]" },
   "animation": [
-    { "step": "最初の 2 段", "duration": 1.2, "focus": ["登録"], "body": "登録と自己紹介は、利用者の情報をそろえる前半の 2 段。 どちらも入力を受け取るだけで、設定には進まない。", "badge": "手順" },
+    { "step": "最初の 2 段", "duration": 1.2, "focus": ["登録", "自己紹介"], "body": "登録と自己紹介は、利用者の情報をそろえる前半の 2 段。 どちらも入力を受け取るだけで、設定には進まない。", "badge": "手順" },
     {
       "step": "中ほどまで",
       "duration": 1.2,
@@ -24515,7 +24515,7 @@ animation:
     badge: "室温"
     description: "帯は室温を 3 つに区切る。 15°C 未満の寒い帯は青で、暖房が要る範囲。"
   - step: "暑い帯まで" 1.2s
-    focus: ["寒い帯", "快適な帯"]
+    focus: ["寒い帯", "快適な帯", "暑い帯"]
     badge: "室温"
     description: "15〜25°C の快適な帯は緑。 初期値の 24°C はこの帯に入る。"
   - step: "いまの室温" 1.2s
@@ -24593,7 +24593,7 @@ export const sourceJson__roomThermometer = `{
     {
       "step": "暑い帯まで",
       "duration": 1.2,
-      "focus": ["寒い帯", "快適な帯"],
+      "focus": ["寒い帯", "快適な帯", "暑い帯"],
       "body": "15〜25°C の快適な帯は緑。 初期値の 24°C はこの帯に入る。",
       "badge": "室温"
     },
@@ -25226,11 +25226,11 @@ flow:
 
 animation:
   - step: "梱包と発送" 1.2s
-    focus: ["📦 梱包済み"]
+    focus: ["📦 梱包済み", "🚚 発送済み"]
     badge: "追跡"
     description: "梱包済みは倉庫で箱に詰めた段階、発送済みは運送会社に渡した段階。"
   - step: "配達中まで" 1.2s
-    focus: ["📦 梱包済み", "🚚 発送済み"]
+    focus: ["📦 梱包済み", "🚚 発送済み", "🏠 配達中"]
     badge: "追跡"
     description: "配達中は向かっている段階で、初期値がここ。 配達完了で受け取りが済む。"
   - step: "配達完了" 1.2s
@@ -25307,11 +25307,11 @@ export const sourceJson__shippingOrderStatus = `{
   ],
   "states": { "current": 2, "steps": "[\\"梱包済み\\",\\"発送済み\\",\\"配達中\\",\\"配達完了\\"]" },
   "animation": [
-    { "step": "梱包と発送", "duration": 1.2, "focus": ["📦 梱包済み"], "body": "梱包済みは倉庫で箱に詰めた段階、発送済みは運送会社に渡した段階。", "badge": "追跡" },
+    { "step": "梱包と発送", "duration": 1.2, "focus": ["📦 梱包済み", "🚚 発送済み"], "body": "梱包済みは倉庫で箱に詰めた段階、発送済みは運送会社に渡した段階。", "badge": "追跡" },
     {
       "step": "配達中まで",
       "duration": 1.2,
-      "focus": ["📦 梱包済み", "🚚 発送済み"],
+      "focus": ["📦 梱包済み", "🚚 発送済み", "🏠 配達中"],
       "body": "配達中は向かっている段階で、初期値がここ。 配達完了で受け取りが済む。",
       "badge": "追跡"
     },
