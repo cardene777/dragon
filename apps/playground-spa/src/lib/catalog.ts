@@ -100,8 +100,8 @@ export const CATEGORIES: CategoryMeta[] = [
     slug: "styles",
     label: "線と色",
     labelEn: "Lines and colours",
-    desc: "実線 / 点線流れ / 6 つの色調 (中立 / teal / 成功 / 失敗 / 警告 / 情報) の組合せで、 図の中に意味の階層 (通常経路 / 例外 / 成功 / 失敗) を差込む。 描く前の設計段階でどの色調をどこに割当てるか決める為の見本。",
-    descEn: "Solid and dashed flowing lines, combined with six tones (neutral, teal, success, failure, warning, information), let you insert a hierarchy of meaning into a diagram — the normal route, the exception, success, failure. A reference for deciding which tone goes where before you draw.",
+    desc: "実線 / 点線流れ / 破線 の 3 種と 6 つの色調 (中立 / teal / 成功 / 失敗 / 警告 / 情報) の組合せで、 図の中に意味の階層 (通常経路 / 例外 / 成功 / 失敗) を差込む。 破線だけは意味が図の種類で変わる (表どうしのつながりを描く図では識別の有無、 クラス図では実装と依存) ので、 その見本が書き分けを持つ。 描く前の設計段階でどの色調をどこに割当てるか決める為の見本。",
+    descEn: "Three kinds of line — solid, dotted flowing, dashed — combined with six tones (neutral, teal, success, failure, warning, information), let you insert a hierarchy of meaning into a diagram: the normal route, the exception, success, failure. The dashed line alone changes meaning with the kind of diagram (identifying or not in a table-relationship diagram, implementation or dependency in a class diagram), so its sample spells the difference out. A reference for deciding which tone goes where before you draw.",
   },
   {
     slug: "interactive",

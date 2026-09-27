@@ -369,6 +369,7 @@ export const ITEM_SUBTITLE_EN: Record<string, string> = {
   "stateInactive": "edge: a stopped state",
   "stateStartEnd": "Writes the start and the end of a state diagram on boxes (initial / final). A diagram that leaves them out takes the first and last of the sequence",
   "stepperControl": "Shows the count set with a plus and minus field (stepper) in two places, a bar and a number",
+  "styleDashed": "dashed style (a dashed line, whose meaning changes with the kind of diagram)",
   "styleDottedFlow": "dotted-flow style (a dotted line with particles, for a moving flow)",
   "styleSolid": "solid style (a solid line with an arrowhead, the default for an edge)",
   "supportChat": "Splits five support messages into a user lane and a desk lane, and shows them as an exchange of speech bubbles (chat-bubble)",
