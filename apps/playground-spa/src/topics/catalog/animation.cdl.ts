@@ -253,7 +253,7 @@ export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
   .edge("r4", "r5", { id: "e45", label: "確定", tone: "success" })
   .readout.percentRing("ring", { source: "total", max: 500, label: "全体進捗" })
   .readout.countup("cu", { source: "processed", unit: " 行", label: "処理済", decimals: 0 })
-  .phase("p1", { duration: 1500, title: "検証中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1500, title: "検証中", body: "検証の面が 0 から 100 まで満ち、処理済が 100 行まで数え上がる。 全体の輪は 5 分の 1 だけ埋まる。" }, (p: PhaseBuilder) =>
     p
       .activate("r1")
       .tween("s1", 0, 100)
@@ -261,7 +261,7 @@ export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
       .tween("processed", 0, 100)
       .badge("検証"),
   )
-  .phase("p2", { duration: 1500, title: "変換中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1500, title: "変換中", body: "変換の面が満ち、検証から変換への線が加わる。 処理済は 200 行、輪は 5 分の 2。" }, (p: PhaseBuilder) =>
     p
       .activate("r1", "r2", "e12")
       .tween("s2", 0, 100)
@@ -269,7 +269,7 @@ export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
       .tween("processed", 100, 200)
       .badge("変換"),
   )
-  .phase("p3", { duration: 1500, title: "加工中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1500, title: "加工中", body: "加工の面が満ちる。 前の 2 段は満ちたまま残るので、どこまで進んだかが左から読める。" }, (p: PhaseBuilder) =>
     p
       .activate("r1", "r2", "r3", "e12", "e23")
       .tween("s3", 0, 100)
@@ -277,7 +277,7 @@ export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
       .tween("processed", 200, 300)
       .badge("加工"),
   )
-  .phase("p4", { duration: 1500, title: "排除中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p4", { duration: 1500, title: "排除中", body: "重複排除の面が満ち、処理済が 400 行になる。 残るのは保存だけ。" }, (p: PhaseBuilder) =>
     p
       .activate("r1", "r2", "r3", "r4", "e12", "e23", "e34")
       .tween("s4", 0, 100)
@@ -285,7 +285,7 @@ export const richPipelineDemo = diagram("animation-rich-pipeline-demo", {
       .tween("processed", 300, 400)
       .badge("排除"),
   )
-  .phase("p5", { duration: 1500, title: "保存完遂", body: "" }, (p: PhaseBuilder) =>
+  .phase("p5", { duration: 1500, title: "保存完遂", body: "保存の面が満ち、輪が 100 % になる。 5 段あわせて 500 行を処理し終えた形。" }, (p: PhaseBuilder) =>
     p
       .activate("r1", "r2", "r3", "r4", "r5", "e12", "e23", "e34", "e45")
       .tween("s5", 0, 100)
@@ -402,7 +402,7 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
     label: "稼働時間",
     decimals: 0,
   })
-  .phase("p1", { duration: 2000, title: "朝ピーク (7:00)", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 2000, title: "朝ピーク (7:00)", body: "4 台の弧が一斉に 8 割超まで開き、平均負荷の針が 86 % を指す。 稼働時間は 7 時。" }, (p: PhaseBuilder) =>
     p
       .activate("srv1", "srv2", "srv3", "srv4")
       .tween("cpu1", 0, 85)
@@ -413,7 +413,7 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
       .tween("uptimeHour", 0, 7)
       .badge("朝ピーク"),
   )
-  .phase("p2", { duration: 2000, title: "昼安定 (12:00)", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 2000, title: "昼安定 (12:00)", body: "弧が 5 割台まで戻り、平均も 55 % へ下がる。 台数は変えずに負荷だけが落ちた。" }, (p: PhaseBuilder) =>
     p
       .activate("srv1", "srv2", "srv3", "srv4")
       .tween("cpu1", 85, 55)
@@ -424,7 +424,7 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
       .tween("uptimeHour", 7, 12)
       .badge("昼安定"),
   )
-  .phase("p3", { duration: 2000, title: "夜スケールダウン (20:00)", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 2000, title: "夜スケールダウン (20:00)", body: "弧が 3 割前後まで縮む。 稼働時間は 20 時まで進む。" }, (p: PhaseBuilder) =>
     p
       .activate("srv1", "srv2", "srv3", "srv4")
       .tween("cpu1", 55, 30)
@@ -435,7 +435,7 @@ export const richServerLoadDashboard = diagram("animation-rich-server-load-dashb
       .tween("uptimeHour", 12, 20)
       .badge("スケールダウン"),
   )
-  .phase("p4", { duration: 2000, title: "深夜アイドル (2:00)", body: "" }, (p: PhaseBuilder) =>
+  .phase("p4", { duration: 2000, title: "深夜アイドル (2:00)", body: "弧が 1 割以下になり、平均は 9 % になる。 日付をまたいで 26 時と数える。" }, (p: PhaseBuilder) =>
     p
       .activate("srv1", "srv2", "srv3", "srv4")
       .tween("cpu1", 30, 8)
@@ -538,7 +538,7 @@ export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
   .edge("st4", "st5", { id: "e45", label: "完了", tone: "success" })
   .readout.percentRing("progRing", { source: "progress", max: 100, label: "進捗" })
   .readout.countup("elapsedCU", { source: "elapsedHour", unit: " 時", label: "経過", decimals: 0 })
-  .phase("p1", { duration: 1500, title: "受注中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1500, title: "受注中", body: "受注の柱が満ち、進捗の輪が 20 % になる。 経過は 1 時間。" }, (p: PhaseBuilder) =>
     p
       .activate("st1")
       .tween("f1", 0, 100)
@@ -546,7 +546,7 @@ export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
       .tween("elapsedHour", 0, 1)
       .badge("受注"),
   )
-  .phase("p2", { duration: 1500, title: "決済中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1500, title: "決済中", body: "決済の柱が満ち、受注から決済への線が加わる。 進捗は 40 % へ。" }, (p: PhaseBuilder) =>
     p
       .activate("st1", "st2", "e12")
       .tween("f2", 0, 100)
@@ -554,7 +554,7 @@ export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
       .tween("elapsedHour", 1, 2)
       .badge("決済"),
   )
-  .phase("p3", { duration: 1500, title: "発送中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1500, title: "発送中", body: "発送の柱が満ちる。 ここで経過が 2 時間から 8 時間へ跳ぶ。" }, (p: PhaseBuilder) =>
     p
       .activate("st1", "st2", "st3", "e12", "e23")
       .tween("f3", 0, 100)
@@ -562,7 +562,7 @@ export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
       .tween("elapsedHour", 2, 8)
       .badge("発送"),
   )
-  .phase("p4", { duration: 1500, title: "配達中", body: "" }, (p: PhaseBuilder) =>
+  .phase("p4", { duration: 1500, title: "配達中", body: "配達の柱が満ち、経過は 24 時間。 進捗は 85 % で、残るのは完了だけ。" }, (p: PhaseBuilder) =>
     p
       .activate("st1", "st2", "st3", "st4", "e12", "e23", "e34")
       .tween("f4", 0, 100)
@@ -570,7 +570,7 @@ export const richOrderStatusFlow = diagram("animation-rich-order-status-flow", {
       .tween("elapsedHour", 8, 24)
       .badge("配達"),
   )
-  .phase("p5", { duration: 1500, title: "完了", body: "" }, (p: PhaseBuilder) =>
+  .phase("p5", { duration: 1500, title: "完了", body: "完了の柱が満ちて輪が 100 % になる。 5 つの状態が全て埋まった形。" }, (p: PhaseBuilder) =>
     p
       .activate("st1", "st2", "st3", "st4", "st5", "e12", "e23", "e34", "e45")
       .tween("f5", 0, 100)
@@ -659,7 +659,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
     color: "#22c55e",
     label: "平均命中率 %",
   })
-  .phase("r1", { duration: 2000, title: "第 1 戦 (拮抗)", body: "" }, (p: PhaseBuilder) =>
+  .phase("r1", { duration: 2000, title: "第 1 戦 (拮抗)", body: "4 人の円がほぼ同じ大きさに育つ。 撃破数は 12 回、命中率は 52 %。" }, (p: PhaseBuilder) =>
     p
       .activate("pl1", "pl2", "pl3", "pl4")
       .tween("p1", 20, 35)
@@ -670,7 +670,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
       .tween("avgAcc", 40, 52)
       .badge("R1 拮抗"),
   )
-  .phase("r2", { duration: 2000, title: "第 2 戦 (山田様が先行)", body: "" }, (p: PhaseBuilder) =>
+  .phase("r2", { duration: 2000, title: "第 2 戦 (山田様が先行)", body: "山田様の円が 65 まで大きくなり、他の 3 人を抜く。 円の半径が得点そのもの。" }, (p: PhaseBuilder) =>
     p
       .activate("pl1", "pl2", "pl3", "pl4")
       .tween("p1", 35, 48)
@@ -683,7 +683,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
   )
   .phase(
     "r3",
-    { duration: 2000, title: "第 3 戦 (佐藤様 追い上げ)", body: "" },
+    { duration: 2000, title: "第 3 戦 (佐藤様 追い上げ)", body: "佐藤様が 72 まで伸び、山田様を追い越す。 位置は動かないので、順位の入れ替わりは大きさで読む。" },
     (p: PhaseBuilder) =>
       p
         .activate("pl1", "pl2", "pl3", "pl4")
@@ -695,7 +695,7 @@ export const richScoreLeaderboard = diagram("animation-rich-score-leaderboard", 
         .tween("avgAcc", 58, 64)
         .badge("R3 佐藤様 追上げ"),
   )
-  .phase("r4", { duration: 2000, title: "第 4 戦 (佐藤様 優勝)", body: "" }, (p: PhaseBuilder) =>
+  .phase("r4", { duration: 2000, title: "第 4 戦 (佐藤様 優勝)", body: "佐藤様が 80 で首位のまま終わる。 撃破数は 72 回まで数え上がる。" }, (p: PhaseBuilder) =>
     p
       .activate("pl1", "pl2", "pl3", "pl4")
       .tween("p1", 55, 62)
@@ -807,7 +807,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
       fill: "#f97316",
     },
   })
-  .phase("p1", { duration: 1800, title: "空のブロック", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1800, title: "空のブロック", body: "3 層の手数料がどれも小さい。 混雑度は 28 % で、有効総額は 18 gwei。" }, (p: PhaseBuilder) =>
     p
       .activate("capL", "tipL", "baseL", "effC", "congA")
       .tween("baseFee", 10, 15)
@@ -817,7 +817,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
       .tween("congestion", 15, 28)
       .badge("空のブロック"),
   )
-  .phase("p2", { duration: 1800, title: "平常", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1800, title: "平常", body: "基本手数料が 45 gwei まで伸び、総額が 51 gwei になる。 3 層が同じ段で一緒に動く。" }, (p: PhaseBuilder) =>
     p
       .activate("capL", "tipL", "baseL", "effC", "congA")
       .tween("baseFee", 15, 45)
@@ -827,7 +827,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
       .tween("congestion", 28, 58)
       .badge("平常"),
   )
-  .phase("p3", { duration: 1800, title: "混雑", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1800, title: "混雑", body: "混雑度が 88 % まで上がり、基本手数料が 95 gwei へ。 優先手数料も 3 倍に増える。" }, (p: PhaseBuilder) =>
     p
       .activate("capL", "tipL", "baseL", "effC", "congA")
       .tween("baseFee", 45, 95)
@@ -837,7 +837,7 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
       .tween("congestion", 58, 88)
       .badge("混雑"),
   )
-  .phase("p4", { duration: 1800, title: "極混雑", body: "" }, (p: PhaseBuilder) =>
+  .phase("p4", { duration: 1800, title: "極混雑", body: "基本手数料が 140 gwei、総額は 182 gwei になる。 混雑度の弧はほぼ 1 周する。" }, (p: PhaseBuilder) =>
     p
       .activate("capL", "tipL", "baseL", "effC", "congA")
       .tween("baseFee", 95, 140)
@@ -1233,6 +1233,7 @@ animation:
       total: 0 -> 100
       processed: 0 -> 100
     badge: "検証"
+    description: "検証の面が 0 から 100 まで満ち、処理済が 100 行まで数え上がる。 全体の輪は 5 分の 1 だけ埋まる。"
   - step: "変換中" 1.5s
     focus: ["検証", "変換", "検証 -> 変換"]
     tween:
@@ -1240,6 +1241,7 @@ animation:
       total: 100 -> 200
       processed: 100 -> 200
     badge: "変換"
+    description: "変換の面が満ち、検証から変換への線が加わる。 処理済は 200 行、輪は 5 分の 2。"
   - step: "加工中" 1.5s
     focus: ["検証", "変換", "加工", "検証 -> 変換", "変換 -> 加工"]
     tween:
@@ -1247,6 +1249,7 @@ animation:
       total: 200 -> 300
       processed: 200 -> 300
     badge: "加工"
+    description: "加工の面が満ちる。 前の 2 段は満ちたまま残るので、どこまで進んだかが左から読める。"
   - step: "排除中" 1.5s
     focus: ["検証", "変換", "加工", "重複排除", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除"]
     tween:
@@ -1254,6 +1257,7 @@ animation:
       total: 300 -> 400
       processed: 300 -> 400
     badge: "排除"
+    description: "重複排除の面が満ち、処理済が 400 行になる。 残るのは保存だけ。"
   - step: "保存完遂" 1.5s
     focus: ["検証", "変換", "加工", "重複排除", "保存", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除", "重複排除 -> 保存"]
     tween:
@@ -1261,6 +1265,7 @@ animation:
       total: 400 -> 500
       processed: 400 -> 500
     badge: "保存"
+    description: "保存の面が満ち、輪が 100 % になる。 5 段あわせて 500 行を処理し終えた形。"
 `;
 
 export const sourceJson__richPipelineDemo = `{
@@ -1382,35 +1387,40 @@ export const sourceJson__richPipelineDemo = `{
       "duration": 1.5,
       "focus": ["検証"],
       "tween": { "s1": [0, 100], "total": [0, 100], "processed": [0, 100] },
-      "badge": "検証"
+      "badge": "検証",
+      "description": "検証の面が 0 から 100 まで満ち、処理済が 100 行まで数え上がる。 全体の輪は 5 分の 1 だけ埋まる。"
     },
     {
       "step": "変換中",
       "duration": 1.5,
       "focus": ["検証", "変換", "検証 -> 変換"],
       "tween": { "s2": [0, 100], "total": [100, 200], "processed": [100, 200] },
-      "badge": "変換"
+      "badge": "変換",
+      "description": "変換の面が満ち、検証から変換への線が加わる。 処理済は 200 行、輪は 5 分の 2。"
     },
     {
       "step": "加工中",
       "duration": 1.5,
       "focus": ["検証", "変換", "加工", "検証 -> 変換", "変換 -> 加工"],
       "tween": { "s3": [0, 100], "total": [200, 300], "processed": [200, 300] },
-      "badge": "加工"
+      "badge": "加工",
+      "description": "加工の面が満ちる。 前の 2 段は満ちたまま残るので、どこまで進んだかが左から読める。"
     },
     {
       "step": "排除中",
       "duration": 1.5,
       "focus": ["検証", "変換", "加工", "重複排除", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除"],
       "tween": { "s4": [0, 100], "total": [300, 400], "processed": [300, 400] },
-      "badge": "排除"
+      "badge": "排除",
+      "description": "重複排除の面が満ち、処理済が 400 行になる。 残るのは保存だけ。"
     },
     {
       "step": "保存完遂",
       "duration": 1.5,
       "focus": ["検証", "変換", "加工", "重複排除", "保存", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除", "重複排除 -> 保存"],
       "tween": { "s5": [0, 100], "total": [400, 500], "processed": [400, 500] },
-      "badge": "保存"
+      "badge": "保存",
+      "description": "保存の面が満ち、輪が 100 % になる。 5 段あわせて 500 行を処理し終えた形。"
     }
   ]
 }`;
@@ -1464,6 +1474,7 @@ animation:
       total: 0 -> 100
       processed: 0 -> 100
     badge: "検証"
+    description: "検証の面が満ちる間、処理済の数え上げは面よりゆっくり追いかける。 数える時間を長めに指定した形。"
   - step: "変換中" 1.5s
     focus: ["検証", "変換", "検証 -> 変換"]
     tween:
@@ -1471,6 +1482,7 @@ animation:
       total: 100 -> 200
       processed: 100 -> 200
     badge: "変換"
+    description: "変換の面が満ちる。 面が止まった後も数字がまだ動いているのが見える。"
   - step: "加工中" 1.5s
     focus: ["検証", "変換", "加工", "検証 -> 変換", "変換 -> 加工"]
     tween:
@@ -1478,6 +1490,7 @@ animation:
       total: 200 -> 300
       processed: 200 -> 300
     badge: "加工"
+    description: "加工の面が満ちる。 面の進み方は元の見本と同じで、違うのは数える速さだけ。"
   - step: "排除中" 1.5s
     focus: ["検証", "変換", "加工", "重複排除", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除"]
     tween:
@@ -1485,6 +1498,7 @@ animation:
       total: 300 -> 400
       processed: 300 -> 400
     badge: "排除"
+    description: "重複排除の面が満ちる。 処理済は 400 行へ向かって少しずつ増える。"
   - step: "保存完遂" 1.5s
     focus: ["検証", "変換", "加工", "重複排除", "保存", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除", "重複排除 -> 保存"]
     tween:
@@ -1492,6 +1506,7 @@ animation:
       total: 400 -> 500
       processed: 400 -> 500
     badge: "保存"
+    description: "保存の面が満ち、輪が 100 % になる。 数え上げは最後に 500 行へ追いつく。"
 `;
 
 export const sourceJson__pattern__richPipelineDemo__ゆっくり数える = `{
@@ -1614,35 +1629,40 @@ export const sourceJson__pattern__richPipelineDemo__ゆっくり数える = `{
       "duration": 1.5,
       "focus": ["検証"],
       "tween": { "s1": [0, 100], "total": [0, 100], "processed": [0, 100] },
-      "badge": "検証"
+      "badge": "検証",
+      "description": "検証の面が満ちる間、処理済の数え上げは面よりゆっくり追いかける。 数える時間を長めに指定した形。"
     },
     {
       "step": "変換中",
       "duration": 1.5,
       "focus": ["検証", "変換", "検証 -> 変換"],
       "tween": { "s2": [0, 100], "total": [100, 200], "processed": [100, 200] },
-      "badge": "変換"
+      "badge": "変換",
+      "description": "変換の面が満ちる。 面が止まった後も数字がまだ動いているのが見える。"
     },
     {
       "step": "加工中",
       "duration": 1.5,
       "focus": ["検証", "変換", "加工", "検証 -> 変換", "変換 -> 加工"],
       "tween": { "s3": [0, 100], "total": [200, 300], "processed": [200, 300] },
-      "badge": "加工"
+      "badge": "加工",
+      "description": "加工の面が満ちる。 面の進み方は元の見本と同じで、違うのは数える速さだけ。"
     },
     {
       "step": "排除中",
       "duration": 1.5,
       "focus": ["検証", "変換", "加工", "重複排除", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除"],
       "tween": { "s4": [0, 100], "total": [300, 400], "processed": [300, 400] },
-      "badge": "排除"
+      "badge": "排除",
+      "description": "重複排除の面が満ちる。 処理済は 400 行へ向かって少しずつ増える。"
     },
     {
       "step": "保存完遂",
       "duration": 1.5,
       "focus": ["検証", "変換", "加工", "重複排除", "保存", "検証 -> 変換", "変換 -> 加工", "加工 -> 重複排除", "重複排除 -> 保存"],
       "tween": { "s5": [0, 100], "total": [400, 500], "processed": [400, 500] },
-      "badge": "保存"
+      "badge": "保存",
+      "description": "保存の面が満ち、輪が 100 % になる。 数え上げは最後に 500 行へ追いつく。"
     }
   ]
 }`;
@@ -1690,6 +1710,7 @@ animation:
       avgLoad: 0 -> 86
       uptimeHour: 0 -> 7
     badge: "朝ピーク"
+    description: "4 台の弧が一斉に 8 割超まで開き、平均負荷の針が 86 % を指す。 稼働時間は 7 時。"
   - step: "昼安定 (12:00)" 2s
     focus: ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"]
     tween:
@@ -1700,6 +1721,7 @@ animation:
       avgLoad: 86 -> 55
       uptimeHour: 7 -> 12
     badge: "昼安定"
+    description: "弧が 5 割台まで戻り、平均も 55 % へ下がる。 台数は変えずに負荷だけが落ちた。"
   - step: "夜スケールダウン (20:00)" 2s
     focus: ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"]
     tween:
@@ -1710,6 +1732,7 @@ animation:
       avgLoad: 55 -> 30
       uptimeHour: 12 -> 20
     badge: "スケールダウン"
+    description: "弧が 3 割前後まで縮む。 稼働時間は 20 時まで進む。"
   - step: "深夜アイドル (2:00)" 2s
     focus: ["サーバー 1", "サーバー 2", "サーバー 3", "サーバー 4"]
     tween:
@@ -1720,6 +1743,7 @@ animation:
       avgLoad: 30 -> 9
       uptimeHour: 20 -> 26
     badge: "アイドル"
+    description: "弧が 1 割以下になり、平均は 9 % になる。 日付をまたいで 26 時と数える。"
 `;
 
 export const sourceJson__richServerLoadDashboard = `{
@@ -1835,7 +1859,8 @@ export const sourceJson__richServerLoadDashboard = `{
         "avgLoad": [0, 86],
         "uptimeHour": [0, 7]
       },
-      "badge": "朝ピーク"
+      "badge": "朝ピーク",
+      "description": "4 台の弧が一斉に 8 割超まで開き、平均負荷の針が 86 % を指す。 稼働時間は 7 時。"
     },
     {
       "step": "昼安定 (12:00)",
@@ -1849,7 +1874,8 @@ export const sourceJson__richServerLoadDashboard = `{
         "avgLoad": [86, 55],
         "uptimeHour": [7, 12]
       },
-      "badge": "昼安定"
+      "badge": "昼安定",
+      "description": "弧が 5 割台まで戻り、平均も 55 % へ下がる。 台数は変えずに負荷だけが落ちた。"
     },
     {
       "step": "夜スケールダウン (20:00)",
@@ -1863,7 +1889,8 @@ export const sourceJson__richServerLoadDashboard = `{
         "avgLoad": [55, 30],
         "uptimeHour": [12, 20]
       },
-      "badge": "スケールダウン"
+      "badge": "スケールダウン",
+      "description": "弧が 3 割前後まで縮む。 稼働時間は 20 時まで進む。"
     },
     {
       "step": "深夜アイドル (2:00)",
@@ -1877,7 +1904,8 @@ export const sourceJson__richServerLoadDashboard = `{
         "avgLoad": [30, 9],
         "uptimeHour": [20, 26]
       },
-      "badge": "アイドル"
+      "badge": "アイドル",
+      "description": "弧が 1 割以下になり、平均は 9 % になる。 日付をまたいで 26 時と数える。"
     }
   ]
 }`;
@@ -1923,6 +1951,7 @@ animation:
       progress: 0 -> 20
       elapsedHour: 0 -> 1
     badge: "受注"
+    description: "受注の柱が満ち、進捗の輪が 20 % になる。 経過は 1 時間。"
   - step: "決済中" 1.5s
     focus: ["受注", "決済", "受注 -> 決済"]
     tween:
@@ -1930,6 +1959,7 @@ animation:
       progress: 20 -> 40
       elapsedHour: 1 -> 2
     badge: "決済"
+    description: "決済の柱が満ち、受注から決済への線が加わる。 進捗は 40 % へ。"
   - step: "発送中" 1.5s
     focus: ["受注", "決済", "発送", "受注 -> 決済", "決済 -> 発送"]
     tween:
@@ -1937,6 +1967,7 @@ animation:
       progress: 40 -> 60
       elapsedHour: 2 -> 8
     badge: "発送"
+    description: "発送の柱が満ちる。 ここで経過が 2 時間から 8 時間へ跳ぶ。"
   - step: "配達中" 1.5s
     focus: ["受注", "決済", "発送", "配達", "受注 -> 決済", "決済 -> 発送", "発送 -> 配達"]
     tween:
@@ -1944,6 +1975,7 @@ animation:
       progress: 60 -> 85
       elapsedHour: 8 -> 24
     badge: "配達"
+    description: "配達の柱が満ち、経過は 24 時間。 進捗は 85 % で、残るのは完了だけ。"
   - step: "完了" 1.5s
     focus: ["受注", "決済", "発送", "配達", "完了", "受注 -> 決済", "決済 -> 発送", "発送 -> 配達", "配達 -> 完了"]
     tween:
@@ -1951,6 +1983,7 @@ animation:
       progress: 85 -> 100
       elapsedHour: 24 -> 28
     badge: "完了"
+    description: "完了の柱が満ちて輪が 100 % になる。 5 つの状態が全て埋まった形。"
 `;
 
 export const sourceJson__richOrderStatusFlow = `{
@@ -2042,35 +2075,40 @@ export const sourceJson__richOrderStatusFlow = `{
       "duration": 1.5,
       "focus": ["受注"],
       "tween": { "f1": [0, 100], "progress": [0, 20], "elapsedHour": [0, 1] },
-      "badge": "受注"
+      "badge": "受注",
+      "description": "受注の柱が満ち、進捗の輪が 20 % になる。 経過は 1 時間。"
     },
     {
       "step": "決済中",
       "duration": 1.5,
       "focus": ["受注", "決済", "受注 -> 決済"],
       "tween": { "f2": [0, 100], "progress": [20, 40], "elapsedHour": [1, 2] },
-      "badge": "決済"
+      "badge": "決済",
+      "description": "決済の柱が満ち、受注から決済への線が加わる。 進捗は 40 % へ。"
     },
     {
       "step": "発送中",
       "duration": 1.5,
       "focus": ["受注", "決済", "発送", "受注 -> 決済", "決済 -> 発送"],
       "tween": { "f3": [0, 100], "progress": [40, 60], "elapsedHour": [2, 8] },
-      "badge": "発送"
+      "badge": "発送",
+      "description": "発送の柱が満ちる。 ここで経過が 2 時間から 8 時間へ跳ぶ。"
     },
     {
       "step": "配達中",
       "duration": 1.5,
       "focus": ["受注", "決済", "発送", "配達", "受注 -> 決済", "決済 -> 発送", "発送 -> 配達"],
       "tween": { "f4": [0, 100], "progress": [60, 85], "elapsedHour": [8, 24] },
-      "badge": "配達"
+      "badge": "配達",
+      "description": "配達の柱が満ち、経過は 24 時間。 進捗は 85 % で、残るのは完了だけ。"
     },
     {
       "step": "完了",
       "duration": 1.5,
       "focus": ["受注", "決済", "発送", "配達", "完了", "受注 -> 決済", "決済 -> 発送", "発送 -> 配達", "配達 -> 完了"],
       "tween": { "f5": [0, 100], "progress": [85, 100], "elapsedHour": [24, 28] },
-      "badge": "完了"
+      "badge": "完了",
+      "description": "完了の柱が満ちて輪が 100 % になる。 5 つの状態が全て埋まった形。"
     }
   ]
 }`;
@@ -2113,6 +2151,7 @@ animation:
       totalKill: 0 -> 12
       avgAcc: 40 -> 52
     badge: "R1 拮抗"
+    description: "4 人の円がほぼ同じ大きさに育つ。 撃破数は 12 回、命中率は 52 %。"
   - step: "第 2 戦 (山田様が先行)" 2s
     focus: ["岸田様", "山田様", "佐藤様", "森様"]
     tween:
@@ -2123,6 +2162,7 @@ animation:
       totalKill: 12 -> 28
       avgAcc: 52 -> 58
     badge: "第 2 戦 山田様が先行"
+    description: "山田様の円が 65 まで大きくなり、他の 3 人を抜く。 円の半径が得点そのもの。"
   - step: "第 3 戦 (佐藤様 追い上げ)" 2s
     focus: ["岸田様", "山田様", "佐藤様", "森様"]
     tween:
@@ -2133,6 +2173,7 @@ animation:
       totalKill: 28 -> 48
       avgAcc: 58 -> 64
     badge: "R3 佐藤様 追上げ"
+    description: "佐藤様が 72 まで伸び、山田様を追い越す。 位置は動かないので、順位の入れ替わりは大きさで読む。"
   - step: "第 4 戦 (佐藤様 優勝)" 2s
     focus: ["岸田様", "山田様", "佐藤様", "森様"]
     tween:
@@ -2143,6 +2184,7 @@ animation:
       totalKill: 48 -> 72
       avgAcc: 64 -> 68
     badge: "R4 佐藤様 優勝"
+    description: "佐藤様が 80 で首位のまま終わる。 撃破数は 72 回まで数え上がる。"
 `;
 
 export const sourceJson__richScoreLeaderboard = `{
@@ -2230,7 +2272,8 @@ export const sourceJson__richScoreLeaderboard = `{
         "totalKill": [0, 12],
         "avgAcc": [40, 52]
       },
-      "badge": "R1 拮抗"
+      "badge": "R1 拮抗",
+      "description": "4 人の円がほぼ同じ大きさに育つ。 撃破数は 12 回、命中率は 52 %。"
     },
     {
       "step": "第 2 戦 (山田様が先行)",
@@ -2244,7 +2287,8 @@ export const sourceJson__richScoreLeaderboard = `{
         "totalKill": [12, 28],
         "avgAcc": [52, 58]
       },
-      "badge": "第 2 戦 山田様が先行"
+      "badge": "第 2 戦 山田様が先行",
+      "description": "山田様の円が 65 まで大きくなり、他の 3 人を抜く。 円の半径が得点そのもの。"
     },
     {
       "step": "第 3 戦 (佐藤様 追い上げ)",
@@ -2258,7 +2302,8 @@ export const sourceJson__richScoreLeaderboard = `{
         "totalKill": [28, 48],
         "avgAcc": [58, 64]
       },
-      "badge": "R3 佐藤様 追上げ"
+      "badge": "R3 佐藤様 追上げ",
+      "description": "佐藤様が 72 まで伸び、山田様を追い越す。 位置は動かないので、順位の入れ替わりは大きさで読む。"
     },
     {
       "step": "第 4 戦 (佐藤様 優勝)",
@@ -2272,7 +2317,8 @@ export const sourceJson__richScoreLeaderboard = `{
         "totalKill": [48, 72],
         "avgAcc": [64, 68]
       },
-      "badge": "R4 佐藤様 優勝"
+      "badge": "R4 佐藤様 優勝",
+      "description": "佐藤様が 80 で首位のまま終わる。 撃破数は 72 回まで数え上がる。"
     }
   ]
 }`;
@@ -2308,6 +2354,7 @@ animation:
       effectiveGwei: 12 -> 18
       congestion: 15 -> 28
     badge: "空のブロック"
+    description: "3 層の手数料がどれも小さい。 混雑度は 28 % で、有効総額は 18 gwei。"
   - step: "平常" 1.8s
     focus: ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"]
     tween:
@@ -2317,6 +2364,7 @@ animation:
       effectiveGwei: 18 -> 51
       congestion: 28 -> 58
     badge: "平常"
+    description: "基本手数料が 45 gwei まで伸び、総額が 51 gwei になる。 3 層が同じ段で一緒に動く。"
   - step: "混雑" 1.8s
     focus: ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"]
     tween:
@@ -2326,6 +2374,7 @@ animation:
       effectiveGwei: 51 -> 113
       congestion: 58 -> 88
     badge: "混雑"
+    description: "混雑度が 88 % まで上がり、基本手数料が 95 gwei へ。 優先手数料も 3 倍に増える。"
   - step: "極混雑" 1.8s
     focus: ["上限手数料", "優先手数料", "基本手数料 (焼却)", "有効総額", "混雑度"]
     tween:
@@ -2335,6 +2384,7 @@ animation:
       effectiveGwei: 113 -> 182
       congestion: 88 -> 96
     badge: "極混雑"
+    description: "基本手数料が 140 gwei、総額は 182 gwei になる。 混雑度の弧はほぼ 1 周する。"
 `;
 
 export const sourceJson__richLayeredPriorityFee = `{
@@ -2437,7 +2487,8 @@ export const sourceJson__richLayeredPriorityFee = `{
         "effectiveGwei": [12, 18],
         "congestion": [15, 28]
       },
-      "badge": "空のブロック"
+      "badge": "空のブロック",
+      "description": "3 層の手数料がどれも小さい。 混雑度は 28 % で、有効総額は 18 gwei。"
     },
     {
       "step": "平常",
@@ -2450,7 +2501,8 @@ export const sourceJson__richLayeredPriorityFee = `{
         "effectiveGwei": [18, 51],
         "congestion": [28, 58]
       },
-      "badge": "平常"
+      "badge": "平常",
+      "description": "基本手数料が 45 gwei まで伸び、総額が 51 gwei になる。 3 層が同じ段で一緒に動く。"
     },
     {
       "step": "混雑",
@@ -2463,7 +2515,8 @@ export const sourceJson__richLayeredPriorityFee = `{
         "effectiveGwei": [51, 113],
         "congestion": [58, 88]
       },
-      "badge": "混雑"
+      "badge": "混雑",
+      "description": "混雑度が 88 % まで上がり、基本手数料が 95 gwei へ。 優先手数料も 3 倍に増える。"
     },
     {
       "step": "極混雑",
@@ -2476,7 +2529,8 @@ export const sourceJson__richLayeredPriorityFee = `{
         "effectiveGwei": [113, 182],
         "congestion": [88, 96]
       },
-      "badge": "極混雑"
+      "badge": "極混雑",
+      "description": "基本手数料が 140 gwei、総額は 182 gwei になる。 混雑度の弧はほぼ 1 周する。"
     }
   ]
 }`;

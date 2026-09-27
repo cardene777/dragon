@@ -2032,13 +2032,13 @@ export const partsBindCascade3 = diagram("parts-bind-cascade-3", {
       radius: 4,
     },
   })
-  .phase("p1", { duration: 1500, title: "s1 進行", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1500, title: "s1 進行", body: "1 段目の値が 0 から 100 へ動き、上の箱の塗りが右へ伸びる。 下の 2 つは 0 のまま。" }, (p: PhaseBuilder) =>
     p.activate("a", "b", "c").tween("s1", 0, 100),
   )
-  .phase("p2", { duration: 1500, title: "s2 進行", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1500, title: "s2 進行", body: "2 段目の値が動く。 1 段目は 100 のまま残るので、上から順に埋まっていく。" }, (p: PhaseBuilder) =>
     p.activate("a", "b", "c").tween("s2", 0, 100),
   )
-  .phase("p3", { duration: 1500, title: "s3 進行", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1500, title: "s3 進行", body: "3 段目が埋まり、3 つとも 100 になる。 値を段ごとに分けると順に進む形が作れる。" }, (p: PhaseBuilder) =>
     p.activate("a", "b", "c").tween("s3", 0, 100),
   )
   .build();
@@ -2089,10 +2089,10 @@ export const partsBindPulseCycle = diagram("parts-bind-pulse-cycle", {
     h: 340,
     shape: { kind: "circle", radius: "{pulse}", fill: "#dc2626" },
   })
-  .phase("p1", { duration: 800, title: "膨張", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 800, title: "膨張", body: "半径の値が 20 から 150 へ動き、円が膨らむ。" }, (p: PhaseBuilder) =>
     p.activate("dot").tween("pulse", 20, 150),
   )
-  .phase("p2", { duration: 800, title: "収縮", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 800, title: "収縮", body: "同じ値を 150 から 20 へ戻す。 膨らむと縮むを 2 段に分けると脈打つ動きになる。" }, (p: PhaseBuilder) =>
     p.activate("dot").tween("pulse", 150, 20),
   )
   .build();
@@ -2121,10 +2121,10 @@ export const partsBindWaveLevel2Phase = diagram("parts-bind-wave-level-2phase", 
       fill: "#4e9dc4",
     },
   })
-  .phase("p1", { duration: 2200, title: "満潮", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 2200, title: "満潮", body: "水位の値が 20 から 90 へ上がり、波の面が上へ動く。 波の形そのものは変わらない。" }, (p: PhaseBuilder) =>
     p.activate("sea").tween("lvl", 20, 90),
   )
-  .phase("p2", { duration: 2200, title: "引き潮", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 2200, title: "引き潮", body: "水位を 90 から 20 へ戻す。 同じ値を逆向きに動かすと満ち引きになる。" }, (p: PhaseBuilder) =>
     p.activate("sea").tween("lvl", 90, 20),
   )
   .build();
@@ -2384,13 +2384,13 @@ export const partsBindColorState = diagram("parts-bind-color-state", {
     h: 340,
     shape: { kind: "rect", source: 100, fillMax: 100, orient: "up", fill: "{bg}", radius: 12 },
   })
-  .phase("p1", { duration: 1500, title: "注意", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1500, title: "注意", body: "塗りの値を橙へ差し替える。 数ではなく色の文字列を入れ替えるので、形は動かない。" }, (p: PhaseBuilder) =>
     p.activate("tile").set("bg", "#f59e0b"),
   )
-  .phase("p2", { duration: 1500, title: "危険", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1500, title: "危険", body: "同じ値を赤へ替える。 段ごとに色を決めておけば、状態の重さを色で表せる。" }, (p: PhaseBuilder) =>
     p.activate("tile").set("bg", "#dc2626"),
   )
-  .phase("p3", { duration: 1500, title: "正常に戻る", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1500, title: "正常に戻る", body: "緑へ戻す。 値を元へ戻すだけで元の見た目に戻る。" }, (p: PhaseBuilder) =>
     p.activate("tile").set("bg", "#22c55e"),
   )
   .build();
@@ -2420,10 +2420,10 @@ export const partsBindLevelColorCombo = diagram("parts-bind-level-color-combo", 
       fill: "{hue}",
     },
   })
-  .phase("p1", { duration: 2000, title: "水位上昇", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 2000, title: "水位上昇", body: "水位の値が 30 から 85 へ上がる。 色はまだ変えていない。" }, (p: PhaseBuilder) =>
     p.activate("tank").tween("lvl", 30, 85),
   )
-  .phase("p2", { duration: 2000, title: "警告色", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 2000, title: "警告色", body: "水位はそのままで色だけを赤へ替える。 1 つの形に高さと色の 2 つの値を繋げられる。" }, (p: PhaseBuilder) =>
     p.activate("tank").set("hue", "#dc2626"),
   )
   .build();
@@ -2448,13 +2448,13 @@ export const partsBindEscalation3 = diagram("parts-bind-escalation-3", {
     h: 340,
     shape: { kind: "rect", source: 100, fillMax: 100, orient: "up", fill: "{bg}", radius: 8 },
   })
-  .phase("p1", { duration: 1500, title: "L1 = 平常", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1500, title: "L1 = 平常", body: "段階を 1、色を緑にする。 題にも値が埋まっているので、題と色が同時に決まる。" }, (p: PhaseBuilder) =>
     p.activate("badge").set("level", 1).set("bg", "#22c55e"),
   )
-  .phase("p2", { duration: 1500, title: "L2 = 注意", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1500, title: "L2 = 注意", body: "段階を 2、色を橙にする。 2 つの値を同じ段で差し替えている。" }, (p: PhaseBuilder) =>
     p.activate("badge").set("level", 2).set("bg", "#f59e0b"),
   )
-  .phase("p3", { duration: 1500, title: "L3 = 危険", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1500, title: "L3 = 危険", body: "段階を 3、色を赤にする。 数と色を揃えて動かすと、重さの違いが一目で読める。" }, (p: PhaseBuilder) =>
     p.activate("badge").set("level", 3).set("bg", "#dc2626"),
   )
   .build();
@@ -2486,16 +2486,16 @@ export const partsBindTweenChain4 = diagram("parts-bind-tween-chain-4", {
       radius: 4,
     },
   })
-  .phase("p1", { duration: 1000, title: "0 → 25", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1000, title: "0 → 25", body: "値が 0 から 25 へ動く。 4 分の 1 まで塗りが伸びる。" }, (p: PhaseBuilder) =>
     p.activate("bar").tween("v", 0, 25),
   )
-  .phase("p2", { duration: 1000, title: "25 → 50", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1000, title: "25 → 50", body: "25 から 50 へ続く。 前の段の終わりの値から始めるので、繋ぎ目で飛ばない。" }, (p: PhaseBuilder) =>
     p.activate("bar").tween("v", 25, 50),
   )
-  .phase("p3", { duration: 1000, title: "50 → 75", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1000, title: "50 → 75", body: "50 から 75 へ動く。 1 段あたりの伸び幅は同じ。" }, (p: PhaseBuilder) =>
     p.activate("bar").tween("v", 50, 75),
   )
-  .phase("p4", { duration: 1000, title: "75 → 100", body: "" }, (p: PhaseBuilder) =>
+  .phase("p4", { duration: 1000, title: "75 → 100", body: "75 から 100 で埋まる。 段を分けても値は繋がって見える。" }, (p: PhaseBuilder) =>
     p.activate("bar").tween("v", 75, 100),
   )
   .build();
@@ -2547,10 +2547,10 @@ export const partsBindModeToggle = diagram("parts-bind-mode-toggle", {
     h: 340,
     shape: { kind: "rect", source: 100, fillMax: 100, orient: "up", fill: "{bg}", radius: 12 },
   })
-  .phase("p1", { duration: 1500, title: "暗い配色へ", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1500, title: "暗い配色へ", body: "地の色と添え書きの 2 つの値を同じ段で暗い側へ替える。 1 段で 2 つ動かせる。" }, (p: PhaseBuilder) =>
     p.activate("card").set("bg", "#1a1408").set("txt", "dark mode"),
   )
-  .phase("p2", { duration: 1500, title: "明るい配色へ", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1500, title: "明るい配色へ", body: "同じ 2 つを明るい側へ戻す。 差し替えだけで行き帰りができる。" }, (p: PhaseBuilder) =>
     p.activate("card").set("bg", "#fcf8ee").set("txt", "light mode"),
   )
   .build();
@@ -2647,10 +2647,10 @@ export const partsBindGrowShrink = diagram("parts-bind-grow-shrink", {
     h: 340,
     shape: { kind: "circle", radius: "{r}", fill: "#4e9dc4" },
   })
-  .phase("p1", { duration: 1800, title: "吸う", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1800, title: "吸う", body: "半径が 40 から 150 へ伸び、円が大きくなる。" }, (p: PhaseBuilder) =>
     p.activate("breath").tween("r", 40, 150),
   )
-  .phase("p2", { duration: 1800, title: "吐く", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1800, title: "吐く", body: "150 から 40 へ戻る。 向きの違う 2 段を並べると呼吸のような動きになる。" }, (p: PhaseBuilder) =>
     p.activate("breath").tween("r", 150, 40),
   )
   .build();
@@ -2699,21 +2699,21 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
     h: 380,
     shape: { kind: "rect", source: "{net}", fillMax: 100, orient: "up", fill: "{netC}", radius: 8 },
   })
-  .phase("p1", { duration: 1200, title: "負荷が上がる", body: "" }, (p: PhaseBuilder) =>
+  .phase("p1", { duration: 1200, title: "負荷が上がる", body: "3 つの値が同時に動き、CPU とメモリと通信の柱が一緒に伸びる。 色はまだ緑のまま。" }, (p: PhaseBuilder) =>
     p
       .activate("cpuG", "memG", "netG")
       .tween("cpu", 15, 60)
       .tween("mem", 30, 55)
       .tween("net", 5, 40),
   )
-  .phase("p2", { duration: 1200, title: "注意", body: "" }, (p: PhaseBuilder) =>
+  .phase("p2", { duration: 1200, title: "注意", body: "CPU がさらに伸び、その色だけ橙へ替わる。 添え書きの状態も注意へ変わる。" }, (p: PhaseBuilder) =>
     p
       .activate("cpuG", "memG", "netG")
       .tween("cpu", 60, 82)
       .set("cpuC", "#f59e0b")
       .set("status", "warning"),
   )
-  .phase("p3", { duration: 1200, title: "危険", body: "" }, (p: PhaseBuilder) =>
+  .phase("p3", { duration: 1200, title: "危険", body: "CPU が 95 まで伸び、メモリの色も橙になる。 状態は危険へ変わる。" }, (p: PhaseBuilder) =>
     p
       .activate("cpuG", "memG", "netG")
       .tween("cpu", 82, 95)
@@ -2721,7 +2721,7 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
       .set("memC", "#f59e0b")
       .set("status", "critical"),
   )
-  .phase("p4", { duration: 1200, title: "回復開始", body: "" }, (p: PhaseBuilder) =>
+  .phase("p4", { duration: 1200, title: "回復開始", body: "CPU とメモリが下がり、色が緑へ戻る。 状態は回復中。" }, (p: PhaseBuilder) =>
     p
       .activate("cpuG", "memG", "netG")
       .tween("cpu", 95, 40)
@@ -2730,7 +2730,7 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
       .set("memC", "#22c55e")
       .set("status", "recovering"),
   )
-  .phase("p5", { duration: 1200, title: "平常復帰", body: "" }, (p: PhaseBuilder) =>
+  .phase("p5", { duration: 1200, title: "平常復帰", body: "値は動かさず状態だけを平常へ戻す。 動かす値が無い段も置ける。" }, (p: PhaseBuilder) =>
     p.activate("cpuG", "memG", "netG").set("status", "healthy"),
   )
   .build();
@@ -8826,14 +8826,17 @@ animation:
     focus: ["step 1", "step 2", "step 3"]
     tween:
       s1: 0 -> 100
+    description: "1 段目の値が 0 から 100 へ動き、上の箱の塗りが右へ伸びる。 下の 2 つは 0 のまま。"
   - step: "s2 進行" 1.5s
     focus: ["step 1", "step 2", "step 3"]
     tween:
       s2: 0 -> 100
+    description: "2 段目の値が動く。 1 段目は 100 のまま残るので、上から順に埋まっていく。"
   - step: "s3 進行" 1.5s
     focus: ["step 1", "step 2", "step 3"]
     tween:
       s3: 0 -> 100
+    description: "3 段目が埋まり、3 つとも 100 になる。 値を段ごとに分けると順に進む形が作れる。"
 `;
 
 export const sourceJson__partsBindCascade3 = `{
@@ -8902,19 +8905,22 @@ export const sourceJson__partsBindCascade3 = `{
       "step": "s1 進行",
       "duration": 1.5,
       "focus": ["step 1", "step 2", "step 3"],
-      "tween": { "s1": [0, 100] }
+      "tween": { "s1": [0, 100] },
+      "description": "1 段目の値が 0 から 100 へ動き、上の箱の塗りが右へ伸びる。 下の 2 つは 0 のまま。"
     },
     {
       "step": "s2 進行",
       "duration": 1.5,
       "focus": ["step 1", "step 2", "step 3"],
-      "tween": { "s2": [0, 100] }
+      "tween": { "s2": [0, 100] },
+      "description": "2 段目の値が動く。 1 段目は 100 のまま残るので、上から順に埋まっていく。"
     },
     {
       "step": "s3 進行",
       "duration": 1.5,
       "focus": ["step 1", "step 2", "step 3"],
-      "tween": { "s3": [0, 100] }
+      "tween": { "s3": [0, 100] },
+      "description": "3 段目が埋まり、3 つとも 100 になる。 値を段ごとに分けると順に進む形が作れる。"
     }
   ]
 }`;
@@ -8992,10 +8998,12 @@ animation:
     focus: ["脈動"]
     tween:
       pulse: 20 -> 150
+    description: "半径の値が 20 から 150 へ動き、円が膨らむ。"
   - step: "収縮" 0.8s
     focus: ["脈動"]
     tween:
       pulse: 150 -> 20
+    description: "同じ値を 150 から 20 へ戻す。 膨らむと縮むを 2 段に分けると脈打つ動きになる。"
 `;
 
 export const sourceJson__partsBindPulseCycle = `{
@@ -9023,13 +9031,15 @@ export const sourceJson__partsBindPulseCycle = `{
       "step": "膨張",
       "duration": 0.8,
       "focus": ["脈動"],
-      "tween": { "pulse": [20, 150] }
+      "tween": { "pulse": [20, 150] },
+      "description": "半径の値が 20 から 150 へ動き、円が膨らむ。"
     },
     {
       "step": "収縮",
       "duration": 0.8,
       "focus": ["脈動"],
-      "tween": { "pulse": [150, 20] }
+      "tween": { "pulse": [150, 20] },
+      "description": "同じ値を 150 から 20 へ戻す。 膨らむと縮むを 2 段に分けると脈打つ動きになる。"
     }
   ]
 }`;
@@ -9051,10 +9061,12 @@ animation:
     focus: ["海面"]
     tween:
       lvl: 20 -> 90
+    description: "水位の値が 20 から 90 へ上がり、波の面が上へ動く。 波の形そのものは変わらない。"
   - step: "引き潮" 2.2s
     focus: ["海面"]
     tween:
       lvl: 90 -> 20
+    description: "水位を 90 から 20 へ戻す。 同じ値を逆向きに動かすと満ち引きになる。"
 `;
 
 export const sourceJson__partsBindWaveLevel2Phase = `{
@@ -9089,13 +9101,15 @@ export const sourceJson__partsBindWaveLevel2Phase = `{
       "step": "満潮",
       "duration": 2.2,
       "focus": ["海面"],
-      "tween": { "lvl": [20, 90] }
+      "tween": { "lvl": [20, 90] },
+      "description": "水位の値が 20 から 90 へ上がり、波の面が上へ動く。 波の形そのものは変わらない。"
     },
     {
       "step": "引き潮",
       "duration": 2.2,
       "focus": ["海面"],
-      "tween": { "lvl": [90, 20] }
+      "tween": { "lvl": [90, 20] },
+      "description": "水位を 90 から 20 へ戻す。 同じ値を逆向きに動かすと満ち引きになる。"
     }
   ]
 }`;
@@ -9572,14 +9586,17 @@ animation:
     focus: ["status"]
     set:
       bg: "#f59e0b"
+    description: "塗りの値を橙へ差し替える。 数ではなく色の文字列を入れ替えるので、形は動かない。"
   - step: "危険" 1.5s
     focus: ["status"]
     set:
       bg: "#dc2626"
+    description: "同じ値を赤へ替える。 段ごとに色を決めておけば、状態の重さを色で表せる。"
   - step: "正常に戻る" 1.5s
     focus: ["status"]
     set:
       bg: "#22c55e"
+    description: "緑へ戻す。 値を元へ戻すだけで元の見た目に戻る。"
 `;
 
 export const sourceJson__partsBindColorState = `{
@@ -9614,19 +9631,22 @@ export const sourceJson__partsBindColorState = `{
       "step": "注意",
       "duration": 1.5,
       "focus": ["status"],
-      "set": { "bg": "#f59e0b" }
+      "set": { "bg": "#f59e0b" },
+      "description": "塗りの値を橙へ差し替える。 数ではなく色の文字列を入れ替えるので、形は動かない。"
     },
     {
       "step": "危険",
       "duration": 1.5,
       "focus": ["status"],
-      "set": { "bg": "#dc2626" }
+      "set": { "bg": "#dc2626" },
+      "description": "同じ値を赤へ替える。 段ごとに色を決めておけば、状態の重さを色で表せる。"
     },
     {
       "step": "正常に戻る",
       "duration": 1.5,
       "focus": ["status"],
-      "set": { "bg": "#22c55e" }
+      "set": { "bg": "#22c55e" },
+      "description": "緑へ戻す。 値を元へ戻すだけで元の見た目に戻る。"
     }
   ]
 }`;
@@ -9649,10 +9669,12 @@ animation:
     focus: ["水槽"]
     tween:
       lvl: 30 -> 85
+    description: "水位の値が 30 から 85 へ上がる。 色はまだ変えていない。"
   - step: "警告色" 2s
     focus: ["水槽"]
     set:
       hue: "#dc2626"
+    description: "水位はそのままで色だけを赤へ替える。 1 つの形に高さと色の 2 つの値を繋げられる。"
 `;
 
 export const sourceJson__partsBindLevelColorCombo = `{
@@ -9687,13 +9709,15 @@ export const sourceJson__partsBindLevelColorCombo = `{
       "step": "水位上昇",
       "duration": 2,
       "focus": ["水槽"],
-      "tween": { "lvl": [30, 85] }
+      "tween": { "lvl": [30, 85] },
+      "description": "水位の値が 30 から 85 へ上がる。 色はまだ変えていない。"
     },
     {
       "step": "警告色",
       "duration": 2,
       "focus": ["水槽"],
-      "set": { "hue": "#dc2626" }
+      "set": { "hue": "#dc2626" },
+      "description": "水位はそのままで色だけを赤へ替える。 1 つの形に高さと色の 2 つの値を繋げられる。"
     }
   ]
 }`;
@@ -9717,16 +9741,19 @@ animation:
     set:
       level: 1
       bg: "#22c55e"
+    description: "段階を 1、色を緑にする。 題にも値が埋まっているので、題と色が同時に決まる。"
   - step: "L2 = 注意" 1.5s
     focus: ["警報レベル {level}"]
     set:
       level: 2
       bg: "#f59e0b"
+    description: "段階を 2、色を橙にする。 2 つの値を同じ段で差し替えている。"
   - step: "L3 = 危険" 1.5s
     focus: ["警報レベル {level}"]
     set:
       level: 3
       bg: "#dc2626"
+    description: "段階を 3、色を赤にする。 数と色を揃えて動かすと、重さの違いが一目で読める。"
 `;
 
 export const sourceJson__partsBindEscalation3 = `{
@@ -9761,19 +9788,22 @@ export const sourceJson__partsBindEscalation3 = `{
       "step": "L1 = 平常",
       "duration": 1.5,
       "focus": ["警報レベル {level}"],
-      "set": { "level": 1, "bg": "#22c55e" }
+      "set": { "level": 1, "bg": "#22c55e" },
+      "description": "段階を 1、色を緑にする。 題にも値が埋まっているので、題と色が同時に決まる。"
     },
     {
       "step": "L2 = 注意",
       "duration": 1.5,
       "focus": ["警報レベル {level}"],
-      "set": { "level": 2, "bg": "#f59e0b" }
+      "set": { "level": 2, "bg": "#f59e0b" },
+      "description": "段階を 2、色を橙にする。 2 つの値を同じ段で差し替えている。"
     },
     {
       "step": "L3 = 危険",
       "duration": 1.5,
       "focus": ["警報レベル {level}"],
-      "set": { "level": 3, "bg": "#dc2626" }
+      "set": { "level": 3, "bg": "#dc2626" },
+      "description": "段階を 3、色を赤にする。 数と色を揃えて動かすと、重さの違いが一目で読める。"
     }
   ]
 }`;
@@ -9795,18 +9825,22 @@ animation:
     focus: ["progress"]
     tween:
       v: 0 -> 25
+    description: "値が 0 から 25 へ動く。 4 分の 1 まで塗りが伸びる。"
   - step: "25 → 50" 1s
     focus: ["progress"]
     tween:
       v: 25 -> 50
+    description: "25 から 50 へ続く。 前の段の終わりの値から始めるので、繋ぎ目で飛ばない。"
   - step: "50 → 75" 1s
     focus: ["progress"]
     tween:
       v: 50 -> 75
+    description: "50 から 75 へ動く。 1 段あたりの伸び幅は同じ。"
   - step: "75 → 100" 1s
     focus: ["progress"]
     tween:
       v: 75 -> 100
+    description: "75 から 100 で埋まる。 段を分けても値は繋がって見える。"
 `;
 
 export const sourceJson__partsBindTweenChain4 = `{
@@ -9841,25 +9875,29 @@ export const sourceJson__partsBindTweenChain4 = `{
       "step": "0 → 25",
       "duration": 1,
       "focus": ["progress"],
-      "tween": { "v": [0, 25] }
+      "tween": { "v": [0, 25] },
+      "description": "値が 0 から 25 へ動く。 4 分の 1 まで塗りが伸びる。"
     },
     {
       "step": "25 → 50",
       "duration": 1,
       "focus": ["progress"],
-      "tween": { "v": [25, 50] }
+      "tween": { "v": [25, 50] },
+      "description": "25 から 50 へ続く。 前の段の終わりの値から始めるので、繋ぎ目で飛ばない。"
     },
     {
       "step": "50 → 75",
       "duration": 1,
       "focus": ["progress"],
-      "tween": { "v": [50, 75] }
+      "tween": { "v": [50, 75] },
+      "description": "50 から 75 へ動く。 1 段あたりの伸び幅は同じ。"
     },
     {
       "step": "75 → 100",
       "duration": 1,
       "focus": ["progress"],
-      "tween": { "v": [75, 100] }
+      "tween": { "v": [75, 100] },
+      "description": "75 から 100 で埋まる。 段を分けても値は繋がって見える。"
     }
   ]
 }`;
@@ -9939,11 +9977,13 @@ animation:
     set:
       bg: "#1a1408"
       txt: "dark mode"
+    description: "地の色と添え書きの 2 つの値を同じ段で暗い側へ替える。 1 段で 2 つ動かせる。"
   - step: "明るい配色へ" 1.5s
     focus: ["配色"]
     set:
       bg: "#fcf8ee"
       txt: "light mode"
+    description: "同じ 2 つを明るい側へ戻す。 差し替えだけで行き帰りができる。"
 `;
 
 export const sourceJson__partsBindModeToggle = `{
@@ -9978,13 +10018,15 @@ export const sourceJson__partsBindModeToggle = `{
       "step": "暗い配色へ",
       "duration": 1.5,
       "focus": ["配色"],
-      "set": { "bg": "#1a1408", "txt": "dark mode" }
+      "set": { "bg": "#1a1408", "txt": "dark mode" },
+      "description": "地の色と添え書きの 2 つの値を同じ段で暗い側へ替える。 1 段で 2 つ動かせる。"
     },
     {
       "step": "明るい配色へ",
       "duration": 1.5,
       "focus": ["配色"],
-      "set": { "bg": "#fcf8ee", "txt": "light mode" }
+      "set": { "bg": "#fcf8ee", "txt": "light mode" },
+      "description": "同じ 2 つを明るい側へ戻す。 差し替えだけで行き帰りができる。"
     }
   ]
 }`;
@@ -10150,10 +10192,12 @@ animation:
     focus: ["呼吸"]
     tween:
       r: 40 -> 150
+    description: "半径が 40 から 150 へ伸び、円が大きくなる。"
   - step: "吐く" 1.8s
     focus: ["呼吸"]
     tween:
       r: 150 -> 40
+    description: "150 から 40 へ戻る。 向きの違う 2 段を並べると呼吸のような動きになる。"
 `;
 
 export const sourceJson__partsBindGrowShrink = `{
@@ -10181,13 +10225,15 @@ export const sourceJson__partsBindGrowShrink = `{
       "step": "吸う",
       "duration": 1.8,
       "focus": ["呼吸"],
-      "tween": { "r": [40, 150] }
+      "tween": { "r": [40, 150] },
+      "description": "半径が 40 から 150 へ伸び、円が大きくなる。"
     },
     {
       "step": "吐く",
       "duration": 1.8,
       "focus": ["呼吸"],
-      "tween": { "r": [150, 40] }
+      "tween": { "r": [150, 40] },
+      "description": "150 から 40 へ戻る。 向きの違う 2 段を並べると呼吸のような動きになる。"
     }
   ]
 }`;
@@ -10221,6 +10267,7 @@ animation:
       cpu: 15 -> 60
       mem: 30 -> 55
       net: 5 -> 40
+    description: "3 つの値が同時に動き、CPU とメモリと通信の柱が一緒に伸びる。 色はまだ緑のまま。"
   - step: "注意" 1.2s
     focus: ["CPU", "メモリ", "通信"]
     tween:
@@ -10228,6 +10275,7 @@ animation:
     set:
       cpuC: "#f59e0b"
       status: "warning"
+    description: "CPU がさらに伸び、その色だけ橙へ替わる。 添え書きの状態も注意へ変わる。"
   - step: "危険" 1.2s
     focus: ["CPU", "メモリ", "通信"]
     tween:
@@ -10236,6 +10284,7 @@ animation:
       cpuC: "#dc2626"
       memC: "#f59e0b"
       status: "critical"
+    description: "CPU が 95 まで伸び、メモリの色も橙になる。 状態は危険へ変わる。"
   - step: "回復開始" 1.2s
     focus: ["CPU", "メモリ", "通信"]
     tween:
@@ -10245,10 +10294,12 @@ animation:
       cpuC: "#22c55e"
       memC: "#22c55e"
       status: "recovering"
+    description: "CPU とメモリが下がり、色が緑へ戻る。 状態は回復中。"
   - step: "平常復帰" 1.2s
     focus: ["CPU", "メモリ", "通信"]
     set:
       status: "healthy"
+    description: "値は動かさず状態だけを平常へ戻す。 動かす値が無い段も置ける。"
 `;
 
 export const sourceJson__partsBindComprehensive = `{
@@ -10327,34 +10378,39 @@ export const sourceJson__partsBindComprehensive = `{
       "step": "負荷が上がる",
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
-      "tween": { "cpu": [15, 60], "mem": [30, 55], "net": [5, 40] }
+      "tween": { "cpu": [15, 60], "mem": [30, 55], "net": [5, 40] },
+      "description": "3 つの値が同時に動き、CPU とメモリと通信の柱が一緒に伸びる。 色はまだ緑のまま。"
     },
     {
       "step": "注意",
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [60, 82] },
-      "set": { "cpuC": "#f59e0b", "status": "warning" }
+      "set": { "cpuC": "#f59e0b", "status": "warning" },
+      "description": "CPU がさらに伸び、その色だけ橙へ替わる。 添え書きの状態も注意へ変わる。"
     },
     {
       "step": "危険",
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [82, 95] },
-      "set": { "cpuC": "#dc2626", "memC": "#f59e0b", "status": "critical" }
+      "set": { "cpuC": "#dc2626", "memC": "#f59e0b", "status": "critical" },
+      "description": "CPU が 95 まで伸び、メモリの色も橙になる。 状態は危険へ変わる。"
     },
     {
       "step": "回復開始",
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [95, 40], "mem": [55, 35] },
-      "set": { "cpuC": "#22c55e", "memC": "#22c55e", "status": "recovering" }
+      "set": { "cpuC": "#22c55e", "memC": "#22c55e", "status": "recovering" },
+      "description": "CPU とメモリが下がり、色が緑へ戻る。 状態は回復中。"
     },
     {
       "step": "平常復帰",
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
-      "set": { "status": "healthy" }
+      "set": { "status": "healthy" },
+      "description": "値は動かさず状態だけを平常へ戻す。 動かす値が無い段も置ける。"
     }
   ]
 }`;
