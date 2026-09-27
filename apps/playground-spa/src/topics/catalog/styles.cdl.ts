@@ -22,6 +22,53 @@ function smallPair(id: string, style: EdgeStyle, tone: Tone, label: string, topi
 export const styleSolid = smallPair("style-solid", "solid", "accent", "solid", "solid style (実線 + 矢頭、 edge の default)", "実線 + 矢頭");
 export const styleDottedFlow = smallPair("style-dotted-flow", "dotted-flow", "accent", "dotted-flow", "dotted-flow style (点線 + 粒子、 動的 flow 表現)", "点線 + 粒子");
 
+/**
+ * 3 つ目の線の種類 (#2593)。 **上 2 つと違って `smallPair` では書けない**。
+ *
+ * 破線は 2 つのことを見せる必要がある。 書いた破線が図の種類ごとに別の意味を持つことと、
+ * 光っていない線の刻みとの見分け方。 前者は段の説明で、後者は **実線を光らせない段** で見せる
+ * = 光っていない実線は短い刻み、書いた破線は光っても長い刻みのままで、2 つが同じ絵に並ぶ。
+ *
+ * 描く側は刻みの長さで 2 つを分けている (cdl#578)。 書いた破線が光った瞬間に刻みが消えると、
+ * その関係だけ種類が変わって見えるため、書いた破線は光っても刻みのまま残す。
+ */
+export const styleDashed = diagram("style-dashed", { topic: "dashed style (破線、 意味は図の種類で変わる)" })
+  .lane("l1", { x: 0, width: 280 })
+  .lane("l2", { x: 600, width: 280 })
+  .node("a", { lane: "l1", stack: 0, kind: "actor", title: "始点" })
+  .node("b", { lane: "l2", stack: 0, kind: "actor", title: "実線の終点" })
+  .node("c", { lane: "l2", stack: 1, kind: "actor", title: "破線の終点" })
+  .edge("a", "b", { id: "e1", label: "solid", sub: "書いた実線", tone: "accent", style: "solid" })
+  .edge("a", "c", { id: "e2", label: "dashed", sub: "書いた破線", tone: "accent", style: "dashed" })
+  .phase(
+    "p1",
+    {
+      duration: 1800,
+      title: "実線を光らせる",
+      body: "光っている実線には刻みが無い。 下の破線はこの段ではまだ引かれない。",
+    },
+    (p: PhaseBuilder) => p.activate("a", "b", "e1").badge("solid"),
+  )
+  .phase(
+    "p2",
+    {
+      duration: 1800,
+      title: "破線を光らせる",
+      body: "光っていない実線は短い刻みで出る。 書いた破線は光っても長い刻みのまま。 2 つは刻みの長さで見分ける。",
+    },
+    (p: PhaseBuilder) => p.activate("a", "c", "e2").badge("dashed"),
+  )
+  .phase(
+    "p3",
+    {
+      duration: 1800,
+      title: "意味は図の種類で変わる",
+      body: "同じ破線が、表どうしのつながりを描く図では親の鍵が子の主キーに入らない関係、クラス図では実装と依存を表す。 どちらかは図の種類で決まる。",
+    },
+    (p: PhaseBuilder) => p.activate("a", "b", "c", "e1", "e2").badge("2 種"),
+  )
+  .build();
+
 /** 2. Tone (`Tone` が持つ全ての色を solid edge で並べる) = 色 identity の違いを比較 */
 export const toneAccent = smallPair("tone-accent", "solid", "accent", "accent", "accent tone (主張色、 dark navy)");
 export const toneTeal = smallPair("tone-teal", "solid", "teal", "teal", "teal tone (青緑、 secondary emphasis)");
@@ -167,6 +214,94 @@ export const sourceJson__styleDottedFlow = `{
       "focus": ["始点", "終点", "始点 -> 終点"],
       "body": "edge style と tone の組み合わせを確認。",
       "badge": "accent"
+    }
+  ]
+}`;
+
+export const sourceYaml__styleDashed = `title: "dashed style (破線、 意味は図の種類で変わる)"
+type: flow
+
+lanes:
+  l1: { x: 0, width: 280 }
+  l2: { x: 600, width: 280 }
+
+actors:
+  - 始点: { kind: actor, lane: l1 }
+  - 実線の終点: { kind: actor, lane: l2, stack: 0 }
+  - 破線の終点: { kind: actor, lane: l2, stack: 1 }
+
+flow:
+  - 始点 -> 実線の終点: "solid" (accent, solid) { sub: "書いた実線" }
+  - 始点 -> 破線の終点: "dashed" (accent, dashed) { sub: "書いた破線" }
+
+animation:
+  - step: "実線を光らせる" 1.8s
+    focus: ["始点", "実線の終点", "始点 -> 実線の終点"]
+    badge: "solid"
+    description: "光っている実線には刻みが無い。 下の破線はこの段ではまだ引かれない。"
+
+  - step: "破線を光らせる" 1.8s
+    focus: ["始点", "破線の終点", "始点 -> 破線の終点"]
+    badge: "dashed"
+    description: "光っていない実線は短い刻みで出る。 書いた破線は光っても長い刻みのまま。 2 つは刻みの長さで見分ける。"
+
+  - step: "意味は図の種類で変わる" 1.8s
+    focus: ["始点", "実線の終点", "破線の終点", "始点 -> 実線の終点", "始点 -> 破線の終点"]
+    badge: "2 種"
+    description: "同じ破線が、表どうしのつながりを描く図では親の鍵が子の主キーに入らない関係、クラス図では実装と依存を表す。 どちらかは図の種類で決まる。"
+`;
+
+export const sourceJson__styleDashed = `{
+  "title": "dashed style (破線、 意味は図の種類で変わる)",
+  "type": "flow",
+  "lanes": {
+    "l1": { "x": 0, "width": 280 },
+    "l2": { "x": 600, "width": 280 }
+  },
+  "actors": [
+    { "name": "始点", "kind": "actor", "lane": "l1" },
+    { "name": "実線の終点", "kind": "actor", "lane": "l2", "stack": 0 },
+    { "name": "破線の終点", "kind": "actor", "lane": "l2", "stack": 1 }
+  ],
+  "flow": [
+    {
+      "from": "始点",
+      "to": "実線の終点",
+      "label": "solid",
+      "sub": "書いた実線",
+      "tone": "accent",
+      "style": "solid"
+    },
+    {
+      "from": "始点",
+      "to": "破線の終点",
+      "label": "dashed",
+      "sub": "書いた破線",
+      "tone": "accent",
+      "style": "dashed"
+    }
+  ],
+  "animation": [
+    {
+      "step": "実線を光らせる",
+      "duration": 1.8,
+      "focus": ["始点", "実線の終点", "始点 -> 実線の終点"],
+      "body": "光っている実線には刻みが無い。 下の破線はこの段ではまだ引かれない。",
+      "badge": "solid"
+    },
+    {
+      "step": "破線を光らせる",
+      "duration": 1.8,
+      "focus": ["始点", "破線の終点", "始点 -> 破線の終点"],
+      "body": "光っていない実線は短い刻みで出る。 書いた破線は光っても長い刻みのまま。 2 つは刻みの長さで見分ける。",
+      "badge": "dashed"
+    },
+    {
+      "step": "意味は図の種類で変わる",
+      "duration": 1.8,
+      "focus": ["始点", "実線の終点", "破線の終点", "始点 -> 実線の終点", "始点 -> 破線の終点"],
+      "body": "同じ破線が、表どうしのつながりを描く図では親の鍵が子の主キーに入らない関係、クラス図では実装と依存を表す。 どちらかは図の種類で決まる。",
+      "badge": "2 種"
     }
   ]
 }`;

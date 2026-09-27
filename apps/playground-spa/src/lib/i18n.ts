@@ -382,6 +382,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   // === styles = edgeスタイル + tone ===
   styleSolid: "実線の矢印",
   styleDottedFlow: "点線と粒子の矢印",
+  styleDashed: "破線の矢印",
   toneAccent: "中立の主張色",
   toneTeal: "teal青緑",
   toneSuccess: "成功の緑",
@@ -625,6 +626,7 @@ export const ITEM_NAME_EN: Record<string, string> = {
   richLayeredPriorityFee: "Three-layer priority fee",
   styleSolid: "Solid line",
   styleDottedFlow: "Dotted flow line",
+  styleDashed: "Dashed line",
   toneAccent: "Accent tone",
   toneTeal: "Teal tone",
   toneSuccess: "Success tone",
