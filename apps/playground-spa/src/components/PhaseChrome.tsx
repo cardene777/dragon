@@ -147,3 +147,59 @@ export function PhaseChrome({
     </div>
   );
 }
+
+/**
+ * 段の説明を図の **枠の外** に出す (#2609)。
+ *
+ * 説明は記法の `description:` に書かれ、これまで画面では「コード」 のタブにしか
+ * 出ていなかった。 いま光っている線が何を表すかを書いた文なので、図を見ている間に
+ * 読めないと意味が薄れる。
+ *
+ * **枠の中 (`PhaseChrome`) には足さない**。 重ね表示は図の描画領域を予約値
+ * (`--cdl-phase-chrome-bottom-space`) で削っており、2 行ぶん足すと図が縮む。
+ * 箱の題が 12px を割る図が既にあるため、縮めると読めなくなる図が出る。
+ *
+ * **全ての段の説明を重ねて置き、いま光っている 1 つだけを見せる**。
+ * 説明は書いた人の言葉なので長さが揃わず、いま光っている 1 つだけを描くと段が進むたびに
+ * 高さが変わって図の下が動く。 行数で打ち切る形も採らない = 実測で 4 行の説明が 2 行で
+ * 切れ、後ろ半分が読めなかった。 重ねれば高さは最も長い説明で決まり、動かず切れない。
+ *
+ * **英語では出さない**。 説明は図のデータが持ち日本語の 1 本しか無い。 段の題と同じ決まりで、
+ * 引けない時は日本語へ落とさず空にする。
+ */
+export function PhaseNote({
+  stage,
+  phases,
+}: {
+  /** 図の入れ物。 段の札と同じ起点から、いま何段目かを読む */
+  stage: HTMLElement | null;
+  /** 段の一覧。 図の定義からそのまま渡す */
+  phases: readonly CdlPhase[] | undefined;
+}): JSX.Element | null {
+  const [locale] = useLocale();
+  const idx = usePhaseIndex(stage);
+  const 一覧 = phases ?? [];
+
+  if (locale !== "ja") return null;
+  if (一覧.length < 出す下限) return null;
+  // 1 つも説明を持たない図では枠ごと出さない = 空の隙間だけが残る
+  if (一覧.every((p) => (p.body ?? "") === "")) return null;
+
+  // 段の札と同じ丸め方。 図を差し替えた直後は属性が配列より先に進むことがある
+  const 今 = Math.min(idx, 一覧.length - 1);
+
+  return (
+    <div className="cdl-phase-note">
+      {一覧.map((p, i) => (
+        <p
+          key={p.id}
+          className="cdl-phase-note-line"
+          data-now={i === 今 ? "" : undefined}
+          aria-hidden={i === 今 ? undefined : "true"}
+        >
+          {p.body}
+        </p>
+      ))}
+    </div>
+  );
+}

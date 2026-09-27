@@ -18,7 +18,8 @@
 import { afterEach, describe, it, expect } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import type { CdlPhase } from "@cardenelabs/cdl";
-import { PhaseChrome, 段の呼び名 } from "./PhaseChrome";
+import { LocaleProvider } from "@/lib/useLocale";
+import { PhaseChrome, PhaseNote, 段の呼び名 } from "./PhaseChrome";
 
 afterEach(() => cleanup());
 
@@ -164,5 +165,131 @@ describe("画面に出す形 (#1239)", () => {
     // 段は 1 秒ごとに変わる。 読み上げに載せると図の説明が流れ続けて読めなくなる
     render(<PhaseChrome stage={null} phases={[段("p1", "一"), 段("p2", "二")]} />);
     expect(screen.queryByText(new RegExp(`${段の呼び名} 1 / 2`))?.closest("[aria-hidden='true']")).not.toBeNull();
+  });
+});
+
+/**
+ * 段の説明を図の枠の外に出す (#2609)。
+ *
+ * 説明はこれまで「コード」 のタブにしか出ていなかった。 いま光っている線が何を表すかを
+ * 書いた文なので、図を見ている間に読めないと意味が薄れる。
+ *
+ * | 見るもの | なぜ |
+ * |---|---|
+ * | いま光っている段の説明だけが見える | 別の段の説明が見えると、絵と文が食い違う |
+ * | 段が進むと入れ替わる | engine は React の外で属性を書き換える |
+ * | 全ての説明を升に重ねる | 高さが最も長い説明で決まり、段が進んでも図の下が動かない |
+ * | 1 つも説明が無ければ何も出さない | 空の隙間だけが残る |
+ * | 英語では出さない | 説明は日本語の 1 本しか無く、段の題と同じ決まりで日本語へ落とさない |
+ * | 重ね表示の中に入れない | 中に入れると図の描画領域を削る |
+ */
+describe("段の説明を枠の外に出す (#2609)", () => {
+  /** 説明を持つ段。 上の `段()` は説明を空で作るので、こちらで足す */
+  const 説明付き = (id: string, title: string, body: string): CdlPhase => ({
+    ...段(id, title),
+    body,
+  });
+
+  /** いま見えている説明。 重ねた升のうち `data-now` が付いた 1 つだけが見える */
+  const 見えている説明 = (): string | null =>
+    document.querySelector(".cdl-phase-note-line[data-now]")?.textContent ?? null;
+
+  it("いま光っている段の説明だけが見える", () => {
+    const stage = 舞台を作る(1);
+    render(
+      <PhaseNote
+        stage={stage}
+        phases={[説明付き("p1", "一", "はじめの説明"), 説明付き("p2", "二", "つぎの説明")]}
+      />,
+    );
+    expect(見えている説明()).toBe("つぎの説明");
+    // 見えていないほうは升に残る = 高さを決めるため
+    expect(document.querySelectorAll(".cdl-phase-note-line")).toHaveLength(2);
+  });
+
+  it("段が進むと入れ替わる", async () => {
+    const stage = 舞台を作る(0);
+    render(
+      <PhaseNote
+        stage={stage}
+        phases={[説明付き("p1", "一", "はじめの説明"), 説明付き("p2", "二", "つぎの説明")]}
+      />,
+    );
+    expect(見えている説明()).toBe("はじめの説明");
+
+    // engine と同じく React の外で属性を書き換える
+    await act(async () => {
+      stage.querySelector("[data-cdl-diagram]")?.setAttribute("data-cdl-phase-index", "1");
+      // MutationObserver は microtask で届く
+      await Promise.resolve();
+    });
+    expect(見えている説明()).toBe("つぎの説明");
+  });
+
+  it("説明の長さが変わっても升の数は段の数のまま", () => {
+    // 高さを最も長い説明で決めるための升。 数が段と食い違うと高さが動く
+    render(
+      <PhaseNote
+        stage={舞台を作る(0)}
+        phases={[
+          説明付き("p1", "一", "短い"),
+          説明付き("p2", "二", "とても長い説明をここに書く。 二文目もある。"),
+          説明付き("p3", "三", "中くらいの説明"),
+        ]}
+      />,
+    );
+    expect(document.querySelectorAll(".cdl-phase-note-line")).toHaveLength(3);
+    expect(document.querySelectorAll(".cdl-phase-note-line[data-now]")).toHaveLength(1);
+  });
+
+  it("1 つも説明が無ければ何も出さない", () => {
+    render(<PhaseNote stage={舞台を作る(0)} phases={[段("p1", "一"), 段("p2", "二")]} />);
+    expect(document.querySelector(".cdl-phase-note")).toBeNull();
+  });
+
+  it("段が 1 つ以下なら何も出さない", () => {
+    render(<PhaseNote stage={null} phases={[説明付き("p1", "だけ", "ある説明")]} />);
+    expect(document.querySelector(".cdl-phase-note")).toBeNull();
+  });
+
+  it("英語では出さない", () => {
+    render(
+      <LocaleProvider 初期値="en">
+        <PhaseNote
+          stage={舞台を作る(0)}
+          phases={[説明付き("p1", "一", "はじめの説明"), 説明付き("p2", "二", "つぎの説明")]}
+        />
+      </LocaleProvider>,
+    );
+    expect(document.querySelector(".cdl-phase-note")).toBeNull();
+  });
+
+  it("日本語では出す (陰性対照)", () => {
+    // 上の 1 件が「元から出ない」 のではなく、言語で分かれていることを示す
+    render(
+      <LocaleProvider 初期値="ja">
+        <PhaseNote
+          stage={舞台を作る(0)}
+          phases={[説明付き("p1", "一", "はじめの説明"), 説明付き("p2", "二", "つぎの説明")]}
+        />
+      </LocaleProvider>,
+    );
+    expect(document.querySelector(".cdl-phase-note")).not.toBeNull();
+  });
+
+  it("重ね表示の中に入らない", () => {
+    // 中に入れると図の描画領域を削る。 枠の外に出ていることを親子関係で見る
+    render(
+      <div>
+        <PhaseChrome stage={null} phases={[段("p1", "一"), 段("p2", "二")]} />
+        <PhaseNote
+          stage={舞台を作る(0)}
+          phases={[説明付き("p1", "一", "はじめの説明"), 説明付き("p2", "二", "つぎの説明")]}
+        />
+      </div>,
+    );
+    const 説明 = document.querySelector(".cdl-phase-note");
+    expect(説明).not.toBeNull();
+    expect(説明?.closest(".cdl-phase")).toBeNull();
   });
 });
