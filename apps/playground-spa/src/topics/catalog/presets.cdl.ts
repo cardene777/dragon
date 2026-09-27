@@ -1040,7 +1040,7 @@ const presetErComplexSteps = withSteps(
     {
       ids: ["order_items", "products", "rel-4-orders-order_items", "rel-9-products-order_items"],
       title: "2. 明細に商品が並ぶ",
-      body: "実線は識別する関係。 親の鍵が子の鍵に入る。",
+      body: "実線は 0 を許さない関係。 1 件の注文に明細が 1 行以上並ぶ。",
     },
     {
       ids: ["inventory", "rel-10-products-inventory"],
@@ -3468,7 +3468,7 @@ animation:
   - step: "2. 明細に商品が並ぶ" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items"]
     badge: "er"
-    body: "実線は識別する関係。 親の鍵が子の鍵に入る。"
+    body: "実線は 0 を許さない関係。 1 件の注文に明細が 1 行以上並ぶ。"
   - step: "3. 在庫を持つ" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory"]
     badge: "er"
@@ -3543,7 +3543,7 @@ export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
     ],
     animation: [
       { step: "1. 利用者が注文する", duration: 0.9, focus: ["users", "orders", "users -> orders"], badge: "er", body: "1 人の利用者が 1 件以上の注文をする。 端の棒と鳥の足で数を読む。" },
-      { step: "2. 明細に商品が並ぶ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items"], badge: "er", body: "実線は識別する関係。 親の鍵が子の鍵に入る。" },
+      { step: "2. 明細に商品が並ぶ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items"], badge: "er", body: "実線は 0 を許さない関係。 1 件の注文に明細が 1 行以上並ぶ。" },
       { step: "3. 在庫を持つ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory"], badge: "er", body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。" },
       { step: "4. 商品を分類する", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories"], badge: "er", body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。" },
       { step: "5. 分類の親子", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories"], badge: "er", body: "破線で同じ表へ戻る。 親を持たない最上位の分類もある。" },
