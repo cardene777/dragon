@@ -39,6 +39,7 @@ export {
   ORDERS,
   ORDER_ALIAS,
   SHAPES,
+  PALETTE_ALIAS,
 } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";

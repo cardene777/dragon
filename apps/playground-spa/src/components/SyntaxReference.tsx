@@ -1,5 +1,12 @@
 import { useMemo } from "react";
-import { DIRECTION_ALIAS, DRAW_WORDS, PRESET_TYPES, TONE_ALIAS } from "@cardenelabs/dragon";
+import {
+  DIRECTION_ALIAS,
+  DRAW_WORDS,
+  PALETTE_ALIAS,
+  PRESET_TYPES,
+  SHAPES,
+  TONE_ALIAS,
+} from "@cardenelabs/dragon";
 import { NODE_KINDS } from "@cardenelabs/cdl";
 import { FORMS, sectionTitle, lineNote } from "@/lib/syntax-forms";
 import { SyntaxInline } from "./SyntaxCode";
@@ -36,12 +43,17 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
   const 字 = 編集画面の字(locale);
   // 実装が受け付ける値をそのまま並べる
   const types = useMemo(() => [...PRESET_TYPES].sort(), []);
+  // 数を描く図の形 (#2659)。 節の例文は 3 行しか出さないので、9 つを読めるのはここだけ
+  const shapes = useMemo(() => [...SHAPES].sort(), []);
   const kinds = useMemo(() => [...NODE_KINDS].sort(), []);
   // 段の `draw:` が受ける語。 記法の対応表 (`DRAW_TARGETS`) から引く (#1318)
   const draws = useMemo(() => [...DRAW_WORDS].sort(), []);
   const tones = useMemo(() => 正式名ごとの別名(TONE_ALIAS), []);
   // 図の並ぶ向き (`direction:`) が受ける値。 色と同じく別名表から引く (#1850)
   const directions = useMemo(() => 正式名ごとの別名(DIRECTION_ALIAS), []);
+  // 図の配色 (`palette:`) が受ける値 (#2659)。 節の例文は 3 行で、日本語の名前 4 つのうち
+  // 3 つが説明の文にしか出ていなかった。 文の中の語は書き写す相手にならない
+  const palettes = useMemo(() => 正式名ごとの別名(PALETTE_ALIAS), []);
 
   return (
     <div className="v4-editor-side-samples-body" data-testid="editor-syntax-panel">
@@ -75,6 +87,15 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
       </div>
 
       <div className="v4-editor-syntax-section">
+        <div className="v4-editor-syntax-title">{字.図の形} ({shapes.length})</div>
+        <div className="v4-editor-syntax-chips" data-testid="editor-syntax-shapes">
+          {shapes.map((s) => (
+            <code key={s} className="v4-editor-syntax-chip">{s}</code>
+          ))}
+        </div>
+      </div>
+
+      <div className="v4-editor-syntax-section">
         <div className="v4-editor-syntax-title">{字.箱の種類} ({kinds.length})</div>
         <div className="v4-editor-syntax-chips" data-testid="editor-syntax-kinds">
           {kinds.map((k) => (
@@ -84,7 +105,7 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
       </div>
 
       <div className="v4-editor-syntax-section">
-        <div className="v4-editor-syntax-title">{字.起点から描ける図種} ({draws.length})</div>
+        <div className="v4-editor-syntax-title">{字.起点から描ける図} ({draws.length})</div>
         <div className="v4-editor-syntax-chips" data-testid="editor-syntax-draws">
           {draws.map((d) => (
             <code key={d} className="v4-editor-syntax-chip">{d}</code>
@@ -115,6 +136,22 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
             <div key={dir} className="v4-editor-syntax-row">
               <code className="v4-editor-syntax-code" data-direction={dir}>{dir}</code>
               {/* 別名は記法に書く値そのもの (`失敗` / `成功`)。 人が読む添え書きと同じ見た目だが
+                  訳す対象ではないので、印を付けて画面の言語を数える検査から外す (#2463) */}
+              <span className="v4-editor-syntax-note" data-notation="">
+                {aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="v4-editor-syntax-section">
+        <div className="v4-editor-syntax-title">{字.配色} ({palettes.length})</div>
+        <div className="v4-editor-syntax-tones" data-testid="editor-syntax-palettes">
+          {palettes.map(([palette, aliases]) => (
+            <div key={palette} className="v4-editor-syntax-row">
+              <code className="v4-editor-syntax-code" data-palette={palette}>{palette}</code>
+              {/* 別名は記法に書く値そのもの (`生成り` / `青磁`)。 人が読む添え書きと同じ見た目だが
                   訳す対象ではないので、印を付けて画面の言語を数える検査から外す (#2463) */}
               <span className="v4-editor-syntax-note" data-notation="">
                 {aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}
