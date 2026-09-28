@@ -1206,7 +1206,7 @@ export const presetStateMachine = withSteps(
     },
     {
       ids: ["cancelled", "closed", "t4-placed-cancelled", "t5-cancelled-closed"],
-      body: "山形の外枠だけは出る瞬間に 1 度だけ。",
+      body: "取り消すと押さえを解いて終わる。 山形の外枠だけは出る瞬間に 1 度だけ。",
     },
   ],
 );
@@ -4326,7 +4326,7 @@ animation:
   - step: "状態と遷移条件を示す図" 0.9s
     badge: "state"
     focus: [begin, 下書き, 受付済, 支払済, done, 取消済, closed, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"]
-    body: "山形の外枠だけは出る瞬間に 1 度だけ。"
+    body: "取り消すと押さえを解いて終わる。 山形の外枠だけは出る瞬間に 1 度だけ。"
 `;
 
 export const sourceJson__presetStateMachine = `{
@@ -4384,7 +4384,7 @@ export const sourceJson__presetStateMachine = `{
       "step": "状態と遷移条件を示す図",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "支払済", "done", "取消済", "closed", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"],
-      "body": "山形の外枠だけは出る瞬間に 1 度だけ。",
+      "body": "取り消すと押さえを解いて終わる。 山形の外枠だけは出る瞬間に 1 度だけ。",
       "badge": "state"
     }
   ]
