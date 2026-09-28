@@ -613,6 +613,8 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "箱の位置だけで縦列を読む": "Read the lanes from box position alone",
   "箱の間を 80 にする": "Set the gap between boxes to 80",
   "縦に積む": "Stack them down",
+  "預ける": "Deposit",
+  "残す": "Record it",
   "縦の点線で縦列を追う": "Follow the lanes with a dotted vertical line",
   "縦列の幅を 520 に揃える": "Make every lane 520 wide",
   "縦列の間を 400 にする": "Set the gap between lanes to 400",

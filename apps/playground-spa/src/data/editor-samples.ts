@@ -462,11 +462,12 @@ animation:
 `,
   },
   {
-    label: "投票コントラクト (solidity)",
-    labelEn: "Voting contract (solidity)",
-    slug: "solidity",
+    label: "投票コントラクト (sequence)",
+    labelEn: "Voting contract (sequence)",
+    slug: "order",
     code: `title: "投票コントラクト"
-type: solidity
+type: sequence
+order: 種類
 
 actors:
   - 有権者: actor

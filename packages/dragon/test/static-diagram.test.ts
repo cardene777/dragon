@@ -29,7 +29,6 @@ const TYPES: readonly PresetType[] = [
   "er",
   "state",
   "topology",
-  "solidity",
   "gantt",
   "class",
   "pie",

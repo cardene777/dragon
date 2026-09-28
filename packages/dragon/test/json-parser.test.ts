@@ -14,6 +14,7 @@ import {
   diagramJsonSchema,
   textDslToDiagram,
   PRESET_TYPES,
+  TYPE_ALIASES,
 } from "../src/index";
 
 describe("jsonToDiagram (LLM 向け JSON DSL)", () => {
@@ -207,8 +208,13 @@ describe("diagramJsonSchema (LLM tool schema)", () => {
     // 下限だけを見る上の検査は増減のどちらにも当たらない (19 件でも 18 件でも通る)。 実際
     // `#1170` で `radial` を消した時、 schema に残ったまま全ての検査が通った。 schema は
     // LLM に渡す契約なので、 残ると「schema 通りに書いたのに弾かれる」 出力を誘発する。
+    //
+    // 古い綴り (#2655) も JSON の入口が受けるので schema に並べる。 外すと LLM には
+    // 「書けない綴り」 に見えるが記法も JSON も通してしまい、契約と実装がずれる。
     const typeSchema = (diagramJsonSchema.properties as Record<string, { enum?: string[] }>).type;
-    expect(new Set(typeSchema?.enum ?? [])).toEqual(new Set(PRESET_TYPES));
+    expect(new Set(typeSchema?.enum ?? [])).toEqual(
+      new Set([...PRESET_TYPES, ...TYPE_ALIASES.keys()]),
+    );
   });
 
   it("schema の説明文が実在する型だけを挙げる", () => {

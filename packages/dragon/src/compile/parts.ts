@@ -1145,7 +1145,7 @@ function 部品の要素へ繋ぐ(
  * 名指しは部品の端でだけ読む。 部品でない箱の端に書くと値はどこにも届かず、黙って捨てると
  * 「書いたのに繋ぎ先が変わらない」 が手掛かりなしで起きる。
  *
- * 順序図 (`sequence` / `solidity`) は板の言づてが縦の線に届き、部品の要素へは繋がないため、
+ * 順序図 (`sequence`) は板の言づてが縦の線に届き、部品の要素へは繋がないため、
  * 部品の端に書いても効かない。 部品の一覧に無い部品は組み立てが部品を引いてから知らせる。
  */
 export function reportPartNodeNotHonored(
@@ -1153,7 +1153,7 @@ export function reportPartNodeNotHonored(
   onNotice?: (notice: CompileNotice) => void,
 ): void {
   if (!onNotice) return;
-  const 順序図 = doc.type === "sequence" || doc.type === "solidity";
+  const 順序図 = doc.type === "sequence";
   const 部品 = new Set(doc.actors.filter((a) => a.partId !== undefined).map((a) => a.name));
   const 居る = new Set(doc.actors.map((a) => a.name));
   for (const s of doc.flow) {
@@ -1241,7 +1241,7 @@ function 仮の箱のidか(doc: DslDocument, name: string): (id: string) => bool
  * 限る = 全員が 1 本の縦列を共有する図種 (`flow` / `topology` / `c4`) は格子のまま残る。
  * 仮の箱が作られない形 (流れに現れない `swimlane` の登場人物) は、名札が部品の名前の空の縦列で引く。
  *
- * **順序図 (`sequence` / `solidity`) は対象にしない**。 1 枚の板で描き、縦列を持たない (#1466)。
+ * **順序図 (`sequence`) は対象にしない**。 1 枚の板で描き、縦列を持たない (#1466)。
  *
  * **他の箱の位置の基準になっている部品は縦列に置かない**。 相対の位置 (`位置: 印 の右 200`) は
  * 組み立ての前に格子の位置を基準に解くため、基準の部品だけを縦列へ動かすと書いた位置関係が
@@ -1253,7 +1253,7 @@ function 縦列に置く部品(
 ): { 縦列: Map<string, string>; 基準のため外した: Map<string, string> } {
   const 縦列 = new Map<string, string>();
   const 基準のため外した = new Map<string, string>();
-  if (doc.type === "sequence" || doc.type === "solidity") return { 縦列, 基準のため外した };
+  if (doc.type === "sequence") return { 縦列, 基準のため外した };
   const 基準の名前 = new Set(
     doc.actors.map((a) => a.posRel?.anchor).filter((n): n is string => n !== undefined),
   );
@@ -1313,7 +1313,7 @@ function cleanupPlaceholderActor(
 ): void {
   const aliasSlug = slugify(a.name);
   const ownedLaneIds = new Set<string>();
-  if (doc.type === "sequence" || doc.type === "solidity") {
+  if (doc.type === "sequence") {
     for (const l of target.lanes) {
       // 明示 lane mapping (a.lane) 先は part の張替え先で actor 専用 lane ではないため除外
       if (a.lane !== undefined && l.id === a.lane) continue;
@@ -1352,7 +1352,7 @@ function cleanupPlaceholderActor(
   // 生成する。 node/edge だけ消して lane を残すと、 merge 後の part 側 lane (label = alias) と 2 本が
   // 同じ label を lane-label として描画し二重表示になる (actor ラベル二重表示 bug の root cause)。
   //
-  // 削除は seq-like preset (sequence / solidity = compileSequence 経由) に限定する。 これらは
+  // 削除は順序図 (sequence = compileSequence 経由) に限定する。 これらは
   // 1 actor = 1 lane (lane.label === a.name、 lane.id は actor 名の slug) の生成規則が成立し、
   // parts actor 用 lane を安全に削除できる。 他 preset (flow / topology / class / pie 等) は複数
   // actor が共有 lane (id = "main" 等) を参照するため、 一致 lane を消すと通常 actor の node が
@@ -1523,7 +1523,7 @@ export function mergePartsFromActors(
           const 値 = s[欄];
           if (値 === undefined || s[側] !== actor.name) continue;
           // 順序図は部品の有無に依らず名指しが効かない。 そちらの知らせと 2 度出さない
-          if (doc.type === "sequence" || doc.type === "solidity") continue;
+          if (doc.type === "sequence") continue;
           onNotice?.({
             kind: "part-node-ignored",
             actor: actor.name,
@@ -1540,7 +1540,7 @@ export function mergePartsFromActors(
     // slug で始まる名前をまとめて対象にする。
     //
     // sweep に使う slug は 2 系統ある (#873)。 dragon の slugify は `_` / 全角を保持するが、 非 animate
-    // sequence / solidity の node は cdl preset 側の slugify (`_` → `-` 置換、 NFKC なし) で生成される
+    // sequence の node は cdl preset 側の slugify (`_` → `-` 置換、 NFKC なし) で生成される
     // ため、 dragon slug だけで sweep すると `arc_one` → 実 id `arc-one-header` を取りこぼし、 header /
     // footer (title = actor 名) が残って actor 名が多重表示される。
     //

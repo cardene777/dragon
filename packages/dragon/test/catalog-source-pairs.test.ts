@@ -131,22 +131,53 @@ describe("catalog source pairs (YAML / JSON tab の供給元)", () => {
     expect(failures).toEqual([]);
   });
 
+  /**
+   * 板になる図は登場人物ごとの箱を持たない (#2655)。
+   *
+   * 順序図は 1 枚の板にまとまり、登場人物は板の見出し (`sequenceData.actors`) として
+   * 名前だけを持つ。 種類は板が描かないので、**node の種類と突き合わせる相手がいない**。
+   *
+   * そこで板の図では見る相手を名前に替える。 外すのではなく替えるのは、外すと板の図が
+   * 丸ごと判定の外になり、JSON と図が食い違っても誰も気付かなくなるため。
+   */
   it("sourceJson の actor kind が対応 diagram の node kind と一致する", () => {
     const failures: string[] = [];
+    let 種類を見た = 0;
+    let 名前を見た = 0;
     for (const key of diagramKeys()) {
       const raw = mod[`sourceJson__${key}`];
       if (typeof raw !== "string") continue;
       const parsed = JSON.parse(raw) as { actors: { name: string; kind?: string }[] };
-      const diagram = mod[key] as { nodes: { title?: string; kind: string }[] };
+      const diagram = mod[key] as {
+        nodes: { title?: string; kind: string; sequenceData?: { actors: unknown[] } }[];
+      };
+
+      const 板 = diagram.nodes.find((n) => n.kind === "sequence-board")?.sequenceData;
+      if (板) {
+        const 見出し = new Set(
+          板.actors.map((a) => (typeof a === "string" ? a : (a as { name: string }).name)),
+        );
+        for (const a of parsed.actors) {
+          名前を見た += 1;
+          if (!見出し.has(a.name)) {
+            failures.push(`${key}: actor "${a.name}" が板の見出しに無い`);
+          }
+        }
+        continue;
+      }
 
       const diagramKinds = new Set(diagram.nodes.map((n) => n.kind));
       for (const a of parsed.actors) {
         if (!a.kind) continue;
+        種類を見た += 1;
         if (!diagramKinds.has(a.kind)) {
           failures.push(`${key}: actor "${a.name}" kind "${a.kind}" not in diagram kinds`);
         }
       }
     }
+    // 片方が 0 件になると、その経路は「一致した」 ではなく「測っていない」
+    expect(種類を見た, "箱になる図の種類を 1 件も見ていない").toBeGreaterThan(0);
+    expect(名前を見た, "板になる図の名前を 1 件も見ていない").toBeGreaterThan(0);
     expect(failures).toEqual([]);
   });
 

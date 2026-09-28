@@ -33,6 +33,8 @@ export type SampleSlot =
   | "relations"
   // 図の並ぶ向き (#1494)
   | "direction"
+  // 箱を並べ替える軸 (#2655)
+  | "order"
   // 図の配色 (#1553)
   | "palette";
 
@@ -205,6 +207,29 @@ export const FORMS: Section[] = [
       // 別名は同じ画面の「向き」 の区画が記法から引いて並べる (#1850)。
       // ここに綴りを書くと、同じ値を 2 箇所に置くことになる
       { code: "direction: horizontal", note: "英語でも書ける", noteEn: "The English spelling works too" },
+    ],
+  },
+  {
+    title: "箱を並べ替える軸 (order:)",
+    titleEn: "What to sort the boxes by (order:)",
+    // 順序図でだけ効く。 例文は書いた順と並べ替えた順が違うように、契約を先に書いておく
+    sample: {
+      slot: "order",
+      type: "sequence",
+      actors: ["  - Vault: { kind: contract }", "  - 利用者: { kind: eoa }"],
+      flow: ['  - 利用者 -> Vault: "預ける"'],
+    },
+    lines: [
+      {
+        code: "order: 種類",
+        note: "kind の順 (人 → 契約 → 保管 → 出来事) に並べ替える",
+        noteEn: "Sorts by kind (people, then contracts, then storage, then events)",
+      },
+      {
+        code: "order: kind",
+        note: "英語でも書ける",
+        noteEn: "The English spelling works too",
+      },
     ],
   },
   {
@@ -670,7 +695,14 @@ export function buildSample(section: Section): string {
   const codes = section.lines.map((l) => l.code);
   // `reveal` は最上位に 1 行で書く語なので、`root` と同じ場所へ置く (#1470)
   // 最上位に 1 行で書く項目は、頭の並びにそのまま足す (`reveal` / `relations` / `direction`)
-  const 最上位に置く: readonly SampleSlot[] = ["root", "reveal", "relations", "direction", "palette"];
+  const 最上位に置く: readonly SampleSlot[] = [
+    "root",
+    "reveal",
+    "relations",
+    "direction",
+    "order",
+    "palette",
+  ];
   const rootLines = 最上位に置く.includes(slot) ? codes : [];
   // 題名と図種は例文に必ず要る。 一覧側で書いている時は重ねて書かない (後に書いた方が効く)
   const head = [

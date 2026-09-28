@@ -3,11 +3,15 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslActor, DslDocument } from "../types";
 
 import { parseFocusEntry } from "../focus";
+import { 並べ替えた文書 } from "./order";
 import { 箱の題 } from "./node-title";
 
 import { slugify } from "./slug";
 
 export function compileSequence(doc: DslDocument): CdlDiagram {
+  // **書いた並び順を先に当てる** (#2655)。 以降は並べ替え済の箱で組む = 板の見出しも
+  // 端の番号も同じ並びから決まる。 書かなかった図は同じ文書がそのまま返る
+  doc = 並べ替えた文書(doc);
   // v0.3 ... アニメーション 有無で経路を分岐。
   // 有り = builder 直接経路で state / 複数 phase を注入。
   /*

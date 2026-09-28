@@ -24,8 +24,15 @@ export type { CompileNotice } from "./compile";
 export type { CdlDiagram } from "@cardenelabs/cdl";
 export { parseTextDslV05 } from "./v05";
 // 記法一覧が「実際に受け付ける値」 を実装から引くための公開。 手書きすると説明と実装がずれる。
-export { DRAW_TARGETS, DRAW_WORDS, PHASE_ITEM_WORDS, PRESET_TYPES, TOP_LEVEL_KEYS } from "./v05/parser";
-export { TONE_ALIAS, NODE_KIND_ALIAS, DIRECTION_ALIAS } from "./keywords";
+export {
+  DRAW_TARGETS,
+  DRAW_WORDS,
+  PHASE_ITEM_WORDS,
+  PRESET_TYPES,
+  TOP_LEVEL_KEYS,
+  TYPE_ALIASES,
+} from "./v05/parser";
+export { TONE_ALIAS, NODE_KIND_ALIAS, DIRECTION_ALIAS, ORDERS, ORDER_ALIAS } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
 // canvas pivot 新 spec 図境界計算 helper (§diagram-boundary SSOT)

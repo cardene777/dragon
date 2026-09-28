@@ -68,12 +68,15 @@ import {
   NODE_KIND_ALIAS,
   DIRECTIONS,
   resolveDirection,
+  ORDERS,
+  resolveOrder,
   PALETTES,
   resolvePalette,
 } from "../keywords";
 import { PHASE_BODY_KEYS } from "../keywords";
 import type { DslPalette } from "../keywords";
 import type { DslDirection } from "../keywords";
+import type { DslOrder } from "../keywords";
 import { parseRelativePos, findRelativeProblems, type RelativeProblem } from "../relative-pos";
 import {
   checkValueExpression,
@@ -199,6 +202,11 @@ export const TOP_LEVEL_KEYS = [
    * 日本語で書けるので、書き手が自然に言う語 (`縦` / `横`) を残せる。
    */
   "direction",
+  /*
+   * 箱を並べる順 (#2655)。 並べ替えの鍵しか持たない図種を畳んだ先で、書かなければ
+   * 書いた順のまま。 最上位の語は英語にする決まりに従う (向きの語と同じ)
+   */
+  "order",
   /*
    * 図の配色 (#1553)。
    *
@@ -340,7 +348,6 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "er",
   "state",
   "topology",
-  "solidity",
   "gantt",
   "class",
   "pie",
@@ -358,6 +365,23 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "quadrant",
   "c4",
   "mind",
+]);
+
+/**
+ * 図種の別名 (#2655)。
+ *
+ * **差が並べ替えの鍵しかない図種を、順序図と並び順の語に読み替える**。 `solidity` は
+ * 独自の組み立てを持たず、箱を種類で並べ替えてから順序図の組み立てをそのまま呼んでいた。
+ * 型として持つと `compile.ts` が「順序図 または その型」 という条件を書き続けることになり、
+ * 実際 6 か所に増えていた (条件を足す人が片方を書き忘れると黙って外れる)。
+ *
+ * **読み替えは読み取りの入口 1 か所に閉じる**。 ここを通った後は `solidity` という語が
+ * どこにも残らないので、組み立て側は順序図として 1 通りに扱える。
+ *
+ * 古い名前で書いた記法はそのまま動く = 別名を消すのは別の回にする。
+ */
+export const TYPE_ALIASES: ReadonlyMap<string, { type: PresetType; order: DslOrder }> = new Map([
+  ["solidity", { type: "sequence", order: "種類" }],
 ]);
 
 const NODE_KIND_DEFAULT: NodeKind = "actor";
@@ -517,6 +541,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let relations: RelationFocus | null = null;
   let direction: DslDirection | null = null;
   let directionLine = 0;
+  let order: DslOrder | null = null;
+  let orderLine = 0;
   let palette: DslPalette | null = null;
   let axes: DslAxes | undefined = undefined;
   let axesLine = 0;
@@ -637,6 +663,30 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i += 1;
       continue;
     }
+    if (head.key === "order") {
+      /*
+       * 箱を並べる順 (#2655)。
+       *
+       * 書かなければ書いた順。 `種類` と書くと箱の種類で並べ替えてから置く。
+       * 向きと同じく **書いた行を覚える** = 効かない図種に書いた時の知らせが場所を指せる。
+       */
+      const v = (head.value ?? "").trim();
+      if (v.length > 0) {
+        const 解けた = resolveOrder(v);
+        if (解けた !== null) {
+          order = 解けた;
+          orderLine = line.no;
+        } else {
+          errors.push({
+            line: line.no,
+            message: `order が読めません (書いた値: ${v})`,
+            hint: `使える語 = ${ORDERS.join(" / ")} / kind`,
+          });
+        }
+      }
+      i += 1;
+      continue;
+    }
     if (head.key === "palette") {
       /*
        * 図の配色 (#1553)。
@@ -671,11 +721,21 @@ export function parseTextDslV05(src: string): V05ParseResult {
     }
     if (head.key === "type") {
       const v = (head.value ?? "").trim().toLowerCase();
-      if (!PRESET_TYPES.has(v as PresetType)) {
+      // **別名を先に引く** (#2655)。 引けたら図種と並び順の 2 つに開いて、以降は
+      // その語が 1 か所も残らないようにする
+      const 別名 = TYPE_ALIASES.get(v);
+      if (別名 !== undefined) {
+        type = 別名.type;
+        // 書き手が `order:` も書いていればそちらが勝つ = 別名は既定を入れるだけ
+        if (order === null) {
+          order = 別名.order;
+          orderLine = line.no;
+        }
+      } else if (!PRESET_TYPES.has(v as PresetType)) {
         errors.push({
           line: line.no,
           message: `図種が読めません: "${v}"`,
-          hint: `使える図種 = ${Array.from(PRESET_TYPES).join(", ")}`,
+          hint: `使える図種 = ${[...PRESET_TYPES, ...TYPE_ALIASES.keys()].join(", ")}`,
         });
       } else {
         type = v as PresetType;
@@ -1206,6 +1266,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(reveal !== null ? { reveal } : {}),
       ...(relations !== null ? { relations } : {}),
       ...(direction !== null ? { direction, directionPos: { line: directionLine } } : {}),
+      ...(order !== null ? { order, orderPos: { line: orderLine } } : {}),
       ...(palette !== null ? { palette } : {}),
       ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),
       actors,

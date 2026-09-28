@@ -77,7 +77,8 @@ describe("一覧の名前 (#1030)", () => {
     const expected: Record<string, number> = {
       // interactive は矢印や縦列や図全体で操作を受け取る見本を足して 129 → 130 (#1969)
       // patterns は表の繋がり方の型 4 枚を足して 12 → 16 (#2583)
-      interactive: 130, cookbook: 26, patterns: 16, primitives: 95,
+      // primitives は順序図の箱の並べ替えの見本を足して 95 → 96 (#2655)
+      interactive: 130, cookbook: 26, patterns: 16, primitives: 96,
       // presets はクラス図と ER 図の複雑な版をパターンへ移して 21 → 19 (#1960)
       // styles は欄が取る値を並べる見本を 4 件足して 10 → 14 (#1966)、
       // 位置を相対で書く見本を足して 14 → 15 (#2039)、線の役目の見本を足して 15 → 16 (#2141)、

@@ -62,7 +62,14 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeAll, describe, expect, it } from "vitest";
-import { TONE_ALIAS, diagramJsonSchema, jsonToDiagram } from "@cardenelabs/dragon";
+import {
+  ORDERS,
+  ORDER_ALIAS,
+  TONE_ALIAS,
+  TYPE_ALIASES,
+  diagramJsonSchema,
+  jsonToDiagram,
+} from "@cardenelabs/dragon";
 import {
   CdlDiagramView,
   EDGE_HEADS,
@@ -601,6 +608,27 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
 };
 
+/**
+ * 図種の古い綴り (`$.type=solidity`) なら、読み替えた先の道を返す (#2655)。
+ *
+ * 古い綴りは記法と JSON の入口で 図種 + 並べ替え に読み替わる。 読み替えた先が
+ * カタログに書かれていれば、その綴りで書いた図と同じものを見本が見せている。
+ *
+ * **カタログには新しい書き方だけを置く**。 古い綴りの見本を足すと、いま書くべき形が
+ * 2 通りに見える。 色の別名と同じで、指す先が書かれていることを裏取りにする。
+ */
+function 図種の別名(道: string): { 図種の道: string; 並べ替えの道: string } | undefined {
+  const m = /^\$\.type=(.+)$/.exec(道);
+  if (!m) return undefined;
+  const 別名 = TYPE_ALIASES.get(m[1]!);
+  if (別名 === undefined) return undefined;
+  // JSON は英語で書く。 記法の値 (`種類`) をそのまま道にすると、書いた側と綴りが合わない
+  const 英語 = Object.keys(ORDER_ALIAS).find(
+    (k) => ORDER_ALIAS[k] === 別名.order && !(ORDERS as readonly string[]).includes(k),
+  );
+  return { 図種の道: `$.type=${別名.type}`, 並べ替えの道: `$.order=${英語 ?? 別名.order}` };
+}
+
 /** 色の欄に書いた別名 (`$.actors[].tone=成功`) なら、欄の道と別名の指す色を返す */
 function 色の別名(道: string): { 欄の道: string; 色: string } | undefined {
   const m = /^(.*\.(?:tone|color))=(.+)$/.exec(道);
@@ -614,7 +642,13 @@ function 色の別名(道: string): { 欄の道: string; 色: string } | undefin
 /** 書かれておらず、覆い方も持たない道 */
 function 覆われない道(型の道: ReadonlySet<string>, 書いた: ReadonlySet<string>): string[] {
   return [...型の道]
-    .filter((p) => !書いた.has(p) && !(p in 道の覆い方表) && 色の別名(p) === undefined)
+    .filter(
+      (p) =>
+        !書いた.has(p) &&
+        !(p in 道の覆い方表) &&
+        色の別名(p) === undefined &&
+        図種の別名(p) === undefined,
+    )
     .sort();
 }
 
@@ -685,6 +719,18 @@ describe("記法の型定義の全ての欄と値を、カタログの JSON が�
       return !書いた.has(`${a.欄の道}=${a.色}`);
     });
     expect(指す色が無い, "別名の指す色の見本が無い").toEqual([]);
+  });
+
+  it("図種の古い綴りは、読み替えた先がカタログに書かれている", () => {
+    const 別名の道 = [...型の道].filter((p) => !書いた.has(p) && 図種の別名(p) !== undefined);
+    expect(別名の道.length, "図種の別名の道を 1 つも見ていない (検査が空振りしている)").toBe(
+      TYPE_ALIASES.size,
+    );
+    const 指す先が無い = 別名の道.flatMap((p) => {
+      const a = 図種の別名(p)!;
+      return [a.図種の道, a.並べ替えの道].filter((q) => !書いた.has(q)).map((q) => `${p} → ${q}`);
+    });
+    expect(指す先が無い, "古い綴りが読み替わる先の見本が無い").toEqual([]);
   });
 
   it("既定と書いた値は、書いた図と書かない図の描画が一致する", () => {

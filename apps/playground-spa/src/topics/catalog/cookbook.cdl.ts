@@ -1535,9 +1535,10 @@ export const healthCheck = withId("health-check", textDslToDiagram(sourceYaml__h
 // ─────────────────────────────────────────────────────────────
 
 /**
- * F-1. ERC-20 の送金 — `type: solidity` の見本。
+ * F-1. ERC-20 の送金 — `order: 種類` の見本。
  *
- * **`solidity` は `sequence` の別名ではない**。 箱の種別で縦列を並べ替える。
+ * 順序図に並べ替えの軸を書くと、箱を種別の順に置き直す (#2655。 以前はこれを `solidity` と
+ * いう別の図種が担っていたが、独自の組み立てを 1 行も持たないので順序図に畳んだ)。
  *
  * | 種別 | 並び |
  * |---|---|
@@ -1555,10 +1556,11 @@ export const healthCheck = withId("health-check", textDslToDiagram(sourceYaml__h
  * **種別を書かない箱は `actor` として左端に並ぶ** (#2131)。 全ての箱で書かないと並べ替えの鍵が
  * 揃い、書いた順のまま並ぶ。 この見本は 4 つとも種別を書いていなかったので、題が謳う並びと
  * 逆 (出来事から始まる) に出ていた。
- * 見本が並べ替えを実演していることは `lib/solidity-sample-order.test.ts` が固定する。
+ * 見本が並べ替えを実演していることは `lib/order-sample.test.ts` が固定する。
  */
 export const sourceYaml__tokenTransferSolidity = `title: "ERC-20 の送金 (種別ごとに縦列が並ぶ)"
-type: solidity
+type: sequence
+order: 種類
 
 actors:
   - Transfer: { kind: event }
@@ -1593,7 +1595,8 @@ animation:
 
 export const sourceJson__tokenTransferSolidity = `{
   "title": "ERC-20 の送金 (種別ごとに縦列が並ぶ)",
-  "type": "solidity",
+  "type": "sequence",
+  "order": "kind",
   "actors": [
     { "name": "Transfer", "kind": "event" },
     { "name": "残高表", "kind": "storage" },

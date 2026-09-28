@@ -126,11 +126,11 @@ export function resolveRelativeDoc(
  * 見逃す。 書いた言葉 (`Web の右 200`) が最後の図でも成り立つかを見る。
  *
  * **落とす側 (`relative-position-ignored` を出す枝) に届く入力は組めていない** (#2041 の実測)。
- * 試した形は 56 通り = 22 図種 × 右と下、値を持つ `pie` / `bar`、板になる `solidity` と `tree`、
+ * 試した形は 56 通り = 22 図種 × 右と下、値を持つ `pie` / `bar`、板になる `sequence` と `tree`、
  * 同じ場所に 2 つ置く / 間隔 0 で隣に置く / 縦列をまたいで下に置く / 囲いの外へ 3000 出す。
  * どれも知らせが 0 件だった。
  *
- * 座標が効かない図種は、そもそも面ごとの箱を持たない (`sequence` / `solidity` の板)。
+ * 座標が効かない図種は、そもそも面ごとの箱を持たない (`sequence` の板)。
  * その場合は上の `boxes.get(actor.name)` が空になって手前で抜けるため、この枝には来ない。
  * 箱を持つ図種では座標がそのまま効く。 描画側が置いた位置を動かす規則を持った時に備えて残す。
  *
@@ -352,7 +352,7 @@ export function applyLayoutOffsets(
   const ずらす縦列 = Object.entries(doc.lanes ?? {}).filter(([, l]) => l.layoutPos !== undefined);
   if (ずらす箱.length === 0 && ずらす縦列.length === 0) return;
   // 順序図の板は面ごとの箱を持たない。 効かないことは `reportActorKindNotHonored` が伝える
-  if (doc.type === "sequence" || doc.type === "solidity") return;
+  if (doc.type === "sequence") return;
 
   const 前 = layout(diagram);
   const 箱の配置 = new Map(前.nodes.map((n) => [n.id, n] as const));

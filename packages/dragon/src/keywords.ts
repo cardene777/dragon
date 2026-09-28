@@ -46,6 +46,35 @@ export function resolveDirection(s: string): DslDirection | null {
 }
 
 /**
+ * 箱を並べる順 (`order:`、 #2655)。
+ *
+ * 書かなければ **書いた順** のまま。 `種類` と書くと箱の種類で並べ替えてから置く。
+ *
+ * これは図の型として持っていた差を語に出したもの。 並べ替えの鍵しか持たない型
+ * (`solidity`) が在り、`compile.ts` は「順序図 または その型」 という条件を 6 か所で
+ * 書いていた。 **型が 1 つ増えるたびに条件を 2 つ並べる形**になるので、差が並べ替えだけなら
+ * 型ではなく語で表す。
+ */
+export const ORDERS = ["種類"] as const;
+export type DslOrder = (typeof ORDERS)[number];
+
+/**
+ * 並び順の別名。 向きと同じく日本語と英語の両方で書ける。
+ *
+ * 正規の語を鍵にも入れておく = 引く側が別名かどうかを気にせず 1 度で解決できる。
+ */
+export const ORDER_ALIAS: Record<string, DslOrder> = {
+  種類: "種類",
+  kind: "種類",
+};
+
+/** 書いた並び順を正規の語に直す。 読めない語は `null`。 */
+export function resolveOrder(s: string): DslOrder | null {
+  const k = s.trim().toLowerCase();
+  return Object.hasOwn(ORDER_ALIAS, k) ? ORDER_ALIAS[k]! : null;
+}
+
+/**
  * 図の配色 (`palette:`、 #1553)。
  *
  * cdl は色を持たない (形だけを描く)。 名前を `data-cdl-palette` として markup に出すので、

@@ -24,6 +24,7 @@ import {
   EDGE_HEAD_VALUES,
   NODE_KIND_VALID,
   PRESET_TYPES,
+  TYPE_ALIASES,
   STYLE_VALID,
   resolveNodeKind,
   resolveTone,
@@ -40,7 +41,7 @@ import {
 } from "./v05/parser";
 // 図の配色 (#1553)。 記法の読み手と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方が
 // 記法と JSON でずれない
-import { resolvePalette, PHASE_BODY_KEYS } from "./keywords";
+import { resolvePalette, resolveOrder, PHASE_BODY_KEYS } from "./keywords";
 import type { DslPalette } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
@@ -89,8 +90,13 @@ import {
 export interface DragonJson {
   /** 図の title (必須) */
   title: string;
-  /** preset type (必須): sequence / flow / swimlane / er / state / topology / solidity / gantt / class / pie / c4 / mind */
-  type: PresetType;
+  /**
+   * preset type (必須)。 受け付ける値は `PRESET_TYPES` と `TYPE_ALIASES` が SSOT。
+   *
+   * 別名 (#2655) は読み取りで図種と並び順の 2 つに開く = `solidity` と書いた JSON は
+   * 順序図 + 種類で並べ替え として読まれる。
+   */
+  type: PresetType | "solidity";
   /**
    * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
    *
@@ -209,6 +215,8 @@ export interface DragonJson {
   relations?: RelationFocus;
   /** 図の並ぶ向き (#1494)。 記法の最上位 `direction:` と同じ。 JSON は英語の語で書く */
   direction?: "vertical" | "horizontal";
+  /** 箱を並べ替える軸 (#2655)。 記法の最上位 `order:` と同じ。 JSON は英語の語で書く */
+  order?: "kind";
   /**
    * 図の配色 (#1553)。 記法の最上位 `palette:` と同じ。
    *
@@ -531,6 +539,13 @@ const VALID_KIND_SET: ReadonlySet<string> = NODE_KIND_VALID;
 const VALID_PRESETS: readonly PresetType[] = [...PRESET_TYPES];
 
 /**
+ * 受け付ける図種の別名 (#2655)。 **記法側と同じ表を使う** (`v05/parser.ts` の `TYPE_ALIASES`)。
+ *
+ * 写すと片方だけ古くなる。 図種の一覧を 1 か所に寄せたのと同じ理由。
+ */
+const VALID_ALIASES: readonly string[] = [...TYPE_ALIASES.keys()];
+
+/**
  * 受け付ける項目の一覧 (#1295)。 **知らない項目を誤りにする判定と、公開 schema との
  * 突き合わせが、どちらもここを見る**。
  *
@@ -574,6 +589,8 @@ export const ACCEPTED_KEYS = {
     "relations",
     // 図の並ぶ向き (#1494)
     "direction",
+    // 箱を並べ替える軸 (#2655)
+    "order",
     // 図の配色 (#1553)
     "palette",
   ],
@@ -751,6 +768,8 @@ export const 欄の型表 = {
     relations: "非空の文字列",
     // 図の並ぶ向き (#1494)
     direction: "非空の文字列",
+    // 箱を並べ替える軸 (#2655)
+    order: "非空の文字列",
     // 図の配色 (#1553)
     palette: "非空の文字列",
   },
@@ -1136,10 +1155,13 @@ function 値を検査(
       }
       return;
     case "必須の図種":
-      if (typeof v !== "string" || !VALID_PRESETS.includes(v as PresetType)) {
+      if (
+        typeof v !== "string" ||
+        !(VALID_PRESETS.includes(v as PresetType) || VALID_ALIASES.includes(v))
+      ) {
         errors.push({
           path,
-          message: `${名前} must be one of: ${VALID_PRESETS.join(", ")}`,
+          message: `${名前} must be one of: ${[...VALID_PRESETS, ...VALID_ALIASES].join(", ")}`,
           hint: typeof v === "string" ? `got "${v}"` : undefined,
         });
       }
@@ -2692,6 +2714,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
   });
   // 図の配色 (#1553)。 解くのは 1 度だけにする
   const 配色 = json.palette === undefined ? null : resolvePalette(json.palette);
+  const 並び順 = json.order === undefined ? null : resolveOrder(json.order);
 
   const flow: DslStep[] = json.flow.map((s, i) => ({
     no: i + 1,
@@ -2823,9 +2846,12 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
         // `states` を指す = どちらも「動きを書き始めた場所」 になる
         { states, phases, pos: phases.length > 0 ? 位置("animation") : 位置("states") }
       : undefined;
+  // **別名は記法と同じ表で開く** (#2655)。 開いた後は `solidity` という語が残らない
+  const 別名 = TYPE_ALIASES.get(json.type);
   return {
     title: json.title,
-    type: json.type,
+    type: 別名?.type ?? (json.type as PresetType),
+    ...(別名 !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
     // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから
     // 空かどうかを判定するため、 揃えないと **空白だけの値で入口ごとに図が変わる**
     // (記法は書かなかった扱い、 JSON は中身のない帯を描く。 Round 2 の指摘で実測)
@@ -2887,6 +2913,9 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
           directionPos: 位置("direction"),
         }
       : {}),
+    // 箱を並べ替える軸 (#2655)。 向きと同じく英語で書くので、記法と同じ解決を通して日本語に直す。
+    // 読めない語は渡さない = 公開 schema の語の一覧が絞っているので、ここに来るのは書き間違いだけ
+    ...(並び順 !== null ? { order: 並び順, orderPos: 位置("order") } : {}),
     // 図の配色 (#1553)。 記法と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方がずれない。
     // 読めない語は渡さない = 上流の型検査が語を絞っているので、ここに来るのは書き間違いだけ
     ...(配色 !== null ? { palette: 配色 } : {}),

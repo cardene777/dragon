@@ -5,7 +5,7 @@
 
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
-import type { DslDirection, DslPalette } from "./keywords";
+import type { DslDirection, DslOrder, DslPalette } from "./keywords";
 
 /**
  * 記法が書ける箱の種類 (#1420)。
@@ -73,7 +73,6 @@ export type PresetType =
   | "er"
   | "state"
   | "topology"
-  | "solidity"
   | "gantt"
   | "class"
   | "pie"
@@ -196,6 +195,19 @@ export type DslDocument = {
   direction?: DslDirection;
   /** `direction:` を書いた行。 効かない時の知らせで、書いた場所を指すために持つ */
   directionPos?: { line: number };
+  /**
+   * 箱を並べる順 (`order:`、 #2655)。
+   *
+   * 書かなければ書いた順のまま。 `種類` と書くと箱の種類で並べ替えてから置く。
+   * 効くのは順序図だけで、他の図種は並び方そのものが読み方を担うため書いても効かない
+   * (知らせを出す)。
+   *
+   * 並べ替えの鍵しか持たない図種 (`solidity`) を畳んだ先。 読み取りの入口で
+   * 順序図 + この語 に読み替えるので、古い名前で書いた記法はそのまま動く。
+   */
+  order?: DslOrder;
+  /** `order:` を書いた行。 効かない時の知らせで、書いた場所を指すために持つ */
+  orderPos?: { line: number };
   /**
    * 図の配色 (`palette:`、 #1553)。
    *

@@ -7,7 +7,7 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
  * compile.ts の未カバー branch (type 別 compiler + post-process feature) を、
  * DslDocument を直接構築して compileToCdl に渡して execute する。
  * base parser は sequence/flow/swimlane/er/state/topology のみ受理し、
- * solidity/gantt/class/pie/c4/mind の compiler は DslDocument 直接構築でしか到達しない。
+ * gantt/class/pie/c4/mind の compiler は DslDocument 直接構築でしか到達しない。
  * compileToCdl の契約は DslDocument → CdlDiagram なので、 crafted doc での unit test は妥当。
  * catalog compile テストが cover しない type 別 compiler + animate/groups/parts 経路を埋める。
  */
@@ -33,7 +33,7 @@ function compile(type: PresetType, over: Partial<DslDocument> = {}): CdlDiagram 
 }
 
 describe("compile — type 別 compiler が有効 diagram を生成", () => {
-  for (const type of ["sequence", "flow", "swimlane", "er", "state", "topology", "solidity", "gantt", "class", "pie", "c4", "mind"] as PresetType[]) {
+  for (const type of ["sequence", "flow", "swimlane", "er", "state", "topology", "gantt", "class", "pie", "c4", "mind"] as PresetType[]) {
     it(`type "${type}" → nodes を持つ CdlDiagram`, () => {
       const d = compile(type);
       expect(typeof d.id).toBe("string");

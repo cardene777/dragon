@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { PRESET_TYPES } from "../src/v05/parser";
+import { PRESET_TYPES, TYPE_ALIASES } from "../src/v05/parser";
 import { 図種の作り } from "../src/compile/kinds";
 import { parseTextDslV05 } from "../src/v05/parser";
 import { compileToCdl } from "../src/compile";
@@ -61,8 +61,11 @@ describe("図種を足した時に登録先を 1 つも落とさない (#2513)",
   });
 
   it("決まりにだけ在って記法が受けない図種が 0 件", () => {
-    // 逆向き。 決まりに綴りを間違えて足した形は、書けるのに図が出ない状態になる
-    const 余り = 決まり.properties.type.enum.filter((t) => !(PRESET_TYPES as ReadonlySet<string>).has(t));
+    // 逆向き。 決まりに綴りを間違えて足した形は、書けるのに図が出ない状態になる。
+    // 古い綴り (#2655) も記法が受けるので、受ける側に数える = 決まりから外すと
+    // 「記法は通るのに JSON schema では弾かれる」 形になる
+    const 受ける = new Set<string>([...PRESET_TYPES, ...TYPE_ALIASES.keys()]);
+    const 余り = 決まり.properties.type.enum.filter((t) => !受ける.has(t));
     expect(余り, `記法が受けない綴りが決まりに在る: ${余り.join(", ")}`).toEqual([]);
   });
 

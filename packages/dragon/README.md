@@ -53,7 +53,7 @@ flow:
 | 欄          | 何を書くか                                                                                                                                 |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `title`     | 図の題                                                                                                                                     |
-| `type`      | 図種 (`sequence` / `flow` / `swimlane` / `er` / `state` / `topology` / `gantt` / `class` / `mind` / `tree` / `c4` / `solidity` / 図表各種) |
+| `type`      | 図種 (`sequence` / `flow` / `swimlane` / `er` / `state` / `topology` / `gantt` / `class` / `mind` / `tree` / `c4` / 図表各種)。 古い綴り `solidity` は `sequence` と `order: 種類` の組として読む |
 | `actors`    | 箱                                                                                                                                         |
 | `flow`      | 矢印                                                                                                                                       |
 | `states`    | 状態の初期値                                                                                                                               |
@@ -73,6 +73,7 @@ flow:
 | `reveal`    | 矢印をいつ出すか (`phase` = 段が名指しする矢印はその段まで描かない (既定) / `all` = 最初から全部描く)                                      |
 | `relations` | 触れた箱の関係を光らせるか (`off` = 何もしない (既定) / `hover` = 触れた箱と繋がる線と相手の箱だけが光る)                     |
 | `direction` | 図の並ぶ向き (`縦` / `横`、英語なら `vertical` / `horizontal`)。 効くのは `flow` と `swimlane` だけ |
+| `order`     | 箱を並べ替える軸 (`種類`、英語なら `kind`)。 効くのは `sequence` だけで、書くと `kind:` の順 (人 → 契約 → 保管 → 出来事) に箱が並ぶ |
 | `palette`   | 図の配色 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨、日本語なら `生成り` / `青磁`) で、ER 図とクラス図は書かなくても `kinari` になり、書いた `palette:` が優先される |
 
 <!-- notation:top-level:end -->
@@ -260,7 +261,7 @@ animation:
 
 ### 順序図の段は `focus:` で強調する言づてを選ぶ
 
-`sequence` / `solidity` の図は 1 枚の板に言づてを行で並べる。 段ごとに 1 通を強調し、それより前は
+`sequence` の図は 1 枚の板に言づてを行で並べる。 段ごとに 1 通を強調し、それより前は
 描き済みとして残し、後ろは隠す。 どの言づてを強調するかは段の `focus:` から決まる。
 
 | `focus:` に書いたもの | 合う言づて |
