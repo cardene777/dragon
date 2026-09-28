@@ -45,8 +45,11 @@ export const 日本語を含む = (字: string): boolean =>
  * 表からは読めなくなる)。
  */
 export const PHASE_TITLE_EN: Record<string, string> = {
+  "利用者から しまう場所までを 4 つの枠で分けた構成": "A layout splitting person to storage across four groups",
   "受け取る": "Receive",
   "分かれ道": "Branch",
+  "回線と壁と交換機を二重にした事務所のネットワーク": "An office network with the lines, walls and switches doubled up",
+  "支払いに 1 度失敗してからやり直す注文のやり取り": "An order exchange that fails to pay once, then retries",
   "決まる": "Decide",
   // --- ethereum ---
   "① やりたいことを書いて出す": "1. Write what you want and send it",
@@ -90,6 +93,7 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "構成と役割を辿る": "Follow the parts and their roles",
   "構成を辿る": "Follow the parts",
   "段取りを引く": "Lay out the steps",
+  "注文が 4 つの持ち場を往き来して返るまで": "An order travelling out across four posts and back",
   "窓口を 1 つにした後": "After merging the entry points into one",
   "見直し後": "After the rethink",
   "見込みを足す": "Add the forecast",
@@ -398,12 +402,8 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "7. 時刻が来て公開する": "7. The time arrives and it goes live",
   "7. 知らせを待ち行列に置く": "7. Put the notice on the queue",
   "7. 覚え書きを先に見る": "7. Look at the cache first",
-  "8. 受け付けて返す": "8. Accept it and reply",
-  "8. 台帳へ読み書きする": "8. Read and write to the ledger",
-  "8. 手入れの道を分ける": "8. Keep a separate route for maintenance",
   "8. 支払と配送": "8. Payment and delivery",
   "8. 発送係が引き取る": "8. The dispatch worker picks it up",
-  "8. 結果が利用者へ返る": "8. The result comes back to the person",
   "8. 誤りが見つかって取り下げる": "8. A mistake is found and it is withdrawn",
   "8. 通知への依存と色の群": "8. A dependency on notifications and the colour groups",
   "9. 住所を指す 2 本": "9. Two links pointing at the address",

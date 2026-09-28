@@ -271,7 +271,41 @@ swimComplex
   .edge("charge", "receipt", { id: "sw6", label: "引けた", tone: "success" })
   .edge("receipt", "ship", { id: "sw7", label: "出してよい" })
   .edge("ship", "reply", { id: "sw8", label: "手配した" })
-  .edge("reply", "see", { id: "sw9", label: "返す", style: "dotted-flow" });
+  .edge("reply", "see", { id: "sw9", label: "返す", style: "dotted-flow" })
+  // **`swimlane()` は段を自動で作らない**。 他のひな形は helper が図の `topic` を題にした段を
+  // 1 つ置き、`withSteps()` が最後の段へ引き継ぐので末尾が図の型を名乗る。 ここだけ段が無い
+  // ため、`title` を外すと題が空になり (実測)、札も付かないままだった (簡単な版は #1870 で手書き)。
+  .phase(
+    "p",
+    {
+      duration: 2400,
+      title: "注文が 4 つの持ち場を往き来して返るまで",
+      body: "4 本の縦列を往って還る 1 周が閉じる。 点の線は外へ出る返事。",
+    },
+    (p: PhaseBuilder) =>
+      p
+        .activate(
+          "order",
+          "see",
+          "accept",
+          "check",
+          "reply",
+          "hold",
+          "ship",
+          "charge",
+          "receipt",
+          "sw1",
+          "sw2",
+          "sw3",
+          "sw4",
+          "sw5",
+          "sw6",
+          "sw7",
+          "sw8",
+          "sw9",
+        )
+        .badge("swimlane"),
+  );
 
 export const pattern__presetSwimlane__複雑 = withSteps(swimComplex.build(), [
   {
@@ -311,8 +345,6 @@ export const pattern__presetSwimlane__複雑 = withSteps(swimComplex.build(), [
   },
   {
     ids: ["see", "sw9"],
-    title: "8. 結果が利用者へ返る",
-    body: "4 本の縦列を往って還る 1 周が閉じる。 点の線は外へ出る返事。",
   },
 ]);
 
@@ -580,7 +612,6 @@ export const pattern__presetSequence__複雑 = withSteps(
       sets: [{ id: "seq_step", value: 11 }],
     },
     {
-      title: "8. 受け付けて返す",
       body: "緑の返事が画面へ戻り、往復が閉じる。 帯が残るのは受付だけ。",
       sets: [{ id: "seq_step", value: 12 }],
     },
@@ -709,7 +740,6 @@ export const pattern__presetTopology__複雑 = withSteps(topoComplex.build(), [
   },
   {
     ids: ["db", "c8-api-db", "c9-worker-db"],
-    title: "8. 台帳へ読み書きする",
     body: "2 つの役が同じ台帳を使う。 色を変えて残す道だと分かるようにした。",
   },
 ]);
@@ -3128,7 +3158,6 @@ export const pattern__presetNetwork__複雑 = withSteps(networkComplex, [
   },
   {
     ids: ["mgmt", "desk", "nl-6-core2-mgmt", "nl-9-mgmt-desk"],
-    title: "8. 手入れの道を分ける",
     body: "管理の区画は仕事の道と別に置く。 事務所の端末はここからだけ入る。",
   },
 ]);
