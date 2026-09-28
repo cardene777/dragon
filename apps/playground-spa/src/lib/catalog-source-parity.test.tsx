@@ -22,6 +22,15 @@
  * ## 表せない中身は宣言する
  *
  * 宣言に無い差が出たら落ちる = 記法を書き換えて図がずれた時に気付ける。
+ *
+ * ## JSON の組はここでは見ない (#2627)
+ *
+ * 見本は 3 つの形で書かれる。 組み立て API と記法の組を見るのはこの file で、**記法と JSON の
+ * 組は `packages/dragon/test/catalog-two-form-parity.test.ts` (#2625) が全件見る**。
+ * あちらは 2 形をどちらも同じ引数で組み立てて比べるので、除外している欄が 1 つも無い。
+ *
+ * 名指しするのは、片方だけを読んだ人が **もう片方を無いものと読むから**。 #2627 の前は
+ * 2 つの file が互いに触れておらず、組み立てと記法の突き合わせを 2 本目として作りかけた。
  */
 import { describe, it, expect, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
