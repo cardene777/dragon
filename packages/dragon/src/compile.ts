@@ -13,6 +13,7 @@ import type { DslDocument, DslLane, DslStep, DslEventBinding, PresetType } from 
 // 図種ごとの組み立てを分けた先 (#2030)。 共有の小道具から順に出している。
 // どれも他の file を取り込まない葉なので、図種ごとの file と両方から呼んでも輪にならない
 import { 向きを選べる図種, 縦列より向きが勝つ図種, 既定の向き } from "./compile/direction";
+import { 並び順が効くか, 並び順を選べる図種 } from "./compile/order";
 import { actorRefTable, canonicalizeFlowActors } from "./compile/actors";
 import { compileC4 } from "./compile/c4";
 import { compileClass } from "./compile/class";
@@ -27,7 +28,6 @@ import { compileJourney } from "./compile/journey";
 import { compileMind } from "./compile/mind";
 import { compileQuadrant } from "./compile/quadrant";
 import { compileSequence } from "./compile/sequence";
-import { compileSolidity } from "./compile/solidity";
 import { compileState } from "./compile/state";
 import { compileFlowchart } from "./compile/flowchart";
 import { compileSwimlane } from "./compile/swimlane";
@@ -182,9 +182,6 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "topology":
       diagram = compileTopology(doc);
       break;
-    case "solidity":
-      diagram = compileSolidity(doc);
-      break;
     case "gantt":
       diagram = compileGantt(doc, 図種の知らせ);
       break;
@@ -289,6 +286,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportFlowOffsetNotHonored(書いたまま, opts?.onNotice);
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   reportDirectionNotHonored(書いたまま, opts?.onNotice);
+  reportOrderNotHonored(書いたまま, opts?.onNotice);
   reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
   reportAxesNotHonored(書いたまま, opts?.onNotice);
@@ -305,7 +303,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
    *
    * 照合は箱に出る題で行う (理由は `applyNodeTones` の説明)。 その題が箱に入る時点が
    * 図種で 2 つに割れており、15 図種は組み立て器が `箱の題` で入れる一方、
-   * 順序図 / solidity / 帯図 / c4 は登場人物の名前で箱を作り、`applyV05Extensions` が
+   * 順序図 / 帯図 / c4 は登場人物の名前で箱を作り、`applyV05Extensions` が
    * 題へ書き換える。 書き換えより前に照合すると、後者の 4 図種で題と名前が食い違う。
    *
    * 実測 = ここより前で呼んでいた間、題を書いた箱の色が 5 図種 (フロー / 構成図 /
@@ -350,7 +348,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   //
   // 描画側は「段が 1 件以上」 を要求するが、 段を作るかどうかは種類ごとにばらけている。
   // 実測 = `animation:` を書かない同じ記法を 12 種に与えると、 6 種 (sequence / flow / er /
-  // state / topology / solidity) は描かれ、 6 種 (swimlane / gantt / class / pie / c4 / mind)
+  // state / topology) は描かれ、 6 種 (swimlane / gantt / class / pie / c4 / mind)
   // は「phase が 0 件です」 で弾かれた。 書く人から見ると区別する手がかりが無い。
   //
   // **出口で 1 度だけ見る**。 種類ごとに塞ぐと 12 経路のどれかを見落とす。 図は必ずここを
@@ -938,7 +936,7 @@ const 板が伝えない矢印の欄: ReadonlySet<string> = new Set([
  */
 function reportMessageOptionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
-  if (doc.type !== "sequence" && doc.type !== "solidity") return;
+  if (doc.type !== "sequence") return;
   const 名前の表 = actorRefTable(doc);
   for (const s of doc.flow) {
     if (!名前の表.has(s.from) || !名前の表.has(s.to)) continue;
@@ -1171,7 +1169,7 @@ function reportBandProblems(
         actor: b.actor,
         line: b.pos?.line ?? 0,
         message: `type: ${doc.type} は帯を描きません (書いた帯は図に出ません)`,
-        hint: "帯は板の縦線に重ねる四角なので、 type: sequence か type: solidity で使う",
+        hint: "帯は板の縦線に重ねる四角なので、 type: sequence で使う",
       });
     }
     return;
@@ -1246,7 +1244,7 @@ function reportCardinalityNotHonored(
   onNotice?: (n: CompileNotice) => void,
 ): void {
   if (!onNotice) return;
-  if (doc.type === "sequence" || doc.type === "solidity") return;
+  if (doc.type === "sequence") return;
   const 名前の表 = actorRefTable(doc);
   for (const s of doc.flow) {
     const 書いた = 書いた多重度を読む(s.cardinality);
@@ -1294,7 +1292,7 @@ function reportCardinalityNotHonored(
  */
 function reportFlowOffsetNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
-  if (doc.type === "sequence" || doc.type === "solidity") return;
+  if (doc.type === "sequence") return;
   for (const s of doc.flow) {
     if (s.layoutPos === undefined) continue;
     if (s.label !== undefined && s.label.trim() !== "") continue;
@@ -1323,15 +1321,21 @@ function reportFlowOffsetNotHonored(doc: DslDocument, onNotice?: (n: CompileNoti
  */
 function reportActorKindNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
-  if (doc.type !== "sequence" && doc.type !== "solidity") return;
+  if (doc.type !== "sequence") return;
+  /*
+   * **種類で並べ替える図では鳴らさない** (#2655)。
+   *
+   * 種類は板の絵には出ないが、並び順を書いた図では **面の並びを決めている**ので、
+   * 書いた意味は figure に出ている。 落ちたと伝えると、正しく効いている指定に毎回鳴る。
+   *
+   * 畳む前はこの判定を図種 (`solidity`) で行っていた。 型を畳んだので、同じことを
+   * 並び順が効いているかで見る = 古い名前で書いた図は読み替えでこの語が入るため、
+   * 鳴らないという振る舞いが前と変わらない。
+   */
+  if (並び順が効くか(doc)) return;
   for (const a of doc.actors) {
     if (a.partId !== undefined) continue;
     /*
-     * 種類は `sequence` でだけ落ちる。
-     *
-     * `solidity` は種類で **面の並びを決める** (`compileSolidity`) ので、絵にならなくても
-     * 書いた意味は figure に出ている。 落ちたと伝えると、正しく効いている指定に毎回鳴る。
-     *
      * 記法を通すと既定の `actor` が必ず入るため、値ではなく書いたかどうかの印で見る。
      * 記法を通さず直接組み立てた場合はこの印が無いので、種類を置いたこと自体を「書いた」 とみなす
      */
@@ -1850,7 +1854,7 @@ function reportMissingFlowActors(
  * | 光り方 | 図種 | 知らせる条件 |
  * |---|---|---|
  * | 書いた箱 / 矢印が光る | `c4` `class` `er` `flow` `state` `swimlane` `topology` | 図がその相手を持たない時 |
- * | 書いた名前に合う言づてまで板が進む | `sequence` `solidity` | 知らせない (下記) |
+ * | 書いた名前に合う言づてまで板が進む | `sequence` | 知らせない (下記) |
  * | 図全体の 1 箱が光る | 残る 15 図種 | 書かなかった箱がある時と、矢印を書いた時 |
  *
  * **板の 2 図種では知らせない**。 板は箱も矢印も持たないが、書いた名前は捨てられておらず
@@ -1916,7 +1920,7 @@ function reportMissingFocusTargets(
   const 部品そのもの = new Set(部品の名前);
 
   // 板の 2 図種は書いた名前を板の番号に使う (doc comment の表)。 図と突き合わせない
-  const 板になる = doc.type === "sequence" || doc.type === "solidity";
+  const 板になる = doc.type === "sequence";
   const 見比べる図 = 板になる ? undefined : diagram;
 
   // 綴り違いの補足は **1 度だけ作る**。 知らせごとに全ての名前を並べ直すと、名前も注目先も
@@ -2025,7 +2029,7 @@ function 図の箱を探す(diagram: CdlDiagram, 名: string): CdlNode | undefin
 /**
  * 図の中から、書いた両端の矢印を探す (#2336 / #2398)。
  *
- * 板になる 2 図種 (`sequence` / `solidity`) は識別子に行の番号が入るので、書いた組が
+ * 板になる図種 (`sequence`) は識別子に行の番号が入るので、書いた組が
  * 流れの何番目かを先に引いてから照合する。
  */
 function 図の矢印を探す(
@@ -2036,7 +2040,7 @@ function 図の矢印を探す(
 ): CdlEdge | undefined {
   const from = slugify(fromName);
   const to = slugify(toName);
-  if (doc.type === "sequence" || doc.type === "solidity") {
+  if (doc.type === "sequence") {
     const stepIdx = doc.flow.findIndex(
       (step) => slugify(step.from) === from && slugify(step.to) === to,
     );
@@ -2087,7 +2091,7 @@ function applyEdgeInlineOptions(
   const used = new Set<string>();
   // edge.from / edge.to は plain slug (slugify(actor 名))。
   //
-  // 順序図系 (`sequence` / `solidity`) はここに来ない = #1466 で板になり矢印を作らない。
+  // 順序図 (`sequence`) はここに来ない = #1466 で板になり矢印を作らない。
   doc.flow.forEach((s) => {
     const fromId = slugify(s.from);
     const toId = slugify(s.to);
@@ -2134,7 +2138,7 @@ function 出来事の相手を解く(
  * 出来事が指す名前を、書いた人が本文に書いているか (#2336)。
  *
  * 相手が解けなかった原因を 2 つに分けるために使う。 **本文に在るなら書き直しても直らない** =
- * その図種が登場人物を箱にしない (値を並べる図種は図全体で 1 つの箱、 順序図と solidity は
+ * その図種が登場人物を箱にしない (値を並べる図種は図全体で 1 つの箱、 順序図は
  * 1 枚の板)。 本文に無いなら綴り違いで、書き直せば直る。
  *
  * 分けないと、直る件と直らない件に同じ「名前で書く」 という案内が付く。 案内に従っても
@@ -2193,7 +2197,7 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   // 渡し忘れた図種でそのまま落ちていた (実測 = 線の種類は `er` / `state` / 鎖でつないだ `flow`、
   // 色味は鎖でつないだ `flow` で黙って消える)。 図種を足した日に同じ落とし方が再発するため、
   // 矢印を描く図種が必ず通るここへ移す。 図種ごとの組み立てに置いていた同じ受け渡しは外した =
-  // 2 か所に置くと、片方だけ直した日に食い違う。 板になる 2 図種 (`sequence` / `solidity`) は
+  // 2 か所に置くと、片方だけ直した日に食い違う。 板になる図種 (`sequence`) は
   // 矢印を作らずここを通らないので、そちらは組み立てが持ったまま
   if (s.tone !== undefined) target.tone = s.tone;
   if (s.style !== undefined) target.style = s.style;
@@ -2622,7 +2626,7 @@ function applyV05Extensions(
   /** `lanes:` が新しく作った縦列。 箱が入ったかは見本を重ねた後でないと分からない (#1241) */
   追加した縦列out?: DslLane[],
 ): CdlDiagram {
-  // actor の主要 node を preset 種別で回収する。 sequence / solidity は header/footer を対で生成する
+  // actor の主要 node を preset 種別で回収する。 sequence は header/footer を対で生成する
   // preset で主要 node は header、 それ以外の preset は actor 名 slug がそのまま node id になる。
   //
   // seq-like の非 animate 経路は実 node id を CDL preset 側 slugify (`_` → `-` 置換 + 全角正規化) で
@@ -2630,7 +2634,7 @@ function applyV05Extensions(
   // primaryNodeId `a_b-header` が実 node `a-b-header` と食い違い、 inline option (subtitle / eyebrow /
   // value / rows) が drop する (#881、 #873 / #877 と同根の dragon⇔CDL slug 不一致)。
   //
-  // **順序図系はここを通らない** (#1466)。 `sequence` / `solidity` は 1 枚の板になり、面ごとの
+  // **順序図はここを通らない** (#1466)。 `sequence` は 1 枚の板になり、面ごとの
   // 箱も縦列も作らなくなった = 書いた欄を写す相手が無い。 面に書いた内容が効かないことは
   // `reportActorKindNotHonored` が伝える。
   // actor inline option → node merge
@@ -2640,7 +2644,7 @@ function applyV05Extensions(
     const primaryNodes = diagram.nodes.filter((n) => n.id === dragonSlug);
     for (const node of primaryNodes) {
       // 識別に使う名前と、箱に出す題を分ける (#1381)。 preset が actor 名で
-      // node を作る経路 (sequence / solidity / swimlane / c4) もここで書き換える。
+      // node を作る経路 (sequence / swimlane / c4) もここで書き換える。
       if (a.title !== undefined) node.title = a.title;
       // `type: c4` では説明の先頭に段の目印 (`L1` / `L2` / `L3`) を書く。 目印は組み立てに
       // 段を伝えるためのもので読む人に意味を持たず、 段の名前は枠のラベルが既に出している。
@@ -2952,4 +2956,27 @@ function reportDirectionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
       hint: `並びを変えるなら ${既定 === "縦" ? "横" : "縦"} を書いてください。 今の並びのままにするなら direction の行は外せます`,
     });
   }
+}
+
+/**
+ * 書いた並び順が効かない図種に書かれた時に伝える (#2655)。
+ *
+ * 向きの知らせと同じ形にする。 黙って捨てると「書いたのに並びが変わらない」 が
+ * 手掛かりなしで起きる。
+ *
+ * **既定と同じ値の知らせは持たない** = 並び順は書かなければ書いた順で、`種類` はそれと
+ * 必ず違う結果になる (同じ並びになるのは箱が種類の順に書かれていた時だけで、それは
+ * 図ごとに変わる)。 向きのように「既定と同じ語」 が存在しない。
+ */
+function reportOrderNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.order === undefined) return;
+  if (並び順を選べる図種.has(doc.type)) return;
+  onNotice({
+    kind: "order-not-honored",
+    actor: doc.title,
+    line: doc.orderPos?.line ?? doc.pos?.line ?? 0,
+    message: `書いた order は効きません (type: ${doc.type} は並び方そのものが読み方を決めます)`,
+    hint: `order を書けるのは ${[...並び順を選べる図種].join(" / ")} です`,
+  });
 }

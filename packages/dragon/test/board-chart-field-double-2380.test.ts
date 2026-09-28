@@ -22,7 +22,7 @@ import {
 import { parseTextDslV05 } from "../src/v05/parser";
 
 /** 板の 2 図種。 `reportActorKindNotHonored` が対象にする図種と同じ */
-const 板の図種 = ["sequence", "solidity"] as const;
+const 板の図種 = ["sequence"] as const;
 
 /** 4 欄の書き方。 一覧は実装から取り、値だけをここで決める */
 const 書き方: Record<string, string> = {

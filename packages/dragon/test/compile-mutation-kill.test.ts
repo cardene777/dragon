@@ -397,11 +397,12 @@ describe("compilePie / compileClass", () => {
   });
 });
 
-// ── compileSolidity: kind 優先順 sort ──
-describe("compileSolidity", () => {
+// ── order: 種類 の並べ替え ──
+describe("order: 種類", () => {
   it("actor を kind 優先順 (eoa/contract/storage/event) に並べ替える", () => {
     // 入力順 event → contract → eoa、 sort 後は eoa(0) → contract(1) → event(3)
-    const d = compile("solidity", {
+    const d = compile("sequence", {
+      order: "種類",
       actors: [actor("Evt", { kind: "event" }), actor("Ctr", { kind: "contract" }), actor("Usr", { kind: "actor" })],
       flow: [step("Usr", "Ctr")],
     });

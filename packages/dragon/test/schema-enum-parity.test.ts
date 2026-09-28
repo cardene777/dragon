@@ -39,8 +39,9 @@ import {
   部品の表,
   つまみの表,
   書ける色名,
+  TYPE_ALIASES,
 } from "../src/v05/parser";
-import { PALETTES, DIRECTIONS, DIRECTION_ALIAS } from "../src/keywords";
+import { PALETTES, DIRECTIONS, DIRECTION_ALIAS, ORDERS, ORDER_ALIAS } from "../src/keywords";
 import { EDGE_REVEALS, RELATION_FOCUSES } from "@cardenelabs/cdl";
 import { RELATIVE_DIRECTIONS } from "../src/relative-pos";
 
@@ -101,11 +102,14 @@ function 分岐の目印か(path: string, 全部: ReadonlySet<string>): boolean 
  * その語は記法として受けていないので、schema から外す。
  */
 const 対応表: Record<string, readonly string[]> = {
-  type: [...PRESET_TYPES],
+  // 古い綴り (`solidity`) も記法と JSON の両方が受けるので、schema も並べる (#2655)
+  type: [...PRESET_TYPES, ...TYPE_ALIASES.keys()],
   // JSON は英語で書く。 正規の語 (`縦` / `横`) を除いた別名がそのまま JSON の語になる
   direction: Object.keys(DIRECTION_ALIAS).filter(
     (k) => !(DIRECTIONS as readonly string[]).includes(k),
   ),
+  // 並べ替えの軸も向きと同じ形 (#2655)。 正規の語 (`種類`) を除いた別名が JSON の語になる
+  order: Object.keys(ORDER_ALIAS).filter((k) => !(ORDERS as readonly string[]).includes(k)),
   palette: [...PALETTES],
   reveal: [...EDGE_REVEALS],
   relations: [...RELATION_FOCUSES],

@@ -808,6 +808,126 @@ export const pattern__flowDirection__書いた端のとおりに繋ぐ = textDsl
   sourceYaml__pattern__flowDirection__書いた端のとおりに繋ぐ,
 );
 
+// ---- 順序図の箱の並べ替え (order) ----
+//
+// 並べ替えは順序図だけに効く。 書かない図は登場人物を書いた順に左から置き、書くと種類の順
+// (人 → 契約 → 保管 → 出来事) に置き直す。 見比べるために、書いた順と種類の順が食い違う並びにする。
+//
+// **書かない側は箱に種類を書かない**。 順序図の板は種類を描かないので、並べ替えを書かずに
+// 種類だけ書くと「書いた種類は効きません」 の知らせが出る。 並べ替えを書いた側でだけ種類が
+// 意味を持つ = 種類は並べ替えの読む材料で、書かない側に置くと効かない指定になる。
+
+export const patternBase__boxOrder = "書かない";
+
+export const subtitle__boxOrder =
+  "順序図の箱を種類の順に並べ替える (order)。 書かない図は書いた順のまま左から置く";
+
+export const sourceYaml__boxOrder = `title: "順序図の箱を書いた順に置く"
+type: sequence
+
+actors:
+  - 金庫
+  - 利用者
+  - 履歴
+
+flow:
+  - 利用者 -> 金庫: "預ける"
+  - 金庫 -> 履歴: "残す"
+
+animation:
+  - step: "預ける" 1.6s
+    focus: [利用者, 金庫, "利用者 -> 金庫"]
+    description: "並べ替えを書かないので、箱は記法に書いた順のまま左から 金庫 / 利用者 / 履歴 と並ぶ。"
+  - step: "残す" 1.6s
+    focus: [金庫, 履歴, "金庫 -> 履歴"]
+    description: "言づては書いた順に進む。 並びが書いた順のままなので、1 通目は右から左へ戻る形になる。"
+`;
+
+export const sourceJson__boxOrder = `{
+  "title": "順序図の箱を書いた順に置く",
+  "type": "sequence",
+  "actors": [
+    { "name": "金庫" },
+    { "name": "利用者" },
+    { "name": "履歴" }
+  ],
+  "flow": [
+    { "from": "利用者", "to": "金庫", "label": "預ける" },
+    { "from": "金庫", "to": "履歴", "label": "残す" }
+  ],
+  "animation": [
+    {
+      "step": "預ける",
+      "duration": 1.6,
+      "focus": ["利用者", "金庫", "利用者 -> 金庫"],
+      "description": "並べ替えを書かないので、箱は記法に書いた順のまま左から 金庫 / 利用者 / 履歴 と並ぶ。"
+    },
+    {
+      "step": "残す",
+      "duration": 1.6,
+      "focus": ["金庫", "履歴", "金庫 -> 履歴"],
+      "description": "言づては書いた順に進む。 並びが書いた順のままなので、1 通目は右から左へ戻る形になる。"
+    }
+  ]
+}`;
+
+export const boxOrder = textDslToDiagram(sourceYaml__boxOrder);
+
+export const sourceYaml__pattern__boxOrder__種類の順に置く = `title: "順序図の箱を種類の順に置く"
+type: sequence
+order: 種類
+
+actors:
+  - 金庫: { kind: contract }
+  - 利用者: { kind: eoa }
+  - 履歴: { kind: storage }
+
+flow:
+  - 利用者 -> 金庫: "預ける"
+  - 金庫 -> 履歴: "残す"
+
+animation:
+  - step: "預ける" 1.6s
+    focus: [利用者, 金庫, "利用者 -> 金庫"]
+    description: "並べ替えを書くと、書いた順 (金庫 / 利用者 / 履歴) ではなく種類の順に 利用者 / 金庫 / 履歴 と並ぶ。"
+  - step: "残す" 1.6s
+    focus: [金庫, 履歴, "金庫 -> 履歴"]
+    description: "人が左端に来るので、言づては左から右へ順に進む。 並べ替えが読むのは箱に書いた kind だけ。"
+`;
+
+export const sourceJson__pattern__boxOrder__種類の順に置く = `{
+  "title": "順序図の箱を種類の順に置く",
+  "type": "sequence",
+  "order": "kind",
+  "actors": [
+    { "name": "金庫", "kind": "contract" },
+    { "name": "利用者", "kind": "eoa" },
+    { "name": "履歴", "kind": "storage" }
+  ],
+  "flow": [
+    { "from": "利用者", "to": "金庫", "label": "預ける" },
+    { "from": "金庫", "to": "履歴", "label": "残す" }
+  ],
+  "animation": [
+    {
+      "step": "預ける",
+      "duration": 1.6,
+      "focus": ["利用者", "金庫", "利用者 -> 金庫"],
+      "description": "並べ替えを書くと、書いた順 (金庫 / 利用者 / 履歴) ではなく種類の順に 利用者 / 金庫 / 履歴 と並ぶ。"
+    },
+    {
+      "step": "残す",
+      "duration": 1.6,
+      "focus": ["金庫", "履歴", "金庫 -> 履歴"],
+      "description": "人が左端に来るので、言づては左から右へ順に進む。 並べ替えが読むのは箱に書いた kind だけ。"
+    }
+  ]
+}`;
+
+export const pattern__boxOrder__種類の順に置く = textDslToDiagram(
+  sourceYaml__pattern__boxOrder__種類の順に置く,
+);
+
 // ---- 状態の始まりと終わり (initial / final) ----
 //
 // 書かない図は並びの最初と最後で決まる。 書くと書いた箱だけが始まりと終わりになり、終わりを 2 つ持てる。

@@ -1359,6 +1359,143 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > mind の図と�
 }
 `;
 
+exports[`組み立ての結果を丸ごと固定する (#2030) > order の図と知らせが記録と一致する 1`] = `
+{
+  "図": {
+    "edges": [],
+    "id": "投票コントラクト",
+    "lanes": [
+      {
+        "id": "seq",
+        "width": 930,
+      },
+    ],
+    "nodes": [
+      {
+        "h": 368,
+        "id": "投票コントラクト",
+        "kind": "sequence-board",
+        "lane": "seq",
+        "sequenceData": {
+          "actors": [
+            {
+              "name": "有権者",
+            },
+            {
+              "name": "投票箱",
+            },
+            {
+              "name": "集計",
+            },
+          ],
+          "bands": [
+            {
+              "actor": 0,
+              "from": 0,
+              "to": 2,
+            },
+            {
+              "actor": 1,
+              "from": 0,
+              "to": 1,
+            },
+            {
+              "actor": 2,
+              "from": 1,
+              "to": 2,
+            },
+          ],
+          "messages": [
+            {
+              "from": 0,
+              "kind": "call",
+              "label": "vote(id)",
+              "to": 1,
+            },
+            {
+              "from": 1,
+              "kind": "call",
+              "label": "tally()",
+              "to": 2,
+            },
+            {
+              "from": 2,
+              "kind": "call",
+              "label": "結果",
+              "to": 0,
+            },
+          ],
+        },
+        "sequenceStep": "{seq_step}",
+        "stack": 0,
+        "title": "",
+        "tone": "accent",
+        "w": 880,
+      },
+    ],
+    "phases": [
+      {
+        "activate": [
+          "投票コントラクト",
+        ],
+        "body": "",
+        "duration": 1500,
+        "id": "p0",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 0,
+          },
+        ],
+        "title": "投票",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "投票コントラクト",
+        ],
+        "body": "",
+        "duration": 1500,
+        "id": "p1",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 1,
+          },
+        ],
+        "title": "集計",
+        "tweens": [],
+      },
+      {
+        "activate": [
+          "投票コントラクト",
+        ],
+        "body": "",
+        "duration": 1200,
+        "id": "p2",
+        "sets": [
+          {
+            "stateId": "seq_step",
+            "value": 2,
+          },
+        ],
+        "title": "結果",
+        "tweens": [],
+      },
+    ],
+    "states": [
+      {
+        "id": "seq_step",
+        "initial": "0",
+      },
+    ],
+    "topic": "投票コントラクト",
+    "type": "sequence",
+  },
+  "知らせ": [],
+}
+`;
+
 exports[`組み立ての結果を丸ごと固定する (#2030) > pie の図と知らせが記録と一致する 1`] = `
 {
   "図": {
@@ -1931,143 +2068,6 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > slope の図と
     "states": [],
     "topic": "経路別の申込み",
     "type": "chart",
-  },
-  "知らせ": [],
-}
-`;
-
-exports[`組み立ての結果を丸ごと固定する (#2030) > solidity の図と知らせが記録と一致する 1`] = `
-{
-  "図": {
-    "edges": [],
-    "id": "投票コントラクト",
-    "lanes": [
-      {
-        "id": "seq",
-        "width": 930,
-      },
-    ],
-    "nodes": [
-      {
-        "h": 368,
-        "id": "投票コントラクト",
-        "kind": "sequence-board",
-        "lane": "seq",
-        "sequenceData": {
-          "actors": [
-            {
-              "name": "有権者",
-            },
-            {
-              "name": "投票箱",
-            },
-            {
-              "name": "集計",
-            },
-          ],
-          "bands": [
-            {
-              "actor": 0,
-              "from": 0,
-              "to": 2,
-            },
-            {
-              "actor": 1,
-              "from": 0,
-              "to": 1,
-            },
-            {
-              "actor": 2,
-              "from": 1,
-              "to": 2,
-            },
-          ],
-          "messages": [
-            {
-              "from": 0,
-              "kind": "call",
-              "label": "vote(id)",
-              "to": 1,
-            },
-            {
-              "from": 1,
-              "kind": "call",
-              "label": "tally()",
-              "to": 2,
-            },
-            {
-              "from": 2,
-              "kind": "call",
-              "label": "結果",
-              "to": 0,
-            },
-          ],
-        },
-        "sequenceStep": "{seq_step}",
-        "stack": 0,
-        "title": "",
-        "tone": "accent",
-        "w": 880,
-      },
-    ],
-    "phases": [
-      {
-        "activate": [
-          "投票コントラクト",
-        ],
-        "body": "",
-        "duration": 1500,
-        "id": "p0",
-        "sets": [
-          {
-            "stateId": "seq_step",
-            "value": 0,
-          },
-        ],
-        "title": "投票",
-        "tweens": [],
-      },
-      {
-        "activate": [
-          "投票コントラクト",
-        ],
-        "body": "",
-        "duration": 1500,
-        "id": "p1",
-        "sets": [
-          {
-            "stateId": "seq_step",
-            "value": 1,
-          },
-        ],
-        "title": "集計",
-        "tweens": [],
-      },
-      {
-        "activate": [
-          "投票コントラクト",
-        ],
-        "body": "",
-        "duration": 1200,
-        "id": "p2",
-        "sets": [
-          {
-            "stateId": "seq_step",
-            "value": 2,
-          },
-        ],
-        "title": "結果",
-        "tweens": [],
-      },
-    ],
-    "states": [
-      {
-        "id": "seq_step",
-        "initial": "0",
-      },
-    ],
-    "topic": "投票コントラクト",
-    "type": "sequence",
   },
   "知らせ": [],
 }

@@ -56,9 +56,7 @@ describe("箱に書いた縦列が効かないことを伝える (#1246)", () =>
 
   it("知らせに図種の名前が入る", () => {
     // どの図種が縦列を決めているかが分からないと、 図種を変える判断ができない
-    expect(縦列の知らせ(記法(二人("lane: ui"), "solidity"))[0]?.message).toContain(
-      "type: solidity",
-    );
+    expect(縦列の知らせ(記法(二人("lane: ui"), "c4"))[0]?.message).toContain("type: c4");
   });
 
   it("知らせに直し方が入る", () => {
@@ -79,7 +77,7 @@ describe("箱に書いた縦列が効かないことを伝える (#1246)", () =>
   // なったため別扱い (下の describe)
   // `er` は #1571 で選べるようになったため別扱い (下の describe)
   for (const type of [
-    "sequence", "solidity", "c4",
+    "sequence", "c4",
     "gantt", "pie", "bar", "line", "funnel", "tree", "journey", "quadrant",
   ]) {
     it(`${type} でも知らせが出る`, () => {

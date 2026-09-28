@@ -89,7 +89,6 @@ function cdl側のslug(s: string): string {
  */
 const 空の形の逃げ先: Record<PresetType, string[]> = {
   sequence: ["actor-"],
-  solidity: ["actor-"],
   swimlane: ["lane-"],
   // 分かれ道の図も縦列を持ち、 描画側は縦列の名前から箱を作る (`swimlane` と同じ逃げ先)
   flowchart: ["lane-"],
@@ -243,7 +242,7 @@ export function disambiguateActorIds(
           : { ...event, target: { ...target, from, to } };
       }
       // sequence 系の縦列は登場人物から作るため、同じ名前の読み替えが必要。
-      if (target.kind === "lane" && (doc.type === "sequence" || doc.type === "solidity")) {
+      if (target.kind === "lane" && doc.type === "sequence") {
         const name = 直す(target.name);
         return name === target.name ? event : { ...event, target: { ...target, name } };
       }

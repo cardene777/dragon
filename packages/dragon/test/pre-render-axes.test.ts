@@ -69,7 +69,6 @@ const 型と種類 = {
   er: ["storage"],
   state: ["card"],
   topology: ["actor"],
-  solidity: ["sequence-board"],
   gantt: ["gantt-timeline"],
   class: ["storage"],
   pie: ["chart-pie"],

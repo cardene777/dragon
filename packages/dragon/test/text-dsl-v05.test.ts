@@ -327,8 +327,10 @@ flow:
   });
 });
 
+// 古い綴り `solidity` は読み取りの入口で 順序図 + 並べ替え に読み替える (#2655)。
+// 書いてある記法をそのまま通す経路なので、読み替えた後の姿を見る
 describe("Text DSL v0.5 Solidity preset (PR #104)", () => {
-  it("type: solidity を受理し、 contract / eoa / event kind を parse", () => {
+  it("type: solidity を順序図 + 並べ替え として受理し、 contract / eoa / event kind を parse", () => {
     const r = parseTextDslV05(`
 title: "ERC-20 transfer"
 type: solidity
@@ -344,7 +346,8 @@ flow:
 `);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.type).toBe("solidity");
+    expect(r.doc.type).toBe("sequence");
+    expect(r.doc.order).toBe("種類");
     expect(r.doc.actors[0]).toMatchObject({ name: "Alice", kind: "eoa" });
     expect(r.doc.actors[1]).toMatchObject({ name: "Token", kind: "contract" });
     expect(r.doc.actors[2]).toMatchObject({ name: "Transfer", kind: "event" });

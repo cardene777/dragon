@@ -18,7 +18,7 @@ import { compileToCdl } from "../src/compile";
 import { INLINE_ACTOR_KEYS, parseTextDslV05 } from "../src/v05/parser";
 
 /** 登場人物を板で描く図種 */
-const 板の図種 = ["sequence", "solidity"] as const;
+const 板の図種 = ["sequence"] as const;
 
 /**
  * 走査から外す項目と、その理由。
@@ -145,7 +145,6 @@ describe("板の図で、箱に書いた指定が黙って消えない (#2358)",
     const 効くはず: Record<string, readonly string[]> = {
       // 種類は Solidity では面の並びを決めるので、絵にならなくても書いた意味が出ている (#1466)
       sequence: ["title", "subtitle"],
-      solidity: ["title", "subtitle", "kind"],
     };
     const 違う = 板の図種.flatMap((t) =>
       効くはず[t]!

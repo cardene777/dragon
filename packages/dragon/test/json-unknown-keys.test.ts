@@ -93,6 +93,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     reveal: "all",
     relations: "hover",
     direction: "horizontal",
+    // 箱を並べ替える軸 (#2655)
+    order: "kind",
     // 図の配色 (#1553)
     palette: "celadon",
   },

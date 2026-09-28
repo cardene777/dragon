@@ -71,7 +71,7 @@ describe("順序図の板を持つ見本が段を追って進む (#2133)", () =>
     });
     // 板を持つ見本が拾えていなければ下の検査は空振りする
     expect(板あり.map((x) => x.名), "板を持つ見本を拾えていない").toEqual(
-      expect.arrayContaining(["sse-stream", "編集画面 / 投票コントラクト (solidity)"]),
+      expect.arrayContaining(["sse-stream", "編集画面 / 投票コントラクト (sequence)"]),
     );
 
     const 進まない = 板あり
