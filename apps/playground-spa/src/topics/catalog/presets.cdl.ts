@@ -1576,7 +1576,7 @@ const presetClassDiagramSteps = withSteps(
       // 段ごとに色を書くと「この 2 つが同じ色」 という対応が 1 つの画面に揃わない。
       // 色だけを説明する段は足せない = 光る要素が増えない段は静止画と区別が付かず、
       // `catalog-motion-render.test.tsx` が落とす。 6 本が出揃う最後の段が唯一の置き場になる
-      body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。 6 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。",
+      body: "関連は実線に開いた矢で参照し続け、依存は破線に開いた矢で一時的に使う。 色の 3 群は縦の関係と向きだけの関係と所有の関係。",
     },
   ],
 );
@@ -4607,7 +4607,7 @@ animation:
   - step: "6. 関連と依存と色の群" 0.9s
     badge: "class"
     focus: [User, Admin, Auditable, Order, Line, Sku, Receipt, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"]
-    body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。 6 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。"
+    body: "関連は実線に開いた矢で参照し続け、依存は破線に開いた矢で一時的に使う。 色の 3 群は縦の関係と向きだけの関係と所有の関係。"
 `;
 
 export const sourceJson__presetClassDiagram = `{
@@ -4744,7 +4744,7 @@ export const sourceJson__presetClassDiagram = `{
       "step": "6. 関連と依存と色の群",
       "duration": 0.9,
       "focus": ["User", "Admin", "Auditable", "Order", "Line", "Sku", "Receipt", "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"],
-      "body": "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。 6 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。",
+      "body": "関連は実線に開いた矢で参照し続け、依存は破線に開いた矢で一時的に使う。 色の 3 群は縦の関係と向きだけの関係と所有の関係。",
       "badge": "class"
     }
   ]
