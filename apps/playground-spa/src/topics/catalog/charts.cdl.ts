@@ -70,14 +70,14 @@ states:
 animation:
   - step: "先月" 1.2s
     draw: bar
-    description: "検索が 420 で最も多い"
+    description: "検索が 420 で最も多い。"
   - step: "今月" 1.2s
     tween:
       search: 420 -> 680
       sns: 310 -> 420
       direct: 180 -> 150
       referral: 90 -> 240
-    description: "紹介が 90 から 240 へ伸びる"
+    description: "紹介が 90 から 240 へ伸びる。"
 `;
 
 export const sourceJson__chartBar = `{
@@ -92,11 +92,11 @@ export const sourceJson__chartBar = `{
   "flow": [],
   "states": { "search": 420, "sns": 310, "direct": 180, "referral": 90 },
   "animation": [
-    { "step": "先月", "duration": 1.2, "draw": "bar", "description": "検索が 420 で最も多い" },
+    { "step": "先月", "duration": 1.2, "draw": "bar", "description": "検索が 420 で最も多い。" },
     {
       "step": "今月",
       "duration": 1.2,
-      "description": "紹介が 90 から 240 へ伸びる",
+      "description": "紹介が 90 から 240 へ伸びる。",
       "tween": {
         "search": [420, 680],
         "sns": [310, 420],
@@ -140,12 +140,12 @@ states:
 animation:
   - step: "今月" 1.2s
     draw: bar
-    description: "破線が先月の高さ。 検索だけが 520 から 420 へ下がっている"
+    description: "破線が先月の高さ。 検索だけが 520 から 420 へ下がっている。"
   - step: "来月の見込み" 1.2s
     tween:
       search: 420 -> 680
       referral: 90 -> 240
-    description: "検索が破線を越えて戻る。 破線は先月のまま動かない"
+    description: "検索が破線を越えて戻る。 破線は先月のまま動かない。"
 `;
 
 export const sourceJson__pattern__chartBar__前の値つき = `{
@@ -164,12 +164,12 @@ export const sourceJson__pattern__chartBar__前の値つき = `{
       "step": "今月",
       "duration": 1.2,
       "draw": "bar",
-      "description": "破線が先月の高さ。 検索だけが 520 から 420 へ下がっている"
+      "description": "破線が先月の高さ。 検索だけが 520 から 420 へ下がっている。"
     },
     {
       "step": "来月の見込み",
       "duration": 1.2,
-      "description": "検索が破線を越えて戻る。 破線は先月のまま動かない",
+      "description": "検索が破線を越えて戻る。 破線は先月のまま動かない。",
       "tween": { "search": [420, 680], "referral": [90, 240] }
     }
   ]
@@ -203,14 +203,14 @@ states:
 animation:
   - step: "先月" 1.2s
     draw: bar 0.4
-    description: "棒は段の 4 割で伸びきり、残りの 6 割は伸びた棒で検索の 420 を見せる"
+    description: "棒は段の 4 割で伸びきり、残りの 6 割は伸びた棒で検索の 420 を見せる。"
   - step: "今月" 1.2s
     tween:
       search: 420 -> 680
       sns: 310 -> 420
       direct: 180 -> 150
       referral: 90 -> 240
-    description: "紹介が 90 から 240 へ伸びる"
+    description: "紹介が 90 から 240 へ伸びる。"
 `;
 
 export const sourceJson__pattern__chartBar__4割で伸ばし終える = `{
@@ -230,12 +230,12 @@ export const sourceJson__pattern__chartBar__4割で伸ばし終える = `{
       "duration": 1.2,
       "draw": "bar",
       "drawRatio": 0.4,
-      "description": "棒は段の 4 割で伸びきり、残りの 6 割は伸びた棒で検索の 420 を見せる"
+      "description": "棒は段の 4 割で伸びきり、残りの 6 割は伸びた棒で検索の 420 を見せる。"
     },
     {
       "step": "今月",
       "duration": 1.2,
-      "description": "紹介が 90 から 240 へ伸びる",
+      "description": "紹介が 90 から 240 へ伸びる。",
       "tween": {
         "search": [420, 680],
         "sns": [310, 420],
@@ -273,7 +273,7 @@ states:
 animation:
   - step: "改善前" 1.2s
     draw: line
-    description: "2 週目に 240 ms まで伸びている"
+    description: "2 週目に 240 ms まで伸びている。"
   - step: "改善後" 1.2s
     tween:
       w1: 180 -> 140
@@ -281,7 +281,7 @@ animation:
       w3: 210 -> 130
       w4: 120 -> 90
       w5: 95 -> 70
-    description: "全週が下がり、山も消える"
+    description: "全週が下がり、山も消える。"
 `;
 
 export const sourceJson__chartLine = `{
@@ -297,11 +297,11 @@ export const sourceJson__chartLine = `{
   "flow": [],
   "states": { "w1": 180, "w2": 240, "w3": 210, "w4": 120, "w5": 95 },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "draw": "line", "description": "2 週目に 240 ms まで伸びている" },
+    { "step": "改善前", "duration": 1.2, "draw": "line", "description": "2 週目に 240 ms まで伸びている。" },
     {
       "step": "改善後",
       "duration": 1.2,
-      "description": "全週が下がり、山も消える",
+      "description": "全週が下がり、山も消える。",
       "tween": {
         "w1": [180, 140],
         "w2": [240, 160],
@@ -336,14 +336,14 @@ states:
 animation:
   - step: "昨年" 1.2s
     draw: pie
-    description: "計算が 45% で半分近くを占める"
+    description: "計算が 45% で半分近くを占める。"
   - step: "今年" 1.2s
     tween:
       compute: 45 -> 30
       storage: 25 -> 35
       network: 20 -> 25
       other: 10 -> 10
-    description: "計算が下がり、保存が最大になる"
+    description: "計算が下がり、保存が最大になる。"
 `;
 
 export const sourceJson__chartPie = `{
@@ -358,11 +358,11 @@ export const sourceJson__chartPie = `{
   "flow": [],
   "states": { "compute": 45, "storage": 25, "network": 20, "other": 10 },
   "animation": [
-    { "step": "昨年", "duration": 1.2, "draw": "pie", "description": "計算が 45% で半分近くを占める" },
+    { "step": "昨年", "duration": 1.2, "draw": "pie", "description": "計算が 45% で半分近くを占める。" },
     {
       "step": "今年",
       "duration": 1.2,
-      "description": "計算が下がり、保存が最大になる",
+      "description": "計算が下がり、保存が最大になる。",
       "tween": {
         "compute": [45, 30],
         "storage": [25, 35],
@@ -404,12 +404,12 @@ states:
 animation:
   - step: "前期と今期" 1.2s
     draw: pie
-    description: "内が前期、外が今期。 計算が 52% から 45% へ下がった"
+    description: "内が前期、外が今期。 計算が 52% から 45% へ下がった。"
   - step: "今期の見込み" 1.2s
     tween:
       compute: 45 -> 30
       storage: 25 -> 35
-    description: "保存が伸びて最大になる。 内側の輪は前期のまま動かない"
+    description: "保存が伸びて最大になる。 内側の輪は前期のまま動かない。"
 `;
 
 export const sourceJson__pattern__chartPie__前と今 = `{
@@ -428,12 +428,12 @@ export const sourceJson__pattern__chartPie__前と今 = `{
       "step": "前期と今期",
       "duration": 1.2,
       "draw": "pie",
-      "description": "内が前期、外が今期。 計算が 52% から 45% へ下がった"
+      "description": "内が前期、外が今期。 計算が 52% から 45% へ下がった。"
     },
     {
       "step": "今期の見込み",
       "duration": 1.2,
-      "description": "保存が伸びて最大になる。 内側の輪は前期のまま動かない",
+      "description": "保存が伸びて最大になる。 内側の輪は前期のまま動かない。",
       "tween": { "compute": [45, 30], "storage": [25, 35] }
     }
   ]
@@ -462,14 +462,14 @@ states:
 animation:
   - step: "改善前" 1.2s
     draw: funnel
-    description: "訪問 12000 から申込み 480 まで絞られる"
+    description: "訪問 12000 から申込み 480 まで絞られる。"
   - step: "改善後" 1.2s
     tween:
       visit: 12000 -> 12000
       signup: 3400 -> 5200
       cart: 1200 -> 2400
       order: 480 -> 1100
-    description: "入口は同じまま、途中の残り方が変わる"
+    description: "入口は同じまま、途中の残り方が変わる。"
 `;
 
 export const sourceJson__funnelStages = `{
@@ -484,11 +484,11 @@ export const sourceJson__funnelStages = `{
   "flow": [],
   "states": { "visit": 12000, "signup": 3400, "cart": 1200, "order": 480 },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "draw": "funnel", "description": "訪問 12000 から申込み 480 まで絞られる" },
+    { "step": "改善前", "duration": 1.2, "draw": "funnel", "description": "訪問 12000 から申込み 480 まで絞られる。" },
     {
       "step": "改善後",
       "duration": 1.2,
-      "description": "入口は同じまま、途中の残り方が変わる",
+      "description": "入口は同じまま、途中の残り方が変わる。",
       "tween": {
         "visit": [12000, 12000],
         "signup": [3400, 5200],
@@ -521,7 +521,7 @@ flow:
 animation:
   - step: "段取りを引く" 1.2s
     draw: gantt
-    description: "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る"
+    description: "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る。"
 `;
 
 export const sourceJson__ganttTimeline = `{
@@ -543,7 +543,7 @@ export const sourceJson__ganttTimeline = `{
       "step": "段取りを引く",
       "duration": 1.2,
       "draw": "gantt",
-      "description": "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る"
+      "description": "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る。"
     }
   ]
 }`;
@@ -571,7 +571,7 @@ actors:
 animation:
   - step: "帯を引く" 1.2s
     draw: gantt
-    description: "前後の矢印は出ず、帯だけが始まりから右へ伸びる"
+    description: "前後の矢印は出ず、帯だけが始まりから右へ伸びる。"
 `;
 
 export const sourceJson__pattern__ganttTimeline__帯だけ = `{
@@ -589,7 +589,7 @@ export const sourceJson__pattern__ganttTimeline__帯だけ = `{
       "step": "帯を引く",
       "duration": 1.2,
       "draw": "gantt",
-      "description": "前後の矢印は出ず、帯だけが始まりから右へ伸びる"
+      "description": "前後の矢印は出ず、帯だけが始まりから右へ伸びる。"
     }
   ]
 }`;
@@ -617,12 +617,12 @@ states:
 animation:
   - step: "改善前" 1.2s
     draw: journey
-    description: "登録でつまずき、設定でようやく持ち直す"
+    description: "登録でつまずき、設定でようやく持ち直す。"
   - step: "改善後" 1.2s
     set:
       signup: "満足"
       setup: "最高"
-    description: "登録の作りを直すと、その後の山も上がる"
+    description: "登録の作りを直すと、その後の山も上がる。"
 `;
 
 export const sourceJson__journeyMap = `{
@@ -637,11 +637,11 @@ export const sourceJson__journeyMap = `{
   "flow": [],
   "states": { "signup": "不満", "setup": "満足" },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "draw": "journey", "description": "登録でつまずき、設定でようやく持ち直す" },
+    { "step": "改善前", "duration": 1.2, "draw": "journey", "description": "登録でつまずき、設定でようやく持ち直す。" },
     {
       "step": "改善後",
       "duration": 1.2,
-      "description": "登録の作りを直すと、その後の山も上がる",
+      "description": "登録の作りを直すと、その後の山も上がる。",
       "set": { "signup": "満足", "setup": "最高" }
     }
   ]
@@ -674,12 +674,12 @@ states:
 animation:
   - step: "改善前" 1.2s
     draw: journey
-    description: "起伏の下に、その気持ちが起きた場所が並ぶ"
+    description: "起伏の下に、その気持ちが起きた場所が並ぶ。"
   - step: "改善後" 1.2s
     set:
       signup: "満足"
       setup: "最高"
-    description: "接点はそのままで、山だけが上がる"
+    description: "接点はそのままで、山だけが上がる。"
 `;
 
 export const sourceJson__pattern__journeyMap__接点つき = `{
@@ -698,12 +698,12 @@ export const sourceJson__pattern__journeyMap__接点つき = `{
       "step": "改善前",
       "duration": 1.2,
       "draw": "journey",
-      "description": "起伏の下に、その気持ちが起きた場所が並ぶ"
+      "description": "起伏の下に、その気持ちが起きた場所が並ぶ。"
     },
     {
       "step": "改善後",
       "duration": 1.2,
-      "description": "接点はそのままで、山だけが上がる",
+      "description": "接点はそのままで、山だけが上がる。",
       "set": { "signup": "満足", "setup": "最高" }
     }
   ]
@@ -743,12 +743,12 @@ states:
 animation:
   - step: "5 つの気持ち" 1.2s
     draw: journey
-    description: "いちばん低い怒りから、いちばん高い最高まで、顔が 5 通りに描き分けられる"
+    description: "いちばん低い怒りから、いちばん高い最高まで、顔が 5 通りに描き分けられる。"
   - step: "窓口を 1 つにした後" 1.2s
     set:
       search: "普通"
       handoff: "満足"
-    description: "探す手間と、たらい回しが無くなると、谷が埋まる"
+    description: "探す手間と、たらい回しが無くなると、谷が埋まる。"
 `;
 
 export const sourceJson__pattern__journeyMap__5つの気持ち = `{
@@ -768,12 +768,12 @@ export const sourceJson__pattern__journeyMap__5つの気持ち = `{
       "step": "5 つの気持ち",
       "duration": 1.2,
       "draw": "journey",
-      "description": "いちばん低い怒りから、いちばん高い最高まで、顔が 5 通りに描き分けられる"
+      "description": "いちばん低い怒りから、いちばん高い最高まで、顔が 5 通りに描き分けられる。"
     },
     {
       "step": "窓口を 1 つにした後",
       "duration": 1.2,
-      "description": "探す手間と、たらい回しが無くなると、谷が埋まる",
+      "description": "探す手間と、たらい回しが無くなると、谷が埋まる。",
       "set": { "search": "普通", "handoff": "満足" }
     }
   ]
@@ -806,7 +806,7 @@ states:
 animation:
   - step: "手を付ける前" 1.2s
     draw: mind
-    description: "どの枝もまだ 0 ms"
+    description: "どの枝もまだ 0 ms。 手を付ける前の姿。"
   - step: "4 つを入れた後" 1.2s
     tween:
       paint: 0 -> 120
@@ -814,7 +814,7 @@ animation:
       skip: 0 -> 60
       cache: 0 -> 40
       total: 0 -> 300
-    description: "枝ごとの短縮が積み上がって 300 ms になる"
+    description: "枝ごとの短縮が積み上がって 300 ms になる。"
 `;
 
 export const sourceJson__mindMap = `{
@@ -830,11 +830,11 @@ export const sourceJson__mindMap = `{
   "flow": [],
   "states": { "total": 0, "paint": 0, "calc": 0, "skip": 0, "cache": 0 },
   "animation": [
-    { "step": "手を付ける前", "duration": 1.2, "draw": "mind", "description": "どの枝もまだ 0 ms" },
+    { "step": "手を付ける前", "duration": 1.2, "draw": "mind", "description": "どの枝もまだ 0 ms。 手を付ける前の姿。" },
     {
       "step": "4 つを入れた後",
       "duration": 1.2,
-      "description": "枝ごとの短縮が積み上がって 300 ms になる",
+      "description": "枝ごとの短縮が積み上がって 300 ms になる。",
       "tween": {
         "paint": [0, 120],
         "calc": [0, 80],
@@ -870,7 +870,7 @@ actors:
 animation:
   - step: "枝を広げる" 1.2s
     draw: mind
-    description: "根から 4 本の枝が伸びる。 数字は載せず、試すことだけを並べる"
+    description: "根から 4 本の枝が伸びる。 数字は載せず、試すことだけを並べる。"
 `;
 
 export const sourceJson__pattern__mindMap__見出しだけ = `{
@@ -889,7 +889,7 @@ export const sourceJson__pattern__mindMap__見出しだけ = `{
       "step": "枝を広げる",
       "duration": 1.2,
       "draw": "mind",
-      "description": "根から 4 本の枝が伸びる。 数字は載せず、試すことだけを並べる"
+      "description": "根から 4 本の枝が伸びる。 数字は載せず、試すことだけを並べる。"
     }
   ]
 }`;
@@ -916,12 +916,12 @@ states:
 
 animation:
   - step: "見直し前" 1.2s
-    description: "配色統一と旧記法はどちらも後回しに置いてある"
+    description: "配色統一と旧記法はどちらも後回しに置いてある。"
   - step: "見直し後" 1.2s
     set:
       color: "左上"
       legacy: "右上"
-    description: "効きを測り直すと、2 件とも上の段へ移る"
+    description: "効きを測り直すと、2 件とも上の段へ移る。"
 `;
 
 export const sourceJson__quadrantMatrix = `{
@@ -936,11 +936,11 @@ export const sourceJson__quadrantMatrix = `{
   "flow": [],
   "states": { "color": "左下", "legacy": "右下" },
   "animation": [
-    { "step": "見直し前", "duration": 1.2, "description": "配色統一と旧記法はどちらも後回しに置いてある" },
+    { "step": "見直し前", "duration": 1.2, "description": "配色統一と旧記法はどちらも後回しに置いてある。" },
     {
       "step": "見直し後",
       "duration": 1.2,
-      "description": "効きを測り直すと、2 件とも上の段へ移る",
+      "description": "効きを測り直すと、2 件とも上の段へ移る。",
       "set": { "color": "左上", "legacy": "右上" }
     }
   ]
@@ -970,7 +970,7 @@ flow:
 animation:
   - step: "構成を辿る" 1.2s
     draw: tree
-    description: "枝が根から段ごとに伸び、箱は枝が届いてから出る"
+    description: "枝が根から段ごとに伸び、箱は枝が届いてから出る。"
 `;
 
 export const sourceJson__treeHierarchy = `{
@@ -994,7 +994,7 @@ export const sourceJson__treeHierarchy = `{
       "step": "構成を辿る",
       "duration": 1.2,
       "draw": "tree",
-      "description": "枝が根から段ごとに伸び、箱は枝が届いてから出る"
+      "description": "枝が根から段ごとに伸び、箱は枝が届いてから出る。"
     }
   ]
 }`;
@@ -1029,7 +1029,7 @@ flow:
 animation:
   - step: "構成と役割を辿る" 1.2s
     draw: tree
-    description: "枝が根から段ごとに伸び、箱には名前の下に役割が出る"
+    description: "枝が根から段ごとに伸び、箱には名前の下に役割が出る。"
 `;
 
 export const sourceJson__pattern__treeHierarchy__説明つき = `{
@@ -1053,7 +1053,7 @@ export const sourceJson__pattern__treeHierarchy__説明つき = `{
       "step": "構成と役割を辿る",
       "duration": 1.2,
       "draw": "tree",
-      "description": "枝が根から段ごとに伸び、箱には名前の下に役割が出る"
+      "description": "枝が根から段ごとに伸び、箱には名前の下に役割が出る。"
     }
   ]
 }`;
@@ -1084,13 +1084,13 @@ states:
 animation:
   - step: "期の初め" 1.2s
     draw: gauge
-    description: "弧が 9 時から伸びる。 合計 1,100 のうち契約済が 680"
+    description: "弧が 9 時から伸びる。 合計 1,100 のうち契約済が 680。"
   - step: "期の半ば" 1.2s
     tween:
       signed: 680 -> 820
       talking: 240 -> 160
       untouched: 180 -> 120
-    description: "商談中と未着手が契約済へ移る"
+    description: "商談中と未着手が契約済へ移る。"
 `;
 
 export const sourceJson__chartGauge = `{
@@ -1108,12 +1108,12 @@ export const sourceJson__chartGauge = `{
       "step": "期の初め",
       "duration": 1.2,
       "draw": "gauge",
-      "description": "弧が 9 時から伸びる。 合計 1,100 のうち契約済が 680"
+      "description": "弧が 9 時から伸びる。 合計 1,100 のうち契約済が 680。"
     },
     {
       "step": "期の半ば",
       "duration": 1.2,
-      "description": "商談中と未着手が契約済へ移る",
+      "description": "商談中と未着手が契約済へ移る。",
       "tween": {
         "signed": [680, 820],
         "talking": [240, 160],
@@ -1154,13 +1154,13 @@ states:
 animation:
   - step: "期の初め" 1.2s
     draw: gauge
-    description: "内が前期、外が今期。 契約済が 520 から 680 へ増えた"
+    description: "内が前期、外が今期。 契約済が 520 から 680 へ増えた。"
   - step: "期の半ば" 1.2s
     tween:
       signed: 680 -> 820
       talking: 240 -> 160
       untouched: 180 -> 120
-    description: "外の弧だけが動く。 内の輪は前期のまま動かない"
+    description: "外の弧だけが動く。 内の輪は前期のまま動かない。"
 `;
 
 export const sourceJson__pattern__chartGauge__前の値つき = `{
@@ -1178,12 +1178,12 @@ export const sourceJson__pattern__chartGauge__前の値つき = `{
       "step": "期の初め",
       "duration": 1.2,
       "draw": "gauge",
-      "description": "内が前期、外が今期。 契約済が 520 から 680 へ増えた"
+      "description": "内が前期、外が今期。 契約済が 520 から 680 へ増えた。"
     },
     {
       "step": "期の半ば",
       "duration": 1.2,
-      "description": "外の弧だけが動く。 内の輪は前期のまま動かない",
+      "description": "外の弧だけが動く。 内の輪は前期のまま動かない。",
       "tween": {
         "signed": [680, 820],
         "talking": [240, 160],
@@ -1222,14 +1222,14 @@ states:
 animation:
   - step: "先月" 1.2s
     draw: radial
-    description: "各輪が 12 時から開く。 検索が 72 で最も高い"
+    description: "各輪が 12 時から開く。 検索が 72 で最も高い。"
   - step: "今月" 1.2s
     tween:
       search: 72 -> 78
       save: 45 -> 52
       share: 28 -> 41
       export: 12 -> 15
-    description: "共有が 28 から 41 へ伸びる"
+    description: "共有が 28 から 41 へ伸びる。"
 `;
 
 export const sourceJson__chartRadial = `{
@@ -1248,12 +1248,12 @@ export const sourceJson__chartRadial = `{
       "step": "先月",
       "duration": 1.2,
       "draw": "radial",
-      "description": "各輪が 12 時から開く。 検索が 72 で最も高い"
+      "description": "各輪が 12 時から開く。 検索が 72 で最も高い。"
     },
     {
       "step": "今月",
       "duration": 1.2,
-      "description": "共有が 28 から 41 へ伸びる",
+      "description": "共有が 28 から 41 へ伸びる。",
       "tween": {
         "search": [72, 78],
         "save": [45, 52],
@@ -1297,12 +1297,12 @@ states:
 animation:
   - step: "今月" 1.2s
     draw: radial
-    description: "印が先月の位置。 共有だけが 12 から 28 へ伸びた"
+    description: "印が先月の位置。 共有だけが 12 から 28 へ伸びた。"
   - step: "来月の見込み" 1.2s
     tween:
       share: 28 -> 41
       export: 12 -> 15
-    description: "共有がさらに伸びる。 印は先月のまま動かない"
+    description: "共有がさらに伸びる。 印は先月のまま動かない。"
 `;
 
 export const sourceJson__pattern__chartRadial__前の値つき = `{
@@ -1321,12 +1321,12 @@ export const sourceJson__pattern__chartRadial__前の値つき = `{
       "step": "今月",
       "duration": 1.2,
       "draw": "radial",
-      "description": "印が先月の位置。 共有だけが 12 から 28 へ伸びた"
+      "description": "印が先月の位置。 共有だけが 12 から 28 へ伸びた。"
     },
     {
       "step": "来月の見込み",
       "duration": 1.2,
-      "description": "共有がさらに伸びる。 印は先月のまま動かない",
+      "description": "共有がさらに伸びる。 印は先月のまま動かない。",
       "tween": { "share": [28, 41], "export": [12, 15] }
     }
   ]
@@ -1356,11 +1356,11 @@ states:
 
 animation:
   - step: "先月" 1.2s
-    description: "先月の解約は 24 件"
+    description: "先月の解約は 24 件。 比べる元になる値。"
   - step: "今月" 1.2s
     tween:
       now: 24 -> 19
-    description: "施策の後に 19 件まで下がる"
+    description: "施策の後に 19 件まで下がる。"
 `;
 
 export const sourceJson__chartStat = `{
@@ -1372,11 +1372,11 @@ export const sourceJson__chartStat = `{
   "flow": [],
   "states": { "now": 24 },
   "animation": [
-    { "step": "先月", "duration": 1.2, "description": "先月の解約は 24 件" },
+    { "step": "先月", "duration": 1.2, "description": "先月の解約は 24 件。 比べる元になる値。" },
     {
       "step": "今月",
       "duration": 1.2,
-      "description": "施策の後に 19 件まで下がる",
+      "description": "施策の後に 19 件まで下がる。",
       "tween": { "now": [24, 19] }
     }
   ]
@@ -1409,13 +1409,13 @@ states:
 
 animation:
   - step: "先週" 1.2s
-    description: "対応済みが 128 件で全体の 66.7%"
+    description: "対応済みが 128 件で全体の 66.7%。"
   - step: "今週" 1.2s
     tween:
       done: 128 -> 152
       doing: 46 -> 31
       todo: 18 -> 9
-    description: "未着手が 9 件まで減り、対応済みの取り分が伸びる"
+    description: "未着手が 9 件まで減り、対応済みの取り分が伸びる。"
 `;
 
 export const sourceJson__pattern__chartStat__複数 = `{
@@ -1432,12 +1432,12 @@ export const sourceJson__pattern__chartStat__複数 = `{
     {
       "step": "先週",
       "duration": 1.2,
-      "description": "対応済みが 128 件で全体の 66.7%"
+      "description": "対応済みが 128 件で全体の 66.7%。"
     },
     {
       "step": "今週",
       "duration": 1.2,
-      "description": "未着手が 9 件まで減り、対応済みの取り分が伸びる",
+      "description": "未着手が 9 件まで減り、対応済みの取り分が伸びる。",
       "tween": { "done": [128, 152], "doing": [46, 31], "todo": [18, 9] }
     }
   ]
@@ -1466,11 +1466,11 @@ states:
 
 animation:
   - step: "先月" 1.2s
-    description: "前の時点は 38 件。 いまは 24 件"
+    description: "前の時点は 38 件。 いまは 24 件。"
   - step: "今月" 1.2s
     tween:
       now: 24 -> 19
-    description: "施策の後に 19 件まで下がる。 前の時点は 38 件のまま"
+    description: "施策の後に 19 件まで下がる。 前の時点は 38 件のまま。"
 `;
 
 export const sourceJson__pattern__chartStat__前の値つき = `{
@@ -1482,11 +1482,11 @@ export const sourceJson__pattern__chartStat__前の値つき = `{
   "flow": [],
   "states": { "now": 24 },
   "animation": [
-    { "step": "先月", "duration": 1.2, "description": "前の時点は 38 件。 いまは 24 件" },
+    { "step": "先月", "duration": 1.2, "description": "前の時点は 38 件。 いまは 24 件。" },
     {
       "step": "今月",
       "duration": 1.2,
-      "description": "施策の後に 19 件まで下がる。 前の時点は 38 件のまま",
+      "description": "施策の後に 19 件まで下がる。 前の時点は 38 件のまま。",
       "tween": { "now": [24, 19] }
     }
   ]
@@ -1520,13 +1520,13 @@ states:
 animation:
   - step: "朝" 1.2s
     draw: waffle
-    description: "印が読む向きに埋まる。 100 件のうち 62 件が対応済"
+    description: "印が読む向きに埋まる。 100 件のうち 62 件が対応済。"
   - step: "夕方" 1.2s
     tween:
       done: 62 -> 84
       doing: 23 -> 11
       todo: 15 -> 5
-    description: "未着手が減り対応済が 84 件になる"
+    description: "未着手が減り対応済が 84 件になる。"
 `;
 
 export const sourceJson__chartWaffle = `{
@@ -1544,12 +1544,12 @@ export const sourceJson__chartWaffle = `{
       "step": "朝",
       "duration": 1.2,
       "draw": "waffle",
-      "description": "印が読む向きに埋まる。 100 件のうち 62 件が対応済"
+      "description": "印が読む向きに埋まる。 100 件のうち 62 件が対応済。"
     },
     {
       "step": "夕方",
       "duration": 1.2,
-      "description": "未着手が減り対応済が 84 件になる",
+      "description": "未着手が減り対応済が 84 件になる。",
       "tween": { "done": [62, 84], "doing": [23, 11], "todo": [15, 5] }
     }
   ]
@@ -1582,12 +1582,12 @@ states:
 animation:
   - step: "前期との比較" 1.2s
     draw: stacked
-    description: "帯が左から伸びる。 上が前期、下が今期。 新規が伸び継続が減った"
+    description: "帯が左から伸びる。 上が前期、下が今期。 新規が伸び継続が減った。"
   - step: "見込みを足す" 1.2s
     tween:
       shinki: 320 -> 380
       norikae: 140 -> 200
-    description: "見込みを足すと新規と乗換が伸びる"
+    description: "見込みを足すと新規と乗換が伸びる。"
 `;
 
 export const sourceJson__chartStackedBar = `{
@@ -1605,12 +1605,12 @@ export const sourceJson__chartStackedBar = `{
       "step": "前期との比較",
       "duration": 1.2,
       "draw": "stacked",
-      "description": "帯が左から伸びる。 上が前期、下が今期。 新規が伸び継続が減った"
+      "description": "帯が左から伸びる。 上が前期、下が今期。 新規が伸び継続が減った。"
     },
     {
       "step": "見込みを足す",
       "duration": 1.2,
-      "description": "見込みを足すと新規と乗換が伸びる",
+      "description": "見込みを足すと新規と乗換が伸びる。",
       "tween": { "shinki": [320, 380], "norikae": [140, 200] }
     }
   ]
@@ -1642,12 +1642,12 @@ states:
 animation:
   - step: "今期の内訳" 1.2s
     draw: stacked
-    description: "帯が左から伸びる。 新規が最も長い"
+    description: "帯が左から伸びる。 新規が最も長い。"
   - step: "見込みを足す" 1.2s
     tween:
       shinki: 320 -> 380
       norikae: 140 -> 200
-    description: "見込みを足すと新規と乗換が伸びる"
+    description: "見込みを足すと新規と乗換が伸びる。"
 `;
 
 export const sourceJson__pattern__chartStackedBar__今だけ = `{
@@ -1665,12 +1665,12 @@ export const sourceJson__pattern__chartStackedBar__今だけ = `{
       "step": "今期の内訳",
       "duration": 1.2,
       "draw": "stacked",
-      "description": "帯が左から伸びる。 新規が最も長い"
+      "description": "帯が左から伸びる。 新規が最も長い。"
     },
     {
       "step": "見込みを足す",
       "duration": 1.2,
-      "description": "見込みを足すと新規と乗換が伸びる",
+      "description": "見込みを足すと新規と乗換が伸びる。",
       "tween": { "shinki": [320, 380], "norikae": [140, 200] }
     }
   ]
@@ -1701,12 +1701,12 @@ states:
 animation:
   - step: "前期と今期" 1.2s
     draw: slope
-    description: "左が前期、右が今期。 SNS が伸びてメールを追い越した"
+    description: "左が前期、右が今期。 SNS が伸びてメールを追い越した。"
   - step: "見込みを足す" 1.2s
     tween:
       sns: 310 -> 400
       mail: 180 -> 150
-    description: "見込みを足すと SNS が検索に迫る"
+    description: "見込みを足すと SNS が検索に迫る。"
 `;
 
 export const sourceJson__chartSlope = `{
@@ -1725,12 +1725,12 @@ export const sourceJson__chartSlope = `{
       "step": "前期と今期",
       "duration": 1.2,
       "draw": "slope",
-      "description": "左が前期、右が今期。 SNS が伸びてメールを追い越した"
+      "description": "左が前期、右が今期。 SNS が伸びてメールを追い越した。"
     },
     {
       "step": "見込みを足す",
       "duration": 1.2,
-      "description": "見込みを足すと SNS が検索に迫る",
+      "description": "見込みを足すと SNS が検索に迫る。",
       "tween": { "sns": [310, 400], "mail": [180, 150] }
     }
   ]

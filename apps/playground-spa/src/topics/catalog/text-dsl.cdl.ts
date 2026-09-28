@@ -32,14 +32,14 @@ animation:
     tween:
       request_count: 0 -> 1
     badge: "要求"
-    description: "利用者側 が API を呼出"
+    description: "利用者側が API を呼ぶ。 要求の数が 1 に増える。"
 
   - step: "取得" 1.5s
     focus: ["API", DB]
     tween:
       row_count: 0 -> 20
     badge: "取得済"
-    description: "DB から 20 行取得"
+    description: "API が DB を引き、20 行を受け取る。 行の数が 20 に増える。"
 `;
 
 export const textDslSequence = textDslToDiagram(sourceYaml__textDslSequence);
@@ -82,7 +82,7 @@ export const sourceJson__textDslSequence = `{
         "利用者側",
         "API"
       ],
-      "description": "利用者側 が API を呼出",
+      "description": "利用者側が API を呼ぶ。 要求の数が 1 に増える。",
       "badge": "要求",
       "tween": {
         "request_count": [
@@ -98,7 +98,7 @@ export const sourceJson__textDslSequence = `{
         "API",
         "DB"
       ],
-      "description": "DB から 20 行取得",
+      "description": "API が DB を引き、20 行を受け取る。 行の数が 20 に増える。",
       "badge": "取得済",
       "tween": {
         "row_count": [
@@ -137,12 +137,12 @@ animation:
   - step: "要求" 1.5s
     focus: [利用者側, "API"]
     badge: "要求"
-    description: "利用者側 が API を呼出"
+    description: "利用者側が API を呼ぶ。 要求の数が 1 に増える。"
 
   - step: "取得" 1.5s
     focus: ["API", DB]
     badge: "取得済"
-    description: "DB から 20 行取得"
+    description: "API が DB を引き、20 行を受け取る。 行の数が 20 に増える。"
 `;
 
 export const sourceJson__pattern__textDslSequence__説明つき = `{
@@ -162,14 +162,14 @@ export const sourceJson__pattern__textDslSequence__説明つき = `{
       "step": "要求",
       "duration": 1.5,
       "focus": ["利用者側", "API"],
-      "description": "利用者側 が API を呼出",
+      "description": "利用者側が API を呼ぶ。 要求の数が 1 に増える。",
       "badge": "要求"
     },
     {
       "step": "取得",
       "duration": 1.5,
       "focus": ["API", "DB"],
-      "description": "DB から 20 行取得",
+      "description": "API が DB を引き、20 行を受け取る。 行の数が 20 に増える。",
       "badge": "取得済"
     }
   ]
@@ -1450,19 +1450,19 @@ animation:
   - step: "全体の見取り図" 1.4s
     focus: [購入者, 注文の仕組み, "購入者 -> 注文の仕組み"]
     badge: "L1"
-    body: "系統を 1 つの箱として置き、使う人との関係だけを描く"
+    body: "系統を 1 つの箱として置き、使う人との関係だけを描く。"
   - step: "中を開く" 1.4s
     focus: ["注文の仕組み -> 画面", 画面, 注文の受け口, 注文の記録]
     badge: "L2"
-    body: "系統の中を、単体で動かす画面と受け口と記録に分ける"
+    body: "系統の中を、単体で動かす画面と受け口と記録に分ける。"
   - step: "動かす単位の間" 1.2s
     focus: ["画面 -> 注文の受け口", "注文の受け口 -> 注文の記録"]
     badge: "POST 注文"
-    body: "画面が受け口を呼び、受け口が記録へ書く"
+    body: "画面が受け口を呼び、受け口が記録へ書く。"
   - step: "部品まで開く" 1.4s
     focus: ["注文の受け口 -> 認証部品", 認証部品, 在庫部品, "認証部品 -> 在庫部品"]
     badge: "L3"
-    body: "受け口の中を、鍵を確かめる部品と在庫を引き当てる部品に分ける"
+    body: "受け口の中を、鍵を確かめる部品と在庫を引き当てる部品に分ける。"
 `;
 
 export const textDslC4 = textDslToDiagram(sourceYaml__textDslC4);
@@ -1493,28 +1493,28 @@ export const sourceJson__textDslC4 = `{
       "duration": 1.4,
       "focus": ["購入者", "注文の仕組み", "購入者 -> 注文の仕組み"],
       "badge": "L1",
-      "body": "系統を 1 つの箱として置き、使う人との関係だけを描く"
+      "body": "系統を 1 つの箱として置き、使う人との関係だけを描く。"
     },
     {
       "step": "中を開く",
       "duration": 1.4,
       "focus": ["注文の仕組み -> 画面", "画面", "注文の受け口", "注文の記録"],
       "badge": "L2",
-      "body": "系統の中を、単体で動かす画面と受け口と記録に分ける"
+      "body": "系統の中を、単体で動かす画面と受け口と記録に分ける。"
     },
     {
       "step": "動かす単位の間",
       "duration": 1.2,
       "focus": ["画面 -> 注文の受け口", "注文の受け口 -> 注文の記録"],
       "badge": "POST 注文",
-      "body": "画面が受け口を呼び、受け口が記録へ書く"
+      "body": "画面が受け口を呼び、受け口が記録へ書く。"
     },
     {
       "step": "部品まで開く",
       "duration": 1.4,
       "focus": ["注文の受け口 -> 認証部品", "認証部品", "在庫部品", "認証部品 -> 在庫部品"],
       "badge": "L3",
-      "body": "受け口の中を、鍵を確かめる部品と在庫を引き当てる部品に分ける"
+      "body": "受け口の中を、鍵を確かめる部品と在庫を引き当てる部品に分ける。"
     }
   ]
 }`;
@@ -1757,21 +1757,21 @@ animation:
     tween:
       inflow: 0 -> 40
     badge: "流入 40"
-    description: "待ち行列は書かなくても 40 になる"
+    description: "待ち行列は書かなくても 40 になる。"
 
   - step: "捌き始める" 1.4s
     focus: [待ち行列, 処理]
     tween:
       done: 0 -> 10
     badge: "処理 10"
-    description: "待ち行列は 30 に減る"
+    description: "待ち行列は 30 に減る。"
 
   - step: "追いつく" 1.4s
     focus: [処理]
     tween:
       done: 10 -> 25
     badge: "処理 25"
-    description: "待ち行列は 15 まで減る"
+    description: "待ち行列は 15 まで減る。"
 `;
 
 export const textDslValues = textDslToDiagram(sourceYaml__textDslValues);
@@ -1828,7 +1828,7 @@ export const sourceJson__textDslValues = `{
         "受付",
         "待ち行列"
       ],
-      "description": "待ち行列は書かなくても 40 になる",
+      "description": "待ち行列は書かなくても 40 になる。",
       "badge": "流入 40",
       "tween": {
         "inflow": [
@@ -1844,7 +1844,7 @@ export const sourceJson__textDslValues = `{
         "待ち行列",
         "処理"
       ],
-      "description": "待ち行列は 30 に減る",
+      "description": "待ち行列は 30 に減る。",
       "badge": "処理 10",
       "tween": {
         "done": [
@@ -1859,7 +1859,7 @@ export const sourceJson__textDslValues = `{
       "focus": [
         "処理"
       ],
-      "description": "待ち行列は 15 まで減る",
+      "description": "待ち行列は 15 まで減る。",
       "badge": "処理 25",
       "tween": {
         "done": [
@@ -1900,15 +1900,15 @@ flow:
 animation:
   - step: "受け付ける" 1.4s
     focus: [始, 受付]
-    description: "印から始まり、最初の状態へ入る"
+    description: "印から始まり、最初の状態へ入る。"
 
   - step: "発送する" 1.4s
     focus: [発送準備, 発送済]
-    description: "在庫を引き当てて配送業者へ渡す"
+    description: "在庫を引き当てて配送業者へ渡す。"
 
   - step: "終わる" 1.4s
     focus: [発送済, 終]
-    description: "受取が済むと終わりの印へ入る"
+    description: "受取が済むと終わりの印へ入る。"
 `;
 
 export const textDslStateMarks = textDslToDiagram(sourceYaml__textDslStateMarks);
@@ -1934,19 +1934,19 @@ export const sourceJson__textDslStateMarks = `{
       "step": "受け付ける",
       "duration": 1.4,
       "focus": ["始", "受付"],
-      "description": "印から始まり、最初の状態へ入る"
+      "description": "印から始まり、最初の状態へ入る。"
     },
     {
       "step": "発送する",
       "duration": 1.4,
       "focus": ["発送準備", "発送済"],
-      "description": "在庫を引き当てて配送業者へ渡す"
+      "description": "在庫を引き当てて配送業者へ渡す。"
     },
     {
       "step": "終わる",
       "duration": 1.4,
       "focus": ["発送済", "終"],
-      "description": "受取が済むと終わりの印へ入る"
+      "description": "受取が済むと終わりの印へ入る。"
     }
   ]
 }`;
@@ -2005,12 +2005,12 @@ flow:
 animation:
   - step: "受け付けて記録する" 1.4s
     focus: ["受付", "記録"]
-    description: "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+    description: "題と補足と色を書いた箱から、行と印を書いた表へ進む。"
   - step: "進みを上げる" 1.6s
     focus: ["記録", "進み"]
     tween:
       progress: 20 -> 80
-    description: "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+    description: "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す。"
 `;
 
 export const sourceJson__textDslActorKeys = `{
@@ -2045,14 +2045,14 @@ export const sourceJson__textDslActorKeys = `{
       "step": "受け付けて記録する",
       "duration": 1.4,
       "focus": ["受付", "記録"],
-      "description": "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+      "description": "題と補足と色を書いた箱から、行と印を書いた表へ進む。"
     },
     {
       "step": "進みを上げる",
       "duration": 1.6,
       "focus": ["記録", "進み"],
       "tween": { "progress": [20, 80] },
-      "description": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+      "description": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す。"
     }
   ]
 }`;
@@ -2100,12 +2100,12 @@ flow:
 animation:
   - step: "受け付けて記録する" 1.4s
     focus: ["受付", "記録"]
-    description: "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+    description: "題と補足と色を書いた箱から、行と印を書いた表へ進む。"
   - step: "進みを上げる" 1.6s
     focus: ["記録", "進み"]
     tween:
       progress: 20 -> 80
-    description: "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+    description: "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す。"
 `;
 
 export const sourceJson__pattern__textDslActorKeys__日本語で書く = `{
@@ -2140,14 +2140,14 @@ export const sourceJson__pattern__textDslActorKeys__日本語で書く = `{
       "step": "受け付けて記録する",
       "duration": 1.4,
       "focus": ["受付", "記録"],
-      "description": "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+      "description": "題と補足と色を書いた箱から、行と印を書いた表へ進む。"
     },
     {
       "step": "進みを上げる",
       "duration": 1.6,
       "focus": ["記録", "進み"],
       "tween": { "progress": [20, 80] },
-      "description": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+      "description": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す。"
     }
   ]
 }`;
@@ -2185,12 +2185,12 @@ flow:
 animation:
   - step: "受け付けて記録する" 1.4s
     focus: ["受付", "記録"]
-    description: "1 行にまとめても、段を分けて書いた時と同じ図になる"
+    description: "1 行にまとめても、段を分けて書いた時と同じ図になる。"
   - step: "進みを上げる" 1.6s
     focus: ["記録", "進み"]
     tween:
       progress: 20 -> 80
-    description: "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+    description: "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す。"
 `;
 
 // JSON の欄名は英語だけで、1 行にまとめるかどうかの違いも持たない。
@@ -2227,14 +2227,14 @@ export const sourceJson__pattern__textDslActorKeys__1行にまとめて書く = 
       "step": "受け付けて記録する",
       "duration": 1.4,
       "focus": ["受付", "記録"],
-      "description": "1 行にまとめても、段を分けて書いた時と同じ図になる"
+      "description": "1 行にまとめても、段を分けて書いた時と同じ図になる。"
     },
     {
       "step": "進みを上げる",
       "duration": 1.6,
       "focus": ["記録", "進み"],
       "tween": { "progress": [20, 80] },
-      "description": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+      "description": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す。"
     }
   ]
 }`;
@@ -2271,12 +2271,12 @@ animation:
   - step: "今の内訳を見る" 1.4s
     draw: stacked
     focus: ["直販", "代理店", "通販"]
-    description: "値に書いた数が帯の長さになる"
+    description: "値に書いた数が帯の長さになる。"
   - step: "通販が伸びる" 1.6s
     focus: ["直販", "代理店", "通販"]
     tween:
       mail: 120 -> 180
-    description: "前の値に書いた数が、増えた分と減った分の向きを決める"
+    description: "前の値に書いた数が、増えた分と減った分の向きを決める。"
 `;
 
 export const sourceJson__textDslValueKeys = `{
@@ -2295,14 +2295,14 @@ export const sourceJson__textDslValueKeys = `{
       "duration": 1.4,
       "draw": "stacked",
       "focus": ["直販", "代理店", "通販"],
-      "description": "値に書いた数が帯の長さになる"
+      "description": "値に書いた数が帯の長さになる。"
     },
     {
       "step": "通販が伸びる",
       "duration": 1.6,
       "focus": ["直販", "代理店", "通販"],
       "tween": { "mail": [120, 180] },
-      "description": "前の値に書いた数が、増えた分と減った分の向きを決める"
+      "description": "前の値に書いた数が、増えた分と減った分の向きを決める。"
     }
   ]
 }`;
@@ -2334,12 +2334,12 @@ animation:
   - step: "今の内訳を見る" 1.4s
     draw: stacked
     focus: ["直販", "代理店", "通販"]
-    description: "値に書いた数が帯の長さになる"
+    description: "値に書いた数が帯の長さになる。"
   - step: "通販が伸びる" 1.6s
     focus: ["直販", "代理店", "通販"]
     tween:
       mail: 120 -> 180
-    description: "前の値に書いた数が、増えた分と減った分の向きを決める"
+    description: "前の値に書いた数が、増えた分と減った分の向きを決める。"
 `;
 
 export const sourceJson__pattern__textDslValueKeys__日本語で書く = `{
@@ -2358,14 +2358,14 @@ export const sourceJson__pattern__textDslValueKeys__日本語で書く = `{
       "duration": 1.4,
       "draw": "stacked",
       "focus": ["直販", "代理店", "通販"],
-      "description": "値に書いた数が帯の長さになる"
+      "description": "値に書いた数が帯の長さになる。"
     },
     {
       "step": "通販が伸びる",
       "duration": 1.6,
       "focus": ["直販", "代理店", "通販"],
       "tween": { "mail": [120, 180] },
-      "description": "前の値に書いた数が、増えた分と減った分の向きを決める"
+      "description": "前の値に書いた数が、増えた分と減った分の向きを決める。"
     }
   ]
 }`;
@@ -2403,10 +2403,10 @@ flow:
 animation:
   - step: "鍵に下線が付く" 1.2s
     focus: [会員]
-    description: "印に pk と書いた行は、名前に下線が付く"
+    description: "印に pk と書いた行は、名前に下線が付く。"
   - step: "外を指す列が山形になる" 1.2s
     focus: [会員, 組, "会員 -> 組"]
-    description: "印に fk と書いた行は、行頭の記号が山形になる"
+    description: "印に fk と書いた行は、行頭の記号が山形になる。"
 `;
 
 export const sourceJson__textDslRowMarkKeys = `{
@@ -2446,13 +2446,13 @@ export const sourceJson__textDslRowMarkKeys = `{
       "step": "鍵に下線が付く",
       "duration": 1.2,
       "focus": ["会員"],
-      "description": "印に pk と書いた行は、名前に下線が付く"
+      "description": "印に pk と書いた行は、名前に下線が付く。"
     },
     {
       "step": "外を指す列が山形になる",
       "duration": 1.2,
       "focus": ["会員", "組", "会員 -> 組"],
-      "description": "印に fk と書いた行は、行頭の記号が山形になる"
+      "description": "印に fk と書いた行は、行頭の記号が山形になる。"
     }
   ]
 }`;
@@ -2485,10 +2485,10 @@ flow:
 animation:
   - step: "鍵に下線が付く" 1.2s
     focus: [会員]
-    description: "印に pk と書いた行は、名前に下線が付く"
+    description: "印に pk と書いた行は、名前に下線が付く。"
   - step: "外を指す列が山形になる" 1.2s
     focus: [会員, 組, "会員 -> 組"]
-    description: "印に fk と書いた行は、行頭の記号が山形になる"
+    description: "印に fk と書いた行は、行頭の記号が山形になる。"
 `;
 
 export const sourceJson__pattern__textDslRowMarkKeys__日本語で書く =
