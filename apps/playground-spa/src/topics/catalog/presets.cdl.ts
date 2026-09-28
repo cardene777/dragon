@@ -1808,7 +1808,7 @@ const presetClassComplexSteps = withSteps(
     {
       ids: ["Notification", "cr-5-RiskCheck-Notification", "cr-13-Transaction-Notification"],
       // 簡単な版と同じ置き方 (#2601)。 こちらだけ開いた人にも色の決まりが届くようにする
-      body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。 13 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。",
+      body: "リスク判定と取引が、同じ通知クラスに依存する。 色の 3 群は縦の関係と向きだけの関係と所有の関係。",
     },
   ],
 );
@@ -4841,7 +4841,7 @@ animation:
   - step: "決済の抽象クラスとインターフェースと関係を示す UML クラス図" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry", RiskCheck, "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", Notification, "RiskCheck -> Notification", "Transaction -> Notification"]
     badge: "class"
-    body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。 13 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。"
+    body: "リスク判定と取引が、同じ通知クラスに依存する。 色の 3 群は縦の関係と向きだけの関係と所有の関係。"
 `;
 
 export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
@@ -5135,7 +5135,7 @@ export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", "Notification", "RiskCheck -> Notification", "Transaction -> Notification"],
         "badge": "class",
-        "body": "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。 13 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。"
+        "body": "リスク判定と取引が、同じ通知クラスに依存する。 色の 3 群は縦の関係と向きだけの関係と所有の関係。"
       }
     ]
   },

@@ -31,6 +31,19 @@
  * 枠の 5 行が空のまま残っていた。 空の帯に線を引くので、いま在る書き方は 1 件も落とさず、
  * 今日の最悪より 1 行ぶん余裕が残る。
  *
+ * ## パターンの切替も押す (#2645)
+ *
+ * 見本帳の項目には「パターン」 の切替があり、押すと中身が入れ替わる (#1696)。 簡単な版と
+ * 複雑な版が 1 つの行にまとまっているのはこの仕組みで、**説明が長いのは複雑な版のほう**に
+ * なる。 行を押すだけの形は既定の中身しか測らず、最も空きが出やすい側を 1 件も見ていなかった。
+ *
+ * 押す形に変えると母数が 348 件から 415 件へ増え、そのうち 106 件がパターンの中身になる。
+ * 抜けていた側から `presets/class-demo` の複雑な版が 1 件出た = **同じ項目の簡単な版は
+ * #2633 で直したのに、複雑な版は測っていないので 5 行のまま残っていた**。
+ *
+ * file の export を直に走査する側 (`catalog-phase-note-coverage.test.ts`) は `pattern__` で
+ * 始まる export も数えるため、抜けていたのは画面を動かすこちらだけだった。
+ *
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test catalog-phase-note-gap`
  */
 import { test, expect } from "@playwright/test";
@@ -44,12 +57,19 @@ const 携帯の高さ = 844;
 /** 空のまま残してよい行数の上限 (§ 上限を空きに置き、枠の高さには置かない) */
 const 空きの上限 = 3;
 
+/** パターンの切替に付く見出し (`CategoryPage.tsx` の `aria-label` と同じ字) */
+const パターンの札 = "パターン";
+
+/** パターンを持つ項目が 1 つも見つからなければ、切替を押せていない (#2645) */
+const パターンの下限 = 1;
+
 test("携帯の幅で段の説明の枠が空きすぎない", async ({ page }, info) => {
   info.setTimeout(30_000 + CATEGORIES.length * 60_000);
   await page.setViewportSize({ width: 携帯の幅, height: 携帯の高さ });
 
   const 超過: string[] = [];
   let 母数 = 0;
+  let パターンの数 = 0;
 
   for (const 分類 of CATEGORIES) {
     await page.goto(`catalog/${分類.slug}`, { waitUntil: "networkidle" });
@@ -61,33 +81,54 @@ test("携帯の幅で段の説明の枠が空きすぎない", async ({ page }, 
       // 図を差し替えると説明も差し替わる。 描き直しを待たずに測ると前の図の行数を拾う
       await page.waitForTimeout(60);
 
-      const 測 = await page.evaluate(() => {
-        const box = document.querySelector(".cdl-phase-note");
-        // 段が 1 つしかない図では枠ごと出ない (`PhaseNote` の出す下限)
-        if (box === null) return null;
-        return [...box.querySelectorAll(".cdl-phase-note-line")].map((p) => {
-          // 升に伸ばされた要素ではなく、文そのものの行箱を数える
-          const r = document.createRange();
-          r.selectNodeContents(p);
-          return [...r.getClientRects()].filter((x) => x.height > 0).length;
-        });
-      });
+      // **パターンを持つ項目は中身の数だけ測る** (§ パターンの切替も押す)。 持たない項目は
+      // 切替そのものが出ないので、`0` を 1 回に読み替えて既定の中身だけを測る
+      const 切替 = page.locator(`[role="radiogroup"][aria-label="${パターンの札}"] button`);
+      const 中身の数 = await 切替.count();
+      for (let j = 0; j < Math.max(中身の数, 1); j += 1) {
+        let 中身 = "既定";
+        if (中身の数 > 0) {
+          中身 = ((await 切替.nth(j).textContent()) ?? `${j}`).trim();
+          await 切替.nth(j).click();
+          // 切替も図を差し替えるので、行を押した時と同じだけ描き直しを待つ
+          await page.waitForTimeout(60);
+        }
 
-      if (測 === null || 測.length === 0) continue;
-      母数 += 1;
-      const 空き = Math.max(...測) - Math.min(...測);
-      if (空き <= 空きの上限) continue;
-      超過.push(
-        `${分類.slug}/${id} 行 [${測.join(", ")}] = 空き ${空き} 行 (${空き * 20}px)`,
-      );
+        const 測 = await page.evaluate(() => {
+          const box = document.querySelector(".cdl-phase-note");
+          // 段が 1 つしかない図では枠ごと出ない (`PhaseNote` の出す下限)
+          if (box === null) return null;
+          return [...box.querySelectorAll(".cdl-phase-note-line")].map((p) => {
+            // 升に伸ばされた要素ではなく、文そのものの行箱を数える
+            const r = document.createRange();
+            r.selectNodeContents(p);
+            return [...r.getClientRects()].filter((x) => x.height > 0).length;
+          });
+        });
+
+        if (測 === null || 測.length === 0) continue;
+        母数 += 1;
+        if (中身の数 > 0) パターンの数 += 1;
+        const 空き = Math.max(...測) - Math.min(...測);
+        if (空き <= 空きの上限) continue;
+        超過.push(
+          `${分類.slug}/${id}/${中身} 行 [${測.join(", ")}] = 空き ${空き} 行 (${空き * 20}px)`,
+        );
+      }
     }
   }
 
   // **0 件の報告には母数を併記する** = 枠を 1 件も開けていない状態と区別が付かなくなる
   expect(母数, "説明の枠が 1 件も出ていない (頁の走査か枠の出し方が壊れている)").toBeGreaterThan(0);
+  // **母数だけでは切替を押せたか判らない** = 切替の探し方が壊れても、既定の中身だけで
+  // 母数は埋まる。 パターンの中身を別に数えて、0 件なら落とす
+  expect(
+    パターンの数,
+    `パターンの中身を 1 件も測っていない (切替の探し方が壊れている、母数 ${母数} 枠)`,
+  ).toBeGreaterThanOrEqual(パターンの下限);
   expect(
     超過,
-    `段を送ると枠が ${空きの上限} 行より多く空く図がある (母数 ${母数} 図)。` +
+    `段を送ると枠が ${空きの上限} 行より多く空く図がある (母数 ${母数} 枠 / うちパターンの中身 ${パターンの数} 枠)。` +
       ` 1 段だけが長いので、その段を短くするか内容を段へ分ける\n  ${超過.join("\n  ")}`,
   ).toHaveLength(0);
 });
