@@ -225,7 +225,7 @@ export const sourceJson__kPerson = `{
       "duration": 1.5,
       "focus": ["利用者"],
       "badge": "動作中",
-      "body": "person kind の見た目。"
+      "description": "person kind の見た目。"
     },
     {
       "step": "person が動く",
@@ -233,7 +233,7 @@ export const sourceJson__kPerson = `{
       "focus": ["利用者"],
       "tween": { "v": [3, 18] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -288,7 +288,7 @@ export const sourceJson__kUserGroup = `{
       "duration": 1.5,
       "focus": ["利用者の集まり"],
       "badge": "動作中",
-      "body": "user-group kind の見た目。"
+      "description": "user-group kind の見た目。"
     },
     {
       "step": "user-group が動く",
@@ -296,7 +296,7 @@ export const sourceJson__kUserGroup = `{
       "focus": ["利用者の集まり"],
       "tween": { "v": [4, 32] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -351,7 +351,7 @@ export const sourceJson__kAdmin = `{
       "duration": 1.5,
       "focus": ["運用の管理者"],
       "badge": "動作中",
-      "body": "admin kind の見た目。"
+      "description": "admin kind の見た目。"
     },
     {
       "step": "admin が動く",
@@ -359,7 +359,7 @@ export const sourceJson__kAdmin = `{
       "focus": ["運用の管理者"],
       "tween": { "v": [0, 7] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -414,7 +414,7 @@ export const sourceJson__kDeveloper = `{
       "duration": 1.5,
       "focus": ["開発する人"],
       "badge": "動作中",
-      "body": "developer kind の見た目。"
+      "description": "developer kind の見た目。"
     },
     {
       "step": "developer が動く",
@@ -422,7 +422,7 @@ export const sourceJson__kDeveloper = `{
       "focus": ["開発する人"],
       "tween": { "v": [1, 12] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -477,7 +477,7 @@ export const sourceJson__kExternalUser = `{
       "duration": 1.5,
       "focus": ["外部の利用者"],
       "badge": "動作中",
-      "body": "external-user kind の見た目。"
+      "description": "external-user kind の見た目。"
     },
     {
       "step": "external-user が動く",
@@ -485,7 +485,7 @@ export const sourceJson__kExternalUser = `{
       "focus": ["外部の利用者"],
       "tween": { "v": [2, 40] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -540,7 +540,7 @@ export const sourceJson__kDatabase = `{
       "duration": 1.5,
       "focus": ["PostgreSQL"],
       "badge": "動作中",
-      "body": "database kind の見た目。"
+      "description": "database kind の見た目。"
     },
     {
       "step": "database が動く",
@@ -548,7 +548,7 @@ export const sourceJson__kDatabase = `{
       "focus": ["PostgreSQL"],
       "tween": { "v": [120, 980] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -603,7 +603,7 @@ export const sourceJson__kCache = `{
       "duration": 1.5,
       "focus": ["Redis"],
       "badge": "動作中",
-      "body": "cache kind の見た目。"
+      "description": "cache kind の見た目。"
     },
     {
       "step": "cache が動く",
@@ -611,7 +611,7 @@ export const sourceJson__kCache = `{
       "focus": ["Redis"],
       "tween": { "v": [62, 97] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -666,7 +666,7 @@ export const sourceJson__kQueue = `{
       "duration": 1.5,
       "focus": ["仕事の待ち行列"],
       "badge": "動作中",
-      "body": "queue kind の見た目。"
+      "description": "queue kind の見た目。"
     },
     {
       "step": "queue が動く",
@@ -674,7 +674,7 @@ export const sourceJson__kQueue = `{
       "focus": ["仕事の待ち行列"],
       "tween": { "v": [8, 120] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -729,7 +729,7 @@ export const sourceJson__kMessageBus = `{
       "duration": 1.5,
       "focus": ["Kafka"],
       "badge": "動作中",
-      "body": "message-bus kind の見た目。"
+      "description": "message-bus kind の見た目。"
     },
     {
       "step": "message-bus が動く",
@@ -737,7 +737,7 @@ export const sourceJson__kMessageBus = `{
       "focus": ["Kafka"],
       "tween": { "v": [40, 620] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -792,7 +792,7 @@ export const sourceJson__kCloud = `{
       "duration": 1.5,
       "focus": ["AWS"],
       "badge": "動作中",
-      "body": "cloud kind の見た目。"
+      "description": "cloud kind の見た目。"
     },
     {
       "step": "cloud が動く",
@@ -800,7 +800,7 @@ export const sourceJson__kCloud = `{
       "focus": ["AWS"],
       "tween": { "v": [2, 16] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -855,7 +855,7 @@ export const sourceJson__kCdn = `{
       "duration": 1.5,
       "focus": ["Cloudflare"],
       "badge": "動作中",
-      "body": "cdn kind の見た目。"
+      "description": "cdn kind の見た目。"
     },
     {
       "step": "cdn が動く",
@@ -863,7 +863,7 @@ export const sourceJson__kCdn = `{
       "focus": ["Cloudflare"],
       "tween": { "v": [5, 88] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -918,7 +918,7 @@ export const sourceJson__kService = `{
       "duration": 1.5,
       "focus": ["認証の役務"],
       "badge": "動作中",
-      "body": "service kind の見た目。"
+      "description": "service kind の見た目。"
     },
     {
       "step": "service が動く",
@@ -926,7 +926,7 @@ export const sourceJson__kService = `{
       "focus": ["認証の役務"],
       "tween": { "v": [30, 450] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -981,7 +981,7 @@ export const sourceJson__kApi = `{
       "duration": 1.5,
       "focus": ["POST /users"],
       "badge": "動作中",
-      "body": "api kind の見た目。"
+      "description": "api kind の見た目。"
     },
     {
       "step": "api が動く",
@@ -989,7 +989,7 @@ export const sourceJson__kApi = `{
       "focus": ["POST /users"],
       "tween": { "v": [240, 45] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -1044,7 +1044,7 @@ export const sourceJson__kFrontend = `{
       "duration": 1.5,
       "focus": ["画面側のアプリ"],
       "badge": "動作中",
-      "body": "frontend kind の見た目。"
+      "description": "frontend kind の見た目。"
     },
     {
       "step": "frontend が動く",
@@ -1052,7 +1052,7 @@ export const sourceJson__kFrontend = `{
       "focus": ["画面側のアプリ"],
       "tween": { "v": [180, 60] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -1107,7 +1107,7 @@ export const sourceJson__kBackend = `{
       "duration": 1.5,
       "focus": ["Express"],
       "badge": "動作中",
-      "body": "backend kind の見た目。"
+      "description": "backend kind の見た目。"
     },
     {
       "step": "backend が動く",
@@ -1115,7 +1115,7 @@ export const sourceJson__kBackend = `{
       "focus": ["Express"],
       "tween": { "v": [12, 74] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -1171,7 +1171,7 @@ export const sourceJson__kWebhook = `{
       "duration": 1.5,
       "focus": ["POST の呼び返し"],
       "badge": "動作中",
-      "body": "webhook kind の見た目。"
+      "description": "webhook kind の見た目。"
     },
     {
       "step": "webhook が動く",
@@ -1179,7 +1179,7 @@ export const sourceJson__kWebhook = `{
       "focus": ["POST の呼び返し"],
       "tween": { "v": [0, 26] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -1235,7 +1235,7 @@ export const sourceJson__kMicroservice = `{
       "duration": 1.5,
       "focus": ["注文の役務"],
       "badge": "動作中",
-      "body": "microservice kind の見た目。"
+      "description": "microservice kind の見た目。"
     },
     {
       "step": "microservice が動く",
@@ -1243,7 +1243,7 @@ export const sourceJson__kMicroservice = `{
       "focus": ["注文の役務"],
       "tween": { "v": [15, 210] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -1298,7 +1298,7 @@ export const sourceJson__kSigner = `{
       "duration": 1.5,
       "focus": ["署名する側"],
       "badge": "動作中",
-      "body": "signer kind の見た目。"
+      "description": "signer kind の見た目。"
     },
     {
       "step": "signer が動く",
@@ -1306,7 +1306,7 @@ export const sourceJson__kSigner = `{
       "focus": ["署名する側"],
       "tween": { "v": [1, 34] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -1362,7 +1362,7 @@ export const sourceJson__kOracle = `{
       "duration": 1.5,
       "focus": ["機能の切替を配る役務"],
       "badge": "動作中",
-      "body": "oracle kind の見た目。"
+      "description": "oracle kind の見た目。"
     },
     {
       "step": "oracle が動く",
@@ -1370,7 +1370,7 @@ export const sourceJson__kOracle = `{
       "focus": ["機能の切替を配る役務"],
       "tween": { "v": [3, 48] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -1425,7 +1425,7 @@ export const sourceJson__kMerkleTree = `{
       "duration": 1.5,
       "focus": ["ハッシュの木"],
       "badge": "動作中",
-      "body": "merkle-tree kind の見た目。"
+      "description": "merkle-tree kind の見た目。"
     },
     {
       "step": "merkle-tree が動く",
@@ -1433,7 +1433,7 @@ export const sourceJson__kMerkleTree = `{
       "focus": ["ハッシュの木"],
       "tween": { "v": [4, 64] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;
@@ -1488,7 +1488,7 @@ export const sourceJson__kDecision = `{
       "duration": 1.5,
       "focus": ["条件で分かれる"],
       "badge": "動作中",
-      "body": "decision kind の見た目。"
+      "description": "decision kind の見た目。"
     },
     {
       "step": "decision が動く",
@@ -1496,7 +1496,7 @@ export const sourceJson__kDecision = `{
       "focus": ["条件で分かれる"],
       "tween": { "v": [20, 85] },
       "badge": "値が動く",
-      "body": "箱の値が段の中で動く。"
+      "description": "箱の値が段の中で動く。"
     }
   ]
 }`;

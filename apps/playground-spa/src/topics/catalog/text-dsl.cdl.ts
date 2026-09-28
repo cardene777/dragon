@@ -82,7 +82,7 @@ export const sourceJson__textDslSequence = `{
         "利用者側",
         "API"
       ],
-      "body": "利用者側 が API を呼出",
+      "description": "利用者側 が API を呼出",
       "badge": "要求",
       "tween": {
         "request_count": [
@@ -98,7 +98,7 @@ export const sourceJson__textDslSequence = `{
         "API",
         "DB"
       ],
-      "body": "DB から 20 行取得",
+      "description": "DB から 20 行取得",
       "badge": "取得済",
       "tween": {
         "row_count": [
@@ -162,14 +162,14 @@ export const sourceJson__pattern__textDslSequence__説明つき = `{
       "step": "要求",
       "duration": 1.5,
       "focus": ["利用者側", "API"],
-      "body": "利用者側 が API を呼出",
+      "description": "利用者側 が API を呼出",
       "badge": "要求"
     },
     {
       "step": "取得",
       "duration": 1.5,
       "focus": ["API", "DB"],
-      "body": "DB から 20 行取得",
+      "description": "DB から 20 行取得",
       "badge": "取得済"
     }
   ]
@@ -1828,7 +1828,7 @@ export const sourceJson__textDslValues = `{
         "受付",
         "待ち行列"
       ],
-      "body": "待ち行列は書かなくても 40 になる",
+      "description": "待ち行列は書かなくても 40 になる",
       "badge": "流入 40",
       "tween": {
         "inflow": [
@@ -1844,7 +1844,7 @@ export const sourceJson__textDslValues = `{
         "待ち行列",
         "処理"
       ],
-      "body": "待ち行列は 30 に減る",
+      "description": "待ち行列は 30 に減る",
       "badge": "処理 10",
       "tween": {
         "done": [
@@ -1859,7 +1859,7 @@ export const sourceJson__textDslValues = `{
       "focus": [
         "処理"
       ],
-      "body": "待ち行列は 15 まで減る",
+      "description": "待ち行列は 15 まで減る",
       "badge": "処理 25",
       "tween": {
         "done": [
@@ -1934,19 +1934,19 @@ export const sourceJson__textDslStateMarks = `{
       "step": "受け付ける",
       "duration": 1.4,
       "focus": ["始", "受付"],
-      "body": "印から始まり、最初の状態へ入る"
+      "description": "印から始まり、最初の状態へ入る"
     },
     {
       "step": "発送する",
       "duration": 1.4,
       "focus": ["発送準備", "発送済"],
-      "body": "在庫を引き当てて配送業者へ渡す"
+      "description": "在庫を引き当てて配送業者へ渡す"
     },
     {
       "step": "終わる",
       "duration": 1.4,
       "focus": ["発送済", "終"],
-      "body": "受取が済むと終わりの印へ入る"
+      "description": "受取が済むと終わりの印へ入る"
     }
   ]
 }`;
@@ -2045,14 +2045,14 @@ export const sourceJson__textDslActorKeys = `{
       "step": "受け付けて記録する",
       "duration": 1.4,
       "focus": ["受付", "記録"],
-      "body": "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+      "description": "題と補足と色を書いた箱から、行と印を書いた表へ進む"
     },
     {
       "step": "進みを上げる",
       "duration": 1.6,
       "focus": ["記録", "進み"],
       "tween": { "progress": [20, 80] },
-      "body": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+      "description": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
     }
   ]
 }`;
@@ -2140,14 +2140,14 @@ export const sourceJson__pattern__textDslActorKeys__日本語で書く = `{
       "step": "受け付けて記録する",
       "duration": 1.4,
       "focus": ["受付", "記録"],
-      "body": "題と補足と色を書いた箱から、行と印を書いた表へ進む"
+      "description": "題と補足と色を書いた箱から、行と印を書いた表へ進む"
     },
     {
       "step": "進みを上げる",
       "duration": 1.6,
       "focus": ["記録", "進み"],
       "tween": { "progress": [20, 80] },
-      "body": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+      "description": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
     }
   ]
 }`;
@@ -2227,14 +2227,14 @@ export const sourceJson__pattern__textDslActorKeys__1行にまとめて書く = 
       "step": "受け付けて記録する",
       "duration": 1.4,
       "focus": ["受付", "記録"],
-      "body": "1 行にまとめても、段を分けて書いた時と同じ図になる"
+      "description": "1 行にまとめても、段を分けて書いた時と同じ図になる"
     },
     {
       "step": "進みを上げる",
       "duration": 1.6,
       "focus": ["記録", "進み"],
       "tween": { "progress": [20, 80] },
-      "body": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
+      "description": "図形の塗りが状態を読んで伸び、値を書いた箱が同じ状態を数字で出す"
     }
   ]
 }`;
@@ -2295,14 +2295,14 @@ export const sourceJson__textDslValueKeys = `{
       "duration": 1.4,
       "draw": "stacked",
       "focus": ["直販", "代理店", "通販"],
-      "body": "値に書いた数が帯の長さになる"
+      "description": "値に書いた数が帯の長さになる"
     },
     {
       "step": "通販が伸びる",
       "duration": 1.6,
       "focus": ["直販", "代理店", "通販"],
       "tween": { "mail": [120, 180] },
-      "body": "前の値に書いた数が、増えた分と減った分の向きを決める"
+      "description": "前の値に書いた数が、増えた分と減った分の向きを決める"
     }
   ]
 }`;
@@ -2358,14 +2358,14 @@ export const sourceJson__pattern__textDslValueKeys__日本語で書く = `{
       "duration": 1.4,
       "draw": "stacked",
       "focus": ["直販", "代理店", "通販"],
-      "body": "値に書いた数が帯の長さになる"
+      "description": "値に書いた数が帯の長さになる"
     },
     {
       "step": "通販が伸びる",
       "duration": 1.6,
       "focus": ["直販", "代理店", "通販"],
       "tween": { "mail": [120, 180] },
-      "body": "前の値に書いた数が、増えた分と減った分の向きを決める"
+      "description": "前の値に書いた数が、増えた分と減った分の向きを決める"
     }
   ]
 }`;
@@ -2446,13 +2446,13 @@ export const sourceJson__textDslRowMarkKeys = `{
       "step": "鍵に下線が付く",
       "duration": 1.2,
       "focus": ["会員"],
-      "body": "印に pk と書いた行は、名前に下線が付く"
+      "description": "印に pk と書いた行は、名前に下線が付く"
     },
     {
       "step": "外を指す列が山形になる",
       "duration": 1.2,
       "focus": ["会員", "組", "会員 -> 組"],
-      "body": "印に fk と書いた行は、行頭の記号が山形になる"
+      "description": "印に fk と書いた行は、行頭の記号が山形になる"
     }
   ]
 }`;

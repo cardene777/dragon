@@ -110,13 +110,13 @@ export const sourceJson__patternDirect = `{
     }
   ],
   "animation": [
-    { "step": "送り手", "duration": 1.2, "focus": ["利用者側"], "body": "送り手の 利用者側 から出す形。 送り手と受け手の間に何も挟まない。", "badge": "直結" },
-    { "step": "受け手まで", "duration": 1.2, "focus": ["利用者側", "処理側"], "body": "受け手の 処理側 は隣の縦列に置く。 矢印は縦列をまたいで 1 本だけ通る。", "badge": "直結" },
+    { "step": "送り手", "duration": 1.2, "focus": ["利用者側"], "description": "送り手の 利用者側 から出す形。 送り手と受け手の間に何も挟まない。", "badge": "直結" },
+    { "step": "受け手まで", "duration": 1.2, "focus": ["利用者側", "処理側"], "description": "受け手の 処理側 は隣の縦列に置く。 矢印は縦列をまたいで 1 本だけ通る。", "badge": "直結" },
     {
       "step": "直結",
       "duration": 2.4,
       "focus": ["利用者側", "処理側", "利用者側 -> 処理側"],
-      "body": "粒子は利用者側の端から処理側の端で止まり、箱の中には入らない。",
+      "description": "粒子は利用者側の端から処理側の端で止まり、箱の中には入らない。",
       "badge": "直結"
     }
   ]
@@ -194,13 +194,13 @@ export const sourceJson__patternPassthrough = `{
     }
   ],
   "animation": [
-    { "step": "送り手", "duration": 1.2, "focus": ["利用者側"], "body": "送り手の 利用者側 から出す形。 受け手までの間に 1 箱を挟む。", "badge": "貫通" },
-    { "step": "中継まで", "duration": 1.2, "focus": ["利用者側", "入口"], "body": "入口は利用者側の求めを処理側へ渡す代理の形。 矢印の道筋はこの箱の上を通る。", "badge": "貫通" },
+    { "step": "送り手", "duration": 1.2, "focus": ["利用者側"], "description": "送り手の 利用者側 から出す形。 受け手までの間に 1 箱を挟む。", "badge": "貫通" },
+    { "step": "中継まで", "duration": 1.2, "focus": ["利用者側", "入口"], "description": "入口は利用者側の求めを処理側へ渡す代理の形。 矢印の道筋はこの箱の上を通る。", "badge": "貫通" },
     {
       "step": "貫通",
       "duration": 2.8,
       "focus": ["利用者側", "入口", "処理側", "利用者側 -> 処理側"],
-      "body": "矢印の道筋が入口の上を通るため、描画側が自動の判定で粒子を入口の中央まで動かす。",
+      "description": "矢印の道筋が入口の上を通るため、描画側が自動の判定で粒子を入口の中央まで動かす。",
       "badge": "貫通"
     }
   ]
@@ -304,21 +304,21 @@ export const sourceJson__patternCallReadWrite = `{
       "step": "呼ぶ",
       "duration": 1.8,
       "focus": ["利用者", "残数を減らす(...)", "利用者 -> 残数を減らす(...)"],
-      "body": "外から関数を呼ぶ。",
+      "description": "外から関数を呼ぶ。",
       "badge": "呼ぶ"
     },
     {
       "step": "読む",
       "duration": 1.8,
       "focus": ["残数を減らす(...)", "残数の表", "残数を減らす(...) -> 残数の表"],
-      "body": "残数の表から今の値を読む。",
+      "description": "残数の表から今の値を読む。",
       "badge": "読む"
     },
     {
       "step": "書く",
       "duration": 1.8,
       "focus": ["残数を減らす(...)", "残数の表", "残数を減らす(...) -> 残数の表"],
-      "body": "残数の表を書き換える。",
+      "description": "残数の表を書き換える。",
       "tween": { "count": [100, 90] },
       "badge": "書く"
     }
@@ -396,19 +396,19 @@ export const sourceJson__patternEmit = `{
     }
   ],
   "animation": [
-    { "step": "関数", "duration": 1.2, "focus": ["注文を処理する(...)"], "body": "関数は中で処理を終えてから外へ知らせる。 知らせる先は関数の外にある。", "badge": "出来事を出す" },
+    { "step": "関数", "duration": 1.2, "focus": ["注文を処理する(...)"], "description": "関数は中で処理を終えてから外へ知らせる。 知らせる先は関数の外にある。", "badge": "出来事を出す" },
     {
       "step": "受け皿まで",
       "duration": 1.2,
       "focus": ["注文を処理する(...)", "注文ができた"],
-      "body": "注文ができた は知らせの受け皿。 括弧の中は知らせに載る値。",
+      "description": "注文ができた は知らせの受け皿。 括弧の中は知らせに載る値。",
       "badge": "出来事を出す"
     },
     {
       "step": "出来事を出す",
       "duration": 2.4,
       "focus": ["注文を処理する(...)", "注文ができた", "注文を処理する(...) -> 注文ができた"],
-      "body": "関数の中で出した出来事が、流し場と記録に書き込まれる。",
+      "description": "関数の中で出した出来事が、流し場と記録に書き込まれる。",
       "badge": "出来事を出す"
     }
   ]
@@ -493,14 +493,14 @@ export const sourceJson__patternHook = `{
       "step": "呼ぶ",
       "duration": 1.8,
       "focus": ["送信側", "届ける", "送信側 -> 届ける"],
-      "body": "送信側が届ける処理を呼ぶ。",
+      "description": "送信側が届ける処理を呼ぶ。",
       "badge": "呼ぶ"
     },
     {
       "step": "差し込みの呼び戻し",
       "duration": 1.8,
       "focus": ["届ける", "受け取れるか", "届ける -> 受け取れるか"],
-      "body": "届ける処理が、受信側の「受け取れるか」を呼んで確かめる。",
+      "description": "届ける処理が、受信側の「受け取れるか」を呼んで確かめる。",
       "badge": "差し込み"
     }
   ]
@@ -599,21 +599,21 @@ export const sourceJson__patternBranch = `{
       "step": "判定",
       "duration": 1.8,
       "focus": ["入力", "もし (正しい?)", "入力 -> もし (正しい?)"],
-      "body": "入力を条件の箱へ渡す。",
+      "description": "入力を条件の箱へ渡す。",
       "badge": "判定"
     },
     {
       "step": "成立の経路",
       "duration": 1.8,
       "focus": ["もし (正しい?)", "処理する()", "もし (正しい?) -> 処理する()"],
-      "body": "条件が成り立つと、処理を呼ぶ。",
+      "description": "条件が成り立つと、処理を呼ぶ。",
       "badge": "成立"
     },
     {
       "step": "不成立の経路",
       "duration": 1.8,
       "focus": ["もし (正しい?)", "検証の失敗", "もし (正しい?) -> 検証の失敗"],
-      "body": "条件が成り立たないと、失敗の出来事を出す。",
+      "description": "条件が成り立たないと、失敗の出来事を出す。",
       "badge": "不成立"
     }
   ]
@@ -714,14 +714,14 @@ export const sourceJson__patternLoop = `{
       "step": "開始",
       "duration": 1.5,
       "focus": ["利用者側", "品目ごとに繰り返す", "利用者側 -> 品目ごとに繰り返す"],
-      "body": "利用者側がまとめて実行を呼ぶ。",
+      "description": "利用者側がまとめて実行を呼ぶ。",
       "badge": "開始"
     },
     {
       "step": "周回 1",
       "duration": 1.5,
       "focus": ["品目ごとに繰り返す", "処理する(品目)", "品目ごとに繰り返す -> 処理する(品目)"],
-      "body": "1 件目を処理。",
+      "description": "1 件目を処理。",
       "tween": { "i": [0, 1] },
       "badge": "i=1"
     },
@@ -729,7 +729,7 @@ export const sourceJson__patternLoop = `{
       "step": "周回 2",
       "duration": 1.5,
       "focus": ["品目ごとに繰り返す", "処理する(品目)", "品目ごとに繰り返す -> 処理する(品目)"],
-      "body": "2 件目を処理。",
+      "description": "2 件目を処理。",
       "tween": { "i": [1, 2] },
       "badge": "i=2"
     },
@@ -737,7 +737,7 @@ export const sourceJson__patternLoop = `{
       "step": "周回 3",
       "duration": 1.5,
       "focus": ["品目ごとに繰り返す", "処理する(品目)", "品目ごとに繰り返す -> 処理する(品目)"],
-      "body": "3 件目を処理。",
+      "description": "3 件目を処理。",
       "tween": { "i": [2, 3] },
       "badge": "i=3"
     }
@@ -842,14 +842,14 @@ export const sourceJson__patternFanOut = `{
       "step": "送る",
       "duration": 1.8,
       "focus": ["出し手", "配り手"],
-      "body": "出し手が 1 つの入力を配り手へ送る。",
+      "description": "出し手が 1 つの入力を配り手へ送る。",
       "badge": "送る"
     },
     {
       "step": "配る",
       "duration": 1.8,
       "focus": ["配り手", "働き手 1", "働き手 2", "働き手 3"],
-      "body": "配り手が 1 つの入力を 3 つの働き手へ順ぐりに配り、働き手はそれぞれ独立に処理する。",
+      "description": "配り手が 1 つの入力を 3 つの働き手へ順ぐりに配り、働き手はそれぞれ独立に処理する。",
       "badge": "配る"
     }
   ]
@@ -969,21 +969,21 @@ export const sourceJson__patternFanIn = `{
       "step": "集める",
       "duration": 1.8,
       "focus": ["働き手 1", "働き手 2", "働き手 3", "集め手"],
-      "body": "3 つの働き手が結果を集め手へ送る。",
+      "description": "3 つの働き手が結果を集め手へ送る。",
       "badge": "集める"
     },
     {
       "step": "書く",
       "duration": 1.8,
       "focus": ["集め手", "結果の表"],
-      "body": "集め手がまとめた結果を結果の表へ書き込む。",
+      "description": "集め手がまとめた結果を結果の表へ書き込む。",
       "badge": "書く"
     },
     {
       "step": "読む",
       "duration": 1.8,
       "focus": ["結果の表", "受け手"],
-      "body": "受け手がまとめた結果を受け取る。",
+      "description": "受け手がまとめた結果を受け取る。",
       "badge": "読む"
     }
   ]
@@ -1112,14 +1112,14 @@ export const sourceJson__patternRollback = `{
       "step": "BEGIN",
       "duration": 1.5,
       "focus": ["利用者側", "BEGIN tx", "利用者側 -> BEGIN tx"],
-      "body": "取引を始める。",
+      "description": "取引を始める。",
       "badge": "BEGIN"
     },
     {
       "step": "仮の書き込み",
       "duration": 1.5,
       "focus": ["BEGIN tx", "処理()", "DB", "BEGIN tx -> 処理()", "処理() -> DB"],
-      "body": "処理の中で DB を仮に書き換える。",
+      "description": "処理の中で DB を仮に書き換える。",
       "tween": { "balance": [100, 80] },
       "badge": "書く"
     },
@@ -1133,7 +1133,7 @@ export const sourceJson__patternRollback = `{
         "処理() -> COMMIT / ROLLBACK",
         "COMMIT / ROLLBACK -> DB"
       ],
-      "body": "失敗に気付いたら、元の値へ巻き戻す。",
+      "description": "失敗に気付いたら、元の値へ巻き戻す。",
       "tween": { "balance": [80, 100] },
       "badge": "ROLLBACK"
     }
@@ -1237,21 +1237,21 @@ export const sourceJson__patternSchedule = `{
       "step": "刻む",
       "duration": 1.8,
       "focus": ["定時の合図", "割り当て", "定時の合図 -> 割り当て"],
-      "body": "定時の合図が 5 分ごとに刻む。",
+      "description": "定時の合図が 5 分ごとに刻む。",
       "badge": "刻む"
     },
     {
       "step": "起動",
       "duration": 1.8,
       "focus": ["割り当て", "仕事.実行()", "割り当て -> 仕事.実行()"],
-      "body": "割り当てが仕事を起動する。",
+      "description": "割り当てが仕事を起動する。",
       "badge": "起動"
     },
     {
       "step": "呼ぶ",
       "duration": 1.8,
       "focus": ["仕事.実行()", "呼ばれる側", "仕事.実行() -> 呼ばれる側"],
-      "body": "仕事が呼ばれる側を呼ぶ。",
+      "description": "仕事が呼ばれる側を呼ぶ。",
       "badge": "呼ぶ"
     }
   ]
@@ -1364,28 +1364,28 @@ export const sourceJson__patternValidateProcess = `{
       "step": "送る",
       "duration": 1.5,
       "focus": ["利用者側", "確かめる(入力)", "利用者側 -> 確かめる(入力)"],
-      "body": "利用者側が入力を送る。",
+      "description": "利用者側が入力を送る。",
       "badge": "送る"
     },
     {
       "step": "検証",
       "duration": 1.5,
       "focus": ["確かめる(入力)", "形の定め", "確かめる(入力) -> 形の定め"],
-      "body": "形の定めで確かめる。",
+      "description": "形の定めで確かめる。",
       "badge": "検証"
     },
     {
       "step": "合格",
       "duration": 1.5,
       "focus": ["確かめる(入力)", "処理する()", "確かめる(入力) -> 処理する()"],
-      "body": "確かめられたら処理へ進む。",
+      "description": "確かめられたら処理へ進む。",
       "badge": "合格"
     },
     {
       "step": "不合格",
       "duration": 1.5,
       "focus": ["確かめる(入力)", "検証の失敗", "確かめる(入力) -> 検証の失敗"],
-      "body": "失敗した時は検証の失敗を出す。",
+      "description": "失敗した時は検証の失敗を出す。",
       "badge": "不合格"
     }
   ]

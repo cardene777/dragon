@@ -136,7 +136,7 @@ export const sourceJson__laneLifeline = `{
       "step": "箱の位置だけで縦列を読む",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く"],
-      "body": "縦列の見出しの下に線は無い。 段がずれて並ぶと、箱がどの縦列に属するかは箱の位置だけで読む"
+      "description": "縦列の見出しの下に線は無い。 段がずれて並ぶと、箱がどの縦列に属するかは箱の位置だけで読む"
     }
   ]
 }`;
@@ -186,7 +186,7 @@ export const sourceJson__pattern__laneLifeline__引く = `{
       "step": "縦の点線で縦列を追う",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く"],
-      "body": "縦列の中心を縦の点線が通る。 段がずれて並んでも、箱がどの縦列に属するかを線で上から下まで追える"
+      "description": "縦列の中心を縦の点線が通る。 段がずれて並んでも、箱がどの縦列に属するかを線で上から下まで追える"
     }
   ]
 }`;
@@ -249,7 +249,7 @@ export const sourceJson__viewportSpacing = `{
       "step": "間隔を書かない",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "body": "縦列の間も箱の間も名札の余白も書かず、描く側が決めた間隔で並べる"
+      "description": "縦列の間も箱の間も名札の余白も書かず、描く側が決めた間隔で並べる"
     }
   ]
 }`;
@@ -304,7 +304,7 @@ export const sourceJson__pattern__viewportSpacing__縦列の間 = `{
       "step": "縦列の間を 400 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "body": "受付と処理の縦列の間が 400 に広がり、横に結ぶ 2 本の矢印が長くなる。 同じ縦列の箱の間は変わらない"
+      "description": "受付と処理の縦列の間が 400 に広がり、横に結ぶ 2 本の矢印が長くなる。 同じ縦列の箱の間は変わらない"
     }
   ]
 }`;
@@ -359,7 +359,7 @@ export const sourceJson__pattern__viewportSpacing__箱の間 = `{
       "step": "箱の間を 80 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "body": "同じ縦列で上下に並ぶ注文と問い合わせ、発送と回答の間が広がる。 縦列の間は変わらない"
+      "description": "同じ縦列で上下に並ぶ注文と問い合わせ、発送と回答の間が広がる。 縦列の間は変わらない"
     }
   ]
 }`;
@@ -414,7 +414,7 @@ export const sourceJson__pattern__viewportSpacing__名札の余白 = `{
       "step": "名札の余白を 40 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "body": "依頼と転送の名札が、矢印から離れて上に置かれる。 箱と縦列の位置は変わらない"
+      "description": "依頼と転送の名札が、矢印から離れて上に置かれる。 箱と縦列の位置は変わらない"
     }
   ]
 }`;
@@ -469,7 +469,7 @@ export const sourceJson__pattern__viewportSpacing__まとめた間隔 = `{
       "step": "間隔をまとめて 120 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "body": "縦列の間と箱の間と名札の余白を書かない時に、この 1 つの値が 3 つの代わりに使われ、全てが広がる"
+      "description": "縦列の間と箱の間と名札の余白を書かない時に、この 1 つの値が 3 つの代わりに使われ、全てが広がる"
     }
   ]
 }`;
@@ -524,7 +524,7 @@ export const sourceJson__pattern__viewportSpacing__縦列の幅 = `{
       "step": "縦列の幅を 520 に揃える",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "body": "縦列ごとに書いた幅 240 より、図全体に書いた 520 が勝つ。 箱は広がった縦列の中央に置かれる"
+      "description": "縦列ごとに書いた幅 240 より、図全体に書いた 520 が勝つ。 箱は広がった縦列の中央に置かれる"
     }
   ]
 }`;
@@ -579,7 +579,7 @@ export const sourceJson__pattern__viewportSpacing__図の広さ = `{
       "step": "広さを横 1400 と縦 800 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "body": "図を描く広さが横 1400、縦 800 になる。 箱の置き方は変わらず、右と下に余白が残る"
+      "description": "図を描く広さが横 1400、縦 800 になる。 箱の置き方は変わらず、右と下に余白が残る"
     }
   ]
 }`;
@@ -634,7 +634,7 @@ export const sourceJson__pattern__viewportSpacing__倍率 = `{
       "step": "1.5 倍で描く",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "body": "箱と字と線を 1.5 倍の大きさで描く。 置き方は書かない図と同じで、描く大きさだけが変わる"
+      "description": "箱と字と線を 1.5 倍の大きさで描く。 置き方は書かない図と同じで、描く大きさだけが変わる"
     }
   ]
 }`;
@@ -684,7 +684,7 @@ export const sourceJson__flowDirection = `{
       "step": "書かない時の並び",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "body": "動きを持つフローは向きを書かないと、1 人ずつ縦列を作って左から並べる"
+      "description": "動きを持つフローは向きを書かないと、1 人ずつ縦列を作って左から並べる"
     }
   ]
 }`;
@@ -724,7 +724,7 @@ export const sourceJson__pattern__flowDirection__縦に積む = `{
       "step": "縦に積む",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "body": "縦に積むと書くと、1 つの縦列に上から積む。 動きを持つフローの既定は横なので、向きの行を外すと横並びに戻る"
+      "description": "縦に積むと書くと、1 つの縦列に上から積む。 動きを持つフローの既定は横なので、向きの行を外すと横並びに戻る"
     }
   ]
 }`;
@@ -764,7 +764,7 @@ export const sourceJson__pattern__flowDirection__横に並べる = `{
       "step": "横に並べる",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "body": "横に並べると、1 人ずつ縦列を作って左から並べる。 動きを持つフローの既定と同じなので、記法は向きの行を外せることを知らせる"
+      "description": "横に並べると、1 人ずつ縦列を作って左から並べる。 動きを持つフローの既定と同じなので、記法は向きの行を外せることを知らせる"
     }
   ]
 }`;
@@ -852,7 +852,7 @@ export const sourceJson__stateStartEnd = `{
       "step": "並びで決まる札",
       "duration": 1.8,
       "focus": ["受付", "完了", "取り下げ"],
-      "body": "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる"
+      "description": "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる"
     }
   ]
 }`;
@@ -894,7 +894,7 @@ export const sourceJson__pattern__stateStartEnd__書く = `{
       "step": "始まりと終わりの札",
       "duration": 1.8,
       "focus": ["受付", "完了", "取り下げ"],
-      "body": "始まりと書いた受付に「初期」、終わりと書いた完了と取り下げの 2 つに「最終」 の札が付く"
+      "description": "始まりと書いた受付に「初期」、終わりと書いた完了と取り下げの 2 つに「最終」 の札が付く"
     }
   ]
 }`;
@@ -954,7 +954,7 @@ export const sourceJson__pattern__stateStartEnd__段を分けて書く = `{
       "step": "段を分けて書いた札",
       "duration": 1.8,
       "focus": ["受付", "審査", "完了"],
-      "body": "始まりと終わりの印も目次も、名前の下に段を分けて並べられる。 中括弧に書いた時と同じ札が付く"
+      "description": "始まりと終わりの印も目次も、名前の下に段を分けて並べられる。 中括弧に書いた時と同じ札が付く"
     }
   ]
 }`;
@@ -1018,7 +1018,7 @@ export const sourceJson__layoutOffset = `{
       "step": "自動で決まった位置に置く",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
-      "body": "位置のずらしを書かず、縦列と段から決まった位置に箱と縦列と矢印の名前を置く"
+      "description": "位置のずらしを書かず、縦列と段から決まった位置に箱と縦列と矢印の名前を置く"
     }
   ]
 }`;
@@ -1068,7 +1068,7 @@ export const sourceJson__pattern__layoutOffset__箱をずらす = `{
       "step": "注文するの箱を右へ 40、下へ 60 ずらす",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
-      "body": "注文するの箱だけが右へ 40、下へ 60 動き、矢印は動いた箱から出る。 縦列と他の箱は動かない"
+      "description": "注文するの箱だけが右へ 40、下へ 60 動き、矢印は動いた箱から出る。 縦列と他の箱は動かない"
     }
   ]
 }`;
@@ -1118,7 +1118,7 @@ export const sourceJson__pattern__layoutOffset__縦列をずらす = `{
       "step": "受付の窓口の縦列を右へ 120、下へ 40 ずらす",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
-      "body": "受付の窓口の縦列が右へ 120、下へ 40 動き、中の 2 つの箱も一緒に動く。 縦列の幅と高さと、利用者の縦列は変わらない"
+      "description": "受付の窓口の縦列が右へ 120、下へ 40 動き、中の 2 つの箱も一緒に動く。 縦列の幅と高さと、利用者の縦列は変わらない"
     }
   ]
 }`;
@@ -1168,7 +1168,7 @@ export const sourceJson__pattern__layoutOffset__矢印の名前をずらす = `{
       "step": "注文の名前を右へ 40、上へ 24 ずらす",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
-      "body": "注文の矢印の名前だけが右へ 40、上へ 24 動く。 矢印の線と箱は動かない"
+      "description": "注文の矢印の名前だけが右へ 40、上へ 24 動く。 矢印の線と箱は動かない"
     }
   ]
 }`;
@@ -1233,7 +1233,7 @@ export const sourceJson__laneGroup = `{
       "step": "縦列を 1 本ずつ並べる",
       "duration": 1.8,
       "focus": ["利用者", "注文の処理", "注文の台帳"],
-      "body": "組を書かず、受付の層と処理の層と保存の層を枠で囲まずに横へ並べる"
+      "description": "組を書かず、受付の層と処理の層と保存の層を枠で囲まずに横へ並べる"
     }
   ]
 }`;
@@ -1291,7 +1291,7 @@ export const sourceJson__pattern__laneGroup__縦列を束ねる = `{
       "step": "社内の網で 2 本の縦列を囲む",
       "duration": 1.8,
       "focus": ["利用者", "注文の処理", "注文の台帳"],
-      "body": "社内の網の枠が処理の層と保存の層と中の箱を囲み、受付の層は枠の外に残る。 縦列と箱の位置は束ねない図と同じ"
+      "description": "社内の網の枠が処理の層と保存の層と中の箱を囲み、受付の層は枠の外に残る。 縦列と箱の位置は束ねない図と同じ"
     }
   ]
 }`;
@@ -1351,7 +1351,7 @@ export const sourceJson__pattern__laneGroup__2つの組 = `{
       "step": "社外と社内の網を別の枠で囲む",
       "duration": 1.8,
       "focus": ["利用者", "注文の処理", "注文の台帳"],
-      "body": "社外の枠が受付の層を、社内の網の枠が処理の層と保存の層を囲む。 依頼の矢印は 2 つの枠の間を渡る"
+      "description": "社外の枠が受付の層を、社内の網の枠が処理の層と保存の層を囲む。 依頼の矢印は 2 つの枠の間を渡る"
     }
   ]
 }`;
@@ -2415,21 +2415,21 @@ export const sourceJson__sceneCryptoTransfer = `{
       "duration": 0.75,
       "focus": ["送金者"],
       "badge": "財布",
-      "body": "MetaMask の口座"
+      "description": "MetaMask の口座"
     },
     {
       "step": "2. 分散型取引所",
       "duration": 0.75,
       "focus": ["送金者", "分散型取引所"],
       "badge": "取引所",
-      "body": "清算"
+      "description": "清算"
     },
     {
       "step": "暗号資産の送金",
       "duration": 0.75,
       "focus": ["送金者", "分散型取引所", "Ethereum"],
       "badge": "台帳",
-      "body": "送金者の財布が分散型取引所へ注文を出し、取引所が Ethereum の台帳で決済する。 個人の口座から L1 まで 3 段で進む場面。"
+      "description": "送金者の財布が分散型取引所へ注文を出し、取引所が Ethereum の台帳で決済する。 個人の口座から L1 まで 3 段で進む場面。"
     }
   ]
 }`;
@@ -2501,20 +2501,20 @@ export const sourceJson__sceneLegalNotarization = `{
     { "from": "公証役場", "to": "登記簿", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 代理人", "duration": 0.75, "focus": ["代理人"], "badge": "法務", "body": "起草" },
+    { "step": "1. 代理人", "duration": 0.75, "focus": ["代理人"], "badge": "法務", "description": "起草" },
     {
       "step": "2. 公証役場",
       "duration": 0.75,
       "focus": ["代理人", "公証役場"],
       "badge": "公証",
-      "body": "認証"
+      "description": "認証"
     },
     {
       "step": "法務の流れ",
       "duration": 0.75,
       "focus": ["代理人", "公証役場", "登記簿"],
       "badge": "記録",
-      "body": "代理人が起草し、公証役場が認証して、登記簿に記録する。 契約や遺言、不動産の譲渡で踏む正式な流れ。"
+      "description": "代理人が起草し、公証役場が認証して、登記簿に記録する。 契約や遺言、不動産の譲渡で踏む正式な流れ。"
     }
   ]
 }`;
@@ -2591,21 +2591,21 @@ export const sourceJson__sceneNftMint = `{
       "duration": 0.75,
       "focus": ["作者"],
       "badge": "財布",
-      "body": "絵描き"
+      "description": "絵描き"
     },
     {
       "step": "2. ERC-721",
       "duration": 0.75,
       "focus": ["作者", "ERC-721"],
       "badge": "契約",
-      "body": "OpenSea に出品"
+      "description": "OpenSea に出品"
     },
     {
       "step": "NFT の発行",
       "duration": 0.75,
       "focus": ["作者", "ERC-721", "一点物の絵"],
       "badge": "NFT",
-      "body": "作者の財布が ERC-721 の契約を呼び、NFT が発行される。 NFT を発行する時の典型的な 3 段の流れ。"
+      "description": "作者の財布が ERC-721 の契約を呼び、NFT が発行される。 NFT を発行する時の典型的な 3 段の流れ。"
     }
   ]
 }`;
@@ -2677,20 +2677,20 @@ export const sourceJson__sceneBankingFlow = `{
     { "from": "みずほ銀行", "to": "Amazon", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. ATM", "duration": 0.75, "focus": ["ATM"], "badge": "現金の窓口", "body": "現金を引き出す" },
+    { "step": "1. ATM", "duration": 0.75, "focus": ["ATM"], "badge": "現金の窓口", "description": "現金を引き出す" },
     {
       "step": "2. みずほ銀行",
       "duration": 0.75,
       "focus": ["ATM", "みずほ銀行"],
       "badge": "銀行",
-      "body": "都銀"
+      "description": "都銀"
     },
     {
       "step": "銀行の送金",
       "duration": 0.75,
       "focus": ["ATM", "みずほ銀行", "Amazon"],
       "badge": "店",
-      "body": "ATM で現金を引き出し、銀行の口座を通して、通販の代金を払う。 暮らしの中でお金が動く流れ。"
+      "description": "ATM で現金を引き出し、銀行の口座を通して、通販の代金を払う。 暮らしの中でお金が動く流れ。"
     }
   ]
 }`;
@@ -2763,20 +2763,20 @@ export const sourceJson__sceneIotOnchain = `{
     { "from": "Infura", "to": "外部データの受け口", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 温度計", "duration": 0.75, "focus": ["温度計"], "badge": "計測機器", "body": "近距離の無線" },
+    { "step": "1. 温度計", "duration": 0.75, "focus": ["温度計"], "badge": "計測機器", "description": "近距離の無線" },
     {
       "step": "2. Infura",
       "duration": 0.75,
       "focus": ["温度計", "Infura"],
       "badge": "RPC の窓口",
-      "body": "窓口を貸す事業者"
+      "description": "窓口を貸す事業者"
     },
     {
       "step": "計測値を台帳へ",
       "duration": 0.75,
       "focus": ["温度計", "Infura", "外部データの受け口"],
       "badge": "契約",
-      "body": "温度計の値を RPC の窓口へ送り、外部データの受け口の契約が台帳に書き込む。 現実の計測値を台帳に残す流れ。"
+      "description": "温度計の値を RPC の窓口へ送り、外部データの受け口の契約が台帳に書き込む。 現実の計測値を台帳に残す流れ。"
     }
   ]
 }`;
@@ -2848,20 +2848,20 @@ export const sourceJson__sceneAuditFlow = `{
     { "from": "会計帳簿", "to": "金融庁", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 監査法人", "duration": 0.75, "focus": ["監査法人"], "badge": "監査", "body": "検査" },
+    { "step": "1. 監査法人", "duration": 0.75, "focus": ["監査法人"], "badge": "監査", "description": "検査" },
     {
       "step": "2. 会計帳簿",
       "duration": 0.75,
       "focus": ["監査法人", "会計帳簿"],
       "badge": "記録",
-      "body": "元帳"
+      "description": "元帳"
     },
     {
       "step": "監査の流れ",
       "duration": 0.75,
       "focus": ["監査法人", "会計帳簿", "金融庁"],
       "badge": "規制当局",
-      "body": "監査法人が帳簿を確かめ、規制当局へ報告する。 上場企業の財務監査で踏む 3 段の流れ。"
+      "description": "監査法人が帳簿を確かめ、規制当局へ報告する。 上場企業の財務監査で踏む 3 段の流れ。"
     }
   ]
 }`;
@@ -2938,21 +2938,21 @@ export const sourceJson__sceneStockTrading = `{
       "duration": 0.75,
       "focus": ["個人投資家"],
       "badge": "売買",
-      "body": "小口の注文"
+      "description": "小口の注文"
     },
     {
       "step": "2. 野村証券",
       "duration": 0.75,
       "focus": ["個人投資家", "野村証券"],
       "badge": "証券",
-      "body": "投資銀行"
+      "description": "投資銀行"
     },
     {
       "step": "証券取引",
       "duration": 0.75,
       "focus": ["個人投資家", "野村証券", "東証"],
       "badge": "取引所",
-      "body": "個人投資家が証券会社へ発注し、取引所で約定する。 株の売買で踏む 3 段の場面。"
+      "description": "個人投資家が証券会社へ発注し、取引所で約定する。 株の売買で踏む 3 段の場面。"
     }
   ]
 }`;
@@ -3029,21 +3029,21 @@ export const sourceJson__sceneSupportFlow = `{
       "duration": 0.75,
       "focus": ["サポート担当"],
       "badge": "問い合わせ",
-      "body": "24 時間対応"
+      "description": "24 時間対応"
     },
     {
       "step": "2. 不具合 #1234",
       "duration": 0.75,
       "focus": ["サポート担当", "不具合 #1234"],
       "badge": "課題",
-      "body": "管理表に起票"
+      "description": "管理表に起票"
     },
     {
       "step": "問い合わせの流れ",
       "duration": 0.75,
       "focus": ["サポート担当", "不具合 #1234", "緊急の修正"],
       "badge": "変更の確定",
-      "body": "サポート担当が電話を受け、課題として起票し、開発者が緊急の修正を出す。 不具合の報告から修正までの、よくある 3 段の流れ。"
+      "description": "サポート担当が電話を受け、課題として起票し、開発者が緊急の修正を出す。 不具合の報告から修正までの、よくある 3 段の流れ。"
     }
   ]
 }`;
@@ -3120,21 +3120,21 @@ export const sourceJson__scenePaymentSettlement = `{
       "duration": 0.75,
       "focus": ["Stripe"],
       "badge": "決済代行",
-      "body": "クラウドで提供"
+      "description": "クラウドで提供"
     },
     {
       "step": "2. VISA",
       "duration": 0.75,
       "focus": ["Stripe", "VISA"],
       "badge": "カード",
-      "body": "後払い"
+      "description": "後払い"
     },
     {
       "step": "決済の流れ",
       "duration": 0.75,
       "focus": ["Stripe", "VISA", "発行銀行"],
       "badge": "発行元",
-      "body": "Stripe がカードの承認を求め、発行銀行が決済する。 通販のカード払いで踏む 3 段の流れ。"
+      "description": "Stripe がカードの承認を求め、発行銀行が決済する。 通販のカード払いで踏む 3 段の流れ。"
     }
   ]
 }`;
@@ -3211,21 +3211,21 @@ export const sourceJson__sceneWebInfra = `{
       "duration": 0.75,
       "focus": ["会社案内"],
       "badge": "サイト",
-      "body": "1 画面で動くアプリ"
+      "description": "1 画面で動くアプリ"
     },
     {
       "step": "2. Cloudflare",
       "duration": 0.75,
       "focus": ["会社案内", "Cloudflare"],
       "badge": "配信網",
-      "body": "近くの拠点"
+      "description": "近くの拠点"
     },
     {
       "step": "サイトの配信",
       "duration": 0.75,
       "focus": ["会社案内", "Cloudflare", "配信元"],
       "badge": "サーバ",
-      "body": "サイトへの要求を配信網の控えで返し、無い時だけ配信元のサーバへ取りに行く。 サイトの配信でよく使う 3 層の形。"
+      "description": "サイトへの要求を配信網の控えで返し、無い時だけ配信元のサーバへ取りに行く。 サイトの配信でよく使う 3 層の形。"
     }
   ]
 }`;
@@ -3302,21 +3302,21 @@ export const sourceJson__sceneTokenBridge = `{
       "duration": 0.75,
       "focus": ["Ethereum"],
       "badge": "送る側の台帳",
-      "body": "L1"
+      "description": "L1"
     },
     {
       "step": "2. 橋渡し",
       "duration": 0.75,
       "focus": ["Ethereum", "橋渡し"],
       "badge": "契約",
-      "body": "預かって凍結"
+      "description": "預かって凍結"
     },
     {
       "step": "通貨の橋渡し",
       "duration": 0.75,
       "focus": ["Ethereum", "橋渡し", "Arbitrum"],
       "badge": "受ける側の台帳",
-      "body": "送る側の台帳で通貨を凍結し、橋渡しの契約を通して、受ける側の台帳で同じ額を発行する。 台帳をまたいで資産を移す流れ。"
+      "description": "送る側の台帳で通貨を凍結し、橋渡しの契約を通して、受ける側の台帳で同じ額を発行する。 台帳をまたいで資産を移す流れ。"
     }
   ]
 }`;
@@ -3393,21 +3393,21 @@ export const sourceJson__sceneDefiLending = `{
       "duration": 0.75,
       "focus": ["供給者"],
       "badge": "財布",
-      "body": "USDC を預ける"
+      "description": "USDC を預ける"
     },
     {
       "step": "2. Aave v3",
       "duration": 0.75,
       "focus": ["供給者", "Aave v3"],
       "badge": "貸し出し",
-      "body": "まとめた資金"
+      "description": "まとめた資金"
     },
     {
       "step": "分散型の貸し出し",
       "duration": 0.75,
       "focus": ["供給者", "Aave v3", "aUSDC"],
       "badge": "通貨",
-      "body": "財布から Aave に USDC を預けると、利息が付く aUSDC を受け取る。 利息の付く貸し出しの典型的な流れ。"
+      "description": "財布から Aave に USDC を預けると、利息が付く aUSDC を受け取る。 利息の付く貸し出しの典型的な流れ。"
     }
   ]
 }`;
@@ -3484,21 +3484,21 @@ export const sourceJson__sceneBitcoinTx = `{
       "duration": 0.75,
       "focus": ["送金者"],
       "badge": "財布",
-      "body": "Bitcoin の公式ソフト"
+      "description": "Bitcoin の公式ソフト"
     },
     {
       "step": "2. BTC の本番網",
       "duration": 0.75,
       "focus": ["送金者", "BTC の本番網"],
       "badge": "台帳",
-      "body": "計算の量で合意"
+      "description": "計算の量で合意"
     },
     {
       "step": "Bitcoin の送金",
       "duration": 0.75,
       "focus": ["送金者", "BTC の本番網", "全記録の保持者"],
       "badge": "参加者",
-      "body": "財布で取引に署名し、Bitcoin の網へ流して、全記録の保持者が承認する。 仲介なしで直接送る 3 段の流れ。"
+      "description": "財布で取引に署名し、Bitcoin の網へ流して、全記録の保持者が承認する。 仲介なしで直接送る 3 段の流れ。"
     }
   ]
 }`;
@@ -3570,20 +3570,20 @@ export const sourceJson__sceneEcOrder = `{
     { "from": "楽天市場", "to": "市川倉庫", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 購入者", "duration": 0.75, "focus": ["購入者"], "badge": "顧客", "body": "注文" },
+    { "step": "1. 購入者", "duration": 0.75, "focus": ["購入者"], "badge": "顧客", "description": "注文" },
     {
       "step": "2. 楽天市場",
       "duration": 0.75,
       "focus": ["購入者", "楽天市場"],
       "badge": "店",
-      "body": "ネット通販"
+      "description": "ネット通販"
     },
     {
       "step": "通販の注文",
       "duration": 0.75,
       "focus": ["購入者", "楽天市場", "市川倉庫"],
       "badge": "物流拠点",
-      "body": "購入者が注文し、通販の店が受けて、倉庫へ出荷を指示する。 物を売る時の、注文から出荷までの流れ。"
+      "description": "購入者が注文し、通販の店が受けて、倉庫へ出荷を指示する。 物を売る時の、注文から出荷までの流れ。"
     }
   ]
 }`;
@@ -3660,21 +3660,21 @@ export const sourceJson__sceneMobileApi = `{
       "duration": 0.75,
       "focus": ["iOS のアプリ"],
       "badge": "携帯端末",
-      "body": "SwiftUI"
+      "description": "SwiftUI"
     },
     {
       "step": "2. GraphQL",
       "duration": 0.75,
       "focus": ["iOS のアプリ", "GraphQL"],
       "badge": "API の入口",
-      "body": "要求を振り分ける"
+      "description": "要求を振り分ける"
     },
     {
       "step": "携帯アプリの API",
       "duration": 0.75,
       "focus": ["iOS のアプリ", "GraphQL", "裏側の処理"],
       "badge": "サーバ",
-      "body": "携帯のアプリが要求を送り、API の入口が認証して振り分け、裏側のサーバが処理する。 いまどきの携帯アプリの組み立て。"
+      "description": "携帯のアプリが要求を送り、API の入口が認証して振り分け、裏側のサーバが処理する。 いまどきの携帯アプリの組み立て。"
     }
   ]
 }`;
@@ -3752,21 +3752,21 @@ export const sourceJson__sceneFactoryLine = `{
       "duration": 0.75,
       "focus": ["ファナックの腕"],
       "badge": "ロボット",
-      "body": "組立"
+      "description": "組立"
     },
     {
       "step": "2. 外観の検査",
       "duration": 0.75,
       "focus": ["ファナックの腕", "外観の検査"],
       "badge": "計測機器",
-      "body": "品質"
+      "description": "品質"
     },
     {
       "step": "工場の組立",
       "duration": 0.75,
       "focus": ["ファナックの腕", "外観の検査", "製造管理の DB"],
       "badge": "データベース",
-      "body": "ロボットの腕が組み立て、計測機器が品質を確かめ、製造管理の DB に記録する。 機械でつないだ工場の典型的な流れ。"
+      "description": "ロボットの腕が組み立て、計測機器が品質を確かめ、製造管理の DB に記録する。 機械でつないだ工場の典型的な流れ。"
     }
   ]
 }`;
@@ -3843,21 +3843,21 @@ export const sourceJson__sceneSatelliteChain = `{
       "duration": 0.75,
       "focus": ["Starlink"],
       "badge": "人工衛星",
-      "body": "低軌道"
+      "description": "低軌道"
     },
     {
       "step": "2. Alchemy",
       "duration": 0.75,
       "focus": ["Starlink", "Alchemy"],
       "badge": "RPC の窓口",
-      "body": "接続先"
+      "description": "接続先"
     },
     {
       "step": "衛星から台帳へ",
       "duration": 0.75,
       "focus": ["Starlink", "Alchemy", "Solana"],
       "badge": "台帳",
-      "body": "衛星のデータを RPC の窓口が中継し、台帳に記録する。 宇宙から現実のデータを台帳へ送る流れ。"
+      "description": "衛星のデータを RPC の窓口が中継し、台帳に記録する。 宇宙から現実のデータを台帳へ送る流れ。"
     }
   ]
 }`;
@@ -3935,21 +3935,21 @@ export const sourceJson__sceneDevOps = `{
       "duration": 0.75,
       "focus": ["注文画面/"],
       "badge": "コード",
-      "body": "TypeScript"
+      "description": "TypeScript"
     },
     {
       "step": "2. GitHub の実行環境",
       "duration": 0.75,
       "focus": ["注文画面/", "GitHub の実行環境"],
       "badge": "自動化",
-      "body": "組み立てと検査"
+      "description": "組み立てと検査"
     },
     {
       "step": "開発と運用",
       "duration": 0.75,
       "focus": ["注文画面/", "GitHub の実行環境", "AWS ECS"],
       "badge": "配備先",
-      "body": "コードを送ると、自動で組み立てて検査し、クラウドへ配備する。 いまどきの自動配備の典型的な 3 段の流れ。"
+      "description": "コードを送ると、自動で組み立てて検査し、クラウドへ配備する。 いまどきの自動配備の典型的な 3 段の流れ。"
     }
   ]
 }`;
@@ -4027,21 +4027,21 @@ export const sourceJson__sceneTaskFlow = `{
       "duration": 0.75,
       "focus": ["課題 #42"],
       "badge": "看板",
-      "body": "作業中"
+      "description": "作業中"
     },
     {
       "step": "2. zsh",
       "duration": 0.75,
       "focus": ["課題 #42", "zsh"],
       "badge": "端末",
-      "body": "組み立てを実行"
+      "description": "組み立てを実行"
     },
     {
       "step": "作業の流れ",
       "duration": 0.75,
       "focus": ["課題 #42", "zsh", "組み立ての記録"],
       "badge": "ファイル",
-      "body": "看板の課題に着手し、端末で命令を打ち、出力をファイルに残す。 開発者の日々の流れ。"
+      "description": "看板の課題に着手し、端末で命令を打ち、出力をファイルに残す。 開発者の日々の流れ。"
     }
   ]
 }`;
@@ -4119,21 +4119,21 @@ export const sourceJson__sceneNotification = `{
       "duration": 0.75,
       "focus": ["@花子"],
       "badge": "発言",
-      "body": "社内の連絡"
+      "description": "社内の連絡"
     },
     {
       "step": "2. 通知の配達",
       "duration": 0.75,
       "focus": ["@花子", "通知の配達"],
       "badge": "役務",
-      "body": "即時に知らせる"
+      "description": "即時に知らせる"
     },
     {
       "step": "通知",
       "duration": 0.75,
       "focus": ["@花子", "通知の配達", "デスクトップ通知"],
       "badge": "アプリの画面",
-      "body": "発言を送ると通知の配達が受け取り、相手の画面に通知を出す。 送り手から受け手までをつなぐ流れ。"
+      "description": "発言を送ると通知の配達が受け取り、相手の画面に通知を出す。 送り手から受け手までをつなぐ流れ。"
     }
   ]
 }`;
@@ -4210,21 +4210,21 @@ export const sourceJson__sceneTrustAsset = `{
       "duration": 0.75,
       "focus": ["資産運用者"],
       "badge": "売買",
-      "body": "買いの指示"
+      "description": "買いの指示"
     },
     {
       "step": "2. 三井住友信託",
       "duration": 0.75,
       "focus": ["資産運用者", "三井住友信託"],
       "badge": "信託銀行",
-      "body": "受託"
+      "description": "受託"
     },
     {
       "step": "信託資産",
       "duration": 0.75,
       "focus": ["資産運用者", "三井住友信託", "運用報告書"],
       "badge": "記録",
-      "body": "資産運用者が買いを指示し、信託銀行が預かって、月ごとの報告書を出す。 機関投資家の資産管理。"
+      "description": "資産運用者が買いを指示し、信託銀行が預かって、月ごとの報告書を出す。 機関投資家の資産管理。"
     }
   ]
 }`;
@@ -4302,21 +4302,21 @@ export const sourceJson__sceneConsensus = `{
       "duration": 0.75,
       "focus": ["検証役"],
       "badge": "参加者",
-      "body": "預けた量で合意"
+      "description": "預けた量で合意"
     },
     {
       "step": "2. 高さ 8123456",
       "duration": 0.75,
       "focus": ["検証役", "高さ 8123456"],
       "badge": "ブロック",
-      "body": "提案中"
+      "description": "提案中"
     },
     {
       "step": "合意の形成",
       "duration": 0.75,
       "focus": ["検証役", "高さ 8123456", "本流"],
       "badge": "台帳",
-      "body": "検証役がブロックを提案し、他の検証役の承認を集めて、本流の台帳で確定する。 預けた量で合意する方式の典型的な流れ。"
+      "description": "検証役がブロックを提案し、他の検証役の承認を集めて、本流の台帳で確定する。 預けた量で合意する方式の典型的な流れ。"
     }
   ]
 }`;
@@ -4393,21 +4393,21 @@ export const sourceJson__sceneTokenDeploy = `{
       "duration": 0.75,
       "focus": ["発行者"],
       "badge": "開発者",
-      "body": "創業者"
+      "description": "創業者"
     },
     {
       "step": "2. ERC-20",
       "duration": 0.75,
       "focus": ["発行者", "ERC-20"],
       "badge": "契約",
-      "body": "OpenZeppelin"
+      "description": "OpenZeppelin"
     },
     {
       "step": "通貨の発行",
       "duration": 0.75,
       "focus": ["発行者", "ERC-20", "$KIWA"],
       "badge": "通貨",
-      "body": "発行者が ERC-20 の契約を配備し、通貨を発行して市場へ出す。 新しい事業の立ち上げ。"
+      "description": "発行者が ERC-20 の契約を配備し、通貨を発行して市場へ出す。 新しい事業の立ち上げ。"
     }
   ]
 }`;
@@ -4479,20 +4479,20 @@ export const sourceJson__sceneCompliance = `{
     { "from": "取引の明細", "to": "あおば銀行", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 金融庁", "duration": 0.75, "focus": ["金融庁"], "badge": "規制当局", "body": "検査" },
+    { "step": "1. 金融庁", "duration": 0.75, "focus": ["金融庁"], "badge": "規制当局", "description": "検査" },
     {
       "step": "2. 取引の明細",
       "duration": 0.75,
       "focus": ["金融庁", "取引の明細"],
       "badge": "記録",
-      "body": "監査の証跡"
+      "description": "監査の証跡"
     },
     {
       "step": "規制への対応",
       "duration": 0.75,
       "focus": ["金融庁", "取引の明細", "あおば銀行"],
       "badge": "銀行",
-      "body": "規制当局が検査を始めて取引の明細を出させ、銀行が検査に応じる。 金融庁の検査で踏む典型的な流れ。"
+      "description": "規制当局が検査を始めて取引の明細を出させ、銀行が検査に応じる。 金融庁の検査で踏む典型的な流れ。"
     }
   ]
 }`;
@@ -4570,21 +4570,21 @@ export const sourceJson__sceneNftMarketplace = `{
       "duration": 0.75,
       "focus": ["買い手"],
       "badge": "財布",
-      "body": "収集家"
+      "description": "収集家"
     },
     {
       "step": "2. OpenSea",
       "duration": 0.75,
       "focus": ["買い手", "OpenSea"],
       "badge": "売買の場",
-      "body": "作者への還元 5%"
+      "description": "作者への還元 5%"
     },
     {
       "step": "NFT の売買",
       "duration": 0.75,
       "focus": ["買い手", "OpenSea", "猿の絵 #7890"],
       "badge": "NFT",
-      "body": "買い手が売買の場で値を付け、契約が動いて NFT の持ち主が移る。 二次流通の流れ。"
+      "description": "買い手が売買の場で値を付け、契約が動いて NFT の持ち主が移る。 二次流通の流れ。"
     }
   ]
 }`;
@@ -4662,21 +4662,21 @@ export const sourceJson__sceneNetworkPath = `{
       "duration": 0.75,
       "focus": ["社員の携帯"],
       "badge": "端末",
-      "body": "無線でつなぐ"
+      "description": "無線でつなぐ"
     },
     {
       "step": "2. 基幹の中継器",
       "duration": 0.75,
       "focus": ["社員の携帯", "基幹の中継器"],
       "badge": "通信網",
-      "body": "L2/L3"
+      "description": "L2/L3"
     },
     {
       "step": "通信の経路",
       "duration": 0.75,
       "focus": ["社員の携帯", "基幹の中継器", "業務の処理役"],
       "badge": "サーバ",
-      "body": "社員の携帯から基幹の中継器を通って、業務のサーバへ届く。 会社の通信網でよくある 3 段の経路。"
+      "description": "社員の携帯から基幹の中継器を通って、業務のサーバへ届く。 会社の通信網でよくある 3 段の経路。"
     }
   ]
 }`;
@@ -4754,21 +4754,21 @@ export const sourceJson__sceneCheckout = `{
       "duration": 0.75,
       "focus": ["山田商店の通販"],
       "badge": "サイト",
-      "body": "かごの中身"
+      "description": "かごの中身"
     },
     {
       "step": "2. PayPal",
       "duration": 0.75,
       "focus": ["山田商店の通販", "PayPal"],
       "badge": "決済代行",
-      "body": "支払いの手続き"
+      "description": "支払いの手続き"
     },
     {
       "step": "通販の支払い",
       "duration": 0.75,
       "focus": ["山田商店の通販", "PayPal", "MasterCard"],
       "badge": "カード",
-      "body": "サイトでかごの中身を送り、決済代行を通して、カードの承認を得る。 通販の支払いの典型的な流れ。"
+      "description": "サイトでかごの中身を送り、決済代行を通して、カードの承認を得る。 通販の支払いの典型的な流れ。"
     }
   ]
 }`;
@@ -4846,21 +4846,21 @@ export const sourceJson__sceneEdgeCompute = `{
       "duration": 0.75,
       "focus": ["Android のアプリ"],
       "badge": "携帯端末",
-      "body": "利用者"
+      "description": "利用者"
     },
     {
       "step": "2. Fastly",
       "duration": 0.75,
       "focus": ["Android のアプリ", "Fastly"],
       "badge": "配信網",
-      "body": "拠点で処理する"
+      "description": "拠点で処理する"
     },
     {
       "step": "拠点での処理",
       "duration": 0.75,
       "focus": ["Android のアプリ", "Fastly", "GCP の配信元"],
       "badge": "クラウド",
-      "body": "携帯の要求を配信網の拠点で処理し、返せない時だけ配信元へ回す。 待ち時間の短い配信。"
+      "description": "携帯の要求を配信網の拠点で処理し、返せない時だけ配信元へ回す。 待ち時間の短い配信。"
     }
   ]
 }`;
@@ -4940,21 +4940,21 @@ export const sourceJson__sceneVersionDeploy = `{
       "duration": 0.75,
       "focus": ["v3.2.0"],
       "badge": "公開版",
-      "body": "目印を付けた"
+      "description": "目印を付けた"
     },
     {
       "step": "2. 配備の流れ",
       "duration": 0.75,
       "focus": ["v3.2.0", "配備の流れ"],
       "badge": "自動化",
-      "body": "一部へ先に配る"
+      "description": "一部へ先に配る"
     },
     {
       "step": "版の配備",
       "duration": 0.75,
       "focus": ["v3.2.0", "配備の流れ", "本番の画面"],
       "badge": "サイト",
-      "body": "版に目印を付け、配備の流れで一部へ先に配ってから、本番のサイトに出す。 クラウドの役務でよくある配備の形。"
+      "description": "版に目印を付け、配備の流れで一部へ先に配ってから、本番のサイトに出す。 クラウドの役務でよくある配備の形。"
     }
   ]
 }`;
@@ -5031,21 +5031,21 @@ export const sourceJson__sceneAuditChain = `{
       "duration": 0.75,
       "focus": ["監査法人"],
       "badge": "監査",
-      "body": "大手の一つ"
+      "description": "大手の一つ"
     },
     {
       "step": "2. 監査報告書",
       "duration": 0.75,
       "focus": ["監査法人", "監査報告書"],
       "badge": "提出物",
-      "body": "署名済み"
+      "description": "署名済み"
     },
     {
       "step": "監査の報告",
       "duration": 0.75,
       "focus": ["監査法人", "監査報告書", "金融庁"],
       "badge": "規制当局",
-      "body": "監査法人が検査して報告書を作り、規制当局が受け取る。 上場企業の四半期ごとの監査の典型的な流れ。"
+      "description": "監査法人が検査して報告書を作り、規制当局が受け取る。 上場企業の四半期ごとの監査の典型的な流れ。"
     }
   ]
 }`;
@@ -5119,7 +5119,7 @@ export const sourceJson__kindActor = `{
       "duration": 1.5,
       "focus": ["利用者"],
       "badge": "動作中",
-      "body": "外から関わる主体 (利用者や外部の仕組み)。 値の欄に数を出せる。"
+      "description": "外から関わる主体 (利用者や外部の仕組み)。 値の欄に数を出せる。"
     },
     {
       "step": "actor の数が動く",
@@ -5127,7 +5127,7 @@ export const sourceJson__kindActor = `{
       "focus": ["利用者"],
       "tween": { "v": [42, 137] },
       "badge": "動作中",
-      "body": "値の欄が段の中で動く。 この欄を描くのは actor だけ。"
+      "description": "値の欄が段の中で動く。 この欄を描くのは actor だけ。"
     }
   ]
 }`;
@@ -5181,7 +5181,7 @@ export const sourceJson__kindFunction = `{
       "duration": 1.5,
       "focus": ["注文を受ける(要求)"],
       "badge": "動作中",
-      "body": "処理を受け持つ関数。 題を等幅の字で書き、副題に戻り値を書いて署名に見せる。"
+      "description": "処理を受け持つ関数。 題を等幅の字で書き、副題に戻り値を書いて署名に見せる。"
     },
     {
       "step": "function の数が動く",
@@ -5189,7 +5189,7 @@ export const sourceJson__kindFunction = `{
       "focus": ["注文を受ける(要求)"],
       "tween": { "v": [12, 480] },
       "badge": "動作中",
-      "body": "副題の呼出回数が段の中で動く。 署名の形は変えない。"
+      "description": "副題の呼出回数が段の中で動く。 署名の形は変えない。"
     }
   ]
 }`;
@@ -5243,7 +5243,7 @@ export const sourceJson__kindStorage = `{
       "duration": 1.5,
       "focus": ["利用者の表"],
       "badge": "動作中",
-      "body": "DB の表。 列を rows に 1 行ずつ書く。"
+      "description": "DB の表。 列を rows に 1 行ずつ書く。"
     },
     {
       "step": "storage の数が動く",
@@ -5251,7 +5251,7 @@ export const sourceJson__kindStorage = `{
       "focus": ["利用者の表"],
       "tween": { "v": [1200, 8400] },
       "badge": "動作中",
-      "body": "行の数が段の中で動く。 行も同じ経路で置換される。"
+      "description": "行の数が段の中で動く。 行も同じ経路で置換される。"
     }
   ]
 }`;
@@ -5305,7 +5305,7 @@ export const sourceJson__kindEvent = `{
       "duration": 1.5,
       "focus": ["注文ができた"],
       "badge": "動作中",
-      "body": "発行された出来事。 出来事を配る経路や記録が読む。"
+      "description": "発行された出来事。 出来事を配る経路や記録が読む。"
     },
     {
       "step": "event の数が動く",
@@ -5313,7 +5313,7 @@ export const sourceJson__kindEvent = `{
       "focus": ["注文ができた"],
       "tween": { "v": [3, 96] },
       "badge": "動作中",
-      "body": "副題の発生件数が段の中で動く。 中身の形は変えない。"
+      "description": "副題の発生件数が段の中で動く。 中身の形は変えない。"
     }
   ]
 }`;
@@ -5367,7 +5367,7 @@ export const sourceJson__kindCard = `{
       "duration": 1.5,
       "focus": ["備考"],
       "badge": "動作中",
-      "body": "kind に当てはまらない補足情報。"
+      "description": "kind に当てはまらない補足情報。"
     },
     {
       "step": "card の数が動く",
@@ -5375,7 +5375,7 @@ export const sourceJson__kindCard = `{
       "focus": ["備考"],
       "tween": { "v": [2, 31] },
       "badge": "動作中",
-      "body": "副題の件数が段の中で動く。 説明の文は変えない。"
+      "description": "副題の件数が段の中で動く。 説明の文は変えない。"
     }
   ]
 }`;
@@ -5414,7 +5414,7 @@ export const sourceJson__laneSingle = `{
       "duration": 1.5,
       "focus": ["A", "B"],
       "badge": "正常",
-      "body": "1 本の lane に node を縦に積む。"
+      "description": "1 本の lane に node を縦に積む。"
     }
   ]
 }`;
@@ -5459,7 +5459,7 @@ export const sourceJson__laneMulti = `{
       "duration": 1.5,
       "focus": ["A", "B", "C"],
       "badge": "正常",
-      "body": "lane を横に並べて役割を分ける (利用者 / 処理 / 出来事)。"
+      "description": "lane を横に並べて役割を分ける (利用者 / 処理 / 出来事)。"
     }
   ]
 }`;
@@ -5498,7 +5498,7 @@ export const sourceJson__laneContain = `{
       "duration": 1.5,
       "focus": ["内部の処理", "保存先"],
       "badge": "正常",
-      "body": "lane に contain を付けると、 lane ごと枠で囲んで内と外の境を示す。"
+      "description": "lane に contain を付けると、 lane ごと枠で囲んで内と外の境を示す。"
     }
   ]
 }`;
@@ -5537,7 +5537,7 @@ export const sourceJson__stackPair = `{
       "duration": 1.5,
       "focus": ["上", "下"],
       "badge": "正常",
-      "body": "同じ lane の中で、 stack の番号が縦の並びを決める。"
+      "description": "同じ lane の中で、 stack の番号が縦の並びを決める。"
     }
   ]
 }`;
@@ -5578,7 +5578,7 @@ export const sourceJson__stackTriple = `{
       "duration": 1.5,
       "focus": ["stack 0", "stack 1", "stack 2"],
       "badge": "正常",
-      "body": "stack を増やすと縦に伸びる。 間隔は row_gap が自動で決める。"
+      "description": "stack を増やすと縦に伸びる。 間隔は row_gap が自動で決める。"
     }
   ]
 }`;
@@ -5633,7 +5633,7 @@ export const sourceJson__shapeFile = `{
       "duration": 1.5,
       "focus": ["月次報告書"],
       "badge": "shape",
-      "body": "右上の角を折り返した四角。 ファイルや文書、報告書を表す。"
+      "description": "右上の角を折り返した四角。 ファイルや文書、報告書を表す。"
     },
     {
       "step": "shape-file の数が動く",
@@ -5641,7 +5641,7 @@ export const sourceJson__shapeFile = `{
       "focus": ["月次報告書"],
       "tween": { "v": [2, 9] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -5695,7 +5695,7 @@ export const sourceJson__shapeFolder = `{
       "duration": 1.5,
       "focus": ["設計資料/"],
       "badge": "shape",
-      "body": "上の縁につまみの付いた四角。 フォルダや、部品をまとめた単位を表す。"
+      "description": "上の縁につまみの付いた四角。 フォルダや、部品をまとめた単位を表す。"
     },
     {
       "step": "shape-folder の数が動く",
@@ -5703,7 +5703,7 @@ export const sourceJson__shapeFolder = `{
       "focus": ["設計資料/"],
       "tween": { "v": [24, 118] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -5757,7 +5757,7 @@ export const sourceJson__shapeCloud = `{
       "duration": 1.5,
       "focus": ["AWS"],
       "badge": "shape",
-      "body": "5 つの円を重ねた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。"
+      "description": "5 つの円を重ねた雲の形。 クラウドの事業者や、外から呼ぶ API を表す。"
     },
     {
       "step": "shape-cloud の数が動く",
@@ -5765,7 +5765,7 @@ export const sourceJson__shapeCloud = `{
       "focus": ["AWS"],
       "tween": { "v": [3, 12] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -5820,7 +5820,7 @@ export const sourceJson__shapeCylinder = `{
       "duration": 1.5,
       "focus": ["PostgreSQL"],
       "badge": "shape",
-      "body": "円柱 (上面と側面と底の楕円)。 DB や、消えずに残る保存先を表す。"
+      "description": "円柱 (上面と側面と底の楕円)。 DB や、消えずに残る保存先を表す。"
     },
     {
       "step": "shape-cylinder の数が動く",
@@ -5828,7 +5828,7 @@ export const sourceJson__shapeCylinder = `{
       "focus": ["PostgreSQL"],
       "tween": { "v": [120, 480] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -5883,7 +5883,7 @@ export const sourceJson__shapeHexagon = `{
       "duration": 1.5,
       "focus": ["認証の役務"],
       "badge": "shape",
-      "body": "六角形。 小さく分けた役務や、業務ごとの部品を表す。"
+      "description": "六角形。 小さく分けた役務や、業務ごとの部品を表す。"
     },
     {
       "step": "shape-hexagon の数が動く",
@@ -5891,7 +5891,7 @@ export const sourceJson__shapeHexagon = `{
       "focus": ["認証の役務"],
       "tween": { "v": [60, 940] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -5945,7 +5945,7 @@ export const sourceJson__shapeDiamond = `{
       "duration": 1.5,
       "focus": ["正しい?"],
       "badge": "shape",
-      "body": "ひし形。 条件で道が分かれる所を表す。"
+      "description": "ひし形。 条件で道が分かれる所を表す。"
     },
     {
       "step": "shape-diamond の数が動く",
@@ -5953,7 +5953,7 @@ export const sourceJson__shapeDiamond = `{
       "focus": ["正しい?"],
       "tween": { "v": [40, 92] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6007,7 +6007,7 @@ export const sourceJson__shapeStack = `{
       "duration": 1.5,
       "focus": ["v3.2.0"],
       "badge": "shape",
-      "body": "3 枚重ねた四角。 版の履歴や層、ある時点の写しの束を表す。"
+      "description": "3 枚重ねた四角。 版の履歴や層、ある時点の写しの束を表す。"
     },
     {
       "step": "shape-stack の数が動く",
@@ -6015,7 +6015,7 @@ export const sourceJson__shapeStack = `{
       "focus": ["v3.2.0"],
       "tween": { "v": [3, 14] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6069,7 +6069,7 @@ export const sourceJson__shapePerson = `{
       "duration": 1.5,
       "focus": ["エンドユーザ"],
       "badge": "shape",
-      "body": "人の形 (丸い頭と台形の胴、曲げた腕)。 登場する人や利用者、担当者を表す。"
+      "description": "人の形 (丸い頭と台形の胴、曲げた腕)。 登場する人や利用者、担当者を表す。"
     },
     {
       "step": "shape-person の数が動く",
@@ -6077,7 +6077,7 @@ export const sourceJson__shapePerson = `{
       "focus": ["エンドユーザ"],
       "tween": { "v": [2, 21] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6131,7 +6131,7 @@ export const sourceJson__shapeWindow = `{
       "duration": 1.5,
       "focus": ["ダッシュボード"],
       "badge": "shape",
-      "body": "題の帯と 3 色の丸ボタン、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。"
+      "description": "題の帯と 3 色の丸ボタン、本体。 アプリの画面や、閲覧ソフトで開いた画面を表す。"
     },
     {
       "step": "shape-window の数が動く",
@@ -6139,7 +6139,7 @@ export const sourceJson__shapeWindow = `{
       "focus": ["ダッシュボード"],
       "tween": { "v": [1, 6] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6183,7 +6183,7 @@ export const sourceJson__shapeTerminal = `{
       "duration": 1.5,
       "focus": ["zsh"],
       "badge": "shape",
-      "body": "上の帯と $ の入力待ち、点滅する印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。"
+      "description": "上の帯と $ の入力待ち、点滅する印。 命令を打つ画面や、遠くの機械への接続、手順の自動実行を表す。"
     }
   ]
 }`;
@@ -6227,7 +6227,7 @@ export const sourceJson__shapeCodeBlock = `{
       "duration": 1.5,
       "focus": ["共通の処理"],
       "badge": "shape",
-      "body": "編集画面の見出しと行番号の欄、色分けした 4 行。 コードの抜粋や、実装そのものを表す。"
+      "description": "編集画面の見出しと行番号の欄、色分けした 4 行。 コードの抜粋や、実装そのものを表す。"
     }
   ]
 }`;
@@ -6271,7 +6271,7 @@ export const sourceJson__shapeKanbanCard = `{
       "duration": 1.5,
       "focus": ["課題 #1111"],
       "badge": "shape",
-      "body": "優先度の帯と番号、状態の札、題、分類の札、担当者の顔。 看板に貼る作業札や課題を表す。"
+      "description": "優先度の帯と番号、状態の札、題、分類の札、担当者の顔。 看板に貼る作業札や課題を表す。"
     }
   ]
 }`;
@@ -6325,7 +6325,7 @@ export const sourceJson__shapeMessageBubble = `{
       "duration": 1.5,
       "focus": ["了解しました"],
       "badge": "shape",
-      "body": "角の丸い四角と、左下のしっぽ。 会話の発言や、変更への意見、通知を表す。"
+      "description": "角の丸い四角と、左下のしっぽ。 会話の発言や、変更への意見、通知を表す。"
     },
     {
       "step": "shape-message-bubble の数が動く",
@@ -6333,7 +6333,7 @@ export const sourceJson__shapeMessageBubble = `{
       "focus": ["了解しました"],
       "tween": { "v": [0, 9] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6387,7 +6387,7 @@ export const sourceJson__shapeGear = `{
       "duration": 1.5,
       "focus": ["環境設定"],
       "badge": "shape",
-      "body": "歯が 12 枚の大きな歯車と、4 本の腕、中心の軸、留め具。 設定や、処理を回す仕組みを表す。"
+      "description": "歯が 12 枚の大きな歯車と、4 本の腕、中心の軸、留め具。 設定や、処理を回す仕組みを表す。"
     },
     {
       "step": "shape-gear の数が動く",
@@ -6395,7 +6395,7 @@ export const sourceJson__shapeGear = `{
       "focus": ["環境設定"],
       "tween": { "v": [8, 26] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6449,7 +6449,7 @@ export const sourceJson__shapeServerRack = `{
       "duration": 1.5,
       "focus": ["公開用 1 号機"],
       "badge": "shape",
-      "body": "外枠と 3 段の差し込み口を持つ棚。 実機のサーバや、データセンター、自社に置く機器を表す。"
+      "description": "外枠と 3 段の差し込み口を持つ棚。 実機のサーバや、データセンター、自社に置く機器を表す。"
     },
     {
       "step": "shape-server-rack の数が動く",
@@ -6457,7 +6457,7 @@ export const sourceJson__shapeServerRack = `{
       "focus": ["公開用 1 号機"],
       "tween": { "v": [3, 12] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6511,7 +6511,7 @@ export const sourceJson__shapeNetworkNode = `{
       "duration": 1.5,
       "focus": ["基幹ルータ"],
       "badge": "shape",
-      "body": "中央の円と 4 方向の線。 通信を中継する機器 (経路を選ぶもの、線を束ねるもの) を表す。"
+      "description": "中央の円と 4 方向の線。 通信を中継する機器 (経路を選ぶもの、線を束ねるもの) を表す。"
     },
     {
       "step": "shape-network-node の数が動く",
@@ -6519,7 +6519,7 @@ export const sourceJson__shapeNetworkNode = `{
       "focus": ["基幹ルータ"],
       "tween": { "v": [12, 96] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6573,7 +6573,7 @@ export const sourceJson__shapeMobileDevice = `{
       "duration": 1.5,
       "focus": ["iPhone"],
       "badge": "shape",
-      "body": "上の話し口と画面、下のボタンを持つスマホ。 携帯のアプリや、利用者の手元の端末を表す。"
+      "description": "上の話し口と画面、下のボタンを持つスマホ。 携帯のアプリや、利用者の手元の端末を表す。"
     },
     {
       "step": "shape-mobile-device の数が動く",
@@ -6581,7 +6581,7 @@ export const sourceJson__shapeMobileDevice = `{
       "focus": ["iPhone"],
       "tween": { "v": [200, 1800] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6635,7 +6635,7 @@ export const sourceJson__shapeIotSensor = `{
       "duration": 1.5,
       "focus": ["温度センサー"],
       "badge": "shape",
-      "body": "計測器の円と 3 重の波紋。 電波で知らせる計測器や、ものにつないだ端末を表す。"
+      "description": "計測器の円と 3 重の波紋。 電波で知らせる計測器や、ものにつないだ端末を表す。"
     },
     {
       "step": "shape-iot-sensor の数が動く",
@@ -6643,7 +6643,7 @@ export const sourceJson__shapeIotSensor = `{
       "focus": ["温度センサー"],
       "tween": { "v": [18, 34] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6697,7 +6697,7 @@ export const sourceJson__shapeRobotArm = `{
       "duration": 1.5,
       "focus": ["組立ライン"],
       "badge": "shape",
-      "body": "台座と 2 つの関節、先のつかみ手を持つ腕。 産業機器や、自動にした工程、制御する対象を表す。"
+      "description": "台座と 2 つの関節、先のつかみ手を持つ腕。 産業機器や、自動にした工程、制御する対象を表す。"
     },
     {
       "step": "shape-robot-arm の数が動く",
@@ -6705,7 +6705,7 @@ export const sourceJson__shapeRobotArm = `{
       "focus": ["組立ライン"],
       "tween": { "v": [40, 260] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6759,7 +6759,7 @@ export const sourceJson__shapeSatellite = `{
       "duration": 1.5,
       "focus": ["Starlink"],
       "badge": "shape",
-      "body": "中央の本体と左右の太陽電池板、アンテナ。 人工衛星や、宇宙を経由する通信を表す。"
+      "description": "中央の本体と左右の太陽電池板、アンテナ。 人工衛星や、宇宙を経由する通信を表す。"
     },
     {
       "step": "shape-satellite の数が動く",
@@ -6767,7 +6767,7 @@ export const sourceJson__shapeSatellite = `{
       "focus": ["Starlink"],
       "tween": { "v": [340, 550] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6821,7 +6821,7 @@ export const sourceJson__shapeSmartContract = `{
       "duration": 1.5,
       "focus": ["預かり契約"],
       "badge": "shape",
-      "body": "文書と、底の歯車 (自動で動く印)。 自動で動く契約や、参加者で決める組織の規約、条件付きの預かりを表す。"
+      "description": "文書と、底の歯車 (自動で動く印)。 自動で動く契約や、参加者で決める組織の規約、条件付きの預かりを表す。"
     },
     {
       "step": "shape-smart-contract の数が動く",
@@ -6829,7 +6829,7 @@ export const sourceJson__shapeSmartContract = `{
       "focus": ["預かり契約"],
       "tween": { "v": [12, 480] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6873,7 +6873,7 @@ export const sourceJson__shapeBlockchainBlock = `{
       "duration": 1.5,
       "focus": ["ブロック #421"],
       "badge": "shape",
-      "body": "3 つのブロックを縦につなぎ、前のブロックの要約値と取引の数を持たせた形。 Ethereum や Bitcoin のブロックを表す。"
+      "description": "3 つのブロックを縦につなぎ、前のブロックの要約値と取引の数を持たせた形。 Ethereum や Bitcoin のブロックを表す。"
     }
   ]
 }`;
@@ -6927,7 +6927,7 @@ export const sourceJson__shapeRpcNode = `{
       "duration": 1.5,
       "focus": ["Alchemy"],
       "badge": "shape",
-      "body": "中央の球と周りの 6 つの点、同期の帯。 分散台帳へ問い合わせる窓口を貸す事業者を表す。"
+      "description": "中央の球と周りの 6 つの点、同期の帯。 分散台帳へ問い合わせる窓口を貸す事業者を表す。"
     },
     {
       "step": "shape-rpc-node の数が動く",
@@ -6935,7 +6935,7 @@ export const sourceJson__shapeRpcNode = `{
       "focus": ["Alchemy"],
       "tween": { "v": [90, 1200] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -6989,7 +6989,7 @@ export const sourceJson__shapeWallet = `{
       "duration": 1.5,
       "focus": ["MetaMask"],
       "badge": "shape",
-      "body": "財布と差し込んだ硬貨、残高。 閲覧ソフトの財布や、鍵を持ち歩く機器、契約でできた財布を表す。"
+      "description": "財布と差し込んだ硬貨、残高。 閲覧ソフトの財布や、鍵を持ち歩く機器、契約でできた財布を表す。"
     },
     {
       "step": "shape-wallet の数が動く",
@@ -6997,7 +6997,7 @@ export const sourceJson__shapeWallet = `{
       "focus": ["MetaMask"],
       "tween": { "v": [1, 12] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7052,7 +7052,7 @@ export const sourceJson__shapeNft = `{
       "duration": 1.5,
       "focus": ["CryptoPunk"],
       "badge": "shape",
-      "body": "額縁と角ばった絵、本物の印。 ERC-721 の作品や、譲れない証明、作品の集まりを表す。"
+      "description": "額縁と角ばった絵、本物の印。 ERC-721 の作品や、譲れない証明、作品の集まりを表す。"
     },
     {
       "step": "shape-nft の数が動く",
@@ -7060,7 +7060,7 @@ export const sourceJson__shapeNft = `{
       "focus": ["CryptoPunk"],
       "tween": { "v": [3, 28] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7114,7 +7114,7 @@ export const sourceJson__shapeToken = `{
       "duration": 1.5,
       "focus": ["ETH"],
       "badge": "shape",
-      "body": "硬貨と通貨の記号 Ξ、光。 ERC-20 の通貨や、台帳そのものの通貨、値を固定した通貨を表す。"
+      "description": "硬貨と通貨の記号 Ξ、光。 ERC-20 の通貨や、台帳そのものの通貨、値を固定した通貨を表す。"
     },
     {
       "step": "shape-token の数が動く",
@@ -7122,7 +7122,7 @@ export const sourceJson__shapeToken = `{
       "focus": ["ETH"],
       "tween": { "v": [2100, 3400] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7176,7 +7176,7 @@ export const sourceJson__shapeBank = `{
       "duration": 1.5,
       "focus": ["みずほ銀行"],
       "badge": "shape",
-      "body": "神殿風の正面 (三角の屋根と柱と土台)。 都市銀行や地方銀行、銀行の本店を表す。"
+      "description": "神殿風の正面 (三角の屋根と柱と土台)。 都市銀行や地方銀行、銀行の本店を表す。"
     },
     {
       "step": "shape-bank の数が動く",
@@ -7184,7 +7184,7 @@ export const sourceJson__shapeBank = `{
       "focus": ["みずほ銀行"],
       "tween": { "v": [90, 142] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7238,7 +7238,7 @@ export const sourceJson__shapeTrustBank = `{
       "duration": 1.5,
       "focus": ["三菱 UFJ 信託"],
       "badge": "shape",
-      "body": "冠と正面の柱、T の印。 信託銀行や、預かって運用する業務、資産の管理を表す。"
+      "description": "冠と正面の柱、T の印。 信託銀行や、預かって運用する業務、資産の管理を表す。"
     },
     {
       "step": "shape-trust-bank の数が動く",
@@ -7246,7 +7246,7 @@ export const sourceJson__shapeTrustBank = `{
       "focus": ["三菱 UFJ 信託"],
       "tween": { "v": [40, 88] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7300,7 +7300,7 @@ export const sourceJson__shapePaymentProvider = `{
       "duration": 1.5,
       "focus": ["Stripe"],
       "badge": "shape",
-      "body": "支払いの端末と承認の表示、数字の鍵盤。 決済の代行業者や、電子決済の取次を表す。"
+      "description": "支払いの端末と承認の表示、数字の鍵盤。 決済の代行業者や、電子決済の取次を表す。"
     },
     {
       "step": "shape-payment-provider の数が動く",
@@ -7308,7 +7308,7 @@ export const sourceJson__shapePaymentProvider = `{
       "focus": ["Stripe"],
       "tween": { "v": [30, 420] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7362,7 +7362,7 @@ export const sourceJson__shapeBrokerage = `{
       "duration": 1.5,
       "focus": ["野村證券"],
       "badge": "shape",
-      "body": "高い建物と格子の窓、ろうそく足の図、上向きの矢印。 証券会社や投資銀行を表す。"
+      "description": "高い建物と格子の窓、ろうそく足の図、上向きの矢印。 証券会社や投資銀行を表す。"
     },
     {
       "step": "shape-brokerage の数が動く",
@@ -7370,7 +7370,7 @@ export const sourceJson__shapeBrokerage = `{
       "focus": ["野村證券"],
       "tween": { "v": [120, 940] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7424,7 +7424,7 @@ export const sourceJson__shapeExchange = `{
       "duration": 1.5,
       "focus": ["Coinbase"],
       "badge": "shape",
-      "body": "2 つの通貨の硬貨と両向きの矢印、交換の比率。 取引所や、仲介なしで交換する場、両替を表す。"
+      "description": "2 つの通貨の硬貨と両向きの矢印、交換の比率。 取引所や、仲介なしで交換する場、両替を表す。"
     },
     {
       "step": "shape-exchange の数が動く",
@@ -7432,7 +7432,7 @@ export const sourceJson__shapeExchange = `{
       "focus": ["Coinbase"],
       "tween": { "v": [12, 86] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7486,7 +7486,7 @@ export const sourceJson__shapeAtm = `{
       "duration": 1.5,
       "focus": ["ATM"],
       "badge": "shape",
-      "body": "画面とボタン、カードの差し込み口、お金の出口。 銀行やコンビニの ATM を表す。"
+      "description": "画面とボタン、カードの差し込み口、お金の出口。 銀行やコンビニの ATM を表す。"
     },
     {
       "step": "shape-atm の数が動く",
@@ -7494,7 +7494,7 @@ export const sourceJson__shapeAtm = `{
       "focus": ["ATM"],
       "tween": { "v": [180, 620] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7548,7 +7548,7 @@ export const sourceJson__shapeWebsite = `{
       "duration": 1.5,
       "focus": ["会社案内"],
       "badge": "shape",
-      "body": "閲覧ソフトの枠と住所の欄、見出し、2 列の本文。 会社の案内や製品の紹介、日記のようなサイトを表す。"
+      "description": "閲覧ソフトの枠と住所の欄、見出し、2 列の本文。 会社の案内や製品の紹介、日記のようなサイトを表す。"
     },
     {
       "step": "shape-website の数が動く",
@@ -7556,7 +7556,7 @@ export const sourceJson__shapeWebsite = `{
       "focus": ["会社案内"],
       "tween": { "v": [1200, 8600] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7610,7 +7610,7 @@ export const sourceJson__shapeStorefront = `{
       "duration": 1.5,
       "focus": ["コンビニ"],
       "badge": "shape",
-      "body": "赤と白の日よけ、営業中の札、扉、窓。 実際の店や小売を表す。"
+      "description": "赤と白の日よけ、営業中の札、扉、窓。 実際の店や小売を表す。"
     },
     {
       "step": "shape-storefront の数が動く",
@@ -7618,7 +7618,7 @@ export const sourceJson__shapeStorefront = `{
       "focus": ["コンビニ"],
       "tween": { "v": [240, 810] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7672,7 +7672,7 @@ export const sourceJson__shapeWarehouse = `{
       "duration": 1.5,
       "focus": ["市川倉庫"],
       "badge": "shape",
-      "body": "屋根と巻き上げの扉、積んだ箱。 出荷を受け持つ拠点や倉庫を表す。"
+      "description": "屋根と巻き上げの扉、積んだ箱。 出荷を受け持つ拠点や倉庫を表す。"
     },
     {
       "step": "shape-warehouse の数が動く",
@@ -7680,7 +7680,7 @@ export const sourceJson__shapeWarehouse = `{
       "focus": ["市川倉庫"],
       "tween": { "v": [12, 48] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7734,7 +7734,7 @@ export const sourceJson__shapeOnlineShop = `{
       "duration": 1.5,
       "focus": ["Amazon"],
       "badge": "shape",
-      "body": "閲覧ソフトの枠と、かごの数 (3)、6 つの商品の並び。 通販やネットの販売を表す。"
+      "description": "閲覧ソフトの枠と、かごの数 (3)、6 つの商品の並び。 通販やネットの販売を表す。"
     },
     {
       "step": "shape-online-shop の数が動く",
@@ -7742,7 +7742,7 @@ export const sourceJson__shapeOnlineShop = `{
       "focus": ["Amazon"],
       "tween": { "v": [6, 74] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7796,7 +7796,7 @@ export const sourceJson__shapeCdnEdge = `{
       "duration": 1.5,
       "focus": ["Cloudflare"],
       "badge": "shape",
-      "body": "地球儀と 5 つの拠点、点線のつながり。 配信網の事業者や、利用者の近くで返す網を表す。"
+      "description": "地球儀と 5 つの拠点、点線のつながり。 配信網の事業者や、利用者の近くで返す網を表す。"
     },
     {
       "step": "shape-cdn-edge の数が動く",
@@ -7804,7 +7804,7 @@ export const sourceJson__shapeCdnEdge = `{
       "focus": ["Cloudflare"],
       "tween": { "v": [300, 380] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7858,7 +7858,7 @@ export const sourceJson__shapeApiGateway = `{
       "duration": 1.5,
       "focus": ["Kong"],
       "badge": "shape",
-      "body": "2 本の柱と弧、API の字、行き交う矢印。 API の入口に立つ門番を表す。"
+      "description": "2 本の柱と弧、API の字、行き交う矢印。 API の入口に立つ門番を表す。"
     },
     {
       "step": "shape-api-gateway の数が動く",
@@ -7866,7 +7866,7 @@ export const sourceJson__shapeApiGateway = `{
       "focus": ["Kong"],
       "tween": { "v": [400, 3200] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7920,7 +7920,7 @@ export const sourceJson__shapeAuditor = `{
       "duration": 1.5,
       "focus": ["監査法人"],
       "badge": "shape",
-      "body": "人とネクタイ、虫眼鏡、確認の印。 監査人や公認会計士、内部の監査を表す。"
+      "description": "人とネクタイ、虫眼鏡、確認の印。 監査人や公認会計士、内部の監査を表す。"
     },
     {
       "step": "shape-auditor の数が動く",
@@ -7928,7 +7928,7 @@ export const sourceJson__shapeAuditor = `{
       "focus": ["監査法人"],
       "tween": { "v": [2, 17] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -7982,7 +7982,7 @@ export const sourceJson__shapeRegulator = `{
       "duration": 1.5,
       "focus": ["金融庁"],
       "badge": "shape",
-      "body": "人と冠、五芒星の記章。 金融庁や消費者庁のような規制の当局を表す。"
+      "description": "人と冠、五芒星の記章。 金融庁や消費者庁のような規制の当局を表す。"
     },
     {
       "step": "shape-regulator の数が動く",
@@ -7990,7 +7990,7 @@ export const sourceJson__shapeRegulator = `{
       "focus": ["金融庁"],
       "tween": { "v": [4, 23] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -8044,7 +8044,7 @@ export const sourceJson__shapeNotary = `{
       "duration": 1.5,
       "focus": ["公証役場"],
       "badge": "shape",
-      "body": "人と儒学者風の帽子、赤い印。 公証人や、書類が正しいと認める業務を表す。"
+      "description": "人と儒学者風の帽子、赤い印。 公証人や、書類が正しいと認める業務を表す。"
     },
     {
       "step": "shape-notary の数が動く",
@@ -8052,7 +8052,7 @@ export const sourceJson__shapeNotary = `{
       "focus": ["公証役場"],
       "tween": { "v": [6, 31] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -8106,7 +8106,7 @@ export const sourceJson__shapeLawyer = `{
       "duration": 1.5,
       "focus": ["顧問弁護士"],
       "badge": "shape",
-      "body": "人と髪、正義の天秤の印。 弁護士や法務の顧問、法律事務所を表す。"
+      "description": "人と髪、正義の天秤の印。 弁護士や法務の顧問、法律事務所を表す。"
     },
     {
       "step": "shape-lawyer の数が動く",
@@ -8114,7 +8114,7 @@ export const sourceJson__shapeLawyer = `{
       "focus": ["顧問弁護士"],
       "tween": { "v": [3, 19] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -8168,7 +8168,7 @@ export const sourceJson__shapeTrader = `{
       "duration": 1.5,
       "focus": ["デイトレーダー"],
       "badge": "shape",
-      "body": "人とヘッドセット、値動きの映るパソコン。 トレーダーや、値付けを受け持つ業者、機械の自動発注を表す。"
+      "description": "人とヘッドセット、値動きの映るパソコン。 トレーダーや、値付けを受け持つ業者、機械の自動発注を表す。"
     },
     {
       "step": "shape-trader の数が動く",
@@ -8176,7 +8176,7 @@ export const sourceJson__shapeTrader = `{
       "focus": ["デイトレーダー"],
       "tween": { "v": [8, 152] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -8230,7 +8230,7 @@ export const sourceJson__shapeCustomerService = `{
       "duration": 1.5,
       "focus": ["サポート担当"],
       "badge": "shape",
-      "body": "人とヘッドセット、吹き出し、名札。 お客様の窓口やコールセンターを表す。"
+      "description": "人とヘッドセット、吹き出し、名札。 お客様の窓口やコールセンターを表す。"
     },
     {
       "step": "shape-customer-service の数が動く",
@@ -8238,7 +8238,7 @@ export const sourceJson__shapeCustomerService = `{
       "focus": ["サポート担当"],
       "tween": { "v": [14, 88] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -8292,7 +8292,7 @@ export const sourceJson__shapeBlockchain = `{
       "duration": 1.5,
       "focus": ["ブロックチェーン"],
       "badge": "shape",
-      "body": "5 つのブロックを、前の要約値を指す形で横につなぐ。 分散台帳の一般の形を表す。"
+      "description": "5 つのブロックを、前の要約値を指す形で横につなぐ。 分散台帳の一般の形を表す。"
     },
     {
       "step": "shape-blockchain の数が動く",
@@ -8300,7 +8300,7 @@ export const sourceJson__shapeBlockchain = `{
       "focus": ["ブロックチェーン"],
       "tween": { "v": [5, 42] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -8354,7 +8354,7 @@ export const sourceJson__shapeBitcoinChain = `{
       "duration": 1.5,
       "focus": ["Bitcoin"],
       "badge": "shape",
-      "body": "橙の色と ₿ の記号、計算の量で合意する採掘。 Bitcoin の本番の網や、試しの網を表す。"
+      "description": "橙の色と ₿ の記号、計算の量で合意する採掘。 Bitcoin の本番の網や、試しの網を表す。"
     },
     {
       "step": "shape-bitcoin-chain の数が動く",
@@ -8362,7 +8362,7 @@ export const sourceJson__shapeBitcoinChain = `{
       "focus": ["Bitcoin"],
       "tween": { "v": [84, 89] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -8416,7 +8416,7 @@ export const sourceJson__shapeEthereumChain = `{
       "duration": 1.5,
       "focus": ["Ethereum"],
       "badge": "shape",
-      "body": "紫の色と Ξ の記号、預けた量で合意する検証役。 Ethereum の本番の網や、その上に重ねた網を表す。"
+      "description": "紫の色と Ξ の記号、預けた量で合意する検証役。 Ethereum の本番の網や、その上に重ねた網を表す。"
     },
     {
       "step": "shape-ethereum-chain の数が動く",
@@ -8424,7 +8424,7 @@ export const sourceJson__shapeEthereumChain = `{
       "focus": ["Ethereum"],
       "tween": { "v": [2000, 2400] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -8478,7 +8478,7 @@ export const sourceJson__shapeBlockchainNode = `{
       "duration": 1.5,
       "focus": ["フルノード"],
       "badge": "shape",
-      "body": "中央の六角形と周りの 6 つの六角形、積んだブロックの印。 分散台帳の参加者 (全記録を持つもの、過去の状態まで持つもの、最小限だけ持つもの) を表す。"
+      "description": "中央の六角形と周りの 6 つの六角形、積んだブロックの印。 分散台帳の参加者 (全記録を持つもの、過去の状態まで持つもの、最小限だけ持つもの) を表す。"
     },
     {
       "step": "shape-blockchain-node の数が動く",
@@ -8486,7 +8486,7 @@ export const sourceJson__shapeBlockchainNode = `{
       "focus": ["フルノード"],
       "tween": { "v": [8, 64] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
@@ -8540,7 +8540,7 @@ export const sourceJson__shapeCreditCard = `{
       "duration": 1.5,
       "focus": ["クレカ"],
       "badge": "shape",
-      "body": "金色の端子と非接触の波、番号、名義、有効期限、ブランドの印。 実物のクレジットカードを表す。"
+      "description": "金色の端子と非接触の波、番号、名義、有効期限、ブランドの印。 実物のクレジットカードを表す。"
     },
     {
       "step": "shape-credit-card の数が動く",
@@ -8548,7 +8548,7 @@ export const sourceJson__shapeCreditCard = `{
       "focus": ["クレカ"],
       "tween": { "v": [3, 18] },
       "badge": "shape",
-      "body": "副題の数が段の中で動く。 形と説明は変えない。"
+      "description": "副題の数が段の中で動く。 形と説明は変えない。"
     }
   ]
 }`;
