@@ -155,35 +155,39 @@ describe("語と図種の対応を 1 つの表から導く (#1314)", () => {
     expect([...en].sort()).toEqual([...DRAW_TARGETS.keys()].sort());
   });
 
-  it("表の 13 組が語と図種の対で固定されている", () => {
+  it("表の 13 組が語と相手の対で固定されている", () => {
     /*
      * **手で並べる**。 実装から導くと恒真になる (下の `it.each` も同じ表から出る)。
      *
      * 鍵だけでなく **組で** 固定する。 鍵だけを見ると、語と図種の対応をずらす変更
      * (`["funnel", "tree"]` 等) を 1 件も捕まえられない = `it.each` が表から両側を
      * 作るため、ずれた表でも辻褄が合ってしまう (変異試験で実測)。
+     *
+     * 数を描く図は相手が型と形の 2 つになる (#2657)。 型だけを固定すると、9 つの形を
+     * 1 つに畳んだ後に `draw: pie` と `draw: bar` の区別が消えても気付けない。
      */
     expect([...DRAW_TARGETS].sort()).toEqual([
-      ["bar", "bar"],
-      ["funnel", "funnel"],
-      ["gantt", "gantt"],
-      ["gauge", "gauge"],
-      ["journey", "journey"],
-      ["line", "line"],
-      ["mind", "mind"],
-      ["pie", "pie"],
-      ["radial", "radial"],
-      ["slope", "slope"],
-      ["stacked", "stacked"],
-      ["tree", "tree"],
-      ["waffle", "waffle"],
+      ["bar", { type: "chart", shape: "bar" }],
+      ["funnel", { type: "funnel" }],
+      ["gantt", { type: "gantt" }],
+      ["gauge", { type: "chart", shape: "gauge" }],
+      ["journey", { type: "journey" }],
+      ["line", { type: "chart", shape: "line" }],
+      ["mind", { type: "mind" }],
+      ["pie", { type: "chart", shape: "pie" }],
+      ["radial", { type: "chart", shape: "radial" }],
+      ["slope", { type: "chart", shape: "slope" }],
+      ["stacked", { type: "chart", shape: "stacked" }],
+      ["tree", { type: "tree" }],
+      ["waffle", { type: "chart", shape: "waffle" }],
     ]);
   });
 
-  it.each([...DRAW_TARGETS])("`draw: %s` を type: %s の段に書くと箱を指す", (語, 図種) => {
+  it.each([...DRAW_TARGETS])("`draw: %s` を その相手の段に書くと箱を指す", (語, 相手) => {
+    const 形の行 = 相手.shape !== undefined ? `shape: ${相手.shape}\n` : "";
     const src = `title: "t"
-type: ${図種}
-
+type: ${相手.type}
+${形の行}
 actors:
   - A: "45"
   - B: "25"
@@ -196,6 +200,21 @@ animation:
     expect(d.phases[0]!.draw, `${語} が箱を指していない`).toHaveLength(1);
     // 指す先は図全体を 1 箱で描く箱そのもの
     expect(d.nodes.some((n) => n.id === d.phases[0]!.draw![0])).toBe(true);
+  });
+
+  it("形が違えば同じ型でも効かない (#2657)", () => {
+    /*
+     * 畳んだ後に型だけで判定すると、棒の図に `draw: pie` と書いても通ってしまう。
+     * 畳む前は型が違うので咎められていた形なので、同じ細かさを保てているかを見る。
+     */
+    const notices: CompileNotice[] = [];
+    textDslToDiagram(
+      `title: "t"\ntype: chart\nshape: bar\n\nactors:\n  - A: "45"\n\nanimation:\n  - step: "s1" 1.2s\n    draw: pie\n`,
+      { onNotice: (n) => notices.push(n) },
+    );
+    const 該当 = notices.filter((n) => n.kind === "draw-target-mismatch");
+    expect(該当, "形が違うのに咎めていない").toHaveLength(1);
+    expect(該当[0]!.message, "どの形の図に書く語かを出す").toContain("shape: pie");
   });
 });
 
@@ -263,7 +282,9 @@ animation:
     const 該当 = notices.filter((n) => n.kind === "draw-not-honored");
     expect(該当).toHaveLength(1);
     expect(該当[0]!.line, "`draw:` を書いた行を指す").toBe(13);
-    expect(該当[0]!.hint).toContain("line");
+    // 数を描く図は型が `chart` 1 つになった (#2657)。 形は案内に出さない =
+    // まず型を変える話で、形はその後に選ぶもの
+    expect(該当[0]!.hint, "書ける図種を案内する").toContain("chart");
   });
 
   it("知らせが出ても図は描かれる (箱と矢印が減らない)", () => {

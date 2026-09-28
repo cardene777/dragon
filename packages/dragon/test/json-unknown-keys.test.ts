@@ -95,6 +95,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     direction: "horizontal",
     // 箱を並べ替える軸 (#2655)
     order: "kind",
+    // 数を描く図の形 (#2657)
+    shape: "pie",
     // 図の配色 (#1553)
     palette: "celadon",
   },

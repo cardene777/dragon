@@ -75,6 +75,34 @@ export function resolveOrder(s: string): DslOrder | null {
 }
 
 /**
+ * 数を描く図の形 (`shape:`、 #2657)。
+ *
+ * 数の書き方 (`- 名前: "45"` の 1 行 1 値) は 9 つとも同じで、違うのは描かれる形だけ。
+ * 差が形だけなので型ではなく語で表す (並べ替えの語 #2655 と同じ判断)。
+ *
+ * **日本語の別名は持たない**。 いま `type:` に書く語が英語なので、語を移した先で
+ * 書き手が覚える綴りが増えない形にする。
+ */
+export const SHAPES = [
+  "pie",
+  "bar",
+  "line",
+  "gauge",
+  "radial",
+  "stat",
+  "waffle",
+  "stacked",
+  "slope",
+] as const;
+export type DslShape = (typeof SHAPES)[number];
+
+/** 書いた形を正規の語に直す。 読めない語は `null`。 */
+export function resolveShape(s: string): DslShape | null {
+  const k = s.trim().toLowerCase();
+  return (SHAPES as readonly string[]).includes(k) ? (k as DslShape) : null;
+}
+
+/**
  * 図の配色 (`palette:`、 #1553)。
  *
  * cdl は色を持たない (形だけを描く)。 名前を `data-cdl-palette` として markup に出すので、

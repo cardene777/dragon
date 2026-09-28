@@ -41,7 +41,14 @@ import {
   書ける色名,
   TYPE_ALIASES,
 } from "../src/v05/parser";
-import { PALETTES, DIRECTIONS, DIRECTION_ALIAS, ORDERS, ORDER_ALIAS } from "../src/keywords";
+import {
+  PALETTES,
+  DIRECTIONS,
+  DIRECTION_ALIAS,
+  ORDERS,
+  ORDER_ALIAS,
+  SHAPES,
+} from "../src/keywords";
 import { EDGE_REVEALS, RELATION_FOCUSES } from "@cardenelabs/cdl";
 import { RELATIVE_DIRECTIONS } from "../src/relative-pos";
 
@@ -110,6 +117,8 @@ const 対応表: Record<string, readonly string[]> = {
   ),
   // 並べ替えの軸も向きと同じ形 (#2655)。 正規の語 (`種類`) を除いた別名が JSON の語になる
   order: Object.keys(ORDER_ALIAS).filter((k) => !(ORDERS as readonly string[]).includes(k)),
+  // 数を描く図の形 (#2657)。 日本語の別名を持たないので一覧をそのまま使う
+  shape: [...SHAPES],
   palette: [...PALETTES],
   reveal: [...EDGE_REVEALS],
   relations: [...RELATION_FOCUSES],

@@ -197,8 +197,9 @@ describe("書いたとおりに光らない図種は、そのことを知らせ�
     expect(出た.length, "知らせが 1 件でない").toBe(1);
     const n = 出た[0]!;
     expect(n.kind).toBe("focus-target-not-honored");
-    // どの図種の話かを出す
-    expect(n.message, `本文: ${n.message}`).toContain("pie");
+    // どの図種の話かを出す。 #2657 で 9 つの型を `chart` 1 つに畳んだので、
+    // 名乗るのは畳んだ後の名前
+    expect(n.message, `本文: ${n.message}`).toContain("chart");
     // 書かなかった箱も光ることを出す = 何が起きるかが分かる
     expect(n.message, `本文: ${n.message}`).toContain("い");
     expect(n.message, `本文: ${n.message}`).toContain("う");

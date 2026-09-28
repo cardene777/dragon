@@ -3716,7 +3716,8 @@ export const sourceJson__presetFlow = `{
 
 export const sourceYaml__presetChartPie = `title: "全体に対する内訳の割合を示す円グラフ"
 eyebrow: "pie"
-type: pie
+type: chart
+shape: pie
 
 actors:
   - ウェブ: "{pie_web}"
@@ -3746,7 +3747,8 @@ animation:
 
 export const sourceJson__presetChartPie = `{
   "title": "全体に対する内訳の割合を示す円グラフ",
-  "type": "pie",
+  "type": "chart",
+  "shape": "pie",
   "eyebrow": "pie",
   "actors": [
     { "name": "ウェブ", "subtitle": "{pie_web}" },
@@ -3777,7 +3779,8 @@ export const sourceJson__presetChartPie = `{
 
 export const sourceYaml__presetChartLine = `title: "時系列データの推移を線で示す折れ線グラフ"
 eyebrow: "line"
-type: line
+type: chart
+shape: line
 
 actors:
   - 1月: "{line_jan}"
@@ -3810,7 +3813,8 @@ animation:
 
 export const sourceJson__presetChartLine = `{
   "title": "時系列データの推移を線で示す折れ線グラフ",
-  "type": "line",
+  "type": "chart",
+  "shape": "line",
   "eyebrow": "line",
   "actors": [
     { "name": "1月", "subtitle": "{line_jan}" },

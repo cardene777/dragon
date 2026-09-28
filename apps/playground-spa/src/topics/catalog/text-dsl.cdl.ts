@@ -1341,7 +1341,8 @@ export const pattern__textDslClass__クラス図で書く = textDslToDiagram(
 // ─── pie preset (シェア円グラフ) ─────
 export const sourceYaml__textDslPie = `
 title: "内訳の割合を書く例"
-type: pie
+type: chart
+shape: pie
 
 actors:
   - A: { value: "30%" }
@@ -1366,7 +1367,8 @@ export const textDslPie = textDslToDiagram(sourceYaml__textDslPie);
 
 export const sourceJson__textDslPie = `{
   "title": "内訳の割合を書く例",
-  "type": "pie",
+  "type": "chart",
+  "shape": "pie",
   "actors": [
     {
       "name": "A",
@@ -2249,7 +2251,8 @@ export const pattern__textDslActorKeys__1行にまとめて書く = textDslToDia
 // 帯で内訳を出す図に分けて見せる。
 
 export const sourceYaml__textDslValueKeys = `title: "値と前の値を英語で書く"
-type: stacked
+type: chart
+shape: stacked
 
 states:
   mail: 120
@@ -2281,7 +2284,8 @@ animation:
 
 export const sourceJson__textDslValueKeys = `{
   "title": "値と前の値を英語で書く",
-  "type": "stacked",
+  "type": "chart",
+  "shape": "stacked",
   "states": { "mail": 120 },
   "actors": [
     { "name": "直販", "value": "420", "previous": "380" },
@@ -2312,7 +2316,8 @@ export const textDslValueKeys = textDslToDiagram(sourceYaml__textDslValueKeys);
 export const patternBase__textDslValueKeys = "英語で書く";
 
 export const sourceYaml__pattern__textDslValueKeys__日本語で書く = `title: "値と前の値を日本語で書く"
-type: stacked
+type: chart
+shape: stacked
 
 states:
   mail: 120
@@ -2344,7 +2349,8 @@ animation:
 
 export const sourceJson__pattern__textDslValueKeys__日本語で書く = `{
   "title": "値と前の値を日本語で書く",
-  "type": "stacked",
+  "type": "chart",
+  "shape": "stacked",
   "states": { "mail": 120 },
   "actors": [
     { "name": "直販", "value": "420", "previous": "380" },

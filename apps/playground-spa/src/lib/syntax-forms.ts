@@ -35,6 +35,8 @@ export type SampleSlot =
   | "direction"
   // 箱を並べ替える軸 (#2655)
   | "order"
+  // 数を描く図の形 (#2657)
+  | "shape"
   // 図の配色 (#1553)
   | "palette";
 
@@ -61,6 +63,8 @@ export type Section = {
   sample: {
     slot: SampleSlot;
     type?: string;
+    /** 数を描く図の形 (#2657)。 `type: chart` の例文でだけ書く */
+    shape?: string;
     actors?: string[];
     flow?: string[];
     states?: string[];
@@ -230,6 +234,21 @@ export const FORMS: Section[] = [
         note: "英語でも書ける",
         noteEn: "The English spelling works too",
       },
+    ],
+  },
+  {
+    title: "数を描く図の形 (shape:)",
+    titleEn: "What shape draws the numbers (shape:)",
+    // 数を描く図でだけ効く。 例文は形を変えると絵がはっきり変わる 2 つを並べる
+    sample: {
+      slot: "shape",
+      type: "chart",
+      actors: ['  - 新規: "45"', '  - 継続: "30"', '  - 休眠: "25"'],
+    },
+    lines: [
+      { code: "shape: pie", note: "扇の取り分で割合を見せる", noteEn: "Shows the share as slices" },
+      { code: "shape: bar", note: "棒の高さで比べる (書かない時の形)", noteEn: "Compares by bar height (the shape you get without writing one)" },
+      { code: "shape: line", note: "線の高さで並べる (書いた順に左から)", noteEn: "Plots the heights as a line, left to right in the order written" },
     ],
   },
   {
@@ -518,12 +537,13 @@ export const FORMS: Section[] = [
     titleEn: "Drawing the diagram from its starting point",
     sample: {
       slot: "animation",
-      type: "line",
+      type: "chart",
+      shape: "line",
       actors: ['  - W1: "180"', '  - W2: "240"', '  - W3: "210"'],
     },
     lines: [
       { code: '  - step: "描く" 1.2s', note: "1 段の長さ", noteEn: "How long one phase lasts" },
-      { code: "    draw: line", note: "図種と同じ語を書く。 受ける語は下の一覧", noteEn: "Write the same word as the diagram type. The accepted words are listed below" },
+      { code: "    draw: line", note: "図種と同じ語を書く (数を描く図では形と同じ語)。 受ける語は下の一覧", noteEn: "Write the same word as the diagram type (the shape, for diagrams that draw numbers). The accepted words are listed below" },
       { code: '  - step: "読む" 1.2s', note: "書かない段は全長のまま", noteEn: "A phase you leave out keeps the full length" },
     ],
   },
@@ -652,7 +672,8 @@ export const FORMS: Section[] = [
     titleEn: "The small heading above a chart (eyebrow:)",
     sample: {
       slot: "root",
-      type: "bar",
+      type: "chart",
+      shape: "bar",
       actors: ['  - 検索: "420"', '  - SNS: "310"'],
     },
     lines: [
@@ -701,6 +722,7 @@ export function buildSample(section: Section): string {
     "relations",
     "direction",
     "order",
+    "shape",
     "palette",
   ];
   const rootLines = 最上位に置く.includes(slot) ? codes : [];
@@ -712,6 +734,10 @@ export function buildSample(section: Section): string {
       // 既定は `topology` (#1466)。 順序図は 1 枚の板になり、面に書いた種類 / 大きさ / 位置 /
       // 行 / 色が効かなくなった = 例文の下敷きにすると「書いても効かない」 見本になる
       : [`type: ${section.sample.type ?? "topology"}`]),
+    // 形は型の直後に置く (#2657)。 型を読んでから形を読む並びが、記法の読み方と同じ
+    ...(section.sample.shape !== undefined && !rootLines.some((l) => /^shape\s*:/.test(l))
+      ? [`shape: ${section.sample.shape}`]
+      : []),
     ...rootLines,
   ];
   const out = [...head, "actors:", ...actors, ...(slot === "actors" ? codes : [])];

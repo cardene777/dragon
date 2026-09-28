@@ -15,6 +15,7 @@ import { describe, it, expect } from "vitest";
 
 import { textDslToDiagram } from "../src/index";
 import { PRESET_TYPES, DRAW_TARGETS } from "../src/v05/parser";
+import { SHAPES } from "../src/keywords";
 import type { CompileNotice } from "../src/index";
 
 const 記法 = (body: string, 動き = ""): string =>
@@ -31,8 +32,10 @@ const 知らせを集める = (src: string): CompileNotice[] => {
 };
 
 describe("図種を足す先を 1 つも落としていない (#1647)", () => {
-  it("記法が `slope` を受ける", () => {
-    expect(PRESET_TYPES.has("slope")).toBe(true);
+  it("記法が `slope` を形として受ける", () => {
+    // #2657 で 9 つの型を `chart` 1 つに畳み、形は `shape:` が持つようになった
+    expect(SHAPES.includes("slope")).toBe(true);
+    expect(PRESET_TYPES.has("chart")).toBe(true);
   });
 
   it("`type: slope` が `chart-slope` の節になる", () => {
@@ -42,7 +45,7 @@ describe("図種を足す先を 1 つも落としていない (#1647)", () => {
   });
 
   it("`draw: slope` が語の表に載っている", () => {
-    expect(DRAW_TARGETS.get("slope")).toBe("slope");
+    expect(DRAW_TARGETS.get("slope")).toEqual({ type: "chart", shape: "slope" });
   });
 
   it("段に `draw: slope` を書くと箱を指す", () => {

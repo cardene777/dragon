@@ -116,8 +116,9 @@ describe("書いた名前が正しいのに付かない時は、書き直しで�
     expect(出た.length, "知らせが 1 件でない").toBe(1);
     const n = 出た[0]!;
     expect(n.kind).toBe("event-target-not-honored");
-    // 図種の名前を出す = どの図種の話かが読み手に分かる
-    expect(n.message, `本文: ${n.message}`).toContain("pie");
+    // 図種の名前を出す = どの図種の話かが読み手に分かる。
+    // #2657 で 9 つの型を `chart` 1 つに畳んだので、名乗るのは畳んだ後の名前
+    expect(n.message, `本文: ${n.message}`).toContain("chart");
     // 「名前を書き直せ」 と読めない案内にする
     expect(n.hint ?? "", `補足: ${n.hint ?? ""}`).not.toContain("箱の名前");
     expect((n.hint ?? "").length, "補足が空").toBeGreaterThan(0);

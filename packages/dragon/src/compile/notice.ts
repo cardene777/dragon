@@ -25,6 +25,7 @@ export type CompileNotice = {
     | "direction-same-as-default"
     // 並び順が効かない図種に `order:` を書いた (#2655)
     | "order-not-honored"
+  | "shape-not-honored"
     // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)
     | "scale-reserved"
     // 部品に書いた色が効かない (#1973)。 色番号を入れる状態を 1 つも持たない部品に色番号を

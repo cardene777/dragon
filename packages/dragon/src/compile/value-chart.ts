@@ -1,6 +1,7 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
+import type { DslShape } from "../keywords";
 import { parseChartValue, 数の欄から参照できる名前, 参照する名前 } from "./chart-fields";
 
 import { 箱の題 } from "./node-title";
@@ -23,21 +24,32 @@ import { 図の小見出し } from "./subtitle";
  *
  * 矢印は描けない。 書かれていたら警告に出して捨てる (「書いたのに効かない」 を残さない)。
  */
+
+/**
+ * 形から描画側の種別を引く (#2657)。
+ *
+ * **綴りを繋げて作らない**。 8 つは `chart-<形>` で作れるが、積み上げだけ
+ * `chart-stacked-bar` で規則から外れる。 繋げて作ると その 1 つが黙って別の種別になる
+ * (描画側は知らない種別の大きさを引けず、図の組み立てが落ちる)。
+ */
+const 描画側の種別: Readonly<Record<DslShape, CdlDiagram["nodes"][number]["kind"]>> = {
+  pie: "chart-pie",
+  bar: "chart-bar",
+  line: "chart-line",
+  gauge: "chart-gauge",
+  radial: "chart-radial",
+  stat: "chart-stat",
+  waffle: "chart-waffle",
+  stacked: "chart-stacked-bar",
+  slope: "chart-slope",
+};
+
 export function compileValueChart(
   doc: DslDocument,
-  型: "pie" | "bar" | "line" | "gauge" | "radial" | "stat" | "waffle" | "stacked" | "slope",
-  kind:
-    | "chart-pie"
-    | "chart-bar"
-    | "chart-line"
-    | "chart-gauge"
-    | "chart-radial"
-    | "chart-stat"
-    | "chart-waffle"
-    | "chart-stacked-bar"
-    | "chart-slope",
+  型: DslShape,
   onNotice?: (notice: CompileNotice) => void,
 ): CdlDiagram {
+  const kind = 描画側の種別[型];
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "chart" });
   const CHART_W = 640;
   // **高さは型で違い、 格子に載せる**。 描画側 (`cdl` の `chart()` preset) は `pie` を 320、

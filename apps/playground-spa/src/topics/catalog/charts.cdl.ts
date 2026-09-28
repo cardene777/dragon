@@ -53,7 +53,8 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 // 1. 棒で比べる
 // ============================================================
 export const sourceYaml__chartBar = `title: "経路別の流入"
-type: bar
+type: chart
+shape: bar
 
 actors:
   - 検索: "{search}"
@@ -82,7 +83,8 @@ animation:
 
 export const sourceJson__chartBar = `{
   "title": "経路別の流入",
-  "type": "bar",
+  "type": "chart",
+  "shape": "bar",
   "actors": [
     { "name": "検索", "subtitle": "{search}" },
     { "name": "SNS", "subtitle": "{sns}" },
@@ -123,7 +125,8 @@ export const chartBar = textDslToDiagram(sourceYaml__chartBar);
 export const patternBase__chartBar = "今だけ";
 
 export const sourceYaml__pattern__chartBar__前の値つき = `title: "先月と比べた経路別の流入"
-type: bar
+type: chart
+shape: bar
 
 actors:
   - 検索: { value: "{search}", previous: "520" }
@@ -150,7 +153,8 @@ animation:
 
 export const sourceJson__pattern__chartBar__前の値つき = `{
   "title": "先月と比べた経路別の流入",
-  "type": "bar",
+  "type": "chart",
+  "shape": "bar",
   "actors": [
     { "name": "検索", "value": "{search}", "previous": "520" },
     { "name": "SNS", "value": "{sns}", "previous": "260" },
@@ -186,7 +190,8 @@ export const pattern__chartBar__前の値つき = textDslToDiagram(
 // 違いは段の途中にだけ出るので、同じ図で割合だけを変えた切替にする。
 // ------------------------------------------------------------
 export const sourceYaml__pattern__chartBar__4割で伸ばし終える = `title: "段の 4 割で伸ばし終える経路別の流入"
-type: bar
+type: chart
+shape: bar
 
 actors:
   - 検索: "{search}"
@@ -215,7 +220,8 @@ animation:
 
 export const sourceJson__pattern__chartBar__4割で伸ばし終える = `{
   "title": "段の 4 割で伸ばし終える経路別の流入",
-  "type": "bar",
+  "type": "chart",
+  "shape": "bar",
   "actors": [
     { "name": "検索", "subtitle": "{search}" },
     { "name": "SNS", "subtitle": "{sns}" },
@@ -254,7 +260,8 @@ export const pattern__chartBar__4割で伸ばし終える = textDslToDiagram(
 // 2. 線で追う
 // ============================================================
 export const sourceYaml__chartLine = `title: "週ごとの応答時間"
-type: line
+type: chart
+shape: line
 
 actors:
   - W1: "{w1}"
@@ -286,7 +293,8 @@ animation:
 
 export const sourceJson__chartLine = `{
   "title": "週ごとの応答時間",
-  "type": "line",
+  "type": "chart",
+  "shape": "line",
   "actors": [
     { "name": "W1", "subtitle": "{w1}" },
     { "name": "W2", "subtitle": "{w2}" },
@@ -319,7 +327,8 @@ export const chartLine = textDslToDiagram(sourceYaml__chartLine);
 // 3. 割合を見る
 // ============================================================
 export const sourceYaml__chartPie = `title: "費用の内訳"
-type: pie
+type: chart
+shape: pie
 
 actors:
   - 計算: "{compute}"
@@ -348,7 +357,8 @@ animation:
 
 export const sourceJson__chartPie = `{
   "title": "費用の内訳",
-  "type": "pie",
+  "type": "chart",
+  "shape": "pie",
   "actors": [
     { "name": "計算", "subtitle": "{compute}" },
     { "name": "保存", "subtitle": "{storage}" },
@@ -387,7 +397,8 @@ export const chartPie = textDslToDiagram(sourceYaml__chartPie);
 export const patternBase__chartPie = "今だけ";
 
 export const sourceYaml__pattern__chartPie__前と今 = `title: "前期と比べた費用の内訳"
-type: pie
+type: chart
+shape: pie
 
 actors:
   - 計算: { value: "{compute}", previous: "52" }
@@ -414,7 +425,8 @@ animation:
 
 export const sourceJson__pattern__chartPie__前と今 = `{
   "title": "前期と比べた費用の内訳",
-  "type": "pie",
+  "type": "chart",
+  "shape": "pie",
   "actors": [
     { "name": "計算", "value": "{compute}", "previous": "52" },
     { "name": "保存", "value": "{storage}", "previous": "18" },
@@ -1069,7 +1081,8 @@ export const pattern__treeHierarchy__説明つき = textDslToDiagram(
 // 合計の字と内訳の段は最初から出る = 合計はこの図の主役なので、左から半分ずつ現れると読めない。
 // ============================================================
 export const sourceYaml__chartGauge = `title: "今期の売上進捗"
-type: gauge
+type: chart
+shape: gauge
 
 actors:
   - 契約済: "{signed}"
@@ -1095,7 +1108,8 @@ animation:
 
 export const sourceJson__chartGauge = `{
   "title": "今期の売上進捗",
-  "type": "gauge",
+  "type": "chart",
+  "shape": "gauge",
   "actors": [
     { "name": "契約済", "subtitle": "{signed}" },
     { "name": "商談中", "subtitle": "{talking}" },
@@ -1139,7 +1153,8 @@ export const chartGauge = textDslToDiagram(sourceYaml__chartGauge);
 export const patternBase__chartGauge = "今だけ";
 
 export const sourceYaml__pattern__chartGauge__前の値つき = `title: "前期と比べた売上進捗"
-type: gauge
+type: chart
+shape: gauge
 
 actors:
   - 契約済: { value: "{signed}", previous: "520" }
@@ -1165,7 +1180,8 @@ animation:
 
 export const sourceJson__pattern__chartGauge__前の値つき = `{
   "title": "前期と比べた売上進捗",
-  "type": "gauge",
+  "type": "chart",
+  "shape": "gauge",
   "actors": [
     { "name": "契約済", "value": "{signed}", "previous": "520" },
     { "name": "商談中", "value": "{talking}", "previous": "300" },
@@ -1205,7 +1221,8 @@ export const pattern__chartGauge__前の値つき = textDslToDiagram(
 // 一緒に伸ばすと比べる相手が無いまま弧だけが伸びる。
 // ============================================================
 export const sourceYaml__chartRadial = `title: "機能ごとの利用率"
-type: radial
+type: chart
+shape: radial
 
 actors:
   - 検索: "{search}"
@@ -1234,7 +1251,8 @@ animation:
 
 export const sourceJson__chartRadial = `{
   "title": "機能ごとの利用率",
-  "type": "radial",
+  "type": "chart",
+  "shape": "radial",
   "actors": [
     { "name": "検索", "subtitle": "{search}" },
     { "name": "保存", "subtitle": "{save}" },
@@ -1280,7 +1298,8 @@ export const chartRadial = textDslToDiagram(sourceYaml__chartRadial);
 export const patternBase__chartRadial = "今だけ";
 
 export const sourceYaml__pattern__chartRadial__前の値つき = `title: "先月と比べた機能ごとの利用率"
-type: radial
+type: chart
+shape: radial
 
 actors:
   - 検索: { value: "{search}", previous: "65" }
@@ -1307,7 +1326,8 @@ animation:
 
 export const sourceJson__pattern__chartRadial__前の値つき = `{
   "title": "先月と比べた機能ごとの利用率",
-  "type": "radial",
+  "type": "chart",
+  "shape": "radial",
   "actors": [
     { "name": "検索", "value": "{search}", "previous": "65" },
     { "name": "保存", "value": "{save}", "previous": "50" },
@@ -1346,7 +1366,8 @@ export const pattern__chartRadial__前の値つき = textDslToDiagram(
 // 書かない側を持ち、押すと前の時点を添えた側に入れ替わる。
 // ============================================================
 export const sourceYaml__chartStat = `title: "今月の解約率"
-type: stat
+type: chart
+shape: stat
 
 actors:
   - 解約率: "{now}"
@@ -1365,7 +1386,8 @@ animation:
 
 export const sourceJson__chartStat = `{
   "title": "今月の解約率",
-  "type": "stat",
+  "type": "chart",
+  "shape": "stat",
   "actors": [
     { "name": "解約率", "value": "{now}" }
   ],
@@ -1395,7 +1417,8 @@ export const chartStat = textDslToDiagram(sourceYaml__chartStat);
 export const patternBase__chartStat = "1 件";
 
 export const sourceYaml__pattern__chartStat__複数 = `title: "問い合わせの内訳"
-type: stat
+type: chart
+shape: stat
 
 actors:
   - 対応済み: "{done}"
@@ -1420,7 +1443,8 @@ animation:
 
 export const sourceJson__pattern__chartStat__複数 = `{
   "title": "問い合わせの内訳",
-  "type": "stat",
+  "type": "chart",
+  "shape": "stat",
   "actors": [
     { "name": "対応済み", "value": "{done}" },
     { "name": "対応中", "value": "{doing}" },
@@ -1456,7 +1480,8 @@ export const pattern__chartStat__複数 = textDslToDiagram(sourceYaml__pattern__
 // 読み手の記憶に頼ることになる。
 // ------------------------------------------------------------
 export const sourceYaml__pattern__chartStat__前の値つき = `title: "前の月と比べた解約率"
-type: stat
+type: chart
+shape: stat
 
 actors:
   - 解約率: { value: "{now}", previous: "38" }
@@ -1475,7 +1500,8 @@ animation:
 
 export const sourceJson__pattern__chartStat__前の値つき = `{
   "title": "前の月と比べた解約率",
-  "type": "stat",
+  "type": "chart",
+  "shape": "stat",
   "actors": [
     { "name": "解約率", "value": "{now}", "previous": "38" }
   ],
@@ -1505,7 +1531,8 @@ export const pattern__chartStat__前の値つき = textDslToDiagram(
 // この図は「数えて確かめられる」 ことが存在理由で、一覧はその答え合わせの表になる。
 // ============================================================
 export const sourceYaml__chartWaffle = `title: "対応済みの問い合わせ"
-type: waffle
+type: chart
+shape: waffle
 
 actors:
   - 対応済: "{done}"
@@ -1531,7 +1558,8 @@ animation:
 
 export const sourceJson__chartWaffle = `{
   "title": "対応済みの問い合わせ",
-  "type": "waffle",
+  "type": "chart",
+  "shape": "waffle",
   "actors": [
     { "name": "対応済", "subtitle": "{done}" },
     { "name": "対応中", "subtitle": "{doing}" },
@@ -1567,7 +1595,8 @@ export const chartWaffle = textDslToDiagram(sourceYaml__chartWaffle);
 // 上下で同じ位置を見比べる図なので、片方だけ先に出ると比べる相手がいない時間ができる。
 // ============================================================
 export const sourceYaml__chartStackedBar = `title: "契約の内訳"
-type: stacked
+type: chart
+shape: stacked
 
 actors:
   - 新規: { value: "{shinki}", previous: "280" }
@@ -1592,7 +1621,8 @@ animation:
 
 export const sourceJson__chartStackedBar = `{
   "title": "契約の内訳",
-  "type": "stacked",
+  "type": "chart",
+  "shape": "stacked",
   "actors": [
     { "name": "新規", "value": "{shinki}", "previous": "280" },
     { "name": "継続", "value": "{keizoku}", "previous": "210" },
@@ -1627,7 +1657,8 @@ export const chartStackedBar = textDslToDiagram(sourceYaml__chartStackedBar);
 export const patternBase__chartStackedBar = "前と今";
 
 export const sourceYaml__pattern__chartStackedBar__今だけ = `title: "今期の契約の内訳"
-type: stacked
+type: chart
+shape: stacked
 
 actors:
   - 新規: "{shinki}"
@@ -1652,7 +1683,8 @@ animation:
 
 export const sourceJson__pattern__chartStackedBar__今だけ = `{
   "title": "今期の契約の内訳",
-  "type": "stacked",
+  "type": "chart",
+  "shape": "stacked",
   "actors": [
     { "name": "新規", "value": "{shinki}" },
     { "name": "継続", "value": "{keizoku}" },
@@ -1684,7 +1716,8 @@ export const pattern__chartStackedBar__今だけ = textDslToDiagram(
 // 15. 2 時点を線で結んで増減を見る
 // ------------------------------------------------------------
 export const sourceYaml__chartSlope = `title: "経路別の申込み"
-type: slope
+type: chart
+shape: slope
 
 actors:
   - 検索: { value: "{kensaku}", previous: "380" }
@@ -1711,7 +1744,8 @@ animation:
 
 export const sourceJson__chartSlope = `{
   "title": "経路別の申込み",
-  "type": "slope",
+  "type": "chart",
+  "shape": "slope",
   "actors": [
     { "name": "検索", "value": "{kensaku}", "previous": "380" },
     { "name": "SNS", "value": "{sns}", "previous": "190" },

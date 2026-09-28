@@ -32,7 +32,14 @@ export {
   TOP_LEVEL_KEYS,
   TYPE_ALIASES,
 } from "./v05/parser";
-export { TONE_ALIAS, NODE_KIND_ALIAS, DIRECTION_ALIAS, ORDERS, ORDER_ALIAS } from "./keywords";
+export {
+  TONE_ALIAS,
+  NODE_KIND_ALIAS,
+  DIRECTION_ALIAS,
+  ORDERS,
+  ORDER_ALIAS,
+  SHAPES,
+} from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
 // canvas pivot 新 spec 図境界計算 helper (§diagram-boundary SSOT)

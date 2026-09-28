@@ -5,7 +5,7 @@
 
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
-import type { DslDirection, DslOrder, DslPalette } from "./keywords";
+import type { DslDirection, DslOrder, DslPalette, DslShape } from "./keywords";
 
 /**
  * 記法が書ける箱の種類 (#1420)。
@@ -75,15 +75,14 @@ export type PresetType =
   | "topology"
   | "gantt"
   | "class"
-  | "pie"
-  | "bar"
-  | "line"
-  | "gauge"
-  | "radial"
-  | "stat"
-  | "waffle"
-  | "stacked"
-  | "slope"
+  /**
+   * 数を描く図 (#2657)。 形は `shape:` が決める。
+   *
+   * 畳む前は形ごとに 9 つの型 (`pie` / `bar` / …) を持っていたが、書き方も組み立ても
+   * 同じで、渡す文字列 2 つしか違わなかった。 古い綴りは読み替えの入口で この型と
+   * 形の語の組に読み替える。
+   */
+  | "chart"
   | "funnel"
   | "tree"
   | "journey"
@@ -208,6 +207,10 @@ export type DslDocument = {
   order?: DslOrder;
   /** `order:` を書いた行。 効かない時の知らせで、書いた場所を指すために持つ */
   orderPos?: { line: number };
+  /** 数を描く図の形 (#2657)。 `type: chart` だけが読む */
+  shape?: DslShape;
+  /** `shape:` を書いた行。 効かない時の知らせで、書いた場所を指すために持つ */
+  shapePos?: { line: number };
   /**
    * 図の配色 (`palette:`、 #1553)。
    *
