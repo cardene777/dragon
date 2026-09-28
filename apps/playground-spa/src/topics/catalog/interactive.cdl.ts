@@ -9947,7 +9947,7 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
     {
       duration: 1500,
       title: "送信",
-      body: "状態は 0。 送信の列だけが光り、灰の単チェックが出る (送ったが、まだ届いていない)。",
+      body: "状態は 0。 灰の単チェックが出る (送ったが、まだ届いていない)。",
     },
     (p: PhaseBuilder) => p.activate("sentCard").set("status", 0).badge("送信"),
   )
@@ -9956,7 +9956,7 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
     {
       duration: 1500,
       title: "配信完了",
-      body: "状態を 1 にすると配信の列も光り、灰の二重チェックに変わる (届いたが、まだ読まれていない)。",
+      body: "状態を 1 にすると灰の二重チェックに変わる (届いたが、まだ読まれていない)。",
     },
     (p: PhaseBuilder) => p.activate("sentCard", "deliveredCard").set("status", 1).badge("配信"),
   )
@@ -9965,7 +9965,7 @@ export const dmReadReceipt = diagram("interactive-dm-read-receipt", {
     {
       duration: 1500,
       title: "既読",
-      body: "状態を 2 にすると既読の列も光り、二重チェックが青に変わる (読まれたことが分かる)。",
+      body: "状態を 2 にすると二重チェックが青に変わる (読まれたことが分かる)。",
     },
     (p: PhaseBuilder) =>
       p.activate("sentCard", "deliveredCard", "readCard").set("status", 2).badge("既読"),
@@ -10039,7 +10039,7 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
     {
       duration: 1500,
       title: "弱い (段階 1)",
-      body: "最初の入力で段階は 1。 メーターは 1 区切りだけ赤く、満たす決まりは 8 文字以上の 1 つだけ。 入力とメーターの列が光る。",
+      body: "最初の入力で段階は 1。 メーターは 1 区切りだけ赤く、満たす決まりは 8 文字以上の 1 つだけ。",
     },
     (p: PhaseBuilder) => p.activate("pwField", "meterBars", "rule1").set("pw", 1).badge("弱い"),
   )
@@ -10048,7 +10048,7 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
     {
       duration: 2000,
       title: "改善中 (段階 1 → 3)",
-      body: "文字を足して大文字と小文字を混ぜ、段階が 1 から 3 へ上がる。 メーターが赤から橙、黄、黄緑へ続けて変わり、残り 2 つの決まりも光る。",
+      body: "文字を足して大文字と小文字を混ぜ、段階が 1 から 3 へ上がる。 メーターが赤から橙、黄、黄緑へ続けて変わり、大文字と小文字の決まりも満たす。",
     },
     (p: PhaseBuilder) =>
       p
@@ -10061,7 +10061,7 @@ export const formPasswordCheck = diagram("interactive-form-password-check", {
     {
       duration: 1500,
       title: "強い (段階 4)",
-      body: "数字と記号を足して段階が 4 になる。 メーターは 4 区切りすべてが緑になり、決まりを全部満たして 6 つの箱がすべて光る。",
+      body: "数字と記号を足して段階が 4 になる。 メーターは 4 区切りすべてが緑になり、決まりを全部満たす。",
     },
     (p: PhaseBuilder) =>
       p
@@ -10198,7 +10198,7 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
     {
       duration: 1500,
       title: "未選択",
-      body: "ファイルは空。 未選択の箱だけが光り、置き場は破線の枠に上向きの矢印と案内を出す。",
+      body: "ファイルは空。 置き場は破線の枠に上向きの矢印と案内を出す。",
     },
     (p: PhaseBuilder) => p.activate("emptyCard").set("file", "").badge("未選択"),
   )
@@ -10207,7 +10207,7 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
     {
       duration: 2000,
       title: "ドロップ受信",
-      body: "ファイルを空から「顔写真.png」 に切り替え、アップロードの箱も光る。 置き場は実線の枠に変わり、ファイル名の札を出す。",
+      body: "ファイルを空から「顔写真.png」 に切り替える。 置き場は実線の枠に変わり、ファイル名の札を出す。",
     },
     (p: PhaseBuilder) =>
       p.activate("emptyCard", "uploadedCard").set("file", "顔写真.png").badge("アップロード"),
@@ -10217,7 +10217,7 @@ export const profileAvatarUpload = diagram("interactive-profile-avatar-upload", 
     {
       duration: 1500,
       title: "プレビュー表示",
-      body: "アップロードが終わり、プレビューの箱も光る。 丸く切り抜いた顔写真が出て、3 つの箱がすべて光る。",
+      body: "アップロードが終わる。 丸く切り抜いた顔写真が置き場に出る。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11150,7 +11150,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     {
       duration: 2200,
       title: "商品購入",
-      body: "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。 顧客と店の列が光る。",
+      body: "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11165,7 +11165,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     {
       duration: 2500,
       title: "本人認証",
-      body: "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 処理の列がすべて光り、カードから決済代行への矢印が強調される。",
+      body: "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 カードから決済代行への矢印が強調される。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11179,7 +11179,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     {
       duration: 2000,
       title: "銀行確定",
-      body: "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定し、銀行の列が光る。",
+      body: "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定する。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11193,7 +11193,7 @@ export const exemplarPaymentFlow = diagram("interactive-exemplar-payment-flow", 
     {
       duration: 1800,
       title: "記帳完了",
-      body: "銀行が取引台帳に記帳し、監査の記録を残す。 本日の取引の累計が 800ms かけて 1 件増え、8 つの形がすべて光って決済が終わる。",
+      body: "銀行が取引台帳に記帳し、監査の記録を残す。 本日の取引の累計が 800ms かけて 1 件増え、決済が終わる。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11311,7 +11311,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     {
       duration: 1500,
       title: "認証要求",
-      body: "山田様がスマートフォンのログイン画面から資格情報を送る。 認証の状態は赤 (まだ確かめていない) で、応答時間の帯が 80ms まで立ち上がる。 利用者の列がすべて光る。",
+      body: "山田様がスマートフォンのログイン画面から資格情報を送る。 認証の状態は赤 (まだ確かめていない) で、応答時間の帯が 80ms まで立ち上がる。",
     },
     (p: PhaseBuilder) =>
       p.activate("customer", "mobile").set("authStatus", 0).tween("latency", 0, 80).badge("要求"),
@@ -11364,7 +11364,7 @@ export const exemplarLoginFlow = diagram("interactive-exemplar-login-flow", {
     {
       duration: 1800,
       title: "応答返却",
-      body: "JWT トークンを応答に付けて返し、画面を移す。 本日成功ログインが 900ms かけて 1 回増え、応答時間が 50ms まで縮んで 7 つの形がすべて光る。",
+      body: "JWT トークンを応答に付けて返し、画面を移す。 本日成功ログインが 900ms かけて 1 回増え、応答時間が 50ms まで縮む。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11491,7 +11491,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 1800,
       title: "通知のきっかけ",
-      body: "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。 知らせとキューが光る。",
+      body: "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11507,7 +11507,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 2000,
       title: "キューイング",
-      body: "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、配信サービスが光って、キューからの矢印に信号が流れる。",
+      body: "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、キューからの矢印に信号が流れる。",
     },
     (p: PhaseBuilder) =>
       p.activate("msg", "kafka", "fcm").tween("queued", 1000, 800).badge("キュー"),
@@ -11517,7 +11517,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 2500,
       title: "配信中",
-      body: "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 3 台とも光り、タブレットへの矢印は失敗の赤になる。",
+      body: "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 タブレットへの矢印は失敗の赤になる。",
     },
     (p: PhaseBuilder) =>
       p
@@ -11549,7 +11549,7 @@ export const exemplarNotificationFlow = diagram("interactive-exemplar-notificati
     {
       duration: 2000,
       title: "リトライ",
-      body: "失敗した 50 件を、再送の判定が間隔を倍に広げながら送り直し、圏内に戻ったタブレットにも届く。 キューの残りが 0 件、配信成功が 992 件、失敗が 8 件、配信成功率が 99% になり、再送の判定が光る。",
+      body: "失敗した 50 件を、再送の判定が間隔を倍に広げながら送り直し、圏内に戻ったタブレットにも届く。 キューの残りが 0 件、配信成功が 992 件、失敗が 8 件、配信成功率が 99% になる。",
     },
     (p: PhaseBuilder) =>
       p
@@ -18303,19 +18303,19 @@ animation:
     set:
       status: 0
     badge: "送信"
-    description: "状態は 0。 送信の列だけが光り、灰の単チェックが出る (送ったが、まだ届いていない)。"
+    description: "状態は 0。 灰の単チェックが出る (送ったが、まだ届いていない)。"
   - step: "配信完了" 1.5s
     focus: ["▶ 送信 (0)", "▶▶ 配信 (1)"]
     set:
       status: 1
     badge: "配信"
-    description: "状態を 1 にすると配信の列も光り、灰の二重チェックに変わる (届いたが、まだ読まれていない)。"
+    description: "状態を 1 にすると灰の二重チェックに変わる (届いたが、まだ読まれていない)。"
   - step: "既読" 1.5s
     focus: ["▶ 送信 (0)", "▶▶ 配信 (1)", "◆ 既読 (2)"]
     set:
       status: 2
     badge: "既読"
-    description: "状態を 2 にすると既読の列も光り、二重チェックが青に変わる (読まれたことが分かる)。"
+    description: "状態を 2 にすると二重チェックが青に変わる (読まれたことが分かる)。"
 `;
 
 export const sourceJson__dmReadReceipt = `{
@@ -18374,7 +18374,7 @@ export const sourceJson__dmReadReceipt = `{
       "focus": ["▶ 送信 (0)"],
       "set": { "status": 0 },
       "badge": "送信",
-      "description": "状態は 0。 送信の列だけが光り、灰の単チェックが出る (送ったが、まだ届いていない)。"
+      "description": "状態は 0。 灰の単チェックが出る (送ったが、まだ届いていない)。"
     },
     {
       "step": "配信完了",
@@ -18382,7 +18382,7 @@ export const sourceJson__dmReadReceipt = `{
       "focus": ["▶ 送信 (0)", "▶▶ 配信 (1)"],
       "set": { "status": 1 },
       "badge": "配信",
-      "description": "状態を 1 にすると配信の列も光り、灰の二重チェックに変わる (届いたが、まだ読まれていない)。"
+      "description": "状態を 1 にすると灰の二重チェックに変わる (届いたが、まだ読まれていない)。"
     },
     {
       "step": "既読",
@@ -18390,7 +18390,7 @@ export const sourceJson__dmReadReceipt = `{
       "focus": ["▶ 送信 (0)", "▶▶ 配信 (1)", "◆ 既読 (2)"],
       "set": { "status": 2 },
       "badge": "既読",
-      "description": "状態を 2 にすると既読の列も光り、二重チェックが青に変わる (読まれたことが分かる)。"
+      "description": "状態を 2 にすると二重チェックが青に変わる (読まれたことが分かる)。"
     }
   ]
 }`;
@@ -18427,19 +18427,19 @@ animation:
     set:
       pw: 1
     badge: "弱い"
-    description: "最初の入力で段階は 1。 メーターは 1 区切りだけ赤く、満たす決まりは 8 文字以上の 1 つだけ。 入力とメーターの列が光る。"
+    description: "最初の入力で段階は 1。 メーターは 1 区切りだけ赤く、満たす決まりは 8 文字以上の 1 つだけ。"
   - step: "改善中 (段階 1 → 3)" 2s
     focus: ["◆ パスワード", "4 区切りのメーター", "段階の名前", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"]
     tween:
       pw: 1 -> 3
     badge: "改善中"
-    description: "文字を足して大文字と小文字を混ぜ、段階が 1 から 3 へ上がる。 メーターが赤から橙、黄、黄緑へ続けて変わり、残り 2 つの決まりも光る。"
+    description: "文字を足して大文字と小文字を混ぜ、段階が 1 から 3 へ上がる。 メーターが赤から橙、黄、黄緑へ続けて変わり、大文字と小文字の決まりも満たす。"
   - step: "強い (段階 4)" 1.5s
     focus: ["◆ パスワード", "4 区切りのメーター", "段階の名前", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"]
     set:
       pw: 4
     badge: "強い"
-    description: "数字と記号を足して段階が 4 になる。 メーターは 4 区切りすべてが緑になり、決まりを全部満たして 6 つの箱がすべて光る。"
+    description: "数字と記号を足して段階が 4 になる。 メーターは 4 区切りすべてが緑になり、決まりを全部満たす。"
 `;
 
 export const sourceJson__formPasswordCheck = `{
@@ -18516,7 +18516,7 @@ export const sourceJson__formPasswordCheck = `{
       "focus": ["◆ パスワード", "4 区切りのメーター", "✓ 8 文字以上"],
       "set": { "pw": 1 },
       "badge": "弱い",
-      "description": "最初の入力で段階は 1。 メーターは 1 区切りだけ赤く、満たす決まりは 8 文字以上の 1 つだけ。 入力とメーターの列が光る。"
+      "description": "最初の入力で段階は 1。 メーターは 1 区切りだけ赤く、満たす決まりは 8 文字以上の 1 つだけ。"
     },
     {
       "step": "改善中 (段階 1 → 3)",
@@ -18524,7 +18524,7 @@ export const sourceJson__formPasswordCheck = `{
       "focus": ["◆ パスワード", "4 区切りのメーター", "段階の名前", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"],
       "tween": { "pw": [1, 3] },
       "badge": "改善中",
-      "description": "文字を足して大文字と小文字を混ぜ、段階が 1 から 3 へ上がる。 メーターが赤から橙、黄、黄緑へ続けて変わり、残り 2 つの決まりも光る。"
+      "description": "文字を足して大文字と小文字を混ぜ、段階が 1 から 3 へ上がる。 メーターが赤から橙、黄、黄緑へ続けて変わり、大文字と小文字の決まりも満たす。"
     },
     {
       "step": "強い (段階 4)",
@@ -18532,7 +18532,7 @@ export const sourceJson__formPasswordCheck = `{
       "focus": ["◆ パスワード", "4 区切りのメーター", "段階の名前", "✓ 8 文字以上", "✓ 大小混合", "✓ 数字 + 記号"],
       "set": { "pw": 4 },
       "badge": "強い",
-      "description": "数字と記号を足して段階が 4 になる。 メーターは 4 区切りすべてが緑になり、決まりを全部満たして 6 つの箱がすべて光る。"
+      "description": "数字と記号を足して段階が 4 になる。 メーターは 4 区切りすべてが緑になり、決まりを全部満たす。"
     }
   ]
 }`;
@@ -18666,19 +18666,19 @@ animation:
     set:
       file: ""
     badge: "未選択"
-    description: "ファイルは空。 未選択の箱だけが光り、置き場は破線の枠に上向きの矢印と案内を出す。"
+    description: "ファイルは空。 置き場は破線の枠に上向きの矢印と案内を出す。"
   - step: "ドロップ受信" 2s
     focus: ["未選択", "◆ 顔写真.png"]
     set:
       file: "顔写真.png"
     badge: "アップロード"
-    description: "ファイルを空から「顔写真.png」 に切り替え、アップロードの箱も光る。 置き場は実線の枠に変わり、ファイル名の札を出す。"
+    description: "ファイルを空から「顔写真.png」 に切り替える。 置き場は実線の枠に変わり、ファイル名の札を出す。"
   - step: "プレビュー表示" 1.5s
     focus: ["未選択", "◆ 顔写真.png", "▶ 円形アバター"]
     set:
       file: "顔写真.png"
     badge: "完了"
-    description: "アップロードが終わり、プレビューの箱も光る。 丸く切り抜いた顔写真が出て、3 つの箱がすべて光る。"
+    description: "アップロードが終わる。 丸く切り抜いた顔写真が置き場に出る。"
 `;
 
 export const sourceJson__profileAvatarUpload = `{
@@ -18735,7 +18735,7 @@ export const sourceJson__profileAvatarUpload = `{
       "focus": ["未選択"],
       "set": { "file": "" },
       "badge": "未選択",
-      "description": "ファイルは空。 未選択の箱だけが光り、置き場は破線の枠に上向きの矢印と案内を出す。"
+      "description": "ファイルは空。 置き場は破線の枠に上向きの矢印と案内を出す。"
     },
     {
       "step": "ドロップ受信",
@@ -18743,7 +18743,7 @@ export const sourceJson__profileAvatarUpload = `{
       "focus": ["未選択", "◆ 顔写真.png"],
       "set": { "file": "顔写真.png" },
       "badge": "アップロード",
-      "description": "ファイルを空から「顔写真.png」 に切り替え、アップロードの箱も光る。 置き場は実線の枠に変わり、ファイル名の札を出す。"
+      "description": "ファイルを空から「顔写真.png」 に切り替える。 置き場は実線の枠に変わり、ファイル名の札を出す。"
     },
     {
       "step": "プレビュー表示",
@@ -18751,7 +18751,7 @@ export const sourceJson__profileAvatarUpload = `{
       "focus": ["未選択", "◆ 顔写真.png", "▶ 円形アバター"],
       "set": { "file": "顔写真.png" },
       "badge": "完了",
-      "description": "アップロードが終わり、プレビューの箱も光る。 丸く切り抜いた顔写真が出て、3 つの箱がすべて光る。"
+      "description": "アップロードが終わる。 丸く切り抜いた顔写真が置き場に出る。"
     }
   ]
 }`;
@@ -19831,21 +19831,21 @@ animation:
       txStatus: 0
       auth3ds: 0
     badge: "購入"
-    description: "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。 顧客と店の列が光る。"
+    description: "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。"
   - step: "本人認証" 2.5s
     focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe"]
     tween:
       txStatus: 0 -> 1
       auth3ds: 0 -> 92
     badge: "本人認証"
-    description: "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 処理の列がすべて光り、カードから決済代行への矢印が強調される。"
+    description: "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 カードから決済代行への矢印が強調される。"
   - step: "銀行確定" 2s
     focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行"]
     tween:
       txStatus: 1 -> 2
       auth3ds: 92 -> 98
     badge: "銀行確定"
-    description: "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定し、銀行の列が光る。"
+    description: "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定する。"
   - step: "記帳完了" 1.8s
     focus: ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行", "取引台帳"]
     tween:
@@ -19853,7 +19853,7 @@ animation:
     set:
       txStatus: 2
     badge: "記帳完了"
-    description: "銀行が取引台帳に記帳し、監査の記録を残す。 本日の取引の累計が 800ms かけて 1 件増え、8 つの形がすべて光って決済が終わる。"
+    description: "銀行が取引台帳に記帳し、監査の記録を残す。 本日の取引の累計が 800ms かけて 1 件増え、決済が終わる。"
 `;
 
 export const sourceJson__exemplarPaymentFlow = `{
@@ -19976,7 +19976,7 @@ export const sourceJson__exemplarPaymentFlow = `{
       "tween": { "amount": [0, 12500] },
       "set": { "txStatus": 0, "auth3ds": 0 },
       "badge": "購入",
-      "description": "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。 顧客と店の列が光る。"
+      "description": "田中様が iPhone で店に入り、会計で購入を決める。 金額が 0 から 12500 円まで上がり、決済の状態は赤、本人認証の針は最も下にある。"
     },
     {
       "step": "本人認証",
@@ -19984,7 +19984,7 @@ export const sourceJson__exemplarPaymentFlow = `{
       "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe"],
       "tween": { "txStatus": [0, 1], "auth3ds": [0, 92] },
       "badge": "本人認証",
-      "description": "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 処理の列がすべて光り、カードから決済代行への矢印が強調される。"
+      "description": "入口を通って Stripe へ送り、VISA カードの本人認証を行う。 決済の状態が赤から黄へ、本人認証の針が 92% の緑の域まで上がる。 カードから決済代行への矢印が強調される。"
     },
     {
       "step": "銀行確定",
@@ -19992,7 +19992,7 @@ export const sourceJson__exemplarPaymentFlow = `{
       "focus": ["田中様", "iPhone", "VISA **1234", "ひだまり雑貨店", "API の入口", "Stripe", "発行銀行"],
       "tween": { "txStatus": [1, 2], "auth3ds": [92, 98] },
       "badge": "銀行確定",
-      "description": "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定し、銀行の列が光る。"
+      "description": "本人認証を通り、発行銀行に与信を照会して決済を確定する。 決済の状態が黄から緑へ、本人認証が 98% まで上がって確定する。"
     },
     {
       "step": "記帳完了",
@@ -20001,7 +20001,7 @@ export const sourceJson__exemplarPaymentFlow = `{
       "tween": { "totalTx": [1247, 1248] },
       "set": { "txStatus": 2 },
       "badge": "記帳完了",
-      "description": "銀行が取引台帳に記帳し、監査の記録を残す。 本日の取引の累計が 800ms かけて 1 件増え、8 つの形がすべて光って決済が終わる。"
+      "description": "銀行が取引台帳に記帳し、監査の記録を残す。 本日の取引の累計が 800ms かけて 1 件増え、決済が終わる。"
     }
   ]
 }`;
@@ -20051,7 +20051,7 @@ animation:
     set:
       authStatus: 0
     badge: "要求"
-    description: "山田様がスマートフォンのログイン画面から資格情報を送る。 認証の状態は赤 (まだ確かめていない) で、応答時間の帯が 80ms まで立ち上がる。 利用者の列がすべて光る。"
+    description: "山田様がスマートフォンのログイン画面から資格情報を送る。 認証の状態は赤 (まだ確かめていない) で、応答時間の帯が 80ms まで立ち上がる。"
   - step: "一次検証" 2s
     focus: ["山田様", "スマートフォン", "認証 API", "2 段階が要る?"]
     tween:
@@ -20083,7 +20083,7 @@ animation:
     set:
       authStatus: 2
     badge: "応答"
-    description: "JWT トークンを応答に付けて返し、画面を移す。 本日成功ログインが 900ms かけて 1 回増え、応答時間が 50ms まで縮んで 7 つの形がすべて光る。"
+    description: "JWT トークンを応答に付けて返し、画面を移す。 本日成功ログインが 900ms かけて 1 回増え、応答時間が 50ms まで縮む。"
 `;
 
 export const sourceJson__exemplarLoginFlow = `{
@@ -20202,7 +20202,7 @@ export const sourceJson__exemplarLoginFlow = `{
       "tween": { "latency": [0, 80] },
       "set": { "authStatus": 0 },
       "badge": "要求",
-      "description": "山田様がスマートフォンのログイン画面から資格情報を送る。 認証の状態は赤 (まだ確かめていない) で、応答時間の帯が 80ms まで立ち上がる。 利用者の列がすべて光る。"
+      "description": "山田様がスマートフォンのログイン画面から資格情報を送る。 認証の状態は赤 (まだ確かめていない) で、応答時間の帯が 80ms まで立ち上がる。"
     },
     {
       "step": "一次検証",
@@ -20236,7 +20236,7 @@ export const sourceJson__exemplarLoginFlow = `{
       "tween": { "successLogin": [8421, 8422], "latency": [180, 50] },
       "set": { "authStatus": 2 },
       "badge": "応答",
-      "description": "JWT トークンを応答に付けて返し、画面を移す。 本日成功ログインが 900ms かけて 1 回増え、応答時間が 50ms まで縮んで 7 つの形がすべて光る。"
+      "description": "JWT トークンを応答に付けて返し、画面を移す。 本日成功ログインが 900ms かけて 1 回増え、応答時間が 50ms まで縮む。"
     }
   ]
 }`;
@@ -20289,13 +20289,13 @@ animation:
       failed: 0
       deliveryRate: 0
     badge: "発火"
-    description: "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。 知らせとキューが光る。"
+    description: "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。"
   - step: "キューイング" 2s
     focus: ["新着の知らせ", "Kafka キュー", "配信サービス"]
     tween:
       queued: 1000 -> 800
     badge: "キュー"
-    description: "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、配信サービスが光って、キューからの矢印に信号が流れる。"
+    description: "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、キューからの矢印に信号が流れる。"
   - step: "配信中" 2.5s
     focus: ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"]
     tween:
@@ -20304,7 +20304,7 @@ animation:
       failed: 0 -> 80
       deliveryRate: 0 -> 92
     badge: "配信"
-    description: "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 3 台とも光り、タブレットへの矢印は失敗の赤になる。"
+    description: "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 タブレットへの矢印は失敗の赤になる。"
   - step: "初回到達" 1.8s
     focus: ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"]
     tween:
@@ -20322,7 +20322,7 @@ animation:
       failed: 50 -> 8
       deliveryRate: 95 -> 99
     badge: "再送"
-    description: "失敗した 50 件を、再送の判定が間隔を倍に広げながら送り直し、圏内に戻ったタブレットにも届く。 キューの残りが 0 件、配信成功が 992 件、失敗が 8 件、配信成功率が 99% になり、再送の判定が光る。"
+    description: "失敗した 50 件を、再送の判定が間隔を倍に広げながら送り直し、圏内に戻ったタブレットにも届く。 キューの残りが 0 件、配信成功が 992 件、失敗が 8 件、配信成功率が 99% になる。"
 `;
 
 export const sourceJson__exemplarNotificationFlow = `{
@@ -20451,7 +20451,7 @@ export const sourceJson__exemplarNotificationFlow = `{
       "tween": { "queued": [0, 1000] },
       "set": { "delivered": 0, "failed": 0, "deliveryRate": 0 },
       "badge": "発火",
-      "description": "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。 知らせとキューが光る。"
+      "description": "注文の発送が起き、吹き出しから Kafka キューに積む。 キューの残りが 1000 件まで伸び、配信成功と失敗は 0 件、配信成功率の針は最も下にある。"
     },
     {
       "step": "キューイング",
@@ -20459,7 +20459,7 @@ export const sourceJson__exemplarNotificationFlow = `{
       "focus": ["新着の知らせ", "Kafka キュー", "配信サービス"],
       "tween": { "queued": [1000, 800] },
       "badge": "キュー",
-      "description": "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、配信サービスが光って、キューからの矢印に信号が流れる。"
+      "description": "まとめた 1000 件が処理を待ち、配信サービスが取り出し始める。 キューの残りが 800 件へ縮み、キューからの矢印に信号が流れる。"
     },
     {
       "step": "配信中",
@@ -20467,7 +20467,7 @@ export const sourceJson__exemplarNotificationFlow = `{
       "focus": ["新着の知らせ", "Kafka キュー", "配信サービス", "iPhone", "Android", "タブレット"],
       "tween": { "queued": [800, 50], "delivered": [0, 920], "failed": [0, 80], "deliveryRate": [0, 92] },
       "badge": "配信",
-      "description": "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 3 台とも光り、タブレットへの矢印は失敗の赤になる。"
+      "description": "配信サービスが iPhone / Android 端末 / タブレットへ一斉に配る。 キューの残りが 50 件へ縮み、配信成功が 920 件まで数え上がり、失敗が 80 件、配信成功率が 92% になる。 タブレットへの矢印は失敗の赤になる。"
     },
     {
       "step": "初回到達",
@@ -20493,7 +20493,7 @@ export const sourceJson__exemplarNotificationFlow = `{
         "deliveryRate": [95, 99]
       },
       "badge": "再送",
-      "description": "失敗した 50 件を、再送の判定が間隔を倍に広げながら送り直し、圏内に戻ったタブレットにも届く。 キューの残りが 0 件、配信成功が 992 件、失敗が 8 件、配信成功率が 99% になり、再送の判定が光る。"
+      "description": "失敗した 50 件を、再送の判定が間隔を倍に広げながら送り直し、圏内に戻ったタブレットにも届く。 キューの残りが 0 件、配信成功が 992 件、失敗が 8 件、配信成功率が 99% になる。"
     }
   ]
 }`;
