@@ -148,10 +148,14 @@ const 表 = {
   },
   別名なし: { ja: "別名なし", en: "No other name" },
   図種: { ja: "図種", en: "Diagram types" },
+  図の形: { ja: "図の形", en: "Chart shapes" },
   箱の種類: { ja: "箱の種類", en: "Box kinds" },
-  起点から描ける図種: { ja: "起点から描ける図種", en: "Types that draw from a start point" },
+  // 13 語のうち 8 語は形 (`bar` / `pie` 等) で図種ではない (#2659)。 型 9 つを
+  // `chart` と `shape:` に畳んだ時 (#2657) に、見出しだけが畳む前の呼び名で残っていた
+  起点から描ける図: { ja: "起点から描ける図", en: "What can be drawn from a start point" },
   色: { ja: "色", en: "Colours" },
   向き: { ja: "向き", en: "Directions" },
+  配色: { ja: "配色", en: "Palettes" },
 } as const satisfies Record<string, 二言語>;
 
 export type 編集画面の字の鍵 = keyof typeof 表;
