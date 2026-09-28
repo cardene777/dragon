@@ -617,16 +617,21 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
  * **カタログには新しい書き方だけを置く**。 古い綴りの見本を足すと、いま書くべき形が
  * 2 通りに見える。 色の別名と同じで、指す先が書かれていることを裏取りにする。
  */
-function 図種の別名(道: string): { 図種の道: string; 並べ替えの道: string } | undefined {
+function 図種の別名(道: string): { 指す先: string[] } | undefined {
   const m = /^\$\.type=(.+)$/.exec(道);
   if (!m) return undefined;
   const 別名 = TYPE_ALIASES.get(m[1]!);
   if (別名 === undefined) return undefined;
-  // JSON は英語で書く。 記法の値 (`種類`) をそのまま道にすると、書いた側と綴りが合わない
-  const 英語 = Object.keys(ORDER_ALIAS).find(
-    (k) => ORDER_ALIAS[k] === 別名.order && !(ORDERS as readonly string[]).includes(k),
-  );
-  return { 図種の道: `$.type=${別名.type}`, 並べ替えの道: `$.order=${英語 ?? 別名.order}` };
+  const 指す先 = [`$.type=${別名.type}`];
+  if (別名.order !== undefined) {
+    // JSON は英語で書く。 記法の値 (`種類`) をそのまま道にすると、書いた側と綴りが合わない
+    const 英語 = Object.keys(ORDER_ALIAS).find(
+      (k) => ORDER_ALIAS[k] === 別名.order && !(ORDERS as readonly string[]).includes(k),
+    );
+    指す先.push(`$.order=${英語 ?? 別名.order}`);
+  }
+  if (別名.shape !== undefined) 指す先.push(`$.shape=${別名.shape}`);
+  return { 指す先 };
 }
 
 /** 色の欄に書いた別名 (`$.actors[].tone=成功`) なら、欄の道と別名の指す色を返す */
@@ -728,7 +733,7 @@ describe("記法の型定義の全ての欄と値を、カタログの JSON が�
     );
     const 指す先が無い = 別名の道.flatMap((p) => {
       const a = 図種の別名(p)!;
-      return [a.図種の道, a.並べ替えの道].filter((q) => !書いた.has(q)).map((q) => `${p} → ${q}`);
+      return a.指す先.filter((q) => !書いた.has(q)).map((q) => `${p} → ${q}`);
     });
     expect(指す先が無い, "古い綴りが読み替わる先の見本が無い").toEqual([]);
   });

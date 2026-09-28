@@ -20,7 +20,7 @@ import { describe, it, expect } from "vitest";
 
 import { textDslToDiagram } from "../src/index";
 import { PRESET_TYPES } from "../src/v05/parser";
-import type { PresetType } from "../src/types";
+import { SHAPES, type DslShape } from "../src/keywords";
 import type { CompileNotice } from "../src/index";
 
 /** 型ごとの最小の記法。 名前と値だけを並べる */
@@ -31,8 +31,10 @@ const 節 = (type: string, body: string) => textDslToDiagram(記法(type, body))
 
 describe("3 種が記法から書ける (#1450)", () => {
   it("受ける型に 3 種が入っている", () => {
+    // #2657 で 9 つの型を `chart` 1 つに畳み、形は `shape:` が持つようになった
+    expect(PRESET_TYPES.has("chart"), "数を描く図の型が無い").toBe(true);
     for (const t of ["stat", "waffle", "stacked"]) {
-      expect(PRESET_TYPES.has(t as PresetType), `${t} を受けていない`).toBe(true);
+      expect(SHAPES.includes(t as DslShape), `${t} を受けていない`).toBe(true);
     }
   });
 

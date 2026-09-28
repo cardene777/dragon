@@ -19,6 +19,7 @@ import { describe, it, expect } from "vitest";
 import { layout, type CdlDiagram } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "../src/index";
 import type { PresetType } from "../src/types";
+import { SHAPES, type DslShape } from "../src/keywords";
 import { PRESET_TYPES } from "../src/v05/parser";
 import { parseTextDslV05 } from "../src/v05";
 import { EDITOR_SAMPLES } from "../../../apps/playground-spa/src/data/editor-samples";
@@ -71,27 +72,39 @@ const 型と種類 = {
   topology: ["actor"],
   gantt: ["gantt-timeline"],
   class: ["storage"],
-  pie: ["chart-pie"],
+  // 形を書かない時の形 (棒)。 形ごとの種類は下の 形と種類 が見る (#2657)
+  chart: ["chart-bar"],
   c4: ["actor"],
   // #1177 で `mind-map` 種別に寄せた (以前は card を 3 列に並べていた)
   mind: ["mind-map"],
-  // 以下 6 型は #1411 で足した。 それまで表に無く、軸 1 と軸 2 を 1 度も通っていなかった
-  bar: ["chart-bar"],
-  line: ["chart-line"],
+  // 以下 4 型は #1411 で足した。 それまで表に無く、軸 1 と軸 2 を 1 度も通っていなかった
   funnel: ["funnel-stages"],
   journey: ["journey-map"],
   quadrant: ["quadrant-matrix"],
   tree: ["tree-hierarchy"],
-  // 以下 2 型は #1446 で足した。 値を描く群で、`pie` / `bar` / `line` と同じ組み立てを通る
+} as const satisfies Readonly<Record<PresetType, readonly string[]>>;
+
+/**
+ * 数を描く図の形ごとの種類 (#2657)。
+ *
+ * 9 つの型を `chart` 1 つに畳んだので、上の表だけでは **形を書かない時の 1 つしか
+ * 通らない**。 畳む前は 9 型が別々に軸 1 を通っていたので、同じ数だけここで通す。
+ */
+const 形と種類 = {
+  pie: ["chart-pie"],
+  bar: ["chart-bar"],
+  line: ["chart-line"],
   gauge: ["chart-gauge"],
   radial: ["chart-radial"],
-  // 以下 3 型は #1450 で足した
   stat: ["chart-stat"],
   waffle: ["chart-waffle"],
   stacked: ["chart-stacked-bar"],
-  // #1647 で足した。 2 時点を直線でつなぐ図
   slope: ["chart-slope"],
-} as const satisfies Readonly<Record<PresetType, readonly string[]>>;
+} as const satisfies Readonly<Record<DslShape, readonly string[]>>;
+
+const 形の一覧 = Object.entries(形と種類) as ReadonlyArray<
+  readonly [DslShape, readonly string[]]
+>;
 
 /** 表の中身を `[型, 種類]` の並びで取り出す */
 const 型の一覧 = Object.entries(型と種類) as ReadonlyArray<
@@ -100,6 +113,9 @@ const 型の一覧 = Object.entries(型と種類) as ReadonlyArray<
 
 const 記法 = (type: PresetType): string =>
   `title: "t"\ntype: ${type}\n\nactors:\n  - A: "Q1"\n  - B: "Q2"\n\nflow:\n  - A -> B: "x"\n`;
+
+const 形の記法 = (shape: DslShape): string =>
+  `title: "t"\ntype: chart\nshape: ${shape}\n\nactors:\n  - A: "Q1"\n  - B: "Q2"\n\nflow:\n  - A -> B: "x"\n`;
 
 /**
  * 中身の無い枠。 枠を作ったのに 1 つも節点が入っていないもの。
@@ -167,6 +183,23 @@ describe("軸 1 = 型の名前が約束した種類の節点を作る (#1096)", 
       expect(実際, `作られた種類が違う: ${実際.join(", ")}`).toEqual([...種類].sort());
     });
   }
+
+  for (const [shape, 種類] of 形の一覧) {
+    it(`shape: ${shape} は ${種類.join(" / ")} を作る`, () => {
+      const d = textDslToDiagram(形の記法(shape));
+      expect(d.nodes.length, "節点が 1 つも無い").toBeGreaterThan(0);
+      const 実際 = [...new Set(d.nodes.map((n) => String(n.kind)))].sort();
+      expect(実際, `作られた種類が違う: ${実際.join(", ")}`).toEqual([...種類].sort());
+    });
+  }
+
+  it("形の表が形の一覧をすべて覆う", () => {
+    // 型の表と同じ理由 (`satisfies` は `test/` を見ない)。 実行時の一覧と突き合わせる
+    const 表 = new Set(形の一覧.map(([s]) => s));
+    const 無い = [...SHAPES].filter((s) => !表.has(s));
+    expect(無い, `記法が受けるのに形の表に無い: ${無い.join(", ")}`).toEqual([]);
+    expect(形の一覧.length, "形を 1 つも走査していない").toBe(SHAPES.length);
+  });
 
   it("表が型の一覧をすべて覆う", () => {
     /*

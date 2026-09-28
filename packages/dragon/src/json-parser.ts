@@ -41,7 +41,8 @@ import {
 } from "./v05/parser";
 // 図の配色 (#1553)。 記法の読み手と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方が
 // 記法と JSON でずれない
-import { resolvePalette, resolveOrder, PHASE_BODY_KEYS } from "./keywords";
+import { resolvePalette, resolveOrder, resolveShape, PHASE_BODY_KEYS } from "./keywords";
+import type { DslShape } from "./keywords";
 import type { DslPalette } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
@@ -84,6 +85,9 @@ import {
   type RelativePos,
 } from "./relative-pos";
 
+/** 古い綴りで書いた図種 (#2655 / #2657)。 受ける値は `TYPE_ALIASES` が SSOT */
+type 図種の別名 = "solidity" | DslShape;
+
 /**
  * LLM 向け JSON DSL の入力 shape。 YAML DSL と 1:1 対応、 top-level は flat な object。
  */
@@ -93,14 +97,14 @@ export interface DragonJson {
   /**
    * preset type (必須)。 受け付ける値は `PRESET_TYPES` と `TYPE_ALIASES` が SSOT。
    *
-   * 別名 (#2655) は読み取りで図種と並び順の 2 つに開く = `solidity` と書いた JSON は
-   * 順序図 + 種類で並べ替え として読まれる。
+   * 別名 (#2655 / #2657) は読み取りで図種と語の 2 つに開く = `solidity` と書いた JSON は
+   * 順序図 + 種類で並べ替え、`pie` と書いた JSON は 数を描く図 + 円の形 として読まれる。
    */
-  type: PresetType | "solidity";
+  type: PresetType | 図種の別名;
   /**
    * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
    *
-   * 効くのは図全体を 1 箱にする図種 (`pie` / `bar` / `line` / `funnel` / `tree` / `journey` /
+   * 効くのは図全体を 1 箱にする図種 (`chart` / `funnel` / `tree` / `journey` /
    * `quadrant` / `mind` / `gantt`) だけ。 箱ごとに分かれる図種では相手が決まらないため、
    * 組み立て側が知らせを出す。 そちらは `actors[].eyebrow` に書く。
    */
@@ -217,6 +221,8 @@ export interface DragonJson {
   direction?: "vertical" | "horizontal";
   /** 箱を並べ替える軸 (#2655)。 記法の最上位 `order:` と同じ。 JSON は英語の語で書く */
   order?: "kind";
+  /** 数を描く図の形 (#2657)。 記法の最上位 `shape:` と同じ */
+  shape?: DslShape;
   /**
    * 図の配色 (#1553)。 記法の最上位 `palette:` と同じ。
    *
@@ -591,6 +597,8 @@ export const ACCEPTED_KEYS = {
     "direction",
     // 箱を並べ替える軸 (#2655)
     "order",
+    // 数を描く図の形 (#2657)
+    "shape",
     // 図の配色 (#1553)
     "palette",
   ],
@@ -770,6 +778,8 @@ export const 欄の型表 = {
     direction: "非空の文字列",
     // 箱を並べ替える軸 (#2655)
     order: "非空の文字列",
+    // 数を描く図の形 (#2657)
+    shape: "非空の文字列",
     // 図の配色 (#1553)
     palette: "非空の文字列",
   },
@@ -2715,6 +2725,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
   // 図の配色 (#1553)。 解くのは 1 度だけにする
   const 配色 = json.palette === undefined ? null : resolvePalette(json.palette);
   const 並び順 = json.order === undefined ? null : resolveOrder(json.order);
+  const 形 = json.shape === undefined ? null : resolveShape(json.shape);
 
   const flow: DslStep[] = json.flow.map((s, i) => ({
     no: i + 1,
@@ -2846,12 +2857,17 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
         // `states` を指す = どちらも「動きを書き始めた場所」 になる
         { states, phases, pos: phases.length > 0 ? 位置("animation") : 位置("states") }
       : undefined;
-  // **別名は記法と同じ表で開く** (#2655)。 開いた後は `solidity` という語が残らない
+  // **別名は記法と同じ表で開く** (#2655 / #2657)。 開いた後は古い綴りが残らない。
+  //
+  // **開く語を 1 つずつ書く** = 表の値をそのまま広げると、持たない語が `undefined` の
+  // まま欄に載り、後ろの `...(形 !== null ? ...)` を打ち消す (実測 = `type: "pie"` の
+  // JSON が形を持たず、書かない時の形 (棒) の図になった)
   const 別名 = TYPE_ALIASES.get(json.type);
   return {
     title: json.title,
     type: 別名?.type ?? (json.type as PresetType),
-    ...(別名 !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
+    ...(別名?.order !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
+    ...(別名?.shape !== undefined ? { shape: 別名.shape, shapePos: 位置("type") } : {}),
     // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから
     // 空かどうかを判定するため、 揃えないと **空白だけの値で入口ごとに図が変わる**
     // (記法は書かなかった扱い、 JSON は中身のない帯を描く。 Round 2 の指摘で実測)
@@ -2916,6 +2932,8 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     // 箱を並べ替える軸 (#2655)。 向きと同じく英語で書くので、記法と同じ解決を通して日本語に直す。
     // 読めない語は渡さない = 公開 schema の語の一覧が絞っているので、ここに来るのは書き間違いだけ
     ...(並び順 !== null ? { order: 並び順, orderPos: 位置("order") } : {}),
+    // 数を描く図の形 (#2657)。 記法と同じ解決を通す = 受ける語がずれない
+    ...(形 !== null ? { shape: 形, shapePos: 位置("shape") } : {}),
     // 図の配色 (#1553)。 記法と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方がずれない。
     // 読めない語は渡さない = 上流の型検査が語を絞っているので、ここに来るのは書き間違いだけ
     ...(配色 !== null ? { palette: 配色 } : {}),

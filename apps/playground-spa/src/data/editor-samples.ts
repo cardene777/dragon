@@ -310,7 +310,8 @@ animation:
     labelEn: "Language share (pie)",
     slug: "pie",
     code: `title: "言語シェア"
-type: pie
+type: chart
+shape: pie
 
 actors:
   - TypeScript: "45%"
@@ -328,7 +329,8 @@ animation:
     labelEn: "Traffic by channel (bar)",
     slug: "bar",
     code: `title: "経路別の流入"
-type: bar
+type: chart
+shape: bar
 
 actors:
   - 検索: "420"
@@ -346,7 +348,8 @@ animation:
     labelEn: "Sales progress this term (gauge)",
     slug: "gauge",
     code: `title: "今期の売上進捗"
-type: gauge
+type: chart
+shape: gauge
 
 actors:
   - 契約済: "680"
@@ -363,7 +366,8 @@ animation:
     labelEn: "Usage by feature (radial)",
     slug: "radial",
     code: `title: "機能ごとの利用率"
-type: radial
+type: chart
+shape: radial
 
 actors:
   - 検索: "72"
@@ -381,7 +385,8 @@ animation:
     labelEn: "Churn this month (stat)",
     slug: "stat",
     code: `title: "今月の解約率"
-type: stat
+type: chart
+shape: stat
 
 actors:
   - 解約率: { value: "24", previous: "38" }
@@ -396,7 +401,8 @@ animation:
     labelEn: "Tickets handled (waffle)",
     slug: "waffle",
     code: `title: "対応済みの問い合わせ"
-type: waffle
+type: chart
+shape: waffle
 
 actors:
   - 対応済: "62"
@@ -413,7 +419,8 @@ animation:
     labelEn: "Contract breakdown (stacked)",
     slug: "stacked",
     code: `title: "契約の内訳"
-type: stacked
+type: chart
+shape: stacked
 
 actors:
   - 新規: { value: "320", previous: "280" }
@@ -430,7 +437,8 @@ animation:
     labelEn: "Sign-ups by channel (slope)",
     slug: "slope",
     code: `title: "経路別の申込み"
-type: slope
+type: chart
+shape: slope
 
 actors:
   - 検索: { value: "420", previous: "380" }
@@ -447,7 +455,8 @@ animation:
     labelEn: "Response time by week (line)",
     slug: "line",
     code: `title: "週ごとの応答時間"
-type: line
+type: chart
+shape: line
 
 actors:
   - 1週: "180"

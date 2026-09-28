@@ -53,7 +53,7 @@ flow:
 | 欄          | 何を書くか                                                                                                                                 |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `title`     | 図の題                                                                                                                                     |
-| `type`      | 図種 (`sequence` / `flow` / `swimlane` / `er` / `state` / `topology` / `gantt` / `class` / `mind` / `tree` / `c4` / 図表各種)。 古い綴り `solidity` は `sequence` と `order: 種類` の組として読む |
+| `type`      | 図種 (`sequence` / `flow` / `swimlane` / `er` / `state` / `topology` / `gantt` / `class` / `mind` / `tree` / `c4` / `chart` / その他)。 古い綴りは組に読み替える = `solidity` は `sequence` と `order: 種類`、数を描く 9 つ (`pie` 等) は `chart` と同じ綴りの `shape` |
 | `actors`    | 箱                                                                                                                                         |
 | `flow`      | 矢印                                                                                                                                       |
 | `states`    | 状態の初期値                                                                                                                               |
@@ -74,6 +74,7 @@ flow:
 | `relations` | 触れた箱の関係を光らせるか (`off` = 何もしない (既定) / `hover` = 触れた箱と繋がる線と相手の箱だけが光る)                     |
 | `direction` | 図の並ぶ向き (`縦` / `横`、英語なら `vertical` / `horizontal`)。 効くのは `flow` と `swimlane` だけ |
 | `order`     | 箱を並べ替える軸 (`種類`、英語なら `kind`)。 効くのは `sequence` だけで、書くと `kind:` の順 (人 → 契約 → 保管 → 出来事) に箱が並ぶ |
+| `shape`     | 数を描く図の形 (`pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope`)。 効くのは `chart` だけで、書かなければ `bar` |
 | `palette`   | 図の配色 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨、日本語なら `生成り` / `青磁`) で、ER 図とクラス図は書かなくても `kinari` になり、書いた `palette:` が優先される |
 
 <!-- notation:top-level:end -->

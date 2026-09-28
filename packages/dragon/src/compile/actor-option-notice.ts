@@ -173,20 +173,12 @@ const 値として読む図に共通の除外: ReadonlySet<string> = new Set([
  *
  * | 図種 | 共通に加えて読む欄 |
  * |---|---|
- * | 値の図 9 図種 | 色味 (`tone`) / 前の値 (`previous`) |
+ * | 数を描く図 (`chart`) | 色味 (`tone`) / 前の値 (`previous`) |
  * | じょうご / 体験の地図 / 四象限 | 無し (名前と値だけを読む) |
  * | ガントチャート | 色味 (`tone`)。 担当と終わる時期は共通の除外に入っている |
  */
 export const 値として読む図種: ReadonlyMap<string, readonly string[]> = new Map([
-  ["pie", ["tone", "previous"]],
-  ["bar", ["tone", "previous"]],
-  ["line", ["tone", "previous"]],
-  ["gauge", ["tone", "previous"]],
-  ["radial", ["tone", "previous"]],
-  ["stat", ["tone", "previous"]],
-  ["waffle", ["tone", "previous"]],
-  ["stacked", ["tone", "previous"]],
-  ["slope", ["tone", "previous"]],
+  ["chart", ["tone", "previous"]],
   ["funnel", []],
   ["gantt", ["tone"]],
   ["journey", []],

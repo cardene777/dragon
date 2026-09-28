@@ -30,6 +30,7 @@
         "solidity",
         "gantt",
         "class",
+        "chart",
         "pie",
         "bar",
         "line",
@@ -46,11 +47,11 @@
         "c4",
         "mind"
       ],
-      "description": "図の種類。 型ごとに actors の書き方が違う。 [関係を描く] sequence (時系列の呼び出し) / flow (処理の流れ) / flowchart (分かれ道と判断を含む手順) / swimlane (責務ごとの流れ) / er (DB の schema) / state (状態の遷移) / topology (network) / class (UML の class) / c4 (architecture) / mind (発想の枝分かれ) は actors に名前を並べ flow に矢印を書く。 [値を描く] pie (割合) / bar (棒の高さ) / line (線の高さ、 書いた順に並ぶ) / gauge (合計を半円で示す) / radial (弧の長さで比べる) / stat (値 1 つを大きく示す) / waffle (割合を 100 個の印で示す) / stacked (内訳を帯で示す) / slope (2 時点を直線でつなぎ増減と順位の入れ替わりを示す) は actors に `- 名前: \"45\"` の形で数を書く。 stat と stacked と slope は `- 名前: { value: \"320\", previous: \"280\" }` の形で前の時点の値も書ける。 funnel (段ごとに減る数) も同じ形。 [語を描く] journey (体験の起伏) は `- 登録: \"不満\"` の形で 最高 / 満足 / 普通 / 不満 / 怒り のどれかを書く。 quadrant (2 軸の仕分け) は `- 重複削除: \"左上\"` の形で 左上 / 右上 / 左下 / 右下 のどれかを書く。 [時期を描く] gantt (工程の並び) は `- 設計: \"1月\"` の形で始まりの時期を書き、 flow の矢印で前後関係を書く。 [親子を描く] tree (親子の入れ子) は actors に名前を並べ flow の矢印で親子を書く (矢印の先が子)。 [古い綴り] solidity は sequence と order: kind の組と同じ扱いになる"
+      "description": "図の種類。 型ごとに actors の書き方が違う。 [関係を描く] sequence (時系列の呼び出し) / flow (処理の流れ) / flowchart (分かれ道と判断を含む手順) / swimlane (責務ごとの流れ) / er (DB の schema) / state (状態の遷移) / topology (network) / class (UML の class) / c4 (architecture) / mind (発想の枝分かれ) は actors に名前を並べ flow に矢印を書く。 [値を描く] chart (数の並び) は actors に `- 名前: \"45\"` の形で数を書き、 shape で形を選ぶ (pie = 割合 / bar = 棒の高さ / line = 線の高さで書いた順に並ぶ / gauge = 合計を半円で示す / radial = 弧の長さで比べる / stat = 値 1 つを大きく示す / waffle = 割合を 100 個の印で示す / stacked = 内訳を帯で示す / slope = 2 時点を直線でつなぎ増減と順位の入れ替わりを示す)。 shape が stat と stacked と slope の時は `- 名前: { value: \"320\", previous: \"280\" }` の形で前の時点の値も書ける。 funnel (段ごとに減る数) も同じ形。 [語を描く] journey (体験の起伏) は `- 登録: \"不満\"` の形で 最高 / 満足 / 普通 / 不満 / 怒り のどれかを書く。 quadrant (2 軸の仕分け) は `- 重複削除: \"左上\"` の形で 左上 / 右上 / 左下 / 右下 のどれかを書く。 [時期を描く] gantt (工程の並び) は `- 設計: \"1月\"` の形で始まりの時期を書き、 flow の矢印で前後関係を書く。 [親子を描く] tree (親子の入れ子) は actors に名前を並べ flow の矢印で親子を書く (矢印の先が子)。 [古い綴り] solidity は sequence と order: kind の組、 pie / bar / line / gauge / radial / stat / waffle / stacked / slope は chart と同じ綴りの shape の組と同じ扱いになる"
     },
     "eyebrow": {
       "type": "string",
-      "description": "図表の箱の上に出す小見出し (省略可)。 効くのは図全体を 1 箱にする型 (pie / bar / line / gauge / radial / stat / waffle / stacked / slope / funnel / tree / journey / quadrant / mind / gantt) だけ。 箱ごとに分かれる型では相手が決まらないため、 actors[].eyebrow に書く"
+      "description": "図表の箱の上に出す小見出し (省略可)。 効くのは図全体を 1 箱にする型 (chart / funnel / tree / journey / quadrant / mind / gantt) だけ。 箱ごとに分かれる型では相手が決まらないため、 actors[].eyebrow に書く"
     },
     "axes": {
       "type": "object",
@@ -819,7 +820,7 @@
               "stacked",
               "waffle"
             ],
-            "description": "この phase で起点から描くもの。 語は図種と揃える。 line / journey = 線が左端から右へ伸びる / bar = 棒が横軸から上へ伸びる / pie = 扇が 12 時から時計回りに開く / mind = 枝が中心から外へ伸びる / tree = 枝が根から下へ伸びる / gantt = 帯が各始端から右へ伸びる / funnel = 段が上端から順に積まれる / slope = 線が左の軸から右の軸へ伸びる / gauge = 弧が 9 時から上を通って 3 時へ伸びる / radial = 各輪が 12 時から時計回りに開く / stacked = 帯が左端から右へ伸びる / waffle = 印が左上から読む向きに 1 個ずつ埋まる"
+            "description": "この phase で起点から描くもの。 語は図種と揃える (数を描く図では shape と揃える)。 line / journey = 線が左端から右へ伸びる / bar = 棒が横軸から上へ伸びる / pie = 扇が 12 時から時計回りに開く / mind = 枝が中心から外へ伸びる / tree = 枝が根から下へ伸びる / gantt = 帯が各始端から右へ伸びる / funnel = 段が上端から順に積まれる / slope = 線が左の軸から右の軸へ伸びる / gauge = 弧が 9 時から上を通って 3 時へ伸びる / radial = 各輪が 12 時から時計回りに開く / stacked = 帯が左端から右へ伸びる / waffle = 印が左上から読む向きに 1 個ずつ埋まる"
           },
           "drawRatio": {
             "type": "number",
@@ -2304,6 +2305,21 @@
         "horizontal"
       ],
       "description": "図の並ぶ向き。 vertical = 1 つの縦列に積む。 horizontal = 1 人ずつ縦列を作る。 効くのは flow と swimlane だけ。"
+    },
+    "shape": {
+      "type": "string",
+      "enum": [
+        "pie",
+        "bar",
+        "line",
+        "gauge",
+        "radial",
+        "stat",
+        "waffle",
+        "stacked",
+        "slope"
+      ],
+      "description": "数を描く図の形。 効くのは chart だけ。 書かなければ bar (棒の高さ)。"
     },
     "order": {
       "type": "string",

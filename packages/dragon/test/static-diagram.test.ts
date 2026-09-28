@@ -31,7 +31,7 @@ const TYPES: readonly PresetType[] = [
   "topology",
   "gantt",
   "class",
-  "pie",
+  "chart",
   "c4",
   "mind",
 ];
@@ -100,8 +100,8 @@ describe("動かない図に段が 1 つ入る (#1086)", () => {
   });
 
   it("段の見出しは図の題になる", () => {
-    const d = compileToCdl(静止図("pie"));
-    expect(d.phases[0]!.title).toBe("静止 pie");
+    const d = compileToCdl(静止図("chart"));
+    expect(d.phases[0]!.title).toBe("静止 chart");
   });
 
   it("要素が 1 つも無い図でも段は入る", () => {
@@ -145,7 +145,7 @@ describe("既に段がある図には入れない (#1086)", () => {
 
   it("段を 1 つだけ書いた図でも増えない", () => {
     const doc: DslDocument = {
-      ...静止図("pie"),
+      ...静止図("chart"),
       animate: {
         pos: { line: 1 },
         states: [],

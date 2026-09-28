@@ -70,6 +70,8 @@ import {
   resolveDirection,
   ORDERS,
   resolveOrder,
+  SHAPES,
+  resolveShape,
   PALETTES,
   resolvePalette,
 } from "../keywords";
@@ -77,6 +79,7 @@ import { PHASE_BODY_KEYS } from "../keywords";
 import type { DslPalette } from "../keywords";
 import type { DslDirection } from "../keywords";
 import type { DslOrder } from "../keywords";
+import type { DslShape } from "../keywords";
 import { parseRelativePos, findRelativeProblems, type RelativeProblem } from "../relative-pos";
 import {
   checkValueExpression,
@@ -207,6 +210,11 @@ export const TOP_LEVEL_KEYS = [
    * 書いた順のまま。 最上位の語は英語にする決まりに従う (向きの語と同じ)
    */
   "order",
+  /*
+   * 数を描く図の形 (#2657)。 形しか違わない図種 9 つを畳んだ先で、`type: chart` だけが読む。
+   * 最上位の語は英語にする決まりに従う (向きの語と同じ)
+   */
+  "shape",
   /*
    * 図の配色 (#1553)。
    *
@@ -350,15 +358,7 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "topology",
   "gantt",
   "class",
-  "pie",
-  "bar",
-  "line",
-  "gauge",
-  "radial",
-  "stat",
-  "waffle",
-  "stacked",
-  "slope",
+  "chart",
   "funnel",
   "tree",
   "journey",
@@ -368,20 +368,29 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
 ]);
 
 /**
- * 図種の別名 (#2655)。
+ * 図種の別名 (#2655 / #2657)。
  *
- * **差が並べ替えの鍵しかない図種を、順序図と並び順の語に読み替える**。 `solidity` は
- * 独自の組み立てを持たず、箱を種類で並べ替えてから順序図の組み立てをそのまま呼んでいた。
- * 型として持つと `compile.ts` が「順序図 または その型」 という条件を書き続けることになり、
- * 実際 6 か所に増えていた (条件を足す人が片方を書き忘れると黙って外れる)。
+ * **差が語 1 つしかない図種を、畳んだ先の型とその語に読み替える**。
  *
- * **読み替えは読み取りの入口 1 か所に閉じる**。 ここを通った後は `solidity` という語が
- * どこにも残らないので、組み立て側は順序図として 1 通りに扱える。
+ * | 古い綴り | 読み替え先 | 差 |
+ * |---|---|---|
+ * | `solidity` | `sequence` + `order: 種類` | 箱を種類で並べ替えるだけで、独自の組み立てを持たない |
+ * | 数を描く 9 つ | `chart` + `shape: <綴り>` | 同じ組み立て関数に渡す文字列 2 つしか違わない |
+ *
+ * 型として持つと、同じ扱いをする条件と表が型の数だけ増える。 `solidity` は
+ * 「順序図 または その型」 という条件を 12 か所に増やし、数を描く 9 つは 4 つの表に
+ * 同じ値の行を 9 行ずつ並べていた (足す人が 1 か所書き忘れると黙って外れる)。
+ *
+ * **読み替えは読み取りの入口 1 か所に閉じる**。 ここを通った後は古い綴りが
+ * どこにも残らないので、組み立て側は畳んだ先の型として 1 通りに扱える。
  *
  * 古い名前で書いた記法はそのまま動く = 別名を消すのは別の回にする。
  */
-export const TYPE_ALIASES: ReadonlyMap<string, { type: PresetType; order: DslOrder }> = new Map([
+type 読み替え先 = { type: PresetType; order?: DslOrder; shape?: DslShape };
+
+export const TYPE_ALIASES: ReadonlyMap<string, 読み替え先> = new Map<string, 読み替え先>([
   ["solidity", { type: "sequence", order: "種類" }],
+  ...SHAPES.map((s): [string, 読み替え先] => [s, { type: "chart", shape: s }]),
 ]);
 
 const NODE_KIND_DEFAULT: NodeKind = "actor";
@@ -543,6 +552,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let directionLine = 0;
   let order: DslOrder | null = null;
   let orderLine = 0;
+  let shape: DslShape | null = null;
+  let shapeLine = 0;
   let palette: DslPalette | null = null;
   let axes: DslAxes | undefined = undefined;
   let axesLine = 0;
@@ -719,6 +730,30 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i += 1;
       continue;
     }
+    if (head.key === "shape") {
+      /*
+       * 数を描く図の形 (#2657)。
+       *
+       * 並べ替えの語と同じ形にする。 **書いた行を覚える** = 効かない図種に書いた時の
+       * 知らせが場所を指せる。
+       */
+      const v = (head.value ?? "").trim();
+      if (v.length > 0) {
+        const 解けた = resolveShape(v);
+        if (解けた !== null) {
+          shape = 解けた;
+          shapeLine = line.no;
+        } else {
+          errors.push({
+            line: line.no,
+            message: `shape が読めません (書いた値: ${v})`,
+            hint: `使える語 = ${SHAPES.join(" / ")}`,
+          });
+        }
+      }
+      i += 1;
+      continue;
+    }
     if (head.key === "type") {
       const v = (head.value ?? "").trim().toLowerCase();
       // **別名を先に引く** (#2655)。 引けたら図種と並び順の 2 つに開いて、以降は
@@ -726,10 +761,14 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const 別名 = TYPE_ALIASES.get(v);
       if (別名 !== undefined) {
         type = 別名.type;
-        // 書き手が `order:` も書いていればそちらが勝つ = 別名は既定を入れるだけ
-        if (order === null) {
+        // 書き手が語も書いていればそちらが勝つ = 別名は既定を入れるだけ
+        if (order === null && 別名.order !== undefined) {
           order = 別名.order;
           orderLine = line.no;
+        }
+        if (shape === null && 別名.shape !== undefined) {
+          shape = 別名.shape;
+          shapeLine = line.no;
         }
       } else if (!PRESET_TYPES.has(v as PresetType)) {
         errors.push({
@@ -1267,6 +1306,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(relations !== null ? { relations } : {}),
       ...(direction !== null ? { direction, directionPos: { line: directionLine } } : {}),
       ...(order !== null ? { order, orderPos: { line: orderLine } } : {}),
+      ...(shape !== null ? { shape, shapePos: { line: shapeLine } } : {}),
       ...(palette !== null ? { palette } : {}),
       ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),
       actors,
@@ -4621,22 +4661,46 @@ function 段の項目のヒント(書いた名前: string): string {
  *
  * いまは語と図種が同じ綴りだが、**同じものとして扱わない**。 語は書き手が書く名前で、
  * 図種は `type:` が取る値。 片方だけ別名を足したくなった時に、対応が表に残っている形にする。
+ *
+ * **数を描く図は形まで指す** (#2657)。 9 つの型を `chart` 1 つに畳んだので、型だけを
+ * 指すと `draw: pie` を棒の図に書いても咎められなくなる = 語ごとの相手を型から形へ
+ * 下ろして、畳む前と同じ細かさで判定する。
  */
-export const DRAW_TARGETS: ReadonlyMap<string, PresetType> = new Map<string, PresetType>([
-  ["line", "line"],
-  ["bar", "bar"],
-  ["pie", "pie"],
-  ["journey", "journey"],
-  ["mind", "mind"],
-  ["tree", "tree"],
-  ["gantt", "gantt"],
-  ["funnel", "funnel"],
-  ["slope", "slope"],
-  ["gauge", "gauge"],
-  ["radial", "radial"],
-  ["stacked", "stacked"],
-  ["waffle", "waffle"],
+export const DRAW_TARGETS: ReadonlyMap<string, { type: PresetType; shape?: DslShape }> = new Map<
+  string,
+  { type: PresetType; shape?: DslShape }
+>([
+  ["line", { type: "chart", shape: "line" }],
+  ["bar", { type: "chart", shape: "bar" }],
+  ["pie", { type: "chart", shape: "pie" }],
+  ["journey", { type: "journey" }],
+  ["mind", { type: "mind" }],
+  ["tree", { type: "tree" }],
+  ["gantt", { type: "gantt" }],
+  ["funnel", { type: "funnel" }],
+  ["slope", { type: "chart", shape: "slope" }],
+  ["gauge", { type: "chart", shape: "gauge" }],
+  ["radial", { type: "chart", shape: "radial" }],
+  ["stacked", { type: "chart", shape: "stacked" }],
+  ["waffle", { type: "chart", shape: "waffle" }],
 ]);
+
+/**
+ * 段に書いた描く語が、その図に効くか (#2657)。
+ *
+ * 型が合うだけでは足りない = 数を描く図は 1 つの型に 9 つの形が入るので、形まで見ないと
+ * `draw: pie` を棒の図に書いた形が通る。 形を持たない語は型の一致だけで決まる。
+ */
+export function 描く語がその図を指すか(
+  語: string,
+  type: PresetType,
+  shape: DslShape | undefined,
+): boolean {
+  const 相手 = DRAW_TARGETS.get(語);
+  if (相手 === undefined) return false;
+  if (相手.type !== type) return false;
+  return 相手.shape === undefined || 相手.shape === shape;
+}
 
 /** `draw:` に書ける語。 表から導く (#1314) */
 export const DRAW_WORDS: ReadonlySet<string> = new Set(DRAW_TARGETS.keys());

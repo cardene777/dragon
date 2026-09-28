@@ -438,7 +438,8 @@ flow:
     expect(diagram).toBeDefined();
   });
 
-  it("type: pie を受理し value 属性が actor に保持される", () => {
+  it("type: pie を 数を描く図 + 円の形 として受理し value 属性が actor に保持される", () => {
+    // 古い綴りは読み取りの入口で読み替える (#2657)。 書いてある記法をそのまま通す経路
     const r = parseTextDslV05(`
 title: "シェア"
 type: pie
@@ -449,7 +450,8 @@ actors:
 `);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.type).toBe("pie");
+    expect(r.doc.type).toBe("chart");
+    expect(r.doc.shape).toBe("pie");
     expect(r.doc.actors[0]).toMatchObject({ name: "A", value: "30%" });
     const diagram = compileToCdl(r.doc);
     expect(diagram).toBeDefined();

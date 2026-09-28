@@ -93,7 +93,8 @@ import { 語の状態を図の語へ直す } from "./compile/word-state";
 import type { CdlDiagram, CdlEdge, CdlNode, RowMark } from "@cardenelabs/cdl";
 import { FSM_ACTION_MARK, layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
-import { DRAW_TARGETS } from "./v05/parser";
+import { DRAW_TARGETS, 描く語がその図を指すか } from "./v05/parser";
+import type { DslShape } from "./keywords";
 import { pointsOutside, stripExternalPaint } from "./color";
 import { countDocElements, describeOversize } from "./input-size";
 export interface CompileToCdlOpts {
@@ -188,32 +189,10 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "class":
       diagram = compileClass(doc);
       break;
-    case "pie":
-      diagram = compileValueChart(doc, "pie", "chart-pie", 図種の知らせ);
-      break;
-    case "bar":
-      diagram = compileValueChart(doc, "bar", "chart-bar", 図種の知らせ);
-      break;
-    case "line":
-      diagram = compileValueChart(doc, "line", "chart-line", 図種の知らせ);
-      break;
-    case "gauge":
-      diagram = compileValueChart(doc, "gauge", "chart-gauge", 図種の知らせ);
-      break;
-    case "radial":
-      diagram = compileValueChart(doc, "radial", "chart-radial", 図種の知らせ);
-      break;
-    case "stat":
-      diagram = compileValueChart(doc, "stat", "chart-stat", 図種の知らせ);
-      break;
-    case "waffle":
-      diagram = compileValueChart(doc, "waffle", "chart-waffle", 図種の知らせ);
-      break;
-    case "stacked":
-      diagram = compileValueChart(doc, "stacked", "chart-stacked-bar", 図種の知らせ);
-      break;
-    case "slope":
-      diagram = compileValueChart(doc, "slope", "chart-slope", 図種の知らせ);
+    case "chart":
+      // 形は `shape:` が決める (#2657)。 書かなければ棒 = 数を並べる図で最も素直な形で、
+      // 形を書かずに数だけ書いた記法が図にならない状態を作らない
+      diagram = compileValueChart(doc, doc.shape ?? "bar", 図種の知らせ);
       break;
     case "funnel":
       diagram = compileFunnel(doc, 図種の知らせ);
@@ -287,6 +266,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportDocEyebrowNotHonored(書いたまま, opts?.onNotice);
   reportDirectionNotHonored(書いたまま, opts?.onNotice);
   reportOrderNotHonored(書いたまま, opts?.onNotice);
+  reportShapeNotHonored(書いたまま, opts?.onNotice);
   reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
   reportAxesNotHonored(書いたまま, opts?.onNotice);
@@ -788,15 +768,19 @@ function reportDrawNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
       });
       continue;
     }
-    // 語が別の図種を指している形 (#1314)。 図は描けるので誤りにはしない
-    const 語の図種 = DRAW_TARGETS.get(phase.draw);
-    if (語の図種 !== undefined && 語の図種 !== doc.type) {
+    // 語が別の図を指している形 (#1314)。 図は描けるので誤りにはしない
+    const 相手 = DRAW_TARGETS.get(phase.draw);
+    if (相手 !== undefined && !描く語がその図を指すか(phase.draw, doc.type, doc.shape)) {
+      // 数を描く図は 1 つの型に 9 つの形が入るので、相手も この図も形で名乗る (#2657)
+      const 名乗り = (t: PresetType, sh: DslShape | undefined): string =>
+        t === "chart" && sh !== undefined ? `type: chart と shape: ${sh}` : `type: ${t}`;
+      const この図 = 名乗り(doc.type, doc.shape);
       onNotice({
         kind: "draw-target-mismatch",
         actor: phase.name,
         line,
-        message: `段 "${phase.name}" の draw: ${phase.draw} は type: ${doc.type} では効きません (${phase.draw} は type: ${語の図種} の図に書きます)`,
-        hint: `この図では draw: ${doc.type} と書いてください`,
+        message: `段 "${phase.name}" の draw: ${phase.draw} は ${この図} では効きません (${phase.draw} は ${名乗り(相手.type, 相手.shape)} の図に書きます)`,
+        hint: `この図では draw: ${doc.type === "chart" ? (doc.shape ?? "bar") : doc.type} と書いてください`,
       });
     }
   }
@@ -808,7 +792,9 @@ function reportDrawNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
  * **語と図種の対応表から導く** (`DRAW_TARGETS`)。 一覧を写すと、語を足した時に片方だけ
  * 古いまま残る。 描画側 (`cdl` の `DRAW_KINDS`) が対応する種別と一致する。
  */
-const DRAWABLE_DOC_TYPES: ReadonlySet<PresetType> = new Set<PresetType>(DRAW_TARGETS.values());
+const DRAWABLE_DOC_TYPES: ReadonlySet<PresetType> = new Set<PresetType>(
+  [...DRAW_TARGETS.values()].map((v) => v.type),
+);
 
 /**
  * 縦列を選べる図種で、一部の箱だけが縦列を書いた時に伝える (#1263)。
@@ -1442,15 +1428,7 @@ function reportTreeActorOptionNotHonored(
  * 表に無い図種は「名前と値」 とする = 足し忘れても文が消えず、読み手に伝わる。
  */
 const 図種が読むものの呼び名: ReadonlyMap<string, string> = new Map([
-  ["pie", "名前と値と色"],
-  ["bar", "名前と値と色"],
-  ["line", "名前と値と色"],
-  ["gauge", "名前と値と色"],
-  ["radial", "名前と値と色"],
-  ["stat", "名前と値と色"],
-  ["waffle", "名前と値と色"],
-  ["stacked", "名前と値と色"],
-  ["slope", "名前と値と色"],
+  ["chart", "名前と値と色"],
   ["gantt", "名前と時期と色と担当"],
   ["journey", "名前と気持ちと接点"],
 ]);
@@ -2859,7 +2837,9 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
     // **`activate` と兼ねない**。 描画側は焦点と別集合で持つ (`cdl#512`) = 焦点が当たり
     // 続ける図で毎段引き直しになるため。 書いた段だけが欄を持つ
     const drawIds =
-      p.draw !== undefined && DRAW_TARGETS.get(p.draw) === doc.type && singleBoxNode !== undefined
+      p.draw !== undefined &&
+      描く語がその図を指すか(p.draw, doc.type, doc.shape) &&
+      singleBoxNode !== undefined
         ? [singleBoxNode.id]
         : [];
     diagram.phases.push({
@@ -2978,5 +2958,27 @@ function reportOrderNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =
     line: doc.orderPos?.line ?? doc.pos?.line ?? 0,
     message: `書いた order は効きません (type: ${doc.type} は並び方そのものが読み方を決めます)`,
     hint: `order を書けるのは ${[...並び順を選べる図種].join(" / ")} です`,
+  });
+}
+
+/**
+ * 書いた形が効かない図種に書かれた時に伝える (#2657)。
+ *
+ * 並べ替えの知らせと同じ形にする。 黙って捨てると「書いたのに形が変わらない」 が
+ * 手掛かりなしで起きる。
+ *
+ * **形を選べるのは数を描く図だけ**。 他の図種は描く形が型そのもので決まるので、
+ * 形の語を書いても読む側がいない。
+ */
+function reportShapeNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice) return;
+  if (doc.shape === undefined) return;
+  if (doc.type === "chart") return;
+  onNotice({
+    kind: "shape-not-honored",
+    actor: doc.title,
+    line: doc.shapePos?.line ?? doc.pos?.line ?? 0,
+    message: `書いた shape は効きません (type: ${doc.type} は描く形が図種そのもので決まります)`,
+    hint: "shape を書けるのは type: chart です",
   });
 }

@@ -378,12 +378,12 @@ describe("compileMind", () => {
   });
 });
 
-// ── compilePie / compileClass: kind と寸法 ──
-describe("compilePie / compileClass", () => {
-  it("pie は円を描く箱 1 つ / w 640 / h 320", () => {
+// ── 数を描く図 / compileClass: kind と寸法 ──
+describe("数を描く図 / compileClass", () => {
+  it("shape: pie は円を描く箱 1 つ / w 640 / h 320", () => {
     // **変更前は card を縦に積んでいた** (#1076)。 `type: pie` で円が出るように、 描画側の
     // `chart-pie` に 1 node で渡す形にした。 大きさは cdl の chart preset と同じ
-    const d = compile("pie");
+    const d = compile("chart", { shape: "pie" });
     expect(d.nodes).toHaveLength(1);
     const n = d.nodes[0]!;
     expect(n.kind).toBe("chart-pie");
@@ -763,7 +763,7 @@ describe("resolveHighlightGeneric", () => {
 
 // ── injectPhasesFallback 網羅 (独自 layout preset 各種) ──
 describe("injectPhasesFallback 網羅", () => {
-  for (const t of ["class", "pie", "c4", "mind", "gantt"] as PresetType[]) {
+  for (const t of ["class", "chart", "c4", "mind", "gantt"] as PresetType[]) {
     it(`${t} + animate で phase 注入 (duration 800)`, () => {
       const d = compileToCdl(makeDoc(t, { animate: GEN_ANIM }));
       expect(d.phases.length).toBeGreaterThan(0);

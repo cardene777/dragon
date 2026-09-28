@@ -340,9 +340,16 @@ function 名前の括弧(label: string): string | undefined {
   return /\(([^()]*)\)\s*$/.exec(label)?.[1];
 }
 
-/** 見本の記法に書かれた図の型 (`type: sequence` の `sequence`) */
+/**
+ * 見本の記法に書かれた図の型 (`type: sequence` の `sequence`)。
+ *
+ * **数を描く図は形で名乗る** (#2657)。 9 つの型を `chart` 1 つに畳んだので、型だけを
+ * 返すと 9 つの見本が全て `(chart)` になり、名前で見分けられなくなる。
+ */
 function 記法の図の型(code: string): string | undefined {
-  return /^type:\s*(\S+)/m.exec(code)?.[1];
+  const 型 = /^type:\s*(\S+)/m.exec(code)?.[1];
+  if (型 !== "chart") return 型;
+  return /^shape:\s*(\S+)/m.exec(code)?.[1] ?? 型;
 }
 
 /** `記法の名前` の表を、照合に渡す形へ開く (#1825) */
