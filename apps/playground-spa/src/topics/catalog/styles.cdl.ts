@@ -159,7 +159,7 @@ export const sourceJson__styleSolid = `{
       "step": "solid / accent",
       "duration": 1.8,
       "focus": ["始点", "終点", "始点 -> 終点"],
-      "body": "edge style と tone の組み合わせを確認。",
+      "description": "edge style と tone の組み合わせを確認。",
       "badge": "accent"
     }
   ]
@@ -212,7 +212,7 @@ export const sourceJson__styleDottedFlow = `{
       "step": "dotted-flow / accent",
       "duration": 1.8,
       "focus": ["始点", "終点", "始点 -> 終点"],
-      "body": "edge style と tone の組み合わせを確認。",
+      "description": "edge style と tone の組み合わせを確認。",
       "badge": "accent"
     }
   ]
@@ -286,21 +286,21 @@ export const sourceJson__styleDashed = `{
       "step": "実線を光らせる",
       "duration": 1.8,
       "focus": ["始点", "実線の終点", "始点 -> 実線の終点"],
-      "body": "光っている実線には刻みが無い。 下の破線はこの段ではまだ引かれない。",
+      "description": "光っている実線には刻みが無い。 下の破線はこの段ではまだ引かれない。",
       "badge": "solid"
     },
     {
       "step": "破線を光らせる",
       "duration": 1.8,
       "focus": ["始点", "破線の終点", "始点 -> 破線の終点"],
-      "body": "光っていない実線は短い刻みで出る。 書いた破線は光っても長い刻みのまま。 2 つは刻みの長さで見分ける。",
+      "description": "光っていない実線は短い刻みで出る。 書いた破線は光っても長い刻みのまま。 2 つは刻みの長さで見分ける。",
       "badge": "dashed"
     },
     {
       "step": "意味は図の種類で変わる",
       "duration": 1.8,
       "focus": ["始点", "実線の終点", "破線の終点", "始点 -> 実線の終点", "始点 -> 破線の終点"],
-      "body": "同じ破線が、表どうしのつながりを描く図では親の鍵が子の主キーに入らない関係、クラス図では実装と依存を表す。 どちらかは図の種類で決まる。",
+      "description": "同じ破線が、表どうしのつながりを描く図では親の鍵が子の主キーに入らない関係、クラス図では実装と依存を表す。 どちらかは図の種類で決まる。",
       "badge": "2 種"
     }
   ]
@@ -346,7 +346,7 @@ export const sourceJson__toneAccent = `{
       "step": "solid / accent",
       "duration": 1.8,
       "focus": ["始点", "終点", "始点 -> 終点"],
-      "body": "edge style と tone の組み合わせを確認。",
+      "description": "edge style と tone の組み合わせを確認。",
       "badge": "accent"
     }
   ]
@@ -392,7 +392,7 @@ export const sourceJson__toneTeal = `{
       "step": "solid / teal",
       "duration": 1.8,
       "focus": ["始点", "終点", "始点 -> 終点"],
-      "body": "edge style と tone の組み合わせを確認。",
+      "description": "edge style と tone の組み合わせを確認。",
       "badge": "teal"
     }
   ]
@@ -438,7 +438,7 @@ export const sourceJson__toneSuccess = `{
       "step": "solid / success",
       "duration": 1.8,
       "focus": ["始点", "終点", "始点 -> 終点"],
-      "body": "edge style と tone の組み合わせを確認。",
+      "description": "edge style と tone の組み合わせを確認。",
       "badge": "success"
     }
   ]
@@ -484,7 +484,7 @@ export const sourceJson__toneError = `{
       "step": "solid / error",
       "duration": 1.8,
       "focus": ["始点", "終点", "始点 -> 終点"],
-      "body": "edge style と tone の組み合わせを確認。",
+      "description": "edge style と tone の組み合わせを確認。",
       "badge": "error"
     }
   ]
@@ -530,7 +530,7 @@ export const sourceJson__toneWarning = `{
       "step": "solid / warning",
       "duration": 1.8,
       "focus": ["始点", "終点", "始点 -> 終点"],
-      "body": "edge style と tone の組み合わせを確認。",
+      "description": "edge style と tone の組み合わせを確認。",
       "badge": "warning"
     }
   ]
@@ -576,7 +576,7 @@ export const sourceJson__toneInfo = `{
       "step": "solid / info",
       "duration": 1.8,
       "focus": ["始点", "終点", "始点 -> 終点"],
-      "body": "edge style と tone の組み合わせを確認。",
+      "description": "edge style と tone の組み合わせを確認。",
       "badge": "info"
     }
   ]
@@ -622,7 +622,7 @@ export const sourceJson__stateActive = `{
       "step": "動いている状態",
       "duration": 1.8,
       "focus": ["A", "B", "A -> B"],
-      "body": "phase で activate された edge は太く + 色付きで見える。",
+      "description": "phase で activate された edge は太く + 色付きで見える。",
       "badge": "動作中"
     }
   ]
@@ -668,7 +668,7 @@ export const sourceJson__stateInactive = `{
       "step": "止まっている状態",
       "duration": 1.8,
       "focus": ["A", "B"],
-      "body": "activate されていない edge は薄い灰色 + 破線で静かに出る。",
+      "description": "activate されていない edge は薄い灰色 + 破線で静かに出る。",
       "badge": "矢印は停止中"
     }
   ]
@@ -732,7 +732,7 @@ export const sourceJson__nodeTone = `{
       "step": "6 色を並べる",
       "duration": 1.8,
       "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内"],
-      "body": "強調した箱の枠が、書いた色の名前で描かれる。 主張の色は強調の既定の色と同じ"
+      "description": "強調した箱の枠が、書いた色の名前で描かれる。 主張の色は強調の既定の色と同じ"
     }
   ]
 }`;
@@ -792,7 +792,7 @@ export const sourceJson__pattern__nodeTone__題も書く = `{
       "step": "題を書いても色は残る",
       "duration": 1.8,
       "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内"],
-      "body": "箱に出る字は題で、色は書いたとおりに残る。 強調や矢印が指すのは題ではなく名前"
+      "description": "箱に出る字は題で、色は書いたとおりに残る。 強調や矢印が指すのは題ではなく名前"
     }
   ]
 }`;
@@ -871,7 +871,7 @@ export const sourceJson__edgeHead = `{
       "step": "先端に矢じりを置く",
       "duration": 1.8,
       "focus": ["無し -> 無しの行き先", "三角 -> 三角の行き先", "菱形 -> 菱形の行き先", "開いた矢じり -> 開いた矢じりの行き先", "鳥の足 -> 鳥の足の行き先"],
-      "body": "線の行き先の端に、向きを示す 5 つの形を置く"
+      "description": "線の行き先の端に、向きを示す 5 つの形を置く"
     }
   ]
 }`;
@@ -935,7 +935,7 @@ export const sourceJson__pattern__edgeHead__先端の多重度 = `{
       "step": "先端に多重度を置く",
       "duration": 1.8,
       "focus": ["1 つ -> 1 つの行き先", "0 か 1 -> 0 か 1の行き先", "多 -> 多の行き先", "0 以上 -> 0 以上の行き先"],
-      "body": "線の行き先の端に、関係の数を示す 4 つの形を置く"
+      "description": "線の行き先の端に、関係の数を示す 4 つの形を置く"
     }
   ]
 }`;
@@ -1005,7 +1005,7 @@ export const sourceJson__pattern__edgeHead__根元の矢じり = `{
       "step": "根元に矢じりを置く",
       "duration": 1.8,
       "focus": ["無し -> 無しの行き先", "三角 -> 三角の行き先", "菱形 -> 菱形の行き先", "開いた矢じり -> 開いた矢じりの行き先", "鳥の足 -> 鳥の足の行き先"],
-      "body": "線の出どころの端に、5 つの形を置く。 先端は無しにして根元だけを見せる"
+      "description": "線の出どころの端に、5 つの形を置く。 先端は無しにして根元だけを見せる"
     }
   ]
 }`;
@@ -1069,7 +1069,7 @@ export const sourceJson__pattern__edgeHead__根元の多重度 = `{
       "step": "根元に多重度を置く",
       "duration": 1.8,
       "focus": ["1 つ -> 1 つの行き先", "0 か 1 -> 0 か 1の行き先", "多 -> 多の行き先", "0 以上 -> 0 以上の行き先"],
-      "body": "線の出どころの端に、関係の数を示す 4 つの形を置く。 先端は無しにして根元だけを見せる"
+      "description": "線の出どころの端に、関係の数を示す 4 つの形を置く。 先端は無しにして根元だけを見せる"
     }
   ]
 }`;
@@ -1144,7 +1144,7 @@ export const sourceJson__edgeSide = `{
         "別のレーンの元 -> 別のレーンの先",
         "同じレーンの元 -> 同じレーンの先"
       ],
-      "body": "上の組は別のレーンなので横の辺で結ぶ。 下の組は同じレーンなので縦の辺で結ぶ"
+      "description": "上の組は別のレーンなので横の辺で結ぶ。 下の組は同じレーンなので縦の辺で結ぶ"
     }
   ]
 }`;
@@ -1203,7 +1203,7 @@ export const sourceJson__pattern__edgeSide__上 = `{
         "書かない時の元 -> 書かない時の先",
         "上と書いた元 -> 上と書いた先"
       ],
-      "body": "上の組は辺を書かないので横の辺で結ぶ。 下の組は上の辺から出て、行き先には下の辺から入る"
+      "description": "上の組は辺を書かないので横の辺で結ぶ。 下の組は上の辺から出て、行き先には下の辺から入る"
     }
   ]
 }`;
@@ -1260,7 +1260,7 @@ export const sourceJson__pattern__edgeSide__右 = `{
         "書かない時の元 -> 書かない時の先",
         "右と書いた元 -> 右と書いた先"
       ],
-      "body": "上の組は辺を書かないので縦の辺で結ぶ。 下の組は右の辺から出て、行き先には左の辺から入る"
+      "description": "上の組は辺を書かないので縦の辺で結ぶ。 下の組は右の辺から出て、行き先には左の辺から入る"
     }
   ]
 }`;
@@ -1319,7 +1319,7 @@ export const sourceJson__pattern__edgeSide__下 = `{
         "書かない時の元 -> 書かない時の先",
         "下と書いた元 -> 下と書いた先"
       ],
-      "body": "上の組は辺を書かないので横の辺で結ぶ。 下の組は下の辺から出て、行き先には上の辺から入る"
+      "description": "上の組は辺を書かないので横の辺で結ぶ。 下の組は下の辺から出て、行き先には上の辺から入る"
     }
   ]
 }`;
@@ -1376,7 +1376,7 @@ export const sourceJson__pattern__edgeSide__左 = `{
         "書かない時の元 -> 書かない時の先",
         "左と書いた元 -> 左と書いた先"
       ],
-      "body": "上の組は辺を書かないので縦の辺で結ぶ。 下の組は左の辺から出て、行き先には右の辺から入る"
+      "description": "上の組は辺を書かないので縦の辺で結ぶ。 下の組は左の辺から出て、行き先には右の辺から入る"
     }
   ]
 }`;
@@ -1461,7 +1461,7 @@ export const sourceJson__edgeRole = `{
         "注文 API -> 受付の知らせ",
         "台帳 -> 台帳の写し"
       ],
-      "body": "役目を書かないと 4 本とも同じ色になる。 ブラウザから台帳に書くまでの通り道と、知らせや写しへ分かれる線を色で見分けられない"
+      "description": "役目を書かないと 4 本とも同じ色になる。 ブラウザから台帳に書くまでの通り道と、知らせや写しへ分かれる線を色で見分けられない"
     }
   ]
 }`;
@@ -1531,7 +1531,7 @@ export const sourceJson__pattern__edgeRole__main = `{
         "注文 API -> 受付の知らせ",
         "台帳 -> 台帳の写し"
       ],
-      "body": "ブラウザから台帳に書くまでの 2 本に role: main を書くと、その 2 本を強調した箱の枠と同じ色で引く。 知らせと写しへ分かれる 2 本は役目を書かないので、色味の色のまま"
+      "description": "ブラウザから台帳に書くまでの 2 本に role: main を書くと、その 2 本を強調した箱の枠と同じ色で引く。 知らせと写しへ分かれる 2 本は役目を書かないので、色味の色のまま"
     }
   ]
 }`;
@@ -1719,7 +1719,7 @@ export const sourceJson__shapeOrient = `{
       "step": "同じ値で 4 つの向き",
       "duration": 1.8,
       "focus": ["上へ満ちる", "下へ満ちる", "左へ満ちる", "右へ満ちる"],
-      "body": "どれも 6 割を塗る。 上へは下から、下へは上から、左へは右から、右へは左から塗りが寄る"
+      "description": "どれも 6 割を塗る。 上へは下から、下へは上から、左へは右から、右へは左から塗りが寄る"
     }
   ]
 }`;
@@ -1775,7 +1775,7 @@ export const sourceJson__pattern__nodeTone__色の欄で書く = `{
       "step": "6 色を並べる",
       "duration": 1.8,
       "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内"],
-      "body": "tone の代わりに color と書いても、同じ 6 色で描かれる。 color は部品の色番号 (# で始まる値) も受ける"
+      "description": "tone の代わりに color と書いても、同じ 6 色で描かれる。 color は部品の色番号 (# で始まる値) も受ける"
     }
   ]
 }`;
@@ -1844,7 +1844,7 @@ export const sourceJson__pattern__edgeHead__先端の塗り = `{
       "step": "先端を塗る形と中空の形",
       "duration": 1.8,
       "focus": ["三角を塗る -> 三角を塗るの行き先", "三角を中空にする -> 三角を中空にするの行き先", "菱形を塗る -> 菱形を塗るの行き先", "菱形を中空にする -> 菱形を中空にするの行き先"],
-      "body": "線の行き先の三角と菱形を、塗った形 (solid) と中を抜いた形 (hollow) で並べる。 書かない矢印は塗った形で描かれる"
+      "description": "線の行き先の三角と菱形を、塗った形 (solid) と中を抜いた形 (hollow) で並べる。 書かない矢印は塗った形で描かれる"
     }
   ]
 }`;
@@ -1908,7 +1908,7 @@ export const sourceJson__pattern__edgeHead__根元の塗り = `{
       "step": "根元を塗る形と中空の形",
       "duration": 1.8,
       "focus": ["三角を塗る -> 三角を塗るの行き先", "三角を中空にする -> 三角を中空にするの行き先", "菱形を塗る -> 菱形を塗るの行き先", "菱形を中空にする -> 菱形を中空にするの行き先"],
-      "body": "線の出どころの三角と菱形を、塗った形 (solid) と中を抜いた形 (hollow) で並べる。 先端は無しにして根元だけを見せる"
+      "description": "線の出どころの三角と菱形を、塗った形 (solid) と中を抜いた形 (hollow) で並べる。 先端は無しにして根元だけを見せる"
     }
   ]
 }`;
@@ -1999,7 +1999,7 @@ export const sourceJson__pattern__shapeOrient__線の色を付ける = `{
       "step": "同じ値で 4 つの向き",
       "duration": 1.8,
       "focus": ["上へ満ちる", "下へ満ちる", "左へ満ちる", "右へ満ちる"],
-      "body": "形の外枠を、書いた線の色 (#15803d) で描く。 書かない形は線の既定の色で描かれる"
+      "description": "形の外枠を、書いた線の色 (#15803d) で描く。 書かない形は線の既定の色で描かれる"
     }
   ]
 }`;

@@ -902,7 +902,7 @@ export const sourceJson__tweenSimple = `{
       "step": "数え上げを滑らかに進める (0 → 100)",
       "duration": 2.5,
       "focus": ["数え上げ"],
-      "body": "1 つの段の中で値を 0 から 100 へ滑らかに変える。",
+      "description": "1 つの段の中で値を 0 から 100 へ滑らかに変える。",
       "tween": { "counter": [0, 100] },
       "badge": "tween 中"
     }
@@ -960,7 +960,7 @@ export const sourceJson__tweenChain = `{
       "step": "初動 (0 → 10)",
       "duration": 2,
       "focus": ["合計"],
-      "body": "1 phase 目の tween。",
+      "description": "1 phase 目の tween。",
       "tween": { "n": [0, 10] },
       "badge": "p1"
     },
@@ -968,7 +968,7 @@ export const sourceJson__tweenChain = `{
       "step": "加速 (10 → 50)",
       "duration": 2,
       "focus": ["合計"],
-      "body": "前 phase の終端値から続けて tween。",
+      "description": "前 phase の終端値から続けて tween。",
       "tween": { "n": [10, 50] },
       "badge": "p2"
     },
@@ -976,7 +976,7 @@ export const sourceJson__tweenChain = `{
       "step": "完了 (50 → 100)",
       "duration": 2,
       "focus": ["合計"],
-      "body": "最後の段で 100 まで。 そのまま静止して見せる。",
+      "description": "最後の段で 100 まで。 そのまま静止して見せる。",
       "tween": { "n": [50, 100] },
       "badge": "p3"
     }
@@ -1028,7 +1028,7 @@ export const sourceJson__setSwitch = `{
       "step": "待機 → 実行中",
       "duration": 2,
       "focus": ["処理"],
-      "body": "set で文字列 state を即時切替。 phase 開始の瞬間に値が変わる。",
+      "description": "set で文字列 state を即時切替。 phase 開始の瞬間に値が変わる。",
       "set": { "status": "実行中" },
       "badge": "実行中"
     },
@@ -1036,7 +1036,7 @@ export const sourceJson__setSwitch = `{
       "step": "実行中 → 完了",
       "duration": 2,
       "focus": ["処理"],
-      "body": "次の段で完了に切り替える。 tween と違い段階を踏まず一瞬で移る。",
+      "description": "次の段で完了に切り替える。 tween と違い段階を踏まず一瞬で移る。",
       "set": { "status": "完了" },
       "badge": "完了"
     }
@@ -1084,21 +1084,21 @@ export const sourceJson__badgePerPhase = `{
       "step": "準備中",
       "duration": 1.5,
       "focus": ["手順"],
-      "body": "見出しの札に「準備中」 を出す。",
+      "description": "見出しの札に「準備中」 を出す。",
       "badge": "準備中"
     },
     {
       "step": "処理中",
       "duration": 1.5,
       "focus": ["手順"],
-      "body": "見出しの札を「処理中」 に切り替える。",
+      "description": "見出しの札を「処理中」 に切り替える。",
       "badge": "処理中"
     },
     {
       "step": "完了",
       "duration": 1.5,
       "focus": ["手順"],
-      "body": "最後の段の札を「完了」 にして、手順の終わりを示す。",
+      "description": "最後の段の札を「完了」 にして、手順の終わりを示す。",
       "badge": "完了"
     }
   ]
@@ -1160,7 +1160,7 @@ export const sourceJson__mixedTweenSet = `{
       "step": "読込開始 (状態 + 進捗を併走)",
       "duration": 2.4,
       "focus": ["操作"],
-      "body": "tween で数値、 set で文字列を同時更新。 1 phase 内で複数 state を制御可能。",
+      "description": "tween で数値、 set で文字列を同時更新。 1 phase 内で複数 state を制御可能。",
       "tween": { "amount": [0, 50] },
       "set": { "phase": "読込中" },
       "badge": "読込中"
@@ -1169,7 +1169,7 @@ export const sourceJson__mixedTweenSet = `{
       "step": "完了 (状態 + 進捗を仕上げ)",
       "duration": 2.4,
       "focus": ["操作"],
-      "body": "次 phase で完了状態へ。",
+      "description": "次 phase で完了状態へ。",
       "tween": { "amount": [50, 100] },
       "set": { "phase": "完了" },
       "badge": "完了"

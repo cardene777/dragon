@@ -32,6 +32,17 @@
  * 見るのは「2 つの元が同じ図を書いているか」 で、export と一致するかは #1237 が見る。
  * あちらは引数を揃えて組み立て直しているので、この file が避けた形を正面から扱える。
  *
+ * ## 書いてある語も見る (#2629)
+ *
+ * 図が一致しても、**2 つのタブに別の語が書いてある** ことがある。 段の説明を受ける語は
+ * 正の語 `body` と別名 `description` の 2 つで (#2621)、どちらの形も両方を受けるため、
+ * 語が違っても組み上がる図は同じになる。 実測で 357 組が記法に `description:`、JSON に
+ * `"body"` と書いており、見比べた人は形ごとに語を変える必要があると読む。
+ *
+ * 下の「2 形が同じ語で段の説明を書く」 が、組ごとに語の集合を突き合わせる。 **どちらか 1 つの
+ * 語へ寄せない** = 型の欄がカタログの JSON に出ているかを数える検査 (#1969) が在るので、
+ * 寄せるともう片方の語が見本から消えて落ちる。 組ごとに揃えれば両方の語が見本に残る。
+ *
  * ## 除外している欄は無い
  *
  * 実測で全ての組の全ての欄が一致する (組の数は検査が母数として出す)。 **欄を除外する時は、
@@ -42,6 +53,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { textDslToDiagram, jsonToDiagram } from "../src/index";
+import { PHASE_BODY_KEYS } from "../src/keywords";
 
 const 置き場 = join(__dirname, "../../../apps/playground-spa/src/topics/catalog");
 
@@ -82,6 +94,34 @@ const 組を集める = (): { 一覧: Map<string, 組>; 同名: string[] } => {
   }
   return { 一覧, 同名 };
 };
+
+/** 置き場の `*.ts` を読んで、組ごとの元の文字列を返す (組み上げずに書いてある字を見る) */
+const 組の元 = (): { 頁: string; 素: string; 記法: string; JSON: string }[] => {
+  const out: { 頁: string; 素: string; 記法: string; JSON: string }[] = [];
+  for (const f of readdirSync(置き場)) {
+    if (!f.endsWith(".ts") || f.endsWith(".test.ts") || f.endsWith(".test.tsx")) continue;
+    const t = readFileSync(join(置き場, f), "utf8");
+    const 頁 = f.replace(/\.ts$/, "");
+    for (const m of t.matchAll(/^export const sourceYaml__(\S+) = `/gm)) {
+      const 素 = m[1]!;
+      const y = t.slice(m.index + m[0].length);
+      const yEnd = y.indexOf("`;");
+      const jm = new RegExp(`^export const sourceJson__${素.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} = \``, "m").exec(t);
+      if (yEnd < 0 || !jm) continue;
+      const j = t.slice(jm.index + jm[0].length);
+      const jEnd = j.indexOf("`;");
+      if (jEnd < 0) continue;
+      out.push({ 頁, 素, 記法: y.slice(0, yEnd), JSON: j.slice(0, jEnd) });
+    }
+  }
+  return out;
+};
+
+/** 段の説明に使っている語 (正の語と別名の 2 つ、 `PHASE_BODY_KEYS` が SSOT) */
+const 説明の語 = (記法: string, JSON文: string): { 記法: string[]; JSON: string[] } => ({
+  記法: PHASE_BODY_KEYS.filter((k) => new RegExp(`^\\s*${k}:`, "m").test(記法)),
+  JSON: PHASE_BODY_KEYS.filter((k) => new RegExp(`"${k}"\\s*:`).test(JSON文)),
+});
 
 describe("記法と JSON の突き合わせ (#2625)", () => {
   it("置き場が持つ 2 形の宣言を 1 つも取りこぼさない", () => {
@@ -136,6 +176,27 @@ describe("記法と JSON の突き合わせ (#2625)", () => {
     expect(
       ずれ,
       `記法と JSON が別の図になる組がある (母数 ${一覧.size} 組)\n  ${ずれ.join("\n  ")}`,
+    ).toHaveLength(0);
+  });
+
+  it("2 形が同じ語で段の説明を書く", () => {
+    // **組み上げた図では差が出ない** = どちらの語も同じ欄に写るので、上の検査は通る。
+    // 見比べた人が読むのは書いてある字なので、字のほうを見る。
+    const 食い違い: string[] = [];
+    let 母数 = 0;
+    for (const x of 組の元()) {
+      const 語 = 説明の語(x.記法, x.JSON);
+      if (語.記法.length === 0 && 語.JSON.length === 0) continue;
+      母数 += 1;
+      if (語.記法.join(",") === 語.JSON.join(",")) continue;
+      食い違い.push(
+        `${x.頁}/${x.素} 記法=[${語.記法.join(",")}] JSON=[${語.JSON.join(",")}]`,
+      );
+    }
+    expect(母数, "段の説明を持つ組が 1 件も取れていない (走査が壊れている)").toBeGreaterThan(0);
+    expect(
+      食い違い,
+      `同じ組の 2 形が別の語で段の説明を書いている (母数 ${母数} 組)\n  ${食い違い.join("\n  ")}`,
     ).toHaveLength(0);
   });
 });
