@@ -831,7 +831,6 @@ const presetErSteps = withSteps(
     },
     {
       ids: ["rel-2-users-users"],
-      title: "4. 自分への関係",
       body: "上司も利用者。 manager_id は同じ表を指す。",
     },
   ],
@@ -1130,7 +1129,6 @@ const presetErComplexSteps = withSteps(
     },
     {
       ids: ["rel-7-addresses-shipments", "rel-8-addresses-orders"],
-      title: "9. 住所を指す 2 本",
       body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。",
     },
   ],
@@ -1208,7 +1206,6 @@ export const presetStateMachine = withSteps(
     },
     {
       ids: ["cancelled", "closed", "t4-placed-cancelled", "t5-cancelled-closed"],
-      title: "5. 取り消して終わる",
       body: "山形の外枠だけは出る瞬間に 1 度だけ。",
     },
   ],
@@ -1357,7 +1354,6 @@ export const pattern__presetStateMachine__複雑 = withSteps(fsmComplex, [
   },
   {
     ids: ["withdrawn", "closed3", "t10-published-withdrawn", "t11-withdrawn-closed3"],
-    title: "8. 誤りが見つかって取り下げる",
     body: "公開の後にも外れる道がある。 3 つ目の終わりで、右の列に終わり方が 3 つ並ぶ。",
   },
 ]);
@@ -1601,7 +1597,6 @@ const presetClassDiagramSteps = withSteps(
     },
     {
       ids: ["Sku", "Receipt", "cr-5-Line-Sku", "cr-3-Order-Receipt"],
-      title: "6. 関連と依存と色の群",
       // 色の話は最後の段に置く (#2601)。 群は段をまたぐ (継承が 2 段目 / 実装が 3 段目) ので、
       // 段ごとに色を書くと「この 2 つが同じ色」 という対応が 1 つの画面に揃わない。
       // 色だけを説明する段は足せない = 光る要素が増えない段は静止画と区別が付かず、
@@ -1812,7 +1807,6 @@ const presetClassComplexSteps = withSteps(
     },
     {
       ids: ["Notification", "cr-5-RiskCheck-Notification", "cr-13-Transaction-Notification"],
-      title: "8. 通知への依存と色の群",
       // 簡単な版と同じ置き方 (#2601)。 こちらだけ開いた人にも色の決まりが届くようにする
       body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。 13 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。",
     },
@@ -3371,7 +3365,7 @@ animation:
     focus: [users, orders, order_items, "users -> orders", "orders -> order_items"]
     badge: "er"
     body: "実線は識別する関係。 親の鍵が子の鍵に入る。"
-  - step: "4. 自分への関係" 0.9s
+  - step: "テーブル間の関係を表す図" 0.9s
     focus: [users, orders, order_items, "users -> orders", "orders -> order_items", "users -> users"]
     badge: "er"
     body: "上司も利用者。 manager_id は同じ表を指す。"
@@ -3463,7 +3457,7 @@ export const sourceJson__presetEr = `{
       "badge": "er"
     },
     {
-      "step": "4. 自分への関係",
+      "step": "テーブル間の関係を表す図",
       "duration": 0.9,
       "focus": ["users", "orders", "order_items", "users -> orders", "orders -> order_items", "users -> users"],
       "body": "上司も利用者。 manager_id は同じ表を指す。",
@@ -3548,7 +3542,7 @@ animation:
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles", addresses, "users -> addresses", payments, shipments, "orders -> payments", "orders -> shipments"]
     badge: "er"
     body: "丸い端は 0 か 1。 未払いも未発送もありうる。"
-  - step: "9. 住所を指す 2 本" 0.9s
+  - step: "商取引の表と必須・任意の関係を表す ER 図" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles", addresses, "users -> addresses", payments, shipments, "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders"]
     badge: "er"
     body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。"
@@ -3605,7 +3599,7 @@ export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
       { step: "6. 役割を割り当てる", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles"], badge: "er", body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。" },
       { step: "7. 住所を登録する", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses"], badge: "er", body: "破線は識別しない関係。 丸い端が 0 件を許す。" },
       { step: "8. 支払と配送", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments"], badge: "er", body: "丸い端は 0 か 1。 未払いも未発送もありうる。" },
-      { step: "9. 住所を指す 2 本", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders"], badge: "er", body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。" },
+      { step: "商取引の表と必須・任意の関係を表す ER 図", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders"], badge: "er", body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。" },
     ],
   },
   null,
@@ -4329,7 +4323,7 @@ animation:
     badge: "state"
     focus: [begin, 下書き, 受付済, 支払済, done, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done"]
     body: "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。"
-  - step: "5. 取り消して終わる" 0.9s
+  - step: "状態と遷移条件を示す図" 0.9s
     badge: "state"
     focus: [begin, 下書き, 受付済, 支払済, done, 取消済, closed, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"]
     body: "山形の外枠だけは出る瞬間に 1 度だけ。"
@@ -4387,7 +4381,7 @@ export const sourceJson__presetStateMachine = `{
       "badge": "state"
     },
     {
-      "step": "5. 取り消して終わる",
+      "step": "状態と遷移条件を示す図",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "支払済", "done", "取消済", "closed", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"],
       "body": "山形の外枠だけは出る瞬間に 1 度だけ。",
@@ -4633,7 +4627,7 @@ animation:
     badge: "class"
     focus: [User, Admin, Auditable, Order, Line, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line"]
     body: "菱を塗る。 部分の寿命は全体と同じで、全体を消すと部分も消える。"
-  - step: "6. 関連と依存と色の群" 0.9s
+  - step: "クラスどうしの 6 種の関係を示す UML クラス図" 0.9s
     badge: "class"
     focus: [User, Admin, Auditable, Order, Line, Sku, Receipt, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"]
     body: "関連は実線に開いた矢で参照し続け、依存は破線に開いた矢で一時的に使う。 色の 3 群は縦の関係と向きだけの関係と所有の関係。"
@@ -4770,7 +4764,7 @@ export const sourceJson__presetClassDiagram = `{
       "badge": "class"
     },
     {
-      "step": "6. 関連と依存と色の群",
+      "step": "クラスどうしの 6 種の関係を示す UML クラス図",
       "duration": 0.9,
       "focus": ["User", "Admin", "Auditable", "Order", "Line", "Sku", "Receipt", "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"],
       "body": "関連は実線に開いた矢で参照し続け、依存は破線に開いた矢で一時的に使う。 色の 3 群は縦の関係と向きだけの関係と所有の関係。",
@@ -4844,7 +4838,7 @@ animation:
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry", RiskCheck, "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck"]
     badge: "class"
     body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
-  - step: "8. 通知への依存と色の群" 0.9s
+  - step: "決済の抽象クラスとインターフェースと関係を示す UML クラス図" 0.9s
     focus: [PaymentMethod, Auditable, Retryable, BankTransfer, CardPayment, "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", WalletPayment, "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", PaymentGateway, "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", Transaction, "PaymentGateway -> Transaction", "Transaction -> CardPayment", Receipt, LedgerEntry, "Transaction -> Receipt", "Transaction -> LedgerEntry", RiskCheck, "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", Notification, "RiskCheck -> Notification", "Transaction -> Notification"]
     badge: "class"
     body: "リスク判定と取引が、同じ通知クラスに依存する。 破線に開いた矢が 2 本入る。 13 本が出揃ったので色を読む。 色は 6 種ではなく 3 つの群を表し、継承と実装が縦の関係、関連と依存が向きだけの関係、集約とコンポジションが所有の関係になる。"
@@ -5137,7 +5131,7 @@ export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
         "body": "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
       },
       {
-        "step": "8. 通知への依存と色の群",
+        "step": "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
         "duration": 0.9,
         "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", "Notification", "RiskCheck -> Notification", "Transaction -> Notification"],
         "badge": "class",
