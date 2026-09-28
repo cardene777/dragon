@@ -112,7 +112,7 @@ flow:
 animation:
   - step: "箱の位置だけで縦列を読む" 1.8s
     focus: ["注文する", "受け付ける", "在庫を引く"]
-    description: "縦列の見出しの下に線は無い。 段がずれて並ぶと、箱がどの縦列に属するかは箱の位置だけで読む"
+    description: "縦列の見出しの下に線は無い。 段がずれて並ぶと、箱がどの縦列に属するかは箱の位置だけで読む。"
 `;
 
 export const sourceJson__laneLifeline = `{
@@ -136,7 +136,7 @@ export const sourceJson__laneLifeline = `{
       "step": "箱の位置だけで縦列を読む",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く"],
-      "description": "縦列の見出しの下に線は無い。 段がずれて並ぶと、箱がどの縦列に属するかは箱の位置だけで読む"
+      "description": "縦列の見出しの下に線は無い。 段がずれて並ぶと、箱がどの縦列に属するかは箱の位置だけで読む。"
     }
   ]
 }`;
@@ -162,7 +162,7 @@ flow:
 animation:
   - step: "縦の点線で縦列を追う" 1.8s
     focus: ["注文する", "受け付ける", "在庫を引く"]
-    description: "縦列の中心を縦の点線が通る。 段がずれて並んでも、箱がどの縦列に属するかを線で上から下まで追える"
+    description: "縦列の中心を縦の点線が通る。 段がずれて並んでも、箱がどの縦列に属するかを線で上から下まで追える。"
 `;
 
 export const sourceJson__pattern__laneLifeline__引く = `{
@@ -186,7 +186,7 @@ export const sourceJson__pattern__laneLifeline__引く = `{
       "step": "縦の点線で縦列を追う",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く"],
-      "description": "縦列の中心を縦の点線が通る。 段がずれて並んでも、箱がどの縦列に属するかを線で上から下まで追える"
+      "description": "縦列の中心を縦の点線が通る。 段がずれて並んでも、箱がどの縦列に属するかを線で上から下まで追える。"
     }
   ]
 }`;
@@ -224,7 +224,7 @@ flow:
 animation:
   - step: "間隔を書かない" 1.8s
     focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
-    description: "縦列の間も箱の間も名札の余白も書かず、描く側が決めた間隔で並べる"
+    description: "縦列の間も箱の間も名札の余白も書かず、描く側が決めた間隔で並べる。"
 `;
 
 export const sourceJson__viewportSpacing = `{
@@ -249,7 +249,7 @@ export const sourceJson__viewportSpacing = `{
       "step": "間隔を書かない",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "description": "縦列の間も箱の間も名札の余白も書かず、描く側が決めた間隔で並べる"
+      "description": "縦列の間も箱の間も名札の余白も書かず、描く側が決めた間隔で並べる。"
     }
   ]
 }`;
@@ -278,7 +278,7 @@ flow:
 animation:
   - step: "縦列の間を 400 にする" 1.8s
     focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
-    description: "受付と処理の縦列の間が 400 に広がり、横に結ぶ 2 本の矢印が長くなる。 同じ縦列の箱の間は変わらない"
+    description: "受付と処理の縦列の間が 400 に広がり、横に結ぶ 2 本の矢印が長くなる。 同じ縦列の箱の間は変わらない。"
 `;
 
 export const sourceJson__pattern__viewportSpacing__縦列の間 = `{
@@ -304,7 +304,7 @@ export const sourceJson__pattern__viewportSpacing__縦列の間 = `{
       "step": "縦列の間を 400 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "description": "受付と処理の縦列の間が 400 に広がり、横に結ぶ 2 本の矢印が長くなる。 同じ縦列の箱の間は変わらない"
+      "description": "受付と処理の縦列の間が 400 に広がり、横に結ぶ 2 本の矢印が長くなる。 同じ縦列の箱の間は変わらない。"
     }
   ]
 }`;
@@ -333,7 +333,7 @@ flow:
 animation:
   - step: "箱の間を 80 にする" 1.8s
     focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
-    description: "同じ縦列で上下に並ぶ注文と問い合わせ、発送と回答の間が広がる。 縦列の間は変わらない"
+    description: "同じ縦列で上下に並ぶ注文と問い合わせ、発送と回答の間が広がる。 縦列の間は変わらない。"
 `;
 
 export const sourceJson__pattern__viewportSpacing__箱の間 = `{
@@ -359,7 +359,7 @@ export const sourceJson__pattern__viewportSpacing__箱の間 = `{
       "step": "箱の間を 80 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "description": "同じ縦列で上下に並ぶ注文と問い合わせ、発送と回答の間が広がる。 縦列の間は変わらない"
+      "description": "同じ縦列で上下に並ぶ注文と問い合わせ、発送と回答の間が広がる。 縦列の間は変わらない。"
     }
   ]
 }`;
@@ -388,7 +388,7 @@ flow:
 animation:
   - step: "名札の余白を 40 にする" 1.8s
     focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
-    description: "依頼と転送の名札が、矢印から離れて上に置かれる。 箱と縦列の位置は変わらない"
+    description: "依頼と転送の名札が、矢印から離れて上に置かれる。 箱と縦列の位置は変わらない。"
 `;
 
 export const sourceJson__pattern__viewportSpacing__名札の余白 = `{
@@ -414,7 +414,7 @@ export const sourceJson__pattern__viewportSpacing__名札の余白 = `{
       "step": "名札の余白を 40 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "description": "依頼と転送の名札が、矢印から離れて上に置かれる。 箱と縦列の位置は変わらない"
+      "description": "依頼と転送の名札が、矢印から離れて上に置かれる。 箱と縦列の位置は変わらない。"
     }
   ]
 }`;
@@ -443,7 +443,7 @@ flow:
 animation:
   - step: "間隔をまとめて 120 にする" 1.8s
     focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
-    description: "縦列の間と箱の間と名札の余白を書かない時に、この 1 つの値が 3 つの代わりに使われ、全てが広がる"
+    description: "縦列の間と箱の間と名札の余白を書かない時に、この 1 つの値が 3 つの代わりに使われ、全てが広がる。"
 `;
 
 export const sourceJson__pattern__viewportSpacing__まとめた間隔 = `{
@@ -469,7 +469,7 @@ export const sourceJson__pattern__viewportSpacing__まとめた間隔 = `{
       "step": "間隔をまとめて 120 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "description": "縦列の間と箱の間と名札の余白を書かない時に、この 1 つの値が 3 つの代わりに使われ、全てが広がる"
+      "description": "縦列の間と箱の間と名札の余白を書かない時に、この 1 つの値が 3 つの代わりに使われ、全てが広がる。"
     }
   ]
 }`;
@@ -498,7 +498,7 @@ flow:
 animation:
   - step: "縦列の幅を 520 に揃える" 1.8s
     focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
-    description: "縦列ごとに書いた幅 240 より、図全体に書いた 520 が勝つ。 箱は広がった縦列の中央に置かれる"
+    description: "縦列ごとに書いた幅 240 より、図全体に書いた 520 が勝つ。 箱は広がった縦列の中央に置かれる。"
 `;
 
 export const sourceJson__pattern__viewportSpacing__縦列の幅 = `{
@@ -524,7 +524,7 @@ export const sourceJson__pattern__viewportSpacing__縦列の幅 = `{
       "step": "縦列の幅を 520 に揃える",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "description": "縦列ごとに書いた幅 240 より、図全体に書いた 520 が勝つ。 箱は広がった縦列の中央に置かれる"
+      "description": "縦列ごとに書いた幅 240 より、図全体に書いた 520 が勝つ。 箱は広がった縦列の中央に置かれる。"
     }
   ]
 }`;
@@ -553,7 +553,7 @@ flow:
 animation:
   - step: "広さを横 1400 と縦 800 にする" 1.8s
     focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
-    description: "図を描く広さが横 1400、縦 800 になる。 箱の置き方は変わらず、右と下に余白が残る"
+    description: "図を描く広さが横 1400、縦 800 になる。 箱の置き方は変わらず、右と下に余白が残る。"
 `;
 
 export const sourceJson__pattern__viewportSpacing__図の広さ = `{
@@ -579,7 +579,7 @@ export const sourceJson__pattern__viewportSpacing__図の広さ = `{
       "step": "広さを横 1400 と縦 800 にする",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "description": "図を描く広さが横 1400、縦 800 になる。 箱の置き方は変わらず、右と下に余白が残る"
+      "description": "図を描く広さが横 1400、縦 800 になる。 箱の置き方は変わらず、右と下に余白が残る。"
     }
   ]
 }`;
@@ -608,7 +608,7 @@ flow:
 animation:
   - step: "1.5 倍で描く" 1.8s
     focus: ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"]
-    description: "箱と字と線を 1.5 倍の大きさで描く。 置き方は書かない図と同じで、描く大きさだけが変わる"
+    description: "箱と字と線を 1.5 倍の大きさで描く。 置き方は書かない図と同じで、描く大きさだけが変わる。"
 `;
 
 export const sourceJson__pattern__viewportSpacing__倍率 = `{
@@ -634,7 +634,7 @@ export const sourceJson__pattern__viewportSpacing__倍率 = `{
       "step": "1.5 倍で描く",
       "duration": 1.8,
       "focus": ["注文", "問い合わせ", "発送", "回答", "注文 -> 発送", "問い合わせ -> 回答"],
-      "description": "箱と字と線を 1.5 倍の大きさで描く。 置き方は書かない図と同じで、描く大きさだけが変わる"
+      "description": "箱と字と線を 1.5 倍の大きさで描く。 置き方は書かない図と同じで、描く大きさだけが変わる。"
     }
   ]
 }`;
@@ -666,7 +666,7 @@ flow:
 animation:
   - step: "書かない時の並び" 1.8s
     focus: ["申し込む", "登録する"]
-    description: "動きを持つフローは向きを書かないと、1 人ずつ縦列を作って左から並べる"
+    description: "動きを持つフローは向きを書かないと、1 人ずつ縦列を作って左から並べる。"
 `;
 
 export const sourceJson__flowDirection = `{
@@ -684,7 +684,7 @@ export const sourceJson__flowDirection = `{
       "step": "書かない時の並び",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "description": "動きを持つフローは向きを書かないと、1 人ずつ縦列を作って左から並べる"
+      "description": "動きを持つフローは向きを書かないと、1 人ずつ縦列を作って左から並べる。"
     }
   ]
 }`;
@@ -705,7 +705,7 @@ flow:
 animation:
   - step: "縦に積む" 1.8s
     focus: ["申し込む", "登録する"]
-    description: "縦に積むと書くと、1 つの縦列に上から積む。 動きを持つフローの既定は横なので、向きの行を外すと横並びに戻る"
+    description: "縦に積むと書くと、1 つの縦列に上から積む。 動きを持つフローの既定は横なので、向きの行を外すと横並びに戻る。"
 `;
 
 export const sourceJson__pattern__flowDirection__縦に積む = `{
@@ -724,7 +724,7 @@ export const sourceJson__pattern__flowDirection__縦に積む = `{
       "step": "縦に積む",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "description": "縦に積むと書くと、1 つの縦列に上から積む。 動きを持つフローの既定は横なので、向きの行を外すと横並びに戻る"
+      "description": "縦に積むと書くと、1 つの縦列に上から積む。 動きを持つフローの既定は横なので、向きの行を外すと横並びに戻る。"
     }
   ]
 }`;
@@ -745,7 +745,7 @@ flow:
 animation:
   - step: "横に並べる" 1.8s
     focus: ["申し込む", "登録する"]
-    description: "横に並べると、1 人ずつ縦列を作って左から並べる。 動きを持つフローの既定と同じなので、記法は向きの行を外せることを知らせる"
+    description: "横に並べると、1 人ずつ縦列を作って左から並べる。 動きを持つフローの既定と同じなので、記法は向きの行を外せることを知らせる。"
 `;
 
 export const sourceJson__pattern__flowDirection__横に並べる = `{
@@ -764,7 +764,7 @@ export const sourceJson__pattern__flowDirection__横に並べる = `{
       "step": "横に並べる",
       "duration": 1.8,
       "focus": ["申し込む", "登録する"],
-      "description": "横に並べると、1 人ずつ縦列を作って左から並べる。 動きを持つフローの既定と同じなので、記法は向きの行を外せることを知らせる"
+      "description": "横に並べると、1 人ずつ縦列を作って左から並べる。 動きを持つフローの既定と同じなので、記法は向きの行を外せることを知らせる。"
     }
   ]
 }`;
@@ -832,7 +832,7 @@ flow:
 animation:
   - step: "並びで決まる札" 1.8s
     focus: ["受付", "完了", "取り下げ"]
-    description: "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる"
+    description: "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる。"
 `;
 
 export const sourceJson__stateStartEnd = `{
@@ -852,7 +852,7 @@ export const sourceJson__stateStartEnd = `{
       "step": "並びで決まる札",
       "duration": 1.8,
       "focus": ["受付", "完了", "取り下げ"],
-      "description": "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる"
+      "description": "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる。"
     }
   ]
 }`;
@@ -874,7 +874,7 @@ flow:
 animation:
   - step: "始まりと終わりの札" 1.8s
     focus: ["受付", "完了", "取り下げ"]
-    description: "始まりと書いた受付に「初期」、終わりと書いた完了と取り下げの 2 つに「最終」 の札が付く"
+    description: "始まりと書いた受付に「初期」、終わりと書いた完了と取り下げの 2 つに「最終」 の札が付く。"
 `;
 
 export const sourceJson__pattern__stateStartEnd__書く = `{
@@ -894,7 +894,7 @@ export const sourceJson__pattern__stateStartEnd__書く = `{
       "step": "始まりと終わりの札",
       "duration": 1.8,
       "focus": ["受付", "完了", "取り下げ"],
-      "description": "始まりと書いた受付に「初期」、終わりと書いた完了と取り下げの 2 つに「最終」 の札が付く"
+      "description": "始まりと書いた受付に「初期」、終わりと書いた完了と取り下げの 2 つに「最終」 の札が付く。"
     }
   ]
 }`;
@@ -934,7 +934,7 @@ flow:
 animation:
   - step: "段を分けて書いた札" 1.8s
     focus: ["受付", "審査", "完了"]
-    description: "始まりと終わりの印も目次も、名前の下に段を分けて並べられる。 中括弧に書いた時と同じ札が付く"
+    description: "始まりと終わりの印も目次も、名前の下に段を分けて並べられる。 中括弧に書いた時と同じ札が付く。"
 `;
 
 export const sourceJson__pattern__stateStartEnd__段を分けて書く = `{
@@ -954,7 +954,7 @@ export const sourceJson__pattern__stateStartEnd__段を分けて書く = `{
       "step": "段を分けて書いた札",
       "duration": 1.8,
       "focus": ["受付", "審査", "完了"],
-      "description": "始まりと終わりの印も目次も、名前の下に段を分けて並べられる。 中括弧に書いた時と同じ札が付く"
+      "description": "始まりと終わりの印も目次も、名前の下に段を分けて並べられる。 中括弧に書いた時と同じ札が付く。"
     }
   ]
 }`;
@@ -994,7 +994,7 @@ flow:
 animation:
   - step: "自動で決まった位置に置く" 1.8s
     focus: ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"]
-    description: "位置のずらしを書かず、縦列と段から決まった位置に箱と縦列と矢印の名前を置く"
+    description: "位置のずらしを書かず、縦列と段から決まった位置に箱と縦列と矢印の名前を置く。"
 `;
 
 export const sourceJson__layoutOffset = `{
@@ -1018,7 +1018,7 @@ export const sourceJson__layoutOffset = `{
       "step": "自動で決まった位置に置く",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
-      "description": "位置のずらしを書かず、縦列と段から決まった位置に箱と縦列と矢印の名前を置く"
+      "description": "位置のずらしを書かず、縦列と段から決まった位置に箱と縦列と矢印の名前を置く。"
     }
   ]
 }`;
@@ -1044,7 +1044,7 @@ flow:
 animation:
   - step: "注文するの箱を右へ 40、下へ 60 ずらす" 1.8s
     focus: ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"]
-    description: "注文するの箱だけが右へ 40、下へ 60 動き、矢印は動いた箱から出る。 縦列と他の箱は動かない"
+    description: "注文するの箱だけが右へ 40、下へ 60 動き、矢印は動いた箱から出る。 縦列と他の箱は動かない。"
 `;
 
 export const sourceJson__pattern__layoutOffset__箱をずらす = `{
@@ -1068,7 +1068,7 @@ export const sourceJson__pattern__layoutOffset__箱をずらす = `{
       "step": "注文するの箱を右へ 40、下へ 60 ずらす",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
-      "description": "注文するの箱だけが右へ 40、下へ 60 動き、矢印は動いた箱から出る。 縦列と他の箱は動かない"
+      "description": "注文するの箱だけが右へ 40、下へ 60 動き、矢印は動いた箱から出る。 縦列と他の箱は動かない。"
     }
   ]
 }`;
@@ -1094,7 +1094,7 @@ flow:
 animation:
   - step: "受付の窓口の縦列を右へ 120、下へ 40 ずらす" 1.8s
     focus: ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"]
-    description: "受付の窓口の縦列が右へ 120、下へ 40 動き、中の 2 つの箱も一緒に動く。 縦列の幅と高さと、利用者の縦列は変わらない"
+    description: "受付の窓口の縦列が右へ 120、下へ 40 動き、中の 2 つの箱も一緒に動く。 縦列の幅と高さと、利用者の縦列は変わらない。"
 `;
 
 export const sourceJson__pattern__layoutOffset__縦列をずらす = `{
@@ -1118,7 +1118,7 @@ export const sourceJson__pattern__layoutOffset__縦列をずらす = `{
       "step": "受付の窓口の縦列を右へ 120、下へ 40 ずらす",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
-      "description": "受付の窓口の縦列が右へ 120、下へ 40 動き、中の 2 つの箱も一緒に動く。 縦列の幅と高さと、利用者の縦列は変わらない"
+      "description": "受付の窓口の縦列が右へ 120、下へ 40 動き、中の 2 つの箱も一緒に動く。 縦列の幅と高さと、利用者の縦列は変わらない。"
     }
   ]
 }`;
@@ -1144,7 +1144,7 @@ flow:
 animation:
   - step: "注文の名前を右へ 40、上へ 24 ずらす" 1.8s
     focus: ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"]
-    description: "注文の矢印の名前だけが右へ 40、上へ 24 動く。 矢印の線と箱は動かない"
+    description: "注文の矢印の名前だけが右へ 40、上へ 24 動く。 矢印の線と箱は動かない。"
 `;
 
 export const sourceJson__pattern__layoutOffset__矢印の名前をずらす = `{
@@ -1168,7 +1168,7 @@ export const sourceJson__pattern__layoutOffset__矢印の名前をずらす = `{
       "step": "注文の名前を右へ 40、上へ 24 ずらす",
       "duration": 1.8,
       "focus": ["注文する", "受け付ける", "在庫を引く", "注文する -> 受け付ける"],
-      "description": "注文の矢印の名前だけが右へ 40、上へ 24 動く。 矢印の線と箱は動かない"
+      "description": "注文の矢印の名前だけが右へ 40、上へ 24 動く。 矢印の線と箱は動かない。"
     }
   ]
 }`;
@@ -1208,7 +1208,7 @@ flow:
 animation:
   - step: "縦列を 1 本ずつ並べる" 1.8s
     focus: ["利用者", "注文の処理", "注文の台帳"]
-    description: "組を書かず、受付の層と処理の層と保存の層を枠で囲まずに横へ並べる"
+    description: "組を書かず、受付の層と処理の層と保存の層を枠で囲まずに横へ並べる。"
 `;
 
 export const sourceJson__laneGroup = `{
@@ -1233,7 +1233,7 @@ export const sourceJson__laneGroup = `{
       "step": "縦列を 1 本ずつ並べる",
       "duration": 1.8,
       "focus": ["利用者", "注文の処理", "注文の台帳"],
-      "description": "組を書かず、受付の層と処理の層と保存の層を枠で囲まずに横へ並べる"
+      "description": "組を書かず、受付の層と処理の層と保存の層を枠で囲まずに横へ並べる。"
     }
   ]
 }`;
@@ -1263,7 +1263,7 @@ flow:
 animation:
   - step: "社内の網で 2 本の縦列を囲む" 1.8s
     focus: ["利用者", "注文の処理", "注文の台帳"]
-    description: "社内の網の枠が処理の層と保存の層と中の箱を囲み、受付の層は枠の外に残る。 縦列と箱の位置は束ねない図と同じ"
+    description: "社内の網の枠が処理の層と保存の層と中の箱を囲み、受付の層は枠の外に残る。 縦列と箱の位置は束ねない図と同じ。"
 `;
 
 export const sourceJson__pattern__laneGroup__縦列を束ねる = `{
@@ -1291,7 +1291,7 @@ export const sourceJson__pattern__laneGroup__縦列を束ねる = `{
       "step": "社内の網で 2 本の縦列を囲む",
       "duration": 1.8,
       "focus": ["利用者", "注文の処理", "注文の台帳"],
-      "description": "社内の網の枠が処理の層と保存の層と中の箱を囲み、受付の層は枠の外に残る。 縦列と箱の位置は束ねない図と同じ"
+      "description": "社内の網の枠が処理の層と保存の層と中の箱を囲み、受付の層は枠の外に残る。 縦列と箱の位置は束ねない図と同じ。"
     }
   ]
 }`;
@@ -1322,7 +1322,7 @@ flow:
 animation:
   - step: "社外と社内の網を別の枠で囲む" 1.8s
     focus: ["利用者", "注文の処理", "注文の台帳"]
-    description: "社外の枠が受付の層を、社内の網の枠が処理の層と保存の層を囲む。 依頼の矢印は 2 つの枠の間を渡る"
+    description: "社外の枠が受付の層を、社内の網の枠が処理の層と保存の層を囲む。 依頼の矢印は 2 つの枠の間を渡る。"
 `;
 
 export const sourceJson__pattern__laneGroup__2つの組 = `{
@@ -1351,7 +1351,7 @@ export const sourceJson__pattern__laneGroup__2つの組 = `{
       "step": "社外と社内の網を別の枠で囲む",
       "duration": 1.8,
       "focus": ["利用者", "注文の処理", "注文の台帳"],
-      "description": "社外の枠が受付の層を、社内の網の枠が処理の層と保存の層を囲む。 依頼の矢印は 2 つの枠の間を渡る"
+      "description": "社外の枠が受付の層を、社内の網の枠が処理の層と保存の層を囲む。 依頼の矢印は 2 つの枠の間を渡る。"
     }
   ]
 }`;
@@ -1955,8 +1955,8 @@ export const sceneCryptoTransfer = diagram("scene-crypto-transfer", { topic: "sc
   .node("c", { lane: "l", stack: 2, kind: "shape-ethereum-chain", title: "Ethereum", eyebrow: "台帳", subtitle: "L1 の本番の網" })
   .edge("w", "e", { label: "" })
   .edge("e", "c", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 送金者", body: "MetaMask の口座" }, (p: PhaseBuilder) => p.activate("w").badge("財布"))
-  .phase("p2", { duration: 750, title: "2. 分散型取引所", body: "清算" }, (p: PhaseBuilder) => p.activate("w").activate("e").badge("取引所"))
+  .phase("p1", { duration: 750, title: "1. 送金者", body: "始まりは送金者の財布。 MetaMask のような個人の口座から出す。" }, (p: PhaseBuilder) => p.activate("w").badge("財布"))
+  .phase("p2", { duration: 750, title: "2. 分散型取引所", body: "注文は分散型取引所が受けて清算する。 台帳への記録はまだ先。" }, (p: PhaseBuilder) => p.activate("w").activate("e").badge("取引所"))
   .phase("p3", { duration: 750, title: "暗号資産の送金", body: "送金者の財布が分散型取引所へ注文を出し、取引所が Ethereum の台帳で決済する。 個人の口座から L1 まで 3 段で進む場面。" }, (p: PhaseBuilder) => p.activate("w").activate("e").activate("c").badge("台帳"))
   .build();
 
@@ -1968,8 +1968,8 @@ export const sceneLegalNotarization = diagram("scene-legal-notarization", { topi
   .node("f", { lane: "l", stack: 2, kind: "shape-file", title: "登記簿", eyebrow: "記録", subtitle: "法務局に保管" })
   .edge("l1", "n", { label: "" })
   .edge("n", "f", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 代理人", body: "起草" }, (p: PhaseBuilder) => p.activate("l1").badge("法務"))
-  .phase("p2", { duration: 750, title: "2. 公証役場", body: "認証" }, (p: PhaseBuilder) => p.activate("l1").activate("n").badge("公証"))
+  .phase("p1", { duration: 750, title: "1. 代理人", body: "代理人が契約の文書を起草する。 まだ公証も登記もされていない。" }, (p: PhaseBuilder) => p.activate("l1").badge("法務"))
+  .phase("p2", { duration: 750, title: "2. 公証役場", body: "公証役場が起草した文書を認証する。 登記はこの後。" }, (p: PhaseBuilder) => p.activate("l1").activate("n").badge("公証"))
   .phase("p3", { duration: 750, title: "法務の流れ", body: "代理人が起草し、公証役場が認証して、登記簿に記録する。 契約や遺言、不動産の譲渡で踏む正式な流れ。" }, (p: PhaseBuilder) => p.activate("l1").activate("n").activate("f").badge("記録"))
   .build();
 
@@ -1981,8 +1981,8 @@ export const sceneBankingFlow = diagram("scene-banking-flow", { topic: "scene: �
   .node("s", { lane: "l", stack: 2, kind: "shape-online-shop", title: "Amazon", eyebrow: "店", subtitle: "ネット通販" })
   .edge("a", "b", { label: "" })
   .edge("b", "s", { label: "" })
-  .phase("p1", { duration: 750, title: "1. ATM", body: "現金を引き出す" }, (p: PhaseBuilder) => p.activate("a").badge("現金の窓口"))
-  .phase("p2", { duration: 750, title: "2. みずほ銀行", body: "都銀" }, (p: PhaseBuilder) => p.activate("a").activate("b").badge("銀行"))
+  .phase("p1", { duration: 750, title: "1. ATM", body: "現金を引き出す。" }, (p: PhaseBuilder) => p.activate("a").badge("現金の窓口"))
+  .phase("p2", { duration: 750, title: "2. みずほ銀行", body: "引き出した現金がみずほ銀行の口座を通る。 都市銀行が振替を受け持つ。" }, (p: PhaseBuilder) => p.activate("a").activate("b").badge("銀行"))
   .phase("p3", { duration: 750, title: "銀行の送金", body: "ATM で現金を引き出し、銀行の口座を通して、通販の代金を払う。 暮らしの中でお金が動く流れ。" }, (p: PhaseBuilder) => p.activate("a").activate("b").activate("s").badge("店"))
   .build();
 
@@ -1994,8 +1994,8 @@ export const sceneIotOnchain = diagram("scene-iot-onchain", { topic: "scene: IoT
   .node("c", { lane: "l", stack: 2, kind: "shape-smart-contract", title: "外部データの受け口", eyebrow: "契約", subtitle: "Solidity", w: 360 })
   .edge("s", "r", { label: "" })
   .edge("r", "c", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 温度計", body: "近距離の無線" }, (p: PhaseBuilder) => p.activate("s").badge("計測機器"))
-  .phase("p2", { duration: 750, title: "2. Infura", body: "窓口を貸す事業者" }, (p: PhaseBuilder) => p.activate("s").activate("r").badge("RPC の窓口"))
+  .phase("p1", { duration: 750, title: "1. 温度計", body: "温度計が近距離の無線で値を送る。 機器は台帳に直に触らない。" }, (p: PhaseBuilder) => p.activate("s").badge("計測機器"))
+  .phase("p2", { duration: 750, title: "2. Infura", body: "Infura が台帳への窓口を貸す。 機器の値をここが中継する。" }, (p: PhaseBuilder) => p.activate("s").activate("r").badge("RPC の窓口"))
   .phase("p3", { duration: 750, title: "計測値を台帳へ", body: "温度計の値を RPC の窓口へ送り、外部データの受け口の契約が台帳に書き込む。 現実の計測値を台帳に残す流れ。" }, (p: PhaseBuilder) => p.activate("s").activate("r").activate("c").badge("契約"))
   .build();
 
@@ -2007,8 +2007,8 @@ export const sceneAuditFlow = diagram("scene-audit-flow", { topic: "scene: 監�
   .node("r", { lane: "l", stack: 2, kind: "shape-regulator", title: "金融庁", eyebrow: "規制当局", subtitle: "監督" })
   .edge("a", "f", { label: "" })
   .edge("f", "r", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 監査法人", body: "検査" }, (p: PhaseBuilder) => p.activate("a").badge("監査"))
-  .phase("p2", { duration: 750, title: "2. 会計帳簿", body: "元帳" }, (p: PhaseBuilder) => p.activate("a").activate("f").badge("記録"))
+  .phase("p1", { duration: 750, title: "1. 監査法人", body: "監査法人が検査を始める。 帳簿を確かめる側。" }, (p: PhaseBuilder) => p.activate("a").badge("監査"))
+  .phase("p2", { duration: 750, title: "2. 会計帳簿", body: "会計帳簿を開く。 検査の対象になる元帳。" }, (p: PhaseBuilder) => p.activate("a").activate("f").badge("記録"))
   .phase("p3", { duration: 750, title: "監査の流れ", body: "監査法人が帳簿を確かめ、規制当局へ報告する。 上場企業の財務監査で踏む 3 段の流れ。" }, (p: PhaseBuilder) => p.activate("a").activate("f").activate("r").badge("規制当局"))
   .build();
 
@@ -2020,8 +2020,8 @@ export const sceneStockTrading = diagram("scene-stock-trading", { topic: "scene:
   .node("e", { lane: "l", stack: 2, kind: "shape-exchange", title: "東証", eyebrow: "取引所", subtitle: "プライム市場" })
   .edge("t", "b", { label: "" })
   .edge("b", "e", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 個人投資家", body: "小口の注文" }, (p: PhaseBuilder) => p.activate("t").badge("売買"))
-  .phase("p2", { duration: 750, title: "2. 野村証券", body: "投資銀行" }, (p: PhaseBuilder) => p.activate("t").activate("b").badge("証券"))
+  .phase("p1", { duration: 750, title: "1. 個人投資家", body: "個人投資家が小口の注文を出す。 取引所へは直に出せない。" }, (p: PhaseBuilder) => p.activate("t").badge("売買"))
+  .phase("p2", { duration: 750, title: "2. 野村証券", body: "野村証券が注文を取り次ぐ。 取引所に繋がるのは証券会社。" }, (p: PhaseBuilder) => p.activate("t").activate("b").badge("証券"))
   .phase("p3", { duration: 750, title: "証券取引", body: "個人投資家が証券会社へ発注し、取引所で約定する。 株の売買で踏む 3 段の場面。" }, (p: PhaseBuilder) => p.activate("t").activate("b").activate("e").badge("取引所"))
   .build();
 
@@ -2033,8 +2033,8 @@ export const sceneSupportFlow = diagram("scene-support-flow", { topic: "scene: �
   .node("d", { lane: "l", stack: 2, kind: "shape-code-block", title: "緊急の修正", eyebrow: "変更の確定", subtitle: "開発者が直す" })
   .edge("c", "k", { label: "" })
   .edge("k", "d", { label: "" })
-  .phase("p1", { duration: 750, title: "1. サポート担当", body: "24 時間対応" }, (p: PhaseBuilder) => p.activate("c").badge("問い合わせ"))
-  .phase("p2", { duration: 750, title: "2. 不具合 #1234", body: "管理表に起票" }, (p: PhaseBuilder) => p.activate("c").activate("k").badge("課題"))
+  .phase("p1", { duration: 750, title: "1. サポート担当", body: "サポート担当が電話を受ける。 24 時間対応の窓口。" }, (p: PhaseBuilder) => p.activate("c").badge("問い合わせ"))
+  .phase("p2", { duration: 750, title: "2. 不具合 #1234", body: "受けた内容を不具合として管理表に起票する。 修正はこの後。" }, (p: PhaseBuilder) => p.activate("c").activate("k").badge("課題"))
   .phase("p3", { duration: 750, title: "問い合わせの流れ", body: "サポート担当が電話を受け、課題として起票し、開発者が緊急の修正を出す。 不具合の報告から修正までの、よくある 3 段の流れ。" }, (p: PhaseBuilder) => p.activate("c").activate("k").activate("d").badge("変更の確定"))
   .build();
 
@@ -2046,8 +2046,8 @@ export const scenePaymentSettlement = diagram("scene-payment-settlement", { topi
   .node("b", { lane: "l", stack: 2, kind: "shape-bank", title: "発行銀行", eyebrow: "発行元", subtitle: "三菱 UFJ 銀行" })
   .edge("p", "c", { label: "" })
   .edge("c", "b", { label: "" })
-  .phase("p1", { duration: 750, title: "1. Stripe", body: "クラウドで提供" }, (p: PhaseBuilder) => p.activate("p").badge("決済代行"))
-  .phase("p2", { duration: 750, title: "2. VISA", body: "後払い" }, (p: PhaseBuilder) => p.activate("p").activate("c").badge("カード"))
+  .phase("p1", { duration: 750, title: "1. Stripe", body: "Stripe が支払いを受け付ける。 決済代行をクラウドで提供する側。" }, (p: PhaseBuilder) => p.activate("p").badge("決済代行"))
+  .phase("p2", { duration: 750, title: "2. VISA", body: "後払い。" }, (p: PhaseBuilder) => p.activate("p").activate("c").badge("カード"))
   .phase("p3", { duration: 750, title: "決済の流れ", body: "Stripe がカードの承認を求め、発行銀行が決済する。 通販のカード払いで踏む 3 段の流れ。" }, (p: PhaseBuilder) => p.activate("p").activate("c").activate("b").badge("発行元"))
   .build();
 
@@ -2059,8 +2059,8 @@ export const sceneWebInfra = diagram("scene-web-infra", { topic: "scene: web inf
   .node("s", { lane: "l", stack: 2, kind: "shape-server-rack", title: "配信元", eyebrow: "サーバ", subtitle: "AWS" })
   .edge("w", "c", { label: "" })
   .edge("c", "s", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 会社案内", body: "1 画面で動くアプリ" }, (p: PhaseBuilder) => p.activate("w").badge("サイト"))
-  .phase("p2", { duration: 750, title: "2. Cloudflare", body: "近くの拠点" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("配信網"))
+  .phase("p1", { duration: 750, title: "1. 会社案内", body: "会社案内のサイトへ要求が来る。 1 画面で動くアプリ。" }, (p: PhaseBuilder) => p.activate("w").badge("サイト"))
+  .phase("p2", { duration: 750, title: "2. Cloudflare", body: "Cloudflare の近くの拠点が控えを返す。 配信元まで行かずに済む。" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("配信網"))
   .phase("p3", { duration: 750, title: "サイトの配信", body: "サイトへの要求を配信網の控えで返し、無い時だけ配信元のサーバへ取りに行く。 サイトの配信でよく使う 3 層の形。" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("s").badge("サーバ"))
   .build();
 
@@ -2072,8 +2072,8 @@ export const sceneNftMint = diagram("scene-nft-mint", { topic: "scene: NFT mint 
   .node("n", { lane: "l", stack: 2, kind: "shape-nft", title: "一点物の絵", eyebrow: "NFT", subtitle: "#42" })
   .edge("w", "c", { label: "" })
   .edge("c", "n", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 作者", body: "絵描き" }, (p: PhaseBuilder) => p.activate("w").badge("財布"))
-  .phase("p2", { duration: 750, title: "2. ERC-721", body: "OpenSea に出品" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("契約"))
+  .phase("p1", { duration: 750, title: "1. 作者", body: "始まりは作者の財布。 絵を描いた本人が発行を始める。" }, (p: PhaseBuilder) => p.activate("w").badge("財布"))
+  .phase("p2", { duration: 750, title: "2. ERC-721", body: "作者が ERC-721 の契約を呼ぶ。 発行の決まりはこの契約が持つ。" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("契約"))
   .phase("p3", { duration: 750, title: "NFT の発行", body: "作者の財布が ERC-721 の契約を呼び、NFT が発行される。 NFT を発行する時の典型的な 3 段の流れ。" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("n").badge("NFT"))
   .build();
 
@@ -2085,8 +2085,8 @@ export const sceneTokenBridge = diagram("scene-token-bridge", { topic: "scene: t
   .node("c", { lane: "l", stack: 2, kind: "shape-blockchain", title: "Arbitrum", eyebrow: "受ける側の台帳", subtitle: "L2" })
   .edge("a", "b", { label: "" })
   .edge("b", "c", { label: "" })
-  .phase("p1", { duration: 750, title: "1. Ethereum", body: "L1" }, (p: PhaseBuilder) => p.activate("a").badge("送る側の台帳"))
-  .phase("p2", { duration: 750, title: "2. 橋渡し", body: "預かって凍結" }, (p: PhaseBuilder) => p.activate("a").activate("b").badge("契約"))
+  .phase("p1", { duration: 750, title: "1. Ethereum", body: "送る側の台帳は Ethereum。 もとの通貨はここに在る。" }, (p: PhaseBuilder) => p.activate("a").badge("送る側の台帳"))
+  .phase("p2", { duration: 750, title: "2. 橋渡し", body: "橋渡しの契約が通貨を預かって凍結する。 受ける側での発行はこの後。" }, (p: PhaseBuilder) => p.activate("a").activate("b").badge("契約"))
   .phase("p3", { duration: 750, title: "通貨の橋渡し", body: "送る側の台帳で通貨を凍結し、橋渡しの契約を通して、受ける側の台帳で同じ額を発行する。 台帳をまたいで資産を移す流れ。" }, (p: PhaseBuilder) => p.activate("a").activate("b").activate("c").badge("受ける側の台帳"))
   .build();
 
@@ -2098,8 +2098,8 @@ export const sceneDefiLending = diagram("scene-defi-lending", { topic: "scene: D
   .node("t", { lane: "l", stack: 2, kind: "shape-token", title: "aUSDC", eyebrow: "通貨", subtitle: "利息が付く" })
   .edge("w", "c", { label: "" })
   .edge("c", "t", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 供給者", body: "USDC を預ける" }, (p: PhaseBuilder) => p.activate("w").badge("財布"))
-  .phase("p2", { duration: 750, title: "2. Aave v3", body: "まとめた資金" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("貸し出し"))
+  .phase("p1", { duration: 750, title: "1. 供給者", body: "USDC を預ける。" }, (p: PhaseBuilder) => p.activate("w").badge("財布"))
+  .phase("p2", { duration: 750, title: "2. Aave v3", body: "Aave v3 が預かった資金をまとめる。 借り手へ貸し出す元手になる。" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("貸し出し"))
   .phase("p3", { duration: 750, title: "分散型の貸し出し", body: "財布から Aave に USDC を預けると、利息が付く aUSDC を受け取る。 利息の付く貸し出しの典型的な流れ。" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("t").badge("通貨"))
   .build();
 
@@ -2111,8 +2111,8 @@ export const sceneBitcoinTx = diagram("scene-bitcoin-tx", { topic: "scene: bitco
   .node("n", { lane: "l", stack: 2, kind: "shape-blockchain-node", title: "全記録の保持者", eyebrow: "参加者", subtitle: "検証役" })
   .edge("w", "c", { label: "" })
   .edge("c", "n", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 送金者", body: "Bitcoin の公式ソフト" }, (p: PhaseBuilder) => p.activate("w").badge("財布"))
-  .phase("p2", { duration: 750, title: "2. BTC の本番網", body: "計算の量で合意" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("台帳"))
+  .phase("p1", { duration: 750, title: "1. 送金者", body: "送金者が公式の財布で取引に署名する。 仲介する事業者は居ない。" }, (p: PhaseBuilder) => p.activate("w").badge("財布"))
+  .phase("p2", { duration: 750, title: "2. BTC の本番網", body: "署名した取引を Bitcoin の網へ流す。 承認は計算の量で決まる。" }, (p: PhaseBuilder) => p.activate("w").activate("c").badge("台帳"))
   .phase("p3", { duration: 750, title: "Bitcoin の送金", body: "財布で取引に署名し、Bitcoin の網へ流して、全記録の保持者が承認する。 仲介なしで直接送る 3 段の流れ。" }, (p: PhaseBuilder) => p.activate("w").activate("c").activate("n").badge("参加者"))
   .build();
 
@@ -2124,8 +2124,8 @@ export const sceneEcOrder = diagram("scene-ec-order", { topic: "scene: EC 注文
   .node("w", { lane: "l", stack: 2, kind: "shape-warehouse", title: "市川倉庫", eyebrow: "物流拠点", subtitle: "出荷" })
   .edge("c", "s", { label: "" })
   .edge("s", "w", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 購入者", body: "注文" }, (p: PhaseBuilder) => p.activate("c").badge("顧客"))
-  .phase("p2", { duration: 750, title: "2. 楽天市場", body: "ネット通販" }, (p: PhaseBuilder) => p.activate("c").activate("s").badge("店"))
+  .phase("p1", { duration: 750, title: "1. 購入者", body: "購入者が注文を出す。 買い物かごから先に進んだところ。" }, (p: PhaseBuilder) => p.activate("c").badge("顧客"))
+  .phase("p2", { duration: 750, title: "2. 楽天市場", body: "楽天市場が注文を受ける。 店と買い手の間に立つ通販の場。" }, (p: PhaseBuilder) => p.activate("c").activate("s").badge("店"))
   .phase("p3", { duration: 750, title: "通販の注文", body: "購入者が注文し、通販の店が受けて、倉庫へ出荷を指示する。 物を売る時の、注文から出荷までの流れ。" }, (p: PhaseBuilder) => p.activate("c").activate("s").activate("w").badge("物流拠点"))
   .build();
 
@@ -2137,8 +2137,8 @@ export const sceneMobileApi = diagram("scene-mobile-api", { topic: "scene: mobil
   .node("s", { lane: "l", stack: 2, kind: "shape-server-rack", title: "裏側の処理", eyebrow: "サーバ", subtitle: "コンテナで稼働" })
   .edge("m", "g", { label: "" })
   .edge("g", "s", { label: "" })
-  .phase("p1", { duration: 750, title: "1. iOS のアプリ", body: "SwiftUI" }, (p: PhaseBuilder) => p.activate("m").badge("携帯端末"))
-  .phase("p2", { duration: 750, title: "2. GraphQL", body: "要求を振り分ける" }, (p: PhaseBuilder) => p.activate("m").activate("g").badge("API の入口"))
+  .phase("p1", { duration: 750, title: "1. iOS のアプリ", body: "iOS のアプリが要求を送る。 画面は SwiftUI で組む。" }, (p: PhaseBuilder) => p.activate("m").badge("携帯端末"))
+  .phase("p2", { duration: 750, title: "2. GraphQL", body: "要求を振り分ける。" }, (p: PhaseBuilder) => p.activate("m").activate("g").badge("API の入口"))
   .phase("p3", { duration: 750, title: "携帯アプリの API", body: "携帯のアプリが要求を送り、API の入口が認証して振り分け、裏側のサーバが処理する。 いまどきの携帯アプリの組み立て。" }, (p: PhaseBuilder) => p.activate("m").activate("g").activate("s").badge("サーバ"))
   .build();
 
@@ -2150,8 +2150,8 @@ export const sceneFactoryLine = diagram("scene-factory-line", { topic: "scene: �
   .node("d", { lane: "l", stack: 2, kind: "shape-cylinder", title: "製造管理の DB", eyebrow: "データベース", subtitle: "履歴を追える" })
   .edge("r", "s", { label: "" })
   .edge("s", "d", { label: "" })
-  .phase("p1", { duration: 750, title: "1. ファナックの腕", body: "組立" }, (p: PhaseBuilder) => p.activate("r").badge("ロボット"))
-  .phase("p2", { duration: 750, title: "2. 外観の検査", body: "品質" }, (p: PhaseBuilder) => p.activate("r").activate("s").badge("計測機器"))
+  .phase("p1", { duration: 750, title: "1. ファナックの腕", body: "ファナックの腕が部品を組み立てる。 人の手は入らない。" }, (p: PhaseBuilder) => p.activate("r").badge("ロボット"))
+  .phase("p2", { duration: 750, title: "2. 外観の検査", body: "外観の検査が品質を確かめる。 記録に残すのはこの後。" }, (p: PhaseBuilder) => p.activate("r").activate("s").badge("計測機器"))
   .phase("p3", { duration: 750, title: "工場の組立", body: "ロボットの腕が組み立て、計測機器が品質を確かめ、製造管理の DB に記録する。 機械でつないだ工場の典型的な流れ。" }, (p: PhaseBuilder) => p.activate("r").activate("s").activate("d").badge("データベース"))
   .build();
 
@@ -2163,8 +2163,8 @@ export const sceneSatelliteChain = diagram("scene-satellite-chain", { topic: "sc
   .node("c", { lane: "l", stack: 2, kind: "shape-blockchain", title: "Solana", eyebrow: "台帳", subtitle: "処理が速い" })
   .edge("s", "r", { label: "" })
   .edge("r", "c", { label: "" })
-  .phase("p1", { duration: 750, title: "1. Starlink", body: "低軌道" }, (p: PhaseBuilder) => p.activate("s").badge("人工衛星"))
-  .phase("p2", { duration: 750, title: "2. Alchemy", body: "接続先" }, (p: PhaseBuilder) => p.activate("s").activate("r").badge("RPC の窓口"))
+  .phase("p1", { duration: 750, title: "1. Starlink", body: "Starlink の低軌道の衛星が観測の値を出す。 地上の窓口へ送る。" }, (p: PhaseBuilder) => p.activate("s").badge("人工衛星"))
+  .phase("p2", { duration: 750, title: "2. Alchemy", body: "Alchemy が台帳への接続先になる。 衛星の値をここが中継する。" }, (p: PhaseBuilder) => p.activate("s").activate("r").badge("RPC の窓口"))
   .phase("p3", { duration: 750, title: "衛星から台帳へ", body: "衛星のデータを RPC の窓口が中継し、台帳に記録する。 宇宙から現実のデータを台帳へ送る流れ。" }, (p: PhaseBuilder) => p.activate("s").activate("r").activate("c").badge("台帳"))
   .build();
 
@@ -2176,8 +2176,8 @@ export const sceneDevOps = diagram("scene-devops", { topic: "scene: DevOps (code
   .node("d", { lane: "l", stack: 2, kind: "shape-cloud", title: "AWS ECS", eyebrow: "配備先", subtitle: "コンテナで稼働" })
   .edge("c", "g", { label: "" })
   .edge("g", "d", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 注文画面/", body: "TypeScript" }, (p: PhaseBuilder) => p.activate("c").badge("コード"))
-  .phase("p2", { duration: 750, title: "2. GitHub の実行環境", body: "組み立てと検査" }, (p: PhaseBuilder) => p.activate("c").activate("g").badge("自動化"))
+  .phase("p1", { duration: 750, title: "1. 注文画面/", body: "注文画面のコードを書いて送る。 中身は TypeScript。" }, (p: PhaseBuilder) => p.activate("c").badge("コード"))
+  .phase("p2", { duration: 750, title: "2. GitHub の実行環境", body: "GitHub の実行環境が組み立てと検査を自動で回す。 配備はこの後。" }, (p: PhaseBuilder) => p.activate("c").activate("g").badge("自動化"))
   .phase("p3", { duration: 750, title: "開発と運用", body: "コードを送ると、自動で組み立てて検査し、クラウドへ配備する。 いまどきの自動配備の典型的な 3 段の流れ。" }, (p: PhaseBuilder) => p.activate("c").activate("g").activate("d").badge("配備先"))
   .build();
 
@@ -2189,8 +2189,8 @@ export const sceneTaskFlow = diagram("scene-task-flow", { topic: "scene: task fl
   .node("f", { lane: "l", stack: 2, kind: "shape-file", title: "組み立ての記録", eyebrow: "ファイル", subtitle: "出力" })
   .edge("k", "t", { label: "" })
   .edge("t", "f", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 課題 #42", body: "作業中" }, (p: PhaseBuilder) => p.activate("k").badge("看板"))
-  .phase("p2", { duration: 750, title: "2. zsh", body: "組み立てを実行" }, (p: PhaseBuilder) => p.activate("k").activate("t").badge("端末"))
+  .phase("p1", { duration: 750, title: "1. 課題 #42", body: "看板の課題 #42 を作業中に移す。 手を付けたところ。" }, (p: PhaseBuilder) => p.activate("k").badge("看板"))
+  .phase("p2", { duration: 750, title: "2. zsh", body: "端末で組み立ての命令を打つ。 出力を残すのはこの後。" }, (p: PhaseBuilder) => p.activate("k").activate("t").badge("端末"))
   .phase("p3", { duration: 750, title: "作業の流れ", body: "看板の課題に着手し、端末で命令を打ち、出力をファイルに残す。 開発者の日々の流れ。" }, (p: PhaseBuilder) => p.activate("k").activate("t").activate("f").badge("ファイル"))
   .build();
 
@@ -2202,8 +2202,8 @@ export const sceneNotification = diagram("scene-notification", { topic: "scene: 
   .node("w", { lane: "l", stack: 2, kind: "shape-window", title: "デスクトップ通知", eyebrow: "アプリの画面", subtitle: "端末の標準機能" })
   .edge("m", "h", { label: "" })
   .edge("h", "w", { label: "" })
-  .phase("p1", { duration: 750, title: "1. @花子", body: "社内の連絡" }, (p: PhaseBuilder) => p.activate("m").badge("発言"))
-  .phase("p2", { duration: 750, title: "2. 通知の配達", body: "即時に知らせる" }, (p: PhaseBuilder) => p.activate("m").activate("h").badge("役務"))
+  .phase("p1", { duration: 750, title: "1. @花子", body: "@花子 宛の発言を送る。 社内の連絡で使う形。" }, (p: PhaseBuilder) => p.activate("m").badge("発言"))
+  .phase("p2", { duration: 750, title: "2. 通知の配達", body: "即時に知らせる。" }, (p: PhaseBuilder) => p.activate("m").activate("h").badge("役務"))
   .phase("p3", { duration: 750, title: "通知", body: "発言を送ると通知の配達が受け取り、相手の画面に通知を出す。 送り手から受け手までをつなぐ流れ。" }, (p: PhaseBuilder) => p.activate("m").activate("h").activate("w").badge("アプリの画面"))
   .build();
 
@@ -2215,8 +2215,8 @@ export const sceneTrustAsset = diagram("scene-trust-asset", { topic: "scene: 信
   .node("f", { lane: "l", stack: 2, kind: "shape-file", title: "運用報告書", eyebrow: "記録", subtitle: "月次" })
   .edge("t", "b", { label: "" })
   .edge("b", "f", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 資産運用者", body: "買いの指示" }, (p: PhaseBuilder) => p.activate("t").badge("売買"))
-  .phase("p2", { duration: 750, title: "2. 三井住友信託", body: "受託" }, (p: PhaseBuilder) => p.activate("t").activate("b").badge("信託銀行"))
+  .phase("p1", { duration: 750, title: "1. 資産運用者", body: "資産運用者が買いを指示する。 自分で売買はしない。" }, (p: PhaseBuilder) => p.activate("t").badge("売買"))
+  .phase("p2", { duration: 750, title: "2. 三井住友信託", body: "三井住友信託が資産を預かる。 記録と報告はこの後。" }, (p: PhaseBuilder) => p.activate("t").activate("b").badge("信託銀行"))
   .phase("p3", { duration: 750, title: "信託資産", body: "資産運用者が買いを指示し、信託銀行が預かって、月ごとの報告書を出す。 機関投資家の資産管理。" }, (p: PhaseBuilder) => p.activate("t").activate("b").activate("f").badge("記録"))
   .build();
 
@@ -2228,8 +2228,8 @@ export const sceneConsensus = diagram("scene-consensus", { topic: "scene: consen
   .node("c", { lane: "l", stack: 2, kind: "shape-blockchain", title: "本流", eyebrow: "台帳", subtitle: "確定済み" })
   .edge("n", "b", { label: "" })
   .edge("b", "c", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 検証役", body: "預けた量で合意" }, (p: PhaseBuilder) => p.activate("n").badge("参加者"))
-  .phase("p2", { duration: 750, title: "2. 高さ 8123456", body: "提案中" }, (p: PhaseBuilder) => p.activate("n").activate("b").badge("ブロック"))
+  .phase("p1", { duration: 750, title: "1. 検証役", body: "検証役が次のブロックを提案する。 提案できるのは通貨を預けた参加者。" }, (p: PhaseBuilder) => p.activate("n").badge("参加者"))
+  .phase("p2", { duration: 750, title: "2. 高さ 8123456", body: "高さ 8123456 のブロックが提案中になる。 確定はまだ。" }, (p: PhaseBuilder) => p.activate("n").activate("b").badge("ブロック"))
   .phase("p3", { duration: 750, title: "合意の形成", body: "検証役がブロックを提案し、他の検証役の承認を集めて、本流の台帳で確定する。 預けた量で合意する方式の典型的な流れ。" }, (p: PhaseBuilder) => p.activate("n").activate("b").activate("c").badge("台帳"))
   .build();
 
@@ -2241,8 +2241,8 @@ export const sceneTokenDeploy = diagram("scene-token-deploy", { topic: "scene: t
   .node("t", { lane: "l", stack: 2, kind: "shape-token", title: "$KIWA", eyebrow: "通貨", subtitle: "発行 10 億枚" })
   .edge("d", "c", { label: "" })
   .edge("c", "t", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 発行者", body: "創業者" }, (p: PhaseBuilder) => p.activate("d").badge("開発者"))
-  .phase("p2", { duration: 750, title: "2. ERC-20", body: "OpenZeppelin" }, (p: PhaseBuilder) => p.activate("d").activate("c").badge("契約"))
+  .phase("p1", { duration: 750, title: "1. 発行者", body: "発行者が通貨の発行を決める。 新しい事業の立ち上げ。" }, (p: PhaseBuilder) => p.activate("d").badge("開発者"))
+  .phase("p2", { duration: 750, title: "2. ERC-20", body: "ERC-20 の契約を配備する。 実装は OpenZeppelin のものを使う。" }, (p: PhaseBuilder) => p.activate("d").activate("c").badge("契約"))
   .phase("p3", { duration: 750, title: "通貨の発行", body: "発行者が ERC-20 の契約を配備し、通貨を発行して市場へ出す。 新しい事業の立ち上げ。" }, (p: PhaseBuilder) => p.activate("d").activate("c").activate("t").badge("通貨"))
   .build();
 
@@ -2254,8 +2254,8 @@ export const sceneCompliance = diagram("scene-compliance", { topic: "scene: 規�
   .node("b", { lane: "l", stack: 2, kind: "shape-bank", title: "あおば銀行", eyebrow: "銀行", subtitle: "検査対象" })
   .edge("r", "f", { label: "" })
   .edge("f", "b", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 金融庁", body: "検査" }, (p: PhaseBuilder) => p.activate("r").badge("規制当局"))
-  .phase("p2", { duration: 750, title: "2. 取引の明細", body: "監査の証跡" }, (p: PhaseBuilder) => p.activate("r").activate("f").badge("記録"))
+  .phase("p1", { duration: 750, title: "1. 金融庁", body: "金融庁が検査を始める。 対象は銀行の取引。" }, (p: PhaseBuilder) => p.activate("r").badge("規制当局"))
+  .phase("p2", { duration: 750, title: "2. 取引の明細", body: "取引の明細を出させる。 監査の証跡になる記録。" }, (p: PhaseBuilder) => p.activate("r").activate("f").badge("記録"))
   .phase("p3", { duration: 750, title: "規制への対応", body: "規制当局が検査を始めて取引の明細を出させ、銀行が検査に応じる。 金融庁の検査で踏む典型的な流れ。" }, (p: PhaseBuilder) => p.activate("r").activate("f").activate("b").badge("銀行"))
   .build();
 
@@ -2267,8 +2267,8 @@ export const sceneNftMarketplace = diagram("scene-nft-marketplace", { topic: "sc
   .node("n", { lane: "l", stack: 2, kind: "shape-nft", title: "猿の絵 #7890", eyebrow: "NFT", subtitle: "人気の作品群", w: 272 })
   .edge("b", "m", { label: "" })
   .edge("m", "n", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 買い手", body: "収集家" }, (p: PhaseBuilder) => p.activate("b").badge("財布"))
-  .phase("p2", { duration: 750, title: "2. OpenSea", body: "作者への還元 5%" }, (p: PhaseBuilder) => p.activate("b").activate("m").badge("売買の場"))
+  .phase("p1", { duration: 750, title: "1. 買い手", body: "買い手が売買の場を開く。 集める側の人。" }, (p: PhaseBuilder) => p.activate("b").badge("財布"))
+  .phase("p2", { duration: 750, title: "2. OpenSea", body: "OpenSea で値を付ける。 売れた額の 5% は作者へ還元される。" }, (p: PhaseBuilder) => p.activate("b").activate("m").badge("売買の場"))
   .phase("p3", { duration: 750, title: "NFT の売買", body: "買い手が売買の場で値を付け、契約が動いて NFT の持ち主が移る。 二次流通の流れ。" }, (p: PhaseBuilder) => p.activate("b").activate("m").activate("n").badge("NFT"))
   .build();
 
@@ -2280,8 +2280,8 @@ export const sceneNetworkPath = diagram("scene-network-path", { topic: "scene: n
   .node("s", { lane: "l", stack: 2, kind: "shape-server-rack", title: "業務の処理役", eyebrow: "サーバ", subtitle: "データセンター", w: 272 })
   .edge("m", "n", { label: "" })
   .edge("n", "s", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 社員の携帯", body: "無線でつなぐ" }, (p: PhaseBuilder) => p.activate("m").badge("端末"))
-  .phase("p2", { duration: 750, title: "2. 基幹の中継器", body: "L2/L3" }, (p: PhaseBuilder) => p.activate("m").activate("n").badge("通信網"))
+  .phase("p1", { duration: 750, title: "1. 社員の携帯", body: "社員の携帯が無線でつながる。 経路の出発点。" }, (p: PhaseBuilder) => p.activate("m").badge("端末"))
+  .phase("p2", { duration: 750, title: "2. 基幹の中継器", body: "基幹の中継器が経路を決める。 L2 と L3 の橋渡しをする機器。" }, (p: PhaseBuilder) => p.activate("m").activate("n").badge("通信網"))
   .phase("p3", { duration: 750, title: "通信の経路", body: "社員の携帯から基幹の中継器を通って、業務のサーバへ届く。 会社の通信網でよくある 3 段の経路。" }, (p: PhaseBuilder) => p.activate("m").activate("n").activate("s").badge("サーバ"))
   .build();
 
@@ -2293,8 +2293,8 @@ export const sceneCheckout = diagram("scene-checkout", { topic: "scene: checkout
   .node("c", { lane: "l", stack: 2, kind: "shape-credit-card", title: "MasterCard", eyebrow: "カード", subtitle: "後払い" })
   .edge("w", "p", { label: "" })
   .edge("p", "c", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 山田商店の通販", body: "かごの中身" }, (p: PhaseBuilder) => p.activate("w").badge("サイト"))
-  .phase("p2", { duration: 750, title: "2. PayPal", body: "支払いの手続き" }, (p: PhaseBuilder) => p.activate("w").activate("p").badge("決済代行"))
+  .phase("p1", { duration: 750, title: "1. 山田商店の通販", body: "山田商店の通販がかごの中身を送る。 支払いはこの後。" }, (p: PhaseBuilder) => p.activate("w").badge("サイト"))
+  .phase("p2", { duration: 750, title: "2. PayPal", body: "PayPal が支払いの手続きを受け持つ。 カードの番号は店に渡らない。" }, (p: PhaseBuilder) => p.activate("w").activate("p").badge("決済代行"))
   .phase("p3", { duration: 750, title: "通販の支払い", body: "サイトでかごの中身を送り、決済代行を通して、カードの承認を得る。 通販の支払いの典型的な流れ。" }, (p: PhaseBuilder) => p.activate("w").activate("p").activate("c").badge("カード"))
   .build();
 
@@ -2306,8 +2306,8 @@ export const sceneEdgeCompute = diagram("scene-edge-compute", { topic: "scene: e
   .node("c", { lane: "l", stack: 2, kind: "shape-cloud", title: "GCP の配信元", eyebrow: "クラウド", subtitle: "拠点で返せない時" })
   .edge("m", "e", { label: "" })
   .edge("e", "c", { label: "" })
-  .phase("p1", { duration: 750, title: "1. Android のアプリ", body: "利用者" }, (p: PhaseBuilder) => p.activate("m").badge("携帯端末"))
-  .phase("p2", { duration: 750, title: "2. Fastly", body: "拠点で処理する" }, (p: PhaseBuilder) => p.activate("m").activate("e").badge("配信網"))
+  .phase("p1", { duration: 750, title: "1. Android のアプリ", body: "Android のアプリが要求を出す。 利用者の手元から始まる。" }, (p: PhaseBuilder) => p.activate("m").badge("携帯端末"))
+  .phase("p2", { duration: 750, title: "2. Fastly", body: "拠点で処理する。" }, (p: PhaseBuilder) => p.activate("m").activate("e").badge("配信網"))
   .phase("p3", { duration: 750, title: "拠点での処理", body: "携帯の要求を配信網の拠点で処理し、返せない時だけ配信元へ回す。 待ち時間の短い配信。" }, (p: PhaseBuilder) => p.activate("m").activate("e").activate("c").badge("クラウド"))
   .build();
 
@@ -2319,8 +2319,8 @@ export const sceneVersionDeploy = diagram("scene-version-deploy", { topic: "scen
   .node("w", { lane: "l", stack: 2, kind: "shape-website", title: "本番の画面", eyebrow: "サイト", subtitle: "公開中", w: 404 })
   .edge("s", "g", { label: "" })
   .edge("g", "w", { label: "" })
-  .phase("p1", { duration: 750, title: "1. v3.2.0", body: "目印を付けた" }, (p: PhaseBuilder) => p.activate("s").badge("公開版"))
-  .phase("p2", { duration: 750, title: "2. 配備の流れ", body: "一部へ先に配る" }, (p: PhaseBuilder) => p.activate("s").activate("g").badge("自動化"))
+  .phase("p1", { duration: 750, title: "1. v3.2.0", body: "目印を付けた。" }, (p: PhaseBuilder) => p.activate("s").badge("公開版"))
+  .phase("p2", { duration: 750, title: "2. 配備の流れ", body: "一部へ先に配る。" }, (p: PhaseBuilder) => p.activate("s").activate("g").badge("自動化"))
   .phase("p3", { duration: 750, title: "版の配備", body: "版に目印を付け、配備の流れで一部へ先に配ってから、本番のサイトに出す。 クラウドの役務でよくある配備の形。" }, (p: PhaseBuilder) => p.activate("s").activate("g").activate("w").badge("サイト"))
   .build();
 
@@ -2332,8 +2332,8 @@ export const sceneAuditChain = diagram("scene-audit-chain", { topic: "scene: aud
   .node("r", { lane: "l", stack: 2, kind: "shape-regulator", title: "金融庁", eyebrow: "規制当局", subtitle: "受領" })
   .edge("a", "f", { label: "" })
   .edge("f", "r", { label: "" })
-  .phase("p1", { duration: 750, title: "1. 監査法人", body: "大手の一つ" }, (p: PhaseBuilder) => p.activate("a").badge("監査"))
-  .phase("p2", { duration: 750, title: "2. 監査報告書", body: "署名済み" }, (p: PhaseBuilder) => p.activate("a").activate("f").badge("提出物"))
+  .phase("p1", { duration: 750, title: "1. 監査法人", body: "監査法人が検査に入る。 大手の一つが担当する。" }, (p: PhaseBuilder) => p.activate("a").badge("監査"))
+  .phase("p2", { duration: 750, title: "2. 監査報告書", body: "監査報告書に署名して仕上げる。 提出はこの後。" }, (p: PhaseBuilder) => p.activate("a").activate("f").badge("提出物"))
   .phase("p3", { duration: 750, title: "監査の報告", body: "監査法人が検査して報告書を作り、規制当局が受け取る。 上場企業の四半期ごとの監査の典型的な流れ。" }, (p: PhaseBuilder) => p.activate("a").activate("f").activate("r").badge("規制当局"))
   .build();
 
@@ -2362,11 +2362,11 @@ animation:
   - step: "1. 送金者" 0.75s
     focus: ["送金者"]
     badge: "財布"
-    description: "MetaMask の口座"
+    description: "始まりは送金者の財布。 MetaMask のような個人の口座から出す。"
   - step: "2. 分散型取引所" 0.75s
     focus: ["送金者", "分散型取引所"]
     badge: "取引所"
-    description: "清算"
+    description: "注文は分散型取引所が受けて清算する。 台帳への記録はまだ先。"
   - step: "暗号資産の送金" 0.75s
     focus: ["送金者", "分散型取引所", "Ethereum"]
     badge: "台帳"
@@ -2415,14 +2415,14 @@ export const sourceJson__sceneCryptoTransfer = `{
       "duration": 0.75,
       "focus": ["送金者"],
       "badge": "財布",
-      "description": "MetaMask の口座"
+      "description": "始まりは送金者の財布。 MetaMask のような個人の口座から出す。"
     },
     {
       "step": "2. 分散型取引所",
       "duration": 0.75,
       "focus": ["送金者", "分散型取引所"],
       "badge": "取引所",
-      "description": "清算"
+      "description": "注文は分散型取引所が受けて清算する。 台帳への記録はまだ先。"
     },
     {
       "step": "暗号資産の送金",
@@ -2453,11 +2453,11 @@ animation:
   - step: "1. 代理人" 0.75s
     focus: ["代理人"]
     badge: "法務"
-    description: "起草"
+    description: "代理人が契約の文書を起草する。 まだ公証も登記もされていない。"
   - step: "2. 公証役場" 0.75s
     focus: ["代理人", "公証役場"]
     badge: "公証"
-    description: "認証"
+    description: "公証役場が起草した文書を認証する。 登記はこの後。"
   - step: "法務の流れ" 0.75s
     focus: ["代理人", "公証役場", "登記簿"]
     badge: "記録"
@@ -2501,13 +2501,13 @@ export const sourceJson__sceneLegalNotarization = `{
     { "from": "公証役場", "to": "登記簿", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 代理人", "duration": 0.75, "focus": ["代理人"], "badge": "法務", "description": "起草" },
+    { "step": "1. 代理人", "duration": 0.75, "focus": ["代理人"], "badge": "法務", "description": "代理人が契約の文書を起草する。 まだ公証も登記もされていない。" },
     {
       "step": "2. 公証役場",
       "duration": 0.75,
       "focus": ["代理人", "公証役場"],
       "badge": "公証",
-      "description": "認証"
+      "description": "公証役場が起草した文書を認証する。 登記はこの後。"
     },
     {
       "step": "法務の流れ",
@@ -2538,11 +2538,11 @@ animation:
   - step: "1. 作者" 0.75s
     focus: ["作者"]
     badge: "財布"
-    description: "絵描き"
+    description: "始まりは作者の財布。 絵を描いた本人が発行を始める。"
   - step: "2. ERC-721" 0.75s
     focus: ["作者", "ERC-721"]
     badge: "契約"
-    description: "OpenSea に出品"
+    description: "作者が ERC-721 の契約を呼ぶ。 発行の決まりはこの契約が持つ。"
   - step: "NFT の発行" 0.75s
     focus: ["作者", "ERC-721", "一点物の絵"]
     badge: "NFT"
@@ -2591,14 +2591,14 @@ export const sourceJson__sceneNftMint = `{
       "duration": 0.75,
       "focus": ["作者"],
       "badge": "財布",
-      "description": "絵描き"
+      "description": "始まりは作者の財布。 絵を描いた本人が発行を始める。"
     },
     {
       "step": "2. ERC-721",
       "duration": 0.75,
       "focus": ["作者", "ERC-721"],
       "badge": "契約",
-      "description": "OpenSea に出品"
+      "description": "作者が ERC-721 の契約を呼ぶ。 発行の決まりはこの契約が持つ。"
     },
     {
       "step": "NFT の発行",
@@ -2629,11 +2629,11 @@ animation:
   - step: "1. ATM" 0.75s
     focus: ["ATM"]
     badge: "現金の窓口"
-    description: "現金を引き出す"
+    description: "現金を引き出す。"
   - step: "2. みずほ銀行" 0.75s
     focus: ["ATM", "みずほ銀行"]
     badge: "銀行"
-    description: "都銀"
+    description: "引き出した現金がみずほ銀行の口座を通る。 都市銀行が振替を受け持つ。"
   - step: "銀行の送金" 0.75s
     focus: ["ATM", "みずほ銀行", "Amazon"]
     badge: "店"
@@ -2677,13 +2677,13 @@ export const sourceJson__sceneBankingFlow = `{
     { "from": "みずほ銀行", "to": "Amazon", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. ATM", "duration": 0.75, "focus": ["ATM"], "badge": "現金の窓口", "description": "現金を引き出す" },
+    { "step": "1. ATM", "duration": 0.75, "focus": ["ATM"], "badge": "現金の窓口", "description": "現金を引き出す。" },
     {
       "step": "2. みずほ銀行",
       "duration": 0.75,
       "focus": ["ATM", "みずほ銀行"],
       "badge": "銀行",
-      "description": "都銀"
+      "description": "引き出した現金がみずほ銀行の口座を通る。 都市銀行が振替を受け持つ。"
     },
     {
       "step": "銀行の送金",
@@ -2714,11 +2714,11 @@ animation:
   - step: "1. 温度計" 0.75s
     focus: ["温度計"]
     badge: "計測機器"
-    description: "近距離の無線"
+    description: "温度計が近距離の無線で値を送る。 機器は台帳に直に触らない。"
   - step: "2. Infura" 0.75s
     focus: ["温度計", "Infura"]
     badge: "RPC の窓口"
-    description: "窓口を貸す事業者"
+    description: "Infura が台帳への窓口を貸す。 機器の値をここが中継する。"
   - step: "計測値を台帳へ" 0.75s
     focus: ["温度計", "Infura", "外部データの受け口"]
     badge: "契約"
@@ -2763,13 +2763,13 @@ export const sourceJson__sceneIotOnchain = `{
     { "from": "Infura", "to": "外部データの受け口", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 温度計", "duration": 0.75, "focus": ["温度計"], "badge": "計測機器", "description": "近距離の無線" },
+    { "step": "1. 温度計", "duration": 0.75, "focus": ["温度計"], "badge": "計測機器", "description": "温度計が近距離の無線で値を送る。 機器は台帳に直に触らない。" },
     {
       "step": "2. Infura",
       "duration": 0.75,
       "focus": ["温度計", "Infura"],
       "badge": "RPC の窓口",
-      "description": "窓口を貸す事業者"
+      "description": "Infura が台帳への窓口を貸す。 機器の値をここが中継する。"
     },
     {
       "step": "計測値を台帳へ",
@@ -2800,11 +2800,11 @@ animation:
   - step: "1. 監査法人" 0.75s
     focus: ["監査法人"]
     badge: "監査"
-    description: "検査"
+    description: "監査法人が検査を始める。 帳簿を確かめる側。"
   - step: "2. 会計帳簿" 0.75s
     focus: ["監査法人", "会計帳簿"]
     badge: "記録"
-    description: "元帳"
+    description: "会計帳簿を開く。 検査の対象になる元帳。"
   - step: "監査の流れ" 0.75s
     focus: ["監査法人", "会計帳簿", "金融庁"]
     badge: "規制当局"
@@ -2848,13 +2848,13 @@ export const sourceJson__sceneAuditFlow = `{
     { "from": "会計帳簿", "to": "金融庁", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 監査法人", "duration": 0.75, "focus": ["監査法人"], "badge": "監査", "description": "検査" },
+    { "step": "1. 監査法人", "duration": 0.75, "focus": ["監査法人"], "badge": "監査", "description": "監査法人が検査を始める。 帳簿を確かめる側。" },
     {
       "step": "2. 会計帳簿",
       "duration": 0.75,
       "focus": ["監査法人", "会計帳簿"],
       "badge": "記録",
-      "description": "元帳"
+      "description": "会計帳簿を開く。 検査の対象になる元帳。"
     },
     {
       "step": "監査の流れ",
@@ -2885,11 +2885,11 @@ animation:
   - step: "1. 個人投資家" 0.75s
     focus: ["個人投資家"]
     badge: "売買"
-    description: "小口の注文"
+    description: "個人投資家が小口の注文を出す。 取引所へは直に出せない。"
   - step: "2. 野村証券" 0.75s
     focus: ["個人投資家", "野村証券"]
     badge: "証券"
-    description: "投資銀行"
+    description: "野村証券が注文を取り次ぐ。 取引所に繋がるのは証券会社。"
   - step: "証券取引" 0.75s
     focus: ["個人投資家", "野村証券", "東証"]
     badge: "取引所"
@@ -2938,14 +2938,14 @@ export const sourceJson__sceneStockTrading = `{
       "duration": 0.75,
       "focus": ["個人投資家"],
       "badge": "売買",
-      "description": "小口の注文"
+      "description": "個人投資家が小口の注文を出す。 取引所へは直に出せない。"
     },
     {
       "step": "2. 野村証券",
       "duration": 0.75,
       "focus": ["個人投資家", "野村証券"],
       "badge": "証券",
-      "description": "投資銀行"
+      "description": "野村証券が注文を取り次ぐ。 取引所に繋がるのは証券会社。"
     },
     {
       "step": "証券取引",
@@ -2976,11 +2976,11 @@ animation:
   - step: "1. サポート担当" 0.75s
     focus: ["サポート担当"]
     badge: "問い合わせ"
-    description: "24 時間対応"
+    description: "サポート担当が電話を受ける。 24 時間対応の窓口。"
   - step: "2. 不具合 #1234" 0.75s
     focus: ["サポート担当", "不具合 #1234"]
     badge: "課題"
-    description: "管理表に起票"
+    description: "受けた内容を不具合として管理表に起票する。 修正はこの後。"
   - step: "問い合わせの流れ" 0.75s
     focus: ["サポート担当", "不具合 #1234", "緊急の修正"]
     badge: "変更の確定"
@@ -3029,14 +3029,14 @@ export const sourceJson__sceneSupportFlow = `{
       "duration": 0.75,
       "focus": ["サポート担当"],
       "badge": "問い合わせ",
-      "description": "24 時間対応"
+      "description": "サポート担当が電話を受ける。 24 時間対応の窓口。"
     },
     {
       "step": "2. 不具合 #1234",
       "duration": 0.75,
       "focus": ["サポート担当", "不具合 #1234"],
       "badge": "課題",
-      "description": "管理表に起票"
+      "description": "受けた内容を不具合として管理表に起票する。 修正はこの後。"
     },
     {
       "step": "問い合わせの流れ",
@@ -3067,11 +3067,11 @@ animation:
   - step: "1. Stripe" 0.75s
     focus: ["Stripe"]
     badge: "決済代行"
-    description: "クラウドで提供"
+    description: "Stripe が支払いを受け付ける。 決済代行をクラウドで提供する側。"
   - step: "2. VISA" 0.75s
     focus: ["Stripe", "VISA"]
     badge: "カード"
-    description: "後払い"
+    description: "後払い。"
   - step: "決済の流れ" 0.75s
     focus: ["Stripe", "VISA", "発行銀行"]
     badge: "発行元"
@@ -3120,14 +3120,14 @@ export const sourceJson__scenePaymentSettlement = `{
       "duration": 0.75,
       "focus": ["Stripe"],
       "badge": "決済代行",
-      "description": "クラウドで提供"
+      "description": "Stripe が支払いを受け付ける。 決済代行をクラウドで提供する側。"
     },
     {
       "step": "2. VISA",
       "duration": 0.75,
       "focus": ["Stripe", "VISA"],
       "badge": "カード",
-      "description": "後払い"
+      "description": "後払い。"
     },
     {
       "step": "決済の流れ",
@@ -3158,11 +3158,11 @@ animation:
   - step: "1. 会社案内" 0.75s
     focus: ["会社案内"]
     badge: "サイト"
-    description: "1 画面で動くアプリ"
+    description: "会社案内のサイトへ要求が来る。 1 画面で動くアプリ。"
   - step: "2. Cloudflare" 0.75s
     focus: ["会社案内", "Cloudflare"]
     badge: "配信網"
-    description: "近くの拠点"
+    description: "Cloudflare の近くの拠点が控えを返す。 配信元まで行かずに済む。"
   - step: "サイトの配信" 0.75s
     focus: ["会社案内", "Cloudflare", "配信元"]
     badge: "サーバ"
@@ -3211,14 +3211,14 @@ export const sourceJson__sceneWebInfra = `{
       "duration": 0.75,
       "focus": ["会社案内"],
       "badge": "サイト",
-      "description": "1 画面で動くアプリ"
+      "description": "会社案内のサイトへ要求が来る。 1 画面で動くアプリ。"
     },
     {
       "step": "2. Cloudflare",
       "duration": 0.75,
       "focus": ["会社案内", "Cloudflare"],
       "badge": "配信網",
-      "description": "近くの拠点"
+      "description": "Cloudflare の近くの拠点が控えを返す。 配信元まで行かずに済む。"
     },
     {
       "step": "サイトの配信",
@@ -3249,11 +3249,11 @@ animation:
   - step: "1. Ethereum" 0.75s
     focus: ["Ethereum"]
     badge: "送る側の台帳"
-    description: "L1"
+    description: "送る側の台帳は Ethereum。 もとの通貨はここに在る。"
   - step: "2. 橋渡し" 0.75s
     focus: ["Ethereum", "橋渡し"]
     badge: "契約"
-    description: "預かって凍結"
+    description: "橋渡しの契約が通貨を預かって凍結する。 受ける側での発行はこの後。"
   - step: "通貨の橋渡し" 0.75s
     focus: ["Ethereum", "橋渡し", "Arbitrum"]
     badge: "受ける側の台帳"
@@ -3302,14 +3302,14 @@ export const sourceJson__sceneTokenBridge = `{
       "duration": 0.75,
       "focus": ["Ethereum"],
       "badge": "送る側の台帳",
-      "description": "L1"
+      "description": "送る側の台帳は Ethereum。 もとの通貨はここに在る。"
     },
     {
       "step": "2. 橋渡し",
       "duration": 0.75,
       "focus": ["Ethereum", "橋渡し"],
       "badge": "契約",
-      "description": "預かって凍結"
+      "description": "橋渡しの契約が通貨を預かって凍結する。 受ける側での発行はこの後。"
     },
     {
       "step": "通貨の橋渡し",
@@ -3340,11 +3340,11 @@ animation:
   - step: "1. 供給者" 0.75s
     focus: ["供給者"]
     badge: "財布"
-    description: "USDC を預ける"
+    description: "USDC を預ける。"
   - step: "2. Aave v3" 0.75s
     focus: ["供給者", "Aave v3"]
     badge: "貸し出し"
-    description: "まとめた資金"
+    description: "Aave v3 が預かった資金をまとめる。 借り手へ貸し出す元手になる。"
   - step: "分散型の貸し出し" 0.75s
     focus: ["供給者", "Aave v3", "aUSDC"]
     badge: "通貨"
@@ -3393,14 +3393,14 @@ export const sourceJson__sceneDefiLending = `{
       "duration": 0.75,
       "focus": ["供給者"],
       "badge": "財布",
-      "description": "USDC を預ける"
+      "description": "USDC を預ける。"
     },
     {
       "step": "2. Aave v3",
       "duration": 0.75,
       "focus": ["供給者", "Aave v3"],
       "badge": "貸し出し",
-      "description": "まとめた資金"
+      "description": "Aave v3 が預かった資金をまとめる。 借り手へ貸し出す元手になる。"
     },
     {
       "step": "分散型の貸し出し",
@@ -3431,11 +3431,11 @@ animation:
   - step: "1. 送金者" 0.75s
     focus: ["送金者"]
     badge: "財布"
-    description: "Bitcoin の公式ソフト"
+    description: "送金者が公式の財布で取引に署名する。 仲介する事業者は居ない。"
   - step: "2. BTC の本番網" 0.75s
     focus: ["送金者", "BTC の本番網"]
     badge: "台帳"
-    description: "計算の量で合意"
+    description: "署名した取引を Bitcoin の網へ流す。 承認は計算の量で決まる。"
   - step: "Bitcoin の送金" 0.75s
     focus: ["送金者", "BTC の本番網", "全記録の保持者"]
     badge: "参加者"
@@ -3484,14 +3484,14 @@ export const sourceJson__sceneBitcoinTx = `{
       "duration": 0.75,
       "focus": ["送金者"],
       "badge": "財布",
-      "description": "Bitcoin の公式ソフト"
+      "description": "送金者が公式の財布で取引に署名する。 仲介する事業者は居ない。"
     },
     {
       "step": "2. BTC の本番網",
       "duration": 0.75,
       "focus": ["送金者", "BTC の本番網"],
       "badge": "台帳",
-      "description": "計算の量で合意"
+      "description": "署名した取引を Bitcoin の網へ流す。 承認は計算の量で決まる。"
     },
     {
       "step": "Bitcoin の送金",
@@ -3522,11 +3522,11 @@ animation:
   - step: "1. 購入者" 0.75s
     focus: ["購入者"]
     badge: "顧客"
-    description: "注文"
+    description: "購入者が注文を出す。 買い物かごから先に進んだところ。"
   - step: "2. 楽天市場" 0.75s
     focus: ["購入者", "楽天市場"]
     badge: "店"
-    description: "ネット通販"
+    description: "楽天市場が注文を受ける。 店と買い手の間に立つ通販の場。"
   - step: "通販の注文" 0.75s
     focus: ["購入者", "楽天市場", "市川倉庫"]
     badge: "物流拠点"
@@ -3570,13 +3570,13 @@ export const sourceJson__sceneEcOrder = `{
     { "from": "楽天市場", "to": "市川倉庫", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 購入者", "duration": 0.75, "focus": ["購入者"], "badge": "顧客", "description": "注文" },
+    { "step": "1. 購入者", "duration": 0.75, "focus": ["購入者"], "badge": "顧客", "description": "購入者が注文を出す。 買い物かごから先に進んだところ。" },
     {
       "step": "2. 楽天市場",
       "duration": 0.75,
       "focus": ["購入者", "楽天市場"],
       "badge": "店",
-      "description": "ネット通販"
+      "description": "楽天市場が注文を受ける。 店と買い手の間に立つ通販の場。"
     },
     {
       "step": "通販の注文",
@@ -3607,11 +3607,11 @@ animation:
   - step: "1. iOS のアプリ" 0.75s
     focus: ["iOS のアプリ"]
     badge: "携帯端末"
-    description: "SwiftUI"
+    description: "iOS のアプリが要求を送る。 画面は SwiftUI で組む。"
   - step: "2. GraphQL" 0.75s
     focus: ["iOS のアプリ", "GraphQL"]
     badge: "API の入口"
-    description: "要求を振り分ける"
+    description: "要求を振り分ける。"
   - step: "携帯アプリの API" 0.75s
     focus: ["iOS のアプリ", "GraphQL", "裏側の処理"]
     badge: "サーバ"
@@ -3660,14 +3660,14 @@ export const sourceJson__sceneMobileApi = `{
       "duration": 0.75,
       "focus": ["iOS のアプリ"],
       "badge": "携帯端末",
-      "description": "SwiftUI"
+      "description": "iOS のアプリが要求を送る。 画面は SwiftUI で組む。"
     },
     {
       "step": "2. GraphQL",
       "duration": 0.75,
       "focus": ["iOS のアプリ", "GraphQL"],
       "badge": "API の入口",
-      "description": "要求を振り分ける"
+      "description": "要求を振り分ける。"
     },
     {
       "step": "携帯アプリの API",
@@ -3698,11 +3698,11 @@ animation:
   - step: "1. ファナックの腕" 0.75s
     focus: ["ファナックの腕"]
     badge: "ロボット"
-    description: "組立"
+    description: "ファナックの腕が部品を組み立てる。 人の手は入らない。"
   - step: "2. 外観の検査" 0.75s
     focus: ["ファナックの腕", "外観の検査"]
     badge: "計測機器"
-    description: "品質"
+    description: "外観の検査が品質を確かめる。 記録に残すのはこの後。"
   - step: "工場の組立" 0.75s
     focus: ["ファナックの腕", "外観の検査", "製造管理の DB"]
     badge: "データベース"
@@ -3752,14 +3752,14 @@ export const sourceJson__sceneFactoryLine = `{
       "duration": 0.75,
       "focus": ["ファナックの腕"],
       "badge": "ロボット",
-      "description": "組立"
+      "description": "ファナックの腕が部品を組み立てる。 人の手は入らない。"
     },
     {
       "step": "2. 外観の検査",
       "duration": 0.75,
       "focus": ["ファナックの腕", "外観の検査"],
       "badge": "計測機器",
-      "description": "品質"
+      "description": "外観の検査が品質を確かめる。 記録に残すのはこの後。"
     },
     {
       "step": "工場の組立",
@@ -3790,11 +3790,11 @@ animation:
   - step: "1. Starlink" 0.75s
     focus: ["Starlink"]
     badge: "人工衛星"
-    description: "低軌道"
+    description: "Starlink の低軌道の衛星が観測の値を出す。 地上の窓口へ送る。"
   - step: "2. Alchemy" 0.75s
     focus: ["Starlink", "Alchemy"]
     badge: "RPC の窓口"
-    description: "接続先"
+    description: "Alchemy が台帳への接続先になる。 衛星の値をここが中継する。"
   - step: "衛星から台帳へ" 0.75s
     focus: ["Starlink", "Alchemy", "Solana"]
     badge: "台帳"
@@ -3843,14 +3843,14 @@ export const sourceJson__sceneSatelliteChain = `{
       "duration": 0.75,
       "focus": ["Starlink"],
       "badge": "人工衛星",
-      "description": "低軌道"
+      "description": "Starlink の低軌道の衛星が観測の値を出す。 地上の窓口へ送る。"
     },
     {
       "step": "2. Alchemy",
       "duration": 0.75,
       "focus": ["Starlink", "Alchemy"],
       "badge": "RPC の窓口",
-      "description": "接続先"
+      "description": "Alchemy が台帳への接続先になる。 衛星の値をここが中継する。"
     },
     {
       "step": "衛星から台帳へ",
@@ -3881,11 +3881,11 @@ animation:
   - step: "1. 注文画面/" 0.75s
     focus: ["注文画面/"]
     badge: "コード"
-    description: "TypeScript"
+    description: "注文画面のコードを書いて送る。 中身は TypeScript。"
   - step: "2. GitHub の実行環境" 0.75s
     focus: ["注文画面/", "GitHub の実行環境"]
     badge: "自動化"
-    description: "組み立てと検査"
+    description: "GitHub の実行環境が組み立てと検査を自動で回す。 配備はこの後。"
   - step: "開発と運用" 0.75s
     focus: ["注文画面/", "GitHub の実行環境", "AWS ECS"]
     badge: "配備先"
@@ -3935,14 +3935,14 @@ export const sourceJson__sceneDevOps = `{
       "duration": 0.75,
       "focus": ["注文画面/"],
       "badge": "コード",
-      "description": "TypeScript"
+      "description": "注文画面のコードを書いて送る。 中身は TypeScript。"
     },
     {
       "step": "2. GitHub の実行環境",
       "duration": 0.75,
       "focus": ["注文画面/", "GitHub の実行環境"],
       "badge": "自動化",
-      "description": "組み立てと検査"
+      "description": "GitHub の実行環境が組み立てと検査を自動で回す。 配備はこの後。"
     },
     {
       "step": "開発と運用",
@@ -3973,11 +3973,11 @@ animation:
   - step: "1. 課題 #42" 0.75s
     focus: ["課題 #42"]
     badge: "看板"
-    description: "作業中"
+    description: "看板の課題 #42 を作業中に移す。 手を付けたところ。"
   - step: "2. zsh" 0.75s
     focus: ["課題 #42", "zsh"]
     badge: "端末"
-    description: "組み立てを実行"
+    description: "端末で組み立ての命令を打つ。 出力を残すのはこの後。"
   - step: "作業の流れ" 0.75s
     focus: ["課題 #42", "zsh", "組み立ての記録"]
     badge: "ファイル"
@@ -4027,14 +4027,14 @@ export const sourceJson__sceneTaskFlow = `{
       "duration": 0.75,
       "focus": ["課題 #42"],
       "badge": "看板",
-      "description": "作業中"
+      "description": "看板の課題 #42 を作業中に移す。 手を付けたところ。"
     },
     {
       "step": "2. zsh",
       "duration": 0.75,
       "focus": ["課題 #42", "zsh"],
       "badge": "端末",
-      "description": "組み立てを実行"
+      "description": "端末で組み立ての命令を打つ。 出力を残すのはこの後。"
     },
     {
       "step": "作業の流れ",
@@ -4065,11 +4065,11 @@ animation:
   - step: "1. @花子" 0.75s
     focus: ["@花子"]
     badge: "発言"
-    description: "社内の連絡"
+    description: "@花子 宛の発言を送る。 社内の連絡で使う形。"
   - step: "2. 通知の配達" 0.75s
     focus: ["@花子", "通知の配達"]
     badge: "役務"
-    description: "即時に知らせる"
+    description: "即時に知らせる。"
   - step: "通知" 0.75s
     focus: ["@花子", "通知の配達", "デスクトップ通知"]
     badge: "アプリの画面"
@@ -4119,14 +4119,14 @@ export const sourceJson__sceneNotification = `{
       "duration": 0.75,
       "focus": ["@花子"],
       "badge": "発言",
-      "description": "社内の連絡"
+      "description": "@花子 宛の発言を送る。 社内の連絡で使う形。"
     },
     {
       "step": "2. 通知の配達",
       "duration": 0.75,
       "focus": ["@花子", "通知の配達"],
       "badge": "役務",
-      "description": "即時に知らせる"
+      "description": "即時に知らせる。"
     },
     {
       "step": "通知",
@@ -4157,11 +4157,11 @@ animation:
   - step: "1. 資産運用者" 0.75s
     focus: ["資産運用者"]
     badge: "売買"
-    description: "買いの指示"
+    description: "資産運用者が買いを指示する。 自分で売買はしない。"
   - step: "2. 三井住友信託" 0.75s
     focus: ["資産運用者", "三井住友信託"]
     badge: "信託銀行"
-    description: "受託"
+    description: "三井住友信託が資産を預かる。 記録と報告はこの後。"
   - step: "信託資産" 0.75s
     focus: ["資産運用者", "三井住友信託", "運用報告書"]
     badge: "記録"
@@ -4210,14 +4210,14 @@ export const sourceJson__sceneTrustAsset = `{
       "duration": 0.75,
       "focus": ["資産運用者"],
       "badge": "売買",
-      "description": "買いの指示"
+      "description": "資産運用者が買いを指示する。 自分で売買はしない。"
     },
     {
       "step": "2. 三井住友信託",
       "duration": 0.75,
       "focus": ["資産運用者", "三井住友信託"],
       "badge": "信託銀行",
-      "description": "受託"
+      "description": "三井住友信託が資産を預かる。 記録と報告はこの後。"
     },
     {
       "step": "信託資産",
@@ -4248,11 +4248,11 @@ animation:
   - step: "1. 検証役" 0.75s
     focus: ["検証役"]
     badge: "参加者"
-    description: "預けた量で合意"
+    description: "検証役が次のブロックを提案する。 提案できるのは通貨を預けた参加者。"
   - step: "2. 高さ 8123456" 0.75s
     focus: ["検証役", "高さ 8123456"]
     badge: "ブロック"
-    description: "提案中"
+    description: "高さ 8123456 のブロックが提案中になる。 確定はまだ。"
   - step: "合意の形成" 0.75s
     focus: ["検証役", "高さ 8123456", "本流"]
     badge: "台帳"
@@ -4302,14 +4302,14 @@ export const sourceJson__sceneConsensus = `{
       "duration": 0.75,
       "focus": ["検証役"],
       "badge": "参加者",
-      "description": "預けた量で合意"
+      "description": "検証役が次のブロックを提案する。 提案できるのは通貨を預けた参加者。"
     },
     {
       "step": "2. 高さ 8123456",
       "duration": 0.75,
       "focus": ["検証役", "高さ 8123456"],
       "badge": "ブロック",
-      "description": "提案中"
+      "description": "高さ 8123456 のブロックが提案中になる。 確定はまだ。"
     },
     {
       "step": "合意の形成",
@@ -4340,11 +4340,11 @@ animation:
   - step: "1. 発行者" 0.75s
     focus: ["発行者"]
     badge: "開発者"
-    description: "創業者"
+    description: "発行者が通貨の発行を決める。 新しい事業の立ち上げ。"
   - step: "2. ERC-20" 0.75s
     focus: ["発行者", "ERC-20"]
     badge: "契約"
-    description: "OpenZeppelin"
+    description: "ERC-20 の契約を配備する。 実装は OpenZeppelin のものを使う。"
   - step: "通貨の発行" 0.75s
     focus: ["発行者", "ERC-20", "$KIWA"]
     badge: "通貨"
@@ -4393,14 +4393,14 @@ export const sourceJson__sceneTokenDeploy = `{
       "duration": 0.75,
       "focus": ["発行者"],
       "badge": "開発者",
-      "description": "創業者"
+      "description": "発行者が通貨の発行を決める。 新しい事業の立ち上げ。"
     },
     {
       "step": "2. ERC-20",
       "duration": 0.75,
       "focus": ["発行者", "ERC-20"],
       "badge": "契約",
-      "description": "OpenZeppelin"
+      "description": "ERC-20 の契約を配備する。 実装は OpenZeppelin のものを使う。"
     },
     {
       "step": "通貨の発行",
@@ -4431,11 +4431,11 @@ animation:
   - step: "1. 金融庁" 0.75s
     focus: ["金融庁"]
     badge: "規制当局"
-    description: "検査"
+    description: "金融庁が検査を始める。 対象は銀行の取引。"
   - step: "2. 取引の明細" 0.75s
     focus: ["金融庁", "取引の明細"]
     badge: "記録"
-    description: "監査の証跡"
+    description: "取引の明細を出させる。 監査の証跡になる記録。"
   - step: "規制への対応" 0.75s
     focus: ["金融庁", "取引の明細", "あおば銀行"]
     badge: "銀行"
@@ -4479,13 +4479,13 @@ export const sourceJson__sceneCompliance = `{
     { "from": "取引の明細", "to": "あおば銀行", "label": "", "tone": "accent" }
   ],
   "animation": [
-    { "step": "1. 金融庁", "duration": 0.75, "focus": ["金融庁"], "badge": "規制当局", "description": "検査" },
+    { "step": "1. 金融庁", "duration": 0.75, "focus": ["金融庁"], "badge": "規制当局", "description": "金融庁が検査を始める。 対象は銀行の取引。" },
     {
       "step": "2. 取引の明細",
       "duration": 0.75,
       "focus": ["金融庁", "取引の明細"],
       "badge": "記録",
-      "description": "監査の証跡"
+      "description": "取引の明細を出させる。 監査の証跡になる記録。"
     },
     {
       "step": "規制への対応",
@@ -4516,11 +4516,11 @@ animation:
   - step: "1. 買い手" 0.75s
     focus: ["買い手"]
     badge: "財布"
-    description: "収集家"
+    description: "買い手が売買の場を開く。 集める側の人。"
   - step: "2. OpenSea" 0.75s
     focus: ["買い手", "OpenSea"]
     badge: "売買の場"
-    description: "作者への還元 5%"
+    description: "OpenSea で値を付ける。 売れた額の 5% は作者へ還元される。"
   - step: "NFT の売買" 0.75s
     focus: ["買い手", "OpenSea", "猿の絵 #7890"]
     badge: "NFT"
@@ -4570,14 +4570,14 @@ export const sourceJson__sceneNftMarketplace = `{
       "duration": 0.75,
       "focus": ["買い手"],
       "badge": "財布",
-      "description": "収集家"
+      "description": "買い手が売買の場を開く。 集める側の人。"
     },
     {
       "step": "2. OpenSea",
       "duration": 0.75,
       "focus": ["買い手", "OpenSea"],
       "badge": "売買の場",
-      "description": "作者への還元 5%"
+      "description": "OpenSea で値を付ける。 売れた額の 5% は作者へ還元される。"
     },
     {
       "step": "NFT の売買",
@@ -4608,11 +4608,11 @@ animation:
   - step: "1. 社員の携帯" 0.75s
     focus: ["社員の携帯"]
     badge: "端末"
-    description: "無線でつなぐ"
+    description: "社員の携帯が無線でつながる。 経路の出発点。"
   - step: "2. 基幹の中継器" 0.75s
     focus: ["社員の携帯", "基幹の中継器"]
     badge: "通信網"
-    description: "L2/L3"
+    description: "基幹の中継器が経路を決める。 L2 と L3 の橋渡しをする機器。"
   - step: "通信の経路" 0.75s
     focus: ["社員の携帯", "基幹の中継器", "業務の処理役"]
     badge: "サーバ"
@@ -4662,14 +4662,14 @@ export const sourceJson__sceneNetworkPath = `{
       "duration": 0.75,
       "focus": ["社員の携帯"],
       "badge": "端末",
-      "description": "無線でつなぐ"
+      "description": "社員の携帯が無線でつながる。 経路の出発点。"
     },
     {
       "step": "2. 基幹の中継器",
       "duration": 0.75,
       "focus": ["社員の携帯", "基幹の中継器"],
       "badge": "通信網",
-      "description": "L2/L3"
+      "description": "基幹の中継器が経路を決める。 L2 と L3 の橋渡しをする機器。"
     },
     {
       "step": "通信の経路",
@@ -4700,11 +4700,11 @@ animation:
   - step: "1. 山田商店の通販" 0.75s
     focus: ["山田商店の通販"]
     badge: "サイト"
-    description: "かごの中身"
+    description: "山田商店の通販がかごの中身を送る。 支払いはこの後。"
   - step: "2. PayPal" 0.75s
     focus: ["山田商店の通販", "PayPal"]
     badge: "決済代行"
-    description: "支払いの手続き"
+    description: "PayPal が支払いの手続きを受け持つ。 カードの番号は店に渡らない。"
   - step: "通販の支払い" 0.75s
     focus: ["山田商店の通販", "PayPal", "MasterCard"]
     badge: "カード"
@@ -4754,14 +4754,14 @@ export const sourceJson__sceneCheckout = `{
       "duration": 0.75,
       "focus": ["山田商店の通販"],
       "badge": "サイト",
-      "description": "かごの中身"
+      "description": "山田商店の通販がかごの中身を送る。 支払いはこの後。"
     },
     {
       "step": "2. PayPal",
       "duration": 0.75,
       "focus": ["山田商店の通販", "PayPal"],
       "badge": "決済代行",
-      "description": "支払いの手続き"
+      "description": "PayPal が支払いの手続きを受け持つ。 カードの番号は店に渡らない。"
     },
     {
       "step": "通販の支払い",
@@ -4792,11 +4792,11 @@ animation:
   - step: "1. Android のアプリ" 0.75s
     focus: ["Android のアプリ"]
     badge: "携帯端末"
-    description: "利用者"
+    description: "Android のアプリが要求を出す。 利用者の手元から始まる。"
   - step: "2. Fastly" 0.75s
     focus: ["Android のアプリ", "Fastly"]
     badge: "配信網"
-    description: "拠点で処理する"
+    description: "拠点で処理する。"
   - step: "拠点での処理" 0.75s
     focus: ["Android のアプリ", "Fastly", "GCP の配信元"]
     badge: "クラウド"
@@ -4846,14 +4846,14 @@ export const sourceJson__sceneEdgeCompute = `{
       "duration": 0.75,
       "focus": ["Android のアプリ"],
       "badge": "携帯端末",
-      "description": "利用者"
+      "description": "Android のアプリが要求を出す。 利用者の手元から始まる。"
     },
     {
       "step": "2. Fastly",
       "duration": 0.75,
       "focus": ["Android のアプリ", "Fastly"],
       "badge": "配信網",
-      "description": "拠点で処理する"
+      "description": "拠点で処理する。"
     },
     {
       "step": "拠点での処理",
@@ -4884,11 +4884,11 @@ animation:
   - step: "1. v3.2.0" 0.75s
     focus: ["v3.2.0"]
     badge: "公開版"
-    description: "目印を付けた"
+    description: "目印を付けた。"
   - step: "2. 配備の流れ" 0.75s
     focus: ["v3.2.0", "配備の流れ"]
     badge: "自動化"
-    description: "一部へ先に配る"
+    description: "一部へ先に配る。"
   - step: "版の配備" 0.75s
     focus: ["v3.2.0", "配備の流れ", "本番の画面"]
     badge: "サイト"
@@ -4940,14 +4940,14 @@ export const sourceJson__sceneVersionDeploy = `{
       "duration": 0.75,
       "focus": ["v3.2.0"],
       "badge": "公開版",
-      "description": "目印を付けた"
+      "description": "目印を付けた。"
     },
     {
       "step": "2. 配備の流れ",
       "duration": 0.75,
       "focus": ["v3.2.0", "配備の流れ"],
       "badge": "自動化",
-      "description": "一部へ先に配る"
+      "description": "一部へ先に配る。"
     },
     {
       "step": "版の配備",
@@ -4978,11 +4978,11 @@ animation:
   - step: "1. 監査法人" 0.75s
     focus: ["監査法人"]
     badge: "監査"
-    description: "大手の一つ"
+    description: "監査法人が検査に入る。 大手の一つが担当する。"
   - step: "2. 監査報告書" 0.75s
     focus: ["監査法人", "監査報告書"]
     badge: "提出物"
-    description: "署名済み"
+    description: "監査報告書に署名して仕上げる。 提出はこの後。"
   - step: "監査の報告" 0.75s
     focus: ["監査法人", "監査報告書", "金融庁"]
     badge: "規制当局"
@@ -5031,14 +5031,14 @@ export const sourceJson__sceneAuditChain = `{
       "duration": 0.75,
       "focus": ["監査法人"],
       "badge": "監査",
-      "description": "大手の一つ"
+      "description": "監査法人が検査に入る。 大手の一つが担当する。"
     },
     {
       "step": "2. 監査報告書",
       "duration": 0.75,
       "focus": ["監査法人", "監査報告書"],
       "badge": "提出物",
-      "description": "署名済み"
+      "description": "監査報告書に署名して仕上げる。 提出はこの後。"
     },
     {
       "step": "監査の報告",
