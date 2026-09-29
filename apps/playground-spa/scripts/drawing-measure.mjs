@@ -50,6 +50,11 @@ export function 群の一覧(catalogTsText) {
  * 文字の広がりを読む。 browser の中で動くので、外の値を参照しない。
  *
  * 一番広い SVG を図とみなす。 画面には絵記号の SVG も並ぶため、大きさで選ぶ。
+ *
+ * 測るのは **画面の座標系**。 `getBBox()` は祖先の変換を見ないため、箱ごとに
+ * `<g transform="translate(...)">` で位置を与える図では、離れた名前がすべて同じ値を返す。
+ * 階層図の 3 つの名前は (60, 11, 24, 15) で揃い、重ねると 1 つ分に潰れて 0% になっていた。
+ * 変換を持たない図 (四象限) は偶然正しく出るので、当たっている図があることが誤りを隠していた。
  */
 const 読み取る = (page) =>
   page.evaluate(() => {
@@ -61,6 +66,16 @@ const 読み取る = (page) =>
     const vb = svg.viewBox?.baseVal;
     if (!vb || vb.width <= 0 || vb.height <= 0) return null;
 
+    // 枠も画面の座標系に写す。 SVG 自身の矩形を分母にすると、枠が余白付きで置かれた時に
+    // 描画域より広い値で割ることになる
+    const m = svg.getScreenCTM();
+    if (!m) return null;
+    const 写す = (x, y) => ({ x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f });
+    const 左上 = 写す(vb.x, vb.y);
+    const 右下 = 写す(vb.x + vb.width, vb.y + vb.height);
+    const 枠の面積 = Math.abs(右下.x - 左上.x) * Math.abs(右下.y - 左上.y);
+    if (!(枠の面積 > 0)) return null;
+
     let x0 = Infinity;
     let y0 = Infinity;
     let x1 = -Infinity;
@@ -68,22 +83,17 @@ const 読み取る = (page) =>
     let 件 = 0;
     // 文字は `text` と、HTML で組む札を載せる `foreignObject` の 2 つに出る
     for (const el of svg.querySelectorAll("text, foreignObject")) {
-      let b;
-      try {
-        b = el.getBBox();
-      } catch {
-        continue;
-      }
+      const b = el.getBoundingClientRect();
       if (!(b.width > 0) || !(b.height > 0)) continue;
-      x0 = Math.min(x0, b.x);
-      y0 = Math.min(y0, b.y);
-      x1 = Math.max(x1, b.x + b.width);
-      y1 = Math.max(y1, b.y + b.height);
+      x0 = Math.min(x0, b.left);
+      y0 = Math.min(y0, b.top);
+      x1 = Math.max(x1, b.right);
+      y1 = Math.max(y1, b.bottom);
       件 += 1;
     }
     return {
       枠: { w: Math.round(vb.width), h: Math.round(vb.height) },
-      広がり: 件 === 0 ? 0 : ((x1 - x0) * (y1 - y0)) / (vb.width * vb.height),
+      広がり: 件 === 0 ? 0 : ((x1 - x0) * (y1 - y0)) / 枠の面積,
       文字の件数: 件,
     };
   });
