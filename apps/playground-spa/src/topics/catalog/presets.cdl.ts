@@ -2337,6 +2337,14 @@ export const presetQuadrant = withSteps(
       topic: "2 つの軸で 4 象限に分けて優先度を決める図",
       xAxis: { left: "労力が小さい", right: "労力が大きい" },
       yAxis: { bottom: "価値が低い", top: "価値が高い" },
+      // 区画の名前は判断の言葉にする。 書かないと軸の掛け合わせ (`価値が高い × 労力が小さい`)
+      // が出て、四辺に在る軸の名前を区画の中でもう一度読ませることになる
+      quadrantLabels: {
+        topLeft: "すぐ取る",
+        topRight: "腰を据える",
+        bottomLeft: "手が空いたら",
+        bottomRight: "見送る",
+      },
     })
       .item({ id: "qw", title: "文言の直し", quadrant: "topLeft" })
       .item({ id: "mp", title: "決済の作り直し", quadrant: "topRight" })
@@ -2408,6 +2416,13 @@ const quadrantComplexBuilder = quadrant({
   topic: "手間と価値の見積りを分けて直し、枠の中身だけが入れ替わる四象限図",
   xAxis: { left: "労力が小さい", right: "労力が大きい" },
   yAxis: { bottom: "価値が低い", top: "価値が高い" },
+  // 簡単な版と同じ軸なので、同じ名前を当てる。 軸が同じで名前が違うと読み方が定まらない
+  quadrantLabels: {
+    topLeft: "すぐ取る",
+    topRight: "腰を据える",
+    bottomLeft: "手が空いたら",
+    bottomRight: "見送る",
+  },
 });
 for (const it of QUADRANT_COMPLEX_ITEMS) {
   // 組み立ての段では枠を決め打ちし、状態を読む欄は下の `bindFirstNode` で差し替える
@@ -4152,6 +4167,12 @@ axes:
   x: { left: "労力が小さい", right: "労力が大きい" }
   y: { bottom: "価値が低い", top: "価値が高い" }
 
+regions:
+  左上: "すぐ取る"
+  右上: "腰を据える"
+  左下: "手が空いたら"
+  右下: "見送る"
+
 actors:
   - 文言の直し: "左上"
   - 決済の作り直し: "右上"
@@ -4183,6 +4204,12 @@ export const sourceJson__presetQuadrant = `{
   "axes": {
     "x": { "left": "労力が小さい", "right": "労力が大きい" },
     "y": { "bottom": "価値が低い", "top": "価値が高い" }
+  },
+  "regions": {
+    "左上": "すぐ取る",
+    "右上": "腰を据える",
+    "左下": "手が空いたら",
+    "右下": "見送る"
   },
   "actors": [
     { "name": "文言の直し", "subtitle": "左上" },
