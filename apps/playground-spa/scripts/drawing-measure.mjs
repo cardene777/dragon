@@ -37,6 +37,7 @@ import { chromium } from "playwright";
 import {
   一枚を測る,
   一群を測る,
+  文字を数える,
   落ち着くまで読む,
   上限の既定,
   落ち着きの既定,
@@ -80,12 +81,13 @@ export function 群の一覧(catalogTsText) {
  * 階層図の 3 つの名前は (60, 11, 24, 15) で揃い、重ねると 1 つ分に潰れて 0% になっていた。
  * 変換を持たない図 (四象限) は偶然正しく出るので、当たっている図があることが誤りを隠していた。
  *
- * 切れは **末尾が `…` で終わるか** で数える。 engine は幅に収まらない時だけ末尾に
- * `…` を足すので、途中に `…` を含む名前 (`pie / bar / …` のような書き方) は切れていない。
+ * 数えるのは画面の外で行う (#2677)。 画面の中では拾った文字と省略の印を返すだけにして、
+ * 3 つの数は `文字を数える` が出す。 画面の中の処理は browser でしか動かせないため、
+ * 中で数えると数え方に検査を当てられない。
  * 3 つの数は同じ 1 回の読み取りから返す。 別々の読み取りから並べると、線を引く動きの
  * 途中と引き終わりを混ぜた組み合わせになり、突き合わせられない。
  */
-const 読み取る = (page) =>
+const 画面から拾う = (page) =>
   page.evaluate(() => {
     const 候補 = Array.from(document.querySelectorAll("main svg"));
     if (候補.length === 0) return null;
@@ -109,9 +111,7 @@ const 読み取る = (page) =>
     let y0 = Infinity;
     let x1 = -Infinity;
     let y1 = -Infinity;
-    let 件 = 0;
-    let 切れ = 0;
-    let 字 = 0;
+    const 文字ら = [];
     // 文字は `text` と、HTML で組む札を載せる `foreignObject` の 2 つに出る
     for (const el of svg.querySelectorAll("text, foreignObject")) {
       const b = el.getBoundingClientRect();
@@ -120,22 +120,27 @@ const 読み取る = (page) =>
       y0 = Math.min(y0, b.top);
       x1 = Math.max(x1, b.right);
       y1 = Math.max(y1, b.bottom);
-      件 += 1;
-
-      const t = (el.textContent ?? "").trim();
-      if (t.endsWith("…")) 切れ += 1;
-      // 読める字は、省略の印と空白を除いた数。 折り返しの改行を 1 字と数えると、
-      // 同じ名前が枠の幅で増減する
-      字 += t.replace(/[\s…]/g, "").length;
+      // 印は engine が書いてある省略に付ける。 持たない時は null で返し、
+      // 「印が無い」 と「印を読めなかった」 を同じ形にしない
+      文字ら.push({
+        文字: (el.textContent ?? "").trim(),
+        省略の印: el.getAttribute("data-cdl-ellipsis"),
+      });
     }
     return {
       枠: { w: Math.round(vb.width), h: Math.round(vb.height) },
-      広がり: 件 === 0 ? 0 : ((x1 - x0) * (y1 - y0)) / 枠の面積,
-      文字の件数: 件,
-      切れた名前: 切れ,
-      読める字: 字,
+      広がり: 文字ら.length === 0 ? 0 : ((x1 - x0) * (y1 - y0)) / 枠の面積,
+      文字ら,
     };
   });
+
+/** 画面から拾った材料を、比べられる 3 つの数に畳む */
+const 読み取る = async (page) => {
+  const v = await 画面から拾う(page);
+  if (!v) return null;
+  const { 文字ら, ...幾何 } = v;
+  return { ...幾何, ...文字を数える(文字ら) };
+};
 
 /** 同じ図を、値が伸びなくなるまで読む。 打ち切りの考え方は `落ち着くまで読む` が持つ */
 const 最大を採る = (page) =>
