@@ -1819,7 +1819,7 @@ export const pattern__presetClassDiagram__複雑 = 触れて読む(presetClassCo
 // 名前を状態から取り、組織の呼び方が変わる様子を見せる (cdl 0.7.0 で名前が状態を読む)。
 export const presetTree = withSteps(
   bindFirstNode(
-    tree({ id: "tree-demo", topic: "親子関係を縦階層で示す組織図・木構造" })
+    tree({ id: "tree-demo", topic: "会社の指揮系統" })
       .node({ id: "ceo", title: "社長" })
       .node({ id: "cto", title: "技術責任者", parent: "ceo" })
       .node({ id: "cfo", title: "財務責任者", parent: "ceo" })
@@ -1853,7 +1853,7 @@ export const presetTree = withSteps(
 // 改善後を映す。
 export const presetUserJourney = withSteps(
   bindFirstNode(
-    userJourney({ id: "journey-demo", topic: "ユーザー体験の感情変化をステップ順に示す図" })
+    userJourney({ id: "journey-demo", topic: "登録が済むまでの道のり" })
       .step({ id: "land", title: "サイトを訪れる", emotion: "neutral", touchpoint: "サイト" })
       .step({
         id: "form",
@@ -2089,7 +2089,7 @@ export const presetMindMap = withSteps(
   bindFirstNode(
     mindMap({
       id: "mind-demo",
-      topic: "中心の主題から発想を放射状に広げる図",
+      topic: "次の版で決めること",
       rootId: "root",
       rootTitle: "新しい企画",
     })
@@ -2225,7 +2225,7 @@ const FUNNEL_STAGES = [
   { id: "paid", title: "有料", last: 130, now: 200 },
 ] as const;
 
-const funnelBuilder = funnel({ id: "funnel-demo", topic: "各段階での離脱率を示す絞込みの図" });
+const funnelBuilder = funnel({ id: "funnel-demo", topic: "訪問から有料契約まで" });
 for (const s of FUNNEL_STAGES) funnelBuilder.stage({ id: s.id, title: s.title, count: s.last });
 
 export const presetFunnel = withSteps(
@@ -2334,7 +2334,7 @@ export const presetQuadrant = withSteps(
   bindFirstNode(
     quadrant({
       id: "quad-demo",
-      topic: "2 つの軸で 4 象限に分けて優先度を決める図",
+      topic: "どの作業から取るか",
       xAxis: { left: "労力が小さい", right: "労力が大きい" },
       yAxis: { bottom: "価値が低い", top: "価値が高い" },
       // 区画の名前は判断の言葉にする。 書かないと軸の掛け合わせ (`価値が高い × 労力が小さい`)
@@ -2500,7 +2500,7 @@ const PIE_SLICES = [
 
 const pieBuilder = chart({
   id: "chart-pie-demo",
-  topic: "全体に対する内訳の割合を示す円グラフ",
+  topic: "入り口ごとの利用の割合",
   type: "pie",
 });
 for (const s of PIE_SLICES) pieBuilder.datum({ id: s.id, label: s.label, value: s.last });
@@ -2629,7 +2629,7 @@ const LINE_POINTS = [
 
 const lineBuilder = chart({
   id: "chart-line-demo",
-  topic: "時系列データの推移を線で示す折れ線グラフ",
+  topic: "月ごとの計画と実績",
   type: "line",
 });
 for (const p of LINE_POINTS) lineBuilder.datum({ id: p.id, label: p.label, value: p.plan });
@@ -2747,7 +2747,7 @@ export const pattern__presetChartLine__複雑 = withSteps(
 // 帯の終わりを状態から取り、作り込みが 1 期ぶん延びる様子を見せる。
 export const presetGantt = withSteps(
   bindFirstNode(
-    gantt({ id: "gantt-demo", topic: "タスクの期間と依存関係を横棒で示す進捗図" })
+    gantt({ id: "gantt-demo", topic: "版を出すまでの作業" })
       .task({ id: "design", title: "設計", start: "Q1", end: "Q1", owner: "デザイナー" })
       .task({
         id: "build",
@@ -3729,7 +3729,7 @@ export const sourceJson__presetFlow = `{
   ]
 }`;
 
-export const sourceYaml__presetChartPie = `title: "全体に対する内訳の割合を示す円グラフ"
+export const sourceYaml__presetChartPie = `title: "入り口ごとの利用の割合"
 eyebrow: "pie"
 type: chart
 shape: pie
@@ -3750,7 +3750,7 @@ animation:
     focus: [ウェブ, アプリ, API]
     draw: pie
     body: "ウェブ 45 / アプリ 35 / API 20。"
-  - step: "全体に対する内訳の割合を示す円グラフ" 0.9s
+  - step: "入り口ごとの利用の割合" 0.9s
     badge: "pie"
     focus: [ウェブ, アプリ, API]
     tween:
@@ -3761,7 +3761,7 @@ animation:
 `;
 
 export const sourceJson__presetChartPie = `{
-  "title": "全体に対する内訳の割合を示す円グラフ",
+  "title": "入り口ごとの利用の割合",
   "type": "chart",
   "shape": "pie",
   "eyebrow": "pie",
@@ -3782,7 +3782,7 @@ export const sourceJson__presetChartPie = `{
       "badge": "pie"
     },
     {
-      "step": "全体に対する内訳の割合を示す円グラフ",
+      "step": "入り口ごとの利用の割合",
       "duration": 0.9,
       "focus": ["ウェブ", "アプリ", "API"],
       "body": "今年はアプリが 45 まで伸びる。 扇の大きさを状態から取っている。",
@@ -3792,7 +3792,7 @@ export const sourceJson__presetChartPie = `{
   ]
 }`;
 
-export const sourceYaml__presetChartLine = `title: "時系列データの推移を線で示す折れ線グラフ"
+export const sourceYaml__presetChartLine = `title: "月ごとの計画と実績"
 eyebrow: "line"
 type: chart
 shape: line
@@ -3815,7 +3815,7 @@ animation:
     focus: [1月, 2月, 3月, 4月]
     draw: line
     body: "月ごとの見込みを引いた線。 左から順に引かれる。"
-  - step: "時系列データの推移を線で示す折れ線グラフ" 0.9s
+  - step: "月ごとの計画と実績" 0.9s
     badge: "line"
     focus: [1月, 2月, 3月, 4月]
     tween:
@@ -3827,7 +3827,7 @@ animation:
 `;
 
 export const sourceJson__presetChartLine = `{
-  "title": "時系列データの推移を線で示す折れ線グラフ",
+  "title": "月ごとの計画と実績",
   "type": "chart",
   "shape": "line",
   "eyebrow": "line",
@@ -3849,7 +3849,7 @@ export const sourceJson__presetChartLine = `{
       "badge": "line"
     },
     {
-      "step": "時系列データの推移を線で示す折れ線グラフ",
+      "step": "月ごとの計画と実績",
       "duration": 0.9,
       "focus": ["1月", "2月", "3月", "4月"],
       "body": "実績に置き換えると 2 月以降が計画を上回る。 点の高さを状態から取っている。",
@@ -3864,7 +3864,7 @@ export const sourceJson__presetChartLine = `{
   ]
 }`;
 
-export const sourceYaml__presetFunnel = `title: "各段階での離脱率を示す絞込みの図"
+export const sourceYaml__presetFunnel = `title: "訪問から有料契約まで"
 eyebrow: "funnel"
 type: funnel
 
@@ -3889,7 +3889,7 @@ animation:
     focus: [訪問, 登録, 試用, 有料]
     draw: funnel
     body: "訪問 8200 から有料 130 まで絞られる。"
-  - step: "各段階での離脱率を示す絞込みの図" 0.9s
+  - step: "訪問から有料契約まで" 0.9s
     badge: "funnel"
     focus: [訪問, 登録, 試用, 有料]
     tween:
@@ -3901,7 +3901,7 @@ animation:
 `;
 
 export const sourceJson__presetFunnel = `{
-  "title": "各段階での離脱率を示す絞込みの図",
+  "title": "訪問から有料契約まで",
   "type": "funnel",
   "eyebrow": "funnel",
   "lanes": { "chart": {"width": 624} },
@@ -3923,7 +3923,7 @@ export const sourceJson__presetFunnel = `{
       "badge": "funnel"
     },
     {
-      "step": "各段階での離脱率を示す絞込みの図",
+      "step": "訪問から有料契約まで",
       "duration": 0.9,
       "focus": ["訪問", "登録", "試用", "有料"],
       "body": "今月は訪問 10000 / 有料 200。 段の人数を状態から取るので、同じ図が別の月を映す。",
@@ -3938,7 +3938,7 @@ export const sourceJson__presetFunnel = `{
   ]
 }`;
 
-export const sourceYaml__presetTree = `title: "親子関係を縦階層で示す組織図・木構造"
+export const sourceYaml__presetTree = `title: "会社の指揮系統"
 eyebrow: "tree"
 type: tree
 
@@ -3967,7 +3967,7 @@ animation:
     focus: [社長, 技術責任者, 財務責任者, "{eng}", 運用部長]
     draw: tree
     body: "開発の責任者を開発部長と呼んでいる。"
-  - step: "親子関係を縦階層で示す組織図・木構造" 0.9s
+  - step: "会社の指揮系統" 0.9s
     badge: "tree"
     focus: [社長, 技術責任者, 財務責任者, "{eng}", 運用部長]
     set:
@@ -3976,7 +3976,7 @@ animation:
 `;
 
 export const sourceJson__presetTree = `{
-  "title": "親子関係を縦階層で示す組織図・木構造",
+  "title": "会社の指揮系統",
   "type": "tree",
   "eyebrow": "tree",
   "lanes": { "chart": {"width": 720} },
@@ -4004,7 +4004,7 @@ export const sourceJson__presetTree = `{
       "badge": "tree"
     },
     {
-      "step": "親子関係を縦階層で示す組織図・木構造",
+      "step": "会社の指揮系統",
       "duration": 0.9,
       "focus": ["社長", "技術責任者", "財務責任者", "{eng}", "運用部長"],
       "body": "呼び方だけが変わり、繋がりはそのまま。 名前を状態から取っている。",
@@ -4014,7 +4014,7 @@ export const sourceJson__presetTree = `{
   ]
 }`;
 
-export const sourceYaml__presetMindMap = `title: "中心の主題から発想を放射状に広げる図"
+export const sourceYaml__presetMindMap = `title: "次の版で決めること"
 eyebrow: "mindMap"
 type: mind
 
@@ -4042,7 +4042,7 @@ animation:
     focus: ["{theme}", 機能, 画面の設計, 公開, 認証, 課金]
     draw: mind
     body: "中心はまだ「新しい企画」 のまま。"
-  - step: "中心の主題から発想を放射状に広げる図" 0.9s
+  - step: "次の版で決めること" 0.9s
     badge: "mind"
     focus: ["{theme}", 機能, 画面の設計, 公開, 認証, 課金]
     set:
@@ -4051,7 +4051,7 @@ animation:
 `;
 
 export const sourceJson__presetMindMap = `{
-  "title": "中心の主題から発想を放射状に広げる図",
+  "title": "次の版で決めること",
   "type": "mind",
   "eyebrow": "mindMap",
   "lanes": { "chart": {"width": 720} },
@@ -4078,7 +4078,7 @@ export const sourceJson__presetMindMap = `{
       "badge": "mind"
     },
     {
-      "step": "中心の主題から発想を放射状に広げる図",
+      "step": "次の版で決めること",
       "duration": 0.9,
       "focus": ["{theme}", "機能", "画面の設計", "公開", "認証", "課金"],
       "body": "枝を見て中心の主題が決まる。 中心の名前を状態から取っている。",
@@ -4088,7 +4088,7 @@ export const sourceJson__presetMindMap = `{
   ]
 }`;
 
-export const sourceYaml__presetUserJourney = `title: "ユーザー体験の感情変化をステップ順に示す図"
+export const sourceYaml__presetUserJourney = `title: "登録が済むまでの道のり"
 eyebrow: "userJourney"
 type: journey
 
@@ -4112,7 +4112,7 @@ animation:
     set:
       form_mood: "不満"
     body: "登録の入力で気持ちが落ちる。"
-  - step: "ユーザー体験の感情変化をステップ順に示す図" 0.9s
+  - step: "登録が済むまでの道のり" 0.9s
     badge: "journey"
     focus: ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"]
     set:
@@ -4121,7 +4121,7 @@ animation:
 `;
 
 export const sourceJson__presetUserJourney = `{
-  "title": "ユーザー体験の感情変化をステップ順に示す図",
+  "title": "登録が済むまでの道のり",
   "type": "journey",
   "eyebrow": "userJourney",
   "lanes": { "chart": {"width": 720} },
@@ -4149,7 +4149,7 @@ export const sourceJson__presetUserJourney = `{
       "set": { "form_mood": "不満" }
     },
     {
-      "step": "ユーザー体験の感情変化をステップ順に示す図",
+      "step": "登録が済むまでの道のり",
       "duration": 0.9,
       "focus": ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"],
       "body": "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。",
@@ -4159,7 +4159,7 @@ export const sourceJson__presetUserJourney = `{
   ]
 }`;
 
-export const sourceYaml__presetQuadrant = `title: "2 つの軸で 4 象限に分けて優先度を決める図"
+export const sourceYaml__presetQuadrant = `title: "どの作業から取るか"
 eyebrow: "quadrant"
 type: quadrant
 
@@ -4189,7 +4189,7 @@ animation:
     set:
       fill_in_at: "左下"
     body: "検索の絞り込みは、価値も労力も低い枠に置いてある。"
-  - step: "2 つの軸で 4 象限に分けて優先度を決める図" 0.9s
+  - step: "どの作業から取るか" 0.9s
     badge: "quadrant"
     focus: ["文言の直し", "決済の作り直し", "検索の絞り込み", "古い画面の移行"]
     set:
@@ -4198,7 +4198,7 @@ animation:
 `;
 
 export const sourceJson__presetQuadrant = `{
-  "title": "2 つの軸で 4 象限に分けて優先度を決める図",
+  "title": "どの作業から取るか",
   "type": "quadrant",
   "eyebrow": "quadrant",
   "axes": {
@@ -4229,7 +4229,7 @@ export const sourceJson__presetQuadrant = `{
       "set": { "fill_in_at": "左下" }
     },
     {
-      "step": "2 つの軸で 4 象限に分けて優先度を決める図",
+      "step": "どの作業から取るか",
       "duration": 0.9,
       "focus": ["文言の直し", "決済の作り直し", "検索の絞り込み", "古い画面の移行"],
       "body": "見直しで検索の絞り込みを価値の高い枠へ移す。 どの枠に居るかを状態から取っている。",
@@ -4239,7 +4239,7 @@ export const sourceJson__presetQuadrant = `{
   ]
 }`;
 
-export const sourceYaml__presetGantt = `title: "タスクの期間と依存関係を横棒で示す進捗図"
+export const sourceYaml__presetGantt = `title: "版を出すまでの作業"
 eyebrow: "gantt"
 type: gantt
 
@@ -4263,7 +4263,7 @@ animation:
     focus: [設計, 実装, 検証, 公開]
     draw: gantt
     body: "実装は Q2 で終わる想定。"
-  - step: "タスクの期間と依存関係を横棒で示す進捗図" 0.9s
+  - step: "版を出すまでの作業" 0.9s
     badge: "gantt"
     focus: [設計, 実装, 検証, 公開]
     tween:
@@ -4272,7 +4272,7 @@ animation:
 `;
 
 export const sourceJson__presetGantt = `{
-  "title": "タスクの期間と依存関係を横棒で示す進捗図",
+  "title": "版を出すまでの作業",
   "type": "gantt",
   "eyebrow": "gantt",
   "actors": [
@@ -4297,7 +4297,7 @@ export const sourceJson__presetGantt = `{
       "badge": "gantt"
     },
     {
-      "step": "タスクの期間と依存関係を横棒で示す進捗図",
+      "step": "版を出すまでの作業",
       "duration": 0.9,
       "focus": ["設計", "実装", "検証", "公開"],
       "body": "作り込みが Q3 まで延びる。 帯の終わりを状態から取っている。",
