@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 // @ts-expect-error -- 検査対象は .mjs で型宣言を持たない
-import { 一枚を測る, 一群を測る, 理由の一行 } from "../scripts/drawing-measure-run.mjs";
+import { 一枚を測る, 一群を測る, 落ち着くまで読む, より広い, 理由の一行 } from "../scripts/drawing-measure-run.mjs";
 
 type 結果 = {
   group: string;
@@ -167,5 +167,127 @@ describe("失敗の理由を書き換えない (#2673)", () => {
     // 言い換えると、次に同じ失敗を見た時に playwright の文言から原因へ辿れない
     const 文 = "locator.click: Timeout 30000ms exceeded.";
     expect(理由の一行(new Error(文))).toBe(文);
+  });
+});
+
+describe("描き終わるまで読む (#2675)", () => {
+  /** 読みを順に返す。 最後の値はそれ以降ずっと返る = 動きが繰り返して落ち着いた状態 */
+  const 順に返す = (並び: unknown[]) => {
+    let i = 0;
+    return () => Promise.resolve(並び[Math.min(i++, 並び.length - 1)]);
+  };
+  const 読み = (広がり: number, 文字の件数 = 1) => ({
+    広がり,
+    文字の件数,
+    切れた名前: 0,
+    読める字: 1,
+  });
+
+  it("伸びが止まったら上限を待たずに打ち切る", async () => {
+    let 回 = 0;
+    const r = await 落ち着くまで読む({
+      読む: () => {
+        回 += 1;
+        return Promise.resolve(読み(回 <= 2 ? 0.1 * 回 : 0.2));
+      },
+      上限: 30,
+      落ち着き: 3,
+    });
+    // 3 / 4 / 5 回目が据え置き = 5 回で打ち切る
+    expect(r.読んだ回数).toBe(5);
+    expect(r.読み切れた).toBe(true);
+    expect(r.広がり).toBeCloseTo(0.2);
+  });
+
+  it("上限まで伸び続けた図は読み切れていないと返る", async () => {
+    let 回 = 0;
+    const r = await 落ち着くまで読む({
+      読む: () => {
+        回 += 1;
+        return Promise.resolve(読み(0.01 * 回));
+      },
+      上限: 6,
+      落ち着き: 3,
+    });
+    expect(r.読み切れた).toBe(false);
+    expect(r.読んだ回数).toBe(6);
+  });
+
+  it("読み切れていない図の値を捨てない", async () => {
+    // 捨てると相手選びから消えるが、消えたことが一覧に出ない
+    let 回 = 0;
+    const r = await 落ち着くまで読む({
+      読む: () => {
+        回 += 1;
+        return Promise.resolve(読み(0.01 * 回));
+      },
+      上限: 4,
+      落ち着き: 3,
+    });
+    expect(r.広がり).toBeCloseTo(0.04);
+  });
+
+  it("広がりが同じまま文字だけ増える途中で止まらない", async () => {
+    // 値だけを見ると据え置きに数えてしまい、描き終わる前に打ち切る
+    const r = await 落ち着くまで読む({
+      読む: 順に返す([読み(0.5, 3), 読み(0.5, 4), 読み(0.5, 5), 読み(0.5, 5)]),
+      上限: 30,
+      落ち着き: 2,
+    });
+    expect(r.文字の件数).toBe(5);
+    expect(r.読み切れた).toBe(true);
+  });
+
+  it("枠を持たない図は今までどおり null を返す", async () => {
+    const r = await 落ち着くまで読む({
+      読む: () => Promise.resolve(null),
+      上限: 4,
+      落ち着き: 2,
+    });
+    expect(r).toBeNull();
+  });
+
+  it("待つ側を渡さなくても読める (陰性対照)", async () => {
+    // 検査から呼ぶ時に待ち時間を作らせない
+    const r = await 落ち着くまで読む({
+      読む: () => Promise.resolve(読み(0.3)),
+      上限: 5,
+      落ち着き: 2,
+    });
+    expect(r.読み切れた).toBe(true);
+  });
+
+  it("落ち着いた図では読む回数が上限より少ない", async () => {
+    const r = await 落ち着くまで読む({
+      読む: () => Promise.resolve(読み(0.3)),
+      上限: 30,
+      落ち着き: 5,
+    });
+    expect(r.読んだ回数).toBeLessThan(30);
+  });
+});
+
+describe("どの読みを採るか (#2675)", () => {
+  const 読み = (広がり: number, 文字の件数: number) => ({ 広がり, 文字の件数 });
+
+  it("広がりが大きいほうを採る", () => {
+    expect(より広い(読み(0.5, 1), 読み(0.4, 9))).toBe(true);
+  });
+
+  it("広がりが並んだら文字の件数が多いほうを採る", () => {
+    expect(より広い(読み(0.5, 4), 読み(0.5, 3))).toBe(true);
+  });
+
+  it("並んで件数も同じなら採らない (陰性対照)", () => {
+    // ここが true になると据え置きが数えられず、落ち着きの判定が永久に立たない
+    expect(より広い(読み(0.5, 3), 読み(0.5, 3))).toBe(false);
+  });
+
+  it("最初の読みは必ず採る", () => {
+    expect(より広い(読み(0, 0), null)).toBe(true);
+  });
+
+  it("読めなかった回は採らない", () => {
+    expect(より広い(null, 読み(0.1, 1))).toBe(false);
   });
 });

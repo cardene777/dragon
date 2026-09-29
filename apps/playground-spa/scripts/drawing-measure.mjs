@@ -16,16 +16,31 @@
  * 文字は下地を持たないので、広がりがそのまま「絵として使えている面積」 になる。
  *
  * 線を引く動きは JS が駆動する。 開いた直後は起点しか描かれていないため、同じ図を
- * 何度も読んで **一番広がった時** を採る。 段は繰り返すので待てば必ず全部描かれる。
+ * 何度も読んで **一番広がった時** を採る。 段は繰り返すので待てば必ず全部描かれるが、
+ * それは読む窓が繰り返しの周期より長い時にだけ成り立つ。 そこで回数を決め打ちにせず、
+ * **値が伸びなくなるまで読む** (#2675)。 伸び続けたまま上限に達した図は
+ * 「読み切れていない」 として別に出す。
  *
  * 使い方
  *   node apps/playground-spa/scripts/drawing-measure.mjs
  *   node apps/playground-spa/scripts/drawing-measure.mjs --group charts
  *   node apps/playground-spa/scripts/drawing-measure.mjs --id 図を速くする
  *   node apps/playground-spa/scripts/drawing-measure.mjs --json .context/redraw/measure.json
+ *   node apps/playground-spa/scripts/drawing-measure.mjs --max-samples 60 --settle 8
+ *
+ * 引数
+ *   --interval      1 回ごとの間隔 (既定 400ms)
+ *   --max-samples   読む回数の上限 (既定 30)。 `--samples` も同じ意味で受ける
+ *   --settle        入れ替わらない読みが何回続いたら落ち着いたとみなすか (既定 5)
  */
 import { chromium } from "playwright";
-import { 一枚を測る, 一群を測る } from "../../../packages/dragon/scripts/drawing-measure-run.mjs";
+import {
+  一枚を測る,
+  一群を測る,
+  落ち着くまで読む,
+  上限の既定,
+  落ち着きの既定,
+} from "../../../packages/dragon/scripts/drawing-measure-run.mjs";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,7 +55,9 @@ const flags = (name) =>
 const flag = (name, fallback) => flags(name)[0] ?? fallback;
 
 const BASE = flag("url", "http://localhost:4323");
-const 読む回数 = Number(flag("samples", "10"));
+// `--samples` は `--max-samples` と同じ意味で残す = 既にある手順を書き換えずに済む
+const 読む上限 = Number(flag("max-samples", flag("samples", String(上限の既定))));
+const 落ち着き = Number(flag("settle", String(落ち着きの既定)));
 const 読む間隔 = Number(flag("interval", "400"));
 const 群指定 = flags("group");
 const id指定 = flags("id");
@@ -120,27 +137,14 @@ const 読み取る = (page) =>
     };
   });
 
-/**
- * 同じ図を何度か読んで、一番描かれていた時の 1 回を丸ごと採る。
- *
- * 数ごとに最大を採らない。 3 つの数が別々の瞬間から出ると、広がりは引き終わり、
- * 切れは引き始め、という組み合わせになり、同じ絵を表さなくなる。
- * 広がりが並んだ時は文字の件数が多いほうを採る = より多く描かれている。
- */
-async function 最大を採る(page) {
-  let 最大 = null;
-  for (let i = 0; i < 読む回数; i += 1) {
-    const v = await 読み取る(page);
-    const 勝ち =
-      v &&
-      (最大 === null ||
-        v.広がり > 最大.広がり ||
-        (v.広がり === 最大.広がり && v.文字の件数 > 最大.文字の件数));
-    if (勝ち) 最大 = v;
-    await page.waitForTimeout(読む間隔);
-  }
-  return 最大;
-}
+/** 同じ図を、値が伸びなくなるまで読む。 打ち切りの考え方は `落ち着くまで読む` が持つ */
+const 最大を採る = (page) =>
+  落ち着くまで読む({
+    読む: () => 読み取る(page),
+    待つ: () => page.waitForTimeout(読む間隔),
+    上限: 読む上限,
+    落ち着き,
+  });
 
 const 群 = 群の一覧(readFileSync(CATALOG_TS, "utf8")).filter(
   (g) => 群指定.length === 0 || 群指定.includes(g),
@@ -213,6 +217,12 @@ const 切れた図 = 測れた.filter((r) => r.切れた名前 > 0);
 console.log(
   `名前が切れた図 ... ${切れた図.length} 件 / 切れた名前 ${切れた図.reduce((a, r) => a + r.切れた名前, 0)} 件`,
 );
+// 読み切れていないことを低い値に潰さない。 値は表にも出るが、最後の値ではない
+const 読み切れていない = 測れた.filter((r) => r.読み切れた === false);
+if (読み切れていない.length > 0) {
+  console.log(`読み切れていない ... ${読み切れていない.length} 件 (上限 ${読む上限} 回まで伸び続けた)`);
+  for (const r of 読み切れていない) console.log(`  ${r.group}/${r.id} ... ${率(r.広がり)}`);
+}
 if (測れない.length > 0) {
   // 測れなかったことを 0 に潰さない。 0% と「測っていない」 は別の状態
   console.log(`測れなかった ... ${測れない.length} 件`);
