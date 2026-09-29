@@ -25,6 +25,7 @@
  *   node apps/playground-spa/scripts/drawing-measure.mjs --json .context/redraw/measure.json
  */
 import { chromium } from "playwright";
+import { 一枚を測る, 一群を測る } from "../../../packages/dragon/scripts/drawing-measure-run.mjs";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -149,28 +150,43 @@ if (群.length === 0) {
   process.exit(2);
 }
 
+/** 走っている図を 1 行ずつ出す。 出す先は標準エラー = 標準出力は表を運ぶ */
+const 進捗 = (行) => process.stderr.write(`${行}\n`);
+
+async function 群を開く(page, group) {
+  await page.goto(`${BASE}/catalog/${group}`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(1200);
+}
+
+/** 図の id は画面から取る。 catalog の source を読むと、画面に出ない図まで数える */
+async function 図の一覧(page, 絞り) {
+  const ids = await page
+    .locator(".catalog-list .catalog-list-item")
+    .evaluateAll((els) => els.map((e) => e.getAttribute("data-item-id")).filter((v) => v));
+  return ids.filter((id) => 絞り.length === 0 || 絞り.includes(id));
+}
+
+async function 図を押す(page, id) {
+  await page.locator(`.catalog-list-item[data-item-id="${id}"]`).first().click();
+  await page.waitForTimeout(800);
+}
+
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const 結果 = [];
 for (const group of 群) {
-  await page.goto(`${BASE}/catalog/${group}`, { waitUntil: "networkidle" });
-  await page.waitForTimeout(1200);
-  // 図の id は画面から取る。 catalog の source を読むと、画面に出ない図まで数える
-  const ids = (
-    await page
-      .locator(".catalog-list .catalog-list-item")
-      .evaluateAll((els) => els.map((e) => e.getAttribute("data-item-id")).filter((v) => v))
-  ).filter((id) => id指定.length === 0 || id指定.includes(id));
-  for (const id of ids) {
-    await page.locator(`.catalog-list-item[data-item-id="${id}"]`).first().click();
-    await page.waitForTimeout(800);
-    const v = await 最大を採る(page);
-    if (!v) {
-      結果.push({ group, id, 測れた: false, なぜ: "枠を持つ SVG が無い" });
-      continue;
-    }
-    結果.push({ group, id, 測れた: true, ...v });
-  }
+  結果.push(
+    ...(await 一群を測る(group, {
+      開く: () => 群を開く(page, group),
+      一覧: () => 図の一覧(page, id指定),
+      一枚: (g, id) =>
+        一枚を測る(g, id, {
+          押す: () => 図を押す(page, id),
+          測る: () => 最大を採る(page),
+          報せる: 進捗,
+        }),
+    })),
+  );
 }
 await browser.close();
 
