@@ -1066,35 +1066,35 @@ export const sourceJson__textDslErMesh = `{
 
 // ─── gantt preset (Q1-Q3 ロードマップ) ─────
 export const sourceYaml__textDslGantt = `
-title: "四半期の計画を書く例"
+title: "新しい画面を出すまで"
 type: gantt
 
 actors:
-  - 作業 1: { subtitle: "Q1" }
-  - 作業 2: { subtitle: "Q2" }
-  - 作業 3: { subtitle: "Q3" }
+  - 要件を固める: { subtitle: "Q1" }
+  - 作って試す: { subtitle: "Q2" }
+  - 配って直す: { subtitle: "Q3" }
 
 flow:
-  - 作業 1 -> 作業 2
-  - 作業 2 -> 作業 3
+  - 要件を固める -> 作って試す
+  - 作って試す -> 配って直す
 
 states:
-  task1_progress: 0
-  task2_progress: 0
+  design_progress: 0
+  build_progress: 0
 
 animation:
   - step: "Q1 進行" 2.4s
-    focus: ["作業 1", "作業 2", "作業 3"]
+    focus: ["要件を固める", "作って試す", "配って直す"]
     draw: gantt
     tween:
-      task1_progress: 0 -> 100
+      design_progress: 0 -> 100
     badge: "Q1 完了"
     description: "Q1 の帯が引かれ、進み具合が 100 まで動く。 帯の長さが期間、塗りが進み具合。"
 
   - step: "Q2 開始" 1.2s
-    focus: ["作業 1", "作業 2", "作業 3"]
+    focus: ["要件を固める", "作って試す", "配って直す"]
     tween:
-      task2_progress: 0 -> 50
+      build_progress: 0 -> 50
     badge: "Q2 進行中"
     description: "Q2 の進み具合が 50 まで進む。 Q1 の帯は引き終わったまま残る。"
 `;
@@ -1102,54 +1102,54 @@ animation:
 export const textDslGantt = textDslToDiagram(sourceYaml__textDslGantt);
 
 export const sourceJson__textDslGantt = `{
-  "title": "四半期の計画を書く例",
+  "title": "新しい画面を出すまで",
   "type": "gantt",
   "actors": [
     {
-      "name": "作業 1",
+      "name": "要件を固める",
       "kind": "card",
       "subtitle": "Q1"
     },
     {
-      "name": "作業 2",
+      "name": "作って試す",
       "kind": "card",
       "subtitle": "Q2"
     },
     {
-      "name": "作業 3",
+      "name": "配って直す",
       "kind": "card",
       "subtitle": "Q3"
     }
   ],
   "flow": [
     {
-      "from": "作業 1",
-      "to": "作業 2",
+      "from": "要件を固める",
+      "to": "作って試す",
       "label": ""
     },
     {
-      "from": "作業 2",
-      "to": "作業 3",
+      "from": "作って試す",
+      "to": "配って直す",
       "label": ""
     }
   ],
   "states": {
-    "task1_progress": 0,
-    "task2_progress": 0
+    "design_progress": 0,
+    "build_progress": 0
   },
   "animation": [
     {
       "step": "Q1 進行",
       "duration": 2.4,
       "focus": [
-        "作業 1",
-        "作業 2",
-        "作業 3"
+        "要件を固める",
+        "作って試す",
+        "配って直す"
       ],
       "draw": "gantt",
       "badge": "Q1 完了",
       "tween": {
-        "task1_progress": [
+        "design_progress": [
           0,
           100
         ]
@@ -1160,13 +1160,13 @@ export const sourceJson__textDslGantt = `{
       "step": "Q2 開始",
       "duration": 1.2,
       "focus": [
-        "作業 1",
-        "作業 2",
-        "作業 3"
+        "要件を固める",
+        "作って試す",
+        "配って直す"
       ],
       "badge": "Q2 進行中",
       "tween": {
-        "task2_progress": [
+        "build_progress": [
           0,
           50
         ]
@@ -1340,74 +1340,74 @@ export const pattern__textDslClass__クラス図で書く = textDslToDiagram(
 
 // ─── pie preset (シェア円グラフ) ─────
 export const sourceYaml__textDslPie = `
-title: "内訳の割合を書く例"
+title: "問い合わせの手段の割合"
 type: chart
 shape: pie
 
 actors:
-  - A: { value: "30%" }
-  - B: { value: "50%" }
-  - C: { value: "20%" }
+  - 電話: { value: "30%" }
+  - メール: { value: "50%" }
+  - 窓口: { value: "20%" }
 
 states:
-  a_share: 30
-  b_share: 50
+  phone_share: 30
+  mail_share: 50
 
 animation:
-  - step: "シェア更新" 2.4s
-    focus: [A, B, C]
+  - step: "割合が入れ替わる" 2.4s
+    focus: [電話, メール, 窓口]
     draw: pie
     tween:
-      a_share: 30 -> 40
-      b_share: 50 -> 40
-    badge: "再分配"
+      phone_share: 30 -> 40
+      mail_share: 50 -> 40
+    badge: "入れ替え後"
 `;
 
 export const textDslPie = textDslToDiagram(sourceYaml__textDslPie);
 
 export const sourceJson__textDslPie = `{
-  "title": "内訳の割合を書く例",
+  "title": "問い合わせの手段の割合",
   "type": "chart",
   "shape": "pie",
   "actors": [
     {
-      "name": "A",
+      "name": "電話",
       "kind": "card",
       "value": "30%"
     },
     {
-      "name": "B",
+      "name": "メール",
       "kind": "card",
       "value": "50%"
     },
     {
-      "name": "C",
+      "name": "窓口",
       "kind": "card",
       "value": "20%"
     }
   ],
   "flow": [],
   "states": {
-    "a_share": 30,
-    "b_share": 50
+    "phone_share": 30,
+    "mail_share": 50
   },
   "animation": [
     {
-      "step": "シェア更新",
+      "step": "割合が入れ替わる",
       "duration": 2.4,
       "focus": [
-        "A",
-        "B",
-        "C"
+        "電話",
+        "メール",
+        "窓口"
       ],
       "draw": "pie",
-      "badge": "再分配",
+      "badge": "入れ替え後",
       "tween": {
-        "a_share": [
+        "phone_share": [
           30,
           40
         ],
-        "b_share": [
+        "mail_share": [
           50,
           40
         ]
@@ -2250,7 +2250,7 @@ export const pattern__textDslActorKeys__1行にまとめて書く = textDslToDia
 // `前の値` は値を並べる図でだけ効く。 上のフローに書いても図は 1 ピクセルも変わらないので、
 // 帯で内訳を出す図に分けて見せる。
 
-export const sourceYaml__textDslValueKeys = `title: "値と前の値を英語で書く"
+export const sourceYaml__textDslValueKeys = `title: "販路ごとの売上"
 type: chart
 shape: stacked
 
@@ -2283,7 +2283,7 @@ animation:
 `;
 
 export const sourceJson__textDslValueKeys = `{
-  "title": "値と前の値を英語で書く",
+  "title": "販路ごとの売上",
   "type": "chart",
   "shape": "stacked",
   "states": { "mail": 120 },
