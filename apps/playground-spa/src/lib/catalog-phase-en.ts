@@ -270,7 +270,7 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "Q2 開始": "Q2 begins",
   "ちょうど 1 つずつ": "Exactly one each",
   "つながり": "Relationships",
-  "シェア更新": "Share updated",
+  "割合が入れ替わる": "Shares swap over",
   "中を開く": "Open the inside",
   "中心": "Centre",
   "今の内訳を見る": "Look at the current split",
