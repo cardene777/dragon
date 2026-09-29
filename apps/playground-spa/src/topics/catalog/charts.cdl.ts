@@ -916,6 +916,16 @@ export const pattern__mindMap__見出しだけ = textDslToDiagram(
 export const sourceYaml__quadrantMatrix = `title: "着手の順番"
 type: quadrant
 
+axes:
+  x: { left: "手間が小さい", right: "手間が大きい" }
+  y: { bottom: "効きが小さい", top: "効きが大きい" }
+
+regions:
+  左上: "すぐやる"
+  右上: "計画してやる"
+  左下: "ついでにやる"
+  右下: "やらない"
+
 actors:
   - 重複削除: "左上"
   - 描画刷新: "右上"
@@ -939,6 +949,16 @@ animation:
 export const sourceJson__quadrantMatrix = `{
   "title": "着手の順番",
   "type": "quadrant",
+  "axes": {
+    "x": { "left": "手間が小さい", "right": "手間が大きい" },
+    "y": { "bottom": "効きが小さい", "top": "効きが大きい" }
+  },
+  "regions": {
+    "左上": "すぐやる",
+    "右上": "計画してやる",
+    "左下": "ついでにやる",
+    "右下": "やらない"
+  },
   "actors": [
     { "name": "重複削除", "subtitle": "左上" },
     { "name": "描画刷新", "subtitle": "右上" },

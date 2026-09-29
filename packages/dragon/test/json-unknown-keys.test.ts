@@ -53,6 +53,10 @@ const 未知を足す: Record<階層, { input: Record<string, unknown>; path: st
     input: 図({ type: "quadrant", axes: { y: { bottom: "小", left: "低" } } }),
     path: "$.axes.y.left",
   },
+  regions: {
+    input: 図({ type: "quadrant", regions: { 左上: "すぐやる", 斜め上: "なにか" } }),
+    path: "$.regions.斜め上",
+  },
   layoutPos: {
     input: 図({ actors: [{ name: "A", pos: { x: 1, y: 2, z: 3 } }, { name: "B" }] }),
     path: "$.actors[0].pos.z",
@@ -72,6 +76,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     type: "flow",
     eyebrow: "見出し",
     axes: { x: { left: "低", right: "高" } },
+    regions: { 左上: "すぐやる" },
     actors: [{ name: "A" }, { name: "B" }],
     flow: [{ from: "A", to: "B", label: "x" }],
     states: { v: 1 },
@@ -207,6 +212,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
   axes: { x: { left: "低" }, y: { bottom: "小" } },
   axesX: { left: "低", right: "高" },
   axesY: { bottom: "小", top: "大" },
+  regions: { 左上: "すぐやる", 右上: "計画してやる", 左下: "ついでにやる", 右下: "やらない" },
   layoutPos: { x: 1, y: 2 },
   posRel: { anchor: "B", dir: "right", gap: 200 },
 };
@@ -232,6 +238,7 @@ function schemaの項目(層: 階層): string[] {
     axes: root.axes.properties,
     axesX: root.axes.properties.x.properties,
     axesY: root.axes.properties.y.properties,
+    regions: root.regions.properties,
     layoutPos: actor.pos.properties,
     posRel: actor.posRel.properties,
   };

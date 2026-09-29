@@ -75,6 +75,7 @@ import {
   PALETTES,
   resolvePalette,
 } from "../keywords";
+import { 区画 } from "../compile/word-state";
 import { PHASE_BODY_KEYS } from "../keywords";
 import type { DslPalette } from "../keywords";
 import type { DslDirection } from "../keywords";
@@ -90,6 +91,7 @@ import {
 } from "../value-syntax";
 import type {
   DslAxes,
+  DslRegions,
   DslDocument,
   DslActor,
   DslNodeKind,
@@ -178,6 +180,8 @@ export const TOP_LEVEL_KEYS = [
   "eyebrow",
   // 2 軸で仕分ける図の軸の名前 (#1251)
   "axes",
+  // 2 軸で仕分ける図の区画の名前 (#2667)
+  "regions",
   // 値を見せる部品 (#1374)
   "readouts",
   // 読む人が動かすつまみ (#1389)
@@ -557,6 +561,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let palette: DslPalette | null = null;
   let axes: DslAxes | undefined = undefined;
   let axesLine = 0;
+  let regions: DslRegions | undefined = undefined;
   let actors: DslActor[] = [];
   const flow: DslStep[] = [];
   let animate: DslAnimate | undefined = undefined;
@@ -1015,6 +1020,51 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i = next;
       continue;
     }
+    if (head.key === "regions") {
+      // regions:\n  左上: "すぐやる"\n  右上: "計画してやる"
+      //
+      // 1 行にまとめて書く形は受けない (`axes:` と同じ理由)。 受けないなら黙って捨てず、
+      // その場で伝える = 捨てると名前を書いたつもりの本文が既定のまま描かれる
+      if (head.value !== null && head.value.trim() !== "") {
+        errors.push({
+          line: line.no,
+          message: "regions は 1 行にまとめて書けない",
+          hint: '次の行から字下げして `左上: "すぐやる"` の形で並べる',
+        });
+        i += 1;
+        continue;
+      }
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      const 組み立て: DslRegions = {};
+      for (const it of items) {
+        const m = it.trimmed.match(/^(.+?)\s*:\s*(.+)$/);
+        if (!m) {
+          errors.push({
+            line: it.no,
+            message: `区画の行が読めません: "${it.trimmed}"`,
+            hint: '`左上: "すぐやる"` の形で書く',
+          });
+          continue;
+        }
+        // 区画を指す語は項目の欄と同じ 4 語。 別の言い方を足すと同じ区画を 2 通りで呼ぶ
+        const key = 区画.get((m[1] ?? "").trim());
+        if (key === undefined) {
+          // 知らせの形は他の欄と揃える (#1968)。 揃えないと、知らない項目名を
+          // 走査する検査がこの欄だけ見つけられない
+          errors.push({
+            line: it.no,
+            message: `regions の項目名が読めません: "${(m[1] ?? "").trim()}"`,
+            hint: `使える項目 = ${[...区画.keys()].join(", ")}`,
+          });
+          continue;
+        }
+        組み立て[key] = stripQuotes((m[2] ?? "").trim());
+      }
+      // 1 つも読めなかった形は「書かなかった」 と同じにする (`axes:` と同じ)
+      regions = Object.keys(組み立て).length > 0 ? 組み立て : undefined;
+      i = next;
+      continue;
+    }
     if (head.key === "bands") {
       /*
        * 動いている間の帯 (#1466)。 `- DB: 1..2` の形で、言づての番号の区間を書く。
@@ -1309,6 +1359,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(shape !== null ? { shape, shapePos: { line: shapeLine } } : {}),
       ...(palette !== null ? { palette } : {}),
       ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),
+      ...(regions !== undefined ? { regions } : {}),
       actors,
       flow,
       animate,

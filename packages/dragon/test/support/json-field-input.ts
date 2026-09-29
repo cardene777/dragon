@@ -59,6 +59,8 @@ export function 欄に値を置く(層: 階層, key: string, v: unknown): Record
       return 図({ type: "quadrant", axes: { x: { [key]: v } } });
     case "axesY":
       return 図({ type: "quadrant", axes: { y: { [key]: v } } });
+    case "regions":
+      return 図({ type: "quadrant", regions: { [key]: v } });
     case "layoutPos":
       return 図({ actors: [{ name: "A", pos: { x: 1, y: 2, [key]: v } }, { name: "B" }] });
     case "posRel": {
@@ -92,6 +94,8 @@ export function 欄のpath(層: 階層, key: string): string {
       return `$.groups.G1.${key}`;
     case "axes":
       return `$.axes.${key}`;
+    case "regions":
+      return `$.regions.${key}`;
     case "axesX":
       return `$.axes.x.${key}`;
     case "axesY":
