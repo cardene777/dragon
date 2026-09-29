@@ -653,6 +653,24 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    // 区画に直接名前を付ける (#2667)。 軸の掛け合わせから一段離れた言い方を書く場所
+    title: "区画の名前 (regions:)",
+    titleEn: "Quadrant names (regions:)",
+    sample: {
+      slot: "root",
+      type: "quadrant",
+      actors: ['  - 重複削除: "左上"', '  - 型を直す: "右上"'],
+    },
+    lines: [
+      { code: "regions:", note: "区画に名前を付ける", noteEn: "Names the four quadrants" },
+      { code: '  左上: "すぐやる"', note: "書いた区画だけ差し替わる", noteEn: "Only the quadrants you write are replaced" },
+      {
+        code: '  右下: "やらない"',
+        note: "書かない区画は軸から決まる", noteEn: "The ones you leave out follow from the axes",
+      },
+    ],
+  },
+  {
     // ユーザージャーニーの段だけが持つ欄。 他の図種で書くと組み立て側が知らせる (#1251)
     title: "ユーザージャーニーの欄 (touchpoint: / opportunity:)",
     titleEn: "Journey fields (touchpoint: / opportunity:)",

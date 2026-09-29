@@ -42,6 +42,8 @@ import {
 // 図の配色 (#1553)。 記法の読み手と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方が
 // 記法と JSON でずれない
 import { resolvePalette, resolveOrder, resolveShape, PHASE_BODY_KEYS } from "./keywords";
+// 区画の語の表 (#2667)。 記法と同じ表から直す = 同じ区画を 2 通りで呼ばない
+import { 区画 } from "./compile/word-state";
 import type { DslShape } from "./keywords";
 import type { DslPalette } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
@@ -60,6 +62,7 @@ import type {
 import { extractIdentifiers, parseFormula } from "@cardenelabs/cdl";
 import type {
   DslDocument,
+  DslRegions,
   DslActor,
   DslStep,
   DslAnimate,
@@ -118,6 +121,13 @@ export interface DragonJson {
    * 他の図種には軸が無いため、書かれていたら組み立て側が知らせる。
    */
   axes?: JsonAxes;
+  /**
+   * 2 軸で仕分ける図の区画の名前 (#2667)。 記法の `regions:` と同じ。
+   *
+   * 鍵は項目の欄と同じ 4 語 (`左上` / `右上` / `左下` / `右下`)。 別の言い方を足すと
+   * 同じ区画を 2 通りで呼ぶことになる。
+   */
+  regions?: JsonRegions;
   /** 登場人物 (必須): 文字列 or { name, kind, ... } object */
   actors: (string | JsonActor)[];
   /** flow step 配列 (必須): { from, to, label, ... } */
@@ -400,6 +410,14 @@ export interface JsonAxes {
   y?: { bottom?: string; top?: string };
 }
 
+/** 2 軸で仕分ける図の区画の名前 (#2667)。 記法の `regions:` と同じ形 */
+export interface JsonRegions {
+  左上?: string;
+  右上?: string;
+  左下?: string;
+  右下?: string;
+}
+
 export interface JsonStep {
   from: string;
   to: string;
@@ -570,6 +588,7 @@ export const ACCEPTED_KEYS = {
     "type",
     "eyebrow",
     "axes",
+    "regions",
     "actors",
     "flow",
     "states",
@@ -691,6 +710,8 @@ export const ACCEPTED_KEYS = {
   axes: ["x", "y"],
   axesX: ["left", "right"],
   axesY: ["bottom", "top"],
+  // 区画を指す語は項目の欄と同じ 4 語 (#2667)
+  regions: ["左上", "右上", "左下", "右下"],
   layoutPos: ["x", "y"],
   // 位置を他の要素からの相対で書く指定 (#2039)。 間隔は書かなくてよい
   posRel: ["anchor", "dir", "gap"],
@@ -751,6 +772,7 @@ export const 欄の型表 = {
     type: "必須の図種",
     eyebrow: "文字列",
     axes: "object",
+    regions: "object",
     actors: "必須の非空の並び",
     flow: "必須の並び",
     states: "object",
@@ -897,6 +919,7 @@ export const 欄の型表 = {
   axes: { x: "object", y: "object" },
   axesX: { left: "文字列", right: "文字列" },
   axesY: { bottom: "文字列", top: "文字列" },
+  regions: { 左上: "文字列", 右上: "文字列", 左下: "文字列", 右下: "文字列" },
   // 位置は書けば x と y の両方が要る。 片方だけでは寄せ幅が決まらない
   layoutPos: { x: "必須の数", y: "必須の数" },
   // 相対で置く指定 (#2039)。 相手と向きは必ず要り、間隔は書かなければ既定で置く
@@ -2065,6 +2088,39 @@ function validateAxes(v: unknown, errors: JsonDslError[]): void {
 }
 
 /**
+ * JSON の区画の名前を、図の側の綴りへ直す (#2667)。
+ *
+ * 記法と JSON はどちらも `左上` のような語で書き、図の側は `topLeft` で受ける。
+ * 直す先の表は項目の欄と共有する (`区画`) = 同じ区画を 2 通りで呼ばない。
+ *
+ * 中身の無い形は「書かなかった」 と同じにする (`axes` と同じ扱い)。
+ */
+function 区画の名前を直す(r: JsonRegions | undefined): DslRegions | undefined {
+  if (r === undefined) return undefined;
+  const 出: DslRegions = {};
+  for (const [語, key] of 区画) {
+    const v = (r as Record<string, unknown>)[語];
+    if (typeof v === "string" && v.trim() !== "") 出[key] = v;
+  }
+  return Object.keys(出).length > 0 ? 出 : undefined;
+}
+
+/** 2 軸で仕分ける図の区画の名前を見る (#2667) */
+function validateRegions(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({
+      path: "$.regions",
+      message: 'regions must be a plain object like { "左上": "すぐやる" }',
+    });
+    return;
+  }
+  const o = v as Record<string, unknown>;
+  checkUnknownKeys(o, "regions", "$.regions", errors);
+  表で検査(o, "regions", "$.regions", "regions", errors);
+}
+
+/**
  * 写しを作る時の入れ子の深さの上限。
  *
  * 枠の並びの長さが入れ子の深さで決まる。 図の入れ子は深くても数段で、 64 に届く形は書けない。
@@ -2466,6 +2522,7 @@ function validateJson(
   validateStates(j.states, errors);
   validateValues(j.values, errors);
   validateAxes(j.axes, errors);
+  validateRegions(j.regions, errors);
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, data: j as unknown as DragonJson };
 }
@@ -2879,6 +2936,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.axes && (json.axes.x !== undefined || json.axes.y !== undefined)
       ? { axes: json.axes, axesPos: 位置("axes") }
       : {}),
+    // 区画の名前 (#2667)。 鍵は記法と同じ 4 語なので、描画側の綴りへここで直す
+    ...(区画の名前を直す(json.regions) === undefined
+      ? {}
+      : { regions: 区画の名前を直す(json.regions) }),
     actors,
     flow,
     animate,

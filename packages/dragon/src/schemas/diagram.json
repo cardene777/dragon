@@ -84,6 +84,25 @@
         }
       }
     },
+    "regions": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "quadrant の区画に出す名前。 記法の regions と同じ。 鍵は項目の欄と同じ 4 語。",
+      "properties": {
+        "左上": {
+          "type": "string"
+        },
+        "右上": {
+          "type": "string"
+        },
+        "左下": {
+          "type": "string"
+        },
+        "右下": {
+          "type": "string"
+        }
+      }
+    },
     "actors": {
       "type": "array",
       "minItems": 1,
@@ -2276,7 +2295,9 @@
           {
             "type": "object",
             "additionalProperties": false,
-            "required": ["expression"],
+            "required": [
+              "expression"
+            ],
             "properties": {
               "expression": {
                 "type": "string",

@@ -92,19 +92,61 @@ function 軸と区画の名前(doc: DslDocument): {
   yAxis: { bottom: string; top: string };
   quadrantLabels: { topLeft: string; topRight: string; bottomLeft: string; bottomRight: string };
 } {
-  if (doc.axes === undefined) return 軸の既定;
-  const left = doc.axes.x?.left ?? 軸の既定.xAxis.left;
-  const right = doc.axes.x?.right ?? 軸の既定.xAxis.right;
-  const bottom = doc.axes.y?.bottom ?? 軸の既定.yAxis.bottom;
-  const top = doc.axes.y?.top ?? 軸の既定.yAxis.top;
+  const 軸 = 軸の名前(doc);
+  return { ...軸, quadrantLabels: 区画の名前(doc, 軸) };
+}
+
+/** 軸の両端の名前。 書かなかった側は既定のまま = 空文字を渡すと名前の無い軸が描かれる */
+function 軸の名前(doc: DslDocument): {
+  xAxis: { left: string; right: string };
+  yAxis: { bottom: string; top: string };
+} {
+  if (doc.axes === undefined) return { xAxis: 軸の既定.xAxis, yAxis: 軸の既定.yAxis };
   return {
-    xAxis: { left, right },
-    yAxis: { bottom, top },
-    quadrantLabels: {
-      topLeft: `${top} × ${left}`,
-      topRight: `${top} × ${right}`,
-      bottomLeft: `${bottom} × ${left}`,
-      bottomRight: `${bottom} × ${right}`,
+    xAxis: {
+      left: doc.axes.x?.left ?? 軸の既定.xAxis.left,
+      right: doc.axes.x?.right ?? 軸の既定.xAxis.right,
     },
+    yAxis: {
+      bottom: doc.axes.y?.bottom ?? 軸の既定.yAxis.bottom,
+      top: doc.axes.y?.top ?? 軸の既定.yAxis.top,
+    },
+  };
+}
+
+/**
+ * 区画の中に出す名前 (#2667)。
+ *
+ * 決め方は 3 段で、書いたものが勝つ。
+ *
+ * | 何を書いたか | 出る名前 |
+ * |---|---|
+ * | `regions:` にその区画を書いた | 書いた名前 |
+ * | `axes:` を書いた | 軸の掛け合わせ (`{上} × {左}`) |
+ * | どちらも書かない | 位置の名前 (`左上` 等) |
+ *
+ * **区画ごとに独立して決める**。 `regions:` を 1 つだけ書いた図で、残り 3 つが
+ * 位置の名前に戻ると「書いた所だけ変わる」 という読み方ができなくなる。
+ */
+function 区画の名前(
+  doc: DslDocument,
+  軸: { xAxis: { left: string; right: string }; yAxis: { bottom: string; top: string } },
+): { topLeft: string; topRight: string; bottomLeft: string; bottomRight: string } {
+  const 掛け合わせ =
+    doc.axes === undefined
+      ? 軸の既定.quadrantLabels
+      : {
+          topLeft: `${軸.yAxis.top} × ${軸.xAxis.left}`,
+          topRight: `${軸.yAxis.top} × ${軸.xAxis.right}`,
+          bottomLeft: `${軸.yAxis.bottom} × ${軸.xAxis.left}`,
+          bottomRight: `${軸.yAxis.bottom} × ${軸.xAxis.right}`,
+        };
+  const r = doc.regions;
+  if (r === undefined) return { ...掛け合わせ };
+  return {
+    topLeft: r.topLeft ?? 掛け合わせ.topLeft,
+    topRight: r.topRight ?? 掛け合わせ.topRight,
+    bottomLeft: r.bottomLeft ?? 掛け合わせ.bottomLeft,
+    bottomRight: r.bottomRight ?? 掛け合わせ.bottomRight,
   };
 }

@@ -146,6 +146,14 @@ export type DslDocument = {
   axes?: DslAxes;
   /** `axes` を書いた行 (#1251)。 知らせの行番号に使う */
   axesPos?: Position;
+  /**
+   * 2 軸で仕分ける図の区画の名前 (#2667)。
+   *
+   * `axes` が軸の両端の名前を持つのに対し、こちらは区画の中に出す名前を持つ。
+   * 軸の掛け合わせ (`効果が大きい × 手間が小さい`) から一段離れた言い方
+   * (`すぐやる`) を書くための欄。
+   */
+  regions?: DslRegions;
   actors: DslActor[];
   flow: DslStep[];
   animate?: DslAnimate;
@@ -269,6 +277,19 @@ export type DslDocument = {
 export type DslAxes = {
   x?: { left?: string; right?: string };
   y?: { bottom?: string; top?: string };
+};
+
+/**
+ * 2 軸で仕分ける図の区画の名前 (#2667)。
+ *
+ * 欄の名前は描画側の区画の綴りに揃える。 記法では `左上` のような語で書き、
+ * 解析の時にここへ直す = 区画を指す語を 2 通り持たないため。
+ */
+export type DslRegions = {
+  topLeft?: string;
+  topRight?: string;
+  bottomLeft?: string;
+  bottomRight?: string;
 };
 
 /** 登場人物 (v0.5+ ... inline option 拡張) */

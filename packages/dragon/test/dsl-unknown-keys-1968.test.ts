@@ -177,6 +177,18 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
       },
     ),
   ],
+  regions: [
+    見本(
+      "区画の名前",
+      (k) => `title: "t"\ntype: quadrant\nregions:\n  ${k}: "すぐやる"\n\nactors:\n  - A\n`,
+      "斜め上",
+      "左上",
+      {
+        input: 図({ type: "quadrant", regions: { 斜め上: "すぐやる" } }),
+        path: "$.regions.斜め上",
+      },
+    ),
+  ],
   readouts: [
     見本(
       "値を見せる部品",
