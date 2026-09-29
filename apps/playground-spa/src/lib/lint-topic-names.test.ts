@@ -1,44 +1,36 @@
 /**
- * 記法の検査の自動修正が書く図の説明が、カタログの図の型の名前と同じ呼び名を使うことの検証 (#1934)。
+ * 図の説明の指摘の修正案が、自動修正の振る舞いと食い違わないことの検証 (#1942)。
  *
- * 自動修正 (`autoFix`) は、図の説明が型の名前 (`gantt` など) で始まる時に日本語の説明へ書き換える。
- * 書き換え先の表は記法の package (`packages/dragon/src/notation-lint.ts`) が持ち、カタログの名前は
- * 画面側 (`ITEM_NAME_JA`) が持つ。 package は画面側の file を読まないので、2 つを照らす検査をここに置く。
+ * package 側の検査 (`packages/dragon/test/notation-lint.test.ts`) は説明を 3 通りしか
+ * 入力にしないので、全ての型と実装の言葉の組はここで回す。
  *
- * 直す前は、自動修正が書く説明とカタログの名前が別の呼び名になっていた。 名前を差し替えるだけだと
- * `ガントチャート を示す図` のように図が重なるので、説明のほうを型ごとに書き下している。
+ * ## #1934 の検査を落とした理由 (#2687)
  *
- * 同じ型の一覧で、図の説明の指摘の修正案が自動修正の書く説明と一致することも確かめる (#1942)。
- * package 側の検査は説明 4 通りしか入力にしないので、全ての型と実装の言葉の組はここで回す。
+ * 元はここに、自動修正が書く説明 (`KIND_TO_JA` の `${shows}を示す${name}`) が
+ * カタログの図の型の名前 (`ITEM_NAME_JA`) と同じ呼び名を使うことを照らす検査があった。
+ *
+ * cdl 0.96.0 で図の説明が **図の題として画面に出る** ようになり、書き換え先の定義文
+ * (「全体に対する内訳の割合を示す円グラフ」) が見本帳の 8 枚にそのまま出た。
+ * 道具は図の中身を知らないので名前を作れない = 自動修正は語を落とすだけに変え、
+ * 書き換え先の表ごと落とした。
+ *
+ * 照らす相手が無くなったので検査も残せない。 「自動修正が名前を書かない」 ことは
+ * package 側 (`先頭の型の名前は落とすだけで、図種の定義文を書かない`) が固定する。
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { autoFix, lintDiagram } from "@cardenelabs/dragon";
-import { ITEM_NAME_JA } from "./i18n";
-import { 残るカタカナ語 } from "./screen-words";
 
 const 記法の検査 = readFileSync(
   fileURLToPath(new URL("../../../../packages/dragon/src/notation-lint.ts", import.meta.url)),
   "utf8",
 );
 
-/**
- * カタログに同じ型の見本が無い型と、その理由。
- *
- * 照らす相手が無いので名前の照合から外す。 **1 件ごとに理由を書く** = 名前だけ並べると、
- * 照合に落ちた型を 1 行足すだけで黙らせられる。 外した型も図の重なりとカタカナ語の検査には入れる。
- */
-export const 見本の無い型: Record<string, string> = {
-  chart:
-    "型を決めない図表の総称。 カタログは円グラフと折れ線グラフを別々の見本で置き、総称の見本は無い",
-  "bar chart": "カタログに棒グラフの見本が無い (図表の見本は円グラフと折れ線グラフの 2 つ)",
-};
-
-/** 自動修正が書き換える型。 検出の正規表現 (`topic.match(/^\s*(…)\b/i)`) の選択肢を読む */
-export function 書き換える型(src: string): string[] {
-  const 選択肢 = /topic\.match\(\s*\/\^\\s\*\(([^)]*)\)\\b\/i/.exec(src)?.[1];
+/** 自動修正が落とす型。 落とす正規表現 (`先頭の型の名前`) の選択肢を読む */
+export function 落とす型(src: string): string[] {
+  const 選択肢 = /const 先頭の型の名前 =\s*\/\^\\s\*\(([^)]*)\)\\b\/i/.exec(src)?.[1];
   if (選択肢 === undefined) return [];
   return 選択肢.split("|").flatMap((語) => {
     const 省ける = /^(.*)(.)\?$/.exec(語);
@@ -46,24 +38,8 @@ export function 書き換える型(src: string): string[] {
   });
 }
 
-/** 書き換え先の表 (`KIND_TO_JA`) が持つ型 */
-export function 表の型(src: string): string[] {
-  const 表 = /const KIND_TO_JA[^=]*=\s*\{([\s\S]*?)\n\};/.exec(src)?.[1] ?? "";
-  return [...表.matchAll(/^\s+"?([A-Za-z0-9 ]+?)"?:\s*\{/gm)].map((m) => m[1]!);
-}
-
-/** 型に対応する見本の鍵。 `gantt` → `presetGantt`、`line chart` → `presetChartLine` */
-export function 見本の鍵(型: string): string {
-  const 語 = 型.split(" ").reverse();
-  return `preset${語.map((w) => w[0]!.toUpperCase() + w.slice(1)).join("")}`;
-}
-
 function 図(topic: string): CdlDiagram {
   return { id: "d", topic, nodes: [], edges: [] } as unknown as CdlDiagram;
-}
-
-function 書き換え(topic: string): string {
-  return autoFix(図(topic)).topic;
 }
 
 const 図の説明の規則 = "topic-redundant-implementation-detail";
@@ -82,19 +58,27 @@ export const 実装の言葉 = [
 ] as const;
 
 /**
- * 型と実装の言葉の組ごとに、図の説明の指摘が自動修正と食い違うもの。
+ * 型と実装の言葉の組ごとに、指摘の修正案が自動修正の振る舞いと食い違うもの。
  *
- * 見るのは 3 つ。 自動修正できると数えているか、修正案が自動修正の書く説明そのものか、
- * 直した説明にもう指摘が出ないか。 3 つ目が崩れると、道具が直せる数に入れた指摘が直した後も残る。
+ * 見るのは 2 通り (#2687)。
+ *
+ * 直せると数えた組は、修正案が自動修正の書く説明そのもので、直した説明に指摘が残らないこと。
+ * 残ると、道具が直せる数に入れた指摘が直した後も出る (#1940)。
+ *
+ * 直せないと数えた組は、自動修正が説明を変えないか、変えても指摘が残ること。
+ * 変えて指摘も消えるなら直せたはずで、数え方が誤っている。
+ *
+ * **どちらの側も見る** = 片側だけ見ると、全部を直せないと数える実装が素通りする。
  */
 export function 修正案とずれる組(
   型たち: readonly string[],
   言葉たち: readonly string[],
   検査: (d: CdlDiagram) => ReturnType<typeof lintDiagram>,
   直す: (d: CdlDiagram) => CdlDiagram,
-): { ずれ: string[]; 組: number } {
+): { ずれ: string[]; 組: number; 直せた: number } {
   const ずれ: string[] = [];
   let 組 = 0;
+  let 直せた = 0;
   for (const 型 of 型たち) {
     for (const 言葉 of 言葉たち) {
       const d = 図(`${型} ${言葉}`);
@@ -105,105 +89,30 @@ export function 修正案とずれる組(
       }
       組++;
       const 直した = 直す(d);
+      const 残る = 検査(直した).issues.some((i) => i.rule === 図の説明の規則);
       for (const i of 指摘) {
-        if (!i.autoFixable) ずれ.push(`${d.topic}: 自動修正できると数えていない`);
-        if (i.suggestion !== 直した.topic) {
-          ずれ.push(`${d.topic}: 修正案は ${i.suggestion}、自動修正は ${直した.topic}`);
+        if (i.autoFixable) {
+          直せた++;
+          if (i.suggestion !== 直した.topic) {
+            ずれ.push(`${d.topic}: 修正案は ${i.suggestion}、自動修正は ${直した.topic}`);
+          }
+          if (残る) ずれ.push(`${d.topic}: 直した説明 ${直した.topic} にまだ指摘が出る`);
+        } else if (直した.topic !== d.topic && !残る) {
+          ずれ.push(`${d.topic}: 直せているのに直せないと数えている (${直した.topic})`);
         }
-      }
-      if (検査(直した).issues.some((i) => i.rule === 図の説明の規則)) {
-        ずれ.push(`${d.topic}: 直した説明 ${直した.topic} にまだ指摘が出る`);
       }
     }
   }
-  return { ずれ, 組 };
+  return { ずれ, 組, 直せた };
 }
 
-/**
- * カタログに同じ型の見本がある型のうち、書き換えた説明がカタログの名前で終わらないもの。
- *
- * 「含む」 ではなく「`を示す` の直後から末尾までが名前ちょうど」 で見る。 含むだけだと
- * `状態遷移図 を示す図` のように名前の後ろへ別の図の名前を足した形も通り、末尾だけを見ると
- * カタログの名前が `線グラフ` に変わっても `折れ線グラフ` で通る。
- */
-export function 名前とずれる型(
-  型たち: readonly string[],
-  書き換える: (topic: string) => string,
-  名前表: Record<string, string>,
-): { ずれ: string[]; 照らした: number } {
-  const ずれ: string[] = [];
-  let 照らした = 0;
-  for (const 型 of 型たち) {
-    const 名前 = 名前表[見本の鍵(型)];
-    if (名前 === undefined) continue;
-    照らした++;
-    const 説明 = 書き換える(型);
-    if (!説明.endsWith(`を示す${名前}`)) ずれ.push(`${型}: ${説明} (カタログは ${名前})`);
-  }
-  return { ずれ, 照らした };
-}
-
-const 型たち = 書き換える型(記法の検査);
-
-describe("自動修正が書く図の説明とカタログの名前 (#1934)", () => {
-  it("書き換える型と書き換え先の表の型が同じ", () => {
-    expect(
-      型たち.length,
-      "書き換える型を 1 つも読めていない (検査が空振りしている)",
-    ).toBeGreaterThan(0);
-    expect([...表の型(記法の検査)].sort()).toEqual([...型たち].sort());
-  });
-
-  it("見本の無い型は、カタログに同じ型の見本が無い型と同じ", () => {
-    const 無い = 型たち.filter((型) => !Object.hasOwn(ITEM_NAME_JA, 見本の鍵(型)));
-    expect(無い.sort()).toEqual(Object.keys(見本の無い型).sort());
-  });
-
-  it("カタログに同じ型の見本がある型は、書き換えた説明が「…を示す{カタログの名前}」 で終わる", () => {
-    const { ずれ, 照らした } = 名前とずれる型(型たち, 書き換え, ITEM_NAME_JA);
-    expect(照らした, "カタログの名前と 1 つも照らせていない (検査が空振りしている)").toBe(
-      型たち.length - Object.keys(見本の無い型).length,
-    );
-    expect(ずれ).toEqual([]);
-  });
-
-  it("どの型でも図が重ならない", () => {
-    const 重なる = 型たち.map(書き換え).filter((説明) => /図\s*を示す/.test(説明));
-    expect(重なる).toEqual([]);
-  });
-
-  it("書き換えた説明に、残す語の一覧の外のカタカナ語が無い", () => {
-    expect(残るカタカナ語(型たち.map(書き換え).join("\n"))).toEqual([]);
-  });
-
-  it("植え込み対照: カタログの名前が変わると、書き換えた説明の末尾と重なる名前でもずれとして見つける", () => {
-    // 植え込む名前は **いまの名前と違うもの** にする。 同じ名前を置くとずれが生まれず、
-    // 検査が空振りしていることに気付けない (#2550 で `工程表` から `ガントチャート` へ
-    // 変えた時、植え込みが `ガントチャート` のままで 1 件しか出なくなった)
-    const 変えた = { ...ITEM_NAME_JA, presetGantt: "工程表", presetChartLine: "線グラフ" };
-    expect(名前とずれる型(型たち, 書き換え, 変えた).ずれ).toEqual([
-      "gantt: 作業の期間と前後の関係を示すガントチャート (カタログは 工程表)",
-      "line chart: 値の移り変わりを示す折れ線グラフ (カタログは 線グラフ)",
-    ]);
-  });
-
-  it("植え込み対照: 名前の後ろに図を足す旧い文型は、名前を含んでもずれとして見つける", () => {
-    const 旧い = (型: string): string => `${ITEM_NAME_JA[見本の鍵(型)] ?? 型} を示す図`;
-    const { ずれ } = 名前とずれる型(["gantt", "stateMachine"], 旧い, ITEM_NAME_JA);
-    expect(ずれ).toEqual([
-      "gantt: ガントチャート を示す図 (カタログは ガントチャート)",
-      "stateMachine: 状態遷移図 を示す図 (カタログは 状態遷移図)",
-    ]);
-  });
-
-  it("植え込み対照: 省ける字 (`?`) を持つ選択肢は両方の型に開く", () => {
-    const src =
-      "const kindMatch = topic.match(\n    /^\\s*(flow|stateMachine2?|line chart)\\b/i,\n  );";
-    expect(書き換える型(src)).toEqual(["flow", "stateMachine", "stateMachine2", "line chart"]);
-  });
-});
+const 型たち = 落とす型(記法の検査);
 
 describe("図の説明の指摘の修正案と自動修正 (#1942)", () => {
+  it("落とす型を実物から読めている", () => {
+    expect(型たち.length, "落とす型を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
+  });
+
   it("実装の言葉は検出の形と同じ数で、1 つずつ別の形に当たる", () => {
     const 形の数 = (記法の検査.match(/\bhint: "/g) ?? []).length;
     expect(形の数, "検出の形を 1 つも数えられていない (検査が空振りしている)").toBeGreaterThan(0);
@@ -218,41 +127,31 @@ describe("図の説明の指摘の修正案と自動修正 (#1942)", () => {
     expect(new Set(理由).size, "2 つの言葉が同じ形に当たっている").toBe(実装の言葉.length);
   });
 
-  it("どの型と実装の言葉の組でも、修正案は自動修正が書く説明そのもので、直した説明に指摘が残らない", () => {
-    expect(
-      型たち.length,
-      "書き換える型を 1 つも読めていない (検査が空振りしている)",
-    ).toBeGreaterThan(0);
-    const { ずれ, 組 } = 修正案とずれる組(型たち, 実装の言葉, lintDiagram, autoFix);
+  it("どの型と実装の言葉の組でも、直せる数え方と自動修正の振る舞いが食い違わない", () => {
+    const { ずれ, 組, 直せた } = 修正案とずれる組(型たち, 実装の言葉, lintDiagram, autoFix);
     expect(ずれ).toEqual([]);
     expect(組, "指摘の出た組が足りない (検査が空振りしている)").toBe(
       型たち.length * 実装の言葉.length,
     );
+    // 直せる組が 1 つも無いと、直せる側の判定を 1 度も通らない
+    expect(直せた, "直せる組が 1 つも無い (直せる側の判定を通っていない)").toBeGreaterThan(0);
   });
 
-  it("植え込み対照: 1 つの型だけ修正案を固定の文にして直せないと数えると、その型の組を全て見つける", () => {
-    const 固定の文 = "何を示す図かを文で書き直す";
+  it("植え込み対照: 直せないと数え直すと、直せていた組を全て見つける", () => {
     const 戻した = (d: CdlDiagram): ReturnType<typeof lintDiagram> => {
       const r = lintDiagram(d);
-      if (!d.topic.startsWith("gantt ")) return r;
-      return {
-        ...r,
-        issues: r.issues.map((i) => ({ ...i, suggestion: 固定の文, autoFixable: false })),
-      };
+      return { ...r, issues: r.issues.map((i) => ({ ...i, autoFixable: false })) };
     };
-    expect(修正案とずれる組(型たち, 実装の言葉, 戻した, autoFix).ずれ).toEqual(
-      実装の言葉.flatMap((言葉) => [
-        `gantt ${言葉}: 自動修正できると数えていない`,
-        `gantt ${言葉}: 修正案は ${固定の文}、自動修正は 作業の期間と前後の関係を示すガントチャート`,
-      ]),
-    );
+    const { ずれ } = 修正案とずれる組(型たち, 実装の言葉, 戻した, autoFix);
+    expect(ずれ.length, "直せていた組を 1 つも見つけていない").toBeGreaterThan(0);
+    for (const 文 of ずれ) expect(文).toContain("直せているのに直せないと数えている");
   });
 
-  it("植え込み対照: 自動修正が説明を変えないと、修正案とのずれと直した後の指摘の両方を見つける", () => {
-    const { ずれ } = 修正案とずれる組(["er"], ["polygon"], lintDiagram, (d) => d);
+  it("植え込み対照: 自動修正が説明を変えないと、修正案とのずれを見つける", () => {
+    const { ずれ } = 修正案とずれる組(["flow"], ["render 未実装"], lintDiagram, (d) => d);
     expect(ずれ).toEqual([
-      "er polygon: 修正案は 表どうしの関係を示すER図、自動修正は er polygon",
-      "er polygon: 直した説明 er polygon にまだ指摘が出る",
+      "flow render 未実装: 修正案は 未実装、自動修正は flow render 未実装",
+      "flow render 未実装: 直した説明 flow render 未実装 にまだ指摘が出る",
     ]);
   });
 });

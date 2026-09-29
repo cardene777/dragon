@@ -96,7 +96,7 @@ describe("部分失敗の封じ込め — 1 箇所の error が全体を壊さ�
 describe("locality — 局所変更が無関係な出力を変えない", () => {
   it("autoFix は topic のみ変更し nodes / edges を触らない", () => {
     const diagram = compileToCdl(doc(SEQ));
-    (diagram as { topic: string }).topic = "flow preset (詳細)";
+    (diagram as { topic: string }).topic = "ログインの流れ preset (詳細)";
     const fixed = autoFix(diagram);
     expect(fixed.topic).not.toBe(diagram.topic);
     expect(fixed.nodes).toEqual(diagram.nodes);

@@ -76,7 +76,7 @@ root の `README.md` はこの説明書を正として案内する。
 
 | 規則 | 重さ | 自動修正 | 何を見るか |
 |---|---|---|---|
-| `topic-redundant-implementation-detail` | ⚠ 注意 | できる (条件は下の節) | 図の説明に実装の書き方 (`preset (…)` / `render 未実装` / `SVG` の描き方の名前 (`polyline` など) / `polygon`) が入っている |
+| `topic-redundant-implementation-detail` | ⚠ 注意 | できない時がある (条件は下の節) | 図の説明に実装の書き方 (`preset (…)` / `render 未実装` / `SVG` の描き方の名前 (`polyline` など) / `polygon`) が入っている |
 | `chart-empty-datum` | ⚠ 注意 | できない | 図表 (`chart-line` / `chart-pie` / `chart-bar`) に値 (`datum`) が 1 件も無い |
 | `chart-single-datum` | ℹ 参考 | できない | 図表の値が 1 件だけ |
 | `gantt-unknown-depends-on` | ⚠ 注意 | できない | ガントチャートの作業の `dependsOn` が、無い作業を指している |
@@ -114,18 +114,24 @@ node packages/dragon/scripts/dragon-lint.mjs --fix path/to/your.cdl.ts
 
 自動修正 (`autoFix`) が直すのは図の説明の規則だけで、他の規則は手で直す。
 
-1. 図の説明が型の名前 (`gantt` など) で始まる時は、説明全体を「{何を示すか}を示す{カタログの名前}」 に書き換える。 型の一覧は `notation-lint.ts` の検出の正規表現が、書き換え先は書き換え先の表 (`KIND_TO_JA`) が持つ
-2. 型の名前で始まらない時は、括弧の中の実装の言葉と `preset` / `render` の語だけを消す。 3 字に満たなくなった時は `図の説明` にする
+**自動修正は語を落とすだけで、文を書かない** (#2687)。
+道具は図が何を示しているかを知らないので、名前を作れない。
+
+落とすのは 3 つ。 括弧の中の実装の言葉、先頭に置かれた型の名前 (`gantt` など)、`preset` と `render` の語。
+型の一覧は `notation-lint.ts` の `先頭の型の名前` が持つ。
 
 例。
 
-- `chart preset (SVG polyline + tone 別 slice)` → `項目ごとの数値を示すグラフ`
-- `gantt preset (Release timeline)` → `作業の期間と前後の関係を示すガントチャート`
-- `mindMap preset (Project ideas)` → `中心の主題から広がる発想を示すマインドマップ`
+- `flow ログインの流れ` → `ログインの流れ`
 - `ログイン (render 未実装)` → `ログイン`
+- `会員の登録 (polygon)` → `会員の登録`
 
-括弧の外に実装の言葉がある説明 (`SVG polyline を使う`) は、自動修正を当てても字が変わらない。
-この時の指摘は自動修正できる数に入れず、修正案は直し方の文になる (#1940)。
+落とした結果が説明として成り立たない時は、元の字をそのまま返す。
+字数が 3 に満たない形 (`AB (polygon)`) と、括弧の中しか残らない形 (`flow preset (詳細)`) の 2 つ。
+仮の題を書くと、道具が書いた字が図の題として画面に出る。
+
+括弧の外に実装の言葉がある説明 (`SVG polyline を使う`) も、自動修正を当てても字が変わらない。
+これらの指摘は自動修正できる数に入れず、修正案は直し方の文になる (#1940)。
 
 ### プログラムから使う
 

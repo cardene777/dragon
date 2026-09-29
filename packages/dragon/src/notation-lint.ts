@@ -98,64 +98,35 @@ export function autoFix(d: CdlDiagram): CdlDiagram {
   return patched;
 }
 
+/** 先頭に置かれる型の名前。 型の名前は実装の語なので、説明の頭に残っていたら落とす */
+const 先頭の型の名前 =
+  /^\s*(line chart|pie chart|bar chart|chart|flow|swimlane|sequence|topology|er|stateMachine2?|infrastructure|classDiagram|tree|userJourney|mindMap|funnel|quadrant|gantt|flowchart|network)\b/i;
+
 /**
- * 図の型ごとに、 自動修正が書く説明「{shows}を示す{name}」 の 2 つの部品。
+ * 図の説明から実装の語を落とす。
  *
- * `name` はカタログが同じ型の見本に付けた名前 (`apps/playground-spa/src/lib/i18n.ts` の
- * `ITEM_NAME_JA` の `preset*`) と同じ字にする。 利用者は自動修正で書き換わった説明の名前で
- * カタログを探すため、 呼び名が割れると同じ型の見本に辿り着けない。 照らす検査は画面側の
- * `lint-topic-names.test.ts` が持つ (この package は画面側の file を読まない)。
+ * **落とすだけで、文は書かない** (#2687)。
  *
- * 説明の末尾を型の名前にするのは、 名前の多くが `図` で終わるため。 旧い文型
- * 「{名前} を示す図」 のまま名前を差し替えると `ガントチャート を示す図` / `状態遷移図 を示す図` の
- * ように図が重なる。 カタログの見本の説明 (`全体に対する内訳の割合を示す円グラフ`) と同じ並びにした。
+ * 以前は先頭が型の名前なら `${shows}を示す${name}` に丸ごと書き換えていた。
+ * 出てくるのは必ず図種の定義文 (「全体に対する内訳の割合を示す円グラフ」) で、
+ * その図が何を示しているかは 1 文字も入らない。
+ * cdl 0.96.0 で説明が図の題として画面に出るようになり、見本帳の 8 枚がその形で出ていた。
  *
- * `chart` と `bar chart` はカタログに同じ型の見本が無いので、 図表の日常語で呼ぶ。
+ * 道具は図の中身を知らないので、名前を作れない。 落とした結果が説明として成り立たないなら
+ * **元の字をそのまま返す** = 呼出側が「自動修正で消えない」 と判定し、書き手に名前を求める。
+ * 置き換えの語 (かつての「図の説明」) を返すと、道具が書いた仮の題が画面に出る。
  */
-const KIND_TO_JA: Record<string, { shows: string; name: string }> = {
-  chart: { shows: "項目ごとの数値", name: "グラフ" },
-  "line chart": { shows: "値の移り変わり", name: "折れ線グラフ" },
-  "pie chart": { shows: "全体に対する内訳の割合", name: "円グラフ" },
-  "bar chart": { shows: "項目ごとの値の大きさ", name: "棒グラフ" },
-  flow: { shows: "処理の順番", name: "フロー" },
-  swimlane: { shows: "役割ごとの縦列に分けた処理の流れ", name: "スイムレーン" },
-  sequence: { shows: "要素どうしのやり取りの順番", name: "シーケンス図" },
-  topology: { shows: "システムの構成要素と接続", name: "トポロジー図" },
-  er: { shows: "表どうしの関係", name: "ER図" },
-  stateMachine: { shows: "状態と遷移の条件", name: "状態遷移図" },
-  stateMachine2: { shows: "親の状態の中に置いた子の状態と遷移の条件", name: "入れ子の状態遷移図" },
-  infrastructure: { shows: "クラウドとネットワークの構成", name: "階層構成図" },
-  classDiagram: { shows: "クラスどうしの関係", name: "クラス図" },
-  tree: { shows: "組織や分類の親子の関係", name: "階層図" },
-  userJourney: { shows: "利用者の気持ちの移り変わり", name: "ユーザージャーニー" },
-  mindMap: { shows: "中心の主題から広がる発想", name: "マインドマップ" },
-  funnel: { shows: "段階ごとに残る数と離れる数", name: "ファネル図" },
-  quadrant: { shows: "2 つの軸で分けた項目の位置", name: "四象限図" },
-  gantt: { shows: "作業の期間と前後の関係", name: "ガントチャート" },
-  flowchart: { shows: "分岐や判定を含む処理の順番", name: "フローチャート" },
-  network: { shows: "機器と区画のつながり", name: "ネットワーク図" },
-};
-
 function applyTopicAutoFix(topic: string): string {
-  // 1. 先頭の kind name を検出、 マッチしたら「{shows}を示す{name}」 に置換
-  const kindMatch = topic.match(
-    /^\s*(chart|flow|swimlane|sequence|topology|er|stateMachine2?|infrastructure|classDiagram|tree|userJourney|mindMap|funnel|quadrant|gantt|flowchart|network|line chart|pie chart|bar chart)\b/i,
-  );
-  if (kindMatch) {
-    const kind = kindMatch[1]!.toLowerCase();
-    const canonical = Object.keys(KIND_TO_JA).find((k) => k.toLowerCase() === kind);
-    if (canonical) {
-      const { shows, name } = KIND_TO_JA[canonical]!;
-      return `${shows}を示す${name}`;
-    }
-  }
-
-  // 2. kind 名で始まらない場合は括弧内実装詳細のみ除去
   let out = topic;
   out = out.replace(/\s*\([^)]*(preset|render|SVG|polygon|polyline|arc|rect|path)[^)]*\)/gi, "");
+  out = out.replace(先頭の型の名前, "");
   out = out.replace(/\b(preset|render)\b/gi, "");
-  out = out.replace(/\s+/g, " ").trim();
-  if (out.length < 3) return "図の説明";
+  // 落とした跡に残る区切りを畳む
+  out = out.replace(/^[\s\-—:：・]+/, "").replace(/\s+/g, " ").trim();
+  // 括弧の中しか残らなかった形 (`(詳細)`) は説明として成り立たない。
+  // 字数だけで見ると 4 字あるので通ってしまう
+  const 括弧の外 = out.replace(/[（(][^）)]*[）)]/g, "").trim();
+  if (out.length < 3 || 括弧の外.length < 3) return topic;
   return out;
 }
 
@@ -173,9 +144,12 @@ function ruleTopicRedundancy(d: CdlDiagram): LintIssue[] {
   const 当たる = REDUNDANT_TOPIC_PATTERNS.filter(({ pattern }) => pattern.test(d.topic));
   if (当たる.length === 0) return [];
   const 直した後 = applyTopicAutoFix(d.topic);
-  const 直せる = !REDUNDANT_TOPIC_PATTERNS.some(({ pattern }) => pattern.test(直した後));
-  const 例 = KIND_TO_JA.gantt!;
-  const 手で直す = `何を示す図かを文で書き直す (「${例.shows}を示す${例.name}」 のように)`;
+  const 直せる =
+    直した後 !== d.topic &&
+    !REDUNDANT_TOPIC_PATTERNS.some(({ pattern }) => pattern.test(直した後));
+  // 例は見本帳の実物から採る (#2687)。 型の表から作ると図種の定義文になり、
+  // 案内どおりに書いた説明がそのまま図の題として画面に出る
+  const 手で直す = "その図が何を示しているかを名前で書く (「経路別の流入」 のように)";
   return 当たる.map(({ hint }) => ({
     rule: "topic-redundant-implementation-detail",
     severity: "warn",

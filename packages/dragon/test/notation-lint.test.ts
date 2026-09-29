@@ -19,7 +19,7 @@ function node(over: Record<string, unknown>): CdlNode {
 
 describe("lintDiagram — topic 冗長 (実装詳細) rule", () => {
   it("topic に preset( が含まれる → warn + autoFixable", () => {
-    const report = lintDiagram(diagram({ topic: "flow preset (詳細)" }));
+    const report = lintDiagram(diagram({ topic: "ログインの流れ preset (詳細)" }));
     const issue = report.issues.find((i) => i.rule === "topic-redundant-implementation-detail");
     expect(issue).toBeDefined();
     expect(issue?.severity).toBe("warn");
@@ -42,13 +42,37 @@ describe("lintDiagram — topic 冗長 (実装詳細) rule", () => {
   });
 
   it("autoFixableCount が autoFixable issue 数と一致", () => {
-    const report = lintDiagram(diagram({ topic: "flow preset (詳細)" }));
+    const report = lintDiagram(diagram({ topic: "ログインの流れ preset (詳細)" }));
     expect(report.autoFixableCount).toBe(report.issues.filter((i) => i.autoFixable).length);
   });
 
+  /**
+   * 自動修正は語を落とすだけで、文を書かない (#2687)。
+   *
+   * 以前は先頭が型の名前なら図種の定義文 (「処理の順番を示すフロー」) に丸ごと書き換えていた。
+   * cdl 0.96.0 で説明が図の題として画面に出るようになり、その定義文が見本帳の 8 枚に出た。
+   * 道具は図の中身を知らないので、名前を作れない。
+   */
+  it("先頭の型の名前は落とすだけで、図種の定義文を書かない (#2687)", () => {
+    expect(autoFix(diagram({ topic: "flow ログインの流れ" })).topic).toBe("ログインの流れ");
+    expect(autoFix(diagram({ topic: "gantt 公開までの段取り" })).topic).toBe("公開までの段取り");
+  });
+
+  it("落とすと説明として成り立たない時は元の字を返す (#2687)", () => {
+    // 仮の題 (かつての「図の説明」) を返すと、道具が書いた字が図の題として画面に出る
+    const d = diagram({ topic: "flow preset (詳細)" });
+    expect(autoFix(d).topic).toBe("flow preset (詳細)");
+    const 指摘 = lintDiagram(d).issues.find((i) => i.rule === "topic-redundant-implementation-detail");
+    expect(指摘?.autoFixable, "直せないのに直せると数えている").toBe(false);
+  });
+
   it("自動修正できる指摘の修正案は、自動修正が書く値そのもの (#1940)", () => {
-    // 先頭の型の名前・括弧の中の実装の言葉・3 字に満たなくなる説明の 3 通りを並べる
-    const 説明たち = ["flow preset (詳細)", "ログインの流れ (SVG path で描く)", "ログイン (render 未実装)", "AB (polygon)"];
+    // 括弧の中の実装の言葉の 3 通り。 型の名前だけの形は指摘が出ないので入れない (#2687)
+    const 説明たち = [
+      "ログインの流れ (SVG path で描く)",
+      "ログイン (render 未実装)",
+      "会員の登録 (polygon)",
+    ];
     for (const topic of 説明たち) {
       const d = diagram({ topic });
       const 指摘 = lintDiagram(d).issues.filter((i) => i.rule === "topic-redundant-implementation-detail");
@@ -69,10 +93,10 @@ describe("lintDiagram — topic 冗長 (実装詳細) rule", () => {
     const 指摘 = report.issues.find((i) => i.rule === "topic-redundant-implementation-detail");
     expect(指摘?.autoFixable).toBe(false);
     expect(report.autoFixableCount).toBe(0);
-    // 直し方の例は書き換え先の表から作る (自動修正の出力と同じ文型になる)
-    expect(指摘?.suggestion).toBe(
-      `何を示す図かを文で書き直す (「${autoFix(diagram({ topic: "gantt" })).topic}」 のように)`,
-    );
+    // 直し方の例は見本帳の実物から採る (#2687)。 型の表から作ると図種の定義文になり、
+    // 案内どおりに書いた説明がそのまま図の題として画面に出る
+    expect(指摘?.suggestion).toBe("その図が何を示しているかを名前で書く (「経路別の流入」 のように)");
+    expect(指摘?.suggestion).not.toContain("を示す");
   });
 });
 
@@ -168,27 +192,43 @@ describe("lintDiagram — quadrant / funnel rule", () => {
 });
 
 describe("autoFix — topic 変換", () => {
-  it("kind 名で始まる topic → 「{示すもの}を示す{型の名前}」 に置換", () => {
-    expect(autoFix(diagram({ topic: "flow preset (詳細)" })).topic).toBe("処理の順番を示すフロー");
+  /**
+   * 型の名前は落とすだけで、図種の定義文を書かない (#2687)。
+   *
+   * 元は「{示すもの}を示す{型の名前}」 に丸ごと書き換えており、`#1934` は名前が `図` で
+   * 終わる型で `図` が重ならないことを見ていた。 cdl 0.96.0 で説明が図の題として画面に
+   * 出るようになり、その定義文が見本帳の 8 枚に出た。 道具は図の中身を知らないので
+   * 名前を作れない = 書く側を止め、残りの字をそのまま説明にする。
+   */
+  it("kind 名で始まる topic → 型の名前だけを落とす", () => {
+    expect(autoFix(diagram({ topic: "flow ログインの流れ" })).topic).toBe("ログインの流れ");
   });
 
-  it("sequence 始まり → カタログの名前 `シーケンス図` で終わる", () => {
-    expect(autoFix(diagram({ topic: "sequence の例" })).topic).toBe("要素どうしのやり取りの順番を示すシーケンス図");
+  it("sequence 始まり → 残りの字がそのまま説明になる", () => {
+    expect(autoFix(diagram({ topic: "sequence 注文から出荷まで" })).topic).toBe("注文から出荷まで");
   });
 
-  it("名前が `図` で終わる型でも図が重ならない (#1934)", () => {
-    expect(autoFix(diagram({ topic: "gantt preset (詳細)" })).topic).toBe("作業の期間と前後の関係を示すガントチャート");
-    expect(autoFix(diagram({ topic: "stateMachine2 の例" })).topic).toBe(
-      "親の状態の中に置いた子の状態と遷移の条件を示す入れ子の状態遷移図",
-    );
+  it("型の名前を落とした説明に図種の定義文が入らない (#2687)", () => {
+    for (const topic of ["gantt 公開までの段取り", "stateMachine2 会員の状態の移り変わり"]) {
+      expect(autoFix(diagram({ topic })).topic, topic).not.toContain("を示す");
+    }
   });
 
   it("kind 名で始まらず括弧内実装詳細 → 除去", () => {
     expect(autoFix(diagram({ topic: "ログイン (render 未実装)" })).topic).toBe("ログイン");
   });
 
-  it("除去後 3 文字未満 → 「図の説明」 fallback", () => {
-    expect(autoFix(diagram({ topic: "AB (polygon)" })).topic).toBe("図の説明");
+  /**
+   * 落として説明が残らない時は元の字を返す (#2687)。
+   *
+   * 元は仮の題 (「図の説明」) を書いていた。 説明が図の題として画面に出るようになったので、
+   * 道具が書いた仮の字がそのまま図に出る。 元の字を返せば呼出側が「直せない」 と数え、
+   * 書き手に名前を求める。
+   */
+  it("落として説明が残らない → 元の字を返す", () => {
+    expect(autoFix(diagram({ topic: "AB (polygon)" })).topic).toBe("AB (polygon)");
+    // 括弧の中しか残らない形も同じ。 字数だけで見ると 4 字あるので通ってしまう
+    expect(autoFix(diagram({ topic: "flow preset (詳細)" })).topic).toBe("flow preset (詳細)");
   });
 
   it("clean な topic → 変更なし", () => {
@@ -203,9 +243,16 @@ describe("autoFix — topic 変換", () => {
   });
 
   it("autoFix 後は topic-redundant issue が解消される", () => {
-    const orig = diagram({ topic: "flow preset (詳細)" });
+    const orig = diagram({ topic: "ログインの流れ preset (詳細)" });
     const fixed = autoFix(orig);
     const report = lintDiagram(fixed);
     expect(report.issues.some((i) => i.rule === "topic-redundant-implementation-detail")).toBe(false);
+  });
+
+  it("落として説明が残らない形は、autoFix 後も指摘が残る (#2687)", () => {
+    // 消えない指摘を「直せる」 と数えると、直したはずの指摘が次の検査でまた出る (#1940)
+    const fixed = autoFix(diagram({ topic: "flow preset (詳細)" }));
+    expect(lintDiagram(fixed).issues.some((i) => i.rule === "topic-redundant-implementation-detail")).toBe(true);
+    expect(lintDiagram(fixed).autoFixableCount).toBe(0);
   });
 });
