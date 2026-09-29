@@ -173,6 +173,48 @@ describe("記法から組む図を抜き出す", () => {
 
     expect(記法を抜き出す(合成, 'title: "週ごとの応答時間"\ntype: line\n')).toBe("");
   });
+
+  it("画面が描き直しの形を出していても、題で引き当てる", () => {
+    // 画面は 1 段目の `draw:` を 2 段目以降にも足した形を出すことがある (#2671)。
+    // 丸ごとの照合では当たらないので、題で引き直す
+    const 宣言 = [
+      'title: "機能ごとの利用率"',
+      "shape: radial",
+      "",
+      "animation:",
+      '  - step: "先月" 1.2s',
+      "    draw: radial",
+      '  - step: "今月" 1.2s',
+      "    tween:",
+      "      search: 72 -> 78",
+      "",
+    ].join("\n");
+    const 合成 = [
+      `export const sourceYaml__radial = \`${宣言}\`;`,
+      "",
+      "export const radial = textDslToDiagram(sourceYaml__radial);",
+    ].join("\n");
+    const 画面の記法 = 宣言.replace('  - step: "今月" 1.2s\n', '  - step: "今月" 1.2s\n    draw: radial\n');
+
+    expect(画面の記法).not.toBe(宣言);
+    expect(記法を抜き出す(合成, 画面の記法)).toBe(宣言);
+  });
+
+  it("題が同じ宣言が 2 つある時は返さない (陰性対照)", () => {
+    // どちらを返すか決められない。 推測すると画面と違う記法を静かに返す
+    const 本文 = (行: string) => ['title: "同じ題"', "shape: radial", 行, ""].join("\n");
+    const 合成 = [
+      `export const sourceYaml__a = \`${本文("states:\n  x: 1")}\`;`,
+      "",
+      "export const a = textDslToDiagram(sourceYaml__a);",
+      "",
+      `export const sourceYaml__b = \`${本文("states:\n  x: 2")}\`;`,
+      "",
+      "export const b = textDslToDiagram(sourceYaml__b);",
+    ].join("\n");
+
+    expect(記法を抜き出す(合成, 'title: "同じ題"\nshape: radial\nstates:\n  x: 3\n')).toBe("");
+  });
 });
 
 describe("落ちた名前", () => {

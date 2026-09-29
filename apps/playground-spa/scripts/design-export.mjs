@@ -58,6 +58,11 @@ export function findGroup(catalogDir, diagramId) {
  *
  * 開く群は `textDslToDiagram` を含む file に限る。 候補の絞り込みは browser を持たない
  * `design-catalog.mjs` に置き、ここでは画面との照合だけを担う。
+ *
+ * 照合に使うのは項目の `data-item-id` で、画面に見えている文字列ではない (#2671)。
+ * 見えているのは表示用の名前で、題と一致しない図がある。
+ * 組の名前で待つ形にしていた時は、その名前が画面から消えたことに気付けず、
+ * 記法で組む図を 1 件も開けないまま 5 秒の時間切れで落ちていた。
  */
 export async function findGroupFromPage(page, catalogDir, diagramId, baseUrl) {
   const files = readdirSync(catalogDir)
@@ -67,12 +72,20 @@ export async function findGroupFromPage(page, catalogDir, diagramId, baseUrl) {
     await page.goto(`${baseUrl}/catalog/${candidate.group}`, { waitUntil: "networkidle" });
     const sidebar = page.locator("aside.catalog-sidebar");
     if ((await sidebar.count()) === 0) continue;
-    await page.waitForFunction(
-      () => document.querySelectorAll(".catalog-list-item-id").length > 0,
-      undefined,
-      { timeout: 5000 },
-    );
-    const ids = await sidebar.locator(".catalog-list-item-id").allTextContents();
+    // 題は項目の `data-item-id` から読む。 画面に出る文字列は表示用の名前で、題とは別物
+    try {
+      await page.waitForFunction(
+        () => document.querySelectorAll(".catalog-list-item[data-item-id]").length > 0,
+        undefined,
+        { timeout: 5000 },
+      );
+    } catch {
+      // 項目が 1 件も出ない群は飛ばす。 ここで投げると、以降の群を 1 つも見ないまま run が終わる
+      continue;
+    }
+    const ids = await sidebar
+      .locator(".catalog-list-item[data-item-id]")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("data-item-id") ?? ""));
     if (ids.some((listedId) => listedId.trim() === diagramId)) return candidate;
   }
   return null;
@@ -100,7 +113,12 @@ const { group, file } = found;
 const catalogText = readFileSync(join(CATALOG, file), "utf8");
 await page.goto(`${BASE}/catalog/${group}`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
-await page.locator("aside.catalog-sidebar").getByText(id, { exact: false }).first().click();
+// 開く項目も `data-item-id` で選ぶ (#2671)。 画面に見えているのは形の名前 (`棒グラフ`) で、
+// 題 (`今期の売上進捗`) とは別物のため、見えている文字列では 1 件も当たらない
+await page
+  .locator(`aside.catalog-sidebar .catalog-list-item[data-item-id="${id}"]`)
+  .first()
+  .click();
 await page.waitForTimeout(2500);
 
 const sourceCode = page.locator('.catalog-source-code[data-lang="yaml"]');

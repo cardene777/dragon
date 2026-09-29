@@ -118,15 +118,36 @@ function 記法から組む図(text) {
   return sources;
 }
 
+/** 記法の先頭に書く題を読む。 無ければ空文字 */
+function 題(text) {
+  return /^title:\s*"([^"]*)"/m.exec(String(text ?? ""))?.[1] ?? "";
+}
+
 /**
  * 画面で選んだ図の YAML と一致する、記法から組む図の source を返す。
  *
  * `id` の作り方は持たない。 画面が出した YAML を照合に使い、catalog に書かれた本文を返す。
+ *
+ * 丸ごと一致しない時は題で引き直す (#2671)。 画面は「描き直す」 の切替が入った形を
+ * 出すことがあり、その時は 1 段目の `draw:` が 2 段目以降にも足された本文になる。
+ * 実測では 図表 の群 15 件のうち 1 件がこれに当たり、丸ごとの照合だけでは
+ * 「記法を抜き出せなかった」 として落ちていた。
+ *
+ * 題で引くのは、記法の題が catalog の図の id そのものだから。
+ * 題が同じ宣言が 2 つある時は引かない = どちらを返すかを推測すると、
+ * 画面と違う記法を静かに返す。
  */
 export function 記法を抜き出す(text, shownSource) {
   const shown = 比べる形(shownSource);
   if (!shown) return "";
-  return 記法から組む図(text).find((source) => 比べる形(source) === shown) ?? "";
+  const 候補 = 記法から組む図(text);
+  const 丸ごと = 候補.find((source) => 比べる形(source) === shown);
+  if (丸ごと !== undefined) return 丸ごと;
+
+  const 見せた題 = 題(shown);
+  if (!見せた題) return "";
+  const 題が同じ = 候補.filter((source) => 題(source) === 見せた題);
+  return 題が同じ.length === 1 ? 題が同じ[0] : "";
 }
 
 /**
