@@ -785,12 +785,36 @@ describe("compileMind 枠と大きさ", () => {
     }
   });
 
-  it("箱の大きさは他の 1 箱の図と同じ", () => {
+  it("箱の高さは他の 1 箱の図と同じ", () => {
     const d = compile("mind", { actors: [actor("R"), actor("L1")], flow: [] });
-    // 木も 1 箱で描く種別で、 同じ寸法の定数を使う
+    // 木も 1 箱で描く種別で、 高さは同じ寸法の定数を使う
     const 木 = compile("tree", { actors: [actor("R"), actor("C")], flow: [step("R", "C", { label: "" })] });
-    expect(d.nodes[0]!.w).toBe(木.nodes[0]!.w);
     expect(d.nodes[0]!.h).toBe(木.nodes[0]!.h);
+  });
+
+  it("木の箱の幅だけは葉の数で変わる (cdl#970)", () => {
+    // 放射は枝が増えても幅が変わらない。 木は必要な幅が葉の数で決まるので、
+    // 同じ定数を共有していると葉が少ない図が札の中で浮く
+    const 放射1 = compile("mind", { actors: [actor("R"), actor("L1")], flow: [] });
+    const 放射2 = compile("mind", {
+      actors: [actor("R"), actor("L1"), actor("L2")],
+      flow: [],
+    });
+    expect(放射1.nodes[0]!.w).toBe(放射2.nodes[0]!.w);
+
+    const 木1 = compile("tree", {
+      actors: [actor("R"), actor("C")],
+      flow: [step("R", "C", { label: "" })],
+    });
+    const 木2 = compile("tree", {
+      actors: [actor("R"), actor("C1"), actor("C2"), actor("C3")],
+      flow: [
+        step("R", "C1", { label: "" }),
+        step("R", "C2", { label: "" }),
+        step("R", "C3", { label: "" }),
+      ],
+    });
+    expect(木2.nodes[0]!.w ?? 0).toBeGreaterThan(木1.nodes[0]!.w ?? 0);
   });
 });
 

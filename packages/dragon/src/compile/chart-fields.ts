@@ -78,7 +78,9 @@ export function 参照する名前(value: number | string | null): string | null
  */
 export const 図表の大きさ = {
   funnel: { w: 560, h: 480 },
-  tree: { w: 720, h: 480 },
+  // 木は幅を持たない (cdl#970)。 必要な幅は葉の数で変わるので、描画側の `木の札の幅` が出す。
+  // 値を残すと、描画側が割付を変えた時にここだけが古い幅を持つ
+  tree: { h: 480 },
   mind: { w: 720, h: 480 },
   journey: { w: 720, h: 480 },
   quadrant: { w: 640, h: 480 },

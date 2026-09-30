@@ -67,7 +67,7 @@
   "pnpm": {
     "overrides": {
       "brace-expansion@1": "1.1.21",
-      "dompurify": "3.4.13",
+      "dompurify": "3.4.16",
       "qs": "6.15.2",
       "esbuild": "0.28.1",
       "@codemirror/state": "6.7.4",
