@@ -252,9 +252,12 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
   //
   // **エディタ側は図を名指しする** (#1477)。 既定の見本は順序図で、板には枠も命綱も無い =
   // 補助線を 1 つも測れない。 枠を持つ見本を開く。
+  // **分類の一覧は測る対象を持たない** (#2750)。 選んだ 1 件を出す画面で、枠を持つ図
+  // (構成図) はどの分類でも既定の選択にならない (実測 = 11 分類すべてで、頁を送った後も
+  // 枠が 0 件)。 紙の色は見本の詳細と同じ `rgb(36, 31, 24)` なので、cream の紙は下の
+  // `preset/topology` が測っている。
   for (const [場所, path] of [
     ["editor (暗い紙)", "editor#preset=topology"],
-    ["catalog (cream の紙)", "catalog/patterns"],
     ["catalog (cream の紙・枠)", "preset/topology"],
   ] as const) {
     await page.goto(path);
