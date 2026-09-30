@@ -124,13 +124,27 @@ test("見本「プロジェクト構想」 に日本語の名前が出る (#1090
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
 
-  const 文字 = await page.evaluate(() =>
-    [...document.querySelectorAll('.v4-editor-preview svg[data-cdl-stage] [data-cdl-node] text')]
-      .map((t) => (t.textContent ?? "").trim())
-      .filter((s) => s.length > 0),
-  );
+  // 図の題も箱の中に描かれる。 役で分けて数える (#2728) = 混ぜると箱の名前が 1 件多く出る
+  const { 名前, 題 } = await page.evaluate(() => {
+    const 字 = [...document.querySelectorAll('.v4-editor-preview svg[data-cdl-stage] [data-cdl-node] text')];
+    const 読む = (t: Element) => (t.textContent ?? "").trim();
+    return {
+      名前: 字
+        .filter((t) => t.getAttribute("data-cdl-role") !== "figure-title")
+        .map(読む)
+        .filter((s) => s.length > 0),
+      題: 字
+        .filter((t) => t.getAttribute("data-cdl-role") === "figure-title")
+        .map(読む)
+        .filter((s) => s.length > 0),
+    };
+  });
 
-  expect(文字.sort(), `箱の文字が違う: ${文字.join(", ")}`).toEqual([
+  // 題を外した結果、題ごと消えていないことを見る。 見ないと「役で外した」 と
+  // 「題が描かれなくなった」 を区別できない
+  expect(題, "図の題が 1 件だけ出ていない").toEqual(["プロジェクト構想"]);
+
+  expect(名前.sort(), `箱の文字が違う: ${名前.join(", ")}`).toEqual([
     "デザイン",
     "マーケット",
     "リリース",
