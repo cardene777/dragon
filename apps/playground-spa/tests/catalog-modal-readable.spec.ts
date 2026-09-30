@@ -90,6 +90,8 @@ async function 拡大の最小の文字(page: Page): Promise<{ 最小: number; �
     let 最小 = Number.POSITIVE_INFINITY;
     let 字 = "";
     let 文字数 = 0;
+    // 図の題も数える (#2749)。 ここが見るのは画面に出た字が読める大きさかで、題も読む字になる。
+    // 外すと、題だけ小さく描かれた図を見逃す
     for (const t of 本体.querySelectorAll("text")) {
       const 中身 = (t.textContent ?? "").trim();
       if (中身 === "") continue;
@@ -162,6 +164,7 @@ async function 拡大の図を測る(
     let 指定の最小 = Number.POSITIVE_INFINITY;
     let 実効の最小 = Number.POSITIVE_INFINITY;
     let 字 = "";
+    // 同上 (#2749)。 題も読む字として数える
     for (const t of 図.querySelectorAll("text")) {
       const 中身 = (t.textContent ?? "").trim();
       if (中身 === "") continue;

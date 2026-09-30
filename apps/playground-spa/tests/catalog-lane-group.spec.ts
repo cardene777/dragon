@@ -49,7 +49,12 @@ async function 測る(
       }
       const 字: Record<string, { x: number; y: number; 右: number; 下: number }> = {};
       for (const 名 of 探す) {
-        const t = [...svg.querySelectorAll("text")].find((x) => x.textContent?.trim() === 名);
+        // 図の題を外す (#2749)。 題は箱の中に描かれるので `svg` から集めると入る
+        // (実測 = `chart-pie` の箱の中に役 `figure-title` の字が 1 件)。 ここは名前が
+        // 一致する 1 件を選ぶ形なので、題が同じ名前を持った日に別の字を測る
+        const t = [...svg.querySelectorAll("text")].find(
+          (x) => x.getAttribute("data-cdl-role") !== "figure-title" && x.textContent?.trim() === 名,
+        );
         if (t) 字[名] = 矩形に(t.getBoundingClientRect());
       }
       return { 枠, 字 };

@@ -324,6 +324,7 @@ export async function 重なりを数える(page: Page, 画面: string): Promise
         }
       }
 
+      // 数字の形に一致する字だけを採るので、図の題は入らない (#2749)
       const 読み取り値 = [...svg.querySelectorAll("text")].filter((t) =>
         /^\s*\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?\s*$/.test(t.textContent ?? ""),
       );

@@ -189,6 +189,8 @@ async function 最小の文字(
     const k = 幅 / vb;
     let 最小 = Number.POSITIVE_INFINITY;
     let 数えた = 0;
+    // 図の題も数える (#2749)。 見るのは画面上の最小文字なので、題も画面の字として対象になる。
+    // 実装 (`smallestFontWorld`) も役で外さないので、外すと検査と実装が別の字を見る
     for (const t of svg.querySelectorAll("text")) {
       if ((t.textContent ?? "").trim().length === 0) continue;
       const cs = getComputedStyle(t);

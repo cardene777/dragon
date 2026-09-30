@@ -126,6 +126,8 @@ test("見本「プロジェクト構想」 に日本語の名前が出る (#1090
 
   // 図の題も箱の中に描かれる。 役で分けて数える (#2728) = 混ぜると箱の名前が 1 件多く出る
   const { 名前, 題 } = await page.evaluate(() => {
+    // 図の題は役で分けて別に数える (#2749 の走査で確認済)。 題は箱の中に描かれるので、
+    // 箱を指して集めると名前と混ざる
     const 字 = [...document.querySelectorAll('.v4-editor-preview svg[data-cdl-stage] [data-cdl-node] text')];
     const 読む = (t: Element) => (t.textContent ?? "").trim();
     return {
