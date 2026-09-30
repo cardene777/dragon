@@ -35,13 +35,18 @@ vi.mock("@cardenelabs/cdl", async (importOriginal) => {
     ...actual,
     CdlDiagramView: ({ diagram }: { diagram: CdlDiagram }): React.ReactElement => {
       const 折れ線 = diagram.nodes.find((node) => node.kind === "chart-line");
+      // **図の欄まで真似る** (#2682)。 頁は欄の `svg` が在るかで拡大の操作を出し分けるので、
+      // 欄を持たない差し替えだと「拡大」 が出ない = 実物と違う前提で検査することになる
       return (
-        <div
-          data-testid="catalog-diagram"
-          data-fill={String(折れ線?.chartFillUnder === true)}
-          data-value-rise={String(折れ線?.chartValueRise === true)}
-          data-trace={String(折れ線?.chartTrace === true)}
-        />
+        <div data-cdl-diagram={diagram.id}>
+          <div
+            data-testid="catalog-diagram"
+            data-fill={String(折れ線?.chartFillUnder === true)}
+            data-value-rise={String(折れ線?.chartValueRise === true)}
+            data-trace={String(折れ線?.chartTrace === true)}
+          />
+          <svg viewBox="0 0 400 300" />
+        </div>
       );
     },
   };
