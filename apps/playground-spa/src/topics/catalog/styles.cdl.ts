@@ -1086,9 +1086,8 @@ export const pattern__edgeHead__根元の多重度 = textDslToDiagram(sourceYaml
 //
 // engine は辺を書いた矢印を迂回させないため、出す辺の先に行き先を置く。 置かないと線が箱の裏を通る。
 // 箱は段 (`stack`) で置き、**右と左の見本だけ位置 (`posX` / `posY`) も書く**。 右と左は同じレーンの中で
-// 行き先を横にずらす必要があり、段だけでは同じレーンの箱が縦 1 列に並ぶ。 横にずらすことは図の検査の
-// 揃えの決まりに触れるので、2 図は `packages/dragon/test/visual-validate-sweep.test.ts` の見逃す組に
-// 理由を書いてある。
+// 行き先を横にずらす必要があり、段だけでは同じレーンの箱が縦 1 列に並ぶ。 位置を両方書いた箱は
+// engine が揃えの判定から外すので (`cdl#972`)、横にずらしても図の検査には触れない。
 
 export const patternBase__edgeSide = "書かない";
 
