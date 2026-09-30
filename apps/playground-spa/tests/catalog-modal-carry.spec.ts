@@ -123,7 +123,16 @@ async function 拡大の段の長さ(page: Page): Promise<観測<Set<number>>> {
 /**
  * 拡大表示で、2 段目に居る間に折れ線の残りが付いた回数。
  *
- * 1 段目の名前は「計画」。 札にその名前が出ていない間だけ数える。
+ * **段は番号で見分ける** (#2743)。 かつては「1 段目の名前は `計画` なので、札にその名前が
+ * 出ていない間が 2 段目」 と数えていたが、2 段目の名前 (`月ごとの計画と実績`) にも同じ語が
+ * 入るため、2 段目に居る間が 1 度も数えられなかった。
+ *
+ * 番号は図の要素 (`data-cdl-phase-index`) に出ている。 札を描く側が同じ値を読んで段を
+ * 決めているので、書き手が判定のために置いた値になる。 名前は書いた人の言葉なので、
+ * 他の段に同じ語が入りうる。
+ *
+ * **番号を読めない時は数えない**。 0 段目に倒すと、図がまだ出ていない間を 1 段目と
+ * 区別できなくなる。
  */
 async function 拡大の2段目で残りが付いた回数(
   page: Page,
@@ -136,22 +145,27 @@ async function 拡大の2段目で残りが付いた回数(
     // **`evaluate` には上限を渡せない**。 画面が作り直されると例外で返る (実測で
     // `Execution context was destroyed` を観測した) ので、そこは訳として拾える。 新しい
     // 画面が出来上がるまで返らない形だけは窓の外に出る = 覆えていないことを明記して残す
-    let 見た: { 札: string; 残り: string | null; 線あり: boolean } | null = null;
+    let 見た: { 段: number | null; 残り: string | null; 線あり: boolean } | null = null;
     try {
       見た = await page.evaluate((sel: string) => {
         const 根 = document.querySelector(sel);
-        const 札 = 根?.querySelector(".cdl-phase-chip")?.textContent ?? "";
+        const 生 = 根?.querySelector("[data-cdl-diagram]")?.getAttribute("data-cdl-phase-index");
+        const v = Number(生 ?? "");
         const 線 = 根?.querySelector('[data-cdl-role="chart-line"]');
-        return { 札, 残り: 線?.getAttribute("stroke-dashoffset") ?? null, 線あり: 線 !== null };
+        return {
+          段: 生 !== null && 生 !== undefined && Number.isFinite(v) ? v : null,
+          残り: 線?.getAttribute("stroke-dashoffset") ?? null,
+          線あり: 線 !== null,
+        };
       }, 拡大);
     } catch (e) {
       訳 = 訳を取る(e);
     }
-    if (見た === null || !見た.線あり) {
+    if (見た === null || !見た.線あり || 見た.段 === null) {
       await page.waitForTimeout(覗く間隔);
       continue;
     }
-    if (!見た.札.includes("計画") && 見た.残り !== null) {
+    if (見た.段 > 0 && 見た.残り !== null) {
       n += 1;
       // 陽性側は 1 度見つければ判定できる。 陰性対照だけは観測窓を最後まで見る
       if (一度出たら終える) break;
