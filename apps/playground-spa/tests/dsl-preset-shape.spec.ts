@@ -188,6 +188,10 @@ test("見本「言語シェア」 で文字が箱からはみ出さない (#1076
   // **`data-cdl-role='node-label'` を探しては測れない**。 円グラフの凡例は role を持たない
   // 素の `text` で、 探しても 0 件になり「はみ出しは 0 件」 として通る (Round 1 review の指摘)。
   // 円の箱の下にある `text` を直接列挙し、 測った件数も併せて見る
+  //
+  // **図の題 (`figure-title`) は外す** (#2747)。 題も同じ箱の中に描かれるが、中身の枠
+  // (`node-body`) より上に置くのが正しい形なので、混ぜると必ずはみ出しとして数える
+  // (実測 = 枠の上 32px)。 外した題が消えていないことは下の 題 で別に見る。
   await openSample(page, "pie");
   const m = await page.evaluate(() => {
     const chart = document.querySelector('[data-cdl-kind="chart-pie"]');
@@ -195,10 +199,15 @@ test("見本「言語シェア」 で文字が箱からはみ出さない (#1076
     const body = chart.querySelector("[data-cdl-role='node-body']") ?? chart;
     const b = body.getBoundingClientRect();
     const 溢れ: string[] = [];
+    const 題: string[] = [];
     let 測った = 0;
     for (const t of chart.querySelectorAll("text")) {
       const r = t.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) continue;
+      if (t.getAttribute("data-cdl-role") === "figure-title") {
+        題.push((t.textContent ?? "").trim());
+        continue;
+      }
       測った++;
       const 下 = Math.round(r.bottom - b.bottom);
       const 上 = Math.round(b.top - r.top);
@@ -208,12 +217,14 @@ test("見本「言語シェア」 で文字が箱からはみ出さない (#1076
         溢れ.push(`${(t.textContent ?? "").trim()}(下 ${下} / 上 ${上} / 右 ${右} / 左 ${左})`);
       }
     }
-    return { 溢れ, 測った };
+    return { 溢れ, 測った, 題 };
   });
 
   expect(m, "円を描く箱が画面に無い").not.toBeNull();
   // 8 = 項目名 4 + 割合 4。 件数を見ないと、 文字が 1 つも取れていない状態で通る
   expect(m!.測った, "凡例の文字を 1 つも測れていない").toBeGreaterThanOrEqual(8);
+  // 役で外しただけでは「外した」 と「題ごと描かれなくなった」 を区別できない (#2728 と同じ形)
+  expect(m!.題, "図の題が 1 件だけ出ていない").toEqual(["言語シェア"]);
   expect(m!.溢れ, `文字が箱からはみ出している: ${m!.溢れ.join(", ")}`).toEqual([]);
 });
 
