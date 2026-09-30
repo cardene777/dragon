@@ -856,6 +856,18 @@
   display: flex;
 }
 
+/* 拡大表示の段の説明 (#2739)。
+ *
+ * 図の入れ物 (`.cdl-modal-body`) の外に置くので、左右の余白を自分で持つ。
+ * 持たないと枠の端に文字が付く。 値は図の入れ物の余白と揃える。
+ *
+ * 上の余白は図の入れ物が下に 24px 持つので足さない。
+ */
+.cdl-modal-content > .cdl-phase-note {
+  margin-top: 0;
+  padding: 0 24px 20px;
+}
+
 .cdl-modal-body {
   /* シーンの表示を重ねる基準 (#1239) */
   position: relative;

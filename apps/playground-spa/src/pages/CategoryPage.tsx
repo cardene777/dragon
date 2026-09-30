@@ -1088,9 +1088,12 @@ export function CategoryPage(): React.ReactElement {
                 align="right"
               />
             </div>
-            {/* 同じ理由で枠の外に置く (#2609) */}
-            <PhaseNote stage={modalStageEl} phases={(拡大の図 ?? modalItem?.diagram)?.phases} />
             </div>
+            {/* 段の説明は図の枠の外に置く (#2609)。 **横に並べる入れ物の外へ出す** (#2739) =
+              * `.cdl-modal-stage` は `display: flex` なので、中に入れると図の隣の列になって
+              * 図の幅を奪う (実測 = 図の入れ物が 1198px から 739px に縮み、図が右と下で切れた)。
+              * ここは縦に積む入れ物 (`.cdl-modal-content`) なので、図の下に出る */}
+            <PhaseNote stage={modalStageEl} phases={(拡大の図 ?? modalItem?.diagram)?.phases} />
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
