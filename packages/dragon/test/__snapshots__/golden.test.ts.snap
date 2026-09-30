@@ -299,16 +299,16 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 209,
-      "h": 161,
+      "cy": 199,
+      "h": 141,
       "id": "user",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 893,
-      "cy": 209,
-      "h": 161,
+      "cy": 199,
+      "h": 141,
       "id": "order",
       "kind": "storage",
       "w": 400,
@@ -323,7 +323,7 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "states": [],
   "topic": "E05",
   "viewBox": {
-    "h": 281,
+    "h": 261,
     "w": 1188,
     "x": -35,
     "y": 68,
