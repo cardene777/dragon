@@ -46,6 +46,30 @@ flow:
   - Web -> API: "a"
 `;
 
+/**
+ * 手で置いた箱を **名指しする** 整列の指摘が実際に出る図。
+ *
+ * 描画側は `0.117.0` から、位置を手で書いた箱を `alignment` と `column-alignment` の
+ * 判定から外す (`cdl#972`)。 残る 3 軸のうち箱を名指しするのは `row-alignment` で、
+ * これは同じ段 (`stack`) に並ぶ箱の縦位置を見るため、レーンを 2 本に分けないと組が作れない。
+ */
+const 段をまたぐ手動 = `title: "t"
+type: flow
+
+lanes:
+  左: { x: 0, width: 400 }
+  右: { x: 480, width: 400 }
+
+actors:
+  - 受付: { kind: service, lane: 左, stack: 0 }
+  - 確認: { kind: service, lane: 右, stack: 0, posX: 680, posY: 400 }
+  - 記録: { kind: database, lane: 左, stack: 1 }
+
+flow:
+  - 受付 -> 確認: "a"
+  - 確認 -> 記録: "b"
+`;
+
 const axesOf = (src: string): string[] => {
   const d = textDslToDiagram(src);
   return [...new Set(visibleWarnings(visualValidate(d).violations, d).map((v) => v.axis))];
@@ -66,13 +90,13 @@ describe("編集画面の指摘の選び方", () => {
 
   it("座標を書くと整列の軸が出る (外さないと画面が常時 NG になる)", () => {
     // 外す判断の前提。 cdl が実際にこれらを返すことを確かめる
-    const d = textDslToDiagram(manual);
+    const d = textDslToDiagram(段をまたぐ手動);
     const raw = [...new Set(visualValidate(d).violations.map((v) => v.axis))];
     expect(raw.filter((a) => AUTO_LAYOUT_ALIGNMENT_AXES.has(a)).length).toBeGreaterThan(0);
   });
 
   it("座標を書いた図では整列の軸を出さない", () => {
-    expect(axesOf(manual).filter((a) => AUTO_LAYOUT_ALIGNMENT_AXES.has(a))).toEqual([]);
+    expect(axesOf(段をまたぐ手動).filter((a) => AUTO_LAYOUT_ALIGNMENT_AXES.has(a))).toEqual([]);
   });
 
   it("相対で書いた図でも整列の軸を出さない", () => {
@@ -82,7 +106,7 @@ describe("編集画面の指摘の選び方", () => {
   it("自動配置の図では整列の軸を外さない (指摘を握り潰さない)", () => {
     const d = textDslToDiagram(auto);
     const fake = [
-      { axis: "alignment" as const, diagramId: d.id, detail: "x", severity: "error" as const },
+      { axis: "row-alignment" as const, diagramId: d.id, detail: "x", severity: "error" as const },
     ];
     expect(visibleWarnings(fake, d)).toHaveLength(1);
   });
@@ -119,7 +143,12 @@ describe("編集画面の指摘の選び方", () => {
 });
 
 describe("整列の指摘を外す範囲", () => {
-  /** 3 箱のうち 1 箱だけ手で置いた図。 触っていない箱の指摘は残ってほしい */
+  /**
+   * 3 箱のうち 1 箱だけ手で置いた図。 触っていない箱の指摘は残ってほしい。
+   *
+   * 箱を名指しする整列の指摘が要る場面では `段をまたぐ手動` を使う。 こちらはレーンが
+   * 1 本なので、残る 3 軸のうち出るのは縦列を名指しする `column-gap-uniform` になる。
+   */
   const oneManual = `title: "t"
 type: flow
 actors:
@@ -135,7 +164,7 @@ flow:
 
   it("指摘の文面から対象の箱と縦列を読める (文面が変わったら気付く)", () => {
     // 対象を読めなくなると隠す範囲がずれる。 実際の検証結果に対して読めることを確かめる
-    const d = textDslToDiagram(oneManual);
+    const d = textDslToDiagram(段をまたぐ手動);
     const raw = visualValidate(d).violations.filter((v) => AUTO_LAYOUT_ALIGNMENT_AXES.has(v.axis));
     expect(raw.length, "整列の指摘が出ていない").toBeGreaterThan(0);
     const named = raw.filter((v) => violationTargets(v.detail).node !== undefined);
@@ -147,18 +176,27 @@ flow:
   });
 
   it("手で置いた箱を名指しする指摘は外す", () => {
-    const d = textDslToDiagram(oneManual);
-    const shown = visibleWarnings(visualValidate(d).violations, d);
-    const dbNamed = shown.filter(
-      (v) => AUTO_LAYOUT_ALIGNMENT_AXES.has(v.axis) && violationTargets(v.detail).node === "db",
+    const d = textDslToDiagram(段をまたぐ手動);
+    const 手で置いた = d.nodes.find((n) => n.posX !== undefined && n.posY !== undefined)?.id;
+    expect(手で置いた, "手で置いた箱が取れない").toBeDefined();
+    const 元 = visualValidate(d).violations;
+    expect(
+      元.filter(
+        (v) => AUTO_LAYOUT_ALIGNMENT_AXES.has(v.axis) && violationTargets(v.detail).node === 手で置いた,
+      ).length,
+      "隠す前にその箱を名指しする指摘が出ていない (検査が空振りしている)",
+    ).toBeGreaterThan(0);
+    const shown = visibleWarnings(元, d);
+    const 名指し = shown.filter(
+      (v) => AUTO_LAYOUT_ALIGNMENT_AXES.has(v.axis) && violationTargets(v.detail).node === 手で置いた,
     );
-    expect(dbNamed).toEqual([]);
+    expect(名指し).toEqual([]);
   });
 
   it("触っていない箱を名指しする指摘は残す", () => {
     const d = textDslToDiagram(oneManual);
     const fake = [
-      { axis: "alignment" as const, diagramId: d.id, detail: 'lane "other" 内 node "web" cx=1 が不一致', severity: "error" as const },
+      { axis: "row-alignment" as const, diagramId: d.id, detail: 'stack=0 row 内 node "web" cy=1 が不一致', severity: "error" as const },
     ];
     expect(visibleWarnings(fake, d), "手で置いていない箱の指摘まで隠している").toHaveLength(1);
   });
@@ -166,7 +204,7 @@ flow:
   it("対象が読み取れない指摘は残す", () => {
     const d = textDslToDiagram(oneManual);
     const fake = [
-      { axis: "alignment" as const, diagramId: d.id, detail: "対象を書いていない文面", severity: "error" as const },
+      { axis: "row-alignment" as const, diagramId: d.id, detail: "対象を書いていない文面", severity: "error" as const },
     ];
     expect(visibleWarnings(fake, d)).toHaveLength(1);
   });
@@ -274,9 +312,9 @@ flow:
     expect(手で置いた, "手で置いた箱が図に無い").toBeDefined();
     const fake = [
       {
-        axis: "alignment" as const,
+        axis: "row-alignment" as const,
         diagramId: d.id,
-        detail: `node "${手で置いた!.id}" cx=1 が不一致`,
+        detail: `node "${手で置いた!.id}" cy=1 が不一致`,
         severity: "warn" as const,
       },
     ];

@@ -18,10 +18,13 @@ import type { CdlDiagram, Violation } from "@cardenelabs/cdl";
  *
  * 並べるのは実際に発火を確認した軸だけにする。 同じ系統に見えるが出たことのない軸
  * (`grid-alignment` / `lane-cx-consistency`) は、 出るのを見てから足す。
+ *
+ * **`alignment` と `column-alignment` は外した** (#2724)。 描画側が `0.117.0` から
+ * 位置を手で書いた箱をこの 2 軸の判定から外すようになり (`cdl#972`)、手で置いた箱を
+ * 名指しする指摘が出なくなった。 出ない軸を残すと、ここで隠しているのか元から出ないのかを
+ * 読み手が分けられない。
  */
 export const AUTO_LAYOUT_ALIGNMENT_AXES: ReadonlySet<string> = new Set([
-  "alignment",
-  "column-alignment",
   "column-gap-uniform",
   "row-alignment",
   "row-gap-uniform",
