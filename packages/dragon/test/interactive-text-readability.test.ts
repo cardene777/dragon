@@ -6,8 +6,12 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
 /**
  * #885 text-readability regression guard (interactive.cdl catalog、 全 diagram 検査)。
  *
- * 背景 ... visualValidate の text-readability axis は `title.length * 22 + 52 > node.w + 8` で
+ * 背景 ... visualValidate の text-readability axis は「題の幅 + 余白 > node.w + 8」 で
  * 「title が node 幅を超えて切れる可能性」 を warn する。 interactive catalog は当初 128 warn。
+ *
+ * 題の幅の出し方は engine が 2 度直している (`^0.106.0` 時点)。 字数に 22 を掛ける形から、
+ * 種別ごとの字の大きさ (cdl#946) を経て、字ごとの実幅 (cdl#949) になった。
+ * 極小の箱で挙がっていた 13 件はいずれも実際には収まっており、実幅で見ると 1 件も挙がらない。
  *
  * 方針 ... node の `w` (幅) と lane の x / width は一切変えず、 title (と一部 subtitle) の文字列だけを
  * node 幅に収まる長さへ短縮して解消した。 width を広げる方式は multi-lane 図 (例 xypad-nav = 4 lane
@@ -27,9 +31,11 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
  *    のみを midpoint proxy で検知する (xypad-nav を widen した崩れ class = RED→GREEN 実証済)。 default
  *    幅 neighbor の張出しや中間 lane が空の非隣接 overlap は検知対象外。
  *
- * 許容した件 ... node 幅 60-100px の極小 shape node (shape-rect の bar 4 / shape-chain の block 3 /
- * repeat-chain の block 5 / timeline-drive の r 1)。 幅 100px で最大 2 文字、 80px で 1 文字、 60px で
- * 0 文字しか収まらず、 意味を保つ label に短縮できないため対象外 (無理に潰すと教育的価値を壊す)。
+ * 許容した件 ... **本当にはみ出している 2 件だけ** (`^0.106.0` で実測し直した)。 どちらも題を
+ * 短くするか箱を広げるかの判断が要るため #2701 で扱い、直るまでの間だけここに置く。
+ *
+ * 極小 shape node の 13 件は外した。 見積りが字数 × 22 だった頃は挙がっていたが、実幅で見ると
+ * 1 件も超えていない (実測 = 幅 80px の箱に 13px で描く「棒 (四角)」 は約 57px)。
  */
 function isCdlDiagram(v: unknown): v is CdlDiagram {
   if (typeof v !== "object" || v === null) return false;
@@ -51,24 +57,11 @@ function collectDiagrams(): CdlDiagram[] {
   return out;
 }
 
-/** 極小 shape node で短縮不能な許容 warn (`${diagramId}::${nodeId}`)。 */
+/** 題が箱を超えていて、直すのを #2701 へ送った warn (`${diagramId}::${nodeId}`)。 */
 const ALLOWED = new Set<string>([
-  "interactive-shape-rect::barLow",
-  "interactive-shape-rect::barMid",
-  "interactive-shape-rect::barHigh",
-  "interactive-shape-rect::bar",
-  "interactive-shape-chain::r1",
-  "interactive-shape-chain::r2",
-  "interactive-shape-chain::r3",
-  "interactive-repeat-chain::r0",
-  "interactive-repeat-chain::r1",
-  "interactive-repeat-chain::r2",
-  "interactive-repeat-chain::r3",
-  "interactive-repeat-chain::r4",
-  "interactive-timeline-drive::r",
-  // 同じ節を持つ記法の側の変種 (#2681)。 0.99.0 で `dyn-rect` が箱の題を読むようになり、
-  // 書いてあった 「棒 (四角)」 が描かれて幅 80px を超えた。 組み立て側の 1 行上と同じ節
-  "速さの選択肢を変えた時間信号で図形-2-種を動かす::r",
+  // 題が箱の幅を超えている 2 件 (#2701 で直す)。 どちらも `card` が 24px で描く
+  "interactive-event-variety::receiver",
+  "interactive-profile-avatar-upload::previewCard",
 ]);
 
 describe("#885 interactive text-readability (全 diagram 検査)", () => {
