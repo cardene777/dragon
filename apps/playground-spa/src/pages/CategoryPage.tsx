@@ -8,6 +8,7 @@ import {
   loadPartsItems,
   選んだ見本,
   itemSubtitle,
+  showsSubtitleLine,
   patternName,
   type CatalogItem,
 } from "@/lib/catalog-items";
@@ -568,7 +569,8 @@ export function CategoryPage(): React.ReactElement {
 
   // 拡大表示に出す説明と、図から導いた動きの一文 (#1043)。 動きは人が書かず図から導くので、
   // 説明の隣で 1 組にして決める。 動かない図にも必ず出す (#1053)
-  const 拡大の説明 = modalItem ? itemSubtitle(modalItem, locale) : "";
+  // 図が自分で題を描く時は説明行を出さない (#2691)。 判定は `showsSubtitleLine` が持つ
+  const 拡大の説明 = modalItem && showsSubtitleLine(modalItem, locale) ? itemSubtitle(modalItem, locale) : "";
   const 拡大の動きの一文 = modalItem ? motionNote(modalItem.diagram, locale) : "";
 
   return (
@@ -662,7 +664,8 @@ export function CategoryPage(): React.ReactElement {
                 <header className="catalog-preview-head">
                   <div>
                     <h2 className="catalog-preview-title">{displayName(currentItem)}</h2>
-                    {itemSubtitle(currentItem, locale) && (
+                    {/* 図が自分で題を描く時は出さない (#2691)。 判定は `showsSubtitleLine` が持つ */}
+                    {showsSubtitleLine(currentItem, locale) && (
                       <p className="catalog-preview-sub">{itemSubtitle(currentItem, locale)}</p>
                     )}
                     {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す
