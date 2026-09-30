@@ -61,31 +61,56 @@ function 補足を組む(書き方: string, 値: Map<string, string>): string {
 }
 
 const 箱 = 箱を読む(sourceYaml__mindMap);
+
+/**
+ * 枝の数。 記法の先頭の箱が中心で、残りが枝になる (`type: mind` の並べ方)。
+ *
+ * 待ち条件に使うので、記法から導く。 数を書くと見本を直した時に片方だけ古くなる。
+ */
+const 枝の数 = Math.max(0, 箱.length - 1);
 const 初期値 = 値を読む(sourceYaml__mindMap, "初期");
 const 行き先 = 値を読む(sourceYaml__mindMap, "行き先");
 
 type 測り結果 = {
   段: string;
-  箱数: number;
+  枝数: number;
+  名前数: number;
+  題: string[];
   文字: Array<{ 内容: string; はみ出し: number; 箱あり: boolean }>;
 };
 
 /**
  * 放射図の文字を測る。
  *
- * 文字の箱は「その文字の中心を含む中で最も小さい四角」 とする。 図全体の枠も文字を含むが、
- * 枝の箱の方が小さいので選ばれない。 枝の箱が描かれていない間だけ枠が選ばれるため、
- * 呼ぶ側は `箱数` が記法の箱の数と揃うのを待ってから測りを使う。
+ * 文字の箱は「その文字の中心を含む中で最も小さい四角」 とする。 中心の箱を持つ文字は
+ * その箱で測られ、線の上に乗る枝の名前は図の枠で測られる。 前者は「箱に収まるか」、
+ * 後者は「図から出ていないか」 を見ることになる。
+ *
+ * **図の題は役 (`figure-title`) で外す** (#2733)。 題も箱の中に描かれるため、混ぜると
+ * 記法から導いた文字と 1 件ずれる。 外した題は別に返し、消えていないことを呼ぶ側が見る。
+ *
+ * 描き終わったかは **枝の線の数と名前の数** で見る (#2733)。 枝はかつて箱を持っており、
+ * 箱の数が記法と揃うのを待っていたが、今は線の上に名前を置く形になり箱を持たない。
+ *
+ * 線だけでは足りない。 線は名前より先に引かれるため、線が 4 本揃った時点ではまだ名前が
+ * 1 つも出ていないことがある (実測 = 中心の 2 文字しか測れず、切り詰めの検査が空振りした)。
+ *
+ * 名前は補足 (`mind-node-subtitle`) を除いた文字で数える。 この数は名前と補足を分けても
+ * 1 つに繋げても記法の箱の数に等しいので、「期待どおりになるまで待つ」 にはならない。
  */
 async function 測る(page: Page): Promise<測り結果> {
   return page.evaluate(() => {
     const 段 = document.querySelector(".cdl-phase-chip")?.textContent?.replace(/\s+/gu, " ").trim() ?? "";
     const svg = document.querySelector('main.catalog-preview svg[role="img"]');
-    if (!svg) return { 段, 箱数: 0, 文字: [] };
+    if (!svg) return { 段, 枝数: 0, 名前数: 0, 題: [], 文字: [] };
     const 枠 = (el: Element) => el.getBoundingClientRect();
-    const 文字ら = Array.from(svg.querySelectorAll("text"));
+    const 枝数 = svg.querySelectorAll('path[data-cdl-role="mind-edge"]').length;
+    const 字ら = Array.from(svg.querySelectorAll("text"));
+    const 読む = (t: Element) => (t.textContent ?? "").trim();
+    const 題 = 字ら.filter((t) => t.getAttribute("data-cdl-role") === "figure-title").map(読む);
+    const 文字ら = 字ら.filter((t) => t.getAttribute("data-cdl-role") !== "figure-title");
+    const 名前数 = 文字ら.filter((t) => t.getAttribute("data-cdl-role") !== "mind-node-subtitle").length;
     const 四角ら = Array.from(svg.querySelectorAll("rect")).map((r) => 枠(r));
-    const 使った = new Set<number>();
     const 出 = 文字ら.map((t) => {
       const tb = 枠(t);
       const cx = tb.left + tb.width / 2;
@@ -98,11 +123,10 @@ async function 測る(page: Page): Promise<測り結果> {
       });
       const b = 四角ら[選];
       if (選 < 0 || !b) return { 内容: t.textContent ?? "", はみ出し: 0, 箱あり: false };
-      使った.add(選);
       const はみ出し = Math.max(0, b.left - tb.left, tb.right - b.right);
       return { 内容: t.textContent ?? "", はみ出し: Math.round(はみ出し * 10) / 10, 箱あり: true };
     });
-    return { 段, 箱数: 使った.size, 文字: 出 };
+    return { 段, 枝数, 名前数, 題, 文字: 出 };
   });
 }
 
@@ -119,8 +143,9 @@ async function 開く(page: Page): Promise<void> {
  *
  * 待つ条件に **期待する文字を入れない**。 入れると「期待どおりになるまで待つ」 になり、
  * 直っていない時は待ち受けで力尽きて、切り詰めやはみ出しの検査が 1 度も走らない。
- * 待つのは 3 つだけ。 段の札が合うこと、読みが 2 回続けて同じになること (動きが止まったこと)、
- * 箱が記法の数だけ描かれたこと。 いずれも名前と補足を分けたかどうかとは無関係に成り立つ。
+ * 待つのは 4 つだけ。 段の札が合うこと、読みが 2 回続けて同じになること (動きが止まったこと)、
+ * 枝の線が記法の枝の数だけ引かれたこと、名前が記法の箱の数だけ出たこと。
+ * いずれも名前と補足を分けたかどうかとは無関係に成り立つ。
  */
 async function 落ち着くまで待つ(page: Page, 段名: string): Promise<測り結果> {
   let 直前 = "";
@@ -132,7 +157,7 @@ async function 落ち着くまで待つ(page: Page, 段名: string): Promise<測
         const 鍵 = JSON.stringify(今.文字.map((x) => x.内容));
         const 同じ = 鍵 === 直前;
         直前 = 鍵;
-        if (今.段.includes(段名) && 同じ && 今.箱数 === 箱.length) {
+        if (今.段.includes(段名) && 同じ && 今.枝数 === 枝の数 && 今.名前数 === 箱.length) {
           落着 = 今;
           return true;
         }
@@ -182,9 +207,11 @@ test.describe("放射図の名前と補足が箱に収まる (#1332)", () => {
       // 上の `toBeGreaterThanOrEqual(2)` が先に落ちるので、ここへは 2 段以上ある時しか来ない
       expect(段, `段 ${番} を記法から読めていない (検査が空振りしている)`).toBeDefined();
       if (段 === undefined) return;
-      const { 文字 } = await 落ち着くまで待つ(page, 段);
+      const { 文字, 題 } = await 落ち着くまで待つ(page, 段);
 
       expect(文字.length, "図の文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
+      // 題を役で外しただけでは「外した」 と「描かれなくなった」 を区別できない (#2728 と同じ形)
+      expect(題, "図の題が 1 件だけ出ていない").toEqual(["図を速くする"]);
       expect(
         [...文字.map((x) => x.内容)].sort(),
         "図に出た文字が記法と食い違う (連結されているか、切られている)",
@@ -196,10 +223,15 @@ test.describe("放射図の名前と補足が箱に収まる (#1332)", () => {
       const 段 = 段の並び[番];
       expect(段, `段 ${番} を記法から読めていない (検査が空振りしている)`).toBeDefined();
       if (段 === undefined) return;
-      const { 文字, 箱数 } = await 落ち着くまで待つ(page, 段);
+      const { 文字, 枝数, 名前数 } = await 落ち着くまで待つ(page, 段);
 
       expect(文字.length, "図の文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
-      expect(箱数, "箱を記法の数だけ測れていない (検査が空振りしている)").toBe(箱.length);
+      expect(枝数, "枝の線を記法の数だけ測れていない (検査が空振りしている)").toBe(枝の数);
+      expect(名前数, "名前を記法の箱の数だけ測れていない (検査が空振りしている)").toBe(箱.length);
+      expect(
+        文字.filter((x) => x.箱あり).length,
+        "どの文字も四角に収まっていない (検査が空振りしている)",
+      ).toBe(文字.length);
       expect(
         文字.filter((x) => x.内容.includes(省略)).map((x) => x.内容),
         "切り詰められた文字がある",
