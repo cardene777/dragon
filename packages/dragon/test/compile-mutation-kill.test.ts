@@ -380,14 +380,15 @@ describe("compileMind", () => {
 
 // ── 数を描く図 / compileClass: kind と寸法 ──
 describe("数を描く図 / compileClass", () => {
-  it("shape: pie は円を描く箱 1 つ / w 640 / h 320", () => {
+  it("shape: pie は円を描く箱 1 つ / w 480 / h 320", () => {
     // **変更前は card を縦に積んでいた** (#1076)。 `type: pie` で円が出るように、 描画側の
-    // `chart-pie` に 1 node で渡す形にした。 大きさは cdl の chart preset と同じ
+    // `chart-pie` に 1 node で渡す形にした。
+    // 幅は型ごとに決める (#2708)。 円は中身が 377 幅なので 640 だと左右が余白になる
     const d = compile("chart", { shape: "pie" });
     expect(d.nodes).toHaveLength(1);
     const n = d.nodes[0]!;
     expect(n.kind).toBe("chart-pie");
-    expect(n.w).toBe(640);
+    expect(n.w).toBe(480);
     expect(n.h).toBe(320);
   });
   it("class node は kind storage / w 400", () => {

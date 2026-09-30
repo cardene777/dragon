@@ -1504,7 +1504,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > pie の図と�
     "lanes": [
       {
         "id": "chart",
-        "width": 704,
+        "width": 544,
       },
     ],
     "nodes": [
@@ -1533,7 +1533,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > pie の図と�
         "lane": "chart",
         "stack": 0,
         "title": "言語シェア",
-        "w": 640,
+        "w": 480,
       },
     ],
     "phases": [
@@ -1664,7 +1664,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > radial の図�
     "lanes": [
       {
         "id": "chart",
-        "width": 704,
+        "width": 576,
       },
     ],
     "nodes": [
@@ -1693,7 +1693,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > radial の図�
         "lane": "chart",
         "stack": 0,
         "title": "機能ごとの利用率",
-        "w": 640,
+        "w": 512,
       },
     ],
     "phases": [
@@ -2103,7 +2103,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > stacked の図�
             "value": 140,
           },
         ],
-        "h": 368,
+        "h": 224,
         "id": "契約の内訳-chart",
         "kind": "chart-stacked-bar",
         "lane": "chart",
@@ -2141,7 +2141,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > stat の図と�
     "lanes": [
       {
         "id": "chart",
-        "width": 704,
+        "width": 448,
       },
     ],
     "nodes": [
@@ -2153,13 +2153,13 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > stat の図と�
             "value": 24,
           },
         ],
-        "h": 320,
+        "h": 240,
         "id": "今月の解約率-chart",
         "kind": "chart-stat",
         "lane": "chart",
         "stack": 0,
         "title": "今月の解約率",
-        "w": 640,
+        "w": 384,
       },
     ],
     "phases": [
@@ -2809,7 +2809,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > waffle の図�
     "lanes": [
       {
         "id": "chart",
-        "width": 704,
+        "width": 528,
       },
     ],
     "nodes": [
@@ -2834,7 +2834,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > waffle の図�
         "lane": "chart",
         "stack": 0,
         "title": "対応済みの問い合わせ",
-        "w": 640,
+        "w": 464,
       },
     ],
     "phases": [

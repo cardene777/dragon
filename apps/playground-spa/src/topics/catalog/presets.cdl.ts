@@ -2584,6 +2584,10 @@ const pieBuilder = chart({
   topic: "入り口ごとの利用の割合",
   eyebrow: "内訳",
   type: "pie",
+  // 円の札の幅は記法の側が型ごとに持つ (`compile/value-chart.ts` の `札の大きさ`)。
+  // 組立て API の既定は 640 のままなので、ここで揃える。
+  // ずれたら `catalog-source-parity` が「描いた図が違う」 で落ちる (#2708)
+  itemWidth: 480,
 });
 for (const s of PIE_SLICES) pieBuilder.datum({ id: s.id, label: s.label, value: s.last });
 
@@ -2647,6 +2651,10 @@ const pieComplexBuilder = chart({
   id: "chart-pie-complex-demo",
   topic: "問い合わせの種類ごとの割合が半年で入れ替わる円グラフ",
   type: "pie",
+  // 円の札の幅は記法の側が型ごとに持つ (`compile/value-chart.ts` の `札の大きさ`)。
+  // 組立て API の既定は 640 のままなので、ここで揃える。
+  // ずれたら `catalog-source-parity` が「描いた図が違う」 で落ちる (#2708)
+  itemWidth: 480,
 });
 for (const s of PIE_COMPLEX_SLICES) {
   pieComplexBuilder.datum({ id: s.id, label: s.label, value: s.before });
