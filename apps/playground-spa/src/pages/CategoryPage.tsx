@@ -672,30 +672,34 @@ export function CategoryPage(): React.ReactElement {
                         (出さないと説明が単独で出る、 #1053)。 SSOT = catalog-motion.ts */}
                     <p className="catalog-preview-motion">{motionNote(currentItem.diagram, locale)}</p>
                   </div>
-                  <div className="catalog-preview-actions">
-                    {/* 倍率の操作 (#1749)。 台は幅に合わせるので、広い図は縮み細い図は伸びる */}
-                    <DiagramZoomControls
-                      場所="並び"
-                      倍率={並びの倍率}
-                      収めた倍率={並びの操作.収めた倍率}
-                      使える={並びのviewBox幅 !== undefined}
-                      倍率を動かす={並びの倍率を動かす}
-                      器に合わせる={並びを器に合わせる}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setModalItem(currentItem)}
-                      aria-label={
-                        isJa
-                          ? `${displayName(currentItem)} を拡大表示`
-                          : `Enlarge ${displayName(currentItem)}`
-                      }
-                      className="catalog-expand-btn"
-                    >
-                      <Maximize2 size={14} />
-                      <span>{isJa ? "拡大" : "Enlarge"}</span>
-                    </button>
-                  </div>
+                  {/* 図の欄が無い頁では拡大する相手が居ないので、倍率も拡大も出さない (#2682)。
+                      判定は欄の `svg` が在るかの 1 点で、図の中身は見ない */}
+                  {並びの操作.図の欄 !== "無い" && (
+                    <div className="catalog-preview-actions">
+                      {/* 倍率の操作 (#1749)。 台は幅に合わせるので、広い図は縮み細い図は伸びる */}
+                      <DiagramZoomControls
+                        場所="並び"
+                        倍率={並びの倍率}
+                        収めた倍率={並びの操作.収めた倍率}
+                        使える={並びのviewBox幅 !== undefined}
+                        倍率を動かす={並びの倍率を動かす}
+                        器に合わせる={並びを器に合わせる}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setModalItem(currentItem)}
+                        aria-label={
+                          isJa
+                            ? `${displayName(currentItem)} を拡大表示`
+                            : `Enlarge ${displayName(currentItem)}`
+                        }
+                        className="catalog-expand-btn"
+                      >
+                        <Maximize2 size={14} />
+                        <span>{isJa ? "拡大" : "Enlarge"}</span>
+                      </button>
+                    </div>
+                  )}
                 </header>
                 {/*
                   図とコードは **どちらも DOM に残したまま** 表示だけ入れ替える (#1236)。
@@ -1035,15 +1039,18 @@ export function CategoryPage(): React.ReactElement {
                 )}
               </div>
               <div className="cdl-modal-actions">
-                {/* 倍率の操作 (#1745)。 器に収めると 4.8px まで縮む図があるため、実寸まで拡げられるようにする */}
-                <DiagramZoomControls
-                  場所="拡大"
-                  倍率={倍率}
-                  収めた倍率={拡大の操作.収めた倍率}
-                  使える={拡大のviewBox幅 !== undefined}
-                  倍率を動かす={倍率を動かす}
-                  器に合わせる={拡大を器に合わせる}
-                />
+                {/* 倍率の操作 (#1745)。 器に収めると 4.8px まで縮む図があるため、実寸まで拡げられるようにする。
+                    図の欄が無い時は出さない (#2682) = 閉じるだけが残る */}
+                {拡大の操作.図の欄 !== "無い" && (
+                  <DiagramZoomControls
+                    場所="拡大"
+                    倍率={倍率}
+                    収めた倍率={拡大の操作.収めた倍率}
+                    使える={拡大のviewBox幅 !== undefined}
+                    倍率を動かす={倍率を動かす}
+                    器に合わせる={拡大を器に合わせる}
+                  />
+                )}
                 <Dialog.Close asChild>
                   <button type="button" aria-label={isJa ? "閉じる" : "Close"} className="cdl-modal-close">
                     <X size={20} />

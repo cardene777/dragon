@@ -206,3 +206,38 @@ describe("useDiagramPanZoom の図が替わった時に覚えた最小を捨て�
     ).toBeUndefined();
   });
 });
+
+describe("図の欄が在るかを 3 通りで返す (#2682)", () => {
+  it("欄に svg が在れば「ある」", () => {
+    const { 器, svg } = 台を作る();
+    描いたことにする(svg, { 幅: 1917, 高さ: 700 }, { 幅: 1150, 高さ: 420 });
+    const { result } = 測る部品を置く(器, { 名: "swimlane" });
+    expect(result.current.図の欄).toBe("ある");
+  });
+
+  it("欄に svg が無ければ「無い」", () => {
+    // engine は描くものが 1 つも無い図に欄を出さない (cdl#924)
+    const { 器, 入れ物 } = 台を作る();
+    入れ物.remove();
+    const { result } = 測る部品を置く(器, { 名: "readout" });
+    expect(result.current.図の欄).toBe("無い");
+  });
+
+  it("まだ測っていなければ「無い」 に倒さない", () => {
+    // 図の幅を出せない間は測りに行かない。 ここを「無い」 と読むと、描かれる図の操作が一瞬消える
+    const { 器, svg } = 台を作る();
+    描いたことにする(svg, { 幅: 1917, 高さ: 700 }, { 幅: 1150, 高さ: 420 });
+    const { result } = renderHook(() =>
+      useDiagramPanZoom({
+        器,
+        倍率: 収める,
+        倍率を置く: () => {},
+        viewBox幅: undefined,
+        修飾キー無しで拡大: false,
+        頁も送る: true,
+        図の鍵: { 名: "swimlane" },
+      }),
+    );
+    expect(result.current.図の欄).toBe("まだ測っていない");
+  });
+});
