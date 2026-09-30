@@ -30,7 +30,12 @@
  */
 import { test, expect } from "@playwright/test";
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
-import { 下限 as 文字の下限, 譲っても収まらない見本 } from "./readable-floor";
+import {
+  MIN_PX,
+  下限 as 文字の下限,
+  下限で止まる見本,
+  譲っても収まらない見本,
+} from "./readable-floor";
 
 /** 画面の外に出ている箱の名前 */
 async function 画面外の箱(page: import("@playwright/test").Page, slug: string) {
@@ -226,9 +231,63 @@ const 縮まない見本 = [
   { slug: "sequence-checkout", 理由: "同上" },
 ] as const;
 
+/**
+ * 収める倍率で止まる見本どうしは、同じ幅で描かれる (#2752)。
+ *
+ * ## 上を閉じられない側を、別の向きから固定する
+ *
+ * 上の検査は収める倍率で止まる見本に「下限を下回らない」 しか課せない。 下限を 8 から 9 に
+ * 上げた対照では、`swimlane` が 8.29px から 9.0px へ動いても両方の境界の内側に居るため
+ * 通ってしまった (実測)。
+ *
+ * 収める倍率は **枠だけで決まる** (図に使える幅 ÷ 図の幅) ので、その側に落ちた見本は
+ * 倍率をかけた後の幅が枠と同じになる = 見本が違っても同じ幅で描かれる。 下限が押し上げれば
+ * その見本だけ広くなるので、幅の食い違いとして出る (実測 = 下限を 9 にすると `swimlane` が
+ * 839px、`gantt` は 773px のまま)。
+ *
+ * ## 縦が先に効く図はこの形で見られない
+ *
+ * 収める倍率は縦横の小さい方を採るため、極端に縦長の図では高さが先に効いて幅が枠に届かない。
+ * 今の 2 件はどちらも横が先に効く (実測 = `swimlane` は高さ 122px、`gantt` は 442px で、
+ * どちらも縦の余裕が残っている)。 縦が先に効く見本を足す時はこの検査から外す。
+ */
+test("収める倍率で止まる見本は同じ幅で描かれる (#2752)", async ({ page }) => {
+  const 対象 = 見る見本.filter(({ slug }) => !下限で止まる見本.includes(slug));
+  expect(対象.length, "収める倍率で止まる見本が 2 件に満たない (幅を比べられない)").toBeGreaterThan(
+    1,
+  );
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const 実測: Array<{ slug: string; 幅: number }> = [];
+  for (const { slug } of 対象) {
+    await page.goto(`editor#preset=${slug}`);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(2400);
+    const 幅 = await page.evaluate(() => {
+      const svg = document.querySelector(".v4-editor-stage svg[data-cdl-stage]");
+      return svg ? Math.round(svg.getBoundingClientRect().width) : 0;
+    });
+    expect(幅, `見本 ${slug} の図の幅が取れない`).toBeGreaterThan(0);
+    実測.push({ slug, 幅 });
+  }
+
+  const 幅ら = 実測.map((x) => x.幅);
+  const 説明 = 実測.map((x) => `${x.slug} ${x.幅}px`).join(" / ");
+  expect(Math.max(...幅ら) - Math.min(...幅ら), `幅が揃っていない (${説明})`).toBeLessThanOrEqual(1);
+});
+
+// 止まる先は 2 通りある (#2752)。 倍率は `max(収める倍率, 下限が要求する倍率)` なので、
+// 下限が先に効く見本だけが下限ちょうどで止まる。 収める倍率が先に効く見本は下限より上で
+// 止まり、どこで止まるかは図の幅が決める = 図を狭めただけで落ちる形にしない。
+//
+// どちらが先に効くかは `readable-floor.ts` の `下限で止まる見本` が持つ (実測の記録)。
 for (const { slug, 理由 } of 見る見本) {
   const 下限 = 文字の下限(slug);
-  test(`見本 ${slug} の画面上の最小文字が ${下限}px (#1102)`, async ({ page }) => {
+  const 下限で止まる = 下限で止まる見本.includes(slug);
+  const 題 = 下限で止まる
+    ? `見本 ${slug} の画面上の最小文字が ${下限}px ちょうどで止まる (#1102)`
+    : `見本 ${slug} の画面上の最小文字が ${下限}px を下回らない (#2752)`;
+  test(題, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`editor#preset=${slug}`);
     await page.waitForLoadState("networkidle");
@@ -238,10 +297,27 @@ for (const { slug, 理由 } of 見る見本) {
 
     expect(m, "図の文字が取れない").not.toBeNull();
     expect(m!.数えた, "文字が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
-    // 下限ちょうどで止まる。 実測は 6 件とも小数点以下が 0 なので、 幅は丸めを吸収する分だけ。
-    // 0.3px にすると `gantt` の変異後の値 (9.7px) が許容に隠れて変異を見逃す (実測)
+    // どちらの側でも下限は割らない。 割る変更 (下限そのものを下げる等) はここで落ちる
     expect(m!.最小, `${理由} / 実測 ${m!.最小}px`).toBeGreaterThanOrEqual(下限 - 0.2);
-    expect(m!.最小, `${理由} / 実測 ${m!.最小}px`).toBeLessThan(下限 + 0.2);
+
+    if (下限で止まる) {
+      // 実測は小数点以下が 0 なので、 幅は丸めを吸収する分だけ。 0.3px にすると下限を
+      // 8 から 9 に上げた時の値が許容に隠れて変異を見逃す (実測)
+      expect(m!.最小, `${理由} / 実測 ${m!.最小}px`).toBeLessThan(下限 + 0.2);
+      return;
+    }
+
+    // 収める倍率が先に効く側では、上を「下限 + 0.2」 で閉じられない。 代わりにその見本が
+    // どちらの区分に居るかを見る = 譲る見本が好ましい下限 10px に届いたなら、それはもう
+    // 譲る側ではないので `readable-floor.ts` の一覧を直す合図になる
+    if (下限 < MIN_PX) {
+      expect(
+        m!.最小,
+        `${理由} / 実測 ${m!.最小}px = 譲る見本が好ましい下限 ${MIN_PX}px に届いている`,
+      ).toBeLessThan(MIN_PX);
+    } else {
+      expect(m!.最小, `${理由} / 実測 ${m!.最小}px`).toBeGreaterThanOrEqual(MIN_PX - 0.2);
+    }
   });
 }
 
