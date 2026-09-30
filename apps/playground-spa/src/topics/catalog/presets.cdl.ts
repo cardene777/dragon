@@ -3730,7 +3730,7 @@ export const sourceJson__presetFlow = `{
 }`;
 
 export const sourceYaml__presetChartPie = `title: "入り口ごとの利用の割合"
-eyebrow: "pie"
+eyebrow: "内訳"
 type: chart
 shape: pie
 
@@ -3764,7 +3764,7 @@ export const sourceJson__presetChartPie = `{
   "title": "入り口ごとの利用の割合",
   "type": "chart",
   "shape": "pie",
-  "eyebrow": "pie",
+  "eyebrow": "内訳",
   "actors": [
     { "name": "ウェブ", "subtitle": "{pie_web}" },
     { "name": "アプリ", "subtitle": "{pie_mobile}" },
@@ -3793,7 +3793,7 @@ export const sourceJson__presetChartPie = `{
 }`;
 
 export const sourceYaml__presetChartLine = `title: "月ごとの計画と実績"
-eyebrow: "line"
+eyebrow: "推移"
 type: chart
 shape: line
 
@@ -3830,7 +3830,7 @@ export const sourceJson__presetChartLine = `{
   "title": "月ごとの計画と実績",
   "type": "chart",
   "shape": "line",
-  "eyebrow": "line",
+  "eyebrow": "推移",
   "actors": [
     { "name": "1月", "subtitle": "{line_jan}" },
     { "name": "2月", "subtitle": "{line_feb}" },
@@ -3865,7 +3865,7 @@ export const sourceJson__presetChartLine = `{
 }`;
 
 export const sourceYaml__presetFunnel = `title: "訪問から有料契約まで"
-eyebrow: "funnel"
+eyebrow: "段ごとの減り"
 type: funnel
 
 lanes:
@@ -3903,7 +3903,7 @@ animation:
 export const sourceJson__presetFunnel = `{
   "title": "訪問から有料契約まで",
   "type": "funnel",
-  "eyebrow": "funnel",
+  "eyebrow": "段ごとの減り",
   "lanes": { "chart": {"width": 624} },
   "actors": [
     { "name": "訪問", "subtitle": "{visit}" },
@@ -3939,7 +3939,7 @@ export const sourceJson__presetFunnel = `{
 }`;
 
 export const sourceYaml__presetTree = `title: "会社の指揮系統"
-eyebrow: "tree"
+eyebrow: "階層"
 type: tree
 
 lanes:
@@ -3978,7 +3978,7 @@ animation:
 export const sourceJson__presetTree = `{
   "title": "会社の指揮系統",
   "type": "tree",
-  "eyebrow": "tree",
+  "eyebrow": "階層",
   "lanes": { "chart": {"width": 720} },
   "actors": [
     { "name": "社長" },
@@ -4015,7 +4015,7 @@ export const sourceJson__presetTree = `{
 }`;
 
 export const sourceYaml__presetMindMap = `title: "次の版で決めること"
-eyebrow: "mindMap"
+eyebrow: "枝分かれ"
 type: mind
 
 lanes:
@@ -4053,7 +4053,7 @@ animation:
 export const sourceJson__presetMindMap = `{
   "title": "次の版で決めること",
   "type": "mind",
-  "eyebrow": "mindMap",
+  "eyebrow": "枝分かれ",
   "lanes": { "chart": {"width": 720} },
   "actors": [
     { "name": "{theme}" },
@@ -4089,7 +4089,7 @@ export const sourceJson__presetMindMap = `{
 }`;
 
 export const sourceYaml__presetUserJourney = `title: "登録が済むまでの道のり"
-eyebrow: "userJourney"
+eyebrow: "道のり"
 type: journey
 
 lanes:
@@ -4123,7 +4123,7 @@ animation:
 export const sourceJson__presetUserJourney = `{
   "title": "登録が済むまでの道のり",
   "type": "journey",
-  "eyebrow": "userJourney",
+  "eyebrow": "道のり",
   "lanes": { "chart": {"width": 720} },
   "actors": [
     { "name": "サイトを訪れる", "value": "普通", "touchpoint": "サイト" },
@@ -4160,7 +4160,7 @@ export const sourceJson__presetUserJourney = `{
 }`;
 
 export const sourceYaml__presetQuadrant = `title: "どの作業から取るか"
-eyebrow: "quadrant"
+eyebrow: "2 軸の割り振り"
 type: quadrant
 
 axes:
@@ -4200,7 +4200,7 @@ animation:
 export const sourceJson__presetQuadrant = `{
   "title": "どの作業から取るか",
   "type": "quadrant",
-  "eyebrow": "quadrant",
+  "eyebrow": "2 軸の割り振り",
   "axes": {
     "x": { "left": "労力が小さい", "right": "労力が大きい" },
     "y": { "bottom": "価値が低い", "top": "価値が高い" }
@@ -4240,7 +4240,7 @@ export const sourceJson__presetQuadrant = `{
 }`;
 
 export const sourceYaml__presetGantt = `title: "版を出すまでの作業"
-eyebrow: "gantt"
+eyebrow: "日程"
 type: gantt
 
 actors:
@@ -4274,7 +4274,7 @@ animation:
 export const sourceJson__presetGantt = `{
   "title": "版を出すまでの作業",
   "type": "gantt",
-  "eyebrow": "gantt",
+  "eyebrow": "日程",
   "actors": [
     { "name": "設計", "value": "Q1", "tone": "teal", "owner": "デザイナー" },
     { "name": "実装", "value": "Q2", "tone": "teal", "owner": "開発", "end": "{build_end}" },
