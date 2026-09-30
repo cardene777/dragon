@@ -110,8 +110,7 @@ export const mixedTweenSet = diagram("mixed-tween-set", { topic: "tween + set �
     stack: 0,
     kind: "function",
     title: "操作",
-    subtitle: "段階: {phase}",
-    value: "{amount}",
+    subtitle: "{phase} / 量 {amount}",
   })
   .phase(
     "p1",
@@ -1115,7 +1114,7 @@ states:
   phase: "初期"
 
 actors:
-  - 操作: { kind: function, lane: l, subtitle: "段階: {phase}", value: "{amount}" }
+  - 操作: { kind: function, lane: l, subtitle: "{phase} / 量 {amount}" }
 
 flow:
 
@@ -1149,8 +1148,7 @@ export const sourceJson__mixedTweenSet = `{
       "name": "操作",
       "kind": "function",
       "lane": "l",
-      "subtitle": "段階: {phase}",
-      "value": "{amount}"
+      "subtitle": "{phase} / 量 {amount}"
     }
   ],
   "flow": [],

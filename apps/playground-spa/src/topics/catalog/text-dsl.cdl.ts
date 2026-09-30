@@ -1997,7 +1997,7 @@ actors:
       kind: dyn-rect
       size: 200,96
       shape: { kind: rect, source: "{progress}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 }
-      value: "{progress}%"
+      subtitle: "{progress}%"
       visibleIf: "progress > 0"
 
 flow:
@@ -2034,7 +2034,7 @@ export const sourceJson__textDslActorKeys = `{
       "posW": 200,
       "posH": 96,
       "shape": { "kind": "rect", "source": "{progress}", "fillMax": 100, "orient": "up", "fill": "#22c55e", "radius": 6 },
-      "value": "{progress}%",
+      "subtitle": "{progress}%",
       "visibleIf": "progress > 0"
     }
   ],
@@ -2092,7 +2092,7 @@ actors:
       種類: dyn-rect
       大きさ: 200,96
       図形: { kind: rect, source: "{progress}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 }
-      値: "{progress}%"
+      補足: "{progress}%"
       出す条件: "progress > 0"
 
 flow:
@@ -2129,7 +2129,7 @@ export const sourceJson__pattern__textDslActorKeys__日本語で書く = `{
       "posW": 200,
       "posH": 96,
       "shape": { "kind": "rect", "source": "{progress}", "fillMax": 100, "orient": "up", "fill": "#22c55e", "radius": 6 },
-      "value": "{progress}%",
+      "subtitle": "{progress}%",
       "visibleIf": "progress > 0"
     }
   ],
@@ -2176,7 +2176,7 @@ states:
 actors:
   - 受付: { lane: l1, stack: 0, 種類: card, 題: "受け付け", 補足: "入口", 色: 成功 }
   - 記録: { lane: l1, stack: 1, 種類: storage, 行: ["番号: 数", "名前: 文字"] }
-  - 進み: { lane: l2, stack: 0, 種類: dyn-rect, 値: "{progress}%", 出す条件: "progress > 0" }
+  - 進み: { lane: l2, stack: 0, 種類: dyn-rect, 補足: "{progress}%", 出す条件: "progress > 0" }
       大きさ: 200,96
       図形: { kind: rect, source: "{progress}", fillMax: 100, orient: up, fill: "#22c55e", radius: 6 }
 
@@ -2216,7 +2216,7 @@ export const sourceJson__pattern__textDslActorKeys__1行にまとめて書く = 
       "posW": 200,
       "posH": 96,
       "shape": { "kind": "rect", "source": "{progress}", "fillMax": 100, "orient": "up", "fill": "#22c55e", "radius": 6 },
-      "value": "{progress}%",
+      "subtitle": "{progress}%",
       "visibleIf": "progress > 0"
     }
   ],
