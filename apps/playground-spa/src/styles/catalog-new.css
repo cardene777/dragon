@@ -912,6 +912,18 @@
   width: max-content;
 }
 
+/* 図に重ねる層は図ではない (#2741)。
+ *
+ * 上の規則は「図の幅を中身なりに広げる」 ためのもので、重ねる層に掛けると幅が 0 になる =
+ * 層の子 (札 / 足) は全て `position: absolute` なので、中身の幅が 0 と数えられる。
+ * 実測では幅 390px の拡大表示で層が 0px になり、下の情報が 1 文字ずつ縦に折り返った。
+ *
+ * 層は `inset: 0` で図の入れ物いっぱいに広がる。 幅の指定を戻せばその値が効く。
+ */
+.cdl-modal-body[data-cdl-zoom="on"] > .cdl-phase {
+  width: auto;
+}
+
 .cdl-modal-body[data-cdl-zoom="on"] svg {
   width: var(--cdl-zoom-width) !important;
   max-width: none !important;

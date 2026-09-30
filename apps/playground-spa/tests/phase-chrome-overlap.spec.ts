@@ -133,3 +133,58 @@ test("覆いの必要量が CSS と TypeScript で一致する", async ({ page }
     ).toBe(TypeScript値);
   }
 });
+
+/**
+ * 図に重ねる層が、倍率を指定した拡大表示でも図の入れ物の幅を持つ (#2741)。
+ *
+ * 重ねる層は `position: absolute` と `inset: 0` で入れ物いっぱいに広がる。
+ * 倍率を指定した時の規則 (`width: max-content`) がその層にも掛かると、層の子が全て
+ * 絶対配置なので幅が 0 になり、下の情報が 1 文字ずつ縦に折り返る。
+ *
+ * **倍率が指定されている状態で測る**。 指定しない状態 (幅 1440px の既定) では
+ * `width: 100%` が掛かるので、元から通る検査になる。 携帯の幅では読める下限で描くため
+ * 必ず倍率が指定される。
+ */
+test.describe("重ねる層の幅 (#2741)", () => {
+  test("倍率を指定した拡大表示でも、重ねる層が図の入れ物の幅を持つ", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("catalog/presets", { waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+
+    // 図は台が見える所に入ってから描かれる。 入口は図と同じ台に付く
+    const 高さ = await page.evaluate(() => document.documentElement.scrollHeight);
+    for (let y = 0; y < 高さ; y += 670) {
+      await page.evaluate((v) => globalThis.scrollTo(0, v), y);
+      await page.waitForTimeout(250);
+    }
+    await page.evaluate(() => globalThis.scrollTo(0, 0));
+    await page.waitForTimeout(500);
+
+    await page.getByRole("button", { name: /を拡大表示$/ }).first().click();
+    await expect(page.locator(".cdl-modal-content")).toBeVisible();
+    await page.waitForTimeout(1500);
+
+    const 測り = await page.evaluate(() => {
+      const 入れ物 = document.querySelector(".cdl-modal-body");
+      const 層 = document.querySelector(".cdl-modal-body .cdl-phase");
+      const 情報 = document.querySelector(".cdl-modal-body .cdl-phase-meta");
+      const 幅 = (el: Element | null) => (el ? Math.round(el.getBoundingClientRect().width) : -1);
+      const 高 = (el: Element | null) => (el ? Math.round(el.getBoundingClientRect().height) : -1);
+      return {
+        倍率の指定: 入れ物?.getAttribute("data-cdl-zoom") ?? null,
+        入れ物の幅: 幅(入れ物),
+        層の幅: 幅(層),
+        情報の幅: 幅(情報),
+        情報の高さ: 高(情報),
+        情報の文字: (情報?.textContent ?? "").trim(),
+      };
+    });
+
+    // 倍率が指定されていない状態で測ると、この検査は元から通る (空振り)
+    expect(測り.倍率の指定, `倍率が指定されていない (検査が空振りしている): ${JSON.stringify(測り)}`).toBe("on");
+    expect(測り.情報の文字.length, `段の情報が出ていない: ${JSON.stringify(測り)}`).toBeGreaterThan(0);
+    expect(測り.層の幅, `重ねる層が図の入れ物の幅を持たない: ${JSON.stringify(測り)}`).toBe(測り.入れ物の幅);
+    // 1 行なら字の高さの 2 倍に届かない。 幅が 0 に潰れた時は 95px まで伸びていた
+    expect(測り.情報の高さ, `段の情報が折り返っている: ${JSON.stringify(測り)}`).toBeLessThan(24);
+  });
+});
