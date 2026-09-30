@@ -9,9 +9,9 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
  * 背景 ... visualValidate の text-readability axis は「題の幅 + 余白 > node.w + 8」 で
  * 「title が node 幅を超えて切れる可能性」 を warn する。 interactive catalog は当初 128 warn。
  *
- * 題の幅の出し方は engine が 2 度直している (`^0.106.0` 時点)。 字数に 22 を掛ける形から、
- * 種別ごとの字の大きさ (cdl#946) を経て、字ごとの実幅 (cdl#949) になった。
- * 極小の箱で挙がっていた 13 件はいずれも実際には収まっており、実幅で見ると 1 件も挙がらない。
+ * 題の幅の出し方は engine が 3 度直している (`^0.107.0` 時点)。 字数に 22 を掛ける形から、
+ * 種別ごとの字の大きさ (cdl#946)、字ごとの実幅 (cdl#949) を経て、実描画に合わせた見積り
+ * (cdl#951) になった。 挙がっていた件はいずれも実際には収まっており、いまは 1 件も挙がらない。
  *
  * 方針 ... node の `w` (幅) と lane の x / width は一切変えず、 title (と一部 subtitle) の文字列だけを
  * node 幅に収まる長さへ短縮して解消した。 width を広げる方式は multi-lane 図 (例 xypad-nav = 4 lane
@@ -31,11 +31,12 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
  *    のみを midpoint proxy で検知する (xypad-nav を widen した崩れ class = RED→GREEN 実証済)。 default
  *    幅 neighbor の張出しや中間 lane が空の非隣接 overlap は検知対象外。
  *
- * 許容した件 ... **本当にはみ出している 2 件だけ** (`^0.106.0` で実測し直した)。 どちらも題を
- * 短くするか箱を広げるかの判断が要るため #2701 で扱い、直るまでの間だけここに置く。
+ * 許容した件は **0 件** (#2701)。 見本帳の題 407 か所を `getComputedTextLength()` で測ると、
+ * 箱の端まで 8px を切る題は 1 件も無かった。 残っていた 2 件も実測では箱の中に 26px の余白を
+ * 残しており、engine 側の見積りが実描画より広かっただけだった (cdl#951 で直した)。
  *
- * 極小 shape node の 13 件は外した。 見積りが字数 × 22 だった頃は挙がっていたが、実幅で見ると
- * 1 件も超えていない (実測 = 幅 80px の箱に 13px で描く「棒 (四角)」 は約 57px)。
+ * **一覧は空のまま置く**。 新しく挙がった時に、何を許したのかではなく「1 件も許していない」
+ * ことが読めるようにするため。 追記する時は理由と行き先を必ず添える。
  */
 function isCdlDiagram(v: unknown): v is CdlDiagram {
   if (typeof v !== "object" || v === null) return false;
@@ -57,12 +58,8 @@ function collectDiagrams(): CdlDiagram[] {
   return out;
 }
 
-/** 題が箱を超えていて、直すのを #2701 へ送った warn (`${diagramId}::${nodeId}`)。 */
-const ALLOWED = new Set<string>([
-  // 題が箱の幅を超えている 2 件 (#2701 で直す)。 どちらも `card` が 24px で描く
-  "interactive-event-variety::receiver",
-  "interactive-profile-avatar-upload::previewCard",
-]);
+/** 題が箱を超えることを許した warn (`${diagramId}::${nodeId}`)。 いまは 0 件 (#2701)。 */
+const ALLOWED = new Set<string>([]);
 
 describe("#885 interactive text-readability (全 diagram 検査)", () => {
   const diagrams = collectDiagrams();
@@ -72,7 +69,7 @@ describe("#885 interactive text-readability (全 diagram 検査)", () => {
     expect(diagrams.length).toBeGreaterThan(50);
   });
 
-  it("text-readability warn は許容した極小 shape node 以外 0 件", () => {
+  it("text-readability warn が 0 件 (許容した件は無い)", () => {
     const offenders: string[] = [];
     for (const r of report.reports) {
       for (const v of r.violations) {
