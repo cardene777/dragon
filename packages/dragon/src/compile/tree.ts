@@ -1,4 +1,4 @@
-import { diagram } from "@cardenelabs/cdl";
+import { diagram, 木の札の幅 } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
 import { 図表の大きさ } from "./chart-fields";
@@ -14,8 +14,6 @@ import { 図の小見出し } from "./subtitle";
  */
 export function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "tree" });
-  const { w: W, h: H } = 図表の大きさ.tree;
-  b.lane("chart", { width: W + 64 });
   // **同じ slug になる名前を先に見る**。 違う名前が同じ id に潰れると、 自分を親にしたと
   // 誤判定したり、 同じ id の要素が 2 つできたりする (review 指摘)
   const slug別 = new Map<string, string[]>();
@@ -46,6 +44,12 @@ export function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => v
     // 書いた文字が図に出ない
     return { id, ...放射に出す文字(a), ...(p3 !== undefined ? { parent: p3 } : {}) };
   });
+  // 札の幅は葉の数で変わる (cdl#970)。 **規則は描画側が持つ** ので、ここでは引くだけにする。
+  // 写すと、描画側が割付を変えた時に記法の側だけが古い幅を渡す。
+  // 高さは段の数で決まり、描画側が既定を返す形なので表から取る
+  const W = 木の札の幅(data);
+  const { h: H } = 図表の大きさ.tree;
+  b.lane("chart", { width: W + 64 });
   b.node(`${slugify(doc.title) || "tree"}-chart`, {
     lane: "chart",
     stack: 0,
