@@ -1385,12 +1385,12 @@ export const pattern__chartRadial__前の値つき = textDslToDiagram(
 // **`previous` は下の `パターン` が見せる** (`cdl#763` で描かれるようになった)。 ここでは
 // 書かない側を持ち、押すと前の時点を添えた側に入れ替わる。
 // ============================================================
-export const sourceYaml__chartStat = `title: "今月の解約率"
+export const sourceYaml__chartStat = `title: "今月の解約件数"
 type: chart
 shape: stat
 
 actors:
-  - 解約率: "{now}"
+  - 解約件数: "{now}"
 
 states:
   now: 24
@@ -1405,11 +1405,11 @@ animation:
 `;
 
 export const sourceJson__chartStat = `{
-  "title": "今月の解約率",
+  "title": "今月の解約件数",
   "type": "chart",
   "shape": "stat",
   "actors": [
-    { "name": "解約率", "value": "{now}" }
+    { "name": "解約件数", "value": "{now}" }
   ],
   "flow": [],
   "states": { "now": 24 },
@@ -1499,12 +1499,12 @@ export const pattern__chartStat__複数 = textDslToDiagram(sourceYaml__pattern__
 // 前の値は段で動かさない。 動かすと「前の時点」 が段ごとに変わり、今の値との差が
 // 読み手の記憶に頼ることになる。
 // ------------------------------------------------------------
-export const sourceYaml__pattern__chartStat__前の値つき = `title: "前の月と比べた解約率"
+export const sourceYaml__pattern__chartStat__前の値つき = `title: "前の月と比べた解約件数"
 type: chart
 shape: stat
 
 actors:
-  - 解約率: { value: "{now}", previous: "38" }
+  - 解約件数: { value: "{now}", previous: "38" }
 
 states:
   now: 24
@@ -1519,11 +1519,11 @@ animation:
 `;
 
 export const sourceJson__pattern__chartStat__前の値つき = `{
-  "title": "前の月と比べた解約率",
+  "title": "前の月と比べた解約件数",
   "type": "chart",
   "shape": "stat",
   "actors": [
-    { "name": "解約率", "value": "{now}", "previous": "38" }
+    { "name": "解約件数", "value": "{now}", "previous": "38" }
   ],
   "flow": [],
   "states": { "now": 24 },

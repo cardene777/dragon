@@ -19,7 +19,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 
-const 記法 = (項目: string) => `title: "今月の解約率"
+const 記法 = (項目: string) => `title: "今月の解約件数"
 type: stat
 
 actors:
@@ -39,21 +39,21 @@ const 前の字 = (svg: string): string[] =>
 
 describe("記法に書いた前の時点の値が絵に出る (#1711)", () => {
   it("書いた前の値が字として出る", () => {
-    const svg = 描く(`  - 解約率: { value: "24", previous: "38" }`);
+    const svg = 描く(`  - 解約件数: { value: "24", previous: "38" }`);
     expect(svg, "図を 1 つも描けていない (検査が空振りしている)").toContain("chart-stat-value");
     expect(前の字(svg)).toEqual(["前 38"]);
   });
 
   it("書かない図では 1 つも出ない (陰性対照)", () => {
     // 差がゼロであるべき入力。 「常に出す」 実装だとここが落ちる
-    const svg = 描く(`  - 解約率: "24"`);
+    const svg = 描く(`  - 解約件数: "24"`);
     expect(svg, "図を 1 つも描けていない (検査が空振りしている)").toContain("chart-stat-value");
     expect(前の字(svg), "書いていないのに出た").toEqual([]);
   });
 
   it("日本語の項目名で書いても出る", () => {
     // 記法は 3 通りの書き方を受ける。 1 つだけ配線されている形を捕まえる
-    const svg = 描く(`  - 解約率: { 値: "24", 前の値: "38" }`);
+    const svg = 描く(`  - 解約件数: { 値: "24", 前の値: "38" }`);
     expect(前の字(svg)).toEqual(["前 38"]);
   });
 

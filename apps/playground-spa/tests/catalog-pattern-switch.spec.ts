@@ -106,7 +106,7 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
     await 開く(page, "大きな数字");
     await page.getByRole("tab", { name: "コード" }).click();
     await page.waitForTimeout(300);
-    await expect(page.locator(".catalog-source-code").first()).toContainText("今月の解約率");
+    await expect(page.locator(".catalog-source-code").first()).toContainText("今月の解約件数");
 
     await page.getByRole("radio", { name: "複数" }).click();
     await page.waitForTimeout(500);

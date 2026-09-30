@@ -2137,7 +2137,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > stat の図と�
 {
   "図": {
     "edges": [],
-    "id": "今月の解約率",
+    "id": "今月の解約件数",
     "lanes": [
       {
         "id": "chart",
@@ -2148,24 +2148,24 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > stat の図と�
       {
         "chartData": [
           {
-            "label": "解約率",
+            "label": "解約件数",
             "previous": 38,
             "value": 24,
           },
         ],
         "h": 240,
-        "id": "今月の解約率-chart",
+        "id": "今月の解約件数-chart",
         "kind": "chart-stat",
         "lane": "chart",
         "stack": 0,
-        "title": "今月の解約率",
+        "title": "今月の解約件数",
         "w": 384,
       },
     ],
     "phases": [
       {
         "activate": [
-          "今月の解約率-chart",
+          "今月の解約件数-chart",
         ],
         "body": "",
         "duration": 2000,
@@ -2176,7 +2176,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > stat の図と�
       },
     ],
     "states": [],
-    "topic": "今月の解約率",
+    "topic": "今月の解約件数",
     "type": "chart",
   },
   "知らせ": [],
