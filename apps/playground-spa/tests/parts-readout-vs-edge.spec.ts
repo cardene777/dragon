@@ -146,6 +146,8 @@ async function 重なりを測る(
     if (!svg) throw new Error("図が見つからない (検査が空振りしている)");
 
     // 読み取り値 = 箱の絵 (`data-cdl-shape`) の中に描かれる文字
+    // 図の題は入らない (#2749)。 題は箱の中には在るが図形の中には無い
+    // (実測 = 円と帯の見本で `[data-cdl-node]` の中に 1 件、`[data-cdl-shape]` の中に 0 件)
     const 読み取り値 = [...svg.querySelectorAll("[data-cdl-node] [data-cdl-shape] text")]
       .filter((t) => (t.textContent ?? "").trim() !== "")
       .map((t) => ({ 字: (t.textContent ?? "").trim(), 箱: (t as SVGGraphicsElement).getBBox() }));

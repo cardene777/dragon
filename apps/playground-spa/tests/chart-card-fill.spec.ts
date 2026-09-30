@@ -94,7 +94,7 @@ async function 一度読む(page: Page): Promise<一読み> {
     let y1 = -Infinity;
     for (const el of 親.querySelectorAll("text, path, rect, circle, line, polygon, polyline")) {
       if (el === 箱) continue;
-      // 図の題は札の外に出るので数えない
+      // 図の題は札の外に出るので数えない (#2749 の走査で確認済)
       if (el.getAttribute("data-cdl-role") === "figure-title") continue;
       const q = el.getBoundingClientRect();
       if (q.width <= 0 || q.height <= 0) continue;

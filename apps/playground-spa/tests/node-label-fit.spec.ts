@@ -381,7 +381,11 @@ async function 箱の絵と文字を測る(
       kind: n.getAttribute("data-cdl-kind") ?? "",
       幅: w,
       高さ: h,
-      文字: [...n.querySelectorAll("text")].map((t) => (t.textContent ?? "").trim()),
+      // 図の題を外す (#2749)。 題は箱の中に描かれるので、箱から集めると入る。
+      // ここが見るのは箱に書いた名前と説明が収まるかで、題はその対象ではない
+      文字: [...n.querySelectorAll("text")]
+        .filter((t) => t.getAttribute("data-cdl-role") !== "figure-title")
+        .map((t) => (t.textContent ?? "").trim()),
     };
   }, nodeId);
 }

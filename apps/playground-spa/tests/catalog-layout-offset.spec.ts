@@ -43,7 +43,11 @@ async function 字が落ち着くまで待つ(page: Page): Promise<number> {
       if (!svg) return null;
       const 出: string[] = [];
       for (const 字 of 指す.字たち) {
-        const el = [...svg.querySelectorAll("text")].find((t) => t.textContent?.trim() === 字);
+        // 図の題を外す (#2749)。 名前が一致する 1 件を選ぶ形なので、題が同じ名前を
+        // 持った日に別の字を測る
+        const el = [...svg.querySelectorAll("text")].find(
+          (t) => t.getAttribute("data-cdl-role") !== "figure-title" && t.textContent?.trim() === 字,
+        );
         if (!el) return null;
         const r = el.getBoundingClientRect();
         if (r.width === 0) return null;
@@ -91,7 +95,10 @@ async function 字の中心(page: Page, 字たち: readonly string[]): Promise<R
       const 逆 = 根.getScreenCTM()!.inverse();
       const 出: Record<string, { x: number; y: number }> = {};
       for (const 字 of 探す) {
-        const el = [...根.querySelectorAll("text")].find((t) => t.textContent?.trim() === 字);
+        // 同上 (#2749)
+        const el = [...根.querySelectorAll("text")].find(
+          (t) => t.getAttribute("data-cdl-role") !== "figure-title" && t.textContent?.trim() === 字,
+        );
         if (!el) continue;
         const r = el.getBoundingClientRect();
         const p = new DOMPoint(r.x + r.width / 2, r.y + r.height / 2).matrixTransform(逆);

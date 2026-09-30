@@ -189,6 +189,7 @@ async function 横切りを測る(page: Page, id: string, 倍: number) {
     expect(見え方.消せる, `箱 ${n} で丸を消せていない (撮る 2 枚が同じ絵になる)`).toBe(true);
     const 枠々: 枠[] = await page.evaluate(() => {
       const s = document.querySelector("svg[data-cdl-stage]") as SVGSVGElement;
+      // 図の題も数える (#2749)。 丸が題に重なるのも同じ不具合なので、外す理由が無い
       return [...s.querySelectorAll("text")]
         .map((e) => {
           const r = e.getBoundingClientRect();

@@ -69,6 +69,7 @@ const stageBoxBy = (page: Page, sel: string) =>
     const vb = stage.viewBox.baseVal;
     const k = vb && vb.width > 0 ? s.width / vb.width : -1;
     // 図の中で最も小さい文字の、 画面上の大きさ。 図を基準にフィットしたかを見る材料
+    // 図の題も数える (#2749)。 実装 (`smallestFontWorld`) が役で外さないので、検査も外さない
     const px = [...stage.querySelectorAll("text")]
       .filter((t) => (t.textContent ?? "").trim().length > 0)
       // 画面に出ていない文字は測らない (実装が数えないものと揃える、 #1084)

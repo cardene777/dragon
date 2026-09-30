@@ -152,6 +152,7 @@ const contrastsOf = (page: Page, id: string) =>
     };
 
     const out: Array<{ tag: string; role: string; prop: string; color: string; bg: string; c: number }> = [];
+    // 図の題も数える (#2749)。 見るのは描かれた色の対比なので、題の色も同じだけ対比が要る
     for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline, polygon, text, ellipse"))) {
       if (el.closest("defs")) continue;
       const cs = getComputedStyle(el);

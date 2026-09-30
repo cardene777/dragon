@@ -74,6 +74,11 @@ async function 余白を測る(page: import("@playwright/test").Page): Promise<�
       let 字上 = Infinity;
       let 字下 = -Infinity;
       for (const t of n.querySelectorAll("text")) {
+        // 図の題は箱の中に在るが、中身の枠より **上** に置かれる (#2749)。 数えると
+        // 字の上端が題の位置まで伸び、余白の測りが中身と噛み合わない。
+        // 題を持つ箱は名札を持たないので今は上で飛ばしているが、それは題を外す理由ではない
+        // (実測 = `chart-pie` / `gantt-timeline` は題 1 件と中身の枠を持ち、名札を持たない)
+        if (t.getAttribute("data-cdl-role") === "figure-title") continue;
         const r = t.getBoundingClientRect();
         if (r.height < 1) continue;
         字上 = Math.min(字上, r.top);

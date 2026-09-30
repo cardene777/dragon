@@ -59,6 +59,8 @@ test("見本「言語シェア」 で円が描かれる (#1076)", async ({ page 
     });
     return {
       扇,
+      // 題が混ざっても判定は動かない (#2749)。 下で見るのは割合と項目名が出ているかで、
+      // 字の数や位置は見ない
       文字: [...g.querySelectorAll("text")].map((t) => (t.textContent ?? "").trim()),
     };
   });
@@ -92,6 +94,8 @@ test("見本「四半期ロードマップ」 で帯と目盛りが描かれる 
       .map((r) => r.getBoundingClientRect())
       .filter((r) => r.width > box.width * 0.05 && r.width < box.width * 0.6 && r.height > 4)
       .map((r) => ({ w: Math.round(r.width), x: Math.round(r.x) }));
+    // 図の題も数える (#2749)。 下で見る最小文字高は画面に出た字が読める大きさかなので、
+    // 題も対象になる
     const 文字 = [...g.querySelectorAll("text")];
     return {
       帯,
@@ -189,7 +193,7 @@ test("見本「言語シェア」 で文字が箱からはみ出さない (#1076
   // 素の `text` で、 探しても 0 件になり「はみ出しは 0 件」 として通る (Round 1 review の指摘)。
   // 円の箱の下にある `text` を直接列挙し、 測った件数も併せて見る
   //
-  // **図の題 (`figure-title`) は外す** (#2747)。 題も同じ箱の中に描かれるが、中身の枠
+  // **図の題 (`figure-title`) は外す** (#2747 / #2749)。 題も同じ箱の中に描かれるが、中身の枠
   // (`node-body`) より上に置くのが正しい形なので、混ぜると必ずはみ出しとして数える
   // (実測 = 枠の上 32px)。 外した題が消えていないことは下の 題 で別に見る。
   await openSample(page, "pie");
@@ -242,6 +246,8 @@ test("見本「C4コンテキストモデル」 の箱に段の目印が出な�
         説明: n.getAttribute("data-cdl-subtitle") ?? "",
       })),
       枠のラベル: [...svg.querySelectorAll("text")]
+        // 図の題を外す (#2749)。 題も同じ `svg` の中に描かれる
+        .filter((t) => t.getAttribute("data-cdl-role") !== "figure-title")
         .map((t) => (t.textContent ?? "").trim())
         // 段の名前は #1886 で枠に描く日本語にした (`compile.ts` の `段の名前`)。 字の一部で探すと
         // 箱の題に同じ語が入った時に拾うので、名前と完全に一致する字だけを数える

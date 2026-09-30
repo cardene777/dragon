@@ -90,6 +90,8 @@ async function 測る(page: Page): Promise<{ 光った: 色 | null; 光らない
       // 面は箱の形そのもの (`rect`)。 包む `g` の塗りは子へ届く前に上書きされることがある
       const 形 = body?.querySelector(":scope > rect");
       const 題 = body?.querySelector('[data-cdl-role="node-label"]');
+      // 役を持たない字だけを採るので、図の題は入らない (#2749)。 題は箱の中に描かれるが
+      // 役 `figure-title` を持つ (実測 = `chart-pie` の箱の中に 1 件)
       const 説明 = [...(body?.querySelectorAll("text") ?? [])].find(
         (t) => !t.hasAttribute("data-cdl-role") && (t.textContent ?? "").length > 0,
       );

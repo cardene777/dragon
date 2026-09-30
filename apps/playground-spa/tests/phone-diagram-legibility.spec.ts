@@ -182,6 +182,7 @@ async function 測る(page: import("@playwright/test").Page): Promise<図の実�
       let 最小 = Number.POSITIVE_INFINITY;
       let 最小の字 = "";
       let 文字数 = 0;
+      // 図の題も数える (#2749)。 携帯の幅で読めるかを見るので、題も読む字として対象になる
       for (const t of svg.querySelectorAll("text")) {
         const 字 = (t.textContent ?? "").trim();
         // 中身の無い `<text>` は位置合わせのために置かれた節点。 数えると実在しない

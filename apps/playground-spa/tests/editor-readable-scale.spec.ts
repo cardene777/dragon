@@ -87,6 +87,7 @@ async function 測る(page: import("@playwright/test").Page) {
     // 画面上の倍率 = svg の実 px 幅 / 図の枠の幅 (図そのものの倍率と表示倍率の積)
     const vb = svg.viewBox.baseVal;
     const scale = svg.getBoundingClientRect().width / vb.width;
+    // 図の題も数える (#2749)。 実装 (`smallestFontWorld`) が役で外さないので、検査も外さない
     const rows = [...svg.querySelectorAll("text")]
       .filter((t) => (t.textContent ?? "").trim().length > 0)
       // 画面に出ていない文字は測らない。 実装 (`src/lib/readable-scale.ts`) が数えないものを
@@ -315,6 +316,7 @@ async function 文字を数える(
     let 最小 = Number.POSITIVE_INFINITY;
     let 測った = 0;
     let 見える = 0;
+    // 同上 (#2749)。 題も実装が数える字なので外さない
     for (const t of svg.querySelectorAll("text")) {
       if ((t.textContent ?? "").trim().length === 0) continue;
       const cs = getComputedStyle(t);

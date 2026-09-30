@@ -48,6 +48,8 @@ async function previewFingerprint(page: Page): Promise<string> {
     .locator(".v4-editor-preview svg[data-cdl-stage]")
     .first()
     .evaluate((svg) =>
+      // 図の題も並べる (#2749)。 これは図が変わったことを見る印なので、題が変われば
+      // 印も変わるのが正しい
       Array.from(svg.querySelectorAll("text"))
         .map((t) => t.textContent ?? "")
         .join("|"),
