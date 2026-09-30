@@ -68,6 +68,7 @@ export const AXIS_NAMES: Record<string, 二言語> = {
   "node-inside-lane": { ja: "箱が帯の中に収まっているか", en: "Whether the boxes fit inside their lane" },
   "shape-label-dropped": { ja: "形に書いた名札が描かれているか", en: "Whether a label written on a shape is drawn" },
   "box-line-dropped": { ja: "箱に書いた補足が描かれているか", en: "Whether a note written on a box is drawn" },
+  "node-field-unsupported": { ja: "箱が読まない欄に書いていないか", en: "Whether a value is written in a field the box does not read" },
   "edge-inside-viewbox": { ja: "線が図の枠に収まっているか", en: "Whether the lines fit inside the frame" },
   "lane-label-inside-viewbox": { ja: "帯の名札が図の枠に収まっているか", en: "Whether a lane label fits inside the frame" },
   "lane-label-overlap": { ja: "帯の名札どうしが重なっていないか", en: "Whether lane labels overlap each other" },

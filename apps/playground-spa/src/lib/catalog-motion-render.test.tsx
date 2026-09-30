@@ -96,10 +96,22 @@ function 初期値を変えた図(d: CdlDiagram, id: string, value: string): Cdl
   return copy;
 }
 
+/**
+ * 描いた絵の中の字。 `<text>` の中に `<tspan>` が入る形も中身を拾う (#2681)。
+ *
+ * **直下の字だけを拾うと `<tspan>` に入れた値が 1 つも見えない**。 engine は図表の名札で
+ * 数と割合を別の `<tspan>` に分けて色を変えるため、`<text>` の直下は空になる
+ * (実測 = 計器と円環と格子の 5 件で、値が 680 から 820 に動いても字が変わらないと判定していた)。
+ */
+function 字を拾う(svg: string): string[] {
+  return [...svg.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)].map((m) =>
+    (m[1] ?? "").replace(/<[^>]*>/g, ""),
+  );
+}
+
 /** 図を描いた SVG の、文字として出ている部分 */
 function 絵の文字(d: CdlDiagram): string[] {
-  const svg = renderToStaticMarkup(<CdlDiagramView diagram={d} hideHeader />);
-  return [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1] ?? "");
+  return 字を拾う(renderToStaticMarkup(<CdlDiagramView diagram={d} hideHeader />));
 }
 
 /**
@@ -302,6 +314,8 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     "funnel-complex-demo",
     // 四象限図も同じ (#2187)。 項目が 12 でも箱は 1 つで、段は居る枠の値を置き換える
     "quad-complex-demo",
+    // 座標で置く四象限図も同じ (#2681)。 点が 10 でも箱は 1 つで、段は点の座標を動かす
+    "quad-at-demo",
     // 階層図も同じ (#2189)。 箱が 12 でも図としては 1 つで、段は名前と人数の値を置き換える
     "tree-complex-demo",
     // マインドマップも同じ (#2191)。 箱が 11 でも図としては 1 つで、段は 2 行目の値を置き換える
@@ -362,10 +376,12 @@ describe("図の型の見本は段ごとに絵が変わる (#1194)", () => {
     expect(進まない, `光る箱が積み上がらない: ${進まない.join(", ")}`).toHaveLength(0);
   });
 
-  it("箱が 1 つの 19 件は、段が図表の中身を動かす", () => {
+  it("箱が 1 つの見本は、段が図表の中身を動かす", () => {
     // 箱が 1 つしか無いので光らせ方では動かせない。 値を動かす宣言を持つことを見る
     const 対象 = 型.filter(([, d]) => 箱が1つ.has(d.id));
-    expect(対象).toHaveLength(19);
+    // 数は一覧から出す (#2681)。 literal で書くと見本を 1 つ足すたびにここも直す。
+    // 一覧に実物の無い id を書いた場合は数が合わないので、空振りは引き続き落ちる
+    expect(対象).toHaveLength(箱が1つ.size);
 
     const 動かさない = 対象
       .filter(([, d]) => !d.phases.some((p) => (p.tweens?.length ?? 0) > 0 || (p.sets?.length ?? 0) > 0))
@@ -528,8 +544,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
   it("23 件のうち数を動かす 19 件で、動かす値が絵の文字に出る", () => {
     // 記法の入口が `{名前}` を数に潰すと、宣言はあるのに絵が変わらない (#1198 で塞いだ形)。
     // 段を指定して描き、`<text>` の中身が変わることを見る
-    const 文字 = (d: CdlDiagram, phaseId: string) =>
-      [...見える部分(d, phaseId).matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]).join("|");
+    const 文字 = (d: CdlDiagram, phaseId: string) => 字を拾う(見える部分(d, phaseId)).join("|");
     // 語の欄で動く見本は位置と色が変わり、文字は変わらない。 数を動かす側だけを見る
     const 語で動く = new Set([
       "初めて使うまで",
@@ -646,9 +661,13 @@ describe("図の外の差を『動いた』 と数えない (#1194)", () => {
   // 種別があるので実際の図で見る。 `title` は **描かない種別がもう無い** ため
   // (cdl 0.9.0 で全ての種別が題を描くようになった、実測で 110 種すべて)、
   // 絞り込みそのものを直接見る。
+  // **材料の種別は engine が描く欄が増えるたびに入れ替わる** (#2681)。 端末の箱は控えを、
+  // 板の札は肩書を描くようになったため、どちらも材料として使えなくなった。 全ての見本に
+  // 2 つの欄を書いて描き比べ、絵が 1 文字も変わらない種別を探すと順序図の板だけが残る
+  // (実測 = 控えで 2 件、肩書で 3 件、板を持つのはそのうち 2 件)。
   for (const [欄, 見本の名] of [
-    ["subtitle", "shape-terminal"],
-    ["eyebrow", "shape-kanban-card"],
+    ["subtitle", "順序図の箱を書いた順に置く"],
+    ["eyebrow", "順序図の箱を書いた順に置く"],
   ] as const) {
     it(`見えない控えの欄 (${欄}) だけが変わる図は、同じと判定される`, () => {
       const 元 = 見本(見本の名);
@@ -658,8 +677,7 @@ describe("図の外の差を『動いた』 と数えない (#1194)", () => {
         { sets: [{ stateId: "v", value: "999999" }], tweens: [] },
       );
       // 材料が成立していること = この種別はその欄を文字として描かない
-      const 文字 = (id: string) =>
-        [...見える部分(d, id).matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]).join("|");
+      const 文字 = (id: string) => 字を拾う(見える部分(d, id)).join("|");
       expect(文字("a"), "この欄が見える文字に出ている = 材料として使えない").toBe(文字("b"));
       expect(見える部分(d, "a")).toBe(見える部分(d, "b"));
     });

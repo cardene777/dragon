@@ -107,7 +107,13 @@ describe("倍率の意味 (#1026)", () => {
     // 大きさを書かない辺は、伸縮率がちょうど倍率になる大きさに直す
     const only = partTargetSize(part, undefined, undefined, 2);
     expect(partTargetScale(part, only.w, only.h).x).toBeCloseTo(2, 6);
-    expect(only.w, "図枠より小さい基準で掛けている").toBeLessThan(r.w * 2);
+    // **基準は頁の縦列の幅で、図枠ではない**。 `samplePart` の縦列は 400 なので倍率 2 で 800。
+    // 図枠は箱 (200) に余白が付いた 320 で、これを基準にすると書いた倍率より大きく掛かる。
+    //
+    // #2681 までは「図枠より小さい基準か」 で見ていた。 図枠が中身に寄るようになり、
+    // 箱より広い縦列を持つ部品では基準のほうが図枠より大きくなるため、大小では区別できない
+    expect(only.w, "縦列の幅に掛けていない").toBe(800);
+    expect(only.w, "図枠を基準に掛けている").not.toBe(r.w * 2);
   });
 
   it("書かなければ大きさをそのまま返す", () => {

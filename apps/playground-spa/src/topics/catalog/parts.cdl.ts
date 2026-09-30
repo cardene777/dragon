@@ -2536,7 +2536,7 @@ export const partsBindModeToggle = diagram("parts-bind-mode-toggle", {
 })
   .lane("l", { x: 0, width: 380 })
   .state("bg", { initial: "#fcf8ee" })
-  .state("txt", { initial: "light mode" })
+  .state("txt", { initial: "明るい配色" })
   .node("card", {
     lane: "l",
     stack: 0,
@@ -2548,10 +2548,10 @@ export const partsBindModeToggle = diagram("parts-bind-mode-toggle", {
     shape: { kind: "rect", source: 100, fillMax: 100, orient: "up", fill: "{bg}", radius: 12 },
   })
   .phase("p1", { duration: 1500, title: "暗い配色へ", body: "地の色と添え書きの 2 つの値を同じ段で暗い側へ替える。 1 段で 2 つ動かせる。" }, (p: PhaseBuilder) =>
-    p.activate("card").set("bg", "#1a1408").set("txt", "dark mode"),
+    p.activate("card").set("bg", "#1a1408").set("txt", "暗い配色"),
   )
   .phase("p2", { duration: 1500, title: "明るい配色へ", body: "同じ 2 つを明るい側へ戻す。 差し替えだけで行き帰りができる。" }, (p: PhaseBuilder) =>
-    p.activate("card").set("bg", "#fcf8ee").set("txt", "light mode"),
+    p.activate("card").set("bg", "#fcf8ee").set("txt", "明るい配色"),
   )
   .build();
 
@@ -2668,7 +2668,7 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
   .state("cpuC", { initial: "#22c55e" })
   .state("memC", { initial: "#22c55e" })
   .state("netC", { initial: "#22c55e" })
-  .state("status", { initial: "healthy" })
+  .state("status", { initial: "平常" })
   .node("cpuG", {
     lane: "la",
     stack: 0,
@@ -2711,7 +2711,7 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
       .activate("cpuG", "memG", "netG")
       .tween("cpu", 60, 82)
       .set("cpuC", "#f59e0b")
-      .set("status", "warning"),
+      .set("status", "注意"),
   )
   .phase("p3", { duration: 1200, title: "危険", body: "CPU が 95 まで伸び、メモリの色も橙になる。 状態は危険へ変わる。" }, (p: PhaseBuilder) =>
     p
@@ -2719,7 +2719,7 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
       .tween("cpu", 82, 95)
       .set("cpuC", "#dc2626")
       .set("memC", "#f59e0b")
-      .set("status", "critical"),
+      .set("status", "危険"),
   )
   .phase("p4", { duration: 1200, title: "回復開始", body: "CPU とメモリが下がり、色が緑へ戻る。 状態は回復中。" }, (p: PhaseBuilder) =>
     p
@@ -2728,10 +2728,10 @@ export const partsBindComprehensive = diagram("parts-bind-comprehensive", {
       .tween("mem", 55, 35)
       .set("cpuC", "#22c55e")
       .set("memC", "#22c55e")
-      .set("status", "recovering"),
+      .set("status", "回復中"),
   )
   .phase("p5", { duration: 1200, title: "平常復帰", body: "値は動かさず状態だけを平常へ戻す。 動かす値が無い段も置ける。" }, (p: PhaseBuilder) =>
-    p.activate("cpuG", "memG", "netG").set("status", "healthy"),
+    p.activate("cpuG", "memG", "netG").set("status", "平常"),
   )
   .build();
 
@@ -9966,7 +9966,7 @@ lanes:
 
 states:
   bg: "#fcf8ee"
-  txt: "light mode"
+  txt: "明るい配色"
 
 actors:
   - 配色: { kind: dyn-rect, lane: l, stack: 0, subtitle: "{txt}", posW: 340, posH: 340, shape: { kind: rect, source: 100, fillMax: 100, orient: up, fill: "{bg}", radius: 12 } }
@@ -9976,13 +9976,13 @@ animation:
     focus: ["配色"]
     set:
       bg: "#1a1408"
-      txt: "dark mode"
+      txt: "暗い配色"
     description: "地の色と添え書きの 2 つの値を同じ段で暗い側へ替える。 1 段で 2 つ動かせる。"
   - step: "明るい配色へ" 1.5s
     focus: ["配色"]
     set:
       bg: "#fcf8ee"
-      txt: "light mode"
+      txt: "明るい配色"
     description: "同じ 2 つを明るい側へ戻す。 差し替えだけで行き帰りができる。"
 `;
 
@@ -10012,20 +10012,20 @@ export const sourceJson__partsBindModeToggle = `{
     }
   ],
   "flow": [],
-  "states": { "bg": "#fcf8ee", "txt": "light mode" },
+  "states": { "bg": "#fcf8ee", "txt": "明るい配色" },
   "animation": [
     {
       "step": "暗い配色へ",
       "duration": 1.5,
       "focus": ["配色"],
-      "set": { "bg": "#1a1408", "txt": "dark mode" },
+      "set": { "bg": "#1a1408", "txt": "暗い配色" },
       "description": "地の色と添え書きの 2 つの値を同じ段で暗い側へ替える。 1 段で 2 つ動かせる。"
     },
     {
       "step": "明るい配色へ",
       "duration": 1.5,
       "focus": ["配色"],
-      "set": { "bg": "#fcf8ee", "txt": "light mode" },
+      "set": { "bg": "#fcf8ee", "txt": "明るい配色" },
       "description": "同じ 2 つを明るい側へ戻す。 差し替えだけで行き帰りができる。"
     }
   ]
@@ -10253,7 +10253,7 @@ states:
   cpuC: "#22c55e"
   memC: "#22c55e"
   netC: "#22c55e"
-  status: "healthy"
+  status: "平常"
 
 actors:
   - CPU: { kind: dyn-rect, lane: la, stack: 0, subtitle: "{cpu}% ({status})", posW: 240, posH: 380, shape: { kind: rect, source: "{cpu}", fillMax: 100, orient: up, fill: "{cpuC}", radius: 8 } }
@@ -10274,7 +10274,7 @@ animation:
       cpu: 60 -> 82
     set:
       cpuC: "#f59e0b"
-      status: "warning"
+      status: "注意"
     description: "CPU がさらに伸び、その色だけ橙へ替わる。 添え書きの状態も注意へ変わる。"
   - step: "危険" 1.2s
     focus: ["CPU", "メモリ", "通信"]
@@ -10283,7 +10283,7 @@ animation:
     set:
       cpuC: "#dc2626"
       memC: "#f59e0b"
-      status: "critical"
+      status: "危険"
     description: "CPU が 95 まで伸び、メモリの色も橙になる。 状態は危険へ変わる。"
   - step: "回復開始" 1.2s
     focus: ["CPU", "メモリ", "通信"]
@@ -10293,12 +10293,12 @@ animation:
     set:
       cpuC: "#22c55e"
       memC: "#22c55e"
-      status: "recovering"
+      status: "回復中"
     description: "CPU とメモリが下がり、色が緑へ戻る。 状態は回復中。"
   - step: "平常復帰" 1.2s
     focus: ["CPU", "メモリ", "通信"]
     set:
-      status: "healthy"
+      status: "平常"
     description: "値は動かさず状態だけを平常へ戻す。 動かす値が無い段も置ける。"
 `;
 
@@ -10371,7 +10371,7 @@ export const sourceJson__partsBindComprehensive = `{
     "cpuC": "#22c55e",
     "memC": "#22c55e",
     "netC": "#22c55e",
-    "status": "healthy"
+    "status": "平常"
   },
   "animation": [
     {
@@ -10386,7 +10386,7 @@ export const sourceJson__partsBindComprehensive = `{
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [60, 82] },
-      "set": { "cpuC": "#f59e0b", "status": "warning" },
+      "set": { "cpuC": "#f59e0b", "status": "注意" },
       "description": "CPU がさらに伸び、その色だけ橙へ替わる。 添え書きの状態も注意へ変わる。"
     },
     {
@@ -10394,7 +10394,7 @@ export const sourceJson__partsBindComprehensive = `{
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [82, 95] },
-      "set": { "cpuC": "#dc2626", "memC": "#f59e0b", "status": "critical" },
+      "set": { "cpuC": "#dc2626", "memC": "#f59e0b", "status": "危険" },
       "description": "CPU が 95 まで伸び、メモリの色も橙になる。 状態は危険へ変わる。"
     },
     {
@@ -10402,14 +10402,14 @@ export const sourceJson__partsBindComprehensive = `{
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
       "tween": { "cpu": [95, 40], "mem": [55, 35] },
-      "set": { "cpuC": "#22c55e", "memC": "#22c55e", "status": "recovering" },
+      "set": { "cpuC": "#22c55e", "memC": "#22c55e", "status": "回復中" },
       "description": "CPU とメモリが下がり、色が緑へ戻る。 状態は回復中。"
     },
     {
       "step": "平常復帰",
       "duration": 1.2,
       "focus": ["CPU", "メモリ", "通信"],
-      "set": { "status": "healthy" },
+      "set": { "status": "平常" },
       "description": "値は動かさず状態だけを平常へ戻す。 動かす値が無い段も置ける。"
     }
   ]

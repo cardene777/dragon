@@ -55,7 +55,7 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   "topic": "E01",
   "viewBox": {
     "h": 235,
-    "w": 1213,
+    "w": 1188,
     "x": -35,
     "y": 68,
   },
@@ -138,7 +138,7 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   "topic": "E02",
   "viewBox": {
     "h": 235,
-    "w": 1941,
+    "w": 1916,
     "x": -35,
     "y": 68,
   },
@@ -200,7 +200,7 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   "topic": "E03",
   "viewBox": {
     "h": 261.5,
-    "w": 1213,
+    "w": 1188,
     "x": -35,
     "y": 41.5,
   },
@@ -262,7 +262,7 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   "topic": "E04",
   "viewBox": {
     "h": 235,
-    "w": 1297,
+    "w": 1272,
     "x": -35,
     "y": 68,
   },
@@ -299,16 +299,16 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 209,
+      "h": 161,
       "id": "user",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 893,
-      "cy": 186,
-      "h": 115,
+      "cy": 209,
+      "h": 161,
       "id": "order",
       "kind": "storage",
       "w": 400,
@@ -323,8 +323,8 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "states": [],
   "topic": "E05",
   "viewBox": {
-    "h": 235,
-    "w": 1213,
+    "h": 281,
+    "w": 1188,
     "x": -35,
     "y": 68,
   },
@@ -434,7 +434,7 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "topic": "E06",
   "viewBox": {
     "h": 337,
-    "w": 2537,
+    "w": 2512,
     "x": -35,
     "y": -34,
   },
@@ -496,7 +496,7 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   "topic": "E07",
   "viewBox": {
     "h": 261.5,
-    "w": 1173,
+    "w": 1148,
     "x": -35,
     "y": 41.5,
   },
@@ -558,7 +558,7 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
   "topic": "E08",
   "viewBox": {
     "h": 206,
-    "w": 1093,
+    "w": 1028,
     "x": 5,
     "y": 50,
   },
@@ -730,7 +730,7 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   "topic": "E10",
   "viewBox": {
     "h": 337,
-    "w": 3177,
+    "w": 3152,
     "x": -35,
     "y": -34,
   },
@@ -770,7 +770,7 @@ exports[`golden: flow preset > F01 minimal 1 step 1`] = `
   "topic": "F01",
   "viewBox": {
     "h": 192,
-    "w": 505,
+    "w": 480,
     "x": -35,
     "y": 68,
   },
@@ -825,7 +825,7 @@ exports[`golden: flow preset > F02 2 step 1`] = `
   "topic": "F02",
   "viewBox": {
     "h": 364,
-    "w": 505,
+    "w": 480,
     "x": -35,
     "y": 68,
   },
@@ -908,7 +908,7 @@ exports[`golden: flow preset > F03 4 step linear 1`] = `
   "topic": "F03",
   "viewBox": {
     "h": 698,
-    "w": 525,
+    "w": 500,
     "x": -35,
     "y": 68,
   },
@@ -1059,7 +1059,7 @@ exports[`golden: flow preset > F04 6 step + tween 1`] = `
   "topic": "F04",
   "viewBox": {
     "h": 208,
-    "w": 3445,
+    "w": 3420,
     "x": -35,
     "y": 52,
   },
@@ -1142,7 +1142,7 @@ exports[`golden: flow preset > F05 tone variation (info / success / warning / er
   "topic": "F05",
   "viewBox": {
     "h": 688,
-    "w": 525,
+    "w": 500,
     "x": -35,
     "y": 68,
   },
@@ -1211,7 +1211,7 @@ exports[`golden: flow preset > F06 branching (1 → 2) 1`] = `
   "topic": "F06",
   "viewBox": {
     "h": 526,
-    "w": 525,
+    "w": 500,
     "x": -35,
     "y": 68,
   },
@@ -1280,7 +1280,7 @@ exports[`golden: flow preset > F07 merging (2 → 1) 1`] = `
   "topic": "F07",
   "viewBox": {
     "h": 526,
-    "w": 525,
+    "w": 500,
     "x": -35,
     "y": 68,
   },
@@ -1349,7 +1349,7 @@ exports[`golden: flow preset > F08 step with guard 1`] = `
   "topic": "F08",
   "viewBox": {
     "h": 531,
-    "w": 525,
+    "w": 500,
     "x": -35,
     "y": 68,
   },
@@ -1404,7 +1404,7 @@ exports[`golden: flow preset > F09 inline option mix 1`] = `
   "topic": "F09",
   "viewBox": {
     "h": 470,
-    "w": 525,
+    "w": 500,
     "x": -35,
     "y": 68,
   },
@@ -1496,7 +1496,7 @@ exports[`golden: flow preset > F10 multi-phase with set 1`] = `
   "topic": "F10",
   "viewBox": {
     "h": 208,
-    "w": 1737,
+    "w": 1712,
     "x": -35,
     "y": 52,
   },
@@ -1635,7 +1635,7 @@ exports[`golden: flow preset > F11 8 step long pipeline 1`] = `
   "topic": "F11",
   "viewBox": {
     "h": 1356,
-    "w": 525,
+    "w": 500,
     "x": -35,
     "y": 68,
   },
@@ -1773,7 +1773,7 @@ exports[`golden: flow preset > F13 cyclic back-edge 1`] = `
   "topic": "F13",
   "viewBox": {
     "h": 521,
-    "w": 525,
+    "w": 500,
     "x": -35,
     "y": 68,
   },
@@ -1828,7 +1828,7 @@ exports[`golden: flow preset > F14 single edge with all tones 1`] = `
   "topic": "F14",
   "viewBox": {
     "h": 354,
-    "w": 525,
+    "w": 500,
     "x": -35,
     "y": 68,
   },
@@ -1902,7 +1902,7 @@ exports[`golden: flow preset > F15 storage + event mixed kinds 1`] = `
   "topic": "F15",
   "viewBox": {
     "h": 704,
-    "w": 545,
+    "w": 520,
     "x": -35,
     "y": 68,
   },
@@ -1942,7 +1942,7 @@ exports[`golden: inline option edge cases > X01 subtitle only 1`] = `
   "topic": "X01",
   "viewBox": {
     "h": 360,
-    "w": 681,
+    "w": 656,
     "x": -35,
     "y": 68,
   },
@@ -1987,7 +1987,7 @@ exports[`golden: inline option edge cases > X02 value placeholder 1`] = `
   "topic": "X02",
   "viewBox": {
     "h": 360,
-    "w": 753,
+    "w": 728,
     "x": -35,
     "y": 68,
   },
@@ -2040,7 +2040,7 @@ exports[`golden: inline option edge cases > X03 rows on storage 1`] = `
   "topic": "X03",
   "viewBox": {
     "h": 360,
-    "w": 745,
+    "w": 720,
     "x": -35,
     "y": 68,
   },
@@ -2080,7 +2080,7 @@ exports[`golden: inline option edge cases > X04 labelOffsetX positive 1`] = `
   "topic": "X04",
   "viewBox": {
     "h": 360,
-    "w": 701,
+    "w": 676,
     "x": -35,
     "y": 68,
   },
@@ -2120,7 +2120,7 @@ exports[`golden: inline option edge cases > X05 labelOffsetY negative 1`] = `
   "topic": "X05",
   "viewBox": {
     "h": 360,
-    "w": 701,
+    "w": 676,
     "x": -35,
     "y": 68,
   },
@@ -2182,7 +2182,7 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
   "topic": "X06",
   "viewBox": {
     "h": 269.5,
-    "w": 1213,
+    "w": 1188,
     "x": -35,
     "y": 33.5,
   },
@@ -2222,7 +2222,7 @@ exports[`golden: inline option edge cases > X07 eyebrow + subtitle combo 1`] = `
   "topic": "X07",
   "viewBox": {
     "h": 360,
-    "w": 885,
+    "w": 860,
     "x": -35,
     "y": 68,
   },
@@ -2292,8 +2292,8 @@ exports[`golden: inline option edge cases > X08 viewport with laneWidth + gap 1`
   "viewBox": {
     "h": 1100,
     "w": 2000,
-    "x": -44,
-    "y": 8,
+    "x": -60,
+    "y": 0,
   },
 }
 `;
@@ -2331,7 +2331,7 @@ exports[`golden: inline option edge cases > X09 all 4 tones in single diagram 1`
   "topic": "X09",
   "viewBox": {
     "h": 552,
-    "w": 1081,
+    "w": 1056,
     "x": -35,
     "y": 68,
   },
@@ -2376,7 +2376,7 @@ exports[`golden: inline option edge cases > X10 mixed inline + bare actor names 
   "topic": "X10",
   "viewBox": {
     "h": 552,
-    "w": 1281,
+    "w": 1256,
     "x": -35,
     "y": 68,
   },
@@ -2416,7 +2416,7 @@ exports[`golden: sequence preset > S01 minimal 1 actor + 自分宛ては輪と�
   "topic": "S01",
   "viewBox": {
     "h": 360,
-    "w": 545,
+    "w": 520,
     "x": -35,
     "y": 68,
   },
@@ -2456,7 +2456,7 @@ exports[`golden: sequence preset > S02 2 actor 1`] = `
   "topic": "S02",
   "viewBox": {
     "h": 360,
-    "w": 745,
+    "w": 720,
     "x": -35,
     "y": 68,
   },
@@ -2496,7 +2496,7 @@ exports[`golden: sequence preset > S03 3 actor 1`] = `
   "topic": "S03",
   "viewBox": {
     "h": 424,
-    "w": 1001,
+    "w": 976,
     "x": -35,
     "y": 68,
   },
@@ -2553,7 +2553,7 @@ exports[`golden: sequence preset > S04 3 actor + tween animation 1`] = `
   "topic": "S04",
   "viewBox": {
     "h": 424,
-    "w": 1001,
+    "w": 976,
     "x": -35,
     "y": 68,
   },
@@ -2593,7 +2593,7 @@ exports[`golden: sequence preset > S05 actor inline option (subtitle / eyebrow) 
   "topic": "S05",
   "viewBox": {
     "h": 360,
-    "w": 725,
+    "w": 700,
     "x": -35,
     "y": 68,
   },
@@ -2638,7 +2638,7 @@ exports[`golden: sequence preset > S06 actor with value placeholder 1`] = `
   "topic": "S06",
   "viewBox": {
     "h": 360,
-    "w": 897,
+    "w": 872,
     "x": -35,
     "y": 68,
   },
@@ -2678,7 +2678,7 @@ exports[`golden: sequence preset > S07 4 actor pipeline 1`] = `
   "topic": "S07",
   "viewBox": {
     "h": 488,
-    "w": 1081,
+    "w": 1056,
     "x": -35,
     "y": 68,
   },
@@ -2718,7 +2718,7 @@ exports[`golden: sequence preset > S08 tone variation per edge 1`] = `
   "topic": "S08",
   "viewBox": {
     "h": 552,
-    "w": 765,
+    "w": 740,
     "x": -35,
     "y": 68,
   },
@@ -2771,7 +2771,7 @@ exports[`golden: sequence preset > S09 set (string state) animation 1`] = `
   "topic": "S09",
   "viewBox": {
     "h": 360,
-    "w": 777,
+    "w": 752,
     "x": -35,
     "y": 68,
   },
@@ -2820,7 +2820,7 @@ exports[`golden: sequence preset > S10 storage actor rows 1`] = `
   "topic": "S10",
   "viewBox": {
     "h": 424,
-    "w": 1053,
+    "w": 1028,
     "x": -35,
     "y": 68,
   },
@@ -2860,7 +2860,7 @@ exports[`golden: sequence preset > S11 5 actor wide diagram 1`] = `
   "topic": "S11",
   "viewBox": {
     "h": 616,
-    "w": 1345,
+    "w": 1320,
     "x": -35,
     "y": 68,
   },
@@ -2900,7 +2900,7 @@ exports[`golden: sequence preset > S12 sub label on edge 1`] = `
   "topic": "S12",
   "viewBox": {
     "h": 424,
-    "w": 725,
+    "w": 700,
     "x": -35,
     "y": 68,
   },
@@ -2940,7 +2940,7 @@ exports[`golden: sequence preset > S13 labelOffset fine adjust 1`] = `
   "topic": "S13",
   "viewBox": {
     "h": 360,
-    "w": 701,
+    "w": 676,
     "x": -35,
     "y": 68,
   },
@@ -3041,7 +3041,7 @@ exports[`golden: sequence preset > S15 multi-phase animation 1`] = `
   "topic": "S15",
   "viewBox": {
     "h": 552,
-    "w": 969,
+    "w": 944,
     "x": -35,
     "y": 68,
   },
@@ -3081,7 +3081,7 @@ exports[`golden: solidity preset > Y01 ERC-20 transfer basic 1`] = `
   "topic": "Y01",
   "viewBox": {
     "h": 424,
-    "w": 1345,
+    "w": 1320,
     "x": -35,
     "y": 68,
   },
@@ -3130,7 +3130,7 @@ exports[`golden: solidity preset > Y02 ERC-20 with storage rows 1`] = `
   "topic": "Y02",
   "viewBox": {
     "h": 424,
-    "w": 1133,
+    "w": 1108,
     "x": -35,
     "y": 68,
   },
@@ -3170,7 +3170,7 @@ exports[`golden: solidity preset > Y03 ERC-721 safeTransferFrom 1`] = `
   "topic": "Y03",
   "viewBox": {
     "h": 488,
-    "w": 1953,
+    "w": 1928,
     "x": -35,
     "y": 68,
   },
@@ -3210,7 +3210,7 @@ exports[`golden: solidity preset > Y04 DeFi swap (DEX) 1`] = `
   "topic": "Y04",
   "viewBox": {
     "h": 488,
-    "w": 1609,
+    "w": 1584,
     "x": -35,
     "y": 68,
   },
@@ -3250,7 +3250,7 @@ exports[`golden: solidity preset > Y05 multisig execute 1`] = `
   "topic": "Y05",
   "viewBox": {
     "h": 488,
-    "w": 1397,
+    "w": 1372,
     "x": -35,
     "y": 68,
   },
@@ -3290,7 +3290,7 @@ exports[`golden: solidity preset > Y06 proxy delegatecall 1`] = `
   "topic": "Y06",
   "viewBox": {
     "h": 424,
-    "w": 1089,
+    "w": 1064,
     "x": -35,
     "y": 68,
   },
@@ -3330,7 +3330,7 @@ exports[`golden: solidity preset > Y07 library use 1`] = `
   "topic": "Y07",
   "viewBox": {
     "h": 424,
-    "w": 1233,
+    "w": 1208,
     "x": -35,
     "y": 68,
   },
@@ -3370,7 +3370,7 @@ exports[`golden: solidity preset > Y08 interface call 1`] = `
   "topic": "Y08",
   "viewBox": {
     "h": 424,
-    "w": 1569,
+    "w": 1544,
     "x": -35,
     "y": 68,
   },
@@ -3431,7 +3431,7 @@ exports[`golden: solidity preset > Y09 ERC-20 with full animation 1`] = `
   "topic": "Y09",
   "viewBox": {
     "h": 488,
-    "w": 1833,
+    "w": 1808,
     "x": -35,
     "y": 68,
   },
@@ -3471,7 +3471,7 @@ exports[`golden: solidity preset > Y10 reentrancy victim shape 1`] = `
   "topic": "Y10",
   "viewBox": {
     "h": 552,
-    "w": 1365,
+    "w": 1340,
     "x": -35,
     "y": 68,
   },
@@ -3511,7 +3511,7 @@ exports[`golden: solidity preset > Y11 ERC-1155 batch transfer 1`] = `
   "topic": "Y11",
   "viewBox": {
     "h": 424,
-    "w": 1777,
+    "w": 1752,
     "x": -35,
     "y": 68,
   },
@@ -3551,7 +3551,7 @@ exports[`golden: solidity preset > Y12 access control onlyOwner 1`] = `
   "topic": "Y12",
   "viewBox": {
     "h": 424,
-    "w": 1137,
+    "w": 1112,
     "x": -35,
     "y": 68,
   },
@@ -3591,7 +3591,7 @@ exports[`golden: solidity preset > Y13 bridge node + relayer 1`] = `
   "topic": "Y13",
   "viewBox": {
     "h": 424,
-    "w": 1061,
+    "w": 1036,
     "x": -35,
     "y": 68,
   },
@@ -3640,7 +3640,7 @@ exports[`golden: solidity preset > Y14 storage value placeholder + animation 1`]
   "topic": "Y14",
   "viewBox": {
     "h": 360,
-    "w": 897,
+    "w": 872,
     "x": -35,
     "y": 68,
   },
@@ -3680,7 +3680,7 @@ exports[`golden: solidity preset > Y15 complex 5 actor + nested guard 1`] = `
   "topic": "Y15",
   "viewBox": {
     "h": 552,
-    "w": 1677,
+    "w": 1652,
     "x": -35,
     "y": 68,
   },
@@ -3742,7 +3742,7 @@ exports[`golden: state preset > M01 minimal Idle → Done 1`] = `
   "topic": "M01",
   "viewBox": {
     "h": 232,
-    "w": 999,
+    "w": 974,
     "x": -35,
     "y": 68,
   },
@@ -3825,7 +3825,7 @@ exports[`golden: state preset > M02 Idle / Loading / Done 1`] = `
   "topic": "M02",
   "viewBox": {
     "h": 232,
-    "w": 1653,
+    "w": 1628,
     "x": -35,
     "y": 68,
   },
@@ -3929,7 +3929,7 @@ exports[`golden: state preset > M03 with error path 1`] = `
   "topic": "M03",
   "viewBox": {
     "h": 334,
-    "w": 2283,
+    "w": 2258,
     "x": -35,
     "y": -34,
   },
@@ -4012,7 +4012,7 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
   "topic": "M04",
   "viewBox": {
     "h": 366,
-    "w": 1793,
+    "w": 1768,
     "x": -35,
     "y": -66,
   },
@@ -4080,7 +4080,7 @@ exports[`golden: state preset > M05 cyclic states 1`] = `
   "topic": "M05",
   "viewBox": {
     "h": 384,
-    "w": 1053,
+    "w": 1028,
     "x": -35,
     "y": -84,
   },
@@ -4190,7 +4190,7 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
   "topic": "M06",
   "viewBox": {
     "h": 334,
-    "w": 2313,
+    "w": 2288,
     "x": -35,
     "y": -34,
   },
@@ -4278,7 +4278,7 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
   "topic": "M07",
   "viewBox": {
     "h": 232,
-    "w": 1597,
+    "w": 1572,
     "x": -35,
     "y": 68,
   },
@@ -4409,7 +4409,7 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
   "topic": "M08",
   "viewBox": {
     "h": 334,
-    "w": 2937,
+    "w": 2912,
     "x": -35,
     "y": -34,
   },
@@ -4498,7 +4498,7 @@ exports[`golden: state preset > M09 自己遷移は輪として残る (#1227 →
   "topic": "M09",
   "viewBox": {
     "h": 362,
-    "w": 1613,
+    "w": 1588,
     "x": -35,
     "y": -62,
   },
@@ -4590,7 +4590,7 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
   "topic": "M10",
   "viewBox": {
     "h": 232,
-    "w": 1585,
+    "w": 1560,
     "x": -35,
     "y": 68,
   },
@@ -4652,7 +4652,7 @@ exports[`golden: swimlane preset > L01 2 lane 1`] = `
   "topic": "L01",
   "viewBox": {
     "h": 266,
-    "w": 1054,
+    "w": 1014,
     "x": -44,
     "y": -24,
   },
@@ -4735,7 +4735,7 @@ exports[`golden: swimlane preset > L02 3 lane 1`] = `
   "topic": "L02",
   "viewBox": {
     "h": 266,
-    "w": 1740,
+    "w": 1700,
     "x": -44,
     "y": -24,
   },
@@ -4839,7 +4839,7 @@ exports[`golden: swimlane preset > L03 4 lane with all info tone 1`] = `
   "topic": "L03",
   "viewBox": {
     "h": 266,
-    "w": 2088,
+    "w": 2048,
     "x": -44,
     "y": -24,
   },
@@ -4901,7 +4901,7 @@ exports[`golden: swimlane preset > L04 inline option subtitle 1`] = `
   "topic": "L04",
   "viewBox": {
     "h": 294,
-    "w": 1096,
+    "w": 1056,
     "x": -44,
     "y": -24,
   },
@@ -4988,7 +4988,7 @@ exports[`golden: swimlane preset > L05 animation focus + badge 1`] = `
   "topic": "L05",
   "viewBox": {
     "h": 266,
-    "w": 1740,
+    "w": 1700,
     "x": -44,
     "y": -24,
   },
@@ -5113,7 +5113,7 @@ exports[`golden: swimlane preset > L06 5 service lane 1`] = `
   "topic": "L06",
   "viewBox": {
     "h": 266,
-    "w": 2616,
+    "w": 2576,
     "x": -44,
     "y": -24,
   },
@@ -5196,7 +5196,7 @@ exports[`golden: swimlane preset > L07 mixed kind (api / function) 1`] = `
   "topic": "L07",
   "viewBox": {
     "h": 291,
-    "w": 1821,
+    "w": 1796,
     "x": -44,
     "y": -24,
   },
@@ -5285,7 +5285,7 @@ exports[`golden: swimlane preset > L08 back-edge across lane 1`] = `
   "topic": "L08",
   "viewBox": {
     "h": 283,
-    "w": 1796,
+    "w": 1756,
     "x": -44,
     "y": -34,
   },
@@ -5347,7 +5347,7 @@ exports[`golden: swimlane preset > L09 sub label on lane edge 1`] = `
   "topic": "L09",
   "viewBox": {
     "h": 266,
-    "w": 1070,
+    "w": 1030,
     "x": -44,
     "y": -24,
   },
@@ -5493,7 +5493,7 @@ exports[`golden: swimlane preset > L10 6 lane with viewport 1`] = `
   "topic": "L10",
   "viewBox": {
     "h": 800,
-    "w": 3144,
+    "w": 3104,
     "x": -44,
     "y": -24,
   },
@@ -5576,7 +5576,7 @@ exports[`golden: swimlane preset > L11 tone variation 1`] = `
   "topic": "L11",
   "viewBox": {
     "h": 266,
-    "w": 1640,
+    "w": 1600,
     "x": -44,
     "y": -24,
   },
@@ -5643,7 +5643,7 @@ exports[`golden: swimlane preset > L12 with state + tween 1`] = `
   "topic": "L12",
   "viewBox": {
     "h": 266,
-    "w": 1070,
+    "w": 1030,
     "x": -44,
     "y": -24,
   },
@@ -5705,7 +5705,7 @@ exports[`golden: swimlane preset > L13 labelOffset on swimlane 1`] = `
   "topic": "L13",
   "viewBox": {
     "h": 266,
-    "w": 1032,
+    "w": 992,
     "x": -44,
     "y": -24,
   },
@@ -5835,7 +5835,7 @@ exports[`golden: swimlane preset > L15 mixed person + service 1`] = `
   "topic": "L15",
   "viewBox": {
     "h": 266,
-    "w": 1648,
+    "w": 1608,
     "x": -44,
     "y": -24,
   },
@@ -5889,10 +5889,10 @@ exports[`golden: topology preset > T01 simple 2 node 1`] = `
   "states": [],
   "topic": "T01",
   "viewBox": {
-    "h": 416,
-    "w": 564,
-    "x": -44,
-    "y": 8,
+    "h": 424,
+    "w": 580,
+    "x": -60,
+    "y": 0,
   },
 }
 `;
@@ -5958,10 +5958,10 @@ exports[`golden: topology preset > T02 3 node chain 1`] = `
   "states": [],
   "topic": "T02",
   "viewBox": {
-    "h": 626,
-    "w": 564,
-    "x": -44,
-    "y": 8,
+    "h": 634,
+    "w": 580,
+    "x": -60,
+    "y": 0,
   },
 }
 `;
@@ -6027,10 +6027,10 @@ exports[`golden: topology preset > T03 with cache layer 1`] = `
   "states": [],
   "topic": "T03",
   "viewBox": {
-    "h": 626,
-    "w": 564,
-    "x": -44,
-    "y": 8,
+    "h": 634,
+    "w": 580,
+    "x": -60,
+    "y": 0,
   },
 }
 `;
@@ -6096,10 +6096,10 @@ exports[`golden: topology preset > T04 queue + worker 1`] = `
   "states": [],
   "topic": "T04",
   "viewBox": {
-    "h": 570,
-    "w": 564,
-    "x": -44,
-    "y": 8,
+    "h": 578,
+    "w": 580,
+    "x": -60,
+    "y": 0,
   },
 }
 `;
@@ -6165,10 +6165,10 @@ exports[`golden: topology preset > T05 cdn + origin 1`] = `
   "states": [],
   "topic": "T05",
   "viewBox": {
-    "h": 570,
-    "w": 564,
-    "x": -44,
-    "y": 8,
+    "h": 578,
+    "w": 580,
+    "x": -60,
+    "y": 0,
   },
 }
 `;
@@ -6248,10 +6248,10 @@ exports[`golden: topology preset > T06 microservice mesh 1`] = `
   "states": [],
   "topic": "T06",
   "viewBox": {
-    "h": 724,
-    "w": 626,
-    "x": -44,
-    "y": 8,
+    "h": 732,
+    "w": 642,
+    "x": -60,
+    "y": 0,
   },
 }
 `;
@@ -6319,8 +6319,8 @@ exports[`golden: topology preset > T07 with viewport explicit 1`] = `
   "viewBox": {
     "h": 1000,
     "w": 1600,
-    "x": -44,
-    "y": 8,
+    "x": -60,
+    "y": 0,
   },
 }
 `;
@@ -6394,9 +6394,9 @@ exports[`golden: topology preset > T08 with top-level lanes group 1`] = `
   "topic": "T08",
   "viewBox": {
     "h": 900,
-    "w": 1684,
-    "x": -44,
-    "y": -64,
+    "w": 1700,
+    "x": -60,
+    "y": -72,
   },
 }
 `;
@@ -6476,10 +6476,10 @@ exports[`golden: topology preset > T09 multi-tier (cdn → web → cache → db)
   "states": [],
   "topic": "T09",
   "viewBox": {
-    "h": 780,
-    "w": 564,
-    "x": -44,
-    "y": 8,
+    "h": 788,
+    "w": 580,
+    "x": -60,
+    "y": 0,
   },
 }
 `;
@@ -6601,10 +6601,10 @@ exports[`golden: topology preset > T10 7 node fan-out 1`] = `
   "states": [],
   "topic": "T10",
   "viewBox": {
-    "h": 1186,
-    "w": 564,
-    "x": -44,
-    "y": 8,
+    "h": 1194,
+    "w": 580,
+    "x": -60,
+    "y": 0,
   },
 }
 `;

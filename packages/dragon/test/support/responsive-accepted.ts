@@ -153,7 +153,7 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       { id: "interactive-kpi-dashboard", 器: ["拡大", "一覧"] },
       { id: "interactive-oauth-flow", 器: ["拡大", "一覧"] },
       { id: "interactive-year-roadmap", 器: ["拡大", "一覧"] },
-      { id: "pattern-passthrough", 器: ["拡大", "一覧"] },
+      { id: "pattern-passthrough", 器: ["一覧"] },
       { id: "sm2-demo", 器: ["拡大", "一覧"] },
       { id: "注文の状態", 器: ["拡大", "一覧"] },
       { id: "認証の状態遷移", 器: ["拡大", "一覧"] },
@@ -264,15 +264,12 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       // 名札を書かない変種 (#1916)。 元の図と同じ組み立てで、幅も同じ
       { id: "interactive-formula-text-bare", 器: ["一覧"] },
       { id: "interactive-grid-matrix", 器: ["一覧"] },
-      { id: "interactive-input-variety", 器: ["一覧"] },
       // 文字の入力を日時の入力に替えた変種 (#1969)。 元の図と同じ組み立てで、幅も同じ
-      { id: "スライダー-複数選択-タブ-日時の-4-入力を並べる", 器: ["一覧"] },
       { id: "interactive-kpi-bullet", 器: ["一覧"] },
       { id: "interactive-login-otp-verify", 器: ["一覧"] },
       { id: "interactive-matrix-heatmap", 器: ["一覧"] },
       { id: "interactive-month-calendar", 器: ["一覧"] },
       { id: "interactive-nps-trend", 器: ["一覧"] },
-      { id: "interactive-prod-log-tail", 器: ["一覧"] },
       { id: "interactive-saas-pricing-tier", 器: ["一覧"] },
       { id: "interactive-server-event-log", 器: ["一覧"] },
       { id: "interactive-startup-org", 器: ["一覧"] },
@@ -371,6 +368,18 @@ export const 受け入れた一覧: readonly 受け入れた群[] = [
       { id: "多対多の形-8-表-8-関係", 器: ["拡大", "一覧"] },
     ],
   },
+  {
+    群: "組の枠を 2 つ持つ図 (#2681)",
+    理由:
+      "幅を決めているのは 3 本の縦列と、それを囲む組の枠 2 つ。" +
+      " 0.93.0 から板が描いたものに寄るようになり、枠が自分の縦列より右へ描く縁" +
+      " (flow で 25、`group-frame-1972.test.ts` で実測) が板に入る。" +
+      " 幅 1616 で 一覧 の器の境 (1602) を 14 越えた。" +
+      " **札を詰めても幅は動かない** (実測 = 最も長い札は 2 字の「依頼」 で、" +
+      " 全ての札を 2 字にしても 1616)。" +
+      " 囲みを外すと「縦列を組で分ける」 という図の主題そのものが消えるので外さない",
+    図: [{ id: "組を-2-つ書いて縦列を分けて囲む", 器: ["一覧"] }],
+  },
 ];
 
 /** その器で受け入れた図の id (並べ替え済) */
@@ -427,24 +436,24 @@ export const 代表的な図: readonly 代表的な図の行[] = [
   },
   {
     id: "class-complex-demo",
-    viewBox: { w: 3537, h: 2380 },
+    viewBox: { w: 3512, h: 2380 },
     拡大: 5.8,
-    一覧: 5.4,
+    一覧: 5.5,
     役目: "カタログで最も横に広く、一覧の枠のほうが小さくなる",
   },
   {
     id: "swim-demo",
-    viewBox: { w: 1916, h: 285 },
+    viewBox: { w: 1836, h: 285 },
     拡大: null,
-    一覧: 10.0,
+    一覧: 10.5,
     役目: "横に長く縦が短い。 縦を巻き取る一覧の枠でだけ下限を割る",
   },
   {
     id: "scene-web-infra",
-    viewBox: { w: 510, h: 1160 },
+    viewBox: { w: 460, h: 1160 },
     拡大: 11.9,
     一覧: null,
-    役目: "縦に長く幅が狭い。 幅に合わせる一覧の枠では逆に伸びる (高さ 1988px)",
+    役目: "縦に長く幅が狭い。 幅に合わせる一覧の枠では逆に伸びる (高さ 2204px)",
   },
 ];
 
@@ -660,6 +669,34 @@ export const 縦に長い一覧: readonly 縦に長い群[] = [
       "部品の塗りを赤の色番号にする",
       "部品を-0-6-倍に縮めて置く",
       "部品を箱に置き何も書き換えない",
+    ],
+  },
+  {
+    群: "箱 1 つだけを見せる見本 (#2681)",
+    理由:
+      "板が中身に寄るようになったため、箱 1 つの見本は板がほぼ正方形になった" +
+      " (実測 320x380 から 560x580)。 幅 874 に合わせると 2.2 から 2.7 倍に伸び、" +
+      " 高さは 905 から 1038px で線 (900) を 5 から 138px 超える。" +
+      " 縮める道は箱を小さくすることだけで、形そのものを見せる見本では形が読めなくなる。" +
+      " 板に余白を戻すのは描画側の判断で、この repo からは変えられない",
+    図: [
+      "parts-arc-gauge",
+      "parts-bind-grid-4",
+      "parts-bucket-reservoir",
+      "parts-state-indicator",
+      "parts-wave-gauge",
+      "shape-atm",
+      "shape-auditor",
+      "shape-lawyer",
+      "shape-mobile-device",
+      "shape-nft",
+      "shape-notary",
+      "shape-online-shop",
+      "shape-person",
+      "shape-regulator",
+      "shape-robot-arm",
+      "shape-token",
+      "stack-triple",
     ],
   },
 ];

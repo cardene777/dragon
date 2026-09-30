@@ -62,11 +62,12 @@ describe("一覧の台に描かれる高さ (#1753)", () => {
   it("高さの導き方が画面の実測と一致する", () => {
     /*
      * 式が実物から離れると、この file の全ての判定が別のものを測る。
-     * 画面 1440 × 900 の実測で `parts-traffic-light-stack` は 874 × 2292px に描かれた。
+     * 画面 1440 × 900 の実測で `parts-traffic-light-stack` は 874 × 2497px に描かれた
+     * (板 280x800、#2681 で測り直した。 それまでは 2292px で、板に余白があった頃の値)。
      */
     const 実測の図 = 描かれる高さ.find((r) => r.id === "parts-traffic-light-stack");
     expect(実測の図, "実測に使った図がカタログから消えている").toBeDefined();
-    expect(Math.round(実測の図!.高さ)).toBe(2292);
+    expect(Math.round(実測の図!.高さ)).toBe(2497);
     expect(一覧の器.width).toBe(874);
     expect(縦に長い線).toBe(900);
   });

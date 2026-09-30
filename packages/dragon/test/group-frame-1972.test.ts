@@ -88,14 +88,18 @@ describe("組の枠が束ねた縦列と箱を囲む (#1972)", () => {
 
     it(`type: ${type} で枠を置いても縦列と箱と矢印の位置は変わらず、図の横幅は枠の余白の分しか広がらない`, () => {
       // 枠が縦列の並びに加わると他の縦列の間隔が広がる (実測 = 2 本目が 666 から 710 へ動いた)。
-      // 横幅は、束ねた db が最後の縦列なので、枠の横の余白 (囲いの無い flow は 0、topology は 20) の分だけ広がる
+      // 横幅は、束ねた db が最後の縦列なので、枠の横の余白 (flow は 25、topology は 20) の分だけ広がる。
+      //
+      // **flow は 0 ではない** (#2681)。 0.93.0 から板が描いたものに寄るようになり、枠が
+      // 自分の縦列より右へ描く縁 (25) が板に入る。 枠の縦列は app の左端から db の右端に
+      // ぴったり重なる (実測 = 左の入り込み 0 / 右のはみ出し 0) ので、縦列の位置からは出せない
       const 無し = layout(組む(図(null, { type })));
       const 有り = layout(組む(図("app, db", { type })));
       expect(有り.lanes.filter((l) => l.id !== "group-inside")).toEqual(無し.lanes);
       expect(有り.nodes).toEqual(無し.nodes);
       expect(有り.edges).toEqual(無し.edges);
       expect(有り.viewBox.w - 無し.viewBox.w, "枠の余白より図の横幅が広がった").toBe(
-        type === "flow" ? 0 : 20,
+        type === "flow" ? 25 : 20,
       );
     });
 

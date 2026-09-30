@@ -15,8 +15,8 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
  * を検査しないため validator は素通りする) ため不採用。
  *
  * 本 test は 2 つを固定する。
- * 1. interactive 全 diagram の text-readability warn を全件検査し、 許容 13 件 (下記 ALLOWED) 以外が
- *    0 件かつ総数が 13 を超えないことを assert する。 代表 diagram だけでなく全体を lock するため、
+ * 1. interactive 全 diagram の text-readability warn を全件検査し、 許容した件 (下記 ALLOWED) 以外が
+ *    0 件かつ総数が `ALLOWED.size` を超えないことを assert する (件数は ALLOWED が SSOT)。 代表 diagram だけでなく全体を lock するため、
  *    未検証 diagram での warn 再発も検知できる (代表の図だけを見る形では届かない範囲)。 これが
  *    本 test の本丸。
  * 2. cross-lane overlap の heuristic guard (補助 check)。 本 change 自体の overlap 安全性は「diff が
@@ -27,7 +27,7 @@ import * as interactive from "../../../apps/playground-spa/src/topics/catalog/in
  *    のみを midpoint proxy で検知する (xypad-nav を widen した崩れ class = RED→GREEN 実証済)。 default
  *    幅 neighbor の張出しや中間 lane が空の非隣接 overlap は検知対象外。
  *
- * 許容 13 件 ... node 幅 60-100px の極小 shape node (shape-rect の bar 4 / shape-chain の block 3 /
+ * 許容した件 ... node 幅 60-100px の極小 shape node (shape-rect の bar 4 / shape-chain の block 3 /
  * repeat-chain の block 5 / timeline-drive の r 1)。 幅 100px で最大 2 文字、 80px で 1 文字、 60px で
  * 0 文字しか収まらず、 意味を保つ label に短縮できないため対象外 (無理に潰すと教育的価値を壊す)。
  */
@@ -66,6 +66,9 @@ const ALLOWED = new Set<string>([
   "interactive-repeat-chain::r3",
   "interactive-repeat-chain::r4",
   "interactive-timeline-drive::r",
+  // 同じ節を持つ記法の側の変種 (#2681)。 0.99.0 で `dyn-rect` が箱の題を読むようになり、
+  // 書いてあった 「棒 (四角)」 が描かれて幅 80px を超えた。 組み立て側の 1 行上と同じ節
+  "速さの選択肢を変えた時間信号で図形-2-種を動かす::r",
 ]);
 
 describe("#885 interactive text-readability (全 diagram 検査)", () => {
@@ -76,7 +79,7 @@ describe("#885 interactive text-readability (全 diagram 検査)", () => {
     expect(diagrams.length).toBeGreaterThan(50);
   });
 
-  it("text-readability warn は許容 13 件 (極小 shape node) 以外 0 件", () => {
+  it("text-readability warn は許容した極小 shape node 以外 0 件", () => {
     const offenders: string[] = [];
     for (const r of report.reports) {
       for (const v of r.violations) {

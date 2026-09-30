@@ -148,7 +148,7 @@ actors:
   - 処理側: { kind: function, lane: l3 }
 
 flow:
-  - 利用者側 -> 処理側: "利用者側 → 処理側" (accent, dotted-flow) { sub: "入口を経由" }
+  - 利用者側 -> 処理側: "処理を頼む" (accent, dotted-flow) { sub: "入口を貫く" }
 
 animation:
   - step: "送り手" 1.2s
@@ -187,8 +187,8 @@ export const sourceJson__patternPassthrough = `{
     {
       "from": "利用者側",
       "to": "処理側",
-      "label": "利用者側 → 処理側",
-      "sub": "入口を経由",
+      "label": "処理を頼む",
+      "sub": "入口を貫く",
       "tone": "accent",
       "style": "dotted-flow"
     }
@@ -214,7 +214,7 @@ export const patternPassthrough = diagram("pattern-passthrough", { topic: "patte
   .node("a", { lane: "l1", stack: 0, kind: "actor", title: "利用者側" })
   .node("router", { lane: "l2", stack: 0, kind: "function", title: "入口", subtitle: "利用者側から処理側へ中継する (代理の形)" })
   .node("c", { lane: "l3", stack: 0, kind: "function", title: "処理側" })
-  .edge("a", "c", { id: "e", label: "利用者側 → 処理側", sub: "入口を経由", tone: "accent", style: "dotted-flow" })
+  .edge("a", "c", { id: "e", label: "処理を頼む", sub: "入口を貫く", tone: "accent", style: "dotted-flow" })
   .phase("p1", { duration: 1200, title: "送り手", body: "送り手の 利用者側 から出す形。 受け手までの間に 1 箱を挟む。" }, (p: PhaseBuilder) => p.activate("a").badge("貫通"))
   .phase("p2", { duration: 1200, title: "中継まで", body: "入口は利用者側の求めを処理側へ渡す代理の形。 矢印の道筋はこの箱の上を通る。" }, (p: PhaseBuilder) => p.activate("a", "router").badge("貫通"))
   .phase("p3", { duration: 2800, title: "貫通", body: "矢印の道筋が入口の上を通るため、描画側が自動の判定で粒子を入口の中央まで動かす。" }, (p: PhaseBuilder) => p.activate("a", "router", "c", "e").badge("貫通"))
