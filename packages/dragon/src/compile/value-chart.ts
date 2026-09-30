@@ -44,6 +44,52 @@ const 描画側の種別: Readonly<Record<DslShape, CdlDiagram["nodes"][number][
   slope: "chart-slope",
 };
 
+/**
+ * 型ごとの札の大きさ。
+ *
+ * **横も型で決める**。 縦が中身の大きさを決める型 (`stat` / `waffle` / `pie` / `radial`) は、
+ * 横をいくら広げても絵が大きくならない。 描画側の弧は
+ * `外半径 = min(使える高さ / 2, 弧に使える幅 / 2)` で決まり、格子は行数で高さを使い切る。
+ * 横を一律 640 にしていた間、余った分は左右の余白になるだけで、`stat` は札の 22%、
+ * `waffle` は 57%、`pie` は 59%、`radial` は 63% しか使っていなかった (見本帳の実描画を測った値)。
+ *
+ * **縦を使わない型を 368 にしない**。 `stacked` は帯 2 本と一覧だけで縦に伸びず、
+ * 368 だと縦の 39% しか埋まらない。
+ *
+ * **横の使用率が既に足りている型は触らない**。 `gauge` は 79%、`bar` と `line` は 85%、
+ * `slope` は 92% で、狭めても余白が減らず数だけが上がる。
+ *
+ * **どちらも 16 の倍数にする**。 描画側は大きさを 16 の倍数へ切り上げるため、
+ * 外れた値を渡すと下端が格子から外れて全図で位置の警告が出る。
+ * 棒と折れ線は 360 を切り上げた 368 になる。
+ *
+ * 数は見本帳の実描画から測った中身の幅に、その型が描画側で取る左右の余白を足した値。
+ * **数だけを直しても合っているかは判らない**ので、実描画から使用率を測る検査
+ * (`apps/playground-spa/tests/chart-card-fill.spec.ts`) が下限を見る。
+ * 5 型を 640 に戻すと、その検査が 6 件の違反を出して落ちる (実測)。
+ *
+ * 組立て API (`cdl` の `chart()`) の既定は 640 のままなので、見本の円は `itemWidth` で
+ * 揃える。 ずれたら `catalog-source-parity` が落ちる。
+ */
+const 札の大きさ: Readonly<Record<DslShape, { w: number; h: number }>> = {
+  // 数値 1 つと名前だけ。 中身は 139 幅 x 137 高
+  stat: { w: 384, h: 240 },
+  // 格子 (367 幅) と一覧
+  waffle: { w: 464, h: 320 },
+  // 円 (377 幅) と一覧
+  pie: { w: 480, h: 320 },
+  // 弧 (401 幅) と一覧
+  radial: { w: 512, h: 320 },
+  // 半円 (508 幅) と一覧。 横の使用率が 79% で足りているため変えない
+  gauge: { w: 640, h: 320 },
+  // 帯 2 本と一覧。 中身は 592 幅 x 143 高。 横は使い切っているので縦だけ詰める
+  stacked: { w: 640, h: 224 },
+  // 横軸を持つ 3 型。 横の使用率が 85% 以上なので変えない
+  bar: { w: 640, h: 368 },
+  line: { w: 640, h: 368 },
+  slope: { w: 640, h: 368 },
+};
+
 export function compileValueChart(
   doc: DslDocument,
   型: DslShape,
@@ -51,17 +97,7 @@ export function compileValueChart(
 ): CdlDiagram {
   const kind = 描画側の種別[型];
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "chart" });
-  const CHART_W = 640;
-  // **高さは型で違い、 格子に載せる**。 描画側 (`cdl` の `chart()` preset) は `pie` を 320、
-  // 棒と折れ線を 360 とした上で **16 の倍数へ切り上げる** (360 は 16 で割り切れないので 368)。
-  // 切り上げないと下端が格子から外れ、 全図で位置の警告が出る (review 指摘)
-  // 半円と弧は縦を使わないので円と同じ 320。 描画側 (`cdl` の `chart()` preset) が
-  // `pie` / `gauge` / `radial` を 320、棒と折れ線を 360 とし、16 の倍数へ切り上げる
-  // 縦に余白が要らない型。 描画側 (`cdl` の `chart()` preset) と揃える。
-  // 半円 / 弧 / 割合の印 は縦を使わず、値 1 つを大きく示す図も縦に伸びない
-  const 低い型 =
-    型 === "pie" || 型 === "gauge" || 型 === "radial" || 型 === "waffle" || 型 === "stat";
-  const CHART_H = 低い型 ? 320 : 368;
+  const { w: CHART_W, h: CHART_H } = 札の大きさ[型];
   b.lane("chart", { width: CHART_W + 64 });
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
