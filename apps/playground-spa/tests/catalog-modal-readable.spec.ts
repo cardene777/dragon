@@ -328,8 +328,13 @@ test.describe("拡大表示の文字が読める大きさに届く (#2284)", () 
      * 一覧の図が読めないことに行き先が無くなる。
      *
      * 44px は指の的の目安。 既定 (卓上) は 72x33px なので、狭い画面でだけ高さを足している。
+     *
+     * **入口を探す前に頁を送る** (#2736)。 図は台が見える所に入ってから描かれ、入口は図と
+     * 同じ台に付く。 送らないと台が頁の下にある分類で入口が出ず、在る入口を「無い」 と
+     * 数える (実測 = `text-dsl` / `charts` / `styles` の 3 件が送る前 0 件、送った後 1 件)。
+     * 送っても出ない分類は、これまでどおり 無い に入って落ちる。
      */
-    info.setTimeout(30_000 + CATEGORIES.length * 12_000);
+    info.setTimeout(30_000 + CATEGORIES.length * 16_000);
     const 的の下限 = 44;
 
     const 小さい: string[] = [];
@@ -339,6 +344,7 @@ test.describe("拡大表示の文字が読める大きさに届く (#2284)", () 
     for (const 分類 of CATEGORIES) {
       await page.goto(`catalog/${分類.slug}`, { waitUntil: "networkidle" });
       await page.waitForTimeout(900);
+      await 頁を送る(page);
 
       const ボタン = page.getByRole("button", { name: /を拡大表示$/ }).first();
       if ((await ボタン.count()) === 0) {
