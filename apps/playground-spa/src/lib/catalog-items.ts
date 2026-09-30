@@ -4,7 +4,7 @@
  * 各 category ごとに import + metadata。 CatalogPage で category に応じて
  * 該当 items 配列を CategoryPage の 2 pane grid で表示。
  */
-import type { CdlDiagram } from "@cardenelabs/cdl";
+import { drawsFigureTitle, type CdlDiagram } from "@cardenelabs/cdl";
 import { ITEM_SUBTITLE_EN, PATTERN_NAME_EN } from "./catalog-item-en";
 import type { Locale } from "./i18n";
 import { motionNote } from "./catalog-motion";
@@ -306,6 +306,28 @@ export const PARTS_COUNT_ESTIMATE = 112;
  */
 export function itemSubtitle(item: CatalogItem, locale: Locale): string {
   return locale === "ja" ? item.subtitle : item.subtitleEn;
+}
+
+/**
+ * 頁の説明行を画面に出すか (#2691)。
+ *
+ * 図表は自分で図の題を描く。 頁の説明行は専用の説明が無い時に図の説明 (`topic`) へ落ちるので、
+ * 題を描く図では同じ字が 2 か所に並ぶ。 並んだ側の 1 つを出さない。
+ *
+ * **どの図が題を描くかは engine に聞く** (`drawsFigureTitle`)。 見本帳の側で種別の一覧を持つと、
+ * engine に図表の種別が増えた時に片方だけ古くなる。
+ *
+ * **同じ字の時だけ落とす**。 題を描く図に専用の説明を後から書いた時、その説明は題と違う文なので
+ * 出したままにする。 種別だけで落とすと、その説明が黙って消える。
+ *
+ * **説明の値そのものは消さない**。 横の一覧の絞り込みが `item.subtitle` を読むため、
+ * 値を消すと説明の字で引けなくなる。 決めるのは画面に出すかどうかだけにする。
+ */
+export function showsSubtitleLine(item: CatalogItem, locale: Locale): boolean {
+  const 説明 = itemSubtitle(item, locale);
+  if (説明 === "") return false;
+  if (!item.diagram.nodes.some((n) => drawsFigureTitle(n.kind))) return true;
+  return 説明 !== item.diagram.topic;
 }
 
 /** 変種の名前を言語で引く (#2461)。 落とさない理由は説明と同じ */
