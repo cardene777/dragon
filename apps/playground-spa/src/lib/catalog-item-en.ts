@@ -539,6 +539,7 @@ export const PATTERN_NAME_EN: Record<string, string> = {
   "落ちた分が相乗りする": "What drops off rides along",
   "複数": "Several",
   "複雑": "Complex",
+  "座標で置く": "Placed by coordinates",
   "要素ごとに繋ぐ": "Joined per element",
   "見出しだけ": "Heading only",
   "説明つき": "With a description",

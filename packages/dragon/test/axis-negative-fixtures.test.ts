@@ -304,6 +304,8 @@ describe("axis 発火 count field (列挙した軸と engine の軸が一致)", 
       "shape-label-dropped",
       "title-row-overlap",
       "validation-interrupted",
+      // 0.99.0 (#2681) で engine が足した軸。 箱が読まない欄に書いた値が黙って落ちるのを見る
+      "node-field-unsupported",
     ];
     /*
      * **両方向で見る** (#2316)。

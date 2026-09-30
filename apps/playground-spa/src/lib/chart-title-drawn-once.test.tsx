@@ -14,9 +14,17 @@ import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
-/** 描いた絵に出る文字を、出る順に並べる。 属性や識別子は数えない */
+/**
+ * 描いた絵に出る文字を、出る順に並べる。 属性や識別子は数えない。
+ *
+ * **見本帳と同じ形で描く** (#2681)。 見本帳は `hideHeader` を渡して engine の頭の帯を
+ * 出さない。 帯は図の題を小さな字でもう 1 度出すため、渡さずに数えると 0.96.0 (`cdl#930`)
+ * で図が自分の題を描くようになった分と合わせて必ず 2 件になる。
+ *
+ * 本 file が見たいのは **図の中で同じ字が 2 度出ないか** で、帯は図の外の飾りになる。
+ */
 function 見える文字(d: CdlDiagram): string[] {
-  const svg = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />);
+  const svg = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} hideHeader />);
   // `([^<>]+)` は必須の群。 取れない形は regex と噛み合っていないので捨てる
   return [...svg.matchAll(/>([^<>]+)</g)]
     .flatMap((m) => (m[1] === undefined ? [] : [m[1].trim()]))
@@ -66,15 +74,35 @@ describe("図表は図の題を 1 度しか描かない (#1249)", () => {
   });
 });
 
+/** 図が自分で描いた題 (`figure-title`) の文字を並べる */
+function 図の題(d: CdlDiagram): string[] {
+  const svg = renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} hideHeader />);
+  return [...svg.matchAll(/<text[^>]*data-cdl-role="figure-title"[^>]*>([^<]*)</g)].flatMap((m) =>
+    m[1] === undefined ? [] : [m[1].trim()],
+  );
+}
+
 describe("箱ごとに分かれる図種は従来どおり (陰性対照)", () => {
-  it("topology では題が 2 度出るまま変わらない", () => {
-    // 図表以外まで外していたらここが落ちる。 この図種は箱が複数あり、見出しが列の役目を示す
-    //
-    // **この 2 度は本 file の対象ではない**。 `topology` は縦列の見出しに図の題を渡すため
-    // 見出しと表題で 2 度出るが、箱が複数あるので見出しには列を示す役目がある。
-    // 図表 (箱が 1 つ) とは事情が違うので触らない。 値を固定して、意図せず変わったら気付く
-    const src = `title: "${題}"\ntype: topology\n\nactors:\n  - A\n  - B\nflow:\n  - A -> B: "x"\n\n` +
-      `animation:\n  - step: "先月" 0.9s\n    body: "つながり。"\n`;
-    expect(見える文字(textDslToDiagram(src)).filter((t) => t === 題)).toHaveLength(2);
+  const topology = `title: "${題}"\ntype: topology\n\nactors:\n  - A\n  - B\nflow:\n  - A -> B: "x"\n\n` +
+    `animation:\n  - step: "先月" 0.9s\n    body: "つながり。"\n`;
+
+  it("topology でも題は 1 度だけ出る", () => {
+    // 図表以外まで外していたらここが落ちる
+    expect(見える文字(textDslToDiagram(topology)).filter((t) => t === 題)).toHaveLength(1);
+  });
+
+  /*
+   * **件数だけでは対照にならない** (#2681)。 0.96.0 (`cdl#930`) より前は topology が
+   * 縦列の見出しと表題で 2 度出しており、図表の 1 度と件数で区別できていた。 いまは
+   * どちらも 1 度なので、件数を数えるだけでは「図表の側を直しすぎた」 を捕まえられない。
+   *
+   * 出どころで分ける。 図表の 1 度は図が自分で描いた題で、topology の 1 度は縦列の見出しになる。
+   */
+  it("topology の 1 度は図が描いた題ではない", () => {
+    expect(図の題(textDslToDiagram(topology))).toEqual([]);
+  });
+
+  it("図表の 1 度は図が描いた題である", () => {
+    expect(図の題(textDslToDiagram(記法("pie")))).toEqual([題]);
   });
 });

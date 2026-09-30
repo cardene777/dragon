@@ -177,7 +177,17 @@ const 家族 = {
   funnelData: [並び("段", (v: 漏斗の段[]) => v, { subtitle: "説明" }, true)],
   quadrantData: [
     並び("面", (v: 四象限) => [v], {}, false),
-    並び("点", (v: 四象限) => v.items, { subtitle: "説明" }, true),
+    並び(
+      "点",
+      (v: 四象限) => v.items,
+      {
+        subtitle: "説明",
+        quadrant: "topRight",
+        // 座標で置く書き方 (#2681 で engine が足した)。 書くと点として描かれる
+        at: () => ({ x: 0.5, y: 0.5 }),
+      },
+      true,
+    ),
   ],
   treeData: [
     並び(
@@ -367,8 +377,6 @@ const 覆えない組: Record<string, string> = {
  */
 const 描かない欄: Record<string, string> = {
   "ganttData/工程/tone": "帯の色は工程の並び順で決まる。 工程ごとの色を書いても帯には出ない",
-  "funnelData/段/subtitle": "漏斗の段は名前と数だけを描く。 説明を書いても段には出ない",
-  "quadrantData/点/subtitle": "四象限の点は名前だけを描く。 説明を書いても点には出ない",
 };
 
 /**
@@ -1106,7 +1114,10 @@ describe("中身を持つ節が見せる形をカタログが見せているか 
  */
 const 置き場所の見本値: Record<string, unknown> = {
   "節/w": 240,
-  "節/h": 160,
+  // **図表が要る高さより小さくしない** (#2681)。 四象限の複雑な版は 12 件を 4 枠に置くので
+  // 480 を切ると枠に収まらず、engine が「他 N 件」 (`quadrant-more`) を描く。 これは
+  // 書き手の選択肢ではなく場所が足りないことの知らせなので、置き場所の判定に混ぜない
+  "節/h": 560,
   "節/posX": 120,
   "節/posY": 120,
   "節/posW": 240,

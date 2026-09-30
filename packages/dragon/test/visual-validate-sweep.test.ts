@@ -598,7 +598,6 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       "interactive-price-candlestick",
       "interactive-year-roadmap",
       "network-complex-demo",
-      "pattern-passthrough",
       "scene-banking-flow",
       "scene-ec-order",
       "scene-stock-trading",
@@ -637,8 +636,55 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       " `flow-demo` だけは別の理由で、この軸は題の字数に 22px を掛けて幅を見積もる。" +
       " 日本語の字を前提にした数なので、英数字の題では実際の 2 倍を超える。" +
       " `POST /login` は 11 字なので見積もりが 294px になるが、20px で描いた実測は 114.3px で、" +
-      " #2426 で 180px に絞った箱にも収まっている",
-    図: ["er-complex-demo", "flow-demo", "scene-edge-compute", "scene-mobile-api"],
+      " #2426 で 180px に絞った箱にも収まっている。" +
+      " **同じ見積もりの粗さで 35 枚が増えた** (#2681)。" +
+      " 0.99.0 でどの種別も箱の題を読むようになり、形を描く種別が題を `shape-name` として" +
+      " 13px で描く。 見積もりの 22px は描く大きさの 1.7 倍なので、収まっている題まで挙がる" +
+      " (実測 = `速さの選択肢を変えた時間信号で図形-2-種を動かす` の節 `r` は幅 80px で" +
+      " 題「棒 (四角)」 を 13px で描き、字の幅は約 57px で収まっている)。" +
+      " 見積もりを描く大きさから出すのは描画側の判断で、" +
+      " [cdl#946](https://github.com/cardene777/cdl/issues/946) で扱う",
+    図: [
+      "3-つへ配った分のうち-1-つを-3-つの控えへ写す",
+      "er-complex-demo",
+      "flow-demo",
+      "interactive-repeat-chain",
+      "interactive-shape-chain",
+      "interactive-shape-rect",
+      "interactive-timeline-drive",
+      "parts-ack-first",
+      "parts-barrier-box",
+      "parts-batch-collector",
+      "parts-bind-5-digit-counter",
+      "parts-cache-box",
+      "parts-content-sorter",
+      "parts-dead-letter",
+      "parts-edge-chain",
+      "parts-fair-queue",
+      "parts-fanout-copy",
+      "parts-key-router",
+      "parts-lock-gate",
+      "parts-reorder-box",
+      "parts-sample-tap",
+      "parts-split-box",
+      "scene-edge-compute",
+      "scene-mobile-api",
+      "そろった分を置き場に入れると古いものから押し出される",
+      "そろった分を送り-落ちる分が増えて遮断する",
+      "やり直して通った分だけを溜めてまとめて送る",
+      "両方そろった分の受け取りだけ先に返す",
+      "中身の種類で分けた注文だけを溜めてまとめて送る",
+      "交互に出した分を元の順に並べ直す",
+      "割って増えた小分けを溜め直して送る",
+      "割って数が増えた分を送ると後ろが詰まって入口が絞られる",
+      "問い合わせだけを一度に一つずつ通す",
+      "手元から返った分と奥から返った分がそろってから出す",
+      "控えを取っても先へ行く数と束の数は変わらない",
+      "番が来た分だけ順に戻して溜める",
+      "速さの選択肢を変えた時間信号で図形-2-種を動かす",
+      "重なりを消した分だけを溜めて-満ちたらまとめて送る",
+      "鍵で偏った分を出口で釣り合わせる",
+    ],
   },
   "node-vertical-clearance": {
     理由:

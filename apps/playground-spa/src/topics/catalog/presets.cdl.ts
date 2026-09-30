@@ -1819,7 +1819,7 @@ export const pattern__presetClassDiagram__複雑 = 触れて読む(presetClassCo
 // 名前を状態から取り、組織の呼び方が変わる様子を見せる (cdl 0.7.0 で名前が状態を読む)。
 export const presetTree = withSteps(
   bindFirstNode(
-    tree({ id: "tree-demo", topic: "会社の指揮系統" })
+    tree({ id: "tree-demo", topic: "会社の指揮系統", eyebrow: "階層" })
       .node({ id: "ceo", title: "社長" })
       .node({ id: "cto", title: "技術責任者", parent: "ceo" })
       .node({ id: "cfo", title: "財務責任者", parent: "ceo" })
@@ -1853,7 +1853,7 @@ export const presetTree = withSteps(
 // 改善後を映す。
 export const presetUserJourney = withSteps(
   bindFirstNode(
-    userJourney({ id: "journey-demo", topic: "登録が済むまでの道のり" })
+    userJourney({ id: "journey-demo", topic: "登録が済むまでの道のり", eyebrow: "道のり" })
       .step({ id: "land", title: "サイトを訪れる", emotion: "neutral", touchpoint: "サイト" })
       .step({
         id: "form",
@@ -2090,6 +2090,7 @@ export const presetMindMap = withSteps(
     mindMap({
       id: "mind-demo",
       topic: "次の版で決めること",
+      eyebrow: "枝分かれ",
       rootId: "root",
       rootTitle: "新しい企画",
     })
@@ -2225,7 +2226,7 @@ const FUNNEL_STAGES = [
   { id: "paid", title: "有料", last: 130, now: 200 },
 ] as const;
 
-const funnelBuilder = funnel({ id: "funnel-demo", topic: "訪問から有料契約まで" });
+const funnelBuilder = funnel({ id: "funnel-demo", topic: "訪問から有料契約まで", eyebrow: "段ごとの減り" });
 for (const s of FUNNEL_STAGES) funnelBuilder.stage({ id: s.id, title: s.title, count: s.last });
 
 export const presetFunnel = withSteps(
@@ -2270,13 +2271,13 @@ export const patternBase__presetFunnel = "簡単";
  * 数の検査では収まりを判定できない (#2181 / #2183 で同じことが起きた)。
  */
 const FUNNEL_COMPLEX_STAGES = [
-  { id: "fc_visit", title: "訪問", before: 10000, after: 10000 },
-  { id: "fc_signup", title: "登録", before: 3000, after: 3000 },
-  { id: "fc_trial", title: "試用を始める", before: 2100, after: 2100 },
-  { id: "fc_again", title: "二度目に使う", before: 520, after: 1260 },
-  { id: "fc_quote", title: "見積りを見る", before: 390, after: 950 },
-  { id: "fc_paid", title: "有料へ移る", before: 300, after: 730 },
-  { id: "fc_keep", title: "続けて使う", before: 260, after: 630 },
+  { id: "fc_visit", title: "訪問", note: "広告と検索から来る", before: 10000, after: 10000 },
+  { id: "fc_signup", title: "登録", note: "無料の枠で使い始める", before: 3000, after: 3000 },
+  { id: "fc_trial", title: "試用を始める", note: "初回の設定まで進む", before: 2100, after: 2100 },
+  { id: "fc_again", title: "二度目に使う", note: "翌週までに開き直す", before: 520, after: 1260 },
+  { id: "fc_quote", title: "見積りを見る", note: "料金の頁まで進む", before: 390, after: 950 },
+  { id: "fc_paid", title: "有料へ移る", note: "支払いを済ませる", before: 300, after: 730 },
+  { id: "fc_keep", title: "続けて使う", note: "翌月も更新する", before: 260, after: 630 },
 ] as const;
 
 const funnelComplexBuilder = funnel({
@@ -2284,7 +2285,9 @@ const funnelComplexBuilder = funnel({
   topic: "抜けが最も大きい一か所を直すと後ろが順に増える漏斗",
 });
 for (const s of FUNNEL_COMPLEX_STAGES) {
-  funnelComplexBuilder.stage({ id: s.id, title: s.title, count: s.before });
+  // `subtitle` は段の名前の下に出る 1 行 (#2681 で engine が描くようになった)。
+  // 簡単な版は書かないので、切替で「書いた形」 と「書かない形」 の両方が見られる
+  funnelComplexBuilder.stage({ id: s.id, title: s.title, count: s.before, subtitle: s.note });
 }
 
 /** 名前で選んで置き換える。 入口の 3 段階は選ばないので動かない */
@@ -2335,6 +2338,7 @@ export const presetQuadrant = withSteps(
     quadrant({
       id: "quad-demo",
       topic: "どの作業から取るか",
+      eyebrow: "2 軸の割り振り",
       xAxis: { left: "労力が小さい", right: "労力が大きい" },
       yAxis: { bottom: "価値が低い", top: "価値が高い" },
       // 区画の名前は判断の言葉にする。 書かないと軸の掛け合わせ (`価値が高い × 労力が小さい`)
@@ -2426,6 +2430,9 @@ const quadrantComplexBuilder = quadrant({
 });
 for (const it of QUADRANT_COMPLEX_ITEMS) {
   // 組み立ての段では枠を決め打ちし、状態を読む欄は下の `bindFirstNode` で差し替える
+  // `subtitle` はここでは書かない。 1 枠 3 件を保つ版に説明を足すと項目が高くなり、
+  // 枠に収まらない時の「他 N 件」 が出る (実測 = 板の高さ 400 以下で出た)。
+  // 説明を書いた形は座標で置く版が見せる
   quadrantComplexBuilder.item({
     id: it.id,
     title: it.title,
@@ -2490,6 +2497,80 @@ export const pattern__presetQuadrant__複雑 = withSteps(
   ],
 );
 
+/**
+ * 四象限図を座標で置く版 (#2681)。
+ *
+ * 枠 (`quadrant`) で置くと 1 つの枠に 3 件までしか描かれない (複雑な版の comment)。
+ * `at` に 0 から 1 の座標を書くと枠ではなく点で置かれ、同じ枠に 4 件あっても全部出る。
+ *
+ * **位置の決め方は片方だけが読まれる** = `at` を書いた項目では `quadrant` を見ない。
+ * 見積りを数で持っているなら、丸めずにそのまま置けるこちらを使う。
+ *
+ * y は上向きで、図に出る軸の名前 (`価値が高い`) と同じ向き。 SVG の座標とは逆になる。
+ *
+ * 座標も状態から読める。 決済の作り直しの労力だけを状態にして、
+ * 見積りを下げた時に点が左へ動く様子を見せる。
+ */
+const QUADRANT_AT_ITEMS = [
+  { id: "qp_word", title: "文言を直す", note: "0.5 日", x: 0.08, y: 0.72 },
+  { id: "qp_speed", title: "読み込みを速く", note: "3 日", x: 0.24, y: 0.88 },
+  { id: "qp_search", title: "検索の絞り込み", note: "4 日", x: 0.3, y: 0.62 },
+  { id: "qp_guide", title: "手引きの更新", note: "6 日", x: 0.42, y: 0.55 },
+  { id: "qp_pay", title: "決済の作り直し", note: "見積り中", x: "{qp_pay_x}", y: 0.8 },
+  { id: "qp_role", title: "権限の見直し", note: "20 日", x: 0.86, y: 0.68 },
+  { id: "qp_color", title: "色の調整", note: "1 日", x: 0.12, y: 0.22 },
+  { id: "qp_order", title: "並び順の変更", note: "5 日", x: 0.34, y: 0.16 },
+  { id: "qp_device", title: "旧端末の対応", note: "15 日", x: 0.72, y: 0.1 },
+  { id: "qp_report", title: "帳票の作り直し", note: "25 日", x: 0.92, y: 0.28 },
+] as const;
+
+const quadrantAtBuilder = quadrant({
+  id: "quad-at-demo",
+  topic: "見積りの数をそのまま座標にして点で置く四象限図",
+  xAxis: { left: "労力が小さい", right: "労力が大きい" },
+  yAxis: { bottom: "価値が低い", top: "価値が高い" },
+  quadrantLabels: {
+    topLeft: "すぐ取る",
+    topRight: "腰を据える",
+    bottomLeft: "手が空いたら",
+    bottomRight: "見送る",
+  },
+});
+for (const it of QUADRANT_AT_ITEMS) {
+  // 組み立ての段では枠しか書けないので仮に置き、下の `bindFirstNode` で座標へ差し替える
+  quadrantAtBuilder.item({ id: it.id, title: it.title, subtitle: it.note, quadrant: "topLeft" });
+}
+
+export const pattern__presetQuadrant__座標で置く = withSteps(
+  bindFirstNode(quadrantAtBuilder.build(), (n) => ({
+    ...n,
+    quadrantData: n.quadrantData && {
+      ...n.quadrantData,
+      // `items` は `QUADRANT_AT_ITEMS` を回す `for` で 1:1 に作るので長さは常に一致する。
+      // `quadrant` を消して `at` だけを残す = 位置の決め方を 2 か所に書かない
+      items: n.quadrantData.items.map((it, i) => {
+        const 元 = QUADRANT_AT_ITEMS[i];
+        if (元 === undefined) return it;
+        const { quadrant: _枠, ...残り } = it;
+        return { ...残り, at: { x: 元.x, y: 元.y } };
+      }),
+    },
+  })),
+  [
+    {
+      ids: ["quad-at-demo-quadrant"],
+      title: "見積りのまま置く",
+      body: "10 件を労力と価値の数でそのまま置いた。 すぐ取る枠に 4 件あっても、枠に積む版と違って全部出る。",
+      sets: [{ id: "qp_pay_x", value: 0.78 }],
+    },
+    {
+      body: "決済は外の決済に載せ替えられると分かり、労力が 0.78 から 0.35 に下がる。 点だけが左へ動く。",
+      sets: [{ id: "qp_pay_x", value: 0.35 }],
+    },
+  ],
+  [{ id: "qp_pay_x", initial: 0.78 }],
+);
+
 // chart preset (pie) ... 統計チャート
 // 扇の大きさを状態から取り、昨年と今年の内訳を同じ図で見る。
 const PIE_SLICES = [
@@ -2501,6 +2582,7 @@ const PIE_SLICES = [
 const pieBuilder = chart({
   id: "chart-pie-demo",
   topic: "入り口ごとの利用の割合",
+  eyebrow: "内訳",
   type: "pie",
 });
 for (const s of PIE_SLICES) pieBuilder.datum({ id: s.id, label: s.label, value: s.last });
@@ -2630,6 +2712,7 @@ const LINE_POINTS = [
 const lineBuilder = chart({
   id: "chart-line-demo",
   topic: "月ごとの計画と実績",
+  eyebrow: "推移",
   type: "line",
 });
 for (const p of LINE_POINTS) lineBuilder.datum({ id: p.id, label: p.label, value: p.plan });
@@ -2747,7 +2830,7 @@ export const pattern__presetChartLine__複雑 = withSteps(
 // 帯の終わりを状態から取り、作り込みが 1 期ぶん延びる様子を見せる。
 export const presetGantt = withSteps(
   bindFirstNode(
-    gantt({ id: "gantt-demo", topic: "版を出すまでの作業" })
+    gantt({ id: "gantt-demo", topic: "版を出すまでの作業", eyebrow: "日程" })
       .task({ id: "design", title: "設計", start: "Q1", end: "Q1", owner: "デザイナー" })
       .task({
         id: "build",
@@ -3730,7 +3813,7 @@ export const sourceJson__presetFlow = `{
 }`;
 
 export const sourceYaml__presetChartPie = `title: "入り口ごとの利用の割合"
-eyebrow: "pie"
+eyebrow: "内訳"
 type: chart
 shape: pie
 
@@ -3764,7 +3847,7 @@ export const sourceJson__presetChartPie = `{
   "title": "入り口ごとの利用の割合",
   "type": "chart",
   "shape": "pie",
-  "eyebrow": "pie",
+  "eyebrow": "内訳",
   "actors": [
     { "name": "ウェブ", "subtitle": "{pie_web}" },
     { "name": "アプリ", "subtitle": "{pie_mobile}" },
@@ -3793,7 +3876,7 @@ export const sourceJson__presetChartPie = `{
 }`;
 
 export const sourceYaml__presetChartLine = `title: "月ごとの計画と実績"
-eyebrow: "line"
+eyebrow: "推移"
 type: chart
 shape: line
 
@@ -3830,7 +3913,7 @@ export const sourceJson__presetChartLine = `{
   "title": "月ごとの計画と実績",
   "type": "chart",
   "shape": "line",
-  "eyebrow": "line",
+  "eyebrow": "推移",
   "actors": [
     { "name": "1月", "subtitle": "{line_jan}" },
     { "name": "2月", "subtitle": "{line_feb}" },
@@ -3865,7 +3948,7 @@ export const sourceJson__presetChartLine = `{
 }`;
 
 export const sourceYaml__presetFunnel = `title: "訪問から有料契約まで"
-eyebrow: "funnel"
+eyebrow: "段ごとの減り"
 type: funnel
 
 lanes:
@@ -3903,7 +3986,7 @@ animation:
 export const sourceJson__presetFunnel = `{
   "title": "訪問から有料契約まで",
   "type": "funnel",
-  "eyebrow": "funnel",
+  "eyebrow": "段ごとの減り",
   "lanes": { "chart": {"width": 624} },
   "actors": [
     { "name": "訪問", "subtitle": "{visit}" },
@@ -3939,7 +4022,7 @@ export const sourceJson__presetFunnel = `{
 }`;
 
 export const sourceYaml__presetTree = `title: "会社の指揮系統"
-eyebrow: "tree"
+eyebrow: "階層"
 type: tree
 
 lanes:
@@ -3978,7 +4061,7 @@ animation:
 export const sourceJson__presetTree = `{
   "title": "会社の指揮系統",
   "type": "tree",
-  "eyebrow": "tree",
+  "eyebrow": "階層",
   "lanes": { "chart": {"width": 720} },
   "actors": [
     { "name": "社長" },
@@ -4015,7 +4098,7 @@ export const sourceJson__presetTree = `{
 }`;
 
 export const sourceYaml__presetMindMap = `title: "次の版で決めること"
-eyebrow: "mindMap"
+eyebrow: "枝分かれ"
 type: mind
 
 lanes:
@@ -4053,7 +4136,7 @@ animation:
 export const sourceJson__presetMindMap = `{
   "title": "次の版で決めること",
   "type": "mind",
-  "eyebrow": "mindMap",
+  "eyebrow": "枝分かれ",
   "lanes": { "chart": {"width": 720} },
   "actors": [
     { "name": "{theme}" },
@@ -4089,7 +4172,7 @@ export const sourceJson__presetMindMap = `{
 }`;
 
 export const sourceYaml__presetUserJourney = `title: "登録が済むまでの道のり"
-eyebrow: "userJourney"
+eyebrow: "道のり"
 type: journey
 
 lanes:
@@ -4123,7 +4206,7 @@ animation:
 export const sourceJson__presetUserJourney = `{
   "title": "登録が済むまでの道のり",
   "type": "journey",
-  "eyebrow": "userJourney",
+  "eyebrow": "道のり",
   "lanes": { "chart": {"width": 720} },
   "actors": [
     { "name": "サイトを訪れる", "value": "普通", "touchpoint": "サイト" },
@@ -4160,7 +4243,7 @@ export const sourceJson__presetUserJourney = `{
 }`;
 
 export const sourceYaml__presetQuadrant = `title: "どの作業から取るか"
-eyebrow: "quadrant"
+eyebrow: "2 軸の割り振り"
 type: quadrant
 
 axes:
@@ -4200,7 +4283,7 @@ animation:
 export const sourceJson__presetQuadrant = `{
   "title": "どの作業から取るか",
   "type": "quadrant",
-  "eyebrow": "quadrant",
+  "eyebrow": "2 軸の割り振り",
   "axes": {
     "x": { "left": "労力が小さい", "right": "労力が大きい" },
     "y": { "bottom": "価値が低い", "top": "価値が高い" }
@@ -4240,7 +4323,7 @@ export const sourceJson__presetQuadrant = `{
 }`;
 
 export const sourceYaml__presetGantt = `title: "版を出すまでの作業"
-eyebrow: "gantt"
+eyebrow: "日程"
 type: gantt
 
 actors:
@@ -4274,7 +4357,7 @@ animation:
 export const sourceJson__presetGantt = `{
   "title": "版を出すまでの作業",
   "type": "gantt",
-  "eyebrow": "gantt",
+  "eyebrow": "日程",
   "actors": [
     { "name": "設計", "value": "Q1", "tone": "teal", "owner": "デザイナー" },
     { "name": "実装", "value": "Q2", "tone": "teal", "owner": "開発", "end": "{build_end}" },

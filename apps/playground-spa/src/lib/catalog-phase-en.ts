@@ -436,6 +436,8 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "担当者を書かずに期間と前後の関係だけを示す進捗図":
     "A schedule showing only spans and their order, with no owner written",
   "後にする所を決める": "Decide what to leave for later",
+  "見積りのまま置く": "Placed at the estimates",
+  "見積りの数をそのまま座標にして点で置く四象限図": "A four-quadrant chart that places points at the estimate numbers themselves",
   "手間と価値の見積りを分けて直し、枠の中身だけが入れ替わる四象限図": "A four-quadrant chart where effort and value are revised separately and only the contents of the boxes move",
   "手間の見積りを直す": "Revise the effort estimates",
   "抜けが最も大きい一か所を直すと後ろが順に増える漏斗": "A funnel where fixing the single biggest leak lifts everything after it",
