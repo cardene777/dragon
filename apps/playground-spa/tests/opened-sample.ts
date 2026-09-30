@@ -18,9 +18,17 @@ import { expect, type Page } from "@playwright/test";
  * それが出ていないことを見れば足りる。 綴り違いと hash 経路の壊れも同じ 1 行で捕まる。
  *
  * spec 同士は import できない (Playwright が禁じる) ため、 helper を別 file に置く。
+ *
+ * **知らせは見本の名前まで見て絞る** (#2745)。 見本は `editor#preset=<名前>` で開くので、
+ * 場所の `#` から後ろだけが変わる移動では画面が作り直されず、前の見本で出た知らせが残る。
+ * 「未登録です」 だけで数えると、落ちた名前が 1 つ後ろの見本にずれる
+ * (実測 = `solidity` が開けないのに `bar` が開けていないと報告された)。
+ * 知らせの文は開こうとした名前を含むので、名前で絞れば前の残りを拾わない。
  */
 export async function 見本が開けたことを確かめる(page: Page, slug: string): Promise<void> {
-  const 未登録 = page.locator('[role="status"]', { hasText: "未登録です" });
+  const 未登録 = page
+    .locator('[role="status"]', { hasText: "未登録です" })
+    .filter({ hasText: `「${slug}」` });
   expect(
     await 未登録.count(),
     `見本 "${slug}" が開けていない (消えた slug を指しているか、 綴りが違う)`,
