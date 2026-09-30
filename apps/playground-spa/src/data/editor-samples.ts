@@ -381,19 +381,19 @@ animation:
 `,
   },
   {
-    label: "今月の解約率 (stat)",
+    label: "今月の解約件数 (stat)",
     labelEn: "Churn this month (stat)",
     slug: "stat",
-    code: `title: "今月の解約率"
+    code: `title: "今月の解約件数"
 type: chart
 shape: stat
 
 actors:
-  - 解約率: { value: "24", previous: "38" }
+  - 解約件数: { value: "24", previous: "38" }
 
 animation:
   - step: "reveal" 2.0s
-    focus: [解約率]
+    focus: [解約件数]
 `,
   },
   {
