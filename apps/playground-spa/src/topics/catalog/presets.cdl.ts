@@ -2383,7 +2383,7 @@ export const presetQuadrant = withSteps(
 export const patternBase__presetQuadrant = "簡単";
 
 /**
- * 四象限図の複雑な版 (#2187)。
+ * マトリクス図の複雑な版 (#2187)。
  *
  * 簡単な版は 4 項目 (各枠に 1 つ) で、動くのは 1 項目が枠を 1 回移るだけ。 実際に読み取りが
  * 要るのは「見直しで何件かが枠を移り、どの枠が厚くなるか」 で、1 項目の 1 回の移動では描けない。
@@ -2417,7 +2417,7 @@ const QUADRANT_COMPLEX_ITEMS = [
 
 const quadrantComplexBuilder = quadrant({
   id: "quad-complex-demo",
-  topic: "手間と価値の見積りを分けて直し、枠の中身だけが入れ替わる四象限図",
+  topic: "手間と価値の見積りを分けて直し、枠の中身だけが入れ替わるマトリクス図",
   xAxis: { left: "労力が小さい", right: "労力が大きい" },
   yAxis: { bottom: "価値が低い", top: "価値が高い" },
   // 簡単な版と同じ軸なので、同じ名前を当てる。 軸が同じで名前が違うと読み方が定まらない
@@ -2498,7 +2498,7 @@ export const pattern__presetQuadrant__複雑 = withSteps(
 );
 
 /**
- * 四象限図を座標で置く版 (#2681)。
+ * マトリクス図を座標で置く版 (#2681)。
  *
  * 枠 (`quadrant`) で置くと 1 つの枠に 3 件までしか描かれない (複雑な版の comment)。
  * `at` に 0 から 1 の座標を書くと枠ではなく点で置かれ、同じ枠に 4 件あっても全部出る。
@@ -2526,7 +2526,7 @@ const QUADRANT_AT_ITEMS = [
 
 const quadrantAtBuilder = quadrant({
   id: "quad-at-demo",
-  topic: "見積りの数をそのまま座標にして点で置く四象限図",
+  topic: "見積りの数をそのまま座標にして点で置くマトリクス図",
   xAxis: { left: "労力が小さい", right: "労力が大きい" },
   yAxis: { bottom: "価値が低い", top: "価値が高い" },
   quadrantLabels: {
