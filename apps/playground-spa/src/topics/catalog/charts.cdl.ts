@@ -602,33 +602,60 @@ export const sourceYaml__pattern__ganttTimeline__帯だけ = `title: "四半期�
 type: gantt
 
 actors:
-  - 調査: "1月"
-  - 試作: "2月"
-  - 検証: "4月"
+  - 調査: { value: "1月", end: "{survey_end}" }
+  - 試作: { value: "2月", end: "{proto_end}" }
+  - 検証: { value: "4月", end: "{check_end}" }
   - 公開: "5月"
+
+states:
+  survey_end: 0
+  proto_end: 1
+  check_end: 2
 
 animation:
   - step: "帯を引く" 1.2s
     draw: gantt
     description: "前後の矢印は出ず、帯だけが始まりから右へ伸びる。"
+  - step: "調査が延びる" 1.2s
+    tween:
+      survey_end: 0 -> 1
+    description: "調査が 2 月まで食い込む。 矢印は出さず、帯の長さだけで伝える。"
+  - step: "後ろが押される" 1.2s
+    tween:
+      proto_end: 1 -> 2
+      check_end: 2 -> 3
+    description: "試作と検証が順に押され、検証が公開の月に重なる。"
 `;
 
 export const sourceJson__pattern__ganttTimeline__帯だけ = `{
   "title": "四半期ごとの持ち場",
   "type": "gantt",
   "actors": [
-    { "name": "調査", "subtitle": "1月" },
-    { "name": "試作", "subtitle": "2月" },
-    { "name": "検証", "subtitle": "4月" },
+    { "name": "調査", "subtitle": "1月", "end": "{survey_end}" },
+    { "name": "試作", "subtitle": "2月", "end": "{proto_end}" },
+    { "name": "検証", "subtitle": "4月", "end": "{check_end}" },
     { "name": "公開", "subtitle": "5月" }
   ],
   "flow": [],
+  "states": { "survey_end": 0, "proto_end": 1, "check_end": 2 },
   "animation": [
     {
       "step": "帯を引く",
       "duration": 1.2,
       "draw": "gantt",
       "description": "前後の矢印は出ず、帯だけが始まりから右へ伸びる。"
+    },
+    {
+      "step": "調査が延びる",
+      "duration": 1.2,
+      "description": "調査が 2 月まで食い込む。 矢印は出さず、帯の長さだけで伝える。",
+      "tween": { "survey_end": [0, 1] }
+    },
+    {
+      "step": "後ろが押される",
+      "duration": 1.2,
+      "description": "試作と検証が順に押され、検証が公開の月に重なる。",
+      "tween": { "proto_end": [1, 2], "check_end": [2, 3] }
     }
   ]
 }`;
