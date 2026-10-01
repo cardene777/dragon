@@ -97,6 +97,17 @@ theme の visual metaphor と照合し、 既存 parts で 100% 賄えるか判�
 
 新規 parts なしなら本 step skip、 Step 5 へ直進。
 
+### Step 4.5. 組み方の案を見せて選んでもらう
+
+**同じ題材で組み方が 2 通り以上ある時は `/dragon-propose` を起動する**。
+視覚表現 (bar race / gauge / flow / timeline / state machine) の選び方や、lane の分け方が
+割れた時が該当する。
+
+候補ごとに実寸の図を撮って渡し、選ばれた案で Step 5 へ進む。
+選ばずに作ると、出来てから作り直すことになる。
+
+組み方が 1 通りしか無い (題材から自明) 時は飛ばす。
+
 ### Step 5. Composite exemplar 生成
 
 `apps/playground-spa/src/topics/catalog/animation.cdl.ts` に composite exemplar を追加:
