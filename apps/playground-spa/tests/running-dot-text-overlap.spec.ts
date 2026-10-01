@@ -17,6 +17,7 @@ import { 一覧が落ち着くまで待つ, 形が落ち着くまで待つ } fro
  */
 
 const 被りの上限 = 0.05; // 文字の枠の面積に対する割合
+const 覆う段差 = 40; // 1 画素の色がこれより大きくずれたら、丸が覆ったとみなす
 const 舞台 = "svg[data-cdl-stage]";
 const 流れ = `${舞台} [data-cdl-role="edge-flow"]`;
 const 端の数 = `${舞台} [data-cdl-role="edge-end-label"]`;
@@ -139,7 +140,18 @@ async function 写す(page: Page, t: number, 丸あり: boolean) {
   return PNG.sync.read(await page.screenshot());
 }
 
-/** 枠の中で、丸のある写しとない写しで色が変わった画素の割合を返す。 */
+/**
+ * 枠の中で、丸のある写しとない写しで色が変わった画素の割合を返す。
+ *
+ * 「変わった」 とみなす段差を 40 に取る (#2772)。
+ * 丸の芯は紙の色の上に線の色を置くので、重なった画素は 120 前後ずれる。
+ * 波のにじみは離れるほど薄くなり、数の所では 40 以下にしかならない。
+ * 実測は 段差 20 で 4.8% / 段差 40 で 1.5% / 段差 60 で 0 件 と離れており、
+ * 「丸が字を覆った」 と「波が字のまわりを染めた」 の間に広い間がある。
+ *
+ * 1 画素でも違えば数える形 (段差 3) にすると、広がる波そのものを被りとして数える。
+ * 波は図の端まで広がる作りなので、それを被りと呼ぶと上限は永久に満たせない。
+ */
 function 変わった割合(あり: PNG, なし: PNG, f: 枠, 倍: number) {
   const x0 = Math.floor(f.x * 倍);
   const y0 = Math.floor(f.y * 倍);
@@ -150,7 +162,7 @@ function 変わった割合(あり: PNG, なし: PNG, f: 枠, 倍: number) {
     for (let x = x0; x < x1; x++) {
       const i = (y * あり.width + x) * 4;
       const 差分 = (k: number) => Math.abs((あり.data[i + k] ?? 0) - (なし.data[i + k] ?? 0));
-      if (差分(0) > 3 || 差分(1) > 3 || 差分(2) > 3) 差 += 1;
+      if (差分(0) > 覆う段差 || 差分(1) > 覆う段差 || 差分(2) > 覆う段差) 差 += 1;
     }
   }
   const 面積 = (x1 - x0) * (y1 - y0);
@@ -275,7 +287,7 @@ test.describe("線の上を走る丸", () => {
     expect(超過.map(([文, v]) => `${文} ${(v * 100).toFixed(1)}%`).join(" / ")).toBe("");
   });
 
-  test("丸は紙の色の芯がにじみ、外の 2 枚が波になって広がる", async ({ page }) => {
+  test("丸は線の色の芯がにじみ、外の 2 枚が波になって広がる", async ({ page }) => {
     await 見本を開く(page, "er-demo");
     await page.locator(`${舞台} [data-cdl-node]`).first().hover();
     await page.waitForSelector(流れ, { state: "attached" });
@@ -301,12 +313,15 @@ test.describe("線の上を走る丸", () => {
           .flatMap((a) => (a.effect as KeyframeEffect | null)?.getKeyframes() ?? [])
           .map((k) => Number.parseFloat(String((k as { r?: string }).r ?? "NaN")))
           .filter((v) => Number.isFinite(v));
+      const 線 = getComputedStyle(s).getPropertyValue("--er-line").trim();
       const 芯 = 丸[丸.length - 1] as Element;
       return {
         枚数: 丸.length,
         芯の塗り: getComputedStyle(芯).fill,
+        芯の縁: getComputedStyle(芯).stroke,
         芯のにじみ: getComputedStyle(芯).filter,
         紙の色: 色(紙),
+        線の色: 色(線),
         外の塗り: 丸.slice(0, 2).map((c) => getComputedStyle(c).fill),
         波の行き先: 丸.slice(0, 2).map((c) => Math.max(...行き先(c), 0)),
         半径: 丸.map((c) => c.getBoundingClientRect().width),
@@ -315,8 +330,10 @@ test.describe("線の上を走る丸", () => {
 
     // 1 本の線につき 3 枚。 枚数は赤ペンの回答どおり変えない
     expect(実.枚数 % 3, `丸の枚数 ${実.枚数}`).toBe(0);
-    // 芯は紙の色で抜き、まわりへ光をにじませる (#2770)
-    expect(実.芯の塗り).toBe(実.紙の色);
+    // 芯は線の色で塗り、台の色の縁で囲い、まわりへ光をにじませる (#2772)。
+    // 塗りと縁が逆だと、中身が台と同じ色になって線に開いた泡に見える
+    expect(実.芯の塗り).toBe(実.線の色);
+    expect(実.芯の縁).toBe(実.紙の色);
     expect(実.芯のにじみ, "芯がにじんでいない").toContain("drop-shadow");
     // 外の 2 枚は塗らない輪。 塗ると波ではなく塊になる
     expect(実.外の塗り).toEqual(["none", "none"]);
@@ -341,8 +358,6 @@ test.describe("線の上を走る丸", () => {
 
     const 実 = await page.evaluate(() => {
       const s = document.querySelector("svg[data-cdl-stage]") as SVGSVGElement;
-      const t = s.querySelector('[data-cdl-role="edge-end-label"]') as SVGTextElement;
-      const cs = getComputedStyle(t);
       const 紙 = getComputedStyle(s).getPropertyValue("--er-ground").trim();
       const 色 = (v: string) => {
         const c = document.createElement("span");
@@ -352,12 +367,57 @@ test.describe("線の上を走る丸", () => {
         c.remove();
         return out;
       };
-      return { 縁: cs.stroke, 幅: cs.strokeWidth, 描き順: cs.paintOrder, 紙の色: 色(紙) };
+      /*
+       * 下敷きが線の芯まで届いていないかを、実物の隙間から見る (#2772)。
+       *
+       * 下敷きは字の外側へ **幅の半分** だけ伸びる。 数と線の隙間より半分が大きいと、
+       * 下敷きが線の芯を塗り潰し、線がその場所だけ途切れて見える。
+       * 実測では 幅 16 が線を 80% 削り、幅 8 は 23% で、削れたことが目で分からない。
+       *
+       * 数の属する線は親を辿っても見つからない。 描く側は数を線より後の段で、
+       * 図の直下に置くため、数と線は親子にならない。
+       * 横に重なる線のうち、数のすぐ上にあるものを相手にする。
+       *
+       * 隙間は横に走る線で測る。 縦の線は囲い枠の高さが線の長さになるので、
+       * 数との上下の隙間を表さない。
+       */
+      const 倍 = s.getScreenCTM()?.a ?? 1;
+      const 横線 = [...s.querySelectorAll('[data-cdl-role="edge-line"]')]
+        .map((l) => l.getBoundingClientRect())
+        .filter((r) => r.width > r.height);
+      const 横の数 = [...s.querySelectorAll('[data-cdl-role="edge-end-label"]')]
+        .map((t) => {
+          const tr = t.getBoundingClientRect();
+          // 数は線の下に置かれる。 線の芯から数の上端までが隙間 (図の寸法に直す)
+          const 隙間 = 横線
+            .filter((lr) => tr.x + tr.width > lr.x && tr.x < lr.x + lr.width && lr.y < tr.y)
+            .map((lr) => (tr.y - lr.y) / 倍)
+            .sort((a, b) => a - b)[0];
+          return 隙間 === undefined ? null : { 隙間, 文: t.textContent ?? "" };
+        })
+        .filter((x): x is { 隙間: number; 文: string } => x !== null);
+      const t = s.querySelector('[data-cdl-role="edge-end-label"]') as SVGTextElement;
+      const cs = getComputedStyle(t);
+      return {
+        縁: cs.stroke,
+        幅: cs.strokeWidth,
+        描き順: cs.paintOrder,
+        紙の色: 色(紙),
+        隙間: 横の数,
+      };
     });
 
     expect(実.縁).toBe(実.紙の色);
-    expect(parseFloat(実.幅)).toBeGreaterThanOrEqual(16);
+    // 下敷きが無いと、丸が通るたびに数が読めなくなる
+    expect(parseFloat(実.幅), "下敷きが敷かれていない").toBeGreaterThan(0);
     // 下敷きは字の下に敷く。 字の上に来ると数が読めなくなる
     expect(実.描き順).toContain("stroke");
+
+    // 幅の半分が隙間を超えると線が途切れる (#2772)。 上限は実物の隙間から導く
+    expect(実.隙間.length, "横に走る線の数を 1 つも測れなかった").toBeGreaterThan(0);
+    const 超え = 実.隙間
+      .filter((x) => parseFloat(実.幅) / 2 > x.隙間)
+      .map((x) => `${x.文} 隙間 ${x.隙間.toFixed(1)}`);
+    expect(超え.join(" / "), `下敷き ${実.幅} の半分が線の芯まで届く数`).toBe("");
   });
 });
