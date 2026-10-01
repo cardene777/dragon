@@ -729,12 +729,17 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-label"] {
    明暗で値を分けないのは `--er-ground` が配色ごとに切り替わるため。
 
    にじみを濃さの薄い 2 枚ではなく この 1 枚に置くのは、外の 2 枚の濃さが 0.18 と 0.45 に
-   固定されていて、ぼかすと地に溶けて消えるため。 濃さ 1 のこの円だけが光を出せる。 */
+   固定されていて、ぼかすと地に溶けて消えるため。 濃さ 1 のこの円だけが光を出せる。
+
+   **芯の外側を 11 より太くしない** (#2776)。 描く側は丸の通り道を「印の長さ + 芯の半径 11」
+   だけ両端から縮めて、丸が端の印に重ならないようにしている。 半径と縁の半分の和が 11 を
+   超えると縮めた意味が消え、芯が印にはみ出して印に穴が開いたように見える。
+   いまの値は 9 + 1.75 = 10.75。 */
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="11"] {
-  r: 6px !important;
+  r: 9px !important;
   fill: var(--er-line) !important;
   stroke: var(--er-ground) !important;
-  stroke-width: 3px;
+  stroke-width: 3.5px;
   filter: drop-shadow(0 0 6px var(--er-line));
 }
 
