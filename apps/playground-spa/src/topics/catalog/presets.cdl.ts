@@ -1867,8 +1867,16 @@ export const presetUserJourney = withSteps(
       .build(),
     (n) => ({
       ...n,
+      // 4 段すべてを状態から取る (#2766)。 1 段だけを動かしていた間は、53 本の要素のうち
+      // 4 本しか変わらず、引き終わると静止画と区別が付かなかった (実測で動いた割合 8%)
       journeyData: n.journeyData?.map((s) =>
-        s.id === "form" ? { ...s, emotion: "{form_mood}" } : s,
+        s.id === "land"
+          ? { ...s, emotion: "{land_mood}" }
+          : s.id === "form"
+            ? { ...s, emotion: "{form_mood}" }
+            : s.id === "verify"
+              ? { ...s, emotion: "{verify_mood}" }
+              : { ...s, emotion: "{done_mood}" },
       ),
     }),
   ),
@@ -1879,15 +1887,37 @@ export const presetUserJourney = withSteps(
       draw: ["journey-demo-journey"],
       duration: DRAW_DURATION,
       title: "改善前",
-      body: "登録の入力で気持ちが落ちる。",
-      sets: [{ id: "form_mood", value: "frustrated" }],
+      body: "登録の入力で気持ちが落ち、確認でも戻り切らない。",
+      sets: [
+        { id: "land_mood", value: "neutral" },
+        { id: "form_mood", value: "frustrated" },
+        { id: "verify_mood", value: "neutral" },
+        { id: "done_mood", value: "happy" },
+      ],
     },
     {
-      body: "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。",
-      sets: [{ id: "form_mood", value: "happy" }],
+      title: "入力を直す",
+      body: "入力の作りを直すと、その段階と次の確認が同時に上がる。 曲線の高さを状態から取っている。",
+      sets: [
+        { id: "form_mood", value: "happy" },
+        { id: "verify_mood", value: "happy" },
+      ],
+    },
+    {
+      body: "訪れた直後に案内を足すと、4 つの段が揃って持ち上がる。",
+      sets: [
+        { id: "land_mood", value: "happy" },
+        { id: "verify_mood", value: "delighted" },
+        { id: "done_mood", value: "delighted" },
+      ],
     },
   ],
-  [{ id: "form_mood", initial: "frustrated" }],
+  [
+    { id: "land_mood", initial: "neutral" },
+    { id: "form_mood", initial: "frustrated" },
+    { id: "verify_mood", initial: "neutral" },
+    { id: "done_mood", initial: "happy" },
+  ],
 );
 
 export const patternBase__presetTree = "簡単";
@@ -4187,13 +4217,16 @@ lanes:
   chart: { width: 720 }
 
 actors:
-  - サイトを訪れる: { value: "普通", touchpoint: "サイト" }
+  - サイトを訪れる: { value: "{land_mood}", touchpoint: "サイト" }
   - 登録の入力: { value: "{form_mood}", touchpoint: "入力画面", opportunity: "入力のしやすさを直す" }
-  - メールの確認: { value: "満足", touchpoint: "メール" }
-  - 管理画面を開く: { value: "最高", touchpoint: "管理画面" }
+  - メールの確認: { value: "{verify_mood}", touchpoint: "メール" }
+  - 管理画面を開く: { value: "{done_mood}", touchpoint: "管理画面" }
 
 states:
+  land_mood: "普通"
   form_mood: "不満"
+  verify_mood: "普通"
+  done_mood: "満足"
 
 animation:
   - step: "改善前" 2.4s
@@ -4201,14 +4234,26 @@ animation:
     focus: ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"]
     draw: journey
     set:
+      land_mood: "普通"
       form_mood: "不満"
-    body: "登録の入力で気持ちが落ちる。"
-  - step: "登録が済むまでの道のり" 0.9s
+      verify_mood: "普通"
+      done_mood: "満足"
+    body: "登録の入力で気持ちが落ち、確認でも戻り切らない。"
+  - step: "入力を直す" 0.9s
     badge: "journey"
     focus: ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"]
     set:
       form_mood: "満足"
-    body: "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。"
+      verify_mood: "満足"
+    body: "入力の作りを直すと、その段階と次の確認が同時に上がる。 曲線の高さを状態から取っている。"
+  - step: "登録が済むまでの道のり" 0.9s
+    badge: "journey"
+    focus: ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"]
+    set:
+      land_mood: "満足"
+      verify_mood: "最高"
+      done_mood: "最高"
+    body: "訪れた直後に案内を足すと、4 つの段が揃って持ち上がる。"
 `;
 
 export const sourceJson__presetUserJourney = `{
@@ -4217,35 +4262,53 @@ export const sourceJson__presetUserJourney = `{
   "eyebrow": "道のり",
   "lanes": { "chart": {"width": 720} },
   "actors": [
-    { "name": "サイトを訪れる", "value": "普通", "touchpoint": "サイト" },
+    { "name": "サイトを訪れる", "value": "{land_mood}", "touchpoint": "サイト" },
     {
       "name": "登録の入力",
       "value": "{form_mood}",
       "touchpoint": "入力画面",
       "opportunity": "入力のしやすさを直す"
     },
-    { "name": "メールの確認", "value": "満足", "touchpoint": "メール" },
-    { "name": "管理画面を開く", "value": "最高", "touchpoint": "管理画面" }
+    { "name": "メールの確認", "value": "{verify_mood}", "touchpoint": "メール" },
+    { "name": "管理画面を開く", "value": "{done_mood}", "touchpoint": "管理画面" }
   ],
   "flow": [],
-  "states": { "form_mood": "不満" },
+  "states": {
+    "land_mood": "普通",
+    "form_mood": "不満",
+    "verify_mood": "普通",
+    "done_mood": "満足"
+  },
   "animation": [
     {
       "step": "改善前",
       "duration": 2.4,
       "focus": ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"],
       "draw": "journey",
-      "body": "登録の入力で気持ちが落ちる。",
+      "body": "登録の入力で気持ちが落ち、確認でも戻り切らない。",
       "badge": "journey",
-      "set": { "form_mood": "不満" }
+      "set": {
+        "land_mood": "普通",
+        "form_mood": "不満",
+        "verify_mood": "普通",
+        "done_mood": "満足"
+      }
+    },
+    {
+      "step": "入力を直す",
+      "duration": 0.9,
+      "focus": ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"],
+      "body": "入力の作りを直すと、その段階と次の確認が同時に上がる。 曲線の高さを状態から取っている。",
+      "badge": "journey",
+      "set": { "form_mood": "満足", "verify_mood": "満足" }
     },
     {
       "step": "登録が済むまでの道のり",
       "duration": 0.9,
       "focus": ["サイトを訪れる", "登録の入力", "メールの確認", "管理画面を開く"],
-      "body": "入力の作りを直すと、その段階の気持ちだけが上がる。 曲線の高さを状態から取っている。",
+      "body": "訪れた直後に案内を足すと、4 つの段が揃って持ち上がる。",
       "badge": "journey",
-      "set": { "form_mood": "満足" }
+      "set": { "land_mood": "満足", "verify_mood": "最高", "done_mood": "最高" }
     }
   ]
 }`;
