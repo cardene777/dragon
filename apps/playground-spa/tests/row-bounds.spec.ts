@@ -27,7 +27,7 @@ import { 一覧の行 } from "./catalog-item-pick";
  * 出す文字の範囲を押さえるもので、 任意の文字列に対する上限ではない。 文字列ごとの実寸は
  * font に依存し、 実ブラウザでしか取れない。
  *
- * ## 検査対象は見本のうち行を持つもの (`EXPECTED` の一覧)
+ * ## 検査対象は見本のうち行を持つもの (`SOURCES` から導く)
  *
  * 見本の頁は 1 件ずつ表示する形なので、 行を持つ見本を **id で名指しして開く**。 頁を開く
  * だけだと既定で選ばれた 1 件しか DOM に出ず、 行が 0 件のまま「違反なし」 になる
@@ -96,12 +96,37 @@ const hasRows = (d: CdlDiagram): boolean =>
   d.nodes.some((n) => Array.isArray(n.rows) && n.rows.length > 0);
 
 /**
- * 行を持つ見本の **期待一覧**。 検査対象そのものから導かない。
+ * **最低限これは在る** 一覧 (#2731)。 検査対象そのものから導かない。
  *
  * 導くと、 見本から `rows` が消えても / category を落としても残り 1 件で全 test が通る =
- * 対象が減ったことを検知できない。 現在の値を固定して、 増減を必ず気付く形にする。
+ * 対象が減ったことを検知できない。
+ *
+ * ## 増えた時には落とさない
+ *
+ * かつては一覧と実物の完全一致を見ていた。 一覧には 2 つの役目があり、**片方は増える向きで
+ * 壊れる**。
+ *
+ * | 役目 | 増えた時 | 減った時 |
+ * |---|---|---|
+ * | 見本から行が消えたら落ちる | — | 落ちる (欲しい) |
+ * | 行を持つ見本を全部見る | 落ちる (落ちてほしくない) | — |
+ *
+ * 行を持つ見本が増えるのは正常な出来事なので、そこで落ちると「見本を足した PR が検査を
+ * 赤くする」 形になる。 赤いまま気付かれずに積み上がり、同じ取りこぼしが 3 回起きた
+ * (#1709 で 2 枚、#2274 で 15 本、#2730 で 4 枚)。
+ *
+ * **だから一覧は下限として読む**。 各件が今も行を持ち、行数が記録を下回らないことだけを見る。
+ * 増えた分は件数を出すだけで落とさない。
+ *
+ * 行を持つ見本を全部測る側は一覧に依らない = `TARGETS` は `SOURCES` から導いており、
+ * 一覧に無い見本も 1 件ずつ開いて測る。 一覧が緩んでも測る範囲は狭まらない。
+ *
+ * ## `rows` は記録した時点の行数
+ *
+ * 下回ったら落とす。 上回る分は落とさないので、書き直して行が増えた回に一覧を直す必要は無い
+ * (直せば下限が上がるだけで、どちらでもよい)。
  */
-const EXPECTED: Array<{ slug: string; id: string; rows: number }> = [
+const 必ず在る見本: Array<{ slug: string; id: string; rows: number }> = [
   /*
    * `#1466` で 4 図を設計どおりに書き直した分を反映した (#1479 で実測)。
    *
@@ -228,16 +253,38 @@ test.describe("行の文字が枠に収まっている (cdl#390)", () => {
     expect([...群ごとの頁.map((g) => g.群)].sort()).toEqual(実在する群());
   });
 
-  test("行を持つ見本の一覧が期待どおり", () => {
-    // 見本から `rows` が消えた / 増えた / category が落ちた を検知する。 対象が減ると
-    // 以下の test は残った分だけで通ってしまい、 減ったことに気付けない。
-    const actual = TARGETS.map(({ slug, diagram }) => ({
-      slug,
-      id: diagram.id,
-      rows: rowCount(diagram),
-    })).sort((a, b) => (a.slug + a.id).localeCompare(b.slug + b.id));
-    const expected = [...EXPECTED].sort((a, b) => (a.slug + a.id).localeCompare(b.slug + b.id));
-    expect(actual).toEqual(expected);
+  test("一覧の見本が今も行を持ち、行数が減っていない (#2731)", () => {
+    // 見本から `rows` が消えた / category が落ちた を検知する。 対象が減ると以下の test は
+    // 残った分だけで通ってしまい、減ったことに気付けない。
+    //
+    // **増えた分では落とさない**。 行を持つ見本が増えるのは正常な出来事で、そこで落とすと
+    // 見本を足した PR が赤くなる (一覧の説明を参照)。
+    expect(必ず在る見本.length, "一覧が空 (検査が空振りしている)").toBeGreaterThan(0);
+    expect(TARGETS.length, "行を持つ見本が 1 件も無い (走査が壊れている)").toBeGreaterThan(0);
+
+    const 鍵 = (x: { slug: string; id: string }) => `${x.slug}/${x.id}`;
+    const 実物 = new Map(TARGETS.map(({ slug, diagram }) => [鍵({ slug, id: diagram.id }), rowCount(diagram)]));
+
+    expect(
+      必ず在る見本.filter((e) => !実物.has(鍵(e))).map(鍵),
+      "一覧に在る見本が行を持たなくなった",
+    ).toEqual([]);
+
+    expect(
+      必ず在る見本
+        .filter((e) => (実物.get(鍵(e)) ?? 0) < e.rows)
+        .map((e) => `${鍵(e)} ${実物.get(鍵(e))} 行 (記録は ${e.rows} 行)`),
+      "一覧に在る見本の行数が減った",
+    ).toEqual([]);
+
+    // 走査した件数を出す。 一覧外が増えても落とさないので、何件増えたかは記録で見る
+    const 一覧外 = [...実物.keys()].filter((k) => !必ず在る見本.some((e) => 鍵(e) === k));
+    test.info().annotations.push({
+      type: "行を持つ見本",
+      description: `走査 ${実物.size} 件 / 一覧 ${必ず在る見本.length} 件 / 一覧外 ${一覧外.length} 件${
+        一覧外.length > 0 ? ` (${一覧外.join(" / ")})` : ""
+      }`,
+    });
   });
 
   for (const { slug, diagram } of TARGETS) {
