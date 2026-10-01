@@ -520,10 +520,15 @@ export const sourceYaml__ganttTimeline = `title: "公開までの段取り"
 type: gantt
 
 actors:
-  - 設計: "1月"
-  - 実装: "2月"
-  - 検証: "4月"
+  - 設計: { value: "1月", end: "{design_end}" }
+  - 実装: { value: "2月", end: "{build_end}" }
+  - 検証: { value: "4月", end: "{test_end}" }
   - 公開: "5月"
+
+states:
+  design_end: 0
+  build_end: 1
+  test_end: 2
 
 flow:
   - 設計 -> 実装: ""
@@ -531,18 +536,27 @@ flow:
   - 検証 -> 公開: ""
 
 animation:
-  - step: "段取りを引く" 1.2s
+  - step: "当初の計画" 1.2s
     draw: gantt
     description: "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る。"
+  - step: "設計が延びる" 1.2s
+    tween:
+      design_end: 0 -> 1
+    description: "設計が 2 月まで食い込む。 帯の終わりを状態から取っている。"
+  - step: "後ろが押される" 1.2s
+    tween:
+      build_end: 1 -> 2
+      test_end: 2 -> 3
+    description: "実装と検証が順に押され、検証が公開の月に重なる。"
 `;
 
 export const sourceJson__ganttTimeline = `{
   "title": "公開までの段取り",
   "type": "gantt",
   "actors": [
-    { "name": "設計", "subtitle": "1月" },
-    { "name": "実装", "subtitle": "2月" },
-    { "name": "検証", "subtitle": "4月" },
+    { "name": "設計", "subtitle": "1月", "end": "{design_end}" },
+    { "name": "実装", "subtitle": "2月", "end": "{build_end}" },
+    { "name": "検証", "subtitle": "4月", "end": "{test_end}" },
     { "name": "公開", "subtitle": "5月" }
   ],
   "flow": [
@@ -550,12 +564,25 @@ export const sourceJson__ganttTimeline = `{
     { "from": "実装", "to": "検証", "label": "" },
     { "from": "検証", "to": "公開", "label": "" }
   ],
+  "states": { "design_end": 0, "build_end": 1, "test_end": 2 },
   "animation": [
     {
-      "step": "段取りを引く",
+      "step": "当初の計画",
       "duration": 1.2,
       "draw": "gantt",
       "description": "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る。"
+    },
+    {
+      "step": "設計が延びる",
+      "duration": 1.2,
+      "description": "設計が 2 月まで食い込む。 帯の終わりを状態から取っている。",
+      "tween": { "design_end": [0, 1] }
+    },
+    {
+      "step": "後ろが押される",
+      "duration": 1.2,
+      "description": "実装と検証が順に押され、検証が公開の月に重なる。",
+      "tween": { "build_end": [1, 2], "test_end": [2, 3] }
     }
   ]
 }`;
@@ -617,44 +644,58 @@ export const sourceYaml__journeyMap = `title: "初めて使うまで"
 type: journey
 
 actors:
-  - 知る: "普通"
+  - 知る: "{know}"
   - 登録: "{signup}"
   - 設定: "{setup}"
-  - 初回の成功: "最高"
+  - 初回の成功: "{win}"
 
 states:
+  know: "普通"
   signup: "不満"
-  setup: "満足"
+  setup: "普通"
+  win: "満足"
 
 animation:
   - step: "改善前" 1.2s
     draw: journey
-    description: "登録でつまずき、設定でようやく持ち直す。"
-  - step: "改善後" 1.2s
+    description: "登録でつまずき、設定も普通のまま終わる。"
+  - step: "登録を直す" 1.2s
     set:
       signup: "満足"
+      setup: "満足"
+    description: "入力の作りを直すと、登録とその次の山が同時に上がる。"
+  - step: "案内も足す" 1.2s
+    set:
+      know: "満足"
       setup: "最高"
-    description: "登録の作りを直すと、その後の山も上がる。"
+      win: "最高"
+    description: "知る段階に案内を足すと、4 つの段全部が持ち上がる。"
 `;
 
 export const sourceJson__journeyMap = `{
   "title": "初めて使うまで",
   "type": "journey",
   "actors": [
-    { "name": "知る", "subtitle": "普通" },
+    { "name": "知る", "subtitle": "{know}" },
     { "name": "登録", "subtitle": "{signup}" },
     { "name": "設定", "subtitle": "{setup}" },
-    { "name": "初回の成功", "subtitle": "最高" }
+    { "name": "初回の成功", "subtitle": "{win}" }
   ],
   "flow": [],
-  "states": { "signup": "不満", "setup": "満足" },
+  "states": { "know": "普通", "signup": "不満", "setup": "普通", "win": "満足" },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "draw": "journey", "description": "登録でつまずき、設定でようやく持ち直す。" },
+    { "step": "改善前", "duration": 1.2, "draw": "journey", "description": "登録でつまずき、設定も普通のまま終わる。" },
     {
-      "step": "改善後",
+      "step": "登録を直す",
       "duration": 1.2,
-      "description": "登録の作りを直すと、その後の山も上がる。",
-      "set": { "signup": "満足", "setup": "最高" }
+      "description": "入力の作りを直すと、登録とその次の山が同時に上がる。",
+      "set": { "signup": "満足", "setup": "満足" }
+    },
+    {
+      "step": "案内も足す",
+      "duration": 1.2,
+      "description": "知る段階に案内を足すと、4 つの段全部が持ち上がる。",
+      "set": { "know": "満足", "setup": "最高", "win": "最高" }
     }
   ]
 }`;
