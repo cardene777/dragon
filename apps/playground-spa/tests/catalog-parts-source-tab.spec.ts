@@ -1,7 +1,7 @@
 /**
  * 基本パーツの見本でコードのタブが押せることの検査 (#1381)。
  *
- * この 80 件は箱の中の図形と、値を見せる部品を組み合わせた「使い回す部品」 で、記法に
+ * ここに並ぶのは箱の中の図形と、値を見せる部品を組み合わせた「使い回す部品」 で、記法に
  * 3 つ足りなかったため 1 件も記法を持てなかった (部品の種類が 9 種しか無い / 場所だけを
  * 空ける見えない箱を書けない / 名前と題を切り離せない)。
  *
@@ -11,10 +11,43 @@
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test catalog-parts-source-tab`
  */
 import { test, expect } from "@playwright/test";
+import * as parts from "../src/topics/catalog/parts.cdl";
+import * as partsInBox from "../src/topics/catalog/parts-in-box.cdl";
+import * as partsMotion from "../src/topics/catalog/parts-motion.cdl";
+import { moduleToItems } from "../src/lib/catalog-items";
 import { 一覧の行 } from "./catalog-item-pick";
 import { 一覧が落ち着くまで待つ } from "./wait-for-render";
 
 type Page = import("@playwright/test").Page;
+
+/**
+ * 部品の頁に並ぶ件数。 **一覧の実体から導く** (#2762)。
+ *
+ * 頁は 3 つの群を 1 つの一覧に並べる (`parts` / `parts-in-box` / `parts-motion`)。
+ * 件数を手で書くと、群に図を足した日にずれる。
+ *
+ * **数えるのは頁が一覧を組む関数に通した結果**。 群の export をそのまま数えると合わない =
+ * 切替を持つ見本は複数の図を export して 1 行に並ぶので、export を数えると 148 件になる
+ * (画面は 112 行)。 `moduleToItems` は `loadPartsItems` が頁のために呼ぶ関数そのもの。
+ *
+ * 画面で数えた件数と一致することは下の検査が見る = 導いた数が実際の一覧と違ったら落ちる。
+ */
+const 並ぶ件数 = [parts, partsInBox, partsMotion].reduce(
+  (n, mod) => n + moduleToItems(mod).length,
+  0,
+);
+
+/**
+ * 1 件の検査が押す回数 (#2762)。
+ *
+ * 持ち時間は 1 件の単位で与えられるので、1 件に詰め込む回数を増やすと 1 回あたりの余裕が
+ * その数で割られる。 一覧の全 112 行を 1 件で押していた時は 1 回あたり 0.54 秒しかなく、
+ * 検査一式の中で 60 秒を超えた (実測 = 単独なら 5.8 秒、一式では 57 件目の押す操作で止まる)。
+ *
+ * 10 回に区切ると 1 回あたり 6 秒になる。 同じ形は #2757 が 1 度目 (5 画面 × 写し 2 枚を
+ * 1 件に詰め込んで 20.8 秒かかっていた)。
+ */
+const 一度に押す回数 = 10;
 
 async function 開く(page: Page, 名前: string): Promise<void> {
   await page.goto("catalog/parts", { waitUntil: "networkidle" });
@@ -84,18 +117,24 @@ test.describe("基本パーツで記法が読める (#1381)", () => {
     expect(題の数, "同じ題の箱が並んでいない").toBeGreaterThan(1);
   });
 
-  test("80 件すべてでコードのタブが押せる", async ({ page }) => {
-    await page.goto("catalog/parts", { waitUntil: "networkidle" });
-    await 一覧が落ち着くまで待つ(page, "部品");
+  // 全件を押す。 1 件の検査に詰め込まず、区切って分ける (#2762、`一度に押す回数` を参照)。
+  // 区切りの数は一覧の実体から導くので、群に図を足した日に自動で追従する
+  for (let 始まり = 0; 始まり < 並ぶ件数; 始まり += 一度に押す回数) {
+    const 終わり = Math.min(始まり + 一度に押す回数, 並ぶ件数);
+    test(`${始まり + 1} 件目から ${終わり} 件目でコードのタブが押せる`, async ({ page }) => {
+      await page.goto("catalog/parts", { waitUntil: "networkidle" });
+      await 一覧が落ち着くまで待つ(page, "部品");
 
-    const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");
-    const 件数 = await 行.count();
-    expect(件数, "一覧の行を 1 つも数えられていない").toBeGreaterThan(0);
+      const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");
+      const 件数 = await 行.count();
+      // 導いた数と画面の数が違ったら落とす。 違うまま進むと、押す範囲が一覧より狭くなる
+      expect(件数, `一覧の行が ${並ぶ件数} 件でない (実体から導いた数と画面が食い違う)`).toBe(並ぶ件数);
 
-    const タブ = page.getByRole("tab", { name: "コード" });
-    for (let i = 0; i < 件数; i++) {
-      await 行.nth(i).click();
-      await expect(タブ, `${i + 1} 件目でコードのタブが押せない`).toBeEnabled({ timeout: 5000 });
-    }
-  });
+      const タブ = page.getByRole("tab", { name: "コード" });
+      for (let i = 始まり; i < 終わり; i++) {
+        await 行.nth(i).click();
+        await expect(タブ, `${i + 1} 件目でコードのタブが押せない`).toBeEnabled({ timeout: 5000 });
+      }
+    });
+  }
 });
