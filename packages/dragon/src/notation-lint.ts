@@ -280,7 +280,7 @@ function ruleQuadrantMissingItems(d: CdlDiagram): LintIssue[] {
           rule: "quadrant-empty",
           severity: "warn",
           target: n.id,
-          message: `四象限図 \`${n.id}\` に項目 (\`item\`) が 1 件も無く、 軸だけが描かれる`,
+          message: `マトリクス図 \`${n.id}\` に項目 (\`item\`) が 1 件も無く、 軸だけが描かれる`,
           suggestion: `\`.item({ id, title, quadrant })\` で項目を 1 件以上足す (\`quadrant\` は \`topLeft\` などの 4 区画から選ぶ)`,
           autoFixable: false,
         });
@@ -291,7 +291,7 @@ function ruleQuadrantMissingItems(d: CdlDiagram): LintIssue[] {
           rule: "quadrant-single-quadrant",
           severity: "info",
           target: n.id,
-          message: `四象限図 \`${n.id}\` の項目がすべて 1 つの区画に集まり、 4 つに分けた意味が薄い`,
+          message: `マトリクス図 \`${n.id}\` の項目がすべて 1 つの区画に集まり、 4 つに分けた意味が薄い`,
           suggestion: `項目を 2 つ以上の区画に分ける。 強みと弱みを並べる分析 (\`SWOT\`) や優先度を決める図は、 4 つの区画に散らして使う`,
           autoFixable: false,
         });
