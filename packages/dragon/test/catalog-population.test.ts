@@ -129,6 +129,8 @@ const 検査の木 = [join(根, "packages"), join(根, "apps")];
 const 全群を見ない検査: Record<string, string> = {
   "apps/playground-spa/src/lib/catalog-motion-render.test.tsx":
     "#1172 が名指しした 21 見本を描いて見る検査。 まだ動かしていない図と動かさないと決めた図の区別は `catalog-motion-coverage.test.ts` が持つ、と自分で書いている",
+  "apps/playground-spa/tests/catalog-parts-source-tab.spec.ts":
+    "部品の頁 1 枚を押して回る検査で、並べた 3 群はその頁を組む群そのもの (`loadPartsItems` が同じ 3 つを読む)。 群を足しても本検査の対象は増えず、頁に 4 つ目の群が入った時は画面の行数と導いた数が食い違って落ちる (#2762)",
 };
 
 /** 検査の file を根から集める (`node_modules` と生成物は降りない) */
