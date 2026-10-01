@@ -92,6 +92,7 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "登録を直す": "Fix sign-up",
   "案内も足す": "Add guidance too",
   "設計が延びる": "Design runs long",
+  "調査が延びる": "Research runs long",
   "後ろが押される": "The rest slips back",
   "昨年": "Last year",
   "朝": "Morning",
