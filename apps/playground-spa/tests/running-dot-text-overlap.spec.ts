@@ -80,12 +80,31 @@ async function 丸が落ち着くまで待つ(page: Page, id: string): Promise<n
   );
 }
 
+/**
+ * 丸から広がる波を、いちばん広がった所で止める (#2770)。
+ *
+ * 波は `cdl-theme.css` の動きで半径を伸ばす。 **描く側の時計 (`pauseAnimations`) では
+ * 止まらない** ので、止めずに測ると写すたびに半径が変わり、被りの割合が run ごとに揺れる。
+ *
+ * 待ちを負の値にして 1 周の終わり近くへ送り、そこで止める。
+ * 波がいちばん外まで出た形で測るので、出る値はこの指定での最悪値になる。
+ */
+async function 波を止める(page: Page) {
+  await page.addStyleTag({
+    content: `[data-cdl-role="edge-flow"] circle {
+      animation-delay: -1.3s !important;
+      animation-play-state: paused !important;
+    }`,
+  });
+}
+
 async function 見本を開く(page: Page, id: string) {
   await page.goto("catalog/presets");
   await page.waitForLoadState("networkidle");
   await 一覧が落ち着くまで待つ(page, `${id} の一覧`);
   await 一覧の行(page, id).click();
   await 図が落ち着くまで待つ(page, id);
+  await 波を止める(page);
 }
 
 async function 写す(page: Page, t: number, 丸あり: boolean) {
@@ -256,7 +275,7 @@ test.describe("線の上を走る丸", () => {
     expect(超過.map(([文, v]) => `${文} ${(v * 100).toFixed(1)}%`).join(" / ")).toBe("");
   });
 
-  test("丸の一番内側は紙の色で、ぼかしは 3 枚のまま縮めてある", async ({ page }) => {
+  test("丸は紙の色の芯がにじみ、外の 2 枚が波になって広がる", async ({ page }) => {
     await 見本を開く(page, "er-demo");
     await page.locator(`${舞台} [data-cdl-node]`).first().hover();
     await page.waitForSelector(流れ, { state: "attached" });
@@ -274,25 +293,45 @@ test.describe("線の上を走る丸", () => {
         c.remove();
         return out;
       };
+      // 波がどこまで広がるかは、動きの終わりの半径で決まる。 描いている今の半径で見ると
+      // 止めた位置に依ってしまうので、動きそのものが持つ値を読む
+      const 行き先 = (e: Element) =>
+        e
+          .getAnimations()
+          .flatMap((a) => (a.effect as KeyframeEffect | null)?.getKeyframes() ?? [])
+          .map((k) => Number.parseFloat(String((k as { r?: string }).r ?? "NaN")))
+          .filter((v) => Number.isFinite(v));
+      const 芯 = 丸[丸.length - 1] as Element;
       return {
         枚数: 丸.length,
-        半径: 丸.map((c) => c.getBoundingClientRect().width),
-        内側の塗り: getComputedStyle(丸[丸.length - 1] as Element).fill,
+        芯の塗り: getComputedStyle(芯).fill,
+        芯のにじみ: getComputedStyle(芯).filter,
         紙の色: 色(紙),
+        外の塗り: 丸.slice(0, 2).map((c) => getComputedStyle(c).fill),
+        波の行き先: 丸.slice(0, 2).map((c) => Math.max(...行き先(c), 0)),
+        半径: 丸.map((c) => c.getBoundingClientRect().width),
       };
     });
 
     // 1 本の線につき 3 枚。 枚数は赤ペンの回答どおり変えない
     expect(実.枚数 % 3, `丸の枚数 ${実.枚数}`).toBe(0);
-    expect(実.内側の塗り).toBe(実.紙の色);
-    // 外 > 中 > 内 の順で、外は内の 2 倍未満 (28/11 = 2.5 倍から縮めた)
-    const [外, 中, 内] = 実.半径;
-    expect(外, "外のぼかしが取れない").toBeGreaterThan(0);
-    expect(中, "中のぼかしが取れない").toBeGreaterThan(0);
-    expect(内, "一番内側が取れない").toBeGreaterThan(0);
+    // 芯は紙の色で抜き、まわりへ光をにじませる (#2770)
+    expect(実.芯の塗り).toBe(実.紙の色);
+    expect(実.芯のにじみ, "芯がにじんでいない").toContain("drop-shadow");
+    // 外の 2 枚は塗らない輪。 塗ると波ではなく塊になる
+    expect(実.外の塗り).toEqual(["none", "none"]);
+    // 波はどちらも半径 20 までで止まる。 ここが線のそばの数に届かない上限 (#2537 の実測)
+    for (const 先 of 実.波の行き先) {
+      expect(先, "波が広がらない").toBeGreaterThan(0);
+      expect(先, "波が線のそばの数まで届く").toBeLessThanOrEqual(20);
+    }
+    // 止めた位置で 外 > 中 > 芯 の順に並ぶ
+    const [外, 中, 芯] = 実.半径;
+    expect(外, "外の波が取れない").toBeGreaterThan(0);
+    expect(中, "中の波が取れない").toBeGreaterThan(0);
+    expect(芯, "芯が取れない").toBeGreaterThan(0);
     expect(外!).toBeGreaterThan(中!);
-    expect(中!).toBeGreaterThan(内!);
-    expect(外! / 内!).toBeLessThan(2);
+    expect(中!).toBeGreaterThan(芯!);
   });
 
   test("線のそばの数には、台と同じ色の下敷きが敷いてある", async ({ page }) => {
