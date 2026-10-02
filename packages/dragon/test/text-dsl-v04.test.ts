@@ -76,7 +76,7 @@ describe("Text DSL v0.4 ... 残 5 preset animation 拡張", () => {
     it("animation あり ... entity + relation + phase", () => {
       const src = `
 タイトル: schema
-種類: er
+種類: record
 登場人物:
   - User
   - Order
@@ -101,7 +101,7 @@ describe("Text DSL v0.4 ... 残 5 preset animation 拡張", () => {
     it("animation あり ... FSM state + transition + 複数 phase", () => {
       const src = `
 タイトル: Auth FSM
-種類: state
+種類: record
 登場人物:
   - Idle
   - Loading
@@ -123,12 +123,11 @@ describe("Text DSL v0.4 ... 残 5 preset animation 拡張", () => {
       const diag = textDslToDiagram(src);
       expect(diag.phases.length).toBe(2);
       expect(diag.states.length).toBe(1);
-      // 最初の actor は initial (eyebrow=初期) 設定
+      // 札は書いた箱にだけ出る (#2782)。 この本文は書いていないので 1 つも付かない
       const idleNode = diag.nodes.find((n) => n.id === "idle");
-      expect(idleNode?.eyebrow).toBe("初期");
-      // 最後の actor は final (eyebrow=最終)
+      expect(idleNode?.eyebrow).toBeUndefined();
       const doneNode = diag.nodes.find((n) => n.id === "done");
-      expect(doneNode?.eyebrow).toBe("最終");
+      expect(doneNode?.eyebrow).toBeUndefined();
     });
   });
 

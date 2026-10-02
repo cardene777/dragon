@@ -1,9 +1,18 @@
 /**
  * 図の配色と行の縞の検証 (#1553)。
  *
- * ER 図は小さい字が密に並ぶので、行を横に追う目印が無かった。 色を増やさず、表の箱の中を
+ * 表の箱は小さい字が密に並ぶので、行を横に追う目印が無かった。 色を増やさず、表の箱の中を
  * 1 行おきに薄く敷いて面で分ける。
  * クラス図も箱の作りが同じで、名前と型を離して並べるため、同じ理由で行の縞を持つ。
+ *
+ * ## 既定の配色を持つのはクラス図だけ (#2782)
+ *
+ * 表の図と移り変わりの図を `record` 1 つに畳んだため、**`record` は書かなければ配色を
+ * 持たない**。 2 つの図は行の有無でも行の中身でも分かれず (どちらも `kind: storage` に
+ * `督促を送る: 7 日ごと` の形の行を書く)、分けられない材料で推し量ると、どちらかの図が
+ * 書いていない色みを名乗る。
+ *
+ * 縞も配色から色を取るので、配色が決まった図の行を書いた箱にだけ敷く。
  *
  * 配色は **名前だけを図に載せる**。 描き手 (cdl) は色を持たないので、名前が
  * `data-cdl-palette` として舞台に出て、色の値は画面側 (`cdl-theme.css`) が決める。
@@ -23,7 +32,7 @@ import { PALETTES, resolvePalette } from "../src/keywords";
 const ER = (配色?: string): string =>
   [
     'title: "確かめ"',
-    "type: er",
+    "type: record",
     ...(配色 === undefined ? [] : [`palette: ${配色}`]),
     "",
     "actors:",
@@ -67,10 +76,10 @@ const つながり = (): string =>
   ].join("\n");
 
 describe("図の配色 (#1553)", () => {
-  it("ER 図は書かなくても生成りに茶になる", () => {
-    // 「作れば必ずその色みになる」 のが決めた形。 書き忘れた図だけ別の色みになると、
-    // 同じ種類の図が 2 通りの見た目で並ぶ
-    expect(textDslToDiagram(ER()).palette).toBe("kinari");
+  it("`record` は書かなければ配色を持たない (#2782)", () => {
+    // 畳む前は `type: er` が書かなくても生成りに茶になった。 畳んだ先には移り変わりの図も
+    // 入り、2 つは行の形で分かれないので、推し量ると片方が書いていない色みを名乗る
+    expect(textDslToDiagram(ER()).palette).toBeUndefined();
   });
 
   it("書いた名前が勝つ", () => {
@@ -83,7 +92,7 @@ describe("図の配色 (#1553)", () => {
   });
 
   it("`flow` 図と `topology` 図は書かなければ配色を持たない", () => {
-    // 既定は行の縞を必要とする 2 図種だけ。 それ以外まで配ると、配色を前提にしない図にも
+    // 既定を持つのはクラス図だけ。 それ以外まで配ると、配色を前提にしない図にも
     // 画面の色みと図の色みが二重に載る
     expect([textDslToDiagram(流れ()).palette, textDslToDiagram(つながり()).palette]).toEqual([
       undefined,
@@ -91,7 +100,7 @@ describe("図の配色 (#1553)", () => {
     ]);
   });
 
-  it("ER 以外でも書けば載る", () => {
+  it("`record` 以外でも書けば載る", () => {
     expect(textDslToDiagram(流れ("celadon")).palette).toBe("celadon");
   });
 
@@ -107,7 +116,7 @@ describe("図の配色 (#1553)", () => {
   it("JSON でも同じ名前で書ける", () => {
     const d = jsonToDiagram({
       title: "確かめ",
-      type: "er",
+      type: "record",
       palette: "celadon",
       actors: [{ name: "users", kind: "storage", rows: ["id: bigint"], marks: ["pk"] }],
       flow: [],
@@ -125,19 +134,19 @@ describe("図の配色 (#1553)", () => {
 });
 
 describe("行の縞 (#1553)", () => {
-  it("ER 図の表の箱は縞を持つ", () => {
-    const d = textDslToDiagram(ER());
+  it("配色を書いた表の図の箱は縞を持つ", () => {
+    const d = textDslToDiagram(ER("kinari"));
     const 表 = d.nodes.filter((n) => n.kind === "storage");
     // 0 件だと下の照合が「対象なし」 で素通りする
     expect(表.length, "表の箱が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
     for (const n of 表) expect(n.rowStripe).toBe(true);
   });
 
-  it("動きを書いた ER 図でも縞を持つ", () => {
-    // 動きのある ER 図は `er()` 組み立て器を通らず、箱を直に組む別経路になる。
-    // 出口で揃えないと、同じ図が動きの有無で縞を持ったり持たなかったりする
+  it("動きを書いた表の図でも縞を持つ", () => {
+    // 畳む前は組み立て器 `er()` が縞を敷く経路と箱を直に組む経路の 2 つがあり、同じ図が
+    // 動きの有無で縞を持ったり持たなかったりしていた。 経路が 1 本になった後も出口で揃える
     const src = [
-      ER().trimEnd(),
+      ER("kinari").trimEnd(),
       "",
       "animation:",
       '  - step: "1" 0.9s',
@@ -150,9 +159,37 @@ describe("行の縞 (#1553)", () => {
     for (const n of 表) expect(n.rowStripe).toBe(true);
   });
 
-  it("ER 図とクラス図以外の表の箱には敷かない", () => {
-    // 縞は「行を横に追う」 ための目印。 行を持たない図種の箱に付けても描き手が読まないので、
-    // 書いたのに出ない欄を残さない
+  it("配色を書かない図の箱には敷かない (#2782)", () => {
+    // 縞の色は配色からしか来ない。 配色が無い図に敷くと箱の面と同じ色に落ちて 1 本も
+    // 出ないので、書いたのに出ない欄を残さない
+    const d = textDslToDiagram(ER());
+    const 表 = d.nodes.filter((n) => n.kind === "storage");
+    expect(表.length, "表の箱が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
+    for (const n of 表) expect(n.rowStripe).toBeUndefined();
+  });
+
+  it("行を書かない箱には敷かない (#2782)", () => {
+    // 縞は行を横に追うための目印。 行が無い箱に敷いても追う対象が無い
+    const src = [
+      'title: "確かめ"',
+      "type: record",
+      "palette: kinari",
+      "",
+      "actors:",
+      '  - 待機: { kind: storage }',
+      '  - 完了: { kind: storage, rows: ["出荷を待つ"] }',
+      "",
+      "flow:",
+      '  - 待機 -> 完了: "送る"',
+      "",
+    ].join("\n");
+    const d = textDslToDiagram(src);
+    const 札 = Object.fromEntries(d.nodes.map((n) => [n.id, n.rowStripe]));
+    expect(札).toEqual({ 待機: undefined, 完了: true });
+  });
+
+  it("配色を書いても `topology` の表の箱には敷かない相手が無い", () => {
+    // 行を持たない箱なので、図種を問わず敷く対象にならない
     const d = textDslToDiagram(つながり());
     const 表 = d.nodes.filter((n) => n.kind === "storage");
     expect(表.length, "表の箱が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);

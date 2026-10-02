@@ -74,7 +74,7 @@ describe("error 文言 — message / hint", () => {
   it("未知の種類 — message + PRESET 列挙 hint (L104)", () => {
     const e = findErr("タイトル: T\n種類: bogus\n登場人物:\n  - A\n流れ:\n  1. A → A: x", "未知の種類");
     expect(e.message).toContain('未知の種類 "bogus"');
-    expect(e.hint).toContain("sequence / flow / swimlane / er / state / topology");
+    expect(e.hint).toContain("sequence / flow / swimlane / record / topology");
   });
   it("タイトル欠落 — message + hint + line 1 (L146)", () => {
     const e = findErr("種類: sequence\n登場人物:\n  - A\n流れ:\n  1. A → A: x", "タイトル");

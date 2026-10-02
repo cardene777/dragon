@@ -278,7 +278,7 @@ animation:
   };
 
   // 順序図だけ受理する状態にすると、 同じ記述が図種で別の意味になる
-  for (const type of ["sequence", "flow", "state", "er", "topology"]) {
+  for (const type of ["sequence", "flow", "record", "topology"]) {
     it(`${type}: slug の形で書いても光る`, () => {
       const r = run(type, "api-gateway");
       expect(r.activate.length, `${type} で光らない`).toBeGreaterThan(0);

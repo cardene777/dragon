@@ -26,8 +26,7 @@ const TYPES: readonly PresetType[] = [
   "sequence",
   "flow",
   "swimlane",
-  "er",
-  "state",
+  "record",
   "topology",
   "gantt",
   "class",
@@ -176,7 +175,7 @@ describe("段を書かない図では箱が「いま」 にならない (#1557)"
     },
   });
 
-  for (const type of ["er", "swimlane", "flow", "topology"] as const) {
+  for (const type of ["record", "swimlane", "flow", "topology"] as const) {
     it(`type: ${type} で箱が 1 つも「いま」 にならない`, () => {
       const d = compileToCdl(静止図(type));
       const 載った = new Set(d.phases.flatMap((p) => p.activate));

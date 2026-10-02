@@ -58,7 +58,7 @@ import { 記法つき, 記法を持つカタログ, 部品の一覧 } from "./ca
  * 記法の id 生成規則 (名前の slug) と preset の明示 id がたまたま揃っているもの。
  * 実測で確かめた分だけを載せる。
  *
- * **`animation:` を書くと矢印の id が変わる図種がある** (実測 = `type: state` は
+ * **`animation:` を書くと矢印の id が変わる図種がある** (実測 = `type: record` は
  * `t0-idle-loading` だが、`animation:` を足すと `e0-idle-loading` になる)。 段を合わせるには
  * `animation:` が要るため、その図種は id 一致を諦めて骨格の一致で見る。
  *
@@ -115,7 +115,16 @@ type 図種の差 = {
 /**
  * dragon の記法では組み立て器と同じ図種で書けない見本。
  *
- * 書けない理由は記法に同名の図種が無いこと (`network` / `infrastructure`)。
+ * 書けない理由は 2 つある。
+ *
+ * | 理由 | 見本 |
+ * |---|---|
+ * | 記法に同名の図種が無い | `network` / `infrastructure` |
+ * | 記法が図種を畳んだ (#2782) | 表の図と移り変わりの図 (`record` に畳んだ) |
+ *
+ * 2 つ目は **解消する予定が無い差**。 記法から図種の名前を無くしたのが目的で、描く側の
+ * 組み立て器 (`er()` / `stateMachine()`) は自分の名前を持ったままにしている。
+ *
  * 別の理由 (図種は在っても要る箱の形が無い) で載っていた分かれ道の図の複雑な版は、
  * 繰り返しの箱を記法に足して (#2523) 解消した。
  */
@@ -138,6 +147,30 @@ const 図種の既知の差: Record<string, 図種の差> = {
     記法経路: "flow",
     組み立て器経路: "infrastructure",
     理由: "dragon の記法に infrastructure が無く、flow として書くため",
+  },
+  presetEr: {
+    見本: "presetEr",
+    記法経路: "record",
+    組み立て器経路: "er",
+    理由: "記法は図種の名前を持たず record 1 つに畳んだため (#2782)",
+  },
+  pattern__presetEr__複雑: {
+    見本: "pattern__presetEr__複雑",
+    記法経路: "record",
+    組み立て器経路: "er",
+    理由: "記法は図種の名前を持たず record 1 つに畳んだため (#2782)",
+  },
+  presetStateMachine: {
+    見本: "presetStateMachine",
+    記法経路: "record",
+    組み立て器経路: "state",
+    理由: "記法は図種の名前を持たず record 1 つに畳んだため (#2782)",
+  },
+  presetStateMachine2: {
+    見本: "presetStateMachine2",
+    記法経路: "record",
+    組み立て器経路: "state",
+    理由: "記法は図種の名前を持たず record 1 つに畳んだため (#2782)",
   },
 };
 
@@ -705,9 +738,18 @@ function 縦列の中身(d: Diagram, 相手: Diagram): string[] {
   return 比べる形(d.lanes ?? [], 相手.lanes ?? [], 縦列の宣言, (_k, v) => v);
 }
 
-/** 段の中身と動き。 光らせる先は id の列なので別に比べる */
-function 段の中身(d: Diagram, 相手: Diagram): string[] {
-  return 比べる形(d.phases, 相手.phases, 段の宣言, (_k, v) => v);
+/**
+ * 段の中身と動き。 光らせる先は id の列なので別に比べる。
+ *
+ * 段に付く札 (`badge`) は **図種の名前そのもの** なので、図種を外す見本では札も外す
+ * (#2782)。 組み立て器は自分の図種の名前を札にし、記法は畳んだ先の名前を札にする =
+ * 同じ 1 つの差が 2 つの欄に出る。
+ */
+function 段の中身(d: Diagram, 相手: Diagram, 図種を外す = false): string[] {
+  const 宣言: 欄の宣言 = 図種を外す
+    ? { 比べない: { ...段の宣言.比べない, badge: "図種の名前そのもの。 図種を外す見本では札も外す" } }
+    : 段の宣言;
+  return 比べる形(d.phases, 相手.phases, 宣言, (_k, v) => v);
 }
 
 /** 図の状態 (図表の値の入れ物)。 初期値が違うと最初に描かれる図が変わる */
@@ -1152,7 +1194,8 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
       });
 
       it("段の中身が並びごと一致する", () => {
-        expect(段の中身(記法, t.built)).toEqual(段の中身(t.built, 記法));
+        const 図種を外す = t.built.type == null || t.key in 差の宣言.図種の既知の差;
+        expect(段の中身(記法, t.built, 図種を外す)).toEqual(段の中身(t.built, 記法, 図種を外す));
       });
 
       it("段が描く先が一致する", () => {

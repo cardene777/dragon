@@ -52,7 +52,7 @@ describe("Text DSL v0.2 ... 残 5 preset 対応", () => {
     it("compile: actors を entity 化、 流れ を relation 化、 cardinality auto", () => {
       const src = `
 タイトル: User Order
-種類: er
+種類: record
 
 登場人物:
   - User
@@ -74,7 +74,7 @@ describe("Text DSL v0.2 ... 残 5 preset 対応", () => {
     it("cardinality 省略時は語を補わない (#2105、組み立て API と段を持つ図に揃える)", () => {
       const src = `
 タイトル: T
-種類: er
+種類: record
 登場人物:
   - A
   - B
@@ -93,7 +93,7 @@ describe("Text DSL v0.2 ... 残 5 preset 対応", () => {
     it("compile: actors を state 化、 最初 = initial、 最後 = final", () => {
       const src = `
 タイトル: Auth FSM
-種類: state
+種類: record
 
 登場人物:
   - Idle
@@ -117,7 +117,7 @@ describe("Text DSL v0.2 ... 残 5 preset 対応", () => {
     it("trigger と guard (sub) 両対応", () => {
       const src = `
 タイトル: Retry FSM
-種類: state
+種類: record
 登場人物:
   - Error
   - Idle

@@ -44,6 +44,9 @@ import {
 import { resolvePalette, resolveOrder, resolveShape, PHASE_BODY_KEYS } from "./keywords";
 // 区画の語の表 (#2667)。 記法と同じ表から直す = 同じ区画を 2 通りで呼ばない
 import { 区画 } from "./compile/word-state";
+// 行頭の印の古い語の読み替え (#2782)。 記法と同じ表を通す = JSON だけ古い語が印を持たない
+// 形にならない
+import { 行頭の語へ読み替える } from "./compile/row-marks";
 import type { DslShape } from "./keywords";
 import type { DslPalette } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
@@ -2730,8 +2733,8 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       value: a.value,
       previous: a.previous,
       rows: a.rows,
-      // 行頭の印 (#1466)。 行と対で読む
-      marks: a.marks,
+      // 行頭の印 (#1466)。 行と対で読む。 古い語は記法と同じ関数で読み替える (#2782)
+      marks: a.marks?.map((m) => 行頭の語へ読み替える(m)),
       lane: a.lane,
       stack: a.stack,
       initial: a.initial,

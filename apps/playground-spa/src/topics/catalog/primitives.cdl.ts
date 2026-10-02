@@ -928,17 +928,17 @@ export const pattern__boxOrder__種類の順に置く = textDslToDiagram(
   sourceYaml__pattern__boxOrder__種類の順に置く,
 );
 
-// ---- 状態の始まりと終わり (initial / final) ----
+// ---- 始まりと終わり (initial / final) ----
 //
-// 書かない図は並びの最初と最後で決まる。 書くと書いた箱だけが始まりと終わりになり、終わりを 2 つ持てる。
+// 書かない図には札が付かない。 書くと書いた箱だけに札が付き、終わりを 2 つ持てる (#2782)。
 
 export const patternBase__stateStartEnd = "書かない";
 
 export const subtitle__stateStartEnd =
-  "状態の図の始まりと終わりを箱に書く (initial / final)。 書かない図は並びの最初と最後で決まる";
+  "行を持つ図の始まりと終わりを箱に書く (initial / final)。 書かない図には札が付かない";
 
-export const sourceYaml__stateStartEnd = `title: "状態の始まりと終わりを書かない"
-type: state
+export const sourceYaml__stateStartEnd = `title: "始まりと終わりを書かない"
+type: record
 
 actors:
   - 受付: { kind: card, posW: 240 }
@@ -946,41 +946,41 @@ actors:
   - 取り下げ: { kind: card, posW: 240 }
 
 flow:
-  - 受付 -> 完了: "承認"
-  - 受付 -> 取り下げ: "撤回"
+  - 受付 -> 完了: "承認" { head: open }
+  - 受付 -> 取り下げ: "撤回" { head: open }
 
 animation:
-  - step: "並びで決まる札" 1.8s
+  - step: "札の付かない形" 1.8s
     focus: ["受付", "完了", "取り下げ"]
-    description: "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる。"
+    description: "始まりも終わりも書かない図には札が付かない。 並びから推し量らない。"
 `;
 
 export const sourceJson__stateStartEnd = `{
-  "title": "状態の始まりと終わりを書かない",
-  "type": "state",
+  "title": "始まりと終わりを書かない",
+  "type": "record",
   "actors": [
     { "name": "受付", "kind": "card", "posW": 240 },
     { "name": "完了", "kind": "card", "posW": 240 },
     { "name": "取り下げ", "kind": "card", "posW": 240 }
   ],
   "flow": [
-    { "from": "受付", "to": "完了", "label": "承認" },
-    { "from": "受付", "to": "取り下げ", "label": "撤回" }
+    { "from": "受付", "to": "完了", "label": "承認", "head": "open" },
+    { "from": "受付", "to": "取り下げ", "label": "撤回", "head": "open" }
   ],
   "animation": [
     {
-      "step": "並びで決まる札",
+      "step": "札の付かない形",
       "duration": 1.8,
       "focus": ["受付", "完了", "取り下げ"],
-      "description": "書かない図は、最初に書いた受付が「初期」、最後に書いた取り下げだけが「最終」 になる。"
+      "description": "始まりも終わりも書かない図には札が付かない。 並びから推し量らない。"
     }
   ]
 }`;
 
 export const stateStartEnd = textDslToDiagram(sourceYaml__stateStartEnd);
 
-export const sourceYaml__pattern__stateStartEnd__書く = `title: "状態の始まりと終わりを書く"
-type: state
+export const sourceYaml__pattern__stateStartEnd__書く = `title: "始まりと終わりを書く"
+type: record
 
 actors:
   - 受付: { kind: card, posW: 240, initial: true }
@@ -988,8 +988,8 @@ actors:
   - 取り下げ: { kind: card, posW: 240, final: true }
 
 flow:
-  - 受付 -> 完了: "承認"
-  - 受付 -> 取り下げ: "撤回"
+  - 受付 -> 完了: "承認" { head: open }
+  - 受付 -> 取り下げ: "撤回" { head: open }
 
 animation:
   - step: "始まりと終わりの札" 1.8s
@@ -998,16 +998,16 @@ animation:
 `;
 
 export const sourceJson__pattern__stateStartEnd__書く = `{
-  "title": "状態の始まりと終わりを書く",
-  "type": "state",
+  "title": "始まりと終わりを書く",
+  "type": "record",
   "actors": [
     { "name": "受付", "kind": "card", "posW": 240, "initial": true },
     { "name": "完了", "kind": "card", "posW": 240, "final": true },
     { "name": "取り下げ", "kind": "card", "posW": 240, "final": true }
   ],
   "flow": [
-    { "from": "受付", "to": "完了", "label": "承認" },
-    { "from": "受付", "to": "取り下げ", "label": "撤回" }
+    { "from": "受付", "to": "完了", "label": "承認", "head": "open" },
+    { "from": "受付", "to": "取り下げ", "label": "撤回", "head": "open" }
   ],
   "animation": [
     {
@@ -1030,8 +1030,8 @@ export const pattern__stateStartEnd__書く = textDslToDiagram(sourceYaml__patte
 // 目次は始まりと終わりの箱に書かない。 始まりと終わりの札そのものが目次の位置に出るため、
 // 両方書くと後から書いた方だけが残る。 途中の箱 (審査) に書いて重ならない形にしてある。
 
-export const sourceYaml__pattern__stateStartEnd__段を分けて書く = `title: "状態の始まりと終わりを段を分けて書く"
-type: state
+export const sourceYaml__pattern__stateStartEnd__段を分けて書く = `title: "始まりと終わりを段を分けて書く"
+type: record
 
 actors:
   - 受付:
@@ -1048,8 +1048,8 @@ actors:
       final: true
 
 flow:
-  - 受付 -> 審査: "提出"
-  - 審査 -> 完了: "承認"
+  - 受付 -> 審査: "提出" { head: open }
+  - 審査 -> 完了: "承認" { head: open }
 
 animation:
   - step: "段を分けて書いた札" 1.8s
@@ -1058,16 +1058,16 @@ animation:
 `;
 
 export const sourceJson__pattern__stateStartEnd__段を分けて書く = `{
-  "title": "状態の始まりと終わりを段を分けて書く",
-  "type": "state",
+  "title": "始まりと終わりを段を分けて書く",
+  "type": "record",
   "actors": [
     { "name": "受付", "kind": "card", "posW": 240, "posH": 96, "initial": true },
     { "name": "審査", "kind": "card", "posW": 240, "posH": 96, "eyebrow": "途中" },
     { "name": "完了", "kind": "card", "posW": 240, "posH": 96, "final": true }
   ],
   "flow": [
-    { "from": "受付", "to": "審査", "label": "提出" },
-    { "from": "審査", "to": "完了", "label": "承認" }
+    { "from": "受付", "to": "審査", "label": "提出", "head": "open" },
+    { "from": "審査", "to": "完了", "label": "承認", "head": "open" }
   ],
   "animation": [
     {

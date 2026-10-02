@@ -239,7 +239,7 @@ flow:
   - 点検 -> 保全: "送る"
 `;
 
-  it.each(["swimlane", "state", "er", "class"])("%s", (型) => {
+  it.each(["swimlane", "record", "class"])("%s", (型) => {
     const { 箱, 縦列, 図 } = 配置する(本文(型));
     const 設備の要素 = [...箱].filter(([id]) => id.startsWith("設備__"));
     expect(設備の要素.length, "部品の要素が図に無い (前提が崩れた)").toBe(1);
@@ -254,7 +254,7 @@ flow:
     expect(並び).toEqual([点検の縦列, 保全の縦列, 設備の縦列!.id]);
   });
 
-  it.each(["swimlane", "state"])(
+  it.each(["swimlane", "record"])(
     "%s で名前の頭が重なる部品同士 (設備 / 設備-予備) も、それぞれの縦列に入る",
     (型) => {
       // `設備` の仮の箱を探す判定が `設備-予備` の仮の箱まで拾うと、`設備` を消す時に `設備-予備` の

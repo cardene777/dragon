@@ -1193,7 +1193,7 @@ describe("golden: er preset", () => {
     expect(
       fingerprint(`
 title: "E01"
-type: er
+type: record
 
 actors:
   - User: entity
@@ -1209,7 +1209,7 @@ flow:
     expect(
       fingerprint(`
 title: "E02"
-type: er
+type: record
 
 actors:
   - User: entity
@@ -1227,7 +1227,7 @@ flow:
     expect(
       fingerprint(`
 title: "E03"
-type: er
+type: record
 
 actors:
   - User: entity
@@ -1243,7 +1243,7 @@ flow:
     expect(
       fingerprint(`
 title: "E04"
-type: er
+type: record
 
 actors:
   - Student: entity
@@ -1259,7 +1259,7 @@ flow:
     expect(
       fingerprint(`
 title: "E05"
-type: er
+type: record
 
 actors:
   - User: { kind: entity, subtitle: "ユーザー" }
@@ -1275,7 +1275,7 @@ flow:
     expect(
       fingerprint(`
 title: "E06"
-type: er
+type: record
 
 actors:
   - A: entity
@@ -1296,7 +1296,7 @@ flow:
     expect(
       fingerprint(`
 title: "E07"
-type: er
+type: record
 
 actors:
   - User: entity
@@ -1314,7 +1314,7 @@ flow:
     expect(
       fingerprint(`
 title: "E08"
-type: er
+type: record
 
 actors:
   - User: { kind: card }
@@ -1335,7 +1335,7 @@ animation:
     expect(
       fingerprint(`
 title: "E09"
-type: er
+type: record
 
 actors:
   - Employee: entity
@@ -1350,7 +1350,7 @@ flow:
     expect(
       fingerprint(`
 title: "E10"
-type: er
+type: record
 
 actors:
   - Fact: entity
@@ -1375,7 +1375,7 @@ describe("golden: state preset", () => {
     expect(
       fingerprint(`
 title: "M01"
-type: state
+type: record
 
 actors:
   - Idle: { kind: state, initial: true }
@@ -1391,7 +1391,7 @@ flow:
     expect(
       fingerprint(`
 title: "M02"
-type: state
+type: record
 
 actors:
   - Idle: { kind: state, initial: true }
@@ -1409,7 +1409,7 @@ flow:
     expect(
       fingerprint(`
 title: "M03"
-type: state
+type: record
 
 actors:
   - Idle: { kind: state, initial: true }
@@ -1429,7 +1429,7 @@ flow:
     expect(
       fingerprint(`
 title: "M04"
-type: state
+type: record
 
 actors:
   - Idle: { kind: state, initial: true }
@@ -1447,7 +1447,7 @@ flow:
     expect(
       fingerprint(`
 title: "M05"
-type: state
+type: record
 
 actors:
   - On: { kind: state, initial: true }
@@ -1464,7 +1464,7 @@ flow:
     expect(
       fingerprint(`
 title: "M06"
-type: state
+type: record
 
 actors:
   - Start: { kind: state, initial: true }
@@ -1487,7 +1487,7 @@ flow:
     expect(
       fingerprint(`
 title: "M07"
-type: state
+type: record
 
 actors:
   - Idle: { kind: card }
@@ -1515,7 +1515,7 @@ animation:
     expect(
       fingerprint(`
 title: "M08"
-type: state
+type: record
 
 actors:
   - S0: { kind: state, initial: true }
@@ -1538,7 +1538,7 @@ flow:
     expect(
       fingerprint(`
 title: "M09"
-type: state
+type: record
 
 actors:
   - Idle: { kind: state, initial: true }
@@ -1559,7 +1559,7 @@ flow:
     expect(
       fingerprint(`
 title: "M10"
-type: state
+type: record
 
 actors:
   - Idle: { kind: card }
@@ -1999,7 +1999,7 @@ flow:
     expect(
       fingerprint(`
 title: "X06"
-type: er
+type: record
 
 actors:
   - User: entity

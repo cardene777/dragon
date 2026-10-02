@@ -221,7 +221,7 @@ flow:
   it("flow inline option: sub / guard / cardinality / labelOffsetY", () => {
     const r = parseTextDslV05(`
 title: "demo"
-type: er
+type: record
 
 actors:
   - User: entity
@@ -269,7 +269,7 @@ flow:
   it("state machine: initial / final flag via inline option", () => {
     const r = parseTextDslV05(`
 title: "auth fsm"
-type: state
+type: record
 
 actors:
   - Idle: { kind: state, initial: true }
@@ -909,7 +909,7 @@ flow:
   it("guard が CdlEdge.guard に反映 (state preset、 sub にも同期)", () => {
     const r = parseTextDslV05(`
 title: "guard demo"
-type: state
+type: record
 
 actors:
   - Idle: { kind: state, initial: true }
@@ -930,7 +930,7 @@ flow:
   it("cardinality が ER preset の名前の下の行と両端に届く (#2105)", () => {
     const r = parseTextDslV05(`
 title: "er card"
-type: er
+type: record
 
 actors:
   - User: entity

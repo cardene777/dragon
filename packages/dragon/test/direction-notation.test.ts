@@ -89,7 +89,7 @@ describe("図の並ぶ向き (#1494)", () => {
 
   it("向きを選べない図種では効かず、知らせが出る", () => {
     // 並び方そのものが読み方を担う図種。 黙って捨てると「書いたのに変わらない」 になる
-    for (const type of ["er", "state", "class", "sequence"]) {
+    for (const type of ["record", "class", "sequence"]) {
       const r = 組む(記法(type, "direction: 横"));
       const n = r.知らせ.filter((x) => x.kind === "direction-not-honored");
       expect(n.length, `${type} で知らせが 1 件出る`).toBe(1);
@@ -108,7 +108,7 @@ describe("図の並ぶ向き (#1494)", () => {
 
   it("向きを書かなければ知らせは出ない", () => {
     // 書いていない図に知らせを出すと、正しい図で毎回鳴る
-    for (const type of ["er", "state", "flow", "swimlane"]) {
+    for (const type of ["record", "flow", "swimlane"]) {
       const r = 組む(記法(type));
       expect(r.知らせ.filter((x) => x.kind === "direction-not-honored"), type).toEqual([]);
     }

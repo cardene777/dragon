@@ -591,7 +591,7 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "NFT の発行": "Minting an NFT",
   "サイトの配信": "Serving a site",
   "フローの矢印を書いた端のとおりに繋ぐ": "Connect the flow exactly at the edges the arrow names",
-  "並びで決まる札": "Markers decided by order",
+  "札の付かない形": "No markers",
   "作業の流れ": "A work flow",
   "信託資産": "Trust assets",
   "分散型の貸し出し": "Decentralised lending",

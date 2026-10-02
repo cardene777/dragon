@@ -11,7 +11,7 @@ import { compileToCdl } from "../src/compile";
  * 描いた図の幅が 2439 対 2279 になった)。
  */
 
-const 記法 = (欄: string, type = "state", 動き = true) =>
+const 記法 = (欄: string, type = "record", 動き = true) =>
   `title: "T"\ntype: ${type}\n\nactors:\n  - A: { kind: card${欄} }\n  - B: { kind: card }\n` +
   `flow:\n  - A -> B: "x"\n` +
   (動き ? `\nanimation:\n  - step: "s1" 1s\n    focus: [A]\n    body: "b"\n` : "");
@@ -46,7 +46,7 @@ describe("箱に書いた大きさが図に届く (#1259)", () => {
   });
 
   // 箱ごとに縦列を作る図種と、1 縦列にまとめる図種の両方で効くことを見る
-  for (const type of ["state", "swimlane", "er", "flow", "topology"]) {
+  for (const type of ["record", "swimlane", "flow", "topology"]) {
     it(`${type} で幅が届く (動きあり)`, () => {
       expect(箱(記法(", posW: 280", type))[0]?.w).toBe(280);
     });
@@ -62,7 +62,7 @@ describe("幅が図に出るかは縦列との大小で決まる (実測)", () =
   // 縦列より広ければ縦列ごと押し広げる。 #1260 で 1 件だけ見て「出ない」 と判断し、
   // 配線を外してしまった (この検査はその再発を止める)
   const 縦列の幅 = (posW: string) => {
-    const src = `title: "T"\ntype: state\n\nlanes:\n  lane-a: { width: 330 }\n  lane-b: { width: 330 }\n\n` +
+    const src = `title: "T"\ntype: record\n\nlanes:\n  lane-a: { width: 330 }\n  lane-b: { width: 330 }\n\n` +
       `actors:\n  - A: { kind: card${posW} }\n  - B: { kind: card }\n` +
       `flow:\n  - A -> B: "x"\n\nanimation:\n  - step: "s1" 1s\n    focus: [A]\n    body: "b"\n`;
     const r = parseTextDslV05(src);

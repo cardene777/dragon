@@ -92,7 +92,7 @@ describe("縦列を選べる図種では中身が違う (#1263)", () => {
   // **知らせが出るかどうかだけを見ると気付けない**。 一部の箱だけ縦列を書いた形でも
   // 知らせは出るが、中身は「効かない」 ではなく「全部に書け」 になる (変異試験で判明)
   // `er` は #1571 で足した。 1 列に並べると関係を 4 本持つ実体で 2 本が隣を飛び越すため
-  for (const type of ["flow", "topology", "swimlane", "class", "state", "er"]) {
+  for (const type of ["flow", "topology", "swimlane", "class", "record"]) {
     it(`${type} は全部に書けと伝える`, () => {
       const 出た = 縦列の知らせ(記法(二人("lane: ui"), type));
       expect(出た).toHaveLength(1);

@@ -25,8 +25,7 @@ import type { CdlDiagram, CompileNotice } from "../src/index";
 const 箱を作る図種 = [
   "flow",
   "swimlane",
-  "er",
-  "state",
+  "record",
   "topology",
   "solidity",
   "class",
@@ -84,7 +83,7 @@ describe("同じ id に潰れる名前を書いても組み立てが通る", () 
 
 describe("それぞれが別の箱として描かれる", () => {
   it("id が違う", () => {
-    const { 図 } = 組む(記法("state", 衝突する2人, ['foo-bar -> Foo Bar: "x"']));
+    const { 図 } = 組む(記法("record", 衝突する2人, ['foo-bar -> Foo Bar: "x"']));
     const ids = 図.nodes.map((n) => n.id);
     expect(new Set(ids).size, `id が重なっている: ${ids.join(", ")}`).toBe(ids.length);
     expect(ids).toHaveLength(2);
@@ -92,7 +91,7 @@ describe("それぞれが別の箱として描かれる", () => {
 
   it("題は書いた名前のまま", () => {
     // 作り替えるのは id を分けるためで、 見える文字は元のまま
-    const { 図 } = 組む(記法("state", 衝突する2人, ['foo-bar -> Foo Bar: "x"']));
+    const { 図 } = 組む(記法("record", 衝突する2人, ['foo-bar -> Foo Bar: "x"']));
     expect(図.nodes.map((n) => n.title).sort()).toEqual(["Foo Bar", "foo-bar"]);
   });
 
@@ -102,7 +101,7 @@ describe("それぞれが別の箱として描かれる", () => {
   });
 
   it("矢印が別々の相手を指す", () => {
-    const { 図 } = 組む(記法("state", 衝突する2人, ['foo-bar -> Foo Bar: "渡す"']));
+    const { 図 } = 組む(記法("record", 衝突する2人, ['foo-bar -> Foo Bar: "渡す"']));
     expect(図.edges).toHaveLength(1);
     const e = 図.edges[0]!;
     expect(e.from, "自分を指している").not.toBe(e.to);
@@ -110,7 +109,7 @@ describe("それぞれが別の箱として描かれる", () => {
   });
 
   it("3 つ衝突しても全部 id が違う", () => {
-    const { 図 } = 組む(記法("state", ["foo-bar", "Foo Bar", "FOO BAR"]));
+    const { 図 } = 組む(記法("record", ["foo-bar", "Foo Bar", "FOO BAR"]));
     const ids = 図.nodes.map((n) => n.id);
     expect(new Set(ids).size).toBe(3);
     expect(図.nodes.map((n) => n.title).sort()).toEqual(["FOO BAR", "Foo Bar", "foo-bar"]);
@@ -119,12 +118,12 @@ describe("それぞれが別の箱として描かれる", () => {
 
 describe("衝突していない図の id が変わらない", () => {
   it("素直に書いた図の id は名前の slug そのまま", () => {
-    const { 図 } = 組む(記法("state", ["A", "B"], ['A -> B: "x"']));
+    const { 図 } = 組む(記法("record", ["A", "B"], ['A -> B: "x"']));
     expect(図.nodes.map((n) => n.id)).toEqual(["a", "b"]);
   });
 
   it("衝突する組と衝突しない組が混ざっても、 衝突しない方は変わらない", () => {
-    const { 図 } = 組む(記法("state", ["A", "foo-bar", "Foo Bar"]));
+    const { 図 } = 組む(記法("record", ["A", "foo-bar", "Foo Bar"]));
     const 素の = 図.nodes.filter((n) => n.title === "A");
     expect(素の.map((n) => n.id)).toEqual(["a"]);
   });
@@ -132,7 +131,7 @@ describe("衝突していない図の id が変わらない", () => {
 
 describe("id の付け方が書き順に依らない", () => {
   const idの表 = (actors: string[]): Record<string, string> => {
-    const { 図 } = 組む(記法("state", actors));
+    const { 図 } = 組む(記法("record", actors));
     return Object.fromEntries(図.nodes.map((n) => [n.title, n.id]));
   };
 
@@ -186,7 +185,7 @@ describe("1 箱で描く図種は作り替えない", () => {
 describe("まったく同じ名前は畳んで知らせる", () => {
   it("先に書いた方だけ残る", () => {
     // 名前が 1 文字も違わない登場人物は区別できない。 2 つの箱に同じ題が付くだけになる
-    const { 図, 知らせ } = 組む(記法("state", ["A", "A", "B"]));
+    const { 図, 知らせ } = 組む(記法("record", ["A", "A", "B"]));
     expect(図.nodes.map((n) => n.title)).toEqual(["A", "B"]);
     const 該当 = 知らせ.filter((n) => n.message.includes("2 度書いています"));
     expect(該当).toHaveLength(1);
@@ -194,7 +193,7 @@ describe("まったく同じ名前は畳んで知らせる", () => {
   });
 
   it("1 度しか書いていない名前では知らせない", () => {
-    const { 知らせ } = 組む(記法("state", ["A", "B"]));
+    const { 知らせ } = 組む(記法("record", ["A", "B"]));
     expect(知らせ.filter((n) => n.message.includes("2 度書いています"))).toEqual([]);
   });
 });
@@ -250,19 +249,19 @@ describe("長い名前でも尾が落ちない (Round 1 r1-f2)", () => {
   const 長い = (末尾: string): string => "a".repeat(64) + 末尾;
 
   it("64 字を超える同じ頭の名前 2 つで組み立てが通る", () => {
-    const { 図 } = 組む(記法("state", [長い("x"), 長い("y")]));
+    const { 図 } = 組む(記法("record", [長い("x"), 長い("y")]));
     expect(() => compile(図)).not.toThrow();
   });
 
   it("id が重ならず、 長さの上限も超えない", () => {
-    const { 図 } = 組む(記法("state", [長い("x"), 長い("y")]));
+    const { 図 } = 組む(記法("record", [長い("x"), 長い("y")]));
     const ids = 図.nodes.map((n) => n.id);
     expect(new Set(ids).size, `id が重なっている: ${ids.join(", ")}`).toBe(ids.length);
     for (const id of ids) expect(id.length, `id が長すぎる: ${id}`).toBeLessThanOrEqual(64);
   });
 
   it("長い名前でも題は書いたまま", () => {
-    const { 図 } = 組む(記法("state", [長い("x"), 長い("y")]));
+    const { 図 } = 組む(記法("record", [長い("x"), 長い("y")]));
     expect(図.nodes.map((n) => n.title).sort()).toEqual([長い("x"), 長い("y")].sort());
   });
 });
@@ -342,7 +341,7 @@ describe("尾を付けた先も既に使われている時 (Round 1 r1-f2)", () 
   const ぶつかる3人 = ["foo-bar", "Foo Bar", "foo-bar 360878"];
 
   it("組み立てが通り、 id が重ならない", () => {
-    const { 図 } = 組む(記法("state", ぶつかる3人));
+    const { 図 } = 組む(記法("record", ぶつかる3人));
     const ids = 図.nodes.map((n) => n.id);
     expect(new Set(ids).size, `id が重なっている: ${ids.join(", ")}`).toBe(ids.length);
     expect(() => compile(図)).not.toThrow();
@@ -350,14 +349,14 @@ describe("尾を付けた先も既に使われている時 (Round 1 r1-f2)", () 
 
   it("先に居た方の id は変わらない", () => {
     // 作り替えるのは重なっている 2 人だけ。 既に居る `foo-bar 360878` は動かさない
-    const { 図 } = 組む(記法("state", ぶつかる3人));
+    const { 図 } = 組む(記法("record", ぶつかる3人));
     const 先に居た = 図.nodes.find((n) => n.title === "foo-bar 360878");
     expect(先に居た?.id).toBe("foo-bar-360878");
   });
 
   it("ぶつかった時の付け方も書き順に依らない", () => {
     const idの表 = (actors: string[]): Record<string, string> => {
-      const { 図 } = 組む(記法("state", actors));
+      const { 図 } = 組む(記法("record", actors));
       return Object.fromEntries(図.nodes.map((n) => [n.title, n.id]));
     };
     expect(idの表(ぶつかる3人)).toEqual(idの表([...ぶつかる3人].reverse()));
@@ -436,7 +435,7 @@ describe("尾が同じになる 2 つの名前 (Round 2)", () => {
   const 尾が同じ2人 = ["AbcDEfGhIJKlmnopqrstuvwx", "abcDeFGhIJKlMnopqrstuvwx"];
 
   it("組み立てが通り、 id が重ならない", () => {
-    const { 図 } = 組む(記法("state", 尾が同じ2人));
+    const { 図 } = 組む(記法("record", 尾が同じ2人));
     const ids = 図.nodes.map((n) => n.id);
     expect(new Set(ids).size, `id が重なっている: ${ids.join(", ")}`).toBe(ids.length);
     expect(() => compile(図)).not.toThrow();
@@ -444,7 +443,7 @@ describe("尾が同じになる 2 つの名前 (Round 2)", () => {
 
   it("並べ替えても同じ名前が同じ id になる", () => {
     const idの表 = (actors: string[]): Record<string, string> => {
-      const { 図 } = 組む(記法("state", actors));
+      const { 図 } = 組む(記法("record", actors));
       return Object.fromEntries(図.nodes.map((n) => [n.title, n.id]));
     };
     expect(idの表(尾が同じ2人)).toEqual(idの表([...尾が同じ2人].reverse()));
@@ -456,7 +455,7 @@ describe("64 字を超える名前の id (Round 2)", () => {
   const 長い = (末尾: string): string => "a".repeat(64) + 末尾;
 
   it("作り替えた id に尾が入る", () => {
-    const { 図 } = 組む(記法("state", [長い("x"), 長い("y")]));
+    const { 図 } = 組む(記法("record", [長い("x"), 長い("y")]));
     // 2 人を渡しているので箱は 2 つ。 0 だと下の繰り返しが 1 度も回らずに通る
     expect(図.nodes.length, "箱が 2 つ作られていない").toBe(2);
     for (const n of 図.nodes) {
@@ -520,7 +519,7 @@ describe("逃げ先は図種ごとに違う (Round 3)", () => {
 
   it("cdl の逃げ道を通らない図種はどちらでも触らない", () => {
     // これらは dragon 側の逃げ先 (`n`) に落ちるので、 cdl の逃げ先とは重ならない
-    for (const type of ["flow", "er", "state", "topology", "class", "c4"]) {
+    for (const type of ["flow", "record", "topology", "class", "c4"]) {
       for (const 相手 of ["lane-0", "actor-0"]) {
         expect(絵文字のid(type, 相手), `${type} / ${相手} で作り替えている`).toBe("n");
       }

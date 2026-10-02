@@ -80,7 +80,7 @@ describe("端の形が描画側へ渡る (#1462)", () => {
     //
     // 順序図系 (`sequence` / `solidity`) は #1466 で 1 枚の板になり、言づては矢印ではなく
     // 板の中の行になった = 端の形を載せる矢印が無い。 板が言づてを持つことを別に見る
-    const 矢印を作る図種 = ["swimlane", "er", "state", "topology", "class", "c4", "flow"];
+    const 矢印を作る図種 = ["swimlane", "record", "topology", "class", "c4", "flow"];
     let 測れた = 0;
     for (const 型 of 矢印を作る図種) {
       const e = 矢印(型, `  - A -> B: "関係" { head: diamond }\n`);
@@ -116,18 +116,20 @@ describe("端の形が描画側へ渡る (#1462)", () => {
 
 describe("自己参照が矢印として残る (#1462)", () => {
   it("書いた矢印を使う図種では残る", () => {
-    // 設計は 3 図で使う = 状態の自己遷移 / シーケンスの自分宛て / ER の自己関係。
+    // 設計は 3 図で使う = 箱の自己遷移 / 表の自己関係 / シーケンスの自分宛て。
+    // 前の 2 つは #2782 で `record` 1 つに畳んだので、矢印で見るのは 2 図種になる。
     // `class` も同じ経路なので併せて見る
     //
     // `sequence` は #1466 で板になり自分宛ては板の行になった (`from` と `to` が同じ言づて)。
     // 矢印としては残らないので、ここでは見ずに下の検査が板の側で見る
+    const 図種 = ["record", "class"];
     let 測れた = 0;
-    for (const 型 of ["state", "er", "class"]) {
+    for (const 型 of 図種) {
       const e = 矢印(型, `  - A -> A: "自分"\n`);
       expect(e.some((x) => x.from === x.to), `${型} で自己参照が消えている`).toBe(true);
       測れた += 1;
     }
-    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(3);
+    expect(測れた, "図種を 1 つも測れていない (検査が空振りしている)").toBe(図種.length);
   });
 
   it("順序図では自分宛てが板の行として残る", () => {
@@ -152,7 +154,7 @@ describe("自己参照が矢印として残る (#1462)", () => {
 
   it("知らせも出さない (描けるようになったため)", () => {
     const 出た: CompileNotice[] = [];
-    textDslToDiagram(記法("state", `  - A -> A: "自分"\n`), { onNotice: (n) => 出た.push(n) });
+    textDslToDiagram(記法("record", `  - A -> A: "自分"\n`), { onNotice: (n) => 出た.push(n) });
     expect(出た.filter((n) => n.message.includes("自分へ戻る矢印"))).toEqual([]);
   });
 
@@ -168,7 +170,7 @@ describe("自己参照が矢印として残る (#1462)", () => {
   });
 
   it("端の形と自己参照を同時に書ける", () => {
-    const e = 矢印("state", `  - A -> A: "催促" { head: open }\n`);
+    const e = 矢印("record", `  - A -> A: "催促" { head: open }\n`);
     const 輪 = e.find((x) => x.from === x.to);
     expect(輪?.head).toBe("open");
   });

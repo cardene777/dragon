@@ -1,7 +1,7 @@
 /**
- * ER 図の線の種類が何を表すかを固定する (#2585 / #2587)。
+ * 表どうしのつながりの線の種類が何を表すかを固定する (#2585 / #2587 / #2782)。
  *
- * 見本帳の ER 図は 2 軸を分けて描く。
+ * 見本帳の表の図は 2 軸を分けて描く。
  *
  * | 何で描くか | 何を表すか |
  * |---|---|
@@ -40,6 +40,12 @@
  *
  * 宣言は両方向で見る = 宣言した図が書くようになったら、その行も落とす。
  *
+ * ## 対象は個数を表す端を持つ矢印だけ (#2782)
+ *
+ * 表の図と移り変わりの図は `type: record` の 1 つに畳んだので、図種では分けられない。
+ * 分けるのは **矢印の端**。 個数を表す端 (棒 / 三又 / 丸) を持つ矢印だけがこの決まりの
+ * 相手で、移り変わりを表す開いた矢は識別の有無を持たない。
+ *
  * ## 0 件は母数と一緒に出す
  *
  * 走査が空振りしても 0 件になるので、0 だけを見てもどちらか判らない
@@ -49,9 +55,10 @@ import { describe, it, expect } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 import { 全図 } from "./support/responsive-accepted";
+import { 個数を表す矢印, 表のつながりの図 } from "./support/record-edges";
 
-/** カタログの ER 図。 種類は図が自分で持つ (`type: er`) */
-const ER図 = 全図.filter((d) => d.type === "er");
+/** カタログの表の図。 見分け方は `support/record-edges.ts` が 1 箇所で持つ */
+const ER図 = 全図.filter((d) => 表のつながりの図(d));
 
 /** 行頭の印。 描く側が組み立てた形をそのまま読む */
 type 行の印 = { shape: string; filled: boolean; underline?: boolean } | null;
@@ -81,6 +88,7 @@ function 食い違い(図: readonly CdlDiagram[]): string[] {
   const out: string[] = [];
   for (const d of 図) {
     for (const e of d.edges) {
+      if (!個数を表す矢印(e)) continue;
       if (e.style === undefined) continue;
       const 実線 = e.style !== "dashed";
       const 識別 = 識別する(d, e);
@@ -110,6 +118,7 @@ function 書いていない図(図: readonly CdlDiagram[]): Map<string, string[]
   const out = new Map<string, string[]>();
   for (const d of 図) {
     for (const e of d.edges) {
+      if (!個数を表す矢印(e)) continue;
       if (e.style !== undefined) continue;
       out.set(d.id, [...(out.get(d.id) ?? []), 名(d, e)]);
     }
@@ -119,21 +128,23 @@ function 書いていない図(図: readonly CdlDiagram[]): Map<string, string[]
 
 /** 走査した矢印の本数。 0 件の報告に添える母数 */
 const 矢印の数 = (図: readonly CdlDiagram[]): number =>
-  図.reduce((a, d) => a + d.edges.length, 0);
+  図.reduce((a, d) => a + d.edges.filter((e) => 個数を表す矢印(e as { head?: string })).length, 0);
 
-describe("ER 図の線の種類と識別の有無 (#2587)", () => {
-  it("ER 図を 1 枚以上集められている", () => {
+describe("表どうしのつながりの線の種類と識別の有無 (#2587)", () => {
+  it("表の図を 1 枚以上集められている", () => {
     expect(
       ER図.length,
-      `カタログの ER 図を 1 枚も集められていない (全図 ${全図.length} 枚を走査)`,
+      `カタログの表の図を 1 枚も集められていない (全図 ${全図.length} 枚を走査)`,
     ).toBeGreaterThan(0);
-    expect(矢印の数(ER図), "ER 図に矢印が 1 本も無い (検査が空振りしている)").toBeGreaterThan(0);
+    expect(矢印の数(ER図), "表の図に個数を表す矢印が 1 本も無い (検査が空振りしている)").toBeGreaterThan(0);
   });
 
   it("識別する関係と識別しない関係が両方ある", () => {
     // 片方しか無いと、下の判定は「全部実線」 でも「全部破線」 でも通る
     const 書いた = ER図.flatMap((d) =>
-      d.edges.filter((e) => e.style !== undefined).map((e) => 識別する(d, e)),
+      d.edges
+        .filter((e) => 個数を表す矢印(e as { head?: string }) && e.style !== undefined)
+        .map((e) => 識別する(d, e)),
     );
     expect(書いた.filter(Boolean).length, "識別する関係が 1 本も無い").toBeGreaterThan(0);
     expect(書いた.filter((x) => !x).length, "識別しない関係が 1 本も無い").toBeGreaterThan(0);
@@ -144,7 +155,7 @@ describe("ER 図の線の種類と識別の有無 (#2587)", () => {
     expect(
       出た,
       `実線は親の鍵が子の主キーに入る関係、破線は入らない関係` +
-        ` (ER 図 ${ER図.length} 枚 / 矢印 ${矢印の数(ER図)} 本を走査)\n  ${出た.join("\n  ")}`,
+        ` (表の図 ${ER図.length} 枚 / 個数を表す矢印 ${矢印の数(ER図)} 本を走査)\n  ${出た.join("\n  ")}`,
     ).toEqual([]);
   });
 
@@ -154,7 +165,7 @@ describe("ER 図の線の種類と識別の有無 (#2587)", () => {
     expect(
       宣言外,
       `線の種類を書かない図が増えた。 一覧へ理由付きで足すか、図に書き足すかを決める` +
-        ` (ER 図 ${ER図.length} 枚 / 矢印 ${矢印の数(ER図)} 本を走査)\n  ` +
+        ` (表の図 ${ER図.length} 枚 / 個数を表す矢印 ${矢印の数(ER図)} 本を走査)\n  ` +
         宣言外.map((id) => (実物.get(id) ?? []).join("\n  ")).join("\n  "),
     ).toEqual([]);
 

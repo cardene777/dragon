@@ -26,7 +26,7 @@ import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 
 const 記法 = (actors: string, 動き = ""): string =>
-  `title: "状態"\ntype: state\n\nactors:\n${actors}\nflow:\n  - A -> B: "進む"\n${動き}`;
+  `title: "状態"\ntype: record\n\nactors:\n${actors}\nflow:\n  - A -> B: "進む"\n${動き}`;
 
 const 動き = `\nanimation:\n  - step: "s" 1.4s\n    focus: [A]\n`;
 

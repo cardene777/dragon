@@ -442,7 +442,7 @@ describe("状態遷移図の箱に書いた指定が使われないことを伝�
    * しか落ちなかった)。 起票した不具合そのものを指す錨として、この図種だけは名指しで見る。
    */
   it("状態遷移図が族に入っている", () => {
-    expect([...骨組みの図種.keys()], "状態遷移図が族から外れている").toContain("state");
+    expect([...骨組みの図種.keys()], "状態遷移図が族から外れている").toContain("record");
   });
 
   it("前の値と、行を書かない印に知らせが出る", () => {
@@ -451,7 +451,7 @@ describe("状態遷移図の箱に書いた指定が使われないことを伝�
       ["前の値", "previous: 2"],
       ["印 (行なし)", "marks: [entry]"],
     ] as const) {
-      const 知 = 箱の知らせ("state", 書く).filter((n) => n.kind === "actor-option-not-honored");
+      const 知 = 箱の知らせ("record", 書く).filter((n) => n.kind === "actor-option-not-honored");
       if (知.length !== 1) 出ない.push(`${名}: ${知.length} 件`);
       else if (!知[0]!.message.includes(名.split(" ")[0]!)) 出ない.push(`${名}: "${知[0]!.message}"`);
     }
@@ -459,16 +459,16 @@ describe("状態遷移図の箱に書いた指定が使われないことを伝�
   });
 
   it("始まりの印と終わりの印と、行と組にした印には知らせが出ず図が変わる (state)", () => {
-    const 素 = JSON.stringify(組む(本文("state", "")).図);
+    const 素 = JSON.stringify(組む(本文("record", "")).図);
     const 違う: string[] = [];
     for (const [名, 書く] of [
       ["始まりの印", "initial: true"],
       ["終わりの印", "final: true"],
       ["行と組にした印", 'rows: ["よむ"], marks: [entry]'],
     ] as const) {
-      const 知 = 箱の知らせ("state", 書く).filter((n) => n.kind === "actor-option-not-honored");
+      const 知 = 箱の知らせ("record", 書く).filter((n) => n.kind === "actor-option-not-honored");
       if (知.length > 0) 違う.push(`${名}: 知らせが ${知.length} 件`);
-      if (JSON.stringify(組む(本文("state", 書く)).図) === 素) 違う.push(`${名}: 図が変わらない`);
+      if (JSON.stringify(組む(本文("record", 書く)).図) === 素) 違う.push(`${名}: 図が変わらない`);
     }
     expect(違う).toEqual([]);
   });
@@ -725,90 +725,34 @@ describe("箱に書いた種類が使われないことを伝える (#2388)", ()
     expect(出た, `図種 ${図種一覧.length} 件`).toEqual([]);
   });
 
-  it("図 1 枚ごとに決まる欄は、読む図で鳴らず読まない図で鳴る", () => {
+  it("種類はどの図種でも 1 通りに決まる (#2782)", () => {
     /*
-     * 条件は族の表が関数として持つ (`図ごと`)。 検査は **その関数に聞いて期待を決める** =
-     * 条件を写すと、条件を直した日に検査だけが古くなる。
+     * 畳む前は表の図の種類 (`kind`) だけが **図 1 枚ごとに** 読むかが決まっていた。
+     * 組み立ての経路が 2 つあり、縦列か動きを書いた図でだけ種類が届いていたため。
      *
-     * 縦列を書かない形と全ての箱が書いた形の 2 通りで、条件が両方向に分かれることも見る。
+     * 経路を 1 本にしたので、種類は図種の表だけで決まる。 行を持つ図は縦列を書かなくても
+     * 書いた種類が届き、知らせも出ない。
      */
     const 違う: string[] = [];
-    let 読む図 = 0;
-    let 読まない図 = 0;
-    for (const [図種, 違い] of 骨組みの図種) {
-      for (const [欄, 読むか] of 違い.図ごと ?? []) {
-        const 書く = 欄 === "kind" ? "kind: queue" : undefined;
-        expect(書く, `欄 "${欄}" の書き方を検査が持っていない`).toBeDefined();
-        for (const [形, 作る, 知らせ] of [
-          ["縦列なし", 本文, 箱の知らせ],
-          ["縦列あり", 縦列を書いた本文, 縦列を書いた知らせ],
-        ] as const) {
-          const p = parseTextDslV05(作る(図種, 書く!));
-          expect(p.ok, `${図種} / ${形} の本文が読めない`).toBe(true);
-          if (!p.ok) continue;
-          const 知 = 知らせ(図種, 書く!).filter((n) => n.kind === "actor-option-not-honored");
-          if (読むか(p.doc)) {
-            読む図 += 1;
-            if (知.length > 0) 違う.push(`${図種} / ${欄} / ${形}: 読むのに知らせが ${知.length} 件`);
-            const 素 = 箱の種類(作る(図種, ""));
-            if (箱の種類(作る(図種, 書く!)) === 素) {
-              違う.push(`${図種} / ${欄} / ${形}: 読む側なのに箱が ${素} のまま`);
-            }
-          } else {
-            読まない図 += 1;
-            if (知.length !== 1) 違う.push(`${図種} / ${欄} / ${形}: 読まないのに知らせが ${知.length} 件`);
-          }
-        }
+    for (const [形, 作る, 知らせ] of [
+      ["縦列なし", 本文, 箱の知らせ],
+      ["縦列あり", 縦列を書いた本文, 縦列を書いた知らせ],
+    ] as const) {
+      const 知 = 知らせ("record", "kind: queue").filter(
+        (n) => n.kind === "actor-option-not-honored",
+      );
+      if (知.length > 0) 違う.push(`${形}: 読むのに知らせが ${知.length} 件`);
+      if (箱の種類(作る("record", "kind: queue")) === 箱の種類(作る("record", ""))) {
+        違う.push(`${形}: 書いた種類が届いていない`);
       }
     }
-    expect(違う, `図種 ${図種一覧.length} 件`).toEqual([]);
-    expect(読む図, "読む側の図が 0 件 (空振り)").toBeGreaterThan(0);
-    expect(読まない図, "読まない側の図が 0 件 (空振り)").toBeGreaterThan(0);
+    expect(違う, "行を持つ図は縦列の有無を問わず種類を読む").toEqual([]);
   });
 
-  it("案内は図 1 枚ごとに決まる図種にだけ付く", () => {
-    /*
-     * 縦列を足せば効く図種では行き先を書き、どう書いても読まない図種 (クラス図) では
-     * 当たり障りのない 1 文で埋めない (#2382 の決まり)。
-     */
-    const 違う: string[] = [];
-    let 付く図種 = 0;
-    let 付かない図種 = 0;
-    for (const t of 図種一覧) {
-      const 知 = 箱の知らせ(t, "kind: queue").find((n) => n.kind === "actor-option-not-honored");
-      if (知 === undefined) continue;
-      const 図ごと = (骨組みの図種.get(t)?.図ごと ?? []).some(([欄]) => 欄 === "kind");
-      if (図ごと) {
-        付く図種 += 1;
-        if (!(知.hint ?? "").includes("lane")) 違う.push(`${t}: 案内が無い "${知.hint ?? ""}"`);
-      } else {
-        付かない図種 += 1;
-        if (知.hint !== undefined) 違う.push(`${t}: 行き先が無いのに案内が付く "${知.hint}"`);
-      }
-    }
-    expect(違う, `図種 ${図種一覧.length} 件`).toEqual([]);
-    expect(付く図種, "案内が付く図種が 0 件 (空振り)").toBeGreaterThan(0);
-    expect(付かない図種, "案内が付かない図種が 0 件 (空振り)").toBeGreaterThan(0);
-  });
-
-  it("ER 図が図 1 枚ごとに決まる側に入っている", () => {
-    /*
-     * **図種の名前をここに書く** (#2382 と同じ形)。 上の 3 件は族の表から図種を取るので、
-     * ER 図を表から落としても「走査対象が減った」 だけになり落ちない。
-     */
-    expect(
-      (骨組みの図種.get("er")?.図ごと ?? []).map(([欄]) => 欄),
-      "ER 図の種類が図 1 枚ごとに決まる側から外れている",
-    ).toContain("kind");
-    // 表の経路は表の箱しか作らない = どの種類を書いても同じ
-    expect(箱の種類(本文("er", "kind: actor")), "ER 図の表の経路で種類が効いている").toBe(
-      箱の種類(本文("er", "kind: service")),
-    );
-    // 縦列を全部書いた図は共通の組み立てへ回るので届く
-    expect(
-      箱の種類(縦列を書いた本文("er", "kind: actor")),
-      "縦列を書いた ER 図で種類が届いていない",
-    ).not.toBe(箱の種類(縦列を書いた本文("er", "kind: service")));
+  it("図 1 枚ごとに決まる欄を 1 つも持たない (#2782)", () => {
+    // 持つ欄が出たら、上の検査では足りない = 走査する形を足す
+    const 残り = [...骨組みの図種].flatMap(([t, 違い]) => ("図ごと" in 違い ? [t] : []));
+    expect(残り, `図種 ${図種一覧.length} 件`).toEqual([]);
   });
 });
 

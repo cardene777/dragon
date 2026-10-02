@@ -1,14 +1,14 @@
 /**
  * 順番を持たない図を「触れて読む」 形にした (#1757)。
  *
- * クラス図と ER 図は箱と箱の関係が **同時に** 成り立っている。 線を 1 本ずつ引く動きは
+ * クラス図と表の図は箱と箱の関係が **同時に** 成り立っている。 線を 1 本ずつ引く動きは
  * 作り手が決めた読ませ方でしかなく、読み手の問い (この箱はどこと繋がっているか) には
  * 答えない。 描画エンジン側の受け口は `cdl#806` が持つ。
  *
  * ## 対象は実物から導く
  *
- * 図の id を手で並べない。 並べると、クラス図や ER 図を足した時に一覧へ足し忘れても
- * 検査が緑のまま通る。 図が持つ `type` から導けば、足した図が自動で対象に入る。
+ * 図の id を手で並べない。 並べると、図を足した時に一覧へ足し忘れても検査が緑のまま通る。
+ * 図が持つ `type` と矢印の端から導けば、足した図が自動で対象に入る。
  *
  * ## 母数を出す
  *
@@ -18,11 +18,19 @@
 import { describe, it, expect } from "vitest";
 
 import { TOP_LEVEL_KEYS, textDslToDiagram } from "../src/index";
+import type { CdlDiagram } from "@cardenelabs/cdl";
 import { 全図 } from "./support/responsive-accepted";
+import { 表のつながりの図 } from "./support/record-edges";
 import { FORMS } from "../../../apps/playground-spa/src/lib/syntax-forms";
 
-/** 順番を持たない図の種類。 `cdl` の preset がこの語を `type` に入れる */
-const 順番を持たない = new Set(["class", "er"]);
+/**
+ * 順番を持たない図か (#2782)。
+ *
+ * クラス図は図種で決まる。 行を持つ図 (`record`) は表のつながりと移り変わりの両方を
+ * 書けるので、**矢印の端で見分ける** (`support/record-edges.ts` が表を持つ)。
+ */
+const 順番を持たないか = (d: { type?: string } & CdlDiagram): boolean =>
+  d.type === "class" || 表のつながりの図(d);
 
 type 図 = (typeof 全図)[number] & {
   id?: string;
@@ -31,8 +39,8 @@ type 図 = (typeof 全図)[number] & {
   edgeReveal?: string;
 };
 
-const 対象 = (全図 as 図[]).filter((d) => 順番を持たない.has(d.type ?? ""));
-const 対象外 = (全図 as 図[]).filter((d) => !順番を持たない.has(d.type ?? ""));
+const 対象 = (全図 as 図[]).filter((d) => 順番を持たないか(d));
+const 対象外 = (全図 as 図[]).filter((d) => !順番を持たないか(d));
 const 母数の文 = `走査 ${全図.length} 枚 / 対象 ${対象.length} 枚 / 対象外 ${対象外.length} 枚`;
 
 describe("順番を持たない図が触れて読む形になっている (#1757)", () => {
@@ -76,7 +84,7 @@ describe("記法から触れて読む指定を書ける (#1757)", () => {
   const 記法 = (値: string): string =>
     [
       'title: "関係"',
-      "type: er",
+      "type: record",
       `relations: ${値}`,
       "",
       "actors:",

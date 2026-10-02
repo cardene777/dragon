@@ -78,9 +78,9 @@ flow:
 `,
   },
   {
-    typeName: "state",
+    typeName: "record",
     buildDsl: (kind) => `title: "test-state"
-type: state
+type: record
 
 actors:
   - Idle

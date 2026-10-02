@@ -73,7 +73,7 @@ describe("段の目印を説明から落とす (#1098)", () => {
 describe("他の型の説明は変わらない (#1098)", () => {
   // 目印を落とすのは `type: c4` だけ。 他の型で `L1` から始まる説明を書いた人がいると、
   // 落としてしまえば書いた文字が消える
-  for (const type of ["flow", "swimlane", "topology", "er"] as const) {
+  for (const type of ["flow", "swimlane", "topology", "record"] as const) {
     it(`type: ${type} では L1 から始まる説明もそのまま残る`, () => {
       const d = textDslToDiagram(
         `title: "t"\ntype: ${type}\n\nactors:\n  - A: service "L1: そのまま"\n  - B\n\nflow:\n  - A -> B: "x"\n`,

@@ -5,7 +5,7 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   "edges": [
     {
       "from": "user",
-      "id": "rel-0-user-order",
+      "id": "e0-user-order",
       "label": "places",
       "to": "order",
     },
@@ -30,16 +30,16 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "user",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 893,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "order",
       "kind": "storage",
       "w": 400,
@@ -47,17 +47,17 @@ exports[`golden: er preset > E01 minimal 2 entity 1 relation 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "E01",
   "viewBox": {
-    "h": 235,
+    "h": 211.5,
     "w": 1188,
     "x": -35,
-    "y": 68,
+    "y": 55.5,
   },
 }
 `;
@@ -67,13 +67,13 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   "edges": [
     {
       "from": "user",
-      "id": "rel-0-user-order",
+      "id": "e0-user-order",
       "label": "places",
       "to": "order",
     },
     {
       "from": "order",
-      "id": "rel-1-order-product",
+      "id": "e1-order-product",
       "label": "contains",
       "to": "product",
     },
@@ -105,24 +105,24 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "user",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 923,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "order",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 1621,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "product",
       "kind": "storage",
       "w": 400,
@@ -130,17 +130,17 @@ exports[`golden: er preset > E02 3 entity (User / Order / Product) 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "E02",
   "viewBox": {
-    "h": 235,
+    "h": 211.5,
     "w": 1916,
     "x": -35,
-    "y": 68,
+    "y": 55.5,
   },
 }
 `;
@@ -150,7 +150,7 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   "edges": [
     {
       "from": "user",
-      "id": "rel-0-user-order",
+      "id": "e0-user-order",
       "label": "places",
       "to": "order",
     },
@@ -175,16 +175,16 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "user",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 893,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "order",
       "kind": "storage",
       "w": 400,
@@ -192,17 +192,17 @@ exports[`golden: er preset > E03 cardinality 1:N 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "E03",
   "viewBox": {
-    "h": 261.5,
+    "h": 243.5,
     "w": 1188,
     "x": -35,
-    "y": 41.5,
+    "y": 23.5,
   },
 }
 `;
@@ -212,7 +212,7 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   "edges": [
     {
       "from": "student",
-      "id": "rel-0-student-course",
+      "id": "e0-student-course",
       "label": "enrolls (N:N)",
       "to": "course",
     },
@@ -237,16 +237,16 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "student",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 977,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "course",
       "kind": "storage",
       "w": 400,
@@ -254,17 +254,17 @@ exports[`golden: er preset > E04 cardinality N:N 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "E04",
   "viewBox": {
-    "h": 235,
+    "h": 211.5,
     "w": 1272,
     "x": -35,
-    "y": 68,
+    "y": 55.5,
   },
 }
 `;
@@ -274,7 +274,7 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "edges": [
     {
       "from": "user",
-      "id": "rel-0-user-order",
+      "id": "e0-user-order",
       "label": "places",
       "to": "order",
     },
@@ -299,16 +299,16 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 199,
-      "h": 141,
+      "cy": 181,
+      "h": 105,
       "id": "user",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 893,
-      "cy": 199,
-      "h": 141,
+      "cy": 181,
+      "h": 105,
       "id": "order",
       "kind": "storage",
       "w": 400,
@@ -316,14 +316,14 @@ exports[`golden: er preset > E05 entity with subtitle 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "E05",
   "viewBox": {
-    "h": 261,
+    "h": 225,
     "w": 1188,
     "x": -35,
     "y": 68,
@@ -336,25 +336,25 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "edges": [
     {
       "from": "a",
-      "id": "rel-0-a-b",
+      "id": "e0-a-b",
       "label": "ab",
       "to": "b",
     },
     {
       "from": "b",
-      "id": "rel-1-b-c",
+      "id": "e1-b-c",
       "label": "bc",
       "to": "c",
     },
     {
       "from": "c",
-      "id": "rel-2-c-d",
+      "id": "e2-c-d",
       "label": "cd",
       "to": "d",
     },
     {
       "from": "d",
-      "id": "rel-3-d-a",
+      "id": "e3-d-a",
       "label": "da",
       "to": "a",
     },
@@ -393,32 +393,32 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "a",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 889,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "b",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 1553,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "c",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 2217,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "d",
       "kind": "storage",
       "w": 400,
@@ -426,17 +426,17 @@ exports[`golden: er preset > E06 4 entity ring 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "E06",
   "viewBox": {
-    "h": 337,
+    "h": 351,
     "w": 2512,
     "x": -35,
-    "y": -34,
+    "y": -84,
   },
 }
 `;
@@ -446,7 +446,7 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   "edges": [
     {
       "from": "user",
-      "id": "rel-0-user-profile",
+      "id": "e0-user-profile",
       "label": "has",
       "to": "profile",
     },
@@ -471,16 +471,16 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "user",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 853,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "profile",
       "kind": "storage",
       "w": 400,
@@ -488,17 +488,17 @@ exports[`golden: er preset > E07 1:1 relation 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "E07",
   "viewBox": {
-    "h": 261.5,
+    "h": 243.5,
     "w": 1148,
     "x": -35,
-    "y": 41.5,
+    "y": 23.5,
   },
 }
 `;
@@ -518,21 +518,21 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
     {
       "height": 40,
       "id": "lane-user",
-      "width": 450,
+      "width": 370,
       "x": 0,
       "y": 28,
     },
     {
       "height": 40,
       "id": "lane-order",
-      "width": 450,
+      "width": 370,
       "x": 588,
       "y": 28,
     },
   ],
   "nodes": [
     {
-      "cx": 225,
+      "cx": 185,
       "cy": 162,
       "h": 68,
       "id": "user",
@@ -540,7 +540,7 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
       "w": 320,
     },
     {
-      "cx": 813,
+      "cx": 773,
       "cy": 162,
       "h": 68,
       "id": "order",
@@ -559,7 +559,7 @@ exports[`golden: er preset > E08 cardinality animation badge 1`] = `
   "viewBox": {
     "h": 206,
     "w": 1028,
-    "x": 5,
+    "x": -35,
     "y": 50,
   },
 }
@@ -570,7 +570,7 @@ exports[`golden: er preset > E09 自己参照は輪として残る (#1227 → #1
   "edges": [
     {
       "from": "employee",
-      "id": "rel-0-employee-employee",
+      "id": "e0-employee-employee",
       "label": "manages",
       "to": "employee",
     },
@@ -588,8 +588,8 @@ exports[`golden: er preset > E09 自己参照は輪として残る (#1227 → #1
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "employee",
       "kind": "storage",
       "w": 400,
@@ -597,14 +597,14 @@ exports[`golden: er preset > E09 自己参照は輪として残る (#1227 → #1
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "E09",
   "viewBox": {
-    "h": 235,
+    "h": 199,
     "w": 790,
     "x": -35,
     "y": 68,
@@ -617,25 +617,25 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   "edges": [
     {
       "from": "fact",
-      "id": "rel-0-fact-dima",
+      "id": "e0-fact-dima",
       "label": "a",
       "to": "dima",
     },
     {
       "from": "fact",
-      "id": "rel-1-fact-dimb",
+      "id": "e1-fact-dimb",
       "label": "b",
       "to": "dimb",
     },
     {
       "from": "fact",
-      "id": "rel-2-fact-dimc",
+      "id": "e2-fact-dimc",
       "label": "c",
       "to": "dimc",
     },
     {
       "from": "fact",
-      "id": "rel-3-fact-dimd",
+      "id": "e3-fact-dimd",
       "label": "d",
       "to": "dimd",
     },
@@ -681,40 +681,40 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "fact",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 883,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "dima",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 1541,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "dimb",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 2199,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "dimc",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 2857,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "dimd",
       "kind": "storage",
       "w": 400,
@@ -722,14 +722,14 @@ exports[`golden: er preset > E10 5 entity star schema 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "E10",
   "viewBox": {
-    "h": 337,
+    "h": 301,
     "w": 3152,
     "x": -35,
     "y": -34,
@@ -2132,7 +2132,7 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
   "edges": [
     {
       "from": "user",
-      "id": "rel-0-user-order",
+      "id": "e0-user-order",
       "label": "places",
       "to": "order",
     },
@@ -2157,16 +2157,16 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
   "nodes": [
     {
       "cx": 225,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "user",
       "kind": "storage",
       "w": 400,
     },
     {
       "cx": 893,
-      "cy": 186,
-      "h": 115,
+      "cy": 168,
+      "h": 79,
       "id": "order",
       "kind": "storage",
       "w": 400,
@@ -2174,17 +2174,17 @@ exports[`golden: inline option edge cases > X06 nested {} on flow 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "er",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
   "topic": "X06",
   "viewBox": {
-    "h": 269.5,
+    "h": 251.5,
     "w": 1188,
     "x": -35,
-    "y": 33.5,
+    "y": 15.5,
   },
 }
 `;
@@ -3692,7 +3692,7 @@ exports[`golden: state preset > M01 minimal Idle → Done 1`] = `
   "edges": [
     {
       "from": "idle",
-      "id": "t0-idle-done",
+      "id": "e0-idle-done",
       "label": "go",
       "to": "done",
     },
@@ -3734,8 +3734,8 @@ exports[`golden: state preset > M01 minimal Idle → Done 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "fsm",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
@@ -3754,13 +3754,13 @@ exports[`golden: state preset > M02 Idle / Loading / Done 1`] = `
   "edges": [
     {
       "from": "idle",
-      "id": "t0-idle-loading",
+      "id": "e0-idle-loading",
       "label": "submit",
       "to": "loading",
     },
     {
       "from": "loading",
-      "id": "t1-loading-done",
+      "id": "e1-loading-done",
       "label": "ok",
       "to": "done",
     },
@@ -3817,8 +3817,8 @@ exports[`golden: state preset > M02 Idle / Loading / Done 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "fsm",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
@@ -3837,19 +3837,19 @@ exports[`golden: state preset > M03 with error path 1`] = `
   "edges": [
     {
       "from": "idle",
-      "id": "t0-idle-loading",
+      "id": "e0-idle-loading",
       "label": "submit",
       "to": "loading",
     },
     {
       "from": "loading",
-      "id": "t1-loading-done",
+      "id": "e1-loading-done",
       "label": "success",
       "to": "done",
     },
     {
       "from": "loading",
-      "id": "t2-loading-error",
+      "id": "e2-loading-error",
       "label": "fail",
       "to": "error",
     },
@@ -3921,8 +3921,8 @@ exports[`golden: state preset > M03 with error path 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "fsm",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
@@ -3941,13 +3941,13 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
   "edges": [
     {
       "from": "idle",
-      "id": "t0-idle-auth",
+      "id": "e0-idle-auth",
       "label": "login",
       "to": "auth",
     },
     {
       "from": "idle",
-      "id": "t1-idle-denied",
+      "id": "e1-idle-denied",
       "label": "noCreds",
       "to": "denied",
     },
@@ -4004,8 +4004,8 @@ exports[`golden: state preset > M04 guard on transition 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "fsm",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
@@ -4024,13 +4024,13 @@ exports[`golden: state preset > M05 cyclic states 1`] = `
   "edges": [
     {
       "from": "on",
-      "id": "t0-on-off",
+      "id": "e0-on-off",
       "label": "toggle",
       "to": "off",
     },
     {
       "from": "off",
-      "id": "t1-off-on",
+      "id": "e1-off-on",
       "label": "toggle",
       "to": "on",
     },
@@ -4072,8 +4072,8 @@ exports[`golden: state preset > M05 cyclic states 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "fsm",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
@@ -4092,25 +4092,25 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
   "edges": [
     {
       "from": "start",
-      "id": "t0-start-a",
+      "id": "e0-start-a",
       "label": "left",
       "to": "a",
     },
     {
       "from": "start",
-      "id": "t1-start-b",
+      "id": "e1-start-b",
       "label": "right",
       "to": "b",
     },
     {
       "from": "a",
-      "id": "t2-a-end",
+      "id": "e2-a-end",
       "label": "ok",
       "to": "end",
     },
     {
       "from": "b",
-      "id": "t3-b-end",
+      "id": "e3-b-end",
       "label": "ok",
       "to": "end",
     },
@@ -4182,8 +4182,8 @@ exports[`golden: state preset > M06 multiple initial-like layout 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "fsm",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
@@ -4240,24 +4240,24 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
   "nodes": [
     {
       "cx": 185,
-      "cy": 184,
-      "h": 112,
+      "cy": 162,
+      "h": 68,
       "id": "idle",
       "kind": "card",
       "w": 320,
     },
     {
       "cx": 751,
-      "cy": 184,
-      "h": 112,
+      "cy": 162,
+      "h": 68,
       "id": "run",
       "kind": "card",
       "w": 320,
     },
     {
       "cx": 1317,
-      "cy": 184,
-      "h": 112,
+      "cy": 162,
+      "h": 68,
       "id": "done",
       "kind": "card",
       "w": 320,
@@ -4277,10 +4277,10 @@ exports[`golden: state preset > M07 with state counter + tween 1`] = `
   ],
   "topic": "M07",
   "viewBox": {
-    "h": 232,
+    "h": 206,
     "w": 1572,
     "x": -35,
-    "y": 68,
+    "y": 50,
   },
 }
 `;
@@ -4290,31 +4290,31 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
   "edges": [
     {
       "from": "s0",
-      "id": "t0-s0-l",
+      "id": "e0-s0-l",
       "label": "left",
       "to": "l",
     },
     {
       "from": "s0",
-      "id": "t1-s0-r",
+      "id": "e1-s0-r",
       "label": "right",
       "to": "r",
     },
     {
       "from": "l",
-      "id": "t2-l-merge",
+      "id": "e2-l-merge",
       "label": "join1",
       "to": "merge",
     },
     {
       "from": "r",
-      "id": "t3-r-merge",
+      "id": "e3-r-merge",
       "label": "join2",
       "to": "merge",
     },
     {
       "from": "merge",
-      "id": "t4-merge-end",
+      "id": "e4-merge-end",
       "label": "done",
       "to": "end",
     },
@@ -4401,8 +4401,8 @@ exports[`golden: state preset > M08 5 state diamond 1`] = `
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "fsm",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
@@ -4421,19 +4421,19 @@ exports[`golden: state preset > M09 自己遷移は輪として残る (#1227 →
   "edges": [
     {
       "from": "idle",
-      "id": "t0-idle-wait",
+      "id": "e0-idle-wait",
       "label": "enter",
       "to": "wait",
     },
     {
       "from": "wait",
-      "id": "t1-wait-wait",
+      "id": "e1-wait-wait",
       "label": "tick",
       "to": "wait",
     },
     {
       "from": "wait",
-      "id": "t2-wait-done",
+      "id": "e2-wait-done",
       "label": "exit",
       "to": "done",
     },
@@ -4490,8 +4490,8 @@ exports[`golden: state preset > M09 自己遷移は輪として残る (#1227 →
   ],
   "phases": [
     {
-      "duration_ms": 2400,
-      "id": "fsm",
+      "duration_ms": 1000,
+      "id": "static",
     },
   ],
   "states": [],
@@ -4548,24 +4548,24 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
   "nodes": [
     {
       "cx": 185,
-      "cy": 184,
-      "h": 112,
+      "cy": 162,
+      "h": 68,
       "id": "idle",
       "kind": "card",
       "w": 320,
     },
     {
       "cx": 745,
-      "cy": 184,
-      "h": 112,
+      "cy": 162,
+      "h": 68,
       "id": "active",
       "kind": "card",
       "w": 320,
     },
     {
       "cx": 1305,
-      "cy": 184,
-      "h": 112,
+      "cy": 162,
+      "h": 68,
       "id": "off",
       "kind": "card",
       "w": 320,
@@ -4589,10 +4589,10 @@ exports[`golden: state preset > M10 with set on transition phase 1`] = `
   ],
   "topic": "M10",
   "viewBox": {
-    "h": 232,
+    "h": 206,
     "w": 1560,
     "x": -35,
-    "y": 68,
+    "y": 50,
   },
 }
 `;

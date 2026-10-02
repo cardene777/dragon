@@ -37,8 +37,7 @@ import type { CompileNotice } from "../src/index";
  */
 const 書いた矢印を使う図種 = [
   "swimlane",
-  "er",
-  "state",
+  "record",
   "topology",
   "class",
   "c4",
@@ -107,7 +106,7 @@ describe("書いた矢印を使う図種では輪として残る (#1462)", () =>
   });
 
   it("書いた語がその矢印に載る", () => {
-    const { d } = 組む("state", `  - A -> A: "催促"\n`, 二人);
+    const { d } = 組む("record", `  - A -> A: "催促"\n`, 二人);
     expect(d.edges.find((e) => e.from === e.to)?.label).toBe("催促");
   });
 });
@@ -152,7 +151,7 @@ describe("自分へ戻る矢印を書かない図に触らない (#1462)", () =>
   });
 
   it("自分へ戻る矢印を書かない図では知らせが出ない", () => {
-    const { 出た } = 組む("state", `  - A -> B: "進む"\n`, 二人);
+    const { 出た } = 組む("record", `  - A -> B: "進む"\n`, 二人);
     expect(出た.filter((n) => n.message.includes("自分へ戻る矢印"))).toEqual([]);
   });
 });

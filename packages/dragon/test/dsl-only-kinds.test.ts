@@ -34,7 +34,7 @@ import type { DslNodeKind } from "../src/types";
 import { DSL_ONLY_KINDS, resolveNodeKind } from "../src/v05/parser";
 
 /** 箱の種類を書ける図種。 図全体を 1 箱にする種 (`pie` 等) は箱ごとの種類を持たない */
-const 図種 = ["flow", "swimlane", "state", "topology", "sequence", "er", "solidity"] as const;
+const 図種 = ["flow", "swimlane", "record", "topology", "sequence", "solidity"] as const;
 
 /**
  * 段の有無で組み立ての経路が分かれる。

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { textDslToDiagram } from "../src/index";
 
-type GenericKind = "flow" | "swimlane" | "er" | "state" | "topology";
+type GenericKind = "flow" | "swimlane" | "record" | "topology";
 
 function 記法(type: GenericKind, badge?: string): string {
   const animation =
@@ -41,7 +41,7 @@ describe("generic 経路の図の種類", () => {
     ]);
   });
 
-  it.each(["er", "flow", "state", "topology"] as const)(
+  it.each(["record", "flow", "topology"] as const)(
     "%s 図は利用者が書いた札を種類に使わない",
     (type) => {
       expect(textDslToDiagram(記法(type, "第一段")).type, `${type} 図の種類`).toBe(type);

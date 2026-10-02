@@ -93,7 +93,7 @@ describe("軸を持たない図種では伝える", () => {
   const 他図種 = (type: string) =>
     `title: "T"\ntype: ${type}\n${両軸}\nactors:\n  - A\n  - B\nflow:\n  - A -> B: "x"\n`;
 
-  for (const type of ["sequence", "flow", "swimlane", "er", "state", "topology", "pie", "bar", "funnel", "tree", "journey", "mind", "gantt"]) {
+  for (const type of ["sequence", "flow", "swimlane", "record", "topology", "pie", "bar", "funnel", "tree", "journey", "mind", "gantt"]) {
     it(`${type} で知らせが出る`, () => {
       expect(効かない知らせ(他図種(type))).toHaveLength(1);
     });

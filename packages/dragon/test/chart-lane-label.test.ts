@@ -32,8 +32,8 @@ const 箱ごとの図種: readonly (readonly [string, readonly (string | null | 
   ["sequence", [undefined]],
   ["flow", [undefined]],
   ["swimlane", ["A", "B"]],
-  ["er", [undefined, undefined]],
-  ["state", [undefined, undefined]],
+  ["record", [undefined, undefined]],
+  ["record", [undefined, undefined]],
   ["topology", ["図の題"]],
   ["solidity", [undefined]],
   // #1263 でクラスごとに 1 縦列へ変更。 縦列は並べるための入れ物で見出しを持たない

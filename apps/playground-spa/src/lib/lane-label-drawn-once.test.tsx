@@ -25,7 +25,7 @@ const 記法 = (type: string) =>
   `animation:\n  - step: "s1" 1s\n    focus: [Alpha]\n    body: "b"\n`;
 
 describe("箱の名前を 1 度しか描かない (#1241)", () => {
-  for (const type of ["er", "state"]) {
+  for (const type of ["record"]) {
     it(`${type} で 1 度`, () => {
       const 出た = 見える文字(textDslToDiagram(記法(type)));
       expect(出た.filter((t) => t === "Alpha"), `${type} で名前が重複している`).toHaveLength(1);
@@ -34,7 +34,7 @@ describe("箱の名前を 1 度しか描かない (#1241)", () => {
   }
 
   it("名前そのものは消えていない", () => {
-    expect(見える文字(textDslToDiagram(記法("er")))).toContain("Alpha");
+    expect(見える文字(textDslToDiagram(記法("record")))).toContain("Alpha");
   });
 
   it("swimlane では 2 度出るまま変わらない (陰性対照)", () => {

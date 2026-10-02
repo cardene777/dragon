@@ -493,7 +493,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
   viewportSpacing: "図全体の間隔と大きさ",
   flowDirection: "フローの並ぶ向き",
   boxOrder: "順序図の箱の並べ替え",
-  stateStartEnd: "状態の始まりと終わり",
+  stateStartEnd: "始まりと終わり",
   // 位置のずらしの見本 (#1971)
   layoutOffset: "位置のずらし",
   // 縦列の組の見本 (#1972)
@@ -720,7 +720,7 @@ export const ITEM_NAME_EN: Record<string, string> = {
   viewportSpacing: "Diagram spacing and size",
   flowDirection: "Flow direction",
   boxOrder: "Sequence box order",
-  stateStartEnd: "State start and end",
+  stateStartEnd: "Start and end",
   layoutOffset: "Position offset",
   laneGroup: "Lane groups",
   partInBox: "Parts as boxes",

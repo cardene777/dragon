@@ -1,7 +1,7 @@
 /**
- * ER 図でも書いた縦列に表を置けることの検証 (#1571)。
+ * 表の図でも書いた縦列に表を置けることの検証 (#1571 / #2782)。
  *
- * `er` の組み立て器は実体 1 つにつき帯を 1 本作り、必ず段 0 に置く = 表が横 1 列にしか
+ * 組み立て器 `er()` は実体 1 つにつき帯を 1 本作り、必ず段 0 に置く = 表が横 1 列にしか
  * 並ばない。 関係を 4 本持つ実体があると、どう並べ替えても 2 本は隣を飛び越す
  * (意匠帳 `docs/design/er/note.md` § 記法の制約 が 4 通りを実測している)。
  *
@@ -9,23 +9,39 @@
  *
  * 書いた場合だけを見ると、全ての図が書いた縦列に置かれる変異でも通る。
  * 書かない場合に 1 列のままであること、一部だけ書いた場合に知らせが出ることを併せて見る。
+ *
+ * ## 縦列を書いた時に箱の種類が変わらないことも見る (#2782)
+ *
+ * 畳む前は、縦列を書いた図が組み立て器を通らず別経路に入り、**箱の種類が人の形 (`actor`) に
+ * 変わって行の帯が消えていた**。 畳んだ後は箱の種類を行の有無から決めるので、縦列を書いても
+ * 行を書いた箱は表の箱 (`storage`) のまま行を保つ。
  */
 import { describe, it, expect } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import type { CompileNotice } from "../src/compile";
 
-/** 記法から図を組み、箱の縦列と知らせを返す */
-function 組む(src: string): { 縦列: string[]; 知らせ: CompileNotice[] } {
+/** 記法から図を組み、箱の縦列と種類と行、そして知らせを返す */
+function 組む(src: string): {
+  縦列: string[];
+  種類: string[];
+  行数: number[];
+  知らせ: CompileNotice[];
+} {
   const 出た: CompileNotice[] = [];
   const d = textDslToDiagram(src, { onNotice: (n) => 出た.push(n) });
-  return { 縦列: d.nodes.map((n) => n.lane), 知らせ: 出た };
+  return {
+    縦列: d.nodes.map((n) => n.lane),
+    種類: d.nodes.map((n) => n.kind as string),
+    行数: d.nodes.map((n) => n.rows?.length ?? 0),
+    知らせ: 出た,
+  };
 }
 
 /** 表を 3 つ持つ ER 図。 縦列の書き方だけを差し替えて比べる */
 const ER = (箱: readonly string[]): string =>
   [
     'title: "縦列の確かめ"',
-    "type: er",
+    "type: record",
     "",
     "lanes:",
     "  c0: { width: 470 }",
@@ -46,7 +62,7 @@ const ER = (箱: readonly string[]): string =>
 const 行 = (名: string, 縦列?: string, 段?: number): string =>
   `  - ${名}: { ${縦列 === undefined ? "" : `lane: ${縦列}, stack: ${段 ?? 0}, `}kind: storage, rows: ["id: bigint"], marks: ["pk"] }`;
 
-describe("ER 図でも書いた縦列に表を置ける (#1571)", () => {
+describe("表の図でも書いた縦列に表を置ける (#1571 / #2782)", () => {
   it("全ての箱が縦列を書けば、書いたとおりに置かれる", () => {
     const { 縦列 } = 組む(ER([行("a", "c0", 0), 行("b", "c1", 0), 行("c", "c0", 1)]));
     expect(縦列.length, "箱が 1 つも無い (検査が空振りしている)").toBe(3);
@@ -67,11 +83,28 @@ describe("ER 図でも書いた縦列に表を置ける (#1571)", () => {
   });
 
   it("一部の箱だけ縦列を書くと知らせが出る", () => {
-    // 既存の経路 (#1263)。 ER を足しても同じ扱いになることを見る
+    // 既存の経路 (#1263)。 表の図を足しても同じ扱いになることを見る
     const { 知らせ } = 組む(ER([行("a", "c0", 0), 行("b"), 行("c", "c1", 0)]));
     expect(
       知らせ.some((n) => n.kind === "lane-not-honored"),
       "一部だけ書いた形が黙って通っている",
     ).toBe(true);
+  });
+
+  it("縦列を書いても行を書いた箱は表の箱のまま行を保つ (#2782)", () => {
+    // 畳む前の不具合。 縦列を書くと箱が人の形 (`actor`) に変わり、行の帯が消えていた
+    const 書いた = 組む(ER([行("a", "c0", 0), 行("b", "c1", 0), 行("c", "c0", 1)]));
+    expect(書いた.種類, "縦列を書いた図の箱が表の箱でない").toEqual([
+      "storage",
+      "storage",
+      "storage",
+    ]);
+    expect(書いた.行数, "縦列を書いた図の箱から行が消えている").toEqual([1, 1, 1]);
+
+    // 陰性対照。 縦列を書かない図と同じであることを見る = 書いた側だけを見ると、
+    // どちらも表の箱にする変異で通る
+    const 書かない = 組む(ER([行("a"), 行("b"), 行("c")]));
+    expect(書いた.種類, "縦列の有無で箱の種類が変わる").toEqual(書かない.種類);
+    expect(書いた.行数, "縦列の有無で行の数が変わる").toEqual(書かない.行数);
   });
 });

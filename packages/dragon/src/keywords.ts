@@ -15,7 +15,7 @@ export const HEADERS = {
 } as const;
 
 /** preset 名 */
-export const PRESET_NAMES = ["sequence", "flow", "swimlane", "er", "state", "topology"] as const;
+export const PRESET_NAMES = ["sequence", "flow", "swimlane", "record", "topology"] as const;
 
 /**
  * 図の並ぶ向き (`direction:`、 #1494)。

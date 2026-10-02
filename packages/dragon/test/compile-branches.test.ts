@@ -33,7 +33,7 @@ function compile(type: PresetType, over: Partial<DslDocument> = {}): CdlDiagram 
 }
 
 describe("compile — type 別 compiler が有効 diagram を生成", () => {
-  for (const type of ["sequence", "flow", "swimlane", "er", "state", "topology", "gantt", "class", "chart", "c4", "mind"] as PresetType[]) {
+  for (const type of ["sequence", "flow", "swimlane", "record", "topology", "gantt", "class", "chart", "c4", "mind"] as PresetType[]) {
     it(`type "${type}" → nodes を持つ CdlDiagram`, () => {
       const d = compile(type);
       expect(typeof d.id).toBe("string");
@@ -125,7 +125,7 @@ describe("compile — animate block (compileSequenceWithAnimate / injectPhasesFa
 
 describe("compile — edge inline option (applyEdgeInlineOptions)", () => {
   it("guard / cardinality を持つ step → edge に反映", () => {
-    const d = compileToCdl(makeDoc("er", {
+    const d = compileToCdl(makeDoc("record", {
       flow: [step("A", "B", { guard: "isActive", cardinality: "1:N", sub: "note" })],
     }));
     expect(d.edges.length).toBeGreaterThan(0);
