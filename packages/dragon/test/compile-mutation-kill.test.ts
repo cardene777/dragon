@@ -1663,7 +1663,7 @@ describe("mergePartIntoDiagram: readouts / phase merge の分岐", () => {
     expect(ph.sets.some((s) => s.stateId === "p1__v")).toBe(true);
   });
 
-  it("target より part の phase が多い場合は余剰 phase が append される (dummy anchor)", () => {
+  it("取り込み先より部品の段が多い場合、余った段は落とす (#2788)", () => {
     const part = makeTestPart();
     part.phases = [
       { id: "p1", duration: 1000, title: "a", body: "", activate: [], tweens: [], sets: [] },
@@ -1678,8 +1678,13 @@ describe("mergePartIntoDiagram: readouts / phase merge の分岐", () => {
       makeDoc("sequence", { animate, actors: [actor("A"), actor("p1", { partId: "test" })], flow: [step("A", "A")] }),
       { partsCatalog: { test: part } },
     );
-    expect(d.phases.length).toBe(2);
-    expect(d.phases[1]!.activate).toContain("p1__top");
+    // 以前は後ろへ足していた。 足すと部品を 1 つ置いただけで取り込み先の段数が伸び、
+    // 書き手が決めた筋書きと画面の段数が食い違う (#2788)
+    expect(d.phases.length).toBe(1);
+    // 1 段目は重なる = 長さは長い方を採る
+    expect(d.phases[0]!.duration).toBe(1000); // max(500, 1000)
+    // 2 段目で光らせるはずだった対象は、どの段にも入らない
+    expect(d.phases.some((ph) => ph.activate.includes("p1__top"))).toBe(false);
   });
 });
 

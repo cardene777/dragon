@@ -2584,8 +2584,14 @@ function mergePartIntoDiagram(
       });
     }
   } else {
-    // parallel merge = 各 target phase に対応する parts phase を index-wise で合成 (min の phase 数まで)、
-    // 残 parts phase は追加 append (target より parts phase 数が多い場合)
+    // parallel merge = 各 target phase に対応する parts phase を index-wise で合成する。
+    //
+    // **取り込み先より部品の段が多い時、余りは落とす** (#2788)。
+    // 以前は後ろへ足していたため、段を 2 つ以上持つ部品を 1 つでも置くと取り込み先の段数が
+    // 増えた。 取り込み先の段は書き手が決めた筋書きなので、部品を置いただけで段が伸びると
+    // 本文と画面の段数が食い違う。 これを避けるために部品側へ「段は 1 つ」 の規約を置いていたが、
+    // 規約だと信号機のように順番そのものが意味を持つ部品が描けない。
+    // 落とす側へ寄せると、部品は単体の頁で全段を見せられて、取り込み先の段数は変わらない。
     const targetLen = target.phases.length;
     const partsLen = part.phases.length;
     const commonLen = Math.min(targetLen, partsLen);
@@ -2603,17 +2609,7 @@ function mergePartIntoDiagram(
         ...partPhase.sets.map((s) => ({ ...s, stateId: valuePrefix(s.stateId) })),
       ];
     }
-    // parts phase 余剰は append (target より parts が長い場合)
-    for (let i = commonLen; i < partsLen; i++) {
-      const phaseOrig = part.phases[i]!;
-      target.phases.push({
-        ...phaseOrig,
-        id: prefix(phaseOrig.id),
-        activate: phaseOrig.activate.map(prefix),
-        tweens: phaseOrig.tweens.map((t) => ({ ...t, stateId: valuePrefix(t.stateId) })),
-        sets: phaseOrig.sets.map((s) => ({ ...s, stateId: valuePrefix(s.stateId) })),
-      });
-    }
+    // 余った部品の段は落とす。 取り込み先の段数を部品が変えない (上の comment が理由)
   }
   return 作った縦列;
 }
