@@ -24,7 +24,7 @@ function 縦列の見出し(type: string): (string | undefined)[] {
 }
 
 describe("箱ごとに縦列を作る図種の見出し (#1241)", () => {
-  it.each(["er", "state"])("%s の縦列に見出しを付けない", (type) => {
+  it.each(["record"])("%s の縦列に見出しを付けない", (type) => {
     expect(縦列の見出し(type)).toEqual([undefined, undefined]);
   });
 
@@ -33,14 +33,14 @@ describe("箱ごとに縦列を作る図種の見出し (#1241)", () => {
     expect(縦列の見出し("swimlane")).toEqual(["Alpha", "Beta"]);
   });
 
-  it.each(["er", "state"])("%s でも箱の題は残る", (type) => {
+  it.each(["record"])("%s でも箱の題は残る", (type) => {
     // 見出しを外しただけで名前ごと消えていないことを見る
     const r = parseTextDslV05(記法(type));
     const d = r.ok ? compileToCdl(r.doc) : undefined;
     expect(d?.nodes.map((n) => n.title)).toEqual(["Alpha", "Beta"]);
   });
 
-  it.each(["er", "state", "swimlane"])("%s の縦列の数は変わらない", (type) => {
+  it.each(["record", "swimlane"])("%s の縦列の数は変わらない", (type) => {
     expect(縦列の見出し(type)).toHaveLength(2);
   });
 });
@@ -48,7 +48,7 @@ describe("箱ごとに縦列を作る図種の見出し (#1241)", () => {
 describe("動きを書かない図では従来どおり (陰性対照)", () => {
   // 動きを書かない `er` / `state` は cdl 側の組み立てを通るため、本 file の変更は届かない。
   // 届いていないことを固定しておく = 片方だけ直して食い違う状態に気付ける
-  it.each(["er", "state"])("%s は動きなしでも見出しを持たない", (type) => {
+  it.each(["record"])("%s は動きなしでも見出しを持たない", (type) => {
     const src = `title: "T"\ntype: ${type}\n\nactors:\n  - Alpha\n  - Beta\nflow:\n  - Alpha -> Beta: "x"\n`;
     const r = parseTextDslV05(src);
     const d = r.ok ? compileToCdl(r.doc) : undefined;

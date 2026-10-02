@@ -70,8 +70,18 @@ export type PresetType =
   | "flow"
   | "flowchart"
   | "swimlane"
-  | "er"
-  | "state"
+  /**
+   * 箱が行を持ち、箱どうしが関係を持つ図 (#2782)。
+   *
+   * 畳む前は `er` と `state` の 2 つに分かれていたが、描画側へ渡す形は同じだった。
+   * 箱はどちらも `storage`、行頭の印はどちらも 形 (四角 / 山形) × 塗り (塗る / 中空) の
+   * 2 軸で、違うのはその軸を何と呼ぶかだけだった (`pk` / `fk` / `opt` と
+   * `entry` / `exit` / `do` / `internal`)。
+   *
+   * dragon の語は 3 つ (`鍵` / `外` / `条件`) で、印の 3 軸と 1 対 1 に対応する。
+   * 古い語は読み取りの入口でこの 3 語へ読み替える (`compile/row-marks.ts` の `行頭の語の別名`)。
+   */
+  | "record"
   | "topology"
   | "gantt"
   | "class"

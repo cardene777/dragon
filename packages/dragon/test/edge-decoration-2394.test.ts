@@ -107,7 +107,7 @@ describe("矢印に書いた飾りが図種ごとに消えない (#2394)", () =>
 
   it("線の種類が消えていた 3 図種で 2 通りに分かれる", () => {
     const 違う: string[] = [];
-    for (const 図種 of ["er", "flow", "state"]) {
+    for (const 図種 of ["record", "flow"]) {
       const 取る = (語: string): string | undefined => {
         const p = parseTextDslV05(本文(図種, `: "つなぐ" ${語}`, ""));
         if (!p.ok) throw new Error(`読めない本文 (${図種})`);
@@ -122,7 +122,7 @@ describe("矢印に書いた飾りが図種ごとに消えない (#2394)", () =>
 
   it("出どころ側の添え字が、矢印を描く 6 図種で端の字になる", () => {
     const 違う: string[] = [];
-    for (const 図種 of ["c4", "er", "flow", "state", "swimlane", "topology"]) {
+    for (const 図種 of ["c4", "record", "flow", "swimlane", "topology"]) {
       const p = parseTextDslV05(本文(図種, ': "つなぐ"', ' { tailSub: "1" }'));
       if (!p.ok) throw new Error(`読めない本文 (${図種})`);
       const 矢印 = compileToCdl(p.doc).edges.find((e) => e.to === "い");
@@ -146,7 +146,7 @@ describe("矢印に書いた飾りが図種ごとに消えない (#2394)", () =>
 
   it("陰性対照: 3 欄を書かない矢印は既定のまま", () => {
     const 違う: string[] = [];
-    for (const 図種 of ["c4", "er", "flow", "state", "swimlane", "topology", "class"]) {
+    for (const 図種 of ["c4", "record", "flow", "swimlane", "topology", "class"]) {
       const p = parseTextDslV05(本文(図種, ': "つなぐ"', ""));
       if (!p.ok) throw new Error(`読めない本文 (${図種})`);
       const 矢印 = compileToCdl(p.doc).edges.find((e) => e.to === "い");

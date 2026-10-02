@@ -80,7 +80,7 @@ describe("工程の並びでない図種では伝える", () => {
   const 他図種 = (type: string, 欄: string) =>
     `title: "T"\ntype: ${type}\n\nactors:\n  - A: { ${欄} }\n  - B\nflow:\n  - A -> B: "x"\n`;
 
-  for (const type of ["sequence", "flow", "swimlane", "er", "state", "topology", "pie", "bar", "funnel", "tree", "journey", "quadrant"]) {
+  for (const type of ["sequence", "flow", "swimlane", "record", "topology", "pie", "bar", "funnel", "tree", "journey", "quadrant"]) {
     it(`${type} で知らせが出る`, () => {
       expect(効かない知らせ(他図種(type, 'owner: "Eng"'))).toHaveLength(1);
     });

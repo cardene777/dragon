@@ -25,7 +25,7 @@ function 組む(src: string): { 縦列: string[]; 知らせ: CompileNotice[] } {
 const ER = (箱: readonly string[]): string =>
   [
     'title: "縦列の確かめ"',
-    "type: er",
+    "type: record",
     "",
     "lanes:",
     "  c0: { width: 470 }",

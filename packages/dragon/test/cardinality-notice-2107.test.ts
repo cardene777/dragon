@@ -1,7 +1,7 @@
 /**
  * 矢印に書いた多重度 (`cardinality`) から端の形を描けない時、書いた行へ知らせが出る (#2107)。
  *
- * 多重度で端の形が決まるのは `type: er` の 6 語だけ。 それ以外の形は図に何も足さないか、
+ * 多重度で端の形が決まるのは `type: record` の 6 語だけ。 それ以外の形は図に何も足さないか、
  * 名前に `(語)` と添えるだけで、知らせが 1 件も出ていなかった (図種ごとに測ると、ER 図に 6 語を書いた形と、
  * 矢印を捨てたと既に知らせる図種を除いて、全てこの形だった)。
  *
@@ -53,13 +53,13 @@ describe("矢印に書いた多重度が端の形にならない時に知らせ�
   });
 
   for (const 段 of [false, true]) {
-    describe(`type: er (${段 ? "段を持つ図" : "段の無い図"})`, () => {
+    describe(`type: record (${段 ? "段を持つ図" : "段の無い図"})`, () => {
       it.each(語たち.flatMap((語) => [語, 語.toLowerCase()]))("6 語 (%s) を書くと知らせない", (語) => {
-        expect(多重度の知らせ(記法("er", ` { cardinality: "${語}" }`, 段))).toEqual([]);
+        expect(多重度の知らせ(記法("record", ` { cardinality: "${語}" }`, 段))).toEqual([]);
       });
 
       it.each(["N:N", "2..5"])("6 語に無い %s を書くと、両端を描かないことを書いた行で 1 件伝える", (語) => {
-        const 出た = 多重度の知らせ(記法("er", ` { cardinality: "${語}" }`, 段));
+        const 出た = 多重度の知らせ(記法("record", ` { cardinality: "${語}" }`, 段));
         expect(出た).toHaveLength(1);
         expect(出た[0]!.actor).toBe("A");
         expect(出た[0]!.message).toContain(`"${語}"`);
@@ -69,18 +69,18 @@ describe("矢印に書いた多重度が端の形にならない時に知らせ�
       });
 
       it("6 語に無い語でも、端を両方書けば知らせない", () => {
-        expect(多重度の知らせ(記法("er", ' { cardinality: "2..5", tailHead: one, head: many }', 段))).toEqual([]);
+        expect(多重度の知らせ(記法("record", ' { cardinality: "2..5", tailHead: one, head: many }', 段))).toEqual([]);
       });
 
       it("6 語に無い語で端を片方だけ書くと、書いていない側の端を伝える", () => {
-        const 行き先だけ = 多重度の知らせ(記法("er", ' { cardinality: "2..5", head: many }', 段));
+        const 行き先だけ = 多重度の知らせ(記法("record", ' { cardinality: "2..5", head: many }', 段));
         expect(行き先だけ.map((n) => n.message)).toEqual([expect.stringContaining("出どころ側の形を描きません")]);
-        const 出どころだけ = 多重度の知らせ(記法("er", ' { cardinality: "2..5", tailHead: one }', 段));
+        const 出どころだけ = 多重度の知らせ(記法("record", ' { cardinality: "2..5", tailHead: one }', 段));
         expect(出どころだけ.map((n) => n.message)).toEqual([expect.stringContaining("行き先側の形を描きません")]);
       });
 
       it("空白だけの多重度は書かなかったものとして知らせない", () => {
-        expect(多重度の知らせ(記法("er", ' { cardinality: "  " }', 段))).toEqual([]);
+        expect(多重度の知らせ(記法("record", ' { cardinality: "  " }', 段))).toEqual([]);
       });
     });
   }
@@ -90,7 +90,7 @@ describe("矢印に書いた多重度が端の形にならない時に知らせ�
     jsonToDiagram(
       {
         title: "T",
-        type: "er",
+        type: "record",
         actors: [{ name: "A" }, { name: "B" }],
         flow: [{ from: "A", to: "B", label: "x", cardinality: "N:N" }],
       },
@@ -101,8 +101,8 @@ describe("矢印に書いた多重度が端の形にならない時に知らせ�
     ]);
   });
 
-  describe("type: er 以外", () => {
-    const 図種たち = [...PRESET_TYPES].filter((t) => t !== "er");
+  describe("type: record 以外", () => {
+    const 図種たち = [...PRESET_TYPES].filter((t) => t !== "record");
 
     it("図種を 1 つ以上導けていて、元から知らせる行と知らせない行の両方を含む", () => {
       // 片方しか無いと、下の検査の分かれ道の片側が一度も通らない

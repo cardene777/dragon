@@ -52,9 +52,9 @@ describe("矢印の指定が種別を問わず届く (#1268)", () => {
     ["段のある swimlane", "swimlane", true],
     ["段のない swimlane", "swimlane", false],
     ["段のある flow", "flow", true],
-    ["段のある state", "state", true],
+    ["段のある state", "record", true],
     ["段のある topology", "topology", true],
-    ["段のない er", "er", false],
+    ["段のない er", "record", false],
     ["段のない class", "class", false],
   ] as const) {
     it(`${名} で 5 つの指定が届く`, () => {

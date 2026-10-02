@@ -33,7 +33,7 @@ const 見える = (e: CdlEdge | undefined): 見える欄 => {
 function 記法の矢印(行: Record<string, unknown>, 段: boolean): 見える欄 {
   const d = jsonToDiagram({
     title: "注文の表",
-    type: "er",
+    type: "record",
     actors: [{ name: "User" }, { name: "Order" }],
     flow: [{ from: "User", to: "Order", ...行 }],
     ...(段 ? { animation: [{ step: "全体", focus: ["User", "Order"] }] } : {}),

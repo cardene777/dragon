@@ -26,7 +26,7 @@ flow:
 `;
 
 const ER図の記法 = `title: "ER 図の線幅"
-type: er
+type: record
 reveal: all
 
 actors:

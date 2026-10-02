@@ -76,6 +76,9 @@ import {
   resolvePalette,
 } from "../keywords";
 import { 区画 } from "../compile/word-state";
+// 行頭の印の古い語の読み替え (#2782)。 印を作る側と同じ file が表を持つ = 縦に並べた形と
+// 中括弧の形と JSON の 3 経路が同じ表を通る
+import { 行頭の語へ読み替える } from "../compile/row-marks";
 import { PHASE_BODY_KEYS } from "../keywords";
 import type { DslPalette } from "../keywords";
 import type { DslDirection } from "../keywords";
@@ -237,7 +240,7 @@ export const TOP_LEVEL_KEYS = [
  * `lanes:` / `groups:` の 1 行を読む形 (#1241)。
  *
  * **id は英数字と下線に限らない**。 組み立て側は登場人物の名前から縦列 id を作るため、
- * hyphen と日本語が入る (実測 = `type: state` で `lane-idle` / `lane-待機`、
+ * hyphen と日本語が入る (実測 = `type: record` で `lane-idle` / `lane-待機`、
  * `type: swimlane` で `lane-sign-up`)。 英数字と下線だけを受けていた間、
  * **自動で作られた縦列の幅や見出しを書き直す手段が無かった**。
  *
@@ -357,8 +360,7 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "flow",
   "flowchart",
   "swimlane",
-  "er",
-  "state",
+  "record",
   "topology",
   "gantt",
   "class",
@@ -3146,11 +3148,14 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
           .filter(Boolean);
         break;
       /*
-       * 行頭の印 (#1466)。 `rows` と同じ並びで、空文字はその行に印を付けない。
+       * 行頭の印 (#1466)。 `rows` と同じ並びで書く。
        *
-       * **語の意味は図の種類が決める**。 ER は `pk` / `fk` / `opt`、状態遷移は
-       * `entry` / `exit` / `do` / `internal`。 印の 2 軸 (形 × 塗り) は共通だが、その軸が
-       * 何を指すかは種類ごとに違う = 1 つの語彙に畳むと、どの図でも意味が合わない語が残る。
+       * **語は dragon の 3 つ** (`鍵` / `外` / `条件`)。 印の 3 軸 (下線 / 形 / 塗り) に
+       * 1 対 1 で当たる (`compile/row-marks.ts` が表を持つ)。
+       *
+       * 古い語 (`pk` / `fk` / `opt` / `entry` / `exit` / `do` / `internal`) はここで
+       * 3 語へ読み替える (#2782)。 **読み替えは読み取りの入口 1 か所に閉じる** =
+       * ここを通った後は古い語がどこにも残らないので、組み立て側は 3 語だけを扱う。
        *
        * 空の要素を捨てない (`filter(Boolean)` を掛けない) = 並びが `rows` とずれる。
        */
@@ -3159,7 +3164,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         out.marks = raw
           .replace(/^\[|\]$/g, "")
           .split(/,(?![^[]*\])/)
-          .map((x) => stripQuotes(x.trim()));
+          .map((x) => 行頭の語へ読み替える(stripQuotes(x.trim())));
         break;
       case "位置":
       case "pos": {
@@ -4084,12 +4089,14 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
             .map((x) => stripQuotes(x.trim()))
             .filter(Boolean)
         : undefined,
-      // 行頭の印 (#1466)。 `rows` と同じ並びなので **空の要素を捨てない**
+      // 行頭の印 (#1466)。 `rows` と同じ並びなので **空の要素を捨てない**。
+      // 古い語の読み替えは縦に並べた形と同じ関数を通す (#2782) = 片方だけ通すと、
+      // 中括弧で書いた `pk` が印を持たないまま通る
       marks: opts.marks
         ? opts.marks
             .replace(/^\[|\]$/g, "")
             .split(/,(?![^[]*\])/)
-            .map((x) => stripQuotes(x.trim()))
+            .map((x) => 行頭の語へ読み替える(stripQuotes(x.trim())))
         : undefined,
       lane: opts.lane,
       // 箱の中に描く図形 (#1374)。 パーツでは状態の上書きとして意味を持つため横取りしない

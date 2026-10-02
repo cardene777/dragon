@@ -18,7 +18,8 @@ import { actorRefTable, canonicalizeFlowActors } from "./compile/actors";
 import { compileC4 } from "./compile/c4";
 import { compileClass } from "./compile/class";
 import { 鎖でつなぐ形か, 鎖に並べる登場人物, 鎖にしない書き方の案内 } from "./compile/chain";
-import { compileEr } from "./compile/er";
+import { compileRecord } from "./compile/record";
+import { 行頭の印にする, 行頭の印を読むか, 鍵の行を上にまとめる } from "./compile/row-marks";
 import { compileFlow } from "./compile/flow";
 import { compileFunnel } from "./compile/funnel";
 import { 共通の組み立てへ回す } from "./compile/generic";
@@ -28,7 +29,6 @@ import { compileJourney } from "./compile/journey";
 import { compileMind } from "./compile/mind";
 import { compileQuadrant } from "./compile/quadrant";
 import { compileSequence } from "./compile/sequence";
-import { compileState } from "./compile/state";
 import { compileFlowchart } from "./compile/flowchart";
 import { compileSwimlane } from "./compile/swimlane";
 import { compileTopology } from "./compile/topology";
@@ -90,8 +90,8 @@ import { 段を読み取る } from "./compile/rows";
 import { truncateForMessage } from "./compile/subtitle";
 import { slugify } from "./compile/slug";
 import { 語の状態を図の語へ直す } from "./compile/word-state";
-import type { CdlDiagram, CdlEdge, CdlNode, RowMark } from "@cardenelabs/cdl";
-import { FSM_ACTION_MARK, layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlEdge, CdlNode } from "@cardenelabs/cdl";
+import { layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS, 描く語がその図を指すか } from "./v05/parser";
 import type { DslShape } from "./keywords";
@@ -174,11 +174,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "swimlane":
       diagram = compileSwimlane(doc);
       break;
-    case "er":
-      diagram = compileEr(doc);
-      break;
-    case "state":
-      diagram = compileState(doc);
+    case "record":
+      diagram = compileRecord(doc);
       break;
     case "topology":
       diagram = compileTopology(doc);
@@ -589,39 +586,51 @@ function 静止した図の焦点を外す(diagram: CdlDiagram, doc: DslDocument
   }
 }
 
-const 既定の配色を持つ図種: ReadonlySet<DslDocument["type"]> = new Set(["er", "class"]);
+const 既定の配色を持つ図種: ReadonlySet<DslDocument["type"]> = new Set(["class"]);
 
 /**
- * 図の配色と、表の箱の行の縞を当てる (#1553)。
+ * 行を書いた箱か (#2782)。 縞を敷く相手を決める。
+ *
+ * 縞の目的は行を横に追うことなので、行が無い箱に敷いても追う対象が無い。
+ */
+function 行を書いた箱か(node: CdlNode): boolean {
+  return (node.rows?.length ?? 0) > 0;
+}
+
+/**
+ * 図の配色と、行を書いた箱の縞を当てる (#1553 / #2782)。
  *
  * ## 配色
  *
  * cdl は色を持たない。 名前だけを `data-cdl-palette` として markup に出し、消費側
  * (`cdl-theme.css`) が名前を見て 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線) に色を当てる。
  *
- * ER 図とクラス図は書かなくても `kinari` (生成りに茶) になる。
- * どちらも箱の作りが同じ (行頭の印 + 左に名前 + 右に型) で、名前と型が離れて並ぶため、
- * 行を横に追う目印 (行の縞) が要る。
- * 縞の色は配色からしか来ないので、既定が無いと縞が箱の面と同じ色に落ちて 1 本も出ない。
- * 書き手が `palette:` を書いた時はそちらが勝つ。
+ * **`record` は書かなければ配色を持たない** (#2782)。 畳む前は `type: er` が書かなくても
+ * `kinari` (生成りに茶) になったが、畳んだ先には移り変わりを書いた図も入る。
+ * 表の図と移り変わりの図は行の有無でも行の中身でも分かれない = 同じ `kind: storage` に
+ * 同じ形の行 (`督促を送る: 7 日ごと`) を書く。 分けられない材料で推し量ると、
+ * どちらかの図が書いていない色みを名乗る。
  *
- * クラス図の意匠は `docs/design/class/note.md` が持つ。
+ * これは #2782 で落とした 3 つの既定 (始まりと終わりの札 / 矢印の先端 / 箱の種類) と
+ * 同じ形で、**書かないものを図が名乗らない** 側に倒している。
+ * 表の図には見本の側で `palette: kinari` を書く。
+ *
+ * クラス図だけは既定を残す。 畳んでいないので図種が中身を一意に決める。
  *
  * ## 行の縞
  *
- * cdl の `er()` 組み立て器は縞を既定で敷くが、**動きを持つ ER 図はその経路を通らない**
- * (`compileGenericWithAnimate` が箱を直に組む)。 同じ図が動きの有無で縞を持ったり持たなかったり
- * しないよう、出口で揃える。
+ * 縞の色は配色からしか来ない。 配色が無い図に敷くと箱の面と同じ色に落ちて 1 本も出ないので、
+ * **配色が決まった図の、行を書いた表の箱** にだけ敷く。
  *
- * 縞を描くのは表の箱 (`storage`) だけ。 他の種別の箱に書いても描画側が読まないので、
- * ここで対象を絞って「書いたのに出ない」 欄を残さない。
+ * 畳む前は組み立て器 `er()` が縞を敷く経路と、箱を直に組む経路の 2 つがあり、同じ図が
+ * 動きの有無で縞を持ったり持たなかったりしていた。 経路が 1 本になった後も出口で揃える。
  */
 function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
   const 配色 = doc.palette ?? (既定の配色を持つ図種.has(doc.type) ? "kinari" : undefined);
-  if (配色 !== undefined) diagram.palette = 配色;
-  if (doc.type !== "er") return;
+  if (配色 === undefined) return;
+  diagram.palette = 配色;
   for (const node of diagram.nodes) {
-    if (node.kind === "storage") node.rowStripe = true;
+    if (node.kind === "storage" && 行を書いた箱か(node)) node.rowStripe = true;
   }
 }
 
@@ -1199,7 +1208,7 @@ function reportBandProblems(
 /**
  * 矢印に書いた多重度 (`cardinality`) から端の形を描けない時に伝える (#2107)。
  *
- * 多重度で端の形が決まるのは `type: er` の 6 語だけ (描画側の `ER_CARDINALITY_HEAD`)。
+ * 多重度で端の形が決まるのは `type: record` の 6 語だけ (描画側の `ER_CARDINALITY_HEAD`)。
  * `er` でそれ以外の語を書くと名前に `(語)` と添えるだけで、`er` 以外では何も描かない。
  * 黙って通すと、書いた側は端の形が付くと思い込む (`N:M` の代わりに `N:N` と書く形で起きる)。
  *
@@ -1240,7 +1249,7 @@ function reportCardinalityNotHonored(
     if (図種が知らせた行.has(line)) continue;
     const 矢印 = `${truncateForMessage(s.from)} -> ${truncateForMessage(s.to)}`;
     const 字 = truncateForMessage(書いた.字);
-    if (doc.type !== "er") {
+    if (doc.type !== "record") {
       onNotice({
         kind: "cardinality-not-honored",
         actor: s.from,
@@ -1250,7 +1259,7 @@ function reportCardinalityNotHonored(
         hint:
           doc.type === "class"
             ? "クラス図の多重度は、行き先の側を sub、出どころの側を tailSub に書いてください"
-            : "多重度から両端の形を描くのは type: er です",
+            : "多重度から両端の形を描くのは type: record です",
       });
       continue;
     }
@@ -1520,17 +1529,14 @@ function 値として読む図の案内(効かない: readonly string[]): string
  *
  * 案内は **伝えた欄から組み立てる** (#2382)。 3 つの行き先を並べた 1 文を固定で添えていたが、
  * 状態遷移図を族に入れた時に 2 つが誤りになった = 読み手は既に状態遷移図に居るのに
- * 「始まりと終わりの印は type: state が描きます」 と読まされ、印については
- * 「type: er が描きます」 と読まされる (状態遷移図も描く。 足りないのは行のほう)。
+ * 「始まりと終わりの印は type: record が描きます」 と読まされ、印については
+ * 「type: record が描きます」 と読まされる (状態遷移図も描く。 足りないのは行のほう)。
  *
  * 段 (`stack`) は **図 1 枚ごとに読むかが決まる** (#2386)。 書いた番号の段に置くのは
  * 全ての箱が縦列を書いた図だけで、1 つでも書いていない箱があると図全体が別の並べ方に落ち、
  * 段はどの箱でも読まれない。 図種では表せない条件なので、置く側と同じ関数
  * (`書いた縦列に置く`) に聞く。
  *
- * ER 図の種類 (`kind`) も同じ形 (#2388)。 表の経路は実体 1 つにつき表の箱を作るので種類を
- * 持たないが、縦列や動きを書いた図は共通の組み立てへ回って種類が届く。 同じ図種の中で
- * 2 通りに分かれるため、組む側と同じ判定 (`ERを共通の組み立てで組むか`) に聞く。
  */
 function reportSkeletonActorOptionNotHonored(
   doc: DslDocument,
@@ -1548,7 +1554,7 @@ function reportSkeletonActorOptionNotHonored(
     if (
       a.rows !== undefined &&
       a.marks !== undefined &&
-      行頭の印にする(doc.type, a.marks) !== null
+      行頭の印を読むか(doc.type)
     ) {
       判定で外す.push("marks");
     }
@@ -1571,8 +1577,10 @@ function reportSkeletonActorOptionNotHonored(
  * 表では表せないので、ここで読まない図から抜いて伝える側へ回す。
  *
  * 条件は使う側と同じ関数に聞く = 2 か所に写すと、使う側を直した日に伝える側が古くなる。
- * 段 (`stack`) は縦列を選べる図種すべてに同じ条件が掛かるので `書いた縦列に置く` を直に呼び、
- * 図種ごとに違う条件 (ER 図の種類) は族の表が関数を持つ。
+ * 段 (`stack`) は縦列を選べる図種すべてに同じ条件が掛かるので `書いた縦列に置く` を直に呼ぶ。
+ *
+ * 図種ごとに違う条件を持つ欄は 1 つも無い (#2782)。 畳む前は表の図の種類 (`kind`) が
+ * 2 経路に分かれていたが、経路を 1 本にしたので図種の表だけで決まる。
  *
  * @param doc 組み立てる本文
  * @returns 族の除外から、この図では読まない欄を抜いた集合
@@ -1582,9 +1590,6 @@ function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): Rea
   const 読まない欄: string[] = [];
   // 段を読まない図では伝える側へ回す。 既に抜けている図種 (c4) は下の `delete` が空振りする
   if (!書いた縦列に置く(doc.type, doc)) 読まない欄.push("stack");
-  for (const [欄, 読む] of 骨組みの図種.get(doc.type)?.図ごと ?? []) {
-    if (!読む(doc)) 読まない欄.push(欄);
-  }
   const 残り = new Set(族の除外);
   let 抜いた = false;
   for (const 欄 of 読まない欄) if (残り.delete(欄)) 抜いた = true;
@@ -1592,13 +1597,13 @@ function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): Rea
 }
 
 /**
- * 行頭の印を読む図種 (#2382)。 `行頭の印にする` に聞いて導く。
+ * 行頭の印を読む図種 (#2382)。 `行頭の印を読むか` に聞いて導く。
  *
  * 図種の名前を案内の文に写すと、読み替える図種を足した日に案内だけが古くなる。
  * 走査の範囲は骨組みの族に閉じる = この案内が出るのも族の中だけ。
  */
-const 行頭の印を読む図種: readonly string[] = [...骨組みの図種.keys()].filter(
-  (t) => 行頭の印にする(t as DslDocument["type"], [""]) !== null,
+const 行頭の印を読む図種: readonly string[] = [...骨組みの図種.keys()].filter((t) =>
+  行頭の印を読むか(t),
 );
 
 /**
@@ -1624,16 +1629,8 @@ function 骨組みの図の案内(図種: string, 効かない: readonly string[
   if (効かない.includes("段") && 縦列を選べる図種.has(図種 as never)) {
     案内.push("段は全ての箱に縦列 (lane) を書いた図で効きます");
   }
-  /*
-   * 種類も **図 1 枚ごとに決まる図種でだけ** 行き先を持つ (#2388)。 ER 図は共通の組み立てへ
-   * 回った図で種類を読むので、縦列を足せば効く。 どう書いても読まない図種 (クラス図) では
-   * 行き先が無いので、族の表に聞いて分ける。
-   */
-  if (効かない.includes("種類") && (骨組みの図種.get(図種)?.図ごと ?? []).some(([欄]) => 欄 === "kind")) {
-    案内.push("種類は全ての箱に縦列 (lane) を書いた図で効きます");
-  }
   if (効かない.includes("始まりの印") || 効かない.includes("終わりの印")) {
-    案内.push("始まりと終わりの印は type: state が描きます");
+    案内.push("始まりと終わりの印は type: record が描きます");
   }
   if (効かない.includes("前の値")) 案内.push("前の値は値を並べる図が描きます");
   /*
@@ -2157,7 +2154,7 @@ const 出来事の相手の呼び名: Record<DslEventBinding["target"]["kind"], 
 /** 本文に書いた矢印の指定を、対応が取れた矢印へ書き写す。 対応の取り方は呼出側が決める。 */
 function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): void {
   // **書いた補足が勝つ** (#1275)。 ここで写さないと 2 つ落ちる。 静止した `type: flow` は
-  // 鎖を作る時に説明文しか渡さないため補足が消え、`er` は見本が多重度から作った補足が
+  // 鎖を作る時に説明文しか渡さないため補足が消え、`record` は見本が多重度から作った補足が
   // 残って書いた値が無視される (どちらも実測)
   //
   // **クラス図の `sub` は多重度なので写さない** (#1769)。 クラス図の組み立てが既に `cardinality` として
@@ -2167,12 +2164,13 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.guard !== undefined) {
     target.guard = s.guard;
     // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
-    if (doc.type === "state" && target.sub === undefined) target.sub = s.guard;
+    // 書いた条件は名前の下の行にも出す (`sub` が既に在れば上書きしない)
+    if (doc.type === "record" && target.sub === undefined) target.sub = s.guard;
   }
   // 色味と線の種類も、図種ごとの組み立てではなくここで写す (#2394)。
   //
   // **渡す側を図種ごとに並べる形にしない**。 この 2 欄は図種ごとの組み立てが個別に渡していて、
-  // 渡し忘れた図種でそのまま落ちていた (実測 = 線の種類は `er` / `state` / 鎖でつないだ `flow`、
+  // 渡し忘れた図種でそのまま落ちていた (実測 = 線の種類は `record` / 鎖でつないだ `flow`、
   // 色味は鎖でつないだ `flow` で黙って消える)。 図種を足した日に同じ落とし方が再発するため、
   // 矢印を描く図種が必ず通るここへ移す。 図種ごとの組み立てに置いていた同じ受け渡しは外した =
   // 2 か所に置くと、片方だけ直した日に食い違う。 板になる図種 (`sequence`) は
@@ -2184,7 +2182,7 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   // **クラス図だけ写さない** = 組み立てが既に `tailCardinality` として渡しており、
   // ここで重ねると同じ字が端に 2 度出る (`sub` を外すのと同じ理由)
   if (s.tailSub !== undefined && doc.type !== "class") target.tailLabel = s.tailSub;
-  // ER の多重度が名前と端にどう出るかは組み立ての時に決まっている (`compile/er-relation.ts`、#2105)。
+  // 多重度が名前と端にどう出るかは組み立ての時に決まっている (`compile/er-relation.ts`、#2105)。
   // ここで名前へ `(1:N)` を足すと、組み立てが名前の下の行に出した語と 2 度並ぶ
   if (s.cardinality !== undefined) target.cardinality = s.cardinality;
   // 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ
@@ -2442,82 +2440,6 @@ function 行を組み立て器が持つ(type: DslDocument["type"]): boolean {
   return type === "class";
 }
 
-/**
- * 行と印を組む (#1466)。 群の分け方は図の種類が決める。
- *
- * ER は **鍵の群を上にまとめる** (組み立て器 `er()` と同じ形)。
- * 状態遷移は群を分けないので、書いた並びのまま。
- *
- * **空の行では開けない** (cdl `#606`)。 群の区切りは行頭の印が持っている = ER は鍵の名前に
- * 下線が付く。 空の行はその 2 つ目の手掛かりで、代わりに行の間隔を不揃いにしていた
- * (鍵と値を持つ箱だけ境目が広がる)。 組み立て器が cdl 0.23.0 で空の行をやめたので、
- * こちらも同時にやめる = 片方だけ残ると記法と図の照合が落ちる。
- */
-function 行と印を組む(
-  type: DslDocument["type"],
-  rows: readonly string[],
-  marks: readonly string[],
-): { rows: string[]; rowMarks: (RowMark | null)[] } | null {
-  const 印 = 行頭の印にする(type, marks);
-  if (印 === null) return null;
-  if (type !== "er") {
-    return { rows: [...rows], rowMarks: rows.map((_, i) => 印[i] ?? null) };
-  }
-  const 鍵: number[] = [];
-  const 値: number[] = [];
-  rows.forEach((_, i) => ((印[i]?.underline === true ? 鍵 : 値).push(i)));
-  const 並び = [...鍵, ...値];
-  return {
-    rows: 並び.map((i) => rows[i] ?? ""),
-    rowMarks: 並び.map((i) => 印[i] ?? null),
-  };
-}
-
-/**
- * 書いた語を行頭の印に読み替える (#1466)。
- *
- * **軸の意味は図の種類が決める**。 印そのものは 形 (四角 / 山形) × 塗り (塗る / 中空) の
- * 2 軸で共通だが、その軸が何を指すかは種類ごとに違う。
- *
- * | 種類 | 山形 | 塗り |
- * |---|---|---|
- * | `er` | 外を指す列 (`fk`) | 空にできない (`opt` を書かない) |
- * | `state` | 出入りの瞬間 (`entry` / `exit`) | 続く・入る側 (`entry` / `do`) |
- *
- * ER の `pk` は印の 2 軸とは別の段 (名前の下線) に載るので、`fk` と重ねて書ける。
- *
- * 語を 1 つも知らない図の種類では `null` を返す = 印を付けない。
- */
-function 行頭の印にする(
-  type: DslDocument["type"],
-  marks: readonly string[],
-): (RowMark | null)[] | null {
-  if (type === "er") {
-    return marks.map((m) => {
-      const 語 = m.trim().split(/\s+/).filter(Boolean);
-      /*
-       * **語を書かない行は「ただの値」**。 印を付けない行にはしない (#1466)。
-       *
-       * ER の印は 2 軸とも既定を持つ = 四角 (外を指さない) で塗る (空にできない)。
-       * 印なしにすると、書かなかった列だけ行頭が空いて群の間と見分けが付かなくなる。
-       */
-      return {
-        shape: 語.includes("fk") ? ("chevron" as const) : ("square" as const),
-        filled: !語.includes("opt"),
-        ...(語.includes("pk") ? { underline: true } : {}),
-      };
-    });
-  }
-  if (type === "state") {
-    return marks.map((m) => {
-      const 語 = m.trim();
-      if (語 === "") return null;
-      const 表 = FSM_ACTION_MARK as Record<string, RowMark>;
-      return 表[語] ?? null;
-    });
-  }
-  return null;
-}
 
 /**
  * `lanes:` で作った縦列と、見本 (parts) が作った同一idの縦列を 1 つに重ねる (#1241)。
@@ -2640,12 +2562,10 @@ function applyV05Extensions(
        */
       if (a.rows !== undefined && !行を組み立て器が持つ(doc.type)) node.rows = a.rows;
       // 行頭の印 (#1466)。 書いた語を図の種類ごとの意味で読み、群の分け方も種類が決める
-      if (a.marks !== undefined && a.rows !== undefined) {
-        const 組 = 行と印を組む(doc.type, a.rows, a.marks);
-        if (組 !== null) {
-          node.rows = 組.rows;
-          node.rowMarks = 組.rowMarks;
-        }
+      if (a.marks !== undefined && a.rows !== undefined && 行頭の印を読むか(doc.type)) {
+        const 組 = 鍵の行を上にまとめる(a.rows, 行頭の印にする(a.marks, a.rows.length));
+        node.rows = 組.rows;
+        node.rowMarks = 組.rowMarks;
       }
       /*
        * **行を持たない状態でも欄を置く** (#1466)。
@@ -2654,7 +2574,7 @@ function applyV05Extensions(
        * 欄ごと省くと、その箱だけ従来の意匠に落ちて呼び名が消える (組み立て API 側の
        * `stateMachine` は同じ理由で空の欄を置いている)。
        */
-      if (doc.type === "state" && node.kind === "storage" && node.rowMarks === undefined) {
+      if (doc.type === "record" && node.kind === "storage" && node.rowMarks === undefined) {
         node.rows = a.rows ?? [];
         node.rowMarks = [];
       }

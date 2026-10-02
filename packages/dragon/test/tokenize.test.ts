@@ -133,7 +133,7 @@ describe("語彙は keywords.ts から導く (#1310)", () => {
     // 受理する 108 種には `user` / `api` / `actor` / `card` / `state` / `service` が
     // 含まれ、`- User` や `- API` のような普通の名前と衝突する。 語だけでは
     // 「種類として書かれたか」 を判定できないため色分けしない (#1310 review r1-f1)
-    const 衝突する語 = ["user", "api", "actor", "card", "state", "service"].filter((w) =>
+    const 衝突する語 = ["user", "api", "actor", "card", "record", "service"].filter((w) =>
       NODE_KIND_VALID.has(w),
     );
     expect(衝突する語.length, "衝突する語が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);

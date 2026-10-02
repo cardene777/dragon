@@ -3463,7 +3463,10 @@ export const sourceJson__presetSequence = `{
 }`;
 
 export const sourceYaml__presetEr = `title: "テーブル間の関係を表す図"
-type: er
+type: record
+# 表の図は配色を書く (#2782)。 畳んだ先には移り変わりの図も入るので、書かない図が
+# 色みを名乗らない形にした
+palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
 relations: hover
@@ -3478,9 +3481,9 @@ lanes:
 
 # 印は行ごとに書く。 pk は名前の下線、fk は山形、opt は中空 = 形 × 塗り の 2 軸
 actors:
-  - users: { kind: storage, subtitle: "利用者", posW: 412, rows: ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"], marks: ["pk", "", "fk opt", ""] }
-  - orders: { kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"], marks: ["pk", "fk", "", ""] }
-  - order_items: { kind: storage, subtitle: "注文の明細", rows: ["order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk fk", "pk fk", ""] }
+  - users: { kind: storage, subtitle: "利用者", posW: 412, rows: ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"], marks: ["鍵", "", "外 条件", ""] }
+  - orders: { kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"], marks: ["鍵", "外", "", ""] }
+  - order_items: { kind: storage, subtitle: "注文の明細", rows: ["order_id: bigint", "product_id: bigint", "qty: int"], marks: ["鍵 外", "鍵 外", ""] }
 
 # 端の印は両端に立つ。 箱に近い側が個数、その外側が任意か
 flow:
@@ -3491,25 +3494,26 @@ flow:
 animation:
   - step: "1. users 表" 0.9s
     focus: [users]
-    badge: "er"
+    badge: "record"
     body: "主キーは名前に下線。 印は形 × 塗りの 2 軸。"
   - step: "2. 注文する" 0.9s
     focus: [users, orders, "users -> orders"]
-    badge: "er"
+    badge: "record"
     body: "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。"
   - step: "3. 明細を持つ" 0.9s
     focus: [users, orders, order_items, "users -> orders", "orders -> order_items"]
-    badge: "er"
+    badge: "record"
     body: "実線は識別する関係。 親の鍵が子の鍵に入る。"
   - step: "テーブル間の関係を表す図" 0.9s
     focus: [users, orders, order_items, "users -> orders", "orders -> order_items", "users -> users"]
-    badge: "er"
+    badge: "record"
     body: "上司も利用者。 manager_id は同じ表を指す。"
 `;
 
 export const sourceJson__presetEr = `{
   "title": "テーブル間の関係を表す図",
-  "type": "er",
+  "type": "record",
+  "palette": "kinari",
   "relations": "hover",
   "reveal": "all",
   "lanes": {
@@ -3524,21 +3528,21 @@ export const sourceJson__presetEr = `{
       "subtitle": "利用者",
       "posW": 412,
       "rows": ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"],
-      "marks": ["pk", "", "fk opt", ""]
+      "marks": ["鍵", "", "外 条件", ""]
     },
     {
       "name": "orders",
       "kind": "storage",
       "subtitle": "注文",
       "rows": ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"],
-      "marks": ["pk", "fk", "", ""]
+      "marks": ["鍵", "外", "", ""]
     },
     {
       "name": "order_items",
       "kind": "storage",
       "subtitle": "注文の明細",
       "rows": ["order_id: bigint", "product_id: bigint", "qty: int"],
-      "marks": ["pk fk", "pk fk", ""]
+      "marks": ["鍵 外", "鍵 外", ""]
     }
   ],
   "flow": [
@@ -3576,34 +3580,34 @@ export const sourceJson__presetEr = `{
       "duration": 0.9,
       "focus": ["users"],
       "body": "主キーは名前に下線。 印は形 × 塗りの 2 軸。",
-      "badge": "er"
+      "badge": "record"
     },
     {
       "step": "2. 注文する",
       "duration": 0.9,
       "focus": ["users", "orders", "users -> orders"],
       "body": "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。",
-      "badge": "er"
+      "badge": "record"
     },
     {
       "step": "3. 明細を持つ",
       "duration": 0.9,
       "focus": ["users", "orders", "order_items", "users -> orders", "orders -> order_items"],
       "body": "実線は識別する関係。 親の鍵が子の鍵に入る。",
-      "badge": "er"
+      "badge": "record"
     },
     {
       "step": "テーブル間の関係を表す図",
       "duration": 0.9,
       "focus": ["users", "orders", "order_items", "users -> orders", "orders -> order_items", "users -> users"],
       "body": "上司も利用者。 manager_id は同じ表を指す。",
-      "badge": "er"
+      "badge": "record"
     }
   ]
 }`;
 
 export const sourceYaml__pattern__presetEr__複雑 = `title: "商取引の表と必須・任意の関係を表す ER 図"
-type: er
+type: record
 palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
@@ -3616,18 +3620,18 @@ lanes:
   er-col-2: { width: 450 }
 
 actors:
-  - users: { kind: storage, subtitle: "利用者", lane: er-col-0, stack: 2, rows: ["id: bigint", "email: text"], marks: ["pk", ""] }
-  - addresses: { kind: storage, subtitle: "住所", lane: er-col-0, stack: 4, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["pk", "fk", ""] }
-  - roles: { kind: storage, subtitle: "役割", lane: er-col-0, stack: 0, rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
-  - user_roles: { kind: storage, subtitle: "役割の割当", lane: er-col-0, stack: 1, rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] }
-  - orders: { kind: storage, subtitle: "注文", lane: er-col-1, stack: 3, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["pk", "fk", "fk", ""] }
-  - order_items: { kind: storage, subtitle: "注文の明細", lane: er-col-1, stack: 2, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk", "fk", "fk", ""] }
-  - payments: { kind: storage, subtitle: "支払", lane: er-col-1, stack: 4, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["pk", "fk", ""] }
-  - shipments: { kind: storage, subtitle: "配送", lane: er-col-1, stack: 5, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["pk", "fk", "fk", ""] }
-  - products: { kind: storage, subtitle: "商品", lane: er-col-2, stack: 2, rows: ["id: bigint", "sku: text", "price: numeric"], marks: ["pk", "", ""] }
-  - categories: { kind: storage, subtitle: "分類", lane: er-col-2, stack: 0, rows: ["id: bigint", "parent_id: bigint", "name: text"], marks: ["pk", "fk opt", ""] }
-  - product_categories: { kind: storage, subtitle: "商品の分類", lane: er-col-2, stack: 1, rows: ["product_id: bigint", "category_id: bigint"], marks: ["pk fk", "pk fk"] }
-  - inventory: { kind: storage, subtitle: "在庫", lane: er-col-2, stack: 3, rows: ["product_id: bigint", "qty: int"], marks: ["pk fk", ""] }
+  - users: { kind: storage, subtitle: "利用者", lane: er-col-0, stack: 2, rows: ["id: bigint", "email: text"], marks: ["鍵", ""] }
+  - addresses: { kind: storage, subtitle: "住所", lane: er-col-0, stack: 4, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["鍵", "外", ""] }
+  - roles: { kind: storage, subtitle: "役割", lane: er-col-0, stack: 0, rows: ["id: bigint", "name: text"], marks: ["鍵", ""] }
+  - user_roles: { kind: storage, subtitle: "役割の割当", lane: er-col-0, stack: 1, rows: ["user_id: bigint", "role_id: bigint"], marks: ["鍵 外", "鍵 外"] }
+  - orders: { kind: storage, subtitle: "注文", lane: er-col-1, stack: 3, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["鍵", "外", "外", ""] }
+  - order_items: { kind: storage, subtitle: "注文の明細", lane: er-col-1, stack: 2, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["鍵", "外", "外", ""] }
+  - payments: { kind: storage, subtitle: "支払", lane: er-col-1, stack: 4, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["鍵", "外", ""] }
+  - shipments: { kind: storage, subtitle: "配送", lane: er-col-1, stack: 5, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["鍵", "外", "外", ""] }
+  - products: { kind: storage, subtitle: "商品", lane: er-col-2, stack: 2, rows: ["id: bigint", "sku: text", "price: numeric"], marks: ["鍵", "", ""] }
+  - categories: { kind: storage, subtitle: "分類", lane: er-col-2, stack: 0, rows: ["id: bigint", "parent_id: bigint", "name: text"], marks: ["鍵", "外 条件", ""] }
+  - product_categories: { kind: storage, subtitle: "商品の分類", lane: er-col-2, stack: 1, rows: ["product_id: bigint", "category_id: bigint"], marks: ["鍵 外", "鍵 外"] }
+  - inventory: { kind: storage, subtitle: "在庫", lane: er-col-2, stack: 3, rows: ["product_id: bigint", "qty: int"], marks: ["鍵 外", ""] }
 
 flow:
   - users -> addresses: "登録する" (info, dashed) { tailHead: one, head: zero-many }
@@ -3648,46 +3652,46 @@ flow:
 animation:
   - step: "1. 利用者が注文する" 0.9s
     focus: [users, orders, "users -> orders"]
-    badge: "er"
+    badge: "record"
     body: "1 人の利用者が 1 件以上の注文をする。 端の棒と鳥の足で数を読む。"
   - step: "2. 明細に商品が並ぶ" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items"]
-    badge: "er"
+    badge: "record"
     body: "破線は識別しない関係。 明細は自分の鍵 id を持ち、親の鍵は主キーに入らない。"
   - step: "3. 在庫を持つ" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory"]
-    badge: "er"
+    badge: "record"
     body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。"
   - step: "4. 商品を分類する" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories"]
-    badge: "er"
+    badge: "record"
     body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。"
   - step: "5. 分類の親子" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories"]
-    badge: "er"
+    badge: "record"
     body: "破線で同じ表へ戻る。 親を持たない最上位の分類もある。"
   - step: "6. 役割を割り当てる" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles"]
-    badge: "er"
+    badge: "record"
     body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。"
   - step: "7. 住所を登録する" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles", addresses, "users -> addresses"]
-    badge: "er"
+    badge: "record"
     body: "破線は識別しない関係。 丸い端が 0 件を許す。"
   - step: "8. 支払と配送" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles", addresses, "users -> addresses", payments, shipments, "orders -> payments", "orders -> shipments"]
-    badge: "er"
+    badge: "record"
     body: "丸い端は 0 か 1。 未払いも未発送もありうる。"
   - step: "商取引の表と必須・任意の関係を表す ER 図" 0.9s
     focus: [users, orders, "users -> orders", order_items, products, "orders -> order_items", "products -> order_items", inventory, "products -> inventory", categories, product_categories, "products -> product_categories", "categories -> product_categories", roles, "categories -> categories", user_roles, "users -> user_roles", "roles -> user_roles", addresses, "users -> addresses", payments, shipments, "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders"]
-    badge: "er"
+    badge: "record"
     body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。"
 `;
 
 export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
   {
     title: "商取引の表と必須・任意の関係を表す ER 図",
-    type: "er",
+    type: "record",
     palette: "kinari",
     relations: "hover",
     reveal: "all",
@@ -3697,18 +3701,18 @@ export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
       "er-col-2": { width: 450 },
     },
     actors: [
-      { name: "users", kind: "storage", subtitle: "利用者", lane: "er-col-0", stack: 2, rows: ["id: bigint", "email: text"], marks: ["pk", ""] },
-      { name: "addresses", kind: "storage", subtitle: "住所", lane: "er-col-0", stack: 4, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["pk", "fk", ""] },
-      { name: "roles", kind: "storage", subtitle: "役割", lane: "er-col-0", stack: 0, rows: ["id: bigint", "name: text"], marks: ["pk", ""] },
-      { name: "user_roles", kind: "storage", subtitle: "役割の割当", lane: "er-col-0", stack: 1, rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] },
-      { name: "orders", kind: "storage", subtitle: "注文", lane: "er-col-1", stack: 3, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["pk", "fk", "fk", ""] },
-      { name: "order_items", kind: "storage", subtitle: "注文の明細", lane: "er-col-1", stack: 2, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk", "fk", "fk", ""] },
-      { name: "payments", kind: "storage", subtitle: "支払", lane: "er-col-1", stack: 4, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["pk", "fk", ""] },
-      { name: "shipments", kind: "storage", subtitle: "配送", lane: "er-col-1", stack: 5, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["pk", "fk", "fk", ""] },
-      { name: "products", kind: "storage", subtitle: "商品", lane: "er-col-2", stack: 2, rows: ["id: bigint", "sku: text", "price: numeric"], marks: ["pk", "", ""] },
-      { name: "categories", kind: "storage", subtitle: "分類", lane: "er-col-2", stack: 0, rows: ["id: bigint", "parent_id: bigint", "name: text"], marks: ["pk", "fk opt", ""] },
-      { name: "product_categories", kind: "storage", subtitle: "商品の分類", lane: "er-col-2", stack: 1, rows: ["product_id: bigint", "category_id: bigint"], marks: ["pk fk", "pk fk"] },
-      { name: "inventory", kind: "storage", subtitle: "在庫", lane: "er-col-2", stack: 3, rows: ["product_id: bigint", "qty: int"], marks: ["pk fk", ""] },
+      { name: "users", kind: "storage", subtitle: "利用者", lane: "er-col-0", stack: 2, rows: ["id: bigint", "email: text"], marks: ["鍵", ""] },
+      { name: "addresses", kind: "storage", subtitle: "住所", lane: "er-col-0", stack: 4, rows: ["id: bigint", "user_id: bigint", "line: text"], marks: ["鍵", "外", ""] },
+      { name: "roles", kind: "storage", subtitle: "役割", lane: "er-col-0", stack: 0, rows: ["id: bigint", "name: text"], marks: ["鍵", ""] },
+      { name: "user_roles", kind: "storage", subtitle: "役割の割当", lane: "er-col-0", stack: 1, rows: ["user_id: bigint", "role_id: bigint"], marks: ["鍵 外", "鍵 外"] },
+      { name: "orders", kind: "storage", subtitle: "注文", lane: "er-col-1", stack: 3, posW: 474, rows: ["id: bigint", "user_id: bigint", "billing_address_id: bigint", "total: numeric"], marks: ["鍵", "外", "外", ""] },
+      { name: "order_items", kind: "storage", subtitle: "注文の明細", lane: "er-col-1", stack: 2, rows: ["id: bigint", "order_id: bigint", "product_id: bigint", "qty: int"], marks: ["鍵", "外", "外", ""] },
+      { name: "payments", kind: "storage", subtitle: "支払", lane: "er-col-1", stack: 4, rows: ["id: bigint", "order_id: bigint", "method: text"], marks: ["鍵", "外", ""] },
+      { name: "shipments", kind: "storage", subtitle: "配送", lane: "er-col-1", stack: 5, rows: ["id: bigint", "order_id: bigint", "address_id: bigint", "status: text"], marks: ["鍵", "外", "外", ""] },
+      { name: "products", kind: "storage", subtitle: "商品", lane: "er-col-2", stack: 2, rows: ["id: bigint", "sku: text", "price: numeric"], marks: ["鍵", "", ""] },
+      { name: "categories", kind: "storage", subtitle: "分類", lane: "er-col-2", stack: 0, rows: ["id: bigint", "parent_id: bigint", "name: text"], marks: ["鍵", "外 条件", ""] },
+      { name: "product_categories", kind: "storage", subtitle: "商品の分類", lane: "er-col-2", stack: 1, rows: ["product_id: bigint", "category_id: bigint"], marks: ["鍵 外", "鍵 外"] },
+      { name: "inventory", kind: "storage", subtitle: "在庫", lane: "er-col-2", stack: 3, rows: ["product_id: bigint", "qty: int"], marks: ["鍵 外", ""] },
     ],
     flow: [
       { from: "users", to: "addresses", label: "登録する", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
@@ -3727,15 +3731,15 @@ export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
       { from: "categories", to: "categories", label: "下位分類を持つ", tone: "info", style: "dashed", tailHead: "one", head: "zero-many" },
     ],
     animation: [
-      { step: "1. 利用者が注文する", duration: 0.9, focus: ["users", "orders", "users -> orders"], badge: "er", body: "1 人の利用者が 1 件以上の注文をする。 端の棒と鳥の足で数を読む。" },
-      { step: "2. 明細に商品が並ぶ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items"], badge: "er", body: "破線は識別しない関係。 明細は自分の鍵 id を持ち、親の鍵は主キーに入らない。" },
-      { step: "3. 在庫を持つ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory"], badge: "er", body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。" },
-      { step: "4. 商品を分類する", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories"], badge: "er", body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。" },
-      { step: "5. 分類の親子", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories"], badge: "er", body: "破線で同じ表へ戻る。 親を持たない最上位の分類もある。" },
-      { step: "6. 役割を割り当てる", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles"], badge: "er", body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。" },
-      { step: "7. 住所を登録する", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses"], badge: "er", body: "破線は識別しない関係。 丸い端が 0 件を許す。" },
-      { step: "8. 支払と配送", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments"], badge: "er", body: "丸い端は 0 か 1。 未払いも未発送もありうる。" },
-      { step: "商取引の表と必須・任意の関係を表す ER 図", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders"], badge: "er", body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。" },
+      { step: "1. 利用者が注文する", duration: 0.9, focus: ["users", "orders", "users -> orders"], badge: "record", body: "1 人の利用者が 1 件以上の注文をする。 端の棒と鳥の足で数を読む。" },
+      { step: "2. 明細に商品が並ぶ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items"], badge: "record", body: "破線は識別しない関係。 明細は自分の鍵 id を持ち、親の鍵は主キーに入らない。" },
+      { step: "3. 在庫を持つ", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory"], badge: "record", body: "端が両方とも棒。 1 対 1 で、どちらも欠けない。" },
+      { step: "4. 商品を分類する", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories"], badge: "record", body: "2 つの鍵を持つ中継表が、商品と分類の多対多を作る。" },
+      { step: "5. 分類の親子", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories"], badge: "record", body: "破線で同じ表へ戻る。 親を持たない最上位の分類もある。" },
+      { step: "6. 役割を割り当てる", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles"], badge: "record", body: "利用者と役割も中継表越し。 2 つの鍵がそのまま主キーになる。" },
+      { step: "7. 住所を登録する", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses"], badge: "record", body: "破線は識別しない関係。 丸い端が 0 件を許す。" },
+      { step: "8. 支払と配送", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments"], badge: "record", body: "丸い端は 0 か 1。 未払いも未発送もありうる。" },
+      { step: "商取引の表と必須・任意の関係を表す ER 図", duration: 0.9, focus: ["users", "orders", "users -> orders", "order_items", "products", "orders -> order_items", "products -> order_items", "inventory", "products -> inventory", "categories", "product_categories", "products -> product_categories", "categories -> product_categories", "roles", "categories -> categories", "user_roles", "users -> user_roles", "roles -> user_roles", "addresses", "users -> addresses", "payments", "shipments", "orders -> payments", "orders -> shipments", "addresses -> shipments", "addresses -> orders"], badge: "record", body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。" },
     ],
   },
   null,
@@ -4462,7 +4466,7 @@ export const sourceJson__presetGantt = `{
 }`;
 
 export const sourceYaml__presetStateMachine = `title: "状態と遷移条件を示す図"
-type: state
+type: record
 
 # 幅は組み立て API 側が行の長さから導く。 記法は導けないので書く。
 # 書いた値がずれたら catalog-source-parity が落ちる
@@ -4475,10 +4479,10 @@ lanes:
 actors:
   - begin: { kind: mark-start, lane: c0, stack: 0, posW: 96, posH: 96 }
   - 下書き: { kind: storage, lane: c0, stack: 1, posW: 320 }
-  - 受付済: { kind: storage, lane: c0, stack: 2, posW: 428, rows: ["在庫を押さえる", "督促を送る: 7 日ごと"], marks: ["entry", "internal"] }
-  - 支払済: { kind: storage, lane: c0, stack: 3, posW: 320, rows: ["出荷を待つ"], marks: ["do"] }
+  - 受付済: { kind: storage, lane: c0, stack: 2, posW: 428, rows: ["在庫を押さえる", "督促を送る: 7 日ごと"], marks: ["外", "条件"] }
+  - 支払済: { kind: storage, lane: c0, stack: 3, posW: 320, rows: ["出荷を待つ"], marks: [""] }
   - done: { kind: mark-end, lane: c0, stack: 4, posW: 96, posH: 96 }
-  - 取消済: { kind: storage, lane: c1, stack: 2, posW: 320, rows: ["押さえを解く"], marks: ["exit"] }
+  - 取消済: { kind: storage, lane: c1, stack: 2, posW: 320, rows: ["押さえを解く"], marks: ["外 条件"] }
   - closed: { kind: mark-end, lane: c1, stack: 3, posW: 96, posH: 96 }
 
 # 遷移は実線に開いた矢の 1 種だけ。 違いは語の中に入る
@@ -4493,38 +4497,38 @@ flow:
 
 animation:
   - step: "1. 下書き" 0.9s
-    badge: "state"
+    badge: "record"
     focus: [begin, 下書き, "begin -> 下書き"]
     body: "塗った丸が始まり。"
   - step: "2. 出して受付済へ" 0.9s
-    badge: "state"
+    badge: "record"
     focus: [begin, 下書き, 受付済, "begin -> 下書き", "下書き -> 受付済"]
     body: "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。"
   - step: "3. 受付済のまま催促する" 0.9s
-    badge: "state"
+    badge: "record"
     focus: [begin, 下書き, 受付済, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済"]
     body: "自分へ戻る輪。 7 日ごとに督促を送っても状態は変わらない。"
   - step: "4. 支払って終わる" 0.9s
-    badge: "state"
+    badge: "record"
     focus: [begin, 下書き, 受付済, 支払済, done, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done"]
     body: "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。"
   - step: "状態と遷移条件を示す図" 0.9s
-    badge: "state"
+    badge: "record"
     focus: [begin, 下書き, 受付済, 支払済, done, 取消済, closed, "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"]
     body: "取り消すと押さえを解いて終わる。 山形の外枠だけは出る瞬間に 1 度だけ。"
 `;
 
 export const sourceJson__presetStateMachine = `{
   "title": "状態と遷移条件を示す図",
-  "type": "state",
+  "type": "record",
   "lanes": { "c0": { "width": 478 }, "c1": { "width": 370 } },
   "actors": [
     { "name": "begin", "kind": "mark-start", "lane": "c0", "stack": 0, "posW": 96, "posH": 96 },
     { "name": "下書き", "kind": "storage", "posW": 320, "lane": "c0", "stack": 1 },
-    { "name": "受付済", "kind": "storage", "posW": 428, "lane": "c0", "stack": 2, "rows": ["在庫を押さえる", "督促を送る: 7 日ごと"], "marks": ["entry", "internal"] },
-    { "name": "支払済", "kind": "storage", "posW": 320, "lane": "c0", "stack": 3, "rows": ["出荷を待つ"], "marks": ["do"] },
+    { "name": "受付済", "kind": "storage", "posW": 428, "lane": "c0", "stack": 2, "rows": ["在庫を押さえる", "督促を送る: 7 日ごと"], "marks": ["外", "条件"] },
+    { "name": "支払済", "kind": "storage", "posW": 320, "lane": "c0", "stack": 3, "rows": ["出荷を待つ"], "marks": [""] },
     { "name": "done", "kind": "mark-end", "lane": "c0", "stack": 4, "posW": 96, "posH": 96 },
-    { "name": "取消済", "kind": "storage", "posW": 320, "lane": "c1", "stack": 2, "rows": ["押さえを解く"], "marks": ["exit"] },
+    { "name": "取消済", "kind": "storage", "posW": 320, "lane": "c1", "stack": 2, "rows": ["押さえを解く"], "marks": ["外 条件"] },
     { "name": "closed", "kind": "mark-end", "lane": "c1", "stack": 3, "posW": 96, "posH": 96 }
   ],
   "flow": [
@@ -4542,41 +4546,41 @@ export const sourceJson__presetStateMachine = `{
       "duration": 0.9,
       "focus": ["begin", "下書き", "begin -> 下書き"],
       "body": "塗った丸が始まり。",
-      "badge": "state"
+      "badge": "record"
     },
     {
       "step": "2. 出して受付済へ",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "begin -> 下書き", "下書き -> 受付済"],
       "body": "山形を塗ると入った瞬間に 1 度だけ。 四角の外枠だけは状態が変わらない。",
-      "badge": "state"
+      "badge": "record"
     },
     {
       "step": "3. 受付済のまま催促する",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済"],
       "body": "自分へ戻る輪。 7 日ごとに督促を送っても状態は変わらない。",
-      "badge": "state"
+      "badge": "record"
     },
     {
       "step": "4. 支払って終わる",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "支払済", "done", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done"],
       "body": "四角を塗るとその状態にいる間ずっと続く。 輪で囲むと終わり。",
-      "badge": "state"
+      "badge": "record"
     },
     {
       "step": "状態と遷移条件を示す図",
       "duration": 0.9,
       "focus": ["begin", "下書き", "受付済", "支払済", "done", "取消済", "closed", "begin -> 下書き", "下書き -> 受付済", "受付済 -> 受付済", "受付済 -> 支払済", "支払済 -> done", "受付済 -> 取消済", "取消済 -> closed"],
       "body": "取り消すと押さえを解いて終わる。 山形の外枠だけは出る瞬間に 1 度だけ。",
-      "badge": "state"
+      "badge": "record"
     }
   ]
 }`;
 
 export const sourceYaml__presetStateMachine2 = `title: "階層状態や遷移の処理を持つ入れ子の状態遷移図"
-type: state
+type: record
 
 lanes:
   lane-待機: { width: 330 }
@@ -4591,27 +4595,27 @@ actors:
   - 完了: { kind: card, eyebrow: "最終", posW: 280 }
 
 flow:
-  - 待機 -> 読み込み: "送信" (accent, solid) { sub: "/入力を確かめる" }
-  - 読み込み -> 完了: "成功" (success, solid)
+  - 待機 -> 読み込み: "送信" (accent, solid) { sub: "/入力を確かめる", head: open }
+  - 読み込み -> 完了: "成功" (success, solid) { head: open }
 
 animation:
   - step: "1. 待機" 0.9s
-    badge: "state"
+    badge: "record"
     focus: [待機]
     body: "入力を空にして待つ。"
   - step: "2. 処理中の中の読み込み" 0.9s
-    badge: "state"
+    badge: "record"
     focus: [待機, 処理中, 読み込み, "待機 -> 読み込み"]
     body: "送信で入れ子の状態に入る。"
   - step: "階層状態や遷移の処理を持つ入れ子の状態遷移図" 0.9s
-    badge: "state"
+    badge: "record"
     focus: [待機, 処理中, 読み込み, 完了, "待機 -> 読み込み", "読み込み -> 完了"]
     body: "成功で完了に移る。"
 `;
 
 export const sourceJson__presetStateMachine2 = `{
   "title": "階層状態や遷移の処理を持つ入れ子の状態遷移図",
-  "type": "state",
+  "type": "record",
   "lanes": {
     "lane-待機": { "width": 330 },
     "lane-処理中": { "width": 330 },
@@ -4643,9 +4647,10 @@ export const sourceJson__presetStateMachine2 = `{
       "label": "送信",
       "sub": "/入力を確かめる",
       "tone": "accent",
-      "style": "solid"
+      "style": "solid",
+      "head": "open"
     },
-    { "from": "読み込み", "to": "完了", "label": "成功", "tone": "success", "style": "solid" }
+    { "from": "読み込み", "to": "完了", "label": "成功", "tone": "success", "style": "solid", "head": "open" }
   ],
   "animation": [
     {
@@ -4653,21 +4658,21 @@ export const sourceJson__presetStateMachine2 = `{
       "duration": 0.9,
       "focus": ["待機"],
       "body": "入力を空にして待つ。",
-      "badge": "state"
+      "badge": "record"
     },
     {
       "step": "2. 処理中の中の読み込み",
       "duration": 0.9,
       "focus": ["待機", "処理中", "読み込み", "待機 -> 読み込み"],
       "body": "送信で入れ子の状態に入る。",
-      "badge": "state"
+      "badge": "record"
     },
     {
       "step": "階層状態や遷移の処理を持つ入れ子の状態遷移図",
       "duration": 0.9,
       "focus": ["待機", "処理中", "読み込み", "完了", "待機 -> 読み込み", "読み込み -> 完了"],
       "body": "成功で完了に移る。",
-      "badge": "state"
+      "badge": "record"
     }
   ]
 }`;

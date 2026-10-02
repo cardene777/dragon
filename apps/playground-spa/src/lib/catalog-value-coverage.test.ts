@@ -69,6 +69,7 @@ import {
   TYPE_ALIASES,
   diagramJsonSchema,
   jsonToDiagram,
+  行頭の語,
 } from "@cardenelabs/dragon";
 import {
   CdlDiagramView,
@@ -78,7 +79,6 @@ import {
   EDGE_HEAD_FILL_DEFAULT,
   EDGE_STYLES,
   ER_CARDINALITY_HEAD,
-  FSM_ACTION_MARK,
   TONES,
   layout,
   type CdlDiagram,
@@ -824,26 +824,27 @@ describe("記法の型定義の全ての欄と値を、カタログの JSON が�
  *
  * | 語 | 書く図と欄 | 一覧 |
  * |---|---|---|
- * | 多重度 | ER 図の関係の `cardinality` | `ER_CARDINALITY_HEAD` |
- * | 行頭の印 | 状態遷移図の箱の `marks` | `FSM_ACTION_MARK` |
+ * | 多重度 | 行を持つ図の関係の `cardinality` | 描画側の `ER_CARDINALITY_HEAD` |
+ * | 行頭の印 | 行を持つ図の箱の `marks` | 記法側の `行頭の語` |
  *
- * ER 図の行頭の印 (`pk` / `fk` / `opt`) は数えない。 描画側が一覧を公開しておらず、ここに写すと
- * 語を足した時にずれる。
+ * 行頭の印は **記法側の一覧を引く** (#2782)。 畳む前は描画側の `FSM_ACTION_MARK` を引いて
+ * いたが、記法が持つ語は dragon の 3 語 (`鍵` / `外` / `条件`) になり、描画側の語
+ * (`entry` / `exit` / `do` / `internal`) は記法の入口で読み替えられて見本には出ない。
  */
 const 語の一覧たち: Array<{ 名: string; 語たち: readonly string[]; 読む: (doc: 素) => string[] }> = [
   {
-    名: "ER 図の多重度 (cardinality)",
+    名: "行を持つ図の多重度 (cardinality)",
     語たち: Object.keys(ER_CARDINALITY_HEAD),
     読む: (doc) =>
-      doc.type !== "er" || !Array.isArray(doc.flow)
+      doc.type !== "record" || !Array.isArray(doc.flow)
         ? []
         : (doc.flow as 素[]).flatMap((s) => (typeof s.cardinality === "string" ? [s.cardinality.trim()] : [])),
   },
   {
-    名: "状態遷移図の行頭の印 (marks)",
-    語たち: Object.keys(FSM_ACTION_MARK),
+    名: "行を持つ図の行頭の印 (marks)",
+    語たち: 行頭の語,
     読む: (doc) =>
-      doc.type !== "state" || !Array.isArray(doc.actors)
+      doc.type !== "record" || !Array.isArray(doc.actors)
         ? []
         : (doc.actors as 素[]).flatMap((a) =>
             Array.isArray(a.marks) ? a.marks.flatMap((m) => (typeof m === "string" ? [m.trim()] : [])) : [],

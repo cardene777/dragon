@@ -197,11 +197,12 @@ animation:
 `,
   },
   {
-    label: "利用者・投稿・コメントのスキーマ (er)",
-    labelEn: "Users, posts and comments (er)",
+    label: "利用者・投稿・コメントのスキーマ (record)",
+    labelEn: "Users, posts and comments (record)",
     slug: "er",
     code: `title: "利用者・投稿・コメントのスキーマ"
-type: er
+type: record
+palette: kinari
 
 actors:
   - 利用者: storage ["id: PK", "email: string", "name: string"]
@@ -218,11 +219,11 @@ animation:
 `,
   },
   {
-    label: "認証状態遷移 (state)",
-    labelEn: "Sign-in state changes (state)",
+    label: "認証状態遷移 (record)",
+    labelEn: "Sign-in state changes (record)",
     slug: "state-machine",
     code: `title: "認証状態遷移"
-type: state
+type: record
 
 viewport: { height: 420 }
 

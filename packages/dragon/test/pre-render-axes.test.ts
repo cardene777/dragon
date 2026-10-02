@@ -67,8 +67,8 @@ const 型と種類 = {
   // #2513 で足した。 描く側は手順の箱を `function`、 分かれ道を `card`、
   // 始まり / 終わりの印を `event` にする。 種類を書かない箱は手順の箱になる
   flowchart: ["function"],
-  er: ["storage"],
-  state: ["card"],
+  // 行を書かない箱は札、書いた箱は表の箱になる (#2782)。 下の記法は行を書かないので札
+  record: ["card"],
   topology: ["actor"],
   gantt: ["gantt-timeline"],
   class: ["storage"],

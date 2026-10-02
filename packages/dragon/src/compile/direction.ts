@@ -9,12 +9,12 @@ import type { DslDocument, PresetType } from "../types";
  */
 
 /** 段の有無で経路が分かれる図種。 組み立ての入口が渡す種類と同じ綴り */
-export type GenericKind = "flow" | "swimlane" | "er" | "state" | "topology";
+export type GenericKind = "flow" | "swimlane" | "record" | "topology";
 
 /**
  * 向きを選べる図種 (#1494、 #2524 で `flowchart` を足した)。
  *
- * **並び方そのものが読み方を担う図種は外す**。 表の図は「1 縦列 1 表」、クラス図と状態の図は
+ * **並び方そのものが読み方を担う図種は外す**。 行を持つ図は「1 縦列 1 箱」、クラス図は
  * 設計が格子に置く形、順序図は 1 枚の板で、どれも向きを入れ替えると図の意味が変わる。
  *
  * `topology` も外す = 入れ物 (`contain`) を持つ図で、縦列の中に箱を囲む作りが向きと結びついている。
@@ -69,24 +69,32 @@ export function 並べる向き(kind: PresetType, doc: DslDocument): "縦" | "�
 }
 
 /**
- * 後ろへ戻る矢印か (#1260)。
+ * 後ろへ戻る矢印か (#1260 / #2782)。
  *
- * 状態の図は、後ろの状態へ戻る矢印を **箱の上を回して** 描く (`routing: "back-detour"`)。
- * 組立て API 側がそうしており、記法側で付けないと **描いた図の高さが変わる**
+ * 前の箱へ戻る矢印は **箱の上を回して** 描く (`routing: "back-detour"`)。 組立て API 側が
+ * そうしており、記法側で付けないと **描いた図の高さが変わる**
  * (実測 = viewBox が 404 対 486 で、戻る矢印が箱の右横を回っていた)。
  *
  * 判定は並び順。 指す先が指す元より前にあれば戻る矢印
  * (実測 = `stateMachine()` は c -> a と c -> b の 2 本だけに付け、a -> b と b -> c には付けない)。
  *
- * **状態の図だけに付ける**。 他の図種の組立て API は付けない (実測 = `er()` は付けなかった)。
+ * **縦列を書いた図には付けない** (#2782)。 回すのは「書いた順に並ぶから、戻る線が箱を
+ * 貫く」 ための手当てで、縦列と段を書いた図は書いた人が置き場所を決めている。
+ * 畳む前の表の図は縦列を書く形が多く、そこへ回し始めると **線が往復して戻る弧になり**
+ * 関係の無い箱を貫いた (実測 = `利用者 -> 会員証` が同じ点へ 2 度戻る形になり、
+ * 配置の知らせに `overlap node ∩ edge-path` が出た)。
+ *
+ * **行を持つ図だけに付ける**。 他の図種の組立て API は付けない。
  */
 export function 後ろへ戻る矢印か(
   kind: GenericKind,
   fromId: string,
   toId: string,
   箱の並び: ReadonlyMap<string, number>,
+  縦列を書いた: boolean,
 ): boolean {
-  if (kind !== "state") return false;
+  if (kind !== "record") return false;
+  if (縦列を書いた) return false;
   const 元 = 箱の並び.get(fromId);
   const 先 = 箱の並び.get(toId);
   if (元 === undefined || 先 === undefined) return false;

@@ -504,7 +504,7 @@ export const sourceJson__textDslFlowchart = `{
 // ─── state + animation (FSM) ─────
 export const sourceYaml__textDslStateMachine = `
 title: "認証の状態遷移"
-type: state
+type: record
 
 actors:
   - 待機
@@ -513,10 +513,10 @@ actors:
   - 異常
 
 flow:
-  - 待機 -> 読込中: "送信"
-  - 読込中 -> 完了: "成功" (success) { guard: "入力が正しい" }
-  - 読込中 -> 異常: "失敗" (error)
-  - 異常 -> 待機: "再試行"
+  - 待機 -> 読込中: "送信" { head: open }
+  - 読込中 -> 完了: "成功" (success) { guard: "入力が正しい", head: open }
+  - 読込中 -> 異常: "失敗" (error) { head: open }
+  - 異常 -> 待機: "再試行" { head: open }
 
 states:
   counter: 0
@@ -541,7 +541,7 @@ export const textDslStateMachine = textDslToDiagram(sourceYaml__textDslStateMach
 
 export const sourceJson__textDslStateMachine = `{
   "title": "認証の状態遷移",
-  "type": "state",
+  "type": "record",
   "actors": [
     {
       "name": "待機"
@@ -560,25 +560,29 @@ export const sourceJson__textDslStateMachine = `{
     {
       "from": "待機",
       "to": "読込中",
-      "label": "送信"
+      "label": "送信",
+      "head": "open"
     },
     {
       "from": "読込中",
       "to": "完了",
       "label": "成功",
       "tone": "success",
-      "guard": "入力が正しい"
+      "guard": "入力が正しい",
+      "head": "open"
     },
     {
       "from": "読込中",
       "to": "異常",
       "label": "失敗",
-      "tone": "error"
+      "tone": "error",
+      "head": "open"
     },
     {
       "from": "異常",
       "to": "待機",
-      "label": "再試行"
+      "label": "再試行",
+      "head": "open"
     }
   ],
   "states": {
@@ -704,7 +708,9 @@ export const sourceJson__textDslTopology = `{
 // ─── er + animation (ER 図) ─────
 export const sourceYaml__textDslEr = `
 title: "表と関係の設計"
-type: er
+type: record
+# 列を 1 つも書かない図なので、見分ける行から配色を導けない = 書いて指す (#2782)
+palette: kinari
 # 順番を持たない図なので、触れた箱の関係を光らせる (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
 relations: hover
@@ -749,7 +755,7 @@ export const patternBase__textDslEr = "1 つの関係";
 
 export const sourceYaml__pattern__textDslEr__多重度を全て並べる = `
 title: "通販の表と 6 通りの多重度"
-type: er
+type: record
 # 順番を持たない図なので、触れた箱の関係を光らせる (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
 relations: hover
@@ -812,7 +818,7 @@ animation:
 
 export const sourceJson__pattern__textDslEr__多重度を全て並べる = `{
   "title": "通販の表と 6 通りの多重度",
-  "type": "er",
+  "type": "record",
   "relations": "hover",
   "reveal": "all",
   "lanes": { "c0": { "width": 470 }, "c1": { "width": 470 } },
@@ -850,7 +856,8 @@ export const pattern__textDslEr__多重度を全て並べる = textDslToDiagram(
 
 export const sourceJson__textDslEr = `{
   "title": "表と関係の設計",
-  "type": "er",
+  "type": "record",
+  "palette": "kinari",
   "relations": "hover",
   "reveal": "all",
   "actors": [
@@ -907,7 +914,7 @@ export const sourceJson__textDslEr = `{
 // 意匠帳 (`docs/design/er/note.md`) が線の手当てを決めた図。
 // 同じ通り道を並走する線 / 交わる線 / 札の位置は、表が 3 つの図では 1 つも見えない。
 export const sourceYaml__textDslErMesh = `title: "多対多が 2 組 / 8 表 8 関係"
-type: er
+type: record
 palette: kinari
 # 順番を持たない図なので、触れた箱の関係を光らせる (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
@@ -922,14 +929,14 @@ lanes:
 
 # 鍵は名前に下線、外部キーは山形。 中継表は全ての列が鍵で、それ自体は何も持たない
 actors:
-  - roles: { lane: c0, stack: 0, kind: storage, subtitle: "役割", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
-  - users: { lane: c0, stack: 1, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }
-  - teams: { lane: c0, stack: 2, kind: storage, subtitle: "チーム", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
-  - tags: { lane: c0, stack: 3, kind: storage, subtitle: "タグ", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
-  - projects: { lane: c1, stack: 2, kind: storage, subtitle: "案件", rows: ["id: bigint", "team_id: bigint", "owner_id: bigint"], marks: ["pk", "fk", "fk"] }
-  - user_roles: { lane: c1, stack: 0, kind: storage, subtitle: "役割の割当", rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] }
-  - team_members: { lane: c1, stack: 1, kind: storage, subtitle: "チームの所属", rows: ["team_id: bigint", "user_id: bigint"], marks: ["pk fk", "pk fk"] }
-  - project_tags: { lane: c1, stack: 3, kind: storage, subtitle: "案件のタグ", rows: ["project_id: bigint", "tag_id: bigint"], marks: ["pk fk", "pk fk"] }
+  - roles: { lane: c0, stack: 0, kind: storage, subtitle: "役割", rows: ["id: bigint", "name: text"], marks: ["鍵", ""] }
+  - users: { lane: c0, stack: 1, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["鍵", ""] }
+  - teams: { lane: c0, stack: 2, kind: storage, subtitle: "チーム", rows: ["id: bigint", "name: text"], marks: ["鍵", ""] }
+  - tags: { lane: c0, stack: 3, kind: storage, subtitle: "タグ", rows: ["id: bigint", "name: text"], marks: ["鍵", ""] }
+  - projects: { lane: c1, stack: 2, kind: storage, subtitle: "案件", rows: ["id: bigint", "team_id: bigint", "owner_id: bigint"], marks: ["鍵", "外", "外"] }
+  - user_roles: { lane: c1, stack: 0, kind: storage, subtitle: "役割の割当", rows: ["user_id: bigint", "role_id: bigint"], marks: ["鍵 外", "鍵 外"] }
+  - team_members: { lane: c1, stack: 1, kind: storage, subtitle: "チームの所属", rows: ["team_id: bigint", "user_id: bigint"], marks: ["鍵 外", "鍵 外"] }
+  - project_tags: { lane: c1, stack: 3, kind: storage, subtitle: "案件のタグ", rows: ["project_id: bigint", "tag_id: bigint"], marks: ["鍵 外", "鍵 外"] }
 
 # 端の印は両端に立つ。 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か
 flow:
@@ -967,7 +974,7 @@ export const textDslErMesh = textDslToDiagram(sourceYaml__textDslErMesh);
 
 export const sourceJson__textDslErMesh = `{
   "title": "多対多が 2 組 / 8 表 8 関係",
-  "type": "er",
+  "type": "record",
   "relations": "hover",
   "reveal": "all",
   "palette": "kinari",
@@ -980,7 +987,7 @@ export const sourceJson__textDslErMesh = `{
       "kind": "storage",
       "subtitle": "役割",
       "rows": ["id: bigint", "name: text"],
-      "marks": ["pk", ""]
+      "marks": ["鍵", ""]
     },
     {
       "name": "users",
@@ -989,7 +996,7 @@ export const sourceJson__textDslErMesh = `{
       "kind": "storage",
       "subtitle": "利用者",
       "rows": ["id: bigint", "email: text"],
-      "marks": ["pk", ""]
+      "marks": ["鍵", ""]
     },
     {
       "name": "teams",
@@ -998,7 +1005,7 @@ export const sourceJson__textDslErMesh = `{
       "kind": "storage",
       "subtitle": "チーム",
       "rows": ["id: bigint", "name: text"],
-      "marks": ["pk", ""]
+      "marks": ["鍵", ""]
     },
     {
       "name": "tags",
@@ -1007,7 +1014,7 @@ export const sourceJson__textDslErMesh = `{
       "kind": "storage",
       "subtitle": "タグ",
       "rows": ["id: bigint", "name: text"],
-      "marks": ["pk", ""]
+      "marks": ["鍵", ""]
     },
     {
       "name": "projects",
@@ -1016,7 +1023,7 @@ export const sourceJson__textDslErMesh = `{
       "kind": "storage",
       "subtitle": "案件",
       "rows": ["id: bigint", "team_id: bigint", "owner_id: bigint"],
-      "marks": ["pk", "fk", "fk"]
+      "marks": ["鍵", "外", "外"]
     },
     {
       "name": "user_roles",
@@ -1025,7 +1032,7 @@ export const sourceJson__textDslErMesh = `{
       "kind": "storage",
       "subtitle": "役割の割当",
       "rows": ["user_id: bigint", "role_id: bigint"],
-      "marks": ["pk fk", "pk fk"]
+      "marks": ["鍵 外", "鍵 外"]
     },
     {
       "name": "team_members",
@@ -1034,7 +1041,7 @@ export const sourceJson__textDslErMesh = `{
       "kind": "storage",
       "subtitle": "チームの所属",
       "rows": ["team_id: bigint", "user_id: bigint"],
-      "marks": ["pk fk", "pk fk"]
+      "marks": ["鍵 外", "鍵 外"]
     },
     {
       "name": "project_tags",
@@ -1043,7 +1050,7 @@ export const sourceJson__textDslErMesh = `{
       "kind": "storage",
       "subtitle": "案件のタグ",
       "rows": ["project_id: bigint", "tag_id: bigint"],
-      "marks": ["pk fk", "pk fk"]
+      "marks": ["鍵 外", "鍵 外"]
     }
   ],
   "flow": [
@@ -1884,7 +1891,7 @@ export const sourceJson__textDslValues = `{
 // 同じ記法でも静止図では指定が黙って消える。
 // ============================================================
 export const sourceYaml__textDslStateMarks = `title: "注文の状態"
-type: state
+type: record
 
 actors:
   - 始: { kind: mark-start }
@@ -1894,10 +1901,10 @@ actors:
   - 終: { kind: mark-end }
 
 flow:
-  - 始 -> 受付: "注文が入る"
-  - 受付 -> 発送準備: "在庫あり"
-  - 発送準備 -> 発送済: "集荷"
-  - 発送済 -> 終: "受取完了"
+  - 始 -> 受付: "注文が入る" { head: open }
+  - 受付 -> 発送準備: "在庫あり" { head: open }
+  - 発送準備 -> 発送済: "集荷" { head: open }
+  - 発送済 -> 終: "受取完了" { head: open }
 
 animation:
   - step: "受け付ける" 1.4s
@@ -1917,7 +1924,7 @@ export const textDslStateMarks = textDslToDiagram(sourceYaml__textDslStateMarks)
 
 export const sourceJson__textDslStateMarks = `{
   "title": "注文の状態",
-  "type": "state",
+  "type": "record",
   "actors": [
     { "name": "始", "kind": "mark-start" },
     { "name": "受付", "subtitle": "注文を受け取った" },
@@ -1926,10 +1933,10 @@ export const sourceJson__textDslStateMarks = `{
     { "name": "終", "kind": "mark-end" }
   ],
   "flow": [
-    { "from": "始", "to": "受付", "label": "注文が入る" },
-    { "from": "受付", "to": "発送準備", "label": "在庫あり" },
-    { "from": "発送準備", "to": "発送済", "label": "集荷" },
-    { "from": "発送済", "to": "終", "label": "受取完了" }
+    { "from": "始", "to": "受付", "label": "注文が入る", "head": "open" },
+    { "from": "受付", "to": "発送準備", "label": "在庫あり", "head": "open" },
+    { "from": "発送準備", "to": "発送済", "label": "集荷", "head": "open" },
+    { "from": "発送済", "to": "終", "label": "受取完了", "head": "open" }
   ],
   "animation": [
     {
@@ -2386,7 +2393,8 @@ export const pattern__textDslValueKeys__日本語で書く = textDslToDiagram(
 // 図は 1 ピクセルも変わらず知らせが 1 件出るので、鍵と外を指す列を持つ図に分けて見せる。
 
 export const sourceYaml__textDslRowMarkKeys = `title: "行と印を英語で書く"
-type: er
+type: record
+palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)
 relations: hover
 reveal: all
@@ -2396,12 +2404,12 @@ actors:
       kind: storage
       subtitle: "会員の表"
       rows: ["番号: 数", "所属の番号: 数", "連絡先: 文字"]
-      marks: ["pk", "fk", ""]
+      marks: ["鍵", "外", ""]
   - 組:
       kind: storage
       subtitle: "組の表"
       rows: ["番号: 数", "名前: 文字"]
-      marks: ["pk", ""]
+      marks: ["鍵", ""]
 
 flow:
   - 会員 -> 組: "所属する" (info, dashed) { tailHead: many, head: one }
@@ -2417,7 +2425,8 @@ animation:
 
 export const sourceJson__textDslRowMarkKeys = `{
   "title": "行と印を英語で書く",
-  "type": "er",
+  "type": "record",
+  "palette": "kinari",
   "relations": "hover",
   "reveal": "all",
   "actors": [
@@ -2426,14 +2435,14 @@ export const sourceJson__textDslRowMarkKeys = `{
       "kind": "storage",
       "subtitle": "会員の表",
       "rows": ["番号: 数", "所属の番号: 数", "連絡先: 文字"],
-      "marks": ["pk", "fk", ""]
+      "marks": ["鍵", "外", ""]
     },
     {
       "name": "組",
       "kind": "storage",
       "subtitle": "組の表",
       "rows": ["番号: 数", "名前: 文字"],
-      "marks": ["pk", ""]
+      "marks": ["鍵", ""]
     }
   ],
   "flow": [
@@ -2468,7 +2477,8 @@ export const textDslRowMarkKeys = textDslToDiagram(sourceYaml__textDslRowMarkKey
 export const patternBase__textDslRowMarkKeys = "英語で書く";
 
 export const sourceYaml__pattern__textDslRowMarkKeys__日本語で書く = `title: "行と印を日本語で書く"
-type: er
+type: record
+palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)
 relations: hover
 reveal: all
@@ -2478,12 +2488,12 @@ actors:
       種類: storage
       補足: "会員の表"
       行: ["番号: 数", "所属の番号: 数", "連絡先: 文字"]
-      印: ["pk", "fk", ""]
+      印: ["鍵", "外", ""]
   - 組:
       種類: storage
       補足: "組の表"
       行: ["番号: 数", "名前: 文字"]
-      印: ["pk", ""]
+      印: ["鍵", ""]
 
 flow:
   - 会員 -> 組: "所属する" (info, dashed) { tailHead: many, head: one }

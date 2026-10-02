@@ -186,7 +186,7 @@ export const FORMS: Section[] = [
      */
     sample: {
       slot: "relations",
-      type: "er",
+      type: "record",
       actors: ["  - 注文", "  - 明細"],
       flow: ['  - 注文 -> 明細: "持つ"'],
     },
@@ -258,12 +258,12 @@ export const FORMS: Section[] = [
     // 例文は ER 図にする = 既定を持つ図種の一つで、書き換えたことが絵で読める
     sample: {
       slot: "palette",
-      type: "er",
+      type: "record",
       actors: [
         // 種類 (`kind`) は書かない (#2388)。 縦列も動きも書かない ER 図は実体 1 つにつき
         // 表の箱を作る経路で組むので、書いても届かない
-        '  - users: { subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }',
-        '  - orders: { subtitle: "注文", rows: ["id: bigint", "user_id: bigint"], marks: ["pk", "fk"] }',
+        '  - users: { subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["鍵", ""] }',
+        '  - orders: { subtitle: "注文", rows: ["id: bigint", "user_id: bigint"], marks: ["鍵", "外"] }',
       ],
       flow: ['  - users -> orders: "注文する"'],
     },
@@ -612,7 +612,7 @@ export const FORMS: Section[] = [
     titleEn: "Box size (posW: / posH:)",
     sample: {
       slot: "actors",
-      type: "state",
+      type: "record",
       flow: ['  - 待機 -> 読込み: "start"'],
     },
     lines: [

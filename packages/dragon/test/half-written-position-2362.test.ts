@@ -13,7 +13,7 @@ import { compileToCdl } from "../src/compile";
 import { parseTextDslV05 } from "../src/v05/parser";
 
 /** 箱を持ち、座標が効く図種 (実測) */
-const 図種一覧 = ["c4", "class", "er", "state", "swimlane"] as const;
+const 図種一覧 = ["c4", "class", "record", "swimlane"] as const;
 
 function 本文(図種: string, 書く: string): string {
   return `title: "座標の図"

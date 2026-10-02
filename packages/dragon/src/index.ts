@@ -32,6 +32,8 @@ export {
   TOP_LEVEL_KEYS,
   TYPE_ALIASES,
 } from "./v05/parser";
+// 行頭の印の語 (#2782)。 見本がどの語を使っているかを数える検査が、一覧を実装から引く
+export { 行頭の語 } from "./compile/row-marks";
 export {
   TONE_ALIAS,
   NODE_KIND_ALIAS,

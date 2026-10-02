@@ -24,8 +24,7 @@ const 図種 = [
   "sequence",
   "flow",
   "swimlane",
-  "er",
-  "state",
+  "record",
   "topology",
   "solidity",
   "gantt",
@@ -87,7 +86,7 @@ describe("落としても書いた人には届く", () => {
   });
 
   it("全ての矢印が解決できない図でも知らせは出る", () => {
-    const { 知らせ } = 組む(記法("state", { 矢印: '  - 居ない人 -> 別の居ない人: "x"' }));
+    const { 知らせ } = 組む(記法("record", { 矢印: '  - 居ない人 -> 別の居ない人: "x"' }));
     const 該当 = 知らせ.filter((n) => n.kind === "flow-actor-missing");
     expect(該当.map((n) => n.actor).sort()).toEqual(["別の居ない人", "居ない人"]);
   });
@@ -95,7 +94,7 @@ describe("落としても書いた人には届く", () => {
 
 describe("落とすのは解決できない矢印だけ", () => {
   it("解決できる矢印は残る", () => {
-    const { 図 } = 組む(記法("state", { 矢印: '  - A -> B: "渡す"' }));
+    const { 図 } = 組む(記法("record", { 矢印: '  - A -> B: "渡す"' }));
     expect(図.edges).toHaveLength(1);
     expect(図.edges[0]!.label).toBe("渡す");
   });
@@ -103,7 +102,7 @@ describe("落とすのは解決できない矢印だけ", () => {
   it("解決できる矢印と解決できない矢印が混ざっても、 解決できる方は残る", () => {
     const src = [
       'title: "t"',
-      "type: state",
+      "type: record",
       "",
       "actors:",
       "  - A",

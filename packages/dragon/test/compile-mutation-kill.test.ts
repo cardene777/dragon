@@ -306,47 +306,50 @@ describe("compileC4", () => {
   });
 });
 
-// ── compileEr: entity + cardinality (parseCardinality / stripCardinality) ──
-describe("compileEr", () => {
-  it("entity node は kind storage + eyebrow エンティティ", () => {
-    const d = compile("er");
-    expect(node(d, "a").kind).toBe("storage");
-    expect(node(d, "a").eyebrow).toBe("エンティティ");
+// ── compileRecord: 箱の形 + cardinality (parseCardinality / stripCardinality) ──
+describe("compileRecord", () => {
+  it("行を書かない箱は札、書いた箱は表の箱 (#2782)", () => {
+    expect(node(compile("record"), "a").kind).toBe("card");
+    const 行あり = compile("record", {
+      actors: [{ ...actor("A"), rows: ["id: bigint"] }, actor("B")],
+    });
+    expect(node(行あり, "a").kind).toBe("storage");
   });
   it("label 内 cardinality を抽出し edge.sub に、 label からは除去", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "所有 1:N" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "所有 1:N" })] });
     const e = d.edges[0]!;
     expect(e.sub).toBe("1:N");
     expect(e.label).toBe("所有");
   });
   it("cardinality 表記なし label は語も端も補わない (#2105)", () => {
     // 書いていない `1:N` を名前の下の行と端に出していた = 組み立て API と段を持つ図は何も出さない
-    const d = compile("er", { flow: [step("A", "B", { label: "関連" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "関連" })] });
     expect(d.edges[0]!.sub).toBeUndefined();
     expect(d.edges[0]!.head).toBeUndefined();
     expect(d.edges[0]!.tailHead).toBeUndefined();
     expect(d.edges[0]!.label).toBe("関連");
   });
   it("N:M cardinality も認識", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "多対多 N:M" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "多対多 N:M" })] });
     expect(d.edges[0]!.sub).toBe("N:M");
   });
 });
 
-// ── compileState: initial / final フラグ + transition trigger ──
-describe("compileState", () => {
-  it("最初の state は eyebrow 初期、 最後は 最終", () => {
-    const d = compile("state", { actors: [actor("A"), actor("B"), actor("C")] });
+// ── compileRecord: 始まりと終わりの札 + transition trigger ──
+describe("compileRecord の札", () => {
+  it("書かない図はどの箱にも札が付かない (#2782)", () => {
+    const d = compile("record", { actors: [actor("A"), actor("B"), actor("C")] });
+    expect(node(d, "a").eyebrow).toBeUndefined();
+    expect(node(d, "b").eyebrow).toBeUndefined();
+    expect(node(d, "c").eyebrow).toBeUndefined();
+  });
+  it("書いた箱にだけ札が付く", () => {
+    const d = compile("record", {
+      actors: [{ ...actor("A"), initial: true }, actor("B"), { ...actor("C"), final: true }],
+    });
     expect(node(d, "a").eyebrow).toBe("初期");
+    expect(node(d, "b").eyebrow).toBeUndefined();
     expect(node(d, "c").eyebrow).toBe("最終");
-  });
-  it("中間 state は default eyebrow 状態 (initial / final でない)", () => {
-    const d = compile("state", { actors: [actor("A"), actor("B"), actor("C")] });
-    expect(node(d, "b").eyebrow).toBe("状態");
-  });
-  it("actor 1 個なら final は付かない (length > 1 条件)", () => {
-    const d = compile("state", { actors: [actor("A")], flow: [step("A", "A")] });
-    expect(node(d, "a").eyebrow).toBe("初期");
   });
 });
 
@@ -453,13 +456,13 @@ describe("slugify 経由 node id", () => {
 // ── applyEdgeInlineOptions: guard / cardinality / labelOffset の反映 ──
 describe("applyEdgeInlineOptions", () => {
   it("step.guard → edge.guard、 state preset では sub にも同期", () => {
-    const d = compile("state", { flow: [step("A", "B", { guard: "x>0" })] });
+    const d = compile("record", { flow: [step("A", "B", { guard: "x>0" })] });
     const e = d.edges.find((x) => x.from === "a" && x.to === "b")!;
     expect(e.guard).toBe("x>0");
     expect(e.sub).toBe("x>0");
   });
   it("step.cardinality → edge.cardinality", () => {
-    const d = compile("er", { flow: [step("A", "B", { cardinality: "1:1", label: "rel" })] });
+    const d = compile("record", { flow: [step("A", "B", { cardinality: "1:1", label: "rel" })] });
     const e = d.edges[0]!;
     expect(e.cardinality).toBe("1:1");
   });
@@ -693,7 +696,7 @@ describe("injectPhasesFallback 詳細", () => {
 // ── er の欄に書いた cardinality: 名前に併記せず、名前の下の行と両端に出す (#2105) ──
 describe("er の欄に書いた cardinality", () => {
   it("名前はそのまま、語は名前の下の行、両端は語の表から引く (完全一致)", () => {
-    const d = compile("er", { flow: [step("A", "B", { cardinality: "0..1", label: "owns" })] });
+    const d = compile("record", { flow: [step("A", "B", { cardinality: "0..1", label: "owns" })] });
     const e = d.edges[0]!;
     expect({ label: e.label, sub: e.sub, tailHead: e.tailHead, head: e.head }).toEqual({
       label: "owns",
@@ -718,7 +721,7 @@ const GEN_ANIM = {
 
 describe("compileGenericWithAnimate 網羅", () => {
   it("er + animate: cardinality を名前の下の行と両端に出す (#2105)", () => {
-    const d = compileToCdl(makeDoc("er", { animate: GEN_ANIM, flow: [step("A", "B", { cardinality: "N:1", label: "rel" })] }));
+    const d = compileToCdl(makeDoc("record", { animate: GEN_ANIM, flow: [step("A", "B", { cardinality: "N:1", label: "rel" })] }));
     const e = d.edges.find((x) => x.id === "e0-a-b")!;
     expect({ label: e.label, sub: e.sub, tailHead: e.tailHead, head: e.head }).toEqual({
       label: "rel",
@@ -727,9 +730,10 @@ describe("compileGenericWithAnimate 網羅", () => {
       head: "one",
     });
   });
-  it("state + animate: initial/final eyebrow", () => {
-    const d = compileToCdl(makeDoc("state", { animate: GEN_ANIM, actors: [actor("A"), actor("B"), actor("C")], flow: [step("A", "B"), step("B", "C")] }));
+  it("record + animate: 書いた札が届く", () => {
+    const d = compileToCdl(makeDoc("record", { animate: GEN_ANIM, actors: [{ ...actor("A"), initial: true }, actor("B"), { ...actor("C"), final: true }], flow: [step("A", "B"), step("B", "C")] }));
     expect(node(d, "a").eyebrow).toBe("初期");
+    expect(node(d, "b").eyebrow).toBeUndefined();
     expect(node(d, "c").eyebrow).toBe("最終");
   });
   it("edge id は e{idx}-{from}-{to} / label / tone 保持", () => {
@@ -880,7 +884,7 @@ describe("型別 compiler edge option 伝播", () => {
 // ── compileState transition: trigger (label) / tone ──
 describe("compileState transition", () => {
   it("transition は trigger=label / tone を保持", () => {
-    const d = compile("state", { flow: [step("A", "B", { label: "trig", tone: "error" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "trig", tone: "error" })] });
     const e = d.edges[0]!;
     expect(e.label).toBe("trig");
     expect(e.tone).toBe("error");
@@ -904,12 +908,12 @@ describe("slugify 網羅", () => {
 describe("cardinality parse / strip 網羅", () => {
   for (const [label, card] of [["1:1 rel", "1:1"], ["N:1 rel", "N:1"], ["N:M rel", "N:M"], ["0..1 rel", "0..1"], ["1..* rel", "1..*"]] as [string, string][]) {
     it(`"${label}" → sub ${card}`, () => {
-      const d = compile("er", { flow: [step("A", "B", { label })] });
+      const d = compile("record", { flow: [step("A", "B", { label })] });
       expect(d.edges[0]!.sub).toBe(card);
     });
   }
   it("stripCardinality: cardinality を除去した label", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "1:N owns" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "1:N owns" })] });
     expect(d.edges[0]!.label).toBe("owns");
   });
 });
@@ -1702,7 +1706,7 @@ describe("applyEdgeInlineOptions: edge 検索条件の分岐", () => {
   });
 
   it("state preset は guard を sub にも同期する", () => {
-    const d = compile("state", { flow: [step("A", "B", { guard: "cond" })] });
+    const d = compile("record", { flow: [step("A", "B", { guard: "cond" })] });
     const e = d.edges.find((x) => x.guard === "cond");
     expect(e?.sub).toBe("cond");
   });
@@ -1713,14 +1717,14 @@ describe("applyEdgeInlineOptions: edge 検索条件の分岐", () => {
   });
 
   it("er preset は cardinality を名前の下の行に出す (#2105)", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "owns", cardinality: "1:N" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "owns", cardinality: "1:N" })] });
     const e = d.edges.find((x) => x.cardinality === "1:N");
     expect(e?.label).toBe("owns");
     expect(e?.sub).toBe("1:N");
   });
 
   it("label に既に cardinality を含む場合は名前と名前の下の行で二重に出さない", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "owns (1:N)", cardinality: "1:N" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "owns (1:N)", cardinality: "1:N" })] });
     const e = d.edges.find((x) => x.cardinality === "1:N");
     expect((`${e?.label} ${e?.sub ?? ""}`.match(/1:N/g) ?? []).length).toBe(1);
   });
@@ -1906,7 +1910,7 @@ describe("compileGenericWithAnimate: kind 別の lane 構成", () => {
   });
 
   it("state preset は先頭 actor が initial marker を持つ", () => {
-    const d = compileToCdl(makeDoc("state", { animate: animOf() }));
+    const d = compileToCdl(makeDoc("record", { animate: animOf() }));
     const first = node(d, "a");
     const last = node(d, "b");
     // initial / final の差が出る (両方 undefined ではない)
@@ -1914,14 +1918,14 @@ describe("compileGenericWithAnimate: kind 別の lane 構成", () => {
   });
 
   it("actor 1 個の state preset では final marker が付かない (length > 1 条件)", () => {
-    const d = compileToCdl(makeDoc("state", {
+    const d = compileToCdl(makeDoc("record", {
       animate: animOf(), actors: [actor("A")], flow: [],
     }));
     expect(d.nodes.length).toBe(1);
   });
 
   it("er preset は cardinality を名前の下の行に出す (#2105)", () => {
-    const d = compileToCdl(makeDoc("er", {
+    const d = compileToCdl(makeDoc("record", {
       animate: animOf(), flow: [step("A", "B", { label: "owns", cardinality: "1:N" })],
     }));
     expect(d.edges[0]!.label).toBe("owns");
@@ -1929,7 +1933,7 @@ describe("compileGenericWithAnimate: kind 別の lane 構成", () => {
   });
 
   it("er で label が既に cardinality を含むなら名前と名前の下の行で二重に出さない", () => {
-    const d = compileToCdl(makeDoc("er", {
+    const d = compileToCdl(makeDoc("record", {
       animate: animOf(), flow: [step("A", "B", { label: "owns (1:N)", cardinality: "1:N" })],
     }));
     const e = d.edges[0]!;
@@ -2383,12 +2387,12 @@ describe("animate guard: phases 空なら非 animate 経路を通る", () => {
   });
 
   it("er は lane label 無しの preset 出力になる", () => {
-    const d = compileToCdl(makeDoc("er", { animate: EMPTY_ANIM }));
+    const d = compileToCdl(makeDoc("record", { animate: EMPTY_ANIM }));
     expect(lane(d, "lane-a").label).toBeUndefined();
   });
 
   it("state も lane label 無しの preset 出力になる", () => {
-    const d = compileToCdl(makeDoc("state", { animate: EMPTY_ANIM }));
+    const d = compileToCdl(makeDoc("record", { animate: EMPTY_ANIM }));
     expect(lane(d, "lane-a").label).toBeUndefined();
   });
 
@@ -2608,63 +2612,63 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
   it("前置き括弧つき cardinality を除去して片括弧を残さない", () => {
     // "(1:N) owns" → cardinality 除去で "() owns" になり、 空括弧を落として "owns"。
     // 空括弧除去が無いと ") owns" と片括弧が label に残り user に見える。
-    const d = compile("er", { flow: [step("A", "B", { label: "(1:N) owns" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "(1:N) owns" })] });
     expect(d.edges[0]!.label).toBe("owns");
   });
 
   it("後置き括弧つき cardinality を除去して片括弧を残さない", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "owns (1:N)" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "owns (1:N)" })] });
     expect(d.edges[0]!.label).toBe("owns");
   });
 
   it("括弧内に空白がある形式 ( 1:N ) も除去できる", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "owns ( 1:N )" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "owns ( 1:N )" })] });
     expect(d.edges[0]!.label).toBe("owns");
   });
 
   it("cardinality と無関係な正当な括弧は保持する (cc-codex #879 Round 4)", () => {
     // token を囲む括弧ごと除去することで、 label 中の正当な () を壊さない。
     // 旧実装 (空括弧の全域除去) は "do() now" → "do now" と正当な括弧を壊していた。
-    const d = compile("er", { flow: [step("A", "B", { label: "do() now" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "do() now" })] });
     expect(d.edges[0]!.label).toBe("do() now");
   });
 
   it("method-call の括弧と cardinality の括弧を区別する", () => {
     // "fn() (1:N)" は method-call の "()" を残し cardinality の "(1:N)" だけ除去して "fn()"。
-    const d = compile("er", { flow: [step("A", "B", { label: "fn() (1:N)" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "fn() (1:N)" })] });
     expect(d.edges[0]!.label).toBe("fn()");
   });
 
   it("中間の cardinality token 除去で連続空白を残さない", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "A 1:N B" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "A 1:N B" })] });
     expect(d.edges[0]!.label).toBe("A B");
   });
 
   it("cardinality を含まない label の複数空白を破壊しない (cc-codex #879 Round 5)", () => {
     // token を除去しない label は空白を一切いじらない (無条件正規化は改行/複数空白を破壊した)。
-    const d = compile("er", { flow: [step("A", "B", { label: "line1  line2" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "line1  line2" })] });
     expect(d.edges[0]!.label).toBe("line1  line2");
   });
 
   it("cardinality を含まない label の改行を破壊しない", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "line1\n\nline2" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "line1\n\nline2" })] });
     expect(d.edges[0]!.label).toBe("line1\n\nline2");
   });
 
   it("cardinality 除去時も label 内の改行は保持する", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "desc (1:N)\nmore" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "desc (1:N)\nmore" })] });
     expect(d.edges[0]!.label).toBe("desc\nmore");
   });
 
   it("cardinality 除去時に CRLF の \\r を落とさない", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "x (1:N)\r\ny" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "x (1:N)\r\ny" })] });
     expect(d.edges[0]!.label).toBe("x\r\ny");
   });
 
   it("cardinality を含まない label のタブ / 全角空白を破壊しない", () => {
-    const tab = compile("er", { flow: [step("A", "B", { label: "a\tb" })] });
+    const tab = compile("record", { flow: [step("A", "B", { label: "a\tb" })] });
     expect(tab.edges[0]!.label).toBe("a\tb");
-    const wide = compile("er", { flow: [step("A", "B", { label: "A　B" })] });
+    const wide = compile("record", { flow: [step("A", "B", { label: "A　B" })] });
     expect(wide.edges[0]!.label).toBe("A　B");
   });
 
@@ -2672,7 +2676,7 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     // 除去後に改行しか残らない場合、 不可視 label にしない。 名前は語だけだったとみなし、
     // 組み立て API と同じく語を名前として 1 度だけ出す (名前の下の行に同じ語を重ねない)。
     for (const label of ["1:N\n", "\n1:N\n", "  1:N  "]) {
-      const e = compile("er", { flow: [step("A", "B", { label })] }).edges[0]!;
+      const e = compile("record", { flow: [step("A", "B", { label })] }).edges[0]!;
       expect({ label: e.label, sub: e.sub }, JSON.stringify(label)).toEqual({ label: "1:N", sub: undefined });
     }
   });
@@ -2680,10 +2684,10 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
   it("Unicode 行区切り (U+2028/U+2029) / vertical tab / form feed / NEL は改行系として保持する", () => {
     for (const nl of [" ", " ", "\v", "\f", ""]) {
       // cardinality 無 = 完全保持
-      const noCard = compile("er", { flow: [step("A", "B", { label: `a${nl}b` })] });
+      const noCard = compile("record", { flow: [step("A", "B", { label: `a${nl}b` })] });
       expect(noCard.edges[0]!.label).toBe(`a${nl}b`);
       // cardinality 有 = 改行系は保持、 水平空白のみ畳む
-      const withCard = compile("er", { flow: [step("A", "B", { label: `x (1:N)${nl}y` })] });
+      const withCard = compile("record", { flow: [step("A", "B", { label: `x (1:N)${nl}y` })] });
       expect(withCard.edges[0]!.label.includes(nl)).toBe(true);
     }
   });
@@ -2693,7 +2697,7 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     // 個別の不可視文字を列挙せず構造的に「除去後に視覚的な内容が残らない」 ケースを塞ぐ。
     const invisibles = ["", "﻿", "​", "\u200c", "\u200d", "\u2060"];
     for (const ch of invisibles) {
-      const d = compile("er", { flow: [step("A", "B", { label: `1:N${ch}` })] });
+      const d = compile("record", { flow: [step("A", "B", { label: `1:N${ch}` })] });
       // 名前は語だけだったとみなし、見えない名前ではなく語を名前として出す (#2105)
       expect(d.edges[0]!.label, JSON.stringify(ch)).toBe("1:N");
     }
@@ -2701,7 +2705,7 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
 
   it("同一 cardinality token が複数回出る label で全て除去される (cc-codex #879 Round 8)", () => {
     // 裸 token 除去を global にしたことで、 2 個目以降の同一 token も消える。
-    const d = compile("er", { flow: [step("A", "B", { label: "1:N and 1:N" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "1:N and 1:N" })] });
     expect(d.edges[0]!.label).toBe("and");
   });
 
@@ -2710,85 +2714,85 @@ describe("stripCardinality: 括弧 / 空白の除去と fallback", () => {
     // で捕捉し、除去後に見える字が残らないと判定する。 Braille blank U+2800 は不可視でないため content 維持。
     const ignorables = ["\uFE0F", "\uFE00", "\u3164", "\u115F", "\u180B"];
     for (const ch of ignorables) {
-      const d = compile("er", { flow: [step("A", "B", { label: `1:N${ch}` })] });
+      const d = compile("record", { flow: [step("A", "B", { label: `1:N${ch}` })] });
       // 名前は語だけだったとみなし、見えない名前ではなく語を名前として出す (#2105)
       expect(d.edges[0]!.label, JSON.stringify(ch)).toBe("1:N");
     }
     // Braille blank は content 扱い = 除去後も残る (fallback しない)
-    const braille = compile("er", { flow: [step("A", "B", { label: "\u2800 1:N" })] });
+    const braille = compile("record", { flow: [step("A", "B", { label: "\u2800 1:N" })] });
     expect(braille.edges[0]!.label).toBe("\u2800");
   });
 
   it("cardinality token に隣接する数字 (timestamp / ratio) を over-removal しない (cc-codex #879 Round 9)", () => {
     // 裸 token 除去を global にする際、 前後に数字が隣接しない境界を付けて timestamp や比率の
     // 部分文字列を消さない。
-    const ts = compile("er", { flow: [step("A", "B", { label: "1:1 at 10:11:12" })] });
+    const ts = compile("record", { flow: [step("A", "B", { label: "1:1 at 10:11:12" })] });
     expect(ts.edges[0]!.label).toBe("at 10:11:12");
-    const time2 = compile("er", { flow: [step("A", "B", { label: "call at 12:11:10" })] });
+    const time2 = compile("record", { flow: [step("A", "B", { label: "call at 12:11:10" })] });
     expect(time2.edges[0]!.label).toBe("call at 12:11:10");
-    const ratio = compile("er", { flow: [step("A", "B", { label: "scale 10:11" })] });
+    const ratio = compile("record", { flow: [step("A", "B", { label: "scale 10:11" })] });
     expect(ratio.edges[0]!.label).toBe("scale 10:11");
   });
 
   it("cardinality token に隣接する英字 (alphabet 埋め込み) を over-removal しない (cc-codex #879 Round 10)", () => {
     // 単語境界を英数字にすることで、 label 中に token が語中で現れても壊さない。
-    const col = compile("er", { flow: [step("A", "B", { label: "column:Metadata" })] });
+    const col = compile("record", { flow: [step("A", "B", { label: "column:Metadata" })] });
     expect(col.edges[0]!.label).toBe("column:Metadata");
-    const embed = compile("er", { flow: [step("A", "B", { label: "x1:Ny" })] });
+    const embed = compile("record", { flow: [step("A", "B", { label: "x1:Ny" })] });
     expect(embed.edges[0]!.label).toBe("x1:Ny");
   });
 
   it("CJK 隣接の cardinality token は境界成立して認識される (ASCII identifier 外、 Round 12)", () => {
     // 境界クラスは ASCII identifier (`[A-Za-z0-9_]`) のみ。 CJK は境界外なので token を認識して除去する。
-    const d = compile("er", { flow: [step("A", "B", { label: "注文1:N明細" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "注文1:N明細" })] });
     expect(d.edges[0]!.label).toBe("注文明細");
     expect(d.edges[0]!.sub).toBe("1:N");
   });
 
   it("snake_case (アンダースコア隣接) の token を over-removal / 誤認しない (cc-codex #879 Round 11)", () => {
     // 境界クラスに `_` を含めることで、 DB schema 由来の snake_case label (`field_1:N` 等) を壊さない。
-    const f1 = compile("er", { flow: [step("A", "B", { label: "field_1:N" })] });
+    const f1 = compile("record", { flow: [step("A", "B", { label: "field_1:N" })] });
     expect(f1.edges[0]!.label).toBe("field_1:N");
     expect(f1.edges[0]!.sub).toBeUndefined(); // cardinality と誤認しない = 語が無いので名前の下の行を作らない (#2105)
-    const f2 = compile("er", { flow: [step("A", "B", { label: "parent_N:M_child" })] });
+    const f2 = compile("record", { flow: [step("A", "B", { label: "parent_N:M_child" })] });
     expect(f2.edges[0]!.label).toBe("parent_N:M_child");
-    const f3 = compile("er", { flow: [step("A", "B", { label: "maps_to_1:N" })] });
+    const f3 = compile("record", { flow: [step("A", "B", { label: "maps_to_1:N" })] });
     expect(f3.edges[0]!.label).toBe("maps_to_1:N");
   });
 
   it("alphabet 埋め込み token は cardinality としても認識されない (strip/parse の境界一致、 Round 10)", () => {
     // parse (sub 反映) と strip (label 除去) が同じ単語境界 matcher を共有するため乖離しない。
     // `column:Metadata` は cardinality と誤認しないので sub に cardinality が入らない。
-    const col = compile("er", { flow: [step("A", "B", { label: "column:Metadata" })] });
+    const col = compile("record", { flow: [step("A", "B", { label: "column:Metadata" })] });
     // sub は cardinality 由来。 token 誤認しなければ語が無いので何も入らない (#2105 で既定の "1:N" を外した)。
     expect(col.edges[0]!.sub).toBeUndefined();
     // 正当な cardinality は認識される (対照)
-    const real = compile("er", { flow: [step("A", "B", { label: "owns (0..1)" })] });
+    const real = compile("record", { flow: [step("A", "B", { label: "owns (0..1)" })] });
     expect(real.edges[0]!.sub).toBe("0..1");
     expect(real.edges[0]!.label).toBe("owns");
   });
 
   it("不可視文字が content と混在する場合は保持する (Cf 単独でなければ意味あり)", () => {
     // BOM が content 文字と混在していれば visible content ありと判定して保持する。
-    const d = compile("er", { flow: [step("A", "B", { label: `x\uFEFFy (1:N)` })] });
+    const d = compile("record", { flow: [step("A", "B", { label: `x\uFEFFy (1:N)` })] });
     expect(d.edges[0]!.label).toBe(`x\uFEFFy`);
   });
 
   it("cardinality のみの label は元 label に fallback (|| 分岐)", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "1:N" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "1:N" })] });
     // 除去すると空になるため元 label を維持する
     expect(d.edges[0]!.label).toBe("1:N");
   });
 
   it("cardinality を含まない label はそのまま", () => {
-    const d = compile("er", { flow: [step("A", "B", { label: "plain" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "plain" })] });
     expect(d.edges[0]!.label).toBe("plain");
   });
 
   it("前後の空白を trim しつつ token を囲まない裸の括弧は保持する", () => {
     // token を囲む括弧のみ除去する方針のため、 cardinality を包まない裸の ")" は
     // user が意図的に書いた括弧として保持する (前後の空白のみ trim)。
-    const d = compile("er", { flow: [step("A", "B", { label: "  owns 1:1 )" })] });
+    const d = compile("record", { flow: [step("A", "B", { label: "  owns 1:1 )" })] });
     expect(d.edges[0]!.label).toBe("owns )");
   });
 });
@@ -3028,33 +3032,31 @@ describe("mergePartsFromActors: partsCatalog の継承 property を拾わない"
   });
 });
 
-describe("state preset: initial / final marker の実値検証 (assertion 強化)", () => {
-  it("先頭 actor と末尾 actor で marker 属性が異なる", () => {
-    const d = compileToCdl(makeDoc("state", {
-      animate: animOf(), actors: [actor("A"), actor("B"), actor("C")],
+describe("record: 書いた始まりと終わりの実値検証 (assertion 強化)", () => {
+  it("書いた箱と書かない箱で札の値が違う", () => {
+    const d = compileToCdl(makeDoc("record", {
+      animate: animOf(),
+      actors: [{ ...actor("A"), initial: true }, actor("B"), { ...actor("C"), final: true }],
       flow: [step("A", "B"), step("B", "C")],
     }));
     const first = node(d, "a");
     const mid = node(d, "b");
     const last = node(d, "c");
     /*
-     * **欄の名前ではなく値で比べる** (#2352)。
-     *
-     * 中間の箱にも「状態」 の札が付くようになったため、3 つとも同じ欄を持つ。
-     * 欄の名前を並べて比べると、札の字が違っていても同じに見える。
+     * **欄の名前ではなく値で比べる** (#2352)。 欄の名前を並べて比べると、札の字が
+     * 違っていても同じに見える。
      */
     expect(first.eyebrow !== mid.eyebrow || last.eyebrow !== mid.eyebrow).toBe(true);
   });
 
-  it("actor 1 個なら initial のみで final は付かない", () => {
-    const single = compileToCdl(makeDoc("state", {
+  it("書いた箱と書かない箱で node の中身が違う", () => {
+    const 書いた = compileToCdl(makeDoc("record", {
+      animate: animOf(), actors: [{ ...actor("A"), initial: true }], flow: [],
+    }));
+    const 書かない = compileToCdl(makeDoc("record", {
       animate: animOf(), actors: [actor("A")], flow: [],
     }));
-    const pair = compileToCdl(makeDoc("state", {
-      animate: animOf(), actors: [actor("A"), actor("B")], flow: [step("A", "B")],
-    }));
-    // 2 actor 時の末尾 node と 1 actor 時の node は marker 構成が異なる
-    expect(JSON.stringify(node(single, "a")) !== JSON.stringify(node(pair, "b"))).toBe(true);
+    expect(JSON.stringify(node(書いた, "a")) !== JSON.stringify(node(書かない, "a"))).toBe(true);
   });
 });
 
@@ -3161,34 +3163,36 @@ describe("mergePartIntoDiagram: stack が 0 始まりでない part の中心合
   });
 });
 
-describe("state preset: initial / final marker の eyebrow 実値検証", () => {
-  it("先頭 actor に eyebrow 初期、 末尾 actor に eyebrow 最終が付く", () => {
-    const d = compileToCdl(makeDoc("state", {
-      animate: animOf(), actors: [actor("A"), actor("B"), actor("C")],
+describe("record: 始まりと終わりの札の eyebrow 実値検証", () => {
+  it("書いた箱に eyebrow 初期 / 最終が付く", () => {
+    const d = compileToCdl(makeDoc("record", {
+      animate: animOf(),
+      actors: [{ ...actor("A"), initial: true }, actor("B"), { ...actor("C"), final: true }],
       flow: [step("A", "B"), step("B", "C")],
     }));
     expect(node(d, "a").eyebrow).toBe("初期");
     expect(node(d, "c").eyebrow).toBe("最終");
   });
 
-  it("中間 actor には状態の札が付く", () => {
-    // 始まりでも終わりでもない箱は「状態」 (#2352)。 組み立て器を通る経路と揃えた =
-    // 以前はこの経路だけ札が付かず、動きを書いただけで札が消えていた
-    const d = compileToCdl(makeDoc("state", {
-      animate: animOf(), actors: [actor("A"), actor("B"), actor("C")],
+  it("書かない箱には札が付かない (#2782)", () => {
+    // 畳む前は始まりでも終わりでもない箱に「状態」 を配っていた。 行を並べた表の箱にも
+    // 出てしまうので、書かない箱には何も付けない形へ倒した
+    const d = compileToCdl(makeDoc("record", {
+      animate: animOf(),
+      actors: [{ ...actor("A"), initial: true }, actor("B"), { ...actor("C"), final: true }],
       flow: [step("A", "B"), step("B", "C")],
     }));
-    expect(node(d, "b").eyebrow).toBe("状態");
+    expect(node(d, "b").eyebrow).toBeUndefined();
   });
 
-  it("actor 1 個なら初期のみで最終は付かない (length > 1 条件)", () => {
-    const d = compileToCdl(makeDoc("state", {
+  it("1 つも書かない図では 1 箱でも札が付かない", () => {
+    const d = compileToCdl(makeDoc("record", {
       animate: animOf(), actors: [actor("A")], flow: [],
     }));
-    expect(node(d, "a").eyebrow).toBe("初期");
+    expect(node(d, "a").eyebrow).toBeUndefined();
   });
 
-  it("state 以外の preset では marker eyebrow が付かない", () => {
+  it("record 以外の preset では marker eyebrow が付かない", () => {
     const d = compileToCdl(makeDoc("swimlane", {
       animate: animOf(), actors: [actor("A"), actor("B")], flow: [step("A", "B")],
     }));

@@ -6,19 +6,19 @@ import { 始まりと終わりの決め方 } from "./actors";
 import { 並べる向き, 後ろへ戻る矢印か, type GenericKind } from "./direction";
 import { ERの関係の指定を作る, ERの関係の矢印 } from "./er-relation";
 import { 描ける種別 } from "./kinds";
-import { 状態の図の既定の種類 } from "./state";
 import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lanes";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
 /**
  * 段を持つ図種の共通の組み立て (#2030 で `compile.ts` から移した)。
  *
- * `flow` / `swimlane` / `er` / `state` / `topology` の 5 図種が、段を書いた時にここを通る。
+ * `flow` / `swimlane` / `record` / `topology` の 4 図種が通る。 `record` は段を書かない図も
+ * ここを通る (経路が 1 本なので、#2782)。
  */
 
 export type GenericOpts = {
   kind: GenericKind;
-  /** flow / topology は 1 lane に全 actor、 swimlane / state は actor ごと lane */
+  /** flow / topology は 1 lane に全 actor、 swimlane / record は actor ごと lane */
   laneId?: string;
   laneWidth: number;
 };
@@ -30,11 +30,12 @@ export type GenericOpts = {
  * 「縦列を書いた形」 が 2 図種 (状態の図 / 表の図) で抜け落ちていた =
  * 動きを書かない図では、書いた縦列に箱が入らず、代わりに箱ごとの縦列が作られ、
  * 「どの箱も入らない縦列です」 という **事実と逆の知らせ** だけが出ていた。
+ * その 2 図種は #2782 で `record` に畳み、経路を 1 本にしたのでここを通らない。
  *
  * 2 つの条件はどちらも「静止図の経路が持っていない並べ方を書いた」 ことを意味する。
  * 静止図の経路は並びを固定で持つため、通すと書いた指定が黙って消える (#1263)。
  *
- * `図種ごとの理由` はその図種にしか無い条件 (泳法図の向き / 状態の図の種類) を渡す。
+ * `図種ごとの理由` はその図種にしか無い条件 (泳法図の向き) を渡す。
  * フローは `鎖でつなぐ形か` が同じ判定を内側に持つため、ここは通らない。
  */
 export function 共通の組み立てへ回す(
@@ -57,19 +58,20 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
   const b = diagram(slugify(doc.title), { topic: doc.title, type: kind });
 
   /*
-   * 状態の図で、書かなかった時の既定 (#2352)。
+   * 行を持つ図で、書かなかった時の既定 (#2352 / #2782)。
    *
-   * 状態の図には組み立ての経路が 2 つあり、**書かなかった時の既定が揃っていなかった**。
-   * 同じ本文でも動きの段を 1 つ足すだけで、箱が札の形から人の形に変わっていた
-   * (実測 = 記法の頁の「認証の状態遷移」 が人の形で描かれていた)。
+   * **行を書いた箱は表の箱 (`storage`)、書かない箱は札 (`card`)**。 畳む前は図種で
+   * 決めており (移り変わりの図は札、表の図は書かないと人の形)、同じ本文でも動きの段を
+   * 1 つ足すだけで箱が札の形から人の形に変わっていた。
    *
-   * 既定の種類は `状態の図の既定の種類` が 1 箇所で持つ。 書いた種類はそのまま通す。
-   *
-   * **書いたかどうかは `kindWritten` で見る**。 書かなかった箱の `kind` には既定の
-   * `actor` が入るので、値だけでは「`actor` と書いた」 と「書かなかった」 を分けられない。
+   * 書いた種類はそのまま通す。 **書いたかどうかは `kindWritten` で見る** = 書かなかった箱の
+   * `kind` には既定の `actor` が入るので、値だけでは「`actor` と書いた」 と「書かなかった」 を
+   * 分けられない。
    */
-  const 箱の種類 = (a: (typeof doc.actors)[number]): NodeKind =>
-    kind === "state" && a.kindWritten !== true ? 状態の図の既定の種類 : 描ける種別(a.kind);
+  const 箱の種類 = (a: (typeof doc.actors)[number]): NodeKind => {
+    if (kind !== "record" || a.kindWritten === true) return 描ける種別(a.kind);
+    return (a.rows?.length ?? 0) > 0 ? "storage" : "card";
+  };
 
   /*
    * 始まりと終わりと途中の札 (#2349 / #2352)。
@@ -86,13 +88,30 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
    * 形そのものが始点と終点を表すので、字を重ねると同じことを 2 度言う
    * (実測 = #2349 で既定を無条件に配った時、印の箱に「初期」 の字が出て見本が壊れた)。
    */
-  const 決め方 = 始まりと終わりの決め方(doc, { 並びで決める: !書いた縦列に置く(kind, doc) });
+  /*
+   * **並びで決める既定を使わない** (#2782)。 書いた値だけを見る。
+   *
+   * 並びから推し量ると、1 つだけ書いた図でもう片方が勝手に決まる
+   * (実測 = 真ん中の箱に始まりを書いた図で、最後の箱に「最終」 が出た)。
+   */
+  const 決め方 = 始まりと終わりの決め方(doc, { 並びで決める: false });
+  /*
+   * 始まりと終わりの札 (#2349 / #2352 / #2782)。
+   *
+   * **書いた箱にだけ出す**。 畳む前は移り変わりの図だけが札を出し、1 つも書かない図では
+   * 並びの最初と最後を始まり / 終わりとみなし、残りの箱に「状態」 の字を配っていた。
+   * 畳んだ後も同じ形にすると、行を並べた表の箱に「状態」 の字が出る = 書いた人が
+   * 言っていないことを図が名乗る。
+   *
+   * **札を出すのは札の形の箱だけ**。 印の箱 (`mark-start` / `mark-end`) は形そのものが
+   * 始点と終点を表すので、字を重ねると同じことを 2 度言う。
+   */
   const 札 = (a: (typeof doc.actors)[number], idx: number): { eyebrow?: string } => {
-    if (kind !== "state") return {};
-    if (箱の種類(a) !== 状態の図の既定の種類) return {};
+    if (kind !== "record") return {};
+    if (箱の種類(a) !== "card") return {};
     if (決め方.始まり(a, idx)) return { eyebrow: "初期" };
     if (決め方.終わり(a, idx)) return { eyebrow: "最終" };
-    return { eyebrow: "状態" };
+    return {};
   };
 
   // lane / node 配置 ... preset kind に応じて切替
@@ -161,16 +180,16 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       });
     });
   } else {
-    // actor ごとに 1 lane (横並び)。 `swimlane` / `er` / `state` の既定と、
+    // actor ごとに 1 lane (横並び)。 `swimlane` / `record` の既定と、
     // `向き: 横` を書いたフローがここに来る (#1494)
     //
-    // **見出しを付けるのは `swimlane` だけ** (#1241)。 3 図種とも箱を 1 つずつ持ち、
+    // **見出しを付けるのは `swimlane` だけ** (#1241)。 どちらも箱を 1 つずつ持ち、
     // その箱が既に名前を描く。 縦列にも同じ名前を渡すと **同じ字が縦に 2 つ並ぶ**
     // (実測 = 描いた絵に `Alpha` `Beta` が 2 度出る)。
     //
     // `swimlane` は縦列そのものが「誰の担当か」 を読ませる図なので見出しが要る。
-    // `er` の縦列は表を並べるための入れ物、 `state` の縦列は状態を並べるための入れ物で、
-    // どちらも読む人に見せる意味を持たない (組立て API 側も見出しを空のまま置く)。
+    // `record` の縦列は箱を並べるための入れ物で、読む人に見せる意味を持たない
+    // (組立て API 側も見出しを空のまま置く)。
     const 見出しを付ける = kind === "swimlane";
     doc.actors.forEach((a, idx) => {
       const lid = `lane-${slugify(a.name) || idx}`;
@@ -203,25 +222,21 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     const toId = actorToNodeId.get(s.to);
     if (fromId === undefined || toId === undefined) return;
     const edgeId = `e${idx}-${fromId}-${toId}`;
-    // ER の多重度は、段の無い図 (`compileEr`) と同じ 1 か所から名前と名前の下の行と両端を作る (#2105)。
-    // 札に `(1:N)` と添えるだけだった間、段を持つ ER 図には端の形が 1 つも付かなかった
-    const 関係 = kind === "er" ? ERの関係の矢印(ERの関係の指定を作る(s)) : undefined;
+    // 多重度と名前と両端は 1 か所で作る (#2105)。 札に `(1:N)` と添えるだけだった間、
+    // 段を持つ図には端の形が 1 つも付かなかった。
+    //
+    // **端の既定は持たない** (#2591 / #2595 / #2782)。 畳む前は移り変わりの図にだけ
+    // 「実線に開いた矢」 を無条件で渡していたが、畳んだ後も渡すと多重度から導いた端を
+    // 上から潰す = 箱どうしの個数が消える。 書いた端だけを渡す形に倒す
+    const 関係 = kind === "record" ? ERの関係の矢印(ERの関係の指定を作る(s)) : undefined;
     b.edge(fromId, toId, {
       id: edgeId,
       label: 関係?.label ?? s.label,
-      ...(後ろへ戻る矢印か(kind, fromId, toId, 箱の並び)
+      ...(後ろへ戻る矢印か(kind, fromId, toId, 箱の並び, 書いた縦列に置く(kind, doc))
         ? { routing: "back-detour" as const }
         : {}),
       ...(関係?.sub ? { sub: 関係.sub } : {}),
       ...(関係?.head ? { head: 関係.head } : {}),
-      // 状態が移る印は 1 種類だけ = 実線に開いた矢 (#2591)。 描く側の状態遷移の組み立てが
-      // 同じ値を渡しており、こちらを通る図 (動きか縦列か種類を書いた図) だけが端を渡さず
-      // 既定の三角に落ちていた。 書いた端は後から `矢印へ書き写す` が上書きするので勝つ
-      //
-      // **線の種類も同じ決まりの半分** (#2595)。 描く側は「実線に開いた矢」 と名乗っており、
-      // 端だけを渡すと決まりの片側しか届かない。 既定が実線なので見た目は変わらないが、
-      // 渡さないままだと「この図種は実線」 と書いた場所がどこにも無くなる
-      ...(kind === "state" ? { head: "open" as const, style: "solid" as const } : {}),
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),

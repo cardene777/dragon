@@ -219,7 +219,7 @@ describe("値の図で、箱に書いた指定が黙って消えない (#2368)",
      * 値の図では位置そのものが効かないので、この図種の知らせが受け持つ。
      * 位置が効く図種では #2362 の知らせが要るため、そちらを消していないことを見る。
      */
-    const 出ない = ["c4", "class", "er", "state", "swimlane"].filter(
+    const 出ない = ["c4", "class", "record", "swimlane"].filter(
       (t) =>
         !組む(`title: "位置"
 type: ${t}

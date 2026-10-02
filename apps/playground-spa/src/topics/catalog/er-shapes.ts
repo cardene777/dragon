@@ -67,7 +67,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 
 /** 枝分かれしない最小の形。 繋がりを一直線に追える */
 export const sourceYaml__erShapeSmall = `title: "小さい形 / 3 表 2 関係"
-type: er
+type: record
 palette: kinari
 # 順番を持たない図なので、線は最初から全部出して触れた関係を光らせる
 relations: hover
@@ -82,9 +82,9 @@ lanes:
 
 # 鍵は名前に下線、外を指す列は山形。 中間の表は全ての列が鍵で、それ自体は何も持たない
 actors:
-  - users: { lane: c0, stack: 0, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }
-  - orders: { lane: c1, stack: 0, kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint", "total: numeric"], marks: ["pk", "fk", ""] }
-  - order_items: { lane: c2, stack: 0, kind: storage, subtitle: "注文の明細", rows: ["order_id: bigint", "product_id: bigint", "qty: int"], marks: ["pk fk", "pk fk", ""] }
+  - users: { lane: c0, stack: 0, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["鍵", ""] }
+  - orders: { lane: c1, stack: 0, kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint", "total: numeric"], marks: ["鍵", "外", ""] }
+  - order_items: { lane: c2, stack: 0, kind: storage, subtitle: "注文の明細", rows: ["order_id: bigint", "product_id: bigint", "qty: int"], marks: ["鍵 外", "鍵 外", ""] }
 
 # 端の印は両端に立つ。 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か
 flow:
@@ -106,7 +106,7 @@ export const erShapeSmall = textDslToDiagram(sourceYaml__erShapeSmall);
 
 export const sourceJson__erShapeSmall = `{
   "title": "小さい形 / 3 表 2 関係",
-  "type": "er",
+  "type": "record",
   "relations": "hover",
   "reveal": "all",
   "palette": "kinari",
@@ -133,7 +133,7 @@ export const sourceJson__erShapeSmall = `{
         "email: text"
       ],
       "marks": [
-        "pk",
+        "鍵",
         ""
       ]
     },
@@ -149,8 +149,8 @@ export const sourceJson__erShapeSmall = `{
         "total: numeric"
       ],
       "marks": [
-        "pk",
-        "fk",
+        "鍵",
+        "外",
         ""
       ]
     },
@@ -166,8 +166,8 @@ export const sourceJson__erShapeSmall = `{
         "qty: int"
       ],
       "marks": [
-        "pk fk",
-        "pk fk",
+        "鍵 外",
+        "鍵 外",
         ""
       ]
     }
@@ -222,7 +222,7 @@ export const sourceJson__erShapeSmall = `{
 
 /** 1 つの表に何本も集まる形。 利用者を中心に据えると出る */
 export const sourceYaml__erShapeHub = `title: "集まる形 / 6 表 5 関係"
-type: er
+type: record
 palette: kinari
 # 順番を持たない図なので、線は最初から全部出して触れた関係を光らせる
 relations: hover
@@ -237,12 +237,12 @@ lanes:
 
 # 鍵は名前に下線、外を指す列は山形。 中間の表は全ての列が鍵で、それ自体は何も持たない
 actors:
-  - addresses: { lane: c0, stack: 0, kind: storage, subtitle: "届け先", rows: ["id: bigint", "user_id: bigint"], marks: ["pk", "fk"] }
-  - sessions: { lane: c0, stack: 1, kind: storage, subtitle: "接続", rows: ["id: bigint", "user_id: bigint", "expires_at: timestamptz"], marks: ["pk", "fk", ""] }
-  - users: { lane: c1, stack: 0, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }
-  - reviews: { lane: c1, stack: 1, kind: storage, subtitle: "感想", rows: ["id: bigint", "user_id: bigint", "score: int"], marks: ["pk", "fk", ""] }
-  - orders: { lane: c2, stack: 0, kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint"], marks: ["pk", "fk"] }
-  - payments: { lane: c2, stack: 1, kind: storage, subtitle: "支払い", rows: ["id: bigint", "order_id: bigint"], marks: ["pk", "fk"] }
+  - addresses: { lane: c0, stack: 0, kind: storage, subtitle: "届け先", rows: ["id: bigint", "user_id: bigint"], marks: ["鍵", "外"] }
+  - sessions: { lane: c0, stack: 1, kind: storage, subtitle: "接続", rows: ["id: bigint", "user_id: bigint", "expires_at: timestamptz"], marks: ["鍵", "外", ""] }
+  - users: { lane: c1, stack: 0, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["鍵", ""] }
+  - reviews: { lane: c1, stack: 1, kind: storage, subtitle: "感想", rows: ["id: bigint", "user_id: bigint", "score: int"], marks: ["鍵", "外", ""] }
+  - orders: { lane: c2, stack: 0, kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint"], marks: ["鍵", "外"] }
+  - payments: { lane: c2, stack: 1, kind: storage, subtitle: "支払い", rows: ["id: bigint", "order_id: bigint"], marks: ["鍵", "外"] }
 
 # 端の印は両端に立つ。 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か
 flow:
@@ -271,7 +271,7 @@ export const erShapeHub = textDslToDiagram(sourceYaml__erShapeHub);
 
 export const sourceJson__erShapeHub = `{
   "title": "集まる形 / 6 表 5 関係",
-  "type": "er",
+  "type": "record",
   "relations": "hover",
   "reveal": "all",
   "palette": "kinari",
@@ -298,8 +298,8 @@ export const sourceJson__erShapeHub = `{
         "user_id: bigint"
       ],
       "marks": [
-        "pk",
-        "fk"
+        "鍵",
+        "外"
       ]
     },
     {
@@ -314,8 +314,8 @@ export const sourceJson__erShapeHub = `{
         "expires_at: timestamptz"
       ],
       "marks": [
-        "pk",
-        "fk",
+        "鍵",
+        "外",
         ""
       ]
     },
@@ -330,7 +330,7 @@ export const sourceJson__erShapeHub = `{
         "email: text"
       ],
       "marks": [
-        "pk",
+        "鍵",
         ""
       ]
     },
@@ -346,8 +346,8 @@ export const sourceJson__erShapeHub = `{
         "score: int"
       ],
       "marks": [
-        "pk",
-        "fk",
+        "鍵",
+        "外",
         ""
       ]
     },
@@ -362,8 +362,8 @@ export const sourceJson__erShapeHub = `{
         "user_id: bigint"
       ],
       "marks": [
-        "pk",
-        "fk"
+        "鍵",
+        "外"
       ]
     },
     {
@@ -377,8 +377,8 @@ export const sourceJson__erShapeHub = `{
         "order_id: bigint"
       ],
       "marks": [
-        "pk",
-        "fk"
+        "鍵",
+        "外"
       ]
     }
   ],
@@ -477,7 +477,7 @@ export const sourceJson__erShapeHub = `{
 
 /** 端から端まで一直線に繋がる形。 所有が階層になると出る */
 export const sourceYaml__erShapeChain = `title: "連なる形 / 6 表 5 関係"
-type: er
+type: record
 palette: kinari
 # 順番を持たない図なので、線は最初から全部出して触れた関係を光らせる
 relations: hover
@@ -492,12 +492,12 @@ lanes:
 
 # 鍵は名前に下線、外を指す列は山形。 中間の表は全ての列が鍵で、それ自体は何も持たない
 actors:
-  - tenants: { lane: c0, stack: 0, kind: storage, subtitle: "契約者", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
-  - projects: { lane: c1, stack: 0, kind: storage, subtitle: "案件", rows: ["id: bigint", "tenant_id: bigint"], marks: ["pk", "fk"] }
-  - boards: { lane: c2, stack: 0, kind: storage, subtitle: "掲示板", rows: ["id: bigint", "project_id: bigint"], marks: ["pk", "fk"] }
-  - cards: { lane: c2, stack: 1, kind: storage, subtitle: "付箋", rows: ["id: bigint", "board_id: bigint"], marks: ["pk", "fk"] }
-  - comments: { lane: c1, stack: 1, kind: storage, subtitle: "書き込み", rows: ["id: bigint", "card_id: bigint"], marks: ["pk", "fk"] }
-  - attachments: { lane: c0, stack: 1, kind: storage, subtitle: "添付", rows: ["id: bigint", "comment_id: bigint"], marks: ["pk", "fk"] }
+  - tenants: { lane: c0, stack: 0, kind: storage, subtitle: "契約者", rows: ["id: bigint", "name: text"], marks: ["鍵", ""] }
+  - projects: { lane: c1, stack: 0, kind: storage, subtitle: "案件", rows: ["id: bigint", "tenant_id: bigint"], marks: ["鍵", "外"] }
+  - boards: { lane: c2, stack: 0, kind: storage, subtitle: "掲示板", rows: ["id: bigint", "project_id: bigint"], marks: ["鍵", "外"] }
+  - cards: { lane: c2, stack: 1, kind: storage, subtitle: "付箋", rows: ["id: bigint", "board_id: bigint"], marks: ["鍵", "外"] }
+  - comments: { lane: c1, stack: 1, kind: storage, subtitle: "書き込み", rows: ["id: bigint", "card_id: bigint"], marks: ["鍵", "外"] }
+  - attachments: { lane: c0, stack: 1, kind: storage, subtitle: "添付", rows: ["id: bigint", "comment_id: bigint"], marks: ["鍵", "外"] }
 
 # 端の印は両端に立つ。 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か
 flow:
@@ -522,7 +522,7 @@ export const erShapeChain = textDslToDiagram(sourceYaml__erShapeChain);
 
 export const sourceJson__erShapeChain = `{
   "title": "連なる形 / 6 表 5 関係",
-  "type": "er",
+  "type": "record",
   "relations": "hover",
   "reveal": "all",
   "palette": "kinari",
@@ -549,7 +549,7 @@ export const sourceJson__erShapeChain = `{
         "name: text"
       ],
       "marks": [
-        "pk",
+        "鍵",
         ""
       ]
     },
@@ -564,8 +564,8 @@ export const sourceJson__erShapeChain = `{
         "tenant_id: bigint"
       ],
       "marks": [
-        "pk",
-        "fk"
+        "鍵",
+        "外"
       ]
     },
     {
@@ -579,8 +579,8 @@ export const sourceJson__erShapeChain = `{
         "project_id: bigint"
       ],
       "marks": [
-        "pk",
-        "fk"
+        "鍵",
+        "外"
       ]
     },
     {
@@ -594,8 +594,8 @@ export const sourceJson__erShapeChain = `{
         "board_id: bigint"
       ],
       "marks": [
-        "pk",
-        "fk"
+        "鍵",
+        "外"
       ]
     },
     {
@@ -609,8 +609,8 @@ export const sourceJson__erShapeChain = `{
         "card_id: bigint"
       ],
       "marks": [
-        "pk",
-        "fk"
+        "鍵",
+        "外"
       ]
     },
     {
@@ -624,8 +624,8 @@ export const sourceJson__erShapeChain = `{
         "comment_id: bigint"
       ],
       "marks": [
-        "pk",
-        "fk"
+        "鍵",
+        "外"
       ]
     }
   ],
@@ -715,7 +715,7 @@ export const sourceJson__erShapeChain = `{
 
 /** 中間の表を挟んで両側から繋がる組がある形。 割当や貼り付けを表すと出る */
 export const sourceYaml__erShapeMesh = `title: "多対多の形 / 8 表 8 関係"
-type: er
+type: record
 palette: kinari
 # 順番を持たない図なので、線は最初から全部出して触れた関係を光らせる
 relations: hover
@@ -731,14 +731,14 @@ lanes:
 
 # 鍵は名前に下線、外を指す列は山形。 中間の表は全ての列が鍵で、それ自体は何も持たない
 actors:
-  - roles: { lane: c0, stack: 0, kind: storage, subtitle: "役割", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
-  - tags: { lane: c0, stack: 1, kind: storage, subtitle: "名札", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
-  - grants: { lane: c1, stack: 0, kind: storage, subtitle: "役割の割当", rows: ["user_id: bigint", "role_id: bigint"], marks: ["pk fk", "pk fk"] }
-  - taggings: { lane: c1, stack: 1, kind: storage, subtitle: "案件の名札", rows: ["project_id: bigint", "tag_id: bigint"], marks: ["pk fk", "pk fk"] }
-  - users: { lane: c2, stack: 0, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["pk", ""] }
-  - projects: { lane: c2, stack: 1, kind: storage, subtitle: "案件", rows: ["id: bigint", "team_id: bigint", "owner_id: bigint"], marks: ["pk", "fk", "fk opt"] }
-  - teams: { lane: c3, stack: 0, kind: storage, subtitle: "班", rows: ["id: bigint", "name: text"], marks: ["pk", ""] }
-  - members: { lane: c3, stack: 1, kind: storage, subtitle: "班の一員", rows: ["team_id: bigint", "user_id: bigint"], marks: ["pk fk", "pk fk"] }
+  - roles: { lane: c0, stack: 0, kind: storage, subtitle: "役割", rows: ["id: bigint", "name: text"], marks: ["鍵", ""] }
+  - tags: { lane: c0, stack: 1, kind: storage, subtitle: "名札", rows: ["id: bigint", "name: text"], marks: ["鍵", ""] }
+  - grants: { lane: c1, stack: 0, kind: storage, subtitle: "役割の割当", rows: ["user_id: bigint", "role_id: bigint"], marks: ["鍵 外", "鍵 外"] }
+  - taggings: { lane: c1, stack: 1, kind: storage, subtitle: "案件の名札", rows: ["project_id: bigint", "tag_id: bigint"], marks: ["鍵 外", "鍵 外"] }
+  - users: { lane: c2, stack: 0, kind: storage, subtitle: "利用者", rows: ["id: bigint", "email: text"], marks: ["鍵", ""] }
+  - projects: { lane: c2, stack: 1, kind: storage, subtitle: "案件", rows: ["id: bigint", "team_id: bigint", "owner_id: bigint"], marks: ["鍵", "外", "外 条件"] }
+  - teams: { lane: c3, stack: 0, kind: storage, subtitle: "班", rows: ["id: bigint", "name: text"], marks: ["鍵", ""] }
+  - members: { lane: c3, stack: 1, kind: storage, subtitle: "班の一員", rows: ["team_id: bigint", "user_id: bigint"], marks: ["鍵 外", "鍵 外"] }
 
 # 端の印は両端に立つ。 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か
 flow:
@@ -770,7 +770,7 @@ export const erShapeMesh = textDslToDiagram(sourceYaml__erShapeMesh);
 
 export const sourceJson__erShapeMesh = `{
   "title": "多対多の形 / 8 表 8 関係",
-  "type": "er",
+  "type": "record",
   "relations": "hover",
   "reveal": "all",
   "palette": "kinari",
@@ -800,7 +800,7 @@ export const sourceJson__erShapeMesh = `{
         "name: text"
       ],
       "marks": [
-        "pk",
+        "鍵",
         ""
       ]
     },
@@ -815,7 +815,7 @@ export const sourceJson__erShapeMesh = `{
         "name: text"
       ],
       "marks": [
-        "pk",
+        "鍵",
         ""
       ]
     },
@@ -830,8 +830,8 @@ export const sourceJson__erShapeMesh = `{
         "role_id: bigint"
       ],
       "marks": [
-        "pk fk",
-        "pk fk"
+        "鍵 外",
+        "鍵 外"
       ]
     },
     {
@@ -845,8 +845,8 @@ export const sourceJson__erShapeMesh = `{
         "tag_id: bigint"
       ],
       "marks": [
-        "pk fk",
-        "pk fk"
+        "鍵 外",
+        "鍵 外"
       ]
     },
     {
@@ -860,7 +860,7 @@ export const sourceJson__erShapeMesh = `{
         "email: text"
       ],
       "marks": [
-        "pk",
+        "鍵",
         ""
       ]
     },
@@ -876,9 +876,9 @@ export const sourceJson__erShapeMesh = `{
         "owner_id: bigint"
       ],
       "marks": [
-        "pk",
-        "fk",
-        "fk opt"
+        "鍵",
+        "外",
+        "外 条件"
       ]
     },
     {
@@ -892,7 +892,7 @@ export const sourceJson__erShapeMesh = `{
         "name: text"
       ],
       "marks": [
-        "pk",
+        "鍵",
         ""
       ]
     },
@@ -907,8 +907,8 @@ export const sourceJson__erShapeMesh = `{
         "user_id: bigint"
       ],
       "marks": [
-        "pk fk",
-        "pk fk"
+        "鍵 外",
+        "鍵 外"
       ]
     }
   ],

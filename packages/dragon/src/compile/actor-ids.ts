@@ -79,7 +79,7 @@ function cdl側のslug(s: string): string {
  * |---|---|
  * | `sequence` / `solidity` | 枠 `actor-0` (cdl の `sequence()`) |
  * | `swimlane` | 枠 `lane-0` (cdl の `swimlane()`) |
- * | 残る 6 図種 | 箱 `n` (dragon 側の逃げ先。 cdl の逃げ道を通らない) |
+ * | 残る 5 図種 | 箱 `n` (dragon 側の逃げ先。 cdl の逃げ道を通らない) |
  *
  * 空配列は「cdl の逃げ道を通らない」 を表す。 1 箱で描く図種はここに来ない (作り替え自体を
  * しない) が、 図種を足した時に決め忘れないよう全種を並べる。
@@ -93,8 +93,7 @@ const 空の形の逃げ先: Record<PresetType, string[]> = {
   // 分かれ道の図も縦列を持ち、 描画側は縦列の名前から箱を作る (`swimlane` と同じ逃げ先)
   flowchart: ["lane-"],
   flow: [],
-  er: [],
-  state: [],
+  record: [],
   topology: [],
   class: [],
   c4: [],

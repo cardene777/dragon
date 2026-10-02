@@ -357,8 +357,7 @@ flow:
       "sequence",
       "flow",
       "swimlane",
-      "er",
-      "state",
+      "record",
       "topology",
     ] as const;
     for (const preset of presets) {

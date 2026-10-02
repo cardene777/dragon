@@ -6,14 +6,14 @@ import { compileToCdl } from "../src/compile";
  * `lanes:` / `groups:` の id が受ける形の検証 (#1241)。
  *
  * 組み立て側は登場人物の名前から縦列 id を作るため、hyphen と日本語が入る
- * (実測 = `type: state` で `lane-idle` / `lane-待機`、`type: swimlane` で `lane-sign-up`)。
+ * (実測 = `type: record` で `lane-idle` / `lane-待機`、`type: swimlane` で `lane-sign-up`)。
  *
  * 英数字と下線だけを受けていた間、**自動で作られた縦列の幅や見出しを書き直す手段が無かった**。
  * 記法で書けない figure がそこで止まっていた (`presetStateMachine` の幅 370)。
  */
 
 const 記法 = (lanes: string) =>
-  `title: "T"\ntype: state\n${lanes}\nactors:\n  - Idle\n  - Loading\nflow:\n  - Idle -> Loading: "x"\n\n` +
+  `title: "T"\ntype: record\n${lanes}\nactors:\n  - Idle\n  - Loading\nflow:\n  - Idle -> Loading: "x"\n\n` +
   `animation:\n  - step: "s1" 1s\n    focus: [Idle]\n    body: "b"\n`;
 
 function 縦列(src: string) {
@@ -29,7 +29,7 @@ const 誤り = (src: string) => {
 
 describe("自動で作られる縦列の id を書き直せる (#1241)", () => {
   it("hyphen を含む id が受かる", () => {
-    // `type: state` は `lane-<名前>` の形で縦列を作る
+    // `type: record` は `lane-<名前>` の形で縦列を作る
     const 出た = 縦列(記法(`lanes:\n  lane-idle: { width: 370 }\n  lane-loading: { width: 370 }\n`));
     expect(出た).toEqual([
       { id: "lane-idle", width: 370 },
@@ -44,7 +44,7 @@ describe("自動で作られる縦列の id を書き直せる (#1241)", () => {
 
   it("日本語を含む id が受かる", () => {
     // 名前が日本語なら縦列 id も日本語になる (実測 = `lane-待機`)
-    const src = `title: "T"\ntype: state\nlanes:\n  lane-待機: { width: 400 }\n\n` +
+    const src = `title: "T"\ntype: record\nlanes:\n  lane-待機: { width: 400 }\n\n` +
       `actors:\n  - 待機\n  - 読込み\nflow:\n  - 待機 -> 読込み: "x"\n\n` +
       `animation:\n  - step: "s1" 1s\n    focus: [待機]\n    body: "b"\n`;
     expect(縦列(src)[0]).toEqual({ id: "lane-待機", width: 400 });
@@ -97,7 +97,7 @@ describe("書き間違いが別の縦列として通らない (Round 1 の指摘
   it("組み立て側が作る字は通る (陰性対照)", () => {
     // 絞りすぎると自動で作られた縦列を指せなくなる = hyphen と日本語を受ける意味が消える
     for (const id of ["main", "chart", "lane-idle", "lane-sign-up", "lane_1", "lane-待機", "c4-l1"]) {
-      const src = `title: "T"\ntype: state\nlanes:\n  ${id}: { width: 370 }\n\n` +
+      const src = `title: "T"\ntype: record\nlanes:\n  ${id}: { width: 370 }\n\n` +
         `actors:\n  - Idle\n  - Loading\nflow:\n  - Idle -> Loading: "x"\n`;
       expect(誤り(src), `${id} が受からない`).toEqual([]);
     }

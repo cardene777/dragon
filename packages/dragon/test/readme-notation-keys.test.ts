@@ -339,7 +339,7 @@ flow:
     // 上書きしていないか** を両側で見る
     const 関係 = (中括弧: string): string | undefined => {
       const r = parseTextDslV05(`title: "t"
-type: er
+type: record
 
 actors:
   - User: { kind: storage }
@@ -370,7 +370,7 @@ flow:
     const 小見出し = (actors: string, 動きあり = false): string => {
       const 段 = '\nanimation:\n  - step: "1" 0.9s\n    focus: [A]\n    body: "b"\n';
       const r = parseTextDslV05(`title: "t"
-type: state
+type: record
 
 actors:
 ${actors}
@@ -386,9 +386,9 @@ ${動きあり ? 段 : ""}`);
 
     const 素 = "  - A: { kind: card }\n  - B: { kind: card }\n  - C: { kind: card }\n";
 
-    it("書かなければ順序で決まる", () => {
-      // 書かない記法の図を変えていないこと
-      expect(小見出し(素)).toBe("a=初期 b=状態 c=最終");
+    it("書かなければ札が付かない (#2782)", () => {
+      // 並びから推し量らない = 書いた箱にだけ札が付く
+      expect(小見出し(素)).toBe("a=(無) b=(無) c=(無)");
     });
 
     it("中央に書いた initial が効く", () => {
@@ -396,7 +396,7 @@ ${動きあり ? 段 : ""}`);
         小見出し(
           "  - A: { kind: card }\n  - B: { kind: card, initial: true }\n  - C: { kind: card }\n",
         ),
-      ).toBe("a=状態 b=初期 c=最終");
+      ).toBe("a=(無) b=初期 c=(無)");
     });
 
     it("中央に書いた final が効く", () => {
@@ -404,7 +404,7 @@ ${動きあり ? 段 : ""}`);
         小見出し(
           "  - A: { kind: card }\n  - B: { kind: card, final: true }\n  - C: { kind: card }\n",
         ),
-      ).toBe("a=初期 b=最終 c=状態");
+      ).toBe("a=(無) b=最終 c=(無)");
     });
 
     it("段のある図でも書いた値が効く", () => {

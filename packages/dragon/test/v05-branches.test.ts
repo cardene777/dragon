@@ -85,7 +85,7 @@ describe("v05 — viewport / lanes / groups", () => {
 
 describe("v05 — flow inline option", () => {
   it("sub / guard / cardinality / labelOffsetY を parse", () => {
-    const r = parse(`title: "T"\ntype: er\nactors:\n  - User\n  - Order\nflow:\n  - User -> Order: "places" { sub: "1:N", cardinality: "1:N", guard: "isActive", labelOffsetY: -8 }`);
+    const r = parse(`title: "T"\ntype: record\nactors:\n  - User\n  - Order\nflow:\n  - User -> Order: "places" { sub: "1:N", cardinality: "1:N", guard: "isActive", labelOffsetY: -8 }`);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.doc.flow[0]).toMatchObject({ sub: "1:N", cardinality: "1:N", guard: "isActive", labelOffsetY: -8 });

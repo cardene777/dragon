@@ -98,7 +98,7 @@ flow:
     expect(部品の知らせ(知らせ)).toEqual([]);
   });
 
-  it.each(["flow", "swimlane", "topology", "state", "c4"])(
+  it.each(["flow", "swimlane", "topology", "record", "c4"])(
     "%s でも、要素 1 つの部品は両向きとも繋がる",
     (型) => {
       const { 端, 知らせ } = 組み立てる(
