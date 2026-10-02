@@ -85,6 +85,78 @@ const 経路 = {
     ),
 };
 
+/** 1 行だけの図を組み立て、その行の印を返す */
+function 行1つの印(語: string): RowMark | null {
+  const 図 = textDslToDiagram(
+    [
+      'title: "確かめ"',
+      "type: record",
+      "",
+      "actors:",
+      `  - t: { kind: storage, rows: ["id: bigint"], marks: ["${語}"] }`,
+      "",
+      "flow: []",
+      "",
+    ].join("\n"),
+  );
+  const n = 図.nodes[0] as { rowMarks?: ReadonlyArray<RowMark | null> };
+  return n.rowMarks?.[0] ?? null;
+}
+
+describe("dragon の 3 語が印の 3 軸に 1 対 1 で当たる (#2782)", () => {
+  // 語を書かない行が基準。 3 軸がどれも動いていない形
+  it("語を書かない行は四角の塗りで下線を持たない", () => {
+    expect(行1つの印("")).toEqual({ shape: "square", filled: true });
+  });
+
+  it("`鍵` は名前に下線を引く", () => {
+    expect(行1つの印("鍵")).toEqual({ shape: "square", filled: true, underline: true });
+  });
+
+  it("`外` は行頭を山形にする", () => {
+    expect(行1つの印("外")).toEqual({ shape: "chevron", filled: true });
+  });
+
+  it("`条件` は行頭を中空にする", () => {
+    expect(行1つの印("条件")).toEqual({ shape: "square", filled: false });
+  });
+
+  it("3 語は同時に書ける (軸が互いを潰さない)", () => {
+    expect(行1つの印("鍵 外 条件")).toEqual({
+      shape: "chevron",
+      filled: false,
+      underline: true,
+    });
+  });
+});
+
+describe("古い語が dragon の語と同じ印になる (#2782)", () => {
+  // 古い語 1 つずつを、読み替え先の語と突き合わせる。 表は実装 (`compile/row-marks.ts` の
+  // `行頭の語の別名`) と同じ内容を手で書く = 同じ表を読むと読み替えが恒等写像でも通る
+  const 対応: ReadonlyArray<readonly [string, string]> = [
+    ["pk", "鍵"],
+    ["fk", "外"],
+    ["opt", "条件"],
+    ["entry", "外"],
+    ["exit", "外 条件"],
+    ["do", ""],
+    ["internal", "条件"],
+  ];
+
+  for (const [旧, 新] of 対応) {
+    it(`\`${旧}\` は \`${新 === "" ? "語なし" : 新}\` と同じ印になる`, () => {
+      expect(行1つの印(旧)).toEqual(行1つの印(新));
+    });
+  }
+
+  it("読み替え先が 1 通りに潰れていない (7 語から印が 5 通り出る)", () => {
+    // 7 語すべてが同じ印になるなら、上の 7 件は「どれも同じ」 で素通りする。
+    // 5 通りの内訳は 格子の 4 隅 + `鍵` の下線
+    const 出来上がり = new Set(対応.map(([旧]) => JSON.stringify(行1つの印(旧))));
+    expect(出来上がり.size, [...出来上がり].join(" / ")).toBe(5);
+  });
+});
+
 describe("行頭の印の古い語を 3 経路とも読み替える (#2782)", () => {
   const 古い語 = 語の対.map(([旧]) => 旧);
   const 新しい語 = 語の対.map(([, 新]) => 新);
