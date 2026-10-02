@@ -2898,15 +2898,47 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
-        "duration": 3000,
-        "id": "設備の稼働__p",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
+        "duration": 1600,
+        "id": "設備の稼働__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
+            "stateId": "p__lvl",
+            "to": 1,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "設備の稼働__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "設備の稼働__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
             "stateId": "p__lvl",
             "to": 1,
           },
@@ -3115,12 +3147,12 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
         "duration": 4500,
-        "id": "成形機__p",
+        "id": "成形機__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
@@ -3151,6 +3183,58 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
             "from": 30,
             "stateId": "p_5__dn",
             "to": 90,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "成形機__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+          {
+            "from": 1,
+            "stateId": "p_2__lvl",
+            "to": 0.55,
+          },
+          {
+            "from": 1,
+            "stateId": "p_3__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "成形機__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
+            "stateId": "p__lvl",
+            "to": 1,
+          },
+          {
+            "from": 0.55,
+            "stateId": "p_2__lvl",
+            "to": 1,
+          },
+          {
+            "from": 0.55,
+            "stateId": "p_3__lvl",
+            "to": 1,
           },
         ],
       },
@@ -3240,15 +3324,47 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
-        "duration": 3000,
-        "id": "設備の稼働__p",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
+        "duration": 1600,
+        "id": "設備の稼働__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
+            "stateId": "p__lvl",
+            "to": 1,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "設備の稼働__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "設備の稼働__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
             "stateId": "p__lvl",
             "to": 1,
           },
@@ -3362,7 +3478,7 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
         ],
         "badge": "flow",
         "body": "すべての段を上から順に通った流れ。",
-        "duration": 3000,
+        "duration": 2400,
         "id": "flow",
         "sets": [],
         "title": "注文を受けてから出荷するまでの間に設備の稼働を置く",
@@ -3586,12 +3702,12 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
         "duration": 4500,
-        "id": "成形機__p",
+        "id": "成形機__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
@@ -3602,6 +3718,38 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
             "from": 12,
             "stateId": "p_2__temp",
             "to": 32,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "成形機__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "成形機__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
+            "stateId": "p__lvl",
+            "to": 1,
           },
         ],
       },
@@ -3742,15 +3890,47 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
-        "duration": 3000,
-        "id": "設備の稼働__p",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
+        "duration": 1600,
+        "id": "設備の稼働__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
+            "stateId": "p__lvl",
+            "to": 1,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "設備の稼働__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "設備の稼働__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
             "stateId": "p__lvl",
             "to": 1,
           },
@@ -3967,12 +4147,12 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
-        "duration": 3000,
-        "id": "成形機__p",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
+        "duration": 1600,
+        "id": "成形機__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
@@ -3981,6 +4161,48 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
           },
           {
             "from": 0,
+            "stateId": "p_2__lvl",
+            "to": 1,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "成形機__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+          {
+            "from": 1,
+            "stateId": "p_2__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "成形機__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
+            "stateId": "p__lvl",
+            "to": 1,
+          },
+          {
+            "from": 0.55,
             "stateId": "p_2__lvl",
             "to": 1,
           },
@@ -4067,15 +4289,47 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
-        "duration": 3000,
-        "id": "設備の稼働__p",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
+        "duration": 1600,
+        "id": "設備の稼働__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
+            "stateId": "p__lvl",
+            "to": 1,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "設備の稼働__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "設備の稼働__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
             "stateId": "p__lvl",
             "to": 1,
           },
@@ -4344,15 +4598,47 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
-        "duration": 3000,
-        "id": "設備の稼働__p",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
+        "duration": 1600,
+        "id": "設備の稼働__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
+            "stateId": "p__lvl",
+            "to": 1,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "設備の稼働__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "設備の稼働__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
             "stateId": "p__lvl",
             "to": 1,
           },
@@ -4503,12 +4789,12 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
-        "duration": 3000,
-        "id": "成形機__p",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
+        "duration": 1600,
+        "id": "成形機__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
@@ -4517,6 +4803,48 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
           },
           {
             "from": 0,
+            "stateId": "p_2__lvl",
+            "to": 1,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "成形機__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+          {
+            "from": 1,
+            "stateId": "p_2__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "成形機__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
+            "stateId": "p__lvl",
+            "to": 1,
+          },
+          {
+            "from": 0.55,
             "stateId": "p_2__lvl",
             "to": 1,
           },
@@ -4803,12 +5131,12 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
     "phases": [
       {
         "activate": [],
-        "badge": undefined,
-        "body": "",
+        "badge": "稼働中",
+        "body": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
         "duration": 4500,
-        "id": "成形機__p",
+        "id": "成形機__i1",
         "sets": [],
-        "title": "状態が立ち上がる",
+        "title": "立ち上がる",
         "tweens": [
           {
             "from": 0,
@@ -4819,6 +5147,38 @@ exports[`部品を置いた図の組み立ての結果を丸ごと固定する (
             "from": 12,
             "stateId": "p_2__temp",
             "to": 32,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "低下",
+        "body": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+        "duration": 1400,
+        "id": "成形機__i2",
+        "sets": [],
+        "title": "負荷で下がる",
+        "tweens": [
+          {
+            "from": 1,
+            "stateId": "p__lvl",
+            "to": 0.55,
+          },
+        ],
+      },
+      {
+        "activate": [],
+        "badge": "稼働中",
+        "body": "元の高さまで満ち直し、1 周が閉じる。",
+        "duration": 1600,
+        "id": "成形機__i3",
+        "sets": [],
+        "title": "戻る",
+        "tweens": [
+          {
+            "from": 0.55,
+            "stateId": "p__lvl",
+            "to": 1,
           },
         ],
       },

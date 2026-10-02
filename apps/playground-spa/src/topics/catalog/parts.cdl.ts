@@ -131,8 +131,20 @@ export const partsStateIndicator = diagram("parts-state-indicator", {
     h: 380,
     shape: { kind: "circle", radius: 140, fillProgress: "{lvl}", fill: "{stFill}" },
   })
-  .phase("p", { duration: 3000, title: "状態が立ち上がる", body: "" }, (p: PhaseBuilder) =>
-    p.activate("ind").tween("lvl", 0, 1),
+  .phase(
+    "i1",
+    { duration: 1600, title: "立ち上がる", body: "満ちる量が 0 から 1 へ上がり、稼働に入る。" },
+    (p: PhaseBuilder) => p.activate("ind").tween("lvl", 0, 1).badge("稼働中"),
+  )
+  .phase(
+    "i2",
+    { duration: 1400, title: "負荷で下がる", body: "0.55 まで落ちる。 色は緑のまま = 止まってはいない。" },
+    (p: PhaseBuilder) => p.tween("lvl", 1, 0.55).badge("低下"),
+  )
+  .phase(
+    "i3",
+    { duration: 1600, title: "戻る", body: "元の高さまで満ち直し、1 周が閉じる。" },
+    (p: PhaseBuilder) => p.tween("lvl", 0.55, 1).badge("稼働中"),
   )
   .build();
 
@@ -262,8 +274,25 @@ export const partsTrafficLightStack = diagram("parts-traffic-light-stack", {
     h: 160,
     shape: { kind: "circle", radius: 60, fillProgress: "{gOn}", fill: "{gFill}" },
   })
-  .phase("p", { duration: 3000, title: "緑が点く", body: "" }, (p: PhaseBuilder) =>
-    p.activate("rC", "yC", "gC").tween("gOn", 0, 1),
+  .phase(
+    "p1",
+    { duration: 2200, title: "緑が点く", body: "下の灯が満ちて進めるようになる。" },
+    (p: PhaseBuilder) => p.activate("rC", "yC", "gC").tween("gOn", 0, 1).badge("進める"),
+  )
+  .phase(
+    "p2",
+    { duration: 1400, title: "黄に変わる", body: "緑が落ちて真ん中の灯に移る。 止まる用意をする短い間。" },
+    (p: PhaseBuilder) => p.set("gFill", "#e5e7eb").set("yFill", "#f59e0b").badge("間もなく止まる"),
+  )
+  .phase(
+    "p3",
+    { duration: 2400, title: "赤で止まる", body: "黄が落ちて上の灯が点く。 3 灯のうち最も長く続く。" },
+    (p: PhaseBuilder) => p.set("yFill", "#e5e7eb").set("rFill", "#dc2626").badge("止まる"),
+  )
+  .phase(
+    "p4",
+    { duration: 1600, title: "緑へ戻る", body: "赤が落ちて最初の灯へ戻り、1 周が閉じる。" },
+    (p: PhaseBuilder) => p.set("rFill", "#e5e7eb").set("gFill", "#22c55e").badge("進める"),
   )
   .build();
 
@@ -763,12 +792,25 @@ export const partsRatingStars = diagram("parts-rating-stars", {
     h: 100,
     shape: { kind: "circle", radius: 40, fill: "{s5}" },
   })
-  .phase("p", { duration: 3000, title: "3 つ点く", body: "" }, (p: PhaseBuilder) =>
-    p
-      .activate("st1", "st2", "st3", "st4", "st5")
-      .tween("f1", 0, 1)
-      .tween("f2", 0, 1)
-      .tween("f3", 0, 1),
+  .phase(
+    "r1",
+    { duration: 1100, title: "1 つ目が点く", body: "左端が満ちる。 残る 4 つはまだ薄い。" },
+    (p: PhaseBuilder) => p.activate("st1", "st2", "st3", "st4", "st5").tween("f1", 0, 1).badge("1 / 5"),
+  )
+  .phase(
+    "r2",
+    { duration: 1100, title: "2 つ目が点く", body: "満ちた星は満ちたまま残り、次が追いかける。" },
+    (p: PhaseBuilder) => p.tween("f2", 0, 1).badge("2 / 5"),
+  )
+  .phase(
+    "r3",
+    { duration: 1100, title: "3 つ目が点く", body: "ここまでが満ちる量での表現で、残り 2 つは色だけで切り替える。" },
+    (p: PhaseBuilder) => p.tween("f3", 0, 1).badge("3 / 5"),
+  )
+  .phase(
+    "r4",
+    { duration: 1200, title: "4 つ目が点く", body: "4 つ目の色を濃い側へ切り替える。 5 つ目は薄いまま = 5 段階中 4。" },
+    (p: PhaseBuilder) => p.set("s4", "#f59e0b").badge("4 / 5"),
   )
   .build();
 
@@ -1212,8 +1254,20 @@ export const partsWeatherIcon = diagram("parts-weather-icon", {
     h: 340,
     shape: { kind: "circle", radius: 140, fillProgress: "{shine}", fill: "{bg}" },
   })
-  .phase("p", { duration: 3000, title: "日が差す", body: "" }, (p: PhaseBuilder) =>
-    p.activate("sun").tween("shine", 0, 1),
+  .phase(
+    "w1",
+    { duration: 1800, title: "日が差す", body: "満ちる量が 0 から 1 へ上がり、日なたになる。" },
+    (p: PhaseBuilder) => p.activate("sun").tween("shine", 0, 1).badge("日なた"),
+  )
+  .phase(
+    "w2",
+    { duration: 1500, title: "雲がかかる", body: "満ちる量が 0.45 まで下がる。 色は変えず明るさだけで曇りを出す。" },
+    (p: PhaseBuilder) => p.tween("shine", 1, 0.45).badge("日かげ"),
+  )
+  .phase(
+    "w3",
+    { duration: 1700, title: "また照る", body: "雲が抜けて元の明るさへ戻る。" },
+    (p: PhaseBuilder) => p.tween("shine", 0.45, 1).badge("日なた"),
   )
   .build();
 
@@ -1281,8 +1335,20 @@ export const partsProgressDots = diagram("parts-progress-dots", {
     h: 140,
     shape: { kind: "circle", radius: 55, fill: "{d3}" },
   })
-  .phase("p", { duration: 3000, title: "進捗が進む", body: "" }, (p: PhaseBuilder) =>
-    p.activate("dot1", "dot2", "dot3").tween("p1", 0, 1).tween("p2", 0, 1),
+  .phase(
+    "s1",
+    { duration: 1500, title: "受注が済む", body: "1 つ目の点が満ちる。 残る 2 つは薄いまま。" },
+    (p: PhaseBuilder) => p.activate("dot1", "dot2", "dot3").tween("p1", 0, 1).badge("1 / 3"),
+  )
+  .phase(
+    "s2",
+    { duration: 1500, title: "処理が済む", body: "2 つ目が満ちる。 1 つ目は満ちたまま残る。" },
+    (p: PhaseBuilder) => p.tween("p2", 0, 1).badge("2 / 3"),
+  )
+  .phase(
+    "s3",
+    { duration: 1500, title: "配送へ移る", body: "3 つ目の色が変わり、3 段階すべてが済む。" },
+    (p: PhaseBuilder) => p.set("d3", "#22c55e").badge("3 / 3"),
   )
   .build();
 
@@ -1543,8 +1609,20 @@ export const partsLocationPin = diagram("parts-location-pin", {
     h: 340,
     shape: { kind: "circle", radius: 130, fillProgress: "{drop}", fill: "{bg}" },
   })
-  .phase("p", { duration: 3000, title: "位置が定まる", body: "" }, (p: PhaseBuilder) =>
-    p.activate("pin").tween("drop", 0, 1),
+  .phase(
+    "m1",
+    { duration: 1200, title: "印が落ちる", body: "満ちる量が一気に 1 まで上がり、印が置かれる。" },
+    (p: PhaseBuilder) => p.activate("pin").tween("drop", 0, 1).badge("落ちる"),
+  )
+  .phase(
+    "m2",
+    { duration: 700, title: "弾む", body: "0.72 まで戻る短い段。 置いた直後の跳ね返りを出す。" },
+    (p: PhaseBuilder) => p.tween("drop", 1, 0.72),
+  )
+  .phase(
+    "m3",
+    { duration: 900, title: "定まる", body: "もう一度 1 まで満ちて、現在地が確定する。" },
+    (p: PhaseBuilder) => p.tween("drop", 0.72, 1).badge("東京駅"),
   )
   .build();
 
@@ -1725,8 +1803,20 @@ export const partsAchievement = diagram("parts-achievement", {
     h: 380,
     shape: { kind: "circle", radius: 150, fillProgress: "{unlock}", fill: "{bg}" },
   })
-  .phase("p", { duration: 3000, title: "実績が解放される", body: "" }, (p: PhaseBuilder) =>
-    p.activate("trophy").tween("unlock", 0, 1),
+  .phase(
+    "a1",
+    { duration: 1800, title: "条件が満ちる", body: "満ちる量が 0 から 1 へ上がり、実績に手が届く。" },
+    (p: PhaseBuilder) => p.activate("trophy").tween("unlock", 0, 1).badge("達成"),
+  )
+  .phase(
+    "a2",
+    { duration: 700, title: "光る", body: "色だけを明るい側へ切り替える短い段。 満ちる量は 1 のまま。" },
+    (p: PhaseBuilder) => p.set("bg", "#fbbf24"),
+  )
+  .phase(
+    "a3",
+    { duration: 1000, title: "収まる", body: "元の色へ戻り、解放された状態で落ち着く。" },
+    (p: PhaseBuilder) => p.set("bg", "#f59e0b").badge("初回達成"),
   )
   .build();
 
@@ -1774,8 +1864,20 @@ export const partsPlayButton = diagram("parts-play-button", {
     h: 340,
     shape: { kind: "circle", radius: 140, fillProgress: "{press}", fill: "{bg}" },
   })
-  .phase("p", { duration: 3000, title: "再生が始まる", body: "" }, (p: PhaseBuilder) =>
-    p.activate("play").tween("press", 0, 1),
+  .phase(
+    "b1",
+    { duration: 1000, title: "押し込む", body: "満ちる量が 0 から 1 へ上がり、指が触れたことを出す。" },
+    (p: PhaseBuilder) => p.activate("play").tween("press", 0, 1).badge("押す"),
+  )
+  .phase(
+    "b2",
+    { duration: 900, title: "指を離す", body: "0.55 まで戻る。 押し込みが解ける間。" },
+    (p: PhaseBuilder) => p.tween("press", 1, 0.55),
+  )
+  .phase(
+    "b3",
+    { duration: 1600, title: "走り出す", body: "満ち直すと同時に色を濃い緑へ変え、再生に入ったことを出す。" },
+    (p: PhaseBuilder) => p.tween("press", 0.55, 1).set("bg", "#16a34a").badge("再生中"),
   )
   .build();
 
@@ -4965,10 +5067,22 @@ actors:
   - 現在の状態: { kind: dyn-circle, lane: l, stack: 0, subtitle: "稼働中", posW: 360, posH: 380, shape: { kind: circle, radius: 140, fillProgress: "{lvl}", fill: "{stFill}" } }
 
 animation:
-  - step: "状態が立ち上がる" 3s
+  - step: "立ち上がる" 1.6s
     focus: ["現在の状態"]
     tween:
       lvl: 0 -> 1
+    badge: "稼働中"
+    description: "満ちる量が 0 から 1 へ上がり、稼働に入る。"
+  - step: "負荷で下がる" 1.4s
+    tween:
+      lvl: 1 -> 0.55
+    badge: "低下"
+    description: "0.55 まで落ちる。 色は緑のまま = 止まってはいない。"
+  - step: "戻る" 1.6s
+    tween:
+      lvl: 0.55 -> 1
+    badge: "稼働中"
+    description: "元の高さまで満ち直し、1 周が閉じる。"
 `;
 
 export const sourceJson__partsStateIndicator = `{
@@ -4993,10 +5107,26 @@ export const sourceJson__partsStateIndicator = `{
   "states": { "stFill": "#22c55e", "lvl": 0 },
   "animation": [
     {
-      "step": "状態が立ち上がる",
-      "duration": 3,
+      "step": "立ち上がる",
+      "duration": 1.6,
       "focus": ["現在の状態"],
-      "tween": { "lvl": [0, 1] }
+      "description": "満ちる量が 0 から 1 へ上がり、稼働に入る。",
+      "tween": { "lvl": [0, 1] },
+      "badge": "稼働中"
+    },
+    {
+      "step": "負荷で下がる",
+      "duration": 1.4,
+      "description": "0.55 まで落ちる。 色は緑のまま = 止まってはいない。",
+      "tween": { "lvl": [1, 0.55] },
+      "badge": "低下"
+    },
+    {
+      "step": "戻る",
+      "duration": 1.6,
+      "description": "元の高さまで満ち直し、1 周が閉じる。",
+      "tween": { "lvl": [0.55, 1] },
+      "badge": "稼働中"
     }
   ]
 }`;
@@ -5179,10 +5309,30 @@ actors:
   - 緑: { kind: dyn-circle, lane: l, stack: 2, subtitle: "", posW: 160, posH: 160, shape: { kind: circle, radius: 60, fillProgress: "{gOn}", fill: "{gFill}" } }
 
 animation:
-  - step: "緑が点く" 3s
+  - step: "緑が点く" 2.2s
     focus: ["赤", "黄", "緑"]
     tween:
       gOn: 0 -> 1
+    badge: "進める"
+    description: "下の灯が満ちて進めるようになる。"
+  - step: "黄に変わる" 1.4s
+    set:
+      gFill: "#e5e7eb"
+      yFill: "#f59e0b"
+    badge: "間もなく止まる"
+    description: "緑が落ちて真ん中の灯に移る。 止まる用意をする短い間。"
+  - step: "赤で止まる" 2.4s
+    set:
+      yFill: "#e5e7eb"
+      rFill: "#dc2626"
+    badge: "止まる"
+    description: "黄が落ちて上の灯が点く。 3 灯のうち最も長く続く。"
+  - step: "緑へ戻る" 1.6s
+    set:
+      rFill: "#e5e7eb"
+      gFill: "#22c55e"
+    badge: "進める"
+    description: "赤が落ちて最初の灯へ戻り、1 周が閉じる。"
 `;
 
 export const sourceJson__partsTrafficLightStack = `{
@@ -5228,9 +5378,32 @@ export const sourceJson__partsTrafficLightStack = `{
   "animation": [
     {
       "step": "緑が点く",
-      "duration": 3,
+      "duration": 2.2,
       "focus": ["赤", "黄", "緑"],
-      "tween": { "gOn": [0, 1] }
+      "description": "下の灯が満ちて進めるようになる。",
+      "tween": { "gOn": [0, 1] },
+      "badge": "進める"
+    },
+    {
+      "step": "黄に変わる",
+      "duration": 1.4,
+      "description": "緑が落ちて真ん中の灯に移る。 止まる用意をする短い間。",
+      "set": { "gFill": "#e5e7eb", "yFill": "#f59e0b" },
+      "badge": "間もなく止まる"
+    },
+    {
+      "step": "赤で止まる",
+      "duration": 2.4,
+      "description": "黄が落ちて上の灯が点く。 3 灯のうち最も長く続く。",
+      "set": { "yFill": "#e5e7eb", "rFill": "#dc2626" },
+      "badge": "止まる"
+    },
+    {
+      "step": "緑へ戻る",
+      "duration": 1.6,
+      "description": "赤が落ちて最初の灯へ戻り、1 周が閉じる。",
+      "set": { "rFill": "#e5e7eb", "gFill": "#22c55e" },
+      "badge": "進める"
     }
   ]
 }`;
@@ -6292,12 +6465,27 @@ actors:
   - ★5: { kind: dyn-circle, lane: l, stack: 4, subtitle: "", posW: 100, posH: 100, shape: { kind: circle, radius: 40, fill: "{s5}" }, title: "★" }
 
 animation:
-  - step: "3 つ点く" 3s
+  - step: "1 つ目が点く" 1.1s
     focus: ["★", "★2", "★3", "★4", "★5"]
     tween:
       f1: 0 -> 1
+    badge: "1 / 5"
+    description: "左端が満ちる。 残る 4 つはまだ薄い。"
+  - step: "2 つ目が点く" 1.1s
+    tween:
       f2: 0 -> 1
+    badge: "2 / 5"
+    description: "満ちた星は満ちたまま残り、次が追いかける。"
+  - step: "3 つ目が点く" 1.1s
+    tween:
       f3: 0 -> 1
+    badge: "3 / 5"
+    description: "ここまでが満ちる量での表現で、残り 2 つは色だけで切り替える。"
+  - step: "4 つ目が点く" 1.2s
+    set:
+      s4: "#f59e0b"
+    badge: "4 / 5"
+    description: "4 つ目の色を濃い側へ切り替える。 5 つ目は薄いまま = 5 段階中 4。"
 `;
 
 export const sourceJson__partsRatingStars = `{
@@ -6375,10 +6563,33 @@ export const sourceJson__partsRatingStars = `{
   },
   "animation": [
     {
-      "step": "3 つ点く",
-      "duration": 3,
+      "step": "1 つ目が点く",
+      "duration": 1.1,
       "focus": ["★", "★2", "★3", "★4", "★5"],
-      "tween": { "f1": [0, 1], "f2": [0, 1], "f3": [0, 1] }
+      "description": "左端が満ちる。 残る 4 つはまだ薄い。",
+      "tween": { "f1": [0, 1] },
+      "badge": "1 / 5"
+    },
+    {
+      "step": "2 つ目が点く",
+      "duration": 1.1,
+      "description": "満ちた星は満ちたまま残り、次が追いかける。",
+      "tween": { "f2": [0, 1] },
+      "badge": "2 / 5"
+    },
+    {
+      "step": "3 つ目が点く",
+      "duration": 1.1,
+      "description": "ここまでが満ちる量での表現で、残り 2 つは色だけで切り替える。",
+      "tween": { "f3": [0, 1] },
+      "badge": "3 / 5"
+    },
+    {
+      "step": "4 つ目が点く",
+      "duration": 1.2,
+      "description": "4 つ目の色を濃い側へ切り替える。 5 つ目は薄いまま = 5 段階中 4。",
+      "set": { "s4": "#f59e0b" },
+      "badge": "4 / 5"
     }
   ]
 }`;
@@ -7216,10 +7427,22 @@ actors:
   - 晴れ: { kind: dyn-circle, lane: l, stack: 0, subtitle: "☀ 24°C", posW: 340, posH: 340, shape: { kind: circle, radius: 140, fillProgress: "{shine}", fill: "{bg}" } }
 
 animation:
-  - step: "日が差す" 3s
+  - step: "日が差す" 1.8s
     focus: ["晴れ"]
     tween:
       shine: 0 -> 1
+    badge: "日なた"
+    description: "満ちる量が 0 から 1 へ上がり、日なたになる。"
+  - step: "雲がかかる" 1.5s
+    tween:
+      shine: 1 -> 0.45
+    badge: "日かげ"
+    description: "満ちる量が 0.45 まで下がる。 色は変えず明るさだけで曇りを出す。"
+  - step: "また照る" 1.7s
+    tween:
+      shine: 0.45 -> 1
+    badge: "日なた"
+    description: "雲が抜けて元の明るさへ戻る。"
 `;
 
 export const sourceJson__partsWeatherIcon = `{
@@ -7245,9 +7468,25 @@ export const sourceJson__partsWeatherIcon = `{
   "animation": [
     {
       "step": "日が差す",
-      "duration": 3,
+      "duration": 1.8,
       "focus": ["晴れ"],
-      "tween": { "shine": [0, 1] }
+      "description": "満ちる量が 0 から 1 へ上がり、日なたになる。",
+      "tween": { "shine": [0, 1] },
+      "badge": "日なた"
+    },
+    {
+      "step": "雲がかかる",
+      "duration": 1.5,
+      "description": "満ちる量が 0.45 まで下がる。 色は変えず明るさだけで曇りを出す。",
+      "tween": { "shine": [1, 0.45] },
+      "badge": "日かげ"
+    },
+    {
+      "step": "また照る",
+      "duration": 1.7,
+      "description": "雲が抜けて元の明るさへ戻る。",
+      "tween": { "shine": [0.45, 1] },
+      "badge": "日なた"
     }
   ]
 }`;
@@ -7355,11 +7594,22 @@ actors:
   - 3: { kind: dyn-circle, lane: lc, stack: 0, subtitle: "配送", posW: 140, posH: 140, shape: { kind: circle, radius: 55, fill: "{d3}" } }
 
 animation:
-  - step: "進捗が進む" 3s
+  - step: "受注が済む" 1.5s
     focus: ["1", "2", "3"]
     tween:
       p1: 0 -> 1
+    badge: "1 / 3"
+    description: "1 つ目の点が満ちる。 残る 2 つは薄いまま。"
+  - step: "処理が済む" 1.5s
+    tween:
       p2: 0 -> 1
+    badge: "2 / 3"
+    description: "2 つ目が満ちる。 1 つ目は満ちたまま残る。"
+  - step: "配送へ移る" 1.5s
+    set:
+      d3: "#22c55e"
+    badge: "3 / 3"
+    description: "3 つ目の色が変わり、3 段階すべてが済む。"
 `;
 
 export const sourceJson__partsProgressDots = `{
@@ -7406,10 +7656,26 @@ export const sourceJson__partsProgressDots = `{
   "states": { "d1": "#22c55e", "d2": "#22c55e", "d3": "#f5e6b8", "p1": 0, "p2": 0 },
   "animation": [
     {
-      "step": "進捗が進む",
-      "duration": 3,
+      "step": "受注が済む",
+      "duration": 1.5,
       "focus": ["1", "2", "3"],
-      "tween": { "p1": [0, 1], "p2": [0, 1] }
+      "description": "1 つ目の点が満ちる。 残る 2 つは薄いまま。",
+      "tween": { "p1": [0, 1] },
+      "badge": "1 / 3"
+    },
+    {
+      "step": "処理が済む",
+      "duration": 1.5,
+      "description": "2 つ目が満ちる。 1 つ目は満ちたまま残る。",
+      "tween": { "p2": [0, 1] },
+      "badge": "2 / 3"
+    },
+    {
+      "step": "配送へ移る",
+      "duration": 1.5,
+      "description": "3 つ目の色が変わり、3 段階すべてが済む。",
+      "set": { "d3": "#22c55e" },
+      "badge": "3 / 3"
     }
   ]
 }`;
@@ -7910,10 +8176,21 @@ actors:
   - 現在地: { kind: dyn-circle, lane: l, stack: 0, subtitle: "東京駅", posW: 340, posH: 340, shape: { kind: circle, radius: 130, fillProgress: "{drop}", fill: "{bg}" } }
 
 animation:
-  - step: "位置が定まる" 3s
+  - step: "印が落ちる" 1.2s
     focus: ["現在地"]
     tween:
       drop: 0 -> 1
+    badge: "落ちる"
+    description: "満ちる量が一気に 1 まで上がり、印が置かれる。"
+  - step: "弾む" 0.7s
+    tween:
+      drop: 1 -> 0.72
+    description: "0.72 まで戻る短い段。 置いた直後の跳ね返りを出す。"
+  - step: "定まる" 0.9s
+    tween:
+      drop: 0.72 -> 1
+    badge: "東京駅"
+    description: "もう一度 1 まで満ちて、現在地が確定する。"
 `;
 
 export const sourceJson__partsLocationPin = `{
@@ -7938,10 +8215,25 @@ export const sourceJson__partsLocationPin = `{
   "states": { "bg": "#dc2626", "drop": 0 },
   "animation": [
     {
-      "step": "位置が定まる",
-      "duration": 3,
+      "step": "印が落ちる",
+      "duration": 1.2,
       "focus": ["現在地"],
-      "tween": { "drop": [0, 1] }
+      "description": "満ちる量が一気に 1 まで上がり、印が置かれる。",
+      "tween": { "drop": [0, 1] },
+      "badge": "落ちる"
+    },
+    {
+      "step": "弾む",
+      "duration": 0.7,
+      "description": "0.72 まで戻る短い段。 置いた直後の跳ね返りを出す。",
+      "tween": { "drop": [1, 0.72] }
+    },
+    {
+      "step": "定まる",
+      "duration": 0.9,
+      "description": "もう一度 1 まで満ちて、現在地が確定する。",
+      "tween": { "drop": [0.72, 1] },
+      "badge": "東京駅"
     }
   ]
 }`;
@@ -8286,10 +8578,21 @@ actors:
   - 🏆: { kind: dyn-circle, lane: l, stack: 0, subtitle: "初回達成", posW: 380, posH: 380, shape: { kind: circle, radius: 150, fillProgress: "{unlock}", fill: "{bg}" } }
 
 animation:
-  - step: "実績が解放される" 3s
+  - step: "条件が満ちる" 1.8s
     focus: ["🏆"]
     tween:
       unlock: 0 -> 1
+    badge: "達成"
+    description: "満ちる量が 0 から 1 へ上がり、実績に手が届く。"
+  - step: "光る" 0.7s
+    set:
+      bg: "#fbbf24"
+    description: "色だけを明るい側へ切り替える短い段。 満ちる量は 1 のまま。"
+  - step: "収まる" 1s
+    set:
+      bg: "#f59e0b"
+    badge: "初回達成"
+    description: "元の色へ戻り、解放された状態で落ち着く。"
 `;
 
 export const sourceJson__partsAchievement = `{
@@ -8314,10 +8617,25 @@ export const sourceJson__partsAchievement = `{
   "states": { "bg": "#f59e0b", "unlock": 0 },
   "animation": [
     {
-      "step": "実績が解放される",
-      "duration": 3,
+      "step": "条件が満ちる",
+      "duration": 1.8,
       "focus": ["🏆"],
-      "tween": { "unlock": [0, 1] }
+      "description": "満ちる量が 0 から 1 へ上がり、実績に手が届く。",
+      "tween": { "unlock": [0, 1] },
+      "badge": "達成"
+    },
+    {
+      "step": "光る",
+      "duration": 0.7,
+      "description": "色だけを明るい側へ切り替える短い段。 満ちる量は 1 のまま。",
+      "set": { "bg": "#fbbf24" }
+    },
+    {
+      "step": "収まる",
+      "duration": 1,
+      "description": "元の色へ戻り、解放された状態で落ち着く。",
+      "set": { "bg": "#f59e0b" },
+      "badge": "初回達成"
     }
   ]
 }`;
@@ -8392,10 +8710,23 @@ actors:
   - ▶: { kind: dyn-circle, lane: l, stack: 0, subtitle: "再生", posW: 340, posH: 340, shape: { kind: circle, radius: 140, fillProgress: "{press}", fill: "{bg}" } }
 
 animation:
-  - step: "再生が始まる" 3s
+  - step: "押し込む" 1s
     focus: ["▶"]
     tween:
       press: 0 -> 1
+    badge: "押す"
+    description: "満ちる量が 0 から 1 へ上がり、指が触れたことを出す。"
+  - step: "指を離す" 0.9s
+    tween:
+      press: 1 -> 0.55
+    description: "0.55 まで戻る。 押し込みが解ける間。"
+  - step: "走り出す" 1.6s
+    tween:
+      press: 0.55 -> 1
+    set:
+      bg: "#16a34a"
+    badge: "再生中"
+    description: "満ち直すと同時に色を濃い緑へ変え、再生に入ったことを出す。"
 `;
 
 export const sourceJson__partsPlayButton = `{
@@ -8420,10 +8751,26 @@ export const sourceJson__partsPlayButton = `{
   "states": { "bg": "#22c55e", "press": 0 },
   "animation": [
     {
-      "step": "再生が始まる",
-      "duration": 3,
+      "step": "押し込む",
+      "duration": 1,
       "focus": ["▶"],
-      "tween": { "press": [0, 1] }
+      "description": "満ちる量が 0 から 1 へ上がり、指が触れたことを出す。",
+      "tween": { "press": [0, 1] },
+      "badge": "押す"
+    },
+    {
+      "step": "指を離す",
+      "duration": 0.9,
+      "description": "0.55 まで戻る。 押し込みが解ける間。",
+      "tween": { "press": [1, 0.55] }
+    },
+    {
+      "step": "走り出す",
+      "duration": 1.6,
+      "description": "満ち直すと同時に色を濃い緑へ変え、再生に入ったことを出す。",
+      "tween": { "press": [0.55, 1] },
+      "set": { "bg": "#16a34a" },
+      "badge": "再生中"
     }
   ]
 }`;
