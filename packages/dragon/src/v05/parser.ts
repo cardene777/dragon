@@ -72,15 +72,16 @@ import {
   resolveOrder,
   SHAPES,
   resolveShape,
-  PALETTES,
-  resolvePalette,
+  THEMES,
+  THEME_ALIAS,
+  resolveTheme,
 } from "../keywords";
 import { 区画 } from "../compile/word-state";
 // 行頭の印の古い語の読み替え (#2782)。 印を作る側と同じ file が表を持つ = 縦に並べた形と
 // 中括弧の形と JSON の 3 経路が同じ表を通る
 import { 行頭の語へ読み替える } from "../compile/row-marks";
 import { PHASE_BODY_KEYS } from "../keywords";
-import type { DslPalette } from "../keywords";
+import type { DslTheme } from "../keywords";
 import type { DslDirection } from "../keywords";
 import type { DslOrder } from "../keywords";
 import type { DslShape } from "../keywords";
@@ -223,18 +224,26 @@ export const TOP_LEVEL_KEYS = [
    */
   "shape",
   /*
-   * 図の配色 (#1553)。
+   * 図の意匠 (#1553 / #2790)。
    *
    * cdl は色を持たないので、名前だけを図に載せる。 消費側 (`cdl-theme.css`) が名前を見て
    * 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線) に色を当てる。
    *
-   * ER 図とクラス図は書かなくても `kinari` (生成りに茶) になる。 どちらも箱の作りが同じ
-   * (行頭の印 + 左に名前 + 右に型) で、名前と型が離れて並ぶため、行を横に追う目印
-   * (行の縞) が要る。 縞の色は配色からしか来ないので、既定が無いと縞が箱の面と同じ色に
-   * 落ちて 1 本も出ない。 書き手が `palette:` を書いた時はそちらが勝つ。
+   * クラス図は書かなくても `kinari` (生成りに茶) になる。 意匠は dragon で読み、cdl へは
+   * `palette` として渡す。 境目の名前を揃えようとすると、使う側の語と cdl の印が混ざる。
    */
-  "palette",
+  "theme",
 ] as const;
+
+/**
+ * 最上位の語の別名 (#2790)。
+ *
+ * 一覧は正の語だけを持つ。 README と変更履歴の検査が一覧を読むため、別名を混ぜると
+ * 公開する正の語が 2 つに見える。
+ */
+export const TOP_LEVEL_KEY_ALIASES: ReadonlyMap<string, (typeof TOP_LEVEL_KEYS)[number]> = new Map([
+  ["palette", "theme"],
+]);
 
 /**
  * `lanes:` / `groups:` の 1 行を読む形 (#1241)。
@@ -560,7 +569,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let orderLine = 0;
   let shape: DslShape | null = null;
   let shapeLine = 0;
-  let palette: DslPalette | null = null;
+  let theme: DslTheme | null = null;
+  let themeLine = 0;
+  let palette: DslTheme | null = null;
+  let paletteLine = 0;
   let axes: DslAxes | undefined = undefined;
   let axesLine = 0;
   let regions: DslRegions | undefined = undefined;
@@ -587,7 +599,13 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i += 1;
       continue;
     }
-    const head = matchTopHeader(line.trimmed);
+    const 書いた頭 = matchTopHeader(line.trimmed);
+    const head = 書いた頭
+      ? {
+          ...書いた頭,
+          key: TOP_LEVEL_KEY_ALIASES.get(書いた頭.key) ?? 書いた頭.key,
+        }
+      : null;
     if (!head || !isTopLevelKey(head.key)) {
       errors.push({
         line: line.no,
@@ -705,23 +723,30 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i += 1;
       continue;
     }
-    if (head.key === "palette") {
+    if (head.key === "theme") {
       /*
-       * 図の配色 (#1553)。
+       * 図の意匠 (#1553 / #2790)。
        *
        * 読めない語はその場で知らせる。 黙って既定に落とすと、書き手には「書いたのに効かない」
        * としか見えず、書き間違いか未対応かを分けられない。
        */
       const v = (head.value ?? "").trim();
+      const 書いた語 = 書いた頭?.key ?? head.key;
       if (v.length > 0) {
-        const 解けた = resolvePalette(v);
+        const 解けた = resolveTheme(v);
         if (解けた !== null) {
-          palette = 解けた;
+          if (書いた語 === "theme") {
+            theme = 解けた;
+            themeLine = line.no;
+          } else {
+            palette = 解けた;
+            paletteLine = line.no;
+          }
         } else {
           errors.push({
             line: line.no,
-            message: `palette が読めません (書いた値: ${v})`,
-            hint: `使える語 = ${PALETTES.join(" / ")} / 生成り / 青磁`,
+            message: `${書いた語} が読めません (書いた値: ${v}。 使える名前 = ${THEMES.join(" / ")})`,
+            hint: `使える語 = ${Object.keys(THEME_ALIAS).join(" / ")}`,
           });
         }
       }
@@ -1347,6 +1372,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   }
 
   if (errors.length > 0) return { ok: false, errors };
+  const 選んだ意匠 = theme ?? palette;
 
   return {
     ok: true,
@@ -1359,7 +1385,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(direction !== null ? { direction, directionPos: { line: directionLine } } : {}),
       ...(order !== null ? { order, orderPos: { line: orderLine } } : {}),
       ...(shape !== null ? { shape, shapePos: { line: shapeLine } } : {}),
-      ...(palette !== null ? { palette } : {}),
+      ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
+      ...(theme !== null && palette !== null
+        ? { themeAlsoPalettePos: { themeLine, paletteLine } }
+        : {}),
       ...(axes !== undefined ? { axes, axesPos: { line: axesLine } } : {}),
       ...(regions !== undefined ? { regions } : {}),
       actors,

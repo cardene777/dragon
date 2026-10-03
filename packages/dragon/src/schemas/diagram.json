@@ -2348,13 +2348,23 @@
       ],
       "description": "箱を並べ替える軸。 kind = actors の kind の順 (人 → 契約 → 保管 → 出来事) に並べ替える。 効くのは sequence だけ。 書かなければ書いた順のまま。"
     },
+    "theme": {
+      "type": "string",
+      "enum": [
+        "kinari",
+        "celadon",
+        "blueprint"
+      ],
+      "description": "図の意匠 (`kinari` = 生成りに茶、`celadon` = 青磁に墨、`blueprint` = 図面)。 名前だけが図に載り、色の値は使う側が決める。 クラス図は書かなくても `kinari` になる。"
+    },
     "palette": {
       "type": "string",
       "enum": [
         "kinari",
-        "celadon"
+        "celadon",
+        "blueprint"
       ],
-      "description": "図の配色 (`kinari` = 生成りに茶、`celadon` = 青磁に墨) で、ER 図とクラス図は書かなくても `kinari` になり、書いた `palette` が優先され、名前だけが図に載って色の値は消費側が決める。"
+      "description": "`theme` の別名。 両方書くと `theme` が勝ち、知らせが 1 件出る。"
     },
     "reveal": {
       "type": "string",

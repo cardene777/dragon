@@ -14,7 +14,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CATALOG_ITEMS, type CatalogItem } from "../src/lib/catalog-items";
 import { 描き方を選べる } from "../src/lib/redraw-mode";
-import { 配色を選べる } from "../src/lib/palette-switch";
 import { 折れ線を選べる } from "../src/lib/chart-line-options";
 import { 円の見せ方を選べる } from "../src/lib/chart-pie-options";
 import { 傾きの見せ方を選べる } from "../src/lib/chart-slope-options";
@@ -26,7 +25,8 @@ const 日本語の字 =
 /** 切替の群と、その群が出る条件 */
 const 群 = [
   { 名: "2 段目以降", 出る: 描き方を選べる },
-  { 名: "図の色味", 出る: 配色を選べる },
+  // 意匠は 15 種のどの図にも当てて見比べるため、色味の切替は全ての図に出る (#2790)。
+  { 名: "図の色味", 出る: () => true },
   { 名: "折れ線の見せ方", 出る: 折れ線を選べる },
   { 名: "円グラフの見せ方", 出る: 円の見せ方を選べる },
   { 名: "傾き図の見せ方", 出る: 傾きの見せ方を選べる },

@@ -48,9 +48,11 @@ import {
 } from "@/lib/redraw-mode";
 import {
   図の配色を変える,
-  配色を選べる,
   配色の選択肢,
   配色の札,
+  押される配色,
+  画面の色,
+  画面の色の札,
 } from "@/lib/palette-switch";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 import {
@@ -534,8 +536,8 @@ export function CategoryPage(): React.ReactElement {
 
   // 起点から描けない図では切替を出さない (押しても何も変わらない、 #1359)
   const 切替を出すか = 見本 ? 描き方の切替を出すか(見本.diagram) : false;
-  // 配色を書かない図では切替を出さない (押すと着せ替えになる、 #1569)
-  const 配色を選べるか = 見本 ? 配色を選べる(見本.diagram) : false;
+  // 未選択なら図に書かれた意匠を押す。 意匠の無い図では画面の色が押される (#2790)
+  const 押されている配色 = 見本 ? 押される配色(見本.diagram, 配色) : 画面の色;
   // 折れ線以外では 3 つの欄が効かないため、切替を出さない (#1624)
   const 折れ線を選べるか = 見本 ? 折れ線を選べる(見本.diagram) : false;
   // 円グラフ以外では見せ方の欄が効かないため、切替を出さない (#1645)
@@ -783,32 +785,40 @@ export function CategoryPage(): React.ReactElement {
                           ))}
                         </div>
                       )}
-                      {/*
-                        図の色味 (#1569)。 配色を持つ図でだけ出す = 持たない図で名前を足すと、
-                        site の色で描かれていた図が急に別の色みになり「見比べる」 ではなく
-                        「着せ替える」 道具になる。
-                      */}
-                      {配色を選べるか && (
-                        <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "図の色味" : "Diagram colours"}>
-                          {配色の選択肢.map((v) => (
-                            <button
-                              key={v}
-                              type="button"
-                              role="radio"
-                              aria-checked={配色 === v}
-                              className={`catalog-speed-btn ${配色 === v ? "is-active" : ""}`}
-                              onClick={() => 見せ方を置く({ 配色: v })}
-                              title={
-                                isJa
-                                  ? `図の色味を${配色の札(v, locale)}にする`
-                                  : `Draw the diagram in ${配色の札(v, locale).toLowerCase()}`
-                              }
-                            >
-                              {配色の札(v, locale)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {/* 15 種のどの図でも意匠を当てて見比べられるよう、色味の切替は常に出す (#2790)。 */}
+                      <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "図の色味" : "Diagram colours"}>
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={押されている配色 === 画面の色}
+                          className={`catalog-speed-btn ${押されている配色 === 画面の色 ? "is-active" : ""}`}
+                          onClick={() => 見せ方を置く({ 配色: 画面の色 })}
+                          title={
+                            isJa
+                              ? "図の色味を画面の色にする"
+                              : "Draw the diagram in site colours"
+                          }
+                        >
+                          {画面の色の札(locale)}
+                        </button>
+                        {配色の選択肢.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            role="radio"
+                            aria-checked={押されている配色 === v}
+                            className={`catalog-speed-btn ${押されている配色 === v ? "is-active" : ""}`}
+                            onClick={() => 見せ方を置く({ 配色: v })}
+                            title={
+                              isJa
+                                ? `図の色味を${配色の札(v, locale)}にする`
+                                : `Draw the diagram in ${配色の札(v, locale).toLowerCase()}`
+                            }
+                          >
+                            {配色の札(v, locale)}
+                          </button>
+                        ))}
+                      </div>
                       {/*
                         折れ線の見せ方 (#1624)。 折れ線を持つ図でだけ出す = 他の図では 3 つの
                         指定が効かず「効かない操作」 になる。 互いに排他ではなく個別に入り切り

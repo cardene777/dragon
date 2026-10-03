@@ -1,0 +1,11 @@
+/*
+ * 意匠の動きを減らす人向けの上書き (#2790)。
+ *
+ * `cdl-theme.css` を意匠帳へ閉じ込める 2 つの変換は `@media` の入れ子を扱えないため、
+ * 動きの定義とは file を分ける。 ここで止めるのは意匠が箱へ足す現れ方だけ。
+ */
+@media (prefers-reduced-motion: reduce) {
+  svg[data-cdl-stage][data-cdl-palette] [data-cdl-node] {
+    animation: none !important;
+  }
+}

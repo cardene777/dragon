@@ -34,7 +34,7 @@ import {
   DIRECTION_ALIAS,
   DRAW_WORDS,
   ORDER_ALIAS,
-  PALETTE_ALIAS,
+  THEME_ALIAS,
   PRESET_TYPES,
   SHAPES,
   TONE_ALIAS,
@@ -102,7 +102,7 @@ const 値の表: Array<{ 名: string; 値: readonly string[] }> = [
   { 名: "色", 値: Object.keys(TONE_ALIAS) },
   { 名: "向き", 値: Object.keys(DIRECTION_ALIAS) },
   { 名: "並び順", 値: Object.keys(ORDER_ALIAS) },
-  { 名: "配色", 値: Object.keys(PALETTE_ALIAS) },
+  { 名: "意匠", 値: Object.keys(THEME_ALIAS) },
 ];
 
 describe("記法の説明が実装の受け付ける値をすべて出す (#2659)", () => {

@@ -16,7 +16,7 @@
  */
 import { 既定の速さ, type 速さ } from "@/lib/playback-speed";
 import { type 描き方 } from "@/lib/redraw-mode";
-import { 既定の配色, type 配色 } from "@/lib/palette-switch";
+import { type 配色の選択 } from "@/lib/palette-switch";
 import { 既定の折れ線の指定, type 折れ線の指定 } from "@/lib/chart-line-options";
 import { 既定の円の見せ方, type 円の見せ方 } from "@/lib/chart-pie-options";
 import { 既定の傾きの見せ方, type 傾きの見せ方 } from "@/lib/chart-slope-options";
@@ -24,7 +24,7 @@ import { 既定の傾きの見せ方, type 傾きの見せ方 } from "@/lib/char
 export type 見せ方 = {
   速さ: 速さ;
   描き方: 描き方;
-  配色: 配色;
+  配色: 配色の選択;
   折れ線: 折れ線の指定;
   円: 円の見せ方;
   傾き: 傾きの見せ方;
@@ -46,7 +46,7 @@ export function 開いた時の見せ方(この図の描き方: 描き方): 見�
   return {
     速さ: 既定の速さ,
     描き方: この図の描き方,
-    配色: 既定の配色,
+    配色: null,
     折れ線: 既定の折れ線の指定,
     円: 既定の円の見せ方,
     傾き: 既定の傾きの見せ方,

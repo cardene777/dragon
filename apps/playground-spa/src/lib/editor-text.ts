@@ -155,7 +155,7 @@ const 表 = {
   起点から描ける図: { ja: "起点から描ける図", en: "What can be drawn from a start point" },
   色: { ja: "色", en: "Colours" },
   向き: { ja: "向き", en: "Directions" },
-  配色: { ja: "配色", en: "Palettes" },
+  意匠: { ja: "意匠", en: "Themes" },
 } as const satisfies Record<string, 二言語>;
 
 export type 編集画面の字の鍵 = keyof typeof 表;

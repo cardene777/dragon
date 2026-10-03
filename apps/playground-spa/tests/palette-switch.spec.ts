@@ -1,20 +1,18 @@
 /**
  * カタログの色味の切替の検証 (#1569)。
  *
- * 配色は 2 組ある (生成りに茶 / 青磁に墨) が、切替が無いと図に書いた方しか見られない。
- * 意匠を決める時は 2 つを見比べるので、見比べる手段そのものを検査で押さえる。
+ * 意匠は全ての図へ当てて見比べる。切替の札と、押した名前 / 地が舞台へ届く所までを押さえる。
  *
  * ## 押した後の markup を見る
  *
  * 押しものの状態 (`aria-checked`) だけを見ると、掛け忘れても通る。
  * 図の `data-cdl-palette` が実際に変わることを見る。
  *
- * ## 出る側と出ない側の両方を見る
- *
- * 出る側だけだと、全ての図から切替が消えた形でも通る。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { 配色の札, 配色の選択肢, 画面の色の札 } from "../src/lib/palette-switch";
 import { 一覧の行 } from "./catalog-item-pick";
+import { readThemeNotes } from "./helpers/theme-notes";
 
 /** 見本を id で名指しして開く */
 async function 開く(page: Page, slug: string, id: string): Promise<void> {
@@ -35,10 +33,18 @@ async function 配色(page: Page, id: string): Promise<string | null> {
 
 const 切替 = (page: Page) => page.locator('[role="radiogroup"][aria-label="図の色味"]');
 
-test("配色を持つ図で色味を切り替えられる (#1569)", async ({ page }) => {
+const hexToRgb = (hex: string): string => {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return `rgb(${value >> 16}, ${(value >> 8) & 255}, ${value & 255})`;
+};
+
+test("意匠の札が全て並び、配色を持つ図で切り替えられる (#1569 / #2790)", async ({ page }) => {
   await 開く(page, "presets", "er-demo");
 
   await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
+  const expected = 配色の選択肢.map((theme) => 配色の札(theme, "ja"));
+  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面"]);
+  for (const label of expected) await expect(切替(page).getByRole("radio", { name: label })).toHaveCount(1);
   expect(await 配色(page, "er-demo"), "既定が生成りに茶でない").toBe("kinari");
 
   await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
@@ -63,14 +69,21 @@ test("クラス図でも切り替えられる (#1569)", async ({ page }) => {
     .toBe("celadon");
 });
 
-test("配色を持たない図では切替が出ない (#1569)", async ({ page }) => {
-  /*
-   * 出ない側。 配色を書かない図で名前を足すと、site の色で描かれていた図が急に別の色みに
-   * なり「見比べる」 ではなく「着せ替える」 道具になる。
-   */
+test("配色を持たない図にも切替が出て、図面を当てられる (#2790)", async ({ page }) => {
   await 開く(page, "presets", "infra-demo");
   expect(await 配色(page, "infra-demo"), "この図が配色を持ってしまっている").toBeNull();
-  await expect(切替(page), "配色を持たない図に切替が出ている").toHaveCount(0);
+  await expect(切替(page), "配色を持たない図に切替が出ていない").toBeVisible();
+  await expect(切替(page).getByRole("radio", { name: 画面の色の札("ja") })).toBeChecked();
+
+  await 切替(page).getByRole("radio", { name: 配色の札("blueprint", "ja") }).click();
+  await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("blueprint");
+  const blueprint = readThemeNotes().get("blueprint");
+  if (blueprint?.mode !== "fixed") throw new Error("図面の意匠帳が固定の表ではない");
+  const ground = await page.evaluate(() => {
+    const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
+    return stage ? getComputedStyle(stage).backgroundColor : null;
+  });
+  expect(ground).toBe(hexToRgb(blueprint.value.ground));
 });
 
 test("項目を選び直すと既定へ戻る (#1569)", async ({ page }) => {

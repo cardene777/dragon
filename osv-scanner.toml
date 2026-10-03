@@ -43,3 +43,20 @@ typed-rest-client は `qs.stringify` しか呼んでいない。
 
 期限に見るもの = 上と同じ。
 """
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2026-12-07
+reason = """
+braces 3.0.3 が、深く入れ子にした波括弧の pattern で再帰を積み上げ、処理を止められる (CVSS 8.7)。
+
+版を動かせない = 影響範囲は 3.0.3 以下で直す版が無く、braces の最新も 3.0.3。
+経路は `globby@11.1.0` と `gh-pages@6.3.0` → `globby@11.1.0` →
+`fast-glob@3.3.3` → `micromatch@4.0.8` → `braces@3.0.3` の開発用依存だけ。
+
+届かない = braces が展開する pattern は配信 script (`apps/playground-spa/scripts/deploy-pages.mjs`) が
+書いた固定値で、外から入る文字列を渡す経路が無い。配る `@cardenelabs/dragon` の依存にも入らない。
+
+期限に見るもの = braces に直す版が出たか、globby / gh-pages の経路から braces が外れたか。
+どちらかが成立すれば依存を上げてこの記録を消す。
+"""

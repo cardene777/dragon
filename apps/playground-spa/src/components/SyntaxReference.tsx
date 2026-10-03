@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import {
   DIRECTION_ALIAS,
   DRAW_WORDS,
-  PALETTE_ALIAS,
+  THEME_ALIAS,
   PRESET_TYPES,
   SHAPES,
   TONE_ALIAS,
@@ -51,9 +51,8 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
   const tones = useMemo(() => 正式名ごとの別名(TONE_ALIAS), []);
   // 図の並ぶ向き (`direction:`) が受ける値。 色と同じく別名表から引く (#1850)
   const directions = useMemo(() => 正式名ごとの別名(DIRECTION_ALIAS), []);
-  // 図の配色 (`palette:`) が受ける値 (#2659)。 節の例文は 3 行で、日本語の名前 4 つのうち
-  // 3 つが説明の文にしか出ていなかった。 文の中の語は書き写す相手にならない
-  const palettes = useMemo(() => 正式名ごとの別名(PALETTE_ALIAS), []);
+  // 図の意匠 (`theme:`) が受ける値 (#2659 / #2790)。 文の中の語は書き写す相手にならない
+  const themes = useMemo(() => 正式名ごとの別名(THEME_ALIAS), []);
 
   return (
     <div className="v4-editor-side-samples-body" data-testid="editor-syntax-panel">
@@ -146,12 +145,12 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
       </div>
 
       <div className="v4-editor-syntax-section">
-        <div className="v4-editor-syntax-title">{字.配色} ({palettes.length})</div>
+        <div className="v4-editor-syntax-title">{字.意匠} ({themes.length})</div>
         <div className="v4-editor-syntax-tones" data-testid="editor-syntax-palettes">
-          {palettes.map(([palette, aliases]) => (
-            <div key={palette} className="v4-editor-syntax-row">
-              <code className="v4-editor-syntax-code" data-palette={palette}>{palette}</code>
-              {/* 別名は記法に書く値そのもの (`生成り` / `青磁`)。 人が読む添え書きと同じ見た目だが
+          {themes.map(([theme, aliases]) => (
+            <div key={theme} className="v4-editor-syntax-row">
+              <code className="v4-editor-syntax-code" data-theme={theme}>{theme}</code>
+              {/* 別名は記法に書く値そのもの (`生成り` / `青磁` / `図面`)。 人が読む添え書きと同じ見た目だが
                   訳す対象ではないので、印を付けて画面の言語を数える検査から外す (#2463) */}
               <span className="v4-editor-syntax-note" data-notation="">
                 {aliases.length > 0 ? aliases.join(" / ") : 字.別名なし}

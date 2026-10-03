@@ -264,6 +264,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportDirectionNotHonored(書いたまま, opts?.onNotice);
   reportOrderNotHonored(書いたまま, opts?.onNotice);
   reportShapeNotHonored(書いたまま, opts?.onNotice);
+  reportThemeAlsoPalette(書いたまま, opts?.onNotice);
   reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
   reportAxesNotHonored(書いたまま, opts?.onNotice);
@@ -626,7 +627,7 @@ function 行を書いた箱か(node: CdlNode): boolean {
  * 動きの有無で縞を持ったり持たなかったりしていた。 経路が 1 本になった後も出口で揃える。
  */
 function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
-  const 配色 = doc.palette ?? (既定の配色を持つ図種.has(doc.type) ? "kinari" : undefined);
+  const 配色 = doc.theme ?? (既定の配色を持つ図種.has(doc.type) ? "kinari" : undefined);
   if (配色 === undefined) return;
   diagram.palette = 配色;
   for (const node of diagram.nodes) {
@@ -2900,5 +2901,17 @@ function reportShapeNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =
     line: doc.shapePos?.line ?? doc.pos?.line ?? 0,
     message: `書いた shape は効きません (type: ${doc.type} は描く形が図種そのもので決まります)`,
     hint: "shape を書けるのは type: chart です",
+  });
+}
+
+/** `theme:` と別名の `palette:` を両方書いた時に、消す行を 1 件だけ伝える (#2790)。 */
+function reportThemeAlsoPalette(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice || doc.themeAlsoPalettePos === undefined || doc.theme === undefined) return;
+  onNotice({
+    kind: "theme-palette-both",
+    actor: doc.title,
+    line: doc.themeAlsoPalettePos.paletteLine,
+    message: `theme: と palette: を両方書きました。 palette: は theme: の別名なので theme: の値 (${doc.theme}) を使います`,
+    hint: "palette: の行を消してください",
   });
 }

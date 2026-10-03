@@ -10,7 +10,7 @@ import { describe, it, expect } from "vitest";
 import { 今の見せ方, 開いた時の見せ方, type 見せ方の持ち主 } from "./category-view-state";
 import { 既定の速さ, 速さの選択肢 } from "@/lib/playback-speed";
 import { 既定の描き方 } from "@/lib/redraw-mode";
-import { 既定の配色, 配色の選択肢 } from "@/lib/palette-switch";
+import { 配色の選択肢 } from "@/lib/palette-switch";
 import { 既定の折れ線の指定, 折れ線の見せ方の選択肢 } from "@/lib/chart-line-options";
 import { 既定の円の見せ方, 円の見せ方の選択肢 } from "@/lib/chart-pie-options";
 import { 既定の傾きの見せ方, 傾きの見せ方の選択肢 } from "@/lib/chart-slope-options";
@@ -32,12 +32,15 @@ function 選んだ後(項目: string | null): 見せ方の持ち主 {
   const 最初の折れ線 = 折れ線の見せ方の選択肢[0];
   if (最初の折れ線 === undefined)
     throw new Error("折れ線の見せ方が 1 つも無い (検査の前提が崩れた)");
+  const 最初の配色 = 配色の選択肢[0];
+  if (最初の配色 === undefined)
+    throw new Error("意匠の選択肢が 1 つも無い (検査の前提が崩れた)");
   return {
     項目,
     値: {
       速さ: 既定と違う(速さの選択肢, 既定の速さ, "速さ"),
       描き方: "redraw",
-      配色: 既定と違う(配色の選択肢, 既定の配色, "配色"),
+      配色: 最初の配色,
       折れ線: { ...既定の折れ線の指定, [最初の折れ線]: !既定の折れ線の指定[最初の折れ線] },
       円: 既定と違う(円の見せ方の選択肢, 既定の円の見せ方, "円の見せ方"),
       傾き: 既定と違う(傾きの見せ方の選択肢, 既定の傾きの見せ方, "傾きの見せ方"),
@@ -56,7 +59,7 @@ describe("見せ方の読み替え (#2022)", () => {
     const 今 = 今の見せ方(選んだ後("chart-line"), "chart-pie", 既定の描き方);
     expect(今.速さ, "速さが前の項目のまま").toBe(既定の速さ);
     expect(今.描き方, "描き方が前の項目のまま").toBe(既定の描き方);
-    expect(今.配色, "配色が前の項目のまま").toBe(既定の配色);
+    expect(今.配色, "配色が前の項目のまま").toBeNull();
     expect(今.折れ線, "折れ線が前の項目のまま").toBe(既定の折れ線の指定);
     expect(今.円, "円が前の項目のまま").toBe(既定の円の見せ方);
     expect(今.傾き, "傾きが前の項目のまま").toBe(既定の傾きの見せ方);

@@ -41,8 +41,11 @@ export {
   ORDERS,
   ORDER_ALIAS,
   SHAPES,
-  PALETTE_ALIAS,
+  THEMES,
+  THEME_ALIAS,
+  resolveTheme,
 } from "./keywords";
+export type { DslTheme } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
 // canvas pivot 新 spec 図境界計算 helper (§diagram-boundary SSOT)

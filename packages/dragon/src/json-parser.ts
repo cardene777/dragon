@@ -39,16 +39,22 @@ import {
   EVENT_REQUIRED_KEYS,
   type 図形の定義,
 } from "./v05/parser";
-// 図の配色 (#1553)。 記法の読み手と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方が
+// 図の意匠 (#1553 / #2790)。 記法の読み手と同じ解決を通す = 別名の受け方が
 // 記法と JSON でずれない
-import { resolvePalette, resolveOrder, resolveShape, PHASE_BODY_KEYS } from "./keywords";
+import {
+  PHASE_BODY_KEYS,
+  THEMES,
+  THEME_ALIAS,
+  resolveOrder,
+  resolveShape,
+  resolveTheme,
+} from "./keywords";
 // 区画の語の表 (#2667)。 記法と同じ表から直す = 同じ区画を 2 通りで呼ばない
 import { 区画 } from "./compile/word-state";
 // 行頭の印の古い語の読み替え (#2782)。 記法と同じ表を通す = JSON だけ古い語が印を持たない
 // 形にならない
 import { 行頭の語へ読み替える } from "./compile/row-marks";
 import type { DslShape } from "./keywords";
-import type { DslPalette } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
   CdlDiagram,
@@ -236,16 +242,10 @@ export interface DragonJson {
   order?: "kind";
   /** 数を描く図の形 (#2657)。 記法の最上位 `shape:` と同じ */
   shape?: DslShape;
-  /**
-   * 図の配色 (#1553)。 記法の最上位 `palette:` と同じ。
-   *
-   * 名前だけを図に載せる = cdl は色を持たず、値は `cdl-theme.css` が決める。
-   * ER 図とクラス図は書かなくても `kinari` (生成りに茶) になる。 どちらも箱の作りが同じ
-   * (行頭の印 + 左に名前 + 右に型) で、名前と型が離れて並ぶため、行を横に追う目印
-   * (行の縞) が要る。 縞の色は配色からしか来ないので、既定が無いと縞が箱の面と同じ色に
-   * 落ちて 1 本も出ない。 書き手が `palette:` を書いた時はそちらが勝つ。
-   */
-  palette?: DslPalette;
+  /** 図の意匠 (#1553 / #2790)。 記法の最上位 `theme:` と同じ。 */
+  theme?: string;
+  /** `theme` の別名。 両方書いた時は `theme` を使う。 */
+  palette?: string;
 }
 
 /**
@@ -621,7 +621,8 @@ export const ACCEPTED_KEYS = {
     "order",
     // 数を描く図の形 (#2657)
     "shape",
-    // 図の配色 (#1553)
+    // 図の意匠とその別名 (#1553 / #2790)
+    "theme",
     "palette",
   ],
   actor: [
@@ -763,6 +764,7 @@ export type 欄の型 =
   | "必須の向き"
   | "色か色番号"
   | "描くもの"
+  | "意匠"
   | "必須の図種"
   | "object"
   | "並び"
@@ -805,8 +807,9 @@ export const 欄の型表 = {
     order: "非空の文字列",
     // 数を描く図の形 (#2657)
     shape: "非空の文字列",
-    // 図の配色 (#1553)
-    palette: "非空の文字列",
+    // 図の意匠とその別名 (#1553 / #2790)
+    theme: "意匠",
+    palette: "意匠",
   },
   actor: {
     name: "必須の非空文字列",
@@ -1162,6 +1165,18 @@ function 値を検査(
           path,
           message: `${名前} must be one of: ${[...DRAW_WORDS].join(", ")}`,
           hint: typeof v === "string" ? `got "${v}"` : `got ${typeof v}`,
+        });
+      }
+      return;
+    case "意匠":
+      if (v === undefined) return;
+      if (typeof v !== "string" || resolveTheme(v) === null) {
+        errors.push({
+          path,
+          message: `${名前} must be one of: ${THEMES.join(", ")}`,
+          hint: `使える語 = ${Object.keys(THEME_ALIAS).join(" / ")} (got ${
+            typeof v === "string" ? JSON.stringify(v) : typeof v
+          })`,
         });
       }
       return;
@@ -2782,8 +2797,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       pos: 位置("actors", i),
     };
   });
-  // 図の配色 (#1553)。 解くのは 1 度だけにする
-  const 配色 = json.palette === undefined ? null : resolvePalette(json.palette);
+  // 図の意匠 (#1553 / #2790)。 正の語と別名を別々に解き、順番に依らず `theme` を優先する
+  const 意匠 = json.theme === undefined ? null : resolveTheme(json.theme);
+  const 別名の意匠 = json.palette === undefined ? null : resolveTheme(json.palette);
+  const 選んだ意匠 = 意匠 ?? 別名の意匠;
   const 並び順 = json.order === undefined ? null : resolveOrder(json.order);
   const 形 = json.shape === undefined ? null : resolveShape(json.shape);
 
@@ -2998,9 +3015,16 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(並び順 !== null ? { order: 並び順, orderPos: 位置("order") } : {}),
     // 数を描く図の形 (#2657)。 記法と同じ解決を通す = 受ける語がずれない
     ...(形 !== null ? { shape: 形, shapePos: 位置("shape") } : {}),
-    // 図の配色 (#1553)。 記法と同じ解決を通す = 別名 (`生成り` / `青磁`) の受け方がずれない。
-    // 読めない語は渡さない = 上流の型検査が語を絞っているので、ここに来るのは書き間違いだけ
-    ...(配色 !== null ? { palette: 配色 } : {}),
+    // 図の意匠 (#1553 / #2790)。 dragon の文書では `theme`、cdl の図へ載せる時は `palette` とする
+    ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
+    ...(意匠 !== null && 別名の意匠 !== null
+      ? {
+          themeAlsoPalettePos: {
+            themeLine: 位置("theme").line,
+            paletteLine: 位置("palette").line,
+          },
+        }
+      : {}),
     pos: 位置(),
   };
 }
