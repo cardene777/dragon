@@ -147,6 +147,27 @@ export function readThemeNoteText(name: DslTheme): string {
     : 読む(`../../../../docs/design/${name}/note.md`);
 }
 
+/** 固定の意匠の主役「一」を読む。行が無い意匠は線を主役として扱う。 */
+export function readFixedThemeLead(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, string> {
+  const out = new Map<DslTheme, string>();
+  for (const [name, note] of readThemeNotes(overrides)) {
+    if (note.mode !== "fixed") continue;
+    const 本文 = overrides[name] ?? readThemeNoteText(name);
+    const rows = 二列表を読む(節を取る(本文, "色以外の値", 3));
+    const 一 = rows.get("一");
+    if (一 === undefined) {
+      out.set(name, note.value.line);
+      continue;
+    }
+    const 色 = /^`(#[0-9a-fA-F]{6})`/.exec(一)?.[1];
+    if (!色) throw new Error(`意匠帳の ${name} の「一」が #rrggbb で始まらない`);
+    out.set(name, 色.toLowerCase());
+  }
+  return out;
+}
+
 /** 固定の意匠の「図表の系列色」を、2 つの役の表から値へ解く。 */
 export function readFixedThemeChartSeries(
   overrides: Partial<Record<DslTheme, string>> = {},

@@ -2353,16 +2353,18 @@
       "enum": [
         "kinari",
         "celadon",
-        "blueprint"
+        "blueprint",
+        "letterpress"
       ],
-      "description": "図の意匠 (`kinari` = 生成りに茶、`celadon` = 青磁に墨、`blueprint` = 図面)。 名前だけが図に載り、色の値は使う側が決める。 クラス図は書かなくても `kinari` になる。"
+      "description": "図の意匠 (`kinari` = 生成りに茶、`celadon` = 青磁に墨、`blueprint` = 図面、`letterpress` = 活版)。 名前だけが図に載り、色の値は使う側が決める。 クラス図は書かなくても `kinari` になる。"
     },
     "palette": {
       "type": "string",
       "enum": [
         "kinari",
         "celadon",
-        "blueprint"
+        "blueprint",
+        "letterpress"
       ],
       "description": "`theme` の別名。 両方書くと `theme` が勝ち、知らせが 1 件出る。"
     },

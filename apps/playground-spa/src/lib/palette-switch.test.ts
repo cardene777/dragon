@@ -2,12 +2,7 @@ import { describe, expect, it } from "vitest";
 import { THEMES } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
-import {
-  図の配色を変える,
-  配色の選択肢,
-  押される配色,
-  画面の色,
-} from "./palette-switch";
+import { 図の配色を変える, 配色の選択肢, 押される配色, 画面の色 } from "./palette-switch";
 
 const 図 = (palette?: string): CdlDiagram => ({
   id: "t",
@@ -47,6 +42,14 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     const 次 = 図の配色を変える(元, "blueprint");
     expect(次).not.toBe(元);
     expect(次.palette).toBe("blueprint");
+  });
+
+  it("letterpress switch: 活版を選ぶと palette を letterpress に差し替える", () => {
+    const 元 = 図("blueprint");
+    const 次 = 図の配色を変える(元, "letterpress");
+    expect(次).not.toBe(元);
+    expect(次.palette).toBe("letterpress");
+    expect(押される配色(次, null)).toBe("letterpress");
   });
 
   it("未選択の押された札は図の意匠に従い、意匠が無ければ画面の色になる", () => {

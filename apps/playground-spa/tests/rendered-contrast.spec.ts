@@ -17,7 +17,13 @@ import { PRESET_TYPES, type DslTheme } from "@cardenelabs/dragon";
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
 import { 六色の記法, 記法をURLに載せる } from "./box-and-edge-figure";
 import { 一覧の行 } from "./catalog-item-pick";
-import { THEME_PORTS, readThemeNotes, type ThemeNote, type ThemeValues } from "./helpers/theme-notes";
+import {
+  THEME_PORTS,
+  readFixedThemeLead,
+  readThemeNotes,
+  type ThemeNote,
+  type ThemeValues,
+} from "./helpers/theme-notes";
 
 /**
  * edge label の **描画結果** の対比を実ブラウザで測る (#977)。
@@ -900,6 +906,7 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
     deviceScaleFactor: FIXED_THEME_DEVICE_SCALE_FACTOR,
   });
   const samples = samplesByType();
+  const leadColors = readFixedThemeLead();
 
   test("EDITOR_SAMPLES が全ての図種を 1 件以上持つ", () => {
     expect(samples.size, `選べた図種: ${[...samples.keys()].join(" / ")}`).toBe(PRESET_TYPES.size);
@@ -908,9 +915,11 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
   for (const note of fixedThemes()) {
     for (const dark of [false, true]) {
       const mode = dark ? "暗" : "明";
-      test(`${note.name} / ${mode}: 全図種で固定色と対比が出る`, async ({ page }) => {
+      test(`${note.name} / ${mode}: 全図種で固定色と contrast が出る`, async ({ page }) => {
         const failures: string[] = [];
-        const palette = new Set(Object.values(note.value).map(colorKey));
+        const lead = leadColors.get(note.name);
+        if (!lead) throw new Error(`${note.name} の一を読めない`);
+        const palette = new Set([...Object.values(note.value), lead].map(colorKey));
         let applied = 0;
         let boxTypes = 0;
         let edgeTypes = 0;
@@ -923,11 +932,15 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
             const style = getComputedStyle(element);
             return {
               ground: style.backgroundColor,
+              now: style.getPropertyValue("--cdl-now").trim(),
               ports: Object.fromEntries(ports.map((port) => [port, style.getPropertyValue(`--er-${port}`).trim()])),
             };
           }, [...THEME_PORTS]);
           if (colorKey(stageValues.ground) !== colorKey(note.value.ground)) {
             failures.push(`${type}/${mode}: 舞台 ${stageValues.ground} / 台 ${note.value.ground}`);
+          }
+          if (colorKey(stageValues.now) !== colorKey(lead)) {
+            failures.push(`${type}/${mode}: --cdl-now ${stageValues.now} / 一 ${lead}`);
           }
           for (const port of THEME_PORTS) {
             if (colorKey(stageValues.ports[port] ?? "") !== colorKey(note.value[port])) {
@@ -956,7 +969,7 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
           );
           if (lines.length > 0) edgeTypes += 1;
           for (const stroke of lines) {
-            if (!palette.has(colorKey(stroke))) failures.push(`${type}/${mode}: 線 ${stroke} が意匠帳の 9 色に無い`);
+            if (!palette.has(colorKey(stroke))) failures.push(`${type}/${mode}: 線 ${stroke} が意匠帳の 9 色と一に無い`);
             const ratio = contrast(rgb(stroke), rgb(stageValues.ground));
             if (ratio < 3) failures.push(`${type}/${mode}: 線 ${stroke} は台と ${ratio.toFixed(2)}:1 < 3`);
           }

@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   THEME_PORTS,
   readFixedThemeChartSeries,
+  readFixedThemeLead,
   readThemeNotes,
   readThemeNoteText,
   type ThemeNote,
@@ -84,10 +85,10 @@ function cssChartThemes(cssText: string, fixedNames: Set<string>): Map<string, C
     const resolve = (value: string): string => {
       const literal = /^(#[0-9a-f]{6})$/.exec(value)?.[1];
       if (literal) return literal;
-      const variable = /^var\(--(er-[a-z-]+)\)$/.exec(value)?.[1];
+      const variable = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1];
       const resolved = variable ? declarations.get(variable) : undefined;
       if (!resolved || !/^#[0-9a-f]{6}$/.test(resolved)) {
-        throw new Error(`${themeName} の図表の値 ${value} を同じ塊の --er-* から解けない`);
+        throw new Error(`${themeName} の図表の値 ${value} を同じ塊の CSS 変数から解けない`);
       }
       return resolved;
     };
@@ -268,6 +269,31 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     const changed = original.replace("4 = 黄土", "4 = 値の無い役");
     expect(changed, "変異を本文へ植え込めていない").not.toBe(original);
     expect(() => readFixedThemeChartSeries({ blueprint: changed })).toThrow("図表の役「値の無い役」から値を引けない");
+  });
+
+  it("固定の意匠の --cdl-now は意匠帳の一と一致する", () => {
+    const expected = readFixedThemeLead();
+    expect(expected.size, "固定の意匠を 1 件も読めていない").toBeGreaterThan(0);
+    for (const [name, color] of expected) {
+      const declarations = cssFixedThemeDeclarations(cssText, name);
+      expect(resolveCssColor(declarations, "cdl-now"), name).toBe(color);
+    }
+  });
+
+  it("意匠帳の一を書き換えると --cdl-now との不一致を検知する", () => {
+    const original = readThemeNoteText("letterpress");
+    const changed = original.replace(/(\|\s*一\s*\|\s*)`#c8431f`/, "$1`#ffffff`");
+    expect(changed, "変異を本文へ植え込めていない").not.toBe(original);
+    const expected = readFixedThemeLead({ letterpress: changed }).get("letterpress");
+    const actual = resolveCssColor(cssFixedThemeDeclarations(cssText, "letterpress"), "cdl-now");
+    expect(actual).not.toBe(expected);
+  });
+
+  it("意匠帳に一がある時は #rrggbb で始まらなければ落とす", () => {
+    const original = readThemeNoteText("letterpress");
+    const changed = original.replace(/(\|\s*一\s*\|\s*)`#c8431f`/, "$1朱");
+    expect(changed, "変異を本文へ植え込めていない").not.toBe(original);
+    expect(() => readFixedThemeLead({ letterpress: changed })).toThrow("「一」が #rrggbb で始まらない");
   });
 
   it("固定の意匠で字に使う tone は台・行の面・縞の上で 4.5 以上になる", () => {

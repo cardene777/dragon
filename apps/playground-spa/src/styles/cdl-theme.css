@@ -528,8 +528,9 @@ svg[data-cdl-stage][data-cdl-type="record"]:has(
  *
  * 名前を持つ意匠の色は `--d-*` から来ない。 生成りと青磁は意匠帳
  * (`docs/design/er/note.md`) が明暗の 2 組を決めるので、この節の `html.dark` が唯一の決め場所に
- * なる。 図面は `docs/design/blueprint/note.md` が固定の 1 組を決める。 暗い図面は別の意匠であり、
- * 画面の明暗で地を替えると 1 枚の絵が崩れるため `html.dark` の塊を持たない (#2790)。
+ * なる。 図面は `docs/design/blueprint/note.md`、活版は `docs/design/letterpress/note.md` が固定の
+ * 1 組を決める。暗い図面や活版は別の意匠であり、画面の明暗で地を替えると 1 枚の絵が崩れるため
+ * `html.dark` の塊を持たない (#2790 / #2791)。
  *
  * ## 色を置く口は 9 つ
  *
@@ -668,6 +669,63 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --d-relation-edge-opacity-active: 0.85;
 }
 
+/* 活版。紙の地まで含む 1 枚の絵なので、画面の明暗では値を替えない (#2791) */
+svg[data-cdl-stage][data-cdl-palette="letterpress"] {
+  --er-ground: #f0eadc;
+  --er-face: #f0eadc;
+  --er-stripe: #f8f5ee;
+  --er-frame: #1a1510;
+  --er-ink: #1a1510;
+  --er-type: #6b6253;
+  --er-line: #1a1510;
+  --er-own: #1a1510;
+  --er-link: #1a1510;
+  /* 一は 9 つの口ではない意匠の値として、主役と鍵だけへ渡す。字には使わない。 */
+  --theme-lead: #c8431f;
+
+  /* 意匠ごとの現れ方は変数だけを渡し、箱へ当てる仕組みは下の共通規則に置く。 */
+  --theme-appear: letterpress-press-in;
+  --theme-appear-duration: 0.34s;
+  --theme-appear-easing: cubic-bezier(.2, .9, .28, 1);
+
+  /* 固定の意匠は `html.dark` の `--d-*` を継がず、紙の上の値を全てこの塊で決める。 */
+  --cdl-fill: var(--er-stripe);
+  --cdl-chip-fill: var(--er-stripe);
+  --cdl-chip-text: var(--er-ink);
+  --cdl-text-on-tone: var(--er-face);
+  --cdl-chart-1: var(--theme-lead);
+  --cdl-chart-2: var(--er-ink);
+  --cdl-chart-3: var(--er-type);
+  --cdl-chart-4: #867c6c;
+  --cdl-chart-5: #712c18;
+  --cdl-chart-6: #b26b50;
+  --cdl-note-fill: var(--er-stripe);
+  --cdl-note-text: var(--er-type);
+  --cdl-tone-accent-deep: var(--er-ink);
+  --cdl-tone-teal: var(--er-ink);
+  --cdl-tone-success: var(--er-type);
+  --cdl-tone-error: var(--er-ink);
+  --cdl-tone-warning: var(--er-ink);
+
+  --d-bg: var(--er-ground);
+  --d-chart-1: var(--theme-lead);
+  --d-chart-2: var(--er-ink);
+  --d-chart-3: var(--er-type);
+  --d-chart-4: #867c6c;
+  --d-chart-5: #712c18;
+  --d-chart-6: #b26b50;
+  --d-err: var(--er-ink);
+  --d-warn: var(--er-ink);
+  --d-warn-soft: var(--er-stripe);
+  --d-on-accent: var(--er-face);
+  --d-scrim: var(--er-frame);
+  --d-tree-edge-opacity: 0.85;
+  --d-mind-edge-opacity: 0.85;
+  --d-journey-chip-opacity: 0.6;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+}
+
 /*
  * 9 色を実際の口に流す。 配色の名前ごとに書かない = 名前が増えるたびにここを写すことになり、
  * 片方だけ直して食い違う。 名前が決めるのは上の 9 値だけで、流し先は 1 か所で持つ。
@@ -767,6 +825,14 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-node] {
   to { clip-path: inset(0 0 0 0); }
 }
 
+@keyframes letterpress-press-in {
+  from {
+    opacity: 0;
+    scale: 1.035;
+  }
+  to { scale: 1; }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * 図面の作り (#2790)
  *
@@ -831,6 +897,106 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-label-bg"] {
 
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-label"] {
   fill: var(--er-line) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 活版の作り (#2791)
+ *
+ * 共通の背景と札の規則より後ろに置き、活版以外の意匠へ押し跡や朱を流さない。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage][data-cdl-palette="letterpress"] {
+  --cdl-now: var(--theme-lead);
+  background-image: radial-gradient(
+    circle at 18% 12%,
+    color-mix(in srgb, var(--er-ink) 5%, transparent),
+    transparent 60%
+  );
+}
+
+/* `scale` を個別 property にして、箱の `<g>` が持つ位置の `transform` を上書きしない。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-node] {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* event の外側に付く不透明度は小見出しにも掛かる。型名の色を合成せず字の対比を保つ (#2791)。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-kind="event"] > g {
+  opacity: 1;
+}
+
+/* 見せ方を持つ箱と始まり / 終わりの印は描く側の形を保つ。子の図形にも当てる理由は図面と同じ。
+ * 描き手が一部の箱の枠を半分の濃さで描くため、押し枠は 1 つの濃さに揃える (#2791)。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > rect,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > path,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > ellipse,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > circle {
+  stroke-width: 1.5 !important;
+  stroke-opacity: 1 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
+  filter: drop-shadow(2px 2px 0 color-mix(in srgb, var(--er-ink) 14%, transparent));
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > rect,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > path,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > ellipse,
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > circle {
+  stroke-width: 3 !important;
+  stroke-opacity: 1 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
+  filter: drop-shadow(3px 3px 0 color-mix(in srgb, var(--er-ink) 18%, transparent));
+}
+
+/* 表の名前の下の横線だけを太くし、同じ表の縦の区切りは描く側の太さに残す。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-kind="storage"] [data-cdl-role="node-row-divider"] {
+  stroke-width: 2.5 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-row-underline"] {
+  stroke: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] g:has(> [data-cdl-role="node-row-underline"]) > [data-cdl-role="node-row-glyph"][data-cdl-row-glyph$="-filled"] {
+  fill: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] g:has(> [data-cdl-role="node-row-underline"]) > [data-cdl-role="node-row-glyph"][data-cdl-row-glyph$="-hollow"] {
+  stroke: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="edge-label-bg"] {
+  fill: var(--er-ink) !important;
+  stroke: none !important;
+  opacity: 1 !important;
+}
+
+/* 面を持つ札の兄弟だけを紙色にし、面を外した札の字は墨のまま残す。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"] g:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"] {
+  fill: var(--er-ground) !important;
+}
+
+/* 描き手は最大の棒だけ `fill-opacity="1"` にする。その他の値も属性を持つので否定で選べる。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="chart-bar"][fill-opacity="1"] {
+  fill: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="chart-bar"]:not([fill-opacity="1"]) {
+  fill: var(--er-face) !important;
+  stroke: var(--er-ink) !important;
+  stroke-width: 1.5 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
