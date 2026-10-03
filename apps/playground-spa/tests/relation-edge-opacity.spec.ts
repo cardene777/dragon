@@ -1,19 +1,20 @@
 /**
- * クラス図と表のつながりの図で、箱をつなぐ線の薄さを画面で測る (#2535)。
+ * クラス図と表のつながりの図で、箱をつなぐ線の薄さを画面で測る (#2535 / #2805)。
  *
  * 線は丸い端の破線なので一粒ずつが点として読める。 描く側 (`@cardenelabs/cdl`) は
  * その点を 0.9 (光っている線は 0.95) で描き、箱の枠より濃く出ていた。
- * 本 app が図種で囲って 0.8 / 0.85 に下げる。
+ * 本 app が描く側の `er()` とクラス図を図種で囲い、記法で書いた表の図 (`record`) を
+ * 個数の端で囲って 0.8 / 0.85 に下げる。
  *
  * 見るのは 3 つ。
  *
- * 1. 下げた値が実際に効いている (`cdl-theme.css` の `!important` の重なりで決まるので、
- *    規則を読んだだけでは効く値が判らない)
+ * 1. 下げた値が実際に効き、記法の表の図と `er()` の見本で同じになる
+ *    (`cdl-theme.css` の `!important` の重なりで決まるので、規則を読んだだけでは効く値が判らない)
  * 2. 下げた後も紙に対する対比が 3 以上ある (図形が読める下限)
- * 3. 他の図種は描く側の値のまま (`edge-line` は線を引く全図種が共有する役割で、
- *    囲いが外れると分かれ道の図まで薄くなる)
+ * 3. 移り変わりの図と他の図種は描く側の値のまま (`edge-line` は線を引く全図種が共有する役割で、
+ *    囲いが外れると分かれ道の図まで薄くなり、`record` 全体を囲うと移り変わりの図まで薄くなる)
  *
- * 3 つ目が対照。 これが無いと「全部薄くした」 と「2 図種だけ薄くした」 を区別できない。
+ * 3 つ目が対照。 これが無いと「全部薄くした」 と「囲った図だけ薄くした」 を区別できない。
  *
  * **一覧の画面で測る**。 編集画面は `reveal: all` でしか線が出ず、その時は全部の線が
  * 光っている扱いになるため、光っていない線の値を測れない (実測 = 0.85 だけが返る)。
@@ -33,13 +34,31 @@ const 薄さ = { 通常: 0.8, 光る: 0.85 } as const;
 /** 描く側が描く薄さ。 囲いの外はこの値のまま。 */
 const 描く側の薄さ = { 通常: 0.9, 光る: 0.95 } as const;
 
+/**
+ * #2805 の変更前 (`45c8c06f`) に画面で測った移り変わりの図の値。
+ *
+ * | 見本 | 光る | 光らない |
+ * |---|---|---|
+ * | `注文の状態` | なし | 0.9 |
+ * | `認証の状態遷移` | なし | 0.9 |
+ * | 編集画面の `state-machine` | 0.95 | なし |
+ *
+ * 囲いを足す前は `record` 全体が描く側の値のままだったため、`描く側の薄さ` と同じ数になる。
+ */
+const 変更前の移り変わりの薄さ = { 光る: 0.95, 光らない: 0.9 } as const;
+
 const 舞台 = "svg[data-cdl-stage]";
 const 線 = `${舞台} [data-cdl-role="edge-line"]`;
 
 test.use({ viewport: { width: 1500, height: 1000 } });
 
-async function 見本を開く(page: Page, 識別子: string, 暗い: boolean): Promise<void> {
-  await page.goto("catalog/presets");
+async function 見本を開く(
+  page: Page,
+  識別子: string,
+  暗い: boolean,
+  頁 = "presets",
+): Promise<void> {
+  await page.goto(`catalog/${頁}`);
   await page.waitForLoadState("networkidle");
   await page.evaluate((d) => document.documentElement.classList.toggle("dark", d), 暗い);
   await 一覧の行(page, 識別子).click();
@@ -54,6 +73,28 @@ async function 薄さを読む(page: Page): Promise<number[]> {
     .locator(線)
     .evaluateAll((線たち) => 線たち.map((要素) => Number(getComputedStyle(要素).strokeOpacity)));
 }
+
+/** 線を光っているかで分け、画面で解決された薄さを読む。 */
+async function 光り方ごとの薄さを読む(
+  page: Page,
+  選び方 = 線,
+): Promise<{ 光る: number[]; 光らない: number[] }> {
+  return page.locator(選び方).evaluateAll((線たち) => {
+    const 値: { 光る: number[]; 光らない: number[] } = { 光る: [], 光らない: [] };
+    for (const 要素 of 線たち) {
+      const 光り方 = 要素.closest('[data-cdl-active="true"]') !== null ? "光る" : "光らない";
+      値[光り方].push(Number(getComputedStyle(要素).strokeOpacity));
+    }
+    return 値;
+  });
+}
+
+/** 図の根に出た描く側の図種を読む。 */
+async function 図種を読む(page: Page, 選び方 = 舞台): Promise<string | null> {
+  return page.locator(選び方).first().getAttribute("data-cdl-type");
+}
+
+const 重複を除いて並べる = (値: number[]): number[] => [...new Set(値)].sort((a, b) => a - b);
 
 /**
  * 線を出した写しと隠した写しを撮り、画素の差から対比を出す。
@@ -143,12 +184,13 @@ async function 線の対比を測る(page: Page): Promise<{ 比: number; 本数:
   return { 比: 最悪, 本数, 内訳 };
 }
 
-for (const [名, 識別子] of [
-  ["クラス図", "class-demo"],
-  ["表のつながりの図", "er-demo"],
+for (const [名, 頁, 識別子] of [
+  ["クラス図", "presets", "class-demo"],
+  ["表のつながりの図", "presets", "er-demo"],
+  ["記法で書いた表のつながりの図", "patterns", "集まる形-6-表-5-関係"],
 ] as const) {
   test(`${名}の線が薄くなっている`, async ({ page }) => {
-    await 見本を開く(page, 識別子, false);
+    await 見本を開く(page, 識別子, false, 頁);
     const 値 = await 薄さを読む(page);
 
     expect(値.length, `${名}の線を 1 本も測れていない (検査が空振りしている)`).toBeGreaterThan(0);
@@ -162,7 +204,7 @@ for (const [名, 識別子] of [
     test(`${名}の線が${暗い ? "暗い" : "明るい"}画面で対比 ${対比の下限} 以上`, async ({
       page,
     }) => {
-      await 見本を開く(page, 識別子, 暗い);
+      await 見本を開く(page, 識別子, 暗い, 頁);
       const { 比, 本数, 内訳 } = await 線の対比を測る(page);
 
       expect(本数, `${名}の線を 1 本も測れていない (検査が空振りしている)`).toBeGreaterThan(0);
@@ -173,6 +215,72 @@ for (const [名, 識別子] of [
     });
   }
 }
+
+test("記法で書いた表のつながりの図の線は `er()` の見本と同じ薄さ (#2805)", async ({ page }) => {
+  await 見本を開く(page, "er-demo", false);
+  expect(await 図種を読む(page), "`er()` の見本の図種").toBe("er");
+  const erの値 = await 光り方ごとの薄さを読む(page);
+
+  await 見本を開く(page, "集まる形-6-表-5-関係", false, "patterns");
+  expect(await 図種を読む(page), "記法で書いた表の図の図種").toBe("record");
+  const recordの値 = await 光り方ごとの薄さを読む(page);
+
+  for (const 光り方 of ["光る", "光らない"] as const) {
+    expect(erの値[光り方].length, `er() に${光り方}線が無い`).toBeGreaterThan(0);
+    expect(recordの値[光り方].length, `記法の表の図に${光り方}線が無い`).toBeGreaterThan(0);
+    const erの集合 = 重複を除いて並べる(erの値[光り方]);
+    const recordの集合 = 重複を除いて並べる(recordの値[光り方]);
+    expect(
+      recordの集合,
+      `${光り方}線の薄さが違う (er(): ${erの集合.join(" / ")}、記法: ${recordの集合.join(" / ")})`,
+    ).toEqual(erの集合);
+  }
+});
+
+for (const [名, 識別子] of [
+  ["注文の状態", "注文の状態"],
+  ["認証の状態遷移", "認証の状態遷移"],
+] as const) {
+  test(`記法で書いた移り変わりの図「${名}」は変更前の濃さのまま (#2805)`, async ({ page }) => {
+    await 見本を開く(page, 識別子, false, "text-dsl");
+    expect(await 図種を読む(page), `${名}の図種`).toBe("record");
+    const 値 = await 光り方ごとの薄さを読む(page);
+
+    expect(値.光る.length + 値.光らない.length, `${名}の線が 1 本も無い`).toBeGreaterThan(0);
+    for (const 光り方 of ["光る", "光らない"] as const) {
+      for (const v of 値[光り方]) {
+        expect(v, `${名}の${光り方}線の薄さ (${値[光り方].join(" / ")})`).toBe(
+          変更前の移り変わりの薄さ[光り方],
+        );
+      }
+    }
+  });
+}
+
+test("編集画面の移り変わりの図は変更前の濃さのまま (#2805)", async ({ page }) => {
+  const 編集画面の舞台 = '[data-testid="editor-preview-stage"] svg[data-cdl-type]';
+  const 編集画面の線 =
+    '[data-testid="editor-preview-stage"] svg[data-cdl-stage] [data-cdl-role="edge-line"]';
+
+  await page.goto("editor#preset=state-machine");
+  await page.waitForLoadState("networkidle");
+  await page.waitForSelector(編集画面の舞台);
+  await page.waitForTimeout(3500);
+
+  expect(await 図種を読む(page, 編集画面の舞台), "編集画面の見本の図種").toBe("record");
+  await expect(page.locator('[data-cdl-eyebrow="初期"]'), "初期の札").toHaveCount(1);
+  await expect(page.locator('[data-cdl-eyebrow="最終"]'), "最終の札").toHaveCount(1);
+
+  const 値 = await 光り方ごとの薄さを読む(page, 編集画面の線);
+  expect(値.光る.length + 値.光らない.length, "編集画面の見本の線が 1 本も無い").toBeGreaterThan(0);
+  for (const 光り方 of ["光る", "光らない"] as const) {
+    for (const v of 値[光り方]) {
+      expect(v, `編集画面の${光り方}線の薄さ (${値[光り方].join(" / ")})`).toBe(
+        変更前の移り変わりの薄さ[光り方],
+      );
+    }
+  }
+});
 
 test("囲いの外の図は描く側の薄さのまま (対照)", async ({ page }) => {
   await 見本を開く(page, "flowchart-demo", false);
