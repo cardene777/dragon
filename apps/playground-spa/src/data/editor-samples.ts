@@ -228,9 +228,13 @@ type: record
 viewport: { height: 420 }
 
 actors:
-  - 待機: card
+  - 待機:
+      kind: card
+      initial: true
   - 検証中: card
-  - 完了: card
+  - 完了:
+      kind: card
+      final: true
 
 flow:
   - 待機 -> 検証中: "送信"

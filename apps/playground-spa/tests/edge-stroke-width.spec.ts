@@ -78,7 +78,7 @@ test("クラス図の関係の線幅は 7", async ({ page }) => {
 
 test("ER 図の関係の線幅も 7", async ({ page }) => {
   await 図を開く(page, ER図の記法);
-  const 太さ = await 線幅を測る(page, "er");
+  const 太さ = await 線幅を測る(page, "record");
 
   expect(
     太さ.length,

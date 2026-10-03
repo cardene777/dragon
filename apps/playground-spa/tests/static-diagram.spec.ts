@@ -5,6 +5,7 @@
  * state / topology / solidity) は描かれ、 6 種 (swimlane / gantt / class / pie / c4 / mind) は
  * 「cdl validate failed: phase が 0 件です」 で弾かれていた。 書く人から見ると区別する手がかりが
  * 無い。
+ * `er` と `state` は #2782 で `record` に畳んだので、一覧には `record` を 1 つだけ置く。
  *
  * ## 組み立て結果ではなく画面を見る
  *
@@ -18,8 +19,7 @@ const TYPES = [
   "sequence",
   "flow",
   "swimlane",
-  "er",
-  "state",
+  "record",
   "topology",
   "solidity",
   "gantt",

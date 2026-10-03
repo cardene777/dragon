@@ -2289,6 +2289,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > state-machine �
     ],
     "nodes": [
       {
+        "eyebrow": "初期",
         "id": "待機",
         "kind": "card",
         "lane": "lane-待機",
@@ -2303,6 +2304,7 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > state-machine �
         "title": "検証中",
       },
       {
+        "eyebrow": "最終",
         "id": "完了",
         "kind": "card",
         "lane": "lane-完了",
