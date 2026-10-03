@@ -38,45 +38,46 @@ const hexToRgb = (hex: string): string => {
   return `rgb(${value >> 16}, ${(value >> 8) & 255}, ${value & 255})`;
 };
 
-test("意匠の札が全て並び、配色を持つ図で切り替えられる (#1569 / #2790)", async ({ page }) => {
+test("switch: 意匠の札が全て並び、配色を持つ図で切り替えられる (#1569 / #2790)", async ({
+  page,
+}) => {
   await 開く(page, "presets", "er-demo");
 
   await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
   const expected = 配色の選択肢.map((theme) => 配色の札(theme, "ja"));
-  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面"]);
-  for (const label of expected) await expect(切替(page).getByRole("radio", { name: label })).toHaveCount(1);
+  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版"]);
+  for (const label of expected)
+    await expect(切替(page).getByRole("radio", { name: label })).toHaveCount(1);
   expect(await 配色(page, "er-demo"), "既定が生成りに茶でない").toBe("kinari");
 
   await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
-  await expect
-    .poll(async () => await 配色(page, "er-demo"), { timeout: 5000 })
-    .toBe("celadon");
+  await expect.poll(async () => await 配色(page, "er-demo"), { timeout: 5000 }).toBe("celadon");
 
   await 切替(page).getByRole("radio", { name: "生成りに茶" }).click();
-  await expect
-    .poll(async () => await 配色(page, "er-demo"), { timeout: 5000 })
-    .toBe("kinari");
+  await expect.poll(async () => await 配色(page, "er-demo"), { timeout: 5000 }).toBe("kinari");
 });
 
-test("クラス図でも切り替えられる (#1569)", async ({ page }) => {
+test("switch: クラス図でも切り替えられる (#1569)", async ({ page }) => {
   // ER 図だけを見ると、配色を持つ図が 1 種類しか無い形でも通る
   await 開く(page, "presets", "class-demo");
   await expect(切替(page), "クラス図に切替が出ていない").toBeVisible();
 
   await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
-  await expect
-    .poll(async () => await 配色(page, "class-demo"), { timeout: 5000 })
-    .toBe("celadon");
+  await expect.poll(async () => await 配色(page, "class-demo"), { timeout: 5000 }).toBe("celadon");
 });
 
-test("配色を持たない図にも切替が出て、図面を当てられる (#2790)", async ({ page }) => {
+test("switch: 配色を持たない図にも切替が出て、図面を当てられる (#2790)", async ({ page }) => {
   await 開く(page, "presets", "infra-demo");
   expect(await 配色(page, "infra-demo"), "この図が配色を持ってしまっている").toBeNull();
   await expect(切替(page), "配色を持たない図に切替が出ていない").toBeVisible();
   await expect(切替(page).getByRole("radio", { name: 画面の色の札("ja") })).toBeChecked();
 
-  await 切替(page).getByRole("radio", { name: 配色の札("blueprint", "ja") }).click();
-  await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("blueprint");
+  await 切替(page)
+    .getByRole("radio", { name: 配色の札("blueprint", "ja") })
+    .click();
+  await expect
+    .poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 })
+    .toBe("blueprint");
   const blueprint = readThemeNotes().get("blueprint");
   if (blueprint?.mode !== "fixed") throw new Error("図面の意匠帳が固定の表ではない");
   const ground = await page.evaluate(() => {
@@ -86,7 +87,25 @@ test("配色を持たない図にも切替が出て、図面を当てられる (
   expect(ground).toBe(hexToRgb(blueprint.value.ground));
 });
 
-test("項目を選び直すと既定へ戻る (#1569)", async ({ page }) => {
+test("letterpress switch: 配色のない図と表の図へ活版の名前と地が届く", async ({ page }) => {
+  const letterpress = readThemeNotes().get("letterpress");
+  if (letterpress?.mode !== "fixed") throw new Error("活版の意匠帳が固定の表ではない");
+
+  for (const id of ["infra-demo", "er-demo"]) {
+    await 開く(page, "presets", id);
+    await 切替(page)
+      .getByRole("radio", { name: 配色の札("letterpress", "ja") })
+      .click();
+    await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("letterpress");
+    const ground = await page.evaluate(() => {
+      const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="letterpress"]');
+      return stage ? getComputedStyle(stage).backgroundColor : null;
+    });
+    expect(ground, id).toBe(hexToRgb(letterpress.value.ground));
+  }
+});
+
+test("switch: 項目を選び直すと既定へ戻る (#1569)", async ({ page }) => {
   // 残すと、次の図が別の色みで出る理由を見失う (速さ / 描き方 と同じ扱い)
   await 開く(page, "presets", "er-demo");
   await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
@@ -94,7 +113,5 @@ test("項目を選び直すと既定へ戻る (#1569)", async ({ page }) => {
 
   await 一覧の行(page, "class-demo").click();
   await page.waitForSelector('[data-cdl-diagram="class-demo"]', { timeout: 15000 });
-  await expect
-    .poll(async () => await 配色(page, "class-demo"), { timeout: 5000 })
-    .toBe("kinari");
+  await expect.poll(async () => await 配色(page, "class-demo"), { timeout: 5000 }).toBe("kinari");
 });

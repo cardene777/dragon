@@ -5,6 +5,7 @@ import { test, expect, type Page } from "@playwright/test";
 
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
 import { 記法をURLに載せる } from "./box-and-edge-figure";
+import { readThemeNotes, type ThemeNote } from "./helpers/theme-notes";
 
 const css = readFileSync(
   fileURLToPath(new URL("../src/styles/cdl-theme.css", import.meta.url)),
@@ -26,7 +27,17 @@ function fixedVariableNames(): string[] {
 const er = EDITOR_SAMPLES.find((sample) => sample.slug === "er");
 if (!er) throw new Error("editor-samples に er の見本が無い");
 
-const blueprintSource = er.code.replace(/^palette:.*$/m, "theme: blueprint");
+const source = (name: string): string => er.code.replace(/^palette:.*$/m, `theme: ${name}`);
+
+const fixedThemes = (): Array<Extract<ThemeNote, { mode: "fixed" }>> =>
+  [...readThemeNotes().values()].filter(
+    (note): note is Extract<ThemeNote, { mode: "fixed" }> => note.mode === "fixed",
+  );
+
+const hexToRgb = (hex: string): string => {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return `rgb(${value >> 16}, ${(value >> 8) & 255}, ${value & 255})`;
+};
 
 async function open(page: Page, source: string, dark: boolean): Promise<void> {
   await page.goto(`editor#s=${記法をURLに載せる(source)}`);
@@ -40,16 +51,12 @@ async function open(page: Page, source: string, dark: boolean): Promise<void> {
 }
 
 async function ground(page: Page): Promise<string> {
-  return page.locator("svg[data-cdl-stage]").evaluate((stage) => getComputedStyle(stage).backgroundColor);
+  return page
+    .locator("svg[data-cdl-stage]")
+    .evaluate((stage) => getComputedStyle(stage).backgroundColor);
 }
 
-test("図面の地は明暗で変わらず、生成りの地は変わる (#2790)", async ({ page }) => {
-  await open(page, blueprintSource, false);
-  const blueprintLight = await ground(page);
-  await open(page, blueprintSource, true);
-  const blueprintDark = await ground(page);
-  expect(blueprintDark).toBe(blueprintLight);
-
+test("kinari dark-ground: 生成りの地は明暗で変わる (#2790)", async ({ page }) => {
   await open(page, er.code, false);
   const kinariLight = await ground(page);
   await open(page, er.code, true);
@@ -57,19 +64,30 @@ test("図面の地は明暗で変わらず、生成りの地は変わる (#2790)
   expect(kinariDark).not.toBe(kinariLight);
 });
 
-test("図面の舞台内で図が読む変数は明暗で全て同じ (#2790)", async ({ page }) => {
-  const names = fixedVariableNames();
-  expect(names.length, "固定を調べる変数を 1 件も導けていない").toBeGreaterThan(0);
-  const read = async (dark: boolean): Promise<Record<string, string>> => {
-    await open(page, blueprintSource, dark);
-    return page.locator("svg[data-cdl-stage]").evaluate((stage, vars) => {
-      const style = getComputedStyle(stage);
-      return Object.fromEntries(vars.map((name) => [name, style.getPropertyValue(name).trim()]));
-    }, names);
-  };
+for (const note of fixedThemes()) {
+  test(`${note.name} dark-ground: 台は明暗で変わらず意匠帳と一致する`, async ({ page }) => {
+    await open(page, source(note.name), false);
+    const light = await ground(page);
+    await open(page, source(note.name), true);
+    const dark = await ground(page);
+    expect(light).toBe(hexToRgb(note.value.ground));
+    expect(dark).toBe(hexToRgb(note.value.ground));
+  });
 
-  const light = await read(false);
-  const dark = await read(true);
-  expect(Object.keys(light)).toHaveLength(names.length);
-  expect(dark).toEqual(light);
-});
+  test(`${note.name} dark-ground: 舞台内で図が読む変数は明暗で全て同じ`, async ({ page }) => {
+    const names = fixedVariableNames();
+    expect(names.length, "固定を調べる変数を 1 件も導けていない").toBeGreaterThan(0);
+    const read = async (dark: boolean): Promise<Record<string, string>> => {
+      await open(page, source(note.name), dark);
+      return page.locator("svg[data-cdl-stage]").evaluate((stage, vars) => {
+        const style = getComputedStyle(stage);
+        return Object.fromEntries(vars.map((name) => [name, style.getPropertyValue(name).trim()]));
+      }, names);
+    };
+
+    const light = await read(false);
+    const dark = await read(true);
+    expect(Object.keys(light)).toHaveLength(names.length);
+    expect(dark).toEqual(light);
+  });
+}

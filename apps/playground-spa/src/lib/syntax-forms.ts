@@ -272,6 +272,8 @@ export const FORMS: Section[] = [
       { code: "theme: celadon", note: "青磁に墨", noteEn: "Celadon with sumi ink" },
       { code: "theme: blueprint", note: "図面", noteEn: "Blueprint" },
       { code: "theme: 図面", note: "日本語でも書ける", noteEn: "The Japanese name works too" },
+      { code: "theme: letterpress", note: "活版", noteEn: "Letterpress" },
+      { code: "theme: 活版", note: "日本語でも書ける", noteEn: "The Japanese name works too" },
     ],
   },
   {
