@@ -605,6 +605,7 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   // 書かない図は段ごとに矢印を出し、触れた箱を光らせない
   "$.reveal=phase": { 種類: "既定", 別の値: "all" },
   "$.relations=off": { 種類: "既定", 別の値: "hover" },
+  "$.theme": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
 };
 
@@ -651,6 +652,11 @@ function 覆われない道(型の道: ReadonlySet<string>, 書いた: ReadonlyS
       (p) =>
         !書いた.has(p) &&
         !(p in 道の覆い方表) &&
+        !Object.entries(道の覆い方表).some(([道, 覆]) => {
+          if (覆.種類 !== "画面の切替") return false;
+          const 欄の道 = 道.includes("=") ? 道.slice(0, 道.indexOf("=")) : 道;
+          return p.startsWith(`${欄の道}=`);
+        }) &&
         色の別名(p) === undefined &&
         図種の別名(p) === undefined,
     )
@@ -781,7 +787,7 @@ describe("記法の型定義の全ての欄と値を、カタログの JSON が�
     let 確かめた = 0;
     for (const [道, 覆] of Object.entries(道の覆い方表)) {
       if (覆.種類 !== "画面の切替") continue;
-      const 欄の道 = 道.slice(0, 道.indexOf("="));
+      const 欄の道 = 道.includes("=") ? 道.slice(0, 道.indexOf("=")) : 道;
       const 値の数 = [...型の道].filter((p) => p.startsWith(`${欄の道}=`)).length;
       expect(値の数, `${欄の道} の値を型定義から 1 つも読めていない`).toBeGreaterThan(0);
       expect(覆.選択肢.length, `${欄の道} の切替の選択肢が値の数と違う`).toBe(値の数);

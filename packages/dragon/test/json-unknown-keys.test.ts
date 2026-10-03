@@ -102,7 +102,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     order: "kind",
     // 数を描く図の形 (#2657)
     shape: "pie",
-    // 図の配色 (#1553)
+    // 図の意匠とその別名 (#1553 / #2790)
+    theme: "blueprint",
     palette: "celadon",
   },
   actor: {

@@ -103,7 +103,7 @@ export function resolveShape(s: string): DslShape | null {
 }
 
 /**
- * 図の配色 (`palette:`、 #1553)。
+ * 図の意匠 (`theme:`、 #1553 / #2790)。
  *
  * cdl は色を持たない (形だけを描く)。 名前を `data-cdl-palette` として markup に出すので、
  * dragon の `cdl-theme.css` がその名前を見て 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線)
@@ -112,32 +112,33 @@ export function resolveShape(s: string): DslShape | null {
  * **名前を自由文字列にしない**。 書き間違えると既定の色みのまま出るので、書き手には
  * 「効かない」 としか見えない。 語を絞れば読めない語をその場で知らせられる。
  */
-export const PALETTES = ["kinari", "celadon"] as const;
-export type DslPalette = (typeof PALETTES)[number];
+export const THEMES = ["kinari", "celadon", "blueprint"] as const;
+export type DslTheme = (typeof THEMES)[number];
 
 /**
- * 配色の別名。 向きと同じく日本語と英語の両方で書ける。
+ * 意匠の別名 (#2790)。 向きと同じく日本語と英語の両方で書ける。
  *
- * `kinari` = 生成りに茶、 `celadon` = 青磁に墨。
+ * `kinari` = 生成りに茶、 `celadon` = 青磁に墨、 `blueprint` = 図面。
  *
- * ER 図とクラス図は書かなくても `kinari` (生成りに茶) になる。 どちらも箱の作りが同じ
- * (行頭の印 + 左に名前 + 右に型) で、名前と型が離れて並ぶため、行を横に追う目印
- * (行の縞) が要る。 縞の色は配色からしか来ないので、既定が無いと縞が箱の面と同じ色に
- * 落ちて 1 本も出ない。 書き手が `palette:` を書いた時はそちらが勝つ。
+ * クラス図は書かなくても `kinari` (生成りに茶) になる。 名前と型が離れて並ぶため、行を横に
+ * 追う目印 (行の縞) が要る。 縞の色は意匠からしか来ないので、既定が無いと縞が箱の面と同じ
+ * 色に落ちて 1 本も出ない。 書き手が `theme:` を書いた時はそちらが勝つ。
  */
-export const PALETTE_ALIAS: Record<string, DslPalette> = {
+export const THEME_ALIAS: Record<string, DslTheme> = {
   kinari: "kinari",
   celadon: "celadon",
+  blueprint: "blueprint",
   生成り: "kinari",
   生成りに茶: "kinari",
   青磁: "celadon",
   青磁に墨: "celadon",
+  図面: "blueprint",
 };
 
-/** 書いた配色を正規の語に直す。 読めない語は `null`。 */
-export function resolvePalette(s: string): DslPalette | null {
+/** 書いた意匠を正規の語に直す。 読めない語は `null`。 */
+export function resolveTheme(s: string): DslTheme | null {
   const k = s.trim().toLowerCase();
-  return Object.hasOwn(PALETTE_ALIAS, k) ? PALETTE_ALIAS[k]! : null;
+  return Object.hasOwn(THEME_ALIAS, k) ? THEME_ALIAS[k]! : null;
 }
 
 /** NodeKind 別名 (日本語 → English) */

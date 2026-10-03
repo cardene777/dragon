@@ -5,7 +5,7 @@
 
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
-import type { DslDirection, DslOrder, DslPalette, DslShape } from "./keywords";
+import type { DslDirection, DslOrder, DslShape, DslTheme } from "./keywords";
 
 /**
  * 記法が書ける箱の種類 (#1420)。
@@ -230,15 +230,16 @@ export type DslDocument = {
   /** `shape:` を書いた行。 効かない時の知らせで、書いた場所を指すために持つ */
   shapePos?: { line: number };
   /**
-   * 図の配色 (`palette:`、 #1553)。
+   * 図の意匠 (`theme:`、 #1553 / #2790)。
    *
    * 名前だけを持つ。 実際の色は消費側 (`cdl-theme.css`) が決めるので、ここには値を書かない。
-   * ER 図とクラス図は書かなくても `kinari` (生成りに茶) になる。 どちらも箱の作りが同じ
-   * (行頭の印 + 左に名前 + 右に型) で、名前と型が離れて並ぶため、行を横に追う目印
-   * (行の縞) が要る。 縞の色は配色からしか来ないので、既定が無いと縞が箱の面と同じ色に
-   * 落ちて 1 本も出ない。 書き手が `palette:` を書いた時はそちらが勝つ。
+   * クラス図は書かなくても `kinari` (生成りに茶) になる。 名前と型が離れて並ぶため、行を横に追う
+   * 目印 (行の縞) が要る。 縞の色は意匠からしか来ないので、既定が無いと縞が箱の面と同じ色に落ちて
+   * 1 本も出ない。 `palette:` も同じ意匠を書く別名として読む。
    */
-  palette?: DslPalette;
+  theme?: DslTheme;
+  /** `theme:` と別名の `palette:` を両方書いた時の行 (#2790)。 */
+  themeAlsoPalettePos?: { themeLine: number; paletteLine: number };
   groups?: Record<string, DslGroup>;
   /**
    * 値を見せる部品 (`readouts:`、 #1374)。 割合の輪や数え上げを図の脇に出す。

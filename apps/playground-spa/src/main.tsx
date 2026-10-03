@@ -9,6 +9,7 @@ import "@fontsource-variable/space-grotesk/wght.css";
 import "@fontsource-variable/jetbrains-mono/wght.css";
 import "./styles/globals.css";
 import "./styles/cdl-theme.css";
+import "./styles/theme-motion.css";
 import "./styles/catalog-new.css";
 // 図の中に出る操作盤 (.cdl-ip-*) は分量が大きいので catalog-new.css から分けてある。
 import "./styles/catalog-widgets.css";

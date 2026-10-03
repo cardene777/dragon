@@ -24,16 +24,21 @@
  * 無いことが設計で、色を確かめるのは画面側の検査 (`rendered-contrast.spec.ts`) の役目。
  */
 import { describe, it, expect } from "vitest";
-import { textDslToDiagram, jsonToDiagram } from "../src/index";
+import {
+  textDslToDiagram,
+  jsonToDiagram,
+  validateDragonJson,
+  type CompileNotice,
+} from "../src/index";
 import { parseTextDslV05 } from "../src/v05/parser";
-import { PALETTES, resolvePalette } from "../src/keywords";
+import { THEMES, resolveTheme } from "../src/keywords";
 
 /** 表の箱を 2 つ持つ最小の ER 図。 配色の行だけを差し替えて比べる。 */
-const ER = (配色?: string): string =>
+const ER = (意匠?: string, 語: "theme" | "palette" = "theme"): string =>
   [
     'title: "確かめ"',
     "type: record",
-    ...(配色 === undefined ? [] : [`palette: ${配色}`]),
+    ...(意匠 === undefined ? [] : [`${語}: ${意匠}`]),
     "",
     "actors:",
     '  - users: { kind: storage, rows: ["id: bigint", "email: text"], marks: ["pk", ""] }',
@@ -45,11 +50,11 @@ const ER = (配色?: string): string =>
   ].join("\n");
 
 /** 表の箱を持たない最小の図。 既定を持つ 2 図種の外で配色が付かないことを見る。 */
-const 流れ = (配色?: string): string =>
+const 流れ = (意匠?: string, 語: "theme" | "palette" = "theme"): string =>
   [
     'title: "確かめ"',
     "type: flow",
-    ...(配色 === undefined ? [] : [`palette: ${配色}`]),
+    ...(意匠 === undefined ? [] : [`${語}: ${意匠}`]),
     "",
     "actors:",
     "  - A",
@@ -75,7 +80,7 @@ const つながり = (): string =>
     "",
   ].join("\n");
 
-describe("図の配色 (#1553)", () => {
+describe("図の意匠 (#1553 / #2790)", () => {
   it("`record` は書かなければ配色を持たない (#2782)", () => {
     // 畳む前は `type: er` が書かなくても生成りに茶になった。 畳んだ先には移り変わりの図も
     // 入り、2 つは行の形で分かれないので、推し量ると片方が書いていない色みを名乗る
@@ -104,32 +109,121 @@ describe("図の配色 (#1553)", () => {
     expect(textDslToDiagram(流れ("celadon")).palette).toBe("celadon");
   });
 
-  it("読めない語は誤りとして返る", () => {
+  it("知らない名前は v05 の theme と palette、JSON の theme と palette の全てで正の名前を並べる", () => {
     // 黙って既定に落とすと、書き手には「書いたのに効かない」 としか見えず、
     // 書き間違いか未対応かを分けられない
-    const r = parseTextDslV05(ER("mizuiro"));
-    expect(r.ok).toBe(false);
-    if (r.ok) return;
-    expect(r.errors.some((e) => e.message.includes("palette が読めません"))).toBe(true);
+    const v05 = [parseTextDslV05(ER("mizuiro", "theme")), parseTextDslV05(ER("mizuiro", "palette"))];
+    const json = [
+      validateDragonJson({
+        title: "確かめ",
+        type: "record",
+        theme: "mizuiro",
+        actors: ["A"],
+        flow: [],
+      }),
+      validateDragonJson({
+        title: "確かめ",
+        type: "record",
+        palette: "mizuiro",
+        actors: ["A"],
+        flow: [],
+      }),
+    ];
+    const 文 = [
+      ...v05.flatMap((r) => (r.ok ? [] : r.errors.map((e) => e.message))),
+      ...json.flatMap((r) => (r.ok ? [] : r.errors.map((e) => e.message))),
+    ];
+    expect(文, "4 経路の誤りを集められていない").toHaveLength(4);
+    expect(文.some((message) => message.includes("theme が読めません"))).toBe(true);
+    expect(文.some((message) => message.includes("palette が読めません"))).toBe(true);
+    for (const message of 文) {
+      for (const theme of THEMES) expect(message).toContain(theme);
+    }
   });
 
-  it("JSON でも同じ名前で書ける", () => {
+  it("v05 と JSON の theme で blueprint を読み、JSON の図面も同じ意匠に解く", () => {
+    expect(textDslToDiagram(ER("blueprint", "theme")).palette).toBe("blueprint");
     const d = jsonToDiagram({
       title: "確かめ",
       type: "record",
-      palette: "celadon",
+      theme: "blueprint",
       actors: [{ name: "users", kind: "storage", rows: ["id: bigint"], marks: ["pk"] }],
       flow: [],
     });
-    expect(d.palette).toBe("celadon");
+    expect(d.palette).toBe("blueprint");
+    expect(
+      jsonToDiagram({
+        title: "確かめ",
+        type: "record",
+        theme: "図面",
+        actors: ["A"],
+        flow: [],
+      }).palette,
+    ).toBe("blueprint");
   });
 
-  it("名前の解決は記法と JSON で同じ", () => {
+  it("正の名前の一覧は全て resolveTheme で自分自身に解ける", () => {
     // 別々に解くと、片方だけ別名を受けるようになる
-    for (const 名 of PALETTES) {
-      expect(resolvePalette(名)).toBe(名);
+    expect(THEMES.length, "意匠の一覧が空で検査が空振りしている").toBeGreaterThan(0);
+    for (const 名 of THEMES) {
+      expect(resolveTheme(名)).toBe(名);
     }
-    expect(resolvePalette("mizuiro")).toBeNull();
+    expect(resolveTheme("mizuiro")).toBeNull();
+  });
+
+  it("theme: blueprint、theme: 図面、palette: blueprint の図は完全に一致し、知らせを出さない", () => {
+    const 組み立てる = (本文: string): { diagram: ReturnType<typeof textDslToDiagram>; notices: CompileNotice[] } => {
+      const notices: CompileNotice[] = [];
+      const diagram = textDslToDiagram(本文, { onNotice: (notice) => notices.push(notice) });
+      return { diagram, notices };
+    };
+    const 正 = 組み立てる(ER("blueprint", "theme"));
+    const 和名 = 組み立てる(ER("図面", "theme"));
+    const 別名 = 組み立てる(ER("blueprint", "palette"));
+    expect([正.notices, 和名.notices, 別名.notices]).toEqual([[], [], []]);
+    expect(正.diagram.palette).toBe("blueprint");
+    expect(和名.diagram).toEqual(正.diagram);
+    expect(別名.diagram).toEqual(正.diagram);
+  });
+
+  it("theme と palette を両方書くと順番に依らず theme が勝ち、v05 と JSON で知らせが 1 件になる", () => {
+    const 本文たち = [
+      ER("kinari", "theme").replace("theme: kinari", "theme: blueprint\npalette: celadon"),
+      ER("kinari", "theme").replace("theme: kinari", "palette: celadon\ntheme: blueprint"),
+    ];
+    const JSONたち = [
+      { theme: "blueprint", palette: "celadon" },
+      { palette: "celadon", theme: "blueprint" },
+    ];
+    const 結果: Array<{ palette: string | undefined; notices: CompileNotice[] }> = [];
+    for (const src of 本文たち) {
+      const notices: CompileNotice[] = [];
+      const diagram = textDslToDiagram(src, { onNotice: (notice) => notices.push(notice) });
+      結果.push({ palette: diagram.palette, notices });
+    }
+    for (const fields of JSONたち) {
+      const notices: CompileNotice[] = [];
+      const diagram = jsonToDiagram(
+        { title: "確かめ", type: "record", ...fields, actors: ["A"], flow: [] },
+        { onNotice: (notice) => notices.push(notice) },
+      );
+      結果.push({ palette: diagram.palette, notices });
+    }
+    expect(結果, "v05 2 通りと JSON 2 通りを確かめていない").toHaveLength(4);
+    for (const { palette, notices } of 結果) {
+      expect(palette).toBe("blueprint");
+      expect(notices).toHaveLength(1);
+      expect(notices[0]?.kind).toBe("theme-palette-both");
+      expect(notices[0]?.message).toContain("theme: の値 (blueprint)");
+    }
+    expect(結果[0]?.notices[0]?.line, "palette: の行を指していない").toBe(4);
+    expect(結果[1]?.notices[0]?.line, "palette: の行を指していない").toBe(3);
+  });
+
+  it("palette: kinari と theme: kinari の組み立て結果が完全に一致する", () => {
+    expect(textDslToDiagram(ER("kinari", "palette"))).toEqual(
+      textDslToDiagram(ER("kinari", "theme")),
+    );
   });
 });
 

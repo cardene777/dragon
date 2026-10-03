@@ -37,8 +37,8 @@ export type SampleSlot =
   | "order"
   // 数を描く図の形 (#2657)
   | "shape"
-  // 図の配色 (#1553)
-  | "palette";
+  // 図の意匠 (#1553 / #2790)
+  | "theme";
 
 export type Section = {
   title: string;
@@ -48,7 +48,7 @@ export type Section = {
    * **書式の例 (`code`) は訳さない**。 記法そのものなので、画面の言語が変わっても変えると
    * 書き写した記法が読めなくなる。 訳すのは人が読む字だけ。
    *
-   * **英語の側に日本語を書かない**。 記法の日本語の値 (`direction: 縦` / `palette: 青磁`) は
+   * **英語の側に日本語を書かない**。 記法の日本語の値 (`direction: 縦` / `theme: 青磁`) は
    * すぐ左の例が見せているので、添え書きは「日本語の名前も書ける」 と言えば足りる。
    * 書くと、英語の画面に残る日本語を数える検査が拾う。
    */
@@ -252,12 +252,12 @@ export const FORMS: Section[] = [
     ],
   },
   {
-    title: "図の配色 (palette:)",
-    titleEn: "Diagram palette (palette:)",
+    title: "図の意匠 (theme:)",
+    titleEn: "Diagram theme (theme:)",
     // 色の値は図が持たない。 名前だけが図に載り、画面側が名前を見て色を当てる。
-    // 例文は ER 図にする = 既定を持つ図種の一つで、書き換えたことが絵で読める
+    // 例文は行を持つ図にする = 意匠を書き換えたことが面と縞の違いで読める
     sample: {
-      slot: "palette",
+      slot: "theme",
       type: "record",
       actors: [
         // 種類 (`kind`) は書かない (#2388)。 縦列も動きも書かない ER 図は実体 1 つにつき
@@ -268,9 +268,10 @@ export const FORMS: Section[] = [
       flow: ['  - users -> orders: "注文する"'],
     },
     lines: [
-      { code: "palette: kinari", note: "ER 図とクラス図は書かなくても生成りに茶になる", noteEn: "ER and class diagrams take this ecru and brown pair even if you leave it out" },
-      { code: "palette: celadon", note: "青磁に墨", noteEn: "Celadon with sumi ink" },
-      { code: "palette: 青磁", note: "日本語でも書ける (生成り / 青磁)", noteEn: "The Japanese names work too" },
+      { code: "theme: kinari", note: "生成りに茶。 palette: と書いても読める", noteEn: "Ecru and brown. You can also write the alias palette:" },
+      { code: "theme: celadon", note: "青磁に墨", noteEn: "Celadon with sumi ink" },
+      { code: "theme: blueprint", note: "図面", noteEn: "Blueprint" },
+      { code: "theme: 図面", note: "日本語でも書ける", noteEn: "The Japanese name works too" },
     ],
   },
   {
@@ -741,7 +742,7 @@ export function buildSample(section: Section): string {
     "direction",
     "order",
     "shape",
-    "palette",
+    "theme",
   ];
   const rootLines = 最上位に置く.includes(slot) ? codes : [];
   // 題名と図種は例文に必ず要る。 一覧側で書いている時は重ねて書かない (後に書いた方が効く)

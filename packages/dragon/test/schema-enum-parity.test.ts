@@ -1,7 +1,7 @@
 /**
  * 公開 schemaの語の一覧が実装と一致していることの検証 (#1559)。
  *
- * 記法の語は 2 か所に書いてある。 実装の一覧 (`EDGE_HEAD_VALUES` / `PALETTES` 等) と、
+ * 記法の語は 2 か所に書いてある。 実装の一覧 (`EDGE_HEAD_VALUES` / `THEMES` 等) と、
  * LLM に渡す公開 schema (`src/schemas/diagram.json`) の `enum`。 突き合わせる経路が無いと、
  * 片方に語を足した時に **記法では通るのに JSON では弾かれる** (逆も) 形が黙って生まれる。
  *
@@ -42,7 +42,7 @@ import {
   TYPE_ALIASES,
 } from "../src/v05/parser";
 import {
-  PALETTES,
+  THEMES,
   DIRECTIONS,
   DIRECTION_ALIAS,
   ORDERS,
@@ -119,7 +119,8 @@ const 対応表: Record<string, readonly string[]> = {
   order: Object.keys(ORDER_ALIAS).filter((k) => !(ORDERS as readonly string[]).includes(k)),
   // 数を描く図の形 (#2657)。 日本語の別名を持たないので一覧をそのまま使う
   shape: [...SHAPES],
-  palette: [...PALETTES],
+  theme: [...THEMES],
+  palette: [...THEMES],
   reveal: [...EDGE_REVEALS],
   relations: [...RELATION_FOCUSES],
   "flow[].tone": 書ける色名(),

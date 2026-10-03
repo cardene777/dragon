@@ -1,13 +1,12 @@
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { THEMES, type DslTheme } from "@cardenelabs/dragon";
 import { 字を引く, type 二言語 } from "./bilingual";
 import type { Locale } from "./i18n";
 
 /**
  * 図の色味の切替 (#1569)。
  *
- * 配色は 2 組ある (生成りに茶 / 青磁に墨) が、カタログでは図に書いた方しか見られなかった。
- * もう一方を見るには開発者の道具で `data-cdl-palette` を手で書き換えるしかなく、
- * 意匠を決める時に 2 つを見比べられない。
+ * 15 種のどの図でも意匠を当てて見比べられるよう、図に意匠が書かれていない時も切替を出す (#2790)。
  *
  * 描き手は色を持たない = 図に載るのは名前だけで、色は画面側 (`cdl-theme.css`) が当てる。
  * だから切替も **名前を差し替えるだけ** で済む。
@@ -24,42 +23,54 @@ import type { Locale } from "./i18n";
 const 値と札 = {
   kinari: { ja: "生成りに茶", en: "Ecru and brown" },
   celadon: { ja: "青磁に墨", en: "Celadon and ink" },
-} as const satisfies Record<string, 二言語>;
+  blueprint: { ja: "図面", en: "Blueprint" },
+} as const satisfies Record<DslTheme, 二言語>;
 
-/** 画面に出す順は、値を並べた順に従う (生成りに茶 → 青磁に墨) */
-export const 配色の選択肢 = Object.keys(値と札) as 配色[];
+/** 画面に出す意匠は記法が受ける正の名前から導く (#2790)。 */
+export const 配色の選択肢: readonly DslTheme[] = THEMES;
 
-export type 配色 = keyof typeof 値と札;
+/** 図の `palette` を外し、site の色で描く選択。 意匠の一覧には含めない。 */
+export const 画面の色 = "site-colours" as const;
+
+export type 配色 = DslTheme | typeof 画面の色;
+/** `null` は選んでいない状態で、図に書かれた意匠をそのまま使う。 */
+export type 配色の選択 = 配色 | null;
 
 /** 画面に出す札を引く */
-export function 配色の札(配色: 配色, locale: Locale): string {
+export function 配色の札(配色: DslTheme, locale: Locale): string {
   return 字を引く(値と札[配色], locale);
 }
 
-/** 既定。 見本の source に書いたとおり (ER 図とクラス図は生成りに茶) */
-export const 既定の配色: 配色 = "kinari";
+/** 意匠を図から外す選択の札。 */
+export function 画面の色の札(locale: Locale): string {
+  return locale === "ja" ? "画面の色" : "Site colours";
+}
 
 /**
- * その図で切替えられるか。
- *
- * **配色を持つ図に限る**。 配色を書かない図で名前を足すと、いままで site の色で描かれて
- * いた図が急に別の色みになる = 切替が「見比べる」 ではなく「着せ替える」 道具になる。
- *
- * 押しても何も起きない操作を置かないのは `描き方を選べる` と同じ判断。
+ * 押されている札。 未選択なら図に書かれた意匠、それも無ければ画面の色を返す。
  */
-export function 配色を選べる(diagram: CdlDiagram): boolean {
-  return typeof diagram.palette === "string" && diagram.palette.length > 0;
+export function 押される配色(diagram: CdlDiagram, 選択: 配色の選択): 配色 {
+  if (選択 !== null) return 選択;
+  return (THEMES as readonly string[]).includes(diagram.palette ?? "")
+    ? (diagram.palette as DslTheme)
+    : 画面の色;
 }
 
 /**
  * 図の配色の名前を差し替える。
  *
- * **既定では元の object をそのまま返す**。 新しい object を返すと `CdlDiagramView` が
+ * **未選択では元の object をそのまま返す**。 新しい object を返すと `CdlDiagramView` が
  * 別の図を渡されたとみなして描き直し、切替を触っていない図が最初へ戻る
  * (`playback-speed.ts` と同じ理由)。
  */
-export function 図の配色を変える(diagram: CdlDiagram, 配色: 配色): CdlDiagram {
-  if (!配色を選べる(diagram)) return diagram;
-  if (diagram.palette === 配色) return diagram;
-  return { ...diagram, palette: 配色 };
+export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の選択): CdlDiagram {
+  if (選択 === null) return diagram;
+  if (選択 === 画面の色) {
+    if (diagram.palette === undefined) return diagram;
+    const 次 = { ...diagram };
+    delete 次.palette;
+    return 次;
+  }
+  if (diagram.palette === 選択) return diagram;
+  return { ...diagram, palette: 選択 };
 }

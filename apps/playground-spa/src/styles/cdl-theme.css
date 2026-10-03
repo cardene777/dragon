@@ -6,9 +6,9 @@
  * cdl は形だけを描き、 色は持たない。 図の中の各部品には `data-cdl-role` が付くので、
  * dragon 側が本 file で色を当てる。
  *
- * **明暗の切替は書かない**。 色はすべて `globals.css` の `--d-*` を参照するので、
- * `html.dark` が変数を差し替えれば図も一緒に変わる。 ここに `html.dark` の規則を足すと
- * 明暗を決める場所が 2 つになる。
+ * 画面の色で描く図は `globals.css` の `--d-*` を参照する。 `html.dark` が変数を差し替えれば
+ * 図も一緒に変わるので、ここには明暗の規則を書かない。 名前を持つ意匠は 2 通りあり、
+ * 生成りと青磁は明暗で組を替え、図面は地まで含めた 1 枚の絵として固定する (#2790)。
  *
  * 図の紙は画面と同じ `--d-surface`。 一覧でも編集画面でも同じ紙の上に図が乗る。
  *
@@ -496,11 +496,10 @@ svg[data-cdl-stage][data-cdl-type="class"] [data-cdl-active="true"] [data-cdl-ro
  * cdl は色を持たない。 `palette:` に書いた名前が `data-cdl-palette` として舞台 (`svg`) に
  * 出るので、ここで名前を見て色を当てる。
  *
- * **この節だけ `html.dark` を書く**。 冒頭は「明暗の切替は書かない」 と決めているが、その理由は
- * 図の色が `--d-*` から流れてくることにある = 上流が入れ替われば図も追随するので、ここで
- * 明暗を書くと決める場所が 2 つになる。 本節の色は `--d-*` から来ない = 意匠帳
- * (`docs/design/er/note.md`) が図のために決めた別の組で、入れ替わる上流が無い。 ここが唯一の
- * 決め場所になる。
+ * 名前を持つ意匠の色は `--d-*` から来ない。 生成りと青磁は意匠帳
+ * (`docs/design/er/note.md`) が明暗の 2 組を決めるので、この節の `html.dark` が唯一の決め場所に
+ * なる。 図面は `docs/design/blueprint/note.md` が固定の 1 組を決める。 暗い図面は別の意匠であり、
+ * 画面の明暗で地を替えると 1 枚の絵が崩れるため `html.dark` の塊を持たない (#2790)。
  *
  * ## 色を置く口は 9 つ
  *
@@ -581,9 +580,67 @@ html.dark svg[data-cdl-stage][data-cdl-palette="celadon"] {
   --er-link: #93b6e0;
 }
 
+/* 図面。 地まで含む 1 枚の絵なので、画面の明暗では値を替えない (#2790) */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] {
+  --er-ground: #e3e9ea;
+  --er-face: #e3e9ea;
+  --er-stripe: #eef2f3;
+  --er-frame: #143a52;
+  --er-ink: #143a52;
+  --er-type: #3f6479;
+  --er-line: #143a52;
+  --er-own: #a8431f;
+  --er-link: #1f7a6b;
+
+  /* 意匠ごとの現れ方は変数だけを渡し、箱へ当てる仕組みは下の共通規則に置く。 */
+  --theme-appear: blueprint-wipe-in;
+  --theme-appear-duration: 0.42s;
+  --theme-appear-easing: cubic-bezier(.35, 0, .25, 1);
+
+  /* `:root` の `--cdl-*` のうち、下の共通の塊が差し替えない口。
+     継いだままだと `html.dark` の `--d-*` が舞台へ流れ込み、固定した図面の一部だけが変わる。 */
+  --cdl-fill: var(--er-stripe);
+  --cdl-chip-fill: var(--er-stripe);
+  --cdl-chip-text: var(--er-ink);
+  --cdl-text-on-tone: var(--er-face);
+  --cdl-chart-1: var(--er-line);
+  --cdl-chart-2: var(--er-link);
+  --cdl-chart-3: var(--er-own);
+  --cdl-chart-4: #8a6a1f;
+  --cdl-chart-5: var(--er-type);
+  --cdl-chart-6: #6a8596;
+  --cdl-note-fill: var(--er-stripe);
+  --cdl-note-text: var(--er-own);
+  --cdl-tone-accent-deep: var(--er-line);
+  --cdl-tone-teal: var(--er-own);
+  --cdl-tone-success: var(--er-type);
+  --cdl-tone-error: var(--er-own);
+  --cdl-tone-warning: var(--er-own);
+
+  /* 本 file の規則が直接読む `--d-*` のうち、下の共通の塊が差し替えない口。
+     不透明度も明暗で値が違うため、明るい画面の値に固定する。 */
+  --d-bg: var(--er-ground);
+  --d-chart-1: var(--er-line);
+  --d-chart-2: var(--er-link);
+  --d-chart-3: var(--er-own);
+  --d-chart-4: #8a6a1f;
+  --d-chart-5: var(--er-type);
+  --d-chart-6: #6a8596;
+  --d-err: var(--er-own);
+  --d-warn: var(--er-own);
+  --d-warn-soft: var(--er-stripe);
+  --d-on-accent: var(--er-face);
+  --d-scrim: var(--er-frame);
+  --d-tree-edge-opacity: 0.85;
+  --d-mind-edge-opacity: 0.85;
+  --d-journey-chip-opacity: 0.6;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+}
+
 /*
- * 7 色を実際の口に流す。 配色の名前ごとに書かない = 名前が増えるたびにここを写すことになり、
- * 片方だけ直して食い違う。 名前が決めるのは上の 7 値だけで、流し先は 1 か所で持つ。
+ * 9 色を実際の口に流す。 配色の名前ごとに書かない = 名前が増えるたびにここを写すことになり、
+ * 片方だけ直して食い違う。 名前が決めるのは上の 9 値だけで、流し先は 1 か所で持つ。
  *
  * **`--d-*` も舞台の中だけ差し替える**。 箱の面や枠は上の規則群が `!important` で
  * `--d-surface` / `--d-text-secondary` に固定しているので、同じ強さで書き直す代わりに
@@ -640,7 +697,7 @@ svg[data-cdl-stage][data-cdl-palette] {
   --dragon-edge-tone: var(--er-line);
 
   /*
-   * 「いま」 の箱も 7 色の中に収める。
+   * 「いま」 の箱も 9 色の中に収める。
    *
    * 画面の主役色 (赤橙) のままにすると、図の中に決めた組と site の組の 2 系統が並ぶ。
    * 実測すると beige の台の上で朱の枠だけが浮き、どの箱を読むかより先に色の違いが目に入った。
@@ -656,6 +713,79 @@ svg[data-cdl-stage][data-cdl-palette] {
   --d-accent-face: var(--er-face);
   --cdl-now: var(--er-line);
   --cdl-text-accent: var(--er-line);
+}
+
+/*
+ * 意匠の現れ方 (#2790)。
+ *
+ * 隠れた箱は描く側が `display: none` で外し、出る時に表示へ戻すので、その時に 1 回だけ動く。
+ * 強調が移る時は `data-cdl-active` が変わるだけで動きの名前は変わらず、始まり直さない
+ * (実測 = 3 箱を 7 秒見て a / b / c は各 1 回、段 2 で出た c も出た時の 1 回だけ)。
+ *
+ * `backwards` は始まる前の切り抜きだけを保つ。 `forwards` / `both` で終端を残すと、箱の外へ
+ * はみ出す印や札まで `clip-path` で切れる。
+ */
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-node] {
+  animation-name: var(--theme-appear, none);
+  animation-duration: var(--theme-appear-duration, 0s);
+  animation-timing-function: var(--theme-appear-easing, linear);
+  animation-fill-mode: backwards;
+}
+
+@keyframes blueprint-wipe-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 図面の作り (#2790)
+ *
+ * 共通の塊と同じ強さなので、その `background` 一括指定より後ろに置く。 前へ置くと shorthand が
+ * `background-image` を初期値へ戻し、方眼だけが消える。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--er-frame) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--er-frame) 7%, transparent) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* 見せ方を持つ箱と始まり / 終わりの印は描く側の形を保つ。 子の図形にも当てるのは、箱の kind で
+   `node-body` 自身が輪郭になる形と、内側の図形が輪郭になる形の両方があるため。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > rect,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > path,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > ellipse,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > circle {
+  stroke-width: 1 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > rect,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > path,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > ellipse,
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > circle {
+  stroke-width: 2.25 !important;
+}
+
+/* event の外側に付く不透明度は小見出しにも掛かる。型名の色を合成せず字の対比を保つ。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-kind="event"] > g {
+  opacity: 1;
+}
+
+/* 時間の縦軸は一点鎖線に揃える。 `gantt-grid` は日程の目盛りの縦線。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="lane-lifeline"],
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="lane-container"],
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-grid"] {
+  stroke-dasharray: 22 7 5 7 !important;
 }
 
 /*
