@@ -23,6 +23,7 @@ export type ThemeNote =
   | { name: DslTheme; mode: "fixed"; value: ThemeValues };
 
 export type ThemeChartSeries = { roles: string[]; colors: string[] };
+export type ThemeGroundText = { ink: string; type: string };
 
 /** 意匠帳の役の呼び名と CSS の口の対応。読む側は全てこの 1 表を使う (#2790)。 */
 export const ROLE_TO_PORT = {
@@ -164,6 +165,30 @@ export function readFixedThemeLead(
     const 色 = /^`(#[0-9a-fA-F]{6})`/.exec(一)?.[1];
     if (!色) throw new Error(`意匠帳の ${name} の「一」が #rrggbb で始まらない`);
     out.set(name, 色.toLowerCase());
+  }
+  return out;
+}
+
+/** 固定の意匠で台の上だけに使う字を読む。2 行とも無い意匠は別の組を持たない。 */
+export function readFixedThemeGroundText(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, ThemeGroundText> {
+  const out = new Map<DslTheme, ThemeGroundText>();
+  for (const [name, note] of readThemeNotes(overrides)) {
+    if (note.mode !== "fixed") continue;
+    const 本文 = overrides[name] ?? readThemeNoteText(name);
+    const rows = 二列表を読む(節を取る(本文, "色以外の値", 3));
+    const 地の字 = rows.get("地の字");
+    const 地の薄 = rows.get("地の薄");
+    if (地の字 === undefined && 地の薄 === undefined) continue;
+    if (地の字 === undefined || 地の薄 === undefined) {
+      throw new Error(`意匠帳の ${name} は「地の字」と「地の薄」を両方持つ必要がある`);
+    }
+    const ink = /^`(#[0-9a-fA-F]{6})`/.exec(地の字)?.[1];
+    const type = /^`(#[0-9a-fA-F]{6})`/.exec(地の薄)?.[1];
+    if (!ink) throw new Error(`意匠帳の ${name} の「地の字」が #rrggbb で始まらない`);
+    if (!type) throw new Error(`意匠帳の ${name} の「地の薄」が #rrggbb で始まらない`);
+    out.set(name, { ink: ink.toLowerCase(), type: type.toLowerCase() });
   }
   return out;
 }

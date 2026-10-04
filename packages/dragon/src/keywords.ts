@@ -103,7 +103,7 @@ export function resolveShape(s: string): DslShape | null {
 }
 
 /**
- * 図の意匠 (`theme:`、 #1553 / #2790 / #2791)。
+ * 図の意匠 (`theme:`、 #1553 / #2790 / #2791 / #2792)。
  *
  * cdl は色を持たない (形だけを描く)。 名前を `data-cdl-palette` として markup に出すので、
  * dragon の `cdl-theme.css` がその名前を見て 9 つの口
@@ -112,13 +112,14 @@ export function resolveShape(s: string): DslShape | null {
  * **名前を自由文字列にしない**。 書き間違えると既定の色みのまま出るので、書き手には
  * 「効かない」 としか見えない。 語を絞れば読めない語をその場で知らせられる。
  */
-export const THEMES = ["kinari", "celadon", "blueprint", "letterpress"] as const;
+export const THEMES = ["kinari", "celadon", "blueprint", "letterpress", "catalog"] as const;
 export type DslTheme = (typeof THEMES)[number];
 
 /**
- * 意匠の別名 (#2790 / #2791)。 向きと同じく日本語と英語の両方で書ける。
+ * 意匠の別名 (#2790 / #2791 / #2792)。 向きと同じく日本語と英語の両方で書ける。
  *
- * `kinari` = 生成りに茶、 `celadon` = 青磁に墨、 `blueprint` = 図面、 `letterpress` = 活版。
+ * `kinari` = 生成りに茶、 `celadon` = 青磁に墨、 `blueprint` = 図面、 `letterpress` = 活版、
+ * `catalog` = 図録。
  *
  * クラス図は書かなくても `kinari` (生成りに茶) になる。 名前と型が離れて並ぶため、行を横に
  * 追う目印 (行の縞) が要る。 縞の色は意匠からしか来ないので、既定が無いと縞が箱の面と同じ
@@ -129,12 +130,14 @@ export const THEME_ALIAS: Record<string, DslTheme> = {
   celadon: "celadon",
   blueprint: "blueprint",
   letterpress: "letterpress",
+  catalog: "catalog",
   生成り: "kinari",
   生成りに茶: "kinari",
   青磁: "celadon",
   青磁に墨: "celadon",
   図面: "blueprint",
   活版: "letterpress",
+  図録: "catalog",
 };
 
 /** 書いた意匠を正規の語に直す。 読めない語は `null`。 */
