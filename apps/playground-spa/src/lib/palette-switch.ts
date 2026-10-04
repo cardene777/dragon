@@ -25,6 +25,7 @@ const 値と札 = {
   celadon: { ja: "青磁に墨", en: "Celadon and ink" },
   blueprint: { ja: "図面", en: "Blueprint" },
   letterpress: { ja: "活版", en: "Letterpress" },
+  catalog: { ja: "図録", en: "Catalog" },
 } as const satisfies Record<DslTheme, 二言語>;
 
 /** 画面に出す意匠は記法が受ける正の名前から導く (#2790)。 */

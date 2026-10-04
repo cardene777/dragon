@@ -19,6 +19,7 @@ import { 六色の記法, 記法をURLに載せる } from "./box-and-edge-figure
 import { 一覧の行 } from "./catalog-item-pick";
 import {
   THEME_PORTS,
+  readFixedThemeChartSeries,
   readFixedThemeLead,
   readThemeNotes,
   type ThemeNote,
@@ -991,6 +992,7 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
     deviceScaleFactor: FIXED_THEME_DEVICE_SCALE_FACTOR,
   });
   const samples = samplesByType();
+  const chartColors = readFixedThemeChartSeries();
   const leadColors = readFixedThemeLead();
 
   test("EDITOR_SAMPLES が全ての図種を 1 件以上持つ", () => {
@@ -1004,6 +1006,8 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
         const failures: string[] = [];
         const lead = leadColors.get(note.name);
         if (!lead) throw new Error(`${note.name} の一を読めない`);
+        const expectedChart = chartColors.get(note.name);
+        if (!expectedChart) throw new Error(`${note.name} の図表の系列色を読めない`);
         let applied = 0;
         let boxTypes = 0;
         let edgeTypes = 0;
@@ -1018,6 +1022,8 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
             return {
               ground: style.backgroundColor,
               now: style.getPropertyValue("--cdl-now").trim(),
+              chart: Array.from({ length: 6 }, (_, index) =>
+                style.getPropertyValue(`--cdl-chart-${index + 1}`).trim()),
               ports: Object.fromEntries(ports.map((port) => [port, style.getPropertyValue(`--er-${port}`).trim()])),
             };
           }, [...THEME_PORTS]);
@@ -1026,6 +1032,14 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
           }
           if (colorKey(stageValues.now) !== colorKey(lead)) {
             failures.push(`${type}/${mode}: --cdl-now ${stageValues.now} / 一 ${lead}`);
+          }
+          for (const [index, expected] of expectedChart.colors.entries()) {
+            const actual = stageValues.chart[index] ?? "";
+            if (colorKey(actual) !== colorKey(expected)) {
+              failures.push(
+                `${type}/${mode}: --cdl-chart-${index + 1} ${actual} / ${expected}`,
+              );
+            }
           }
           for (const port of THEME_PORTS) {
             if (colorKey(stageValues.ports[port] ?? "") !== colorKey(note.value[port])) {

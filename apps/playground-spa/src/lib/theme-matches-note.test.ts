@@ -14,6 +14,7 @@ import {
   THEME_PORTS,
   readFixedThemeChartSeries,
   readFixedThemeFrameOpacity,
+  readFixedThemeGroundText,
   readFixedThemeLead,
   readThemeNotes,
   readThemeNoteText,
@@ -29,6 +30,7 @@ type CssTheme = { light: Map<ThemePort, string>; dark: Map<ThemePort, string>; h
 type CssChartTheme = { cdl: string[]; dragon: string[]; colors: string[] };
 const TEXT_TONES = ["accent", "teal", "success", "error", "warning", "info"] as const;
 const TEXT_BACKGROUNDS = ["ground", "face", "stripe"] as const;
+const CARD_TEXT_BACKGROUNDS = ["face", "stripe"] as const;
 
 function cssThemes(cssText: string): Map<string, CssTheme> {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -107,15 +109,39 @@ function rgb(hex: string): [number, number, number] {
 function cssFixedThemeDeclarations(cssText: string, themeName: string): Map<string, string> {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
   const declarations = new Map<string, string>();
+  const namedStage = `svg[data-cdl-stage][data-cdl-palette="${themeName}"]`;
+  const sharedStage = "svg[data-cdl-stage][data-cdl-palette]";
   for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
     const selector = m[1] ?? "";
-    const applies = selector.includes(`[data-cdl-palette="${themeName}"]`) ||
-      selector.includes("[data-cdl-palette]");
+    const applies = selector.split(",").some((part) => {
+      const exact = part.trim();
+      return exact === namedStage || exact === sharedStage;
+    });
     if (!applies) continue;
     for (const value of (m[2] ?? "").matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)\s*;/gi)) {
       const property = value[1];
       const declaration = value[2];
       if (!property || !declaration) throw new Error(`${themeName} の CSS 宣言を読めない`);
+      declarations.set(property, declaration.trim().toLowerCase());
+    }
+  }
+  return declarations;
+}
+
+/** 舞台の値へ、面を持つ箱で宣言し直した値だけを重ねる。 */
+function cssFixedThemeBoxDeclarations(cssText: string, themeName: string): Map<string, string> {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const declarations = cssFixedThemeDeclarations(cssText, themeName);
+  const named = `[data-cdl-palette="${themeName}"]`;
+  for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+    const selector = m[1] ?? "";
+    const applies = selector.split(",").some((part) =>
+      part.includes(named) && part.includes("[data-cdl-node]:has("));
+    if (!applies) continue;
+    for (const value of (m[2] ?? "").matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)\s*;/gi)) {
+      const property = value[1];
+      const declaration = value[2];
+      if (!property || !declaration) throw new Error(`${themeName} の箱の CSS 宣言を読めない`);
       declarations.set(property, declaration.trim().toLowerCase());
     }
   }
@@ -140,18 +166,38 @@ function resolveCssColor(
 function fixedTextToneContrast(cssText: string): { checked: number; failures: string[] } {
   const failures: string[] = [];
   let checked = 0;
+  const groundText = readFixedThemeGroundText();
   for (const [name, note] of readThemeNotes()) {
     if (note.mode !== "fixed") continue;
-    const declarations = cssFixedThemeDeclarations(cssText, name);
+    const stageDeclarations = cssFixedThemeDeclarations(cssText, name);
+    const separateGroundText = groundText.get(name);
+    const declarations = separateGroundText
+      ? cssFixedThemeBoxDeclarations(cssText, name)
+      : stageDeclarations;
+    const backgrounds = separateGroundText ? CARD_TEXT_BACKGROUNDS : TEXT_BACKGROUNDS;
     for (const tone of TEXT_TONES) {
       const foreground = resolveCssColor(declarations, `cdl-tone-${tone}`);
-      for (const background of TEXT_BACKGROUNDS) {
+      for (const background of backgrounds) {
         const ground = resolveCssColor(declarations, `er-${background}`);
         const ratio = contrast(rgb(foreground), rgb(ground));
         checked += 1;
         if (ratio < 4.5) {
           failures.push(
             `${name} --cdl-tone-${tone} ${foreground} / --er-${background} ${ground}: ` +
+            `${ratio.toFixed(2)}:1 < 4.5:1`,
+          );
+        }
+      }
+    }
+    if (separateGroundText) {
+      for (const property of ["theme-ground-ink", "theme-ground-type"] as const) {
+        const foreground = resolveCssColor(stageDeclarations, property);
+        const ground = resolveCssColor(stageDeclarations, "er-ground");
+        const ratio = contrast(rgb(foreground), rgb(ground));
+        checked += 1;
+        if (ratio < 4.5) {
+          failures.push(
+            `${name} --${property} ${foreground} / --er-ground ${ground}: ` +
             `${ratio.toFixed(2)}:1 < 4.5:1`,
           );
         }
@@ -416,12 +462,38 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     );
   });
 
-  it("固定の意匠で字に使う tone は台・行の面・縞の上で 4.5 以上になる", () => {
-    const fixedCount = [...readThemeNotes().values()].filter((note) => note.mode === "fixed").length;
+  it("台の上の字を別に持つ固定の意匠は CSS の地の字と地の薄が意匠帳に一致する", () => {
+    const expected = readFixedThemeGroundText();
+    expect(expected.size, "台の上の字を別に持つ意匠を 1 件も読めていない").toBeGreaterThan(0);
+    for (const [name, text] of expected) {
+      const declarations = cssFixedThemeDeclarations(cssText, name);
+      expect(resolveCssColor(declarations, "theme-ground-ink"), `${name} の地の字`).toBe(text.ink);
+      expect(resolveCssColor(declarations, "theme-ground-type"), `${name} の地の薄`).toBe(text.type);
+    }
+  });
+
+  it("図録の意匠帳で地の字を変えると CSS との不一致を検知する", () => {
+    const original = readThemeNoteText("catalog");
+    const changed = original.replace(/(\|\s*地の字\s*\|\s*)`#efe7d8`/, "$1`#ffffff`");
+    expect(changed, "変異を本文へ植え込めていない").not.toBe(original);
+    const expected = readFixedThemeGroundText({ catalog: changed }).get("catalog");
+    const declarations = cssFixedThemeDeclarations(cssText, "catalog");
+    expect(resolveCssColor(declarations, "theme-ground-ink")).not.toBe(expected?.ink);
+  });
+
+  it("固定の意匠で字に使う tone は字を載せる面、地の字は台の上で 4.5 以上になる", () => {
+    const groundText = readFixedThemeGroundText();
+    let expectedChecked = 0;
+    for (const note of readThemeNotes().values()) {
+      if (note.mode !== "fixed") continue;
+      expectedChecked += groundText.has(note.name)
+        ? TEXT_TONES.length * CARD_TEXT_BACKGROUNDS.length + 2
+        : TEXT_TONES.length * TEXT_BACKGROUNDS.length;
+    }
     const result = fixedTextToneContrast(cssText);
 
     expect(result.checked, "固定の意匠 × 文字用 tone × 背景を全て調べていない").toBe(
-      fixedCount * TEXT_TONES.length * TEXT_BACKGROUNDS.length,
+      expectedChecked,
     );
     expect(result.failures, "固定の意匠の文字用 tone が字の下限を割る").toEqual([]);
   });
