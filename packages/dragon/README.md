@@ -76,7 +76,7 @@ flow:
 | `direction` | 図の並ぶ向き (`縦` / `横`、英語なら `vertical` / `horizontal`)。 効くのは `flow` と `swimlane` だけ |
 | `order`     | 箱を並べ替える軸 (`種類`、英語なら `kind`)。 効くのは `sequence` だけで、書くと `kind:` の順 (人 → 契約 → 保管 → 出来事) に箱が並ぶ |
 | `shape`     | 数を描く図の形 (`pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope`)。 効くのは `chart` だけで、書かなければ `bar` |
-| `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る。 クラス図は書かなくても `kinari` |
+| `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る。 クラス図は書かなくても `kinari` |
 
 <!-- notation:top-level:end -->
 

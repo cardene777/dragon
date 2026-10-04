@@ -169,6 +169,22 @@ export function readFixedThemeLead(
   return out;
 }
 
+/** 固定の意匠の「色以外の値」から、役の先頭に書いた色を読む。行が無い役は `undefined`。 */
+export function readFixedThemeRoleColor(
+  name: DslTheme,
+  role: string,
+  textOverride?: string,
+): string | undefined {
+  const note = readThemeNotes().get(name);
+  if (note?.mode !== "fixed") return undefined;
+  const rows = 二列表を読む(節を取る(textOverride ?? readThemeNoteText(name), "色以外の値", 3));
+  const value = rows.get(role);
+  if (value === undefined) return undefined;
+  const color = /^`(#[0-9a-fA-F]{6})`/.exec(value)?.[1];
+  if (!color) throw new Error(`意匠帳の ${name} の「${role}」が #rrggbb で始まらない`);
+  return color.toLowerCase();
+}
+
 /** 固定の意匠で台の上だけに使う字を読む。2 行とも無い意匠は別の組を持たない。 */
 export function readFixedThemeGroundText(
   overrides: Partial<Record<DslTheme, string>> = {},

@@ -61,7 +61,8 @@ import { DEV_URL, PREVIEW_BASE_URL } from "./ports";
  */
 
 /** 他と重ねない検査。 負荷で結果が変わる側と、 負荷を出す側の両方を含む */
-const 重ねない検査 = /(editor-initial-animation|rendered-contrast|muted-text-symmetry)\.spec\.ts$/;
+// terminal-theme は 3 倍の写しと animationstart の回数を測るため、負荷で観測を変えない (#2793)。
+const 重ねない検査 = /(editor-initial-animation|rendered-contrast|muted-text-symmetry|terminal-theme)\.spec\.ts$/;
 
 /**
  * 開発時のみの頁 (`/__render`) を使う検査。

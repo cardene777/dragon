@@ -45,7 +45,7 @@ test("switch: 意匠の札が全て並び、配色を持つ図で切り替えら
 
   await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
   const expected = 配色の選択肢.map((theme) => 配色の札(theme, "ja"));
-  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録"]);
+  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末"]);
   for (const label of expected)
     await expect(切替(page).getByRole("radio", { name: label })).toHaveCount(1);
   expect(await 配色(page, "er-demo"), "既定が生成りに茶でない").toBe("kinari");
@@ -120,6 +120,24 @@ test("catalog switch: 配色のない図と表の図へ図録の名前と地が�
       return stage ? getComputedStyle(stage).backgroundColor : null;
     });
     expect(ground, id).toBe(hexToRgb(catalog.value.ground));
+  }
+});
+
+test("terminal switch: 配色のない図と表の図へ端末の名前と地が届く", async ({ page }) => {
+  const terminal = readThemeNotes().get("terminal");
+  if (terminal?.mode !== "fixed") throw new Error("端末の意匠帳が固定の表ではない");
+
+  for (const id of ["infra-demo", "er-demo"]) {
+    await 開く(page, "presets", id);
+    await 切替(page)
+      .getByRole("radio", { name: 配色の札("terminal", "ja") })
+      .click();
+    await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("terminal");
+    const ground = await page.evaluate(() => {
+      const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="terminal"]');
+      return stage ? getComputedStyle(stage).backgroundColor : null;
+    });
+    expect(ground, id).toBe(hexToRgb(terminal.value.ground));
   }
 });
 

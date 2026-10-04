@@ -12,4 +12,9 @@
   svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge] {
     animation: none !important;
   }
+
+  /* 端末の線も箱と別の現れ方を持つため、動きを減らす時は明示して止める (#2793)。 */
+  svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge] {
+    animation: none !important;
+  }
 }
