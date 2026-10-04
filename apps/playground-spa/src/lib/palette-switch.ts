@@ -28,6 +28,7 @@ const 値と札 = {
   catalog: { ja: "図録", en: "Catalog" },
   terminal: { ja: "端末", en: "Terminal" },
   sketch: { ja: "手描き", en: "Sketch" },
+  neon: { ja: "電飾", en: "Neon" },
 } as const satisfies Record<DslTheme, 二言語>;
 
 /** 画面に出す意匠は記法が受ける正の名前から導く (#2790)。 */

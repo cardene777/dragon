@@ -45,7 +45,7 @@ test("switch: 意匠の札が全て並び、配色を持つ図で切り替えら
 
   await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
   const expected = 配色の選択肢.map((theme) => 配色の札(theme, "ja"));
-  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末", "手描き"]);
+  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末", "手描き", "電飾"]);
   for (const label of expected)
     await expect(切替(page).getByRole("radio", { name: label })).toHaveCount(1);
   expect(await 配色(page, "er-demo"), "既定が生成りに茶でない").toBe("kinari");
@@ -194,6 +194,26 @@ test("sketch switch: 配色のない図と表の図へ手描きの名前と地�
       return stage ? getComputedStyle(stage).backgroundColor : null;
     });
     expect(ground, id).toBe(hexToRgb(sketch.value.ground));
+  }
+});
+
+test("neon switch: 配色のない図と表の図へ電飾の名前と地が届く", async ({ page }) => {
+  const neon = readThemeNotes().get("neon");
+  if (neon?.mode !== "fixed") throw new Error("電飾の意匠帳が固定の表ではない");
+
+  for (const id of ["infra-demo", "er-demo"]) {
+    await 開く(page, "presets", id);
+    const option = 切替(page).getByRole("radio", { name: 配色の札("neon", "ja") });
+    const count = await option.count();
+    console.log(`neon switch ${id}: options=${count}`);
+    expect(count, `${id} の電飾の選択肢`).toBe(1);
+    await option.click();
+    await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("neon");
+    const ground = await page.evaluate(() => {
+      const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="neon"]');
+      return stage ? getComputedStyle(stage).backgroundColor : null;
+    });
+    expect(ground, id).toBe(hexToRgb(neon.value.ground));
   }
 });
 

@@ -9,6 +9,7 @@
  *   - Pinboard    : dragon-pin-board-pattern / dragon-pin-sticky-shadow
  *   - Blueprint   : dragon-bp-graticule (+ dark) / dragon-bp-arrow-ortho marker
  *   - Sketch      : dragon-sketch-wobble (turbulence displacement) / dragon-sketch-pen
+ *   - Neon        : dragon-neon-tube (white core + colored glow)
  *
  * SVG は position:absolute + width/height 0 + aria-hidden で完全に不可視、
  * pointer-events none で下位要素の click を吸わない。
@@ -293,6 +294,43 @@ export function SvgDefs(): React.ReactElement {
         >
           <rect width="3" height="10" fill="#9a9080" />
         </pattern>
+
+        {/* ═════════════════ Neon ═════════════════
+            `[data-cdl-palette="neon"]` の規則が枠と線の管を参照する。
+            芯の 35% と 65% は見本の `color-mix(in srgb, 管の色 35%, white)` と同じ混ぜ方で、
+            neon-theme.spec.ts が意匠帳の「管」 と突き合わせる (#2795)。 */}
+        <filter
+          id="dragon-neon-tube"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          {/* 明るい画素だけを残す。 面と台 (明るさ 0.1 未満) は落ち、管だけが残る */}
+          <feColorMatrix
+            in="SourceGraphic"
+            type="matrix"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0.6 0.6 0.6 0 -0.2"
+            result="tube"
+          />
+          <feGaussianBlur in="tube" stdDeviation="5" result="haze" />
+          <feGaussianBlur in="tube" stdDeviation="1.5" result="halo" />
+          <feMorphology in="tube" operator="erode" radius="0.5" result="thin" />
+          <feColorMatrix
+            in="thin"
+            type="matrix"
+            values="0.35 0 0 0 0.65  0 0.35 0 0 0.65  0 0 0.35 0 0.65  0 0 0 1 0"
+            result="core"
+          />
+          <feMerge>
+            <feMergeNode in="haze" />
+            <feMergeNode in="halo" />
+            <feMergeNode in="SourceGraphic" />
+            <feMergeNode in="core" />
+          </feMerge>
+        </filter>
       </defs>
     </svg>
   );
