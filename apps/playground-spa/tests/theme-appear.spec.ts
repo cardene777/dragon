@@ -1,38 +1,17 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
 import { 記法をURLに載せる } from "./box-and-edge-figure";
+import {
+  captureThemeAppear as capture,
+  themeAnimationName as animationName,
+  themeAppearCounts as counts,
+  themeAppearSource as source,
+  themeEdgeAppearCounts as edgeCounts,
+} from "./helpers/theme-appear-capture";
 import { readThemeNotes, type ThemeNote } from "./helpers/theme-notes";
-
-const source = (theme: string): string => `title: "現れ方"
-type: flow
-theme: ${theme}
-reveal: all
-
-states:
-  shown: 0
-
-actors:
-  - a: { kind: card, title: "A" }
-  - b: { kind: card, title: "B" }
-  - c: { kind: card, title: "C", 出す条件: "{shown}" }
-
-flow:
-  - a -> b
-  - b -> c
-
-animation:
-  - step: "1" 2.0s
-    focus: [a]
-  - step: "2" 2.0s
-    focus: [b]
-    set:
-      shown: 1
-  - step: "3" 2.0s
-    focus: [a]
-`;
 
 const fixedThemes = (): Array<Extract<ThemeNote, { mode: "fixed" }>> =>
   [...readThemeNotes().values()].filter(
@@ -50,64 +29,6 @@ const edgeAppearingThemes = (): Array<Extract<ThemeNote, { mode: "fixed" }>> =>
       (block[1] ?? "").trim() === `svg[data-cdl-stage][data-cdl-palette="${note.name}"]` &&
       /--theme-edge-appear\s*:/.test(block[2] ?? "")));
 
-async function capture(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const counts: Record<string, number> = {};
-    (window as unknown as { __themeAppearCounts: Record<string, number> }).__themeAppearCounts =
-      counts;
-    const edgeCounts: Record<string, number> = {};
-    (window as unknown as { __themeEdgeAppearCounts: Record<string, number> })
-      .__themeEdgeAppearCounts = edgeCounts;
-    document.addEventListener(
-      "animationstart",
-      (event) => {
-        if (!(event instanceof AnimationEvent)) return;
-        const target =
-          event.target instanceof Element ? event.target.closest("[data-cdl-node]") : null;
-        const stage = target?.closest("svg[data-cdl-stage]");
-        const animation = stage
-          ? getComputedStyle(stage).getPropertyValue("--theme-appear").trim()
-          : "";
-        if (animation && animation !== "none" && event.animationName === animation) {
-          const id = target?.getAttribute("data-cdl-node");
-          if (id) counts[id] = (counts[id] ?? 0) + 1;
-        }
-
-        const edge = event.target instanceof Element
-          ? event.target.closest("[data-cdl-edge]")
-          : null;
-        const edgeStage = edge?.closest("svg[data-cdl-stage]");
-        const edgeAnimation = edgeStage
-          ? getComputedStyle(edgeStage).getPropertyValue("--theme-edge-appear").trim()
-          : "";
-        if (edgeAnimation && edgeAnimation !== "none" && event.animationName === edgeAnimation) {
-          const edgeId = edge?.getAttribute("data-cdl-edge");
-          if (edgeId) edgeCounts[edgeId] = (edgeCounts[edgeId] ?? 0) + 1;
-        }
-      },
-      true,
-    );
-  });
-}
-
-async function edgeCounts(page: Page): Promise<Record<string, number>> {
-  return page.evaluate(() => ({
-    ...(window as unknown as { __themeEdgeAppearCounts?: Record<string, number> })
-      .__themeEdgeAppearCounts,
-  }));
-}
-
-async function counts(page: Page): Promise<Record<string, number>> {
-  return page.evaluate(() => ({
-    ...(window as unknown as { __themeAppearCounts?: Record<string, number> }).__themeAppearCounts,
-  }));
-}
-
-async function animationName(page: Page, name: string): Promise<string> {
-  return page
-    .locator(`svg[data-cdl-stage][data-cdl-palette="${name}"]`)
-    .evaluate((stage) => getComputedStyle(stage).getPropertyValue("--theme-appear").trim());
-}
 
 for (const note of fixedThemes()) {
   test(`${note.name} initial-animation: 箱は開いた時か新しく現れた時の 1 回だけ動く`, async ({

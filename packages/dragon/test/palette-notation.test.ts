@@ -236,6 +236,31 @@ describe("図の意匠 (#1553 / #2790)", () => {
     expect(resolveTheme("図録")).toBe("catalog");
   });
 
+  it("terminal / 端末: theme と palette の組み立て結果が一致し、v05 と JSON で正の名前に解ける", () => {
+    const 組み立てる = (本文: string): { diagram: ReturnType<typeof textDslToDiagram>; notices: CompileNotice[] } => {
+      const notices: CompileNotice[] = [];
+      const diagram = textDslToDiagram(本文, { onNotice: (notice) => notices.push(notice) });
+      return { diagram, notices };
+    };
+    const 正 = 組み立てる(ER("terminal", "theme"));
+    const 和名 = 組み立てる(ER("端末", "theme"));
+    const 別名 = 組み立てる(ER("terminal", "palette"));
+
+    expect([正.notices, 和名.notices, 別名.notices]).toEqual([[], [], []]);
+    expect(正.diagram.palette).toBe("terminal");
+    expect(和名.diagram).toEqual(正.diagram);
+    expect(別名.diagram).toEqual(正.diagram);
+    const v05 = [parseTextDslV05(ER("terminal", "theme")), parseTextDslV05(ER("端末", "theme"))];
+    for (const result of v05) {
+      expect(result).toMatchObject({ ok: true });
+      if (result.ok) expect(result.doc.theme).toBe("terminal");
+    }
+    expect(jsonToDiagram({ title: "確かめ", type: "record", theme: "terminal", actors: ["A"], flow: [] }).palette).toBe("terminal");
+    expect(jsonToDiagram({ title: "確かめ", type: "record", theme: "端末", actors: ["A"], flow: [] }).palette).toBe("terminal");
+    expect(resolveTheme("terminal")).toBe("terminal");
+    expect(resolveTheme("端末")).toBe("terminal");
+  });
+
   it("theme と palette を両方書くと順番に依らず theme が勝ち、v05 と JSON で知らせが 1 件になる", () => {
     const 本文たち = [
       ER("kinari", "theme").replace("theme: kinari", "theme: blueprint\npalette: celadon"),

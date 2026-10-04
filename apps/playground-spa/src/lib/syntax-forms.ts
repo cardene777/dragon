@@ -276,6 +276,8 @@ export const FORMS: Section[] = [
       { code: "theme: 活版", note: "日本語でも書ける", noteEn: "The Japanese name works too" },
       { code: "theme: catalog", note: "図録", noteEn: "Catalog" },
       { code: "theme: 図録", note: "日本語でも書ける", noteEn: "The Japanese name works too" },
+      { code: "theme: terminal", note: "端末", noteEn: "Terminal" },
+      { code: "theme: 端末", note: "日本語でも書ける", noteEn: "The Japanese name works too" },
     ],
   },
   {

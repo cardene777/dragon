@@ -16,6 +16,7 @@ import {
   readFixedThemeFrameOpacity,
   readFixedThemeGroundText,
   readFixedThemeLead,
+  readFixedThemeRoleColor,
   readThemeNotes,
   readThemeNoteText,
   type ThemeNote,
@@ -392,6 +393,58 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     const expected = readFixedThemeLead({ letterpress: changed }).get("letterpress");
     const actual = resolveCssColor(cssFixedThemeDeclarations(cssText, "letterpress"), "cdl-now");
     expect(actual).not.toBe(expected);
+  });
+
+  it("題と札の字を持つ固定の意匠は CSS と一致し、それぞれの面で 4.5 以上になる", () => {
+    const failures: string[] = [];
+    let checkedThemes = 0;
+    for (const [name, note] of readThemeNotes()) {
+      if (note.mode !== "fixed") continue;
+      const title = readFixedThemeRoleColor(name, "題");
+      const tagInk = readFixedThemeRoleColor(name, "札の字");
+      if (title === undefined && tagInk === undefined) continue;
+      checkedThemes += 1;
+      const declarations = cssFixedThemeDeclarations(cssText, name);
+      if (title !== undefined) {
+        const actual = resolveCssColor(declarations, "theme-title");
+        if (actual !== title) failures.push(`${name} 題: 意匠帳 ${title} / CSS ${actual}`);
+        for (const port of ["ground", "face", "stripe"] as const) {
+          const ratio = contrast(rgb(title), rgb(note.value[port]));
+          if (ratio < 4.5) failures.push(`${name} 題 / ${port}: ${ratio.toFixed(2)}:1 < 4.5:1`);
+        }
+      }
+      if (tagInk !== undefined) {
+        const actual = resolveCssColor(declarations, "theme-tag-ink");
+        if (actual !== tagInk) failures.push(`${name} 札の字: 意匠帳 ${tagInk} / CSS ${actual}`);
+        for (const port of ["line", "own", "link"] as const) {
+          const ratio = contrast(rgb(tagInk), rgb(note.value[port]));
+          if (ratio < 4.5) failures.push(`${name} 札の字 / ${port}: ${ratio.toFixed(2)}:1 < 4.5:1`);
+        }
+      }
+    }
+    expect(checkedThemes, "題または札の字を持つ固定の意匠が 0 件").toBeGreaterThan(0);
+    expect(failures, "題と札の字が意匠帳または対比の決まりと違う").toEqual([]);
+  });
+
+  it("意匠帳の題を書き換えると CSS との不一致を検知する", () => {
+    const target = [...readThemeNotes()].find(
+      ([name, note]) => note.mode === "fixed" && readFixedThemeRoleColor(name, "題") !== undefined,
+    );
+    expect(target, "題を持つ固定の意匠が 0 件").toBeDefined();
+    if (!target) return;
+    const [name] = target;
+    const original = readThemeNoteText(name);
+    const expected = readFixedThemeRoleColor(name, "題");
+    if (!expected) throw new Error(`${name} の題を読めない`);
+    const changed = original.replace(
+      new RegExp(`(\\|\\s*題\\s*\\|\\s*)\`${expected}\``),
+      "$1`#ffffff`",
+    );
+    expect(changed, "題の変異を本文へ植え込めていない").not.toBe(original);
+    const changedExpected = readFixedThemeRoleColor(name, "題", changed);
+    const actual = resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-title");
+    expect(expected).toBe(actual);
+    expect(changedExpected).not.toBe(actual);
   });
 
   it("意匠帳に一がある時は #rrggbb で始まらなければ落とす", () => {
