@@ -2,13 +2,13 @@
  * SVG defs SSOT (旧 dragon apps/playground の CdlFilterDefs.astro を React 化)。
  * cdl の CdlDiagramThumbnail が theme 別 filter / pattern / gradient / marker を参照する。
  *
- * 6 theme × 各 filter:
+ * theme ごとの filter / pattern:
  *   - Neumorphism : dragon-nm-raised / -sm / -dark / -soft / inset-soft (+ dark)
  *   - Isometric   : dragon-iso-top-gradient (+ dark) / dragon-iso-cast-shadow (+ dark)
  *   - Circuit     : dragon-cir-board-pattern / dragon-cir-trace-glow
  *   - Pinboard    : dragon-pin-board-pattern / dragon-pin-sticky-shadow
  *   - Blueprint   : dragon-bp-graticule (+ dark) / dragon-bp-arrow-ortho marker
- *   - Handdrawn   : dragon-hd-wobble (turbulence displacement)
+ *   - Sketch      : dragon-sketch-wobble (turbulence displacement) / dragon-sketch-pen
  *
  * SVG は position:absolute + width/height 0 + aria-hidden で完全に不可視、
  * pointer-events none で下位要素の click を吸わない。
@@ -258,11 +258,20 @@ export function SvgDefs(): React.ReactElement {
           />
         </marker>
 
-        {/* ═════════════════ Handdrawn ═════════════════ */}
-        <filter id="dragon-hd-wobble" x="-15%" y="-15%" width="130%" height="130%">
+        {/* ═════════════════ Sketch ═════════════════
+            `[data-cdl-palette="sketch"]` の規則が揺れと斜線を参照する。
+            模様の色は意匠帳の淡と同じで、sketch-theme.spec.ts が突き合わせる (#2794)。 */}
+        <filter
+          id="dragon-sketch-wobble"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+        >
           <feTurbulence
             type="fractalNoise"
-            baseFrequency="0.025"
+            baseFrequency="0.03"
             numOctaves={2}
             seed={7}
             result="noise"
@@ -270,11 +279,20 @@ export function SvgDefs(): React.ReactElement {
           <feDisplacementMap
             in="SourceGraphic"
             in2="noise"
-            scale="4.0"
+            scale="3"
             xChannelSelector="R"
             yChannelSelector="G"
           />
         </filter>
+        <pattern
+          id="dragon-sketch-pen"
+          width="10"
+          height="10"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(32)"
+        >
+          <rect width="3" height="10" fill="#9a9080" />
+        </pattern>
       </defs>
     </svg>
   );

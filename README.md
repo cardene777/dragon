@@ -172,7 +172,7 @@ animation:
     focus: [API, データベース, "API -> データベース"]
 ```
 
-`theme:` で図の意匠を `kinari` / `celadon` / `blueprint` / `letterpress` / `catalog` / `terminal` から選べる。
+`theme:` で図の意匠を `kinari` / `celadon` / `blueprint` / `letterpress` / `catalog` / `terminal` / `sketch` から選べる。
 `palette:` も `theme:` の別名として読む。
 
 catalog SPA で実例を確認可能、 コピペして応用する使い方が標準。

@@ -68,6 +68,14 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     expect(押される配色(次, null)).toBe("terminal");
   });
 
+  it("sketch switch: 手描きを選ぶと palette を sketch に差し替える", () => {
+    const 元 = 図("terminal");
+    const 次 = 図の配色を変える(元, "sketch");
+    expect(次).not.toBe(元);
+    expect(次.palette).toBe("sketch");
+    expect(押される配色(次, null)).toBe("sketch");
+  });
+
   it("未選択の押された札は図の意匠に従い、意匠が無ければ画面の色になる", () => {
     expect(押される配色(図("blueprint"), null)).toBe("blueprint");
     expect(押される配色(図(), null)).toBe(画面の色);

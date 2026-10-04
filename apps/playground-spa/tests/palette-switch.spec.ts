@@ -45,7 +45,7 @@ test("switch: 意匠の札が全て並び、配色を持つ図で切り替えら
 
   await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
   const expected = 配色の選択肢.map((theme) => 配色の札(theme, "ja"));
-  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末"]);
+  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末", "手描き"]);
   for (const label of expected)
     await expect(切替(page).getByRole("radio", { name: label })).toHaveCount(1);
   expect(await 配色(page, "er-demo"), "既定が生成りに茶でない").toBe("kinari");
@@ -55,6 +55,42 @@ test("switch: 意匠の札が全て並び、配色を持つ図で切り替えら
 
   await 切替(page).getByRole("radio", { name: "生成りに茶" }).click();
   await expect.poll(async () => await 配色(page, "er-demo"), { timeout: 5000 }).toBe("kinari");
+});
+
+test('switch: 意匠の札を全て並べても「図 / コード」 のタブは 1 行のまま (#2794)', async ({
+  page,
+}) => {
+  await 開く(page, "presets", "er-demo");
+  await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
+
+  const tabs = page.locator('.catalog-preview-tabs [role="tab"]:visible');
+  expect(await tabs.count(), "見えている図 / コードのタブが 2 つ未満").toBeGreaterThanOrEqual(2);
+  const 測った = await tabs.evaluateAll((elements) =>
+    elements.map((element) => {
+      const textNode = [...element.childNodes].find(
+        (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+      );
+      if (!textNode) throw new Error("タブの字を測れない (検査が空振りしている)");
+      const range = document.createRange();
+      range.selectNodeContents(textNode);
+      const 行数 = new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size;
+      return {
+        名前: textNode.textContent?.trim() ?? "",
+        行数,
+        高さ: element.getBoundingClientRect().height,
+      };
+    }),
+  );
+  console.log(
+    `図 / コードのタブ: ${測った
+      .map(({ 名前, 行数, 高さ }) => `${名前}=${行数} 行・${高さ}px`)
+      .join(", ")}`,
+  );
+  for (const tab of 測った) expect(tab.行数, `${tab.名前} の字が折れている`).toBe(1);
+  const 高さ = 測った.map((tab) => tab.高さ);
+  expect(Math.max(...高さ) - Math.min(...高さ), "図 / コードのタブの高さが揃っていない").toBeLessThanOrEqual(
+    1,
+  );
 });
 
 test("switch: クラス図でも切り替えられる (#1569)", async ({ page }) => {
@@ -138,6 +174,26 @@ test("terminal switch: 配色のない図と表の図へ端末の名前と地が
       return stage ? getComputedStyle(stage).backgroundColor : null;
     });
     expect(ground, id).toBe(hexToRgb(terminal.value.ground));
+  }
+});
+
+test("sketch switch: 配色のない図と表の図へ手描きの名前と地が届く", async ({ page }) => {
+  const sketch = readThemeNotes().get("sketch");
+  if (sketch?.mode !== "fixed") throw new Error("手描きの意匠帳が固定の表ではない");
+
+  for (const id of ["infra-demo", "er-demo"]) {
+    await 開く(page, "presets", id);
+    const option = 切替(page).getByRole("radio", { name: 配色の札("sketch", "ja") });
+    const count = await option.count();
+    console.log(`sketch switch ${id}: options=${count}`);
+    expect(count, `${id} の手描きの選択肢`).toBe(1);
+    await option.click();
+    await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("sketch");
+    const ground = await page.evaluate(() => {
+      const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="sketch"]');
+      return stage ? getComputedStyle(stage).backgroundColor : null;
+    });
+    expect(ground, id).toBe(hexToRgb(sketch.value.ground));
   }
 });
 
