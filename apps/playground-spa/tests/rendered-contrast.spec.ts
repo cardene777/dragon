@@ -901,18 +901,19 @@ function fixedThemes(): Array<Extract<ThemeNote, { mode: "fixed" }>> {
   );
 }
 
-// 箱自身と直下の輪郭だけを測る。`node-kind-icon` は描き手の絵であり、箱の枠ではない。
-// 絵を `stroke: none` にする規則が箱の `:not()` 付き規則に詳細度で負ける問題は別の課題で直す。
+// 箱自身と、子と孫の図形を測る。 子の `g` には描き手の絵 (`node-kind-icon`) も入る。
+// 絵は輪郭を持たない (`stroke: none`) ので、下で `stroke` を持つ図形に絞った時点で枠の検査から
+// 外れる。 絵の塗りと対比は「箱の中の絵 (#2811)」 の検査が測る。
 const BOX_PAINT_SELECTOR = [
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]):is(rect, path, ellipse, circle, polygon, polyline, line)',
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect',
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path',
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse',
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle',
-  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not([data-cdl-role="node-kind-icon"]) > rect',
-  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not([data-cdl-role="node-kind-icon"]) > path',
-  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not([data-cdl-role="node-kind-icon"]) > ellipse',
-  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not([data-cdl-role="node-kind-icon"]) > circle',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > rect',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > path',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > ellipse',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > circle',
 ].join(", ");
 
 type FixedTheme = Extract<ThemeNote, { mode: "fixed" }>;
@@ -1188,5 +1189,266 @@ test.describe("明暗の意匠は描き手の枠の濃さを保つ (#2808)", () 
       ).toBeGreaterThan(0);
       expect(failures, `${note.name} が描き手の枠の濃さを変えている`).toEqual([]);
     });
+  }
+});
+
+/**
+ * 箱の中の絵 (#2811)。
+ *
+ * 描き手は箱の右上に、箱の種類を示す小さな絵 (`node-kind-icon`) を置く。 箱の子図形を選ぶ規則が
+ * 絵まで選ぶと、絵は面の色で塗られて枠の色の輪郭だけが残り、種類を見分けられなくなる。
+ *
+ * 意匠は `THEMES` に登録された全てを読む (`readThemeNotes`)。 意匠を足せば検査も増える。
+ * 固定の意匠も明暗の両方で回す = 明暗の切替が固定の舞台へ漏れていないことも同時に見る。
+ */
+test.describe("箱の中の絵 (#2811)", () => {
+  test.describe.configure({ timeout: 300_000 });
+  const samples = samplesByType();
+  const notes = [...readThemeNotes().values()];
+
+  /**
+   * 絵を測る図種。 `topology` と `c4` が #2811 の対象で、`swimlane` も同じ箱 (`GenericNode`) を
+   * 使って絵を描く。 見本に絵が 1 つも無い図種があれば、その図種の検査は空振りとして落とす。
+   */
+  const 絵を測る図種 = ["topology", "c4", "swimlane"] as const;
+
+  /** 絵が箱の面に対して要る対比。 字ではない図形の下限 (WCAG 1.4.11) */
+  const 絵の対比の下限 = 3;
+
+  type KindIcon = {
+    node: string | null;
+    look: string | null;
+    active: boolean;
+    /** 構造が想定と違って測れなかった理由。 測れた時は `null` */
+    problem: string | null;
+    fill: string;
+    fillOpacity: number;
+    stroke: string;
+    /** 絵の `path` から箱 (`node-body`) の手前までの `opacity` の積。 描き手は 0.7 を付ける */
+    opacity: number;
+    /** 絵の位置で解いた `--d-text-secondary`。 色に解けない時は `null` */
+    expected: string | null;
+    underlayFill: string;
+    underlayStroke: string;
+    /** 絵の真後ろにある箱の図形。 箱の中に無い時は `null` (台がそのまま見える) */
+    face: { fill: string; fillOpacity: number; opacity: number } | null;
+    /** 箱から文書の根までの `opacity` の積 */
+    bodyOpacity: number;
+  };
+
+  const 読める色 = (value: string): string | null => {
+    try {
+      const parsed = parseColor(value);
+      return parsed === null ? null : parsed.rgb.map((part) => Math.round(part)).join(",");
+    } catch {
+      return null;
+    }
+  };
+
+  async function readKindIcons(stage: Locator): Promise<KindIcon[]> {
+    return stage.evaluate((root): KindIcon[] => {
+      const 積 = (from: Element, until: Element | null): number => {
+        let product = 1;
+        for (let current: Element | null = from; current !== null && current !== until; current = current.parentElement) {
+          product *= Number(getComputedStyle(current).opacity || 1);
+        }
+        return product;
+      };
+      // 変数の計算値は色の文字列のままなので、画面の部品に当てて計算値の色へ解く。
+      const 色に解く = (value: string): string | null => {
+        if (value === "") return null;
+        const probe = document.createElement("span");
+        probe.style.color = value;
+        if (probe.style.color === "") return null;
+        document.body.append(probe);
+        const resolved = getComputedStyle(probe).color;
+        probe.remove();
+        return resolved;
+      };
+
+      return [...root.querySelectorAll('[data-cdl-role="node-kind-icon"]')].map((icon) => {
+        const body = icon.closest('[data-cdl-role="node-body"]');
+        const path = icon.querySelector("path");
+        const underlay = icon.querySelector(":scope > rect");
+        const base = {
+          node: icon.closest("[data-cdl-node]")?.getAttribute("data-cdl-node") ?? null,
+          look: body?.getAttribute("data-cdl-look") ?? null,
+          active: icon.closest('[data-cdl-active="true"]') !== null,
+        };
+        if (body === null || path === null || underlay === null) {
+          return {
+            ...base,
+            problem: `箱 ${body !== null} / 絵の path ${path !== null} / 下敷き ${underlay !== null} のどれかが無い`,
+            fill: "", fillOpacity: 1, stroke: "", opacity: 1, expected: null,
+            underlayFill: "", underlayStroke: "", face: null, bodyOpacity: 1,
+          };
+        }
+
+        // 絵の真後ろの図形 = 下敷きの中心を面で含む図形のうち、最後に描かれたもの。
+        const area = underlay.getBoundingClientRect();
+        const center = new DOMPoint(area.x + area.width / 2, area.y + area.height / 2);
+        let face: Element | null = null;
+        for (const shape of [body, ...body.querySelectorAll("rect, path, ellipse, circle, polygon")]) {
+          if (!(shape instanceof SVGGeometryElement) || shape.closest('[data-cdl-role="node-kind-icon"]')) continue;
+          const matrix = shape.getScreenCTM();
+          if (matrix !== null && shape.isPointInFill(center.matrixTransform(matrix.inverse()))) face = shape;
+        }
+
+        const pathStyle = getComputedStyle(path);
+        const underlayStyle = getComputedStyle(underlay);
+        const faceStyle = face === null ? null : getComputedStyle(face);
+        return {
+          ...base,
+          problem: null,
+          fill: pathStyle.fill,
+          fillOpacity: Number(pathStyle.fillOpacity || 1),
+          stroke: pathStyle.stroke,
+          opacity: 積(path, body),
+          expected: 色に解く(pathStyle.getPropertyValue("--d-text-secondary").trim()),
+          underlayFill: underlayStyle.fill,
+          underlayStroke: underlayStyle.stroke,
+          face: face === null || faceStyle === null
+            ? null
+            : { fill: faceStyle.fill, fillOpacity: Number(faceStyle.fillOpacity || 1), opacity: 積(face, body) },
+          bodyOpacity: 積(body, null),
+        };
+      });
+    });
+  }
+
+  /** 絵 1 つずつに、塗り・輪郭・下敷き・面との実効対比の 4 つを課す。 */
+  function checkKindIcons(icons: KindIcon[], ground: Rgb, where: string): string[] {
+    const failures: string[] = [];
+    for (const icon of icons) {
+      const label = `${where}: 絵 ${icon.node ?? "不明"} (look ${icon.look ?? "なし"}${icon.active ? " / 光" : ""})`;
+      if (icon.problem !== null) {
+        failures.push(`${label}: ${icon.problem}`);
+        continue;
+      }
+      if (icon.stroke !== "none") failures.push(`${label}: 輪郭 ${icon.stroke} (none が要る)`);
+      const fill = 読める色(icon.fill);
+      const expected = icon.expected === null ? null : 読める色(icon.expected);
+      if (expected === null) failures.push(`${label}: --d-text-secondary を色に解けない`);
+      else if (fill !== expected) {
+        failures.push(`${label}: 塗り ${icon.fill} / --d-text-secondary ${icon.expected}`);
+      }
+      if (icon.underlayFill !== "rgba(0, 0, 0, 0)" || icon.underlayStroke !== "none") {
+        failures.push(`${label}: 下敷き fill ${icon.underlayFill} / stroke ${icon.underlayStroke} (透明が要る)`);
+      }
+
+      // 絵は箱の面の上に描く 1 枚。 面を塗り、絵を枠と見なすと、`effectivePaint` の合成式
+      // (面の上に重ね、箱ごと台へ重ねる) と同じになる。 箱の `opacity` は面と絵の組に 1 度だけ掛かる。
+      const shown = effectivePaint(
+        {
+          fill: icon.face?.fill ?? "none",
+          fillOpacity: icon.face === null ? 1 : icon.face.fillOpacity * icon.face.opacity,
+          stroke: fill === null ? "none" : icon.fill,
+          strokeOpacity: icon.fillOpacity * icon.opacity,
+          opacity: icon.bodyOpacity,
+        },
+        ground,
+      );
+      if (shown.frame === null) {
+        failures.push(`${label}: 塗り ${icon.fill} を色として読めない`);
+        continue;
+      }
+      const ratio = contrast(shown.frame, shown.face);
+      if (ratio < 絵の対比の下限) {
+        failures.push(
+          `${label}: 面との実効 ${ratio.toFixed(2)}:1 < ${絵の対比の下限} ` +
+          `(絵 ${icon.fill} × ${(icon.fillOpacity * icon.opacity).toFixed(2)} / 面 ${icon.face?.fill ?? "なし"})`,
+        );
+      }
+    }
+    return failures;
+  }
+
+  /** 箱の中の、絵ではない図形の計算値。 箱ごとに描かれた順で並べる */
+  async function readBoxShapes(stage: Locator): Promise<string[]> {
+    return stage.evaluate((root) =>
+      [...root.querySelectorAll('[data-cdl-role="node-body"]')].flatMap((body) => {
+        const node = body.closest("[data-cdl-node]")?.getAttribute("data-cdl-node") ?? "不明";
+        return [body, ...body.querySelectorAll("rect, path, ellipse, circle, polygon, polyline, line")]
+          .filter((shape) => shape.closest('[data-cdl-role="node-kind-icon"]') === null)
+          .map((shape, index) => {
+            const style = getComputedStyle(shape);
+            return (
+              `${node}#${index} ${shape.tagName}: fill ${style.fill} / stroke ${style.stroke} / ` +
+              `stroke-width ${style.strokeWidth} / stroke-opacity ${style.strokeOpacity} / ` +
+              `fill-opacity ${style.fillOpacity}`
+            );
+          });
+      }),
+    );
+  }
+
+  for (const note of notes) {
+    for (const dark of [false, true]) {
+      const mode = dark ? "暗" : "明";
+
+      test(`${note.name} / ${mode}: 箱の中の絵が地の字の色で輪郭を持たずに描かれる`, async ({ page }) => {
+        const failures: string[] = [];
+        for (const type of 絵を測る図種) {
+          const source = samples.get(type);
+          if (source === undefined) throw new Error(`${type} の見本が無い`);
+          await openEditorTheme(page, source, note.name, dark);
+          await stopDiagram(page);
+          const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
+          const ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
+          const icons = await readKindIcons(stage);
+          if (icons.length === 0) failures.push(`${type}/${mode}: 絵が 1 つも無い (検査が空振りしている)`);
+          failures.push(...checkKindIcons(icons, ground, `${type}/${mode}`));
+        }
+        expect(failures, `${note.name}/${mode} の絵の違反`).toEqual([]);
+      });
+
+      test(`${note.name} / ${mode}: 絵を外す前の規則に戻しても絵以外の箱の図形は同じ値になる`, async ({ page }) => {
+        const failures: string[] = [];
+        for (const type of 絵を測る図種) {
+          const source = samples.get(type);
+          if (source === undefined) throw new Error(`${type} の見本が無い`);
+          await openEditorTheme(page, source, note.name, dark);
+          await stopDiagram(page);
+          const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
+          const now = await readBoxShapes(stage);
+          if (now.length === 0) failures.push(`${type}/${mode}: 箱の図形が 1 つも無い (検査が空振りしている)`);
+
+          // 箱の子図形の規則から、絵を外す条件だけを取り除く = main の時点の選択子へ戻す。
+          // 書き戻した選択子を読み直し、黙って捨てられていないことも確かめる。
+          const reverted = await page.evaluate(() => {
+            const exclusion = /:not\(:where\(\[data-cdl-role="?node-kind-icon"?\]\)\)/g;
+            let changed = 0;
+            let rejected = 0;
+            const walk = (rules: CSSRuleList): void => {
+              for (const rule of rules) {
+                if (rule instanceof CSSStyleRule) {
+                  const next = rule.selectorText.replace(exclusion, "");
+                  if (next !== rule.selectorText) {
+                    rule.selectorText = next;
+                    if (rule.selectorText === next) changed += 1;
+                    else rejected += 1;
+                  }
+                }
+                const nested = (rule as CSSRule & { cssRules?: CSSRuleList }).cssRules;
+                if (nested !== undefined) walk(nested);
+              }
+            };
+            for (const sheet of document.styleSheets) walk(sheet.cssRules);
+            return { changed, rejected };
+          });
+          if (reverted.changed === 0) failures.push(`${type}/${mode}: 絵を外す条件を持つ規則が見つからない`);
+          if (reverted.rejected > 0) failures.push(`${type}/${mode}: 選択子の書き戻しが ${reverted.rejected} 件拒まれた`);
+
+          const before = await readBoxShapes(stage);
+          if (JSON.stringify(before) !== JSON.stringify(now)) {
+            const differs = now.flatMap((value, index) =>
+              value === before[index] ? [] : [`今 ${value} / 戻す前の規則 ${before[index] ?? "無し"}`],
+            );
+            failures.push(`${type}/${mode}: 絵以外の図形の値が変わった (${now.length} / ${before.length} 件): ${differs.slice(0, 3).join(" | ")}`);
+          }
+        }
+        expect(failures, `${note.name}/${mode} の箱の図形の違反`).toEqual([]);
+      });
+    }
   }
 });
