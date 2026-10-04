@@ -17,4 +17,9 @@
   svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge] {
     animation: none !important;
   }
+
+  /* 手描きの線も箱を描いた後に現れるため、動きを減らす時は明示して止める (#2794)。 */
+  svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge] {
+    animation: none !important;
+  }
 }

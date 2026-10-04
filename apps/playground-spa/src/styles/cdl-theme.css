@@ -8,9 +8,9 @@
  *
  * 画面の色で描く図は `globals.css` の `--d-*` を参照する。 `html.dark` が変数を差し替えれば
  * 図も一緒に変わるので、ここには明暗の規則を書かない。 名前を持つ意匠は 2 通りあり、
- * 生成りと青磁は明暗で組を替え、図面、活版、図録、端末は地まで含めた 1 枚の絵として固定する
- * (#2790 / #2791 / #2792 / #2793)。図録だけは台と面の明暗が逆なので、字を台の上と札の上の
- * 2 組持つ。端末は台と面がどちらも暗いため、字は 1 組で足りる。
+ * 生成りと青磁は明暗で組を替え、図面、活版、図録、端末、手描きは地まで含めた 1 枚の絵として
+ * 固定する (#2790 / #2791 / #2792 / #2793 / #2794)。図録だけは台と面の明暗が逆なので、字を
+ * 台の上と札の上の 2 組持つ。端末は台と面がどちらも暗く、手描きはどちらも明るいため字は 1 組で足りる。
  *
  * 図の紙は画面と同じ `--d-surface`。 一覧でも編集画面でも同じ紙の上に図が乗る。
  *
@@ -561,9 +561,9 @@ svg[data-cdl-stage][data-cdl-type="record"]:has(
  * (`docs/design/er/note.md`) が明暗の 2 組を決めるので、この節の `html.dark` が唯一の決め場所に
  * なる。 図面は `docs/design/blueprint/note.md`、活版は `docs/design/letterpress/note.md` が固定の
  * 1 組を決める。図録は `docs/design/catalog/note.md` が固定の 1 組と台の上の字を決める。
- * 端末は `docs/design/terminal/note.md` が固定の 1 組を決め、台と面がどちらも暗いので字も 1 組にする。
- * 図面・活版・図録・端末はどれも地を含めて 1 枚の絵であり、画面の明暗で地を替えると崩れるため
- * `html.dark` の塊を持たない (#2790 / #2791 / #2792 / #2793)。
+ * 端末は `docs/design/terminal/note.md`、手描きは `docs/design/sketch/note.md` が固定の 1 組を決める。
+ * 図面・活版・図録・端末・手描きはどれも地を含めて 1 枚の絵であり、画面の明暗で地を替えると
+ * 崩れるため `html.dark` の塊を持たない (#2790 / #2791 / #2792 / #2793 / #2794)。
  *
  * ## 色を置く口は 9 つ
  *
@@ -883,6 +883,68 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --d-relation-edge-opacity-active: 0.85;
 }
 
+/* 手描き。生成りの台と紙の面を含む 1 枚の絵なので、画面の明暗では値を替えない (#2794) */
+svg[data-cdl-stage][data-cdl-palette="sketch"] {
+  --er-ground: #f7f1e3;
+  --er-face: #fffdf7;
+  --er-stripe: #fbf7ed;
+  --er-frame: #2b2620;
+  --er-ink: #2b2620;
+  --er-type: #6d6456;
+  --er-line: #d2491f;
+  --er-own: #2a5ca8;
+  --er-link: #2f7d4f;
+  --theme-lead: #d2491f;
+  --theme-pale: #9a9080;
+  --theme-title: #2b2620;
+  --theme-tag-ink: #2b2620;
+
+  --theme-appear: sketch-draw-in;
+  --theme-appear-duration: 0.4s;
+  --theme-appear-easing: cubic-bezier(.2, 1.5, .42, 1);
+  --theme-edge-appear: sketch-edge-draw-in;
+  --theme-edge-appear-duration: 0.36s;
+  --theme-edge-appear-delay: 0.4s;
+
+  /* 固定の意匠は `html.dark` の `--d-*` を継がず、生成りの紙の値を全てこの塊で決める。 */
+  --cdl-fill: var(--er-stripe);
+  --cdl-surface-sunken: var(--er-stripe);
+  --cdl-chip-fill: var(--er-stripe);
+  --cdl-chip-text: var(--er-ink);
+  --cdl-text-on-tone: var(--er-face);
+  --cdl-chart-1: var(--theme-lead);
+  --cdl-chart-2: var(--er-link);
+  --cdl-chart-3: var(--er-own);
+  --cdl-chart-4: var(--er-type);
+  --cdl-chart-5: #4e7052;
+  --cdl-chart-6: #4b607f;
+  --cdl-note-fill: var(--er-stripe);
+  --cdl-note-text: var(--er-type);
+  --cdl-tone-accent-deep: var(--er-ink);
+  --cdl-tone-teal: var(--er-own);
+  --cdl-tone-success: var(--er-type);
+  --cdl-tone-error: var(--er-own);
+  --cdl-tone-warning: var(--er-own);
+
+  --d-bg: var(--er-ground);
+  --d-chart-1: var(--theme-lead);
+  --d-chart-2: var(--er-link);
+  --d-chart-3: var(--er-own);
+  --d-chart-4: var(--er-type);
+  --d-chart-5: #4e7052;
+  --d-chart-6: #4b607f;
+  --d-err: var(--er-own);
+  --d-warn: var(--er-own);
+  --d-warn-soft: var(--er-stripe);
+  --d-on-accent: var(--er-face);
+  --d-scrim: var(--er-frame);
+  --d-tree-edge-opacity: 0.85;
+  --d-mind-edge-opacity: 0.85;
+  --d-journey-chip-opacity: 0.6;
+  --d-relation-edge-opacity: 0.8;
+  --d-relation-edge-opacity-active: 0.85;
+}
+
 /*
  * 9 色を実際の口に流す。 配色の名前ごとに書かない = 名前が増えるたびにここを写すことになり、
  * 片方だけ直して食い違う。 名前が決めるのは上の 9 値だけで、流し先は 1 か所で持つ。
@@ -1016,27 +1078,41 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-node] {
   to { clip-path: inset(0 0 0 0); }
 }
 
+@keyframes sketch-draw-in {
+  from {
+    opacity: 0;
+    scale: .95;
+  }
+  to { scale: 1; }
+}
+
+@keyframes sketch-edge-draw-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * 固定の意匠の箱の枠の濃さ (#2808)
  *
  * 描き手は処理の箱 (`kind: function`) の枠を `stroke-opacity` 0.5 で描く。 図面と活版は台と
- * 行の面が同じで、図録は薄の枠を明るい面、端末は緑の枠を暗い面に置くため、半分の濃さでは枠が沈む。
- * 図面 2.66、活版 3.29、図録 1.99、端末 2.16 で、全て下限 4.61 を割る。
+ * 行の面が同じで、図録は薄の枠を明るい面、端末は緑の枠を暗い面、手描きは墨の枠を紙の面に
+ * 置くため、半分の濃さでは枠が沈む。図面 2.66、活版 3.29、図録 1.99、端末 2.16、手描き 3.08
+ * で、全て下限 4.61 を割る。
  * 強調の箱も舞台の子孫なので `[data-cdl-active="true"]` を別に書かず、この規則で揃える。
  *
  * CSS から意匠帳の「固定」は読めないため名前を並べる。 名前と意匠帳の固定の意匠の一致、値と
  * 意匠帳の「枠の濃さ」の一致は `theme-matches-note.test.ts` が確かめる。 固定の意匠を足す時は
  * ここにも名前を足す。 生成りと青磁は明暗の意匠なので入れず、描き手の濃さを保つ。
  * ───────────────────────────────────────────────────────────────────────────── */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect,
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path,
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse,
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle,
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > rect,
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > path,
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > ellipse,
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > circle {
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > rect,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > path,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > ellipse,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > circle {
   stroke-opacity: 1 !important;
 }
 
@@ -1517,6 +1593,118 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="chart-bar"][fil
 }
 
 svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="chart-bar"]:not([fill-opacity="1"]) {
+  fill: var(--theme-pale) !important;
+  fill-opacity: 1 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 手描きの作り (#2794)
+ *
+ * 共通の背景と札の規則より後ろに置き、手描き以外の意匠へ揺れ、影、ペンの斜線を流さない。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage][data-cdl-palette="sketch"] {
+  --cdl-now: var(--theme-lead);
+  /* 一は字と強調枠の下限を割るため、共通の塊より後ろで墨へ戻す。 */
+  --cdl-tone-info: var(--er-ink);
+  --cdl-text-accent: var(--er-ink);
+  --d-accent: var(--er-ink);
+}
+
+/* `scale` を個別 property にして、箱の `<g>` が持つ位置の `transform` を上書きしない。 */
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-node] {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge] {
+  animation-name: var(--theme-edge-appear);
+  animation-duration: var(--theme-edge-appear-duration);
+  animation-delay: var(--theme-edge-appear-delay);
+  animation-timing-function: cubic-bezier(.2, .85, .3, 1);
+  animation-fill-mode: backwards;
+}
+
+/* event の外側の薄さを字へ重ねず、紙の箱は完成時の濃さで描く。 */
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-kind="event"] > g {
+  opacity: 1;
+}
+
+/* 字を含む `g` を外し、箱の輪郭を描く図形だけへ揺れと影を当てる。 */
+svg[data-cdl-stage][data-cdl-palette="sketch"] :is(rect, path, ellipse, circle, polygon)[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
+svg[data-cdl-stage][data-cdl-palette="sketch"] g[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > :is(rect, path, ellipse, circle, polygon),
+svg[data-cdl-stage][data-cdl-palette="sketch"] g[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > :is(rect, path, ellipse, circle, polygon) {
+  stroke-width: 2 !important;
+  filter: url(#dragon-sketch-wobble) drop-shadow(3px 4px 0 color-mix(in srgb, var(--er-ink) 16%, transparent));
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-active="true"] :is(rect, path, ellipse, circle, polygon)[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-active="true"] g[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > :is(rect, path, ellipse, circle, polygon),
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-active="true"] g[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > :is(rect, path, ellipse, circle, polygon) {
+  stroke: var(--er-ink) !important;
+  stroke-width: 3 !important;
+  filter: url(#dragon-sketch-wobble) drop-shadow(4px 5px 0 color-mix(in srgb, var(--er-ink) 20%, transparent));
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="sequence-line"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="tree-edge"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="mind-edge"] {
+  filter: url(#dragon-sketch-wobble);
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="sequence-band"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-bar"] {
+  fill: url(#dragon-sketch-pen) !important;
+  fill-opacity: 1 !important;
+  stroke: var(--er-ink) !important;
+  stroke-width: 2 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="node-row-underline"] {
+  stroke: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] g:has(> [data-cdl-role="node-row-underline"]) > [data-cdl-role="node-row-glyph"][data-cdl-row-glyph$="-filled"] {
+  fill: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] g:has(> [data-cdl-role="node-row-underline"]) > [data-cdl-role="node-row-glyph"][data-cdl-row-glyph$="-hollow"] {
+  stroke: var(--theme-lead) !important;
+}
+
+/* 線の色みは札の面の `stroke` 属性にだけ残るため、前方一致で札の枠へ渡す。 */
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"] {
+  fill: var(--er-face) !important;
+  stroke: var(--er-ink) !important;
+  stroke-width: 2 !important;
+  opacity: 1 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-accent"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-info"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-now"] {
+  stroke: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-success"] {
+  stroke: var(--er-link) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-teal"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-error"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-warning"] {
+  stroke: var(--er-own) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label"] {
+  fill: var(--er-ink) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"][fill-opacity="1"] {
+  fill: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"]:not([fill-opacity="1"]) {
   fill: var(--theme-pale) !important;
   fill-opacity: 1 !important;
 }

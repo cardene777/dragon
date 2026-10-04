@@ -261,6 +261,44 @@ describe("図の意匠 (#1553 / #2790)", () => {
     expect(resolveTheme("端末")).toBe("terminal");
   });
 
+  it("sketch: 正の名前は 1 件で theme と palette が同じ図になり、v05 と JSON でも解ける", () => {
+    const 組み立てる = (本文: string): { diagram: ReturnType<typeof textDslToDiagram>; notices: CompileNotice[] } => {
+      const notices: CompileNotice[] = [];
+      const diagram = textDslToDiagram(本文, { onNotice: (notice) => notices.push(notice) });
+      return { diagram, notices };
+    };
+    const 主語 = 組み立てる(ER("sketch", "theme"));
+    const 別名 = 組み立てる(ER("sketch", "palette"));
+
+    expect(THEMES.filter((name) => name === "sketch")).toHaveLength(1);
+    expect([主語.notices, 別名.notices]).toEqual([[], []]);
+    expect(主語.diagram.palette).toBe("sketch");
+    expect(別名.diagram).toEqual(主語.diagram);
+    const v05 = parseTextDslV05(ER("sketch", "theme"));
+    expect(v05).toMatchObject({ ok: true });
+    if (v05.ok) expect(v05.doc.theme).toBe("sketch");
+    expect(jsonToDiagram({ title: "確かめ", type: "record", theme: "sketch", actors: ["A"], flow: [] }).palette).toBe("sketch");
+    expect(resolveTheme("sketch")).toBe("sketch");
+  });
+
+  it("手描き: 和名は theme: sketch と同じ図になり、v05 と JSON でも正の名前に解ける", () => {
+    const 組み立てる = (本文: string): { diagram: ReturnType<typeof textDslToDiagram>; notices: CompileNotice[] } => {
+      const notices: CompileNotice[] = [];
+      const diagram = textDslToDiagram(本文, { onNotice: (notice) => notices.push(notice) });
+      return { diagram, notices };
+    };
+    const 正 = 組み立てる(ER("sketch", "theme"));
+    const 和名 = 組み立てる(ER("手描き", "theme"));
+
+    expect([正.notices, 和名.notices]).toEqual([[], []]);
+    expect(和名.diagram).toEqual(正.diagram);
+    const v05 = parseTextDslV05(ER("手描き", "theme"));
+    expect(v05).toMatchObject({ ok: true });
+    if (v05.ok) expect(v05.doc.theme).toBe("sketch");
+    expect(jsonToDiagram({ title: "確かめ", type: "record", theme: "手描き", actors: ["A"], flow: [] }).palette).toBe("sketch");
+    expect(resolveTheme("手描き")).toBe("sketch");
+  });
+
   it("theme と palette を両方書くと順番に依らず theme が勝ち、v05 と JSON で知らせが 1 件になる", () => {
     const 本文たち = [
       ER("kinari", "theme").replace("theme: kinari", "theme: blueprint\npalette: celadon"),

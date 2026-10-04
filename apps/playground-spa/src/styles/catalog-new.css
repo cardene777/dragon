@@ -472,6 +472,9 @@
 
 /* 下線で選択を示す。 枠で囲むと記法の切替 (`.catalog-source-tab`) と見分けが付かない */
 .catalog-preview-tab {
+  /* 操作の列に札が増えるとタブが縮み、「コード」 が 2 行に折れる。タブは押す先の名前なので折らず、
+   * 空きが足りない時は操作の列の側を折り返す (#2794) */
+  flex-shrink: 0;
   padding: 7px 14px 8px;
   border: none;
   border-bottom: 2px solid transparent;
@@ -479,6 +482,7 @@
   font-family: var(--d-body);
   font-size: 13px;
   color: var(--d-text-secondary);
+  white-space: nowrap;
   cursor: pointer;
   transition: color 0.12s ease, border-color 0.12s ease;
 }
