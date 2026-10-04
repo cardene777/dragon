@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   THEME_PORTS,
   readFixedThemeChartSeries,
+  readFixedThemeFrameOpacity,
   readFixedThemeLead,
   readThemeNotes,
   readThemeNoteText,
@@ -160,6 +161,64 @@ function fixedTextToneContrast(cssText: string): { checked: number; failures: st
   return { checked, failures };
 }
 
+function compareFrameOpacity(
+  cssText: string,
+  expected: Map<DslTheme, number>,
+): { checked: number; failures: string[] } {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const blocks: Array<{ names: Set<string>; value: number | null }> = [];
+  for (const match of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+    const selector = match[1] ?? "";
+    const body = match[2] ?? "";
+    if (!selector.includes('[data-cdl-role="node-body"]') || !/stroke-opacity\s*:/.test(body)) continue;
+    const names = new Set(
+      [...selector.matchAll(/\[data-cdl-palette="([^"]+)"\]/g)]
+        .map((name) => name[1])
+        .filter((name): name is string => name !== undefined),
+    );
+    const value = /stroke-opacity\s*:\s*(\d+(?:\.\d+)?)\s*!important\b/.exec(body)?.[1];
+    blocks.push({ names, value: value === undefined ? null : Number(value) });
+  }
+
+  const failures: string[] = [];
+  if (blocks.length !== 1) {
+    failures.push(`枠の濃さの決まりは ${blocks.length} か所ある (1 か所に寄せる)`);
+  }
+  for (const block of blocks) {
+    if (block.names.size === 0) {
+      failures.push("枠の濃さの決まりに意匠の名前が無く、全ての意匠の枠を変えてしまう");
+    }
+  }
+
+  const actualNames = new Set(blocks.flatMap((block) => [...block.names]));
+  const expectedNames = new Set(expected.keys());
+  const missing = [...expectedNames].filter((name) => !actualNames.has(name));
+  const extra = [...actualNames].filter((name) => !expectedNames.has(name as DslTheme));
+  if (missing.length > 0 || extra.length > 0) {
+    failures.push(
+      `枠の濃さの意匠が意匠帳と違う (足りない名前: ${missing.join(" / ") || "なし"}; ` +
+      `余計な名前: ${extra.join(" / ") || "なし"})`,
+    );
+  }
+
+  for (const block of blocks) {
+    for (const name of block.names) {
+      const want = expected.get(name as DslTheme);
+      if (want === undefined) continue;
+      if (block.value === null) {
+        failures.push(`${name}: stroke-opacity が「数 !important」ではない`);
+      } else if (block.value !== want) {
+        failures.push(`${name}: 枠の濃さは意匠帳 ${want} / CSS ${block.value}`);
+      }
+    }
+  }
+
+  return {
+    checked: [...expectedNames].filter((name) => actualNames.has(name)).length,
+    failures,
+  };
+}
+
 function compare(notes: Map<DslTheme, ThemeNote>, css: Map<string, CssTheme>): { count: number; mismatch: string[] } {
   let count = 0;
   const mismatch: string[] = [];
@@ -294,6 +353,67 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     const changed = original.replace(/(\|\s*一\s*\|\s*)`#c8431f`/, "$1朱");
     expect(changed, "変異を本文へ植え込めていない").not.toBe(original);
     expect(() => readFixedThemeLead({ letterpress: changed })).toThrow("「一」が #rrggbb で始まらない");
+  });
+
+  it("箱の枠の濃さは固定の意匠だけに 1 か所から当たり、意匠帳と一致する", () => {
+    const expected = readFixedThemeFrameOpacity();
+    const result = compareFrameOpacity(cssText, expected);
+
+    expect(result.checked, "突き合わせた固定の意匠の数").toBe(expected.size);
+    expect(result.failures, "箱の枠の濃さの決まりが意匠帳と違う").toEqual([]);
+  });
+
+  it("図面の意匠帳で枠の濃さを 0.5 にすると CSS との不一致を検知する", () => {
+    const original = readThemeNoteText("blueprint");
+    const changed = original.replace(
+      /(\|\s*枠の濃さ\s*\|\s*`?)1(?=`?\s*(?:\||。))/,
+      (_match, prefix: string) => `${prefix}0.5`,
+    );
+    expect(changed, "変異を本文へ植え込めていない").not.toBe(original);
+
+    const expected = readFixedThemeFrameOpacity({ blueprint: changed });
+    const result = compareFrameOpacity(cssText, expected);
+    expect(
+      result.failures.some((line) => line.includes("blueprint") && line.includes("意匠帳 0.5 / CSS 1")),
+      `検知の内容: ${result.failures.join(" | ")}`,
+    ).toBe(true);
+  });
+
+  it("枠の濃さの決まりから図面を外すと名前の不足を検知する", () => {
+    const changed = cssText.replace(
+      /\[data-cdl-palette="blueprint"\]\s*,\s*(?=\[data-cdl-palette="letterpress"\])/g,
+      "",
+    );
+    expect(changed, "図面を外す変異を CSS へ植え込めていない").not.toBe(cssText);
+
+    const result = compareFrameOpacity(changed, readFixedThemeFrameOpacity());
+    expect(
+      result.failures.some((line) => line.includes("足りない名前: blueprint")),
+      `検知の内容: ${result.failures.join(" | ")}`,
+    ).toBe(true);
+  });
+
+  it("活版だけの枠の濃さの決まりを足すと複数箇所を検知する", () => {
+    const changed = `${cssText}\n` +
+      'svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"] {' +
+      " stroke-opacity: 1 !important; }";
+    expect(changed, "活版の変異を CSS へ植え込めていない").not.toBe(cssText);
+
+    const expected = readFixedThemeFrameOpacity();
+    const result = compareFrameOpacity(changed, expected);
+    expect(
+      result.failures.some((line) => line.includes("1 か所に寄せる")),
+      `検知の内容: ${result.failures.join(" | ")}`,
+    ).toBe(true);
+  });
+
+  it("意匠帳から枠の濃さを消すと意匠の名前を添えて落とす", () => {
+    const original = readThemeNoteText("blueprint");
+    const changed = original.replace(/^\|\s*枠の濃さ\s*\|.*\n/m, "");
+    expect(changed, "枠の濃さを消す変異を本文へ植え込めていない").not.toBe(original);
+    expect(() => readFixedThemeFrameOpacity({ blueprint: changed })).toThrow(
+      "意匠帳の blueprint に「枠の濃さ」が無い",
+    );
   });
 
   it("固定の意匠で字に使う tone は台・行の面・縞の上で 4.5 以上になる", () => {

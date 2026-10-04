@@ -834,6 +834,29 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-node] {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+ * 固定の意匠の箱の枠の濃さ (#2808)
+ *
+ * 描き手は処理の箱 (`kind: function`) の枠を `stroke-opacity` 0.5 で描く。 固定の意匠は台と
+ * 行の面が同じ色なので、半分の濃さでは枠が地に沈む (図面 2.66、活版 3.29、下限 4.61)。
+ * 強調の箱も舞台の子孫なので `[data-cdl-active="true"]` を別に書かず、この規則で揃える。
+ *
+ * CSS から意匠帳の「固定」は読めないため名前を並べる。 名前と意匠帳の固定の意匠の一致、値と
+ * 意匠帳の「枠の濃さ」の一致は `theme-matches-note.test.ts` が確かめる。 固定の意匠を足す時は
+ * ここにも名前を足す。 生成りと青磁は明暗の意匠なので入れず、描き手の濃さを保つ。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > rect,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > path,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > ellipse,
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"]) [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > circle {
+  stroke-opacity: 1 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
  * 図面の作り (#2790)
  *
  * 共通の塊と同じ強さなので、その `background` 一括指定より後ろに置く。 前へ置くと shorthand が
@@ -925,7 +948,7 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-kind="event"] > g 
 }
 
 /* 見せ方を持つ箱と始まり / 終わりの印は描く側の形を保つ。子の図形にも当てる理由は図面と同じ。
- * 描き手が一部の箱の枠を半分の濃さで描くため、押し枠は 1 つの濃さに揃える (#2791)。 */
+ * 枠の濃さは固定の意匠の共通の節で揃える。 */
 svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]),
 svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect,
 svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path,
@@ -936,7 +959,6 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:
 svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > ellipse,
 svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > circle {
   stroke-width: 1.5 !important;
-  stroke-opacity: 1 !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
@@ -953,7 +975,6 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [da
 svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > ellipse,
 svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > circle {
   stroke-width: 3 !important;
-  stroke-opacity: 1 !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-active="true"] [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {

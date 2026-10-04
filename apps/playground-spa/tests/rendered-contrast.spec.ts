@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import {
   contrast,
@@ -24,6 +24,12 @@ import {
   type ThemeNote,
   type ThemeValues,
 } from "./helpers/theme-notes";
+import {
+  effectivePaint,
+  parseColor,
+  readPaints,
+  type Rgb,
+} from "./helpers/effective-color";
 
 /**
  * edge label の **描画結果** の対比を実ブラウザで測る (#977)。
@@ -702,20 +708,13 @@ test.describe("edge label の描画対比 (#977)", () => {
   });
 });
 
-type Rgb = [number, number, number];
-
-function rgb(value: string): Rgb {
-  const hex = /^#([0-9a-f]{6})$/i.exec(value.trim());
-  if (hex?.[1]) {
-    const n = Number.parseInt(hex[1], 16);
-    return [n >> 16, (n >> 8) & 255, n & 255];
-  }
-  const parts = value.match(/[\d.]+/g)?.slice(0, 3).map(Number);
-  if (!parts || parts.length !== 3) throw new Error(`色として読めない: ${value}`);
-  return parts as Rgb;
+function color(value: string): Rgb {
+  const parsed = parseColor(value);
+  if (parsed === null) throw new Error(`色として読めない: ${value}`);
+  return parsed.rgb;
 }
 
-const colorKey = (value: string): string => rgb(value).map((part) => Math.round(part)).join(",");
+const colorKey = (value: string): string => color(value).map((part) => Math.round(part)).join(",");
 
 function samplesByType(): Map<string, string> {
   const out = new Map<string, string>();
@@ -767,7 +766,11 @@ async function stopDiagram(page: Page): Promise<void> {
       clearInterval(id);
       clearTimeout(id);
     }
-    for (const animation of document.getAnimations()) animation.pause();
+    for (const animation of document.getAnimations()) {
+      // 現れ方の途中では祖先の opacity が 1 未満のまま残り、完成した絵より実効対比が下がる。
+      if (animation.effect?.getComputedTiming().endTime === Infinity) animation.pause();
+      else animation.finish();
+    }
   });
   await page.waitForTimeout(100);
 }
@@ -897,6 +900,88 @@ function fixedThemes(): Array<Extract<ThemeNote, { mode: "fixed" }>> {
   );
 }
 
+// 箱自身と直下の輪郭だけを測る。`node-kind-icon` は描き手の絵であり、箱の枠ではない。
+// 絵を `stroke: none` にする規則が箱の `:not()` 付き規則に詳細度で負ける問題は別の課題で直す。
+const BOX_PAINT_SELECTOR = [
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]):is(rect, path, ellipse, circle, polygon, polyline, line)',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > rect',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not([data-cdl-role="node-kind-icon"]) > rect',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not([data-cdl-role="node-kind-icon"]) > path',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not([data-cdl-role="node-kind-icon"]) > ellipse',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not([data-cdl-role="node-kind-icon"]) > circle',
+].join(", ");
+
+type FixedTheme = Extract<ThemeNote, { mode: "fixed" }>;
+type ShapeContrast = { boxes: number; halfFrames: number; lines: number; failures: string[] };
+
+// 箱の枠は自分の面、線は舞台の台との実効対比を測る。色の alpha と各 opacity は計算値で
+// 読めるため、画素の揺れを持ち込まず、SVG の描画順に合わせた式で合成する。
+async function checkBoxAndLineContrast(
+  page: Page,
+  stage: Locator,
+  type: string,
+  mode: string,
+  note: FixedTheme,
+  lead: string,
+): Promise<ShapeContrast> {
+  await stopDiagram(page);
+  const groundValue = await stage.evaluate((element) => getComputedStyle(element).backgroundColor);
+  const ground = color(groundValue);
+  const palette = new Set([...Object.values(note.value), lead].map(colorKey));
+  const failures: string[] = [];
+  const readBoxes = await stage.locator(BOX_PAINT_SELECTOR).evaluateAll(readPaints);
+  const boxes = readBoxes.filter((paint) => parseColor(paint.stroke) !== null);
+  let halfFrames = 0;
+  for (const paint of boxes) {
+    const attrOpacity = paint.attrStrokeOpacity === null ? null : Number(paint.attrStrokeOpacity);
+    if (attrOpacity !== null && attrOpacity < 1) halfFrames += 1;
+
+    const strokeMatches = paint.active
+      ? palette.has(colorKey(paint.stroke))
+      : colorKey(paint.stroke) === colorKey(note.value.frame);
+    if (!strokeMatches || colorKey(paint.fill) !== colorKey(note.value.face)) {
+      failures.push(
+        `${type}/${mode}: 箱 ${paint.node ?? "不明"} (${paint.kind ?? "不明"}) ` +
+        `stroke ${paint.stroke} / fill ${paint.fill}`,
+      );
+    }
+    if (!paint.rendered) continue;
+    const effective = effectivePaint(paint, ground);
+    if (effective.frame === null) continue;
+    const ratio = contrast(effective.frame, effective.face);
+    if (ratio < 4.61) {
+      failures.push(
+        `${type}/${mode}: 箱の枠 ${paint.node ?? "不明"} (${paint.kind ?? "不明"}) ` +
+        `実効 ${ratio.toFixed(2)}:1 < 4.61 (stroke ${paint.stroke} / ` +
+        `stroke-opacity ${paint.strokeOpacity} / opacity ${paint.opacity})`,
+      );
+    }
+  }
+
+  const readLines = await stage.locator('[data-cdl-role="edge-line"]').evaluateAll(readPaints);
+  const lines = readLines.filter((paint) => parseColor(paint.stroke) !== null);
+  for (const paint of lines) {
+    if (!palette.has(colorKey(paint.stroke))) {
+      failures.push(`${type}/${mode}: 線 ${paint.stroke} が意匠帳の 9 色と一に無い`);
+    }
+    if (!paint.rendered) continue;
+    const effective = effectivePaint({ ...paint, fill: "none" }, ground);
+    if (effective.frame === null) continue;
+    const ratio = contrast(effective.frame, ground);
+    if (ratio < 3) {
+      failures.push(
+        `${type}/${mode}: 線 ${paint.stroke} の実効は台と ${ratio.toFixed(2)}:1 < 3 ` +
+        `(stroke-opacity ${paint.strokeOpacity} / opacity ${paint.opacity})`,
+      );
+    }
+  }
+
+  return { boxes: boxes.length, halfFrames, lines: lines.length, failures };
+}
+
 const FIXED_THEME_DEVICE_SCALE_FACTOR = 3;
 
 test.describe("固定の意匠 × 図種 (#2790)", () => {
@@ -919,10 +1004,10 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
         const failures: string[] = [];
         const lead = leadColors.get(note.name);
         if (!lead) throw new Error(`${note.name} の一を読めない`);
-        const palette = new Set([...Object.values(note.value), lead].map(colorKey));
         let applied = 0;
         let boxTypes = 0;
         let edgeTypes = 0;
+        let halfFrames = 0;
 
         for (const [type, source] of samples) {
           await openEditorTheme(page, source, note.name, dark);
@@ -948,31 +1033,11 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
             }
           }
 
-          const boxes = await stage.locator('[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark])').evaluateAll((nodes) =>
-            nodes.flatMap((node) => {
-              if (node.closest('[data-cdl-active="true"]')) return [];
-              const style = getComputedStyle(node);
-              return [{ stroke: style.stroke, fill: style.fill }];
-            }),
-          );
-          if (boxes.length > 0) boxTypes += 1;
-          for (const box of boxes) {
-            if (colorKey(box.stroke) !== colorKey(note.value.frame) || colorKey(box.fill) !== colorKey(note.value.face)) {
-              failures.push(`${type}/${mode}: 箱 stroke ${box.stroke} / fill ${box.fill}`);
-            }
-            const ratio = contrast(rgb(box.stroke), rgb(box.fill));
-            if (ratio < 4.61) failures.push(`${type}/${mode}: 箱の枠 ${ratio.toFixed(2)}:1 < 4.61`);
-          }
-
-          const lines = await stage.locator('[data-cdl-role="edge-line"]').evaluateAll((nodes) =>
-            nodes.map((node) => getComputedStyle(node).stroke),
-          );
-          if (lines.length > 0) edgeTypes += 1;
-          for (const stroke of lines) {
-            if (!palette.has(colorKey(stroke))) failures.push(`${type}/${mode}: 線 ${stroke} が意匠帳の 9 色と一に無い`);
-            const ratio = contrast(rgb(stroke), rgb(stageValues.ground));
-            if (ratio < 3) failures.push(`${type}/${mode}: 線 ${stroke} は台と ${ratio.toFixed(2)}:1 < 3`);
-          }
+          const shapes = await checkBoxAndLineContrast(page, stage, type, mode, note, lead);
+          if (shapes.boxes > 0) boxTypes += 1;
+          if (shapes.lines > 0) edgeTypes += 1;
+          halfFrames += shapes.halfFrames;
+          failures.push(...shapes.failures);
 
           const text = await checkTextContrast(page, type, mode);
           if (text.measured === 0 && text.failures.length === 0) {
@@ -984,9 +1049,69 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
         expect(applied, `${note.name} が当たった図種`).toBe(PRESET_TYPES.size);
         expect(boxTypes, "箱を測れた図種が 0 件").toBeGreaterThan(0);
         expect(edgeTypes, "線を測れた図種が 0 件").toBeGreaterThan(0);
+        expect(
+          halfFrames,
+          "描き手が半分の濃さで描いた枠を 1 件も測れていない (検査が空振りしている)",
+        ).toBeGreaterThan(0);
         expect(failures, `${note.name}/${mode} の違反`).toEqual([]);
       });
     }
+  }
+
+  for (const note of fixedThemes()) {
+    test(`${note.name}: 枠の濃さの決まりを外すと箱の枠の検査が落ちる (陽性対照)`, async ({ page }) => {
+      const lead = leadColors.get(note.name);
+      if (!lead) throw new Error(`${note.name} の一を読めない`);
+      let target: { type: string; stage: Locator } | null = null;
+      for (const [type, source] of samples) {
+        await openEditorTheme(page, source, note.name, false);
+        const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
+        if (await stage.locator('[data-cdl-kind="function"] [data-cdl-role="node-body"]').count() > 0) {
+          target = { type, stage };
+          break;
+        }
+      }
+      expect(target, `${note.name} で function の箱を持つ図種が無い`).not.toBeNull();
+      if (target === null) return;
+
+      const before = await checkBoxAndLineContrast(page, target.stage, target.type, "明", note, lead);
+      expect(
+        before.failures.filter((failure) => failure.includes("箱の枠")),
+        `${note.name} の決まりを外す前から箱の枠が落ちている`,
+      ).toEqual([]);
+
+      const removed = await page.evaluate((theme) => {
+        const removeFrom = (rules: CSSRuleList): number => {
+          let count = 0;
+          for (const rule of rules) {
+            if (
+              rule instanceof CSSStyleRule &&
+              rule.selectorText.includes("node-body") &&
+              rule.selectorText.includes(theme) &&
+              rule.style.getPropertyValue("stroke-opacity") !== ""
+            ) {
+              rule.style.removeProperty("stroke-opacity");
+              count += 1;
+            }
+            const nested = (rule as CSSRule & { cssRules?: CSSRuleList }).cssRules;
+            if (nested !== undefined) count += removeFrom(nested);
+          }
+          return count;
+        };
+        let count = 0;
+        for (const sheet of document.styleSheets) count += removeFrom(sheet.cssRules);
+        return count;
+      }, note.name);
+      expect(removed, `${note.name} の枠の濃さの決まりを見つけられない`).toBeGreaterThanOrEqual(1);
+
+      const after = await checkBoxAndLineContrast(page, target.stage, target.type, "明", note, lead);
+      expect(
+        after.failures.filter((failure) =>
+          failure.includes("箱の枠") && failure.includes("実効") && failure.includes("< 4.61"),
+        ),
+        `${note.name} の枠の濃さを外しても実効対比の検査が落ちない`,
+      ).not.toEqual([]);
+    });
   }
 
   for (const note of fixedThemes()) {
@@ -1011,6 +1136,43 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
       for (const [tone, port] of Object.entries(expected)) {
         expect(colorKey(tones[tone] ?? ""), tone).toBe(colorKey(note.value[port]));
       }
+    });
+  }
+});
+
+test.describe("明暗の意匠は描き手の枠の濃さを保つ (#2808)", () => {
+  test.describe.configure({ timeout: 300_000 });
+  const samples = samplesByType();
+  const notes = [...readThemeNotes().values()].filter(
+    (note): note is Extract<ThemeNote, { mode: "light-dark" }> => note.mode === "light-dark",
+  );
+
+  for (const note of notes) {
+    test(`${note.name}: 描き手が書いた枠の濃さをそのまま残す (#2808)`, async ({ page }) => {
+      const failures: string[] = [];
+      let halfFrames = 0;
+      for (const [type, source] of samples) {
+        await openEditorTheme(page, source, note.name, false);
+        await stopDiagram(page);
+        const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
+        const paints = await stage.locator(BOX_PAINT_SELECTOR).evaluateAll(readPaints);
+        for (const paint of paints.filter((value) => parseColor(value.stroke) !== null)) {
+          const attr = paint.attrStrokeOpacity === null ? null : Number(paint.attrStrokeOpacity);
+          const expected = attr ?? paint.parentStrokeOpacity;
+          if (attr !== null && attr < 1) halfFrames += 1;
+          if (Math.abs(paint.strokeOpacity - expected) > 0.000_001) {
+            failures.push(
+              `${type}: ${paint.node ?? "不明"} (${paint.kind ?? "不明"}) の stroke-opacity ` +
+              `${paint.strokeOpacity} / 描き手 ${expected}`,
+            );
+          }
+        }
+      }
+      expect(
+        halfFrames,
+        `${note.name} で描き手が 1 未満にした枠を 1 件も測れていない`,
+      ).toBeGreaterThan(0);
+      expect(failures, `${note.name} が描き手の枠の濃さを変えている`).toEqual([]);
     });
   }
 });
