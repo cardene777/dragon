@@ -735,6 +735,13 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
       const mode = dark ? "暗" : "明";
       test(`${note.name} / ${mode}: 全図種で固定色と contrast が出る`, async ({ page }) => {
         const result = await checkFixedThemeAcrossTypes(page, note, dark);
+        const grounds = [...new Set(result.groundByType.values())].join(" / ");
+        console.log(
+          `${note.name} contrast ${mode}: applied=${result.applied}/${PRESET_TYPES.size} ` +
+            `boxTypes=${result.boxTypes} edgeTypes=${result.edgeTypes} ` +
+            `halfFrames=${result.halfFrames} failures=${result.failures.length} ` +
+            `grounds=${grounds}`,
+        );
 
         expect(result.applied, `${note.name} が当たった図種`).toBe(PRESET_TYPES.size);
         expect(result.boxTypes, "箱を測れた図種が 0 件").toBeGreaterThan(0);

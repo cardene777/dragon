@@ -22,4 +22,9 @@
   svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge] {
     animation: none !important;
   }
+
+  /* 電飾の線も箱が点き終えた後に流れるため、動きを減らす時は明示して止める (#2795)。 */
+  svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge] {
+    animation: none !important;
+  }
 }

@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { 記法をURLに載せる, 矢印が伸びる記法 } from "./box-and-edge-figure";
+import {
+  captureThemeAppear,
+  themeAppearCounts,
+  themeAppearSource,
+  themeEdgeAppearCounts,
+} from "./helpers/theme-appear-capture";
 
 /**
  * `/editor` の初期表示で線が最後まで描かれることを固定する (#381)。
@@ -64,4 +70,41 @@ test("editor の初期表示で線が最後まで伸びる (#381)", async ({ pag
   const finalFirst = last[0]!;
   const grew = series.some((s) => s[0] === null || (s[0] !== undefined && s[0] < finalFirst));
   expect(grew, `1 本目が最初から最終値のまま (series=${JSON.stringify(series.map((s) => s[0]))})`).toBe(true);
+});
+
+test("neon initial-animation: 最後の段で強調が戻っても箱と線は各 1 回だけ点く", async ({
+  page,
+}) => {
+  await captureThemeAppear(page);
+  await page.goto(`editor#s=${記法をURLに載せる(themeAppearSource("neon"))}`);
+  await page.waitForSelector('svg[data-cdl-stage][data-cdl-palette="neon"]');
+  await page.waitForFunction(
+    () => {
+      const c = document.querySelector('[data-cdl-node="c"]');
+      return c !== null && !c.hasAttribute("data-cdl-hidden");
+    },
+    undefined,
+    { timeout: 5_000 },
+  );
+  await expect(page.locator("[data-cdl-phase-index]").first()).toHaveAttribute(
+    "data-cdl-phase-index",
+    "2",
+    { timeout: 5_000 },
+  );
+  await page.waitForTimeout(1_700);
+
+  const edgeIds = await page
+    .locator("[data-cdl-edge]")
+    .evaluateAll((elements) =>
+      elements.flatMap((element) => element.getAttribute("data-cdl-edge") ?? []),
+    );
+  const boxes = await themeAppearCounts(page);
+  const edges = await themeEdgeAppearCounts(page);
+  console.log(
+    `neon initial-animation boxes=${JSON.stringify(boxes)} edges=${JSON.stringify(edges)}`,
+  );
+  expect(boxes).toMatchObject({ a: 1, b: 1, c: 1 });
+  expect(Object.values(boxes).reduce((sum, value) => sum + value, 0)).toBe(3);
+  expect(Object.keys(edges).sort()).toEqual([...edgeIds].sort());
+  expect(Object.values(edges).every((count) => count === 1)).toBe(true);
 });
