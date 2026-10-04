@@ -168,6 +168,26 @@ export function readFixedThemeLead(
   return out;
 }
 
+/** 固定の意匠で、描き手の値より優先する箱の枠の濃さを読む。 */
+export function readFixedThemeFrameOpacity(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, number> {
+  const out = new Map<DslTheme, number>();
+  for (const [name, note] of readThemeNotes(overrides)) {
+    if (note.mode !== "fixed") continue;
+    const 本文 = overrides[name] ?? readThemeNoteText(name);
+    const rows = 二列表を読む(節を取る(本文, "色以外の値", 3));
+    const 値 = rows.get("枠の濃さ");
+    if (値 === undefined) throw new Error(`意匠帳の ${name} に「枠の濃さ」が無い`);
+    const number = /^(?:`)?(\d+(?:\.\d+)?)/.exec(値)?.[1];
+    if (number === undefined) {
+      throw new Error(`意匠帳の ${name} の「枠の濃さ」が数で始まらない`);
+    }
+    out.set(name, Number(number));
+  }
+  return out;
+}
+
 /** 固定の意匠の「図表の系列色」を、2 つの役の表から値へ解く。 */
 export function readFixedThemeChartSeries(
   overrides: Partial<Record<DslTheme, string>> = {},

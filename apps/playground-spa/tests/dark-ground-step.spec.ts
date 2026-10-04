@@ -14,6 +14,13 @@
  */
 import { test, expect } from "@playwright/test";
 import { 箱と矢印を開く } from "./box-and-edge-figure";
+import {
+  effectivePaint,
+  parseColor,
+  readPaints,
+  type Paint,
+} from "./helpers/effective-color";
+import { contrast as colorContrast } from "./helpers/pixel-contrast";
 
 /** sRGB → 相対輝度 (WCAG)。 */
 function luminance(rgb: number[]): number {
@@ -265,7 +272,7 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
     await page.evaluate(() => document.documentElement.classList.add("dark"));
     await page.waitForTimeout(2200);
 
-    const r = await page.evaluate(() => {
+    const paper = await page.evaluate(() => {
       const svg = document.querySelector("svg [data-cdl-role='node-body']")?.closest("svg");
       let paper: string | null = null;
       let n: HTMLElement | null = svg?.parentElement ?? null;
@@ -274,48 +281,37 @@ test("補助線が重ねた後の色で読める", async ({ page }) => {
         if (c && c !== "rgba(0, 0, 0, 0)" && !c.includes(", 0)")) paper = c;
         n = n.parentElement;
       }
-      const strokes: { role: string; stroke: string; opacity: number }[] = [];
-      for (const role of ["lane-lifeline", "lane-container"]) {
-        const el = document.querySelector(`svg [data-cdl-role="${role}"]`);
-        if (!el) continue;
-        // **薄さは色の alpha だけではない**。 効くものを 3 つとも数える。
-        //
-        // 1. 色自身の alpha (`rgba(...)`)
-        // 2. 要素と祖先の `opacity` — 実測 = 描画側が `opacity: 0.7` を掛けており、
-        //    色を不透明にしても 2.73 に落ちた
-        // 3. `stroke-opacity` — 線にだけ掛かる別軸。 現状はどこも 1 だが、
-        //    数えないと将来効いた時に黙って通る
-        //
-        // 祖先は `documentElement` **自身も含めて** 遡る。 除くと root に掛けた
-        // `opacity` を見落とす。
-        let 実効 = Number(getComputedStyle(el).strokeOpacity || 1);
-        let n: Element | null = el;
-        while (n) {
-          実効 *= Number(getComputedStyle(n).opacity || 1);
-          if (n === document.documentElement) break;
-          n = n.parentElement;
-        }
-        strokes.push({ role, stroke: getComputedStyle(el).stroke, opacity: 実効 });
-      }
-      return { paper, strokes };
+      return paper;
     });
-    expect(r.paper, `${場所} の紙を測れていない`).not.toBeNull();
+    expect(paper, `${場所} の紙を測れていない`).not.toBeNull();
+    if (paper === null) continue;
+
+    const strokes: Array<{ role: string; paint: Paint }> = [];
+    for (const role of ["lane-lifeline", "lane-container"]) {
+      const [paint] = await page
+        .locator(`svg [data-cdl-role="${role}"]`)
+        .first()
+        .evaluateAll(readPaints);
+      if (paint !== undefined) strokes.push({ role, paint });
+    }
     // 測る対象が 0 件だと、 何も確かめずに通る。 どの画面でどの役割が出るかは
     // 上の表で決めているので、 1 件も取れないのは選択子が実装とずれた合図
-    expect(r.strokes.length, `${場所} で補助線を 1 つも測れていない (選択子が実装とずれた)`).toBeGreaterThan(0);
+    expect(strokes.length, `${場所} で補助線を 1 つも測れていない (選択子が実装とずれた)`).toBeGreaterThan(0);
 
-    for (const { role, stroke, opacity } of r.strokes) {
-      // 色の alpha と要素の opacity の両方を紙に重ねた実効色で測る。
-      // どちらかを落とすと実際より強く見積もる
-      const f = (stroke.match(/[\d.]+/g) ?? []).map(Number);
-      const bg = parse(r.paper!);
-      const a = (f.length === 4 ? f[3]! : 1) * opacity;
-      const 実効 = [0, 1, 2].map((i) => f[i]! * a + bg[i]! * (1 - a));
-      const [hi, lo] = [luminance(実効), luminance(bg)].sort((p, q) => q - p);
-      const 対比 = (hi! + 0.05) / (lo! + 0.05);
+    const ground = parseColor(paper);
+    expect(ground, `${場所} の紙の色を読めていない`).not.toBeNull();
+    if (ground === null) continue;
+    for (const { role, paint } of strokes) {
+      // **薄さは色の alpha だけではない**。色自身の alpha、`stroke-opacity`、要素と祖先の
+      // `opacity` の 3 つが効く。祖先は documentElement 自身も含め、合成の式は helper が持つ。
+      const frame = effectivePaint({ ...paint, fill: "none" }, ground.rgb).frame;
+      expect(frame, `${場所} の ${role} の線を測れていない`).not.toBeNull();
+      if (frame === null) continue;
+      const 対比 = colorContrast(frame, ground.rgb);
+      const opacity = paint.strokeOpacity * paint.opacity;
       expect(
         対比,
-        `${場所} の ${role} が紙に溶ける (宣言 ${stroke} / opacity ${opacity.toFixed(2)} / 重ねた後の対比 ${対比.toFixed(2)})`,
+        `${場所} の ${role} が紙に溶ける (宣言 ${paint.stroke} / opacity ${opacity.toFixed(2)} / 重ねた後の対比 ${対比.toFixed(2)})`,
       ).toBeGreaterThanOrEqual(3);
     }
   }
