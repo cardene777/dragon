@@ -10,6 +10,13 @@ import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lane
 import { placeMetro } from "./metro";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
+import {
+  classifyTimelineEdge,
+  placeTimeline,
+  TIMELINE_CARD_WIDTH,
+  TIMELINE_NUMBER_HEIGHT,
+  TIMELINE_NUMBER_WIDTH,
+} from "./timeline";
 /**
  * 段を持つ図種の共通の組み立て (#2030 で `compile.ts` から移した)。
  *
@@ -119,9 +126,61 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
   const actorToNodeId = new Map<string, string>();
   const 段階ごとの箱か = kind === "swimlane" && doc.shape === "stages";
   const 路線図か = kind === "swimlane" && doc.shape === "metro";
+  const 時間軸か = kind === "swimlane" && doc.shape === "timeline";
+  let timelineActorIndex: Map<string, number> | undefined;
+  let timelineNumberIdByCardId: Map<string, string> | undefined;
   const actorStageByName = new Map<string, string>();
   const 段階名 = (a: (typeof doc.actors)[number]): string => a.stage ?? a.lane ?? a.name;
-  if (路線図か) {
+  if (時間軸か) {
+    timelineActorIndex = new Map(doc.actors.map((actor, index) => [actor.name, index]));
+    const numberIdByCardId = new Map<string, string>();
+    timelineNumberIdByCardId = numberIdByCardId;
+    const placement = placeTimeline(doc);
+    b.lane("timeline-axis", {
+      width: TIMELINE_NUMBER_WIDTH,
+      role: "overlay",
+      lifeline: true,
+      posX: placement.axisX - TIMELINE_NUMBER_WIDTH / 2,
+      posY: 0,
+      posW: TIMELINE_NUMBER_WIDTH,
+      posH: placement.axisHeight,
+    });
+    b.lane("timeline-steps", {
+      width: placement.width,
+      role: "overlay",
+      posX: 0,
+      posY: 0,
+      posW: placement.width,
+      posH: placement.stepsHeight,
+    });
+    doc.actors.forEach((actor, index) => {
+      const step = placement.steps[index]!;
+      actorToNodeId.set(actor.name, step.cardId);
+      numberIdByCardId.set(step.cardId, step.numberId);
+      b.node(step.numberId, {
+        lane: "timeline-axis",
+        stack: index,
+        kind: "function",
+        title: String(index + 1),
+        w: TIMELINE_NUMBER_WIDTH,
+        h: TIMELINE_NUMBER_HEIGHT,
+        posX: placement.axisX,
+        posY: step.y,
+      });
+      b.node(step.cardId, {
+        lane: "timeline-steps",
+        stack: index,
+        kind: "card",
+        title: 箱の題(actor),
+        ...(actor.lane !== undefined
+          ? { eyebrow: doc.lanes?.[actor.lane]?.label ?? actor.lane }
+          : {}),
+        w: TIMELINE_CARD_WIDTH,
+        posX: step.cardX,
+        posY: step.y,
+      });
+    });
+  } else if (路線図か) {
     const placement = placeMetro(doc);
     for (const track of placement.tracks) {
       b.lane(track.id, {
@@ -312,10 +371,19 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     // 「実線に開いた矢」 を無条件で渡していたが、畳んだ後も渡すと多重度から導いた端を
     // 上から潰す = 箱どうしの個数が消える。 書いた端だけを渡す形に倒す
     const 関係 = kind === "record" ? ERの関係の矢印(ERの関係の指定を作る(s)) : undefined;
-    b.edge(fromId, toId, {
+    const timelineEdgeKind = timelineActorIndex !== undefined
+      ? classifyTimelineEdge(timelineActorIndex.get(s.from)!, timelineActorIndex.get(s.to)!)
+      : undefined;
+    const edgeFromId =
+      timelineEdgeKind === "advance" ? timelineNumberIdByCardId!.get(fromId)! : fromId;
+    const edgeToId =
+      timelineEdgeKind === "advance" ? timelineNumberIdByCardId!.get(toId)! : toId;
+    b.edge(edgeFromId, edgeToId, {
       id: edgeId,
       label: 関係?.label ?? s.label,
-      ...(路線図か
+      ...(timelineEdgeKind === "back"
+        ? { routing: "back-detour" as const }
+        : 路線図か
         ? { routing: "metro" as const }
         : 段階ごとの箱か && actorStageByName.get(s.from) !== actorStageByName.get(s.to)
           ? { routing: "curve" as const }
@@ -348,6 +416,16 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       },
       (pb) => {
         const activateIds = resolveHighlightGeneric(p, doc, actorToNodeId, edgeIds);
+        if (timelineNumberIdByCardId !== undefined) {
+          const activeNumberIds = new Set<string>();
+          for (const id of activateIds) {
+            const numberId = timelineNumberIdByCardId.get(id);
+            if (numberId !== undefined) activeNumberIds.add(numberId);
+          }
+          for (const numberId of timelineNumberIdByCardId.values()) {
+            if (activeNumberIds.has(numberId)) activateIds.push(numberId);
+          }
+        }
         if (activateIds.length > 0) {
           pb.activate(...activateIds);
         }

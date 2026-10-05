@@ -7,7 +7,7 @@ import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
 export function compileSwimlane(doc: DslDocument): CdlDiagram {
   // 形を指定した泳法図は動き・縦列・向きの有無で経路を分けない (#2797 / #2799)。
-  if (doc.shape === "stages" || doc.shape === "metro") {
+  if (doc.shape === "stages" || doc.shape === "metro" || doc.shape === "timeline") {
     return compileGenericWithAnimate(doc, {
       kind: "swimlane",
       laneWidth: doc.shape === "stages" ? 340 : 400,

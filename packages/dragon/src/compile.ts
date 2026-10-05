@@ -1585,8 +1585,10 @@ function reportSkeletonActorOptionNotHonored(
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} は箱を並べて線で繋ぐ図です)`,
       hint:
-        doc.type === "swimlane" && doc.shape === "metro"
-          ? "駅は actors に書いた順に並び、種類は station で固定されます"
+        doc.type === "swimlane" && doc.shape === "timeline"
+          ? "札は actors に書いた順に軸の左右へ交互に並び、種類は card で固定されます"
+          : doc.type === "swimlane" && doc.shape === "metro"
+            ? "駅は actors に書いた順に並び、種類は station で固定されます"
           : 骨組みの図の案内(doc.type, 効かない),
     });
   }
@@ -1611,14 +1613,15 @@ function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): Rea
   const 族の除外 = 骨組みの図が伝えない箱の欄(doc.type);
   const 段階ごとの箱か = doc.type === "swimlane" && doc.shape === "stages";
   const 路線図か = doc.type === "swimlane" && doc.shape === "metro";
+  const 時間軸か = doc.type === "swimlane" && doc.shape === "timeline";
   const 読まない欄: string[] = [];
   // 段を読まない図では伝える側へ回す。 既に抜けている図種 (c4) は下の `delete` が空振りする
-  if (路線図か || (!段階ごとの箱か && !書いた縦列に置く(doc.type, doc))) 読まない欄.push("stack");
+  if (路線図か || 時間軸か || (!段階ごとの箱か && !書いた縦列に置く(doc.type, doc))) 読まない欄.push("stack");
   const 残り = new Set(族の除外);
   // `stage` はこの形でだけ箱の置き先を決める。 他の骨組みの図では知らせる側へ残す (#2797)。
   let 変えた = 段階ごとの箱か && !残り.has("stage");
   if (段階ごとの箱か) 残り.add("stage");
-  if (路線図か && 残り.delete("kind")) 変えた = true;
+  if ((路線図か || 時間軸か) && 残り.delete("kind")) 変えた = true;
   for (const 欄 of 読まない欄) if (残り.delete(欄)) 変えた = true;
   return 変えた ? 残り : 族の除外;
 }
@@ -1749,6 +1752,8 @@ function reportHalfWrittenPosition(
 function reportLaneNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
   if (doc.type === "mind") return;
+  // 時間軸の lane は縦列ではなく札の担当名なので、箱ごとに省いてよい。
+  if (doc.type === "swimlane" && doc.shape === "timeline") return;
   // 縦列を選べる図種では、全ての箱が書いていれば効く (#1263)。 効く形では知らせない
   const 効く図種 = 縦列を選べる図種.has(doc.type);
   if (効く図種 && 書いた縦列に置く(doc.type, doc)) return;
@@ -2052,6 +2057,11 @@ function 図の矢印を探す(
         (x.from === `s${stepIdx}-${from}` || x.from === from) &&
         (x.to === `s${stepIdx}-${to}` || x.from === x.to),
     );
+  }
+  // 時間軸の進行線は番号の箱を結ぶが、id は札の両端を残す。
+  // focus と出来事は書き手が札の名前で指定するため、その id の末尾で照合する。
+  if (doc.type === "swimlane" && doc.shape === "timeline") {
+    return diagram.edges.find((x) => x.id.endsWith(`-${from}-${to}`));
   }
   return diagram.edges.find((x) => x.from === from && x.to === to);
 }
@@ -2650,7 +2660,7 @@ function applyV05Extensions(
   // `lane-Ａ`) がこの形になり、黙って捨てられていた (実測 = 幅 999 を持つ空の縦列が増え、
   // 元の縦列は 360 のままだった)
   const 追加した縦列: DslLane[] = 追加した縦列out ?? [];
-  if (doc.lanes && !(doc.type === "swimlane" && (doc.shape === "stages" || doc.shape === "metro"))) {
+  if (doc.lanes && !(doc.type === "swimlane" && (doc.shape === "stages" || doc.shape === "metro" || doc.shape === "timeline"))) {
     for (const [id, laneOpt] of Object.entries(doc.lanes)) {
       const lane = diagram.lanes.find((l) => l.id === id);
       if (lane) {
@@ -2857,6 +2867,16 @@ function reportDirectionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
   if (!onNotice) return;
   if (doc.direction === undefined) return;
   const 行 = doc.directionPos?.line ?? doc.pos?.line ?? 0;
+  if (doc.type === "swimlane" && doc.shape === "timeline") {
+    onNotice({
+      kind: "direction-not-honored",
+      actor: doc.title,
+      line: 行,
+      message: "書いた direction は効きません (shape: timeline は段を常に上から下へ並べます)",
+      hint: "段の並びは actors に書いた順で決まります",
+    });
+    return;
+  }
   if (doc.type === "swimlane" && doc.shape === "metro") {
     onNotice({
       kind: "direction-not-honored",

@@ -543,6 +543,98 @@ export const sourceJson__textDslSwimlaneMetro = `{
   ]
 }`;
 
+// ─── swimlane + timeline (番号付きの時間軸) ─────
+export const sourceYaml__textDslSwimlaneTimeline = `
+title: "申請が審査を経て届くまで"
+type: swimlane
+shape: timeline
+
+lanes:
+  front: { label: 窓口 }
+  review: { label: 審査係 }
+  chief: { label: 課長 }
+
+actors:
+  - 申請を受け付ける: { lane: front }
+  - 書類を審査する: { lane: review }
+  - 不備を直す: { lane: front }
+  - 決裁する: { lane: chief }
+  - 結果を知らせる: { lane: front }
+
+flow:
+  - 申請を受け付ける -> 書類を審査する: "回す"
+  - 書類を審査する -> 不備を直す: "差し戻す"
+  - 不備を直す -> 書類を審査する: "出し直す"
+  - 書類を審査する -> 決裁する: "通す"
+  - 決裁する -> 結果を知らせる: "知らせる"
+
+animation:
+  - step: "受け付ける" 1.2s
+    focus: [申請を受け付ける, 書類を審査する, "申請を受け付ける -> 書類を審査する"]
+    badge: "申請"
+    description: "窓口が申請を受け付け、審査係へ回す。 番号は書いた段の順を表す。"
+
+  - step: "審査と差し戻し" 1.2s
+    focus: [不備を直す, "書類を審査する -> 不備を直す", "不備を直す -> 書類を審査する"]
+    badge: "差し戻し"
+    description: "不備があれば窓口で直し、一つ前の審査へ出し直す。 戻り線は札の上を回る。"
+
+  - step: "決裁して知らせる" 1.2s
+    focus: [決裁する, 結果を知らせる, "書類を審査する -> 決裁する", "決裁する -> 結果を知らせる"]
+    badge: "完了"
+    description: "審査から決裁へ分かれ、最後に窓口が結果を知らせる。 札は軸の左右へ交互に並ぶ。"
+`;
+
+export const textDslSwimlaneTimeline = textDslToDiagram(sourceYaml__textDslSwimlaneTimeline);
+
+export const sourceJson__textDslSwimlaneTimeline = `{
+  "title": "申請が審査を経て届くまで",
+  "type": "swimlane",
+  "shape": "timeline",
+  "lanes": {
+    "front": { "label": "窓口" },
+    "review": { "label": "審査係" },
+    "chief": { "label": "課長" }
+  },
+  "actors": [
+    { "name": "申請を受け付ける", "lane": "front" },
+    { "name": "書類を審査する", "lane": "review" },
+    { "name": "不備を直す", "lane": "front" },
+    { "name": "決裁する", "lane": "chief" },
+    { "name": "結果を知らせる", "lane": "front" }
+  ],
+  "flow": [
+    { "from": "申請を受け付ける", "to": "書類を審査する", "label": "回す" },
+    { "from": "書類を審査する", "to": "不備を直す", "label": "差し戻す" },
+    { "from": "不備を直す", "to": "書類を審査する", "label": "出し直す" },
+    { "from": "書類を審査する", "to": "決裁する", "label": "通す" },
+    { "from": "決裁する", "to": "結果を知らせる", "label": "知らせる" }
+  ],
+  "animation": [
+    {
+      "step": "受け付ける",
+      "duration": 1.2,
+      "focus": ["申請を受け付ける", "書類を審査する", "申請を受け付ける -> 書類を審査する"],
+      "badge": "申請",
+      "description": "窓口が申請を受け付け、審査係へ回す。 番号は書いた段の順を表す。"
+    },
+    {
+      "step": "審査と差し戻し",
+      "duration": 1.2,
+      "focus": ["不備を直す", "書類を審査する -> 不備を直す", "不備を直す -> 書類を審査する"],
+      "badge": "差し戻し",
+      "description": "不備があれば窓口で直し、一つ前の審査へ出し直す。 戻り線は札の上を回る。"
+    },
+    {
+      "step": "決裁して知らせる",
+      "duration": 1.2,
+      "focus": ["決裁する", "結果を知らせる", "書類を審査する -> 決裁する", "決裁する -> 結果を知らせる"],
+      "badge": "完了",
+      "description": "審査から決裁へ分かれ、最後に窓口が結果を知らせる。 札は軸の左右へ交互に並ぶ。"
+    }
+  ]
+}`;
+
 // ─── flowchart (分かれ道と担当) ─────
 export const sourceYaml__textDslFlowchart = `
 title: "経費申請の承認"

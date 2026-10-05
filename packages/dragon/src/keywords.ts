@@ -97,7 +97,7 @@ export const SHAPES = [
 export type DslShape = (typeof SHAPES)[number];
 
 /** 泳法図の形 (`shape:`、 #2797)。 後続の形も chart と混ぜずここへ足す。 */
-export const SWIMLANE_SHAPES = ["stages", "metro"] as const;
+export const SWIMLANE_SHAPES = ["stages", "metro", "timeline"] as const;
 export type DslSwimlaneShape = (typeof SWIMLANE_SHAPES)[number];
 
 /** 最上位の `shape:` が取り得る語。 図種ごとの集合は `DIAGRAM_SHAPES` が決める。 */

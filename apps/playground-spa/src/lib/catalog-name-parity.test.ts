@@ -88,7 +88,8 @@ describe("一覧の名前 (#1030)", () => {
       // 縦列の組の見本を足して 94 → 95 (#1972)
       "primitives-extra": 21, animation: 10, styles: 19, presets: 19,
       // parts-in-box は部品を箱に使う見本 (#1973)
-      ethereum: 4, "text-dsl": 21, parts: 110, "parts-in-box": 1, "parts-motion": 1, charts: 15,
+      // text-dsl は時間軸の見本を足して 21 → 22 (#2798)
+      ethereum: 4, "text-dsl": 22, parts: 110, "parts-in-box": 1, "parts-motion": 1, charts: 15,
     };
     const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));
     expect(
