@@ -5,7 +5,7 @@
 
 import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
-import type { DslDirection, DslOrder, DslShape, DslTheme } from "./keywords";
+import type { DslDiagramShape, DslDirection, DslOrder, DslTheme } from "./keywords";
 
 /**
  * 記法が書ける箱の種類 (#1420)。
@@ -225,8 +225,8 @@ export type DslDocument = {
   order?: DslOrder;
   /** `order:` を書いた行。 効かない時の知らせで、書いた場所を指すために持つ */
   orderPos?: { line: number };
-  /** 数を描く図の形 (#2657)。 `type: chart` だけが読む */
-  shape?: DslShape;
+  /** 図種ごとに選ぶ形 (#2657 / #2797)。 書ける語は `DIAGRAM_SHAPES` が決める */
+  shape?: DslDiagramShape;
   /** `shape:` を書いた行。 効かない時の知らせで、書いた場所を指すために持つ */
   shapePos?: { line: number };
   /**
@@ -411,6 +411,12 @@ export type DslActor = {
    * 書かれていたら組み立て側が知らせる。
    */
   opportunity?: string;
+  /**
+   * 段階ごとの箱 (`type: swimlane` + `shape: stages`) で、この箱を入れる段階 (#2797)。
+   *
+   * 書かなければ担当 (`lane`)、担当も無ければ箱の名前を段階として使う。
+   */
+  stage?: string;
   lane?: string;
   stack?: number;
   initial?: boolean;

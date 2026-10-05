@@ -43,6 +43,7 @@ const 箱の値: Record<string, unknown> = {
   marks: ["pk"],
   // 相対で置く指定 (#2039)。 基準は図に居る別の箱にする
   posRel: { anchor: "A", dir: "right", gap: 200 },
+  stage: "申請",
   lane: "L1",
   stack: 1,
   initial: true,

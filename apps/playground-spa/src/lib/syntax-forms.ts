@@ -252,6 +252,54 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "段階ごとの箱の形 (shape: stages)",
+    titleEn: "Boxes grouped by stage (shape: stages)",
+    sample: {
+      slot: "shape",
+      type: "swimlane",
+      actors: [
+        "  - 受付: { stage: 申請, lane: front }",
+        "  - 確認: { stage: 審査, lane: review }",
+      ],
+      flow: ['  - 受付 -> 確認: "渡す"'],
+    },
+    lines: [
+      {
+        code: "shape: stages",
+        note: "段階を左から並べ、その中へ箱を積む",
+        noteEn: "Places stages from left to right and stacks boxes inside them",
+      },
+    ],
+  },
+  {
+    title: "箱を入れる段階 (stage / 段階)",
+    titleEn: "Which stage holds a box (stage)",
+    sample: {
+      slot: "actors",
+      type: "swimlane",
+      shape: "stages",
+      flow: ['  - 受付 -> 確認: "渡す"'],
+    },
+    lines: [
+      {
+        code: "  - 受付: { stage: 申請, lane: front }",
+        note: "中括弧の中へ段階と担当を書く",
+        noteEn: "Writes the stage and role inside braces",
+      },
+      {
+        code: "  - 確認:",
+        note: "項目を縦にも書ける",
+        noteEn: "Fields can also be written one per line",
+      },
+      {
+        code: "      段階: 審査",
+        note: "段階は日本語の項目名でもよい",
+        noteEn: "The Japanese field name works too",
+      },
+      { code: "      lane: review", note: "担当", noteEn: "The role" },
+    ],
+  },
+  {
     title: "図の意匠 (theme:)",
     titleEn: "Diagram theme (theme:)",
     // 色の値は図が持たない。 名前だけが図に載り、画面側が名前を見て色を当てる。

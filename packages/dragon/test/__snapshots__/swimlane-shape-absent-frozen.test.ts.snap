@@ -1,0 +1,308 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`shape を書かない泳法図の出力を固定する (#2797) > 動きを持つ泳法図 1`] = `
+{
+  "edges": [],
+  "id": "動く泳法図",
+  "lanes": [
+    {
+      "id": "front",
+      "width": 400,
+    },
+    {
+      "id": "back",
+      "width": 400,
+    },
+  ],
+  "nodes": [
+    {
+      "id": "受付",
+      "kind": "actor",
+      "lane": "front",
+      "stack": 0,
+      "title": "受付",
+    },
+    {
+      "id": "審査",
+      "kind": "actor",
+      "lane": "back",
+      "stack": 0,
+      "title": "審査",
+    },
+  ],
+  "phases": [
+    {
+      "activate": [
+        "受付",
+      ],
+      "badge": undefined,
+      "body": "",
+      "duration": 1000,
+      "id": "受け付ける",
+      "sets": [],
+      "title": "受け付ける",
+      "tweens": [],
+    },
+    {
+      "activate": [
+        "審査",
+      ],
+      "badge": undefined,
+      "body": "",
+      "duration": 1000,
+      "id": "審査する",
+      "sets": [],
+      "title": "審査する",
+      "tweens": [],
+    },
+  ],
+  "states": [],
+  "topic": "動く泳法図",
+  "type": "swimlane",
+}
+`;
+
+exports[`shape を書かない泳法図の出力を固定する (#2797) > 向きを持つ泳法図 1`] = `
+{
+  "edges": [],
+  "id": "向きのある泳法図",
+  "lanes": [
+    {
+      "id": "front",
+      "width": 400,
+    },
+    {
+      "id": "back",
+      "width": 400,
+    },
+  ],
+  "nodes": [
+    {
+      "id": "受付",
+      "kind": "actor",
+      "lane": "front",
+      "stack": 0,
+      "title": "受付",
+    },
+    {
+      "id": "審査",
+      "kind": "actor",
+      "lane": "back",
+      "stack": 0,
+      "title": "審査",
+    },
+  ],
+  "phases": [
+    {
+      "activate": [],
+      "body": "",
+      "duration": 1000,
+      "id": "static",
+      "sets": [],
+      "title": "向きのある泳法図",
+      "tweens": [],
+    },
+  ],
+  "states": [],
+  "topic": "向きのある泳法図",
+  "type": "swimlane",
+}
+`;
+
+exports[`shape を書かない泳法図の出力を固定する (#2797) > 縦列の宣言を持つ泳法図 1`] = `
+{
+  "edges": [],
+  "id": "縦列のある泳法図",
+  "lanes": [
+    {
+      "id": "front",
+      "label": "受付",
+      "width": 400,
+    },
+    {
+      "id": "back",
+      "label": "審査",
+      "width": 400,
+    },
+  ],
+  "nodes": [
+    {
+      "id": "申請",
+      "kind": "actor",
+      "lane": "front",
+      "stack": 0,
+      "title": "申請",
+    },
+    {
+      "id": "確認",
+      "kind": "actor",
+      "lane": "back",
+      "stack": 0,
+      "title": "確認",
+    },
+  ],
+  "phases": [
+    {
+      "activate": [],
+      "body": "",
+      "duration": 1000,
+      "id": "static",
+      "sets": [],
+      "title": "縦列のある泳法図",
+      "tweens": [],
+    },
+  ],
+  "states": [],
+  "topic": "縦列のある泳法図",
+  "type": "swimlane",
+}
+`;
+
+exports[`shape を書かない泳法図の出力を固定する (#2797) > 見本帳の泳法図 1`] = `
+{
+  "edges": [
+    {
+      "cardinality": undefined,
+      "dashOffsetBind": undefined,
+      "from": "利用者",
+      "guard": undefined,
+      "head": undefined,
+      "headFill": undefined,
+      "headLabel": undefined,
+      "id": "e0-利用者-注文の処理",
+      "label": "呼び出す",
+      "labelOffsetX": undefined,
+      "labelOffsetY": undefined,
+      "labelPlate": undefined,
+      "overlay": undefined,
+      "role": undefined,
+      "routing": undefined,
+      "side": undefined,
+      "strokeBind": undefined,
+      "style": "dotted-flow",
+      "sub": undefined,
+      "tailHead": undefined,
+      "tailHeadFill": undefined,
+      "tailLabel": undefined,
+      "to": "注文の処理",
+      "tone": "accent",
+      "widthBind": undefined,
+    },
+    {
+      "cardinality": undefined,
+      "dashOffsetBind": undefined,
+      "from": "注文の処理",
+      "guard": undefined,
+      "head": undefined,
+      "headFill": undefined,
+      "headLabel": undefined,
+      "id": "e1-注文の処理-注文済み",
+      "label": "発行する",
+      "labelOffsetX": undefined,
+      "labelOffsetY": undefined,
+      "labelPlate": undefined,
+      "overlay": undefined,
+      "role": undefined,
+      "routing": undefined,
+      "side": undefined,
+      "strokeBind": undefined,
+      "style": "dotted-flow",
+      "sub": undefined,
+      "tailHead": undefined,
+      "tailHeadFill": undefined,
+      "tailLabel": undefined,
+      "to": "注文済み",
+      "tone": "success",
+      "widthBind": undefined,
+    },
+  ],
+  "id": "処理を役割ごとに縦列に分けて流れを示す図",
+  "lanes": [
+    {
+      "id": "lane-利用者",
+      "label": "クライアント",
+      "width": 520,
+    },
+    {
+      "id": "lane-注文の処理",
+      "label": "サービス",
+      "width": 520,
+    },
+    {
+      "id": "lane-注文済み",
+      "label": "イベント",
+      "width": 520,
+    },
+  ],
+  "nodes": [
+    {
+      "id": "利用者",
+      "kind": "actor",
+      "lane": "lane-利用者",
+      "stack": 0,
+      "title": "利用者",
+    },
+    {
+      "id": "注文の処理",
+      "kind": "function",
+      "lane": "lane-注文の処理",
+      "stack": 0,
+      "title": "注文の処理",
+    },
+    {
+      "id": "注文済み",
+      "kind": "event",
+      "lane": "lane-注文済み",
+      "stack": 0,
+      "title": "注文済み",
+    },
+  ],
+  "phases": [
+    {
+      "activate": [
+        "利用者",
+      ],
+      "badge": "swimlane",
+      "body": "外から呼ぶ人が最初の縦列に立つ。",
+      "duration": 900,
+      "id": "1-クライアントの利用者",
+      "sets": [],
+      "title": "1. クライアントの利用者",
+      "tweens": [],
+    },
+    {
+      "activate": [
+        "利用者",
+        "注文の処理",
+        "e0-利用者-注文の処理",
+      ],
+      "badge": "swimlane",
+      "body": "呼び出しが隣の縦列に渡る。",
+      "duration": 900,
+      "id": "2-サービスの処理",
+      "sets": [],
+      "title": "2. サービスの処理",
+      "tweens": [],
+    },
+    {
+      "activate": [
+        "利用者",
+        "注文の処理",
+        "注文済み",
+        "e0-利用者-注文の処理",
+        "e1-注文の処理-注文済み",
+      ],
+      "badge": "swimlane",
+      "body": "処理が済むと、結果をイベントとして発行する。",
+      "duration": 900,
+      "id": "処理を役割ごとに縦列に分けて流れを示す図",
+      "sets": [],
+      "title": "処理を役割ごとに縦列に分けて流れを示す図",
+      "tweens": [],
+    },
+  ],
+  "states": [],
+  "topic": "処理を役割ごとに縦列に分けて流れを示す図",
+  "type": "swimlane",
+}
+`;

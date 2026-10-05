@@ -114,12 +114,12 @@ export function 記法が知る名前(): { 経路: Map<string, Set<string>>; 型
  * 引き手は編集画面の見本 (`data/editor-samples.ts`) を見る検査だけ。 その file の英語は
  * 見本の名前の括弧の中 (`ログインAPI呼び出し (sequence)`) で、中身が図の型そのもの。
  *
- * **数を描く図は形も配る** (#2657)。 9 つの型を `chart` 1 つに畳んだので、型だけを配ると
- * 見本の名前が全て `(chart)` になり、9 つを名前で見分けられなくなる。 括弧の中は
+ * **形を持つ図は形も配る** (#2657 / #2797)。 数を描く図の型を `chart` 1 つに畳んだので、
+ * 型だけを配ると見本の名前を形で見分けられなくなる。 括弧の中は
  * 型か形のどちらかを名乗る (`円グラフ (pie)`) ので、両方を配る。
  */
 export function 記法が配る図の型(): Set<string> {
-  return new Set([...記法.PRESET_TYPES, ...記法.SHAPES]);
+  return new Set([...記法.PRESET_TYPES, ...記法.ALL_DIAGRAM_SHAPES]);
 }
 
 /**

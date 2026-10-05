@@ -63,6 +63,7 @@ type 放射で描けない欄 =
   | "end"
   | "rows"
   | "marks"
+  | "stage"
   | "lane"
   | "stack"
   | "initial"
@@ -130,6 +131,7 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   end: "終わる時期 (工程の並びの欄)",
   rows: "行",
   marks: "印",
+  stage: "段階",
   lane: "枠の指定",
   stack: "積む順",
   initial: "始まり / 終わり の印",

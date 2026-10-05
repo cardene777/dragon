@@ -47,7 +47,8 @@ import {
   DIRECTION_ALIAS,
   ORDERS,
   ORDER_ALIAS,
-  SHAPES,
+  SWIMLANE_SHAPES,
+  DIAGRAM_SHAPES,
 } from "../src/keywords";
 import { EDGE_REVEALS, RELATION_FOCUSES } from "@cardenelabs/cdl";
 import { RELATIVE_DIRECTIONS } from "../src/relative-pos";
@@ -117,8 +118,8 @@ const 対応表: Record<string, readonly string[]> = {
   ),
   // 並べ替えの軸も向きと同じ形 (#2655)。 正規の語 (`種類`) を除いた別名が JSON の語になる
   order: Object.keys(ORDER_ALIAS).filter((k) => !(ORDERS as readonly string[]).includes(k)),
-  // 数を描く図の形 (#2657)。 日本語の別名を持たないので一覧をそのまま使う
-  shape: [...SHAPES],
+  // 図種ごとの形 (#2657 / #2797)。 日本語の別名を持たないので対応表の和を使う
+  shape: Object.values(DIAGRAM_SHAPES).flat(),
   theme: [...THEMES],
   palette: [...THEMES],
   reveal: [...EDGE_REVEALS],
@@ -198,5 +199,20 @@ describe("公開 schemaの語の一覧が実装と一致する (#1559)", () => {
     const 照合するはず = Object.keys(対応表).length;
     expect(照合した, "1 件も照合していない (検査が空振りしている)").toBe(照合するはず);
     expect(ずれ, "公開 schema と実装で語が食い違う").toEqual([]);
+  });
+});
+
+describe("図種ごとの shape の境界 (#2797)", () => {
+  it("図種ごとの集合は重ならない", () => {
+    const 全部 = Object.values(DIAGRAM_SHAPES).flat();
+    expect(new Set(全部).size).toBe(全部.length);
+  });
+
+  it("swimlane の形は図種の別名にならない", () => {
+    expect(SWIMLANE_SHAPES.filter((shape) => TYPE_ALIASES.has(shape))).toEqual([]);
+  });
+
+  it("stages は preset の図種にならない", () => {
+    expect(PRESET_TYPES.has("stages" as never)).toBe(false);
   });
 });

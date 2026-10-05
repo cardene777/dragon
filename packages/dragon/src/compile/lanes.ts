@@ -98,10 +98,13 @@ export function 縦列の判定に数える箱(doc: DslDocument): DslDocument["a
  * クラス図だけ)。
  *
  * @param actors 記法から読んだ箱を書いた順に並べたもの
+ * @param 縦列を引く 箱を同じ段の集合へ分ける鍵。 省略時は `lane` を使う
  * @returns 段を持つ箱だけの表。 縦列も段も書かない箱は入らない (呼出側が既定に任せる)
  */
 export function 縦列ごとの段を決める(
   actors: DslDocument["actors"],
+  縦列を引く: (actor: DslDocument["actors"][number]) => string | undefined = (actor) =>
+    actor.lane,
 ): ReadonlyMap<DslDocument["actors"][number], number> {
   const 埋まった段 = new Map<string, Set<number>>();
   const 埋める = (lid: string, stack: number): void => {
@@ -111,11 +114,13 @@ export function 縦列ごとの段を決める(
   };
   // 書いた番号を先に全て埋める = 書き順が後の箱の番号とも重ならない
   for (const a of actors) {
-    if (a.lane !== undefined && a.stack !== undefined) 埋める(a.lane, a.stack);
+    const 縦列 = 縦列を引く(a);
+    if (縦列 !== undefined && a.stack !== undefined) 埋める(縦列, a.stack);
   }
   const 決めた = new Map<DslDocument["actors"][number], number>();
   for (const a of actors) {
-    if (a.lane === undefined) {
+    const 縦列 = 縦列を引く(a);
+    if (縦列 === undefined) {
       // 縦列を書かない箱は縦列の中の段を持たない。 段だけ書いた箱はその番号を渡す
       if (a.stack !== undefined) 決めた.set(a, a.stack);
       continue;
@@ -125,9 +130,9 @@ export function 縦列ごとの段を決める(
       continue;
     }
     let stack = 0;
-    const 集合 = 埋まった段.get(a.lane);
+    const 集合 = 埋まった段.get(縦列);
     while (集合?.has(stack)) stack += 1;
-    埋める(a.lane, stack);
+    埋める(縦列, stack);
     決めた.set(a, stack);
   }
   return 決めた;

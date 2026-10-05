@@ -118,6 +118,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     marks: ["pk"],
     // 相対で置く指定 (#2039)。 基準は 2 つ目の箱にする
     posRel: { anchor: "B", dir: "right", gap: 200 },
+    stage: "申請",
     lane: "L1",
     stack: 1,
     initial: true,

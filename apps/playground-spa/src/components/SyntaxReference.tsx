@@ -4,7 +4,7 @@ import {
   DRAW_WORDS,
   THEME_ALIAS,
   PRESET_TYPES,
-  SHAPES,
+  ALL_DIAGRAM_SHAPES,
   TONE_ALIAS,
 } from "@cardenelabs/dragon";
 import { NODE_KINDS } from "@cardenelabs/cdl";
@@ -43,8 +43,8 @@ export function SyntaxReference({ onInsert }: { onInsert?: (code: string) => voi
   const 字 = 編集画面の字(locale);
   // 実装が受け付ける値をそのまま並べる
   const types = useMemo(() => [...PRESET_TYPES].sort(), []);
-  // 数を描く図の形 (#2659)。 節の例文は 3 行しか出さないので、9 つを読めるのはここだけ
-  const shapes = useMemo(() => [...SHAPES].sort(), []);
+  // 図種ごとの形 (#2659 / #2797)。 節の例文に収まらない全体はここで読めるようにする
+  const shapes = useMemo(() => [...ALL_DIAGRAM_SHAPES].sort(), []);
   const kinds = useMemo(() => [...NODE_KINDS].sort(), []);
   // 段の `draw:` が受ける語。 記法の対応表 (`DRAW_TARGETS`) から引く (#1318)
   const draws = useMemo(() => [...DRAW_WORDS].sort(), []);

@@ -39,6 +39,7 @@ const 対応表: Record<string, 対応> = {
   rows: { 記法: "rows: [ア, イ]", json: { rows: ["ア", "イ"] } },
   // 行頭の印 (#1466)。 行と対で読むので、行を持つ形で測る
   marks: { 記法: "rows: [ア, イ], marks: [pk, fk]", json: { rows: ["ア", "イ"], marks: ["pk", "fk"] } },
+  stage: { 記法: "stage: 申請", json: { stage: "申請" } },
   lane: { 記法: "lane: L1", json: { lane: "L1" } },
   stack: { 記法: "stack: 2", json: { stack: 2 } },
   initial: { 記法: "initial: true", json: { initial: true } },
