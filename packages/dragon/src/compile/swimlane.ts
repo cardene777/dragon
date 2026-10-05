@@ -6,9 +6,12 @@ import { 描ける種別 } from "./kinds";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
 export function compileSwimlane(doc: DslDocument): CdlDiagram {
-  // 段階の箱は動き・縦列・向きの有無で経路を分けない (#2797)。 箱と矢印と強調を同じ共通処理で作る。
-  if (doc.shape === "stages") {
-    return compileGenericWithAnimate(doc, { kind: "swimlane", laneWidth: 340 });
+  // 形を指定した泳法図は動き・縦列・向きの有無で経路を分けない (#2797 / #2799)。
+  if (doc.shape === "stages" || doc.shape === "metro") {
+    return compileGenericWithAnimate(doc, {
+      kind: "swimlane",
+      laneWidth: doc.shape === "stages" ? 340 : 400,
+    });
   }
   // 動きを書いた形と縦列を書いた形は共通の組み立てへ (#1263 / #2348 で 1 箇所にまとめた)。
   // **向きを書いた形も** (#1494)。 静止図の経路は並びを固定で持つので、

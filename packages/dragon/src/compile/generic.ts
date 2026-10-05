@@ -7,6 +7,7 @@ import { 並べる向き, 後ろへ戻る矢印か, type GenericKind } from "./d
 import { ERの関係の指定を作る, ERの関係の矢印 } from "./er-relation";
 import { 描ける種別 } from "./kinds";
 import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lanes";
+import { placeMetro } from "./metro";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
 /**
@@ -117,9 +118,35 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
   // lane / node 配置 ... preset kind に応じて切替
   const actorToNodeId = new Map<string, string>();
   const 段階ごとの箱か = kind === "swimlane" && doc.shape === "stages";
+  const 路線図か = kind === "swimlane" && doc.shape === "metro";
   const actorStageByName = new Map<string, string>();
   const 段階名 = (a: (typeof doc.actors)[number]): string => a.stage ?? a.lane ?? a.name;
-  if (段階ごとの箱か) {
+  if (路線図か) {
+    const placement = placeMetro(doc);
+    for (const track of placement.tracks) {
+      b.lane(track.id, {
+        width: placement.width,
+        label: track.label,
+        posX: track.posX,
+        posY: track.posY,
+        posW: track.posW,
+        posH: track.posH,
+      });
+    }
+    doc.actors.forEach((actor, index) => {
+      const station = placement.stations[index]!;
+      const id = slugify(actor.name) || `n${index}`;
+      actorToNodeId.set(actor.name, id);
+      b.node(id, {
+        lane: station.trackId,
+        stack: index,
+        kind: "station",
+        title: 箱の題(actor),
+        posX: station.posX,
+        posY: station.posY,
+      });
+    });
+  } else if (段階ごとの箱か) {
     /*
      * 段階を横に並べ、その中へ箱を縦に積む (#2797)。
      *
@@ -288,12 +315,14 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     b.edge(fromId, toId, {
       id: edgeId,
       label: 関係?.label ?? s.label,
-      ...(段階ごとの箱か && actorStageByName.get(s.from) !== actorStageByName.get(s.to)
-        ? { routing: "curve" as const }
-        : !段階ごとの箱か &&
-            後ろへ戻る矢印か(kind, fromId, toId, 箱の並び, 書いた縦列に置く(kind, doc))
-          ? { routing: "back-detour" as const }
-          : {}),
+      ...(路線図か
+        ? { routing: "metro" as const }
+        : 段階ごとの箱か && actorStageByName.get(s.from) !== actorStageByName.get(s.to)
+          ? { routing: "curve" as const }
+          : !段階ごとの箱か &&
+              後ろへ戻る矢印か(kind, fromId, toId, 箱の並び, 書いた縦列に置く(kind, doc))
+            ? { routing: "back-detour" as const }
+            : {}),
       ...(関係?.sub ? { sub: 関係.sub } : {}),
       ...(関係?.head ? { head: 関係.head } : {}),
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),

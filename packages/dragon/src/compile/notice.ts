@@ -28,6 +28,8 @@ export type CompileNotice = {
     | "shape-not-honored"
     // 段階ごとの箱で `stage` を省き、担当または箱名から段階を補った (#2797)
     | "stage-from-lane"
+    // 路線図で `lane` を省き、箱名を線路名に使った (#2799)
+    | "track-from-name"
     // `theme:` とその別名 `palette:` を両方書き、`theme:` を使った (#2790)
     | "theme-palette-both"
     // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)

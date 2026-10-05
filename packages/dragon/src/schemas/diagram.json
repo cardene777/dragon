@@ -2344,9 +2344,10 @@
         "waffle",
         "stacked",
         "slope",
-        "stages"
+        "stages",
+        "metro"
       ],
-      "description": "図種ごとの形。 chart では pie / bar / line / gauge / radial / stat / waffle / stacked / slope、swimlane では stages が効く。 chart で書かなければ bar (棒の高さ)。"
+      "description": "図種ごとの形。 chart では pie / bar / line / gauge / radial / stat / waffle / stacked / slope、swimlane では stages / metro が効く。 chart で書かなければ bar (棒の高さ)。"
     },
     "order": {
       "type": "string",

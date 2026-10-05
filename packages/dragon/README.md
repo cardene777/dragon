@@ -75,7 +75,7 @@ flow:
 | `relations` | 触れた箱の関係を光らせるか (`off` = 何もしない (既定) / `hover` = 触れた箱と繋がる線と相手の箱だけが光る)                     |
 | `direction` | 図の並ぶ向き (`縦` / `横`、英語なら `vertical` / `horizontal`)。 効くのは `flow` と `swimlane` だけ |
 | `order`     | 箱を並べ替える軸 (`種類`、英語なら `kind`)。 効くのは `sequence` だけで、書くと `kind:` の順 (人 → 契約 → 保管 → 出来事) に箱が並ぶ |
-| `shape`     | 図種ごとの形。`chart` は `pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope` (書かなければ `bar`)、`swimlane` は `stages` |
+| `shape`     | 図種ごとの形。`chart` は `pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope` (書かなければ `bar`)、`swimlane` は `stages` / `metro` |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る。 クラス図は書かなくても `kinari` |
 
 <!-- notation:top-level:end -->
@@ -172,6 +172,27 @@ actors:
   - 受付: { stage: 申請, lane: front }
   - 確認: { 段階: 審査, lane: review }
 ```
+
+`shape: metro` は担当 (`lane`) ごとに横の線路を 1 本作り、箱を駅として actors に書いた順に
+左から並べる。担当が替わる線は、横線と 45 度の斜線をつないだ乗り換え線になる。
+
+```yaml
+type: swimlane
+shape: metro
+
+lanes:
+  front: { label: 窓口 }
+  review: { label: 審査係 }
+
+actors:
+  - 受付: { lane: front }
+  - 審査: { lane: review }
+
+flow:
+  - 受付 -> 審査
+```
+
+担当を書かない箱は、その箱の名前を線路名に使い、図全体で 1 件知らせる。
 
 縦列を並べるために使う図種 (`flow` / `topology` / `swimlane`) では効く。 縦列が骨格その
 ものになる図種 (`sequence` は縦列がそのまま時間軸の線) では効かず、知らせが出る。

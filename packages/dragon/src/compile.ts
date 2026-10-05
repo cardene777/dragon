@@ -275,6 +275,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportOrderNotHonored(書いたまま, opts?.onNotice);
   reportShapeNotHonored(書いたまま, opts?.onNotice);
   reportStageFromLane(書いたまま, opts?.onNotice);
+  reportTrackFromName(書いたまま, opts?.onNotice);
   reportThemeAlsoPalette(書いたまま, opts?.onNotice);
   reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
@@ -1583,7 +1584,10 @@ function reportSkeletonActorOptionNotHonored(
       actor: a.name,
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} は箱を並べて線で繋ぐ図です)`,
-      hint: 骨組みの図の案内(doc.type, 効かない),
+      hint:
+        doc.type === "swimlane" && doc.shape === "metro"
+          ? "駅は actors に書いた順に並び、種類は station で固定されます"
+          : 骨組みの図の案内(doc.type, 効かない),
     });
   }
 }
@@ -1606,13 +1610,15 @@ function reportSkeletonActorOptionNotHonored(
 function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): ReadonlySet<string> {
   const 族の除外 = 骨組みの図が伝えない箱の欄(doc.type);
   const 段階ごとの箱か = doc.type === "swimlane" && doc.shape === "stages";
+  const 路線図か = doc.type === "swimlane" && doc.shape === "metro";
   const 読まない欄: string[] = [];
   // 段を読まない図では伝える側へ回す。 既に抜けている図種 (c4) は下の `delete` が空振りする
-  if (!段階ごとの箱か && !書いた縦列に置く(doc.type, doc)) 読まない欄.push("stack");
+  if (路線図か || (!段階ごとの箱か && !書いた縦列に置く(doc.type, doc))) 読まない欄.push("stack");
   const 残り = new Set(族の除外);
   // `stage` はこの形でだけ箱の置き先を決める。 他の骨組みの図では知らせる側へ残す (#2797)。
   let 変えた = 段階ごとの箱か && !残り.has("stage");
   if (段階ごとの箱か) 残り.add("stage");
+  if (路線図か && 残り.delete("kind")) 変えた = true;
   for (const 欄 of 読まない欄) if (残り.delete(欄)) 変えた = true;
   return 変えた ? 残り : 族の除外;
 }
@@ -2644,7 +2650,7 @@ function applyV05Extensions(
   // `lane-Ａ`) がこの形になり、黙って捨てられていた (実測 = 幅 999 を持つ空の縦列が増え、
   // 元の縦列は 360 のままだった)
   const 追加した縦列: DslLane[] = 追加した縦列out ?? [];
-  if (doc.lanes && !(doc.type === "swimlane" && doc.shape === "stages")) {
+  if (doc.lanes && !(doc.type === "swimlane" && (doc.shape === "stages" || doc.shape === "metro"))) {
     for (const [id, laneOpt] of Object.entries(doc.lanes)) {
       const lane = diagram.lanes.find((l) => l.id === id);
       if (lane) {
@@ -2851,6 +2857,16 @@ function reportDirectionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
   if (!onNotice) return;
   if (doc.direction === undefined) return;
   const 行 = doc.directionPos?.line ?? doc.pos?.line ?? 0;
+  if (doc.type === "swimlane" && doc.shape === "metro") {
+    onNotice({
+      kind: "direction-not-honored",
+      actor: doc.title,
+      line: 行,
+      message: "書いた direction は効きません (shape: metro は駅を常に左から右へ並べます)",
+      hint: "駅の並びは actors に書いた順で決まります",
+    });
+    return;
+  }
   if (doc.type === "swimlane" && doc.shape === "stages") {
     onNotice({
       kind: "direction-not-honored",
@@ -2933,8 +2949,8 @@ function reportShapeNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =
   const hint =
     図種の語.length > 0
       ? `type: ${doc.type} で書ける shape = ${図種の語.join(" / ")}`
-      : `shape を書けるのは ${Object.keys(DIAGRAM_SHAPES)
-          .map((type) => `type: ${type}`)
+      : `shape を書けるのは ${Object.entries(DIAGRAM_SHAPES)
+          .map(([type, shapes]) => `type: ${type} (${shapes.join(" / ")})`)
           .join(" / ")} です`;
   onNotice({
     kind: "shape-not-honored",
@@ -2959,6 +2975,23 @@ function reportStageFromLane(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       .map((actor) => truncateForMessage(actor.name))
       .join(" / ")}`,
     hint: "段階を分けて決めるなら、各箱に stage または 段階 を書いてください",
+  });
+}
+
+/** `lane` を省いた箱で箱名を線路名に使ったことを、図全体で 1 件だけ伝える (#2799)。 */
+function reportTrackFromName(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice || doc.type !== "swimlane" || doc.shape !== "metro") return;
+  const 補った = doc.actors.filter((actor) => actor.lane === undefined);
+  const 最初 = 補った[0];
+  if (最初 === undefined) return;
+  onNotice({
+    kind: "track-from-name",
+    actor: doc.title,
+    line: 最初.pos?.line ?? doc.pos?.line ?? 0,
+    message: `担当を書いていない箱は箱の名前を線路に使いました: ${補った
+      .map((actor) => truncateForMessage(actor.name))
+      .join(" / ")}`,
+    hint: "線路を担当でまとめるなら、各箱に lane を書いてください",
   });
 }
 

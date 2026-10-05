@@ -272,6 +272,26 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "担当を線路にする形 (shape: metro)",
+    titleEn: "Roles as metro lines (shape: metro)",
+    sample: {
+      slot: "shape",
+      type: "swimlane",
+      actors: [
+        "  - 受付: { lane: front }",
+        "  - 審査: { lane: review }",
+      ],
+      flow: ['  - 受付 -> 審査: "渡す"'],
+    },
+    lines: [
+      {
+        code: "shape: metro",
+        note: "担当 (lane) を線路、箱を駅にし、担当が替わる線を乗り換えとして描く",
+        noteEn: "Draws each role (lane) as a line, each box as a station, and role changes as transfers",
+      },
+    ],
+  },
+  {
     title: "箱を入れる段階 (stage / 段階)",
     titleEn: "Which stage holds a box (stage)",
     sample: {
