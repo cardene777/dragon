@@ -7,7 +7,7 @@
  *   - Isometric   : dragon-iso-top-gradient (+ dark) / dragon-iso-cast-shadow (+ dark)
  *   - Circuit     : dragon-cir-board-pattern / dragon-cir-trace-glow
  *   - Pinboard    : dragon-pin-board-pattern / dragon-pin-sticky-shadow
- *   - Blueprint   : dragon-bp-graticule (+ dark) / dragon-bp-arrow-ortho marker
+ *   - Blueprint   : dragon-bp-hatch / dragon-bp-graticule (+ dark) / dragon-bp-arrow-ortho marker
  *   - Sketch      : dragon-sketch-wobble (turbulence displacement) / dragon-sketch-pen
  *   - Neon        : dragon-neon-tube (white core + colored glow)
  *   - Relief      : dragon-relief-raised / -dome / -well / -raised-sm (light and shadow)
@@ -209,7 +209,19 @@ export function SvgDefs(): React.ReactElement {
           <feComposite in="SourceGraphic" />
         </filter>
 
-        {/* ═════════════════ Blueprint ═════════════════ */}
+        {/* ═════════════════ Blueprint ═════════════════
+            `[data-cdl-palette="blueprint"]` の主役の棒が斜線を参照する。
+            模様の色と寸法は意匠帳と theme-matches-note.test.ts が突き合わせる (#2801)。 */}
+        <pattern
+          id="dragon-bp-hatch"
+          width="6"
+          height="6"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(-45)"
+        >
+          <rect width="1.5" height="6" fill="#143a52" />
+        </pattern>
+
         <pattern
           id="dragon-bp-graticule"
           x="0"

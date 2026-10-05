@@ -1275,6 +1275,41 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+ * 固定の意匠の日程の棒と漏斗の段 (#2801)
+ *
+ * 固定の意匠の共通の流し先は `--cdl-tone-accent` などを枠の色へ向けるため、浮彫と手描きでは
+ * 日程の棒と漏斗の段まで墨で塗られていた。描き手が要素の表示属性で読む色みを、要素自身で
+ * 図表の系列色へ戻す。accent / teal / success / warning / info / error は系列 1 / 2 / 3 / 4 / 5 / 6。
+ *
+ * 値の正は各意匠帳の「日程の棒と漏斗の段」で、`theme-matches-note.test.ts` が突き合わせる。
+ * CSS から固定かどうかは読めないため名前を並べる。固定の意匠を足す時は、上の箱の枠の規則と
+ * 同じくここにも名前を足す。生成りと青磁は明暗の意匠なので入れない。
+ * `edge-label-contrast.test.ts` が selector を `,` で割って読むため、括弧の中には `,` を置かない。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-bar"],
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="funnel-stage"],
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="gantt-bar"],
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="funnel-stage"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="gantt-bar"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="funnel-stage"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="gantt-bar"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="funnel-stage"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-bar"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="funnel-stage"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="gantt-bar"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="funnel-stage"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="gantt-bar"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="funnel-stage"] {
+  --cdl-tone-accent: var(--cdl-chart-1);
+  --cdl-tone-teal: var(--cdl-chart-2);
+  --cdl-tone-success: var(--cdl-chart-3);
+  --cdl-tone-warning: var(--cdl-chart-4);
+  --cdl-tone-info: var(--cdl-chart-5);
+  --cdl-tone-error: var(--cdl-chart-6);
+  fill-opacity: 1 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
  * 図面の作り (#2790)
  *
  * 共通の塊と同じ強さなので、その `background` 一括指定より後ろに置く。 前へ置くと shorthand が
@@ -1285,6 +1320,20 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
     linear-gradient(to right, color-mix(in srgb, var(--er-frame) 7%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--er-frame) 7%, transparent) 1px, transparent 1px);
   background-size: 40px 40px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
+  fill: url(#dragon-bp-hatch) !important;
+  fill-opacity: 1 !important;
+  stroke: var(--er-line) !important;
+  stroke-width: 1.5 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
+  fill: var(--er-face) !important;
+  fill-opacity: 1 !important;
+  stroke: var(--er-type) !important;
+  stroke-width: 1 !important;
 }
 
 /* 見せ方を持つ箱と始まり / 終わりの印は描く側の形を保つ。 子の図形にも当てるのは、箱の kind で
@@ -1633,6 +1682,13 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] g:has(> [data-cdl-role="edge-lab
   fill: var(--er-ink) !important;
 }
 
+/* 箱の面の字は系列色の上で 1.9 から 2.7 しか出ないため、割る箇所では字を濃くする。 */
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="funnel-stage"] + text,
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="funnel-stage-subtitle"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="gantt-owner"] {
+  fill: var(--er-ink) !important;
+}
+
 svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="accent"] > [data-cdl-role="edge-label-bg"],
 svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="info"] > [data-cdl-role="edge-label-bg"] {
   fill: var(--theme-lead) !important;
@@ -1831,10 +1887,14 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="mind-edge"] {
   filter: url(#dragon-sketch-wobble);
 }
 
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="sequence-band"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-bar"] {
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="sequence-band"] {
   fill: url(#dragon-sketch-pen) !important;
   fill-opacity: 1 !important;
+  stroke: var(--er-ink) !important;
+  stroke-width: 2 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-bar"] {
   stroke: var(--er-ink) !important;
   stroke-width: 2 !important;
 }
@@ -1884,12 +1944,17 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge-label-for][data-cd
 }
 
 svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
-  fill: var(--theme-lead) !important;
+  fill: url(#dragon-sketch-pen) !important;
+  fill-opacity: 1 !important;
+  stroke: var(--theme-lead) !important;
+  stroke-width: 2 !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
-  fill: var(--theme-pale) !important;
+  fill: url(#dragon-sketch-pen) !important;
   fill-opacity: 1 !important;
+  stroke: var(--er-ink) !important;
+  stroke-width: 2 !important;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────

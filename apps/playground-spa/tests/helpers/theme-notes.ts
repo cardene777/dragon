@@ -34,11 +34,32 @@ export type ThemeLabelToneStyle = {
   paint: "fill" | "stroke";
   inkMode: "fixed" | "tone";
 };
+export type ThemeBarStyle = {
+  fill: string;
+  stroke?: string;
+  strokeWidth?: number;
+};
 export type ThemeSingleSeriesBarStyle = {
-  primary: string;
-  secondaryFill: string;
-  secondaryStroke?: string;
-  secondaryStrokeWidth?: number;
+  primary: ThemeBarStyle;
+  secondary: ThemeBarStyle;
+};
+export const THEME_TONES = ["accent", "teal", "success", "warning", "info", "error"] as const;
+export type ThemeTone = (typeof THEME_TONES)[number];
+export type ThemeToneSeries = {
+  seriesByTone: Record<ThemeTone, number>;
+  opacity: number;
+  textColor?: string;
+  stroke?: string;
+  strokeWidth?: number;
+};
+export type ThemePattern = {
+  id: string;
+  width: number;
+  height: number;
+  units: "userSpaceOnUse";
+  rotation: number;
+  rectWidth: number;
+  color: string;
 };
 
 /** 意匠帳の役の呼び名と CSS の口の対応。読む側は全てこの 1 表を使う (#2790)。 */
@@ -311,31 +332,104 @@ export function readFixedThemeLabelToneStyles(
   return out;
 }
 
-/** 固定意匠の「単系列の棒」行を読み、主役とそれ以外の塗りへ分ける。 */
+function 棒の側を読む(name: DslTheme, side: string): ThemeBarStyle {
+  const pattern = /`(#dragon-[a-z0-9-]+)`/i.exec(side)?.[1];
+  const fillColor = /`(#[0-9a-fA-F]{6})`/.exec(side)?.[1];
+  const fill = pattern ? `url(${pattern})` : fillColor?.toLowerCase();
+  if (!fill) throw new Error(`意匠帳の ${name} の単系列の棒から塗りを読めない (${side})`);
+
+  const frame = /に[^。、]*`(#[0-9a-fA-F]{6})` の (\d+(?:\.\d+)?) の枠/.exec(side);
+  if (!frame) return { fill };
+  return {
+    fill,
+    stroke: frame[1]!.toLowerCase(),
+    strokeWidth: Number(frame[2]),
+  };
+}
+
+/** 固定意匠の「単系列の棒」行を読み、主役とそれ以外の塗り・枠へ分ける。 */
 export function readFixedThemeSingleSeriesBars(
   overrides: Partial<Record<DslTheme, string>> = {},
 ): Map<DslTheme, ThemeSingleSeriesBarStyle> {
   const out = new Map<DslTheme, ThemeSingleSeriesBarStyle>();
-  for (const name of ["letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
+  for (const name of ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
     const text = overrides[name] ?? readThemeNoteText(name);
     const row = 二列表を読む(節を取る(text, "色以外の値", 3)).get("単系列の棒");
     if (!row) throw new Error(`意匠帳の ${name} に「単系列の棒」が無い`);
     if (!row.includes('data-cdl-emphasis="primary"')) {
       throw new Error(`意匠帳の ${name} の「単系列の棒」に主役の属性が無い`);
     }
-    const primary = 役の色を読む(name, row, "一");
-    if (name === "letterpress") {
-      out.set(name, {
-        primary,
-        secondaryFill: 役の色を読む(name, row, "箱の面"),
-        secondaryStroke: 役の色を読む(name, row, "墨"),
-        secondaryStrokeWidth: 1.5,
-      });
-    } else {
-      out.set(name, { primary, secondaryFill: 役の色を読む(name, row, "淡") });
-    }
+    const sides = row.split("、それ以外は");
+    if (sides.length !== 2) throw new Error(`意匠帳の ${name} の「単系列の棒」を主役とそれ以外に分けられない`);
+    out.set(name, {
+      primary: 棒の側を読む(name, sides[0]!),
+      secondary: 棒の側を読む(name, sides[1]!),
+    });
   }
   return out;
+}
+
+/** 固定意匠の日程の棒と漏斗の段について、色みから系列番号への対応と例外を読む。 */
+export function readFixedThemeToneSeries(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, ThemeToneSeries> {
+  const out = new Map<DslTheme, ThemeToneSeries>();
+  for (const [name, note] of readThemeNotes(overrides)) {
+    if (note.mode !== "fixed") continue;
+    const text = overrides[name] ?? readThemeNoteText(name);
+    const row = 二列表を読む(節を取る(text, "色以外の値", 3)).get("日程の棒と漏斗の段");
+    if (!row) throw new Error(`意匠帳の ${name} に「日程の棒と漏斗の段」が無い`);
+
+    const pairs = new Map<ThemeTone, number>();
+    for (const match of row.matchAll(/`(accent|teal|success|warning|info|error)` は (\d+)/g)) {
+      pairs.set(match[1] as ThemeTone, Number(match[2]));
+    }
+    if (pairs.size !== THEME_TONES.length || THEME_TONES.some((tone) => !pairs.has(tone))) {
+      throw new Error(`意匠帳の ${name} の日程の棒と漏斗の段に色みが 6 件揃っていない`);
+    }
+    const opacity = /濃さは (\d+(?:\.\d+)?)/.exec(row)?.[1];
+    if (!opacity) throw new Error(`意匠帳の ${name} の日程の棒と漏斗の段に濃さが無い`);
+    const textColor = /字は[^`]*`(#[0-9a-fA-F]{6})`/.exec(row)?.[1]?.toLowerCase();
+    const frame = /日程の棒は[^`]*`(#[0-9a-fA-F]{6})` の (\d+(?:\.\d+)?) の枠/.exec(row);
+    const style: ThemeToneSeries = {
+      seriesByTone: Object.fromEntries(
+        THEME_TONES.map((tone) => [tone, pairs.get(tone)!]),
+      ) as Record<ThemeTone, number>,
+      opacity: Number(opacity),
+    };
+    if (textColor) style.textColor = textColor;
+    if (frame) {
+      style.stroke = frame[1]!.toLowerCase();
+      style.strokeWidth = Number(frame[2]);
+    }
+    out.set(name, style);
+  }
+  return out;
+}
+
+/** 図面の「斜線」行を、SVG pattern と rect の期待値へ分けて読む。 */
+export function readBlueprintHatch(textOverride?: string): ThemePattern {
+  const row = 二列表を読む(
+    節を取る(textOverride ?? readThemeNoteText("blueprint"), "色以外の値", 3),
+  ).get("斜線");
+  if (!row) throw new Error("意匠帳の blueprint に「斜線」が無い");
+  const id = /`(#dragon-[a-z0-9-]+)`/i.exec(row)?.[1];
+  const size = /(\d+(?:\.\d+)?) × (\d+(?:\.\d+)?) の `userSpaceOnUse`/.exec(row);
+  const rotation = /を (-?\d+(?:\.\d+)?) 度回し/.exec(row)?.[1];
+  const color = /線 `(#[0-9a-fA-F]{6})`/.exec(row)?.[1];
+  const rectWidth = /幅 (\d+(?:\.\d+)?) の `rect`/.exec(row)?.[1];
+  if (!id || !size || !rotation || !color || !rectWidth) {
+    throw new Error("意匠帳の blueprint の「斜線」を模様の値へ分けられない");
+  }
+  return {
+    id,
+    width: Number(size[1]),
+    height: Number(size[2]),
+    units: "userSpaceOnUse",
+    rotation: Number(rotation),
+    rectWidth: Number(rectWidth),
+    color: color.toLowerCase(),
+  };
 }
 
 /** 固定の意匠の「図表の系列色」を、2 つの役の表から値へ解く。 */

@@ -93,10 +93,10 @@ test("catalog: 図録・手描き・電飾・浮彫の非強調札と主役札�
   }
 });
 
-test("catalog: 活版・図録・手描き・電飾・浮彫の単系列の棒を意味属性で選ぶ", async ({
+test("catalog: 図面・活版・図録・手描き・電飾・浮彫の単系列の棒を意味属性で選ぶ", async ({
   page,
 }, testInfo) => {
-  for (const theme of ["letterpress", "catalog", "sketch", "neon", "relief"] as const) {
+  for (const theme of ["blueprint", "letterpress", "catalog", "sketch", "neon", "relief"] as const) {
     const report = await checkSingleSeriesBars(page, theme);
     console.log(report);
     testInfo.annotations.push({ type: `${theme} bars`, description: report });

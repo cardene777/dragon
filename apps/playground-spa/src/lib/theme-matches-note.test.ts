@@ -12,6 +12,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   THEME_PORTS,
+  THEME_TONES,
+  readBlueprintHatch,
   readFixedThemeChartSeries,
   readFixedThemeFrameOpacity,
   readFixedThemeGroundText,
@@ -20,6 +22,7 @@ import {
   readFixedThemeOutline,
   readFixedThemeRoleColor,
   readFixedThemeSingleSeriesBars,
+  readFixedThemeToneSeries,
   readThemeNotes,
   readThemeNoteText,
   type ThemeNote,
@@ -175,14 +178,20 @@ function resolveCssColor(
   return resolveCssColor(declarations, variable, new Set([...seen, property]));
 }
 
-function cssRuleBody(cssText: string, exactSelector: string): string {
+function cssRuleBody(cssText: string, exactSelector: string, requiredProperty?: string): string {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
   const bodies = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
     const selectors = (match[1] ?? "").split(",").map((selector) => selector.trim());
-    return selectors.includes(exactSelector) ? [match[2] ?? ""] : [];
+    const body = match[2] ?? "";
+    const hasRequiredProperty = requiredProperty === undefined || new RegExp(
+      `(?:^|;)\\s*${requiredProperty.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`,
+      "m",
+    ).test(body);
+    return selectors.includes(exactSelector) && hasRequiredProperty ? [body] : [];
   });
   if (bodies.length !== 1) {
-    throw new Error(`${exactSelector} の CSS 規則が ${bodies.length} 件ある (1 件が要る)`);
+    const qualifier = requiredProperty ? ` (${requiredProperty} を持つもの)` : "";
+    throw new Error(`${exactSelector} の CSS 規則${qualifier}が ${bodies.length} 件ある (1 件が要る)`);
   }
   return bodies[0]!;
 }
@@ -198,6 +207,15 @@ function cssVariableName(value: string): string {
   const name = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1];
   if (!name) throw new Error(`${value} が CSS 変数 1 個の参照ではない`);
   return name;
+}
+
+function resolvedCssPaint(declarations: Map<string, string>, body: string, property: string): string {
+  const value = cssDeclaration(body, property).toLowerCase();
+  const pattern = /^url\(["']?(#[a-z0-9-]+)["']?\)$/.exec(value)?.[1];
+  if (pattern) return `url(${pattern})`;
+  const literal = /^(#[0-9a-f]{6})$/.exec(value)?.[1];
+  if (literal) return literal;
+  return resolveCssColor(declarations, cssVariableName(value));
 }
 
 /** 色みと主役の札が継承する、意匠ごとの字の決まり。 */
@@ -442,7 +460,7 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(failures, "札の意味属性と意匠帳が違う").toEqual([]);
   });
 
-  it("6 意匠の単系列の棒は主役の属性で意匠帳の一と淡を塗る", () => {
+  it("7 意匠の単系列の棒は主役の属性で意匠帳の塗りと枠を使う", () => {
     const expected = readFixedThemeSingleSeriesBars();
     const failures: string[] = [];
     for (const [name, style] of expected) {
@@ -456,25 +474,99 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
         cssText,
         `${stage} [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"])`,
       );
-      const primaryColor = resolveCssColor(declarations, cssVariableName(cssDeclaration(primary, "fill")));
-      const secondaryColor = resolveCssColor(declarations, cssVariableName(cssDeclaration(secondary, "fill")));
-      if (primaryColor !== style.primary) failures.push(`${name} 主役: 意匠帳 ${style.primary} / CSS ${primaryColor}`);
-      if (secondaryColor !== style.secondaryFill) {
-        failures.push(`${name} 淡: 意匠帳 ${style.secondaryFill} / CSS ${secondaryColor}`);
-      }
-      if (style.secondaryStroke !== undefined) {
-        const stroke = resolveCssColor(declarations, cssVariableName(cssDeclaration(secondary, "stroke")));
-        if (stroke !== style.secondaryStroke) {
-          failures.push(`${name} 枠: 意匠帳 ${style.secondaryStroke} / CSS ${stroke}`);
-        }
-        const width = Number.parseFloat(cssDeclaration(secondary, "stroke-width"));
-        if (width !== style.secondaryStrokeWidth) {
-          failures.push(`${name} 枠幅: 意匠帳 ${style.secondaryStrokeWidth} / CSS ${width}`);
+      for (const [role, body, want] of [
+        ["主役", primary, style.primary],
+        ["それ以外", secondary, style.secondary],
+      ] as const) {
+        const fill = resolvedCssPaint(declarations, body, "fill");
+        if (fill !== want.fill) failures.push(`${name} ${role}の塗り: 意匠帳 ${want.fill} / CSS ${fill}`);
+        if (want.stroke !== undefined) {
+          const stroke = resolvedCssPaint(declarations, body, "stroke");
+          if (stroke !== want.stroke) {
+            failures.push(`${name} ${role}の枠: 意匠帳 ${want.stroke} / CSS ${stroke}`);
+          }
+          const width = Number.parseFloat(cssDeclaration(body, "stroke-width"));
+          if (width !== want.strokeWidth) {
+            failures.push(`${name} ${role}の枠幅: 意匠帳 ${want.strokeWidth} / CSS ${width}`);
+          }
         }
       }
     }
-    expect(expected.size).toBe(6);
+    expect(expected.size).toBe(7);
     expect(failures, "単系列の棒の意味属性と意匠帳が違う").toEqual([]);
+  });
+
+  it("固定 7 意匠の日程の棒と漏斗の段は色みを系列色へ向けて濃さ 1 で塗る", () => {
+    const expected = readFixedThemeToneSeries();
+    const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].filter((match) => {
+      const selector = match[1] ?? "";
+      return selector.includes('[data-cdl-role="gantt-bar"]') &&
+        selector.includes('[data-cdl-role="funnel-stage"]');
+    });
+    expect(expected.size).toBe(7);
+    expect(rules.length, "日程の棒と漏斗の段の共通規則は 1 か所に寄せる").toBe(1);
+    const rule = rules[0];
+    if (!rule) return;
+
+    const selector = rule[1] ?? "";
+    const body = rule[2] ?? "";
+    const actualNames = new Set(
+      [...selector.matchAll(/\[data-cdl-palette="([^"]+)"\]/g)]
+        .flatMap((match) => match[1] ? [match[1]] : []),
+    );
+    expect([...actualNames].sort(), "共通規則の固定意匠の名前").toEqual([...expected.keys()].sort());
+    const representative = expected.values().next().value;
+    if (!representative) throw new Error("日程の棒と漏斗の段を意匠帳から読めない");
+    for (const tone of THEME_TONES) {
+      expect(cssDeclaration(body, `--cdl-tone-${tone}`), tone)
+        .toBe(`var(--cdl-chart-${representative.seriesByTone[tone]})`);
+    }
+    expect(Number(cssDeclaration(body, "fill-opacity"))).toBe(representative.opacity);
+  });
+
+  it("図録の段と帯の字、手描きの日程の棒の枠は意匠帳の例外と一致する", () => {
+    const expected = readFixedThemeToneSeries();
+    const catalog = expected.get("catalog");
+    const sketch = expected.get("sketch");
+    if (!catalog?.textColor || !sketch?.stroke || sketch.strokeWidth === undefined) {
+      throw new Error("図録または手描きの日程の例外を意匠帳から読めない");
+    }
+    const catalogDeclarations = cssFixedThemeDeclarations(cssText, "catalog");
+    const catalogStage = 'svg[data-cdl-stage][data-cdl-palette="catalog"]';
+    for (const selector of [
+      `${catalogStage} [data-cdl-role="funnel-stage"] + text`,
+      `${catalogStage} [data-cdl-role="funnel-stage-subtitle"]`,
+      `${catalogStage} [data-cdl-role="gantt-owner"]`,
+    ]) {
+      const body = cssRuleBody(cssText, selector);
+      expect(resolvedCssPaint(catalogDeclarations, body, "fill"), selector).toBe(catalog.textColor);
+    }
+
+    const sketchStage = 'svg[data-cdl-stage][data-cdl-palette="sketch"]';
+    const gantt = cssRuleBody(cssText, `${sketchStage} [data-cdl-role="gantt-bar"]`, "stroke");
+    const sketchDeclarations = cssFixedThemeDeclarations(cssText, "sketch");
+    expect(resolvedCssPaint(sketchDeclarations, gantt, "stroke")).toBe(sketch.stroke);
+    expect(Number.parseFloat(cssDeclaration(gantt, "stroke-width"))).toBe(sketch.strokeWidth);
+  });
+
+  it("図面の斜線模様は意匠帳どおりの pattern と rect を持つ", () => {
+    const expected = readBlueprintHatch();
+    const source = 読む("../components/SvgDefs.tsx");
+    const id = expected.id.slice(1);
+    const pattern = new RegExp(
+      `<pattern(?=[^>]*\\bid=["']${id}["'])[^>]*>[\\s\\S]*?<\\/pattern>`,
+    ).exec(source)?.[0];
+    expect(pattern, `${expected.id} の pattern が SvgDefs.tsx に無い`).toBeDefined();
+    if (!pattern) return;
+    const attribute = (tag: string, name: string): string | undefined =>
+      new RegExp(`<${tag}[^>]*\\b${name}=["']([^"']+)["']`).exec(pattern)?.[1];
+    expect(Number(attribute("pattern", "width"))).toBe(expected.width);
+    expect(Number(attribute("pattern", "height"))).toBe(expected.height);
+    expect(attribute("pattern", "patternUnits")).toBe(expected.units);
+    expect(attribute("pattern", "patternTransform")).toBe(`rotate(${expected.rotation})`);
+    expect(Number(attribute("rect", "width"))).toBe(expected.rectWidth);
+    expect(attribute("rect", "fill")?.toLowerCase()).toBe(expected.color);
   });
 
   it("札の字と面の対比は 5 意匠とも 4.5 以上になる", () => {
