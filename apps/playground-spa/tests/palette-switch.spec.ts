@@ -35,6 +35,11 @@ async function 配色(page: Page, id: string): Promise<string | null> {
 
 const 切替 = (page: Page) => page.locator('[role="radiogroup"][aria-label="図の色味"]');
 
+/** 図を組み立てた外側の器が持つ viewBox を読む。 SVG の属性と同じ配置結果を載せる。 */
+async function 描いた大きさ(page: Page, id: string): Promise<string | null> {
+  return await page.locator(`[data-cdl-diagram="${id}"]`).getAttribute("data-cdl-viewbox");
+}
+
 const hexToRgb = (hex: string): string => {
   const value = Number.parseInt(hex.slice(1), 16);
   return `rgb(${value >> 16}, ${(value >> 8) & 255}, ${value & 255})`;
@@ -155,6 +160,87 @@ test("switch: クラス図でも切り替えられる (#1569)", async ({ page })
 
   await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
   await expect.poll(async () => await 配色(page, "class-demo"), { timeout: 5000 }).toBe("celadon");
+});
+
+test("terminal switch: 見本帳で端末を選ぶと字を等幅で測り直し、生成りへ戻すと元の測り方に戻る (#2818)", async ({
+  page,
+}) => {
+  await 開く(page, "presets", "infra-demo");
+
+  await 切替(page).getByRole("radio", { name: 配色の札("kinari", "ja") }).click();
+  await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("kinari");
+  const 生成り = await 描いた大きさ(page, "infra-demo");
+  expect(生成り, "生成りの data-cdl-viewbox が無く、測り直しの検査が空振りしている").not.toBeNull();
+  if (生成り === null) throw new Error("生成りの data-cdl-viewbox を文字列として確かめられない");
+  expect(生成り, "生成りの data-cdl-viewbox が 4 つの数でない").toMatch(/^-?[\d.]+ -?[\d.]+ [\d.]+ [\d.]+$/);
+
+  await 切替(page).getByRole("radio", { name: 配色の札("terminal", "ja") }).click();
+  await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("terminal");
+  await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).not.toBe(生成り);
+  const 端末 = await 描いた大きさ(page, "infra-demo");
+
+  await 切替(page).getByRole("radio", { name: 配色の札("kinari", "ja") }).click();
+  await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).toBe(生成り);
+  const 戻した後 = await 描いた大きさ(page, "infra-demo");
+  console.log(`生成り=${生成り} 端末=${端末} 戻した後=${戻した後}`);
+});
+
+test("terminal: 英数字 24 字の名前の箱を等幅で測り、生成りより広く取って字を箱の面に収める (#2818)", async ({
+  page,
+}) => {
+  // i / l / t / f / j は比例の見積りが等幅の 1 字 0.63em より狭く、比例で測ると等幅の
+  // 書体で描いた字に箱が足りなくなる側を選ぶ。題ではなく行の左列で箱幅が決まる形にする。
+  // 行を描く service の箱にする。行を描かない actor / card では、広がった箱に収める字が無い。
+  const 細い名前 = "filllistlimitfilttiltjit";
+  expect(細い名前).toMatch(/^[A-Za-z0-9]{24}$/);
+  const 本文 = `title: "等幅で測る箱"
+type: flow
+
+actors:
+  - ${細い名前}: { kind: service, rows: ["${細い名前}: 1"] }
+  - Receiver
+
+flow:
+  - ${細い名前} -> Receiver: "送る"
+`;
+
+  await openEditorTheme(page, 本文, "kinari", false);
+  const 生成りの面 = page.locator(`[data-cdl-node="${細い名前}"] [data-cdl-role="node-body"]`);
+  await expect(生成りの面, "生成りで細い名前の箱面を読めない").toHaveCount(1);
+  const 生成りの箱幅 = await 生成りの面.evaluate((面) => 面.getBoundingClientRect().width);
+
+  await openEditorTheme(page, 本文, "terminal", false);
+  const 端末の面 = page.locator(`[data-cdl-node="${細い名前}"] [data-cdl-role="node-body"]`);
+  await expect(端末の面, "端末で細い名前の箱面を読めない").toHaveCount(1);
+  const 端末の箱幅 = await 端末の面.evaluate((面) => 面.getBoundingClientRect().width);
+  expect(端末の箱幅).toBeGreaterThan(生成りの箱幅);
+
+  const 字と箱 = await page.locator(`[data-cdl-node="${細い名前}"]`).evaluate((node) => {
+    const 面 = node.querySelector<SVGGraphicsElement>('[data-cdl-role="node-body"]');
+    if (!面) throw new Error("箱面が無く、字の内側を確かめられない");
+    const 面の矩形 = 面.getBoundingClientRect();
+    const 行の字 = [
+      ...node.querySelectorAll<SVGTextElement>('text[data-cdl-role^="node-row"], [data-cdl-role^="node-row"] text'),
+    ].map((element) => element.textContent ?? "");
+    // 図の題は `[data-cdl-node]` の外なので入らない (#2749)。箱の題と行の字はどちらも箱面に収める。
+    const 字 = [...node.querySelectorAll<SVGGraphicsElement>("text")]
+      .filter((element) => (element.textContent ?? "").trim() !== "")
+      .map((element) => ({ 内容: element.textContent ?? "", 矩形: element.getBoundingClientRect() }));
+    return { 面の矩形, 行の字, 字 };
+  });
+  expect(字と箱.行の字, "行の字が描かれず、箱に収める検査が空振りしている").toContain(細い名前);
+  expect(字と箱.字.length, "題と行の字を 1 つも読めず検査が空振りしている").toBeGreaterThan(0);
+  const 許容 = 0.5;
+  for (const { 内容, 矩形 } of 字と箱.字) {
+    expect(矩形.left, `${内容} の左端が箱面から出ている`).toBeGreaterThanOrEqual(字と箱.面の矩形.left - 許容);
+    expect(矩形.right, `${内容} の右端が箱面から出ている`).toBeLessThanOrEqual(字と箱.面の矩形.right + 許容);
+    expect(矩形.top, `${内容} の上端が箱面から出ている`).toBeGreaterThanOrEqual(字と箱.面の矩形.top - 許容);
+    expect(矩形.bottom, `${内容} の下端が箱面から出ている`).toBeLessThanOrEqual(字と箱.面の矩形.bottom + 許容);
+  }
+  const 字の右端 = Math.max(...字と箱.字.map(({ 矩形 }) => 矩形.right));
+  console.log(
+    `生成りの箱幅=${生成りの箱幅} 端末の箱幅=${端末の箱幅} 字の右端=${字の右端} 箱の右端=${字と箱.面の矩形.right}`,
+  );
 });
 
 test("switch: 配色を持たない図にも切替が出て、図面を当てられる (#2790)", async ({ page }) => {

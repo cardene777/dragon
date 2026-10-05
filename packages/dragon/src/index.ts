@@ -44,6 +44,7 @@ export {
   THEMES,
   THEME_ALIAS,
   resolveTheme,
+  意匠の字の測り方,
 } from "./keywords";
 export type { DslTheme } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";

@@ -154,6 +154,17 @@ export function resolveTheme(s: string): DslTheme | null {
   return Object.hasOwn(THEME_ALIAS, k) ? THEME_ALIAS[k]! : null;
 }
 
+/**
+ * 意匠から字の測り方を引く (#2818)。
+ *
+ * 端末は英数字を等幅の書体 (`--d-mono`、JetBrains Mono) で描くため、比例の字幅で箱を
+ * 測ると描いた字と箱の大きさが合わない。`@cardenelabs/cdl` 0.123.0 の
+ * `textMetrics: "monospace"` で測る。
+ */
+export function 意匠の字の測り方(theme: DslTheme): "monospace" | undefined {
+  return theme === "terminal" ? "monospace" : undefined;
+}
+
 /** NodeKind 別名 (日本語 → English) */
 export const NODE_KIND_ALIAS: Record<string, NodeKind> = {
   // 日本語
