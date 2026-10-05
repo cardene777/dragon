@@ -342,6 +342,54 @@ describe("図の意匠 (#1553 / #2790)", () => {
     expect(resolveTheme("電飾")).toBe("neon");
   });
 
+  it("relief: 正の名前は 1 件で theme と palette が同じ図と data-cdl-palette になり、他の名前も変えない", () => {
+    const 組み立てる = (本文: string): { diagram: ReturnType<typeof textDslToDiagram>; notices: CompileNotice[] } => {
+      const notices: CompileNotice[] = [];
+      const diagram = textDslToDiagram(本文, { onNotice: (notice) => notices.push(notice) });
+      return { diagram, notices };
+    };
+    const 主語 = 組み立てる(ER("relief", "theme"));
+    const 別名 = 組み立てる(ER("relief", "palette"));
+
+    expect(THEMES.filter((name) => name === "relief")).toHaveLength(1);
+    expect([主語.notices, 別名.notices]).toEqual([[], []]);
+    expect(主語.diagram.palette).toBe("relief");
+    expect(別名.diagram).toEqual(主語.diagram);
+    expect(renderToStaticMarkup(createElement(CdlDiagramView, { diagram: 主語.diagram }))).toContain(
+      'data-cdl-palette="relief"',
+    );
+    const v05 = parseTextDslV05(ER("relief", "theme"));
+    expect(v05).toMatchObject({ ok: true });
+    if (v05.ok) expect(v05.doc.theme).toBe("relief");
+    expect(jsonToDiagram({ title: "確かめ", type: "record", theme: "relief", actors: ["A"], flow: [] }).palette).toBe("relief");
+    expect(resolveTheme("relief")).toBe("relief");
+    for (const name of THEMES) expect(resolveTheme(name), name).toBe(name);
+    expect(resolveTheme("電飾")).toBe("neon");
+  });
+
+  it("浮彫: 和名は theme: relief と同じ図と data-cdl-palette になり、palette でも正の名前に解ける", () => {
+    const 組み立てる = (本文: string): { diagram: ReturnType<typeof textDslToDiagram>; notices: CompileNotice[] } => {
+      const notices: CompileNotice[] = [];
+      const diagram = textDslToDiagram(本文, { onNotice: (notice) => notices.push(notice) });
+      return { diagram, notices };
+    };
+    const 正 = 組み立てる(ER("relief", "theme"));
+    const 和名 = 組み立てる(ER("浮彫", "theme"));
+    const 別名 = 組み立てる(ER("浮彫", "palette"));
+
+    expect([正.notices, 和名.notices, 別名.notices]).toEqual([[], [], []]);
+    expect(和名.diagram).toEqual(正.diagram);
+    expect(別名.diagram).toEqual(正.diagram);
+    expect(renderToStaticMarkup(createElement(CdlDiagramView, { diagram: 和名.diagram }))).toContain(
+      'data-cdl-palette="relief"',
+    );
+    const v05 = parseTextDslV05(ER("浮彫", "theme"));
+    expect(v05).toMatchObject({ ok: true });
+    if (v05.ok) expect(v05.doc.theme).toBe("relief");
+    expect(jsonToDiagram({ title: "確かめ", type: "record", theme: "浮彫", actors: ["A"], flow: [] }).palette).toBe("relief");
+    expect(resolveTheme("浮彫")).toBe("relief");
+  });
+
   it("theme と palette を両方書くと順番に依らず theme が勝ち、v05 と JSON で知らせが 1 件になる", () => {
     const 本文たち = [
       ER("kinari", "theme").replace("theme: kinari", "theme: blueprint\npalette: celadon"),

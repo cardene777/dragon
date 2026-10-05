@@ -2358,9 +2358,10 @@
         "catalog",
         "terminal",
         "sketch",
-        "neon"
+        "neon",
+        "relief"
       ],
-      "description": "図の意匠 (`kinari` = 生成りに茶、`celadon` = 青磁に墨、`blueprint` = 図面、`letterpress` = 活版、`catalog` = 図録、`terminal` = 端末、`sketch` = 手描き、`neon` = 電飾)。 名前だけが図に載り、色の値は使う側が決める。 クラス図は書かなくても `kinari` になる。"
+      "description": "図の意匠 (`kinari` = 生成りに茶、`celadon` = 青磁に墨、`blueprint` = 図面、`letterpress` = 活版、`catalog` = 図録、`terminal` = 端末、`sketch` = 手描き、`neon` = 電飾、`relief` = 浮彫)。 名前だけが図に載り、色の値は使う側が決める。 クラス図は書かなくても `kinari` になる。"
     },
     "palette": {
       "type": "string",
@@ -2372,9 +2373,10 @@
         "catalog",
         "terminal",
         "sketch",
-        "neon"
+        "neon",
+        "relief"
       ],
-      "description": "`theme` の別名。 両方書くと `theme` が勝ち、知らせが 1 件出る。"
+      "description": "`theme` の別名。 `relief` (浮彫) を含む同じ意匠名を受ける。 両方書くと `theme` が勝ち、知らせが 1 件出る。"
     },
     "reveal": {
       "type": "string",

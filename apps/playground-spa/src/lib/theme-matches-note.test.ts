@@ -16,6 +16,7 @@ import {
   readFixedThemeFrameOpacity,
   readFixedThemeGroundText,
   readFixedThemeLead,
+  readFixedThemeOutline,
   readFixedThemeRoleColor,
   readThemeNotes,
   readThemeNoteText,
@@ -452,6 +453,21 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     const changed = original.replace(/(\|\s*一\s*\|\s*)`#c8431f`/, "$1朱");
     expect(changed, "変異を本文へ植え込めていない").not.toBe(original);
     expect(() => readFixedThemeLead({ letterpress: changed })).toThrow("「一」が #rrggbb で始まらない");
+  });
+
+  it("relief outline: 浮彫は縁線なし、他の固定の意匠は枠として読む", () => {
+    const outlines = readFixedThemeOutline();
+    expect(outlines.get("relief")).toBe("none");
+    for (const [name, outline] of outlines) {
+      if (name !== "relief") expect(outline, name).toBe("frame");
+    }
+  });
+
+  it("relief outline: 縁線をありに変えると意匠の名前を添えて落とす", () => {
+    const original = readThemeNoteText("relief");
+    const changed = original.replace(/(\|\s*縁線\s*\|\s*)なし/, "$1あり");
+    expect(changed, "縁線の変異を本文へ植え込めていない").not.toBe(original);
+    expect(() => readFixedThemeOutline({ relief: changed })).toThrow("意匠帳の relief の「縁線」");
   });
 
   it("箱の枠の濃さは固定の意匠だけに 1 か所から当たり、意匠帳と一致する", () => {

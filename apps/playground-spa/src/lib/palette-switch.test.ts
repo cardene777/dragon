@@ -84,6 +84,14 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     expect(押される配色(次, null)).toBe("neon");
   });
 
+  it("relief switch: 浮彫を選ぶと palette を relief に差し替える", () => {
+    const 元 = 図("neon");
+    const 次 = 図の配色を変える(元, "relief");
+    expect(次).not.toBe(元);
+    expect(次.palette).toBe("relief");
+    expect(押される配色(次, null)).toBe("relief");
+  });
+
   it("未選択の押された札は図の意匠に従い、意匠が無ければ画面の色になる", () => {
     expect(押される配色(図("blueprint"), null)).toBe("blueprint");
     expect(押される配色(図(), null)).toBe(画面の色);

@@ -103,7 +103,7 @@ export function resolveShape(s: string): DslShape | null {
 }
 
 /**
- * 図の意匠 (`theme:`、 #1553 / #2790 / #2791 / #2792 / #2793 / #2794 / #2795)。
+ * 図の意匠 (`theme:`、 #1553 / #2790 / #2791 / #2792 / #2793 / #2794 / #2795 / #2796)。
  *
  * cdl は色を持たない (形だけを描く)。 名前を `data-cdl-palette` として markup に出すので、
  * dragon の `cdl-theme.css` がその名前を見て 9 つの口
@@ -112,14 +112,14 @@ export function resolveShape(s: string): DslShape | null {
  * **名前を自由文字列にしない**。 書き間違えると既定の色みのまま出るので、書き手には
  * 「効かない」 としか見えない。 語を絞れば読めない語をその場で知らせられる。
  */
-export const THEMES = ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon"] as const;
+export const THEMES = ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const;
 export type DslTheme = (typeof THEMES)[number];
 
 /**
- * 意匠の別名 (#2790 / #2791 / #2792 / #2793 / #2794 / #2795)。 向きと同じく日本語と英語の両方で書ける。
+ * 意匠の別名 (#2790 / #2791 / #2792 / #2793 / #2794 / #2795 / #2796)。 向きと同じく日本語と英語の両方で書ける。
  *
  * `kinari` = 生成りに茶、 `celadon` = 青磁に墨、 `blueprint` = 図面、 `letterpress` = 活版、
- * `catalog` = 図録、 `terminal` = 端末、 `sketch` = 手描き、 `neon` = 電飾。
+ * `catalog` = 図録、 `terminal` = 端末、 `sketch` = 手描き、 `neon` = 電飾、 `relief` = 浮彫。
  *
  * クラス図は書かなくても `kinari` (生成りに茶) になる。 名前と型が離れて並ぶため、行を横に
  * 追う目印 (行の縞) が要る。 縞の色は意匠からしか来ないので、既定が無いと縞が箱の面と同じ
@@ -134,6 +134,7 @@ export const THEME_ALIAS: Record<string, DslTheme> = {
   terminal: "terminal",
   sketch: "sketch",
   neon: "neon",
+  relief: "relief",
   生成り: "kinari",
   生成りに茶: "kinari",
   青磁: "celadon",
@@ -144,6 +145,7 @@ export const THEME_ALIAS: Record<string, DslTheme> = {
   端末: "terminal",
   手描き: "sketch",
   電飾: "neon",
+  浮彫: "relief",
 };
 
 /** 書いた意匠を正規の語に直す。 読めない語は `null`。 */

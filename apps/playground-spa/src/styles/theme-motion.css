@@ -27,4 +27,9 @@
   svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge] {
     animation: none !important;
   }
+
+  /* 浮彫の線も箱が浮き出た後に引かれるため、動きを減らす時は明示して止める (#2796)。 */
+  svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge] {
+    animation: none !important;
+  }
 }
