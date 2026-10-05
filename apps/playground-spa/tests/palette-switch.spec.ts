@@ -12,6 +12,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { 配色の札, 配色の選択肢, 画面の色の札 } from "../src/lib/palette-switch";
 import { 一覧の行 } from "./catalog-item-pick";
+import { colorKey, openEditorTheme } from "./helpers/fixed-theme-checks";
+import { LABEL_TONE_SOURCE } from "./helpers/label-tone-checks";
 import { readThemeNotes } from "./helpers/theme-notes";
 
 /** 見本を id で名指しして開く */
@@ -299,4 +301,102 @@ test("switch: 項目を選び直すと既定へ戻る (#1569)", async ({ page })
   await 一覧の行(page, "class-demo").click();
   await page.waitForSelector('[data-cdl-diagram="class-demo"]', { timeout: 15000 });
   await expect.poll(async () => await 配色(page, "class-demo"), { timeout: 5000 }).toBe("kinari");
+});
+
+test("switch: 生成りと青磁では札へ線の色みが漏れない", async ({ page }, testInfo) => {
+  for (const theme of ["kinari", "celadon"] as const) {
+    const note = readThemeNotes().get(theme);
+    if (note?.mode !== "light-dark") throw new Error(`${theme} の意匠帳が明暗の表ではない`);
+    for (const dark of [false, true]) {
+      const mode = dark ? "暗" : "明";
+      const values = dark ? note.dark : note.light;
+      await openEditorTheme(page, LABEL_TONE_SOURCE, theme, dark);
+      const actual = await page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`).evaluate(
+        (stage) => {
+          const labels = [...stage.querySelectorAll<SVGGraphicsElement>("[data-cdl-edge-label-for]")]
+            .flatMap((group) => {
+              const background = group.querySelector<SVGGraphicsElement>('[data-cdl-role="edge-label-bg"]');
+              const label = group.querySelector<SVGGraphicsElement>('[data-cdl-role="edge-label"]');
+              if (!background || !label) return [];
+              return [{
+                tone: group.getAttribute("data-cdl-tone"),
+                fill: getComputedStyle(background).fill,
+                stroke: getComputedStyle(background).stroke,
+                ink: getComputedStyle(label).fill,
+              }];
+            });
+          const lines = [...stage.querySelectorAll<SVGGraphicsElement>("[data-cdl-edge]")]
+            .flatMap((edge) => {
+              const line = edge.querySelector<SVGGraphicsElement>('[data-cdl-role="edge-line"]');
+              return line ? [{
+                tone: edge.getAttribute("data-cdl-tone"),
+                role: edge.getAttribute("data-cdl-edge-role"),
+                stroke: getComputedStyle(line).stroke,
+              }] : [];
+            });
+          const boxes = [...stage.querySelectorAll<SVGGraphicsElement>('rect[data-cdl-role="node-body"]')]
+            .map((box) => ({
+              active: box.closest("[data-cdl-active]")?.getAttribute("data-cdl-active") === "true",
+              fill: getComputedStyle(box).fill,
+              stroke: getComputedStyle(box).stroke,
+            }));
+          const resolveStageColor = (property: "--d-err" | "--d-warn"): string => {
+            const probe = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            probe.style.fill = `var(${property})`;
+            stage.append(probe);
+            const color = getComputedStyle(probe).fill;
+            probe.remove();
+            return color;
+          };
+          return {
+            labels,
+            lines,
+            boxes,
+            semantic: {
+              error: resolveStageColor("--d-err"),
+              warning: resolveStageColor("--d-warn"),
+            },
+          };
+        },
+      );
+      expect(actual.labels).toHaveLength(4);
+      expect(new Set(actual.labels.map((label) => colorKey(label.fill)))).toEqual(
+        new Set([colorKey(values.stripe)]),
+      );
+      expect(new Set(actual.labels.map((label) => colorKey(label.stroke)))).toEqual(
+        new Set([colorKey(values.line)]),
+      );
+      expect(new Set(actual.labels.map((label) => colorKey(label.ink)))).toEqual(
+        new Set([colorKey(values.line)]),
+      );
+      const expectedLines = new Map([
+        ["accent", values.line],
+        ["info", values.line],
+        ["success", values.link],
+        ["teal", values.own],
+        ["error", actual.semantic.error],
+        ["warning", actual.semantic.warning],
+      ]);
+      for (const line of actual.lines) {
+        const expected = line.role === "main" ? values.line : expectedLines.get(line.tone ?? "");
+        if (!expected) throw new Error(`${theme}/${mode} の線の色み ${line.tone} を読めない`);
+        expect(colorKey(line.stroke), `${theme}/${mode}/${line.tone} の線`).toBe(colorKey(expected));
+      }
+      expect(actual.boxes.length, `${theme}/${mode} の箱`).toBeGreaterThan(0);
+      expect(new Set(actual.boxes.map((box) => colorKey(box.fill)))).toEqual(
+        new Set([colorKey(values.face)]),
+      );
+      expect(actual.boxes.some((box) => box.active), `${theme}/${mode} の強調した箱`).toBe(true);
+      expect(actual.boxes.some((box) => !box.active), `${theme}/${mode} の強調していない箱`).toBe(true);
+      for (const box of actual.boxes) {
+        expect(colorKey(box.stroke), `${theme}/${mode} の${box.active ? "強調した" : "通常の"}箱`).toBe(
+          colorKey(box.active ? values.line : values.frame),
+        );
+      }
+      const report = `${theme} ${mode} labels leak-free: fill=${actual.labels[0]?.fill} ` +
+        `stroke=${actual.labels[0]?.stroke} ink=${actual.labels[0]?.ink}`;
+      console.log(report);
+      testInfo.annotations.push({ type: `${theme} ${mode} labels`, description: report });
+    }
+  }
 });

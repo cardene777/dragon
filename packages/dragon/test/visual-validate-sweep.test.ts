@@ -607,12 +607,6 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       "間隔を書かずに受付の右へ置く",
     ],
   },
-  "node-vertical-clearance": {
-    理由:
-      "`group-boundary-clearance` の一覧の一部。 相対で置いた結果、縦の間隔まで詰まる図だけが入る" +
-      " (どの図が入るかは `軸ごとの図が、宣言した一覧と 1 件も違わない` が実測と突き合わせる)",
-    図: ["受付の右に確認を置く", "受付の左に確認を置く", "間隔を書かずに受付の右へ置く"],
-  },
   "edge-label-proximity": {
     理由:
       "矢印の名前が線から離れる見本。 `interactive-oauth-flow` は線が往復して交差しており" +

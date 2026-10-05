@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
 import { 記法をURLに載せる } from "./box-and-edge-figure";
+import { checkEdgeLabelTones, checkSingleSeriesBars } from "./helpers/label-tone-checks";
 import { readFixedThemeGroundText } from "./helpers/theme-notes";
 
 const TYPES = ["class", "flowchart", "chart"] as const;
@@ -67,7 +68,7 @@ test("catalog: 関係図・流れ図・図表の札は下へ影を落とし、�
   }
 });
 
-test("catalog: 関係図と流れ図は線だけが線の色で光り、線の札は箱の面に墨の字を置く", async ({
+test("catalog: 関係図と流れ図は線が線の色で光る", async ({
   page,
 }) => {
   for (const type of ["class", "flowchart"] as const) {
@@ -79,36 +80,26 @@ test("catalog: 関係図と流れ図は線だけが線の色で光り、線の�
     expect(lineFilters.every((filter) => filter.includes("drop-shadow")), `${type} の線の光`)
       .toBe(true);
 
-    const values = await stage(page).evaluate((element) => {
-      const style = getComputedStyle(element);
-      const resolveColor = (value: string) => {
-        const probe = document.createElement("span");
-        probe.style.color = value;
-        document.body.append(probe);
-        const color = getComputedStyle(probe).color;
-        probe.remove();
-        return color;
-      };
-      const backgrounds = [...element.querySelectorAll('[data-cdl-role="edge-label-bg"]')];
-      const labels = backgrounds.flatMap((background) => {
-        const label = background.parentElement?.querySelector(
-          ':scope > [data-cdl-role="edge-label"]',
-        );
-        return label ? [getComputedStyle(label).fill] : [];
-      });
-      return {
-        expectedFace: resolveColor(style.getPropertyValue("--er-face").trim()),
-        expectedInk: resolveColor(style.getPropertyValue("--er-ink").trim()),
-        backgrounds: backgrounds.map((background) => getComputedStyle(background).fill),
-        labels,
-      };
-    });
-    expect(values.backgrounds.length, `${type} に面を持つ線の札が無い`).toBeGreaterThan(0);
-    expect(values.labels.length, `${type} の線の札に字が無い`).toBe(values.backgrounds.length);
-    expect(values.backgrounds.every((fill) => fill === values.expectedFace), `${type} の線の札の面`)
-      .toBe(true);
-    expect(values.labels.every((fill) => fill === values.expectedInk), `${type} の線の札の字`)
-      .toBe(true);
+  }
+});
+
+test("catalog: 図録・手描き・電飾・浮彫の非強調札と主役札が意匠帳どおりになる", async ({
+  page,
+}, testInfo) => {
+  for (const theme of ["catalog", "sketch", "neon", "relief"] as const) {
+    const report = await checkEdgeLabelTones(page, theme);
+    console.log(report);
+    testInfo.annotations.push({ type: `${theme} labels`, description: report });
+  }
+});
+
+test("catalog: 活版・図録・手描き・電飾・浮彫の単系列の棒を意味属性で選ぶ", async ({
+  page,
+}, testInfo) => {
+  for (const theme of ["letterpress", "catalog", "sketch", "neon", "relief"] as const) {
+    const report = await checkSingleSeriesBars(page, theme);
+    console.log(report);
+    testInfo.annotations.push({ type: `${theme} bars`, description: report });
   }
 });
 

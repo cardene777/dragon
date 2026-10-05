@@ -39,6 +39,7 @@ import {
   samplesByType,
   stopDiagram,
 } from "./helpers/fixed-theme-checks";
+import { checkEdgeLabelContrast } from "./helpers/label-tone-checks";
 
 /**
  * edge label の **描画結果** の対比を実ブラウザで測る (#977)。
@@ -841,6 +842,27 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
         expect(colorKey(tones[tone] ?? ""), tone).toBe(colorKey(note.value[port]));
       }
     });
+  }
+});
+
+test.describe("線の札の対比 (#2817)", () => {
+  test.describe.configure({ timeout: 300_000 });
+  test.use({
+    viewport: { width: 1920, height: 1080 },
+    deviceScaleFactor: FIXED_THEME_DEVICE_SCALE_FACTOR,
+  });
+
+  for (const theme of ["catalog", "terminal", "sketch", "neon", "relief"] as const) {
+    for (const dark of [false, true]) {
+      const mode = dark ? "暗" : "明";
+      test(`${theme} / ${mode}: 非強調の 3 枚と主役の札の字が 4.5 以上`, async ({
+        page,
+      }, testInfo) => {
+        const report = await checkEdgeLabelContrast(page, theme, dark);
+        console.log(report);
+        testInfo.annotations.push({ type: `${theme} labels contrast ${mode}`, description: report });
+      });
+    }
   }
 });
 

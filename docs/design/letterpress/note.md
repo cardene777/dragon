@@ -41,6 +41,7 @@
 | 見出しの下線 | 表の箱の名前の下だけ 2.5。縦の区切りは変えない                            |
 | 鍵           | 一。下線と同じ行の印に使う                                                |
 | 札           | 墨の面に地の字。面のある札だけに当てる                                    |
+| 単系列の棒   | `data-cdl-emphasis="primary"` の棒は一 `#c8431f`、それ以外は箱の面 `#f0eadc` に墨 `#1a1510` の 1.5 の枠。濃さは 1 |
 | 動き         | 不透明度 0、拡大率 1.035 から版を押す。0.34s、`cubic-bezier(.2,.9,.28,1)` |
 | 図表の系列色 | 1 = 一、2 = 墨、3 = 薄、4 = 淡、5 = 朱墨、6 = 朱淡                        |
 
@@ -100,7 +101,9 @@ dragon は `relation: extends` の 2 本 (である) を墨の線と白抜きの
 
 - `apps/playground-spa/src/lib/theme-matches-note.test.ts` は「値」の 9 行と CSS の `--er-*`、
   「色以外の値」の一と `--cdl-now`、図表の系列色と 12 個の変数を突き合わせる。
-  「枠の濃さ」と、固定の意匠だけに当たる CSS の決まりも突き合わせる。
+  「枠の濃さ」と単系列の棒、固定の意匠だけに当たる CSS の決まりも突き合わせる。
+- `apps/playground-spa/tests/theme-catalog.spec.ts` は単系列の棒の主役とそれ以外、全値が 0 以下の時に
+  主役を持たないことを意匠帳の値と突き合わせる。
 - `apps/playground-spa/tests/rendered-contrast.spec.ts` は 9 つの口と一を期待値にして、固定の意匠を
   全図種へ当てた時の舞台、主役、箱、線、文字の対比を明暗で調べる。箱の枠と線は色の alpha、
   `stroke-opacity` / `fill-opacity`、要素と祖先の `opacity` を重ねた実効の色で測り、強調の箱も含める。

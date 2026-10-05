@@ -93,8 +93,7 @@ const readEdgeLabels = (page: Page) =>
         const labelBox = label.getBBox();
         return [
           {
-            tone: edge.getAttribute("data-cdl-tone"),
-            backgroundStroke: background.getAttribute("stroke") ?? "",
+            tone: group.getAttribute("data-cdl-tone"),
             background: getComputedStyle(background).fill,
             frame: getComputedStyle(background).stroke,
             frameWidth: getComputedStyle(background).strokeWidth,
@@ -342,7 +341,7 @@ test.describe("sketch theme (#2794)", () => {
         elements.map((element) => {
           const style = getComputedStyle(element);
           return {
-            main: element.getAttribute("fill-opacity") === "1",
+            main: element.getAttribute("data-cdl-emphasis") === "primary",
             fill: style.fill,
             opacity: style.fillOpacity,
           };
@@ -374,20 +373,10 @@ test.describe("sketch theme (#2794)", () => {
     await openEditorTheme(page, 六色の記法, "sketch", false);
     const stagedLabels = await readEdgeLabels(page);
     expect(stagedLabels.length, "段のある六色の札が揃わない").toBe(6);
-    expect(
-      stagedLabels.some(
-        (label) =>
-          !label.backgroundStroke.startsWith("var(--cdl-tone-") &&
-          !label.backgroundStroke.startsWith("var(--cdl-now"),
-      ),
-      "段のある六色の札に色みを持たない面が無い",
-    ).toBe(true);
     for (const label of stagedLabels) {
-      const hasTone =
-        label.backgroundStroke.startsWith("var(--cdl-tone-") ||
-        label.backgroundStroke.startsWith("var(--cdl-now");
+      expect(label.tone, "段のある札の色み").not.toBeNull();
       expect(label.background).toBe(hexToRgb(sketch.value.face));
-      expect(label.frame).toBe(hasTone ? label.line : hexToRgb(sketch.value.ink));
+      expect(label.frame).toBe(label.line);
       expect(label.label).toBe(hexToRgb(sketch.value.ink));
     }
 
