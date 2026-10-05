@@ -16,6 +16,7 @@ import { 六色の記法 } from "./box-and-edge-figure";
 import { 一覧の行 } from "./catalog-item-pick";
 import {
   readFixedThemeLead,
+  readFixedThemeOutline,
   readThemeNotes,
   type ThemeNote,
   type ThemeValues,
@@ -739,23 +740,29 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
         console.log(
           `${note.name} contrast ${mode}: applied=${result.applied}/${PRESET_TYPES.size} ` +
             `boxTypes=${result.boxTypes} edgeTypes=${result.edgeTypes} ` +
-            `halfFrames=${result.halfFrames} failures=${result.failures.length} ` +
+            `halfFrames=${result.halfFrames} outlineless=${result.outlineless} ` +
+            `failures=${result.failures.length} ` +
             `grounds=${grounds}`,
         );
 
         expect(result.applied, `${note.name} が当たった図種`).toBe(PRESET_TYPES.size);
         expect(result.boxTypes, "箱を測れた図種が 0 件").toBeGreaterThan(0);
         expect(result.edgeTypes, "線を測れた図種が 0 件").toBeGreaterThan(0);
-        expect(
-          result.halfFrames,
-          "描き手が半分の濃さで描いた枠を 1 件も測れていない (検査が空振りしている)",
-        ).toBeGreaterThan(0);
+        if (readFixedThemeOutline().get(note.name) === "none") {
+          expect(result.outlineless, "縁線なしの箱を 1 件も測れていない").toBeGreaterThan(0);
+        } else {
+          expect(
+            result.halfFrames,
+            "描き手が半分の濃さで描いた枠を 1 件も測れていない (検査が空振りしている)",
+          ).toBeGreaterThan(0);
+        }
         expect(result.failures, `${note.name}/${mode} の違反`).toEqual([]);
       });
     }
   }
 
   for (const note of fixedThemes()) {
+    if (readFixedThemeOutline().get(note.name) === "none") continue;
     test(`${note.name}: 枠の濃さの決まりを外すと箱の枠の検査が落ちる (陽性対照)`, async ({ page }) => {
       const lead = leadColors.get(note.name);
       if (!lead) throw new Error(`${note.name} の一を読めない`);

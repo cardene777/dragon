@@ -10,6 +10,7 @@
  *   - Blueprint   : dragon-bp-graticule (+ dark) / dragon-bp-arrow-ortho marker
  *   - Sketch      : dragon-sketch-wobble (turbulence displacement) / dragon-sketch-pen
  *   - Neon        : dragon-neon-tube (white core + colored glow)
+ *   - Relief      : dragon-relief-raised / -dome / -well / -raised-sm (light and shadow)
  *
  * SVG は position:absolute + width/height 0 + aria-hidden で完全に不可視、
  * pointer-events none で下位要素の click を吸わない。
@@ -329,6 +330,140 @@ export function SvgDefs(): React.ReactElement {
             <feMergeNode in="halo" />
             <feMergeNode in="SourceGraphic" />
             <feMergeNode in="core" />
+          </feMerge>
+        </filter>
+
+        {/* ═════════════════ Relief ═════════════════
+            全 filter を userSpaceOnUse にして、小さい箱で影を切らず、幅 0 の図形でも領域を残す。
+            外の影は CSS box-shadow のぼかし値の半分を標準偏差にし、意匠帳と
+            relief-theme.spec.ts が各 offset / blur / flood を突き合わせる (#2796)。
+            raised は ±7 / 7.5 / 暗 .5・白 1、dome は ±12 / 12 / 暗 .55・白 .95、
+            well は raised の外影と 14 内側の ±5 / 5.5 / 暗 .42・白 .88、
+            raised-sm は ±4 / 4.5 / 暗 .45・白 .9 とする。 */}
+        <filter
+          id="dragon-relief-raised"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="7.5" result="raised-dark-blur" />
+          <feOffset in="raised-dark-blur" dx="7" dy="7" result="raised-dark-offset" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".5" result="raised-dark-color" />
+          <feComposite in="raised-dark-color" in2="raised-dark-offset" operator="in" result="raised-dark" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="7.5" result="raised-light-blur" />
+          <feOffset in="raised-light-blur" dx="-7" dy="-7" result="raised-light-offset" />
+          <feFlood floodColor="#ffffff" floodOpacity="1" result="raised-light-color" />
+          <feComposite in="raised-light-color" in2="raised-light-offset" operator="in" result="raised-light" />
+          <feMerge>
+            <feMergeNode in="raised-dark" />
+            <feMergeNode in="raised-light" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-relief-dome"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="dome-dark-blur" />
+          <feOffset in="dome-dark-blur" dx="12" dy="12" result="dome-dark-offset" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".55" result="dome-dark-color" />
+          <feComposite in="dome-dark-color" in2="dome-dark-offset" operator="in" result="dome-dark" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="dome-light-blur" />
+          <feOffset in="dome-light-blur" dx="-12" dy="-12" result="dome-light-offset" />
+          <feFlood floodColor="#ffffff" floodOpacity=".95" result="dome-light-color" />
+          <feComposite in="dome-light-color" in2="dome-light-offset" operator="in" result="dome-light" />
+          {/* 3px / 4 は小さい主役でも題を覆わず、面の塗りを替えずに丸みを出す幅。 */}
+          <feComponentTransfer in="SourceAlpha" result="dome-inverse">
+            <feFuncA type="table" tableValues="1 0" />
+          </feComponentTransfer>
+          <feGaussianBlur in="dome-inverse" stdDeviation="4" result="dome-inner-blur" />
+          <feOffset in="dome-inner-blur" dx="3" dy="3" result="dome-inner-light-offset" />
+          <feComposite in="dome-inner-light-offset" in2="SourceAlpha" operator="in" result="dome-inner-light-mask" />
+          <feFlood floodColor="#ffffff" floodOpacity=".75" result="dome-inner-light-color" />
+          <feComposite in="dome-inner-light-color" in2="dome-inner-light-mask" operator="in" result="dome-inner-light" />
+          <feOffset in="dome-inner-blur" dx="-3" dy="-3" result="dome-inner-dark-offset" />
+          <feComposite in="dome-inner-dark-offset" in2="SourceAlpha" operator="in" result="dome-inner-dark-mask" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".32" result="dome-inner-dark-color" />
+          <feComposite in="dome-inner-dark-color" in2="dome-inner-dark-mask" operator="in" result="dome-inner-dark" />
+          <feMerge>
+            <feMergeNode in="dome-dark" />
+            <feMergeNode in="dome-light" />
+            <feMergeNode in="SourceGraphic" />
+            <feMergeNode in="dome-inner-light" />
+            <feMergeNode in="dome-inner-dark" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-relief-well"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="7.5" result="well-dark-blur" />
+          <feOffset in="well-dark-blur" dx="7" dy="7" result="well-dark-offset" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".5" result="well-dark-color" />
+          <feComposite in="well-dark-color" in2="well-dark-offset" operator="in" result="well-dark" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="7.5" result="well-light-blur" />
+          <feOffset in="well-light-blur" dx="-7" dy="-7" result="well-light-offset" />
+          <feFlood floodColor="#ffffff" floodOpacity="1" result="well-light-color" />
+          <feComposite in="well-light-color" in2="well-light-offset" operator="in" result="well-light" />
+          {/* 14px は目盛りと棒へ窪みの縁を重ねず、内側を一段沈める余白。 */}
+          <feMorphology in="SourceAlpha" operator="erode" radius="14" result="well-inner" />
+          <feComponentTransfer in="well-inner" result="well-inner-inverse">
+            <feFuncA type="table" tableValues="1 0" />
+          </feComponentTransfer>
+          <feGaussianBlur in="well-inner-inverse" stdDeviation="5.5" result="well-inner-blur" />
+          <feOffset in="well-inner-blur" dx="5" dy="5" result="well-inner-dark-offset" />
+          <feComposite in="well-inner-dark-offset" in2="well-inner" operator="in" result="well-inner-dark-mask" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".42" result="well-inner-dark-color" />
+          <feComposite in="well-inner-dark-color" in2="well-inner-dark-mask" operator="in" result="well-inner-dark" />
+          <feOffset in="well-inner-blur" dx="-5" dy="-5" result="well-inner-light-offset" />
+          <feComposite in="well-inner-light-offset" in2="well-inner" operator="in" result="well-inner-light-mask" />
+          <feFlood floodColor="#ffffff" floodOpacity=".88" result="well-inner-light-color" />
+          <feComposite in="well-inner-light-color" in2="well-inner-light-mask" operator="in" result="well-inner-light" />
+          <feMerge>
+            <feMergeNode in="well-dark" />
+            <feMergeNode in="well-light" />
+            <feMergeNode in="SourceGraphic" />
+            <feMergeNode in="well-inner-dark" />
+            <feMergeNode in="well-inner-light" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-relief-raised-sm"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="raised-sm-dark-blur" />
+          <feOffset in="raised-sm-dark-blur" dx="4" dy="4" result="raised-sm-dark-offset" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".45" result="raised-sm-dark-color" />
+          <feComposite in="raised-sm-dark-color" in2="raised-sm-dark-offset" operator="in" result="raised-sm-dark" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="raised-sm-light-blur" />
+          <feOffset in="raised-sm-light-blur" dx="-4" dy="-4" result="raised-sm-light-offset" />
+          <feFlood floodColor="#ffffff" floodOpacity=".9" result="raised-sm-light-color" />
+          <feComposite in="raised-sm-light-color" in2="raised-sm-light-offset" operator="in" result="raised-sm-light" />
+          <feMerge>
+            <feMergeNode in="raised-sm-dark" />
+            <feMergeNode in="raised-sm-light" />
+            <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
       </defs>

@@ -517,6 +517,10 @@
   background: var(--d-surface-2, rgba(0, 0, 0, 0.04));
 }
 
+.catalog-redraw {
+  flex-wrap: wrap;
+}
+
 /*
   切替は オプション と パターン の 2 群に分かれる (#1696)。
 
@@ -525,15 +529,19 @@
   (実際に 4 本の規則に育っていた)。
 */
 .catalog-toggle-groups {
+  /* 操作の札が増えると、札の字が 1 字ずつ縦に潰れていた。札は押す先の名前なので、
+   * 字を折って読めなくせず、幅が足りない時は札ごと次の行へ回す (#2796) */
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 16px;
+  min-width: 0;
   margin-left: auto;
 }
 
 .catalog-toggle-group {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
@@ -556,6 +564,7 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--d-text-secondary);
+  white-space: nowrap;
   cursor: pointer;
   transition: color 0.12s ease, background-color 0.12s ease;
 }

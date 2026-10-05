@@ -45,7 +45,7 @@ test("switch: 意匠の札が全て並び、配色を持つ図で切り替えら
 
   await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
   const expected = 配色の選択肢.map((theme) => 配色の札(theme, "ja"));
-  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末", "手描き", "電飾"]);
+  expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末", "手描き", "電飾", "浮彫"]);
   for (const label of expected)
     await expect(切替(page).getByRole("radio", { name: label })).toHaveCount(1);
   expect(await 配色(page, "er-demo"), "既定が生成りに茶でない").toBe("kinari");
@@ -91,6 +91,59 @@ test('switch: 意匠の札を全て並べても「図 / コード」 のタブ�
   expect(Math.max(...高さ) - Math.min(...高さ), "図 / コードのタブの高さが揃っていない").toBeLessThanOrEqual(
     1,
   );
+});
+
+test("switch: 狭い幅でも意匠の札の字は 1 行のまま、札は画面の中に収まる (#2796)", async ({
+  page,
+}) => {
+  for (const width of [1440, 1366, 1280, 1024, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("catalog/presets");
+    await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
+    await 一覧の行(page, "er-demo").click();
+    await page.locator(".catalog-preview-stage").scrollIntoViewIfNeeded();
+    await page.waitForSelector('[data-cdl-diagram="er-demo"]', { timeout: 15000 });
+    await page.evaluate(() => document.fonts.ready);
+    await expect(切替(page), `${width}px で図の色味の切替が出ていない`).toBeVisible();
+
+    const 札 = 切替(page).getByRole("radio");
+    expect(await 札.count(), `${width}px で意匠の札が欠けている`).toBeGreaterThanOrEqual(9);
+    const 測った = await 札.evaluateAll((elements) => {
+      const chips = elements.map((element) => {
+        const textNode = [...element.childNodes].find(
+          (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+        );
+        if (!textNode) throw new Error("意匠の札の字を測れない (検査が空振りしている)");
+        const range = document.createRange();
+        range.selectNodeContents(textNode);
+        const rect = element.getBoundingClientRect();
+        return {
+          名前: textNode.textContent?.trim() ?? "",
+          行数: new Set([...range.getClientRects()].map((line) => Math.round(line.top))).size,
+          上端: Math.round(rect.top),
+          左端: rect.left,
+          右端: rect.right,
+        };
+      });
+      return {
+        chips,
+        rows: new Set(chips.map((chip) => chip.上端)).size,
+        outside: chips.filter((chip) => chip.左端 < 0 || chip.右端 > window.innerWidth).length,
+        viewportWidth: window.innerWidth,
+      };
+    });
+
+    console.log(
+      `chip lines width=${width}: rows=${測った.rows} maxLines=${Math.max(...測った.chips.map((chip) => chip.行数))} outside=${測った.outside}`,
+    );
+    for (const chip of 測った.chips) {
+      expect(chip.行数, `${width}px で ${chip.名前} の字が折れている`).toBe(1);
+      expect(chip.左端, `${width}px で ${chip.名前} が画面の左へ出ている`).toBeGreaterThanOrEqual(0);
+      expect(chip.右端, `${width}px で ${chip.名前} が画面の右へ出ている`).toBeLessThanOrEqual(
+        測った.viewportWidth,
+      );
+    }
+  }
 });
 
 test("switch: クラス図でも切り替えられる (#1569)", async ({ page }) => {
@@ -214,6 +267,26 @@ test("neon switch: 配色のない図と表の図へ電飾の名前と地が届�
       return stage ? getComputedStyle(stage).backgroundColor : null;
     });
     expect(ground, id).toBe(hexToRgb(neon.value.ground));
+  }
+});
+
+test("relief switch: 配色のない図と表の図へ浮彫の名前と地が届く", async ({ page }) => {
+  const relief = readThemeNotes().get("relief");
+  if (relief?.mode !== "fixed") throw new Error("浮彫の意匠帳が固定の表ではない");
+
+  for (const id of ["infra-demo", "er-demo"]) {
+    await 開く(page, "presets", id);
+    const option = 切替(page).getByRole("radio", { name: 配色の札("relief", "ja") });
+    const count = await option.count();
+    console.log(`relief switch ${id}: options=${count}`);
+    expect(count, `${id} の浮彫の選択肢`).toBe(1);
+    await option.click();
+    await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("relief");
+    const ground = await page.evaluate(() => {
+      const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="relief"]');
+      return stage ? getComputedStyle(stage).backgroundColor : null;
+    });
+    expect(ground, id).toBe(hexToRgb(relief.value.ground));
   }
 });
 

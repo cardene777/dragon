@@ -24,6 +24,7 @@ export type ThemeNote =
 
 export type ThemeChartSeries = { roles: string[]; colors: string[] };
 export type ThemeGroundText = { ink: string; type: string };
+export type ThemeOutline = "frame" | "none";
 
 /** 意匠帳の役の呼び名と CSS の口の対応。読む側は全てこの 1 表を使う (#2790)。 */
 export const ROLE_TO_PORT = {
@@ -225,6 +226,29 @@ export function readFixedThemeFrameOpacity(
       throw new Error(`意匠帳の ${name} の「枠の濃さ」が数で始まらない`);
     }
     out.set(name, Number(number));
+  }
+  return out;
+}
+
+/** 固定の意匠の縁線を読む。行が無い意匠は従来どおり枠を描く。 */
+export function readFixedThemeOutline(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, ThemeOutline> {
+  const out = new Map<DslTheme, ThemeOutline>();
+  for (const [name, note] of readThemeNotes(overrides)) {
+    if (note.mode !== "fixed") continue;
+    const 本文 = overrides[name] ?? readThemeNoteText(name);
+    const rows = 二列表を読む(節を取る(本文, "色以外の値", 3));
+    const value = rows.get("縁線");
+    if (value === undefined) {
+      out.set(name, "frame");
+      continue;
+    }
+    if (value.startsWith("なし")) {
+      out.set(name, "none");
+      continue;
+    }
+    throw new Error(`意匠帳の ${name} の「縁線」は「なし」で始まるか、行を置かない必要がある`);
   }
   return out;
 }

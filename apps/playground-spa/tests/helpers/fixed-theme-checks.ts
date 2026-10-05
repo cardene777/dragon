@@ -9,6 +9,7 @@ import {
   THEME_PORTS,
   readFixedThemeChartSeries,
   readFixedThemeLead,
+  readFixedThemeOutline,
   readThemeNotes,
   type ThemeNote,
 } from "./theme-notes";
@@ -228,14 +229,14 @@ export const BOX_PAINT_SELECTOR = [
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > path',
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > ellipse',
   '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > circle',
-  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > rect',
-  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > path',
-  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > ellipse',
-  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g > circle',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > rect',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > path',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > ellipse',
+  '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])) > circle',
 ].join(", ");
 
 type FixedTheme = Extract<ThemeNote, { mode: "fixed" }>;
-type ShapeContrast = { boxes: number; halfFrames: number; lines: number; failures: string[] };
+type ShapeContrast = { boxes: number; halfFrames: number; outlineless: number; lines: number; failures: string[] };
 
 export async function checkBoxAndLineContrast(
   page: Page,
@@ -251,6 +252,51 @@ export async function checkBoxAndLineContrast(
   const palette = new Set([...Object.values(note.value), lead].map(colorKey));
   const failures: string[] = [];
   const readBoxes = await stage.locator(BOX_PAINT_SELECTOR).evaluateAll(readPaints);
+  const outline = readFixedThemeOutline().get(note.name) ?? "frame";
+  if (outline === "none") {
+    for (const paint of readBoxes) {
+      const stroke = parseColor(paint.stroke);
+      const visibleStroke = (stroke?.alpha ?? 0) * paint.strokeOpacity * paint.opacity;
+      if (visibleStroke > 0) {
+        failures.push(
+          `${type}/${mode}: 箱 ${paint.node ?? "不明"} (${paint.kind ?? "不明"}) が縁線を引いている ` +
+          `(stroke ${paint.stroke} / stroke-opacity ${paint.strokeOpacity} / opacity ${paint.opacity})`,
+        );
+      }
+      if (colorKey(paint.fill) !== colorKey(note.value.face)) {
+        failures.push(
+          `${type}/${mode}: 箱 ${paint.node ?? "不明"} (${paint.kind ?? "不明"}) ` +
+          `fill ${paint.fill} / 箱の面 ${note.value.face}`,
+        );
+      }
+    }
+
+    const readLines = await stage.locator('[data-cdl-role="edge-line"]').evaluateAll(readPaints);
+    const lines = readLines.filter((paint) => parseColor(paint.stroke) !== null);
+    for (const paint of lines) {
+      if (!palette.has(colorKey(paint.stroke))) {
+        failures.push(`${type}/${mode}: 線 ${paint.stroke} が意匠帳の 9 色と一に無い`);
+      }
+      if (!paint.rendered) continue;
+      const effective = effectivePaint({ ...paint, fill: "none" }, ground);
+      if (effective.frame === null) continue;
+      const ratio = contrast(effective.frame, ground);
+      if (ratio < 3) {
+        failures.push(
+          `${type}/${mode}: 線 ${paint.stroke} の実効は台と ${ratio.toFixed(2)}:1 < 3 ` +
+          `(stroke-opacity ${paint.strokeOpacity} / opacity ${paint.opacity})`,
+        );
+      }
+    }
+
+    return {
+      boxes: readBoxes.length,
+      halfFrames: 0,
+      outlineless: readBoxes.length,
+      lines: lines.length,
+      failures,
+    };
+  }
   const boxes = readBoxes.filter((paint) => parseColor(paint.stroke) !== null);
   let halfFrames = 0;
   for (const paint of boxes) {
@@ -297,7 +343,7 @@ export async function checkBoxAndLineContrast(
     }
   }
 
-  return { boxes: boxes.length, halfFrames, lines: lines.length, failures };
+  return { boxes: boxes.length, halfFrames, outlineless: 0, lines: lines.length, failures };
 }
 
 export const FIXED_THEME_DEVICE_SCALE_FACTOR = 3;
@@ -307,6 +353,7 @@ export type FixedThemeAcrossTypesResult = {
   boxTypes: number;
   edgeTypes: number;
   halfFrames: number;
+  outlineless: number;
   failures: string[];
   groundByType: Map<string, string>;
 };
@@ -328,6 +375,7 @@ export async function checkFixedThemeAcrossTypes(
   let boxTypes = 0;
   let edgeTypes = 0;
   let halfFrames = 0;
+  let outlineless = 0;
 
   for (const [type, source] of samples) {
     await openEditorTheme(page, source, note.name, dark);
@@ -366,6 +414,7 @@ export async function checkFixedThemeAcrossTypes(
     if (shapes.boxes > 0) boxTypes += 1;
     if (shapes.lines > 0) edgeTypes += 1;
     halfFrames += shapes.halfFrames;
+    outlineless += shapes.outlineless;
     failures.push(...shapes.failures);
 
     const text = await checkTextContrast(page, type, mode);
@@ -375,5 +424,5 @@ export async function checkFixedThemeAcrossTypes(
     failures.push(...text.failures);
   }
 
-  return { applied, boxTypes, edgeTypes, halfFrames, failures, groundByType };
+  return { applied, boxTypes, edgeTypes, halfFrames, outlineless, failures, groundByType };
 }
