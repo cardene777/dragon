@@ -15,8 +15,11 @@ import { PRESET_TYPES, type DslTheme } from "@cardenelabs/dragon";
 import { 六色の記法 } from "./box-and-edge-figure";
 import { 一覧の行 } from "./catalog-item-pick";
 import {
+  THEME_TONES,
+  readFixedThemeChartSeries,
   readFixedThemeLead,
   readFixedThemeOutline,
+  readFixedThemeToneSeries,
   readThemeNotes,
   type ThemeNote,
   type ThemeValues,
@@ -32,6 +35,7 @@ import {
   FIXED_THEME_DEVICE_SCALE_FACTOR,
   checkBoxAndLineContrast,
   checkFixedThemeAcrossTypes,
+  checkTextContrast,
   color,
   colorKey,
   fixedThemes,
@@ -39,7 +43,7 @@ import {
   samplesByType,
   stopDiagram,
 } from "./helpers/fixed-theme-checks";
-import { checkEdgeLabelContrast } from "./helpers/label-tone-checks";
+import { checkEdgeLabelContrast, SINGLE_SERIES_SOURCE } from "./helpers/label-tone-checks";
 
 /**
  * edge label の **描画結果** の対比を実ブラウザで測る (#977)。
@@ -1159,6 +1163,204 @@ test.describe("箱の中の絵 (#2811)", () => {
           }
         }
         expect(failures, `${note.name}/${mode} の箱の図形の違反`).toEqual([]);
+      });
+    }
+  }
+});
+
+const 色みごとの日程 = `title: "色みごとの工程"
+type: gantt
+
+actors:
+  - 設計: { value: "1期", tone: accent }
+  - 実装: { value: "2期", tone: teal }
+  - 検証: { value: "3期", tone: success }
+  - 公開: { value: "4期", tone: warning }
+  - 計測: { value: "5期", tone: info }
+  - 改善: { value: "6期", tone: error }
+`;
+
+const 六段の漏斗 = `title: "六段の絞り込み"
+type: funnel
+
+actors:
+  - 訪問: "12000"
+  - 閲覧: "8000"
+  - 会員登録: "3400"
+  - カート投入: "1200"
+  - 申込み: "480"
+  - 継続: "200"
+`;
+
+test.describe("模様を当てた棒の図表 (#2801)", () => {
+  test.describe.configure({ timeout: 300_000 });
+  test.use({
+    viewport: { width: 1920, height: 1080 },
+    deviceScaleFactor: FIXED_THEME_DEVICE_SCALE_FACTOR,
+  });
+  const notes = new Map(fixedThemes().map((note) => [note.name, note]));
+  const leads = readFixedThemeLead();
+
+  for (const theme of ["blueprint", "sketch"] as const) {
+    for (const dark of [false, true]) {
+      const mode = dark ? "暗" : "明";
+      test(`${theme} / ${mode}: 模様付きの棒で図形と字の対比を保つ`, async ({ page }) => {
+        const note = notes.get(theme);
+        const lead = leads.get(theme);
+        if (!note || !lead) throw new Error(`${theme} の意匠帳を読めない`);
+        await openEditorTheme(page, SINGLE_SERIES_SOURCE, theme, dark);
+        const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+        const failures: string[] = [];
+        const bars = await stage.locator('[data-cdl-role="chart-bar"]').evaluateAll((elements) =>
+          elements.map((element) => {
+            const style = getComputedStyle(element);
+            let opacity = 1;
+            for (let current: Element | null = element; current !== null; current = current.parentElement) {
+              opacity *= Number(getComputedStyle(current).opacity || 1);
+            }
+            return {
+              fill: style.fill,
+              stroke: style.stroke,
+              strokeOpacity: Number(style.strokeOpacity || 1),
+              opacity,
+            };
+          }));
+        if (!bars.some((bar) => /^url\(["']?#/.test(bar.fill))) {
+          failures.push(`${theme}/${mode}: 模様で塗った棒が 0 件`);
+        }
+
+        const shapes = await checkBoxAndLineContrast(page, stage, "chart", mode, note, lead);
+        failures.push(...shapes.failures);
+        const texts = await checkTextContrast(page, "chart", mode);
+        failures.push(...texts.failures);
+        if (texts.measured < 1) failures.push(`${theme}/${mode}: 測れた字が 0 件`);
+
+        const face = color(note.value.face);
+        for (const [index, bar] of bars.entries()) {
+          const paint = effectivePaint({
+            fill: note.value.face,
+            fillOpacity: 1,
+            stroke: bar.stroke,
+            strokeOpacity: bar.strokeOpacity,
+            opacity: bar.opacity,
+          }, face);
+          if (paint.frame === null) {
+            failures.push(`${theme}/${mode}: 棒 ${index + 1} の枠が無い`);
+            continue;
+          }
+          const ratio = contrast(paint.frame, face);
+          if (ratio < 3) failures.push(`${theme}/${mode}: 棒 ${index + 1} の枠と箱の面 ${ratio.toFixed(2)}:1 < 3:1`);
+        }
+        expect(failures, `${theme}/${mode} の模様付きの棒の違反`).toEqual([]);
+      });
+    }
+  }
+});
+
+test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
+  test.describe.configure({ timeout: 300_000 });
+  test.use({
+    viewport: { width: 1920, height: 1080 },
+    deviceScaleFactor: FIXED_THEME_DEVICE_SCALE_FACTOR,
+  });
+  const samples = samplesByType();
+  const chartSeries = readFixedThemeChartSeries();
+  const toneSeries = readFixedThemeToneSeries();
+
+  for (const note of fixedThemes()) {
+    for (const dark of [false, true]) {
+      const mode = dark ? "暗" : "明";
+      test(`${note.name} / ${mode}: 日程の棒と漏斗の段が系列色になり対比を保つ`, async ({ page }) => {
+        const failures: string[] = [];
+        const chart = chartSeries.get(note.name);
+        const tones = toneSeries.get(note.name);
+        if (!chart || !tones) throw new Error(`${note.name} の系列色と色みの対応を意匠帳から読めない`);
+
+        await openEditorTheme(page, 色みごとの日程, note.name, dark);
+        let stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
+        let ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
+        const gantt = await stage.locator('[data-cdl-role="gantt-bar"]').evaluateAll((elements) =>
+          elements.map((element) => {
+            const style = getComputedStyle(element);
+            return {
+              fill: style.fill,
+              fillOpacity: Number(style.fillOpacity),
+              stroke: style.stroke,
+              strokeWidth: Number.parseFloat(style.strokeWidth),
+            };
+          }));
+        if (gantt.length !== 6) failures.push(`${note.name}/${mode}: 色み付きの日程の棒が ${gantt.length} 件 (6 件が要る)`);
+        for (const [index, tone] of THEME_TONES.entries()) {
+          const bar = gantt[index];
+          const expected = chart.colors[tones.seriesByTone[tone] - 1];
+          if (!bar || !expected) continue;
+          if (colorKey(bar.fill) !== colorKey(expected)) {
+            failures.push(`${note.name}/${mode}/${tone}: 日程の棒 ${bar.fill} / 系列 ${tones.seriesByTone[tone]} ${expected}`);
+          }
+          if (bar.fillOpacity !== tones.opacity) failures.push(`${note.name}/${mode}/${tone}: 濃さ ${bar.fillOpacity} / ${tones.opacity}`);
+          const ratio = contrast(color(bar.fill), ground);
+          if (ratio < 3) failures.push(`${note.name}/${mode}/${tone}: 日程の棒と台 ${ratio.toFixed(2)}:1 < 3:1`);
+          if (tones.stroke && colorKey(bar.stroke) !== colorKey(tones.stroke)) {
+            failures.push(`${note.name}/${mode}/${tone}: 日程の枠 ${bar.stroke} / ${tones.stroke}`);
+          }
+          if (tones.strokeWidth !== undefined && bar.strokeWidth !== tones.strokeWidth) {
+            failures.push(`${note.name}/${mode}/${tone}: 日程の枠幅 ${bar.strokeWidth} / ${tones.strokeWidth}`);
+          }
+        }
+
+        const defaultGantt = samples.get("gantt");
+        if (!defaultGantt) throw new Error("色みを書かない日程の見本が無い");
+        await openEditorTheme(page, defaultGantt, note.name, dark);
+        stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
+        ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
+        const defaultFills = await stage.locator('[data-cdl-role="gantt-bar"]').evaluateAll((elements) =>
+          elements.map((element) => getComputedStyle(element).fill));
+        if (defaultFills.length === 0) failures.push(`${note.name}/${mode}: 色みの無い日程の棒が 0 件`);
+        for (const fill of defaultFills) {
+          if (colorKey(fill) !== colorKey(chart.colors[0]!)) {
+            failures.push(`${note.name}/${mode}: 色みの無い日程 ${fill} / 系列 1 ${chart.colors[0]}`);
+          }
+          if ((note.name === "relief" || note.name === "sketch") && colorKey(fill) === colorKey(note.value.ink)) {
+            failures.push(`${note.name}/${mode}: 色みの無い日程の棒が墨になっている`);
+          }
+          const ratio = contrast(color(fill), ground);
+          if (ratio < 3) failures.push(`${note.name}/${mode}: 色みの無い日程の棒と台 ${ratio.toFixed(2)}:1 < 3:1`);
+        }
+
+        await openEditorTheme(page, 六段の漏斗, note.name, dark);
+        stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
+        ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
+        const funnel = await stage.locator('[data-cdl-role="funnel-stage"]').evaluateAll((elements) =>
+          elements.map((element) => {
+            const style = getComputedStyle(element);
+            return { fill: style.fill, fillOpacity: Number(style.fillOpacity) };
+          }));
+        if (funnel.length !== 6) failures.push(`${note.name}/${mode}: 漏斗の段が ${funnel.length} 件 (6 件が要る)`);
+        for (const [index, value] of funnel.entries()) {
+          const expected = chart.colors[index];
+          if (!expected) continue;
+          if (colorKey(value.fill) !== colorKey(expected)) {
+            failures.push(`${note.name}/${mode}: 漏斗の段 ${index + 1} ${value.fill} / 系列 ${index + 1} ${expected}`);
+          }
+          if (value.fillOpacity !== tones.opacity) failures.push(`${note.name}/${mode}: 漏斗の段 ${index + 1} の濃さ ${value.fillOpacity} / ${tones.opacity}`);
+          const ratio = contrast(color(value.fill), ground);
+          if (ratio < 3) failures.push(`${note.name}/${mode}: 漏斗の段 ${index + 1} と台 ${ratio.toFixed(2)}:1 < 3:1`);
+        }
+
+        const texts = await checkTextContrast(page, "funnel", mode);
+        failures.push(...texts.failures);
+        if (texts.measured < 1) failures.push(`${note.name}/${mode}: 漏斗で測れた字が 0 件`);
+        if (tones.textColor) {
+          const names = await stage.locator('[data-cdl-role="funnel-stage"] + text').evaluateAll((elements) =>
+            elements.map((element) => getComputedStyle(element).fill));
+          if (names.length !== 6) failures.push(`${note.name}/${mode}: 漏斗の段の名前が ${names.length} 件 (6 件が要る)`);
+          for (const fill of names) {
+            if (colorKey(fill) !== colorKey(tones.textColor)) {
+              failures.push(`${note.name}/${mode}: 漏斗の段の字 ${fill} / ${tones.textColor}`);
+            }
+          }
+        }
+        expect(failures, `${note.name}/${mode} の日程と漏斗の違反`).toEqual([]);
       });
     }
   }

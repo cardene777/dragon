@@ -17,6 +17,17 @@
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test chart-card-fill`
  */
 import { test, expect } from "@playwright/test";
+import { THEMES } from "@cardenelabs/dragon";
+
+import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+import { openEditorTheme } from "./helpers/fixed-theme-checks";
+import { SINGLE_SERIES_SOURCE } from "./helpers/label-tone-checks";
+import {
+  readBlueprintHatch,
+  readFixedThemeRoleColor,
+  readFixedThemeSingleSeriesBars,
+  readThemeNotes,
+} from "./helpers/theme-notes";
 
 type Page = import("@playwright/test").Page;
 
@@ -206,5 +217,156 @@ test.describe("値の図の札が中身の形に合う (#2708)", () => {
       下限.length,
     );
     expect(違反, `下限を割った型が ${違反.length} 件ある`).toEqual([]);
+  });
+});
+
+const hexToRgb = (hex: string): string => {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return `rgb(${value >> 16}, ${(value >> 8) & 255}, ${value & 255})`;
+};
+
+const computedFill = (fill: string): string => {
+  const pattern = /^url\((#[a-z0-9-]+)\)$/.exec(fill)?.[1];
+  return pattern ? `url("${pattern}")` : hexToRgb(fill);
+};
+
+function chartSample(shape: "stacked" | "waffle"): string {
+  const sample = EDITOR_SAMPLES.find((entry) =>
+    /^type:\s*chart\s*$/m.test(entry.code) && new RegExp(`^shape:\\s*${shape}\\s*$`, "m").test(entry.code));
+  if (!sample) throw new Error(`editor-samples に ${shape} の見本が無い`);
+  return sample.code;
+}
+
+type BarPaint = {
+  primary: boolean;
+  fill: string;
+  fillOpacity: string;
+  stroke: string;
+  strokeWidth: string;
+};
+
+async function chartBars(page: Page, theme: string): Promise<BarPaint[]> {
+  return page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"] [data-cdl-role="chart-bar"]`)
+    .evaluateAll((elements) => elements.map((element) => {
+      const style = getComputedStyle(element);
+      return {
+        primary: element.getAttribute("data-cdl-emphasis") === "primary",
+        fill: style.fill,
+        fillOpacity: style.fillOpacity,
+        stroke: style.stroke,
+        strokeWidth: style.strokeWidth,
+      };
+    }));
+}
+
+test.describe("図表の棒の内側の模様 (#2801)", () => {
+  test.describe.configure({ timeout: 120_000 });
+
+  test("blueprint / 明・暗: 主役の棒の計算後の fill が url(#dragon-bp-hatch) になる", async ({ page }) => {
+    const note = readThemeNotes().get("blueprint");
+    const style = readFixedThemeSingleSeriesBars().get("blueprint");
+    if (note?.mode !== "fixed" || !style?.primary.stroke || style.primary.strokeWidth === undefined ||
+      !style.secondary.stroke || style.secondary.strokeWidth === undefined) {
+      throw new Error("図面の単系列の棒を意匠帳から読めない");
+    }
+    const id = /^url\((#[a-z0-9-]+)\)$/.exec(style.primary.fill)?.[1];
+    const hatch = readBlueprintHatch();
+    if (!id) throw new Error("図面の斜線の id を意匠帳から読めない");
+
+    const fills: string[][] = [];
+    for (const dark of [false, true]) {
+      await openEditorTheme(page, SINGLE_SERIES_SOURCE, "blueprint", dark);
+      const stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
+      expect(await stage.evaluate((element) => getComputedStyle(element).backgroundColor), "舞台の地")
+        .toBe(hexToRgb(note.value.ground));
+      const bars = await chartBars(page, "blueprint");
+      expect(bars.length, "図面の棒").toBe(4);
+      expect(bars.filter((bar) => bar.primary).length, "図面の主役の棒").toBe(1);
+      for (const bar of bars) {
+        const want = bar.primary ? style.primary : style.secondary;
+        expect(bar.fill, bar.primary ? "主役の塗り" : "それ以外の塗り").toBe(computedFill(want.fill));
+        expect(bar.fillOpacity, "棒の濃さ").toBe("1");
+        expect(bar.stroke, "棒の枠").toBe(hexToRgb(want.stroke!));
+        expect(Number.parseFloat(bar.strokeWidth), "棒の枠幅").toBe(want.strokeWidth);
+        if (!bar.primary) expect(bar.fill).not.toContain("url(");
+      }
+      fills.push(bars.map((bar) => bar.fill));
+      const patterns = page.locator(id);
+      await expect(patterns, `${id} は文書に 1 つ`).toHaveCount(1);
+      await expect(patterns).toHaveJSProperty("tagName", "pattern");
+      const rectFill = await patterns.locator("rect").evaluate((element) => getComputedStyle(element).fill);
+      expect(rectFill, "斜線の色").toBe(hexToRgb(hatch.color));
+    }
+    expect(fills[1], "暗い表示でも棒の塗りを変えない").toEqual(fills[0]);
+  });
+
+  test("sketch / 明・暗: 棒の計算後の fill がペンの斜線の url(#dragon-sketch-pen) になる", async ({ page }) => {
+    const note = readThemeNotes().get("sketch");
+    const style = readFixedThemeSingleSeriesBars().get("sketch");
+    const pale = readFixedThemeRoleColor("sketch", "淡");
+    if (note?.mode !== "fixed" || !style || !pale) throw new Error("手描きの棒を意匠帳から読めない");
+    const id = /^url\((#[a-z0-9-]+)\)$/.exec(style.primary.fill)?.[1];
+    if (!id) throw new Error("手描きのペンの斜線の id を意匠帳から読めない");
+
+    const fills: string[][] = [];
+    for (const dark of [false, true]) {
+      await openEditorTheme(page, SINGLE_SERIES_SOURCE, "sketch", dark);
+      const stage = page.locator('svg[data-cdl-stage][data-cdl-palette="sketch"]');
+      expect(await stage.evaluate((element) => getComputedStyle(element).backgroundColor), "舞台の地")
+        .toBe(hexToRgb(note.value.ground));
+      const bars = await chartBars(page, "sketch");
+      expect(bars.length, "手描きの棒").toBe(4);
+      expect(bars.filter((bar) => bar.primary).length, "手描きの主役の棒").toBe(1);
+      for (const bar of bars) {
+        const want = bar.primary ? style.primary : style.secondary;
+        expect(bar.fill).toBe(computedFill(want.fill));
+        expect(bar.fillOpacity).toBe("1");
+        expect(bar.stroke).toBe(hexToRgb(want.stroke!));
+        expect(Number.parseFloat(bar.strokeWidth)).toBe(want.strokeWidth);
+      }
+      fills.push(bars.map((bar) => bar.fill));
+      const patterns = page.locator(id);
+      await expect(patterns, `${id} は文書に 1 つ`).toHaveCount(1);
+      await expect(patterns).toHaveJSProperty("tagName", "pattern");
+      expect(await patterns.locator("rect").evaluate((element) => getComputedStyle(element).fill))
+        .toBe(hexToRgb(pale));
+    }
+    expect(fills[1], "暗い表示でも棒の塗りを変えない").toEqual(fills[0]);
+  });
+
+  test("他の意匠: 単系列の棒へ url(#…) を当てない", async ({ page }) => {
+    const failures: string[] = [];
+    for (const theme of THEMES.filter((name) => name !== "blueprint" && name !== "sketch")) {
+      for (const dark of [false, true]) {
+        await openEditorTheme(page, SINGLE_SERIES_SOURCE, theme, dark);
+        const bars = await chartBars(page, theme);
+        if (bars.length === 0) failures.push(`${theme}/${dark ? "暗" : "明"}: 棒が 0 件`);
+        for (const bar of bars) {
+          if (bar.fill.includes("url(")) failures.push(`${theme}/${dark ? "暗" : "明"}: ${bar.fill}`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  test("blueprint と sketch: 積み上げ棒の切れ端と升へ模様を当てない", async ({ page }) => {
+    const failures: string[] = [];
+    for (const theme of ["blueprint", "sketch"] as const) {
+      for (const dark of [false, true]) {
+        for (const [shape, role] of [
+          ["stacked", "chart-stacked-bar-slice"],
+          ["waffle", "chart-waffle-cell"],
+        ] as const) {
+          await openEditorTheme(page, chartSample(shape), theme, dark);
+          const fills = await page.locator(`[data-cdl-role="${role}"]`).evaluateAll((elements) =>
+            elements.map((element) => getComputedStyle(element).fill));
+          if (fills.length === 0) failures.push(`${theme}/${dark ? "暗" : "明"}/${shape}: 図形が 0 件`);
+          for (const fill of fills) {
+            if (fill.includes("url(")) failures.push(`${theme}/${dark ? "暗" : "明"}/${shape}: ${fill}`);
+          }
+        }
+      }
+    }
+    expect(failures).toEqual([]);
   });
 });

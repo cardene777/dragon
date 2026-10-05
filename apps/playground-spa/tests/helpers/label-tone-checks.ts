@@ -42,7 +42,7 @@ animation:
     focus: [凡例]
 `;
 
-const SINGLE_SERIES_SOURCE = `title: "単系列の棒"
+export const SINGLE_SERIES_SOURCE = `title: "単系列の棒"
 type: chart
 shape: bar
 
@@ -203,14 +203,23 @@ function checkBars(theme: string, bars: BarValue[], allowPrimary: boolean): void
   expect(bars.filter((bar) => bar.primary).length, `${theme} の主役の棒`)
     .toBe(allowPrimary ? 1 : 0);
   for (const bar of bars) {
-    expect(colorKey(bar.fill), `${theme} の${bar.primary ? "主役" : "淡"}の棒`).toBe(
-      colorKey(bar.primary ? style.primary : style.secondaryFill),
-    );
+    const expected = bar.primary ? style.primary : style.secondary;
+    const expectedPattern = /^url\((#[a-z0-9-]+)\)$/.exec(expected.fill)?.[1];
+    if (expectedPattern) {
+      expect(bar.fill, `${theme} の${bar.primary ? "主役" : "それ以外"}の棒の模様`)
+        .toMatch(new RegExp(`^url\\(["']?${expectedPattern}["']?\\)$`));
+    } else {
+      expect(colorKey(bar.fill), `${theme} の${bar.primary ? "主役" : "それ以外"}の棒`).toBe(
+        colorKey(expected.fill),
+      );
+    }
     const expectedOpacity = theme === "letterpress" && !bar.primary ? bar.authoredOpacity : "1";
     expect(bar.opacity, `${theme} の棒の濃さ`).toBe(expectedOpacity);
-    if (!bar.primary && style.secondaryStroke) {
-      expect(colorKey(bar.stroke), `${theme} の淡の棒の枠`).toBe(colorKey(style.secondaryStroke));
-      expect(Number.parseFloat(bar.strokeWidth), `${theme} の淡の棒の枠幅`).toBe(style.secondaryStrokeWidth);
+    if (expected.stroke) {
+      expect(colorKey(bar.stroke), `${theme} の${bar.primary ? "主役" : "それ以外"}の棒の枠`)
+        .toBe(colorKey(expected.stroke));
+      expect(Number.parseFloat(bar.strokeWidth), `${theme} の${bar.primary ? "主役" : "それ以外"}の棒の枠幅`)
+        .toBe(expected.strokeWidth);
     }
     if (bar.primary && (theme === "terminal" || theme === "neon")) {
       expect(bar.filter, `${theme} の主役の棒の光`).toContain("drop-shadow");

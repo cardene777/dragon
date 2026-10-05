@@ -19,6 +19,8 @@ import {
   readFixedThemeChartSeries,
   readFixedThemeLead,
   readFixedThemeRoleColor,
+  readFixedThemeSingleSeriesBars,
+  readFixedThemeToneSeries,
   readThemeNotes,
 } from "./helpers/theme-notes";
 
@@ -229,7 +231,11 @@ test.describe("sketch theme (#2794)", () => {
     const lead = readFixedThemeLead().get("sketch");
     const pale = readFixedThemeRoleColor("sketch", "淡");
     const chart = readFixedThemeChartSeries().get("sketch");
-    if (!lead || !pale || !chart) throw new Error("手描きの作りの色を意匠帳から読めない");
+    const bars = readFixedThemeSingleSeriesBars().get("sketch");
+    const toneSeries = readFixedThemeToneSeries().get("sketch");
+    if (!lead || !pale || !chart || !bars || !toneSeries?.stroke || toneSeries.strokeWidth === undefined) {
+      throw new Error("手描きの作りの色を意匠帳から読めない");
+    }
 
     let activeBoxes = 0;
     let normalBoxes = 0;
@@ -323,11 +329,12 @@ test.describe("sketch theme (#2794)", () => {
         }),
       );
     expect(ganttBars.length, "日程の棒が無い").toBeGreaterThan(0);
+    const ganttFill = chart.colors[toneSeries.seriesByTone.accent - 1];
+    if (!ganttFill) throw new Error("手描きの日程の系列 1 を意匠帳から読めない");
     for (const bar of ganttBars) {
-      expect(bar.fill).toContain("url(");
-      expect(bar.fill).toContain("dragon-sketch-pen");
-      expect(bar.stroke).toBe(hexToRgb(sketch.value.ink));
-      expect(bar.width).toBe("2px");
+      expect(bar.fill).toBe(hexToRgb(ganttFill));
+      expect(bar.stroke).toBe(hexToRgb(toneSeries.stroke));
+      expect(Number.parseFloat(bar.width)).toBe(toneSeries.strokeWidth);
     }
     const penFill = await page
       .locator("pattern#dragon-sketch-pen rect")
@@ -344,14 +351,22 @@ test.describe("sketch theme (#2794)", () => {
             main: element.getAttribute("data-cdl-emphasis") === "primary",
             fill: style.fill,
             opacity: style.fillOpacity,
+            stroke: style.stroke,
+            width: style.strokeWidth,
           };
         }),
       );
     expect(chartBars.some((bar) => bar.main), "図表に主役の棒が無い").toBe(true);
     expect(chartBars.some((bar) => !bar.main), "図表に主役でない棒が無い").toBe(true);
     for (const bar of chartBars) {
-      expect(bar.fill, "図表の棒へペンの模様が届いた").not.toContain("url(");
-      expect(bar.fill).toBe(hexToRgb(bar.main ? lead : pale));
+      const expected = bar.main ? bars.primary : bars.secondary;
+      const pattern = /^url\((#[a-z0-9-]+)\)$/.exec(expected.fill)?.[1];
+      if (!pattern || !expected.stroke || expected.strokeWidth === undefined) {
+        throw new Error("手描きの単系列の棒の模様と枠を意匠帳から読めない");
+      }
+      expect(bar.fill, "図表の棒へペンの模様が届かない").toContain(pattern.slice(1));
+      expect(bar.stroke).toBe(hexToRgb(expected.stroke));
+      expect(Number.parseFloat(bar.width)).toBe(expected.strokeWidth);
       expect(bar.opacity).toBe("1");
     }
 
