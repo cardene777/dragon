@@ -292,6 +292,26 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "番号付きの時間軸の形 (shape: timeline)",
+    titleEn: "A numbered vertical timeline (shape: timeline)",
+    sample: {
+      slot: "shape",
+      type: "swimlane",
+      actors: [
+        "  - 受付: { lane: front }",
+        "  - 審査: { lane: review }",
+      ],
+      flow: ['  - 受付 -> 審査: "渡す"'],
+    },
+    lines: [
+      {
+        code: "shape: timeline",
+        note: "actors の順に番号を付け、担当名付きの札を軸の左右へ交互に並べる",
+        noteEn: "Numbers actors in written order and alternates role-labelled cards on both sides of the axis",
+      },
+    ],
+  },
+  {
     title: "箱を入れる段階 (stage / 段階)",
     titleEn: "Which stage holds a box (stage)",
     sample: {

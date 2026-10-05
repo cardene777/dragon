@@ -35,6 +35,21 @@ const JSON図 = (type: string, shape: string): unknown => ({
 });
 
 describe("図種ごとの shape (#2797)", () => {
+  it("swimlane の timeline は shape として読める", () => {
+    const parsed = 読む("swimlane", "timeline");
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok)
+      expect({ type: parsed.doc.type, shape: parsed.doc.shape }).toEqual({
+        type: "swimlane",
+        shape: "timeline",
+      });
+  });
+
+  it("timeline は図種の別名にならない", () => {
+    expect(TYPE_ALIASES.has("timeline")).toBe(false);
+    expect(PRESET_TYPES.has("timeline" as never)).toBe(false);
+  });
+
   it("swimlane の metro は shape として読める", () => {
     const parsed = 読む("swimlane", "metro");
     expect(parsed.ok).toBe(true);
@@ -82,6 +97,14 @@ describe("図種ごとの shape (#2797)", () => {
     expect(notices[0]?.hint).toContain("metro");
   });
 
+  it("flow の timeline は shape の知らせを1件出す", () => {
+    const notices = 知らせ("flow", "timeline").filter(
+      (notice) => notice.kind === "shape-not-honored",
+    );
+    expect(notices).toHaveLength(1);
+    expect(notices[0]?.hint).toContain("timeline");
+  });
+
   it("shape の知らせはその図種で書ける語を案内する", () => {
     const swimlane = 知らせ("swimlane", "pie").find((notice) => notice.kind === "shape-not-honored");
     expect(swimlane?.hint).toContain("stages");
@@ -107,6 +130,15 @@ describe("図種ごとの shape (#2797)", () => {
     const parsed = 読む("chart", "metro");
     expect(parsed.ok).toBe(false);
     if (!parsed.ok) expect(parsed.errors.map((error) => error.message).join(" / ")).toContain("shape が読めません");
+  });
+
+  it("記法の chart では timeline は parser error になる", () => {
+    const parsed = 読む("chart", "timeline");
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok)
+      expect(parsed.errors.map((error) => error.message).join(" / ")).toContain(
+        "shape が読めません",
+      );
   });
 
   it("綴り違いは swimlane で使える語を案内する parser error になる", () => {
