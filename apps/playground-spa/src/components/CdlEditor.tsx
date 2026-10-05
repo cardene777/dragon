@@ -31,6 +31,7 @@ import { axisOffset } from "@/lib/fit-anchor";
 import { readDiagramScale, setDiagramScale, applyFontScale, clampFontScale } from "@/lib/diagram-scale";
 import { PHASE_CHROME_BOTTOM_SPACE_PX, PHASE_CHROME_TOP_SPACE_PX } from "@/lib/phase-chrome-space";
 import { stagePaperColor } from "@/lib/stage-paper";
+import { 書き出したSVGの地の色, 書き出し用のSVGを作る } from "@/lib/export-svg";
 import {
   IconShare, IconExport, IconList, IconTextDown, IconTextUp, IconShrink, IconGrow,
   IconPositions, IconGrid, IconFit, IconReset, IconActualSize, IconZoomOut, IconZoomIn,
@@ -1623,11 +1624,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const handleExportAnimatedSvg = (): void => {
     const svg = getPreviewSvg();
     if (!svg) return;
-    const clone = svg.cloneNode(true) as SVGSVGElement;
-    // ns 明示 (単独 file として開いた時に SVG 表示崩れないよう)
-    if (!clone.getAttribute("xmlns")) clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    if (!clone.getAttribute("xmlns:xlink")) clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-    const svgStr = new XMLSerializer().serializeToString(clone);
+    const 書き出し用 = 書き出し用のSVGを作る(svg, "動く");
+    const svgStr = new XMLSerializer().serializeToString(書き出し用);
     downloadBlob(new Blob([svgStr], { type: "image/svg+xml" }), `${diagram?.id ?? "diagram"}.svg`);
   };
 
@@ -1635,14 +1633,8 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const handleExportStaticSvg = (): void => {
     const svg = getPreviewSvg();
     if (!svg) return;
-    const clone = svg.cloneNode(true) as SVGSVGElement;
-    if (!clone.getAttribute("xmlns")) clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    if (!clone.getAttribute("xmlns:xlink")) clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-    // animation element を全除去 (static frame にする)
-    for (const el of Array.from(clone.querySelectorAll("animate, animateMotion, animateTransform, set"))) {
-      el.remove();
-    }
-    const svgStr = new XMLSerializer().serializeToString(clone);
+    const 書き出し用 = 書き出し用のSVGを作る(svg, "静止");
+    const svgStr = new XMLSerializer().serializeToString(書き出し用);
     downloadBlob(new Blob([svgStr], { type: "image/svg+xml" }), `${diagram?.id ?? "diagram"}-static.svg`);
   };
 
@@ -1650,18 +1642,13 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
   const handleExportPng = async (): Promise<void> => {
     const svg = getPreviewSvg();
     if (!svg) return;
-    const clone = svg.cloneNode(true) as SVGSVGElement;
-    if (!clone.getAttribute("xmlns")) clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    if (!clone.getAttribute("xmlns:xlink")) clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-    for (const el of Array.from(clone.querySelectorAll("animate, animateMotion, animateTransform, set"))) {
-      el.remove();
-    }
+    const 書き出し用 = 書き出し用のSVGを作る(svg, "静止");
     // viewBox から実寸を決定 (2x DPR で高解像度出力)
-    const vb = clone.viewBox.baseVal;
+    const vb = 書き出し用.viewBox.baseVal;
     const scale = 2;
     const w = vb.width * scale;
     const h = vb.height * scale;
-    const svgStr = new XMLSerializer().serializeToString(clone);
+    const svgStr = new XMLSerializer().serializeToString(書き出し用);
     const svgBlob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
     const svgUrl = URL.createObjectURL(svgBlob);
     const img = new Image();
@@ -1680,10 +1667,10 @@ export function CdlEditor(props: CdlEditorProps = {}): React.JSX.Element {
       URL.revokeObjectURL(svgUrl);
       return;
     }
-    // 紙の色は **画面から読む** (#1060)。 値を書くと CSS 側を変えた時にここだけ古くなり、
-    // 書き出した絵の紙だけが別の色になる (実測 = 画面の紙を `#3a2f22` に変えた後も、
-    // ここは `#241c14` のままで箱との差が `ΔL* 4.7` に潰れていた)。
-    ctx.fillStyle = stagePaperColor(previewRef.current);
+    // 意匠が地を持つ時は、その計算値を紙にする (#2800)。 地を持たない図だけ外枠の紙を読み、
+    // CSS 側の色を変えた時に PNG の紙だけ古くなる形を避ける (#1060)。
+    ctx.fillStyle =
+      書き出したSVGの地の色(書き出し用) ?? stagePaperColor(previewRef.current);
     ctx.fillRect(0, 0, w, h);
     ctx.drawImage(img, 0, 0, w, h);
     URL.revokeObjectURL(svgUrl);
