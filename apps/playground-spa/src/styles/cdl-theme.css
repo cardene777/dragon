@@ -223,7 +223,9 @@
  * `tone: accent` を書いた既存の箱だけ強調の色が変わる。
  *
  * 色は線と同じ変数から取る = 線の色は紙の上で 4.61 の対比を満たすことを検査している
- * (`dark-ground-step.spec.ts`)。 箱と矢印で同じ名前の色が別の色にならない。 */
+ * (`dark-ground-step.spec.ts`)。 箱と矢印で同じ名前の色が別の色にならない。
+ * 札の `g` と端の字も `data-cdl-tone` を持つが、`data-cdl-active` と `node-body` の組を持たないので
+ * この規則は当たらない。 */
 [data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])
   [data-cdl-role="node-body"]:not([data-cdl-look]),
 [data-cdl-active="true"][data-cdl-tone]:not([data-cdl-tone="accent"])
@@ -390,7 +392,9 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
   stroke-width: 4.98 !important;
 }
 
-/* 意味ごとの色。 cdl は `data-cdl-tone` で意味だけを渡し、 色は dragon が決める */
+/* 意味ごとの色。 cdl は `data-cdl-tone` で意味だけを渡し、 色は dragon が決める。
+   札の `g` と端の字にも変数は入るが、札と端の字の規則は `--dragon-edge-tone` を読まないため
+   色は変わらない。 */
 [data-cdl-tone="accent"] { --dragon-edge-tone: var(--d-dg-1); }
 [data-cdl-tone="teal"] { --dragon-edge-tone: var(--d-dg-6); }
 [data-cdl-tone="success"] { --dragon-edge-tone: var(--d-dg-2); }
@@ -413,14 +417,13 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
 [id^="cdl-arrow-info"] { --dragon-edge-tone: var(--d-dg-4); }
 
 /* 順路の線 (#2141)。
-   役目 `role: main` を書いた線は、描画エンジンが色の属性を `var(--cdl-now, #c0421f)` にして出す。
+   役目 `role: main` を書いた線は、描画エンジンが線の `g` に `data-cdl-edge-role="main"` を出す。
    上の線の規則は全ての線を `--dragon-edge-tone` で上書きするため、順路も枝も同じ墨色になっていた
-   (実測 = 明 `rgb(34, 24, 17)` / 暗 `rgb(236, 223, 201)`)。 役目は印の属性として出ないので、
-   **色の属性の書き出しで選ぶ**。 属性の形が変わると `tests/main-route-edge-color.spec.ts` が落ちる。
+   (実測 = 明 `rgb(34, 24, 17)` / 暗 `rgb(236, 223, 201)`)。色の属性ではなく、役目の属性で選ぶ。
 
    配色 (`data-cdl-palette`) を持つ図は下の配色の規則が `--cdl-now` を線の色に置き換えているので、
    ここを通っても線の色のまま変わらない (クラス図と ER 図は書かなくても配色が付く)。 */
-[data-cdl-role="edge-line"][stroke^="var(--cdl-now"] {
+[data-cdl-edge][data-cdl-edge-role="main"] [data-cdl-role="edge-line"] {
   stroke: var(--cdl-now) !important;
 }
 
@@ -1424,12 +1427,12 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] g:has(> [data-cdl-role="edge
   fill: var(--er-ground) !important;
 }
 
-/* 描き手は最大の棒だけ `fill-opacity="1"` にする。その他の値も属性を持つので否定で選べる。 */
-svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="chart-bar"][fill-opacity="1"] {
+/* 描き手は最大値の棒に `data-cdl-emphasis="primary"` を付ける。その他は否定で選べる。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
   fill: var(--theme-lead) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="chart-bar"]:not([fill-opacity="1"]) {
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
   fill: var(--er-face) !important;
   stroke: var(--er-ink) !important;
   stroke-width: 1.5 !important;
@@ -1532,7 +1535,7 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="edge-line"] {
   );
 }
 
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="edge-line"][stroke^="var(--cdl-now"] {
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge][data-cdl-edge-role="main"] [data-cdl-role="edge-line"] {
   color: var(--cdl-now);
 }
 
@@ -1630,11 +1633,35 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] g:has(> [data-cdl-role="edge-lab
   fill: var(--er-ink) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="chart-bar"][fill-opacity="1"] {
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="accent"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="info"] > [data-cdl-role="edge-label-bg"] {
   fill: var(--theme-lead) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="chart-bar"]:not([fill-opacity="1"]) {
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"] {
+  fill: var(--er-link) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="teal"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="error"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="warning"] > [data-cdl-role="edge-label-bg"] {
+  fill: var(--er-own) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"] {
+  fill: var(--er-ground) !important;
+}
+
+/* 主役は色みより後ろに置き、色みにかかわらず一の組を使う。 */
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-edge-role="main"] > [data-cdl-role="edge-label-bg"] {
+  fill: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
+  fill: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
   fill: var(--theme-pale) !important;
   fill-opacity: 1 !important;
 }
@@ -1702,8 +1729,7 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] g:has(> [data-cdl-role="node-ro
   stroke: var(--theme-lead) !important;
 }
 
-/* 描き手は強調している線の札にだけ、面の `stroke` 属性へ線の色みを渡す。
-   その色みで一・二・三を選び、色みを持たない札 (強調していない線の札) は薄で塗る。 */
+/* 札の既定。色みと主役は下のより詳細な決まりが面の色だけを替える。 */
 svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="edge-label-bg"] {
   fill: var(--er-type) !important;
   stroke: none !important;
@@ -1712,25 +1738,18 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="edge-label-bg"]
   ry: 4px;
 }
 
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-accent"],
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-info"],
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-now"] {
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge-label-for][data-cdl-tone="accent"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge-label-for][data-cdl-tone="info"] > [data-cdl-role="edge-label-bg"] {
   fill: var(--theme-lead) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-success"] {
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"] {
   fill: var(--er-link) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-teal"] {
-  fill: var(--er-own) !important;
-}
-
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-error"] {
-  fill: var(--er-own) !important;
-}
-
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-warning"] {
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge-label-for][data-cdl-tone="teal"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge-label-for][data-cdl-tone="error"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge-label-for][data-cdl-tone="warning"] > [data-cdl-role="edge-label-bg"] {
   fill: var(--er-own) !important;
 }
 
@@ -1742,12 +1761,17 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] g:has(> [data-cdl-role="edge-la
   fill: var(--theme-tag-ink) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="chart-bar"][fill-opacity="1"] {
+/* 主役は色みより後ろに置き、色みにかかわらず一の組を使う。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge-label-for][data-cdl-edge-role="main"] > [data-cdl-role="edge-label-bg"] {
+  fill: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
   fill: var(--theme-lead) !important;
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--theme-lead) 30%, transparent));
 }
 
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="chart-bar"]:not([fill-opacity="1"]) {
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
   fill: var(--theme-pale) !important;
   fill-opacity: 1 !important;
 }
@@ -1827,7 +1851,7 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] g:has(> [data-cdl-role="node-row-
   stroke: var(--theme-lead) !important;
 }
 
-/* 線の色みは札の面の `stroke` 属性にだけ残るため、前方一致で札の枠へ渡す。 */
+/* 札の既定。色みと主役は下のより詳細な決まりが枠の色だけを替える。 */
 svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"] {
   fill: var(--er-face) !important;
   stroke: var(--er-ink) !important;
@@ -1835,19 +1859,18 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"] {
   opacity: 1 !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-accent"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-info"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-now"] {
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge-label-for][data-cdl-tone="accent"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge-label-for][data-cdl-tone="info"] > [data-cdl-role="edge-label-bg"] {
   stroke: var(--theme-lead) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-success"] {
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"] {
   stroke: var(--er-link) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-teal"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-error"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-warning"] {
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge-label-for][data-cdl-tone="teal"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge-label-for][data-cdl-tone="error"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge-label-for][data-cdl-tone="warning"] > [data-cdl-role="edge-label-bg"] {
   stroke: var(--er-own) !important;
 }
 
@@ -1855,11 +1878,16 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="edge-label"] {
   fill: var(--er-ink) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"][fill-opacity="1"] {
+/* 主役は色みより後ろに置き、色みにかかわらず一の組を使う。 */
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge-label-for][data-cdl-edge-role="main"] > [data-cdl-role="edge-label-bg"] {
+  stroke: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
   fill: var(--theme-lead) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"]:not([fill-opacity="1"]) {
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
   fill: var(--theme-pale) !important;
   fill-opacity: 1 !important;
 }
@@ -1932,7 +1960,7 @@ svg[data-cdl-stage][data-cdl-palette="neon"] g:has(> [data-cdl-role="node-row-un
   stroke: var(--theme-lead) !important;
 }
 
-/* 線の色みは札の面の `stroke` 属性にだけ残る。枠と字と外光の色を同じ前方一致で選ぶ。 */
+/* 札の既定。色みと主役は下のより詳細な決まりが枠と外光の色だけを替える。 */
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label-bg"] {
   --neon-tag-glow: var(--er-type);
   fill: var(--er-face) !important;
@@ -1942,21 +1970,20 @@ svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label-bg"] {
   filter: drop-shadow(0 0 3px var(--neon-tag-glow)) drop-shadow(0 0 8px color-mix(in srgb, var(--neon-tag-glow) 50%, transparent));
 }
 
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-accent"],
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-info"],
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-now"] {
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="accent"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="info"] > [data-cdl-role="edge-label-bg"] {
   --neon-tag-glow: var(--theme-lead);
   stroke: var(--theme-lead) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-success"] {
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"] {
   --neon-tag-glow: var(--er-link);
   stroke: var(--er-link) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-teal"],
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-error"],
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-warning"] {
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="teal"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="error"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="warning"] > [data-cdl-role="edge-label-bg"] {
   --neon-tag-glow: var(--er-own);
   stroke: var(--er-own) !important;
 }
@@ -1965,28 +1992,37 @@ svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="edge-label"] {
   fill: var(--er-ink) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="neon"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-accent"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="neon"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-info"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="neon"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-now"]) > [data-cdl-role="edge-label"] {
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="accent"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="info"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"] {
   fill: var(--theme-lead) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="neon"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-success"]) > [data-cdl-role="edge-label"] {
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="success"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"] {
   fill: var(--er-link) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="neon"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-teal"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="neon"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-error"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="neon"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-warning"]) > [data-cdl-role="edge-label"] {
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="teal"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="error"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-tone="warning"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"] {
   fill: var(--er-own) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="chart-bar"][fill-opacity="1"] {
+/* 主役は色みより後ろに置き、色みにかかわらず一の組を使う。 */
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-edge-role="main"] > [data-cdl-role="edge-label-bg"] {
+  --neon-tag-glow: var(--theme-lead);
+  stroke: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-edge-role="main"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"] {
+  fill: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
   fill: var(--theme-lead) !important;
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--theme-lead) 45%, transparent));
 }
 
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="chart-bar"]:not([fill-opacity="1"]) {
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
   fill: var(--theme-pale) !important;
   fill-opacity: 1 !important;
 }
@@ -2076,7 +2112,7 @@ svg[data-cdl-stage][data-cdl-palette="relief"] g:has(> [data-cdl-role="node-row-
   stroke: var(--theme-lead) !important;
 }
 
-/* 線の色みは札の面の `stroke` 属性にだけ残るため、同じ前方一致で面と白い字を選ぶ。 */
+/* 札の既定。色みと主役は下のより詳細な決まりが面の色だけを替える。 */
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label-bg"] {
   fill: var(--er-face) !important;
   stroke: none !important;
@@ -2084,19 +2120,18 @@ svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label-bg"] {
   filter: url(#dragon-relief-raised-sm);
 }
 
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-accent"],
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-info"],
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-now"] {
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge-label-for][data-cdl-tone="accent"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge-label-for][data-cdl-tone="info"] > [data-cdl-role="edge-label-bg"] {
   fill: var(--theme-title) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-success"] {
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"] {
   fill: var(--er-link) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-teal"],
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-error"],
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-warning"] {
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge-label-for][data-cdl-tone="teal"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge-label-for][data-cdl-tone="error"] > [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge-label-for][data-cdl-tone="warning"] > [data-cdl-role="edge-label-bg"] {
   fill: var(--er-own) !important;
 }
 
@@ -2104,23 +2139,22 @@ svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="edge-label"] {
   fill: var(--er-ink) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="relief"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-accent"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="relief"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-info"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="relief"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-now"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="relief"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-success"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="relief"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-teal"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="relief"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-error"]) > [data-cdl-role="edge-label"],
-svg[data-cdl-stage][data-cdl-palette="relief"] g:has(> [data-cdl-role="edge-label-bg"][stroke^="var(--cdl-tone-warning"]) > [data-cdl-role="edge-label"] {
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge-label-for][data-cdl-tone]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"] {
   fill: var(--relief-tag-ink) !important;
   font-weight: 700 !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="chart-bar"][fill-opacity="1"] {
+/* 主役は色みより後ろに置き、色みにかかわらず一の組を使う。 */
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge-label-for][data-cdl-edge-role="main"] > [data-cdl-role="edge-label-bg"] {
+  fill: var(--theme-title) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
   fill: var(--theme-lead) !important;
   filter: url(#dragon-relief-raised-sm);
 }
 
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="chart-bar"]:not([fill-opacity="1"]) {
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
   fill: var(--theme-pale) !important;
   fill-opacity: 1 !important;
   filter: url(#dragon-relief-raised-sm);

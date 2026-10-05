@@ -86,7 +86,7 @@ describe("一覧の名前 (#1030)", () => {
       // primitives は縦列の縦の点線 / 図全体の間隔 / フローの並ぶ向き / 状態の始まりと終わり
       // の見本を足して 89 → 93 (#1969)、位置のずらしの見本を足して 93 → 94 (#1971)、
       // 縦列の組の見本を足して 94 → 95 (#1972)
-      "primitives-extra": 21, animation: 10, styles: 18, presets: 19,
+      "primitives-extra": 21, animation: 10, styles: 19, presets: 19,
       // parts-in-box は部品を箱に使う見本 (#1973)
       ethereum: 4, "text-dsl": 19, parts: 110, "parts-in-box": 1, "parts-motion": 1, charts: 15,
     };

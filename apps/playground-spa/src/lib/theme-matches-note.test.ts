@@ -15,9 +15,11 @@ import {
   readFixedThemeChartSeries,
   readFixedThemeFrameOpacity,
   readFixedThemeGroundText,
+  readFixedThemeLabelToneStyles,
   readFixedThemeLead,
   readFixedThemeOutline,
   readFixedThemeRoleColor,
+  readFixedThemeSingleSeriesBars,
   readThemeNotes,
   readThemeNoteText,
   type ThemeNote,
@@ -33,6 +35,14 @@ type CssChartTheme = { cdl: string[]; dragon: string[]; colors: string[] };
 const TEXT_TONES = ["accent", "teal", "success", "error", "warning", "info"] as const;
 const TEXT_BACKGROUNDS = ["ground", "face", "stripe"] as const;
 const CARD_TEXT_BACKGROUNDS = ["face", "stripe"] as const;
+const LABEL_TONES = {
+  accent: "one",
+  info: "one",
+  success: "two",
+  teal: "three",
+  error: "three",
+  warning: "three",
+} as const;
 
 function cssThemes(cssText: string): Map<string, CssTheme> {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -163,6 +173,60 @@ function resolveCssColor(
   const variable = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1];
   if (!variable) throw new Error(`--${property} の値 ${value} を色へ解けない`);
   return resolveCssColor(declarations, variable, new Set([...seen, property]));
+}
+
+function cssRuleBody(cssText: string, exactSelector: string): string {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const bodies = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
+    const selectors = (match[1] ?? "").split(",").map((selector) => selector.trim());
+    return selectors.includes(exactSelector) ? [match[2] ?? ""] : [];
+  });
+  if (bodies.length !== 1) {
+    throw new Error(`${exactSelector} の CSS 規則が ${bodies.length} 件ある (1 件が要る)`);
+  }
+  return bodies[0]!;
+}
+
+function cssDeclaration(body: string, property: string): string {
+  const value = new RegExp(`(?:^|;)\\s*${property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:\\s*([^;]+)`, "m")
+    .exec(body)?.[1]?.trim().replace(/\s*!important$/, "");
+  if (!value) throw new Error(`${property} の CSS 宣言が無い`);
+  return value;
+}
+
+function cssVariableName(value: string): string {
+  const name = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1];
+  if (!name) throw new Error(`${value} が CSS 変数 1 個の参照ではない`);
+  return name;
+}
+
+/** 色みと主役の札が継承する、意匠ごとの字の決まり。 */
+function fixedLabelTextBody(
+  cssText: string,
+  stage: string,
+  themeName: string,
+  tone: string,
+  main = false,
+): string {
+  if (themeName === "neon") {
+    const selector = main
+      ? `${stage} [data-cdl-edge-label-for][data-cdl-edge-role="main"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"]`
+      : `${stage} [data-cdl-edge-label-for][data-cdl-tone="${tone}"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"]`;
+    return cssRuleBody(cssText, selector);
+  }
+  if (themeName === "terminal") {
+    return cssRuleBody(
+      cssText,
+      `${stage} g:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"]`,
+    );
+  }
+  if (themeName === "sketch") {
+    return cssRuleBody(cssText, `${stage} [data-cdl-role="edge-label"]`);
+  }
+  return cssRuleBody(
+    cssText,
+    `${stage} [data-cdl-edge-label-for][data-cdl-tone]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"]`,
+  );
 }
 
 function fixedTextToneContrast(cssText: string): { checked: number; failures: string[] } {
@@ -332,6 +396,118 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     const notes = readThemeNotes({ blueprint: changed });
     const result = compare(notes, cssThemes(cssText));
     expect(result.mismatch.some((line) => line.includes("blueprint.ground"))).toBe(true);
+  });
+
+  it("5 意匠の札は色みと主役の属性で意匠帳の一・二・三を塗る", () => {
+    const expected = readFixedThemeLabelToneStyles();
+    const failures: string[] = [];
+    for (const [name, style] of expected) {
+      const declarations = cssFixedThemeDeclarations(cssText, name);
+      const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
+      const property = style.paint;
+      for (const [tone, group] of Object.entries(LABEL_TONES)) {
+        const backgroundSelector = `${stage} [data-cdl-edge-label-for][data-cdl-tone="${tone}"] > [data-cdl-role="edge-label-bg"]`;
+        const backgroundBody = cssRuleBody(cssText, backgroundSelector);
+        const textBody = fixedLabelTextBody(cssText, stage, name, tone);
+        const paint = resolveCssColor(declarations, cssVariableName(cssDeclaration(backgroundBody, property)));
+        if (paint !== style[group]) failures.push(`${name}/${tone} ${property}: 意匠帳 ${style[group]} / CSS ${paint}`);
+        const ink = resolveCssColor(declarations, cssVariableName(cssDeclaration(textBody, "fill")));
+        const expectedInk = style.inkMode === "tone" ? style[group] : style.ink;
+        if (ink !== expectedInk) failures.push(`${name}/${tone} 字: 意匠帳 ${expectedInk} / CSS ${ink}`);
+        if (name === "neon") {
+          const glow = resolveCssColor(
+            declarations,
+            cssVariableName(cssDeclaration(backgroundBody, "--neon-tag-glow")),
+          );
+          if (glow !== style[group]) failures.push(`${name}/${tone} 光: 意匠帳 ${style[group]} / CSS ${glow}`);
+        }
+      }
+
+      const mainBackground = `${stage} [data-cdl-edge-label-for][data-cdl-edge-role="main"] > [data-cdl-role="edge-label-bg"]`;
+      const mainBody = cssRuleBody(cssText, mainBackground);
+      const mainPaint = resolveCssColor(declarations, cssVariableName(cssDeclaration(mainBody, property)));
+      if (mainPaint !== style.one) failures.push(`${name}/main ${property}: 意匠帳 ${style.one} / CSS ${mainPaint}`);
+      const mainInk = resolveCssColor(
+        declarations,
+        cssVariableName(cssDeclaration(fixedLabelTextBody(cssText, stage, name, "accent", true), "fill")),
+      );
+      const expectedMainInk = style.inkMode === "tone" ? style.one : style.ink;
+      if (mainInk !== expectedMainInk) failures.push(`${name}/main 字: 意匠帳 ${expectedMainInk} / CSS ${mainInk}`);
+      const lastToneSelector = `${stage} [data-cdl-edge-label-for][data-cdl-tone="warning"]`;
+      if (cssText.indexOf(mainBackground) < cssText.indexOf(lastToneSelector)) {
+        failures.push(`${name}: 主役の札の決まりが色みの決まりより前にある`);
+      }
+    }
+    expect(expected.size).toBe(5);
+    expect(failures, "札の意味属性と意匠帳が違う").toEqual([]);
+  });
+
+  it("6 意匠の単系列の棒は主役の属性で意匠帳の一と淡を塗る", () => {
+    const expected = readFixedThemeSingleSeriesBars();
+    const failures: string[] = [];
+    for (const [name, style] of expected) {
+      const declarations = cssFixedThemeDeclarations(cssText, name);
+      const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
+      const primary = cssRuleBody(
+        cssText,
+        `${stage} [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]`,
+      );
+      const secondary = cssRuleBody(
+        cssText,
+        `${stage} [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"])`,
+      );
+      const primaryColor = resolveCssColor(declarations, cssVariableName(cssDeclaration(primary, "fill")));
+      const secondaryColor = resolveCssColor(declarations, cssVariableName(cssDeclaration(secondary, "fill")));
+      if (primaryColor !== style.primary) failures.push(`${name} 主役: 意匠帳 ${style.primary} / CSS ${primaryColor}`);
+      if (secondaryColor !== style.secondaryFill) {
+        failures.push(`${name} 淡: 意匠帳 ${style.secondaryFill} / CSS ${secondaryColor}`);
+      }
+      if (style.secondaryStroke !== undefined) {
+        const stroke = resolveCssColor(declarations, cssVariableName(cssDeclaration(secondary, "stroke")));
+        if (stroke !== style.secondaryStroke) {
+          failures.push(`${name} 枠: 意匠帳 ${style.secondaryStroke} / CSS ${stroke}`);
+        }
+        const width = Number.parseFloat(cssDeclaration(secondary, "stroke-width"));
+        if (width !== style.secondaryStrokeWidth) {
+          failures.push(`${name} 枠幅: 意匠帳 ${style.secondaryStrokeWidth} / CSS ${width}`);
+        }
+      }
+    }
+    expect(expected.size).toBe(6);
+    expect(failures, "単系列の棒の意味属性と意匠帳が違う").toEqual([]);
+  });
+
+  it("札の字と面の対比は 5 意匠とも 4.5 以上になる", () => {
+    const failures: string[] = [];
+    for (const [name, style] of readFixedThemeLabelToneStyles()) {
+      for (const group of ["one", "two", "three"] as const) {
+        const face = style.paint === "fill" ? style[group] : style.face;
+        const ink = style.inkMode === "tone" ? style[group] : style.ink;
+        if (!face || !ink) throw new Error(`${name}/${group} の札の字と面を読めない`);
+        const ratio = contrast(rgb(ink), rgb(face));
+        if (ratio < 4.5) failures.push(`${name}/${group}: ${ratio.toFixed(2)}:1 < 4.5:1`);
+      }
+    }
+    expect(failures, "札の字と面の対比が足りない").toEqual([]);
+  });
+
+  it("札を stroke の前置で選ばず、棒を fill-opacity の値で選ばない", () => {
+    expect(cssText).not.toContain('stroke^="var(--cdl-tone');
+    expect(cssText).not.toContain('fill-opacity="1"');
+  });
+
+  it("意匠帳の図録の一の札を書き換えると CSS との不一致を検知する", () => {
+    const original = readThemeNoteText("catalog");
+    const changed = original.replace("一 `#dca443`", "一 `#ffffff`");
+    expect(changed, "札の変異を本文へ植え込めていない").not.toBe(original);
+    const expected = readFixedThemeLabelToneStyles({ catalog: changed }).get("catalog");
+    if (!expected) throw new Error("図録の札を読めない");
+    const selector = 'svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="accent"] > [data-cdl-role="edge-label-bg"]';
+    const actual = resolveCssColor(
+      cssFixedThemeDeclarations(cssText, "catalog"),
+      cssVariableName(cssDeclaration(cssRuleBody(cssText, selector), "fill")),
+    );
+    expect(actual).not.toBe(expected.one);
   });
 
   it("固定の意匠の図表は両方の変数と意匠帳が一致し、台との対比が 3 以上の異なる 6 色になる", () => {

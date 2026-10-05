@@ -183,8 +183,7 @@ const readEdgeLabels = (page: Page) =>
       const label = group.querySelector<SVGGraphicsElement>('[data-cdl-role="edge-label"]');
       if (!edge || !background || !label) return [];
       return [{
-        tone: edge.getAttribute("data-cdl-tone"),
-        backgroundStroke: background.getAttribute("stroke") ?? "",
+        tone: group.getAttribute("data-cdl-tone"),
         background: getComputedStyle(background).fill,
         label: getComputedStyle(label).fill,
         weight: getComputedStyle(label).fontWeight,
@@ -464,13 +463,12 @@ test.describe("relief theme (#2796)", () => {
 
     await openEditorTheme(page, 六色の記法, "relief", false);
     const staged = await readEdgeLabels(page);
-    const colorless = staged.filter((label) =>
-      !label.backgroundStroke.startsWith("var(--cdl-tone-") &&
-      !label.backgroundStroke.startsWith("var(--cdl-now"));
-    expect(colorless.length, "色みを持たない札が無い").toBeGreaterThan(0);
-    for (const label of colorless) {
-      expect(colorKey(label.background)).toBe(colorKey(relief.value.face));
-      expect(colorKey(label.label)).toBe(colorKey(relief.value.ink));
+    expect(new Set(staged.map((label) => colorKey(label.background)))).toEqual(
+      new Set([title, relief.value.link, relief.value.own].map(colorKey)),
+    );
+    for (const label of staged) {
+      expect(label.tone, "段のある札の色み").not.toBeNull();
+      expect(colorKey(label.label)).toBe(colorKey(white));
     }
 
     const chartSource = EDITOR_SAMPLES.find((sample) =>
@@ -479,7 +477,7 @@ test.describe("relief theme (#2796)", () => {
     await openEditorTheme(page, chartSource, "relief", false);
     const bars = await stage(page).locator('[data-cdl-role="chart-bar"]').evaluateAll((elements) =>
       elements.map((element) => ({
-        main: element.getAttribute("fill-opacity") === "1",
+        main: element.getAttribute("data-cdl-emphasis") === "primary",
         fill: getComputedStyle(element).fill,
         opacity: getComputedStyle(element).fillOpacity,
         filter: getComputedStyle(element).filter,

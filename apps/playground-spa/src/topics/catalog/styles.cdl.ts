@@ -69,6 +69,46 @@ export const styleDashed = diagram("style-dashed", { topic: "dashed style (破�
   )
   .build();
 
+/** 0.122.0 で増えた道筋と、路線図の線上に置く駅。 */
+export const edgeRouting = diagram("edge-routing", { topic: "路線図と曲線の道筋" })
+  .lane("central-line", { x: 0, width: 360 })
+  .lane("harbor-line", { x: 360, width: 360 })
+  .lane("guide-line", { x: 720, width: 400 })
+  .node("central", {
+    lane: "central-line",
+    stack: 0,
+    kind: "station",
+    title: "中央駅",
+    posX: 180,
+    posY: 360,
+  })
+  .node("harbor", {
+    lane: "harbor-line",
+    stack: 1,
+    kind: "station",
+    title: "港駅",
+    posX: 540,
+    posY: 180,
+  })
+  .node("guide", {
+    lane: "guide-line",
+    stack: 2,
+    kind: "card",
+    title: "観光案内所",
+    posX: 900,
+    posY: 390,
+    posW: 220,
+    posH: 84,
+  })
+  .edge("central", "harbor", { id: "metro", label: "路線", routing: "metro" })
+  .edge("harbor", "guide", { id: "curve", label: "曲線", routing: "curve" })
+  .phase(
+    "p",
+    { duration: 1800, title: "2 つの道筋", body: "駅を結ぶ路線図の線と、別の箱へ向かう曲線を比べる。" },
+    (p: PhaseBuilder) => p.activate("central", "harbor", "guide", "metro", "curve").badge("道筋"),
+  )
+  .build();
+
 /** 2. Tone (`Tone` が持つ全ての色を solid edge で並べる) = 色 identity の違いを比較 */
 export const toneAccent = smallPair("tone-accent", "solid", "accent", "accent", "accent tone (主張色、 dark navy)");
 export const toneTeal = smallPair("tone-teal", "solid", "teal", "teal", "teal tone (青緑、 secondary emphasis)");

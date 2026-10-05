@@ -25,6 +25,21 @@ export type ThemeNote =
 export type ThemeChartSeries = { roles: string[]; colors: string[] };
 export type ThemeGroundText = { ink: string; type: string };
 export type ThemeOutline = "frame" | "none";
+export type ThemeLabelToneStyle = {
+  one: string;
+  two: string;
+  three: string;
+  face?: string;
+  ink?: string;
+  paint: "fill" | "stroke";
+  inkMode: "fixed" | "tone";
+};
+export type ThemeSingleSeriesBarStyle = {
+  primary: string;
+  secondaryFill: string;
+  secondaryStroke?: string;
+  secondaryStrokeWidth?: number;
+};
 
 /** 意匠帳の役の呼び名と CSS の口の対応。読む側は全てこの 1 表を使う (#2790)。 */
 export const ROLE_TO_PORT = {
@@ -249,6 +264,76 @@ export function readFixedThemeOutline(
       continue;
     }
     throw new Error(`意匠帳の ${name} の「縁線」は「なし」で始まるか、行を置かない必要がある`);
+  }
+  return out;
+}
+
+const 役の色を読む = (name: DslTheme, row: string, role: string): string => {
+  const color = new RegExp(`${role}\\s*\`(#[0-9a-fA-F]{6})\``).exec(row)?.[1];
+  if (!color) throw new Error(`意匠帳の ${name} の「${role}」が #rrggbb ではない`);
+  return color.toLowerCase();
+};
+
+/** 札を線の色みへ割り当てる固定意匠の「札」行を読む。 */
+export function readFixedThemeLabelToneStyles(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, ThemeLabelToneStyle> {
+  const layouts = {
+    catalog: { paint: "fill", inkMode: "fixed", face: false, ink: true },
+    terminal: { paint: "fill", inkMode: "fixed", face: false, ink: true },
+    sketch: { paint: "stroke", inkMode: "fixed", face: true, ink: true },
+    neon: { paint: "stroke", inkMode: "tone", face: true, ink: false },
+    relief: { paint: "fill", inkMode: "fixed", face: false, ink: true },
+  } as const satisfies Partial<Record<DslTheme, {
+    paint: "fill" | "stroke";
+    inkMode: "fixed" | "tone";
+    face: boolean;
+    ink: boolean;
+  }>>;
+  const out = new Map<DslTheme, ThemeLabelToneStyle>();
+  for (const [name, layout] of Object.entries(layouts) as Array<
+    [keyof typeof layouts, (typeof layouts)[keyof typeof layouts]]
+  >) {
+    const text = overrides[name] ?? readThemeNoteText(name);
+    const row = 二列表を読む(節を取る(text, "色以外の値", 3)).get("札");
+    if (!row) throw new Error(`意匠帳の ${name} に「札」が無い`);
+    const style: ThemeLabelToneStyle = {
+      one: 役の色を読む(name, row, "一"),
+      two: 役の色を読む(name, row, "二"),
+      three: 役の色を読む(name, row, "三"),
+      paint: layout.paint,
+      inkMode: layout.inkMode,
+    };
+    if (layout.face) style.face = 役の色を読む(name, row, "面");
+    if (layout.ink) style.ink = 役の色を読む(name, row, "字");
+    out.set(name, style);
+  }
+  return out;
+}
+
+/** 固定意匠の「単系列の棒」行を読み、主役とそれ以外の塗りへ分ける。 */
+export function readFixedThemeSingleSeriesBars(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, ThemeSingleSeriesBarStyle> {
+  const out = new Map<DslTheme, ThemeSingleSeriesBarStyle>();
+  for (const name of ["letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
+    const text = overrides[name] ?? readThemeNoteText(name);
+    const row = 二列表を読む(節を取る(text, "色以外の値", 3)).get("単系列の棒");
+    if (!row) throw new Error(`意匠帳の ${name} に「単系列の棒」が無い`);
+    if (!row.includes('data-cdl-emphasis="primary"')) {
+      throw new Error(`意匠帳の ${name} の「単系列の棒」に主役の属性が無い`);
+    }
+    const primary = 役の色を読む(name, row, "一");
+    if (name === "letterpress") {
+      out.set(name, {
+        primary,
+        secondaryFill: 役の色を読む(name, row, "箱の面"),
+        secondaryStroke: 役の色を読む(name, row, "墨"),
+        secondaryStrokeWidth: 1.5,
+      });
+    } else {
+      out.set(name, { primary, secondaryFill: 役の色を読む(name, row, "淡") });
+    }
   }
   return out;
 }

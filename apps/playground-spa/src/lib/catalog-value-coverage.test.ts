@@ -229,7 +229,12 @@ const 軸たち: 軸[] = [
   {
     名: "矢印の道筋 (routing)",
     // 書かない矢印は自動で道筋を引く。 `default` を書いても同じ道筋になる
-    表: { default: "既定", "back-detour": "見本" } satisfies Record<道筋, 覆い方>,
+    表: {
+      default: "既定",
+      "back-detour": "見本",
+      curve: "見本",
+      metro: "見本",
+    } satisfies Record<道筋, 覆い方>,
     読む: 矢印の欄を読む("routing"),
     置く: 矢印の欄に置く("routing"),
   },

@@ -40,9 +40,9 @@
 | 箱の角       | 描き手の丸み (`rx="16"`) のまま                                                                         |
 | 線の揺れ     | `#dragon-sketch-wobble` の filter                                                                        |
 | ペンの斜線   | `#dragon-sketch-pen` の模様                                                                               |
-| 札           | 面に墨の字。枠は線の色 (一 / 二 / 三)、色みを持たない札は墨。枠の太さ 2                                |
+| 札           | 面 `#fffdf7` に字 `#2b2620`。`accent` / `info` は一 `#d2491f`、`success` は二 `#2f7d4f`、`teal` / `error` / `warning` は三 `#2a5ca8` の枠。`data-cdl-edge-role="main"` は一。色みを持たない札は墨の枠。枠の太さ 2 |
 | 鍵           | 一。下線と同じ行の印に使う                                                                               |
-| 単系列の棒   | `fill-opacity="1"` の棒は一、それ以外は淡。濃さは 1                                                     |
+| 単系列の棒   | `data-cdl-emphasis="primary"` の棒は一 `#d2491f`、それ以外は淡 `#9a9080`。濃さは 1                    |
 | 書体         | 画面が持つ 2 書体のまま                                                                                  |
 | 動き         | 描く (下の「動き」)                                                                                      |
 | 図表の系列色 | 1 = 一、2 = 二、3 = 三、4 = 薄、5 = 濃二、6 = 濃三                                                      |
@@ -121,6 +121,7 @@ dragon のクラス図には、契約、法人契約、個人契約、荷物、�
   文字の対比を明暗で調べる。
 - `apps/playground-spa/tests/sketch-theme.spec.ts` は同じ全図種の検査に加え、固定の地、初期の動き、
   filter と模様の個数、箱と線の揺れ、字へ揺れが届かないこと、斜線、札、鍵、単系列の棒を調べる。
+- `apps/playground-spa/tests/theme-catalog.spec.ts` は線の色みごとの札と単系列の棒を意匠帳の値と突き合わせる。
 - `apps/playground-spa/tests/theme-dark-ground.spec.ts` は台と舞台内の変数が画面の明暗で変わらないことを調べる。
 - `apps/playground-spa/tests/theme-appear.spec.ts` は箱と線が開いた時だけ動き、動きを減らす設定で止まることを調べる。
 - `apps/playground-spa/tests/palette-switch.spec.ts` は切替で手描きを選んだ舞台の地が「台」と一致することを、

@@ -77,8 +77,7 @@ const readEdgeLabels = (page: Page) =>
         const backgroundStyle = getComputedStyle(background);
         return [
           {
-            tone: edge.getAttribute("data-cdl-tone"),
-            backgroundStroke: background.getAttribute("stroke") ?? "",
+            tone: group.getAttribute("data-cdl-tone"),
             background: backgroundStyle.fill,
             frame: backgroundStyle.stroke,
             filter: backgroundStyle.filter,
@@ -254,7 +253,7 @@ test.describe("neon theme (#2795)", () => {
         elements.map((element) => {
           const style = getComputedStyle(element);
           return {
-            main: element.getAttribute("fill-opacity") === "1",
+            main: element.getAttribute("data-cdl-emphasis") === "primary",
             fill: style.fill,
             opacity: style.fillOpacity,
           };
@@ -286,16 +285,11 @@ test.describe("neon theme (#2795)", () => {
     await openEditorTheme(page, 六色の記法, "neon", false);
     const stagedLabels = await readEdgeLabels(page);
     labelsCount += stagedLabels.length;
-    const colorless = stagedLabels.filter(
-      (label) =>
-        !label.backgroundStroke.startsWith("var(--cdl-tone-") &&
-        !label.backgroundStroke.startsWith("var(--cdl-now"),
-    );
-    expect(colorless.length, "色みを持たない札が無い").toBeGreaterThan(0);
-    for (const label of colorless) {
+    for (const label of stagedLabels) {
+      expect(label.tone, "段のある札の色み").not.toBeNull();
       expect(label.background).toBe(hexToRgb(neon.value.face));
-      expect(label.frame).toBe(hexToRgb(neon.value.type));
-      expect(label.label).toBe(hexToRgb(neon.value.ink));
+      expect(label.frame).toBe(label.line);
+      expect(label.label).toBe(label.line);
       expect(label.filter).toContain("drop-shadow");
       expect(label.filter).not.toContain("dragon-neon-tube");
     }

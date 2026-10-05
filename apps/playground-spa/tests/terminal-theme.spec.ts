@@ -15,6 +15,7 @@ import {
   themeAppearSource,
   themeEdgeAppearCounts,
 } from "./helpers/theme-appear-capture";
+import { checkEdgeLabelTones, checkSingleSeriesBars } from "./helpers/label-tone-checks";
 import {
   readFixedThemeChartSeries,
   readFixedThemeLead,
@@ -65,8 +66,7 @@ const readEdgeLabels = (page: Page) =>
         const labelBox = label.getBBox();
         return [
           {
-            tone: edge.getAttribute("data-cdl-tone"),
-            backgroundStroke: background.getAttribute("stroke") ?? "",
+            tone: group.getAttribute("data-cdl-tone"),
             background: getComputedStyle(background).fill,
             line: getComputedStyle(line).stroke,
             label: getComputedStyle(label).fill,
@@ -271,7 +271,7 @@ test.describe("terminal theme (#2793)", () => {
             elements.map((element) => {
               const style = getComputedStyle(element);
               return {
-                main: element.getAttribute("fill-opacity") === "1",
+                main: element.getAttribute("data-cdl-emphasis") === "primary",
                 fill: style.fill,
                 opacity: style.fillOpacity,
                 filter: style.filter,
@@ -303,10 +303,8 @@ test.describe("terminal theme (#2793)", () => {
     await openEditorTheme(page, 段のない六色の記法, "terminal", false);
     const tonedLabels = await readEdgeLabels(page);
     expect(tonedLabels.length, "面に色みを持つ線の札が無い").toBe(6);
-    expect(
-      tonedLabels.every((label) => label.backgroundStroke.startsWith("var(--cdl-tone-")),
-      "段のない六色の札に色みを持たない面がある",
-    ).toBe(true);
+    expect(tonedLabels.every((label) => label.tone !== null), "段のない六色の札に色みが無い")
+      .toBe(true);
     expect(
       new Set(tonedLabels.map((label) => label.background)).size,
       "札に一・二・三が揃わない",
@@ -323,21 +321,9 @@ test.describe("terminal theme (#2793)", () => {
     await openEditorTheme(page, 六色の記法, "terminal", false);
     const stagedLabels = await readEdgeLabels(page);
     expect(stagedLabels.length, "段のある六色の札が揃わない").toBe(6);
-    expect(
-      stagedLabels.some(
-        (label) =>
-          !label.backgroundStroke.startsWith("var(--cdl-tone-") &&
-          !label.backgroundStroke.startsWith("var(--cdl-now"),
-      ),
-      "段のある六色の札に色みを持たない面が無い",
-    ).toBe(true);
     for (const label of stagedLabels) {
-      const hasTone =
-        label.backgroundStroke.startsWith("var(--cdl-tone-") ||
-        label.backgroundStroke.startsWith("var(--cdl-now");
-      expect(label.background, `${label.tone} の札と線の強調`).toBe(
-        hasTone ? label.line : hexToRgb(terminal.value.type),
-      );
+      expect(label.tone, "段のある札の色み").not.toBeNull();
+      expect(label.background, `${label.tone} の札と線`).toBe(label.line);
       expect(label.label, `${label.tone} の札の字`).toBe(hexToRgb(tagInk));
       expect(label.fits, `${label.tone} の札の字が面からはみ出す`).toBe(true);
     }
@@ -350,5 +336,17 @@ test.describe("terminal theme (#2793)", () => {
     expect(new Set(ganttRows), "日程の帯が意匠帳の縞ではない").toEqual(
       new Set([hexToRgb(terminal.value.stripe)]),
     );
+  });
+
+  test("terminal labels: 非強調札と主役札が意匠帳どおりになる", async ({ page }, testInfo) => {
+    const report = await checkEdgeLabelTones(page, "terminal");
+    console.log(report);
+    testInfo.annotations.push({ type: "terminal labels", description: report });
+  });
+
+  test("terminal bars: 単系列の棒を意味属性で選ぶ", async ({ page }, testInfo) => {
+    const report = await checkSingleSeriesBars(page, "terminal");
+    console.log(report);
+    testInfo.annotations.push({ type: "terminal bars", description: report });
   });
 });

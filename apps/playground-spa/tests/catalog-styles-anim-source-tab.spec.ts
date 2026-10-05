@@ -1,9 +1,8 @@
 /**
  * 見た目の見本と動きの見本でコードのタブが押せることの検査 (#1373)。
  *
- * `styles` はどの見本も記法を持つが、`animation` は一部だけ持つ。 残りは
- * `dyn-wave` / `dyn-arc` の箱に `shape` を渡し `readouts` を使うため記法で書けない。
- * 件数は `styles.cdl.ts` と `animation.cdl.ts` の図の書き出しを数えれば出る。
+ * `styles` は台帳に載せた見本だけ記法を持たず、それ以外は記法を持つ。
+ * `animation` は全件が記法を持つ。
  *
  * **同じページの中で押せる件と押せない件が混ざる**。 この形は他のページに無いので、
  * 「押せること」 と「押せないこと」 を両方見る。 片方だけだと、記法を全件に付け忘れた形と
@@ -15,6 +14,7 @@
  */
 import { test, expect } from "@playwright/test";
 import { 一覧の行 } from "./catalog-item-pick";
+import { 記法を持たない見本 } from "./helpers/catalog-items-without-notation";
 import { 一覧が落ち着くまで待つ } from "./wait-for-render";
 
 type Page = import("@playwright/test").Page;
@@ -49,18 +49,31 @@ test.describe("見た目の見本で記法が読める (#1373)", () => {
     expect(読んだ.flow?.[0]?.style, "json の線種が違う").toBe("solid");
   });
 
-  test("一覧の全件でコードが空にならない", async ({ page }) => {
+  test("一覧で台帳に応じてコードの有無が一致する", async ({ page }) => {
     await page.goto("catalog/styles", { waitUntil: "networkidle" });
     await 一覧が落ち着くまで待つ(page, "styles");
 
     const 行 = page.locator("aside.catalog-sidebar .catalog-list-item");
     const 件数 = await 行.count();
     expect(件数, "一覧の行を 1 つも数えられていない (検査が空振りしている)").toBeGreaterThan(0);
+    const 記法なし = new Set<string>(記法を持たない見本.styles);
+    const 一覧に現れた記法なし = new Set<string>();
 
     for (let i = 0; i < 件数; i++) {
-      await 行.nth(i).click();
+      const 現在の行 = 行.nth(i);
+      const id = await 現在の行.getAttribute("data-item-id");
+      if (!id) throw new Error(`${i + 1} 件目の行に見本の id が無い`);
+
+      await 現在の行.click();
       await page.waitForTimeout(200);
       const タブ = page.getByRole("tab", { name: "コード" });
+
+      if (記法なし.has(id)) {
+        一覧に現れた記法なし.add(id);
+        await expect(タブ, `${id} は記法を持たないのにコードのタブが押せる`).toBeDisabled();
+        continue;
+      }
+
       await expect(タブ, `${i + 1} 件目でコードのタブが押せない`).toBeEnabled();
       await タブ.click();
       await page.waitForTimeout(200);
@@ -69,6 +82,11 @@ test.describe("見た目の見本で記法が読める (#1373)", () => {
       await page.getByRole("tab", { name: "図", exact: true }).click();
       await page.waitForTimeout(100);
     }
+
+    expect(
+      [...記法なし].filter((id) => !一覧に現れた記法なし.has(id)),
+      "記法を持たない見本の台帳に、styles の一覧へ現れない id がある",
+    ).toEqual([]);
   });
 });
 

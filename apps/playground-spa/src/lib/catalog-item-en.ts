@@ -373,6 +373,7 @@ export const ITEM_SUBTITLE_EN: Record<string, string> = {
   "styleDashed": "dashed style (a dashed line, whose meaning changes with the kind of diagram)",
   "styleDottedFlow": "dotted-flow style (a dotted line with particles, for a moving flow)",
   "styleSolid": "solid style (a solid line with an arrowhead, the default for an edge)",
+  "edgeRouting": "Joins two fixed stations with a metro route, then leads from the second station to a separate box with a curved route",
   "supportChat": "Splits five support messages into a user lane and a desk lane, and shows them as an exchange of speech bubbles (chat-bubble)",
   "taskProgressGroup": "Splits four tasks into lanes for 50% and above and below, and lines their progress up in one part (progress-group)",
   "teamActivityFeed": "Joins five people's events newest first with arrows, and shows them as a recent activity list (activity-feed)",

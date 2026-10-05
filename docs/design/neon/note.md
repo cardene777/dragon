@@ -40,9 +40,9 @@
 | 地のにじみ   | 左上に一 10%、右下に二 8% の放射状のにじみ                                                                        |
 | 題の光       | 一の `drop-shadow(0 0 5px ...)` と一 60% の `drop-shadow(0 0 12px ...)`                                            |
 | 題の太さ     | 800                                                                                                             |
-| 札           | 面は行の面、枠と字は線の色 (一 / 二 / 三)。色みを持たない札は枠が薄、字が字。札の外へ枠の色の光                       |
+| 札           | 面 `#09070f`。`accent` / `info` は一 `#ff2e97`、`success` は二 `#00e5ff`、`teal` / `error` / `warning` は三 `#ffd000` を枠・字・外光に使う。`data-cdl-edge-role="main"` は一。色みを持たない札は薄の枠と字の色 |
 | 鍵           | 一。下線と同じ行の印に使う                                                                                  |
-| 単系列の棒   | `fill-opacity="1"` の棒は一に一の光、それ以外は淡。濃さは 1                                                      |
+| 単系列の棒   | `data-cdl-emphasis="primary"` の棒は一 `#ff2e97` に一の光、それ以外は淡 `#8f86b3`。濃さは 1                      |
 | 書体         | 今の 2 書体のまま                                                                                                 |
 | 動き         | 点く (下の「動き」)                                                                                                |
 | 図表の系列色 | 1 = 一、2 = 二、3 = 三、4 = 淡、5 = 薄、6 = 字                                                                  |
@@ -132,6 +132,7 @@ dragon のクラス図には、契約、法人契約、個人契約、荷物、�
   明暗で調べ、意匠ごとの適用数、測れた図種、違反、地の集合を出す。
 - `apps/playground-spa/tests/neon-theme.spec.ts` は filter の段と芯、箱と線の管、字に管が届かないこと、
   題、地のにじみ、札、鍵、単系列の棒を調べる。
+- `apps/playground-spa/tests/theme-catalog.spec.ts` は線の色みごとの札と単系列の棒を意匠帳の値と突き合わせる。
 - `apps/playground-spa/tests/theme-dark-ground.spec.ts` は台と舞台内の変数が画面の明暗で変わらないことを調べる。
 - `apps/playground-spa/tests/theme-appear.spec.ts` は箱と線が開いた時だけ動き、動きを減らす設定で止まることを調べる。
 - `apps/playground-spa/tests/editor-initial-animation.spec.ts` は最後の段まで進んでも箱と線がそれぞれ 1 回だけ動くことを調べる。

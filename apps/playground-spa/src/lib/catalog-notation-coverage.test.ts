@@ -1,7 +1,7 @@
 /**
  * どのページが記法を持つかを台帳として固定する (#1371)。
  *
- * カタログの全ページが記法 (`sourceYaml` / `sourceJson`) を持つ。
+ * カタログの記法 (`sourceYaml` / `sourceJson`) の有無をページごとに固定する。
  * 記法があるページだけ画面に「コード」 のタブが出て「編集画面で開く」 が押せる。
  *
  * ## 数を書かない
@@ -27,6 +27,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
+import { 記法を持たない見本 } from "../../tests/helpers/catalog-items-without-notation";
 import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items";
 
 /** 全件が YAML と JSON を持つページ */
@@ -35,7 +36,6 @@ const 揃ったページ = [
   "patterns",
   "charts",
   "text-dsl",
-  "styles",
   "primitives",
   "cookbook",
   "animation",
@@ -51,8 +51,8 @@ const 揃ったページ = [
  * **なぜ全件でないか** を 1 ページずつ書く。 書かないと「まだ書いていない」 と
  * 「書けない」 が区別できず、残りを埋める時にどちらを相手にしているか分からない。
  *
- * **今は 1 ページも無い**。 `interactive` が唯一この区分にいたが、記法の対象を 6 回に
- * 分けて広げて全件が埋まった。
+ * `styles` の `edge-routing` は、描く側 0.122.0 で増えた `station` / `curve` / `metro`
+ * の見本。dragon の記法にはまだ書く口が無いため、組立て API の図だけを置く。
  *
  * | 回 | 足したもの |
  * |---|---|
@@ -65,7 +65,7 @@ const 揃ったページ = [
  *
  * この区分に入るページが再び出たら、**なぜ全件でないか** をここに 1 行ずつ書く。
  */
-const 一部のページ: readonly string[] = [];
+const 一部のページ = ["styles"] as const;
 
 /** まだ 1 件も持たないページ。 書き終えたら `揃ったページ` へ移す */
 const まだのページ: readonly string[] = [];
@@ -109,6 +109,10 @@ describe("記法を持つページの台帳 (#1371)", () => {
     expect(持つ, `${名} が全件持つようになっている。 台帳を「揃った」 へ移すこと`).toBeLessThan(
       items.length,
     );
+    expect(
+      items.filter((item) => !記法あり(item)).map((item) => item.id).sort(),
+      `${名} で記法を持たない見本が台帳と違う`,
+    ).toEqual([...記法を持たない見本[名]].sort());
   });
 
   it.each(まだのページ)("%s はまだ記法を持たない", async (名) => {
