@@ -449,6 +449,100 @@ export const sourceJson__textDslSwimlaneStages = `{
   ]
 }`;
 
+// ─── swimlane + metro (担当の路線図) ─────
+export const sourceYaml__textDslSwimlaneMetro = `
+title: "申請が担当を乗り換えて進む"
+type: swimlane
+shape: metro
+
+lanes:
+  front: { label: 窓口 }
+  review: { label: 審査係 }
+  pay: { label: 経理 }
+
+actors:
+  - 受け付ける: { lane: front }
+  - 書類を確かめる: { lane: front }
+  - 内容を審査する: { lane: review }
+  - 支払う: { lane: pay }
+  - 結果を知らせる: { lane: front }
+  - 記録する: { lane: review }
+
+flow:
+  - 受け付ける -> 書類を確かめる
+  - 書類を確かめる -> 内容を審査する
+  - 内容を審査する -> 支払う
+  - 支払う -> 結果を知らせる
+  - 結果を知らせる -> 記録する
+
+animation:
+  - step: "窓口で受ける" 1.2s
+    focus: [受け付ける, 書類を確かめる, "受け付ける -> 書類を確かめる"]
+    badge: "窓口"
+    description: "窓口が申請を受け付けて書類を確かめる。 同じ担当の駅は 1 本の線路に並ぶ。"
+
+  - step: "乗り換える" 1.2s
+    focus: [内容を審査する, 支払う, "書類を確かめる -> 内容を審査する", "内容を審査する -> 支払う"]
+    badge: "審査と支払い"
+    description: "担当が替わる所で線が斜めに乗り換える。 審査係が審査し、経理が支払う。"
+
+  - step: "知らせて残す" 1.2s
+    focus: [結果を知らせる, 記録する, "支払う -> 結果を知らせる", "結果を知らせる -> 記録する"]
+    badge: "完了"
+    description: "窓口へ戻って結果を知らせ、審査係が記録する。 工程と担当の交代を 1 枚で追える。"
+`;
+
+export const textDslSwimlaneMetro = textDslToDiagram(sourceYaml__textDslSwimlaneMetro);
+
+export const sourceJson__textDslSwimlaneMetro = `{
+  "title": "申請が担当を乗り換えて進む",
+  "type": "swimlane",
+  "shape": "metro",
+  "lanes": {
+    "front": { "label": "窓口" },
+    "review": { "label": "審査係" },
+    "pay": { "label": "経理" }
+  },
+  "actors": [
+    { "name": "受け付ける", "lane": "front" },
+    { "name": "書類を確かめる", "lane": "front" },
+    { "name": "内容を審査する", "lane": "review" },
+    { "name": "支払う", "lane": "pay" },
+    { "name": "結果を知らせる", "lane": "front" },
+    { "name": "記録する", "lane": "review" }
+  ],
+  "flow": [
+    { "from": "受け付ける", "to": "書類を確かめる", "label": "" },
+    { "from": "書類を確かめる", "to": "内容を審査する", "label": "" },
+    { "from": "内容を審査する", "to": "支払う", "label": "" },
+    { "from": "支払う", "to": "結果を知らせる", "label": "" },
+    { "from": "結果を知らせる", "to": "記録する", "label": "" }
+  ],
+  "animation": [
+    {
+      "step": "窓口で受ける",
+      "duration": 1.2,
+      "focus": ["受け付ける", "書類を確かめる", "受け付ける -> 書類を確かめる"],
+      "badge": "窓口",
+      "description": "窓口が申請を受け付けて書類を確かめる。 同じ担当の駅は 1 本の線路に並ぶ。"
+    },
+    {
+      "step": "乗り換える",
+      "duration": 1.2,
+      "focus": ["内容を審査する", "支払う", "書類を確かめる -> 内容を審査する", "内容を審査する -> 支払う"],
+      "badge": "審査と支払い",
+      "description": "担当が替わる所で線が斜めに乗り換える。 審査係が審査し、経理が支払う。"
+    },
+    {
+      "step": "知らせて残す",
+      "duration": 1.2,
+      "focus": ["結果を知らせる", "記録する", "支払う -> 結果を知らせる", "結果を知らせる -> 記録する"],
+      "badge": "完了",
+      "description": "窓口へ戻って結果を知らせ、審査係が記録する。 工程と担当の交代を 1 枚で追える。"
+    }
+  ]
+}`;
+
 // ─── flowchart (分かれ道と担当) ─────
 export const sourceYaml__textDslFlowchart = `
 title: "経費申請の承認"
@@ -2042,7 +2136,6 @@ export const sourceJson__textDslStateMarks = `{
     }
   ]
 }`;
-
 
 // ─── 箱の項目名を日本語で書く (#2332) ─────
 //

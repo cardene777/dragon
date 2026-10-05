@@ -399,6 +399,7 @@ export const ITEM_SUBTITLE_EN: Record<string, string> = {
   "textDslStateMarks": "The states of an order",
   "textDslSwimlane": "Work run at the same time",
   "textDslSwimlaneStages": "Tracks an application through three stages and two roles",
+  "textDslSwimlaneMetro": "Tracks an application across roles as a metro map",
   "textDslFlowchart": "Approving an expense claim",
   "textDslTopology": "The layout of a system",
   "textDslValueKeys": "Writing the value and the previous value in English",

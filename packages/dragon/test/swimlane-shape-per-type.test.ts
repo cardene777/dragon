@@ -35,6 +35,17 @@ const JSON図 = (type: string, shape: string): unknown => ({
 });
 
 describe("図種ごとの shape (#2797)", () => {
+  it("swimlane の metro は shape として読める", () => {
+    const parsed = 読む("swimlane", "metro");
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect({ type: parsed.doc.type, shape: parsed.doc.shape }).toEqual({ type: "swimlane", shape: "metro" });
+  });
+
+  it("metro は図種の別名にならない", () => {
+    expect(TYPE_ALIASES.has("metro")).toBe(false);
+    expect(PRESET_TYPES.has("metro" as never)).toBe(false);
+  });
+
   it("swimlane の stages は shape として読める", () => {
     const parsed = 読む("swimlane", "stages");
     expect(parsed.ok).toBe(true);
@@ -65,6 +76,12 @@ describe("図種ごとの shape (#2797)", () => {
     expect(notices).toHaveLength(1);
   });
 
+  it("flow の metro は shape の知らせを1件出す", () => {
+    const notices = 知らせ("flow", "metro").filter((notice) => notice.kind === "shape-not-honored");
+    expect(notices).toHaveLength(1);
+    expect(notices[0]?.hint).toContain("metro");
+  });
+
   it("shape の知らせはその図種で書ける語を案内する", () => {
     const swimlane = 知らせ("swimlane", "pie").find((notice) => notice.kind === "shape-not-honored");
     expect(swimlane?.hint).toContain("stages");
@@ -84,6 +101,12 @@ describe("図種ごとの shape (#2797)", () => {
       expect(hints).toContain("pie");
       expect(hints).not.toContain("stages");
     }
+  });
+
+  it("記法の chart では metro は parser error になる", () => {
+    const parsed = 読む("chart", "metro");
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.errors.map((error) => error.message).join(" / ")).toContain("shape が読めません");
   });
 
   it("綴り違いは swimlane で使える語を案内する parser error になる", () => {
@@ -106,6 +129,16 @@ describe("図種ごとの shape (#2797)", () => {
     expect(() => jsonToDiagram(input)).not.toThrow();
   });
 
+  it("JSON の swimlane でも metro を同じ文書へ解く", () => {
+    const input = JSON図("swimlane", "metro");
+    const validated = validateDragonJson(input);
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+    const doc = jsonToDoc(validated.data);
+    expect({ type: doc.type, shape: doc.shape }).toEqual({ type: "swimlane", shape: "metro" });
+    expect(() => jsonToDiagram(input)).not.toThrow();
+  });
+
   it.each([
     ["swimlane", "stages", 0],
     ["swimlane", "pie", 1],
@@ -119,6 +152,10 @@ describe("図種ごとの shape (#2797)", () => {
 
   it("JSON の chart でも stages は validation error になる", () => {
     expect(() => jsonToDiagram(JSON図("chart", "stages"))).toThrow(/shape/);
+  });
+
+  it("JSON の chart でも metro は validation error になる", () => {
+    expect(() => jsonToDiagram(JSON図("chart", "metro"))).toThrow(/shape/);
   });
 
   it("JSON の綴り違いも validation error になる", () => {
