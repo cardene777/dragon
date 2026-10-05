@@ -1,5 +1,5 @@
 import type { CdlDiagram } from "@cardenelabs/cdl";
-import { THEMES, type DslTheme } from "@cardenelabs/dragon";
+import { THEMES, type DslTheme, 意匠の字の測り方 } from "@cardenelabs/dragon";
 import { 字を引く, type 二言語 } from "./bilingual";
 import type { Locale } from "./i18n";
 
@@ -8,8 +8,9 @@ import type { Locale } from "./i18n";
  *
  * 15 種のどの図でも意匠を当てて見比べられるよう、図に意匠が書かれていない時も切替を出す (#2790)。
  *
- * 描き手は色を持たない = 図に載るのは名前だけで、色は画面側 (`cdl-theme.css`) が当てる。
- * だから切替も **名前を差し替えるだけ** で済む。
+ * 色は図に載せる名前を差し替え、画面側 (`cdl-theme.css`) が当てる。端末は字の測り方も
+ * 等幅へ変わるため、配色と測り方を載せ替えた図を描き手へ渡す。`CdlDiagramView` は新しい
+ * 図を受け取ると `layout()` をやり直し、箱・札・縦列の隙間を組み立て直す (#2818)。
  *
  * 速さ (`playback-speed.ts`) / 描き方 (`redraw-mode.ts`) と同じ形にしてある。
  */
@@ -63,20 +64,32 @@ export function 押される配色(diagram: CdlDiagram, 選択: 配色の選択)
 }
 
 /**
- * 図の配色の名前を差し替える。
+ * 図の配色と字の測り方を差し替える (#2818)。
  *
  * **未選択では元の object をそのまま返す**。 新しい object を返すと `CdlDiagramView` が
  * 別の図を渡されたとみなして描き直し、切替を触っていない図が最初へ戻る
  * (`playback-speed.ts` と同じ理由)。
+ *
+ * 端末では `textMetrics` を等幅へ替えて配置を測り直す。端末から外す時は key ごと消し、
+ * 描き手の既定である比例の測り方へ戻す。
  */
 export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の選択): CdlDiagram {
   if (選択 === null) return diagram;
-  if (選択 === 画面の色) {
-    if (diagram.palette === undefined) return diagram;
-    const 次 = { ...diagram };
-    delete 次.palette;
-    return 次;
-  }
-  if (diagram.palette === 選択) return diagram;
-  return { ...diagram, palette: 選択 };
+
+  const 次の配色 = 選択 === 画面の色 ? undefined : 選択;
+  const 次の測り方 = 選択 === 画面の色 ? undefined : 意匠の字の測り方(選択);
+  const 配色が同じ = 次の配色 === undefined
+    ? !Object.hasOwn(diagram, "palette")
+    : diagram.palette === 次の配色;
+  const 測り方が同じ = 次の測り方 === undefined
+    ? !Object.hasOwn(diagram, "textMetrics")
+    : diagram.textMetrics === 次の測り方;
+  if (配色が同じ && 測り方が同じ) return diagram;
+
+  const 次 = { ...diagram };
+  if (次の配色 === undefined) delete 次.palette;
+  else 次.palette = 次の配色;
+  if (次の測り方 === undefined) delete 次.textMetrics;
+  else 次.textMetrics = 次の測り方;
+  return 次;
 }

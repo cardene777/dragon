@@ -24,7 +24,7 @@
  * 無いことが設計で、色を確かめるのは画面側の検査 (`rendered-contrast.spec.ts`) の役目。
  */
 import { describe, it, expect } from "vitest";
-import { CdlDiagramView } from "@cardenelabs/cdl";
+import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
@@ -428,6 +428,62 @@ describe("図の意匠 (#1553 / #2790)", () => {
     expect(textDslToDiagram(ER("kinari", "palette"))).toEqual(
       textDslToDiagram(ER("kinari", "theme")),
     );
+  });
+});
+
+describe("端末は字を等幅で測る (#2818)", () => {
+  it.each([
+    ["theme: terminal", 流れ("terminal")],
+    ["theme: 端末", 流れ("端末")],
+    ["palette: terminal", 流れ("terminal", "palette")],
+  ])("%s の図は textMetrics: monospace を持つ", (_経路, 本文) => {
+    expect(textDslToDiagram(本文).textMetrics).toBe("monospace");
+  });
+
+  it("JSON の theme: terminal の図は textMetrics: monospace を持つ", () => {
+    expect(
+      jsonToDiagram({ title: "確かめ", type: "flow", theme: "terminal", actors: ["A", "B"], flow: [] })
+        .textMetrics,
+    ).toBe("monospace");
+  });
+
+  it("terminal 以外の全意匠の図は textMetrics の key を持たない", () => {
+    const 端末以外 = THEMES.filter((意匠) => 意匠 !== "terminal");
+    expect(端末以外.length, "端末以外の意匠が無く検査が空振りしている").toBeGreaterThan(0);
+    for (const 意匠 of 端末以外) expect("textMetrics" in textDslToDiagram(流れ(意匠))).toBe(false);
+  });
+
+  it("意匠を書かない flow 図と既定が生成りの class 図は textMetrics の key を持たない", () => {
+    const クラス = textDslToDiagram('title: "確かめ"\ntype: class\n\nactors:\n  - A\n  - B\n\nflow:\n');
+    expect(["textMetrics" in textDslToDiagram(流れ()), "textMetrics" in クラス]).toEqual([false, false]);
+  });
+
+  it("端末の行を持つ箱は、細い字が多い名前を生成りより広く測る", () => {
+    // i / l / t / f / j は比例の見積りが等幅の 1 字 0.63em より狭く、比例で測ると等幅の
+    // 書体で描いた字に箱が足りなくなる側を選ぶ。題ではなく行の左列で箱幅が決まる形にする。
+    // 行を描く service の箱にする。行を描かない actor / card では、広がった箱に収める字が無い。
+    const 細い名前 = "filllistlimitfilttiltjit";
+    expect(細い名前).toMatch(/^[A-Za-z0-9]{24}$/);
+    const 本文 = (意匠: "terminal" | "kinari"): string =>
+      [
+        'title: "確かめ"',
+        "type: flow",
+        `theme: ${意匠}`,
+        "",
+        "actors:",
+        `  - ${細い名前}: { kind: service, rows: ["${細い名前}: 1"] }`,
+        "  - B",
+        "",
+        "flow:",
+        `  - ${細い名前} -> B: "送る"`,
+        "",
+      ].join("\n");
+    const 幅 = (意匠: "terminal" | "kinari"): number => {
+      const 箱 = layout(textDslToDiagram(本文(意匠))).nodes.find((node) => node.id === 細い名前);
+      if (!箱) throw new Error(`${細い名前} の箱を配置結果から読めない`);
+      return 箱.w;
+    };
+    expect(幅("terminal")).toBeGreaterThan(幅("kinari"));
   });
 });
 

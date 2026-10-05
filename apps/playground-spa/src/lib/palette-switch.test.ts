@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { THEMES } from "@cardenelabs/dragon";
+import { THEMES, textDslToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 import { 図の配色を変える, 配色の選択肢, 押される配色, 画面の色 } from "./palette-switch";
 
-const 図 = (palette?: string): CdlDiagram => ({
+const 図 = (palette?: string, textMetrics?: CdlDiagram["textMetrics"]): CdlDiagram => ({
   id: "t",
   topic: "t",
   lanes: [],
@@ -13,6 +13,7 @@ const 図 = (palette?: string): CdlDiagram => ({
   states: [],
   phases: [],
   ...(palette === undefined ? {} : { palette }),
+  ...(textMetrics === undefined ? {} : { textMetrics }),
 });
 
 describe("見本帳の意匠の切替 (#2790)", () => {
@@ -96,5 +97,51 @@ describe("見本帳の意匠の切替 (#2790)", () => {
     expect(押される配色(図("blueprint"), null)).toBe("blueprint");
     expect(押される配色(図(), null)).toBe(画面の色);
     expect(押される配色(図("kinari"), "celadon")).toBe("celadon");
+  });
+});
+
+describe("端末の字の測り方 (#2818)", () => {
+  it("生成りの図で端末を選ぶと palette と textMetrics を持つ copy を返す", () => {
+    const 次 = 図の配色を変える(図("kinari"), "terminal");
+    expect(次).toMatchObject({ palette: "terminal", textMetrics: "monospace" });
+  });
+
+  it("端末の図で生成りを選ぶと textMetrics の key を持たない", () => {
+    expect("textMetrics" in 図の配色を変える(図("terminal", "monospace"), "kinari")).toBe(false);
+  });
+
+  it("端末の図で画面の色を選ぶと palette と textMetrics の key を持たない", () => {
+    const 次 = 図の配色を変える(図("terminal", "monospace"), 画面の色);
+    expect(["palette" in 次, "textMetrics" in 次]).toEqual([false, false]);
+  });
+
+  it("端末の図で端末を選ぶと元の object をそのまま返す", () => {
+    const 元 = textDslToDiagram('title: "確かめ"\ntype: flow\ntheme: terminal\n\nactors:\n  - A\n  - B\n\nflow:\n');
+    expect([元.textMetrics, 図の配色を変える(元, "terminal") === 元]).toEqual(["monospace", true]);
+  });
+
+  it("textMetrics を持たない terminal の図で端末を選ぶと新しい object を返す", () => {
+    const 元 = 図("terminal");
+    expect(図の配色を変える(元, "terminal")).not.toBe(元);
+  });
+
+  it("textMetrics を持たない terminal の図で端末を選ぶと monospace を載せる", () => {
+    expect(図の配色を変える(図("terminal"), "terminal").textMetrics).toBe("monospace");
+  });
+
+  it("端末の図で何も選んでいない時は元の object をそのまま返す", () => {
+    const 元 = textDslToDiagram('title: "確かめ"\ntype: flow\ntheme: terminal\n\nactors:\n  - A\n  - B\n\nflow:\n');
+    expect([元.textMetrics, 図の配色を変える(元, null) === 元]).toEqual(["monospace", true]);
+  });
+
+  it("端末以外どうしの切替で textMetrics の key を持たない", () => {
+    expect("textMetrics" in 図の配色を変える(図("kinari", "monospace"), "celadon")).toBe(false);
+  });
+
+  it("記法の端末指定と見本帳で選ぶ端末は同じ textMetrics になる", () => {
+    const 本文 = 'title: "確かめ"\ntype: flow\n\nactors:\n  - A\n  - B\n\nflow:\n  - A -> B: "送る"\n';
+    const 切替後 = 図の配色を変える(textDslToDiagram(本文), "terminal");
+    const 記法で指定 = textDslToDiagram(本文.replace("type: flow", "type: flow\ntheme: terminal"));
+    expect([切替後.textMetrics, 記法で指定.textMetrics]).toEqual(["monospace", "monospace"]);
   });
 });

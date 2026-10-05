@@ -94,7 +94,7 @@ import type { CdlDiagram, CdlEdge, CdlNode } from "@cardenelabs/cdl";
 import { layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS, 描く語がその図を指すか } from "./v05/parser";
-import type { DslShape } from "./keywords";
+import { 意匠の字の測り方, type DslShape } from "./keywords";
 import { pointsOutside, stripExternalPaint } from "./color";
 import { countDocElements, describeOversize } from "./input-size";
 export interface CompileToCdlOpts {
@@ -605,6 +605,9 @@ function 行を書いた箱か(node: CdlNode): boolean {
  *
  * cdl は色を持たない。 名前だけを `data-cdl-palette` として markup に出し、消費側
  * (`cdl-theme.css`) が名前を見て 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線) に色を当てる。
+ * 字の測り方も同じ配色からこの出口で載せる。端末は等幅の書体で描くため、比例の字幅では
+ * 描いた字と箱の大きさが合わない。この出口は後段の配置計算より前なので、箱・札・縦列の
+ * 隙間も描く書体と同じ幅で測られる (#2818)。
  *
  * **`record` は書かなければ配色を持たない** (#2782)。 畳む前は `type: er` が書かなくても
  * `kinari` (生成りに茶) になったが、畳んだ先には移り変わりを書いた図も入る。
@@ -630,6 +633,8 @@ function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
   const 配色 = doc.theme ?? (既定の配色を持つ図種.has(doc.type) ? "kinari" : undefined);
   if (配色 === undefined) return;
   diagram.palette = 配色;
+  const 字の測り方 = 意匠の字の測り方(配色);
+  if (字の測り方 !== undefined) diagram.textMetrics = 字の測り方;
   for (const node of diagram.nodes) {
     if (node.kind === "storage" && 行を書いた箱か(node)) node.rowStripe = true;
   }
