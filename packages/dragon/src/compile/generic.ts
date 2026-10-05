@@ -116,7 +116,63 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
 
   // lane / node 配置 ... preset kind に応じて切替
   const actorToNodeId = new Map<string, string>();
-  if (書いた縦列に置く(kind, doc)) {
+  const 段階ごとの箱か = kind === "swimlane" && doc.shape === "stages";
+  const actorStageByName = new Map<string, string>();
+  const 段階名 = (a: (typeof doc.actors)[number]): string => a.stage ?? a.lane ?? a.name;
+  if (段階ごとの箱か) {
+    /*
+     * 段階を横に並べ、その中へ箱を縦に積む (#2797)。
+     *
+     * 担当 (`lane`) は縦列ではなく札の補足として読むため、`lanes:` の宣言からは名前だけを
+     * 引く。 段階の並びは箱に最初に現れた順で、静止図と動く図を同じ経路に揃える。
+     */
+    const 段階たち: string[] = [];
+    const 見つけた段階 = new Set<string>();
+    for (const a of doc.actors) {
+      const stage = 段階名(a);
+      actorStageByName.set(a.name, stage);
+      if (!見つけた段階.has(stage)) {
+        見つけた段階.add(stage);
+        段階たち.push(stage);
+      }
+    }
+    const laneIdByStage = new Map<string, string>();
+    const 使ったid = new Set<string>();
+    段階たち.forEach((stage, index) => {
+      const base = `stage-${slugify(stage) || index}`;
+      let id = base;
+      let suffix = 2;
+      while (使ったid.has(id)) id = `${base}-${suffix++}`;
+      使ったid.add(id);
+      laneIdByStage.set(stage, id);
+      const 担当: string[] = [];
+      for (const a of doc.actors) {
+        if (段階名(a) !== stage || a.lane === undefined || a.lane === stage) continue;
+        const 名前 = doc.lanes?.[a.lane]?.label ?? a.lane;
+        if (名前 === stage) continue;
+        if (!担当.includes(名前)) 担当.push(名前);
+      }
+      b.lane(id, {
+        width: laneWidth,
+        contain: true,
+        label: 担当.length > 0 ? `${stage} ・ ${担当.join("、")}` : stage,
+      });
+    });
+    const 段 = 縦列ごとの段を決める(doc.actors, (a) => 段階名(a));
+    doc.actors.forEach((a, idx) => {
+      const id = slugify(a.name) || `n${idx}`;
+      actorToNodeId.set(a.name, id);
+      b.node(id, {
+        lane: laneIdByStage.get(段階名(a)) ?? `stage-${idx}`,
+        stack: 段.get(a) ?? 0,
+        // 囲みを 3 本以上並べても一覧で読める幅に収める。 明示した viewport.laneWidth は後段で優先する。
+        w: Math.max(1, laneWidth - 60),
+        kind: 箱の種類(a),
+        title: 箱の題(a),
+        ...札(a, idx),
+      });
+    });
+  } else if (書いた縦列に置く(kind, doc)) {
     /*
      * **書いた縦列に置く** (#1263)。 縦列を並べるための入れ物として使う図種でだけ効く。
      *
@@ -232,9 +288,12 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     b.edge(fromId, toId, {
       id: edgeId,
       label: 関係?.label ?? s.label,
-      ...(後ろへ戻る矢印か(kind, fromId, toId, 箱の並び, 書いた縦列に置く(kind, doc))
-        ? { routing: "back-detour" as const }
-        : {}),
+      ...(段階ごとの箱か && actorStageByName.get(s.from) !== actorStageByName.get(s.to)
+        ? { routing: "curve" as const }
+        : !段階ごとの箱か &&
+            後ろへ戻る矢印か(kind, fromId, toId, 箱の並び, 書いた縦列に置く(kind, doc))
+          ? { routing: "back-detour" as const }
+          : {}),
       ...(関係?.sub ? { sub: 関係.sub } : {}),
       ...(関係?.head ? { head: 関係.head } : {}),
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),

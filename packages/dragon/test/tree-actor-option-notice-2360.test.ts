@@ -39,6 +39,7 @@ const 値: Record<string, string> = {
   marks: "start",
   value: "10",
   previous: "5",
+  stage: "申請",
   lane: "l1",
   stack: "0",
   initial: "true",

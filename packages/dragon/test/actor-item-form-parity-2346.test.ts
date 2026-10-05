@@ -48,6 +48,8 @@ const 見本の値: Record<string, string> = {
   previous: "5",
   前の値: "5",
   lane: "l1",
+  stage: "申請",
+  段階: "申請",
   stack: "0",
   initial: "true",
   final: "true",

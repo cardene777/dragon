@@ -26,6 +26,8 @@ export type CompileNotice = {
     // 並び順が効かない図種に `order:` を書いた (#2655)
     | "order-not-honored"
     | "shape-not-honored"
+    // 段階ごとの箱で `stage` を省き、担当または箱名から段階を補った (#2797)
+    | "stage-from-lane"
     // `theme:` とその別名 `palette:` を両方書き、`theme:` を使った (#2790)
     | "theme-palette-both"
     // `倍率:` を書いた見本が、同じ名前の状態も持っていた (#1026)

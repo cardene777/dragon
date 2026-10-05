@@ -43,10 +43,12 @@ import {
 // 記法と JSON でずれない
 import {
   PHASE_BODY_KEYS,
+  DIAGRAM_SHAPES,
   THEMES,
   THEME_ALIAS,
   resolveOrder,
-  resolveShape,
+  resolveDiagramShape,
+  shapesForDiagramType,
   resolveTheme,
 } from "./keywords";
 // 区画の語の表 (#2667)。 記法と同じ表から直す = 同じ区画を 2 通りで呼ばない
@@ -54,7 +56,7 @@ import { 区画 } from "./compile/word-state";
 // 行頭の印の古い語の読み替え (#2782)。 記法と同じ表を通す = JSON だけ古い語が印を持たない
 // 形にならない
 import { 行頭の語へ読み替える } from "./compile/row-marks";
-import type { DslShape } from "./keywords";
+import type { DslDiagramShape, DslShape } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
   CdlDiagram,
@@ -240,8 +242,8 @@ export interface DragonJson {
   direction?: "vertical" | "horizontal";
   /** 箱を並べ替える軸 (#2655)。 記法の最上位 `order:` と同じ。 JSON は英語の語で書く */
   order?: "kind";
-  /** 数を描く図の形 (#2657)。 記法の最上位 `shape:` と同じ */
-  shape?: DslShape;
+  /** 図種ごとに選ぶ形 (#2657 / #2797)。 記法の最上位 `shape:` と同じ */
+  shape?: DslDiagramShape;
   /** 図の意匠 (#1553 / #2790)。 記法の最上位 `theme:` と同じ。 */
   theme?: string;
   /** `theme` の別名。 両方書いた時は `theme` を使う。 */
@@ -313,6 +315,8 @@ export interface JsonActor {
    */
   previous?: string;
   rows?: string[];
+  /** 段階ごとの箱で、この箱を入れる段階。 記法の `stage` / `段階` と同じ (#2797)。 */
+  stage?: string;
   lane?: string;
   stack?: number;
   initial?: boolean;
@@ -634,6 +638,7 @@ export const ACCEPTED_KEYS = {
     // 前の時点の値 (#1450)。 内訳の変化を帯で示す図と、値 1 つを大きく示す図が読む
     "previous",
     "rows",
+    "stage",
     "lane",
     "stack",
     "initial",
@@ -765,6 +770,7 @@ export type 欄の型 =
   | "色か色番号"
   | "描くもの"
   | "意匠"
+  | "図の形"
   | "必須の図種"
   | "object"
   | "並び"
@@ -805,8 +811,8 @@ export const 欄の型表 = {
     direction: "非空の文字列",
     // 箱を並べ替える軸 (#2655)
     order: "非空の文字列",
-    // 数を描く図の形 (#2657)
-    shape: "非空の文字列",
+    // 図種ごとの形 (#2657 / #2797)
+    shape: "図の形",
     // 図の意匠とその別名 (#1553 / #2790)
     theme: "意匠",
     palette: "意匠",
@@ -819,6 +825,7 @@ export const 欄の型表 = {
     value: "文字列",
     previous: "文字列",
     rows: "文字列の並び",
+    stage: "非空の文字列",
     lane: "文字列",
     stack: "数",
     initial: "真偽",
@@ -1001,6 +1008,7 @@ export const 見本に効かない欄 = [
   "end",
   "touchpoint",
   "opportunity",
+  "stage",
   // 箱の中に描く図形 (#1374)。 見本は自分の形を持つため、外から図形を差し替えられない
   "shape",
   // その箱を出すかどうかの条件 (#1381)。 見本は自分の出方を持つ
@@ -1177,6 +1185,16 @@ function 値を検査(
           hint: `使える語 = ${Object.keys(THEME_ALIAS).join(" / ")} (got ${
             typeof v === "string" ? JSON.stringify(v) : typeof v
           })`,
+        });
+      }
+      return;
+    case "図の形":
+      if (v === undefined) return;
+      if (typeof v !== "string" || resolveDiagramShape(v) === null) {
+        errors.push({
+          path,
+          message: `${名前} must be one of: ${Object.values(DIAGRAM_SHAPES).flat().join(", ")}`,
+          hint: `使える語 = ${Object.values(DIAGRAM_SHAPES).flat().join(" / ")}`,
         });
       }
       return;
@@ -2415,6 +2433,7 @@ function validateJson(
   // 値そのものの型は表が見る (#1304)。 図表の箱の上の小見出し (#1247) の空文字は
   // 「書かなかった」 と同じ扱いにするため通す (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
   表で検査(j, "root", "$", "", errors);
+  validateDiagramShape(j, errors);
 
   if (!Array.isArray(j.actors) || j.actors.length === 0) {
     errors.push({ path: "$.actors", message: "actors must be a non-empty array" });
@@ -2543,6 +2562,31 @@ function validateJson(
   validateRegions(j.regions, errors);
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, data: j as unknown as DragonJson };
+}
+
+/** 最上位の `shape` を記法と同じ図種別の集合で検査する (#2797)。 */
+function validateDiagramShape(j: Record<string, unknown>, errors: JsonDslError[]): void {
+  if (j.shape === undefined) return;
+  if (typeof j.shape !== "string" || typeof j.type !== "string") return;
+  const 別名 = TYPE_ALIASES.get(j.type);
+  const type = 別名?.type ?? (PRESET_TYPES.has(j.type as PresetType) ? (j.type as PresetType) : null);
+  if (type === null) return;
+  const shape = resolveDiagramShape(j.shape);
+  const 図種の語 = shapesForDiagramType(type);
+  // 語そのものの誤りは `欄の型表` が同じ集合から伝える。 ここでは図種との組だけを見る。
+  if (shape === null) return;
+  if (shape !== null && (type !== "chart" || 図種の語.includes(shape))) return;
+  const hint =
+    図種の語.length > 0
+      ? `使える語 = ${図種の語.join(" / ")}`
+      : `shape を書ける図種と語 = ${Object.entries(DIAGRAM_SHAPES)
+          .map(([図種, 語]) => `type: ${図種} (${語.join(" / ")})`)
+          .join(" / ")}`;
+  errors.push({
+    path: "$.shape",
+    message: `shape is not valid for type: ${type}`,
+    hint,
+  });
 }
 
 /**
@@ -2750,6 +2794,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       rows: a.rows,
       // 行頭の印 (#1466)。 行と対で読む。 古い語は記法と同じ関数で読み替える (#2782)
       marks: a.marks?.map((m) => 行頭の語へ読み替える(m)),
+      stage: isPart ? undefined : a.stage,
       lane: a.lane,
       stack: a.stack,
       initial: a.initial,
@@ -2802,7 +2847,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
   const 別名の意匠 = json.palette === undefined ? null : resolveTheme(json.palette);
   const 選んだ意匠 = 意匠 ?? 別名の意匠;
   const 並び順 = json.order === undefined ? null : resolveOrder(json.order);
-  const 形 = json.shape === undefined ? null : resolveShape(json.shape);
+  const 形 = json.shape === undefined ? null : resolveDiagramShape(json.shape);
 
   const flow: DslStep[] = json.flow.map((s, i) => ({
     no: i + 1,

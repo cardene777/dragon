@@ -75,7 +75,7 @@ flow:
 | `relations` | 触れた箱の関係を光らせるか (`off` = 何もしない (既定) / `hover` = 触れた箱と繋がる線と相手の箱だけが光る)                     |
 | `direction` | 図の並ぶ向き (`縦` / `横`、英語なら `vertical` / `horizontal`)。 効くのは `flow` と `swimlane` だけ |
 | `order`     | 箱を並べ替える軸 (`種類`、英語なら `kind`)。 効くのは `sequence` だけで、書くと `kind:` の順 (人 → 契約 → 保管 → 出来事) に箱が並ぶ |
-| `shape`     | 数を描く図の形 (`pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope`)。 効くのは `chart` だけで、書かなければ `bar` |
+| `shape`     | 図種ごとの形。`chart` は `pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope` (書かなければ `bar`)、`swimlane` は `stages` |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る。 クラス図は書かなくても `kinari` |
 
 <!-- notation:top-level:end -->
@@ -95,6 +95,7 @@ flow:
 | `previous`      | 前の時点の値 (`前の値` とも書ける)。 `type: stacked` が 2 本目の帯として描く   |
 | `rows`          | 箱の中に並べる行 (`行` とも書ける)                                             |
 | `marks`         | 行頭の印 (`印` とも書ける。 `rows` と同じ並び。 ER は `pk` / `fk` / `opt`、状態は `entry` / `exit` / `do` / `internal`) |
+| `stage`         | `shape: stages` の泳法図で箱を入れる段階 (`段階` とも書ける)                  |
 | `lane`          | どの縦列に置くか                                                               |
 | `stack`         | 縦列の中の何段目に置くか                                                       |
 | `initial`       | 状態遷移図で始まりの状態か                                                     |
@@ -158,6 +159,19 @@ flow:
 ## 記法の癖
 
 ### 箱の `lane:` が効く図種は限られる
+
+`type: swimlane` と `shape: stages` を組み合わせると、`stage:` (`段階:`) ごとの囲みを
+左から並べ、その中へ箱を縦に積む。 この形では `lane:` は縦列ではなく担当を表し、段階の札へ
+「段階 ・ 担当」の形で出る。`lanes:` に同じ id の `label` があれば、その名前を札に使う。
+
+```yaml
+type: swimlane
+shape: stages
+
+actors:
+  - 受付: { stage: 申請, lane: front }
+  - 確認: { 段階: 審査, lane: review }
+```
 
 縦列を並べるために使う図種 (`flow` / `topology` / `swimlane`) では効く。 縦列が骨格その
 ものになる図種 (`sequence` は縦列がそのまま時間軸の線) では効かず、知らせが出る。

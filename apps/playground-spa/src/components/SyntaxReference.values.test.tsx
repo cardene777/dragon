@@ -36,7 +36,7 @@ import {
   ORDER_ALIAS,
   THEME_ALIAS,
   PRESET_TYPES,
-  SHAPES,
+  ALL_DIAGRAM_SHAPES,
   TONE_ALIAS,
 } from "@cardenelabs/dragon";
 
@@ -96,7 +96,7 @@ function 書き写せる語(markup = renderToStaticMarkup(<SyntaxReference />)):
  */
 const 値の表: Array<{ 名: string; 値: readonly string[] }> = [
   { 名: "図種", 値: [...PRESET_TYPES] },
-  { 名: "形", 値: SHAPES },
+  { 名: "形", 値: ALL_DIAGRAM_SHAPES },
   { 名: "箱の種類", 値: [...NODE_KINDS] },
   { 名: "起点から描ける語", 値: [...DRAW_WORDS] },
   { 名: "色", 値: Object.keys(TONE_ALIAS) },
@@ -128,7 +128,7 @@ describe("記法の説明が実装の受け付ける値をすべて出す (#2659
     // 母集団では形が欠ける = 上の検査が札を見ていることの裏取りになる
     const markup = renderToStaticMarkup(<SyntaxReference />);
     const 例文だけ = 例文の語(markup);
-    const 例文に無い形 = SHAPES.filter((v) => !例文だけ.has(v));
+    const 例文に無い形 = ALL_DIAGRAM_SHAPES.filter((v) => !例文だけ.has(v));
     expect(
       例文に無い形.length,
       "例文だけで形が全部揃うなら、札の一覧を消しても検査は落ちない",

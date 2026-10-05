@@ -96,10 +96,48 @@ export const SHAPES = [
 ] as const;
 export type DslShape = (typeof SHAPES)[number];
 
+/** 泳法図の形 (`shape:`、 #2797)。 後続の形も chart と混ぜずここへ足す。 */
+export const SWIMLANE_SHAPES = ["stages"] as const;
+export type DslSwimlaneShape = (typeof SWIMLANE_SHAPES)[number];
+
+/** 最上位の `shape:` が取り得る語。 図種ごとの集合は `DIAGRAM_SHAPES` が決める。 */
+export type DslDiagramShape = DslShape | DslSwimlaneShape;
+
+/**
+ * `shape:` を選べる図種と、その図種で書ける語 (#2797)。
+ *
+ * 解析・組み立て・schema の照合はこの表から導く。 集合を別々の場所で対応付けると、形を
+ * 足した時に一方だけが古くなり、同じ語が入口によって通ったり落ちたりする。
+ */
+export const DIAGRAM_SHAPES = {
+  chart: SHAPES,
+  swimlane: SWIMLANE_SHAPES,
+} as const satisfies Record<string, readonly DslDiagramShape[]>;
+
+export type ShapeDiagramType = keyof typeof DIAGRAM_SHAPES;
+
+/** 全図種の `shape:` の語。 図種を決める前の読み取りと schema の照合に使う。 */
+export const ALL_DIAGRAM_SHAPES: readonly DslDiagramShape[] = Object.values(DIAGRAM_SHAPES).flat();
+
 /** 書いた形を正規の語に直す。 読めない語は `null`。 */
 export function resolveShape(s: string): DslShape | null {
   const k = s.trim().toLowerCase();
   return (SHAPES as readonly string[]).includes(k) ? (k as DslShape) : null;
+}
+
+/** 書いた形を図種をまたぐ正規の語に直す。 読めない語は `null`。 */
+export function resolveDiagramShape(s: string): DslDiagramShape | null {
+  const k = s.trim().toLowerCase();
+  return (ALL_DIAGRAM_SHAPES as readonly string[]).includes(k)
+    ? (k as DslDiagramShape)
+    : null;
+}
+
+/** その図種で書ける形。 形を持たない図種は空の並びを返す。 */
+export function shapesForDiagramType(type: string): readonly DslDiagramShape[] {
+  return Object.hasOwn(DIAGRAM_SHAPES, type)
+    ? DIAGRAM_SHAPES[type as ShapeDiagramType]
+    : [];
 }
 
 /**

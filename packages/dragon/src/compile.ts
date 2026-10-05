@@ -94,7 +94,13 @@ import type { CdlDiagram, CdlEdge, CdlNode } from "@cardenelabs/cdl";
 import { layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS, 描く語がその図を指すか } from "./v05/parser";
-import { 意匠の字の測り方, type DslShape } from "./keywords";
+import {
+  DIAGRAM_SHAPES,
+  resolveShape,
+  shapesForDiagramType,
+  意匠の字の測り方,
+  type DslShape,
+} from "./keywords";
 import { pointsOutside, stripExternalPaint } from "./color";
 import { countDocElements, describeOversize } from "./input-size";
 export interface CompileToCdlOpts {
@@ -189,7 +195,11 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "chart":
       // 形は `shape:` が決める (#2657)。 書かなければ棒 = 数を並べる図で最も素直な形で、
       // 形を書かずに数だけ書いた記法が図にならない状態を作らない
-      diagram = compileValueChart(doc, doc.shape ?? "bar", 図種の知らせ);
+      diagram = compileValueChart(
+        doc,
+        doc.shape === undefined ? "bar" : (resolveShape(doc.shape) ?? "bar"),
+        図種の知らせ,
+      );
       break;
     case "funnel":
       diagram = compileFunnel(doc, 図種の知らせ);
@@ -264,6 +274,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportDirectionNotHonored(書いたまま, opts?.onNotice);
   reportOrderNotHonored(書いたまま, opts?.onNotice);
   reportShapeNotHonored(書いたまま, opts?.onNotice);
+  reportStageFromLane(書いたまま, opts?.onNotice);
   reportThemeAlsoPalette(書いたまま, opts?.onNotice);
   reportDrawNotHonored(書いたまま, opts?.onNotice);
   reportChartFieldsNotHonored(書いたまま, opts?.onNotice);
@@ -785,11 +796,12 @@ function reportDrawNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
     }
     // 語が別の図を指している形 (#1314)。 図は描けるので誤りにはしない
     const 相手 = DRAW_TARGETS.get(phase.draw);
-    if (相手 !== undefined && !描く語がその図を指すか(phase.draw, doc.type, doc.shape)) {
+    const 数の図の形 = doc.shape === undefined ? undefined : (resolveShape(doc.shape) ?? undefined);
+    if (相手 !== undefined && !描く語がその図を指すか(phase.draw, doc.type, 数の図の形)) {
       // 数を描く図は 1 つの型に 9 つの形が入るので、相手も この図も形で名乗る (#2657)
       const 名乗り = (t: PresetType, sh: DslShape | undefined): string =>
         t === "chart" && sh !== undefined ? `type: chart と shape: ${sh}` : `type: ${t}`;
-      const この図 = 名乗り(doc.type, doc.shape);
+      const この図 = 名乗り(doc.type, 数の図の形);
       onNotice({
         kind: "draw-target-mismatch",
         actor: phase.name,
@@ -1593,13 +1605,16 @@ function reportSkeletonActorOptionNotHonored(
  */
 function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): ReadonlySet<string> {
   const 族の除外 = 骨組みの図が伝えない箱の欄(doc.type);
+  const 段階ごとの箱か = doc.type === "swimlane" && doc.shape === "stages";
   const 読まない欄: string[] = [];
   // 段を読まない図では伝える側へ回す。 既に抜けている図種 (c4) は下の `delete` が空振りする
-  if (!書いた縦列に置く(doc.type, doc)) 読まない欄.push("stack");
+  if (!段階ごとの箱か && !書いた縦列に置く(doc.type, doc)) 読まない欄.push("stack");
   const 残り = new Set(族の除外);
-  let 抜いた = false;
-  for (const 欄 of 読まない欄) if (残り.delete(欄)) 抜いた = true;
-  return 抜いた ? 残り : 族の除外;
+  // `stage` はこの形でだけ箱の置き先を決める。 他の骨組みの図では知らせる側へ残す (#2797)。
+  let 変えた = 段階ごとの箱か && !残り.has("stage");
+  if (段階ごとの箱か) 残り.add("stage");
+  for (const 欄 of 読まない欄) if (残り.delete(欄)) 変えた = true;
+  return 変えた ? 残り : 族の除外;
 }
 
 /**
@@ -2629,7 +2644,7 @@ function applyV05Extensions(
   // `lane-Ａ`) がこの形になり、黙って捨てられていた (実測 = 幅 999 を持つ空の縦列が増え、
   // 元の縦列は 360 のままだった)
   const 追加した縦列: DslLane[] = 追加した縦列out ?? [];
-  if (doc.lanes) {
+  if (doc.lanes && !(doc.type === "swimlane" && doc.shape === "stages")) {
     for (const [id, laneOpt] of Object.entries(doc.lanes)) {
       const lane = diagram.lanes.find((l) => l.id === id);
       if (lane) {
@@ -2764,7 +2779,11 @@ function injectPhasesFallback(diagram: CdlDiagram, doc: DslDocument): void {
     // 続ける図で毎段引き直しになるため。 書いた段だけが欄を持つ
     const drawIds =
       p.draw !== undefined &&
-      描く語がその図を指すか(p.draw, doc.type, doc.shape) &&
+      描く語がその図を指すか(
+        p.draw,
+        doc.type,
+        doc.shape === undefined ? undefined : (resolveShape(doc.shape) ?? undefined),
+      ) &&
       singleBoxNode !== undefined
         ? [singleBoxNode.id]
         : [];
@@ -2832,6 +2851,16 @@ function reportDirectionNotHonored(doc: DslDocument, onNotice?: (n: CompileNotic
   if (!onNotice) return;
   if (doc.direction === undefined) return;
   const 行 = doc.directionPos?.line ?? doc.pos?.line ?? 0;
+  if (doc.type === "swimlane" && doc.shape === "stages") {
+    onNotice({
+      kind: "direction-not-honored",
+      actor: doc.title,
+      line: 行,
+      message: "書いた direction は効きません (shape: stages は段階を常に左から右へ並べます)",
+      hint: "段階の並びは actors に最初に現れた順で決まります",
+    });
+    return;
+  }
   if (!向きを選べる図種.has(doc.type)) {
     onNotice({
       kind: "direction-not-honored",
@@ -2893,19 +2922,43 @@ function reportOrderNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =
  * 並べ替えの知らせと同じ形にする。 黙って捨てると「書いたのに形が変わらない」 が
  * 手掛かりなしで起きる。
  *
- * **形を選べるのは数を描く図だけ**。 他の図種は描く形が型そのもので決まるので、
- * 形の語を書いても読む側がいない。
+ * 書ける形は `DIAGRAM_SHAPES` が図種ごとに決める。 別の図種の語は解析後も残し、ここで
+ * 「読めたがこの図種では効かない」 と伝える。
  */
 function reportShapeNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice) return;
   if (doc.shape === undefined) return;
-  if (doc.type === "chart") return;
+  const 図種の語 = shapesForDiagramType(doc.type);
+  if (図種の語.includes(doc.shape)) return;
+  const hint =
+    図種の語.length > 0
+      ? `type: ${doc.type} で書ける shape = ${図種の語.join(" / ")}`
+      : `shape を書けるのは ${Object.keys(DIAGRAM_SHAPES)
+          .map((type) => `type: ${type}`)
+          .join(" / ")} です`;
   onNotice({
     kind: "shape-not-honored",
     actor: doc.title,
     line: doc.shapePos?.line ?? doc.pos?.line ?? 0,
-    message: `書いた shape は効きません (type: ${doc.type} は描く形が図種そのもので決まります)`,
-    hint: "shape を書けるのは type: chart です",
+    message: `書いた shape: ${doc.shape} は効きません (type: ${doc.type} では使えません)`,
+    hint,
+  });
+}
+
+/** `stage` を省いた箱で担当または箱名を段階に使ったことを、図全体で 1 件だけ伝える (#2797)。 */
+function reportStageFromLane(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (!onNotice || doc.type !== "swimlane" || doc.shape !== "stages") return;
+  const 補った = doc.actors.filter((actor) => actor.stage === undefined);
+  const 最初 = 補った[0];
+  if (最初 === undefined) return;
+  onNotice({
+    kind: "stage-from-lane",
+    actor: doc.title,
+    line: 最初.pos?.line ?? doc.pos?.line ?? 0,
+    message: `段階を書いていない箱は担当または箱の名前を段階として使いました: ${補った
+      .map((actor) => truncateForMessage(actor.name))
+      .join(" / ")}`,
+    hint: "段階を分けて決めるなら、各箱に stage または 段階 を書いてください",
   });
 }
 

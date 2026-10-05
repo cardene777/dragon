@@ -71,7 +71,9 @@ import {
   ORDERS,
   resolveOrder,
   SHAPES,
-  resolveShape,
+  DIAGRAM_SHAPES,
+  resolveDiagramShape,
+  shapesForDiagramType,
   THEMES,
   THEME_ALIAS,
   resolveTheme,
@@ -84,7 +86,7 @@ import { PHASE_BODY_KEYS } from "../keywords";
 import type { DslTheme } from "../keywords";
 import type { DslDirection } from "../keywords";
 import type { DslOrder } from "../keywords";
-import type { DslShape } from "../keywords";
+import type { DslDiagramShape, DslShape } from "../keywords";
 import { parseRelativePos, findRelativeProblems, type RelativeProblem } from "../relative-pos";
 import {
   checkValueExpression,
@@ -408,6 +410,15 @@ export const TYPE_ALIASES: ReadonlyMap<string, 読み替え先> = new Map<string
   ...SHAPES.map((s): [string, 読み替え先] => [s, { type: "chart", shape: s }]),
 ]);
 
+/** `shape:` の綴り違いへ、図種ごとに書ける語を案内する (#2797)。 */
+function shapeの案内(type: PresetType | null): string {
+  const その図種 = type === null ? [] : shapesForDiagramType(type);
+  if (その図種.length > 0) return `使える語 = ${その図種.join(" / ")}`;
+  return `shape を書ける図種と語 = ${Object.entries(DIAGRAM_SHAPES)
+    .map(([図種, 語]) => `type: ${図種} (${語.join(" / ")})`)
+    .join(" / ")}`;
+}
+
 const NODE_KIND_DEFAULT: NodeKind = "actor";
 
 /**
@@ -567,8 +578,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let directionLine = 0;
   let order: DslOrder | null = null;
   let orderLine = 0;
-  let shape: DslShape | null = null;
-  let shapeLine = 0;
+  // `shape:` は `type:` より前にも書ける。 図種が決まるまで語と行だけを控える (#2797)。
+  let shapeWritten: { value: string; line: number } | null = null;
+  let aliasShape: DslShape | null = null;
+  let aliasShapeLine = 0;
   let theme: DslTheme | null = null;
   let themeLine = 0;
   let palette: DslTheme | null = null;
@@ -771,17 +784,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
        */
       const v = (head.value ?? "").trim();
       if (v.length > 0) {
-        const 解けた = resolveShape(v);
-        if (解けた !== null) {
-          shape = 解けた;
-          shapeLine = line.no;
-        } else {
-          errors.push({
-            line: line.no,
-            message: `shape が読めません (書いた値: ${v})`,
-            hint: `使える語 = ${SHAPES.join(" / ")}`,
-          });
-        }
+        shapeWritten = { value: v, line: line.no };
       }
       i += 1;
       continue;
@@ -798,9 +801,9 @@ export function parseTextDslV05(src: string): V05ParseResult {
           order = 別名.order;
           orderLine = line.no;
         }
-        if (shape === null && 別名.shape !== undefined) {
-          shape = 別名.shape;
-          shapeLine = line.no;
+        if (別名.shape !== undefined) {
+          aliasShape = 別名.shape;
+          aliasShapeLine = line.no;
         }
       } else if (!PRESET_TYPES.has(v as PresetType)) {
         errors.push({
@@ -1369,6 +1372,23 @@ export function parseTextDslV05(src: string): V05ParseResult {
       message: `巻き上げの名前 "${scroll.id}" が inputs または formulas と重なっています`,
       hint: "inputs / formulas / scrolls では重ならない名前を使う",
     });
+  }
+
+  let shape: DslDiagramShape | null = aliasShape;
+  let shapeLine = aliasShapeLine;
+  if (shapeWritten !== null) {
+    const 解けた = resolveDiagramShape(shapeWritten.value);
+    const 図種の語 = type === null ? [] : shapesForDiagramType(type);
+    if (解けた === null || (type === "chart" && !図種の語.includes(解けた))) {
+      errors.push({
+        line: shapeWritten.line,
+        message: `shape が読めません (書いた値: ${shapeWritten.value})`,
+        hint: shapeの案内(type),
+      });
+    } else {
+      shape = 解けた;
+      shapeLine = shapeWritten.line;
+    }
   }
 
   if (errors.length > 0) return { ok: false, errors };
@@ -3275,10 +3295,12 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "opportunity":
       case "owner":
       case "end":
+      case "stage":
+      case "段階":
         // **どちらに入れるかは block を読み終わるまで決まらない** (#1251 Round 1 の指摘)。
         // パーツかどうかは `kind:` の行で決まり、それが後ろに書かれることもある。
         // 倍率 (`scaleWritten`) と読めない項目名 (`unknownKeys`) が同じ理由で後回しにしている
-        図種ごとの欄.set(key, stripQuotes(raw));
+        図種ごとの欄.set(key === "段階" ? "stage" : key, stripQuotes(raw));
         break;
       case "lane":
         out.lane = stripQuotes(raw);
@@ -3311,7 +3333,8 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     if (key === "touchpoint") out.touchpoint = v;
     else if (key === "opportunity") out.opportunity = v;
     else if (key === "owner") out.owner = v;
-    else out.end = v;
+    else if (key === "end") out.end = v;
+    else out.stage = v;
   }
   // 状態も倍率も parts でだけ意味を持つ。 パーツなら知らせずに返す
   if (out.partId !== undefined) {
@@ -3406,6 +3429,8 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "scale",
   "lane",
   "stack",
+  "stage",
+  "段階",
   // ユーザージャーニーの欄 (#1251)
   "touchpoint",
   "opportunity",
@@ -3619,6 +3644,7 @@ export const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "marks",
   "lane",
   "stack",
+  "stage",
   "initial",
   "final",
   "state",
@@ -3733,6 +3759,7 @@ const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   "marks",
   "lane",
   "stack",
+  "stage",
   "initial",
   "final",
   "tone",
@@ -3796,6 +3823,7 @@ export const ACTOR_ITEM_ALIASES: Record<string, string> = {
   前の値: "previous",
   位置: "pos",
   出す条件: "visibleIf",
+  段階: "stage",
 };
 
 /**
@@ -4109,6 +4137,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // 見本では状態の上書きとして意味を持つため横取りしない (#1251)
       owner: isPart ? undefined : opts.owner,
       end: isPart ? undefined : opts.end,
+      stage: isPart ? undefined : opts.stage,
       value: opts.value,
       previous: opts.previous,
       rows: opts.rows

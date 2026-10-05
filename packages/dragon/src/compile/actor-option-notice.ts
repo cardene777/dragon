@@ -57,6 +57,7 @@ export const 効かない箱の欄の呼び名 = [
   ["renderOffsetX", "値への追随"],
   ["renderOffsetY", "値への追随"],
   ["owner", "担当"],
+  ["stage", "段階"],
   ["end", "終わる時期"],
   ["touchpoint", "接点"],
   ["opportunity", "伸びしろ"],

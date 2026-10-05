@@ -54,6 +54,7 @@ const 値: Record<string, string> = {
   initial: "true",
   final: "true",
   previous: "2",
+  stage: "申請",
   visibleIf: '"{あたい}"',
   opacity: "0.5",
   posX: "100",

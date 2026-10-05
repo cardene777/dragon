@@ -775,6 +775,7 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
     eyebrow: 'eyebrow: "みだし"',
     value: "value: 3",
     previous: "previous: 2",
+    stage: "stage: 申請",
     rows: 'rows: ["よむ"]',
     marks: "marks: [pk]",
     lane: "lane: m",

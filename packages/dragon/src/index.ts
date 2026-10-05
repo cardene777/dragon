@@ -41,12 +41,15 @@ export {
   ORDERS,
   ORDER_ALIAS,
   SHAPES,
+  SWIMLANE_SHAPES,
+  DIAGRAM_SHAPES,
+  ALL_DIAGRAM_SHAPES,
   THEMES,
   THEME_ALIAS,
   resolveTheme,
   意匠の字の測り方,
 } from "./keywords";
-export type { DslTheme } from "./keywords";
+export type { DslTheme, DslShape, DslSwimlaneShape, DslDiagramShape } from "./keywords";
 export { lintDiagram, autoFix } from "./notation-lint";
 export type { LintIssue, LintReport, LintSeverity } from "./notation-lint";
 // canvas pivot 新 spec 図境界計算 helper (§diagram-boundary SSOT)

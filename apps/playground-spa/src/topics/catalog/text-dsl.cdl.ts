@@ -366,6 +366,89 @@ export const sourceJson__textDslSwimlane = `{
   ]
 }`;
 
+// ─── swimlane + stages (段階と担当) ─────
+export const sourceYaml__textDslSwimlaneStages = `
+title: "申請を段階と担当で追う"
+type: swimlane
+shape: stages
+
+lanes:
+  front: { label: 窓口 }
+  review: { label: 審査係 }
+
+actors:
+  - 受け付ける: { stage: 申請, lane: front, stack: 1 }
+  - 内容を確かめる:
+      段階: 確認
+      lane: review
+      stack: 0
+  - 結果を知らせる: { stage: 完了, lane: front, stack: 0 }
+
+flow:
+  - 受け付ける -> 内容を確かめる
+  - 内容を確かめる -> 結果を知らせる
+
+animation:
+  - step: "受け付け" 1.2s
+    focus: [受け付ける]
+    badge: "申請"
+    description: "窓口が申請を受け付ける。 最初の段階から次の担当へ渡す準備をする。"
+
+  - step: "確認" 1.2s
+    focus: [内容を確かめる]
+    badge: "確認"
+    description: "審査係が内容を確かめる。 担当が替わっても段階の順は左から右へ進む。"
+
+  - step: "知らせる" 1.2s
+    focus: [結果を知らせる]
+    badge: "完了"
+    description: "窓口が結果を知らせる。 申請から完了までを三つの段階で追える。"
+`;
+
+export const textDslSwimlaneStages = textDslToDiagram(sourceYaml__textDslSwimlaneStages);
+
+export const sourceJson__textDslSwimlaneStages = `{
+  "title": "申請を段階と担当で追う",
+  "type": "swimlane",
+  "shape": "stages",
+  "lanes": {
+    "front": { "label": "窓口" },
+    "review": { "label": "審査係" }
+  },
+  "actors": [
+    { "name": "受け付ける", "stage": "申請", "lane": "front", "stack": 1 },
+    { "name": "内容を確かめる", "stage": "確認", "lane": "review", "stack": 0 },
+    { "name": "結果を知らせる", "stage": "完了", "lane": "front", "stack": 0 }
+  ],
+  "flow": [
+    { "from": "受け付ける", "to": "内容を確かめる", "label": "" },
+    { "from": "内容を確かめる", "to": "結果を知らせる", "label": "" }
+  ],
+  "animation": [
+    {
+      "step": "受け付け",
+      "duration": 1.2,
+      "focus": ["受け付ける"],
+      "badge": "申請",
+      "description": "窓口が申請を受け付ける。 最初の段階から次の担当へ渡す準備をする。"
+    },
+    {
+      "step": "確認",
+      "duration": 1.2,
+      "focus": ["内容を確かめる"],
+      "badge": "確認",
+      "description": "審査係が内容を確かめる。 担当が替わっても段階の順は左から右へ進む。"
+    },
+    {
+      "step": "知らせる",
+      "duration": 1.2,
+      "focus": ["結果を知らせる"],
+      "badge": "完了",
+      "description": "窓口が結果を知らせる。 申請から完了までを三つの段階で追える。"
+    }
+  ]
+}`;
+
 // ─── flowchart (分かれ道と担当) ─────
 export const sourceYaml__textDslFlowchart = `
 title: "経費申請の承認"

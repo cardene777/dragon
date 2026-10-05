@@ -158,6 +158,12 @@
                 },
                 "description": "行頭の印。 rows と同じ数だけ並べる。 語は 鍵 (名前に下線 = その行で箱を見分ける) / 外 (行頭を山形 = 箱の外とつながる) / 条件 (行頭を中空 = 条件が揃った時だけ効く) の 3 つで、1 行に 2 つ以上書ける。 古い綴り pk / fk / opt / entry / exit / do / internal は読み取りの入口でこの 3 語に読み替わる"
               },
+              "stage": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "description": "shape: stages の泳法図で、この箱を入れる段階。 記法では stage または 段階 と書く"
+              },
               "lane": {
                 "type": "string",
                 "description": "swimlane / topology で属する lane id"
@@ -2337,9 +2343,10 @@
         "stat",
         "waffle",
         "stacked",
-        "slope"
+        "slope",
+        "stages"
       ],
-      "description": "数を描く図の形。 効くのは chart だけ。 書かなければ bar (棒の高さ)。"
+      "description": "図種ごとの形。 chart では pie / bar / line / gauge / radial / stat / waffle / stacked / slope、swimlane では stages が効く。 chart で書かなければ bar (棒の高さ)。"
     },
     "order": {
       "type": "string",
