@@ -174,6 +174,9 @@ animation:
 
 `theme:` で図の意匠を `kinari` / `celadon` / `blueprint` / `letterpress` / `catalog` / `terminal` / `sketch` / `neon` / `relief` から選べる。
 `palette:` も `theme:` の別名として読む。
+編集画面から書き出す動く SVG・静止 SVG・PNG には、選んだ意匠の地、方眼や光、影、模様、配色が含まれる。
+SVG は単独で開いても画面と同じ見た目になり、PNG の紙は意匠の地の色になる。
+字体は file に含めないため、開く側に同じ字体が無い時は近い字体で表示される。
 
 catalog SPA で実例を確認可能、 コピペして応用する使い方が標準。
 
