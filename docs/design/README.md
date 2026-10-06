@@ -55,3 +55,7 @@ for (const [n,d] of Object.entries(v)) if (d.type==='color')
 ## `specs/screens.md`
 
 設計を起こす時に使った画面の仕様。 経路 / 構成 / 文言を実測して書いたもので、 配色は持たない。
+
+## `proposal/`
+
+[12 図種 × 7 意匠の見本を開く](proposal/index.html)。

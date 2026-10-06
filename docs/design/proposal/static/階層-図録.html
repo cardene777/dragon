@@ -1,0 +1,128 @@
+<!doctype html><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=M+PLUS+1+Code:wght@400;500;700&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+<style>*{margin:0;box-sizing:border-box}body{width:1800px;height:1100px;position:relative;overflow:hidden}
+
+.fig{position:relative;width:1800px;height:1100px;overflow:hidden;transform-origin:top left;
+     font-family:'Noto Sans JP',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.fig *{margin:0;box-sizing:border-box}
+.fig .ent{position:absolute;border-radius:12px;overflow:hidden}
+.fig .ti{font:700 29px/1.1 'Noto Sans JP',system-ui,sans-serif;color:#1d242e}
+.fig .rows{display:flex;flex-direction:column}
+.fig .row{height:46px;display:flex;align-items:center;padding:0 24px;gap:14px}
+.fig .mk{width:9px;height:9px;flex:none}
+.fig .nm{font:500 22px/1 'Noto Sans JP',system-ui,sans-serif;color:#1d242e;white-space:nowrap}
+.fig .ty{font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#9c9381;margin-left:auto;white-space:nowrap}
+.fig .void{padding:20px 24px 22px;font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#9c9381;letter-spacing:.05em}
+.fig .foot{display:flex;justify-content:space-between;align-items:center}
+.fig .fk{font:700 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#6f6757;letter-spacing:.16em}
+.fig .fn{font:400 17px/1 'JetBrains Mono',ui-monospace,monospace;color:#9c9381}
+.fig .well{margin:14px;padding:12px;border-radius:9px;display:flex;flex-direction:column;gap:12px}
+.fig .nest{position:relative;left:auto;top:auto;width:auto;border-radius:8px}
+.fig .nest .ti{font-size:22px}
+.fig .nest .row{height:40px;padding:0 18px}
+.fig .nest .nm{font-size:20px}
+.fig .nest .ty{font-size:17px}
+.fig .nest .foot{display:none}
+.fig > svg{position:absolute;inset:0;width:1800px;height:1100px;pointer-events:none;overflow:visible}
+
+  .fig{background:#1b222c}
+  .fig::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(ellipse at 50% 0%, rgba(220,164,67,.10), transparent 62%);pointer-events:none}
+  .fig .ent{background:#f4eee2;box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 3px 2px rgba(0,0,0,.28), 0 22px 40px -14px rgba(0,0,0,.62)}
+  .fig .ent[data-w="太"]{box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 4px 3px rgba(0,0,0,.34), 0 36px 60px -16px rgba(0,0,0,.72)}
+  .fig .head{padding:18px 24px 15px;border-bottom:1px solid #e2d9c7}
+  .fig .foot{padding:11px 24px;border-top:1px solid #e2d9c7}
+  .fig .nest{background:#fbf7ee;box-shadow:0 8px 18px -6px rgba(0,0,0,.34)}
+  .fig .nest .head{padding:13px 18px 11px;border-bottom:1px solid #e8e0cf}
+  .fig .well{background:#e5dbc7;box-shadow:0 3px 9px rgba(0,0,0,.26) inset}
+  .fig .mk{border-radius:50%}
+.fig .actor{text-align:center}
+.fig .actor .head{border-bottom:0}
+.fig .actor .sub{font:400 19px/1 'Noto Sans JP',system-ui,sans-serif;color:#6f6757;margin-top:10px;letter-spacing:.04em}
+.fig .panel{display:flex;flex-direction:column}
+.fig .panel .plot{flex:1;min-height:0}
+.fig .panel .split{flex:1;display:flex;min-height:0}
+.fig .panel .split .rows{width:310px;align-self:center}
+.fig .lab{position:absolute;left:60px;width:540px;height:44px;display:flex;align-items:center;gap:16px}
+.fig .lab .nm{font-size:26px;color:#efe7d8}
+.fig .lab .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#a39a87;letter-spacing:.12em;margin-left:2px}
+.fig .mass{position:absolute;transform-origin:50% 100%}
+.fig .mass.band{transform-origin:50% 0}
+.fig .sub{font:400 19px/1 'Noto Sans JP',system-ui,sans-serif;color:#6f6757;margin-top:10px;letter-spacing:.04em}
+.fig .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#6f6757;letter-spacing:.12em}
+.fig .step .head,.fig .tn .head{text-align:center;border-bottom-color:transparent}
+.fig .step .ti{font-size:26px}
+.fig .card .head,.fig .pill .head{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom-color:transparent}
+.fig .card .ti{font-size:25px}
+.fig .stage .head .kw{display:block;margin-bottom:10px}
+.fig .node .head{position:relative;padding-right:78px}
+.fig .node .ico{position:absolute;right:22px;top:50%;margin-top:-20px}
+.fig .zone{margin:0;padding:0;display:block;border:0}
+.fig .zl{position:absolute;left:26px;top:20px;display:flex;align-items:baseline;gap:14px}
+.fig .zl .nm{font-size:24px;font-weight:700;color:#1d242e}
+.fig .zl .kw{color:#6f6757}
+.fig .cls .head{text-align:center}
+.fig .cls .head .kw{margin-bottom:9px;letter-spacing:.2em}
+.fig .cls .ops{border-top:1.5px solid color-mix(in srgb, #1d242e 40%, transparent)}
+.fig .panel.narrow .split .rows{width:190px}
+.fig .mass.bar{transform-origin:0 50%}
+.fig .mass.bar.mid{transform-origin:50% 50%}
+.fig svg .tag-wrap{transform-box:fill-box;transform-origin:50% 50%}
+
+
+
+
+
+
+  .fig .mass{background:var(--col);border-radius:4px 4px 0 0;box-shadow:0 8px 16px -8px rgba(0,0,0,.4)}
+  .fig .mass.band{border-radius:6px;background:color-mix(in srgb,var(--col) 55%,transparent);box-shadow:0 0 0 1px rgba(239,231,216,.3) inset}</style>
+<div class="fig">
+<div class="ent tn" data-ent="本社" style="left:770px;top:46px;width:260px;--i:0;--r:0">
+  <div class="head"><div class="ti">本社</div><div class="sub">全国 12 営業所</div></div>
+</div>
+<div class="ent tn" data-ent="東日本" style="left:380px;top:196px;width:240px;--i:1;--r:0">
+  <div class="head"><div class="ti">東日本</div><div class="sub">7 営業所</div></div>
+</div>
+<div class="ent tn" data-ent="西日本" style="left:1180px;top:196px;width:240px;--i:2;--r:0">
+  <div class="head"><div class="ti">西日本</div><div class="sub">5 営業所</div></div>
+</div>
+<div class="ent tn" data-ent="東京" style="left:190px;top:346px;width:220px;--i:3;--r:0">
+  <div class="head"><div class="ti">東京</div><div class="sub">42 人</div></div>
+</div>
+<div class="ent tn" data-ent="仙台" style="left:590px;top:346px;width:220px;--i:4;--r:0">
+  <div class="head"><div class="ti">仙台</div><div class="sub">18 人</div></div>
+</div>
+<div class="ent tn" data-ent="大阪" style="left:990px;top:346px;width:220px;--i:5;--r:0">
+  <div class="head"><div class="ti">大阪</div><div class="sub">35 人</div></div>
+</div>
+<div class="ent tn" data-ent="福岡" style="left:1390px;top:346px;width:220px;--i:6;--r:0">
+  <div class="head"><div class="ti">福岡</div><div class="sub">21 人</div></div>
+</div>
+<div class="ent tn" data-ent="再配達を減らす" data-w="太" style="left:735px;top:742px;width:330px;--i:7;--r:0">
+  <div class="head"><div class="ti">再配達を減らす</div></div>
+</div>
+<div class="ent tn" data-ent="置き場所" style="left:360px;top:607px;width:220px;--i:8;--r:0">
+  <div class="head"><div class="ti">置き場所</div></div>
+</div>
+<div class="ent tn" data-ent="時間" style="left:360px;top:897px;width:220px;--i:9;--r:0">
+  <div class="head"><div class="ti">時間</div></div>
+</div>
+<div class="ent tn" data-ent="知らせる" style="left:1220px;top:607px;width:220px;--i:10;--r:0">
+  <div class="head"><div class="ti">知らせる</div></div>
+</div>
+<div class="ent tn" data-ent="受け取り方" style="left:1220px;top:897px;width:220px;--i:11;--r:0">
+  <div class="head"><div class="ti">受け取り方</div></div>
+</div><svg viewBox="0 0 1800 1100"><defs><mask id="h1_0" maskUnits="userSpaceOnUse"><path class="mw" d="M 900 144.890625 V 168.4453125 H 500 V 175 M 900 144.890625 V 168.4453125 H 1300 V 175" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="901" stroke-dashoffset="0"
+       style="--k:0"/></mask><mask id="h1_1" maskUnits="userSpaceOnUse"><path class="mw" d="M 500 294.890625 V 318.4453125 H 300 V 325 M 500 294.890625 V 318.4453125 H 700 V 325" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="501" stroke-dashoffset="0"
+       style="--k:1"/></mask><mask id="h1_2" maskUnits="userSpaceOnUse"><path class="mw" d="M 1300 294.890625 V 318.4453125 H 1100 V 325 M 1300 294.890625 V 318.4453125 H 1500 V 325" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="501" stroke-dashoffset="0"
+       style="--k:2"/></mask><mask id="h1_3" maskUnits="userSpaceOnUse"><path class="mw" d="M 731 774.9453125 C 645 774.9453125, 670 639.9453125, 584 639.9453125 M 356 639.9453125 C 320 639.9453125, 320 599.9453125, 290 599.9453125 H 206 M 356 639.9453125 C 320 639.9453125, 320 691.9453125, 290 691.9453125 H 134" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="663" stroke-dashoffset="0"
+       style="--k:3"/></mask><mask id="h1_4" maskUnits="userSpaceOnUse"><path class="mw" d="M 731 774.9453125 C 645 774.9453125, 670 929.9453125, 584 929.9453125 M 356 929.9453125 C 320 929.9453125, 320 889.9453125, 290 889.9453125 H 182 M 356 929.9453125 C 320 929.9453125, 320 981.9453125, 290 981.9453125 H 206" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="631" stroke-dashoffset="0"
+       style="--k:4"/></mask><mask id="h1_5" maskUnits="userSpaceOnUse"><path class="mw" d="M 1069 774.9453125 C 1155 774.9453125, 1130 639.9453125, 1216 639.9453125 M 1444 639.9453125 C 1480 639.9453125, 1480 599.9453125, 1510 599.9453125 H 1690 M 1444 639.9453125 C 1480 639.9453125, 1480 691.9453125, 1510 691.9453125 H 1666" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="759" stroke-dashoffset="0"
+       style="--k:5"/></mask><mask id="h1_6" maskUnits="userSpaceOnUse"><path class="mw" d="M 1069 774.9453125 C 1155 774.9453125, 1130 929.9453125, 1216 929.9453125 M 1444 929.9453125 C 1480 929.9453125, 1480 889.9453125, 1510 889.9453125 H 1738 M 1444 929.9453125 C 1480 929.9453125, 1480 981.9453125, 1510 981.9453125 H 1666" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="823" stroke-dashoffset="0"
+       style="--k:6"/></mask></defs><line class="ax" x1="60" x2="1740" y1="500" y2="500" stroke="#a39a87" stroke-width="2" opacity=".35" stroke-dasharray="6 8"/><text class="ax" x="60" y="80" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" font-weight="500" fill="#a39a87" letter-spacing="2">tree · 階層図</text><text class="ax" x="60" y="550" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" font-weight="500" fill="#a39a87" letter-spacing="2">mind · マインドマップ</text><g class="wire" data-wire="h1_0" mask="url(#h1_0)"><path d="M 900 144.890625 V 168.4453125 H 500 V 175 M 900 144.890625 V 168.4453125 H 1300 V 175" fill="none" stroke="#dca443" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M 500 194 L 490.5 177 L 509.5 177 Z" fill="#dca443"/><path d="M 1300 194 L 1290.5 177 L 1309.5 177 Z" fill="#dca443"/></g><g class="wire" data-wire="h1_1" mask="url(#h1_1)"><path d="M 500 294.890625 V 318.4453125 H 300 V 325 M 500 294.890625 V 318.4453125 H 700 V 325" fill="none" stroke="#4fae9a" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M 300 344 L 290.5 327 L 309.5 327 Z" fill="#4fae9a"/><path d="M 700 344 L 690.5 327 L 709.5 327 Z" fill="#4fae9a"/></g><g class="wire" data-wire="h1_2" mask="url(#h1_2)"><path d="M 1300 294.890625 V 318.4453125 H 1100 V 325 M 1300 294.890625 V 318.4453125 H 1500 V 325" fill="none" stroke="#4fae9a" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M 1100 344 L 1090.5 327 L 1109.5 327 Z" fill="#4fae9a"/><path d="M 1500 344 L 1490.5 327 L 1509.5 327 Z" fill="#4fae9a"/></g><g class="wire" data-wire="h1_3" mask="url(#h1_3)"><path d="M 731 774.9453125 C 645 774.9453125, 670 639.9453125, 584 639.9453125 M 356 639.9453125 C 320 639.9453125, 320 599.9453125, 290 599.9453125 H 206 M 356 639.9453125 C 320 639.9453125, 320 691.9453125, 290 691.9453125 H 134" fill="none" stroke="#dca443" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/></g><g class="tag-wrap" style="--k:3"><text x="284" y="587.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="23" font-weight="500" fill="#efe7d8" text-anchor="end">置き配</text><text x="284" y="679.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="23" font-weight="500" fill="#efe7d8" text-anchor="end">宅配ロッカー</text></g><g class="wire" data-wire="h1_4" mask="url(#h1_4)"><path d="M 731 774.9453125 C 645 774.9453125, 670 929.9453125, 584 929.9453125 M 356 929.9453125 C 320 929.9453125, 320 889.9453125, 290 889.9453125 H 182 M 356 929.9453125 C 320 929.9453125, 320 981.9453125, 290 981.9453125 H 206" fill="none" stroke="#4fae9a" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/></g><g class="tag-wrap" style="--k:4"><text x="284" y="877.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="23" font-weight="500" fill="#efe7d8" text-anchor="end">時間指定</text><text x="284" y="969.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="23" font-weight="500" fill="#efe7d8" text-anchor="end">夜の便</text></g><g class="wire" data-wire="h1_5" mask="url(#h1_5)"><path d="M 1069 774.9453125 C 1155 774.9453125, 1130 639.9453125, 1216 639.9453125 M 1444 639.9453125 C 1480 639.9453125, 1480 599.9453125, 1510 599.9453125 H 1690 M 1444 639.9453125 C 1480 639.9453125, 1480 691.9453125, 1510 691.9453125 H 1666" fill="none" stroke="#e8705a" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/></g><g class="tag-wrap" style="--k:5"><text x="1516" y="587.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="23" font-weight="500" fill="#efe7d8" text-anchor="start">前日に知らせる</text><text x="1516" y="679.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="23" font-weight="500" fill="#efe7d8" text-anchor="start">着く前に電話</text></g><g class="wire" data-wire="h1_6" mask="url(#h1_6)"><path d="M 1069 774.9453125 C 1155 774.9453125, 1130 929.9453125, 1216 929.9453125 M 1444 929.9453125 C 1480 929.9453125, 1480 889.9453125, 1510 889.9453125 H 1738 M 1444 929.9453125 C 1480 929.9453125, 1480 981.9453125, 1510 981.9453125 H 1666" fill="none" stroke="#6f6757" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/></g><g class="tag-wrap" style="--k:6"><text x="1516" y="877.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="23" font-weight="500" fill="#efe7d8" text-anchor="start">コンビニで受け取る</text><text x="1516" y="969.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="23" font-weight="500" fill="#efe7d8" text-anchor="start">職場に届ける</text></g></svg></div>
