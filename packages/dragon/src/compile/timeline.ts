@@ -43,7 +43,7 @@ export type TimelineEdgeKind = "advance" | "back" | "branch";
 
 export type TimelineStep = {
   cardId: string;
-  numberId: string;
+  numberId?: string;
   cardX: number;
   y: number;
 };
@@ -63,9 +63,10 @@ export function classifyTimelineEdge(fromIndex: number, toIndex: number): Timeli
   return "branch";
 }
 
-/** 時間軸の絶対座標と、札に重ならない番号 id を返す。 */
+/** 時間軸の絶対座標と、札に重ならない番号 id を返す。軸上の段には番号 id を作らない。 */
 export function placeTimeline(
   doc: Pick<DslDocument, "actors" | "flow">,
+  軸に置く段: ReadonlySet<string> = new Set(),
 ): TimelinePlacement {
   const actorIndexByName = new Map(doc.actors.map((actor, index) => [actor.name, index]));
   const hasBack = doc.flow.some((edge) => {
@@ -76,17 +77,19 @@ export function placeTimeline(
   const gap = hasBack ? TIMELINE_BACK_GAP : TIMELINE_COMPACT_GAP;
   const cardIds = doc.actors.map((actor, index) => slugify(actor.name) || `n${index}`);
   const usedIds = new Set(cardIds);
+  let 次の番号 = 1;
   const steps = doc.actors.map((actor, index): TimelineStep => {
-    const base = `timeline-number-${index + 1}`;
+    const 番号 = 軸に置く段.has(actor.name) ? undefined : 次の番号++;
+    const base = 番号 === undefined ? undefined : `timeline-number-${番号}`;
     let numberId = base;
     let suffix = 2;
-    while (usedIds.has(numberId)) numberId = `${base}-${suffix++}`;
-    usedIds.add(numberId);
+    while (numberId !== undefined && usedIds.has(numberId)) numberId = `${base}-${suffix++}`;
+    if (numberId !== undefined) usedIds.add(numberId);
     return {
       cardId: cardIds[index]!,
       numberId,
       cardX:
-        index % 2 === 0
+        (番号 ?? index + 1) % 2 === 1
           ? AXIS_X - TIMELINE_AXIS_TO_CARD - TIMELINE_CARD_WIDTH / 2
           : AXIS_X + TIMELINE_AXIS_TO_CARD + TIMELINE_CARD_WIDTH / 2,
       y: FIRST_STEP_Y + index * gap,

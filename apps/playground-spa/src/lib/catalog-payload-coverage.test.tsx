@@ -261,6 +261,7 @@ const 節の欄の扱い = {
   posH: "置き場所",
   role: "置き場所",
   // 記法 = 記法から書く表現の欄
+  leaderTo: "記法",
   eyebrow: "記法",
   subtitle: "記法",
   rows: "記法",
@@ -318,6 +319,8 @@ const 矢印の欄の扱い = {
 const 書けない欄: Record<string, string> = {
   "節/ganttAxisMax":
     "ガントチャートの横軸を何目盛りにするかを決める欄。 記法 (`packages/dragon/src`) に口が無く、記法から書いた図には出ない",
+  "節/leaderTo":
+    "時間軸の札から番号へ補助線を引く欄。 時間軸の番号を丸で描く #2832 までは記法 (`packages/dragon/src`) に口が無い",
 };
 
 /**

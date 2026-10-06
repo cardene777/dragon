@@ -112,6 +112,15 @@ const 選択肢: ReadonlyArray<{
   },
 ];
 
+/**
+ * 描く側に在るが、見本をまだ置いていない値。
+ *
+ * 0.125.0 で増えた時間軸の丸い番号。 時間軸の番号を丸で描く #2832 が見本の時間軸で使い始めるまで外す。
+ */
+const 描く側に在るが見本をまだ置いていない値: Readonly<Record<string, readonly string[]>> = {
+  NODE_KINDS: ["timeline-number"],
+};
+
 /** その一覧の場所に現れた値を合わせる。 */
 function 明示の値(場所: readonly string[]): Set<string> {
   const out = new Set<string>();
@@ -141,13 +150,27 @@ describe("記法の選択肢が全部カタログに載っている (#2581)", ()
        */
       const 出ている = 明示の値(場所);
       if (既定 !== undefined) 出ている.add(既定);
-      const 未使用 = 一覧.filter((v) => !出ている.has(v));
+      const 宣言した未使用 = 描く側に在るが見本をまだ置いていない値[名] ?? [];
+      const 未使用 = 一覧.filter((v) => !出ている.has(v) && !宣言した未使用.includes(v));
       expect(
         未使用,
         `${名} の選択肢がカタログに 1 枚も無い (一覧 ${一覧.length} 件 / 出ている ${出ている.size} 件)`,
       ).toEqual([]);
     });
   }
+
+  it("見本をまだ置いていないと宣言した値が一覧に在り、カタログには出ていない", () => {
+    for (const [名, 宣言した値] of Object.entries(描く側に在るが見本をまだ置いていない値)) {
+      const 項目 = 選択肢.find((item) => item.名 === 名);
+      expect(項目, `${名} は選択肢の一覧に無い`).toBeDefined();
+      if (項目 === undefined) continue;
+      const 一覧外 = 宣言した値.filter((value) => !項目.一覧.includes(value));
+      expect(一覧外, `${名} に無い値を未使用として宣言している: ${一覧外.join(", ")}`).toEqual([]);
+      const 出ている = 明示の値(項目.場所);
+      const 見本に在る = 宣言した値.filter((value) => 出ている.has(value));
+      expect(見本に在る, `${名} の見本に出た値が未使用の宣言に残っている: ${見本に在る.join(", ")}`).toEqual([]);
+    }
+  });
 
   it("場所の表が実物と一致している", () => {
     /*
