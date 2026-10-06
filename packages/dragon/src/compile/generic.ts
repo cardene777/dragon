@@ -10,6 +10,7 @@ import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lane
 import { placeMetro } from "./metro";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
+import { 分かれ道の札, 泳法図で印をどう描く } from "./swimlane-marks";
 import {
   classifyTimelineEdge,
   placeTimeline,
@@ -77,6 +78,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
    * 分けられない。
    */
   const 箱の種類 = (a: (typeof doc.actors)[number]): NodeKind => {
+    const 印の描き方 = 泳法図で印をどう描く(doc, a);
+    if (印の描き方 === "札") return 描ける種別(undefined);
+    if (印の描き方 === "描く") return 描ける種別(a.kind);
     if (kind !== "record" || a.kindWritten === true) return 描ける種別(a.kind);
     return (a.rows?.length ?? 0) > 0 ? "storage" : "card";
   };
@@ -135,7 +139,12 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     timelineActorIndex = new Map(doc.actors.map((actor, index) => [actor.name, index]));
     const numberIdByCardId = new Map<string, string>();
     timelineNumberIdByCardId = numberIdByCardId;
-    const placement = placeTimeline(doc);
+    const 軸に置く段 = new Set(
+      doc.actors
+        .filter((actor) => 泳法図で印をどう描く(doc, actor) === "描く")
+        .map((actor) => actor.name),
+    );
+    const placement = placeTimeline(doc, 軸に置く段);
     b.lane("timeline-axis", {
       width: TIMELINE_NUMBER_WIDTH,
       role: "overlay",
@@ -156,12 +165,25 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     doc.actors.forEach((actor, index) => {
       const step = placement.steps[index]!;
       actorToNodeId.set(actor.name, step.cardId);
-      numberIdByCardId.set(step.cardId, step.numberId);
-      b.node(step.numberId, {
+      if (泳法図で印をどう描く(doc, actor) === "描く") {
+        b.node(step.cardId, {
+          lane: "timeline-axis",
+          stack: index,
+          kind: 箱の種類(actor),
+          title: 箱の題(actor),
+          posX: placement.axisX,
+          posY: step.y,
+        });
+        return;
+      }
+      const numberId = step.numberId;
+      if (numberId === undefined) throw new Error(`時間軸の普通の段 "${actor.name}" に番号がありません`);
+      numberIdByCardId.set(step.cardId, numberId);
+      b.node(numberId, {
         lane: "timeline-axis",
         stack: index,
         kind: "function",
-        title: String(index + 1),
+        title: String(numberIdByCardId.size),
         w: TIMELINE_NUMBER_WIDTH,
         h: TIMELINE_NUMBER_HEIGHT,
         posX: placement.axisX,
@@ -199,7 +221,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       b.node(id, {
         lane: station.trackId,
         stack: index,
-        kind: "station",
+        kind: 泳法図で印をどう描く(doc, actor) === "描く" ? 箱の種類(actor) : "station",
         title: 箱の題(actor),
         posX: station.posX,
         posY: station.posY,
@@ -255,6 +277,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         w: Math.max(1, laneWidth - 60),
         kind: 箱の種類(a),
         title: 箱の題(a),
+        ...(泳法図で印をどう描く(doc, a) === "札" ? { subtitle: 分かれ道の札 } : {}),
         ...札(a, idx),
       });
     });
@@ -375,9 +398,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       ? classifyTimelineEdge(timelineActorIndex.get(s.from)!, timelineActorIndex.get(s.to)!)
       : undefined;
     const edgeFromId =
-      timelineEdgeKind === "advance" ? timelineNumberIdByCardId!.get(fromId)! : fromId;
+      timelineEdgeKind === "advance" ? (timelineNumberIdByCardId!.get(fromId) ?? fromId) : fromId;
     const edgeToId =
-      timelineEdgeKind === "advance" ? timelineNumberIdByCardId!.get(toId)! : toId;
+      timelineEdgeKind === "advance" ? (timelineNumberIdByCardId!.get(toId) ?? toId) : toId;
     b.edge(edgeFromId, edgeToId, {
       id: edgeId,
       label: 関係?.label ?? s.label,

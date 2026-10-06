@@ -400,3 +400,87 @@ flow:
     expect(geometry(json)).toEqual(geometry(yaml));
   });
 });
+
+describe("時間軸で分かれ道と終わりを書く (#2830)", () => {
+  const 宅配の本文 = (): string => `title: "荷物を届ける"
+type: swimlane
+shape: timeline
+lanes:
+  shipper: { label: 荷主 }
+  office: { label: 営業所 }
+  courier: { label: 配送便 }
+actors:
+  - 始まり: { kind: mark-start, lane: shipper }
+  - 集荷を頼む: { lane: shipper }
+  - 受け付ける: { lane: office }
+  - 送り状を起こす: { lane: office }
+  - 便に積む: { lane: courier }
+  - 届けに行く: { lane: courier }
+  - 在宅?: { kind: decision, lane: courier }
+  - 受け取る: { lane: shipper }
+  - 持ち戻る: { lane: courier }
+  - 終わり: { kind: mark-end, lane: shipper }
+flow:
+  - 始まり -> 集荷を頼む
+  - 集荷を頼む -> 受け付ける
+  - 受け付ける -> 送り状を起こす
+  - 送り状を起こす -> 便に積む
+  - 便に積む -> 届けに行く
+  - 届けに行く -> 在宅?
+  - 在宅? -> 受け取る: "はい"
+  - 在宅? -> 持ち戻る: "いいえ"
+  - 持ち戻る -> 便に積む: "翌日もう一度" (dashed)
+  - 受け取る -> 終わり
+`;
+  const 宅配 = 組み立てる(宅配の本文());
+  const nodeIds = new Set(宅配.diagram.nodes.map((node) => node.id));
+  const numbers = 宅配.diagram.nodes.filter((node) => node.id.startsWith("timeline-number-"));
+
+  it("分かれ道と終わりを軸上の印にし、始まりは描かない", () => {
+    expect(宅配.diagram.nodes.filter((node) => node.kind === "decision")).toHaveLength(1);
+    expect(宅配.diagram.nodes.filter((node) => node.kind === "mark-end")).toHaveLength(1);
+    expect(宅配.diagram.nodes.filter((node) => node.kind === "mark-start")).toHaveLength(0);
+    expect(宅配.diagram.nodes.some((node) => node.id === "始まり")).toBe(false);
+    expect((宅配.markup.match(/data-cdl-kind="decision"/g) ?? []).length).toBe(1);
+    expect((宅配.markup.match(/data-cdl-mark="end"/g) ?? []).length).toBe(1);
+    expect((宅配.markup.match(/data-cdl-mark="start"/g) ?? []).length).toBe(0);
+  });
+
+  it("分かれ道と終わりを番号と同じ軸上に置く", () => {
+    const atHome = 宅配.diagram.nodes.find((node) => node.id === "在宅")!;
+    const end = 宅配.diagram.nodes.find((node) => node.id === "終わり")!;
+    expect(atHome.lane).toBe("timeline-axis");
+    expect(end.lane).toBe("timeline-axis");
+    expect(numbers.some((node) => node.posX === atHome.posX)).toBe(true);
+    expect(numbers.some((node) => node.posX === end.posX)).toBe(true);
+  });
+
+  it("普通の段だけに連番と札を作る", () => {
+    expect(numbers).toHaveLength(7);
+    expect(numbers.map((node) => node.title)).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
+    const cards = 宅配.diagram.nodes.filter((node) => node.kind === "card" && node.lane === "timeline-steps");
+    expect(cards).toHaveLength(7);
+    expect(cards.map((node) => node.title)).not.toContain("在宅?");
+    expect(cards.map((node) => node.title)).not.toContain("終わり");
+    expect(cards.map((node) => node.title)).not.toContain("始まり");
+  });
+
+  it("印を指定しても知らせを出さない", () => {
+    expect(宅配.notices).toEqual([]);
+  });
+
+  it("分かれ道から番号と札へラベル付きで線を出す", () => {
+    expect(宅配.diagram.edges.find((edge) => edge.from === "在宅" && edge.label === "はい")?.to).toBe("timeline-number-6");
+    expect(宅配.diagram.edges.find((edge) => edge.from === "在宅" && edge.label === "いいえ")?.to).toBe("持ち戻る");
+    expect(宅配.diagram.edges.find((edge) => edge.from === "timeline-number-5" && edge.to === "在宅")).toBeDefined();
+  });
+
+  it("戻り線の破線と迂回 routing を保つ", () => {
+    expect(宅配.diagram.edges.find((edge) => edge.from === "持ち戻る" && edge.to === "便に積む")).toMatchObject({ style: "dashed", label: "翌日もう一度", routing: "back-detour" });
+  });
+
+  it("描かない始まりからの宙に浮いた線を残さない", () => {
+    expect(宅配.diagram.edges).toHaveLength(9);
+    expect(宅配.diagram.edges.every((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to))).toBe(true);
+  });
+});

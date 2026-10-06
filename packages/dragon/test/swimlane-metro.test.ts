@@ -302,3 +302,73 @@ flow:
     expect(geometry(json)).toEqual(geometry(yaml));
   });
 });
+
+describe("路線図で分かれ道と始まりと終わりを書く (#2830)", () => {
+  const 宅配の本文 = (): string => `title: "荷物を届ける"
+type: swimlane
+shape: metro
+lanes:
+  shipper: { label: 荷主 }
+  office: { label: 営業所 }
+  courier: { label: 配送便 }
+actors:
+  - 始まり: { kind: mark-start, lane: shipper }
+  - 集荷を頼む: { lane: shipper }
+  - 受け付ける: { lane: office }
+  - 送り状を起こす: { lane: office }
+  - 便に積む: { lane: courier }
+  - 届けに行く: { lane: courier }
+  - 在宅?: { kind: decision, lane: courier }
+  - 受け取る: { lane: shipper }
+  - 持ち戻る: { lane: courier }
+  - 終わり: { kind: mark-end, lane: shipper }
+flow:
+  - 始まり -> 集荷を頼む
+  - 集荷を頼む -> 受け付ける
+  - 受け付ける -> 送り状を起こす
+  - 送り状を起こす -> 便に積む
+  - 便に積む -> 届けに行く
+  - 届けに行く -> 在宅?
+  - 在宅? -> 受け取る: "はい"
+  - 在宅? -> 持ち戻る: "いいえ"
+  - 持ち戻る -> 便に積む: "翌日もう一度" (dashed)
+  - 受け取る -> 終わり
+`;
+  const 宅配 = 組み立てる(宅配の本文());
+  const nodeIds = new Set(宅配.diagram.nodes.map((node) => node.id));
+
+  it("分かれ道と始まりと終わりをそれぞれの印で描く", () => {
+    expect(宅配.diagram.nodes.filter((node) => node.kind === "decision")).toHaveLength(1);
+    expect(宅配.diagram.nodes.filter((node) => node.kind === "mark-start")).toHaveLength(1);
+    expect(宅配.diagram.nodes.filter((node) => node.kind === "mark-end")).toHaveLength(1);
+    expect(宅配.diagram.nodes.filter((node) => node.kind === "station")).toHaveLength(7);
+    expect((宅配.markup.match(/data-cdl-kind="decision"/g) ?? []).length).toBe(1);
+    expect((宅配.markup.match(/data-cdl-mark="start"/g) ?? []).length).toBe(1);
+    expect((宅配.markup.match(/data-cdl-mark="end"/g) ?? []).length).toBe(1);
+  });
+
+  it("印を指定された担当の線路に置く", () => {
+    expect(宅配.diagram.nodes.find((node) => node.id === "在宅")?.lane).toBe("track-courier");
+    expect(宅配.diagram.nodes.find((node) => node.id === "始まり")?.lane).toBe("track-shipper");
+    expect(宅配.diagram.nodes.find((node) => node.id === "終わり")?.lane).toBe("track-shipper");
+  });
+
+  it("印を指定しても知らせを出さない", () => {
+    expect(宅配.notices).toEqual([]);
+  });
+
+  it("全ての線を路線図の routing にする", () => {
+    expect(宅配.diagram.edges.every((edge) => edge.routing === "metro")).toBe(true);
+  });
+
+  it("分かれ道と戻り線のラベルと破線を保つ", () => {
+    expect(宅配.diagram.edges.find((edge) => edge.from === "在宅" && edge.to === "受け取る")?.label).toBe("はい");
+    expect(宅配.diagram.edges.find((edge) => edge.from === "在宅" && edge.to === "持ち戻る")?.label).toBe("いいえ");
+    expect(宅配.diagram.edges.find((edge) => edge.from === "持ち戻る" && edge.to === "便に積む")).toMatchObject({ style: "dashed", label: "翌日もう一度" });
+  });
+
+  it("全ての線の両端を描いた node に繋ぐ", () => {
+    expect(宅配.diagram.edges).toHaveLength(10);
+    expect(宅配.diagram.edges.every((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to))).toBe(true);
+  });
+});

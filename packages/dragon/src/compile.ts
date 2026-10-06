@@ -89,6 +89,7 @@ export type { CompileNotice } from "./compile/notice";
 import { 段を読み取る } from "./compile/rows";
 import { truncateForMessage } from "./compile/subtitle";
 import { slugify } from "./compile/slug";
+import { 省く泳法図の印を外す, 泳法図で印をどう描く } from "./compile/swimlane-marks";
 import { 語の状態を図の語へ直す } from "./compile/word-state";
 import type { CdlDiagram, CdlEdge, CdlNode } from "@cardenelabs/cdl";
 import { layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
@@ -154,6 +155,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 端にしか出てこない名前で id を分けても、 その箱は作られない
   const 分けた = disambiguateActorIds(doc, opts?.onNotice);
   doc = 分けた.doc;
+  doc = 省く泳法図の印を外す(doc);
 
   // 図種の組み立てが知らせた行を控える (#2107 / #2111)。 同じ行に多重度の知らせを重ねない。
   // 知らせる図種も知らせの種類も手で並べず、実際に出た知らせで決める
@@ -1568,7 +1570,7 @@ function reportSkeletonActorOptionNotHonored(
     if (a.partId !== undefined) continue;
     const 判定で外す: string[] = [];
     // 種類は書かなくても既定の `actor` が入るため、値ではなく書いたかどうかの印で見る (#1058)
-    if (a.kindWritten === false) 判定で外す.push("kind");
+    if (a.kindWritten === false || 泳法図で印をどう描く(doc, a) !== undefined) 判定で外す.push("kind");
     // 行と組にして読み替えられる印は効く = 効いている指定には鳴らさない
     if (
       a.rows !== undefined &&
@@ -1586,9 +1588,9 @@ function reportSkeletonActorOptionNotHonored(
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} は箱を並べて線で繋ぐ図です)`,
       hint:
         doc.type === "swimlane" && doc.shape === "timeline"
-          ? "札は actors に書いた順に軸の左右へ交互に並び、種類は card で固定されます"
+          ? "札は actors に書いた順に軸の左右へ交互に並び、種類は card で固定されます。 decision と mark-end は軸の上に描き、mark-start は描きません"
           : doc.type === "swimlane" && doc.shape === "metro"
-            ? "駅は actors に書いた順に並び、種類は station で固定されます"
+            ? "駅は actors に書いた順に並び、種類は station で固定されます。 decision / mark-start / mark-end は分かれ道と始まりと終わりの印として描きます"
           : 骨組みの図の案内(doc.type, 効かない),
     });
   }
@@ -2984,7 +2986,9 @@ function reportShapeNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =
 /** `stage` を省いた箱で担当または箱名を段階に使ったことを、図全体で 1 件だけ伝える (#2797)。 */
 function reportStageFromLane(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
   if (!onNotice || doc.type !== "swimlane" || doc.shape !== "stages") return;
-  const 補った = doc.actors.filter((actor) => actor.stage === undefined);
+  const 補った = doc.actors.filter(
+    (actor) => actor.stage === undefined && 泳法図で印をどう描く(doc, actor) !== "省く",
+  );
   const 最初 = 補った[0];
   if (最初 === undefined) return;
   onNotice({
