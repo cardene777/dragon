@@ -1,0 +1,160 @@
+<!doctype html><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=M+PLUS+1+Code:wght@400;500;700&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+<style>*{margin:0;box-sizing:border-box}body{width:1800px;height:1100px;position:relative;overflow:hidden}
+
+.fig{position:relative;width:1800px;height:1100px;overflow:hidden;transform-origin:top left;
+     font-family:'Noto Sans JP',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.fig *{margin:0;box-sizing:border-box}
+.fig .ent{position:absolute;border-radius:12px;overflow:hidden}
+.fig .ti{font:700 29px/1.1 'Noto Sans JP',system-ui,sans-serif;color:#463e33}
+.fig .rows{display:flex;flex-direction:column}
+.fig .row{height:46px;display:flex;align-items:center;padding:0 24px;gap:14px}
+.fig .mk{width:9px;height:9px;flex:none}
+.fig .nm{font:500 22px/1 'Noto Sans JP',system-ui,sans-serif;color:#463e33;white-space:nowrap}
+.fig .ty{font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#a99e8e;margin-left:auto;white-space:nowrap}
+.fig .void{padding:20px 24px 22px;font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#a99e8e;letter-spacing:.05em}
+.fig .foot{display:flex;justify-content:space-between;align-items:center}
+.fig .fk{font:700 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#7a7062;letter-spacing:.16em}
+.fig .fn{font:400 17px/1 'JetBrains Mono',ui-monospace,monospace;color:#a99e8e}
+.fig .well{margin:14px;padding:12px;border-radius:9px;display:flex;flex-direction:column;gap:12px}
+.fig .nest{position:relative;left:auto;top:auto;width:auto;border-radius:8px}
+.fig .nest .ti{font-size:22px}
+.fig .nest .row{height:40px;padding:0 18px}
+.fig .nest .nm{font-size:20px}
+.fig .nest .ty{font-size:17px}
+.fig .nest .foot{display:none}
+.fig > svg{position:absolute;inset:0;width:1800px;height:1100px;pointer-events:none;overflow:visible}
+
+  .fig{background:#e8e3da}
+  .fig .ent{background:#e8e3da;border-radius:22px;
+    box-shadow:7px 7px 15px rgba(160,144,120,.5), -7px -7px 15px rgba(255,255,255,.92)}
+  .fig .ent[data-w="太"]{background:linear-gradient(145deg, #f3efe8, #d9d2c6);
+    box-shadow:12px 12px 24px rgba(160,144,120,.55), -12px -12px 24px rgba(255,255,255,.95)}
+  .fig .ent[data-w="太"] .ti{color:#c4573c}
+  .fig .head{padding:20px 26px 12px}
+  .fig .ti{font-weight:700;letter-spacing:.01em}
+  .fig .ent:not(.panel):not(.nest) > .rows,.fig .void{margin:2px 16px 4px;padding:6px 0;border-radius:15px;
+    box-shadow:inset 4px 4px 8px rgba(160,144,120,.42), inset -4px -4px 8px rgba(255,255,255,.88)}
+  .fig .void{padding:18px}
+  .fig .row{padding:0 18px}
+  .fig .foot{padding:12px 26px 16px}
+  .fig .panel .plot{margin:4px 18px 8px;border-radius:18px;
+    box-shadow:inset 5px 5px 11px rgba(160,144,120,.42), inset -5px -5px 11px rgba(255,255,255,.88)}
+  .fig .well{background:transparent;border-radius:18px;margin:6px 16px;padding:16px;
+    box-shadow:inset 5px 5px 11px rgba(160,144,120,.45), inset -5px -5px 11px rgba(255,255,255,.88)}
+  .fig .nest{background:#e8e3da;border-radius:14px;
+    box-shadow:4px 4px 9px rgba(160,144,120,.45), -4px -4px 9px rgba(255,255,255,.9)}
+  .fig .nest .head{padding:12px 18px 8px}
+  .fig .mk{border-radius:50%;width:10px;height:10px}
+.fig .actor{text-align:center}
+.fig .actor .head{border-bottom:0}
+.fig .actor .sub{font:400 19px/1 'Noto Sans JP',system-ui,sans-serif;color:#7a7062;margin-top:10px;letter-spacing:.04em}
+.fig .panel{display:flex;flex-direction:column}
+.fig .panel .plot{flex:1;min-height:0}
+.fig .panel .split{flex:1;display:flex;min-height:0}
+.fig .panel .split .rows{width:310px;align-self:center}
+.fig .lab{position:absolute;left:60px;width:540px;height:44px;display:flex;align-items:center;gap:16px}
+.fig .lab .nm{font-size:26px;color:#463e33}
+.fig .lab .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#7a7062;letter-spacing:.12em;margin-left:2px}
+.fig .mass{position:absolute;transform-origin:50% 100%}
+.fig .mass.band{transform-origin:50% 0}
+.fig .sub{font:400 19px/1 'Noto Sans JP',system-ui,sans-serif;color:#7a7062;margin-top:10px;letter-spacing:.04em}
+.fig .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#7a7062;letter-spacing:.12em}
+.fig .step .head,.fig .tn .head{text-align:center;border-bottom-color:transparent}
+.fig .step .ti{font-size:26px}
+.fig .card .head,.fig .pill .head{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom-color:transparent}
+.fig .card .ti{font-size:25px}
+.fig .stage .head .kw{display:block;margin-bottom:10px}
+.fig .node .head{position:relative;padding-right:78px}
+.fig .node .ico{position:absolute;right:22px;top:50%;margin-top:-20px}
+.fig .zone{margin:0;padding:0;display:block;border:0}
+.fig .zl{position:absolute;left:26px;top:20px;display:flex;align-items:baseline;gap:14px}
+.fig .zl .nm{font-size:24px;font-weight:700;color:#463e33}
+.fig .zl .kw{color:#7a7062}
+.fig .cls .head{text-align:center}
+.fig .cls .head .kw{margin-bottom:9px;letter-spacing:.2em}
+.fig .cls .ops{border-top:1.5px solid color-mix(in srgb, #463e33 40%, transparent)}
+.fig .panel.narrow .split .rows{width:190px}
+.fig .mass.bar{transform-origin:0 50%}
+.fig .mass.bar.mid{transform-origin:50% 50%}
+.fig svg .tag-wrap{transform-box:fill-box;transform-origin:50% 50%}
+
+
+
+
+
+
+  .fig .mass{background:linear-gradient(145deg,color-mix(in srgb,var(--col) 78%,white),var(--col));border-radius:12px 12px 5px 5px;
+    box-shadow:6px 6px 12px rgba(160,144,120,.5), -6px -6px 12px rgba(255,255,255,.9)}
+  .fig .mass.bar{border-radius:5px 12px 12px 5px}
+  .fig .mass.bar.mid,.fig .mass.bar.seg{border-radius:10px}
+  .fig .mass.band{background:#e8e3da;border-radius:12px;
+    box-shadow:4px 4px 8px rgba(160,144,120,.45), -4px -4px 8px rgba(255,255,255,.9)}</style>
+<div class="fig">
+<div class="ent zone well" data-ent="区画" style="left:420px;top:120px;width:920px;height:850px;--i:0;--r:0">
+  <div class="zl"><span class="nm">配送システム</span><span class="kw">L2 · 中の部品</span></div>
+</div>
+<div class="ent node" data-ent="荷主" style="left:46px;top:232px;width:300px;--i:1;--r:1">
+  <div class="head"><div class="ti">荷主</div><div class="sub">集荷を頼む人</div>
+    <svg class="ico" viewBox="0 0 40 40" width="40" height="40"><path d="M20 14 m-7 0 a7 7 0 1 0 14 0 a7 7 0 1 0 -14 0 M6 36 C6 25 34 25 34 36" fill="none" stroke="#7a7062" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="foot"><span class="fk">人</span><span class="fn">L1</span></div>
+</div>
+<div class="ent node" data-ent="受付 API" style="left:470px;top:232px;width:360px;--i:2;--r:1">
+  <div class="head"><div class="ti">受付 API</div><div class="sub">申し込みを受ける</div>
+    <svg class="ico" viewBox="0 0 40 40" width="40" height="40"><path d="M20 4 L34 12 L34 28 L20 36 L6 28 L6 12 Z M20 20 L34 12 M20 20 L6 12 M20 20 V36" fill="none" stroke="#7a7062" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="foot"><span class="fk">サービス</span><span class="fn">L2</span></div>
+</div>
+<div class="ent node" data-ent="追跡" style="left:930px;top:232px;width:360px;--i:3;--r:1">
+  <div class="head"><div class="ti">追跡</div><div class="sub">荷物の今を答える</div>
+    <svg class="ico" viewBox="0 0 40 40" width="40" height="40"><path d="M20 4 L34 12 L34 28 L20 36 L6 28 L6 12 Z M20 20 L34 12 M20 20 L6 12 M20 20 V36" fill="none" stroke="#7a7062" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="foot"><span class="fk">サービス</span><span class="fn">L2</span></div>
+</div>
+<div class="ent node" data-ent="地図サービス" style="left:1420px;top:232px;width:334px;--i:4;--r:1">
+  <div class="head"><div class="ti">地図サービス</div><div class="sub">道順を返す</div>
+    <svg class="ico" viewBox="0 0 40 40" width="40" height="40"><path d="M12 31 H30 C37 31 39 22 32 19 C32 10 21 8 18 15 C11 12 6 18 9 23 C4 24 5 31 12 31 Z" fill="none" stroke="#7a7062" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="foot"><span class="fk">外のサービス</span><span class="fn">外</span></div>
+</div>
+<div class="ent node" data-ent="台帳" style="left:470px;top:522px;width:360px;--i:5;--r:1">
+  <div class="head"><div class="ti">台帳</div><div class="sub">送り状を残す</div>
+    <svg class="ico" viewBox="0 0 40 40" width="40" height="40"><path d="M7 10 C7 3 33 3 33 10 C33 17 7 17 7 10 Z M7 10 V30 C7 37 33 37 33 30 V10 M7 20 C7 27 33 27 33 20" fill="none" stroke="#7a7062" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="foot"><span class="fk">データベース</span><span class="fn">L2</span></div>
+</div>
+<div class="ent node" data-ent="位置の控え" style="left:930px;top:522px;width:360px;--i:6;--r:1">
+  <div class="head"><div class="ti">位置の控え</div><div class="sub">最新の位置だけ持つ</div>
+    <svg class="ico" viewBox="0 0 40 40" width="40" height="40"><path d="M23 3 L9 22 H19 L16 37 L31 16 H21 Z" fill="none" stroke="#7a7062" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="foot"><span class="fk">キャッシュ</span><span class="fn">L2</span></div>
+</div>
+<div class="ent node" data-ent="配送便の端末" style="left:1420px;top:522px;width:334px;--i:7;--r:1">
+  <div class="head"><div class="ti">配送便の端末</div><div class="sub">運転手が持つ</div>
+    <svg class="ico" viewBox="0 0 40 40" width="40" height="40"><path d="M12 4 H28 C29 4 30 5 30 6 V34 C30 35 29 36 28 36 H12 C11 36 10 35 10 34 V6 C10 5 11 4 12 4 Z M17 31 H23" fill="none" stroke="#7a7062" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="foot"><span class="fk">端末</span><span class="fn">L1</span></div>
+</div>
+<div class="ent node" data-ent="メール配信" style="left:46px;top:812px;width:300px;--i:8;--r:1">
+  <div class="head"><div class="ti">メール配信</div><div class="sub">知らせを届ける</div>
+    <svg class="ico" viewBox="0 0 40 40" width="40" height="40"><path d="M12 31 H30 C37 31 39 22 32 19 C32 10 21 8 18 15 C11 12 6 18 9 23 C4 24 5 31 12 31 Z" fill="none" stroke="#7a7062" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="foot"><span class="fk">外のサービス</span><span class="fn">外</span></div>
+</div>
+<div class="ent node" data-ent="通知" style="left:470px;top:812px;width:360px;--i:9;--r:1">
+  <div class="head"><div class="ti">通知</div><div class="sub">着く前に知らせる</div>
+    <svg class="ico" viewBox="0 0 40 40" width="40" height="40"><path d="M20 4 L34 12 L34 28 L20 36 L6 28 L6 12 Z M20 20 L34 12 M20 20 L6 12 M20 20 V36" fill="none" stroke="#7a7062" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="foot"><span class="fk">サービス</span><span class="fn">L2</span></div>
+</div><svg viewBox="0 0 1800 1100" style="filter:url(#光)"><defs><filter id="光" x="-3%" y="-3%" width="106%" height="106%"><feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b"/><feOffset in="b" dx="2.5" dy="2.5" result="bd"/><feFlood flood-color="rgb(160,144,120)" flood-opacity=".55"/><feComposite in2="bd" operator="in" result="ds"/><feOffset in="b" dx="-2" dy="-2" result="bl"/><feFlood flood-color="#ffffff" flood-opacity=".95"/><feComposite in2="bl" operator="in" result="ls"/><feMerge><feMergeNode in="ds"/><feMergeNode in="ls"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><defs><mask id="t6_0" maskUnits="userSpaceOnUse"><path class="mw" d="M 350 300.9453125 H 447" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="137" stroke-dashoffset="0"
+       style="--k:0"/></mask><mask id="t6_1" maskUnits="userSpaceOnUse"><path class="mw" d="M 650 373.890625 V 499" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="166" stroke-dashoffset="0"
+       style="--k:1"/></mask><mask id="t6_2" maskUnits="userSpaceOnUse"><path class="mw" d="M 196 228 V 186 H 1110 V 209" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1019" stroke-dashoffset="0"
+       style="--k:2"/></mask><mask id="t6_3" maskUnits="userSpaceOnUse"><path class="mw" d="M 1416 590.9453125 H 1313" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="143" stroke-dashoffset="0"
+       style="--k:3"/></mask><mask id="t6_4" maskUnits="userSpaceOnUse"><path class="mw" d="M 1110 373.890625 V 499" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="166" stroke-dashoffset="0"
+       style="--k:4"/></mask><mask id="t6_5" maskUnits="userSpaceOnUse"><path class="mw" d="M 1294 300.9453125 H 1395" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="141" stroke-dashoffset="0"
+       style="--k:5"/></mask><mask id="t6_6" maskUnits="userSpaceOnUse"><path class="mw" d="M 926 590.9453125 H 855" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="111" stroke-dashoffset="0"
+       style="--k:6"/></mask><mask id="t6_7" maskUnits="userSpaceOnUse"><path class="mw" d="M 650 663.890625 V 789" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="166" stroke-dashoffset="0"
+       style="--k:7"/></mask><mask id="t6_8" maskUnits="userSpaceOnUse"><path class="mw" d="M 466 880.9453125 H 371" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="135" stroke-dashoffset="0"
+       style="--k:8"/></mask><mask id="t6_9" maskUnits="userSpaceOnUse"><path class="mw" d="M 196 806 V 394.890625" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="452" stroke-dashoffset="0"
+       style="--k:9"/></mask></defs><g class="wire" data-wire="t6_0" mask="url(#t6_0)"><path d="M 350 300.9453125 H 447" fill="none" stroke="#c4573c" stroke-width="5" stroke-linejoin="round" stroke-linecap="butt"/><path d="M 468 300.9453125 L 451 291.4453125 L 451 310.4453125 Z" fill="#c4573c"/></g><g class="tag-wrap" style="--k:0"><g class="tag"><rect x="373" y="280.9453125" width="74" height="40" rx="20" fill="#c4573c"/><text x="410" y="308.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">頼む</text></g></g><g class="wire" data-wire="t6_1" mask="url(#t6_1)"><path d="M 650 373.890625 V 499" fill="none" stroke="#2f7a6e" stroke-width="5" stroke-linejoin="round" stroke-linecap="butt"/><path d="M 650 520 L 640.5 503 L 659.5 503 Z" fill="#2f7a6e"/></g><g class="tag-wrap" style="--k:1"><g class="tag"><rect x="613" y="425.9453125" width="74" height="40" rx="20" fill="#2f7a6e"/><text x="650" y="453.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">書く</text></g></g><g class="wire" data-wire="t6_2" mask="url(#t6_2)"><path d="M 196 228 V 186 H 1110 V 209" fill="none" stroke="#c4573c" stroke-width="5" stroke-linejoin="round" stroke-linecap="butt"/><path d="M 1110 230 L 1100.5 213 L 1119.5 213 Z" fill="#c4573c"/></g><g class="tag-wrap" style="--k:2"><g class="tag"><rect x="843" y="166" width="74" height="40" rx="20" fill="#c4573c"/><text x="880" y="194" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">聞く</text></g></g><g class="wire" data-wire="t6_3" mask="url(#t6_3)"><path d="M 1416 590.9453125 H 1313" fill="none" stroke="#c4573c" stroke-width="5" stroke-linejoin="round" stroke-linecap="butt"/><path d="M 1292 590.9453125 L 1309 600.4453125 L 1309 581.4453125 Z" fill="#c4573c"/></g><g class="tag-wrap" style="--k:3"><g class="tag"><rect x="1316" y="570.9453125" width="74" height="40" rx="20" fill="#c4573c"/><text x="1353" y="598.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">送る</text></g></g><g class="wire" data-wire="t6_4" mask="url(#t6_4)"><path d="M 1110 373.890625 V 499" fill="none" stroke="#2f7a6e" stroke-width="5" stroke-linejoin="round" stroke-linecap="butt"/><path d="M 1110 520 L 1100.5 503 L 1119.5 503 Z" fill="#2f7a6e"/></g><g class="tag-wrap" style="--k:4"><g class="tag"><rect x="1073" y="425.9453125" width="74" height="40" rx="20" fill="#2f7a6e"/><text x="1110" y="453.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">読む</text></g></g><g class="wire" data-wire="t6_5" mask="url(#t6_5)"><path d="M 1294 300.9453125 H 1395" fill="none" stroke="#c99a35" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 9.600000000000001"/><path d="M 1416 300.9453125 L 1399 291.4453125 L 1399 310.4453125 Z" fill="#c99a35"/></g><g class="tag-wrap" style="--k:5"><g class="tag"><rect x="1298" y="280.9453125" width="118" height="40" rx="20" fill="#c99a35"/><text x="1357" y="308.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">道を聞く</text></g></g><g class="wire" data-wire="t6_6" mask="url(#t6_6)"><path d="M 926 590.9453125 H 855" fill="none" stroke="#c99a35" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 9.600000000000001"/><path d="M 834 590.9453125 L 851 600.4453125 L 851 581.4453125 Z" fill="#c99a35"/></g><g class="tag-wrap" style="--k:6"><g class="tag"><rect x="841" y="570.9453125" width="74" height="40" rx="20" fill="#c99a35"/><text x="878" y="598.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">移す</text></g></g><g class="wire" data-wire="t6_7" mask="url(#t6_7)"><path d="M 650 663.890625 V 789" fill="none" stroke="#2f7a6e" stroke-width="5" stroke-linejoin="round" stroke-linecap="butt"/><path d="M 650 810 L 640.5 793 L 659.5 793 Z" fill="#2f7a6e"/></g><g class="tag-wrap" style="--k:7"><g class="tag"><rect x="591" y="715.9453125" width="118" height="40" rx="20" fill="#2f7a6e"/><text x="650" y="743.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">書いたら</text></g></g><g class="wire" data-wire="t6_8" mask="url(#t6_8)"><path d="M 466 880.9453125 H 371" fill="none" stroke="#c99a35" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 9.600000000000001"/><path d="M 350 880.9453125 L 367 890.4453125 L 367 871.4453125 Z" fill="#c99a35"/></g><g class="tag-wrap" style="--k:8"><g class="tag"><rect x="369" y="860.9453125" width="74" height="40" rx="20" fill="#c99a35"/><text x="406" y="888.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">送る</text></g></g><g class="wire" data-wire="t6_9" mask="url(#t6_9)"><path d="M 196 806 V 394.890625" fill="none" stroke="#c99a35" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 9.600000000000001"/><path d="M 196 373.890625 L 205.5 390.890625 L 186.5 390.890625 Z" fill="#c99a35"/></g><g class="tag-wrap" style="--k:9"><g class="tag"><rect x="159" y="570.9453125" width="74" height="40" rx="20" fill="#c99a35"/><text x="196" y="598.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">届く</text></g></g><g class="legend" transform="translate(60, 1062)"><rect x="0" y="-24" width="46" height="32" rx="6" fill="none" stroke="#463e33" stroke-width="2" stroke-dasharray="5 5"/><text x="58" y="0" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" fill="#7a7062">区画の中 = 配送システムの部品 (L2)</text><path d="M 560 -8 H 606" stroke="#c99a35" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 9.6"/><text x="618" y="0" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" fill="#7a7062">点線 = 外への問い合わせと、夜にまとめて移すもの</text></g></svg></div>

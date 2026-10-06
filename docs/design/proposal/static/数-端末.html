@@ -1,0 +1,146 @@
+<!doctype html><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=M+PLUS+1+Code:wght@400;500;700&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+<style>*{margin:0;box-sizing:border-box}body{width:1800px;height:1100px;position:relative;overflow:hidden}
+
+.fig{position:relative;width:1800px;height:1100px;overflow:hidden;transform-origin:top left;
+     font-family:'Noto Sans JP',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.fig *{margin:0;box-sizing:border-box}
+.fig .ent{position:absolute;border-radius:12px;overflow:hidden}
+.fig .ti{font:700 29px/1.1 'Noto Sans JP',system-ui,sans-serif;color:#d3ddd6}
+.fig .rows{display:flex;flex-direction:column}
+.fig .row{height:46px;display:flex;align-items:center;padding:0 24px;gap:14px}
+.fig .mk{width:9px;height:9px;flex:none}
+.fig .nm{font:500 22px/1 'Noto Sans JP',system-ui,sans-serif;color:#d3ddd6;white-space:nowrap}
+.fig .ty{font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#355542;margin-left:auto;white-space:nowrap}
+.fig .void{padding:20px 24px 22px;font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#355542;letter-spacing:.05em}
+.fig .foot{display:flex;justify-content:space-between;align-items:center}
+.fig .fk{font:700 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#8a9b90;letter-spacing:.16em}
+.fig .fn{font:400 17px/1 'JetBrains Mono',ui-monospace,monospace;color:#355542}
+.fig .well{margin:14px;padding:12px;border-radius:9px;display:flex;flex-direction:column;gap:12px}
+.fig .nest{position:relative;left:auto;top:auto;width:auto;border-radius:8px}
+.fig .nest .ti{font-size:22px}
+.fig .nest .row{height:40px;padding:0 18px}
+.fig .nest .nm{font-size:20px}
+.fig .nest .ty{font-size:17px}
+.fig .nest .foot{display:none}
+.fig > svg{position:absolute;inset:0;width:1800px;height:1100px;pointer-events:none;overflow:visible}
+
+  .fig{background-color:#050b07;
+    background-image:radial-gradient(1400px 900px at 50% 40%, rgba(74,222,128,.06), transparent 70%),
+      linear-gradient(rgba(74,222,128,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,222,128,.05) 1px, transparent 1px);
+    background-size:auto, 44px 44px, 44px 44px}
+  .fig .ent{background:linear-gradient(180deg, #0a150e, #070f0a);border-radius:6px;border:1px solid rgba(74,222,128,.3)}
+  .fig .ent[data-w="太"]{border:1.5px solid #4ade80;box-shadow:0 0 0 1px rgba(74,222,128,.12), 0 0 26px rgba(74,222,128,.22)}
+  .fig .head{padding:15px 22px 13px;border-bottom:1px solid rgba(74,222,128,.16)}
+  .fig .ent[data-w="太"] .head{display:flex;align-items:center;gap:16px}
+  .fig .ent[data-w="太"] .head::before{content:"";flex:none;width:52px;height:12px;
+    background:radial-gradient(circle at 6px 6px, #ff5f57 5px, transparent 5.5px),
+      radial-gradient(circle at 26px 6px, #febc2e 5px, transparent 5.5px),
+      radial-gradient(circle at 46px 6px, #28c840 5px, transparent 5.5px)}
+  .fig .ent[data-w="太"] .ti::after{content:"▋";margin-left:6px;font-weight:400;color:#4ade80}
+  .fig .ti{color:#9ef0b4;text-shadow:0 0 10px rgba(74,222,128,.35)}
+  .fig .rows{counter-reset:ln}
+  .fig .row::before{counter-increment:ln;content:counter(ln);flex:none;width:16px;margin-right:-2px;text-align:right;
+    font:400 15px/1 'JetBrains Mono','M PLUS 1 Code',ui-monospace,monospace;color:#3f5a49}
+  .fig .rows .row + .row{border-top:1px solid rgba(74,222,128,.07)}
+  .fig .nm{color:#d3ddd6}
+  .fig .ty,.fig .fn{color:#7f9186}
+  .fig .void{color:#5f7568}
+  .fig .void::before{content:"// "}
+  .fig .foot{padding:10px 22px;border-top:1px solid rgba(74,222,128,.12)}
+  .fig .fk{color:#4ade80;letter-spacing:.18em}
+  .fig .nest{background:#060d08;border:1px solid rgba(74,222,128,.22);border-radius:5px}
+  .fig .nest .head{padding:10px 16px 8px}
+  .fig .well{background:rgba(0,0,0,.18);border:1px dashed rgba(74,222,128,.2);border-radius:6px}
+  .fig .ti,.fig .nm,.fig .ty,.fig .void,.fig .fk,.fig .fn,.fig .sub,.fig .kw{font-family:'JetBrains Mono','M PLUS 1 Code',ui-monospace,monospace}
+  .fig .ti{font-weight:700;font-size:25px}
+  .fig .mk{border-radius:2px;width:9px;height:9px}
+.fig .actor{text-align:center}
+.fig .actor .head{border-bottom:0}
+.fig .actor .sub{font:400 19px/1 'JetBrains Mono','M PLUS 1 Code',ui-monospace,monospace;color:#8a9b90;margin-top:10px;letter-spacing:.04em}
+.fig .panel{display:flex;flex-direction:column}
+.fig .panel .plot{flex:1;min-height:0}
+.fig .panel .split{flex:1;display:flex;min-height:0}
+.fig .panel .split .rows{width:310px;align-self:center}
+.fig .lab{position:absolute;left:60px;width:540px;height:44px;display:flex;align-items:center;gap:16px}
+.fig .lab .nm{font-size:26px;color:#a6f0bd}
+.fig .lab .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#7f9186;letter-spacing:.12em;margin-left:2px}
+.fig .mass{position:absolute;transform-origin:50% 100%}
+.fig .mass.band{transform-origin:50% 0}
+.fig .sub{font:400 19px/1 'JetBrains Mono','M PLUS 1 Code',ui-monospace,monospace;color:#8a9b90;margin-top:10px;letter-spacing:.04em}
+.fig .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#8a9b90;letter-spacing:.12em}
+.fig .step .head,.fig .tn .head{text-align:center;border-bottom-color:transparent}
+.fig .step .ti{font-size:26px}
+.fig .card .head,.fig .pill .head{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom-color:transparent}
+.fig .card .ti{font-size:25px}
+.fig .stage .head .kw{display:block;margin-bottom:10px}
+.fig .node .head{position:relative;padding-right:78px}
+.fig .node .ico{position:absolute;right:22px;top:50%;margin-top:-20px}
+.fig .zone{margin:0;padding:0;display:block;border:0}
+.fig .zl{position:absolute;left:26px;top:20px;display:flex;align-items:baseline;gap:14px}
+.fig .zl .nm{font-size:24px;font-weight:700;color:#a6f0bd}
+.fig .zl .kw{color:#7f9186}
+.fig .cls .head{text-align:center}
+.fig .cls .head .kw{margin-bottom:9px;letter-spacing:.2em}
+.fig .cls .ops{border-top:1.5px solid color-mix(in srgb, #d3ddd6 40%, transparent)}
+.fig .panel.narrow .split .rows{width:190px}
+.fig .mass.bar{transform-origin:0 50%}
+.fig .mass.bar.mid{transform-origin:50% 50%}
+.fig svg .tag-wrap{transform-box:fill-box;transform-origin:50% 50%}
+
+.fig svg text{font-family:'JetBrains Mono','M PLUS 1 Code',ui-monospace,monospace} .fig .lab .nm,.fig .zl .nm{font-family:'JetBrains Mono','M PLUS 1 Code',ui-monospace,monospace} .fig .zl .nm{color:#4ade80} .fig .zone{border:1px dashed rgba(74,222,128,.3);background:rgba(74,222,128,.025)} .fig .tn[data-w="太"] .head,.fig .step[data-w="太"] .head{justify-content:center}
+.fig .node .ico{width:46px;height:46px;margin-top:-23px;padding:7px;border:1px solid rgba(74,222,128,.4);border-radius:7px} .fig .node .ico path{stroke:#4ade80}
+
+
+
+
+  .fig .mass{background:var(--col);border-radius:3px 3px 0 0}
+  .fig .mass[data-hi]{box-shadow:0 0 22px color-mix(in srgb,var(--col) 45%,transparent)}
+  .fig .mass.bar{border-radius:0 3px 3px 0}
+  .fig .mass.band{background:color-mix(in srgb,var(--col) 16%,transparent);box-shadow:inset 0 0 0 1px var(--col);border-radius:3px}</style>
+<div class="fig">
+<div class="ent panel" data-ent="漏斗" style="left:46px;top:46px;width:550px;height:489px;--i:0;--r:2;--rot:-0.08deg">
+  <div class="head"><div class="ti">申し込みから届くまで</div></div>
+  <div class="plot" data-ent="漏斗の面"></div>
+  <div class="foot"><span class="fk">漏斗</span><span class="fn">先月 / 件</span></div>
+</div>
+<div class="ent panel" data-ent="四象限" style="left:625px;top:46px;width:550px;height:489px;--i:1;--r:2;--rot:0.08deg">
+  <div class="head"><div class="ti">打ち手の手間と効き目</div></div>
+  <div class="plot" data-ent="四象限の面"></div>
+  <div class="foot"><span class="fk">四象限</span><span class="fn">左上から手を付ける</span></div>
+</div>
+<div class="ent panel" data-ent="傾き" style="left:1204px;top:46px;width:550px;height:489px;--i:2;--r:2;--rot:-0.08deg">
+  <div class="head"><div class="ti">営業所ごとの定時率</div></div>
+  <div class="plot" data-ent="傾きの面"></div>
+  <div class="foot"><span class="fk">傾き</span><span class="fn">先月 → 今月</span></div>
+</div>
+<div class="ent panel" data-ent="半円" style="left:46px;top:565px;width:550px;height:489px;--i:3;--r:2;--rot:0.08deg">
+  <div class="head"><div class="ti">定時に届いた割合</div></div>
+  <div class="plot" data-ent="半円の面"></div>
+  <div class="foot"><span class="fk">半円</span><span class="fn">目標 80%</span></div>
+</div>
+<div class="ent panel narrow" data-ent="升目" style="left:625px;top:565px;width:550px;height:489px;--i:4;--r:2;--rot:-0.08deg">
+  <div class="head"><div class="ti">荷物の大きさ</div></div>
+  <div class="split"><div class="plot" data-ent="升目の面"></div>
+    <div class="rows">
+      <div class="row" style="--r:0"><span class="mk" style="background:#4ade80"></span><span class="nm">小さい</span><span class="ty">52%</span></div>
+      <div class="row" style="--r:1"><span class="mk" style="background:#c792ea"></span><span class="nm">ふつう</span><span class="ty">31%</span></div>
+      <div class="row" style="--r:2"><span class="mk" style="background:#355542"></span><span class="nm">大きい</span><span class="ty">17%</span></div>
+    </div></div>
+  <div class="foot"><span class="fk">升目</span><span class="fn">1 マス = 1%</span></div>
+</div>
+<div class="ent panel" data-ent="帯" style="left:1204px;top:565px;width:550px;height:489px;--i:5;--r:2;--rot:0.08deg">
+  <div class="head"><div class="ti">配達の結果</div></div>
+  <div class="plot" data-ent="帯の面"></div>
+  <div class="foot"><span class="fk">内訳の帯</span><span class="fn">月ごと / %</span></div>
+</div><div class="mass bar mid"  style="left:87px;top:163.5px;width:468px;height:34px;--j:0;--col:#355542"></div><div class="mass bar mid"  style="left:254.7px;top:256.625px;width:132.6px;height:34px;--j:1;--col:#355542"></div><div class="mass bar mid"  style="left:264.45px;top:349.75px;width:113.1px;height:34px;--j:2;--col:#355542"></div><div class="mass bar mid" data-hi style="left:267.375px;top:442.875px;width:107.25px;height:34px;--j:3;--col:#4ade80"></div><div class="mass bar seg"  style="left:1301px;top:686.5px;width:282.48px;height:32px;--j:0;--col:#355542"></div><div class="mass bar seg" data-hi style="left:1586.48px;top:686.5px;width:66.54px;height:32px;--j:1;--col:#4ade80"></div><div class="mass bar seg"  style="left:1656.02px;top:686.5px;width:7.98px;height:32px;--j:2;--col:#c792ea"></div><div class="mass bar seg"  style="left:1301px;top:751px;width:289.8px;height:32px;--j:3;--col:#355542"></div><div class="mass bar seg" data-hi style="left:1593.8px;top:751px;width:59.22px;height:32px;--j:4;--col:#4ade80"></div><div class="mass bar seg"  style="left:1656.02px;top:751px;width:7.98px;height:32px;--j:5;--col:#c792ea"></div><div class="mass bar seg"  style="left:1301px;top:815.5px;width:275.16px;height:32px;--j:6;--col:#355542"></div><div class="mass bar seg" data-hi style="left:1579.16px;top:815.5px;width:73.86px;height:32px;--j:7;--col:#4ade80"></div><div class="mass bar seg"  style="left:1656.02px;top:815.5px;width:7.98px;height:32px;--j:8;--col:#c792ea"></div><div class="mass bar seg"  style="left:1301px;top:880px;width:297.12px;height:32px;--j:9;--col:#355542"></div><div class="mass bar seg" data-hi style="left:1601.12px;top:880px;width:55.56px;height:32px;--j:10;--col:#4ade80"></div><div class="mass bar seg"  style="left:1659.6799999999998px;top:880px;width:4.32px;height:32px;--j:11;--col:#c792ea"></div><div class="mass bar seg"  style="left:1301px;top:944.5px;width:308.1px;height:32px;--j:12;--col:#355542"></div><div class="mass bar seg" data-hi style="left:1612.1px;top:944.5px;width:44.58px;height:32px;--j:13;--col:#4ade80"></div><div class="mass bar seg"  style="left:1659.6799999999998px;top:944.5px;width:4.32px;height:32px;--j:14;--col:#c792ea"></div><svg viewBox="0 0 1800 1100" style="filter:url(#光)"><defs><filter id="光" x="-3%" y="-3%" width="106%" height="106%"><feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b"/><feComponentTransfer in="b" result="d"><feFuncA type="linear" slope=".5"/></feComponentTransfer><feMerge><feMergeNode in="d"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><defs><mask id="n3_0" maskUnits="userSpaceOnUse"><path class="mw" d="M 1355 302.0909090909091 L 1603 192.8181818181818" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="312" stroke-dashoffset="0"
+       style="--k:5"/></mask><mask id="n3_1" maskUnits="userSpaceOnUse"><path class="mw" d="M 1355 247.45454545454544 L 1603 411.3636363636364" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="338" stroke-dashoffset="0"
+       style="--k:6"/></mask><mask id="n3_2" maskUnits="userSpaceOnUse"><path class="mw" d="M 1355 438.6818181818182 L 1603 274.77272727272725" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="338" stroke-dashoffset="0"
+       style="--k:7"/></mask><mask id="n3_3" maskUnits="userSpaceOnUse"><path class="mw" d="M 1355 356.72727272727275 L 1603 329.4090909090909" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="290" stroke-dashoffset="0"
+       style="--k:8"/></mask><mask id="n3_4" maskUnits="userSpaceOnUse"><path class="mw" d="M 117.0 951.0 A 204 204 0 0 1 478.2 821.0" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="540" stroke-dashoffset="0"
+       style="--k:9"/></mask></defs><text class="ax" x="311" y="149.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="20" fill="#d3ddd6" text-anchor="end">見た</text><text class="vl" style="--j:0" x="331" y="149.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="20" font-weight="700" fill="#d3ddd6">12,000</text><text class="ax" x="311" y="242.625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="20" fill="#d3ddd6" text-anchor="end">申し込んだ</text><text class="vl" style="--j:1" x="331" y="242.625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="20" font-weight="700" fill="#d3ddd6">3,400</text><text class="ax" x="573" y="280.625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90" text-anchor="end">28%</text><text class="ax" x="311" y="335.75" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="20" fill="#d3ddd6" text-anchor="end">集荷した</text><text class="vl" style="--j:2" x="331" y="335.75" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="20" font-weight="700" fill="#d3ddd6">2,900</text><text class="ax" x="573" y="373.75" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90" text-anchor="end">85%</text><text class="ax" x="311" y="428.875" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="20" fill="#d3ddd6" text-anchor="end">届いた</text><text class="vl" style="--j:3" x="331" y="428.875" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="20" font-weight="700" fill="#4ade80">2,750</text><text class="ax" x="573" y="466.875" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90" text-anchor="end">95%</text><rect class="ax" x="696" y="119.5" width="332.5" height="332.5" fill="none" stroke="#355542" stroke-width="1.25" stroke-dasharray="3 6"/><line class="ax" x1="862.25" x2="862.25" y1="119.5" y2="452" stroke="#355542" stroke-width="2"/><line class="ax" x1="696" x2="1028.5" y1="285.75" y2="285.75" stroke="#355542" stroke-width="2"/><text class="ax" x="708" y="147.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90" text-anchor="start">先にやる</text><text class="ax" x="1016.5" y="147.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90" text-anchor="end">計画してやる</text><text class="ax" x="708" y="438" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90" text-anchor="start">ついでにやる</text><text class="ax" x="1016.5" y="438" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90" text-anchor="end">やらない</text><text class="ax" x="1028.5" y="486" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="18" fill="#8a9b90" text-anchor="end">手間 →</text><text class="ax" x="674" y="452" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="18" fill="#8a9b90" transform="rotate(-90 674 452)">効き目 →</text><g class="tag-wrap" style="--k:0"><circle cx="762.5" cy="179.35000000000002" r="11" fill="#4ade80"/><text x="782.5" y="186.35000000000002" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="500" fill="#d3ddd6" text-anchor="start">置き配</text></g><g class="tag-wrap" style="--k:1"><circle cx="795.75" cy="245.85000000000002" r="11" fill="#4ade80"/><text x="815.75" y="252.85000000000002" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="500" fill="#d3ddd6" text-anchor="start">前日に知らせる</text></g><g class="tag-wrap" style="--k:2"><circle cx="928.75" cy="219.25" r="11" fill="#c792ea"/><text x="948.75" y="226.25" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="500" fill="#d3ddd6" text-anchor="start">宅配ロッカー</text></g><g class="tag-wrap" style="--k:3"><circle cx="948.7" cy="385.5" r="11" fill="#355542"/><text x="968.7" y="392.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="500" fill="#d3ddd6" text-anchor="start">夜の便</text></g><g class="tag-wrap" style="--k:4"><circle cx="769.15" cy="345.59999999999997" r="11" fill="#c792ea"/><text x="789.15" y="352.59999999999997" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="500" fill="#d3ddd6" text-anchor="start">不在票を電子に</text></g><text class="ax" x="1355" y="133.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#8a9b90" text-anchor="middle">先月</text><text class="ax" x="1603" y="133.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#8a9b90" text-anchor="middle">今月</text><line class="ax" x1="1355" x2="1355" y1="147.5" y2="484" stroke="#355542" stroke-width="1.5"/><line class="ax" x1="1603" x2="1603" y1="147.5" y2="484" stroke="#355542" stroke-width="1.5"/><text class="ax" x="1337" y="309.0909090909091" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#d3ddd6" text-anchor="end">東京 84%</text><g class="wire" data-wire="n3_0" mask="url(#n3_0)"><path d="M 1355 302.0909090909091 L 1603 192.8181818181818" fill="none" stroke="#355542" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="1355" cy="302.0909090909091" r="7" fill="#355542"/><circle cx="1603" cy="192.8181818181818" r="7" fill="#355542"/></g><g class="tag-wrap" style="--k:5"><text x="1621" y="199.8181818181818" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="400" fill="#d3ddd6">88% 東京</text></g><text class="ax" x="1337" y="254.45454545454544" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#d3ddd6" text-anchor="end">大阪 86%</text><g class="wire" data-wire="n3_1" mask="url(#n3_1)"><path d="M 1355 247.45454545454544 L 1603 411.3636363636364" fill="none" stroke="#f5c451" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/><circle cx="1355" cy="247.45454545454544" r="7" fill="#f5c451"/><circle cx="1603" cy="411.3636363636364" r="7" fill="#f5c451"/></g><g class="tag-wrap" style="--k:6"><text x="1621" y="418.3636363636364" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="700" fill="#f5c451">80% 大阪</text></g><text class="ax" x="1337" y="445.6818181818182" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#d3ddd6" text-anchor="end">名古屋 79%</text><g class="wire" data-wire="n3_2" mask="url(#n3_2)"><path d="M 1355 438.6818181818182 L 1603 274.77272727272725" fill="none" stroke="#4ade80" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/><circle cx="1355" cy="438.6818181818182" r="7" fill="#4ade80"/><circle cx="1603" cy="274.77272727272725" r="7" fill="#4ade80"/></g><g class="tag-wrap" style="--k:7"><text x="1621" y="281.77272727272725" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="700" fill="#4ade80">85% 名古屋</text></g><text class="ax" x="1337" y="363.72727272727275" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#d3ddd6" text-anchor="end">福岡 82%</text><g class="wire" data-wire="n3_3" mask="url(#n3_3)"><path d="M 1355 356.72727272727275 L 1603 329.4090909090909" fill="none" stroke="#355542" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="1355" cy="356.72727272727275" r="7" fill="#355542"/><circle cx="1603" cy="329.4090909090909" r="7" fill="#355542"/></g><g class="tag-wrap" style="--k:8"><text x="1621" y="336.4090909090909" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="400" fill="#d3ddd6">83% 福岡</text></g><path class="ax" d="M 117.0 951.0 A 204 204 0 0 1 525.0 951.0" fill="none" stroke="#355542" stroke-width="34" opacity=".35"/><g class="wire" data-wire="n3_4" mask="url(#n3_4)"><path d="M 117.0 951.0 A 204 204 0 0 1 478.2 821.0" fill="none" stroke="#4ade80" stroke-width="34" stroke-linejoin="round" stroke-linecap="butt"/></g><g class="tag-wrap" style="--k:9"><line x1="463.4" y1="847.5" x2="508.7" y2="814.6" stroke="#d3ddd6" stroke-width="3"/><text x="321" y="935" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="66" font-weight="700" fill="#d3ddd6" text-anchor="middle">78%</text><text x="321" y="975" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="700" fill="#c792ea" text-anchor="middle">先月より +6</text></g><text class="ax" x="117" y="997" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="16" fill="#8a9b90" text-anchor="middle">0</text><text class="ax" x="525" y="997" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="16" fill="#8a9b90" text-anchor="middle">100</text><g class="vl" style="--j:0"><line x1="667.5" y1="683.75" x2="962.5" y2="683.75" stroke="#4ade80" stroke-width="25" stroke-dasharray="25 5"/></g><g class="vl" style="--j:1"><line x1="667.5" y1="713.75" x2="962.5" y2="713.75" stroke="#4ade80" stroke-width="25" stroke-dasharray="25 5"/></g><g class="vl" style="--j:2"><line x1="667.5" y1="743.75" x2="962.5" y2="743.75" stroke="#4ade80" stroke-width="25" stroke-dasharray="25 5"/></g><g class="vl" style="--j:3"><line x1="667.5" y1="773.75" x2="962.5" y2="773.75" stroke="#4ade80" stroke-width="25" stroke-dasharray="25 5"/></g><g class="vl" style="--j:4"><line x1="667.5" y1="803.75" x2="962.5" y2="803.75" stroke="#4ade80" stroke-width="25" stroke-dasharray="25 5"/></g><g class="vl" style="--j:5"><line x1="667.5" y1="833.75" x2="722.5" y2="833.75" stroke="#4ade80" stroke-width="25" stroke-dasharray="25 5"/><line x1="727.5" y1="833.75" x2="962.5" y2="833.75" stroke="#c792ea" stroke-width="25" stroke-dasharray="25 5"/></g><g class="vl" style="--j:6"><line x1="667.5" y1="863.75" x2="962.5" y2="863.75" stroke="#c792ea" stroke-width="25" stroke-dasharray="25 5"/></g><g class="vl" style="--j:7"><line x1="667.5" y1="893.75" x2="962.5" y2="893.75" stroke="#c792ea" stroke-width="25" stroke-dasharray="25 5"/></g><g class="vl" style="--j:8"><line x1="667.5" y1="923.75" x2="752.5" y2="923.75" stroke="#c792ea" stroke-width="25" stroke-dasharray="25 5"/><line x1="757.5" y1="923.75" x2="962.5" y2="923.75" stroke="#355542" stroke-width="25" stroke-dasharray="25 5"/></g><g class="vl" style="--j:9"><line x1="667.5" y1="953.75" x2="962.5" y2="953.75" stroke="#355542" stroke-width="25" stroke-dasharray="25 5"/></g><rect class="ax" x="1233" y="636.5" width="16" height="16" rx="3" fill="#355542"/><text class="ax" x="1257" y="651.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90">一度で届いた</text><rect class="ax" x="1403" y="636.5" width="16" height="16" rx="3" fill="#4ade80"/><text class="ax" x="1427" y="651.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90">再配達</text><rect class="ax" x="1573" y="636.5" width="16" height="16" rx="3" fill="#c792ea"/><text class="ax" x="1597" y="651.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#8a9b90">戻った</text><text class="ax" x="1233" y="709.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#8a9b90">6月</text><text class="vl" style="--j:2" x="1731" y="709.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="700" fill="#4ade80" text-anchor="end">19%</text><text class="ax" x="1233" y="774" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#8a9b90">7月</text><text class="vl" style="--j:5" x="1731" y="774" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="700" fill="#4ade80" text-anchor="end">17%</text><text class="ax" x="1233" y="838.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#8a9b90">8月</text><text class="vl" style="--j:8" x="1731" y="838.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="700" fill="#4ade80" text-anchor="end">21%</text><text class="ax" x="1233" y="903" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#8a9b90">9月</text><text class="vl" style="--j:11" x="1731" y="903" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="700" fill="#4ade80" text-anchor="end">16%</text><text class="ax" x="1233" y="967.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#8a9b90">10月</text><text class="vl" style="--j:14" x="1731" y="967.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" font-weight="700" fill="#4ade80" text-anchor="end">13%</text></svg></div>
