@@ -2,7 +2,14 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { loadPartsItems, PARTS_COUNT_ESTIMATE } from "./catalog-items";
+import {
+  loadPartsItems,
+  PARTS_COUNT_ESTIMATE,
+  partsの見本件数,
+  partsの見本名,
+  type CatalogItem,
+} from "./catalog-items";
+import { ITEM_NAME_JA } from "./i18n";
 
 const repoRoot = new URL("../../../../", import.meta.url);
 
@@ -33,6 +40,14 @@ const 見本件数を固定する形 = [
 
 async function 実物の見本件数(): Promise<number> {
   return (await loadPartsItems()).length;
+}
+
+function fixtureItem(元: CatalogItem): CatalogItem {
+  return {
+    ...元,
+    id: "parts-count-fixture",
+    title: "partsCountFixture",
+  };
 }
 
 /**
@@ -67,5 +82,34 @@ describe("parts の数が実物と揃っている (#1341)", () => {
       PARTS_COUNT_ESTIMATE,
       "名前表から導いた見本件数が実物の見本件数と違う",
     ).toBe(await 実物の見本件数());
+  });
+
+  it("実物の登録表と名前表へ見本を 1 件足すと件数が 1 増えて一致する", async () => {
+    const 実物 = await loadPartsItems();
+    const 元 = 実物[0];
+    if (元 === undefined) throw new Error("parts の実物を 1 件も読めていない");
+    const fixture = fixtureItem(元);
+    const 追加した登録表 = [...実物, fixture];
+    const 追加した名前表 = { ...ITEM_NAME_JA, [fixture.title]: "件数検査の見本" };
+
+    expect(partsの見本件数(追加した名前表)).toBe(partsの見本件数(ITEM_NAME_JA) + 1);
+    expect(partsの見本件数(追加した名前表)).toBe(追加した登録表.length);
+    expect(partsの見本名(追加した名前表).sort()).toEqual(
+      追加した登録表.map((item) => item.title).sort(),
+    );
+  });
+
+  it("実物の登録表と名前表から見本を 1 件消すと件数が 1 減って一致する", async () => {
+    const 実物 = await loadPartsItems();
+    const [消す見本, ...減らした登録表] = 実物;
+    if (消す見本 === undefined) throw new Error("parts の実物を 1 件も読めていない");
+    const 減らした名前表 = { ...ITEM_NAME_JA };
+    delete 減らした名前表[消す見本.title];
+
+    expect(partsの見本件数(減らした名前表)).toBe(partsの見本件数(ITEM_NAME_JA) - 1);
+    expect(partsの見本件数(減らした名前表)).toBe(減らした登録表.length);
+    expect(partsの見本名(減らした名前表).sort()).toEqual(
+      減らした登録表.map((item) => item.title).sort(),
+    );
   });
 });

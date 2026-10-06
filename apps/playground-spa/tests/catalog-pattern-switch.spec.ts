@@ -9,7 +9,7 @@
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test catalog-pattern-switch`
  */
 import { test, expect } from "@playwright/test";
-import { CATALOG_ITEMS } from "../src/lib/catalog-items";
+import { CATALOG_ITEMS, 登録表の見本件数 } from "../src/lib/catalog-items";
 import { 一覧の行 } from "./catalog-item-pick";
 
 type Page = import("@playwright/test").Page;
@@ -383,7 +383,7 @@ test.describe("ひな形の簡単な版と複雑な版を切り替える (#1960)
   ] as const;
 
   test("複雑な版の行が一覧に無い", async ({ page }) => {
-    const 登録済み見本件数 = (CATALOG_ITEMS.presets ?? []).length;
+    const 登録済み見本件数 = 登録表の見本件数(CATALOG_ITEMS, "presets");
     await page.goto("catalog/presets", { waitUntil: "networkidle" });
     const 名前たち = (await page.locator(".catalog-list-item-name").allTextContents()).map((s) => s.trim());
     expect(名前たち.length, "一覧の名前を読めていない (検査が空振りしている)").toBeGreaterThan(0);

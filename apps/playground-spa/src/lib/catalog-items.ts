@@ -260,6 +260,14 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   charts: moduleToItems(ChartsMod),
 };
 
+/** 分類ごとの登録表から、画面に並べる見本の数を返す。 */
+export function 登録表の見本件数(
+  登録表: Readonly<Record<string, readonly CatalogItem[]>>,
+  分類: string,
+): number {
+  return 登録表[分類]?.length ?? 0;
+}
+
 /**
  * 部品の頁に並べる見本を後から読む。 CategoryPage で params.slug === "parts" 時のみ発火。
  *
@@ -290,9 +298,17 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  * parts の登録名を数える。表と実物の双方向突合は `catalog-name-parity.test.ts` が、実際に
  * `loadPartsItems` が返す行数との一致は `parts-count.test.ts` が検証する。
  */
-export const PARTS_COUNT_ESTIMATE = Object.keys(ITEM_NAME_JA).filter(
-  (exportName) => exportName.startsWith("parts") || exportName === "partInBox",
-).length;
+export function partsの見本名(名前表: Readonly<Record<string, string>>): string[] {
+  return Object.keys(名前表).filter(
+    (exportName) => exportName.startsWith("parts") || exportName === "partInBox",
+  );
+}
+
+export function partsの見本件数(名前表: Readonly<Record<string, string>>): number {
+  return partsの見本名(名前表).length;
+}
+
+export const PARTS_COUNT_ESTIMATE = partsの見本件数(ITEM_NAME_JA);
 
 /**
  * 画面に出す説明を言語で引く (#2461)。
