@@ -69,4 +69,21 @@ describe("画面の検査を 1 命令で回す script (#2826)", () => {
       { command: "vite", pid: "456" },
     ]);
   });
+
+  it.each([
+    [["--", "--grep", "foo"], ["--grep", "foo"]],
+    [["--grep", "foo"], ["--grep", "foo"]],
+    [["--grep", "foo", "--", "bar"], ["--grep", "foo", "--", "bar"]],
+  ])("Playwright へ渡す引数は先頭の -- だけを取り除く", (argv, expected) => {
+    const program = [
+      `const { playwrightArgs } = await import(${JSON.stringify(pathToFileURL(SCRIPT_PATH).href)});`,
+      `console.log(JSON.stringify(playwrightArgs(${JSON.stringify(argv)})));`,
+    ].join("\n");
+    const result = spawnSync(process.execPath, ["--input-type=module", "--eval", program], {
+      encoding: "utf8",
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual(expected);
+  });
 });

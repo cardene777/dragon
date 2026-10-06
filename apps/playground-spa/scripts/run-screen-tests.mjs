@@ -42,6 +42,12 @@ export function parseLsofListeners(output) {
   ];
 }
 
+// pnpm は `pnpm <script> -- <args>` の先頭の `--` も script へ渡すが、
+// Playwright はそれを option の終わりとして読むため、先頭にある時だけ取り除く。
+export function playwrightArgs(argv) {
+  return argv[0] === "--" ? argv.slice(1) : argv;
+}
+
 function lsofで調べる(port) {
   const result = spawnSync("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN"], {
     encoding: "utf8",
@@ -195,7 +201,7 @@ async function stopPreviewOnce() {
   return stopPromise;
 }
 
-export async function main(additionalArgs = process.argv.slice(2)) {
+export async function main(additionalArgs = playwrightArgs(process.argv.slice(2))) {
   const initialPort = await inspectPort(PREVIEW_PORT);
   if (!initialPort.free) throw new Error(port使用中の説明(PREVIEW_PORT, initialPort));
 
