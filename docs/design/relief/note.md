@@ -133,6 +133,8 @@
 
 ## 見本と並べる
 
+[12 図種 × 7 意匠の見本を開く](../proposal/index.html)
+
 ![関係図。上が見本、下が dragon のクラス図と表の図](images/compare-relation.png)
 
 dragon のクラス図には、契約、法人契約、個人契約、荷物、配送便を並べる。

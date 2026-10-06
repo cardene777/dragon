@@ -1,0 +1,132 @@
+<!doctype html><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=M+PLUS+1+Code:wght@400;500;700&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+<style>*{margin:0;box-sizing:border-box}body{width:1800px;height:1100px;position:relative;overflow:hidden}
+
+.fig{position:relative;width:1800px;height:1100px;overflow:hidden;transform-origin:top left;
+     font-family:'Noto Sans JP',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.fig *{margin:0;box-sizing:border-box}
+.fig .ent{position:absolute;border-radius:12px;overflow:hidden}
+.fig .ti{font:700 29px/1.1 'Noto Sans JP',system-ui,sans-serif;color:#463e33}
+.fig .rows{display:flex;flex-direction:column}
+.fig .row{height:46px;display:flex;align-items:center;padding:0 24px;gap:14px}
+.fig .mk{width:9px;height:9px;flex:none}
+.fig .nm{font:500 22px/1 'Noto Sans JP',system-ui,sans-serif;color:#463e33;white-space:nowrap}
+.fig .ty{font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#a99e8e;margin-left:auto;white-space:nowrap}
+.fig .void{padding:20px 24px 22px;font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#a99e8e;letter-spacing:.05em}
+.fig .foot{display:flex;justify-content:space-between;align-items:center}
+.fig .fk{font:700 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#7a7062;letter-spacing:.16em}
+.fig .fn{font:400 17px/1 'JetBrains Mono',ui-monospace,monospace;color:#a99e8e}
+.fig .well{margin:14px;padding:12px;border-radius:9px;display:flex;flex-direction:column;gap:12px}
+.fig .nest{position:relative;left:auto;top:auto;width:auto;border-radius:8px}
+.fig .nest .ti{font-size:22px}
+.fig .nest .row{height:40px;padding:0 18px}
+.fig .nest .nm{font-size:20px}
+.fig .nest .ty{font-size:17px}
+.fig .nest .foot{display:none}
+.fig > svg{position:absolute;inset:0;width:1800px;height:1100px;pointer-events:none;overflow:visible}
+
+  .fig{background:#e8e3da}
+  .fig .ent{background:#e8e3da;border-radius:22px;
+    box-shadow:7px 7px 15px rgba(160,144,120,.5), -7px -7px 15px rgba(255,255,255,.92)}
+  .fig .ent[data-w="太"]{background:linear-gradient(145deg, #f3efe8, #d9d2c6);
+    box-shadow:12px 12px 24px rgba(160,144,120,.55), -12px -12px 24px rgba(255,255,255,.95)}
+  .fig .ent[data-w="太"] .ti{color:#c4573c}
+  .fig .head{padding:20px 26px 12px}
+  .fig .ti{font-weight:700;letter-spacing:.01em}
+  .fig .ent:not(.panel):not(.nest) > .rows,.fig .void{margin:2px 16px 4px;padding:6px 0;border-radius:15px;
+    box-shadow:inset 4px 4px 8px rgba(160,144,120,.42), inset -4px -4px 8px rgba(255,255,255,.88)}
+  .fig .void{padding:18px}
+  .fig .row{padding:0 18px}
+  .fig .foot{padding:12px 26px 16px}
+  .fig .panel .plot{margin:4px 18px 8px;border-radius:18px;
+    box-shadow:inset 5px 5px 11px rgba(160,144,120,.42), inset -5px -5px 11px rgba(255,255,255,.88)}
+  .fig .well{background:transparent;border-radius:18px;margin:6px 16px;padding:16px;
+    box-shadow:inset 5px 5px 11px rgba(160,144,120,.45), inset -5px -5px 11px rgba(255,255,255,.88)}
+  .fig .nest{background:#e8e3da;border-radius:14px;
+    box-shadow:4px 4px 9px rgba(160,144,120,.45), -4px -4px 9px rgba(255,255,255,.9)}
+  .fig .nest .head{padding:12px 18px 8px}
+  .fig .mk{border-radius:50%;width:10px;height:10px}
+.fig .actor{text-align:center}
+.fig .actor .head{border-bottom:0}
+.fig .actor .sub{font:400 19px/1 'Noto Sans JP',system-ui,sans-serif;color:#7a7062;margin-top:10px;letter-spacing:.04em}
+.fig .panel{display:flex;flex-direction:column}
+.fig .panel .plot{flex:1;min-height:0}
+.fig .panel .split{flex:1;display:flex;min-height:0}
+.fig .panel .split .rows{width:310px;align-self:center}
+.fig .lab{position:absolute;left:60px;width:540px;height:44px;display:flex;align-items:center;gap:16px}
+.fig .lab .nm{font-size:26px;color:#463e33}
+.fig .lab .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#7a7062;letter-spacing:.12em;margin-left:2px}
+.fig .mass{position:absolute;transform-origin:50% 100%}
+.fig .mass.band{transform-origin:50% 0}
+.fig .sub{font:400 19px/1 'Noto Sans JP',system-ui,sans-serif;color:#7a7062;margin-top:10px;letter-spacing:.04em}
+.fig .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#7a7062;letter-spacing:.12em}
+.fig .step .head,.fig .tn .head{text-align:center;border-bottom-color:transparent}
+.fig .step .ti{font-size:26px}
+.fig .card .head,.fig .pill .head{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom-color:transparent}
+.fig .card .ti{font-size:25px}
+.fig .stage .head .kw{display:block;margin-bottom:10px}
+.fig .node .head{position:relative;padding-right:78px}
+.fig .node .ico{position:absolute;right:22px;top:50%;margin-top:-20px}
+.fig .zone{margin:0;padding:0;display:block;border:0}
+.fig .zl{position:absolute;left:26px;top:20px;display:flex;align-items:baseline;gap:14px}
+.fig .zl .nm{font-size:24px;font-weight:700;color:#463e33}
+.fig .zl .kw{color:#7a7062}
+.fig .cls .head{text-align:center}
+.fig .cls .head .kw{margin-bottom:9px;letter-spacing:.2em}
+.fig .cls .ops{border-top:1.5px solid color-mix(in srgb, #463e33 40%, transparent)}
+.fig .panel.narrow .split .rows{width:190px}
+.fig .mass.bar{transform-origin:0 50%}
+.fig .mass.bar.mid{transform-origin:50% 50%}
+.fig svg .tag-wrap{transform-box:fill-box;transform-origin:50% 50%}
+
+
+
+
+
+
+  .fig .mass{background:linear-gradient(145deg,color-mix(in srgb,var(--col) 78%,white),var(--col));border-radius:12px 12px 5px 5px;
+    box-shadow:6px 6px 12px rgba(160,144,120,.5), -6px -6px 12px rgba(255,255,255,.9)}
+  .fig .mass.bar{border-radius:5px 12px 12px 5px}
+  .fig .mass.bar.mid,.fig .mass.bar.seg{border-radius:10px}
+  .fig .mass.band{background:#e8e3da;border-radius:12px;
+    box-shadow:4px 4px 8px rgba(160,144,120,.45), -4px -4px 8px rgba(255,255,255,.9)}</style>
+<div class="fig">
+<div class="ent panel" data-ent="棒" style="left:46px;top:46px;width:900px;height:1008px;--i:0;--r:2;--rot:-.12deg">
+  <div class="head"><div class="ti">営業所ごとの取扱数</div></div>
+  <div class="plot" data-ent="棒の面"></div>
+  <div class="foot"><span class="fk">棒</span><span class="fn">今月 / 単位 件</span></div>
+</div>
+<div class="ent panel" data-ent="線" style="left:990px;top:46px;width:764px;height:470px;--i:1;--r:2;--rot:.1deg">
+  <div class="head"><div class="ti">月ごとの配達数</div></div>
+  <div class="plot" data-ent="線の面"></div>
+  <div class="foot"><span class="fk">折れ線</span><span class="fn">計画 と 実績</span></div>
+</div>
+<div class="ent panel" data-ent="輪" style="left:990px;top:560px;width:764px;height:494px;--i:2;--r:2;--rot:-.08deg">
+  <div class="head"><div class="ti">荷物の状態</div></div>
+  <div class="split"><div class="plot" data-ent="輪の面"></div>
+    <div class="rows">
+      <div class="row" style="--r:0"><span class="mk" style="background:#c4573c"></span><span class="nm">配達中</span><span class="ty">270</span></div>
+      <div class="row" style="--r:1"><span class="mk" style="background:#2f7a6e"></span><span class="nm">集荷済</span><span class="ty">141</span></div>
+      <div class="row" style="--r:2"><span class="mk" style="background:#c99a35"></span><span class="nm">受付済</span><span class="ty">77</span></div>
+      <div class="row" style="--r:3"><span class="mk" style="background:#a99e8e"></span><span class="nm">完了</span><span class="ty">796</span></div>
+    </div></div>
+  <div class="foot"><span class="fk">内訳</span><span class="fn">合計 1,284 件</span></div>
+</div><div class="mass" data-hi style="left:193.67199999999997px;top:301.95703125px;width:79.05600000000001px;height:635.04296875px;--j:0;--col:#c4573c"></div><div class="mass"  style="left:340.072px;top:544.767578125px;width:79.05600000000001px;height:392.232421875px;--j:1;--col:#a99e8e"></div><div class="mass"  style="left:486.472px;top:647.4951171875px;width:79.05600000000001px;height:289.5048828125px;--j:2;--col:#a99e8e"></div><div class="mass"  style="left:632.872px;top:712.8671875px;width:79.05600000000001px;height:224.1328125px;--j:3;--col:#a99e8e"></div><div class="mass"  style="left:779.272px;top:796.9169921875px;width:79.05600000000001px;height:140.0830078125px;--j:4;--col:#a99e8e"></div><svg viewBox="0 0 1800 1100" style="filter:url(#光)"><defs><filter id="光" x="-3%" y="-3%" width="106%" height="106%"><feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b"/><feOffset in="b" dx="2.5" dy="2.5" result="bd"/><feFlood flood-color="rgb(160,144,120)" flood-opacity=".55"/><feComposite in2="bd" operator="in" result="ds"/><feOffset in="b" dx="-2" dy="-2" result="bl"/><feFlood flood-color="#ffffff" flood-opacity=".95"/><feComposite in2="bl" operator="in" result="ls"/><feMerge><feMergeNode in="ds"/><feMergeNode in="ls"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><defs><mask id="g6_0" maskUnits="userSpaceOnUse"><path class="mw" d="M 1146 348.22265625 L 1279.5 310.55625 L 1413 272.88984374999995 L 1546.5 235.22343750000002 L 1680 197.55703125" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="595" stroke-dashoffset="0"
+       style="--k:0"/></mask><mask id="g6_1" maskUnits="userSpaceOnUse"><path class="mw" d="M 1146 373.33359375 L 1279.5 303.02296875 L 1413 285.4453125 L 1546.5 217.64578125 L 1680 159.890625" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="621" stroke-dashoffset="0"
+       style="--k:1"/></mask><mask id="g6_2" maskUnits="userSpaceOnUse"><path class="mw" d="M 1218.4 671.9 A 142.5546875 142.5546875 0 0 1 1354.8 777.9" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="226" stroke-dashoffset="0"
+       style="--k:2"/></mask><mask id="g6_3" maskUnits="userSpaceOnUse"><path class="mw" d="M 1355.5 780.6 A 142.5546875 142.5546875 0 0 1 1346.6 873.9" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="136" stroke-dashoffset="0"
+       style="--k:3"/></mask><mask id="g6_4" maskUnits="userSpaceOnUse"><path class="mw" d="M 1345.3 876.5 A 142.5546875 142.5546875 0 0 1 1315.6 917.4" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="91" stroke-dashoffset="0"
+       style="--k:4"/></mask><mask id="g6_5" maskUnits="userSpaceOnUse"><path class="mw" d="M 1313.5 919.4 A 142.5546875 142.5546875 0 1 1 1215.6 671.9" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="593" stroke-dashoffset="0"
+       style="--k:5"/></mask></defs><line class="ax" x1="146" x2="892" y1="750.22265625" y2="750.22265625" stroke="#a99e8e" stroke-width="1.25" stroke-dasharray="3 6" opacity=".8"/><line class="ax" x1="146" x2="892" y1="563.4453125" y2="563.4453125" stroke="#a99e8e" stroke-width="1.25" stroke-dasharray="3 6" opacity=".8"/><line class="ax" x1="146" x2="892" y1="376.66796875" y2="376.66796875" stroke="#a99e8e" stroke-width="1.25" stroke-dasharray="3 6" opacity=".8"/><line class="ax" x1="146" x2="892" y1="189.890625" y2="189.890625" stroke="#a99e8e" stroke-width="1.25" stroke-dasharray="3 6" opacity=".8"/><text class="ax" x="134" y="944" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#7a7062" text-anchor="end">0</text><text class="ax" x="134" y="757.22265625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#7a7062" text-anchor="end">200</text><text class="ax" x="134" y="570.4453125" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#7a7062" text-anchor="end">400</text><text class="ax" x="134" y="383.66796875" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#7a7062" text-anchor="end">600</text><text class="ax" x="134" y="196.890625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="19" fill="#7a7062" text-anchor="end">800</text><text class="vl" style="--j:0" x="233.2" y="275.95703125" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="25" font-weight="700" fill="#c4573c" text-anchor="middle">680</text><text class="ax" x="233.2" y="979" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="22" fill="#7a7062" text-anchor="middle">東京</text><text class="vl" style="--j:1" x="379.6" y="518.767578125" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="25" font-weight="700" fill="#463e33" text-anchor="middle">420</text><text class="ax" x="379.6" y="979" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="22" fill="#7a7062" text-anchor="middle">大阪</text><text class="vl" style="--j:2" x="526" y="621.4951171875" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="25" font-weight="700" fill="#463e33" text-anchor="middle">310</text><text class="ax" x="526" y="979" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="22" fill="#7a7062" text-anchor="middle">名古屋</text><text class="vl" style="--j:3" x="672.4" y="686.8671875" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="25" font-weight="700" fill="#463e33" text-anchor="middle">240</text><text class="ax" x="672.4" y="979" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="22" fill="#7a7062" text-anchor="middle">福岡</text><text class="vl" style="--j:4" x="818.8000000000001" y="770.9169921875" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="25" font-weight="700" fill="#463e33" text-anchor="middle">150</text><text class="ax" x="818.8000000000001" y="979" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="22" fill="#7a7062" text-anchor="middle">札幌</text><line class="ax" x1="146" x2="892" y1="937" y2="937" stroke="#463e33" stroke-width="2"/><line class="ax" x1="1100" x2="1680" y1="411" y2="411" stroke="#a99e8e" stroke-width="1.25" stroke-dasharray="3 6" opacity=".8"/><text class="ax" x="1088" y="417" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#7a7062" text-anchor="end">750</text><line class="ax" x1="1100" x2="1680" y1="348.22265625" y2="348.22265625" stroke="#a99e8e" stroke-width="1.25" stroke-dasharray="3 6" opacity=".8"/><text class="ax" x="1088" y="354.22265625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#7a7062" text-anchor="end">1,000</text><line class="ax" x1="1100" x2="1680" y1="285.4453125" y2="285.4453125" stroke="#a99e8e" stroke-width="1.25" stroke-dasharray="3 6" opacity=".8"/><text class="ax" x="1088" y="291.4453125" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#7a7062" text-anchor="end">1,250</text><line class="ax" x1="1100" x2="1680" y1="222.66796875" y2="222.66796875" stroke="#a99e8e" stroke-width="1.25" stroke-dasharray="3 6" opacity=".8"/><text class="ax" x="1088" y="228.66796875" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#7a7062" text-anchor="end">1,500</text><line class="ax" x1="1100" x2="1680" y1="159.890625" y2="159.890625" stroke="#a99e8e" stroke-width="1.25" stroke-dasharray="3 6" opacity=".8"/><text class="ax" x="1088" y="165.890625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="17" fill="#7a7062" text-anchor="end">1,750</text><text class="ax" x="1146" y="449" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="19" fill="#7a7062" text-anchor="middle">6月</text><text class="ax" x="1279.5" y="449" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="19" fill="#7a7062" text-anchor="middle">7月</text><text class="ax" x="1413" y="449" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="19" fill="#7a7062" text-anchor="middle">8月</text><text class="ax" x="1546.5" y="449" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="19" fill="#7a7062" text-anchor="middle">9月</text><text class="ax" x="1680" y="449" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="19" fill="#7a7062" text-anchor="middle">10月</text><g class="wire" data-wire="g6_0" mask="url(#g6_0)"><path d="M 1146 348.22265625 L 1279.5 310.55625 L 1413 272.88984374999995 L 1546.5 235.22343750000002 L 1680 197.55703125" fill="none" stroke="#a99e8e" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 8"/></g><g class="wire" data-wire="g6_1" mask="url(#g6_1)"><path d="M 1146 373.33359375 L 1279.5 303.02296875 L 1413 285.4453125 L 1546.5 217.64578125 L 1680 159.890625" fill="none" stroke="#c4573c" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="1146" cy="373.33359375" r="7.5" fill="#e8e3da" stroke="#c4573c" stroke-width="3.5"/><circle cx="1279.5" cy="303.02296875" r="7.5" fill="#e8e3da" stroke="#c4573c" stroke-width="3.5"/><circle cx="1413" cy="285.4453125" r="7.5" fill="#e8e3da" stroke="#c4573c" stroke-width="3.5"/><circle cx="1546.5" cy="217.64578125" r="7.5" fill="#e8e3da" stroke="#c4573c" stroke-width="3.5"/><circle cx="1680" cy="159.890625" r="7.5" fill="#e8e3da" stroke="#c4573c" stroke-width="3.5"/></g><g class="tag-wrap" style="--k:1">
+      <text x="1680" y="139.890625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="22" font-weight="700" fill="#c4573c" text-anchor="middle">1,750</text>
+      <text x="1680" y="231.55703125" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="18" fill="#7a7062" text-anchor="middle">計画 1,600</text>
+      <text x="1146" y="407.33359375" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="18" fill="#7a7062" text-anchor="middle">900</text>
+    </g><g class="wire" data-wire="g6_2" mask="url(#g6_2)"><path d="M 1218.4 671.9 A 142.5546875 142.5546875 0 0 1 1354.8 777.9" fill="none" stroke="#c4573c" stroke-width="40" stroke-linejoin="round" stroke-linecap="butt"/></g><g class="wire" data-wire="g6_3" mask="url(#g6_3)"><path d="M 1355.5 780.6 A 142.5546875 142.5546875 0 0 1 1346.6 873.9" fill="none" stroke="#2f7a6e" stroke-width="40" stroke-linejoin="round" stroke-linecap="butt"/></g><g class="wire" data-wire="g6_4" mask="url(#g6_4)"><path d="M 1345.3 876.5 A 142.5546875 142.5546875 0 0 1 1315.6 917.4" fill="none" stroke="#c99a35" stroke-width="40" stroke-linejoin="round" stroke-linecap="butt"/></g><g class="wire" data-wire="g6_5" mask="url(#g6_5)"><path d="M 1313.5 919.4 A 142.5546875 142.5546875 0 1 1 1215.6 671.9" fill="none" stroke="#a99e8e" stroke-width="40" stroke-linejoin="round" stroke-linecap="butt"/></g><g class="tag-wrap" style="--k:5">
+      <text x="1217" y="826.4453125" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="44" font-weight="700" fill="#463e33" text-anchor="middle">1,284</text>
+      <text x="1217" y="860.4453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="18" fill="#7a7062" text-anchor="middle">件</text>
+    </g></svg></div>

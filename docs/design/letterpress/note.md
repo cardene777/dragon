@@ -71,6 +71,8 @@
 
 ## 見本と並べる
 
+[12 図種 × 7 意匠の見本を開く](../proposal/index.html)
+
 ![関係図。上が見本、下が dragon の 2 図 (クラス図と表の図)](images/compare-relation.png)
 
 dragon は `relation: extends` の 2 本 (である) を墨の線と白抜きの三角で描き、`composes` (持つ) と

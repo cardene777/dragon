@@ -64,6 +64,8 @@
 
 ## 見本と並べる
 
+[12 図種 × 7 意匠の見本を開く](../proposal/index.html)
+
 ![関係図。上が見本、下が dragon](images/compare-relation.png)
 
 dragon は `relation: extends` の 2 本を墨の線と白抜きの三角で描き、`composes` は所有 (朱)、

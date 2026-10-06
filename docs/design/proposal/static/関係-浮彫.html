@@ -1,0 +1,249 @@
+<!doctype html><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=M+PLUS+1+Code:wght@400;500;700&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+<style>*{margin:0;box-sizing:border-box}body{width:1800px;height:1100px;position:relative;overflow:hidden}
+
+.fig{position:relative;width:1800px;height:1100px;overflow:hidden;transform-origin:top left;
+     font-family:'Noto Sans JP',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.fig *{margin:0;box-sizing:border-box}
+.fig .ent{position:absolute;border-radius:12px;overflow:hidden}
+.fig .ti{font:700 29px/1.1 'Noto Sans JP',system-ui,sans-serif;color:#463e33}
+.fig .rows{display:flex;flex-direction:column}
+.fig .row{height:46px;display:flex;align-items:center;padding:0 24px;gap:14px}
+.fig .mk{width:9px;height:9px;flex:none}
+.fig .nm{font:500 22px/1 'Noto Sans JP',system-ui,sans-serif;color:#463e33;white-space:nowrap}
+.fig .ty{font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#a99e8e;margin-left:auto;white-space:nowrap}
+.fig .void{padding:20px 24px 22px;font:400 19px/1 'JetBrains Mono',ui-monospace,monospace;color:#a99e8e;letter-spacing:.05em}
+.fig .foot{display:flex;justify-content:space-between;align-items:center}
+.fig .fk{font:700 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#7a7062;letter-spacing:.16em}
+.fig .fn{font:400 17px/1 'JetBrains Mono',ui-monospace,monospace;color:#a99e8e}
+.fig .well{margin:14px;padding:12px;border-radius:9px;display:flex;flex-direction:column;gap:12px}
+.fig .nest{position:relative;left:auto;top:auto;width:auto;border-radius:8px}
+.fig .nest .ti{font-size:22px}
+.fig .nest .row{height:40px;padding:0 18px}
+.fig .nest .nm{font-size:20px}
+.fig .nest .ty{font-size:17px}
+.fig .nest .foot{display:none}
+.fig > svg{position:absolute;inset:0;width:1800px;height:1100px;pointer-events:none;overflow:visible}
+
+  .fig{background:#e8e3da}
+  .fig .ent{background:#e8e3da;border-radius:22px;
+    box-shadow:7px 7px 15px rgba(160,144,120,.5), -7px -7px 15px rgba(255,255,255,.92)}
+  .fig .ent[data-w="太"]{background:linear-gradient(145deg, #f3efe8, #d9d2c6);
+    box-shadow:12px 12px 24px rgba(160,144,120,.55), -12px -12px 24px rgba(255,255,255,.95)}
+  .fig .ent[data-w="太"] .ti{color:#c4573c}
+  .fig .head{padding:20px 26px 12px}
+  .fig .ti{font-weight:700;letter-spacing:.01em}
+  .fig .ent:not(.panel):not(.nest) > .rows,.fig .void{margin:2px 16px 4px;padding:6px 0;border-radius:15px;
+    box-shadow:inset 4px 4px 8px rgba(160,144,120,.42), inset -4px -4px 8px rgba(255,255,255,.88)}
+  .fig .void{padding:18px}
+  .fig .row{padding:0 18px}
+  .fig .foot{padding:12px 26px 16px}
+  .fig .panel .plot{margin:4px 18px 8px;border-radius:18px;
+    box-shadow:inset 5px 5px 11px rgba(160,144,120,.42), inset -5px -5px 11px rgba(255,255,255,.88)}
+  .fig .well{background:transparent;border-radius:18px;margin:6px 16px;padding:16px;
+    box-shadow:inset 5px 5px 11px rgba(160,144,120,.45), inset -5px -5px 11px rgba(255,255,255,.88)}
+  .fig .nest{background:#e8e3da;border-radius:14px;
+    box-shadow:4px 4px 9px rgba(160,144,120,.45), -4px -4px 9px rgba(255,255,255,.9)}
+  .fig .nest .head{padding:12px 18px 8px}
+  .fig .mk{border-radius:50%;width:10px;height:10px}
+.fig .actor{text-align:center}
+.fig .actor .head{border-bottom:0}
+.fig .actor .sub{font:400 19px/1 'Noto Sans JP',system-ui,sans-serif;color:#7a7062;margin-top:10px;letter-spacing:.04em}
+.fig .panel{display:flex;flex-direction:column}
+.fig .panel .plot{flex:1;min-height:0}
+.fig .panel .split{flex:1;display:flex;min-height:0}
+.fig .panel .split .rows{width:310px;align-self:center}
+.fig .lab{position:absolute;left:60px;width:540px;height:44px;display:flex;align-items:center;gap:16px}
+.fig .lab .nm{font-size:26px;color:#463e33}
+.fig .lab .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#7a7062;letter-spacing:.12em;margin-left:2px}
+.fig .mass{position:absolute;transform-origin:50% 100%}
+.fig .mass.band{transform-origin:50% 0}
+.fig .sub{font:400 19px/1 'Noto Sans JP',system-ui,sans-serif;color:#7a7062;margin-top:10px;letter-spacing:.04em}
+.fig .kw{font:500 16px/1 'JetBrains Mono',ui-monospace,monospace;color:#7a7062;letter-spacing:.12em}
+.fig .step .head,.fig .tn .head{text-align:center;border-bottom-color:transparent}
+.fig .step .ti{font-size:26px}
+.fig .card .head,.fig .pill .head{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom-color:transparent}
+.fig .card .ti{font-size:25px}
+.fig .stage .head .kw{display:block;margin-bottom:10px}
+.fig .node .head{position:relative;padding-right:78px}
+.fig .node .ico{position:absolute;right:22px;top:50%;margin-top:-20px}
+.fig .zone{margin:0;padding:0;display:block;border:0}
+.fig .zl{position:absolute;left:26px;top:20px;display:flex;align-items:baseline;gap:14px}
+.fig .zl .nm{font-size:24px;font-weight:700;color:#463e33}
+.fig .zl .kw{color:#7a7062}
+.fig .cls .head{text-align:center}
+.fig .cls .head .kw{margin-bottom:9px;letter-spacing:.2em}
+.fig .cls .ops{border-top:1.5px solid color-mix(in srgb, #463e33 40%, transparent)}
+.fig .panel.narrow .split .rows{width:190px}
+.fig .mass.bar{transform-origin:0 50%}
+.fig .mass.bar.mid{transform-origin:50% 50%}
+.fig svg .tag-wrap{transform-box:fill-box;transform-origin:50% 50%}
+
+
+
+
+
+
+  .fig .mass{background:linear-gradient(145deg,color-mix(in srgb,var(--col) 78%,white),var(--col));border-radius:12px 12px 5px 5px;
+    box-shadow:6px 6px 12px rgba(160,144,120,.5), -6px -6px 12px rgba(255,255,255,.9)}
+  .fig .mass.bar{border-radius:5px 12px 12px 5px}
+  .fig .mass.bar.mid,.fig .mass.bar.seg{border-radius:10px}
+  .fig .mass.band{background:#e8e3da;border-radius:12px;
+    box-shadow:4px 4px 8px rgba(160,144,120,.45), -4px -4px 8px rgba(255,255,255,.9)}</style>
+<div class="fig">
+<div class="ent" data-ent="契約" data-w="太" data-role="もと" style="left:250px;top:46px;width:400px;--i:0">
+  <div class="head"><div class="ti">契約</div></div>
+  <div class="rows">
+<div class="row" data-rec="契約.契約番号" style="--r:0">
+  <span class="mk" style="background:#c4573c;"></span>
+  <span class="nm">契約番号</span><span class="ty">番号</span>
+</div>
+<div class="row" data-rec="契約.締結日" style="--r:1">
+  <span class="mk" style="background:#463e33;"></span>
+  <span class="nm">締結日</span><span class="ty">日付</span>
+</div></div>
+  
+  
+  <div class="foot"><span class="fk">もと</span><span class="fn">記録 2</span></div>
+</div>
+<div class="ent" data-ent="法人契約" data-w="並" data-role="派生" style="left:46px;top:352px;width:372px;--i:1">
+  <div class="head"><div class="ti">法人契約</div></div>
+  <div class="rows">
+<div class="row" data-rec="法人契約.請求先" style="--r:0">
+  <span class="mk" style="background:#c4573c;"></span>
+  <span class="nm">請求先</span><span class="ty">名前</span>
+</div>
+<div class="row" data-rec="法人契約.与信枠" style="--r:1">
+  <span class="mk" style="background:#a99e8e;opacity:.45"></span>
+  <span class="nm">与信枠</span><span class="ty">金額</span>
+</div></div>
+  
+  
+  <div class="foot"><span class="fk">派生</span><span class="fn">記録 2</span></div>
+</div>
+<div class="ent" data-ent="個人契約" data-w="並" data-role="派生" style="left:470px;top:352px;width:372px;--i:2">
+  <div class="head"><div class="ti">個人契約</div></div>
+  <div class="rows">
+<div class="row" data-rec="個人契約.住所" style="--r:0">
+  <span class="mk" style="background:#c4573c;"></span>
+  <span class="nm">住所</span><span class="ty">文字</span>
+</div></div>
+  
+  
+  <div class="foot"><span class="fk">派生</span><span class="fn">記録 1</span></div>
+</div>
+<div class="ent" data-ent="荷物" data-w="並" data-role="実体" style="left:46px;top:672px;width:470px;--i:3">
+  <div class="head"><div class="ti">荷物</div></div>
+  <div class="rows">
+<div class="row" data-rec="荷物.送り状番号" style="--r:0">
+  <span class="mk" style="background:#c4573c;"></span>
+  <span class="nm">送り状番号</span><span class="ty">番号</span>
+</div>
+<div class="row" data-rec="荷物.重さ" style="--r:1">
+  <span class="mk" style="background:#463e33;"></span>
+  <span class="nm">重さ</span><span class="ty">数</span>
+</div>
+<div class="row" data-rec="荷物.状態" style="--r:2">
+  <span class="mk" style="background:#463e33;"></span>
+  <span class="nm">状態</span><span class="ty">区分</span>
+</div></div>
+  
+  
+  <div class="foot"><span class="fk"></span><span class="fn">記録 3</span></div>
+</div>
+<div class="ent" data-ent="配送便" data-w="並" data-role="実体" style="left:712px;top:672px;width:430px;--i:4">
+  <div class="head"><div class="ti">配送便</div></div>
+  <div class="rows">
+<div class="row" data-rec="配送便.便番号" style="--r:0">
+  <span class="mk" style="background:#c4573c;"></span>
+  <span class="nm">便番号</span><span class="ty">番号</span>
+</div>
+<div class="row" data-rec="配送便.出発" style="--r:1">
+  <span class="mk" style="background:#463e33;"></span>
+  <span class="nm">出発</span><span class="ty">地点</span>
+</div>
+<div class="row" data-rec="配送便.到着" style="--r:2">
+  <span class="mk" style="background:#a99e8e;opacity:.45"></span>
+  <span class="nm">到着</span><span class="ty">地点</span>
+</div></div>
+  
+  
+  <div class="foot"><span class="fk"></span><span class="fn">記録 3</span></div>
+</div>
+<div class="ent" data-ent="営業所" data-w="並" data-role="抱" style="left:962px;top:46px;width:430px;--i:5">
+  <div class="head"><div class="ti">営業所</div></div>
+  
+  <div class="well">
+      <div class="ent nest" data-ent="受付">
+        <div class="head"><div class="ti">受付</div></div>
+        <div class="rows">
+<div class="row" data-rec="受付.受付番号" style="--r:0">
+  <span class="mk" style="background:#c4573c;"></span>
+  <span class="nm">受付番号</span><span class="ty">番号</span>
+</div>
+<div class="row" data-rec="受付.窓口" style="--r:1">
+  <span class="mk" style="background:#463e33;"></span>
+  <span class="nm">窓口</span><span class="ty">区分</span>
+</div></div>
+      </div>
+      <div class="ent nest" data-ent="仕分け">
+        <div class="head"><div class="ti">仕分け</div></div>
+        <div class="rows">
+<div class="row" data-rec="仕分け.棚" style="--r:0">
+  <span class="mk" style="background:#c4573c;"></span>
+  <span class="nm">棚</span><span class="ty">位置</span>
+</div></div>
+      </div></div>
+  
+  <div class="foot"><span class="fk">抱える 2</span><span class="fn">記録 0</span></div>
+</div>
+<div class="ent" data-ent="受付済" data-w="並" data-role="段階" style="left:1452px;top:46px;width:318px;--i:6">
+  <div class="head"><div class="ti">受付済</div></div>
+  
+  
+  <div class="void">記録を持たない</div>
+  <div class="foot"><span class="fk">段階</span><span class="fn">記録 0</span></div>
+</div>
+<div class="ent" data-ent="集荷済" data-w="並" data-role="段階" style="left:1452px;top:288px;width:318px;--i:7">
+  <div class="head"><div class="ti">集荷済</div></div>
+  
+  
+  <div class="void">記録を持たない</div>
+  <div class="foot"><span class="fk">段階</span><span class="fn">記録 0</span></div>
+</div>
+<div class="ent" data-ent="配達中" data-w="並" data-role="段階" style="left:1452px;top:530px;width:318px;--i:8">
+  <div class="head"><div class="ti">配達中</div></div>
+  <div class="rows">
+<div class="row" data-rec="配達中.現在地" style="--r:0">
+  <span class="mk" style="background:#a99e8e;opacity:.45"></span>
+  <span class="nm">現在地</span><span class="ty">地点</span>
+</div></div>
+  
+  
+  <div class="foot"><span class="fk">段階</span><span class="fn">記録 1</span></div>
+</div>
+<div class="ent" data-ent="完了" data-w="並" data-role="段階" style="left:1452px;top:848px;width:318px;--i:9">
+  <div class="head"><div class="ti">完了</div></div>
+  
+  
+  <div class="void">記録を持たない</div>
+  <div class="foot"><span class="fk">段階</span><span class="fn">記録 0</span></div>
+</div><svg viewBox="0 0 1800 1100" style="filter:url(#光)"><defs><filter id="光" x="-3%" y="-3%" width="106%" height="106%"><feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b"/><feOffset in="b" dx="2.5" dy="2.5" result="bd"/><feFlood flood-color="rgb(160,144,120)" flood-opacity=".55"/><feComposite in2="bd" operator="in" result="ds"/><feOffset in="b" dx="-2" dy="-2" result="bl"/><feFlood flood-color="#ffffff" flood-opacity=".95"/><feComposite in2="bl" operator="in" result="ls"/><feMerge><feMergeNode in="ds"/><feMergeNode in="ls"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><defs><mask id="r6_0" maskUnits="userSpaceOnUse"><path class="mw" d="M 232 346 V 308.4453125 H 360 V 291.890625" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="223" stroke-dashoffset="0"
+       style="--k:0"/></mask><mask id="r6_1" maskUnits="userSpaceOnUse"><path class="mw" d="M 656 346 V 308.4453125 H 540 V 291.890625" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="211" stroke-dashoffset="0"
+       style="--k:0"/></mask><mask id="r6_2" maskUnits="userSpaceOnUse"><path class="mw" d="M 514 766.890625 H 703" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="229" stroke-dashoffset="0"
+       style="--k:1"/></mask><mask id="r6_3" maskUnits="userSpaceOnUse"><path class="mw" d="M 1140 858.890625 H 1250 V 616.4453125 H 1427" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="570" stroke-dashoffset="0"
+       style="--k:2"/></mask><mask id="r6_4" maskUnits="userSpaceOnUse"><path class="mw" d="M 1438 130.9453125 H 1434 V 332.265625 H 1385" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="295" stroke-dashoffset="0"
+       style="--k:3"/></mask><mask id="r6_5" maskUnits="userSpaceOnUse"><path class="mw" d="M 1611 219.890625 V 265" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="86" stroke-dashoffset="0"
+       style="--k:4"/></mask><mask id="r6_6" maskUnits="userSpaceOnUse"><path class="mw" d="M 1611 461.890625 V 507" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="86" stroke-dashoffset="0"
+       style="--k:5"/></mask><mask id="r6_7" maskUnits="userSpaceOnUse"><path class="mw" d="M 1611 706.890625 V 825" fill="none" stroke="#fff" stroke-width="60"
+       stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="159" stroke-dashoffset="0"
+       style="--k:6"/></mask></defs><g class="wire" data-wire="r6_0" mask="url(#r6_0)"><path d="M 232 346 V 308.4453125 H 360 V 291.890625" fill="none" stroke="#c4573c" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 12.8"/><path d="M 360 266.890625 L 374 289.890625 L 346 289.890625 Z" fill="#e8e3da" stroke="#c4573c" stroke-width="3" stroke-linejoin="round"/></g><g class="wire" data-wire="r6_1" mask="url(#r6_1)"><path d="M 656 346 V 308.4453125 H 540 V 291.890625" fill="none" stroke="#c4573c" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 12.8"/><path d="M 540 266.890625 L 554 289.890625 L 526 289.890625 Z" fill="#e8e3da" stroke="#c4573c" stroke-width="3" stroke-linejoin="round"/></g><g class="tag-wrap" style="--k:0"><g class="tag"><rect x="402" y="288.4453125" width="96" height="40" rx="20" fill="#c4573c"/><text x="450" y="316.4453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">である</text></g></g><g class="wire" data-wire="r6_2" mask="url(#r6_2)"><path d="M 514 766.890625 H 703" fill="none" stroke="#2f7a6e" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 9.600000000000001"/><circle cx="514" cy="766.890625" r="5.5" fill="#2f7a6e"/><path d="M 724 766.890625 L 707 757.390625 L 707 776.390625 Z" fill="#2f7a6e"/></g><g class="tag-wrap" style="--k:1"><g class="tag"><rect x="577" y="700.890625" width="74" height="40" rx="20" fill="#2f7a6e"/><text x="614" y="728.890625" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">使う</text></g><text class="num" x="528" y="804.890625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="23" font-weight="700" fill="#7a7062" text-anchor="start" stroke="#e8e3da" stroke-width="6" paint-order="stroke">1..*</text><text class="num" x="692" y="804.890625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="23" font-weight="700" fill="#7a7062" text-anchor="end" stroke="#e8e3da" stroke-width="6" paint-order="stroke">1</text></g><g class="wire" data-wire="r6_3" mask="url(#r6_3)"><path d="M 1140 858.890625 H 1250 V 616.4453125 H 1427" fill="none" stroke="#2f7a6e" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 9.600000000000001"/><circle cx="1140" cy="858.890625" r="5.5" fill="#2f7a6e"/><path d="M 1448 616.4453125 L 1431 606.9453125 L 1431 625.9453125 Z" fill="#2f7a6e"/></g><g class="tag-wrap" style="--k:2"><g class="tag"><rect x="1213" y="717.66796875" width="74" height="40" rx="20" fill="#2f7a6e"/><text x="1250" y="745.66796875" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">使う</text></g><text class="num" x="1160" y="836.890625" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="23" font-weight="700" fill="#7a7062" text-anchor="start" stroke="#e8e3da" stroke-width="6" paint-order="stroke">1</text></g><g class="wire" data-wire="r6_4" mask="url(#r6_4)"><path d="M 1438 130.9453125 H 1434 V 332.265625 H 1385" fill="none" stroke="#2f7a6e" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 9.600000000000001"/><circle cx="1438" cy="130.9453125" r="5.5" fill="#2f7a6e"/><path d="M 1364 332.265625 L 1381 341.765625 L 1381 322.765625 Z" fill="#2f7a6e"/></g><g class="tag-wrap" style="--k:3"><g class="tag"><rect x="1397" y="211.60546875" width="74" height="40" rx="20" fill="#2f7a6e"/><text x="1434" y="239.60546875" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">使う</text></g></g><g class="wire" data-wire="r6_5" mask="url(#r6_5)"><path d="M 1611 219.890625 V 265" fill="none" stroke="#c99a35" stroke-width="4" stroke-linejoin="round" stroke-linecap="butt"/><path d="M 1611 286 L 1601.5 269 L 1620.5 269 Z" fill="#c99a35"/></g><g class="tag-wrap" style="--k:4"><g class="tag"><rect x="1681" y="231.9453125" width="96" height="40" rx="20" fill="#c99a35"/><text x="1729" y="259.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">集める</text></g></g><g class="wire" data-wire="r6_6" mask="url(#r6_6)"><path d="M 1611 461.890625 V 507" fill="none" stroke="#c99a35" stroke-width="4" stroke-linejoin="round" stroke-linecap="butt"/><path d="M 1611 528 L 1601.5 511 L 1620.5 511 Z" fill="#c99a35"/></g><g class="tag-wrap" style="--k:5"><g class="tag"><rect x="1692" y="473.9453125" width="74" height="40" rx="20" fill="#c99a35"/><text x="1729" y="501.9453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">積む</text></g></g><g class="wire" data-wire="r6_7" mask="url(#r6_7)"><path d="M 1611 706.890625 V 825" fill="none" stroke="#c99a35" stroke-width="4" stroke-linejoin="round" stroke-linecap="butt"/><path d="M 1611 846 L 1601.5 829 L 1620.5 829 Z" fill="#c99a35"/></g><g class="tag-wrap" style="--k:6"><g class="tag"><rect x="1692" y="755.4453125" width="74" height="40" rx="20" fill="#c99a35"/><text x="1729" y="783.4453125" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">渡す</text></g></g><g class="legend" transform="translate(46, 1052)">
+    <text x="0" y="0" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" font-weight="700" fill="#463e33">持つ</text>
+    <text x="62" y="0" font-family="'Noto Sans JP',system-ui,sans-serif" font-size="21" fill="#7a7062">は線を引かない。 営業所 が 受付 と 仕分け を抱えるように、囲いで出す</text>
+  </g></svg></div>
