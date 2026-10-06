@@ -21,6 +21,7 @@ import {
   readFixedThemeOutline,
   readFixedThemeToneSeries,
   readThemeNotes,
+  themeGanttSeriesColors,
   type ThemeNote,
   type ThemeValues,
 } from "./helpers/theme-notes";
@@ -1172,12 +1173,12 @@ const 色みごとの日程 = `title: "色みごとの工程"
 type: gantt
 
 actors:
-  - 設計: { value: "1期", tone: accent }
-  - 実装: { value: "2期", tone: teal }
-  - 検証: { value: "3期", tone: success }
-  - 公開: { value: "4期", tone: warning }
-  - 計測: { value: "5期", tone: info }
-  - 改善: { value: "6期", tone: error }
+  - 設計: { value: "1期", tone: accent, owner: "設計班" }
+  - 実装: { value: "2期", tone: teal, owner: "実装班" }
+  - 検証: { value: "3期", tone: success, owner: "検証班" }
+  - 公開: { value: "4期", tone: warning, owner: "公開班" }
+  - 計測: { value: "5期", tone: info, owner: "計測班" }
+  - 改善: { value: "6期", tone: error, owner: "改善班" }
 `;
 
 const 六段の漏斗 = `title: "六段の絞り込み"
@@ -1275,27 +1276,47 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
         const chart = chartSeries.get(note.name);
         const tones = toneSeries.get(note.name);
         if (!chart || !tones) throw new Error(`${note.name} の系列色と色みの対応を意匠帳から読めない`);
+        const ganttColors = themeGanttSeriesColors(chart, tones);
 
         await openEditorTheme(page, 色みごとの日程, note.name, dark);
         let stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
         let ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
-        const gantt = await stage.locator('[data-cdl-role="gantt-bar"]').evaluateAll((elements) =>
-          elements.map((element) => {
-            const style = getComputedStyle(element);
-            return {
-              fill: style.fill,
-              fillOpacity: Number(style.fillOpacity),
-              stroke: style.stroke,
-              strokeWidth: Number.parseFloat(style.strokeWidth),
-            };
-          }));
+        const { ownerCount, bars: gantt } = await stage.evaluate((root) => {
+          const box = ({ left, top, right, bottom }: DOMRect) => ({ left, top, right, bottom });
+          return {
+            ownerCount: root.querySelectorAll('[data-cdl-role="gantt-owner"]').length,
+            bars: [...root.querySelectorAll('[data-cdl-role="gantt-bar"]')].map((element) => {
+              const style = getComputedStyle(element);
+              // 描き手は帯と担当の字を同じ g の兄弟に置く。順番で対応させると、字の無い帯が
+              // 1 本あるだけで後ろの組が別の帯と比べられるため、帯の g から引く。
+              const owner = element.parentElement?.querySelector('[data-cdl-role="gantt-owner"]');
+              return {
+                fill: style.fill,
+                fillOpacity: Number(style.fillOpacity),
+                stroke: style.stroke,
+                strokeWidth: Number.parseFloat(style.strokeWidth),
+                bounds: box(element.getBoundingClientRect()),
+                owner: owner
+                  ? {
+                      fill: getComputedStyle(owner).fill,
+                      text: owner.textContent ?? "",
+                      bounds: box(owner.getBoundingClientRect()),
+                    }
+                  : null,
+              };
+            }),
+          };
+        });
         if (gantt.length !== 6) failures.push(`${note.name}/${mode}: 色み付きの日程の棒が ${gantt.length} 件 (6 件が要る)`);
+        if (ownerCount !== 6) {
+          failures.push(`${note.name}/${mode}: 日程の担当の字が ${ownerCount} 件 (6 件が要る)`);
+        }
         for (const [index, tone] of THEME_TONES.entries()) {
           const bar = gantt[index];
-          const expected = chart.colors[tones.seriesByTone[tone] - 1];
+          const expected = ganttColors[tones.seriesByTone[tone] - 1];
           if (!bar || !expected) continue;
           if (colorKey(bar.fill) !== colorKey(expected)) {
-            failures.push(`${note.name}/${mode}/${tone}: 日程の棒 ${bar.fill} / 系列 ${tones.seriesByTone[tone]} ${expected}`);
+            failures.push(`${note.name}/${mode}/${tone}: 日程の帯 ${bar.fill} / 帯の系列 ${tones.seriesByTone[tone]} ${expected}`);
           }
           if (bar.fillOpacity !== tones.opacity) failures.push(`${note.name}/${mode}/${tone}: 濃さ ${bar.fillOpacity} / ${tones.opacity}`);
           const ratio = contrast(color(bar.fill), ground);
@@ -1305,6 +1326,25 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
           }
           if (tones.strokeWidth !== undefined && bar.strokeWidth !== tones.strokeWidth) {
             failures.push(`${note.name}/${mode}/${tone}: 日程の枠幅 ${bar.strokeWidth} / ${tones.strokeWidth}`);
+          }
+          if (!bar.owner) continue;
+          if (colorKey(bar.owner.fill) !== colorKey(tones.ganttOwnerColor)) {
+            failures.push(`${note.name}/${mode}/${tone}: 担当の字 ${bar.owner.fill} / ${tones.ganttOwnerColor}`);
+          }
+          const ownerRatio = contrast(color(bar.owner.fill), color(bar.fill));
+          const report = `${note.name}/${mode}/${tone}: ${ownerRatio.toFixed(2)}`;
+          test.info().annotations.push({ type: "contrast", description: report });
+          console.log(report);
+          if (ownerRatio < 4.5) {
+            failures.push(`${note.name}/${mode}/${tone}: 日程の帯と担当の字 ${ownerRatio.toFixed(2)}:1 < 4.5:1`);
+          }
+          if (
+            bar.owner.bounds.left < bar.bounds.left ||
+            bar.owner.bounds.top < bar.bounds.top ||
+            bar.owner.bounds.right > bar.bounds.right ||
+            bar.owner.bounds.bottom > bar.bounds.bottom
+          ) {
+            failures.push(`${note.name}/${mode}/${tone}: 担当「${bar.owner.text}」が日程の帯からはみ出す`);
           }
         }
 
@@ -1317,8 +1357,8 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
           elements.map((element) => getComputedStyle(element).fill));
         if (defaultFills.length === 0) failures.push(`${note.name}/${mode}: 色みの無い日程の棒が 0 件`);
         for (const fill of defaultFills) {
-          if (colorKey(fill) !== colorKey(chart.colors[0]!)) {
-            failures.push(`${note.name}/${mode}: 色みの無い日程 ${fill} / 系列 1 ${chart.colors[0]}`);
+          if (colorKey(fill) !== colorKey(ganttColors[0]!)) {
+            failures.push(`${note.name}/${mode}: 色みの無い日程 ${fill} / 帯の系列 1 ${ganttColors[0]}`);
           }
           if ((note.name === "relief" || note.name === "sketch") && colorKey(fill) === colorKey(note.value.ink)) {
             failures.push(`${note.name}/${mode}: 色みの無い日程の棒が墨になっている`);

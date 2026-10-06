@@ -69,6 +69,69 @@ const 節の中身 = (markup: string, attribute: string): string => {
   return markup.slice(start, next < 0 ? undefined : next);
 };
 
+type 点 = { x: number; y: number };
+type 線分 = { from: 点; to: 点 };
+type 矩形 = { left: number; top: number; right: number; bottom: number };
+
+const 交差の誤差 = 1e-9;
+
+function 線分と矩形の交差を数える(segment: 線分, rectangle: 矩形): number {
+  const 内側 = (point: 点): boolean =>
+    point.x >= rectangle.left &&
+    point.x <= rectangle.right &&
+    point.y >= rectangle.top &&
+    point.y <= rectangle.bottom;
+  if (内側(segment.from) || 内側(segment.to)) return 1;
+  const dx = segment.to.x - segment.from.x;
+  const dy = segment.to.y - segment.from.y;
+  const boundaries = [
+    { direction: -dx, distance: segment.from.x - rectangle.left },
+    { direction: dx, distance: rectangle.right - segment.from.x },
+    { direction: -dy, distance: segment.from.y - rectangle.top },
+    { direction: dy, distance: rectangle.bottom - segment.from.y },
+  ];
+  let entering = 0;
+  let leaving = 1;
+  for (const { direction, distance } of boundaries) {
+    if (Math.abs(direction) <= 交差の誤差) {
+      if (distance < 0) return 0;
+      continue;
+    }
+    const ratio = distance / direction;
+    if (direction < 0) entering = Math.max(entering, ratio);
+    else leaving = Math.min(leaving, ratio);
+  }
+  return entering <= leaving + 交差の誤差 ? 1 : 0;
+}
+
+function 道筋の折れ点(d: string): 点[] {
+  const coordinates = d.match(/-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi)?.map(Number) ?? [];
+  if (coordinates.length % 2 !== 0) throw new Error(`道筋の座標が奇数個: ${d}`);
+  const points: 点[] = [];
+  for (let index = 0; index < coordinates.length; index += 2) {
+    const x = coordinates[index];
+    const y = coordinates[index + 1];
+    if (x === undefined || y === undefined) throw new Error(`道筋の座標が足りない: ${d}`);
+    points.push({ x, y });
+  }
+  return points;
+}
+
+describe("線分と矩形の交差を数える", () => {
+  it("内側の点と矩形を貫く縦線を数え、外の線分は数えない", () => {
+    const rectangle = { left: 0, top: 0, right: 10, bottom: 10 };
+    expect(線分と矩形の交差を数える({ from: { x: 5, y: 5 }, to: { x: 5, y: 5 } }, rectangle)).toBe(
+      1,
+    );
+    expect(
+      線分と矩形の交差を数える({ from: { x: 5, y: -5 }, to: { x: 5, y: 15 } }, rectangle),
+    ).toBe(1);
+    expect(
+      線分と矩形の交差を数える({ from: { x: 15, y: -5 }, to: { x: 15, y: 15 } }, rectangle),
+    ).toBe(0);
+  });
+});
+
 describe("時間軸の形を持つ泳法図 (#2798)", () => {
   it("時間軸の組み立て結果を固定する", () => {
     expect(組み立てる(本文()).diagram).toMatchSnapshot();
@@ -140,6 +203,73 @@ describe("時間軸の形を持つ泳法図 (#2798)", () => {
     expect(crestY).toBeGreaterThan(sameSideEarlier.cy + sameSideEarlier.h / 2);
     expect(markup).toContain(`data-cdl-edge="${edge.id}"`);
     expect(markup).toContain(`data-cdl-path-d="M ${from.cx} ${from.cy - from.h / 2}`);
+  });
+
+  it("5 段目から 2 段目へ戻る線は途中の札と番号を避けて外側を回る", () => {
+    const { laid } = 組み立てる(`title: "長い戻り線"
+type: swimlane
+shape: timeline
+actors:
+  - 一段目
+  - 二段目
+  - 三段目
+  - 四段目
+  - 五段目
+flow:
+  - 五段目 -> 二段目: "戻す"
+`);
+    expect(laid.edges).toHaveLength(1);
+    const edge = laid.edges[0];
+    if (!edge) throw new Error("戻り線が無い");
+    const from = laid.nodes.find((node) => node.id === edge.from);
+    const to = laid.nodes.find((node) => node.id === edge.to);
+    if (!from || !to) throw new Error("戻り線の両端の札が無い");
+    const points = 道筋の折れ点(edge.d);
+    const segments: 線分[] = [];
+    for (let index = 1; index < points.length; index++) {
+      const segmentFrom = points[index - 1];
+      const segmentTo = points[index];
+      if (segmentFrom && segmentTo) segments.push({ from: segmentFrom, to: segmentTo });
+    }
+    const otherRectangles = laid.nodes
+      .filter((node) => node.id !== edge.from && node.id !== edge.to)
+      .map((node): 矩形 => ({
+        left: node.cx - node.w / 2,
+        top: node.cy - node.h / 2,
+        right: node.cx + node.w / 2,
+        bottom: node.cy + node.h / 2,
+      }));
+    const crossings = segments.reduce(
+      (total, segment) =>
+        total +
+        otherRectangles.reduce(
+          (count, rectangle) => count + 線分と矩形の交差を数える(segment, rectangle),
+          0,
+        ),
+      0,
+    );
+    expect(crossings).toBe(0);
+
+    const upperY = Math.min(from.cy, to.cy);
+    const lowerY = Math.max(from.cy, to.cy);
+    const middleCards = laid.nodes.filter(
+      (node) =>
+        !node.id.startsWith("timeline-number-") &&
+        node.id !== edge.from &&
+        node.id !== edge.to &&
+        node.cy > upperY &&
+        node.cy < lowerY,
+    );
+    expect(middleCards.map((node) => node.id)).toEqual(["三段目", "四段目"]);
+    const outerLeft = Math.min(...middleCards.map((node) => node.cx - node.w / 2));
+    const outerRight = Math.max(...middleCards.map((node) => node.cx + node.w / 2));
+    const outsideSegments = segments.filter(
+      (segment) =>
+        segment.from.x === segment.to.x &&
+        ((segment.from.x < outerLeft && segment.to.x < outerLeft) ||
+          (segment.from.x > outerRight && segment.to.x > outerRight)),
+    );
+    expect(outsideSegments.length).toBeGreaterThan(0);
   });
 
   it("次の段への進行線は番号を結び、2段以上先への分かれ道は札を結ぶ", () => {

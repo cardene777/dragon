@@ -48,6 +48,9 @@ export type ThemeTone = (typeof THEME_TONES)[number];
 export type ThemeToneSeries = {
   seriesByTone: Record<ThemeTone, number>;
   opacity: number;
+  /** 日程の帯だけで置き直す系列色 (系列番号 1-6 → `#rrggbb`)。無い系列は図表の系列色のまま */
+  ganttOverrides: Map<number, string>;
+  ganttOwnerColor: string;
   textColor?: string;
   stroke?: string;
   strokeWidth?: number;
@@ -389,13 +392,29 @@ export function readFixedThemeToneSeries(
     }
     const opacity = /濃さは (\d+(?:\.\d+)?)/.exec(row)?.[1];
     if (!opacity) throw new Error(`意匠帳の ${name} の日程の棒と漏斗の段に濃さが無い`);
-    const textColor = /字は[^`]*`(#[0-9a-fA-F]{6})`/.exec(row)?.[1]?.toLowerCase();
+    const ganttSentence = /日程の帯は([^。]+)。/.exec(row)?.[1];
+    if (!ganttSentence) throw new Error(`意匠帳の ${name} の日程の棒と漏斗の段に日程の帯が無い`);
+    if (!ganttSentence.includes("系列色のまま")) {
+      throw new Error(`意匠帳の ${name} の日程の帯に系列色のままの範囲が無い`);
+    }
+    const ganttOverrides = new Map(
+      [...ganttSentence.matchAll(/([1-6]) を `(#[0-9a-fA-F]{6})`/g)]
+        .map((match) => [Number(match[1]), match[2]!.toLowerCase()] as const),
+    );
+    const ganttOwnerColor = /帯の上の担当の字は[^`]*`(#[0-9a-fA-F]{6})`/
+      .exec(row)?.[1]?.toLowerCase();
+    if (!ganttOwnerColor) {
+      throw new Error(`意匠帳の ${name} の日程の棒と漏斗の段に担当の字が無い`);
+    }
+    const textColor = /段の字は[^`]*`(#[0-9a-fA-F]{6})`/.exec(row)?.[1]?.toLowerCase();
     const frame = /日程の棒は[^`]*`(#[0-9a-fA-F]{6})` の (\d+(?:\.\d+)?) の枠/.exec(row);
     const style: ThemeToneSeries = {
       seriesByTone: Object.fromEntries(
         THEME_TONES.map((tone) => [tone, pairs.get(tone)!]),
       ) as Record<ThemeTone, number>,
       opacity: Number(opacity),
+      ganttOverrides,
+      ganttOwnerColor,
     };
     if (textColor) style.textColor = textColor;
     if (frame) {
@@ -405,6 +424,14 @@ export function readFixedThemeToneSeries(
     out.set(name, style);
   }
   return out;
+}
+
+/** 図表の系列色へ日程の帯だけの上書きを重ね、帯に使う 6 色を返す。 */
+export function themeGanttSeriesColors(
+  chart: ThemeChartSeries,
+  tones: ThemeToneSeries,
+): string[] {
+  return chart.colors.map((color, index) => tones.ganttOverrides.get(index + 1) ?? color);
 }
 
 /** 図面の「斜線」行を、SVG pattern と rect の期待値へ分けて読む。 */

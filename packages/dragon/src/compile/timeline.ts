@@ -22,6 +22,7 @@ export const TIMELINE_COMPACT_GAP = 150;
 /**
  * 戻り線のある図の段間隔。card の高さの見積り 150 + back-detour が上がる
  * 100 + 20 の余裕で、戻り線の上辺を同じ側の 2 段前の札の下に収める。
+ * 詰めると 1 段前へ戻る線が隣の札と同じ高さを通るため、外側へ回れる線でも保つ。
  */
 export const TIMELINE_BACK_GAP = 270;
 

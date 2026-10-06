@@ -169,15 +169,18 @@ pnpm --filter dragon-playground-spa test:e2e
 
 ```bash
 # 1 回目 … 開発 server を止めて回す (default と serial、実測 904 件)
-cd apps/playground-spa && npx playwright test --project serial
+pnpm test:screens
 
 # 2 回目 … 開発 server を立てて回す (dev-setup と dev、実測 5 件)
 pnpm dev
 npx playwright test --project dev-setup --project dev
 ```
 
-1 回目に `--project serial` と書くのは、`serial` が `default` を先に回すため
-(`dependencies`)。 `--project default` だけを付けると `serial` の 3 file が走らない。
+`pnpm test:screens` は build、preview の起動、`default` と `serial` の順次実行、preview の停止を
+1 命令で行う。 `serial` は `--no-deps` で回すため、`default` は 2 回走らない。絞り込みなどの
+Playwright 引数は `pnpm test:screens -- --grep foo` の形で両方へ渡せる。
+
+開発 server を見る `dev-setup` と `dev` は従来どおり別に回す。
 
 開発 server の port が別の作業で埋まっている時は、空いている port で立てて
 `DEV_SPA_URL` で向ける (下の 見に行く先を差し替える表 と同じ経路)。
