@@ -84,7 +84,7 @@ describe("意匠の見本", () => {
 
   it("README の対応表が全組合せの画像と html を一度ずつ指す", () => {
     const 実際 = link先(対応表, markdownLink)
-      .filter((path) => /^(img\/.*\.jpg|static\/.*\.html)$/u.test(path))
+      .filter((path) => /^(img|static)\//u.test(path))
       .sort();
     const 期待 = [
       ...拡張子を付ける(".jpg").map((名前) => `img/${名前}`),
