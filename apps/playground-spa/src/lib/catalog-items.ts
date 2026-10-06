@@ -6,7 +6,7 @@
  */
 import { drawsFigureTitle, type CdlDiagram } from "@cardenelabs/cdl";
 import { ITEM_SUBTITLE_EN, PATTERN_NAME_EN } from "./catalog-item-en";
-import type { Locale } from "./i18n";
+import { ITEM_NAME_JA, type Locale } from "./i18n";
 import { motionNote } from "./catalog-motion";
 
 // --- category: presets ---
@@ -18,8 +18,8 @@ import * as PrimExtMod from "@/topics/catalog/primitives-extra.cdl";
 import * as PatMod from "@/topics/catalog/patterns.cdl";
 // --- category: animation ---
 import * as AnimMod from "@/topics/catalog/animation.cdl";
-// --- category: parts (rich exemplar 合成用 reusable atoms、 2026-07-15 新設) ---
-// top-level で diagram(...).build() が走る数だけ初期 chunk が重くなるため (数は PARTS_COUNT_ESTIMATE 参照)、
+// --- category: parts (rich exemplar 合成用 reusable atoms) ---
+// top-level で diagram(...).build() が走る数だけ初期 chunk が重くなるため、
 // dynamic import で lazy-load して初期 catalog-items chunk (348 kB gzip) からは除外する (CAR-1613)。
 // CategoryPage が params.slug === "parts" 時のみ loadPartsItems() を呼び、 State に populate する経路。
 // --- category: styles ---
@@ -260,6 +260,14 @@ export const CATALOG_ITEMS: Record<string, CatalogItem[]> = {
   charts: moduleToItems(ChartsMod),
 };
 
+/** 分類ごとの登録表から、画面に並べる見本の数を返す。 */
+export function 登録表の見本件数(
+  登録表: Readonly<Record<string, readonly CatalogItem[]>>,
+  分類: string,
+): number {
+  return 登録表[分類]?.length ?? 0;
+}
+
 /**
  * 部品の頁に並べる見本を後から読む。 CategoryPage で params.slug === "parts" 時のみ発火。
  *
@@ -285,18 +293,22 @@ export async function loadPartsItems(): Promise<CatalogItem[]> {
  * **実 loading せずに数だけ要る**。 parts は初期 chunk から外すため後から読む設計で
  * (`CAR-1613`)、総数の表示のために全件を読み込むと分けた意味が消える。
  *
- * **実物とずれたら検査が落ちる** (`parts-count.test.ts`)。 以前は「人が忘れずに直す」 ことに
- * 依存しており、実際に片方だけ直された記述が残っていた (#1341)。 数を変える時は
- * `parts.cdl.ts` か `parts-in-box.cdl.ts` か `parts-motion.cdl.ts` を直せば検査が本 constant の
- * ずれを教える。 数えるのは頁に並ぶ行で、部品そのもの (`parts.cdl.ts`) と
- * 部品を箱に使う見本 (`parts-in-box.cdl.ts`、#1973) と
- * 部品を繋いで動かす見本 (`parts-motion.cdl.ts`、#2125) の 3 つ。 切替を持つ見本は 1 行として数える。
- *
- * **内訳の件数はここに書かない** (`rules/quality.md § 導出可能記述は人手で書かない` の経路 2)。
- * 以前は「部品そのもの 80」 と書いてあったが実物は 94 で、検査が見ない数だったため
- * 気付かれないまま残っていた。 内訳が要る時は上の 3 つの file を数える。
+ * `loadPartsItems` をここで呼ぶか parts の見本 module を静的 import すると、総数だけを出す
+ * 初期画面へ全見本が入る。そこで、`moduleToItems` と同じ export 名を鍵にする軽い名前表から
+ * parts の登録名を数える。表と実物の双方向突合は `catalog-name-parity.test.ts` が、実際に
+ * `loadPartsItems` が返す行数との一致は `parts-count.test.ts` が検証する。
  */
-export const PARTS_COUNT_ESTIMATE = 112;
+export function partsの見本名(名前表: Readonly<Record<string, string>>): string[] {
+  return Object.keys(名前表).filter(
+    (exportName) => exportName.startsWith("parts") || exportName === "partInBox",
+  );
+}
+
+export function partsの見本件数(名前表: Readonly<Record<string, string>>): number {
+  return partsの見本名(名前表).length;
+}
+
+export const PARTS_COUNT_ESTIMATE = partsの見本件数(ITEM_NAME_JA);
 
 /**
  * 画面に出す説明を言語で引く (#2461)。

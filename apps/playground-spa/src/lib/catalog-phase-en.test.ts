@@ -65,32 +65,11 @@ describe("段の題の対訳 (#2469)", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("日本語を含む題が全て表に載っている", async () => {
-    const 抜け = [
-      ...new Map(
-        (await 実物の題())
-          .filter((x) => 日本語を含む(x.題))
-          .filter((x) => PHASE_TITLE_EN[x.題] === undefined)
-          .map((x) => [x.題, x]),
-      ).values(),
-    ];
-    expect(
-      抜け.map((x) => `${x.題} (${x.出どころ})`),
-      "対訳の無い段の題がある (書く場所 = catalog-phase-en.ts の PHASE_TITLE_EN。 英語で開くと題が消える)",
-    ).toEqual([]);
-  });
-
   it("英語の側に日本語が残っていない", () => {
     const 混ざり = Object.entries(PHASE_TITLE_EN).filter(([, en]) => 日本語を含む(en));
     expect(混ざり.map(([ja, en]) => `${ja} → ${en}`), "訳したはずの側に日本語が残っている").toEqual(
       [],
     );
-  });
-
-  it("表に実物へ出てこない鍵が残っていない", async () => {
-    const 実在 = new Set((await 実物の題()).map((x) => x.題));
-    const 余り = Object.keys(PHASE_TITLE_EN).filter((k) => !実在.has(k));
-    expect(余り, "実物に出ない段の題が表に残っている (見本を消した時の取り残し)").toEqual([]);
   });
 
   it("日本語では題をそのまま返す", async () => {

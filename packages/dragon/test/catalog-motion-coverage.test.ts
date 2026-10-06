@@ -16,11 +16,7 @@
  * |---|---|---|
  * | 動かすと決めた | `primitives-extra` + `scene-*` + `presets` + `kind-*` + `shape-*` + `charts` + `parts-in-box` の部品の段で動く見本 | 静止を残さない。 絵として動くことは `catalog-motion-render.test.tsx` が描画結果で見る |
  * | 動かさないと決めた | `styles` + `lane-*` + `stack-*` + `parts-in-box` の状態を上書きして止める変種 | 並び方と色の見本。 値を足すと見せたいものが埋もれる |
- * | まだ動かしていない | 副題を描かない `shape-*`、 `charts` | 別 Issue 待ち。 件数を固定して減り方を追う |
- *
- * **件数はここに書かない**。 一覧ごとの数は下の `一覧ごとの件数が分かる` が SSOT で、
- * ここに写すと見本を足すたびに片方だけ古くなる (実測で `presets` と `charts` の 2 群が
- * ずれ、表の合計が実物と 16 件違っていた)。
+ * | まだ動かしていない | 副題を描かない `shape-*`、 `charts` | 理由の表と実物を双方向で照合する |
  *
  * 3 つの一覧は互いに重ならず、合わせてカタログの全件になることを機械で見る。 分類から漏れた
  * 図が「どちらでもない」 まま残らないようにするため。
@@ -42,6 +38,24 @@ import * as Presets from "../../../apps/playground-spa/src/topics/catalog/preset
 import * as Charts from "../../../apps/playground-spa/src/topics/catalog/charts.cdl";
 import * as Styles from "../../../apps/playground-spa/src/topics/catalog/styles.cdl";
 
+interface カタログmodule群 {
+  primitives: Record<string, unknown>;
+  primitivesExtra: Record<string, unknown>;
+  presets: Record<string, unknown>;
+  charts: Record<string, unknown>;
+  styles: Record<string, unknown>;
+  partsInBox: Record<string, unknown>;
+}
+
+const 実物のカタログmodule群: カタログmodule群 = {
+  primitives: Primitives,
+  primitivesExtra: PrimitivesExtra,
+  presets: Presets,
+  charts: Charts,
+  styles: Styles,
+  partsInBox: PartsInBox,
+};
+
 /** 動きが意味を持つ分類。 カタログ (primitives 等) は別の 3 一覧で扱う */
 const 対象: Array<[string, Record<string, unknown>]> = [
   ["parts", Parts],
@@ -60,9 +74,21 @@ const diagramsOf = (mod: Record<string, unknown>): Array<[string, CdlDiagram]> =
     .filter(([, v]) => {
       if (!v || typeof v !== "object") return false;
       const d = v as Partial<CdlDiagram>;
-      return typeof d.id === "string" && Array.isArray(d.nodes) && Array.isArray(d.phases);
+      return typeof d.id === "string" && Array.isArray(d.nodes);
     })
-    .map(([k, v]) => [k, v as CdlDiagram]);
+    .map(([k, v]) => {
+      const diagram = v as CdlDiagram;
+      return [k, Array.isArray(diagram.phases) ? diagram : { ...diagram, phases: [] }];
+    });
+
+/** カタログを構成する module 群から、図として登録された export の総数を返す。 */
+function カタログのexport件数(module群: カタログmodule群): number {
+  return Object.values(module群).reduce((件数, mod) => 件数 + diagramsOf(mod).length, 0);
+}
+
+function カタログのexport名(module群: カタログmodule群): string[] {
+  return Object.values(module群).flatMap((mod) => diagramsOf(mod).map(([exportName]) => exportName));
+}
 
 const key = (a: readonly string[] = []) => [...new Set(a)].sort().join(",");
 
@@ -270,7 +296,7 @@ const 形の見本で残す: Record<string, string> = {
 };
 
 /** カタログの図を 3 つの一覧に振り分ける (#1172)。 どれにも入らない図は `未分類` に落ちる */
-function カタログの振り分け(): {
+function カタログの振り分け(module群: カタログmodule群): {
   動かす: string[];
   動かさない: string[];
   まだ: string[];
@@ -281,18 +307,20 @@ function カタログの振り分け(): {
   const まだ: string[] = [];
   const 未分類: string[] = [];
 
-  for (const [, d] of diagramsOf(PrimitivesExtra)) 動かす.push(d.id);
-  for (const [, d] of diagramsOf(Styles)) 動かさない.push(d.id);
+  for (const [, d] of diagramsOf(module群.primitivesExtra)) 動かす.push(d.id);
+  for (const [, d] of diagramsOf(module群.styles)) 動かさない.push(d.id);
   // 部品を箱に使う見本 (#1973) は部品の段で動く。 状態を上書きして止める変種だけ動かさない
-  for (const [, d] of diagramsOf(PartsInBox))
+  for (const [, d] of diagramsOf(module群.partsInBox))
     (動かさないと決めた[d.id] ? 動かさない : 動かす).push(d.id);
   // 図の型の見本は cdl 側に経路がある型だけ動かす (#1194)
-  for (const [, d] of diagramsOf(Presets)) (型の見本で残す[d.id] ? まだ : 動かす).push(d.id);
+  for (const [, d] of diagramsOf(module群.presets))
+    (型の見本で残す[d.id] ? まだ : 動かす).push(d.id);
   // 図表の見本は数の欄に状態を書けるようになった分だけ動かす (#1198)
-  for (const [, d] of diagramsOf(Charts)) (図表で残す[d.id] ? まだ : 動かす).push(d.id);
+  for (const [, d] of diagramsOf(module群.charts))
+    (図表で残す[d.id] ? まだ : 動かす).push(d.id);
   // `primitives` は 1 file の中に 2 つの扱いが混ざる。 並び方の見本 (`lane-*` / `stack-*`) は
   // 動かさないと決めた側、 種別と図形の見本は まだ動かしていない側
-  for (const [k, d] of diagramsOf(Primitives)) {
+  for (const [k, d] of diagramsOf(module群.primitives)) {
     if (d.id.startsWith("lane-") || d.id.startsWith("stack-") || 並び方の見本か(k))
       動かさない.push(d.id);
     // 場面の見本は箱を 1 つずつ光らせて流れとして読ませる (#1192)
@@ -300,40 +328,21 @@ function カタログの振り分け(): {
     // 形と種別の見本は数を動かす。 cdl 側が値を読まない 1 件だけ残る (#1196)
     else if (d.id.startsWith("kind-") || d.id.startsWith("shape-"))
       (形の見本で残す[d.id] ? まだ : 動かす).push(d.id);
-    else 未分類.push(d.id);
+    else 未分類.push(k);
   }
   return { 動かす, 動かさない, まだ, 未分類 };
 }
 
+/** module 群を 3 一覧へ振り分けた結果から、分類済みの図の総数を返す。 */
+function カタログの分類件数(module群: カタログmodule群): number {
+  const { 動かす, 動かさない, まだ } = カタログの振り分け(module群);
+  return 動かす.length + 動かさない.length + まだ.length;
+}
+
 describe("動きが意味を持つ分類に静止した図を残さない (#1161)", () => {
-  it("対象がそろっている", () => {
-    // import を書き間違えると以下が素通りする
-    const 件数 = Object.fromEntries(対象.map(([n, m]) => [n, diagramsOf(m).length]));
-    expect(件数).toEqual({
-      // 本筋を減らさずに脇へ写す部品 2 枚を足して 110 (#2220)
-      parts: 110,
-      // 内訳の件数はここに書かない (`rules/quality.md § 導出可能記述は人手で書かない` の経路 2)。
-      // 以前は「見本 5 件 + 1 件 + 3 件」 と書いてあったが実物は 12 で、検査が見ない数だったため
-      // 気付かれないまま残っていた。 内訳が要る時は `parts-motion.cdl.ts` の冒頭の表を読む
-      "parts-motion": 24,
-      // 135 = 129 図 + `formulaTextBind` の名札を書かない変種 (#1916)
-      //   + `buildStatusTrafficLight` と `clickToggle` の名前を書かない変種 (#1920)
-      //   + 矢印や縦列や図全体で操作を受け取る `eventTargets` (#1969)
-      //   + 速さの選択肢を変えた `timelineDrive` と日時の入力に替えた `inputVariety` の変種 (#1969)
-      //   + 札の色を札の字と別の状態で引く `readoutVariety` の変種 2 つ (#1974)
-      interactive: 137,
-      cookbook: 26,
-      // 表の繋がり方の型 4 枚を足して 12 → 16 (#2583)
-      patterns: 16,
-      // ER 図に多重度を全て並べる変種を足して 16 → 17 (#2105)、
-      // クラス図で書く変種を足して 24 → 25 (#2396)、
-      // 分かれ道の図の見本を足して 25 → 26 (#2513)、段階の箱と路線図を足して 26 → 28 (#2797 / #2799)、
-      // 時間軸を足して 28 → 29 (#2798)
-      "text-dsl": 29,
-      // 数え上げの時間を延ばした `richPipelineDemo` の変種を足して 10 → 11 (#1969)
-      animation: 11,
-      ethereum: 4,
-    });
+  it("対象 module のどれからも図を 1 件以上読める", () => {
+    const empty = 対象.filter(([, mod]) => diagramsOf(mod).length === 0).map(([name]) => name);
+    expect(empty, `図を読めない対象 module: ${empty.join(", ")}`).toEqual([]);
   });
 
   for (const [name, mod] of 対象) {
@@ -360,83 +369,82 @@ describe("動きが意味を持つ分類に静止した図を残さない (#1161
 describe("カタログは 3 つの一覧に分かれる (#1172)", () => {
   it("どの図もいずれか 1 つの一覧に入る", () => {
     // 分類から漏れた図があると、動かす対象なのか動かさないのか誰も判断できないまま残る
-    const { 動かす, 動かさない, まだ, 未分類 } = カタログの振り分け();
+    const { 動かす, 動かさない, まだ, 未分類 } =
+      カタログの振り分け(実物のカタログmodule群);
     expect(未分類, `どの一覧にも入らない図: ${未分類.join(", ")}`).toEqual([]);
 
-    const 全件 = [...動かす, ...動かさない, ...まだ];
-    expect(new Set(全件).size, "同じ図が 2 つの一覧に入っている").toBe(全件.length);
-    expect(全件.length).toBe(
-      diagramsOf(Primitives).length +
-        diagramsOf(PrimitivesExtra).length +
-        diagramsOf(Presets).length +
-        diagramsOf(Charts).length +
-        diagramsOf(Styles).length +
-        diagramsOf(PartsInBox).length,
+    const 分類済み = [...動かす, ...動かさない, ...まだ];
+    expect(new Set(分類済み).size, "同じ図が 2 つの一覧に入っている").toBe(分類済み.length);
+    const 全export数 = カタログのexport件数(実物のカタログmodule群);
+    expect(
+      カタログの分類件数(実物のカタログmodule群),
+      "3 分類の件数の和が対象 export の総数と違う",
+    ).toBe(全export数);
+  });
+
+  it("実物の export 群と名前表へ見本を 1 件足すと件数が 1 増えて一致する", () => {
+    const fixtureExport = "fixtureMotionCatalog";
+    const fixtureDiagram: CdlDiagram = {
+      id: "fixture-motion-catalog",
+      topic: "fixture",
+      lanes: [],
+      nodes: [],
+      edges: [],
+      states: [],
+      phases: [],
+    };
+    const 追加したmodule群: カタログmodule群 = {
+      ...実物のカタログmodule群,
+      primitivesExtra: {
+        ...実物のカタログmodule群.primitivesExtra,
+        [fixtureExport]: fixtureDiagram,
+      },
+    };
+    const 追加前の名前表 = Object.fromEntries(
+      カタログのexport名(実物のカタログmodule群).map((exportName) => [exportName, exportName]),
+    );
+    const 追加した名前表 = { ...追加前の名前表, [fixtureExport]: "fixture" };
+
+    expect(カタログのexport件数(追加したmodule群)).toBe(
+      カタログのexport件数(実物のカタログmodule群) + 1,
+    );
+    expect(カタログの分類件数(追加したmodule群)).toBe(
+      カタログの分類件数(実物のカタログmodule群) + 1,
+    );
+    expect(カタログの分類件数(追加したmodule群)).toBe(Object.keys(追加した名前表).length);
+    expect(カタログのexport件数(追加したmodule群)).toBe(Object.keys(追加した名前表).length);
+    expect(カタログのexport名(追加したmodule群).sort()).toEqual(
+      Object.keys(追加した名前表).sort(),
     );
   });
 
-  it("一覧ごとの件数が分かる", () => {
-    // まだ動かしていない図の件数を固定して、減り方を追えるようにする。
-    // 動かす作業が進むと この数が減り、検査が「更新しろ」 と言う
-    //
-    // **`動かさない` はここで数えない** (#2607)。 その一覧は下の「動かさないと決めた図は
-    // 1 件ずつ理由を持つ」 が `動かさないと決めた` の鍵と突き合わせており、振り分けは
-    // Styles と縦列の見本を表と無関係に入れる = 表に行を足し忘れると そちらが落ちる。
-    // 実測 = #2594 で見本を 1 枚足した時、件数と一覧の両方が独立に落ちた (#2602)。
-    // 同じことを数でもう 1 度書くと、行を足した人が同じ作業を 2 度することになる。
-    //
-    // **`まだ` も数えない** (#2611)。 3 つの「1 件ずつ理由を持つ」 を両方向にしたので、
-    // 表から 1 行消せばそちらが落ちる。 #2607 でこの数を残したのは片方向だった時の話で、
-    // 両方向になった今は同じことを数でもう 1 度書くことになる。
-    //
-    // 残る `動かす` は他のどの検査でも決まらない。 `catalog-name-parity.test.ts` の
-    // 一覧ごとの件数は `pattern__` で始まる変種を母集団から外すため、変種を足した回は
-    // この数だけが動く。
-    const { 動かす } = カタログの振り分け();
-    expect({ 動かす: 動かす.length }).toEqual({
-      // #1966 でユーザージャーニーに 5 つの気持ちの変種 (動かす) と、スタイルに値を並べる見本 11 枚 (動かさない) を足した
-      // #1969 で棒を 4 割で伸ばし終える変種 (動かす) と、縦列の縦の点線と図全体の間隔の見本 10 枚 (動かさない) を足した
-      // #1969 でフローの並ぶ向きと状態の始まりと終わりの見本 5 枚と、スタイルの変種 4 枚 (動かさない) を足した
-      // #1971 で位置のずらしの見本 4 枚 (動かさない) を足した
-      // #1972 で縦列の組の見本 3 枚 (動かさない) を足した
-      // #1973 で部品を箱に使う見本 3 枚 (動かす) と、状態を上書きして止める変種 1 枚 (動かさない) を足した
-      // #1980 で部品を縦列に置く変種 1 枚 (動かす) を足した
-      // #1979 で部品へ矢印を繋ぐ変種 2 枚 (動かす) を足した
-      // #1986 で向きを書いたフローが書いた端のとおりに繋ぐ変種 1 枚 (動かさない) を足した
-      // #1987 で部品を流れの途中に置く変種 1 枚 (動かす) を足した
-      // #1990 で部品を並べる変種 1 枚 (動かす) を足した
-      // #2010 で部品 2 つへ矢印を分ける変種と、部品どうしを繋ぐ変種の 2 枚 (動かす) を足した
-      // #2012 で高さの違う部品どうしを繋ぐ変種 1 枚 (動かす) を足した (描画エンジン 0.65.0 で角の行き過ぎが直った)
-      // #2011 で 2 つの部品から同じ箱へ集める変種 1 枚 (動かす) を足した (描画エンジン 0.66.0 で貫通が直った)
-      // #2039 で位置を相対で書く見本 5 枚 (動かさない) と、部品を基準にする変種 1 枚 (動かす) を足した
-      // #2139 で階層構成図の複雑な版 1 枚 (動かす) を足した
-      // #2141 で線の役目の見本と、役目を書く変種の 2 枚 (動かさない) を足した
-      // #2143 でフローチャートの複雑な版 1 枚 (動かす) を足した
-      // #2161 で順序図の複雑な版 1 枚 (動かす) を足した
-      // #2163 で状態遷移図の複雑な版 1 枚 (動かす) を足した
-      // #2165 でネットワーク図の複雑な版 1 枚 (動かす) を足した
-      // #2167 で枠で囲む構成図の複雑な版 1 枚 (動かす) を足した
-      // #2169 で帯図の複雑な版 1 枚 (動かす) を足した
-      // #2177 で折れ線の複雑な版 1 枚 (動かす) を足した
-      // #2179 で円グラフの複雑な版 1 枚 (動かす) を足した
-      // #2181 で進捗図の複雑な版 1 枚 (動かす) を足した
-      // #2183 でユーザージャーニーの複雑な版 1 枚 (動かす) を足した
-      // #2185 で漏斗の複雑な版 1 枚 (動かす) を足した
-      // #2187 で四象限図の複雑な版 1 枚 (動かす) を足した
-      // #2189 で階層図の複雑な版 1 枚 (動かす) を足した
-      // #2191 でマインドマップの複雑な版 1 枚 (動かす) を足した
-      // #2333 で題と色を一緒に書く変種 1 枚 (動かさない) を足した
-      // #2346 で状態の始まりと終わりを段を分けて書く変種 1 枚 (動かさない) を足した
-      // #2394 で矢印の飾りの見本 2 枚 (動かさない) を足した
-      // #2549 で進捗図の担当者を書かない版 1 枚 (動かす) を足した
-      // #2524 でフローチャートの縦に積む版 1 枚 (動かす) を足した
-      // #2594 で 3 つ目の線の種類の見本 1 枚 (動かさない) を足した
-      // #2611 で 1 段で描くだけの図表 3 枚を「まだ」 へ移した (動かす 178 → 175)
-      // #2681 で四象限を座標で置く版 1 枚 (動かす) を足した
-      // #2766 で公開までの段取りに延びる段を足し「まだ」 から「動かす」 へ移した (176 → 177)
-      // #2768 で四半期ごとの持ち場にも同じ段を足し「まだ」 から移した (177 → 178)
-      動かす: 178,
-    });
+  it("実物の export 群と名前表から見本を 1 件消すと件数が 1 減って一致する", () => {
+    const 最初のexport = diagramsOf(実物のカタログmodule群.primitivesExtra)[0];
+    if (最初のexport === undefined) throw new Error("primitives-extra から図を 1 件も読めていない");
+    const [消すexport名] = 最初のexport;
+    const 減らしたmodule = { ...実物のカタログmodule群.primitivesExtra };
+    delete 減らしたmodule[消すexport名];
+    const 減らしたmodule群: カタログmodule群 = {
+      ...実物のカタログmodule群,
+      primitivesExtra: 減らしたmodule,
+    };
+    const 減らす前の名前表 = Object.fromEntries(
+      カタログのexport名(実物のカタログmodule群).map((exportName) => [exportName, exportName]),
+    );
+    const 減らした名前表 = { ...減らす前の名前表 };
+    delete 減らした名前表[消すexport名];
+
+    expect(カタログのexport件数(減らしたmodule群)).toBe(
+      カタログのexport件数(実物のカタログmodule群) - 1,
+    );
+    expect(カタログの分類件数(減らしたmodule群)).toBe(
+      カタログの分類件数(実物のカタログmodule群) - 1,
+    );
+    expect(カタログの分類件数(減らしたmodule群)).toBe(Object.keys(減らした名前表).length);
+    expect(カタログのexport件数(減らしたmodule群)).toBe(Object.keys(減らした名前表).length);
+    expect(カタログのexport名(減らしたmodule群).sort()).toEqual(
+      Object.keys(減らした名前表).sort(),
+    );
   });
 
   it("動かすと決めた見本に静止した図が無い", () => {
@@ -487,7 +495,7 @@ describe("カタログは 3 つの一覧に分かれる (#1172)", () => {
     // **まだ動かしていない図と区別が付く形にする**。 件数だけで分けると、後から見た人が
     // 「これは動かさない図なのか、手が回っていないだけなのか」 を判断できない。
     // 1 件ずつ理由を書き、一覧が実物とずれたら落とす
-    const { 動かさない } = カタログの振り分け();
+    const { 動かさない } = カタログの振り分け(実物のカタログmodule群);
     expect([...動かさない].sort()).toEqual(Object.keys(動かさないと決めた).sort());
   });
 });
@@ -527,7 +535,7 @@ describe("一覧に載る図が 1 つ残らずどちらかの系統に入って�
 
   /** 2 系統が覆う図の id */
   function 系統の図(): string[] {
-    const { 動かす, 動かさない, まだ } = カタログの振り分け();
+    const { 動かす, 動かさない, まだ } = カタログの振り分け(実物のカタログmodule群);
     return [
       ...対象.flatMap(([, mod]) => diagramsOf(mod).map(([, d]) => d.id)),
       ...動かす,
