@@ -1310,6 +1310,57 @@ svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="funnel-stage"] {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+ * 日程の帯と帯の上の担当の字 (#2826)
+ *
+ * 担当の字は意匠ごとに 1 色へ固定し、その字との対比が 4.5 に届かない系列だけ、同じ色相と
+ * 彩度のまま明るさを動かした最も元に近い色で帯を塗る。帯の要素自身で系列色を置き直すため、
+ * 漏斗の段と図表の系列色には届かない。
+ *
+ * 値の正は各意匠帳の「日程の棒と漏斗の段」で、`theme-matches-note.test.ts` が突き合わせる。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-bar"] {
+  --cdl-chart-2: #1e7567;
+  --cdl-chart-4: #82641d;
+  --cdl-chart-6: #556b79;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="gantt-bar"] {
+  --cdl-chart-1: #bc3f1d;
+  --cdl-chart-4: #71695b;
+  --cdl-chart-6: #985a43;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="gantt-bar"] {
+  --cdl-chart-5: #669480;
+  --cdl-chart-6: #b57c6a;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-bar"] {
+  --cdl-chart-1: #ce481e;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="gantt-bar"] {
+  --cdl-chart-1: #c2553b;
+  --cdl-chart-4: #807567;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-owner"],
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="gantt-owner"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="gantt-owner"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-owner"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="gantt-owner"] {
+  fill: var(--er-face) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="gantt-owner"] {
+  fill: var(--er-ink) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="gantt-owner"] {
+  fill: var(--relief-tag-ink) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
  * 図面の作り (#2790)
  *
  * 共通の塊と同じ強さなので、その `background` 一括指定より後ろに置く。 前へ置くと shorthand が
@@ -1684,8 +1735,7 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] g:has(> [data-cdl-role="edge-lab
 
 /* 箱の面の字は系列色の上で 1.9 から 2.7 しか出ないため、割る箇所では字を濃くする。 */
 svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="funnel-stage"] + text,
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="funnel-stage-subtitle"],
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="gantt-owner"] {
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="funnel-stage-subtitle"] {
   fill: var(--er-ink) !important;
 }
 

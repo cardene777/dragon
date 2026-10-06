@@ -25,8 +25,10 @@ import {
   readFixedThemeToneSeries,
   readThemeNotes,
   readThemeNoteText,
+  themeGanttSeriesColors,
   type ThemeNote,
   type ThemePort,
+  type ThemeToneSeries,
 } from "../../tests/helpers/theme-notes";
 import { contrast } from "../../tests/helpers/pixel-contrast";
 
@@ -76,9 +78,9 @@ function cssChartThemes(cssText: string, fixedNames: Set<string>): Map<string, C
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
   const out = new Map<string, CssChartTheme>();
   for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const selector = m[1] ?? "";
+    const selector = (m[1] ?? "").trim();
     const body = m[2] ?? "";
-    const named = /\[data-cdl-palette="([^"]+)"\]/.exec(selector);
+    const named = /^svg\[data-cdl-stage\]\[data-cdl-palette="([^"]+)"\]$/.exec(selector);
     if (!named?.[1]) continue;
     const themeName = named[1];
     if (!fixedNames.has(themeName)) continue;
@@ -119,6 +121,25 @@ function cssChartThemes(cssText: string, fixedNames: Set<string>): Map<string, C
 function rgb(hex: string): [number, number, number] {
   const value = Number.parseInt(hex.slice(1), 16);
   return [value >> 16, (value >> 8) & 255, value & 255];
+}
+
+function hue(hex: string): number {
+  const [red, green, blue] = rgb(hex).map((value) => value / 255) as [number, number, number];
+  const maximum = Math.max(red, green, blue);
+  const minimum = Math.min(red, green, blue);
+  const delta = maximum - minimum;
+  if (delta === 0) return 0;
+  const sector = maximum === red
+    ? ((green - blue) / delta) % 6
+    : maximum === green
+      ? (blue - red) / delta + 2
+      : (red - green) / delta + 4;
+  return (sector * 60 + 360) % 360;
+}
+
+function hueDifference(left: string, right: string): number {
+  const difference = Math.abs(hue(left) - hue(right));
+  return Math.min(difference, 360 - difference);
 }
 
 function cssFixedThemeDeclarations(cssText: string, themeName: string): Map<string, string> {
@@ -178,17 +199,22 @@ function resolveCssColor(
   return resolveCssColor(declarations, variable, new Set([...seen, property]));
 }
 
-function cssRuleBody(cssText: string, exactSelector: string, requiredProperty?: string): string {
+/** selector の 1 つが完全に一致する規則の本文を全て返す。0 件も返す。 */
+function cssRuleBodies(cssText: string, exactSelector: string, requiredProperty?: string): string[] {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-  const bodies = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
+  const property = requiredProperty === undefined
+    ? undefined
+    : new RegExp(`(?:^|;)\\s*${requiredProperty.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`, "m");
+  return [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
     const selectors = (match[1] ?? "").split(",").map((selector) => selector.trim());
     const body = match[2] ?? "";
-    const hasRequiredProperty = requiredProperty === undefined || new RegExp(
-      `(?:^|;)\\s*${requiredProperty.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`,
-      "m",
-    ).test(body);
+    const hasRequiredProperty = property === undefined || property.test(body);
     return selectors.includes(exactSelector) && hasRequiredProperty ? [body] : [];
   });
+}
+
+function cssRuleBody(cssText: string, exactSelector: string, requiredProperty?: string): string {
+  const bodies = cssRuleBodies(cssText, exactSelector, requiredProperty);
   if (bodies.length !== 1) {
     const qualifier = requiredProperty ? ` (${requiredProperty} を持つもの)` : "";
     throw new Error(`${exactSelector} の CSS 規則${qualifier}が ${bodies.length} 件ある (1 件が要る)`);
@@ -216,6 +242,44 @@ function resolvedCssPaint(declarations: Map<string, string>, body: string, prope
   const literal = /^(#[0-9a-f]{6})$/.exec(value)?.[1];
   if (literal) return literal;
   return resolveCssColor(declarations, cssVariableName(value));
+}
+
+function cssGanttOverrides(cssText: string, themeName: string): Map<number, string> {
+  const selector = `svg[data-cdl-stage][data-cdl-palette="${themeName}"] [data-cdl-role="gantt-bar"]`;
+  const overrides = new Map<number, string>();
+  for (const body of cssRuleBodies(cssText, selector)) {
+    for (const declaration of body.matchAll(/--cdl-chart-([1-6])\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) {
+      const series = Number(declaration[1]);
+      if (overrides.has(series)) throw new Error(`${themeName} の日程の帯の系列 ${series} が複数ある`);
+      overrides.set(series, declaration[2]!.toLowerCase());
+    }
+  }
+  return overrides;
+}
+
+function compareGanttCss(
+  cssText: string,
+  expected: Map<DslTheme, ThemeToneSeries>,
+): string[] {
+  const failures: string[] = [];
+  for (const [name, style] of expected) {
+    const actualOverrides = cssGanttOverrides(cssText, name);
+    for (let series = 1; series <= 6; series += 1) {
+      const actual = actualOverrides.get(series);
+      const want = style.ganttOverrides.get(series);
+      if (actual !== want) {
+        failures.push(`${name} 日程の帯 ${series}: 意匠帳 ${want ?? "上書きなし"} / CSS ${actual ?? "上書きなし"}`);
+      }
+    }
+
+    const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
+    const owner = cssRuleBody(cssText, `${stage} [data-cdl-role="gantt-owner"]`, "fill");
+    const actualOwner = resolvedCssPaint(cssFixedThemeDeclarations(cssText, name), owner, "fill");
+    if (actualOwner !== style.ganttOwnerColor) {
+      failures.push(`${name} 担当の字: 意匠帳 ${style.ganttOwnerColor} / CSS ${actualOwner}`);
+    }
+  }
+  return failures;
 }
 
 /** 色みと主役の札が継承する、意匠ごとの字の決まり。 */
@@ -525,7 +589,84 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(Number(cssDeclaration(body, "fill-opacity"))).toBe(representative.opacity);
   });
 
-  it("図録の段と帯の字、手描きの日程の棒の枠は意匠帳の例外と一致する", () => {
+  it("固定 7 意匠の日程の帯と担当の字は意匠帳どおりの対比を保つ", () => {
+    const notes = readThemeNotes();
+    const charts = readFixedThemeChartSeries();
+    const expected = readFixedThemeToneSeries();
+    const leads = readFixedThemeLead();
+    const failures = compareGanttCss(cssText, expected);
+
+    expect(expected.size).toBe(7);
+    for (const [name, tones] of expected) {
+      const note = notes.get(name);
+      const chart = charts.get(name);
+      if (!note || note.mode !== "fixed" || !chart) {
+        throw new Error(`${name} の日程の帯を検査する意匠帳の値が足りない`);
+      }
+      const ganttColors = themeGanttSeriesColors(chart, tones);
+      for (let index = 0; index < chart.colors.length; index += 1) {
+        const series = index + 1;
+        const original = chart.colors[index];
+        const color = ganttColors[index];
+        if (!original || !color) throw new Error(`${name} の日程の帯 ${series} の色が無い`);
+        const overridden = tones.ganttOverrides.has(series);
+        const originalRatio = contrast(rgb(original), rgb(tones.ganttOwnerColor));
+        const ownerRatio = contrast(rgb(color), rgb(tones.ganttOwnerColor));
+        if (overridden !== (originalRatio < 4.5)) {
+          failures.push(`${name} 日程の帯 ${series}: 元の担当との対比 ${originalRatio.toFixed(2)} なのに上書き ${overridden ? "あり" : "なし"}`);
+        }
+        if (overridden) {
+          // 必要以上に動かしていないこと = 上書き後の対比が下限のすぐ上に収まる
+          if (ownerRatio >= 4.6) {
+            failures.push(`${name} 日程の帯 ${series}: 上書き後の担当との対比 ${ownerRatio.toFixed(2)} が 4.6 以上 (動かしすぎ)`);
+          }
+          const difference = hueDifference(original, color);
+          if (difference > 10) {
+            failures.push(`${name} 日程の帯 ${series}: 元の系列色との色相差 ${difference.toFixed(2)} 度 > 10 度`);
+          }
+        }
+        if (ownerRatio < 4.5) {
+          failures.push(`${name} 日程の帯 ${series}: 担当との対比 ${ownerRatio.toFixed(2)} < 4.5`);
+        }
+        const groundRatio = contrast(rgb(color), rgb(note.value.ground));
+        if (groundRatio < 3) {
+          failures.push(`${name} 日程の帯 ${series}: 台との対比 ${groundRatio.toFixed(2)} < 3`);
+        }
+      }
+
+      if (name === "relief" || name === "sketch") {
+        const lead = leads.get(name);
+        const first = ganttColors[0];
+        if (!lead || !first) throw new Error(`${name} の一と日程の帯の系列 1 を読めない`);
+        const difference = hueDifference(lead, first);
+        if (difference > 10) {
+          failures.push(`${name} 日程の帯 1: 一との色相差 ${difference.toFixed(2)} 度 > 10 度`);
+        }
+      }
+    }
+    expect(failures, "日程の帯と担当の字が意匠帳または対比の決まりと違う").toEqual([]);
+  });
+
+  it("意匠帳の浮彫の日程の帯を書き換えると CSS との不一致を検知する", () => {
+    const original = readThemeNoteText("relief");
+    const changed = original.replace("1 を `#c2553b`", "1 を `#c2553a`");
+    expect(changed, "日程の帯の変異を本文へ植え込めていない").not.toBe(original);
+    const relief = readFixedThemeToneSeries({ relief: changed }).get("relief");
+    if (!relief) throw new Error("浮彫の日程の帯を意匠帳から読めない");
+    const failures = compareGanttCss(cssText, new Map([["relief", relief]]));
+    expect(failures.some((line) => line.includes("relief 日程の帯 1"))).toBe(true);
+  });
+
+  it("意匠帳から担当の字を消すと読み取りを拒む", () => {
+    const original = readThemeNoteText("relief");
+    const changed = original.replace("帯の上の担当の字は白 `#ffffff`", "");
+    expect(changed, "担当の字を本文から消せていない").not.toBe(original);
+    expect(() => readFixedThemeToneSeries({ relief: changed })).toThrow(
+      "意匠帳の relief の日程の棒と漏斗の段に担当の字が無い",
+    );
+  });
+
+  it("図録の段の字と手描きの日程の棒の枠は意匠帳の例外と一致する", () => {
     const expected = readFixedThemeToneSeries();
     const catalog = expected.get("catalog");
     const sketch = expected.get("sketch");
@@ -537,7 +678,6 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     for (const selector of [
       `${catalogStage} [data-cdl-role="funnel-stage"] + text`,
       `${catalogStage} [data-cdl-role="funnel-stage-subtitle"]`,
-      `${catalogStage} [data-cdl-role="gantt-owner"]`,
     ]) {
       const body = cssRuleBody(cssText, selector);
       expect(resolvedCssPaint(catalogDeclarations, body, "fill"), selector).toBe(catalog.textColor);

@@ -22,6 +22,7 @@ import {
   readFixedThemeSingleSeriesBars,
   readFixedThemeToneSeries,
   readThemeNotes,
+  themeGanttSeriesColors,
 } from "./helpers/theme-notes";
 
 const sketch = readThemeNotes().get("sketch");
@@ -329,7 +330,7 @@ test.describe("sketch theme (#2794)", () => {
         }),
       );
     expect(ganttBars.length, "日程の棒が無い").toBeGreaterThan(0);
-    const ganttFill = chart.colors[toneSeries.seriesByTone.accent - 1];
+    const ganttFill = themeGanttSeriesColors(chart, toneSeries)[toneSeries.seriesByTone.accent - 1];
     if (!ganttFill) throw new Error("手描きの日程の系列 1 を意匠帳から読めない");
     for (const bar of ganttBars) {
       expect(bar.fill).toBe(hexToRgb(ganttFill));
