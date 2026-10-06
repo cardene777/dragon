@@ -9,6 +9,7 @@
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test catalog-pattern-switch`
  */
 import { test, expect } from "@playwright/test";
+import { CATALOG_ITEMS } from "../src/lib/catalog-items";
 import { 一覧の行 } from "./catalog-item-pick";
 
 type Page = import("@playwright/test").Page;
@@ -382,14 +383,20 @@ test.describe("ひな形の簡単な版と複雑な版を切り替える (#1960)
   ] as const;
 
   test("複雑な版の行が一覧に無い", async ({ page }) => {
+    const 登録済み見本件数 = (CATALOG_ITEMS.presets ?? []).length;
     await page.goto("catalog/presets", { waitUntil: "networkidle" });
     const 名前たち = (await page.locator(".catalog-list-item-name").allTextContents()).map((s) => s.trim());
     expect(名前たち.length, "一覧の名前を読めていない (検査が空振りしている)").toBeGreaterThan(0);
     expect(名前たち.filter((s) => s.includes("(複雑)")), "複雑な版が一覧の別の行に残っている").toEqual([]);
     // 件数の札は `全 {件数} 件` と組み立てるので、字ではなく数を読む
     const 件数の札 = (await page.locator(".catalog-count").first().textContent()) ?? "";
-    expect(Number(件数の札.match(/\d+/)?.[0]), `件数の札が 19 でない (${件数の札})`).toBe(19);
-    expect(名前たち, "一覧の行の数が件数の札と合わない").toHaveLength(19);
+    expect(
+      Number(件数の札.match(/\d+/)?.[0]),
+      `件数の札が登録済み見本件数と違う (${件数の札})`,
+    ).toBe(
+      登録済み見本件数,
+    );
+    expect(名前たち, "一覧の行数が登録済み見本件数と違う").toHaveLength(登録済み見本件数);
   });
 
   for (const { 名前, 簡単, 複雑, 複雑の題 } of 規模違い) {

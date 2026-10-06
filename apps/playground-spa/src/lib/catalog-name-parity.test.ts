@@ -1,171 +1,179 @@
 /**
- * 一覧に出る名前の健全性 (#1030)。
+ * 一覧に出る見本と、表示に必要な 4 表の対応を検証する。
  *
- * 一覧の名前は export 名で引く 1 つの表 (`ITEM_NAME_JA`) に集約されており、**カテゴリを見ない**。
- * そのため別カテゴリが同じ export 名を持つと、片方向けに直した名前がもう片方にも出る。
- * 実測で `oauthFlow` が interactive と cookbook で衝突していた (図 331 件中 1 件)。
- *
- * 名前と題名を一致させることは**検査しない**。 一覧の名前は「探す時の見出し」、図の題名は
- * 「開いた時の説明」 で役割が違う。 他カテゴリは名前 5-8 文字 / 題名 28-39 文字と役割を
- * 分けており (実測 = patterns 5.5/27.8、primitives 7.6/38.5)、一致させると一覧が読みにくくなる。
+ * 日本語名・英語名・説明の英訳は見本の export 名で引く。
+ * 段題の英訳だけは、登録済み見本が実際に使う `phases[].title` で引く。
+ * どの表も不足と余りを双方向で見るため、見本を消した時の古い entry も残さない。
  */
-import { describe, it, expect } from "vitest";
-import * as Interactive from "@/topics/catalog/interactive.cdl";
-import * as Cookbook from "@/topics/catalog/cookbook.cdl";
-import * as Patterns from "@/topics/catalog/patterns.cdl";
-import * as Primitives from "@/topics/catalog/primitives.cdl";
-import * as PrimitivesExtra from "@/topics/catalog/primitives-extra.cdl";
-import * as Animation from "@/topics/catalog/animation.cdl";
-import * as Styles from "@/topics/catalog/styles.cdl";
-import * as Presets from "@/topics/catalog/presets.cdl";
-import * as Ethereum from "@/topics/catalog/ethereum.cdl";
-import * as TextDsl from "@/topics/catalog/text-dsl.cdl";
-import * as Parts from "@/topics/catalog/parts.cdl";
-import * as PartsInBox from "@/topics/catalog/parts-in-box.cdl";
-import * as PartsMotion from "@/topics/catalog/parts-motion.cdl";
-import * as Charts from "@/topics/catalog/charts.cdl";
-import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
+import type { CdlDiagram } from "@cardenelabs/cdl";
+import { describe, expect, it } from "vitest";
 
-const CATALOGS: Array<readonly [string, Record<string, unknown>]> = [
-  ["interactive", Interactive],
-  ["cookbook", Cookbook],
-  ["patterns", Patterns],
-  ["primitives", Primitives],
-  ["primitives-extra", PrimitivesExtra],
-  ["animation", Animation],
-  ["styles", Styles],
-  ["presets", Presets],
-  ["ethereum", Ethereum],
-  ["text-dsl", TextDsl],
-  // parts は画面では遅延読み込みだが、名前の衝突は読み込み方に関係なく起きる
-  ["parts", Parts],
-  // 部品を箱に使う見本 (#1973)。 部品の頁に並ぶ
-  ["parts-in-box", PartsInBox],
-  // 部品を繋いで動かす見本 (#2125)。 同じく部品の頁に並ぶ
-  ["parts-motion", PartsMotion],
-  ["charts", Charts],
-];
+import { CATALOG_ITEMS, loadPartsItems, moduleToItems, type CatalogItem } from "./catalog-items";
+import { ITEM_SUBTITLE_EN } from "./catalog-item-en";
+import { PHASE_TITLE_EN, 日本語を含む } from "./catalog-phase-en";
+import { ITEM_NAME_EN, ITEM_NAME_JA } from "./i18n";
 
-/**
- * 図として組み立て済の export だけを拾う。
- *
- * 判定は production (`catalog-items.ts` の `moduleToItems`) と**同じ式**にする。
- * 厳しくすると production が一覧に出す図を test が見落とし、緩くすると図でない export を数える。
- *
- * `pattern__` で始まる export は一覧の行にならない変種なので外す (#1696)。 名前は切替の
- * 札 (export 名の末尾) から出るため、この表に entry を持たない。 外さないと下の
- * 「名前の表と図の集合が双方向で一致する」 が、出ない名前を要求することになる。
- */
-function diagramKeys(mod: Record<string, unknown>): string[] {
-  return Object.entries(mod)
-    .filter(([key]) => !key.startsWith("pattern__"))
-    .filter(([, value]) => {
-      if (!value || typeof value !== "object") return false;
-      const d = value as { id?: unknown; nodes?: unknown };
-      return Boolean(d.id) && Boolean(d.nodes);
-    })
-    .map(([k]) => k);
+interface 名前と英訳の表 {
+  ITEM_NAME_JA: Readonly<Record<string, string>>;
+  ITEM_NAME_EN: Readonly<Record<string, string>>;
+  ITEM_SUBTITLE_EN: Readonly<Record<string, string>>;
+  PHASE_TITLE_EN: Readonly<Record<string, string>>;
 }
 
+const 実物の表: 名前と英訳の表 = {
+  ITEM_NAME_JA,
+  ITEM_NAME_EN,
+  ITEM_SUBTITLE_EN,
+  PHASE_TITLE_EN,
+};
+
+async function 登録済みの見本(): Promise<CatalogItem[]> {
+  return [...Object.values(CATALOG_ITEMS).flat(), ...(await loadPartsItems())];
+}
+
+function 段題の鍵(items: readonly CatalogItem[]): Set<string> {
+  const keys = new Set<string>();
+  for (const item of items) {
+    const diagrams = [item.diagram, ...(item.patterns ?? []).map((pattern) => pattern.diagram)];
+    for (const diagram of diagrams) {
+      for (const phase of diagram.phases ?? []) {
+        const title = (phase.title ?? "").trim();
+        if (日本語を含む(title)) keys.add(title);
+      }
+    }
+  }
+  return keys;
+}
+
+function 表の不一致(
+  必要な鍵: ReadonlySet<string>,
+  table: Readonly<Record<string, string>>,
+  表の名前: keyof 名前と英訳の表,
+): string[] {
+  const failures: string[] = [];
+  const missing = [...必要な鍵].filter((key) => table[key] === undefined).sort();
+  const extra = Object.keys(table)
+    .filter((key) => !必要な鍵.has(key))
+    .sort();
+  if (missing.length > 0) failures.push(`${表の名前} に無い: ${missing.join(", ")}`);
+  if (extra.length > 0) failures.push(`${表の名前} だけにある: ${extra.join(", ")}`);
+  return failures;
+}
+
+/** 登録済み見本と 4 表を双方向で突き合わせ、不一致を表名と鍵つきで知らせる。 */
+function 登録と表を突き合わせる(items: readonly CatalogItem[], tables: 名前と英訳の表): void {
+  const exportNames = new Set(items.map((item) => item.title));
+  const 説明の英訳が要るexport = new Set(
+    items.filter((item) => 日本語を含む(item.subtitle)).map((item) => item.title),
+  );
+  const failures = [
+    ...表の不一致(exportNames, tables.ITEM_NAME_JA, "ITEM_NAME_JA"),
+    ...表の不一致(exportNames, tables.ITEM_NAME_EN, "ITEM_NAME_EN"),
+    ...表の不一致(説明の英訳が要るexport, tables.ITEM_SUBTITLE_EN, "ITEM_SUBTITLE_EN"),
+    ...表の不一致(段題の鍵(items), tables.PHASE_TITLE_EN, "PHASE_TITLE_EN"),
+  ];
+  if (failures.length > 0) throw new Error(failures.join("\n"));
+}
+
+function fixtureDiagram(id: string, title: string): CdlDiagram {
+  return {
+    id,
+    topic: `${id} の日本語説明`,
+    lanes: [],
+    nodes: [],
+    edges: [],
+    states: [],
+    phases: [
+      {
+        id: "phase",
+        duration: 1,
+        title,
+        body: "",
+        activate: [],
+        tweens: [],
+        sets: [],
+      },
+    ],
+  };
+}
+
+function fixtureTables(items: readonly CatalogItem[]): 名前と英訳の表 {
+  const names = Object.fromEntries(items.map((item) => [item.title, item.title]));
+  const subtitles = Object.fromEntries(
+    items.map((item) => [item.title, `${item.title} description`]),
+  );
+  const phases = Object.fromEntries(
+    [...段題の鍵(items)].map((title) => [title, `${title} translation`]),
+  );
+  return {
+    ITEM_NAME_JA: names,
+    ITEM_NAME_EN: { ...names },
+    ITEM_SUBTITLE_EN: subtitles,
+    PHASE_TITLE_EN: phases,
+  };
+}
+
+describe("登録済み見本と名前・英訳の表", () => {
+  it("実際の登録経路から作った見本と 4 表が双方向で一致する", async () => {
+    const items = await 登録済みの見本();
+    expect(items.length, "登録済み見本を 1 件も読めていない").toBeGreaterThan(0);
+    expect(() => 登録と表を突き合わせる(items, 実物の表)).not.toThrow();
+  });
+
+  it("fixture の module export と 4 表へ見本を 1 件足せば通る", () => {
+    const items = moduleToItems({
+      alpha: fixtureDiagram("alpha", "アルファの段"),
+      beta: fixtureDiagram("beta", "ベータの段"),
+    });
+    expect(() => 登録と表を突き合わせる(items, fixtureTables(items))).not.toThrow();
+  });
+
+  it("fixture の module export と 4 表から見本を 1 件消せば通る", () => {
+    const items = moduleToItems({ alpha: fixtureDiagram("alpha", "アルファの段") });
+    expect(() => 登録と表を突き合わせる(items, fixtureTables(items))).not.toThrow();
+  });
+
+  const 欠落fixture = moduleToItems({ alpha: fixtureDiagram("alpha", "アルファの段") });
+  const 揃った表 = fixtureTables(欠落fixture);
+
+  it.each([
+    ["ITEM_NAME_JA", "alpha"],
+    ["ITEM_NAME_EN", "alpha"],
+    ["ITEM_SUBTITLE_EN", "alpha"],
+    ["PHASE_TITLE_EN", "アルファの段"],
+  ] as const)("%s が 1 件欠けると欠けた鍵を知らせて落ちる", (tableName, missingKey) => {
+    const table = { ...揃った表[tableName] };
+    delete table[missingKey];
+    expect(() => 登録と表を突き合わせる(欠落fixture, { ...揃った表, [tableName]: table })).toThrow(
+      new RegExp(`${tableName} に無い: ${missingKey}`),
+    );
+  });
+});
+
 describe("一覧の名前 (#1030)", () => {
-  const byCatalog = CATALOGS.map(([name, mod]) => [name, diagramKeys(mod)] as const);
-  const total = byCatalog.reduce((a, [, ks]) => a + ks.length, 0);
-
-  it("catalog ごとの図の数を固定する", () => {
-    // 件数の下限だけだと、取りこぼしても通ってしまう。 catalog ごとの実数で固定する。
-    // 図を足したらこの表も更新する = 数が変わったことに気付ける
-    const expected: Record<string, number> = {
-      // interactive は矢印や縦列や図全体で操作を受け取る見本を足して 129 → 130 (#1969)
-      // patterns は表の繋がり方の型 4 枚を足して 12 → 16 (#2583)
-      // primitives は順序図の箱の並べ替えの見本を足して 95 → 96 (#2655)
-      interactive: 130, cookbook: 26, patterns: 16, primitives: 96,
-      // presets はクラス図と ER 図の複雑な版をパターンへ移して 21 → 19 (#1960)
-      // styles は欄が取る値を並べる見本を 4 件足して 10 → 14 (#1966)、
-      // 位置を相対で書く見本を足して 14 → 15 (#2039)、線の役目の見本を足して 15 → 16 (#2141)、
-      // 矢印の飾りの見本を足して 16 → 17 (#2394)
-      // primitives は縦列の縦の点線 / 図全体の間隔 / フローの並ぶ向き / 状態の始まりと終わり
-      // の見本を足して 89 → 93 (#1969)、位置のずらしの見本を足して 93 → 94 (#1971)、
-      // 縦列の組の見本を足して 94 → 95 (#1972)
-      "primitives-extra": 21, animation: 10, styles: 19, presets: 19,
-      // parts-in-box は部品を箱に使う見本 (#1973)
-      // text-dsl は時間軸の見本を足して 21 → 22 (#2798)
-      ethereum: 4, "text-dsl": 22, parts: 110, "parts-in-box": 1, "parts-motion": 1, charts: 15,
-    };
-    const actual = Object.fromEntries(byCatalog.map(([n, k]) => [n, k.length]));
-    expect(
-      actual,
-      "図の数が変わっている (書く場所 = この file の expected。 図を足した / 移した時に直す)",
-    ).toEqual(expected);
-    expect(total, "総数が合わない").toBe(Object.values(expected).reduce((a, b) => a + b, 0));
-  });
-
-  it("catalog をまたいで export 名が衝突しない", () => {
-    // 一覧の名前は export 名だけで引くため、衝突すると片方向けの名前がもう片方にも出る
-    const seen = new Map<string, string[]>();
-    for (const [name, keys] of byCatalog) {
-      for (const k of keys) seen.set(k, [...(seen.get(k) ?? []), name]);
+  it("catalog をまたいで export 名が衝突しない", async () => {
+    const seen = new Set<string>();
+    const duplicates: string[] = [];
+    for (const item of await 登録済みの見本()) {
+      if (seen.has(item.title)) duplicates.push(item.title);
+      seen.add(item.title);
     }
-    const dup = [...seen.entries()].filter(([, v]) => v.length > 1).map(([k, v]) => `${k}: ${v.join(" + ")}`);
-    expect(dup, `名前が衝突している\n  ${dup.join("\n  ")}`).toHaveLength(0);
-  });
-
-  it("interactive の図は全件 一覧に名前を持つ", () => {
-    // 名前が無いと一覧に export 名がそのまま出る
-    const keys = byCatalog.find(([n]) => n === "interactive")![1];
-    const missing = keys.filter((k) => ITEM_NAME_JA[k] === undefined);
-    expect(
-      missing,
-      `一覧に名前が無い (書く場所 = i18n.ts の ITEM_NAME_JA): ${missing.join(", ")}`,
-    ).toHaveLength(0);
-  });
-
-  it("名前の表と図の集合が双方向で一致する (#1035)", () => {
-    // 図にあって表に無い = その言語で export 名が出る。
-    // 表にあって図に無い = 死んだ entry で、両言語に同じ死んだ key を足すと
-    // 集合の一致だけを見る検査は通ってしまう。 **図を基準に双方向で見る**
-    const diagrams = new Set(byCatalog.flatMap(([, keys]) => keys));
-    // 表の名前も一緒に持つ = 落ちた文がどの表に書けばよいかを名指しできる (#2597)
-    const 表たち = [
-      ["日本語名", "ITEM_NAME_JA", ITEM_NAME_JA],
-      ["英語名", "ITEM_NAME_EN", ITEM_NAME_EN],
-    ] as const;
-    for (const [label, 表の名前, table] of 表たち) {
-      const missing = [...diagrams].filter((k) => table[k] === undefined);
-      expect(
-        missing,
-        `${label}が無い図 (書く場所 = i18n.ts の ${表の名前}): ${missing.slice(0, 8).join(", ")}`,
-      ).toHaveLength(0);
-      const dead = Object.keys(table).filter((k) => !diagrams.has(k));
-      expect(
-        dead,
-        `${label}の表に図の無い entry (外す場所 = i18n.ts の ${表の名前}): ${dead.slice(0, 8).join(", ")}`,
-      ).toHaveLength(0);
-    }
+    expect(duplicates, `名前が衝突している: ${duplicates.join(", ")}`).toEqual([]);
   });
 
   it("英語名が ASCII だけで書かれている", () => {
-    // 日本語をそのまま貼る訳し忘れを見る。 **文字種を列挙する形にしない** =
-    // 日本語だけを弾くと、他の文字体系 (ハングル / キリル文字 等) が素通りする。
-    // 英語名は全件が ASCII なので、ASCII 以外を弾く形が最も狭く正しい
-    // (件数は増減するので書かない = 以前は 443 と書いてあり、実物は 475 だった、#2320)
     const bad = Object.entries(ITEM_NAME_EN)
-       
-      .filter(([, v]) => /[^\x20-\x7e]/.test(v))
-      .map(([k, v]) => `${k}: "${v}"`);
-    expect(bad, `英語名に ASCII 以外が混ざっている: ${bad.slice(0, 6).join(", ")}`).toHaveLength(0);
+      .filter(([, value]) => /[^\x20-\x7e]/.test(value))
+      .map(([key, value]) => `${key}: "${value}"`);
+    expect(bad, `英語名に ASCII 以外が混ざっている: ${bad.slice(0, 6).join(", ")}`).toEqual([]);
   });
 
-  it("表示名が export 名と同じにならない", () => {
-    // export 名がそのまま出る状態を、名前の形ではなく **export 名との一致** で見る。
-    // 形で見る (camelCase かどうか) と、`websocket` のような小文字 1 語の export 名を
-    // 見逃し、`iPhone` のような正しい英語名を誤って弾く
+  it("表示名が export 名と同じにならない", async () => {
     const same: string[] = [];
-    for (const [, keys] of byCatalog) {
-      for (const k of keys) {
-        if (ITEM_NAME_JA[k] === k) same.push(`ja/${k}`);
-        if (ITEM_NAME_EN[k] === k) same.push(`en/${k}`);
-      }
+    for (const item of await 登録済みの見本()) {
+      if (ITEM_NAME_JA[item.title] === item.title) same.push(`ja/${item.title}`);
+      if (ITEM_NAME_EN[item.title] === item.title) same.push(`en/${item.title}`);
     }
-    expect(same, `表示名が export 名と同じ: ${same.slice(0, 8).join(", ")}`).toHaveLength(0);
+    expect(same, `表示名が export 名と同じ: ${same.slice(0, 8).join(", ")}`).toEqual([]);
   });
 });
