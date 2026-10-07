@@ -121,7 +121,8 @@ describe("路線図の形を持つ泳法図 (#2799)", () => {
     ]);
     expect(diagram.lanes.every((lane) => lane.id.startsWith("track-"))).toBe(true);
     expect(線路の数(markup)).toBeGreaterThan(0);
-    expect((markup.match(/data-cdl-role="lane-label"/g) ?? []).length).toBeGreaterThan(0);
+    expect((markup.match(/data-cdl-role="lane-label"/g) ?? [])).toHaveLength(0);
+    expect((markup.match(/data-cdl-role="metro-lane-badge"/g) ?? [])).toHaveLength(4);
   });
 
   it("駅を箱の順に左から右へ、担当の帯の中央へ置く", () => {
@@ -180,8 +181,8 @@ describe("路線図の形を持つ泳法図 (#2799)", () => {
 
     const sameTrack = 組み立てる(本文("", '  - 受け付け -> 完了する: "同じ担当"'));
     expect(pathCommands(edgePaths(sameTrack.markup)[0]!)).toEqual([
-      expect.objectContaining({ kind: "M", y: 80 }),
-      expect.objectContaining({ kind: "L", y: 80 }),
+      expect.objectContaining({ kind: "M", y: 110 }),
+      expect.objectContaining({ kind: "L", y: 110 }),
     ]);
   });
 
@@ -370,5 +371,186 @@ flow:
   it("全ての線の両端を描いた node に繋ぐ", () => {
     expect(宅配.diagram.edges).toHaveLength(10);
     expect(宅配.diagram.edges.every((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to))).toBe(true);
+  });
+});
+
+describe("見本どおりの名札・分岐・戻り線で路線図を組み立てる (#2833)", () => {
+  const 宅配の本文 = (): string => `title: "荷物を届ける"
+type: swimlane
+shape: metro
+lanes:
+  shipper: { label: 荷主, subtitle: 頼む人 }
+  office: { label: 営業所, subtitle: 受け付ける }
+  courier: { label: 配送便, subtitle: 運ぶ }
+actors:
+  - 始まり: { kind: mark-start, lane: shipper }
+  - 集荷を頼む: { lane: shipper }
+  - 受け付ける: { lane: office }
+  - 送り状を起こす: { lane: office }
+  - 便に積む: { lane: courier }
+  - 届けに行く: { lane: courier }
+  - 在宅?: { kind: decision, lane: courier }
+  - 受け取る: { lane: shipper }
+  - 持ち戻る: { lane: courier }
+  - 終わり: { kind: mark-end, lane: shipper }
+flow:
+  - 始まり -> 集荷を頼む
+  - 集荷を頼む -> 受け付ける
+  - 受け付ける -> 送り状を起こす
+  - 送り状を起こす -> 便に積む
+  - 便に積む -> 届けに行く
+  - 届けに行く -> 在宅?
+  - 在宅? -> 受け取る: "はい"
+  - 在宅? -> 持ち戻る: "いいえ"
+  - 持ち戻る -> 便に積む: "翌日もう一度" (dashed)
+  - 受け取る -> 終わり
+`;
+
+  const 宅配 = (): ReturnType<typeof 組み立てる> => 組み立てる(宅配の本文());
+  const 線 = (
+    diagram: ReturnType<typeof compileToCdl>,
+    from: string,
+    to: string,
+  ): (typeof diagram.edges)[number] | undefined =>
+    diagram.edges.find((edge) => edge.from === from && edge.to === to);
+
+  it("担当の名札と案内線、駅、分かれ道、始まりと終わりを描く", () => {
+    const { markup } = 宅配();
+    expect((markup.match(/data-cdl-role="metro-lane-badge"/g) ?? [])).toHaveLength(3);
+    expect((markup.match(/data-cdl-role="metro-lane-guide"/g) ?? [])).toHaveLength(3);
+    expect(駅の数(markup)).toBe(7);
+    expect((markup.match(/data-cdl-kind="decision"/g) ?? [])).toHaveLength(1);
+    expect((markup.match(/data-cdl-mark="start"/g) ?? [])).toHaveLength(1);
+    expect((markup.match(/data-cdl-mark="end"/g) ?? [])).toHaveLength(1);
+    for (const word of ["荷主", "頼む人", "営業所", "受け付ける", "配送便", "運ぶ"]) {
+      expect(markup).toContain(word);
+    }
+  });
+
+  it("本線・はい・いいえの3色を描き、分岐の先へ色を引き継ぐ", () => {
+    const { diagram, markup } = 宅配();
+    const tones = new Set(
+      [...markup.matchAll(/<g[^>]*data-cdl-routing="metro"[^>]*data-cdl-tone="([^"]+)"/g)].map(
+        (match) => match[1],
+      ),
+    );
+    expect(tones).toEqual(new Set(["accent", "success", "error"]));
+    expect(線(diagram, "在宅", "受け取る")?.tone).toBe("success");
+    expect(線(diagram, "受け取る", "終わり")?.tone).toBe("success");
+    expect(線(diagram, "在宅", "持ち戻る")?.tone).toBe("error");
+    expect(
+      diagram.edges
+        .filter((edge) => !["在宅", "受け取る", "持ち戻る"].includes(edge.from))
+        .every((edge) => edge.tone === undefined || edge.tone === "accent"),
+    ).toBe(true);
+  });
+
+  it("持ち戻りをいいえの色の点線にして戻り先へ矢印を付ける", () => {
+    const { diagram, markup } = 宅配();
+    expect(線(diagram, "持ち戻る", "便に積む")).toMatchObject({
+      style: "dashed",
+      tone: "error",
+      head: undefined,
+    });
+    expect(markup).toContain('data-cdl-mark="metro-return-arrow"');
+  });
+
+  it("本線・はい・いいえの実線9本に矢じりを付けない", () => {
+    const { diagram } = 宅配();
+    const solid = diagram.edges.filter((edge) => edge.style !== "dashed");
+    expect(solid).toHaveLength(9);
+    expect(solid.every((edge) => edge.head === "none")).toBe(true);
+  });
+
+  it("始まりと終わりの枠を見える丸と同じ34と38にする", () => {
+    const { diagram } = 宅配();
+    const start = diagram.nodes.find((node) => node.kind === "mark-start");
+    const end = diagram.nodes.find((node) => node.kind === "mark-end");
+    expect([start?.w, start?.h]).toEqual([34, 34]);
+    expect([end?.w, end?.h]).toEqual([38, 38]);
+  });
+
+  it("始まりから最初の駅を90、最後の駅から終わりを62離す", () => {
+    const { diagram } = 宅配();
+    const byTitle = new Map(
+      diagram.nodes.map((node) => [node.title === "" ? node.id : node.title, node]),
+    );
+    expect((byTitle.get("集荷を頼む")?.posX ?? 0) - (byTitle.get("始まり")?.posX ?? 0)).toBe(90);
+    expect((byTitle.get("終わり")?.posX ?? 0) - (byTitle.get("受け取る")?.posX ?? 0)).toBe(62);
+  });
+
+  it("分岐後の駅の縁へはいといいえの色を渡す", () => {
+    const { diagram } = 宅配();
+    expect(diagram.nodes.find((node) => node.id === "受け取る")?.tone).toBe("success");
+    expect(diagram.nodes.find((node) => node.id === "持ち戻る")?.tone).toBe("error");
+  });
+
+  it("線路を220ずつ離し、分岐の2本目を真下へ置いて見本の横位置に寄せる", () => {
+    const { diagram } = 宅配();
+    expect(diagram.lanes.map((lane) => lane.posY)).toEqual([0, 220, 440]);
+    const byTitle = new Map(
+      diagram.nodes.map((node) => [node.title === "" ? node.id : node.title, node]),
+    );
+    const decision = byTitle.get("在宅?")!;
+    const returned = byTitle.get("持ち戻る")!;
+    expect(returned.posX).toBe(decision.posX);
+    expect(returned.posY).toBe((decision.posY ?? 0) + 230);
+
+    const specimenX: Record<string, number> = {
+      始まり: 268,
+      集荷を頼む: 358,
+      受け付ける: 718,
+      送り状を起こす: 898,
+      便に積む: 1258,
+      届けに行く: 1388,
+      "在宅?": 1498,
+      受け取る: 1668,
+      終わり: 1730,
+      持ち戻る: 1498,
+    };
+    for (const [title, expectedX] of Object.entries(specimenX)) {
+      expect(Math.abs((byTitle.get(title)?.posX ?? 0) - expectedX), title).toBeLessThanOrEqual(20);
+    }
+  });
+
+  it("lane の補足を記法と JSON で同じ文書へ変換する", () => {
+    const parsed = parseTextDslV05(宅配の本文());
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const validated = validateDragonJson({
+      title: "荷物を届ける",
+      type: "swimlane",
+      shape: "metro",
+      lanes: {
+        shipper: { label: "荷主", subtitle: "頼む人" },
+        office: { label: "営業所", subtitle: "受け付ける" },
+        courier: { label: "配送便", subtitle: "運ぶ" },
+      },
+      actors: parsed.doc.actors.map(({ name, kind, lane }) => ({ name, kind, lane })),
+      flow: parsed.doc.flow.map(({ from, to, label, style }) => ({ from, to, label, style })),
+    });
+    expect(validated.ok).toBe(true);
+    if (!validated.ok) return;
+    const laneValues = (doc: DslDocument): Record<string, { label?: string; subtitle?: string }> =>
+      Object.fromEntries(
+        Object.entries(doc.lanes ?? {}).map(([id, lane]) => [
+          id,
+          { label: lane.label, subtitle: lane.subtitle },
+        ]),
+      );
+    expect(laneValues(jsonToDoc(validated.data))).toEqual(laneValues(parsed.doc));
+  });
+
+  it("路線図でない lane の補足は効かないことを1件知らせる", () => {
+    const source = 宅配の本文()
+      .replace("shape: metro", "shape: stages")
+      .replace(", subtitle: 受け付ける", "")
+      .replace(", subtitle: 運ぶ", "");
+    const { notices } = 組み立てる(source);
+    const subtitleNotices = notices.filter(
+      (notice) => (notice.kind as string) === "lane-option-not-honored",
+    );
+    expect(subtitleNotices).toHaveLength(1);
+    expect(subtitleNotices.every((notice) => notice.message.includes("subtitle"))).toBe(true);
   });
 });

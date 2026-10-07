@@ -1,5 +1,5 @@
 import { diagram } from "@cardenelabs/cdl";
-import type { CdlDiagram, NodeKind } from "@cardenelabs/cdl";
+import type { CdlDiagram, NodeKind, Tone } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "../focus";
 import type { DslDocument, DslPhase } from "../types";
 import { 始まりと終わりの決め方 } from "./actors";
@@ -7,7 +7,7 @@ import { 並べる向き, 後ろへ戻る矢印か, type GenericKind } from "./d
 import { ERの関係の指定を作る, ERの関係の矢印 } from "./er-relation";
 import { 描ける種別 } from "./kinds";
 import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lanes";
-import { placeMetro } from "./metro";
+import { metroMarkFrameSize, placeMetro } from "./metro";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
 import {
@@ -38,6 +38,61 @@ export type GenericOpts = {
   laneId?: string;
   laneWidth: number;
 };
+
+/**
+ * 分かれ道から続く線と駅の色を返す。
+ *
+ * 枝の意味を表す明示の欄は無いため、読み手が追う flow の記述順を使い、1 本目を「はい」、
+ * 2 本目以降を「いいえ」とする。枝の先も同じ結果の道筋なので色を引き継ぐ。
+ * 分かれ道より手前へ戻る線にも色は付けるが、そこで止める = 戻った本線まで枝色にしない。
+ */
+function metroBranchTones(doc: DslDocument): {
+  edgeToneByIndex: Map<number, Tone>;
+  nodeToneByName: Map<string, Tone>;
+} {
+  const edgeToneByIndex = new Map<number, Tone>();
+  const nodeToneByName = new Map<string, Tone>();
+  const actorByName = new Map(doc.actors.map((actor) => [actor.name, actor]));
+  const actorIndex = new Map(doc.actors.map((actor, index) => [actor.name, index]));
+  const outgoing = new Map<string, number[]>();
+  doc.flow.forEach((step, index) => {
+    const indexes = outgoing.get(step.from) ?? [];
+    indexes.push(index);
+    outgoing.set(step.from, indexes);
+  });
+
+  doc.actors.forEach((decision, decisionIndex) => {
+    if (decision.kind !== "decision") return;
+    const branches = outgoing.get(decision.name) ?? [];
+    branches.forEach((branchEdgeIndex, branchIndex) => {
+      const tone: Tone = branchIndex === 0 ? "success" : "error";
+      const follow = (edgeIndex: number): void => {
+        // 合流した道筋は、flow に先に書いた枝の色を保つ。
+        if (edgeToneByIndex.has(edgeIndex)) return;
+        edgeToneByIndex.set(edgeIndex, tone);
+        const targetName = doc.flow[edgeIndex]?.to;
+        if (targetName === undefined) return;
+        const target = actorByName.get(targetName);
+        const targetIndex = actorIndex.get(targetName);
+        if (target === undefined || targetIndex === undefined) return;
+        if (
+          targetIndex > decisionIndex &&
+          target.kind !== "decision" &&
+          target.kind !== "mark-start" &&
+          target.kind !== "mark-end" &&
+          !nodeToneByName.has(targetName)
+        ) {
+          nodeToneByName.set(targetName, tone);
+        }
+        if (targetIndex <= decisionIndex || target.kind === "decision") return;
+        for (const nextEdgeIndex of outgoing.get(targetName) ?? []) follow(nextEdgeIndex);
+      };
+      follow(branchEdgeIndex);
+    });
+  });
+
+  return { edgeToneByIndex, nodeToneByName };
+}
 
 /**
  * この共通の組み立てへ回すか (#2348)。
@@ -137,6 +192,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
   const 段階ごとの箱か = kind === "swimlane" && doc.shape === "stages";
   const 路線図か = kind === "swimlane" && doc.shape === "metro";
   const 時間軸か = kind === "swimlane" && doc.shape === "timeline";
+  const 路線図の色 = 路線図か ? metroBranchTones(doc) : undefined;
   let timelineActorIndex: Map<string, number> | undefined;
   let timelineNumberIdByCardId: Map<string, string> | undefined;
   let stagesPlacement: StagesPlacement | undefined;
@@ -213,6 +269,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       b.lane(track.id, {
         width: placement.width,
         label: track.label,
+        metro: track.subtitle === undefined ? {} : { subtitle: track.subtitle },
         posX: track.posX,
         posY: track.posY,
         posW: track.posW,
@@ -222,12 +279,17 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     doc.actors.forEach((actor, index) => {
       const station = placement.stations[index]!;
       const id = slugify(actor.name) || `n${index}`;
+      const markFrameSize = metroMarkFrameSize(actor.kind);
       actorToNodeId.set(actor.name, id);
       b.node(id, {
         lane: station.trackId,
         stack: index,
         kind: 泳法図で印をどう描く(doc, actor) === "描く" ? 箱の種類(actor) : "station",
         title: 箱の題(actor),
+        ...(路線図の色?.nodeToneByName.get(actor.name) !== undefined
+          ? { tone: 路線図の色.nodeToneByName.get(actor.name) }
+          : {}),
+        ...(markFrameSize === undefined ? {} : { w: markFrameSize, h: markFrameSize }),
         posX: station.posX,
         posY: station.posY,
       });
@@ -386,6 +448,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     b.edge(edgeFromId, edgeToId, {
       id: edgeId,
       label: 関係?.label ?? s.label,
+      ...(路線図の色?.edgeToneByIndex.get(idx) !== undefined
+        ? { tone: 路線図の色.edgeToneByIndex.get(idx) }
+        : {}),
       ...(timelineEdgeKind === "back"
         ? { routing: "back-detour" as const }
         : 路線図か
@@ -397,6 +462,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
             : {}),
       ...(関係?.sub ? { sub: 関係.sub } : {}),
       ...(関係?.head ? { head: 関係.head } : {}),
+      ...(路線図か && s.style !== "dashed" ? { head: "none" as const } : {}),
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),

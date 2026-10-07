@@ -610,6 +610,23 @@ svg[data-cdl-stage][data-cdl-palette="kinari"] {
   --er-line: #7d5c31;
   --er-own: #2c6158;
   --er-link: #3f6b1f;
+  /* 路線図は見本を持たないため、意匠帳の線 / 向きだけ / 所有を本線 / はい / いいえへ割り当てる。 */
+  --metro-main: #7d5c31;
+  --metro-yes: #3f6b1f;
+  --metro-no: #2c6158;
+  --metro-branch-ink: #fffdf8;
+  --metro-station-face: #fffdf8;
+  --metro-station-ink: #241d14;
+  --metro-station-ground: #ece5d8;
+  --metro-mark: #241d14;
+  --metro-guide: #6f6455;
+  --metro-badge-face: #fffdf8;
+  --metro-badge-frame: #7d5c31;
+  --metro-badge-title: #241d14;
+  --metro-badge-subtitle: #6f6455;
+  --metro-decision-face: #fffdf8;
+  --metro-decision-frame: #7d5c31;
+  --metro-decision-ink: #241d14;
 }
 
 html.dark svg[data-cdl-stage][data-cdl-palette="kinari"] {
@@ -622,6 +639,23 @@ html.dark svg[data-cdl-stage][data-cdl-palette="kinari"] {
   --er-line: #cbb488;
   --er-own: #7ecbbc;
   --er-link: #a8cf72;
+  /* 暗い生成りも、意匠帳の同じ 3 口を路線の役へ割り当てる。 */
+  --metro-main: #cbb488;
+  --metro-yes: #a8cf72;
+  --metro-no: #7ecbbc;
+  --metro-branch-ink: #221a0e;
+  --metro-station-face: #342a1a;
+  --metro-station-ink: #f5efe2;
+  --metro-station-ground: #221a0e;
+  --metro-mark: #f5efe2;
+  --metro-guide: #b3a692;
+  --metro-badge-face: #342a1a;
+  --metro-badge-frame: #cbb488;
+  --metro-badge-title: #f5efe2;
+  --metro-badge-subtitle: #b3a692;
+  --metro-decision-face: #342a1a;
+  --metro-decision-frame: #cbb488;
+  --metro-decision-ink: #f5efe2;
 }
 
 /* 青磁に墨。 書き手が `palette: celadon` と書いた図だけがこれになる */
@@ -635,6 +669,23 @@ svg[data-cdl-stage][data-cdl-palette="celadon"] {
   --er-line: #2d6b62;
   --er-own: #7a4a2a;
   --er-link: #2f4f7a;
+  /* 路線図は見本を持たないため、意匠帳の線 / 向きだけ / 所有を本線 / はい / いいえへ割り当てる。 */
+  --metro-main: #2d6b62;
+  --metro-yes: #2f4f7a;
+  --metro-no: #7a4a2a;
+  --metro-branch-ink: #ffffff;
+  --metro-station-face: #ffffff;
+  --metro-station-ink: #132220;
+  --metro-station-ground: #dee6e4;
+  --metro-mark: #132220;
+  --metro-guide: #5a6b69;
+  --metro-badge-face: #ffffff;
+  --metro-badge-frame: #2d6b62;
+  --metro-badge-title: #132220;
+  --metro-badge-subtitle: #5a6b69;
+  --metro-decision-face: #ffffff;
+  --metro-decision-frame: #2d6b62;
+  --metro-decision-ink: #132220;
 }
 
 html.dark svg[data-cdl-stage][data-cdl-palette="celadon"] {
@@ -647,6 +698,23 @@ html.dark svg[data-cdl-stage][data-cdl-palette="celadon"] {
   --er-line: #7ccdbe;
   --er-own: #dcae83;
   --er-link: #93b6e0;
+  /* 暗い青磁も、意匠帳の同じ 3 口を路線の役へ割り当てる。 */
+  --metro-main: #7ccdbe;
+  --metro-yes: #93b6e0;
+  --metro-no: #dcae83;
+  --metro-branch-ink: #1a201f;
+  --metro-station-face: #293130;
+  --metro-station-ink: #edf3f1;
+  --metro-station-ground: #1a201f;
+  --metro-mark: #edf3f1;
+  --metro-guide: #9aaba8;
+  --metro-badge-face: #293130;
+  --metro-badge-frame: #7ccdbe;
+  --metro-badge-title: #edf3f1;
+  --metro-badge-subtitle: #9aaba8;
+  --metro-decision-face: #293130;
+  --metro-decision-frame: #7ccdbe;
+  --metro-decision-ink: #edf3f1;
 }
 
 /* 図面。 地まで含む 1 枚の絵なので、画面の明暗では値を替えない (#2790) */
@@ -660,6 +728,24 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --er-line: #143a52;
   --er-own: #a8431f;
   --er-link: #1f7a6b;
+  /* 路線図の見本 `路線-図面.html` の線・札・駅・印・案内線・名札・菱形の値。 */
+  --metro-main: #143a52;
+  --metro-yes: #1f7a6b;
+  --metro-no: #a8431f;
+  --metro-branch-ink: #e3e9ea;
+  --metro-station-face: #e3e9ea;
+  --metro-station-ink: #143a52;
+  --metro-station-ground: #e3e9ea;
+  --metro-mark: #143a52;
+  --metro-guide: #4d7187;
+  --metro-badge-face: #e3e9ea;
+  --metro-badge-frame: #143a52;
+  --metro-badge-title: #143a52;
+  /* 見本の #4d7187 は対比 4.25 のため、同じ色相の #496d83 へ 4 段だけ濃くする。 */
+  --metro-badge-subtitle: #496d83;
+  --metro-decision-face: #e3e9ea;
+  --metro-decision-frame: #143a52;
+  --metro-decision-ink: #143a52;
 
   /* 意匠ごとの現れ方は変数だけを渡し、箱へ当てる仕組みは下の共通規則に置く。 */
   --theme-appear: blueprint-wipe-in;
@@ -718,6 +804,23 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --er-line: #1a1510;
   --er-own: #1a1510;
   --er-link: #1a1510;
+  /* 路線図の見本 `路線-活版.html` の線・札・駅・印・案内線・名札・菱形の値。 */
+  --metro-main: #c8431f;
+  --metro-yes: #1a1510;
+  --metro-no: #1a1510;
+  --metro-branch-ink: #f0eadc;
+  --metro-station-face: #f0eadc;
+  --metro-station-ink: #1a1510;
+  --metro-station-ground: #f0eadc;
+  --metro-mark: #1a1510;
+  --metro-guide: #6b6253;
+  --metro-badge-face: #f0eadc;
+  --metro-badge-frame: #1a1510;
+  --metro-badge-title: #1a1510;
+  --metro-badge-subtitle: #6b6253;
+  --metro-decision-face: #f0eadc;
+  --metro-decision-frame: #1a1510;
+  --metro-decision-ink: #1a1510;
   /* 一は 9 つの口ではない意匠の値として、主役と鍵だけへ渡す。字には使わない。 */
   --theme-lead: #c8431f;
 
@@ -775,6 +878,23 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --er-line: #dca443;
   --er-own: #e8705a;
   --er-link: #4fae9a;
+  /* 路線図の見本 `路線-図録.html` の線・札・駅・印・案内線・名札・菱形の値。 */
+  --metro-main: #dca443;
+  --metro-yes: #4fae9a;
+  --metro-no: #e8705a;
+  --metro-branch-ink: #1b222c;
+  --metro-station-face: #f4eee2;
+  --metro-station-ink: #efe7d8;
+  --metro-station-ground: #1b222c;
+  --metro-mark: #efe7d8;
+  --metro-guide: #a39a87;
+  --metro-badge-face: #f4eee2;
+  --metro-badge-frame: #f4eee2;
+  --metro-badge-title: #1d242e;
+  --metro-badge-subtitle: #6f6757;
+  --metro-decision-face: #f4eee2;
+  --metro-decision-frame: #f4eee2;
+  --metro-decision-ink: #1d242e;
   /* 一と台の上の字は 9 つの口ではない意匠の値として持つ。 */
   --theme-lead: #dca443;
   --theme-pale: #9c9381;
@@ -837,6 +957,24 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --er-line: #4ade80;
   --er-own: #f5c451;
   --er-link: #c792ea;
+  /* 路線図の見本 `路線-端末.html` の線・札・駅・印・案内線・名札・菱形の値。 */
+  --metro-main: #4ade80;
+  --metro-yes: #c792ea;
+  --metro-no: #f5c451;
+  --metro-branch-ink: #03110a;
+  --metro-station-face: #08110b;
+  --metro-station-ink: #a6f0bd;
+  --metro-station-ground: #050b07;
+  --metro-mark: #a6f0bd;
+  --metro-guide: #7f9186;
+  /* 見本は #0a150e から #070f0a の勾配。単色の SVG 札では上端の #0a150e を使う。 */
+  --metro-badge-face: #0a150e;
+  --metro-badge-frame: #4ade80;
+  --metro-badge-title: #9ef0b4;
+  --metro-badge-subtitle: #8a9b90;
+  --metro-decision-face: #08110b;
+  --metro-decision-frame: #4ade80;
+  --metro-decision-ink: #d3ddd6;
   --theme-lead: #4ade80;
   --theme-pale: #355542;
   --theme-title: #9ef0b4;
@@ -901,6 +1039,23 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --er-line: #d2491f;
   --er-own: #2a5ca8;
   --er-link: #2f7d4f;
+  /* 路線図の見本 `路線-手描き.html` の線・札・駅・印・案内線・名札・菱形の値。 */
+  --metro-main: #d2491f;
+  --metro-yes: #2f7d4f;
+  --metro-no: #2a5ca8;
+  --metro-branch-ink: #fffdf7;
+  --metro-station-face: #fffdf7;
+  --metro-station-ink: #2b2620;
+  --metro-station-ground: #f7f1e3;
+  --metro-mark: #2b2620;
+  --metro-guide: #6d6456;
+  --metro-badge-face: #fffdf7;
+  --metro-badge-frame: #2b2620;
+  --metro-badge-title: #2b2620;
+  --metro-badge-subtitle: #6d6456;
+  --metro-decision-face: #fffdf7;
+  --metro-decision-frame: #2b2620;
+  --metro-decision-ink: #2b2620;
   --theme-lead: #d2491f;
   --theme-pale: #9a9080;
   --theme-title: #2b2620;
@@ -963,6 +1118,23 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --er-line: #ff2e97;
   --er-own: #ffd000;
   --er-link: #00e5ff;
+  /* 路線図の見本 `路線-電飾.html` の線・札・駅・印・案内線・名札・菱形の値。 */
+  --metro-main: #ff2e97;
+  --metro-yes: #00e5ff;
+  --metro-no: #ffd000;
+  --metro-branch-ink: #07060c;
+  --metro-station-face: #09070f;
+  --metro-station-ink: #f3eefe;
+  --metro-station-ground: #07060c;
+  --metro-mark: #f3eefe;
+  --metro-guide: #c4bce0;
+  --metro-badge-face: #0a0812;
+  --metro-badge-frame: #a6f6ff;
+  --metro-badge-title: #ffffff;
+  --metro-badge-subtitle: #c4bce0;
+  --metro-decision-face: #09070f;
+  --metro-decision-frame: #00e5ff;
+  --metro-decision-ink: #f3eefe;
   --theme-lead: #ff2e97;
   --theme-pale: #8f86b3;
   --theme-title: #ffffff;
@@ -1024,6 +1196,24 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --er-line: #c4573c;
   --er-own: #966c22;
   --er-link: #2f7a6e;
+  /* 路線図の見本 `路線-浮彫.html` の線・札・駅・印・案内線・名札・菱形の値。 */
+  --metro-main: #c4573c;
+  --metro-yes: #2f7a6e;
+  --metro-no: #c99a35;
+  --metro-branch-ink: #ffffff;
+  --metro-station-face: #e8e3da;
+  --metro-station-ink: #463e33;
+  --metro-station-ground: #e8e3da;
+  --metro-mark: #463e33;
+  --metro-guide: #7a7062;
+  --metro-badge-face: #e8e3da;
+  --metro-badge-frame: #e8e3da;
+  --metro-badge-title: #463e33;
+  /* 見本の #7a7062 は対比 3.80 のため、同じ色相の #6e6456 へ濃くする。 */
+  --metro-badge-subtitle: #6e6456;
+  --metro-decision-face: #e8e3da;
+  --metro-decision-frame: #e8e3da;
+  --metro-decision-ink: #463e33;
   --theme-lead: #c4573c;
   --theme-pale: #877c6d;
   --theme-title: #a63c21;
@@ -1174,6 +1364,12 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-legend-mark="dotted-lin
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-legend-mark="dotted-line"],
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-legend-mark="dotted-line"] {
   --cdl-text-accent: var(--er-own);
+}
+
+/* 路線図の凡例は、前の駅へ戻る点線と同じ専用色にする。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-legend-mark="dotted-line"] {
+  --cdl-text-accent: var(--metro-no);
 }
 
 /* 凡例は箱の外の台へ置くため、型名用の薄い字が台との対比 4.5 を割る意匠だけ補う。 */
@@ -2453,6 +2649,441 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"]
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-end-label"] {
   stroke: var(--er-ground) !important;
   stroke-width: 8 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 路線図だけの色。
+ *
+ * `:has([data-cdl-routing="metro"])` で路線図を持つ舞台に閉じる。
+ * 同じ tone を使う他の図へ、路線図の本線・はい・いいえの色を流さない。
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* 各見本の本線 / はい / いいえの線色を、組み立てが付ける tone へ当てる。
+   見本の線路は不透明なので、描く側の 0.9 / 0.95 を 1 へ戻す。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"] [data-cdl-role="edge-line"] {
+  stroke: var(--metro-main) !important;
+  stroke-opacity: 1 !important;
+  stroke-width: 10px !important;
+}
+
+/* 描く側の戻る点線は、見本と同じ 6px の線幅と `0 9.6` の刻みを持つ。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"] [data-cdl-role="edge-line"][stroke-dasharray="0 9.6"] {
+  stroke-width: 6px !important;
+}
+
+/* `4 5` は描く側が光っていない実線へ付ける合図で、見本の線種ではない。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"] [data-cdl-role="edge-line"][stroke-dasharray="4 5"] {
+  stroke-dasharray: none !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"][data-cdl-tone="success"] [data-cdl-role="edge-line"] {
+  stroke: var(--metro-yes) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"][data-cdl-tone="error"] [data-cdl-role="edge-line"] {
+  stroke: var(--metro-no) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"][data-cdl-tone="error"] [data-cdl-mark="metro-return-arrow"] {
+  stroke: var(--metro-no) !important;
+  fill: var(--metro-no) !important;
+}
+
+/* 見本の戻る矢じりは枠 21 × 19、三角 17 × 19 で、描く側の元の寸法と同じ。
+   通常の矢じりを 2 倍にする共通規則から、路線図の戻る矢じりだけを外す。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-mark="metro-return-arrow"] {
+  transform: none;
+}
+
+/* 各見本の枝札は枝の色を面に、札の字をその上に置く。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone="success"] [data-cdl-role="edge-label-bg"] {
+  fill: var(--metro-yes) !important;
+  stroke: none !important;
+  rx: 9px;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone="error"] [data-cdl-role="edge-label-bg"] {
+  fill: var(--metro-no) !important;
+  stroke: none !important;
+  rx: 9px;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] [data-cdl-role="edge-label"] {
+  fill: var(--metro-branch-ink) !important;
+  /* 見本の枝札は、はい・いいえ・翌日もう一度を全て 700 で描く。 */
+  font-weight: 700 !important;
+}
+
+/* 電飾の見本だけは暗い面にして、枝色の 2.5 幅の枠と字を使う。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] [data-cdl-role="edge-label-bg"] {
+  fill: #07060c !important;
+  stroke-width: 2.5px !important;
+}
+
+/* 端末の枝札は角 4、浮彫は角 20。ほかの見本は角 9。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] [data-cdl-role="edge-label-bg"] {
+  rx: 4px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] [data-cdl-role="edge-label-bg"] {
+  rx: 20px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone="success"] [data-cdl-role="edge-label-bg"] {
+  stroke: var(--metro-yes) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone="error"] [data-cdl-role="edge-label-bg"] {
+  stroke: var(--metro-no) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone="success"] [data-cdl-role="edge-label"] {
+  fill: var(--metro-yes) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone="error"] [data-cdl-role="edge-label"] {
+  fill: var(--metro-no) !important;
+}
+
+/* 各見本の駅の面・本線の縁・駅名の字と地を使う。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="station"] [data-cdl-mark="station"] {
+  fill: var(--metro-station-face) !important;
+  stroke: var(--metro-main) !important;
+  stroke-width: 6px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="station"][data-cdl-tone="success"] [data-cdl-mark="station"] {
+  stroke: var(--metro-yes) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="station"][data-cdl-tone="error"] [data-cdl-mark="station"] {
+  stroke: var(--metro-no) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="station"] [data-cdl-role="shape-name"] {
+  fill: var(--metro-station-ink) !important;
+  stroke: var(--metro-station-ground) !important;
+  stroke-width: 8px !important;
+  paint-order: stroke fill;
+}
+
+/* 各見本の菱形の面・縁・字を使う。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  fill: var(--metro-decision-face) !important;
+  stroke: var(--metro-decision-frame) !important;
+  stroke-width: 1.5px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-label"] {
+  fill: var(--metro-decision-ink) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  fill: none !important;
+  stroke-width: 2px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path,
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  stroke: none !important;
+  stroke-width: 0 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  stroke-width: 2.5px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  stroke: rgb(74 222 128 / 50%) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  stroke-width: 3px !important;
+}
+
+/* 各見本の始点は塗り、終点は同じ色の輪と芯にする。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-role="mark-start"] [data-cdl-role="node-body"] {
+  fill: var(--metro-mark) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-role="mark-end"] [data-cdl-role="node-body"] {
+  fill: none !important;
+  stroke: var(--metro-mark) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-role="mark-end"] [data-cdl-role="node-inner"] {
+  fill: var(--metro-mark) !important;
+}
+
+/* 各見本の担当名札の面・枠・名前・補足を使う。字の大きさ 26 / 18 は描く側へ任せる。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  fill: var(--metro-badge-face) !important;
+  stroke: var(--metro-badge-frame) !important;
+  stroke-width: 1px !important;
+  rx: 12px;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:first-of-type {
+  fill: var(--metro-badge-title) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:last-of-type {
+  fill: var(--metro-badge-subtitle) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  fill: transparent !important;
+  stroke-width: 1.5px !important;
+  /* 見本の `2px 2px 0 rgba(26,21,16,.14)` の押し跡。 */
+  filter: drop-shadow(2px 2px 0 rgb(26 21 16 / 14%));
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  stroke: none !important;
+  /* 見本の外影 `0 3px 2px rgba(0,0,0,.28)` と `0 22px 40px -14px rgba(0,0,0,.62)`。
+     SVG の drop-shadow は広がりを持たないため、後段は広がりを引いた 26px の半分をぼかしにする。 */
+  filter:
+    drop-shadow(0 3px 2px rgb(0 0 0 / 28%))
+    drop-shadow(0 22px 13px rgb(0 0 0 / 62%));
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  stroke: none !important;
+  /* 見本の `7px 7px 15px rgba(160,144,120,.5)` と `-7px -7px 15px rgba(255,255,255,.92)`。 */
+  filter: url(#dragon-relief-raised);
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  stroke-opacity: 0.3;
+  rx: 6px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  stroke-width: 2px !important;
+  /* 見本の `3px 4px 0 -1px rgba(43,38,32,.16)`。
+     SVG の drop-shadow は負の広がりを持たないため、ずれと濃さをそのまま使う。 */
+  filter: drop-shadow(3px 4px 0 rgb(43 38 32 / 16%));
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  stroke-width: 2px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  fill-opacity: 0.82;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  fill-opacity: 0.94;
+  rx: 16px;
+  /* 見本の名札は `--n:#00e5ff` の芯と外光を枠の外へ重ねる。 */
+  filter:
+    drop-shadow(0 0 2px #00e5ff)
+    drop-shadow(0 0 10px rgb(0 229 255 / 55%))
+    drop-shadow(0 0 24px rgb(0 229 255 / 22%));
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] rect {
+  rx: 22px;
+}
+
+/* 見本の端末の名前は `0 0 10px rgba(74,222,128,.35)` で光る。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:first-of-type {
+  filter: drop-shadow(0 0 10px rgb(74 222 128 / 35%));
+}
+
+/* 見本の電飾の名前は `0 0 5px var(--n)` と `0 0 12px` の 60% の光を持つ。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:first-of-type {
+  filter:
+    drop-shadow(0 0 5px #00e5ff)
+    drop-shadow(0 0 12px rgb(0 229 255 / 60%));
+}
+
+/* 各見本の案内線は色・0.3 の濃さ・鎖をそのまま使う。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-guide"] {
+  stroke: var(--metro-guide) !important;
+  opacity: 0.3 !important;
+  stroke-opacity: 1 !important;
+  stroke-dasharray: 6 8 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-guide"] {
+  stroke-dasharray: 22 7 5 7 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-guide"] {
+  stroke-dasharray: 3 7 !important;
+}
+
+/* 見本の `.fig .ti` が 800 の活版・手描き・電飾では、名札の名前も同じ太さにする。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:first-of-type,
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:first-of-type,
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:first-of-type {
+  font-weight: 800 !important;
+}
+
+/* 浮彫の見本が図全体へ当てる、標準偏差 2、右下 2.5、左上 -2 の陰。
+   平行移動しない線の組と節の外箱へ当て、`userSpaceOnUse` の領域を舞台の座標で使う。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="station"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-start"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-end"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="decision"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-guide"] {
+  filter: url(#dragon-metro-relief-shadow);
+}
+
+/* 浮彫の枝札は見本と同じ陰を保ち、平行移動した札自身の外接矩形から取る専用領域で端を切らない。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] {
+  filter: url(#dragon-metro-relief-shadow-label);
+}
+
+/* 見本の分かれ道は図全体の陰だけを受け、浮彫の板の陰は受けない。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  filter: none !important;
+}
+
+/* 電飾の見本が図全体へ当てる、標準偏差 1.5 と 5 の二段の光。
+   平行移動しない線の組と節の外箱へ当て、線自身の色を舞台の座標で光らせる。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="station"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-start"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-end"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="decision"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-guide"] {
+  filter: url(#dragon-metro-neon-glow);
+}
+
+/* 電飾の枝札は見本と同じ二段の光を保ち、平行移動した札自身の外接矩形から取る専用領域で端を切らない。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] {
+  filter: url(#dragon-metro-neon-glow-label);
+}
+
+/* 見本の路線の芯は本線 `#ff2e97`、はい `#00e5ff`、いいえ `#ffd000` のまま。
+   白を 65% 混ぜる共通の管を外し、親の路線へ見本の光を 1 回だけ当てる。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"] [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  filter: none !important;
+}
+
+/* 端末の見本が図全体へ当てる、標準偏差 3.5、濃さ 0.5 の光。
+   平行移動しない線の組と節の外箱へ当て、`userSpaceOnUse` の領域を舞台の座標で使う。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="station"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-start"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-end"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="decision"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-guide"] {
+  filter: url(#dragon-metro-terminal-glow);
+}
+
+/* 路線図は見本どおり外箱で図全体の光と陰を 1 回受けるため、内側の印に凡例用 filter を重ねない。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="start"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-inner"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="start"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-inner"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="start"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-inner"] {
+  filter: none !important;
+}
+
+/* 端末の枝札は見本と同じ半透明の光を保ち、平行移動した札自身の外接矩形から取る専用領域で端を切らない。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] {
+  filter: url(#dragon-metro-terminal-glow-label);
+}
+
+/* まだ初出の段へ来ていない線は 0.3 にする。
+   現れ方の animation は `from` だけなので、終点ではこの値へ戻り、薄さが失われない。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) [data-cdl-routing="metro"][data-cdl-pending="true"] {
+  opacity: 0.3 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
