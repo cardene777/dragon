@@ -337,6 +337,45 @@ type Collected = {
   outOfScope: string[];
 };
 
+/** `:is(...)` や属性値の中のカンマを残し、selector list の区切りだけを分ける。 */
+function splitSelectorList(selectorText: string): string[] {
+  const selectors: string[] = [];
+  let start = 0;
+  let roundDepth = 0;
+  let squareDepth = 0;
+  let quote: "\"" | "'" | null = null;
+  let escaped = false;
+  for (let index = 0; index < selectorText.length; index += 1) {
+    const character = selectorText[index]!;
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (quote !== null) {
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === "\"" || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (character === "(") roundDepth += 1;
+    else if (character === ")") roundDepth -= 1;
+    else if (character === "[") squareDepth += 1;
+    else if (character === "]") squareDepth -= 1;
+    else if (character === "," && roundDepth === 0 && squareDepth === 0) {
+      selectors.push(selectorText.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+  selectors.push(selectorText.slice(start).trim());
+  return selectors;
+}
+
 /**
  * CSS から、 標準形の selector が宣言している配色を集める。
  *
@@ -424,7 +463,7 @@ function collect(cssText: string): Collected {
       const hasFontShorthand = /(^|[;{\s])font:/.test(r.style.cssText ?? "");
       if (!hasLonghand && !hasFontShorthand) continue;
 
-      for (const one of r.selectorText.split(",")) {
+      for (const one of splitSelectorList(r.selectorText)) {
         const sel = one.trim().replace(/\s+/g, " ");
         if (!hitsLabel(sel)) continue;
 
@@ -719,6 +758,13 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
         : `[data-cdl-role="node-label"], .v4-editor-stage [data-cdl-role="edge-label"] { fill: #cccccc !important; }`;
     expect(found(rule("first")).length).toBeGreaterThan(0);
     expect(found(rule("last")).length).toBeGreaterThan(0);
+  });
+
+  it("functional pseudo の中のカンマを selector list として分けない", () => {
+    expect(splitSelectorList(`svg:is([data-a="x,y"], [data-b]) text, [data-c]`)).toEqual([
+      `svg:is([data-a="x,y"], [data-b]) text`,
+      `[data-c]`,
+    ]);
   });
 
   it("host 側の祖先を伴う selector を検知する", () => {
