@@ -732,6 +732,10 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --er-line: #143a52;
   --er-own: #a8431f;
   --er-link: #1f7a6b;
+  --theme-mind-branch-4: #4d7187;
+  --theme-quadrant-muted: #8aa3b1;
+  /* 見本の薄い字 #4d7187 は面との対比が 4.25 のため、型名の濃さを使う。 */
+  --theme-quadrant-label: var(--er-type);
   --timeline-axis: var(--er-line);
   --timeline-end-ink: var(--er-ink);
   /* 路線図の見本 `路線-図面.html` の線・札・駅・印・案内線・名札・菱形の値。 */
@@ -810,6 +814,9 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --er-line: #1a1510;
   --er-own: #1a1510;
   --er-link: #1a1510;
+  --theme-mind-branch-4: #6b6253;
+  --theme-quadrant-muted: #9d9382;
+  --theme-quadrant-label: #6b6253;
   /* 路線図の見本 `路線-活版.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #c8431f;
   --metro-yes: #1a1510;
@@ -886,6 +893,9 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --er-line: #dca443;
   --er-own: #e8705a;
   --er-link: #4fae9a;
+  --theme-mind-branch-4: #6f6757;
+  --theme-quadrant-muted: #9c9381;
+  --theme-quadrant-label: #6f6757;
   /* 路線図の見本 `路線-図録.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #dca443;
   --metro-yes: #4fae9a;
@@ -967,6 +977,9 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --er-line: #4ade80;
   --er-own: #f5c451;
   --er-link: #c792ea;
+  --theme-mind-branch-4: #8a9b90;
+  --theme-quadrant-muted: #355542;
+  --theme-quadrant-label: #8a9b90;
   /* 路線図の見本 `路線-端末.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #4ade80;
   --metro-yes: #c792ea;
@@ -1052,6 +1065,9 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --er-line: #d2491f;
   --er-own: #2a5ca8;
   --er-link: #2f7d4f;
+  --theme-mind-branch-4: #6d6456;
+  --theme-quadrant-muted: #9a9080;
+  --theme-quadrant-label: #6d6456;
   /* 路線図の見本 `路線-手描き.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #d2491f;
   --metro-yes: #2f7d4f;
@@ -1133,6 +1149,9 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --er-line: #ff2e97;
   --er-own: #ffd000;
   --er-link: #00e5ff;
+  --theme-mind-branch-4: #c4bce0;
+  --theme-quadrant-muted: #8f86b3;
+  --theme-quadrant-label: #c4bce0;
   /* 路線図の見本 `路線-電飾.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #ff2e97;
   --metro-yes: #00e5ff;
@@ -1213,6 +1232,10 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --er-line: #c4573c;
   --er-own: #966c22;
   --er-link: #2f7a6e;
+  --theme-mind-branch-4: #7a7062;
+  --theme-quadrant-muted: #a99e8e;
+  /* 見本の薄い字 #7a7062 は面との対比が 3.80 のため、型名の濃さを使う。 */
+  --theme-quadrant-label: var(--er-type);
   /* 路線図の見本 `路線-浮彫.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #c4573c;
   --metro-yes: #2f7a6e;
@@ -1528,7 +1551,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
 ) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-accent"] {
-  stroke: var(--cdl-chart-1) !important;
+  stroke: var(--cdl-chart-1);
 }
 
 svg[data-cdl-stage]:is(
@@ -1540,7 +1563,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
 ) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-teal"] {
-  stroke: var(--cdl-chart-2) !important;
+  stroke: var(--cdl-chart-2);
 }
 
 svg[data-cdl-stage]:is(
@@ -1552,7 +1575,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
 ) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-success"] {
-  stroke: var(--cdl-chart-3) !important;
+  stroke: var(--cdl-chart-3);
 }
 
 svg[data-cdl-stage]:is(
@@ -1564,7 +1587,212 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
 ) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-warning"] {
-  stroke: var(--cdl-chart-4) !important;
+  stroke: var(--theme-mind-branch-4);
+}
+
+/* cdl 0.125.0 は mind の枝箱へ role を付けないため、kind と chip の fill で中心箱を除く。 */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="mind-map"] rect:not([data-cdl-role])[fill*="--cdl-chip-fill"] {
+  stroke: var(--er-frame);
+}
+
+/* tree の枝箱は枠を 1 色に揃え、描き手が足す左帯と分岐点を見本どおり隠す。 */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="tree-hierarchy"] [data-cdl-role="tree-node"][stroke] {
+  stroke: var(--er-frame);
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="tree-hierarchy"] [data-cdl-role="tree-node"] + rect,
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="tree-hierarchy"] [data-cdl-role="tree-edge"] + circle {
+  display: none;
+}
+
+/* journey の見本は段帯と縦区切りを持たず、点を主色の一重円で描く。 */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="journey-map"] :is([data-cdl-role="journey-band"], [data-cdl-role="node-column-divider"]),
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="journey-map"] [data-cdl-role="journey-step"] > circle + circle {
+  display: none;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="journey-map"] [data-cdl-role="journey-step"] > circle:first-of-type {
+  stroke: var(--cdl-chart-1);
+}
+
+/* 四象限は地を抜き、点を象限ごとの 3 色へ揃える。 */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="quadrant-matrix"] [data-cdl-role="quadrant-bg"] {
+  fill: none;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="quadrant-matrix"] [data-cdl-role="quadrant-point"] {
+  fill: var(--cdl-chart-2);
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="quadrant-matrix"] > g > g:nth-of-type(-n + 2) > [data-cdl-role="quadrant-point"] {
+  fill: var(--cdl-chart-1);
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="quadrant-matrix"] > g > g:nth-of-type(5) > [data-cdl-role="quadrant-point"] {
+  fill: var(--theme-quadrant-muted);
+}
+
+/* cdl 0.125.0 の区画名には role がないため、kind 内の字寸法と太さで軸名を除く。 */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="quadrant-matrix"] text:not([data-cdl-role])[font-size="13"][font-weight="700"] {
+  fill: var(--theme-quadrant-label);
+}
+
+/* 十字の 2 本には role がないため、kind 内で role 付き外枠の直後の兄弟へ閉じる。 */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="quadrant-matrix"] [data-cdl-role="quadrant-canvas"],
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="quadrant-matrix"] [data-cdl-role="quadrant-canvas"] + line,
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="quadrant-matrix"] [data-cdl-role="quadrant-canvas"] + line + line {
+  stroke-dasharray: 4 4;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="neon"], [data-cdl-palette="relief"])
+  [data-cdl-kind="chart-waffle"] [data-cdl-role="chart-waffle-cell"] {
+  rx: 50%;
+  ry: 50%;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"]
+) [data-cdl-kind="gantt-timeline"] [data-cdl-role="gantt-bar"] {
+  rx: 2px;
+  ry: 2px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-kind="gantt-timeline"] [data-cdl-role="gantt-bar"] {
+  rx: 0;
+  ry: 0;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-kind="gantt-timeline"] [data-cdl-role="gantt-bar"] {
+  rx: 4px;
+  ry: 4px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-kind="gantt-timeline"] [data-cdl-role="gantt-bar"] {
+  rx: 5px;
+  ry: 5px;
 }
 
 /* 折れ線だけが読む accent を主色へ向ける。共通の tone 規則と他の図は変えない。 */
@@ -2622,11 +2850,11 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge-label-for][data-cd
   stroke: var(--theme-lead) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
-  fill: url(#dragon-sketch-pen) !important;
-  fill-opacity: 1 !important;
-  stroke: var(--theme-lead) !important;
-  stroke-width: 2 !important;
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-kind="chart-bar"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
+  fill: url(#dragon-sketch-pen-primary);
+  fill-opacity: 1;
+  stroke: var(--theme-lead);
+  stroke-width: 2;
 }
 
 svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
@@ -2761,8 +2989,11 @@ svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge-label-for][data-cdl-
   fill: var(--theme-lead) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
-  fill: var(--theme-lead) !important;
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-kind="chart-bar"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"] {
+  fill: var(--theme-lead);
+  fill-opacity: .25;
+  stroke: var(--theme-lead);
+  stroke-width: 2;
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--theme-lead) 45%, transparent));
 }
 

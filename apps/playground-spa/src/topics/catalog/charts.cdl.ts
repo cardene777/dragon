@@ -357,9 +357,9 @@ states:
   completed: 720
 
 animation:
-  - step: "昼の集計" 1.2s
+  - step: "月の半ば" 1.2s
     draw: pie
-    description: "昼までに集計した荷物の状態を輪で分ける。"
+    description: "月の半ばまでに集計した荷物の状態を輪で分ける。"
   - step: "今月" 1.2s
     tween:
       delivering: 210 -> 270
@@ -383,7 +383,7 @@ export const sourceJson__parcelStatusPie = `{
   "flow": [],
   "states": { "delivering": 210, "collected": 132, "accepted": 70, "completed": 720 },
   "animation": [
-    { "step": "昼の集計", "duration": 1.2, "draw": "pie", "description": "昼までに集計した荷物の状態を輪で分ける。" },
+    { "step": "月の半ば", "duration": 1.2, "draw": "pie", "description": "月の半ばまでに集計した荷物の状態を輪で分ける。" },
     {
       "step": "今月",
       "duration": 1.2,
@@ -548,7 +548,7 @@ states:
   design_end: 0.80
   shelf_end: 2
   terminal_end: 2.55
-  trial_end: 3.80
+  trial_end: 3.60
 
 flow:
   - 設計する -> 棚を作る: ""
@@ -564,8 +564,8 @@ animation:
     set:
       shelf_end: 2.20
       terminal_end: 2.55
-      trial_end: 3.80
-    description: "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 8 月末。"
+      trial_end: 3.60
+    description: "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 9 月上旬。"
 `;
 
 export const sourceJson__sortingShelfGantt = `{
@@ -586,7 +586,7 @@ export const sourceJson__sortingShelfGantt = `{
     { "from": "端末を入れる", "to": "試す", "label": "" },
     { "from": "試す", "to": "本番", "label": "" }
   ],
-  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2, "terminal_end": 2.55, "trial_end": 3.80 },
+  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2, "terminal_end": 2.55, "trial_end": 3.60 },
   "animation": [
     {
       "step": "入れ替え前の予定",
@@ -597,8 +597,8 @@ export const sourceJson__sortingShelfGantt = `{
     {
       "step": "入れ替え工程",
       "duration": 1.2,
-      "description": "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 8 月末。",
-      "set": { "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.80 }
+      "description": "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 9 月上旬。",
+      "set": { "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.60 }
     }
   ]
 }`;
@@ -631,7 +631,7 @@ states:
   design_end: 0.80
   shelf_end: 2.20
   terminal_end: 2.55
-  trial_end: 3.80
+  trial_end: 3.60
 
 animation:
   - step: "工程の帯を引く" 1.2s
@@ -652,7 +652,7 @@ export const sourceJson__pattern__sortingShelfGantt__帯だけ = `{
     { "name": "本番", "subtitle": "10月" }
   ],
   "flow": [],
-  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.80 },
+  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.60 },
   "animation": [
     {
       "step": "工程の帯を引く",

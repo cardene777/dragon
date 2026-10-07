@@ -887,9 +887,12 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     for (const [name, style] of expected) {
       const declarations = cssFixedThemeDeclarations(cssText, name);
       const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
+      const primaryScope = name === "sketch" || name === "neon"
+        ? `${stage} [data-cdl-kind="chart-bar"]`
+        : stage;
       const primary = cssRuleBody(
         cssText,
-        `${stage} [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]`,
+        `${primaryScope} [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]`,
       );
       const secondary = cssRuleBody(
         cssText,
@@ -920,8 +923,12 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
   it("発想の枝・折れ線・傾き図を図表の役に閉じて意匠帳の色へ向ける (#2837)", () => {
     const series = readFixedThemeChartSeries();
     for (const name of ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
-      expect(readFixedThemeRoleColors(name, "発想の枝"), `${name} の発想の枝`).toEqual(
-        series.get(name)?.colors.slice(0, 4),
+      const branchColors = readFixedThemeRoleColors(name, "発想の枝");
+      expect(branchColors.slice(0, 3), `${name} の発想の枝 1〜3`).toEqual(
+        series.get(name)?.colors.slice(0, 3),
+      );
+      expect(branchColors[3], `${name} の発想の枝 4`).toBe(
+        resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-mind-branch-4"),
       );
       expect(readFixedThemeRoleColors(name, "折れ線"), `${name} の折れ線`).toEqual(
         series.get(name)?.colors.slice(0, 1),
@@ -929,7 +936,7 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     }
 
     for (const [tone, chart] of [
-      ["accent", 1], ["teal", 2], ["success", 3], ["warning", 4],
+      ["accent", 1], ["teal", 2], ["success", 3],
     ] as const) {
       expect(cssText).toContain(
         `[data-cdl-role="mind-edge"][stroke*="--cdl-tone-${tone}"]`,
@@ -939,6 +946,9 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
         "s",
       ));
     }
+    expect(cssText).toMatch(
+      /mind-edge[^{}]+cdl-tone-warning[^{}]*\{[^}]*stroke:\s*var\(--theme-mind-branch-4\)/su,
+    );
     expect(cssText).toMatch(/\[data-cdl-kind="chart-line"\]\s*\{\s*--cdl-tone-accent:\s*var\(--cdl-chart-1\)/u);
 
     expect(readFixedThemeRoleColors("sketch", "傾き図")).toEqual(["#d2491f", "#2a5ca8", "#6d6456"]);
