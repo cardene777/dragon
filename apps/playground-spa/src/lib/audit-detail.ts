@@ -81,9 +81,29 @@ const 型たち: Record<string, 型> = {
     英語: (m) =>
       `The title "${m[2]}" on box "${m[1]}" may not fit the box width ${m[3]}px (it needs ${m[4]}px)`,
   },
+  "node-visibility": {
+    形: /^node "(.*)" size ([\d.]+)x([\d.]+) 未満 \(要 ([\d.]+)x([\d.]+) 以上\)$/,
+    英語: (m) =>
+      `Box "${m[1]}" is ${m[2]}x${m[3]}, under the required ${m[4]}x${m[5]}`,
+  },
   "edge-node-cross": {
     形: /^edge "(.*)" \(from=(.*) to=(.*)\) が関係ない 名札 "(.*)" を貫通$/,
     英語: (m) => `Line "${m[1]}" (from=${m[2]} to=${m[3]}) runs through the unrelated box "${m[4]}"`,
+  },
+  clearance: {
+    形: /^(.+?) ↔ (.+?) gap=(-?[\d.]+)px \(need ([\d.]+)px\)$/,
+    英語: (m) =>
+      `"${m[1]}" and "${m[2]}" have a ${m[3]}px gap, under the ${m[4]}px required`,
+  },
+  "arrow-endpoint-anchoring": {
+    形: /^edge "(.*)" to endpoint が node "(.*)" 内側に沈み込み \(pt=(-?[\d.]+),(-?[\d.]+)、 node bbox=(-?[\d.]+),(-?[\d.]+)\+([\d.]+)x([\d.]+)\)$/,
+    英語: (m) =>
+      `The end of line "${m[1]}" at (${m[3]},${m[4]}) sinks inside box "${m[2]}" with bounds ${m[5]},${m[6]}+${m[7]}x${m[8]}`,
+  },
+  "arrow-marker-clearance": {
+    形: /^edge "(.*)" arrow head が node "(.*)" 内側に ([\d.]+) world 食い込み$/,
+    英語: (m) =>
+      `The arrow head on line "${m[1]}" reaches ${m[3]} world inside box "${m[2]}"`,
   },
   "node-vertical-clearance": {
     形: /^lane "(.*)" 内 名札 "(.*)" ↔ "(.*)" の垂直 gap (-?\d+) world が (\d+) 未満$/,

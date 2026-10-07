@@ -276,6 +276,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportDirectionNotHonored(書いたまま, opts?.onNotice);
   reportOrderNotHonored(書いたまま, opts?.onNotice);
   reportShapeNotHonored(書いたまま, opts?.onNotice);
+  reportLaneSubtitleNotHonored(書いたまま, opts?.onNotice);
   reportStageFromLane(書いたまま, opts?.onNotice);
   reportTrackFromName(書いたまま, opts?.onNotice);
   reportThemeAlsoPalette(書いたまま, opts?.onNotice);
@@ -2984,6 +2985,24 @@ function reportShapeNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =
     message: `書いた shape: ${doc.shape} は効きません (type: ${doc.type} では使えません)`,
     hint,
   });
+}
+
+/** 路線図の名札にしか載らない lane の補足を、別の形で黙って捨てないために伝える。 */
+function reportLaneSubtitleNotHonored(
+  doc: DslDocument,
+  onNotice?: (n: CompileNotice) => void,
+): void {
+  if (!onNotice || (doc.type === "swimlane" && doc.shape === "metro")) return;
+  for (const lane of Object.values(doc.lanes ?? {})) {
+    if (lane.subtitle === undefined) continue;
+    onNotice({
+      kind: "lane-option-not-honored",
+      actor: lane.id,
+      line: lane.pos.line,
+      message: `縦列 "${truncateForMessage(lane.id)}" に書いた subtitle は効きません (担当の補足を描くのは shape: metro だけです)`,
+      hint: "subtitle を消すか、type: swimlane と shape: metro の路線図で使ってください",
+    });
+  }
 }
 
 /** `stage` を省いた箱で担当または箱名を段階に使ったことを、図全体で 1 件だけ伝える (#2797)。 */

@@ -35,4 +35,17 @@ describe("見本帳の路線図の形 (#2799)", () => {
     expect(markup).toContain('data-cdl-routing="metro"');
     expect(markup).toContain('data-cdl-lane="track-');
   });
+
+  it("見本と同じ 4 項目の凡例を順番どおり持つ", () => {
+    const item = 路線図の見本()[0];
+    expect(item).toBeDefined();
+    if (!item) return;
+
+    expect(textDslToDiagram(item.source).legend).toEqual([
+      { mark: "station", text: "駅 = 段。 載っている線路が担当" },
+      { mark: "diamond", text: "分かれ道" },
+      { mark: "dotted-line", text: "点線 = 前の駅へ戻る" },
+      { mark: "arrow", text: "時間は左から右へ進む" },
+    ]);
+  });
 });

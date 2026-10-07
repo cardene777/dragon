@@ -209,26 +209,46 @@ actors:
   - 確認: { 段階: 審査, lane: review }
 ```
 
-`shape: metro` は担当 (`lane`) ごとに横の線路を 1 本作り、箱を駅として actors に書いた順に
-左から並べる。担当が替わる線は、横線と 45 度の斜線をつないだ乗り換え線になる。
+`shape: metro` は担当 (`lane`) ごとに横の線路を 1 本作り、箱を駅として左から並べる。
+`lanes:` の `label` は担当の名札の名前、`subtitle` はその下の補足になり、名札から線路の右端まで
+一点鎖線の案内線を引く。
+担当が替わる線は、横線と 45 度の斜線をつないだ乗り換え線になる。
 
 ```yaml
 type: swimlane
 shape: metro
 
 lanes:
-  front: { label: 窓口 }
-  review: { label: 審査係 }
+  shipper: { label: 荷主, subtitle: 頼む人 }
+  courier: { label: 配送便, subtitle: 運ぶ }
 
 actors:
-  - 受付: { lane: front }
-  - 審査: { lane: review }
+  - 始まり: { kind: mark-start, lane: shipper }
+  - 集荷を頼む: { lane: shipper }
+  - 在宅?: { kind: decision, lane: courier }
+  - 受け取る: { lane: shipper }
+  - 持ち戻る: { lane: courier }
+  - 終わり: { kind: mark-end, lane: shipper }
 
 flow:
-  - 受付 -> 審査
+  - 始まり -> 集荷を頼む
+  - 集荷を頼む -> 在宅?
+  - 在宅? -> 受け取る: "はい"
+  - 在宅? -> 持ち戻る: "いいえ"
+  - 持ち戻る -> 集荷を頼む: "翌日もう一度" (dashed)
+  - 受け取る -> 終わり
 ```
 
 担当を書かない箱は、その箱の名前を線路名に使い、図全体で 1 件知らせる。
+分かれ道から出る 1 本目は「はい」の色、2 本目以降は「いいえ」の色になり、後ろへ続く線と駅も
+同じ色を引き継ぐ。
+同じ担当へ向かう 2 本目以降の枝の駅は分かれ道の真下へ下ろし、横の線路上の駅としては数えない。
+本線と「はい」「いいえ」の実線には矢じりを付けない。
+前の駅へ戻る `(dashed)` の線は点線になり、戻り先の駅の下へ入る矢印を付ける。
+
+`animation` がある路線図でも全ての線を描く。
+初めて `focus` される段がまだ来ていない線には `data-cdl-pending="true"` が付き、画面側でまだの区間を
+薄く見せられる。
 
 `shape: timeline` は普通の段へ 1 から番号を振り、丸い番号を実線の縦軸上へ置く。
 札は `card` で固定し、札を持つ段の上から順に軸の左右へ交互に並べる。

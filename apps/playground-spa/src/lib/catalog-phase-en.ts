@@ -45,6 +45,8 @@ export const 日本語を含む = (字: string): boolean =>
  * 表からは読めなくなる)。
  */
 export const PHASE_TITLE_EN: Record<string, string> = {
+  "頼む": "Request pickup",
+  "運ぶ": "Carry",
   "集荷を受け付ける": "Accept the pickup",
   "届けに行く": "Head out for delivery",
   "受け渡すか持ち戻る": "Deliver or return the parcel",
@@ -293,10 +295,8 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "受け付けて記録する": "Take it and record it",
   "申し込む": "Request pickup",
   "受け付ける": "Take it",
-  "窓口で受ける": "Receive at the desk",
   "呼び出し": "Call",
   "問い合わせ": "Enquiry",
-  "乗り換える": "Change lines",
   "外を指す列が山形になる": "Columns pointing outward get a chevron",
   "多数から 1 つ": "Many to one",
   "多数どうし": "Many to many",
@@ -310,7 +310,6 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "無いか 1 つ": "Zero or one",
   "片方": "One side only",
   "発送する": "Ship it",
-  "知らせて残す": "Notify and record",
   "終わる": "Finished",
   "親": "Parent",
   "親と子": "Parent and child",

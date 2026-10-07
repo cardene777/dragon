@@ -22,6 +22,31 @@ export type ThemeNote =
   | { name: DslTheme; mode: "light-dark"; light: ThemeValues; dark: ThemeValues }
   | { name: DslTheme; mode: "fixed"; value: ThemeValues };
 
+export const METRO_COLOR_ROLES = {
+  路線図の本線: "main",
+  路線図のはい: "yes",
+  路線図のいいえ: "no",
+  路線図の枝札の字: "branchInk",
+  路線図の駅の面: "stationFace",
+  路線図の駅名: "stationInk",
+  路線図の駅名の地: "stationGround",
+  路線図の始終点: "mark",
+  路線図の案内線: "guide",
+  路線図の名札の面: "badgeFace",
+  路線図の名札の枠: "badgeFrame",
+  路線図の名札の名前: "badgeTitle",
+  路線図の名札の補足: "badgeSubtitle",
+  路線図の菱形の面: "decisionFace",
+  路線図の菱形の枠: "decisionFrame",
+  路線図の菱形の字: "decisionInk",
+} as const;
+
+export type MetroColorRole = (typeof METRO_COLOR_ROLES)[keyof typeof METRO_COLOR_ROLES];
+export type MetroThemeValues = Record<MetroColorRole, string>;
+export type MetroThemeNote =
+  | { name: DslTheme; mode: "light-dark"; light: MetroThemeValues; dark: MetroThemeValues }
+  | { name: DslTheme; mode: "fixed"; value: MetroThemeValues };
+
 export type ThemeChartSeries = { roles: string[]; colors: string[] };
 export type ThemeGroundText = { ink: string; type: string };
 export type ThemeOutline = "frame" | "none";
@@ -99,7 +124,7 @@ const ER_HEADINGS: Partial<Record<DslTheme, string>> = {
 const 読む = (rel: string): string =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 
-function 節を取る(本文: string, 見出し: string, 深さ: 2 | 3): string {
+function 節を取る(本文: string, 見出し: string, 深さ: 2 | 3 | 4): string {
   const 印 = `${"#".repeat(深さ)} ${見出し}`;
   const 始め = 本文.indexOf(印);
   if (始め < 0) throw new Error(`意匠帳に「${印}」の節が無い`);
@@ -123,6 +148,47 @@ function 二列表を読む(節: string): Map<string, string> {
     rows.set(列[0] ?? "", 列[1] ?? "");
   }
   return rows;
+}
+
+function 路線図の表を読む(節: string): { columns: 2 | 3; rows: Map<MetroColorRole, string[]> } {
+  const 行たち = 節.split("\n");
+  const 見出し = 行たち.findIndex((行) => /^\|/.test(行) && 列に分ける(行)[0] === "役");
+  if (見出し < 0) throw new Error("意匠帳に路線図の色の表が無い");
+  const columns = 列に分ける(行たち[見出し] ?? "").length;
+  if (columns !== 2 && columns !== 3) throw new Error(`路線図の色の表が ${columns} 列ある`);
+
+  const rows = new Map<MetroColorRole, string[]>();
+  for (const 行 of 行たち.slice(見出し + 2)) {
+    if (!行.trim().startsWith("|")) break;
+    const 列 = 列に分ける(行);
+    const 役 = 列[0] ?? "";
+    if (!Object.hasOwn(METRO_COLOR_ROLES, 役)) continue;
+    if (列.length !== columns) throw new Error(`意匠帳の「${役}」が ${列.length} 列ある`);
+    const 値 = 列.slice(1).map((色) => {
+      const m = /^`(#[0-9a-fA-F]{6})`$/.exec(色);
+      if (!m) throw new Error(`意匠帳の「${役}」の値が #rrggbb ではない (${色})`);
+      return m[1]!.toLowerCase();
+    });
+    rows.set(METRO_COLOR_ROLES[役 as keyof typeof METRO_COLOR_ROLES], 値);
+  }
+  return { columns, rows };
+}
+
+function 路線図の値を揃える(
+  rows: Map<MetroColorRole, string[]>,
+  index: number,
+  name: string,
+): MetroThemeValues {
+  const out = {} as MetroThemeValues;
+  for (const role of Object.values(METRO_COLOR_ROLES)) {
+    const value = rows.get(role)?.[index];
+    if (value === undefined) throw new Error(`意匠帳の ${name} に路線図の ${role} が無い`);
+    out[role] = value;
+  }
+  if (rows.size !== Object.keys(METRO_COLOR_ROLES).length) {
+    throw new Error(`意匠帳の ${name} の路線図の色が ${rows.size} 個しかない`);
+  }
+  return out;
 }
 
 function 表を読む(節: string): { columns: 2 | 3; rows: Map<ThemePort, string[]> } {
@@ -191,6 +257,35 @@ export function readThemeNotes(overrides: Partial<Record<DslTheme, string>> = {}
   if (out.size !== THEMES.length) {
     throw new Error(`意匠帳を ${out.size} 件しか読めない (${THEMES.length} 件が要る)`);
   }
+  return out;
+}
+
+/** 路線図専用の色を全ての意匠帳から読む。 */
+export function readMetroThemeNotes(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, MetroThemeNote> {
+  const er = (): string => overrides.kinari ?? overrides.celadon ?? 読む("../../../../docs/design/er/note.md");
+  const out = new Map<DslTheme, MetroThemeNote>();
+
+  for (const name of THEMES) {
+    const erHeading = ER_HEADINGS[name];
+    const 本文 = overrides[name] ?? (erHeading ? er() : 読む(`../../../../docs/design/${name}/note.md`));
+    const 親 = erHeading ? 節を取る(本文, erHeading, 3) : 本文;
+    const 路線節 = 節を取る(親, "路線図の色", erHeading ? 4 : 3);
+    const 表 = 路線図の表を読む(路線節);
+    if (表.columns === 3) {
+      out.set(name, {
+        name,
+        mode: "light-dark",
+        light: 路線図の値を揃える(表.rows, 0, name),
+        dark: 路線図の値を揃える(表.rows, 1, name),
+      });
+    } else {
+      out.set(name, { name, mode: "fixed", value: 路線図の値を揃える(表.rows, 0, name) });
+    }
+  }
+
+  if (out.size !== THEMES.length) throw new Error(`路線図の意匠帳を ${out.size} 件しか読めない`);
   return out;
 }
 
@@ -276,6 +371,26 @@ export function readFixedThemeFrameOpacity(
     const number = /^(?:`)?(\d+(?:\.\d+)?)/.exec(値)?.[1];
     if (number === undefined) {
       throw new Error(`意匠帳の ${name} の「枠の濃さ」が数で始まらない`);
+    }
+    out.set(name, Number(number));
+  }
+  return out;
+}
+
+/** 固定の意匠で、見本に合わせて上書きする路線図の線の濃さを読む。 */
+export function readFixedThemeMetroLineOpacity(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, number> {
+  const out = new Map<DslTheme, number>();
+  for (const [name, note] of readThemeNotes(overrides)) {
+    if (note.mode !== "fixed") continue;
+    const 本文 = overrides[name] ?? readThemeNoteText(name);
+    const rows = 二列表を読む(節を取る(本文, "色以外の値", 3));
+    const 値 = rows.get("路線図の線の濃さ");
+    if (値 === undefined) throw new Error(`意匠帳の ${name} に「路線図の線の濃さ」が無い`);
+    const number = /^(?:`)?(\d+(?:\.\d+)?)/.exec(値)?.[1];
+    if (number === undefined) {
+      throw new Error(`意匠帳の ${name} の「路線図の線の濃さ」が数で始まらない`);
     }
     out.set(name, Number(number));
   }

@@ -616,11 +616,9 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.theme": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   // 見本帳が使わない印は記法一覧と README で見せる。 10 種の印は schema と描画側の一覧を突き合わせる。
-  "$.legend[].mark=arrow": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
   "$.legend[].mark=double-circle": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
   "$.legend[].mark=filled-circle": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
   "$.legend[].mark=solid-line": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
-  "$.legend[].mark=station": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
 };
 
 /**
