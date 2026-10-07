@@ -2387,6 +2387,39 @@
       ],
       "description": "`theme` の別名。 `relief` (浮彫) を含む同じ意匠名を受ける。 両方書くと `theme` が勝ち、知らせが 1 件出る。"
     },
+    "legend": {
+      "type": "array",
+      "description": "記法の legend と同じ、図の下へ置く凡例。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mark",
+          "text"
+        ],
+        "properties": {
+          "mark": {
+            "type": "string",
+            "enum": [
+              "diamond",
+              "filled-circle",
+              "double-circle",
+              "dotted-line",
+              "solid-line",
+              "curved-line",
+              "rounded-label",
+              "numbered-circle",
+              "station",
+              "arrow"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
     "reveal": {
       "type": "string",
       "enum": [

@@ -105,6 +105,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     // 図の意匠とその別名 (#1553 / #2790)
     theme: "blueprint",
     palette: "celadon",
+    legend: [{ mark: "diamond", text: "分かれ道" }],
   },
   actor: {
     name: "A",

@@ -47,6 +47,8 @@ export {
   THEMES,
   THEME_ALIAS,
   resolveTheme,
+  LEGEND_MARK_ALIAS,
+  resolveLegendMark,
   意匠の字の測り方,
 } from "./keywords";
 export type { DslTheme, DslShape, DslSwimlaneShape, DslDiagramShape } from "./keywords";

@@ -40,6 +40,7 @@ const 行の見本: Record<string, string> = {
   formulas: 'd: "{sl} * 2"',
   events: "{ on: click, box: A, handler: toggle-active }",
   scrolls: "intro: { start: 0.9, end: 0.1 }",
+  legend: '{ mark: diamond, text: "分かれ道" }',
 };
 
 /**

@@ -38,7 +38,9 @@ export type SampleSlot =
   // 数を描く図の形 (#2657)
   | "shape"
   // 図の意匠 (#1553 / #2790)
-  | "theme";
+  | "theme"
+  // 図の下へ置く凡例 (#2834)
+  | "legend";
 
 export type Section = {
   title: string;
@@ -372,6 +374,19 @@ export const FORMS: Section[] = [
       { code: "theme: 電飾", note: "日本語でも書ける", noteEn: "The Japanese name works too" },
       { code: "theme: relief", note: "浮彫", noteEn: "Relief" },
       { code: "theme: 浮彫", note: "日本語でも書ける", noteEn: "The Japanese name works too" },
+    ],
+  },
+  {
+    title: "凡例 (legend:)",
+    titleEn: "Legend (legend:)",
+    sample: {
+      slot: "legend",
+      actors: ["  - 受付", "  - 完了"],
+      flow: ['  - 受付 -> 完了: "進む"'],
+    },
+    lines: [
+      { code: '  - { mark: diamond, text: "分かれ道" }', note: "印と説明", noteEn: "A mark and its text" },
+      { code: '  - { 印: 塗った丸, 説明: "始まり" }', note: "和名でも書ける", noteEn: "Japanese field and mark names work too" },
     ],
   },
   {
@@ -876,6 +891,7 @@ export function buildSample(section: Section): string {
   if (slot === "scrolls") out.push("scrolls:", ...codes);
   // 動いている間の帯 (#1466)。 面と段を指すので、その両方より後ろに置く
   if (slot === "bands") out.push("bands:", ...codes);
+  if (slot === "legend") out.push("legend:", ...codes);
   // つまみの値から決まる値 (#1391)。 つまみを読むので、その後ろに置く
   if (slot === "formulas") {
     out.push(

@@ -50,6 +50,7 @@ import {
   resolveDiagramShape,
   shapesForDiagramType,
   resolveTheme,
+  resolveLegendMark,
 } from "./keywords";
 // 区画の語の表 (#2667)。 記法と同じ表から直す = 同じ区画を 2 通りで呼ばない
 import { 区画 } from "./compile/word-state";
@@ -248,6 +249,8 @@ export interface DragonJson {
   theme?: string;
   /** `theme` の別名。 両方書いた時は `theme` を使う。 */
   palette?: string;
+  /** 図の下へ置く凡例。 印は記法と同じ英語名または和名で書く。 */
+  legend?: { mark: string; text: string }[];
 }
 
 /**
@@ -628,6 +631,7 @@ export const ACCEPTED_KEYS = {
     // 図の意匠とその別名 (#1553 / #2790)
     "theme",
     "palette",
+    "legend",
   ],
   actor: [
     "name",
@@ -816,6 +820,7 @@ export const 欄の型表 = {
     // 図の意匠とその別名 (#1553 / #2790)
     theme: "意匠",
     palette: "意匠",
+    legend: "並び",
   },
   actor: {
     name: "必須の非空文字列",
@@ -1616,6 +1621,39 @@ function validateBands(v: unknown, errors: JsonDslError[]): void {
       if (typeof o[k] !== "number" || !Number.isInteger(o[k]) || o[k] < 0) {
         errors.push({ path: `${path}.${k}`, message: `band.${k} must be a non-negative integer` });
       }
+    }
+  });
+}
+
+const LEGEND_KEYS = ["mark", "text"] as const;
+
+/** JSON の凡例を、外側の並びから各項目の必須値まで検査する。 */
+function validateLegend(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!Array.isArray(v)) {
+    errors.push({ path: "$.legend", message: "legend must be an array" });
+    return;
+  }
+  v.forEach((item, index) => {
+    const path = `$.legend[${index}]`;
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      errors.push({ path, message: "legend item must be an object" });
+      return;
+    }
+    const o = item as Record<string, unknown>;
+    for (const key of Object.keys(o)) {
+      if ((LEGEND_KEYS as readonly string[]).includes(key)) continue;
+      errors.push({
+        path: `${path}.${key}`,
+        message: `unknown key "${key}"`,
+        hint: `使える項目 = ${LEGEND_KEYS.join(", ")}`,
+      });
+    }
+    if (typeof o.mark !== "string" || resolveLegendMark(o.mark) === null) {
+      errors.push({ path: `${path}.mark`, message: "legend mark is not recognized" });
+    }
+    if (typeof o.text !== "string" || o.text.trim().length === 0) {
+      errors.push({ path: `${path}.text`, message: "legend text must be a non-empty string" });
     }
   });
 }
@@ -2422,6 +2460,7 @@ function validateJson(
   // 値を見せる部品の中身を、記法と同じ表で見る (#1374)
   validateReadouts(j.readouts, errors);
   validateBands(j.bands, errors);
+  validateLegend(j.legend, errors);
   // 読む人が動かすつまみの中身も、記法と同じ表で見る (#1389)
   validateInputs(j.inputs, errors);
   // 式は描画側の parser に通す (#1391)
@@ -2848,6 +2887,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
   const 選んだ意匠 = 意匠 ?? 別名の意匠;
   const 並び順 = json.order === undefined ? null : resolveOrder(json.order);
   const 形 = json.shape === undefined ? null : resolveDiagramShape(json.shape);
+  const legend = json.legend?.flatMap(({ mark: rawMark, text }) => {
+    const mark = resolveLegendMark(rawMark);
+    return mark === null ? [] : [{ mark, text }];
+  });
 
   const flow: DslStep[] = json.flow.map((s, i) => ({
     no: i + 1,
@@ -3062,6 +3105,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(形 !== null ? { shape: 形, shapePos: 位置("shape") } : {}),
     // 図の意匠 (#1553 / #2790)。 dragon の文書では `theme`、cdl の図へ載せる時は `palette` とする
     ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
+    ...(legend && legend.length > 0 ? { legend } : {}),
     ...(意匠 !== null && 別名の意匠 !== null
       ? {
           themeAlsoPalettePos: {

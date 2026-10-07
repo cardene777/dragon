@@ -143,23 +143,23 @@
  * 塗った丸、終わりは輪で囲んだ丸で、面と枠という作りをしていない。 当てると始まりの丸が
  * 面の色で塗られて消える (実測)。
  *
- * 色は墨で描く。 意味の色 (`--dragon-edge-tone`) を使うと「この印にも種類がある」 と読めるが、
- * 表しているのは「ここで始まる / 終わる」 の 1 つだけ。 */
+ * 色は意匠に専用の印が無ければ墨で描く。 意味の色 (`--dragon-edge-tone`) を使うと
+ * 「この印にも種類がある」 と読めるが、表しているのは「ここで始まる / 終わる」 の 1 つだけ。 */
 [data-cdl-role="node-body"][data-cdl-mark="start"],
 [data-cdl-active="true"] [data-cdl-role="node-body"][data-cdl-mark="start"] {
-  fill: var(--d-text-primary) !important;
+  fill: var(--theme-flow-mark, var(--d-text-primary)) !important;
   stroke: none !important;
 }
 
 [data-cdl-role="node-body"][data-cdl-mark="end"],
 [data-cdl-active="true"] [data-cdl-role="node-body"][data-cdl-mark="end"] {
   fill: var(--d-surface) !important;
-  stroke: var(--d-text-primary) !important;
+  stroke: var(--theme-flow-mark, var(--d-text-primary)) !important;
 }
 
 /* 終わりの印の中身。 輪と同じ色で描く = 別の色にすると 2 つの意味を持つ印に見える */
 [data-cdl-role="node-inner"] {
-  fill: var(--d-text-primary) !important;
+  fill: var(--theme-flow-mark, var(--d-text-primary)) !important;
   stroke: none !important;
 }
 
@@ -852,8 +852,10 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --theme-title: #9ef0b4;
   --theme-tag-ink: #03110a;
   --timeline-axis: var(--er-line);
-  /* 見本の終端 `#a6f0bd` は 9 つの `--er-*` のどれとも同じでないため、意匠の舞台に口を持つ。 */
+  --theme-flow-mark: #a6f0bd;
+  /* 時間軸の見本との照合は終端自身の口を見るため、流れの印と同じ明るい緑を明示する。 */
   --timeline-end-ink: #a6f0bd;
+  --theme-legend-text: #7f9186;
 
   --theme-appear: terminal-type-in;
   --theme-appear-duration: 0.36s;
@@ -1419,6 +1421,67 @@ svg[data-cdl-stage][data-cdl-palette]
   [data-cdl-role="node-inner"] {
   fill: var(--timeline-end-ink) !important;
   r: 10px;
+}
+
+/* 見本は凡例の印を本体の始まりと終わりの印と同じ色で描く。dragon は凡例に、本体の印へ使う墨 (`--d-text-primary`) を読ませる。
+ * 図録だけは本体の印を面の色 (`--er-face`) で塗るため僅かに違うが、凡例の #efe7d8 は見本と一致する。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="legend"] {
+  --cdl-text-accent: var(--theme-flow-mark, var(--d-text-primary));
+}
+
+/* 見本は凡例の点線を「前の段へ戻る」線と同色にする。浮彫は見本の #c99a35 でなく、dragon の意匠で決めた `--er-own` (#966c22) を保つ。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-legend-mark="dotted-line"] {
+  --cdl-text-accent: var(--er-own);
+}
+
+/* 凡例は箱の外の台へ置くため、型名用の薄い字が台との対比 4.5 を割る意匠だけ補う。 */
+html:not(.dark) svg[data-cdl-stage][data-cdl-palette="celadon"] [data-cdl-role="legend-text"] {
+  fill: var(--er-ink);
+}
+
+/* 図録の見本の凡例字 #a39a87 に合わせ、暗い台との対比を保つ。 */
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="legend-text"] {
+  fill: var(--theme-ground-type);
+}
+
+/* 端末の見本は凡例の字を台の薄い緑で描き、印の明るい緑と役を分ける。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend-text"] {
+  fill: var(--theme-legend-text);
+}
+
+/* 見本は図全体へ掛ける光と浮きを、dragon では凡例のまとまりと印へ分けて掛ける。
+ * 終わりの外円と内円は兄弟なので各 1 回とし、両方を包む g には掛けない。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="node-body"][data-cdl-mark="start"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="node-inner"] {
+  filter: url(#dragon-flow-sign-terminal-glow);
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="node-body"][data-cdl-mark="start"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="node-inner"] {
+  filter: url(#dragon-flow-sign-neon-glow);
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="node-body"][data-cdl-mark="start"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="node-inner"] {
+  filter: url(#dragon-flow-sign-relief-raised);
 }
 
 /*

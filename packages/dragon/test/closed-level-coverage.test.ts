@@ -169,6 +169,10 @@ const 入力: Record<string, 図> = {
     formulas: { f: { expression: "1", label: "x", [知らない項目]: 1 } },
   },
   "$.bands[]": { ...基本, bands: [{ actor: "A", from: 0, to: 1, [知らない項目]: 1 }] },
+  "$.legend[]": {
+    ...基本,
+    legend: [{ mark: "diamond", text: "分かれ道", [知らない項目]: 1 }],
+  },
   "$.events[]": { ...基本, events: [{ on: "click", handler: "h", box: "A", [知らない項目]: 1 }] },
   "$.scrolls.additionalProperties": {
     ...基本,
