@@ -3,7 +3,7 @@
  * docs/cdl/text-dsl-spec.md の文法を AST に変換した中間表現
  */
 
-import type { CdlDiagram, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
+import type { CdlDiagram, LegendMark, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
 import type { DslDiagramShape, DslDirection, DslOrder, DslTheme } from "./keywords";
 
@@ -130,6 +130,8 @@ export type LayoutMode = "auto" | "manual";
 export type DslDocument = {
   title: string;
   type: PresetType;
+  /** 図の下へ指定順に置く凡例。 */
+  legend?: { mark: LegendMark; text: string }[];
   /**
    * 図全体を 1 箱にする図種 (`pie` / `bar` / `line` / `funnel` / `tree` / `journey` /
    * `quadrant` / `mind` / `gantt`) で、 その箱の上に出す小見出し (#1247)。

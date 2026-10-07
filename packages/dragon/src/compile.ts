@@ -560,6 +560,9 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 配色と行の縞は **図への追加を全て終えた後**に当てる (#1553)。 図種ごとの組み立ては
   // 20 か所以上あり、そのどれに足しても残りが取り残される
   配色と縞を当てる(merged, doc);
+  if (doc.legend && doc.legend.length > 0) {
+    merged.legend = doc.legend.map(({ mark, text }) => ({ mark, text }));
+  }
   静止した図の焦点を外す(merged, doc);
   // 位置のずらしは **配置に効く欄を全て載せた後** に当てる (#1971)。 縦列の幅や視点の間隔を
   // 足す前に測ると、後から足された分だけ狙いがずれる

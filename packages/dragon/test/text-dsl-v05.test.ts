@@ -4,8 +4,21 @@
  * 英語 keyword + 日本語値 quote 必須 + YAML 風 syntax の parser を検証。
  */
 import { describe, it, expect, vi } from "vitest";
-import { parseTextDslV05, compileToCdl, textDslToDiagram } from "@cardenelabs/dragon";
-import { diagram as buildDiagram, layout as layoutFromSrc } from "@cardenelabs/cdl";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  parseTextDslV05,
+  compileToCdl,
+  textDslToDiagram,
+  PRESET_TYPES,
+} from "@cardenelabs/dragon";
+import {
+  CdlDiagramView,
+  LEGEND_MARKS,
+  diagram as buildDiagram,
+  layout as layoutFromSrc,
+} from "@cardenelabs/cdl";
+import schema from "../src/schemas/diagram.json" with { type: "json" };
 
 describe("Text DSL v0.5 parser", () => {
   it("minimal sequence diagram (title / type / actors / flow)", () => {
@@ -192,6 +205,120 @@ flow:
     // 順序図は 1 枚の板で描く (#1466)。 面は板の見出しに並ぶ
     const 面 = diagram.nodes.find((n) => n.kind === "sequence-board")?.sequenceData?.actors ?? [];
     expect(面.map((a) => a.name)).toEqual(["Alice", "Bob"]);
+  });
+});
+
+describe("凡例 (legend:) (#2834)", () => {
+  const 本文 = (凡例 = ""): string => `title: "凡例"
+type: flow
+
+actors:
+  - A
+  - B
+
+flow:
+  - A -> B: "進む"
+${凡例}`;
+
+  const 英語 = 本文(`
+legend:
+  - { mark: diamond, text: "分かれ道" }
+  - { mark: filled-circle, text: "始まり" }
+  - { mark: double-circle, text: "終わり" }
+`);
+
+  it("3 項目を箱の下へ描く", () => {
+    const laid = layoutFromSrc(textDslToDiagram(英語));
+    const svg = renderToStaticMarkup(createElement(CdlDiagramView, { diagram: laid }));
+    const 下端 = Math.max(...laid.nodes.map((node) => node.cy + node.h / 2));
+    const 項目 = [...svg.matchAll(/data-cdl-role="legend-item"[^>]*data-cdl-y="([^"]+)"/g)];
+    expect(項目).toHaveLength(3);
+    expect(項目.map((m) => Number(m[1])).every((y) => y > 下端)).toBe(true);
+  });
+
+  it("和名の見出し・項目名・印は英語と同じ図になる", () => {
+    const 和名 = 本文(`
+凡例:
+  - { 印: 菱形, 説明: "分かれ道" }
+  - { 印: 塗った丸, 説明: "始まり" }
+  - { 印: 二重丸, 説明: "終わり" }
+`);
+    expect(textDslToDiagram(和名)).toEqual(textDslToDiagram(英語));
+  });
+
+  it("英語と和名を混ぜ、先頭の印を省いても同じ結果になる", () => {
+    const 混在 = 本文(`
+legend:
+  { mark: diamond, 印: 矢印, 説明: "分かれ道" }
+  { 印: 塗った丸, text: "始まり" }
+  { mark: double-circle, 説明: "終わり" }
+`);
+    expect(textDslToDiagram(混在)).toEqual(textDslToDiagram(英語));
+  });
+
+  it.each([
+    ["知らない項目名", '{ mark: diamond, tetx: "分かれ道" }', 12, '凡例の項目名が読めません: "tetx"'],
+    ["読めない印", '{ mark: triangle, text: "分かれ道" }', 12, '凡例の印が読めません: "triangle"'],
+    ["説明の型違い", "{ mark: diamond, text: [分かれ道] }", 12, "凡例の説明は文字で書く"],
+    ["1 行で書いた形", '{ mark: diamond, text: "分かれ道" }', 11, "legend は 1 行にまとめて書けない"],
+    ["中括弧でない行", "diamond: 分かれ道", 12, "凡例の行が読めません"],
+  ])("%s を行番号付きで知らせる", (名, 行, 期待行, 期待文) => {
+    const src =
+      名 === "1 行で書いた形" ? 本文(`\nlegend: ${行}\n`) : 本文(`\nlegend:\n  - ${行}\n`);
+    const r = parseTextDslV05(src);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ line: 期待行, message: 期待文 })]),
+    );
+  });
+
+  it("書かない形と空の節には key が無く、足しても凡例以外は変わらない", () => {
+    const 無し = textDslToDiagram(本文());
+    const 空 = textDslToDiagram(本文("\nlegend:\n"));
+    const 有り = textDslToDiagram(英語);
+    expect(Object.hasOwn(無し, "legend")).toBe(false);
+    expect(空).toEqual(無し);
+    const { legend: _legend, ...凡例以外 } = 有り;
+    expect(凡例以外).toEqual(無し);
+  });
+
+  it("全図種で同じ凡例が図へ届く", () => {
+    const 読めない: string[] = [];
+    const 届かない: string[] = [];
+    for (const type of [...PRESET_TYPES].sort()) {
+      const value =
+        type === "gantt" ? '"1月"' : type === "journey" ? '"満足"' : type === "quadrant" ? '"左上"' : '"10"';
+      const src = `title: "凡例"
+type: ${type}
+
+actors:
+  - A: { value: ${value} }
+  - B: { value: ${value} }
+
+flow:
+  - A -> B: "進む"
+
+legend:
+  - { mark: diamond, text: "分かれ道" }
+`;
+      try {
+        const d = textDslToDiagram(src);
+        if (JSON.stringify(d.legend) !== JSON.stringify([{ mark: "diamond", text: "分かれ道" }])) {
+          届かない.push(type);
+        }
+      } catch {
+        読めない.push(type);
+      }
+    }
+    expect(読めない, `走査 ${PRESET_TYPES.size} 図種`).toEqual([]);
+    expect(届かない, `走査 ${PRESET_TYPES.size} 図種`).toEqual([]);
+  });
+
+  it("印の和名と JSON schema が描画側の 10 種を過不足なく覆う", async () => {
+    const { LEGEND_MARK_ALIAS } = await import("../src/keywords");
+    expect(Object.values(LEGEND_MARK_ALIAS).sort()).toEqual([...LEGEND_MARKS].sort());
+    expect(schema.properties.legend.items.properties.mark.enum).toEqual(LEGEND_MARKS);
   });
 });
 

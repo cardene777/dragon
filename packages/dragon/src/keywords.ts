@@ -3,7 +3,7 @@
  * 日本語 / 英語両対応 (大文字小文字無視)
  */
 
-import type { NodeKind, Tone } from "@cardenelabs/cdl";
+import { LEGEND_MARKS, type LegendMark, type NodeKind, type Tone } from "@cardenelabs/cdl";
 
 /** ブロック ヘッダー */
 export const HEADERS = {
@@ -190,6 +190,32 @@ export const THEME_ALIAS: Record<string, DslTheme> = {
 export function resolveTheme(s: string): DslTheme | null {
   const k = s.trim().toLowerCase();
   return Object.hasOwn(THEME_ALIAS, k) ? THEME_ALIAS[k]! : null;
+}
+
+/** 描画側の凡例の印と、日本語で書く名前の対応。 印が増えた時は型検査で不足を知らせる。 */
+const LEGEND_MARK_NAMES = {
+  diamond: "菱形",
+  "filled-circle": "塗った丸",
+  "double-circle": "二重丸",
+  "dotted-line": "点線",
+  "solid-line": "実線",
+  "curved-line": "曲線",
+  "rounded-label": "角丸の札",
+  "numbered-circle": "番号の丸",
+  station: "駅",
+  arrow: "矢印",
+} satisfies Record<LegendMark, string>;
+
+/** 凡例の印の日本語名を描画側の名前へ直す表。 */
+export const LEGEND_MARK_ALIAS: Readonly<Record<string, LegendMark>> = Object.fromEntries(
+  Object.entries(LEGEND_MARK_NAMES).map(([mark, name]) => [name, mark as LegendMark]),
+);
+
+/** 凡例の印を描画側の名前へ直す。 読めない語は `null`。 */
+export function resolveLegendMark(s: string): LegendMark | null {
+  const k = s.trim().toLowerCase();
+  if ((LEGEND_MARKS as readonly string[]).includes(k)) return k as LegendMark;
+  return Object.hasOwn(LEGEND_MARK_ALIAS, k) ? (LEGEND_MARK_ALIAS[k] ?? null) : null;
 }
 
 /**
