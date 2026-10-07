@@ -711,12 +711,12 @@ describe("時間軸を見本と同じ丸い番号と実線の軸で描く (#2832
     );
   });
 
-  it("横に引く分かれ道だけ札を線の上へ浮かせる", () => {
+  it("横に引く分かれ道の札を高さの半分と間の分だけ線の上へ浮かせる", () => {
     const labeled = 宅配.diagram.edges.filter((edge) => edge.label !== "");
-    expect(labeled.map((edge) => [edge.label, edge.overlay])).toEqual([
-      ["はい", true],
-      ["いいえ", undefined],
-      ["翌日もう一度", true],
+    expect(labeled.map((edge) => [edge.label, edge.overlay, edge.labelOffsetY])).toEqual([
+      ["はい", true, undefined],
+      ["いいえ", true, -40],
+      ["翌日もう一度", true, undefined],
     ]);
   });
 

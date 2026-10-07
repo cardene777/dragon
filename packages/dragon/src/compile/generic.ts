@@ -29,6 +29,10 @@ import {
   TIMELINE_END_WIDTH,
   TIMELINE_NUMBER_SIZE,
 } from "./timeline";
+
+/** 時間軸の 40px 高の札を、横線から 20px 空けて上へ置く。 */
+const 時間軸の横分岐の札の上げ幅 = -(40 / 2 + 20);
+
 /**
  * 段を持つ図種の共通の組み立て (#2030 で `compile.ts` から移した)。
  *
@@ -498,9 +502,11 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
-      ...(timelineEdgeKind !== undefined && !timelineHorizontalBranch && s.label !== ""
-        ? { overlay: true }
-        : {}),
+      ...(timelineHorizontalBranch && s.label !== ""
+        ? { overlay: true, labelOffsetY: 時間軸の横分岐の札の上げ幅 }
+        : timelineEdgeKind !== undefined && s.label !== ""
+          ? { overlay: true }
+          : {}),
       ...(timelineEdgeKind === "advance" && !timelineEnd ? { head: "none" as const } : {}),
     });
     edgeIds.push(edgeId);

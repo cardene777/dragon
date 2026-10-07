@@ -3719,18 +3719,6 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   y: 8px !important;
 }
 
-/* 描く側は 36px 高の札で線から 16px 離す。見本の 40px 高に変えた分を含め、
-   水平な「いいえ」だけ上へ 6px 移して、札の下端と線の間を 20px にする。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
-  [data-cdl-edge-label-for][data-cdl-edge-label-text="いいえ"] > [data-cdl-role="edge-label-bg"] {
-  y: -26px !important;
-}
-
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
-  [data-cdl-edge-label-for][data-cdl-edge-label-text="いいえ"] > [data-cdl-role="edge-label"] {
-  y: 2px !important;
-}
-
 /* 動き中も見本の構造上の太さを保つ。活動状態は既存の色・出現・外光で伝わるため、
    静止画に無い太さの差は足さない。 */
 svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
