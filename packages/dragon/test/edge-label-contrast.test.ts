@@ -337,6 +337,46 @@ type Collected = {
   outOfScope: string[];
 };
 
+/** 関数擬似クラス内のカンマを保ち、selector list の区切りだけで分ける。 */
+function splitSelectorList(value: string): string[] {
+  const selectors: string[] = [];
+  let start = 0;
+  let parentheses = 0;
+  let brackets = 0;
+  let quote: '"' | "'" | null = null;
+  let escaped = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (quote !== null) {
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+      continue;
+    }
+    if (character === "(") parentheses += 1;
+    else if (character === ")") parentheses -= 1;
+    else if (character === "[") brackets += 1;
+    else if (character === "]") brackets -= 1;
+    else if (character === "," && parentheses === 0 && brackets === 0) {
+      selectors.push(value.slice(start, index));
+      start = index + 1;
+    }
+  }
+  selectors.push(value.slice(start));
+  return selectors;
+}
+
 /**
  * CSS から、 標準形の selector が宣言している配色を集める。
  *
@@ -424,7 +464,7 @@ function collect(cssText: string): Collected {
       const hasFontShorthand = /(^|[;{\s])font:/.test(r.style.cssText ?? "");
       if (!hasLonghand && !hasFontShorthand) continue;
 
-      for (const one of r.selectorText.split(",")) {
+      for (const one of splitSelectorList(r.selectorText)) {
         const sel = one.trim().replace(/\s+/g, " ");
         if (!hitsLabel(sel)) continue;
 
@@ -660,6 +700,13 @@ describe("CSSOM が値を実ブラウザと同じに解決する (cdl#388)", () 
 describe("検査の範囲外を検知する (cdl#388)", () => {
   const sel = `[data-cdl-role="edge-label"]`;
   const found = (rule: string) => collect(`${expanded.light}\n${rule}`).outOfScope;
+
+  it("関数擬似クラス内のカンマを selector list の区切りにしない", () => {
+    expect(splitSelectorList('svg:is([data-a="1"], [data-a="2"]) text, rect')).toEqual([
+      'svg:is([data-a="1"], [data-a="2"]) text',
+      " rect",
+    ]);
+  });
 
   it("標準形でない selector を検知する", () => {
     expect(found(`svg[data-cdl-stage] [data-cdl-role="edge-label"] { font-size: 11px !important; }`).length).toBeGreaterThan(0);

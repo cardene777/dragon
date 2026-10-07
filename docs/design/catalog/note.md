@@ -43,6 +43,7 @@
 | 線の光           | 線の色 60% の 3px                                                                                    |
 | 地の模様         | 一 10% の `radial-gradient(ellipse at 50% 0%, ..., transparent 62%)`                                |
 | 札               | `accent` / `info` は一 `#dca443`、`success` は二 `#4fae9a`、`teal` / `error` / `warning` は三 `#e8705a` の面。`data-cdl-edge-role="main"` は一。字 `#1b222c` は台の色。枠は持たず、面の無い札は地の字 |
+| 時間軸の線の札   | success 面 `#4fae9a`、error 面 `#e8705a`、success 字 `#1b222c`、error 字 `#1b222c`、success 枠 `none`、error 枠 `none`、枠の太さ 0、角 9px、高さ 40px、字 21px、字の太さ 700 |
 | 鍵               | 一。下線と同じ行の印に使う                                                                          |
 | 単系列の棒       | `data-cdl-emphasis="primary"` の棒は一 `#dca443`、それ以外は淡 `#9c9381`。濃さは 1               |
 | 始まり・終わりの印 | 箱の面の色。塗りと輪郭の両方                                                                        |
@@ -99,7 +100,9 @@ dragon 側の箱はすべて明るい札とし、薄の細い枠と下へ落ち�
 ![時間軸。左が見本、右が dragon](images/compare-timeline.png)
 
 dragon は軸と番号の縁を一の `--er-line`、「はい」を二の `--er-link`、終わりの印を地の字の `--theme-ground-ink` で描く。
-戻る線が札の上辺どうしを結ぶため「持ち戻る」の内側が見本の軸から 220 に対して 396 まで離れる点は `cardene777/cdl#1026`、その担当が名前の下に出る点は `cardene777/cdl#1027` に残る。
+線の札は高さ 40・角 9・21 の太字とし、「はい」を二 `#4fae9a`、他の 2 枚を三 `#e8705a` の面にして、字は地 `#1b222c` で描く。
+戻る線は太さ 6・丸い線端・`0 9.6` の点列とし、軸と「はい」は 6、「いいえ」は 5、補助線は 2、番号の縁は 4、終わりの外輪は 3.5 で描く。
+「持ち戻る」が軸から 396 離れる点は `cardene777/cdl#1031`、担当の位置は `cardene777/cdl#1032`、線上の札が押し出される点は `cardene777/cdl#1039` に対応する。
 
 ![図表。左が見本、右が dragon の棒と内訳](images/compare-chart.png)
 

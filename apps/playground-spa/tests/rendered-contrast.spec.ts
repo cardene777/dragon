@@ -1218,9 +1218,9 @@ flow:
   - 送り状を起こす -> 便に積む
   - 便に積む -> 届けに行く
   - 届けに行く -> 在宅?
-  - 在宅? -> 受け取る: "はい"
-  - 在宅? -> 持ち戻る: "いいえ"
-  - 持ち戻る -> 便に積む: "翌日もう一度" (dashed)
+  - 在宅? -> 受け取る: "はい" (success)
+  - 在宅? -> 持ち戻る: "いいえ" (error)
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
   - 受け取る -> 終わり
 `;
 
@@ -1437,7 +1437,7 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
   }
 });
 
-test.describe("時間軸の番号と担当の字の対比 (#2832)", () => {
+test.describe("時間軸の番号・担当・線の札・線幅・電飾の分かれ道 (#2832)", () => {
   test.describe.configure({ timeout: 300_000 });
   test.use({
     viewport: { width: 1920, height: 1080 },
@@ -1451,13 +1451,64 @@ test.describe("時間軸の番号と担当の字の対比 (#2832)", () => {
   for (const theme of themes) {
     for (const dark of [false, true]) {
       const mode = dark ? "暗" : "明";
-      test(`${theme} / ${mode}: 番号と担当の字が対比を保つ`, async ({ page }) => {
+      test(`${theme} / ${mode}: 札の対比と線幅を描画後の計算値でも保つ`, async ({ page }) => {
         await openEditorTheme(page, 宅配の時間軸, theme, dark);
         const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
         await expect(stage.locator(
           '[data-cdl-node]:has([data-cdl-mark="timeline-number"]) [data-cdl-role="node-label"]',
         )).toHaveCount(6);
         await expect(stage.locator('[data-cdl-role="stage-note"]')).toHaveCount(6);
+        await expect(stage.locator(
+          '[data-cdl-edge-label-for] [data-cdl-role="edge-label"]',
+        )).toHaveCount(3);
+
+        const labels = await stage.locator('[data-cdl-edge-label-for]').evaluateAll((elements) =>
+          elements.map((element) => {
+            const background = element.querySelector('[data-cdl-role="edge-label-bg"]');
+            const text = element.querySelector('[data-cdl-role="edge-label"]');
+            if (!background || !text) throw new Error("時間軸の線の札から面または字を読めない");
+            return {
+              edge: element.getAttribute("data-cdl-edge-label-for") ?? "?",
+              background: getComputedStyle(background).fill,
+              text: getComputedStyle(text).fill,
+            };
+          }),
+        );
+        for (const label of labels) {
+          expect(
+            contrast(color(label.text), color(label.background)),
+            `${theme}/${mode}/${label.edge} の札の字 ${label.text} / 面 ${label.background}`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
+
+        const noLine = stage.locator(
+          '[data-cdl-edge][data-cdl-edge-label="いいえ"] [data-cdl-role="edge-line"]',
+        );
+        const returnLine = stage.locator(
+          '[data-cdl-edge][data-cdl-edge-label="翌日もう一度"] [data-cdl-role="edge-line"]',
+        );
+        await expect(noLine).toHaveCount(1);
+        await expect(returnLine).toHaveCount(1);
+        const usesSharedWidth = theme === "kinari" || theme === "celadon";
+        expect(Number.parseFloat(await noLine.evaluate((element) => getComputedStyle(element).strokeWidth)))
+          .toBe(usesSharedWidth ? 7 : 5);
+        expect(Number.parseFloat(await returnLine.evaluate((element) => getComputedStyle(element).strokeWidth)))
+          .toBe(usesSharedWidth ? 7 : 6);
+
+        if (theme === "neon") {
+          const decisionOutline = stage.locator(
+            '[data-cdl-lane="timeline-axis"][data-cdl-kind="decision"][data-cdl-active="false"] '
+            + 'g[data-cdl-role="node-body"] > path',
+          );
+          await expect(decisionOutline).toHaveCount(1);
+          const decision = await decisionOutline.evaluate((element) => {
+            const style = getComputedStyle(element);
+            return { fill: style.fill, stroke: style.stroke, strokeWidth: style.strokeWidth };
+          });
+          expect(decision.fill).toBe("rgb(9, 7, 15)");
+          expect(decision.stroke).toBe("rgb(0, 229, 255)");
+          expect(Number.parseFloat(decision.strokeWidth)).toBe(3);
+        }
 
         const texts = await checkTextContrast(page, "swimlane", mode);
         expect(texts.failures, `${theme}/${mode} の時間軸の字の違反`).toEqual([]);

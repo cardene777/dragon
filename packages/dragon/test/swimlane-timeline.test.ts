@@ -556,7 +556,7 @@ describe("時間軸を見本と同じ丸い番号と実線の軸で描く (#2832
     const side = cards.find((node) => node.title === "持ち戻る");
     expect(side?.subtitle).toBe("配送便");
     expect(side?.leaderTo).toBeUndefined();
-    // cardene777/cdl#1027: leaderTo の無い札の subtitle は札の右ではなく名前の下へ出る仕様。
+    // cardene777/cdl#1032: leaderTo の無い札の subtitle は札の右ではなく名前の下へ出る仕様。
     expect(cards.map((node) => node.subtitle)).toEqual([
       "荷主", "営業所", "営業所", "配送便", "配送便", "荷主", "配送便",
     ]);

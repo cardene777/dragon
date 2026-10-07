@@ -1093,6 +1093,159 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --d-relation-edge-opacity-active: 1;
 }
 
+/* 時間軸の線の札は、固定 7 意匠の見本が持つ 2 色を success / error の口として渡す。
+   palette 名を列挙するのは生成りと青磁の札を従来値のまま保ち、他の図種へ値を流さないため。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"]:has([data-cdl-role="timeline-axis"]) {
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  /* 見本 #e3e9ea は #1f7a6b 上で 4.22:1。白側へ最小限寄せた #ebf0f0 は 4.50:1。 */
+  --theme-timeline-label-success-text: #ebf0f0;
+  --theme-timeline-label-error-text: #e3e9ea;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-role="timeline-axis"]) {
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #f0eadc;
+  --theme-timeline-label-error-text: #f0eadc;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-role="timeline-axis"]) {
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #1b222c;
+  --theme-timeline-label-error-text: #1b222c;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-role="timeline-axis"]) {
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #03110a;
+  --theme-timeline-label-error-text: #03110a;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 4px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-role="timeline-axis"]) {
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #fffdf7;
+  --theme-timeline-label-error-text: #fffdf7;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-role="timeline-axis"]) {
+  --theme-timeline-label-success-fill: var(--er-ground);
+  --theme-timeline-label-error-fill: var(--er-ground);
+  --theme-timeline-label-success-text: var(--er-link);
+  --theme-timeline-label-error-text: var(--er-own);
+  --theme-timeline-label-success-frame: var(--er-link);
+  --theme-timeline-label-error-frame: var(--er-own);
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 2.5px;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-role="timeline-axis"]) {
+  /* 全図用の三 #966c22 は白字との対比用。時間軸は見本の線と面 #c99a35 を同じ口から使う。 */
+  --er-own: #c99a35;
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #ffffff;
+  /* 見本 #ffffff は #c99a35 上で 2.57:1。黒側へ最小限寄せた #383838 は 4.55:1。 */
+  --theme-timeline-label-error-text: #383838;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 20px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+}
+
 /*
  * 9 色を実際の口に流す。 配色の名前ごとに書かない = 名前が増えるたびにここを写すことになり、
  * 片方だけ直して食い違う。 名前が決めるのは上の 9 値だけで、流し先は 1 か所で持つ。
@@ -2507,4 +2660,99 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"]
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-end-label"] {
   stroke: var(--er-ground) !important;
   stroke-width: 8 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 固定 7 意匠の時間軸。
+ *
+ * 値を持つのは上で palette 名を列挙した時間軸だけ。読む規則も同じ 7 意匠へ絞り、生成り・青磁は
+ * 無効な var() を計算して初期値へ落とさず、描く側と全図共通の線・札の規則を保つ。
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* 見本の札は線の success / error と同じ面を持つ。高さ 40 の中心を描く側の原点へ合わせる。 */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"] {
+  fill: var(--theme-timeline-label-success-fill) !important;
+  stroke: var(--theme-timeline-label-success-frame) !important;
+  stroke-width: var(--theme-timeline-label-frame-width) !important;
+  height: var(--theme-timeline-label-height) !important;
+  y: -20px !important;
+  rx: var(--theme-timeline-label-radius) !important;
+  ry: var(--theme-timeline-label-radius) !important;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge-label-for][data-cdl-tone="error"] > [data-cdl-role="edge-label-bg"] {
+  fill: var(--theme-timeline-label-error-fill) !important;
+  stroke: var(--theme-timeline-label-error-frame) !important;
+  stroke-width: var(--theme-timeline-label-frame-width) !important;
+  height: var(--theme-timeline-label-height) !important;
+  y: -20px !important;
+  rx: var(--theme-timeline-label-radius) !important;
+  ry: var(--theme-timeline-label-radius) !important;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge-label-for][data-cdl-tone="success"] > [data-cdl-role="edge-label"] {
+  fill: var(--theme-timeline-label-success-text) !important;
+  font-size: var(--theme-timeline-label-font-size) !important;
+  font-weight: var(--theme-timeline-label-font-weight) !important;
+  y: 8px !important;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge-label-for][data-cdl-tone="error"] > [data-cdl-role="edge-label"] {
+  fill: var(--theme-timeline-label-error-text) !important;
+  font-size: var(--theme-timeline-label-font-size) !important;
+  font-weight: var(--theme-timeline-label-font-weight) !important;
+  y: 8px !important;
+}
+
+/* 動き中も見本の構造上の太さを保つ。活動状態は既存の色・出現・外光で伝わるため、
+   静止画に無い太さの差は足さない。 */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge][data-cdl-edge-label="はい"] [data-cdl-role="edge-line"] {
+  stroke-width: var(--theme-timeline-yes-width) !important;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge][data-cdl-edge-label="いいえ"] [data-cdl-role="edge-line"] {
+  stroke-width: var(--theme-timeline-no-width) !important;
+}
+
+/* 描く側が semantic dashed へ直書きする 10 8 だけを戻る線として選ぶ。
+   動きの済んだ線が使う別の dasharray は点列へ変えない。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])
+  [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {
+  stroke-dasharray: 0 9.6 !important;
+  stroke-linecap: round !important;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {
+  stroke-width: var(--theme-timeline-return-width) !important;
+}
+
+/* 電飾の分かれ道は水色の管。通常時と活動時で芯を 3 に揃え、外光も同じ水色にする。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-role="timeline-axis"])
+  [data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]
+  g[data-cdl-role="node-body"] > :is(rect, path, ellipse, circle, polygon) {
+  fill: var(--er-face) !important;
+  stroke: var(--er-link) !important;
+  stroke-width: 3 !important;
+  filter: url(#dragon-neon-tube) drop-shadow(0 0 14px color-mix(in srgb, var(--er-link) 45%, transparent));
+}
+
+/* markerUnits=userSpaceOnUse の 14 / 10 の枠は線幅に比例しない。
+   通常と小型の三角を別倍率にし、どちらも見本の長さ 17・幅 19 に揃える。 */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  marker:not([id$="-sm"]) > [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="triangle"] {
+  transform: scale(var(--theme-timeline-arrow-scale-x), var(--theme-timeline-arrow-scale-y));
+  transform-origin: 9px 5px;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  marker[id$="-sm"] > [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="triangle"] {
+  transform: scale(var(--theme-timeline-small-arrow-scale-x), var(--theme-timeline-small-arrow-scale-y));
+  transform-origin: 9px 5px;
 }

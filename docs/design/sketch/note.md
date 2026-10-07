@@ -41,6 +41,7 @@
 | 線の揺れ     | `#dragon-sketch-wobble` の filter                                                                        |
 | ペンの斜線   | `#dragon-sketch-pen` の模様                                                                               |
 | 札           | 面 `#fffdf7` に字 `#2b2620`。`accent` / `info` は一 `#d2491f`、`success` は二 `#2f7d4f`、`teal` / `error` / `warning` は三 `#2a5ca8` の枠。`data-cdl-edge-role="main"` は一。色みを持たない札は墨の枠。枠の太さ 2 |
+| 時間軸の線の札 | success 面 `#2f7d4f`、error 面 `#2a5ca8`、success 字 `#fffdf7`、error 字 `#fffdf7`、success 枠 `none`、error 枠 `none`、枠の太さ 0、角 9px、高さ 40px、字 21px、字の太さ 700 |
 | 鍵           | 一。下線と同じ行の印に使う                                                                               |
 | 単系列の棒   | `data-cdl-emphasis="primary"` の棒はペンの斜線 `#dragon-sketch-pen` に一 `#d2491f` の 2 の枠、それ以外はペンの斜線 `#dragon-sketch-pen` に墨 `#2b2620` の 2 の枠。濃さは 1 |
 | 書体         | 画面が持つ 2 書体のまま                                                                                  |
@@ -114,7 +115,9 @@ dragon のクラス図には、契約、法人契約、個人契約、荷物、�
 ![時間軸。左が見本、右が dragon](images/compare-timeline.png)
 
 dragon は軸と番号の縁を一の `--er-line`、「はい」を二の `--er-link`、終わりの印を墨の `--er-ink` で描く。
-戻る線が札の上辺どうしを結ぶため「持ち戻る」の内側が見本の軸から 220 に対して 396 まで離れる点は `cardene777/cdl#1026`、その担当が名前の下に出る点は `cardene777/cdl#1027` に残る。
+線の札は高さ 40・角 9・21 の太字とし、「はい」を二 `#2f7d4f`、他の 2 枚を三 `#2a5ca8` の面にして、字は箱の面 `#fffdf7` で描く。
+戻る線は太さ 6・丸い線端・`0 9.6` の点列とし、軸と「はい」は 6、「いいえ」は 5、補助線は 2、番号の縁は 4、終わりの外輪は 3.5 で描く。
+「持ち戻る」が軸から 396 離れる点は `cardene777/cdl#1031`、担当の位置は `cardene777/cdl#1032`、線上の札が押し出される点は `cardene777/cdl#1039` に対応する。
 
 ![図表。左が見本、右が dragon の棒と内訳](images/compare-chart.png)
 

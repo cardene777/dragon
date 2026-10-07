@@ -38,6 +38,8 @@ export const TIMELINE_AXIS_TO_SIDE_CARD = 220;
 /**
  * 見本は 125 だが、描く側の `back-detour` は 156 以下で戻り線を
  * 一つ前の札の外側へ逃がし、線の札とも重なる。全ての検査を通す最小値 157 を使う。
+ * cardene777/cdl#1031・cardene777/cdl#1032・cardene777/cdl#1039 が全て入った時に、
+ * 戻り線の端・担当・線上の札を見本どおり置けるため 125 へ戻す。
  */
 export const TIMELINE_STEP_GAP = 157;
 
@@ -178,10 +180,11 @@ export function placeTimeline(
       const targetRight = target.centerX + target.width / 2;
       if (source.centerX < targetLeft || source.centerX > targetRight) continue;
       /*
-       * cardene777/cdl#1026: `back-detour` は札の上辺の中点どうしを結び、
+       * cardene777/cdl#1031: `back-detour` は札の上辺の中点どうしを結び、
        * 両端の札を障害物に数えない。戻り先の右端から近接の下限 70 まで
        * 中心を外へ出すことで、縦の区間が戻り先の札を貫かない。
-       * 描く側で札の横から出て横へ入れる形を選べれば、見本の 220 に戻せる。
+       * cardene777/cdl#1031・cardene777/cdl#1032・cardene777/cdl#1039 が全て入れば、
+       * 端・担当・線上の札が見本どおりになるため、実配置の 396 を見本の 220 へ戻す。
        */
       source.centerX = targetRight + 70;
     }
