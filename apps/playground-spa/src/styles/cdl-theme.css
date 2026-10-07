@@ -732,7 +732,9 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --er-line: #143a52;
   --er-own: #a8431f;
   --er-link: #1f7a6b;
+  --theme-mind-branch-3: #a8431f;
   --theme-mind-branch-4: #4d7187;
+  --theme-journey-axis-label: #3f6479;
   --theme-quadrant-muted: #8aa3b1;
   /* 見本の薄い字 #4d7187 は面との対比が 4.25 のため、型名の濃さを使う。 */
   --theme-quadrant-label: var(--er-type);
@@ -814,7 +816,9 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --er-line: #1a1510;
   --er-own: #1a1510;
   --er-link: #1a1510;
+  --theme-mind-branch-3: #1a1510;
   --theme-mind-branch-4: #6b6253;
+  --theme-journey-axis-label: #6b6253;
   --theme-quadrant-muted: #9d9382;
   --theme-quadrant-label: #6b6253;
   /* 路線図の見本 `路線-活版.html` の線・札・駅・印・案内線・名札・菱形の値。 */
@@ -893,7 +897,9 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --er-line: #dca443;
   --er-own: #e8705a;
   --er-link: #4fae9a;
+  --theme-mind-branch-3: #e8705a;
   --theme-mind-branch-4: #6f6757;
+  --theme-journey-axis-label: #6f6757;
   --theme-quadrant-muted: #9c9381;
   --theme-quadrant-label: #6f6757;
   /* 路線図の見本 `路線-図録.html` の線・札・駅・印・案内線・名札・菱形の値。 */
@@ -977,7 +983,9 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --er-line: #4ade80;
   --er-own: #f5c451;
   --er-link: #c792ea;
+  --theme-mind-branch-3: #f5c451;
   --theme-mind-branch-4: #8a9b90;
+  --theme-journey-axis-label: #8a9b90;
   --theme-quadrant-muted: #355542;
   --theme-quadrant-label: #8a9b90;
   /* 路線図の見本 `路線-端末.html` の線・札・駅・印・案内線・名札・菱形の値。 */
@@ -1065,7 +1073,9 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --er-line: #d2491f;
   --er-own: #2a5ca8;
   --er-link: #2f7d4f;
+  --theme-mind-branch-3: #2a5ca8;
   --theme-mind-branch-4: #6d6456;
+  --theme-journey-axis-label: #6d6456;
   --theme-quadrant-muted: #9a9080;
   --theme-quadrant-label: #6d6456;
   /* 路線図の見本 `路線-手描き.html` の線・札・駅・印・案内線・名札・菱形の値。 */
@@ -1149,7 +1159,9 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --er-line: #ff2e97;
   --er-own: #ffd000;
   --er-link: #00e5ff;
+  --theme-mind-branch-3: #ffd000;
   --theme-mind-branch-4: #c4bce0;
+  --theme-journey-axis-label: #c4bce0;
   --theme-quadrant-muted: #8f86b3;
   --theme-quadrant-label: #c4bce0;
   /* 路線図の見本 `路線-電飾.html` の線・札・駅・印・案内線・名札・菱形の値。 */
@@ -1232,7 +1244,9 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --er-line: #c4573c;
   --er-own: #966c22;
   --er-link: #2f7a6e;
+  --theme-mind-branch-3: #c99a35;
   --theme-mind-branch-4: #7a7062;
+  --theme-journey-axis-label: #685e51;
   --theme-quadrant-muted: #a99e8e;
   /* 見本の薄い字 #7a7062 は面との対比が 3.80 のため、型名の濃さを使う。 */
   --theme-quadrant-label: var(--er-type);
@@ -1575,7 +1589,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
 ) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-success"] {
-  stroke: var(--cdl-chart-3);
+  stroke: var(--theme-mind-branch-3);
 }
 
 svg[data-cdl-stage]:is(
@@ -1671,6 +1685,19 @@ svg[data-cdl-stage]:is(
   stroke: var(--cdl-chart-1);
 }
 
+/* cdl 0.125.0 の縦軸の段名には role がないため、kind 内で journey-band と同じ g の末尾の字に閉じる。 */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="journey-map"] g:has(> [data-cdl-role="journey-band"]) > text:last-child {
+  fill: var(--theme-journey-axis-label);
+}
+
 /* 四象限は地を抜き、点を象限ごとの 3 色へ揃える。 */
 svg[data-cdl-stage]:is(
   [data-cdl-palette="blueprint"],
@@ -1696,6 +1723,8 @@ svg[data-cdl-stage]:is(
   fill: var(--cdl-chart-2);
 }
 
+/* cdl 0.125.0 は `at` の点に象限属性を出さないため、点の色を並び順で選ぶ。
+   見本帳は全段で並び順と象限を揃え、検査で守る。 */
 svg[data-cdl-stage]:is(
   [data-cdl-palette="blueprint"],
   [data-cdl-palette="letterpress"],

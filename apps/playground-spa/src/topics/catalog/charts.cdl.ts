@@ -428,10 +428,10 @@ states:
   completed: 796
 
 animation:
-  - step: "昨日と今月" 1.2s
+  - step: "昨日と今日" 1.2s
     draw: pie
-    description: "内側が昨日、外側が今月の荷物の状態。"
-  - step: "夕方の見込み" 1.2s
+    description: "内側が昨日、外側が今日の荷物の状態。"
+  - step: "今日の夕方の見込み" 1.2s
     tween:
       delivering: 270 -> 300
       completed: 796 -> 840
@@ -452,13 +452,13 @@ export const sourceJson__pattern__parcelStatusPie__前と今 = `{
   "states": { "delivering": 270, "collected": 141, "accepted": 77, "completed": 796 },
   "animation": [
     {
-      "step": "昨日と今月",
+      "step": "昨日と今日",
       "duration": 1.2,
       "draw": "pie",
-      "description": "内側が昨日、外側が今月の荷物の状態。"
+      "description": "内側が昨日、外側が今日の荷物の状態。"
     },
     {
-      "step": "夕方の見込み",
+      "step": "今日の夕方の見込み",
       "duration": 1.2,
       "description": "配達中と完了が増える。 内側の昨日の輪は動かない。",
       "tween": { "delivering": [270, 300], "completed": [796, 840] }
@@ -1025,16 +1025,16 @@ actors:
   - 夜の便: { at: ["{night_x}", "{night_y}"] }
 
 states:
-  dropoff_x: 0.25
-  dropoff_y: 0.25
-  notice_x: 0.75
-  notice_y: 0.25
-  locker_x: 0.75
-  locker_y: 0.25
-  digital_x: 0.25
-  digital_y: 0.25
-  night_x: 0.75
-  night_y: 0.75
+  dropoff_x: 0.12
+  dropoff_y: 0.70
+  notice_x: 0.38
+  notice_y: 0.88
+  locker_x: 0.84
+  locker_y: 0.84
+  digital_x: 0.36
+  digital_y: 0.16
+  night_x: 0.88
+  night_y: 0.34
 
 animation:
   - step: "案を並べる" 1.2s
@@ -1076,9 +1076,9 @@ export const sourceJson__measureEffortQuadrant = `{
   ],
   "flow": [],
   "states": {
-    "dropoff_x": 0.25, "dropoff_y": 0.25, "notice_x": 0.75, "notice_y": 0.25,
-    "locker_x": 0.75, "locker_y": 0.25, "digital_x": 0.25, "digital_y": 0.25,
-    "night_x": 0.75, "night_y": 0.75
+    "dropoff_x": 0.12, "dropoff_y": 0.70, "notice_x": 0.38, "notice_y": 0.88,
+    "locker_x": 0.84, "locker_y": 0.84, "digital_x": 0.36, "digital_y": 0.16,
+    "night_x": 0.88, "night_y": 0.34
   },
   "animation": [
     { "step": "案を並べる", "duration": 1.2, "description": "宅配の打ち手を手間と効き目で仮置きする。" },

@@ -955,29 +955,41 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(failures, "単系列の棒の意味属性と意匠帳が違う").toEqual([]);
   });
 
-  it("発想の枝・折れ線・傾き図を図表の役に閉じて意匠帳の色へ向ける (#2837)", () => {
+  it("発想の枝・ジャーニー・折れ線・傾き図を図表の役に閉じて意匠帳の色へ向ける (#2837)", () => {
     const series = readFixedThemeChartSeries();
     for (const name of ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
       const branchColors = readFixedThemeRoleColors(name, "発想の枝");
-      expect(branchColors.slice(0, 3), `${name} の発想の枝 1〜3`).toEqual(
-        series.get(name)?.colors.slice(0, 3),
+      expect(branchColors.slice(0, 2), `${name} の発想の枝 1〜2`).toEqual(
+        series.get(name)?.colors.slice(0, 2),
+      );
+      expect(branchColors[2], `${name} の発想の枝 3`).toBe(
+        resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-mind-branch-3"),
       );
       expect(branchColors[3], `${name} の発想の枝 4`).toBe(
         resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-mind-branch-4"),
       );
+      expect(readFixedThemeRoleColors(name, "ジャーニー"), `${name} のジャーニー縦軸`).toEqual([
+        resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-journey-axis-label"),
+      ]);
       expect(readFixedThemeRoleColors(name, "折れ線"), `${name} の折れ線`).toEqual(
         series.get(name)?.colors.slice(0, 1),
       );
     }
+    const journeyAxis = cssRuleBodyContaining(cssText, [
+      '[data-cdl-kind="journey-map"]',
+      '[data-cdl-role="journey-band"]',
+      "text:last-child",
+    ]);
+    expect(cssDeclaration(journeyAxis, "fill")).toBe("var(--theme-journey-axis-label)");
 
-    for (const [tone, chart] of [
-      ["accent", 1], ["teal", 2], ["success", 3],
+    for (const [tone, colorVariable] of [
+      ["accent", "cdl-chart-1"], ["teal", "cdl-chart-2"], ["success", "theme-mind-branch-3"],
     ] as const) {
       expect(cssText).toContain(
         `[data-cdl-role="mind-edge"][stroke*="--cdl-tone-${tone}"]`,
       );
       expect(cssText).toMatch(new RegExp(
-        `mind-edge[^{}]+cdl-tone-${tone}[^{}]*\\{[^}]*stroke:\\s*var\\(--cdl-chart-${chart}\\)`,
+        `mind-edge[^{}]+cdl-tone-${tone}[^{}]*\\{[^}]*stroke:\\s*var\\(--${colorVariable}\\)`,
         "s",
       ));
     }
