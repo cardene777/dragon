@@ -125,6 +125,51 @@ animation:
     expect(jsonEdge.label).toBe(yamlEdge.label);
   });
 
+  it("凡例は記法と JSON で同じ図になり、JSON でも印の和名を読める", () => {
+    const jsonDiagram = jsonToDiagram({
+      title: "compare",
+      type: "flow",
+      actors: ["A", "B"],
+      flow: [{ from: "A", to: "B", label: "進む" }],
+      legend: [
+        { mark: "菱形", text: "分かれ道" },
+        { mark: "filled-circle", text: "始まり" },
+      ],
+    });
+    const textDiagram = textDslToDiagram(`title: "compare"
+type: flow
+actors:
+  - A
+  - B
+flow:
+  - A -> B: "進む"
+legend:
+  - { mark: diamond, text: "分かれ道" }
+  - { mark: filled-circle, text: "始まり" }
+`);
+    expect(jsonDiagram).toEqual(textDiagram);
+  });
+
+  it.each([
+    ["並びでない", 1, "$.legend"],
+    ["項目が object でない", ["diamond"], "$.legend[0]"],
+    ["知らない項目名", [{ mark: "diamond", text: "分かれ道", extra: true }], "$.legend[0].extra"],
+    ["印が読めない", [{ mark: "triangle", text: "分かれ道" }], "$.legend[0].mark"],
+    ["説明が文字列でない", [{ mark: "diamond", text: 1 }], "$.legend[0].text"],
+    ["説明が空", [{ mark: "diamond", text: "" }], "$.legend[0].text"],
+  ])("JSON の凡例で%s形を path 付きで知らせる", (_name, legend, path) => {
+    const result = validateDragonJson({
+      title: "凡例",
+      type: "flow",
+      actors: ["A", "B"],
+      flow: [{ from: "A", to: "B", label: "進む" }],
+      legend,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.map((e) => e.path)).toContain(path);
+  });
+
   it("validation error が具体的な path を返す (root object 必須)", () => {
     expect(() => jsonToDiagram(null)).toThrow(/root must be a JSON object/);
     expect(() => jsonToDiagram([])).toThrow(/root must be a JSON object/);

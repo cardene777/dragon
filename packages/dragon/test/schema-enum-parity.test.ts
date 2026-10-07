@@ -50,7 +50,7 @@ import {
   SWIMLANE_SHAPES,
   DIAGRAM_SHAPES,
 } from "../src/keywords";
-import { EDGE_REVEALS, RELATION_FOCUSES } from "@cardenelabs/cdl";
+import { EDGE_REVEALS, LEGEND_MARKS, RELATION_FOCUSES } from "@cardenelabs/cdl";
 import { RELATIVE_DIRECTIONS } from "../src/relative-pos";
 
 /** schema の中の 1 つの語の一覧 */
@@ -122,6 +122,7 @@ const 対応表: Record<string, readonly string[]> = {
   shape: Object.values(DIAGRAM_SHAPES).flat(),
   theme: [...THEMES],
   palette: [...THEMES],
+  "legend[].mark": [...LEGEND_MARKS],
   reveal: [...EDGE_REVEALS],
   relations: [...RELATION_FOCUSES],
   "flow[].tone": 書ける色名(),

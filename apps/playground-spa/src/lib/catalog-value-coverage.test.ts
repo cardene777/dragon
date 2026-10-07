@@ -42,13 +42,14 @@
  * 実測で JSON の型定義の欄と列挙値 552 個のうち 64 個が、カタログのどの JSON にも書かれていなかった。
  *
  * そこで記法の JSON の型定義 (`diagramJsonSchema`) を歩いて欄の道と列挙値を全て集め、カタログの
- * JSON に書かれた道と突き合わせる。 書かれていない道は、下の 4 つの覆い方のどれかに載せる。
+ * JSON に書かれた道と突き合わせる。 書かれていない道は、下の 5 つの覆い方のどれかに載せる。
  *
  * | 覆い方 | 意味 | 裏取り |
  * |---|---|---|
  * | 色の別名 | 同じ色の別の書き方 (`成功` は `success`) | 別名の指す色が同じ欄に書かれている |
  * | 既定 | 書かない図が同じ見え方になる | 書いた図と書かない図の描画が一致する |
  * | 画面の切替 | 画面の `オプション` の切替が全ての値を持つ | 切替の選択肢の数が値の数と一致する |
+ * | 記法一覧 | 見本帳の図を変えず、記法一覧で書き方を見せる | 対応する節と理由を持つ |
  * | 直してから見本 | 見本を置く前に直す不具合がある | Issue 番号を持ち、道がまだ書かれていない |
  *
  * ## 自由な文字列の欄に書く語は、描画側の一覧から数える (#2105)
@@ -95,6 +96,7 @@ import { CATALOG_ITEMS, loadPartsItems, type CatalogItem } from "./catalog-items
 import { 円の見せ方の選択肢 } from "./chart-pie-options";
 import { 傾きの見せ方の選択肢 } from "./chart-slope-options";
 import { 配色の選択肢 } from "./palette-switch";
+import { FORMS } from "./syntax-forms";
 
 type 覆い方 = "見本" | "既定" | "画面の切替";
 type 素 = Record<string, unknown>;
@@ -588,6 +590,7 @@ const JSONたち = (item: CatalogItem): string[] =>
 type 道の覆い方 =
   | { 種類: "既定"; 別の値: string }
   | { 種類: "画面の切替"; 選択肢: readonly string[] }
+  | { 種類: "記法一覧"; 理由: string }
   | { 種類: "直してから見本"; Issue: number; 理由: string };
 
 /** 直してから見本と書いた行のうち、Issue 番号か理由を欠くもの */
@@ -612,6 +615,20 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.relations=off": { 種類: "既定", 別の値: "hover" },
   "$.theme": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
+  // #2834 は見本帳の図を変えず、記法一覧と README で凡例を見せる。 10 種の印は schema と描画側の一覧を突き合わせる。
+  "$.legend": { 種類: "記法一覧", 理由: "凡例は記法一覧で見せる" },
+  "$.legend[].mark": { 種類: "記法一覧", 理由: "印は記法一覧で見せる" },
+  "$.legend[].mark=arrow": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].mark=curved-line": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].mark=diamond": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].mark=dotted-line": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].mark=double-circle": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].mark=filled-circle": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].mark=numbered-circle": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].mark=rounded-label": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].mark=solid-line": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].mark=station": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  "$.legend[].text": { 種類: "記法一覧", 理由: "説明は記法一覧で見せる" },
 };
 
 /**
@@ -812,6 +829,13 @@ describe("記法の型定義の全ての欄と値を、カタログの JSON が�
       }),
       "Issue 番号と理由を欠いた行を見つけられない (探し方が効いていない)",
     ).toEqual(["$.植えた道 の Issue 番号が無い", "$.植えた道 の理由が空"]);
+  });
+
+  it("記法一覧で覆う道は、理由と凡例の節を持つ", () => {
+    const 対象 = Object.entries(道の覆い方表).filter(([, 覆]) => 覆.種類 === "記法一覧");
+    expect(対象.length, "記法一覧で覆う道が 1 つも無い").toBeGreaterThan(0);
+    expect(対象.filter(([, 覆]) => 覆.種類 === "記法一覧" && 覆.理由.trim() === "")).toEqual([]);
+    expect(FORMS.some((section) => section.sample.slot === "legend"), "凡例の節が記法一覧に無い").toBe(true);
   });
 
   it("最上位の欄を書いた JSON を外すと、その欄が足りないと見つかる (植え込み対照)", () => {
