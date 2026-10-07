@@ -128,7 +128,7 @@ for (const theme of THEMES) {
 }
 
 for (const theme of 見本のある意匠) {
-  test(`${theme}: 凡例の印が墨 (--d-text-primary) と戻る線 (--er-own) の色に揃う (#2834)`, async ({ page }) => {
+  test(`${theme}: 凡例の印が印の変数と戻る線 (--er-own) の色に揃う (#2834)`, async ({ page }) => {
     await openEditorTheme(page, 印の色を測る凡例つき, theme, false);
 
     const 色 = await page.locator("svg[data-cdl-stage]").evaluate((stage) => {
@@ -138,17 +138,17 @@ for (const theme of 見本のある意匠) {
         return element;
       };
       const SVG_NS = "http://www.w3.org/2000/svg";
-      const 墨 = document.createElementNS(SVG_NS, "circle");
+      const 印 = document.createElementNS(SVG_NS, "circle");
       const 戻る線 = document.createElementNS(SVG_NS, "circle");
-      // custom property の文字列ではなく、墨 (`--d-text-primary`) と戻る線 (`--er-own`) の計算後の色で確かめる。
-      墨.style.fill = "var(--d-text-primary)";
+      // 意匠専用の印が無い時は墨へ戻るため、fallback まで含めた計算後の色で確かめる。
+      印.style.fill = "var(--theme-flow-mark, var(--d-text-primary))";
       戻る線.style.fill = "var(--er-own)";
-      stage.append(墨, 戻る線);
+      stage.append(印, 戻る線);
 
       try {
         return {
           expected: {
-            mark: getComputedStyle(墨).fill,
+            mark: getComputedStyle(印).fill,
             dotted: getComputedStyle(戻る線).fill,
           },
           actual: {
@@ -171,7 +171,7 @@ for (const theme of 見本のある意匠) {
           },
         };
       } finally {
-        墨.remove();
+        印.remove();
         戻る線.remove();
       }
     });
@@ -183,7 +183,7 @@ for (const theme of 見本のある意匠) {
         色.actual["double-circle-outer"],
         色.actual["double-circle-inner"],
       ],
-      `${theme}: 菱形・塗った丸・二重丸が墨 (--d-text-primary) の色に揃わない`,
+      `${theme}: 菱形・塗った丸・二重丸が印の変数の色に揃わない`,
     ).toEqual(Array.from({ length: 4 }, () => 色.expected.mark));
     expect(色.actual["dotted-line"], `${theme}: 点線が戻る線 (--er-own) の色に揃わない`).toBe(
       色.expected.dotted,
