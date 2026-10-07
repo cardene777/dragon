@@ -36,7 +36,7 @@
 | 型 | なし | なし |
 | 工程 | `gantt` | `compare-gantt-owner.png`、`gantt-bar` |
 | 数 | なし | なし |
-| 時間軸 | なし | なし |
+| 時間軸 | `timeline` | `compare-timeline.png` |
 | 構成 | なし | なし |
 | 段箱 | なし | なし |
 | 流れ | `flow` | `compare-flow.png` |

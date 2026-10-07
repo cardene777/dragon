@@ -71,10 +71,8 @@ function 使われている種別(): Set<string> {
  * (`chart-stat` / `chart-waffle` / `chart-stacked-bar`) は 1 つ目の PR、
  * 印 2 種 (`mark-start` / `mark-end`) は 2 つ目の PR で外した。
  *
- * 0.125.0 で増えた時間軸の丸い番号。 時間軸の番号を丸で描く #2832 が見本の時間軸で
- * 使い始めるまで外す。
  */
-const 対象外: ReadonlyArray<string> = ["timeline-number"];
+const 対象外: ReadonlyArray<string> = [];
 
 describe("cdl の種別に見本がある (#1152)", () => {
   it("走査した群が dir の実体と 1 件も違わない (#2314)", () => {

@@ -289,6 +289,10 @@ const 空でよい: Record<string, Record<string, string>> = {
     "縦列の名前を使わない図種":
       "縦列の名前を使わない図種の宣言。 全ての図種が使うようになれば空になるのが正しい状態で、件数を見る検査を足すとその日に落ちる",
   },
+  "packages/dragon/test/notation-option-coverage.test.ts": {
+    "描く側に在るが見本をまだ置いていない値":
+      "`timeline-number` と `leaderTo` を時間軸の見本が使うため未使用は 0 件。 全ての値を見本が使う状態では空が正しく、件数を見る検査を足すと網羅した日に落ちる",
+  },
   "packages/dragon/test/edge-attrs-coverage.test.ts": {
     "diagram.edges":
       "矢印を持たない見本が 25 件中 18 件ある (図表 / 樹形図 / 見出しの見本)。 1 件ずつ矢印の件数を見るとその 18 件で落ちる。 全体で 1 件以上あることは sample-graph-reachability.test.ts の「矢印を持つ見本が 1 件以上ある」 が見る",

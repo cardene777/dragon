@@ -1004,4 +1004,24 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     }
     expect(fixedCount, "固定の意匠を 1 件も調べていない").toBeGreaterThan(0);
   });
+
+  it("時間軸の軸と終わりの印の色を palette 名ごとに見本の口へ結ぶ", () => {
+    const expected = {
+      kinari: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      celadon: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      blueprint: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      letterpress: { axis: "var(--theme-lead)", end: "var(--er-ink)" },
+      catalog: { axis: "var(--er-line)", end: "var(--theme-ground-ink)" },
+      terminal: { axis: "var(--er-line)", end: "#a6f0bd" },
+      sketch: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      neon: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      relief: { axis: "var(--er-line)", end: "var(--er-ink)" },
+    } satisfies Record<DslTheme, { axis: string; end: string }>;
+
+    for (const [name, values] of Object.entries(expected)) {
+      const declarations = cssFixedThemeDeclarations(cssText, name);
+      expect(declarations.get("timeline-axis"), `${name} の軸`).toBe(values.axis);
+      expect(declarations.get("timeline-end-ink"), `${name} の終わり`).toBe(values.end);
+    }
+  });
 });

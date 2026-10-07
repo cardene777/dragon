@@ -306,8 +306,8 @@ export const FORMS: Section[] = [
     lines: [
       {
         code: "shape: timeline",
-        note: "actors の順に番号を付け、担当名付きの札を軸の左右へ交互に並べる",
-        noteEn: "Numbers actors in written order and alternates role-labelled cards on both sides of the axis",
+        note: "丸い番号を実線の軸へ置き、担当と補助線を持つ札を左右へ交互に並べる",
+        noteEn: "Places round numbers on a solid axis and alternates cards with role notes and leader lines",
       },
     ],
   },

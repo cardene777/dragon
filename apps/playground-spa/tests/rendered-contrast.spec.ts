@@ -1193,6 +1193,37 @@ actors:
   - 継続: "200"
 `;
 
+const 宅配の時間軸 = `title: "荷物を届ける"
+type: swimlane
+shape: timeline
+lanes:
+  shipper: { label: 荷主 }
+  office: { label: 営業所 }
+  courier: { label: 配送便 }
+actors:
+  - 始まり: { kind: mark-start, lane: shipper }
+  - 集荷を頼む: { lane: shipper }
+  - 受け付ける: { lane: office }
+  - 送り状を起こす: { lane: office }
+  - 便に積む: { lane: courier }
+  - 届けに行く: { lane: courier }
+  - 在宅?: { kind: decision, lane: courier }
+  - 受け取る: { lane: shipper }
+  - 持ち戻る: { lane: courier }
+  - 終わり: { kind: mark-end, lane: shipper }
+flow:
+  - 始まり -> 集荷を頼む
+  - 集荷を頼む -> 受け付ける
+  - 受け付ける -> 送り状を起こす
+  - 送り状を起こす -> 便に積む
+  - 便に積む -> 届けに行く
+  - 届けに行く -> 在宅?
+  - 在宅? -> 受け取る: "はい"
+  - 在宅? -> 持ち戻る: "いいえ"
+  - 持ち戻る -> 便に積む: "翌日もう一度" (dashed)
+  - 受け取る -> 終わり
+`;
+
 test.describe("模様を当てた棒の図表 (#2801)", () => {
   test.describe.configure({ timeout: 300_000 });
   test.use({
@@ -1401,6 +1432,36 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
           }
         }
         expect(failures, `${note.name}/${mode} の日程と漏斗の違反`).toEqual([]);
+      });
+    }
+  }
+});
+
+test.describe("時間軸の番号と担当の字の対比 (#2832)", () => {
+  test.describe.configure({ timeout: 300_000 });
+  test.use({
+    viewport: { width: 1920, height: 1080 },
+    deviceScaleFactor: FIXED_THEME_DEVICE_SCALE_FACTOR,
+  });
+
+  const themes: DslTheme[] = [
+    "kinari", "celadon", "blueprint", "letterpress", "catalog",
+    "terminal", "sketch", "neon", "relief",
+  ];
+  for (const theme of themes) {
+    for (const dark of [false, true]) {
+      const mode = dark ? "暗" : "明";
+      test(`${theme} / ${mode}: 番号と担当の字が対比を保つ`, async ({ page }) => {
+        await openEditorTheme(page, 宅配の時間軸, theme, dark);
+        const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+        await expect(stage.locator(
+          '[data-cdl-node]:has([data-cdl-mark="timeline-number"]) [data-cdl-role="node-label"]',
+        )).toHaveCount(6);
+        await expect(stage.locator('[data-cdl-role="stage-note"]')).toHaveCount(6);
+
+        const texts = await checkTextContrast(page, "swimlane", mode);
+        expect(texts.failures, `${theme}/${mode} の時間軸の字の違反`).toEqual([]);
+        expect(texts.measured, `${theme}/${mode} で測れた字`).toBeGreaterThan(0);
       });
     }
   }
