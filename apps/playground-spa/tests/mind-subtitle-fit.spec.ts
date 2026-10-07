@@ -12,7 +12,7 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 
-import { sourceYaml__mindMap } from "../src/topics/catalog/charts.cdl";
+import { sourceYaml__pattern__redeliveryIdeasMind__説明つき } from "../src/topics/catalog/charts.cdl";
 import { 一覧の行 } from "./catalog-item-pick";
 
 /** 切り詰めに使われる字 (`@cardenelabs/cdl` の `幅で切る`) */
@@ -27,40 +27,17 @@ function 箱を読む(記法: string): Array<{ 名前: string; 補足: string }>
   for (const x of 行.slice(始め + 1)) {
     // 次の最上位の項目 (`states:` 等) に当たったら終わり
     if (x.trim() !== "" && !x.startsWith(" ")) break;
-    const m = /^ {2}- ([^:]+): "([^"]*)"\s*$/u.exec(x);
+    const m = /^ {2}- ([^:]+): (?:"([^"]*)"|\{ value: "([^"]*)"(?:, [^}]*)? \})\s*$/u.exec(x);
     // 2 つとも必須の群。 一致した以上必ず取れる
     const 名前 = m?.[1];
-    const 補足 = m?.[2];
+    const 補足 = m?.[2] ?? m?.[3];
     if (名前 !== undefined && 補足 !== undefined) 出.push({ 名前: 名前.trim(), 補足 });
   }
   return 出;
 }
 
-/** 見本の記法から値の名前と数を取り出す (`states:` の初期値と `tween:` の行き先) */
-function 値を読む(記法: string, 欄: "初期" | "行き先"): Map<string, string> {
-  const 出 = new Map<string, string>();
-  for (const x of 記法.split("\n")) {
-    if (欄 === "行き先") {
-      const m = /^\s+(\w+):\s*[\d.]+\s*->\s*([\d.]+)\s*$/u.exec(x);
-      const k = m?.[1];
-      const v = m?.[2];
-      if (k !== undefined && v !== undefined) 出.set(k, v);
-    } else {
-      const m = /^ {2}(\w+):\s*([\d.]+)\s*$/u.exec(x);
-      const k = m?.[1];
-      const v = m?.[2];
-      if (k !== undefined && v !== undefined) 出.set(k, v);
-    }
-  }
-  return 出;
-}
-
-/** 補足の書き方 (`{total} ms 短縮`) に値を入れる */
-function 補足を組む(書き方: string, 値: Map<string, string>): string {
-  return 書き方.replace(/\{(\w+)\}/gu, (全体, 名) => 値.get(String(名)) ?? 全体);
-}
-
-const 箱 = 箱を読む(sourceYaml__mindMap);
+const 記法 = sourceYaml__pattern__redeliveryIdeasMind__説明つき;
+const 箱 = 箱を読む(記法);
 
 /**
  * 枝の数。 記法の先頭の箱が中心で、残りが枝になる (`type: mind` の並べ方)。
@@ -68,11 +45,10 @@ const 箱 = 箱を読む(sourceYaml__mindMap);
  * 待ち条件に使うので、記法から導く。 数を書くと見本を直した時に片方だけ古くなる。
  */
 const 枝の数 = Math.max(0, 箱.length - 1);
-const 初期値 = 値を読む(sourceYaml__mindMap, "初期");
-const 行き先 = 値を読む(sourceYaml__mindMap, "行き先");
 
 type 測り結果 = {
   段: string;
+  段札数: number;
   枝数: number;
   名前数: number;
   題: string[];
@@ -100,9 +76,11 @@ type 測り結果 = {
  */
 async function 測る(page: Page): Promise<測り結果> {
   return page.evaluate(() => {
-    const 段 = document.querySelector(".cdl-phase-chip")?.textContent?.replace(/\s+/gu, " ").trim() ?? "";
+    const 段札ら = document.querySelectorAll(".cdl-phase-chip");
+    const 段 = 段札ら[0]?.textContent?.replace(/\s+/gu, " ").trim() ?? "";
+    const 段札数 = 段札ら.length;
     const svg = document.querySelector('main.catalog-preview svg[role="img"]');
-    if (!svg) return { 段, 枝数: 0, 名前数: 0, 題: [], 文字: [] };
+    if (!svg) return { 段, 段札数, 枝数: 0, 名前数: 0, 題: [], 文字: [] };
     const 枠 = (el: Element) => el.getBoundingClientRect();
     const 枝数 = svg.querySelectorAll('path[data-cdl-role="mind-edge"]').length;
     const 字ら = Array.from(svg.querySelectorAll("text"));
@@ -126,7 +104,7 @@ async function 測る(page: Page): Promise<測り結果> {
       const はみ出し = Math.max(0, b.left - tb.left, tb.right - b.right);
       return { 内容: t.textContent ?? "", はみ出し: Math.round(はみ出し * 10) / 10, 箱あり: true };
     });
-    return { 段, 枝数, 名前数, 題, 文字: 出 };
+    return { 段, 段札数, 枝数, 名前数, 題, 文字: 出 };
   });
 }
 
@@ -134,8 +112,14 @@ async function 測る(page: Page): Promise<測り結果> {
 async function 開く(page: Page): Promise<void> {
   await page.goto("catalog/charts", { waitUntil: "networkidle" });
   await page.waitForTimeout(700);
-  await 一覧の行(page, "マインドマップ", false).click();
+  await 一覧の行(page, "再配達を減らす手立てのマインドマップ", false).click();
   await page.waitForTimeout(500);
+  const パターン = page.getByRole("radiogroup", { name: "パターン" });
+  await パターン.getByRole("radio", { name: "説明つき" }).click();
+  await expect(パターン.getByRole("radio", { name: "説明つき" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
 }
 
 /**
@@ -143,9 +127,14 @@ async function 開く(page: Page): Promise<void> {
  *
  * 待つ条件に **期待する文字を入れない**。 入れると「期待どおりになるまで待つ」 になり、
  * 直っていない時は待ち受けで力尽きて、切り詰めやはみ出しの検査が 1 度も走らない。
- * 待つのは 4 つだけ。 段の札が合うこと、読みが 2 回続けて同じになること (動きが止まったこと)、
+ * 待つのは 4 つだけ。 1 段なら段の札が無いこと、2 段以上なら札の字が合うこと、
+ * 読みが 2 回続けて同じになること (動きが止まったこと)、
  * 枝の線が記法の枝の数だけ引かれたこと、名前が記法の箱の数だけ出たこと。
  * いずれも名前と補足を分けたかどうかとは無関係に成り立つ。
+ *
+ * 1 段では札を切替完了の目印にできないが、切替前の既定 (見出しだけ) は名前が 13 件、
+ * 説明つきは `名前数 === 箱.length` の 5 件で区別できる。さらに待ち受け後の題が
+ * `再配達を減らす手立ての説明` であることも呼び元で確かめる。
  */
 async function 落ち着くまで待つ(page: Page, 段名: string): Promise<測り結果> {
   let 直前 = "";
@@ -156,8 +145,9 @@ async function 落ち着くまで待つ(page: Page, 段名: string): Promise<測
         const 今 = await 測る(page);
         const 鍵 = JSON.stringify(今.文字.map((x) => x.内容));
         const 同じ = 鍵 === 直前;
+        const 段が合う = 段の並び.length === 1 ? 今.段札数 === 0 : 今.段.includes(段名);
         直前 = 鍵;
-        if (今.段.includes(段名) && 同じ && 今.枝数 === 枝の数 && 今.名前数 === 箱.length) {
+        if (段が合う && 同じ && 今.枝数 === 枝の数 && 今.名前数 === 箱.length) {
           落着 = 今;
           return true;
         }
@@ -178,44 +168,35 @@ function 段を読む(記法: string): string[] {
     .filter((x): x is string => !!x);
 }
 
-const 段の並び = 段を読む(sourceYaml__mindMap);
+const 段の並び = 段を読む(記法);
 
-function 期待する文字(値: Map<string, string>): string[] {
-  return 箱.flatMap((x) => [x.名前, 補足を組む(x.補足, 値)]);
+function 期待する文字(): string[] {
+  return 箱.flatMap((x) => [x.名前, x.補足]);
 }
 
 test.describe("放射図の名前と補足が箱に収まる (#1332)", () => {
-  test("見本の記法から箱と値と段を読めている", () => {
+  test("見本の記法から箱と段を読めている", () => {
     // 以降の検査は記法から導いた期待値で判定する。 読めていないと空振りする
     expect(箱.length, "見本の記法から箱を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
-    expect(初期値.size, "見本の記法から初期値を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
-    expect(行き先.size, "見本の記法から動いた後の値を 1 つも読めていない (検査が空振りしている)").toBeGreaterThan(0);
-    expect(段の並び.length, "見本の記法から段を 1 つも読めていない (検査が空振りしている)").toBeGreaterThanOrEqual(2);
-    for (const x of 箱) {
-      expect(補足を組む(x.補足, 初期値), `補足の値が解決できていない: ${x.名前}`).not.toContain("{");
-      expect(補足を組む(x.補足, 行き先), `補足の値が解決できていない: ${x.名前}`).not.toContain("{");
-    }
+    expect(段の並び, "見本の記法から段を読めていない (検査が空振りしている)").toEqual(["説明を添える"]);
   });
 
-  for (const [番, 値, 見出し] of [
-    [0, 初期値, "値が動く前"],
-    [1, 行き先, "値が動いた後"],
-  ] as const) {
+  for (const [番, 見出し] of [[0, "説明つき"]] as const) {
     test(`${見出し} — 名前と補足がそのまま出る`, async ({ page }) => {
       await 開く(page);
       const 段 = 段の並び[番];
-      // 上の `toBeGreaterThanOrEqual(2)` が先に落ちるので、ここへは 2 段以上ある時しか来ない
+      // 上の記法検査が先に落ちるので、ここへは段を読めている時しか来ない
       expect(段, `段 ${番} を記法から読めていない (検査が空振りしている)`).toBeDefined();
       if (段 === undefined) return;
       const { 文字, 題 } = await 落ち着くまで待つ(page, 段);
 
       expect(文字.length, "図の文字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
       // 題を役で外しただけでは「外した」 と「描かれなくなった」 を区別できない (#2728 と同じ形)
-      expect(題, "図の題が 1 件だけ出ていない").toEqual(["図を速くする"]);
+      expect(題, "図の題が 1 件だけ出ていない").toEqual(["再配達を減らす手立ての説明"]);
       expect(
         [...文字.map((x) => x.内容)].sort(),
         "図に出た文字が記法と食い違う (連結されているか、切られている)",
-      ).toEqual([...期待する文字(値)].sort());
+      ).toEqual([...期待する文字()].sort());
     });
 
     test(`${見出し} — 箱に収まる`, async ({ page }) => {

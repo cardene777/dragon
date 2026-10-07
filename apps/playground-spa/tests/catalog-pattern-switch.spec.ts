@@ -81,7 +81,7 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
      *
      * 折れ線を選ぶのは、engine が中身の違う形を持たない種別だから (#1698)。
      */
-    await 開く(page, "折れ線グラフ");
+    await 開く(page, "月ごとの配達数の折れ線グラフ");
     await expect(page.getByRole("radiogroup", { name: "パターン" })).toHaveCount(0);
     await expect(page.locator(".catalog-toggle-group")).toHaveCount(1);
     await expect(page.getByRole("radiogroup", { name: "再生速度" })).toBeVisible();
@@ -120,7 +120,7 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
     await page.getByRole("radio", { name: "複数" }).click();
     await page.waitForTimeout(400);
 
-    await page.getByText("折れ線グラフ", { exact: true }).first().click();
+    await page.getByText("月ごとの配達数の折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(400);
     await page.getByText("大きな数字", { exact: true }).first().click();
     await page.waitForTimeout(400);
@@ -138,7 +138,7 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
  */
 test.describe("前の時点の有無をパターンで選べる (#1698)", () => {
   test("円グラフで 前と今 を選ぶと内側の輪が出る", async ({ page }) => {
-    await 開く(page, "円グラフ");
+    await 開く(page, "荷物の状態の円グラフ");
     const 内側 = page.locator(
       '.catalog-preview-stage [data-cdl-role="chart-pie-slice-previous"]',
     );
@@ -152,7 +152,7 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
   });
 
   test("内訳の帯で 今だけ を選ぶと帯が 1 本になる", async ({ page }) => {
-    await 開く(page, "内訳の帯");
+    await 開く(page, "配達の結果の内訳の帯");
     const 時点 = page.locator(
       '.catalog-preview-stage [data-cdl-role="chart-stacked-bar-period"]',
     );
@@ -169,7 +169,7 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
      * engine が前の値を渡すのは `輪` だけで、`積層の弧` と `銘板` へ切り替えると
      * 内側の輪が黙って消える (#1702)。 見せられない形の切替は出さない。
      */
-    await 開く(page, "円グラフ");
+    await 開く(page, "荷物の状態の円グラフ");
     const 見せ方 = page.getByRole("radiogroup", { name: "円グラフの見せ方" });
     await expect(見せ方.getByRole("radio")).toHaveCount(3);
 
@@ -184,7 +184,7 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
   });
 
   test("パターンを押すとコードも入れ替わる", async ({ page }) => {
-    await 開く(page, "円グラフ");
+    await 開く(page, "荷物の状態の円グラフ");
     await page.getByRole("tab", { name: "コード" }).click();
     await page.waitForTimeout(300);
     await expect(page.locator(".catalog-source-code").first()).not.toContainText("previous");
@@ -205,24 +205,24 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
  * まだ出ていない。
  */
 test.describe("中身つきの図でも切替で両側を見せる (#1706)", () => {
-  test("階層図で 説明つき を選ぶと箱に説明が出る", async ({ page }) => {
-    await 開く(page, "階層図");
+  test("階層図で 見出しだけ を選ぶと箱の説明が消える", async ({ page }) => {
+    await 開く(page, "営業所の階層図");
     const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="tree-node-subtitle"]');
     await expect(
       page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio"),
     ).toHaveCount(2);
-    await expect(page.getByRole("radio", { name: "見出しだけ" })).toHaveAttribute(
+    await expect(page.getByRole("radio", { name: "説明つき" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
-    await expect(説明).toHaveCount(0);
-
-    await page.getByRole("radio", { name: "説明つき" }).click();
     await expect(説明).not.toHaveCount(0);
+
+    await page.getByRole("radio", { name: "見出しだけ" }).click();
+    await expect(説明).toHaveCount(0);
   });
 
   test("ガントチャートで 帯だけ を選ぶと前後の矢印が消える", async ({ page }) => {
-    await 開く(page, "ガントチャート");
+    await 開く(page, "仕分け棚を入れ替える工程のガントチャート");
     const 矢印 = page.locator('.catalog-preview-stage [data-cdl-role="gantt-arrow"]');
     await expect(page.getByRole("radio", { name: "前後つき" })).toHaveAttribute(
       "aria-checked",
@@ -235,7 +235,7 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
   });
 
   test("ユーザージャーニーで 接点つき を選ぶと接点の札が出る", async ({ page }) => {
-    await 開く(page, "ユーザージャーニー");
+    await 開く(page, "荷主の気持ちのユーザージャーニー");
     const 札 = page.locator('.catalog-preview-stage [data-cdl-role="journey-chip"]');
     await expect(page.getByRole("radio", { name: "気持ちだけ" })).toHaveAttribute(
       "aria-checked",
@@ -247,17 +247,17 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
     await expect(札).not.toHaveCount(0);
   });
 
-  test("マインドマップで 見出しだけ を選ぶと説明が消える", async ({ page }) => {
-    await 開く(page, "マインドマップ");
+  test("マインドマップで 説明つき を選ぶと説明が出る", async ({ page }) => {
+    await 開く(page, "再配達を減らす手立てのマインドマップ");
     const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="mind-node-subtitle"]');
-    await expect(page.getByRole("radio", { name: "説明つき" })).toHaveAttribute(
+    await expect(page.getByRole("radio", { name: "見出しだけ" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
-    await expect(説明).not.toHaveCount(0);
-
-    await page.getByRole("radio", { name: "見出しだけ" }).click();
     await expect(説明).toHaveCount(0);
+
+    await page.getByRole("radio", { name: "説明つき" }).click();
+    await expect(説明).not.toHaveCount(0);
   });
 
   test("時系列のやり取りで 説明つき を選ぶと面に説明が出る", async ({ page }) => {
@@ -275,7 +275,7 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
 
   test("変種を持たない図ではパターンの群が出ない (陰性対照)", async ({ page }) => {
     // 「どの図でも出る」 形なら上の 5 件は通っても意味を持たない
-    await 開く(page, "ファネル図");
+    await 開く(page, "申し込みから届くまでのファネル図");
     await expect(page.getByRole("radiogroup", { name: "パターン" })).toHaveCount(0);
   });
 });
@@ -295,9 +295,9 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
    * (`drawRatio`) を同じ見本に束ねている (#1969)。
    */
   const 種別 = [
-    { 名: "棒グラフ", 役割: "chart-bar-previous", 件数: 4, 切替の数: 3 },
+    { 名: "営業所ごとの取扱数の棒グラフ", 役割: "chart-bar-previous", 件数: 5, 切替の数: 3 },
     { 名: "同心の弧", 役割: "chart-radial-previous", 件数: 4, 切替の数: 2 },
-    { 名: "半円ゲージ", 役割: "chart-gauge-previous", 件数: 3, 切替の数: 2 },
+    { 名: "定時に届いた割合の半円ゲージ", 役割: "chart-gauge-previous", 件数: 2, 切替の数: 2 },
   ] as const;
 
   for (const { 名, 役割, 件数, 切替の数 } of 種別) {
@@ -336,20 +336,20 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
 
   test("棒の破線は縦軸の枠に収まる", async ({ page }) => {
     /*
-     * 検索は前 520 で今 420 と、前のほうが高い。 天井を今の値だけで決めると破線が枠の
+     * 東京は前 700 で今 680 と、前のほうが高い。 天井を今の値だけで決めると破線が枠の
      * 外へ出て「下がった」 が読めなくなる (`cdl#767` で天井を前まで含めて取るようにした)。
      *
      * 画面で見るのは、破線が図の枠の中にあることまで。 天井の取り方そのものは engine 側の
      * 検査が持つ。
      */
-    await 開く(page, "棒グラフ");
+    await 開く(page, "営業所ごとの取扱数の棒グラフ");
     await page.getByRole("radio", { name: "前の値つき" }).click();
     const 前 = page.locator('.catalog-preview-stage [data-cdl-role="chart-bar-previous"]');
-    await expect(前).toHaveCount(4);
+    await expect(前).toHaveCount(5);
 
     const 枠 = await page.locator(".catalog-preview-stage svg").first().boundingBox();
     expect(枠, "図の枠を測れていない").not.toBeNull();
-    for (let i = 0; i < 4; i += 1) {
+    for (let i = 0; i < 5; i += 1) {
       const 線 = await 前.nth(i).boundingBox();
       expect(線, `${i} 本目の破線を測れていない`).not.toBeNull();
       expect(線!.y, `${i} 本目の破線が枠の上へ出ている`).toBeGreaterThanOrEqual(枠!.y);

@@ -88,8 +88,8 @@ function 一覧から選ぶ(item: (typeof チャート一覧)[number]): void {
 }
 
 function 折れ線の見本() {
-  const item = チャート一覧.find((x) => x.diagram.topic === "週ごとの応答時間");
-  expect(item, "週ごとの応答時間 の見本が見つからない").toBeDefined();
+  const item = チャート一覧.find((x) => x.diagram.topic === "月ごとの配達数");
+  expect(item, "月ごとの配達数 の見本が見つからない").toBeDefined();
   return item!;
 }
 

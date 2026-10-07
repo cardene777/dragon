@@ -46,7 +46,7 @@ function 傾きの図(): CdlDiagram {
 function 合成の図(): CdlDiagram {
   const 元 = 傾きの図();
   const 傾き = 元.nodes.find((node) => node.kind === "chart-slope");
-  const 棒 = 見本を取る("経路別の流入").nodes.find((node) => node.kind === "chart-bar");
+  const 棒 = 見本を取る("営業所ごとの取扱数").nodes.find((node) => node.kind === "chart-bar");
   expect(傾き, "合成 fixture 用の傾き図 node が無い").toBeDefined();
   expect(棒, "合成 fixture 用の棒グラフ node が無い").toBeDefined();
   return { ...元, nodes: [傾き!, 棒!] };

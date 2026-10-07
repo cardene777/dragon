@@ -1060,7 +1060,7 @@ describe("中身を持つ節が見せる形をカタログが見せているか 
     判定: (件: 変種の件[]) => boolean;
   }> = [
     {
-      鍵: "pattern__chartBar__前の値つき",
+      鍵: "pattern__branchParcelsBar__前の値つき",
       性質: "前が今より高い件が 1 件以上ある (天井を前まで含めて取る道を通す)",
       判定: (件) => 件.some((x) => x.今 !== undefined && x.前 !== undefined && x.前 > x.今),
     },

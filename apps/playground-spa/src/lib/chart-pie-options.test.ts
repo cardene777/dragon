@@ -38,7 +38,7 @@ function 見本を取る(id: string): CdlDiagram {
 /** 円グラフと棒グラフを 1 枚に混ぜた図。 見本には同居する形が無いので作る */
 function 合成の図(): CdlDiagram {
   const 円 = 見本を取る("chart-pie-demo").nodes.find((node) => node.kind === "chart-pie");
-  const 棒 = 見本を取る("経路別の流入").nodes.find((node) => node.kind === "chart-bar");
+  const 棒 = 見本を取る("営業所ごとの取扱数").nodes.find((node) => node.kind === "chart-bar");
   expect(円, "合成 fixture 用の円グラフ node が無い").toBeDefined();
   expect(棒, "合成 fixture 用の棒グラフ node が無い").toBeDefined();
   return { ...見本を取る("chart-pie-demo"), nodes: [円!, 棒!] };

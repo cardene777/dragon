@@ -88,7 +88,16 @@ const 選択肢: ReadonlyArray<{
   場所: readonly string[];
   既定?: string;
 }> = [
-  { 名: "TONES", 一覧: TONES, 場所: ["edges[].tone", "nodes[].tone", "nodes[].ganttData[].tone"] },
+  {
+    名: "TONES",
+    一覧: TONES,
+    場所: [
+      "edges[].tone",
+      "nodes[].chartData[].tone",
+      "nodes[].ganttData[].tone",
+      "nodes[].tone",
+    ],
+  },
   { 名: "EDGE_STYLES", 一覧: EDGE_STYLES, 場所: ["edges[].style"] },
   { 名: "NODE_KINDS", 一覧: NODE_KINDS, 場所: ["nodes[].kind"] },
   {
