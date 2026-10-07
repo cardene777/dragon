@@ -727,6 +727,40 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(labelFilter).toContain('in="SourceGraphic" stdDeviation="3.5" result="metro-terminal-label-blur"');
   });
 
+  it("浮彫の路線図の凡例は、戻る点線と同じ色を使う", () => {
+    const selector = 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) ' +
+      '[data-cdl-legend-mark="dotted-line"]';
+    expect(cssDeclaration(cssRuleBody(cssText, selector), "--cdl-text-accent"))
+      .toBe("var(--metro-no)");
+  });
+
+  it("端末・電飾・浮彫の路線図は始終点の外箱だけに光と陰を当てる", () => {
+    const filters = {
+      terminal: "dragon-flow-sign-terminal-glow",
+      neon: "dragon-flow-sign-neon-glow",
+      relief: "dragon-flow-sign-relief-raised",
+    } as const;
+
+    for (const [theme, filter] of Object.entries(filters)) {
+      const stage = `svg[data-cdl-stage][data-cdl-palette="${theme}"]`;
+      const metroStage = `${stage}:has([data-cdl-routing="metro"])`;
+      expect(
+        cssDeclaration(cssRuleBody(cssText, `${stage} [data-cdl-role="legend"]`, "filter"), "filter"),
+        `${theme} の凡例`,
+      ).toBe(`url(#${filter})`);
+      for (const inner of [
+        '[data-cdl-role="node-body"][data-cdl-mark="start"]',
+        '[data-cdl-role="node-body"][data-cdl-mark="end"]',
+        '[data-cdl-role="node-inner"]',
+      ]) {
+        expect(
+          cssDeclaration(cssRuleBody(cssText, `${metroStage} ${inner}`, "filter"), "filter"),
+          `${theme} ${inner}`,
+        ).toBe("none");
+      }
+    }
+  });
+
   it("路線図の線路は全意匠で見本と同じ不透明にし、まだの線だけ親で 0.3 にする", () => {
     const stage = 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])';
     const line = `${stage} [data-cdl-routing="metro"] [data-cdl-role="edge-line"]`;

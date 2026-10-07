@@ -615,20 +615,13 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.relations=off": { 種類: "既定", 別の値: "hover" },
   "$.theme": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
-  // #2834 は見本帳の図を変えず、記法一覧と README で凡例を見せる。 10 種の印は schema と描画側の一覧を突き合わせる。
-  "$.legend": { 種類: "記法一覧", 理由: "凡例は記法一覧で見せる" },
-  "$.legend[].mark": { 種類: "記法一覧", 理由: "印は記法一覧で見せる" },
-  "$.legend[].mark=arrow": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
+  // 路線図で使わない 6 種の印は記法一覧と README で見せ、schema と描画側の一覧を突き合わせる。
   "$.legend[].mark=curved-line": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
-  "$.legend[].mark=diamond": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
-  "$.legend[].mark=dotted-line": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
   "$.legend[].mark=double-circle": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
   "$.legend[].mark=filled-circle": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
   "$.legend[].mark=numbered-circle": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
   "$.legend[].mark=rounded-label": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
   "$.legend[].mark=solid-line": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
-  "$.legend[].mark=station": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
-  "$.legend[].text": { 種類: "記法一覧", 理由: "説明は記法一覧で見せる" },
 };
 
 /**

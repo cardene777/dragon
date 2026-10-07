@@ -1366,6 +1366,12 @@ svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-legend-mark="dotted-lin
   --cdl-text-accent: var(--er-own);
 }
 
+/* 路線図の凡例は、前の駅へ戻る点線と同じ専用色にする。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-legend-mark="dotted-line"] {
+  --cdl-text-accent: var(--metro-no);
+}
+
 /* 凡例は箱の外の台へ置くため、型名用の薄い字が台との対比 4.5 を割る意匠だけ補う。 */
 html:not(.dark) svg[data-cdl-stage][data-cdl-palette="celadon"] [data-cdl-role="legend-text"] {
   fill: var(--er-ink);
@@ -3044,6 +3050,28 @@ svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
 svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
   [data-cdl-role="metro-lane-guide"] {
   filter: url(#dragon-metro-terminal-glow);
+}
+
+/* 路線図は見本どおり外箱で図全体の光と陰を 1 回受けるため、内側の印に凡例用 filter を重ねない。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="start"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-inner"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="start"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-inner"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="start"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="node-inner"] {
+  filter: none !important;
 }
 
 /* 端末の枝札は見本と同じ半透明の光を保ち、平行移動した札自身の外接矩形から取る専用領域で端を切らない。 */

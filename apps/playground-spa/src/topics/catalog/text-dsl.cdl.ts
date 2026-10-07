@@ -484,6 +484,12 @@ flow:
   - 持ち戻る -> 便に積む: "翌日もう一度" (dashed)
   - 受け取る -> 終わり
 
+legend:
+  - { mark: station, text: "駅 = 段。 載っている線路が担当" }
+  - { mark: diamond, text: "分かれ道" }
+  - { mark: dotted-line, text: "点線 = 前の駅へ戻る" }
+  - { mark: arrow, text: "時間は左から右へ進む" }
+
 animation:
   - step: "頼む" 1.2s
     focus: [始まり, 集荷を頼む, "始まり -> 集荷を頼む"]
@@ -540,6 +546,12 @@ export const sourceJson__textDslSwimlaneMetro = `{
     { "from": "在宅?", "to": "持ち戻る", "label": "いいえ" },
     { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "style": "dashed" },
     { "from": "受け取る", "to": "終わり", "label": "" }
+  ],
+  "legend": [
+    { "mark": "station", "text": "駅 = 段。 載っている線路が担当" },
+    { "mark": "diamond", "text": "分かれ道" },
+    { "mark": "dotted-line", "text": "点線 = 前の駅へ戻る" },
+    { "mark": "arrow", "text": "時間は左から右へ進む" }
   ],
   "animation": [
     {
