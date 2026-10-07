@@ -77,8 +77,40 @@ flow:
 | `order`     | 箱を並べ替える軸 (`種類`、英語なら `kind`)。 効くのは `sequence` だけで、書くと `kind:` の順 (人 → 契約 → 保管 → 出来事) に箱が並ぶ |
 | `shape`     | 図種ごとの形。`chart` は `pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope` (書かなければ `bar`)、`swimlane` は `stages` / `metro` / `timeline` |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る。 クラス図は書かなくても `kinari` |
+| `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 1 項目は `{ mark, text }`、和名なら `{ 印, 説明 }`。 印の 10 種は下の節を参照 |
 
 <!-- notation:top-level:end -->
+
+### 図の下に凡例を書く
+
+`legend:` の下へ、印と説明を中括弧で 1 項目ずつ書く。全ての図種で、図の下に指定順の横一列で描かれる。`legend:` を書かない図の配置と出力は変わらない。
+
+```yaml
+legend:
+  - { mark: diamond, text: "分かれ道" }
+  - { mark: filled-circle, text: "始まり" }
+```
+
+最上位の語、項目名、印はいずれも和名で書ける。英語と和名を同じ項目に併記した時は英語を使う。
+
+```yaml
+凡例:
+  - { 印: 菱形, 説明: "分かれ道" }
+  - { 印: 塗った丸, 説明: "始まり" }
+```
+
+| `mark` | `印` |
+| --- | --- |
+| `diamond` | 菱形 |
+| `filled-circle` | 塗った丸 |
+| `double-circle` | 二重丸 |
+| `dotted-line` | 点線 |
+| `solid-line` | 実線 |
+| `curved-line` | 曲線 |
+| `rounded-label` | 角丸の札 |
+| `numbered-circle` | 番号の丸 |
+| `station` | 駅 |
+| `arrow` | 矢印 |
 
 ### 箱に書ける欄
 

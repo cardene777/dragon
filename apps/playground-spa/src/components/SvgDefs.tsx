@@ -308,6 +308,69 @@ export function SvgDefs(): React.ReactElement {
           <rect width="3" height="10" fill="#9a9080" />
         </pattern>
 
+        {/* `docs/design/proposal/static/流れ-端末.html` の `#光`。
+            小さい凡例と始まり・終わりの印ごとに使うため、領域だけを広げる。 */}
+        <filter
+          id="dragon-flow-sign-terminal-glow"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+        >
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="terminal-sign-blur" />
+          <feComponentTransfer in="terminal-sign-blur" result="terminal-sign-glow">
+            <feFuncA type="linear" slope=".5" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode in="terminal-sign-glow" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* `docs/design/proposal/static/流れ-電飾.html` の `#光`。
+            小さい凡例と始まり・終わりの印ごとに使うため、領域だけを広げる。 */}
+        <filter
+          id="dragon-flow-sign-neon-glow"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+        >
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="neon-sign-halo" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="neon-sign-haze" />
+          <feMerge>
+            <feMergeNode in="neon-sign-haze" />
+            <feMergeNode in="neon-sign-halo" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* `docs/design/proposal/static/流れ-浮彫.html` の `#光`。
+            小さい凡例と始まり・終わりの印ごとに使うため、領域だけを広げる。 */}
+        <filter
+          id="dragon-flow-sign-relief-raised"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="relief-sign-blur" />
+          <feOffset in="relief-sign-blur" dx="2.5" dy="2.5" result="relief-sign-dark-offset" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".55" />
+          <feComposite in2="relief-sign-dark-offset" operator="in" result="relief-sign-dark" />
+          <feOffset in="relief-sign-blur" dx="-2" dy="-2" result="relief-sign-light-offset" />
+          <feFlood floodColor="#ffffff" floodOpacity=".95" />
+          <feComposite in2="relief-sign-light-offset" operator="in" result="relief-sign-light" />
+          <feMerge>
+            <feMergeNode in="relief-sign-dark" />
+            <feMergeNode in="relief-sign-light" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
         {/* ═════════════════ Neon ═════════════════
             `[data-cdl-palette="neon"]` の規則が枠と線の管を参照する。
             芯の 35% と 65% は見本の `color-mix(in srgb, 管の色 35%, white)` と同じ混ぜ方で、
