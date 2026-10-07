@@ -101,7 +101,6 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "工程の帯を引く": "Draw the schedule bars",
   "接点を辿る": "Follow the touchpoints",
   "昨日と今月": "Yesterday and this month",
-  "昼の集計": "Midday totals",
   "本社から営業所へ": "From headquarters to the offices",
   "案を並べる": "Lay out the ideas",
   "目標へ": "Toward the target",
