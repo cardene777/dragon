@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { PRESET_TYPES, type DslTheme } from "@cardenelabs/dragon";
 import { 六色の記法 } from "./box-and-edge-figure";
 import { 一覧の行 } from "./catalog-item-pick";
+import { sourceYaml__textDslSwimlaneStages } from "../src/topics/catalog/text-dsl.cdl";
 import {
   THEME_TONES,
   readFixedThemeChartSeries,
@@ -71,6 +72,56 @@ import { checkEdgeLabelContrast, SINGLE_SERIES_SOURCE } from "./helpers/label-to
  */
 
 const MODES = ["light", "dark"] as const;
+
+const 段の箱の対比見本 = sourceYaml__textDslSwimlaneStages.replace(/\nanimation:[\s\S]*$/, "");
+
+type StageTextContrastResult = { measured: number; failures: string[] };
+
+/** 段の見出しと札の右の字を、実際の fill と祖先までの opacity で面へ合成して測る。 */
+async function checkStageTextContrast(
+  page: Page,
+  theme: DslTheme,
+  mode: string,
+): Promise<StageTextContrastResult> {
+  await stopDiagram(page);
+  const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+  const ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
+  const columns = await stage.locator('[data-cdl-role="stage-column"]').evaluateAll(readPaints);
+  const cards = await stage.locator('[data-cdl-kind="card"] [data-cdl-role="node-body"]').evaluateAll(readPaints);
+  const failures: string[] = [];
+  if (columns.length !== 4) failures.push(`${theme}/${mode}: 段階の列が ${columns.length} 件 (4 件が要る)`);
+  if (cards.length !== 8) failures.push(`${theme}/${mode}: 札の面が ${cards.length} 件 (8 件が要る)`);
+  const column = columns[0];
+  const card = cards[0];
+  if (!column || !card) return { measured: 0, failures };
+  const columnFace = effectivePaint(column, ground).face;
+  const cardFace = effectivePaint(card, columnFace).face;
+
+  let measured = 0;
+  for (const [role, expected, background] of [
+    ["stage-name", 4, columnFace],
+    ["stage-number", 4, columnFace],
+    ["stage-note", 8, cardFace],
+  ] as const) {
+    const texts = await stage.locator(`[data-cdl-role="${role}"]`).evaluateAll(readPaints);
+    if (texts.length !== expected) {
+      failures.push(`${theme}/${mode}: ${role} が ${texts.length} 件 (${expected} 件が要る)`);
+    }
+    for (const [index, paint] of texts.entries()) {
+      if (!paint.rendered) {
+        failures.push(`${theme}/${mode}: ${role} ${index + 1} が描かれていない`);
+        continue;
+      }
+      const foreground = effectivePaint({ ...paint, stroke: "none", strokeOpacity: 0 }, background).face;
+      const ratio = contrast(foreground, background);
+      measured += 1;
+      if (ratio < 4.5) {
+        failures.push(`${theme}/${mode}: ${role} ${index + 1} と面 ${ratio.toFixed(2)}:1 < 4.5:1`);
+      }
+    }
+  }
+  return { measured, failures };
+}
 
 /**
  * 測る見本。 2 件で性質を分ける。
@@ -848,6 +899,43 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
       }
     });
   }
+});
+
+test.describe("段の箱の見出しと担当の字 (#2831)", () => {
+  test.describe.configure({ timeout: 300_000 });
+  const themes = [...readThemeNotes().keys()];
+
+  for (const theme of themes) {
+    for (const dark of [false, true]) {
+      const mode = dark ? "暗" : "明";
+      test(`${theme} / ${mode}: 見出しと担当の字が面の上で 4.5 以上`, async ({ page }) => {
+        await openEditorTheme(page, 段の箱の対比見本, theme, dark);
+        const result = await checkStageTextContrast(page, theme, mode);
+        expect(result.measured, `${theme}/${mode}: 測れた字`).toBe(16);
+        expect(result.failures, `${theme}/${mode}: 段の箱の字の違反`).toEqual([]);
+      });
+    }
+  }
+
+  test("stage-note を札の面と同じ色にすると検知する (陽性対照)", async ({ page }) => {
+    const theme: DslTheme = "blueprint";
+    await openEditorTheme(page, 段の箱の対比見本, theme, false);
+    const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    await stage.locator('[data-cdl-role="stage-note"]').evaluateAll((notes) => {
+      for (const note of notes) {
+        const nodeId = note.getAttribute("data-cdl-stage-node");
+        const body = nodeId === null
+          ? null
+          : document.querySelector(`[data-cdl-node="${CSS.escape(nodeId)}"] [data-cdl-role="node-body"]`);
+        if (body !== null) (note as SVGElement).style.setProperty("fill", getComputedStyle(body).fill, "important");
+      }
+    });
+    const result = await checkStageTextContrast(page, theme, "陽性対照");
+    expect(
+      result.failures.filter((failure) => failure.includes("stage-note") && failure.includes("< 4.5:1")),
+      "担当の字を札の面と同じ色にしても検知しない",
+    ).not.toEqual([]);
+  });
 });
 
 test.describe("線の札の対比 (#2817)", () => {

@@ -337,17 +337,16 @@ type Collected = {
   outOfScope: string[];
 };
 
-/** 関数擬似クラス内のカンマを保ち、selector list の区切りだけで分ける。 */
-function splitSelectorList(value: string): string[] {
+/** `:is(...)` や属性値の中のカンマを残し、selector list の区切りだけを分ける。 */
+function splitSelectorList(selectorText: string): string[] {
   const selectors: string[] = [];
   let start = 0;
-  let parentheses = 0;
-  let brackets = 0;
-  let quote: '"' | "'" | null = null;
+  let roundDepth = 0;
+  let squareDepth = 0;
+  let quote: "\"" | "'" | null = null;
   let escaped = false;
-
-  for (let index = 0; index < value.length; index += 1) {
-    const character = value[index];
+  for (let index = 0; index < selectorText.length; index += 1) {
+    const character = selectorText[index]!;
     if (escaped) {
       escaped = false;
       continue;
@@ -360,20 +359,20 @@ function splitSelectorList(value: string): string[] {
       if (character === quote) quote = null;
       continue;
     }
-    if (character === '"' || character === "'") {
+    if (character === "\"" || character === "'") {
       quote = character;
       continue;
     }
-    if (character === "(") parentheses += 1;
-    else if (character === ")") parentheses -= 1;
-    else if (character === "[") brackets += 1;
-    else if (character === "]") brackets -= 1;
-    else if (character === "," && parentheses === 0 && brackets === 0) {
-      selectors.push(value.slice(start, index));
+    if (character === "(") roundDepth += 1;
+    else if (character === ")") roundDepth -= 1;
+    else if (character === "[") squareDepth += 1;
+    else if (character === "]") squareDepth -= 1;
+    else if (character === "," && roundDepth === 0 && squareDepth === 0) {
+      selectors.push(selectorText.slice(start, index).trim());
       start = index + 1;
     }
   }
-  selectors.push(value.slice(start));
+  selectors.push(selectorText.slice(start).trim());
   return selectors;
 }
 
@@ -704,7 +703,7 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
   it("関数擬似クラス内のカンマを selector list の区切りにしない", () => {
     expect(splitSelectorList('svg:is([data-a="1"], [data-a="2"]) text, rect')).toEqual([
       'svg:is([data-a="1"], [data-a="2"]) text',
-      " rect",
+      "rect",
     ]);
   });
 
@@ -766,6 +765,13 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
         : `[data-cdl-role="node-label"], .v4-editor-stage [data-cdl-role="edge-label"] { fill: #cccccc !important; }`;
     expect(found(rule("first")).length).toBeGreaterThan(0);
     expect(found(rule("last")).length).toBeGreaterThan(0);
+  });
+
+  it("functional pseudo の中のカンマを selector list として分けない", () => {
+    expect(splitSelectorList(`svg:is([data-a="x,y"], [data-b]) text, [data-c]`)).toEqual([
+      `svg:is([data-a="x,y"], [data-b]) text`,
+      `[data-c]`,
+    ]);
   });
 
   it("host 側の祖先を伴う selector を検知する", () => {

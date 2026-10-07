@@ -5,12 +5,14 @@ import { compileGenericWithAnimate, 共通の組み立てへ回す } from "./gen
 import { 描ける種別 } from "./kinds";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
+import { STAGE_LANE_WIDTH } from "./stages";
 export function compileSwimlane(doc: DslDocument): CdlDiagram {
   // 形を指定した泳法図は動き・縦列・向きの有無で経路を分けない (#2797 / #2799)。
+  // 段の箱の列と札の決め方は `compile/stages.ts` が持つ (#2831)。
   if (doc.shape === "stages" || doc.shape === "metro" || doc.shape === "timeline") {
     return compileGenericWithAnimate(doc, {
       kind: "swimlane",
-      laneWidth: doc.shape === "stages" ? 340 : 400,
+      laneWidth: doc.shape === "stages" ? STAGE_LANE_WIDTH : 400,
     });
   }
   // 動きを書いた形と縦列を書いた形は共通の組み立てへ (#1263 / #2348 で 1 箇所にまとめた)。

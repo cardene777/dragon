@@ -398,7 +398,7 @@ export const ITEM_SUBTITLE_EN: Record<string, string> = {
   "textDslStateMachine": "The states of authentication",
   "textDslStateMarks": "The states of an order",
   "textDslSwimlane": "Work run at the same time",
-  "textDslSwimlaneStages": "Tracks an application through three stages and two roles",
+  "textDslSwimlaneStages": "Delivers a parcel through four stages, with each card naming its role",
   "textDslSwimlaneMetro": "Tracks an application across roles as a metro map",
   "textDslSwimlaneTimeline": "Tracks a parcel through delivery, branching to receipt or next-day redelivery",
   "textDslFlowchart": "Approving an expense claim",

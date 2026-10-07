@@ -18,19 +18,57 @@ describe("見本帳の段階ごとの箱 (#2797)", () => {
     for (const item of items) expect(textDsl[`sourceJson__${item.key}` as keyof typeof textDsl]).toEqual(expect.any(String));
   });
 
-  it.each([undefined, "kinari", "blueprint"] as const)("意匠 %s でも段階の箱、担当付きの札、曲線が描かれる", (theme) => {
+  it.each([undefined, "kinari", "blueprint"] as const)("意匠 %s でも段階の列、担当付きの札、曲線が描かれる", (theme) => {
     const item = 段階の見本()[0];
     expect(item).toBeDefined();
     if (!item) return;
-    const source = theme === undefined ? item.source : item.source.replace("type: swimlane", `type: swimlane\ntheme: ${theme}`);
+    // 見本は animation を持つため、静的 markup では最初の段の線しか出ない。全ての線を描く
+    // 静止図へ変えてから、最後の分岐が列をまたぐ曲線になっていることを確かめる。
+    const stillSource = item.source.replace(/\nanimation:[\s\S]*$/, "");
+    const source = theme === undefined
+      ? stillSource
+      : stillSource.replace("type: swimlane", `type: swimlane\ntheme: ${theme}`);
     const diagram = textDslToDiagram(source);
     const markup = renderToStaticMarkup(createElement(CdlDiagramView, { diagram }));
     expect(markup).toContain('data-cdl-lane="stage-');
-    expect(markup).toContain('data-cdl-role="lane-container"');
-    expect(markup).toMatch(/data-cdl-role="lane-label"[^>]*>[\s\S]*・/);
-    const paths = [...markup.matchAll(/<path(?=[^>]*data-cdl-role="edge-line")(?=[^>]*\sd="([^"]+)")[^>]*>/g)].map(
-      (match) => match[1],
+    // 段階は列の面と見出しで描き、縦列の囲みと見出しの札を使わない (#2831)
+    expect(markup).toContain('data-cdl-role="stage-column"');
+    expect(markup).toContain('data-cdl-role="stage-name"');
+    expect(markup).not.toContain('data-cdl-role="lane-container"');
+    expect(markup).not.toContain('data-cdl-role="lane-label"');
+    // 担当は札の右の小さな字として添える
+    expect(markup).toContain('data-cdl-stage-node="集荷を頼む"');
+    const home = /<g data-cdl-edge="e5-在宅-受け取る"[^>]*\sdata-cdl-path-d="([^"]+)"/.exec(markup)?.[1];
+    expect(home, "在宅? -> 受け取る の道筋").toBeDefined();
+    expect(home).toMatch(/\bC\b/);
+  });
+
+  it("見本と同じ順の3項目を記法に持ち、組み立てた凡例へ渡す", () => {
+    const item = 段階の見本()[0];
+    expect(item).toBeDefined();
+    if (!item) return;
+    expect(item.source).toContain(`legend:
+  - { mark: rounded-label, text: "札 = 段。 右の小さな字が担当" }
+  - { mark: curved-line, text: "段階をまたぐ線" }
+  - { mark: dotted-line, text: "点線 = 前の段へ戻る" }`);
+
+    const diagram = textDslToDiagram(item.source);
+    expect(diagram.legend).toEqual([
+      { mark: "rounded-label", text: "札 = 段。 右の小さな字が担当" },
+      { mark: "curved-line", text: "段階をまたぐ線" },
+      { mark: "dotted-line", text: "点線 = 前の段へ戻る" },
+    ]);
+    const markup = renderToStaticMarkup(createElement(CdlDiagramView, { diagram }));
+    expect(
+      [...markup.matchAll(/data-cdl-legend-mark="([^"]+)"/g)].map((match) => match[1]),
+    ).toEqual(["rounded-label", "curved-line", "dotted-line"]);
+    expect(markup).toMatch(
+      /data-cdl-legend-mark="rounded-label"[\s\S]*?<rect[^>]+stroke-width="2"/,
     );
-    expect(paths.some((path) => path !== undefined && /\bC\b/.test(path))).toBe(true);
+    expect(markup).toMatch(
+      /data-cdl-legend-mark="dotted-line"[\s\S]*?<path[^>]+stroke-width="6"[^>]+stroke-linecap="round"[^>]+stroke-dasharray="0 9\.6"/,
+    );
+    expect(markup).toContain('stroke="var(--cdl-text-accent, #143a52)"');
+    expect(markup).toContain('fill="var(--cdl-text-mute, #4d7187)"');
   });
 });

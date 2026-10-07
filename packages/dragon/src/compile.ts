@@ -1590,7 +1590,9 @@ function reportSkeletonActorOptionNotHonored(
       line: a.pos?.line ?? 0,
       message: `"${truncateForMessage(a.name)}" に書いた ${効かない.join(" / ")} は効きません (type: ${doc.type} は箱を並べて線で繋ぐ図です)`,
       hint:
-        doc.type === "swimlane" && doc.shape === "timeline"
+        doc.type === "swimlane" && doc.shape === "stages"
+          ? "札は段階ごとの列へ actors に書いた順に積み、種類は card で固定されます。 decision は札の右に「分かれ道」を添え、mark-start と mark-end は描きません"
+          : doc.type === "swimlane" && doc.shape === "timeline"
           ? "番号付きの札は軸の左右へ交互に並び、種類は card で固定されます。 decision の脇の札は同じ段へ置き、decision と mark-end は軸の上に描き、mark-start は描きません"
           : doc.type === "swimlane" && doc.shape === "metro"
             ? "駅は actors に書いた順に並び、種類は station で固定されます。 decision / mark-start / mark-end は分かれ道と始まりと終わりの印として描きます"
@@ -1626,7 +1628,8 @@ function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): Rea
   // `stage` はこの形でだけ箱の置き先を決める。 他の骨組みの図では知らせる側へ残す (#2797)。
   let 変えた = 段階ごとの箱か && !残り.has("stage");
   if (段階ごとの箱か) 残り.add("stage");
-  if ((路線図か || 時間軸か) && 残り.delete("kind")) 変えた = true;
+  // 3 形とも種類を固定する (段の箱は札、路線図は駅、時間軸は札)。書いた種類は伝える側へ回す (#2831)
+  if ((段階ごとの箱か || 路線図か || 時間軸か) && 残り.delete("kind")) 変えた = true;
   for (const 欄 of 読まない欄) if (残り.delete(欄)) 変えた = true;
   return 変えた ? 残り : 族の除外;
 }
