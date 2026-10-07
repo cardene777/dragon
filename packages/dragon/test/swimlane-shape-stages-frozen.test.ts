@@ -86,7 +86,7 @@ flow:
   });
 
   it("始まりと終わりのための段階の列を作らない", () => {
-    expect(diagram.lanes.map((lane) => (lane.label ?? "").split(" ・ ")[0])).toEqual([
+    expect(diagram.lanes.map((lane) => lane.stage?.name)).toEqual([
       "申し込み",
       "受付",
       "配送",

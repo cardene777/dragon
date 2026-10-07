@@ -367,84 +367,123 @@ export const sourceJson__textDslSwimlane = `{
 }`;
 
 // ─── swimlane + stages (段階と担当) ─────
+// 段の箱の見本 (#2831)。 意匠帳の見本 (`docs/design/proposal/static/段箱-*.html`) と同じ
+// 宅配の筋書きで、4 つの段階に札を 8 つ積み、札の右に担当と「分かれ道」を添える。
 export const sourceYaml__textDslSwimlaneStages = `
-title: "申請を段階と担当で追う"
+title: "荷物を届ける"
 type: swimlane
 shape: stages
 
 lanes:
-  front: { label: 窓口 }
-  review: { label: 審査係 }
+  shipper: { label: 荷主 }
+  office: { label: 営業所 }
+  courier: { label: 配送便 }
 
 actors:
-  - 受け付ける: { stage: 申請, lane: front, stack: 1 }
-  - 内容を確かめる:
-      段階: 確認
-      lane: review
-      stack: 0
-  - 結果を知らせる: { stage: 完了, lane: front, stack: 0 }
+  - 集荷を頼む: { stage: 申し込み, lane: shipper }
+  - 受け付ける: { stage: 受付, lane: office }
+  - 送り状を起こす: { stage: 受付, lane: office }
+  - 便に積む: { stage: 配送, lane: courier }
+  - 届けに行く: { stage: 配送, lane: courier }
+  - 在宅?:
+      kind: decision
+      段階: 配送
+      lane: courier
+  - 受け取る: { stage: 結果, lane: shipper }
+  - 持ち戻る: { stage: 結果, lane: courier }
 
 flow:
-  - 受け付ける -> 内容を確かめる
-  - 内容を確かめる -> 結果を知らせる
+  # role: main は見本の主役の道筋 (集荷を頼むから在宅? まで) の 5 本だけに書く
+  - 集荷を頼む -> 受け付ける { role: main }
+  - 受け付ける -> 送り状を起こす { role: main }
+  - 送り状を起こす -> 便に積む { role: main }
+  - 便に積む -> 届けに行く { role: main }
+  - 届けに行く -> 在宅? { role: main }
+  - 在宅? -> 受け取る: "はい" (success)
+  - 在宅? -> 持ち戻る: "いいえ" (error)
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
 
 animation:
-  - step: "受け付け" 1.2s
-    focus: [受け付ける]
-    badge: "申請"
-    description: "窓口が申請を受け付ける。 最初の段階から次の担当へ渡す準備をする。"
+  - step: "申し込む" 1.2s
+    focus: [集荷を頼む, 受け付ける, "集荷を頼む -> 受け付ける"]
+    badge: "申し込み"
+    description: "荷主が集荷を頼み、営業所が受け付ける。 段階をまたぐ線は列の間を渡る。"
 
-  - step: "確認" 1.2s
-    focus: [内容を確かめる]
-    badge: "確認"
-    description: "審査係が内容を確かめる。 担当が替わっても段階の順は左から右へ進む。"
+  - step: "受け付ける" 1.2s
+    focus: [送り状を起こす, 便に積む, "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む"]
+    badge: "受付"
+    description: "営業所が送り状を起こし、配送便が便に積む。 同じ段階の札は真下へつながる。"
 
-  - step: "知らせる" 1.2s
-    focus: [結果を知らせる]
-    badge: "完了"
-    description: "窓口が結果を知らせる。 申請から完了までを三つの段階で追える。"
+  - step: "届ける" 1.2s
+    focus: [届けに行く, 在宅?, "便に積む -> 届けに行く", "届けに行く -> 在宅?"]
+    badge: "配送"
+    description: "配送便が届けに行き、在宅かどうかで道が分かれる。 分かれ道は札の右の字で見分ける。"
+
+  - step: "結果" 1.2s
+    focus: [受け取る, 持ち戻る, "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む"]
+    badge: "結果"
+    description: "在宅なら荷主が受け取り、不在なら持ち戻って翌日もう一度積む。 戻る線は見出しの上を回る。"
 `;
 
 export const textDslSwimlaneStages = textDslToDiagram(sourceYaml__textDslSwimlaneStages);
 
 export const sourceJson__textDslSwimlaneStages = `{
-  "title": "申請を段階と担当で追う",
+  "title": "荷物を届ける",
   "type": "swimlane",
   "shape": "stages",
   "lanes": {
-    "front": { "label": "窓口" },
-    "review": { "label": "審査係" }
+    "shipper": { "label": "荷主" },
+    "office": { "label": "営業所" },
+    "courier": { "label": "配送便" }
   },
   "actors": [
-    { "name": "受け付ける", "stage": "申請", "lane": "front", "stack": 1 },
-    { "name": "内容を確かめる", "stage": "確認", "lane": "review", "stack": 0 },
-    { "name": "結果を知らせる", "stage": "完了", "lane": "front", "stack": 0 }
+    { "name": "集荷を頼む", "stage": "申し込み", "lane": "shipper" },
+    { "name": "受け付ける", "stage": "受付", "lane": "office" },
+    { "name": "送り状を起こす", "stage": "受付", "lane": "office" },
+    { "name": "便に積む", "stage": "配送", "lane": "courier" },
+    { "name": "届けに行く", "stage": "配送", "lane": "courier" },
+    { "name": "在宅?", "kind": "decision", "stage": "配送", "lane": "courier" },
+    { "name": "受け取る", "stage": "結果", "lane": "shipper" },
+    { "name": "持ち戻る", "stage": "結果", "lane": "courier" }
   ],
   "flow": [
-    { "from": "受け付ける", "to": "内容を確かめる", "label": "" },
-    { "from": "内容を確かめる", "to": "結果を知らせる", "label": "" }
+    { "from": "集荷を頼む", "to": "受け付ける", "label": "", "role": "main" },
+    { "from": "受け付ける", "to": "送り状を起こす", "label": "", "role": "main" },
+    { "from": "送り状を起こす", "to": "便に積む", "label": "", "role": "main" },
+    { "from": "便に積む", "to": "届けに行く", "label": "", "role": "main" },
+    { "from": "届けに行く", "to": "在宅?", "label": "", "role": "main" },
+    { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
+    { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed" }
   ],
   "animation": [
     {
-      "step": "受け付け",
+      "step": "申し込む",
       "duration": 1.2,
-      "focus": ["受け付ける"],
-      "badge": "申請",
-      "description": "窓口が申請を受け付ける。 最初の段階から次の担当へ渡す準備をする。"
+      "focus": ["集荷を頼む", "受け付ける", "集荷を頼む -> 受け付ける"],
+      "badge": "申し込み",
+      "description": "荷主が集荷を頼み、営業所が受け付ける。 段階をまたぐ線は列の間を渡る。"
     },
     {
-      "step": "確認",
+      "step": "受け付ける",
       "duration": 1.2,
-      "focus": ["内容を確かめる"],
-      "badge": "確認",
-      "description": "審査係が内容を確かめる。 担当が替わっても段階の順は左から右へ進む。"
+      "focus": ["送り状を起こす", "便に積む", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む"],
+      "badge": "受付",
+      "description": "営業所が送り状を起こし、配送便が便に積む。 同じ段階の札は真下へつながる。"
     },
     {
-      "step": "知らせる",
+      "step": "届ける",
       "duration": 1.2,
-      "focus": ["結果を知らせる"],
-      "badge": "完了",
-      "description": "窓口が結果を知らせる。 申請から完了までを三つの段階で追える。"
+      "focus": ["届けに行く", "在宅?", "便に積む -> 届けに行く", "届けに行く -> 在宅?"],
+      "badge": "配送",
+      "description": "配送便が届けに行き、在宅かどうかで道が分かれる。 分かれ道は札の右の字で見分ける。"
+    },
+    {
+      "step": "結果",
+      "duration": 1.2,
+      "focus": ["受け取る", "持ち戻る", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む"],
+      "badge": "結果",
+      "description": "在宅なら荷主が受け取り、不在なら持ち戻って翌日もう一度積む。 戻る線は見出しの上を回る。"
     }
   ]
 }`;
