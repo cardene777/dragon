@@ -578,6 +578,11 @@ flow:
   - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
   - 受け取る -> 終わり (success)
 
+legend:
+  - { mark: numbered-circle, text: "番号 = 進む順。 札の右の小さな字が担当" }
+  - { mark: diamond, text: "分かれ道" }
+  - { mark: dotted-line, text: "点線 = 前の段へ戻る" }
+
 animation:
   - step: "集荷を受け付ける" 1.2s
     focus: [集荷を頼む, 受け付ける, 送り状を起こす, "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす"]
@@ -629,6 +634,11 @@ export const sourceJson__textDslSwimlaneTimeline = `{
     { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
     { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed" },
     { "from": "受け取る", "to": "終わり", "label": "", "tone": "success" }
+  ],
+  "legend": [
+    { "mark": "numbered-circle", "text": "番号 = 進む順。 札の右の小さな字が担当" },
+    { "mark": "diamond", "text": "分かれ道" },
+    { "mark": "dotted-line", "text": "点線 = 前の段へ戻る" }
   ],
   "animation": [
     {
