@@ -18,6 +18,7 @@ import {
   readFixedThemeFrameOpacity,
   readFixedThemeGroundText,
   readFixedThemeLabelToneStyles,
+  readFixedThemeTimelineLabelStyles,
   readFixedThemeLead,
   readFixedThemeMetroLineOpacity,
   readFixedThemeOutline,
@@ -66,6 +67,7 @@ const METRO_CSS_ROLES = {
 const TEXT_TONES = ["accent", "teal", "success", "error", "warning", "info"] as const;
 const TEXT_BACKGROUNDS = ["ground", "face", "stripe"] as const;
 const CARD_TEXT_BACKGROUNDS = ["face", "stripe"] as const;
+const FIXED_TIMELINE_STAGE_SELECTOR = 'svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])';
 const LABEL_TONES = {
   accent: "one",
   info: "one",
@@ -80,6 +82,8 @@ function cssThemes(cssText: string): Map<string, CssTheme> {
   const out = new Map<string, CssTheme>();
   for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
     const selector = m[1] ?? "";
+    // 時間軸だけの上書きは 9 つの基底口ではない。舞台そのものの値との比較へ混ぜない。
+    if (selector.includes(':has([data-cdl-role="timeline-axis"])')) continue;
     const body = m[2] ?? "";
     const named = /\[data-cdl-palette="([^"]+)"\]/.exec(selector);
     if (!named?.[1]) continue;
@@ -211,6 +215,24 @@ function cssFixedThemeDeclarations(cssText: string, themeName: string): Map<stri
   return declarations;
 }
 
+/** 舞台の値へ、palette 名を明記した時間軸だけの値を重ねる。 */
+function cssFixedTimelineDeclarations(cssText: string, themeName: string): Map<string, string> {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const declarations = cssFixedThemeDeclarations(cssText, themeName);
+  const namedTimeline = `svg[data-cdl-stage][data-cdl-palette="${themeName}"]:has([data-cdl-role="timeline-axis"])`;
+  for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+    const applies = (m[1] ?? "").split(",").some((part) => part.trim() === namedTimeline);
+    if (!applies) continue;
+    for (const value of (m[2] ?? "").matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)\s*;/gi)) {
+      const property = value[1];
+      const declaration = value[2];
+      if (!property || !declaration) throw new Error(`${themeName} の時間軸の CSS 宣言を読めない`);
+      declarations.set(property, declaration.trim().toLowerCase());
+    }
+  }
+  return declarations;
+}
+
 /** 舞台の値へ、面を持つ箱で宣言し直した値だけを重ねる。 */
 function cssFixedThemeBoxDeclarations(cssText: string, themeName: string): Map<string, string> {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -266,6 +288,19 @@ function cssRuleBody(cssText: string, exactSelector: string, requiredProperty?: 
   if (bodies.length !== 1) {
     const qualifier = requiredProperty ? ` (${requiredProperty} を持つもの)` : "";
     throw new Error(`${exactSelector} の CSS 規則${qualifier}が ${bodies.length} 件ある (1 件が要る)`);
+  }
+  return bodies[0]!;
+}
+
+/** 改行を含む selector から、必要な断片を全て持つ規則を 1 件だけ取る。 */
+function cssRuleBodyContaining(cssText: string, fragments: string[]): string {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const bodies = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
+    const selector = (match[1] ?? "").replace(/\s+/g, " ").trim();
+    return fragments.every((fragment) => selector.includes(fragment)) ? [match[2] ?? ""] : [];
+  });
+  if (bodies.length !== 1) {
+    throw new Error(`${fragments.join(" + ")} を持つ CSS 規則が ${bodies.length} 件ある (1 件が要る)`);
   }
   return bodies[0]!;
 }
@@ -1361,5 +1396,154 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       );
     }
     expect(fixedCount, "固定の意匠を 1 件も調べていない").toBeGreaterThan(0);
+  });
+
+  it("時間軸の軸と終わりの印の色を palette 名ごとに見本の口へ結ぶ", () => {
+    const expected = {
+      kinari: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      celadon: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      blueprint: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      letterpress: { axis: "var(--theme-lead)", end: "var(--er-ink)" },
+      catalog: { axis: "var(--er-line)", end: "var(--theme-ground-ink)" },
+      terminal: { axis: "var(--er-line)", end: "#a6f0bd" },
+      sketch: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      neon: { axis: "var(--er-line)", end: "var(--er-ink)" },
+      relief: { axis: "var(--er-line)", end: "var(--er-ink)" },
+    } satisfies Record<DslTheme, { axis: string; end: string }>;
+
+    for (const [name, values] of Object.entries(expected)) {
+      const declarations = cssFixedThemeDeclarations(cssText, name);
+      expect(declarations.get("timeline-axis"), `${name} の軸`).toBe(values.axis);
+      expect(declarations.get("timeline-end-ink"), `${name} の終わり`).toBe(values.end);
+    }
+  });
+
+  it("7 意匠の時間軸の線の札を見本の値と意匠帳へ結ぶ", () => {
+    const expected = {
+      blueprint: { successFill: "#1f7a6b", errorFill: "#a8431f", successText: "#ebf0f0", errorText: "#e3e9ea", successFrame: "none", errorFrame: "none", frameWidth: 0, radius: 9 },
+      letterpress: { successFill: "#1a1510", errorFill: "#1a1510", successText: "#f0eadc", errorText: "#f0eadc", successFrame: "none", errorFrame: "none", frameWidth: 0, radius: 9 },
+      catalog: { successFill: "#4fae9a", errorFill: "#e8705a", successText: "#1b222c", errorText: "#1b222c", successFrame: "none", errorFrame: "none", frameWidth: 0, radius: 9 },
+      terminal: { successFill: "#c792ea", errorFill: "#f5c451", successText: "#03110a", errorText: "#03110a", successFrame: "none", errorFrame: "none", frameWidth: 0, radius: 4 },
+      sketch: { successFill: "#2f7d4f", errorFill: "#2a5ca8", successText: "#fffdf7", errorText: "#fffdf7", successFrame: "none", errorFrame: "none", frameWidth: 0, radius: 9 },
+      neon: { successFill: "#07060c", errorFill: "#07060c", successText: "#00e5ff", errorText: "#ffd000", successFrame: "#00e5ff", errorFrame: "#ffd000", frameWidth: 2.5, radius: 9 },
+      relief: { successFill: "#2f7a6e", errorFill: "#c99a35", successText: "#ffffff", errorText: "#383838", successFrame: "none", errorFrame: "none", frameWidth: 0, radius: 20 },
+    } as const;
+    const notes = readFixedThemeTimelineLabelStyles();
+
+    for (const [name, values] of Object.entries(expected)) {
+      const declarations = cssFixedTimelineDeclarations(cssText, name);
+      const actual = {
+        successFill: resolveCssColor(declarations, "theme-timeline-label-success-fill"),
+        errorFill: resolveCssColor(declarations, "theme-timeline-label-error-fill"),
+        successText: resolveCssColor(declarations, "theme-timeline-label-success-text"),
+        errorText: resolveCssColor(declarations, "theme-timeline-label-error-text"),
+        successFrame: declarations.get("theme-timeline-label-success-frame") === "none"
+          ? "none"
+          : resolveCssColor(declarations, "theme-timeline-label-success-frame"),
+        errorFrame: declarations.get("theme-timeline-label-error-frame") === "none"
+          ? "none"
+          : resolveCssColor(declarations, "theme-timeline-label-error-frame"),
+        frameWidth: Number.parseFloat(declarations.get("theme-timeline-label-frame-width") ?? ""),
+        radius: Number.parseFloat(declarations.get("theme-timeline-label-radius") ?? ""),
+        height: Number.parseFloat(declarations.get("theme-timeline-label-height") ?? ""),
+        fontSize: Number.parseFloat(declarations.get("theme-timeline-label-font-size") ?? ""),
+        fontWeight: Number.parseFloat(declarations.get("theme-timeline-label-font-weight") ?? ""),
+      };
+      expect(actual, `${name} の時間軸の線の札`).toEqual({ ...values, height: 40, fontSize: 21, fontWeight: 700 });
+      expect(notes.get(name as DslTheme), `${name} の意匠帳`).toEqual(actual);
+      expect(contrast(rgb(actual.successText), rgb(actual.successFill)), `${name}/success`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(rgb(actual.errorText), rgb(actual.errorFill)), `${name}/error`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("固定 7 意匠の時間軸だけへ札・点列・線幅・電飾の菱形・矢じりを当てる", () => {
+    const successBg = cssRuleBodyContaining(cssText, [
+      ':has([data-cdl-role="timeline-axis"])',
+      '[data-cdl-tone="success"] > [data-cdl-role="edge-label-bg"]',
+    ]);
+    expect(cssDeclaration(successBg, "fill")).toBe("var(--theme-timeline-label-success-fill)");
+    expect(cssDeclaration(successBg, "height")).toBe("var(--theme-timeline-label-height)");
+    expect(cssDeclaration(successBg, "y")).toBe("-20px");
+    expect(cssDeclaration(successBg, "rx")).toBe("var(--theme-timeline-label-radius)");
+
+    const successText = cssRuleBodyContaining(cssText, [
+      ':has([data-cdl-role="timeline-axis"])',
+      '[data-cdl-tone="success"] > [data-cdl-role="edge-label"]',
+    ]);
+    expect(cssDeclaration(successText, "font-size")).toBe("var(--theme-timeline-label-font-size)");
+    expect(cssDeclaration(successText, "font-weight")).toBe("var(--theme-timeline-label-font-weight)");
+
+    const noLine = cssRuleBodyContaining(cssText, [
+      ':has([data-cdl-role="timeline-axis"])',
+      '[data-cdl-edge-label="いいえ"]',
+      '[data-cdl-role="edge-line"]',
+    ]);
+    expect(cssDeclaration(noLine, "stroke-width")).toBe("var(--theme-timeline-no-width)");
+
+    const yesLine = cssRuleBodyContaining(cssText, [
+      ':has([data-cdl-role="timeline-axis"])',
+      '[data-cdl-edge-label="はい"]',
+      '[data-cdl-role="edge-line"]',
+    ]);
+    expect(cssDeclaration(yesLine, "stroke-width")).toBe("var(--theme-timeline-yes-width)");
+
+    const returnShape = cssRuleBodyContaining(cssText, [
+      'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])',
+      '[stroke-dasharray="10 8"]',
+    ]);
+    expect(cssDeclaration(returnShape, "stroke-dasharray")).toBe("0 9.6");
+    expect(cssDeclaration(returnShape, "stroke-linecap")).toBe("round");
+
+    const returnWidth = cssRuleBodyContaining(cssText, [
+      FIXED_TIMELINE_STAGE_SELECTOR,
+      '[stroke-dasharray="10 8"]',
+    ]);
+    expect(cssDeclaration(returnWidth, "stroke-width")).toBe("var(--theme-timeline-return-width)");
+
+    const decision = cssRuleBodyContaining(cssText, [
+      '[data-cdl-palette="neon"]:has([data-cdl-role="timeline-axis"])',
+      '[data-cdl-kind="decision"]',
+      'g[data-cdl-role="node-body"] > :is(rect, path, ellipse, circle, polygon)',
+    ]);
+    expect(cssDeclaration(decision, "fill")).toBe("var(--er-face)");
+    expect(cssDeclaration(decision, "stroke")).toBe("var(--er-link)");
+    expect(cssDeclaration(decision, "stroke-width")).toBe("3");
+    expect(cssDeclaration(decision, "filter")).toContain("var(--er-link)");
+
+    const normalArrow = cssRuleBodyContaining(cssText, [
+      ':has([data-cdl-role="timeline-axis"])',
+      'marker:not([id$="-sm"])',
+      '[data-cdl-edge-head="triangle"]',
+    ]);
+    expect(cssDeclaration(normalArrow, "transform")).toBe(
+      "scale(var(--theme-timeline-arrow-scale-x), var(--theme-timeline-arrow-scale-y))",
+    );
+    const smallArrow = cssRuleBodyContaining(cssText, [
+      ':has([data-cdl-role="timeline-axis"])',
+      'marker[id$="-sm"]',
+      '[data-cdl-edge-head="triangle"]',
+    ]);
+    expect(cssDeclaration(smallArrow, "transform")).toBe(
+      "scale(var(--theme-timeline-small-arrow-scale-x), var(--theme-timeline-small-arrow-scale-y))",
+    );
+
+    for (const name of ["kinari", "celadon"]) {
+      const declarations = cssFixedTimelineDeclarations(cssText, name);
+      expect(declarations.has("theme-timeline-label-height"), `${name} は対象外`).toBe(false);
+    }
+  });
+
+  it("時間軸の変数を代わりの値なしで読む規則は変数を持つ 7 意匠だけに当たる", () => {
+    const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+    const readers = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
+      const body = match[2] ?? "";
+      if (!/var\(--theme-timeline-[a-z0-9-]+\)/i.test(body)) return [];
+      return [(match[1] ?? "").replace(/\s+/g, " ").trim()];
+    });
+
+    expect(readers.length, "時間軸の変数を読む規則が 0 件").toBeGreaterThan(0);
+    for (const selector of readers) {
+      expect(selector.startsWith(`${FIXED_TIMELINE_STAGE_SELECTOR} `), selector).toBe(true);
+    }
   });
 });

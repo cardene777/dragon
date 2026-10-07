@@ -21,10 +21,18 @@ import { 泳法図で印をどう描く } from "./swimlane-marks";
 import {
   classifyTimelineEdge,
   placeTimeline,
-  TIMELINE_CARD_WIDTH,
-  TIMELINE_NUMBER_HEIGHT,
-  TIMELINE_NUMBER_WIDTH,
+  TIMELINE_AXIS_WIDTH,
+  TIMELINE_CARD_HEIGHT,
+  TIMELINE_DECISION_HEIGHT,
+  TIMELINE_DECISION_WIDTH,
+  TIMELINE_END_HEIGHT,
+  TIMELINE_END_WIDTH,
+  TIMELINE_NUMBER_SIZE,
 } from "./timeline";
+
+/** 時間軸の 40px 高の札を、横線から 20px 空けて上へ置く。 */
+const 時間軸の横分岐の札の上げ幅 = -(40 / 2 + 20);
+
 /**
  * 段を持つ図種の共通の組み立て (#2030 で `compile.ts` から移した)。
  *
@@ -197,22 +205,35 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
   let timelineNumberIdByCardId: Map<string, string> | undefined;
   let stagesPlacement: StagesPlacement | undefined;
   if (時間軸か) {
-    timelineActorIndex = new Map(doc.actors.map((actor, index) => [actor.name, index]));
     const numberIdByCardId = new Map<string, string>();
     timelineNumberIdByCardId = numberIdByCardId;
+    const actorsByName = new Map(doc.actors.map((actor) => [actor.name, actor]));
+    const numberToneByActorName = new Map(
+      doc.flow.flatMap((edge) =>
+        actorsByName.get(edge.from)?.kind === "decision" && edge.tone !== undefined
+          ? [[edge.to, edge.tone] as const]
+          : []),
+    );
     const 軸に置く段 = new Set(
       doc.actors
         .filter((actor) => 泳法図で印をどう描く(doc, actor) === "描く")
         .map((actor) => actor.name),
     );
     const placement = placeTimeline(doc, 軸に置く段);
+    const timelineStageByName = new Map<string, number>();
+    timelineActorIndex = timelineStageByName;
+    doc.actors.forEach((actor, index) => {
+      const step = placement.steps[index];
+      if (step === undefined) throw new Error(`時間軸の段 "${actor.name}" の配置がありません`);
+      timelineStageByName.set(actor.name, step.stage);
+    });
     b.lane("timeline-axis", {
-      width: TIMELINE_NUMBER_WIDTH,
+      width: TIMELINE_AXIS_WIDTH,
       role: "overlay",
-      lifeline: true,
-      posX: placement.axisX - TIMELINE_NUMBER_WIDTH / 2,
+      timelineAxis: true,
+      posX: placement.axisX - TIMELINE_AXIS_WIDTH / 2,
       posY: 0,
-      posW: TIMELINE_NUMBER_WIDTH,
+      posW: TIMELINE_AXIS_WIDTH,
       posH: placement.axisHeight,
     });
     b.lane("timeline-steps", {
@@ -224,41 +245,53 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       posH: placement.stepsHeight,
     });
     doc.actors.forEach((actor, index) => {
-      const step = placement.steps[index]!;
+      const step = placement.steps[index];
+      if (step === undefined) throw new Error(`時間軸の段 "${actor.name}" の配置がありません`);
       actorToNodeId.set(actor.name, step.cardId);
       if (泳法図で印をどう描く(doc, actor) === "描く") {
+        const markSize = actor.kind === "decision"
+          ? { w: TIMELINE_DECISION_WIDTH, h: TIMELINE_DECISION_HEIGHT }
+          : actor.kind === "mark-end"
+            ? { w: TIMELINE_END_WIDTH, h: TIMELINE_END_HEIGHT }
+            : {};
         b.node(step.cardId, {
           lane: "timeline-axis",
           stack: index,
           kind: 箱の種類(actor),
           title: 箱の題(actor),
+          ...markSize,
           posX: placement.axisX,
           posY: step.y,
         });
         return;
       }
       const numberId = step.numberId;
-      if (numberId === undefined) throw new Error(`時間軸の普通の段 "${actor.name}" に番号がありません`);
-      numberIdByCardId.set(step.cardId, numberId);
-      b.node(numberId, {
-        lane: "timeline-axis",
-        stack: index,
-        kind: "function",
-        title: String(numberIdByCardId.size),
-        w: TIMELINE_NUMBER_WIDTH,
-        h: TIMELINE_NUMBER_HEIGHT,
-        posX: placement.axisX,
-        posY: step.y,
-      });
+      if (numberId !== undefined) {
+        numberIdByCardId.set(step.cardId, numberId);
+        const numberTone = numberToneByActorName.get(actor.name);
+        b.node(numberId, {
+          lane: "timeline-axis",
+          stack: index,
+          kind: "timeline-number",
+          title: String(numberIdByCardId.size),
+          w: TIMELINE_NUMBER_SIZE,
+          h: TIMELINE_NUMBER_SIZE,
+          ...(numberTone !== undefined ? { tone: numberTone } : {}),
+          posX: placement.axisX,
+          posY: step.y,
+        });
+      }
       b.node(step.cardId, {
         lane: "timeline-steps",
         stack: index,
         kind: "card",
         title: 箱の題(actor),
         ...(actor.lane !== undefined
-          ? { eyebrow: doc.lanes?.[actor.lane]?.label ?? actor.lane }
+          ? { subtitle: doc.lanes?.[actor.lane]?.label ?? actor.lane }
           : {}),
-        w: TIMELINE_CARD_WIDTH,
+        ...(numberId !== undefined ? { leaderTo: numberId } : {}),
+        w: step.cardWidth,
+        h: TIMELINE_CARD_HEIGHT,
         posX: step.cardX,
         posY: step.y,
       });
@@ -441,10 +474,13 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     const timelineEdgeKind = timelineActorIndex !== undefined
       ? classifyTimelineEdge(timelineActorIndex.get(s.from)!, timelineActorIndex.get(s.to)!)
       : undefined;
+    const timelineHorizontalBranch = timelineEdgeKind === "branch"
+      && timelineActorIndex?.get(s.from) === timelineActorIndex?.get(s.to);
     const edgeFromId =
       timelineEdgeKind === "advance" ? (timelineNumberIdByCardId!.get(fromId) ?? fromId) : fromId;
     const edgeToId =
       timelineEdgeKind === "advance" ? (timelineNumberIdByCardId!.get(toId) ?? toId) : toId;
+    const timelineEnd = 時間軸か && doc.actors.find((actor) => actor.name === s.to)?.kind === "mark-end";
     b.edge(edgeFromId, edgeToId, {
       id: edgeId,
       label: 関係?.label ?? s.label,
@@ -466,6 +502,12 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
+      ...(timelineHorizontalBranch && s.label !== ""
+        ? { overlay: true, labelOffsetY: 時間軸の横分岐の札の上げ幅 }
+        : timelineEdgeKind !== undefined && s.label !== ""
+          ? { overlay: true }
+          : {}),
+      ...(timelineEdgeKind === "advance" && !timelineEnd ? { head: "none" as const } : {}),
     });
     edgeIds.push(edgeId);
   });
@@ -513,7 +555,17 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     );
   }
 
-  return b.build();
+  const built = b.build();
+  if (時間軸か) {
+    const endIds = new Set(
+      doc.actors.filter((actor) => actor.kind === "mark-end").map((actor) => actorToNodeId.get(actor.name)),
+    );
+    for (const edge of built.edges) {
+      // `head` を書かないことが既定の三角を表すため、終わりへ入る線には欄自体を残さない。
+      if (endIds.has(edge.to) && edge.head === undefined) delete edge.head;
+    }
+  }
+  return built;
 }
 
 /**

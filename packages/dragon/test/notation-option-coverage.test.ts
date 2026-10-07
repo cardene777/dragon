@@ -121,14 +121,8 @@ const 選択肢: ReadonlyArray<{
   },
 ];
 
-/**
- * 描く側に在るが、見本をまだ置いていない値。
- *
- * 0.125.0 で増えた時間軸の丸い番号。 時間軸の番号を丸で描く #2832 が見本の時間軸で使い始めるまで外す。
- */
-const 描く側に在るが見本をまだ置いていない値: Readonly<Record<string, readonly string[]>> = {
-  NODE_KINDS: ["timeline-number"],
-};
+/** 描く側に在るが、見本をまだ置いていない値。 */
+const 描く側に在るが見本をまだ置いていない値: Readonly<Record<string, readonly string[]>> = {};
 
 /** その一覧の場所に現れた値を合わせる。 */
 function 明示の値(場所: readonly string[]): Set<string> {

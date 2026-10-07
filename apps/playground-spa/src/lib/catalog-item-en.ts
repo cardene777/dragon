@@ -400,7 +400,7 @@ export const ITEM_SUBTITLE_EN: Record<string, string> = {
   "textDslSwimlane": "Work run at the same time",
   "textDslSwimlaneStages": "Delivers a parcel through four stages, with each card naming its role",
   "textDslSwimlaneMetro": "Delivers a parcel through three roles with a branch and a retry loop",
-  "textDslSwimlaneTimeline": "Tracks an application down a numbered timeline with alternating role cards",
+  "textDslSwimlaneTimeline": "Tracks a parcel through delivery, branching to receipt or next-day redelivery",
   "textDslFlowchart": "Approving an expense claim",
   "textDslTopology": "The layout of a system",
   "textDslValueKeys": "Writing the value and the previous value in English",
