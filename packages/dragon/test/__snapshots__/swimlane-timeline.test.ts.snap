@@ -144,12 +144,12 @@ exports[`時間軸の形を持つ泳法図 (#2798) > 時間軸の組み立て結
     {
       "id": "timeline-axis",
       "posH": 709,
-      "posW": 124,
-      "posX": 614,
+      "posW": 140,
+      "posX": 606,
       "posY": 0,
       "role": "overlay",
       "timelineAxis": true,
-      "width": 124,
+      "width": 140,
     },
     {
       "id": "timeline-steps",

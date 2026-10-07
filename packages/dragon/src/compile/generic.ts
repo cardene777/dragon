@@ -470,6 +470,8 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     const timelineEdgeKind = timelineActorIndex !== undefined
       ? classifyTimelineEdge(timelineActorIndex.get(s.from)!, timelineActorIndex.get(s.to)!)
       : undefined;
+    const timelineHorizontalBranch = timelineEdgeKind === "branch"
+      && timelineActorIndex?.get(s.from) === timelineActorIndex?.get(s.to);
     const edgeFromId =
       timelineEdgeKind === "advance" ? (timelineNumberIdByCardId!.get(fromId) ?? fromId) : fromId;
     const edgeToId =
@@ -496,7 +498,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
-      ...(timelineEdgeKind !== undefined && s.label !== "" ? { overlay: true } : {}),
+      ...(timelineEdgeKind !== undefined && !timelineHorizontalBranch && s.label !== ""
+        ? { overlay: true }
+        : {}),
       ...(timelineEdgeKind === "advance" && !timelineEnd ? { head: "none" as const } : {}),
     });
     edgeIds.push(edgeId);

@@ -11,9 +11,9 @@ export const TIMELINE_SIDE_CARD_WIDTH = 380;
 /** 描く側の `timeline-number` が半径 24・縁 4 の丸を描く大きさ。 */
 export const TIMELINE_NUMBER_SIZE = 52;
 
-/** 題を読める範囲で見本の 124 x 92 の菱形へ揃える。 */
-export const TIMELINE_DECISION_WIDTH = 124;
-export const TIMELINE_DECISION_HEIGHT = 92;
+/** 描く側が四辺を 8 内側へ縮めるため、実描画を見本の 124 x 92 にする大きさ。 */
+export const TIMELINE_DECISION_WIDTH = 140;
+export const TIMELINE_DECISION_HEIGHT = 108;
 
 /** 軸の lane は、軸上で最も広い菱形をはみ出させない幅にする。 */
 export const TIMELINE_AXIS_WIDTH = TIMELINE_DECISION_WIDTH;
@@ -43,8 +43,8 @@ export const TIMELINE_AXIS_TO_SIDE_CARD = 220;
  */
 export const TIMELINE_STEP_GAP = 157;
 
-/** 菱形の半高 46 と番号の半高 26 の間に下限 70 を保つ。 */
-export const TIMELINE_DECISION_GAP = 145;
+/** 描く側へ渡す菱形の半高 54 と番号の半高 26 の間に下限 70 を保つ。 */
+export const TIMELINE_DECISION_GAP = 150;
 
 /** 見本の 105 では番号と終わりの印の間が下限 70 を割るため 120 にする。 */
 export const TIMELINE_END_GAP = 120;

@@ -711,11 +711,11 @@ describe("時間軸を見本と同じ丸い番号と実線の軸で描く (#2832
     );
   });
 
-  it("字を持つ時間軸の線は字の中心を線の上に置く指定を渡す", () => {
+  it("横に引く分かれ道だけ札を線の上へ浮かせる", () => {
     const labeled = 宅配.diagram.edges.filter((edge) => edge.label !== "");
     expect(labeled.map((edge) => [edge.label, edge.overlay])).toEqual([
       ["はい", true],
-      ["いいえ", true],
+      ["いいえ", undefined],
       ["翌日もう一度", true],
     ]);
   });

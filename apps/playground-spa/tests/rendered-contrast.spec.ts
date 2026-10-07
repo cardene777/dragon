@@ -1536,6 +1536,9 @@ test.describe("時間軸の番号・担当・線の札・線幅・電飾の分�
     "kinari", "celadon", "blueprint", "letterpress", "catalog",
     "terminal", "sketch", "neon", "relief",
   ];
+  const 見本を持つ意匠 = new Set<DslTheme>([
+    "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief",
+  ]);
   for (const theme of themes) {
     for (const dark of [false, true]) {
       const mode = dark ? "暗" : "明";
@@ -1549,6 +1552,80 @@ test.describe("時間軸の番号・担当・線の札・線幅・電飾の分�
         await expect(stage.locator(
           '[data-cdl-edge-label-for] [data-cdl-role="edge-label"]',
         )).toHaveCount(3);
+
+        if (見本を持つ意匠.has(theme)) {
+          const titles = await stage.locator(
+            '[data-cdl-lane="timeline-steps"][data-cdl-kind="card"] [data-cdl-role="node-label"]',
+          ).evaluateAll((elements) => elements.map((element) => {
+            const node = element.closest<SVGGraphicsElement>('[data-cdl-node]');
+            const width = Number(node?.getAttribute("data-cdl-w"));
+            const style = getComputedStyle(element);
+            return {
+              fontSize: Number.parseFloat(style.fontSize),
+              fontWeight: Number.parseFloat(style.fontWeight),
+              textWidth: element instanceof SVGGraphicsElement ? element.getBBox().width : Number.NaN,
+              nodeWidth: width,
+            };
+          }));
+          expect(titles, `${theme}/${mode} の時間軸の札の題`).toHaveLength(7);
+          const expectedWeight = theme === "letterpress" || theme === "sketch" || theme === "neon"
+            ? 800
+            : 700;
+          for (const [index, title] of titles.entries()) {
+            expect(title.fontSize, `${theme}/${mode} の札 ${index + 1} の題の字`).toBe(25);
+            expect(title.fontWeight, `${theme}/${mode} の札 ${index + 1} の題の太さ`).toBe(expectedWeight);
+            expect(title.textWidth, `${theme}/${mode} の札 ${index + 1} の題の幅`).toBeLessThanOrEqual(
+              title.nodeWidth,
+            );
+          }
+
+          const decision = stage.locator(
+            '[data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]',
+          );
+          const decisionSize = await decision.locator(
+            'g[data-cdl-role="node-body"] > path',
+          ).evaluate((element) => {
+            if (!(element instanceof SVGGraphicsElement)) throw new Error("分かれ道の菱形を測れない");
+            const box = element.getBBox();
+            return { width: box.width, height: box.height };
+          });
+          expect(decisionSize.width, `${theme}/${mode} の分かれ道の幅`).toBe(124);
+          expect(decisionSize.height, `${theme}/${mode} の分かれ道の高さ`).toBe(92);
+          const decisionTitle = await decision.locator('[data-cdl-role="node-label"]').evaluate((element) =>
+            Number.parseFloat(getComputedStyle(element).fontSize),
+          );
+          expect(decisionTitle, `${theme}/${mode} の「在宅?」の字`).toBe(26);
+
+          const noLabelGap = await stage.evaluate((svg) => {
+            if (!(svg instanceof SVGSVGElement)) throw new Error("時間軸の SVG を測れない");
+            const edge = svg.querySelector('[data-cdl-edge][data-cdl-edge-label="いいえ"]');
+            const line = edge?.querySelector('[data-cdl-role="edge-line"]');
+            const edgeId = edge?.getAttribute("data-cdl-edge");
+            const label = edgeId === null || edgeId === undefined
+              ? null
+              : svg.querySelector(
+                `[data-cdl-edge-label-for="${CSS.escape(edgeId)}"] [data-cdl-role="edge-label-bg"]`,
+              );
+            if (!(line instanceof SVGGraphicsElement) || !(label instanceof SVGGraphicsElement)) {
+              throw new Error("「いいえ」の線か札を測れない");
+            }
+            const rootPoint = (element: SVGGraphicsElement, x: number, y: number): DOMPoint => {
+              const matrix = element.getCTM();
+              if (matrix === null) throw new Error("「いいえ」の座標を測れない");
+              return new DOMPoint(x, y).matrixTransform(matrix);
+            };
+            const lineBox = line.getBBox();
+            const labelBox = label.getBBox();
+            const lineY = rootPoint(line, lineBox.x, lineBox.y).y;
+            const labelBottom = rootPoint(
+              label,
+              labelBox.x + labelBox.width / 2,
+              labelBox.y + labelBox.height,
+            ).y;
+            return lineY - labelBottom;
+          });
+          expect(noLabelGap, `${theme}/${mode} の「いいえ」の札と線の間`).toBeCloseTo(20, 5);
+        }
 
         const labels = await stage.locator('[data-cdl-edge-label-for]').evaluateAll((elements) =>
           elements.map((element) => {
