@@ -1151,6 +1151,39 @@ svg[data-cdl-stage][data-cdl-palette] {
   --cdl-text-accent: var(--er-line);
 }
 
+/* 見本は凡例の印を本体の始まりと終わりの印と同じ色で描く。dragon は凡例に、本体の印へ使う墨 (`--d-text-primary`) を読ませる。
+ * 図録だけは本体の印を面の色 (`--er-face`) で塗るため僅かに違うが、凡例の #efe7d8 は見本と一致する。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="legend"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="legend"] {
+  --cdl-text-accent: var(--d-text-primary);
+}
+
+/* 見本は凡例の点線を「前の段へ戻る」線と同色にする。浮彫は見本の #c99a35 でなく、dragon の意匠で決めた `--er-own` (#966c22) を保つ。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-legend-mark="dotted-line"],
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-legend-mark="dotted-line"] {
+  --cdl-text-accent: var(--er-own);
+}
+
+/* 凡例は箱の外の台へ置くため、型名用の薄い字が台との対比 4.5 を割る意匠だけ補う。 */
+html:not(.dark) svg[data-cdl-stage][data-cdl-palette="celadon"] [data-cdl-role="legend-text"] {
+  fill: var(--er-ink);
+}
+
+/* 図録の見本の凡例字 #a39a87 に合わせ、暗い台との対比を保つ。 */
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="legend-text"] {
+  fill: var(--theme-ground-type);
+}
+
 /*
  * 意匠の現れ方 (#2790)。
  *

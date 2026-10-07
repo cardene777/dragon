@@ -42,6 +42,7 @@
  */
 
 import type {
+  LegendMark,
   NodeKind,
   Tone,
   EdgeStyle,
@@ -52,6 +53,7 @@ import type {
 } from "@cardenelabs/cdl";
 import {
   TONES,
+  LEGEND_MARKS,
   NODE_KINDS,
   EDGE_HEADS,
   EDGE_HEAD_FILLS,
@@ -77,6 +79,8 @@ import {
   THEMES,
   THEME_ALIAS,
   resolveTheme,
+  LEGEND_MARK_ALIAS,
+  resolveLegendMark,
 } from "../keywords";
 import { 区画 } from "../compile/word-state";
 // 行頭の印の古い語の読み替え (#2782)。 印を作る側と同じ file が表を持つ = 縦に並べた形と
@@ -235,6 +239,7 @@ export const TOP_LEVEL_KEYS = [
    * `palette` として渡す。 境目の名前を揃えようとすると、使う側の語と cdl の印が混ざる。
    */
   "theme",
+  "legend",
 ] as const;
 
 /**
@@ -245,6 +250,7 @@ export const TOP_LEVEL_KEYS = [
  */
 export const TOP_LEVEL_KEY_ALIASES: ReadonlyMap<string, (typeof TOP_LEVEL_KEYS)[number]> = new Map([
   ["palette", "theme"],
+  ["凡例", "legend"],
 ]);
 
 /**
@@ -604,6 +610,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let scrollsList: DslScrollTrigger[] | undefined = undefined;
   let scrollLines = new Map<string, number>();
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
+  const legend: { mark: LegendMark; text: string }[] = [];
 
   let i = 0;
   while (i < lines.length) {
@@ -764,6 +771,25 @@ export function parseTextDslV05(src: string): V05ParseResult {
         }
       }
       i += 1;
+      continue;
+    }
+    if (head.key === "legend") {
+      const inline = head.value?.trim();
+      if (inline) {
+        errors.push({
+          line: line.no,
+          message: "legend は 1 行にまとめて書けない",
+          hint: '`legend:` の次の行から `{ mark: diamond, text: "分かれ道" }` の形で並べる',
+        });
+        i += 1;
+        continue;
+      }
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      for (const item of items) {
+        const parsed = parseLegendItem(item, errors);
+        if (parsed !== null) legend.push(parsed);
+      }
+      i = next;
       continue;
     }
     if (head.key === "eyebrow") {
@@ -1406,6 +1432,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(order !== null ? { order, orderPos: { line: orderLine } } : {}),
       ...(shape !== null ? { shape, shapePos: { line: shapeLine } } : {}),
       ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
+      ...(legend.length > 0 ? { legend } : {}),
       ...(theme !== null && palette !== null
         ? { themeAlsoPalettePos: { themeLine, paletteLine } }
         : {}),
@@ -1445,10 +1472,83 @@ type TopHeader = { key: string; value: string | null };
 
 function matchTopHeader(trimmed: string): TopHeader | null {
   // 形式: `key:` or `key: value`
-  const m = trimmed.match(/^([a-zA-Z][a-zA-Z0-9_]*)\s*:\s*(.*)$/);
+  const m = trimmed.match(/^([^\s:]+)\s*:\s*(.*)$/u);
   if (!m) return null;
   const value = (m[2] ?? "").trim();
   return { key: (m[1] ?? "").toLowerCase(), value: value.length ? stripQuotes(value) : null };
+}
+
+const LEGEND_ITEM_KEYS = ["mark", "text", "印", "説明"] as const;
+
+/** 凡例の 1 行を読み、描画側へ渡せる印と文字へ揃える。 */
+function parseLegendItem(
+  line: Line,
+  errors: DslError[],
+): { mark: LegendMark; text: string } | null {
+  const match = line.trimmed.match(/^\{([\s\S]*)\}$/u);
+  if (!match) {
+    errors.push({
+      line: line.no,
+      message: "凡例の行が読めません",
+      hint: '`{ mark: diamond, text: "分かれ道" }` の形で書く',
+    });
+    return null;
+  }
+
+  const fields = new Map<string, string>();
+  let unreadable = false;
+  for (const field of splitInlineFields(match[1] ?? "")) {
+    const separator = field.indexOf(":");
+    if (separator < 0) {
+      unreadable = true;
+      continue;
+    }
+    const key = field.slice(0, separator).trim();
+    const value = field.slice(separator + 1).trim();
+    if (!LEGEND_ITEM_KEYS.includes(key as (typeof LEGEND_ITEM_KEYS)[number])) {
+      errors.push({
+        line: line.no,
+        message: `凡例の項目名が読めません: "${key}"`,
+        hint: `使える項目 = ${LEGEND_ITEM_KEYS.join(", ")}`,
+      });
+      unreadable = true;
+      continue;
+    }
+    fields.set(key, value);
+  }
+
+  const markRaw = fields.get("mark") ?? fields.get("印") ?? "";
+  const markValue = stripQuotes(markRaw);
+  const mark = resolveLegendMark(markValue);
+  if (mark === null) {
+    errors.push({
+      line: line.no,
+      message: `凡例の印が読めません: "${markValue}"`,
+      hint: `使える印 = ${[...LEGEND_MARKS, ...Object.keys(LEGEND_MARK_ALIAS)].join(" / ")}`,
+    });
+    unreadable = true;
+  }
+
+  const textRaw = fields.get("text") ?? fields.get("説明") ?? "";
+  const quoted =
+    (textRaw.startsWith('"') && textRaw.endsWith('"')) ||
+    (textRaw.startsWith("'") && textRaw.endsWith("'"));
+  const text = stripQuotes(textRaw).trim();
+  const bracketed =
+    textRaw.startsWith("[") ||
+    textRaw.startsWith("{") ||
+    textRaw.endsWith("]") ||
+    textRaw.endsWith("}");
+  if (text.length === 0 || (!quoted && bracketed)) {
+    errors.push({
+      line: line.no,
+      message: "凡例の説明は文字で書く",
+      hint: '`text: "分かれ道"` または `説明: "分かれ道"` の形で書く',
+    });
+    unreadable = true;
+  }
+
+  return unreadable || mark === null ? null : { mark, text };
 }
 
 /**

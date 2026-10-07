@@ -12,6 +12,7 @@ import {
   解決できない参照,
   参照しているID,
   定義を埋め込む,
+  書き出し用のSVGを作る,
   書き出したSVGの地の色,
 } from "./export-svg";
 
@@ -196,6 +197,33 @@ describe("SVG 書き出しの意匠 (#2800)", () => {
 
     // Then
     expect(実際).toBe(0);
+  });
+
+  it("凡例のまとまり・3 項目・文字色を保つ", () => {
+    // Given
+    const 舞台 = svg(`<g data-cdl-role="legend">
+      <g data-cdl-role="legend-item"><text data-cdl-role="legend-text" fill="var(--cdl-text-mute, #4d7187)">分かれ道</text></g>
+      <g data-cdl-role="legend-item"><text data-cdl-role="legend-text" fill="var(--cdl-text-mute, #4d7187)">始まり</text></g>
+      <g data-cdl-role="legend-item"><text data-cdl-role="legend-text" fill="var(--cdl-text-mute, #4d7187)">終わり</text></g>
+    </g>`);
+    document.body.appendChild(舞台);
+
+    // When
+    const 書き出し = 書き出し用のSVGを作る(舞台, "静止");
+
+    // Then
+    expect(書き出し.querySelectorAll('[data-cdl-role="legend"]')).toHaveLength(1);
+    expect(書き出し.querySelectorAll('[data-cdl-role="legend-item"]')).toHaveLength(3);
+    expect(
+      [...書き出し.querySelectorAll('[data-cdl-role="legend-text"]')].map((text) => ({
+        text: text.textContent,
+        fill: text.getAttribute("fill"),
+      })),
+    ).toEqual([
+      { text: "分かれ道", fill: "var(--cdl-text-mute, #4d7187)" },
+      { text: "始まり", fill: "var(--cdl-text-mute, #4d7187)" },
+      { text: "終わり", fill: "var(--cdl-text-mute, #4d7187)" },
+    ]);
   });
 
   it("動きを外してもそれらの親と defs を残す", () => {
