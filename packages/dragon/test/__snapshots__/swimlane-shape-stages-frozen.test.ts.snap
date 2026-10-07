@@ -346,6 +346,20 @@ exports[`段階ごとの箱の出力を固定する (#2799) > 見本帳の段階
       "width": 380,
     },
   ],
+  "legend": [
+    {
+      "mark": "rounded-label",
+      "text": "札 = 段。 右の小さな字が担当",
+    },
+    {
+      "mark": "curved-line",
+      "text": "段階をまたぐ線",
+    },
+    {
+      "mark": "dotted-line",
+      "text": "点線 = 前の段へ戻る",
+    },
+  ],
   "nodes": [
     {
       "h": 48,

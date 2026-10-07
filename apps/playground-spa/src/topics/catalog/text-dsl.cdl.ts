@@ -403,6 +403,11 @@ flow:
   - 在宅? -> 持ち戻る: "いいえ" (error)
   - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
 
+legend:
+  - { mark: rounded-label, text: "札 = 段。 右の小さな字が担当" }
+  - { mark: curved-line, text: "段階をまたぐ線" }
+  - { mark: dotted-line, text: "点線 = 前の段へ戻る" }
+
 animation:
   - step: "申し込む" 1.2s
     focus: [集荷を頼む, 受け付ける, "集荷を頼む -> 受け付ける"]
@@ -455,6 +460,11 @@ export const sourceJson__textDslSwimlaneStages = `{
     { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
     { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
     { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed" }
+  ],
+  "legend": [
+    { "mark": "rounded-label", "text": "札 = 段。 右の小さな字が担当" },
+    { "mark": "curved-line", "text": "段階をまたぐ線" },
+    { "mark": "dotted-line", "text": "点線 = 前の段へ戻る" }
   ],
   "animation": [
     {

@@ -2717,6 +2717,23 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   stroke-width: 5 !important;
 }
 
+/* 段の箱の凡例だけを見本の印へ寄せる。全図共通の凡例 (#2834) は変えない。 */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-legend-mark="rounded-label"] > rect {
+  fill: none;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-legend-mark="curved-line"] > path {
+  stroke-width: 3;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"]):has([data-cdl-role="stage-column"]) [data-cdl-role="legend-text"] {
+  fill: #4d7187;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="legend-text"] {
+  fill: #7a7062;
+}
+
 /* 戻り線は丸い点を 9.6 ごとに置く。線の太さは主役と枝より 1 太い。 */
 svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {
   stroke-width: 6 !important;

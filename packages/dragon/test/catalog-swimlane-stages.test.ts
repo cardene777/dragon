@@ -42,4 +42,33 @@ describe("見本帳の段階ごとの箱 (#2797)", () => {
     expect(home, "在宅? -> 受け取る の道筋").toBeDefined();
     expect(home).toMatch(/\bC\b/);
   });
+
+  it("見本と同じ順の3項目を記法に持ち、組み立てた凡例へ渡す", () => {
+    const item = 段階の見本()[0];
+    expect(item).toBeDefined();
+    if (!item) return;
+    expect(item.source).toContain(`legend:
+  - { mark: rounded-label, text: "札 = 段。 右の小さな字が担当" }
+  - { mark: curved-line, text: "段階をまたぐ線" }
+  - { mark: dotted-line, text: "点線 = 前の段へ戻る" }`);
+
+    const diagram = textDslToDiagram(item.source);
+    expect(diagram.legend).toEqual([
+      { mark: "rounded-label", text: "札 = 段。 右の小さな字が担当" },
+      { mark: "curved-line", text: "段階をまたぐ線" },
+      { mark: "dotted-line", text: "点線 = 前の段へ戻る" },
+    ]);
+    const markup = renderToStaticMarkup(createElement(CdlDiagramView, { diagram }));
+    expect(
+      [...markup.matchAll(/data-cdl-legend-mark="([^"]+)"/g)].map((match) => match[1]),
+    ).toEqual(["rounded-label", "curved-line", "dotted-line"]);
+    expect(markup).toMatch(
+      /data-cdl-legend-mark="rounded-label"[\s\S]*?<rect[^>]+stroke-width="2"/,
+    );
+    expect(markup).toMatch(
+      /data-cdl-legend-mark="dotted-line"[\s\S]*?<path[^>]+stroke-width="6"[^>]+stroke-linecap="round"[^>]+stroke-dasharray="0 9\.6"/,
+    );
+    expect(markup).toContain('stroke="var(--cdl-text-accent, #143a52)"');
+    expect(markup).toContain('fill="var(--cdl-text-mute, #4d7187)"');
+  });
 });
