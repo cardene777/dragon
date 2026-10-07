@@ -602,6 +602,8 @@ export type DslLane = {
   x?: number;
   width?: number;
   label?: string;
+  /** 路線図の担当の名札で、名前の下へ出す補足。 */
+  subtitle?: string;
   contain?: boolean;
   lifeline?: boolean;
   /**

@@ -1208,6 +1208,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
             id,
             ...表で読む(LANE_VALUE_KINDS, opts, `縦列 ${id} の `, it.no, errors),
             label: opts.label,
+            subtitle: opts.subtitle,
             // 位置のずらし (#1971)
             layoutPos: ずらしにまとめる(
               表で読む(OFFSET_VALUE_KINDS, opts, `縦列 ${id} の `, it.no, errors),
@@ -1928,13 +1929,14 @@ export const LANE_VALUE_KINDS = {
 
 /**
  * 縦列の中括弧に書ける項目 (#1968)。 数と真偽の欄は `LANE_VALUE_KINDS` と `OFFSET_VALUE_KINDS` から
- * 導き、表に載せない文字列の `label` だけを足す。
+ * 導き、表に載せない文字列の `label` と `subtitle` だけを足す。
  */
 export const LANE_INLINE_KEYS: readonly (keyof DslLane | keyof typeof OFFSET_VALUE_KINDS)[] = [
   ...(Object.keys(LANE_VALUE_KINDS) as (keyof typeof LANE_VALUE_KINDS)[]),
   // 位置のずらし (#1971)。 JSON の縦列の `pos` と同じ `layoutPos` に入る
   ...(Object.keys(OFFSET_VALUE_KINDS) as (keyof typeof OFFSET_VALUE_KINDS)[]),
   "label",
+  "subtitle",
 ];
 
 /** 組の中括弧に書ける項目 (#1968)。 `groups:` の読み手が拾う欄と揃える */

@@ -224,6 +224,8 @@ export interface DragonJson {
       x?: number;
       width?: number;
       label?: string;
+      /** 路線図の担当の名札で、名前の下へ出す補足。 */
+      subtitle?: string;
       contain?: boolean;
       lifeline?: boolean;
       /**
@@ -736,7 +738,7 @@ export const ACCEPTED_KEYS = {
   // 説明の語は `PHASE_BODY_KEYS` から導く (#2621)。 書き写すと記法の入口とずれる
   phase: ["step", "duration", "focus", ...PHASE_BODY_KEYS, "badge", "tween", "set", "draw", "drawRatio"],
   viewport: ["width", "height", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
-  lane: ["x", "width", "label", "contain", "lifeline", "pos"],
+  lane: ["x", "width", "label", "subtitle", "contain", "lifeline", "pos"],
   group: ["label", "lanes"],
   axes: ["x", "y"],
   axesX: ["left", "right"],
@@ -953,6 +955,7 @@ export const 欄の型表 = {
     x: "数",
     width: "数",
     label: "文字列",
+    subtitle: "文字列",
     contain: "真偽",
     lifeline: "真偽",
     pos: "object",

@@ -11,6 +11,7 @@
  *   - Sketch      : dragon-sketch-wobble (turbulence displacement) / dragon-sketch-pen
  *   - Neon        : dragon-neon-tube (white core + colored glow)
  *   - Relief      : dragon-relief-raised / -dome / -well / -raised-sm (light and shadow)
+ *   - Metro       : dragon-metro-relief-shadow / -neon-glow / -terminal-glow と枝札用の -label
  *
  * SVG は position:absolute + width/height 0 + aria-hidden で完全に不可視、
  * pointer-events none で下位要素の click を吸わない。
@@ -405,6 +406,129 @@ export function SvgDefs(): React.ReactElement {
             <feMergeNode in="halo" />
             <feMergeNode in="SourceGraphic" />
             <feMergeNode in="core" />
+          </feMerge>
+        </filter>
+
+        {/* ═════════════════ Metro ═════════════════
+            路線図の見本は SVG 全体へ陰や光を当てる。
+            dragon は地を CSS で持つため、路線図の中身だけへ同じ primitive を当てる (#2833)。 */}
+        <filter
+          id="dragon-metro-relief-shadow"
+          filterUnits="userSpaceOnUse"
+          x="-3%"
+          y="-3%"
+          width="106%"
+          height="106%"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="metro-relief-blur" />
+          <feOffset in="metro-relief-blur" dx="2.5" dy="2.5" result="metro-relief-dark-offset" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".55" result="metro-relief-dark-color" />
+          <feComposite in="metro-relief-dark-color" in2="metro-relief-dark-offset" operator="in" result="metro-relief-dark" />
+          <feOffset in="metro-relief-blur" dx="-2" dy="-2" result="metro-relief-light-offset" />
+          <feFlood floodColor="#ffffff" floodOpacity=".95" result="metro-relief-light-color" />
+          <feComposite in="metro-relief-light-color" in2="metro-relief-light-offset" operator="in" result="metro-relief-light" />
+          <feMerge>
+            <feMergeNode in="metro-relief-dark" />
+            <feMergeNode in="metro-relief-light" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* 枝札は座標を自分で平行移動するため、見本と同じ陰を外接矩形基準の領域で当てる。
+            高さ 36 の上下へ 18、幅 180 の左右へ 18 を取り、ぼかしとずらしを切らない。 */}
+        <filter
+          id="dragon-metro-relief-shadow-label"
+          filterUnits="objectBoundingBox"
+          x="-10%"
+          y="-50%"
+          width="120%"
+          height="200%"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="metro-relief-label-blur" />
+          <feOffset in="metro-relief-label-blur" dx="2.5" dy="2.5" result="metro-relief-label-dark-offset" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".55" result="metro-relief-label-dark-color" />
+          <feComposite in="metro-relief-label-dark-color" in2="metro-relief-label-dark-offset" operator="in" result="metro-relief-label-dark" />
+          <feOffset in="metro-relief-label-blur" dx="-2" dy="-2" result="metro-relief-label-light-offset" />
+          <feFlood floodColor="#ffffff" floodOpacity=".95" result="metro-relief-label-light-color" />
+          <feComposite in="metro-relief-label-light-color" in2="metro-relief-label-light-offset" operator="in" result="metro-relief-label-light" />
+          <feMerge>
+            <feMergeNode in="metro-relief-label-dark" />
+            <feMergeNode in="metro-relief-label-light" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-metro-neon-glow"
+          filterUnits="userSpaceOnUse"
+          x="-3%"
+          y="-3%"
+          width="106%"
+          height="106%"
+        >
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="metro-neon-halo" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="metro-neon-haze" />
+          <feMerge>
+            <feMergeNode in="metro-neon-haze" />
+            <feMergeNode in="metro-neon-halo" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* 枝札は座標を自分で平行移動するため、見本の標準偏差 1.5 と 5 の光を外接矩形基準で当てる。
+            高さ 36 の上下へ 18 を取り、標準偏差 5 の 3 倍に当たる 15 より広くする。 */}
+        <filter
+          id="dragon-metro-neon-glow-label"
+          filterUnits="objectBoundingBox"
+          x="-10%"
+          y="-50%"
+          width="120%"
+          height="200%"
+        >
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="metro-neon-label-halo" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="metro-neon-label-haze" />
+          <feMerge>
+            <feMergeNode in="metro-neon-label-haze" />
+            <feMergeNode in="metro-neon-label-halo" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-metro-terminal-glow"
+          filterUnits="userSpaceOnUse"
+          x="-3%"
+          y="-3%"
+          width="106%"
+          height="106%"
+        >
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="metro-terminal-blur" />
+          <feComponentTransfer in="metro-terminal-blur" result="metro-terminal-dim">
+            <feFuncA type="linear" slope=".5" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode in="metro-terminal-dim" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* 枝札は座標を自分で平行移動するため、見本の標準偏差 3.5、濃さ .5 の光を外接矩形基準で当てる。
+            高さ 36 の上下へ 18、幅 180 の左右へ 18 を取り、光を札の端で切らない。 */}
+        <filter
+          id="dragon-metro-terminal-glow-label"
+          filterUnits="objectBoundingBox"
+          x="-10%"
+          y="-50%"
+          width="120%"
+          height="200%"
+        >
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="metro-terminal-label-blur" />
+          <feComponentTransfer in="metro-terminal-label-blur" result="metro-terminal-label-dim">
+            <feFuncA type="linear" slope=".5" />
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode in="metro-terminal-label-dim" />
+            <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
 

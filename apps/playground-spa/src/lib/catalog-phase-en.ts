@@ -45,6 +45,8 @@ export const 日本語を含む = (字: string): boolean =>
  * 表からは読めなくなる)。
  */
 export const PHASE_TITLE_EN: Record<string, string> = {
+  "頼む": "Request pickup",
+  "運ぶ": "Carry",
   "審査と差し戻し": "Review and return for correction",
   "決裁して知らせる": "Approve and notify",
   "クラスどうしの 6 種の関係を示す UML クラス図": "A UML class chart showing six kinds of link between classes",
@@ -291,13 +293,10 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "動かす単位の間": "Between running units",
   "取得": "Fetch",
   "受け付けて記録する": "Take it and record it",
-  "受け付け": "Intake",
+  "申し込む": "Request pickup",
   "受け付ける": "Take it",
-  "窓口で受ける": "Receive at the desk",
-  "確認": "Check",
   "呼び出し": "Call",
   "問い合わせ": "Enquiry",
-  "乗り換える": "Change lines",
   "外を指す列が山形になる": "Columns pointing outward get a chevron",
   "多数から 1 つ": "Many to one",
   "多数どうし": "Many to many",
@@ -311,7 +310,6 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "無いか 1 つ": "Zero or one",
   "片方": "One side only",
   "発送する": "Ship it",
-  "知らせて残す": "Notify and record",
   "終わる": "Finished",
   "親": "Parent",
   "親と子": "Parent and child",

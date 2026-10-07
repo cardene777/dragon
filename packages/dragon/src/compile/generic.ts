@@ -1,5 +1,5 @@
 import { diagram } from "@cardenelabs/cdl";
-import type { CdlDiagram, NodeKind } from "@cardenelabs/cdl";
+import type { CdlDiagram, NodeKind, Tone } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "../focus";
 import type { DslDocument, DslPhase } from "../types";
 import { 始まりと終わりの決め方 } from "./actors";
@@ -7,10 +7,17 @@ import { 並べる向き, 後ろへ戻る矢印か, type GenericKind } from "./d
 import { ERの関係の指定を作る, ERの関係の矢印 } from "./er-relation";
 import { 描ける種別 } from "./kinds";
 import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lanes";
-import { placeMetro } from "./metro";
+import { metroMarkFrameSize, placeMetro } from "./metro";
 import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
-import { 分かれ道の札, 泳法図で印をどう描く } from "./swimlane-marks";
+import {
+  placeStages,
+  STAGE_CARD_HEIGHT,
+  STAGE_CARD_WIDTH,
+  段の箱の線の指定,
+  type StagesPlacement,
+} from "./stages";
+import { 泳法図で印をどう描く } from "./swimlane-marks";
 import {
   classifyTimelineEdge,
   placeTimeline,
@@ -31,6 +38,61 @@ export type GenericOpts = {
   laneId?: string;
   laneWidth: number;
 };
+
+/**
+ * 分かれ道から続く線と駅の色を返す。
+ *
+ * 枝の意味を表す明示の欄は無いため、読み手が追う flow の記述順を使い、1 本目を「はい」、
+ * 2 本目以降を「いいえ」とする。枝の先も同じ結果の道筋なので色を引き継ぐ。
+ * 分かれ道より手前へ戻る線にも色は付けるが、そこで止める = 戻った本線まで枝色にしない。
+ */
+function metroBranchTones(doc: DslDocument): {
+  edgeToneByIndex: Map<number, Tone>;
+  nodeToneByName: Map<string, Tone>;
+} {
+  const edgeToneByIndex = new Map<number, Tone>();
+  const nodeToneByName = new Map<string, Tone>();
+  const actorByName = new Map(doc.actors.map((actor) => [actor.name, actor]));
+  const actorIndex = new Map(doc.actors.map((actor, index) => [actor.name, index]));
+  const outgoing = new Map<string, number[]>();
+  doc.flow.forEach((step, index) => {
+    const indexes = outgoing.get(step.from) ?? [];
+    indexes.push(index);
+    outgoing.set(step.from, indexes);
+  });
+
+  doc.actors.forEach((decision, decisionIndex) => {
+    if (decision.kind !== "decision") return;
+    const branches = outgoing.get(decision.name) ?? [];
+    branches.forEach((branchEdgeIndex, branchIndex) => {
+      const tone: Tone = branchIndex === 0 ? "success" : "error";
+      const follow = (edgeIndex: number): void => {
+        // 合流した道筋は、flow に先に書いた枝の色を保つ。
+        if (edgeToneByIndex.has(edgeIndex)) return;
+        edgeToneByIndex.set(edgeIndex, tone);
+        const targetName = doc.flow[edgeIndex]?.to;
+        if (targetName === undefined) return;
+        const target = actorByName.get(targetName);
+        const targetIndex = actorIndex.get(targetName);
+        if (target === undefined || targetIndex === undefined) return;
+        if (
+          targetIndex > decisionIndex &&
+          target.kind !== "decision" &&
+          target.kind !== "mark-start" &&
+          target.kind !== "mark-end" &&
+          !nodeToneByName.has(targetName)
+        ) {
+          nodeToneByName.set(targetName, tone);
+        }
+        if (targetIndex <= decisionIndex || target.kind === "decision") return;
+        for (const nextEdgeIndex of outgoing.get(targetName) ?? []) follow(nextEdgeIndex);
+      };
+      follow(branchEdgeIndex);
+    });
+  });
+
+  return { edgeToneByIndex, nodeToneByName };
+}
 
 /**
  * この共通の組み立てへ回すか (#2348)。
@@ -78,9 +140,8 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
    * 分けられない。
    */
   const 箱の種類 = (a: (typeof doc.actors)[number]): NodeKind => {
-    const 印の描き方 = 泳法図で印をどう描く(doc, a);
-    if (印の描き方 === "札") return 描ける種別(undefined);
-    if (印の描き方 === "描く") return 描ける種別(a.kind);
+    // 段の箱は札で固定するのでここを通らない。路線図と時間軸の印は書いた種類で描く
+    if (泳法図で印をどう描く(doc, a) === "描く") return 描ける種別(a.kind);
     if (kind !== "record" || a.kindWritten === true) return 描ける種別(a.kind);
     return (a.rows?.length ?? 0) > 0 ? "storage" : "card";
   };
@@ -131,10 +192,10 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
   const 段階ごとの箱か = kind === "swimlane" && doc.shape === "stages";
   const 路線図か = kind === "swimlane" && doc.shape === "metro";
   const 時間軸か = kind === "swimlane" && doc.shape === "timeline";
+  const 路線図の色 = 路線図か ? metroBranchTones(doc) : undefined;
   let timelineActorIndex: Map<string, number> | undefined;
   let timelineNumberIdByCardId: Map<string, string> | undefined;
-  const actorStageByName = new Map<string, string>();
-  const 段階名 = (a: (typeof doc.actors)[number]): string => a.stage ?? a.lane ?? a.name;
+  let stagesPlacement: StagesPlacement | undefined;
   if (時間軸か) {
     timelineActorIndex = new Map(doc.actors.map((actor, index) => [actor.name, index]));
     const numberIdByCardId = new Map<string, string>();
@@ -208,6 +269,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       b.lane(track.id, {
         width: placement.width,
         label: track.label,
+        metro: track.subtitle === undefined ? {} : { subtitle: track.subtitle },
         posX: track.posX,
         posY: track.posY,
         posW: track.posW,
@@ -217,68 +279,50 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     doc.actors.forEach((actor, index) => {
       const station = placement.stations[index]!;
       const id = slugify(actor.name) || `n${index}`;
+      const markFrameSize = metroMarkFrameSize(actor.kind);
       actorToNodeId.set(actor.name, id);
       b.node(id, {
         lane: station.trackId,
         stack: index,
         kind: 泳法図で印をどう描く(doc, actor) === "描く" ? 箱の種類(actor) : "station",
         title: 箱の題(actor),
+        ...(路線図の色?.nodeToneByName.get(actor.name) !== undefined
+          ? { tone: 路線図の色.nodeToneByName.get(actor.name) }
+          : {}),
+        ...(markFrameSize === undefined ? {} : { w: markFrameSize, h: markFrameSize }),
         posX: station.posX,
         posY: station.posY,
       });
     });
   } else if (段階ごとの箱か) {
     /*
-     * 段階を横に並べ、その中へ箱を縦に積む (#2797)。
+     * 段階ごとに同じ高さの列を左から並べ、その中へ札を積む (#2797 / #2831)。
      *
-     * 担当 (`lane`) は縦列ではなく札の補足として読むため、`lanes:` の宣言からは名前だけを
-     * 引く。 段階の並びは箱に最初に現れた順で、静止図と動く図を同じ経路に揃える。
+     * 列の見出し (`段階 N` と段階の名前) と、札の右の担当は描く側が描く。
+     * 列と札の決め方は `placeStages` が持ち、静止図と動く図を同じ配置に揃える。
+     * 種類は札 (`card`) で固定する = 札の右の字は描く側が `card` にだけ描く。
      */
-    const 段階たち: string[] = [];
-    const 見つけた段階 = new Set<string>();
-    for (const a of doc.actors) {
-      const stage = 段階名(a);
-      actorStageByName.set(a.name, stage);
-      if (!見つけた段階.has(stage)) {
-        見つけた段階.add(stage);
-        段階たち.push(stage);
-      }
-    }
-    const laneIdByStage = new Map<string, string>();
-    const 使ったid = new Set<string>();
-    段階たち.forEach((stage, index) => {
-      const base = `stage-${slugify(stage) || index}`;
-      let id = base;
-      let suffix = 2;
-      while (使ったid.has(id)) id = `${base}-${suffix++}`;
-      使ったid.add(id);
-      laneIdByStage.set(stage, id);
-      const 担当: string[] = [];
-      for (const a of doc.actors) {
-        if (段階名(a) !== stage || a.lane === undefined || a.lane === stage) continue;
-        const 名前 = doc.lanes?.[a.lane]?.label ?? a.lane;
-        if (名前 === stage) continue;
-        if (!担当.includes(名前)) 担当.push(名前);
-      }
-      b.lane(id, {
+    const placement = placeStages(doc);
+    stagesPlacement = placement;
+    for (const column of placement.columns) {
+      b.lane(column.id, {
         width: laneWidth,
-        contain: true,
-        label: 担当.length > 0 ? `${stage} ・ ${担当.join("、")}` : stage,
+        stage: { number: column.number, name: column.name },
       });
-    });
-    const 段 = 縦列ごとの段を決める(doc.actors, (a) => 段階名(a));
+    }
     doc.actors.forEach((a, idx) => {
       const id = slugify(a.name) || `n${idx}`;
       actorToNodeId.set(a.name, id);
+      const card = placement.cards.get(a.name);
+      if (card === undefined) throw new Error(`段の箱の "${a.name}" を置く列がありません`);
       b.node(id, {
-        lane: laneIdByStage.get(段階名(a)) ?? `stage-${idx}`,
-        stack: 段.get(a) ?? 0,
-        // 囲みを 3 本以上並べても一覧で読める幅に収める。 明示した viewport.laneWidth は後段で優先する。
-        w: Math.max(1, laneWidth - 60),
-        kind: 箱の種類(a),
+        lane: card.columnId,
+        stack: card.stack,
+        w: STAGE_CARD_WIDTH,
+        h: STAGE_CARD_HEIGHT,
+        kind: "card",
         title: 箱の題(a),
-        ...(泳法図で印をどう描く(doc, a) === "札" ? { subtitle: 分かれ道の札 } : {}),
-        ...札(a, idx),
+        ...(card.subtitle === undefined ? {} : { subtitle: card.subtitle }),
       });
     });
   } else if (書いた縦列に置く(kind, doc)) {
@@ -404,18 +448,21 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     b.edge(edgeFromId, edgeToId, {
       id: edgeId,
       label: 関係?.label ?? s.label,
+      ...(路線図の色?.edgeToneByIndex.get(idx) !== undefined
+        ? { tone: 路線図の色.edgeToneByIndex.get(idx) }
+        : {}),
       ...(timelineEdgeKind === "back"
         ? { routing: "back-detour" as const }
         : 路線図か
         ? { routing: "metro" as const }
-        : 段階ごとの箱か && actorStageByName.get(s.from) !== actorStageByName.get(s.to)
-          ? { routing: "curve" as const }
-          : !段階ごとの箱か &&
-              後ろへ戻る矢印か(kind, fromId, toId, 箱の並び, 書いた縦列に置く(kind, doc))
+        : stagesPlacement !== undefined
+          ? 段の箱の線の指定(stagesPlacement, s)
+          : 後ろへ戻る矢印か(kind, fromId, toId, 箱の並び, 書いた縦列に置く(kind, doc))
             ? { routing: "back-detour" as const }
             : {}),
       ...(関係?.sub ? { sub: 関係.sub } : {}),
       ...(関係?.head ? { head: 関係.head } : {}),
+      ...(路線図か && s.style !== "dashed" ? { head: "none" as const } : {}),
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
       ...(s.sub ? { sub: s.sub } : {}),
       ...(s.side ? { side: s.side } : {}),
