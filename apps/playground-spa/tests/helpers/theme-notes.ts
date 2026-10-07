@@ -74,6 +74,8 @@ export type ThemeTimelineLabelStyle = {
 };
 export type ThemeBarStyle = {
   fill: string;
+  opacity: number;
+  patternColor?: string;
   stroke?: string;
   strokeWidth?: number;
 };
@@ -510,14 +512,24 @@ export function readFixedThemeTimelineLabelStyles(
 
 function 棒の側を読む(name: DslTheme, side: string): ThemeBarStyle {
   const pattern = /`(#dragon-[a-z0-9-]+)`/i.exec(side)?.[1];
+  const patternWithColor = /`(#[0-9a-fA-F]{6})`[^`]*`(#dragon-[a-z0-9-]+)`/i.exec(side);
+  const patternColor = pattern !== undefined && patternWithColor?.[2]?.toLowerCase() === pattern.toLowerCase()
+    ? patternWithColor[1]?.toLowerCase()
+    : undefined;
   const fillColor = /`(#[0-9a-fA-F]{6})`/.exec(side)?.[1];
   const fill = pattern ? `url(${pattern})` : fillColor?.toLowerCase();
   if (!fill) throw new Error(`意匠帳の ${name} の単系列の棒から塗りを読めない (${side})`);
+  const opacityText = /濃さ(?:は)?\s*((?:\d+(?:\.\d+)?)|(?:\.\d+))/.exec(side)?.[1];
+  const style: ThemeBarStyle = {
+    fill,
+    opacity: opacityText === undefined ? 1 : Number(opacityText),
+  };
+  if (patternColor !== undefined) style.patternColor = patternColor;
 
   const frame = /に[^。、]*`(#[0-9a-fA-F]{6})` の (\d+(?:\.\d+)?) の枠/.exec(side);
-  if (!frame) return { fill };
+  if (!frame) return style;
   return {
-    fill,
+    ...style,
     stroke: frame[1]!.toLowerCase(),
     strokeWidth: Number(frame[2]),
   };

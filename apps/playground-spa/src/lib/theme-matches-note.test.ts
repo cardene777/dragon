@@ -881,8 +881,9 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(failures, "札の意味属性と意匠帳が違う").toEqual([]);
   });
 
-  it("7 意匠の単系列の棒は主役の属性で意匠帳の塗りと枠を使う", () => {
+  it("7 意匠の単系列の棒は主役の属性で意匠帳の塗り・濃さ・模様色・枠を使う", () => {
     const expected = readFixedThemeSingleSeriesBars();
+    const svgDefs = 読む("../components/SvgDefs.tsx");
     const failures: string[] = [];
     for (const [name, style] of expected) {
       const declarations = cssFixedThemeDeclarations(cssText, name);
@@ -898,12 +899,46 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
         cssText,
         `${stage} [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"])`,
       );
-      for (const [role, body, want] of [
-        ["主役", primary, style.primary],
-        ["それ以外", secondary, style.secondary],
+      for (const [role, selector, body, want] of [
+        [
+          "主役",
+          `${primaryScope} [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]`,
+          primary,
+          style.primary,
+        ],
+        [
+          "それ以外",
+          `${stage} [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"])`,
+          secondary,
+          style.secondary,
+        ],
       ] as const) {
         const fill = resolvedCssPaint(declarations, body, "fill");
         if (fill !== want.fill) failures.push(`${name} ${role}の塗り: 意匠帳 ${want.fill} / CSS ${fill}`);
+        const opacityBodies = cssRuleBodies(cssText, selector, "fill-opacity");
+        if (opacityBodies.length > 1) {
+          failures.push(`${name} ${role}の濃さ: CSS 宣言が ${opacityBodies.length} 件ある`);
+        }
+        const opacity = opacityBodies[0] === undefined
+          ? 1
+          : Number(cssDeclaration(opacityBodies[0], "fill-opacity"));
+        if (opacity !== want.opacity) {
+          failures.push(`${name} ${role}の濃さ: 意匠帳 ${want.opacity} / CSS ${opacity}`);
+        }
+        if (want.patternColor !== undefined) {
+          const patternId = /^url\((#[a-z0-9-]+)\)$/.exec(want.fill)?.[1]?.slice(1);
+          const pattern = patternId === undefined
+            ? undefined
+            : new RegExp(
+              `<pattern(?=[^>]*\\bid=["']${patternId}["'])[^>]*>[\\s\\S]*?<\\/pattern>`,
+            ).exec(svgDefs)?.[0];
+          const patternColor = pattern === undefined
+            ? undefined
+            : /<rect[^>]*\bfill=["'](#[0-9a-fA-F]{6})["']/.exec(pattern)?.[1]?.toLowerCase();
+          if (patternColor !== want.patternColor) {
+            failures.push(`${name} ${role}の模様色: 意匠帳 ${want.patternColor} / SvgDefs ${patternColor}`);
+          }
+        }
         if (want.stroke !== undefined) {
           const stroke = resolvedCssPaint(declarations, body, "stroke");
           if (stroke !== want.stroke) {

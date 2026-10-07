@@ -300,13 +300,20 @@ test.describe("図表の棒の内側の模様 (#2801)", () => {
     expect(fills[1], "暗い表示でも棒の塗りを変えない").toEqual(fills[0]);
   });
 
-  test("sketch / 明・暗: 棒の計算後の fill がペンの斜線の url(#dragon-sketch-pen) になる", async ({ page }) => {
+  test("sketch / 明・暗: 主役は朱、それ以外は淡のペンの斜線になる", async ({ page }) => {
     const note = readThemeNotes().get("sketch");
     const style = readFixedThemeSingleSeriesBars().get("sketch");
     const pale = readFixedThemeRoleColor("sketch", "淡");
-    if (note?.mode !== "fixed" || !style || !pale) throw new Error("手描きの棒を意匠帳から読めない");
-    const id = /^url\((#[a-z0-9-]+)\)$/.exec(style.primary.fill)?.[1];
-    if (!id) throw new Error("手描きのペンの斜線の id を意匠帳から読めない");
+    if (note?.mode !== "fixed" || !style?.primary.patternColor || !style.primary.stroke ||
+      style.primary.strokeWidth === undefined || !style.secondary.stroke ||
+      style.secondary.strokeWidth === undefined || !pale) {
+      throw new Error("手描きの棒を意匠帳から読めない");
+    }
+    const primaryPatternId = /^url\((#[a-z0-9-]+)\)$/.exec(style.primary.fill)?.[1];
+    const secondaryPatternId = /^url\((#[a-z0-9-]+)\)$/.exec(style.secondary.fill)?.[1];
+    if (!primaryPatternId || !secondaryPatternId) {
+      throw new Error("手描きのペンの斜線の id を意匠帳から読めない");
+    }
 
     const fills: string[][] = [];
     for (const dark of [false, true]) {
@@ -319,16 +326,24 @@ test.describe("図表の棒の内側の模様 (#2801)", () => {
       expect(bars.filter((bar) => bar.primary).length, "手描きの主役の棒").toBe(1);
       for (const bar of bars) {
         const want = bar.primary ? style.primary : style.secondary;
+        if (!want.stroke || want.strokeWidth === undefined) {
+          throw new Error(`手描きの${bar.primary ? "主役" : "それ以外"}の棒の枠を意匠帳から読めない`);
+        }
         expect(bar.fill).toBe(computedFill(want.fill));
-        expect(bar.fillOpacity).toBe("1");
-        expect(bar.stroke).toBe(hexToRgb(want.stroke!));
+        expect(bar.fillOpacity).toBe(String(want.opacity));
+        expect(bar.stroke).toBe(hexToRgb(want.stroke));
         expect(Number.parseFloat(bar.strokeWidth)).toBe(want.strokeWidth);
       }
       fills.push(bars.map((bar) => bar.fill));
-      const patterns = page.locator(id);
-      await expect(patterns, `${id} は文書に 1 つ`).toHaveCount(1);
-      await expect(patterns).toHaveJSProperty("tagName", "pattern");
-      expect(await patterns.locator("rect").evaluate((element) => getComputedStyle(element).fill))
+      const primaryPattern = page.locator(primaryPatternId);
+      await expect(primaryPattern, `${primaryPatternId} は文書に 1 つ`).toHaveCount(1);
+      await expect(primaryPattern).toHaveJSProperty("tagName", "pattern");
+      expect(await primaryPattern.locator("rect").evaluate((element) => getComputedStyle(element).fill))
+        .toBe(hexToRgb(style.primary.patternColor));
+      const secondaryPattern = page.locator(secondaryPatternId);
+      await expect(secondaryPattern, `${secondaryPatternId} は文書に 1 つ`).toHaveCount(1);
+      await expect(secondaryPattern).toHaveJSProperty("tagName", "pattern");
+      expect(await secondaryPattern.locator("rect").evaluate((element) => getComputedStyle(element).fill))
         .toBe(hexToRgb(pale));
     }
     expect(fills[1], "暗い表示でも棒の塗りを変えない").toEqual(fills[0]);
