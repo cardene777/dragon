@@ -38,8 +38,10 @@ describe("見本帳の時間軸の形 (#2798)", () => {
       const markup = renderToStaticMarkup(
         createElement(CdlDiagramView, { diagram: textDslToDiagram(source) }),
       );
-      expect(markup).toContain('data-cdl-role="lane-lifeline"');
+      expect(markup).toContain('data-cdl-role="timeline-axis"');
+      expect(markup).not.toContain('data-cdl-role="lane-lifeline"');
       expect(markup).toContain('data-cdl-node="timeline-number-1"');
+      expect(markup).toContain('data-cdl-mark="timeline-number"');
       expect(markup).toContain('data-cdl-kind="card"');
       expect(markup).toContain('data-cdl-lane="timeline-steps"');
     },

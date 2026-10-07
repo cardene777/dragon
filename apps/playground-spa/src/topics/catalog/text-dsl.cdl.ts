@@ -636,92 +636,122 @@ export const sourceJson__textDslSwimlaneMetro = `{
 
 // ─── swimlane + timeline (番号付きの時間軸) ─────
 export const sourceYaml__textDslSwimlaneTimeline = `
-title: "申請が審査を経て届くまで"
+title: "荷物を届ける"
 type: swimlane
 shape: timeline
 
 lanes:
-  front: { label: 窓口 }
-  review: { label: 審査係 }
-  chief: { label: 課長 }
+  shipper: { label: 荷主 }
+  office: { label: 営業所 }
+  courier: { label: 配送便 }
 
 actors:
-  - 申請を受け付ける: { lane: front }
-  - 書類を審査する: { lane: review }
-  - 不備を直す: { lane: front }
-  - 決裁する: { lane: chief }
-  - 結果を知らせる: { lane: front }
+  - 始まり: { kind: mark-start, lane: shipper }
+  - 集荷を頼む: { lane: shipper }
+  - 受け付ける: { lane: office }
+  - 送り状を起こす: { lane: office }
+  - 便に積む: { lane: courier }
+  - 届けに行く: { lane: courier }
+  - 在宅?: { kind: decision, lane: courier }
+  - 受け取る: { lane: shipper }
+  - 持ち戻る: { lane: courier }
+  - 終わり: { kind: mark-end, lane: shipper }
 
 flow:
-  - 申請を受け付ける -> 書類を審査する: "回す"
-  - 書類を審査する -> 不備を直す: "差し戻す"
-  - 不備を直す -> 書類を審査する: "出し直す"
-  - 書類を審査する -> 決裁する: "通す"
-  - 決裁する -> 結果を知らせる: "知らせる"
+  - 始まり -> 集荷を頼む
+  - 集荷を頼む -> 受け付ける
+  - 受け付ける -> 送り状を起こす
+  - 送り状を起こす -> 便に積む
+  - 便に積む -> 届けに行く
+  - 届けに行く -> 在宅?
+  - 在宅? -> 受け取る: "はい" (success)
+  - 在宅? -> 持ち戻る: "いいえ" (error)
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
+  - 受け取る -> 終わり (success)
+
+legend:
+  - { mark: numbered-circle, text: "番号 = 進む順。 札の右の小さな字が担当" }
+  - { mark: diamond, text: "分かれ道" }
+  - { mark: dotted-line, text: "点線 = 前の段へ戻る" }
 
 animation:
-  - step: "受け付ける" 1.2s
-    focus: [申請を受け付ける, 書類を審査する, "申請を受け付ける -> 書類を審査する"]
-    badge: "申請"
-    description: "窓口が申請を受け付け、審査係へ回す。 番号は書いた段の順を表す。"
+  - step: "集荷を受け付ける" 1.2s
+    focus: [集荷を頼む, 受け付ける, 送り状を起こす, "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす"]
+    badge: "集荷"
+    description: "荷主が集荷を頼み、営業所が依頼を受け付けて送り状を起こす。"
 
-  - step: "審査と差し戻し" 1.2s
-    focus: [不備を直す, "書類を審査する -> 不備を直す", "不備を直す -> 書類を審査する"]
-    badge: "差し戻し"
-    description: "不備があれば窓口で直し、一つ前の審査へ出し直す。 戻り線は札の上を回る。"
+  - step: "届けに行く" 1.2s
+    focus: [便に積む, 届けに行く, 在宅?, "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"]
+    badge: "配送"
+    description: "配送便が荷物を便に積み、届け先で在宅かを確かめる。"
 
-  - step: "決裁して知らせる" 1.2s
-    focus: [決裁する, 結果を知らせる, "書類を審査する -> 決裁する", "決裁する -> 結果を知らせる"]
-    badge: "完了"
-    description: "審査から決裁へ分かれ、最後に窓口が結果を知らせる。 札は軸の左右へ交互に並ぶ。"
+  - step: "受け渡すか持ち戻る" 1.2s
+    focus: [受け取る, 持ち戻る, 終わり, "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む", "受け取る -> 終わり"]
+    badge: "配達結果"
+    description: "在宅なら荷物を受け渡して終わり、不在なら持ち戻って翌日もう一度便に積む。"
 `;
 
 export const textDslSwimlaneTimeline = textDslToDiagram(sourceYaml__textDslSwimlaneTimeline);
 
 export const sourceJson__textDslSwimlaneTimeline = `{
-  "title": "申請が審査を経て届くまで",
+  "title": "荷物を届ける",
   "type": "swimlane",
   "shape": "timeline",
   "lanes": {
-    "front": { "label": "窓口" },
-    "review": { "label": "審査係" },
-    "chief": { "label": "課長" }
+    "shipper": { "label": "荷主" },
+    "office": { "label": "営業所" },
+    "courier": { "label": "配送便" }
   },
   "actors": [
-    { "name": "申請を受け付ける", "lane": "front" },
-    { "name": "書類を審査する", "lane": "review" },
-    { "name": "不備を直す", "lane": "front" },
-    { "name": "決裁する", "lane": "chief" },
-    { "name": "結果を知らせる", "lane": "front" }
+    { "name": "始まり", "kind": "mark-start", "lane": "shipper" },
+    { "name": "集荷を頼む", "lane": "shipper" },
+    { "name": "受け付ける", "lane": "office" },
+    { "name": "送り状を起こす", "lane": "office" },
+    { "name": "便に積む", "lane": "courier" },
+    { "name": "届けに行く", "lane": "courier" },
+    { "name": "在宅?", "kind": "decision", "lane": "courier" },
+    { "name": "受け取る", "lane": "shipper" },
+    { "name": "持ち戻る", "lane": "courier" },
+    { "name": "終わり", "kind": "mark-end", "lane": "shipper" }
   ],
   "flow": [
-    { "from": "申請を受け付ける", "to": "書類を審査する", "label": "回す" },
-    { "from": "書類を審査する", "to": "不備を直す", "label": "差し戻す" },
-    { "from": "不備を直す", "to": "書類を審査する", "label": "出し直す" },
-    { "from": "書類を審査する", "to": "決裁する", "label": "通す" },
-    { "from": "決裁する", "to": "結果を知らせる", "label": "知らせる" }
+    { "from": "始まり", "to": "集荷を頼む", "label": "" },
+    { "from": "集荷を頼む", "to": "受け付ける", "label": "" },
+    { "from": "受け付ける", "to": "送り状を起こす", "label": "" },
+    { "from": "送り状を起こす", "to": "便に積む", "label": "" },
+    { "from": "便に積む", "to": "届けに行く", "label": "" },
+    { "from": "届けに行く", "to": "在宅?", "label": "" },
+    { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
+    { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed" },
+    { "from": "受け取る", "to": "終わり", "label": "", "tone": "success" }
+  ],
+  "legend": [
+    { "mark": "numbered-circle", "text": "番号 = 進む順。 札の右の小さな字が担当" },
+    { "mark": "diamond", "text": "分かれ道" },
+    { "mark": "dotted-line", "text": "点線 = 前の段へ戻る" }
   ],
   "animation": [
     {
-      "step": "受け付ける",
+      "step": "集荷を受け付ける",
       "duration": 1.2,
-      "focus": ["申請を受け付ける", "書類を審査する", "申請を受け付ける -> 書類を審査する"],
-      "badge": "申請",
-      "description": "窓口が申請を受け付け、審査係へ回す。 番号は書いた段の順を表す。"
+      "focus": ["集荷を頼む", "受け付ける", "送り状を起こす", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす"],
+      "badge": "集荷",
+      "description": "荷主が集荷を頼み、営業所が依頼を受け付けて送り状を起こす。"
     },
     {
-      "step": "審査と差し戻し",
+      "step": "届けに行く",
       "duration": 1.2,
-      "focus": ["不備を直す", "書類を審査する -> 不備を直す", "不備を直す -> 書類を審査する"],
-      "badge": "差し戻し",
-      "description": "不備があれば窓口で直し、一つ前の審査へ出し直す。 戻り線は札の上を回る。"
+      "focus": ["便に積む", "届けに行く", "在宅?", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"],
+      "badge": "配送",
+      "description": "配送便が荷物を便に積み、届け先で在宅かを確かめる。"
     },
     {
-      "step": "決裁して知らせる",
+      "step": "受け渡すか持ち戻る",
       "duration": 1.2,
-      "focus": ["決裁する", "結果を知らせる", "書類を審査する -> 決裁する", "決裁する -> 結果を知らせる"],
-      "badge": "完了",
-      "description": "審査から決裁へ分かれ、最後に窓口が結果を知らせる。 札は軸の左右へ交互に並ぶ。"
+      "focus": ["受け取る", "持ち戻る", "終わり", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む", "受け取る -> 終わり"],
+      "badge": "配達結果",
+      "description": "在宅なら荷物を受け渡して終わり、不在なら持ち戻って翌日もう一度便に積む。"
     }
   ]
 }`;

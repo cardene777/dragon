@@ -59,6 +59,19 @@ export type ThemeLabelToneStyle = {
   paint: "fill" | "stroke";
   inkMode: "fixed" | "tone";
 };
+export type ThemeTimelineLabelStyle = {
+  successFill: string;
+  errorFill: string;
+  successText: string;
+  errorText: string;
+  successFrame: string;
+  errorFrame: string;
+  frameWidth: number;
+  radius: number;
+  height: number;
+  fontSize: number;
+  fontWeight: number;
+};
 export type ThemeBarStyle = {
   fill: string;
   stroke?: string;
@@ -446,6 +459,42 @@ export function readFixedThemeLabelToneStyles(
     if (layout.face) style.face = 役の色を読む(name, row, "面");
     if (layout.ink) style.ink = 役の色を読む(name, row, "字");
     out.set(name, style);
+  }
+  return out;
+}
+
+/** 固定意匠の「時間軸の線の札」行から、見本に固有の面・字・枠・形を読む。 */
+export function readFixedThemeTimelineLabelStyles(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, ThemeTimelineLabelStyle> {
+  const out = new Map<DslTheme, ThemeTimelineLabelStyle>();
+  for (const name of ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
+    const text = overrides[name] ?? readThemeNoteText(name);
+    const row = 二列表を読む(節を取る(text, "色以外の値", 3)).get("時間軸の線の札");
+    if (!row) throw new Error(`意匠帳の ${name} に「時間軸の線の札」が無い`);
+    const color = (role: string): string => {
+      const value = new RegExp(`${role} ` + "`(#[0-9a-fA-F]{6}|none)`").exec(row)?.[1];
+      if (!value) throw new Error(`意匠帳の ${name} の時間軸の線の札に「${role}」が無い`);
+      return value.toLowerCase();
+    };
+    const number = (role: string, suffix = ""): number => {
+      const value = new RegExp(`${role} (\\d+(?:\\.\\d+)?)${suffix}`).exec(row)?.[1];
+      if (!value) throw new Error(`意匠帳の ${name} の時間軸の線の札に「${role}」が無い`);
+      return Number(value);
+    };
+    out.set(name, {
+      successFill: color("success 面"),
+      errorFill: color("error 面"),
+      successText: color("success 字"),
+      errorText: color("error 字"),
+      successFrame: color("success 枠"),
+      errorFrame: color("error 枠"),
+      frameWidth: number("枠の太さ"),
+      radius: number("角", "px"),
+      height: number("高さ", "px"),
+      fontSize: number("字", "px"),
+      fontWeight: number("字の太さ"),
+    });
   }
   return out;
 }

@@ -1594,7 +1594,7 @@ function reportSkeletonActorOptionNotHonored(
         doc.type === "swimlane" && doc.shape === "stages"
           ? "札は段階ごとの列へ actors に書いた順に積み、種類は card で固定されます。 decision は札の右に「分かれ道」を添え、mark-start と mark-end は描きません"
           : doc.type === "swimlane" && doc.shape === "timeline"
-          ? "札は actors に書いた順に軸の左右へ交互に並び、種類は card で固定されます。 decision と mark-end は軸の上に描き、mark-start は描きません"
+          ? "番号付きの札は軸の左右へ交互に並び、種類は card で固定されます。 decision の脇の札は同じ段へ置き、decision と mark-end は軸の上に描き、mark-start は描きません"
           : doc.type === "swimlane" && doc.shape === "metro"
             ? "駅は actors に書いた順に並び、種類は station で固定されます。 decision / mark-start / mark-end は分かれ道と始まりと終わりの印として描きます"
           : 骨組みの図の案内(doc.type, 効かない),
@@ -2053,9 +2053,12 @@ function 図の矢印を探す(
   doc: DslDocument,
   fromName: string,
   toName: string,
+  used?: ReadonlySet<string>,
 ): CdlEdge | undefined {
   const from = slugify(fromName);
   const to = slugify(toName);
+  // 同じ両端を持つ行は出現順に別の線へ写すため、書き写し済みの線を候補から外す。
+  const 未使用 = (edge: CdlEdge): boolean => !used?.has(edge.id);
   if (doc.type === "sequence") {
     const stepIdx = doc.flow.findIndex(
       (step) => slugify(step.from) === from && slugify(step.to) === to,
@@ -2063,6 +2066,7 @@ function 図の矢印を探す(
     if (stepIdx < 0) return undefined;
     return diagram.edges.find(
       (x) =>
+        未使用(x) &&
         (x.from === `s${stepIdx}-${from}` || x.from === from) &&
         (x.to === `s${stepIdx}-${to}` || x.from === x.to),
     );
@@ -2070,9 +2074,9 @@ function 図の矢印を探す(
   // 時間軸の進行線は番号の箱を結ぶが、id は札の両端を残す。
   // focus と出来事は書き手が札の名前で指定するため、その id の末尾で照合する。
   if (doc.type === "swimlane" && doc.shape === "timeline") {
-    return diagram.edges.find((x) => x.id.endsWith(`-${from}-${to}`));
+    return diagram.edges.find((x) => 未使用(x) && x.id.endsWith(`-${from}-${to}`));
   }
-  return diagram.edges.find((x) => x.from === from && x.to === to);
+  return diagram.edges.find((x) => 未使用(x) && x.from === from && x.to === to);
 }
 
 /**
@@ -2110,16 +2114,9 @@ function applyEdgeInlineOptions(
     return;
   }
   const used = new Set<string>();
-  // edge.from / edge.to は plain slug (slugify(actor 名))。
-  //
-  // 順序図 (`sequence`) はここに来ない = #1466 で板になり矢印を作らない。
   doc.flow.forEach((s) => {
-    const fromId = slugify(s.from);
-    const toId = slugify(s.to);
-    const target = diagram.edges.find((e) => {
-      if (used.has(e.id)) return false;
-      return e.from === fromId && e.to === toId;
-    });
+    // focus・出来事と同じ照合を使い、図種が線の端を置き換えても書いた行との対応を保つ。
+    const target = 図の矢印を探す(diagram, doc, s.from, s.to, used);
     if (!target) return;
     used.add(target.id);
     sourceLines?.set(target.id, s.pos.line);

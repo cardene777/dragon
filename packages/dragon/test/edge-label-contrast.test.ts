@@ -700,6 +700,13 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
   const sel = `[data-cdl-role="edge-label"]`;
   const found = (rule: string) => collect(`${expanded.light}\n${rule}`).outOfScope;
 
+  it("関数擬似クラス内のカンマを selector list の区切りにしない", () => {
+    expect(splitSelectorList('svg:is([data-a="1"], [data-a="2"]) text, rect')).toEqual([
+      'svg:is([data-a="1"], [data-a="2"]) text',
+      "rect",
+    ]);
+  });
+
   it("標準形でない selector を検知する", () => {
     expect(found(`svg[data-cdl-stage] [data-cdl-role="edge-label"] { font-size: 11px !important; }`).length).toBeGreaterThan(0);
     expect(found(`[data-cdl-role="edge-label"]:hover { fill: #cccccc !important; }`).length).toBeGreaterThan(0);

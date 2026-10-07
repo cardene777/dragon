@@ -47,8 +47,9 @@ export const 日本語を含む = (字: string): boolean =>
 export const PHASE_TITLE_EN: Record<string, string> = {
   "頼む": "Request pickup",
   "運ぶ": "Carry",
-  "審査と差し戻し": "Review and return for correction",
-  "決裁して知らせる": "Approve and notify",
+  "集荷を受け付ける": "Accept the pickup",
+  "届けに行く": "Head out for delivery",
+  "受け渡すか持ち戻る": "Deliver or return the parcel",
   "クラスどうしの 6 種の関係を示す UML クラス図": "A UML class chart showing six kinds of link between classes",
   "テーブル間の関係を表す図": "A chart showing how tables relate to each other",
   "利用者から しまう場所までを 4 つの枠で分けた構成": "A layout splitting person to storage across four groups",

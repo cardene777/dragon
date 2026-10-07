@@ -1281,6 +1281,37 @@ actors:
   - 継続: "200"
 `;
 
+const 宅配の時間軸 = `title: "荷物を届ける"
+type: swimlane
+shape: timeline
+lanes:
+  shipper: { label: 荷主 }
+  office: { label: 営業所 }
+  courier: { label: 配送便 }
+actors:
+  - 始まり: { kind: mark-start, lane: shipper }
+  - 集荷を頼む: { lane: shipper }
+  - 受け付ける: { lane: office }
+  - 送り状を起こす: { lane: office }
+  - 便に積む: { lane: courier }
+  - 届けに行く: { lane: courier }
+  - 在宅?: { kind: decision, lane: courier }
+  - 受け取る: { lane: shipper }
+  - 持ち戻る: { lane: courier }
+  - 終わり: { kind: mark-end, lane: shipper }
+flow:
+  - 始まり -> 集荷を頼む
+  - 集荷を頼む -> 受け付ける
+  - 受け付ける -> 送り状を起こす
+  - 送り状を起こす -> 便に積む
+  - 便に積む -> 届けに行く
+  - 届けに行く -> 在宅?
+  - 在宅? -> 受け取る: "はい" (success)
+  - 在宅? -> 持ち戻る: "いいえ" (error)
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
+  - 受け取る -> 終わり
+`;
+
 test.describe("模様を当てた棒の図表 (#2801)", () => {
   test.describe.configure({ timeout: 300_000 });
   test.use({
@@ -1489,6 +1520,164 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
           }
         }
         expect(failures, `${note.name}/${mode} の日程と漏斗の違反`).toEqual([]);
+      });
+    }
+  }
+});
+
+test.describe("時間軸の番号・担当・線の札・線幅・電飾の分かれ道 (#2832)", () => {
+  test.describe.configure({ timeout: 300_000 });
+  test.use({
+    viewport: { width: 1920, height: 1080 },
+    deviceScaleFactor: FIXED_THEME_DEVICE_SCALE_FACTOR,
+  });
+
+  const themes: DslTheme[] = [
+    "kinari", "celadon", "blueprint", "letterpress", "catalog",
+    "terminal", "sketch", "neon", "relief",
+  ];
+  const 見本を持つ意匠 = new Set<DslTheme>([
+    "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief",
+  ]);
+  for (const theme of themes) {
+    for (const dark of [false, true]) {
+      const mode = dark ? "暗" : "明";
+      test(`${theme} / ${mode}: 札の対比と線幅を描画後の計算値でも保つ`, async ({ page }) => {
+        await openEditorTheme(page, 宅配の時間軸, theme, dark);
+        const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+        await expect(stage.locator(
+          '[data-cdl-node]:has([data-cdl-mark="timeline-number"]) [data-cdl-role="node-label"]',
+        )).toHaveCount(6);
+        await expect(stage.locator('[data-cdl-role="stage-note"]')).toHaveCount(6);
+        await expect(stage.locator(
+          '[data-cdl-edge-label-for] [data-cdl-role="edge-label"]',
+        )).toHaveCount(3);
+
+        if (見本を持つ意匠.has(theme)) {
+          const titles = await stage.locator(
+            '[data-cdl-lane="timeline-steps"][data-cdl-kind="card"] [data-cdl-role="node-label"]',
+          ).evaluateAll((elements) => elements.map((element) => {
+            const node = element.closest<SVGGraphicsElement>('[data-cdl-node]');
+            const width = Number(node?.getAttribute("data-cdl-w"));
+            const style = getComputedStyle(element);
+            return {
+              fontSize: Number.parseFloat(style.fontSize),
+              fontWeight: Number.parseFloat(style.fontWeight),
+              textWidth: element instanceof SVGGraphicsElement ? element.getBBox().width : Number.NaN,
+              nodeWidth: width,
+            };
+          }));
+          expect(titles, `${theme}/${mode} の時間軸の札の題`).toHaveLength(7);
+          const expectedWeight = theme === "letterpress" || theme === "sketch" || theme === "neon"
+            ? 800
+            : 700;
+          for (const [index, title] of titles.entries()) {
+            expect(title.fontSize, `${theme}/${mode} の札 ${index + 1} の題の字`).toBe(25);
+            expect(title.fontWeight, `${theme}/${mode} の札 ${index + 1} の題の太さ`).toBe(expectedWeight);
+            expect(title.textWidth, `${theme}/${mode} の札 ${index + 1} の題の幅`).toBeLessThanOrEqual(
+              title.nodeWidth,
+            );
+          }
+
+          const decision = stage.locator(
+            '[data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]',
+          );
+          const decisionSize = await decision.locator(
+            'g[data-cdl-role="node-body"] > path',
+          ).evaluate((element) => {
+            if (!(element instanceof SVGGraphicsElement)) throw new Error("分かれ道の菱形を測れない");
+            const box = element.getBBox();
+            return { width: box.width, height: box.height };
+          });
+          expect(decisionSize.width, `${theme}/${mode} の分かれ道の幅`).toBe(124);
+          expect(decisionSize.height, `${theme}/${mode} の分かれ道の高さ`).toBe(92);
+          const decisionTitle = await decision.locator('[data-cdl-role="node-label"]').evaluate((element) =>
+            Number.parseFloat(getComputedStyle(element).fontSize),
+          );
+          expect(decisionTitle, `${theme}/${mode} の「在宅?」の字`).toBe(26);
+
+          const noLabelGap = await stage.evaluate((svg) => {
+            if (!(svg instanceof SVGSVGElement)) throw new Error("時間軸の SVG を測れない");
+            const edge = svg.querySelector('[data-cdl-edge][data-cdl-edge-label="いいえ"]');
+            const line = edge?.querySelector('[data-cdl-role="edge-line"]');
+            const edgeId = edge?.getAttribute("data-cdl-edge");
+            const label = edgeId === null || edgeId === undefined
+              ? null
+              : svg.querySelector(
+                `[data-cdl-edge-label-for="${CSS.escape(edgeId)}"] [data-cdl-role="edge-label-bg"]`,
+              );
+            if (!(line instanceof SVGGraphicsElement) || !(label instanceof SVGGraphicsElement)) {
+              throw new Error("「いいえ」の線か札を測れない");
+            }
+            const rootPoint = (element: SVGGraphicsElement, x: number, y: number): DOMPoint => {
+              const matrix = element.getCTM();
+              if (matrix === null) throw new Error("「いいえ」の座標を測れない");
+              return new DOMPoint(x, y).matrixTransform(matrix);
+            };
+            const lineBox = line.getBBox();
+            const labelBox = label.getBBox();
+            const lineY = rootPoint(line, lineBox.x, lineBox.y).y;
+            const labelBottom = rootPoint(
+              label,
+              labelBox.x + labelBox.width / 2,
+              labelBox.y + labelBox.height,
+            ).y;
+            return lineY - labelBottom;
+          });
+          expect(noLabelGap, `${theme}/${mode} の「いいえ」の札と線の間`).toBeCloseTo(20, 5);
+        }
+
+        const labels = await stage.locator('[data-cdl-edge-label-for]').evaluateAll((elements) =>
+          elements.map((element) => {
+            const background = element.querySelector('[data-cdl-role="edge-label-bg"]');
+            const text = element.querySelector('[data-cdl-role="edge-label"]');
+            if (!background || !text) throw new Error("時間軸の線の札から面または字を読めない");
+            return {
+              edge: element.getAttribute("data-cdl-edge-label-for") ?? "?",
+              background: getComputedStyle(background).fill,
+              text: getComputedStyle(text).fill,
+            };
+          }),
+        );
+        for (const label of labels) {
+          expect(
+            contrast(color(label.text), color(label.background)),
+            `${theme}/${mode}/${label.edge} の札の字 ${label.text} / 面 ${label.background}`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
+
+        const noLine = stage.locator(
+          '[data-cdl-edge][data-cdl-edge-label="いいえ"] [data-cdl-role="edge-line"]',
+        );
+        const returnLine = stage.locator(
+          '[data-cdl-edge][data-cdl-edge-label="翌日もう一度"] [data-cdl-role="edge-line"]',
+        );
+        await expect(noLine).toHaveCount(1);
+        await expect(returnLine).toHaveCount(1);
+        const usesSharedWidth = theme === "kinari" || theme === "celadon";
+        expect(Number.parseFloat(await noLine.evaluate((element) => getComputedStyle(element).strokeWidth)))
+          .toBe(usesSharedWidth ? 7 : 5);
+        expect(Number.parseFloat(await returnLine.evaluate((element) => getComputedStyle(element).strokeWidth)))
+          .toBe(usesSharedWidth ? 7 : 6);
+
+        if (theme === "neon") {
+          const decisionOutline = stage.locator(
+            '[data-cdl-lane="timeline-axis"][data-cdl-kind="decision"][data-cdl-active="false"] '
+            + 'g[data-cdl-role="node-body"] > path',
+          );
+          await expect(decisionOutline).toHaveCount(1);
+          const decision = await decisionOutline.evaluate((element) => {
+            const style = getComputedStyle(element);
+            return { fill: style.fill, stroke: style.stroke, strokeWidth: style.strokeWidth };
+          });
+          expect(decision.fill).toBe("rgb(9, 7, 15)");
+          expect(decision.stroke).toBe("rgb(0, 229, 255)");
+          expect(Number.parseFloat(decision.strokeWidth)).toBe(3);
+        }
+
+        const texts = await checkTextContrast(page, "swimlane", mode);
+        expect(texts.failures, `${theme}/${mode} の時間軸の字の違反`).toEqual([]);
+        expect(texts.measured, `${theme}/${mode} で測れた字`).toBeGreaterThan(0);
       });
     }
   }
