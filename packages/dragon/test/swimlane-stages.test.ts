@@ -366,17 +366,23 @@ flow:
       const 上 = Number(cy) - Number(h) / 2;
       const 面 = 列.find((候補) => 候補.x <= 左 && 左 + Number(w) <= 候補.x + 候補.width);
       expect(面, `${id} を収める列が無い`).toBeDefined();
+      expect(左 - 面!.x, `${id} の左の余白`).toBe(32);
+      expect(面!.x + 面!.width - (左 + Number(w)), `${id} の右の余白`).toBe(32);
       expect(上, `${id} が列の上端より上にある`).toBeGreaterThanOrEqual(面!.y);
       expect(上 + Number(h), `${id} が列の下端からはみ出す`).toBeLessThanOrEqual(面!.y + 面!.height);
     }
 
-    // 「いいえ」の線の札は、列 4 の下端へ内接させる。高さを詰めても外へ逃がさない。
+    // 「いいえ」の線の札は、描かれた位置で列 4 の内側に収める。
     const いいえ = /<g transform="translate\([^ ]+ ([^)]+)\)" data-cdl-edge-label-for="e6-在宅-持ち戻る"[^>]*><rect data-cdl-role="edge-label-bg"[^>]*\sy="([^"]+)"[^>]*\sheight="([^"]+)"/.exec(markup);
     expect(いいえ, "いいえ の線の札").not.toBeNull();
     const 結果の列 = 列[3]!;
+    const いいえの線 = diagram.edges.find((edge) => edge.id === "e6-在宅-持ち戻る");
+    expect(いいえの線?.labelOffsetY).toBe(34);
     const 札の中心 = Number(いいえ?.[1]);
+    const 札の上端 = 札の中心 + Number(いいえ?.[2]);
     const 札の下端 = 札の中心 + Number(いいえ?.[2]) + Number(いいえ?.[3]);
-    expect(札の下端).toBe(結果の列.y + 結果の列.height);
+    expect(札の上端).toBeGreaterThanOrEqual(結果の列.y);
+    expect(札の下端).toBeLessThanOrEqual(結果の列.y + 結果の列.height);
   });
 
   it("高さ48の札で名前と右の字を上下の中央へ置く", () => {
@@ -385,6 +391,36 @@ flow:
     const note = Number(/<text data-cdl-role="stage-note" data-cdl-stage-node="集荷を頼む"[^>]*\sy="([^"]+)"/.exec(markup)?.[1]);
     expect(Number(title?.[1]) + Number(title?.[2]) - center).toBe(8);
     expect(note - center).toBe(1);
+  });
+
+  it("札の名前と右の字を重ねずに 268 の幅へ収める", () => {
+    const 右の字を持つ札 = diagram.nodes.filter(
+      (node): node is (typeof diagram.nodes)[number] & { subtitle: string } =>
+        node.subtitle !== undefined,
+    );
+    expect(右の字を持つ札.length).toBeGreaterThan(0);
+
+    for (const node of 右の字を持つ札) {
+      const geometry = new RegExp(
+        `<g data-cdl-node="${node.id}"[^>]*\\sdata-cdl-cx="([^"]+)"[^>]*\\sdata-cdl-w="([^"]+)"`,
+      ).exec(markup);
+      const title = new RegExp(
+        `<text data-cdl-role="node-label" x="([^"]+)"[^>]*font-size="([^"]+)"[^>]*>${node.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</text>`,
+      ).exec(markup);
+      const note = new RegExp(
+        `<text data-cdl-role="stage-note" data-cdl-stage-node="${node.id}" x="([^"]+)"[^>]*font-size="([^"]+)"[^>]*>${node.subtitle}</text>`,
+      ).exec(markup);
+      expect(geometry, `${node.title} の札`).not.toBeNull();
+      expect(title, `${node.title} の名前`).not.toBeNull();
+      expect(note, `${node.title} の右の字`).not.toBeNull();
+
+      const cardWidth = Number(geometry?.[2]);
+      const cardLeft = Number(geometry?.[1]) - cardWidth / 2;
+      const titleRight = cardLeft + Number(title?.[1]) + [...node.title].length * Number(title?.[2]);
+      const noteLeft = Number(note?.[1]) - [...node.subtitle].length * Number(note?.[2]);
+      expect(cardWidth, `${node.title} の札幅`).toBe(268);
+      expect(titleRight, `${node.title} の名前が右の字へ重なる`).toBeLessThan(noteLeft);
+    }
   });
 
   it("札は見本と同じ段に積み、列をまたいで真横に渡れる線を曲げない", () => {
