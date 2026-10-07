@@ -8,6 +8,9 @@ import { expect, test } from "@playwright/test";
 
 import { MetroMapPage } from "./metro-map-page";
 
+// 8 段を約 3.1 秒ずつ待ち、測定中に進んだ時は次の周回で 1 回だけ測り直すため、既定の 60 秒を延ばす。
+test.setTimeout(120_000);
+
 test("路線図は生成りと図面の全 4 段で 10 本を残し、まだの線だけを薄くする (#2833)", async ({
   page,
 }) => {
@@ -17,8 +20,7 @@ test("路線図は生成りと図面の全 4 段で 10 本を残し、まだの�
   for (const palette of ["生成りに茶", "図面"]) {
     await metro.choosePalette(palette);
     for (let phase = 0; phase < 4; phase += 1) {
-      await metro.choosePhase(phase);
-      const lines = await metro.measureLines();
+      const lines = await metro.measurePhase(phase);
       expect(lines, `${palette} の ${phase + 1} 段目の路線`).toHaveLength(10);
       for (const [index, line] of lines.entries()) {
         expect(line.opacity, `${palette} ${phase + 1} 段目 ${index + 1} 本目の濃さ`).toBeGreaterThan(0);

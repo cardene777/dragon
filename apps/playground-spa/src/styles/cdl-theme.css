@@ -2589,10 +2589,12 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-end-label"] {
  * 同じ tone を使う他の図へ、路線図の本線・はい・いいえの色を流さない。
  * ───────────────────────────────────────────────────────────────────────────── */
 
-/* 各見本の本線 / はい / いいえの線色を、組み立てが付ける tone へ当てる。 */
+/* 各見本の本線 / はい / いいえの線色を、組み立てが付ける tone へ当てる。
+   見本の線路は不透明なので、描く側の 0.9 / 0.95 を 1 へ戻す。 */
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   [data-cdl-routing="metro"] [data-cdl-role="edge-line"] {
   stroke: var(--metro-main) !important;
+  stroke-opacity: 1 !important;
   stroke-width: 10px !important;
 }
 
@@ -2622,6 +2624,13 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
   [data-cdl-routing="metro"][data-cdl-tone="error"] [data-cdl-mark="metro-return-arrow"] {
   stroke: var(--metro-no) !important;
   fill: var(--metro-no) !important;
+}
+
+/* 見本の戻る矢じりは枠 21 × 19、三角 17 × 19 で、描く側の元の寸法と同じ。
+   通常の矢じりを 2 倍にする共通規則から、路線図の戻る矢じりだけを外す。 */
+svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
+  [data-cdl-mark="metro-return-arrow"] {
+  transform: none;
 }
 
 /* 各見本の枝札は枝の色を面に、札の字をその上に置く。 */
@@ -2884,6 +2893,100 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"]:has([data-cdl-routing="metro"]
 svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
   [data-cdl-role="metro-lane-guide"] {
   stroke-dasharray: 3 7 !important;
+}
+
+/* 見本の `.fig .ti` が 800 の活版・手描き・電飾では、名札の名前も同じ太さにする。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:first-of-type,
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:first-of-type,
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-badge"] text:first-of-type {
+  font-weight: 800 !important;
+}
+
+/* 浮彫の見本が図全体へ当てる、標準偏差 2、右下 2.5、左上 -2 の陰。
+   平行移動しない線の組と節の外箱へ当て、`userSpaceOnUse` の領域を舞台の座標で使う。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="station"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-start"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-end"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="decision"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-guide"] {
+  filter: url(#dragon-metro-relief-shadow);
+}
+
+/* 浮彫の枝札は見本と同じ陰を保ち、平行移動した札自身の外接矩形から取る専用領域で端を切らない。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] {
+  filter: url(#dragon-metro-relief-shadow-label);
+}
+
+/* 見本の分かれ道は図全体の陰だけを受け、浮彫の板の陰は受けない。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  filter: none !important;
+}
+
+/* 電飾の見本が図全体へ当てる、標準偏差 1.5 と 5 の二段の光。
+   平行移動しない線の組と節の外箱へ当て、線自身の色を舞台の座標で光らせる。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="station"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-start"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-end"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="decision"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-guide"] {
+  filter: url(#dragon-metro-neon-glow);
+}
+
+/* 電飾の枝札は見本と同じ二段の光を保ち、平行移動した札自身の外接矩形から取る専用領域で端を切らない。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] {
+  filter: url(#dragon-metro-neon-glow-label);
+}
+
+/* 見本の路線の芯は本線 `#ff2e97`、はい `#00e5ff`、いいえ `#ffd000` のまま。
+   白を 65% 混ぜる共通の管を外し、親の路線へ見本の光を 1 回だけ当てる。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"] [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-kind="decision"] [data-cdl-role="node-body"] path {
+  filter: none !important;
+}
+
+/* 端末の見本が図全体へ当てる、標準偏差 3.5、濃さ 0.5 の光。
+   平行移動しない線の組と節の外箱へ当て、`userSpaceOnUse` の領域を舞台の座標で使う。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-routing="metro"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="station"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-start"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="mark-end"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-kind="decision"],
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-role="metro-lane-guide"] {
+  filter: url(#dragon-metro-terminal-glow);
+}
+
+/* 端末の枝札は見本と同じ半透明の光を保ち、平行移動した札自身の外接矩形から取る専用領域で端を切らない。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
+  [data-cdl-edge-label-for][data-cdl-tone] {
+  filter: url(#dragon-metro-terminal-glow-label);
 }
 
 /* まだ初出の段へ来ていない線は 0.3 にする。

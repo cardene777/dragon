@@ -364,6 +364,26 @@ export function readFixedThemeFrameOpacity(
   return out;
 }
 
+/** 固定の意匠で、見本に合わせて上書きする路線図の線の濃さを読む。 */
+export function readFixedThemeMetroLineOpacity(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, number> {
+  const out = new Map<DslTheme, number>();
+  for (const [name, note] of readThemeNotes(overrides)) {
+    if (note.mode !== "fixed") continue;
+    const 本文 = overrides[name] ?? readThemeNoteText(name);
+    const rows = 二列表を読む(節を取る(本文, "色以外の値", 3));
+    const 値 = rows.get("路線図の線の濃さ");
+    if (値 === undefined) throw new Error(`意匠帳の ${name} に「路線図の線の濃さ」が無い`);
+    const number = /^(?:`)?(\d+(?:\.\d+)?)/.exec(値)?.[1];
+    if (number === undefined) {
+      throw new Error(`意匠帳の ${name} の「路線図の線の濃さ」が数で始まらない`);
+    }
+    out.set(name, Number(number));
+  }
+  return out;
+}
+
 /** 固定の意匠の縁線を読む。行が無い意匠は従来どおり枠を描く。 */
 export function readFixedThemeOutline(
   overrides: Partial<Record<DslTheme, string>> = {},

@@ -15,6 +15,9 @@ export type 路線の実測 = {
   height: number;
 };
 
+const 段を測り直す上限 = 2;
+const 段を待つ上限ms = 16_000;
+
 /** 見本帳の路線図を、画面にある操作だけで選び測る。 */
 export class MetroMapPage {
   readonly page: Page;
@@ -43,13 +46,39 @@ export class MetroMapPage {
     await expect(radio).toHaveAttribute("aria-checked", "true");
   }
 
-  async choosePhase(index: number): Promise<void> {
-    const group = this.page.getByRole("radiogroup", { name: "図の段" });
-    const radio = group.getByRole("radio", { name: `段 ${index + 1}`, exact: true });
-    await radio.click();
-    await expect(radio).toHaveAttribute("aria-checked", "true");
-    await expect(this.diagram).toHaveAttribute("data-cdl-phase-index", String(index));
-    await this.waitForFiniteAnimations();
+  /** 自動再生で対象の段を待ち、描き終わりから測定まで同じ段に居た時だけ値を返す。 */
+  async measurePhase(index: number): Promise<路線の実測[]> {
+    let 最後に見た段: string | null = null;
+    for (let attempt = 1; attempt <= 段を測り直す上限; attempt += 1) {
+      await expect(this.diagram).toHaveAttribute("data-cdl-phase-index", String(index), {
+        timeout: 段を待つ上限ms,
+      });
+      await this.page.waitForFunction(
+        (phase) => {
+          const diagram = document.querySelector(
+            ".catalog-preview-stage:not([hidden]) [data-cdl-diagram]",
+          );
+          if (diagram?.getAttribute("data-cdl-phase-index") !== String(phase)) return false;
+          const groups = [...document.querySelectorAll(
+            '.catalog-preview-stage:not([hidden]) [data-cdl-routing="metro"]',
+          )];
+          return groups.length === 10 && groups.every((group) => {
+            const line = group.querySelector('[data-cdl-role="edge-line"]');
+            return line?.getAttribute("d") === group.getAttribute("data-cdl-path-d");
+          });
+        },
+        index,
+        { timeout: 段を待つ上限ms },
+      );
+      await this.waitForFiniteAnimations();
+      const lines = await this.measureLines();
+      最後に見た段 = await this.diagram.getAttribute("data-cdl-phase-index");
+      if (最後に見た段 === String(index)) return lines;
+    }
+    throw new Error(
+      `${index + 1} 段目は測定中に次の段へ進んだ。` +
+      `${段を測り直す上限} 回の上限まで次の周回で測り直したが、最後に見た段は ${最後に見た段 ?? "不明"} だった`,
+    );
   }
 
   /** 現れ方の途中を測らず、終わりの濃さを測る。無限の装飾は待たない。 */

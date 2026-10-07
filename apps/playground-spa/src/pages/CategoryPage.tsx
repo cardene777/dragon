@@ -273,9 +273,6 @@ export function CategoryPage(): React.ReactElement {
   // シーンの表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
   const [modalStageEl, setModalStageEl] = useState<HTMLElement | null>(null);
-  // 撮影と見比べで同じ段へ戻れるよう、利用者が選んだ段だけを固定する。
-  // 触る前は従来どおり自動再生し、項目やパターンが変われば持ち越さない。
-  const [固定した段, set固定した段] = useState<{ 図: string; 番号: number } | null>(null);
 
   const displayName = (item: CatalogItem): string => itemName(item.title, locale);
 
@@ -390,7 +387,6 @@ export function CategoryPage(): React.ReactElement {
   const 項目を選ぶ = (item: CatalogItem): void => {
     setSelectedId(item.id);
     set見せ方の状態({ 項目: item.id, 値: 開いた時の見せ方(図ごとの既定の描き方(item.diagram)) });
-    set固定した段(null);
   };
   /**
    * 画面に出している見本 (#1696)。 パターンを選んでいればその中身、無ければ元の見本。
@@ -419,10 +415,6 @@ export function CategoryPage(): React.ReactElement {
         : null,
     [見本, locale, 速さ, 描き方, 配色, 折れ線, 円, 傾き],
   );
-  const 表示する図 = 図 ?? 見本?.diagram ?? currentItem?.diagram;
-  const 段を選ぶ図の鍵 = `${currentItem?.id ?? ""}::${パターン ?? ""}`;
-  const 選んだ段番号 = 固定した段?.図 === 段を選ぶ図の鍵 ? 固定した段.番号 : undefined;
-  const 選んだ段ID = 選んだ段番号 === undefined ? undefined : 表示する図?.phases?.[選んだ段番号]?.id;
   // 拡大表示も同じ速さで出す。 開く元が今見ている項目なので、別の速さになると混乱する
   // 拡大も選んだパターンの中身を出す (#1696)。 元に戻すと、押した図と違うものが開く
   const 拡大の図 = useMemo(
@@ -902,35 +894,6 @@ export function CategoryPage(): React.ReactElement {
                           ))}
                         </div>
                       )}
-                      {/* 自動再生を待たず、見比べたい段を画面の操作で固定する。
-                          触るまではどの札も選ばず、従来の自動再生を保つ。 */}
-                      {(表示する図?.phases?.length ?? 0) > 1 && (
-                        <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "図の段" : "Diagram phase"}>
-                          <button
-                            type="button"
-                            role="radio"
-                            aria-checked={選んだ段番号 === undefined}
-                            className={`catalog-speed-btn ${選んだ段番号 === undefined ? "is-active" : ""}`}
-                            onClick={() => set固定した段(null)}
-                            title={isJa ? "段を自動再生する" : "Play phases automatically"}
-                          >
-                            {isJa ? "自動" : "Auto"}
-                          </button>
-                          {表示する図?.phases?.map((phase, index) => (
-                            <button
-                              key={phase.id}
-                              type="button"
-                              role="radio"
-                              aria-checked={選んだ段番号 === index}
-                              className={`catalog-speed-btn ${選んだ段番号 === index ? "is-active" : ""}`}
-                              onClick={() => set固定した段({ 図: 段を選ぶ図の鍵, 番号: index })}
-                              title={isJa ? `${index + 1} 段目を表示する` : `Show phase ${index + 1}`}
-                            >
-                              {isJa ? `段 ${index + 1}` : `Phase ${index + 1}`}
-                            </button>
-                          ))}
-                        </div>
-                      )}
                       <div className="catalog-speed" role="radiogroup" aria-label={isJa ? "再生速度" : "Playback speed"}>
                         {速さの選択肢.map((v) => (
                           <button
@@ -1018,14 +981,13 @@ export function CategoryPage(): React.ReactElement {
                       hideMiniPhaseIndicator
                       diagram={図 ?? 見本?.diagram ?? currentItem.diagram}
                       hideHeader
-                      focusPhaseId={選んだ段ID}
                       interactiveHandlers={CATALOG_HANDLERS}
                     />
                   </InViewMount>
                   {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
                   <PhaseChrome
                     stage={stageEl}
-                    phases={(表示する図 ?? currentItem.diagram).phases}
+                    phases={(図 ?? 見本?.diagram ?? currentItem.diagram).phases}
                     align="right"
                   />
                 </div>
@@ -1033,7 +995,7 @@ export function CategoryPage(): React.ReactElement {
                 {!showSource && (
                   <PhaseNote
                     stage={stageEl}
-                    phases={(表示する図 ?? currentItem.diagram).phases}
+                    phases={(図 ?? 見本?.diagram ?? currentItem.diagram).phases}
                   />
                 )}
                 <SourceTabs item={見本 ?? currentItem} hidden={!showSource} 速さ={速さ} 描き方={描き方} />
@@ -1127,7 +1089,6 @@ export function CategoryPage(): React.ReactElement {
                   hideMiniPhaseIndicator
                   diagram={拡大の図 ?? modalItem.diagram}
                   hideHeader
-                  focusPhaseId={選んだ段ID}
                   interactiveHandlers={CATALOG_HANDLERS}
                 />
               )}

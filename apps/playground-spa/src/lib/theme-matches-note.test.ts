@@ -19,6 +19,7 @@ import {
   readFixedThemeGroundText,
   readFixedThemeLabelToneStyles,
   readFixedThemeLead,
+  readFixedThemeMetroLineOpacity,
   readFixedThemeOutline,
   readFixedThemeRoleColor,
   readFixedThemeSingleSeriesBars,
@@ -247,14 +248,15 @@ function resolveCssColor(
 /** selector の 1 つが完全に一致する規則の本文を全て返す。0 件も返す。 */
 function cssRuleBodies(cssText: string, exactSelector: string, requiredProperty?: string): string[] {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const normalizedExactSelector = exactSelector.replace(/\s+/g, " ").trim();
   const property = requiredProperty === undefined
     ? undefined
     : new RegExp(`(?:^|;)\\s*${requiredProperty.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`, "m");
   return [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
-    const selectors = (match[1] ?? "").split(",").map((selector) => selector.trim());
+    const selectors = (match[1] ?? "").split(",").map((selector) => selector.replace(/\s+/g, " ").trim());
     const body = match[2] ?? "";
     const hasRequiredProperty = property === undefined || property.test(body);
-    return selectors.includes(exactSelector) && hasRequiredProperty ? [body] : [];
+    return selectors.includes(normalizedExactSelector) && hasRequiredProperty ? [body] : [];
   });
 }
 
@@ -272,6 +274,14 @@ function cssDeclaration(body: string, property: string): string {
     .exec(body)?.[1]?.trim().replace(/\s*!important$/, "");
   if (!value) throw new Error(`${property} の CSS 宣言が無い`);
   return value;
+}
+
+function svgFilterSource(source: string, id: string): string {
+  const filter = new RegExp(
+    `<filter(?=[^>]*\\bid=["']${id}["'])[^>]*>[\\s\\S]*?<\\/filter>`,
+  ).exec(source)?.[0];
+  if (!filter) throw new Error(`#${id} の filter が SvgDefs.tsx に無い`);
+  return filter;
 }
 
 function cssVariableName(value: string): string {
@@ -594,6 +604,157 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       if (/\b(?:to|100%)\s*\{[^}]*\bopacity\s*:/s.test(body)) overriding.push(name);
     }
     expect(overriding, "線の現れ方が終点の opacity を上書きする").toEqual([]);
+  });
+
+  it("路線図の戻る矢じりは全意匠で 2 倍にしない", () => {
+    const selector = 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) ' +
+      '[data-cdl-mark="metro-return-arrow"]';
+    expect(cssDeclaration(cssRuleBody(cssText, selector), "transform")).toBe("none");
+  });
+
+  it("浮彫の路線図は外箱へ見本と同じ図全体の陰を当て、枝札だけ外接矩形の領域を使う", () => {
+    const stage = 'svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])';
+    for (const part of [
+      '[data-cdl-routing="metro"]',
+      '[data-cdl-node][data-cdl-kind="station"]',
+      '[data-cdl-node][data-cdl-kind="mark-start"]',
+      '[data-cdl-node][data-cdl-kind="mark-end"]',
+      '[data-cdl-node][data-cdl-kind="decision"]',
+      '[data-cdl-role="metro-lane-guide"]',
+    ]) {
+      expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
+        .toBe("url(#dragon-metro-relief-shadow)");
+    }
+    const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
+    expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
+      .toBe("url(#dragon-metro-relief-shadow-label)");
+    for (const translated of ['[data-cdl-role="mark-start"]', '[data-cdl-role="mark-end"]']) {
+      expect(cssRuleBodies(cssText, `${stage} ${translated}`, "filter"), translated).toEqual([]);
+    }
+    const decisionPath = `${stage} [data-cdl-kind="decision"] [data-cdl-role="node-body"] path`;
+    expect(cssDeclaration(cssRuleBody(cssText, decisionPath, "filter"), "filter")).toBe("none");
+    const badge = `${stage} [data-cdl-role="metro-lane-badge"] rect`;
+    expect(cssDeclaration(cssRuleBody(cssText, badge, "filter"), "filter")).toBe("url(#dragon-relief-raised)");
+
+    const filter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-relief-shadow");
+    expect(filter).toContain('filterUnits="userSpaceOnUse"');
+    expect(filter).toContain('in="SourceAlpha" stdDeviation="2" result="metro-relief-blur"');
+    expect(filter).toContain('dx="2.5" dy="2.5"');
+    expect(filter).toContain('floodColor="rgb(160,144,120)" floodOpacity=".55"');
+    expect(filter).toContain('dx="-2" dy="-2"');
+    expect(filter).toContain('floodColor="#ffffff" floodOpacity=".95"');
+    const labelFilter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-relief-shadow-label");
+    expect(labelFilter).toContain('filterUnits="objectBoundingBox"');
+    expect(labelFilter).toContain('x="-10%"');
+    expect(labelFilter).toContain('y="-50%"');
+    expect(labelFilter).toContain('width="120%"');
+    expect(labelFilter).toContain('height="200%"');
+    expect(labelFilter).toContain('in="SourceAlpha" stdDeviation="2" result="metro-relief-label-blur"');
+  });
+
+  it("電飾の路線図は外箱へ見本と同じ二段の光を当て、枝札だけ外接矩形の領域を使う", () => {
+    const stage = 'svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])';
+    for (const part of [
+      '[data-cdl-routing="metro"]',
+      '[data-cdl-node][data-cdl-kind="station"]',
+      '[data-cdl-node][data-cdl-kind="mark-start"]',
+      '[data-cdl-node][data-cdl-kind="mark-end"]',
+      '[data-cdl-node][data-cdl-kind="decision"]',
+      '[data-cdl-role="metro-lane-guide"]',
+    ]) {
+      expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
+        .toBe("url(#dragon-metro-neon-glow)");
+    }
+    const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
+    expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
+      .toBe("url(#dragon-metro-neon-glow-label)");
+    for (const translated of ['[data-cdl-role="mark-start"]', '[data-cdl-role="mark-end"]']) {
+      expect(cssRuleBodies(cssText, `${stage} ${translated}`, "filter"), translated).toEqual([]);
+    }
+    const line = `${stage} [data-cdl-routing="metro"] [data-cdl-role="edge-line"]`;
+    expect(cssDeclaration(cssRuleBody(cssText, line, "filter"), "filter")).toBe("none");
+    const decisionPath = `${stage} [data-cdl-kind="decision"] [data-cdl-role="node-body"] path`;
+    expect(cssDeclaration(cssRuleBody(cssText, decisionPath, "filter"), "filter")).toBe("none");
+
+    const neon = cssMetroThemes(cssText).get("neon")?.light;
+    expect(neon?.get("main")).toBe("#ff2e97");
+    expect(neon?.get("yes")).toBe("#00e5ff");
+    expect(neon?.get("no")).toBe("#ffd000");
+    const filter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-neon-glow");
+    expect(filter).toContain('in="SourceGraphic" stdDeviation="1.5" result="metro-neon-halo"');
+    expect(filter).toContain('in="SourceGraphic" stdDeviation="5" result="metro-neon-haze"');
+    expect(filter).not.toContain("feColorMatrix");
+    const labelFilter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-neon-glow-label");
+    expect(labelFilter).toContain('filterUnits="objectBoundingBox"');
+    expect(labelFilter).toContain('x="-10%"');
+    expect(labelFilter).toContain('y="-50%"');
+    expect(labelFilter).toContain('width="120%"');
+    expect(labelFilter).toContain('height="200%"');
+    expect(labelFilter).toContain('in="SourceGraphic" stdDeviation="5" result="metro-neon-label-haze"');
+  });
+
+  it("端末の路線図は外箱へ見本と同じ半透明の光を当て、枝札だけ外接矩形の領域を使う", () => {
+    const stage = 'svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])';
+    for (const part of [
+      '[data-cdl-routing="metro"]',
+      '[data-cdl-node][data-cdl-kind="station"]',
+      '[data-cdl-node][data-cdl-kind="mark-start"]',
+      '[data-cdl-node][data-cdl-kind="mark-end"]',
+      '[data-cdl-node][data-cdl-kind="decision"]',
+      '[data-cdl-role="metro-lane-guide"]',
+    ]) {
+      expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
+        .toBe("url(#dragon-metro-terminal-glow)");
+    }
+    const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
+    expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
+      .toBe("url(#dragon-metro-terminal-glow-label)");
+    for (const translated of ['[data-cdl-role="mark-start"]', '[data-cdl-role="mark-end"]']) {
+      expect(cssRuleBodies(cssText, `${stage} ${translated}`, "filter"), translated).toEqual([]);
+    }
+
+    const filter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-terminal-glow");
+    expect(filter).toContain('in="SourceGraphic" stdDeviation="3.5" result="metro-terminal-blur"');
+    expect(filter).toContain('<feFuncA type="linear" slope=".5" />');
+    expect(filter).toContain('<feMergeNode in="metro-terminal-dim" />');
+    expect(filter).toContain('<feMergeNode in="SourceGraphic" />');
+    const labelFilter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-terminal-glow-label");
+    expect(labelFilter).toContain('filterUnits="objectBoundingBox"');
+    expect(labelFilter).toContain('x="-10%"');
+    expect(labelFilter).toContain('y="-50%"');
+    expect(labelFilter).toContain('width="120%"');
+    expect(labelFilter).toContain('height="200%"');
+    expect(labelFilter).toContain('in="SourceGraphic" stdDeviation="3.5" result="metro-terminal-label-blur"');
+  });
+
+  it("路線図の線路は全意匠で見本と同じ不透明にし、まだの線だけ親で 0.3 にする", () => {
+    const stage = 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])';
+    const line = `${stage} [data-cdl-routing="metro"] [data-cdl-role="edge-line"]`;
+    const opacity = Number(cssDeclaration(cssRuleBody(cssText, line, "stroke-opacity"), "stroke-opacity"));
+    for (const [name, expected] of readFixedThemeMetroLineOpacity()) {
+      expect(opacity, name).toBe(expected);
+    }
+
+    const pending = `${stage} [data-cdl-routing="metro"][data-cdl-pending="true"]`;
+    expect(cssDeclaration(cssRuleBody(cssText, pending, "opacity"), "opacity")).toBe("0.3");
+  });
+
+  it("手描きの名札は揺らさず 2px の墨枠と影を保ち、太字の意匠の名前は 800 にする", () => {
+    const sketchStage = 'svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])';
+    const badge = cssRuleBody(cssText, `${sketchStage} [data-cdl-role="metro-lane-badge"] rect`);
+    expect(cssDeclaration(badge, "stroke-width")).toBe("2px");
+    expect(cssDeclaration(badge, "filter")).toBe("drop-shadow(3px 4px 0 rgb(43 38 32 / 16%))");
+    expect(badge).not.toContain("dragon-sketch-wobble");
+
+    for (const name of ["letterpress", "sketch", "neon"] as const) {
+      const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]:has([data-cdl-routing="metro"])`;
+      const title = cssRuleBody(
+        cssText,
+        `${stage} [data-cdl-role="metro-lane-badge"] text:first-of-type`,
+        "font-weight",
+      );
+      expect(cssDeclaration(title, "font-weight"), name).toBe("800");
+    }
   });
 
   it("意匠帳の値を変えると同じ比較経路が検知する", () => {

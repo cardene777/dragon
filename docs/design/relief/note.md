@@ -59,6 +59,7 @@
 | 白           | `#ffffff`。色みを持つ札の太字と影の明るい側 |
 | 縁線         | なし。箱の輪郭は板の影で出す |
 | 枠の濃さ     | 1。縁線は引かないが、固定の意匠の決まりに揃える |
+| 路線図の線の濃さ | 1。見本の線路は透かさない |
 | 関係の線の濃さ | 1。一は台との対比が 3.44 なので、透かさず線の下限 3 を保つ |
 | 板の影       | `7px 7px 15px rgba(160,144,120,.5)` と `-7px -7px 15px #fff`。標準偏差はぼかしの半分の 7.5 |
 | 主役         | `12px 12px 24px rgba(160,144,120,.55)` と `-12px -12px 24px rgba(255,255,255,.95)`。内側は左上の縁に白 .75、右下の縁に `rgb(160,144,120)` .32。反転した alpha は白側へ 3px 右下、暗色側へ 3px 左上にずらし、標準偏差 4 でにじませる |
@@ -104,6 +105,16 @@
 `feGaussianBlur stdDeviation="4.5"`、`feFlood flood-color="rgb(160,144,120)" flood-opacity=".45"`。
 明るい影は `feOffset dx="-4" dy="-4"`、`feGaussianBlur stdDeviation="4.5"`、
 `feFlood flood-color="#ffffff" flood-opacity=".9"` とする。
+
+路線図の `#dragon-metro-relief-shadow` は、見本の SVG 全体の陰と同じく `SourceAlpha` を標準偏差 2 で
+ぼかす。
+暗い側は `dx="2.5"` / `dy="2.5"`、`rgb(160,144,120)` の .55、明るい側は `dx="-2"` /
+`dy="-2"`、白の .95 とする。
+線路の組、案内線、駅、始終点、分かれ道は、平行移動を持たない外箱へ
+`filterUnits="userSpaceOnUse"` の `-3%` / `106%` の領域で当てる。
+枝の札は同じ陰を持つ別の filter とし、札自身の外接矩形を基準に左右 10%、上下 50% の余白を取る。
+高さ 36 の札では上下に 18 を取り、ぼかしとずらしを札の端で切らない。
+名札は今の板の陰を保ち、分かれ道からは板の filter を外す。
 
 板の filter は見せ方と印を持たない箱の輪郭だけへ当てる。主役は dome、図表は主役でも well を優先する。
 直下の子が全て `circle` の `g` は、重なった円の和を 1 つの輪郭として `g` に 1 回だけ当て、中の円には
@@ -196,7 +207,7 @@ dragon のクラス図には、契約、法人契約、個人契約、荷物、�
 ## 検査
 
 - `apps/playground-spa/src/lib/theme-matches-note.test.ts` は「値」の 9 行、一、図表の系列色、枠の濃さ、
-  縁線を CSS と共通検査へ突き合わせる。
+  縁線、路線図の線の濃さを CSS と共通検査へ突き合わせる。
 - `apps/playground-spa/tests/rendered-contrast.spec.ts` は固定の意匠を全図種へ当て、浮彫では縁線が無いことと
   面、線、文字の対比を明暗で調べる。
 - `apps/playground-spa/tests/relief-theme.spec.ts` は全図種の地・板・線・対比、4 つの filter、主役、札、
