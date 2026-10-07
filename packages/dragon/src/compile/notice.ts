@@ -81,6 +81,8 @@ export type CompileNotice = {
     | "value-trigger-unresolved"
     // 箱に `lane:` を書いたが、 縦列は図種が決めるため効かなかった (#1246)
     | "lane-not-honored"
+    // 路線図以外の lane に、路線図の名札だけが読む補足を書いた
+    | "lane-option-not-honored"
     // `lanes:` に書いた縦列に箱が 1 つも入らなかった (#1241)
     | "lane-declared-empty"
     // 最上位に `eyebrow:` を書いたが、 箱ごとに分かれる図種で相手が決まらなかった (#1247)

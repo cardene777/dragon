@@ -23,10 +23,12 @@ import {
   readFixedThemeRoleColor,
   readFixedThemeSingleSeriesBars,
   readFixedThemeToneSeries,
+  readMetroThemeNotes,
   readThemeNotes,
   readThemeNoteText,
   themeGanttSeriesColors,
   type ThemeNote,
+  type MetroColorRole,
   type ThemePort,
   type ThemeToneSeries,
 } from "../../tests/helpers/theme-notes";
@@ -37,6 +39,28 @@ const 読む = (rel: string): string =>
 
 type CssTheme = { light: Map<ThemePort, string>; dark: Map<ThemePort, string>; hasDarkBlock: boolean };
 type CssChartTheme = { cdl: string[]; dragon: string[]; colors: string[] };
+type CssMetroTheme = {
+  light: Map<MetroColorRole, string>;
+  dark: Map<MetroColorRole, string>;
+};
+const METRO_CSS_ROLES = {
+  main: "main",
+  yes: "yes",
+  no: "no",
+  "branch-ink": "branchInk",
+  "station-face": "stationFace",
+  "station-ink": "stationInk",
+  "station-ground": "stationGround",
+  mark: "mark",
+  guide: "guide",
+  "badge-face": "badgeFace",
+  "badge-frame": "badgeFrame",
+  "badge-title": "badgeTitle",
+  "badge-subtitle": "badgeSubtitle",
+  "decision-face": "decisionFace",
+  "decision-frame": "decisionFrame",
+  "decision-ink": "decisionInk",
+} as const satisfies Record<string, MetroColorRole>;
 const TEXT_TONES = ["accent", "teal", "success", "error", "warning", "info"] as const;
 const TEXT_BACKGROUNDS = ["ground", "face", "stripe"] as const;
 const CARD_TEXT_BACKGROUNDS = ["face", "stripe"] as const;
@@ -68,6 +92,27 @@ function cssThemes(cssText: string): Map<string, CssTheme> {
     for (const value of body.matchAll(/--er-([a-z-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) {
       const port = value[1] as ThemePort | undefined;
       if (port && THEME_PORTS.includes(port)) side.set(port, value[2]!.toLowerCase());
+    }
+    out.set(named[1], theme);
+  }
+  return out;
+}
+
+function cssMetroThemes(cssText: string): Map<string, CssMetroTheme> {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const out = new Map<string, CssMetroTheme>();
+  for (const match of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+    const selector = match[1] ?? "";
+    const named = /\[data-cdl-palette="([^"]+)"\]/.exec(selector);
+    if (!named?.[1]) continue;
+    const theme = out.get(named[1]) ?? {
+      light: new Map<MetroColorRole, string>(),
+      dark: new Map<MetroColorRole, string>(),
+    };
+    const side = selector.includes("html.dark") ? theme.dark : theme.light;
+    for (const declaration of (match[2] ?? "").matchAll(/--metro-([a-z-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) {
+      const role = declaration[1] ? METRO_CSS_ROLES[declaration[1] as keyof typeof METRO_CSS_ROLES] : undefined;
+      if (role) side.set(role, declaration[2]!.toLowerCase());
     }
     out.set(named[1], theme);
   }
@@ -468,6 +513,87 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     mismatch.push(...result.mismatch);
     expect(result.count, "突き合わせた組の数が意匠 × 口 × 明暗と違う").toBe(expected);
     expect(mismatch, "意匠帳と CSS の値が食い違う").toEqual([]);
+  });
+
+  it("路線図専用の 16 色が全ての意匠帳と一致する", () => {
+    const notes = readMetroThemeNotes();
+    const actual = cssMetroThemes(cssText);
+    const failures: string[] = [];
+    let checked = 0;
+
+    for (const [name, note] of notes) {
+      const css = actual.get(name);
+      if (!css) {
+        failures.push(`${name}: CSS の路線図の色が無い`);
+        continue;
+      }
+      const compareSide = (mode: string, expected: Record<MetroColorRole, string>, values: Map<MetroColorRole, string>): void => {
+        for (const [role, expectedColor] of Object.entries(expected) as Array<[MetroColorRole, string]>) {
+          checked += 1;
+          const actualColor = values.get(role);
+          if (actualColor !== expectedColor) {
+            failures.push(`${name}/${mode}/${role}: 意匠帳 ${expectedColor} / CSS ${actualColor ?? "無し"}`);
+          }
+        }
+      };
+      if (note.mode === "light-dark") {
+        compareSide("明", note.light, css.light);
+        compareSide("暗", note.dark, css.dark);
+      } else {
+        compareSide("固定", note.value, css.light);
+        if (css.dark.size > 0) failures.push(`${name}: 固定意匠なのに暗い路線図の色を持つ`);
+      }
+    }
+
+    expect(checked, "路線図の色を 1 件も突き合わせていない").toBe(11 * 16);
+    expect(failures, "路線図の色が意匠帳と CSS で食い違う").toEqual([]);
+  });
+
+  it("路線図の駅名・名札の名前・名札の補足は 9 意匠の明暗で対比 4.5 以上になる", () => {
+    const failures: string[] = [];
+    let checked = 0;
+
+    for (const [name, note] of readMetroThemeNotes()) {
+      const sides = note.mode === "light-dark"
+        ? [["明", note.light], ["暗", note.dark]] as const
+        : [["明", note.value], ["暗", note.value]] as const;
+      for (const [mode, colors] of sides) {
+        const pairs = [
+          ["駅名", colors.stationInk, colors.stationGround],
+          ["名札の名前", colors.badgeTitle, colors.badgeFace],
+          ["名札の補足", colors.badgeSubtitle, colors.badgeFace],
+        ] as const;
+        for (const [role, foreground, background] of pairs) {
+          checked += 1;
+          const ratio = contrast(rgb(foreground), rgb(background));
+          if (ratio < 4.5) {
+            failures.push(`${name}/${mode}/${role}: ${ratio.toFixed(2)}:1 (${foreground} / ${background})`);
+          }
+        }
+      }
+    }
+
+    expect(checked, "路線図の字の対比を 1 件も調べていない").toBe(THEMES.length * 2 * 3);
+    expect(failures, "路線図の字の対比が 4.5:1 に届かない").toEqual([]);
+  });
+
+  it("まだ来ていない路線は現れ方の後も 0.3 の濃さを保つ", () => {
+    const selector = 'svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"]) ' +
+      '[data-cdl-routing="metro"][data-cdl-pending="true"]';
+    const body = cssRuleBody(cssText, selector);
+    expect(cssDeclaration(body, "opacity")).toBe("0.3");
+
+    const edgeAnimations = new Set(
+      [...cssText.matchAll(/--theme-edge-appear\s*:\s*([\w-]+)\s*;/g)].flatMap((match) => match[1] ? [match[1]] : []),
+    );
+    const overriding: string[] = [];
+    for (const name of edgeAnimations) {
+      const start = cssText.indexOf(`@keyframes ${name}`);
+      const end = cssText.indexOf("\n@keyframes ", start + 1);
+      const body = cssText.slice(start, end < 0 ? cssText.length : end);
+      if (/\b(?:to|100%)\s*\{[^}]*\bopacity\s*:/s.test(body)) overriding.push(name);
+    }
+    expect(overriding, "線の現れ方が終点の opacity を上書きする").toEqual([]);
   });
 
   it("意匠帳の値を変えると同じ比較経路が検知する", () => {

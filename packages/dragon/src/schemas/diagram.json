@@ -939,6 +939,9 @@
           "label": {
             "type": "string"
           },
+          "subtitle": {
+            "type": "string"
+          },
           "contain": {
             "type": "boolean"
           },
