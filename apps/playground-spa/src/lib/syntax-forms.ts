@@ -67,6 +67,8 @@ export type Section = {
     type?: string;
     /** 数を描く図の形 (#2657)。 `type: chart` の例文でだけ書く */
     shape?: string;
+    /** 一覧に出す行を成立させるため、最上位へ補う行 */
+    root?: string[];
     actors?: string[];
     flow?: string[];
     states?: string[];
@@ -251,6 +253,43 @@ export const FORMS: Section[] = [
       { code: "shape: pie", note: "扇の取り分で割合を見せる", noteEn: "Shows the share as slices" },
       { code: "shape: bar", note: "棒の高さで比べる (書かない時の形)", noteEn: "Compares by bar height (the shape you get without writing one)" },
       { code: "shape: line", note: "線の高さで並べる (書いた順に左から)", noteEn: "Plots the heights as a line, left to right in the order written" },
+    ],
+  },
+  {
+    title: "円の見せ方 (form:)",
+    titleEn: "How a pie chart is shown (form:)",
+    sample: {
+      slot: "root",
+      type: "chart",
+      shape: "pie",
+      actors: ['  - 配達中: "270"', '  - 持戻り: "52"', '  - 完了: "178"'],
+    },
+    lines: [
+      {
+        code: "form: 輪",
+        note: "扇の輪で割合を見せる (書かない時の形)",
+        noteEn: "Shows shares as a ring (the form you get without writing one)",
+      },
+      {
+        code: "form: 積層の弧",
+        note: "区分ごとに弧を積む",
+        noteEn: "Stacks one arc for each part",
+      },
+      {
+        code: "form: 銘板",
+        note: "輪の横へ名前と値の表を置く",
+        noteEn: "Places a table of names and values beside the ring",
+      },
+      {
+        code: "form: ring",
+        note: "英語でも書ける",
+        noteEn: "The English spelling works too",
+      },
+      {
+        code: "見せ方: 輪",
+        note: "欄の名前も日本語で書ける",
+        noteEn: "The field name may be written in Japanese too",
+      },
     ],
   },
   {
@@ -751,6 +790,38 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "工程の目盛り (ticks:)",
+    titleEn: "Schedule ticks (ticks:)",
+    sample: {
+      slot: "root",
+      type: "gantt",
+      actors: ['  - 調べる: "6月"', '  - 本番: "10月"'],
+    },
+    lines: [
+      {
+        code: "ticks: [6月, 7月, 8月, 9月, 10月]",
+        note: "尺と目盛りの順を固定する。 書かなければ工程の始まりから作る",
+        noteEn: "Fixes the scale and tick order. Without it, ticks come from task starts",
+      },
+    ],
+  },
+  {
+    title: "月の中の位置",
+    titleEn: "Position within a month",
+    sample: {
+      slot: "actors",
+      type: "gantt",
+      root: ["ticks: [6月, 7月, 8月, 9月, 10月]"],
+    },
+    lines: [
+      {
+        code: '  - 設計: { value: "6月+0.55", end: "7月+0.80" }',
+        note: "始まりと終わりへ、月の中の割合を 0 から 1 で足す",
+        noteEn: "Adds a position from 0 to 1 within the month to the start and end",
+      },
+    ],
+  },
+  {
     // 2 つの軸で仕分ける図だけが持つ。 他の図種で書くと組み立て側が知らせる (#1251)
     title: "軸の名前 (axes:)",
     titleEn: "Axis names (axes:)",
@@ -783,6 +854,31 @@ export const FORMS: Section[] = [
       {
         code: '  右下: "やらない"',
         note: "書かない区画は軸から決まる", noteEn: "The ones you leave out follow from the axes",
+      },
+    ],
+  },
+  {
+    title: "四象限の点の位置 (at:)",
+    titleEn: "Point positions in a quadrant chart (at:)",
+    sample: {
+      slot: "actors",
+      type: "quadrant",
+    },
+    lines: [
+      {
+        code: "  - 左下: { at: [0, 0] }",
+        note: "左下は [0, 0]",
+        noteEn: "The bottom-left corner is [0, 0]",
+      },
+      {
+        code: "  - 右上: { at: [1, 1] }",
+        note: "右上は [1, 1]",
+        noteEn: "The top-right corner is [1, 1]",
+      },
+      {
+        code: "  - 中ほど: { 点の位置: [0.25, 0.75] }",
+        note: "欄の名前も日本語で書ける",
+        noteEn: "The field name may be written in Japanese too",
       },
     ],
   },
@@ -846,7 +942,7 @@ export const FORMS: Section[] = [
  * test は通ってしまう。
  */
 export function buildSample(section: Section): string {
-  const { slot, actors = [], flow = [], states = [] } = section.sample;
+  const { slot, root = [], actors = [], flow = [], states = [] } = section.sample;
   const codes = section.lines.map((l) => l.code);
   // `reveal` は最上位に 1 行で書く語なので、`root` と同じ場所へ置く (#1470)
   // 最上位に 1 行で書く項目は、頭の並びにそのまま足す (`reveal` / `relations` / `direction`)
@@ -872,6 +968,7 @@ export function buildSample(section: Section): string {
     ...(section.sample.shape !== undefined && !rootLines.some((l) => /^shape\s*:/.test(l))
       ? [`shape: ${section.sample.shape}`]
       : []),
+    ...root,
     ...rootLines,
   ];
   const out = [...head, "actors:", ...actors, ...(slot === "actors" ? codes : [])];

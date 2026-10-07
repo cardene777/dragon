@@ -21,6 +21,7 @@ import {
   readFixedThemeLead,
   readFixedThemeOutline,
   readFixedThemeRoleColor,
+  readFixedThemeRoleColors,
   readFixedThemeSingleSeriesBars,
   readFixedThemeToneSeries,
   readThemeNotes,
@@ -558,6 +559,42 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     }
     expect(expected.size).toBe(7);
     expect(failures, "単系列の棒の意味属性と意匠帳が違う").toEqual([]);
+  });
+
+  it("発想の枝・折れ線・傾き図を図表の役に閉じて意匠帳の色へ向ける (#2837)", () => {
+    const series = readFixedThemeChartSeries();
+    for (const name of ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
+      expect(readFixedThemeRoleColors(name, "発想の枝"), `${name} の発想の枝`).toEqual(
+        series.get(name)?.colors.slice(0, 4),
+      );
+      expect(readFixedThemeRoleColors(name, "折れ線"), `${name} の折れ線`).toEqual(
+        series.get(name)?.colors.slice(0, 1),
+      );
+    }
+
+    for (const [tone, chart] of [
+      ["accent", 1], ["teal", 2], ["success", 3], ["warning", 4],
+    ] as const) {
+      expect(cssText).toContain(
+        `[data-cdl-role="mind-edge"][stroke*="--cdl-tone-${tone}"]`,
+      );
+      expect(cssText).toMatch(new RegExp(
+        `mind-edge[^{}]+cdl-tone-${tone}[^{}]*\\{[^}]*stroke:\\s*var\\(--cdl-chart-${chart}\\)`,
+        "s",
+      ));
+    }
+    expect(cssText).toMatch(/\[data-cdl-kind="chart-line"\]\s*\{\s*--cdl-tone-accent:\s*var\(--cdl-chart-1\)/u);
+
+    expect(readFixedThemeRoleColors("sketch", "傾き図")).toEqual(["#d2491f", "#2a5ca8", "#6d6456"]);
+    expect(readFixedThemeRoleColors("relief", "傾き図")).toEqual(["#c4573c", "#966c22", "#685e51"]);
+    for (const name of ["sketch", "relief"] as const) {
+      const selector = `svg[data-cdl-stage][data-cdl-palette="${name}"] [data-cdl-kind="chart-slope"]`;
+      const body = cssRuleBody(cssText, selector);
+      expect(cssDeclaration(body, "--cdl-chart-1")).toBe("var(--er-type)");
+      expect(cssDeclaration(body, "--cdl-chart-4")).toBe("var(--er-type)");
+      expect(cssDeclaration(body, "--cdl-tone-accent")).toBe("var(--theme-lead)");
+      expect(cssDeclaration(body, "--cdl-tone-error")).toBe("var(--er-own)");
+    }
   });
 
   it("固定 7 意匠の日程の棒と漏斗の段は色みを系列色へ向けて濃さ 1 で塗る", () => {

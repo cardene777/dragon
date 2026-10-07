@@ -1153,6 +1153,86 @@ svg[data-cdl-stage][data-cdl-palette] {
   --cdl-text-accent: var(--er-line);
 }
 
+/* ── 宅配の図表を意匠帳の役割色へ揃える (#2837) ───────────────────────────
+ * 描き手が埋め込む tone の変数名を手掛かりにする。変数そのものは関係図も読むため変えず、
+ * mind / line / slope の中だけで系列色へ流す。
+ */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-accent"] {
+  stroke: var(--cdl-chart-1) !important;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-teal"] {
+  stroke: var(--cdl-chart-2) !important;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-success"] {
+  stroke: var(--cdl-chart-3) !important;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-warning"] {
+  stroke: var(--cdl-chart-4) !important;
+}
+
+/* 折れ線だけが読む accent を主色へ向ける。共通の tone 規則と他の図は変えない。 */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="chart-line"] {
+  --cdl-tone-accent: var(--cdl-chart-1);
+}
+
+/* chart-slope.tsx は tone を属性に残さず、accent / error / 系列 1・4 を stroke に埋め込む。 */
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-kind="chart-slope"] {
+  --cdl-chart-1: var(--er-type);
+  --cdl-chart-4: var(--er-type);
+  --cdl-tone-accent: var(--theme-lead);
+  --cdl-tone-error: var(--er-own);
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-kind="chart-slope"] {
+  --cdl-chart-1: var(--er-type);
+  --cdl-chart-4: var(--er-type);
+  --cdl-tone-accent: var(--theme-lead);
+  --cdl-tone-error: var(--er-own);
+}
+
 /* 見本は凡例の印を本体の始まりと終わりの印と同じ色で描く。dragon は凡例に、本体の印へ使う墨 (`--d-text-primary`) を読ませる。
  * 図録だけは本体の印を面の色 (`--er-face`) で塗るため僅かに違うが、凡例の #efe7d8 は見本と一致する。 */
 svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="legend"],
@@ -2201,8 +2281,10 @@ svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="chart-bar"][data-cd
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
-  fill: var(--theme-pale) !important;
+  fill: var(--er-face) !important;
   fill-opacity: 1 !important;
+  stroke: var(--theme-pale) !important;
+  stroke-width: 1 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

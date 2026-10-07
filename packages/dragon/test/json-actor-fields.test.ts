@@ -55,6 +55,7 @@ const 対応表: Record<string, 対応> = {
   opportunity: { 記法: 'opportunity: "改善"', json: { opportunity: "改善" } },
   owner: { 記法: 'owner: "私"', json: { owner: "私" } },
   end: { 記法: 'end: "Q2"', json: { end: "Q2" } },
+  at: { 記法: "at: [0.2, 0.8]", json: { at: [0.2, 0.8] } },
   posX: { 記法: "posX: 100", json: { posX: 100 } },
   posY: { 記法: "posY: 200", json: { posY: 200 } },
   posW: { 記法: "posW: 300", json: { posW: 300 } },
@@ -127,8 +128,8 @@ function JSONの箱(extra: Record<string, unknown>): DslActor {
 }
 
 /** 行番号を落として比べる (記法は書いた行、JSON は常に 0 なので必ず違う) */
-function 行番号を落とす(a: DslActor): Omit<DslActor, "pos"> {
-  const { pos: _pos, ...残り } = a;
+function 行番号を落とす(a: DslActor): Omit<DslActor, "pos" | "atPos"> {
+  const { pos: _pos, atPos: _atPos, ...残り } = a;
   return 残り;
 }
 

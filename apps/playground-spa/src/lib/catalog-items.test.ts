@@ -215,15 +215,15 @@ describe("見本帳の階層・図表・数・工程は宅配の筋書きで揃�
   };
 
   it.each(["sortingShelfGantt", "pattern__sortingShelfGantt__帯だけ"])(
-    "%s の工程を月へ丸め、主役とそれ以外の色を分ける",
+    "%s の工程を月内の位置で書き、主役とそれ以外の色を分ける",
     (鍵) => {
       const 記法 = 記法を引く(鍵);
       for (const [名前, 始まり, tone] of [
         ["調べる", "6月", "info"],
-        ["設計する", "7月", "accent"],
+        ["設計する", "6月\\+0\\.55", "accent"],
         ["棚を作る", "8月", "accent"],
-        ["端末を入れる", "8月", "info"],
-        ["試す", "9月", "accent"],
+        ["端末を入れる", "8月\\+0\\.30", "info"],
+        ["試す", "9月\\+0\\.60", "accent"],
       ] as const) {
         expect(記法, `${鍵} の ${名前}`).toContain(名前);
         expect(記法, `${鍵} の ${名前} の始まり`).toMatch(
@@ -234,6 +234,7 @@ describe("見本帳の階層・図表・数・工程は宅配の筋書きで揃�
         );
       }
       expect(記法).toMatch(/本番[^\n]+10月/u);
+      expect(記法).toMatch(/survey_end["']?\s*:\s*0(?:\D|$)/u);
     },
   );
 

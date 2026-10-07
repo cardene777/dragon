@@ -48,6 +48,28 @@
       ],
       "description": "図の種類。 型ごとに actors の書き方が違う。 [関係を描く] sequence (時系列の呼び出し) / flow (処理の流れ) / flowchart (分かれ道と判断を含む手順) / swimlane (責務ごとの流れ) / record (箱が行を持ち関係を持つ図。 表のつながりにも移り変わりにも使う) / topology (network) / class (UML の class) / c4 (architecture) / mind (発想の枝分かれ) は actors に名前を並べ flow に矢印を書く。 [値を描く] chart (数の並び) は actors に `- 名前: \"45\"` の形で数を書き、 shape で形を選ぶ (pie = 割合 / bar = 棒の高さ / line = 線の高さで書いた順に並ぶ / gauge = 合計を半円で示す / radial = 弧の長さで比べる / stat = 値 1 つを大きく示す / waffle = 割合を 100 個の印で示す / stacked = 内訳を帯で示す / slope = 2 時点を直線でつなぎ増減と順位の入れ替わりを示す)。 shape が stat と stacked と slope の時は `- 名前: { value: \"320\", previous: \"280\" }` の形で前の時点の値も書ける。 funnel (段ごとに減る数) も同じ形。 [語を描く] journey (体験の起伏) は `- 登録: \"不満\"` の形で 最高 / 満足 / 普通 / 不満 / 怒り のどれかを書く。 quadrant (2 軸の仕分け) は `- 重複削除: \"左上\"` の形で 左上 / 右上 / 左下 / 右下 のどれかを書く。 [時期を描く] gantt (工程の並び) は `- 設計: \"1月\"` の形で始まりの時期を書き、 flow の矢印で前後関係を書く。 [親子を描く] tree (親子の入れ子) は actors に名前を並べ flow の矢印で親子を書く (矢印の先が子)。 [古い綴り] solidity は sequence と order: kind の組、 pie / bar / line / gauge / radial / stat / waffle / stacked / slope は chart と同じ綴りの shape の組と同じ扱いになる"
     },
+    "form": {
+      "type": "string",
+      "enum": ["ring", "arcs", "table", "輪", "積層の弧", "銘板"],
+      "description": "shape: pie の見せ方。輪 / 積層の弧 / 銘板。"
+    },
+    "見せ方": {
+      "type": "string",
+      "enum": ["ring", "arcs", "table", "輪", "積層の弧", "銘板"],
+      "description": "form の和名。両方あれば form を採る。"
+    },
+    "ticks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "gantt の目盛りを左から順に明示する。"
+    },
+    "目盛り": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "ticks の和名。両方あれば ticks を採る。"
+    },
     "eyebrow": {
       "type": "string",
       "description": "図表の箱の上に出す小見出し (省略可)。 効くのは図全体を 1 箱にする型 (chart / funnel / tree / journey / quadrant / mind / gantt) だけ。 箱ごとに分かれる型では相手が決まらないため、 actors[].eyebrow に書く"
@@ -242,6 +264,20 @@
               "end": {
                 "type": "string",
                 "description": "gantt の工程が終わる時期。 始まりより前の時期は始まりと同じに倒し、知らせを出す。"
+              },
+              "at": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": { "type": ["number", "string"] },
+                "description": "quadrant の座標 [x, y]。左下が 0,0、右上が 1,1。"
+              },
+              "点の位置": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": { "type": ["number", "string"] },
+                "description": "at の和名。両方あれば at を採る。"
               },
               "touchpoint": {
                 "type": "string",

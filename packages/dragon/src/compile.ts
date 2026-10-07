@@ -276,6 +276,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   reportDirectionNotHonored(書いたまま, opts?.onNotice);
   reportOrderNotHonored(書いたまま, opts?.onNotice);
   reportShapeNotHonored(書いたまま, opts?.onNotice);
+  reportFormNotHonored(書いたまま, opts?.onNotice);
+  reportTicksNotHonored(書いたまま, opts?.onNotice);
   reportStageFromLane(書いたまま, opts?.onNotice);
   reportTrackFromName(書いたまま, opts?.onNotice);
   reportThemeAlsoPalette(書いたまま, opts?.onNotice);
@@ -2983,6 +2985,27 @@ function reportShapeNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =
     line: doc.shapePos?.line ?? doc.pos?.line ?? 0,
     message: `書いた shape: ${doc.shape} は効きません (type: ${doc.type} では使えません)`,
     hint,
+  });
+}
+
+/** `form` は円グラフだけ、`ticks` はガントチャートだけが読む。 */
+function reportFormNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (doc.form === undefined || (doc.type === "chart" && doc.shape === "pie")) return;
+  onNotice?.({
+    kind: "chart-value-unreadable",
+    actor: doc.title,
+    line: doc.formPos?.line ?? 0,
+    message: `form (見せ方) は shape: pie にだけ効きます (type: ${doc.type} では無視しました)`,
+  });
+}
+
+function reportTicksNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
+  if (doc.ticks === undefined || doc.type === "gantt") return;
+  onNotice?.({
+    kind: "chart-value-unreadable",
+    actor: doc.title,
+    line: doc.ticksPos?.line ?? 0,
+    message: `ticks (目盛り) は type: gantt にだけ効きます (type: ${doc.type} では無視しました)`,
   });
 }
 

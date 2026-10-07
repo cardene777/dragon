@@ -70,6 +70,7 @@ const 値: Record<string, string> = {
   end: '"20"',
   touchpoint: '"まど"',
   opportunity: '"のびしろ"',
+  at: "[0.2, 0.8]",
 };
 
 /**

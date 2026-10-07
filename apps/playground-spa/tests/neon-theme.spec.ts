@@ -256,14 +256,21 @@ test.describe("neon theme (#2795)", () => {
             main: element.getAttribute("data-cdl-emphasis") === "primary",
             fill: style.fill,
             opacity: style.fillOpacity,
+            stroke: style.stroke,
+            strokeWidth: style.strokeWidth,
           };
         }),
       );
     expect(bars.some((bar) => bar.main), "図表に主役の棒が無い").toBe(true);
     expect(bars.some((bar) => !bar.main), "図表に主役でない棒が無い").toBe(true);
+    // #2837 で、主役でない棒を淡い塗りから暗い面と淡い細枠へ変えた。
     for (const bar of bars) {
-      expect(bar.fill).toBe(hexToRgb(bar.main ? lead : pale));
+      expect(bar.fill).toBe(hexToRgb(bar.main ? lead : neon.value.face));
       expect(bar.opacity).toBe("1");
+      if (!bar.main) {
+        expect(bar.stroke).toBe(hexToRgb(pale));
+        expect(bar.strokeWidth).toBe("1px");
+      }
     }
 
     await openEditorTheme(page, 段のない六色の記法, "neon", false);

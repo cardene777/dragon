@@ -269,7 +269,8 @@ const 節の欄の扱い = {
   rowStripe: "記法",
   tone: "記法",
   shape: "記法",
-  ganttAxisMax: "記法",
+  // 横軸の尺を固定する配置の指定。帯や目盛りという新しい役割は増やさない。
+  ganttAxisMax: "置き場所",
 } satisfies Record<節の任意の欄, string>;
 
 /**
@@ -317,8 +318,6 @@ const 矢印の欄の扱い = {
  * 出てきたら「書けない」 という理由が死んだものとして落とす = 直った後に理由だけが残らない。
  */
 const 書けない欄: Record<string, string> = {
-  "節/ganttAxisMax":
-    "ガントチャートの横軸を何目盛りにするかを決める欄。 記法 (`packages/dragon/src`) に口が無く、記法から書いた図には出ない",
   "節/leaderTo":
     "時間軸の札から番号へ補助線を引く欄。 時間軸の番号を丸で描く #2832 までは記法 (`packages/dragon/src`) に口が無い",
 };
@@ -1126,6 +1125,7 @@ const 置き場所の見本値: Record<string, unknown> = {
   "節/posW": 240,
   "節/posH": 160,
   "節/role": "lifeline-footer",
+  "節/ganttAxisMax": 5,
   "矢印/labelOffsetX": 40,
   "矢印/labelOffsetY": 40,
   "矢印/posX1": 20,

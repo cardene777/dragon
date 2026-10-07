@@ -225,6 +225,15 @@ export function readFixedThemeRoleColor(
   return color.toLowerCase();
 }
 
+/** 固定意匠の役の行に書いた色を、登場順のまま全て読む。図表の複数系列用。 */
+export function readFixedThemeRoleColors(name: DslTheme, role: string): string[] {
+  const note = readThemeNotes().get(name);
+  if (note?.mode !== "fixed") return [];
+  const row = 二列表を読む(節を取る(readThemeNoteText(name), "色以外の値", 3)).get(role);
+  if (row === undefined) return [];
+  return [...row.matchAll(/`(#[0-9a-fA-F]{6})`/g)].map((match) => match[1]!.toLowerCase());
+}
+
 /** 固定の意匠で台の上だけに使う字を読む。2 行とも無い意匠は別の組を持たない。 */
 export function readFixedThemeGroundText(
   overrides: Partial<Record<DslTheme, string>> = {},

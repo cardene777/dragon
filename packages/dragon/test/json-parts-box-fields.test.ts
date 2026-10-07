@@ -54,6 +54,8 @@ const 箱の値: Record<string, unknown> = {
   end: "Q2",
   touchpoint: "店頭",
   opportunity: "改善",
+  at: [0.2, 0.8],
+  点の位置: [0.2, 0.8],
   posX: 10,
   posY: 20,
   posW: 30,
@@ -83,7 +85,8 @@ function 届いた欄(kind: string): Set<string> {
   // 検査を通さずに組み立てだけを見る = 検査が誤りにする欄も含めて「落ちるか」 を測るため
   const doc = jsonToDoc(図({ actors: [actor, { name: "Z" }] }) as unknown as DragonJson);
   const a = doc.actors[0] as unknown as Record<string, unknown>;
-  return new Set(Object.keys(a).filter((k) => a[k] !== undefined));
+  // `atPos` は利用者が書く欄でなく、`at` の行を知らせるための内部 metadata。
+  return new Set(Object.keys(a).filter((k) => a[k] !== undefined && k !== "atPos"));
 }
 
 describe("落とす欄の表が実装と一致する (#1308)", () => {

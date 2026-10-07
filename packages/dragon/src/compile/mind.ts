@@ -61,6 +61,8 @@ type 放射で描けない欄 =
   | "opportunity"
   | "owner"
   | "end"
+  | "at"
+  | "atPos"
   | "rows"
   | "marks"
   | "stage"
@@ -129,6 +131,8 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   opportunity: "改善の余地 (ユーザージャーニーの欄)",
   owner: "担当 (工程の並びの欄)",
   end: "終わる時期 (工程の並びの欄)",
+  at: "点の位置 (四象限の欄)",
+  atPos: "点の位置 (四象限の欄)",
   rows: "行",
   marks: "印",
   stage: "段階",

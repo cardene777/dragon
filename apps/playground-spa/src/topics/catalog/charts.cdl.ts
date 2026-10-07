@@ -342,6 +342,7 @@ export const monthlyDeliveriesLine = textDslToDiagram(sourceYaml__monthlyDeliver
 export const sourceYaml__parcelStatusPie = `title: "荷物の状態"
 type: chart
 shape: pie
+form: table
 
 actors:
   - 配達中: "{delivering}"
@@ -372,6 +373,7 @@ export const sourceJson__parcelStatusPie = `{
   "title": "荷物の状態",
   "type": "chart",
   "shape": "pie",
+  "見せ方": "銘板",
   "actors": [
     { "name": "配達中", "subtitle": "{delivering}" },
     { "name": "集荷済", "subtitle": "{collected}" },
@@ -531,21 +533,22 @@ export const orderToDeliveryFunnel = textDslToDiagram(sourceYaml__orderToDeliver
 // ============================================================
 export const sourceYaml__sortingShelfGantt = `title: "仕分け棚を入れ替える工程"
 type: gantt
+ticks: [6月, 7月, 8月, 9月, 10月]
 
 actors:
   - 調べる: { value: "6月", end: "{survey_end}", tone: info }
-  - 設計する: { value: "7月", end: "{design_end}", tone: accent }
+  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent }
   - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent }
-  - 端末を入れる: { value: "8月", end: "{terminal_end}", tone: info }
-  - 試す: { value: "9月", end: "{trial_end}", tone: accent }
+  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: info }
+  - 試す: { value: "9月+0.60", end: "{trial_end}", tone: accent }
   - 本番: "10月"
 
 states:
   survey_end: 0
-  design_end: 1
+  design_end: 0.80
   shelf_end: 2
-  terminal_end: 2
-  trial_end: 3
+  terminal_end: 2.55
+  trial_end: 3.80
 
 flow:
   - 設計する -> 棚を作る: ""
@@ -558,22 +561,23 @@ animation:
     draw: gantt
     description: "6 月から 10 月までの仕分け棚の入れ替え予定を並べる。"
   - step: "入れ替え工程" 1.2s
-    tween:
-      shelf_end: 2 -> 3
-      terminal_end: 2 -> 3
-      trial_end: 3 -> 4
+    set:
+      shelf_end: 2.20
+      terminal_end: 2.55
+      trial_end: 3.80
     description: "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 8 月末。"
 `;
 
 export const sourceJson__sortingShelfGantt = `{
   "title": "仕分け棚を入れ替える工程",
   "type": "gantt",
+  "目盛り": ["6月", "7月", "8月", "9月", "10月"],
   "actors": [
     { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "info" },
-    { "name": "設計する", "subtitle": "7月", "end": "{design_end}", "tone": "accent" },
+    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent" },
     { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent" },
-    { "name": "端末を入れる", "subtitle": "8月", "end": "{terminal_end}", "tone": "info" },
-    { "name": "試す", "subtitle": "9月", "end": "{trial_end}", "tone": "accent" },
+    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "info" },
+    { "name": "試す", "subtitle": "9月+0.60", "end": "{trial_end}", "tone": "accent" },
     { "name": "本番", "subtitle": "10月" }
   ],
   "flow": [
@@ -582,7 +586,7 @@ export const sourceJson__sortingShelfGantt = `{
     { "from": "端末を入れる", "to": "試す", "label": "" },
     { "from": "試す", "to": "本番", "label": "" }
   ],
-  "states": { "survey_end": 0, "design_end": 1, "shelf_end": 2, "terminal_end": 2, "trial_end": 3 },
+  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2, "terminal_end": 2.55, "trial_end": 3.80 },
   "animation": [
     {
       "step": "入れ替え前の予定",
@@ -594,7 +598,7 @@ export const sourceJson__sortingShelfGantt = `{
       "step": "入れ替え工程",
       "duration": 1.2,
       "description": "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 8 月末。",
-      "tween": { "shelf_end": [2, 3], "terminal_end": [2, 3], "trial_end": [3, 4] }
+      "set": { "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.80 }
     }
   ]
 }`;
@@ -612,21 +616,22 @@ export const patternBase__sortingShelfGantt = "前後つき";
 
 export const sourceYaml__pattern__sortingShelfGantt__帯だけ = `title: "矢印なしの仕分け棚を入れ替える工程"
 type: gantt
+ticks: [6月, 7月, 8月, 9月, 10月]
 
 actors:
   - 調べる: { value: "6月", end: "{survey_end}", tone: info }
-  - 設計する: { value: "7月", end: "{design_end}", tone: accent }
+  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent }
   - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent }
-  - 端末を入れる: { value: "8月", end: "{terminal_end}", tone: info }
-  - 試す: { value: "9月", end: "{trial_end}", tone: accent }
+  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: info }
+  - 試す: { value: "9月+0.60", end: "{trial_end}", tone: accent }
   - 本番: "10月"
 
 states:
   survey_end: 0
-  design_end: 1
-  shelf_end: 3
-  terminal_end: 3
-  trial_end: 4
+  design_end: 0.80
+  shelf_end: 2.20
+  terminal_end: 2.55
+  trial_end: 3.80
 
 animation:
   - step: "工程の帯を引く" 1.2s
@@ -637,16 +642,17 @@ animation:
 export const sourceJson__pattern__sortingShelfGantt__帯だけ = `{
   "title": "矢印なしの仕分け棚を入れ替える工程",
   "type": "gantt",
+  "目盛り": ["6月", "7月", "8月", "9月", "10月"],
   "actors": [
     { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "info" },
-    { "name": "設計する", "subtitle": "7月", "end": "{design_end}", "tone": "accent" },
+    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent" },
     { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent" },
-    { "name": "端末を入れる", "subtitle": "8月", "end": "{terminal_end}", "tone": "info" },
-    { "name": "試す", "subtitle": "9月", "end": "{trial_end}", "tone": "accent" },
+    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "info" },
+    { "name": "試す", "subtitle": "9月+0.60", "end": "{trial_end}", "tone": "accent" },
     { "name": "本番", "subtitle": "10月" }
   ],
   "flow": [],
-  "states": { "survey_end": 0, "design_end": 1, "shelf_end": 3, "terminal_end": 3, "trial_end": 4 },
+  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.80 },
   "animation": [
     {
       "step": "工程の帯を引く",
@@ -1012,29 +1018,39 @@ regions:
   右下: "やらない"
 
 actors:
-  - 置き配: "{dropoff}"
-  - 前日に知らせる: "{notice}"
-  - 宅配ロッカー: "{locker}"
-  - 不在票を電子に: "{digital}"
-  - 夜の便: "{night}"
+  - 置き配: { at: ["{dropoff_x}", "{dropoff_y}"] }
+  - 前日に知らせる: { at: ["{notice_x}", "{notice_y}"] }
+  - 宅配ロッカー: { at: ["{locker_x}", "{locker_y}"] }
+  - 不在票を電子に: { at: ["{digital_x}", "{digital_y}"] }
+  - 夜の便: { at: ["{night_x}", "{night_y}"] }
 
 states:
-  dropoff: "左下"
-  notice: "右下"
-  locker: "右下"
-  digital: "左下"
-  night: "右上"
+  dropoff_x: 0.25
+  dropoff_y: 0.25
+  notice_x: 0.75
+  notice_y: 0.25
+  locker_x: 0.75
+  locker_y: 0.25
+  digital_x: 0.25
+  digital_y: 0.25
+  night_x: 0.75
+  night_y: 0.75
 
 animation:
   - step: "案を並べる" 1.2s
     description: "宅配の打ち手を手間と効き目で仮置きする。"
   - step: "優先度を決める" 1.2s
     set:
-      dropoff: "左上"
-      notice: "左上"
-      locker: "右上"
-      digital: "左下"
-      night: "右下"
+      dropoff_x: 0.20
+      dropoff_y: 0.82
+      notice_x: 0.30
+      notice_y: 0.62
+      locker_x: 0.70
+      locker_y: 0.70
+      digital_x: 0.22
+      digital_y: 0.32
+      night_x: 0.76
+      night_y: 0.20
     description: "置き配と前日の知らせを先にやり、宅配ロッカーは計画して進める。"
 `;
 
@@ -1052,21 +1068,29 @@ export const sourceJson__measureEffortQuadrant = `{
     "右下": "やらない"
   },
   "actors": [
-    { "name": "置き配", "subtitle": "{dropoff}" },
-    { "name": "前日に知らせる", "subtitle": "{notice}" },
-    { "name": "宅配ロッカー", "subtitle": "{locker}" },
-    { "name": "不在票を電子に", "subtitle": "{digital}" },
-    { "name": "夜の便", "subtitle": "{night}" }
+    { "name": "置き配", "at": ["{dropoff_x}", "{dropoff_y}"] },
+    { "name": "前日に知らせる", "at": ["{notice_x}", "{notice_y}"] },
+    { "name": "宅配ロッカー", "at": ["{locker_x}", "{locker_y}"] },
+    { "name": "不在票を電子に", "at": ["{digital_x}", "{digital_y}"] },
+    { "name": "夜の便", "at": ["{night_x}", "{night_y}"] }
   ],
   "flow": [],
-  "states": { "dropoff": "左下", "notice": "右下", "locker": "右下", "digital": "左下", "night": "右上" },
+  "states": {
+    "dropoff_x": 0.25, "dropoff_y": 0.25, "notice_x": 0.75, "notice_y": 0.25,
+    "locker_x": 0.75, "locker_y": 0.25, "digital_x": 0.25, "digital_y": 0.25,
+    "night_x": 0.75, "night_y": 0.75
+  },
   "animation": [
     { "step": "案を並べる", "duration": 1.2, "description": "宅配の打ち手を手間と効き目で仮置きする。" },
     {
       "step": "優先度を決める",
       "duration": 1.2,
       "description": "置き配と前日の知らせを先にやり、宅配ロッカーは計画して進める。",
-      "set": { "dropoff": "左上", "notice": "左上", "locker": "右上", "digital": "左下", "night": "右下" }
+      "set": {
+        "dropoff_x": 0.20, "dropoff_y": 0.82, "notice_x": 0.30, "notice_y": 0.62,
+        "locker_x": 0.70, "locker_y": 0.70, "digital_x": 0.22, "digital_y": 0.32,
+        "night_x": 0.76, "night_y": 0.20
+      }
     }
   ]
 }`;

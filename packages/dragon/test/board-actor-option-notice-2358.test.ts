@@ -54,6 +54,7 @@ const 値: Record<string, string> = {
   end: '"5月"',
   touchpoint: '"まどぐち"',
   opportunity: '"のびしろ"',
+  at: "[0.2, 0.8]",
   posX: "100",
   posY: "100",
   posW: "900",

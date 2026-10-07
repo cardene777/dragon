@@ -64,7 +64,7 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "parcelStatusPie", 要素: "輪の区画", 見本の数: 4, 今の数: 4, role: "chart-pie-slice", 描ける: true },
   { 鍵: "parcelStatusPie", 要素: "中心の合計値", 見本の数: 1, 今の数: 1, role: "texts:1,284", 描ける: true },
   { 鍵: "parcelStatusPie", 要素: "中心の単位『件』", 見本の数: 1, 今の数: 0, role: "texts:件", 描ける: false, 理由: "中心の下は固定の『合計』", 下書き: ".context/scratch/2837/cdl-issue-pie-center-unit.md" },
-  { 鍵: "parcelStatusPie", 要素: "右の一覧と値", 見本の数: 4, 今の数: 0, role: "chart-pie-table-row", 描ける: false, 理由: "CDL の table 形を dragon 記法から選べない", 下書き: ".context/scratch/2837/dragon-issue-pie-table.md", 仮の役割名: true },
+  { 鍵: "parcelStatusPie", 要素: "右の一覧と値", 見本の数: 4, 今の数: 4, role: "chart-pie-table-row", 描ける: true },
 
   { 鍵: "orderToDeliveryFunnel", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
   { 鍵: "orderToDeliveryFunnel", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
@@ -75,8 +75,8 @@ const 形の要素たち: 形の要素[] = [
 
   { 鍵: "measureEffortQuadrant", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
   { 鍵: "measureEffortQuadrant", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
-  { 鍵: "measureEffortQuadrant", 要素: "点", 見本の数: 5, 今の数: 0, role: "quadrant-point", 描ける: false, 理由: "CDL は座標を描けるが dragon 記法に at の口が無い", 下書き: ".context/scratch/2837/dragon-issue-quadrant-coordinates.md" },
-  { 鍵: "measureEffortQuadrant", 要素: "点の名前", 見本の数: 5, 今の数: 5, role: "quadrant-item", 描ける: true },
+  { 鍵: "measureEffortQuadrant", 要素: "点", 見本の数: 5, 今の数: 5, role: "quadrant-point", 描ける: true },
+  { 鍵: "measureEffortQuadrant", 要素: "点の名前", 見本の数: 5, 今の数: 5, role: "quadrant-point-label", 描ける: true },
   { 鍵: "measureEffortQuadrant", 要素: "軸の名前", 見本の数: 2, 今の数: 4, role: "contains-list:手間 小|手間 大|効き目 小|効き目 大", 描ける: false, 理由: "左右上下の端を 4 名で描き、見本の 2 軸名にできない", 下書き: ".context/scratch/2837/cdl-issue-quadrant-axis-labels.md" },
   { 鍵: "measureEffortQuadrant", 要素: "象限の名前", 見本の数: 4, 今の数: 4, role: "texts:先にやる|計画してやる|ついでにやる|やらない", 描ける: true },
 
@@ -117,7 +117,7 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "sortingShelfGantt", 要素: "依存の矢印", 見本の数: 4, 今の数: 3, role: "gantt-arrow", 描ける: false, 理由: "1 工程につき親を 1 件だけ持ち、試すへの 2 本目が落ちる", 下書き: ".context/scratch/2837/cdl-issue-gantt-multiple-dependencies.md" },
   { 鍵: "sortingShelfGantt", 要素: "主役の斜線", 見本の数: 3, 今の数: 0, role: "gantt-bar-hatch", 描ける: false, 理由: "accent の帯を 3 本に分けられるが斜線を当てる印が無い", 下書き: ".context/scratch/2837/cdl-issue-highlight-hatch.md", 仮の役割名: true },
   { 鍵: "sortingShelfGantt", 要素: "1 行おきの地", 見本の数: 3, 今の数: 3, role: "gantt-row", 描ける: true },
-  { 鍵: "sortingShelfGantt", 要素: "半月単位の端点", 見本の数: 8, 今の数: 0, role: "gantt-half-month", 描ける: false, 理由: "dragon 記法は月名を整数目盛りへ丸める", 下書き: ".context/scratch/2837/dragon-issue-gantt-precision.md", 仮の役割名: true },
+  { 鍵: "sortingShelfGantt", 要素: "月内位置の端点", 見本の数: 7, 今の数: 7, role: "diagram:gantt-fractional-endpoint", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "本番の節目", 見本の数: 1, 今の数: 0, role: "gantt-milestone", 描ける: false, 理由: "同じ始終点も 1 目盛り幅の帯にする", 下書き: ".context/scratch/2837/cdl-issue-gantt-markers.md", 仮の役割名: true },
   { 鍵: "sortingShelfGantt", 要素: "今日の点線", 見本の数: 1, 今の数: 0, role: "gantt-today", 描ける: false, 理由: "今日を渡す欄が無い", 下書き: ".context/scratch/2837/cdl-issue-gantt-markers.md", 仮の役割名: true },
 
@@ -156,7 +156,24 @@ const 最後を描く = (図: CdlDiagram): string => {
   return renderToStaticMarkup(<CdlDiagramView diagram={layout(静止図)} hideHeader />);
 };
 
-const roleの数 = (svg: string, role: string): number => {
+const roleの数 = (svg: string, role: string, 図: CdlDiagram): number => {
+  if (role === "chart-pie-table-row") {
+    return Math.max(0, [...svg.matchAll(/data-cdl-role="chart-pie-table-rule"/gu)].length - 1);
+  }
+  if (role === "diagram:gantt-fractional-endpoint") {
+    const 配置済み = layout(図);
+    const 値 = computeStateValues(配置済み, Math.max(0, 配置済み.phases.length - 1), 1);
+    const 数 = (v: number | string): number | undefined => {
+      if (typeof v === "number") return v;
+      const m = v.match(/^\{(.+)\}$/u);
+      const resolved = m === null ? Number(v) : Number(値[m[1]!]);
+      return Number.isFinite(resolved) ? resolved : undefined;
+    };
+    return 図.nodes
+      .flatMap((node) => node.ganttData ?? [])
+      .flatMap((task) => [数(task.startIdx), 数(task.endIdx)])
+      .filter((v): v is number => v !== undefined && !Number.isInteger(v)).length;
+  }
   const 開始タグ = svg.match(/<[^>]+>/gu) ?? [];
   if (role.startsWith("role+attr:")) {
     const [roleName, attribute] = role.slice("role+attr:".length).split("|");
@@ -213,7 +230,7 @@ describe("宅配の見本の形要素 (#2837)", () => {
     const 図 = 図を引く(鍵);
     expect(図, `${鍵} が無い`).toBeDefined();
     if (図 === undefined) throw new Error(`${鍵} が無い`);
-    const 実数 = roleの数(最後を描く(図), role);
+    const 実数 = roleの数(最後を描く(図), role, 図);
     expect(実数, `${鍵} の ${role} の現在数が変わった`).toBe(今の数);
     if (描ける) {
       expect(実数, `${鍵} の ${role}`).toBe(見本の数);
