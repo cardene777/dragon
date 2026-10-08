@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { CdlDiagramView } from "@cardenelabs/cdl";
+import { JSDOM } from "jsdom";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+
+import { presetDeliveryStages } from "@/topics/catalog/presets.cdl";
 
 const css = readFileSync(fileURLToPath(new URL("../styles/cdl-theme.css", import.meta.url)), "utf8");
 const fixedPalettes =
@@ -68,11 +75,39 @@ function ruleBody(selector: string): string {
   return css.slice(bodyStart, end);
 }
 
+function lastRuleBody(selector: string): string {
+  const start = css.lastIndexOf(`${selector} {`);
+  if (start < 0) throw new Error(`${selector} の CSS 規則が無い`);
+  const bodyStart = css.indexOf("{", start) + 1;
+  const end = css.indexOf("}", bodyStart);
+  if (end < 0) throw new Error(`${selector} の CSS 規則が閉じていない`);
+  return css.slice(bodyStart, end);
+}
+
 function declaration(body: string, property: string): string {
   const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const value = new RegExp(`(?:^|;)\\s*${escaped}\\s*:\\s*([^;]+)`, "m").exec(body)?.[1]?.trim();
   if (!value) throw new Error(`${property} の CSS 宣言が無い`);
   return value;
+}
+
+type 札の値 = { 見本: string; dragon: string };
+
+function 段の箱の札を読む(palette: "catalog" | "neon"): Map<string, 札の値> {
+  const note = readFileSync(resolve(process.cwd(), `docs/design/${palette}/note.md`), "utf8");
+  const section = /^### 段の箱の札\n([\s\S]*?)(?=^###? )/m.exec(note)?.[1];
+  if (!section) throw new Error(`${palette} の「段の箱の札」が無い`);
+  const rows = new Map<string, 札の値>();
+  for (const line of section.split("\n")) {
+    const cells = line
+      .split("|")
+      .slice(1, -1)
+      .map((cell) => cell.trim().replaceAll("`", ""));
+    if (cells.length !== 3 || cells[0] === "項目" || /^-+$/.test(cells[0] ?? "")) continue;
+    const [項目, 見本, dragon] = cells;
+    if (項目 && 見本 && dragon) rows.set(項目, { 見本, dragon });
+  }
+  return rows;
 }
 
 describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () => {
@@ -179,5 +214,135 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     );
     expect(declaration(body, "filter")).toBe("url(#dragon-sketch-wobble) !important");
     expect(body).not.toContain("drop-shadow");
+  });
+
+  it.each([
+    {
+      palette: "catalog" as const,
+      expected: {
+        面: { 見本: "#fbf7ee", dragon: "#fbf7ee" },
+        枠: { 見本: "none", dragon: "none" },
+        太さ: { 見本: "0", dragon: "0" },
+        影: {
+          見本: "0 8px 18px -6px rgba(0,0,0,.34)",
+          dragon: "drop-shadow(0 8px 6px rgb(0 0 0 / 34%))",
+        },
+      },
+    },
+    {
+      palette: "neon" as const,
+      expected: {
+        面: { 見本: "rgba(10,8,18,.94)", dragon: "rgb(10 8 18 / 94%)" },
+        枠: {
+          見本: "color-mix(in srgb, #b26bff 35%, white)",
+          dragon: "#e4cbff",
+        },
+        太さ: { 見本: "2px", dragon: "2" },
+        影: {
+          見本: "0 0 2px 1px #b26bff, 0 0 10px 2px color-mix(in srgb, #b26bff 60%, transparent), inset 0 0 12px 1px color-mix(in srgb, #b26bff 32%, transparent)",
+          dragon:
+            "drop-shadow(0 0 2px #b26bff) drop-shadow(0 0 10px color-mix(in srgb, #b26bff 60%, transparent))",
+        },
+      },
+    },
+  ])("$palette の光っていない札を見本の面・枠・太さ・影へ揃える", ({ palette, expected }) => {
+    expect(Object.fromEntries(段の箱の札を読む(palette))).toEqual(expected);
+    const paletteBody = lastRuleBody(`svg[data-cdl-stage][data-cdl-palette="${palette}"]`);
+    expect(declaration(paletteBody, "--theme-stage-card-face")).toBe(expected.面.dragon);
+    if (palette === "neon") {
+      expect(declaration(paletteBody, "--theme-stage-card-frame")).toBe(expected.枠.dragon);
+    }
+    expect(declaration(paletteBody, "--theme-stage-card-frame-width")).toBe(expected.太さ.dragon);
+    expect(declaration(paletteBody, "--theme-stage-card-shadow").replace(/\s+/g, " ")).toBe(
+      expected.影.dragon,
+    );
+
+    const bodySelector =
+      palette === "catalog"
+        ? '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark])'
+        : '[data-cdl-role="node-body"]';
+    const selector = `svg[data-cdl-stage][data-cdl-palette="${palette}"]:has([data-cdl-role="stage-column"])
+  [data-cdl-kind="card"]:not([data-cdl-active="true"])
+  ${bodySelector}`;
+    const normal = ruleBody(selector);
+    expect(declaration(normal, "fill")).toBe("var(--theme-stage-card-face) !important");
+    expect(declaration(normal, "stroke")).toBe("var(--theme-stage-card-frame) !important");
+    expect(declaration(normal, "stroke-width")).toBe(
+      "var(--theme-stage-card-frame-width) !important",
+    );
+    expect(declaration(normal, "filter")).toBe("var(--theme-stage-card-shadow) !important");
+  });
+
+  it("浮彫の最後の段では在宅? を含む全ての活動中の札の題を題色にする", () => {
+    const phase = presetDeliveryStages.phases?.at(-1)?.id;
+    const markup = renderToStaticMarkup(
+      createElement(CdlDiagramView, { diagram: presetDeliveryStages, focusPhaseId: phase }),
+    );
+    const 自前の文書 = new JSDOM(markup).window.document;
+    const label = [...自前の文書.querySelectorAll('[data-cdl-role="node-label"]')].find(
+      (element) => element.textContent === "在宅?",
+    );
+    expect(
+      label?.closest('[data-cdl-active="true"]'),
+      "在宅? が活動中になっていない",
+    ).not.toBeNull();
+
+    const selector =
+      'svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-active="true"] [data-cdl-role="node-label"]';
+    expect(declaration(ruleBody(selector), "fill")).toBe("var(--theme-title) !important");
+  });
+
+  it("浮彫の段の箱の縦線・横線・三角の矢じりは同じ朱と同じ影の有無で描く", () => {
+    const palette = ruleBody('svg[data-cdl-stage][data-cdl-palette="relief"]');
+    expect(declaration(palette, "--er-line")).toBe("#c4573c");
+    expect(declaration(palette, "--theme-lead")).toBe("#c4573c");
+    expect(
+      declaration(ruleBody("svg[data-cdl-stage][data-cdl-palette]"), "--dragon-edge-tone"),
+    ).toBe("var(--er-line)");
+    const line = ruleBody('[data-cdl-role="edge-line"]');
+    expect(declaration(line, "stroke")).toBe(
+      "var(--dragon-edge-tone, var(--d-text-secondary)) !important",
+    );
+    expect(line).not.toMatch(/(?:^|;)\s*(?:opacity|filter)\s*:/m);
+
+    const arrow = ruleBody('[data-cdl-role="edge-arrowhead"]');
+    expect(arrow).toContain("fill: context-stroke !important");
+    expect(arrow).not.toMatch(/(?:^|;)\s*(?:opacity|filter)\s*:/m);
+
+    const phase = presetDeliveryStages.phases?.at(-1)?.id;
+    const markup = renderToStaticMarkup(
+      createElement(CdlDiagramView, { diagram: presetDeliveryStages, focusPhaseId: phase }),
+    );
+    const 自前の文書 = new JSDOM(markup).window.document;
+    const mainLines = [
+      ...自前の文書.querySelectorAll<SVGPathElement>(
+        '[data-cdl-edge-role="main"] [data-cdl-role="edge-line"]',
+      ),
+    ];
+    const 座標 = (path: SVGPathElement): number[] =>
+      [...(path.getAttribute("d") ?? "").matchAll(/-?\d+(?:\.\d+)?/g)].map((part) => Number(part[0]));
+    const horizontal = mainLines.find((path) => {
+      const [, y1, , y2] = 座標(path);
+      return y1 === y2;
+    });
+    const vertical = mainLines.find((path) => {
+      const [x1, , x2] = 座標(path);
+      return x1 === x2;
+    });
+    for (const [向き, path] of [
+      ["横", horizontal],
+      ["縦", vertical],
+    ] as const) {
+      expect(path, `${向き}の主役線が無い`).toBeDefined();
+      expect(path?.getAttribute("stroke")).toBe("var(--cdl-now, #c0421f)");
+      expect(path?.getAttribute("stroke-opacity")).toBe("0.95");
+      expect(path?.getAttribute("filter")).toBeNull();
+    }
+
+    const marker = 自前の文書.querySelector<SVGPathElement>(
+      '[id="cdl-arrow-accent"] [data-cdl-role="edge-arrowhead"]',
+    );
+    expect(marker?.getAttribute("opacity"), "矢じりの不透明度は初期値 1").toBeNull();
+    expect(marker?.getAttribute("filter")).toBeNull();
   });
 });

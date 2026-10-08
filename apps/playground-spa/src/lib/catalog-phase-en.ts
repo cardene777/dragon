@@ -45,6 +45,10 @@ export const 日本語を含む = (字: string): boolean =>
  * 表からは読めなくなる)。
  */
 export const PHASE_TITLE_EN: Record<string, string> = {
+  "荷物を届ける流れ": "The flow of delivering a parcel",
+  "荷物を届ける段階": "The stages of delivering a parcel",
+  "荷物を届ける路線": "The route for delivering a parcel",
+  "荷物を届ける順番": "The order for delivering a parcel",
   "頼む": "Request pickup",
   "運ぶ": "Carry",
   "集荷を受け付ける": "Accept the pickup",
@@ -336,7 +340,6 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "1. 抽象クラスとインターフェース": "1. Abstract classes and interfaces",
   "1. 注文が受付に渡る": "1. The order reaches reception",
   "1. 注文を出す": "1. Place the order",
-  "1. 申請を出す": "1. Submit the claim",
   "1. 近い拠点へ繋ぐ": "1. Connect to the nearest site",
   "1. 領収書を添えて申請する": "1. Claim with the receipt attached",
   "どの作業から取るか": "Which work to take on first",
@@ -349,7 +352,6 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "2. 合言葉を確かめる": "2. Check the password",
   "2. 在庫を押さえる": "2. Hold the stock",
   "2. 境の壁で受ける": "2. Taken at the boundary wall",
-  "2. 審査": "2. Review",
   "2. 振込とカードの継承": "2. Transfer and card inherit",
   "2. 数を確かめる": "2. Check the count",
   "2. 明細に商品が並ぶ": "2. Items line up on the order lines",
@@ -358,7 +360,6 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "2. 継承": "2. Inheritance",
   "2. 金額で道を分ける": "2. The amount splits the route",
   "3. ECS のタスク": "3. The ECS task",
-  "3. はいなら承認": "3. Yes means approved",
   "3. アプリのサーバー": "3. The application server",
   "3. 受付済のまま催促する": "3. Chase it while still Accepted",
   "3. 在庫を押さえる": "3. Hold the stock",
@@ -434,8 +435,6 @@ export const PHASE_TITLE_EN: Record<string, string> = {
   "入り口ごとの利用の割合": "Share of use by entry point",
   "処理の順番を左から右へ 1 本の流れで示す図": "A chart showing the order of work as one line from left to right",
   "処理を役割ごとに縦列に分けて流れを示す図": "A chart splitting the work into lanes by role to show the flow",
-  "分岐や判定を含む処理の流れを縦に積んで示す図": "A chart showing a flow that branches and decides, stacked vertically",
-  "分岐や判定を含む処理の流れを示す図": "A chart showing a flow that branches and decides",
   "半年前の内訳": "The split six months ago",
   "訪問から有料契約まで": "From visit to paid plan",
   "品質を独立させる": "Make quality its own team",

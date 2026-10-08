@@ -7,6 +7,7 @@ import {
   readFixedThemeLead,
   readFixedThemeRoleColor,
   readFixedThemeSingleSeriesBars,
+  readFlowchartDecisionStyles,
   readThemeNotes,
   readThemeNoteText,
 } from "./helpers/theme-notes";
@@ -15,9 +16,11 @@ const neon = readThemeNotes().get("neon");
 if (neon?.mode !== "fixed") throw new Error("電飾の意匠帳が固定の表ではない");
 
 const lead = readFixedThemeLead().get("neon");
+const flowchartDecision = readFlowchartDecisionStyles().get("neon");
 const pale = readFixedThemeRoleColor("neon", "淡");
 const title = readFixedThemeRoleColor("neon", "題");
-if (!lead || !pale || !title) throw new Error("電飾の作りの色を意匠帳から読めない");
+if (!lead || !pale || !title || !flowchartDecision)
+  throw new Error("電飾の作りの色を意匠帳から読めない");
 
 const tubeRow = /^\|\s*管\s*\|([^\n]+)$/m.exec(readThemeNoteText("neon"))?.[1] ?? "";
 const tubeMix = [...tubeRow.matchAll(/(\d+)%/g)].map((match) => Number(match[1]) / 100);
@@ -149,6 +152,7 @@ test.describe("neon theme (#2795)", () => {
             const style = getComputedStyle(element);
             return {
               active: element.closest('[data-cdl-active="true"]') !== null,
+              kind: element.closest("[data-cdl-kind]")?.getAttribute("data-cdl-kind") ?? "",
               filter: style.filter,
               stroke: style.stroke,
               width: style.strokeWidth,
@@ -157,10 +161,13 @@ test.describe("neon theme (#2795)", () => {
         );
       boxesCount += boxes.length;
       for (const box of boxes) {
+        const decision = target.name === "flowchart" && box.kind === "decision" && !box.active;
+        const expectedFrame = decision ? flowchartDecision.frame : neon.value.frame;
+        const expectedWidth = decision ? flowchartDecision.width : box.active ? 3 : 2;
         expect(box.filter, `${target.name} の箱の管`).toContain("url(");
         expect(box.filter, `${target.name} の箱の管`).toContain("dragon-neon-tube");
-        expect(box.stroke, `${target.name} の箱の枠`).toBe(hexToRgb(neon.value.frame));
-        expect(box.width, `${target.name} の箱の太さ`).toBe(box.active ? "3px" : "2px");
+        expect(box.stroke, `${target.name} の箱の枠`).toBe(hexToRgb(expectedFrame));
+        expect(box.width, `${target.name} の箱の太さ`).toBe(`${expectedWidth}px`);
         if (box.active) {
           activeBoxesCount += 1;
           expect(box.filter, `${target.name} の強調の箱の外光`).toContain("drop-shadow");

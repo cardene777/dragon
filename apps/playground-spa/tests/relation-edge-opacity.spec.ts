@@ -283,7 +283,7 @@ test("編集画面の移り変わりの図は変更前の濃さのまま (#2805)
 });
 
 test("囲いの外の図は描く側の薄さのまま (対照)", async ({ page }) => {
-  await 見本を開く(page, "flowchart-demo", false);
+  await 見本を開く(page, "delivery-flow-demo", false);
   const 値 = await 薄さを読む(page);
 
   expect(値.length, "分かれ道の図の線を 1 本も測れていない (検査が空振りしている)").toBeGreaterThan(

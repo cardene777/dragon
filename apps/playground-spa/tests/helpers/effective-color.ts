@@ -62,6 +62,7 @@ export type Paint = {
   fillOpacity: number;
   stroke: string;
   strokeOpacity: number;
+  strokeWidth: number;
   opacity: number;
   rendered: boolean;
   attrStrokeOpacity: string | null;
@@ -95,6 +96,7 @@ export function readPaints(elements: Element[]): Paint[] {
       fillOpacity: Number(style.fillOpacity || 1),
       stroke: style.stroke,
       strokeOpacity: Number(style.strokeOpacity || 1),
+      strokeWidth: Number.parseFloat(style.strokeWidth || "0"),
       opacity,
       rendered,
       attrStrokeOpacity: element.getAttribute("stroke-opacity"),

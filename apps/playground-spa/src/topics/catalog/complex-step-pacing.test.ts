@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 // 複雑な版は見本の中のパターン「複雑」 として書く (#1960)
-import * as カタログの定義 from "./presets.cdl";
+import * as ひな形の定義 from "./presets.cdl";
+import * as 記法の定義 from "./text-dsl.cdl";
 import { 複雑な版を作らない見本 } from "./complex-variant-policy";
 
 const 一段の最大増分 = 4;
@@ -25,7 +26,7 @@ const 段ごとの増分 = (段: readonly Pick<CdlDiagram["phases"][number], "ac
  * 並べ忘れれば何も落ちず、足した版だけが段の進み方の検査を受けない。
  * 複雑な版の名前は `pattern__<元の見本>__複雑` と決まっているので、そこから導く。
  */
-const 定義 = カタログの定義 as unknown as Record<string, unknown>;
+const 定義 = { ...ひな形の定義, ...記法の定義 } as unknown as Record<string, unknown>;
 const 複雑な版の名前 = Object.keys(定義)
   .filter((名前) => /^pattern__[^_]+__複雑$/.test(名前))
   .sort();
@@ -81,7 +82,7 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
         "class-complex-demo",
         "er-complex-demo",
         "infra-complex-demo",
-        "flowchart-complex-demo",
+        "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
         "seq-complex-demo",
         "fsm-complex-demo",
         "network-complex-demo",
@@ -106,7 +107,7 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
         "class-demo",
         "er-demo",
         "infra-demo",
-        "flowchart-demo",
+        "経費申請の承認",
         "seq-demo",
         "fsm-demo",
         "network-demo",

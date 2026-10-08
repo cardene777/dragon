@@ -90,6 +90,11 @@ const 型たち: Record<string, 型> = {
     形: /^edge "(.*)" \(from=(.*) to=(.*)\) が関係ない 名札 "(.*)" を貫通$/,
     英語: (m) => `Line "${m[1]}" (from=${m[2]} to=${m[3]}) runs through the unrelated box "${m[4]}"`,
   },
+  "column-gap-uniform": {
+    形: /^lane "(.*)" 内 node 間の端間 gap variance ([\d.]+) world が spec ([\d.]+) 超過 \(min=(-?[\d.]+) max=(-?[\d.]+)\)$/,
+    英語: (m) =>
+      `In lane "${m[1]}", the end-to-end gap variance is ${m[2]} world, over the ${m[3]} allowed (min=${m[4]} max=${m[5]})`,
+  },
   clearance: {
     形: /^(.+?) ↔ (.+?) gap=(-?[\d.]+)px \(need ([\d.]+)px\)$/,
     英語: (m) =>

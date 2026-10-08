@@ -493,6 +493,11 @@ describe("時間軸で分かれ道と終わりを書く (#2830)", () => {
     expect((宅配.markup.match(/data-cdl-mark="start"/g) ?? []).length).toBe(0);
   });
 
+  it("分かれ道に縦列の名前を担当として付けない", () => {
+    const 分かれ道 = 宅配.diagram.nodes.find((node) => node.kind === "decision");
+    expect(分かれ道?.subtitle).toBeUndefined();
+  });
+
   it("分かれ道と終わりを番号と同じ軸上に置く", () => {
     const atHome = 宅配.diagram.nodes.find((node) => node.id === "在宅")!;
     const end = 宅配.diagram.nodes.find((node) => node.id === "終わり")!;
