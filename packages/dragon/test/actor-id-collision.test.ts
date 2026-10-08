@@ -28,7 +28,6 @@ const 箱を作る図種 = [
   "record",
   "topology",
   "solidity",
-  "class",
   "c4",
 ] as const;
 
@@ -519,11 +518,10 @@ describe("逃げ先は図種ごとに違う (Round 3)", () => {
 
   it("cdl の逃げ道を通らない図種はどちらでも触らない", () => {
     // これらは dragon 側の逃げ先 (`n`) に落ちるので、 cdl の逃げ先とは重ならない
-    for (const type of ["flow", "record", "topology", "class", "c4"]) {
+    for (const type of ["flow", "record", "topology", "c4"]) {
       for (const 相手 of ["lane-0", "actor-0"]) {
         expect(絵文字のid(type, 相手), `${type} / ${相手} で作り替えている`).toBe("n");
       }
     }
   });
 });
-

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
 /**
@@ -39,7 +39,10 @@ function ls(repo: string, 追加: readonly string[], glob: readonly string[]): s
     { encoding: "utf8" },
   )
     .split("\n")
-    .filter((p) => p !== "");
+    .filter((p) => p !== "")
+    // index には残っていても、作業木から削除した file は「いま走査する
+    // file」ではない。削除を stage する前の検査でも、存在する file だけを返す。
+    .filter((p) => existsSync(join(repo, p)));
 }
 
 /**

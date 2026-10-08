@@ -83,13 +83,13 @@ describe("同じ縦列に箱を 2 つ置いた図が描ける (#2396)", () => {
     expect(走査, "走査した組み合わせ").toBe(PRESET_TYPES.size * 2);
   });
 
-  it("縦列にずらしを書いたクラス図が組み上がる", () => {
+  it("縦列にずらしを書いた record が組み上がる", () => {
     /*
      * ずらしを書いた図は組み立ての途中で配置を 1 度計算する (`applyLayoutOffsets`)。
      * 画面に描く前に落ちる経路なので、上の走査とは別に見る。
      */
     const src = `title: "しらべ"
-type: class
+type: record
 
 lanes:
   l1: { width: 300, offsetX: 60 }
@@ -105,7 +105,7 @@ actors:
 
   it("段を書かない箱が縦列ごとに 0 から順に載る", () => {
     const src = `title: "しらべ"
-type: class
+type: record
 
 lanes:
   l1: { width: 300 }
@@ -131,7 +131,7 @@ actors:
      * 書いた番号が意味を持つ図 (格子に置く形) が別の図になる。
      */
     const src = `title: "しらべ"
-type: class
+type: record
 
 lanes:
   l1: { width: 300 }
@@ -152,7 +152,7 @@ actors:
      * `stack: 0` と、先に書いた段なしの箱が同じ段に載る。
      */
     const src = `title: "しらべ"
-type: class
+type: record
 
 lanes:
   l1: { width: 300 }
@@ -172,7 +172,7 @@ actors:
     expect(new Set(番号).size, "同じ段に 2 つ載っている").toBe(番号.length);
   });
 
-  it("陰性対照: 縦列を書かないクラス図は箱ごとに列が分かれたまま", () => {
+  it("陰性対照: 縦列を書かない record は箱ごとに列が分かれたまま", () => {
     /*
      * 縦列を書かない図は組み立て器が宣言した順に横 1 列へ並べる = 箱ごとに列が分かれ、
      * どの箱も段 0 に載る。 この 0 は組み立て器の既定で、記法の側は何も渡していない。
@@ -181,7 +181,7 @@ actors:
      * 段だけを見ると、列が 1 本にまとまった日に「段 0 が 3 つ」 のまま通る。
      */
     const src = `title: "しらべ"
-type: class
+type: record
 
 actors:
   - あ

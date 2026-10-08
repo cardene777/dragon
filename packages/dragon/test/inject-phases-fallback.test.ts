@@ -12,9 +12,9 @@ import { compile } from "@cardenelabs/cdl";
 
 describe("縦列が無い本文に光らせる対象を補う (CAR-1659)", () => {
   describe("全角の矢印 `→` から線を解く", () => {
-    it("class preset で focus に `A → B` (全角) を含めても edge が activate される", () => {
+    it("record で focus に `A → B` (全角) を含めても edge が activate される", () => {
       const src = `title: "arrow-fullwidth-test"
-type: class
+type: record
 
 actors:
   - Animal
@@ -38,9 +38,9 @@ animation:
       expect(activatedEdges.length).toBe(1);
     });
 
-    it("class preset で `->` (半角) と `→` (全角) が同 diagram 内で共存できる", () => {
+    it("record で `->` (半角) と `→` (全角) が同 diagram 内で共存できる", () => {
       const src = `title: "arrow-mixed-test"
-type: class
+type: record
 
 actors:
   - A
@@ -69,7 +69,7 @@ animation:
   describe("同じ from / to の線を全件光らせる", () => {
     it("同 from/to で 2 本 edge がある場合、 focus 1 件で 2 edge 全件 activate", () => {
       const src = `title: "multi-edge-test"
-type: class
+type: record
 
 actors:
   - A
@@ -94,10 +94,10 @@ animation:
   });
 
   describe("phase activation ID count assert (実 SAMPLES で lock)", () => {
-    it("class SAMPLE の focus 5 件 (3 node + 2 edge) を正しく activate", () => {
-      // 実 CdlEditor SAMPLES で使う class sample の focus 記述
+    it("record SAMPLE の focus 5 件 (3 node + 2 edge) を正しく activate", () => {
+      // 実 CdlEditor SAMPLES で使う UML class sample の focus 記述
       const src = `title: "動物クラス階層"
-type: class
+type: record
 
 actors:
   - 動物: { kind: storage, rows: ["+name: string", "+age: int", "+speak(): void"] }

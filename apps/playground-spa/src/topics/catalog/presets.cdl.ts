@@ -5110,7 +5110,7 @@ export const sourceJson__presetSwimlane = `{
 }`;
 
 export const sourceYaml__presetClassDiagram = `title: "クラスどうしの 6 種の関係を示す UML クラス図"
-type: class
+type: record
 palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
@@ -5119,13 +5119,13 @@ reveal: all
 
 # 縦列は lane の並び、段は stack。 箱の 1 つの辺には関係を 1 本しか載せない
 actors:
-  - User: { eyebrow: "abstract", lane: c0, stack: 0, rows: ["+name: string", "+email: string", "───", "+login(): Session"] }
-  - Auditable: { eyebrow: "interface", lane: c1, stack: 0, rows: ["+audit(): Log[]"] }
-  - Admin: { lane: c0, stack: 1, rows: ["+permissions: string[]", "───", "+banUser(): void"] }
-  - Order: { lane: c1, stack: 1, rows: ["+id: number", "+total: number", "───", "+pay(): Receipt"] }
-  - Receipt: { lane: c2, stack: 1, rows: ["+no: string", "+amount: number"] }
-  - Line: { lane: c1, stack: 2, rows: ["+qty: number", "+price: number"] }
-  - Sku: { lane: c2, stack: 2, rows: ["+code: string", "+name: string"] }
+  - User: { eyebrow: "abstract", lane: c0, stack: 0, rows: ["name: string", "email: string", "login: Session"], marks: ["", "", "外"] }
+  - Auditable: { eyebrow: "interface", lane: c1, stack: 0, rows: ["audit: Log[]"], marks: ["外"] }
+  - Admin: { lane: c0, stack: 1, rows: ["permissions: string[]", "banUser: void"], marks: ["", "外"] }
+  - Order: { lane: c1, stack: 1, rows: ["id: number", "total: number", "pay: Receipt"], marks: ["", "", "外"] }
+  - Receipt: { lane: c2, stack: 1, rows: ["no: string", "amount: number"], marks: ["", ""] }
+  - Line: { lane: c1, stack: 2, rows: ["qty: number", "price: number"], marks: ["", ""] }
+  - Sku: { lane: c2, stack: 2, rows: ["code: string", "name: string"], marks: ["", ""] }
 
 # relation を書くと 線 / 端の形 / 塗り / 付く側 がまとめて決まる
 flow:
@@ -5165,7 +5165,7 @@ animation:
 
 export const sourceJson__presetClassDiagram = `{
   "title": "クラスどうしの 6 種の関係を示す UML クラス図",
-  "type": "class",
+  "type": "record",
   "palette": "kinari",
   "relations": "hover",
   "reveal": "all",
@@ -5175,44 +5175,51 @@ export const sourceJson__presetClassDiagram = `{
       "eyebrow": "abstract",
       "lane": "c0",
       "stack": 0,
-      "rows": ["+name: string", "+email: string", "───", "+login(): Session"]
+      "rows": ["name: string", "email: string", "login: Session"],
+      "marks": ["", "", "外"]
     },
     {
       "name": "Auditable",
       "eyebrow": "interface",
       "lane": "c1",
       "stack": 0,
-      "rows": ["+audit(): Log[]"]
+      "rows": ["audit: Log[]"],
+      "marks": ["外"]
     },
     {
       "name": "Admin",
       "lane": "c0",
       "stack": 1,
-      "rows": ["+permissions: string[]", "───", "+banUser(): void"]
+      "rows": ["permissions: string[]", "banUser: void"],
+      "marks": ["", "外"]
     },
     {
       "name": "Order",
       "lane": "c1",
       "stack": 1,
-      "rows": ["+id: number", "+total: number", "───", "+pay(): Receipt"]
+      "rows": ["id: number", "total: number", "pay: Receipt"],
+      "marks": ["", "", "外"]
     },
     {
       "name": "Receipt",
       "lane": "c2",
       "stack": 1,
-      "rows": ["+no: string", "+amount: number"]
+      "rows": ["no: string", "amount: number"],
+      "marks": ["", ""]
     },
     {
       "name": "Line",
       "lane": "c1",
       "stack": 2,
-      "rows": ["+qty: number", "+price: number"]
+      "rows": ["qty: number", "price: number"],
+      "marks": ["", ""]
     },
     {
       "name": "Sku",
       "lane": "c2",
       "stack": 2,
-      "rows": ["+code: string", "+name: string"]
+      "rows": ["code: string", "name: string"],
+      "marks": ["", ""]
     }
   ],
   "flow": [
@@ -5304,7 +5311,7 @@ export const sourceJson__presetClassDiagram = `{
 }`;
 
 export const sourceYaml__pattern__presetClassDiagram__複雑 = `title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図"
-type: class
+type: record
 palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
 # 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
@@ -5312,18 +5319,18 @@ relations: hover
 reveal: all
 
 actors:
-  - RiskCheck: { lane: c0, stack: 2, rows: ["+score: number", "+decision: Decision", "───", "+evaluate(): Decision", "+audit(): AuditLog"] }
-  - Notification: { lane: c0, stack: 3, rows: ["+channel: Channel", "+recipient: string", "───", "+send(): Result"] }
-  - Retryable: { eyebrow: "interface", lane: c1, stack: 0, rows: ["+maxAttempts: number", "───", "+retry(): Result"] }
-  - PaymentGateway: { lane: c1, stack: 1, rows: ["+endpoint: string", "+attempts: number", "───", "+charge(): Transaction", "+retry(): Result"] }
-  - Auditable: { eyebrow: "interface", lane: c2, stack: 0, rows: ["+auditId: string", "───", "+audit(): AuditLog"] }
-  - WalletPayment: { lane: c2, stack: 1, rows: ["+walletId: string", "+balance: Money", "───", "+authorize(): Result", "+debit(): Result"] }
-  - Transaction: { lane: c2, stack: 3, rows: ["+id: string", "+amount: Money", "+status: Status", "───", "+settle(): Receipt", "+cancel(): Result"] }
-  - LedgerEntry: { lane: c2, stack: 4, rows: ["+account: string", "+amount: Money", "───", "+post(): void"] }
-  - PaymentMethod: { eyebrow: "abstract", lane: c3, stack: 0, rows: ["+methodId: string", "+enabled: boolean", "───", "+authorize(): Result", "+capture(): Result"] }
-  - CardPayment: { lane: c3, stack: 1, rows: ["+token: string", "+brand: string", "───", "+authorize(): Result", "+capture(): Result"] }
-  - Receipt: { lane: c3, stack: 4, rows: ["+number: string", "+issuedAt: Date", "───", "+render(): Document"] }
-  - BankTransfer: { lane: c4, stack: 1, rows: ["+bankCode: string", "+reference: string", "───", "+authorize(): Result", "+reconcile(): Result"] }
+  - RiskCheck: { lane: c0, stack: 2, rows: ["score: number", "decision: Decision", "evaluate: Decision", "audit: AuditLog"], marks: ["", "", "外", "外"] }
+  - Notification: { lane: c0, stack: 3, rows: ["channel: Channel", "recipient: string", "send: Result"], marks: ["", "", "外"] }
+  - Retryable: { eyebrow: "interface", lane: c1, stack: 0, rows: ["maxAttempts: number", "retry: Result"], marks: ["", "外"] }
+  - PaymentGateway: { lane: c1, stack: 1, rows: ["endpoint: string", "attempts: number", "charge: Transaction", "retry: Result"], marks: ["", "", "外", "外"] }
+  - Auditable: { eyebrow: "interface", lane: c2, stack: 0, rows: ["auditId: string", "audit: AuditLog"], marks: ["", "外"] }
+  - WalletPayment: { lane: c2, stack: 1, rows: ["walletId: string", "balance: Money", "authorize: Result", "debit: Result"], marks: ["", "", "外", "外"] }
+  - Transaction: { lane: c2, stack: 3, rows: ["id: string", "amount: Money", "status: Status", "settle: Receipt", "cancel: Result"], marks: ["", "", "", "外", "外"] }
+  - LedgerEntry: { lane: c2, stack: 4, rows: ["account: string", "amount: Money", "post: void"], marks: ["", "", "外"] }
+  - PaymentMethod: { eyebrow: "abstract", lane: c3, stack: 0, rows: ["methodId: string", "enabled: boolean", "authorize: Result", "capture: Result"], marks: ["", "", "外", "外"] }
+  - CardPayment: { lane: c3, stack: 1, rows: ["token: string", "brand: string", "authorize: Result", "capture: Result"], marks: ["", "", "外", "外"] }
+  - Receipt: { lane: c3, stack: 4, rows: ["number: string", "issuedAt: Date", "render: Document"], marks: ["", "", "外"] }
+  - BankTransfer: { lane: c4, stack: 1, rows: ["bankCode: string", "reference: string", "authorize: Result", "reconcile: Result"], marks: ["", "", "外", "外"] }
 flow:
   - BankTransfer -> PaymentMethod: "継承" { relation: extends }
   - CardPayment -> PaymentMethod: "継承" { relation: extends }
@@ -5377,7 +5384,7 @@ animation:
 export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
   {
     "title": "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
-    "type": "class",
+    "type": "record",
     "palette": "kinari",
     "relations": "hover",
     "reveal": "all",
@@ -5386,142 +5393,88 @@ export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
         "name": "RiskCheck",
         "lane": "c0",
         "stack": 2,
-        "rows": [
-          "+score: number",
-          "+decision: Decision",
-          "───",
-          "+evaluate(): Decision",
-          "+audit(): AuditLog"
-        ]
+        "rows": ["score: number", "decision: Decision", "evaluate: Decision", "audit: AuditLog"],
+        "marks": ["", "", "外", "外"]
       },
       {
         "name": "Notification",
         "lane": "c0",
         "stack": 3,
-        "rows": [
-          "+channel: Channel",
-          "+recipient: string",
-          "───",
-          "+send(): Result"
-        ]
+        "rows": ["channel: Channel", "recipient: string", "send: Result"],
+        "marks": ["", "", "外"]
       },
       {
         "name": "Retryable",
         "eyebrow": "interface",
         "lane": "c1",
         "stack": 0,
-        "rows": [
-          "+maxAttempts: number",
-          "───",
-          "+retry(): Result"
-        ]
+        "rows": ["maxAttempts: number", "retry: Result"],
+        "marks": ["", "外"]
       },
       {
         "name": "PaymentGateway",
         "lane": "c1",
         "stack": 1,
-        "rows": [
-          "+endpoint: string",
-          "+attempts: number",
-          "───",
-          "+charge(): Transaction",
-          "+retry(): Result"
-        ]
+        "rows": ["endpoint: string", "attempts: number", "charge: Transaction", "retry: Result"],
+        "marks": ["", "", "外", "外"]
       },
       {
         "name": "Auditable",
         "eyebrow": "interface",
         "lane": "c2",
         "stack": 0,
-        "rows": [
-          "+auditId: string",
-          "───",
-          "+audit(): AuditLog"
-        ]
+        "rows": ["auditId: string", "audit: AuditLog"],
+        "marks": ["", "外"]
       },
       {
         "name": "WalletPayment",
         "lane": "c2",
         "stack": 1,
-        "rows": [
-          "+walletId: string",
-          "+balance: Money",
-          "───",
-          "+authorize(): Result",
-          "+debit(): Result"
-        ]
+        "rows": ["walletId: string", "balance: Money", "authorize: Result", "debit: Result"],
+        "marks": ["", "", "外", "外"]
       },
       {
         "name": "Transaction",
         "lane": "c2",
         "stack": 3,
-        "rows": [
-          "+id: string",
-          "+amount: Money",
-          "+status: Status",
-          "───",
-          "+settle(): Receipt",
-          "+cancel(): Result"
-        ]
+        "rows": ["id: string", "amount: Money", "status: Status", "settle: Receipt", "cancel: Result"],
+        "marks": ["", "", "", "外", "外"]
       },
       {
         "name": "LedgerEntry",
         "lane": "c2",
         "stack": 4,
-        "rows": [
-          "+account: string",
-          "+amount: Money",
-          "───",
-          "+post(): void"
-        ]
+        "rows": ["account: string", "amount: Money", "post: void"],
+        "marks": ["", "", "外"]
       },
       {
         "name": "PaymentMethod",
         "eyebrow": "abstract",
         "lane": "c3",
         "stack": 0,
-        "rows": [
-          "+methodId: string",
-          "+enabled: boolean",
-          "───",
-          "+authorize(): Result",
-          "+capture(): Result"
-        ]
+        "rows": ["methodId: string", "enabled: boolean", "authorize: Result", "capture: Result"],
+        "marks": ["", "", "外", "外"]
       },
       {
         "name": "CardPayment",
         "lane": "c3",
         "stack": 1,
-        "rows": [
-          "+token: string",
-          "+brand: string",
-          "───",
-          "+authorize(): Result",
-          "+capture(): Result"
-        ]
+        "rows": ["token: string", "brand: string", "authorize: Result", "capture: Result"],
+        "marks": ["", "", "外", "外"]
       },
       {
         "name": "Receipt",
         "lane": "c3",
         "stack": 4,
-        "rows": [
-          "+number: string",
-          "+issuedAt: Date",
-          "───",
-          "+render(): Document"
-        ]
+        "rows": ["number: string", "issuedAt: Date", "render: Document"],
+        "marks": ["", "", "外"]
       },
       {
         "name": "BankTransfer",
         "lane": "c4",
         "stack": 1,
-        "rows": [
-          "+bankCode: string",
-          "+reference: string",
-          "───",
-          "+authorize(): Result",
-          "+reconcile(): Result"
-        ]
+        "rows": ["bankCode: string", "reference: string", "authorize: Result", "reconcile: Result"],
+        "marks": ["", "", "外", "外"]
       }
     ],
     "flow": [

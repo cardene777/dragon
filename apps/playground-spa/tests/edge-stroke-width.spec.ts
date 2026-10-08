@@ -12,7 +12,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { 記法をURLに載せる } from "./box-and-edge-figure";
 
 const クラス図の記法 = `title: "クラス図の線幅"
-type: class
+type: record
 reveal: all
 
 actors:
@@ -65,7 +65,7 @@ async function 線幅を測る(page: Page, 図種: string): Promise<number[]> {
 
 test("クラス図の関係の線幅は 7", async ({ page }) => {
   await 図を開く(page, クラス図の記法);
-  const 太さ = await 線幅を測る(page, "class");
+  const 太さ = await 線幅を測る(page, "record");
 
   expect(
     太さ.length,
@@ -98,12 +98,12 @@ test("フローの関係の線幅も 7", async ({ page }) => {
   expect(new Set(太さ), `フローの線幅が揃っていない: ${太さ.join(" / ")}`).toEqual(new Set([7]));
 });
 
-test('クラス図の絵の根は data-cdl-type="class" を持つ', async ({ page }) => {
+test('クラス図の絵の根は data-cdl-type="record" を持つ', async ({ page }) => {
   await 図を開く(page, クラス図の記法);
 
   await expect(
     page.locator('[data-testid="editor-preview-stage"] svg[data-cdl-type]').first(),
-  ).toHaveAttribute("data-cdl-type", "class");
+  ).toHaveAttribute("data-cdl-type", "record");
 });
 
 /**
@@ -115,7 +115,7 @@ test("白抜きの印と開いた矢の輪郭も線と同じ比で太くなる",
   await 図を開く(page, クラス図の記法);
   const 印 = await page
     .locator(
-      '[data-testid="editor-preview-stage"] svg[data-cdl-type="class"] [data-cdl-role="edge-line"]',
+      '[data-testid="editor-preview-stage"] svg[data-cdl-type="record"] [data-cdl-role="edge-line"]',
     )
     .evaluateAll((線) =>
       線.flatMap((要素) => {

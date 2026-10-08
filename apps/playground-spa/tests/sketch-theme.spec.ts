@@ -41,6 +41,7 @@ const stage = (page: Page) => page.locator('svg[data-cdl-stage][data-cdl-palette
 function sample(type: string): string {
   const found = EDITOR_SAMPLES.find((value) => {
     if (!new RegExp(`^type:\\s*${type}\\s*$`, "m").test(value.code)) return false;
+    if (type === "record") return value.slug === "class";
     return type !== "chart" || /^shape:\s*bar\s*$/m.test(value.code);
   });
   if (!found) throw new Error(`editor-samples に ${type} の見本が無い`);
@@ -243,7 +244,7 @@ test.describe("sketch theme (#2794)", () => {
 
     let activeBoxes = 0;
     let normalBoxes = 0;
-    for (const type of ["class", "flowchart", "chart", "sequence", "gantt"]) {
+    for (const type of ["record", "flowchart", "chart", "sequence", "gantt"]) {
       await openEditorTheme(page, sample(type), "sketch", false);
       await expect(page.locator("filter#dragon-sketch-wobble")).toHaveCount(1);
       await expect(page.locator("pattern#dragon-sketch-pen")).toHaveCount(1);
@@ -275,7 +276,7 @@ test.describe("sketch theme (#2794)", () => {
         if (box.active) activeBoxes += 1;
       }
 
-      if (type === "class" || type === "flowchart") {
+      if (type === "record" || type === "flowchart") {
         const lineFilters = await stage(page)
           .locator('[data-cdl-role="edge-line"]')
           .evaluateAll((elements) => elements.map((element) => getComputedStyle(element).filter));
@@ -289,7 +290,7 @@ test.describe("sketch theme (#2794)", () => {
     expect(normalBoxes, "見せ方と印を持たない箱を 1 件も測れていない").toBeGreaterThan(0);
     expect(activeBoxes, "強調の箱を 1 件も測れていない").toBeGreaterThan(0);
 
-    for (const type of ["class", "flowchart", "chart", "sequence", "gantt", "topology", "c4"]) {
+    for (const type of ["record", "flowchart", "chart", "sequence", "gantt", "topology", "c4"]) {
       await openEditorTheme(page, sample(type), "sketch", false);
       const textFailures = await stage(page).evaluate((root, forbidden) => {
         const failures: string[] = [];

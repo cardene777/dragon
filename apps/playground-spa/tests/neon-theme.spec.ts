@@ -34,9 +34,10 @@ const hexToRgb = (hex: string): string => {
 
 const stage = (page: Page) => page.locator('svg[data-cdl-stage][data-cdl-palette="neon"]');
 
-function sample(type: string, shape?: "bar" | "pie"): string {
+function sample(type: string, shape?: "bar" | "pie", slug?: string): string {
   const found = EDITOR_SAMPLES.find((value) => {
     if (!new RegExp(`^type:\\s*${type}\\s*$`, "m").test(value.code)) return false;
+    if (slug !== undefined && value.slug !== slug) return false;
     return shape === undefined || new RegExp(`^shape:\\s*${shape}\\s*$`, "m").test(value.code);
   });
   if (!found) throw new Error(`editor-samples に ${type}${shape ? ` / ${shape}` : ""} の見本が無い`);
@@ -110,7 +111,7 @@ test.describe("neon theme (#2795)", () => {
     const titleRoles = new Set<string>();
 
     const targets = [
-      { name: "class", source: sample("class") },
+      { name: "class", source: sample("record", undefined, "class") },
       { name: "record", source: sample("record") },
       { name: "flowchart", source: sample("flowchart") },
       { name: "chart/bar", source: sample("chart", "bar") },

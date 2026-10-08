@@ -131,12 +131,12 @@ describe("矢印に書いた飾りが図種ごとに消えない (#2394)", () =>
     expect(違う, "図種 6 通り").toEqual([]);
   });
 
-  it("クラス図の出どころ側の添え字は端に 1 度だけ出る", () => {
+  it("record の UML 関係の出どころ側の添え字は端に 1 度だけ出る", () => {
     /*
      * クラス図の組み立ては `tailCardinality` として渡しており、engine が端に置く。
      * 共通の書き写しがそこへ重ねると同じ字が 2 か所に出るので、クラス図だけ外している。
      */
-    const p = parseTextDslV05(本文("class", ': "つなぐ"', ' { tailSub: "1" }'));
+    const p = parseTextDslV05(本文("record", ': "つなぐ"', ' { tailSub: "1", relation: aggregates }'));
     if (!p.ok) throw new Error("読めない本文");
     const 矢印 = compileToCdl(p.doc).edges.find((e) => e.to === "い");
     expect(矢印?.tailLabel, "端の字が出ていない (検査が空振りしている)").toBe("1");
@@ -146,7 +146,7 @@ describe("矢印に書いた飾りが図種ごとに消えない (#2394)", () =>
 
   it("陰性対照: 3 欄を書かない矢印は既定のまま", () => {
     const 違う: string[] = [];
-    for (const 図種 of ["c4", "record", "flow", "swimlane", "topology", "class"]) {
+    for (const 図種 of ["c4", "record", "flow", "swimlane", "topology"]) {
       const p = parseTextDslV05(本文(図種, ': "つなぐ"', ""));
       if (!p.ok) throw new Error(`読めない本文 (${図種})`);
       const 矢印 = compileToCdl(p.doc).edges.find((e) => e.to === "い");

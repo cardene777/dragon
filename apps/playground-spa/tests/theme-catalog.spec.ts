@@ -5,11 +5,13 @@ import { 記法をURLに載せる } from "./box-and-edge-figure";
 import { checkEdgeLabelTones, checkSingleSeriesBars } from "./helpers/label-tone-checks";
 import { readFixedThemeGroundText } from "./helpers/theme-notes";
 
-const TYPES = ["class", "flowchart", "chart"] as const;
+const TYPES = ["record", "flowchart", "chart"] as const;
 
 function sample(type: (typeof TYPES)[number]): string {
-  const found = EDITOR_SAMPLES.find((value) =>
-    new RegExp(`^type:\\s*${type}\\s*$`, "m").test(value.code));
+  const found = EDITOR_SAMPLES.find((value) => {
+    if (!new RegExp(`^type:\\s*${type}\\s*$`, "m").test(value.code)) return false;
+    return type !== "record" || value.slug === "class";
+  });
   if (!found) throw new Error(`editor-samples に ${type} の見本が無い`);
   return found.code;
 }
@@ -71,7 +73,7 @@ test("catalog: 関係図・流れ図・図表の札は下へ影を落とし、�
 test("catalog: 関係図と流れ図は線が線の色で光る", async ({
   page,
 }) => {
-  for (const type of ["class", "flowchart"] as const) {
+  for (const type of ["record", "flowchart"] as const) {
     await open(page, type);
     const lines = stage(page).locator('[data-cdl-role="edge-line"]');
     expect(await lines.count(), `${type} に線が無い`).toBeGreaterThan(0);

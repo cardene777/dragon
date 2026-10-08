@@ -112,7 +112,7 @@ describe("JSON の箱の pos で箱が書いた量だけ動く (#1971)", () => {
    * 図種ごとに配置の組み立てが違う。 同じ 3 人と 2 本の矢印を 7 図種で組み、ずらした箱だけが
    * 書いた量だけ動くことを見る。
    */
-  const 図種 = ["flow", "record", "topology", "swimlane", "class", "c4"] as const;
+  const 図種 = ["flow", "record", "topology", "swimlane", "c4"] as const;
   for (const t of 図種) {
     it(`type: ${t} でも書いた量だけ動く`, () => {
       const 基 = (a: Json): Json => ({

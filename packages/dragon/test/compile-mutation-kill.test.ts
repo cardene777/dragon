@@ -381,8 +381,8 @@ describe("compileMind", () => {
   });
 });
 
-// ── 数を描く図 / compileClass: kind と寸法 ──
-describe("数を描く図 / compileClass", () => {
+// ── 数を描く図 / record: kind と寸法 ──
+describe("数を描く図 / record", () => {
   it("shape: pie は円を描く箱 1 つ / w 480 / h 320", () => {
     // **変更前は card を縦に積んでいた** (#1076)。 `type: pie` で円が出るように、 描画側の
     // `chart-pie` に 1 node で渡す形にした。
@@ -394,10 +394,11 @@ describe("数を描く図 / compileClass", () => {
     expect(n.w).toBe(480);
     expect(n.h).toBe(320);
   });
-  it("class node は kind storage / w 400", () => {
-    const n = node(compile("class"), "a");
+  it("行を持つ record node は kind storage / lane width 450", () => {
+    const d = compile("record", { actors: [actor("A", { rows: ["x: 1"] }), actor("B")] });
+    const n = node(d, "a");
     expect(n.kind).toBe("storage");
-    expect(n.w).toBe(400);
+    expect(lane(d, n.lane).width).toBe(450);
   });
 });
 
@@ -544,10 +545,10 @@ describe("compileGenericWithAnimate (flow + animate)", () => {
   });
 });
 
-// ── injectPhasesFallback: 独自 layout preset (class 等) + animate で phase 後段注入 ──
+// ── injectPhasesFallback: 独自 layout preset (c4 等) + animate で phase 後段注入 ──
 describe("injectPhasesFallback", () => {
-  it("class + animate は phase が注入される (独自 layout preset)", () => {
-    const d = compileToCdl(makeDoc("class", { animate: ANIM }));
+  it("c4 + animate は phase が注入される (独自 layout preset)", () => {
+    const d = compileToCdl(makeDoc("c4", { animate: ANIM }));
     expect(d.phases.length).toBeGreaterThan(0);
     expect(d.phases[0]!.duration).toBe(1500);
   });
@@ -646,7 +647,7 @@ describe("applyV05Extensions", () => {
     expect(d.viewport?.labelMargin).toBe(40);
   });
   it("actor.rows を node に merge", () => {
-    const d = compile("class", { actors: [actor("A", { rows: ["f1", "f2"] }), actor("B")] });
+    const d = compile("record", { actors: [actor("A", { rows: ["f1", "f2"] }), actor("B")] });
     expect(node(d, "a").rows).toEqual(["f1", "f2"]);
   });
   it("doc.lanes で preset にない lane を新規追加 (x default 0 / width default)", () => {
@@ -686,8 +687,8 @@ describe("compileMind 詳細", () => {
 
 // ── injectPhasesFallback: tween / set も注入 ──
 describe("injectPhasesFallback 詳細", () => {
-  it("class + animate で tween / set も注入される", () => {
-    const p = compileToCdl(makeDoc("class", { animate: ANIM })).phases[0]!;
+  it("c4 + animate で tween / set も注入される", () => {
+    const p = compileToCdl(makeDoc("c4", { animate: ANIM })).phases[0]!;
     expect(p.tweens?.[0]).toMatchObject({ stateId: "bal", from: 100, to: 90 });
     expect(p.sets?.[0]).toMatchObject({ stateId: "bal", value: 0 });
   });
@@ -768,7 +769,7 @@ describe("resolveHighlightGeneric", () => {
 
 // ── injectPhasesFallback 網羅 (独自 layout preset 各種) ──
 describe("injectPhasesFallback 網羅", () => {
-  for (const t of ["class", "chart", "c4", "mind", "gantt"] as PresetType[]) {
+  for (const t of ["chart", "c4", "mind", "gantt"] as PresetType[]) {
     it(`${t} + animate で phase 注入 (duration 800)`, () => {
       const d = compileToCdl(makeDoc(t, { animate: GEN_ANIM }));
       expect(d.phases.length).toBeGreaterThan(0);
@@ -860,7 +861,7 @@ describe("compileSwimlane 網羅", () => {
 describe("型別 compiler edge option 伝播", () => {
   // `gantt` は矢印を線ではなく帯の依存 (`dependsOn`) として持つため、 この一覧から外した
   // (#1077)。 依存として載ることは `compileGantt` の「矢印は依存として帯に載る」 が見る
-  for (const t of ["class", "c4", "topology"] as PresetType[]) {
+  for (const t of ["record", "c4", "topology"] as PresetType[]) {
     it(`${t} edge は sub / tone / style を保持`, () => {
       const d = compile(t, {
         flow: [
@@ -868,13 +869,7 @@ describe("型別 compiler edge option 伝播", () => {
         ],
       });
       const e = d.edges[0]!;
-      // クラス図の `sub` は多重度なので、札の下の行ではなく行き先の端の字に入る (#1769)
-      if (t === "class") {
-        expect(e.sub).toBeUndefined();
-        expect(e.headLabel).toBe("n");
-      } else {
-        expect(e.sub).toBe("n");
-      }
+      expect(e.sub).toBe("n");
       expect(e.tone).toBe("warning");
       expect(e.style).toBe("dotted-flow");
     });
@@ -1404,24 +1399,24 @@ describe("injectPhasesFallback: 独自 layout preset への phase 後段注入",
     pos: { line: 1 },
   } as unknown as DslDocument["animate"]);
 
-  it("class preset (独自 layout) でも phase が注入される", () => {
-    const d = compileToCdl(makeDoc("class", { animate: ANIM_HL([]) }));
+  it("c4 preset (独自 layout) でも phase が注入される", () => {
+    const d = compileToCdl(makeDoc("c4", { animate: ANIM_HL([]) }));
     expect(d.phases.length).toBe(1);
     expect(d.phases[0]!.duration).toBe(2500);
   });
 
   it("animate.states が diagram.states に追加される", () => {
-    const d = compileToCdl(makeDoc("class", { animate: ANIM_HL([]) }));
+    const d = compileToCdl(makeDoc("c4", { animate: ANIM_HL([]) }));
     expect(d.states.find((s) => s.id === "s1")?.initial).toBe(5);
   });
 
   it("actor 名 highlight は node id に解決", () => {
-    const d = compileToCdl(makeDoc("class", { animate: ANIM_HL(["A"]) }));
+    const d = compileToCdl(makeDoc("c4", { animate: ANIM_HL(["A"]) }));
     expect(d.phases[0]!.activate).toContain("a");
   });
 
   it("矢印 highlight (A -> B) は該当 edge を解決", () => {
-    const d = compileToCdl(makeDoc("class", { animate: ANIM_HL(["A -> B"]) }));
+    const d = compileToCdl(makeDoc("c4", { animate: ANIM_HL(["A -> B"]) }));
     const act = d.phases[0]!.activate;
     const target = d.edges.find((e) => e.from === "a" && e.to === "b");
     expect(target).toBeDefined();
@@ -1429,7 +1424,7 @@ describe("injectPhasesFallback: 独自 layout preset への phase 後段注入",
   });
 
   it("全角矢印 (A → B) も同じ edge に解決", () => {
-    const d = compileToCdl(makeDoc("class", { animate: ANIM_HL(["A → B"]) }));
+    const d = compileToCdl(makeDoc("c4", { animate: ANIM_HL(["A → B"]) }));
     const target = d.edges.find((e) => e.from === "a" && e.to === "b");
     expect(d.phases[0]!.activate).toContain(target!.id);
   });
@@ -2111,7 +2106,7 @@ describe("矢印 regex の要素 (空白許容 / 非貪欲 / 記号バリエー�
   });
 
   it("injectPhasesFallback 経路でも空白ゆらぎを吸収する", () => {
-    const d = compileToCdl(makeDoc("class", {
+    const d = compileToCdl(makeDoc("c4", {
       animate: {
         states: [], phases: [{ name: "p", durationMs: 1000, highlight: ["A    →    B"], pos: { line: 1 } }], pos: { line: 1 },
       } as unknown as DslDocument["animate"],
@@ -2121,7 +2116,7 @@ describe("矢印 regex の要素 (空白許容 / 非貪欲 / 記号バリエー�
   });
 
   it("injectPhasesFallback: 該当 edge が無い矢印は activate しない", () => {
-    const d = compileToCdl(makeDoc("class", {
+    const d = compileToCdl(makeDoc("c4", {
       animate: {
         states: [], phases: [{ name: "p", durationMs: 1000, highlight: ["B → A"], pos: { line: 1 } }], pos: { line: 1 },
       } as unknown as DslDocument["animate"],
@@ -2130,7 +2125,7 @@ describe("矢印 regex の要素 (空白許容 / 非貪欲 / 記号バリエー�
   });
 
   it("injectPhasesFallback: phase の body / duration が反映される", () => {
-    const d = compileToCdl(makeDoc("class", {
+    const d = compileToCdl(makeDoc("c4", {
       animate: {
         states: [],
         phases: [{ name: "p", durationMs: 3300, highlight: [], body: "desc", pos: { line: 1 } }],
@@ -2142,7 +2137,7 @@ describe("矢印 regex の要素 (空白許容 / 非貪欲 / 記号バリエー�
   });
 
   it("injectPhasesFallback: body 未指定なら空文字 (?? 分岐)", () => {
-    const d = compileToCdl(makeDoc("class", {
+    const d = compileToCdl(makeDoc("c4", {
       animate: {
         states: [], phases: [{ name: "p", durationMs: 1000, highlight: [], pos: { line: 1 } }], pos: { line: 1 },
       } as unknown as DslDocument["animate"],
@@ -2401,13 +2396,13 @@ describe("animate guard: phases 空なら非 animate 経路を通る", () => {
     expect(d.edges[0]!.id.startsWith("c0-")).toBe(true);
   });
 
-  it("独自 layout preset (class) では phases 空なら fallback 注入も走らない", () => {
+  it("独自 layout preset (c4) では phases 空なら fallback 注入も走らない", () => {
     // 書いた段が 0 件なら、 書いた段に由来する段は入らない。 代わりに動かない図として
     // 扱われ、 段が 1 つだけ残る (#1086)。 段が 1 件も無い図は描画側が弾くため。
     //
     // 段の id は組み立て器が決める (#1466 でクラス図は自前の段を持つようになった)。
     // 名前を写すと描画側を直した時に片方だけ古くなる
-    const d = compileToCdl(makeDoc("class", { animate: EMPTY_ANIM }));
+    const d = compileToCdl(makeDoc("c4", { animate: EMPTY_ANIM }));
     expect(d.phases).toHaveLength(1);
     expect(d.phases[0]!.tweens, "動かない図なのに動きが入っている").toEqual([]);
   });
@@ -2503,7 +2498,7 @@ describe("矢印 regex の非貪欲性 (A→B→C で from/to の切り出しが
   });
 
   it("injectPhasesFallback: 最初の矢印で分割される", () => {
-    const d = compileToCdl(makeDoc("class", {
+    const d = compileToCdl(makeDoc("c4", {
       animate: animOf(["A→B→C"]),
       actors: [actor(at(names, 0, "names")), actor(at(names, 1, "names"))],
         flow: [step(at(names, 0, "names"), at(names, 1, "names"))],
@@ -2514,7 +2509,7 @@ describe("矢印 regex の非貪欲性 (A→B→C で from/to の切り出しが
   });
 
   it("injectPhasesFallback: actor 名 highlight は header 付き node も解決する", () => {
-    const d = compileToCdl(makeDoc("class", { animate: animOf(["A"]) }));
+    const d = compileToCdl(makeDoc("c4", { animate: animOf(["A"]) }));
     expect(d.phases[0]!.activate).toContain("a");
   });
 });
@@ -2941,7 +2936,7 @@ describe("矢印 regex: 複数文字 actor 名で 1 文字 match に縮退しな
   });
 
   it("injectPhasesFallback も複数文字 actor 名を扱える", () => {
-    const d = compileToCdl(makeDoc("class", {
+    const d = compileToCdl(makeDoc("c4", {
       animate: animOf(["Alpha→Beta"]),
       actors: [actor("Alpha"), actor("Beta")],
       flow: [step("Alpha", "Beta")],

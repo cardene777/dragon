@@ -453,9 +453,9 @@ describe("端末は字を等幅で測る (#2818)", () => {
     for (const 意匠 of 端末以外) expect("textMetrics" in textDslToDiagram(流れ(意匠))).toBe(false);
   });
 
-  it("意匠を書かない flow 図と既定が生成りの class 図は textMetrics の key を持たない", () => {
-    const クラス = textDslToDiagram('title: "確かめ"\ntype: class\n\nactors:\n  - A\n  - B\n\nflow:\n');
-    expect(["textMetrics" in textDslToDiagram(流れ()), "textMetrics" in クラス]).toEqual([false, false]);
+  it("意匠を書かない flow 図と record 図は textMetrics の key を持たない", () => {
+    const 行の図 = textDslToDiagram('title: "確かめ"\ntype: record\n\nactors:\n  - A\n  - B\n\nflow:\n');
+    expect(["textMetrics" in textDslToDiagram(流れ()), "textMetrics" in 行の図]).toEqual([false, false]);
   });
 
   it("端末の行を持つ箱は、細い字が多い名前を生成りより広く測る", () => {
@@ -552,24 +552,24 @@ describe("行の縞 (#1553)", () => {
 });
 
 /*
- * クラス図の既定の配色と行の縞の検証。
+ * UML クラス関係を record で書く時の配色と行の縞の検証 (#2783)。
  *
  * ## 何を見るか
  *
- * クラス図が既定の `palette` を持つこと、明示した配色が既定より優先されること、表の箱の
+ * record が既定の `palette` を持たないこと、明示した配色が届くこと、表の箱の
  * `rowStripe` が動きの有無によらず保たれること。 記法と JSON の入口で同じ配色になることも見る。
  */
 
-/** 表の箱を 2 つ持つ最小のクラス図。 配色と動きの節だけを差し替えて比べる。 */
+/** 表の箱を 2 つ持つ最小の UML 関係図。配色と動きの節だけを差し替えて比べる。 */
 const クラス = (配色?: string, 動きを書く = false): string =>
   [
     'title: "確かめ"',
-    "type: class",
+    "type: record",
     ...(配色 === undefined ? [] : [`palette: ${配色}`]),
     "",
     "actors:",
-    '  - User: { lane: c0, stack: 0, rows: ["+name: string", "+login(): Session"] }',
-    '  - Admin: { lane: c0, stack: 1, rows: ["+permissions: string[]", "+banUser(): void"] }',
+    '  - User: { lane: c0, stack: 0, rows: ["name: string", "login: Session"], marks: ["", "外"] }',
+    '  - Admin: { lane: c0, stack: 1, rows: ["permissions: string[]", "banUser: void"], marks: ["", "外"] }',
     "",
     "flow:",
     '  - Admin -> User: "継承" (info) { relation: extends }',
@@ -579,39 +579,39 @@ const クラス = (配色?: string, 動きを書く = false): string =>
     "",
   ].join("\n");
 
-/** JSON の入口で使う最小のクラス図。 */
+/** JSON の入口で使う最小の UML 関係図。 */
 const JSONのクラス = (配色?: string) => ({
   title: "確かめ",
-  type: "class" as const,
+  type: "record" as const,
   ...(配色 === undefined ? {} : { palette: 配色 }),
   actors: [
-    { name: "User", lane: "c0", stack: 0, rows: ["+name: string", "+login(): Session"] },
-    { name: "Admin", lane: "c0", stack: 1, rows: ["+permissions: string[]", "+banUser(): void"] },
+    { name: "User", lane: "c0", stack: 0, rows: ["name: string", "login: Session"], marks: ["", "外"] },
+    { name: "Admin", lane: "c0", stack: 1, rows: ["permissions: string[]", "banUser: void"], marks: ["", "外"] },
   ],
   flow: [{ from: "Admin", to: "User", label: "継承", tone: "info", relation: "extends" }],
 });
 
-describe("クラス図の配色と行の縞", () => {
-  it("配色を書かないクラス図は記法と JSON のどちらでも生成りになる", () => {
+describe("record で書く UML 関係図の配色と行の縞", () => {
+  it("配色を書かない record は記法と JSON のどちらでも配色を持たない", () => {
     expect([textDslToDiagram(クラス()).palette, jsonToDiagram(JSONのクラス()).palette]).toEqual([
-      "kinari",
-      "kinari",
+      undefined,
+      undefined,
     ]);
   });
 
-  it("クラス図に書いた配色は記法と JSON のどちらでも既定より優先される", () => {
+  it("record に書いた配色は記法と JSON のどちらでも届く", () => {
     expect(textDslToDiagram(クラス("celadon")).palette).toBe("celadon");
     expect(jsonToDiagram(JSONのクラス("celadon")).palette).toBe("celadon");
   });
 
-  it("クラス図の表の箱は縞を持つ", () => {
-    const 表 = textDslToDiagram(クラス()).nodes.filter((n) => n.kind === "storage");
+  it("配色を書いた UML 関係図の表の箱は縞を持つ", () => {
+    const 表 = textDslToDiagram(クラス("kinari")).nodes.filter((n) => n.kind === "storage");
     expect(表.length, "表の箱が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
     for (const n of 表) expect(n.rowStripe).toBe(true);
   });
 
-  it("動きを書いたクラス図の表の箱も縞を持つ", () => {
-    const 表 = textDslToDiagram(クラス(undefined, true)).nodes.filter((n) => n.kind === "storage");
+  it("動きを書いた UML 関係図の表の箱も縞を持つ", () => {
+    const 表 = textDslToDiagram(クラス("kinari", true)).nodes.filter((n) => n.kind === "storage");
     expect(表.length, "表の箱が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
     for (const n of 表) expect(n.rowStripe).toBe(true);
   });

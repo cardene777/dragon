@@ -120,6 +120,11 @@ const 型たち: Record<string, 型> = {
     英語: (m) =>
       `The end of line "${m[1]}" at (${m[2]},${m[3]}) sits ${m[8]} world from the middle of the ${m[5]} side of box "${m[4]}" at (${m[6]},${m[7]}), which reads as a corner (allowed ${m[9]})`,
   },
+  "detour-slot-distinct": {
+    形: /^edge "(.*)" と "(.*)" が同 obstacle を(上方|下方) detour \((peak X 差|crest 区間の重なり) ([\d.]+) world\)、 peak Y 差 ([\d.]+) world が spec ([\d.]+) 未満 \(path 重なり\)$/,
+    英語: (m) =>
+      `Lines "${m[1]}" and "${m[2]}" detour ${m[3] === "上方" ? "above" : "below"} the same obstacle (${m[4] === "peak X 差" ? "peak X difference" : "crest overlap"} ${m[5]} world), but their peak Y positions are only ${m[6]} world apart, under the ${m[7]} required`,
+  },
   "group-boundary-clearance": {
     形: /^lane "(.*)" 内 名札 "(.*)" が lane 幅から水平方向に (-?\d+) world はみ出し$/,
     英語: (m) =>

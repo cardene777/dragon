@@ -44,7 +44,7 @@ describe("端の形が描画側へ渡る (#1462)", () => {
   it("受ける語すべてが渡る", () => {
     let 測れた = 0;
     for (const 形 of EDGE_HEAD_VALUES) {
-      const e = 矢印("class", `  - A -> B: "関係" { head: ${形} }\n`);
+      const e = 矢印("record", `  - A -> B: "関係" { head: ${形} }\n`);
       expect(e[0]?.head, `${形} が渡っていない`).toBe(形);
       測れた += 1;
     }
@@ -65,7 +65,7 @@ describe("端の形が描画側へ渡る (#1462)", () => {
   });
 
   it("読めない語を黙って捨てない", () => {
-    const r = parseTextDslV05(記法("class", `  - A -> B: "関係" { head: nope }\n`)) as {
+    const r = parseTextDslV05(記法("record", `  - A -> B: "関係" { head: nope }\n`)) as {
       errors?: Array<{ message: string; hint?: string }>;
     };
     const 文 = (r.errors ?? []).map((e) => `${e.message} ${e.hint ?? ""}`).join(" / ");
@@ -80,7 +80,7 @@ describe("端の形が描画側へ渡る (#1462)", () => {
     //
     // 順序図系 (`sequence` / `solidity`) は #1466 で 1 枚の板になり、言づては矢印ではなく
     // 板の中の行になった = 端の形を載せる矢印が無い。 板が言づてを持つことを別に見る
-    const 矢印を作る図種 = ["swimlane", "record", "topology", "class", "c4", "flow"];
+    const 矢印を作る図種 = ["swimlane", "record", "topology", "c4", "flow"];
     let 測れた = 0;
     for (const 型 of 矢印を作る図種) {
       const e = 矢印(型, `  - A -> B: "関係" { head: diamond }\n`);
@@ -106,7 +106,7 @@ describe("端の形が描画側へ渡る (#1462)", () => {
   it("JSON からも同じ値が渡る (書き方で変わらない)", () => {
     const d = jsonToDiagram({
       title: "確認",
-      type: "class",
+      type: "record",
       actors: [{ name: "A" }, { name: "B" }],
       flow: [{ from: "A", to: "B", label: "関係", head: "diamond" }],
     });
@@ -118,11 +118,10 @@ describe("自己参照が矢印として残る (#1462)", () => {
   it("書いた矢印を使う図種では残る", () => {
     // 設計は 3 図で使う = 箱の自己遷移 / 表の自己関係 / シーケンスの自分宛て。
     // 前の 2 つは #2782 で `record` 1 つに畳んだので、矢印で見るのは 2 図種になる。
-    // `class` も同じ経路なので併せて見る
     //
     // `sequence` は #1466 で板になり自分宛ては板の行になった (`from` と `to` が同じ言づて)。
     // 矢印としては残らないので、ここでは見ずに下の検査が板の側で見る
-    const 図種 = ["record", "class"];
+    const 図種 = ["record"];
     let 測れた = 0;
     for (const 型 of 図種) {
       const e = 矢印(型, `  - A -> A: "自分"\n`);

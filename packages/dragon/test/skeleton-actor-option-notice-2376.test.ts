@@ -39,20 +39,6 @@ flow:
   - あ -> い: "つなぐ"
 `;
   }
-  if (図種 === "class") {
-    return `title: "しらべ"
-type: class
-
-actors:
-  - ぜろ: { rows: ["+ はじめ()"] }
-  - あ: { rows: ["+ よむ()"]${箱の欄 === "" ? "" : `, ${箱の欄}`} }
-  - い: { rows: ["+ かく()"] }
-
-flow:
-  - ぜろ -> あ: "はじめる"
-  - あ -> い: "つかう"
-`;
-  }
   return `title: "しらべ"
 type: ${図種}
 
@@ -94,7 +80,7 @@ function 箱の知らせ(図種: string, 箱の欄: string): 知[] {
  * 図種の違いと図の書き方の違いが混ざる。
  */
 function 縦列を書いた本文(図種: string, 箱の欄: string): string {
-  const 行 = 図種 === "class" ? ['rows: ["+ よ()"]'] : [];
+  const 行: string[] = [];
   const 面 = `: { ${["lane: m", ...行].join(", ")} }`;
   const あ = ["lane: m", ...行, ...(箱の欄 === "" ? [] : [箱の欄])];
   return `title: "しらべ"
@@ -227,7 +213,7 @@ describe("骨組みの図で箱に書いた指定が使われないことを伝�
     let 読まない図種 = 0;
     for (const t of 図種一覧) {
       if (!その図種が読まない欄(t).some(([, 欄]) => 欄 === "marks")) continue;
-      const 行つき = t === "class" ? "marks: [ok]" : 'rows: ["よむ"], marks: [ok]';
+      const 行つき = 'rows: ["よむ"], marks: [ok]';
       const 印なし = 行つき.replace(/,?\s*marks: \[ok\]/, "");
       const 読む =
         JSON.stringify(組む(本文(t, 行つき)).図) !== JSON.stringify(組む(本文(t, 印なし)).図);
@@ -341,7 +327,7 @@ describe("骨組みの図で箱に書いた指定が使われないことを伝�
     let 効く図種 = 0;
     let 効かない図種 = 0;
     for (const t of 図種一覧) {
-      const 書く = t === "class" ? "marks: [ok]" : 'rows: ["よむ"], marks: [ok]';
+      const 書く = 'rows: ["よむ"], marks: [ok]';
       const 印なし = 書く.replace(/,?\s*marks: \[ok\]/, "");
       const 効く = JSON.stringify(組む(本文(t, 書く)).図) !== JSON.stringify(組む(本文(t, 印なし)).図);
       const 知 = 箱の知らせ(t, 書く).filter((n) => n.kind === "actor-option-not-honored");
@@ -358,7 +344,7 @@ describe("骨組みの図で箱に書いた指定が使われないことを伝�
 
   it("行を書かずに印だけを書くと、どの図種でも知らせが出る", () => {
     // 読み替える先の行が無いので、印を読む図種でも効かない
-    const 対象 = 図種一覧.filter((t) => t !== "class"); // クラス図の本文は既に行を持つ
+    const 対象 = 図種一覧;
     const 出ない = 対象
       .map((t) => ({
         t,
@@ -558,9 +544,9 @@ describe("箱に書いた段が使われないことを伝える (#2386)", () =>
    */
   const 段の図種 = 図種一覧.filter((t) => 縦列を選べる図種.has(t as never));
 
-  /** 縦列を書いた形と書かない形を作り分ける。 クラス図だけは行が要る */
+  /** 縦列を書いた形と書かない形を作り分ける。 */
   function 段の本文(図種: string, 縦列: "全部" | "一部" | "無し", 段を書く: boolean): string {
-    const 行 = 図種 === "class" ? ['rows: ["+ よ()"]'] : [];
+    const 行: string[] = [];
     const 面 = (書く: boolean): string => {
       const 中 = [...(書く ? ["lane: m"] : []), ...行];
       return 中.length === 0 ? "" : `: { ${中.join(", ")} }`;
@@ -689,7 +675,7 @@ describe("箱に書いた種類が使われないことを伝える (#2388)", ()
    */
   const 書く種類 = ["kind: actor", "kind: storage"] as const;
 
-  it("種類が効く図種では鳴らず箱の種類が分かれ、効かない図種では鳴る", () => {
+  it("class を畳んだ後は、骨組みの全図種で種類が効いて知らせが鳴らない (#2783)", () => {
     const 違う: string[] = [];
     let 効く図種 = 0;
     let 効かない図種 = 0;
@@ -709,9 +695,10 @@ describe("箱に書いた種類が使われないことを伝える (#2388)", ()
       }
     }
     expect(違う, `図種 ${図種一覧.length} 件 × 種類 ${書く種類.length} 通り`).toEqual([]);
-    // 両側に 1 件以上あることを見る = 片側だけだと判定が壊れても通る
+    // class 専用経路だけが kind を読まなかった。そこを落とした後は全件が読む側になる。
     expect(効く図種, "種類が効く図種が 0 件 (空振り)").toBeGreaterThan(0);
-    expect(効かない図種, "種類が効かない図種が 0 件 (空振り)").toBeGreaterThan(0);
+    expect(効く図種, "種類を読む図種が一覧を覆っていない").toBe(図種一覧.length);
+    expect(効かない図種, "種類が効かない図種が残っている").toBe(0);
   });
 
   it("種類を書かない箱では、どの図種でも知らせが 0 件", () => {
@@ -811,20 +798,18 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
   /**
    * 1 欄だけを書いた本文。 縦列 (`lane`) を測る時だけ縦列の並びを足す。
    *
-   * クラス図は行 (`rows`) が無いと箱が空になるので、行を測る時以外は土台に足す。
+   * 全図種で同じ土台を使う。
    */
   function 全欄の本文(図種: string, 項目: string, 書く: string): string {
-    const 行 = 図種 === "class" ? 'rows: ["+ よ()"]' : "";
-    const 面 = 行 === "" ? "" : `: { ${行} }`;
-    const あ = [...(行 !== "" && 項目 !== "rows" ? [行] : []), ...(書く === "" ? [] : [書く])];
+    const あ = 書く === "" ? [] : [書く];
     const 縦列 = 項目 === "lane" ? '\nlanes:\n  m: { label: "ま" }\n' : "";
     return `title: "しらべ"
 type: ${図種}
 ${縦列}
 actors:
-  - ぜろ${面}
+  - ぜろ
   - あ${あ.length === 0 ? "" : `: { ${あ.join(", ")} }`}
-  - い${面}
+  - い
 
 flow:
   - ぜろ -> あ: "はじめ"

@@ -159,9 +159,8 @@ export type DslTheme = (typeof THEMES)[number];
  * `kinari` = 生成りに茶、 `celadon` = 青磁に墨、 `blueprint` = 図面、 `letterpress` = 活版、
  * `catalog` = 図録、 `terminal` = 端末、 `sketch` = 手描き、 `neon` = 電飾、 `relief` = 浮彫。
  *
- * クラス図は書かなくても `kinari` (生成りに茶) になる。 名前と型が離れて並ぶため、行を横に
- * 追う目印 (行の縞) が要る。 縞の色は意匠からしか来ないので、既定が無いと縞が箱の面と同じ
- * 色に落ちて 1 本も出ない。 書き手が `theme:` を書いた時はそちらが勝つ。
+ * record は用途を一つに決められないため既定の意匠を持たない。UML クラス図に生成り色が要る時も
+ * 書き手が `theme:` を明記する。
  */
 export const THEME_ALIAS: Record<string, DslTheme> = {
   kinari: "kinari",

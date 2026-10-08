@@ -394,7 +394,9 @@ test.describe("relief theme (#2796)", () => {
   });
 
   test("relief shading: 主役は膨らみ図表は窪む", async ({ page }) => {
-    const classSource = EDITOR_SAMPLES.find((sample) => /^type:\s*class\s*$/m.test(sample.code))?.code;
+    const classSource = EDITOR_SAMPLES.find(
+      (sample) => sample.slug === "class" && /^type:\s*record\s*$/m.test(sample.code),
+    )?.code;
     const chartSource = EDITOR_SAMPLES.find((sample) =>
       /^type:\s*chart\s*$/m.test(sample.code) && /^shape:\s*bar\s*$/m.test(sample.code))?.code;
     if (!classSource || !chartSource) throw new Error("主役と図表の画素を測る見本が無い");

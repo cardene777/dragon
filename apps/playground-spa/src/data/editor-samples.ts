@@ -253,20 +253,21 @@ animation:
 `,
   },
   {
-    label: "動物クラス階層 (class)",
-    labelEn: "Animal class hierarchy (class)",
+    label: "動物クラス階層 (record)",
+    labelEn: "Animal class hierarchy (record)",
     slug: "class",
     code: `title: "動物クラス階層"
-type: class
+type: record
+palette: kinari
 
 actors:
-  - 動物: ["+name: string", "+age: int", "+speak(): void"]
-  - 犬: ["+breed: string", "+bark(): void"]
-  - 猫: ["+indoor: boolean", "+meow(): void"]
+  - 動物: { rows: ["name: string", "age: int", "speak: void"], marks: ["", "", "外"] }
+  - 犬: { rows: ["breed: string", "bark: void"], marks: ["", "外"] }
+  - 猫: { rows: ["indoor: boolean", "meow: void"], marks: ["", "外"] }
 
 flow:
-  - 犬 -> 動物: "extends"
-  - 猫 -> 動物: "extends"
+  - 犬 -> 動物: "extends" { relation: extends }
+  - 猫 -> 動物: "extends" { relation: extends }
 
 animation:
   - step: "reveal" 2.0s

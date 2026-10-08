@@ -239,7 +239,7 @@ flow:
   - 点検 -> 保全: "送る"
 `;
 
-  it.each(["swimlane", "record", "class"])("%s", (型) => {
+  it.each(["swimlane", "record"])("%s", (型) => {
     const { 箱, 縦列, 図 } = 配置する(本文(型));
     const 設備の要素 = [...箱].filter(([id]) => id.startsWith("設備__"));
     expect(設備の要素.length, "部品の要素が図に無い (前提が崩れた)").toBe(1);

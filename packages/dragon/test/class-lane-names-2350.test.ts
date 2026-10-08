@@ -18,13 +18,13 @@ import { describe, expect, it } from "vitest";
 import { compileToCdl } from "../src/compile";
 import { parseTextDslV05 } from "../src/v05/parser";
 
-/** 箱 3 つを 2 つの列へ入れたクラス図。 `宣言` を付けると `lanes:` を書く */
+/** 箱 3 つを 2 つの列へ入れた record。`宣言` を付けると `lanes:` を書く */
 function 本文(opts: { 宣言: boolean; 幅?: number; 空の列?: boolean }): string {
   const 幅 = opts.幅 ?? 320;
   const 列 = [`  c0: { width: ${幅} }`, `  c1: { width: ${幅} }`];
   if (opts.空の列 === true) 列.push(`  c2: { width: ${幅} }`);
   return `title: "クラスの図"
-type: class
+type: record
 ${opts.宣言 ? `\nlanes:\n${列.join("\n")}\n` : ""}
 actors:
   - 注文: { lane: c0, stack: 0, rows: ["番号: 数"] }
@@ -60,7 +60,7 @@ function 組む(src: string): 結果 {
   return { 列, 箱の列: 箱.map((n) => `${n.id}@${n.lane ?? "-"}`).join(" "), 空の知らせ };
 }
 
-describe("クラス図で縦列を宣言しても、空の列が増えない (#2350)", () => {
+describe("record で縦列を宣言しても、空の列が増えない (#2350 / #2783)", () => {
   const 宣言なし = 組む(本文({ 宣言: false }));
   const 宣言あり = 組む(本文({ 宣言: true }));
 
@@ -100,9 +100,8 @@ describe("クラス図で縦列を宣言しても、空の列が増えない (#2
     expect(空あり.空の知らせ, "使わない列を宣言しても知らせが出ない").toBe(1);
   });
 
-  it("宣言しない図の列の名前と数が変わらない", () => {
-    // 付け替えるのは宣言した名前だけ。 宣言しない図は組み立て器の名前のまま
-    expect(宣言なし.列.map((l) => l.id)).toEqual(["col-0", "col-1"]);
-    expect(宣言なし.箱の列).toBe("注文@col-0 明細@col-0 顧客@col-1");
+  it("宣言しない図でも、箱に書いた列の名前と数を保つ", () => {
+    expect(宣言なし.列.map((l) => l.id)).toEqual(["c0", "c1"]);
+    expect(宣言なし.箱の列).toBe("注文@c0 明細@c0 顧客@c1");
   });
 });

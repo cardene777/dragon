@@ -7,14 +7,55 @@
  * | 端 | 何を表すか | 順番 |
  * |---|---|---|
  * | 棒 / 三又 / 丸 (`one` / `many` / `zero-one` / `zero-many`) | 個数 | 同時に成り立つ |
- * | 開いた矢 (`open`) ほか | 移り変わり | 順番を持つ |
+ * | 中抜きの三角 / 菱 | UML の継承と所有 | 同時に成り立つ |
+ * | 開いた矢 (`open`) / 塗った三角 | 移り変わり | 順番を持つ |
  *
  * **この表を 2 箇所に書かない** = 片方だけ直した日に、2 つの検査が別の母集団を見る。
  */
+import { CLASS_RELATION_LOOK } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 /** 個数を表す端。 描く側の `ER_CARDINALITY_HEAD` が作る 4 種 */
 export const 個数の端: ReadonlySet<string> = new Set(["one", "many", "zero-one", "zero-many"]);
+
+/** SVG に出る端の名前と塗りを、1 つの集合値にする。 */
+export type 端の組 = `${string}:${string}`;
+export const 端の組 = (端: string, 塗り: string): 端の組 => `${端}:${塗り}`;
+
+const UMLの関係の端 = Object.values(CLASS_RELATION_LOOK).flatMap(
+  ({ head, fill, tailHead, tailFill }) => [
+    ...(head === "none" ? [] : [{ 端: head, 塗り: fill }]),
+    ...(tailHead === "none" ? [] : [{ 端: tailHead, 塗り: tailFill }]),
+  ],
+);
+
+/**
+ * 描いた SVG に出る UML の関係の端と塗りの組。
+ * `none` は描画側が marker を作らないので含めない。
+ */
+export const UMLの関係の端の組: ReadonlySet<端の組> = new Set(
+  UMLの関係の端.map(({ 端, 塗り }) => 端の組(端, 塗り)),
+);
+
+/** 端と塗りの組で移り変わりと見分けられる UML の関係。 */
+export const UMLだけの端の組: ReadonlySet<端の組> = new Set(
+  UMLの関係の端.filter(
+    ({ 端, 塗り }) => 端 !== "open" && !(端 === "triangle" && 塗り === "solid"),
+  ).map(({ 端, 塗り }) => 端の組(端, 塗り)),
+);
+
+/**
+ * 端だけでは移り変わりと見分けられない UML の関係。
+ * CSS の対象外になる関係を種類の表から導き、増減を検査と報告へそのまま出せるようにする。
+ */
+export const 端で見分けられないUMLの関係: readonly string[] = Object.entries(CLASS_RELATION_LOOK)
+  .filter(([, { head, fill, tailHead, tailFill }]) =>
+    [
+      ...(head === "none" ? [] : [端の組(head, fill)]),
+      ...(tailHead === "none" ? [] : [端の組(tailHead, tailFill)]),
+    ].every((組) => !UMLだけの端の組.has(組)),
+  )
+  .map(([関係]) => 関係);
 
 /** 個数を表す端を持つ矢印か。 移り変わりの矢印 (開いた矢) をここで外す */
 export const 個数を表す矢印 = (e: { head?: string }): boolean =>
