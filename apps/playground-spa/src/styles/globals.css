@@ -101,8 +101,6 @@
   --d-chart-4: #3f7a58;
   --d-chart-5: #8a4a7a;
   --d-chart-6: #6a6f2e;
-  /* ガントの行の縞。明るい側は描く側の控えの値を保つ。 */
-  --d-chart-surface-sunken: #f4f2ed;
 
   /* 図の中で系統を描き分けるための 6 色 */
   --d-dg-1: #221811;
@@ -303,7 +301,6 @@ html.dark {
   --d-chart-4: #74c095;
   --d-chart-5: #cf8bbd;
   --d-chart-6: #b7bd6a;
-  --d-chart-surface-sunken: var(--d-surface);
 
   --d-dg-1: #ecdfc9;
   --d-dg-2: #a0c9b0;

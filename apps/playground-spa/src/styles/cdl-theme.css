@@ -90,10 +90,12 @@
   --cdl-thumbnail-close-bg: color-mix(in srgb, var(--d-text-primary) 12%, transparent);
 }
 
-/* 配色を指定しない図では、ガントの行の縞を画面の明暗に合わせる。固定意匠と生成り・青磁は
-   それぞれの意匠の値を保つため、配色属性を持たない既定の図だけへ当てる。 */
+/* 配色を指定しない図では、ガントの行の縞に面より沈んだ画面の地 `--d-bg` を使う。
+   新しい `--d-*` の色を足すと、設計の色と名前を揃える `palette-matches-pen` と、固定の意匠を
+   明暗で変えない `theme-dark-ground` の 2 検査に反する。画面の地は明 `#f6f1e6`、暗 `#1a1611`。
+   固定意匠と生成り・青磁はそれぞれの意匠の値を保つため、配色属性を持たない既定の図だけへ当てる。 */
 svg[data-cdl-stage]:not([data-cdl-palette]) {
-  --cdl-surface-sunken: var(--d-chart-surface-sunken);
+  --cdl-surface-sunken: var(--d-bg);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

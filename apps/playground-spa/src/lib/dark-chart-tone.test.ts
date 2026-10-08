@@ -103,95 +103,70 @@ function elementColor(element: Element, property: "fill" | "stroke"): [number, n
 }
 
 describe("暗い地の既定の配色でガントの縞を沈める", () => {
-  it("既定だけの --cdl-surface-sunken を globals.css の明暗の値から取り、帯との対比を 3 以上にする", () => {
+  it("既定だけの --cdl-surface-sunken に画面の地を使い、専用の色を増やさない", () => {
     const selector = "svg[data-cdl-stage]:not([data-cdl-palette])";
     const defaultTheme = ruleBody(theme, selector);
-    expect(declaration(defaultTheme, "--cdl-surface-sunken")).toBe(
-      "var(--d-chart-surface-sunken)",
-    );
+    expect(declaration(defaultTheme, "--cdl-surface-sunken")).toBe("var(--d-bg)");
 
     const root = ruleBody(globals, ":root");
     const dark = ruleBody(globals, "html.dark");
-    expect(declaration(root, "--d-chart-surface-sunken")).toBe("#f4f2ed");
-    expect(declaration(dark, "--d-chart-surface-sunken")).toBe("var(--d-surface)");
-
-    const sunkenReference = /^var\((--[^,)]+)(?:,[^)]+)?\)$/.exec(
-      declaration(dark, "--d-chart-surface-sunken"),
-    )?.[1];
-    expect(sunkenReference).toBe("--d-surface");
-    if (!sunkenReference) return;
-    const sunken = rgb(declaration(dark, sunkenReference));
-    const activeFace = rgb(declaration(dark, "--d-accent-face"));
-    const stripe = composite(sunken, 0.55, activeFace);
-    // 落ちた実測の帯色。縞だけを直し、帯の系列色は変えない。
-    expect(contrast([130, 169, 171], stripe)).toBeGreaterThanOrEqual(3);
+    expect(declaration(root, "--d-bg")).toBe("#f6f1e6");
+    expect(declaration(dark, "--d-bg")).toBe("#1a1611");
+    expect(globals).not.toContain("--d-chart-surface-sunken");
+    expect(theme).not.toContain("--d-chart-surface-sunken");
   });
 
-  it("画面の外に隠れていた tone と系列色が暗い面との対比 3 以上になる", () => {
-    const surface = darkColor("--cdl-node-fill");
+  it("画面の外に隠れていた tone と系列色が暗い地の縞との対比 3 以上になる", () => {
     const dark = ruleBody(globals, "html.dark");
-    const stripe = composite(
-      rgb(declaration(dark, "--d-surface")),
-      0.55,
-      rgb(declaration(dark, "--d-accent-face")),
-    );
+    const stripe = rgb(declaration(dark, "--d-bg"));
     const targets = [
       {
         diagram: presetChartLine,
         selector: '[data-cdl-role="chart-line"]',
         property: "stroke",
         alpha: 1,
-        background: () => surface,
       },
       {
         diagram: presetChartPie,
         selector: '[data-cdl-role="chart-pie-slice"]',
         property: "fill",
         alpha: 1,
-        background: () => surface,
       },
       {
         diagram: presetFunnel,
         selector: '[data-cdl-role="funnel-stage"]',
         property: "fill",
         alpha: 0.9,
-        background: () => surface,
       },
       {
         diagram: presetGantt,
         selector: '[data-cdl-role="gantt-bar"]',
         property: "fill",
         alpha: 0.9,
-        background: () => stripe,
       },
       {
         diagram: presetUserJourney,
         selector: '[data-cdl-role="journey-line"]',
         property: "stroke",
         alpha: 1,
-        background: () => surface,
       },
-      // 象限の地は同じ tone を最大 9% だけ重ねる。生色が同じでも見える背景色は面に近い。
       {
         diagram: presetQuadrant,
         selector: '[data-cdl-role="quadrant-item"]',
         property: "stroke",
         alpha: 1,
-        background: (raw: [number, number, number]) => composite(raw, 0.09, surface),
       },
       {
         diagram: presetTree,
         selector: '[data-cdl-role="tree-edge"]',
         property: "stroke",
         alpha: 0.92,
-        background: () => surface,
       },
       {
         diagram: presetMindMap,
         selector: '[data-cdl-role="mind-edge"]',
         property: "stroke",
         alpha: 0.92,
-        background: () => surface,
       },
     ] as const;
 
@@ -200,11 +175,10 @@ describe("暗い地の既定の配色でガントの縞を沈める", () => {
       expect(elements.length, `${target.selector} が SVG に無い`).toBeGreaterThan(0);
       for (const element of elements) {
         const raw = elementColor(element, target.property);
-        const background = target.background(raw);
-        const visible = composite(raw, target.alpha, background);
+        const visible = composite(raw, target.alpha, stripe);
         expect(
-          contrast(visible, background),
-          `${target.selector} ${target.property}=${raw.join(",")} on ${background.join(",")}`,
+          contrast(visible, stripe),
+          `${target.selector} ${target.property}=${raw.join(",")} on ${stripe.join(",")}`,
         ).toBeGreaterThanOrEqual(3);
       }
     }
