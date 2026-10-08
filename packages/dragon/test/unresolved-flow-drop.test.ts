@@ -28,7 +28,6 @@ const 図種 = [
   "topology",
   "solidity",
   "gantt",
-  "class",
   "pie",
   "bar",
   "line",

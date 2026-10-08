@@ -1,10 +1,9 @@
 import { diagram } from "@cardenelabs/cdl";
-import type { CdlDiagram, NodeKind, Tone } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlEdge, NodeKind, Tone } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "../focus";
-import type { DslDocument, DslPhase } from "../types";
+import type { DslDocument, DslPhase, DslStep } from "../types";
 import { 始まりと終わりの決め方 } from "./actors";
 import { 並べる向き, 後ろへ戻る矢印か, type GenericKind } from "./direction";
-import { ERの関係の指定を作る, ERの関係の矢印 } from "./er-relation";
 import { 描ける種別 } from "./kinds";
 import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lanes";
 import { metroMarkFrameSize, placeMetro } from "./metro";
@@ -45,6 +44,8 @@ export type GenericOpts = {
   /** flow / topology は 1 lane に全 actor、 swimlane / record は actor ごと lane */
   laneId?: string;
   laneWidth: number;
+  /** 図種固有の関係を、共通の edge に渡す既定値へ直す。本文に明記した値は後段で勝つ。 */
+  edgeDefaults?: (step: DslStep) => Partial<CdlEdge>;
 };
 
 /**
@@ -470,7 +471,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     // **端の既定は持たない** (#2591 / #2595 / #2782)。 畳む前は移り変わりの図にだけ
     // 「実線に開いた矢」 を無条件で渡していたが、畳んだ後も渡すと多重度から導いた端を
     // 上から潰す = 箱どうしの個数が消える。 書いた端だけを渡す形に倒す
-    const 関係 = kind === "record" ? ERの関係の矢印(ERの関係の指定を作る(s)) : undefined;
+    const 関係 = opts.edgeDefaults?.(s);
     const timelineEdgeKind = timelineActorIndex !== undefined
       ? classifyTimelineEdge(timelineActorIndex.get(s.from)!, timelineActorIndex.get(s.to)!)
       : undefined;
@@ -484,6 +485,8 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     b.edge(edgeFromId, edgeToId, {
       id: edgeId,
       label: 関係?.label ?? s.label,
+      ...(関係?.tone !== undefined ? { tone: 関係.tone } : {}),
+      ...(関係?.style !== undefined ? { style: 関係.style } : {}),
       ...(路線図の色?.edgeToneByIndex.get(idx) !== undefined
         ? { tone: 路線図の色.edgeToneByIndex.get(idx) }
         : {}),
@@ -498,9 +501,12 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
             : {}),
       ...(関係?.sub ? { sub: 関係.sub } : {}),
       ...(関係?.head ? { head: 関係.head } : {}),
+      ...(関係?.headFill ? { headFill: 関係.headFill } : {}),
       ...(路線図か && s.style !== "dashed" ? { head: "none" as const } : {}),
       ...(関係?.tailHead ? { tailHead: 関係.tailHead } : {}),
-      ...(s.sub ? { sub: s.sub } : {}),
+      ...(関係?.tailHeadFill ? { tailHeadFill: 関係.tailHeadFill } : {}),
+      ...(関係?.headLabel ? { headLabel: 関係.headLabel } : {}),
+      ...(関係?.tailLabel ? { tailLabel: 関係.tailLabel } : {}),
       ...(s.side ? { side: s.side } : {}),
       ...(timelineHorizontalBranch && s.label !== ""
         ? { overlay: true, labelOffsetY: 時間軸の横分岐の札の上げ幅 }

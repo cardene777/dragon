@@ -23,7 +23,6 @@ const TYPES = [
   "topology",
   "solidity",
   "gantt",
-  "class",
   "pie",
   "c4",
   "mind",

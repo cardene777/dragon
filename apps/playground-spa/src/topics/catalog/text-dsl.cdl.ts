@@ -1947,10 +1947,10 @@ export const sourceJson__textDslClass = `{
 }`;
 
 /**
- * 同じ関係を `type: class` で書く形 (#2396)。
+ * 同じ関係を UML の行印と関係を持つ `type: record` で書く形 (#2396 / #2783)。
  *
- * 元の見本はフローで 2 箱を繋いでいる。 クラス図で書くと、行 (`rows:`) が持ち物と
- * 振る舞いに割れ (括弧の有無で分かれる)、関係の種類 (`relation:`) が線と端の形を決める。
+ * 元の見本はフローで 2 箱を繋いでいる。record では、行印の `外` が振る舞いを表し、
+ * 関係の種類 (`relation:`) が線と端の形を決める。
  *
  * **段 (`stack:`) を書かずに縦列だけ書く**。 段を書かない箱は、その縦列の空いている
  * 一番小さい段に順に載る。 この形はかつて配置の計算が投げて 1 枚も描けなかった。
@@ -1960,7 +1960,7 @@ export const sourceJson__textDslClass = `{
 export const patternBase__textDslClass = "フローで書く";
 
 export const sourceYaml__pattern__textDslClass__クラス図で書く = `title: "クラスの関係をクラス図で書く"
-type: class
+type: record
 relations: hover
 reveal: all
 
@@ -1969,10 +1969,10 @@ lanes:
   c1: { width: 320 }
 
 actors:
-  - 利用者: { lane: c0, eyebrow: "抽象", rows: ["+名前: 文字", "───", "+入る(): 通行証"] }
-  - 管理者: { lane: c0, rows: ["+権限: 文字", "───", "+止める(): 無し"] }
-  - 注文: { lane: c1, rows: ["+番号: 数", "───", "+支払う(): 受領書"] }
-  - 受領書: { lane: c1, rows: ["+控え番号: 文字"] }
+  - 利用者: { lane: c0, eyebrow: "抽象", rows: ["名前: 文字", "入る: 通行証"], marks: ["", "外"] }
+  - 管理者: { lane: c0, rows: ["権限: 文字", "止める: 無し"], marks: ["", "外"] }
+  - 注文: { lane: c1, rows: ["番号: 数", "支払う: 受領書"], marks: ["", "外"] }
+  - 受領書: { lane: c1, rows: ["控え番号: 文字"], marks: [""] }
 
 flow:
   - 管理者 -> 利用者: "継承" { relation: extends }
@@ -1996,7 +1996,7 @@ animation:
 
 export const sourceJson__pattern__textDslClass__クラス図で書く = `{
   "title": "クラスの関係をクラス図で書く",
-  "type": "class",
+  "type": "record",
   "relations": "hover",
   "reveal": "all",
   "lanes": {
@@ -2004,10 +2004,10 @@ export const sourceJson__pattern__textDslClass__クラス図で書く = `{
     "c1": { "width": 320 }
   },
   "actors": [
-    { "name": "利用者", "lane": "c0", "eyebrow": "抽象", "rows": ["+名前: 文字", "───", "+入る(): 通行証"] },
-    { "name": "管理者", "lane": "c0", "rows": ["+権限: 文字", "───", "+止める(): 無し"] },
-    { "name": "注文", "lane": "c1", "rows": ["+番号: 数", "───", "+支払う(): 受領書"] },
-    { "name": "受領書", "lane": "c1", "rows": ["+控え番号: 文字"] }
+    { "name": "利用者", "lane": "c0", "eyebrow": "抽象", "rows": ["名前: 文字", "入る: 通行証"], "marks": ["", "外"] },
+    { "name": "管理者", "lane": "c0", "rows": ["権限: 文字", "止める: 無し"], "marks": ["", "外"] },
+    { "name": "注文", "lane": "c1", "rows": ["番号: 数", "支払う: 受領書"], "marks": ["", "外"] },
+    { "name": "受領書", "lane": "c1", "rows": ["控え番号: 文字"], "marks": [""] }
   ],
   "flow": [
     { "from": "管理者", "to": "利用者", "label": "継承", "relation": "extends" },

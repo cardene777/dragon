@@ -25,7 +25,7 @@ const 一箱の図種 = [
 
 /** 箱ごとに分かれる図種。 相手が決まらない */
 const 箱ごとの図種 = [
-  "sequence", "flow", "swimlane", "record", "topology", "solidity", "class", "c4",
+  "sequence", "flow", "swimlane", "record", "topology", "solidity", "c4",
 ] as const;
 
 const 記法 = (type: string, 小見出し?: string) =>

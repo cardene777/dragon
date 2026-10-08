@@ -13,7 +13,7 @@ import { compileToCdl } from "../src/compile";
 import { parseTextDslV05 } from "../src/v05/parser";
 
 /** 箱を持ち、座標が効く図種 (実測) */
-const 図種一覧 = ["c4", "class", "record", "swimlane"] as const;
+const 図種一覧 = ["c4", "record", "swimlane"] as const;
 
 function 本文(図種: string, 書く: string): string {
   return `title: "座標の図"
@@ -90,7 +90,7 @@ describe("箱の座標を片方だけ書くと、知らせが出る (#2362)", ()
   });
 
   it("知らせの文が、書いた方と足りない方の両方を指す", () => {
-    const 文 = 組む(本文("class", "posX: 100")).知.find((n) => n.kind === "position-axis-missing");
+    const 文 = 組む(本文("record", "posX: 100")).知.find((n) => n.kind === "position-axis-missing");
     expect(文, "知らせが 1 件も出ていない").toBeDefined();
     expect(文!.message).toContain("posX");
     expect(文!.message).toContain("posY");

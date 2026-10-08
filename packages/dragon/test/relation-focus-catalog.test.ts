@@ -26,11 +26,22 @@ import { FORMS } from "../../../apps/playground-spa/src/lib/syntax-forms";
 /**
  * 順番を持たない図か (#2782)。
  *
- * クラス図は図種で決まる。 行を持つ図 (`record`) は表のつながりと移り変わりの両方を
- * 書けるので、**矢印の端で見分ける** (`support/record-edges.ts` が表を持つ)。
+ * 直接の組み立て器で作るクラス図は図種で決まる。記法の `record` は UML / 表 / 移り変わりを
+ * 書けるので、**矢印の端で見分ける**。UML の6種は両端の形と塗りを必ず持つ (#2783)。
  */
+const UMLの関係を持つ = (d: CdlDiagram): boolean =>
+  d.type === "record" &&
+  d.edges.length > 0 &&
+  d.edges.every(
+    (edge) =>
+      edge.headFill !== undefined &&
+      edge.tailHeadFill !== undefined &&
+      ["triangle", "open", "none"].includes(edge.head ?? "") &&
+      ["none", "diamond"].includes(edge.tailHead ?? ""),
+  );
+
 const 順番を持たないか = (d: { type?: string } & CdlDiagram): boolean =>
-  d.type === "class" || 表のつながりの図(d);
+  d.type === "class" || UMLの関係を持つ(d) || 表のつながりの図(d);
 
 type 図 = (typeof 全図)[number] & {
   id?: string;

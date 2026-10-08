@@ -9,7 +9,7 @@
  * | 木の図 | `tree` | #2360 |
  * | 値の図とじょうご | `pie` ほか 9 図種 + `funnel` | #2368 |
  * | ガントチャートと体験の地図と四象限 | `gantt` / `journey` / `quadrant` | #2370 |
- * | 骨組みの図 | `flow` / `swimlane` / `topology` / `er` / `c4` / `class` / `state` | #2376 / #2382 |
+ * | 骨組みの図 | `flow` / `flowchart` / `swimlane` / `topology` / `c4` / `record` | #2376 / #2382 / #2782 |
  *
  * 矢印の側は `edge-option-notice.ts` が同じ形を持つ (#2366)。
  */
@@ -280,7 +280,6 @@ export type 骨組みの図の違い = {
  * | フロー / 泳路の図 / 配置の図 | 無し | `compile/generic.ts` が共通の経路で箱を作る |
  * | 分かれ道の図 (`flowchart`) | 無し | 種類は専用の形または箱の見た目として読む |
  * | 構成の図 (`c4`) | 段 (`stack`) を読まない | `compile/c4.ts` が `a.stack` を読まない |
- * | クラス図 (`class`) | 種類 (`kind`) を読まない | `compile/class.ts` が種類を行の形から決める |
  * | 行を持つ図 (`record`) | 始まりの印と終わりの印を読む | `compile/generic.ts` の札がこの図種でだけ出る |
  */
 export const 骨組みの図種: ReadonlyMap<string, 骨組みの図の違い> = new Map([
@@ -289,7 +288,6 @@ export const 骨組みの図種: ReadonlyMap<string, 骨組みの図の違い> =
   ["swimlane", {}],
   ["topology", {}],
   ["c4", { 読まない: ["stack"] }],
-  ["class", { 読まない: ["kind"] }],
   ["record", { 読む: ["initial", "final"] }],
 ]);
 

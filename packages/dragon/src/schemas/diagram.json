@@ -28,7 +28,6 @@
         "topology",
         "solidity",
         "gantt",
-        "class",
         "chart",
         "pie",
         "bar",
@@ -46,7 +45,7 @@
         "c4",
         "mind"
       ],
-      "description": "図の種類。 型ごとに actors の書き方が違う。 [関係を描く] sequence (時系列の呼び出し) / flow (処理の流れ) / flowchart (分かれ道と判断を含む手順) / swimlane (責務ごとの流れ) / record (箱が行を持ち関係を持つ図。 表のつながりにも移り変わりにも使う) / topology (network) / class (UML の class) / c4 (architecture) / mind (発想の枝分かれ) は actors に名前を並べ flow に矢印を書く。 [値を描く] chart (数の並び) は actors に `- 名前: \"45\"` の形で数を書き、 shape で形を選ぶ (pie = 割合 / bar = 棒の高さ / line = 線の高さで書いた順に並ぶ / gauge = 合計を半円で示す / radial = 弧の長さで比べる / stat = 値 1 つを大きく示す / waffle = 割合を 100 個の印で示す / stacked = 内訳を帯で示す / slope = 2 時点を直線でつなぎ増減と順位の入れ替わりを示す)。 shape が stat と stacked と slope の時は `- 名前: { value: \"320\", previous: \"280\" }` の形で前の時点の値も書ける。 funnel (段ごとに減る数) も同じ形。 [語を描く] journey (体験の起伏) は `- 登録: \"不満\"` の形で 最高 / 満足 / 普通 / 不満 / 怒り のどれかを書く。 quadrant (2 軸の仕分け) は `- 重複削除: \"左上\"` の形で 左上 / 右上 / 左下 / 右下 のどれかを書く。 [時期を描く] gantt (工程の並び) は `- 設計: \"1月\"` の形で始まりの時期を書き、 flow の矢印で前後関係を書く。 [親子を描く] tree (親子の入れ子) は actors に名前を並べ flow の矢印で親子を書く (矢印の先が子)。 [古い綴り] solidity は sequence と order: kind の組、 pie / bar / line / gauge / radial / stat / waffle / stacked / slope は chart と同じ綴りの shape の組と同じ扱いになる"
+      "description": "図の種類。 型ごとに actors の書き方が違う。 [関係を描く] sequence (時系列の呼び出し) / flow (処理の流れ) / flowchart (分かれ道と判断を含む手順) / swimlane (責務ごとの流れ) / record (箱が行を持ち関係を持つ図。 表のつながり、移り変わり、UML クラス関係にも使う) / topology (network) / c4 (architecture) / mind (発想の枝分かれ) は actors に名前を並べ flow に矢印を書く。 [値を描く] chart (数の並び) は actors に `- 名前: \"45\"` の形で数を書き、 shape で形を選ぶ (pie = 割合 / bar = 棒の高さ / line = 線の高さで書いた順に並ぶ / gauge = 合計を半円で示す / radial = 弧の長さで比べる / stat = 値 1 つを大きく示す / waffle = 割合を 100 個の印で示す / stacked = 内訳を帯で示す / slope = 2 時点を直線でつなぎ増減と順位の入れ替わりを示す)。 shape が stat と stacked と slope の時は `- 名前: { value: \"320\", previous: \"280\" }` の形で前の時点の値も書ける。 funnel (段ごとに減る数) も同じ形。 [語を描く] journey (体験の起伏) は `- 登録: \"不満\"` の形で 最高 / 満足 / 普通 / 不満 / 怒り のどれかを書く。 quadrant (2 軸の仕分け) は `- 重複削除: \"左上\"` の形で 左上 / 右上 / 左下 / 右下 のどれかを書く。 [時期を描く] gantt (工程の並び) は `- 設計: \"1月\"` の形で始まりの時期を書き、 flow の矢印で前後関係を書く。 [親子を描く] tree (親子の入れ子) は actors に名前を並べ flow の矢印で親子を書く (矢印の先が子)。 [古い綴り] solidity は sequence と order: kind の組、 pie / bar / line / gauge / radial / stat / waffle / stacked / slope は chart と同じ綴りの shape の組と同じ扱いになる"
     },
     "form": {
       "type": "string",
@@ -599,7 +598,7 @@
           },
           "tailSub": {
             "type": "string",
-            "description": "クラス図の出どころ側の多重度 (例 \"1\")。 sub が行き先の端の多重度。 クラス図でだけ効く"
+            "description": "relation を書いた record の出どころ側の多重度 (例 \"1\")。 sub が行き先の端の多重度"
           },
           "tone": {
             "type": "string",
@@ -702,7 +701,7 @@
               "associates",
               "uses"
             ],
-            "description": "クラス図の関係の語。 書くと端の形 / 塗り / 線種がまとめて決まる。"
+            "description": "record に書く UML 関係の語。 書くと端の形 / 塗り / 線種がまとめて決まる。"
           },
           "role": {
             "type": "string",
@@ -2409,7 +2408,7 @@
         "neon",
         "relief"
       ],
-      "description": "図の意匠 (`kinari` = 生成りに茶、`celadon` = 青磁に墨、`blueprint` = 図面、`letterpress` = 活版、`catalog` = 図録、`terminal` = 端末、`sketch` = 手描き、`neon` = 電飾、`relief` = 浮彫)。 名前だけが図に載り、色の値は使う側が決める。 クラス図は書かなくても `kinari` になる。"
+      "description": "図の意匠 (`kinari` = 生成りに茶、`celadon` = 青磁に墨、`blueprint` = 図面、`letterpress` = 活版、`catalog` = 図録、`terminal` = 端末、`sketch` = 手描き、`neon` = 電飾、`relief` = 浮彫)。 名前だけが図に載り、色の値は使う側が決める。"
     },
     "palette": {
       "type": "string",
@@ -2473,7 +2472,7 @@
         "off",
         "hover"
       ],
-      "description": "箱に触れると関係する線だけを光らせるか。 off (既定) = 何もしない。 hover = 箱に触れた時にその箱と繋がる線と相手の箱だけが光り、他が沈む。 順番を持たないクラス図と ER 図で使う。"
+      "description": "箱に触れると関係する線だけを光らせるか。 off (既定) = 何もしない。 hover = 箱に触れた時にその箱と繋がる線と相手の箱だけが光り、他が沈む。 順番を持たない record の関係図で使う。"
     },
     "bands": {
       "type": "array",

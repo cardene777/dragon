@@ -53,7 +53,7 @@ flow:
 | 欄          | 何を書くか                                                                                                                                 |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `title`     | 図の題                                                                                                                                     |
-| `type`      | 図種 (`sequence` / `flow` / `swimlane` / `er` / `state` / `topology` / `gantt` / `class` / `mind` / `tree` / `c4` / `chart` / その他)。 古い綴りは組に読み替える = `solidity` は `sequence` と `order: 種類`、数を描く 9 つ (`pie` 等) は `chart` と同じ綴りの `shape` |
+| `type`      | 図種 (`sequence` / `flow` / `flowchart` / `swimlane` / `record` / `topology` / `gantt` / `mind` / `tree` / `c4` / `chart` / その他)。 古い綴りは組に読み替える = `solidity` は `sequence` と `order: 種類`、数を描く 9 つ (`pie` 等) は `chart` と同じ綴りの `shape` |
 | `actors`    | 箱                                                                                                                                         |
 | `flow`      | 矢印                                                                                                                                       |
 | `states`    | 状態の初期値                                                                                                                               |
@@ -78,7 +78,7 @@ flow:
 | `shape`     | 図種ごとの形。`chart` は `pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope` (書かなければ `bar`)、`swimlane` は `stages` / `metro` / `timeline` |
 | `form`      | `shape: pie` の見せ方 (`ring` / `arcs` / `table`、和名は `輪` / `積層の弧` / `銘板`)。 `見せ方:` とも書ける |
 | `ticks`     | `type: gantt` の目盛りを左から順に並べる (`目盛り:` とも書ける)。 書かなければ工程の始まりから作る |
-| `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る。 クラス図は書かなくても `kinari` |
+| `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
 | `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 1 項目は `{ mark, text }`、和名なら `{ 印, 説明 }`。 印の 10 種は下の節を参照 |
 
 <!-- notation:top-level:end -->
@@ -182,8 +182,8 @@ legend:
 
 | 欄               | 何を書くか                                                          |
 | ---------------- | ------------------------------------------------------------------- |
-| `sub`            | 説明の下の補足 (クラス図では行き先の端の多重度)                     |
-| `tailSub`        | クラス図の出どころ側の多重度 (`1` 等)。 出どころの端の近くに出る     |
+| `sub`            | 説明の下の補足。`relation` と一緒に書いた record では行き先の端の多重度 |
+| `tailSub`        | 出どころ側の端に添える字 (`1` 等)。`relation` と一緒なら UML 関係の多重度 |
 | `guard`          | 状態遷移の条件                                                      |
 | `cardinality`    | ER 図の関係の多重度 (`1:1` / `1:N` / `N:1` / `N:M` / `0..1` / `1..*`)。 両端の形が語から決まり (`tailHead` / `head` を書けばそちらが勝つ)、語は説明の下の行に出る。 6 語以外の語と、ER 図以外に書いた多重度は端の形にならず、知らせ (`onNotice`) が出る |
 | `widthBind`      | 線の太さを値に追随させる (状態やつまみの名前を `{名前}` の形で書く) |
@@ -194,7 +194,7 @@ legend:
 | `tailHead`       | 出どころ側の端の形 (ER は端ごとに違う個数を示すので両端に要る) |
 | `headFill`       | 端の印の塗り (`solid` 塗る / `hollow` 白抜き) |
 | `tailHeadFill`   | 出どころ側の印の塗り |
-| `relation`       | クラス図の関係の種類 (`extends` 継承 / `implements` 実装 / `aggregates` 集約 / `composes` コンポジション / `associates` 関連 / `uses` 依存)。 書くと線と端の形と塗りと付く側がまとめて決まる |
+| `relation`       | record に書く UML 関係の種類 (`extends` 継承 / `implements` 実装 / `aggregates` 集約 / `composes` コンポジション / `associates` 関連 / `uses` 依存)。 書くと線と端の形と塗りと付く側がまとめて決まる |
 | `kind`           | 順序図の言づての種類 (`call` 呼ぶ / `return` 返す / `fire` 投げる) |
 | `role`           | 辺の役目 (`main` 主となる道)。 書いた辺だけ「いま」 の色で引く。 主となる 1 本 (または 1 続き) にだけ書く |
 | `labelPlate`     | 説明文の下地を敷くか (`false` で外す)。 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える |

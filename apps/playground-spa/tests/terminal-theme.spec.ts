@@ -33,9 +33,10 @@ const hexToRgb = (hex: string): string => {
 
 const stage = (page: Page) => page.locator('svg[data-cdl-stage][data-cdl-palette="terminal"]');
 
-function sample(type: "class" | "flowchart" | "chart" | "gantt"): string {
+function sample(type: "record" | "flowchart" | "chart" | "gantt"): string {
   const found = EDITOR_SAMPLES.find((value) => {
     if (!new RegExp(`^type:\\s*${type}\\s*$`, "m").test(value.code)) return false;
+    if (type === "record") return value.slug === "class";
     return type !== "chart" || /^shape:\s*bar\s*$/m.test(value.code);
   });
   if (!found) throw new Error(`editor-samples に ${type} の見本が無い`);
@@ -187,7 +188,7 @@ test.describe("terminal theme (#2793)", () => {
     let titleTexts = 0;
     let chartBars = 0;
     let rowStripes = 0;
-    for (const type of ["class", "flowchart", "chart"] as const) {
+    for (const type of ["record", "flowchart", "chart"] as const) {
       await openEditorTheme(page, sample(type), "terminal", false);
       const background = await stage(page).evaluate((element) => {
         const style = getComputedStyle(element);

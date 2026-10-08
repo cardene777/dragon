@@ -460,7 +460,7 @@ export interface JsonStep {
   tailHead?: EdgeHead;
   headFill?: EdgeHeadFill;
   tailHeadFill?: EdgeHeadFill;
-  /** クラス図の出どころ側の多重度 (#1771)。 記法の `{ tailSub: "1" }` と同じ */
+  /** UML 関係の出どころ側の多重度 (#1771 / #2783)。記法の `{ tailSub: "1" }` と同じ */
   tailSub?: string;
   /**
    * 辺の役目 (cdl#618)。 記法の `{ role: main }` と同じ。
@@ -470,7 +470,7 @@ export interface JsonStep {
   role?: "main";
   /** 名前の下地を敷くか (cdl#618)。 記法の `{ labelPlate: false }` と同じ。 既定は敷く */
   labelPlate?: boolean;
-  /** クラス図の関係の語 (#1466)。 書くと端の形 / 塗り / 線種がまとめて決まる */
+  /** record の UML 関係の語 (#1466 / #2783)。書くと端の形 / 塗り / 線種がまとめて決まる */
   relation?: ClassRelationType;
   /** 順序図の言づての種類 (#1466)。 `call` / `return` / `fire` */
   kind?: SequenceMessageKind;
@@ -712,7 +712,7 @@ export const ACCEPTED_KEYS = {
     "tailHead",
     "headFill",
     "tailHeadFill",
-    // クラス図の出どころ側の多重度 (#1771)
+    // UML 関係の出どころ側の多重度 (#1771 / #2783)
     "tailSub",
     "relation",
     // 辺の役目と名前の下地 (cdl#618)
@@ -905,7 +905,7 @@ export const 欄の型表 = {
     tailHead: "端の形",
     headFill: "非空の文字列",
     tailHeadFill: "非空の文字列",
-    // クラス図の出どころ側の多重度 (#1771)
+    // UML 関係の出どころ側の多重度 (#1771 / #2783)
     tailSub: "文字列",
     relation: "非空の文字列",
     // 辺の役目と名前の下地 (cdl#618)
@@ -2958,7 +2958,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     tailHead: s.tailHead,
     headFill: s.headFill,
     tailHeadFill: s.tailHeadFill,
-    // クラス図の出どころ側の多重度 (#1771)
+    // UML 関係の出どころ側の多重度 (#1771 / #2783)
     tailSub: s.tailSub,
     relation: s.relation,
     // 辺の役目と名前の下地 (cdl#618)

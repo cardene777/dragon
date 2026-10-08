@@ -543,7 +543,7 @@ flow:
     expect(diagram.lanes).toHaveLength(1);
   });
 
-  it("type: class を受理し subtitle / rows が node に反映", () => {
+  it("type: class は廃止した図種として受理しない (#2783)", () => {
     const r = parseTextDslV05(`
 title: "UML"
 type: class
@@ -555,14 +555,9 @@ actors:
 flow:
   - User -> Admin: "extends"
 `);
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.doc.type).toBe("class");
-    expect(r.doc.actors[0]).toMatchObject({
-      name: "User", subtitle: "+name: string", rows: ["+login(): void"],
-    });
-    const diagram = compileToCdl(r.doc);
-    expect(diagram).toBeDefined();
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors.some((error) => error.message.includes("図種が読めません"))).toBe(true);
   });
 
   it("type: pie を 数を描く図 + 円の形 として受理し value 属性が actor に保持される", () => {
@@ -665,14 +660,14 @@ actors:
     expect(chart.h).toBe(360);
   });
 
-  it("class: 各 actor が storage kind に強制され rows 表示が可能", () => {
+  it("record: storage の actor に rows と行頭の印を表示できる", () => {
     const r = parseTextDslV05(`
 title: "UML"
-type: class
+type: record
 
 actors:
-  - User: { kind: card, subtitle: "+name: string", rows: ["+login(): void", "+logout(): void"] }
-  - Admin: { kind: card }
+  - User: { kind: storage, subtitle: "name: string", rows: ["login: void", "logout: void"], marks: ["外", "外"] }
+  - Admin: { kind: storage }
 
 flow:
   - User -> Admin: "extends"
@@ -680,19 +675,15 @@ flow:
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const diagram = compileToCdl(r.doc);
-    // **クラスごとに 1 縦列** (#1263 で変更)。 組立て API 側がそう並べており、1 本にまとめると
-    // 同じ内容でも横並びが縦並びになっていた。 縦列に見出しは付けない (箱が名前を描くため)
+    // 縦列を書かない record は箱ごとに 1 縦列を作る。
     expect(diagram.lanes).toHaveLength(2);
     expect(diagram.lanes.map((l) => l.id)).toEqual(["lane-user", "lane-admin"]);
     expect(diagram.lanes.map((l) => l.label)).toEqual([undefined, undefined]);
     expect(diagram.nodes.map((n) => n.stack)).toEqual([0, 0]);
-    // 全 actor は storage kind に強制 (UML class box 表示)
+    // UML の行を持つ箱として storage を明記する。
     expect(diagram.nodes.every((n) => n.kind === "storage")).toBe(true);
     expect(diagram.nodes).toHaveLength(2);
-    // rows が User node に反映 (applyV05Extensions 経由)。
-    //
-    // **字は加工される** (#1466)。 公開の記号 (`+` / `-`) は行頭の印が担い、呼び出しの括弧は
-    // 印の形 (山) が担うため、字からは落とす = 印と字が同じことを 2 度言わない
+    // rows と marks が User node に反映される。
     const userNode = diagram.nodes.find((n) => n.id === "user");
     expect(userNode?.rows).toEqual(["login: void", "logout: void"]);
     expect(userNode?.rowMarks?.map((m) => m && `${m.shape}/${m.filled}`)).toEqual([
@@ -1181,22 +1172,21 @@ describe("storage / class rows の column 揃え + width 自動拡張 (DB table 
     expect(node!.w).toBe(400);
   });
 
-  it("class preset (UML) ... rows / subtitle が node に正しく反映 (compile chain 回帰)", () => {
-    // class preset は CLASS_W=400 を node の w に明示渡しするため、 著者明示経路として
-    // autoRowsWidth は素通り。 row の column 揃えは render 層で発火する。
+  it("record (UML) ... rows / subtitle が node に正しく反映 (compile chain 回帰)", () => {
     const r = parseTextDslV05(`
 title: "UML"
-type: class
+type: record
 actors:
-  - User: { kind: card, subtitle: "+name: string", rows: ["+veryLongMethodNameHere(): Promise<void>", "+short(): void"] }
-  - Admin: { kind: card }
+  - User: { kind: storage, subtitle: "name: string", rows: ["veryLongMethodNameHere: Promise<void>", "short: void"], marks: ["外", "外"] }
+  - Admin: { kind: storage }
 flow:
   - User -> Admin: "extends"
 `);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const compiled = compileToCdl(r.doc);
-    const userNode = compiled.nodes.find((n) => n.id === "user");
+    const laid = layoutFromSrc(compiled);
+    const userNode = laid.nodes.find((n) => n.id === "user");
     expect(userNode).toBeDefined();
     // 行の字が大きくなった (#1466) ので、長い行に合わせて箱も広がる
     expect(userNode!.w).toBe(630);

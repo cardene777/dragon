@@ -88,7 +88,6 @@ export const 図種の作り: Record<PresetType, "登場人物ごとに箱" | "�
   swimlane: "登場人物ごとに箱",
   record: "登場人物ごとに箱",
   topology: "登場人物ごとに箱",
-  class: "登場人物ごとに箱",
   c4: "登場人物ごとに箱",
   // 中身は payload が持ち、 図そのものは 1 箱。 矢印は描かず本数を数えて知らせる
   gantt: "図全体を 1 箱",

@@ -107,6 +107,17 @@ describe("走査する検査が集める file の一覧 (#2095)", () => {
     ]);
   });
 
+  it("作業木から削除した file を返さない", () => {
+    const path = join(仮repo, "deleted.ts");
+    writeFileSync(path, "export const deleted = true;\n");
+    git("add", "deleted.ts");
+    git("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-q", "-m", "削除の対照");
+    rmSync(path);
+
+    expect(追跡しているfile(仮repo, "*.ts")).not.toContain("deleted.ts");
+    expect(走査するfile(仮repo, "*.ts")).not.toContain("deleted.ts");
+  });
+
   it("説明書の集合が、配る説明書を入れて変更履歴を外す", () => {
     // **集合そのものの形をここで見る** (#2240)。 使う側 2 本に同じ言い切りを置くと、
     // 片方だけ直した日に 2 本の期待が割れる

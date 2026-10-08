@@ -29,7 +29,6 @@ const TYPES: readonly PresetType[] = [
   "record",
   "topology",
   "gantt",
-  "class",
   "chart",
   "c4",
   "mind",

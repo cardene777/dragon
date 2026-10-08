@@ -101,7 +101,7 @@ flow:
   });
 
   it("flow 以外では知らせない", () => {
-    for (const t of ["swimlane", "record", "topology", "class"]) {
+    for (const t of ["swimlane", "record", "topology"]) {
       expect(端の知らせ(本文(t, `  - A -> C: "x"\n  - C -> B: "y"\n`)).length, `${t} で知らせが出た`).toBe(0);
     }
   });

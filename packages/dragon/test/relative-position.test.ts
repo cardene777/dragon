@@ -291,7 +291,7 @@ flow:
   // 箱が無く、 相対の位置を測る相手が居ない = `pie` / `gantt` / `journey` と同じ扱いになる
   // `sequence` / `solidity` は #1466 で 1 枚の板になり、面ごとの箱が無い = 相対の位置を
   // 測る相手が居ない。 書いた位置が効かないことは `§ 効かなかった時` が知らせで見る
-  const TYPES = ["flow", "record", "class", "topology", "c4"] as const;
+  const TYPES = ["flow", "record", "topology", "c4"] as const;
   for (const type of TYPES) {
     it(`${type}: 書いた間隔がそのまま空く`, () => {
       const b = boxesOf(`title: "t"

@@ -39,7 +39,6 @@ const 書いた矢印を使う図種 = [
   "swimlane",
   "record",
   "topology",
-  "class",
   "c4",
 ] as const;
 

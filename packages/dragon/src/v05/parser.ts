@@ -159,7 +159,7 @@ export const EDGE_ROLE_VALUES = ["main"] as const;
 export const SHAPE_ORIENT_VALUES = ["up", "down", "left", "right"] as const;
 
 /**
- * クラス図の関係の種類 (#1466)。 描画側の表 (`CLASS_RELATION_LOOK`) の key から導く。
+ * record に書ける UML の関係の種類 (#1466 / #2783)。描画側の表 (`CLASS_RELATION_LOOK`) の key から導く。
  *
  * 手で並べると、描画側が種類を足した時にここだけ取り残されて書けないままになる。
  */
@@ -239,8 +239,7 @@ export const TOP_LEVEL_KEYS = [
    * cdl は色を持たないので、名前だけを図に載せる。 消費側 (`cdl-theme.css`) が名前を見て
    * 7 つの口 (台 / 行の面 / 縞 / 枠 / 字 / 型名 / 線) に色を当てる。
    *
-   * クラス図は書かなくても `kinari` (生成りに茶) になる。 意匠は dragon で読み、cdl へは
-   * `palette` として渡す。 境目の名前を揃えようとすると、使う側の語と cdl の印が混ざる。
+   * 意匠は dragon で読み、cdl へは `palette` として渡す。
    */
   "theme",
   "legend",
@@ -386,7 +385,6 @@ export const PRESET_TYPES: ReadonlySet<PresetType> = new Set([
   "record",
   "topology",
   "gantt",
-  "class",
   "chart",
   "funnel",
   "tree",
@@ -683,7 +681,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       /*
        * 箱に触れると関係する線だけを光らせるか (#1757)。
        *
-       * クラス図と ER 図は順番を持たない図で、段を追う見せ方は読み手の問い
+       * UML や表の関係を描く record は順番を持たない図で、段を追う見せ方は読み手の問い
        * (この箱はどこと繋がっているか) に答えない。 `hover` と書くと、箱に触れた時に
        * その箱 ・ 繋がる線 ・ 相手の箱だけが光る (`cdl#806`)。
        */
@@ -4072,7 +4070,7 @@ const EDGE_BIND_INLINE_READERS = {
 
 const FLOW_INLINE_READERS = {
   sub: (v: string | undefined) => v,
-  // クラス図の出どころ側の多重度 (#1771)。 `sub` (行き先の端) と対
+  // UML の関係の出どころ側の多重度 (#1771 / #2783)。 `sub` (行き先の端) と対
   tailSub: (v: string | undefined) => v,
   guard: (v: string | undefined) => v,
   cardinality: (v: string | undefined) => v,
@@ -4110,7 +4108,7 @@ const FLOW_INLINE_READERS = {
   tailHeadFill: (v: string | undefined) =>
     v !== undefined && EDGE_HEAD_FILL_VALUES.includes(v) ? (v as EdgeHeadFill) : undefined,
   /*
-   * クラス図の関係の種類 (#1466)。 書くと **線と端の形と塗りと付く側** がまとめて決まる
+   * record の UML 関係の種類 (#1466 / #2783)。書くと **線と端の形と塗りと付く側** がまとめて決まる
    * (`CLASS_RELATION_LOOK`)。
    *
    * 4 つを個別に書かせない = 組合せは 6 通りしか無く、1 つでも書き違えると読み手に別の意味で

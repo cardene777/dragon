@@ -18,7 +18,13 @@
  */
 import { describe, expect, it } from "vitest";
 import { ER_CARDINALITY_HEAD } from "@cardenelabs/cdl";
-import { PRESET_TYPES, jsonToDiagram, textDslToDiagram, type CompileNotice } from "../src/index";
+import {
+  PRESET_TYPES,
+  jsonToDiagram,
+  parseTextDslV05,
+  textDslToDiagram,
+  type CompileNotice,
+} from "../src/index";
 
 const 語たち = Object.keys(ER_CARDINALITY_HEAD);
 
@@ -126,9 +132,11 @@ describe("矢印に書いた多重度が端の形にならない時に知らせ�
       }
     });
 
-    it("クラス図では、多重度を書く欄を案内する", () => {
-      const 出た = 多重度の知らせ(記法("class", ' { cardinality: "1..*" }'));
-      expect(出た.map((n) => n.hint)).toEqual([expect.stringMatching(/sub.*tailSub/)]);
+    it("廃止した type: class は多重度の知らせより前に図種の誤りとして伝える (#2783)", () => {
+      const r = parseTextDslV05(記法("class", ' { cardinality: "1..*" }'));
+      expect(r.ok).toBe(false);
+      if (r.ok) return;
+      expect(r.errors.some((error) => error.message.includes("図種が読めません"))).toBe(true);
     });
 
     it("矢印を最初の行でまとめて捨てる図種では、2 本目の矢印の多重度はその行で伝える", () => {

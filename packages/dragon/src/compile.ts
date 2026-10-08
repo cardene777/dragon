@@ -16,7 +16,6 @@ import { 向きを選べる図種, 縦列より向きが勝つ図種, 既定の�
 import { 並び順が効くか, 並び順を選べる図種 } from "./compile/order";
 import { actorRefTable, canonicalizeFlowActors } from "./compile/actors";
 import { compileC4 } from "./compile/c4";
-import { compileClass } from "./compile/class";
 import { 鎖でつなぐ形か, 鎖に並べる登場人物, 鎖にしない書き方の案内 } from "./compile/chain";
 import { compileRecord } from "./compile/record";
 import { 行頭の印にする, 行頭の印を読むか, 鍵の行を上にまとめる } from "./compile/row-marks";
@@ -191,9 +190,6 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     case "gantt":
       diagram = compileGantt(doc, 図種の知らせ);
       break;
-    case "class":
-      diagram = compileClass(doc);
-      break;
     case "chart":
       // 形は `shape:` が決める (#2657)。 書かなければ棒 = 数を並べる図で最も素直な形で、
       // 形を書かずに数だけ書いた記法が図にならない状態を作らない
@@ -342,8 +338,8 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 動かない図に段を 1 つ入れる (#1086)。
   //
   // 描画側は「段が 1 件以上」 を要求するが、 段を作るかどうかは種類ごとにばらけている。
-  // 実測 = `animation:` を書かない同じ記法を 12 種に与えると、 6 種 (sequence / flow / er /
-  // state / topology) は描かれ、 6 種 (swimlane / gantt / class / pie / c4 / mind)
+  // 実測 = `animation:` を書かない同じ記法を旧 12 種に与えると、6 種 (sequence / flow / er /
+  // state / topology) は描かれ、6 種 (swimlane / gantt / class / pie / c4 / mind)
   // は「phase が 0 件です」 で弾かれた。 書く人から見ると区別する手がかりが無い。
   //
   // **出口で 1 度だけ見る**。 種類ごとに塞ぐと 12 経路のどれかを見落とす。 図は必ずここを
@@ -607,8 +603,6 @@ function 静止した図の焦点を外す(diagram: CdlDiagram, doc: DslDocument
   }
 }
 
-const 既定の配色を持つ図種: ReadonlySet<DslDocument["type"]> = new Set(["class"]);
-
 /**
  * 行を書いた箱か (#2782)。 縞を敷く相手を決める。
  *
@@ -639,8 +633,6 @@ function 行を書いた箱か(node: CdlNode): boolean {
  * 同じ形で、**書かないものを図が名乗らない** 側に倒している。
  * 表の図には見本の側で `palette: kinari` を書く。
  *
- * クラス図だけは既定を残す。 畳んでいないので図種が中身を一意に決める。
- *
  * ## 行の縞
  *
  * 縞の色は配色からしか来ない。 配色が無い図に敷くと箱の面と同じ色に落ちて 1 本も出ないので、
@@ -650,7 +642,7 @@ function 行を書いた箱か(node: CdlNode): boolean {
  * 動きの有無で縞を持ったり持たなかったりしていた。 経路が 1 本になった後も出口で揃える。
  */
 function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
-  const 配色 = doc.theme ?? (既定の配色を持つ図種.has(doc.type) ? "kinari" : undefined);
+  const 配色 = doc.theme;
   if (配色 === undefined) return;
   diagram.palette = 配色;
   const 字の測り方 = 意匠の字の測り方(配色);
@@ -1282,11 +1274,7 @@ function reportCardinalityNotHonored(
         actor: s.from,
         line,
         message: `${矢印} に書いた多重度 "${字}" は効きません (type: ${doc.type} は多重度を描きません)`,
-        // クラス図は多重度を別の欄で受け取り、端の横に添える (`compile/class.ts`)
-        hint:
-          doc.type === "class"
-            ? "クラス図の多重度は、行き先の側を sub、出どころの側を tailSub に書いてください"
-            : "多重度から両端の形を描くのは type: record です",
+        hint: "多重度から両端の形を描くのは type: record です",
       });
       continue;
     }
@@ -1545,7 +1533,7 @@ function 値として読む図の案内(効かない: readonly string[]): string
  *
  * 実測 = フロー 447 枚 ・ 泳路の図 35 枚 ・ 配置の図 8 枚の見本すべてで、始まりの印
  * (`initial`) ・ 終わりの印 (`final`) ・ 印 (`marks`) ・ 前の値 (`previous`) の 4 件が、
- * 図も変わらず知らせも出なかった。 構成の図とクラス図はこれに 1 件ずつ足した形になる。
+ * 図も変わらず知らせも出なかった。構成の図はこれに 1 件足した形になる。
  *
  * 始まりと終わりの印を読むのは状態遷移図だけ (`compile/generic.ts` の札)。
  * 同じ記法をフローに書いても札は出ないが、書き手には状態遷移図と同じに見える。
@@ -1871,7 +1859,7 @@ function reportMissingFlowActors(
  *
  * | 光り方 | 図種 | 知らせる条件 |
  * |---|---|---|
- * | 書いた箱 / 矢印が光る | `c4` `class` `er` `flow` `state` `swimlane` `topology` | 図がその相手を持たない時 |
+ * | 書いた箱 / 矢印が光る | `c4` `flow` `record` `swimlane` `topology` | 図がその相手を持たない時 |
  * | 書いた名前に合う言づてまで板が進む | `sequence` | 知らせない (下記) |
  * | 図全体の 1 箱が光る | 残る 15 図種 | 書かなかった箱がある時と、矢印を書いた時 |
  *
@@ -2011,7 +1999,7 @@ function reportMissingFocusTargets(
         (書かなかった箱.length > 0
           ? ` 書かなかった箱 (${並べて切る(書かなかった箱)}) も光ります`
           : " 図全体が光ります"),
-      hint: "名前の書き方の問題ではありません。 全ての箱を書くか、箱を 1 つずつ選べる図種 (flow / class など) に変えてください",
+      hint: "名前の書き方の問題ではありません。 全ての箱を書くか、箱を 1 つずつ選べる図種 (flow / record など) に変えてください",
     });
   }
 }
@@ -2202,10 +2190,12 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   // 鎖を作る時に説明文しか渡さないため補足が消え、`record` は見本が多重度から作った補足が
   // 残って書いた値が無視される (どちらも実測)
   //
-  // **クラス図の `sub` は多重度なので写さない** (#1769)。 クラス図の組み立てが既に `cardinality` として
-  // 渡し、engine が行き先の端に添える (cdl#821)。 ここで札の下の行にも写すと、`1..*` が札と端の
-  // 2 か所に出て、組み立て器で書いた同じ図と食い違う (実測 = 記法の見本が組み立て器の見本と一致しなくなった)
-  if (s.sub !== undefined && doc.type !== "class") target.sub = s.sub;
+  // `relation` を書いた record の `sub` は行き先側の多重度。それ以外の `sub` は
+  // 従来どおり名前の下の補足にする (#2783)。
+  if (s.sub !== undefined) {
+    if (doc.type === "record" && s.relation !== undefined) target.headLabel = s.sub;
+    else target.sub = s.sub;
+  }
   if (s.guard !== undefined) {
     target.guard = s.guard;
     // FSM preset では sub が guard 同期、 author 明示 guard を sub に反映 (sub 既存なら上書きしない)
@@ -2224,9 +2214,7 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.style !== undefined) target.style = s.style;
   // 出どころの端に添える字 (#2394)。 engine は `tailLabel` として端に置く (cdl#825)。
   //
-  // **クラス図だけ写さない** = 組み立てが既に `tailCardinality` として渡しており、
-  // ここで重ねると同じ字が端に 2 度出る (`sub` を外すのと同じ理由)
-  if (s.tailSub !== undefined && doc.type !== "class") target.tailLabel = s.tailSub;
+  if (s.tailSub !== undefined) target.tailLabel = s.tailSub;
   // 多重度が名前と端にどう出るかは組み立ての時に決まっている (`compile/er-relation.ts`、#2105)。
   // ここで名前へ `(1:N)` を足すと、組み立てが名前の下の行に出した語と 2 度並ぶ
   if (s.cardinality !== undefined) target.cardinality = s.cardinality;
@@ -2476,17 +2464,6 @@ function reportAxesNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
 }
 
 /**
- * 行を組み立て器が加工する図の種類 (#1466)。
- *
- * ここに載る種類では、記法に書いた行をそのまま箱へ載せ直さない = 組み立て器が行頭の印に
- * 合わせて字を落としているため。
- */
-function 行を組み立て器が持つ(type: DslDocument["type"]): boolean {
-  return type === "class";
-}
-
-
-/**
  * `lanes:` で作った縦列と、見本 (parts) が作った同一idの縦列を 1 つに重ねる (#1241)。
  *
  * `lanes:` の中身を読むのは見本を重ねるより前で、その時点では見本の縦列がまだ無い。
@@ -2598,14 +2575,7 @@ function applyV05Extensions(
       if (説明 !== undefined) node.subtitle = 説明;
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
-      /*
-       * 行は **組み立て器が持つ図では上書きしない** (#1466)。
-       *
-       * クラス図は行頭の印を出すために、公開の記号 (`+` / `-`) と呼び出しの括弧を字から
-       * 落とし、群の区切り (`───`) を空の行に置き換える。 書いた字をそのまま載せ直すと
-       * その加工が消え、印と字が同じことを 2 度言う形に戻る (実測)。
-       */
-      if (a.rows !== undefined && !行を組み立て器が持つ(doc.type)) node.rows = a.rows;
+      if (a.rows !== undefined) node.rows = a.rows;
       // 行頭の印 (#1466)。 書いた語を図の種類ごとの意味で読み、群の分け方も種類が決める
       if (a.marks !== undefined && a.rows !== undefined && 行頭の印を読むか(doc.type)) {
         const 組 = 鍵の行を上にまとめる(a.rows, 行頭の印にする(a.marks, a.rows.length));
@@ -2655,7 +2625,7 @@ function applyV05Extensions(
     }
   }
   // v0.5+ animation phase 後段注入 (CAR-1657 fix、 元 dragon PR #413 report user)。
-  // preset (class / pie / c4 / mind / gantt) が doc.animate を無視して build するケースを補償。
+  // 単一箱の preset (chart / c4 / mind / gantt 等) が doc.animate を無視して build するケースを補償。
   // 既に preset が phase を生成済 (sequence / flow / swimlane / er / state / topology 経由 = compileGenericWithAnimate) なら skip。
   // doc に phase 指定があって diagram.phases が空なら、 preset 由来 lane/node/edge に対して generic phase を注入する。
   if (doc.animate && doc.animate.phases.length > 0 && diagram.phases.length === 0) {
@@ -2721,7 +2691,7 @@ function applyV05Extensions(
 /**
  * v0.5+ animation phase 後段 fallback 注入 (CAR-1657)。
  *
- * class / pie / c4 / mind / gantt preset は独自 layout を持ち、 compileGenericWithAnimate 経路に
+ * chart / c4 / mind / gantt 等の preset は独自 layout を持ち、compileGenericWithAnimate 経路に
  * 乗らないため、 doc.animate.phases があっても diagram.phases が空になる。
  * 本 helper が applyV05Extensions から呼ばれて post-hoc に phase を差込む、 lane/node/edge は
  * 既存 preset 出力を保持したまま animation だけ追加する。

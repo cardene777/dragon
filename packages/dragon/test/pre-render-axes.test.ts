@@ -71,7 +71,6 @@ const 型と種類 = {
   record: ["card"],
   topology: ["actor"],
   gantt: ["gantt-timeline"],
-  class: ["storage"],
   // 形を書かない時の形 (棒)。 形ごとの種類は下の 形と種類 が見る (#2657)
   chart: ["chart-bar"],
   c4: ["actor"],
@@ -236,7 +235,7 @@ describe("軸 2 = 中身の無い枠を作らない (#1096)", () => {
     it(`type: ${type} で登場人物が 0 人でも空の枠が残らない`, () => {
       // 到達できる境界。 `title` と `type` だけの本文は解析を通る (実測) ので、 枠を先に作る
       // 実装では中身の無い枠が残る (Round 1 review の指摘。 実測で `mind` / `flow` /
-      // `topology` / `class` の 4 種が該当した)
+      // `topology` などが該当した)
       const d = textDslToDiagram(`title: "t"\ntype: ${type}\n`);
       expect(空の枠(d), `中身の無い枠が残っている: ${空の枠(d).join(", ")}`).toEqual([]);
     });

@@ -95,7 +95,6 @@ const 空の形の逃げ先: Record<PresetType, string[]> = {
   flow: [],
   record: [],
   topology: [],
-  class: [],
   c4: [],
   // 図全体を 1 箱で描く群 (作り替えないのでここは使わない)
   gantt: [],

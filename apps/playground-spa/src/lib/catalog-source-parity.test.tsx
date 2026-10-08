@@ -121,6 +121,7 @@ type 図種の差 = {
  * |---|---|
  * | 記法に同名の図種が無い | `network` / `infrastructure` |
  * | 記法が図種を畳んだ (#2782) | 表の図と移り変わりの図 (`record` に畳んだ) |
+ * | 記法が図種を畳んだ (#2783) | UML クラス図 (`record` に畳んだ) |
  *
  * 2 つ目は **解消する予定が無い差**。 記法から図種の名前を無くしたのが目的で、描く側の
  * 組み立て器 (`er()` / `stateMachine()`) は自分の名前を持ったままにしている。
@@ -159,6 +160,18 @@ const 図種の既知の差: Record<string, 図種の差> = {
     記法経路: "record",
     組み立て器経路: "er",
     理由: "記法は図種の名前を持たず record 1 つに畳んだため (#2782)",
+  },
+  presetClassDiagram: {
+    見本: "presetClassDiagram",
+    記法経路: "record",
+    組み立て器経路: "class",
+    理由: "記法はクラス図の名前を持たず record 1 つに畳んだため (#2783)",
+  },
+  pattern__presetClassDiagram__複雑: {
+    見本: "pattern__presetClassDiagram__複雑",
+    記法経路: "record",
+    組み立て器経路: "class",
+    理由: "記法はクラス図の名前を持たず record 1 つに畳んだため (#2783)",
   },
   presetStateMachine: {
     見本: "presetStateMachine",
@@ -1307,6 +1320,28 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
     }
     expect(幽霊, "宣言されているが記法を持たない preset").toEqual([]);
   });
+});
+
+describe("クラス図を record で書き直しても見た目を変えない (#2783)", () => {
+  const 書き直した見本 = 対象.filter((t) =>
+    ["presetClassDiagram", "pattern__presetClassDiagram__複雑"].includes(t.key),
+  );
+
+  it("書き直す前の classDiagram と比べる見本を 2 件集めている", () => {
+    expect(書き直した見本.map((t) => t.key).sort()).toEqual([
+      "pattern__presetClassDiagram__複雑",
+      "presetClassDiagram",
+    ]);
+  });
+
+  for (const t of 書き直した見本) {
+    it(`${t.key}: record 記法の SVG が書き直す前の classDiagram と一致する`, () => {
+      const record = textDslToDiagram(t.yaml, { partsCatalog: 部品の一覧 });
+      expect(record.type, "見本の記法が record に書き直されていない").toBe("record");
+      expect(t.built.type, "比較元が classDiagram の出力でない").toBe("class");
+      expect(見た目(record, new Set(), true)).toBe(見た目(t.built, new Set(), true));
+    });
+  }
 });
 
 /**
