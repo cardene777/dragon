@@ -86,7 +86,10 @@ const 描き手たち: Record<string, 描き手> = {
   stateMachine: "矢印",
   infrastructure: "矢印",
   classDiagram: "矢印",
-  flowchart: "矢印",
+  deliveryFlow: "矢印",
+  deliveryStages: "矢印",
+  deliveryMetro: "矢印",
+  deliveryTimeline: "矢印",
   network: "矢印",
   stateMachine2: "矢印",
   // 図が自分で線や塗りを伸ばす図。 矢印を 1 本も持たない
@@ -309,7 +312,7 @@ test.describe("伸びるのは 1 度だけ (#1474 / #1476)", () => {
       "母集団の内訳が変わった (担い手の表を見直す)",
     ).toEqual({
       対象: 登録簿の鍵.length + 記法のパターン数,
-      矢印: 10,
+      矢印: 13,
       図: 7,
       描かない: 2,
     });

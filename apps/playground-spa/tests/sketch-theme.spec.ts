@@ -21,12 +21,15 @@ import {
   readFixedThemeRoleColor,
   readFixedThemeSingleSeriesBars,
   readFixedThemeToneSeries,
+  readFlowchartDecisionStyles,
   readThemeNotes,
   themeGanttSeriesColors,
 } from "./helpers/theme-notes";
 
 const sketch = readThemeNotes().get("sketch");
 if (sketch?.mode !== "fixed") throw new Error("手描きの意匠帳が固定の表ではない");
+const flowchartDecision = readFlowchartDecisionStyles().get("sketch");
+if (!flowchartDecision) throw new Error("手描きの流れ図の分かれ道を意匠帳から読めない");
 
 const hexToRgb = (hex: string): string => {
   const value = Number.parseInt(hex.slice(1), 16);
@@ -253,6 +256,7 @@ test.describe("sketch theme (#2794)", () => {
             return {
               active: element.closest('[data-cdl-active="true"]') !== null,
               filter: style.filter,
+              kind: element.closest("[data-cdl-kind]")?.getAttribute("data-cdl-kind") ?? "",
               stroke: style.stroke,
               width: style.strokeWidth,
             };
@@ -263,8 +267,11 @@ test.describe("sketch theme (#2794)", () => {
         expect(box.filter, `${type} の箱の揺れ`).toContain("url(");
         expect(box.filter, `${type} の箱の揺れ`).toContain("dragon-sketch-wobble");
         expect(box.filter, `${type} の箱の影`).toContain("drop-shadow");
-        expect(box.stroke, `${type} の箱の枠`).toBe(hexToRgb(sketch.value.frame));
-        expect(box.width, `${type} の箱の太さ`).toBe(box.active ? "3px" : "2px");
+        const decision = type === "flowchart" && box.kind === "decision" && !box.active;
+        const expectedFrame = decision ? flowchartDecision.frame : sketch.value.frame;
+        const expectedWidth = decision ? flowchartDecision.width : box.active ? 3 : 2;
+        expect(box.stroke, `${type} の箱の枠`).toBe(hexToRgb(expectedFrame));
+        expect(box.width, `${type} の箱の太さ`).toBe(`${expectedWidth}px`);
         if (box.active) activeBoxes += 1;
       }
 

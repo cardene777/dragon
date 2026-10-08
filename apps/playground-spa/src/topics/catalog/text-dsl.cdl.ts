@@ -370,7 +370,7 @@ export const sourceJson__textDslSwimlane = `{
 // 段の箱の見本 (#2831)。 意匠帳の見本 (`docs/design/proposal/static/段箱-*.html`) と同じ
 // 宅配の筋書きで、4 つの段階に札を 8 つ積み、札の右に担当と「分かれ道」を添える。
 export const sourceYaml__textDslSwimlaneStages = `
-title: "荷物を届ける"
+title: "段の箱で書く荷物の届け方"
 type: swimlane
 shape: stages
 
@@ -433,7 +433,7 @@ animation:
 export const textDslSwimlaneStages = textDslToDiagram(sourceYaml__textDslSwimlaneStages);
 
 export const sourceJson__textDslSwimlaneStages = `{
-  "title": "荷物を届ける",
+  "title": "段の箱で書く荷物の届け方",
   "type": "swimlane",
   "shape": "stages",
   "lanes": {
@@ -500,7 +500,7 @@ export const sourceJson__textDslSwimlaneStages = `{
 
 // ─── swimlane + metro (担当の路線図) ─────
 export const sourceYaml__textDslSwimlaneMetro = `
-title: "荷物を届ける"
+title: "路線図で書く荷物の届け方"
 type: swimlane
 shape: metro
 
@@ -564,7 +564,7 @@ animation:
 export const textDslSwimlaneMetro = textDslToDiagram(sourceYaml__textDslSwimlaneMetro);
 
 export const sourceJson__textDslSwimlaneMetro = `{
-  "title": "荷物を届ける",
+  "title": "路線図で書く荷物の届け方",
   "type": "swimlane",
   "shape": "metro",
   "lanes": {
@@ -636,7 +636,7 @@ export const sourceJson__textDslSwimlaneMetro = `{
 
 // ─── swimlane + timeline (番号付きの時間軸) ─────
 export const sourceYaml__textDslSwimlaneTimeline = `
-title: "荷物を届ける"
+title: "時間軸で書く荷物の届け方"
 type: swimlane
 shape: timeline
 
@@ -694,7 +694,7 @@ animation:
 export const textDslSwimlaneTimeline = textDslToDiagram(sourceYaml__textDslSwimlaneTimeline);
 
 export const sourceJson__textDslSwimlaneTimeline = `{
-  "title": "荷物を届ける",
+  "title": "時間軸で書く荷物の届け方",
   "type": "swimlane",
   "shape": "timeline",
   "lanes": {
@@ -890,6 +890,296 @@ export const sourceJson__textDslFlowchart = `{
     }
   ]
 }`;
+
+/** 簡単な版と複雑な版は、テキスト記法の見本の中で切り替える。 */
+export const patternBase__textDslFlowchart = "簡単";
+
+export const sourceYaml__pattern__textDslFlowchart__縦に積む = `
+title: "経費申請の承認を縦に積む"
+type: flowchart
+direction: 縦
+
+actors:
+  - 申請を出す: mark-start
+    title: "申請"
+    lane: 申請者
+  - 金額を確かめる
+    lane: 承認者
+  - 5 万円を超えるか: decision
+    lane: 承認者
+  - 部長が承認する
+    lane: 承認者
+  - 支払う: mark-end
+    title: "支払"
+    lane: 承認者
+
+flow:
+  - 申請を出す -> 金額を確かめる: "提出"
+  - 金額を確かめる -> 5 万円を超えるか: "確認"
+  - 5 万円を超えるか -> 部長が承認する: "超える"
+  - 5 万円を超えるか -> 支払う: "超えない"
+  - 部長が承認する -> 支払う: "承認"
+
+animation:
+  - step: "受け取る" 1.2s
+    focus: ["申請を出す", "金額を確かめる"]
+    badge: "提出"
+    description: "申請が出され、承認者が金額を確かめる段へ移る。 始まりの印が付いた箱から入る。"
+
+  - step: "分かれ道" 1.2s
+    focus: ["5 万円を超えるか"]
+    badge: "判断"
+    description: "5 万円を超えるかで道が 2 つに分かれる。 菱形の箱が分かれ道を表す。"
+
+  - step: "決まる" 1.2s
+    focus: ["部長が承認する", "支払う"]
+    badge: "承認"
+    description: "超える時は部長の承認を経て、超えない時は直に支払いへ進む。 どちらの道も終わりの印の箱へ着く。"
+`;
+
+export const pattern__textDslFlowchart__縦に積む = textDslToDiagram(
+  sourceYaml__pattern__textDslFlowchart__縦に積む,
+);
+
+export const sourceJson__pattern__textDslFlowchart__縦に積む = `{
+  "title": "経費申請の承認を縦に積む",
+  "type": "flowchart",
+  "direction": "縦",
+  "actors": [
+    { "name": "申請を出す", "kind": "mark-start", "title": "申請", "lane": "申請者" },
+    { "name": "金額を確かめる", "lane": "承認者" },
+    { "name": "5 万円を超えるか", "kind": "decision", "lane": "承認者" },
+    { "name": "部長が承認する", "lane": "承認者" },
+    { "name": "支払う", "kind": "mark-end", "title": "支払", "lane": "承認者" }
+  ],
+  "flow": [
+    { "from": "申請を出す", "to": "金額を確かめる", "label": "提出" },
+    { "from": "金額を確かめる", "to": "5 万円を超えるか", "label": "確認" },
+    { "from": "5 万円を超えるか", "to": "部長が承認する", "label": "超える" },
+    { "from": "5 万円を超えるか", "to": "支払う", "label": "超えない" },
+    { "from": "部長が承認する", "to": "支払う", "label": "承認" }
+  ],
+  "animation": [
+    { "step": "受け取る", "duration": 1.2, "focus": ["申請を出す", "金額を確かめる"], "badge": "提出", "description": "申請が出され、承認者が金額を確かめる段へ移る。 始まりの印が付いた箱から入る。" },
+    { "step": "分かれ道", "duration": 1.2, "focus": ["5 万円を超えるか"], "badge": "判断", "description": "5 万円を超えるかで道が 2 つに分かれる。 菱形の箱が分かれ道を表す。" },
+    { "step": "決まる", "duration": 1.2, "focus": ["部長が承認する", "支払う"], "badge": "承認", "description": "超える時は部長の承認を経て、超えない時は直に支払いへ進む。 どちらの道も終わりの印の箱へ着く。" }
+  ]
+}`;
+
+export const sourceYaml__pattern__textDslFlowchart__複雑 = `title: "経費の申請を金額と領収書で分けて振込まで追うフローチャート"
+type: flowchart
+
+# 箱の形は種類で書く。 分かれ道は decision、 繰り返しは loop、 始まりと終わりの印は
+# mark-start / mark-end。 印は既定で題を持たないため、 題を出す時だけ title: を書く
+# 縦列の中は書いた順に上から積む
+actors:
+  - 領収書を添えて申請する: mark-start
+    title: "領収書を添えて申請する"
+    lane: 申請者
+  - 直して出し直す
+    lane: 申請者
+  - 10 万円を超えるか: decision
+    lane: 経理
+  - 明細を 1 行ずつ見る: loop
+    lane: 経理
+  - 領収書と金額が合うか: decision
+    lane: 経理
+  - 次の給与日に振り込む: mark-end
+    title: "次の給与日に振り込む"
+    lane: 経理
+  - 上長が認めるか: decision
+    lane: 上長
+  - 却下を知らせる: mark-end
+    title: "却下を知らせる"
+    lane: 上長
+
+# 「はい」 と「いいえ」 は線の上に重ねる (overlay: true)。 分かれ道の図では書かなくても
+# 同じ値になるが、書ける欄なので明示する。 それ以外の名前は線から離して置く
+flow:
+  - 領収書を添えて申請する -> 10 万円を超えるか
+  - 10 万円を超えるか -> 上長が認めるか: "はい" 警告 { overlay: true }
+  - 10 万円を超えるか -> 明細を 1 行ずつ見る: "いいえ" 成功 { overlay: true }
+  - 上長が認めるか -> 明細を 1 行ずつ見る: "はい" 成功 { overlay: true }
+  - 上長が認めるか -> 却下を知らせる: "いいえ" 失敗 { overlay: true }
+  - 明細を 1 行ずつ見る -> 領収書と金額が合うか
+  - 領収書と金額が合うか -> 直して出し直す: "いいえ" 警告 { overlay: true }
+  - 直して出し直す -> 領収書を添えて申請する: "出し直す" { overlay: false }
+  - 領収書と金額が合うか -> 次の給与日に振り込む: "はい" 成功 { overlay: true }
+
+animation:
+  - step: "1. 領収書を添えて申請する" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する]
+    body: "申請者が領収書を添えて経費を申請する。 流れはここから始まり、振込か却下のどちらかで終わる。"
+  - step: "2. 金額で道を分ける" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか"]
+    body: "経理は最初に、合計が 10 万円を超えるかを見る。 超えない申請は上長を通さずに照合へ進む。"
+  - step: "3. 高い申請は上長に回す" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか"]
+    body: "10 万円を超える申請だけ、上長が認めるかを判断する。 判断が 2 つ続く道になる。"
+  - step: "4. 認めなければ却下で終える" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる"]
+    body: "上長が認めない申請は、却下を知らせて終わる。 この流れの 1 つ目の終わり方。"
+  - step: "5. 2 つの道が照合で合流する" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る"]
+    body: "10 万円以下の申請と、上長が認めた申請が同じ照合に入る。 経理は明細を 1 行ずつ、最後の行まで繰り返し見る。"
+  - step: "6. 領収書と金額が合うかを判断する" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る", 領収書と金額が合うか, "明細を 1 行ずつ見る -> 領収書と金額が合うか"]
+    body: "全ての行を見終えたら、領収書と金額が合うかを判断する。"
+  - step: "7. 合わなければ差し戻す" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る", 領収書と金額が合うか, "明細を 1 行ずつ見る -> 領収書と金額が合うか", 直して出し直す, "領収書と金額が合うか -> 直して出し直す", "直して出し直す -> 領収書を添えて申請する"]
+    body: "合わない申請は申請者に戻る。 申請者が直して出し直すと、最初の申請へ戻ってもう一度流れる。"
+  - step: "経費の申請を金額と領収書で分けて振込まで追うフローチャート" 0.9s
+    badge: "flowchart"
+    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る", 領収書と金額が合うか, "明細を 1 行ずつ見る -> 領収書と金額が合うか", 直して出し直す, "領収書と金額が合うか -> 直して出し直す", "直して出し直す -> 領収書を添えて申請する", 次の給与日に振り込む, "領収書と金額が合うか -> 次の給与日に振り込む"]
+    body: "合う申請は次の給与日に振り込んで終わる。 この流れの 2 つ目の終わり方。"
+`;
+
+/** 複雑なフローチャートの段で光る先。 記法の JSON は段ごとに前の段の分を積み上げて書く */
+const textDslFlowchartComplexFocus: readonly (readonly string[])[] = [
+  ["領収書を添えて申請する"],
+  ["10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか"],
+  ["上長が認めるか", "10 万円を超えるか -> 上長が認めるか"],
+  ["却下を知らせる", "上長が認めるか -> 却下を知らせる"],
+  [
+    "明細を 1 行ずつ見る",
+    "10 万円を超えるか -> 明細を 1 行ずつ見る",
+    "上長が認めるか -> 明細を 1 行ずつ見る",
+  ],
+  ["領収書と金額が合うか", "明細を 1 行ずつ見る -> 領収書と金額が合うか"],
+  [
+    "直して出し直す",
+    "領収書と金額が合うか -> 直して出し直す",
+    "直して出し直す -> 領収書を添えて申請する",
+  ],
+  ["次の給与日に振り込む", "領収書と金額が合うか -> 次の給与日に振り込む"],
+];
+
+export const sourceJson__pattern__textDslFlowchart__複雑 = JSON.stringify(
+  {
+    title: "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
+    type: "flowchart",
+    actors: [
+      {
+        name: "領収書を添えて申請する",
+        kind: "mark-start",
+        title: "領収書を添えて申請する",
+        lane: "申請者",
+      },
+      { name: "直して出し直す", lane: "申請者" },
+      { name: "10 万円を超えるか", kind: "decision", lane: "経理" },
+      { name: "明細を 1 行ずつ見る", kind: "loop", lane: "経理" },
+      { name: "領収書と金額が合うか", kind: "decision", lane: "経理" },
+      {
+        name: "次の給与日に振り込む",
+        kind: "mark-end",
+        title: "次の給与日に振り込む",
+        lane: "経理",
+      },
+      { name: "上長が認めるか", kind: "decision", lane: "上長" },
+      { name: "却下を知らせる", kind: "mark-end", title: "却下を知らせる", lane: "上長" },
+    ],
+    flow: [
+      { from: "領収書を添えて申請する", to: "10 万円を超えるか", label: "" },
+      {
+        from: "10 万円を超えるか",
+        to: "上長が認めるか",
+        label: "はい",
+        tone: "warning",
+        overlay: true,
+      },
+      {
+        from: "10 万円を超えるか",
+        to: "明細を 1 行ずつ見る",
+        label: "いいえ",
+        tone: "success",
+        overlay: true,
+      },
+      {
+        from: "上長が認めるか",
+        to: "明細を 1 行ずつ見る",
+        label: "はい",
+        tone: "success",
+        overlay: true,
+      },
+      {
+        from: "上長が認めるか",
+        to: "却下を知らせる",
+        label: "いいえ",
+        tone: "error",
+        overlay: true,
+      },
+      { from: "明細を 1 行ずつ見る", to: "領収書と金額が合うか", label: "" },
+      {
+        from: "領収書と金額が合うか",
+        to: "直して出し直す",
+        label: "いいえ",
+        tone: "warning",
+        overlay: true,
+      },
+      { from: "直して出し直す", to: "領収書を添えて申請する", label: "出し直す", overlay: false },
+      {
+        from: "領収書と金額が合うか",
+        to: "次の給与日に振り込む",
+        label: "はい",
+        tone: "success",
+        overlay: true,
+      },
+    ],
+    animation: [
+      [
+        "1. 領収書を添えて申請する",
+        "申請者が領収書を添えて経費を申請する。 流れはここから始まり、振込か却下のどちらかで終わる。",
+      ],
+      [
+        "2. 金額で道を分ける",
+        "経理は最初に、合計が 10 万円を超えるかを見る。 超えない申請は上長を通さずに照合へ進む。",
+      ],
+      [
+        "3. 高い申請は上長に回す",
+        "10 万円を超える申請だけ、上長が認めるかを判断する。 判断が 2 つ続く道になる。",
+      ],
+      [
+        "4. 認めなければ却下で終える",
+        "上長が認めない申請は、却下を知らせて終わる。 この流れの 1 つ目の終わり方。",
+      ],
+      [
+        "5. 2 つの道が照合で合流する",
+        "10 万円以下の申請と、上長が認めた申請が同じ照合に入る。 経理は明細を 1 行ずつ、最後の行まで繰り返し見る。",
+      ],
+      [
+        "6. 領収書と金額が合うかを判断する",
+        "全ての行を見終えたら、領収書と金額が合うかを判断する。",
+      ],
+      [
+        "7. 合わなければ差し戻す",
+        "合わない申請は申請者に戻る。 申請者が直して出し直すと、最初の申請へ戻ってもう一度流れる。",
+      ],
+      [
+        "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
+        "合う申請は次の給与日に振り込んで終わる。 この流れの 2 つ目の終わり方。",
+      ],
+    ].map(([step, body], i) => ({
+      step,
+      duration: 0.9,
+      focus: textDslFlowchartComplexFocus.slice(0, i + 1).flat(),
+      body,
+      badge: "flowchart",
+    })),
+  },
+  null,
+  2,
+);
+
+export const pattern__textDslFlowchart__複雑 = textDslToDiagram(
+  sourceYaml__pattern__textDslFlowchart__複雑,
+);
 
 // ─── state + animation (FSM) ─────
 export const sourceYaml__textDslStateMachine = `

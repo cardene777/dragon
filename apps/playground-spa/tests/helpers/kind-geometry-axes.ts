@@ -541,7 +541,7 @@ const 状態遷移図の字のはみ出し = 軸を組む<箱と字>({
 
 const フローの線の塗り = 軸を組む<string[]>({
   名前: "フローの線は塗らない",
-  見本: "presetFlowchart",
+  見本: "presetDeliveryFlow",
   下限: 1,
   待つ: 線が出るまで待つ,
   測る: (page) =>

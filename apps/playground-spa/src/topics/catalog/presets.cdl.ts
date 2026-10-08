@@ -14,11 +14,11 @@ import {
   quadrant,
   chart,
   gantt,
-  flowchart,
   network,
   stateMachine2,
 } from "@cardenelabs/cdl";
 import type { CdlDiagram, PhaseBuilder } from "@cardenelabs/cdl";
+import { textDslToDiagram } from "@cardenelabs/dragon";
 import { 触れて読む } from "./relation-focus";
 
 /**
@@ -3032,155 +3032,495 @@ export const pattern__presetGantt__担当者なし = withSteps(
   [{ id: "noowner_build_end", initial: 1 }],
 );
 
-// flowchart preset ... swimlane + decision
-export const presetFlowchart = withSteps(
-  flowchart({
-    id: "flowchart-demo",
-    topic: "分岐や判定を含む処理の流れを示す図",
-    lanes: ["申請者", "承認者"],
-  })
-    .node({ id: "submit", title: "申請を出す", shape: "start", lane: "申請者" })
-    .node({ id: "review", title: "審査", shape: "decision", lane: "承認者" })
-    .node({ id: "approve", title: "承認", shape: "end", lane: "承認者" })
-    .node({ id: "revise", title: "直して出し直す", shape: "process", lane: "申請者" })
-    .edge({ from: "submit", to: "review" })
-    .edge({ from: "review", to: "approve", label: "はい", tone: "success" })
-    .edge({ from: "review", to: "revise", label: "いいえ", tone: "warning" })
-    .build(),
-  [
-    { ids: ["submit"], title: "1. 申請を出す", body: "申請者が申請を出す。" },
-    { ids: ["review", "fc-0-submit-review"], title: "2. 審査", body: "承認者が審査して判断する。" },
-    {
-      ids: ["approve", "fc-1-review-approve"],
-      title: "3. はいなら承認",
-      body: "承認して終わる枝。",
-    },
-    { ids: ["revise", "fc-2-review-revise"], body: "いいえなら申請者に差し戻し、直して出し直す。" },
-  ],
-);
+export const sourceYaml__presetDeliveryFlow = `
+title: "荷物を届ける流れ"
+type: flowchart
 
-/** 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960) */
-export const patternBase__presetFlowchart = "簡単";
+actors:
+  - 始まり: { kind: mark-start, lane: 荷主, stack: 0 }
+  - 集荷を頼む: { lane: 荷主, stack: 1 }
+  - 受け付ける: { lane: 営業所, stack: 1 }
+  - 送り状を起こす: { lane: 営業所, stack: 2 }
+  - 便に積む: { lane: 配送便, stack: 2 }
+  - 届けに行く: { lane: 配送便, stack: 3 }
+  - 在宅?: { kind: decision, lane: 配送便, stack: 4 }
+  - 受け取る: { lane: 荷主, stack: 4 }
+  - 持ち戻る: { lane: 配送便, stack: 5 }
+  - 終わり: { kind: mark-end, lane: 荷主, stack: 5 }
 
-// フローチャートの複雑な版 (#2143)。 経費の申請から振込までを 8 箱で追う。
-//
-// 簡単な版に無い形と筋を入れる = 繰り返し (`loop`) / 判断を 2 つ続ける / 2 つの道が照合で合流する /
-// 差し戻して最初の申請に戻る線 / 終わり方が 2 つ (振込と却下)。
-//
-// 組み立て器は段を選べず、縦列ごとに宣言した順に上から積む。 下書きで 3 通り組み、金額の判断を
-// 照合の後に置く形は上長から振込への線が関係の無い箱 2 つを貫いたので、金額で先に道を分ける。
-//
-//   段   申請者                  経理                    上長
-//   0    領収書を添えて申請する  10 万円を超えるか        上長が認めるか
-//   1    直して出し直す          明細を 1 行ずつ見る      却下を知らせる
-//   2                            領収書と金額が合うか
-//   3                            次の給与日に振り込む
-export const pattern__presetFlowchart__複雑 = withSteps(
-  flowchart({
-    id: "flowchart-complex-demo",
-    topic: "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
-    lanes: ["申請者", "経理", "上長"],
-  })
-    .node({ id: "submit", title: "領収書を添えて申請する", shape: "start", lane: "申請者" })
-    .node({ id: "fix", title: "直して出し直す", shape: "process", lane: "申請者" })
-    .node({ id: "amount", title: "10 万円を超えるか", shape: "decision", lane: "経理" })
-    .node({ id: "lines", title: "明細を 1 行ずつ見る", shape: "loop", lane: "経理" })
-    .node({ id: "check", title: "領収書と金額が合うか", shape: "decision", lane: "経理" })
-    .node({ id: "pay", title: "次の給与日に振り込む", shape: "end", lane: "経理" })
-    .node({ id: "boss", title: "上長が認めるか", shape: "decision", lane: "上長" })
-    .node({ id: "reject", title: "却下を知らせる", shape: "end", lane: "上長" })
-    .edge({ from: "submit", to: "amount" })
-    .edge({ from: "amount", to: "boss", label: "はい", tone: "warning" })
-    .edge({ from: "amount", to: "lines", label: "いいえ", tone: "success" })
-    .edge({ from: "boss", to: "lines", label: "はい", tone: "success" })
-    .edge({ from: "boss", to: "reject", label: "いいえ", tone: "error" })
-    .edge({ from: "lines", to: "check" })
-    .edge({ from: "check", to: "fix", label: "いいえ", tone: "warning" })
-    .edge({ from: "fix", to: "submit", label: "出し直す" })
-    .edge({ from: "check", to: "pay", label: "はい", tone: "success" })
-    .build(),
-  [
-    {
-      ids: ["submit"],
-      title: "1. 領収書を添えて申請する",
-      body: "申請者が領収書を添えて経費を申請する。 流れはここから始まり、振込か却下のどちらかで終わる。",
-    },
-    {
-      ids: ["amount", "fc-0-submit-amount"],
-      title: "2. 金額で道を分ける",
-      body: "経理は最初に、合計が 10 万円を超えるかを見る。 超えない申請は上長を通さずに照合へ進む。",
-    },
-    {
-      ids: ["boss", "fc-1-amount-boss"],
-      title: "3. 高い申請は上長に回す",
-      body: "10 万円を超える申請だけ、上長が認めるかを判断する。 判断が 2 つ続く道になる。",
-    },
-    {
-      ids: ["reject", "fc-4-boss-reject"],
-      title: "4. 認めなければ却下で終える",
-      body: "上長が認めない申請は、却下を知らせて終わる。 この流れの 1 つ目の終わり方。",
-    },
-    {
-      ids: ["lines", "fc-2-amount-lines", "fc-3-boss-lines"],
-      title: "5. 2 つの道が照合で合流する",
-      body: "10 万円以下の申請と、上長が認めた申請が同じ照合に入る。 経理は明細を 1 行ずつ、最後の行まで繰り返し見る。",
-    },
-    {
-      ids: ["check", "fc-5-lines-check"],
-      title: "6. 領収書と金額が合うかを判断する",
-      body: "全ての行を見終えたら、領収書と金額が合うかを判断する。",
-    },
-    {
-      ids: ["fix", "fc-6-check-fix", "fc-7-fix-submit"],
-      title: "7. 合わなければ差し戻す",
-      body: "合わない申請は申請者に戻る。 申請者が直して出し直すと、最初の申請へ戻ってもう一度流れる。",
-    },
-    {
-      ids: ["pay", "fc-8-check-pay"],
-      body: "合う申請は次の給与日に振り込んで終わる。 この流れの 2 つ目の終わり方。",
-    },
-  ],
-);
+flow:
+  - 始まり -> 集荷を頼む { role: main }
+  - 集荷を頼む -> 受け付ける { role: main }
+  - 受け付ける -> 送り状を起こす { role: main }
+  - 送り状を起こす -> 便に積む { role: main }
+  - 便に積む -> 届けに行く { role: main }
+  - 届けに行く -> 在宅? { role: main }
+  - 在宅? -> 受け取る: "はい" (success)
+  - 在宅? -> 持ち戻る: "いいえ" (error)
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed) { side: bottom, overlay: true }
+  - 受け取る -> 終わり (success)
 
-/**
- * 縦に積む版 (#2524)。
- *
- * 分かれ道の図は縦列を横に並べる形だけだったが、描く側の入口が向きを受けるようになった
- * ([cardene777/cdl#880](https://github.com/cardene777/cdl/issues/880))。
- * 記法では `direction: 縦` と書く。
- *
- * 縦列 1 本に全部の箱を書いた順で積むので、役割の名前を出す場所が無くなる。
- * 落とさないため、描く側が役割を箱の上の小さな字へ移す (`承認者 · 判断` の形)。
- *
- * 簡単な版と同じ 4 箱で並べ方だけを変える = 中身を変えると、向きの違いなのか中身の違いなのかが
- * 見比べられない。
- */
-export const pattern__presetFlowchart__縦に積む = withSteps(
-  flowchart({
-    id: "flowchart-vertical-demo",
-    topic: "分岐や判定を含む処理の流れを縦に積んで示す図",
-    lanes: ["申請者", "承認者"],
-    direction: "vertical",
-  })
-    .node({ id: "submit", title: "申請を出す", shape: "start", lane: "申請者" })
-    .node({ id: "review", title: "審査", shape: "decision", lane: "承認者" })
-    .node({ id: "approve", title: "承認", shape: "end", lane: "承認者" })
-    .node({ id: "revise", title: "直して出し直す", shape: "process", lane: "申請者" })
-    .edge({ from: "submit", to: "review" })
-    .edge({ from: "review", to: "approve", label: "はい", tone: "success" })
-    .edge({ from: "review", to: "revise", label: "いいえ", tone: "warning" })
-    .build(),
-  [
-    { ids: ["submit"], title: "1. 申請を出す", body: "申請者が申請を出す。" },
-    { ids: ["review", "fc-0-submit-review"], title: "2. 審査", body: "承認者が審査して判断する。" },
-    {
-      ids: ["approve", "fc-1-review-approve"],
-      title: "3. はいなら承認",
-      body: "承認して終わる枝。",
-    },
-    { ids: ["revise", "fc-2-review-revise"], body: "いいえなら申請者に差し戻し、直して出し直す。" },
+legend:
+  - { mark: diamond, text: "分かれ道" }
+  - { mark: filled-circle, text: "始まり" }
+  - { mark: double-circle, text: "終わり" }
+  - { mark: dotted-line, text: "点線 = 前の段へ戻る" }
+
+animation:
+  - step: "申し込む" 0.9s
+    focus: [始まり, 集荷を頼む, "始まり -> 集荷を頼む"]
+    badge: "申し込み"
+    description: "荷主が集荷を頼む。 始まりの印から最初の札へ進む。"
+
+  - step: "受け付ける" 0.9s
+    focus: [始まり, 集荷を頼む, 受け付ける, 送り状を起こす, "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす"]
+    badge: "受付"
+    description: "営業所が依頼を受け付け、送り状を起こす。"
+
+  - step: "届ける" 0.9s
+    focus: [始まり, 集荷を頼む, 受け付ける, 送り状を起こす, 便に積む, 届けに行く, 在宅?, "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"]
+    badge: "配送"
+    description: "配送便へ荷物を積み、届け先で在宅かどうかを確かめる。"
+
+  - step: "荷物を届ける流れ" 0.9s
+    focus: [始まり, 集荷を頼む, 受け付ける, 送り状を起こす, 便に積む, 届けに行く, 在宅?, 受け取る, 持ち戻る, 終わり, "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む", "受け取る -> 終わり"]
+    badge: "結果"
+    description: "在宅なら受け取って終わり、不在なら持ち戻って翌日の便へ戻す。"
+`;
+
+export const presetDeliveryFlow = textDslToDiagram(sourceYaml__presetDeliveryFlow);
+presetDeliveryFlow.id = "delivery-flow-demo";
+
+export const sourceJson__presetDeliveryFlow = `{
+  "title": "荷物を届ける流れ",
+  "type": "flowchart",
+  "actors": [
+    { "name": "始まり", "kind": "mark-start", "lane": "荷主", "stack": 0 },
+    { "name": "集荷を頼む", "lane": "荷主", "stack": 1 },
+    { "name": "受け付ける", "lane": "営業所", "stack": 1 },
+    { "name": "送り状を起こす", "lane": "営業所", "stack": 2 },
+    { "name": "便に積む", "lane": "配送便", "stack": 2 },
+    { "name": "届けに行く", "lane": "配送便", "stack": 3 },
+    { "name": "在宅?", "kind": "decision", "lane": "配送便", "stack": 4 },
+    { "name": "受け取る", "lane": "荷主", "stack": 4 },
+    { "name": "持ち戻る", "lane": "配送便", "stack": 5 },
+    { "name": "終わり", "kind": "mark-end", "lane": "荷主", "stack": 5 }
   ],
-);
+  "flow": [
+    { "from": "始まり", "to": "集荷を頼む", "label": "", "role": "main" },
+    { "from": "集荷を頼む", "to": "受け付ける", "label": "", "role": "main" },
+    { "from": "受け付ける", "to": "送り状を起こす", "label": "", "role": "main" },
+    { "from": "送り状を起こす", "to": "便に積む", "label": "", "role": "main" },
+    { "from": "便に積む", "to": "届けに行く", "label": "", "role": "main" },
+    { "from": "届けに行く", "to": "在宅?", "label": "", "role": "main" },
+    { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
+    { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed", "side": "bottom", "overlay": true },
+    { "from": "受け取る", "to": "終わり", "label": "", "tone": "success" }
+  ],
+  "legend": [
+    { "mark": "diamond", "text": "分かれ道" },
+    { "mark": "filled-circle", "text": "始まり" },
+    { "mark": "double-circle", "text": "終わり" },
+    { "mark": "dotted-line", "text": "点線 = 前の段へ戻る" }
+  ],
+  "animation": [
+    { "step": "申し込む", "duration": 0.9, "focus": ["始まり", "集荷を頼む", "始まり -> 集荷を頼む"], "badge": "申し込み", "description": "荷主が集荷を頼む。 始まりの印から最初の札へ進む。" },
+    { "step": "受け付ける", "duration": 0.9, "focus": ["始まり", "集荷を頼む", "受け付ける", "送り状を起こす", "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす"], "badge": "受付", "description": "営業所が依頼を受け付け、送り状を起こす。" },
+    { "step": "届ける", "duration": 0.9, "focus": ["始まり", "集荷を頼む", "受け付ける", "送り状を起こす", "便に積む", "届けに行く", "在宅?", "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"], "badge": "配送", "description": "配送便へ荷物を積み、届け先で在宅かどうかを確かめる。" },
+    { "step": "荷物を届ける流れ", "duration": 0.9, "focus": ["始まり", "集荷を頼む", "受け付ける", "送り状を起こす", "便に積む", "届けに行く", "在宅?", "受け取る", "持ち戻る", "終わり", "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む", "受け取る -> 終わり"], "badge": "結果", "description": "在宅なら受け取って終わり、不在なら持ち戻って翌日の便へ戻す。" }
+  ]
+}`;
+
+export const sourceYaml__presetDeliveryStages = `
+title: "荷物を届ける段階"
+type: swimlane
+shape: stages
+
+lanes:
+  shipper: { label: 荷主 }
+  office: { label: 営業所 }
+  courier: { label: 配送便 }
+
+actors:
+  - 集荷を頼む: { stage: 申し込み, lane: shipper }
+  - 受け付ける: { stage: 受付, lane: office }
+  - 送り状を起こす: { stage: 受付, lane: office }
+  - 便に積む: { stage: 配送, lane: courier }
+  - 届けに行く: { stage: 配送, lane: courier }
+  - 在宅?:
+      kind: decision
+      段階: 配送
+      lane: courier
+  - 受け取る: { stage: 結果, lane: shipper }
+  - 持ち戻る: { stage: 結果, lane: courier }
+
+flow:
+  # role: main は見本の主役の道筋 (集荷を頼むから在宅? まで) の 5 本だけに書く
+  - 集荷を頼む -> 受け付ける { role: main }
+  - 受け付ける -> 送り状を起こす { role: main }
+  - 送り状を起こす -> 便に積む { role: main }
+  - 便に積む -> 届けに行く { role: main }
+  - 届けに行く -> 在宅? { role: main }
+  - 在宅? -> 受け取る: "はい" (success)
+  - 在宅? -> 持ち戻る: "いいえ" (error)
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
+
+legend:
+  - { mark: rounded-label, text: "札 = 段。 右の小さな字が担当" }
+  - { mark: curved-line, text: "段階をまたぐ線" }
+  - { mark: dotted-line, text: "点線 = 前の段へ戻る" }
+
+animation:
+  - step: "申し込む" 0.9s
+    focus: [集荷を頼む, 受け付ける, "集荷を頼む -> 受け付ける"]
+    badge: "申し込み"
+    description: "荷主が集荷を頼み、営業所が受け付ける。 段階をまたぐ線は列の間を渡る。"
+
+  - step: "受け付ける" 0.9s
+    focus: [集荷を頼む, 受け付ける, 送り状を起こす, 便に積む, "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む"]
+    badge: "受付"
+    description: "営業所が送り状を起こし、配送便が便に積む。 同じ段階の札は真下へつながる。"
+
+  - step: "届ける" 0.9s
+    focus: [集荷を頼む, 受け付ける, 送り状を起こす, 便に積む, 届けに行く, 在宅?, "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"]
+    badge: "配送"
+    description: "配送便が届けに行き、在宅かどうかで道が分かれる。 分かれ道は札の右の字で見分ける。"
+
+  - step: "荷物を届ける段階" 0.9s
+    focus: [集荷を頼む, 受け付ける, 送り状を起こす, 便に積む, 届けに行く, 在宅?, 受け取る, 持ち戻る, "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む"]
+    badge: "結果"
+    description: "在宅なら荷主が受け取り、不在なら持ち戻って翌日もう一度積む。 戻る線は見出しの上を回る。"
+`;
+
+export const presetDeliveryStages = textDslToDiagram(sourceYaml__presetDeliveryStages);
+presetDeliveryStages.id = "delivery-stages-demo";
+
+export const sourceJson__presetDeliveryStages = `{
+  "title": "荷物を届ける段階",
+  "type": "swimlane",
+  "shape": "stages",
+  "lanes": {
+    "shipper": { "label": "荷主" },
+    "office": { "label": "営業所" },
+    "courier": { "label": "配送便" }
+  },
+  "actors": [
+    { "name": "集荷を頼む", "stage": "申し込み", "lane": "shipper" },
+    { "name": "受け付ける", "stage": "受付", "lane": "office" },
+    { "name": "送り状を起こす", "stage": "受付", "lane": "office" },
+    { "name": "便に積む", "stage": "配送", "lane": "courier" },
+    { "name": "届けに行く", "stage": "配送", "lane": "courier" },
+    { "name": "在宅?", "kind": "decision", "stage": "配送", "lane": "courier" },
+    { "name": "受け取る", "stage": "結果", "lane": "shipper" },
+    { "name": "持ち戻る", "stage": "結果", "lane": "courier" }
+  ],
+  "flow": [
+    { "from": "集荷を頼む", "to": "受け付ける", "label": "", "role": "main" },
+    { "from": "受け付ける", "to": "送り状を起こす", "label": "", "role": "main" },
+    { "from": "送り状を起こす", "to": "便に積む", "label": "", "role": "main" },
+    { "from": "便に積む", "to": "届けに行く", "label": "", "role": "main" },
+    { "from": "届けに行く", "to": "在宅?", "label": "", "role": "main" },
+    { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
+    { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed" }
+  ],
+  "legend": [
+    { "mark": "rounded-label", "text": "札 = 段。 右の小さな字が担当" },
+    { "mark": "curved-line", "text": "段階をまたぐ線" },
+    { "mark": "dotted-line", "text": "点線 = 前の段へ戻る" }
+  ],
+  "animation": [
+    {
+      "step": "申し込む",
+      "duration": 0.9,
+      "focus": ["集荷を頼む", "受け付ける", "集荷を頼む -> 受け付ける"],
+      "badge": "申し込み",
+      "description": "荷主が集荷を頼み、営業所が受け付ける。 段階をまたぐ線は列の間を渡る。"
+    },
+    {
+      "step": "受け付ける",
+      "duration": 0.9,
+      "focus": ["集荷を頼む", "受け付ける", "送り状を起こす", "便に積む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む"],
+      "badge": "受付",
+      "description": "営業所が送り状を起こし、配送便が便に積む。 同じ段階の札は真下へつながる。"
+    },
+    {
+      "step": "届ける",
+      "duration": 0.9,
+      "focus": ["集荷を頼む", "受け付ける", "送り状を起こす", "便に積む", "届けに行く", "在宅?", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"],
+      "badge": "配送",
+      "description": "配送便が届けに行き、在宅かどうかで道が分かれる。 分かれ道は札の右の字で見分ける。"
+    },
+    {
+      "step": "荷物を届ける段階",
+      "duration": 0.9,
+      "focus": ["集荷を頼む", "受け付ける", "送り状を起こす", "便に積む", "届けに行く", "在宅?", "受け取る", "持ち戻る", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む"],
+      "badge": "結果",
+      "description": "在宅なら荷主が受け取り、不在なら持ち戻って翌日もう一度積む。 戻る線は見出しの上を回る。"
+    }
+  ]
+}`;
+
+// ─── swimlane + metro (担当の路線図) ─────
+export const sourceYaml__presetDeliveryMetro = `
+title: "荷物を届ける路線"
+type: swimlane
+shape: metro
+
+lanes:
+  shipper: { label: 荷主, subtitle: 頼む人 }
+  office: { label: 営業所, subtitle: 受け付ける }
+  courier: { label: 配送便, subtitle: 運ぶ }
+
+actors:
+  - 始まり: { kind: mark-start, lane: shipper }
+  - 集荷を頼む: { lane: shipper }
+  - 受け付ける: { lane: office }
+  - 送り状を起こす: { lane: office }
+  - 便に積む: { lane: courier }
+  - 届けに行く: { lane: courier }
+  - 在宅?: { kind: decision, lane: courier }
+  - 受け取る: { lane: shipper }
+  - 持ち戻る: { lane: courier }
+  - 終わり: { kind: mark-end, lane: shipper }
+
+flow:
+  - 始まり -> 集荷を頼む
+  - 集荷を頼む -> 受け付ける
+  - 受け付ける -> 送り状を起こす
+  - 送り状を起こす -> 便に積む
+  - 便に積む -> 届けに行く
+  - 届けに行く -> 在宅?
+  - 在宅? -> 受け取る: "はい"
+  - 在宅? -> 持ち戻る: "いいえ"
+  - 持ち戻る -> 便に積む: "翌日もう一度" (dashed)
+  - 受け取る -> 終わり
+
+legend:
+  - { mark: station, text: "駅 = 段。 載っている線路が担当" }
+  - { mark: diamond, text: "分かれ道" }
+  - { mark: dotted-line, text: "点線 = 前の駅へ戻る" }
+  - { mark: arrow, text: "時間は左から右へ進む" }
+
+animation:
+  - step: "頼む" 0.9s
+    focus: [始まり, 集荷を頼む, "始まり -> 集荷を頼む"]
+    badge: "集荷"
+    description: "荷主が集荷を頼む。 始まりの印から最初の駅へ本線が延びる。"
+
+  - step: "受け付ける" 0.9s
+    focus: [始まり, 集荷を頼む, 受け付ける, 送り状を起こす, "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす"]
+    badge: "営業所"
+    description: "営業所が荷物を受け付け、送り状を起こす。 担当が替わる所で線路を乗り換える。"
+
+  - step: "運ぶ" 0.9s
+    focus: [始まり, 集荷を頼む, 受け付ける, 送り状を起こす, 便に積む, 届けに行く, 在宅?, "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"]
+    badge: "配送便"
+    description: "配送便へ荷物を積み、届け先へ向かう。 在宅かどうかを分かれ道で確かめる。"
+
+  - step: "荷物を届ける路線" 0.9s
+    focus: [始まり, 集荷を頼む, 受け付ける, 送り状を起こす, 便に積む, 届けに行く, 在宅?, 受け取る, 持ち戻る, 終わり, "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む", "受け取る -> 終わり"]
+    badge: "はい / いいえ"
+    description: "在宅なら受け取って終わり、不在なら持ち戻って翌日の便へ戻す。 枝の色と戻る点線で結果を追える。"
+`;
+
+export const presetDeliveryMetro = textDslToDiagram(sourceYaml__presetDeliveryMetro);
+presetDeliveryMetro.id = "delivery-metro-demo";
+
+export const sourceJson__presetDeliveryMetro = `{
+  "title": "荷物を届ける路線",
+  "type": "swimlane",
+  "shape": "metro",
+  "lanes": {
+    "shipper": { "label": "荷主", "subtitle": "頼む人" },
+    "office": { "label": "営業所", "subtitle": "受け付ける" },
+    "courier": { "label": "配送便", "subtitle": "運ぶ" }
+    },
+  "actors": [
+    { "name": "始まり", "kind": "mark-start", "lane": "shipper" },
+    { "name": "集荷を頼む", "lane": "shipper" },
+    { "name": "受け付ける", "lane": "office" },
+    { "name": "送り状を起こす", "lane": "office" },
+    { "name": "便に積む", "lane": "courier" },
+    { "name": "届けに行く", "lane": "courier" },
+    { "name": "在宅?", "kind": "decision", "lane": "courier" },
+    { "name": "受け取る", "lane": "shipper" },
+    { "name": "持ち戻る", "lane": "courier" },
+    { "name": "終わり", "kind": "mark-end", "lane": "shipper" }
+  ],
+  "flow": [
+    { "from": "始まり", "to": "集荷を頼む", "label": "" },
+    { "from": "集荷を頼む", "to": "受け付ける", "label": "" },
+    { "from": "受け付ける", "to": "送り状を起こす", "label": "" },
+    { "from": "送り状を起こす", "to": "便に積む", "label": "" },
+    { "from": "便に積む", "to": "届けに行く", "label": "" },
+    { "from": "届けに行く", "to": "在宅?", "label": "" },
+    { "from": "在宅?", "to": "受け取る", "label": "はい" },
+    { "from": "在宅?", "to": "持ち戻る", "label": "いいえ" },
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "style": "dashed" },
+    { "from": "受け取る", "to": "終わり", "label": "" }
+  ],
+  "legend": [
+    { "mark": "station", "text": "駅 = 段。 載っている線路が担当" },
+    { "mark": "diamond", "text": "分かれ道" },
+    { "mark": "dotted-line", "text": "点線 = 前の駅へ戻る" },
+    { "mark": "arrow", "text": "時間は左から右へ進む" }
+  ],
+  "animation": [
+    {
+      "step": "頼む",
+      "duration": 0.9,
+      "focus": ["始まり", "集荷を頼む", "始まり -> 集荷を頼む"],
+      "badge": "集荷",
+      "description": "荷主が集荷を頼む。 始まりの印から最初の駅へ本線が延びる。"
+    },
+    {
+      "step": "受け付ける",
+      "duration": 0.9,
+      "focus": ["始まり", "集荷を頼む", "受け付ける", "送り状を起こす", "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす"],
+      "badge": "営業所",
+      "description": "営業所が荷物を受け付け、送り状を起こす。 担当が替わる所で線路を乗り換える。"
+    },
+    {
+      "step": "運ぶ",
+      "duration": 0.9,
+      "focus": ["始まり", "集荷を頼む", "受け付ける", "送り状を起こす", "便に積む", "届けに行く", "在宅?", "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"],
+      "badge": "配送便",
+      "description": "配送便へ荷物を積み、届け先へ向かう。 在宅かどうかを分かれ道で確かめる。"
+    },
+    {
+      "step": "荷物を届ける路線",
+      "duration": 0.9,
+      "focus": ["始まり", "集荷を頼む", "受け付ける", "送り状を起こす", "便に積む", "届けに行く", "在宅?", "受け取る", "持ち戻る", "終わり", "始まり -> 集荷を頼む", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む", "受け取る -> 終わり"],
+      "badge": "はい / いいえ",
+      "description": "在宅なら受け取って終わり、不在なら持ち戻って翌日の便へ戻す。 枝の色と戻る点線で結果を追える。"
+    }
+  ]
+}`;
+
+// ─── swimlane + timeline (番号付きの時間軸) ─────
+export const sourceYaml__presetDeliveryTimeline = `
+title: "荷物を届ける順番"
+type: swimlane
+shape: timeline
+
+lanes:
+  shipper: { label: 荷主 }
+  office: { label: 営業所 }
+  courier: { label: 配送便 }
+
+actors:
+  - 始まり: { kind: mark-start, lane: shipper }
+  - 集荷を頼む: { lane: shipper }
+  - 受け付ける: { lane: office }
+  - 送り状を起こす: { lane: office }
+  - 便に積む: { lane: courier }
+  - 届けに行く: { lane: courier }
+  - 在宅?: { kind: decision, lane: courier }
+  - 受け取る: { lane: shipper }
+  - 持ち戻る: { lane: courier }
+  - 終わり: { kind: mark-end, lane: shipper }
+
+flow:
+  - 始まり -> 集荷を頼む
+  - 集荷を頼む -> 受け付ける
+  - 受け付ける -> 送り状を起こす
+  - 送り状を起こす -> 便に積む
+  - 便に積む -> 届けに行く
+  - 届けに行く -> 在宅?
+  - 在宅? -> 受け取る: "はい" (success)
+  - 在宅? -> 持ち戻る: "いいえ" (error)
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
+  - 受け取る -> 終わり (success)
+
+legend:
+  - { mark: numbered-circle, text: "番号 = 進む順。 札の右の小さな字が担当" }
+  - { mark: diamond, text: "分かれ道" }
+  - { mark: dotted-line, text: "点線 = 前の段へ戻る" }
+
+animation:
+  - step: "集荷を受け付ける" 0.9s
+    focus: [集荷を頼む, 受け付ける, 送り状を起こす, "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす"]
+    badge: "集荷"
+    description: "荷主が集荷を頼み、営業所が依頼を受け付けて送り状を起こす。"
+
+  - step: "届けに行く" 0.9s
+    focus: [集荷を頼む, 受け付ける, 送り状を起こす, 便に積む, 届けに行く, 在宅?, "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"]
+    badge: "配送"
+    description: "配送便が荷物を便に積み、届け先で在宅かを確かめる。"
+
+  - step: "荷物を届ける順番" 0.9s
+    focus: [集荷を頼む, 受け付ける, 送り状を起こす, 便に積む, 届けに行く, 在宅?, 受け取る, 持ち戻る, 終わり, "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む", "受け取る -> 終わり"]
+    badge: "配達結果"
+    description: "在宅なら荷物を受け渡して終わり、不在なら持ち戻って翌日もう一度便に積む。"
+`;
+
+export const presetDeliveryTimeline = textDslToDiagram(sourceYaml__presetDeliveryTimeline);
+presetDeliveryTimeline.id = "delivery-timeline-demo";
+
+export const sourceJson__presetDeliveryTimeline = `{
+  "title": "荷物を届ける順番",
+  "type": "swimlane",
+  "shape": "timeline",
+  "lanes": {
+    "shipper": { "label": "荷主" },
+    "office": { "label": "営業所" },
+    "courier": { "label": "配送便" }
+    },
+  "actors": [
+    { "name": "始まり", "kind": "mark-start", "lane": "shipper" },
+    { "name": "集荷を頼む", "lane": "shipper" },
+    { "name": "受け付ける", "lane": "office" },
+    { "name": "送り状を起こす", "lane": "office" },
+    { "name": "便に積む", "lane": "courier" },
+    { "name": "届けに行く", "lane": "courier" },
+    { "name": "在宅?", "kind": "decision", "lane": "courier" },
+    { "name": "受け取る", "lane": "shipper" },
+    { "name": "持ち戻る", "lane": "courier" },
+    { "name": "終わり", "kind": "mark-end", "lane": "shipper" }
+  ],
+  "flow": [
+    { "from": "始まり", "to": "集荷を頼む", "label": "" },
+    { "from": "集荷を頼む", "to": "受け付ける", "label": "" },
+    { "from": "受け付ける", "to": "送り状を起こす", "label": "" },
+    { "from": "送り状を起こす", "to": "便に積む", "label": "" },
+    { "from": "便に積む", "to": "届けに行く", "label": "" },
+    { "from": "届けに行く", "to": "在宅?", "label": "" },
+    { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
+    { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed" },
+    { "from": "受け取る", "to": "終わり", "label": "", "tone": "success" }
+  ],
+  "legend": [
+    { "mark": "numbered-circle", "text": "番号 = 進む順。 札の右の小さな字が担当" },
+    { "mark": "diamond", "text": "分かれ道" },
+    { "mark": "dotted-line", "text": "点線 = 前の段へ戻る" }
+  ],
+  "animation": [
+    {
+      "step": "集荷を受け付ける",
+      "duration": 0.9,
+      "focus": ["集荷を頼む", "受け付ける", "送り状を起こす", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす"],
+      "badge": "集荷",
+      "description": "荷主が集荷を頼み、営業所が依頼を受け付けて送り状を起こす。"
+    },
+    {
+      "step": "届けに行く",
+      "duration": 0.9,
+      "focus": ["集荷を頼む", "受け付ける", "送り状を起こす", "便に積む", "届けに行く", "在宅?", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?"],
+      "badge": "配送",
+      "description": "配送便が荷物を便に積み、届け先で在宅かを確かめる。"
+    },
+    {
+      "step": "荷物を届ける順番",
+      "duration": 0.9,
+      "focus": ["集荷を頼む", "受け付ける", "送り状を起こす", "便に積む", "届けに行く", "在宅?", "受け取る", "持ち戻る", "終わり", "集荷を頼む -> 受け付ける", "受け付ける -> 送り状を起こす", "送り状を起こす -> 便に積む", "便に積む -> 届けに行く", "届けに行く -> 在宅?", "在宅? -> 受け取る", "在宅? -> 持ち戻る", "持ち戻る -> 便に積む", "受け取る -> 終わり"],
+      "badge": "配達結果",
+      "description": "在宅なら荷物を受け渡して終わり、不在なら持ち戻って翌日もう一度便に積む。"
+    }
+  ]
+}`;
 
 // network preset ... NW topology
 export const presetNetwork = withSteps(
@@ -5447,344 +5787,6 @@ export const sourceJson__presetTopology = `{
     }
   ]
 }`;
-
-export const sourceYaml__presetFlowchart = `title: "分岐や判定を含む処理の流れを示す図"
-type: flowchart
-
-# 箱の形は種類で書く。 分かれ道は decision、 始まりと終わりの印は mark-start / mark-end。
-# 印は既定で題を持たないため、 題を出す時だけ title: を書く
-actors:
-  - 申請を出す: mark-start
-    title: "申請を出す"
-    lane: 申請者
-  - 審査: decision
-    lane: 承認者
-  - 承認: mark-end
-    title: "承認"
-    lane: 承認者
-  - 直して出し直す
-    lane: 申請者
-
-flow:
-  - 申請を出す -> 審査
-  - 審査 -> 承認: "はい" 成功
-  - 審査 -> 直して出し直す: "いいえ" 警告
-
-animation:
-  - step: "1. 申請を出す" 0.9s
-    badge: "flowchart"
-    focus: ["申請を出す"]
-    body: "申請者が申請を出す。"
-  - step: "2. 審査" 0.9s
-    badge: "flowchart"
-    focus: ["申請を出す", 審査, "申請を出す -> 審査"]
-    body: "承認者が審査して判断する。"
-  - step: "3. はいなら承認" 0.9s
-    badge: "flowchart"
-    focus: ["申請を出す", 審査, "申請を出す -> 審査", 承認, "審査 -> 承認"]
-    body: "承認して終わる枝。"
-  - step: "分岐や判定を含む処理の流れを示す図" 0.9s
-    badge: "flowchart"
-    focus: ["申請を出す", 審査, "申請を出す -> 審査", 承認, "審査 -> 承認", 直して出し直す, "審査 -> 直して出し直す"]
-    body: "いいえなら申請者に差し戻し、直して出し直す。"
-`;
-
-export const sourceJson__presetFlowchart = `{
-  "title": "分岐や判定を含む処理の流れを示す図",
-  "type": "flowchart",
-  "actors": [
-    { "name": "申請を出す", "kind": "mark-start", "title": "申請を出す", "lane": "申請者" },
-    { "name": "審査", "kind": "decision", "lane": "承認者" },
-    { "name": "承認", "kind": "mark-end", "title": "承認", "lane": "承認者" },
-    { "name": "直して出し直す", "lane": "申請者" }
-  ],
-  "flow": [
-    { "from": "申請を出す", "to": "審査", "label": "" },
-    { "from": "審査", "to": "承認", "label": "はい", "tone": "success" },
-    { "from": "審査", "to": "直して出し直す", "label": "いいえ", "tone": "warning" }
-  ],
-  "animation": [
-    {
-      "step": "1. 申請を出す",
-      "duration": 0.9,
-      "focus": ["申請を出す"],
-      "body": "申請者が申請を出す。",
-      "badge": "flowchart"
-    },
-    {
-      "step": "2. 審査",
-      "duration": 0.9,
-      "focus": ["申請を出す", "審査", "申請を出す -> 審査"],
-      "body": "承認者が審査して判断する。",
-      "badge": "flowchart"
-    },
-    {
-      "step": "3. はいなら承認",
-      "duration": 0.9,
-      "focus": [
-        "申請を出す",
-        "審査",
-        "申請を出す -> 審査",
-        "承認",
-        "審査 -> 承認"
-      ],
-      "body": "承認して終わる枝。",
-      "badge": "flowchart"
-    },
-    {
-      "step": "分岐や判定を含む処理の流れを示す図",
-      "duration": 0.9,
-      "focus": [
-        "申請を出す",
-        "審査",
-        "申請を出す -> 審査",
-        "承認",
-        "審査 -> 承認",
-        "直して出し直す",
-        "審査 -> 直して出し直す"
-      ],
-      "body": "いいえなら申請者に差し戻し、直して出し直す。",
-      "badge": "flowchart"
-    }
-  ]
-}`;
-
-export const sourceJson__pattern__presetFlowchart__縦に積む = `{
-  "title": "分岐や判定を含む処理の流れを縦に積んで示す図",
-  "type": "flowchart",
-  "direction": "縦",
-  "actors": [
-    { "name": "申請を出す", "kind": "mark-start", "title": "申請を出す", "lane": "申請者" },
-    { "name": "審査", "kind": "decision", "lane": "承認者" },
-    { "name": "承認", "kind": "mark-end", "title": "承認", "lane": "承認者" },
-    { "name": "直して出し直す", "lane": "申請者" }
-  ],
-  "flow": [
-    { "from": "申請を出す", "to": "審査", "label": "" },
-    { "from": "審査", "to": "承認", "label": "はい", "tone": "success" },
-    { "from": "審査", "to": "直して出し直す", "label": "いいえ", "tone": "warning" }
-  ],
-  "animation": [
-    {
-      "step": "1. 申請を出す",
-      "duration": 0.9,
-      "focus": ["申請を出す"],
-      "body": "申請者が申請を出す。",
-      "badge": "flowchart"
-    },
-    {
-      "step": "2. 審査",
-      "duration": 0.9,
-      "focus": ["申請を出す", "審査", "申請を出す -> 審査"],
-      "body": "承認者が審査して判断する。",
-      "badge": "flowchart"
-    },
-    {
-      "step": "3. はいなら承認",
-      "duration": 0.9,
-      "focus": [
-        "申請を出す",
-        "審査",
-        "申請を出す -> 審査",
-        "承認",
-        "審査 -> 承認"
-      ],
-      "body": "承認して終わる枝。",
-      "badge": "flowchart"
-    },
-    {
-      "step": "分岐や判定を含む処理の流れを縦に積んで示す図",
-      "duration": 0.9,
-      "focus": [
-        "申請を出す",
-        "審査",
-        "申請を出す -> 審査",
-        "承認",
-        "審査 -> 承認",
-        "直して出し直す",
-        "審査 -> 直して出し直す"
-      ],
-      "body": "いいえなら申請者に差し戻し、直して出し直す。",
-      "badge": "flowchart"
-    }
-  ]
-}`;
-
-export const sourceYaml__pattern__presetFlowchart__縦に積む = `title: "分岐や判定を含む処理の流れを縦に積んで示す図"
-type: flowchart
-
-# 並べる向きを書く。 縦 は縦列 1 本に全部の箱を書いた順で積む形で、
-# 役割の名前は箱の上の小さな字へ移る (承認者 · 判断 の形)
-direction: 縦
-
-actors:
-  - 申請を出す: mark-start
-    title: "申請を出す"
-    lane: 申請者
-  - 審査: decision
-    lane: 承認者
-  - 承認: mark-end
-    title: "承認"
-    lane: 承認者
-  - 直して出し直す
-    lane: 申請者
-
-flow:
-  - 申請を出す -> 審査
-  - 審査 -> 承認: "はい" 成功
-  - 審査 -> 直して出し直す: "いいえ" 警告
-
-animation:
-  - step: "1. 申請を出す" 0.9s
-    badge: "flowchart"
-    focus: ["申請を出す"]
-    body: "申請者が申請を出す。"
-  - step: "2. 審査" 0.9s
-    badge: "flowchart"
-    focus: ["申請を出す", 審査, "申請を出す -> 審査"]
-    body: "承認者が審査して判断する。"
-  - step: "3. はいなら承認" 0.9s
-    badge: "flowchart"
-    focus: ["申請を出す", 審査, "申請を出す -> 審査", 承認, "審査 -> 承認"]
-    body: "承認して終わる枝。"
-  - step: "分岐や判定を含む処理の流れを縦に積んで示す図" 0.9s
-    badge: "flowchart"
-    focus: ["申請を出す", 審査, "申請を出す -> 審査", 承認, "審査 -> 承認", 直して出し直す, "審査 -> 直して出し直す"]
-    body: "いいえなら申請者に差し戻し、直して出し直す。"
-`;
-
-export const sourceYaml__pattern__presetFlowchart__複雑 = `title: "経費の申請を金額と領収書で分けて振込まで追うフローチャート"
-type: flowchart
-
-# 箱の形は種類で書く。 分かれ道は decision、 繰り返しは loop、 始まりと終わりの印は
-# mark-start / mark-end。 印は既定で題を持たないため、 題を出す時だけ title: を書く
-# 縦列の中は書いた順に上から積む
-actors:
-  - 領収書を添えて申請する: mark-start
-    title: "領収書を添えて申請する"
-    lane: 申請者
-  - 直して出し直す
-    lane: 申請者
-  - 10 万円を超えるか: decision
-    lane: 経理
-  - 明細を 1 行ずつ見る: loop
-    lane: 経理
-  - 領収書と金額が合うか: decision
-    lane: 経理
-  - 次の給与日に振り込む: mark-end
-    title: "次の給与日に振り込む"
-    lane: 経理
-  - 上長が認めるか: decision
-    lane: 上長
-  - 却下を知らせる: mark-end
-    title: "却下を知らせる"
-    lane: 上長
-
-# 「はい」 と「いいえ」 は線の上に重ねる (overlay: true)。 分かれ道の図では書かなくても
-# 同じ値になるが、書ける欄なので明示する。 それ以外の名前は線から離して置く
-flow:
-  - 領収書を添えて申請する -> 10 万円を超えるか
-  - 10 万円を超えるか -> 上長が認めるか: "はい" 警告 { overlay: true }
-  - 10 万円を超えるか -> 明細を 1 行ずつ見る: "いいえ" 成功 { overlay: true }
-  - 上長が認めるか -> 明細を 1 行ずつ見る: "はい" 成功 { overlay: true }
-  - 上長が認めるか -> 却下を知らせる: "いいえ" 失敗 { overlay: true }
-  - 明細を 1 行ずつ見る -> 領収書と金額が合うか
-  - 領収書と金額が合うか -> 直して出し直す: "いいえ" 警告 { overlay: true }
-  - 直して出し直す -> 領収書を添えて申請する: "出し直す" { overlay: false }
-  - 領収書と金額が合うか -> 次の給与日に振り込む: "はい" 成功 { overlay: true }
-
-animation:
-  - step: "1. 領収書を添えて申請する" 0.9s
-    badge: "flowchart"
-    focus: [領収書を添えて申請する]
-    body: "申請者が領収書を添えて経費を申請する。 流れはここから始まり、振込か却下のどちらかで終わる。"
-  - step: "2. 金額で道を分ける" 0.9s
-    badge: "flowchart"
-    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか"]
-    body: "経理は最初に、合計が 10 万円を超えるかを見る。 超えない申請は上長を通さずに照合へ進む。"
-  - step: "3. 高い申請は上長に回す" 0.9s
-    badge: "flowchart"
-    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか"]
-    body: "10 万円を超える申請だけ、上長が認めるかを判断する。 判断が 2 つ続く道になる。"
-  - step: "4. 認めなければ却下で終える" 0.9s
-    badge: "flowchart"
-    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる"]
-    body: "上長が認めない申請は、却下を知らせて終わる。 この流れの 1 つ目の終わり方。"
-  - step: "5. 2 つの道が照合で合流する" 0.9s
-    badge: "flowchart"
-    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る"]
-    body: "10 万円以下の申請と、上長が認めた申請が同じ照合に入る。 経理は明細を 1 行ずつ、最後の行まで繰り返し見る。"
-  - step: "6. 領収書と金額が合うかを判断する" 0.9s
-    badge: "flowchart"
-    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る", 領収書と金額が合うか, "明細を 1 行ずつ見る -> 領収書と金額が合うか"]
-    body: "全ての行を見終えたら、領収書と金額が合うかを判断する。"
-  - step: "7. 合わなければ差し戻す" 0.9s
-    badge: "flowchart"
-    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る", 領収書と金額が合うか, "明細を 1 行ずつ見る -> 領収書と金額が合うか", 直して出し直す, "領収書と金額が合うか -> 直して出し直す", "直して出し直す -> 領収書を添えて申請する"]
-    body: "合わない申請は申請者に戻る。 申請者が直して出し直すと、最初の申請へ戻ってもう一度流れる。"
-  - step: "経費の申請を金額と領収書で分けて振込まで追うフローチャート" 0.9s
-    badge: "flowchart"
-    focus: [領収書を添えて申請する, "10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか", 上長が認めるか, "10 万円を超えるか -> 上長が認めるか", 却下を知らせる, "上長が認めるか -> 却下を知らせる", "明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る", 領収書と金額が合うか, "明細を 1 行ずつ見る -> 領収書と金額が合うか", 直して出し直す, "領収書と金額が合うか -> 直して出し直す", "直して出し直す -> 領収書を添えて申請する", 次の給与日に振り込む, "領収書と金額が合うか -> 次の給与日に振り込む"]
-    body: "合う申請は次の給与日に振り込んで終わる。 この流れの 2 つ目の終わり方。"
-`;
-
-/** 複雑なフローチャートの段で光る先。 記法の JSON は段ごとに前の段の分を積み上げて書く */
-const flowchartComplexFocus: readonly (readonly string[])[] = [
-  ["領収書を添えて申請する"],
-  ["10 万円を超えるか", "領収書を添えて申請する -> 10 万円を超えるか"],
-  ["上長が認めるか", "10 万円を超えるか -> 上長が認めるか"],
-  ["却下を知らせる", "上長が認めるか -> 却下を知らせる"],
-  ["明細を 1 行ずつ見る", "10 万円を超えるか -> 明細を 1 行ずつ見る", "上長が認めるか -> 明細を 1 行ずつ見る"],
-  ["領収書と金額が合うか", "明細を 1 行ずつ見る -> 領収書と金額が合うか"],
-  ["直して出し直す", "領収書と金額が合うか -> 直して出し直す", "直して出し直す -> 領収書を添えて申請する"],
-  ["次の給与日に振り込む", "領収書と金額が合うか -> 次の給与日に振り込む"],
-];
-
-export const sourceJson__pattern__presetFlowchart__複雑 = JSON.stringify(
-  {
-    title: "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
-    type: "flowchart",
-    actors: [
-      { name: "領収書を添えて申請する", kind: "mark-start", title: "領収書を添えて申請する", lane: "申請者" },
-      { name: "直して出し直す", lane: "申請者" },
-      { name: "10 万円を超えるか", kind: "decision", lane: "経理" },
-      { name: "明細を 1 行ずつ見る", kind: "loop", lane: "経理" },
-      { name: "領収書と金額が合うか", kind: "decision", lane: "経理" },
-      { name: "次の給与日に振り込む", kind: "mark-end", title: "次の給与日に振り込む", lane: "経理" },
-      { name: "上長が認めるか", kind: "decision", lane: "上長" },
-      { name: "却下を知らせる", kind: "mark-end", title: "却下を知らせる", lane: "上長" },
-    ],
-    flow: [
-      { from: "領収書を添えて申請する", to: "10 万円を超えるか", label: "" },
-      { from: "10 万円を超えるか", to: "上長が認めるか", label: "はい", tone: "warning", overlay: true },
-      { from: "10 万円を超えるか", to: "明細を 1 行ずつ見る", label: "いいえ", tone: "success", overlay: true },
-      { from: "上長が認めるか", to: "明細を 1 行ずつ見る", label: "はい", tone: "success", overlay: true },
-      { from: "上長が認めるか", to: "却下を知らせる", label: "いいえ", tone: "error", overlay: true },
-      { from: "明細を 1 行ずつ見る", to: "領収書と金額が合うか", label: "" },
-      { from: "領収書と金額が合うか", to: "直して出し直す", label: "いいえ", tone: "warning", overlay: true },
-      { from: "直して出し直す", to: "領収書を添えて申請する", label: "出し直す", overlay: false },
-      { from: "領収書と金額が合うか", to: "次の給与日に振り込む", label: "はい", tone: "success", overlay: true },
-    ],
-    animation: [
-      ["1. 領収書を添えて申請する", "申請者が領収書を添えて経費を申請する。 流れはここから始まり、振込か却下のどちらかで終わる。"],
-      ["2. 金額で道を分ける", "経理は最初に、合計が 10 万円を超えるかを見る。 超えない申請は上長を通さずに照合へ進む。"],
-      ["3. 高い申請は上長に回す", "10 万円を超える申請だけ、上長が認めるかを判断する。 判断が 2 つ続く道になる。"],
-      ["4. 認めなければ却下で終える", "上長が認めない申請は、却下を知らせて終わる。 この流れの 1 つ目の終わり方。"],
-      ["5. 2 つの道が照合で合流する", "10 万円以下の申請と、上長が認めた申請が同じ照合に入る。 経理は明細を 1 行ずつ、最後の行まで繰り返し見る。"],
-      ["6. 領収書と金額が合うかを判断する", "全ての行を見終えたら、領収書と金額が合うかを判断する。"],
-      ["7. 合わなければ差し戻す", "合わない申請は申請者に戻る。 申請者が直して出し直すと、最初の申請へ戻ってもう一度流れる。"],
-      ["経費の申請を金額と領収書で分けて振込まで追うフローチャート", "合う申請は次の給与日に振り込んで終わる。 この流れの 2 つ目の終わり方。"],
-    ].map(([step, body], i) => ({
-      step,
-      duration: 0.9,
-      focus: flowchartComplexFocus.slice(0, i + 1).flat(),
-      body,
-      badge: "flowchart",
-    })),
-  },
-  null,
-  2,
-);
 
 export const sourceYaml__presetNetwork =`title: "ネットワーク機器とセグメントの接続関係を示す図"
 type: flow

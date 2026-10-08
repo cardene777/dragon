@@ -50,6 +50,7 @@ export type MetroThemeNote =
 export type ThemeChartSeries = { roles: string[]; colors: string[] };
 export type ThemeGroundText = { ink: string; type: string };
 export type ThemeOutline = "frame" | "none";
+export type FlowchartDecisionStyle = { face: string; frame: string; width: number };
 export type ThemeLabelToneStyle = {
   one: string;
   two: string;
@@ -416,6 +417,29 @@ export function readFixedThemeOutline(
       continue;
     }
     throw new Error(`意匠帳の ${name} の「縁線」は「なし」で始まるか、行を置かない必要がある`);
+  }
+  return out;
+}
+
+/** 流れ図の節に表を持つ意匠だけ、光っていない分かれ道の例外値を読む。 */
+export function readFlowchartDecisionStyles(
+  overrides: Partial<Record<DslTheme, string>> = {},
+): Map<DslTheme, FlowchartDecisionStyle> {
+  const out = new Map<DslTheme, FlowchartDecisionStyle>();
+  for (const [name, note] of readThemeNotes(overrides)) {
+    if (note.mode !== "fixed") continue;
+    const text = overrides[name] ?? readThemeNoteText(name);
+    const section = 節を取る(text, "流れ図", 2);
+    if (!/^\|\s*役\s*\|\s*光っていない分かれ道\s*\|\s*$/m.test(section)) continue;
+    const rows = 二列表を読む(section);
+    const paint = (role: "面" | "枠"): string => {
+      const value = /^`(#[0-9a-fA-F]{6}|none)`$/.exec(rows.get(role) ?? "")?.[1];
+      if (!value) throw new Error(`意匠帳の ${name} の流れ図に分かれ道の「${role}」が無い`);
+      return value.toLowerCase();
+    };
+    const width = /^`(\d+(?:\.\d+)?)`$/.exec(rows.get("太さ") ?? "")?.[1];
+    if (!width) throw new Error(`意匠帳の ${name} の流れ図に分かれ道の「太さ」が無い`);
+    out.set(name, { face: paint("面"), frame: paint("枠"), width: Number(width) });
   }
   return out;
 }

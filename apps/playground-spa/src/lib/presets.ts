@@ -1,5 +1,5 @@
 /**
- * 19 preset metadata + CdlDiagram export。
+ * preset metadata + CdlDiagram export。
  * SPA なので client/server 分割不要、 1 file で完結。
  *
  * クラス図と ER 図の複雑な版は、ひな形を別に持たない (#1960)。 カタログでは元の見本の中の
@@ -24,7 +24,10 @@ import {
   presetChartPie,
   presetChartLine,
   presetGantt,
-  presetFlowchart,
+  presetDeliveryFlow,
+  presetDeliveryStages,
+  presetDeliveryMetro,
+  presetDeliveryTimeline,
   presetNetwork,
   presetStateMachine2,
 } from "@/topics/catalog/presets.cdl";
@@ -112,7 +115,10 @@ export const PRESETS: PresetMetadata[] = [
   { id: "chartPie", slug: "chart-pie", eyebrow: "数の図 / 内訳", eyebrowEn: "Number diagram / breakdown", subtitle: "利用の経路ごとの内訳を、全体に対する割合で示す円グラフ。", subtitleEn: "A pie chart showing the breakdown by channel as a share of the whole.", tags: ["グラフ", "割合"], tagsEn: ["Chart", "Share"], diagram: presetChartPie },
   { id: "chartLine", slug: "chart-line", eyebrow: "数の図 / 上がり下がり", eyebrowEn: "Number diagram / ups and downs", subtitle: "月ごとの計画と実績を 1 本の折れ線で比べ、どの月で計画を上回ったかを示す折れ線グラフ。", subtitleEn: "A line chart comparing plan and actual month by month, showing which months came in above plan.", tags: ["グラフ", "推移"], tagsEn: ["Chart", "Trend"], diagram: presetChartLine },
   { id: "gantt", slug: "gantt", eyebrow: "時間の図 / 工程の割り当て", eyebrowEn: "Time diagram / assigning the work", subtitle: "設計・実装・検証・公開の工程を期ごとの横棒で並べ、前の工程が終わってから次が始まる関係を示すガントチャート。", subtitleEn: "A schedule laying design, build, verification and release out as bars per period, showing that each stage starts once the one before it ends.", tags: ["工程", "期間"], tagsEn: ["Stages", "Duration"], diagram: presetGantt },
-  { id: "flowchart", slug: "flowchart", eyebrow: "手順の図 / 分かれ道", eyebrowEn: "Procedure diagram / forks", subtitle: "2 つの縦列で申請者と承認者を分け、承認されるか差し戻されるかに分かれる申請のフローチャート。", subtitleEn: "A request flowchart with two lanes for the requester and the approver, forking into approved or sent back.", tags: ["承認", "分岐"], tagsEn: ["Approval", "Branching"], diagram: presetFlowchart },
+  { id: "deliveryFlow", slug: "delivery-flow", eyebrow: "手順の図 / 分かれ道", eyebrowEn: "Procedure diagram / forks", subtitle: "3 つの縦列で荷主・営業所・配送便を分け、在宅の分かれ道と翌日もう一度の戻りを追うフローチャート。", subtitleEn: "A flowchart with three lanes for the shipper, depot and delivery van, following the at-home branch and the next-day retry.", tags: ["宅配", "戻る線"], tagsEn: ["Delivery", "Retry line"], diagram: presetDeliveryFlow },
+  { id: "deliveryStages", slug: "delivery-stages", eyebrow: "段階の図 / 担当の引き継ぎ", eyebrowEn: "Stage diagram / hand-offs", subtitle: "4 つの縦列で申し込み・受付・配送・結果を分け、8 つの札の右に担当を添えて宅配の進み方を追う段の箱。", subtitleEn: "Four stage columns split request, acceptance, delivery and result, with the owner beside each of eight cards.", tags: ["宅配", "段階"], tagsEn: ["Delivery", "Stages"], diagram: presetDeliveryStages },
+  { id: "deliveryMetro", slug: "delivery-metro", eyebrow: "道筋の図 / 担当の乗り換え", eyebrowEn: "Route diagram / changing owners", subtitle: "3 つの縦列で荷主・営業所・配送便を分け、7 つの駅と分かれ道、翌日へ戻る線路で宅配を追う路線図。", subtitleEn: "A metro map with three role lanes, seven stations, a branch and a track returning to the next day's delivery.", tags: ["宅配", "路線"], tagsEn: ["Delivery", "Route"], diagram: presetDeliveryMetro },
+  { id: "deliveryTimeline", slug: "delivery-timeline", eyebrow: "時間の図 / 順を追う", eyebrowEn: "Time diagram / following the order", subtitle: "6 つの丸い番号と 7 つの札を時間軸に沿って並べ、受け取りか翌日の再配達へ進む宅配の順番を追う図。", subtitleEn: "A timeline with six numbered circles and seven cards, following delivery to receipt or next-day redelivery.", tags: ["宅配", "時間軸"], tagsEn: ["Delivery", "Timeline"], diagram: presetDeliveryTimeline },
   { id: "network", slug: "network", eyebrow: "つながりの図 / 通り道", eyebrowEn: "Connection diagram / the route", subtitle: "ファイアウォールからスイッチを経て、アプリとデータベースのサーバーにつながる社内ネットワークの接続図。", subtitleEn: "An internal network map running from the firewall through the switch to the application and database servers.", tags: ["ネットワーク", "接続"], tagsEn: ["Network", "Links"], diagram: presetNetwork },
   { id: "stateMachine2", slug: "state-machine-2", eyebrow: "ふるまいの図 / 入れ子", eyebrowEn: "Behavior diagram / nesting", subtitle: "状態の中に状態を入れ子にし、入る時と出る時の処理を添えた、階層を持つ状態遷移図。", subtitleEn: "A hierarchical state diagram nesting states inside states, with the entry and exit actions attached.", tags: ["入れ子の状態", "入る時と出る時の処理"], tagsEn: ["Nested states", "Entry and exit actions"], diagram: presetStateMachine2 },
 ];

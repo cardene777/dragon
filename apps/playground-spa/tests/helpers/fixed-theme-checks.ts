@@ -10,6 +10,7 @@ import {
   readFixedThemeChartSeries,
   readFixedThemeLead,
   readFixedThemeOutline,
+  readFlowchartDecisionStyles,
   readThemeNotes,
   type ThemeNote,
 } from "./theme-notes";
@@ -238,6 +239,12 @@ export const BOX_PAINT_SELECTOR = [
 type FixedTheme = Extract<ThemeNote, { mode: "fixed" }>;
 type ShapeContrast = { boxes: number; halfFrames: number; outlineless: number; lines: number; failures: string[] };
 
+const flowchartDecisionStyles = readFlowchartDecisionStyles();
+
+function paintMatches(actual: string, expected: string): boolean {
+  return expected === "none" ? parseColor(actual) === null : colorKey(actual) === colorKey(expected);
+}
+
 export async function checkBoxAndLineContrast(
   page: Page,
   stage: Locator,
@@ -303,13 +310,20 @@ export async function checkBoxAndLineContrast(
     const attrOpacity = paint.attrStrokeOpacity === null ? null : Number(paint.attrStrokeOpacity);
     if (attrOpacity !== null && attrOpacity < 1) halfFrames += 1;
 
+    const decisionStyle =
+      type === "flowchart" && paint.kind === "decision" && !paint.active
+        ? flowchartDecisionStyles.get(note.name)
+        : undefined;
+    const expectedFrame = decisionStyle?.frame ?? note.value.frame;
+    const expectedFace = decisionStyle?.face ?? note.value.face;
     const strokeMatches = paint.active
       ? palette.has(colorKey(paint.stroke))
-      : colorKey(paint.stroke) === colorKey(note.value.frame);
-    if (!strokeMatches || colorKey(paint.fill) !== colorKey(note.value.face)) {
+      : paintMatches(paint.stroke, expectedFrame);
+    const widthMatches = decisionStyle === undefined || paint.strokeWidth === decisionStyle.width;
+    if (!strokeMatches || !paintMatches(paint.fill, expectedFace) || !widthMatches) {
       failures.push(
         `${type}/${mode}: 箱 ${paint.node ?? "不明"} (${paint.kind ?? "不明"}) ` +
-        `stroke ${paint.stroke} / fill ${paint.fill}`,
+        `stroke ${paint.stroke} / fill ${paint.fill} / stroke-width ${paint.strokeWidth}`,
       );
     }
     if (!paint.rendered) continue;

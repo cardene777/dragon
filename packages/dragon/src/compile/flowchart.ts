@@ -1,4 +1,4 @@
-import { flowchart } from "@cardenelabs/cdl";
+import { flowchart, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslActor, DslDocument } from "../types";
 import { 箱の題 } from "./node-title";
@@ -49,6 +49,19 @@ const 分かれ道の箱の形 = {
 } as const;
 
 type 分かれ道の形 = "process" | "decision" | "start" | "end" | "loop";
+
+/*
+ * 横向きの見本で使う印の大きさ。
+ *
+ * 正の見本 (`docs/design/proposal/static/流れ-*.html`) は札幅 300 に対して、菱形が
+ * 248 × 148 (0.8267 × 0.4933)、始まりの丸が直径 34 (0.1133)、終わりの丸が直径 38
+ * (0.1267)。 dragon の普通の札幅 380 に掛け、1 px 単位へ丸めた。
+ */
+const 横向きの印の大きさ = {
+  decision: { w: 314, h: 187 },
+  "mark-start": { w: 43, h: 43 },
+  "mark-end": { w: 48, h: 48 },
+} as const;
 
 function 箱の形(actor: DslActor): 分かれ道の形 {
   const kind = actor.kind;
@@ -152,6 +165,33 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
   const 箱の一覧 = new Map(diagram.nodes.map((n) => [n.id, n]));
 
   /*
+   * 横向きだけを宅配の見本と同じ形へ直す。縦向きは役割と形の小見出しを箱の上へ移すことが
+   * 向きの読み分けになっているため、描画側が組み立てた従来の形を保つ。
+   */
+  if (!縦に積む) {
+    doc.actors.forEach((actor, i) => {
+      const node = 箱の一覧.get(決めたid[i] ?? "");
+      if (node === undefined) return;
+
+      if (actor.kind === "decision") {
+        node.kind = "decision";
+        delete node.eyebrow;
+        Object.assign(node, 横向きの印の大きさ.decision);
+        return;
+      }
+      if ((actor.kind === "mark-start" || actor.kind === "mark-end") && node.title === "") {
+        node.kind = actor.kind;
+        delete node.eyebrow;
+        Object.assign(node, 横向きの印の大きさ[actor.kind]);
+        return;
+      }
+      if (actor.kind !== "loop" && actor.kind !== "mark-start" && actor.kind !== "mark-end") {
+        delete node.eyebrow;
+      }
+    });
+  }
+
+  /*
    * 形に読み替えなかった種類は、箱の見た目としてそのまま渡す。
    *
    * 描画側は形を箱の種類で表す (判断 = `card`、 印 = `event`、 手順 = `function`)。 その 3 つに
@@ -168,6 +208,29 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
     const node = 箱の一覧.get(決めたid[i] ?? "");
     if (node !== undefined) node.kind = a.kind as typeof node.kind;
   });
+
+  /*
+   * 横向きでは、同じ段にある菱形の高さを普通の札へ写さない。
+   *
+   * 描く側は `h` を書いた箱だけを段の最大高へ伸ばさない。種類ごとの高さをここへ写す時は、
+   * 箱を一時的に別々の段へ置いて描く側自身に中身から高さを出させる。固定値を写すと、
+   * `database` など書いた種類や長い題の高さが描く側の変更から外れてしまうため。
+   */
+  if (!縦に積む && diagram.nodes.length > 0) {
+    const 自分の高さ = new Map(
+      layout({
+        ...diagram,
+        nodes: diagram.nodes.map((node, index) => ({ ...node, stack: index })),
+        edges: [],
+        phases: [],
+      }).nodes.map((node) => [node.id, node.h]),
+    );
+    for (const node of diagram.nodes) {
+      if (node.kind === "decision" || node.kind === "mark-start" || node.kind === "mark-end") continue;
+      const h = 自分の高さ.get(node.id);
+      if (h !== undefined) node.h = h;
+    }
+  }
 
   /*
    * 段は **箱を並べる図種すべてと同じ決め方** に従う (`縦列ごとの段を決める`)。

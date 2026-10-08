@@ -5,8 +5,8 @@
  * そのため記法に `loop` と書くと種類として読まれず、**部品の名前として扱われて**
  * 「部品の一覧を渡していないため部品として描けません」 と言われるだけだった (実測)。
  *
- * 一覧の複雑な版 (`pattern__presetFlowchart__複雑`) はこの箱を持つため、
- * 記法に移せず泳路の図のまま取り残されていた。
+ * テキスト記法の複雑な版 (`pattern__textDslFlowchart__複雑`) はこの箱を持つため、
+ * 記法から繰り返しの形へ届くことが必要になる。
  *
  * ## 何を見るか
  *
@@ -19,7 +19,13 @@
  */
 import { describe, it, expect } from "vitest";
 
+import { layout } from "@cardenelabs/cdl";
 import { NODE_KIND_VALID, textDslToDiagram, type CdlDiagram } from "../src";
+import {
+  pattern__textDslFlowchart__複雑,
+  textDslFlowchart,
+} from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
+import { presetDeliveryFlow } from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import { DSL_ONLY_KINDS } from "../src/v05/parser";
 
 /** 記法を組み立てて、箱と知らせを返す */
@@ -30,9 +36,10 @@ function 組み立てる(code: string): { 箱: CdlDiagram["nodes"]; 知らせ: s
 }
 
 /** 指定した種類を 1 つ持つ分かれ道の図 */
-function 分かれ道の図(種類: string): string {
+function 分かれ道の図(種類: string, 向き?: "横" | "縦"): string {
   return `title: "繰り返し"
 type: flowchart
+${向き === undefined ? "" : `direction: ${向き}\n`}
 
 actors:
   - 始め: mark-start
@@ -70,6 +77,14 @@ describe("分かれ道の図で繰り返しの箱を書ける (#2523)", () => {
     expect(知らせ, `知らせが出ている: ${知らせ.join(" / ")}`).toEqual([]);
   });
 
+  it.each(["横", "縦"] as const)("%s向きでも書いた database を描く側へ渡す", (向き) => {
+    const { 箱, 知らせ } = 組み立てる(分かれ道の図("database", 向き));
+    const 真ん中 = 箱.find((node) => node.title === "明細を見る");
+
+    expect(真ん中?.kind).toBe("database");
+    expect(知らせ).not.toContain("actor-option-not-honored");
+  });
+
   it("分かれ道の図以外で書くと札に落ちる", () => {
     // 読み替えずに描画側へ渡すと、大きさを引けずに図の組み立てが落ちる (#1420)
     const { 箱, 知らせ } = 組み立てる(`title: "別の図種で書く"
@@ -99,5 +114,30 @@ flow:
     const 真ん中 = 図.nodes.find((n) => n.title === "明細を見る");
     // 種類を書かなかった箱として描かれる = 普通の手順の箱
     expect(真ん中?.eyebrow, "知らない種類が繰り返しの箱になっている").not.toBe("繰り返し");
+  });
+});
+
+describe("横向きの分かれ道の図の札の高さ (#2835)", () => {
+  it("宅配の受け取るを普通の手順と同じ高さに保つ", () => {
+    const 図 = layout(presetDeliveryFlow);
+    const 受け取る = 図.nodes.find((node) => node.title === "受け取る")!;
+    const 集荷を頼む = 図.nodes.find((node) => node.title === "集荷を頼む")!;
+    const 在宅 = 図.nodes.find((node) => node.kind === "decision")!;
+
+    expect(受け取る.h).toBe(集荷を頼む.h);
+    expect(受け取る.h).toBeLessThan(在宅.h);
+  });
+
+  it.each([
+    ["簡単", textDslFlowchart],
+    ["複雑", pattern__textDslFlowchart__複雑],
+  ] as const)("テキスト記法の%s版でも分かれ道と同じ行の札を伸ばさない", (_版, 元の図) => {
+    const 図 = layout(元の図);
+    for (const 分かれ道 of 図.nodes.filter((node) => node.kind === "decision")) {
+      const 同じ行の札 = 図.nodes.filter(
+        (node) => node.stack === 分かれ道.stack && node.kind !== "decision",
+      );
+      for (const 札 of 同じ行の札) expect(札.h, 札.id).toBeLessThan(分かれ道.h);
+    }
   });
 });
