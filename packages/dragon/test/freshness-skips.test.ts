@@ -25,8 +25,8 @@ import { join, relative } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { staleBundles, type Bundle } from "../../../test-support/dep-bundle-freshness";
-import type { Target } from "../../../test-support/global-setup";
-import { SKIP_ENV, readSkips, runFreshnessChecks } from "../../../test-support/global-setup";
+import { SKIP_ENV, type Target } from "../../../test-support/dist-freshness-check";
+import { readSkips, runFreshnessChecks } from "../../../test-support/global-setup";
 
 const 作った: string[] = [];
 const 対象名 = "@x/y";

@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { checkFreshness, newestMtime, oldestMtime, staleReport } from "../../../test-support/dist-freshness";
-import { TARGETS, collectProblems, resolvePkgDir } from "../../../test-support/global-setup";
+import { TARGETS, collectProblems, resolvePkgDir } from "../../../test-support/dist-freshness-check";
 
 /**
  * `dist` の鮮度検知 (#979)。

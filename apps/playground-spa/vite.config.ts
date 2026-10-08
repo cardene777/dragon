@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 import { DEV_PORT, PREVIEW_PORT } from "./ports";
+import { createDevDistFreshnessPlugin } from "./vite-dev-dist-freshness";
 
 /**
  * 記法の版。 画面の札に出す (#1320)。
@@ -38,7 +39,12 @@ export default defineConfig(({ command, mode }) => ({
     // 画面から `__DRAGON_VERSION__` で読む (#1320)
     __DRAGON_VERSION__: JSON.stringify(記法の版),
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    // Vitest は repo root の `vitest.config.ts` を読み、この Vite 設定と起動時 plugin は読まない。
+    createDevDistFreshnessPlugin(),
+    react(),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
