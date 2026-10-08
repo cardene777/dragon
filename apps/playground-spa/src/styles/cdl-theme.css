@@ -90,6 +90,12 @@
   --cdl-thumbnail-close-bg: color-mix(in srgb, var(--d-text-primary) 12%, transparent);
 }
 
+/* 配色を指定しない図では、ガントの行の縞を画面の明暗に合わせる。固定意匠と生成り・青磁は
+   それぞれの意匠の値を保つため、配色属性を持たない既定の図だけへ当てる。 */
+svg[data-cdl-stage]:not([data-cdl-palette]) {
+  --cdl-surface-sunken: var(--d-chart-surface-sunken);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * 文字に線を引かせない。
  *
@@ -4511,6 +4517,9 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
 svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --theme-stage-column-radius: 12px;
   --theme-stage-card-radius: 8px;
+  --theme-stage-card-face: #fbf7ee;
+  --theme-stage-card-frame-width: 0;
+  --theme-stage-card-shadow: drop-shadow(0 8px 6px rgb(0 0 0 / 34%));
   --theme-stage-face: #f4eee2;
   --theme-stage-frame: none;
   --theme-stage-divider: #e2d9c7;
@@ -4529,11 +4538,21 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --theme-stage-label-frame-width: 0;
 }
 
-/* 図録は列の面が札と同じ明るい紙になるので、列の中の札だけ縞の紙へ 1 段明るくする。 */
+/* 図録の通常の札は見本のクリーム紙を無縁で浮かせる。強調中の深い影と墨の枠は変えない。 */
 svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-role="stage-column"])
-  [data-cdl-kind="card"]
+  [data-cdl-kind="card"]:not([data-cdl-active="true"])
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
-  fill: #fbf7ee !important;
+  fill: var(--theme-stage-card-face) !important;
+  stroke: var(--theme-stage-card-frame) !important;
+  stroke-width: var(--theme-stage-card-frame-width) !important;
+  filter: var(--theme-stage-card-shadow) !important;
+}
+
+/* 上の通常札を絞る前と同じく、強調中も面はクリーム紙のままにする。 */
+svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-role="stage-column"])
+  [data-cdl-kind="card"][data-cdl-active="true"]
+  [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
+  fill: var(--theme-stage-card-face) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="terminal"] {
@@ -4583,9 +4602,12 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
 svg[data-cdl-stage][data-cdl-palette="neon"] {
   --theme-stage-column-radius: 16px;
   --theme-stage-card-radius: 8px;
-  --theme-stage-card-frame: #b26bff;
+  --theme-stage-card-face: rgb(10 8 18 / 94%);
+  --theme-stage-card-frame: #e4cbff;
   --theme-stage-card-frame-width: 2;
   --theme-stage-card-glow: #b26bff;
+  --theme-stage-card-shadow: drop-shadow(0 0 2px #b26bff)
+    drop-shadow(0 0 10px color-mix(in srgb, #b26bff 60%, transparent));
   --theme-stage-face: #0a0812;
   --theme-stage-frame: #ffb6db;
   --theme-stage-frame-width: 2;
@@ -4665,19 +4687,14 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   fill: var(--theme-stage-label-error-text) !important;
 }
 
-/* 電飾の段の箱は列の桃と札の紫を分ける。通常時も強調時も、管と外光は札の紫から作る。 */
+/* 電飾の通常の札は、見本どおり薄紫の芯と紫の外光で桃の列から分ける。 */
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-role="stage-column"])
-  [data-cdl-kind="card"]
+  [data-cdl-kind="card"]:not([data-cdl-active="true"])
   [data-cdl-role="node-body"] {
+  fill: var(--theme-stage-card-face) !important;
   stroke: var(--theme-stage-card-frame) !important;
   stroke-width: var(--theme-stage-card-frame-width) !important;
-  filter: url(#dragon-neon-tube);
-}
-
-svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-role="stage-column"])
-  [data-cdl-kind="card"][data-cdl-active="true"]
-  [data-cdl-role="node-body"] {
-  filter: url(#dragon-neon-tube) drop-shadow(0 0 14px color-mix(in srgb, var(--theme-stage-card-glow) 45%, transparent));
+  filter: var(--theme-stage-card-shadow) !important;
 }
 
 /* 固定の 7 意匠の段の箱は、意匠別の線と強調の規則より後で見本の太さへ揃える。

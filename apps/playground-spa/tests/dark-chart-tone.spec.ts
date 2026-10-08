@@ -37,7 +37,9 @@ const huesOf = (page: Page, id: string) =>
     const root = document.querySelector(`[data-cdl-diagram="${d}"]`);
     if (!root) return null;
     const out: Array<{ hue: number; color: string }> = [];
-    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline, polygon"))) {
+    for (const el of Array.from(
+      root.querySelectorAll("path, rect, circle, line, polyline, polygon"),
+    )) {
       // `<defs>` の marker は定義であって描画ではない。 含めると「実際には出ていない色」 で
       // 前提が成立してしまう (codex review Round 1 の指摘)。
       if (el.closest("defs")) continue;
@@ -83,13 +85,16 @@ const huesOf = (page: Page, id: string) =>
  * 背景は `elementsFromPoint` で後ろの要素を取り、 `fill-opacity` / `opacity` を合成して求める。
  * `fill` だけ見ると淡い塗りを不透明として拾い、 同色に見える偽の 1.00 が出る (実測)。
  */
-const contrastsOf = (page: Page, id: string) =>
-  page.evaluate((d) => {
+const contrastsOf = async (page: Page, id: string) => {
+  const root = page.locator(`[data-cdl-diagram="${id}"]`);
+  if ((await root.count()) === 0) return null;
+  await root.scrollIntoViewIfNeeded();
+  return page.evaluate((d) => {
     const root = document.querySelector(`[data-cdl-diagram="${d}"]`);
     if (!root) return null;
     const cs0 = getComputedStyle(root);
     // 上書きが無ければ cdl 側の fallback がそのまま出る。 その値で照合しないと明色で 0 件になる。
-    const DEF: Record<string, string> = {
+    const TONE_DEF: Record<string, string> = {
       accent: "#2d6a8f",
       teal: "#2f8770",
       success: "#4ea36a",
@@ -97,9 +102,11 @@ const contrastsOf = (page: Page, id: string) =>
       warning: "#a67a2e",
       info: "#5a8ec1",
     };
+    const CHART_DEF = ["#4338ca", "#0d9488", "#f59e0b", "#be185d", "#4d7c0f", "#0369a1"];
     const parse = (v: string): [number, number, number, number] | null => {
       const g = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(v ?? "");
-      if (g) return [Number(g[1]), Number(g[2]), Number(g[3]), g[4] === undefined ? 1 : Number(g[4])];
+      if (g)
+        return [Number(g[1]), Number(g[2]), Number(g[3]), g[4] === undefined ? 1 : Number(g[4])];
       const h = /^#([0-9a-f]{6})$/i.exec(v ?? "");
       // 必須の群。 一致した以上必ず取れる
       if (h?.[1] !== undefined) {
@@ -108,21 +115,32 @@ const contrastsOf = (page: Page, id: string) =>
       }
       return null;
     };
-    const tones = Object.keys(DEF).flatMap((t) => {
-      // 既定の表は `DEF` の key で回すので必ず引ける
-      const 既定 = DEF[t];
+    const tones = Object.keys(TONE_DEF).flatMap((t) => {
+      // 既定の表は `TONE_DEF` の key で回すので必ず引ける
+      const 既定 = TONE_DEF[t];
       const v = cs0.getPropertyValue(`--cdl-tone-${t}`).trim().toLowerCase() || 既定;
       return v === undefined ? [] : [v];
     });
-    const toneRgb = tones.map(parse).filter(Boolean) as Array<[number, number, number, number]>;
+    const chartTones = CHART_DEF.map(
+      (既定, index) =>
+        cs0
+          .getPropertyValue(`--cdl-chart-${index + 1}`)
+          .trim()
+          .toLowerCase() || 既定,
+    );
+    const toneRgb = [...tones, ...chartTones].map(parse).filter(Boolean) as Array<
+      [number, number, number, number]
+    >;
     const near = (a: [number, number, number], b: [number, number, number]) =>
       Math.abs(a[0] - b[0]) < 3 && Math.abs(a[1] - b[1]) < 3 && Math.abs(a[2] - b[2]) < 3;
-    const isTone = (c: [number, number, number]) => toneRgb.some((t) => near([t[0], t[1], t[2]], c));
+    const isTone = (c: [number, number, number]) =>
+      toneRgb.some((t) => near([t[0], t[1], t[2]], c));
     const lin = (c: number) => {
       const x = c / 255;
       return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
     };
-    const lum = (c: [number, number, number]) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+    const lum = (c: [number, number, number]) =>
+      0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
     const contrast = (a: [number, number, number], b: [number, number, number]) => {
       const la = lum(a);
       const lb = lum(b);
@@ -151,9 +169,19 @@ const contrastsOf = (page: Page, id: string) =>
       "journey-chip": ["fill"],
     };
 
-    const out: Array<{ tag: string; role: string; prop: string; color: string; bg: string; c: number }> = [];
+    const out: Array<{
+      tag: string;
+      role: string;
+      prop: string;
+      color: string;
+      bg: string;
+      c: number;
+    }> = [];
+    const 測れなかった: string[] = [];
     // 図の題も数える (#2749)。 見るのは描かれた色の対比なので、題の色も同じだけ対比が要る
-    for (const el of Array.from(root.querySelectorAll("path, rect, circle, line, polyline, polygon, text, ellipse"))) {
+    for (const el of Array.from(
+      root.querySelectorAll("path, rect, circle, line, polyline, polygon, text, ellipse"),
+    )) {
       if (el.closest("defs")) continue;
       const cs = getComputedStyle(el);
       const role = el.getAttribute("data-cdl-role") ?? "";
@@ -171,82 +199,98 @@ const contrastsOf = (page: Page, id: string) =>
           raws.push(cs[prop]);
         }
         for (const raw of raws) {
-        const c = parse(raw);
-        if (!c || c[3] === 0) continue;
-        const rgb: [number, number, number] = [c[0], c[1], c[2]];
-        if (!isTone(rgb)) continue;
-        // 前景も不透明度を含めて実効色にする。 生の色で測ると、 薄く描かれた要素の対比を
-        // 実描画より大幅に高く見積もる (codex review Round 3 の指摘)。
-        const po = prop === "fill" ? cs.fillOpacity : cs.strokeOpacity;
-        const alpha = c[3] * Number(po === "" ? 1 : po) * chainOpacity(el);
-        if (alpha < 0.05) continue;
-        const bb = el.getBoundingClientRect();
-        if (bb.width === 0 && bb.height === 0) continue;
-        const stack = document.elementsFromPoint(bb.left + bb.width / 2, bb.top + bb.height / 2);
-        const i = stack.indexOf(el);
-        const behind = i >= 0 ? stack.slice(i + 1) : stack;
+          const c = parse(raw);
+          if (!c || c[3] === 0) continue;
+          const rgb: [number, number, number] = [c[0], c[1], c[2]];
+          if (!isTone(rgb)) continue;
+          // 前景も不透明度を含めて実効色にする。 生の色で測ると、 薄く描かれた要素の対比を
+          // 実描画より大幅に高く見積もる (codex review Round 3 の指摘)。
+          const po = prop === "fill" ? cs.fillOpacity : cs.strokeOpacity;
+          const alpha = c[3] * Number(po === "" ? 1 : po) * chainOpacity(el);
+          if (alpha < 0.05) continue;
+          // 一覧で図が画面外に在っても elementsFromPoint が空にならないよう、測る要素自身を画面へ送る。
+          // SVG の中が画面より広い時は根だけを送っても端の要素が外に残るため、候補ごとに行う。
+          el.scrollIntoView({ block: "center", inline: "center" });
+          const bb = el.getBoundingClientRect();
+          // 描かれていない要素は tone の測定対象に数えない。
+          if (bb.width === 0 && bb.height === 0) continue;
+          const stack = document.elementsFromPoint(bb.left + bb.width / 2, bb.top + bb.height / 2);
+          if (stack.length === 0) {
+            測れなかった.push(`${el.tagName}/${role || "-"} ${prop}: 画面外のまま`);
+            continue;
+          }
+          const i = stack.indexOf(el);
+          // 線と輪の形は外接矩形の中心に要素自身が無い。要素を拾えない時も、中心に在る層を
+          // 背景として使えば実際に線や輪が載る面を測れる。
+          const behind = i >= 0 ? stack.slice(i + 1) : stack;
 
-        const layers: Array<{ c: [number, number, number]; a: number }> = [];
-        let selfColored = false;
-        for (const b of behind) {
-          if (b === el) continue;
-          const bcs = getComputedStyle(b);
-          const o = Number(bcs.opacity === "" ? 1 : bcs.opacity);
-          const f = bcs.fill !== "none" ? parse(bcs.fill) : null;
-          if (f) {
-            const a = f[3] * Number(bcs.fillOpacity === "" ? 1 : bcs.fillOpacity) * o;
-            if (a > 0.01) {
-              if (near([f[0], f[1], f[2]], rgb)) selfColored = true;
-              layers.push({ c: [f[0], f[1], f[2]], a });
+          const layers: Array<{ c: [number, number, number]; a: number }> = [];
+          let selfColored = false;
+          for (const b of behind) {
+            if (b === el) continue;
+            const bcs = getComputedStyle(b);
+            const o = Number(bcs.opacity === "" ? 1 : bcs.opacity);
+            const f = bcs.fill !== "none" ? parse(bcs.fill) : null;
+            if (f) {
+              const a = f[3] * Number(bcs.fillOpacity === "" ? 1 : bcs.fillOpacity) * o;
+              if (a > 0.01) {
+                // 象限の 6〜9% の色面のような薄い層は、同じ生色でも実際には背景色に近い。
+                // 接合点と枝線のように同色面へ重なる時だけ、対比を持たない飾りとして除く。
+                if (a > 0.99 && near([f[0], f[1], f[2]], rgb)) selfColored = true;
+                layers.push({ c: [f[0], f[1], f[2]], a });
+              }
+              if (a > 0.99) break;
             }
-            if (a > 0.99) break;
+            const s = bcs.stroke !== "none" ? parse(bcs.stroke) : null;
+            if (s && near([s[0], s[1], s[2]], rgb)) selfColored = true;
+            const bgc = parse(bcs.backgroundColor);
+            if (bgc && bgc[3] * o > 0.01) {
+              layers.push({ c: [bgc[0], bgc[1], bgc[2]], a: bgc[3] * o });
+              if (bgc[3] * o > 0.99) break;
+            }
           }
-          const s = bcs.stroke !== "none" ? parse(bcs.stroke) : null;
-          if (s && near([s[0], s[1], s[2]], rgb)) selfColored = true;
-          const bgc = parse(bcs.backgroundColor);
-          if (bgc && bgc[3] * o > 0.01) {
-            layers.push({ c: [bgc[0], bgc[1], bgc[2]], a: bgc[3] * o });
-            if (bgc[3] * o > 0.99) break;
+          if (layers.length === 0) {
+            測れなかった.push(`${el.tagName}/${role || "-"} ${prop}: 背景を拾えない`);
+            continue;
           }
-        }
-        if (layers.length === 0) continue;
-        // 自分と同じ色の図形の上に乗る飾り (枝線の上の接合点等) は対比を持ちようがない。
-        // 明色でも同じ形で 1.00 になるので、 dark 固有の劣化ではない。
-        if (selfColored) continue;
-        // 3 つ組は添字で回さず 1 つずつ書く。 添字で回すと組の要素が `undefined` を
-        // 含む型になり、`as` で潰すしかなくなる
-        const 重ねる = (
-          c: [number, number, number],
-          a: number,
-          下: [number, number, number],
-        ): [number, number, number] => [
-          Math.round(c[0] * a + 下[0] * (1 - a)),
-          Math.round(c[1] * a + 下[1] * (1 - a)),
-          Math.round(c[2] * a + 下[2] * (1 - a)),
-        ];
-        const 最下 = layers[layers.length - 1];
-        // `layers.length === 0` は上で弾いているので必ず引ける
-        if (最下 === undefined) continue;
-        let acc = 最下.c;
-        for (let k = layers.length - 2; k >= 0; k--) {
-          const l = layers[k];
-          if (l === undefined) continue;
-          acc = 重ねる(l.c, l.a, acc);
-        }
-        const eff = 重ねる(rgb, alpha, acc);
-        out.push({
-          tag: el.tagName,
-          role,
-          prop,
-          color: `rgb(${eff.join(",")})`,
-          bg: `rgb(${acc.join(",")})`,
-          c: contrast(eff, acc),
-        });
+          // 自分と同じ色の図形の上に乗る飾り (枝線の上の接合点等) は対比を持ちようがない。
+          // 明色でも同じ形で 1.00 になるので、 dark 固有の劣化ではない。
+          if (selfColored) continue;
+          // 3 つ組は添字で回さず 1 つずつ書く。 添字で回すと組の要素が `undefined` を
+          // 含む型になり、`as` で潰すしかなくなる
+          const 重ねる = (
+            c: [number, number, number],
+            a: number,
+            下: [number, number, number],
+          ): [number, number, number] => [
+            Math.round(c[0] * a + 下[0] * (1 - a)),
+            Math.round(c[1] * a + 下[1] * (1 - a)),
+            Math.round(c[2] * a + 下[2] * (1 - a)),
+          ];
+          const 最下 = layers[layers.length - 1];
+          // `layers.length === 0` は上で弾いているので必ず引ける
+          if (最下 === undefined) continue;
+          let acc = 最下.c;
+          for (let k = layers.length - 2; k >= 0; k--) {
+            const l = layers[k];
+            if (l === undefined) continue;
+            acc = 重ねる(l.c, l.a, acc);
+          }
+          const eff = 重ねる(rgb, alpha, acc);
+          out.push({
+            tag: el.tagName,
+            role,
+            prop,
+            color: `rgb(${eff.join(",")})`,
+            bg: `rgb(${acc.join(",")})`,
+            c: contrast(eff, acc),
+          });
         }
       }
     }
-    return out;
+    return { rows: out, 測れなかった };
   }, id);
+};
 
 /** 図を id で名指しして開く。 */
 async function open(page: Page, id: string): Promise<void> {
@@ -316,9 +360,16 @@ test.describe("dark の図の tone (#383)", () => {
       await page.evaluate(() => document.documentElement.classList.add("dark"));
       await page.waitForTimeout(600);
 
-      const rows = await contrastsOf(page, id);
-      expect(rows, `${id} が描かれていない`).not.toBeNull();
-      const bad = rows!.filter((r) => r.c < 3).map((r) => `${r.c.toFixed(2)} ${r.tag}/${r.role || "-"} ${r.prop}=${r.color} on ${r.bg}`);
+      const result = await contrastsOf(page, id);
+      expect(result, `${id} が描かれていない`).not.toBeNull();
+      expect(result!.測れなかった, `${id} に画面外のまま測らなかった tone がある`).toEqual([]);
+      expect(result!.rows.length, `${id} の tone を 1 件も測っていない`).toBeGreaterThan(0);
+      const bad = result!.rows
+        .filter((row) => row.c < 3)
+        .map(
+          (row) =>
+            `${row.c.toFixed(2)} ${row.tag}/${row.role || "-"} ${row.prop}=${row.color} on ${row.bg}`,
+        );
       expect(bad, `${id} の dark で背景に埋もれる tone`).toEqual([]);
     });
   }

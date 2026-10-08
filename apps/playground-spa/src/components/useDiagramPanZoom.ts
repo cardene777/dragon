@@ -100,6 +100,8 @@ export type 拡大と移動の状態 = {
 
 /** 画面の測り結果。 変わった時だけ状態を置き換える */
 type 測った値 = {
+  /** この値を測った図。図が替わった描画で前の図の文字を使わないための印 */
+  図の鍵: unknown;
   描かれた倍率: number | undefined;
   溢れている: boolean;
   /**
@@ -137,12 +139,14 @@ function 画面を測る(
   器: HTMLElement,
   svg: SVGSVGElement | null,
   巻き取りを探す: 拡大と移動の設定["巻き取りを探す"],
+  図の鍵: unknown,
 ): 測った値 {
   const 巻き取り = 巻き取る要素(器, 巻き取りを探す);
   // 0 は「文字が 1 つも無い」 と「値を読めない」 の両方を表す。 下限を課すかの判定に使うので、
   // 測れていない側へ倒して図の大きさを動かさない
   const 文字 = svg ? smallestFontWorld(svg) : 0;
   return {
+    図の鍵,
     描かれた倍率: svg ? 描かれた外枠(svg).倍率 : undefined,
     svgがある: svg !== null,
     溢れている:
@@ -218,7 +222,8 @@ function 変わった時だけ置き換える(前: 測った値, 次: 測った�
     倍率が同じ &&
     前.最小の文字 === 次.最小の文字 &&
     前.器の幅 === 次.器の幅 &&
-    前.svgがある === 次.svgがある
+    前.svgがある === 次.svgがある &&
+    前.図の鍵 === 次.図の鍵
     ? 前
     : 次;
 }
@@ -316,6 +321,7 @@ function 描かれた外枠(svg: SVGSVGElement): { x: 区間; y: 区間; 倍率:
 export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と移動の状態 {
   const { 器, 倍率, viewBox幅, 図の鍵 } = 設定;
   const [測った, set測った] = useState<測った値>({
+    図の鍵,
     描かれた倍率: undefined,
     溢れている: false,
     最小の文字: undefined,
@@ -324,19 +330,30 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
   });
   const [移動中, set移動中] = useState(false);
 
+  // 図の鍵が替わった描画では、state はまだ前の図の測定値を持つ。ここで前の文字を外さないと、
+  // 新しい図を測る layout effect より先に 10px / 前の最小文字を下限として欄と svg へ当ててしまう。
+  const 図が替わった = 測った.図の鍵 !== 図の鍵;
+  const 測れた最小の文字 = 図が替わった ? undefined : 測った.最小の文字;
+
   const 読める下限の倍率 =
     設定.読める下限を課す === true
       ? readableScaleForWidth({
           frameWidth: 測った.器の幅,
           viewBoxWidth: viewBox幅,
-          minFontWorld: 測った.最小の文字,
+          minFontWorld: 測れた最小の文字,
         })
       : undefined;
   // **下限が効く時は下限そのものを返す** (#2269)。 下限で幅を与えると描かれた倍率も下限になるが、
   // それが測り直されるのは次の描画なので、欄が 1 フレーム前の倍率を出したまま図だけ替わる。
   // 下限は器の幅と図の文字から出るので、幅を与えるのと同じ描画で確定している
+  const 図が替わった時の収めた倍率 =
+    図が替わった && viewBox幅 !== undefined && viewBox幅 > 0 && 測った.器の幅 > 0
+      ? 測った.器の幅 / viewBox幅
+      : undefined;
   const 収めた倍率 =
-    viewBox幅 === undefined ? undefined : (読める下限の倍率 ?? 測った.描かれた倍率);
+    viewBox幅 === undefined
+      ? undefined
+      : (読める下限の倍率 ?? 図が替わった時の収めた倍率 ?? 測った.描かれた倍率);
   // 下限で拡げた図は器から出るので、収めている間もドラッグで辿れるようにする。
   // 下限を課していない場所では今まで通り、倍率を指定した時だけ掴める
   const 動かせる =
@@ -379,7 +396,7 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
   // 測れていない値に置き換える = 前の図の倍率を別の図の欄に残さない。
   useLayoutEffect(() => {
     if (!器 || viewBox幅 === undefined) return;
-    const 次 = 画面を測る(器, 図のsvgを探す(器), 最新.current.設定.巻き取りを探す);
+    const 次 = 画面を測る(器, 図のsvgを探す(器), 最新.current.設定.巻き取りを探す, 図の鍵);
     覚えた最小.current = 忘れない最小(覚えた最小.current, 次.最小の文字);
     set測った((前) => 変わった時だけ置き換える(前, { ...次, 最小の文字: 覚えた最小.current }));
   }, [器, viewBox幅, 図の鍵]);
@@ -395,7 +412,7 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
     let 見ているsvg: SVGSVGElement | null = null;
     let 予約 = 0;
     const 測る = (): void => {
-      const 次 = 画面を測る(器, 見ているsvg, 最新.current.設定.巻き取りを探す);
+      const 次 = 画面を測る(器, 見ているsvg, 最新.current.設定.巻き取りを探す, 図の鍵);
       覚えた最小.current = 忘れない最小(覚えた最小.current, 次.最小の文字);
       set測った((前) => 変わった時だけ置き換える(前, { ...次, 最小の文字: 覚えた最小.current }));
     };

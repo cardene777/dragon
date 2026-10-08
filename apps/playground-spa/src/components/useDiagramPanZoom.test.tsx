@@ -121,6 +121,49 @@ describe("useDiagramPanZoom の図が替わった時の測り直し (#2044)", ()
     rerender({ 鍵: { 名: "flow" } });
     expect(result.current.収めた倍率, "図が無いのに前の図の倍率が残っている").toBeUndefined();
   });
+
+  it("最小の字 14 の図から幅に合わせた倍率 0.62 の図へ替えた最初の描画で、欄の倍率と svg に当てる倍率が同じになる", () => {
+    const { 器, 入れ物, svg } = 台を作る(620);
+    描いたことにする(svg, { 幅: 620, 高さ: 400 }, { 幅: 620, 高さ: 400 });
+    文字を置く(svg, [14]);
+
+    const 描画: Array<{
+      鍵: object;
+      収めた倍率: number | undefined;
+      読める下限の倍率: number | undefined;
+    }> = [];
+    const 最初の鍵 = { 名: "文字 14" };
+    const 次の鍵 = { 名: "幅 0.62" };
+    const { rerender } = renderHook(
+      ({ 鍵, 幅 }: { 鍵: object; 幅: number }) => {
+        const 値 = useDiagramPanZoom({
+          器,
+          倍率: 収める,
+          倍率を置く: () => {},
+          viewBox幅: 幅,
+          修飾キー無しで拡大: false,
+          頁も送る: true,
+          図の鍵: 鍵,
+          読める下限を課す: true,
+        });
+        描画.push({ 鍵, 収めた倍率: 値.収めた倍率, 読める下限の倍率: 値.読める下限の倍率 });
+        return 値;
+      },
+      { initialProps: { 鍵: 最初の鍵, 幅: 620 } },
+    );
+
+    // engine は同じ svg の中身を書き換える。次の図は器 620px / viewBox 1000 = 0.62 で描かれる。
+    入れ物.setAttribute("data-cdl-diagram", "wide-demo");
+    描いたことにする(svg, { 幅: 1000, 高さ: 400 }, { 幅: 620, 高さ: 248 });
+    文字を置く(svg, [24]);
+    描画.length = 0;
+    rerender({ 鍵: 次の鍵, 幅: 1000 });
+
+    const 最初の描画 = 描画[0];
+    expect(最初の描画?.鍵).toBe(次の鍵);
+    expect(最初の描画?.読める下限の倍率, "前の図の 14 から 10/14 を出している").toBeUndefined();
+    expect(最初の描画?.収めた倍率, "欄が svg の幅合わせ 0.62 と揃っていない").toBeCloseTo(0.62, 4);
+  });
 });
 
 describe("忘れない最小 — 開いた後に増えた文字 (#2280)", () => {
