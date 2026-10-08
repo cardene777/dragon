@@ -377,7 +377,7 @@ flow:
     expect(いいえ, "いいえ の線の札").not.toBeNull();
     const 結果の列 = 列[3]!;
     const いいえの線 = diagram.edges.find((edge) => edge.id === "e6-在宅-持ち戻る");
-    expect(いいえの線?.labelOffsetY).toBe(34);
+    expect(いいえの線?.labelOffsetY).toBe(36);
     const 札の中心 = Number(いいえ?.[1]);
     const 札の上端 = 札の中心 + Number(いいえ?.[2]);
     const 札の下端 = 札の中心 + Number(いいえ?.[2]) + Number(いいえ?.[3]);

@@ -116,7 +116,7 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
     lanes: lanes.map((id) => ({
       label: doc.lanes?.[id]?.label ?? id,
       ...(doc.lanes?.[id]?.subtitle !== undefined
-        ? { subtitle: doc.lanes[id]!.subtitle }
+        ? { subtitle: doc.lanes[id].subtitle }
         : {}),
     })),
     direction: 縦に積む ? "vertical" : "horizontal",

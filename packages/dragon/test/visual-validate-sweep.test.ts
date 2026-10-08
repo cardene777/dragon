@@ -119,6 +119,8 @@ interface 見逃す組 {
   readonly diagramId: string;
   /** 落とさない軸 */
   readonly axis: string;
+  /** 同じ図・軸のうち、名指しした対象だけを見逃す。無い時は軸全体。 */
+  readonly 対象?: string;
   /** なぜ意図どおりなのか */
   readonly 理由: string;
 }
@@ -137,13 +139,28 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
         "路線図の始まりと終わりは字を入れる箱ではなく、見本どおり直径 34 と 38 で描く印である。" +
         "汎用の字を持つ箱の下限 80×40 より小さくても、丸は欠けずに見える (#2833)",
     },
-    {
-      diagramId,
-      axis: "clearance",
-      理由:
-        "路線図の始終点・駅・分かれ道は、見本の半幅と間隔を使う小さな印で、" +
-        "汎用の箱どうしの間合いより近くても重ならない (#2833)",
-    },
+    ...[
+      {
+        対象: "node:始まり ↔ node:集荷を頼む",
+        理由:
+          "見本 7 意匠の間は 57、図幅比で 63.0 world。検査の 70 を割る見本どおりの間である (#2833)",
+      },
+      {
+        対象: "node:届けに行く ↔ node:在宅",
+        理由:
+          "見本 7 意匠の間は 36、図幅比で 39.8 world。検査の 70 を割る見本どおりの間である (#2833)",
+      },
+      {
+        対象: "node:受け取る ↔ node:終わり",
+        理由:
+          "見本 7 意匠の間は 27、図幅比で 29.9 world。検査の 70 を割る見本どおりの間である (#2833)",
+      },
+      {
+        対象: "node:持ち戻る ↔ edge-label:e8-持ち戻る-便に積む",
+        理由:
+          "見本 7 意匠の間は 23、図幅比で 25.4 world。検査の 32 を割る見本どおりの間である (#2833)",
+      },
+    ].map(({ 対象, 理由 }) => ({ diagramId, axis: "clearance", 対象, 理由 })),
     {
       diagramId,
       axis: "arrow-endpoint-anchoring",
@@ -154,11 +171,31 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     {
       diagramId,
       axis: "column-gap-uniform",
+      対象: 'lane "track-courier"',
       理由:
-        "分かれ道の真下へ下ろした駅は横方向の線路上の駅に数えず、" +
-        "菱形と同じ x に置く路線図固有の枝である (#2833)",
+        "分かれ道の真下へ下ろした駅は菱形と同じ x に置く路線図固有の枝である。" +
+        "見本の端間は -32 / -60 / 170、図幅比では -35 / -66 / 188 world で不均一になる (#2833)",
     },
   ]),
+  ...["delivery-timeline-demo", "時間軸で書く荷物の届け方"].flatMap((diagramId) =>
+    [
+      {
+        対象: "node:在宅 ↔ edge-label:e5-在宅-受け取る",
+        理由:
+          "見本 7 意匠の間は 15.1–16.6、図幅比で 11.4–12.5 world。検査の 32 を割る見本どおりの間である (#2832)",
+      },
+      {
+        対象: "node:timeline-number-6 ↔ edge-label:e5-在宅-受け取る",
+        理由:
+          "見本 7 意匠の間は 15.1–16.6、図幅比で 11.4–12.5 world。検査の 32 を割る見本どおりの間である (#2832)",
+      },
+      {
+        対象: "node:受け取る ↔ edge-label:e5-在宅-受け取る",
+        理由:
+          "見本 7 意匠の間は 34.3–34.7、図幅比で 25.9–26.2 world。検査の 32 を割る見本どおりの間である (#2832)",
+      },
+    ].map(({ 対象, 理由 }) => ({ diagramId, axis: "clearance", 対象, 理由 })),
+  ),
   {
     diagramId: "delivery-flow-demo",
     axis: "node-visibility",
@@ -169,9 +206,42 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
   {
     diagramId: "delivery-flow-demo",
     axis: "column-gap-uniform",
+    対象: 'lane "荷主"',
     理由:
-      "見本の行へ合わせて stack を書き、荷主の受け取りと終わりを配送便の分岐・持ち戻りと同じ行に置く。" +
-      "縦列内だけで等間隔に直すと、担当をまたぐ同じ段の対応が崩れる (#2835)",
+      "見本の行へ合わせて荷主の受け取りと終わりを配送便の分岐・持ち戻りと同じ行に置く。" +
+      "見本 7 意匠の端間は 58 / 391–397 / 69、図幅比では 71 / 479–486 / 84 world で不均一になる (#2835)",
+  },
+  ...[
+    ["delivery-stages-demo", ["e5-在宅-受け取る", "e6-在宅-持ち戻る", "e7-持ち戻る-便に積む"]],
+    ["段の箱で書く荷物の届け方", ["e5-在宅-受け取る", "e6-在宅-持ち戻る", "e7-持ち戻る-便に積む"]],
+    ["delivery-metro-demo", ["e6-在宅-受け取る", "e7-在宅-持ち戻る", "e8-持ち戻る-便に積む"]],
+    ["路線図で書く荷物の届け方", ["e6-在宅-受け取る", "e7-在宅-持ち戻る", "e8-持ち戻る-便に積む"]],
+  ].flatMap(([diagramId, edges]) =>
+    (edges as string[]).map((edge) => ({
+      diagramId: diagramId as string,
+      axis: "label-char-range",
+      対象: `edge "${edge}"`,
+      理由:
+        "描く側 0.127.0 の文字幅検査は札幅 74 / 96 / 162 を狭いと判定するが、見本 7 意匠も同じ札幅で描く",
+    })),
+  ),
+  {
+    diagramId: "edge-routing",
+    axis: "label-char-range",
+    対象: 'edge "metro"',
+    理由: "描く側 0.127.0 の文字幅検査で初めて出たが、札幅 74 の中で字は欠けずに描けている",
+  },
+  {
+    diagramId: "経費申請の承認",
+    axis: "edge-stubout-min",
+    対象: 'edge "fc-4-部長が承認する-支払う"',
+    理由: "実測 40.0 world は検査の下限 40 と同値で、表示桁より下の丸め差だけが残る",
+  },
+  {
+    diagramId: "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
+    axis: "clearance",
+    対象: "node:領収書と金額が合うか ↔ edge-label:fc-8-領収書と金額が合うか-次の給与日に振り込む",
+    理由: "実測 32.0 world は検査の下限 32 と同値で、表示桁より下の丸め差だけが残る",
   },
   // 揃えの 2 軸 (`alignment` / `column-alignment`) の 10 組は #2724 で外した。
   //
@@ -180,9 +250,20 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
   // 値に戻り、見本を足すたびにここへ行を足す形も消えた。
 ];
 
+function 見逃す組に当たる(
+  宣言: 見逃す組,
+  違反: Violation & { diagramId?: string },
+): boolean {
+  return (
+    宣言.diagramId === 違反.diagramId &&
+    宣言.axis === 違反.axis &&
+    (宣言.対象 === undefined || 違反.detail.includes(宣言.対象))
+  );
+}
+
 function isGatingViolation(v: Violation & { diagramId?: string }): boolean {
   if (v.severity !== "error") return false;
-  return !見逃す組の一覧.some((x) => x.diagramId === v.diagramId && x.axis === v.axis);
+  return !見逃す組の一覧.some((x) => 見逃す組に当たる(x, v));
 }
 
 /** `warn` のうち中身まで出す軸。 `error` は重さで決めるのでこの一覧に依らない (#1730) */
@@ -391,20 +472,19 @@ describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", (
  * 空振りしたまま緑になる。
  */
 describe("名指しした見逃しが実物で当たっている (#1730)", () => {
-  /** 全 source を 1 度だけ通し、 `図の id + 軸` の組を数える */
-  function 違反の組(): Map<string, number> {
-    const 数 = new Map<string, number>();
+  /** 全 source を 1 度だけ通し、図・軸・対象を突き合わせられる形で集める */
+  function errorの一覧(): Array<Violation & { diagramId: string }> {
+    const out: Array<Violation & { diagramId: string }> = [];
     for (const { name, mod } of sources) {
       const report = visualValidateAll(collectDiagrams(mod, name), { profile: "catalog" });
       for (const r of report.reports) {
         for (const v of r.violations) {
           if (v.severity !== "error") continue;
-          const key = `${r.diagramId}\u0000${v.axis}`;
-          数.set(key, (数.get(key) ?? 0) + 1);
+          out.push({ ...v, diagramId: r.diagramId });
         }
       }
     }
-    return 数;
+    return out;
   }
 
   it("見逃す組を 1 件以上持っている (空振り防止)", () => {
@@ -498,18 +578,43 @@ describe("名指しした見逃しが実物で当たっている (#1730)", () =>
   });
 
   it("名指しした組が実物でその軸の違反を出している", () => {
-    const 数 = 違反の組();
+    const 違反 = errorの一覧();
     // 空振り防止 = 走査そのものが 1 件も違反を拾えていないなら、 下の判定は測れていない
-    expect(数.size, "error の違反を 1 件も拾えていない (裏取りが空振りしている)").toBeGreaterThan(
+    expect(違反.length, "error の違反を 1 件も拾えていない (裏取りが空振りしている)").toBeGreaterThan(
       0,
     );
     const 当たらない = 見逃す組の一覧
-      .filter((x) => (数.get(`${x.diagramId}\u0000${x.axis}`) ?? 0) === 0)
+      .filter((x) => !違反.some((v) => 見逃す組に当たる(x, v)))
       .map((x) => `${x.diagramId} / ${x.axis} (理由: ${x.理由})`);
     expect(
       当たらない,
       "名指ししたのに実物が違反を出さない組。 図が変わって見逃しが不要になっているので表から消す",
     ).toEqual([]);
+  });
+
+  it("対象を名指しした見逃しは、同じ図・軸の別の対象へ効かない", () => {
+    const 宣言 = 見逃す組の一覧.find((x) => x.対象 !== undefined);
+    expect(宣言, "対象を名指しした見逃しが無い").toBeDefined();
+    if (宣言 === undefined) return;
+    const 対象 = 宣言.対象;
+    if (対象 === undefined) throw new Error("対象を名指しした見逃しが無い");
+
+    expect(
+      isGatingViolation({
+        axis: 宣言.axis,
+        diagramId: 宣言.diagramId,
+        severity: "error",
+        detail: 対象,
+      }),
+    ).toBe(false);
+    expect(
+      isGatingViolation({
+        axis: 宣言.axis,
+        diagramId: 宣言.diagramId,
+        severity: "error",
+        detail: "名指ししていない別の対象",
+      }),
+    ).toBe(true);
   });
 });
 
@@ -634,9 +739,8 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       "多対多の形-8-表-8-関係",
       "成形機と塗装機の稼働を-どちらも記録へ集める",
       "注文の状態",
-      "時間軸で書く荷物の届け方",
       "delivery-flow-demo",
-      "delivery-timeline-demo",
+      "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
       "製造ラインの設備-3-台と乾燥炉の温度-工場の回線を並べる",
       "認証の状態遷移",
     ],
@@ -665,8 +769,14 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
     理由:
       "矢印の名前が線から離れる見本。 `interactive-oauth-flow` は線が往復して交差しており" +
       " (#2302 で名指しで固定)、名前を線に寄せると交差した線の上に載る。" +
-      " `間隔をまとめて広げる` は間隔を広げること自体が見本の題",
-    図: ["interactive-oauth-flow", "間隔をまとめて広げる"],
+      " `間隔をまとめて広げる` は間隔を広げること自体が見本の題。宅配の時間軸は、" +
+      "見本どおり分かれ道の外へ置いた `いいえ` の札が横線から離れる",
+    図: [
+      "delivery-timeline-demo",
+      "interactive-oauth-flow",
+      "時間軸で書く荷物の届け方",
+      "間隔をまとめて広げる",
+    ],
   },
   "print-media-compat": {
     理由:

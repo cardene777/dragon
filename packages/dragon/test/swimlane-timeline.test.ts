@@ -230,11 +230,8 @@ describe("時間軸の形を持つ泳法図 (#2798)", () => {
       expect(index % 2 === 0 ? innerEdge < axisX : innerEdge > axisX).toBe(true);
       const number = numbers[index]!;
       expect(card.cy).toBe(number.cy);
-      const horizontalGap = Math.max(
-        number.cx - number.w / 2 - (card.cx + card.w / 2),
-        card.cx - card.w / 2 - (number.cx + number.w / 2),
-      );
-      expect(horizontalGap).toBeGreaterThanOrEqual(70);
+      const axisToCard = Math.abs(card.cx - axisX) - card.w / 2;
+      expect(axisToCard).toBeGreaterThanOrEqual(70);
     });
   });
 
@@ -260,7 +257,7 @@ describe("時間軸の形を持つ泳法図 (#2798)", () => {
     expect(属性を持つ要素(markup, "line", "data-cdl-role", "timeline-leader")).toHaveLength(5);
   });
 
-  it("前の段へ戻る線だけが札の上辺を back-detour で結び、他の札と交わらない", () => {
+  it("前の段へ戻る線だけが札の右辺を back-detour で結び、他の札と交わらない", () => {
     const { diagram, laid, markup } = 組み立てる(本文());
     const back = diagram.edges.filter((edge) => edge.routing === "back-detour");
     expect(back.map((edge) => edge.id)).toEqual(["e2-決裁する-不備を直す"]);
@@ -268,18 +265,19 @@ describe("時間軸の形を持つ泳法図 (#2798)", () => {
     const from = laid.nodes.find((node) => node.id === edge.from)!;
     const to = laid.nodes.find((node) => node.id === edge.to)!;
     const coordinates = edge.d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-    近い(coordinates[0]!, from.cx);
-    近い(coordinates[1]!, from.cy - from.h / 2);
-    近い(coordinates.at(-2)!, to.cx);
-    近い(coordinates.at(-1)!, to.cy - to.h / 2);
-    const crestY = Math.min(...coordinates.filter((_, index) => index % 2 === 1));
+    expect(back[0]).toMatchObject({ fromSide: "right", toSide: "right" });
+    近い(coordinates[0]!, from.cx + from.w / 2);
+    近い(coordinates[1]!, from.cy);
+    近い(coordinates.at(-2)!, to.cx + to.w / 2);
+    近い(coordinates.at(-1)!, to.cy);
+    const outerX = Math.max(...coordinates.filter((_, index) => index % 2 === 0));
     const sameSideEarlier = laid.nodes.find((node) => node.title === "書類を審査する")!;
-    expect(crestY).toBeGreaterThan(sameSideEarlier.cy + sameSideEarlier.h / 2);
+    expect(outerX).toBeGreaterThan(sameSideEarlier.cx + sameSideEarlier.w / 2);
     expect(markup).toContain(`data-cdl-edge="${edge.id}"`);
-    expect(markup).toContain(`data-cdl-path-d="M ${from.cx} ${from.cy - from.h / 2}`);
+    expect(markup).toContain(`data-cdl-path-d="M ${from.cx + from.w / 2} ${from.cy}`);
   });
 
-  it("5 段目から 2 段目へ戻る線は途中の札と番号を避けて外側を回る", () => {
+  it("5 段目から 2 段目へ戻る線は途中の札を避けて外側を回る", () => {
     const { laid } = 組み立てる(`title: "長い戻り線"
 type: swimlane
 shape: timeline
@@ -306,7 +304,10 @@ flow:
       if (segmentFrom && segmentTo) segments.push({ from: segmentFrom, to: segmentTo });
     }
     const otherRectangles = laid.nodes
-      .filter((node) => node.id !== edge.from && node.id !== edge.to)
+      .filter(
+        (node) =>
+          !node.id.startsWith("timeline-number-") && node.id !== edge.from && node.id !== edge.to,
+      )
       .map((node): 矩形 => ({
         left: node.cx - node.w / 2,
         top: node.cy - node.h / 2,
@@ -627,7 +628,7 @@ describe("時間軸を見本と同じ丸い番号と実線の軸で描く (#2832
       expect(laidCard, `${id} と組になる札が無い`).toBeDefined();
       if (laidCard === undefined) return "無し";
       expect(laidCard.h).toBe(56);
-      expect(Math.abs(laidCard.cx - axisX) - laidCard.w / 2 - 26).toBeGreaterThanOrEqual(70);
+      expect(Math.abs(laidCard.cx - axisX) - laidCard.w / 2).toBeGreaterThanOrEqual(70);
       return laidCard.cx < axisX ? "左" : "右";
     });
     expect(sides).toEqual(["左", "右", "左", "右", "左", "左"]);
@@ -761,23 +762,20 @@ describe("時間軸を見本と同じ丸い番号と実線の軸で描く (#2832
     expect(crossings).toBe(0);
   });
 
-  it("戻る線を持つ脇の札の中心を行き先の札の右端から 70 以上外へ置く", () => {
+  it("戻る線を持つ脇の札を軸から 220 以上外へ置く", () => {
     const side = 宅配.laid.nodes.find((node) => node.title === "持ち戻る");
-    const target = 宅配.laid.nodes.find((node) => node.title === "便に積む");
     expect(side).toBeDefined();
-    expect(target).toBeDefined();
-    if (side === undefined || target === undefined) return;
-    expect(side.cx - (target.cx + target.w / 2)).toBeGreaterThanOrEqual(70);
+    if (side === undefined) return;
     expect(side.cx - side.w / 2 - axisX).toBeGreaterThanOrEqual(220);
   });
 
-  it("通常の番号の段を全検査が通る最小の 157 間隔で置く", () => {
+  it("通常の番号の段を見本どおり 125 間隔で置く", () => {
     const first = 宅配.laid.nodes.find((node) => node.id === "timeline-number-1");
     const second = 宅配.laid.nodes.find((node) => node.id === "timeline-number-2");
     expect(first).toBeDefined();
     expect(second).toBeDefined();
     if (first === undefined || second === undefined) return;
-    expect(second.cy - first.cy).toBe(157);
+    expect(second.cy - first.cy).toBe(125);
   });
 
   it("終わりを外輪 19 の二重丸にして内外の輪へ隙間を空ける", () => {

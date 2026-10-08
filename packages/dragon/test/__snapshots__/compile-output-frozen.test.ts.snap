@@ -882,11 +882,13 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > flowchart の�
     "id": "申請の承認",
     "lanes": [
       {
+        "flowchart": {},
         "id": "申請者",
         "label": "申請者",
         "width": 380,
       },
       {
+        "flowchart": {},
         "id": "承認者",
         "label": "承認者",
         "width": 380,
