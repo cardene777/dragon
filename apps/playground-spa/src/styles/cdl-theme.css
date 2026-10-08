@@ -1384,6 +1384,7 @@ svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="blueprint"] {
 }
 
 svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="letterpress"] {
+  --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-flow-main: #c8431f;
   --theme-flow-mark-fixed: #1a1510;
   --theme-flow-label-success-fill: #1a1510;
@@ -1410,6 +1411,7 @@ svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="catalog"] {
 }
 
 svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="terminal"] {
+  --cdl-flowchart-lane-heading-name-size: 25px;
   --theme-flow-main: #4ade80;
   --theme-flow-mark-fixed: #a6f0bd;
   --theme-flow-label-success-fill: #c792ea;
@@ -1423,6 +1425,7 @@ svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="terminal"] {
 }
 
 svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="sketch"] {
+  --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-flow-main: #d2491f;
   --theme-flow-mark-fixed: #2b2620;
   --theme-flow-label-success-fill: #2f7d4f;
@@ -1436,6 +1439,7 @@ svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="sketch"] {
 }
 
 svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="neon"] {
+  --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-flow-main: #ff2e97;
   --theme-flow-mark-fixed: #f3eefe;
   --theme-flow-label-success-fill: #07060c;
@@ -1463,6 +1467,18 @@ svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="relief"] {
 
 svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="edge-line"] {
   stroke-width: 5 !important;
+}
+
+svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="flowchart-lane-divider"] {
+  stroke-dasharray: 6 8 !important;
+}
+
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="blueprint"] [data-cdl-role="flowchart-lane-divider"] {
+  stroke-dasharray: 22 7 5 7 !important;
+}
+
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="terminal"] [data-cdl-role="flowchart-lane-divider"] {
+  stroke-dasharray: 3 7 !important;
 }
 
 svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {

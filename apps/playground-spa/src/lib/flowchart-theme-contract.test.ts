@@ -342,6 +342,44 @@ function paletteを外す(selector: string): string {
 }
 
 describe("固定の 7 意匠の流れ図を見本の線と札で描く (#2835)", () => {
+  it("cdl#1109: 縦列の区切りを意匠ごとの点線にする", () => {
+    const common = ruleBody(
+      'svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="flowchart-lane-divider"]',
+    );
+    expect(declaration(common, "stroke-dasharray")).toBe("6 8 !important");
+    expect(
+      declaration(
+        ruleBody(
+          'svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="blueprint"] [data-cdl-role="flowchart-lane-divider"]',
+        ),
+        "stroke-dasharray",
+      ),
+    ).toBe("22 7 5 7 !important");
+    expect(
+      declaration(
+        ruleBody(
+          'svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="terminal"] [data-cdl-role="flowchart-lane-divider"]',
+        ),
+        "stroke-dasharray",
+      ),
+    ).toBe("3 7 !important");
+  });
+
+  it("cdl#1109: 活版・手描き・電飾の縦列名を太さ 800、端末を 25 にする", () => {
+    for (const palette of ["letterpress", "sketch", "neon"]) {
+      const body = ruleBody(
+        `svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="${palette}"]`,
+      );
+      expect(declaration(body, "--cdl-flowchart-lane-heading-name-weight"), palette).toBe("800");
+    }
+    expect(
+      declaration(
+        ruleBody('svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="terminal"]'),
+        "--cdl-flowchart-lane-heading-name-size",
+      ),
+    ).toBe("25px");
+  });
+
   it("全図共通の太さ 7 を残し、主役と枝を 5、戻る点線を 6 にする", () => {
     expect(declaration(ruleBody('[data-cdl-role="edge-line"]'), "stroke-width")).toBe(
       "7 !important",

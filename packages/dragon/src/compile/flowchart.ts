@@ -113,7 +113,12 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
   const fc = flowchart({
     id: slugify(doc.title),
     topic: doc.title,
-    lanes,
+    lanes: lanes.map((id) => ({
+      label: doc.lanes?.[id]?.label ?? id,
+      ...(doc.lanes?.[id]?.subtitle !== undefined
+        ? { subtitle: doc.lanes[id]!.subtitle }
+        : {}),
+    })),
     direction: 縦に積む ? "vertical" : "horizontal",
   });
 
@@ -145,7 +150,14 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
       id,
       title: 箱の題(a),
       shape: 箱の形(a),
-      lane: a.lane !== undefined && a.lane !== "" ? a.lane : (既定の縦列 ?? ""),
+      lane:
+        a.lane !== undefined && a.lane !== ""
+          ? (doc.lanes?.[a.lane]?.label ?? a.lane)
+          : (既定の縦列 === undefined
+              ? ""
+              : (doc.lanes?.[既定の縦列]?.label ?? 既定の縦列)),
+      ...(a.titleFontSize !== undefined ? { titleFontSize: a.titleFontSize } : {}),
+      ...(a.markGap !== undefined ? { markGap: a.markGap } : {}),
     });
   });
 
@@ -163,6 +175,15 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
 
   const diagram = fc.build();
   const 箱の一覧 = new Map(diagram.nodes.map((n) => [n.id, n]));
+
+  // cdl の flowchart builder は札固有の文字サイズと印の間隔を入力から写さないため、
+  // 記法の箱と確定した node id を対応させて build 後の payload へ補う。
+  doc.actors.forEach((actor, i) => {
+    const node = 箱の一覧.get(決めたid[i] ?? "");
+    if (node === undefined) return;
+    if (actor.titleFontSize !== undefined) node.titleFontSize = actor.titleFontSize;
+    if (actor.markGap !== undefined) node.markGap = actor.markGap;
+  });
 
   /*
    * 横向きだけを宅配の見本と同じ形へ直す。縦向きは役割と形の小見出しを箱の上へ移すことが

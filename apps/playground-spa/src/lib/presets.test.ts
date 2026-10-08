@@ -21,6 +21,7 @@ import { PRESETS, presetCatalogKey, presetName, type PresetMetadata } from "./pr
 import { ITEM_NAME_JA, ITEM_NAME_EN } from "./i18n";
 import { ITEM_SUBTITLE_EN } from "./catalog-item-en";
 import { PHASE_TITLE_EN } from "./catalog-phase-en";
+import { 図の配色を変える } from "./palette-switch";
 
 /** 英語の小文字の語 (2 字以上)。 大文字の略語 (UML / ER / API) は固有の呼び名なので当たらない */
 const 英小文字の語 = /[a-z]{2,}/;
@@ -269,6 +270,42 @@ function 記法を引く(key: 宅配の鍵): { yaml: string; json: string; diagr
 }
 
 describe("宅配のひな形 4 件 (#2835)", () => {
+  it("cdl#1109/#1110/#1111: 流れ図へ縦列の補足・札と凡例の字・印の間を渡す", () => {
+    const { diagram } = 記法を引く("presetDeliveryFlow");
+    expect(diagram.lanes.map((lane) => [lane.label, lane.flowchart?.subtitle])).toEqual([
+      ["荷主", "頼む人"],
+      ["営業所", "受け付ける"],
+      ["配送便", "運ぶ"],
+    ]);
+    expect(
+      diagram.nodes
+        .filter((node) => node.kind === "function")
+        .map((node) => node.titleFontSize),
+    ).toEqual(Array(7).fill(32.93));
+    expect(diagram.legendFontSize).toBe(26.6);
+    expect(diagram.nodes.find((node) => node.kind === "mark-start")?.markGap).toBe(73.47);
+    expect(diagram.nodes.find((node) => node.kind === "mark-end")?.markGap).toBe(87.4);
+  });
+
+  it("cdl#1037/#1072: 段の箱の 7 意匠へ見出しの値と左余白を渡す", () => {
+    const { diagram } = 記法を引く("presetDeliveryStages");
+    const expected = {
+      blueprint: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 },
+      letterpress: { leftPad: 24, topPad: 16, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 },
+      catalog: { leftPad: 24, topPad: 18, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 15 },
+      sketch: { leftPad: 24, topPad: 17, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 },
+      neon: { leftPad: 24, topPad: 18, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 },
+      relief: { leftPad: 26, topPad: 20, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 12 },
+      terminal: { leftPad: 22, topPad: 16, numberSize: 16, gap: 10, nameSize: 25, bottomPad: 13 },
+    } as const;
+    for (const [palette, header] of Object.entries(expected)) {
+      const themed = 図の配色を変える(diagram, palette as keyof typeof expected);
+      expect(themed.lanes.map((lane) => lane.stage?.header), palette).toEqual(
+        Array(themed.lanes.length).fill(header),
+      );
+    }
+  });
+
   it.each(宅配のひな形)("$key が id / slug と YAML・JSON の対を持つ", (item) => {
     const preset = PRESETS.find((p) => p.id === item.id);
     expect(preset?.slug).toBe(item.slug);

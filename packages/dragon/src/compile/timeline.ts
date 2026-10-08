@@ -27,27 +27,21 @@ export const TIMELINE_END_HEIGHT = 42;
 
 /**
  * 軸から通常の札の内側までの距離。
- * 見本の 68 (丸の半径 24 + 空き 44) では描く側の近接の下限 70 を割るため、
- * 丸の外径を含む半幅 26 + 空き 70 の 96 にする。
+ * 見本と 7 意匠の実測に合わせ、札の内側を軸の中心から 70 離す。
  */
-export const TIMELINE_AXIS_TO_CARD = 96;
+export const TIMELINE_AXIS_TO_CARD = 70;
 
 /** 分かれ道の脇の札は、見本どおり軸から内側まで少なくとも 220 離す。 */
 export const TIMELINE_AXIS_TO_SIDE_CARD = 220;
 
-/**
- * 見本は 125 だが、描く側の `back-detour` は 156 以下で戻り線を
- * 一つ前の札の外側へ逃がし、線の札とも重なる。全ての検査を通す最小値 157 を使う。
- * cardene777/cdl#1031・cardene777/cdl#1032・cardene777/cdl#1039 が全て入った時に、
- * 戻り線の端・担当・線上の札を見本どおり置けるため 125 へ戻す。
- */
-export const TIMELINE_STEP_GAP = 157;
+/** 見本どおり、番号の段を 125 ずつ進める。 */
+export const TIMELINE_STEP_GAP = 125;
 
-/** 描く側へ渡す菱形の半高 54 と番号の半高 26 の間に下限 70 を保つ。 */
-export const TIMELINE_DECISION_GAP = 150;
+/** 7 意匠の見本のうち広い側に合わせ、分かれ道の前後を 145 空ける。 */
+export const TIMELINE_DECISION_GAP = 145;
 
-/** 見本の 105 では番号と終わりの印の間が下限 70 を割るため 120 にする。 */
-export const TIMELINE_END_GAP = 120;
+/** 見本どおり、最後の番号から終わりの印まで 105 空ける。 */
+export const TIMELINE_END_GAP = 105;
 
 /** 軸の左右の札と、戻る線の折れ曲がりを図の中へ収める余白。 */
 const TIMELINE_SIDE_MARGIN = 160;
@@ -181,12 +175,9 @@ export function placeTimeline(
       if (source.centerX < targetLeft || source.centerX > targetRight) continue;
       /*
        * cardene777/cdl#1031: `back-detour` は札の上辺の中点どうしを結び、
-       * 両端の札を障害物に数えない。戻り先の右端から近接の下限 70 まで
-       * 中心を外へ出すことで、縦の区間が戻り先の札を貫かない。
-       * cardene777/cdl#1031・cardene777/cdl#1032・cardene777/cdl#1039 が全て入れば、
-       * 端・担当・線上の札が見本どおりになるため、実配置の 396 を見本の 220 へ戻す。
+       * 両端の札を障害物に数えない。右側の脇札は、見本どおり軸から内側まで 220 空ける。
        */
-      source.centerX = targetRight + 70;
+      source.centerX = AXIS_X + TIMELINE_AXIS_TO_SIDE_CARD + source.width / 2;
     }
   }
 

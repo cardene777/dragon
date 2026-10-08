@@ -139,6 +139,10 @@ export type DslDocument = {
   ticksPos?: Position;
   /** 図の下へ指定順に置く凡例。 */
   legend?: { mark: LegendMark; text: string }[];
+  /** 図の凡例の字の大きさ。 */
+  legendFontSize?: number;
+  /** 段の箱で、意匠ごとに描く見出しの寸法。 */
+  stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
   /**
    * 図全体を 1 箱にする図種 (`pie` / `bar` / `line` / `funnel` / `tree` / `journey` /
    * `quadrant` / `mind` / `gantt`) で、 その箱の上に出す小見出し (#1247)。
@@ -326,6 +330,14 @@ export type DslActor = {
   kindWritten?: boolean;
   /** v0.5+ inline option */
   subtitle?: string;
+  /** 路線図の駅名を駅の上下どちらへ置くか。 */
+  stationNamePosition?: "bottom";
+  /** 時間軸の担当を札のどちらへ置くか。 */
+  subtitlePlacement?: "right";
+  /** 流れ図の function の札の題の大きさ。 */
+  titleFontSize?: number;
+  /** 流れ図の始まり・終わりの印と次の箱との間。 */
+  markGap?: number;
   eyebrow?: string;
   value?: string;
   /**
@@ -534,6 +546,9 @@ export type DslStep = {
   dashOffsetBind?: string;
   /** 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ */
   side?: "top" | "right" | "bottom" | "left";
+  /** 矢印の出どころと行き先で、個別に使う辺。 */
+  fromSide?: "top" | "right" | "bottom" | "left";
+  toSide?: "top" | "right" | "bottom" | "left";
   /**
    * 矢印の先の形 (#1462)。 書かなければ従来どおり塗った三角。
    *
@@ -612,6 +627,16 @@ export type DslLane = {
    */
   layoutPos?: LayoutPos;
   pos: Position;
+};
+
+/** 段の箱の列見出しの寸法。 */
+export type DslStageHeader = {
+  leftPad?: number;
+  topPad: number;
+  numberSize: number;
+  gap: number;
+  nameSize: number;
+  bottomPad: number;
 };
 
 /**

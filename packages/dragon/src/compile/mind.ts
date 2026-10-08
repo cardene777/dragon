@@ -93,7 +93,11 @@ type 放射で描けない欄 =
   | "hBind"
   | "opacity"
   | "renderOffsetX"
-  | "renderOffsetY";
+  | "renderOffsetY"
+  | "stationNamePosition"
+  | "subtitlePlacement"
+  | "titleFontSize"
+  | "markGap";
 
 /** 引数が `never` でなければ型検査が落ちる */
 type 空であること<T extends never> = T;
@@ -160,6 +164,10 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   opacity: "濃さ",
   renderOffsetX: "描く時のずらし",
   renderOffsetY: "描く時のずらし",
+  stationNamePosition: "駅名の位置",
+  subtitlePlacement: "副題の位置",
+  titleFontSize: "題の字の大きさ",
+  markGap: "印までの間隔",
 };
 
 /**

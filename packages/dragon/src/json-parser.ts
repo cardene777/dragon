@@ -57,7 +57,7 @@ import { 区画 } from "./compile/word-state";
 // 行頭の印の古い語の読み替え (#2782)。 記法と同じ表を通す = JSON だけ古い語が印を持たない
 // 形にならない
 import { 行頭の語へ読み替える } from "./compile/row-marks";
-import type { DslDiagramShape, DslShape } from "./keywords";
+import type { DslDiagramShape, DslShape, DslTheme } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
   CdlDiagram,
@@ -74,6 +74,7 @@ import type {
 import { extractIdentifiers, parseFormula } from "@cardenelabs/cdl";
 import type {
   DslDocument,
+  DslStageHeader,
   DslRegions,
   DslActor,
   DslStep,
@@ -148,6 +149,10 @@ export interface DragonJson {
    * 同じ区画を 2 通りで呼ぶことになる。
    */
   regions?: JsonRegions;
+  /** 図の凡例の字の大きさ。 */
+  legendFontSize?: number;
+  /** 段の箱で、意匠ごとに描く見出しの寸法。 */
+  stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
   /** 登場人物 (必須): 文字列 or { name, kind, ... } object */
   actors: (string | JsonActor)[];
   /** flow step 配列 (必須): { from, to, label, ... } */
@@ -318,6 +323,10 @@ export interface JsonActor {
    */
   kind?: NodeKind | (string & {});
   subtitle?: string;
+  stationNamePosition?: "bottom";
+  subtitlePlacement?: "right";
+  titleFontSize?: number;
+  markGap?: number;
   eyebrow?: string;
   value?: string;
   /**
@@ -449,6 +458,8 @@ export interface JsonStep {
   sub?: string;
   /** 矢印がどの辺から出るか (#1385)。 記法の `side:` と同じ */
   side?: "top" | "right" | "bottom" | "left";
+  fromSide?: "top" | "right" | "bottom" | "left";
+  toSide?: "top" | "right" | "bottom" | "left";
   /**
    * 矢印の先の形 (#1462)。 記法の `{ head: triangle }` と同じ。
    *
@@ -650,11 +661,17 @@ export const ACCEPTED_KEYS = {
     "theme",
     "palette",
     "legend",
+    "legendFontSize",
+    "stageHeaders",
   ],
   actor: [
     "name",
     "kind",
     "subtitle",
+    "stationNamePosition",
+    "subtitlePlacement",
+    "titleFontSize",
+    "markGap",
     "eyebrow",
     "value",
     // 前の時点の値 (#1450)。 内訳の変化を帯で示す図と、値 1 つを大きく示す図が読む
@@ -706,6 +723,8 @@ export const ACCEPTED_KEYS = {
     "sub",
     // 矢印がどの辺から出るか (#1385)
     "side",
+    "fromSide",
+    "toSide",
     // 矢印の先の形 (#1462)
     "head",
     // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
@@ -845,11 +864,17 @@ export const 欄の型表 = {
     theme: "意匠",
     palette: "意匠",
     legend: "並び",
+    legendFontSize: "数",
+    stageHeaders: "object",
   },
   actor: {
     name: "必須の非空文字列",
     kind: "非空の文字列",
     subtitle: "文字列",
+    stationNamePosition: "非空の文字列",
+    subtitlePlacement: "非空の文字列",
+    titleFontSize: "数",
+    markGap: "数",
     eyebrow: "文字列",
     value: "文字列",
     previous: "文字列",
@@ -900,6 +925,8 @@ export const 欄の型表 = {
     sub: "文字列",
     // 矢印がどの辺から出るか (#1385)
     side: "辺",
+    fromSide: "辺",
+    toSide: "辺",
     head: "端の形",
     // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
     tailHead: "端の形",
@@ -2875,6 +2902,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       // 「書かなかった」 と同じ扱いにする (#1058)
       kindWritten: a.kind !== undefined && !isPart,
       subtitle: a.subtitle,
+      stationNamePosition: a.stationNamePosition,
+      subtitlePlacement: a.subtitlePlacement,
+      titleFontSize: a.titleFontSize,
+      markGap: a.markGap,
       eyebrow: a.eyebrow,
       value: a.value,
       previous: a.previous,
@@ -2952,6 +2983,8 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     label: s.label,
     sub: s.sub,
     side: s.side,
+    fromSide: s.fromSide,
+    toSide: s.toSide,
     // 矢印の先の形 (#1462)。 読めない語は組み立てが落とす
     head: s.head,
     // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
@@ -3109,6 +3142,8 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(区画の名前を直す(json.regions) === undefined
       ? {}
       : { regions: 区画の名前を直す(json.regions) }),
+    ...(json.legendFontSize !== undefined ? { legendFontSize: json.legendFontSize } : {}),
+    ...(json.stageHeaders !== undefined ? { stageHeaders: json.stageHeaders } : {}),
     actors,
     flow,
     animate,

@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
+import { presetDeliveryStages } from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import { textDslToDiagram } from "../src/index";
 
 const 段階の見本 = (): Array<{ key: string; source: string }> =>
@@ -12,6 +13,20 @@ const 段階の見本 = (): Array<{ key: string; source: string }> =>
     .map(([key, value]) => ({ key: key.slice("sourceYaml__".length), source: value as string }));
 
 describe("見本帳の段階ごとの箱 (#2797)", () => {
+  it("cdl#1031/#1072: 戻る線を右から出して上へ入れ、札の字を高さ 40 の位置へ置く", () => {
+    expect(presetDeliveryStages.edges.find((edge) => edge.label === "翌日もう一度")).toMatchObject({
+      fromSide: "right",
+      toSide: "top",
+    });
+    expect(presetDeliveryStages.edges.find((edge) => edge.label === "いいえ")).toMatchObject({
+      labelOffsetY: 36,
+    });
+  });
+
+  it("cdl#1033: 凡例の字を箱の題 32 に対する見本の比にする", () => {
+    expect(presetDeliveryStages.legendFontSize).toBe(25.8461538462);
+  });
+
   it("shape: stages を記法と JSON の両方で持つ見本がある", () => {
     const items = 段階の見本();
     expect(items.length).toBeGreaterThan(0);

@@ -84,12 +84,30 @@ export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の�
   const 測り方が同じ = 次の測り方 === undefined
     ? !Object.hasOwn(diagram, "textMetrics")
     : diagram.textMetrics === 次の測り方;
-  if (配色が同じ && 測り方が同じ) return diagram;
+  type 段の見出し = NonNullable<NonNullable<CdlDiagram["lanes"]>[number]["stage"]>["header"];
+  type 見出しを持つ図 = CdlDiagram & {
+    stageHeaders?: Partial<Record<DslTheme, 段の見出し>>;
+  };
+  const 見出しの表 = (diagram as 見出しを持つ図).stageHeaders;
+  const 次の見出し = 次の配色 === undefined ? undefined : 見出しの表?.[次の配色];
+  const 見出しが同じ = diagram.lanes.every((lane) =>
+    lane.stage === undefined || lane.stage.header === 次の見出し,
+  );
+  if (配色が同じ && 測り方が同じ && 見出しが同じ) return diagram;
 
   const 次 = { ...diagram };
   if (次の配色 === undefined) delete 次.palette;
   else 次.palette = 次の配色;
   if (次の測り方 === undefined) delete 次.textMetrics;
   else 次.textMetrics = 次の測り方;
+  if (見出しの表 !== undefined) {
+    次.lanes = diagram.lanes.map((lane) => {
+      if (lane.stage === undefined) return lane;
+      const stage = { ...lane.stage };
+      if (次の見出し === undefined) delete stage.header;
+      else stage.header = 次の見出し;
+      return { ...lane, stage };
+    });
+  }
   return 次;
 }

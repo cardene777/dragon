@@ -153,6 +153,26 @@
                 "type": "string",
                 "description": "node 下部の補足テキスト"
               },
+              "stationNamePosition": {
+                "type": "string",
+                "enum": ["bottom"],
+                "description": "路線図の駅名を駅の下へ置く"
+              },
+              "subtitlePlacement": {
+                "type": "string",
+                "enum": ["right"],
+                "description": "時間軸の担当を札の右へ置く"
+              },
+              "titleFontSize": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "流れ図の function の札の題の大きさ"
+              },
+              "markGap": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "流れ図の始まり・終わりの印と次の箱との間"
+              },
               "eyebrow": {
                 "type": "string",
                 "description": "node 上部の分類ラベル (accent 色)"
@@ -644,6 +664,16 @@
               "left"
             ],
             "description": "矢印がどの辺から出るか。 書かなければ描画側が自動で選ぶ。"
+          },
+          "fromSide": {
+            "type": "string",
+            "enum": ["top", "right", "bottom", "left"],
+            "description": "矢印が出どころのどの辺から出るか"
+          },
+          "toSide": {
+            "type": "string",
+            "enum": ["top", "right", "bottom", "left"],
+            "description": "矢印が行き先のどの辺へ入るか"
           },
           "head": {
             "type": "string",
@@ -2455,6 +2485,31 @@
             "type": "string",
             "minLength": 1
           }
+        }
+      }
+    },
+    "legendFontSize": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "凡例の字の大きさ"
+    },
+    "stageHeaders": {
+      "type": "object",
+      "description": "段の箱の意匠ごとの見出し寸法",
+      "propertyNames": {
+        "enum": ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["topPad", "numberSize", "gap", "nameSize", "bottomPad"],
+        "properties": {
+          "leftPad": { "type": "number", "minimum": 0 },
+          "topPad": { "type": "number", "minimum": 0 },
+          "numberSize": { "type": "number", "exclusiveMinimum": 0 },
+          "gap": { "type": "number", "minimum": 0 },
+          "nameSize": { "type": "number", "exclusiveMinimum": 0 },
+          "bottomPad": { "type": "number", "minimum": 0 }
         }
       }
     },

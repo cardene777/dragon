@@ -260,6 +260,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
           stack: index,
           kind: 箱の種類(actor),
           title: 箱の題(actor),
+          ...(actor.subtitlePlacement !== undefined
+            ? { subtitlePlacement: actor.subtitlePlacement }
+            : {}),
           ...markSize,
           posX: placement.axisX,
           posY: step.y,
@@ -289,6 +292,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         title: 箱の題(actor),
         ...(actor.lane !== undefined
           ? { subtitle: doc.lanes?.[actor.lane]?.label ?? actor.lane }
+          : {}),
+        ...(actor.subtitlePlacement !== undefined
+          ? { subtitlePlacement: actor.subtitlePlacement }
           : {}),
         ...(numberId !== undefined ? { leaderTo: numberId } : {}),
         w: step.cardWidth,
@@ -320,6 +326,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         stack: index,
         kind: 泳法図で印をどう描く(doc, actor) === "描く" ? 箱の種類(actor) : "station",
         title: 箱の題(actor),
+        ...(actor.stationNamePosition !== undefined
+          ? { stationNamePosition: actor.stationNamePosition }
+          : {}),
         ...(路線図の色?.nodeToneByName.get(actor.name) !== undefined
           ? { tone: 路線図の色.nodeToneByName.get(actor.name) }
           : {}),
@@ -341,7 +350,13 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
     for (const column of placement.columns) {
       b.lane(column.id, {
         width: laneWidth,
-        stage: { number: column.number, name: column.name },
+        stage: {
+          number: column.number,
+          name: column.name,
+          ...(doc.theme !== undefined && doc.stageHeaders?.[doc.theme] !== undefined
+            ? { header: doc.stageHeaders[doc.theme] }
+            : {}),
+        },
       });
     }
     doc.actors.forEach((a, idx) => {
@@ -491,7 +506,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         ? { tone: 路線図の色.edgeToneByIndex.get(idx) }
         : {}),
       ...(timelineEdgeKind === "back"
-        ? { routing: "back-detour" as const }
+        ? { routing: "back-detour" as const, fromSide: "right" as const, toSide: "right" as const }
         : 路線図か
         ? { routing: "metro" as const }
         : stagesPlacement !== undefined

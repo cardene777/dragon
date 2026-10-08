@@ -561,6 +561,11 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   if (doc.legend && doc.legend.length > 0) {
     merged.legend = doc.legend.map(({ mark, text }) => ({ mark, text }));
   }
+  if (doc.legendFontSize !== undefined) merged.legendFontSize = doc.legendFontSize;
+  if (doc.stageHeaders !== undefined) {
+    (merged as CdlDiagram & { stageHeaders?: DslDocument["stageHeaders"] }).stageHeaders =
+      doc.stageHeaders;
+  }
   静止した図の焦点を外す(merged, doc);
   // 位置のずらしは **配置に効く欄を全て載せた後** に当てる (#1971)。 縦列の幅や視点の間隔を
   // 足す前に測ると、後から足された分だけ狙いがずれる
@@ -2220,6 +2225,8 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.cardinality !== undefined) target.cardinality = s.cardinality;
   // 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ
   if (s.side !== undefined) target.side = s.side;
+  if (s.fromSide !== undefined) target.fromSide = s.fromSide;
+  if (s.toSide !== undefined) target.toSide = s.toSide;
   // 矢印の先の形 (#1462)。 書かない矢印には値を入れない = 既存の図が変わらない。
   //
   // **矢印を作る 9 図種すべてがここを通る**。 図種ごとの組み立てにも同じ形を置いたが、

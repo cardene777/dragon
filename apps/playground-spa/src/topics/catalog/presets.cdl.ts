@@ -3035,18 +3035,24 @@ export const pattern__presetGantt__担当者なし = withSteps(
 export const sourceYaml__presetDeliveryFlow = `
 title: "荷物を届ける流れ"
 type: flowchart
+legendFontSize: 26.6
+
+lanes:
+  荷主: { label: 荷主, subtitle: 頼む人 }
+  営業所: { label: 営業所, subtitle: 受け付ける }
+  配送便: { label: 配送便, subtitle: 運ぶ }
 
 actors:
-  - 始まり: { kind: mark-start, lane: 荷主, stack: 0 }
-  - 集荷を頼む: { lane: 荷主, stack: 1 }
-  - 受け付ける: { lane: 営業所, stack: 1 }
-  - 送り状を起こす: { lane: 営業所, stack: 2 }
-  - 便に積む: { lane: 配送便, stack: 2 }
-  - 届けに行く: { lane: 配送便, stack: 3 }
+  - 始まり: { kind: mark-start, lane: 荷主, stack: 0, markGap: 73.47 }
+  - 集荷を頼む: { lane: 荷主, stack: 1, titleFontSize: 32.93 }
+  - 受け付ける: { lane: 営業所, stack: 1, titleFontSize: 32.93 }
+  - 送り状を起こす: { lane: 営業所, stack: 2, titleFontSize: 32.93 }
+  - 便に積む: { lane: 配送便, stack: 2, titleFontSize: 32.93 }
+  - 届けに行く: { lane: 配送便, stack: 3, titleFontSize: 32.93 }
   - 在宅?: { kind: decision, lane: 配送便, stack: 4 }
-  - 受け取る: { lane: 荷主, stack: 4 }
-  - 持ち戻る: { lane: 配送便, stack: 5 }
-  - 終わり: { kind: mark-end, lane: 荷主, stack: 5 }
+  - 受け取る: { lane: 荷主, stack: 4, titleFontSize: 32.93 }
+  - 持ち戻る: { lane: 配送便, stack: 5, titleFontSize: 32.93 }
+  - 終わり: { kind: mark-end, lane: 荷主, stack: 5, markGap: 87.4 }
 
 flow:
   - 始まり -> 集荷を頼む { role: main }
@@ -3094,17 +3100,23 @@ presetDeliveryFlow.id = "delivery-flow-demo";
 export const sourceJson__presetDeliveryFlow = `{
   "title": "荷物を届ける流れ",
   "type": "flowchart",
+  "legendFontSize": 26.6,
+  "lanes": {
+    "荷主": { "label": "荷主", "subtitle": "頼む人" },
+    "営業所": { "label": "営業所", "subtitle": "受け付ける" },
+    "配送便": { "label": "配送便", "subtitle": "運ぶ" }
+  },
   "actors": [
-    { "name": "始まり", "kind": "mark-start", "lane": "荷主", "stack": 0 },
-    { "name": "集荷を頼む", "lane": "荷主", "stack": 1 },
-    { "name": "受け付ける", "lane": "営業所", "stack": 1 },
-    { "name": "送り状を起こす", "lane": "営業所", "stack": 2 },
-    { "name": "便に積む", "lane": "配送便", "stack": 2 },
-    { "name": "届けに行く", "lane": "配送便", "stack": 3 },
+    { "name": "始まり", "kind": "mark-start", "lane": "荷主", "stack": 0, "markGap": 73.47 },
+    { "name": "集荷を頼む", "lane": "荷主", "stack": 1, "titleFontSize": 32.93 },
+    { "name": "受け付ける", "lane": "営業所", "stack": 1, "titleFontSize": 32.93 },
+    { "name": "送り状を起こす", "lane": "営業所", "stack": 2, "titleFontSize": 32.93 },
+    { "name": "便に積む", "lane": "配送便", "stack": 2, "titleFontSize": 32.93 },
+    { "name": "届けに行く", "lane": "配送便", "stack": 3, "titleFontSize": 32.93 },
     { "name": "在宅?", "kind": "decision", "lane": "配送便", "stack": 4 },
-    { "name": "受け取る", "lane": "荷主", "stack": 4 },
-    { "name": "持ち戻る", "lane": "配送便", "stack": 5 },
-    { "name": "終わり", "kind": "mark-end", "lane": "荷主", "stack": 5 }
+    { "name": "受け取る", "lane": "荷主", "stack": 4, "titleFontSize": 32.93 },
+    { "name": "持ち戻る", "lane": "配送便", "stack": 5, "titleFontSize": 32.93 },
+    { "name": "終わり", "kind": "mark-end", "lane": "荷主", "stack": 5, "markGap": 87.4 }
   ],
   "flow": [
     { "from": "始まり", "to": "集荷を頼む", "label": "", "role": "main" },
@@ -3136,6 +3148,16 @@ export const sourceYaml__presetDeliveryStages = `
 title: "荷物を届ける段階"
 type: swimlane
 shape: stages
+legendFontSize: 25.8461538462
+
+stageHeaders:
+  blueprint: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 }
+  letterpress: { leftPad: 24, topPad: 16, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 }
+  catalog: { leftPad: 24, topPad: 18, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 15 }
+  sketch: { leftPad: 24, topPad: 17, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 }
+  neon: { leftPad: 24, topPad: 18, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 14 }
+  relief: { leftPad: 26, topPad: 20, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 12 }
+  terminal: { leftPad: 22, topPad: 16, numberSize: 16, gap: 10, nameSize: 25, bottomPad: 13 }
 
 lanes:
   shipper: { label: 荷主 }
@@ -3164,7 +3186,7 @@ flow:
   - 届けに行く -> 在宅? { role: main }
   - 在宅? -> 受け取る: "はい" (success)
   - 在宅? -> 持ち戻る: "いいえ" (error)
-  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed) { fromSide: right, toSide: top }
 
 legend:
   - { mark: rounded-label, text: "札 = 段。 右の小さな字が担当" }
@@ -3200,6 +3222,16 @@ export const sourceJson__presetDeliveryStages = `{
   "title": "荷物を届ける段階",
   "type": "swimlane",
   "shape": "stages",
+  "legendFontSize": 25.8461538462,
+  "stageHeaders": {
+    "blueprint": { "leftPad": 22, "topPad": 15, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 13 },
+    "letterpress": { "leftPad": 24, "topPad": 16, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 14 },
+    "catalog": { "leftPad": 24, "topPad": 18, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 15 },
+    "sketch": { "leftPad": 24, "topPad": 17, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 14 },
+    "neon": { "leftPad": 24, "topPad": 18, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 14 },
+    "relief": { "leftPad": 26, "topPad": 20, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 12 },
+    "terminal": { "leftPad": 22, "topPad": 16, "numberSize": 16, "gap": 10, "nameSize": 25, "bottomPad": 13 }
+  },
   "lanes": {
     "shipper": { "label": "荷主" },
     "office": { "label": "営業所" },
@@ -3223,7 +3255,7 @@ export const sourceJson__presetDeliveryStages = `{
     { "from": "届けに行く", "to": "在宅?", "label": "", "role": "main" },
     { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
     { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
-    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed" }
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed", "fromSide": "right", "toSide": "top" }
   ],
   "legend": [
     { "mark": "rounded-label", "text": "札 = 段。 右の小さな字が担当" },
@@ -3267,6 +3299,7 @@ export const sourceYaml__presetDeliveryMetro = `
 title: "荷物を届ける路線"
 type: swimlane
 shape: metro
+legendFontSize: 25.8461538462
 
 lanes:
   shipper: { label: 荷主, subtitle: 頼む人 }
@@ -3279,7 +3312,7 @@ actors:
   - 受け付ける: { lane: office }
   - 送り状を起こす: { lane: office }
   - 便に積む: { lane: courier }
-  - 届けに行く: { lane: courier }
+  - 届けに行く: { lane: courier, stationNamePosition: bottom }
   - 在宅?: { kind: decision, lane: courier }
   - 受け取る: { lane: shipper }
   - 持ち戻る: { lane: courier }
@@ -3292,7 +3325,7 @@ flow:
   - 送り状を起こす -> 便に積む
   - 便に積む -> 届けに行く
   - 届けに行く -> 在宅?
-  - 在宅? -> 受け取る: "はい"
+  - 在宅? -> 受け取る: "はい" { labelOffsetY: 110 }
   - 在宅? -> 持ち戻る: "いいえ"
   - 持ち戻る -> 便に積む: "翌日もう一度" (dashed)
   - 受け取る -> 終わり
@@ -3332,6 +3365,7 @@ export const sourceJson__presetDeliveryMetro = `{
   "title": "荷物を届ける路線",
   "type": "swimlane",
   "shape": "metro",
+  "legendFontSize": 25.8461538462,
   "lanes": {
     "shipper": { "label": "荷主", "subtitle": "頼む人" },
     "office": { "label": "営業所", "subtitle": "受け付ける" },
@@ -3343,7 +3377,7 @@ export const sourceJson__presetDeliveryMetro = `{
     { "name": "受け付ける", "lane": "office" },
     { "name": "送り状を起こす", "lane": "office" },
     { "name": "便に積む", "lane": "courier" },
-    { "name": "届けに行く", "lane": "courier" },
+    { "name": "届けに行く", "lane": "courier", "stationNamePosition": "bottom" },
     { "name": "在宅?", "kind": "decision", "lane": "courier" },
     { "name": "受け取る", "lane": "shipper" },
     { "name": "持ち戻る", "lane": "courier" },
@@ -3356,7 +3390,7 @@ export const sourceJson__presetDeliveryMetro = `{
     { "from": "送り状を起こす", "to": "便に積む", "label": "" },
     { "from": "便に積む", "to": "届けに行く", "label": "" },
     { "from": "届けに行く", "to": "在宅?", "label": "" },
-    { "from": "在宅?", "to": "受け取る", "label": "はい" },
+    { "from": "在宅?", "to": "受け取る", "label": "はい", "labelOffsetY": 110 },
     { "from": "在宅?", "to": "持ち戻る", "label": "いいえ" },
     { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "style": "dashed" },
     { "from": "受け取る", "to": "終わり", "label": "" }
@@ -3404,6 +3438,7 @@ export const sourceYaml__presetDeliveryTimeline = `
 title: "荷物を届ける順番"
 type: swimlane
 shape: timeline
+legendFontSize: 25.8461538462
 
 lanes:
   shipper: { label: 荷主 }
@@ -3419,7 +3454,7 @@ actors:
   - 届けに行く: { lane: courier }
   - 在宅?: { kind: decision, lane: courier }
   - 受け取る: { lane: shipper }
-  - 持ち戻る: { lane: courier }
+  - 持ち戻る: { lane: courier, subtitlePlacement: right }
   - 終わり: { kind: mark-end, lane: shipper }
 
 flow:
@@ -3431,7 +3466,7 @@ flow:
   - 届けに行く -> 在宅?
   - 在宅? -> 受け取る: "はい" (success)
   - 在宅? -> 持ち戻る: "いいえ" (error)
-  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed)
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed) { fromSide: right, toSide: right }
   - 受け取る -> 終わり (success)
 
 legend:
@@ -3463,6 +3498,7 @@ export const sourceJson__presetDeliveryTimeline = `{
   "title": "荷物を届ける順番",
   "type": "swimlane",
   "shape": "timeline",
+  "legendFontSize": 25.8461538462,
   "lanes": {
     "shipper": { "label": "荷主" },
     "office": { "label": "営業所" },
@@ -3477,7 +3513,7 @@ export const sourceJson__presetDeliveryTimeline = `{
     { "name": "届けに行く", "lane": "courier" },
     { "name": "在宅?", "kind": "decision", "lane": "courier" },
     { "name": "受け取る", "lane": "shipper" },
-    { "name": "持ち戻る", "lane": "courier" },
+    { "name": "持ち戻る", "lane": "courier", "subtitlePlacement": "right" },
     { "name": "終わり", "kind": "mark-end", "lane": "shipper" }
   ],
   "flow": [
@@ -3489,7 +3525,7 @@ export const sourceJson__presetDeliveryTimeline = `{
     { "from": "届けに行く", "to": "在宅?", "label": "" },
     { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
     { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
-    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed" },
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed", "fromSide": "right", "toSide": "right" },
     { "from": "受け取る", "to": "終わり", "label": "", "tone": "success" }
   ],
   "legend": [

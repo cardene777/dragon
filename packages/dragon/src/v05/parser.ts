@@ -103,6 +103,7 @@ import type {
   DslAxes,
   DslRegions,
   DslDocument,
+  DslStageHeader,
   DslActor,
   DslNodeKind,
   DslDynShape,
@@ -243,6 +244,8 @@ export const TOP_LEVEL_KEYS = [
    */
   "theme",
   "legend",
+  "legendFontSize",
+  "stageHeaders",
 ] as const;
 
 /**
@@ -618,6 +621,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let scrollLines = new Map<string, number>();
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
   const legend: { mark: LegendMark; text: string }[] = [];
+  let legendFontSize: number | undefined;
+  let stageHeaders: DslDocument["stageHeaders"];
 
   let i = 0;
   while (i < lines.length) {
@@ -795,6 +800,62 @@ export function parseTextDslV05(src: string): V05ParseResult {
       for (const item of items) {
         const parsed = parseLegendItem(item, errors);
         if (parsed !== null) legend.push(parsed);
+      }
+      i = next;
+      continue;
+    }
+    if (head.key === "legendFontSize") {
+      const value = Number((head.value ?? "").trim());
+      if (Number.isFinite(value) && value > 0) legendFontSize = value;
+      else {
+        errors.push({
+          line: line.no,
+          message: `legendFontSize が読めません: "${head.value ?? ""}"`,
+          hint: "0 より大きい数を書く",
+        });
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "stageHeaders") {
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      stageHeaders = {};
+      for (const item of items) {
+        const match = item.trimmed.match(LANE_ID_ENTRY);
+        const themeName = match === null ? null : resolveTheme(match[1]!);
+        if (match === null || themeName === null) {
+          errors.push({
+            line: item.no,
+            message: `段の見出しの行が読めません: "${item.trimmed}"`,
+            hint: "意匠名: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 } の形で書く",
+          });
+          continue;
+        }
+        const opts = parseInlineMapping(match[2]!);
+        const keys = ["leftPad", "topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+        中括弧の知らない項目名を知らせる(
+          match[2]!,
+          keys,
+          `段の見出し ${themeName} の `,
+          item.no,
+          errors,
+        );
+        const values = Object.fromEntries(
+          keys.map((key) => [key, opts[key] === undefined ? undefined : Number(opts[key])]),
+        ) as Record<(typeof keys)[number], number | undefined>;
+        const required = ["topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+        if (
+          required.some((key) => !Number.isFinite(values[key])) ||
+          (values.leftPad !== undefined && !Number.isFinite(values.leftPad))
+        ) {
+          errors.push({
+            line: item.no,
+            message: `段の見出し ${themeName} の寸法が読めません`,
+            hint: "各寸法を数で書く",
+          });
+          continue;
+        }
+        stageHeaders[themeName] = values as DslStageHeader;
       }
       i = next;
       continue;
@@ -1477,6 +1538,8 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(ticks !== undefined ? { ticks, ticksPos: { line: ticksLine } } : {}),
       ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
       ...(legend.length > 0 ? { legend } : {}),
+      ...(legendFontSize !== undefined ? { legendFontSize } : {}),
+      ...(stageHeaders !== undefined ? { stageHeaders } : {}),
       ...(theme !== null && palette !== null
         ? { themeAlsoPalettePos: { themeLine, paletteLine } }
         : {}),
@@ -1519,7 +1582,10 @@ function matchTopHeader(trimmed: string): TopHeader | null {
   const m = trimmed.match(/^([^\s:]+)\s*:\s*(.*)$/u);
   if (!m) return null;
   const value = (m[2] ?? "").trim();
-  return { key: (m[1] ?? "").toLowerCase(), value: value.length ? stripQuotes(value) : null };
+  const writtenKey = m[1] ?? "";
+  const lowerKey = writtenKey.toLowerCase();
+  const canonicalKey = TOP_LEVEL_KEYS.find((key) => key.toLowerCase() === lowerKey);
+  return { key: canonicalKey ?? lowerKey, value: value.length ? stripQuotes(value) : null };
 }
 
 const LEGEND_ITEM_KEYS = ["mark", "text", "印", "説明"] as const;
@@ -2866,6 +2932,8 @@ export const ACTOR_INLINE_VALUE_KINDS = {
   posY: "数",
   posW: "数",
   posH: "数",
+  titleFontSize: "数",
+  markGap: "数",
 } as const satisfies Record<string, 値の形>;
 
 /**
@@ -2880,6 +2948,8 @@ export const ACTOR_BLOCK_VALUE_KINDS = {
   posY: "数",
   initial: "真偽",
   final: "真偽",
+  titleFontSize: "数",
+  markGap: "数",
 } as const satisfies Record<string, 値の形>;
 
 /** 矢印の中括弧に書ける、数と真偽の欄 (#1306) */
@@ -3276,6 +3346,19 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "補足":
         out.subtitle = stripQuotes(raw);
         break;
+      case "stationNamePosition":
+        if (stripQuotes(raw) === "bottom") out.stationNamePosition = "bottom";
+        break;
+      case "subtitlePlacement":
+        if (stripQuotes(raw) === "right") out.subtitlePlacement = "right";
+        break;
+      case "titleFontSize":
+      case "markGap": {
+        const read = 表で読む(ACTOR_BLOCK_VALUE_KINDS, { [key]: raw }, "箱の ", ln.no, errors);
+        if (key === "titleFontSize") out.titleFontSize = read.titleFontSize;
+        else out.markGap = read.markGap;
+        break;
+      }
       /*
        * 箱の目次と、始まりと終わりの印 (#2346)。
        *
@@ -3540,6 +3623,10 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "kind",
   "種類",
   "subtitle",
+  "stationNamePosition",
+  "subtitlePlacement",
+  "titleFontSize",
+  "markGap",
   "補足",
   "value",
   "値",
@@ -3918,6 +4005,10 @@ function reportScaleOnNonPart(
 const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   "kind",
   "subtitle",
+  "stationNamePosition",
+  "subtitlePlacement",
+  "titleFontSize",
+  "markGap",
   "eyebrow",
   "value",
   "previous",
@@ -4093,6 +4184,14 @@ const FLOW_INLINE_READERS = {
     v === undefined ? undefined : v !== "false" && v !== "なし",
   // 矢印がどの辺から出るか (#1385)。 描画側は 4 方向を取り、書かなければ自動で選ぶ
   side: (v: string | undefined) =>
+    v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
+      ? (v as "top" | "right" | "bottom" | "left")
+      : undefined,
+  fromSide: (v: string | undefined) =>
+    v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
+      ? (v as "top" | "right" | "bottom" | "left")
+      : undefined,
+  toSide: (v: string | undefined) =>
     v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
       ? (v as "top" | "right" | "bottom" | "left")
       : undefined,
@@ -4298,6 +4397,10 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // 「書かなかった」 と同じ扱いにする (#1058)
       kindWritten: kindRaw !== "" && !isPart,
       subtitle: opts.subtitle,
+      stationNamePosition:
+        opts.stationNamePosition === "bottom" ? opts.stationNamePosition : undefined,
+      subtitlePlacement:
+        opts.subtitlePlacement === "right" ? opts.subtitlePlacement : undefined,
       eyebrow: opts.eyebrow,
       // パーツでは状態の上書きとして意味を持つため、道筋の欄として横取りしない (#1251)
       touchpoint: isPart ? undefined : opts.touchpoint,
@@ -4455,12 +4558,14 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
       if (読み手 === null) continue;
       中括弧[k] = 読み手(opts[k]);
     }
-    if (opts.side !== undefined && 中括弧.side === undefined) {
-      errors.push({
-        line: line.no,
-        message: `矢印の side が読めません: "${opts.side}"`,
-        hint: `使える値 = ${EDGE_SIDE_VALUES.join(", ")}`,
-      });
+    for (const field of ["side", "fromSide", "toSide"] as const) {
+      if (opts[field] !== undefined && 中括弧[field] === undefined) {
+        errors.push({
+          line: line.no,
+          message: `矢印の ${field} が読めません: "${opts[field]}"`,
+          hint: `使える値 = ${EDGE_SIDE_VALUES.join(", ")}`,
+        });
+      }
     }
     // 読めない語を黙って捨てない (#1462)。 捨てると「書いたのに端の形が変わらない」 が
     // 手掛かりなしで起きる
@@ -4490,6 +4595,8 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   const guard = 中括弧.guard as string | undefined;
   const cardinality = 中括弧.cardinality as string | undefined;
   const side = 中括弧.side as "top" | "right" | "bottom" | "left" | undefined;
+  const fromSide = 中括弧.fromSide as "top" | "right" | "bottom" | "left" | undefined;
+  const toSide = 中括弧.toSide as "top" | "right" | "bottom" | "left" | undefined;
   const head = 中括弧.head as EdgeHead | undefined;
   const tailHead = 中括弧.tailHead as EdgeHead | undefined;
   const headFill = 中括弧.headFill as EdgeHeadFill | undefined;
@@ -4583,6 +4690,8 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     guard,
     cardinality,
     side,
+    fromSide,
+    toSide,
     head,
     tailHead,
     headFill,
