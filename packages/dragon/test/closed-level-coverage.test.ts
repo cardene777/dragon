@@ -173,6 +173,19 @@ const 入力: Record<string, 図> = {
     ...基本,
     legend: [{ mark: "diamond", text: "分かれ道", [知らない項目]: 1 }],
   },
+  "$.stageHeaders.additionalProperties": {
+    ...基本,
+    stageHeaders: {
+      blueprint: {
+        topPad: 15,
+        numberSize: 16,
+        gap: 10,
+        nameSize: 29,
+        bottomPad: 13,
+        [知らない項目]: 1,
+      },
+    },
+  },
   "$.events[]": { ...基本, events: [{ on: "click", handler: "h", box: "A", [知らない項目]: 1 }] },
   "$.scrolls.additionalProperties": {
     ...基本,

@@ -1713,6 +1713,54 @@ function validateLegend(v: unknown, errors: JsonDslError[]): void {
   });
 }
 
+const STAGE_HEADER_KEYS = ["leftPad", "topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+const REQUIRED_STAGE_HEADER_KEYS = ["topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+
+/** JSON の段の見出し寸法を、意匠名・閉じた欄・必須の正数まで検査する。 */
+function validateStageHeaders(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({ path: "$.stageHeaders", message: "stageHeaders must be an object" });
+    return;
+  }
+  for (const [theme, header] of Object.entries(v as Record<string, unknown>)) {
+    const path = `$.stageHeaders.${theme}`;
+    if (!(THEMES as readonly string[]).includes(theme)) {
+      errors.push({ path, message: `unknown theme "${theme}"`, hint: `使える意匠 = ${THEMES.join(", ")}` });
+      continue;
+    }
+    if (!header || typeof header !== "object" || Array.isArray(header)) {
+      errors.push({ path, message: "stage header must be an object" });
+      continue;
+    }
+    const o = header as Record<string, unknown>;
+    for (const key of Object.keys(o)) {
+      if ((STAGE_HEADER_KEYS as readonly string[]).includes(key)) continue;
+      errors.push({
+        path: `${path}.${key}`,
+        message: `unknown key "${key}"`,
+        hint: `使える項目 = ${STAGE_HEADER_KEYS.join(", ")}`,
+      });
+    }
+    for (const key of REQUIRED_STAGE_HEADER_KEYS) {
+      if (o[key] === undefined) {
+        errors.push({ path: `${path}.${key}`, message: `${key} is required` });
+      }
+    }
+    for (const key of STAGE_HEADER_KEYS) {
+      const value = o[key];
+      if (value === undefined) continue;
+      const zeroAllowed = key === "leftPad" || key === "topPad" || key === "gap" || key === "bottomPad";
+      if (typeof value !== "number" || !Number.isFinite(value) || (zeroAllowed ? value < 0 : value <= 0)) {
+        errors.push({
+          path: `${path}.${key}`,
+          message: `${key} must be ${zeroAllowed ? "a non-negative" : "a positive"} number`,
+        });
+      }
+    }
+  }
+}
+
 /**
  * 値を見せる部品の並びを検査する (#1374)。
  *
@@ -2516,6 +2564,7 @@ function validateJson(
   validateReadouts(j.readouts, errors);
   validateBands(j.bands, errors);
   validateLegend(j.legend, errors);
+  validateStageHeaders(j.stageHeaders, errors);
   // 読む人が動かすつまみの中身も、記法と同じ表で見る (#1389)
   validateInputs(j.inputs, errors);
   // 式は描画側の parser に通す (#1391)

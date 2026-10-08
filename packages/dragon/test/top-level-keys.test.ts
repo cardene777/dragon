@@ -21,7 +21,7 @@ import { parseTextDslV05, TOP_LEVEL_KEYS } from "../src/index";
  */
 function 実装が処理する項目(): string[] {
   const src = readFileSync(new URL("../src/v05/parser.ts", import.meta.url), "utf8");
-  return [...src.matchAll(/head\.key === "([a-z]+)"/g)].map((m) => m[1] ?? "");
+  return [...src.matchAll(/head\.key === "([A-Za-z]+)"/g)].map((m) => m[1] ?? "");
 }
 
 describe("top-level 項目の一覧が実装と一致する (#1190)", () => {

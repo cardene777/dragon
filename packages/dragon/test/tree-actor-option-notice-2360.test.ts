@@ -62,6 +62,10 @@ const 値: Record<string, string> = {
   hBind: '"{v}"',
   renderOffsetX: '"{v}"',
   renderOffsetY: '"{v}"',
+  stationNamePosition: "bottom",
+  subtitlePlacement: "right",
+  titleFontSize: "24",
+  markGap: "12",
 };
 
 /**

@@ -43,6 +43,8 @@ const 値: Record<string, string> = {
   labelOffsetX: "30",
   labelOffsetY: "30",
   overlay: "true",
+  fromSide: "left",
+  toSide: "right",
 };
 
 /**

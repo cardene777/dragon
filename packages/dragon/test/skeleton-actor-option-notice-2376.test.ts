@@ -790,6 +790,10 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
     renderOffsetX: 'renderOffsetX: "{あたい}"',
     renderOffsetY: 'renderOffsetY: "{あたい}"',
     scale: "scale: 1.5",
+    stationNamePosition: "stationNamePosition: bottom",
+    subtitlePlacement: "subtitlePlacement: right",
+    titleFontSize: "titleFontSize: 24",
+    markGap: "markGap: 12",
   };
 
   /** 日本語の別名は英語名と同じ欄に入るので、英語名だけを走査する */

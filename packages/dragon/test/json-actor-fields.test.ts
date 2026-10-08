@@ -33,6 +33,10 @@ type 対応 = { 記法: string; json: Record<string, unknown> };
 const 対応表: Record<string, 対応> = {
   kind: { 記法: "kind: storage", json: { kind: "storage" } },
   subtitle: { 記法: 'subtitle: "補足"', json: { subtitle: "補足" } },
+  stationNamePosition: { 記法: "stationNamePosition: bottom", json: { stationNamePosition: "bottom" } },
+  subtitlePlacement: { 記法: "subtitlePlacement: right", json: { subtitlePlacement: "right" } },
+  titleFontSize: { 記法: "titleFontSize: 24", json: { titleFontSize: 24 } },
+  markGap: { 記法: "markGap: 12", json: { markGap: 12 } },
   eyebrow: { 記法: 'eyebrow: "分類"', json: { eyebrow: "分類" } },
   value: { 記法: 'value: "42"', json: { value: "42" } },
   previous: { 記法: 'previous: "38"', json: { previous: "38" } },

@@ -523,6 +523,8 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       ...(関係?.headLabel ? { headLabel: 関係.headLabel } : {}),
       ...(関係?.tailLabel ? { tailLabel: 関係.tailLabel } : {}),
       ...(s.side ? { side: s.side } : {}),
+      ...(s.fromSide !== undefined ? { fromSide: s.fromSide } : {}),
+      ...(s.toSide !== undefined ? { toSide: s.toSide } : {}),
       ...(timelineHorizontalBranch && s.label !== ""
         ? { overlay: true, labelOffsetY: 時間軸の横分岐の札の上げ幅 }
         : timelineEdgeKind !== undefined && s.label !== ""

@@ -73,6 +73,10 @@ const 値: Record<string, string> = {
   touchpoint: '"まど"',
   opportunity: '"のびしろ"',
   at: "[0.2, 0.8]",
+  stationNamePosition: "bottom",
+  subtitlePlacement: "right",
+  titleFontSize: "24",
+  markGap: "12",
 };
 
 /**

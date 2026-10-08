@@ -229,6 +229,8 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       labelPlate: { 書く: "false", 期待: false },
       // 矢印がどの辺から出るか (#1385)
       side: { 書く: "left", 期待: "left" },
+      fromSide: { 書く: "left", 期待: "left" },
+      toSide: { 書く: "right", 期待: "right" },
       head: { 書く: "triangle", 期待: "triangle" },
       labelOffsetX: { 書く: "3", 期待: 3 },
       labelOffsetY: { 書く: "-8", 期待: -8 },

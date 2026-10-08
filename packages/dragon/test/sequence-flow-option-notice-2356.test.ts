@@ -41,6 +41,8 @@ const 値: Record<string, string> = {
   labelOffsetX: "30",
   labelOffsetY: "30",
   overlay: "true",
+  fromSide: "left",
+  toSide: "right",
 };
 
 function 本文(図種: string, 項目: string): string {

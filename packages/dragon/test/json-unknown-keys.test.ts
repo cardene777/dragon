@@ -110,11 +110,19 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     theme: "blueprint",
     palette: "celadon",
     legend: [{ mark: "diamond", text: "分かれ道" }],
+    legendFontSize: 18,
+    stageHeaders: {
+      blueprint: { topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 },
+    },
   },
   actor: {
     name: "A",
     kind: "storage",
     subtitle: "補足",
+    stationNamePosition: "bottom",
+    subtitlePlacement: "right",
+    titleFontSize: 24,
+    markGap: 12,
     eyebrow: "分類",
     value: "42",
     previous: "38",
@@ -174,6 +182,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     dashOffsetBind: "{dash}",
     // 矢印がどの辺から出るか (#1385)
     side: "left",
+    fromSide: "left",
+    toSide: "right",
     head: "triangle",
     // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
     tailHead: "diamond",

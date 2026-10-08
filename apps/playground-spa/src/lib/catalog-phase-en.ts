@@ -119,7 +119,8 @@ export const PHASE_TITLE_EN: Record<string, string> = {
 
   // --- styles ---
   "2 つの道筋": "Two routes",
-  "6 色を並べる": "Six colours side by side",
+  "7 色を並べる": "Seven colours side by side",
+  "戻る線の出入りする辺": "Entry and exit sides of return lines",
   "どの線も同じ色で引く": "Every line in the same colour",
   "上の辺から出す": "Leave from the top edge",
   "下の辺から出す": "Leave from the bottom edge",

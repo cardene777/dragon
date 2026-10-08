@@ -104,6 +104,13 @@ export const FORMS: Section[] = [
     lines: [
       { code: 'title: "ログイン"', note: "図の題名", noteEn: "The diagram title" },
       { code: "type: sequence", note: "図種。 一覧は下", noteEn: "The diagram type. The list is below" },
+      { code: "legendFontSize: 18", note: "凡例の字の大きさ", noteEn: "Legend font size" },
+      { code: "stageHeaders:", note: "段の見出しを意匠ごとに調整", noteEn: "Stage header sizing by theme" },
+      {
+        code: "  blueprint: { topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 }",
+        note: "図面の意匠で使う見出し寸法",
+        noteEn: "Header dimensions for the blueprint theme",
+      },
     ],
   },
   {

@@ -80,6 +80,10 @@ const 見本の値: Record<string, string> = {
   hBind: '"{v}"',
   renderOffsetX: '"{v}"',
   renderOffsetY: '"{v}"',
+  stationNamePosition: "bottom",
+  subtitlePlacement: "right",
+  titleFontSize: "24",
+  markGap: "12",
 };
 
 const 段を分けた形 = (k: string, v: string): string =>

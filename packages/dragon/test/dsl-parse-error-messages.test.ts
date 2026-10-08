@@ -189,6 +189,10 @@ flow:
     opacity: "0.5",
     renderOffsetX: "30",
     renderOffsetY: '"{dy}"',
+    stationNamePosition: "bottom",
+    subtitlePlacement: "right",
+    titleFontSize: "24",
+    markGap: "12",
   };
 
   /**

@@ -50,7 +50,12 @@
  * 検知できなくなるため、 収録した category は全 axis error 0 件で gating する。
  */
 import { describe, it, expect } from "vitest";
-import { visualValidateAll, type VisualValidationReport, type Violation } from "@cardenelabs/cdl";
+import {
+  visualValidateAll,
+  type VisualAxis,
+  type VisualValidationReport,
+  type Violation,
+} from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 // catalog 各 page で render される全 topic を sweep 対象として集約。
@@ -143,17 +148,20 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
       {
         対象: "node:始まり ↔ node:集荷を頼む",
         理由:
-          "見本 7 意匠の間は 57、図幅比で 63.0 world。検査の 70 を割る見本どおりの間である (#2833)",
+          "見本 7 意匠の間は 57、図幅比で 63.0 world。dragon は 54 world で 9.0 近い。" +
+          "見本も検査の 70 を割るので見本の見た目として受け入れ、差は比較画像で見る (#2833)",
       },
       {
         対象: "node:届けに行く ↔ node:在宅",
         理由:
-          "見本 7 意匠の間は 36、図幅比で 39.8 world。検査の 70 を割る見本どおりの間である (#2833)",
+          "見本 7 意匠の間は 36、図幅比で 39.8 world。dragon は 37 world で 2.8 近い。" +
+          "見本も検査の 70 を割るので見本の見た目として受け入れ、差は比較画像で見る (#2833)",
       },
       {
         対象: "node:受け取る ↔ node:終わり",
         理由:
-          "見本 7 意匠の間は 27、図幅比で 29.9 world。検査の 70 を割る見本どおりの間である (#2833)",
+          "見本 7 意匠の間は 27、図幅比で 29.9 world。dragon は 24 world で 5.9 近い。" +
+          "見本も検査の 70 を割るので見本の見た目として受け入れ、差は比較画像で見る (#2833)",
       },
       {
         対象: "node:持ち戻る ↔ edge-label:e8-持ち戻る-便に積む",
@@ -222,26 +230,17 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
       axis: "label-char-range",
       対象: `edge "${edge}"`,
       理由:
-        "描く側 0.127.0 の文字幅検査は札幅 74 / 96 / 162 を狭いと判定するが、見本 7 意匠も同じ札幅で描く",
+        "描く側 0.127.0 の文字幅検査は狭いと判定するが、見本 7 意匠も「はい」2 字を幅 74、" +
+        "「いいえ」3 字を幅 96、「翌日もう一度」6 字を幅 162 で描く (#1029 / #1037)",
     })),
   ),
   {
     diagramId: "edge-routing",
     axis: "label-char-range",
     対象: 'edge "metro"',
-    理由: "描く側 0.127.0 の文字幅検査で初めて出たが、札幅 74 の中で字は欠けずに描けている",
-  },
-  {
-    diagramId: "経費申請の承認",
-    axis: "edge-stubout-min",
-    対象: 'edge "fc-4-部長が承認する-支払う"',
-    理由: "実測 40.0 world は検査の下限 40 と同値で、表示桁より下の丸め差だけが残る",
-  },
-  {
-    diagramId: "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
-    axis: "clearance",
-    対象: "node:領収書と金額が合うか ↔ edge-label:fc-8-領収書と金額が合うか-次の給与日に振り込む",
-    理由: "実測 32.0 world は検査の下限 32 と同値で、表示桁より下の丸め差だけが残る",
+    理由:
+      "描く側 0.127.0 の文字幅検査で初めて出た。路線の札「路線」は 2 字・幅 74 で、" +
+      "見本の metro 札「はい」も同じ 2 字・幅 74 で描く (#1029)",
   },
   // 揃えの 2 軸 (`alignment` / `column-alignment`) の 10 組は #2724 で外した。
   //
@@ -601,7 +600,7 @@ describe("名指しした見逃しが実物で当たっている (#1730)", () =>
 
     expect(
       isGatingViolation({
-        axis: 宣言.axis,
+        axis: 宣言.axis as VisualAxis,
         diagramId: 宣言.diagramId,
         severity: "error",
         detail: 対象,
@@ -609,7 +608,7 @@ describe("名指しした見逃しが実物で当たっている (#1730)", () =>
     ).toBe(false);
     expect(
       isGatingViolation({
-        axis: 宣言.axis,
+        axis: 宣言.axis as VisualAxis,
         diagramId: 宣言.diagramId,
         severity: "error",
         detail: "名指ししていない別の対象",
@@ -740,7 +739,6 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       "成形機と塗装機の稼働を-どちらも記録へ集める",
       "注文の状態",
       "delivery-flow-demo",
-      "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
       "製造ラインの設備-3-台と乾燥炉の温度-工場の回線を並べる",
       "認証の状態遷移",
     ],

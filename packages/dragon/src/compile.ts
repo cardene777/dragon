@@ -1618,6 +1618,10 @@ function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): Rea
   const 路線図か = doc.type === "swimlane" && doc.shape === "metro";
   const 時間軸か = doc.type === "swimlane" && doc.shape === "timeline";
   const 読まない欄: string[] = [];
+  const この形が読む欄: string[] = [];
+  if (doc.type === "flowchart") この形が読む欄.push("titleFontSize", "markGap");
+  if (路線図か) この形が読む欄.push("stationNamePosition");
+  if (時間軸か) この形が読む欄.push("subtitlePlacement");
   // 段を読まない図では伝える側へ回す。 既に抜けている図種 (c4) は下の `delete` が空振りする
   if (路線図か || 時間軸か || (!段階ごとの箱か && !書いた縦列に置く(doc.type, doc))) 読まない欄.push("stack");
   const 残り = new Set(族の除外);
@@ -1627,6 +1631,10 @@ function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): Rea
   // 3 形とも種類を固定する (段の箱は札、路線図は駅、時間軸は札)。書いた種類は伝える側へ回す (#2831)
   if ((段階ごとの箱か || 路線図か || 時間軸か) && 残り.delete("kind")) 変えた = true;
   for (const 欄 of 読まない欄) if (残り.delete(欄)) 変えた = true;
+  for (const 欄 of この形が読む欄) {
+    if (!残り.has(欄)) 変えた = true;
+    残り.add(欄);
+  }
   return 変えた ? 残り : 族の除外;
 }
 
@@ -2987,12 +2995,16 @@ function reportTicksNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =
   });
 }
 
-/** 路線図の名札にしか載らない lane の補足を、別の形で黙って捨てないために伝える。 */
+/** 路線図の名札か流れ図の縦列見出しに載る lane の補足を、別の形で黙って捨てないために伝える。 */
 function reportLaneSubtitleNotHonored(
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
 ): void {
-  if (!onNotice || (doc.type === "swimlane" && doc.shape === "metro")) return;
+  if (
+    !onNotice ||
+    doc.type === "flowchart" ||
+    (doc.type === "swimlane" && doc.shape === "metro")
+  ) return;
   for (const lane of Object.values(doc.lanes ?? {})) {
     if (lane.subtitle === undefined) continue;
     onNotice({

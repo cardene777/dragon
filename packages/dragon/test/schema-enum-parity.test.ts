@@ -131,6 +131,8 @@ const 対応表: Record<string, readonly string[]> = {
   "flow[].tone": 書ける色名(),
   "flow[].style": [...STYLE_VALID],
   "flow[].side": [...EDGE_SIDE_VALUES],
+  "flow[].fromSide": [...EDGE_SIDE_VALUES],
+  "flow[].toSide": [...EDGE_SIDE_VALUES],
   "flow[].head": [...EDGE_HEAD_VALUES],
   "flow[].tailHead": [...EDGE_HEAD_VALUES],
   "flow[].headFill": [...EDGE_HEAD_FILL_VALUES],
@@ -144,10 +146,13 @@ const 対応表: Record<string, readonly string[]> = {
   "inputs[].kind": Object.keys(つまみの表),
   "actors[].oneOf[1].tone": 書ける色名(),
   "actors[].oneOf[1].color.anyOf[0]": 書ける色名(),
+  "actors[].oneOf[1].stationNamePosition": ["bottom"],
+  "actors[].oneOf[1].subtitlePlacement": ["right"],
   "actors[].oneOf[1].shape.kind": Object.keys(図形の表),
   "actors[].oneOf[1].shape.orient": [...SHAPE_ORIENT_VALUES],
   // 相対で置く時の向き (#2039)。 本文側と同じ一覧から取る
   "actors[].oneOf[1].posRel.dir": [...RELATIVE_DIRECTIONS],
+  "stageHeaders.propertyNames": [...THEMES],
 };
 
 const 並べ = (x: Iterable<string>): string[] => [...new Set(x)].sort();
