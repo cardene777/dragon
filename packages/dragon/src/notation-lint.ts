@@ -197,15 +197,18 @@ function ruleGanttUnknownDependsOn(d: CdlDiagram): LintIssue[] {
       const tasks = n.ganttData ?? [];
       const ids = new Set(tasks.map((t) => t.id));
       for (const t of tasks) {
-        if (t.dependsOn && !ids.has(t.dependsOn)) {
-          out.push({
-            rule: "gantt-unknown-depends-on",
-            severity: "warn",
-            target: t.id,
-            message: `作業 \`${t.id}\` の \`dependsOn\` が、 無い作業 \`${t.dependsOn}\` を指している`,
-            suggestion: `\`dependsOn\` を既にある作業の \`id\` に直すか、 \`dependsOn\` を外す`,
-            autoFixable: false,
-          });
+        const dependencies = Array.isArray(t.dependsOn) ? t.dependsOn : t.dependsOn ? [t.dependsOn] : [];
+        for (const dependency of dependencies) {
+          if (!ids.has(dependency)) {
+            out.push({
+              rule: "gantt-unknown-depends-on",
+              severity: "warn",
+              target: t.id,
+              message: `作業 \`${t.id}\` の \`dependsOn\` が、 無い作業 \`${dependency}\` を指している`,
+              suggestion: `\`dependsOn\` を既にある作業の \`id\` に直すか、 \`dependsOn\` を外す`,
+              autoFixable: false,
+            });
+          }
         }
       }
     }

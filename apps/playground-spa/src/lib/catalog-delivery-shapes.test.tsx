@@ -114,7 +114,7 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "sortingShelfGantt", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
   { 鍵: "sortingShelfGantt", 要素: "工程の帯", 見本の数: 6, 今の数: 6, role: "gantt-bar", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "月の見出し", 見本の数: 5, 今の数: 5, role: "gantt-tick", 描ける: true },
-  { 鍵: "sortingShelfGantt", 要素: "依存の矢印", 見本の数: 4, 今の数: 3, role: "gantt-arrow", 描ける: false, 理由: "1 工程につき親を 1 件だけ持ち、試すへの 2 本目が落ちる", 下書き: ".context/scratch/2837/cdl-issue-gantt-multiple-dependencies.md" },
+  { 鍵: "sortingShelfGantt", 要素: "依存の矢印", 見本の数: 4, 今の数: 4, role: "gantt-arrow", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "主役の斜線", 見本の数: 3, 今の数: 0, role: "gantt-bar-hatch", 描ける: false, 理由: "accent の帯を 3 本に分けられるが斜線を当てる印が無い", 下書き: ".context/scratch/2837/cdl-issue-highlight-hatch.md", 仮の役割名: true },
   { 鍵: "sortingShelfGantt", 要素: "1 行おきの地", 見本の数: 3, 今の数: 3, role: "gantt-row", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "月内位置の端点", 見本の数: 7, 今の数: 7, role: "diagram:gantt-fractional-endpoint", 描ける: true },
@@ -224,6 +224,23 @@ describe("宅配の見本の形要素 (#2837)", () => {
     const 見出し = [...最後を描く(図).matchAll(/<text[^>]*data-cdl-role="gantt-tick"[^>]*>([^<]*)<\/text>/gu)]
       .map((一致) => 一致[1] ?? "");
     expect(見出し).toEqual(["6月", "7月", "8月", "9月", "10月"]);
+  });
+
+  it("仕分け棚の試す工程は棚と端末の両方に依存する", () => {
+    const 図 = 図を引く("sortingShelfGantt");
+    expect(図, "sortingShelfGantt が無い").toBeDefined();
+    if (図 === undefined) throw new Error("sortingShelfGantt が無い");
+    const 工程 = 図.nodes.flatMap((node) => node.ganttData ?? []);
+    const 試す = 工程.find((task) => task.title === "試す");
+    const 棚を作る = 工程.find((task) => task.title === "棚を作る");
+    const 端末を入れる = 工程.find((task) => task.title === "端末を入れる");
+    expect(試す, "試す工程が無い").toBeDefined();
+    expect(棚を作る, "棚を作る工程が無い").toBeDefined();
+    expect(端末を入れる, "端末を入れる工程が無い").toBeDefined();
+    const 依存 = Array.isArray(試す?.dependsOn)
+      ? 試す.dependsOn
+      : 試す?.dependsOn === undefined ? [] : [試す.dependsOn];
+    expect(依存).toEqual([棚を作る?.id, 端末を入れる?.id]);
   });
 
   it.each(形の要素たち)("$鍵: $要素", ({ 鍵, 見本の数, 今の数, role, 描ける, 理由, 下書き, 仮の役割名 }) => {

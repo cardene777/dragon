@@ -99,7 +99,7 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
   const タスク名 = new Set(タスク.map((t) => t.name));
   // 矢印の端の名前を引く表。 全ての図種に共通の「居ない名前」 の知らせと同じ表を使う
   const 名前の表 = actorRefTable(doc);
-  const 依存元 = new Map<string, string>();
+  const 依存元 = new Map<string, string[]>();
   for (const s of doc.flow) {
     const line = s.pos?.line ?? 0;
     const 矢印 = `${truncateForMessage(s.from)} -> ${truncateForMessage(s.to)}`;
@@ -116,7 +116,11 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       );
       continue;
     }
-    依存元.set(s.to, s.from);
+    const 前工程 = 依存元.get(s.to) ?? [];
+    if (!前工程.includes(s.from)) {
+      前工程.push(s.from);
+      依存元.set(s.to, 前工程);
+    }
     /*
      * 帯の依存は「どちらが先か」 だけを持つ。 矢印に書いた飾りは描けないので伝える。
      *
@@ -153,7 +157,11 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       const startName = 時期を読む(t.label)?.label ?? t.label;
       const idx = 目盛り.indexOf(startName);
       const startIdx = idx + t.startFraction;
-      const from = 依存元.get(t.name);
+      const dependencies = (依存元.get(t.name) ?? []).map((from) => slugify(from) || from);
+      const [firstDependency] = dependencies;
+      const dependsOn = firstDependency === undefined
+        ? undefined
+        : dependencies.length === 1 ? firstDependency : dependencies;
       // 帯の誤りは、その項目を書いた行で伝える。 知らせの種類は呼ばれる側が決める (#2392)
       const 帯を伝える = (種類: CompileNotice["kind"], 名: string, message: string): void =>
         伝える(種類, 名, message, t.line);
@@ -175,7 +183,7 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
         startLabel,
         endLabel: 終わり.label ?? startLabel,
         ...(t.owner !== undefined ? { owner: t.owner } : {}),
-        ...(from !== undefined ? { dependsOn: slugify(from) || from } : {}),
+        ...(dependsOn !== undefined ? { dependsOn } : {}),
         ...(t.tone !== undefined ? { tone: t.tone } : {}),
       };
     }),
