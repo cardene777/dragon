@@ -564,19 +564,21 @@ svg[data-cdl-stage][data-cdl-type="class"] [data-cdl-active="true"] [data-cdl-ro
 /*
  * 記法は表 / UML / 移り変わりの図を `record` の 1 つに畳んだため (#2782 / #2783)、
  * 図種では分けられない。 **端の印で、順番を持たない関係の図を分ける** (#2805)。
- * 棒 / 三又 / 丸の 4 種は個数、三角 / 菱は UML の継承と所有を表す。
- * 一覧は `packages/dragon/test/support/record-edges.ts` の `個数の端` / `UMLだけの端` から
+ * 棒 / 三又 / 丸の 4 種は個数、中抜きの三角 / 菱は UML の継承と所有を表す。
+ * 一覧は `packages/dragon/test/support/record-edges.ts` の `個数の端` / `UMLだけの端の組` から
  * 導かれ、`relation-edge-scope.test.ts` がこの選び方と突き合わせる。
  *
- * 開いた矢 (`open`) は UML の関連 / 依存と移り変わりの両方が使うので囲わない。
- * 端以外に両者を分ける属性は SVG に無く、ここへ足すと `認証の状態遷移` まで薄くなる。
+ * 塗った三角は、継承 / 実装の中抜きと違い、端を書かない線の既定の矢じりなので囲わない。
+ * 開いた矢 (`open`) も UML の関連 / 依存と移り変わりの両方が使うので囲わない。
+ * 出どころ側の菱も、`marker-start` が参照する印に行き先側と同じ
+ * `data-cdl-edge-head` / `data-cdl-edge-head-fill` で出る。
  */
 svg[data-cdl-stage][data-cdl-type="record"]:has(
     [data-cdl-edge-head="one"],
     [data-cdl-edge-head="many"],
     [data-cdl-edge-head="zero-one"],
     [data-cdl-edge-head="zero-many"],
-    [data-cdl-edge-head="triangle"],
+    [data-cdl-edge-head="triangle"][data-cdl-edge-head-fill="hollow"],
     [data-cdl-edge-head="diamond"]
   )
   [data-cdl-role="edge-line"] {
@@ -588,7 +590,7 @@ svg[data-cdl-stage][data-cdl-type="record"]:has(
     [data-cdl-edge-head="many"],
     [data-cdl-edge-head="zero-one"],
     [data-cdl-edge-head="zero-many"],
-    [data-cdl-edge-head="triangle"],
+    [data-cdl-edge-head="triangle"][data-cdl-edge-head-fill="hollow"],
     [data-cdl-edge-head="diamond"]
   )
   [data-cdl-active="true"]
