@@ -116,6 +116,14 @@ export interface DragonJson {
    * 順序図 + 種類で並べ替え、`pie` と書いた JSON は 数を描く図 + 円の形 として読まれる。
    */
   type: PresetType | 図種の別名;
+  /** 円グラフの見せ方。 */
+  form?: string;
+  /** `form` の和名。両方あれば `form` を採る。 */
+  見せ方?: string;
+  /** ガントチャートの目盛り。 */
+  ticks?: string[];
+  /** `ticks` の和名。両方あれば `ticks` を採る。 */
+  目盛り?: string[];
   /**
    * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
    *
@@ -377,6 +385,10 @@ export interface JsonActor {
    * (記法側と同じ扱い)。
    */
   end?: string;
+  /** 四象限の座標 `[x, y]`。 */
+  at?: [number | string, number | string];
+  /** `at` の和名。両方あれば `at` を採る。 */
+  点の位置?: [number | string, number | string];
   /**
    * ユーザージャーニー (`type: journey`) で、その段階が起きる場所 (#1294)。 記法の `touchpoint:` と同じ。
    */
@@ -598,6 +610,10 @@ export const ACCEPTED_KEYS = {
   root: [
     "title",
     "type",
+    "form",
+    "見せ方",
+    "ticks",
+    "目盛り",
     "eyebrow",
     "axes",
     "regions",
@@ -653,6 +669,8 @@ export const ACCEPTED_KEYS = {
     "color",
     "owner",
     "end",
+    "at",
+    "点の位置",
     "touchpoint",
     "opportunity",
     "posX",
@@ -787,6 +805,10 @@ export const 欄の型表 = {
   root: {
     title: "必須の非空文字列",
     type: "必須の図種",
+    form: "非空の文字列",
+    見せ方: "非空の文字列",
+    ticks: "文字列の並び",
+    目盛り: "文字列の並び",
     eyebrow: "文字列",
     axes: "object",
     regions: "object",
@@ -841,6 +863,8 @@ export const 欄の型表 = {
     color: "色か色番号",
     owner: "文字列",
     end: "文字列",
+    at: "並び",
+    点の位置: "並び",
     touchpoint: "文字列",
     opportunity: "文字列",
     posX: "数",
@@ -1012,6 +1036,7 @@ export const 見本にしか効かない欄 = [
  */
 export const 見本に効かない欄 = [
   "tone",
+  "at",
   "owner",
   "end",
   "touchpoint",
@@ -2476,6 +2501,11 @@ function validateJson(
   // 「書かなかった」 と同じ扱いにするため通す (記法側の `eyebrow:` と揃える。 落とすのは `jsonToDoc`)
   表で検査(j, "root", "$", "", errors);
   validateDiagramShape(j, errors);
+  for (const 欄 of ["ticks", "目盛り"] as const) {
+    if (Array.isArray(j[欄]) && j[欄].length === 0) {
+      errors.push({ path: `$.${欄}`, message: `${欄} must contain at least one label` });
+    }
+  }
 
   if (!Array.isArray(j.actors) || j.actors.length === 0) {
     errors.push({ path: "$.actors", message: "actors must be a non-empty array" });
@@ -2491,6 +2521,20 @@ function validateJson(
       // 値そのものの型は表が見る (#1304)。 `kind` は見本 (parts) の名前も受けるため
       // 非空の文字列までしか縛らない (CAR-1657 の unified syntax)
       表で検査(ao, "actor", `$.actors[${i}]`, "actor", errors);
+      for (const 欄 of ["at", "点の位置"] as const) {
+        if (ao[欄] === undefined) continue;
+        const at = ao[欄];
+        if (
+          !Array.isArray(at) ||
+          at.length !== 2 ||
+          at.some((v) => typeof v !== "number" && typeof v !== "string")
+        ) {
+          errors.push({
+            path: `$.actors[${i}].${欄}`,
+            message: `actor.${欄} must be [x, y] with number or state reference values`,
+          });
+        }
+      }
       // 箱の中に描く図形の中身を、記法と同じ表で見る (#1374)
       validateActorShape(ao.shape, `$.actors[${i}].shape`, errors);
       // 見本 (parts) にしか効かない項目は、見本でない箱に書かれたら誤りにする (#1294)。
@@ -2823,6 +2867,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     // 色は記法と同じ振り分けを通す (#1294)。 `#` で始まれば色番号、それ以外は色の名前。
     // 別々に書くと、同じ値が入口によって色番号にも色名にもなる
     const 色 = a.color !== undefined ? splitColorValue(a.color) : {};
+    const 書いた座標 = a.at ?? a.点の位置;
     return {
       name: a.name,
       kind: isPart ? "actor" : resolveNodeKind(kindStr),
@@ -2860,6 +2905,11 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
             tone: resolveTone(a.tone) ?? 色.tone,
             owner: a.owner,
             end: a.end,
+            at:
+              書いた座標 === undefined
+                ? undefined
+                : { x: 書いた座標[0], y: 書いた座標[1], raw: `[${書いた座標.join(", ")}]` },
+            atPos: 書いた座標 === undefined ? undefined : 位置("actors", i, a.at ? "at" : "点の位置"),
             touchpoint: a.touchpoint,
             opportunity: a.opportunity,
           }),
@@ -3031,9 +3081,17 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
   // まま欄に載り、後ろの `...(形 !== null ? ...)` を打ち消す (実測 = `type: "pie"` の
   // JSON が形を持たず、書かない時の形 (棒) の図になった)
   const 別名 = TYPE_ALIASES.get(json.type);
+  const form = json.form ?? json.見せ方;
+  const ticks = json.ticks ?? json.目盛り;
   return {
     title: json.title,
     type: 別名?.type ?? (json.type as PresetType),
+    ...(form !== undefined
+      ? { form, formPos: 位置(json.form !== undefined ? "form" : "見せ方") }
+      : {}),
+    ...(ticks !== undefined
+      ? { ticks: [...ticks], ticksPos: 位置(json.ticks !== undefined ? "ticks" : "目盛り") }
+      : {}),
     ...(別名?.order !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
     ...(別名?.shape !== undefined ? { shape: 別名.shape, shapePos: 位置("type") } : {}),
     // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから

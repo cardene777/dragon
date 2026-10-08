@@ -24,7 +24,7 @@
  * 使い方
  *   node apps/playground-spa/scripts/drawing-measure.mjs
  *   node apps/playground-spa/scripts/drawing-measure.mjs --group charts
- *   node apps/playground-spa/scripts/drawing-measure.mjs --id 図を速くする
+ *   node apps/playground-spa/scripts/drawing-measure.mjs --id 再配達を減らす
  *   node apps/playground-spa/scripts/drawing-measure.mjs --json .context/redraw/measure.json
  *   node apps/playground-spa/scripts/drawing-measure.mjs --max-samples 60 --settle 8
  *

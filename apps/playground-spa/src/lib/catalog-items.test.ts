@@ -167,3 +167,100 @@ describe("topic は図の題名として扱える長さに収まる", () => {
     expect(over, `topic が 60 字を超える図:\n${over.join("\n")}`).toEqual([]);
   });
 });
+
+describe("見本帳の階層・図表・数・工程は宅配の筋書きで揃う (#2837)", () => {
+  const 宅配の見本 = {
+    deliveryOfficeTree: ["営業所の階層", ["本社", "東日本", "東京", "福岡"]],
+    redeliveryIdeasMind: ["再配達を減らす", ["置き配", "宅配ロッカー", "夜の便", "職場に届ける"]],
+    branchParcelsBar: ["営業所ごとの取扱数", ["東京", "680", "札幌", "150"]],
+    monthlyDeliveriesLine: ["月ごとの配達数", ["6月", "900", "10月", "1750"]],
+    parcelStatusPie: ["荷物の状態", ["配達中", "270", "完了", "796"]],
+    orderToDeliveryFunnel: ["申し込みから届くまで", ["見た", "12000", "届いた", "2750"]],
+    measureEffortQuadrant: ["打ち手の手間と効き目", ["置き配", "前日に知らせる", "夜の便"]],
+    onTimeRateSlope: ["営業所ごとの定時率", ["東京", "88", "大阪", "80"]],
+    onTimeShareGauge: ["定時に届いた割合", ["定時に届いた", "78", "先月より +6"]],
+    parcelSizeWaffle: ["荷物の大きさ", ["小さい", "52", "大きい", "17"]],
+    deliveryResultStacked: ["配達の結果", ["一度で届いた", "再配達", "戻った"]],
+    sortingShelfGantt: ["仕分け棚を入れ替える工程", ["調べる", "棚を作る", "本番"]],
+    shipperFeelingJourney: ["荷主の気持ち", ["申し込む", "不在だった", "受け取る"]],
+  } as const;
+
+  it("charts に新しい 13 件が名前の literal で登録されている", () => {
+    const charts = CATALOG_ITEMS.charts ?? [];
+    const 登録 = new Map(charts.map((item) => [item.title, item]));
+    expect(Object.keys(宅配の見本)).toHaveLength(13);
+    expect(
+      Object.keys(宅配の見本).filter((鍵) => !登録.has(鍵)),
+      "宅配の見本として登録されていない鍵",
+    ).toEqual([]);
+  });
+
+  it.each(Object.entries(宅配の見本))("%s の題と表示語が宅配の見本どおり", (鍵, [題, 語]) => {
+    const item = (CATALOG_ITEMS.charts ?? []).find((候補) => 候補.title === 鍵);
+    expect(item, `${鍵} が charts に無い`).toBeDefined();
+    expect(item!.diagram.topic).toBe(題);
+    const 記法 = `${item!.sourceYaml ?? ""}\n${item!.sourceJson ?? ""}`;
+    for (const 一語 of 語) expect(記法, `${鍵} に ${一語} が無い`).toContain(一語);
+  });
+
+  const charts = 群を引く("charts");
+  const YAML = pairedKeys(charts, "sourceYaml");
+  const JSON = pairedKeys(charts, "sourceJson");
+  const 記法を引く = (鍵: string): string => {
+    const yaml = YAML.get(鍵);
+    const json = JSON.get(鍵);
+    expect(yaml, `${鍵} の YAML が無い`).toBeDefined();
+    expect(json, `${鍵} の JSON が無い`).toBeDefined();
+    return `${yaml ?? ""}\n${json ?? ""}`;
+  };
+
+  it.each(["sortingShelfGantt", "pattern__sortingShelfGantt__帯だけ"])(
+    "%s の工程を月内の位置で書き、主役とそれ以外の色を分ける",
+    (鍵) => {
+      const 記法 = 記法を引く(鍵);
+      for (const [名前, 始まり, tone] of [
+        ["調べる", "6月", "info"],
+        ["設計する", "6月\\+0\\.55", "accent"],
+        ["棚を作る", "8月", "accent"],
+        ["端末を入れる", "8月\\+0\\.30", "info"],
+        ["試す", "9月\\+0\\.60", "accent"],
+      ] as const) {
+        expect(記法, `${鍵} の ${名前}`).toContain(名前);
+        expect(記法, `${鍵} の ${名前} の始まり`).toMatch(
+          new RegExp(`${名前}[^\\n]+${始まり}`, "u"),
+        );
+        expect(記法, `${鍵} の ${名前} の tone`).toMatch(
+          new RegExp(`${名前}[^\\n]+tone["']?\\s*:\\s*["']?${tone}`, "u"),
+        );
+      }
+      expect(記法).toMatch(/本番[^\n]+10月/u);
+      expect(記法).toMatch(/survey_end["']?\s*:\s*0(?:\D|$)/u);
+    },
+  );
+
+  it.each([
+    "branchParcelsBar",
+    "pattern__branchParcelsBar__前の値つき",
+    "parcelStatusPie",
+    "pattern__parcelStatusPie__前と今",
+    "redeliveryIdeasMind",
+    "pattern__redeliveryIdeasMind__説明つき",
+    "onTimeShareGauge",
+    "pattern__onTimeShareGauge__前の値つき",
+    "parcelSizeWaffle",
+    "deliveryResultStacked",
+    "pattern__deliveryResultStacked__今だけ",
+  ])("%s は系列色を意匠の並びに任せる", (鍵) => {
+    expect(記法を引く(鍵), `${鍵} に tone が残っている`).not.toMatch(/\btone\s*[:=]/u);
+  });
+
+  it.each([
+    "shipperFeelingJourney",
+    "pattern__shipperFeelingJourney__接点つき",
+    "pattern__shipperFeelingJourney__5つの気持ち",
+  ])("%s の谷の札は固定幅に収まる語にする", (鍵) => {
+    const 記法 = 記法を引く(鍵);
+    expect(記法).toMatch(/opportunity[^\n]+不在票に気づかず/u);
+    expect(記法).not.toMatch(/opportunity[^\n]+不在票に気づかなかった/u);
+  });
+});

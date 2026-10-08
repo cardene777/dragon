@@ -39,7 +39,7 @@ function 折れ線のnode(diagram: CdlDiagram): (CdlDiagram["nodes"][number] & �
 
 function 合成の図(): CdlDiagram {
   const 折れ線 = 見本を取る("chart-line-demo").nodes.find((node) => node.kind === "chart-line");
-  const 棒 = 見本を取る("経路別の流入").nodes.find((node) => node.kind === "chart-bar");
+  const 棒 = 見本を取る("営業所ごとの取扱数").nodes.find((node) => node.kind === "chart-bar");
   expect(折れ線, "合成 fixture 用の折れ線 node が無い").toBeDefined();
   expect(棒, "合成 fixture 用の棒グラフ node が無い").toBeDefined();
   return { ...見本を取る("chart-line-demo"), nodes: [折れ線!, 棒!] };
@@ -48,7 +48,7 @@ function 合成の図(): CdlDiagram {
 describe("折れ線の見せ方を選べる図の判定 (#1624)", () => {
   it("折れ線を持つ 2 つの見本で選べる", () => {
     // Given
-    const 対象 = [見本を取る("chart-line-demo"), 見本を取る("週ごとの応答時間")];
+    const 対象 = [見本を取る("chart-line-demo"), 見本を取る("月ごとの配達数")];
 
     // When / Then
     for (const diagram of 対象)
@@ -146,7 +146,7 @@ describe("図の折れ線の見せ方を変える (#1624)", () => {
 
   it("折れ線を持たない図はどの指定でも元の object を返す", () => {
     // Given
-    const 元 = 見本を取る("経路別の流入");
+    const 元 = 見本を取る("営業所ごとの取扱数");
     const 指定: 折れ線の指定 = { chartFillUnder: true, chartValueRise: true, chartTrace: true };
 
     // When

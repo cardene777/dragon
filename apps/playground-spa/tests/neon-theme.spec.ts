@@ -6,6 +6,7 @@ import { openEditorTheme } from "./helpers/fixed-theme-checks";
 import {
   readFixedThemeLead,
   readFixedThemeRoleColor,
+  readFixedThemeSingleSeriesBars,
   readFlowchartDecisionStyles,
   readThemeNotes,
   readThemeNoteText,
@@ -263,14 +264,27 @@ test.describe("neon theme (#2795)", () => {
             main: element.getAttribute("data-cdl-emphasis") === "primary",
             fill: style.fill,
             opacity: style.fillOpacity,
+            stroke: style.stroke,
+            strokeWidth: style.strokeWidth,
           };
         }),
       );
     expect(bars.some((bar) => bar.main), "図表に主役の棒が無い").toBe(true);
     expect(bars.some((bar) => !bar.main), "図表に主役でない棒が無い").toBe(true);
+    const barStyle = readFixedThemeSingleSeriesBars().get("neon");
+    if (!barStyle) throw new Error("電飾の単系列の棒を意匠帳から読めない");
+    // #2837 で、主役でない棒を淡い塗りから暗い面と淡い細枠へ変えた。
+    // #2837 の 14 回目で主役を薄い面と 2px の枠にした。
     for (const bar of bars) {
-      expect(bar.fill).toBe(hexToRgb(bar.main ? lead : pale));
-      expect(bar.opacity).toBe("1");
+      const want = bar.main ? barStyle.primary : barStyle.secondary;
+      if (!want.stroke || want.strokeWidth === undefined) {
+        throw new Error(`電飾の${bar.main ? "主役" : "それ以外"}の棒の枠を意匠帳から読めない`);
+      }
+      expect(bar.fill, bar.main ? "主役の塗り" : "それ以外の塗り").toBe(hexToRgb(want.fill));
+      expect(bar.opacity, bar.main ? "主役の濃さ" : "それ以外の濃さ").toBe(String(want.opacity));
+      expect(bar.stroke, bar.main ? "主役の枠" : "それ以外の枠").toBe(hexToRgb(want.stroke));
+      expect(Number.parseFloat(bar.strokeWidth), bar.main ? "主役の枠幅" : "それ以外の枠幅")
+        .toBe(want.strokeWidth);
     }
 
     await openEditorTheme(page, 段のない六色の記法, "neon", false);

@@ -21,7 +21,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup, act } from "@testing-library/react";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
-import { sourceYaml__chartLine } from "@/topics/catalog/charts.cdl";
+import { sourceYaml__monthlyDeliveriesLine } from "@/topics/catalog/charts.cdl";
 
 afterEach(() => cleanup());
 
@@ -33,8 +33,8 @@ afterEach(() => cleanup());
  * 描き始めた瞬間から段の進みを追える。 記法の値と段の長さは見本のまま。
  */
 const 図 = () => {
-  const d = textDslToDiagram(sourceYaml__chartLine);
-  const 動く段 = (d.phases ?? []).filter((p) => p.id === "改善後");
+  const d = textDslToDiagram(sourceYaml__monthlyDeliveriesLine);
+  const 動く段 = (d.phases ?? []).filter((p) => p.id === "実績");
   expect(動く段.length, "値を動かす段が見本に無い (検査が空振りしている)").toBe(1);
   return layout({ ...d, phases: 動く段 });
 };
@@ -132,8 +132,8 @@ describe("見本の折れ線は段の終わりまで動く (#1679)", () => {
     const 終わり = 点の縦(進めて描く(段の長さ));
     expect(始め.length, "点を 1 つも読めていない (検査が空振りしている)").toBe(5);
     expect(終わり.length).toBe(5);
-    // 全週が下がる図なので、終わりの縦位置は始まりより下 (SVG の縦は下へ行くほど小さい値)
-    始め.forEach((y, i) => expect(終わり[i]!, `${i} 番目の点が下がっていない`).toBeGreaterThan(y));
+    // 計画を上回る月と下回る月が混ざる。向きは固定せず、5 点とも実績の位置へ動くことを見る
+    始め.forEach((y, i) => expect(終わり[i]!, `${i} 番目の点が動いていない`).not.toBeCloseTo(y, 6));
   });
 
   it("測り方が、置いた進みを言い当てる", () => {

@@ -23,6 +23,7 @@ import {
   readFixedThemeMetroLineOpacity,
   readFixedThemeOutline,
   readFixedThemeRoleColor,
+  readFixedThemeRoleColors,
   readFixedThemeSingleSeriesBars,
   readFixedThemeToneSeries,
   readMetroThemeNotes,
@@ -880,26 +881,64 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(failures, "札の意味属性と意匠帳が違う").toEqual([]);
   });
 
-  it("7 意匠の単系列の棒は主役の属性で意匠帳の塗りと枠を使う", () => {
+  it("7 意匠の単系列の棒は主役の属性で意匠帳の塗り・濃さ・模様色・枠を使う", () => {
     const expected = readFixedThemeSingleSeriesBars();
+    const svgDefs = 読む("../components/SvgDefs.tsx");
     const failures: string[] = [];
     for (const [name, style] of expected) {
       const declarations = cssFixedThemeDeclarations(cssText, name);
       const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
+      const primaryScope = name === "sketch" || name === "neon"
+        ? `${stage} [data-cdl-kind="chart-bar"]`
+        : stage;
       const primary = cssRuleBody(
         cssText,
-        `${stage} [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]`,
+        `${primaryScope} [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]`,
       );
       const secondary = cssRuleBody(
         cssText,
         `${stage} [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"])`,
       );
-      for (const [role, body, want] of [
-        ["主役", primary, style.primary],
-        ["それ以外", secondary, style.secondary],
+      for (const [role, selector, body, want] of [
+        [
+          "主役",
+          `${primaryScope} [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]`,
+          primary,
+          style.primary,
+        ],
+        [
+          "それ以外",
+          `${stage} [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"])`,
+          secondary,
+          style.secondary,
+        ],
       ] as const) {
         const fill = resolvedCssPaint(declarations, body, "fill");
         if (fill !== want.fill) failures.push(`${name} ${role}の塗り: 意匠帳 ${want.fill} / CSS ${fill}`);
+        const opacityBodies = cssRuleBodies(cssText, selector, "fill-opacity");
+        if (opacityBodies.length > 1) {
+          failures.push(`${name} ${role}の濃さ: CSS 宣言が ${opacityBodies.length} 件ある`);
+        }
+        const opacity = opacityBodies[0] === undefined
+          ? 1
+          : Number(cssDeclaration(opacityBodies[0], "fill-opacity"));
+        if (opacity !== want.opacity) {
+          failures.push(`${name} ${role}の濃さ: 意匠帳 ${want.opacity} / CSS ${opacity}`);
+        }
+        if (want.patternColor !== undefined) {
+          const patternId = /^url\((#[a-z0-9-]+)\)$/.exec(want.fill)?.[1]?.slice(1);
+          const pattern = patternId === undefined
+            ? undefined
+            : new RegExp(
+              `<pattern(?=[^>]*\\bid=["']${patternId}["'])[^>]*>[\\s\\S]*?<\\/pattern>`,
+            ).exec(svgDefs)?.[0];
+          const patternColor = pattern === undefined
+            ? undefined
+            : /<rect[^>]*\bfill=["'](#[0-9a-fA-F]{6})["']/.exec(pattern)?.[1]?.toLowerCase();
+          if (patternColor !== want.patternColor) {
+            failures.push(`${name} ${role}の模様色: 意匠帳 ${want.patternColor} / SvgDefs ${patternColor}`);
+          }
+        }
         if (want.stroke !== undefined) {
           const stroke = resolvedCssPaint(declarations, body, "stroke");
           if (stroke !== want.stroke) {
@@ -914,6 +953,61 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     }
     expect(expected.size).toBe(7);
     expect(failures, "単系列の棒の意味属性と意匠帳が違う").toEqual([]);
+  });
+
+  it("発想の枝・ジャーニー・折れ線・傾き図を図表の役に閉じて意匠帳の色へ向ける (#2837)", () => {
+    const series = readFixedThemeChartSeries();
+    for (const name of ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const) {
+      const branchColors = readFixedThemeRoleColors(name, "発想の枝");
+      expect(branchColors.slice(0, 2), `${name} の発想の枝 1〜2`).toEqual(
+        series.get(name)?.colors.slice(0, 2),
+      );
+      expect(branchColors[2], `${name} の発想の枝 3`).toBe(
+        resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-mind-branch-3"),
+      );
+      expect(branchColors[3], `${name} の発想の枝 4`).toBe(
+        resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-mind-branch-4"),
+      );
+      expect(readFixedThemeRoleColors(name, "ジャーニー"), `${name} のジャーニー縦軸`).toEqual([
+        resolveCssColor(cssFixedThemeDeclarations(cssText, name), "theme-journey-axis-label"),
+      ]);
+      expect(readFixedThemeRoleColors(name, "折れ線"), `${name} の折れ線`).toEqual(
+        series.get(name)?.colors.slice(0, 1),
+      );
+    }
+    const journeyAxis = cssRuleBodyContaining(cssText, [
+      '[data-cdl-kind="journey-map"]',
+      '[data-cdl-role="journey-band"]',
+      "text:last-child",
+    ]);
+    expect(cssDeclaration(journeyAxis, "fill")).toBe("var(--theme-journey-axis-label)");
+
+    for (const [tone, colorVariable] of [
+      ["accent", "cdl-chart-1"], ["teal", "cdl-chart-2"], ["success", "theme-mind-branch-3"],
+    ] as const) {
+      expect(cssText).toContain(
+        `[data-cdl-role="mind-edge"][stroke*="--cdl-tone-${tone}"]`,
+      );
+      expect(cssText).toMatch(new RegExp(
+        `mind-edge[^{}]+cdl-tone-${tone}[^{}]*\\{[^}]*stroke:\\s*var\\(--${colorVariable}\\)`,
+        "s",
+      ));
+    }
+    expect(cssText).toMatch(
+      /mind-edge[^{}]+cdl-tone-warning[^{}]*\{[^}]*stroke:\s*var\(--theme-mind-branch-4\)/su,
+    );
+    expect(cssText).toMatch(/\[data-cdl-kind="chart-line"\]\s*\{\s*--cdl-tone-accent:\s*var\(--cdl-chart-1\)/u);
+
+    expect(readFixedThemeRoleColors("sketch", "傾き図")).toEqual(["#d2491f", "#2a5ca8", "#6d6456"]);
+    expect(readFixedThemeRoleColors("relief", "傾き図")).toEqual(["#c4573c", "#966c22", "#685e51"]);
+    for (const name of ["sketch", "relief"] as const) {
+      const selector = `svg[data-cdl-stage][data-cdl-palette="${name}"] [data-cdl-kind="chart-slope"]`;
+      const body = cssRuleBody(cssText, selector);
+      expect(cssDeclaration(body, "--cdl-chart-1")).toBe("var(--er-type)");
+      expect(cssDeclaration(body, "--cdl-chart-4")).toBe("var(--er-type)");
+      expect(cssDeclaration(body, "--cdl-tone-accent")).toBe("var(--theme-lead)");
+      expect(cssDeclaration(body, "--cdl-tone-error")).toBe("var(--er-own)");
+    }
   });
 
   it("固定 7 意匠の日程の棒と漏斗の段は色みを系列色へ向けて濃さ 1 で塗る", () => {

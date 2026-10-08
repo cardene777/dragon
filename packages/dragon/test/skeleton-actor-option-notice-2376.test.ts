@@ -788,6 +788,7 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
     opportunity: 'opportunity: "のびしろ"',
     owner: 'owner: "たんとう"',
     end: 'end: "3月"',
+    at: "at: [0.2, 0.8]",
     posX: "posX: 100",
     posY: "posY: 100",
     posW: "posW: 200",

@@ -44,6 +44,12 @@ export function 円の見せ方の札(見せ方: 円の見せ方, locale: Locale
 /** 既定。 engine が欄を書かない図をどう描くかに揃える */
 export const 既定の円の見せ方: 円の見せ方 = "ring";
 
+/** 記法から組み上がった図が最初に選ぶ円の見せ方。 */
+export function 図に書いた円の見せ方(diagram: CdlDiagram): 円の見せ方 {
+  const 円 = diagram.nodes.find((n) => n.kind === "chart-pie");
+  return 円?.chartPieForm ?? 既定の円の見せ方;
+}
+
 /**
  * 前の時点を持つ円グラフの節か (#1702)。
  *

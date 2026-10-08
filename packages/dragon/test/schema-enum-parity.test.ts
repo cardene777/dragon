@@ -52,6 +52,7 @@ import {
 } from "../src/keywords";
 import { EDGE_REVEALS, LEGEND_MARKS, RELATION_FOCUSES } from "@cardenelabs/cdl";
 import { RELATIVE_DIRECTIONS } from "../src/relative-pos";
+import { CHART_PIE_FORM_WORDS } from "../src/compile/value-chart";
 
 /** schema の中の 1 つの語の一覧 */
 interface 語の一覧 {
@@ -120,6 +121,8 @@ const 対応表: Record<string, readonly string[]> = {
   order: Object.keys(ORDER_ALIAS).filter((k) => !(ORDERS as readonly string[]).includes(k)),
   // 図種ごとの形 (#2657 / #2797)。 日本語の別名を持たないので対応表の和を使う
   shape: Object.values(DIAGRAM_SHAPES).flat(),
+  form: [...CHART_PIE_FORM_WORDS.keys()],
+  見せ方: [...CHART_PIE_FORM_WORDS.keys()],
   theme: [...THEMES],
   palette: [...THEMES],
   "legend[].mark": [...LEGEND_MARKS],

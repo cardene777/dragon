@@ -52,64 +52,69 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 // ============================================================
 // 1. 棒で比べる
 // ============================================================
-export const sourceYaml__chartBar = `title: "経路別の流入"
+export const sourceYaml__branchParcelsBar = `title: "営業所ごとの取扱数"
 type: chart
 shape: bar
 
 actors:
-  - 検索: "{search}"
-  - SNS: "{sns}"
-  - 直接: "{direct}"
-  - 紹介: "{referral}"
+  - 東京: "{tokyo}"
+  - 大阪: "{osaka}"
+  - 名古屋: "{nagoya}"
+  - 福岡: "{fukuoka}"
+  - 札幌: "{sapporo}"
 
 states:
-  search: 420
-  sns: 310
-  direct: 180
-  referral: 90
+  tokyo: 620
+  osaka: 390
+  nagoya: 280
+  fukuoka: 210
+  sapporo: 130
 
 animation:
   - step: "先月" 1.2s
     draw: bar
-    description: "検索が 420 で最も多い。"
+    description: "先月も東京営業所の取扱数が最も多い。"
   - step: "今月" 1.2s
     tween:
-      search: 420 -> 680
-      sns: 310 -> 420
-      direct: 180 -> 150
-      referral: 90 -> 240
-    description: "紹介が 90 から 240 へ伸びる。"
+      tokyo: 620 -> 680
+      osaka: 390 -> 420
+      nagoya: 280 -> 310
+      fukuoka: 210 -> 240
+      sapporo: 130 -> 150
+    description: "今月は東京が 680 件で、5 営業所の中で最も多い。"
 `;
 
-export const sourceJson__chartBar = `{
-  "title": "経路別の流入",
+export const sourceJson__branchParcelsBar = `{
+  "title": "営業所ごとの取扱数",
   "type": "chart",
   "shape": "bar",
   "actors": [
-    { "name": "検索", "subtitle": "{search}" },
-    { "name": "SNS", "subtitle": "{sns}" },
-    { "name": "直接", "subtitle": "{direct}" },
-    { "name": "紹介", "subtitle": "{referral}" }
+    { "name": "東京", "subtitle": "{tokyo}" },
+    { "name": "大阪", "subtitle": "{osaka}" },
+    { "name": "名古屋", "subtitle": "{nagoya}" },
+    { "name": "福岡", "subtitle": "{fukuoka}" },
+    { "name": "札幌", "subtitle": "{sapporo}" }
   ],
   "flow": [],
-  "states": { "search": 420, "sns": 310, "direct": 180, "referral": 90 },
+  "states": { "tokyo": 620, "osaka": 390, "nagoya": 280, "fukuoka": 210, "sapporo": 130 },
   "animation": [
-    { "step": "先月", "duration": 1.2, "draw": "bar", "description": "検索が 420 で最も多い。" },
+    { "step": "先月", "duration": 1.2, "draw": "bar", "description": "先月も東京営業所の取扱数が最も多い。" },
     {
       "step": "今月",
       "duration": 1.2,
-      "description": "紹介が 90 から 240 へ伸びる。",
+      "description": "今月は東京が 680 件で、5 営業所の中で最も多い。",
       "tween": {
-        "search": [420, 680],
-        "sns": [310, 420],
-        "direct": [180, 150],
-        "referral": [90, 240]
+        "tokyo": [620, 680],
+        "osaka": [390, 420],
+        "nagoya": [280, 310],
+        "fukuoka": [210, 240],
+        "sapporo": [130, 150]
       }
     }
   ]
 }`;
 
-export const chartBar = textDslToDiagram(sourceYaml__chartBar);
+export const branchParcelsBar = textDslToDiagram(sourceYaml__branchParcelsBar);
 
 // ------------------------------------------------------------
 // 1b. 前の時点を破線で横切らせる (`パターン` の切替で選ぶ、 #1722)
@@ -117,70 +122,73 @@ export const chartBar = textDslToDiagram(sourceYaml__chartBar);
 // `previous` を書くと、棒 1 本ごとに前の時点の高さで破線が 1 本入る (`cdl#767`)。
 // 書かない図では 1 本も入らないので、**同じ見本の切替で両側を見せる**。
 //
-// **縦軸は前の時点まで含めて決まる**。 検索は前 520 で今 420 と、前のほうが高い =
+// **縦軸は前の時点まで含めて決まる**。 東京は前 700 で今 680 と、前のほうが高い =
 // 前だけが枠の外へ出ると「下がった」 が読めないので、天井を前と今の大きいほうで取る。
 //
 // 破線は棒より少し左右にはみ出す。 棒の縁と重なると、どちらが前の高さか読めなくなる。
 // ------------------------------------------------------------
-export const patternBase__chartBar = "今だけ";
+export const patternBase__branchParcelsBar = "今だけ";
 
-export const sourceYaml__pattern__chartBar__前の値つき = `title: "先月と比べた経路別の流入"
+export const sourceYaml__pattern__branchParcelsBar__前の値つき = `title: "先月と比べた営業所ごとの取扱数"
 type: chart
 shape: bar
 
 actors:
-  - 検索: { value: "{search}", previous: "520" }
-  - SNS: { value: "{sns}", previous: "260" }
-  - 直接: { value: "{direct}", previous: "210" }
-  - 紹介: { value: "{referral}", previous: "60" }
+  - 東京: { value: "{tokyo}", previous: "700" }
+  - 大阪: { value: "{osaka}", previous: "390" }
+  - 名古屋: { value: "{nagoya}", previous: "280" }
+  - 福岡: { value: "{fukuoka}", previous: "210" }
+  - 札幌: { value: "{sapporo}", previous: "130" }
 
 states:
-  search: 420
-  sns: 310
-  direct: 180
-  referral: 90
+  tokyo: 680
+  osaka: 420
+  nagoya: 310
+  fukuoka: 240
+  sapporo: 150
 
 animation:
-  - step: "今月" 1.2s
+  - step: "今月の集計" 1.2s
     draw: bar
-    description: "破線が先月の高さ。 検索だけが 520 から 420 へ下がっている。"
+    description: "破線が先月の取扱数で、棒が今月の取扱数。"
   - step: "来月の見込み" 1.2s
     tween:
-      search: 420 -> 680
-      referral: 90 -> 240
-    description: "検索が破線を越えて戻る。 破線は先月のまま動かない。"
+      tokyo: 680 -> 720
+      fukuoka: 240 -> 270
+    description: "東京と福岡の来月の見込みが伸びる。 先月の破線は動かない。"
 `;
 
-export const sourceJson__pattern__chartBar__前の値つき = `{
-  "title": "先月と比べた経路別の流入",
+export const sourceJson__pattern__branchParcelsBar__前の値つき = `{
+  "title": "先月と比べた営業所ごとの取扱数",
   "type": "chart",
   "shape": "bar",
   "actors": [
-    { "name": "検索", "value": "{search}", "previous": "520" },
-    { "name": "SNS", "value": "{sns}", "previous": "260" },
-    { "name": "直接", "value": "{direct}", "previous": "210" },
-    { "name": "紹介", "value": "{referral}", "previous": "60" }
+    { "name": "東京", "value": "{tokyo}", "previous": "700" },
+    { "name": "大阪", "value": "{osaka}", "previous": "390" },
+    { "name": "名古屋", "value": "{nagoya}", "previous": "280" },
+    { "name": "福岡", "value": "{fukuoka}", "previous": "210" },
+    { "name": "札幌", "value": "{sapporo}", "previous": "130" }
   ],
   "flow": [],
-  "states": { "search": 420, "sns": 310, "direct": 180, "referral": 90 },
+  "states": { "tokyo": 680, "osaka": 420, "nagoya": 310, "fukuoka": 240, "sapporo": 150 },
   "animation": [
     {
-      "step": "今月",
+      "step": "今月の集計",
       "duration": 1.2,
       "draw": "bar",
-      "description": "破線が先月の高さ。 検索だけが 520 から 420 へ下がっている。"
+      "description": "破線が先月の取扱数で、棒が今月の取扱数。"
     },
     {
       "step": "来月の見込み",
       "duration": 1.2,
-      "description": "検索が破線を越えて戻る。 破線は先月のまま動かない。",
-      "tween": { "search": [420, 680], "referral": [90, 240] }
+      "description": "東京と福岡の来月の見込みが伸びる。 先月の破線は動かない。",
+      "tween": { "tokyo": [680, 720], "fukuoka": [240, 270] }
     }
   ]
 }`;
 
-export const pattern__chartBar__前の値つき = textDslToDiagram(
-  sourceYaml__pattern__chartBar__前の値つき,
+export const pattern__branchParcelsBar__前の値つき = textDslToDiagram(
+  sourceYaml__pattern__branchParcelsBar__前の値つき,
 );
 
 // ------------------------------------------------------------
@@ -189,201 +197,208 @@ export const pattern__chartBar__前の値つき = textDslToDiagram(
 // 書かない図は段の終わりに伸ばし終わる。 割合を書くと、その時点で伸ばし終えて残りは伸びた棒を見せる。
 // 違いは段の途中にだけ出るので、同じ図で割合だけを変えた切替にする。
 // ------------------------------------------------------------
-export const sourceYaml__pattern__chartBar__4割で伸ばし終える = `title: "段の 4 割で伸ばし終える経路別の流入"
+export const sourceYaml__pattern__branchParcelsBar__4割で伸ばし終える = `title: "段の 4 割で伸ばし終える営業所ごとの取扱数"
 type: chart
 shape: bar
 
 actors:
-  - 検索: "{search}"
-  - SNS: "{sns}"
-  - 直接: "{direct}"
-  - 紹介: "{referral}"
+  - 東京: "{tokyo}"
+  - 大阪: "{osaka}"
+  - 名古屋: "{nagoya}"
+  - 福岡: "{fukuoka}"
+  - 札幌: "{sapporo}"
 
 states:
-  search: 420
-  sns: 310
-  direct: 180
-  referral: 90
+  tokyo: 620
+  osaka: 390
+  nagoya: 280
+  fukuoka: 210
+  sapporo: 130
 
 animation:
   - step: "先月" 1.2s
     draw: bar 0.4
-    description: "棒は段の 4 割で伸びきり、残りの 6 割は伸びた棒で検索の 420 を見せる。"
+    description: "棒は段の 4 割で伸びきり、先月の営業所ごとの取扱数を見せる。"
   - step: "今月" 1.2s
     tween:
-      search: 420 -> 680
-      sns: 310 -> 420
-      direct: 180 -> 150
-      referral: 90 -> 240
-    description: "紹介が 90 から 240 へ伸びる。"
+      tokyo: 620 -> 680
+      osaka: 390 -> 420
+      nagoya: 280 -> 310
+      fukuoka: 210 -> 240
+      sapporo: 130 -> 150
+    description: "今月は東京が 680 件まで伸びる。"
 `;
 
-export const sourceJson__pattern__chartBar__4割で伸ばし終える = `{
-  "title": "段の 4 割で伸ばし終える経路別の流入",
+export const sourceJson__pattern__branchParcelsBar__4割で伸ばし終える = `{
+  "title": "段の 4 割で伸ばし終える営業所ごとの取扱数",
   "type": "chart",
   "shape": "bar",
   "actors": [
-    { "name": "検索", "subtitle": "{search}" },
-    { "name": "SNS", "subtitle": "{sns}" },
-    { "name": "直接", "subtitle": "{direct}" },
-    { "name": "紹介", "subtitle": "{referral}" }
+    { "name": "東京", "subtitle": "{tokyo}" },
+    { "name": "大阪", "subtitle": "{osaka}" },
+    { "name": "名古屋", "subtitle": "{nagoya}" },
+    { "name": "福岡", "subtitle": "{fukuoka}" },
+    { "name": "札幌", "subtitle": "{sapporo}" }
   ],
   "flow": [],
-  "states": { "search": 420, "sns": 310, "direct": 180, "referral": 90 },
+  "states": { "tokyo": 620, "osaka": 390, "nagoya": 280, "fukuoka": 210, "sapporo": 130 },
   "animation": [
     {
       "step": "先月",
       "duration": 1.2,
       "draw": "bar",
       "drawRatio": 0.4,
-      "description": "棒は段の 4 割で伸びきり、残りの 6 割は伸びた棒で検索の 420 を見せる。"
+      "description": "棒は段の 4 割で伸びきり、先月の営業所ごとの取扱数を見せる。"
     },
     {
       "step": "今月",
       "duration": 1.2,
-      "description": "紹介が 90 から 240 へ伸びる。",
+      "description": "今月は東京が 680 件まで伸びる。",
       "tween": {
-        "search": [420, 680],
-        "sns": [310, 420],
-        "direct": [180, 150],
-        "referral": [90, 240]
+        "tokyo": [620, 680],
+        "osaka": [390, 420],
+        "nagoya": [280, 310],
+        "fukuoka": [210, 240],
+        "sapporo": [130, 150]
       }
     }
   ]
 }`;
 
-export const pattern__chartBar__4割で伸ばし終える = textDslToDiagram(
-  sourceYaml__pattern__chartBar__4割で伸ばし終える,
+export const pattern__branchParcelsBar__4割で伸ばし終える = textDslToDiagram(
+  sourceYaml__pattern__branchParcelsBar__4割で伸ばし終える,
 );
 
 // ============================================================
 // 2. 線で追う
 // ============================================================
-export const sourceYaml__chartLine = `title: "週ごとの応答時間"
+export const sourceYaml__monthlyDeliveriesLine = `title: "月ごとの配達数"
 type: chart
 shape: line
 
 actors:
-  - W1: "{w1}"
-  - W2: "{w2}"
-  - W3: "{w3}"
-  - W4: "{w4}"
-  - W5: "{w5}"
+  - 6月: "{jun}"
+  - 7月: "{jul}"
+  - 8月: "{aug}"
+  - 9月: "{sep}"
+  - 10月: "{oct}"
 
 states:
-  w1: 180
-  w2: 240
-  w3: 210
-  w4: 120
-  w5: 95
+  jun: 1000
+  jul: 1150
+  aug: 1300
+  sep: 1450
+  oct: 1600
 
 animation:
-  - step: "改善前" 1.2s
+  - step: "計画" 1.2s
     draw: line
-    description: "2 週目に 240 ms まで伸びている。"
-  - step: "改善後" 1.2s
+    description: "6 月から 10 月までの配達計画を線で結ぶ。"
+  - step: "実績" 1.2s
     tween:
-      w1: 180 -> 140
-      w2: 240 -> 160
-      w3: 210 -> 130
-      w4: 120 -> 90
-      w5: 95 -> 70
-    description: "全週が下がり、山も消える。"
+      jun: 1000 -> 900
+      jul: 1150 -> 1180
+      aug: 1300 -> 1250
+      sep: 1450 -> 1520
+      oct: 1600 -> 1750
+    description: "実績は 6 月の 900 件から 10 月の 1750 件まで伸びる。"
 `;
 
-export const sourceJson__chartLine = `{
-  "title": "週ごとの応答時間",
+export const sourceJson__monthlyDeliveriesLine = `{
+  "title": "月ごとの配達数",
   "type": "chart",
   "shape": "line",
   "actors": [
-    { "name": "W1", "subtitle": "{w1}" },
-    { "name": "W2", "subtitle": "{w2}" },
-    { "name": "W3", "subtitle": "{w3}" },
-    { "name": "W4", "subtitle": "{w4}" },
-    { "name": "W5", "subtitle": "{w5}" }
+    { "name": "6月", "subtitle": "{jun}" },
+    { "name": "7月", "subtitle": "{jul}" },
+    { "name": "8月", "subtitle": "{aug}" },
+    { "name": "9月", "subtitle": "{sep}" },
+    { "name": "10月", "subtitle": "{oct}" }
   ],
   "flow": [],
-  "states": { "w1": 180, "w2": 240, "w3": 210, "w4": 120, "w5": 95 },
+  "states": { "jun": 1000, "jul": 1150, "aug": 1300, "sep": 1450, "oct": 1600 },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "draw": "line", "description": "2 週目に 240 ms まで伸びている。" },
+    { "step": "計画", "duration": 1.2, "draw": "line", "description": "6 月から 10 月までの配達計画を線で結ぶ。" },
     {
-      "step": "改善後",
+      "step": "実績",
       "duration": 1.2,
-      "description": "全週が下がり、山も消える。",
+      "description": "実績は 6 月の 900 件から 10 月の 1750 件まで伸びる。",
       "tween": {
-        "w1": [180, 140],
-        "w2": [240, 160],
-        "w3": [210, 130],
-        "w4": [120, 90],
-        "w5": [95, 70]
+        "jun": [1000, 900],
+        "jul": [1150, 1180],
+        "aug": [1300, 1250],
+        "sep": [1450, 1520],
+        "oct": [1600, 1750]
       }
     }
   ]
 }`;
 
-export const chartLine = textDslToDiagram(sourceYaml__chartLine);
+export const monthlyDeliveriesLine = textDslToDiagram(sourceYaml__monthlyDeliveriesLine);
 
 // ============================================================
 // 3. 割合を見る
 // ============================================================
-export const sourceYaml__chartPie = `title: "費用の内訳"
+export const sourceYaml__parcelStatusPie = `title: "荷物の状態"
 type: chart
 shape: pie
+form: table
 
 actors:
-  - 計算: "{compute}"
-  - 保存: "{storage}"
-  - 通信: "{network}"
-  - その他: "{other}"
+  - 配達中: "{delivering}"
+  - 集荷済: "{collected}"
+  - 受付済: "{accepted}"
+  - 完了: "{completed}"
 
 states:
-  compute: 45
-  storage: 25
-  network: 20
-  other: 10
+  delivering: 210
+  collected: 132
+  accepted: 70
+  completed: 720
 
 animation:
-  - step: "昨年" 1.2s
+  - step: "月の半ば" 1.2s
     draw: pie
-    description: "計算が 45% で半分近くを占める。"
-  - step: "今年" 1.2s
+    description: "月の半ばまでに集計した荷物の状態を輪で分ける。"
+  - step: "今月" 1.2s
     tween:
-      compute: 45 -> 30
-      storage: 25 -> 35
-      network: 20 -> 25
-      other: 10 -> 10
-    description: "計算が下がり、保存が最大になる。"
+      delivering: 210 -> 270
+      collected: 132 -> 141
+      accepted: 70 -> 77
+      completed: 720 -> 796
+    description: "今月の荷物は合計 1284 件で、完了が 796 件。"
 `;
 
-export const sourceJson__chartPie = `{
-  "title": "費用の内訳",
+export const sourceJson__parcelStatusPie = `{
+  "title": "荷物の状態",
   "type": "chart",
   "shape": "pie",
+  "見せ方": "銘板",
   "actors": [
-    { "name": "計算", "subtitle": "{compute}" },
-    { "name": "保存", "subtitle": "{storage}" },
-    { "name": "通信", "subtitle": "{network}" },
-    { "name": "その他", "subtitle": "{other}" }
+    { "name": "配達中", "subtitle": "{delivering}" },
+    { "name": "集荷済", "subtitle": "{collected}" },
+    { "name": "受付済", "subtitle": "{accepted}" },
+    { "name": "完了", "subtitle": "{completed}" }
   ],
   "flow": [],
-  "states": { "compute": 45, "storage": 25, "network": 20, "other": 10 },
+  "states": { "delivering": 210, "collected": 132, "accepted": 70, "completed": 720 },
   "animation": [
-    { "step": "昨年", "duration": 1.2, "draw": "pie", "description": "計算が 45% で半分近くを占める。" },
+    { "step": "月の半ば", "duration": 1.2, "draw": "pie", "description": "月の半ばまでに集計した荷物の状態を輪で分ける。" },
     {
-      "step": "今年",
+      "step": "今月",
       "duration": 1.2,
-      "description": "計算が下がり、保存が最大になる。",
+      "description": "今月の荷物は合計 1284 件で、完了が 796 件。",
       "tween": {
-        "compute": [45, 30],
-        "storage": [25, 35],
-        "network": [20, 25],
-        "other": [10, 10]
+        "delivering": [210, 270],
+        "collected": [132, 141],
+        "accepted": [70, 77],
+        "completed": [720, 796]
       }
     }
   ]
 }`;
 
-export const chartPie = textDslToDiagram(sourceYaml__chartPie);
+export const parcelStatusPie = textDslToDiagram(sourceYaml__parcelStatusPie);
 
 // ------------------------------------------------------------
 // 3b. 前の時点を内側の輪に重ねる (`パターン` の切替で選ぶ、 #1698)
@@ -394,200 +409,201 @@ export const chartPie = textDslToDiagram(sourceYaml__chartPie);
 // **効くのは `輪` の見せ方だけ**。 `積層の弧` と `銘板` は内側の輪を描かないので、
 // この変種を選んだまま見せ方を変えると前の時点は消える。
 // ------------------------------------------------------------
-export const patternBase__chartPie = "今だけ";
+export const patternBase__parcelStatusPie = "今だけ";
 
-export const sourceYaml__pattern__chartPie__前と今 = `title: "前期と比べた費用の内訳"
+export const sourceYaml__pattern__parcelStatusPie__前と今 = `title: "昨日と比べた荷物の状態"
 type: chart
 shape: pie
 
 actors:
-  - 計算: { value: "{compute}", previous: "52" }
-  - 保存: { value: "{storage}", previous: "18" }
-  - 通信: { value: "{network}", previous: "22" }
-  - その他: { value: "{other}", previous: "8" }
+  - 配達中: { value: "{delivering}", previous: "240" }
+  - 集荷済: { value: "{collected}", previous: "130" }
+  - 受付済: { value: "{accepted}", previous: "82" }
+  - 完了: { value: "{completed}", previous: "748" }
 
 states:
-  compute: 45
-  storage: 25
-  network: 20
-  other: 10
+  delivering: 270
+  collected: 141
+  accepted: 77
+  completed: 796
 
 animation:
-  - step: "前期と今期" 1.2s
+  - step: "昨日と今日" 1.2s
     draw: pie
-    description: "内が前期、外が今期。 計算が 52% から 45% へ下がった。"
-  - step: "今期の見込み" 1.2s
+    description: "内側が昨日、外側が今日の荷物の状態。"
+  - step: "今日の夕方の見込み" 1.2s
     tween:
-      compute: 45 -> 30
-      storage: 25 -> 35
-    description: "保存が伸びて最大になる。 内側の輪は前期のまま動かない。"
+      delivering: 270 -> 300
+      completed: 796 -> 840
+    description: "配達中と完了が増える。 内側の昨日の輪は動かない。"
 `;
 
-export const sourceJson__pattern__chartPie__前と今 = `{
-  "title": "前期と比べた費用の内訳",
+export const sourceJson__pattern__parcelStatusPie__前と今 = `{
+  "title": "昨日と比べた荷物の状態",
   "type": "chart",
   "shape": "pie",
   "actors": [
-    { "name": "計算", "value": "{compute}", "previous": "52" },
-    { "name": "保存", "value": "{storage}", "previous": "18" },
-    { "name": "通信", "value": "{network}", "previous": "22" },
-    { "name": "その他", "value": "{other}", "previous": "8" }
+    { "name": "配達中", "value": "{delivering}", "previous": "240" },
+    { "name": "集荷済", "value": "{collected}", "previous": "130" },
+    { "name": "受付済", "value": "{accepted}", "previous": "82" },
+    { "name": "完了", "value": "{completed}", "previous": "748" }
   ],
   "flow": [],
-  "states": { "compute": 45, "storage": 25, "network": 20, "other": 10 },
+  "states": { "delivering": 270, "collected": 141, "accepted": 77, "completed": 796 },
   "animation": [
     {
-      "step": "前期と今期",
+      "step": "昨日と今日",
       "duration": 1.2,
       "draw": "pie",
-      "description": "内が前期、外が今期。 計算が 52% から 45% へ下がった。"
+      "description": "内側が昨日、外側が今日の荷物の状態。"
     },
     {
-      "step": "今期の見込み",
+      "step": "今日の夕方の見込み",
       "duration": 1.2,
-      "description": "保存が伸びて最大になる。 内側の輪は前期のまま動かない。",
-      "tween": { "compute": [45, 30], "storage": [25, 35] }
+      "description": "配達中と完了が増える。 内側の昨日の輪は動かない。",
+      "tween": { "delivering": [270, 300], "completed": [796, 840] }
     }
   ]
 }`;
 
-export const pattern__chartPie__前と今 = textDslToDiagram(sourceYaml__pattern__chartPie__前と今);
+export const pattern__parcelStatusPie__前と今 = textDslToDiagram(sourceYaml__pattern__parcelStatusPie__前と今);
 
 // ============================================================
 // 4. 絞り込みで減る
 // ============================================================
-export const sourceYaml__funnelStages = `title: "申込みまでの絞り込み"
+export const sourceYaml__orderToDeliveryFunnel = `title: "申し込みから届くまで"
 type: funnel
 
 actors:
-  - 訪問: "{visit}"
-  - 会員登録: "{signup}"
-  - カート投入: "{cart}"
-  - 申込み: "{order}"
+  - 見た: "{viewed}"
+  - 申し込んだ: "{ordered}"
+  - 集荷した: "{collected}"
+  - 届いた: { value: "{delivered}" }
 
 states:
-  visit: 12000
-  signup: 3400
-  cart: 1200
-  order: 480
+  viewed: 12000
+  ordered: 2800
+  collected: 2300
+  delivered: 2150
 
 animation:
-  - step: "改善前" 1.2s
+  - step: "届く前" 1.2s
     draw: funnel
-    description: "訪問 12000 から申込み 480 まで絞られる。"
-  - step: "改善後" 1.2s
+    description: "見た人から届く見込みまで、宅配の段を追う。"
+  - step: "先月" 1.2s
     tween:
-      visit: 12000 -> 12000
-      signup: 3400 -> 5200
-      cart: 1200 -> 2400
-      order: 480 -> 1100
-    description: "入口は同じまま、途中の残り方が変わる。"
+      viewed: 12000 -> 12000
+      ordered: 2800 -> 3400
+      collected: 2300 -> 2900
+      delivered: 2150 -> 2750
+    description: "先月は見た 12000 件から届いた 2750 件まで、率は 28%・85%・95%。"
 `;
 
-export const sourceJson__funnelStages = `{
-  "title": "申込みまでの絞り込み",
+export const sourceJson__orderToDeliveryFunnel = `{
+  "title": "申し込みから届くまで",
   "type": "funnel",
   "actors": [
-    { "name": "訪問", "subtitle": "{visit}" },
-    { "name": "会員登録", "subtitle": "{signup}" },
-    { "name": "カート投入", "subtitle": "{cart}" },
-    { "name": "申込み", "subtitle": "{order}" }
+    { "name": "見た", "subtitle": "{viewed}" },
+    { "name": "申し込んだ", "subtitle": "{ordered}" },
+    { "name": "集荷した", "subtitle": "{collected}" },
+    { "name": "届いた", "value": "{delivered}" }
   ],
   "flow": [],
-  "states": { "visit": 12000, "signup": 3400, "cart": 1200, "order": 480 },
+  "states": { "viewed": 12000, "ordered": 2800, "collected": 2300, "delivered": 2150 },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "draw": "funnel", "description": "訪問 12000 から申込み 480 まで絞られる。" },
+    { "step": "届く前", "duration": 1.2, "draw": "funnel", "description": "見た人から届く見込みまで、宅配の段を追う。" },
     {
-      "step": "改善後",
+      "step": "先月",
       "duration": 1.2,
-      "description": "入口は同じまま、途中の残り方が変わる。",
+      "description": "先月は見た 12000 件から届いた 2750 件まで、率は 28%・85%・95%。",
       "tween": {
-        "visit": [12000, 12000],
-        "signup": [3400, 5200],
-        "cart": [1200, 2400],
-        "order": [480, 1100]
+        "viewed": [12000, 12000],
+        "ordered": [2800, 3400],
+        "collected": [2300, 2900],
+        "delivered": [2150, 2750]
       }
     }
   ]
 }`;
 
-export const funnelStages = textDslToDiagram(sourceYaml__funnelStages);
+export const orderToDeliveryFunnel = textDslToDiagram(sourceYaml__orderToDeliveryFunnel);
 
 // ============================================================
 // 5. 期間で並べる
 // ============================================================
-export const sourceYaml__ganttTimeline = `title: "公開までの段取り"
+export const sourceYaml__sortingShelfGantt = `title: "仕分け棚を入れ替える工程"
 type: gantt
+ticks: [6月, 7月, 8月, 9月, 10月]
 
 actors:
-  - 設計: { value: "1月", end: "{design_end}" }
-  - 実装: { value: "2月", end: "{build_end}" }
-  - 検証: { value: "4月", end: "{test_end}" }
-  - 公開: "5月"
+  - 調べる: { value: "6月", end: "{survey_end}", tone: info }
+  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent }
+  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent }
+  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: info }
+  - 試す: { value: "9月+0.60", end: "{trial_end}", tone: accent }
+  - 本番: "10月"
 
 states:
-  design_end: 0
-  build_end: 1
-  test_end: 2
+  survey_end: 0
+  design_end: 0.80
+  shelf_end: 2
+  terminal_end: 2.55
+  trial_end: 3.60
 
 flow:
-  - 設計 -> 実装: ""
-  - 実装 -> 検証: ""
-  - 検証 -> 公開: ""
+  - 設計する -> 棚を作る: ""
+  - 棚を作る -> 試す: ""
+  - 端末を入れる -> 試す: ""
+  - 試す -> 本番: ""
 
 animation:
-  - step: "当初の計画" 1.2s
+  - step: "入れ替え前の予定" 1.2s
     draw: gantt
-    description: "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る。"
-  - step: "設計が延びる" 1.2s
-    tween:
-      design_end: 0 -> 1
-    description: "設計が 2 月まで食い込む。 帯の終わりを状態から取っている。"
-  - step: "後ろが押される" 1.2s
-    tween:
-      build_end: 1 -> 2
-      test_end: 2 -> 3
-    description: "実装と検証が順に押され、検証が公開の月に重なる。"
+    description: "6 月から 10 月までの仕分け棚の入れ替え予定を並べる。"
+  - step: "入れ替え工程" 1.2s
+    set:
+      shelf_end: 2.20
+      terminal_end: 2.55
+      trial_end: 3.60
+    description: "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 9 月上旬。"
 `;
 
-export const sourceJson__ganttTimeline = `{
-  "title": "公開までの段取り",
+export const sourceJson__sortingShelfGantt = `{
+  "title": "仕分け棚を入れ替える工程",
   "type": "gantt",
+  "目盛り": ["6月", "7月", "8月", "9月", "10月"],
   "actors": [
-    { "name": "設計", "subtitle": "1月", "end": "{design_end}" },
-    { "name": "実装", "subtitle": "2月", "end": "{build_end}" },
-    { "name": "検証", "subtitle": "4月", "end": "{test_end}" },
-    { "name": "公開", "subtitle": "5月" }
+    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "info" },
+    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent" },
+    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent" },
+    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "info" },
+    { "name": "試す", "subtitle": "9月+0.60", "end": "{trial_end}", "tone": "accent" },
+    { "name": "本番", "subtitle": "10月" }
   ],
   "flow": [
-    { "from": "設計", "to": "実装", "label": "" },
-    { "from": "実装", "to": "検証", "label": "" },
-    { "from": "検証", "to": "公開", "label": "" }
+    { "from": "設計する", "to": "棚を作る", "label": "" },
+    { "from": "棚を作る", "to": "試す", "label": "" },
+    { "from": "端末を入れる", "to": "試す", "label": "" },
+    { "from": "試す", "to": "本番", "label": "" }
   ],
-  "states": { "design_end": 0, "build_end": 1, "test_end": 2 },
+  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2, "terminal_end": 2.55, "trial_end": 3.60 },
   "animation": [
     {
-      "step": "当初の計画",
+      "step": "入れ替え前の予定",
       "duration": 1.2,
       "draw": "gantt",
-      "description": "帯が各工程の始まりから右へ伸び、依存の矢印は出揃ってから出る。"
+      "description": "6 月から 10 月までの仕分け棚の入れ替え予定を並べる。"
     },
     {
-      "step": "設計が延びる",
+      "step": "入れ替え工程",
       "duration": 1.2,
-      "description": "設計が 2 月まで食い込む。 帯の終わりを状態から取っている。",
-      "tween": { "design_end": [0, 1] }
-    },
-    {
-      "step": "後ろが押される",
-      "duration": 1.2,
-      "description": "実装と検証が順に押され、検証が公開の月に重なる。",
-      "tween": { "build_end": [1, 2], "test_end": [2, 3] }
+      "description": "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 9 月上旬。",
+      "set": { "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.60 }
     }
   ]
 }`;
 
-export const ganttTimeline = textDslToDiagram(sourceYaml__ganttTimeline);
+export const sortingShelfGantt = textDslToDiagram(sourceYaml__sortingShelfGantt);
 
 /**
  * 前後の矢印を書かない形 (#1706)。
@@ -596,138 +612,123 @@ export const ganttTimeline = textDslToDiagram(sourceYaml__ganttTimeline);
  * **矢印の無い段取りがどこにも出ていなかった**。 期日だけを並べる使い方はよくあるので、
  * 同じ見本の切替で見比べられるようにする。
  */
-export const patternBase__ganttTimeline = "前後つき";
+export const patternBase__sortingShelfGantt = "前後つき";
 
-export const sourceYaml__pattern__ganttTimeline__帯だけ = `title: "四半期ごとの持ち場"
+export const sourceYaml__pattern__sortingShelfGantt__帯だけ = `title: "矢印なしの仕分け棚を入れ替える工程"
 type: gantt
+ticks: [6月, 7月, 8月, 9月, 10月]
 
 actors:
-  - 調査: { value: "1月", end: "{survey_end}" }
-  - 試作: { value: "2月", end: "{proto_end}" }
-  - 検証: { value: "4月", end: "{check_end}" }
-  - 公開: "5月"
+  - 調べる: { value: "6月", end: "{survey_end}", tone: info }
+  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent }
+  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent }
+  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: info }
+  - 試す: { value: "9月+0.60", end: "{trial_end}", tone: accent }
+  - 本番: "10月"
 
 states:
   survey_end: 0
-  proto_end: 1
-  check_end: 2
+  design_end: 0.80
+  shelf_end: 2.20
+  terminal_end: 2.55
+  trial_end: 3.60
 
 animation:
-  - step: "帯を引く" 1.2s
+  - step: "工程の帯を引く" 1.2s
     draw: gantt
-    description: "前後の矢印は出ず、帯だけが始まりから右へ伸びる。"
-  - step: "調査が延びる" 1.2s
-    tween:
-      survey_end: 0 -> 1
-    description: "調査が 2 月まで食い込む。 矢印は出さず、帯の長さだけで伝える。"
-  - step: "後ろが押される" 1.2s
-    tween:
-      proto_end: 1 -> 2
-      check_end: 2 -> 3
-    description: "試作と検証が順に押され、検証が公開の月に重なる。"
+    description: "依存の矢印を出さず、仕分け棚を入れ替える工程の帯だけを示す。"
 `;
 
-export const sourceJson__pattern__ganttTimeline__帯だけ = `{
-  "title": "四半期ごとの持ち場",
+export const sourceJson__pattern__sortingShelfGantt__帯だけ = `{
+  "title": "矢印なしの仕分け棚を入れ替える工程",
   "type": "gantt",
+  "目盛り": ["6月", "7月", "8月", "9月", "10月"],
   "actors": [
-    { "name": "調査", "subtitle": "1月", "end": "{survey_end}" },
-    { "name": "試作", "subtitle": "2月", "end": "{proto_end}" },
-    { "name": "検証", "subtitle": "4月", "end": "{check_end}" },
-    { "name": "公開", "subtitle": "5月" }
+    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "info" },
+    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent" },
+    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent" },
+    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "info" },
+    { "name": "試す", "subtitle": "9月+0.60", "end": "{trial_end}", "tone": "accent" },
+    { "name": "本番", "subtitle": "10月" }
   ],
   "flow": [],
-  "states": { "survey_end": 0, "proto_end": 1, "check_end": 2 },
+  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.60 },
   "animation": [
     {
-      "step": "帯を引く",
+      "step": "工程の帯を引く",
       "duration": 1.2,
       "draw": "gantt",
-      "description": "前後の矢印は出ず、帯だけが始まりから右へ伸びる。"
-    },
-    {
-      "step": "調査が延びる",
-      "duration": 1.2,
-      "description": "調査が 2 月まで食い込む。 矢印は出さず、帯の長さだけで伝える。",
-      "tween": { "survey_end": [0, 1] }
-    },
-    {
-      "step": "後ろが押される",
-      "duration": 1.2,
-      "description": "試作と検証が順に押され、検証が公開の月に重なる。",
-      "tween": { "proto_end": [1, 2], "check_end": [2, 3] }
+      "description": "依存の矢印を出さず、仕分け棚を入れ替える工程の帯だけを示す。"
     }
   ]
 }`;
 
-export const pattern__ganttTimeline__帯だけ = textDslToDiagram(
-  sourceYaml__pattern__ganttTimeline__帯だけ,
+export const pattern__sortingShelfGantt__帯だけ = textDslToDiagram(
+  sourceYaml__pattern__sortingShelfGantt__帯だけ,
 );
 
 // ============================================================
 // 6. 体験の起伏
 // ============================================================
-export const sourceYaml__journeyMap = `title: "初めて使うまで"
+export const sourceYaml__shipperFeelingJourney = `title: "荷主の気持ち"
 type: journey
 
 actors:
-  - 知る: "{know}"
-  - 登録: "{signup}"
-  - 設定: "{setup}"
-  - 初回の成功: "{win}"
+  - 申し込む: "{order}"
+  - 集荷を待つ: "{wait}"
+  - 運ばれる: "{carry}"
+  - 不在だった: { value: "{absence}", opportunity: "不在票に気づかず" }
+  - 再配達を頼む: "{redelivery}"
+  - 受け取る: "{receive}"
 
 states:
-  know: "普通"
-  signup: "不満"
-  setup: "普通"
-  win: "満足"
+  order: "普通"
+  wait: "不満"
+  carry: "普通"
+  absence: "不満"
+  redelivery: "不満"
+  receive: "満足"
 
 animation:
-  - step: "改善前" 1.2s
+  - step: "届く前" 1.2s
     draw: journey
-    description: "登録でつまずき、設定も普通のまま終わる。"
-  - step: "登録を直す" 1.2s
+    description: "申し込みから受け取るまでの荷主の気持ちを追う。"
+  - step: "不在と再配達" 1.2s
     set:
-      signup: "満足"
-      setup: "満足"
-    description: "入力の作りを直すと、登録とその次の山が同時に上がる。"
-  - step: "案内も足す" 1.2s
-    set:
-      know: "満足"
-      setup: "最高"
-      win: "最高"
-    description: "知る段階に案内を足すと、4 つの段全部が持ち上がる。"
+      order: "満足"
+      wait: "普通"
+      carry: "満足"
+      absence: "怒り"
+      redelivery: "不満"
+      receive: "最高"
+    description: "不在票に気づかなかった時が谷になり、受け取る時に最高まで上がる。"
 `;
 
-export const sourceJson__journeyMap = `{
-  "title": "初めて使うまで",
+export const sourceJson__shipperFeelingJourney = `{
+  "title": "荷主の気持ち",
   "type": "journey",
   "actors": [
-    { "name": "知る", "subtitle": "{know}" },
-    { "name": "登録", "subtitle": "{signup}" },
-    { "name": "設定", "subtitle": "{setup}" },
-    { "name": "初回の成功", "subtitle": "{win}" }
+    { "name": "申し込む", "subtitle": "{order}" },
+    { "name": "集荷を待つ", "subtitle": "{wait}" },
+    { "name": "運ばれる", "subtitle": "{carry}" },
+    { "name": "不在だった", "value": "{absence}", "opportunity": "不在票に気づかず" },
+    { "name": "再配達を頼む", "subtitle": "{redelivery}" },
+    { "name": "受け取る", "subtitle": "{receive}" }
   ],
   "flow": [],
-  "states": { "know": "普通", "signup": "不満", "setup": "普通", "win": "満足" },
+  "states": { "order": "普通", "wait": "不満", "carry": "普通", "absence": "不満", "redelivery": "不満", "receive": "満足" },
   "animation": [
-    { "step": "改善前", "duration": 1.2, "draw": "journey", "description": "登録でつまずき、設定も普通のまま終わる。" },
+    { "step": "届く前", "duration": 1.2, "draw": "journey", "description": "申し込みから受け取るまでの荷主の気持ちを追う。" },
     {
-      "step": "登録を直す",
+      "step": "不在と再配達",
       "duration": 1.2,
-      "description": "入力の作りを直すと、登録とその次の山が同時に上がる。",
-      "set": { "signup": "満足", "setup": "満足" }
-    },
-    {
-      "step": "案内も足す",
-      "duration": 1.2,
-      "description": "知る段階に案内を足すと、4 つの段全部が持ち上がる。",
-      "set": { "know": "満足", "setup": "最高", "win": "最高" }
+      "description": "不在票に気づかなかった時が谷になり、受け取る時に最高まで上がる。",
+      "set": { "order": "満足", "wait": "普通", "carry": "満足", "absence": "怒り", "redelivery": "不満", "receive": "最高" }
     }
   ]
 }`;
 
-export const journeyMap = textDslToDiagram(sourceYaml__journeyMap);
+export const shipperFeelingJourney = textDslToDiagram(sourceYaml__shipperFeelingJourney);
 
 /**
  * 段ごとの接点を書く形 (#1706)。
@@ -736,61 +737,65 @@ export const journeyMap = textDslToDiagram(sourceYaml__journeyMap);
  * カタログでは組立て API の見本 (`presets`) だけが書いており、記法の見本は書いていなかった。
  * **別の行に分かれていると見比べられない** ので、同じ見本の切替にする。
  */
-export const patternBase__journeyMap = "気持ちだけ";
+export const patternBase__shipperFeelingJourney = "気持ちだけ";
 
-export const sourceYaml__pattern__journeyMap__接点つき = `title: "初めて使うまでの接点"
+export const sourceYaml__pattern__shipperFeelingJourney__接点つき = `title: "荷主の気持ちと接点"
 type: journey
 
 actors:
-  - 知る: { value: "普通", touchpoint: "紹介記事" }
-  - 登録: { value: "{signup}", touchpoint: "申込みフォーム" }
-  - 設定: { value: "{setup}", touchpoint: "設定画面" }
-  - 初回の成功: { value: "最高", touchpoint: "作った図" }
+  - 申し込む: { value: "満足", touchpoint: "申し込み画面" }
+  - 集荷を待つ: { value: "普通", touchpoint: "集荷予定" }
+  - 運ばれる: { value: "満足", touchpoint: "追跡画面" }
+  - 不在だった: { value: "{absence}", touchpoint: "不在票", opportunity: "不在票に気づかず" }
+  - 再配達を頼む: { value: "{redelivery}", touchpoint: "再配達受付" }
+  - 受け取る: { value: "最高", touchpoint: "受け取り" }
 
 states:
-  signup: "不満"
-  setup: "満足"
+  absence: "怒り"
+  redelivery: "不満"
 
 animation:
-  - step: "改善前" 1.2s
+  - step: "接点を辿る" 1.2s
     draw: journey
     description: "起伏の下に、その気持ちが起きた場所が並ぶ。"
-  - step: "改善後" 1.2s
+  - step: "知らせた後" 1.2s
     set:
-      signup: "満足"
-      setup: "最高"
-    description: "接点はそのままで、山だけが上がる。"
+      absence: "普通"
+      redelivery: "満足"
+    description: "接点はそのままで、不在の前に知らせると谷が上がる。"
 `;
 
-export const sourceJson__pattern__journeyMap__接点つき = `{
-  "title": "初めて使うまでの接点",
+export const sourceJson__pattern__shipperFeelingJourney__接点つき = `{
+  "title": "荷主の気持ちと接点",
   "type": "journey",
   "actors": [
-    { "name": "知る", "subtitle": "普通", "touchpoint": "紹介記事" },
-    { "name": "登録", "subtitle": "{signup}", "touchpoint": "申込みフォーム" },
-    { "name": "設定", "subtitle": "{setup}", "touchpoint": "設定画面" },
-    { "name": "初回の成功", "subtitle": "最高", "touchpoint": "作った図" }
+    { "name": "申し込む", "value": "満足", "touchpoint": "申し込み画面" },
+    { "name": "集荷を待つ", "value": "普通", "touchpoint": "集荷予定" },
+    { "name": "運ばれる", "value": "満足", "touchpoint": "追跡画面" },
+    { "name": "不在だった", "value": "{absence}", "touchpoint": "不在票", "opportunity": "不在票に気づかず" },
+    { "name": "再配達を頼む", "value": "{redelivery}", "touchpoint": "再配達受付" },
+    { "name": "受け取る", "value": "最高", "touchpoint": "受け取り" }
   ],
   "flow": [],
-  "states": { "signup": "不満", "setup": "満足" },
+  "states": { "absence": "怒り", "redelivery": "不満" },
   "animation": [
     {
-      "step": "改善前",
+      "step": "接点を辿る",
       "duration": 1.2,
       "draw": "journey",
       "description": "起伏の下に、その気持ちが起きた場所が並ぶ。"
     },
     {
-      "step": "改善後",
+      "step": "知らせた後",
       "duration": 1.2,
-      "description": "接点はそのままで、山だけが上がる。",
-      "set": { "signup": "満足", "setup": "最高" }
+      "description": "接点はそのままで、不在の前に知らせると谷が上がる。",
+      "set": { "absence": "普通", "redelivery": "満足" }
     }
   ]
 }`;
 
-export const pattern__journeyMap__接点つき = textDslToDiagram(
-  sourceYaml__pattern__journeyMap__接点つき,
+export const pattern__shipperFeelingJourney__接点つき = textDslToDiagram(
+  sourceYaml__pattern__shipperFeelingJourney__接点つき,
 );
 
 /**
@@ -806,127 +811,145 @@ export const pattern__journeyMap__接点つき = textDslToDiagram(
  * 段の名前は短い名詞にする = 横幅 1440 の画面で 5 つを並べると、動詞の句 (「たらい回しにされる」) は
  * 隣の段の名前と重なる。
  */
-export const sourceYaml__pattern__journeyMap__5つの気持ち = `title: "問い合わせから解決するまで"
+export const sourceYaml__pattern__shipperFeelingJourney__5つの気持ち = `title: "荷主が通る 5 つの気持ち"
 type: journey
 
 actors:
-  - 困りごと: "普通"
-  - 窓口探し: "{search}"
-  - たらい回し: "{handoff}"
-  - 担当者: "満足"
-  - 解決: "最高"
+  - 申し込む: "満足"
+  - 集荷を待つ: "普通"
+  - 運ばれる: "満足"
+  - 不在だった: { value: "{absence}", opportunity: "不在票に気づかず" }
+  - 再配達を頼む: "{redelivery}"
+  - 受け取る: "最高"
 
 states:
-  search: "不満"
-  handoff: "怒り"
+  absence: "不満"
+  redelivery: "普通"
 
 animation:
-  - step: "5 つの気持ち" 1.2s
+  - step: "届く前の気持ち" 1.2s
     draw: journey
-    description: "いちばん低い怒りから、いちばん高い最高まで、顔が 5 通りに描き分けられる。"
-  - step: "窓口を 1 つにした後" 1.2s
+    description: "届く前は不在を不満、再配達を普通として仮置きする。"
+  - step: "5 つの気持ち" 1.2s
     set:
-      search: "普通"
-      handoff: "満足"
-    description: "探す手間と、たらい回しが無くなると、谷が埋まる。"
+      absence: "怒り"
+      redelivery: "不満"
+    description: "荷主の道筋で、怒りから最高まで 5 つの気持ちを描き分ける。"
 `;
 
-export const sourceJson__pattern__journeyMap__5つの気持ち = `{
-  "title": "問い合わせから解決するまで",
+export const sourceJson__pattern__shipperFeelingJourney__5つの気持ち = `{
+  "title": "荷主が通る 5 つの気持ち",
   "type": "journey",
   "actors": [
-    { "name": "困りごと", "subtitle": "普通" },
-    { "name": "窓口探し", "subtitle": "{search}" },
-    { "name": "たらい回し", "subtitle": "{handoff}" },
-    { "name": "担当者", "subtitle": "満足" },
-    { "name": "解決", "subtitle": "最高" }
+    { "name": "申し込む", "subtitle": "満足" },
+    { "name": "集荷を待つ", "subtitle": "普通" },
+    { "name": "運ばれる", "subtitle": "満足" },
+    { "name": "不在だった", "value": "{absence}", "opportunity": "不在票に気づかず" },
+    { "name": "再配達を頼む", "subtitle": "{redelivery}" },
+    { "name": "受け取る", "subtitle": "最高" }
   ],
   "flow": [],
-  "states": { "search": "不満", "handoff": "怒り" },
+  "states": { "absence": "不満", "redelivery": "普通" },
   "animation": [
+    {
+      "step": "届く前の気持ち",
+      "duration": 1.2,
+      "draw": "journey",
+      "description": "届く前は不在を不満、再配達を普通として仮置きする。"
+    },
     {
       "step": "5 つの気持ち",
       "duration": 1.2,
-      "draw": "journey",
-      "description": "いちばん低い怒りから、いちばん高い最高まで、顔が 5 通りに描き分けられる。"
-    },
-    {
-      "step": "窓口を 1 つにした後",
-      "duration": 1.2,
-      "description": "探す手間と、たらい回しが無くなると、谷が埋まる。",
-      "set": { "search": "普通", "handoff": "満足" }
+      "description": "荷主の道筋で、怒りから最高まで 5 つの気持ちを描き分ける。",
+      "set": { "absence": "怒り", "redelivery": "不満" }
     }
   ]
 }`;
 
-export const pattern__journeyMap__5つの気持ち = textDslToDiagram(
-  sourceYaml__pattern__journeyMap__5つの気持ち,
+export const pattern__shipperFeelingJourney__5つの気持ち = textDslToDiagram(
+  sourceYaml__pattern__shipperFeelingJourney__5つの気持ち,
 );
 
 // ============================================================
 // 7. 枝分かれで広げる
 // ============================================================
-export const sourceYaml__mindMap = `title: "図を速くする"
+export const sourceYaml__redeliveryIdeasMind = `title: "再配達を減らす"
 type: mind
 
 actors:
-  - 図を速くする: "{total} ms 短縮"
-  - 描く量を減らす: "{paint} ms"
-  - 計算を減らす: "{calc} ms"
-  - 見えない所を省く: "{skip} ms"
-  - 結果を覚える: "{cache} ms"
+  - "{theme}"
+  - 置き場所
+  - 時間
+  - 知らせる
+  - 受け取り方
+  - 置き配
+  - 宅配ロッカー
+  - 時間指定
+  - 夜の便
+  - 前日に知らせる
+  - 着く前に電話
+  - コンビニで受け取る
+  - 職場に届ける
+
+flow:
+  - 置き場所 -> 置き配: ""
+  - 置き場所 -> 宅配ロッカー: ""
+  - 時間 -> 時間指定: ""
+  - 時間 -> 夜の便: ""
+  - 知らせる -> 前日に知らせる: ""
+  - 知らせる -> 着く前に電話: ""
+  - 受け取り方 -> コンビニで受け取る: ""
+  - 受け取り方 -> 職場に届ける: ""
 
 states:
-  total: 0
-  paint: 0
-  calc: 0
-  skip: 0
-  cache: 0
+  theme: "困りごと"
 
 animation:
-  - step: "手を付ける前" 1.2s
+  - step: "困りごと" 1.2s
     draw: mind
-    description: "どの枝もまだ 0 ms。 手を付ける前の姿。"
-  - step: "4 つを入れた後" 1.2s
-    tween:
-      paint: 0 -> 120
-      calc: 0 -> 80
-      skip: 0 -> 60
-      cache: 0 -> 40
-      total: 0 -> 300
-    description: "枝ごとの短縮が積み上がって 300 ms になる。"
+    description: "受け取りの困りごとから、置き場所と時間の枝を考える。"
+  - step: "再配達を減らす" 1.2s
+    set:
+      theme: "再配達を減らす"
+    description: "中心を再配達を減らすに定め、4 本の手立てと 8 枚の葉を読む。"
 `;
 
-export const sourceJson__mindMap = `{
-  "title": "図を速くする",
+export const sourceJson__redeliveryIdeasMind = `{
+  "title": "再配達を減らす",
   "type": "mind",
   "actors": [
-    { "name": "図を速くする", "subtitle": "{total} ms 短縮" },
-    { "name": "描く量を減らす", "subtitle": "{paint} ms" },
-    { "name": "計算を減らす", "subtitle": "{calc} ms" },
-    { "name": "見えない所を省く", "subtitle": "{skip} ms" },
-    { "name": "結果を覚える", "subtitle": "{cache} ms" }
+    { "name": "{theme}" },
+    { "name": "置き場所" },
+    { "name": "時間" },
+    { "name": "知らせる" },
+    { "name": "受け取り方" },
+    { "name": "置き配" },
+    { "name": "宅配ロッカー" },
+    { "name": "時間指定" },
+    { "name": "夜の便" },
+    { "name": "前日に知らせる" },
+    { "name": "着く前に電話" },
+    { "name": "コンビニで受け取る" },
+    { "name": "職場に届ける" }
   ],
-  "flow": [],
-  "states": { "total": 0, "paint": 0, "calc": 0, "skip": 0, "cache": 0 },
+  "flow": [
+    { "from": "置き場所", "to": "置き配", "label": "" },
+    { "from": "置き場所", "to": "宅配ロッカー", "label": "" },
+    { "from": "時間", "to": "時間指定", "label": "" },
+    { "from": "時間", "to": "夜の便", "label": "" },
+    { "from": "知らせる", "to": "前日に知らせる", "label": "" },
+    { "from": "知らせる", "to": "着く前に電話", "label": "" },
+    { "from": "受け取り方", "to": "コンビニで受け取る", "label": "" },
+    { "from": "受け取り方", "to": "職場に届ける", "label": "" }
+  ],
+  "states": { "theme": "困りごと" },
   "animation": [
-    { "step": "手を付ける前", "duration": 1.2, "draw": "mind", "description": "どの枝もまだ 0 ms。 手を付ける前の姿。" },
-    {
-      "step": "4 つを入れた後",
-      "duration": 1.2,
-      "description": "枝ごとの短縮が積み上がって 300 ms になる。",
-      "tween": {
-        "paint": [0, 120],
-        "calc": [0, 80],
-        "skip": [0, 60],
-        "cache": [0, 40],
-        "total": [0, 300]
-      }
-    }
+    { "step": "困りごと", "duration": 1.2, "draw": "mind", "description": "受け取りの困りごとから、置き場所と時間の枝を考える。" },
+    { "step": "再配達を減らす", "duration": 1.2, "description": "中心を再配達を減らすに定め、4 本の手立てと 8 枚の葉を読む。", "set": { "theme": "再配達を減らす" } }
   ]
 }`;
 
-export const mindMap = textDslToDiagram(sourceYaml__mindMap);
+export const redeliveryIdeasMind = textDslToDiagram(sourceYaml__redeliveryIdeasMind);
 
 /**
  * 根にも枝にも説明を書かない形 (#1706)。
@@ -935,171 +958,205 @@ export const mindMap = textDslToDiagram(sourceYaml__mindMap);
  * カタログの発想の枝は 3 件とも数字を添えており、**見出しだけで広げる形が出ていなかった**。
  * 考えを広げる段階では数字を持たないことのほうが多いので、切替で両方を見せる。
  */
-export const patternBase__mindMap = "説明つき";
+export const patternBase__redeliveryIdeasMind = "見出しだけ";
 
-export const sourceYaml__pattern__mindMap__見出しだけ = `title: "速くする手立てを並べる"
+export const sourceYaml__pattern__redeliveryIdeasMind__説明つき = `title: "再配達を減らす手立ての説明"
 type: mind
 
 actors:
-  - 速くする手立て
-  - 描く量を減らす
-  - 計算を減らす
-  - 見えない所を省く
-  - 結果を覚える
+  - 再配達を減らす: "受け取りやすくする"
+  - 置き場所: "宅配箱"
+  - 時間: "指定"
+  - 知らせる: "事前に"
+  - 受け取り方: "届け先を選べる"
 
 animation:
-  - step: "枝を広げる" 1.2s
+  - step: "説明を添える" 1.2s
     draw: mind
-    description: "根から 4 本の枝が伸びる。 数字は載せず、試すことだけを並べる。"
+    description: "再配達を減らす 4 本の枝に短い説明を添える。"
 `;
 
-export const sourceJson__pattern__mindMap__見出しだけ = `{
-  "title": "速くする手立てを並べる",
+export const sourceJson__pattern__redeliveryIdeasMind__説明つき = `{
+  "title": "再配達を減らす手立ての説明",
   "type": "mind",
   "actors": [
-    { "name": "速くする手立て" },
-    { "name": "描く量を減らす" },
-    { "name": "計算を減らす" },
-    { "name": "見えない所を省く" },
-    { "name": "結果を覚える" }
+    { "name": "再配達を減らす", "subtitle": "受け取りやすくする" },
+    { "name": "置き場所", "subtitle": "宅配箱" },
+    { "name": "時間", "subtitle": "指定" },
+    { "name": "知らせる", "subtitle": "事前に" },
+    { "name": "受け取り方", "subtitle": "届け先を選べる" }
   ],
   "flow": [],
   "animation": [
     {
-      "step": "枝を広げる",
+      "step": "説明を添える",
       "duration": 1.2,
       "draw": "mind",
-      "description": "根から 4 本の枝が伸びる。 数字は載せず、試すことだけを並べる。"
+      "description": "再配達を減らす 4 本の枝に短い説明を添える。"
     }
   ]
 }`;
 
-export const pattern__mindMap__見出しだけ = textDslToDiagram(
-  sourceYaml__pattern__mindMap__見出しだけ,
+export const pattern__redeliveryIdeasMind__説明つき = textDslToDiagram(
+  sourceYaml__pattern__redeliveryIdeasMind__説明つき,
 );
 
 // ============================================================
 // 8. 2 軸で分ける
 // ============================================================
-export const sourceYaml__quadrantMatrix = `title: "着手の順番"
+export const sourceYaml__measureEffortQuadrant = `title: "打ち手の手間と効き目"
 type: quadrant
 
 axes:
-  x: { left: "手間が小さい", right: "手間が大きい" }
-  y: { bottom: "効きが小さい", top: "効きが大きい" }
+  x: { left: "手間 小", right: "手間 大" }
+  y: { bottom: "効き目 小", top: "効き目 大" }
 
 regions:
-  左上: "すぐやる"
+  左上: "先にやる"
   右上: "計画してやる"
   左下: "ついでにやる"
   右下: "やらない"
 
 actors:
-  - 重複削除: "左上"
-  - 描画刷新: "右上"
-  - 配色統一: "{color}"
-  - 旧記法: "{legacy}"
+  - 置き配: { at: ["{dropoff_x}", "{dropoff_y}"] }
+  - 前日に知らせる: { at: ["{notice_x}", "{notice_y}"] }
+  - 宅配ロッカー: { at: ["{locker_x}", "{locker_y}"] }
+  - 不在票を電子に: { at: ["{digital_x}", "{digital_y}"] }
+  - 夜の便: { at: ["{night_x}", "{night_y}"] }
 
 states:
-  color: "左下"
-  legacy: "右下"
+  dropoff_x: 0.12
+  dropoff_y: 0.70
+  notice_x: 0.38
+  notice_y: 0.88
+  locker_x: 0.84
+  locker_y: 0.84
+  digital_x: 0.36
+  digital_y: 0.16
+  night_x: 0.88
+  night_y: 0.34
 
 animation:
-  - step: "見直し前" 1.2s
-    description: "配色統一と旧記法はどちらも後回しに置いてある。"
-  - step: "見直し後" 1.2s
+  - step: "案を並べる" 1.2s
+    description: "宅配の打ち手を手間と効き目で仮置きする。"
+  - step: "優先度を決める" 1.2s
     set:
-      color: "左上"
-      legacy: "右上"
-    description: "効きを測り直すと、2 件とも上の段へ移る。"
+      dropoff_x: 0.20
+      dropoff_y: 0.82
+      notice_x: 0.30
+      notice_y: 0.62
+      locker_x: 0.70
+      locker_y: 0.70
+      digital_x: 0.22
+      digital_y: 0.32
+      night_x: 0.76
+      night_y: 0.20
+    description: "置き配と前日の知らせを先にやり、宅配ロッカーは計画して進める。"
 `;
 
-export const sourceJson__quadrantMatrix = `{
-  "title": "着手の順番",
+export const sourceJson__measureEffortQuadrant = `{
+  "title": "打ち手の手間と効き目",
   "type": "quadrant",
   "axes": {
-    "x": { "left": "手間が小さい", "right": "手間が大きい" },
-    "y": { "bottom": "効きが小さい", "top": "効きが大きい" }
+    "x": { "left": "手間 小", "right": "手間 大" },
+    "y": { "bottom": "効き目 小", "top": "効き目 大" }
   },
   "regions": {
-    "左上": "すぐやる",
+    "左上": "先にやる",
     "右上": "計画してやる",
     "左下": "ついでにやる",
     "右下": "やらない"
   },
   "actors": [
-    { "name": "重複削除", "subtitle": "左上" },
-    { "name": "描画刷新", "subtitle": "右上" },
-    { "name": "配色統一", "subtitle": "{color}" },
-    { "name": "旧記法", "subtitle": "{legacy}" }
+    { "name": "置き配", "at": ["{dropoff_x}", "{dropoff_y}"] },
+    { "name": "前日に知らせる", "at": ["{notice_x}", "{notice_y}"] },
+    { "name": "宅配ロッカー", "at": ["{locker_x}", "{locker_y}"] },
+    { "name": "不在票を電子に", "at": ["{digital_x}", "{digital_y}"] },
+    { "name": "夜の便", "at": ["{night_x}", "{night_y}"] }
   ],
   "flow": [],
-  "states": { "color": "左下", "legacy": "右下" },
+  "states": {
+    "dropoff_x": 0.12, "dropoff_y": 0.70, "notice_x": 0.38, "notice_y": 0.88,
+    "locker_x": 0.84, "locker_y": 0.84, "digital_x": 0.36, "digital_y": 0.16,
+    "night_x": 0.88, "night_y": 0.34
+  },
   "animation": [
-    { "step": "見直し前", "duration": 1.2, "description": "配色統一と旧記法はどちらも後回しに置いてある。" },
+    { "step": "案を並べる", "duration": 1.2, "description": "宅配の打ち手を手間と効き目で仮置きする。" },
     {
-      "step": "見直し後",
+      "step": "優先度を決める",
       "duration": 1.2,
-      "description": "効きを測り直すと、2 件とも上の段へ移る。",
-      "set": { "color": "左上", "legacy": "右上" }
+      "description": "置き配と前日の知らせを先にやり、宅配ロッカーは計画して進める。",
+      "set": {
+        "dropoff_x": 0.20, "dropoff_y": 0.82, "notice_x": 0.30, "notice_y": 0.62,
+        "locker_x": 0.70, "locker_y": 0.70, "digital_x": 0.22, "digital_y": 0.32,
+        "night_x": 0.76, "night_y": 0.20
+      }
     }
   ]
 }`;
 
-export const quadrantMatrix = textDslToDiagram(sourceYaml__quadrantMatrix);
+export const measureEffortQuadrant = textDslToDiagram(sourceYaml__measureEffortQuadrant);
 
 // ============================================================
 // 9. 親子で束ねる
 // ============================================================
-export const sourceYaml__treeHierarchy = `title: "配布物の構成"
+export const sourceYaml__deliveryOfficeTree = `title: "営業所の階層"
 type: tree
 
 actors:
-  - dragon
-  - 記法
-  - 描画
-  - 読み取り
-  - 配置
+  - 本社: "全国 12 営業所"
+  - 東日本: "7 営業所"
+  - 西日本: "5 営業所"
+  - 東京: "42 人"
+  - 仙台: "18 人"
+  - 大阪: "35 人"
+  - 福岡: "21 人"
 
 flow:
-  - dragon -> 記法: ""
-  - dragon -> 描画: ""
-  - 記法 -> 読み取り: ""
-  - 描画 -> 配置: ""
+  - 本社 -> 東日本: ""
+  - 本社 -> 西日本: ""
+  - 東日本 -> 東京: ""
+  - 東日本 -> 仙台: ""
+  - 西日本 -> 大阪: ""
+  - 西日本 -> 福岡: ""
 
 animation:
-  - step: "構成を辿る" 1.2s
+  - step: "本社から営業所へ" 1.2s
     draw: tree
-    description: "枝が根から段ごとに伸び、箱は枝が届いてから出る。"
+    description: "本社から東西の地域を通り、4 営業所へ枝を伸ばす。"
 `;
 
-export const sourceJson__treeHierarchy = `{
-  "title": "配布物の構成",
+export const sourceJson__deliveryOfficeTree = `{
+  "title": "営業所の階層",
   "type": "tree",
   "actors": [
-    { "name": "dragon" },
-    { "name": "記法" },
-    { "name": "描画" },
-    { "name": "読み取り" },
-    { "name": "配置" }
+    { "name": "本社", "subtitle": "全国 12 営業所" },
+    { "name": "東日本", "subtitle": "7 営業所" },
+    { "name": "西日本", "subtitle": "5 営業所" },
+    { "name": "東京", "subtitle": "42 人" },
+    { "name": "仙台", "subtitle": "18 人" },
+    { "name": "大阪", "subtitle": "35 人" },
+    { "name": "福岡", "subtitle": "21 人" }
   ],
   "flow": [
-    { "from": "dragon", "to": "記法", "label": "" },
-    { "from": "dragon", "to": "描画", "label": "" },
-    { "from": "記法", "to": "読み取り", "label": "" },
-    { "from": "描画", "to": "配置", "label": "" }
+    { "from": "本社", "to": "東日本", "label": "" },
+    { "from": "本社", "to": "西日本", "label": "" },
+    { "from": "東日本", "to": "東京", "label": "" },
+    { "from": "東日本", "to": "仙台", "label": "" },
+    { "from": "西日本", "to": "大阪", "label": "" },
+    { "from": "西日本", "to": "福岡", "label": "" }
   ],
   "animation": [
     {
-      "step": "構成を辿る",
+      "step": "本社から営業所へ",
       "duration": 1.2,
       "draw": "tree",
-      "description": "枝が根から段ごとに伸び、箱は枝が届いてから出る。"
+      "description": "本社から東西の地域を通り、4 営業所へ枝を伸ばす。"
     }
   ]
 }`;
 
-export const treeHierarchy = textDslToDiagram(sourceYaml__treeHierarchy);
+export const deliveryOfficeTree = textDslToDiagram(sourceYaml__deliveryOfficeTree);
 
 /**
  * 節に説明を添える形 (#1706)。
@@ -1108,58 +1165,66 @@ export const treeHierarchy = textDslToDiagram(sourceYaml__treeHierarchy);
  * **説明を添えた形がどこにも出ていなかった**。 構成を人に見せる時は名前だけでは伝わらない
  * ことが多いので、切替で両方を見せる。
  */
-export const patternBase__treeHierarchy = "見出しだけ";
+export const patternBase__deliveryOfficeTree = "説明つき";
 
-export const sourceYaml__pattern__treeHierarchy__説明つき = `title: "配布物の構成と役割"
+export const sourceYaml__pattern__deliveryOfficeTree__見出しだけ = `title: "営業所の階層を見出しだけで示す"
 type: tree
 
 actors:
-  - dragon: "配る単位"
-  - 記法: "書く形"
-  - 描画: "絵にする"
-  - 読み取り: "文を読む"
-  - 配置: "位置を決める"
+  - 本社
+  - 東日本
+  - 西日本
+  - 東京
+  - 仙台
+  - 大阪
+  - 福岡
 
 flow:
-  - dragon -> 記法: ""
-  - dragon -> 描画: ""
-  - 記法 -> 読み取り: ""
-  - 描画 -> 配置: ""
+  - 本社 -> 東日本: ""
+  - 本社 -> 西日本: ""
+  - 東日本 -> 東京: ""
+  - 東日本 -> 仙台: ""
+  - 西日本 -> 大阪: ""
+  - 西日本 -> 福岡: ""
 
 animation:
-  - step: "構成と役割を辿る" 1.2s
+  - step: "営業所を辿る" 1.2s
     draw: tree
-    description: "枝が根から段ごとに伸び、箱には名前の下に役割が出る。"
+    description: "補足を省き、本社から営業所までの階層だけを辿る。"
 `;
 
-export const sourceJson__pattern__treeHierarchy__説明つき = `{
-  "title": "配布物の構成と役割",
+export const sourceJson__pattern__deliveryOfficeTree__見出しだけ = `{
+  "title": "営業所の階層を見出しだけで示す",
   "type": "tree",
   "actors": [
-    { "name": "dragon", "subtitle": "配る単位" },
-    { "name": "記法", "subtitle": "書く形" },
-    { "name": "描画", "subtitle": "絵にする" },
-    { "name": "読み取り", "subtitle": "文を読む" },
-    { "name": "配置", "subtitle": "位置を決める" }
+    { "name": "本社" },
+    { "name": "東日本" },
+    { "name": "西日本" },
+    { "name": "東京" },
+    { "name": "仙台" },
+    { "name": "大阪" },
+    { "name": "福岡" }
   ],
   "flow": [
-    { "from": "dragon", "to": "記法", "label": "" },
-    { "from": "dragon", "to": "描画", "label": "" },
-    { "from": "記法", "to": "読み取り", "label": "" },
-    { "from": "描画", "to": "配置", "label": "" }
+    { "from": "本社", "to": "東日本", "label": "" },
+    { "from": "本社", "to": "西日本", "label": "" },
+    { "from": "東日本", "to": "東京", "label": "" },
+    { "from": "東日本", "to": "仙台", "label": "" },
+    { "from": "西日本", "to": "大阪", "label": "" },
+    { "from": "西日本", "to": "福岡", "label": "" }
   ],
   "animation": [
     {
-      "step": "構成と役割を辿る",
+      "step": "営業所を辿る",
       "duration": 1.2,
       "draw": "tree",
-      "description": "枝が根から段ごとに伸び、箱には名前の下に役割が出る。"
+      "description": "補足を省き、本社から営業所までの階層だけを辿る。"
     }
   ]
 }`;
 
-export const pattern__treeHierarchy__説明つき = textDslToDiagram(
-  sourceYaml__pattern__treeHierarchy__説明つき,
+export const pattern__deliveryOfficeTree__見出しだけ = textDslToDiagram(
+  sourceYaml__pattern__deliveryOfficeTree__見出しだけ,
 );
 
 // ============================================================
@@ -1168,64 +1233,59 @@ export const pattern__treeHierarchy__説明つき = textDslToDiagram(
 // **`draw: gauge` で 9 時から弧が伸びる** (`cdl#715`)。 伸びる向きは弧の向きそのもの。
 // 合計の字と内訳の段は最初から出る = 合計はこの図の主役なので、左から半分ずつ現れると読めない。
 // ============================================================
-export const sourceYaml__chartGauge = `title: "今期の売上進捗"
+export const sourceYaml__onTimeShareGauge = `title: "定時に届いた割合"
 type: chart
 shape: gauge
 
 actors:
-  - 契約済: "{signed}"
-  - 商談中: "{talking}"
-  - 未着手: "{untouched}"
+  - 定時に届いた: "{on_time}"
+  - 遅れた: "{late}"
 
 states:
-  signed: 680
-  talking: 240
-  untouched: 180
+  on_time: 72
+  late: 28
 
 animation:
-  - step: "期の初め" 1.2s
+  - step: "先月" 1.2s
     draw: gauge
-    description: "弧が 9 時から伸びる。 合計 1,100 のうち契約済が 680。"
-  - step: "期の半ば" 1.2s
+    description: "先月は 100 件のうち 72 件が定時に届いた。"
+  - step: "今月" 1.2s
     tween:
-      signed: 680 -> 820
-      talking: 240 -> 160
-      untouched: 180 -> 120
-    description: "商談中と未着手が契約済へ移る。"
+      on_time: 72 -> 78
+      late: 28 -> 22
+    description: "定時に届いた割合は 78%。 目標 80% まであと 2、先月より +6。"
 `;
 
-export const sourceJson__chartGauge = `{
-  "title": "今期の売上進捗",
+export const sourceJson__onTimeShareGauge = `{
+  "title": "定時に届いた割合",
   "type": "chart",
   "shape": "gauge",
   "actors": [
-    { "name": "契約済", "subtitle": "{signed}" },
-    { "name": "商談中", "subtitle": "{talking}" },
-    { "name": "未着手", "subtitle": "{untouched}" }
+    { "name": "定時に届いた", "subtitle": "{on_time}" },
+    { "name": "遅れた", "subtitle": "{late}" }
   ],
   "flow": [],
-  "states": { "signed": 680, "talking": 240, "untouched": 180 },
+  "states": { "on_time": 72, "late": 28 },
   "animation": [
     {
-      "step": "期の初め",
+      "step": "先月",
       "duration": 1.2,
       "draw": "gauge",
-      "description": "弧が 9 時から伸びる。 合計 1,100 のうち契約済が 680。"
+      "description": "先月は 100 件のうち 72 件が定時に届いた。"
     },
     {
-      "step": "期の半ば",
+      "step": "今月",
       "duration": 1.2,
-      "description": "商談中と未着手が契約済へ移る。",
+      "description": "定時に届いた割合は 78%。 目標 80% まであと 2、先月より +6。",
       "tween": {
-        "signed": [680, 820],
-        "talking": [240, 160],
-        "untouched": [180, 120]
+        "on_time": [72, 78],
+        "late": [28, 22]
       }
     }
   ]
 }`;
 
-export const chartGauge = textDslToDiagram(sourceYaml__chartGauge);
+export const onTimeShareGauge = textDslToDiagram(sourceYaml__onTimeShareGauge);
 
 // ------------------------------------------------------------
 // 10b. 前の内訳を内側の輪に重ねる (`パターン` の切替で選ぶ、 #1722)
@@ -1238,67 +1298,62 @@ export const chartGauge = textDslToDiagram(sourceYaml__chartGauge);
 //
 // 前の輪は今の弧と同じ順で同じ色を使う。 順を変えると、内と外で同じ色が別の項目を指す。
 // ------------------------------------------------------------
-export const patternBase__chartGauge = "今だけ";
+export const patternBase__onTimeShareGauge = "今だけ";
 
-export const sourceYaml__pattern__chartGauge__前の値つき = `title: "前期と比べた売上進捗"
+export const sourceYaml__pattern__onTimeShareGauge__前の値つき = `title: "先月と比べた定時に届いた割合"
 type: chart
 shape: gauge
 
 actors:
-  - 契約済: { value: "{signed}", previous: "520" }
-  - 商談中: { value: "{talking}", previous: "300" }
-  - 未着手: { value: "{untouched}", previous: "280" }
+  - 定時に届いた: { value: "{on_time}", previous: "72" }
+  - 遅れた: { value: "{late}", previous: "28" }
 
 states:
-  signed: 680
-  talking: 240
-  untouched: 180
+  on_time: 78
+  late: 22
 
 animation:
-  - step: "期の初め" 1.2s
+  - step: "先月と今月" 1.2s
     draw: gauge
-    description: "内が前期、外が今期。 契約済が 520 から 680 へ増えた。"
-  - step: "期の半ば" 1.2s
+    description: "内側が先月、外側が今月。 定時に届いた割合が 72% から 78% へ増えた。"
+  - step: "目標へ" 1.2s
     tween:
-      signed: 680 -> 820
-      talking: 240 -> 160
-      untouched: 180 -> 120
-    description: "外の弧だけが動く。 内の輪は前期のまま動かない。"
+      on_time: 78 -> 80
+      late: 22 -> 20
+    description: "外側だけが目標 80% へ動き、内側の先月 72% は動かない。"
 `;
 
-export const sourceJson__pattern__chartGauge__前の値つき = `{
-  "title": "前期と比べた売上進捗",
+export const sourceJson__pattern__onTimeShareGauge__前の値つき = `{
+  "title": "先月と比べた定時に届いた割合",
   "type": "chart",
   "shape": "gauge",
   "actors": [
-    { "name": "契約済", "value": "{signed}", "previous": "520" },
-    { "name": "商談中", "value": "{talking}", "previous": "300" },
-    { "name": "未着手", "value": "{untouched}", "previous": "280" }
+    { "name": "定時に届いた", "value": "{on_time}", "previous": "72" },
+    { "name": "遅れた", "value": "{late}", "previous": "28" }
   ],
   "flow": [],
-  "states": { "signed": 680, "talking": 240, "untouched": 180 },
+  "states": { "on_time": 78, "late": 22 },
   "animation": [
     {
-      "step": "期の初め",
+      "step": "先月と今月",
       "duration": 1.2,
       "draw": "gauge",
-      "description": "内が前期、外が今期。 契約済が 520 から 680 へ増えた。"
+      "description": "内側が先月、外側が今月。 定時に届いた割合が 72% から 78% へ増えた。"
     },
     {
-      "step": "期の半ば",
+      "step": "目標へ",
       "duration": 1.2,
-      "description": "外の弧だけが動く。 内の輪は前期のまま動かない。",
+      "description": "外側だけが目標 80% へ動き、内側の先月 72% は動かない。",
       "tween": {
-        "signed": [680, 820],
-        "talking": [240, 160],
-        "untouched": [180, 120]
+        "on_time": [78, 80],
+        "late": [22, 20]
       }
     }
   ]
 }`;
 
-export const pattern__chartGauge__前の値つき = textDslToDiagram(
-  sourceYaml__pattern__chartGauge__前の値つき,
+export const pattern__onTimeShareGauge__前の値つき = textDslToDiagram(
+  sourceYaml__pattern__onTimeShareGauge__前の値つき,
 );
 
 // ============================================================
@@ -1618,60 +1673,60 @@ export const pattern__chartStat__前の値つき = textDslToDiagram(
 // **`draw: waffle` で印が読む向きに 1 個ずつ埋まる** (`cdl#719`)。 左の一覧は最初から出る =
 // この図は「数えて確かめられる」 ことが存在理由で、一覧はその答え合わせの表になる。
 // ============================================================
-export const sourceYaml__chartWaffle = `title: "対応済みの問い合わせ"
+export const sourceYaml__parcelSizeWaffle = `title: "荷物の大きさ"
 type: chart
 shape: waffle
 
 actors:
-  - 対応済: "{done}"
-  - 対応中: "{doing}"
-  - 未着手: "{todo}"
+  - 小さい: "{small}"
+  - ふつう: "{medium}"
+  - 大きい: "{large}"
 
 states:
-  done: 62
-  doing: 23
-  todo: 15
+  small: 48
+  medium: 34
+  large: 18
 
 animation:
-  - step: "朝" 1.2s
+  - step: "集荷時" 1.2s
     draw: waffle
-    description: "印が読む向きに埋まる。 100 件のうち 62 件が対応済。"
-  - step: "夕方" 1.2s
+    description: "1 マスを 1% として、集荷時の荷物の大きさを 100 個の印で示す。"
+  - step: "今月" 1.2s
     tween:
-      done: 62 -> 84
-      doing: 23 -> 11
-      todo: 15 -> 5
-    description: "未着手が減り対応済が 84 件になる。"
+      small: 48 -> 52
+      medium: 34 -> 31
+      large: 18 -> 17
+    description: "今月は小さい 52%、ふつう 31%、大きい 17%。"
 `;
 
-export const sourceJson__chartWaffle = `{
-  "title": "対応済みの問い合わせ",
+export const sourceJson__parcelSizeWaffle = `{
+  "title": "荷物の大きさ",
   "type": "chart",
   "shape": "waffle",
   "actors": [
-    { "name": "対応済", "subtitle": "{done}" },
-    { "name": "対応中", "subtitle": "{doing}" },
-    { "name": "未着手", "subtitle": "{todo}" }
+    { "name": "小さい", "subtitle": "{small}" },
+    { "name": "ふつう", "subtitle": "{medium}" },
+    { "name": "大きい", "subtitle": "{large}" }
   ],
   "flow": [],
-  "states": { "done": 62, "doing": 23, "todo": 15 },
+  "states": { "small": 48, "medium": 34, "large": 18 },
   "animation": [
     {
-      "step": "朝",
+      "step": "集荷時",
       "duration": 1.2,
       "draw": "waffle",
-      "description": "印が読む向きに埋まる。 100 件のうち 62 件が対応済。"
+      "description": "1 マスを 1% として、集荷時の荷物の大きさを 100 個の印で示す。"
     },
     {
-      "step": "夕方",
+      "step": "今月",
       "duration": 1.2,
-      "description": "未着手が減り対応済が 84 件になる。",
-      "tween": { "done": [62, 84], "doing": [23, 11], "todo": [15, 5] }
+      "description": "今月は小さい 52%、ふつう 31%、大きい 17%。",
+      "tween": { "small": [48, 52], "medium": [34, 31], "large": [18, 17] }
     }
   ]
 }`;
 
-export const chartWaffle = textDslToDiagram(sourceYaml__chartWaffle);
+export const parcelSizeWaffle = textDslToDiagram(sourceYaml__parcelSizeWaffle);
 
 // ============================================================
 // 14. 内訳と時点間の変化を帯で示す
@@ -1682,59 +1737,60 @@ export const chartWaffle = textDslToDiagram(sourceYaml__chartWaffle);
 // **`draw: stacked` で左から帯が伸びる** (`cdl#715`)。 帯が 2 本あっても同時に伸びる =
 // 上下で同じ位置を見比べる図なので、片方だけ先に出ると比べる相手がいない時間ができる。
 // ============================================================
-export const sourceYaml__chartStackedBar = `title: "契約の内訳"
+export const sourceYaml__deliveryResultStacked = `title: "配達の結果"
 type: chart
 shape: stacked
 
 actors:
-  - 新規: { value: "{shinki}", previous: "280" }
-  - 継続: { value: "{keizoku}", previous: "210" }
-  - 乗換: { value: "{norikae}", previous: "90" }
+  - 一度で届いた: { value: "{first_try}", previous: "83" }
+  - 再配達: { value: "{redelivery}", previous: "16" }
+  - 戻った: { value: "{returned}", previous: "1" }
 
 states:
-  shinki: 320
-  keizoku: 180
-  norikae: 140
+  first_try: 83
+  redelivery: 16
+  returned: 1
 
 animation:
-  - step: "前期との比較" 1.2s
+  - step: "9月" 1.2s
     draw: stacked
-    description: "帯が左から伸びる。 上が前期、下が今期。 新規が伸び継続が減った。"
-  - step: "見込みを足す" 1.2s
+    description: "6 月 79/19/2、7 月 81/17/2、8 月 77/21/2 を経て、9 月は 83/16/1。"
+  - step: "10月" 1.2s
     tween:
-      shinki: 320 -> 380
-      norikae: 140 -> 200
-    description: "見込みを足すと新規と乗換が伸びる。"
+      first_try: 83 -> 86
+      redelivery: 16 -> 13
+      returned: 1 -> 1
+    description: "10 月は一度で届いた 86%、再配達 13%、戻った 1%。 上が 9 月、下が 10 月。"
 `;
 
-export const sourceJson__chartStackedBar = `{
-  "title": "契約の内訳",
+export const sourceJson__deliveryResultStacked = `{
+  "title": "配達の結果",
   "type": "chart",
   "shape": "stacked",
   "actors": [
-    { "name": "新規", "value": "{shinki}", "previous": "280" },
-    { "name": "継続", "value": "{keizoku}", "previous": "210" },
-    { "name": "乗換", "value": "{norikae}", "previous": "90" }
+    { "name": "一度で届いた", "value": "{first_try}", "previous": "83" },
+    { "name": "再配達", "value": "{redelivery}", "previous": "16" },
+    { "name": "戻った", "value": "{returned}", "previous": "1" }
   ],
   "flow": [],
-  "states": { "shinki": 320, "keizoku": 180, "norikae": 140 },
+  "states": { "first_try": 83, "redelivery": 16, "returned": 1 },
   "animation": [
     {
-      "step": "前期との比較",
+      "step": "9月",
       "duration": 1.2,
       "draw": "stacked",
-      "description": "帯が左から伸びる。 上が前期、下が今期。 新規が伸び継続が減った。"
+      "description": "6 月 79/19/2、7 月 81/17/2、8 月 77/21/2 を経て、9 月は 83/16/1。"
     },
     {
-      "step": "見込みを足す",
+      "step": "10月",
       "duration": 1.2,
-      "description": "見込みを足すと新規と乗換が伸びる。",
-      "tween": { "shinki": [320, 380], "norikae": [140, 200] }
+      "description": "10 月は一度で届いた 86%、再配達 13%、戻った 1%。 上が 9 月、下が 10 月。",
+      "tween": { "first_try": [83, 86], "redelivery": [16, 13], "returned": [1, 1] }
     }
   ]
 }`;
 
-export const chartStackedBar = textDslToDiagram(sourceYaml__chartStackedBar);
+export const deliveryResultStacked = textDslToDiagram(sourceYaml__deliveryResultStacked);
 
 // ------------------------------------------------------------
 // 14b. 今の内訳だけを 1 本の帯で示す (`パターン` の切替で選ぶ、 #1698)
@@ -1742,120 +1798,123 @@ export const chartStackedBar = textDslToDiagram(sourceYaml__chartStackedBar);
 // **`previous` を書かない図は帯が 1 本のまま** (`cdl#551`)。 時点を比べず、
 // 今の内訳だけを見せる図になる。 上の節が言う「1 本のまま使える」 形がこれ。
 // ------------------------------------------------------------
-export const patternBase__chartStackedBar = "前と今";
+export const patternBase__deliveryResultStacked = "前と今";
 
-export const sourceYaml__pattern__chartStackedBar__今だけ = `title: "今期の契約の内訳"
+export const sourceYaml__pattern__deliveryResultStacked__今だけ = `title: "10月の配達の結果"
 type: chart
 shape: stacked
 
 actors:
-  - 新規: "{shinki}"
-  - 継続: "{keizoku}"
-  - 乗換: "{norikae}"
+  - 一度で届いた: "{first_try}"
+  - 再配達: "{redelivery}"
+  - 戻った: "{returned}"
 
 states:
-  shinki: 320
-  keizoku: 180
-  norikae: 140
+  first_try: 83
+  redelivery: 16
+  returned: 1
 
 animation:
-  - step: "今期の内訳" 1.2s
+  - step: "9月" 1.2s
     draw: stacked
-    description: "帯が左から伸びる。 新規が最も長い。"
-  - step: "見込みを足す" 1.2s
+    description: "9 月の配達の結果を 1 本の帯で示す。"
+  - step: "10月" 1.2s
     tween:
-      shinki: 320 -> 380
-      norikae: 140 -> 200
-    description: "見込みを足すと新規と乗換が伸びる。"
+      first_try: 83 -> 86
+      redelivery: 16 -> 13
+      returned: 1 -> 1
+    description: "10 月は再配達が 13% に下がる。"
 `;
 
-export const sourceJson__pattern__chartStackedBar__今だけ = `{
-  "title": "今期の契約の内訳",
+export const sourceJson__pattern__deliveryResultStacked__今だけ = `{
+  "title": "10月の配達の結果",
   "type": "chart",
   "shape": "stacked",
   "actors": [
-    { "name": "新規", "value": "{shinki}" },
-    { "name": "継続", "value": "{keizoku}" },
-    { "name": "乗換", "value": "{norikae}" }
+    { "name": "一度で届いた", "value": "{first_try}" },
+    { "name": "再配達", "value": "{redelivery}" },
+    { "name": "戻った", "value": "{returned}" }
   ],
   "flow": [],
-  "states": { "shinki": 320, "keizoku": 180, "norikae": 140 },
+  "states": { "first_try": 83, "redelivery": 16, "returned": 1 },
   "animation": [
     {
-      "step": "今期の内訳",
+      "step": "9月",
       "duration": 1.2,
       "draw": "stacked",
-      "description": "帯が左から伸びる。 新規が最も長い。"
+      "description": "9 月の配達の結果を 1 本の帯で示す。"
     },
     {
-      "step": "見込みを足す",
+      "step": "10月",
       "duration": 1.2,
-      "description": "見込みを足すと新規と乗換が伸びる。",
-      "tween": { "shinki": [320, 380], "norikae": [140, 200] }
+      "description": "10 月は再配達が 13% に下がる。",
+      "tween": { "first_try": [83, 86], "redelivery": [16, 13], "returned": [1, 1] }
     }
   ]
 }`;
 
-export const pattern__chartStackedBar__今だけ = textDslToDiagram(
-  sourceYaml__pattern__chartStackedBar__今だけ,
+export const pattern__deliveryResultStacked__今だけ = textDslToDiagram(
+  sourceYaml__pattern__deliveryResultStacked__今だけ,
 );
 
 // ------------------------------------------------------------
 // 15. 2 時点を線で結んで増減を見る
 // ------------------------------------------------------------
-export const sourceYaml__chartSlope = `title: "経路別の申込み"
+export const sourceYaml__onTimeRateSlope = `title: "営業所ごとの定時率"
 type: chart
 shape: slope
 
 actors:
-  - 検索: { value: "{kensaku}", previous: "380" }
-  - SNS: { value: "{sns}", previous: "190" }
-  - メール: { value: "{mail}", previous: "240" }
-  - 紹介: { value: "{shokai}", previous: "60" }
+  - 東京: { value: "{tokyo}", previous: "84" }
+  - 大阪: { value: "{osaka}", previous: "86", tone: error }
+  - 名古屋: { value: "{nagoya}", previous: "79", tone: accent }
+  - 福岡: { value: "{fukuoka}", previous: "82" }
 
 states:
-  kensaku: 420
-  sns: 310
-  mail: 180
-  shokai: 90
+  tokyo: 86
+  osaka: 84
+  nagoya: 82
+  fukuoka: 82
 
 animation:
-  - step: "前期と今期" 1.2s
+  - step: "先月" 1.2s
     draw: slope
-    description: "左が前期、右が今期。 SNS が伸びてメールを追い越した。"
-  - step: "見込みを足す" 1.2s
+    description: "左が先月、右が今月途中の営業所ごとの定時率。"
+  - step: "今月" 1.2s
     tween:
-      sns: 310 -> 400
-      mail: 180 -> 150
-    description: "見込みを足すと SNS が検索に迫る。"
+      tokyo: 86 -> 88
+      osaka: 84 -> 80
+      nagoya: 82 -> 85
+      fukuoka: 82 -> 83
+    description: "大阪は 86% から 80% へ下がり、名古屋は 79% から 85% へ上がる。"
 `;
 
-export const sourceJson__chartSlope = `{
-  "title": "経路別の申込み",
+export const sourceJson__onTimeRateSlope = `{
+  "title": "営業所ごとの定時率",
   "type": "chart",
   "shape": "slope",
   "actors": [
-    { "name": "検索", "value": "{kensaku}", "previous": "380" },
-    { "name": "SNS", "value": "{sns}", "previous": "190" },
-    { "name": "メール", "value": "{mail}", "previous": "240" },
-    { "name": "紹介", "value": "{shokai}", "previous": "60" }
+    { "name": "東京", "value": "{tokyo}", "previous": "84" },
+    { "name": "大阪", "value": "{osaka}", "previous": "86", "tone": "error" },
+    { "name": "名古屋", "value": "{nagoya}", "previous": "79", "tone": "accent" },
+    { "name": "福岡", "value": "{fukuoka}", "previous": "82" }
   ],
   "flow": [],
-  "states": { "kensaku": 420, "sns": 310, "mail": 180, "shokai": 90 },
+  "states": { "tokyo": 86, "osaka": 84, "nagoya": 82, "fukuoka": 82 },
   "animation": [
     {
-      "step": "前期と今期",
+      "step": "先月",
       "duration": 1.2,
       "draw": "slope",
-      "description": "左が前期、右が今期。 SNS が伸びてメールを追い越した。"
+      "description": "左が先月、右が今月途中の営業所ごとの定時率。"
     },
     {
-      "step": "見込みを足す",
+      "step": "今月",
       "duration": 1.2,
-      "description": "見込みを足すと SNS が検索に迫る。",
-      "tween": { "sns": [310, 400], "mail": [180, 150] }
+      "description": "大阪は 86% から 80% へ下がり、名古屋は 79% から 85% へ上がる。",
+      "tween": { "tokyo": [86, 88], "osaka": [84, 80], "nagoya": [82, 85], "fukuoka": [82, 83] }
     }
   ]
 }`;
 
-export const chartSlope = textDslToDiagram(sourceYaml__chartSlope);
+export const onTimeRateSlope = textDslToDiagram(sourceYaml__onTimeRateSlope);

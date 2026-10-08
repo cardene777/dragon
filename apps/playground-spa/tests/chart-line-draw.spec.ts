@@ -64,7 +64,7 @@ test.describe("棒を横軸から伸ばす (#1314)", () => {
   test("`draw: bar` を書いた見本では倍率が付き、動く", async ({ page }) => {
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    await page.getByText("棒グラフ", { exact: true }).first().click();
+    await page.getByText("営業所ごとの取扱数の棒グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
 
     const 値 = new Set<string>();
@@ -86,7 +86,8 @@ test.describe("棒を横軸から伸ばす (#1314)", () => {
 
   test("`draw:` を書いていない段では倍率が付かない", async ({ page }) => {
     /*
-     * 陰性対照を **同じ図の中** に取る。 カタログの棒グラフは 1 段目にだけ `draw: bar` を
+     * 陰性対照を **同じ図の中** に取る。 カタログの営業所ごとの取扱数の棒グラフは
+     * 1 段目にだけ `draw: bar` を
      * 書いており、2 段目には書いていない。 2 段目では包みが 1 つも付かない。
      *
      * preset 側に棒グラフの見本が無いため (`presets.ts` は円と折れ線だけ)、別の図を
@@ -94,7 +95,7 @@ test.describe("棒を横軸から伸ばす (#1314)", () => {
      */
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    await page.getByText("棒グラフ", { exact: true }).first().click();
+    await page.getByText("営業所ごとの取扱数の棒グラフ", { exact: true }).first().click();
 
     let 付いた回数 = 0;
     let 付かない回数 = 0;
@@ -114,7 +115,7 @@ test.describe("扇を 12 時から開く (#1314)", () => {
   test("`draw: pie` を書いた見本では切り抜きが付き、形が変わる", async ({ page }) => {
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    await page.getByText("円グラフ", { exact: true }).first().click();
+    await page.getByText("荷物の状態の円グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
 
     const 形 = new Set<string>();
@@ -173,17 +174,17 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
    *
    * | 見本 | 観測するもの |
    * |---|---|
-   * | ユーザージャーニー / 放射 / 木 | `stroke-dashoffset` が 2 種類以上出る |
-   * | ガントチャート | 帯の包みの倍率が 2 種類以上出る |
+   * | 荷主の気持ち / 再配達を減らす手立て / 営業所の階層 | `stroke-dashoffset` が 2 種類以上出る |
+   * | 仕分け棚を入れ替える工程 | 帯の包みの倍率が 2 種類以上出る |
    * | 漏斗 | 切り抜きの高さが 2 種類以上出る |
    */
   const 観測 = {
-    "ユーザージャーニー": 'document.querySelectorAll(\'[data-cdl-role="journey-line"]\')',
-    "マインドマップ": 'document.querySelectorAll(\'[data-cdl-role="mind-edge"]\')',
-    "階層図": 'document.querySelectorAll(\'[data-cdl-role="tree-edge"]\')',
+    "荷主の気持ちのユーザージャーニー": "journey-line",
+    "再配達を減らす手立てのマインドマップ": "mind-edge",
+    "営業所の階層図": "tree-edge",
   } as const;
 
-  for (const [見本, _sel] of Object.entries(観測)) {
+  for (const [見本, 役割] of Object.entries(観測)) {
     test(`${見本}: 枝や線の残りが動く`, async ({ page }) => {
       await page.goto("catalog/charts", { waitUntil: "networkidle" });
       await page.waitForTimeout(800);
@@ -191,13 +192,11 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
 
       const 値 = new Set<string>();
       for (let i = 0; i < 60; i++) {
-        const 残り = await page.evaluate((name: string) => {
-          const role =
-            name === "ユーザージャーニー" ? "journey-line" : name === "マインドマップ" ? "mind-edge" : "tree-edge";
+        const 残り = await page.evaluate((role: string) => {
           return Array.from(document.querySelectorAll(`[data-cdl-role="${role}"]`))
             .map((el) => el.getAttribute("stroke-dashoffset"))
             .filter((v): v is string => v !== null);
-        }, 見本);
+        }, 役割);
         for (const v of 残り) 値.add(v);
         if (値.size >= 2) break;
         await page.waitForTimeout(100);
@@ -206,10 +205,10 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
     });
   }
 
-  test("ガントチャート: 帯の幅が動く", async ({ page }) => {
+  test("仕分け棚を入れ替える工程のガントチャート: 帯の幅が動く", async ({ page }) => {
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    await page.getByText("ガントチャート", { exact: true }).first().click();
+    await page.getByText("仕分け棚を入れ替える工程のガントチャート", { exact: true }).first().click();
 
     const 値 = new Set<string>();
     for (let i = 0; i < 60; i++) {
@@ -225,10 +224,10 @@ test.describe("残り 5 種も起点から現れる (#1318)", () => {
     expect(値.size, `倍率が動かない (観測できた値 = ${[...値].join(" | ")})`).toBeGreaterThanOrEqual(2);
   });
 
-  test("ファネル図: 切り抜きの高さが動く", async ({ page }) => {
+  test("申し込みから届くまでのファネル図: 切り抜きの高さが動く", async ({ page }) => {
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    await page.getByText("ファネル図", { exact: true }).first().click();
+    await page.getByText("申し込みから届くまでのファネル図", { exact: true }).first().click();
 
     const 値 = new Set<string>();
     for (let i = 0; i < 60; i++) {
@@ -247,7 +246,7 @@ test.describe("折れ線を左から伸ばす (#1312)", () => {
   test("`draw: line` を書いた見本では dash が付き、残りが動く", async ({ page }) => {
     await page.goto("catalog/charts", { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    await page.getByText("折れ線グラフ", { exact: true }).first().click();
+    await page.getByText("月ごとの配達数の折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
 
     const 初回 = await 折れ線のdash(page);

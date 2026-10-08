@@ -102,6 +102,10 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     order: "kind",
     // 数を描く図の形 (#2657)
     shape: "pie",
+    form: "table",
+    見せ方: "銘板",
+    ticks: ["6月", "7月"],
+    目盛り: ["6月", "7月"],
     // 図の意匠とその別名 (#1553 / #2790)
     theme: "blueprint",
     palette: "celadon",
@@ -130,6 +134,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     end: "Q2",
     touchpoint: "店頭",
     opportunity: "改善",
+    at: [0.2, 0.8],
+    点の位置: [0.2, 0.8],
     posX: 10,
     posY: 20,
     posW: 30,

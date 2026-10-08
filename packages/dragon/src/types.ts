@@ -130,6 +130,14 @@ export type LayoutMode = "auto" | "manual";
 export type DslDocument = {
   title: string;
   type: PresetType;
+  /** 円グラフの見せ方。 読めない語も組み立ての知らせにするため、入口では文字列で保持する。 */
+  form?: string;
+  /** `form` を書いた行。 */
+  formPos?: Position;
+  /** ガントチャートの目盛り。 書かなければ工程の始まりから作る従来の規則を使う。 */
+  ticks?: string[];
+  /** `ticks` を書いた行。 */
+  ticksPos?: Position;
   /** 図の下へ指定順に置く凡例。 */
   legend?: { mark: LegendMark; text: string }[];
   /**
@@ -399,6 +407,13 @@ export type DslActor = {
    * 他の図種では相手が無いため、書かれていたら組み立て側が知らせる。
    */
   end?: string;
+  /**
+   * 四象限の点を置く座標。 左下が (0, 0)、右上が (1, 1)。
+   * 数のほか `{名前}` を受け、描画側の BoundNumber へそのまま渡す。
+   */
+  at?: { x?: number | string; y?: number | string; raw: string };
+  /** `at` を書いた行。 */
+  atPos?: Position;
   /**
    * ユーザージャーニー (`type: journey`) で、その段階が起きる場所 (#1251)。
    *

@@ -14,8 +14,8 @@ import { describe, expect, it } from "vitest";
 import { textDslToDiagram } from "../src/index";
 import { 図表の大きさ } from "../src/compile/chart-fields";
 
-/** 葉が 2 枚。 見本帳の `配布物の構成` と同じ形 */
-const 葉2枚 = `title: "配布物の構成"
+/** 葉が 2 枚。 幅の退行を再現するための独立した記法 */
+const 葉2枚 = `title: "幅の検査用の階層"
 type: tree
 actors:
   - dragon

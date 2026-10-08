@@ -63,6 +63,7 @@ import {
 } from "@/lib/chart-line-options";
 import {
   図の円の見せ方を変える,
+  図に書いた円の見せ方,
   円の見せ方を選べる,
   円の見せ方の選択肢,
   円の見せ方の札,
@@ -342,6 +343,7 @@ export function CategoryPage(): React.ReactElement {
    * 選んだパターンから導くと、パターンを押しただけで既定そのものが動く。
    */
   const この図の描き方 = currentItem ? 図ごとの既定の描き方(currentItem.diagram) : 既定の描き方;
+  const この図の円 = currentItem ? 図に書いた円の見せ方(currentItem.diagram) : "ring";
   /**
    * 見ている 1 件だけに効く見せ方 7 つ (#1355 / #1359 / #1569 / #1624 / #1645 / #1659 / #1696)。
    *
@@ -357,8 +359,8 @@ export function CategoryPage(): React.ReactElement {
     値: 開いた時の見せ方(既定の描き方),
   });
   const 見せ方 = useMemo(
-    () => 今の見せ方(見せ方の状態, 見ている項目, この図の描き方),
-    [見せ方の状態, 見ている項目, この図の描き方],
+    () => 今の見せ方(見せ方の状態, 見ている項目, この図の描き方, この図の円),
+    [見せ方の状態, 見ている項目, この図の描き方, この図の円],
   );
   const { 速さ, 描き方, 配色, 折れ線, 円, 傾き, パターン } = 見せ方;
   /**
@@ -370,7 +372,7 @@ export function CategoryPage(): React.ReactElement {
   const 見せ方を置く = (変更: Partial<見せ方>): void => {
     set見せ方の状態((前) => ({
       項目: 見ている項目,
-      値: { ...今の見せ方(前, 見ている項目, この図の描き方), ...変更 },
+      値: { ...今の見せ方(前, 見ている項目, この図の描き方, この図の円), ...変更 },
     }));
   };
   /**
@@ -386,7 +388,13 @@ export function CategoryPage(): React.ReactElement {
    */
   const 項目を選ぶ = (item: CatalogItem): void => {
     setSelectedId(item.id);
-    set見せ方の状態({ 項目: item.id, 値: 開いた時の見せ方(図ごとの既定の描き方(item.diagram)) });
+    set見せ方の状態({
+      項目: item.id,
+      値: 開いた時の見せ方(
+        図ごとの既定の描き方(item.diagram),
+        図に書いた円の見せ方(item.diagram),
+      ),
+    });
   };
   /**
    * 画面に出している見本 (#1696)。 パターンを選んでいればその中身、無ければ元の見本。

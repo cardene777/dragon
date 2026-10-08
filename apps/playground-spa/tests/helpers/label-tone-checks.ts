@@ -213,7 +213,9 @@ function checkBars(theme: string, bars: BarValue[], allowPrimary: boolean): void
         colorKey(expected.fill),
       );
     }
-    const expectedOpacity = theme === "letterpress" && !bar.primary ? bar.authoredOpacity : "1";
+    const expectedOpacity = theme === "letterpress" && !bar.primary
+      ? bar.authoredOpacity
+      : String(expected.opacity);
     expect(bar.opacity, `${theme} の棒の濃さ`).toBe(expectedOpacity);
     if (expected.stroke) {
       expect(colorKey(bar.stroke), `${theme} の${bar.primary ? "主役" : "それ以外"}の棒の枠`)

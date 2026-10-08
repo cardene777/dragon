@@ -229,6 +229,10 @@ export const TOP_LEVEL_KEYS = [
    * 最上位の語は英語にする決まりに従う (向きの語と同じ)
    */
   "shape",
+  // 円グラフの見せ方 (#2837)
+  "form",
+  // ガントチャートの目盛り (#2837)
+  "ticks",
   /*
    * 図の意匠 (#1553 / #2790)。
    *
@@ -251,6 +255,8 @@ export const TOP_LEVEL_KEYS = [
 export const TOP_LEVEL_KEY_ALIASES: ReadonlyMap<string, (typeof TOP_LEVEL_KEYS)[number]> = new Map([
   ["palette", "theme"],
   ["凡例", "legend"],
+  ["見せ方", "form"],
+  ["目盛り", "ticks"],
 ]);
 
 /**
@@ -586,6 +592,9 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let orderLine = 0;
   // `shape:` は `type:` より前にも書ける。 図種が決まるまで語と行だけを控える (#2797)。
   let shapeWritten: { value: string; line: number } | null = null;
+  let formWritten: { value: string; line: number } | null = null;
+  let ticks: string[] | undefined;
+  let ticksLine = 0;
   let aliasShape: DslShape | null = null;
   let aliasShapeLine = 0;
   let theme: DslTheme | null = null;
@@ -811,6 +820,38 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const v = (head.value ?? "").trim();
       if (v.length > 0) {
         shapeWritten = { value: v, line: line.no };
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "form") {
+      const v = stripQuotes((head.value ?? "").trim());
+      if (v.length > 0) formWritten = { value: v, line: line.no };
+      i += 1;
+      continue;
+    }
+    if (head.key === "ticks") {
+      const raw = (head.value ?? "").trim();
+      if (!raw.startsWith("[") || !raw.endsWith("]")) {
+        errors.push({
+          line: line.no,
+          message: `ticks の書き方が読めません: "${raw}"`,
+          hint: "`ticks: [6月, 7月, 8月]` の形で書く",
+        });
+      } else {
+        const values = splitTopLevelCommas(raw.slice(1, -1))
+          .map((value) => stripQuotes(value.trim()))
+          .filter((value) => value.length > 0);
+        if (values.length === 0) {
+          errors.push({
+            line: line.no,
+            message: "ticks に目盛りがありません",
+            hint: "`ticks: [6月, 7月, 8月]` の形で 1 つ以上書く",
+          });
+        } else {
+          ticks = values;
+          ticksLine = line.no;
+        }
       }
       i += 1;
       continue;
@@ -1432,6 +1473,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(direction !== null ? { direction, directionPos: { line: directionLine } } : {}),
       ...(order !== null ? { order, orderPos: { line: orderLine } } : {}),
       ...(shape !== null ? { shape, shapePos: { line: shapeLine } } : {}),
+      ...(formWritten !== null
+        ? { form: formWritten.value, formPos: { line: formWritten.line } }
+        : {}),
+      ...(ticks !== undefined ? { ticks, ticksPos: { line: ticksLine } } : {}),
       ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
       ...(legend.length > 0 ? { legend } : {}),
       ...(theme !== null && palette !== null
@@ -3363,6 +3408,11 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "posY":
         out.posY = 数として読む(raw, "箱の posY", ln.no, errors);
         break;
+      case "at":
+      case "点の位置":
+        out.at = 四象限の座標として控える(raw);
+        out.atPos = { line: ln.no };
+        break;
       // 位置のずらし (#1971)。 中括弧の形と同じ表で読み、片方だけ書いた時は残りを 0 とする
       case "offsetX":
       case "offsetY": {
@@ -3539,6 +3589,8 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   // 工程の並びの欄 (#1251)
   "owner",
   "end",
+  "at",
+  "点の位置",
   // 箱の目次と、始まりと終わりの印 (#2346)。 中括弧にしか書き方が無かった 3 件
   "eyebrow",
   "initial",
@@ -3749,6 +3801,7 @@ export const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "stage",
   "initial",
   "final",
+  "at",
   "state",
   // ユーザージャーニーの欄 (`touchpoint` / `opportunity`) はここに載せない (#1251 Round 1 の指摘)。
   // 載せるとパーツで同じ名前の状態を書いた時に横取りされる = 既に動いている見本が静かに変わる。
@@ -3810,6 +3863,19 @@ function coerceStateValue(raw: string): number | string | boolean {
   const n = Number(stripped);
   if (Number.isFinite(n) && stripped !== "" && !isNaN(n)) return n;
   return stripped;
+}
+
+/** 四象限の座標を `[x, y]` の順で控える。 妥当性は CompileNotice を出せる組み立て側で見る。 */
+function 四象限の座標として控える(raw: string): DslActor["at"] {
+  const value = raw.trim();
+  const inner = value.startsWith("[") && value.endsWith("]") ? value.slice(1, -1) : value;
+  const parts = splitTopLevelCommas(inner).map((part) => stripQuotes(part.trim()));
+  const 読む = (part: string | undefined): number | string | undefined => {
+    if (part === undefined || part === "") return undefined;
+    const n = Number(part);
+    return Number.isFinite(n) ? n : part;
+  };
+  return { x: 読む(parts[0]), y: 読む(parts[1]), raw: value };
 }
 
 /**
@@ -3874,6 +3940,7 @@ const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   // 工程の並びの欄 (#1251)
   "owner",
   "end",
+  "at",
   "posX",
   "posY",
   "posW",
@@ -3926,6 +3993,7 @@ export const ACTOR_ITEM_ALIASES: Record<string, string> = {
   位置: "pos",
   出す条件: "visibleIf",
   段階: "stage",
+  点の位置: "at",
 };
 
 /**
@@ -4239,6 +4307,8 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // 見本では状態の上書きとして意味を持つため横取りしない (#1251)
       owner: isPart ? undefined : opts.owner,
       end: isPart ? undefined : opts.end,
+      at: isPart || opts.at === undefined ? undefined : 四象限の座標として控える(opts.at),
+      atPos: isPart || opts.at === undefined ? undefined : { line: line.no },
       stage: isPart ? undefined : opts.stage,
       value: opts.value,
       previous: opts.previous,

@@ -269,7 +269,8 @@ const 節の欄の扱い = {
   rowStripe: "記法",
   tone: "記法",
   shape: "記法",
-  ganttAxisMax: "記法",
+  // 横軸の尺を固定する配置の指定。帯や目盛りという新しい役割は増やさない。
+  ganttAxisMax: "置き場所",
 } satisfies Record<節の任意の欄, string>;
 
 /**
@@ -316,10 +317,7 @@ const 矢印の欄の扱い = {
  * **記法に口が開いたら落ちる**。 下の検査が `packages/dragon/src` を実際に読み、欄の名前が
  * 出てきたら「書けない」 という理由が死んだものとして落とす = 直った後に理由だけが残らない。
  */
-const 書けない欄: Record<string, string> = {
-  "節/ganttAxisMax":
-    "ガントチャートの横軸を何目盛りにするかを決める欄。 記法 (`packages/dragon/src`) に口が無く、記法から書いた図には出ない",
-};
+const 書けない欄: Record<string, string> = {};
 
 /**
  * 書いても絵に届かない欄。 **鍵は `節/<欄>` か `矢印/<欄>`、値はなぜ届かないか**。
@@ -1058,7 +1056,7 @@ describe("中身を持つ節が見せる形をカタログが見せているか 
     判定: (件: 変種の件[]) => boolean;
   }> = [
     {
-      鍵: "pattern__chartBar__前の値つき",
+      鍵: "pattern__branchParcelsBar__前の値つき",
       性質: "前が今より高い件が 1 件以上ある (天井を前まで含めて取る道を通す)",
       判定: (件) => 件.some((x) => x.今 !== undefined && x.前 !== undefined && x.前 > x.今),
     },
@@ -1124,6 +1122,7 @@ const 置き場所の見本値: Record<string, unknown> = {
   "節/posW": 240,
   "節/posH": 160,
   "節/role": "lifeline-footer",
+  "節/ganttAxisMax": 5,
   "矢印/labelOffsetX": 40,
   "矢印/labelOffsetY": 40,
   "矢印/posX1": 20,
@@ -1323,16 +1322,13 @@ describe("節と矢印の任意の欄が、何かに覆われている (#1700 / 
 
   it("書けない欄は、今も記法に口が無い欄だけ", () => {
     // 記法に口が開いたら見本を足す側へ回す = 直った後に理由だけが残らない
-    let 測れた = 0;
     const 死んだ理由: string[] = [];
     const 記法 = 記法の中身();
     for (const 鍵 of Object.keys(書けない欄)) {
-      測れた += 1;
       const 欄 = 鍵.split("/")[1]!;
       if (記法.includes(欄)) 死んだ理由.push(`${鍵} (記法に口がある)`);
     }
     expect(死んだ理由, `書けない欄に死んだ理由が残っている: ${死んだ理由.join(", ")}`).toEqual([]);
-    expect(測れた, "書けない欄が 1 つも無い (表が空)").toBeGreaterThan(0);
     // 記法を読めていないと、上の照合は何にも当たらず素通りする
     expect(記法.length, "記法を 1 文字も読めていない (検査が空振りしている)").toBeGreaterThan(1000);
   });
