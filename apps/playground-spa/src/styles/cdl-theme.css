@@ -542,7 +542,7 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
  *
  * **図種と端の印で囲う**。 `edge-line` は線を引く全図種が共有する役割で、囲わずに書くと
  * 分かれ道の図も網の図も薄くなる。 舞台 (`svg`) に出る `data-cdl-type` を見て
- * `er` と、記法で UML / 表 / 移り変わりを一つに畳んだ `record` だけに当てる。
+ * `er` と `class`、記法で書いた表と UML の関係 (`record`) だけに当てる。
  *
  * **光っている線は別に書く**。 cdl は光る線を 0.95、それ以外を 0.9 で描き分けている。
  * 1 本の規則で束ねると差が消え、どの線が光っているかが濃さから読めなくなる。
@@ -552,14 +552,47 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
  * 意味を持つ先は cdl の濃さで残す。
  * ───────────────────────────────────────────────────────────────────────────── */
 svg[data-cdl-stage][data-cdl-type="er"] [data-cdl-role="edge-line"],
-svg[data-cdl-stage][data-cdl-type="class"] [data-cdl-role="edge-line"],
-svg[data-cdl-stage][data-cdl-type="record"] [data-cdl-role="edge-line"] {
+svg[data-cdl-stage][data-cdl-type="class"] [data-cdl-role="edge-line"] {
   stroke-opacity: var(--d-relation-edge-opacity) !important;
 }
 
 svg[data-cdl-stage][data-cdl-type="er"] [data-cdl-active="true"] [data-cdl-role="edge-line"],
-svg[data-cdl-stage][data-cdl-type="class"] [data-cdl-active="true"] [data-cdl-role="edge-line"],
-svg[data-cdl-stage][data-cdl-type="record"] [data-cdl-active="true"] [data-cdl-role="edge-line"] {
+svg[data-cdl-stage][data-cdl-type="class"] [data-cdl-active="true"] [data-cdl-role="edge-line"] {
+  stroke-opacity: var(--d-relation-edge-opacity-active) !important;
+}
+
+/*
+ * 記法は表 / UML / 移り変わりの図を `record` の 1 つに畳んだため (#2782 / #2783)、
+ * 図種では分けられない。 **端の印で、順番を持たない関係の図を分ける** (#2805)。
+ * 棒 / 三又 / 丸の 4 種は個数、三角 / 菱は UML の継承と所有を表す。
+ * 一覧は `packages/dragon/test/support/record-edges.ts` の `個数の端` / `UMLだけの端` から
+ * 導かれ、`relation-edge-scope.test.ts` がこの選び方と突き合わせる。
+ *
+ * 開いた矢 (`open`) は UML の関連 / 依存と移り変わりの両方が使うので囲わない。
+ * 端以外に両者を分ける属性は SVG に無く、ここへ足すと `認証の状態遷移` まで薄くなる。
+ */
+svg[data-cdl-stage][data-cdl-type="record"]:has(
+    [data-cdl-edge-head="one"],
+    [data-cdl-edge-head="many"],
+    [data-cdl-edge-head="zero-one"],
+    [data-cdl-edge-head="zero-many"],
+    [data-cdl-edge-head="triangle"],
+    [data-cdl-edge-head="diamond"]
+  )
+  [data-cdl-role="edge-line"] {
+  stroke-opacity: var(--d-relation-edge-opacity) !important;
+}
+
+svg[data-cdl-stage][data-cdl-type="record"]:has(
+    [data-cdl-edge-head="one"],
+    [data-cdl-edge-head="many"],
+    [data-cdl-edge-head="zero-one"],
+    [data-cdl-edge-head="zero-many"],
+    [data-cdl-edge-head="triangle"],
+    [data-cdl-edge-head="diamond"]
+  )
+  [data-cdl-active="true"]
+  [data-cdl-role="edge-line"] {
   stroke-opacity: var(--d-relation-edge-opacity-active) !important;
 }
 

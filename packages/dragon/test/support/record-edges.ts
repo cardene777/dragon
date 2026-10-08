@@ -11,10 +11,43 @@
  *
  * **この表を 2 箇所に書かない** = 片方だけ直した日に、2 つの検査が別の母集団を見る。
  */
+import { CLASS_RELATION_LOOK } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 /** 個数を表す端。 描く側の `ER_CARDINALITY_HEAD` が作る 4 種 */
 export const 個数の端: ReadonlySet<string> = new Set(["one", "many", "zero-one", "zero-many"]);
+
+/**
+ * 描いた SVG に出る UML の関係の端。`none` は描画側が marker を作らないので含めない。
+ * 種類を足した時に追随するよう、record の組み立てが読む表から導く。
+ */
+export const UMLの関係の端: ReadonlySet<string> = new Set(
+  Object.values(CLASS_RELATION_LOOK).flatMap(({ head, tailHead }) =>
+    [head, tailHead].filter((端) => 端 !== "none"),
+  ),
+);
+
+/** 移り変わりを表す端。record の状態遷移は開いた矢を使う。 */
+export const 移り変わりの端: ReadonlySet<string> = new Set(["open"]);
+
+/** 端だけで移り変わりと見分けられる UML の関係の端。 */
+export const UMLだけの端: ReadonlySet<string> = new Set(
+  [...UMLの関係の端].filter((端) => !移り変わりの端.has(端)),
+);
+
+/**
+ * 端だけでは移り変わりと見分けられない UML の関係。
+ * CSS の対象外になる関係を種類の表から導き、増減を検査と報告へそのまま出せるようにする。
+ */
+export const 端で見分けられないUMLの関係: readonly string[] = Object.entries(
+  CLASS_RELATION_LOOK,
+)
+  .filter(([, { head, tailHead }]) =>
+    [head, tailHead]
+      .filter((端) => 端 !== "none")
+      .every((端) => 移り変わりの端.has(端)),
+  )
+  .map(([関係]) => 関係);
 
 /** 個数を表す端を持つ矢印か。 移り変わりの矢印 (開いた矢) をここで外す */
 export const 個数を表す矢印 = (e: { head?: string }): boolean =>
