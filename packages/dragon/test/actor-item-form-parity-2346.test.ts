@@ -68,6 +68,8 @@ const 見本の値: Record<string, string> = {
   end: '"5月"',
   touchpoint: '"まどぐち"',
   opportunity: '"のびしろ"',
+  at: "[0.2, 0.8]",
+  点の位置: "[0.2, 0.8]",
   posX: "100",
   posY: "100",
   posW: "900",
@@ -97,7 +99,7 @@ function 箱(本文: string): string | null {
   if (!p.ok) return null;
   const a = p.doc.actors.find((x) => x.name === "A");
   if (a === undefined) return null;
-  const { pos: _行番号, ...中身 } = a as unknown as Record<string, unknown>;
+  const { pos: _行番号, atPos: _座標の行番号, ...中身 } = a as unknown as Record<string, unknown>;
   // 欄の並び順は書き方で変わる。 名前で並べ直してから比べる
   return JSON.stringify(Object.fromEntries(Object.entries(中身).sort(([x], [y]) => (x < y ? -1 : 1))));
 }

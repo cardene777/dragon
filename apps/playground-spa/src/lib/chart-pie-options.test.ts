@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS } from "./catalog-items";
 import {
+  図に書いた円の見せ方,
   図の円の見せ方を変える,
   円の見せ方を選べる,
   円の見せ方の選択肢,
@@ -38,7 +39,7 @@ function 見本を取る(id: string): CdlDiagram {
 /** 円グラフと棒グラフを 1 枚に混ぜた図。 見本には同居する形が無いので作る */
 function 合成の図(): CdlDiagram {
   const 円 = 見本を取る("chart-pie-demo").nodes.find((node) => node.kind === "chart-pie");
-  const 棒 = 見本を取る("経路別の流入").nodes.find((node) => node.kind === "chart-bar");
+  const 棒 = 見本を取る("営業所ごとの取扱数").nodes.find((node) => node.kind === "chart-bar");
   expect(円, "合成 fixture 用の円グラフ node が無い").toBeDefined();
   expect(棒, "合成 fixture 用の棒グラフ node が無い").toBeDefined();
   return { ...見本を取る("chart-pie-demo"), nodes: [円!, 棒!] };
@@ -49,6 +50,13 @@ function 円のnode(diagram: CdlDiagram) {
 }
 
 describe("見せ方を選べる図の判定 (#1645)", () => {
+  it("記法に書いた見せ方を初期値にし、空欄は輪にする", () => {
+    const 宅配 = 見本().find(({ diagram }) => diagram.topic === "荷物の状態");
+    expect(宅配, "宅配の円グラフが見つからない").toBeDefined();
+    expect(図に書いた円の見せ方(宅配!.diagram)).toBe("table");
+    expect(図に書いた円の見せ方(見本を取る("chart-pie-demo"))).toBe("ring");
+  });
+
   it("円グラフを持つ見本でだけ選べる", () => {
     // Given
     const 全部 = 見本();

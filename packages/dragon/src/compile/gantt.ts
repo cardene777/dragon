@@ -28,7 +28,8 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
 
   // 目盛りは **書かれた順** に並べる。 以前は `Q1=200 / Q2=600 / ...` の決め打ちで、 Q1-Q4 以外は
   // 全て同じ位置に落ちていた。 順に並べれば月名でも週番号でも同じ規則で置ける
-  const 目盛り: string[] = [];
+  const 明示した目盛り = doc.ticks !== undefined;
+  const 目盛り: string[] = doc.ticks === undefined ? [] : [...doc.ticks];
   const 目盛りなし: string[] = [];
   // 最初に時期を読めなかった項目の行。 画面が案内できるようにする (値の図と同じ)
   let 目盛りなし行 = 0;
@@ -40,6 +41,8 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
     tone?: DslDocument["actors"][number]["tone"];
     owner?: string;
     end?: string;
+    startFraction: number;
+    precise: boolean;
   }[] = [];
   for (const a of doc.actors) {
     const label = (a.value ?? a.subtitle ?? "").trim();
@@ -48,12 +51,33 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       目盛りなし.push(a.name);
       continue;
     }
-    if (!目盛り.includes(label)) 目盛り.push(label);
+    const 始まり = 時期を読む(label);
+    if (始まり === null) {
+      伝える(
+        "chart-value-unreadable",
+        a.name,
+        `type: gantt で ${truncateForMessage(a.name)} の始まり (${truncateForMessage(label)}) が読めません (帯に載せません)。 月の中の位置は \`6月+0.55\` の形で 0..1 を書いてください`,
+        a.pos?.line ?? 0,
+      );
+      continue;
+    }
+    if (!明示した目盛り && !目盛り.includes(始まり.label)) 目盛り.push(始まり.label);
+    if (明示した目盛り && !目盛り.includes(始まり.label)) {
+      伝える(
+        "chart-value-unreadable",
+        a.name,
+        `type: gantt で ${truncateForMessage(a.name)} の始まり (${truncateForMessage(始まり.label)}) は ticks にありません (帯に載せません)。 ticks = ${目盛り.map(truncateForMessage).join(" / ")}`,
+        a.pos?.line ?? 0,
+      );
+      continue;
+    }
     // 色は帯にそのまま渡す。 箱が 1 つになっても、 書いた色が消えないようにする
     タスク.push({
       name: a.name,
       title: 箱の題(a),
       label,
+      startFraction: 始まり.fraction,
+      precise: 明示した目盛り || 始まり.written || (a.end?.includes("+") ?? false),
       line: a.pos?.line ?? 0,
       ...(a.tone !== undefined ? { tone: a.tone } : {}),
       ...(a.owner !== undefined ? { owner: a.owner } : {}),
@@ -126,24 +150,36 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
     w: CHART_W,
     h: CHART_H,
     ganttData: タスク.map((t) => {
-      const idx = 目盛り.indexOf(t.label);
+      const startName = 時期を読む(t.label)?.label ?? t.label;
+      const idx = 目盛り.indexOf(startName);
+      const startIdx = idx + t.startFraction;
       const from = 依存元.get(t.name);
       // 帯の誤りは、その項目を書いた行で伝える。 知らせの種類は呼ばれる側が決める (#2392)
       const 帯を伝える = (種類: CompileNotice["kind"], 名: string, message: string): void =>
         伝える(種類, 名, message, t.line);
-      const 終わり = 終わる位置(t.end, idx, 目盛り, t.name, 帯を伝える, doc);
+      const 終わり = 終わる位置(
+        t.end,
+        startIdx,
+        目盛り,
+        t.name,
+        帯を伝える,
+        doc,
+        t.precise,
+      );
+      const startLabel = t.precise ? 位置の目盛り(startIdx, 目盛り) : t.label;
       return {
         id: slugify(t.name) || t.name,
         title: t.title,
-        startIdx: idx,
+        startIdx,
         endIdx: 終わり.idx,
-        startLabel: t.label,
-        endLabel: 終わり.label ?? t.label,
+        startLabel,
+        endLabel: 終わり.label ?? startLabel,
         ...(t.owner !== undefined ? { owner: t.owner } : {}),
         ...(from !== undefined ? { dependsOn: slugify(from) || from } : {}),
         ...(t.tone !== undefined ? { tone: t.tone } : {}),
       };
     }),
+    ...(明示した目盛り ? { ganttAxisMax: 目盛り.length } : {}),
   });
 
   return b.build();
@@ -204,6 +240,7 @@ function 終わる位置(
   名前: string,
   伝える: (種類: CompileNotice["kind"], 名: string, message: string) => void,
   doc: DslDocument,
+  precise = false,
 ): { idx: number | string; label?: string } {
   if (end === undefined) return { idx: 始まり };
   if (/^\{\w+\}$/.test(end)) {
@@ -220,12 +257,16 @@ function 終わる位置(
         `type: gantt で ${truncateForMessage(名前)} の終わり (${truncateForMessage(end)}) が始まりより前になる値を取ります (${[...new Set(低い)].join(", ")})。 始まりは ${始まり} 番目です`,
       );
     }
-    return { idx: end };
+    return {
+      idx: end,
+      ...(precise ? { label: 状態の目盛り(end, doc, 目盛り) ?? 位置の目盛り(始まり, 目盛り) } : {}),
+    };
   }
-  const i = 目盛り.indexOf(end);
+  const 時点 = 時期を読む(end);
+  const i = 時点 === null ? -1 : 目盛り.indexOf(時点.label);
   // 目盛りは箱に書いた時期から作るので、どの箱も書いていない時期は位置を持たない。
   // 読めた時期を並べて伝える = 目盛りは図ごとに変わるため、固定の一覧を文に書けない
-  if (i < 0) {
+  if (i < 0 || 時点 === null) {
     伝える(
       "chart-value-unreadable",
       名前,
@@ -236,13 +277,38 @@ function 終わる位置(
   }
   // 始まりより前に終わる帯は描けない。 そのまま渡すと横幅が負になり、帯が始まりの位置から
   // 左へはみ出す。 始まりと同じに倒して伝える (黙って倒すと「書いたのに 1 コマのまま」 になる)
-  if (i < 始まり) {
+  const endIdx = precise ? i + (時点.written ? 時点.fraction : 1) - 1 : i;
+  if (endIdx < 始まり) {
     伝える(
       "gantt-end-before-start",
       名前,
       `type: gantt で ${truncateForMessage(名前)} の終わり (${truncateForMessage(end)}) が始まりより前です (始まりと同じに倒しました)`,
     );
-    return { idx: 始まり };
+    return { idx: 始まり, ...(precise ? { label: 位置の目盛り(始まり, 目盛り) } : {}) };
   }
-  return { idx: i, label: end };
+  return { idx: endIdx, label: precise ? 位置の目盛り(endIdx, 目盛り) : end };
+}
+
+/** `6月+0.55` を目盛り名と、その目盛り内の位置に分ける。 */
+function 時期を読む(raw: string): { label: string; fraction: number; written: boolean } | null {
+  const m = raw.trim().match(/^(.+?)(?:\+([+-]?(?:\d+(?:\.\d+)?|\.\d+)))?$/);
+  if (m === null) return null;
+  const fraction = m[2] === undefined ? 0 : Number(m[2]);
+  if (!Number.isFinite(fraction) || fraction < 0 || fraction > 1) return null;
+  return { label: m[1]!.trim(), fraction, written: m[2] !== undefined };
+}
+
+function 位置の目盛り(idx: number, 目盛り: readonly string[]): string {
+  const rounded = Math.max(0, Math.min(目盛り.length - 1, Math.round(idx)));
+  return 目盛り[rounded] ?? "";
+}
+
+function 状態の目盛り(
+  ref: string,
+  doc: DslDocument,
+  目盛り: readonly string[],
+): string | undefined {
+  const values = 状態が取る値(ref, doc);
+  if (values.length === 0) return undefined;
+  return 位置の目盛り(Math.max(...values), 目盛り);
 }

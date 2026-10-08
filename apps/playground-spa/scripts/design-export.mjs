@@ -114,7 +114,7 @@ const catalogText = readFileSync(join(CATALOG, file), "utf8");
 await page.goto(`${BASE}/catalog/${group}`, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
 // 開く項目も `data-item-id` で選ぶ (#2671)。 画面に見えているのは形の名前 (`棒グラフ`) で、
-// 題 (`今期の売上進捗`) とは別物のため、見えている文字列では 1 件も当たらない
+// 題 (`定時に届いた割合`) とは別物のため、見えている文字列では 1 件も当たらない
 await page
   .locator(`aside.catalog-sidebar .catalog-list-item[data-item-id="${id}"]`)
   .first()

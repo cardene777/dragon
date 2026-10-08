@@ -177,7 +177,7 @@ describe("カタログの 大きな数字 が 3 つのパターンを持つ (#16
     // 折れ線を選ぶのは、engine が中身の違う形を持たない種別だから (#1698 で実測)。
     // node から読む欄は `chartData` と 見せ方 3 つだけで、押すと中身が入れ替わる
     // 変種の作りようがない
-    const 折れ線 = charts.find((i) => i.title === "chartLine");
+    const 折れ線 = charts.find((i) => i.title === "monthlyDeliveriesLine");
     expect(折れ線, "折れ線の見本が見つからない").toBeDefined();
     expect(折れ線!.patterns).toBeUndefined();
   });

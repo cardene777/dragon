@@ -24,7 +24,7 @@ import { INLINE_ACTOR_KEYS, parseTextDslV05 } from "../src/v05/parser";
 const 図種: readonly { 名: string; 値: string; 読む欄: readonly string[] }[] = [
   { 名: "gantt", 値: '"1月"', 読む欄: ["tone", "owner", "end"] },
   { 名: "journey", 値: '"満足"', 読む欄: ["touchpoint", "opportunity"] },
-  { 名: "quadrant", 値: '"左上"', 読む欄: [] },
+  { 名: "quadrant", 値: '"左上"', 読む欄: ["at"] },
 ];
 
 /** 読む欄に書く値。 図種が実際に読める形で書く */
@@ -35,6 +35,7 @@ const 読む欄の値: Record<string, string> = {
   end: '"4月"',
   touchpoint: '"まど"',
   opportunity: '"のびしろ"',
+  at: "[0.2, 0.8]",
 };
 
 /** 項目ごとに書く値。 一覧は `INLINE_ACTOR_KEYS` (実装が SSOT) から導き、値だけここで持つ */
@@ -71,6 +72,7 @@ const 値: Record<string, string> = {
   end: '"20"',
   touchpoint: '"まど"',
   opportunity: '"のびしろ"',
+  at: "[0.2, 0.8]",
 };
 
 /**

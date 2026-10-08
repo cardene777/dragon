@@ -8,7 +8,7 @@
  *   - Circuit     : dragon-cir-board-pattern / dragon-cir-trace-glow
  *   - Pinboard    : dragon-pin-board-pattern / dragon-pin-sticky-shadow
  *   - Blueprint   : dragon-bp-hatch / dragon-bp-graticule (+ dark) / dragon-bp-arrow-ortho marker
- *   - Sketch      : dragon-sketch-wobble (turbulence displacement) / dragon-sketch-pen
+ *   - Sketch      : dragon-sketch-wobble (turbulence displacement) / dragon-sketch-pen (-primary)
  *   - Neon        : dragon-neon-tube (white core + colored glow)
  *   - Relief      : dragon-relief-raised / -dome / -well / -raised-sm (light and shadow)
  *   - Metro       : dragon-metro-relief-shadow / -neon-glow / -terminal-glow と枝札用の -label
@@ -215,12 +215,12 @@ export function SvgDefs(): React.ReactElement {
             模様の色と寸法は意匠帳と theme-matches-note.test.ts が突き合わせる (#2801)。 */}
         <pattern
           id="dragon-bp-hatch"
-          width="6"
-          height="6"
+          width="8"
+          height="8"
           patternUnits="userSpaceOnUse"
           patternTransform="rotate(-45)"
         >
-          <rect width="1.5" height="6" fill="#143a52" />
+          <rect width="1.5" height="8" fill="#143a52" />
         </pattern>
 
         <pattern
@@ -307,6 +307,15 @@ export function SvgDefs(): React.ReactElement {
           patternTransform="rotate(32)"
         >
           <rect width="3" height="10" fill="#9a9080" />
+        </pattern>
+        <pattern
+          id="dragon-sketch-pen-primary"
+          width="10"
+          height="10"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(32)"
+        >
+          <rect width="3" height="10" fill="#d2491f" />
         </pattern>
 
         {/* `docs/design/proposal/static/流れ-端末.html` の `#光`。

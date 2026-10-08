@@ -59,6 +59,8 @@ export const 効かない箱の欄の呼び名 = [
   ["owner", "担当"],
   ["stage", "段階"],
   ["end", "終わる時期"],
+  ["at", "点の位置"],
+  ["atPos", "点の位置"],
   ["touchpoint", "接点"],
   ["opportunity", "伸びしろ"],
 ] as const satisfies readonly (readonly [keyof DslActor, string])[];
@@ -182,7 +184,7 @@ export const 値として読む図種: ReadonlyMap<string, readonly string[]> = 
   ["funnel", []],
   ["gantt", ["tone"]],
   ["journey", []],
-  ["quadrant", []],
+  ["quadrant", ["at", "atPos"]],
 ]);
 
 /**

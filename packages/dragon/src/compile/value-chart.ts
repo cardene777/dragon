@@ -8,7 +8,18 @@ import { 箱の題 } from "./node-title";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
 import { 図の小見出し } from "./subtitle";
-/**
+import { truncateForMessage } from "./subtitle";
+
+/** 記法で受ける円の見せ方と、描画側へ渡す値。 */
+export const CHART_PIE_FORM_WORDS: ReadonlyMap<string, "ring" | "arcs" | "table"> = new Map([
+  ["ring", "ring"],
+  ["輪", "ring"],
+  ["arcs", "arcs"],
+  ["積層の弧", "arcs"],
+  ["table", "table"],
+  ["銘板", "table"],
+]);
+/*
  * 棒 / 折れ線の組立て。 円グラフと **入力の形が同じ**なので 1 つにまとめる。
  *
  * 3 種とも `- 名前: "45"` の 1 行 1 値で書く。 違うのは描画側の種別と、 値の意味だけ。
@@ -47,11 +58,11 @@ const 描画側の種別: Readonly<Record<DslShape, CdlDiagram["nodes"][number][
 /**
  * 型ごとの札の大きさ。
  *
- * **横も型で決める**。 縦が中身の大きさを決める型 (`stat` / `waffle` / `pie` / `radial`) は、
+ * **横も型で決める**。 縦が中身の大きさを決める型 (`stat` / `waffle` / `radial`) は、
  * 横をいくら広げても絵が大きくならない。 描画側の弧は
  * `外半径 = min(使える高さ / 2, 弧に使える幅 / 2)` で決まり、格子は行数で高さを使い切る。
  * 横を一律 640 にしていた間、余った分は左右の余白になるだけで、`stat` は札の 22%、
- * `waffle` は 57%、`pie` は 59%、`radial` は 63% しか使っていなかった (見本帳の実描画を測った値)。
+ * `waffle` は 57%、`radial` は 63% しか使っていなかった (見本帳の実描画を測った値)。
  *
  * **縦を使わない型を 368 にしない**。 `stacked` は帯 2 本と一覧だけで縦に伸びず、
  * 368 だと縦の 39% しか埋まらない。
@@ -71,13 +82,11 @@ const 描画側の種別: Readonly<Record<DslShape, CdlDiagram["nodes"][number][
  * 組立て API (`cdl` の `chart()`) の既定は 640 のままなので、見本の円は `itemWidth` で
  * 揃える。 ずれたら `catalog-source-parity` が落ちる。
  */
-const 札の大きさ: Readonly<Record<DslShape, { w: number; h: number }>> = {
+const 札の大きさ: Readonly<Record<Exclude<DslShape, "pie">, { w: number; h: number }>> = {
   // 数値 1 つと名前だけ。 中身は 139 幅 x 137 高
   stat: { w: 384, h: 240 },
   // 格子 (367 幅) と一覧
   waffle: { w: 464, h: 320 },
-  // 円 (377 幅) と一覧
-  pie: { w: 480, h: 320 },
   // 弧 (401 幅) と一覧
   radial: { w: 512, h: 320 },
   // 半円 (508 幅) と一覧。 横の使用率が 79% で足りているため変えない
@@ -90,6 +99,37 @@ const 札の大きさ: Readonly<Record<DslShape, { w: number; h: number }>> = {
   slope: { w: 640, h: 368 },
 };
 
+/** 描画側の円で使う寸法。`chart-pie.tsx` と同じ意味の値だけをここへ写す。 */
+const 円の寸法 = {
+  余白: 20,
+  弧の一覧の行: 56,
+  表の見出し: 40,
+  表の行: 52,
+} as const;
+
+const 格子へ切り上げる = (value: number): number => Math.ceil(value / 16) * 16;
+
+/**
+ * 輪は、見せ方を書かない既存の円と同じ 480x320 を保つ。
+ *
+ * 積層の弧と銘板は、描画側が実際に確保する余白と一覧 1 行ぶんを区分数だけ積む。
+ * 最後だけ格子に合わせて 16 の倍数へ上げる。
+ */
+export function 円の札の大きさ(
+  form: "ring" | "arcs" | "table",
+  区分数: number,
+): { w: number; h: number } {
+  if (form === "ring") return { w: 480, h: 320 };
+
+  const 件数 = Math.max(1, 区分数);
+  const 上下の余白 = 円の寸法.余白 * 2;
+  const 高さ =
+    form === "table"
+      ? 上下の余白 + 円の寸法.表の見出し + 円の寸法.表の行 * 件数
+      : 上下の余白 + 円の寸法.弧の一覧の行 * 件数;
+  return { w: 480, h: 格子へ切り上げる(高さ) };
+}
+
 export function compileValueChart(
   doc: DslDocument,
   型: DslShape,
@@ -97,8 +137,6 @@ export function compileValueChart(
 ): CdlDiagram {
   const kind = 描画側の種別[型];
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "chart" });
-  const { w: CHART_W, h: CHART_H } = 札の大きさ[型];
-  b.lane("chart", { width: CHART_W + 64 });
 
   const data: NonNullable<CdlDiagram["nodes"][number]["chartData"]> = [];
   const 読めない: string[] = [];
@@ -175,6 +213,16 @@ export function compileValueChart(
     if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
   };
 
+  const pieForm = doc.form === undefined ? undefined : CHART_PIE_FORM_WORDS.get(doc.form);
+  if (型 === "pie" && doc.form !== undefined && pieForm === undefined) {
+    伝える(
+      "chart-value-unreadable",
+      doc.title,
+      `type: pie で見せ方 (${truncateForMessage(doc.form)}) が読めません (既定の輪で描きます)。 ring / arcs / table または 輪 / 積層の弧 / 銘板 のどれかを書いてください`,
+      doc.formPos?.line ?? 0,
+    );
+  }
+
   if (読めない.length > 0) {
     伝える(
       "chart-value-unreadable",
@@ -216,6 +264,10 @@ export function compileValueChart(
     );
   }
 
+  const { w: CHART_W, h: CHART_H } =
+    型 === "pie" ? 円の札の大きさ(pieForm ?? "ring", data.length) : 札の大きさ[型];
+  b.lane("chart", { width: CHART_W + 64 });
+
   b.node(`${slugify(doc.title) || 型}-chart`, {
     lane: "chart",
     stack: 0,
@@ -225,6 +277,7 @@ export function compileValueChart(
     w: CHART_W,
     h: CHART_H,
     chartData: data,
+    ...(型 === "pie" && pieForm !== undefined ? { chartPieForm: pieForm } : {}),
   });
 
   return b.build();

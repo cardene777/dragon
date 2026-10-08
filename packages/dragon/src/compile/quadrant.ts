@@ -1,7 +1,7 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
-import { 図表の大きさ, 語の欄から参照できる名前 } from "./chart-fields";
+import { 図表の大きさ, 数の欄から参照できる名前, 語の欄から参照できる名前 } from "./chart-fields";
 import { 箱の題 } from "./node-title";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
@@ -22,8 +22,53 @@ export function compileQuadrant(
   const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
   const 読めない: string[] = [];
   const 参照できる = 語の欄から参照できる名前(doc, 区画);
+  const 数を参照できる = 数の欄から参照できる名前(doc);
+  const 伝える = (a: DslDocument["actors"][number], message: string): void => {
+    onNotice?.({
+      kind: "chart-value-unreadable",
+      actor: a.name,
+      line: a.atPos?.line ?? a.pos?.line ?? 0,
+      message,
+    });
+    if (typeof console !== "undefined" && console.warn) console.warn(`[dragon] ${message}`);
+  };
   for (const a of doc.actors) {
     const 語 = (a.value ?? a.subtitle ?? "").trim();
+    if (a.at !== undefined) {
+      const 座標 = 四象限の座標(a.at, 数を参照できる);
+      if (座標 === null) {
+        伝える(
+          a,
+          `type: quadrant で ${a.name} の at (${a.at.raw}) が読めません (図に載せません)。 at: [0.2, 0.8] の形で 0..1 の数か {状態名} を 2 つ書いてください`,
+        );
+        continue;
+      }
+      const 範囲外 = [
+        座標.x,
+        座標.y,
+        ...[座標.x, 座標.y].flatMap((v) =>
+          typeof v === "string" ? 状態が取る値(v, doc) : [],
+        ),
+      ].filter(
+        (v): v is number => typeof v === "number" && (v < 0 || v > 1),
+      );
+      if (範囲外.length > 0) {
+        伝える(
+          a,
+          `type: quadrant で ${a.name} の at (${a.at.raw}) が 0..1 の範囲外です (描画時に最寄りの端へ寄せます)`,
+        );
+      }
+      const q = 区画.get(語);
+      const 座標の区画 = 数の象限(座標);
+      if (q !== undefined && 座標の区画 !== undefined && q !== 座標の区画) {
+        伝える(
+          a,
+          `type: quadrant で ${a.name} の区画 (${語}) と at (${a.at.raw}) の象限が食い違います (at を採ります)`,
+        );
+      }
+      items.push({ id: slugify(a.name), title: 箱の題(a), at: 座標 });
+      continue;
+    }
     const 参照 = 語.match(/^\{(\w+)\}$/);
     if (参照) {
       if (!参照できる.has(参照[1]!)) {
@@ -67,6 +112,61 @@ export function compileQuadrant(
     quadrantData: { ...軸と区画の名前(doc), items },
   });
   return b.build();
+}
+
+function 四象限の座標(
+  at: NonNullable<DslDocument["actors"][number]["at"]>,
+  参照できる: ReadonlySet<string>,
+): { x: number | string; y: number | string } | null {
+  if (!at.raw.startsWith("[") || !at.raw.endsWith("]") || at.x === undefined || at.y === undefined)
+    return null;
+  if (at.raw.slice(1, -1).split(",").length !== 2) return null;
+  const 読める = (v: number | string): boolean => {
+    if (typeof v === "number") return Number.isFinite(v);
+    const m = v.match(/^\{([\w-]+)\}$/);
+    return m !== null && 参照できる.has(m[1]!);
+  };
+  return 読める(at.x) && 読める(at.y) ? { x: at.x, y: at.y } : null;
+}
+
+/** 座標の `{状態名}` が、記法に書かれた範囲で取り得る数を集める。 */
+function 状態が取る値(参照: string, doc: DslDocument): number[] {
+  const m = 参照.match(/^\{([\w-]+)\}$/);
+  if (m === null) return [];
+  const 名前 = m[1]!;
+  const values: number[] = [];
+  const 数を加える = (value: unknown): void => {
+    if (typeof value === "number" && Number.isFinite(value)) values.push(value);
+    else if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)))
+      values.push(Number(value));
+  };
+  let 初期値: unknown;
+  let 初期値あり = false;
+  for (const state of doc.animate?.states ?? []) {
+    if (state.name !== 名前) continue;
+    初期値 = state.initial;
+    初期値あり = true;
+  }
+  if (初期値あり) 数を加える(初期値);
+  for (const phase of doc.animate?.phases ?? []) {
+    for (const tween of phase.tweens ?? []) {
+      if (tween.state !== 名前) continue;
+      数を加える(tween.from);
+      数を加える(tween.to);
+    }
+    for (const set of phase.sets ?? []) if (set.state === 名前) 数を加える(set.value);
+  }
+  return values;
+}
+
+function 数の象限(at: { x: number | string; y: number | string }):
+  | "topLeft"
+  | "topRight"
+  | "bottomLeft"
+  | "bottomRight"
+  | undefined {
+  if (typeof at.x !== "number" || typeof at.y !== "number") return undefined;
+  return `${at.y >= 0.5 ? "top" : "bottom"}${at.x >= 0.5 ? "Right" : "Left"}`;
 }
 
 /** 軸を書かなかった時の名前。 何の軸か分からないため、位置をそのまま出す */

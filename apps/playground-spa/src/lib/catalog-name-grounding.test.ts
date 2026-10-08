@@ -259,3 +259,31 @@ describe("一覧の名前の根拠 (#1048)", () => {
     expect(onlyOne, `片方の言語にしか名前が無い: ${onlyOne.join(", ")}`).toHaveLength(0);
   });
 });
+
+describe("宅配 13 件の名前は図に表示される場面語を根拠にする (#2837)", () => {
+  const 名前と根拠 = {
+    deliveryOfficeTree: ["営業所の階層図", "Delivery office hierarchy", "営業所", "office"],
+    redeliveryIdeasMind: ["再配達を減らす手立てのマインドマップ", "Redelivery reduction ideas mind map", "再配達", "redelivery"],
+    branchParcelsBar: ["営業所ごとの取扱数の棒グラフ", "Parcels by office bar chart", "営業所", "office"],
+    monthlyDeliveriesLine: ["月ごとの配達数の折れ線グラフ", "Deliveries by month line chart", "配達", "deliveries"],
+    parcelStatusPie: ["荷物の状態の円グラフ", "Parcel status pie chart", "荷物", "parcel"],
+    orderToDeliveryFunnel: ["申し込みから届くまでのファネル図", "Order-to-delivery funnel", "届く", "delivery"],
+    measureEffortQuadrant: ["打ち手の手間と効き目のマトリクス図", "Delivery measure effort and impact matrix", "打ち手", "measure"],
+    onTimeRateSlope: ["営業所ごとの定時率の傾き図", "On-time rate by office slope chart", "営業所", "office"],
+    onTimeShareGauge: ["定時に届いた割合の半円ゲージ", "On-time delivery share gauge", "定時", "on-time"],
+    parcelSizeWaffle: ["荷物の大きさの 100 個の印", "Parcel size waffle of 100 marks", "荷物", "parcel"],
+    deliveryResultStacked: ["配達の結果の内訳の帯", "Delivery result stacked bars", "配達", "delivery"],
+    sortingShelfGantt: ["仕分け棚を入れ替える工程のガントチャート", "Sorting shelf replacement Gantt chart", "仕分け棚", "sorting shelf"],
+    shipperFeelingJourney: ["荷主の気持ちのユーザージャーニー", "Shipper feeling journey map", "荷主", "shipper"],
+  } as const;
+
+  it.each(Object.entries(名前と根拠))("%s の日英名と表示語が対応する", (鍵, [日本語名, 英語名, 日本語の根拠, 英語の根拠]) => {
+    const item = (CATALOG_ITEMS.charts ?? []).find((候補) => 候補.title === 鍵);
+    expect(item, `${鍵} が charts に無い`).toBeDefined();
+    expect(itemNameJa(鍵)).toBe(日本語名);
+    expect(itemNameEn(鍵)).toBe(英語名);
+    expect(日本語名).toContain(日本語の根拠);
+    expect(英語名.toLowerCase()).toContain(英語の根拠);
+    expect(evidenceOf(item!.diagram), `${鍵} の表示語に ${日本語の根拠} が無い`).toContain(日本語の根拠);
+  });
+});
