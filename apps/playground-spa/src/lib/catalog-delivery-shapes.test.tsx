@@ -112,14 +112,14 @@ const 形の要素たち: 形の要素[] = [
 
   { 鍵: "sortingShelfGantt", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
-  { 鍵: "sortingShelfGantt", 要素: "工程の帯", 見本の数: 6, 今の数: 6, role: "gantt-bar", 描ける: true },
+  { 鍵: "sortingShelfGantt", 要素: "工程の帯", 見本の数: 5, 今の数: 5, role: "gantt-bar", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "月の見出し", 見本の数: 5, 今の数: 5, role: "gantt-tick", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "依存の矢印", 見本の数: 4, 今の数: 4, role: "gantt-arrow", 描ける: true },
-  { 鍵: "sortingShelfGantt", 要素: "主役の斜線", 見本の数: 3, 今の数: 0, role: "gantt-bar-hatch", 描ける: false, 理由: "accent の帯を 3 本に分けられるが斜線を当てる印が無い", 下書き: ".context/scratch/2837/cdl-issue-highlight-hatch.md", 仮の役割名: true },
+  { 鍵: "sortingShelfGantt", 要素: "主役の重ね", 見本の数: 3, 今の数: 3, role: "gantt-bar-hatch", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "1 行おきの地", 見本の数: 3, 今の数: 3, role: "gantt-row", 描ける: true },
-  { 鍵: "sortingShelfGantt", 要素: "月内位置の端点", 見本の数: 7, 今の数: 7, role: "diagram:gantt-fractional-endpoint", 描ける: true },
-  { 鍵: "sortingShelfGantt", 要素: "本番の節目", 見本の数: 1, 今の数: 0, role: "gantt-milestone", 描ける: false, 理由: "同じ始終点も 1 目盛り幅の帯にする", 下書き: ".context/scratch/2837/cdl-issue-gantt-markers.md", 仮の役割名: true },
-  { 鍵: "sortingShelfGantt", 要素: "今日の点線", 見本の数: 1, 今の数: 0, role: "gantt-today", 描ける: false, 理由: "今日を渡す欄が無い", 下書き: ".context/scratch/2837/cdl-issue-gantt-markers.md", 仮の役割名: true },
+  { 鍵: "sortingShelfGantt", 要素: "月内位置の端点", 見本の数: 9, 今の数: 9, role: "diagram:gantt-fractional-endpoint", 描ける: true },
+  { 鍵: "sortingShelfGantt", 要素: "本番の節目", 見本の数: 1, 今の数: 1, role: "gantt-milestone", 描ける: true },
+  { 鍵: "sortingShelfGantt", 要素: "今日の点線", 見本の数: 1, 今の数: 1, role: "gantt-today", 描ける: true },
 
   { 鍵: "shipperFeelingJourney", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
   { 鍵: "shipperFeelingJourney", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
@@ -241,6 +241,33 @@ describe("宅配の見本の形要素 (#2837)", () => {
       ? 試す.dependsOn
       : 試す?.dependsOn === undefined ? [] : [試す.dependsOn];
     expect(依存).toEqual([棚を作る?.id, 端末を入れる?.id]);
+  });
+
+  it("仕分け棚の本番と今日を見本の位置と札で渡す", () => {
+    const 図 = 図を引く("sortingShelfGantt");
+    expect(図, "sortingShelfGantt が無い").toBeDefined();
+    if (図 === undefined) throw new Error("sortingShelfGantt が無い");
+    const 節目 = 図.nodes.flatMap((node) => node.ganttData ?? []).find((task) => task.title === "本番");
+    expect(節目).toMatchObject({ startIdx: 4.45, startLabel: "10月半ば", milestone: true });
+    expect(図.nodes[0]).toMatchObject({ ganttToday: { index: 3.3, label: "今日" } });
+    const svg = 最後を描く(図);
+    expect(svg).toContain('data-cdl-role="gantt-milestone"');
+    expect(svg).toContain('data-cdl-role="gantt-milestone-label"');
+    expect(svg).toContain('>10月半ば<');
+    expect(svg).toContain('data-cdl-role="gantt-today"');
+  });
+
+  it("仕分け棚の端末と試すの終わりが見本の位置になる", () => {
+    const 図 = 図を引く("sortingShelfGantt");
+    if (図 === undefined) throw new Error("sortingShelfGantt が無い");
+    const 工程 = 図.nodes.flatMap((node) => node.ganttData ?? []);
+    expect(工程.find((task) => task.title === "端末を入れる")?.endIdx).toBe("{terminal_end}");
+    expect(工程.find((task) => task.title === "試す")).toMatchObject({
+      startIdx: 3.45,
+      endIdx: "{trial_end}",
+    });
+    expect(図.states?.find((state) => state.id === "terminal_end")?.initial).toBe(2.3);
+    expect(図.states?.find((state) => state.id === "trial_end")?.initial).toBe(3.45);
   });
 
   it.each(形の要素たち)("$鍵: $要素", ({ 鍵, 見本の数, 今の数, role, 描ける, 理由, 下書き, 仮の役割名 }) => {

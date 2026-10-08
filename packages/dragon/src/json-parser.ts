@@ -125,6 +125,12 @@ export interface DragonJson {
   ticks?: string[];
   /** `ticks` の和名。両方あれば `ticks` を採る。 */
   目盛り?: string[];
+  /** ガントチャートの今日の線の位置と札。 */
+  ganttToday?: { index: number; label: string };
+  /** 工程の端とは独立した目盛り名。 */
+  ganttTickLabels?: string[];
+  ganttBarEnd?: "position";
+  ganttBarThickness?: "thin";
   /**
    * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
    *
@@ -394,6 +400,9 @@ export interface JsonActor {
    * (記法側と同じ扱い)。
    */
   end?: string;
+  startLabel?: string;
+  milestone?: boolean;
+  emphasis?: "primary";
   /** 四象限の座標 `[x, y]`。 */
   at?: [number | string, number | string];
   /** `at` の和名。両方あれば `at` を採る。 */
@@ -625,6 +634,10 @@ export const ACCEPTED_KEYS = {
     "見せ方",
     "ticks",
     "目盛り",
+    "ganttToday",
+    "ganttTickLabels",
+    "ganttBarEnd",
+    "ganttBarThickness",
     "eyebrow",
     "axes",
     "regions",
@@ -686,6 +699,9 @@ export const ACCEPTED_KEYS = {
     "color",
     "owner",
     "end",
+    "startLabel",
+    "milestone",
+    "emphasis",
     "at",
     "点の位置",
     "touchpoint",
@@ -814,6 +830,9 @@ export type 欄の型 =
   | "描くもの"
   | "意匠"
   | "図の形"
+  | "ガントの帯の終わり"
+  | "ガントの帯の厚み"
+  | "主役"
   | "必須の図種"
   | "object"
   | "並び"
@@ -828,6 +847,10 @@ export const 欄の型表 = {
     見せ方: "非空の文字列",
     ticks: "文字列の並び",
     目盛り: "文字列の並び",
+    ganttToday: "object",
+    ganttTickLabels: "文字列の並び",
+    ganttBarEnd: "ガントの帯の終わり",
+    ganttBarThickness: "ガントの帯の厚み",
     eyebrow: "文字列",
     axes: "object",
     regions: "object",
@@ -888,6 +911,9 @@ export const 欄の型表 = {
     color: "色か色番号",
     owner: "文字列",
     end: "文字列",
+    startLabel: "文字列",
+    milestone: "真偽",
+    emphasis: "主役",
     at: "並び",
     点の位置: "並び",
     touchpoint: "文字列",
@@ -1066,6 +1092,9 @@ export const 見本に効かない欄 = [
   "at",
   "owner",
   "end",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "touchpoint",
   "opportunity",
   "stage",
@@ -1166,6 +1195,18 @@ function 値を検査(
     case "真偽":
       if (v === undefined) return;
       if (typeof v !== "boolean") 型違い("true or false if present");
+      return;
+    case "ガントの帯の終わり":
+      if (v === undefined) return;
+      if (v !== "position") 型違い('"position" if present');
+      return;
+    case "ガントの帯の厚み":
+      if (v === undefined) return;
+      if (v !== "thin") 型違い('"thin" if present');
+      return;
+    case "主役":
+      if (v === undefined) return;
+      if (v !== "primary") 型違い('"primary" if present');
       return;
     case "色":
       if (v === undefined) return;
@@ -2582,6 +2623,23 @@ function validateJson(
       errors.push({ path: `$.${欄}`, message: `${欄} must contain at least one label` });
     }
   }
+  if (j.ganttToday !== undefined) {
+    const today = j.ganttToday;
+    if (!today || typeof today !== "object" || Array.isArray(today)) {
+      errors.push({ path: "$.ganttToday", message: "ganttToday must be an object" });
+    } else {
+      const value = today as Record<string, unknown>;
+      for (const key of Object.keys(value)) {
+        if (key !== "index" && key !== "label") errors.push({ path: `$.ganttToday.${key}`, message: `unknown key "${key}"` });
+      }
+      if (typeof value.index !== "number" || !Number.isFinite(value.index)) {
+        errors.push({ path: "$.ganttToday.index", message: "ganttToday.index must be a finite number" });
+      }
+      if (typeof value.label !== "string") {
+        errors.push({ path: "$.ganttToday.label", message: "ganttToday.label must be a string" });
+      }
+    }
+  }
 
   if (!Array.isArray(j.actors) || j.actors.length === 0) {
     errors.push({ path: "$.actors", message: "actors must be a non-empty array" });
@@ -2985,6 +3043,9 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
             tone: resolveTone(a.tone) ?? 色.tone,
             owner: a.owner,
             end: a.end,
+            startLabel: a.startLabel,
+            milestone: a.milestone,
+            emphasis: a.emphasis,
             at:
               書いた座標 === undefined
                 ? undefined
@@ -3174,6 +3235,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(ticks !== undefined
       ? { ticks: [...ticks], ticksPos: 位置(json.ticks !== undefined ? "ticks" : "目盛り") }
       : {}),
+    ...(json.ganttToday !== undefined ? { ganttToday: json.ganttToday } : {}),
+    ...(json.ganttTickLabels !== undefined ? { ganttTickLabels: [...json.ganttTickLabels] } : {}),
+    ...(json.ganttBarEnd !== undefined ? { ganttBarEnd: json.ganttBarEnd } : {}),
+    ...(json.ganttBarThickness !== undefined ? { ganttBarThickness: json.ganttBarThickness } : {}),
     ...(別名?.order !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
     ...(別名?.shape !== undefined ? { shape: 別名.shape, shapePos: 位置("type") } : {}),
     // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから

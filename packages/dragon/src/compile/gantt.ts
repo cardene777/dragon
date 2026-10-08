@@ -41,6 +41,9 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
     tone?: DslDocument["actors"][number]["tone"];
     owner?: string;
     end?: string;
+    startLabel?: string;
+    milestone?: boolean;
+    emphasis?: "primary";
     startFraction: number;
     precise: boolean;
   }[] = [];
@@ -82,6 +85,9 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       ...(a.tone !== undefined ? { tone: a.tone } : {}),
       ...(a.owner !== undefined ? { owner: a.owner } : {}),
       ...(a.end !== undefined ? { end: a.end } : {}),
+      ...(a.startLabel !== undefined ? { startLabel: a.startLabel } : {}),
+      ...(a.milestone !== undefined ? { milestone: a.milestone } : {}),
+      ...(a.emphasis !== undefined ? { emphasis: a.emphasis } : {}),
     });
   }
   if (目盛りなし.length > 0) {
@@ -174,7 +180,7 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
         doc,
         t.precise,
       );
-      const startLabel = t.precise ? 位置の目盛り(startIdx, 目盛り) : t.label;
+      const startLabel = t.startLabel ?? (t.precise ? 位置の目盛り(startIdx, 目盛り) : t.label);
       return {
         id: slugify(t.name) || t.name,
         title: t.title,
@@ -185,9 +191,15 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
         ...(t.owner !== undefined ? { owner: t.owner } : {}),
         ...(dependsOn !== undefined ? { dependsOn } : {}),
         ...(t.tone !== undefined ? { tone: t.tone } : {}),
+        ...(t.emphasis !== undefined ? { emphasis: t.emphasis } : {}),
+        ...(t.milestone === true ? { milestone: true as const } : {}),
       };
     }),
     ...(明示した目盛り ? { ganttAxisMax: 目盛り.length } : {}),
+    ...(doc.ganttToday !== undefined ? { ganttToday: doc.ganttToday } : {}),
+    ...(doc.ganttTickLabels !== undefined ? { ganttTickLabels: doc.ganttTickLabels } : {}),
+    ...(doc.ganttBarEnd !== undefined ? { ganttBarEnd: doc.ganttBarEnd } : {}),
+    ...(doc.ganttBarThickness !== undefined ? { ganttBarThickness: doc.ganttBarThickness } : {}),
   });
 
   return b.build();

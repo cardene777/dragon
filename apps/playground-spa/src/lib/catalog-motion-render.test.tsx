@@ -515,11 +515,11 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     .filter(([, d]) => !数を動かせない.has(d.id))
     .map(([k, d]) => [k, d] as const);
 
-  it("対象が 23 件ある", () => {
-    expect(図表).toHaveLength(23);
+  it("対象が 24 件ある", () => {
+    expect(図表).toHaveLength(24);
   });
 
-  it("23 件すべてが 2 段を持ち、段で動かす値を宣言している", () => {
+  it("24 件すべてが 2 段を持ち、段で動かす値を宣言している", () => {
     // 数の欄は段の中で動かし (`tweens`)、語の欄は段に入った時点で切り替える (`sets`)。
     // 片方だけを見ると、もう片方で動かしている図を「動いていない」 と判定する
     const 足りない = 図表
@@ -531,7 +531,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     expect(足りない, `段か動かす値が無い: ${足りない.join(", ")}`).toHaveLength(0);
   });
 
-  it("23 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
+  it("24 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
     const 変わらない: string[] = [];
     for (const [k, d] of 図表) {
       const 最初 = 見える部分(d, d.phases[0]!.id);
@@ -541,7 +541,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
   });
 
-  it("23 件のうち数を動かす 19 件で、動かす値が絵の文字に出る", () => {
+  it("24 件のうち数を動かす 20 件で、動かす値が絵の文字に出る", () => {
     // 記法の入口が `{名前}` を数に潰すと、宣言はあるのに絵が変わらない (#1198 で塞いだ形)。
     // 段を指定して描き、`<text>` の中身が変わることを見る
     const 文字 = (d: CdlDiagram, phaseId: string) => 字を拾う(見える部分(d, phaseId)).join("|");
@@ -554,7 +554,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       "再配達を減らす",
     ]);
     const 数で動く = 図表.filter(([, d]) => !語で動く.has(d.id));
-    expect(数で動く, "数を動かす図の数が変わっている").toHaveLength(19);
+    expect(数で動く, "数を動かす図の数が変わっている").toHaveLength(20);
     const 出ない: string[] = [];
     for (const [k, d] of 数で動く) {
       const 最初 = 文字(d, d.phases[0]!.id);
@@ -564,7 +564,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     expect(出ない, `動かす値が絵の文字に出ない: ${出ない.join(", ")}`).toHaveLength(0);
   });
 
-  it("23 件すべてで、項目が 1 つも落ちていない", () => {
+  it("24 件すべてで、項目が 1 つも落ちていない", () => {
     // 記法が `{名前}` を読めないと項目ごと落ちる。 落ちた図は「正しい図」 に見えてしまう。
     //
     // **一覧に無い図を黙って飛ばさない**。 期待値の無い図を素通りさせると、対象が増えた時に
@@ -600,6 +600,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       営業所ごとの定時率: { 中身: 4 },
       昨日と比べた荷物の状態: { 中身: 4 },
       "10月の配達の結果": { 中身: 3 },
+      強調なしの仕分け棚を入れ替える工程: { 中身: 6 },
     };
     expect(Object.keys(期待).sort(), "期待値の一覧が対象とずれている").toEqual(
       図表.map(([, d]) => d.id).sort(),
@@ -610,11 +611,12 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       const e = 期待[d.id]!;
       const n = d.nodes[0] as unknown as {
         chartData?: unknown[]; funnelData?: unknown[];
-        journeyData?: unknown[]; quadrantData?: { items?: unknown[] };
+        ganttData?: unknown[]; journeyData?: unknown[]; quadrantData?: { items?: unknown[] };
         mindData?: { branches?: unknown[] };
       };
       const 件数 = (
-        n.chartData ?? n.funnelData ?? n.journeyData ?? n.quadrantData?.items ?? n.mindData?.branches
+        n.chartData ?? n.funnelData ?? n.ganttData ?? n.journeyData ?? n.quadrantData?.items ??
+        n.mindData?.branches
       )?.length;
       if (件数 !== e.中身) 違う.push(`${d.id}: 中身 ${件数} (期待 ${e.中身})`);
     }

@@ -59,6 +59,9 @@ export const 効かない箱の欄の呼び名 = [
   ["owner", "担当"],
   ["stage", "段階"],
   ["end", "終わる時期"],
+  ["startLabel", "始まりの札"],
+  ["milestone", "節目"],
+  ["emphasis", "主役"],
   ["at", "点の位置"],
   ["atPos", "点の位置"],
   ["touchpoint", "接点"],
@@ -83,6 +86,9 @@ export const 効かない箱の欄の呼び名 = [
 export const 体験と工程の欄: ReadonlySet<string> = new Set([
   "owner",
   "end",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "touchpoint",
   "opportunity",
 ]);

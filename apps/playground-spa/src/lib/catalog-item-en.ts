@@ -481,6 +481,7 @@ export const PATTERN_NAME_EN: Record<string, string> = {
   "前と今": "Before and now",
   "前の値つき": "With the previous value",
   "前後つき": "With before and after",
+  "強調なし": "Without emphasis",
   "割ってから溜める": "Splits, then queues",
   "割ってから詰まらせる": "Splits, then jams",
   "右": "Right",

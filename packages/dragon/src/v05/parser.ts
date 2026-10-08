@@ -234,6 +234,10 @@ export const TOP_LEVEL_KEYS = [
   "form",
   // ガントチャートの目盛り (#2837)
   "ticks",
+  "ganttToday",
+  "ganttTickLabels",
+  "ganttBarEnd",
+  "ganttBarThickness",
   /*
    * 図の意匠 (#1553 / #2790)。
    *
@@ -596,6 +600,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let formWritten: { value: string; line: number } | null = null;
   let ticks: string[] | undefined;
   let ticksLine = 0;
+  let ganttToday: DslDocument["ganttToday"];
+  let ganttTickLabels: string[] | undefined;
+  let ganttBarEnd: DslDocument["ganttBarEnd"];
+  let ganttBarThickness: DslDocument["ganttBarThickness"];
   let aliasShape: DslShape | null = null;
   let aliasShapeLine = 0;
   let theme: DslTheme | null = null;
@@ -912,6 +920,56 @@ export function parseTextDslV05(src: string): V05ParseResult {
           ticksLine = line.no;
         }
       }
+      i += 1;
+      continue;
+    }
+    if (head.key === "ganttToday") {
+      const raw = (head.value ?? "").trim();
+      const inner = raw.startsWith("{") && raw.endsWith("}")
+        ? parseInlineMapping(raw.slice(1, -1))
+        : {};
+      const index = Number(inner.index);
+      const label = inner.label === undefined ? undefined : stripQuotes(inner.label);
+      if (!Number.isFinite(index) || label === undefined) {
+        errors.push({
+          line: line.no,
+          message: `ganttToday の書き方が読めません: "${raw}"`,
+          hint: '`ganttToday: { index: 3.3, label: "今日" }` の形で書く',
+        });
+      } else {
+        ganttToday = { index, label };
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "ganttTickLabels") {
+      const raw = (head.value ?? "").trim();
+      const values = raw.startsWith("[") && raw.endsWith("]")
+        ? splitTopLevelCommas(raw.slice(1, -1)).map((value) => stripQuotes(value.trim()))
+        : [];
+      if (values.length === 0 || values.some((value) => value.length === 0)) {
+        errors.push({
+          line: line.no,
+          message: `ganttTickLabels の書き方が読めません: "${raw}"`,
+          hint: "`ganttTickLabels: [6月, 7月, 8月]` の形で 1 つ以上書く",
+        });
+      } else {
+        ganttTickLabels = values;
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "ganttBarEnd") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if (value === "position") ganttBarEnd = value;
+      else errors.push({ line: line.no, message: `ganttBarEnd が読めません: "${value}"`, hint: "使える値 = position" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "ganttBarThickness") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if (value === "thin") ganttBarThickness = value;
+      else errors.push({ line: line.no, message: `ganttBarThickness が読めません: "${value}"`, hint: "使える値 = thin" });
       i += 1;
       continue;
     }
@@ -1536,6 +1594,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
         ? { form: formWritten.value, formPos: { line: formWritten.line } }
         : {}),
       ...(ticks !== undefined ? { ticks, ticksPos: { line: ticksLine } } : {}),
+      ...(ganttToday !== undefined ? { ganttToday } : {}),
+      ...(ganttTickLabels !== undefined ? { ganttTickLabels } : {}),
+      ...(ganttBarEnd !== undefined ? { ganttBarEnd } : {}),
+      ...(ganttBarThickness !== undefined ? { ganttBarThickness } : {}),
       ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
       ...(legend.length > 0 ? { legend } : {}),
       ...(legendFontSize !== undefined ? { legendFontSize } : {}),
@@ -2934,6 +2996,7 @@ export const ACTOR_INLINE_VALUE_KINDS = {
   posH: "数",
   titleFontSize: "数",
   markGap: "数",
+  milestone: "真偽",
 } as const satisfies Record<string, 値の形>;
 
 /**
@@ -2950,6 +3013,7 @@ export const ACTOR_BLOCK_VALUE_KINDS = {
   final: "真偽",
   titleFontSize: "数",
   markGap: "数",
+  milestone: "真偽",
 } as const satisfies Record<string, 値の形>;
 
 /** 矢印の中括弧に書ける、数と真偽の欄 (#1306) */
@@ -3359,6 +3423,20 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         else out.markGap = read.markGap;
         break;
       }
+      case "milestone": {
+        const read = 表で読む(ACTOR_BLOCK_VALUE_KINDS, { milestone: raw }, "箱の ", ln.no, errors);
+        out.milestone = read.milestone;
+        break;
+      }
+      case "startLabel":
+        out.startLabel = stripQuotes(raw);
+        break;
+      case "emphasis": {
+        const value = stripQuotes(raw);
+        if (value === "primary") out.emphasis = value;
+        else errors.push({ line: ln.no, message: `箱の emphasis が読めません: "${value}"`, hint: "使える値 = primary" });
+        break;
+      }
       /*
        * 箱の目次と、始まりと終わりの印 (#2346)。
        *
@@ -3674,6 +3752,9 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   // 工程の並びの欄 (#1251)
   "owner",
   "end",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "at",
   "点の位置",
   // 箱の目次と、始まりと終わりの印 (#2346)。 中括弧にしか書き方が無かった 3 件
@@ -3886,6 +3967,9 @@ export const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "stage",
   "initial",
   "final",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "at",
   "state",
   // ユーザージャーニーの欄 (`touchpoint` / `opportunity`) はここに載せない (#1251 Round 1 の指摘)。
@@ -4029,6 +4113,9 @@ const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   // 工程の並びの欄 (#1251)
   "owner",
   "end",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "at",
   "posX",
   "posY",
@@ -4377,6 +4464,13 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     if (!isPart && opts.tone !== undefined && resolveTone(opts.tone) === undefined) {
       report読めない色(opts.tone, line.no, errors, { 線種も受ける: false });
     }
+    if (!isPart && opts.emphasis !== undefined && opts.emphasis !== "primary") {
+      errors.push({
+        line: line.no,
+        message: `箱の emphasis が読めません: "${opts.emphasis}"`,
+        hint: "使える値 = primary",
+      });
+    }
     // `color` は縦に並べた形と JSON と同じ振り分けを通す (#1969)。 色の名前は箱の色、`#` で
     // 始まる値は色番号になる。
     //
@@ -4408,6 +4502,8 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // 見本では状態の上書きとして意味を持つため横取りしない (#1251)
       owner: isPart ? undefined : opts.owner,
       end: isPart ? undefined : opts.end,
+      startLabel: isPart ? undefined : opts.startLabel,
+      emphasis: isPart || opts.emphasis !== "primary" ? undefined : "primary",
       at: isPart || opts.at === undefined ? undefined : 四象限の座標として控える(opts.at),
       atPos: isPart || opts.at === undefined ? undefined : { line: line.no },
       stage: isPart ? undefined : opts.stage,

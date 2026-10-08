@@ -780,6 +780,10 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --theme-mind-branch-4: #4d7187;
   --theme-journey-axis-label: #3f6479;
   --theme-quadrant-muted: #8aa3b1;
+  --cdl-tone-muted: #8aa3b1;
+  --cdl-gantt-arrow: var(--cdl-chart-2);
+  --cdl-gantt-milestone: var(--cdl-chart-1);
+  --cdl-gantt-today: var(--er-own);
   /* 見本の薄い字 #4d7187 は面との対比が 4.25 のため、型名の濃さを使う。 */
   --theme-quadrant-label: var(--er-type);
   --timeline-axis: var(--er-line);
@@ -864,6 +868,10 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --theme-mind-branch-4: #6b6253;
   --theme-journey-axis-label: #6b6253;
   --theme-quadrant-muted: #9d9382;
+  --cdl-tone-muted: #9d9382;
+  --cdl-gantt-arrow: var(--cdl-chart-2);
+  --cdl-gantt-milestone: var(--cdl-chart-1);
+  --cdl-gantt-today: var(--er-own);
   --theme-quadrant-label: #6b6253;
   /* 路線図の見本 `路線-活版.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #c8431f;
@@ -945,6 +953,10 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --theme-mind-branch-4: #6f6757;
   --theme-journey-axis-label: #6f6757;
   --theme-quadrant-muted: #9c9381;
+  --cdl-tone-muted: #9c9381;
+  --cdl-gantt-arrow: var(--cdl-chart-2);
+  --cdl-gantt-milestone: var(--cdl-chart-1);
+  --cdl-gantt-today: var(--er-own);
   --theme-quadrant-label: #6f6757;
   /* 路線図の見本 `路線-図録.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #dca443;
@@ -1031,6 +1043,10 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --theme-mind-branch-4: #8a9b90;
   --theme-journey-axis-label: #8a9b90;
   --theme-quadrant-muted: #355542;
+  --cdl-tone-muted: #355542;
+  --cdl-gantt-arrow: var(--cdl-chart-2);
+  --cdl-gantt-milestone: var(--cdl-chart-1);
+  --cdl-gantt-today: var(--er-own);
   --theme-quadrant-label: #8a9b90;
   /* 路線図の見本 `路線-端末.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #4ade80;
@@ -1121,6 +1137,10 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --theme-mind-branch-4: #6d6456;
   --theme-journey-axis-label: #6d6456;
   --theme-quadrant-muted: #9a9080;
+  --cdl-tone-muted: #9a9080;
+  --cdl-gantt-arrow: var(--cdl-chart-2);
+  --cdl-gantt-milestone: var(--cdl-chart-1);
+  --cdl-gantt-today: var(--er-own);
   --theme-quadrant-label: #6d6456;
   /* 路線図の見本 `路線-手描き.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #d2491f;
@@ -1207,6 +1227,10 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --theme-mind-branch-4: #c4bce0;
   --theme-journey-axis-label: #c4bce0;
   --theme-quadrant-muted: #8f86b3;
+  --cdl-tone-muted: #8f86b3;
+  --cdl-gantt-arrow: var(--cdl-chart-2);
+  --cdl-gantt-milestone: var(--cdl-chart-1);
+  --cdl-gantt-today: var(--er-own);
   --theme-quadrant-label: #c4bce0;
   /* 路線図の見本 `路線-電飾.html` の線・札・駅・印・案内線・名札・菱形の値。 */
   --metro-main: #ff2e97;
@@ -1292,6 +1316,10 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --theme-mind-branch-4: #7a7062;
   --theme-journey-axis-label: #685e51;
   --theme-quadrant-muted: #a99e8e;
+  --cdl-tone-muted: #a99e8e;
+  --cdl-gantt-arrow: var(--cdl-chart-2);
+  --cdl-gantt-milestone: var(--cdl-chart-1);
+  --cdl-gantt-today: var(--er-own);
   /* 見本の薄い字 #7a7062 は面との対比が 3.80 のため、型名の濃さを使う。 */
   --theme-quadrant-label: var(--er-type);
   /* 路線図の見本 `路線-浮彫.html` の線・札・駅・印・案内線・名札・菱形の値。 */
@@ -2101,6 +2129,52 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-kind="gantt-timeline"]
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-kind="gantt-timeline"] [data-cdl-role="gantt-bar"] {
   rx: 5px;
   ry: 5px;
+}
+
+/* 工程の見本は、図面と活版の沈んだ帯だけを枠で描く。節目は別 role なので塗りのまま残る。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-bar"][data-cdl-tone="muted"] {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.5px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="gantt-bar"][data-cdl-tone="muted"] {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.5px !important;
+}
+
+/* 電飾の工程は見本どおり管の枠で描く。tone を持たない節目には届かせない。 */
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="gantt-bar"][data-cdl-tone] {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* 主役の重ねは、斜線そのものではなく意匠の画面の模様へ差し替える。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-bar"][data-cdl-emphasis="primary"] {
+  fill: var(--er-face) !important;
+  stroke: var(--er-line) !important;
+  stroke-width: 1.5px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-bar-hatch"] {
+  fill: url(#dragon-bp-hatch) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-bar-hatch"] {
+  fill: url(#dragon-sketch-pen-primary) !important;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-role="gantt-bar-hatch"] {
+  display: none;
 }
 
 /* 折れ線だけが読む accent を主色へ向ける。共通の tone 規則と他の図は変えない。 */

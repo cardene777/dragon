@@ -95,6 +95,11 @@ type 図 = Record<string, unknown>;
  */
 const 入力: Record<string, 図> = {
   $: { ...基本, [知らない項目]: 1 },
+  "$.ganttToday": {
+    ...基本,
+    type: "gantt",
+    ganttToday: { index: 1.3, label: "今日", [知らない項目]: 1 },
+  },
   "$.axes": { ...基本, type: "quadrant", axes: { [知らない項目]: {} } },
   "$.axes.x": { ...基本, type: "quadrant", axes: { x: { left: "低", right: "高", [知らない項目]: 1 } } },
   "$.axes.y": { ...基本, type: "quadrant", axes: { y: { top: "上", bottom: "下", [知らない項目]: 1 } } },

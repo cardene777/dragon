@@ -534,21 +534,25 @@ export const orderToDeliveryFunnel = textDslToDiagram(sourceYaml__orderToDeliver
 export const sourceYaml__sortingShelfGantt = `title: "仕分け棚を入れ替える工程"
 type: gantt
 ticks: [6月, 7月, 8月, 9月, 10月]
+ganttToday: { index: 3.30, label: "今日" }
+ganttTickLabels: [6月, 7月, 8月, 9月, 10月]
+ganttBarEnd: position
+ganttBarThickness: thin
 
 actors:
-  - 調べる: { value: "6月", end: "{survey_end}", tone: info }
-  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent }
-  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent }
-  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: info }
-  - 試す: { value: "9月+0.60", end: "{trial_end}", tone: accent }
-  - 本番: "10月"
+  - 調べる: { value: "6月", end: "{survey_end}", tone: muted }
+  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent, emphasis: primary }
+  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent, emphasis: primary }
+  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: muted }
+  - 試す: { value: "9月+0.45", end: "{trial_end}", tone: accent, emphasis: primary }
+  - 本番: { value: "10月+0.45", startLabel: "10月半ば", milestone: true }
 
 states:
   survey_end: 0
   design_end: 0.80
   shelf_end: 2
-  terminal_end: 2.55
-  trial_end: 3.60
+  terminal_end: 2.30
+  trial_end: 3.45
 
 flow:
   - 設計する -> 棚を作る: ""
@@ -563,8 +567,8 @@ animation:
   - step: "入れ替え工程" 1.2s
     set:
       shelf_end: 2.20
-      terminal_end: 2.55
-      trial_end: 3.60
+      terminal_end: 2.30
+      trial_end: 3.45
     description: "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 9 月上旬。"
 `;
 
@@ -572,13 +576,17 @@ export const sourceJson__sortingShelfGantt = `{
   "title": "仕分け棚を入れ替える工程",
   "type": "gantt",
   "目盛り": ["6月", "7月", "8月", "9月", "10月"],
+  "ganttToday": { "index": 3.30, "label": "今日" },
+  "ganttTickLabels": ["6月", "7月", "8月", "9月", "10月"],
+  "ganttBarEnd": "position",
+  "ganttBarThickness": "thin",
   "actors": [
-    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "info" },
-    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent" },
-    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent" },
-    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "info" },
-    { "name": "試す", "subtitle": "9月+0.60", "end": "{trial_end}", "tone": "accent" },
-    { "name": "本番", "subtitle": "10月" }
+    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "muted" },
+    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "muted" },
+    { "name": "試す", "subtitle": "9月+0.45", "end": "{trial_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "本番", "subtitle": "10月+0.45", "startLabel": "10月半ば", "milestone": true }
   ],
   "flow": [
     { "from": "設計する", "to": "棚を作る", "label": "" },
@@ -586,7 +594,7 @@ export const sourceJson__sortingShelfGantt = `{
     { "from": "端末を入れる", "to": "試す", "label": "" },
     { "from": "試す", "to": "本番", "label": "" }
   ],
-  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2, "terminal_end": 2.55, "trial_end": 3.60 },
+  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2, "terminal_end": 2.30, "trial_end": 3.45 },
   "animation": [
     {
       "step": "入れ替え前の予定",
@@ -598,7 +606,7 @@ export const sourceJson__sortingShelfGantt = `{
       "step": "入れ替え工程",
       "duration": 1.2,
       "description": "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 9 月上旬。",
-      "set": { "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.60 }
+      "set": { "shelf_end": 2.20, "terminal_end": 2.30, "trial_end": 3.45 }
     }
   ]
 }`;
@@ -617,21 +625,25 @@ export const patternBase__sortingShelfGantt = "前後つき";
 export const sourceYaml__pattern__sortingShelfGantt__帯だけ = `title: "矢印なしの仕分け棚を入れ替える工程"
 type: gantt
 ticks: [6月, 7月, 8月, 9月, 10月]
+ganttToday: { index: 3.30, label: "今日" }
+ganttTickLabels: [6月, 7月, 8月, 9月, 10月]
+ganttBarEnd: position
+ganttBarThickness: thin
 
 actors:
-  - 調べる: { value: "6月", end: "{survey_end}", tone: info }
-  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent }
-  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent }
-  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: info }
-  - 試す: { value: "9月+0.60", end: "{trial_end}", tone: accent }
-  - 本番: "10月"
+  - 調べる: { value: "6月", end: "{survey_end}", tone: muted }
+  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent, emphasis: primary }
+  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent, emphasis: primary }
+  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: muted }
+  - 試す: { value: "9月+0.45", end: "{trial_end}", tone: accent, emphasis: primary }
+  - 本番: { value: "10月+0.45", startLabel: "10月半ば", milestone: true }
 
 states:
   survey_end: 0
   design_end: 0.80
   shelf_end: 2.20
-  terminal_end: 2.55
-  trial_end: 3.60
+  terminal_end: 2.30
+  trial_end: 3.45
 
 animation:
   - step: "工程の帯を引く" 1.2s
@@ -643,16 +655,20 @@ export const sourceJson__pattern__sortingShelfGantt__帯だけ = `{
   "title": "矢印なしの仕分け棚を入れ替える工程",
   "type": "gantt",
   "目盛り": ["6月", "7月", "8月", "9月", "10月"],
+  "ganttToday": { "index": 3.30, "label": "今日" },
+  "ganttTickLabels": ["6月", "7月", "8月", "9月", "10月"],
+  "ganttBarEnd": "position",
+  "ganttBarThickness": "thin",
   "actors": [
-    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "info" },
-    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent" },
-    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent" },
-    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "info" },
-    { "name": "試す", "subtitle": "9月+0.60", "end": "{trial_end}", "tone": "accent" },
-    { "name": "本番", "subtitle": "10月" }
+    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "muted" },
+    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "muted" },
+    { "name": "試す", "subtitle": "9月+0.45", "end": "{trial_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "本番", "subtitle": "10月+0.45", "startLabel": "10月半ば", "milestone": true }
   ],
   "flow": [],
-  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2.20, "terminal_end": 2.55, "trial_end": 3.60 },
+  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2.20, "terminal_end": 2.30, "trial_end": 3.45 },
   "animation": [
     {
       "step": "工程の帯を引く",
@@ -665,6 +681,96 @@ export const sourceJson__pattern__sortingShelfGantt__帯だけ = `{
 
 export const pattern__sortingShelfGantt__帯だけ = textDslToDiagram(
   sourceYaml__pattern__sortingShelfGantt__帯だけ,
+);
+
+/**
+ * `milestone` / `emphasis` を書かない時との対照。 記法の省略時も従来の帯を描くことを、
+ * 同じ工程と依存関係のまま見比べられるようにする。
+ */
+export const sourceYaml__pattern__sortingShelfGantt__強調なし = `title: "強調なしの仕分け棚を入れ替える工程"
+type: gantt
+eyebrow: "棚の終わり {shelf_end}"
+ticks: [6月, 7月, 8月, 9月, 10月]
+ganttToday: { index: 3.30, label: "今日" }
+ganttTickLabels: [6月, 7月, 8月, 9月, 10月]
+ganttBarEnd: position
+ganttBarThickness: thin
+
+actors:
+  - 調べる: { value: "6月", end: "{survey_end}", tone: muted }
+  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent }
+  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent }
+  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: muted }
+  - 試す: { value: "9月+0.45", end: "{trial_end}", tone: accent }
+  - 本番: { value: "10月+0.45", startLabel: "10月半ば" }
+
+flow:
+  - 設計する -> 棚を作る: ""
+  - 棚を作る -> 試す: ""
+  - 端末を入れる -> 試す: ""
+  - 試す -> 本番: ""
+
+states:
+  survey_end: 0
+  design_end: 0.80
+  shelf_end: 2
+  terminal_end: 2.30
+  trial_end: 3.45
+
+animation:
+  - step: "入れ替え前の予定" 1.2s
+    draw: gantt
+    description: "6 月から 10 月までの仕分け棚の入れ替え予定を並べる。"
+  - step: "入れ替え工程" 1.2s
+    set:
+      shelf_end: 2.20
+      terminal_end: 2.30
+      trial_end: 3.45
+    description: "節目や主役の強調を付けず、同じ工程を通常の帯で示す。 今日は 9 月上旬。"
+`;
+
+export const sourceJson__pattern__sortingShelfGantt__強調なし = `{
+  "title": "強調なしの仕分け棚を入れ替える工程",
+  "type": "gantt",
+  "eyebrow": "棚の終わり {shelf_end}",
+  "目盛り": ["6月", "7月", "8月", "9月", "10月"],
+  "ganttToday": { "index": 3.30, "label": "今日" },
+  "ganttTickLabels": ["6月", "7月", "8月", "9月", "10月"],
+  "ganttBarEnd": "position",
+  "ganttBarThickness": "thin",
+  "actors": [
+    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "muted" },
+    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent" },
+    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent" },
+    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "muted" },
+    { "name": "試す", "subtitle": "9月+0.45", "end": "{trial_end}", "tone": "accent" },
+    { "name": "本番", "subtitle": "10月+0.45", "startLabel": "10月半ば" }
+  ],
+  "flow": [
+    { "from": "設計する", "to": "棚を作る", "label": "" },
+    { "from": "棚を作る", "to": "試す", "label": "" },
+    { "from": "端末を入れる", "to": "試す", "label": "" },
+    { "from": "試す", "to": "本番", "label": "" }
+  ],
+  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2, "terminal_end": 2.30, "trial_end": 3.45 },
+  "animation": [
+    {
+      "step": "入れ替え前の予定",
+      "duration": 1.2,
+      "draw": "gantt",
+      "description": "6 月から 10 月までの仕分け棚の入れ替え予定を並べる。"
+    },
+    {
+      "step": "入れ替え工程",
+      "duration": 1.2,
+      "description": "節目や主役の強調を付けず、同じ工程を通常の帯で示す。 今日は 9 月上旬。",
+      "set": { "shelf_end": 2.20, "terminal_end": 2.30, "trial_end": 3.45 }
+    }
+  ]
+}`;
+
+export const pattern__sortingShelfGantt__強調なし = textDslToDiagram(
+  sourceYaml__pattern__sortingShelfGantt__強調なし,
 );
 
 // ============================================================

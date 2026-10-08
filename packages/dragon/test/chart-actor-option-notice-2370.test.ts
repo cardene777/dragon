@@ -22,7 +22,11 @@ import { INLINE_ACTOR_KEYS, parseTextDslV05 } from "../src/v05/parser";
 
 /** 図種ごとの見本。 値の語は図種で違う (時期 / 気持ち / 区画) */
 const 図種: readonly { 名: string; 値: string; 読む欄: readonly string[] }[] = [
-  { 名: "gantt", 値: '"1月"', 読む欄: ["tone", "owner", "end"] },
+  {
+    名: "gantt",
+    値: '"1月"',
+    読む欄: ["tone", "owner", "end", "startLabel", "milestone", "emphasis"],
+  },
   { 名: "journey", 値: '"満足"', 読む欄: ["touchpoint", "opportunity"] },
   { 名: "quadrant", 値: '"左上"', 読む欄: ["at"] },
 ];
@@ -33,6 +37,9 @@ const 読む欄の値: Record<string, string> = {
   owner: '"だれか"',
   // ガントチャートの終わる時期は目盛りの語でないと帯が伸びない = 見本に並ぶ月を書く
   end: '"4月"',
+  startLabel: '"4月半ば"',
+  milestone: "true",
+  emphasis: "primary",
   touchpoint: '"まど"',
   opportunity: '"のびしろ"',
   at: "[0.2, 0.8]",
@@ -70,6 +77,9 @@ const 値: Record<string, string> = {
   offsetY: "10",
   owner: '"だれか"',
   end: '"20"',
+  startLabel: '"20日"',
+  milestone: "true",
+  emphasis: "primary",
   touchpoint: '"まど"',
   opportunity: '"のびしろ"',
   at: "[0.2, 0.8]",

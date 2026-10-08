@@ -784,8 +784,8 @@ export const FORMS: Section[] = [
   },
   {
     // 工程の並びだけが持つ欄。 他の図種で書くと組み立て側が知らせる (#1251)
-    title: "工程の並びの欄 (owner: / end:)",
-    titleEn: "Schedule fields (owner: / end:)",
+    title: "工程の並びの欄",
+    titleEn: "Schedule fields",
     sample: {
       slot: "actors",
       type: "gantt",
@@ -794,6 +794,8 @@ export const FORMS: Section[] = [
       { code: '  - 設計: { value: "Q1", owner: "デザイナー" }', note: "担当", noteEn: "Owner" },
       { code: '  - 実装: { value: "Q2", end: "Q3" }', note: "終わる時期。 帯が 2 コマになる", noteEn: "When it ends. The bar then spans two periods" },
       { code: '  - 検証: { value: "Q3", end: "{done}" }', note: "状態から取ると段で伸び縮みする", noteEn: "Taken from a state, it grows and shrinks by phase" },
+      { code: '  - 本番: { value: "Q4+0.45", startLabel: "Q4 半ば", milestone: true }', note: "節目の菱形と札", noteEn: "A milestone diamond and its label" },
+      { code: '  - 試す: { value: "Q3", emphasis: primary }', note: "主役として強調する", noteEn: "Emphasizes the main task" },
     ],
   },
   {
@@ -810,6 +812,10 @@ export const FORMS: Section[] = [
         note: "尺と目盛りの順を固定する。 書かなければ工程の始まりから作る",
         noteEn: "Fixes the scale and tick order. Without it, ticks come from task starts",
       },
+      { code: 'ganttToday: { index: 3.3, label: "今日" }', note: "今日の線と札", noteEn: "The today line and its label" },
+      { code: "ganttTickLabels: [6月, 7月, 8月, 9月, 10月]", note: "目盛りに出す名前", noteEn: "Labels shown on the ticks" },
+      { code: "ganttBarEnd: position", note: "帯を月内の位置で終える", noteEn: "Ends bars at positions within a period" },
+      { code: "ganttBarThickness: thin", note: "帯を細く描く", noteEn: "Draws thin bars" },
     ],
   },
   {

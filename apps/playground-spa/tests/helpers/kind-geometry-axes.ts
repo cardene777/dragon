@@ -199,12 +199,22 @@ function 変換を足す(
   );
 }
 
-/** `path` の `d` (`M` / `L` のみ) から点の並びを読む */
+/** `path` の `d` (`M` / `L` / `C` / `H` / `V`) から点の並びを読む */
 export function 点を読む(d: string): 点[] {
   const 点たち: 点[] = [];
   const 字たち = d.trim().split(/[\s,]+/);
+  let 今: 点 | undefined;
   for (let i = 0; i < 字たち.length; i++) {
     const 字 = 字たち[i];
+    if (字 === "H" || 字 === "V") {
+      const 数 = parseFloat(字たち[i + 1] ?? "");
+      if (今 && Number.isFinite(数)) {
+        今 = 字 === "H" ? { x: 数, y: 今.y } : { x: 今.x, y: 数 };
+        点たち.push(今);
+      }
+      i += 1;
+      continue;
+    }
     // `C` は制御点 2 つと終点の 3 組。 **制御点も点として返す** (#2549) = 曲線 1 本で
     // 引いた線では、両端の接線の向きが制御点との位置関係にしか現れない
     const 組数 = 字 === "M" || 字 === "L" ? 1 : 字 === "C" ? 3 : 0;
@@ -216,7 +226,10 @@ export function 点を読む(d: string): 点[] {
       if (xs === undefined || ys === undefined) break;
       const x = parseFloat(xs);
       const y = parseFloat(ys);
-      if (Number.isFinite(x) && Number.isFinite(y)) 点たち.push({ x, y });
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        今 = { x, y };
+        点たち.push(今);
+      }
       i += 2;
     }
   }
@@ -278,7 +291,7 @@ const 矢印の線 = '[data-cdl-role="gantt-arrow"] path:not([d*="Z"])';
 const 矢じり = '[data-cdl-role="gantt-arrow"] path[d*="Z"]';
 
 const ガントチャートの矢印の向き = 軸を組む<測った要素[]>({
-  名前: "ガントチャートの依存の線は帯の下から出て、次の帯の上へ縦に入る",
+  名前: "ガントチャートの依存の線は直角に折れ、次の帯へ向かって下へ進む",
   見本: "presetGantt",
   下限: 1,
   待つ: 矢印が出るまで待つ,
@@ -287,6 +300,19 @@ const ガントチャートの矢印の向き = 軸を組む<測った要素[]>(
   判定: (線たち) =>
     線たち.flatMap(({ 行列, d }) => {
       const 点たち = 点を読む(d).map((p) => 枠の点へ(行列, p));
+      if (!d.includes("C")) {
+        if (点たち.length < 2) return [`直角の経路の点が 2 点未満 (${点たち.length} 点): ${d}`];
+        const 始 = 点たち[0]!;
+        const 先 = 点たち.at(-1)!;
+        const 違反 = 点たち.slice(1).flatMap((点, i) => {
+          const 前 = 点たち[i]!;
+          return Math.abs(点.x - 前.x) >= 1 && Math.abs(点.y - 前.y) >= 1
+            ? [`直角でない区間がある: ${d}`]
+            : [];
+        });
+        if (先.y <= 始.y) 違反.push(`下へ向かっていない: ${d}`);
+        return 違反;
+      }
       // 経路は曲線 1 本 (`kinds/gantt.tsx` の依存の線、 `cdl#875`)。
       // 始点・制御点 2 つ・終点の 4 点で、守るのは「両端の接線が縦」 と「下へ向かう」
       if (点たち.length !== 4) {

@@ -97,6 +97,9 @@ type 放射で描けない欄 =
   | "stationNamePosition"
   | "subtitlePlacement"
   | "titleFontSize"
+  | "startLabel"
+  | "milestone"
+  | "emphasis"
   | "markGap";
 
 /** 引数が `never` でなければ型検査が落ちる */
@@ -135,6 +138,9 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   opportunity: "改善の余地 (ユーザージャーニーの欄)",
   owner: "担当 (工程の並びの欄)",
   end: "終わる時期 (工程の並びの欄)",
+  startLabel: "始まりの札 (工程の並びの欄)",
+  milestone: "節目 (工程の並びの欄)",
+  emphasis: "主役 (工程の並びの欄)",
   at: "点の位置 (四象限の欄)",
   atPos: "点の位置 (四象限の欄)",
   rows: "行",

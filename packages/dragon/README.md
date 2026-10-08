@@ -78,6 +78,10 @@ flow:
 | `shape`     | 図種ごとの形。`chart` は `pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope` (書かなければ `bar`)、`swimlane` は `stages` / `metro` / `timeline` |
 | `form`      | `shape: pie` の見せ方 (`ring` / `arcs` / `table`、和名は `輪` / `積層の弧` / `銘板`)。 `見せ方:` とも書ける |
 | `ticks`     | `type: gantt` の目盛りを左から順に並べる (`目盛り:` とも書ける)。 書かなければ工程の始まりから作る |
+| `ganttToday` | `type: gantt` の今日の位置と札 (`{ index, label }`) |
+| `ganttTickLabels` | `type: gantt` の各目盛りに出す名前の並び |
+| `ganttBarEnd` | `position` で帯を `end` の位置までにする |
+| `ganttBarThickness` | `thin` で帯を見本の比の細さにする |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
 | `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 1 項目は `{ mark, text }`、和名なら `{ 印, 説明 }`。 印の 10 種は下の節を参照 |
 | `legendFontSize` | 凡例の字の大きさ |
@@ -161,6 +165,9 @@ legend:
 | `opportunity`   | ユーザージャーニーで、改善の余地                                                       |
 | `owner`         | 工程の並びで、担当                                                             |
 | `end`           | 工程の並びで、終わりの位置。 始まりより前の時期は始まりと同じに倒し、知らせ (`onNotice`) が出る |
+| `startLabel`    | 工程の始まりに出す札。節目の位置名とは別に書ける                             |
+| `milestone`     | `true` なら工程を帯ではなく節目の菱形で描く                                  |
+| `emphasis`      | `primary` なら工程の帯を主役として描く                                       |
 | `at`            | 四象限の点の座標 `[x, y]` (`点の位置` とも書ける)。 左下が 0,0、右上が 1,1 |
 | `posX`          | 置く場所の横位置                                                               |
 | `posY`          | 置く場所の縦位置                                                               |

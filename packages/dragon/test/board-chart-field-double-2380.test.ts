@@ -28,6 +28,9 @@ const 板の図種 = ["sequence"] as const;
 const 書き方: Record<string, string> = {
   owner: 'owner: "だれか"',
   end: 'end: "4月"',
+  startLabel: 'startLabel: "4月半ば"',
+  milestone: "milestone: true",
+  emphasis: "emphasis: primary",
   touchpoint: 'touchpoint: "まど"',
   opportunity: 'opportunity: "のびしろ"',
 };
@@ -105,7 +108,9 @@ describe("板の箱に体験と工程の欄を書いた時の知らせ (#2380)",
           continue;
         }
         if (!残り.message.includes(欄)) 違う.push(`${図種} / ${欄}: 文に欄名が無い "${残り.message}"`);
-        const 行き先 = 欄 === "owner" || 欄 === "end" ? "type: gantt" : "type: journey";
+        const 行き先 = ["owner", "end", "startLabel", "milestone", "emphasis"].includes(欄)
+          ? "type: gantt"
+          : "type: journey";
         if (!(残り.hint ?? "").includes(行き先)) {
           違う.push(`${図種} / ${欄}: 案内が ${行き先} でない "${残り.hint ?? ""}"`);
         }

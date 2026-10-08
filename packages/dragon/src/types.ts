@@ -137,6 +137,14 @@ export type DslDocument = {
   ticks?: string[];
   /** `ticks` を書いた行。 */
   ticksPos?: Position;
+  /** ガントチャートの今日の線の位置と札。 */
+  ganttToday?: { index: number; label: string };
+  /** 工程の端とは独立して描く目盛り名。 */
+  ganttTickLabels?: string[];
+  /** 帯の終わりを位置として扱う。 */
+  ganttBarEnd?: "position";
+  /** 行の字に対して見本の比で細くする。 */
+  ganttBarThickness?: "thin";
   /** 図の下へ指定順に置く凡例。 */
   legend?: { mark: LegendMark; text: string }[];
   /** 図の凡例の字の大きさ。 */
@@ -417,6 +425,12 @@ export type DslActor = {
    * 他の図種では相手が無いため、書かれていたら組み立て側が知らせる。
    */
   end?: string;
+  /** 工程の始まりに出す札。節目の位置名とは独立して書ける。 */
+  startLabel?: string;
+  /** 帯を菱形の節目として描く。 */
+  milestone?: boolean;
+  /** 工程の帯を主役として描く。 */
+  emphasis?: "primary";
   /**
    * 四象限の点を置く座標。 左下が (0, 0)、右上が (1, 1)。
    * 数のほか `{名前}` を受け、描画側の BoundNumber へそのまま渡す。

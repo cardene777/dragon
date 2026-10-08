@@ -2437,7 +2437,13 @@ function reportChartFieldsNotHonored(
     const 工程 =
       doc.type === "gantt"
         ? []
-        : [...(a.owner !== undefined ? ["owner"] : []), ...(a.end !== undefined ? ["end"] : [])];
+        : [
+            ...(a.owner !== undefined ? ["owner"] : []),
+            ...(a.end !== undefined ? ["end"] : []),
+            ...(a.startLabel !== undefined ? ["startLabel"] : []),
+            ...(a.milestone !== undefined ? ["milestone"] : []),
+            ...(a.emphasis !== undefined ? ["emphasis"] : []),
+          ];
     if (道筋.length > 0) {
       onNotice({
         kind: "chart-value-unreadable",
@@ -2986,12 +2992,20 @@ function reportFormNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
 }
 
 function reportTicksNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
-  if (doc.ticks === undefined || doc.type === "gantt") return;
+  if (doc.type === "gantt") return;
+  const fields = [
+    ...(doc.ticks !== undefined ? ["ticks (目盛り)"] : []),
+    ...(doc.ganttToday !== undefined ? ["ganttToday"] : []),
+    ...(doc.ganttTickLabels !== undefined ? ["ganttTickLabels"] : []),
+    ...(doc.ganttBarEnd !== undefined ? ["ganttBarEnd"] : []),
+    ...(doc.ganttBarThickness !== undefined ? ["ganttBarThickness"] : []),
+  ];
+  if (fields.length === 0) return;
   onNotice?.({
     kind: "chart-value-unreadable",
     actor: doc.title,
     line: doc.ticksPos?.line ?? 0,
-    message: `ticks (目盛り) は type: gantt にだけ効きます (type: ${doc.type} では無視しました)`,
+    message: `${fields.join(" / ")} は type: gantt にだけ効きます (type: ${doc.type} では無視しました)`,
   });
 }
 

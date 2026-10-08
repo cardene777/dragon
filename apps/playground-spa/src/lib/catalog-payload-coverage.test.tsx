@@ -120,9 +120,9 @@ type 素 = Record<string, unknown>;
  * 軸を組む時に欄へ入れる値。 添字を見て決める欄 (前の工程を指す等) は関数で書く。
  *
  * `unknown` にしないのは、関数の引数の型が推論されなくなるため (`unknown | 関数` は
- * `unknown` に潰れる)。 値そのものに意味は無いので、書ける形はこの 3 つで足りる。
+ * `unknown` に潰れる)。 値そのものに意味は無いので、書ける形はこの 4 つで足りる。
  */
-type 見本値 = string | number | ((並び: 素[], 添字: number) => unknown);
+type 見本値 = string | number | boolean | ((並び: 素[], 添字: number) => unknown);
 
 /** 中身の中の 1 並び (図表の件 / 発想の枝 / 時系列の面々 等) */
 interface 並びの決め {
@@ -166,6 +166,8 @@ const 家族 = {
         // 前の工程を指す。 先頭は指す相手がいないので書かない
         dependsOn: (並, i) => (i > 0 ? String(並[i - 1]!.id) : undefined),
         tone: "accent",
+        milestone: true,
+        emphasis: "primary",
       },
       true,
     ),
@@ -273,6 +275,10 @@ const 節の欄の扱い = {
   rowStripe: "記法",
   tone: "記法",
   shape: "記法",
+  ganttToday: "記法",
+  ganttTickLabels: "記法",
+  ganttBarEnd: "記法",
+  ganttBarThickness: "記法",
   // 横軸の尺を固定する配置の指定。帯や目盛りという新しい役割は増やさない。
   ganttAxisMax: "置き場所",
 } satisfies Record<節の任意の欄, string>;

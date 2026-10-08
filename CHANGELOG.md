@@ -7,11 +7,13 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
-- **描く側を `^0.127.0` に上げ、宅配の流れ図と図表を見本の値で描けるようにした** (#2854)
+- **描く側を `^0.128.0` に上げ、宅配の流れ図と図表を見本の値で描けるようにした** (#2854)
 
   工程の `dependsOn` に前工程を複数渡し、段の箱・路線図・時間軸・宅配の流れ図へ 0.127.0 の欄と見本の値を当てた。
   記法では `stationNamePosition:`・`labelOffsetY:`・`fromSide:`・`toSide:`・`subtitlePlacement:`・
   `legendFontSize:`・`stageHeaders:`・`titleFontSize:`・`markGap:` を読んで組み立て器と同じ図にする。
+  工程の図では `ganttToday:`・`ganttTickLabels:`・`ganttBarEnd:`・`ganttBarThickness:`・
+  `startLabel:`・`milestone:`・`emphasis:` を記法から CDL へ渡す。
   見本と同じため検査の汎用下限を割る札・印・列の間は、対象と見本の実測値を名指しして受け入れた。
 
 - **クラス図を `record` に畳み、行を持つ図を一つの型で書けるようにした** (#2783)

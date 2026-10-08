@@ -167,6 +167,9 @@ flow:
     // 工程の並びの欄 (#1251)
     owner: '"デザイナー"',
     end: '"Q3"',
+    startLabel: '"Q3 半ば"',
+    milestone: "true",
+    emphasis: "primary",
     色: "失敗",
     color: "失敗",
     tone: "失敗",

@@ -69,6 +69,32 @@
       "items": { "type": "string", "minLength": 1 },
       "description": "ticks の和名。両方あれば ticks を採る。"
     },
+    "ganttToday": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "label"],
+      "properties": {
+        "index": { "type": "number" },
+        "label": { "type": "string" }
+      },
+      "description": "gantt の今日の線の位置と札。"
+    },
+    "ganttTickLabels": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "gantt の目盛りに順番に出す名前。"
+    },
+    "ganttBarEnd": {
+      "type": "string",
+      "enum": ["position"],
+      "description": "gantt の帯を end の位置で止める。"
+    },
+    "ganttBarThickness": {
+      "type": "string",
+      "enum": ["thin"],
+      "description": "gantt の帯を見本の比で細くする。"
+    },
     "eyebrow": {
       "type": "string",
       "description": "図表の箱の上に出す小見出し (省略可)。 効くのは図全体を 1 箱にする型 (chart / funnel / tree / journey / quadrant / mind / gantt) だけ。 箱ごとに分かれる型では相手が決まらないため、 actors[].eyebrow に書く"
@@ -285,6 +311,19 @@
               "end": {
                 "type": "string",
                 "description": "gantt の工程が終わる時期。 始まりより前の時期は始まりと同じに倒し、知らせを出す。"
+              },
+              "startLabel": {
+                "type": "string",
+                "description": "gantt の工程の始まりに出す札。"
+              },
+              "milestone": {
+                "type": "boolean",
+                "description": "true なら gantt の帯を節目の菱形にする。"
+              },
+              "emphasis": {
+                "type": "string",
+                "enum": ["primary"],
+                "description": "gantt の帯を主役として描く。"
               },
               "at": {
                 "type": "array",
