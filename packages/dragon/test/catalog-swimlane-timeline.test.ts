@@ -9,7 +9,6 @@ import {
   TIMELINE_AXIS_TO_CARD,
   TIMELINE_AXIS_TO_SIDE_CARD,
   TIMELINE_DECISION_GAP,
-  TIMELINE_DECISION_GAPS,
   TIMELINE_END_GAP,
   TIMELINE_STEP_GAP,
 } from "../src/compile/timeline";
@@ -47,7 +46,7 @@ describe("見本帳の時間軸の形 (#2798)", () => {
       stepGap: TIMELINE_STEP_GAP,
       decisionGap: TIMELINE_DECISION_GAP,
       endGap: TIMELINE_END_GAP,
-    }).toEqual({ axisToCard: 70, stepGap: 125, decisionGap: 145, endGap: 105 });
+    }).toEqual({ axisToCard: 70, stepGap: 125, decisionGap: 142.5, endGap: 105 });
 
     // catalog の export は build 済み dist を読むため、変更した組み立て自身から測る。
     const source = 時間軸の見本()[0];
@@ -67,24 +66,21 @@ describe("見本帳の時間軸の形 (#2798)", () => {
     expect(TIMELINE_AXIS_TO_SIDE_CARD).toBe(242);
   });
 
-  it.each(Object.entries(TIMELINE_DECISION_GAPS))(
-    "%s の分かれ道の前後を見本帳の距離にする",
-    (theme, gaps) => {
-      const item = 時間軸の見本()[0];
-      expect(item).toBeDefined();
-      if (!item) return;
-      const source = item.source.replace("type: swimlane", `type: swimlane\ntheme: ${theme}`);
-      const nodes = textDslToDiagram(source).nodes;
-      const before = nodes.find((node) => node.title === "届けに行く");
-      const decision = nodes.find((node) => node.title === "在宅?");
-      const after = nodes.find((node) => node.title === "受け取る");
-      expect(before).toBeDefined();
-      expect(decision).toBeDefined();
-      expect(after).toBeDefined();
-      expect((decision?.posY ?? 0) - (before?.posY ?? 0)).toBe(gaps.before);
-      expect((after?.posY ?? 0) - (decision?.posY ?? 0)).toBe(gaps.after);
-    },
-  );
+  it("意匠を書かない見本帳で分かれ道の前後を 142.5 にする", () => {
+    const item = 時間軸の見本()[0];
+    expect(item).toBeDefined();
+    if (!item) return;
+    const nodes = textDslToDiagram(item.source).nodes;
+    const before = nodes.find((node) => node.title === "届けに行く");
+    const decision = nodes.find((node) => node.title === "在宅?");
+    const after = nodes.find((node) => node.title === "受け取る");
+    expect(before).toBeDefined();
+    expect(decision).toBeDefined();
+    expect(after).toBeDefined();
+    // 7 意匠は CSS で切り替えるため、記法に theme を足さず見本帳へ届く一つの値を見る。
+    expect((decision?.posY ?? 0) - (before?.posY ?? 0)).toBe(142.5);
+    expect((after?.posY ?? 0) - (decision?.posY ?? 0)).toBe(142.5);
+  });
 
   it("shape: timeline を記法と JSON の対でちょうど1件持つ", () => {
     const items = 時間軸の見本();

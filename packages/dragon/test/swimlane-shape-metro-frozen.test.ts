@@ -12,6 +12,7 @@ function 組み立てる(source: string): ReturnType<typeof compileToCdl> {
 
 describe("路線図の出力を固定する (#2798)", () => {
   it("見本帳の路線図", () => {
+    // 通常名札は中心間 180、下側へ回す「届けに行く」は 130、駅から分かれ道は 110 にする実装と対になる固定値。
     expect(組み立てる(sourceYaml__textDslSwimlaneMetro)).toMatchSnapshot();
   });
 

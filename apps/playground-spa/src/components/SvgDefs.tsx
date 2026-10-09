@@ -485,13 +485,13 @@ export function SvgDefs(): React.ReactElement {
         </filter>
 
         {/* 枝札は座標を自分で平行移動するため、見本の標準偏差 1.5 と 5 の光を外接矩形基準で当てる。
-            高さ 36 の上下へ 18 を取り、標準偏差 5 の 3 倍に当たる 15 より広くする。 */}
+            縦横とも外接矩形の半分を取り、標準偏差 5 の光が札の端で切れない領域にする。 */}
         <filter
           id="dragon-metro-neon-glow-label"
           filterUnits="objectBoundingBox"
-          x="-10%"
+          x="-50%"
           y="-50%"
-          width="120%"
+          width="200%"
           height="200%"
         >
           <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="metro-neon-label-halo" />

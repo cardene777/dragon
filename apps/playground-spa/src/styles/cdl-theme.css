@@ -1992,7 +1992,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="sketch"],
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
-) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-accent"] {
+) [data-cdl-kind="mind-map"]
+  :is([data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"])[stroke*="--cdl-tone-accent"] {
   stroke: var(--cdl-chart-1);
 }
 
@@ -2004,7 +2005,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="sketch"],
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
-) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-teal"] {
+) [data-cdl-kind="mind-map"]
+  :is([data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"])[stroke*="--cdl-tone-teal"] {
   stroke: var(--cdl-chart-2);
 }
 
@@ -2016,7 +2018,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="sketch"],
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
-) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-success"] {
+) [data-cdl-kind="mind-map"]
+  :is([data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"])[stroke*="--cdl-tone-success"] {
   stroke: var(--theme-mind-branch-3);
 }
 
@@ -2028,7 +2031,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="sketch"],
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
-) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-warning"] {
+) [data-cdl-kind="mind-map"]
+  :is([data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"])[stroke*="--cdl-tone-warning"] {
   stroke: var(--theme-mind-branch-4);
 }
 
@@ -2399,6 +2403,7 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-kind="chart-slope"] {
   --cdl-chart-4: var(--er-type);
   --cdl-tone-accent: var(--theme-lead);
   --cdl-tone-error: var(--er-own);
+  --theme-slope-osaka: #2a5ca8;
 }
 
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-kind="chart-slope"] {
@@ -2406,6 +2411,7 @@ svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-kind="chart-slope"] {
   --cdl-chart-4: var(--er-type);
   --cdl-tone-accent: var(--theme-lead);
   --cdl-tone-error: var(--er-own);
+  --theme-slope-osaka: #c99a35;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -3949,10 +3955,11 @@ svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-kind="chart-bar"] [data-c
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"]) {
-  fill: var(--er-face) !important;
-  fill-opacity: 1 !important;
-  stroke: var(--theme-pale) !important;
-  stroke-width: 1 !important;
+  fill: var(--theme-pale) !important;
+  fill-opacity: 0.18 !important;
+  stroke: #b6b0ce !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0 6px var(--theme-pale)) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -4793,7 +4800,7 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --theme-stage-name: #143a52;
   --theme-stage-note: #3f6479;
   --theme-stage-label-success-fill: var(--er-link);
-  --theme-stage-label-error-fill: var(--er-own);
+  --theme-stage-label-error-fill: #c99a35;
   --theme-stage-label-success-text: var(--er-stripe);
   --theme-stage-label-error-text: var(--er-stripe);
   --theme-stage-label-success-frame: none;
@@ -4953,7 +4960,7 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --theme-stage-label-success-fill: var(--er-link);
   --theme-stage-label-error-fill: var(--er-own);
   --theme-stage-label-success-text: #ffffff;
-  --theme-stage-label-error-text: #ffffff;
+  --theme-stage-label-error-text: #383838;
   --theme-stage-label-success-frame: none;
   --theme-stage-label-error-frame: none;
   --theme-stage-label-radius: 20px;
@@ -4989,17 +4996,19 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   [data-cdl-edge-label-for][data-cdl-tone="success"]
   > [data-cdl-role="edge-label"] {
   fill: var(--theme-stage-label-success-text) !important;
+  font-weight: 700 !important;
 }
 
 svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"])
   [data-cdl-edge-label-for][data-cdl-tone="error"]
   > [data-cdl-role="edge-label"] {
   fill: var(--theme-stage-label-error-text) !important;
+  font-weight: 700 !important;
 }
 
 /* 電飾の通常の札は、見本どおり薄紫の芯と紫の外光で桃の列から分ける。 */
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-role="stage-column"])
-  [data-cdl-kind="card"]:not([data-cdl-active="true"])
+  [data-cdl-kind="card"]
   [data-cdl-role="node-body"] {
   fill: var(--theme-stage-card-face) !important;
   stroke: var(--theme-stage-card-frame) !important;
@@ -5035,6 +5044,14 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   stroke-width: 6 !important;
   stroke-dasharray: 0 9.6 !important;
   stroke-linecap: round !important;
+}
+
+/* 浮彫の段の箱は、いいえ・戻る線・凡例の点線を見本の黄土へそろえる。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-role="stage-column"])
+  [data-cdl-tone="error"] [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-role="stage-column"])
+  [data-cdl-legend-mark="dotted-line"][data-cdl-tone="error"] > path {
+  stroke: #c99a35 !important;
 }
 
 /* markerUnits=userSpaceOnUse の 14 の枠を、見本の横 17・縦 19 へ別々に拡大する。 */
@@ -5320,18 +5337,112 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="quadrant-axis-name"] {
   fill: var(--theme-chart-axis-color);
   font-family: var(--theme-chart-name-font);
   font-size: 18px;
+  font-weight: 400;
 }
 
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-slope-line"] {
+  fill: none !important;
   stroke-width: 4px;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-slope-axis"] {
+  stroke: var(--cdl-tone-muted) !important;
+  stroke-width: 1.5px !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-slope-line"][data-cdl-emphasis="primary"] {
   stroke-width: 6px;
 }
 
-svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-slope-name"][data-cdl-emphasis="primary"] {
-  font-weight: 700;
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="chart-slope"] {
+  --theme-slope-osaka: #a8431f;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-kind="chart-slope"] {
+  --theme-slope-osaka: #1a1510;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-kind="chart-slope"] {
+  --theme-slope-osaka: #e8705a;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-kind="chart-slope"] {
+  --theme-slope-osaka: #f5c451;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-kind="chart-slope"] {
+  --theme-slope-osaka: #ffd000;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="chart-slope"] text {
+  fill: var(--theme-chart-name-color) !important;
+  stroke: none !important;
+  font-weight: 400 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-kind="chart-slope"]
+  g:has(> [data-cdl-role="chart-slope-line"])
+  > text[text-anchor="end"] {
+  fill: var(--theme-chart-name-color) !important;
+  stroke: none !important;
+  font-weight: 400 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-kind="chart-slope"]
+  g:has(> [data-cdl-role="chart-slope-line"][stroke*="--cdl-tone-error"])
+  > [data-cdl-role="chart-slope-line"] {
+  stroke: var(--theme-slope-osaka) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-kind="chart-slope"]
+  g:has(> [data-cdl-role="chart-slope-line"][stroke*="--cdl-tone-error"])
+  > [data-cdl-role="chart-slope-dot"] {
+  fill: var(--theme-slope-osaka) !important;
+  stroke: none !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-kind="chart-slope"]
+  g:has(> [data-cdl-role="chart-slope-line"][stroke*="--cdl-tone-error"])
+  > :is(
+    [data-cdl-role="chart-slope-name"],
+    [data-cdl-role="chart-slope-value"],
+    [data-cdl-role="chart-slope-delta"]
+  ):not([text-anchor="end"]) {
+  fill: var(--theme-slope-osaka) !important;
+  stroke: none !important;
+  font-weight: 700 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-kind="chart-slope"]
+  g:has(> [data-cdl-role="chart-slope-line"][stroke*="--cdl-tone-accent"])
+  > [data-cdl-role="chart-slope-line"] {
+  stroke: var(--theme-lead) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-kind="chart-slope"]
+  g:has(> [data-cdl-role="chart-slope-line"][stroke*="--cdl-tone-accent"])
+  > [data-cdl-role="chart-slope-dot"] {
+  fill: var(--theme-lead) !important;
+  stroke: none !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-kind="chart-slope"]
+  g:has(> [data-cdl-role="chart-slope-line"][stroke*="--cdl-tone-accent"])
+  > :is(
+    [data-cdl-role="chart-slope-name"],
+    [data-cdl-role="chart-slope-value"],
+    [data-cdl-role="chart-slope-delta"]
+  ):not([text-anchor="end"]) {
+  fill: var(--theme-lead) !important;
+  stroke: none !important;
+  font-weight: 700 !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-gauge-value"] {
@@ -5412,6 +5523,11 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="figure-footer-note"] {
   fill: var(--cdl-tone-muted) !important;
 }
 
+/* 端末の見本は暗い muted を注記に使わず、本文として読める灰緑へ上書きする。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="figure-footer-note"] {
+  fill: #7f9186 !important;
+}
+
 svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="figure-footer-label"] {
   fill: #4ade80 !important;
 }
@@ -5485,9 +5601,9 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="tree-node"] {
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="tree-node"] {
-  stroke: var(--er-link) !important;
+  stroke: color-mix(in srgb, #ff2e97 65%, white 35%) !important;
   stroke-width: 2px !important;
-  filter: url(#dragon-neon-tube) !important;
+  filter: drop-shadow(0 0 2px #ff2e97) drop-shadow(0 0 10px rgb(255 46 151 / 60%)) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="tree-node"] {
@@ -5498,7 +5614,7 @@ svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="tree-node"] {
 }
 
 /* 手描きの見本で直線の箇所には、揺らぎを重ねない。 */
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="tree-edge"],
+svg[data-cdl-stage][data-cdl-palette="sketch"] :is([data-cdl-role="tree-edge"], [data-cdl-role="mind-edge"]),
 svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-routing="metro"])
   [data-cdl-role="edge-line"] {
   filter: none !important;
@@ -5588,21 +5704,7 @@ svg[data-cdl-stage]:not([data-cdl-palette="blueprint"])
 
 svg[data-cdl-stage]:not([data-cdl-palette="blueprint"])
   g:has(> [data-cdl-role="funnel-proportional-bar"][data-cdl-emphasis="primary"])
-  > text {
-  fill: var(--theme-lead) !important;
-}
-
-svg[data-cdl-stage]:not([data-cdl-palette="blueprint"])
-  :is([data-cdl-role="chart-slope-line"], [data-cdl-role="chart-slope-dot"])[data-cdl-emphasis="primary"],
-svg[data-cdl-stage]:not([data-cdl-palette="blueprint"])
-  [data-cdl-role="chart-slope-name"][data-cdl-emphasis="primary"] {
-  fill: var(--theme-lead) !important;
-  stroke: var(--theme-lead) !important;
-}
-
-svg[data-cdl-stage]:not([data-cdl-palette="blueprint"])
-  g:has(> [data-cdl-role="chart-slope-line"][data-cdl-emphasis="primary"])
-  > :is([data-cdl-role="chart-slope-value"], [data-cdl-role="chart-slope-delta"]) {
+  > text[font-weight="700"] {
   fill: var(--theme-lead) !important;
 }
 
@@ -5611,14 +5713,14 @@ svg[data-cdl-stage]:not([data-cdl-palette="blueprint"])
   :is([data-cdl-role="journey-line"], [data-cdl-role="journey-line-glow"]),
 svg[data-cdl-stage]:not([data-cdl-palette="blueprint"])
   [data-cdl-kind="journey-map"]
-  [data-cdl-role="journey-step"]
-  > circle,
+  [data-cdl-role="journey-step"] > circle {
+  stroke: var(--theme-lead) !important;
+}
+
 svg[data-cdl-stage]:not([data-cdl-palette="blueprint"])
   [data-cdl-kind="journey-map"]
-  [data-cdl-role="journey-opportunity"]
-  > text {
+  [data-cdl-role="journey-opportunity"] > text {
   fill: var(--theme-lead) !important;
-  stroke: var(--theme-lead) !important;
 }
 
 svg[data-cdl-stage]:not([data-cdl-palette="blueprint"])
@@ -5751,8 +5853,10 @@ svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-role="stage-column"
   [data-cdl-kind="card"]
   [data-cdl-role="node-label"],
 svg[data-cdl-stage][data-cdl-palette="relief"]
-  [data-cdl-lane="timeline-steps"]
-  [data-cdl-kind="card"]
+  [data-cdl-lane="timeline-steps"][data-cdl-kind="card"]
+  [data-cdl-role="node-label"],
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]
   [data-cdl-role="node-label"] {
   fill: #463e33 !important;
 }
@@ -5772,7 +5876,8 @@ svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"])
 }
 
 svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-routing="metro"])
-  [data-cdl-legend-mark="station"] {
+  [data-cdl-legend-mark="station"]
+  > circle {
   fill: #f4eee2 !important;
 }
 
@@ -5888,4 +5993,207 @@ svg[data-cdl-stage][data-cdl-palette="relief"]
   rx: 22px;
   ry: 22px;
   filter: url(#dragon-relief-raised) !important;
+}
+
+/* 見本帳 5 段目 a: 図表・路線図・時間軸の、意匠だけで決まる差を最後に確定する。 */
+
+/* 棒の角と、電飾の非主役の管。 */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"])
+  [data-cdl-role="chart-bar"] {
+  rx: 0 !important;
+  ry: 0 !important;
+}
+
+/* 折れ線の計画値と、実績の終点以外は沈んだ字で読む。 */
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-role="chart-line-value"][data-cdl-series="0"],
+svg[data-cdl-stage][data-cdl-palette]
+  g:has(> [data-cdl-role="chart-line-value"][data-cdl-series="1"]):has(
+    ~ g > [data-cdl-role="chart-line-value"][data-cdl-series="1"]
+  )
+  > [data-cdl-role="chart-line-value"][data-cdl-series="1"] {
+  fill: var(--theme-chart-axis-color) !important;
+}
+
+/* 浮彫の受付済は円の区画と一覧の印を同じ黄土にする。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-kind="chart-pie"]
+  :is([data-cdl-role="chart-pie-slice"], [data-cdl-role="chart-pie-table-mark"])[fill*="--cdl-chart-3"] {
+  fill: #c99a35 !important;
+}
+
+/* 工程: 図面は角なし・主役 2.5、活版の沈んだ帯は墨 2、電飾は 18% の面と管。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-kind="gantt-timeline"] [data-cdl-role="gantt-bar"] {
+  rx: 0 !important;
+  ry: 0 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-bar"][data-cdl-emphasis="primary"] {
+  stroke-width: 2.5px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="gantt-bar"][data-cdl-tone="muted"] {
+  stroke: #1a1510 !important;
+  stroke-width: 2px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="gantt-bar"][data-cdl-tone] {
+  fill: color-mix(in srgb, currentColor 18%, transparent) !important;
+  fill-opacity: 1 !important;
+  stroke: color-mix(in srgb, currentColor 65%, white 35%) !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0 6px currentColor) !important;
+}
+
+/* 内訳の帯・漏斗: 活版、手描き、電飾それぞれの面と枠。 */
+svg[data-cdl-stage][data-cdl-palette="letterpress"]
+  [data-cdl-role="chart-stacked-bar-slice"]:not([data-cdl-emphasis="primary"]) {
+  fill: none !important;
+  stroke: #1a1510 !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(2px 2px 0 rgb(26 21 16 / 14%)) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  :is([data-cdl-role="chart-stacked-bar-slice"], [data-cdl-role="funnel-proportional-bar"]),
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  :is([data-cdl-role="chart-stacked-bar-slice"], [data-cdl-role="funnel-proportional-bar"])[data-cdl-emphasis="primary"] {
+  fill: url(#dragon-sketch-pen) !important;
+  fill-opacity: 1 !important;
+  stroke: #2b2620 !important;
+  stroke-width: 2.5px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  :is([data-cdl-role="chart-stacked-bar-slice"], [data-cdl-role="funnel-proportional-bar"])[fill*="--cdl-chart-1"] {
+  --theme-chart-item-color: var(--cdl-chart-1);
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  :is([data-cdl-role="chart-stacked-bar-slice"], [data-cdl-role="funnel-proportional-bar"])[fill*="--cdl-chart-2"] {
+  --theme-chart-item-color: var(--cdl-chart-2);
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  :is([data-cdl-role="chart-stacked-bar-slice"], [data-cdl-role="funnel-proportional-bar"])[fill*="--cdl-chart-3"] {
+  --theme-chart-item-color: var(--cdl-chart-3);
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  :is([data-cdl-role="chart-stacked-bar-slice"], [data-cdl-role="funnel-proportional-bar"])[fill*="--cdl-chart-4"] {
+  --theme-chart-item-color: var(--cdl-chart-4);
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  [data-cdl-role="funnel-proportional-bar"][data-cdl-emphasis="primary"] {
+  --theme-chart-item-color: var(--theme-lead);
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is([data-cdl-role="chart-stacked-bar-slice"], [data-cdl-role="funnel-proportional-bar"]),
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is([data-cdl-role="chart-stacked-bar-slice"], [data-cdl-role="funnel-proportional-bar"])[data-cdl-emphasis="primary"] {
+  fill: color-mix(in srgb, var(--theme-chart-item-color, var(--theme-pale)) 18%, transparent) !important;
+  fill-opacity: 1 !important;
+  stroke: color-mix(in srgb, var(--theme-chart-item-color, var(--theme-pale)) 65%, white 35%) !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0 6px var(--theme-chart-item-color, var(--theme-pale))) !important;
+}
+
+/* 浮彫の木は矢じり自身を不透明な系列色へ戻し、札の白い光に負けないようにする。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-kind="tree-hierarchy"]
+  [data-cdl-role="tree-edge-head"][fill*="--cdl-tone-error"] {
+  fill: #c4573c !important;
+  stroke: #c4573c !important;
+  fill-opacity: 1 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-kind="tree-hierarchy"]
+  [data-cdl-role="tree-edge-head"][fill*="--cdl-tone-success"] {
+  fill: #2f7a6e !important;
+  stroke: #2f7a6e !important;
+  fill-opacity: 1 !important;
+}
+
+/* 時間軸の札・菱形。手描きは滑らかな線、活版は札だけ右下の影を残す。 */
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-role="timeline-axis"])
+  [data-cdl-lane="timeline-steps"][data-cdl-kind="card"]
+  [data-cdl-role="node-body"] {
+  filter: drop-shadow(3px 4px 0 rgb(43 38 32 / 16%)) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-role="timeline-axis"])
+  [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-role="timeline-axis"])
+  [data-cdl-kind="decision"]
+  [data-cdl-role="node-body"] {
+  filter: none !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"]
+  [data-cdl-lane="timeline-steps"][data-cdl-kind="card"]
+  [data-cdl-role="node-body"] {
+  filter: drop-shadow(2px 2px 0 rgb(26 21 16 / 14%)) !important;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="letterpress"], [data-cdl-palette="catalog"]):has(
+    [data-cdl-role="timeline-axis"]
+  )
+  [data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]
+  [data-cdl-role="node-body"] {
+  filter: none !important;
+}
+
+/* 端末の時間軸で、語は本文書体、数字は既存の等幅 role のまま。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-role="timeline-axis"])
+  :is(
+    [data-cdl-lane="timeline-steps"][data-cdl-kind="card"] [data-cdl-role="node-label"],
+    [data-cdl-lane="timeline-axis"][data-cdl-kind="decision"] [data-cdl-role="node-label"],
+    [data-cdl-role="edge-label"],
+    [data-cdl-role="legend-text"]
+  ) {
+  font-family: var(--d-body) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  [data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]
+  [data-cdl-role="node-label"] {
+  fill: #d3ddd6 !important;
+}
+
+/* 図録の時間軸の凡例は glyph の中の丸へ面色と字色を届ける。 */
+svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-role="timeline-axis"])
+  [data-cdl-legend-mark="numbered-circle"]
+  > circle {
+  fill: #f4eee2 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-role="timeline-axis"])
+  [data-cdl-legend-mark="numbered-circle"]
+  > text {
+  fill: #1d242e !important;
+}
+
+/* 路線図の菱形は active に左右されず意匠固有の枠を勝たせ、外側の影も外す。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-lane][data-cdl-kind="decision"]
+  [data-cdl-role="node-body"]
+  > path {
+  fill: #09070f !important;
+  stroke: #00e5ff !important;
+  stroke-width: 3px !important;
+  filter: url(#dragon-neon-tube) !important;
+}
+
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="sketch"]
+  ):has([data-cdl-routing="metro"])
+  [data-cdl-node][data-cdl-lane][data-cdl-kind="decision"]
+  [data-cdl-role="node-body"] {
+  filter: none !important;
 }

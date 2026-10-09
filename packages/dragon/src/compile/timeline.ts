@@ -37,19 +37,8 @@ export const TIMELINE_AXIS_TO_SIDE_CARD = 242;
 /** 見本どおり、番号の段を 125 ずつ進める。 */
 export const TIMELINE_STEP_GAP = 125;
 
-/** 7 意匠の見本のうち広い側に合わせ、分かれ道の前後を 145 空ける。 */
-export const TIMELINE_DECISION_GAP = 145;
-
-/** 見本帳で分かれ道の前後に空いている距離。 */
-export const TIMELINE_DECISION_GAPS = {
-  blueprint: { before: 144.75, after: 140.25 },
-  letterpress: { before: 143.25, after: 141.75 },
-  catalog: { before: 142.25, after: 142.75 },
-  terminal: { before: 143.75, after: 141.25 },
-  sketch: { before: 142.75, after: 142.25 },
-  neon: { before: 141.75, after: 143.25 },
-  relief: { before: 143.25, after: 141.75 },
-} as const;
+/** 7 意匠とも前後の和が 285 なので、CSS で意匠を替える見本帳へ届く一つの値を使う。 */
+export const TIMELINE_DECISION_GAP = 142.5;
 
 /** 見本どおり、最後の番号から終わりの印まで 105 空ける。 */
 export const TIMELINE_END_GAP = 105;
@@ -110,22 +99,15 @@ function timelineSideCards(doc: Pick<DslDocument, "actors" | "flow">): Map<strin
   return sideCards;
 }
 
-function decisionGaps(theme: DslDocument["theme"]): { before: number; after: number } {
-  if (theme !== undefined && theme in TIMELINE_DECISION_GAPS) {
-    return TIMELINE_DECISION_GAPS[theme as keyof typeof TIMELINE_DECISION_GAPS];
-  }
-  return { before: TIMELINE_DECISION_GAP, after: TIMELINE_DECISION_GAP };
-}
-
-function gapBefore(kind: string | undefined, theme: DslDocument["theme"]): number {
-  if (kind === "decision") return decisionGaps(theme).before;
+function gapBefore(kind: string | undefined): number {
+  if (kind === "decision") return TIMELINE_DECISION_GAP;
   if (kind === "mark-end") return TIMELINE_END_GAP;
   return TIMELINE_STEP_GAP;
 }
 
 /** 時間軸の絶対座標と、札に重ならない番号 id を返す。 */
 export function placeTimeline(
-  doc: Pick<DslDocument, "actors" | "flow" | "theme">,
+  doc: Pick<DslDocument, "actors" | "flow">,
   軸に置く段: ReadonlySet<string> = new Set(),
 ): TimelinePlacement {
   const sideCardSource = timelineSideCards(doc);
@@ -151,7 +133,7 @@ export function placeTimeline(
     }
     stage += 1;
     if (stage > 0) {
-      y += previousKind === "decision" ? decisionGaps(doc.theme).after : gapBefore(actor.kind, doc.theme);
+      y += previousKind === "decision" ? TIMELINE_DECISION_GAP : gapBefore(actor.kind);
     }
     stageByName.set(actor.name, stage);
     yByName.set(actor.name, y);

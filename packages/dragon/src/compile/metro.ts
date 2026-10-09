@@ -29,6 +29,9 @@ const NODE_SHAPE_GAP = 40;
 /** 見本で始まりの中心 290 から最初の駅 380 まで離した 90。 */
 const START_MARK_CENTER_GAP = 90;
 
+/** 見本で「届けに行く」の中心 1410 から分かれ道「在宅?」の中心 1520 まで離した 110。 */
+const STATION_DECISION_CENTER_GAP = 110;
+
 /** 見本で最後の駅の中心 1690 から終わり 1752 まで離した 62。 */
 const END_MARK_CENTER_GAP = 62;
 
@@ -43,7 +46,9 @@ const TRANSFER_MARGIN = 140;
  * 25 は描く側 0.125.0 が駅名に使う字の大きさ。
  * 描く側が字の大きさを変えたら、ここも合わせる。
  */
-const TITLE_GAP = 14.5;
+const TITLE_GAP = 27;
+/** 駅名を下へ回した組だけは、見本の中心間 130 まで詰められる。 */
+const BOTTOM_TITLE_GAP = 14.5;
 const STATION_TITLE_FONT_SIZE = 25;
 /** 太字の駅名が字面の外へ張り出す分を 3 と見積もる。 */
 const STATION_TITLE_BOLD_OVERHANG = 3;
@@ -219,14 +224,16 @@ export function placeMetro(doc: Pick<DslDocument, "actors" | "flow" | "lanes">):
       } else {
         const shapeGap = previousKind === "mark-start" && currentKind === "station"
           ? START_MARK_CENTER_GAP
-          : previousKind === "station" && currentKind === "mark-end"
-            ? END_MARK_CENTER_GAP
-            : nodeHalfWidth(previousKind) + nodeHalfWidth(currentKind) + NODE_SHAPE_GAP;
+          : previousKind === "station" && currentKind === "decision"
+            ? STATION_DECISION_CENTER_GAP
+            : previousKind === "station" && currentKind === "mark-end"
+              ? END_MARK_CENTER_GAP
+              : nodeHalfWidth(previousKind) + nodeHalfWidth(currentKind) + NODE_SHAPE_GAP;
         const titleGap =
           previousKind === "station" && currentKind === "station"
             ? estimateStationTitleWidth(箱の題(previousActor)) / 2 +
               estimateStationTitleWidth(箱の題(actor)) / 2 +
-              TITLE_GAP
+              (actor.stationNamePosition === "bottom" ? BOTTOM_TITLE_GAP : TITLE_GAP)
             : 0;
         posX = previous.posX + Math.max(shapeGap, titleGap);
       }

@@ -388,7 +388,7 @@ actors:
   - 受け付ける: { lane: office }
   - 送り状を起こす: { lane: office }
   - 便に積む: { lane: courier }
-  - 届けに行く: { lane: courier }
+  - 届けに行く: { lane: courier, stationNamePosition: bottom }
   - 在宅?: { kind: decision, lane: courier }
   - 受け取る: { lane: shipper }
   - 持ち戻る: { lane: courier }
@@ -494,6 +494,7 @@ flow:
     const decision = byTitle.get("在宅?")!;
     const returned = byTitle.get("持ち戻る")!;
     expect((byTitle.get("届けに行く")?.posX ?? 0) - (byTitle.get("便に積む")?.posX ?? 0)).toBe(130);
+    expect((byTitle.get("送り状を起こす")?.posX ?? 0) - (byTitle.get("受け付ける")?.posX ?? 0)).toBe(180);
     expect(returned.posX).toBe(decision.posX);
     expect(returned.posY).toBe((decision.posY ?? 0) + 230);
 
@@ -510,7 +511,8 @@ flow:
       持ち戻る: 1498,
     };
     for (const [title, expectedX] of Object.entries(specimenX)) {
-      expect(Math.abs((byTitle.get(title)?.posX ?? 0) - expectedX), title).toBeLessThanOrEqual(20);
+      // この座標が枝札「はい」x=1630 / 「翌日もう一度」x=1400 の描画位置と対になる。
+      expect(Math.abs((byTitle.get(title)?.posX ?? 0) - expectedX), title).toBeLessThanOrEqual(1);
     }
   });
 

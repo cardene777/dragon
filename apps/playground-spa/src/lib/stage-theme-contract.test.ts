@@ -261,8 +261,10 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
       palette === "catalog"
         ? '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark])'
         : '[data-cdl-role="node-body"]';
+    // 電飾だけは再生中の最後の段も紫の札なので、active を検査範囲から外さない。
+    const activeScope = palette === "neon" ? "" : ':not([data-cdl-active="true"])';
     const selector = `svg[data-cdl-stage][data-cdl-palette="${palette}"]:has([data-cdl-role="stage-column"])
-  [data-cdl-kind="card"]:not([data-cdl-active="true"])
+  [data-cdl-kind="card"]${activeScope}
   ${bodySelector}`;
     const normal = ruleBody(selector);
     expect(declaration(normal, "fill")).toBe("var(--theme-stage-card-face) !important");

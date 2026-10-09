@@ -733,9 +733,10 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(filter).not.toContain("feColorMatrix");
     const labelFilter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-neon-glow-label");
     expect(labelFilter).toContain('filterUnits="objectBoundingBox"');
-    expect(labelFilter).toContain('x="-10%"');
+    // 横にも光の標準偏差 5 の 3 倍以上を取り、札の端で切らない。
+    expect(labelFilter).toContain('x="-50%"');
     expect(labelFilter).toContain('y="-50%"');
-    expect(labelFilter).toContain('width="120%"');
+    expect(labelFilter).toContain('width="200%"');
     expect(labelFilter).toContain('height="200%"');
     expect(labelFilter).toContain('in="SourceGraphic" stdDeviation="5" result="metro-neon-label-haze"');
   });
@@ -996,20 +997,20 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       ["accent", "cdl-chart-1"], ["teal", "cdl-chart-2"], ["success", "theme-mind-branch-3"],
     ] as const) {
       expect(cssText).toContain(
-        `[data-cdl-role="mind-edge"][stroke*="--cdl-tone-${tone}"]`,
+        `:is([data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"])[stroke*="--cdl-tone-${tone}"]`,
       );
       expect(cssText).toMatch(new RegExp(
-        `mind-edge[^{}]+cdl-tone-${tone}[^{}]*\\{[^}]*stroke:\\s*var\\(--${colorVariable}\\)`,
+        `mind-edge[^{}]+mind-leaf-underline[^{}]+cdl-tone-${tone}[^{}]*\\{[^}]*stroke:\\s*var\\(--${colorVariable}\\)`,
         "s",
       ));
     }
     expect(cssText).toMatch(
-      /mind-edge[^{}]+cdl-tone-warning[^{}]*\{[^}]*stroke:\s*var\(--theme-mind-branch-4\)/su,
+      /mind-edge[^{}]+mind-leaf-underline[^{}]+cdl-tone-warning[^{}]*\{[^}]*stroke:\s*var\(--theme-mind-branch-4\)/su,
     );
     expect(cssText).toMatch(/\[data-cdl-kind="chart-line"\]\s*\{\s*--cdl-tone-accent:\s*var\(--cdl-chart-1\)/u);
 
     expect(readFixedThemeRoleColors("sketch", "傾き図")).toEqual(["#d2491f", "#2a5ca8", "#6d6456"]);
-    expect(readFixedThemeRoleColors("relief", "傾き図")).toEqual(["#c4573c", "#966c22", "#685e51"]);
+    expect(readFixedThemeRoleColors("relief", "傾き図")).toEqual(["#c4573c", "#c99a35", "#685e51"]);
     for (const name of ["sketch", "relief"] as const) {
       const selector = `svg[data-cdl-stage][data-cdl-palette="${name}"] [data-cdl-kind="chart-slope"]`;
       const body = cssRuleBody(cssText, selector);

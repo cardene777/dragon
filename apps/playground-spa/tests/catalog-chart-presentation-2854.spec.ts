@@ -298,6 +298,7 @@ for (const theme of 意匠) {
       return {
         actorSizes: actorNames.map((name) => getComputedStyle(name).fontSize),
         levelSizes: levelNames.map((name) => getComputedStyle(name).fontSize),
+        lineFill: lineStyle.fill,
         lineStroke: lineStyle.stroke,
         lineWidth: lineStyle.strokeWidth,
         noteSize: getComputedStyle(note).fontSize,
@@ -309,6 +310,7 @@ for (const theme of 意匠) {
     expect(journeyGeometry.levelSizes).toEqual(Array.from({ length: 5 }, () => "19px"));
     expect(journeyGeometry.actorSizes).toEqual(Array.from({ length: 6 }, () => "20px"));
     expect(journeyGeometry.noteSize).toBe("18px");
+    expect(journeyGeometry.lineFill, "主線を始点と終点の間で塗り潰さない").toBe("none");
     expect(journeyGeometry.lineWidth).toBe("5px");
     expect(journeyGeometry.pointWidths).toEqual(Array.from({ length: 6 }, () => "3.5px"));
     expect(journeyGeometry.pointStrokes).toEqual(
@@ -319,6 +321,14 @@ for (const theme of 意匠) {
     await expect(stage.locator('[data-cdl-role="figure-footer-note"]')).toHaveText("最高 から 怒り の 5 段");
     expect(await stage.locator('[data-cdl-role="figure-title"]').evaluate((node) => getComputedStyle(node).fontSize))
       .toBe(theme === "terminal" ? "25px" : "29px");
+
+    await openEditorTheme(page, sourceYaml__onTimeRateSlope, theme, false);
+    stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const slopeNameStrokes = await stage
+      .locator('[data-cdl-role="chart-slope-name"]')
+      .evaluateAll((names) => names.map((name) => getComputedStyle(name).stroke));
+    expect(slopeNameStrokes, "傾きの名前は輪郭線を重ねず塗りだけで描く")
+      .toEqual(Array.from({ length: 8 }, () => "none"));
 
     await openEditorTheme(page, sourceYaml__deliveryOfficeTree, theme, false);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
@@ -356,6 +366,16 @@ for (const theme of 意匠) {
       '[data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"]',
     ).evaluateAll((branches) => branches.every((branch) => getComputedStyle(branch).strokeOpacity === "1"));
     expect(opaqueBranches, "放射の枝と葉の下線を透かさない").toBe(true);
+    const matchingMindStrokes = await stage.evaluate((element) => {
+      const edges = [...element.querySelectorAll<SVGElement>('[data-cdl-role="mind-edge"]')];
+      const underlines = [...element.querySelectorAll<SVGElement>('[data-cdl-role="mind-leaf-underline"]')];
+      return underlines.every((underline) => {
+        const tone = underline.getAttribute("stroke");
+        const edge = edges.find((candidate) => candidate.getAttribute("stroke") === tone);
+        return edge !== undefined && getComputedStyle(edge).stroke === getComputedStyle(underline).stroke;
+      });
+    });
+    expect(matchingMindStrokes, "放射の葉の下線は同じ系列の枝と同色").toBe(true);
   });
 }
 
@@ -424,16 +444,26 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
     "図録の段の札は枠なしで影だけ",
   ).toBe(true);
 
-  // 最後の段では全札が active になる。段の箱と時間軸の両方で、active の太枠や影に
-  // 戻らず見本帳の通常札を保つことを、残りの意匠も描画後の値で確かめる。
-  const cardLooks = [
+  // 最後の段では全札が active になる。段の箱は各意匠の札を保つ。
+  const stageCardLooks = [
     { theme: "catalog", width: "0px", stroke: "none", filter: "drop-shadow" },
     { theme: "letterpress", width: "1.5px", stroke: "rgb(26, 21, 16)", filter: "none" },
     { theme: "sketch", width: "2px", stroke: "rgb(43, 38, 32)", filter: "dragon-sketch-wobble" },
     { theme: "terminal", width: "1px", stroke: "rgba(74, 222, 128, 0.3)", filter: "none" },
+    { theme: "neon", width: "2px", stroke: "rgb(228, 203, 255)", filter: "drop-shadow" },
   ] as const;
-  for (const source of [sourceYaml__presetDeliveryStages, sourceYaml__presetDeliveryTimeline]) {
-    for (const expected of cardLooks) {
+  // 時間軸だけは、活版の右下の影と手描きの滑らかな影を残す。
+  const timelineCardLooks = [
+    { theme: "catalog", width: "0px", stroke: "none", filter: "drop-shadow" },
+    { theme: "letterpress", width: "1.5px", stroke: "rgb(26, 21, 16)", filter: "drop-shadow" },
+    { theme: "sketch", width: "2px", stroke: "rgb(43, 38, 32)", filter: "drop-shadow" },
+    { theme: "terminal", width: "1px", stroke: "rgba(74, 222, 128, 0.3)", filter: "none" },
+  ] as const;
+  for (const [source, expectedLooks] of [
+    [sourceYaml__presetDeliveryStages, stageCardLooks],
+    [sourceYaml__presetDeliveryTimeline, timelineCardLooks],
+  ] as const) {
+    for (const expected of expectedLooks) {
       await openEditorTheme(page, source, expected.theme, false);
       stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${expected.theme}"]`);
       const styles = await stage.locator('[data-cdl-kind="card"] [data-cdl-role="node-body"]')
@@ -446,6 +476,10 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
         style.width === expected.width && style.stroke === expected.stroke &&
         (expected.filter === "none" ? style.filter === "none" : style.filter.includes(expected.filter))),
       `${expected.theme} の札が見本の縁と影を保つ`).toBe(true);
+      if (source === sourceYaml__presetDeliveryTimeline && expected.theme === "sketch") {
+        expect(styles.every((style) => !style.filter.includes("dragon-sketch-wobble")), "手描き時間軸は揺らさない")
+          .toBe(true);
+      }
     }
   }
 

@@ -515,7 +515,7 @@ actors:
   - 受け付ける: { lane: office }
   - 送り状を起こす: { lane: office }
   - 便に積む: { lane: courier }
-  - 届けに行く: { lane: courier }
+  - 届けに行く: { lane: courier, stationNamePosition: bottom }
   - 在宅?: { kind: decision, lane: courier }
   - 受け取る: { lane: shipper }
   - 持ち戻る: { lane: courier }
@@ -578,7 +578,7 @@ export const sourceJson__textDslSwimlaneMetro = `{
     { "name": "受け付ける", "lane": "office" },
     { "name": "送り状を起こす", "lane": "office" },
     { "name": "便に積む", "lane": "courier" },
-    { "name": "届けに行く", "lane": "courier" },
+    { "name": "届けに行く", "lane": "courier", "stationNamePosition": "bottom" },
     { "name": "在宅?", "kind": "decision", "lane": "courier" },
     { "name": "受け取る", "lane": "shipper" },
     { "name": "持ち戻る", "lane": "courier" },
