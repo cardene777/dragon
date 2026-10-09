@@ -122,7 +122,7 @@ const 入力: Record<string, 図> = {
   },
   "$.chartGaugeValue": {
     ...基本,
-    chartGaugeValue: { max: 100, current: 78, [知らない項目]: 1 },
+    chartGaugeValue: { max: 100, current: "{rate}", [知らない項目]: 1 },
   },
   "$.journeyLabels": {
     ...基本,
@@ -134,6 +134,10 @@ const 入力: Record<string, 図> = {
       angry: "怒り",
       [知らない項目]: 1,
     },
+  },
+  "$.sequenceKindLabels": {
+    ...基本,
+    sequenceKindLabels: { call: "呼ぶ", [知らない項目]: "不明" },
   },
   "$.figureCard": {
     ...基本,
@@ -162,6 +166,14 @@ const 入力: Record<string, 図> = {
   "$.actors[].oneOf[1].shape": {
     ...基本,
     actors: [{ name: "A", shape: { kind: "rect", [知らない項目]: 1 } }, { name: "B" }],
+  },
+  "$.actors[].oneOf[1].figureCard": {
+    ...基本,
+    actors: [{ name: "A", figureCard: { label: "図", [知らない項目]: 1 } }, { name: "B" }],
+  },
+  "$.actors[].oneOf[1].marks[].oneOf[1]": {
+    ...基本,
+    actors: [{ name: "A", marks: [{ mark: "鍵", [知らない項目]: 1 }] }, { name: "B" }],
   },
   "$.flow[]": { ...基本, flow: [{ from: "A", to: "B", label: "x", [知らない項目]: 1 }] },
   "$.flow[].pos": {

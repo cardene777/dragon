@@ -56,6 +56,14 @@ type 放射で描ける欄 =
 /** 放射では描けない欄。 書かれていたら伝える */
 type 放射で描けない欄 =
   | "kind"
+  | "kindForm"
+  | "icon"
+  | "emptyRowsNote"
+  | "titleAlign"
+  | "rowRules"
+  | "rowMarkForm"
+  | "nestIn"
+  | "figureCard"
   | "eyebrow"
   | "touchpoint"
   | "opportunity"
@@ -134,6 +142,14 @@ export type _放射の欄が重なっていない = 空であること<Extract<�
  */
 const 放射で描けない欄の名前: Record<放射で描けない欄, string> = {
   kind: "種類",
+  kindForm: "部品箱の形",
+  icon: "部品箱の線画",
+  emptyRowsNote: "行のない表の注記",
+  titleAlign: "表の題の位置",
+  rowRules: "表の行の罫線",
+  rowMarkForm: "表の印の形",
+  nestIn: "表の入れ子",
+  figureCard: "表・部品箱の足",
   eyebrow: "上の小見出し",
   touchpoint: "場所 (ユーザージャーニーの欄)",
   opportunity: "改善の余地 (ユーザージャーニーの欄)",

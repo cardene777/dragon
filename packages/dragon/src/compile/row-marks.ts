@@ -75,12 +75,17 @@ export function 行頭の語へ読み替える(値: string): string {
  * 印なしにすると、書かなかった行だけ行頭が空いて **群の区切りと見分けが付かなくなる**
  * (群の区切りは行頭の印が持っている)。 畳む前の表の図が同じ理由で既定を配っていた。
  */
-export function 行頭の印にする(marks: readonly string[], 行数: number): (RowMark | null)[] {
+export function 行頭の印にする(
+  marks: readonly (string | { mark: string; tone?: "primary" | "muted" })[],
+  行数: number,
+): (RowMark | null)[] {
   return Array.from({ length: 行数 }, (_, i) => {
-    const 語 = (marks[i] ?? "").trim().split(/\s+/).filter(Boolean);
+    const 値 = marks[i] ?? "";
+    const 語 = (typeof 値 === "string" ? 値 : 値.mark).trim().split(/\s+/).filter(Boolean);
     return {
       shape: 語.includes("外") ? ("chevron" as const) : ("square" as const),
       filled: !語.includes("条件"),
+      ...(typeof 値 === "object" && 値.tone !== undefined ? { tone: 値.tone } : {}),
       ...(語.includes("鍵") ? { underline: true } : {}),
     };
   });

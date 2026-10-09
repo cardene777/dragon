@@ -93,6 +93,7 @@ const 選択肢: ReadonlyArray<{
     一覧: TONES,
     場所: [
       "edges[].tone",
+      "legend[].tone",
       "nodes[].chartData[].tone",
       "nodes[].chartLineSeries[].tone",
       "nodes[].funnelData[].tone",
@@ -100,7 +101,11 @@ const 選択肢: ReadonlyArray<{
       "nodes[].tone",
     ],
   },
-  { 名: "EDGE_STYLES", 一覧: EDGE_STYLES, 場所: ["edges[].style"] },
+  {
+    名: "EDGE_STYLES",
+    一覧: EDGE_STYLES,
+    場所: ["edges[].style", "nodes[].sequenceData.sequenceReturnHead"],
+  },
   { 名: "NODE_KINDS", 一覧: NODE_KINDS, 場所: ["nodes[].kind"] },
   {
     名: "EDGE_HEADS",
@@ -111,7 +116,7 @@ const 選択肢: ReadonlyArray<{
   {
     名: "EDGE_HEAD_FILLS",
     一覧: EDGE_HEAD_FILLS,
-    場所: ["edges[].headFill", "edges[].tailHeadFill"],
+    場所: ["edges[].headFill", "edges[].tailHeadFill", "nodes[].sequenceData.sequenceReturnHead"],
     既定: EDGE_HEAD_FILL_DEFAULT,
   },
   { 名: "EDGE_REVEALS", 一覧: EDGE_REVEALS, 場所: ["edgeReveal"], 既定: EDGE_REVEAL_DEFAULT },

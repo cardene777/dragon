@@ -114,6 +114,26 @@ function 絵の文字(d: CdlDiagram): string[] {
   return 字を拾う(renderToStaticMarkup(<CdlDiagramView diagram={d} hideHeader />));
 }
 
+/** role を持つ要素の開始 tag。弧の経路など、文字にならない描画差を見る */
+function roleのtag(svg: string, role: string): string {
+  const tag = (svg.match(/<[^>]+>/gu) ?? []).find((entry) =>
+    entry.includes(`data-cdl-role="${role}"`),
+  );
+  if (tag === undefined) throw new Error(`${role} が描かれていない`);
+  return tag;
+}
+
+/** role を持つ text の、子要素を除いた見える文字 */
+function roleの文字(svg: string, role: string): string {
+  const pattern = new RegExp(
+    `<text[^>]*data-cdl-role="${role}"[^>]*>([\\s\\S]*?)<\\/text>`,
+    "u",
+  );
+  const body = pattern.exec(svg)?.[1];
+  if (body === undefined) throw new Error(`${role} の文字が描かれていない`);
+  return body.replace(/<[^>]*>/gu, "");
+}
+
 /**
  * 描いた結果のうち、**図の中の見える部分だけ** (#1194)。
  *
@@ -533,6 +553,19 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     ).toBe(true);
   });
 
+  it("主の半円は先月 72%・差分 0 から今月 78%・差分 +6 へ弧と一緒に動く", () => {
+    const gauge = Charts.onTimeShareGauge;
+    const first = 見える部分(gauge, gauge.phases[0]!.id);
+    const last = 見える部分(gauge, gauge.phases[gauge.phases.length - 1]!.id);
+
+    expect(gauge.nodes[0]?.chartGaugeValue?.current).toBe("{on_time}");
+    expect(roleの文字(first, "chart-gauge-value")).toBe("72%");
+    expect(roleの文字(first, "chart-gauge-delta")).toBe("先月より 0");
+    expect(roleの文字(last, "chart-gauge-value")).toBe("78%");
+    expect(roleの文字(last, "chart-gauge-delta")).toBe("先月より +6");
+    expect(roleのtag(first, "chart-gauge-arc")).not.toBe(roleのtag(last, "chart-gauge-arc"));
+  });
+
   it("対象が 25 件ある", () => {
     expect(図表).toHaveLength(25);
   });
@@ -559,7 +592,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
   });
 
-  it("25 件のうち数を文字で動かす 20 件で、動かす値が絵の文字に出る", () => {
+  it("25 件のうち数を文字で動かす 21 件で、動かす値が絵の文字に出る", () => {
     // 記法の入口が `{名前}` を数に潰すと、宣言はあるのに絵が変わらない (#1198 で塞いだ形)。
     // 段を指定して描き、`<text>` の中身が変わることを見る
     const 文字 = (d: CdlDiagram, phaseId: string) => 字を拾う(見える部分(d, phaseId)).join("|");
@@ -570,11 +603,9 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       "荷主が通る 5 つの気持ち",
       "打ち手の手間と効き目",
       "再配達を減らす",
-      // 固定値の半円は中央 78 / 目標 80 / 先月 72 を見せ、actors の状態は字に使わない
-      "定時に届いた割合",
     ]);
     const 数で動く = 図表.filter(([, d]) => !語で動く.has(d.id));
-    expect(数で動く, "数を文字で動かす図の数が変わっている").toHaveLength(20);
+    expect(数で動く, "数を文字で動かす図の数が変わっている").toHaveLength(21);
     const 出ない: string[] = [];
     for (const [k, d] of 数で動く) {
       const 最初 = 文字(d, d.phases[0]!.id);

@@ -541,7 +541,7 @@ flow:
     expect(laneValues(jsonToDoc(validated.data))).toEqual(laneValues(parsed.doc));
   });
 
-  it("路線図でない lane の補足は効かないことを1件知らせる", () => {
+  it("元の lane を組み直す段の箱では補足が効かないことを1件知らせる", () => {
     const source = 宅配の本文()
       .replace("shape: metro", "shape: stages")
       .replace(", subtitle: 受け付ける", "")

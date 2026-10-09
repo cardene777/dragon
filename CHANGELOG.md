@@ -7,7 +7,7 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
-- **描く側を `^0.128.0` に上げ、宅配の流れ図と図表を見本の値で描けるようにした** (#2854)
+- **描く側を `^0.130.0` に上げ、宅配の流れ図と図表を見本の値で描けるようにした** (#2854)
 
   工程の `dependsOn` に前工程を複数渡し、段の箱・路線図・時間軸・宅配の流れ図へ 0.127.0 の欄と見本の値を当てた。
   記法では `stationNamePosition:`・`labelOffsetY:`・`fromSide:`・`toSide:`・`subtitlePlacement:`・
@@ -19,10 +19,17 @@ dragon DSL の主要変更履歴。
   `chartSlopeEmphasisIds:`・`chartSlopeUnit:`・`chartStackedPeriods:`・
   `chartStackedRateId:`・`chartStackedLegendPosition:`・`chartGaugeValue:`・
   `chartWaffleLegendPosition:`・`funnelForm:`・`funnelRate:`・`quadrantPointLabelSide:` を
-  記法から CDL へ渡す。
+  記法から CDL へ渡す。`chartGaugeValue:` の `current`・`target`・`previous` は `{名前}` で
+  段の状態を読み、半円の中央の割合と今の値の弧と前との差を動かせる。
   階層・放射・ジャーニーでは `treeNodeForm:`・`treeEdgeTone:`・`treeEdgeHead:`・`mindForm:`・
   `journeyForm:`・`journeyLineForm:`・`journeyLabels:`・`opportunityPosition:` を、図の札では
   `figureCard:` と `figureSize:` を記法から CDL へ渡す。
+  表の箱では `emptyRowsNote:`・`titleAlign:`・`rowRules:`・`rowMarkForm:`・`nestIn:` を、
+  表と部品の箱では `kindForm:`・`icon:`・箱ごとの `figureCard:` を渡す。行頭印は `tone` も読める。
+  線端の `head: dot` / `tailHead: dot` と、凡例項目の `tone`・`lineStyle`・`align`・`lead`、
+  順序図の `sequenceActorForm:`・`sequenceLabelForm:`・`sequenceReturnHead:`・
+  `sequenceKindLabels:`、lane の `subtitle:` も記法と JSON の両方から CDL へ渡す。
+  放射の中心と枝の角・枠線、およびジャーニーの字・段間・注記・主線・点を見本の寸法へ揃えた。
   見本と同じため検査の汎用下限を割る札・印・列の間は、対象と見本の実測値を名指しして受け入れた。
 
 - **クラス図を `record` に畳み、行を持つ図を一つの型で書けるようにした** (#2783)

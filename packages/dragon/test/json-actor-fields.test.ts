@@ -32,7 +32,18 @@ type 対応 = { 記法: string; json: Record<string, unknown> };
  */
 const 対応表: Record<string, 対応> = {
   kind: { 記法: "kind: storage", json: { kind: "storage" } },
+  kindForm: { 記法: "kindForm: icon", json: { kindForm: "icon" } },
+  icon: { 記法: "icon: terminal", json: { icon: "terminal" } },
   subtitle: { 記法: 'subtitle: "補足"', json: { subtitle: "補足" } },
+  emptyRowsNote: { 記法: 'emptyRowsNote: "なし"', json: { emptyRowsNote: "なし" } },
+  titleAlign: { 記法: "titleAlign: center", json: { titleAlign: "center" } },
+  rowRules: { 記法: "rowRules: true", json: { rowRules: true } },
+  rowMarkForm: { 記法: "rowMarkForm: tone", json: { rowMarkForm: "tone" } },
+  nestIn: { 記法: "nestIn: B", json: { nestIn: "B" } },
+  figureCard: {
+    記法: 'figureCard: {"label":"図","note":"注記"}',
+    json: { figureCard: { label: "図", note: "注記" } },
+  },
   stationNamePosition: { 記法: "stationNamePosition: bottom", json: { stationNamePosition: "bottom" } },
   subtitlePlacement: { 記法: "subtitlePlacement: right", json: { subtitlePlacement: "right" } },
   titleFontSize: { 記法: "titleFontSize: 24", json: { titleFontSize: 24 } },

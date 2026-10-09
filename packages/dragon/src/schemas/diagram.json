@@ -161,9 +161,24 @@
       "required": ["max", "current"],
       "properties": {
         "max": { "type": "number", "exclusiveMinimum": 0 },
-        "current": { "type": "number" },
-        "target": { "type": "number" },
-        "previous": { "type": "number" },
+        "current": {
+          "anyOf": [
+            { "type": "number" },
+            { "type": "string", "pattern": "\\S" }
+          ]
+        },
+        "target": {
+          "anyOf": [
+            { "type": "number" },
+            { "type": "string", "pattern": "\\S" }
+          ]
+        },
+        "previous": {
+          "anyOf": [
+            { "type": "number" },
+            { "type": "string", "pattern": "\\S" }
+          ]
+        },
         "previousLabel": { "type": "string" }
       }
     },
@@ -187,6 +202,18 @@
         "neutral": { "type": "string", "minLength": 1 },
         "frustrated": { "type": "string", "minLength": 1 },
         "angry": { "type": "string", "minLength": 1 }
+      }
+    },
+    "sequenceActorForm": { "type": "string", "enum": ["box"] },
+    "sequenceLabelForm": { "type": "string", "enum": ["kind"] },
+    "sequenceReturnHead": { "type": "string", "enum": ["solid"] },
+    "sequenceKindLabels": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "call": { "type": "string" },
+        "return": { "type": "string" },
+        "fire": { "type": "string" }
       }
     },
     "figureCard": {
@@ -295,6 +322,22 @@
                 "type": "string",
                 "description": "node 下部の補足テキスト"
               },
+              "kindForm": { "type": "string", "enum": ["icon"] },
+              "icon": { "type": "string", "enum": ["person", "box", "database", "lightning", "cloud", "terminal"] },
+              "emptyRowsNote": { "type": "string" },
+              "titleAlign": { "type": "string", "enum": ["center"] },
+              "rowRules": { "type": "boolean" },
+              "rowMarkForm": { "type": "string", "enum": ["tone"] },
+              "nestIn": { "type": "string", "minLength": 1 },
+              "figureCard": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["label"],
+                "properties": {
+                  "label": { "type": "string", "minLength": 1 },
+                  "note": { "type": "string" }
+                }
+              },
               "stationNamePosition": {
                 "type": "string",
                 "enum": ["bottom"],
@@ -337,7 +380,18 @@
               "marks": {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "oneOf": [
+                    { "type": "string" },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["mark"],
+                      "properties": {
+                        "mark": { "type": "string" },
+                        "tone": { "type": "string", "enum": ["primary", "muted"] }
+                      }
+                    }
+                  ]
                 },
                 "description": "行頭の印。 rows と同じ数だけ並べる。 語は 鍵 (名前に下線 = その行で箱を見分ける) / 外 (行頭を山形 = 箱の外とつながる) / 条件 (行頭を中空 = 条件が揃った時だけ効く) の 3 つで、1 行に 2 つ以上書ける。 古い綴り pk / fk / opt / entry / exit / do / internal は読み取りの入口でこの 3 語に読み替わる"
               },
@@ -842,6 +896,7 @@
             "type": "string",
             "enum": [
               "none",
+              "dot",
               "triangle",
               "diamond",
               "open",
@@ -857,6 +912,7 @@
             "type": "string",
             "enum": [
               "none",
+              "dot",
               "triangle",
               "diamond",
               "open",
@@ -2624,10 +2680,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "mark",
-          "text"
-        ],
+        "required": ["text"],
         "properties": {
           "mark": {
             "type": "string",
@@ -2641,14 +2694,35 @@
               "rounded-label",
               "numbered-circle",
               "station",
-              "arrow"
+              "arrow",
+              "line-triangle-hollow",
+              "line-diamond-hollow",
+              "line-diamond-solid",
+              "rounded-box"
             ]
           },
           "text": {
             "type": "string",
             "minLength": 1
+          },
+          "tone": { "type": "string" },
+          "lineStyle": { "type": "string", "enum": ["solid", "dotted"] },
+          "align": { "type": "string", "enum": ["start", "end"] },
+          "lead": { "type": "string" }
+        },
+        "oneOf": [
+          {
+            "required": ["mark"],
+            "not": { "anyOf": [{ "required": ["align"] }, { "required": ["lead"] }] }
+          },
+          {
+            "not": { "required": ["mark"] },
+            "allOf": [
+              { "not": { "required": ["tone"] } },
+              { "not": { "required": ["lineStyle"] } }
+            ]
           }
-        }
+        ]
       }
     },
     "legendFontSize": {

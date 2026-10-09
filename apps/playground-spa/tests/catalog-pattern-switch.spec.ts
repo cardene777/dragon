@@ -77,11 +77,12 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
   test("変種を持たない図ではパターンの群が出ない (陰性対照)", async ({ page }) => {
     /*
      * 「どの図でも出る」 形なら、上の 4 件は通っても意味を持たない。
-     * 折れ線では出ないこと、そして オプション の群は出たままであることを見る。
+     * ファネルでは出ないこと、そして オプション の群は出たままであることを見る。
      *
-     * 折れ線を選ぶのは、engine が中身の違う形を持たない種別だから (#1698)。
+     * 折れ線は #2854 で「計画と実績 / 1 本の線」の変種を持ったため、変種のない
+     * ファネルを陰性対照にする。
      */
-    await 開く(page, "月ごとの配達数の折れ線グラフ");
+    await 開く(page, "申し込みから届くまでのファネル図");
     await expect(page.getByRole("radiogroup", { name: "パターン" })).toHaveCount(0);
     await expect(page.locator(".catalog-toggle-group")).toHaveCount(1);
     await expect(page.getByRole("radiogroup", { name: "再生速度" })).toBeVisible();
@@ -297,7 +298,6 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
   const 種別 = [
     { 名: "営業所ごとの取扱数の棒グラフ", 役割: "chart-bar-previous", 件数: 5, 切替の数: 3 },
     { 名: "同心の弧", 役割: "chart-radial-previous", 件数: 4, 切替の数: 2 },
-    { 名: "定時に届いた割合の半円ゲージ", 役割: "chart-gauge-previous", 件数: 2, 切替の数: 2 },
   ] as const;
 
   for (const { 名, 役割, 件数, 切替の数 } of 種別) {
@@ -333,6 +333,43 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
       await expect(page.locator(".catalog-source-code").first()).toContainText("previous");
     });
   }
+
+  test("半円は 固定の尺 / 内訳だけ / 前の値つき の三つで前の時点を描き分ける", async ({ page }) => {
+    await 開く(page, "定時に届いた割合の半円ゲージ");
+    const 群 = page.getByRole("radiogroup", { name: "パターン" });
+    const 前 = page.locator('.catalog-preview-stage [data-cdl-role="chart-gauge-previous"]');
+    const 差 = page.locator('.catalog-preview-stage [data-cdl-role="chart-gauge-delta"]');
+    await expect(群.getByRole("radio")).toHaveCount(3);
+    await expect(群.getByRole("radio", { name: "固定の尺" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(前).toHaveCount(0);
+    await expect(差).toHaveText("先月より 0");
+
+    await 群.getByRole("radio", { name: "内訳だけ" }).click();
+    await expect(前).toHaveCount(0);
+    await expect(差).toHaveCount(0);
+
+    await 群.getByRole("radio", { name: "前の値つき" }).click();
+    await expect(前).toHaveCount(2);
+    await expect(差).toHaveCount(0);
+  });
+
+  test("半円の三つを選ぶと固定の尺と内訳のコードも入れ替わる", async ({ page }) => {
+    await 開く(page, "定時に届いた割合の半円ゲージ");
+    await page.getByRole("tab", { name: "コード" }).click();
+    const コード = page.locator(".catalog-source-code").first();
+    await expect(コード).toContainText('chartGaugeValue: {"max":100');
+    await expect(コード).toContainText('"previous":72');
+
+    await page.getByRole("radio", { name: "内訳だけ" }).click();
+    await expect(コード).not.toContainText("chartGaugeValue");
+    await expect(コード).not.toContainText("previous");
+
+    await page.getByRole("radio", { name: "前の値つき" }).click();
+    await expect(コード).toContainText('previous: "72"');
+  });
 
   test("棒の破線は縦軸の枠に収まる", async ({ page }) => {
     /*
@@ -422,4 +459,64 @@ test.describe("ひな形の簡単な版と複雑な版を切り替える (#1960)
       await expect(図).toHaveAttribute("data-cdl-diagram", 簡単);
     });
   }
+});
+
+test.describe("cdl 0.130.0 の欄を関係・型・構成・順序のひな形で描く (#2854)", () => {
+  test("関係の入れ子の足と注記、型の空注記・行印・凡例が出る", async ({ page }) => {
+    await 開く(page, "ER図", "presets");
+    const 関係 = page.locator(".catalog-preview-stage svg[data-cdl-stage]").first();
+    await expect(関係.locator('[data-cdl-role="node-footer-label"]')).toHaveText("抱える 1");
+    await expect(関係.locator('[data-cdl-role="node-footer-note"]')).toHaveText("記録 4");
+    await expect(関係.locator('[data-cdl-role="legend-item"]')).toContainText([
+      "持つ は線を引かない。 注文 が 明細 を抱えるように、囲いで出す",
+    ]);
+
+    await 開く(page, "クラス図", "presets");
+    const 型 = page.locator(".catalog-preview-stage svg[data-cdl-stage]").first();
+    const 注文 = 型.locator('[data-cdl-node="Order"]');
+    await expect(型.locator('[data-cdl-role="node-row-empty"]')).toHaveText("操作を持たない");
+    await expect(注文.locator('[data-cdl-row-tone="primary"]')).toHaveCount(3);
+    await expect(注文.locator('[data-cdl-row-tone="muted"]')).toHaveCount(0);
+    await expect(注文.locator('[data-cdl-role="node-row-rule"]')).toHaveCount(0);
+    await expect(注文.locator('[data-cdl-role="node-row-group-divider"]')).toHaveCount(1);
+    await expect(注文.locator('[data-cdl-role^="node-footer-"]')).toHaveCount(0);
+    await expect(型.locator('[data-cdl-role="legend-item"]')).toHaveText([
+      "継承",
+      "集約 (外しても残る)",
+      "コンポジション (一緒に消える)",
+      "依存",
+    ]);
+  });
+
+  test("構成のひな形に線画の部品箱と縦列の補足が出る", async ({ page }) => {
+    await 開く(page, "トポロジー図", "presets");
+    const 図 = page.locator(".catalog-preview-stage svg[data-cdl-stage]").first();
+    await expect(図.locator('[data-cdl-role="node-kind-icon"]')).toHaveCount(4);
+    const HTTPSの線 = 図.locator('[data-cdl-edge-label="HTTPS"] [data-cdl-role="edge-line"]');
+    const ラウンドロビンの線 = 図.locator('[data-cdl-edge-label="ラウンドロビン"] [data-cdl-role="edge-line"]');
+    const dotの参照 = /^url\(#cdl-arrow-teal-dot(?:-sm)?\)$/u;
+    await expect(HTTPSの線).toHaveAttribute("marker-start", dotの参照);
+    await expect(ラウンドロビンの線).toHaveAttribute("marker-end", dotの参照);
+    await expect(図.locator('[data-cdl-role="lane-label-subtitle"]')).toHaveText([
+      "L1 · 外の利用者",
+      "L2 · 中の部品",
+    ]);
+    await expect(図.locator('[data-cdl-role="node-footer-label"]')).toHaveText("人");
+    await expect(図.locator('[data-cdl-role="node-footer-note"]')).toHaveText("L1");
+  });
+
+  test("順序のひな形に参加者の枠と段の種類名が出る", async ({ page }) => {
+    await 開く(page, "シーケンス図", "presets");
+    const 図 = page.locator(".catalog-preview-stage svg[data-cdl-stage]").first();
+    await expect(図.locator('[data-cdl-role="sequence-actor-box"]')).toHaveCount(4);
+    await expect(図.getByText("キュー", { exact: true })).toBeVisible();
+    await expect(図.getByText("待ち行列", { exact: true })).toBeVisible();
+    await expect(図.getByText("発送を頼む", { exact: true })).toBeVisible();
+    await expect(図.getByText("引当を確定", { exact: true })).toBeVisible();
+    expect(
+      await 図.locator('[data-cdl-role="sequence-label-kind"]').count(),
+      "段の種類名が無い",
+    ).toBeGreaterThan(0);
+    await expect(図.getByText("呼ぶ", { exact: true }).first()).toBeVisible();
+  });
 });

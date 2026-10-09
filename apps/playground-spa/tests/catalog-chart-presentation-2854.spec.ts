@@ -18,13 +18,13 @@ import { openEditorTheme } from "./helpers/fixed-theme-checks";
 const 意匠 = ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const;
 
 const 放射の枠 = {
-  blueprint: { width: "2.25px", radius: "12px" },
-  letterpress: { width: "3px", radius: "12px" },
-  catalog: { width: "0px", radius: "12px" },
-  terminal: { width: "1.5px", radius: "6px" },
-  sketch: { width: "3px", radius: "22px" },
-  neon: { width: "2px", radius: "16px" },
-  relief: { width: "0px", radius: "22px" },
+  blueprint: { rootWidth: "2.25px", boxWidth: "1px", radius: "12px" },
+  letterpress: { rootWidth: "3px", boxWidth: "1.5px", radius: "12px" },
+  catalog: { rootWidth: "0px", boxWidth: "0px", radius: "12px" },
+  terminal: { rootWidth: "1px", boxWidth: "1px", radius: "6px" },
+  sketch: { rootWidth: "3px", boxWidth: "2px", radius: "19px" },
+  neon: { rootWidth: "2px", boxWidth: "2px", radius: "16px" },
+  relief: { rootWidth: "0px", boxWidth: "0px", radius: "22px" },
 } as const;
 
 test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏らさない", async ({ page }) => {
@@ -164,12 +164,14 @@ for (const theme of 意匠) {
       if (!frame) return false;
       const textBox = (text as SVGGraphicsElement).getBBox();
       const frameBox = frame.getBBox();
-      return textBox.x >= frameBox.x && textBox.x + textBox.width <= frameBox.x + frameBox.width;
+      return textBox.x >= frameBox.x && textBox.x + textBox.width <= frameBox.x + frameBox.width
+        && textBox.y >= frameBox.y && textBox.y + textBox.height <= frameBox.y + frameBox.height;
     });
-    expect(annotationFits, "谷の注記が札の横幅に収まる").toBe(true);
+    expect(annotationFits, "谷の注記が札の中に収まる").toBe(true);
     await expect(stage.locator('[data-cdl-role="journey-level-name"]')).toHaveText([
       "最高", "満足", "普通", "不満", "怒り",
     ]);
+    await expect(stage.locator('[data-cdl-role="journey-step"]')).toHaveCount(6, { timeout: 5_000 });
     const [ruleColor, mutedColor] = await stage.evaluate((element) => {
       const rule = element.querySelector('[data-cdl-role="journey-level-rule"]');
       if (!rule) throw new Error("ジャーニーの段罫が無い");
@@ -181,6 +183,41 @@ for (const theme of 意匠) {
       return colors;
     });
     expect(ruleColor, "段罫は意匠の沈んだ色").toBe(mutedColor);
+    // 段名・横名・注記という role の付いた字だけを測り、図の題は集めない (#2749)。
+    const journeyGeometry = await stage.evaluate((element) => {
+      const line = element.querySelector<SVGPathElement>('[data-cdl-role="journey-line"]');
+      const levelNames = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="journey-level-name"]')];
+      const actorNames = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="journey-step"] > text')];
+      const points = [...element.querySelectorAll<SVGCircleElement>('[data-cdl-role="journey-step"] > circle:first-of-type')];
+      const note = element.querySelector<SVGTextElement>('[data-cdl-role="journey-opportunity"] text');
+      if (!line || !note) throw new Error("ジャーニーの主線か注記が無い");
+      const noteBox = note.getBBox();
+      const overlaps = actorNames.some((name) => {
+        const box = name.getBBox();
+        return noteBox.x < box.x + box.width && noteBox.x + noteBox.width > box.x
+          && noteBox.y < box.y + box.height && noteBox.y + noteBox.height > box.y;
+      });
+      const lineStyle = getComputedStyle(line);
+      return {
+        actorSizes: actorNames.map((name) => getComputedStyle(name).fontSize),
+        levelSizes: levelNames.map((name) => getComputedStyle(name).fontSize),
+        lineStroke: lineStyle.stroke,
+        lineWidth: lineStyle.strokeWidth,
+        noteSize: getComputedStyle(note).fontSize,
+        overlaps,
+        pointStrokes: points.map((point) => getComputedStyle(point).stroke),
+        pointWidths: points.map((point) => getComputedStyle(point).strokeWidth),
+      };
+    });
+    expect(journeyGeometry.levelSizes).toEqual(Array.from({ length: 5 }, () => "19px"));
+    expect(journeyGeometry.actorSizes).toEqual(Array.from({ length: 6 }, () => "20px"));
+    expect(journeyGeometry.noteSize).toBe("18px");
+    expect(journeyGeometry.lineWidth).toBe("5px");
+    expect(journeyGeometry.pointWidths).toEqual(Array.from({ length: 6 }, () => "3.5px"));
+    expect(journeyGeometry.pointStrokes).toEqual(
+      Array.from({ length: 6 }, () => journeyGeometry.lineStroke),
+    );
+    expect(journeyGeometry.overlaps, "谷の注記が横の名前と重ならない").toBe(false);
     await expect(stage.locator('[data-cdl-role="figure-footer-label"]')).toHaveText("ジャーニー");
     await expect(stage.locator('[data-cdl-role="figure-footer-note"]')).toHaveText("最高 から 怒り の 5 段");
     expect(await stage.locator('[data-cdl-role="figure-title"]').evaluate((node) => getComputedStyle(node).fontSize))
@@ -198,13 +235,26 @@ for (const theme of 意匠) {
 
     await openEditorTheme(page, sourceYaml__redeliveryIdeasMind, theme, false);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
-    await expect(stage.locator('[data-cdl-mind-form="outline"]')).toHaveCount(1);
+    const mind = stage.locator('[data-cdl-mind-form="outline"]');
+    await expect(mind).toHaveCount(1);
+    const mindNode = stage.locator('[data-cdl-node]:has([data-cdl-mind-form="outline"])');
+    await expect(mindNode).toHaveAttribute("data-cdl-w", "720");
+    await expect(mindNode).toHaveAttribute("data-cdl-h", "224");
+    await expect(stage.locator('[data-cdl-role="mind-root"]')).toHaveCount(1);
+    await expect(stage.locator('[data-cdl-role="mind-box"]')).toHaveCount(4);
     await expect(stage.locator('[data-cdl-role="mind-leaf-underline"]')).toHaveCount(8);
-    const rootStyle = await stage.locator('[data-cdl-role="mind-root"]').evaluate((root) => ({
-      radius: getComputedStyle(root).rx,
-      width: getComputedStyle(root).strokeWidth,
-    }));
-    expect(rootStyle).toEqual(放射の枠[theme]);
+    const [rootStyle, boxStyle] = await Promise.all([
+      stage.locator('[data-cdl-role="mind-root"]').evaluate((root) => ({
+        radius: getComputedStyle(root).rx,
+        rootWidth: getComputedStyle(root).strokeWidth,
+      })),
+      stage.locator('[data-cdl-role="mind-box"]').first().evaluate((box) => ({
+        radius: getComputedStyle(box).rx,
+        boxWidth: getComputedStyle(box).strokeWidth,
+      })),
+    ]);
+    expect(rootStyle).toEqual({ radius: 放射の枠[theme].radius, rootWidth: 放射の枠[theme].rootWidth });
+    expect(boxStyle).toEqual({ radius: 放射の枠[theme].radius, boxWidth: 放射の枠[theme].boxWidth });
     const opaqueBranches = await stage.locator(
       '[data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"]',
     ).evaluateAll((branches) => branches.every((branch) => getComputedStyle(branch).strokeOpacity === "1"));

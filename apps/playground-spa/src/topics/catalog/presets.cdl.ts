@@ -449,6 +449,10 @@ export const presetSequence = withSteps(
       { name: "DB", subtitle: "台帳" },
       { name: "キュー", subtitle: "待ち行列" },
     ],
+    sequenceActorForm: "box",
+    sequenceLabelForm: "kind",
+    sequenceReturnHead: "solid",
+    sequenceKindLabels: { call: "呼ぶ", return: "返す", fire: "投げる" },
     // 動いている間の帯。 台帳は途中で手が空くので区間が 2 つに分かれる
     bands: [
       { actor: "ブラウザ", from: 0, to: 5 },
@@ -638,7 +642,38 @@ topo
   .connect("alb", "ecs", { label: "ラウンドロビン" })
   .connect("ecs", "rds", { label: "TCP 5432", sub: "PgBouncer 経由", tone: "success" });
 
-export const presetTopology = withSteps(topo.build(), [
+const presetTopologyDiagram = topo.build();
+Object.assign(presetTopologyDiagram.edges.find((edge) => edge.label === "HTTPS") ?? {}, {
+  tailHead: "dot",
+});
+Object.assign(presetTopologyDiagram.edges.find((edge) => edge.label === "ラウンドロビン") ?? {}, {
+  head: "dot",
+});
+Object.assign(presetTopologyDiagram.lanes.find((lane) => lane.id === "client") ?? {}, {
+  subtitle: "L1 · 外の利用者",
+});
+Object.assign(presetTopologyDiagram.lanes.find((lane) => lane.id === "aws") ?? {}, {
+  subtitle: "L2 · 中の部品",
+});
+Object.assign(presetTopologyDiagram.nodes.find((node) => node.id === "browser") ?? {}, {
+  kindForm: "icon",
+  icon: "person",
+  figureCard: { label: "人", note: "L1" },
+});
+Object.assign(presetTopologyDiagram.nodes.find((node) => node.id === "alb") ?? {}, {
+  kindForm: "icon",
+  icon: "cloud",
+});
+Object.assign(presetTopologyDiagram.nodes.find((node) => node.id === "ecs") ?? {}, {
+  kindForm: "icon",
+  icon: "lightning",
+});
+Object.assign(presetTopologyDiagram.nodes.find((node) => node.id === "rds") ?? {}, {
+  kindForm: "icon",
+  icon: "database",
+});
+
+export const presetTopology = withSteps(presetTopologyDiagram, [
   { ids: ["browser"], title: "1. ブラウザ", body: "利用者側の入口。" },
   { ids: ["alb", "c0-browser-alb"], title: "2. ALB", body: "HTTPS を受けて振り分ける。" },
   { ids: ["ecs", "c1-alb-ecs"], title: "3. ECS のタスク", body: "コンテナが処理する。" },
@@ -752,7 +787,29 @@ export const pattern__presetTopology__複雑 = withSteps(topoComplex.build(), [
 // **端の印は両端に付く**。 クラス図の印は「どちらが親か」 のような関係そのものの性質を指す
 // ので 1 つで足りるが、ER の印が指すのは端ごとに違う個数なので両端に要る。
 // 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か (棒 = 必須 / 丸 = 任意)。
-const presetErSteps = withSteps(
+const 宅配のER欄 = (diagram: CdlDiagram): CdlDiagram => {
+  Object.assign(diagram.nodes.find((node) => node.id === "order_items") ?? {}, {
+    nestIn: "orders",
+    h: 300,
+    stack: 3,
+  });
+  Object.assign(diagram.nodes.find((node) => node.id === "orders") ?? {}, {
+    h: 340,
+    figureCard: { label: "抱える 1", note: "記録 4" },
+  });
+  diagram.legend = [
+    {
+      text: "持つ は線を引かない。 注文 が 明細 を抱えるように、囲いで出す",
+      align: "start",
+      lead: "持つ",
+    },
+  ];
+  return diagram;
+};
+
+export const presetEr = 触れて読む(
+  withSteps(
+    宅配のER欄(
   // 配色は生成りに茶 (#1553)。 ER 図は小さい字が密に並ぶので、他の図種と同じ色みだと行を
   // 追えない。 記法から作った ER 図は `compileToCdl` が同じ名前を既定で入れるので、ここは
   // 組み立て API から作る図をそれに揃える手当て
@@ -799,14 +856,7 @@ const presetErSteps = withSteps(
       tailHead: "one",
       head: "zero-many",
     })
-    // 識別する = 実線。 親の鍵が子の鍵に入るので、親なしでは子を名指せない
-    .relation({
-      from: "orders",
-      to: "order_items",
-      label: "明細を持つ",
-      tailHead: "one",
-      head: "many",
-    })
+    // 識別する関係は、親の表へ入れ子にした明細箱そのもので示す。
     // 自分への関係。 0 か 1 人の上司が 0 人以上の部下を持つ
     .relation({
       from: "users",
@@ -817,6 +867,7 @@ const presetErSteps = withSteps(
       head: "zero-many",
     })
     .build(),
+    ),
   [
     { ids: ["users"], title: "1. users 表", body: "主キーは名前に下線。 印は形 × 塗りの 2 軸。" },
     {
@@ -825,18 +876,17 @@ const presetErSteps = withSteps(
       body: "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。",
     },
     {
-      ids: ["order_items", "rel-1-orders-order_items"],
+      ids: ["order_items"],
       title: "3. 明細を持つ",
-      body: "実線は識別する関係。 親の鍵が子の鍵に入る。",
+      body: "注文が明細を抱える入れ子で識別する関係を示す。 親の鍵が子の鍵に入る。",
     },
     {
-      ids: ["rel-2-users-users"],
+      ids: ["rel-1-users-users"],
       body: "上司も利用者。 manager_id は同じ表を指す。",
     },
   ],
+  ),
 );
-/** 順番を持たない図なので触れて読む形にする (#1757) */
-export const presetEr = 触れて読む(presetErSteps);
 
 /**
  * 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960)。
@@ -1361,7 +1411,19 @@ export const pattern__presetStateMachine__複雑 = withSteps(fsmComplex, [
 // ───────────── 新図種 12 種 (cdl v0.6+) ─────────────
 
 // infrastructure preset ... cloud / system 構成図 (col + row grid)
+const 宅配の構成欄 = (diagram: CdlDiagram): CdlDiagram => {
+  Object.assign(diagram.nodes.find((node) => node.id === "cdn") ?? {}, {
+    kindForm: "icon",
+    icon: "box",
+  });
+  Object.assign(diagram.nodes.find((node) => node.id === "app") ?? {}, {
+    kindForm: "icon",
+    icon: "terminal",
+  });
+  return diagram;
+};
 export const presetInfrastructure = withSteps(
+  宅配の構成欄(
   // 小見出しと説明を書く (#1498)。 cdl 0.20.0 で名前だけの箱は 54 まで縮み、段が近づいて
   // `GET/SET` の説明が隣の線に 1 かぶった。 中身を足せば箱が中身ぶんの高さに戻る
   infrastructure({ id: "infra-demo", topic: "クラウド・ネットワーク構成を階層で示す図" })
@@ -1380,6 +1442,7 @@ export const presetInfrastructure = withSteps(
     .connect({ from: "app", to: "db", label: "SQL", labelPlate: false })
     .connect({ from: "app", to: "cache", label: "GET/SET", labelPlate: false })
     .build(),
+  ),
   [
     { ids: ["user"], title: "1. ブラウザ", body: "利用者から始まる。" },
     { ids: ["cdn", "i0-user-cdn"], title: "2. CloudFront", body: "HTTPS を受ける。" },
@@ -1503,10 +1566,51 @@ export const pattern__presetInfrastructure__複雑 = withSteps(
 //   段 0   User        Auditable
 //   段 1   Admin ──集約── Order ──依存── Receipt
 //   段 2               Line ──関連── Sku
+const 宅配の関係欄 = (diagram: CdlDiagram): CdlDiagram => {
+  Object.assign(diagram.nodes.find((node) => node.id === "User") ?? {}, {
+    titleAlign: "center",
+  });
+  Object.assign(diagram.nodes.find((node) => node.id === "Order") ?? {}, {
+    emphasis: "primary",
+    rowMarkForm: "tone",
+  });
+  const order = diagram.nodes.find((node) => node.id === "Order");
+  if (order?.rowMarks) {
+    order.rowMarks = order.rowMarks.map((mark) =>
+      mark === null ? null : { ...mark, tone: "primary" },
+    );
+  }
+  const auditable = diagram.nodes.find((node) => node.id === "Auditable");
+  Object.assign(auditable ?? {}, {
+    rows: [],
+    rowMarks: [],
+    emptyRowsNote: "操作を持たない",
+  });
+  if (auditable) delete auditable.rowStripe;
+  diagram.legend = [
+    { mark: "line-triangle-hollow", text: "継承", tone: "accent", lineStyle: "solid" },
+    {
+      mark: "line-diamond-hollow",
+      text: "集約 (外しても残る)",
+      tone: "teal",
+      lineStyle: "solid",
+    },
+    {
+      mark: "line-diamond-solid",
+      text: "コンポジション (一緒に消える)",
+      tone: "teal",
+      lineStyle: "solid",
+    },
+    { mark: "dotted-line", text: "依存", tone: "success" },
+  ];
+  return diagram;
+};
+
 const presetClassDiagramSteps = withSteps(
   // 配色は生成りに茶 (#1567)。 クラス図の箱は ER 図と同じ作り (行頭の印 + 左に名前 +
   // 右に型) で、名前と型が離れて並ぶ。 縞の色は配色から取るので、書かないと縞が箱の面と
   // 同じ色になって出ない
+  宅配の関係欄(
   classDiagram({ id: "class-demo", topic: "クラスどうしの 6 種の関係を示す UML クラス図", palette: "kinari" })
     .class({
       id: "User",
@@ -1573,6 +1677,7 @@ const presetClassDiagramSteps = withSteps(
     .relation({ from: "Order", to: "Line", type: "composes", label: "コンポジション", cardinality: "1..*", tailCardinality: "1" })
     .relation({ from: "Line", to: "Sku", type: "associates", label: "関連" })
     .build(),
+  ),
   [
     { ids: ["User"], title: "1. User", body: "抽象クラス。 直接は作らず、Admin が継承して使う。" },
     {
@@ -1583,7 +1688,7 @@ const presetClassDiagramSteps = withSteps(
     {
       ids: ["Auditable", "Order", "cr-1-Order-Auditable"],
       title: "3. 実装",
-      body: "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。",
+      body: "破線に白抜きの三角。 Auditable は操作を持たない印だけの取り決めで、Order はその印を実装する。",
     },
     {
       ids: ["cr-2-Admin-Order"],
@@ -1630,8 +1735,31 @@ export const patternBase__presetClassDiagram = "簡単";
 // 段の筋書きが読めなくなる。 その形を保ったまま列を 6 本まで広げて全通り (2592 通り)
 // 数えると、上 2 段だけでは 5 つを同時に満たす置き方が 1 つも無かった。
 // 下段も 1 列ずつ右へ寄せて初めて両立する。
+// 簡単な版から外した、罫・行頭の補助色・凡例の注記は複雑な版で見せる。
+// 簡単な版は静的な型の見本と同じ 4 項目だけにする一方、記法で書ける値の見本は失わない。
+const 決済の型の欄 = (diagram: CdlDiagram): CdlDiagram => {
+  const transaction = diagram.nodes.find((node) => node.id === "Transaction");
+  Object.assign(transaction ?? {}, { rowRules: true, rowMarkForm: "tone" });
+  if (transaction?.rowMarks) {
+    transaction.rowMarks = transaction.rowMarks.map((mark, index) =>
+      mark === null ? null : { ...mark, tone: index === 2 ? "muted" : "primary" },
+    );
+  }
+  diagram.legend = [
+    { mark: "rounded-box", text: "クラス" },
+    {
+      mark: "line-triangle-hollow",
+      text: "実装",
+      tone: "accent",
+      lineStyle: "dotted",
+    },
+    { text: "線の先に親または取り決めを置く", align: "end", lead: "線の先" },
+  ];
+  return diagram;
+};
 const presetClassComplexSteps = withSteps(
   orderGridColumns(
+    決済の型の欄(
     classDiagram({
       id: "class-complex-demo",
       topic: "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
@@ -1751,6 +1879,7 @@ const presetClassComplexSteps = withSteps(
       .relation({ from: "PaymentGateway", to: "RiskCheck", type: "uses", label: "依存" })
       .relation({ from: "Transaction", to: "Notification", type: "uses", label: "依存" })
       .build(),
+    ),
   ),
   [
     {
@@ -3012,7 +3141,7 @@ export const pattern__presetGantt__担当者なし = withSteps(
       .build(),
     (n) => ({
       ...n,
-      ganttData: n.ganttData?.map((t) => (t.id === "build" ? { ...t, endIdx: "{noowner_build_end}" } : t)),
+      ganttData: n.ganttData?.map((t) => t.id === "build" ? { ...t, endIdx: "{noowner_build_end}" } : t),
     }),
   ),
   [
@@ -3715,6 +3844,10 @@ export const presetStateMachine2 = withSteps(
 
 export const sourceYaml__presetSequence = `title: "時系列のやり取りを縦の時間軸で並べる図"
 type: sequence
+sequenceActorForm: box
+sequenceLabelForm: kind
+sequenceReturnHead: solid
+sequenceKindLabels: {"call":"呼ぶ","return":"返す","fire":"投げる"}
 
 actors:
   - ブラウザ: { subtitle: "画面" }
@@ -3774,6 +3907,10 @@ animation:
 export const sourceJson__presetSequence = `{
   "title": "時系列のやり取りを縦の時間軸で並べる図",
   "type": "sequence",
+  "sequenceActorForm": "box",
+  "sequenceLabelForm": "kind",
+  "sequenceReturnHead": "solid",
+  "sequenceKindLabels": {"call": "呼ぶ", "return": "返す", "fire": "投げる"},
   "actors": [{"name": "ブラウザ", "subtitle": "画面"}, {"name": "API", "subtitle": "受付"}, {"name": "DB", "subtitle": "台帳"}, {"name": "キュー", "subtitle": "待ち行列"}],
   "bands": [{"actor": "ブラウザ", "from": 0, "to": 5}, {"actor": "API", "from": 0, "to": 5}, {"actor": "DB", "from": 1, "to": 2}, {"actor": "DB", "from": 6, "to": 6}, {"actor": "キュー", "from": 4, "to": 6}],
   "flow": [
@@ -3857,15 +3994,17 @@ lanes:
 
 # 印は行ごとに書く。 pk は名前の下線、fk は山形、opt は中空 = 形 × 塗り の 2 軸
 actors:
-  - users: { kind: storage, subtitle: "利用者", posW: 412, rows: ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"], marks: ["鍵", "", "外 条件", ""] }
-  - orders: { kind: storage, subtitle: "注文", rows: ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"], marks: ["鍵", "外", "", ""] }
-  - order_items: { kind: storage, subtitle: "注文の明細", rows: ["order_id: bigint", "product_id: bigint", "qty: int"], marks: ["鍵 外", "鍵 外", ""] }
+  - users: { kind: storage, subtitle: "利用者", lane: lane-users, stack: 0, posW: 412, rows: ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"], marks: ["鍵", "", "外 条件", ""] }
+  - orders: { kind: storage, subtitle: "注文", lane: lane-orders, stack: 0, posH: 340, figureCard: {"label":"抱える 1","note":"記録 4"}, rows: ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"], marks: ["鍵", "外", "", ""] }
+  - order_items: { kind: storage, subtitle: "注文の明細", lane: lane-order_items, nestIn: orders, posH: 300, stack: 3, rows: ["order_id: bigint", "product_id: bigint", "qty: int"], marks: ["鍵 外", "鍵 外", ""] }
 
 # 端の印は両端に立つ。 箱に近い側が個数、その外側が任意か
 flow:
   - users -> orders: "注文する" (info, dashed) { tailHead: one, head: zero-many }
-  - orders -> order_items: "明細を持つ" (info, solid) { tailHead: one, head: many }
   - users -> users: "上司" (info, dashed) { tailHead: zero-one, head: zero-many }
+
+legend:
+  - { text: "持つ は線を引かない。 注文 が 明細 を抱えるように、囲いで出す", align: start, lead: "持つ" }
 
 animation:
   - step: "1. users 表" 0.9s
@@ -3877,11 +4016,11 @@ animation:
     badge: "record"
     body: "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。"
   - step: "3. 明細を持つ" 0.9s
-    focus: [users, orders, order_items, "users -> orders", "orders -> order_items"]
+    focus: [users, orders, order_items, "users -> orders"]
     badge: "record"
-    body: "実線は識別する関係。 親の鍵が子の鍵に入る。"
+    body: "注文が明細を抱える入れ子で識別する関係を示す。 親の鍵が子の鍵に入る。"
   - step: "テーブル間の関係を表す図" 0.9s
-    focus: [users, orders, order_items, "users -> orders", "orders -> order_items", "users -> users"]
+    focus: [users, orders, order_items, "users -> orders", "users -> users"]
     badge: "record"
     body: "上司も利用者。 manager_id は同じ表を指す。"
 `;
@@ -3902,6 +4041,8 @@ export const sourceJson__presetEr = `{
       "name": "users",
       "kind": "storage",
       "subtitle": "利用者",
+      "lane": "lane-users",
+      "stack": 0,
       "posW": 412,
       "rows": ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"],
       "marks": ["鍵", "", "外 条件", ""]
@@ -3910,6 +4051,10 @@ export const sourceJson__presetEr = `{
       "name": "orders",
       "kind": "storage",
       "subtitle": "注文",
+      "lane": "lane-orders",
+      "stack": 0,
+      "posH": 340,
+      "figureCard": { "label": "抱える 1", "note": "記録 4" },
       "rows": ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"],
       "marks": ["鍵", "外", "", ""]
     },
@@ -3917,6 +4062,10 @@ export const sourceJson__presetEr = `{
       "name": "order_items",
       "kind": "storage",
       "subtitle": "注文の明細",
+      "lane": "lane-order_items",
+      "nestIn": "orders",
+      "posH": 300,
+      "stack": 3,
       "rows": ["order_id: bigint", "product_id: bigint", "qty: int"],
       "marks": ["鍵 外", "鍵 外", ""]
     }
@@ -3932,15 +4081,6 @@ export const sourceJson__presetEr = `{
       "head": "zero-many"
     },
     {
-      "from": "orders",
-      "to": "order_items",
-      "label": "明細を持つ",
-      "tone": "info",
-      "style": "solid",
-      "tailHead": "one",
-      "head": "many"
-    },
-    {
       "from": "users",
       "to": "users",
       "label": "上司",
@@ -3948,6 +4088,13 @@ export const sourceJson__presetEr = `{
       "style": "dashed",
       "tailHead": "zero-one",
       "head": "zero-many"
+    }
+  ],
+  "legend": [
+    {
+      "text": "持つ は線を引かない。 注文 が 明細 を抱えるように、囲いで出す",
+      "align": "start",
+      "lead": "持つ"
     }
   ],
   "animation": [
@@ -3968,14 +4115,14 @@ export const sourceJson__presetEr = `{
     {
       "step": "3. 明細を持つ",
       "duration": 0.9,
-      "focus": ["users", "orders", "order_items", "users -> orders", "orders -> order_items"],
-      "body": "実線は識別する関係。 親の鍵が子の鍵に入る。",
+      "focus": ["users", "orders", "order_items", "users -> orders"],
+      "body": "注文が明細を抱える入れ子で識別する関係を示す。 親の鍵が子の鍵に入る。",
       "badge": "record"
     },
     {
       "step": "テーブル間の関係を表す図",
       "duration": 0.9,
-      "focus": ["users", "orders", "order_items", "users -> orders", "orders -> order_items", "users -> users"],
+      "focus": ["users", "orders", "order_items", "users -> orders", "users -> users"],
       "body": "上司も利用者。 manager_id は同じ表を指す。",
       "badge": "record"
     }
@@ -5156,10 +5303,10 @@ reveal: all
 
 # 縦列は lane の並び、段は stack。 箱の 1 つの辺には関係を 1 本しか載せない
 actors:
-  - User: { eyebrow: "abstract", lane: c0, stack: 0, rows: ["name: string", "email: string", "login: Session"], marks: ["", "", "外"] }
-  - Auditable: { eyebrow: "interface", lane: c1, stack: 0, rows: ["audit: Log[]"], marks: ["外"] }
+  - User: { eyebrow: "abstract", titleAlign: center, lane: c0, stack: 0, rows: ["name: string", "email: string", "login: Session"], marks: ["", "", "外"] }
+  - Auditable: { kind: storage, eyebrow: "interface", emptyRowsNote: "操作を持たない", lane: c1, stack: 0, rows: [], marks: [] }
   - Admin: { lane: c0, stack: 1, rows: ["permissions: string[]", "banUser: void"], marks: ["", "外"] }
-  - Order: { lane: c1, stack: 1, rows: ["id: number", "total: number", "pay: Receipt"], marks: ["", "", "外"] }
+  - Order: { emphasis: primary, rowMarkForm: tone, lane: c1, stack: 1, rows: ["id: number", "total: number", "pay: Receipt"], marks: [{"mark":"","tone":"primary"},{"mark":"","tone":"primary"},{"mark":"外","tone":"primary"}] }
   - Receipt: { lane: c2, stack: 1, rows: ["no: string", "amount: number"], marks: ["", ""] }
   - Line: { lane: c1, stack: 2, rows: ["qty: number", "price: number"], marks: ["", ""] }
   - Sku: { lane: c2, stack: 2, rows: ["code: string", "name: string"], marks: ["", ""] }
@@ -5173,6 +5320,12 @@ flow:
   - Order -> Line: "コンポジション" { relation: composes, sub: "1..*", tailSub: "1" }
   - Line -> Sku: "関連" { relation: associates }
 
+legend:
+  - { mark: line-triangle-hollow, text: "継承", tone: accent, lineStyle: solid }
+  - { mark: line-diamond-hollow, text: "集約 (外しても残る)", tone: teal, lineStyle: solid }
+  - { mark: line-diamond-solid, text: "コンポジション (一緒に消える)", tone: teal, lineStyle: solid }
+  - { mark: dotted-line, text: "依存", tone: success }
+
 animation:
   - step: "1. User" 0.9s
     badge: "class"
@@ -5185,7 +5338,7 @@ animation:
   - step: "3. 実装" 0.9s
     badge: "class"
     focus: [User, Admin, Auditable, Order, "Admin -> User", "Order -> Auditable"]
-    body: "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。"
+    body: "破線に白抜きの三角。 Auditable は操作を持たない印だけの取り決めで、Order はその印を実装する。"
   - step: "4. 集約" 0.9s
     badge: "class"
     focus: [User, Admin, Auditable, Order, "Admin -> User", "Order -> Auditable", "Admin -> Order"]
@@ -5210,6 +5363,7 @@ export const sourceJson__presetClassDiagram = `{
     {
       "name": "User",
       "eyebrow": "abstract",
+      "titleAlign": "center",
       "lane": "c0",
       "stack": 0,
       "rows": ["name: string", "email: string", "login: Session"],
@@ -5217,11 +5371,13 @@ export const sourceJson__presetClassDiagram = `{
     },
     {
       "name": "Auditable",
+      "kind": "storage",
       "eyebrow": "interface",
+      "emptyRowsNote": "操作を持たない",
       "lane": "c1",
       "stack": 0,
-      "rows": ["audit: Log[]"],
-      "marks": ["外"]
+      "rows": [],
+      "marks": []
     },
     {
       "name": "Admin",
@@ -5232,10 +5388,12 @@ export const sourceJson__presetClassDiagram = `{
     },
     {
       "name": "Order",
+      "emphasis": "primary",
+      "rowMarkForm": "tone",
       "lane": "c1",
       "stack": 1,
       "rows": ["id: number", "total: number", "pay: Receipt"],
-      "marks": ["", "", "外"]
+      "marks": [{"mark": "", "tone": "primary"}, {"mark": "", "tone": "primary"}, {"mark": "外", "tone": "primary"}]
     },
     {
       "name": "Receipt",
@@ -5301,6 +5459,12 @@ export const sourceJson__presetClassDiagram = `{
       "relation": "associates"
     }
   ],
+  "legend": [
+    { "mark": "line-triangle-hollow", "text": "継承", "tone": "accent", "lineStyle": "solid" },
+    { "mark": "line-diamond-hollow", "text": "集約 (外しても残る)", "tone": "teal", "lineStyle": "solid" },
+    { "mark": "line-diamond-solid", "text": "コンポジション (一緒に消える)", "tone": "teal", "lineStyle": "solid" },
+    { "mark": "dotted-line", "text": "依存", "tone": "success" }
+  ],
   "animation": [
     {
       "step": "1. User",
@@ -5320,7 +5484,7 @@ export const sourceJson__presetClassDiagram = `{
       "step": "3. 実装",
       "duration": 0.9,
       "focus": ["User", "Admin", "Auditable", "Order", "Admin -> User", "Order -> Auditable"],
-      "body": "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。",
+      "body": "破線に白抜きの三角。 Auditable は操作を持たない印だけの取り決めで、Order はその印を実装する。",
       "badge": "class"
     },
     {
@@ -5362,7 +5526,7 @@ actors:
   - PaymentGateway: { lane: c1, stack: 1, rows: ["endpoint: string", "attempts: number", "charge: Transaction", "retry: Result"], marks: ["", "", "外", "外"] }
   - Auditable: { eyebrow: "interface", lane: c2, stack: 0, rows: ["auditId: string", "audit: AuditLog"], marks: ["", "外"] }
   - WalletPayment: { lane: c2, stack: 1, rows: ["walletId: string", "balance: Money", "authorize: Result", "debit: Result"], marks: ["", "", "外", "外"] }
-  - Transaction: { lane: c2, stack: 3, rows: ["id: string", "amount: Money", "status: Status", "settle: Receipt", "cancel: Result"], marks: ["", "", "", "外", "外"] }
+  - Transaction: { rowRules: true, rowMarkForm: tone, lane: c2, stack: 3, rows: ["id: string", "amount: Money", "status: Status", "settle: Receipt", "cancel: Result"], marks: [{"mark":"","tone":"primary"},{"mark":"","tone":"primary"},{"mark":"","tone":"muted"},{"mark":"外","tone":"primary"},{"mark":"外","tone":"primary"}] }
   - LedgerEntry: { lane: c2, stack: 4, rows: ["account: string", "amount: Money", "post: void"], marks: ["", "", "外"] }
   - PaymentMethod: { eyebrow: "abstract", lane: c3, stack: 0, rows: ["methodId: string", "enabled: boolean", "authorize: Result", "capture: Result"], marks: ["", "", "外", "外"] }
   - CardPayment: { lane: c3, stack: 1, rows: ["token: string", "brand: string", "authorize: Result", "capture: Result"], marks: ["", "", "外", "外"] }
@@ -5383,6 +5547,10 @@ flow:
   - Receipt -> LedgerEntry: "関連" { relation: associates }
   - PaymentGateway -> RiskCheck: "依存" { relation: uses }
   - Transaction -> Notification: "依存" { relation: uses }
+legend:
+  - { mark: rounded-box, text: "クラス" }
+  - { mark: line-triangle-hollow, text: "実装", tone: accent, lineStyle: dotted }
+  - { text: "線の先に親または取り決めを置く", lead: "線の先", align: end }
 animation:
   - step: "1. 抽象クラスとインターフェース" 0.9s
     focus: [PaymentMethod, Auditable, Retryable]
@@ -5420,242 +5588,255 @@ animation:
 
 export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
   {
-    "title": "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
-    "type": "record",
-    "palette": "kinari",
-    "relations": "hover",
-    "reveal": "all",
-    "actors": [
+    title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
+    type: "record",
+    palette: "kinari",
+    relations: "hover",
+    reveal: "all",
+    actors: [
       {
-        "name": "RiskCheck",
-        "lane": "c0",
-        "stack": 2,
-        "rows": ["score: number", "decision: Decision", "evaluate: Decision", "audit: AuditLog"],
-        "marks": ["", "", "外", "外"]
+        name: "RiskCheck",
+        lane: "c0",
+        stack: 2,
+        rows: ["score: number", "decision: Decision", "evaluate: Decision", "audit: AuditLog"],
+        marks: ["", "", "外", "外"]
       },
       {
-        "name": "Notification",
-        "lane": "c0",
-        "stack": 3,
-        "rows": ["channel: Channel", "recipient: string", "send: Result"],
-        "marks": ["", "", "外"]
+        name: "Notification",
+        lane: "c0",
+        stack: 3,
+        rows: ["channel: Channel", "recipient: string", "send: Result"],
+        marks: ["", "", "外"]
       },
       {
-        "name": "Retryable",
-        "eyebrow": "interface",
-        "lane": "c1",
-        "stack": 0,
-        "rows": ["maxAttempts: number", "retry: Result"],
-        "marks": ["", "外"]
+        name: "Retryable",
+        eyebrow: "interface",
+        lane: "c1",
+        stack: 0,
+        rows: ["maxAttempts: number", "retry: Result"],
+        marks: ["", "外"]
       },
       {
-        "name": "PaymentGateway",
-        "lane": "c1",
-        "stack": 1,
-        "rows": ["endpoint: string", "attempts: number", "charge: Transaction", "retry: Result"],
-        "marks": ["", "", "外", "外"]
+        name: "PaymentGateway",
+        lane: "c1",
+        stack: 1,
+        rows: ["endpoint: string", "attempts: number", "charge: Transaction", "retry: Result"],
+        marks: ["", "", "外", "外"]
       },
       {
-        "name": "Auditable",
-        "eyebrow": "interface",
-        "lane": "c2",
-        "stack": 0,
-        "rows": ["auditId: string", "audit: AuditLog"],
-        "marks": ["", "外"]
+        name: "Auditable",
+        eyebrow: "interface",
+        lane: "c2",
+        stack: 0,
+        rows: ["auditId: string", "audit: AuditLog"],
+        marks: ["", "外"]
       },
       {
-        "name": "WalletPayment",
-        "lane": "c2",
-        "stack": 1,
-        "rows": ["walletId: string", "balance: Money", "authorize: Result", "debit: Result"],
-        "marks": ["", "", "外", "外"]
+        name: "WalletPayment",
+        lane: "c2",
+        stack: 1,
+        rows: ["walletId: string", "balance: Money", "authorize: Result", "debit: Result"],
+        marks: ["", "", "外", "外"]
       },
       {
-        "name": "Transaction",
-        "lane": "c2",
-        "stack": 3,
-        "rows": ["id: string", "amount: Money", "status: Status", "settle: Receipt", "cancel: Result"],
-        "marks": ["", "", "", "外", "外"]
+        name: "Transaction",
+        rowRules: true,
+        rowMarkForm: "tone",
+        lane: "c2",
+        stack: 3,
+        rows: ["id: string", "amount: Money", "status: Status", "settle: Receipt", "cancel: Result"],
+        marks: [
+          { mark: "", tone: "primary" },
+          { mark: "", tone: "primary" },
+          { mark: "", tone: "muted" },
+          { mark: "外", tone: "primary" },
+          { mark: "外", tone: "primary" },
+        ],
       },
       {
-        "name": "LedgerEntry",
-        "lane": "c2",
-        "stack": 4,
-        "rows": ["account: string", "amount: Money", "post: void"],
-        "marks": ["", "", "外"]
+        name: "LedgerEntry",
+        lane: "c2",
+        stack: 4,
+        rows: ["account: string", "amount: Money", "post: void"],
+        marks: ["", "", "外"]
       },
       {
-        "name": "PaymentMethod",
-        "eyebrow": "abstract",
-        "lane": "c3",
-        "stack": 0,
-        "rows": ["methodId: string", "enabled: boolean", "authorize: Result", "capture: Result"],
-        "marks": ["", "", "外", "外"]
+        name: "PaymentMethod",
+        eyebrow: "abstract",
+        lane: "c3",
+        stack: 0,
+        rows: ["methodId: string", "enabled: boolean", "authorize: Result", "capture: Result"],
+        marks: ["", "", "外", "外"]
       },
       {
-        "name": "CardPayment",
-        "lane": "c3",
-        "stack": 1,
-        "rows": ["token: string", "brand: string", "authorize: Result", "capture: Result"],
-        "marks": ["", "", "外", "外"]
+        name: "CardPayment",
+        lane: "c3",
+        stack: 1,
+        rows: ["token: string", "brand: string", "authorize: Result", "capture: Result"],
+        marks: ["", "", "外", "外"]
       },
       {
-        "name": "Receipt",
-        "lane": "c3",
-        "stack": 4,
-        "rows": ["number: string", "issuedAt: Date", "render: Document"],
-        "marks": ["", "", "外"]
+        name: "Receipt",
+        lane: "c3",
+        stack: 4,
+        rows: ["number: string", "issuedAt: Date", "render: Document"],
+        marks: ["", "", "外"]
       },
       {
-        "name": "BankTransfer",
-        "lane": "c4",
-        "stack": 1,
-        "rows": ["bankCode: string", "reference: string", "authorize: Result", "reconcile: Result"],
-        "marks": ["", "", "外", "外"]
+        name: "BankTransfer",
+        lane: "c4",
+        stack: 1,
+        rows: ["bankCode: string", "reference: string", "authorize: Result", "reconcile: Result"],
+        marks: ["", "", "外", "外"]
       }
     ],
-    "flow": [
+    flow: [
       {
-        "from": "BankTransfer",
-        "to": "PaymentMethod",
-        "label": "継承",
-        "relation": "extends"
+        from: "BankTransfer",
+        to: "PaymentMethod",
+        label: "継承",
+        relation: "extends"
       },
       {
-        "from": "CardPayment",
-        "to": "PaymentMethod",
-        "label": "継承",
-        "relation": "extends"
+        from: "CardPayment",
+        to: "PaymentMethod",
+        label: "継承",
+        relation: "extends"
       },
       {
-        "from": "WalletPayment",
-        "to": "PaymentMethod",
-        "label": "継承",
-        "relation": "extends"
+        from: "WalletPayment",
+        to: "PaymentMethod",
+        label: "継承",
+        relation: "extends"
       },
       {
-        "from": "PaymentGateway",
-        "to": "Auditable",
-        "label": "実装",
-        "relation": "implements"
+        from: "PaymentGateway",
+        to: "Auditable",
+        label: "実装",
+        relation: "implements"
       },
       {
-        "from": "WalletPayment",
-        "to": "Auditable",
-        "label": "実装",
-        "relation": "implements"
+        from: "WalletPayment",
+        to: "Auditable",
+        label: "実装",
+        relation: "implements"
       },
       {
-        "from": "RiskCheck",
-        "to": "Notification",
-        "label": "依存",
-        "relation": "uses"
+        from: "RiskCheck",
+        to: "Notification",
+        label: "依存",
+        relation: "uses"
       },
       {
-        "from": "PaymentGateway",
-        "to": "Retryable",
-        "label": "実装",
-        "relation": "implements"
+        from: "PaymentGateway",
+        to: "Retryable",
+        label: "実装",
+        relation: "implements"
       },
       {
-        "from": "Transaction",
-        "to": "Receipt",
-        "label": "集約",
-        "relation": "aggregates"
+        from: "Transaction",
+        to: "Receipt",
+        label: "集約",
+        relation: "aggregates"
       },
       {
-        "from": "Transaction",
-        "to": "LedgerEntry",
-        "label": "コンポジション",
-        "relation": "composes"
+        from: "Transaction",
+        to: "LedgerEntry",
+        label: "コンポジション",
+        relation: "composes"
       },
       {
-        "from": "PaymentGateway",
-        "to": "Transaction",
-        "label": "コンポジション",
-        "relation": "composes"
+        from: "PaymentGateway",
+        to: "Transaction",
+        label: "コンポジション",
+        relation: "composes"
       },
       {
-        "from": "Transaction",
-        "to": "CardPayment",
-        "label": "関連",
-        "relation": "associates"
+        from: "Transaction",
+        to: "CardPayment",
+        label: "関連",
+        relation: "associates"
       },
       {
-        "from": "Receipt",
-        "to": "LedgerEntry",
-        "label": "関連",
-        "relation": "associates"
+        from: "Receipt",
+        to: "LedgerEntry",
+        label: "関連",
+        relation: "associates"
       },
       {
-        "from": "PaymentGateway",
-        "to": "RiskCheck",
-        "label": "依存",
-        "relation": "uses"
+        from: "PaymentGateway",
+        to: "RiskCheck",
+        label: "依存",
+        relation: "uses"
       },
       {
-        "from": "Transaction",
-        "to": "Notification",
-        "label": "依存",
-        "relation": "uses"
+        from: "Transaction",
+        to: "Notification",
+        label: "依存",
+        relation: "uses"
       }
     ],
-    "animation": [
+    legend: [
+      { mark: "rounded-box", text: "クラス" },
+      { mark: "line-triangle-hollow", text: "実装", tone: "accent", lineStyle: "dotted" },
+      { text: "線の先に親または取り決めを置く", lead: "線の先", align: "end" },
+    ],
+    animation: [
       {
-        "step": "1. 抽象クラスとインターフェース",
-        "duration": 0.9,
-        "focus": ["PaymentMethod", "Auditable", "Retryable"],
-        "badge": "class",
-        "body": "支払い方法の抽象クラスと、監査・再試行のインターフェースを先に読む。"
+        step: "1. 抽象クラスとインターフェース",
+        duration: 0.9,
+        focus: ["PaymentMethod", "Auditable", "Retryable"],
+        badge: "class",
+        body: "支払い方法の抽象クラスと、監査・再試行のインターフェースを先に読む。"
       },
       {
-        "step": "2. 振込とカードの継承",
-        "duration": 0.9,
-        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod"],
-        "badge": "class",
-        "body": "実線に白抜きの三角。 三角は親クラスの側に付く。"
+        step: "2. 振込とカードの継承",
+        duration: 0.9,
+        focus: ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod"],
+        badge: "class",
+        body: "実線に白抜きの三角。 三角は親クラスの側に付く。"
       },
       {
-        "step": "3. 財布の継承と実装",
-        "duration": 0.9,
-        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable"],
-        "badge": "class",
-        "body": "1 つのクラスが親クラスを継承し、別のインターフェースも実装する。 破線の先がインターフェース。"
+        step: "3. 財布の継承と実装",
+        duration: 0.9,
+        focus: ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable"],
+        badge: "class",
+        body: "1 つのクラスが親クラスを継承し、別のインターフェースも実装する。 破線の先がインターフェース。"
       },
       {
-        "step": "4. ゲートウェイの実装",
-        "duration": 0.9,
-        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable"],
-        "badge": "class",
-        "body": "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。"
+        step: "4. ゲートウェイの実装",
+        duration: 0.9,
+        focus: ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable"],
+        badge: "class",
+        body: "破線に白抜きの三角。 処理の中身ではなく操作の取り決めだけを引き継ぐので、線を破線にする。"
       },
       {
-        "step": "5. 取引のコンポジション",
-        "duration": 0.9,
-        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment"],
-        "badge": "class",
-        "body": "塗った菱。 取引の寿命はゲートウェイと同じで、ゲートウェイが消えると取引も消える。 実線に開いた矢は関連で、取引はカード払いを参照する。"
+        step: "5. 取引のコンポジション",
+        duration: 0.9,
+        focus: ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment"],
+        badge: "class",
+        body: "塗った菱。 取引の寿命はゲートウェイと同じで、ゲートウェイが消えると取引も消える。 実線に開いた矢は関連で、取引はカード払いを参照する。"
       },
       {
-        "step": "6. 領収書と仕訳",
-        "duration": 0.9,
-        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry"],
-        "badge": "class",
-        "body": "白抜きの菱は集約で、領収書は取引が無くなっても残る。 塗った菱はコンポジションで、仕訳は取引と一緒に消える。"
+        step: "6. 領収書と仕訳",
+        duration: 0.9,
+        focus: ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry"],
+        badge: "class",
+        body: "白抜きの菱は集約で、領収書は取引が無くなっても残る。 塗った菱はコンポジションで、仕訳は取引と一緒に消える。"
       },
       {
-        "step": "7. 仕訳の参照とリスク判定",
-        "duration": 0.9,
-        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck"],
-        "badge": "class",
-        "body": "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
+        step: "7. 仕訳の参照とリスク判定",
+        duration: 0.9,
+        focus: ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck"],
+        badge: "class",
+        body: "関連は実線に開いた矢で、相手を参照し続ける。 依存は破線に開いた矢で、引数や戻り値として一時的に使うだけ。"
       },
       {
-        "step": "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
-        "duration": 0.9,
-        "focus": ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", "Notification", "RiskCheck -> Notification", "Transaction -> Notification"],
-        "badge": "class",
-        "body": "リスク判定と取引が、同じ通知クラスに依存する。 色の 3 群は縦の関係と向きだけの関係と所有の関係。"
+        step: "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
+        duration: 0.9,
+        focus: ["PaymentMethod", "Auditable", "Retryable", "BankTransfer", "CardPayment", "BankTransfer -> PaymentMethod", "CardPayment -> PaymentMethod", "WalletPayment", "WalletPayment -> PaymentMethod", "WalletPayment -> Auditable", "PaymentGateway", "PaymentGateway -> Auditable", "PaymentGateway -> Retryable", "Transaction", "PaymentGateway -> Transaction", "Transaction -> CardPayment", "Receipt", "LedgerEntry", "Transaction -> Receipt", "Transaction -> LedgerEntry", "RiskCheck", "Receipt -> LedgerEntry", "PaymentGateway -> RiskCheck", "Notification", "RiskCheck -> Notification", "Transaction -> Notification"],
+        badge: "class",
+        body: "リスク判定と取引が、同じ通知クラスに依存する。 色の 3 群は縦の関係と向きだけの関係と所有の関係。"
       }
     ]
   },
@@ -5667,18 +5848,18 @@ export const sourceYaml__presetTopology = `title: "システムの構成要素�
 type: topology
 
 lanes:
-  client: { width: 460, label: "利用者側" }
-  aws: { width: 460, label: "AWS" }
+  client: { width: 460, label: "利用者側", subtitle: "L1 · 外の利用者" }
+  aws: { width: 460, label: "AWS", subtitle: "L2 · 中の部品" }
 
 actors:
-  - ブラウザ: { kind: frontend, lane: client }
-  - ALB: { kind: service, eyebrow: "負荷分散", lane: aws }
-  - ECS のタスク: { kind: service, eyebrow: "コンテナ", lane: aws }
-  - RDS: { kind: database, eyebrow: "PostgreSQL", lane: aws }
+  - ブラウザ: { kind: frontend, kindForm: icon, icon: person, figureCard: {"label":"人","note":"L1"}, lane: client }
+  - ALB: { kind: service, kindForm: icon, icon: cloud, eyebrow: "負荷分散", lane: aws }
+  - ECS のタスク: { kind: service, kindForm: icon, icon: lightning, eyebrow: "コンテナ", lane: aws }
+  - RDS: { kind: database, kindForm: icon, icon: database, eyebrow: "PostgreSQL", lane: aws }
 
 flow:
-  - ブラウザ -> ALB: "HTTPS" (teal, solid) { sub: "TLS 1.3" }
-  - ALB -> ECS のタスク: "ラウンドロビン" (teal, solid)
+  - ブラウザ -> ALB: "HTTPS" (teal, solid) { sub: "TLS 1.3", tailHead: dot }
+  - ALB -> ECS のタスク: "ラウンドロビン" (teal, solid) { head: dot }
   - ECS のタスク -> RDS: "TCP 5432" (success, solid) { sub: "PgBouncer 経由" }
 
 animation:
@@ -5704,14 +5885,14 @@ export const sourceJson__presetTopology = `{
   "title": "システムの構成要素と接続を配置で示す図",
   "type": "topology",
   "lanes": {
-    "client": { "width": 460, "label": "利用者側" },
-    "aws": { "width": 460, "label": "AWS" }
+    "client": { "width": 460, "label": "利用者側", "subtitle": "L1 · 外の利用者" },
+    "aws": { "width": 460, "label": "AWS", "subtitle": "L2 · 中の部品" }
   },
   "actors": [
-    { "name": "ブラウザ", "kind": "frontend", "lane": "client" },
-    { "name": "ALB", "kind": "service", "eyebrow": "負荷分散", "lane": "aws" },
-    { "name": "ECS のタスク", "kind": "service", "eyebrow": "コンテナ", "lane": "aws" },
-    { "name": "RDS", "kind": "database", "eyebrow": "PostgreSQL", "lane": "aws" }
+    { "name": "ブラウザ", "kind": "frontend", "kindForm": "icon", "icon": "person", "figureCard": {"label": "人", "note": "L1"}, "lane": "client" },
+    { "name": "ALB", "kind": "service", "kindForm": "icon", "icon": "cloud", "eyebrow": "負荷分散", "lane": "aws" },
+    { "name": "ECS のタスク", "kind": "service", "kindForm": "icon", "icon": "lightning", "eyebrow": "コンテナ", "lane": "aws" },
+    { "name": "RDS", "kind": "database", "kindForm": "icon", "icon": "database", "eyebrow": "PostgreSQL", "lane": "aws" }
   ],
   "flow": [
     {
@@ -5720,14 +5901,16 @@ export const sourceJson__presetTopology = `{
       "label": "HTTPS",
       "sub": "TLS 1.3",
       "tone": "teal",
-      "style": "solid"
+      "style": "solid",
+      "tailHead": "dot"
     },
     {
       "from": "ALB",
       "to": "ECS のタスク",
       "label": "ラウンドロビン",
       "tone": "teal",
-      "style": "solid"
+      "style": "solid",
+      "head": "dot"
     },
     {
       "from": "ECS のタスク",
@@ -5906,9 +6089,9 @@ lanes:
 
 actors:
   - ブラウザ: { kind: person, lane: col-0, eyebrow: "利用者", subtitle: "利用者の画面" }
-  - CloudFront: { kind: cdn, lane: col-1, eyebrow: "配信", subtitle: "静的配信" }
+  - CloudFront: { kind: cdn, kindForm: icon, icon: box, lane: col-1, eyebrow: "配信", subtitle: "静的配信" }
   - ALB: { kind: service, lane: col-2, eyebrow: "振り分け", subtitle: "負荷分散" }
-  - アプリ: { kind: service, lane: col-2, eyebrow: "処理", subtitle: "注文の処理" }
+  - アプリ: { kind: service, kindForm: icon, icon: terminal, lane: col-2, eyebrow: "処理", subtitle: "注文の処理" }
   - RDS: { kind: database, lane: col-3, eyebrow: "保存", subtitle: "永続化" }
   - Redis: { kind: cache, lane: col-3, eyebrow: "一時保存", subtitle: "高速化" }
 
@@ -5953,9 +6136,9 @@ export const sourceJson__presetInfrastructure = `{
   },
   "actors": [
     { "name": "ブラウザ", "kind": "person", "lane": "col-0", "eyebrow": "利用者", "subtitle": "利用者の画面" },
-    { "name": "CloudFront", "kind": "cdn", "lane": "col-1", "eyebrow": "配信", "subtitle": "静的配信" },
+    { "name": "CloudFront", "kind": "cdn", "kindForm": "icon", "icon": "box", "lane": "col-1", "eyebrow": "配信", "subtitle": "静的配信" },
     { "name": "ALB", "kind": "service", "lane": "col-2", "eyebrow": "振り分け", "subtitle": "負荷分散" },
-    { "name": "アプリ", "kind": "service", "lane": "col-2", "eyebrow": "処理", "subtitle": "注文の処理" },
+    { "name": "アプリ", "kind": "service", "kindForm": "icon", "icon": "terminal", "lane": "col-2", "eyebrow": "処理", "subtitle": "注文の処理" },
     { "name": "RDS", "kind": "database", "lane": "col-3", "eyebrow": "保存", "subtitle": "永続化" },
     { "name": "Redis", "kind": "cache", "lane": "col-3", "eyebrow": "一時保存", "subtitle": "高速化" }
   ],

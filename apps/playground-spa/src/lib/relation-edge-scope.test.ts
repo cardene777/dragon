@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
-import { sourceYaml__presetClassDiagram } from "@/topics/catalog/presets.cdl";
+import { presetClassDiagram, sourceYaml__presetClassDiagram } from "@/topics/catalog/presets.cdl";
 import { sourceYaml__textDslStateMachine } from "@/topics/catalog/text-dsl.cdl";
 import {
   UMLだけの端の組,
@@ -140,6 +140,36 @@ describe("record の関係に当てる線の薄さ (#2783 / #2805)", () => {
     );
     expect(通常の選び方, "通常の線へ当てる選び方が無い").toBeDefined();
     expect(線.filter((要素) => 要素.matches(通常の選び方 ?? "")).length).toBe(線.length);
+  });
+
+  it("型の凡例 4 項目の印・線種・色は図が描く関係と同じ", () => {
+    const 対応 = [
+      { 関係: "継承", 凡例: "継承", 印: "line-triangle-hollow" },
+      { 関係: "集約", 凡例: "集約 (外しても残る)", 印: "line-diamond-hollow" },
+      {
+        関係: "コンポジション",
+        凡例: "コンポジション (一緒に消える)",
+        印: "line-diamond-solid",
+      },
+      { 関係: "依存", 凡例: "依存", 印: "dotted-line" },
+    ] as const;
+    const 凡例 = presetClassDiagram.legend ?? [];
+
+    expect(凡例, "見本に無い項目または注記が凡例に残っている").toHaveLength(対応.length);
+    for (const 項目 of 対応) {
+      const 線 = presetClassDiagram.edges.find((候補) => 候補.label === 項目.関係);
+      const 印 = 凡例.find((候補) => 候補.text === 項目.凡例);
+
+      expect(線, `${項目.関係}の線が図に無い`).toBeDefined();
+      expect(印, `${項目.凡例}が凡例に無い`).toMatchObject({ mark: 項目.印 });
+      if (!印 || 印.mark === undefined)
+        throw new Error(`${項目.凡例}が印を持たない注記になっている`);
+      const 凡例の線種 = 印.mark === "dotted-line" ? "dashed" : (印.lineStyle ?? "solid");
+      expect({ tone: 印.tone, style: 凡例の線種 }, `${項目.関係}の凡例と図の線が違う`).toEqual({
+        tone: 線?.tone,
+        style: 線?.style,
+      });
+    }
   });
 
   it("出どころ側の菱は marker-start が指す data-cdl-edge-head と塗りに出る", () => {

@@ -783,6 +783,8 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --cdl-tone-muted: #8aa3b1;
   --theme-mind-root-fill: rgba(227, 233, 234, 0.82);
   --theme-mind-box-fill: rgba(227, 233, 234, 0.82);
+  --theme-mind-root-stroke: #143a52;
+  --theme-mind-box-stroke: #143a52;
   --theme-mind-root-stroke-width: 2.25px;
   --theme-mind-box-stroke-width: 1px;
   --theme-mind-radius: 12px;
@@ -886,6 +888,8 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --cdl-tone-muted: #9d9382;
   --theme-mind-root-fill: transparent;
   --theme-mind-box-fill: transparent;
+  --theme-mind-root-stroke: #1a1510;
+  --theme-mind-box-stroke: #1a1510;
   --theme-mind-root-stroke-width: 3px;
   --theme-mind-box-stroke-width: 1.5px;
   --theme-mind-radius: 12px;
@@ -986,6 +990,8 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --cdl-tone-muted: #9c9381;
   --theme-mind-root-fill: #f4eee2;
   --theme-mind-box-fill: #f4eee2;
+  --theme-mind-root-stroke: transparent;
+  --theme-mind-box-stroke: transparent;
   --theme-mind-root-stroke-width: 0;
   --theme-mind-box-stroke-width: 0;
   --theme-mind-radius: 12px;
@@ -1091,7 +1097,9 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --cdl-tone-muted: #355542;
   --theme-mind-root-fill: #08110b;
   --theme-mind-box-fill: #08110b;
-  --theme-mind-root-stroke-width: 1.5px;
+  --theme-mind-root-stroke: #4ade80;
+  --theme-mind-box-stroke: rgba(74, 222, 128, 0.3);
+  --theme-mind-root-stroke-width: 1px;
   --theme-mind-box-stroke-width: 1px;
   --theme-mind-radius: 6px;
   --theme-mind-root-text: #9ef0b4;
@@ -1200,9 +1208,12 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --cdl-tone-muted: #9a9080;
   --theme-mind-root-fill: #fffdf7;
   --theme-mind-box-fill: #fffdf7;
+  --theme-mind-root-stroke: #2b2620;
+  --theme-mind-box-stroke: #2b2620;
   --theme-mind-root-stroke-width: 3px;
   --theme-mind-box-stroke-width: 2px;
-  --theme-mind-radius: 22px;
+  /* 見本の四隅 16 / 22 / 15 / 24 は SVG rect で分けられないため、平均 19.25 に最も近い 19px を使う。 */
+  --theme-mind-radius: 19px;
   --theme-mind-root-text: #2b2620;
   --theme-mind-box-text: #2b2620;
   --theme-mind-leaf-text: #2b2620;
@@ -1305,6 +1316,8 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --cdl-tone-muted: #8f86b3;
   --theme-mind-root-fill: #09070f;
   --theme-mind-box-fill: #09070f;
+  --theme-mind-root-stroke: #ff2e97;
+  --theme-mind-box-stroke: #ff2e97;
   --theme-mind-root-stroke-width: 2px;
   --theme-mind-box-stroke-width: 2px;
   --theme-mind-radius: 16px;
@@ -1409,6 +1422,8 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --cdl-tone-muted: #a99e8e;
   --theme-mind-root-fill: #e8e3da;
   --theme-mind-box-fill: #e8e3da;
+  --theme-mind-root-stroke: transparent;
+  --theme-mind-box-stroke: transparent;
   --theme-mind-root-stroke-width: 0;
   --theme-mind-box-stroke-width: 0;
   --theme-mind-radius: 22px;
@@ -2028,7 +2043,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="relief"]
 ) [data-cdl-mind-form="outline"] [data-cdl-role="mind-root"] {
   fill: var(--theme-mind-root-fill) !important;
-  stroke: var(--er-frame) !important;
+  stroke: var(--theme-mind-root-stroke) !important;
   stroke-width: var(--theme-mind-root-stroke-width) !important;
   rx: var(--theme-mind-radius);
   ry: var(--theme-mind-radius);
@@ -2045,7 +2060,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="relief"]
 ) [data-cdl-mind-form="outline"] [data-cdl-role="mind-box"] {
   fill: var(--theme-mind-box-fill) !important;
-  stroke: var(--er-frame) !important;
+  stroke: var(--theme-mind-box-stroke) !important;
   stroke-width: var(--theme-mind-box-stroke-width) !important;
   rx: var(--theme-mind-radius);
   ry: var(--theme-mind-radius);
@@ -2178,10 +2193,10 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
 ) [data-cdl-kind="journey-map"] [data-cdl-role="journey-step"] > circle:first-of-type {
-  stroke: var(--cdl-chart-1);
+  stroke: var(--cdl-tone-accent);
 }
 
-/* cdl 0.125.0 の縦軸の段名には role がないため、kind 内で journey-band と同じ g の末尾の字に閉じる。 */
+/* cdl 0.130.0 の段名 role だけへ、7 意匠の見本で測った縦軸色を当てる。 */
 svg[data-cdl-stage]:is(
   [data-cdl-palette="blueprint"],
   [data-cdl-palette="letterpress"],
@@ -2190,7 +2205,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="sketch"],
   [data-cdl-palette="neon"],
   [data-cdl-palette="relief"]
-) [data-cdl-kind="journey-map"] g:has(> [data-cdl-role="journey-band"]) > text:last-child {
+) [data-cdl-kind="journey-map"] [data-cdl-role="journey-level-name"] {
   fill: var(--theme-journey-axis-label);
 }
 

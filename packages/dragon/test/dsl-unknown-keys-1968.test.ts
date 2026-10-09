@@ -131,11 +131,11 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   chartGaugeValue: [
     見本(
       "半円の値",
-      (k) => `${頭}chartGaugeValue: { "max": 100, "current": 78, "${k}": 80 }\n\nactors:\n  - A\n`,
+      (k) => `${頭}chartGaugeValue: { "max": 100, "current": "{rate}", "${k}": 80 }\n\nactors:\n  - A\n`,
       "targte",
       "target",
       {
-        input: 図({ chartGaugeValue: { max: 100, current: 78, targte: 80 } }),
+        input: 図({ chartGaugeValue: { max: 100, current: "{rate}", targte: 80 } }),
         path: "$.chartGaugeValue.targte",
       },
     ),
@@ -150,6 +150,21 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   mindForm: { 項目名を持たない理由: "放射の箱の見せ方の語を 1 つ書く欄" },
   journeyForm: { 項目名を持たない理由: "ジャーニーの段の見せ方の語を 1 つ書く欄" },
   journeyLineForm: { 項目名を持たない理由: "ジャーニーの線の見せ方の語を 1 つ書く欄" },
+  sequenceActorForm: { 項目名を持たない理由: "順序図の参加者の枠の語を 1 つ書く欄" },
+  sequenceLabelForm: { 項目名を持たない理由: "順序図の段の種類表示の語を 1 つ書く欄" },
+  sequenceReturnHead: { 項目名を持たない理由: "順序図の返す矢じりの語を 1 つ書く欄" },
+  sequenceKindLabels: [
+    見本(
+      "順序図の種類名",
+      (k) => `${頭}sequenceKindLabels: {"call":"呼ぶ","${k}":"返す"}\n\nactors:\n  - A\n`,
+      "retrun",
+      "return",
+      {
+        input: 図({ sequenceKindLabels: { call: "呼ぶ", retrun: "返す" } }),
+        path: "$.sequenceKindLabels.retrun",
+      },
+    ),
+  ],
   journeyLabels: [
     見本(
       "ジャーニーの段名",

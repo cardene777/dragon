@@ -91,7 +91,7 @@ import { truncateForMessage } from "./compile/subtitle";
 import { slugify } from "./compile/slug";
 import { 省く泳法図の印を外す, 泳法図で印をどう描く } from "./compile/swimlane-marks";
 import { 語の状態を図の語へ直す } from "./compile/word-state";
-import type { CdlDiagram, CdlEdge, CdlNode } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlEdge, CdlLegendItem, CdlNode } from "@cardenelabs/cdl";
 import { layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS, 描く語がその図を指すか } from "./v05/parser";
@@ -560,7 +560,22 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 20 か所以上あり、そのどれに足しても残りが取り残される
   配色と縞を当てる(merged, doc);
   if (doc.legend && doc.legend.length > 0) {
-    merged.legend = doc.legend.map(({ mark, text }) => ({ mark, text }));
+    // cdl 0.129.0 の凡例は印付き項目と注記の union。両方の欄を落とさず、組み立て API と
+    // 同じ順 (mark/text/tone/lineStyle または text/align/lead) で写す。
+    merged.legend = doc.legend.map((item) =>
+      (item.mark === undefined
+        ? {
+            text: item.text,
+            ...(item.align === undefined ? {} : { align: item.align }),
+            ...(item.lead === undefined ? {} : { lead: item.lead }),
+          }
+        : {
+            mark: item.mark,
+            text: item.text,
+            ...(item.tone === undefined ? {} : { tone: item.tone }),
+            ...(item.lineStyle === undefined ? {} : { lineStyle: item.lineStyle }),
+          }) as CdlLegendItem,
+    );
   }
   if (doc.legendFontSize !== undefined) merged.legendFontSize = doc.legendFontSize;
   if (doc.stageHeaders !== undefined) {
@@ -2444,7 +2459,7 @@ function reportChartFieldsNotHonored(
             ...(a.end !== undefined ? ["end"] : []),
             ...(a.startLabel !== undefined ? ["startLabel"] : []),
             ...(a.milestone !== undefined ? ["milestone"] : []),
-            ...(a.emphasis !== undefined && !値として読む図が主役を読む(doc.type, doc.shape)
+            ...(a.emphasis !== undefined && doc.type !== "record" && !値として読む図が主役を読む(doc.type, doc.shape)
               ? ["emphasis"]
               : []),
           ];
@@ -2598,6 +2613,15 @@ function applyV05Extensions(
       // ここで落とさないと、 組み立てが読み取った目印がそのまま箱の説明として出る (#1098)
       const 説明 = doc.type === "c4" ? 段を読み取る(a.subtitle).説明 : a.subtitle;
       if (説明 !== undefined) node.subtitle = 説明;
+      if (a.kindForm !== undefined) node.kindForm = a.kindForm;
+      if (a.icon !== undefined) node.icon = a.icon;
+      if (a.emptyRowsNote !== undefined) node.emptyRowsNote = a.emptyRowsNote;
+      if (a.emphasis !== undefined && doc.type === "record") node.emphasis = a.emphasis;
+      if (a.titleAlign !== undefined) node.titleAlign = a.titleAlign;
+      if (a.rowRules !== undefined) node.rowRules = a.rowRules;
+      if (a.rowMarkForm !== undefined) node.rowMarkForm = a.rowMarkForm;
+      if (a.nestIn !== undefined) node.nestIn = slugify(a.nestIn);
+      if (a.figureCard !== undefined) node.figureCard = a.figureCard;
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
       if (a.rows !== undefined) node.rows = a.rows;
@@ -2670,6 +2694,7 @@ function applyV05Extensions(
         if (laneOpt.x !== undefined) lane.x = laneOpt.x;
         if (laneOpt.width !== undefined) lane.width = laneOpt.width;
         if (laneOpt.label !== undefined) lane.label = laneOpt.label;
+        if (laneOpt.subtitle !== undefined) lane.subtitle = laneOpt.subtitle;
         if (laneOpt.contain !== undefined) lane.contain = laneOpt.contain;
         if (laneOpt.lifeline !== undefined) lane.lifeline = laneOpt.lifeline;
       } else {
@@ -2684,6 +2709,7 @@ function applyV05Extensions(
           ...(laneOpt.x !== undefined ? { x: laneOpt.x } : {}),
           width: laneOpt.width ?? 320,
           label: laneOpt.label,
+          subtitle: laneOpt.subtitle,
           contain: laneOpt.contain,
           lifeline: laneOpt.lifeline,
         });
@@ -3013,15 +3039,15 @@ function reportTicksNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =
   });
 }
 
-/** 路線図の名札か流れ図の縦列見出しに載る lane の補足を、別の形で黙って捨てないために伝える。 */
+/** 特別な泳路配置が元の lane を組み直す時、補足を黙って捨てないために伝える。 */
 function reportLaneSubtitleNotHonored(
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
 ): void {
   if (
     !onNotice ||
-    doc.type === "flowchart" ||
-    (doc.type === "swimlane" && doc.shape === "metro")
+    doc.type !== "swimlane" ||
+    (doc.shape !== "stages" && doc.shape !== "timeline")
   ) return;
   for (const lane of Object.values(doc.lanes ?? {})) {
     if (lane.subtitle === undefined) continue;
@@ -3029,8 +3055,8 @@ function reportLaneSubtitleNotHonored(
       kind: "lane-option-not-honored",
       actor: lane.id,
       line: lane.pos.line,
-      message: `縦列 "${truncateForMessage(lane.id)}" に書いた subtitle は効きません (担当の補足を描くのは shape: metro だけです)`,
-      hint: "subtitle を消すか、type: swimlane と shape: metro の路線図で使ってください",
+      message: `縦列 "${truncateForMessage(lane.id)}" に書いた subtitle は shape: ${doc.shape} では効きません`,
+      hint: "subtitle を消すか、通常の縦列または shape: metro の路線図で使ってください",
     });
   }
 }

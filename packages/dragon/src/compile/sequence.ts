@@ -89,6 +89,10 @@ function 板を組む(doc: DslDocument, 面の名: (a: DslActor) => string): Cdl
       a.subtitle ? { name: 面の名(a), subtitle: a.subtitle } : 面の名(a),
     ),
     ...(doc.bands && doc.bands.length > 0 ? { bands: doc.bands } : {}),
+    ...(doc.sequenceActorForm !== undefined ? { sequenceActorForm: doc.sequenceActorForm } : {}),
+    ...(doc.sequenceLabelForm !== undefined ? { sequenceLabelForm: doc.sequenceLabelForm } : {}),
+    ...(doc.sequenceReturnHead !== undefined ? { sequenceReturnHead: doc.sequenceReturnHead } : {}),
+    ...(doc.sequenceKindLabels !== undefined ? { sequenceKindLabels: doc.sequenceKindLabels } : {}),
   });
   for (const s of doc.flow) {
     b.step({

@@ -1082,6 +1082,7 @@ export const pattern__shipperFeelingJourney__5つの気持ち = textDslToDiagram
 export const sourceYaml__redeliveryIdeasMind = `title: "再配達を減らす"
 type: mind
 mindForm: outline
+figureSize: {"width":720,"height":224}
 
 actors:
   - "{theme}"
@@ -1125,6 +1126,7 @@ export const sourceJson__redeliveryIdeasMind = `{
   "title": "再配達を減らす",
   "type": "mind",
   "mindForm": "outline",
+  "figureSize": { "width": 720, "height": 224 },
   "actors": [
     { "name": "{theme}" },
     { "name": "置き場所" },
@@ -1457,7 +1459,7 @@ export const sourceYaml__onTimeShareGauge = `title: "定時に届いた割合"
 type: chart
 shape: gauge
 figureCard: {"label":"半円","note":"目標 80%"}
-chartGaugeValue: {"max":100,"current":78,"target":80,"previous":72,"previousLabel":"先月"}
+chartGaugeValue: {"max":100,"current":"{on_time}","target":80,"previous":72,"previousLabel":"先月"}
 
 actors:
   - 定時に届いた: "{on_time}"
@@ -1470,7 +1472,7 @@ states:
 animation:
   - step: "先月" 1.2s
     draw: gauge
-    description: "先月は 100 件のうち 72 件が定時に届いた。"
+    description: "先月の定時率は 72%。 比較元も 72% なので、先月より 0。"
   - step: "今月" 1.2s
     tween:
       on_time: 72 -> 78
@@ -1483,7 +1485,7 @@ export const sourceJson__onTimeShareGauge = `{
   "type": "chart",
   "shape": "gauge",
   "figureCard": { "label": "半円", "note": "目標 80%" },
-  "chartGaugeValue": { "max": 100, "current": 78, "target": 80, "previous": 72, "previousLabel": "先月" },
+  "chartGaugeValue": { "max": 100, "current": "{on_time}", "target": 80, "previous": 72, "previousLabel": "先月" },
   "actors": [
     { "name": "定時に届いた", "subtitle": "{on_time}" },
     { "name": "遅れた", "subtitle": "{late}" }
@@ -1495,7 +1497,7 @@ export const sourceJson__onTimeShareGauge = `{
       "step": "先月",
       "duration": 1.2,
       "draw": "gauge",
-      "description": "先月は 100 件のうち 72 件が定時に届いた。"
+      "description": "先月の定時率は 72%。 比較元も 72% なので、先月より 0。"
     },
     {
       "step": "今月",
@@ -1512,10 +1514,11 @@ export const sourceJson__onTimeShareGauge = `{
 export const onTimeShareGauge = textDslToDiagram(sourceYaml__onTimeShareGauge);
 
 // ------------------------------------------------------------
-// 10b. 前の内訳を内側の輪に重ねる (`パターン` の切替で選ぶ、 #1722)
+// 10b. 固定の尺・内訳・前の内訳を `パターン` で見比べる (#1722 / #2854)
 //
-// `previous` を書くと、半円の内側に前の内訳の輪が 1 本入る (`cdl#767`)。
-// 書かない図では入らないので、**同じ見本の切替で両側を見せる**。
+// actor の `previous` を書くと、半円の内側に前の内訳の輪が入る (`cdl#767`)。
+// 主の固定尺は `chartGaugeValue.previous` の比較印を持つため、内訳だけの図を間に置き、
+// **比較印 1 本 / なし / 内訳の輪 2 本**を同じ見本の切替で見せる。
 //
 // **今の弧は内側へ寄らずに細くなる**。 前の輪を足すために外側の帯を分け合う形で、
 // 外周そのものは動かない = 切替を押しても図の大きさが変わらない。

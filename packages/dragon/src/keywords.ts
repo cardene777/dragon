@@ -203,6 +203,10 @@ const LEGEND_MARK_NAMES = {
   "numbered-circle": "番号の丸",
   station: "駅",
   arrow: "矢印",
+  "line-triangle-hollow": "白抜き三角の線",
+  "line-diamond-hollow": "白抜き菱形の線",
+  "line-diamond-solid": "塗った菱形の線",
+  "rounded-box": "角丸の囲い",
 } satisfies Record<LegendMark, string>;
 
 /** 凡例の印の日本語名を描画側の名前へ直す表。 */

@@ -977,8 +977,7 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     }
     const journeyAxis = cssRuleBodyContaining(cssText, [
       '[data-cdl-kind="journey-map"]',
-      '[data-cdl-role="journey-band"]',
-      "text:last-child",
+      '[data-cdl-role="journey-level-name"]',
     ]);
     expect(cssDeclaration(journeyAxis, "fill")).toBe("var(--theme-journey-axis-label)");
 

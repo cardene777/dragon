@@ -56,9 +56,12 @@ export function 欄に値を置く(層: 階層, key: string, v: unknown): Record
         mindForm: "outline",
         journeyForm: "rules",
         journeyLineForm: "straight",
+        sequenceActorForm: "box",
+        sequenceLabelForm: "kind",
+        sequenceReturnHead: "solid",
       };
       const value =
-        v === "a" && key in 閉じた語
+        (v === "a" || v === "storage") && key in 閉じた語
           ? 閉じた語[key]
           : key === "chartSlopePeriods" && Array.isArray(v) && v.length === 1
             ? ["a", "b"]
@@ -66,7 +69,14 @@ export function 欄に値を置く(層: 階層, key: string, v: unknown): Record
       return 図({ [key]: value });
     }
     case "actor": {
-      const value = v === "a" && key === "opportunityPosition" ? "below-point" : v;
+      const 閉じた語: Record<string, string> = {
+        opportunityPosition: "below-point",
+        kindForm: "icon",
+        icon: "terminal",
+        titleAlign: "center",
+        rowMarkForm: "tone",
+      };
+      const value = (v === "a" || v === "storage") && key in 閉じた語 ? 閉じた語[key] : v;
       return 図({ actors: [{ name: "A", kind: 箱の種類(key), [key]: value }, { name: "B" }] });
     }
     case "step":

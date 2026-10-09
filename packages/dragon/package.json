@@ -57,7 +57,7 @@
     "prepublishOnly": "pnpm run typecheck && pnpm run test && pnpm run build"
   },
   "dependencies": {
-    "@cardenelabs/cdl": "^0.128.0"
+    "@cardenelabs/cdl": "^0.130.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",

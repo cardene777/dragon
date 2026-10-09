@@ -30,6 +30,8 @@ const 頭 = `title: "t"\ntype: flow\n`;
  */
 const 見本の値: Record<string, string> = {
   kind: "service",
+  kindForm: "icon",
+  icon: "terminal",
   種類: "service",
   title: '"だい"',
   題: '"だい"',
@@ -40,6 +42,12 @@ const 見本の値: Record<string, string> = {
   color: "error",
   色: "error",
   rows: "[いち, に]",
+  emptyRowsNote: '"なし"',
+  titleAlign: "center",
+  rowRules: "true",
+  rowMarkForm: "tone",
+  nestIn: "B",
+  figureCard: '{"label":"図","note":"注"}',
   行: "[いち, に]",
   marks: "start",
   印: "start",

@@ -1,7 +1,13 @@
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { describe, expect, it } from "vitest";
 
-import { jsonToDiagram, textDslToDiagram } from "../src";
+import {
+  diagramJsonSchema,
+  jsonToDiagram,
+  parseTextDslV05,
+  textDslToDiagram,
+  validateDragonJson,
+} from "../src";
 
 type 図の節 = CdlDiagram["nodes"][number];
 
@@ -238,8 +244,14 @@ actors:
     }
   });
 
-  it("半円の固定の尺を YAML / JSON から渡す", () => {
-    const gauge = { max: 100, current: 78, target: 80, previous: 72, previousLabel: "先月" };
+  it("半円の固定の尺と段で動かす 3 欄を YAML / JSON から渡す", () => {
+    const gauge = {
+      max: 100,
+      current: "{on_time}",
+      target: "{target}",
+      previous: "{previous}",
+      previousLabel: "先月",
+    };
     const yaml = YAMLの節(`title: "T"
 type: chart
 shape: gauge
@@ -257,6 +269,56 @@ actors:
     for (const node of [yaml, json]) {
       expect(node.chartGaugeValue).toEqual(gauge);
       expect(node.chartData?.[0]?.tone).toBe("muted");
+    }
+  });
+
+  it("半円の current / target / previous は数か空でない字だけを受け、max は数だけを受ける", () => {
+    for (const key of ["current", "target", "previous"] as const) {
+      for (const invalid of [true, "   "]) {
+        const gauge = { max: 100, current: 78, [key]: invalid };
+        const yaml = parseTextDslV05(`title: "T"
+type: chart
+shape: gauge
+chartGaugeValue: ${JSON.stringify(gauge)}
+
+actors:
+  - A
+`);
+        expect(yaml.ok, `${key}=${JSON.stringify(invalid)} を YAML が受けた`).toBe(false);
+
+        const json = validateDragonJson({
+          title: "T",
+          type: "chart",
+          shape: "gauge",
+          chartGaugeValue: gauge,
+          actors: ["A"],
+          flow: [],
+        });
+        expect(json.ok, `${key}=${JSON.stringify(invalid)} を JSON が受けた`).toBe(false);
+      }
+    }
+
+    const stringMax = validateDragonJson({
+      title: "T",
+      type: "chart",
+      shape: "gauge",
+      chartGaugeValue: { max: "{max}", current: 78 },
+      actors: ["A"],
+      flow: [],
+    });
+    expect(stringMax.ok, "max が状態参照を受けた").toBe(false);
+  });
+
+  it("公開 JSON Schema も半円の 3 欄だけに数か空でない字を登録する", () => {
+    const chartGaugeValue = (
+      diagramJsonSchema.properties as Record<string, { properties?: Record<string, unknown> }>
+    ).chartGaugeValue?.properties;
+    expect(chartGaugeValue).toBeDefined();
+    expect(chartGaugeValue?.max).toEqual({ type: "number", exclusiveMinimum: 0 });
+    for (const key of ["current", "target", "previous"] as const) {
+      expect(chartGaugeValue?.[key]).toEqual({
+        anyOf: [{ type: "number" }, { type: "string", pattern: "\\S" }],
+      });
     }
   });
 });

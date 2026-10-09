@@ -3,7 +3,7 @@
  * docs/cdl/text-dsl-spec.md の文法を AST に変換した中間表現
  */
 
-import type { CdlDiagram, LegendMark, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlLegendItem, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
 import type { DslDiagramShape, DslDirection, DslOrder, DslTheme } from "./keywords";
 
@@ -207,7 +207,15 @@ export type DslDocument = {
    */
   figureSize?: { width: number; height: number };
   /** 図の下へ指定順に置く凡例。 */
-  legend?: { mark: LegendMark; text: string }[];
+  legend?: CdlLegendItem[];
+  /** 順序図の参加者を枠で囲む。 */
+  sequenceActorForm?: "box";
+  /** 順序図の段へ種類印と種類名を添える。 */
+  sequenceLabelForm?: "kind";
+  /** 順序図の返す言づてにも塗った三角の矢じりを使う。 */
+  sequenceReturnHead?: "solid";
+  /** 順序図の種類名の表示語。 */
+  sequenceKindLabels?: Partial<Record<"call" | "return" | "fire", string>>;
   /** 図の凡例の字の大きさ。 */
   legendFontSize?: number;
   /** 段の箱で、意匠ごとに描く見出しの寸法。 */
@@ -402,6 +410,22 @@ export type DslActor = {
   kindWritten?: boolean;
   /** v0.5+ inline option */
   subtitle?: string;
+  /** kind の意味を保ったまま共通の部品箱で描く。 */
+  kindForm?: "icon";
+  /** 共通の部品箱へ描く線画。 */
+  icon?: "person" | "box" | "database" | "lightning" | "cloud" | "terminal";
+  /** 行を持たない表の箱で行の代わりに描く注記。 */
+  emptyRowsNote?: string;
+  /** 表の箱の名前と小見出しを中央へ揃える。 */
+  titleAlign?: "center";
+  /** 表の箱の行の間に罫線を引く。 */
+  rowRules?: boolean;
+  /** 表の箱の行頭の印を色の段で分ける。 */
+  rowMarkForm?: "tone";
+  /** 表の箱を内側へ抱える親の表の箱の名前。 */
+  nestIn?: string;
+  /** 表または共通の部品箱の足。 */
+  figureCard?: NonNullable<CdlDiagram["nodes"][number]["figureCard"]>;
   /** 路線図の駅名を駅の上下どちらへ置くか。 */
   stationNamePosition?: "bottom";
   /** 時間軸の担当を札のどちらへ置くか。 */
@@ -430,7 +454,7 @@ export type DslActor = {
    * `entry` / `exit` / `do` / `internal`。 印の 2 軸 (形 × 塗り) は共通だが、その軸が
    * 何を指すかは種類ごとに違う。
    */
-  marks?: string[];
+  marks?: Array<string | { mark: string; tone?: "primary" | "muted" }>;
   /**
    * 箱の中に描く図形 (`shape:`、 #1374)。 水位や角度を状態で動かせる。
    *

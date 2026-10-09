@@ -42,6 +42,7 @@
  */
 
 import type {
+  CdlLegendItem,
   LegendMark,
   NodeKind,
   Tone,
@@ -162,6 +163,21 @@ export const EDGE_HEAD_VALUES: readonly string[] = EDGE_HEADS;
 /** 端の印の塗り方 (#1466)。 描画側の一覧から導く = 描画側が増やせば書ける */
 export const EDGE_HEAD_FILL_VALUES: readonly string[] = EDGE_HEAD_FILLS;
 
+/** cdl 0.130.0 の共通部品箱へ描ける線画。 */
+export const CDL_ICON_VALUES = ["person", "box", "database", "lightning", "cloud", "terminal"] as const satisfies readonly NonNullable<DslActor["icon"]>[];
+
+/** cdl 0.130.0 の表・部品箱と順序図が受ける閉じた値。 */
+export const KIND_FORM_VALUES = ["icon"] as const;
+export const TITLE_ALIGN_VALUES = ["center"] as const;
+export const ROW_MARK_FORM_VALUES = ["tone"] as const;
+export const ROW_MARK_TONE_VALUES = ["primary", "muted"] as const;
+export const SEQUENCE_ACTOR_FORM_VALUES = ["box"] as const;
+export const SEQUENCE_LABEL_FORM_VALUES = ["kind"] as const;
+export const SEQUENCE_RETURN_HEAD_VALUES = ["solid"] as const;
+export const SEQUENCE_KIND_LABEL_KEYS = ["call", "return", "fire"] as const;
+export const LEGEND_LINE_STYLE_VALUES = ["solid", "dotted"] as const;
+export const LEGEND_NOTE_ALIGN_VALUES = ["start", "end"] as const;
+
 /**
  * 辺の役目として書ける語 (#1559)。
  *
@@ -280,6 +296,10 @@ export const TOP_LEVEL_KEYS = [
   "journeyForm",
   "journeyLineForm",
   "journeyLabels",
+  "sequenceActorForm",
+  "sequenceLabelForm",
+  "sequenceReturnHead",
+  "sequenceKindLabels",
   "figureCard",
   "figureSize",
   /*
@@ -671,6 +691,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let journeyForm: DslDocument["journeyForm"];
   let journeyLineForm: DslDocument["journeyLineForm"];
   let journeyLabels: DslDocument["journeyLabels"];
+  let sequenceActorForm: DslDocument["sequenceActorForm"];
+  let sequenceLabelForm: DslDocument["sequenceLabelForm"];
+  let sequenceReturnHead: DslDocument["sequenceReturnHead"];
+  let sequenceKindLabels: DslDocument["sequenceKindLabels"];
   let figureCard: DslDocument["figureCard"];
   let figureSize: DslDocument["figureSize"];
   let aliasShape: DslShape | null = null;
@@ -697,7 +721,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let scrollsList: DslScrollTrigger[] | undefined = undefined;
   let scrollLines = new Map<string, number>();
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
-  const legend: { mark: LegendMark; text: string }[] = [];
+  const legend: CdlLegendItem[] = [];
   let legendFontSize: number | undefined;
   let stageHeaders: DslDocument["stageHeaders"];
 
@@ -1122,6 +1146,31 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const value = stripQuotes((head.value ?? "").trim());
       if ((CHART_STACKED_LEGEND_POSITION_VALUES as readonly string[]).includes(value)) chartStackedLegendPosition = value as typeof chartStackedLegendPosition;
       else errors.push({ line: line.no, message: `chartStackedLegendPosition が読めません: "${value}"`, hint: `使える値 = ${CHART_STACKED_LEGEND_POSITION_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (
+      head.key === "sequenceActorForm" || head.key === "sequenceLabelForm" ||
+      head.key === "sequenceReturnHead"
+    ) {
+      const value = stripQuotes((head.value ?? "").trim());
+      const values = head.key === "sequenceActorForm"
+        ? SEQUENCE_ACTOR_FORM_VALUES
+        : head.key === "sequenceLabelForm" ? SEQUENCE_LABEL_FORM_VALUES : SEQUENCE_RETURN_HEAD_VALUES;
+      if ((values as readonly string[]).includes(value)) {
+        if (head.key === "sequenceActorForm") sequenceActorForm = value as "box";
+        else if (head.key === "sequenceLabelForm") sequenceLabelForm = value as "kind";
+        else sequenceReturnHead = value as "solid";
+      } else errors.push({ line: line.no, message: `${head.key} が読めません: "${value}"`, hint: `使える値 = ${values.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "sequenceKindLabels") {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      const unknown = 図表の知らない項目を知らせる(value, SEQUENCE_KIND_LABEL_KEYS, head.key, line.no, errors);
+      if (!unknown && objectか(value) && Object.values(value).every((label) => typeof label === "string")) {
+        sequenceKindLabels = value;
+      } else if (value !== undefined && !unknown) errors.push({ line: line.no, message: "sequenceKindLabels の値の形が読めません" });
       i += 1;
       continue;
     }
@@ -1858,6 +1907,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(journeyForm !== undefined ? { journeyForm } : {}),
       ...(journeyLineForm !== undefined ? { journeyLineForm } : {}),
       ...(journeyLabels !== undefined ? { journeyLabels } : {}),
+      ...(sequenceActorForm !== undefined ? { sequenceActorForm } : {}),
+      ...(sequenceLabelForm !== undefined ? { sequenceLabelForm } : {}),
+      ...(sequenceReturnHead !== undefined ? { sequenceReturnHead } : {}),
+      ...(sequenceKindLabels !== undefined ? { sequenceKindLabels } : {}),
       ...(figureCard !== undefined ? { figureCard } : {}),
       ...(figureSize !== undefined ? { figureSize } : {}),
       ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
@@ -1912,13 +1965,14 @@ function matchTopHeader(trimmed: string): TopHeader | null {
   return { key: canonicalKey ?? lowerKey, value: value.length ? stripQuotes(value) : null };
 }
 
-const LEGEND_ITEM_KEYS = ["mark", "text", "印", "説明"] as const;
+const LEGEND_ITEM_KEYS = ["mark", "text", "tone", "lineStyle", "align", "lead", "印", "説明"] as const;
+const LEGEND_LINE_MARKS = ["line-triangle-hollow", "line-diamond-hollow", "line-diamond-solid"] as const;
 
 /** 凡例の 1 行を読み、描画側へ渡せる印と文字へ揃える。 */
 function parseLegendItem(
   line: Line,
   errors: DslError[],
-): { mark: LegendMark; text: string } | null {
+): CdlLegendItem | null {
   const match = line.trimmed.match(/^\{([\s\S]*)\}$/u);
   if (!match) {
     errors.push({
@@ -1951,10 +2005,10 @@ function parseLegendItem(
     fields.set(key, value);
   }
 
-  const markRaw = fields.get("mark") ?? fields.get("印") ?? "";
-  const markValue = stripQuotes(markRaw);
-  const mark = resolveLegendMark(markValue);
-  if (mark === null) {
+  const markRaw = fields.get("mark") ?? fields.get("印");
+  const markValue = markRaw === undefined ? undefined : stripQuotes(markRaw);
+  const mark = markValue === undefined ? undefined : resolveLegendMark(markValue);
+  if (markValue !== undefined && mark === null) {
     errors.push({
       line: line.no,
       message: `凡例の印が読めません: "${markValue}"`,
@@ -1982,7 +2036,45 @@ function parseLegendItem(
     unreadable = true;
   }
 
-  return unreadable || mark === null ? null : { mark, text };
+  const toneRaw = fields.get("tone");
+  const tone = toneRaw === undefined ? undefined : resolveTone(stripQuotes(toneRaw));
+  if (toneRaw !== undefined && tone === undefined) {
+    errors.push({ line: line.no, message: `凡例の tone が読めません: "${stripQuotes(toneRaw)}"`, hint: `使える値 = ${書ける色名().join(", ")}` });
+    unreadable = true;
+  }
+  const lineStyleRaw = fields.get("lineStyle");
+  const lineStyle = lineStyleRaw === undefined ? undefined : stripQuotes(lineStyleRaw);
+  if (lineStyle !== undefined && !(LEGEND_LINE_STYLE_VALUES as readonly string[]).includes(lineStyle)) {
+    errors.push({ line: line.no, message: `凡例の lineStyle が読めません: "${lineStyle}"`, hint: `使える値 = ${LEGEND_LINE_STYLE_VALUES.join(", ")}` });
+    unreadable = true;
+  }
+  const alignRaw = fields.get("align");
+  const align = alignRaw === undefined ? undefined : stripQuotes(alignRaw);
+  if (align !== undefined && !(LEGEND_NOTE_ALIGN_VALUES as readonly string[]).includes(align)) {
+    errors.push({ line: line.no, message: `凡例の align が読めません: "${align}"`, hint: `使える値 = ${LEGEND_NOTE_ALIGN_VALUES.join(", ")}` });
+    unreadable = true;
+  }
+  const lead = fields.get("lead") === undefined ? undefined : stripQuotes(fields.get("lead")!);
+  if (mark === undefined && (tone !== undefined || lineStyle !== undefined)) {
+    errors.push({ line: line.no, message: "印のない凡例に tone / lineStyle は書けません", hint: "注記には text / align / lead を使う" });
+    unreadable = true;
+  }
+  if (mark !== undefined && (align !== undefined || lead !== undefined)) {
+    errors.push({ line: line.no, message: "印を持つ凡例に align / lead は書けません", hint: "align / lead は印のない注記に使う" });
+    unreadable = true;
+  }
+  if (lineStyle !== undefined && (mark === undefined || mark === null || !(LEGEND_LINE_MARKS as readonly LegendMark[]).includes(mark))) {
+    errors.push({ line: line.no, message: "lineStyle は線端を持つ凡例の印にだけ書けます", hint: `使える印 = ${LEGEND_LINE_MARKS.join(", ")}` });
+    unreadable = true;
+  }
+  if (unreadable || mark === null) return null;
+  if (mark === undefined) return { text, ...(align === undefined ? {} : { align: align as "start" | "end" }), ...(lead === undefined ? {} : { lead }) };
+  return {
+    mark,
+    ...(tone === undefined ? {} : { tone }),
+    ...(lineStyle === undefined ? {} : { lineStyle }),
+    text,
+  } as CdlLegendItem;
 }
 
 /**
@@ -3265,6 +3357,7 @@ export const ACTOR_INLINE_VALUE_KINDS = {
   titleFontSize: "数",
   markGap: "数",
   milestone: "真偽",
+  rowRules: "真偽",
 } as const satisfies Record<string, 値の形>;
 
 /**
@@ -3282,6 +3375,7 @@ export const ACTOR_BLOCK_VALUE_KINDS = {
   titleFontSize: "数",
   markGap: "数",
   milestone: "真偽",
+  rowRules: "真偽",
 } as const satisfies Record<string, 値の形>;
 
 /** 矢印の中括弧に書ける、数と真偽の欄 (#1306) */
@@ -3467,6 +3561,56 @@ function splitInlineFields(inner: string): string[] {
   // 今まで通っていた書き方が黙って別の結果になる。 実測では見本 9832 件の中括弧のうち
   // 閉じない形は 0 件で、この経路は保険
   return 見た.閉じた ? 見た.parts : 引用符を見て割る(false).parts;
+}
+
+/** 行頭の印を、従来の語または色の段を持つ組として読む。 */
+function 行頭の印の並びとして読む(
+  raw: string,
+  line: number,
+  errors: DslError[],
+): DslActor["marks"] {
+  if (!raw.includes("{")) {
+    return raw
+      .replace(/^\[|\]$/g, "")
+      .split(/,(?![^[]*\])/)
+      .map((x) => 行頭の語へ読み替える(stripQuotes(x.trim())));
+  }
+  const value = JSONの欄を読む(raw, "marks", line, errors);
+  if (!Array.isArray(value)) {
+    errors.push({ line, message: "marks は並びで書きます" });
+    return undefined;
+  }
+  const out: NonNullable<DslActor["marks"]> = [];
+  value.forEach((item, index) => {
+    if (typeof item === "string") {
+      out.push(行頭の語へ読み替える(item));
+      return;
+    }
+    if (!objectか(item)) {
+      errors.push({ line, message: `marks[${index}] の値の形が読めません` });
+      return;
+    }
+    const 受ける項目 = ["mark", "tone"] as const;
+    const unknown = Object.keys(item).filter((key) => !(受ける項目 as readonly string[]).includes(key));
+    if (unknown.length > 0) {
+      for (const key of unknown) errors.push({ line, message: `marks[${index}] の項目名が読めません: "${key}"`, hint: `使える項目 = ${受ける項目.join(", ")}` });
+      return;
+    }
+    if (typeof item.mark !== "string") {
+      errors.push({ line, message: `marks[${index}].mark は文字で書きます` });
+      return;
+    }
+    if (item.tone !== undefined && !(ROW_MARK_TONE_VALUES as readonly unknown[]).includes(item.tone)) {
+      const shown = typeof item.tone === "string" ? item.tone : (JSON.stringify(item.tone) ?? typeof item.tone);
+      errors.push({ line, message: `marks[${index}].tone が読めません: "${shown}"`, hint: `使える値 = ${ROW_MARK_TONE_VALUES.join(", ")}` });
+      return;
+    }
+    out.push({
+      mark: 行頭の語へ読み替える(item.mark),
+      ...(item.tone === undefined ? {} : { tone: item.tone as "primary" | "muted" }),
+    });
+  });
+  return out;
 }
 
 /**
@@ -3678,6 +3822,48 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "補足":
         out.subtitle = stripQuotes(raw);
         break;
+      case "kindForm": {
+        const value = stripQuotes(raw);
+        if (value === "icon") out.kindForm = value;
+        else errors.push({ line: ln.no, message: `箱の kindForm が読めません: "${value}"`, hint: `使える値 = ${KIND_FORM_VALUES.join(", ")}` });
+        break;
+      }
+      case "icon": {
+        const value = stripQuotes(raw);
+        if ((CDL_ICON_VALUES as readonly string[]).includes(value)) out.icon = value as NonNullable<DslActor["icon"]>;
+        else errors.push({ line: ln.no, message: `箱の icon が読めません: "${value}"`, hint: `使える値 = ${CDL_ICON_VALUES.join(", ")}` });
+        break;
+      }
+      case "emptyRowsNote":
+        out.emptyRowsNote = stripQuotes(raw);
+        break;
+      case "titleAlign": {
+        const value = stripQuotes(raw);
+        if (value === "center") out.titleAlign = value;
+        else errors.push({ line: ln.no, message: `箱の titleAlign が読めません: "${value}"`, hint: `使える値 = ${TITLE_ALIGN_VALUES.join(", ")}` });
+        break;
+      }
+      case "rowRules": {
+        const read = 表で読む(ACTOR_BLOCK_VALUE_KINDS, { rowRules: raw }, "箱の ", ln.no, errors);
+        out.rowRules = read.rowRules;
+        break;
+      }
+      case "rowMarkForm": {
+        const value = stripQuotes(raw);
+        if (value === "tone") out.rowMarkForm = value;
+        else errors.push({ line: ln.no, message: `箱の rowMarkForm が読めません: "${value}"`, hint: `使える値 = ${ROW_MARK_FORM_VALUES.join(", ")}` });
+        break;
+      }
+      case "nestIn":
+        out.nestIn = stripQuotes(raw);
+        break;
+      case "figureCard": {
+        const value = JSONの欄を読む(raw, "figureCard", ln.no, errors);
+        const unknown = 図表の知らない項目を知らせる(value, ["label", "note"] as const, "figureCard", ln.no, errors);
+        if (!unknown && objectか(value) && typeof value.label === "string" && value.label.trim() !== "" && (value.note === undefined || typeof value.note === "string")) out.figureCard = value as NonNullable<DslActor["figureCard"]>;
+        else if (!unknown && value !== undefined) errors.push({ line: ln.no, message: "figureCard の値の形が読めません" });
+        break;
+      }
       case "stationNamePosition":
         if (stripQuotes(raw) === "bottom") out.stationNamePosition = "bottom";
         break;
@@ -3784,10 +3970,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
        */
       case "marks":
       case "印":
-        out.marks = raw
-          .replace(/^\[|\]$/g, "")
-          .split(/,(?![^[]*\])/)
-          .map((x) => 行頭の語へ読み替える(stripQuotes(x.trim())));
+        out.marks = 行頭の印の並びとして読む(raw, ln.no, errors);
         break;
       case "位置":
       case "pos": {
@@ -3981,6 +4164,14 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "kind",
   "種類",
   "subtitle",
+  "kindForm",
+  "icon",
+  "emptyRowsNote",
+  "titleAlign",
+  "rowRules",
+  "rowMarkForm",
+  "nestIn",
+  "figureCard",
   "stationNamePosition",
   "subtitlePlacement",
   "titleFontSize",
@@ -4238,6 +4429,14 @@ function collectAnimationSteps(
 export const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "kind",
   "subtitle",
+  "kindForm",
+  "icon",
+  "emptyRowsNote",
+  "titleAlign",
+  "rowRules",
+  "rowMarkForm",
+  "nestIn",
+  "figureCard",
   "eyebrow",
   "value",
   "previous",
@@ -4370,6 +4569,14 @@ function reportScaleOnNonPart(
 const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   "kind",
   "subtitle",
+  "kindForm",
+  "icon",
+  "emptyRowsNote",
+  "titleAlign",
+  "rowRules",
+  "rowMarkForm",
+  "nestIn",
+  "figureCard",
   "stationNamePosition",
   "subtitlePlacement",
   "titleFontSize",
@@ -4763,6 +4970,23 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
         hint: `使える値 = ${JOURNEY_OPPORTUNITY_POSITION_VALUES.join(", ")}`,
       });
     }
+    const 閉じた箱の値 = <T extends string>(
+      key: string,
+      values: readonly T[],
+    ): T | undefined => {
+      const value = opts[key];
+      if (value === undefined || isPart) return undefined;
+      if ((values as readonly string[]).includes(value)) return value as T;
+      errors.push({ line: line.no, message: `箱の ${key} が読めません: "${value}"`, hint: `使える値 = ${values.join(", ")}` });
+      return undefined;
+    };
+    let actorFigureCard: DslActor["figureCard"];
+    if (!isPart && opts.figureCard !== undefined) {
+      const value = JSONの欄を読む(opts.figureCard, "figureCard", line.no, errors);
+      const unknown = 図表の知らない項目を知らせる(value, ["label", "note"] as const, "figureCard", line.no, errors);
+      if (!unknown && objectか(value) && typeof value.label === "string" && value.label.trim() !== "" && (value.note === undefined || typeof value.note === "string")) actorFigureCard = value as NonNullable<DslActor["figureCard"]>;
+      else if (!unknown && value !== undefined) errors.push({ line: line.no, message: "figureCard の値の形が読めません" });
+    }
     // `color` は縦に並べた形と JSON と同じ振り分けを通す (#1969)。 色の名前は箱の色、`#` で
     // 始まる値は色番号になる。
     //
@@ -4783,6 +5007,13 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // 「書かなかった」 と同じ扱いにする (#1058)
       kindWritten: kindRaw !== "" && !isPart,
       subtitle: opts.subtitle,
+      kindForm: 閉じた箱の値("kindForm", KIND_FORM_VALUES),
+      icon: 閉じた箱の値("icon", CDL_ICON_VALUES),
+      emptyRowsNote: isPart ? undefined : opts.emptyRowsNote,
+      titleAlign: 閉じた箱の値("titleAlign", TITLE_ALIGN_VALUES),
+      rowMarkForm: 閉じた箱の値("rowMarkForm", ROW_MARK_FORM_VALUES),
+      nestIn: isPart ? undefined : opts.nestIn,
+      figureCard: actorFigureCard,
       stationNamePosition:
         opts.stationNamePosition === "bottom" ? opts.stationNamePosition : undefined,
       subtitlePlacement:
@@ -4817,10 +5048,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // 古い語の読み替えは縦に並べた形と同じ関数を通す (#2782) = 片方だけ通すと、
       // 中括弧で書いた `pk` が印を持たないまま通る
       marks: opts.marks
-        ? opts.marks
-            .replace(/^\[|\]$/g, "")
-            .split(/,(?![^[]*\])/)
-            .map((x) => 行頭の語へ読み替える(stripQuotes(x.trim())))
+        ? 行頭の印の並びとして読む(opts.marks, line.no, errors)
         : undefined,
       lane: opts.lane,
       // 箱の中に描く図形 (#1374)。 パーツでは状態の上書きとして意味を持つため横取りしない
@@ -5367,9 +5595,9 @@ function chartGaugeValueの形(
   return (
     finite(value.max) &&
     value.max > 0 &&
-    finite(value.current) &&
-    (value.target === undefined || finite(value.target)) &&
-    (value.previous === undefined || finite(value.previous)) &&
+    図表の数か(value.current) &&
+    (value.target === undefined || 図表の数か(value.target)) &&
+    (value.previous === undefined || 図表の数か(value.previous)) &&
     (value.previousLabel === undefined || typeof value.previousLabel === "string")
   );
 }

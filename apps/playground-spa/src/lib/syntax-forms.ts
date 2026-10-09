@@ -145,6 +145,16 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "表と部品箱の見せ方",
+    titleEn: "Table and component boxes",
+    sample: { slot: "actors", type: "record", flow: [] },
+    lines: [
+      { code: '  - 主表: { kind: storage, emptyRowsNote: "まだありません", emphasis: primary, titleAlign: center, rowRules: true, rowMarkForm: tone, figureCard: {"label":"表","note":"主"}, rows: [id, 状態], marks: [{"mark":"鍵","tone":"primary"},{"mark":"","tone":"muted"}] }', note: "表の題・罫・行頭印・足", noteEn: "Table title, rules, row marks, and footer" },
+      { code: "  - 内表: { kind: storage, nestIn: 主表 }", note: "親の表の内側に入れる", noteEn: "Nests a table inside its parent" },
+      { code: '  - 受付: { kind: service, kindForm: icon, icon: terminal, figureCard: {"label":"部品","note":"利用者"} }', note: "共通枠の部品箱と線画と足", noteEn: "Shared component frame, icon, and footer" },
+    ],
+  },
+  {
     title: "部品",
     titleEn: "Parts",
     // 自分へ戻る矢印は描けない (#1227)。 例文が使うと、記法一覧が描けない形を教えることになる
@@ -169,6 +179,7 @@ export const FORMS: Section[] = [
       { code: '  - Client -> API: "要求"', note: "矢印と説明", noteEn: "An arrow and its label" },
       { code: '  - API -> DB: "検索" 成功', note: "矢印の色", noteEn: "Arrow color" },
       { code: '  - DB -> API: "結果" 成功 dotted-flow', note: "色と線の種類", noteEn: "Color and line style" },
+      { code: '  - Client -> DB: "根元を点にする" { tailHead: dot }', note: "線の根元を点にする", noteEn: "Uses a dot at the tail of the line" },
     ],
   },
   {
@@ -433,6 +444,24 @@ export const FORMS: Section[] = [
     lines: [
       { code: '  - { mark: diamond, text: "分かれ道" }', note: "印と説明", noteEn: "A mark and its text" },
       { code: '  - { 印: 塗った丸, 説明: "始まり" }', note: "和名でも書ける", noteEn: "Japanese field and mark names work too" },
+      { code: '  - { mark: line-diamond-hollow, text: "参照", tone: accent, lineStyle: dotted }', note: "線端の印・色・線種", noteEn: "Line-end mark, tone, and line style" },
+      { code: '  - { text: "注: 点線は参照", align: end, lead: "注:" }', note: "印のない注記・位置・太字の導入句", noteEn: "A note without a mark, its alignment, and bold lead" },
+    ],
+  },
+  {
+    title: "順序図の見せ方",
+    titleEn: "Sequence presentation",
+    sample: {
+      slot: "root",
+      type: "sequence",
+      actors: ["  - 荷主", "  - 営業所"],
+      flow: ['  - 荷主 -> 営業所: "依頼" { kind: call }'],
+    },
+    lines: [
+      { code: "sequenceActorForm: box", note: "参加者を枠で囲む", noteEn: "Frames participants" },
+      { code: "sequenceLabelForm: kind", note: "段に種類印と種類名を添える", noteEn: "Adds kind marks and labels to messages" },
+      { code: "sequenceReturnHead: solid", note: "返す矢じりも塗る", noteEn: "Uses a solid arrowhead for returns" },
+      { code: 'sequenceKindLabels: {"call":"呼ぶ","return":"返す","fire":"投げる"}', note: "種類名を言い換える", noteEn: "Renames message kinds" },
     ],
   },
   {
@@ -878,7 +907,7 @@ export const FORMS: Section[] = [
     titleEn: "Fixed gauge value",
     sample: { slot: "root", type: "chart", shape: "gauge", actors: ['  - 定時: "78"', '  - 遅れ: "22"'] },
     lines: [
-      { code: 'chartGaugeValue: { "max": 100, "current": 78, "target": 80, "previous": 72, "previousLabel": "先月" }', note: "現在・目標・前回の値", noteEn: "Current, target, and previous values" },
+      { code: 'chartGaugeValue: { "max": 100, "current": "{rate}", "target": 80, "previous": 72, "previousLabel": "先月" }', note: "現在・目標・前回の値。3 欄は段の状態も読める", noteEn: "Current, target, and previous values; all three can read phase state" },
     ],
   },
   {
@@ -1045,8 +1074,9 @@ export const FORMS: Section[] = [
       { code: "lanes:", note: "縦列の位置と幅を決める", noteEn: "Sets each lane's position and width" },
       // **図が作る縦列の id を書く**。 合わない id を書くと箱の入らない縦列が増えるだけで、
       // 書いた幅も見出しも元の縦列に届かない (#1241 で知らせが出るようにした)。
-      // `type: topology` は箱を全て `main` に入れる
-      { code: '  main: { x: 0, width: 360, label: "表" }', note: "id: { x, width, label }", noteEn: "id: { x, width, label }" },
+      // `type: topology` は箱を全て `main` に入れる。cdl 0.130.0 から通常の縦列も
+      // subtitle を描くため、路線図だけの欄として扱わない (#2854)。
+      { code: '  main: { x: 0, width: 360, label: "配送システム", subtitle: "中の部品" }', note: "id: { x, width, label, subtitle }", noteEn: "id: { x, width, label, subtitle }" },
       { code: "groups:", note: "縦列をまとめて囲む", noteEn: "Wraps several lanes together" },
       { code: '  aws: { label: "AWS", lanes: [main] }', note: "id: { label, lanes: [...] }", noteEn: "id: { label, lanes: [...] }" },
     ],

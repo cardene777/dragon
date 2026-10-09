@@ -54,6 +54,17 @@ import {
   JOURNEY_LINE_FORM_VALUES,
   JOURNEY_OPPORTUNITY_POSITION_VALUES,
   JOURNEY_LABEL_KEYS,
+  CDL_ICON_VALUES,
+  KIND_FORM_VALUES,
+  TITLE_ALIGN_VALUES,
+  LEGEND_LINE_STYLE_VALUES,
+  LEGEND_NOTE_ALIGN_VALUES,
+  ROW_MARK_FORM_VALUES,
+  ROW_MARK_TONE_VALUES,
+  SEQUENCE_ACTOR_FORM_VALUES,
+  SEQUENCE_LABEL_FORM_VALUES,
+  SEQUENCE_RETURN_HEAD_VALUES,
+  SEQUENCE_KIND_LABEL_KEYS,
   type 図形の定義,
 } from "./v05/parser";
 // 図の意匠 (#1553 / #2790)。 記法の読み手と同じ解決を通す = 別名の受け方が
@@ -78,6 +89,7 @@ import type { DslDiagramShape, DslShape, DslTheme } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
   CdlDiagram,
+  CdlLegendItem,
   NodeKind,
   Tone,
   EdgeStyle,
@@ -171,6 +183,10 @@ export interface DragonJson {
   journeyForm?: DslDocument["journeyForm"];
   journeyLineForm?: DslDocument["journeyLineForm"];
   journeyLabels?: DslDocument["journeyLabels"];
+  sequenceActorForm?: DslDocument["sequenceActorForm"];
+  sequenceLabelForm?: DslDocument["sequenceLabelForm"];
+  sequenceReturnHead?: DslDocument["sequenceReturnHead"];
+  sequenceKindLabels?: DslDocument["sequenceKindLabels"];
   figureCard?: DslDocument["figureCard"];
   figureSize?: DslDocument["figureSize"];
   /**
@@ -313,7 +329,7 @@ export interface DragonJson {
   /** `theme` の別名。 両方書いた時は `theme` を使う。 */
   palette?: string;
   /** 図の下へ置く凡例。 印は記法と同じ英語名または和名で書く。 */
-  legend?: { mark: string; text: string }[];
+  legend?: CdlLegendItem[];
 }
 
 /**
@@ -371,6 +387,14 @@ export interface JsonActor {
    */
   kind?: NodeKind | (string & {});
   subtitle?: string;
+  kindForm?: "icon";
+  icon?: DslActor["icon"];
+  emptyRowsNote?: string;
+  titleAlign?: "center";
+  rowRules?: boolean;
+  rowMarkForm?: "tone";
+  nestIn?: string;
+  figureCard?: DslActor["figureCard"];
   stationNamePosition?: "bottom";
   subtitlePlacement?: "right";
   titleFontSize?: number;
@@ -486,7 +510,7 @@ export interface JsonActor {
    */
   phase?: boolean;
   /** 行頭の印 (#1466)。 行と対で読む。 語の意味は図の種類が決める */
-  marks?: string[];
+  marks?: Array<string | { mark: string; tone?: "primary" | "muted" }>;
 }
 
 /** 2 軸で仕分ける図の軸の名前 (#1294)。 記法の `axes:` と同じ形 */
@@ -704,6 +728,10 @@ export const ACCEPTED_KEYS = {
     "journeyForm",
     "journeyLineForm",
     "journeyLabels",
+    "sequenceActorForm",
+    "sequenceLabelForm",
+    "sequenceReturnHead",
+    "sequenceKindLabels",
     "figureCard",
     "figureSize",
     "eyebrow",
@@ -749,6 +777,14 @@ export const ACCEPTED_KEYS = {
     "name",
     "kind",
     "subtitle",
+    "kindForm",
+    "icon",
+    "emptyRowsNote",
+    "titleAlign",
+    "rowRules",
+    "rowMarkForm",
+    "nestIn",
+    "figureCard",
     "stationNamePosition",
     "subtitlePlacement",
     "titleFontSize",
@@ -943,6 +979,10 @@ export const 欄の型表 = {
     journeyForm: "文字列",
     journeyLineForm: "文字列",
     journeyLabels: "object",
+    sequenceActorForm: "非空の文字列",
+    sequenceLabelForm: "非空の文字列",
+    sequenceReturnHead: "非空の文字列",
+    sequenceKindLabels: "object",
     figureCard: "object",
     figureSize: "object",
     eyebrow: "文字列",
@@ -988,6 +1028,14 @@ export const 欄の型表 = {
     name: "必須の非空文字列",
     kind: "非空の文字列",
     subtitle: "文字列",
+    kindForm: "非空の文字列",
+    icon: "非空の文字列",
+    emptyRowsNote: "文字列",
+    titleAlign: "非空の文字列",
+    rowRules: "真偽",
+    rowMarkForm: "非空の文字列",
+    nestIn: "非空の文字列",
+    figureCard: "object",
     stationNamePosition: "非空の文字列",
     subtitlePlacement: "非空の文字列",
     titleFontSize: "数",
@@ -1033,7 +1081,7 @@ export const 欄の型表 = {
     renderOffsetX: "数か文字列",
     renderOffsetY: "数か文字列",
     // 行頭の印 (#1466)
-    marks: "文字列の並び",
+    marks: "並び",
     // 相対で置く指定 (#2039)。 中身の形は `validateRelativePos` が見る
     posRel: "object",
     // 見本が持つ段を使うか (#2125)
@@ -1184,6 +1232,14 @@ export const 見本にしか効かない欄 = [
  */
 export const 見本に効かない欄 = [
   "tone",
+  "kindForm",
+  "icon",
+  "emptyRowsNote",
+  "titleAlign",
+  "rowRules",
+  "rowMarkForm",
+  "nestIn",
+  "figureCard",
   "at",
   "owner",
   "end",
@@ -1817,7 +1873,8 @@ function validateBands(v: unknown, errors: JsonDslError[]): void {
   });
 }
 
-const LEGEND_KEYS = ["mark", "text"] as const;
+const LEGEND_KEYS = ["mark", "text", "tone", "lineStyle", "align", "lead"] as const;
+const LEGEND_LINE_MARKS = ["line-triangle-hollow", "line-diamond-hollow", "line-diamond-solid"] as const;
 
 /** JSON の凡例を、外側の並びから各項目の必須値まで検査する。 */
 function validateLegend(v: unknown, errors: JsonDslError[]): void {
@@ -1841,11 +1898,24 @@ function validateLegend(v: unknown, errors: JsonDslError[]): void {
         hint: `使える項目 = ${LEGEND_KEYS.join(", ")}`,
       });
     }
-    if (typeof o.mark !== "string" || resolveLegendMark(o.mark) === null) {
+    const mark = typeof o.mark === "string" ? resolveLegendMark(o.mark) : undefined;
+    if (o.mark !== undefined && (typeof o.mark !== "string" || mark === null)) {
       errors.push({ path: `${path}.mark`, message: "legend mark is not recognized" });
     }
     if (typeof o.text !== "string" || o.text.trim().length === 0) {
       errors.push({ path: `${path}.text`, message: "legend text must be a non-empty string" });
+    }
+    if (o.mark === undefined) {
+      if (o.tone !== undefined || o.lineStyle !== undefined) errors.push({ path, message: "legend note cannot have tone or lineStyle" });
+      if (o.align !== undefined && !(LEGEND_NOTE_ALIGN_VALUES as readonly unknown[]).includes(o.align)) errors.push({ path: `${path}.align`, message: `align must be ${LEGEND_NOTE_ALIGN_VALUES.join(" or ")}` });
+      if (o.lead !== undefined && typeof o.lead !== "string") errors.push({ path: `${path}.lead`, message: "lead must be a string" });
+    } else {
+      if (o.align !== undefined || o.lead !== undefined) errors.push({ path, message: "marked legend item cannot have align or lead" });
+      if (o.tone !== undefined && (typeof o.tone !== "string" || resolveTone(o.tone) === undefined)) errors.push({ path: `${path}.tone`, message: "tone is not recognized" });
+      if (o.lineStyle !== undefined) {
+        if (!(LEGEND_LINE_STYLE_VALUES as readonly unknown[]).includes(o.lineStyle)) errors.push({ path: `${path}.lineStyle`, message: `lineStyle must be ${LEGEND_LINE_STYLE_VALUES.join(" or ")}` });
+        if (mark === undefined || mark === null || !(LEGEND_LINE_MARKS as readonly string[]).includes(mark)) errors.push({ path: `${path}.lineStyle`, message: "lineStyle requires a line-end legend mark" });
+      }
     }
   });
 }
@@ -2430,6 +2500,9 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   enumField("mindForm", MIND_FORM_VALUES);
   enumField("journeyForm", JOURNEY_FORM_VALUES);
   enumField("journeyLineForm", JOURNEY_LINE_FORM_VALUES);
+  enumField("sequenceActorForm", SEQUENCE_ACTOR_FORM_VALUES);
+  enumField("sequenceLabelForm", SEQUENCE_LABEL_FORM_VALUES);
+  enumField("sequenceReturnHead", SEQUENCE_RETURN_HEAD_VALUES);
 
   const closedObject = (
     name: "journeyLabels" | "figureCard" | "figureSize",
@@ -2452,6 +2525,17 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
     for (const key of JOURNEY_LABEL_KEYS) {
       if (typeof labels[key] !== "string" || labels[key].trim() === "") {
         errors.push({ path: `$.journeyLabels.${key}`, message: `${key} must be a non-empty string` });
+      }
+    }
+  }
+  if (j.sequenceKindLabels !== undefined) {
+    if (!j.sequenceKindLabels || typeof j.sequenceKindLabels !== "object" || Array.isArray(j.sequenceKindLabels)) {
+      errors.push({ path: "$.sequenceKindLabels", message: "sequenceKindLabels must be an object" });
+    } else {
+      const labels = j.sequenceKindLabels as Record<string, unknown>;
+      for (const [key, value] of Object.entries(labels)) {
+        if (!(SEQUENCE_KIND_LABEL_KEYS as readonly string[]).includes(key)) errors.push({ path: `$.sequenceKindLabels.${key}`, message: `unknown key "${key}"` });
+        else if (typeof value !== "string") errors.push({ path: `$.sequenceKindLabels.${key}`, message: `${key} must be a string` });
       }
     }
   }
@@ -2565,9 +2649,9 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
       errors.push({ path: `$.chartGaugeValue.${key}`, message: `unknown key "${key}"` });
     const finite = (entry: unknown): boolean => typeof entry === "number" && Number.isFinite(entry);
     if (!finite(value.max) || Number(value.max) <= 0) errors.push({ path: "$.chartGaugeValue.max", message: "max must be a positive finite number" });
-    if (!finite(value.current)) errors.push({ path: "$.chartGaugeValue.current", message: "current must be a finite number" });
-    for (const key of ["target", "previous"] as const) if (value[key] !== undefined && !finite(value[key]))
-      errors.push({ path: `$.chartGaugeValue.${key}`, message: `${key} must be a finite number` });
+    if (!boundNumber(value.current)) errors.push({ path: "$.chartGaugeValue.current", message: "current must be a finite number or non-empty string" });
+    for (const key of ["target", "previous"] as const) if (value[key] !== undefined && !boundNumber(value[key]))
+      errors.push({ path: `$.chartGaugeValue.${key}`, message: `${key} must be a finite number or non-empty string` });
     if (value.previousLabel !== undefined && typeof value.previousLabel !== "string")
       errors.push({ path: "$.chartGaugeValue.previousLabel", message: "previousLabel must be a string" });
   }
@@ -2923,6 +3007,41 @@ function validateJson(
       // 値そのものの型は表が見る (#1304)。 `kind` は見本 (parts) の名前も受けるため
       // 非空の文字列までしか縛らない (CAR-1657 の unified syntax)
       表で検査(ao, "actor", `$.actors[${i}]`, "actor", errors);
+      const actorEnum = (key: string, allowed: readonly string[]): void => {
+        const value = ao[key];
+        if (value === undefined || typeof value !== "string") return;
+        if (!allowed.includes(value)) errors.push({ path: `$.actors[${i}].${key}`, message: `${key} must be one of: ${allowed.join(", ")}` });
+      };
+      actorEnum("kindForm", KIND_FORM_VALUES);
+      actorEnum("icon", CDL_ICON_VALUES);
+      actorEnum("titleAlign", TITLE_ALIGN_VALUES);
+      actorEnum("rowMarkForm", ROW_MARK_FORM_VALUES);
+      if (ao.figureCard !== undefined) {
+        const path = `$.actors[${i}].figureCard`;
+        if (!ao.figureCard || typeof ao.figureCard !== "object" || Array.isArray(ao.figureCard)) errors.push({ path, message: "figureCard must be an object" });
+        else {
+          const card = ao.figureCard as Record<string, unknown>;
+          for (const key of Object.keys(card)) if (key !== "label" && key !== "note") errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+          if (typeof card.label !== "string" || card.label.trim() === "") errors.push({ path: `${path}.label`, message: "label must be a non-empty string" });
+          if (card.note !== undefined && typeof card.note !== "string") errors.push({ path: `${path}.note`, message: "note must be a string" });
+        }
+      }
+      if (ao.marks !== undefined && !Array.isArray(ao.marks)) {
+        errors.push({ path: `$.actors[${i}].marks`, message: "marks must be an array" });
+      } else if (Array.isArray(ao.marks)) {
+        ao.marks.forEach((mark, markIndex) => {
+          if (typeof mark === "string") return;
+          const path = `$.actors[${i}].marks[${markIndex}]`;
+          if (!mark || typeof mark !== "object" || Array.isArray(mark)) {
+            errors.push({ path, message: "mark must be a string or object" });
+            return;
+          }
+          const entry = mark as Record<string, unknown>;
+          for (const key of Object.keys(entry)) if (key !== "mark" && key !== "tone") errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+          if (typeof entry.mark !== "string") errors.push({ path: `${path}.mark`, message: "mark must be a string" });
+          if (entry.tone !== undefined && !(ROW_MARK_TONE_VALUES as readonly unknown[]).includes(entry.tone)) errors.push({ path: `${path}.tone`, message: `tone must be one of: ${ROW_MARK_TONE_VALUES.join(", ")}` });
+        });
+      }
       if (
         typeof ao.opportunityPosition === "string" &&
         !(JOURNEY_OPPORTUNITY_POSITION_VALUES as readonly string[]).includes(ao.opportunityPosition)
@@ -3287,6 +3406,14 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       // 「書かなかった」 と同じ扱いにする (#1058)
       kindWritten: a.kind !== undefined && !isPart,
       subtitle: a.subtitle,
+      kindForm: isPart ? undefined : a.kindForm,
+      icon: isPart ? undefined : a.icon,
+      emptyRowsNote: isPart ? undefined : a.emptyRowsNote,
+      titleAlign: isPart ? undefined : a.titleAlign,
+      rowRules: isPart ? undefined : a.rowRules,
+      rowMarkForm: isPart ? undefined : a.rowMarkForm,
+      nestIn: isPart ? undefined : a.nestIn,
+      figureCard: isPart ? undefined : a.figureCard,
       stationNamePosition: a.stationNamePosition,
       subtitlePlacement: a.subtitlePlacement,
       titleFontSize: a.titleFontSize,
@@ -3296,7 +3423,11 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       previous: a.previous,
       rows: a.rows,
       // 行頭の印 (#1466)。 行と対で読む。 古い語は記法と同じ関数で読み替える (#2782)
-      marks: a.marks?.map((m) => 行頭の語へ読み替える(m)),
+      marks: a.marks?.map((m) =>
+        typeof m === "string"
+          ? 行頭の語へ読み替える(m)
+          : { mark: 行頭の語へ読み替える(m.mark), ...(m.tone === undefined ? {} : { tone: m.tone }) },
+      ),
       stage: isPart ? undefined : a.stage,
       lane: a.lane,
       stack: a.stack,
@@ -3360,9 +3491,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
   const 選んだ意匠 = 意匠 ?? 別名の意匠;
   const 並び順 = json.order === undefined ? null : resolveOrder(json.order);
   const 形 = json.shape === undefined ? null : resolveDiagramShape(json.shape);
-  const legend = json.legend?.flatMap(({ mark: rawMark, text }) => {
-    const mark = resolveLegendMark(rawMark);
-    return mark === null ? [] : [{ mark, text }];
+  const legend = json.legend?.flatMap((item) => {
+    if (item.mark === undefined) return [item];
+    const mark = resolveLegendMark(item.mark);
+    return mark === null ? [] : [{ ...item, mark } as CdlLegendItem];
   });
 
   const flow: DslStep[] = json.flow.map((s, i) => ({
@@ -3541,6 +3673,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.journeyForm !== undefined ? { journeyForm: json.journeyForm } : {}),
     ...(json.journeyLineForm !== undefined ? { journeyLineForm: json.journeyLineForm } : {}),
     ...(json.journeyLabels !== undefined ? { journeyLabels: json.journeyLabels } : {}),
+    ...(json.sequenceActorForm !== undefined ? { sequenceActorForm: json.sequenceActorForm } : {}),
+    ...(json.sequenceLabelForm !== undefined ? { sequenceLabelForm: json.sequenceLabelForm } : {}),
+    ...(json.sequenceReturnHead !== undefined ? { sequenceReturnHead: json.sequenceReturnHead } : {}),
+    ...(json.sequenceKindLabels !== undefined ? { sequenceKindLabels: json.sequenceKindLabels } : {}),
     ...(json.figureCard !== undefined ? { figureCard: json.figureCard } : {}),
     ...(json.figureSize !== undefined ? { figureSize: json.figureSize } : {}),
     ...(別名?.order !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),

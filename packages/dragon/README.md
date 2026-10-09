@@ -93,7 +93,7 @@ flow:
 | `chartStackedPeriods` | 内訳の帯の期間と系列ごとの値 (`{ label, values }`) |
 | `chartStackedRateId` | 内訳の帯の右に割合を出す項目の id |
 | `chartStackedLegendPosition` | 内訳の帯の凡例の位置 (`top` / `bottom`) |
-| `chartGaugeValue` | 半円の固定尺 (`{ max, current, target?, previous?, previousLabel? }`) |
+| `chartGaugeValue` | 半円の固定尺 (`{ max, current, target?, previous?, previousLabel? }`)。`current`・`target`・`previous` は `{名前}` で段の状態を読める。`max` は数だけ |
 | `chartWaffleLegendPosition` | 升目の一覧の位置 (`left` / `right`) |
 | `funnelForm` | 漏斗の形 (`trapezoid` / `proportional-bars`) |
 | `funnelRate` | 漏斗の率。`drop` は前段から減った割合、`conversion` は前段から残った割合、`none` は率を描かない |
@@ -105,10 +105,14 @@ flow:
 | `journeyForm` | ジャーニーの段の見せ方 (`bands` / `rules`) |
 | `journeyLineForm` | ジャーニーの点を結ぶ線 (`curve` / `straight`) |
 | `journeyLabels` | ジャーニーの 5 段の名前 (`{ delighted, happy, neutral, frustrated, angry }`) |
+| `sequenceActorForm` | `box` で順序図の参加者を枠で囲む |
+| `sequenceLabelForm` | `kind` で順序図の段に種類印と種類名を添える |
+| `sequenceReturnHead` | `solid` で返す言づてにも塗った三角の矢じりを使う |
+| `sequenceKindLabels` | 順序図の種類名 (`{ call?, return?, fire? }`) を言い換える |
 | `figureCard` | 図表の見出し帯と足 (`{ label, note? }`) |
 | `figureSize` | 図全体を 1 箱にする図種の札の幅と高さ (`{ width, height }`) |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
-| `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 1 項目は `{ mark, text }`、和名なら `{ 印, 説明 }`。 印の 10 種は下の節を参照 |
+| `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 印付きは `{ mark, text, tone?, lineStyle? }`、注記は `{ text, align?, lead? }`。和名なら `{ 印, 説明 }`。 印の種類は下の節を参照 |
 | `legendFontSize` | 凡例の字の大きさ |
 | `stageHeaders` | `shape: stages` の見出し寸法を意匠名ごとに書く (`leftPad` / `topPad` / `numberSize` / `gap` / `nameSize` / `bottomPad`) |
 
@@ -137,6 +141,8 @@ CDL の描画時に最寄りの端へ寄せる。区画の語と併記した時�
 legend:
   - { mark: diamond, text: "分かれ道" }
   - { mark: filled-circle, text: "始まり" }
+  - { mark: line-diamond-hollow, text: "参照", tone: accent, lineStyle: dotted }
+  - { text: "注: 点線は参照", align: end, lead: "注:" }
 ```
 
 最上位の語、項目名、印はいずれも和名で書ける。英語と和名を同じ項目に併記した時は英語を使う。
@@ -159,6 +165,10 @@ legend:
 | `numbered-circle` | 番号の丸 |
 | `station` | 駅 |
 | `arrow` | 矢印 |
+| `line-triangle-hollow` | 白抜き三角の線端 |
+| `line-diamond-hollow` | 白抜き菱の線端 |
+| `line-diamond-solid` | 塗った菱の線端 |
+| `rounded-box` | 角丸の箱 |
 
 ### 箱に書ける欄
 
@@ -170,6 +180,14 @@ legend:
 | --------------- | ------------------------------------------------------------------------------ |
 | `kind`          | 見た目の種別 (`card` / `storage` / `service` / `person` 等、`種類` とも書ける)。 種別に無い名前は部品の名前として部品の一覧 (`partsCatalog`) から引き、一覧にも無ければ種別を書かなかった箱になる。 部品を持つ一覧を渡した時は、書いた行に知らせ (`onNotice`) が出て綴りの近い名前を案内する |
 | `subtitle`      | 題の下の補足 (`補足` とも書ける)                                               |
+| `kindForm`      | `icon` で kind の意味を保ったまま共通枠の部品箱にする                         |
+| `icon`          | 共通枠へ描く線画 (`person` / `box` / `database` / `lightning` / `cloud` / `terminal`) |
+| `emptyRowsNote` | 行を持たない `storage` に行の代わりに描く注記                                  |
+| `titleAlign`    | `center` で `storage` の題と小見出しを中央へ揃える                              |
+| `rowRules`      | `true` で `storage` の見出し下と行の間に罫線を描く                             |
+| `rowMarkForm`   | `tone` で行頭の印を形でなく色の段で分ける                                     |
+| `nestIn`        | 親の `storage` の名前。書いた表を親の内側へ入れる                              |
+| `figureCard`    | `storage` または `kindForm: icon` の足 (`{ label, note? }`)                    |
 | `stationNamePosition` | 路線図の駅名を下へ置く (`bottom`) |
 | `subtitlePlacement` | 時間軸の担当を札の右へ置く (`right`) |
 | `titleFontSize` | 流れ図の `function` の札の題の大きさ |
@@ -178,7 +196,7 @@ legend:
 | `value`         | 箱に出す値 (`値` とも書ける)                                                   |
 | `previous`      | 前の時点の値 (`前の値` とも書ける)。 `type: stacked` が 2 本目の帯として描く   |
 | `rows`          | 箱の中に並べる行 (`行` とも書ける)                                             |
-| `marks`         | 行頭の印 (`印` とも書ける。 `rows` と同じ並び。 ER は `pk` / `fk` / `opt`、状態は `entry` / `exit` / `do` / `internal`) |
+| `marks`         | 行頭の印 (`印` とも書ける。`rows` と同じ並び)。文字列のほか `{ mark, tone? }` で `primary` / `muted` の色の段を書ける |
 | `stage`         | `shape: stages` の泳法図で箱を入れる段階 (`段階` とも書ける)                  |
 | `lane`          | どの縦列に置くか                                                               |
 | `stack`         | 縦列の中の何段目に置くか                                                       |
@@ -193,7 +211,7 @@ legend:
 | `end`           | 工程の並びで、終わりの位置。 始まりより前の時期は始まりと同じに倒し、知らせ (`onNotice`) が出る |
 | `startLabel`    | 工程の始まりに出す札。節目の位置名とは別に書ける                             |
 | `milestone`     | `true` なら工程を帯ではなく節目の菱形で描く                                  |
-| `emphasis`      | `primary` なら工程の帯を主役として描く                                       |
+| `emphasis`      | `primary` なら工程の帯または `storage` の枠を主役として描く                   |
 | `at`            | 四象限の点の座標 `[x, y]` (`点の位置` とも書ける)。 左下が 0,0、右上が 1,1 |
 | `posX`          | 置く場所の横位置                                                               |
 | `posY`          | 置く場所の縦位置                                                               |
@@ -231,8 +249,8 @@ legend:
 | `side`           | 矢印がどの辺から出るか (`top` / `right` / `bottom` / `left`)        |
 | `fromSide`       | 矢印が出どころのどの辺から出るか (`top` / `right` / `bottom` / `left`) |
 | `toSide`         | 矢印が行き先のどの辺へ入るか (`top` / `right` / `bottom` / `left`) |
-| `head`           | 矢印の先の形 (`triangle` 継承・実装 / `diamond` 集約・コンポジション / `open` 関連・依存 / `crow` 多 / `one` `zero-one` `many` `zero-many` ER の端 / `none` 描かない) |
-| `tailHead`       | 出どころ側の端の形 (ER は端ごとに違う個数を示すので両端に要る) |
+| `head`           | 矢印の先の形 (`triangle` 継承・実装 / `diamond` 集約・コンポジション / `open` 関連・依存 / `dot` 点 / `crow` 多 / `one` `zero-one` `many` `zero-many` ER の端 / `none` 描かない) |
+| `tailHead`       | 出どころ側の端の形 (`dot` で点。ER は端ごとに違う個数を示すので両端に要る) |
 | `headFill`       | 端の印の塗り (`solid` 塗る / `hollow` 白抜き) |
 | `tailHeadFill`   | 出どころ側の印の塗り |
 | `relation`       | record に書く UML 関係の種類 (`extends` 継承 / `implements` 実装 / `aggregates` 集約 / `composes` コンポジション / `associates` 関連 / `uses` 依存)。 書くと線と端の形と塗りと付く側がまとめて決まる |
@@ -418,6 +436,7 @@ actors:
 
 `lanes:` の id は組み立て側が作る形に合わせて、字 / 数 / 下線 / hyphen を受ける
 (`lane-idle` のような自動で作られた縦列の幅も書き直せる)。
+`label` は縦列の名前、`subtitle` はその補足で、通常の `topology` / `flow` の縦列見出しにも使える。
 
 `groups:` は並べた縦列のうち何本かを 1 つの枠で囲む。 枠は縦列の位置が決まった後に、束ねた縦列と
 中の箱を全て含む位置と大きさで描かれ、縦列と箱の位置は組を書かない図と変わらない。
