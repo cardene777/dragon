@@ -66,10 +66,12 @@ describe("工程の図の 7 意匠", () => {
     expect(selector).not.toBe(`[data-cdl-tone="muted"]`);
   });
 
-  it("電飾は tone を持つ工程の帯を枠だけにし、節目を対象にしない", () => {
+  it("電飾は tone を持つ工程の帯を系列色で塗って管の枠を重ね、節目を対象にしない", () => {
     const selector = 'svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="gantt-bar"][data-cdl-tone]';
     const body = 規則の本文(selector).join("\n");
-    expect(body).toMatch(/fill\s*:\s*none/iu);
+    // 描画後の対比検査は帯自身の fill を読む。none にすると色を読めず、見本帳に記録した
+    // 系列色の面とも食い違うため、inline の系列 fill を消す規則が無いことを固定する。
+    expect(body).not.toMatch(/fill\s*:\s*none/iu);
     expect(body).toMatch(/stroke\s*:\s*currentColor/iu);
     expect(selector).not.toContain("gantt-milestone");
   });

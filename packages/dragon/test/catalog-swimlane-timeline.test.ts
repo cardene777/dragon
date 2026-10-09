@@ -7,6 +7,7 @@ import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-d
 import { textDslToDiagram } from "../src/index";
 import {
   TIMELINE_AXIS_TO_CARD,
+  TIMELINE_AXIS_TO_SIDE_CARD,
   TIMELINE_DECISION_GAP,
   TIMELINE_DECISION_GAPS,
   TIMELINE_END_GAP,
@@ -48,14 +49,22 @@ describe("見本帳の時間軸の形 (#2798)", () => {
       endGap: TIMELINE_END_GAP,
     }).toEqual({ axisToCard: 70, stepGap: 125, decisionGap: 145, endGap: 105 });
 
-    const axis = presetDeliveryTimeline.lanes.find((lane) => lane.timelineAxis === true);
-    const returned = presetDeliveryTimeline.nodes.find((node) => node.title === "持ち戻る");
+    // catalog の export は build 済み dist を読むため、変更した組み立て自身から測る。
+    const source = 時間軸の見本()[0];
+    expect(source).toBeDefined();
+    if (!source) return;
+    const diagram = textDslToDiagram(source.source);
+    const axis = diagram.lanes.find((lane) => lane.timelineAxis === true);
+    const returned = diagram.nodes.find((node) => node.title === "持ち戻る");
     expect(axis).toBeDefined();
     expect(returned).toBeDefined();
     if (!axis || !returned) return;
     const axisCenter = (axis.posX ?? 0) + (axis.posW ?? 0) / 2;
     const returnedInnerEdge = Math.abs((returned.posX ?? 0) - axisCenter) - (returned.w ?? 0) / 2;
-    expect(returnedInnerEdge).toBe(220);
+    // CDL の標準線札は幅 108、node-label clearance は左右 32。横線を 172 にして
+    // 札が衝突回避で上へ逃げず、見本どおり線の上 20 に留まる値と対にする。
+    expect(returnedInnerEdge).toBe(TIMELINE_AXIS_TO_SIDE_CARD);
+    expect(TIMELINE_AXIS_TO_SIDE_CARD).toBe(242);
   });
 
   it.each(Object.entries(TIMELINE_DECISION_GAPS))(

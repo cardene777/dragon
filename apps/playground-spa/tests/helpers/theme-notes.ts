@@ -92,6 +92,8 @@ export type ThemeToneSeries = {
   /** 日程の帯だけで置き直す系列色 (系列番号 1-6 → `#rrggbb`)。無い系列は図表の系列色のまま */
   ganttOverrides: Map<number, string>;
   ganttOwnerColor: string;
+  /** 模様の通常帯だけで使う担当字。無ければ主役と同じ `ganttOwnerColor`。 */
+  ganttSecondaryOwnerColor?: string;
   textColor?: string;
   stroke?: string;
   strokeWidth?: number;
@@ -625,6 +627,9 @@ export function readFixedThemeToneSeries(
       ganttOverrides,
       ganttOwnerColor,
     };
+    const secondaryOwner = /通常帯の上の担当の字は[^`]*`(#[0-9a-fA-F]{6})`/
+      .exec(row)?.[1]?.toLowerCase();
+    if (secondaryOwner) style.ganttSecondaryOwnerColor = secondaryOwner;
     if (textColor) style.textColor = textColor;
     if (frame) {
       style.stroke = frame[1]!.toLowerCase();

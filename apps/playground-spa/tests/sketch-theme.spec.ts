@@ -23,7 +23,6 @@ import {
   readFixedThemeToneSeries,
   readFlowchartDecisionStyles,
   readThemeNotes,
-  themeGanttSeriesColors,
 } from "./helpers/theme-notes";
 
 const sketch = readThemeNotes().get("sketch");
@@ -338,17 +337,18 @@ test.describe("sketch theme (#2794)", () => {
         }),
       );
     expect(ganttBars.length, "日程の棒が無い").toBeGreaterThan(0);
-    const ganttFill = themeGanttSeriesColors(chart, toneSeries)[toneSeries.seriesByTone.accent - 1];
-    if (!ganttFill) throw new Error("手描きの日程の系列 1 を意匠帳から読めない");
+    // 日程の帯は単色ではなく、意匠帳の色の線を引く SVG pattern で塗る。
+    const ganttFill = pale;
     for (const bar of ganttBars) {
-      expect(bar.fill).toBe(hexToRgb(ganttFill));
+      expect(bar.fill).toContain("url(");
+      expect(bar.fill).toContain("dragon-sketch-pen");
       expect(bar.stroke).toBe(hexToRgb(toneSeries.stroke));
       expect(Number.parseFloat(bar.width)).toBe(toneSeries.strokeWidth);
     }
     const penFill = await page
       .locator("pattern#dragon-sketch-pen rect")
       .evaluate((element) => getComputedStyle(element).fill);
-    expect(penFill, "ペンの斜線の色").toBe(hexToRgb(pale));
+    expect(penFill, "日程の斜線の色").toBe(hexToRgb(ganttFill));
 
     await openEditorTheme(page, sample("chart"), "sketch", false);
     const chartBars = await stage(page)

@@ -762,11 +762,17 @@ describe("時間軸を見本と同じ丸い番号と実線の軸で描く (#2832
     expect(crossings).toBe(0);
   });
 
-  it("戻る線を持つ脇の札を軸から 220 以上外へ置く", () => {
+  it("戻る線を持つ脇の札を軸から 242 以上外へ置き、横分岐の札を線の上 20 に保つ", () => {
     const side = 宅配.laid.nodes.find((node) => node.title === "持ち戻る");
+    const decision = 宅配.laid.nodes.find((node) => node.title === "在宅?");
+    const branch = 宅配.laid.edges.find((edge) => edge.label === "いいえ");
     expect(side).toBeDefined();
-    if (side === undefined) return;
-    expect(side.cx - side.w / 2 - axisX).toBeGreaterThanOrEqual(220);
+    expect(decision).toBeDefined();
+    expect(branch).toBeDefined();
+    if (side === undefined || decision === undefined || branch === undefined) return;
+    expect(side.cx - side.w / 2 - axisX).toBeGreaterThanOrEqual(242);
+    // 40px 高の札の中心を横線から 40 上へ置く = 札の下端と線の間が 20。
+    expect(decision.cy - branch.labelY).toBe(40);
   });
 
   it("通常の番号の段を見本どおり 125 間隔で置く", () => {

@@ -2,6 +2,21 @@ import { expect, test, type Page } from "@playwright/test";
 import type { PNG } from "pngjs";
 
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
+import {
+  sourceYaml__branchParcelsBar,
+  sourceYaml__deliveryOfficeTree,
+  sourceYaml__deliveryResultStacked,
+  sourceYaml__measureEffortQuadrant,
+  sourceYaml__monthlyDeliveriesLine,
+  sourceYaml__onTimeRateSlope,
+  sourceYaml__onTimeShareGauge,
+  sourceYaml__orderToDeliveryFunnel,
+  sourceYaml__parcelSizeWaffle,
+  sourceYaml__parcelStatusPie,
+  sourceYaml__redeliveryIdeasMind,
+  sourceYaml__shipperFeelingJourney,
+  sourceYaml__sortingShelfGantt,
+} from "../src/topics/catalog/charts.cdl";
 import { 六色の記法, 記法をURLに載せる } from "./box-and-edge-figure";
 import {
   FIXED_THEME_DEVICE_SCALE_FACTOR,
@@ -77,6 +92,7 @@ function shadows(role: string): Shadow[] {
 
 const ALL_CIRCLE_GROUP_SELECTOR =
   'g[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > g:not(:where([data-cdl-role="node-kind-icon"])):has(> circle):not(:has(> :not(circle)))';
+// 丸だけで作る雲は g 全体が一つの箱。円グラフの輪は path の g なので下の専用の期待で確かめる。
 const BOX_FILTER_SELECTOR = [
   ':is(rect, path, ellipse, circle, polygon)[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark])',
   'g[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) > :is(rect, path, ellipse, circle, polygon)',
@@ -266,6 +282,10 @@ test.describe("relief theme (#2796)", () => {
           [...element.querySelectorAll<SVGGraphicsElement>("*")].flatMap((candidate) => {
             if (!getComputedStyle(candidate).filter.includes("dragon-relief")) return [];
             if (candidate.matches('[data-cdl-role="edge-label-bg"], [data-cdl-role="chart-bar"]')) return [];
+            if (candidate.matches('[data-cdl-frame], [data-cdl-role="chart-waffle-cell"]')) return [];
+            // 階層の札そのものは `階層-浮彫.html` と対になる浮き出し面。札の中の
+            // 別図形へ影が漏れることは、他の role を引き続き列挙して検知する。
+            if (candidate.matches('[data-cdl-role="tree-node"]')) return [];
             return contours.has(candidate)
               ? []
               : [candidate.getAttribute("data-cdl-role") ?? candidate.tagName];
@@ -288,6 +308,112 @@ test.describe("relief theme (#2796)", () => {
       expect(failures).toEqual([]);
     });
   }
+
+  test("relief chart: 13 図の札を浮かせ、円の輪・升目以外を凹ませない", async ({ page }) => {
+    const cardSources = [
+      sourceYaml__deliveryOfficeTree,
+      sourceYaml__redeliveryIdeasMind,
+      sourceYaml__branchParcelsBar,
+      sourceYaml__monthlyDeliveriesLine,
+      sourceYaml__parcelStatusPie,
+      sourceYaml__orderToDeliveryFunnel,
+      sourceYaml__measureEffortQuadrant,
+      sourceYaml__onTimeRateSlope,
+      sourceYaml__onTimeShareGauge,
+      sourceYaml__parcelSizeWaffle,
+      sourceYaml__deliveryResultStacked,
+      sourceYaml__sortingShelfGantt,
+      sourceYaml__shipperFeelingJourney,
+    ] as const;
+    for (const source of cardSources) {
+      await openEditorTheme(page, source, "relief", false);
+      const root = stage(page);
+      const surface = root.locator('[data-cdl-node]:has(> [data-cdl-frame])');
+      await expect(surface).toHaveCount(1);
+      const parts = await surface.evaluate((node) => {
+        const frame = node.querySelector<SVGGraphicsElement>(':scope > [data-cdl-frame]');
+        const title = node.querySelector<SVGGraphicsElement>('[data-cdl-role="figure-title"]');
+        const footer = node.querySelector<SVGGraphicsElement>('[data-cdl-role="figure-footer"]');
+        if (!frame || !title) throw new Error("浮彫の図の frame または題を測れない");
+        const frameBox = frame.getBoundingClientRect();
+        const bodies = [...node.querySelectorAll<SVGGraphicsElement>('[data-cdl-role="node-body"]')]
+          .filter((body) => {
+            const box = body.getBoundingClientRect();
+            return Math.abs(box.left - frameBox.left) <= 1 &&
+              Math.abs(box.top - frameBox.top) <= 1 &&
+              Math.abs(box.width - frameBox.width) <= 1 &&
+              Math.abs(box.height - frameBox.height) <= 1;
+          });
+        if (bodies.length !== 1) throw new Error(`浮彫の図の外札面が ${bodies.length} 件`);
+        const body = bodies[0]!;
+        const titleBox = title.getBoundingClientRect();
+        const bodyBox = body.getBoundingClientRect();
+        return {
+          kind: node.getAttribute("data-cdl-kind"),
+          bodyTop: bodyBox.top,
+          bodyBottom: bodyBox.bottom,
+          titleTop: titleBox.top,
+          titleBottom: titleBox.bottom,
+          footerTop: footer?.getBoundingClientRect().top ?? null,
+          bodyFilter: getComputedStyle(body).filter,
+        };
+      });
+      expect(parts.bodyFilter, "札の浮き").toContain("dragon-relief-raised");
+      expect(parts.bodyFilter, "札全体を凹ませない").not.toContain("dragon-relief-well");
+      expect(parts.titleBottom, "図の題を測れていない").toBeGreaterThan(parts.titleTop);
+      if (parts.kind === "mind-map" || parts.kind === "tree-hierarchy") {
+        expect(parts.titleBottom, "放射と木の題は札の上").toBeLessThanOrEqual(parts.bodyTop + 1);
+      } else {
+        expect(parts.bodyTop, "題は浮いた札の中").toBeLessThan(parts.titleBottom);
+      }
+      if (parts.footerTop !== null) {
+        expect(parts.bodyBottom, "足は浮いた札の中").toBeGreaterThan(parts.footerTop);
+      }
+    }
+
+    await openEditorTheme(page, sourceYaml__parcelStatusPie, "relief", false);
+    let root = stage(page);
+    expect(
+      await root.locator('[data-cdl-kind="chart-pie"] > [data-cdl-role="node-body"]')
+        .evaluate((element) => getComputedStyle(element).filter),
+      "円の札の全面は凹ませない",
+    ).not.toContain("dragon-relief-well");
+    expect(
+      await root.locator('[data-cdl-kind="chart-pie"] g:has(> [data-cdl-role="chart-pie-slice"])')
+        .evaluate((element) => getComputedStyle(element).filter),
+      "円の輪だけを凹ませる",
+    ).toContain("dragon-relief-well");
+
+    await openEditorTheme(page, sourceYaml__parcelSizeWaffle, "relief", false);
+    root = stage(page);
+    expect(
+      await root.locator('[data-cdl-kind="chart-waffle"] > [data-cdl-role="node-body"]')
+        .evaluate((element) => getComputedStyle(element).filter),
+      "升目の札の全面は凹ませない",
+    ).not.toContain("dragon-relief-well");
+    const cellFilters = await root.locator('[data-cdl-role="chart-waffle-cell"]')
+      .evaluateAll((elements) => elements.map((element) => getComputedStyle(element).filter));
+    expect(cellFilters.length, "升目を測れていない").toBeGreaterThan(0);
+    expect(cellFilters.every((filter) => filter.includes("dragon-relief-well")), "升目だけを凹ませる").toBe(true);
+
+    for (const source of [
+      sourceYaml__branchParcelsBar,
+      sourceYaml__monthlyDeliveriesLine,
+      sourceYaml__orderToDeliveryFunnel,
+      sourceYaml__measureEffortQuadrant,
+      sourceYaml__onTimeRateSlope,
+      sourceYaml__onTimeShareGauge,
+      sourceYaml__deliveryResultStacked,
+      sourceYaml__sortingShelfGantt,
+      sourceYaml__shipperFeelingJourney,
+    ] as const) {
+      await openEditorTheme(page, source, "relief", false);
+      const wellFilters = await stage(page).locator("*").evaluateAll((elements) =>
+        elements.filter((element) => getComputedStyle(element).filter.includes("dragon-relief-well")).length,
+      );
+      expect(wellFilters, "円の輪と升目以外へ well が漏れた").toBe(0);
+    }
+  });
 
   test("relief filter: 4 つの filter の外の影が意匠帳どおりになる", async ({ page }) => {
     await openEditorTheme(page, samples.values().next().value ?? themeAppearSource("relief"), "relief", false);

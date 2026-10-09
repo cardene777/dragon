@@ -4,10 +4,18 @@
  * `描けない` 行も現在の DOM 数を固定する。描く側が近づいて数が変わった時に検査を落とし、
  * 見本数と一致した行から宣言を外せるようにする。対応する DOM が無い時だけ仮の role を使う。
  */
-import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView, computeStateValues, layout, type CdlDiagram } from "@cardenelabs/cdl";
+import { describe, expect, it } from "vitest";
 import * as Charts from "@/topics/catalog/charts.cdl";
+
+const 意匠CSS = readFileSync(
+  fileURLToPath(new URL("../styles/cdl-theme.css", import.meta.url)),
+  "utf8",
+).replace(/\/\*[\s\S]*?\*\//gu, "");
 
 const 宅配の鍵 = [
   "deliveryOfficeTree", "redeliveryIdeasMind", "branchParcelsBar", "monthlyDeliveriesLine",
@@ -120,7 +128,6 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "sortingShelfGantt", 要素: "月の見出し", 見本の数: 5, 今の数: 5, role: "gantt-tick", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "依存の矢印", 見本の数: 4, 今の数: 4, role: "gantt-arrow", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "主役の重ね", 見本の数: 3, 今の数: 3, role: "gantt-bar-hatch", 描ける: true },
-  { 鍵: "sortingShelfGantt", 要素: "1 行おきの地", 見本の数: 3, 今の数: 3, role: "gantt-row", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "月内位置の端点", 見本の数: 10, 今の数: 10, role: "diagram:gantt-fractional-endpoint", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "本番の節目", 見本の数: 1, 今の数: 1, role: "gantt-milestone", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "今日の点線", 見本の数: 1, 今の数: 1, role: "gantt-today", 描ける: true },
@@ -309,6 +316,16 @@ describe("宅配の見本の形要素 (#2837)", () => {
       expect(pair[0], `${index + 1} 本目の始まり`).toBeCloseTo(expected[index]![0]!, 2);
       expect(pair[1], `${index + 1} 本目の終わり`).toBeCloseTo(expected[index]![1]!, 2);
     }
+  });
+
+  it("仕分け棚の 1 行おきの地は DOM に残っていても見本どおり描かない", () => {
+    const 図 = 図を引く("sortingShelfGantt");
+    if (図 === undefined) throw new Error("sortingShelfGantt が無い");
+    expect(roleの数(最後を描く(図), "gantt-row", 図), "描く側が持つ交互帯").toBe(3);
+    const rule = [...意匠CSS.matchAll(/([^{}]*)\{([^{}]*)\}/gu)].find((match) =>
+      (match[1] ?? "").includes('[data-cdl-kind="gantt-timeline"] [data-cdl-role="gantt-row"]'),
+    );
+    expect(rule?.[2], "ガントの交互帯を隠す規則").toMatch(/(?:^|;)\s*display\s*:\s*none\s*;/mu);
   });
 
   it.each(形の要素たち)("$鍵: $要素", ({ 鍵, 見本の数, 今の数, role, 描ける, 理由, 下書き, 仮の役割名 }) => {

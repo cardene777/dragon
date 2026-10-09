@@ -369,6 +369,17 @@ function compareGanttCss(
     if (actualOwner !== style.ganttOwnerColor) {
       failures.push(`${name} 担当の字: 意匠帳 ${style.ganttOwnerColor} / CSS ${actualOwner}`);
     }
+    if (style.ganttSecondaryOwnerColor !== undefined) {
+      const secondary = cssRuleBody(
+        cssText,
+        `${stage} g:has(> [data-cdl-role="gantt-bar"]:not([data-cdl-emphasis="primary"])) > [data-cdl-role="gantt-owner"]`,
+        "fill",
+      );
+      const actualSecondary = resolvedCssPaint(cssFixedThemeDeclarations(cssText, name), secondary, "fill");
+      if (actualSecondary !== style.ganttSecondaryOwnerColor) {
+        failures.push(`${name} 通常帯の担当の字: 意匠帳 ${style.ganttSecondaryOwnerColor} / CSS ${actualSecondary}`);
+      }
+    }
   }
   return failures;
 }
@@ -1059,12 +1070,13 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
         const color = ganttColors[index];
         if (!original || !color) throw new Error(`${name} の日程の帯 ${series} の色が無い`);
         const overridden = tones.ganttOverrides.has(series);
+        const patternedSecondary = name === "sketch" && series > 1;
         const originalRatio = contrast(rgb(original), rgb(tones.ganttOwnerColor));
         const ownerRatio = contrast(rgb(color), rgb(tones.ganttOwnerColor));
-        if (overridden !== (originalRatio < 4.5)) {
+        if (!patternedSecondary && overridden !== (originalRatio < 4.5)) {
           failures.push(`${name} 日程の帯 ${series}: 元の担当との対比 ${originalRatio.toFixed(2)} なのに上書き ${overridden ? "あり" : "なし"}`);
         }
-        if (overridden) {
+        if (!patternedSecondary && overridden) {
           // 必要以上に動かしていないこと = 上書き後の対比が下限のすぐ上に収まる
           if (ownerRatio >= 4.6) {
             failures.push(`${name} 日程の帯 ${series}: 上書き後の担当との対比 ${ownerRatio.toFixed(2)} が 4.6 以上 (動かしすぎ)`);
@@ -1074,12 +1086,23 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
             failures.push(`${name} 日程の帯 ${series}: 元の系列色との色相差 ${difference.toFixed(2)} 度 > 10 度`);
           }
         }
-        if (ownerRatio < 4.5) {
+        if (!patternedSecondary && ownerRatio < 4.5) {
           failures.push(`${name} 日程の帯 ${series}: 担当との対比 ${ownerRatio.toFixed(2)} < 4.5`);
         }
         const groundRatio = contrast(rgb(color), rgb(note.value.ground));
         if (groundRatio < 3) {
           failures.push(`${name} 日程の帯 ${series}: 台との対比 ${groundRatio.toFixed(2)} < 3`);
+        }
+      }
+
+      if (name === "sketch") {
+        const secondaryOwner = tones.ganttSecondaryOwnerColor;
+        const pale = readFixedThemeRoleColor("sketch", "淡");
+        if (!secondaryOwner || !pale) throw new Error("手描きの通常帯の担当字と淡を読めない");
+        const faceRatio = contrast(rgb(secondaryOwner), rgb(note.value.face));
+        const hatchRatio = contrast(rgb(secondaryOwner), rgb(pale));
+        if (faceRatio < 4.5 || hatchRatio < 4.5) {
+          failures.push(`sketch 通常帯の担当: 面 ${faceRatio.toFixed(2)} / 淡い斜線 ${hatchRatio.toFixed(2)}`);
         }
       }
 

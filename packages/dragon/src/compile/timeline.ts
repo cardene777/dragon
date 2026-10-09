@@ -31,8 +31,8 @@ export const TIMELINE_END_HEIGHT = 42;
  */
 export const TIMELINE_AXIS_TO_CARD = 70;
 
-/** 分かれ道の脇の札は、見本どおり軸から内側まで少なくとも 220 離す。 */
-export const TIMELINE_AXIS_TO_SIDE_CARD = 220;
+/** 108 幅の線札と両側の箱へ CDL の 32px clearance を保つため、軸から内側まで 242 離す。 */
+export const TIMELINE_AXIS_TO_SIDE_CARD = 242;
 
 /** 見本どおり、番号の段を 125 ずつ進める。 */
 export const TIMELINE_STEP_GAP = 125;
@@ -193,7 +193,7 @@ export function placeTimeline(
       if (source.centerX < targetLeft || source.centerX > targetRight) continue;
       /*
        * cardene777/cdl#1031: `back-detour` は札の上辺の中点どうしを結び、
-       * 両端の札を障害物に数えない。右側の脇札は、見本どおり軸から内側まで 220 空ける。
+       * 両端の札を障害物に数えない。右側の脇札も線札の clearance を保つ位置へ置く。
        */
       source.centerX = AXIS_X + TIMELINE_AXIS_TO_SIDE_CARD + source.width / 2;
     }

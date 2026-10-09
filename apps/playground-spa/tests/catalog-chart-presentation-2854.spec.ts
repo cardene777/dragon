@@ -14,6 +14,11 @@ import {
   sourceYaml__shipperFeelingJourney,
   sourceYaml__sortingShelfGantt,
 } from "../src/topics/catalog/charts.cdl";
+import {
+  sourceYaml__presetDeliveryMetro,
+  sourceYaml__presetDeliveryStages,
+  sourceYaml__presetDeliveryTimeline,
+} from "../src/topics/catalog/presets.cdl";
 import { openEditorTheme } from "./helpers/fixed-theme-checks";
 
 const 意匠 = ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const;
@@ -180,22 +185,33 @@ for (const theme of 意匠) {
         const v = value.getBBox();
         return {
           gap: v.x - (l.x + l.width),
-          labelSize: getComputedStyle(label).fontSize,
-          labelSvgSize: label.getAttribute("font-size"),
-          valueSize: getComputedStyle(value).fontSize,
-          valueSvgSize: value.getAttribute("font-size"),
+          labelSize: Number.parseFloat(getComputedStyle(label).fontSize),
+          labelSvgSize: Number.parseFloat(label.getAttribute("font-size") ?? "NaN"),
+          valueSize: Number.parseFloat(getComputedStyle(value).fontSize),
+          valueSvgSize: Number.parseFloat(value.getAttribute("font-size") ?? "NaN"),
         };
       });
     });
     expect(waffleRows.every((row) => row.gap > 0), "升目の一覧名と値が重ならない").toBe(true);
-    expect(waffleRows.every((row) => row.labelSize === `${row.labelSvgSize}px`), "升目の一覧名は cdl の級").toBe(true);
-    expect(waffleRows.every((row) => row.valueSize === `${row.valueSvgSize}px`), "升目の一覧値は cdl の級").toBe(true);
+    expect(
+      waffleRows.every(
+        (row) => Number.isFinite(row.labelSvgSize) && Math.abs(row.labelSize - row.labelSvgSize) <= 0.01,
+      ),
+      "升目の一覧名は cdl の級",
+    ).toBe(true);
+    expect(
+      waffleRows.every(
+        (row) => Number.isFinite(row.valueSvgSize) && Math.abs(row.valueSize - row.valueSvgSize) <= 0.01,
+      ),
+      "升目の一覧値は cdl の級",
+    ).toBe(true);
   });
 
   test(`${theme}: ガントの帯・名前・節目を見本位置と札の中に収める`, async ({ page }) => {
     await openEditorTheme(page, sourceYaml__sortingShelfGantt, theme, false);
     const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
-    await expect(stage).toHaveAttribute("data-cdl-phase-index", "1", { timeout: 5_000 });
+    const diagram = page.locator(".v4-editor-preview [data-cdl-diagram]").filter({ has: stage });
+    await expect(diagram).toHaveAttribute("data-cdl-phase-index", "1", { timeout: 5_000 });
     await page.waitForTimeout(1_300);
     const geometry = await stage.evaluate((element) => {
       const ticks = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="gantt-tick"]')]
@@ -342,3 +358,115 @@ for (const theme of 意匠) {
     expect(opaqueBranches, "放射の枝と葉の下線を透かさない").toBe(true);
   });
 }
+
+test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と影で描く", async ({ page }) => {
+  await openEditorTheme(page, sourceYaml__presetDeliveryStages, "blueprint", false);
+  let stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
+  let cardStyles = await stage
+    .locator('[data-cdl-kind="card"] [data-cdl-role="node-body"]')
+    .evaluateAll((cards) => cards.map((card) => {
+      const style = getComputedStyle(card);
+      return { filter: style.filter, stroke: style.stroke, width: style.strokeWidth };
+    }));
+  expect(cardStyles.length, "図面の段の札を測れていない").toBeGreaterThan(0);
+  expect(
+    cardStyles.every(({ filter, stroke, width }) =>
+      width === "1px" && stroke === "rgb(20, 58, 82)" && filter === "none"),
+    "図面の段の札は紺の枠 1、影なし",
+  ).toBe(true);
+
+  await openEditorTheme(page, sourceYaml__presetDeliveryTimeline, "blueprint", false);
+  stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
+  cardStyles = await stage
+    .locator('[data-cdl-lane="timeline-steps"][data-cdl-kind="card"] [data-cdl-role="node-body"]')
+    .evaluateAll((cards) => cards.map((card) => {
+      const style = getComputedStyle(card);
+      return { filter: style.filter, stroke: style.stroke, width: style.strokeWidth };
+    }));
+  expect(cardStyles.length, "図面の時間軸の札を測れていない").toBeGreaterThan(0);
+  expect(
+    cardStyles.every(({ filter, stroke, width }) =>
+      width === "1px" && stroke === "rgb(20, 58, 82)" && filter === "none"),
+    "図面の時間軸の札は紺の枠 1、影なし",
+  ).toBe(true);
+  const blueprintTimelineDecision = await stage
+    .locator('[data-cdl-kind="decision"] [data-cdl-role="node-body"] > path')
+    .evaluate((path) => {
+      const style = getComputedStyle(path);
+      return { filter: style.filter, stroke: style.stroke, width: style.strokeWidth };
+    });
+  expect(blueprintTimelineDecision, "図面の時間軸の分かれ道")
+    .toEqual({ filter: "none", stroke: "rgb(20, 58, 82)", width: "1.5px" });
+
+  await openEditorTheme(page, sourceYaml__presetDeliveryMetro, "blueprint", false);
+  stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
+  const blueprintMetroDecision = await stage
+    .locator('[data-cdl-kind="decision"] [data-cdl-role="node-body"] > path')
+    .evaluate((path) => {
+      const style = getComputedStyle(path);
+      return { filter: style.filter, stroke: style.stroke, width: style.strokeWidth };
+    });
+  expect(blueprintMetroDecision, "図面の路線図の分かれ道")
+    .toEqual({ filter: "none", stroke: "rgb(20, 58, 82)", width: "1.5px" });
+
+  await openEditorTheme(page, sourceYaml__presetDeliveryStages, "catalog", false);
+  stage = page.locator('svg[data-cdl-stage][data-cdl-palette="catalog"]');
+  const catalogCards = await stage
+    .locator('[data-cdl-kind="card"] [data-cdl-role="node-body"]')
+    .evaluateAll((cards) => cards.map((card) => {
+      const style = getComputedStyle(card);
+      return { stroke: style.stroke, width: style.strokeWidth, filter: style.filter };
+    }));
+  expect(catalogCards.length, "図録の段の札を測れていない").toBeGreaterThan(0);
+  expect(
+    catalogCards.every(({ stroke, width, filter }) =>
+      stroke === "none" && width === "0px" && filter.includes("drop-shadow")),
+    "図録の段の札は枠なしで影だけ",
+  ).toBe(true);
+
+  // 最後の段では全札が active になる。段の箱と時間軸の両方で、active の太枠や影に
+  // 戻らず見本帳の通常札を保つことを、残りの意匠も描画後の値で確かめる。
+  const cardLooks = [
+    { theme: "catalog", width: "0px", stroke: "none", filter: "drop-shadow" },
+    { theme: "letterpress", width: "1.5px", stroke: "rgb(26, 21, 16)", filter: "none" },
+    { theme: "sketch", width: "2px", stroke: "rgb(43, 38, 32)", filter: "dragon-sketch-wobble" },
+    { theme: "terminal", width: "1px", stroke: "rgba(74, 222, 128, 0.3)", filter: "none" },
+  ] as const;
+  for (const source of [sourceYaml__presetDeliveryStages, sourceYaml__presetDeliveryTimeline]) {
+    for (const expected of cardLooks) {
+      await openEditorTheme(page, source, expected.theme, false);
+      stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${expected.theme}"]`);
+      const styles = await stage.locator('[data-cdl-kind="card"] [data-cdl-role="node-body"]')
+        .evaluateAll((cards) => cards.map((card) => {
+          const style = getComputedStyle(card);
+          return { filter: style.filter, stroke: style.stroke, width: style.strokeWidth };
+        }));
+      expect(styles.length, `${expected.theme} の札を測れていない`).toBeGreaterThan(0);
+      expect(styles.every((style) =>
+        style.width === expected.width && style.stroke === expected.stroke &&
+        (expected.filter === "none" ? style.filter === "none" : style.filter.includes(expected.filter))),
+      `${expected.theme} の札が見本の縁と影を保つ`).toBe(true);
+    }
+  }
+
+  const decisions = [
+    { theme: "catalog", width: "0px", stroke: "none" },
+    { theme: "letterpress", width: "2px", stroke: "rgb(26, 21, 16)" },
+    { theme: "sketch", width: "2.5px", stroke: "rgb(43, 38, 32)" },
+    { theme: "terminal", width: "1px", stroke: "rgba(74, 222, 128, 0.3)" },
+  ] as const;
+  for (const source of [sourceYaml__presetDeliveryMetro, sourceYaml__presetDeliveryTimeline]) {
+    for (const expected of decisions) {
+      await openEditorTheme(page, source, expected.theme, false);
+      stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${expected.theme}"]`);
+      const style = await stage.locator('[data-cdl-kind="decision"] [data-cdl-role="node-body"] > path')
+        .evaluate((path) => {
+          const computed = getComputedStyle(path);
+          return { filter: computed.filter, stroke: computed.stroke, width: computed.strokeWidth };
+        });
+      expect(style.width, `${expected.theme} の分かれ道の縁`).toBe(expected.width);
+      expect(style.stroke, `${expected.theme} の分かれ道の縁色`).toBe(expected.stroke);
+      expect(style.filter, `${expected.theme} の分かれ道の影`).toBe("none");
+    }
+  }
+});
