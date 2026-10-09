@@ -93,7 +93,7 @@ for (const theme of 意匠) {
         /^M\s-?[\d.]+\s-?[\d.]+(?:\s[HV]\s-?[\d.]+)+$/u,
       );
       expect(line.endY, `${theme}: 依存線が下へ進んでいない (${line.d})`).toBeGreaterThan(line.startY);
-      expect(line.endX + 0.5, `${theme}: 終点 x が始点 x より左 (${line.d})`).toBeGreaterThanOrEqual(line.startX);
+      expect(line.endX, `${theme}: 終点 x が始点 x より左 (${line.d})`).toBeGreaterThanOrEqual(line.startX);
     }
   });
 }

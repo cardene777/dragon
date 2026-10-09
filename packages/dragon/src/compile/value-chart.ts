@@ -91,8 +91,8 @@ const 札の大きさ: Readonly<Record<Exclude<DslShape, "pie">, { w: number; h:
   radial: { w: 512, h: 320 },
   // 半円 (508 幅) と一覧。 横の使用率が 79% で足りているため変えない
   gauge: { w: 640, h: 320 },
-  // 帯 2 本と一覧。 中身は 592 幅 x 143 高。 横は使い切っているので縦だけ詰める
-  stacked: { w: 640, h: 224 },
+  // 5 本の帯を見本の太さ 32 に近い比で置く。304 高では描画側の算式で 31.4px になる
+  stacked: { w: 640, h: 304 },
   // 横軸を持つ 3 型。 横の使用率が 85% 以上なので変えない
   bar: { w: 640, h: 368 },
   line: { w: 640, h: 368 },
@@ -179,10 +179,12 @@ export function compileValueChart(
       前が読めない.push(a.name);
     }
     data.push({
+      ...(型 === "slope" || 型 === "stacked" ? { id: slugify(a.name) } : {}),
       label: 箱の題(a),
       value,
       ...(前 === null ? {} : { previous: 前 }),
       ...(a.tone !== undefined ? { tone: a.tone } : {}),
+      ...(a.emphasis !== undefined ? { emphasis: a.emphasis } : {}),
     });
   }
   // 案内の言葉は型ごとに変える。 共通化した時に `pie` の「割合 / 円 / 45%」 が「値 / 図 / 45」 に
@@ -278,6 +280,45 @@ export function compileValueChart(
     h: CHART_H,
     chartData: data,
     ...(型 === "pie" && pieForm !== undefined ? { chartPieForm: pieForm } : {}),
+    ...(doc.chartSeriesSkipMuted !== undefined
+      ? { chartSeriesSkipMuted: doc.chartSeriesSkipMuted }
+      : {}),
+    ...(型 === "line" && doc.chartLineSeries !== undefined
+      ? { chartLineSeries: doc.chartLineSeries }
+      : {}),
+    ...(型 === "pie" && doc.chartPieCenterLabel !== undefined
+      ? { chartPieCenterLabel: doc.chartPieCenterLabel }
+      : {}),
+    ...(型 === "pie" && doc.chartPieTableColumns !== undefined
+      ? { chartPieTableColumns: doc.chartPieTableColumns }
+      : {}),
+    ...(型 === "pie" && doc.chartPieRingWidth !== undefined
+      ? { chartPieRingWidth: doc.chartPieRingWidth }
+      : {}),
+    ...(型 === "slope" && doc.chartSlopePeriods !== undefined
+      ? { chartSlopePeriods: doc.chartSlopePeriods }
+      : {}),
+    ...(型 === "slope" && doc.chartSlopeEmphasisIds !== undefined
+      ? { chartSlopeEmphasisIds: doc.chartSlopeEmphasisIds }
+      : {}),
+    ...(型 === "slope" && doc.chartSlopeUnit !== undefined
+      ? { chartSlopeUnit: doc.chartSlopeUnit }
+      : {}),
+    ...(型 === "stacked" && doc.chartStackedPeriods !== undefined
+      ? { chartStackedPeriods: doc.chartStackedPeriods }
+      : {}),
+    ...(型 === "stacked" && doc.chartStackedRateId !== undefined
+      ? { chartStackedRateId: slugify(doc.chartStackedRateId) }
+      : {}),
+    ...(型 === "stacked" && doc.chartStackedLegendPosition !== undefined
+      ? { chartStackedLegendPosition: doc.chartStackedLegendPosition }
+      : {}),
+    ...(型 === "gauge" && doc.chartGaugeValue !== undefined
+      ? { chartGaugeValue: doc.chartGaugeValue }
+      : {}),
+    ...(型 === "waffle" && doc.chartWaffleLegendPosition !== undefined
+      ? { chartWaffleLegendPosition: doc.chartWaffleLegendPosition }
+      : {}),
   });
 
   return b.build();

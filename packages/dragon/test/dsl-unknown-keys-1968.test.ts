@@ -56,7 +56,10 @@ const 見本 = (
   json: 綴り違いの見本["json"],
 ): 綴り違いの見本 => {
   const src = 記法(綴り);
-  const 行 = src.split("\n").findIndex((l) => l.includes(`${綴り}:`)) + 1;
+  const 行 =
+    src
+      .split("\n")
+      .findIndex((l) => l.includes(`${綴り}:`) || l.includes(`"${綴り}":`)) + 1;
   return { 名, 記法: src, 項目名: 綴り, 行, 正しい記法: 記法(正), json };
 };
 
@@ -71,10 +74,76 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   shape: { 項目名を持たない理由: "数を描く図の形の語を 1 つ書く欄" },
   form: { 項目名を持たない理由: "円グラフの見せ方の語を 1 つ書く欄" },
   ticks: { 項目名を持たない理由: "ガントチャートの目盛り名を並べる欄" },
-  ganttToday: { 項目名を持たない理由: "今日の位置と札を 1 組で書く欄" },
+  ganttToday: [
+    見本(
+      "今日の位置と札",
+      (k) =>
+        `title: "t"\ntype: gantt\nganttToday: { index: 3.3, ${k}: "今日" }\n\nactors:\n  - A: "6月"\n`,
+      "lable",
+      "label",
+      {
+        input: 図({
+          type: "gantt",
+          ganttToday: { index: 3.3, lable: "今日" },
+        }),
+        path: "$.ganttToday.lable",
+      },
+    ),
+  ],
   ganttTickLabels: { 項目名を持たない理由: "ガントチャートの目盛り名を並べる欄" },
   ganttBarEnd: { 項目名を持たない理由: "ガントチャートの帯の終わり方の語を 1 つ書く欄" },
   ganttBarThickness: { 項目名を持たない理由: "ガントチャートの帯の太さの語を 1 つ書く欄" },
+  chartSeriesSkipMuted: { 項目名を持たない理由: "沈んだ系列を数えないかを true で書く欄" },
+  chartLineSeries: [
+    見本(
+      "折れ線の系列",
+      (k) =>
+        `${頭}chartLineSeries: [{ "${k}": "実績", "points": [{ "label": "6月", "value": 10 }] }]\n\nactors:\n  - A\n`,
+      "lable",
+      "label",
+      {
+        input: 図({ chartLineSeries: [{ lable: "実績", points: [{ label: "6月", value: 10 }] }] }),
+        path: "$.chartLineSeries[0].lable",
+      },
+    ),
+  ],
+  chartPieCenterLabel: { 項目名を持たない理由: "円の中心に描く文字列を 1 つ書く欄" },
+  chartPieTableColumns: { 項目名を持たない理由: "円の表の列の語を 1 つ書く欄" },
+  chartPieRingWidth: { 項目名を持たない理由: "円の輪の太さの語を 1 つ書く欄" },
+  chartSlopePeriods: { 項目名を持たない理由: "傾き図の時点名を並べる欄" },
+  chartSlopeEmphasisIds: { 項目名を持たない理由: "傾き図で主役にする id を並べる欄" },
+  chartSlopeUnit: { 項目名を持たない理由: "傾き図の単位の文字列を 1 つ書く欄" },
+  chartStackedPeriods: [
+    見本(
+      "内訳の帯の期間",
+      (k) =>
+        `${頭}chartStackedPeriods: [{ "${k}": "6月", "values": [90, 10] }]\n\nactors:\n  - A\n`,
+      "lable",
+      "label",
+      {
+        input: 図({ chartStackedPeriods: [{ lable: "6月", values: [90, 10] }] }),
+        path: "$.chartStackedPeriods[0].lable",
+      },
+    ),
+  ],
+  chartStackedRateId: { 項目名を持たない理由: "右に率を描く項目の id を 1 つ書く欄" },
+  chartStackedLegendPosition: { 項目名を持たない理由: "内訳の帯の凡例位置の語を 1 つ書く欄" },
+  chartGaugeValue: [
+    見本(
+      "半円の値",
+      (k) => `${頭}chartGaugeValue: { "max": 100, "current": 78, "${k}": 80 }\n\nactors:\n  - A\n`,
+      "targte",
+      "target",
+      {
+        input: 図({ chartGaugeValue: { max: 100, current: 78, targte: 80 } }),
+        path: "$.chartGaugeValue.targte",
+      },
+    ),
+  ],
+  chartWaffleLegendPosition: { 項目名を持たない理由: "升目の凡例位置の語を 1 つ書く欄" },
+  funnelForm: { 項目名を持たない理由: "漏斗の棒の形の語を 1 つ書く欄" },
+  funnelRate: { 項目名を持たない理由: "漏斗の率の見せ方の語を 1 つ書く欄" },
+  quadrantPointLabelSide: { 項目名を持たない理由: "四象限の点の名前を置く側の語を 1 つ書く欄" },
   theme: { 項目名を持たない理由: "意匠の語を 1 つ書く欄" },
   legend: [
     見本(

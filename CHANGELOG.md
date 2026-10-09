@@ -14,6 +14,12 @@ dragon DSL の主要変更履歴。
   `legendFontSize:`・`stageHeaders:`・`titleFontSize:`・`markGap:` を読んで組み立て器と同じ図にする。
   工程の図では `ganttToday:`・`ganttTickLabels:`・`ganttBarEnd:`・`ganttBarThickness:`・
   `startLabel:`・`milestone:`・`emphasis:` を記法から CDL へ渡す。
+  図表では `chartSeriesSkipMuted:`・`chartLineSeries:`・`chartPieCenterLabel:`・
+  `chartPieTableColumns:`・`chartPieRingWidth:`・`chartSlopePeriods:`・
+  `chartSlopeEmphasisIds:`・`chartSlopeUnit:`・`chartStackedPeriods:`・
+  `chartStackedRateId:`・`chartStackedLegendPosition:`・`chartGaugeValue:`・
+  `chartWaffleLegendPosition:`・`funnelForm:`・`funnelRate:`・`quadrantPointLabelSide:` を
+  記法から CDL へ渡す。
   見本と同じため検査の汎用下限を割る札・印・列の間は、対象と見本の実測値を名指しして受け入れた。
 
 - **クラス図を `record` に畳み、行を持つ図を一つの型で書けるようにした** (#2783)

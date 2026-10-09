@@ -119,7 +119,6 @@ const 別の知らせ: Record<string, string> = {
   end: "chart-value-unreadable",
   startLabel: "chart-value-unreadable",
   milestone: "chart-value-unreadable",
-  emphasis: "chart-value-unreadable",
   touchpoint: "chart-value-unreadable",
   opportunity: "chart-value-unreadable",
 };

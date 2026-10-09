@@ -145,6 +145,44 @@ export type DslDocument = {
   ganttBarEnd?: "position";
   /** 行の字に対して見本の比で細くする。 */
   ganttBarThickness?: "thin";
+  /** 図表の系列色で `muted` の項目を数えない。 */
+  chartSeriesSkipMuted?: NonNullable<CdlDiagram["nodes"][number]["chartSeriesSkipMuted"]>;
+  /** 折れ線の複数系列。 */
+  chartLineSeries?: NonNullable<CdlDiagram["nodes"][number]["chartLineSeries"]>;
+  /** 円の中心で合計の下に置く字。 */
+  chartPieCenterLabel?: NonNullable<CdlDiagram["nodes"][number]["chartPieCenterLabel"]>;
+  /** 円の表に置く列。 */
+  chartPieTableColumns?: NonNullable<CdlDiagram["nodes"][number]["chartPieTableColumns"]>;
+  /** 円の輪の太さ。 */
+  chartPieRingWidth?: NonNullable<CdlDiagram["nodes"][number]["chartPieRingWidth"]>;
+  /** 傾き図の左右の時点名。 */
+  chartSlopePeriods?: NonNullable<CdlDiagram["nodes"][number]["chartSlopePeriods"]>;
+  /** 傾き図で主役にする項目の id。 */
+  chartSlopeEmphasisIds?: NonNullable<CdlDiagram["nodes"][number]["chartSlopeEmphasisIds"]>;
+  /** 傾き図の値に付ける単位。 */
+  chartSlopeUnit?: NonNullable<CdlDiagram["nodes"][number]["chartSlopeUnit"]>;
+  /** 内訳の帯の期間。 */
+  chartStackedPeriods?: NonNullable<CdlDiagram["nodes"][number]["chartStackedPeriods"]>;
+  /** 内訳の帯の右に率を描く項目の id。 */
+  chartStackedRateId?: NonNullable<CdlDiagram["nodes"][number]["chartStackedRateId"]>;
+  /** 内訳の帯の凡例の位置。 */
+  chartStackedLegendPosition?: NonNullable<
+    CdlDiagram["nodes"][number]["chartStackedLegendPosition"]
+  >;
+  /** 半円を固定の尺で読む値。 */
+  chartGaugeValue?: NonNullable<CdlDiagram["nodes"][number]["chartGaugeValue"]>;
+  /** 升目の一覧を置く側。 */
+  chartWaffleLegendPosition?: NonNullable<
+    CdlDiagram["nodes"][number]["chartWaffleLegendPosition"]
+  >;
+  /** 漏斗の形。 */
+  funnelForm?: NonNullable<CdlDiagram["nodes"][number]["funnelForm"]>;
+  /** 漏斗に描く率。 */
+  funnelRate?: NonNullable<CdlDiagram["nodes"][number]["funnelRate"]>;
+  /** 座標で置いた四象限の点の名前を置く側。 */
+  quadrantPointLabelSide?: NonNullable<
+    CdlDiagram["nodes"][number]["quadrantPointLabelSide"]
+  >;
   /** 図の下へ指定順に置く凡例。 */
   legend?: { mark: LegendMark; text: string }[];
   /** 図の凡例の字の大きさ。 */
@@ -306,9 +344,12 @@ export type DslDocument = {
 
 /** 2 軸で仕分ける図の軸の名前 (#1251) */
 export type DslAxes = {
-  x?: { left?: string; right?: string };
-  y?: { bottom?: string; top?: string };
+  x?: { left?: string; right?: string; label?: never; direction?: never } | DslAxisDirection;
+  y?: { bottom?: string; top?: string; label?: never; direction?: never } | DslAxisDirection;
 };
+
+/** 端の名前ではなく、向き付きの軸名を 1 つだけ描く形。 */
+export type DslAxisDirection = { label: string; direction: true };
 
 /**
  * 2 軸で仕分ける図の区画の名前 (#2667)。

@@ -63,6 +63,13 @@ function 重なる組(箱たち: 箱[]): string[] {
 
 const 描く = (d: CdlDiagram): string => renderToStaticMarkup(<CdlDiagramView diagram={layout(d)} />);
 
+/** 固定値の主見本と、内訳を描く変種の両方を拾う。 */
+const 半円ゲージの図たち = (): CdlDiagram[] =>
+  Object.values(CATALOG_ITEMS)
+    .flat()
+    .flatMap((item) => [item.diagram, ...(item.patterns ?? []).map((pattern) => pattern.diagram)])
+    .filter((diagram) => diagram.nodes.some((n) => n.kind === "chart-gauge"));
+
 /** 内訳が n 件の半円ゲージを記法から組む */
 const 記法 = (n: number): string =>
   [
@@ -78,12 +85,10 @@ const 段数 = (一覧: 内訳[]): number => new Set(一覧.map((n) => Math.roun
 
 describe("カタログの半円ゲージは内訳がくっつかない (#1676)", () => {
   it("見本の半円ゲージで内訳の字が 1 組も重ならない", () => {
-    const 一覧 = Object.values(CATALOG_ITEMS)
-      .flat()
-      .filter(({ diagram }) => diagram.nodes.some((n) => n.kind === "chart-gauge"));
+    const 一覧 = 半円ゲージの図たち();
     expect(一覧.length, "半円ゲージの見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
     let 測れた = 0;
-    for (const { diagram } of 一覧) {
+    for (const diagram of 一覧) {
       const 箱たち = 内訳たち(描く(diagram)).flatMap((n) => n.箱たち);
       測れた += 箱たち.length;
       expect(重なる組(箱たち)).toEqual([]);
@@ -104,11 +109,9 @@ describe("カタログの半円ゲージは内訳がくっつかない (#1676)",
 
   it("見本の内訳 3 件は 1 段のまま", () => {
     // 陰性対照。 折り返しが常に働くと、崩れていない見本まで段が増えて弧が低くなる
-    const 一覧 = Object.values(CATALOG_ITEMS)
-      .flat()
-      .filter(({ diagram }) => diagram.nodes.some((n) => n.kind === "chart-gauge"));
+    const 一覧 = 半円ゲージの図たち();
     let 測れた = 0;
-    for (const { diagram } of 一覧) {
+    for (const diagram of 一覧) {
       const 内訳 = 内訳たち(描く(diagram));
       if (内訳.length === 0) continue;
       測れた += 1;
@@ -119,10 +122,8 @@ describe("カタログの半円ゲージは内訳がくっつかない (#1676)",
 
   it("見本の内訳は末尾を切られていない", () => {
     // 区画が中身より狭いと `…` が付く。 見本の件数では切らずに収まるのが期待
-    const 一覧 = Object.values(CATALOG_ITEMS)
-      .flat()
-      .filter(({ diagram }) => diagram.nodes.some((n) => n.kind === "chart-gauge"));
-    const 切れた = 一覧.flatMap(({ diagram }) =>
+    const 一覧 = 半円ゲージの図たち();
+    const 切れた = 一覧.flatMap((diagram) =>
       内訳たち(描く(diagram)).flatMap((n) => n.文たち.filter((t) => t.endsWith("…"))),
     );
     expect(切れた).toEqual([]);
@@ -194,11 +195,9 @@ describe("内訳が多くても合計が主役のまま (#1682)", () => {
 
   it("見本の半円ゲージは畳まれない", () => {
     // 陰性対照。 常に畳む実装なら、崩れていない見本まで内訳が「その他」 に置き換わる
-    const 一覧 = Object.values(CATALOG_ITEMS)
-      .flat()
-      .filter(({ diagram }) => diagram.nodes.some((n) => n.kind === "chart-gauge"));
+    const 一覧 = 半円ゲージの図たち();
     let 測れた = 0;
-    for (const { diagram } of 一覧) {
+    for (const diagram of 一覧) {
       const 内訳 = 内訳たち(描く(diagram));
       if (内訳.length === 0) continue;
       測れた += 1;

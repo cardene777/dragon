@@ -275,6 +275,8 @@ export const pattern__branchParcelsBar__4割で伸ばし終える = textDslToDia
 export const sourceYaml__monthlyDeliveriesLine = `title: "月ごとの配達数"
 type: chart
 shape: line
+chartSeriesSkipMuted: true
+chartLineSeries: [{"label":"計画","points":[{"label":"6月","value":1000},{"label":"7月","value":1150},{"label":"8月","value":1300},{"label":"9月","value":1450},{"label":"10月","value":1600}],"tone":"muted","dash":"dotted","marker":"none","valueIndexes":[4]},{"points":[{"label":"6月","value":900},{"label":"7月","value":1180},{"label":"8月","value":1250},{"label":"9月","value":1520},{"label":"10月","value":1750}],"dash":"solid","marker":"hollow","valueIndexes":[0,4]}]
 
 actors:
   - 6月: "{jun}"
@@ -308,6 +310,11 @@ export const sourceJson__monthlyDeliveriesLine = `{
   "title": "月ごとの配達数",
   "type": "chart",
   "shape": "line",
+  "chartSeriesSkipMuted": true,
+  "chartLineSeries": [
+    { "label": "計画", "points": [{ "label": "6月", "value": 1000 }, { "label": "7月", "value": 1150 }, { "label": "8月", "value": 1300 }, { "label": "9月", "value": 1450 }, { "label": "10月", "value": 1600 }], "tone": "muted", "dash": "dotted", "marker": "none", "valueIndexes": [4] },
+    { "points": [{ "label": "6月", "value": 900 }, { "label": "7月", "value": 1180 }, { "label": "8月", "value": 1250 }, { "label": "9月", "value": 1520 }, { "label": "10月", "value": 1750 }], "dash": "solid", "marker": "hollow", "valueIndexes": [0, 4] }
+  ],
   "actors": [
     { "name": "6月", "subtitle": "{jun}" },
     { "name": "7月", "subtitle": "{jul}" },
@@ -343,12 +350,15 @@ export const sourceYaml__parcelStatusPie = `title: "荷物の状態"
 type: chart
 shape: pie
 form: table
+chartPieCenterLabel: "件"
+chartPieTableColumns: value
+chartPieRingWidth: thin
 
 actors:
   - 配達中: "{delivering}"
   - 集荷済: "{collected}"
   - 受付済: "{accepted}"
-  - 完了: "{completed}"
+  - 完了: { value: "{completed}", tone: muted }
 
 states:
   delivering: 210
@@ -374,11 +384,14 @@ export const sourceJson__parcelStatusPie = `{
   "type": "chart",
   "shape": "pie",
   "見せ方": "銘板",
+  "chartPieCenterLabel": "件",
+  "chartPieTableColumns": "value",
+  "chartPieRingWidth": "thin",
   "actors": [
     { "name": "配達中", "subtitle": "{delivering}" },
     { "name": "集荷済", "subtitle": "{collected}" },
     { "name": "受付済", "subtitle": "{accepted}" },
-    { "name": "完了", "subtitle": "{completed}" }
+    { "name": "完了", "value": "{completed}", "tone": "muted" }
   ],
   "flow": [],
   "states": { "delivering": 210, "collected": 132, "accepted": 70, "completed": 720 },
@@ -419,7 +432,7 @@ actors:
   - 配達中: { value: "{delivering}", previous: "240" }
   - 集荷済: { value: "{collected}", previous: "130" }
   - 受付済: { value: "{accepted}", previous: "82" }
-  - 完了: { value: "{completed}", previous: "748" }
+  - 完了: { value: "{completed}", previous: "748", tone: muted }
 
 states:
   delivering: 270
@@ -446,7 +459,7 @@ export const sourceJson__pattern__parcelStatusPie__前と今 = `{
     { "name": "配達中", "value": "{delivering}", "previous": "240" },
     { "name": "集荷済", "value": "{collected}", "previous": "130" },
     { "name": "受付済", "value": "{accepted}", "previous": "82" },
-    { "name": "完了", "value": "{completed}", "previous": "748" }
+    { "name": "完了", "value": "{completed}", "previous": "748", "tone": "muted" }
   ],
   "flow": [],
   "states": { "delivering": 270, "collected": 141, "accepted": 77, "completed": 796 },
@@ -473,12 +486,15 @@ export const pattern__parcelStatusPie__前と今 = textDslToDiagram(sourceYaml__
 // ============================================================
 export const sourceYaml__orderToDeliveryFunnel = `title: "申し込みから届くまで"
 type: funnel
+funnelForm: proportional-bars
+funnelRate: conversion
+chartSeriesSkipMuted: true
 
 actors:
-  - 見た: "{viewed}"
-  - 申し込んだ: "{ordered}"
-  - 集荷した: "{collected}"
-  - 届いた: { value: "{delivered}" }
+  - 見た: { value: "{viewed}", tone: muted }
+  - 申し込んだ: { value: "{ordered}", tone: muted }
+  - 集荷した: { value: "{collected}", tone: muted }
+  - 届いた: { value: "{delivered}", emphasis: primary }
 
 states:
   viewed: 12000
@@ -502,11 +518,14 @@ animation:
 export const sourceJson__orderToDeliveryFunnel = `{
   "title": "申し込みから届くまで",
   "type": "funnel",
+  "funnelForm": "proportional-bars",
+  "funnelRate": "conversion",
+  "chartSeriesSkipMuted": true,
   "actors": [
-    { "name": "見た", "subtitle": "{viewed}" },
-    { "name": "申し込んだ", "subtitle": "{ordered}" },
-    { "name": "集荷した", "subtitle": "{collected}" },
-    { "name": "届いた", "value": "{delivered}" }
+    { "name": "見た", "value": "{viewed}", "tone": "muted" },
+    { "name": "申し込んだ", "value": "{ordered}", "tone": "muted" },
+    { "name": "集荷した", "value": "{collected}", "tone": "muted" },
+    { "name": "届いた", "value": "{delivered}", "emphasis": "primary" }
   ],
   "flow": [],
   "states": { "viewed": 12000, "ordered": 2800, "collected": 2300, "delivered": 2150 },
@@ -1112,10 +1131,11 @@ export const pattern__redeliveryIdeasMind__説明つき = textDslToDiagram(
 // ============================================================
 export const sourceYaml__measureEffortQuadrant = `title: "打ち手の手間と効き目"
 type: quadrant
+quadrantPointLabelSide: right
 
 axes:
-  x: { left: "手間 小", right: "手間 大" }
-  y: { bottom: "効き目 小", top: "効き目 大" }
+  x: { label: "手間", direction: true }
+  y: { label: "効き目", direction: true }
 
 regions:
   左上: "先にやる"
@@ -1163,9 +1183,10 @@ animation:
 export const sourceJson__measureEffortQuadrant = `{
   "title": "打ち手の手間と効き目",
   "type": "quadrant",
+  "quadrantPointLabelSide": "right",
   "axes": {
-    "x": { "left": "手間 小", "right": "手間 大" },
-    "y": { "bottom": "効き目 小", "top": "効き目 大" }
+    "x": { "label": "手間", "direction": true },
+    "y": { "label": "効き目", "direction": true }
   },
   "regions": {
     "左上": "先にやる",
@@ -1342,10 +1363,11 @@ export const pattern__deliveryOfficeTree__見出しだけ = textDslToDiagram(
 export const sourceYaml__onTimeShareGauge = `title: "定時に届いた割合"
 type: chart
 shape: gauge
+chartGaugeValue: {"max":100,"current":78,"target":80,"previous":72,"previousLabel":"先月"}
 
 actors:
   - 定時に届いた: "{on_time}"
-  - 遅れた: "{late}"
+  - 遅れた: { value: "{late}", tone: muted }
 
 states:
   on_time: 72
@@ -1366,9 +1388,10 @@ export const sourceJson__onTimeShareGauge = `{
   "title": "定時に届いた割合",
   "type": "chart",
   "shape": "gauge",
+  "chartGaugeValue": { "max": 100, "current": 78, "target": 80, "previous": 72, "previousLabel": "先月" },
   "actors": [
     { "name": "定時に届いた", "subtitle": "{on_time}" },
-    { "name": "遅れた", "subtitle": "{late}" }
+    { "name": "遅れた", "value": "{late}", "tone": "muted" }
   ],
   "flow": [],
   "states": { "on_time": 72, "late": 28 },
@@ -1412,7 +1435,7 @@ shape: gauge
 
 actors:
   - 定時に届いた: { value: "{on_time}", previous: "72" }
-  - 遅れた: { value: "{late}", previous: "28" }
+  - 遅れた: { value: "{late}", previous: "28", tone: muted }
 
 states:
   on_time: 78
@@ -1435,7 +1458,7 @@ export const sourceJson__pattern__onTimeShareGauge__前の値つき = `{
   "shape": "gauge",
   "actors": [
     { "name": "定時に届いた", "value": "{on_time}", "previous": "72" },
-    { "name": "遅れた", "value": "{late}", "previous": "28" }
+    { "name": "遅れた", "value": "{late}", "previous": "28", "tone": "muted" }
   ],
   "flow": [],
   "states": { "on_time": 78, "late": 22 },
@@ -1782,11 +1805,12 @@ export const pattern__chartStat__前の値つき = textDslToDiagram(
 export const sourceYaml__parcelSizeWaffle = `title: "荷物の大きさ"
 type: chart
 shape: waffle
+chartWaffleLegendPosition: right
 
 actors:
   - 小さい: "{small}"
   - ふつう: "{medium}"
-  - 大きい: "{large}"
+  - 大きい: { value: "{large}", tone: muted }
 
 states:
   small: 48
@@ -1809,10 +1833,11 @@ export const sourceJson__parcelSizeWaffle = `{
   "title": "荷物の大きさ",
   "type": "chart",
   "shape": "waffle",
+  "chartWaffleLegendPosition": "right",
   "actors": [
     { "name": "小さい", "subtitle": "{small}" },
     { "name": "ふつう", "subtitle": "{medium}" },
-    { "name": "大きい", "subtitle": "{large}" }
+    { "name": "大きい", "value": "{large}", "tone": "muted" }
   ],
   "flow": [],
   "states": { "small": 48, "medium": 34, "large": 18 },
@@ -1846,10 +1871,14 @@ export const parcelSizeWaffle = textDslToDiagram(sourceYaml__parcelSizeWaffle);
 export const sourceYaml__deliveryResultStacked = `title: "配達の結果"
 type: chart
 shape: stacked
+chartStackedPeriods: [{"label":"6月","values":[79,19,2]},{"label":"7月","values":[81,17,2]},{"label":"8月","values":[77,21,2]},{"label":"9月","values":[83,16,1]},{"label":"10月","values":[86,13,1]}]
+chartStackedRateId: "再配達"
+chartStackedLegendPosition: top
+chartSeriesSkipMuted: true
 
 actors:
-  - 一度で届いた: { value: "{first_try}", previous: "83" }
-  - 再配達: { value: "{redelivery}", previous: "16" }
+  - 一度で届いた: { value: "{first_try}", previous: "83", tone: muted }
+  - 再配達: { value: "{redelivery}", previous: "16", emphasis: primary }
   - 戻った: { value: "{returned}", previous: "1" }
 
 states:
@@ -1873,9 +1902,19 @@ export const sourceJson__deliveryResultStacked = `{
   "title": "配達の結果",
   "type": "chart",
   "shape": "stacked",
+  "chartStackedPeriods": [
+    { "label": "6月", "values": [79, 19, 2] },
+    { "label": "7月", "values": [81, 17, 2] },
+    { "label": "8月", "values": [77, 21, 2] },
+    { "label": "9月", "values": [83, 16, 1] },
+    { "label": "10月", "values": [86, 13, 1] }
+  ],
+  "chartStackedRateId": "再配達",
+  "chartStackedLegendPosition": "top",
+  "chartSeriesSkipMuted": true,
   "actors": [
-    { "name": "一度で届いた", "value": "{first_try}", "previous": "83" },
-    { "name": "再配達", "value": "{redelivery}", "previous": "16" },
+    { "name": "一度で届いた", "value": "{first_try}", "previous": "83", "tone": "muted" },
+    { "name": "再配達", "value": "{redelivery}", "previous": "16", "emphasis": "primary" },
     { "name": "戻った", "value": "{returned}", "previous": "1" }
   ],
   "flow": [],
@@ -1909,10 +1948,11 @@ export const patternBase__deliveryResultStacked = "前と今";
 export const sourceYaml__pattern__deliveryResultStacked__今だけ = `title: "10月の配達の結果"
 type: chart
 shape: stacked
+chartSeriesSkipMuted: true
 
 actors:
-  - 一度で届いた: "{first_try}"
-  - 再配達: "{redelivery}"
+  - 一度で届いた: { value: "{first_try}", tone: muted }
+  - 再配達: { value: "{redelivery}", emphasis: primary }
   - 戻った: "{returned}"
 
 states:
@@ -1936,9 +1976,10 @@ export const sourceJson__pattern__deliveryResultStacked__今だけ = `{
   "title": "10月の配達の結果",
   "type": "chart",
   "shape": "stacked",
+  "chartSeriesSkipMuted": true,
   "actors": [
-    { "name": "一度で届いた", "value": "{first_try}" },
-    { "name": "再配達", "value": "{redelivery}" },
+    { "name": "一度で届いた", "value": "{first_try}", "tone": "muted" },
+    { "name": "再配達", "value": "{redelivery}", "emphasis": "primary" },
     { "name": "戻った", "value": "{returned}" }
   ],
   "flow": [],
@@ -1969,11 +2010,14 @@ export const pattern__deliveryResultStacked__今だけ = textDslToDiagram(
 export const sourceYaml__onTimeRateSlope = `title: "営業所ごとの定時率"
 type: chart
 shape: slope
+chartSlopePeriods: ["先月", "今月"]
+chartSlopeEmphasisIds: ["大阪", "名古屋"]
+chartSlopeUnit: "%"
 
 actors:
+  - 名古屋: { value: "{nagoya}", previous: "79", tone: accent }
   - 東京: { value: "{tokyo}", previous: "84" }
   - 大阪: { value: "{osaka}", previous: "86", tone: error }
-  - 名古屋: { value: "{nagoya}", previous: "79", tone: accent }
   - 福岡: { value: "{fukuoka}", previous: "82" }
 
 states:
@@ -1999,10 +2043,13 @@ export const sourceJson__onTimeRateSlope = `{
   "title": "営業所ごとの定時率",
   "type": "chart",
   "shape": "slope",
+  "chartSlopePeriods": ["先月", "今月"],
+  "chartSlopeEmphasisIds": ["大阪", "名古屋"],
+  "chartSlopeUnit": "%",
   "actors": [
+    { "name": "名古屋", "value": "{nagoya}", "previous": "79", "tone": "accent" },
     { "name": "東京", "value": "{tokyo}", "previous": "84" },
     { "name": "大阪", "value": "{osaka}", "previous": "86", "tone": "error" },
-    { "name": "名古屋", "value": "{nagoya}", "previous": "79", "tone": "accent" },
     { "name": "福岡", "value": "{fukuoka}", "previous": "82" }
   ],
   "flow": [],

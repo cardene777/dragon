@@ -94,6 +94,8 @@ const 選択肢: ReadonlyArray<{
     場所: [
       "edges[].tone",
       "nodes[].chartData[].tone",
+      "nodes[].chartLineSeries[].tone",
+      "nodes[].funnelData[].tone",
       "nodes[].ganttData[].tone",
       "nodes[].tone",
     ],

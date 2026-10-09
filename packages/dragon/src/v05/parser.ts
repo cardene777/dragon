@@ -92,6 +92,17 @@ import type { DslDirection } from "../keywords";
 import type { DslOrder } from "../keywords";
 import type { DslDiagramShape, DslShape } from "../keywords";
 import { parseRelativePos, findRelativeProblems, type RelativeProblem } from "../relative-pos";
+
+/** #2854 で記法に足した図表欄の閉じた語。JSON / schema と共有する。 */
+export const CHART_LINE_DASH_VALUES = ["solid", "dotted"] as const;
+export const CHART_LINE_MARKER_VALUES = ["dot", "hollow", "none"] as const;
+export const CHART_PIE_TABLE_COLUMN_VALUES = ["share-value", "value"] as const;
+export const CHART_PIE_RING_WIDTH_VALUES = ["thick", "thin"] as const;
+export const CHART_STACKED_LEGEND_POSITION_VALUES = ["top", "bottom"] as const;
+export const CHART_WAFFLE_LEGEND_POSITION_VALUES = ["left", "right"] as const;
+export const FUNNEL_FORM_VALUES = ["trapezoid", "proportional-bars"] as const;
+export const FUNNEL_RATE_VALUES = ["drop", "conversion", "none"] as const;
+export const QUADRANT_POINT_LABEL_SIDE_VALUES = ["auto", "right"] as const;
 import {
   checkValueExpression,
   isTriggerBody,
@@ -238,6 +249,22 @@ export const TOP_LEVEL_KEYS = [
   "ganttTickLabels",
   "ganttBarEnd",
   "ganttBarThickness",
+  "chartSeriesSkipMuted",
+  "chartLineSeries",
+  "chartPieCenterLabel",
+  "chartPieTableColumns",
+  "chartPieRingWidth",
+  "chartSlopePeriods",
+  "chartSlopeEmphasisIds",
+  "chartSlopeUnit",
+  "chartStackedPeriods",
+  "chartStackedRateId",
+  "chartStackedLegendPosition",
+  "chartGaugeValue",
+  "chartWaffleLegendPosition",
+  "funnelForm",
+  "funnelRate",
+  "quadrantPointLabelSide",
   /*
    * 図の意匠 (#1553 / #2790)。
    *
@@ -604,6 +631,22 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let ganttTickLabels: string[] | undefined;
   let ganttBarEnd: DslDocument["ganttBarEnd"];
   let ganttBarThickness: DslDocument["ganttBarThickness"];
+  let chartSeriesSkipMuted: DslDocument["chartSeriesSkipMuted"];
+  let chartLineSeries: DslDocument["chartLineSeries"];
+  let chartPieCenterLabel: DslDocument["chartPieCenterLabel"];
+  let chartPieTableColumns: DslDocument["chartPieTableColumns"];
+  let chartPieRingWidth: DslDocument["chartPieRingWidth"];
+  let chartSlopePeriods: DslDocument["chartSlopePeriods"];
+  let chartSlopeEmphasisIds: DslDocument["chartSlopeEmphasisIds"];
+  let chartSlopeUnit: DslDocument["chartSlopeUnit"];
+  let chartStackedPeriods: DslDocument["chartStackedPeriods"];
+  let chartStackedRateId: DslDocument["chartStackedRateId"];
+  let chartStackedLegendPosition: DslDocument["chartStackedLegendPosition"];
+  let chartGaugeValue: DslDocument["chartGaugeValue"];
+  let chartWaffleLegendPosition: DslDocument["chartWaffleLegendPosition"];
+  let funnelForm: DslDocument["funnelForm"];
+  let funnelRate: DslDocument["funnelRate"];
+  let quadrantPointLabelSide: DslDocument["quadrantPointLabelSide"];
   let aliasShape: DslShape | null = null;
   let aliasShapeLine = 0;
   let theme: DslTheme | null = null;
@@ -925,6 +968,15 @@ export function parseTextDslV05(src: string): V05ParseResult {
     }
     if (head.key === "ganttToday") {
       const raw = (head.value ?? "").trim();
+      if (raw.startsWith("{") && raw.endsWith("}")) {
+        中括弧の知らない項目名を知らせる(
+          raw.slice(1, -1),
+          ["index", "label"],
+          "ganttToday の ",
+          line.no,
+          errors,
+        );
+      }
       const inner = raw.startsWith("{") && raw.endsWith("}")
         ? parseInlineMapping(raw.slice(1, -1))
         : {};
@@ -970,6 +1022,108 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const value = stripQuotes((head.value ?? "").trim());
       if (value === "thin") ganttBarThickness = value;
       else errors.push({ line: line.no, message: `ganttBarThickness が読めません: "${value}"`, hint: "使える値 = thin" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartSeriesSkipMuted") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if (value === "true") chartSeriesSkipMuted = true;
+      else errors.push({ line: line.no, message: `chartSeriesSkipMuted が読めません: "${value}"`, hint: "使える値 = true" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartLineSeries") {
+      const value = JSONの欄を読む(head.value, "chartLineSeries", line.no, errors);
+      const unknown = chartLineSeriesの知らない項目を知らせる(value, line.no, errors);
+      if (!unknown && chartLineSeriesの形(value)) chartLineSeries = value;
+      else if (value !== undefined) errors.push({ line: line.no, message: "chartLineSeries の系列または点の形が読めません" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartStackedPeriods") {
+      const value = JSONの欄を読む(head.value, "chartStackedPeriods", line.no, errors);
+      const unknown = chartStackedPeriodsの知らない項目を知らせる(value, line.no, errors);
+      if (!unknown && chartStackedPeriodsの形(value)) chartStackedPeriods = value;
+      else if (value !== undefined) errors.push({ line: line.no, message: "chartStackedPeriods の期間または値の形が読めません" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartGaugeValue") {
+      const value = JSONの欄を読む(head.value, "chartGaugeValue", line.no, errors);
+      const unknown = chartGaugeValueの知らない項目を知らせる(value, line.no, errors);
+      if (!unknown && chartGaugeValueの形(value)) chartGaugeValue = value;
+      else if (value !== undefined) errors.push({ line: line.no, message: "chartGaugeValue の値の形が読めません" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartSlopePeriods" || head.key === "chartSlopeEmphasisIds") {
+      const raw = (head.value ?? "").trim();
+      const values = raw.startsWith("[") && raw.endsWith("]")
+        ? splitTopLevelCommas(raw.slice(1, -1)).map((value) => stripQuotes(value.trim()))
+        : [];
+      if (values.length === 0 || values.some((value) => value.length === 0)) {
+        errors.push({ line: line.no, message: `${head.key} の書き方が読めません`, hint: `${head.key}: ["先月", "今月"] の形で書く` });
+      } else if (head.key === "chartSlopePeriods") {
+        if (values.length === 2) chartSlopePeriods = [values[0]!, values[1]!];
+        else errors.push({ line: line.no, message: "chartSlopePeriods は時点名を 2 つ書く" });
+      } else chartSlopeEmphasisIds = values;
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartPieCenterLabel" || head.key === "chartSlopeUnit" || head.key === "chartStackedRateId") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if (head.key === "chartPieCenterLabel") chartPieCenterLabel = value;
+      else if (head.key === "chartSlopeUnit") chartSlopeUnit = value;
+      else chartStackedRateId = value;
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartPieTableColumns") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((CHART_PIE_TABLE_COLUMN_VALUES as readonly string[]).includes(value)) chartPieTableColumns = value as typeof chartPieTableColumns;
+      else errors.push({ line: line.no, message: `chartPieTableColumns が読めません: "${value}"`, hint: `使える値 = ${CHART_PIE_TABLE_COLUMN_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartPieRingWidth") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((CHART_PIE_RING_WIDTH_VALUES as readonly string[]).includes(value)) chartPieRingWidth = value as typeof chartPieRingWidth;
+      else errors.push({ line: line.no, message: `chartPieRingWidth が読めません: "${value}"`, hint: `使える値 = ${CHART_PIE_RING_WIDTH_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartStackedLegendPosition") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((CHART_STACKED_LEGEND_POSITION_VALUES as readonly string[]).includes(value)) chartStackedLegendPosition = value as typeof chartStackedLegendPosition;
+      else errors.push({ line: line.no, message: `chartStackedLegendPosition が読めません: "${value}"`, hint: `使える値 = ${CHART_STACKED_LEGEND_POSITION_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartWaffleLegendPosition") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((CHART_WAFFLE_LEGEND_POSITION_VALUES as readonly string[]).includes(value)) chartWaffleLegendPosition = value as typeof chartWaffleLegendPosition;
+      else errors.push({ line: line.no, message: `chartWaffleLegendPosition が読めません: "${value}"`, hint: `使える値 = ${CHART_WAFFLE_LEGEND_POSITION_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "funnelForm") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((FUNNEL_FORM_VALUES as readonly string[]).includes(value)) funnelForm = value as typeof funnelForm;
+      else errors.push({ line: line.no, message: `funnelForm が読めません: "${value}"`, hint: `使える値 = ${FUNNEL_FORM_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "funnelRate") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((FUNNEL_RATE_VALUES as readonly string[]).includes(value)) funnelRate = value as typeof funnelRate;
+      else errors.push({ line: line.no, message: `funnelRate が読めません: "${value}"`, hint: `使える値 = ${FUNNEL_RATE_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "quadrantPointLabelSide") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((QUADRANT_POINT_LABEL_SIDE_VALUES as readonly string[]).includes(value)) quadrantPointLabelSide = value as typeof quadrantPointLabelSide;
+      else errors.push({ line: line.no, message: `quadrantPointLabelSide が読めません: "${value}"`, hint: `使える値 = ${QUADRANT_POINT_LABEL_SIDE_VALUES.join(", ")}` });
       i += 1;
       continue;
     }
@@ -1225,7 +1379,12 @@ export function parseTextDslV05(src: string): V05ParseResult {
           it.no,
           errors,
         );
-        if (m[1] === "x") 組み立て.x = { left: opts.left, right: opts.right };
+        const direction = opts.direction === "true";
+        if (direction && opts.label !== undefined) {
+          const axis = { label: stripQuotes(opts.label), direction: true } as const;
+          if (m[1] === "x") 組み立て.x = axis;
+          else 組み立て.y = axis;
+        } else if (m[1] === "x") 組み立て.x = { left: opts.left, right: opts.right };
         else 組み立て.y = { bottom: opts.bottom, top: opts.top };
       }
       // 1 本も読めなかった形は「書かなかった」 と同じにする。 空の軸を渡すと、
@@ -1598,6 +1757,22 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(ganttTickLabels !== undefined ? { ganttTickLabels } : {}),
       ...(ganttBarEnd !== undefined ? { ganttBarEnd } : {}),
       ...(ganttBarThickness !== undefined ? { ganttBarThickness } : {}),
+      ...(chartSeriesSkipMuted !== undefined ? { chartSeriesSkipMuted } : {}),
+      ...(chartLineSeries !== undefined ? { chartLineSeries } : {}),
+      ...(chartPieCenterLabel !== undefined ? { chartPieCenterLabel } : {}),
+      ...(chartPieTableColumns !== undefined ? { chartPieTableColumns } : {}),
+      ...(chartPieRingWidth !== undefined ? { chartPieRingWidth } : {}),
+      ...(chartSlopePeriods !== undefined ? { chartSlopePeriods } : {}),
+      ...(chartSlopeEmphasisIds !== undefined ? { chartSlopeEmphasisIds } : {}),
+      ...(chartSlopeUnit !== undefined ? { chartSlopeUnit } : {}),
+      ...(chartStackedPeriods !== undefined ? { chartStackedPeriods } : {}),
+      ...(chartStackedRateId !== undefined ? { chartStackedRateId } : {}),
+      ...(chartStackedLegendPosition !== undefined ? { chartStackedLegendPosition } : {}),
+      ...(chartGaugeValue !== undefined ? { chartGaugeValue } : {}),
+      ...(chartWaffleLegendPosition !== undefined ? { chartWaffleLegendPosition } : {}),
+      ...(funnelForm !== undefined ? { funnelForm } : {}),
+      ...(funnelRate !== undefined ? { funnelRate } : {}),
+      ...(quadrantPointLabelSide !== undefined ? { quadrantPointLabelSide } : {}),
       ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
       ...(legend.length > 0 ? { legend } : {}),
       ...(legendFontSize !== undefined ? { legendFontSize } : {}),
@@ -2072,12 +2247,18 @@ export const GROUP_INLINE_KEYS = ["label", "lanes"] as const satisfies readonly 
 >[];
 
 /** 軸の名前の中括弧に書ける項目 (#1968)。 横軸は左右、縦軸は下上 */
-export const AXIS_X_KEYS = ["left", "right"] as const satisfies readonly (keyof NonNullable<
-  DslAxes["x"]
->)[];
-export const AXIS_Y_KEYS = ["bottom", "top"] as const satisfies readonly (keyof NonNullable<
-  DslAxes["y"]
->)[];
+export const AXIS_X_KEYS = ["left", "right", "label", "direction"] as const satisfies readonly (
+  | "left"
+  | "right"
+  | "label"
+  | "direction"
+)[];
+export const AXIS_Y_KEYS = ["bottom", "top", "label", "direction"] as const satisfies readonly (
+  | "bottom"
+  | "top"
+  | "label"
+  | "direction"
+)[];
 
 /**
  * 箱の中に描く図形 (`shape:`) と、値を見せる部品 (`readouts:`) の欄 (#1374)。
@@ -4899,6 +5080,182 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
     return null;
   }
   return { name, expression, pos: { line: lineNo } };
+}
+
+/** JSON と同じ 1 行の配列 / object を、図表の複合欄で読む。 */
+function JSONの欄を読む(
+  source: string | null,
+  name: string,
+  line: number,
+  errors: DslError[],
+): unknown {
+  const raw = (source ?? "").trim();
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    errors.push({
+      line,
+      message: `${name} の JSON の形が読めません`,
+      hint: `${name}: [...] または ${name}: {...} の形で 1 行に書く`,
+    });
+    return undefined;
+  }
+}
+
+const objectか = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+const 図表の数か = (value: unknown): value is number | string =>
+  (typeof value === "number" && Number.isFinite(value)) ||
+  (typeof value === "string" && value.trim().length > 0);
+
+function 図表の知らない項目を知らせる(
+  value: unknown,
+  使える: readonly string[],
+  名: string,
+  line: number,
+  errors: DslError[],
+): boolean {
+  if (!objectか(value)) return false;
+  const 知らない = Object.keys(value).filter((key) => !使える.includes(key));
+  for (const key of 知らない) {
+    errors.push({
+      line,
+      message: `${名} の項目名が読めません: "${key}"`,
+      hint: `使える項目 = ${使える.join(", ")}`,
+    });
+  }
+  return 知らない.length > 0;
+}
+
+function chartLineSeriesの知らない項目を知らせる(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): boolean {
+  if (!Array.isArray(value)) return false;
+  let unknown = false;
+  value.forEach((series, index) => {
+    unknown =
+      図表の知らない項目を知らせる(
+        series,
+        ["label", "points", "tone", "dash", "marker", "valueIndexes"],
+        `chartLineSeries[${index}]`,
+        line,
+        errors,
+      ) || unknown;
+    if (!objectか(series) || !Array.isArray(series.points)) return;
+    series.points.forEach((point, pointIndex) => {
+      unknown =
+        図表の知らない項目を知らせる(
+          point,
+          ["label", "value"],
+          `chartLineSeries[${index}].points[${pointIndex}]`,
+          line,
+          errors,
+        ) || unknown;
+    });
+  });
+  return unknown;
+}
+
+function chartStackedPeriodsの知らない項目を知らせる(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): boolean {
+  if (!Array.isArray(value)) return false;
+  let unknown = false;
+  value.forEach((period, index) => {
+    unknown =
+      図表の知らない項目を知らせる(
+        period,
+        ["label", "values"],
+        `chartStackedPeriods[${index}]`,
+        line,
+        errors,
+      ) || unknown;
+  });
+  return unknown;
+}
+
+function chartGaugeValueの知らない項目を知らせる(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): boolean {
+  return 図表の知らない項目を知らせる(
+    value,
+    ["max", "current", "target", "previous", "previousLabel"],
+    "chartGaugeValue",
+    line,
+    errors,
+  );
+}
+
+function chartLineSeriesの形(
+  value: unknown,
+): value is NonNullable<DslDocument["chartLineSeries"]> {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  return value.every((series) => {
+    if (!objectか(series) || !Array.isArray(series.points) || series.points.length === 0) return false;
+    if (series.label !== undefined && typeof series.label !== "string") return false;
+    if (
+      series.tone !== undefined &&
+      (typeof series.tone !== "string" || resolveTone(series.tone) === undefined)
+    )
+      return false;
+    if (
+      series.dash !== undefined &&
+      (typeof series.dash !== "string" ||
+        !(CHART_LINE_DASH_VALUES as readonly string[]).includes(series.dash))
+    )
+      return false;
+    if (
+      series.marker !== undefined &&
+      (typeof series.marker !== "string" ||
+        !(CHART_LINE_MARKER_VALUES as readonly string[]).includes(series.marker))
+    ) return false;
+    if (
+      series.valueIndexes !== undefined &&
+      (!Array.isArray(series.valueIndexes) ||
+        series.valueIndexes.some((index) => !Number.isInteger(index) || Number(index) < 0))
+    ) return false;
+    return series.points.every(
+      (point) => objectか(point) && typeof point.label === "string" && 図表の数か(point.value),
+    );
+  });
+}
+
+function chartStackedPeriodsの形(
+  value: unknown,
+): value is NonNullable<DslDocument["chartStackedPeriods"]> {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every(
+      (period) =>
+        objectか(period) &&
+        typeof period.label === "string" &&
+        Array.isArray(period.values) &&
+        period.values.every(図表の数か),
+    )
+  );
+}
+
+function chartGaugeValueの形(
+  value: unknown,
+): value is NonNullable<DslDocument["chartGaugeValue"]> {
+  if (!objectか(value)) return false;
+  const finite = (entry: unknown): entry is number =>
+    typeof entry === "number" && Number.isFinite(entry);
+  return (
+    finite(value.max) &&
+    value.max > 0 &&
+    finite(value.current) &&
+    (value.target === undefined || finite(value.target)) &&
+    (value.previous === undefined || finite(value.previous)) &&
+    (value.previousLabel === undefined || typeof value.previousLabel === "string")
+  );
 }
 
 function splitTopLevelCommas(s: string): string[] {

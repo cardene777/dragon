@@ -617,6 +617,24 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.relations=off": { 種類: "既定", 別の値: "hover" },
   "$.theme": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
+  "$.chartLineSeries[].marker=dot": {
+    種類: "記法一覧",
+    理由: "折れ線の点の印の値は README で見せる",
+  },
+  "$.chartPieRingWidth=thick": { 種類: "既定", 別の値: "thin" },
+  "$.chartPieTableColumns=share-value": { 種類: "既定", 別の値: "value" },
+  "$.chartStackedLegendPosition=bottom": { 種類: "既定", 別の値: "top" },
+  "$.chartWaffleLegendPosition=left": { 種類: "既定", 別の値: "right" },
+  "$.funnelForm=trapezoid": { 種類: "既定", 別の値: "proportional-bars" },
+  "$.funnelRate=drop": {
+    種類: "記法一覧",
+    理由: "前段からの減少率を出す漏斗の値は README で見せる",
+  },
+  "$.funnelRate=none": {
+    種類: "記法一覧",
+    理由: "率を出さない漏斗の値は README で見せる",
+  },
+  "$.quadrantPointLabelSide=auto": { 種類: "既定", 別の値: "right" },
   // 宅配の見本は英名の欄を使う。和名と、同値の別表記は README の記法一覧で見せる。
   "$.actors[].点の位置": { 種類: "記法一覧", 理由: "at の和名は README で見せる" },
   "$.ticks": { 種類: "記法一覧", 理由: "目盛りの英名は README で見せる" },

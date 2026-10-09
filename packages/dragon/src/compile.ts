@@ -2442,7 +2442,9 @@ function reportChartFieldsNotHonored(
             ...(a.end !== undefined ? ["end"] : []),
             ...(a.startLabel !== undefined ? ["startLabel"] : []),
             ...(a.milestone !== undefined ? ["milestone"] : []),
-            ...(a.emphasis !== undefined ? ["emphasis"] : []),
+            ...(a.emphasis !== undefined && doc.type !== "chart" && doc.type !== "funnel"
+              ? ["emphasis"]
+              : []),
           ];
     if (道筋.length > 0) {
       onNotice({

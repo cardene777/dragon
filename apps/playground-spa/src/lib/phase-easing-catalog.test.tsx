@@ -36,7 +36,11 @@ const 図 = () => {
   const d = textDslToDiagram(sourceYaml__monthlyDeliveriesLine);
   const 動く段 = (d.phases ?? []).filter((p) => p.id === "実績");
   expect(動く段.length, "値を動かす段が見本に無い (検査が空振りしている)").toBe(1);
-  return layout({ ...d, phases: 動く段 });
+  return layout({
+    ...d,
+    nodes: d.nodes.map(({ chartLineSeries: _series, ...node }) => node),
+    phases: 動く段,
+  });
 };
 
 /** 段の長さ (記法の `1.2s`) */

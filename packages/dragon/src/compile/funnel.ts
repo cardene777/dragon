@@ -38,7 +38,13 @@ export function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) =>
       未宣言.push(a.name);
       continue;
     }
-    data.push({ id: slugify(a.name), title: 箱の題(a), count: v });
+    data.push({
+      id: slugify(a.name),
+      title: 箱の題(a),
+      count: v,
+      ...(a.tone !== undefined ? { tone: a.tone } : {}),
+      ...(a.emphasis !== undefined ? { emphasis: a.emphasis } : {}),
+    });
   }
   if (未宣言.length > 0) {
     const m3 = `type: funnel で数にならない値を参照した項目があります (段に載せません): ${未宣言.join(", ")}。 \`states:\` にその名前を数で書いてください`;
@@ -70,6 +76,11 @@ export function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) =>
     w: W,
     h: H,
     funnelData: data,
+    ...(doc.funnelForm !== undefined ? { funnelForm: doc.funnelForm } : {}),
+    ...(doc.funnelRate !== undefined ? { funnelRate: doc.funnelRate } : {}),
+    ...(doc.chartSeriesSkipMuted !== undefined
+      ? { chartSeriesSkipMuted: doc.chartSeriesSkipMuted }
+      : {}),
   });
   return b.build();
 }

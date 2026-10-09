@@ -156,7 +156,7 @@ const 並び = <T, E>(
  * 中身を持つ節の家族。 **`satisfies` で閉じる** = engine が `*Data` の欄を足すと `tsc` が落ちる。
  */
 const 家族 = {
-  chartData: [並び("件", (v: 図表の中身[]) => v, { previous: 8, tone: "accent" }, true)],
+  chartData: [並び("件", (v: 図表の中身[]) => v, { id: "item", previous: 8, tone: "muted", emphasis: "primary" }, true)],
   ganttData: [
     並び(
       "工程",
@@ -176,7 +176,7 @@ const 家族 = {
     並び("根", (v: 枝の根) => [v], { rootSubtitle: "説明" }, false),
     並び("枝", (v: 枝の根) => v.branches, { tone: "accent", subtitle: "説明" }, true),
   ],
-  funnelData: [並び("段", (v: 漏斗の段[]) => v, { subtitle: "説明" }, true)],
+  funnelData: [並び("段", (v: 漏斗の段[]) => v, { subtitle: "説明", tone: "muted", emphasis: "primary" }, true)],
   quadrantData: [
     並び("面", (v: 四象限) => [v], {}, false),
     並び(
@@ -279,6 +279,22 @@ const 節の欄の扱い = {
   ganttTickLabels: "記法",
   ganttBarEnd: "記法",
   ganttBarThickness: "記法",
+  chartSeriesSkipMuted: "記法",
+  chartLineSeries: "記法",
+  chartPieCenterLabel: "記法",
+  chartPieTableColumns: "記法",
+  chartPieRingWidth: "記法",
+  chartSlopePeriods: "記法",
+  chartSlopeEmphasisIds: "記法",
+  chartSlopeUnit: "記法",
+  chartStackedPeriods: "記法",
+  chartStackedRateId: "記法",
+  chartStackedLegendPosition: "記法",
+  chartGaugeValue: "記法",
+  chartWaffleLegendPosition: "記法",
+  funnelForm: "記法",
+  funnelRate: "記法",
+  quadrantPointLabelSide: "記法",
   // 横軸の尺を固定する配置の指定。帯や目盛りという新しい役割は増やさない。
   ganttAxisMax: "置き場所",
 } satisfies Record<節の任意の欄, string>;
@@ -371,6 +387,8 @@ const 覆えない組: Record<string, string> = {
     "親を書かない系統樹は木にならない (`tree-edge` が 1 本も出ず、箱が並ぶだけ) = 形が 2 通りあるのではなく、木という図が成立していない",
   "gantt-timeline/工程/件数":
     "工程が 1 つの段取りは前後を持たない (`gantt-arrow` が 1 本も出ない) = 帯 1 本で、段取り図にならない。 前後の有無そのものは `dependsOn` の切替が見せる",
+  "chart-waffle/件/件数":
+    "区分が 1 つの升目には比べる内訳が無く、荷物の大きさの分布を見せる図として成立しない。区切り線の有無は複数区分であることから決まる",
 };
 
 /**
@@ -386,7 +404,10 @@ const 覆えない組: Record<string, string> = {
  * **engine が描き始めたら落ちる**。 描くようになった時点で見本が要るので、
  * 表から外して見本を足す側へ回す。
  */
-const 描かない欄: Record<string, string> = {};
+const 描かない欄: Record<string, string> = {
+  "chartData/件/id":
+    "id は傾き図の主役と内訳の帯の率を別欄から指す識別子で、id を単独で書いても像素は変わらない",
+};
 
 /**
  * その種別だけが描かない組。 **鍵は `<種別>/<並び>/<軸>`、値はなぜ描かれないか** (#1718)。
@@ -430,6 +451,14 @@ const この種別だけ描かない組: Record<string, string> = {
     "棒は 1 色のまま濃さだけを変えると決めた (`cdl#747`)。 同じ量どうしの比較で色は量を表さないので、件ごとに色を配ると『色に意味がある』 と誤読される",
   "chart-line/件/tone":
     "折れ線は 1 本の線で、色は線に付く。 点ごとの色を書いても線は 1 色のまま",
+  "chart-pie/件/emphasis": "円の扇は面積で量を比べ、主役の重ね模様は持たない",
+  "chart-line/件/emphasis": "単系列の折れ線は点ごとの主役の重ね模様を持たない",
+  "chart-bar/件/emphasis": "棒は量を長さで比べ、主役の重ね模様は持たない",
+  "chart-gauge/件/emphasis": "半円は合計または現在値を主役にするため、内訳ごとの主役は持たない",
+  "chart-radial/件/emphasis": "弧の並びは量を長さで比べ、主役の重ね模様は持たない",
+  "chart-stat/件/emphasis": "大きな数字は 1 件そのものが主役で、件ごとの主役模様は持たない",
+  "chart-waffle/件/emphasis": "100 個の印は面で割合を比べ、主役の重ね模様は持たない",
+  "chart-slope/件/emphasis": "傾き図の主役は node の chartSlopeEmphasisIds から id を指すため、datum の emphasis は読まない",
 };
 
 /**
@@ -624,7 +653,13 @@ function 下ごしらえする(): 下ごしらえ {
       for (const { 欄, kind } of 節[i]!) {
         const 一覧 = 種別.get(欄) ?? [];
         if (!一覧.includes(kind)) 種別.set(欄, [...一覧, kind]);
-        if (!基.has(`${欄}/${kind}`)) 基.set(`${欄}/${kind}`, d);
+        const 鍵 = `${欄}/${kind}`;
+        const 前 = 基.get(鍵);
+        const 固定尺の半円 = (diagram: CdlDiagram): boolean =>
+          diagram.nodes.some((n) => n.kind === "chart-gauge" && n.chartGaugeValue !== undefined);
+        // 固定尺の半円は chartData を描かない。chartData の軸は内訳型の変種で測る。
+        if (前 === undefined || (欄 === "chartData" && 固定尺の半円(前) && !固定尺の半円(d)))
+          基.set(鍵, d);
       }
     });
   }
@@ -640,11 +675,19 @@ function 下ごしらえする(): 下ごしらえ {
 function 切替で両側(見本: 下ごしらえ["見本"], 軸: 軸, kind: string): boolean {
   for (const v of 見本) {
     const 側 = new Set<0 | 1>();
-    for (const 節 of v.節)
-      for (const x of 節)
-        if (x.欄 === 軸.欄 && x.kind === kind) 側.add(軸.見本の側(x.中身));
-    // 1 つの図が両側を同時に持つことはない (軸は「書いたか」 の 2 値)。
-    // 同じ見本の別の図 (= パターンの切替) で分かれている時だけ両側になる
+    for (const 節 of v.節) {
+      for (const x of 節) {
+        if (x.欄 !== 軸.欄 || x.kind !== kind) continue;
+        側.add(軸.見本の側(x.中身));
+        // 件ごとの任意欄は、1 枚の中で「主役 / それ以外」の両側を同時に見せられる。
+        // 並び全体の件数だけは別の図が要る。
+        if (軸.名 === "件数") continue;
+        const 並列 = 軸.並び.取る(x.中身);
+        if (並列.some((e) => e[軸.名] === undefined)) 側.add(0);
+        if (並列.some((e) => e[軸.名] !== undefined)) 側.add(1);
+      }
+    }
+    // 同じ見本の件の中、またはパターン切替で両側を見せているか。
     if (側.has(0) && 側.has(1)) return true;
   }
   return false;

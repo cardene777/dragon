@@ -4940,3 +4940,240 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   transform: scale(var(--theme-timeline-small-arrow-scale-x), var(--theme-timeline-small-arrow-scale-y));
   transform-origin: 9px 5px;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * #2854 3段目b: 図表と数の見本を cdl 0.128.0 の role へ当てる。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"]) {
+  --theme-chart-name-font: "Noto Sans JP", system-ui, sans-serif;
+  --theme-chart-value-font: "JetBrains Mono", ui-monospace, monospace;
+  --theme-chart-name-color: #143a52;
+  --theme-chart-value-color: #8aa3b1;
+  --theme-chart-axis-color: #4d7187;
+  --theme-chart-gauge-value: #143a52;
+  --theme-chart-gauge-delta: #1f7a6b;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="letterpress"]) {
+  --theme-chart-name-font: "Noto Sans JP", system-ui, sans-serif;
+  --theme-chart-value-font: "JetBrains Mono", ui-monospace, monospace;
+  --theme-chart-name-color: #1a1510;
+  --theme-chart-value-color: #9d9382;
+  --theme-chart-axis-color: #6b6253;
+  --theme-chart-gauge-value: #1a1510;
+  --theme-chart-gauge-delta: #1a1510;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="catalog"]) {
+  --theme-chart-name-font: "Noto Sans JP", system-ui, sans-serif;
+  --theme-chart-value-font: "JetBrains Mono", ui-monospace, monospace;
+  --theme-chart-name-color: #1d242e;
+  --theme-chart-value-color: #9c9381;
+  --theme-chart-axis-color: #6f6757;
+  --theme-chart-gauge-value: #1d242e;
+  --theme-chart-gauge-delta: #4fae9a;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="terminal"]) {
+  --theme-chart-name-font: "JetBrains Mono", "M PLUS 1 Code", ui-monospace, monospace;
+  --theme-chart-value-font: "JetBrains Mono", "M PLUS 1 Code", ui-monospace, monospace;
+  --theme-chart-name-color: #d3ddd6;
+  --theme-chart-value-color: #7f9186;
+  --theme-chart-axis-color: #8a9b90;
+  --theme-chart-gauge-value: #d3ddd6;
+  --theme-chart-gauge-delta: #c792ea;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="sketch"]) {
+  --theme-chart-name-font: "Noto Sans JP", system-ui, sans-serif;
+  --theme-chart-value-font: "JetBrains Mono", ui-monospace, monospace;
+  --theme-chart-name-color: #2b2620;
+  --theme-chart-value-color: #9a9080;
+  --theme-chart-axis-color: #6d6456;
+  --theme-chart-gauge-value: #2b2620;
+  --theme-chart-gauge-delta: #2f7d4f;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="neon"]) {
+  --theme-chart-name-font: "Noto Sans JP", system-ui, sans-serif;
+  --theme-chart-value-font: "JetBrains Mono", ui-monospace, monospace;
+  --theme-chart-name-color: #f3eefe;
+  --theme-chart-value-color: #bdb5dc;
+  --theme-chart-axis-color: #c4bce0;
+  --theme-chart-gauge-value: #f3eefe;
+  --theme-chart-gauge-delta: #00e5ff;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="relief"]) {
+  --theme-chart-name-font: "Noto Sans JP", system-ui, sans-serif;
+  --theme-chart-value-font: "JetBrains Mono", ui-monospace, monospace;
+  --theme-chart-name-color: #463e33;
+  --theme-chart-value-color: #a99e8e;
+  --theme-chart-axis-color: #7a7062;
+  --theme-chart-gauge-value: #463e33;
+  --theme-chart-gauge-delta: #2f7a6e;
+}
+
+/* 2 系列の折れ線。属性を持つ複数系列だけへ閉じ、従来の 1 本線は変えない。 */
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-line"][data-cdl-series] {
+  stroke-width: 5px;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-line"][data-cdl-series="0"] {
+  stroke-dasharray: 0 8 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-line-point"][data-cdl-series] {
+  r: 7.5px;
+  stroke-width: 3.5px;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-line-value"][data-cdl-series] {
+  font-family: var(--theme-chart-value-font);
+  font-size: 18px;
+  font-weight: 400;
+}
+
+/* 見本では実績の終点だけが主値の級。先頭の 900 は計画札と同じ 18。 */
+svg[data-cdl-stage][data-cdl-palette]
+  g:has(> [data-cdl-role="chart-line-value"][data-cdl-series="1"]):last-child
+  > [data-cdl-role="chart-line-value"][data-cdl-series="1"] {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* 円の表と升目の一覧は同じ 46px 行の印・罫・字体を使う。 */
+svg[data-cdl-stage][data-cdl-palette]
+  :is([data-cdl-role="chart-pie-table-label"], [data-cdl-role="chart-waffle-item-label"]) {
+  fill: var(--theme-chart-name-color);
+  font-family: var(--theme-chart-name-font);
+  font-size: 22px;
+  font-weight: 500;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  :is([data-cdl-role="chart-pie-table-value"], [data-cdl-role="chart-waffle-item-share"]) {
+  fill: var(--theme-chart-value-color);
+  font-family: var(--theme-chart-value-font) !important;
+  font-size: 19px;
+  font-weight: 400;
+}
+
+svg[data-cdl-stage][data-cdl-palette]
+  :is([data-cdl-role="chart-pie-table-mark"], [data-cdl-role="chart-waffle-item-mark"]) {
+  rx: 50%;
+  ry: 50%;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"]
+  :is([data-cdl-role="chart-pie-table-mark"], [data-cdl-role="chart-waffle-item-mark"]) {
+  rx: 0;
+  ry: 0;
+  transform: rotate(45deg);
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="letterpress"], [data-cdl-palette="terminal"])
+  :is([data-cdl-role="chart-pie-table-mark"], [data-cdl-role="chart-waffle-item-mark"]) {
+  rx: 0;
+  ry: 0;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"]
+  :is([data-cdl-role="chart-pie-table-rule"], [data-cdl-role="chart-waffle-item-rule"]) {
+  stroke: rgba(20, 58, 82, 0.34);
+  stroke-dasharray: 5 4;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="letterpress"], [data-cdl-palette="terminal"])
+  :is([data-cdl-role="chart-pie-table-rule"], [data-cdl-role="chart-waffle-item-rule"]) {
+  stroke-dasharray: none;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  :is([data-cdl-role="chart-pie-table-rule"], [data-cdl-role="chart-waffle-item-rule"]) {
+  stroke: rgba(43, 38, 32, 0.4);
+  stroke-width: 1.5px;
+  stroke-dasharray: 1 4;
+  stroke-linecap: round;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="catalog"], [data-cdl-palette="neon"], [data-cdl-palette="relief"])
+  :is([data-cdl-role="chart-pie-table-rule"], [data-cdl-role="chart-waffle-item-rule"]) {
+  display: none;
+}
+
+/* 四象限の方向形、傾き図、固定尺の半円。 */
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="quadrant-axis-name"] {
+  fill: var(--theme-chart-axis-color);
+  font-family: var(--theme-chart-name-font);
+  font-size: 18px;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-slope-line"] {
+  stroke-width: 4px;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-slope-line"][data-cdl-emphasis="primary"] {
+  stroke-width: 6px;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-slope-name"][data-cdl-emphasis="primary"] {
+  font-weight: 700;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-gauge-value"] {
+  fill: var(--theme-chart-gauge-value);
+  font-family: var(--theme-chart-value-font);
+  font-size: 66px;
+  font-weight: 700;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-gauge-delta"] {
+  fill: var(--theme-chart-gauge-delta);
+  font-family: var(--theme-chart-name-font);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-gauge-scale-endpoint"] {
+  fill: var(--theme-chart-axis-color);
+  font-family: var(--theme-chart-value-font);
+  font-size: 16px;
+}
+
+/* 枠で描く対象は比例漏斗と内訳の帯だけ。円・升目・凡例は role が違うので塗りを保つ。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="funnel-proportional-bar"] {
+  fill: none !important;
+  stroke: var(--er-line);
+  stroke-width: 2px;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"])
+  [data-cdl-role="chart-stacked-bar-slice"] {
+  fill: none !important;
+  stroke: currentColor;
+  stroke-width: 1.5px;
+}
+
+/* 主役の重ねは 3段目a のガントと同じ意匠別の扱い。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"]
+  :is([data-cdl-role="funnel-stage-hatch"], [data-cdl-role="chart-stacked-bar-slice-hatch"]) {
+  fill: url(#dragon-bp-hatch) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  :is([data-cdl-role="funnel-stage-hatch"], [data-cdl-role="chart-stacked-bar-slice-hatch"]) {
+  fill: url(#dragon-sketch-pen-primary) !important;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) :is([data-cdl-role="funnel-stage-hatch"], [data-cdl-role="chart-stacked-bar-slice-hatch"]) {
+  display: none;
+}

@@ -835,6 +835,70 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "折れ線の複数系列",
+    titleEn: "Multiple line series",
+    sample: { slot: "root", type: "chart", shape: "line", actors: ['  - 実績: "10"'] },
+    lines: [
+      { code: "chartSeriesSkipMuted: true", note: "沈んだ系列を配色の番号から外す", noteEn: "Skips muted series when assigning palette colors" },
+      { code: 'chartLineSeries: [{ "label": "実績", "points": [{ "label": "6月", "value": 10 }], "marker": "hollow" }]', note: "系列ごとの点・線・印・値の札", noteEn: "Points, line, marker, and value labels for each series" },
+    ],
+  },
+  {
+    title: "円の中心と表",
+    titleEn: "Pie center and table",
+    sample: { slot: "root", type: "chart", shape: "pie", root: ["form: table"], actors: ['  - 完了: "78"', '  - 未完了: "22"'] },
+    lines: [
+      { code: 'chartPieCenterLabel: "件"', note: "中心の合計の下に置く字", noteEn: "Text below the center total" },
+      { code: "chartPieTableColumns: value", note: "表を名前と値の 2 列にする", noteEn: "Uses name and value columns" },
+      { code: "chartPieRingWidth: thin", note: "輪を細くする", noteEn: "Uses a thin ring" },
+    ],
+  },
+  {
+    title: "傾き図の時点と主役",
+    titleEn: "Slope periods and emphasis",
+    sample: { slot: "root", type: "chart", shape: "slope", actors: ['  - Osaka: { value: "80", previous: "70" }'] },
+    lines: [
+      { code: 'chartSlopePeriods: ["先月", "今月"]', note: "左右の時点名", noteEn: "Labels for the two periods" },
+      { code: "chartSlopeEmphasisIds: [osaka]", note: "主役にする項目の id", noteEn: "IDs of emphasized items" },
+      { code: 'chartSlopeUnit: "%"', note: "値の単位", noteEn: "Unit appended to values" },
+    ],
+  },
+  {
+    title: "内訳の帯の期間",
+    titleEn: "Stacked-bar periods",
+    sample: { slot: "root", type: "chart", shape: "stacked", actors: ['  - first: "90"', '  - redelivery: "10"'] },
+    lines: [
+      { code: 'chartStackedPeriods: [{ "label": "6月", "values": [90, 10] }]', note: "期間ごとの内訳", noteEn: "Breakdown for each period" },
+      { code: "chartStackedRateId: redelivery", note: "右に率を描く項目の id", noteEn: "ID whose rate is shown on the right" },
+      { code: "chartStackedLegendPosition: top", note: "凡例を上に置く", noteEn: "Places the legend above" },
+    ],
+  },
+  {
+    title: "半円の固定値",
+    titleEn: "Fixed gauge value",
+    sample: { slot: "root", type: "chart", shape: "gauge", actors: ['  - 定時: "78"', '  - 遅れ: "22"'] },
+    lines: [
+      { code: 'chartGaugeValue: { "max": 100, "current": 78, "target": 80, "previous": 72, "previousLabel": "先月" }', note: "現在・目標・前回の値", noteEn: "Current, target, and previous values" },
+    ],
+  },
+  {
+    title: "升目の凡例",
+    titleEn: "Waffle legend",
+    sample: { slot: "root", type: "chart", shape: "waffle", actors: ['  - 小さい: "70"', '  - 大きい: "30"'] },
+    lines: [
+      { code: "chartWaffleLegendPosition: right", note: "凡例を右に置く", noteEn: "Places the legend on the right" },
+    ],
+  },
+  {
+    title: "漏斗の棒と率",
+    titleEn: "Funnel bars and rates",
+    sample: { slot: "root", type: "funnel", actors: ['  - 見た: "100"', '  - 申し込んだ: "28"'] },
+    lines: [
+      { code: "funnelForm: proportional-bars", note: "量に比例する棒", noteEn: "Uses bars proportional to values" },
+      { code: "funnelRate: conversion", note: "前段からの通過率", noteEn: "Shows conversion from the previous stage" },
+    ],
+  },
+  {
     // 2 つの軸で仕分ける図だけが持つ。 他の図種で書くと組み立て側が知らせる (#1251)
     title: "軸の名前 (axes:)",
     titleEn: "Axis names (axes:)",
@@ -845,11 +909,12 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: "axes:", note: "2 つの軸に名前を付ける", noteEn: "Names the two axes" },
-      { code: '  x: { left: "手間 小", right: "手間 大" }', note: "横の軸", noteEn: "The horizontal axis" },
+      { code: '  x: { label: "手間", direction: true }', note: "右向きの軸名", noteEn: "A rightward axis label" },
       {
-        code: '  y: { bottom: "効き 小", top: "効き 大" }',
-        note: "縦の軸。 区画の名前は軸から決まる", noteEn: "The vertical axis. The quadrant names follow from the axes",
+        code: '  y: { label: "効き目", direction: true }',
+        note: "上向きの軸名。 区画の名前は軸から決まる", noteEn: "An upward axis label. The quadrant names follow from the axes",
       },
+      { code: "quadrantPointLabelSide: right", note: "点の名前を常に右へ置く", noteEn: "Always places point labels on the right" },
     ],
   },
   {

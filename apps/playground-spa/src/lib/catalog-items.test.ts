@@ -241,17 +241,29 @@ describe("見本帳の階層・図表・数・工程は宅配の筋書きで揃�
   it.each([
     "branchParcelsBar",
     "pattern__branchParcelsBar__前の値つき",
-    "parcelStatusPie",
-    "pattern__parcelStatusPie__前と今",
     "redeliveryIdeasMind",
     "pattern__redeliveryIdeasMind__説明つき",
-    "onTimeShareGauge",
-    "pattern__onTimeShareGauge__前の値つき",
-    "parcelSizeWaffle",
-    "deliveryResultStacked",
-    "pattern__deliveryResultStacked__今だけ",
   ])("%s は系列色を意匠の並びに任せる", (鍵) => {
     expect(記法を引く(鍵), `${鍵} に tone が残っている`).not.toMatch(/\btone\s*[:=]/u);
+  });
+
+  it.each([
+    ["parcelStatusPie", "完了"],
+    ["pattern__parcelStatusPie__前と今", "完了"],
+    ["onTimeShareGauge", "遅れた"],
+    ["pattern__onTimeShareGauge__前の値つき", "遅れた"],
+    ["parcelSizeWaffle", "大きい"],
+    ["deliveryResultStacked", "一度で届いた"],
+    ["pattern__deliveryResultStacked__今だけ", "一度で届いた"],
+  ] as const)("%s は %s だけを沈んだ色にする", (鍵, 名前) => {
+    const 記法 = 記法を引く(鍵);
+    expect(記法, `${鍵} の ${名前} にtone: mutedが無い`).toMatch(
+      new RegExp(`${名前}[^\\n]+tone["']?\\s*:\\s*["']?muted`, "u"),
+    );
+    expect(
+      [...記法.matchAll(/\btone["']?\s*:\s*["']?muted/gu)],
+      `${鍵} で ${名前} 以外の区分まで沈んだ色になっている`,
+    ).toHaveLength(2);
   });
 
   it.each([

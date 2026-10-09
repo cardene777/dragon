@@ -95,6 +95,82 @@
       "enum": ["thin"],
       "description": "gantt の帯を見本の比で細くする。"
     },
+    "chartSeriesSkipMuted": { "type": "boolean" },
+    "chartLineSeries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["points"],
+        "properties": {
+          "label": { "type": "string" },
+          "tone": { "type": "string" },
+          "dash": { "type": "string", "enum": ["solid", "dotted"] },
+          "marker": { "type": "string", "enum": ["dot", "hollow", "none"] },
+          "valueIndexes": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+          "points": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "value"],
+              "properties": {
+                "label": { "type": "string" },
+                "value": { "type": ["number", "string"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "chartPieCenterLabel": { "type": "string" },
+    "chartPieTableColumns": { "type": "string", "enum": ["share-value", "value"] },
+    "chartPieRingWidth": { "type": "string", "enum": ["thick", "thin"] },
+    "chartSlopePeriods": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "chartSlopeEmphasisIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "chartSlopeUnit": { "type": "string" },
+    "chartStackedPeriods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "values"],
+        "properties": {
+          "label": { "type": "string" },
+          "values": { "type": "array", "items": { "type": ["number", "string"] } }
+        }
+      }
+    },
+    "chartStackedRateId": { "type": "string" },
+    "chartStackedLegendPosition": { "type": "string", "enum": ["top", "bottom"] },
+    "chartGaugeValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max", "current"],
+      "properties": {
+        "max": { "type": "number", "exclusiveMinimum": 0 },
+        "current": { "type": "number" },
+        "target": { "type": "number" },
+        "previous": { "type": "number" },
+        "previousLabel": { "type": "string" }
+      }
+    },
+    "chartWaffleLegendPosition": { "type": "string", "enum": ["left", "right"] },
+    "funnelForm": { "type": "string", "enum": ["trapezoid", "proportional-bars"] },
+    "funnelRate": { "type": "string", "enum": ["drop", "conversion", "none"] },
+    "quadrantPointLabelSide": { "type": "string", "enum": ["auto", "right"] },
     "eyebrow": {
       "type": "string",
       "description": "図表の箱の上に出す小見出し (省略可)。 効くのは図全体を 1 箱にする型 (chart / funnel / tree / journey / quadrant / mind / gantt) だけ。 箱ごとに分かれる型では相手が決まらないため、 actors[].eyebrow に書く"
@@ -113,7 +189,9 @@
             },
             "right": {
               "type": "string"
-            }
+            },
+            "label": { "type": "string" },
+            "direction": { "type": "boolean", "enum": [true] }
           }
         },
         "y": {
@@ -125,7 +203,9 @@
             },
             "top": {
               "type": "string"
-            }
+            },
+            "label": { "type": "string" },
+            "direction": { "type": "boolean", "enum": [true] }
           }
         }
       }

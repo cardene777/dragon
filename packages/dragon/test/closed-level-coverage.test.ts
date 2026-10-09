@@ -100,6 +100,30 @@ const 入力: Record<string, 図> = {
     type: "gantt",
     ganttToday: { index: 1.3, label: "今日", [知らない項目]: 1 },
   },
+  "$.chartLineSeries[]": {
+    ...基本,
+    chartLineSeries: [
+      {
+        label: "実績",
+        points: [{ label: "6月", value: 10 }],
+        [知らない項目]: 1,
+      },
+    ],
+  },
+  "$.chartLineSeries[].points[]": {
+    ...基本,
+    chartLineSeries: [
+      { label: "実績", points: [{ label: "6月", value: 10, [知らない項目]: 1 }] },
+    ],
+  },
+  "$.chartStackedPeriods[]": {
+    ...基本,
+    chartStackedPeriods: [{ label: "6月", values: [90, 10], [知らない項目]: 1 }],
+  },
+  "$.chartGaugeValue": {
+    ...基本,
+    chartGaugeValue: { max: 100, current: 78, [知らない項目]: 1 },
+  },
   "$.axes": { ...基本, type: "quadrant", axes: { [知らない項目]: {} } },
   "$.axes.x": { ...基本, type: "quadrant", axes: { x: { left: "低", right: "高", [知らない項目]: 1 } } },
   "$.axes.y": { ...基本, type: "quadrant", axes: { y: { top: "上", bottom: "下", [知らない項目]: 1 } } },

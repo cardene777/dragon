@@ -37,6 +37,15 @@ import {
   EVENT_KINDS,
   EVENT_TARGET_KEYS,
   EVENT_REQUIRED_KEYS,
+  CHART_LINE_DASH_VALUES,
+  CHART_LINE_MARKER_VALUES,
+  CHART_PIE_TABLE_COLUMN_VALUES,
+  CHART_PIE_RING_WIDTH_VALUES,
+  CHART_STACKED_LEGEND_POSITION_VALUES,
+  CHART_WAFFLE_LEGEND_POSITION_VALUES,
+  FUNNEL_FORM_VALUES,
+  FUNNEL_RATE_VALUES,
+  QUADRANT_POINT_LABEL_SIDE_VALUES,
   type 図形の定義,
 } from "./v05/parser";
 // 図の意匠 (#1553 / #2790)。 記法の読み手と同じ解決を通す = 別名の受け方が
@@ -131,6 +140,22 @@ export interface DragonJson {
   ganttTickLabels?: string[];
   ganttBarEnd?: "position";
   ganttBarThickness?: "thin";
+  chartSeriesSkipMuted?: DslDocument["chartSeriesSkipMuted"];
+  chartLineSeries?: DslDocument["chartLineSeries"];
+  chartPieCenterLabel?: DslDocument["chartPieCenterLabel"];
+  chartPieTableColumns?: DslDocument["chartPieTableColumns"];
+  chartPieRingWidth?: DslDocument["chartPieRingWidth"];
+  chartSlopePeriods?: DslDocument["chartSlopePeriods"];
+  chartSlopeEmphasisIds?: DslDocument["chartSlopeEmphasisIds"];
+  chartSlopeUnit?: DslDocument["chartSlopeUnit"];
+  chartStackedPeriods?: DslDocument["chartStackedPeriods"];
+  chartStackedRateId?: DslDocument["chartStackedRateId"];
+  chartStackedLegendPosition?: DslDocument["chartStackedLegendPosition"];
+  chartGaugeValue?: DslDocument["chartGaugeValue"];
+  chartWaffleLegendPosition?: DslDocument["chartWaffleLegendPosition"];
+  funnelForm?: DslDocument["funnelForm"];
+  funnelRate?: DslDocument["funnelRate"];
+  quadrantPointLabelSide?: DslDocument["quadrantPointLabelSide"];
   /**
    * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
    *
@@ -448,8 +473,8 @@ export interface JsonActor {
 
 /** 2 軸で仕分ける図の軸の名前 (#1294)。 記法の `axes:` と同じ形 */
 export interface JsonAxes {
-  x?: { left?: string; right?: string };
-  y?: { bottom?: string; top?: string };
+  x?: { left?: string; right?: string; label?: never; direction?: never } | { label: string; direction: true };
+  y?: { bottom?: string; top?: string; label?: never; direction?: never } | { label: string; direction: true };
 }
 
 /** 2 軸で仕分ける図の区画の名前 (#2667)。 記法の `regions:` と同じ形 */
@@ -638,6 +663,22 @@ export const ACCEPTED_KEYS = {
     "ganttTickLabels",
     "ganttBarEnd",
     "ganttBarThickness",
+    "chartSeriesSkipMuted",
+    "chartLineSeries",
+    "chartPieCenterLabel",
+    "chartPieTableColumns",
+    "chartPieRingWidth",
+    "chartSlopePeriods",
+    "chartSlopeEmphasisIds",
+    "chartSlopeUnit",
+    "chartStackedPeriods",
+    "chartStackedRateId",
+    "chartStackedLegendPosition",
+    "chartGaugeValue",
+    "chartWaffleLegendPosition",
+    "funnelForm",
+    "funnelRate",
+    "quadrantPointLabelSide",
     "eyebrow",
     "axes",
     "regions",
@@ -776,8 +817,8 @@ export const ACCEPTED_KEYS = {
   lane: ["x", "width", "label", "subtitle", "contain", "lifeline", "pos"],
   group: ["label", "lanes"],
   axes: ["x", "y"],
-  axesX: ["left", "right"],
-  axesY: ["bottom", "top"],
+  axesX: ["left", "right", "label", "direction"],
+  axesY: ["bottom", "top", "label", "direction"],
   // 区画を指す語は項目の欄と同じ 4 語 (#2667)
   regions: ["左上", "右上", "左下", "右下"],
   layoutPos: ["x", "y"],
@@ -851,6 +892,22 @@ export const 欄の型表 = {
     ganttTickLabels: "文字列の並び",
     ganttBarEnd: "ガントの帯の終わり",
     ganttBarThickness: "ガントの帯の厚み",
+    chartSeriesSkipMuted: "真偽",
+    chartLineSeries: "並び",
+    chartPieCenterLabel: "文字列",
+    chartPieTableColumns: "文字列",
+    chartPieRingWidth: "文字列",
+    chartSlopePeriods: "文字列の並び",
+    chartSlopeEmphasisIds: "文字列の並び",
+    chartSlopeUnit: "文字列",
+    chartStackedPeriods: "並び",
+    chartStackedRateId: "文字列",
+    chartStackedLegendPosition: "文字列",
+    chartGaugeValue: "object",
+    chartWaffleLegendPosition: "文字列",
+    funnelForm: "文字列",
+    funnelRate: "文字列",
+    quadrantPointLabelSide: "文字列",
     eyebrow: "文字列",
     axes: "object",
     regions: "object",
@@ -1015,8 +1072,8 @@ export const 欄の型表 = {
   },
   group: { label: "文字列", lanes: "文字列の並び" },
   axes: { x: "object", y: "object" },
-  axesX: { left: "文字列", right: "文字列" },
-  axesY: { bottom: "文字列", top: "文字列" },
+  axesX: { left: "文字列", right: "文字列", label: "文字列", direction: "真偽" },
+  axesY: { bottom: "文字列", top: "文字列", label: "文字列", direction: "真偽" },
   regions: { 左上: "文字列", 右上: "文字列", 左下: "文字列", 右下: "文字列" },
   // 位置は書けば x と y の両方が要る。 片方だけでは寄せ幅が決まらない
   layoutPos: { x: "必須の数", y: "必須の数" },
@@ -2302,6 +2359,133 @@ function validateAxes(v: unknown, errors: JsonDslError[]): void {
     const o = 一方 as Record<string, unknown>;
     checkUnknownKeys(o, 層の名[名], `$.axes.${名}`, errors);
     表で検査(o, 層の名[名], `$.axes.${名}`, `axes.${名}`, errors);
+    if (o.direction === true) {
+      if (typeof o.label !== "string") {
+        errors.push({ path: `$.axes.${名}.label`, message: `axes.${名}.label must be a string for a directional axis` });
+      }
+    } else if (o.label !== undefined || o.direction !== undefined) {
+      errors.push({ path: `$.axes.${名}.direction`, message: `axes.${名}.direction must be true when label is used` });
+    }
+  }
+}
+
+/** #2854 で足した図表の複合欄と閉じた語を検査する。 */
+function validateChartPresentationFields(j: Record<string, unknown>, errors: JsonDslError[]): void {
+  const enumField = (name: string, allowed: readonly string[]): void => {
+    const value = j[name];
+    if (value === undefined || typeof value !== "string") return;
+    if (!allowed.includes(value)) {
+      errors.push({ path: `$.${name}`, message: `${name} must be one of: ${allowed.join(", ")}` });
+    }
+  };
+  enumField("chartPieTableColumns", CHART_PIE_TABLE_COLUMN_VALUES);
+  enumField("chartPieRingWidth", CHART_PIE_RING_WIDTH_VALUES);
+  enumField("chartStackedLegendPosition", CHART_STACKED_LEGEND_POSITION_VALUES);
+  enumField("chartWaffleLegendPosition", CHART_WAFFLE_LEGEND_POSITION_VALUES);
+  enumField("funnelForm", FUNNEL_FORM_VALUES);
+  enumField("funnelRate", FUNNEL_RATE_VALUES);
+  enumField("quadrantPointLabelSide", QUADRANT_POINT_LABEL_SIDE_VALUES);
+
+  if (Array.isArray(j.chartSlopePeriods) &&
+      (j.chartSlopePeriods.length !== 2 || j.chartSlopePeriods.some((v) => typeof v !== "string" || v.trim() === ""))) {
+    errors.push({ path: "$.chartSlopePeriods", message: "chartSlopePeriods must contain exactly two non-empty strings" });
+  }
+  if (Array.isArray(j.chartSlopeEmphasisIds) && j.chartSlopeEmphasisIds.length === 0) {
+    errors.push({ path: "$.chartSlopeEmphasisIds", message: "chartSlopeEmphasisIds must contain at least one id" });
+  }
+
+  const boundNumber = (value: unknown): boolean =>
+    (typeof value === "number" && Number.isFinite(value)) ||
+    (typeof value === "string" && value.trim() !== "");
+  if (j.chartLineSeries !== undefined && !Array.isArray(j.chartLineSeries)) {
+    errors.push({ path: "$.chartLineSeries", message: "chartLineSeries must be an array" });
+  } else if (Array.isArray(j.chartLineSeries)) {
+    if (j.chartLineSeries.length === 0) {
+      errors.push({ path: "$.chartLineSeries", message: "chartLineSeries must contain at least one series" });
+    }
+    j.chartLineSeries.forEach((series, i) => {
+      const path = `$.chartLineSeries[${i}]`;
+      if (!series || typeof series !== "object" || Array.isArray(series)) {
+        errors.push({ path, message: "chartLineSeries item must be an object" });
+        return;
+      }
+      const value = series as Record<string, unknown>;
+      for (const key of Object.keys(value)) {
+        if (!["label", "points", "tone", "dash", "marker", "valueIndexes"].includes(key))
+          errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+      }
+      if (value.label !== undefined && typeof value.label !== "string")
+        errors.push({ path: `${path}.label`, message: "label must be a string" });
+      if (value.tone !== undefined && (typeof value.tone !== "string" || resolveTone(value.tone) === undefined))
+        errors.push({ path: `${path}.tone`, message: "tone must be a known tone" });
+      if (
+        value.dash !== undefined &&
+        (typeof value.dash !== "string" ||
+          !(CHART_LINE_DASH_VALUES as readonly string[]).includes(value.dash))
+      )
+        errors.push({ path: `${path}.dash`, message: "dash must be solid or dotted" });
+      if (
+        value.marker !== undefined &&
+        (typeof value.marker !== "string" ||
+          !(CHART_LINE_MARKER_VALUES as readonly string[]).includes(value.marker))
+      )
+        errors.push({ path: `${path}.marker`, message: "marker must be dot, hollow, or none" });
+      if (value.valueIndexes !== undefined &&
+          (!Array.isArray(value.valueIndexes) || value.valueIndexes.some((v) => typeof v !== "number" || !Number.isInteger(v) || v < 0)))
+        errors.push({ path: `${path}.valueIndexes`, message: "valueIndexes must contain non-negative integers" });
+      if (!Array.isArray(value.points) || value.points.length === 0) {
+        errors.push({ path: `${path}.points`, message: "points must be a non-empty array" });
+      } else value.points.forEach((point, p) => {
+        const pointPath = `${path}.points[${p}]`;
+        if (!point || typeof point !== "object" || Array.isArray(point)) {
+          errors.push({ path: pointPath, message: "point must be an object" });
+          return;
+        }
+        const item = point as Record<string, unknown>;
+        for (const key of Object.keys(item)) if (key !== "label" && key !== "value")
+          errors.push({ path: `${pointPath}.${key}`, message: `unknown key "${key}"` });
+        if (typeof item.label !== "string") errors.push({ path: `${pointPath}.label`, message: "label must be a string" });
+        if (!boundNumber(item.value)) errors.push({ path: `${pointPath}.value`, message: "value must be a finite number or non-empty string" });
+      });
+    });
+  }
+
+  if (j.chartStackedPeriods !== undefined && !Array.isArray(j.chartStackedPeriods)) {
+    errors.push({ path: "$.chartStackedPeriods", message: "chartStackedPeriods must be an array" });
+  } else if (Array.isArray(j.chartStackedPeriods)) {
+    if (j.chartStackedPeriods.length === 0)
+      errors.push({ path: "$.chartStackedPeriods", message: "chartStackedPeriods must contain at least one period" });
+    j.chartStackedPeriods.forEach((period, i) => {
+      const path = `$.chartStackedPeriods[${i}]`;
+      if (!period || typeof period !== "object" || Array.isArray(period)) {
+        errors.push({ path, message: "chartStackedPeriods item must be an object" });
+        return;
+      }
+      const value = period as Record<string, unknown>;
+      for (const key of Object.keys(value)) if (key !== "label" && key !== "values")
+        errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+      if (typeof value.label !== "string") errors.push({ path: `${path}.label`, message: "label must be a string" });
+      if (!Array.isArray(value.values) || value.values.some((entry) => !boundNumber(entry)))
+        errors.push({ path: `${path}.values`, message: "values must be an array of finite numbers or non-empty strings" });
+    });
+  }
+
+  if (
+    j.chartGaugeValue !== undefined &&
+    (!j.chartGaugeValue || typeof j.chartGaugeValue !== "object" || Array.isArray(j.chartGaugeValue))
+  ) {
+    errors.push({ path: "$.chartGaugeValue", message: "chartGaugeValue must be an object" });
+  } else if (j.chartGaugeValue && typeof j.chartGaugeValue === "object") {
+    const value = j.chartGaugeValue as Record<string, unknown>;
+    for (const key of Object.keys(value)) if (!["max", "current", "target", "previous", "previousLabel"].includes(key))
+      errors.push({ path: `$.chartGaugeValue.${key}`, message: `unknown key "${key}"` });
+    const finite = (entry: unknown): boolean => typeof entry === "number" && Number.isFinite(entry);
+    if (!finite(value.max) || Number(value.max) <= 0) errors.push({ path: "$.chartGaugeValue.max", message: "max must be a positive finite number" });
+    if (!finite(value.current)) errors.push({ path: "$.chartGaugeValue.current", message: "current must be a finite number" });
+    for (const key of ["target", "previous"] as const) if (value[key] !== undefined && !finite(value[key]))
+      errors.push({ path: `$.chartGaugeValue.${key}`, message: `${key} must be a finite number` });
+    if (value.previousLabel !== undefined && typeof value.previousLabel !== "string")
+      errors.push({ path: "$.chartGaugeValue.previousLabel", message: "previousLabel must be a string" });
   }
 }
 
@@ -2778,6 +2962,7 @@ function validateJson(
   }
   validateStates(j.states, errors);
   validateValues(j.values, errors);
+  validateChartPresentationFields(j, errors);
   validateAxes(j.axes, errors);
   validateRegions(j.regions, errors);
   if (errors.length > 0) return { ok: false, errors };
@@ -3239,6 +3424,22 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.ganttTickLabels !== undefined ? { ganttTickLabels: [...json.ganttTickLabels] } : {}),
     ...(json.ganttBarEnd !== undefined ? { ganttBarEnd: json.ganttBarEnd } : {}),
     ...(json.ganttBarThickness !== undefined ? { ganttBarThickness: json.ganttBarThickness } : {}),
+    ...(json.chartSeriesSkipMuted !== undefined ? { chartSeriesSkipMuted: json.chartSeriesSkipMuted } : {}),
+    ...(json.chartLineSeries !== undefined ? { chartLineSeries: json.chartLineSeries } : {}),
+    ...(json.chartPieCenterLabel !== undefined ? { chartPieCenterLabel: json.chartPieCenterLabel } : {}),
+    ...(json.chartPieTableColumns !== undefined ? { chartPieTableColumns: json.chartPieTableColumns } : {}),
+    ...(json.chartPieRingWidth !== undefined ? { chartPieRingWidth: json.chartPieRingWidth } : {}),
+    ...(json.chartSlopePeriods !== undefined ? { chartSlopePeriods: json.chartSlopePeriods } : {}),
+    ...(json.chartSlopeEmphasisIds !== undefined ? { chartSlopeEmphasisIds: json.chartSlopeEmphasisIds } : {}),
+    ...(json.chartSlopeUnit !== undefined ? { chartSlopeUnit: json.chartSlopeUnit } : {}),
+    ...(json.chartStackedPeriods !== undefined ? { chartStackedPeriods: json.chartStackedPeriods } : {}),
+    ...(json.chartStackedRateId !== undefined ? { chartStackedRateId: json.chartStackedRateId } : {}),
+    ...(json.chartStackedLegendPosition !== undefined ? { chartStackedLegendPosition: json.chartStackedLegendPosition } : {}),
+    ...(json.chartGaugeValue !== undefined ? { chartGaugeValue: json.chartGaugeValue } : {}),
+    ...(json.chartWaffleLegendPosition !== undefined ? { chartWaffleLegendPosition: json.chartWaffleLegendPosition } : {}),
+    ...(json.funnelForm !== undefined ? { funnelForm: json.funnelForm } : {}),
+    ...(json.funnelRate !== undefined ? { funnelRate: json.funnelRate } : {}),
+    ...(json.quadrantPointLabelSide !== undefined ? { quadrantPointLabelSide: json.quadrantPointLabelSide } : {}),
     ...(別名?.order !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
     ...(別名?.shape !== undefined ? { shape: 別名.shape, shapePos: 位置("type") } : {}),
     // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから
