@@ -12,6 +12,7 @@ import {
   sourceYaml__parcelStatusPie,
   sourceYaml__redeliveryIdeasMind,
   sourceYaml__shipperFeelingJourney,
+  sourceYaml__sortingShelfGantt,
 } from "../src/topics/catalog/charts.cdl";
 import { openEditorTheme } from "./helpers/fixed-theme-checks";
 
@@ -127,7 +128,7 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
 });
 
 for (const theme of 意匠) {
-  test(`${theme}: 円の表の印・罫・字体を意匠へ合わせる`, async ({ page }) => {
+  test(`${theme}: 円と升目の一覧の字を重ねず意匠へ合わせる`, async ({ page }) => {
     await openEditorTheme(page, sourceYaml__parcelStatusPie, theme, false);
     const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const mark = stage.locator('[data-cdl-role="chart-pie-table-mark"]').first();
@@ -141,8 +142,8 @@ for (const theme of 意匠) {
       rule.evaluate((node) => ({ display: getComputedStyle(node).display, dash: getComputedStyle(node).strokeDasharray })),
     ]);
 
-    expect(styles[1].size).toBe("22px");
-    expect(styles[2].size).toBe("19px");
+    expect(styles[1].size).toBe("15px");
+    expect(Number.parseFloat(styles[2].size)).toBeCloseTo(12.95, 1);
     expect(styles[2].family).toContain("JetBrains Mono");
     if (theme === "terminal") expect(styles[1].family).toContain("JetBrains Mono");
     else expect(styles[1].family).toContain("Noto Sans JP");
@@ -152,6 +153,86 @@ for (const theme of 意匠) {
     if (theme === "blueprint" || theme === "letterpress" || theme === "terminal" || theme === "sketch")
       expect(styles[3].display).not.toBe("none");
     else expect(styles[3].display).toBe("none");
+
+    const pieRows = await stage.evaluate((element) => {
+      const labels = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="chart-pie-table-label"]')];
+      const values = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="chart-pie-table-value"]')];
+      return labels.map((label, index) => {
+        const value = values[index];
+        if (!value) throw new Error("円の一覧値が足りない");
+        const l = label.getBBox();
+        const v = value.getBBox();
+        return { gap: v.x - (l.x + l.width), labelY: l.y + l.height / 2, valueY: v.y + v.height / 2 };
+      });
+    });
+    expect(pieRows.every((row) => row.gap > 0), "円の一覧名と値が重ならない").toBe(true);
+    expect(pieRows.every((row) => Math.abs(row.labelY - row.valueY) < 1), "円の一覧名と値が同じ行").toBe(true);
+
+    await openEditorTheme(page, sourceYaml__parcelSizeWaffle, theme, false);
+    const waffleStage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const waffleRows = await waffleStage.evaluate((element) => {
+      const labels = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="chart-waffle-item-label"]')];
+      const values = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="chart-waffle-item-share"]')];
+      return labels.map((label, index) => {
+        const value = values[index];
+        if (!value) throw new Error("升目の一覧値が足りない");
+        const l = label.getBBox();
+        const v = value.getBBox();
+        return {
+          gap: v.x - (l.x + l.width),
+          labelSize: getComputedStyle(label).fontSize,
+          labelSvgSize: label.getAttribute("font-size"),
+          valueSize: getComputedStyle(value).fontSize,
+          valueSvgSize: value.getAttribute("font-size"),
+        };
+      });
+    });
+    expect(waffleRows.every((row) => row.gap > 0), "升目の一覧名と値が重ならない").toBe(true);
+    expect(waffleRows.every((row) => row.labelSize === `${row.labelSvgSize}px`), "升目の一覧名は cdl の級").toBe(true);
+    expect(waffleRows.every((row) => row.valueSize === `${row.valueSvgSize}px`), "升目の一覧値は cdl の級").toBe(true);
+  });
+
+  test(`${theme}: ガントの帯・名前・節目を見本位置と札の中に収める`, async ({ page }) => {
+    await openEditorTheme(page, sourceYaml__sortingShelfGantt, theme, false);
+    const stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    await expect(stage).toHaveAttribute("data-cdl-phase-index", "1", { timeout: 5_000 });
+    await page.waitForTimeout(1_300);
+    const geometry = await stage.evaluate((element) => {
+      const ticks = [...element.querySelectorAll<SVGTextElement>('[data-cdl-role="gantt-tick"]')]
+        .map((tick) => tick.x.baseVal[0]?.value ?? Number.NaN);
+      const bars = [...element.querySelectorAll<SVGRectElement>('[data-cdl-role="gantt-bar"]')]
+        .map((bar) => ({ x: bar.x.baseVal.value, width: bar.width.baseVal.value }));
+      const cell = ticks[1]! - ticks[0]!;
+      const origin = ticks[0]! - cell / 2;
+      const positions = bars.map((bar) => [
+        (bar.x - origin) / cell,
+        (bar.x + bar.width - origin) / cell,
+      ]);
+      const head = element.querySelector<SVGLineElement>('[data-cdl-role="figure-head-divider"]');
+      const footer = element.querySelector<SVGLineElement>('[data-cdl-role="figure-footer-divider"]');
+      if (!head || !footer) throw new Error("図の札の境が無い");
+      const top = head.getBoundingClientRect().top;
+      const bottom = footer.getBoundingClientRect().top;
+      const names = new Set(["調べる", "設計する", "棚を作る", "端末を入れる", "試す", "本番"]);
+      const items = [
+        ...element.querySelectorAll<SVGGraphicsElement>('[data-cdl-role="gantt-bar"], [data-cdl-role="gantt-milestone"], [data-cdl-role="gantt-milestone-label"]'),
+        ...[...element.querySelectorAll<SVGTextElement>("text")].filter((text) => names.has(text.textContent ?? "")),
+      ];
+      return {
+        positions,
+        inside: items.map((item) => {
+          const box = item.getBoundingClientRect();
+          return box.top >= top && box.bottom <= bottom;
+        }),
+      };
+    });
+    const expected = [[0, 0.75], [0.55, 1.8], [2, 3.2], [2.3, 3.25], [3.6, 4.2]];
+    expect(geometry.positions).toHaveLength(expected.length);
+    for (const [index, position] of geometry.positions.entries()) {
+      expect(Math.abs(position[0]! - expected[index]![0]!), `${index + 1} 本目の始まり`).toBeLessThanOrEqual(0.05);
+      expect(Math.abs(position[1]! - expected[index]![1]!), `${index + 1} 本目の終わり`).toBeLessThanOrEqual(0.05);
+    }
+    expect(geometry.inside.every(Boolean), "全行の名前・帯・節目が見出しの下、足の上").toBe(true);
   });
 
   test(`${theme}: 3段目c の木・放射・ジャーニー・図の札を見本どおり描く`, async ({ page }) => {
@@ -238,8 +319,8 @@ for (const theme of 意匠) {
     const mind = stage.locator('[data-cdl-mind-form="outline"]');
     await expect(mind).toHaveCount(1);
     const mindNode = stage.locator('[data-cdl-node]:has([data-cdl-mind-form="outline"])');
-    await expect(mindNode).toHaveAttribute("data-cdl-w", "720");
-    await expect(mindNode).toHaveAttribute("data-cdl-h", "224");
+    await expect(mindNode).toHaveAttribute("data-cdl-w", "1712");
+    await expect(mindNode).toHaveAttribute("data-cdl-h", "528");
     await expect(stage.locator('[data-cdl-role="mind-root"]')).toHaveCount(1);
     await expect(stage.locator('[data-cdl-role="mind-box"]')).toHaveCount(4);
     await expect(stage.locator('[data-cdl-role="mind-leaf-underline"]')).toHaveCount(8);

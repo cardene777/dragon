@@ -31,8 +31,8 @@ describe("見本帳の路線図の形 (#2799)", () => {
     });
   });
 
-  it("cdl#1033: 凡例の字を箱の題 32 に対する見本の比にする", () => {
-    expect(presetDeliveryMetro.legendFontSize).toBe(25.8461538462);
+  it("凡例の字を見本の 21 にする", () => {
+    expect(presetDeliveryMetro.legendFontSize).toBe(21);
   });
 
   it("shape: metro を記法と JSON の対でちょうど1件持つ", () => {

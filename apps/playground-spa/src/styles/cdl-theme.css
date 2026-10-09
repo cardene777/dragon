@@ -5251,7 +5251,6 @@ svg[data-cdl-stage][data-cdl-palette]
   :is([data-cdl-role="chart-pie-table-label"], [data-cdl-role="chart-waffle-item-label"]) {
   fill: var(--theme-chart-name-color);
   font-family: var(--theme-chart-name-font);
-  font-size: 22px;
   font-weight: 500;
 }
 
@@ -5259,7 +5258,6 @@ svg[data-cdl-stage][data-cdl-palette]
   :is([data-cdl-role="chart-pie-table-value"], [data-cdl-role="chart-waffle-item-share"]) {
   fill: var(--theme-chart-value-color);
   font-family: var(--theme-chart-value-font) !important;
-  font-size: 19px;
   font-weight: 400;
 }
 

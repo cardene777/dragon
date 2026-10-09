@@ -4,8 +4,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
+  sourceJson__pattern__sortingShelfGantt__強調なし,
   sourceJson__pattern__sortingShelfGantt__帯だけ,
   sourceJson__sortingShelfGantt,
+  sourceYaml__pattern__sortingShelfGantt__強調なし,
   sourceYaml__pattern__sortingShelfGantt__帯だけ,
   sourceYaml__sortingShelfGantt,
 } from "@/topics/catalog/charts.cdl";
@@ -79,15 +81,21 @@ describe("工程の図の見本の値", () => {
     sourceJson__sortingShelfGantt,
     sourceYaml__pattern__sortingShelfGantt__帯だけ,
     sourceJson__pattern__sortingShelfGantt__帯だけ,
+    sourceYaml__pattern__sortingShelfGantt__強調なし,
+    sourceJson__pattern__sortingShelfGantt__強調なし,
   ];
+  const 主役つき記法 = 全記法.slice(0, 4);
 
-  it("端末の終わりを全 6 箇所で 2.30 にする", () => {
-    const text = 全記法.join("\n");
-    expect(text.match(/terminal_end["']?\s*:\s*2\.30/gu)).toHaveLength(6);
-    expect(text).not.toMatch(/terminal_end["']?\s*:\s*2\.55/gu);
+  it.each(全記法)("帯の始まりと最後を position の見本位置で渡す", (source) => {
+    expect(source).toMatch(/試す[\s\S]*?9月\+0\.60/gu);
+    expect(source).toMatch(/survey_end["']?\s*:\s*0\.75/gu);
+    expect(source).toMatch(/design_end["']?\s*:\s*1\.80/gu);
+    expect(source).toMatch(/shelf_end["']?\s*:\s*3\.20/gu);
+    expect(source).toMatch(/terminal_end["']?\s*:\s*3\.25/gu);
+    expect(source).toMatch(/trial_end["']?\s*:\s*4\.20/gu);
   });
 
-  it.each(全記法)("主役 3 件・沈んだ帯 2 件・節目と今日を全ての記法で渡す", (source) => {
+  it.each(主役つき記法)("主役 3 件・沈んだ帯 2 件・節目と今日を主役つき記法で渡す", (source) => {
     expect(source.match(/emphasis["']?\s*:\s*["']?primary/gu)).toHaveLength(3);
     expect(source.match(/tone["']?\s*:\s*["']?muted/gu)).toHaveLength(2);
     expect(source).toMatch(/milestone["']?\s*:\s*true/gu);

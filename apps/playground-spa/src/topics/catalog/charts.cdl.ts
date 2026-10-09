@@ -53,9 +53,10 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 // 1. 棒で比べる
 // ============================================================
 export const sourceYaml__branchParcelsBar = `title: "営業所ごとの取扱数"
+figureSize: {"width":896,"height":1008}
 type: chart
 shape: bar
-figureCard: {"label":"棒 / 今月","note":"単位 件"}
+figureCard: {"label":"棒","note":"今月 / 単位 件"}
 
 actors:
   - 東京: "{tokyo}"
@@ -87,9 +88,10 @@ animation:
 
 export const sourceJson__branchParcelsBar = `{
   "title": "営業所ごとの取扱数",
+  "figureSize": { "width": 896, "height": 1008 },
   "type": "chart",
   "shape": "bar",
-  "figureCard": { "label": "棒 / 今月", "note": "単位 件" },
+  "figureCard": { "label": "棒", "note": "今月 / 単位 件" },
   "actors": [
     { "name": "東京", "subtitle": "{tokyo}" },
     { "name": "大阪", "subtitle": "{osaka}" },
@@ -132,6 +134,7 @@ export const branchParcelsBar = textDslToDiagram(sourceYaml__branchParcelsBar);
 export const patternBase__branchParcelsBar = "今だけ";
 
 export const sourceYaml__pattern__branchParcelsBar__前の値つき = `title: "先月と比べた営業所ごとの取扱数"
+figureSize: {"width":896,"height":1008}
 type: chart
 shape: bar
 
@@ -162,6 +165,7 @@ animation:
 
 export const sourceJson__pattern__branchParcelsBar__前の値つき = `{
   "title": "先月と比べた営業所ごとの取扱数",
+  "figureSize": { "width": 896, "height": 1008 },
   "type": "chart",
   "shape": "bar",
   "actors": [
@@ -200,6 +204,7 @@ export const pattern__branchParcelsBar__前の値つき = textDslToDiagram(
 // 違いは段の途中にだけ出るので、同じ図で割合だけを変えた切替にする。
 // ------------------------------------------------------------
 export const sourceYaml__pattern__branchParcelsBar__4割で伸ばし終える = `title: "段の 4 割で伸ばし終える営業所ごとの取扱数"
+figureSize: {"width":896,"height":1008}
 type: chart
 shape: bar
 
@@ -233,6 +238,7 @@ animation:
 
 export const sourceJson__pattern__branchParcelsBar__4割で伸ばし終える = `{
   "title": "段の 4 割で伸ばし終える営業所ごとの取扱数",
+  "figureSize": { "width": 896, "height": 1008 },
   "type": "chart",
   "shape": "bar",
   "actors": [
@@ -275,6 +281,7 @@ export const pattern__branchParcelsBar__4割で伸ばし終える = textDslToDia
 // 2. 線で追う
 // ============================================================
 export const sourceYaml__monthlyDeliveriesLine = `title: "月ごとの配達数"
+figureSize: {"width":768,"height":464}
 type: chart
 shape: line
 figureCard: {"label":"折れ線","note":"計画 と 実績"}
@@ -305,6 +312,7 @@ animation:
 
 export const sourceJson__monthlyDeliveriesLine = `{
   "title": "月ごとの配達数",
+  "figureSize": { "width": 768, "height": 464 },
   "type": "chart",
   "shape": "line",
   "figureCard": { "label": "折れ線", "note": "計画 と 実績" },
@@ -343,6 +351,7 @@ export const monthlyDeliveriesLine = textDslToDiagram(sourceYaml__monthlyDeliver
 export const patternBase__monthlyDeliveriesLine = "計画と実績";
 
 export const sourceYaml__pattern__monthlyDeliveriesLine__1本の線 = `title: "1 本の線で見る月ごとの配達数"
+figureSize: {"width":768,"height":464}
 type: chart
 shape: line
 
@@ -376,6 +385,7 @@ animation:
 
 export const sourceJson__pattern__monthlyDeliveriesLine__1本の線 = `{
   "title": "1 本の線で見る月ごとの配達数",
+  "figureSize": { "width": 768, "height": 464 },
   "type": "chart",
   "shape": "line",
   "actors": [
@@ -412,6 +422,7 @@ export const pattern__monthlyDeliveriesLine__1本の線 = textDslToDiagram(
 // 3. 割合を見る
 // ============================================================
 export const sourceYaml__parcelStatusPie = `title: "荷物の状態"
+figureSize: {"width":768,"height":496}
 type: chart
 shape: pie
 figureCard: {"label":"内訳","note":"合計 1,284 件"}
@@ -447,6 +458,7 @@ animation:
 
 export const sourceJson__parcelStatusPie = `{
   "title": "荷物の状態",
+  "figureSize": { "width": 768, "height": 496 },
   "type": "chart",
   "shape": "pie",
   "figureCard": { "label": "内訳", "note": "合計 1,284 件" },
@@ -492,6 +504,7 @@ export const parcelStatusPie = textDslToDiagram(sourceYaml__parcelStatusPie);
 export const patternBase__parcelStatusPie = "今だけ";
 
 export const sourceYaml__pattern__parcelStatusPie__前と今 = `title: "昨日と比べた荷物の状態"
+figureSize: {"width":768,"height":496}
 type: chart
 shape: pie
 
@@ -520,6 +533,7 @@ animation:
 
 export const sourceJson__pattern__parcelStatusPie__前と今 = `{
   "title": "昨日と比べた荷物の状態",
+  "figureSize": { "width": 768, "height": 496 },
   "type": "chart",
   "shape": "pie",
   "actors": [
@@ -552,8 +566,9 @@ export const pattern__parcelStatusPie__前と今 = textDslToDiagram(sourceYaml__
 // 4. 絞り込みで減る
 // ============================================================
 export const sourceYaml__orderToDeliveryFunnel = `title: "申し込みから届くまで"
+figureSize: {"width":544,"height":496}
 type: funnel
-figureCard: {"label":"漏斗 / 先月","note":"件"}
+figureCard: {"label":"漏斗","note":"先月 / 件"}
 funnelForm: proportional-bars
 funnelRate: conversion
 chartSeriesSkipMuted: true
@@ -585,8 +600,9 @@ animation:
 
 export const sourceJson__orderToDeliveryFunnel = `{
   "title": "申し込みから届くまで",
+  "figureSize": { "width": 544, "height": 496 },
   "type": "funnel",
-  "figureCard": { "label": "漏斗 / 先月", "note": "件" },
+  "figureCard": { "label": "漏斗", "note": "先月 / 件" },
   "funnelForm": "proportional-bars",
   "funnelRate": "conversion",
   "chartSeriesSkipMuted": true,
@@ -622,26 +638,27 @@ export const orderToDeliveryFunnel = textDslToDiagram(sourceYaml__orderToDeliver
 export const sourceYaml__sortingShelfGantt = `title: "仕分け棚を入れ替える工程"
 type: gantt
 figureCard: {"label":"ガント","note":"色の付いた棒が遅れると本番も遅れる"}
-ticks: [6月, 7月, 8月, 9月, 10月]
+figureSize: {"width":1712,"height":592}
+ticks: [2026年6月, 2026年7月, 2026年8月, 2026年9月, 2026年10月]
 ganttToday: { index: 3.30, label: "今日" }
 ganttTickLabels: [6月, 7月, 8月, 9月, 10月]
 ganttBarEnd: position
 ganttBarThickness: thin
 
 actors:
-  - 調べる: { value: "6月", end: "{survey_end}", tone: muted }
-  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent, emphasis: primary }
-  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent, emphasis: primary }
-  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: muted }
-  - 試す: { value: "9月+0.45", end: "{trial_end}", tone: accent, emphasis: primary }
-  - 本番: { value: "10月+0.45", startLabel: "10月半ば", milestone: true }
+  - 調べる: { value: "2026年6月", end: "{survey_end}", tone: muted }
+  - 設計する: { value: "2026年6月+0.55", end: "{design_end}", tone: accent, emphasis: primary }
+  - 棚を作る: { value: "2026年8月", end: "{shelf_end}", tone: accent, emphasis: primary }
+  - 端末を入れる: { value: "2026年8月+0.30", end: "{terminal_end}", tone: muted }
+  - 試す: { value: "2026年9月+0.60", end: "{trial_end}", tone: accent, emphasis: primary }
+  - 本番: { value: "2026年10月+0.45", startLabel: "10月半ば", milestone: true }
 
 states:
-  survey_end: 0
-  design_end: 0.80
-  shelf_end: 2
-  terminal_end: 2.30
-  trial_end: 3.45
+  survey_end: 0.75
+  design_end: 1.80
+  shelf_end: 3
+  terminal_end: 3.25
+  trial_end: 4.20
 
 flow:
   - 設計する -> 棚を作る: ""
@@ -655,9 +672,9 @@ animation:
     description: "6 月から 10 月までの仕分け棚の入れ替え予定を並べる。"
   - step: "入れ替え工程" 1.2s
     set:
-      shelf_end: 2.20
-      terminal_end: 2.30
-      trial_end: 3.45
+      shelf_end: 3.20
+      terminal_end: 3.25
+      trial_end: 4.20
     description: "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 9 月上旬。"
 `;
 
@@ -665,18 +682,19 @@ export const sourceJson__sortingShelfGantt = `{
   "title": "仕分け棚を入れ替える工程",
   "type": "gantt",
   "figureCard": { "label": "ガント", "note": "色の付いた棒が遅れると本番も遅れる" },
-  "目盛り": ["6月", "7月", "8月", "9月", "10月"],
+  "figureSize": { "width": 1712, "height": 592 },
+  "目盛り": ["2026年6月", "2026年7月", "2026年8月", "2026年9月", "2026年10月"],
   "ganttToday": { "index": 3.30, "label": "今日" },
   "ganttTickLabels": ["6月", "7月", "8月", "9月", "10月"],
   "ganttBarEnd": "position",
   "ganttBarThickness": "thin",
   "actors": [
-    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "muted" },
-    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent", "emphasis": "primary" },
-    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent", "emphasis": "primary" },
-    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "muted" },
-    { "name": "試す", "subtitle": "9月+0.45", "end": "{trial_end}", "tone": "accent", "emphasis": "primary" },
-    { "name": "本番", "subtitle": "10月+0.45", "startLabel": "10月半ば", "milestone": true }
+    { "name": "調べる", "subtitle": "2026年6月", "end": "{survey_end}", "tone": "muted" },
+    { "name": "設計する", "subtitle": "2026年6月+0.55", "end": "{design_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "棚を作る", "subtitle": "2026年8月", "end": "{shelf_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "端末を入れる", "subtitle": "2026年8月+0.30", "end": "{terminal_end}", "tone": "muted" },
+    { "name": "試す", "subtitle": "2026年9月+0.60", "end": "{trial_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "本番", "subtitle": "2026年10月+0.45", "startLabel": "10月半ば", "milestone": true }
   ],
   "flow": [
     { "from": "設計する", "to": "棚を作る", "label": "" },
@@ -684,7 +702,7 @@ export const sourceJson__sortingShelfGantt = `{
     { "from": "端末を入れる", "to": "試す", "label": "" },
     { "from": "試す", "to": "本番", "label": "" }
   ],
-  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2, "terminal_end": 2.30, "trial_end": 3.45 },
+  "states": { "survey_end": 0.75, "design_end": 1.80, "shelf_end": 3, "terminal_end": 3.25, "trial_end": 4.20 },
   "animation": [
     {
       "step": "入れ替え前の予定",
@@ -696,7 +714,7 @@ export const sourceJson__sortingShelfGantt = `{
       "step": "入れ替え工程",
       "duration": 1.2,
       "description": "棚と端末を 9 月までに揃え、試した後で 10 月半ばの本番へ進む。 今日は 9 月上旬。",
-      "set": { "shelf_end": 2.20, "terminal_end": 2.30, "trial_end": 3.45 }
+      "set": { "shelf_end": 3.20, "terminal_end": 3.25, "trial_end": 4.20 }
     }
   ]
 }`;
@@ -713,27 +731,28 @@ export const sortingShelfGantt = textDslToDiagram(sourceYaml__sortingShelfGantt)
 export const patternBase__sortingShelfGantt = "前後つき";
 
 export const sourceYaml__pattern__sortingShelfGantt__帯だけ = `title: "矢印なしの仕分け棚を入れ替える工程"
+figureSize: {"width":1712,"height":592}
 type: gantt
-ticks: [6月, 7月, 8月, 9月, 10月]
+ticks: [2026年6月, 2026年7月, 2026年8月, 2026年9月, 2026年10月]
 ganttToday: { index: 3.30, label: "今日" }
 ganttTickLabels: [6月, 7月, 8月, 9月, 10月]
 ganttBarEnd: position
 ganttBarThickness: thin
 
 actors:
-  - 調べる: { value: "6月", end: "{survey_end}", tone: muted }
-  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent, emphasis: primary }
-  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent, emphasis: primary }
-  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: muted }
-  - 試す: { value: "9月+0.45", end: "{trial_end}", tone: accent, emphasis: primary }
-  - 本番: { value: "10月+0.45", startLabel: "10月半ば", milestone: true }
+  - 調べる: { value: "2026年6月", end: "{survey_end}", tone: muted }
+  - 設計する: { value: "2026年6月+0.55", end: "{design_end}", tone: accent, emphasis: primary }
+  - 棚を作る: { value: "2026年8月", end: "{shelf_end}", tone: accent, emphasis: primary }
+  - 端末を入れる: { value: "2026年8月+0.30", end: "{terminal_end}", tone: muted }
+  - 試す: { value: "2026年9月+0.60", end: "{trial_end}", tone: accent, emphasis: primary }
+  - 本番: { value: "2026年10月+0.45", startLabel: "10月半ば", milestone: true }
 
 states:
-  survey_end: 0
-  design_end: 0.80
-  shelf_end: 2.20
-  terminal_end: 2.30
-  trial_end: 3.45
+  survey_end: 0.75
+  design_end: 1.80
+  shelf_end: 3.20
+  terminal_end: 3.25
+  trial_end: 4.20
 
 animation:
   - step: "工程の帯を引く" 1.2s
@@ -743,22 +762,23 @@ animation:
 
 export const sourceJson__pattern__sortingShelfGantt__帯だけ = `{
   "title": "矢印なしの仕分け棚を入れ替える工程",
+  "figureSize": { "width": 1712, "height": 592 },
   "type": "gantt",
-  "目盛り": ["6月", "7月", "8月", "9月", "10月"],
+  "目盛り": ["2026年6月", "2026年7月", "2026年8月", "2026年9月", "2026年10月"],
   "ganttToday": { "index": 3.30, "label": "今日" },
   "ganttTickLabels": ["6月", "7月", "8月", "9月", "10月"],
   "ganttBarEnd": "position",
   "ganttBarThickness": "thin",
   "actors": [
-    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "muted" },
-    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent", "emphasis": "primary" },
-    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent", "emphasis": "primary" },
-    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "muted" },
-    { "name": "試す", "subtitle": "9月+0.45", "end": "{trial_end}", "tone": "accent", "emphasis": "primary" },
-    { "name": "本番", "subtitle": "10月+0.45", "startLabel": "10月半ば", "milestone": true }
+    { "name": "調べる", "subtitle": "2026年6月", "end": "{survey_end}", "tone": "muted" },
+    { "name": "設計する", "subtitle": "2026年6月+0.55", "end": "{design_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "棚を作る", "subtitle": "2026年8月", "end": "{shelf_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "端末を入れる", "subtitle": "2026年8月+0.30", "end": "{terminal_end}", "tone": "muted" },
+    { "name": "試す", "subtitle": "2026年9月+0.60", "end": "{trial_end}", "tone": "accent", "emphasis": "primary" },
+    { "name": "本番", "subtitle": "2026年10月+0.45", "startLabel": "10月半ば", "milestone": true }
   ],
   "flow": [],
-  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2.20, "terminal_end": 2.30, "trial_end": 3.45 },
+  "states": { "survey_end": 0.75, "design_end": 1.80, "shelf_end": 3.20, "terminal_end": 3.25, "trial_end": 4.20 },
   "animation": [
     {
       "step": "工程の帯を引く",
@@ -778,21 +798,22 @@ export const pattern__sortingShelfGantt__帯だけ = textDslToDiagram(
  * 同じ工程と依存関係のまま見比べられるようにする。
  */
 export const sourceYaml__pattern__sortingShelfGantt__強調なし = `title: "強調なしの仕分け棚を入れ替える工程"
+figureSize: {"width":1712,"height":592}
 type: gantt
 eyebrow: "棚の終わり {shelf_end}"
-ticks: [6月, 7月, 8月, 9月, 10月]
+ticks: [2026年6月, 2026年7月, 2026年8月, 2026年9月, 2026年10月]
 ganttToday: { index: 3.30, label: "今日" }
 ganttTickLabels: [6月, 7月, 8月, 9月, 10月]
 ganttBarEnd: position
 ganttBarThickness: thin
 
 actors:
-  - 調べる: { value: "6月", end: "{survey_end}", tone: muted }
-  - 設計する: { value: "6月+0.55", end: "{design_end}", tone: accent }
-  - 棚を作る: { value: "8月", end: "{shelf_end}", tone: accent }
-  - 端末を入れる: { value: "8月+0.30", end: "{terminal_end}", tone: muted }
-  - 試す: { value: "9月+0.45", end: "{trial_end}", tone: accent }
-  - 本番: { value: "10月+0.45", startLabel: "10月半ば" }
+  - 調べる: { value: "2026年6月", end: "{survey_end}", tone: muted }
+  - 設計する: { value: "2026年6月+0.55", end: "{design_end}", tone: accent }
+  - 棚を作る: { value: "2026年8月", end: "{shelf_end}", tone: accent }
+  - 端末を入れる: { value: "2026年8月+0.30", end: "{terminal_end}", tone: muted }
+  - 試す: { value: "2026年9月+0.60", end: "{trial_end}", tone: accent }
+  - 本番: { value: "2026年10月+0.45", startLabel: "10月半ば" }
 
 flow:
   - 設計する -> 棚を作る: ""
@@ -801,11 +822,11 @@ flow:
   - 試す -> 本番: ""
 
 states:
-  survey_end: 0
-  design_end: 0.80
-  shelf_end: 2
-  terminal_end: 2.30
-  trial_end: 3.45
+  survey_end: 0.75
+  design_end: 1.80
+  shelf_end: 3
+  terminal_end: 3.25
+  trial_end: 4.20
 
 animation:
   - step: "入れ替え前の予定" 1.2s
@@ -813,28 +834,29 @@ animation:
     description: "6 月から 10 月までの仕分け棚の入れ替え予定を並べる。"
   - step: "入れ替え工程" 1.2s
     set:
-      shelf_end: 2.20
-      terminal_end: 2.30
-      trial_end: 3.45
+      shelf_end: 3.20
+      terminal_end: 3.25
+      trial_end: 4.20
     description: "節目や主役の強調を付けず、同じ工程を通常の帯で示す。 今日は 9 月上旬。"
 `;
 
 export const sourceJson__pattern__sortingShelfGantt__強調なし = `{
   "title": "強調なしの仕分け棚を入れ替える工程",
+  "figureSize": { "width": 1712, "height": 592 },
   "type": "gantt",
   "eyebrow": "棚の終わり {shelf_end}",
-  "目盛り": ["6月", "7月", "8月", "9月", "10月"],
+  "目盛り": ["2026年6月", "2026年7月", "2026年8月", "2026年9月", "2026年10月"],
   "ganttToday": { "index": 3.30, "label": "今日" },
   "ganttTickLabels": ["6月", "7月", "8月", "9月", "10月"],
   "ganttBarEnd": "position",
   "ganttBarThickness": "thin",
   "actors": [
-    { "name": "調べる", "subtitle": "6月", "end": "{survey_end}", "tone": "muted" },
-    { "name": "設計する", "subtitle": "6月+0.55", "end": "{design_end}", "tone": "accent" },
-    { "name": "棚を作る", "subtitle": "8月", "end": "{shelf_end}", "tone": "accent" },
-    { "name": "端末を入れる", "subtitle": "8月+0.30", "end": "{terminal_end}", "tone": "muted" },
-    { "name": "試す", "subtitle": "9月+0.45", "end": "{trial_end}", "tone": "accent" },
-    { "name": "本番", "subtitle": "10月+0.45", "startLabel": "10月半ば" }
+    { "name": "調べる", "subtitle": "2026年6月", "end": "{survey_end}", "tone": "muted" },
+    { "name": "設計する", "subtitle": "2026年6月+0.55", "end": "{design_end}", "tone": "accent" },
+    { "name": "棚を作る", "subtitle": "2026年8月", "end": "{shelf_end}", "tone": "accent" },
+    { "name": "端末を入れる", "subtitle": "2026年8月+0.30", "end": "{terminal_end}", "tone": "muted" },
+    { "name": "試す", "subtitle": "2026年9月+0.60", "end": "{trial_end}", "tone": "accent" },
+    { "name": "本番", "subtitle": "2026年10月+0.45", "startLabel": "10月半ば" }
   ],
   "flow": [
     { "from": "設計する", "to": "棚を作る", "label": "" },
@@ -842,7 +864,7 @@ export const sourceJson__pattern__sortingShelfGantt__強調なし = `{
     { "from": "端末を入れる", "to": "試す", "label": "" },
     { "from": "試す", "to": "本番", "label": "" }
   ],
-  "states": { "survey_end": 0, "design_end": 0.80, "shelf_end": 2, "terminal_end": 2.30, "trial_end": 3.45 },
+  "states": { "survey_end": 0.75, "design_end": 1.80, "shelf_end": 3, "terminal_end": 3.25, "trial_end": 4.20 },
   "animation": [
     {
       "step": "入れ替え前の予定",
@@ -854,7 +876,7 @@ export const sourceJson__pattern__sortingShelfGantt__強調なし = `{
       "step": "入れ替え工程",
       "duration": 1.2,
       "description": "節目や主役の強調を付けず、同じ工程を通常の帯で示す。 今日は 9 月上旬。",
-      "set": { "shelf_end": 2.20, "terminal_end": 2.30, "trial_end": 3.45 }
+      "set": { "shelf_end": 3.20, "terminal_end": 3.25, "trial_end": 4.20 }
     }
   ]
 }`;
@@ -946,6 +968,7 @@ export const shipperFeelingJourney = textDslToDiagram(sourceYaml__shipperFeeling
 export const patternBase__shipperFeelingJourney = "気持ちだけ";
 
 export const sourceYaml__pattern__shipperFeelingJourney__接点つき = `title: "荷主の気持ちと接点"
+figureSize: {"width":1712,"height":384}
 type: journey
 
 actors:
@@ -973,6 +996,7 @@ animation:
 
 export const sourceJson__pattern__shipperFeelingJourney__接点つき = `{
   "title": "荷主の気持ちと接点",
+  "figureSize": { "width": 1712, "height": 384 },
   "type": "journey",
   "actors": [
     { "name": "申し込む", "value": "満足", "touchpoint": "申し込み画面" },
@@ -1018,6 +1042,7 @@ export const pattern__shipperFeelingJourney__接点つき = textDslToDiagram(
  * 隣の段の名前と重なる。
  */
 export const sourceYaml__pattern__shipperFeelingJourney__5つの気持ち = `title: "荷主が通る 5 つの気持ち"
+figureSize: {"width":1712,"height":384}
 type: journey
 
 actors:
@@ -1045,6 +1070,7 @@ animation:
 
 export const sourceJson__pattern__shipperFeelingJourney__5つの気持ち = `{
   "title": "荷主が通る 5 つの気持ち",
+  "figureSize": { "width": 1712, "height": 384 },
   "type": "journey",
   "actors": [
     { "name": "申し込む", "subtitle": "満足" },
@@ -1082,7 +1108,7 @@ export const pattern__shipperFeelingJourney__5つの気持ち = textDslToDiagram
 export const sourceYaml__redeliveryIdeasMind = `title: "再配達を減らす"
 type: mind
 mindForm: outline
-figureSize: {"width":720,"height":224}
+figureSize: {"width":1712,"height":528}
 
 actors:
   - "{theme}"
@@ -1126,7 +1152,7 @@ export const sourceJson__redeliveryIdeasMind = `{
   "title": "再配達を減らす",
   "type": "mind",
   "mindForm": "outline",
-  "figureSize": { "width": 720, "height": 224 },
+  "figureSize": { "width": 1712, "height": 528 },
   "actors": [
     { "name": "{theme}" },
     { "name": "置き場所" },
@@ -1171,6 +1197,7 @@ export const redeliveryIdeasMind = textDslToDiagram(sourceYaml__redeliveryIdeasM
 export const patternBase__redeliveryIdeasMind = "見出しだけ";
 
 export const sourceYaml__pattern__redeliveryIdeasMind__説明つき = `title: "再配達を減らす手立ての説明"
+figureSize: {"width":1712,"height":528}
 type: mind
 
 actors:
@@ -1188,6 +1215,7 @@ animation:
 
 export const sourceJson__pattern__redeliveryIdeasMind__説明つき = `{
   "title": "再配達を減らす手立ての説明",
+  "figureSize": { "width": 1712, "height": 528 },
   "type": "mind",
   "actors": [
     { "name": "再配達を減らす", "subtitle": "受け取りやすくする" },
@@ -1215,6 +1243,7 @@ export const pattern__redeliveryIdeasMind__説明つき = textDslToDiagram(
 // 8. 2 軸で分ける
 // ============================================================
 export const sourceYaml__measureEffortQuadrant = `title: "打ち手の手間と効き目"
+figureSize: {"width":544,"height":496}
 type: quadrant
 figureCard: {"label":"四象限","note":"左上から手を付ける"}
 quadrantPointLabelSide: right
@@ -1268,6 +1297,7 @@ animation:
 
 export const sourceJson__measureEffortQuadrant = `{
   "title": "打ち手の手間と効き目",
+  "figureSize": { "width": 544, "height": 496 },
   "type": "quadrant",
   "figureCard": { "label": "四象限", "note": "左上から手を付ける" },
   "quadrantPointLabelSide": "right",
@@ -1390,6 +1420,7 @@ export const deliveryOfficeTree = textDslToDiagram(sourceYaml__deliveryOfficeTre
 export const patternBase__deliveryOfficeTree = "説明つき";
 
 export const sourceYaml__pattern__deliveryOfficeTree__見出しだけ = `title: "営業所の階層を見出しだけで示す"
+figureSize: {"width":1712,"height":416}
 type: tree
 
 actors:
@@ -1417,6 +1448,7 @@ animation:
 
 export const sourceJson__pattern__deliveryOfficeTree__見出しだけ = `{
   "title": "営業所の階層を見出しだけで示す",
+  "figureSize": { "width": 1712, "height": 416 },
   "type": "tree",
   "actors": [
     { "name": "本社" },
@@ -1456,6 +1488,7 @@ export const pattern__deliveryOfficeTree__見出しだけ = textDslToDiagram(
 // 合計の字と内訳の段は最初から出る = 合計はこの図の主役なので、左から半分ずつ現れると読めない。
 // ============================================================
 export const sourceYaml__onTimeShareGauge = `title: "定時に届いた割合"
+figureSize: {"width":544,"height":496}
 type: chart
 shape: gauge
 figureCard: {"label":"半円","note":"目標 80%"}
@@ -1482,6 +1515,7 @@ animation:
 
 export const sourceJson__onTimeShareGauge = `{
   "title": "定時に届いた割合",
+  "figureSize": { "width": 544, "height": 496 },
   "type": "chart",
   "shape": "gauge",
   "figureCard": { "label": "半円", "note": "目標 80%" },
@@ -1528,6 +1562,7 @@ export const onTimeShareGauge = textDslToDiagram(sourceYaml__onTimeShareGauge);
 export const patternBase__onTimeShareGauge = "固定の尺";
 
 export const sourceYaml__pattern__onTimeShareGauge__内訳だけ = `title: "定時に届いた割合の内訳"
+figureSize: {"width":544,"height":496}
 type: chart
 shape: gauge
 
@@ -1552,6 +1587,7 @@ animation:
 
 export const sourceJson__pattern__onTimeShareGauge__内訳だけ = `{
   "title": "定時に届いた割合の内訳",
+  "figureSize": { "width": 544, "height": 496 },
   "type": "chart",
   "shape": "gauge",
   "actors": [
@@ -1584,6 +1620,7 @@ export const pattern__onTimeShareGauge__内訳だけ = textDslToDiagram(
 );
 
 export const sourceYaml__pattern__onTimeShareGauge__前の値つき = `title: "先月と比べた定時に届いた割合"
+figureSize: {"width":544,"height":496}
 type: chart
 shape: gauge
 
@@ -1608,6 +1645,7 @@ animation:
 
 export const sourceJson__pattern__onTimeShareGauge__前の値つき = `{
   "title": "先月と比べた定時に届いた割合",
+  "figureSize": { "width": 544, "height": 496 },
   "type": "chart",
   "shape": "gauge",
   "actors": [
@@ -1957,6 +1995,7 @@ export const pattern__chartStat__前の値つき = textDslToDiagram(
 // この図は「数えて確かめられる」 ことが存在理由で、一覧はその答え合わせの表になる。
 // ============================================================
 export const sourceYaml__parcelSizeWaffle = `title: "荷物の大きさ"
+figureSize: {"width":544,"height":496}
 type: chart
 shape: waffle
 figureCard: {"label":"升目","note":"1 マス = 1%"}
@@ -1986,6 +2025,7 @@ animation:
 
 export const sourceJson__parcelSizeWaffle = `{
   "title": "荷物の大きさ",
+  "figureSize": { "width": 544, "height": 496 },
   "type": "chart",
   "shape": "waffle",
   "figureCard": { "label": "升目", "note": "1 マス = 1%" },
@@ -2025,9 +2065,10 @@ export const parcelSizeWaffle = textDslToDiagram(sourceYaml__parcelSizeWaffle);
 // 上下で同じ位置を見比べる図なので、片方だけ先に出ると比べる相手がいない時間ができる。
 // ============================================================
 export const sourceYaml__deliveryResultStacked = `title: "配達の結果"
+figureSize: {"width":544,"height":496}
 type: chart
 shape: stacked
-figureCard: {"label":"内訳の帯 / 月ごと","note":"%"}
+figureCard: {"label":"内訳の帯","note":"月ごと / %"}
 chartStackedPeriods: [{"label":"6月","values":[79,19,2]},{"label":"7月","values":[81,17,2]},{"label":"8月","values":[77,21,2]},{"label":"9月","values":[83,16,1]},{"label":"10月","values":[86,13,1]}]
 chartStackedRateId: "再配達"
 chartStackedLegendPosition: top
@@ -2057,9 +2098,10 @@ animation:
 
 export const sourceJson__deliveryResultStacked = `{
   "title": "配達の結果",
+  "figureSize": { "width": 544, "height": 496 },
   "type": "chart",
   "shape": "stacked",
-  "figureCard": { "label": "内訳の帯 / 月ごと", "note": "%" },
+  "figureCard": { "label": "内訳の帯", "note": "月ごと / %" },
   "chartStackedPeriods": [
     { "label": "6月", "values": [79, 19, 2] },
     { "label": "7月", "values": [81, 17, 2] },
@@ -2104,6 +2146,7 @@ export const deliveryResultStacked = textDslToDiagram(sourceYaml__deliveryResult
 export const patternBase__deliveryResultStacked = "前と今";
 
 export const sourceYaml__pattern__deliveryResultStacked__今だけ = `title: "10月の配達の結果"
+figureSize: {"width":544,"height":496}
 type: chart
 shape: stacked
 chartSeriesSkipMuted: true
@@ -2132,6 +2175,7 @@ animation:
 
 export const sourceJson__pattern__deliveryResultStacked__今だけ = `{
   "title": "10月の配達の結果",
+  "figureSize": { "width": 544, "height": 496 },
   "type": "chart",
   "shape": "stacked",
   "chartSeriesSkipMuted": true,
@@ -2166,6 +2210,7 @@ export const pattern__deliveryResultStacked__今だけ = textDslToDiagram(
 // 15. 2 時点を線で結んで増減を見る
 // ------------------------------------------------------------
 export const sourceYaml__onTimeRateSlope = `title: "営業所ごとの定時率"
+figureSize: {"width":544,"height":496}
 type: chart
 shape: slope
 figureCard: {"label":"傾き","note":"先月 → 今月"}
@@ -2200,6 +2245,7 @@ animation:
 
 export const sourceJson__onTimeRateSlope = `{
   "title": "営業所ごとの定時率",
+  "figureSize": { "width": 544, "height": 496 },
   "type": "chart",
   "shape": "slope",
   "figureCard": { "label": "傾き", "note": "先月 → 今月" },

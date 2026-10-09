@@ -23,8 +23,8 @@ describe("見本帳の段階ごとの箱 (#2797)", () => {
     });
   });
 
-  it("cdl#1033: 凡例の字を箱の題 32 に対する見本の比にする", () => {
-    expect(presetDeliveryStages.legendFontSize).toBe(25.8461538462);
+  it("凡例の字を見本の 21 にする", () => {
+    expect(presetDeliveryStages.legendFontSize).toBe(21);
   });
 
   it("shape: stages を記法と JSON の両方で持つ見本がある", () => {

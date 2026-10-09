@@ -121,7 +121,7 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "sortingShelfGantt", 要素: "依存の矢印", 見本の数: 4, 今の数: 4, role: "gantt-arrow", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "主役の重ね", 見本の数: 3, 今の数: 3, role: "gantt-bar-hatch", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "1 行おきの地", 見本の数: 3, 今の数: 3, role: "gantt-row", 描ける: true },
-  { 鍵: "sortingShelfGantt", 要素: "月内位置の端点", 見本の数: 9, 今の数: 9, role: "diagram:gantt-fractional-endpoint", 描ける: true },
+  { 鍵: "sortingShelfGantt", 要素: "月内位置の端点", 見本の数: 10, 今の数: 10, role: "diagram:gantt-fractional-endpoint", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "本番の節目", 見本の数: 1, 今の数: 1, role: "gantt-milestone", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "今日の点線", 見本の数: 1, 今の数: 1, role: "gantt-today", 描ける: true },
 
@@ -276,11 +276,39 @@ describe("宅配の見本の形要素 (#2837)", () => {
     const 工程 = 図.nodes.flatMap((node) => node.ganttData ?? []);
     expect(工程.find((task) => task.title === "端末を入れる")?.endIdx).toBe("{terminal_end}");
     expect(工程.find((task) => task.title === "試す")).toMatchObject({
-      startIdx: 3.45,
+      startIdx: 3.6,
       endIdx: "{trial_end}",
     });
-    expect(図.states?.find((state) => state.id === "terminal_end")?.initial).toBe(2.3);
-    expect(図.states?.find((state) => state.id === "trial_end")?.initial).toBe(3.45);
+    expect(図.states?.find((state) => state.id === "terminal_end")?.initial).toBe(3.25);
+    expect(図.states?.find((state) => state.id === "trial_end")?.initial).toBe(4.2);
+  });
+
+  it("仕分け棚の最後の段の帯を見本の目盛り位置に置く", () => {
+    const 図 = 図を引く("sortingShelfGantt");
+    if (図 === undefined) throw new Error("sortingShelfGantt が無い");
+    expect(図.nodes[0]).toMatchObject({ w: 1712, h: 592 });
+
+    const svg = 最後を描く(図);
+    const ticks = (svg.match(/<text[^>]*data-cdl-role="gantt-tick"[^>]*>/gu) ?? [])
+      .map((tag) => Number(/\sx="([^"]+)"/u.exec(tag)?.[1]));
+    const bars = (svg.match(/<rect[^>]*data-cdl-role="gantt-bar"[^>]*>/gu) ?? [])
+      .map((tag) => ({
+        x: Number(/\sx="([^"]+)"/u.exec(tag)?.[1]),
+        width: Number(/\swidth="([^"]+)"/u.exec(tag)?.[1]),
+      }));
+    expect(ticks).toHaveLength(5);
+    expect(bars).toHaveLength(5);
+    const cell = ticks[1]! - ticks[0]!;
+    const origin = ticks[0]! - cell / 2;
+    const actual = bars.map((bar) => [
+      (bar.x - origin) / cell,
+      (bar.x + bar.width - origin) / cell,
+    ]);
+    const expected = [[0, 0.75], [0.55, 1.8], [2, 3.2], [2.3, 3.25], [3.6, 4.2]];
+    for (const [index, pair] of actual.entries()) {
+      expect(pair[0], `${index + 1} 本目の始まり`).toBeCloseTo(expected[index]![0]!, 2);
+      expect(pair[1], `${index + 1} 本目の終わり`).toBeCloseTo(expected[index]![1]!, 2);
+    }
   });
 
   it.each(形の要素たち)("$鍵: $要素", ({ 鍵, 見本の数, 今の数, role, 描ける, 理由, 下書き, 仮の役割名 }) => {

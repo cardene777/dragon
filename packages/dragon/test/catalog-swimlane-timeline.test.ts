@@ -8,6 +8,7 @@ import { textDslToDiagram } from "../src/index";
 import {
   TIMELINE_AXIS_TO_CARD,
   TIMELINE_DECISION_GAP,
+  TIMELINE_DECISION_GAPS,
   TIMELINE_END_GAP,
   TIMELINE_STEP_GAP,
 } from "../src/compile/timeline";
@@ -35,8 +36,8 @@ describe("見本帳の時間軸の形 (#2798)", () => {
     });
   });
 
-  it("cdl#1033: 凡例の字を箱の題 32 に対する見本の比にする", () => {
-    expect(presetDeliveryTimeline.legendFontSize).toBe(25.8461538462);
+  it("凡例の字を見本の 21 にする", () => {
+    expect(presetDeliveryTimeline.legendFontSize).toBe(21);
   });
 
   it("cdl#1070/#1071: 時間軸の暫定値を見本へ戻す", () => {
@@ -56,6 +57,25 @@ describe("見本帳の時間軸の形 (#2798)", () => {
     const returnedInnerEdge = Math.abs((returned.posX ?? 0) - axisCenter) - (returned.w ?? 0) / 2;
     expect(returnedInnerEdge).toBe(220);
   });
+
+  it.each(Object.entries(TIMELINE_DECISION_GAPS))(
+    "%s の分かれ道の前後を見本帳の距離にする",
+    (theme, gaps) => {
+      const item = 時間軸の見本()[0];
+      expect(item).toBeDefined();
+      if (!item) return;
+      const source = item.source.replace("type: swimlane", `type: swimlane\ntheme: ${theme}`);
+      const nodes = textDslToDiagram(source).nodes;
+      const before = nodes.find((node) => node.title === "届けに行く");
+      const decision = nodes.find((node) => node.title === "在宅?");
+      const after = nodes.find((node) => node.title === "受け取る");
+      expect(before).toBeDefined();
+      expect(decision).toBeDefined();
+      expect(after).toBeDefined();
+      expect((decision?.posY ?? 0) - (before?.posY ?? 0)).toBe(gaps.before);
+      expect((after?.posY ?? 0) - (decision?.posY ?? 0)).toBe(gaps.after);
+    },
+  );
 
   it("shape: timeline を記法と JSON の対でちょうど1件持つ", () => {
     const items = 時間軸の見本();

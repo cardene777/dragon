@@ -43,7 +43,7 @@ const TRANSFER_MARGIN = 140;
  * 25 は描く側 0.125.0 が駅名に使う字の大きさ。
  * 描く側が字の大きさを変えたら、ここも合わせる。
  */
-const TITLE_GAP = 24;
+const TITLE_GAP = 14.5;
 const STATION_TITLE_FONT_SIZE = 25;
 /** 太字の駅名が字面の外へ張り出す分を 3 と見積もる。 */
 const STATION_TITLE_BOLD_OVERHANG = 3;

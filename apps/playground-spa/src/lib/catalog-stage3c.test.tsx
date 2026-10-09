@@ -34,17 +34,33 @@ function 意匠の宣言(name: keyof typeof 放射の枠): Map<string, string> {
 }
 
 const cards = {
-  branchParcelsBar: { label: "棒 / 今月", note: "単位 件" },
+  branchParcelsBar: { label: "棒", note: "今月 / 単位 件" },
   monthlyDeliveriesLine: { label: "折れ線", note: "計画 と 実績" },
   parcelStatusPie: { label: "内訳", note: "合計 1,284 件" },
   sortingShelfGantt: { label: "ガント", note: "色の付いた棒が遅れると本番も遅れる" },
   shipperFeelingJourney: { label: "ジャーニー", note: "最高 から 怒り の 5 段" },
-  orderToDeliveryFunnel: { label: "漏斗 / 先月", note: "件" },
+  orderToDeliveryFunnel: { label: "漏斗", note: "先月 / 件" },
   measureEffortQuadrant: { label: "四象限", note: "左上から手を付ける" },
   onTimeRateSlope: { label: "傾き", note: "先月 → 今月" },
   onTimeShareGauge: { label: "半円", note: "目標 80%" },
   parcelSizeWaffle: { label: "升目", note: "1 マス = 1%" },
-  deliveryResultStacked: { label: "内訳の帯 / 月ごと", note: "%" },
+  deliveryResultStacked: { label: "内訳の帯", note: "月ごと / %" },
+} as const;
+
+const sizes = {
+  branchParcelsBar: { w: 896, h: 1008 },
+  monthlyDeliveriesLine: { w: 768, h: 464 },
+  parcelStatusPie: { w: 768, h: 496 },
+  orderToDeliveryFunnel: { w: 544, h: 496 },
+  sortingShelfGantt: { w: 1712, h: 592 },
+  shipperFeelingJourney: { w: 1712, h: 384 },
+  redeliveryIdeasMind: { w: 1712, h: 528 },
+  measureEffortQuadrant: { w: 544, h: 496 },
+  deliveryOfficeTree: { w: 1712, h: 416 },
+  onTimeShareGauge: { w: 544, h: 496 },
+  parcelSizeWaffle: { w: 544, h: 496 },
+  deliveryResultStacked: { w: 544, h: 496 },
+  onTimeRateSlope: { w: 544, h: 496 },
 } as const;
 
 const chart = (key: keyof typeof cards): CdlDiagram => Charts[key];
@@ -88,6 +104,29 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     }
   });
 
+  it("見本帳の 13 図の札の大きさを 16 の格子に丸めて渡す", () => {
+    for (const [key, expected] of Object.entries(sizes) as [keyof typeof sizes, (typeof sizes)[keyof typeof sizes]][]) {
+      expect(node(Charts[key]), key).toMatchObject(expected);
+    }
+  });
+
+  it("13 図の YAML・JSON・変種の全てに同じ札の大きさを書く", () => {
+    let count = 0;
+    for (const [sourceName, source] of Object.entries(Charts)) {
+      if (!sourceName.startsWith("sourceYaml__") && !sourceName.startsWith("sourceJson__")) continue;
+      if (typeof source !== "string") continue;
+      const sizeEntry = (Object.entries(sizes) as [keyof typeof sizes, (typeof sizes)[keyof typeof sizes]][])
+        .find(([key]) => sourceName.includes(key));
+      if (sizeEntry === undefined) continue;
+      const [, expected] = sizeEntry;
+      expect(source, sourceName).toMatch(
+        new RegExp(`figureSize["']?\\s*:\\s*\\{\\s*["']?width["']?\\s*:\\s*${expected.w}\\s*,\\s*["']?height["']?\\s*:\\s*${expected.h}`, "u"),
+      );
+      count += 1;
+    }
+    expect(count).toBe(52);
+  });
+
   it("木は同じ枠・段ごとの枝色・6 本の三角矢じりを使う", () => {
     const diagram = Charts.deliveryOfficeTree;
     expect(node(diagram)).toMatchObject({
@@ -110,14 +149,35 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
   it("放射を outline で描く", () => {
     const diagram = Charts.redeliveryIdeasMind;
     expect(node(diagram).mindForm).toBe("outline");
-    expect(node(diagram)).toMatchObject({ w: 720, h: 224 });
+    expect(node(diagram)).toMatchObject({ w: 1712, h: 528 });
     expect(render(diagram)).toContain('data-cdl-mind-form="outline"');
+  });
+
+  it("円と升目の一覧の級は cdl が計算した SVG 値を意匠で上書きしない", () => {
+    const labels = /:is\(\[data-cdl-role="chart-pie-table-label"\], \[data-cdl-role="chart-waffle-item-label"\]\)\s*\{([^}]*)\}/u.exec(css)?.[1];
+    const values = /:is\(\[data-cdl-role="chart-pie-table-value"\], \[data-cdl-role="chart-waffle-item-share"\]\)\s*\{([^}]*)\}/u.exec(css)?.[1];
+    expect(labels, "一覧名の意匠規則").toBeDefined();
+    expect(values, "一覧値の意匠規則").toBeDefined();
+    expect(labels).not.toMatch(/font-size\s*:/u);
+    expect(values).not.toMatch(/font-size\s*:/u);
+    const pie = render(Charts.parcelStatusPie, true);
+    const waffle = render(Charts.parcelSizeWaffle, true);
+    const 一覧の級 = {
+      円の名前: 数の属性(/<text[^>]*data-cdl-role="chart-pie-table-label"[^>]*>/u.exec(pie)?.[0] ?? "", "font-size"),
+      円の値: 数の属性(/<text[^>]*data-cdl-role="chart-pie-table-value"[^>]*>/u.exec(pie)?.[0] ?? "", "font-size"),
+      升目の名前: 数の属性(/<text[^>]*data-cdl-role="chart-waffle-item-label"[^>]*>/u.exec(waffle)?.[0] ?? "", "font-size"),
+      升目の値: 数の属性(/<text[^>]*data-cdl-role="chart-waffle-item-share"[^>]*>/u.exec(waffle)?.[0] ?? "", "font-size"),
+    };
+    expect(一覧の級.円の名前).toBe(15);
+    expect(一覧の級.円の値).toBeCloseTo(12.9545454545, 10);
+    expect(一覧の級.升目の名前).toBeCloseTo(22.9541455336, 10);
+    expect(一覧の級.升目の値).toBeCloseTo(19.824034779, 10);
   });
 
   it("放射の札を見本の横長の比にし、中心・枝・葉を全て残す", () => {
     const diagram = Charts.redeliveryIdeasMind;
     const markup = render(diagram, true);
-    const expectedHeight = (720 * 550) / 1800;
+    const expectedHeight = (1712 * 550) / 1800;
 
     expect(Math.abs((node(diagram).h ?? 0) - expectedHeight)).toBeLessThanOrEqual(16);
     expect(markup.match(/data-cdl-role="mind-root"/gu)).toHaveLength(1);

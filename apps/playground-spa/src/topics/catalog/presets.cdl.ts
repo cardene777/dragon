@@ -3277,7 +3277,7 @@ export const sourceYaml__presetDeliveryStages = `
 title: "荷物を届ける段階"
 type: swimlane
 shape: stages
-legendFontSize: 25.8461538462
+legendFontSize: 21
 
 stageHeaders:
   blueprint: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 }
@@ -3351,7 +3351,7 @@ export const sourceJson__presetDeliveryStages = `{
   "title": "荷物を届ける段階",
   "type": "swimlane",
   "shape": "stages",
-  "legendFontSize": 25.8461538462,
+  "legendFontSize": 21,
   "stageHeaders": {
     "blueprint": { "leftPad": 22, "topPad": 15, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 13 },
     "letterpress": { "leftPad": 24, "topPad": 16, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 14 },
@@ -3428,7 +3428,7 @@ export const sourceYaml__presetDeliveryMetro = `
 title: "荷物を届ける路線"
 type: swimlane
 shape: metro
-legendFontSize: 25.8461538462
+legendFontSize: 21
 
 lanes:
   shipper: { label: 荷主, subtitle: 頼む人 }
@@ -3494,7 +3494,7 @@ export const sourceJson__presetDeliveryMetro = `{
   "title": "荷物を届ける路線",
   "type": "swimlane",
   "shape": "metro",
-  "legendFontSize": 25.8461538462,
+  "legendFontSize": 21,
   "lanes": {
     "shipper": { "label": "荷主", "subtitle": "頼む人" },
     "office": { "label": "営業所", "subtitle": "受け付ける" },
@@ -3567,7 +3567,7 @@ export const sourceYaml__presetDeliveryTimeline = `
 title: "荷物を届ける順番"
 type: swimlane
 shape: timeline
-legendFontSize: 25.8461538462
+legendFontSize: 21
 
 lanes:
   shipper: { label: 荷主 }
@@ -3627,7 +3627,7 @@ export const sourceJson__presetDeliveryTimeline = `{
   "title": "荷物を届ける順番",
   "type": "swimlane",
   "shape": "timeline",
-  "legendFontSize": 25.8461538462,
+  "legendFontSize": 21,
   "lanes": {
     "shipper": { "label": "荷主" },
     "office": { "label": "営業所" },

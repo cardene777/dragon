@@ -12,7 +12,11 @@ import { slugify } from "./slug";
 import {
   placeStages,
   STAGE_CARD_HEIGHT,
+  STAGE_CARD_PITCH,
   STAGE_CARD_WIDTH,
+  STAGE_FIRST_CARD_CENTER_Y,
+  STAGE_LANE_GAP,
+  STAGE_LANE_Y,
   段の箱の線の指定,
   type StagesPlacement,
 } from "./stages";
@@ -347,9 +351,18 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
      */
     const placement = placeStages(doc);
     stagesPlacement = placement;
-    for (const column of placement.columns) {
+    const lastStack = Math.max(0, ...[...placement.cards.values()].map((card) => card.stack));
+    const stageLaneHeight =
+      STAGE_FIRST_CARD_CENTER_Y + lastStack * STAGE_CARD_PITCH + STAGE_CARD_HEIGHT / 2;
+    for (const [columnIndex, column] of placement.columns.entries()) {
       b.lane(column.id, {
         width: laneWidth,
+        // cdl は段階列の面の間を 48 取る。見本の 64 にするため、
+        // lane 自体の間に残りの 16 を書き、描画側の列幅は変えない。
+        posX: columnIndex * (laneWidth + STAGE_LANE_GAP),
+        posY: STAGE_LANE_Y,
+        posW: laneWidth,
+        posH: stageLaneHeight,
         stage: {
           number: column.number,
           name: column.name,
@@ -369,6 +382,8 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         stack: card.stack,
         w: STAGE_CARD_WIDTH,
         h: STAGE_CARD_HEIGHT,
+        posX: card.column * (laneWidth + STAGE_LANE_GAP) + laneWidth / 2,
+        posY: STAGE_FIRST_CARD_CENTER_Y + card.stack * STAGE_CARD_PITCH,
         kind: "card",
         title: 箱の題(a),
         ...(card.subtitle === undefined ? {} : { subtitle: card.subtitle }),

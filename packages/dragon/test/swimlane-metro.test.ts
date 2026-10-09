@@ -493,6 +493,7 @@ flow:
     );
     const decision = byTitle.get("在宅?")!;
     const returned = byTitle.get("持ち戻る")!;
+    expect((byTitle.get("届けに行く")?.posX ?? 0) - (byTitle.get("便に積む")?.posX ?? 0)).toBe(130);
     expect(returned.posX).toBe(decision.posX);
     expect(returned.posY).toBe((decision.posY ?? 0) + 230);
 

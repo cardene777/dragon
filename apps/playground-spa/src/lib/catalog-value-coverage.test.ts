@@ -421,21 +421,25 @@ describe("欄が取る値を、カタログが全て見せている (#1966)", ()
             .filter(([, x]) => x === "見本")
             .map(([v]) => v),
         );
+        const 配置 = (d: CdlDiagram): string =>
+          JSON.stringify(layout(d), (鍵, v: unknown) => (鍵 === 置く!.欄 ? undefined : v));
         let 元: CdlDiagram | undefined;
         let 添字 = -1;
         for (const d of 全ての図) {
-          添字 = a.読む(d).findIndex((v) => typeof v === "string" && 別の値たち.has(v));
-          if (添字 >= 0) {
+          const 候補の添字 = a.読む(d).findIndex((v) => typeof v === "string" && 別の値たち.has(v));
+          if (
+            候補の添字 >= 0 &&
+            配置(d) !== 配置(置く!.書く(d, 候補の添字, undefined))
+          ) {
             元 = d;
+            添字 = 候補の添字;
             break;
           }
         }
         expect(
           元,
-          `${a.名} の既定でない値を書いた図がカタログに無い (比べる相手が無い)`,
+          `${a.名} の既定でない値を書き、消すと配置が変わる図がカタログに無い (比べる相手が無い)`,
         ).toBeDefined();
-        const 配置 = (d: CdlDiagram): string =>
-          JSON.stringify(layout(d), (鍵, v: unknown) => (鍵 === 置く!.欄 ? undefined : v));
         const 書かない = 配置(置く!.書く(元!, 添字, undefined));
         expect(
           配置(置く!.書く(元!, 添字, 値)),

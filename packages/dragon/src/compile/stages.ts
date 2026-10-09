@@ -27,6 +27,18 @@ export const STAGE_CARD_WIDTH = STAGE_LANE_WIDTH - 112;
 /** 札の高さ。名前 1 行と右の担当を同じ行に置く札で、見本の札と同じく 1 行分に収める。 */
 export const STAGE_CARD_HEIGHT = 48;
 
+/** cdl の列面の間 48 に足し、見本の列面の間 64 にする lane の間。 */
+export const STAGE_LANE_GAP = 16;
+
+/** 列の上端 130 から見本の 1 段目の中心 324 までを world 座標に直した値。 */
+export const STAGE_FIRST_CARD_CENTER_Y = 222;
+
+/** 描画側の自動配置と同じ、高さ 48 の札と次の札の間 100。 */
+export const STAGE_CARD_PITCH = 148;
+
+/** cdl の自動 lane と同じ上端。列を固定して先頭の余白を保つため使う。 */
+export const STAGE_LANE_Y = 28;
+
 export type StageColumn = {
   id: string;
   /** 見出しの番号。描く側が「段階 N」の形で出す */

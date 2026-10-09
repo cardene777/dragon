@@ -355,6 +355,9 @@ flow:
     expect(列).toHaveLength(4);
     expect(new Set(列.map((面) => 面.y)).size).toBe(1);
     expect(new Set(列.map((面) => 面.height)).size).toBe(1);
+    expect(列.slice(1).map((面, index) => 面.x - (列[index]!.x + 列[index]!.width))).toEqual([
+      64, 64, 64,
+    ]);
     const 札 = [
       ...markup.matchAll(
         /<g data-cdl-node="([^"]+)"[^>]*\sdata-cdl-cx="([^"]+)" data-cdl-cy="([^"]+)" data-cdl-w="([^"]+)" data-cdl-h="([^"]+)"/g,
@@ -383,6 +386,9 @@ flow:
     const 札の下端 = 札の中心 + Number(いいえ?.[2]) + Number(いいえ?.[3]);
     expect(札の上端).toBeGreaterThanOrEqual(結果の列.y);
     expect(札の下端).toBeLessThanOrEqual(結果の列.y + 結果の列.height);
+
+    const 最初の札の上端 = Math.min(...札.map(([, , , cy, , h]) => Number(cy) - Number(h) / 2));
+    expect(最初の札の上端 - 列[0]!.y, "列の上端から 1 段目まで").toBe(170);
   });
 
   it("高さ48の札で名前と右の字を上下の中央へ置く", () => {
