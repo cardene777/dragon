@@ -1,7 +1,7 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslActor, DslDocument } from "../types";
-import { 図表の大きさ, 語の欄から参照できる名前 } from "./chart-fields";
+import { 図表の大きさ, 図表の大きさを読む, 語の欄から参照できる名前 } from "./chart-fields";
 import { 箱の題 } from "./node-title";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
@@ -17,7 +17,7 @@ export function compileJourney(
   onNotice?: (n: CompileNotice) => void,
 ): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "journey" });
-  const { w: W, h: H } = 図表の大きさ.journey;
+  const { w: W, h: H } = 図表の大きさを読む(doc, 図表の大きさ.journey);
   b.lane("chart", { width: W + 64 });
   const data: NonNullable<CdlDiagram["nodes"][number]["journeyData"]> = [];
   const 読めない: string[] = [];
@@ -66,6 +66,9 @@ export function compileJourney(
     w: W,
     h: H,
     journeyData: data,
+    ...(doc.journeyForm !== undefined ? { journeyForm: doc.journeyForm } : {}),
+    ...(doc.journeyLineForm !== undefined ? { journeyLineForm: doc.journeyLineForm } : {}),
+    ...(doc.journeyLabels !== undefined ? { journeyLabels: doc.journeyLabels } : {}),
   });
   return b.build();
 }
@@ -76,9 +79,14 @@ export function compileJourney(
  * 書かなければ項目ごと落とす = `undefined` を明示して渡すと、 組立て側が「空を書いた」 と
  * 区別できなくなる (`図の小見出し` と同じ理由)。
  */
-function 道筋の欄(a: DslActor): { touchpoint?: string; opportunity?: string } {
+function 道筋の欄(a: DslActor): {
+  touchpoint?: string;
+  opportunity?: string;
+  opportunityPosition?: DslActor["opportunityPosition"];
+} {
   return {
     ...(a.touchpoint !== undefined ? { touchpoint: a.touchpoint } : {}),
     ...(a.opportunity !== undefined ? { opportunity: a.opportunity } : {}),
+    ...(a.opportunityPosition !== undefined ? { opportunityPosition: a.opportunityPosition } : {}),
   };
 }

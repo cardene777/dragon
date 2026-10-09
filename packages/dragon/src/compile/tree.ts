@@ -1,7 +1,7 @@
 import { diagram, 木の札の幅 } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
-import { 図表の大きさ } from "./chart-fields";
+import { 図表の大きさ, 図表の大きさを読む } from "./chart-fields";
 import { 矢印から親を決める, 放射に出す文字 } from "./hierarchy";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
@@ -47,8 +47,8 @@ export function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => v
   // 札の幅は葉の数で変わる (cdl#970)。 **規則は描画側が持つ** ので、ここでは引くだけにする。
   // 写すと、描画側が割付を変えた時に記法の側だけが古い幅を渡す。
   // 高さは段の数で決まり、描画側が既定を返す形なので表から取る
-  const W = 木の札の幅(data);
-  const { h: H } = 図表の大きさ.tree;
+  const 既定W = 木の札の幅(data);
+  const { w: W, h: H } = 図表の大きさを読む(doc, { w: 既定W, h: 図表の大きさ.tree.h });
   b.lane("chart", { width: W + 64 });
   b.node(`${slugify(doc.title) || "tree"}-chart`, {
     lane: "chart",
@@ -59,6 +59,9 @@ export function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => v
     w: W,
     h: H,
     treeData: data,
+    ...(doc.treeNodeForm !== undefined ? { treeNodeForm: doc.treeNodeForm } : {}),
+    ...(doc.treeEdgeTone !== undefined ? { treeEdgeTone: doc.treeEdgeTone } : {}),
+    ...(doc.treeEdgeHead !== undefined ? { treeEdgeHead: doc.treeEdgeHead } : {}),
   });
   return b.build();
 }

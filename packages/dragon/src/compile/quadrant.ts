@@ -1,7 +1,7 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
-import { 図表の大きさ, 数の欄から参照できる名前, 語の欄から参照できる名前 } from "./chart-fields";
+import { 図表の大きさ, 図表の大きさを読む, 数の欄から参照できる名前, 語の欄から参照できる名前 } from "./chart-fields";
 import { 箱の題 } from "./node-title";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
@@ -17,7 +17,7 @@ export function compileQuadrant(
   onNotice?: (n: CompileNotice) => void,
 ): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "quadrant" });
-  const { w: W, h: H } = 図表の大きさ.quadrant;
+  const { w: W, h: H } = 図表の大きさを読む(doc, 図表の大きさ.quadrant);
   b.lane("chart", { width: W + 64 });
   const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
   const 読めない: string[] = [];

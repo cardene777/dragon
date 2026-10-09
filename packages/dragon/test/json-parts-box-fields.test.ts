@@ -61,6 +61,7 @@ const 箱の値: Record<string, unknown> = {
   emphasis: "primary",
   touchpoint: "店頭",
   opportunity: "改善",
+  opportunityPosition: "below-point",
   at: [0.2, 0.8],
   点の位置: [0.2, 0.8],
   posX: 10,

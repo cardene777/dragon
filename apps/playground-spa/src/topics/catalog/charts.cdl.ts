@@ -55,6 +55,7 @@ import { textDslToDiagram } from "@cardenelabs/dragon";
 export const sourceYaml__branchParcelsBar = `title: "営業所ごとの取扱数"
 type: chart
 shape: bar
+figureCard: {"label":"棒 / 今月","note":"単位 件"}
 
 actors:
   - 東京: "{tokyo}"
@@ -88,6 +89,7 @@ export const sourceJson__branchParcelsBar = `{
   "title": "営業所ごとの取扱数",
   "type": "chart",
   "shape": "bar",
+  "figureCard": { "label": "棒 / 今月", "note": "単位 件" },
   "actors": [
     { "name": "東京", "subtitle": "{tokyo}" },
     { "name": "大阪", "subtitle": "{osaka}" },
@@ -275,6 +277,7 @@ export const pattern__branchParcelsBar__4割で伸ばし終える = textDslToDia
 export const sourceYaml__monthlyDeliveriesLine = `title: "月ごとの配達数"
 type: chart
 shape: line
+figureCard: {"label":"折れ線","note":"計画 と 実績"}
 chartSeriesSkipMuted: true
 chartLineSeries: [{"label":"計画","points":[{"label":"6月","value":1000},{"label":"7月","value":1150},{"label":"8月","value":1300},{"label":"9月","value":1450},{"label":"10月","value":1600}],"tone":"muted","dash":"dotted","marker":"none","valueIndexes":[4]},{"points":[{"label":"6月","value":900},{"label":"7月","value":1180},{"label":"8月","value":1250},{"label":"9月","value":1520},{"label":"10月","value":1750}],"dash":"solid","marker":"hollow","valueIndexes":[0,4]}]
 
@@ -295,21 +298,16 @@ states:
 animation:
   - step: "計画" 1.2s
     draw: line
-    description: "6 月から 10 月までの配達計画を線で結ぶ。"
+    description: "計画の点線と実績の実線を同時に置き、月ごとの差を比べる。"
   - step: "実績" 1.2s
-    tween:
-      jun: 1000 -> 900
-      jul: 1150 -> 1180
-      aug: 1300 -> 1250
-      sep: 1450 -> 1520
-      oct: 1600 -> 1750
-    description: "実績は 6 月の 900 件から 10 月の 1750 件まで伸びる。"
+    description: "実績の 6 月 900 件と 10 月 1750 件を、計画と並べたまま読む。"
 `;
 
 export const sourceJson__monthlyDeliveriesLine = `{
   "title": "月ごとの配達数",
   "type": "chart",
   "shape": "line",
+  "figureCard": { "label": "折れ線", "note": "計画 と 実績" },
   "chartSeriesSkipMuted": true,
   "chartLineSeries": [
     { "label": "計画", "points": [{ "label": "6月", "value": 1000 }, { "label": "7月", "value": 1150 }, { "label": "8月", "value": 1300 }, { "label": "9月", "value": 1450 }, { "label": "10月", "value": 1600 }], "tone": "muted", "dash": "dotted", "marker": "none", "valueIndexes": [4] },
@@ -325,18 +323,11 @@ export const sourceJson__monthlyDeliveriesLine = `{
   "flow": [],
   "states": { "jun": 1000, "jul": 1150, "aug": 1300, "sep": 1450, "oct": 1600 },
   "animation": [
-    { "step": "計画", "duration": 1.2, "draw": "line", "description": "6 月から 10 月までの配達計画を線で結ぶ。" },
+    { "step": "計画", "duration": 1.2, "draw": "line", "description": "計画の点線と実績の実線を同時に置き、月ごとの差を比べる。" },
     {
       "step": "実績",
       "duration": 1.2,
-      "description": "実績は 6 月の 900 件から 10 月の 1750 件まで伸びる。",
-      "tween": {
-        "jun": [1000, 900],
-        "jul": [1150, 1180],
-        "aug": [1300, 1250],
-        "sep": [1450, 1520],
-        "oct": [1600, 1750]
-      }
+      "description": "実績の 6 月 900 件と 10 月 1750 件を、計画と並べたまま読む。"
     }
   ]
 }`;
@@ -423,6 +414,7 @@ export const pattern__monthlyDeliveriesLine__1本の線 = textDslToDiagram(
 export const sourceYaml__parcelStatusPie = `title: "荷物の状態"
 type: chart
 shape: pie
+figureCard: {"label":"内訳","note":"合計 1,284 件"}
 form: table
 chartPieCenterLabel: "件"
 chartPieTableColumns: value
@@ -457,6 +449,7 @@ export const sourceJson__parcelStatusPie = `{
   "title": "荷物の状態",
   "type": "chart",
   "shape": "pie",
+  "figureCard": { "label": "内訳", "note": "合計 1,284 件" },
   "見せ方": "銘板",
   "chartPieCenterLabel": "件",
   "chartPieTableColumns": "value",
@@ -560,6 +553,7 @@ export const pattern__parcelStatusPie__前と今 = textDslToDiagram(sourceYaml__
 // ============================================================
 export const sourceYaml__orderToDeliveryFunnel = `title: "申し込みから届くまで"
 type: funnel
+figureCard: {"label":"漏斗 / 先月","note":"件"}
 funnelForm: proportional-bars
 funnelRate: conversion
 chartSeriesSkipMuted: true
@@ -592,6 +586,7 @@ animation:
 export const sourceJson__orderToDeliveryFunnel = `{
   "title": "申し込みから届くまで",
   "type": "funnel",
+  "figureCard": { "label": "漏斗 / 先月", "note": "件" },
   "funnelForm": "proportional-bars",
   "funnelRate": "conversion",
   "chartSeriesSkipMuted": true,
@@ -626,6 +621,7 @@ export const orderToDeliveryFunnel = textDslToDiagram(sourceYaml__orderToDeliver
 // ============================================================
 export const sourceYaml__sortingShelfGantt = `title: "仕分け棚を入れ替える工程"
 type: gantt
+figureCard: {"label":"ガント","note":"色の付いた棒が遅れると本番も遅れる"}
 ticks: [6月, 7月, 8月, 9月, 10月]
 ganttToday: { index: 3.30, label: "今日" }
 ganttTickLabels: [6月, 7月, 8月, 9月, 10月]
@@ -668,6 +664,7 @@ animation:
 export const sourceJson__sortingShelfGantt = `{
   "title": "仕分け棚を入れ替える工程",
   "type": "gantt",
+  "figureCard": { "label": "ガント", "note": "色の付いた棒が遅れると本番も遅れる" },
   "目盛り": ["6月", "7月", "8月", "9月", "10月"],
   "ganttToday": { "index": 3.30, "label": "今日" },
   "ganttTickLabels": ["6月", "7月", "8月", "9月", "10月"],
@@ -871,12 +868,17 @@ export const pattern__sortingShelfGantt__強調なし = textDslToDiagram(
 // ============================================================
 export const sourceYaml__shipperFeelingJourney = `title: "荷主の気持ち"
 type: journey
+journeyForm: rules
+journeyLineForm: straight
+journeyLabels: {"delighted":"最高","happy":"満足","neutral":"普通","frustrated":"不満","angry":"怒り"}
+figureCard: {"label":"ジャーニー","note":"最高 から 怒り の 5 段"}
+figureSize: {"width":1712,"height":384}
 
 actors:
   - 申し込む: "{order}"
   - 集荷を待つ: "{wait}"
   - 運ばれる: "{carry}"
-  - 不在だった: { value: "{absence}", opportunity: "不在票に気づかず" }
+  - 不在だった: { value: "{absence}", opportunity: "不在票に気づかなかった", opportunityPosition: below-point }
   - 再配達を頼む: "{redelivery}"
   - 受け取る: "{receive}"
 
@@ -906,11 +908,16 @@ animation:
 export const sourceJson__shipperFeelingJourney = `{
   "title": "荷主の気持ち",
   "type": "journey",
+  "journeyForm": "rules",
+  "journeyLineForm": "straight",
+  "journeyLabels": { "delighted": "最高", "happy": "満足", "neutral": "普通", "frustrated": "不満", "angry": "怒り" },
+  "figureCard": { "label": "ジャーニー", "note": "最高 から 怒り の 5 段" },
+  "figureSize": { "width": 1712, "height": 384 },
   "actors": [
     { "name": "申し込む", "subtitle": "{order}" },
     { "name": "集荷を待つ", "subtitle": "{wait}" },
     { "name": "運ばれる", "subtitle": "{carry}" },
-    { "name": "不在だった", "value": "{absence}", "opportunity": "不在票に気づかず" },
+    { "name": "不在だった", "value": "{absence}", "opportunity": "不在票に気づかなかった", "opportunityPosition": "below-point" },
     { "name": "再配達を頼む", "subtitle": "{redelivery}" },
     { "name": "受け取る", "subtitle": "{receive}" }
   ],
@@ -945,7 +952,7 @@ actors:
   - 申し込む: { value: "満足", touchpoint: "申し込み画面" }
   - 集荷を待つ: { value: "普通", touchpoint: "集荷予定" }
   - 運ばれる: { value: "満足", touchpoint: "追跡画面" }
-  - 不在だった: { value: "{absence}", touchpoint: "不在票", opportunity: "不在票に気づかず" }
+  - 不在だった: { value: "{absence}", touchpoint: "不在票", opportunity: "不在票に気づかなかった", opportunityPosition: below-point }
   - 再配達を頼む: { value: "{redelivery}", touchpoint: "再配達受付" }
   - 受け取る: { value: "最高", touchpoint: "受け取り" }
 
@@ -971,7 +978,7 @@ export const sourceJson__pattern__shipperFeelingJourney__接点つき = `{
     { "name": "申し込む", "value": "満足", "touchpoint": "申し込み画面" },
     { "name": "集荷を待つ", "value": "普通", "touchpoint": "集荷予定" },
     { "name": "運ばれる", "value": "満足", "touchpoint": "追跡画面" },
-    { "name": "不在だった", "value": "{absence}", "touchpoint": "不在票", "opportunity": "不在票に気づかず" },
+    { "name": "不在だった", "value": "{absence}", "touchpoint": "不在票", "opportunity": "不在票に気づかなかった", "opportunityPosition": "below-point" },
     { "name": "再配達を頼む", "value": "{redelivery}", "touchpoint": "再配達受付" },
     { "name": "受け取る", "value": "最高", "touchpoint": "受け取り" }
   ],
@@ -1017,7 +1024,7 @@ actors:
   - 申し込む: "満足"
   - 集荷を待つ: "普通"
   - 運ばれる: "満足"
-  - 不在だった: { value: "{absence}", opportunity: "不在票に気づかず" }
+  - 不在だった: { value: "{absence}", opportunity: "不在票に気づかなかった", opportunityPosition: below-point }
   - 再配達を頼む: "{redelivery}"
   - 受け取る: "最高"
 
@@ -1043,7 +1050,7 @@ export const sourceJson__pattern__shipperFeelingJourney__5つの気持ち = `{
     { "name": "申し込む", "subtitle": "満足" },
     { "name": "集荷を待つ", "subtitle": "普通" },
     { "name": "運ばれる", "subtitle": "満足" },
-    { "name": "不在だった", "value": "{absence}", "opportunity": "不在票に気づかず" },
+    { "name": "不在だった", "value": "{absence}", "opportunity": "不在票に気づかなかった", "opportunityPosition": "below-point" },
     { "name": "再配達を頼む", "subtitle": "{redelivery}" },
     { "name": "受け取る", "subtitle": "最高" }
   ],
@@ -1074,6 +1081,7 @@ export const pattern__shipperFeelingJourney__5つの気持ち = textDslToDiagram
 // ============================================================
 export const sourceYaml__redeliveryIdeasMind = `title: "再配達を減らす"
 type: mind
+mindForm: outline
 
 actors:
   - "{theme}"
@@ -1116,6 +1124,7 @@ animation:
 export const sourceJson__redeliveryIdeasMind = `{
   "title": "再配達を減らす",
   "type": "mind",
+  "mindForm": "outline",
   "actors": [
     { "name": "{theme}" },
     { "name": "置き場所" },
@@ -1205,6 +1214,7 @@ export const pattern__redeliveryIdeasMind__説明つき = textDslToDiagram(
 // ============================================================
 export const sourceYaml__measureEffortQuadrant = `title: "打ち手の手間と効き目"
 type: quadrant
+figureCard: {"label":"四象限","note":"左上から手を付ける"}
 quadrantPointLabelSide: right
 
 axes:
@@ -1257,6 +1267,7 @@ animation:
 export const sourceJson__measureEffortQuadrant = `{
   "title": "打ち手の手間と効き目",
   "type": "quadrant",
+  "figureCard": { "label": "四象限", "note": "左上から手を付ける" },
   "quadrantPointLabelSide": "right",
   "axes": {
     "x": { "label": "手間", "direction": true },
@@ -1303,6 +1314,10 @@ export const measureEffortQuadrant = textDslToDiagram(sourceYaml__measureEffortQ
 // ============================================================
 export const sourceYaml__deliveryOfficeTree = `title: "営業所の階層"
 type: tree
+treeNodeForm: frame
+treeEdgeTone: depth
+treeEdgeHead: triangle
+figureSize: {"width":1712,"height":416}
 
 actors:
   - 本社: "全国 12 営業所"
@@ -1330,6 +1345,10 @@ animation:
 export const sourceJson__deliveryOfficeTree = `{
   "title": "営業所の階層",
   "type": "tree",
+  "treeNodeForm": "frame",
+  "treeEdgeTone": "depth",
+  "treeEdgeHead": "triangle",
+  "figureSize": { "width": 1712, "height": 416 },
   "actors": [
     { "name": "本社", "subtitle": "全国 12 営業所" },
     { "name": "東日本", "subtitle": "7 営業所" },
@@ -1437,6 +1456,7 @@ export const pattern__deliveryOfficeTree__見出しだけ = textDslToDiagram(
 export const sourceYaml__onTimeShareGauge = `title: "定時に届いた割合"
 type: chart
 shape: gauge
+figureCard: {"label":"半円","note":"目標 80%"}
 chartGaugeValue: {"max":100,"current":78,"target":80,"previous":72,"previousLabel":"先月"}
 
 actors:
@@ -1462,6 +1482,7 @@ export const sourceJson__onTimeShareGauge = `{
   "title": "定時に届いた割合",
   "type": "chart",
   "shape": "gauge",
+  "figureCard": { "label": "半円", "note": "目標 80%" },
   "chartGaugeValue": { "max": 100, "current": 78, "target": 80, "previous": 72, "previousLabel": "先月" },
   "actors": [
     { "name": "定時に届いた", "subtitle": "{on_time}" },
@@ -1935,6 +1956,7 @@ export const pattern__chartStat__前の値つき = textDslToDiagram(
 export const sourceYaml__parcelSizeWaffle = `title: "荷物の大きさ"
 type: chart
 shape: waffle
+figureCard: {"label":"升目","note":"1 マス = 1%"}
 chartWaffleLegendPosition: right
 
 actors:
@@ -1963,6 +1985,7 @@ export const sourceJson__parcelSizeWaffle = `{
   "title": "荷物の大きさ",
   "type": "chart",
   "shape": "waffle",
+  "figureCard": { "label": "升目", "note": "1 マス = 1%" },
   "chartWaffleLegendPosition": "right",
   "actors": [
     { "name": "小さい", "subtitle": "{small}" },
@@ -2001,6 +2024,7 @@ export const parcelSizeWaffle = textDslToDiagram(sourceYaml__parcelSizeWaffle);
 export const sourceYaml__deliveryResultStacked = `title: "配達の結果"
 type: chart
 shape: stacked
+figureCard: {"label":"内訳の帯 / 月ごと","note":"%"}
 chartStackedPeriods: [{"label":"6月","values":[79,19,2]},{"label":"7月","values":[81,17,2]},{"label":"8月","values":[77,21,2]},{"label":"9月","values":[83,16,1]},{"label":"10月","values":[86,13,1]}]
 chartStackedRateId: "再配達"
 chartStackedLegendPosition: top
@@ -2032,6 +2056,7 @@ export const sourceJson__deliveryResultStacked = `{
   "title": "配達の結果",
   "type": "chart",
   "shape": "stacked",
+  "figureCard": { "label": "内訳の帯 / 月ごと", "note": "%" },
   "chartStackedPeriods": [
     { "label": "6月", "values": [79, 19, 2] },
     { "label": "7月", "values": [81, 17, 2] },
@@ -2140,6 +2165,7 @@ export const pattern__deliveryResultStacked__今だけ = textDslToDiagram(
 export const sourceYaml__onTimeRateSlope = `title: "営業所ごとの定時率"
 type: chart
 shape: slope
+figureCard: {"label":"傾き","note":"先月 → 今月"}
 chartSlopePeriods: ["先月", "今月"]
 chartSlopeEmphasisIds: ["大阪", "名古屋"]
 chartSlopeUnit: "%"
@@ -2173,6 +2199,7 @@ export const sourceJson__onTimeRateSlope = `{
   "title": "営業所ごとの定時率",
   "type": "chart",
   "shape": "slope",
+  "figureCard": { "label": "傾き", "note": "先月 → 今月" },
   "chartSlopePeriods": ["先月", "今月"],
   "chartSlopeEmphasisIds": ["大阪", "名古屋"],
   "chartSlopeUnit": "%",

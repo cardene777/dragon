@@ -105,7 +105,7 @@ const 選択肢: ReadonlyArray<{
   {
     名: "EDGE_HEADS",
     一覧: EDGE_HEADS,
-    場所: ["edges[].head", "edges[].tailHead"],
+    場所: ["edges[].head", "edges[].tailHead", "nodes[].treeEdgeHead"],
     既定: EDGE_HEAD_DEFAULT,
   },
   {

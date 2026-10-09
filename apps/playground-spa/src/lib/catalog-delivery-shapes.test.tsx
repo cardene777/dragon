@@ -33,34 +33,35 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "deliveryOfficeTree", 要素: "名前と補足を持つ箱", 見本の数: 7, 今の数: 7, role: "tree-node", 描ける: true },
   { 鍵: "deliveryOfficeTree", 要素: "箱の補足", 見本の数: 7, 今の数: 7, role: "tree-node-subtitle", 描ける: true },
   { 鍵: "deliveryOfficeTree", 要素: "直角の枝", 見本の数: 6, 今の数: 6, role: "tree-edge", 描ける: true },
-  { 鍵: "deliveryOfficeTree", 要素: "枝の先の矢印", 見本の数: 6, 今の数: 0, role: "role+attr:tree-edge|marker-end=", 描ける: false, 理由: "tree-edge に矢じりが無い", 下書き: ".context/scratch/2837/cdl-issue-tree-presentation.md" },
-  { 鍵: "deliveryOfficeTree", 要素: "根を他と同じ枠で描く箱", 見本の数: 7, 今の数: 6, role: "role+attr:tree-node|fill=\"var(--cdl-chip-fill, #f4f6fb)\"", 描ける: false, 理由: "根だけ gradient で塗る", 下書き: ".context/scratch/2837/cdl-issue-tree-presentation.md" },
-  { 鍵: "deliveryOfficeTree", 要素: "段ごとの枝の色", 見本の数: 2, 今の数: 1, role: "unique-attr:tree-edge|stroke", 描ける: false, 理由: "全 tree-edge が accent 1 色", 下書き: ".context/scratch/2837/cdl-issue-tree-presentation.md" },
+  { 鍵: "deliveryOfficeTree", 要素: "枝の先の矢印", 見本の数: 6, 今の数: 6, role: "role+attr:tree-edge|marker-end=", 描ける: true },
+  { 鍵: "deliveryOfficeTree", 要素: "根を他と同じ枠で描く箱", 見本の数: 7, 今の数: 7, role: "role+attr:tree-node|fill=\"var(--cdl-chip-fill, #f4f6fb)\"", 描ける: true },
+  { 鍵: "deliveryOfficeTree", 要素: "段ごとの枝の色", 見本の数: 2, 今の数: 2, role: "unique-attr:tree-edge|stroke", 描ける: true },
 
   { 鍵: "redeliveryIdeasMind", 要素: "中心", 見本の数: 1, 今の数: 1, role: "text+attrs:再配達を減らす|font-weight=\"700\"", 描ける: true },
   { 鍵: "redeliveryIdeasMind", 要素: "枝", 見本の数: 4, 今の数: 4, role: "texts:置き場所|時間|知らせる|受け取り方", 描ける: true },
   { 鍵: "redeliveryIdeasMind", 要素: "葉", 見本の数: 8, 今の数: 8, role: "texts:置き配|宅配ロッカー|時間指定|夜の便|前日に知らせる|着く前に電話|コンビニで受け取る|職場に届ける", 描ける: true },
   { 鍵: "redeliveryIdeasMind", 要素: "中心から葉までの接続", 見本の数: 12, 今の数: 12, role: "mind-edge", 描ける: true },
   { 鍵: "redeliveryIdeasMind", 要素: "枝ごとに違う色", 見本の数: 4, 今の数: 4, role: "unique-attr:mind-edge|stroke", 描ける: true },
-  { 鍵: "redeliveryIdeasMind", 要素: "葉の下線", 見本の数: 8, 今の数: 0, role: "mind-leaf-underline", 描ける: false, 理由: "葉は字だけで線を描かない", 下書き: ".context/scratch/2837/cdl-issue-mind-presentation.md", 仮の役割名: true },
-  { 鍵: "redeliveryIdeasMind", 要素: "中心を枠だけで描く", 見本の数: 1, 今の数: 0, role: "tag+attrs:rect|rx=\"22\"|fill=\"var(--cdl-chip-fill, #f4f6fb)\"", 描ける: false, 理由: "中心を tone の面で塗る", 下書き: ".context/scratch/2837/cdl-issue-mind-presentation.md" },
+  { 鍵: "redeliveryIdeasMind", 要素: "葉の下線", 見本の数: 8, 今の数: 8, role: "mind-leaf-underline", 描ける: true },
+  // 7 意匠の `階層-*.html` は、放射の中心を含む箱の角を共通の 12px で描く。
+  { 鍵: "redeliveryIdeasMind", 要素: "中心を枠だけで描く", 見本の数: 1, 今の数: 1, role: "tag+attrs:rect|data-cdl-role=\"mind-root\"|fill=\"none\"|rx=\"12\"", 描ける: true },
 
   { 鍵: "branchParcelsBar", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "branchParcelsBar", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "branchParcelsBar", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "branchParcelsBar", 要素: "棒", 見本の数: 5, 今の数: 5, role: "chart-bar", 描ける: true },
   { 鍵: "branchParcelsBar", 要素: "点線の目盛り", 見本の数: 5, 今の数: 5, role: "chart-bar-tick", 描ける: true },
   { 鍵: "branchParcelsBar", 要素: "値の札", 見本の数: 5, 今の数: 5, role: "chart-bar-value", 描ける: true },
   { 鍵: "branchParcelsBar", 要素: "斜線を当てる主役", 見本の数: 1, 今の数: 1, role: "role+attr:chart-bar|data-cdl-emphasis=\"primary\"", 描ける: true },
 
   { 鍵: "monthlyDeliveriesLine", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "monthlyDeliveriesLine", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "monthlyDeliveriesLine", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "monthlyDeliveriesLine", 要素: "計画と実績の線", 見本の数: 2, 今の数: 2, role: "chart-line", 描ける: true },
   { 鍵: "monthlyDeliveriesLine", 要素: "中抜きの点", 見本の数: 5, 今の数: 5, role: "role+attr:chart-line-point|fill=\"var(--cdl-node-fill, #ffffff)\"", 描ける: true },
   { 鍵: "monthlyDeliveriesLine", 要素: "計画の終点と実績の始点・終点の値", 見本の数: 3, 今の数: 3, role: "chart-line-value", 描ける: true },
   { 鍵: "monthlyDeliveriesLine", 要素: "計画の点線", 見本の数: 1, 今の数: 1, role: "role+attr:chart-line|data-cdl-series=\"0\"", 描ける: true },
 
   { 鍵: "parcelStatusPie", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "parcelStatusPie", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "parcelStatusPie", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "parcelStatusPie", 要素: "輪の区画", 見本の数: 4, 今の数: 4, role: "chart-pie-slice", 描ける: true },
   { 鍵: "parcelStatusPie", 要素: "中心の合計値", 見本の数: 1, 今の数: 1, role: "texts:1,284", 描ける: true },
   { 鍵: "parcelStatusPie", 要素: "中心の単位『件』", 見本の数: 1, 今の数: 1, role: "texts:件", 描ける: true },
@@ -68,21 +69,21 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "parcelStatusPie", 要素: "円の右に置く一覧と値", 見本の数: 4, 今の数: 4, role: "chart-pie-table-mark", 描ける: true },
 
   { 鍵: "orderToDeliveryFunnel", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "orderToDeliveryFunnel", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "orderToDeliveryFunnel", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "orderToDeliveryFunnel", 要素: "段ごとの値", 見本の数: 4, 今の数: 4, role: "texts:12,000|3,400|2,900|2,750", 描ける: true },
   { 鍵: "orderToDeliveryFunnel", 要素: "段から次への率", 見本の数: 3, 今の数: 3, role: "funnel-conversion-rate", 描ける: true },
   { 鍵: "orderToDeliveryFunnel", 要素: "中央に寄せた比例の横棒", 見本の数: 4, 今の数: 4, role: "funnel-proportional-bar", 描ける: true },
   { 鍵: "orderToDeliveryFunnel", 要素: "最後の段の斜線", 見本の数: 1, 今の数: 1, role: "funnel-stage-hatch", 描ける: true },
 
   { 鍵: "measureEffortQuadrant", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "measureEffortQuadrant", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "measureEffortQuadrant", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "measureEffortQuadrant", 要素: "点", 見本の数: 5, 今の数: 5, role: "quadrant-point", 描ける: true },
   { 鍵: "measureEffortQuadrant", 要素: "点の名前", 見本の数: 5, 今の数: 5, role: "quadrant-point-label", 描ける: true },
   { 鍵: "measureEffortQuadrant", 要素: "軸の名前", 見本の数: 2, 今の数: 2, role: "quadrant-axis-name", 描ける: true },
   { 鍵: "measureEffortQuadrant", 要素: "象限の名前", 見本の数: 4, 今の数: 4, role: "texts:先にやる|計画してやる|ついでにやる|やらない", 描ける: true },
 
   { 鍵: "onTimeRateSlope", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "onTimeRateSlope", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "onTimeRateSlope", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "onTimeRateSlope", 要素: "縦軸", 見本の数: 2, 今の数: 2, role: "chart-slope-axis", 描ける: true },
   { 鍵: "onTimeRateSlope", 要素: "縦軸の見出し（先月 / 今月）", 見本の数: 2, 今の数: 2, role: "texts:先月|今月", 描ける: true },
   { 鍵: "onTimeRateSlope", 要素: "営業所を結ぶ線", 見本の数: 4, 今の数: 4, role: "chart-slope-line", 描ける: true },
@@ -91,7 +92,7 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "onTimeRateSlope", 要素: "主役 2 本だけの色", 見本の数: 2, 今の数: 2, role: "role+attr:chart-slope-line|data-cdl-emphasis=\"primary\"", 描ける: true },
 
   { 鍵: "onTimeShareGauge", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "onTimeShareGauge", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "onTimeShareGauge", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "onTimeShareGauge", 要素: "現在値の半円", 見本の数: 1, 今の数: 1, role: "chart-gauge-arc", 描ける: true },
   { 鍵: "onTimeShareGauge", 要素: "0 と 100 の目盛り", 見本の数: 2, 今の数: 2, role: "chart-gauge-scale-endpoint", 描ける: true },
   { 鍵: "onTimeShareGauge", 要素: "中央の 78%", 見本の数: 1, 今の数: 1, role: "chart-gauge-value", 描ける: true },
@@ -99,14 +100,14 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "onTimeShareGauge", 要素: "先月より +6 の差分札", 見本の数: 1, 今の数: 1, role: "chart-gauge-delta", 描ける: true },
 
   { 鍵: "parcelSizeWaffle", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "parcelSizeWaffle", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "parcelSizeWaffle", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "parcelSizeWaffle", 要素: "升目", 見本の数: 100, 今の数: 100, role: "chart-waffle-cell", 描ける: true },
   { 鍵: "parcelSizeWaffle", 要素: "升目の 3 色", 見本の数: 3, 今の数: 3, role: "unique-attr:chart-waffle-cell|fill", 描ける: true },
   // 「右」は catalog-chart-presentation-2854.spec.ts の座標検査で升目の右端との前後を確かめる。
   { 鍵: "parcelSizeWaffle", 要素: "升目の右に置く一覧", 見本の数: 3, 今の数: 3, role: "chart-waffle-item", 描ける: true },
 
   { 鍵: "deliveryResultStacked", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "deliveryResultStacked", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "deliveryResultStacked", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "deliveryResultStacked", 要素: "月ごとの帯", 見本の数: 5, 今の数: 5, role: "chart-stacked-bar-row", 描ける: true },
   { 鍵: "deliveryResultStacked", 要素: "3 区画 × 5 か月", 見本の数: 15, 今の数: 15, role: "chart-stacked-bar-slice", 描ける: true },
   { 鍵: "deliveryResultStacked", 要素: "右の率", 見本の数: 5, 今の数: 5, role: "chart-stacked-bar-rate", 描ける: true },
@@ -114,7 +115,7 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "deliveryResultStacked", 要素: "帯の上に置く凡例", 見本の数: 3, 今の数: 3, role: "chart-stacked-bar-legend", 描ける: true },
 
   { 鍵: "sortingShelfGantt", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "sortingShelfGantt", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
+  { 鍵: "sortingShelfGantt", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "工程の帯", 見本の数: 5, 今の数: 5, role: "gantt-bar", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "月の見出し", 見本の数: 5, 今の数: 5, role: "gantt-tick", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "依存の矢印", 見本の数: 4, 今の数: 4, role: "gantt-arrow", 描ける: true },
@@ -125,13 +126,14 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "sortingShelfGantt", 要素: "今日の点線", 見本の数: 1, 今の数: 1, role: "gantt-today", 描ける: true },
 
   { 鍵: "shipperFeelingJourney", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
-  { 鍵: "shipperFeelingJourney", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
-  { 鍵: "shipperFeelingJourney", 要素: "5 段の気持ちの名前", 見本の数: 5, 今の数: 3, role: "texts:最高|満足|普通|不満|怒り", 描ける: false, 理由: "最高を大満足、普通をふつうと描く", 下書き: ".context/scratch/2837/cdl-issue-journey-opportunity.md" },
+  { 鍵: "shipperFeelingJourney", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 1, role: "figure-footer", 描ける: true },
+  { 鍵: "shipperFeelingJourney", 要素: "5 段の気持ちの名前", 見本の数: 5, 今の数: 5, role: "texts:最高|満足|普通|不満|怒り", 描ける: true },
   { 鍵: "shipperFeelingJourney", 要素: "中抜きの点", 見本の数: 6, 今の数: 6, role: "tag+attrs:circle|r=\"9\"|fill=\"var(--cdl-node-fill, #ffffff)\"", 描ける: true },
   { 鍵: "shipperFeelingJourney", 要素: "気持ちを結ぶ線", 見本の数: 1, 今の数: 1, role: "journey-line", 描ける: true },
-  { 鍵: "shipperFeelingJourney", 要素: "見本どおりの谷の注記", 見本の数: 1, 今の数: 0, role: "contains:不在票に気づかなかった", 描ける: false, 理由: "固定幅へ収めるため不在票に気づかずへ短くした", 下書き: ".context/scratch/2837/cdl-issue-journey-opportunity.md" },
-  { 鍵: "shipperFeelingJourney", 要素: "谷の点の真下に置く注記", 見本の数: 1, 今の数: 0, role: "journey-opportunity-below-point", 描ける: false, 理由: "図の下の札として固定位置へ置く", 下書き: ".context/scratch/2837/cdl-issue-journey-opportunity.md", 仮の役割名: true },
-  { 鍵: "shipperFeelingJourney", 要素: "字に合わせた注記の幅", 見本の数: 1, 今の数: 0, role: "journey-opportunity-fit-width", 描ける: false, 理由: "札の幅を 110 に固定する", 下書き: ".context/scratch/2837/cdl-issue-journey-opportunity.md", 仮の役割名: true },
+  { 鍵: "shipperFeelingJourney", 要素: "見本どおりの谷の注記", 見本の数: 1, 今の数: 1, role: "contains:不在票に気づかなかった", 描ける: true },
+  // 点と注記の x、および 34px の y 差は catalog-stage3c.test.tsx の座標検査で確かめる。
+  { 鍵: "shipperFeelingJourney", 要素: "谷の点の真下に置く注記", 見本の数: 1, 今の数: 1, role: "journey-opportunity", 描ける: true },
+  { 鍵: "shipperFeelingJourney", 要素: "字に合わせた注記の幅", 見本の数: 1, 今の数: 1, role: "role+text-only:journey-opportunity", 描ける: true },
 ];
 
 const 図を引く = (鍵: 宅配の鍵): CdlDiagram | undefined =>
@@ -187,6 +189,14 @@ const roleの数 = (svg: string, role: string, 図: CdlDiagram): number => {
     const [roleName, attribute] = role.slice("role+attr-not:".length).split("|");
     if (roleName === undefined || attribute === undefined) return 0;
     return 開始タグ.filter((tag) => tag.includes(`data-cdl-role="${roleName}"`) && !tag.includes(attribute)).length;
+  }
+  if (role.startsWith("role+text-only:")) {
+    const roleName = role.slice("role+text-only:".length);
+    const textOnly = new RegExp(
+      `<g[^>]*data-cdl-role="${roleName}"[^>]*>\\s*<text[^>]*>[^<]*<\\/text>\\s*<\\/g>`,
+      "gu",
+    );
+    return [...svg.matchAll(textOnly)].length;
   }
   if (role.startsWith("tag+attrs:")) {
     const [tagName, ...attributes] = role.slice("tag+attrs:".length).split("|");

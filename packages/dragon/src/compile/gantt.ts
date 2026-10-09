@@ -8,14 +8,14 @@ import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
 import { 箱の題 } from "./node-title";
 import { truncateForMessage, 図の小見出し } from "./subtitle";
+import { 図表の大きさを読む } from "./chart-fields";
 /**
  * ガントチャート (`type: gantt`) の組み立て (#2030 で `compile.ts` から移した)。
  */
 
 export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "gantt" });
-  const CHART_W = 720;
-  b.lane("gantt", { width: CHART_W });
+  const 既定W = 720;
 
   /**
    * 書いたのに効かない形を伝える。 **`console.warn` だけにしない** (#2111) = 編集画面は知らせだけを
@@ -149,7 +149,9 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
 
   // 高さは件数から決める。 描画側は 1 行 28 以上 + 行間 20 で積み、 上下に 32 / 44 の余白を取る
   // (`kinds/gantt.tsx`)。 360 の固定だと 8 件目から最後の帯が枠の外に出る (実測 = 8 件で 56 はみ出す)
-  const CHART_H = Math.max(360, 48 * タスク.length + 96);
+  const 既定H = Math.max(360, 48 * タスク.length + 96);
+  const { w: CHART_W, h: CHART_H } = 図表の大きさを読む(doc, { w: 既定W, h: 既定H });
+  b.lane("gantt", { width: CHART_W });
 
   b.node(`${slugify(doc.title) || "gantt"}-chart`, {
     lane: "gantt",

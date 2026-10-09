@@ -103,6 +103,14 @@ export const CHART_WAFFLE_LEGEND_POSITION_VALUES = ["left", "right"] as const;
 export const FUNNEL_FORM_VALUES = ["trapezoid", "proportional-bars"] as const;
 export const FUNNEL_RATE_VALUES = ["drop", "conversion", "none"] as const;
 export const QUADRANT_POINT_LABEL_SIDE_VALUES = ["auto", "right"] as const;
+export const TREE_NODE_FORM_VALUES = ["accent", "frame"] as const;
+export const TREE_EDGE_TONE_VALUES = ["accent", "depth"] as const;
+export const TREE_EDGE_HEAD_VALUES = ["none", "triangle"] as const;
+export const MIND_FORM_VALUES = ["filled", "outline"] as const;
+export const JOURNEY_FORM_VALUES = ["bands", "rules"] as const;
+export const JOURNEY_LINE_FORM_VALUES = ["curve", "straight"] as const;
+export const JOURNEY_OPPORTUNITY_POSITION_VALUES = ["below-chart", "below-point"] as const;
+export const JOURNEY_LABEL_KEYS = ["delighted", "happy", "neutral", "frustrated", "angry"] as const;
 import {
   checkValueExpression,
   isTriggerBody,
@@ -265,6 +273,15 @@ export const TOP_LEVEL_KEYS = [
   "funnelForm",
   "funnelRate",
   "quadrantPointLabelSide",
+  "treeNodeForm",
+  "treeEdgeTone",
+  "treeEdgeHead",
+  "mindForm",
+  "journeyForm",
+  "journeyLineForm",
+  "journeyLabels",
+  "figureCard",
+  "figureSize",
   /*
    * 図の意匠 (#1553 / #2790)。
    *
@@ -647,6 +664,15 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let funnelForm: DslDocument["funnelForm"];
   let funnelRate: DslDocument["funnelRate"];
   let quadrantPointLabelSide: DslDocument["quadrantPointLabelSide"];
+  let treeNodeForm: DslDocument["treeNodeForm"];
+  let treeEdgeTone: DslDocument["treeEdgeTone"];
+  let treeEdgeHead: DslDocument["treeEdgeHead"];
+  let mindForm: DslDocument["mindForm"];
+  let journeyForm: DslDocument["journeyForm"];
+  let journeyLineForm: DslDocument["journeyLineForm"];
+  let journeyLabels: DslDocument["journeyLabels"];
+  let figureCard: DslDocument["figureCard"];
+  let figureSize: DslDocument["figureSize"];
   let aliasShape: DslShape | null = null;
   let aliasShapeLine = 0;
   let theme: DslTheme | null = null;
@@ -1124,6 +1150,58 @@ export function parseTextDslV05(src: string): V05ParseResult {
       const value = stripQuotes((head.value ?? "").trim());
       if ((QUADRANT_POINT_LABEL_SIDE_VALUES as readonly string[]).includes(value)) quadrantPointLabelSide = value as typeof quadrantPointLabelSide;
       else errors.push({ line: line.no, message: `quadrantPointLabelSide が読めません: "${value}"`, hint: `使える値 = ${QUADRANT_POINT_LABEL_SIDE_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (
+      head.key === "treeNodeForm" || head.key === "treeEdgeTone" || head.key === "treeEdgeHead" ||
+      head.key === "mindForm" || head.key === "journeyForm" || head.key === "journeyLineForm"
+    ) {
+      const value = stripQuotes((head.value ?? "").trim());
+      const values = {
+        treeNodeForm: TREE_NODE_FORM_VALUES,
+        treeEdgeTone: TREE_EDGE_TONE_VALUES,
+        treeEdgeHead: TREE_EDGE_HEAD_VALUES,
+        mindForm: MIND_FORM_VALUES,
+        journeyForm: JOURNEY_FORM_VALUES,
+        journeyLineForm: JOURNEY_LINE_FORM_VALUES,
+      }[head.key];
+      if ((values as readonly string[]).includes(value)) {
+        if (head.key === "treeNodeForm") treeNodeForm = value as typeof treeNodeForm;
+        else if (head.key === "treeEdgeTone") treeEdgeTone = value as typeof treeEdgeTone;
+        else if (head.key === "treeEdgeHead") treeEdgeHead = value as typeof treeEdgeHead;
+        else if (head.key === "mindForm") mindForm = value as typeof mindForm;
+        else if (head.key === "journeyForm") journeyForm = value as typeof journeyForm;
+        else journeyLineForm = value as typeof journeyLineForm;
+      } else {
+        errors.push({ line: line.no, message: `${head.key} が読めません: "${value}"`, hint: `使える値 = ${values.join(", ")}` });
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "journeyLabels" || head.key === "figureCard" || head.key === "figureSize") {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      const keys = head.key === "journeyLabels"
+        ? JOURNEY_LABEL_KEYS
+        : head.key === "figureCard" ? (["label", "note"] as const) : (["width", "height"] as const);
+      const unknown = 図表の知らない項目を知らせる(value, keys, head.key, line.no, errors);
+      if (!unknown && objectか(value)) {
+        if (
+          head.key === "journeyLabels" &&
+          JOURNEY_LABEL_KEYS.every((key) => typeof value[key] === "string" && value[key].trim() !== "")
+        ) journeyLabels = value as typeof journeyLabels;
+        else if (
+          head.key === "figureCard" && typeof value.label === "string" && value.label.trim() !== "" &&
+          (value.note === undefined || typeof value.note === "string")
+        ) figureCard = value as typeof figureCard;
+        else if (
+          head.key === "figureSize" && typeof value.width === "number" && Number.isFinite(value.width) && value.width > 0 &&
+          typeof value.height === "number" && Number.isFinite(value.height) && value.height > 0
+        ) figureSize = value as typeof figureSize;
+        else errors.push({ line: line.no, message: `${head.key} の値の形が読めません` });
+      } else if (value !== undefined && !unknown) {
+        errors.push({ line: line.no, message: `${head.key} は object で書きます` });
+      }
       i += 1;
       continue;
     }
@@ -1773,6 +1851,15 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(funnelForm !== undefined ? { funnelForm } : {}),
       ...(funnelRate !== undefined ? { funnelRate } : {}),
       ...(quadrantPointLabelSide !== undefined ? { quadrantPointLabelSide } : {}),
+      ...(treeNodeForm !== undefined ? { treeNodeForm } : {}),
+      ...(treeEdgeTone !== undefined ? { treeEdgeTone } : {}),
+      ...(treeEdgeHead !== undefined ? { treeEdgeHead } : {}),
+      ...(mindForm !== undefined ? { mindForm } : {}),
+      ...(journeyForm !== undefined ? { journeyForm } : {}),
+      ...(journeyLineForm !== undefined ? { journeyLineForm } : {}),
+      ...(journeyLabels !== undefined ? { journeyLabels } : {}),
+      ...(figureCard !== undefined ? { figureCard } : {}),
+      ...(figureSize !== undefined ? { figureSize } : {}),
       ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
       ...(legend.length > 0 ? { legend } : {}),
       ...(legendFontSize !== undefined ? { legendFontSize } : {}),
@@ -3785,6 +3872,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       }
       case "touchpoint":
       case "opportunity":
+      case "opportunityPosition":
       case "owner":
       case "end":
       case "stage":
@@ -3824,6 +3912,17 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     }
     if (key === "touchpoint") out.touchpoint = v;
     else if (key === "opportunity") out.opportunity = v;
+    else if (key === "opportunityPosition") {
+      if ((JOURNEY_OPPORTUNITY_POSITION_VALUES as readonly string[]).includes(v)) {
+        out.opportunityPosition = v as DslActor["opportunityPosition"];
+      } else {
+        errors.push({
+          line: actor.pos.line,
+          message: `opportunityPosition が読めません: "${v}"`,
+          hint: `使える値 = ${JOURNEY_OPPORTUNITY_POSITION_VALUES.join(", ")}`,
+        });
+      }
+    }
     else if (key === "owner") out.owner = v;
     else if (key === "end") out.end = v;
     else out.stage = v;
@@ -3930,6 +4029,7 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   // ユーザージャーニーの欄 (#1251)
   "touchpoint",
   "opportunity",
+  "opportunityPosition",
   // 工程の並びの欄 (#1251)
   "owner",
   "end",
@@ -4291,6 +4391,7 @@ const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   // ユーザージャーニーの欄 (#1251)。 他の図種では組み立て側が知らせる
   "touchpoint",
   "opportunity",
+  "opportunityPosition",
   // 工程の並びの欄 (#1251)
   "owner",
   "end",
@@ -4652,6 +4753,16 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
         hint: "使える値 = primary",
       });
     }
+    if (
+      !isPart && opts.opportunityPosition !== undefined &&
+      !(JOURNEY_OPPORTUNITY_POSITION_VALUES as readonly string[]).includes(opts.opportunityPosition)
+    ) {
+      errors.push({
+        line: line.no,
+        message: `opportunityPosition が読めません: "${opts.opportunityPosition}"`,
+        hint: `使える値 = ${JOURNEY_OPPORTUNITY_POSITION_VALUES.join(", ")}`,
+      });
+    }
     // `color` は縦に並べた形と JSON と同じ振り分けを通す (#1969)。 色の名前は箱の色、`#` で
     // 始まる値は色番号になる。
     //
@@ -4680,6 +4791,11 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // パーツでは状態の上書きとして意味を持つため、道筋の欄として横取りしない (#1251)
       touchpoint: isPart ? undefined : opts.touchpoint,
       opportunity: isPart ? undefined : opts.opportunity,
+      opportunityPosition:
+        isPart || opts.opportunityPosition === undefined ||
+        !(JOURNEY_OPPORTUNITY_POSITION_VALUES as readonly string[]).includes(opts.opportunityPosition)
+          ? undefined
+          : opts.opportunityPosition as DslActor["opportunityPosition"],
       // 見本では状態の上書きとして意味を持つため横取りしない (#1251)
       owner: isPart ? undefined : opts.owner,
       end: isPart ? undefined : opts.end,

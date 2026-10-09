@@ -124,6 +124,25 @@ const 入力: Record<string, 図> = {
     ...基本,
     chartGaugeValue: { max: 100, current: 78, [知らない項目]: 1 },
   },
+  "$.journeyLabels": {
+    ...基本,
+    journeyLabels: {
+      delighted: "最高",
+      happy: "満足",
+      neutral: "普通",
+      frustrated: "不満",
+      angry: "怒り",
+      [知らない項目]: 1,
+    },
+  },
+  "$.figureCard": {
+    ...基本,
+    figureCard: { label: "図", [知らない項目]: 1 },
+  },
+  "$.figureSize": {
+    ...基本,
+    figureSize: { width: 640, height: 320, [知らない項目]: 1 },
+  },
   "$.axes": { ...基本, type: "quadrant", axes: { [知らない項目]: {} } },
   "$.axes.x": { ...基本, type: "quadrant", axes: { x: { left: "低", right: "高", [知らない項目]: 1 } } },
   "$.axes.y": { ...基本, type: "quadrant", axes: { y: { top: "上", bottom: "下", [知らない項目]: 1 } } },

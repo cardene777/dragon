@@ -1873,7 +1873,7 @@ export const presetUserJourney = withSteps(
         s.id === "land"
           ? { ...s, emotion: "{land_mood}" }
           : s.id === "form"
-            ? { ...s, emotion: "{form_mood}" }
+            ? { ...s, emotion: "{form_mood}", opportunityPosition: "below-chart" }
             : s.id === "verify"
               ? { ...s, emotion: "{verify_mood}" }
               : { ...s, emotion: "{done_mood}" },
@@ -4598,7 +4598,7 @@ lanes:
 
 actors:
   - サイトを訪れる: { value: "{land_mood}", touchpoint: "サイト" }
-  - 登録の入力: { value: "{form_mood}", touchpoint: "入力画面", opportunity: "入力のしやすさを直す" }
+  - 登録の入力: { value: "{form_mood}", touchpoint: "入力画面", opportunity: "入力のしやすさを直す", opportunityPosition: below-chart }
   - メールの確認: { value: "{verify_mood}", touchpoint: "メール" }
   - 管理画面を開く: { value: "{done_mood}", touchpoint: "管理画面" }
 
@@ -4647,7 +4647,8 @@ export const sourceJson__presetUserJourney = `{
       "name": "登録の入力",
       "value": "{form_mood}",
       "touchpoint": "入力画面",
-      "opportunity": "入力のしやすさを直す"
+      "opportunity": "入力のしやすさを直す",
+      "opportunityPosition": "below-chart"
     },
     { "name": "メールの確認", "value": "{verify_mood}", "touchpoint": "メール" },
     { "name": "管理画面を開く", "value": "{done_mood}", "touchpoint": "管理画面" }

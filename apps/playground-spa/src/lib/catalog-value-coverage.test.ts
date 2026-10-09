@@ -635,6 +635,12 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
     理由: "率を出さない漏斗の値は README で見せる",
   },
   "$.quadrantPointLabelSide=auto": { 種類: "既定", 別の値: "right" },
+  "$.treeNodeForm=accent": { 種類: "既定", 別の値: "frame" },
+  "$.treeEdgeTone=accent": { 種類: "既定", 別の値: "depth" },
+  "$.treeEdgeHead=none": { 種類: "既定", 別の値: "triangle" },
+  "$.mindForm=filled": { 種類: "既定", 別の値: "outline" },
+  "$.journeyForm=bands": { 種類: "既定", 別の値: "rules" },
+  "$.journeyLineForm=curve": { 種類: "既定", 別の値: "straight" },
   // 宅配の見本は英名の欄を使う。和名と、同値の別表記は README の記法一覧で見せる。
   "$.actors[].点の位置": { 種類: "記法一覧", 理由: "at の和名は README で見せる" },
   "$.ticks": { 種類: "記法一覧", 理由: "目盛りの英名は README で見せる" },

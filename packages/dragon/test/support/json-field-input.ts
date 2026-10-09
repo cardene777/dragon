@@ -50,6 +50,12 @@ export function 欄に値を置く(層: 階層, key: string, v: unknown): Record
         funnelForm: "proportional-bars",
         funnelRate: "conversion",
         quadrantPointLabelSide: "right",
+        treeNodeForm: "frame",
+        treeEdgeTone: "depth",
+        treeEdgeHead: "triangle",
+        mindForm: "outline",
+        journeyForm: "rules",
+        journeyLineForm: "straight",
       };
       const value =
         v === "a" && key in 閉じた語
@@ -59,8 +65,10 @@ export function 欄に値を置く(層: 階層, key: string, v: unknown): Record
             : v;
       return 図({ [key]: value });
     }
-    case "actor":
-      return 図({ actors: [{ name: "A", kind: 箱の種類(key), [key]: v }, { name: "B" }] });
+    case "actor": {
+      const value = v === "a" && key === "opportunityPosition" ? "below-point" : v;
+      return 図({ actors: [{ name: "A", kind: 箱の種類(key), [key]: value }, { name: "B" }] });
+    }
     case "step":
       return 図({ flow: [{ from: "A", to: "B", label: "x", [key]: v }] });
     case "phase":

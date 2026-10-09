@@ -183,6 +183,29 @@ export type DslDocument = {
   quadrantPointLabelSide?: NonNullable<
     CdlDiagram["nodes"][number]["quadrantPointLabelSide"]
   >;
+  /** 木の箱を根まで同じ枠で描くか。 */
+  treeNodeForm?: NonNullable<CdlDiagram["nodes"][number]["treeNodeForm"]>;
+  /** 木の枝色を 1 色にするか、段ごとに分けるか。 */
+  treeEdgeTone?: NonNullable<CdlDiagram["nodes"][number]["treeEdgeTone"]>;
+  /** 木の枝先の印。 */
+  treeEdgeHead?: NonNullable<CdlDiagram["nodes"][number]["treeEdgeHead"]>;
+  /** 放射の中心・枝・葉を、面か輪郭のどちらで描くか。 */
+  mindForm?: NonNullable<CdlDiagram["nodes"][number]["mindForm"]>;
+  /** ジャーニーの段を帯か罫で描くか。 */
+  journeyForm?: NonNullable<CdlDiagram["nodes"][number]["journeyForm"]>;
+  /** ジャーニーの点を曲線か直線で結ぶか。 */
+  journeyLineForm?: NonNullable<CdlDiagram["nodes"][number]["journeyLineForm"]>;
+  /** ジャーニーの 5 段に描く名前。 */
+  journeyLabels?: NonNullable<CdlDiagram["nodes"][number]["journeyLabels"]>;
+  /** 図表の見出し帯と足。 */
+  figureCard?: NonNullable<CdlDiagram["nodes"][number]["figureCard"]>;
+  /**
+   * 図全体を 1 箱にする図種の札の大きさ。
+   *
+   * `viewport` は図全体の画布なので分ける。`width` / `height` は既存の viewport と lane の
+   * 綴りに揃え、描画側だけが使う短い `w` / `h` を記法へ漏らさない。
+   */
+  figureSize?: { width: number; height: number };
   /** 図の下へ指定順に置く凡例。 */
   legend?: { mark: LegendMark; text: string }[];
   /** 図の凡例の字の大きさ。 */
@@ -493,6 +516,10 @@ export type DslActor = {
    * 書かれていたら組み立て側が知らせる。
    */
   opportunity?: string;
+  /** ジャーニーの改善注記を置く場所。 */
+  opportunityPosition?: NonNullable<
+    NonNullable<CdlDiagram["nodes"][number]["journeyData"]>[number]["opportunityPosition"]
+  >;
   /**
    * 段階ごとの箱 (`type: swimlane` + `shape: stages`) で、この箱を入れる段階 (#2797)。
    *

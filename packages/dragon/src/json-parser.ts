@@ -46,6 +46,14 @@ import {
   FUNNEL_FORM_VALUES,
   FUNNEL_RATE_VALUES,
   QUADRANT_POINT_LABEL_SIDE_VALUES,
+  TREE_NODE_FORM_VALUES,
+  TREE_EDGE_TONE_VALUES,
+  TREE_EDGE_HEAD_VALUES,
+  MIND_FORM_VALUES,
+  JOURNEY_FORM_VALUES,
+  JOURNEY_LINE_FORM_VALUES,
+  JOURNEY_OPPORTUNITY_POSITION_VALUES,
+  JOURNEY_LABEL_KEYS,
   type 図形の定義,
 } from "./v05/parser";
 // 図の意匠 (#1553 / #2790)。 記法の読み手と同じ解決を通す = 別名の受け方が
@@ -156,6 +164,15 @@ export interface DragonJson {
   funnelForm?: DslDocument["funnelForm"];
   funnelRate?: DslDocument["funnelRate"];
   quadrantPointLabelSide?: DslDocument["quadrantPointLabelSide"];
+  treeNodeForm?: DslDocument["treeNodeForm"];
+  treeEdgeTone?: DslDocument["treeEdgeTone"];
+  treeEdgeHead?: DslDocument["treeEdgeHead"];
+  mindForm?: DslDocument["mindForm"];
+  journeyForm?: DslDocument["journeyForm"];
+  journeyLineForm?: DslDocument["journeyLineForm"];
+  journeyLabels?: DslDocument["journeyLabels"];
+  figureCard?: DslDocument["figureCard"];
+  figureSize?: DslDocument["figureSize"];
   /**
    * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
    *
@@ -440,6 +457,7 @@ export interface JsonActor {
    * ユーザージャーニー (`type: journey`) で、その段階の改善の余地 (#1294)。 記法の `opportunity:` と同じ。
    */
   opportunity?: string;
+  opportunityPosition?: DslActor["opportunityPosition"];
   /**
    * 箱を置く絶対座標と大きさ (#1294)。 記法の `posX:` / `posY:` / `posW:` / `posH:` と同じ。
    *
@@ -679,6 +697,15 @@ export const ACCEPTED_KEYS = {
     "funnelForm",
     "funnelRate",
     "quadrantPointLabelSide",
+    "treeNodeForm",
+    "treeEdgeTone",
+    "treeEdgeHead",
+    "mindForm",
+    "journeyForm",
+    "journeyLineForm",
+    "journeyLabels",
+    "figureCard",
+    "figureSize",
     "eyebrow",
     "axes",
     "regions",
@@ -747,6 +774,7 @@ export const ACCEPTED_KEYS = {
     "点の位置",
     "touchpoint",
     "opportunity",
+    "opportunityPosition",
     "posX",
     "posY",
     "posW",
@@ -908,6 +936,15 @@ export const 欄の型表 = {
     funnelForm: "文字列",
     funnelRate: "文字列",
     quadrantPointLabelSide: "文字列",
+    treeNodeForm: "文字列",
+    treeEdgeTone: "文字列",
+    treeEdgeHead: "文字列",
+    mindForm: "文字列",
+    journeyForm: "文字列",
+    journeyLineForm: "文字列",
+    journeyLabels: "object",
+    figureCard: "object",
+    figureSize: "object",
     eyebrow: "文字列",
     axes: "object",
     regions: "object",
@@ -975,6 +1012,7 @@ export const 欄の型表 = {
     点の位置: "並び",
     touchpoint: "文字列",
     opportunity: "文字列",
+    opportunityPosition: "文字列",
     posX: "数",
     posY: "数",
     posW: "数",
@@ -1154,6 +1192,7 @@ export const 見本に効かない欄 = [
   "emphasis",
   "touchpoint",
   "opportunity",
+  "opportunityPosition",
   "stage",
   // 箱の中に描く図形 (#1374)。 見本は自分の形を持つため、外から図形を差し替えられない
   "shape",
@@ -2385,6 +2424,51 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   enumField("funnelForm", FUNNEL_FORM_VALUES);
   enumField("funnelRate", FUNNEL_RATE_VALUES);
   enumField("quadrantPointLabelSide", QUADRANT_POINT_LABEL_SIDE_VALUES);
+  enumField("treeNodeForm", TREE_NODE_FORM_VALUES);
+  enumField("treeEdgeTone", TREE_EDGE_TONE_VALUES);
+  enumField("treeEdgeHead", TREE_EDGE_HEAD_VALUES);
+  enumField("mindForm", MIND_FORM_VALUES);
+  enumField("journeyForm", JOURNEY_FORM_VALUES);
+  enumField("journeyLineForm", JOURNEY_LINE_FORM_VALUES);
+
+  const closedObject = (
+    name: "journeyLabels" | "figureCard" | "figureSize",
+    keys: readonly string[],
+  ): Record<string, unknown> | undefined => {
+    const value = j[name];
+    if (value === undefined) return undefined;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      errors.push({ path: `$.${name}`, message: `${name} must be an object` });
+      return undefined;
+    }
+    const object = value as Record<string, unknown>;
+    for (const key of Object.keys(object)) {
+      if (!keys.includes(key)) errors.push({ path: `$.${name}.${key}`, message: `unknown key "${key}"` });
+    }
+    return object;
+  };
+  const labels = closedObject("journeyLabels", JOURNEY_LABEL_KEYS);
+  if (labels !== undefined) {
+    for (const key of JOURNEY_LABEL_KEYS) {
+      if (typeof labels[key] !== "string" || labels[key].trim() === "") {
+        errors.push({ path: `$.journeyLabels.${key}`, message: `${key} must be a non-empty string` });
+      }
+    }
+  }
+  const card = closedObject("figureCard", ["label", "note"]);
+  if (card !== undefined) {
+    if (typeof card.label !== "string" || card.label.trim() === "")
+      errors.push({ path: "$.figureCard.label", message: "label must be a non-empty string" });
+    if (card.note !== undefined && typeof card.note !== "string")
+      errors.push({ path: "$.figureCard.note", message: "note must be a string" });
+  }
+  const size = closedObject("figureSize", ["width", "height"]);
+  if (size !== undefined) {
+    for (const key of ["width", "height"] as const) {
+      if (typeof size[key] !== "number" || !Number.isFinite(size[key]) || size[key] <= 0)
+        errors.push({ path: `$.figureSize.${key}`, message: `${key} must be a positive finite number` });
+    }
+  }
 
   if (Array.isArray(j.chartSlopePeriods) &&
       (j.chartSlopePeriods.length !== 2 || j.chartSlopePeriods.some((v) => typeof v !== "string" || v.trim() === ""))) {
@@ -2839,6 +2923,15 @@ function validateJson(
       // 値そのものの型は表が見る (#1304)。 `kind` は見本 (parts) の名前も受けるため
       // 非空の文字列までしか縛らない (CAR-1657 の unified syntax)
       表で検査(ao, "actor", `$.actors[${i}]`, "actor", errors);
+      if (
+        typeof ao.opportunityPosition === "string" &&
+        !(JOURNEY_OPPORTUNITY_POSITION_VALUES as readonly string[]).includes(ao.opportunityPosition)
+      ) {
+        errors.push({
+          path: `$.actors[${i}].opportunityPosition`,
+          message: `opportunityPosition must be one of: ${JOURNEY_OPPORTUNITY_POSITION_VALUES.join(", ")}`,
+        });
+      }
       for (const 欄 of ["at", "点の位置"] as const) {
         if (ao[欄] === undefined) continue;
         const at = ao[欄];
@@ -3238,6 +3331,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
             atPos: 書いた座標 === undefined ? undefined : 位置("actors", i, a.at ? "at" : "点の位置"),
             touchpoint: a.touchpoint,
             opportunity: a.opportunity,
+            opportunityPosition: a.opportunityPosition,
           }),
       colorHex: 色.hex,
       // 部品に書いた色の名前は効かない。 記法と同じく書いた名前として残し、組み立て側が知らせる (#1973)
@@ -3440,6 +3534,15 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.funnelForm !== undefined ? { funnelForm: json.funnelForm } : {}),
     ...(json.funnelRate !== undefined ? { funnelRate: json.funnelRate } : {}),
     ...(json.quadrantPointLabelSide !== undefined ? { quadrantPointLabelSide: json.quadrantPointLabelSide } : {}),
+    ...(json.treeNodeForm !== undefined ? { treeNodeForm: json.treeNodeForm } : {}),
+    ...(json.treeEdgeTone !== undefined ? { treeEdgeTone: json.treeEdgeTone } : {}),
+    ...(json.treeEdgeHead !== undefined ? { treeEdgeHead: json.treeEdgeHead } : {}),
+    ...(json.mindForm !== undefined ? { mindForm: json.mindForm } : {}),
+    ...(json.journeyForm !== undefined ? { journeyForm: json.journeyForm } : {}),
+    ...(json.journeyLineForm !== undefined ? { journeyLineForm: json.journeyLineForm } : {}),
+    ...(json.journeyLabels !== undefined ? { journeyLabels: json.journeyLabels } : {}),
+    ...(json.figureCard !== undefined ? { figureCard: json.figureCard } : {}),
+    ...(json.figureSize !== undefined ? { figureSize: json.figureSize } : {}),
     ...(別名?.order !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
     ...(別名?.shape !== undefined ? { shape: 別名.shape, shapePos: 位置("type") } : {}),
     // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから

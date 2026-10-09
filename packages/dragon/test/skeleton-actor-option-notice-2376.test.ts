@@ -773,6 +773,7 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
     color: 'color: "#123456"',
     touchpoint: 'touchpoint: "まどぐち"',
     opportunity: 'opportunity: "のびしろ"',
+    opportunityPosition: "opportunityPosition: below-point",
     owner: 'owner: "たんとう"',
     end: 'end: "3月"',
     startLabel: 'startLabel: "3月半ば"',

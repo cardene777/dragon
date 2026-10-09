@@ -205,7 +205,12 @@ const 家族 = {
     ),
   ],
   journeyData: [
-    並び("段", (v: 道筋の段[]) => v, { touchpoint: "窓口", opportunity: "改善の余地" }, true),
+    並び(
+      "段",
+      (v: 道筋の段[]) => v,
+      { touchpoint: "窓口", opportunity: "改善の余地", opportunityPosition: "below-point" },
+      true,
+    ),
   ],
   sequenceData: [
     並び("面々", (v: やり取り) => v.actors, { subtitle: "説明" }, true),
@@ -295,6 +300,14 @@ const 節の欄の扱い = {
   funnelForm: "記法",
   funnelRate: "記法",
   quadrantPointLabelSide: "記法",
+  treeNodeForm: "記法",
+  treeEdgeTone: "記法",
+  treeEdgeHead: "記法",
+  mindForm: "記法",
+  journeyForm: "記法",
+  journeyLineForm: "記法",
+  journeyLabels: "記法",
+  figureCard: "記法",
   // 横軸の尺を固定する配置の指定。帯や目盛りという新しい役割は増やさない。
   ganttAxisMax: "置き場所",
 } satisfies Record<節の任意の欄, string>;

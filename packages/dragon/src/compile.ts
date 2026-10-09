@@ -2414,7 +2414,7 @@ function applyGroupFrames(
 /**
  * ユーザージャーニーの欄を、 それを描けない図種で書いた時に伝える (#1251)。
  *
- * `touchpoint` と `opportunity` は `type: journey` の段だけが持つ。 他の図種では相手が無く、
+ * `touchpoint` と `opportunity` と `opportunityPosition` は `type: journey` の段だけが持つ。 他の図種では相手が無く、
  * 黙って捨てると「書いたのに出ない」 が手掛かりなしで起きる。
  *
  * `type: mind` では伝えない = `compileMind` が描けない欄をまとめて 1 件で伝えており、
@@ -2434,6 +2434,7 @@ function reportChartFieldsNotHonored(
         : [
             ...(a.touchpoint !== undefined ? ["touchpoint"] : []),
             ...(a.opportunity !== undefined ? ["opportunity"] : []),
+            ...(a.opportunityPosition !== undefined ? ["opportunityPosition"] : []),
           ];
     const 工程 =
       doc.type === "gantt"

@@ -899,6 +899,46 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "木の箱と枝、図の札",
+    titleEn: "Tree nodes, edges, and figure card",
+    sample: {
+      slot: "root",
+      type: "tree",
+      actors: ["  - 本社", "  - 支社"],
+      flow: ["  - 本社 -> 支社"],
+    },
+    lines: [
+      { code: "treeNodeForm: frame", note: "根まで同じ枠で描く", noteEn: "Frames every node, including the root" },
+      { code: "treeEdgeTone: depth", note: "段ごとに枝色を分ける", noteEn: "Colors edges by depth" },
+      { code: "treeEdgeHead: triangle", note: "枝先に矢じりを付ける", noteEn: "Adds arrowheads to branches" },
+      { code: 'figureCard: {"label":"階層","note":"全国 12 営業所"}', note: "図の見出し帯と足", noteEn: "Figure header and footer" },
+      { code: 'figureSize: {"width":1712,"height":416}', note: "札の幅と高さ", noteEn: "Figure card width and height" },
+    ],
+  },
+  {
+    title: "放射の輪郭",
+    titleEn: "Mind-map outlines",
+    sample: {
+      slot: "root",
+      type: "mind",
+      actors: ["  - 再配達", "  - 置き場所"],
+      flow: ["  - 再配達 -> 置き場所"],
+    },
+    lines: [
+      { code: "mindForm: outline", note: "中心・枝・葉を輪郭で描く", noteEn: "Outlines the root, branches, and leaves" },
+    ],
+  },
+  {
+    title: "ジャーニーの罫と段名",
+    titleEn: "Journey rules and labels",
+    sample: { slot: "root", type: "journey", actors: ['  - 登録: "不満"'] },
+    lines: [
+      { code: "journeyForm: rules", note: "段を帯でなく罫で分ける", noteEn: "Separates levels with rules instead of bands" },
+      { code: "journeyLineForm: straight", note: "点を直線で結ぶ", noteEn: "Connects points with straight lines" },
+      { code: 'journeyLabels: {"delighted":"最高","happy":"満足","neutral":"普通","frustrated":"不満","angry":"怒り"}', note: "5 段の名前", noteEn: "Labels for the five levels" },
+    ],
+  },
+  {
     // 2 つの軸で仕分ける図だけが持つ。 他の図種で書くと組み立て側が知らせる (#1251)
     title: "軸の名前 (axes:)",
     titleEn: "Axis names (axes:)",
@@ -970,7 +1010,7 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: '  - 登録: { value: "不満", touchpoint: "申込み画面" }', note: "どこで起きたか", noteEn: "Where it happened" },
-      { code: '  - 決済: { value: "普通", opportunity: "入力を減らす" }', note: "何を直せるか", noteEn: "What can be improved" },
+      { code: '  - 決済: { value: "普通", opportunity: "入力を減らす", opportunityPosition: below-point }', note: "何を直せるかと、注記を置く場所", noteEn: "What can be improved and where to place the note" },
     ],
   },
   {

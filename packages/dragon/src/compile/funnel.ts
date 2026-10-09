@@ -6,6 +6,7 @@ import {
   数の欄から参照できる名前,
   参照する名前,
   図表の大きさ,
+  図表の大きさを読む,
 } from "./chart-fields";
 
 import { 箱の題 } from "./node-title";
@@ -19,7 +20,7 @@ import { 図の小見出し } from "./subtitle";
  */
 export function compileFunnel(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "funnel" });
-  const { w: W, h: H } = 図表の大きさ.funnel;
+  const { w: W, h: H } = 図表の大きさを読む(doc, 図表の大きさ.funnel);
   b.lane("chart", { width: W + 64 });
   const data: NonNullable<CdlDiagram["nodes"][number]["funnelData"]> = [];
   const 読めない: string[] = [];

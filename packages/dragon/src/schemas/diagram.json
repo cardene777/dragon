@@ -171,6 +171,42 @@
     "funnelForm": { "type": "string", "enum": ["trapezoid", "proportional-bars"] },
     "funnelRate": { "type": "string", "enum": ["drop", "conversion", "none"] },
     "quadrantPointLabelSide": { "type": "string", "enum": ["auto", "right"] },
+    "treeNodeForm": { "type": "string", "enum": ["accent", "frame"] },
+    "treeEdgeTone": { "type": "string", "enum": ["accent", "depth"] },
+    "treeEdgeHead": { "type": "string", "enum": ["none", "triangle"] },
+    "mindForm": { "type": "string", "enum": ["filled", "outline"] },
+    "journeyForm": { "type": "string", "enum": ["bands", "rules"] },
+    "journeyLineForm": { "type": "string", "enum": ["curve", "straight"] },
+    "journeyLabels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["delighted", "happy", "neutral", "frustrated", "angry"],
+      "properties": {
+        "delighted": { "type": "string", "minLength": 1 },
+        "happy": { "type": "string", "minLength": 1 },
+        "neutral": { "type": "string", "minLength": 1 },
+        "frustrated": { "type": "string", "minLength": 1 },
+        "angry": { "type": "string", "minLength": 1 }
+      }
+    },
+    "figureCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1 },
+        "note": { "type": "string" }
+      }
+    },
+    "figureSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
     "eyebrow": {
       "type": "string",
       "description": "図表の箱の上に出す小見出し (省略可)。 効くのは図全体を 1 箱にする型 (chart / funnel / tree / journey / quadrant / mind / gantt) だけ。 箱ごとに分かれる型では相手が決まらないため、 actors[].eyebrow に書く"
@@ -426,6 +462,11 @@
               "opportunity": {
                 "type": "string",
                 "description": "journey の段階の改善の余地。"
+              },
+              "opportunityPosition": {
+                "type": "string",
+                "enum": ["below-chart", "below-point"],
+                "description": "journey の改善の余地を図の下か、その段階の点の下へ置く。"
               },
               "posX": {
                 "type": "number",

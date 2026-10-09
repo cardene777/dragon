@@ -33,6 +33,7 @@ const 書き方: Record<string, string> = {
   emphasis: "emphasis: primary",
   touchpoint: 'touchpoint: "まど"',
   opportunity: 'opportunity: "のびしろ"',
+  opportunityPosition: "opportunityPosition: below-point",
 };
 
 /** 板が伝える側に残る欄。 4 欄を除いても板の知らせが痩せていないことの対照 */

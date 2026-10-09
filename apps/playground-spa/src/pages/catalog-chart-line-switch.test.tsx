@@ -208,5 +208,13 @@ describe("catalog の折れ線の見せ方切替 (#1624)", () => {
     expect(screen.queryByRole("button", { name: "塗り" }), "元の 2 系列へ戻っていない").toBeNull();
     expect(screen.getByRole("button", { name: "せり上げ" }).getAttribute("aria-pressed")).toBe("false");
     expect(screen.queryByRole("button", { name: "なぞり" }), "元の 2 系列へ戻っていない").toBeNull();
+
+    一本の線を選ぶ();
+    for (const name of ["塗り", "せり上げ", "なぞり"]) {
+      expect(
+        screen.getByRole("button", { name }).getAttribute("aria-pressed"),
+        `${name} が選び直す前の状態を引き継いでいる`,
+      ).toBe("false");
+    }
   });
 });

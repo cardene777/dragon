@@ -57,6 +57,10 @@ const 対応表: Record<string, 対応> = {
   offsetY: { 記法: "offsetY: -40", json: { pos: { x: 0, y: -40 } } },
   touchpoint: { 記法: 'touchpoint: "店頭"', json: { touchpoint: "店頭" } },
   opportunity: { 記法: 'opportunity: "改善"', json: { opportunity: "改善" } },
+  opportunityPosition: {
+    記法: "opportunityPosition: below-point",
+    json: { opportunityPosition: "below-point" },
+  },
   owner: { 記法: 'owner: "私"', json: { owner: "私" } },
   end: { 記法: 'end: "Q2"', json: { end: "Q2" } },
   startLabel: { 記法: 'startLabel: "Q2半ば"', json: { startLabel: "Q2半ば" } },

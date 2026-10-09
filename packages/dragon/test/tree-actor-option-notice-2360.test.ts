@@ -54,6 +54,7 @@ const 値: Record<string, string> = {
   emphasis: "primary",
   touchpoint: '"まどぐち"',
   opportunity: '"のびしろ"',
+  opportunityPosition: "below-point",
   at: "[0.2, 0.8]",
   posX: "100",
   posY: "100",
@@ -96,6 +97,7 @@ const 別の知らせ: Record<string, string> = {
   emphasis: "chart-value-unreadable",
   touchpoint: "chart-value-unreadable",
   opportunity: "chart-value-unreadable",
+  opportunityPosition: "chart-value-unreadable",
 };
 
 function 本文(書く: string, 図種 = "tree"): string {

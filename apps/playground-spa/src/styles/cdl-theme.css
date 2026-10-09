@@ -781,6 +781,21 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --theme-journey-axis-label: #3f6479;
   --theme-quadrant-muted: #8aa3b1;
   --cdl-tone-muted: #8aa3b1;
+  --theme-mind-root-fill: rgba(227, 233, 234, 0.82);
+  --theme-mind-box-fill: rgba(227, 233, 234, 0.82);
+  --theme-mind-root-stroke-width: 2.25px;
+  --theme-mind-box-stroke-width: 1px;
+  --theme-mind-radius: 12px;
+  --theme-mind-root-text: #143a52;
+  --theme-mind-box-text: #143a52;
+  --theme-mind-leaf-text: #143a52;
+  --theme-mind-shadow: none;
+  --cdl-figure-card-title-size: 29px;
+  --cdl-figure-card-title-weight: 700;
+  --cdl-figure-card-rule-width: 1px;
+  --cdl-figure-card-inset: 22px;
+  --cdl-figure-card-label-letter-spacing: 0.16em;
+  --cdl-figure-card-note-letter-spacing: 0;
   --cdl-gantt-arrow: var(--cdl-chart-2);
   --cdl-gantt-milestone: var(--cdl-chart-1);
   --cdl-gantt-today: var(--er-own);
@@ -869,6 +884,21 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --theme-journey-axis-label: #6b6253;
   --theme-quadrant-muted: #9d9382;
   --cdl-tone-muted: #9d9382;
+  --theme-mind-root-fill: transparent;
+  --theme-mind-box-fill: transparent;
+  --theme-mind-root-stroke-width: 3px;
+  --theme-mind-box-stroke-width: 1.5px;
+  --theme-mind-radius: 12px;
+  --theme-mind-root-text: #1a1510;
+  --theme-mind-box-text: #1a1510;
+  --theme-mind-leaf-text: #1a1510;
+  --theme-mind-shadow: drop-shadow(2px 2px 0 rgba(26, 21, 16, 0.14));
+  --cdl-figure-card-title-size: 29px;
+  --cdl-figure-card-title-weight: 800;
+  --cdl-figure-card-rule-width: 2.5px;
+  --cdl-figure-card-inset: 24px;
+  --cdl-figure-card-label-letter-spacing: 0.16em;
+  --cdl-figure-card-note-letter-spacing: 0;
   --cdl-gantt-arrow: var(--cdl-chart-2);
   --cdl-gantt-milestone: var(--cdl-chart-1);
   --cdl-gantt-today: var(--er-own);
@@ -954,6 +984,21 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --theme-journey-axis-label: #6f6757;
   --theme-quadrant-muted: #9c9381;
   --cdl-tone-muted: #9c9381;
+  --theme-mind-root-fill: #f4eee2;
+  --theme-mind-box-fill: #f4eee2;
+  --theme-mind-root-stroke-width: 0;
+  --theme-mind-box-stroke-width: 0;
+  --theme-mind-radius: 12px;
+  --theme-mind-root-text: #1d242e;
+  --theme-mind-box-text: #1d242e;
+  --theme-mind-leaf-text: #efe7d8;
+  --theme-mind-shadow: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.34));
+  --cdl-figure-card-title-size: 29px;
+  --cdl-figure-card-title-weight: 700;
+  --cdl-figure-card-rule-width: 1px;
+  --cdl-figure-card-inset: 24px;
+  --cdl-figure-card-label-letter-spacing: 0.16em;
+  --cdl-figure-card-note-letter-spacing: 0;
   --cdl-gantt-arrow: var(--cdl-chart-2);
   --cdl-gantt-milestone: var(--cdl-chart-1);
   --cdl-gantt-today: var(--er-own);
@@ -1044,6 +1089,21 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --theme-journey-axis-label: #8a9b90;
   --theme-quadrant-muted: #355542;
   --cdl-tone-muted: #355542;
+  --theme-mind-root-fill: #08110b;
+  --theme-mind-box-fill: #08110b;
+  --theme-mind-root-stroke-width: 1.5px;
+  --theme-mind-box-stroke-width: 1px;
+  --theme-mind-radius: 6px;
+  --theme-mind-root-text: #9ef0b4;
+  --theme-mind-box-text: #9ef0b4;
+  --theme-mind-leaf-text: #a6f0bd;
+  --theme-mind-shadow: drop-shadow(0 0 13px rgba(74, 222, 128, 0.22));
+  --cdl-figure-card-title-size: 25px;
+  --cdl-figure-card-title-weight: 700;
+  --cdl-figure-card-rule-width: 1px;
+  --cdl-figure-card-inset: 22px;
+  --cdl-figure-card-label-letter-spacing: 0.18em;
+  --cdl-figure-card-note-letter-spacing: 0;
   --cdl-gantt-arrow: var(--cdl-chart-2);
   --cdl-gantt-milestone: var(--cdl-chart-1);
   --cdl-gantt-today: var(--er-own);
@@ -1138,6 +1198,21 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --theme-journey-axis-label: #6d6456;
   --theme-quadrant-muted: #9a9080;
   --cdl-tone-muted: #9a9080;
+  --theme-mind-root-fill: #fffdf7;
+  --theme-mind-box-fill: #fffdf7;
+  --theme-mind-root-stroke-width: 3px;
+  --theme-mind-box-stroke-width: 2px;
+  --theme-mind-radius: 22px;
+  --theme-mind-root-text: #2b2620;
+  --theme-mind-box-text: #2b2620;
+  --theme-mind-leaf-text: #2b2620;
+  --theme-mind-shadow: drop-shadow(3px 4px 0 rgba(43, 38, 32, 0.16));
+  --cdl-figure-card-title-size: 29px;
+  --cdl-figure-card-title-weight: 800;
+  --cdl-figure-card-rule-width: 2px;
+  --cdl-figure-card-inset: 24px;
+  --cdl-figure-card-label-letter-spacing: 0.16em;
+  --cdl-figure-card-note-letter-spacing: 0;
   --cdl-gantt-arrow: var(--cdl-chart-2);
   --cdl-gantt-milestone: var(--cdl-chart-1);
   --cdl-gantt-today: var(--er-own);
@@ -1228,6 +1303,21 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --theme-journey-axis-label: #c4bce0;
   --theme-quadrant-muted: #8f86b3;
   --cdl-tone-muted: #8f86b3;
+  --theme-mind-root-fill: #09070f;
+  --theme-mind-box-fill: #09070f;
+  --theme-mind-root-stroke-width: 2px;
+  --theme-mind-box-stroke-width: 2px;
+  --theme-mind-radius: 16px;
+  --theme-mind-root-text: #ffffff;
+  --theme-mind-box-text: #ffffff;
+  --theme-mind-leaf-text: #f3eefe;
+  --theme-mind-shadow: drop-shadow(0 0 10px rgba(255, 46, 151, 0.6));
+  --cdl-figure-card-title-size: 29px;
+  --cdl-figure-card-title-weight: 800;
+  --cdl-figure-card-rule-width: 1px;
+  --cdl-figure-card-inset: 24px;
+  --cdl-figure-card-label-letter-spacing: 0.16em;
+  --cdl-figure-card-note-letter-spacing: 0;
   --cdl-gantt-arrow: var(--cdl-chart-2);
   --cdl-gantt-milestone: var(--cdl-chart-1);
   --cdl-gantt-today: var(--er-own);
@@ -1317,6 +1407,21 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --theme-journey-axis-label: #685e51;
   --theme-quadrant-muted: #a99e8e;
   --cdl-tone-muted: #a99e8e;
+  --theme-mind-root-fill: #e8e3da;
+  --theme-mind-box-fill: #e8e3da;
+  --theme-mind-root-stroke-width: 0;
+  --theme-mind-box-stroke-width: 0;
+  --theme-mind-radius: 22px;
+  --theme-mind-root-text: #c4573c;
+  --theme-mind-box-text: #463e33;
+  --theme-mind-leaf-text: #463e33;
+  --theme-mind-shadow: drop-shadow(7px 7px 7px rgba(160, 144, 120, 0.5)) drop-shadow(-7px -7px 7px rgba(255, 255, 255, 0.92));
+  --cdl-figure-card-title-size: 29px;
+  --cdl-figure-card-title-weight: 700;
+  --cdl-figure-card-rule-width: 0;
+  --cdl-figure-card-inset: 26px;
+  --cdl-figure-card-label-letter-spacing: 0.16em;
+  --cdl-figure-card-note-letter-spacing: 0;
   --cdl-gantt-arrow: var(--cdl-chart-2);
   --cdl-gantt-milestone: var(--cdl-chart-1);
   --cdl-gantt-today: var(--er-own);
@@ -1806,7 +1911,8 @@ svg[data-cdl-stage][data-cdl-palette] {
   --cdl-line: var(--er-line);
   --cdl-line-mute: var(--er-line);
   --cdl-divider: var(--er-frame);
-  --cdl-row-divider: var(--er-frame);
+  /* ジャーニーの段罫は、箱の枠ではなく見本の沈んだ色で引く。 */
+  --cdl-row-divider: var(--cdl-tone-muted);
   --cdl-tone-accent: var(--er-frame);
   --cdl-tone-info: var(--er-line);
 
@@ -1909,6 +2015,89 @@ svg[data-cdl-stage]:is(
   [data-cdl-palette="relief"]
 ) [data-cdl-kind="mind-map"] [data-cdl-role="mind-edge"][stroke*="--cdl-tone-warning"] {
   stroke: var(--theme-mind-branch-4);
+}
+
+/* outline の箱・字・葉は、7 意匠の見本が持つ面と角へ揃える。 */
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-mind-form="outline"] [data-cdl-role="mind-root"] {
+  fill: var(--theme-mind-root-fill) !important;
+  stroke: var(--er-frame) !important;
+  stroke-width: var(--theme-mind-root-stroke-width) !important;
+  rx: var(--theme-mind-radius);
+  ry: var(--theme-mind-radius);
+  filter: var(--theme-mind-shadow);
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-mind-form="outline"] [data-cdl-role="mind-box"] {
+  fill: var(--theme-mind-box-fill) !important;
+  stroke: var(--er-frame) !important;
+  stroke-width: var(--theme-mind-box-stroke-width) !important;
+  rx: var(--theme-mind-radius);
+  ry: var(--theme-mind-radius);
+  filter: var(--theme-mind-shadow);
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-mind-form="outline"] [data-cdl-role="mind-root-title"] {
+  fill: var(--theme-mind-root-text) !important;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-mind-form="outline"] [data-cdl-role="mind-box-title"] {
+  fill: var(--theme-mind-box-text) !important;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-mind-form="outline"] [data-cdl-role="mind-leaf-title"] {
+  fill: var(--theme-mind-leaf-text) !important;
+}
+
+svg[data-cdl-stage]:is(
+  [data-cdl-palette="blueprint"],
+  [data-cdl-palette="letterpress"],
+  [data-cdl-palette="catalog"],
+  [data-cdl-palette="terminal"],
+  [data-cdl-palette="sketch"],
+  [data-cdl-palette="neon"],
+  [data-cdl-palette="relief"]
+) [data-cdl-kind="mind-map"] :is([data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"]) {
+  stroke-opacity: 1 !important;
 }
 
 /* cdl 0.125.0 は mind の枝箱へ role を付けないため、kind と chip の fill で中心箱を除く。 */
@@ -3756,7 +3945,7 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --cdl-text-accent: var(--er-ink);
   --d-accent: var(--er-ink);
   --cdl-divider: var(--theme-pale);
-  --cdl-row-divider: var(--theme-pale);
+  --cdl-row-divider: var(--cdl-tone-muted);
 }
 
 /* `scale` を個別 property にして、箱の `<g>` が持つ位置の `transform` を上書きしない。 */

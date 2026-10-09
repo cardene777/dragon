@@ -279,9 +279,10 @@ describe("見本帳の階層・図表・数・工程は宅配の筋書きで揃�
     "shipperFeelingJourney",
     "pattern__shipperFeelingJourney__接点つき",
     "pattern__shipperFeelingJourney__5つの気持ち",
-  ])("%s の谷の札は固定幅に収まる語にする", (鍵) => {
+  ])("%s の谷の注記は全文を点の下へ置く", (鍵) => {
     const 記法 = 記法を引く(鍵);
-    expect(記法).toMatch(/opportunity[^\n]+不在票に気づかず/u);
-    expect(記法).not.toMatch(/opportunity[^\n]+不在票に気づかなかった/u);
+    expect(記法).toMatch(/opportunity[^\n]+不在票に気づかなかった/u);
+    expect(記法).toMatch(/opportunityPosition[^\n]+below-point/u);
+    expect(記法).not.toMatch(/不在票に気づかず["'}]/u);
   });
 });

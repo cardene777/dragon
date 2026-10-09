@@ -67,20 +67,21 @@ export const 効かない箱の欄の呼び名 = [
   ["atPos", "点の位置"],
   ["touchpoint", "接点"],
   ["opportunity", "伸びしろ"],
+  ["opportunityPosition", "伸びしろの位置"],
 ] as const satisfies readonly (readonly [keyof DslActor, string])[];
 
 /**
  * 体験と工程の欄 (#2380)。 **どの族の除外にも入る**。
  *
  * 担当 (`owner`) と終わる時期 (`end`) はガントチャートが、接点 (`touchpoint`) と伸びしろ
- * (`opportunity`) は体験の地図が描く。 描けない図種で書いた時は
+ * (`opportunity`) と伸びしろの位置 (`opportunityPosition`) は体験の地図が描く。 描けない図種で書いた時は
  * `reportChartFieldsNotHonored` が図種ごとの行き先を添えて伝える。
  *
  * 箱の知らせが同じ欄を重ねて伝えると、1 つの欄が 2 つの名前で呼ばれる (「担当」 と `owner`)
  * うえ、案内が食い違う = 箱の知らせは「箱を持つ図種へ」 と言うが、担当は箱を持つ図種でも
  * 効かない。
  *
- * **1 か所に置いて各族が読む**。 4 欄を族ごとに書き並べると、5 つ目を足した日に
+ * **1 か所に置いて各族が読む**。 欄を族ごとに書き並べると、新しい欄を足した日に
  * 直し忘れた族だけが 2 件並べるようになる (実測 = 板の族だけが 4 欄を持たず、
  * `sequence` / `solidity` の 8 通りで知らせが 2 件並んでいた)。
  */
@@ -92,6 +93,7 @@ export const 体験と工程の欄: ReadonlySet<string> = new Set([
   "emphasis",
   "touchpoint",
   "opportunity",
+  "opportunityPosition",
 ]);
 
 /**

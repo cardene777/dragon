@@ -71,6 +71,7 @@ const 見本の値: Record<string, string> = {
   emphasis: "primary",
   touchpoint: '"まどぐち"',
   opportunity: '"のびしろ"',
+  opportunityPosition: "below-point",
   at: "[0.2, 0.8]",
   点の位置: "[0.2, 0.8]",
   posX: "100",

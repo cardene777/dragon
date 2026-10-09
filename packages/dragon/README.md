@@ -98,6 +98,15 @@ flow:
 | `funnelForm` | 漏斗の形 (`trapezoid` / `proportional-bars`) |
 | `funnelRate` | 漏斗の率。`drop` は前段から減った割合、`conversion` は前段から残った割合、`none` は率を描かない |
 | `quadrantPointLabelSide` | 四象限の座標点の名前を置く側 (`auto` / `right`) |
+| `treeNodeForm` | 木の箱の見せ方 (`accent` / `frame`) |
+| `treeEdgeTone` | 木の枝色の付け方 (`accent` / `depth`) |
+| `treeEdgeHead` | 木の枝先の形 (`none` / `triangle`) |
+| `mindForm` | 放射の箱の見せ方 (`filled` / `outline`) |
+| `journeyForm` | ジャーニーの段の見せ方 (`bands` / `rules`) |
+| `journeyLineForm` | ジャーニーの点を結ぶ線 (`curve` / `straight`) |
+| `journeyLabels` | ジャーニーの 5 段の名前 (`{ delighted, happy, neutral, frustrated, angry }`) |
+| `figureCard` | 図表の見出し帯と足 (`{ label, note? }`) |
+| `figureSize` | 図全体を 1 箱にする図種の札の幅と高さ (`{ width, height }`) |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
 | `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 1 項目は `{ mark, text }`、和名なら `{ 印, 説明 }`。 印の 10 種は下の節を参照 |
 | `legendFontSize` | 凡例の字の大きさ |
@@ -179,6 +188,7 @@ legend:
 | `color`         | 色 (`tone` と同じ意味。 両方書いた時は `tone` を採る)                          |
 | `touchpoint`    | ユーザージャーニーで、利用者が触れる場所                                               |
 | `opportunity`   | ユーザージャーニーで、改善の余地                                                       |
+| `opportunityPosition` | ユーザージャーニーで、改善の余地を置く場所 (`below-chart` / `below-point`) |
 | `owner`         | 工程の並びで、担当                                                             |
 | `end`           | 工程の並びで、終わりの位置。 始まりより前の時期は始まりと同じに倒し、知らせ (`onNotice`) が出る |
 | `startLabel`    | 工程の始まりに出す札。節目の位置名とは別に書ける                             |

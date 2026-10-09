@@ -20,6 +20,9 @@ dragon DSL の主要変更履歴。
   `chartStackedRateId:`・`chartStackedLegendPosition:`・`chartGaugeValue:`・
   `chartWaffleLegendPosition:`・`funnelForm:`・`funnelRate:`・`quadrantPointLabelSide:` を
   記法から CDL へ渡す。
+  階層・放射・ジャーニーでは `treeNodeForm:`・`treeEdgeTone:`・`treeEdgeHead:`・`mindForm:`・
+  `journeyForm:`・`journeyLineForm:`・`journeyLabels:`・`opportunityPosition:` を、図の札では
+  `figureCard:` と `figureSize:` を記法から CDL へ渡す。
   見本と同じため検査の汎用下限を割る札・印・列の間は、対象と見本の実測値を名指しして受け入れた。
 
 - **クラス図を `record` に畳み、行を持つ図を一つの型で書けるようにした** (#2783)
@@ -34,10 +37,11 @@ dragon DSL の主要変更履歴。
 
   営業所の階層、再配達の手立て、取扱数、荷物の状態、申し込みから配達、仕分け棚の工程、荷主の気持ちなどを、YAML と JSON の対で載せる。
   13件の段と変種も宅配の筋書きへ揃え、`docs/design/<意匠>/images/compare-{hierarchy,chart,numbers,schedule}.png` に見本の画像と並べた比較画像を4図種×7意匠の28枚追加した。
-  固定意匠の系列色順を保つため、棒・円・半円・升目・内訳帯・発想の枝は個別の `tone` を持たない。日程は `ticks` で 6 月から 10 月を明示し、設計を含む帯の端を月内の位置で見本に揃えた。設計・棚・試験を `accent`、調査・端末を `info` に分けた。気持ちの旅の谷の札は固定幅に収まる「不在票に気づかず」とした。
+  固定意匠の系列色順を保つため、棒・円・半円・升目・内訳帯・発想の枝は個別の `tone` を持たない。日程は `ticks` で 6 月から 10 月を明示し、設計を含む帯の端を月内の位置で見本に揃えた。設計・棚・試験を `accent`、調査・端末を `info` に分けた。
   `form:` (`見せ方:`) で円を輪・積層の弧・銘板から選べるようにした。
   円の札は、輪では従来の 480x320 を保ち、積層の弧と銘板では区分数から CDL の余白・行高に合わせて 16 の倍数で高さを決めるようにした。
   固定 7 意匠の発想の枝、折れ線、電飾の棒、手描きと浮彫の傾き図を見本の役割色に揃えた。
+  気持ちの旅の谷の注記は「不在票に気づかなかった」の全文を谷の点の下へ置く。
   `at` (`点の位置`) で四象限の点を x, y 座標に置けるようにした。
   `ticks:` (`目盛り:`) と `月+割合` でガントの尺、目盛り、月内の帯の端を指定できるようにした。
 

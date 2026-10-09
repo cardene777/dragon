@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  sourceYaml__deliveryOfficeTree,
   sourceYaml__deliveryResultStacked,
   sourceYaml__measureEffortQuadrant,
   sourceYaml__monthlyDeliveriesLine,
@@ -9,10 +10,22 @@ import {
   sourceYaml__orderToDeliveryFunnel,
   sourceYaml__parcelSizeWaffle,
   sourceYaml__parcelStatusPie,
+  sourceYaml__redeliveryIdeasMind,
+  sourceYaml__shipperFeelingJourney,
 } from "../src/topics/catalog/charts.cdl";
 import { openEditorTheme } from "./helpers/fixed-theme-checks";
 
 const 意匠 = ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const;
+
+const 放射の枠 = {
+  blueprint: { width: "2.25px", radius: "12px" },
+  letterpress: { width: "3px", radius: "12px" },
+  catalog: { width: "0px", radius: "12px" },
+  terminal: { width: "1.5px", radius: "6px" },
+  sketch: { width: "3px", radius: "22px" },
+  neon: { width: "2px", radius: "16px" },
+  relief: { width: "0px", radius: "22px" },
+} as const;
 
 test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏らさない", async ({ page }) => {
   await openEditorTheme(page, sourceYaml__monthlyDeliveriesLine, "blueprint", false);
@@ -139,5 +152,62 @@ for (const theme of 意匠) {
     if (theme === "blueprint" || theme === "letterpress" || theme === "terminal" || theme === "sketch")
       expect(styles[3].display).not.toBe("none");
     else expect(styles[3].display).toBe("none");
+  });
+
+  test(`${theme}: 3段目c の木・放射・ジャーニー・図の札を見本どおり描く`, async ({ page }) => {
+    await openEditorTheme(page, sourceYaml__shipperFeelingJourney, theme, false);
+    let stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const opportunity = stage.locator('[data-cdl-role="journey-opportunity"] text');
+    await expect(opportunity).toHaveText("不在票に気づかなかった", { timeout: 5_000 });
+    const annotationFits = await opportunity.evaluate((text) => {
+      const frame = text.closest("[data-cdl-node]")?.querySelector<SVGGraphicsElement>('[data-cdl-role="node-body"]');
+      if (!frame) return false;
+      const textBox = (text as SVGGraphicsElement).getBBox();
+      const frameBox = frame.getBBox();
+      return textBox.x >= frameBox.x && textBox.x + textBox.width <= frameBox.x + frameBox.width;
+    });
+    expect(annotationFits, "谷の注記が札の横幅に収まる").toBe(true);
+    await expect(stage.locator('[data-cdl-role="journey-level-name"]')).toHaveText([
+      "最高", "満足", "普通", "不満", "怒り",
+    ]);
+    const [ruleColor, mutedColor] = await stage.evaluate((element) => {
+      const rule = element.querySelector('[data-cdl-role="journey-level-rule"]');
+      if (!rule) throw new Error("ジャーニーの段罫が無い");
+      const probe = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      probe.style.stroke = "var(--cdl-tone-muted)";
+      element.append(probe);
+      const colors = [getComputedStyle(rule).stroke, getComputedStyle(probe).stroke];
+      probe.remove();
+      return colors;
+    });
+    expect(ruleColor, "段罫は意匠の沈んだ色").toBe(mutedColor);
+    await expect(stage.locator('[data-cdl-role="figure-footer-label"]')).toHaveText("ジャーニー");
+    await expect(stage.locator('[data-cdl-role="figure-footer-note"]')).toHaveText("最高 から 怒り の 5 段");
+    expect(await stage.locator('[data-cdl-role="figure-title"]').evaluate((node) => getComputedStyle(node).fontSize))
+      .toBe(theme === "terminal" ? "25px" : "29px");
+
+    await openEditorTheme(page, sourceYaml__deliveryOfficeTree, theme, false);
+    stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const tree = stage.locator('[data-cdl-kind="tree-hierarchy"]');
+    await expect(tree).toHaveAttribute("data-cdl-w", "1712");
+    await expect(tree).toHaveAttribute("data-cdl-h", "416");
+    await expect(stage.locator('[data-cdl-role="tree-edge"][marker-end]')).toHaveCount(6);
+    expect(await stage.locator('[data-cdl-role="tree-edge"]').evaluateAll((edges) =>
+      new Set(edges.map((edge) => getComputedStyle(edge).stroke)).size,
+    )).toBe(2);
+
+    await openEditorTheme(page, sourceYaml__redeliveryIdeasMind, theme, false);
+    stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    await expect(stage.locator('[data-cdl-mind-form="outline"]')).toHaveCount(1);
+    await expect(stage.locator('[data-cdl-role="mind-leaf-underline"]')).toHaveCount(8);
+    const rootStyle = await stage.locator('[data-cdl-role="mind-root"]').evaluate((root) => ({
+      radius: getComputedStyle(root).rx,
+      width: getComputedStyle(root).strokeWidth,
+    }));
+    expect(rootStyle).toEqual(放射の枠[theme]);
+    const opaqueBranches = await stage.locator(
+      '[data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"]',
+    ).evaluateAll((branches) => branches.every((branch) => getComputedStyle(branch).strokeOpacity === "1"));
+    expect(opaqueBranches, "放射の枝と葉の下線を透かさない").toBe(true);
   });
 }

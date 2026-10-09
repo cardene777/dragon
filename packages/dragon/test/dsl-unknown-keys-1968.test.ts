@@ -144,6 +144,51 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   funnelForm: { 項目名を持たない理由: "漏斗の棒の形の語を 1 つ書く欄" },
   funnelRate: { 項目名を持たない理由: "漏斗の率の見せ方の語を 1 つ書く欄" },
   quadrantPointLabelSide: { 項目名を持たない理由: "四象限の点の名前を置く側の語を 1 つ書く欄" },
+  treeNodeForm: { 項目名を持たない理由: "木の箱の見せ方の語を 1 つ書く欄" },
+  treeEdgeTone: { 項目名を持たない理由: "木の枝色の付け方の語を 1 つ書く欄" },
+  treeEdgeHead: { 項目名を持たない理由: "木の枝先の形の語を 1 つ書く欄" },
+  mindForm: { 項目名を持たない理由: "放射の箱の見せ方の語を 1 つ書く欄" },
+  journeyForm: { 項目名を持たない理由: "ジャーニーの段の見せ方の語を 1 つ書く欄" },
+  journeyLineForm: { 項目名を持たない理由: "ジャーニーの線の見せ方の語を 1 つ書く欄" },
+  journeyLabels: [
+    見本(
+      "ジャーニーの段名",
+      (k) =>
+        `${頭}journeyLabels: {"delighted":"最高","happy":"満足","neutral":"普通","frustrated":"不満","${k}":"怒り"}\n\nactors:\n  - A\n`,
+      "angyr",
+      "angry",
+      {
+        input: 図({
+          journeyLabels: {
+            delighted: "最高",
+            happy: "満足",
+            neutral: "普通",
+            frustrated: "不満",
+            angyr: "怒り",
+          },
+        }),
+        path: "$.journeyLabels.angyr",
+      },
+    ),
+  ],
+  figureCard: [
+    見本(
+      "図の札",
+      (k) => `${頭}figureCard: {"${k}":"図","note":"注記"}\n\nactors:\n  - A\n`,
+      "lable",
+      "label",
+      { input: 図({ figureCard: { lable: "図", note: "注記" } }), path: "$.figureCard.lable" },
+    ),
+  ],
+  figureSize: [
+    見本(
+      "図表の大きさ",
+      (k) => `${頭}figureSize: {"${k}":640,"height":320}\n\nactors:\n  - A\n`,
+      "widht",
+      "width",
+      { input: 図({ figureSize: { widht: 640, height: 320 } }), path: "$.figureSize.widht" },
+    ),
+  ],
   theme: { 項目名を持たない理由: "意匠の語を 1 つ書く欄" },
   legend: [
     見本(

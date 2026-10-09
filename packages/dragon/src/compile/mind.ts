@@ -1,7 +1,7 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslActor, DslDocument } from "../types";
-import { 図表の大きさ } from "./chart-fields";
+import { 図表の大きさ, 図表の大きさを読む } from "./chart-fields";
 import { 矢印から親を決める, 放射に出す文字 } from "./hierarchy";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
@@ -59,6 +59,7 @@ type 放射で描けない欄 =
   | "eyebrow"
   | "touchpoint"
   | "opportunity"
+  | "opportunityPosition"
   | "owner"
   | "end"
   | "at"
@@ -136,6 +137,7 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   eyebrow: "上の小見出し",
   touchpoint: "場所 (ユーザージャーニーの欄)",
   opportunity: "改善の余地 (ユーザージャーニーの欄)",
+  opportunityPosition: "改善の余地の位置 (ユーザージャーニーの欄)",
   owner: "担当 (工程の並びの欄)",
   end: "終わる時期 (工程の並びの欄)",
   startLabel: "始まりの札 (工程の並びの欄)",
@@ -210,7 +212,7 @@ export function compileMind(
 ): CdlDiagram {
   // 図の型は描画側の組み立て関数 `mindMap()` と同じ綴り (cdl 0.63.0 で `mindmap` から `mind` に揃った)
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "mind" });
-  const { w: W, h: H } = 図表の大きさ.mind;
+  const { w: W, h: H } = 図表の大きさを読む(doc, 図表の大きさ.mind);
 
   const 伝える = (kind: CompileNotice["kind"], 名: string, message: string, line = 0): void => {
     onNotice?.({ kind, actor: 名, line, message });
@@ -358,6 +360,7 @@ export function compileMind(
         branches,
       };
     })(),
+    ...(doc.mindForm !== undefined ? { mindForm: doc.mindForm } : {}),
   });
   return b.build();
 }

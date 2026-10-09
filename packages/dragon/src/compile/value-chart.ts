@@ -2,7 +2,7 @@ import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
 import type { DslShape } from "../keywords";
-import { parseChartValue, 数の欄から参照できる名前, 参照する名前 } from "./chart-fields";
+import { parseChartValue, 数の欄から参照できる名前, 参照する名前, 図表の大きさを読む } from "./chart-fields";
 
 import { 箱の題 } from "./node-title";
 import type { CompileNotice } from "./notice";
@@ -266,8 +266,10 @@ export function compileValueChart(
     );
   }
 
-  const { w: CHART_W, h: CHART_H } =
-    型 === "pie" ? 円の札の大きさ(pieForm ?? "ring", data.length) : 札の大きさ[型];
+  const { w: CHART_W, h: CHART_H } = 図表の大きさを読む(
+    doc,
+    型 === "pie" ? 円の札の大きさ(pieForm ?? "ring", data.length) : 札の大きさ[型],
+  );
   b.lane("chart", { width: CHART_W + 64 });
 
   b.node(`${slugify(doc.title) || 型}-chart`, {
