@@ -62,7 +62,7 @@ describe("#2854 3 段目 l の意匠補正", () => {
     expect(declaration(numeric.body, "font-family")).not.toContain("!important");
   });
 
-  it("浮彫は見出し付きの札を浮かせ、その札の円の輪と升目だけを凹ませる", () => {
+  it("浮彫は見出し付きの札だけを浮かせ、その札の図形へ凹み filter を足さない", () => {
     const headedSurface = lastRule(
       '[data-cdl-palette="relief"]',
       ':has([data-cdl-role="figure-head"])',
@@ -71,12 +71,12 @@ describe("#2854 3 段目 l の意匠補正", () => {
     expect(declaration(headedSurface.body, "filter")).toBe("url(#dragon-relief-raised) !important");
     expect(headedSurface.body).not.toMatch(/(?:^|;)\s*(?:width|height|transform)\s*:/mu);
 
-    const pieRing = lastRule('[data-cdl-role="chart-pie-slice"]');
-    expect(pieRing.body).toContain("dragon-relief-well");
-    expect(pieRing.selector).toContain(':has([data-cdl-role="figure-head"])');
-    const waffleCell = lastRule('[data-cdl-role="chart-waffle-cell"]');
-    expect(waffleCell.body).toContain("dragon-relief-well");
-    expect(waffleCell.selector).toContain(':has([data-cdl-role="figure-head"])');
+    const headedFilters = rules.filter(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes(':has([data-cdl-role="figure-head"])') &&
+      body.includes("filter:"),
+    );
+    expect(headedFilters, "見出し付きの札の中へ別の filter を足さない").toEqual([headedSurface]);
 
     // 見出しの無い図表は #2796 の well を保ち、見本帳の札だけを後段の例外で浮かせる。
     const chartContents = lastRule(

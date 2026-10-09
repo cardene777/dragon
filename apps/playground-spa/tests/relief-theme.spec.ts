@@ -309,7 +309,7 @@ test.describe("relief theme (#2796)", () => {
     });
   }
 
-  test("relief chart: 13 図の札を浮かせ、円の輪・升目以外を凹ませない", async ({ page }) => {
+  test("relief chart: 見出しを持つ 13 図の札を浮かせ、札の中の図形へ凹み filter を付けない", async ({ page }) => {
     const cardSources = [
       sourceYaml__deliveryOfficeTree,
       sourceYaml__redeliveryIdeasMind,
@@ -356,10 +356,16 @@ test.describe("relief theme (#2796)", () => {
           titleBottom: titleBox.bottom,
           footerTop: footer?.getBoundingClientRect().top ?? null,
           bodyFilter: getComputedStyle(body).filter,
+          innerWellFilters: [...node.querySelectorAll<SVGGraphicsElement>("*")]
+            .filter((element) => element !== body)
+            .flatMap((element) => getComputedStyle(element).filter.includes("dragon-relief-well")
+              ? [element.getAttribute("data-cdl-role") ?? element.tagName]
+              : []),
         };
       });
       expect(parts.bodyFilter, "札の浮き").toContain("dragon-relief-raised");
       expect(parts.bodyFilter, "札全体を凹ませない").not.toContain("dragon-relief-well");
+      expect(parts.innerWellFilters, "札の中の図形へ凹み filter が届いた").toEqual([]);
       expect(parts.titleBottom, "図の題を測れていない").toBeGreaterThan(parts.titleTop);
       if (parts.kind === "mind-map" || parts.kind === "tree-hierarchy") {
         expect(parts.titleBottom, "放射と木の題は札の上").toBeLessThanOrEqual(parts.bodyTop + 1);
@@ -381,8 +387,8 @@ test.describe("relief theme (#2796)", () => {
     expect(
       await root.locator('[data-cdl-kind="chart-pie"] g:has(> [data-cdl-role="chart-pie-slice"])')
         .evaluate((element) => getComputedStyle(element).filter),
-      "円の輪だけを凹ませる",
-    ).toContain("dragon-relief-well");
+      "円の輪を平らにする",
+    ).toBe("none");
 
     await openEditorTheme(page, sourceYaml__parcelSizeWaffle, "relief", false);
     root = stage(page);
@@ -394,25 +400,7 @@ test.describe("relief theme (#2796)", () => {
     const cellFilters = await root.locator('[data-cdl-role="chart-waffle-cell"]')
       .evaluateAll((elements) => elements.map((element) => getComputedStyle(element).filter));
     expect(cellFilters.length, "升目を測れていない").toBeGreaterThan(0);
-    expect(cellFilters.every((filter) => filter.includes("dragon-relief-well")), "升目だけを凹ませる").toBe(true);
-
-    for (const source of [
-      sourceYaml__branchParcelsBar,
-      sourceYaml__monthlyDeliveriesLine,
-      sourceYaml__orderToDeliveryFunnel,
-      sourceYaml__measureEffortQuadrant,
-      sourceYaml__onTimeRateSlope,
-      sourceYaml__onTimeShareGauge,
-      sourceYaml__deliveryResultStacked,
-      sourceYaml__sortingShelfGantt,
-      sourceYaml__shipperFeelingJourney,
-    ] as const) {
-      await openEditorTheme(page, source, "relief", false);
-      const wellFilters = await stage(page).locator("*").evaluateAll((elements) =>
-        elements.filter((element) => getComputedStyle(element).filter.includes("dragon-relief-well")).length,
-      );
-      expect(wellFilters, "円の輪と升目以外へ well が漏れた").toBe(0);
-    }
+    expect(cellFilters.every((filter) => filter === "none"), "升目の丸を平らにする").toBe(true);
   });
 
   test("relief filter: 4 つの filter の外の影が意匠帳どおりになる", async ({ page }) => {

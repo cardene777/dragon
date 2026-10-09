@@ -5889,12 +5889,3 @@ svg[data-cdl-stage][data-cdl-palette="relief"]
   ry: 22px;
   filter: url(#dragon-relief-raised) !important;
 }
-
-svg[data-cdl-stage][data-cdl-palette="relief"]
-  [data-cdl-node][data-cdl-kind="chart-pie"]:has([data-cdl-role="figure-head"])
-  g:has(> [data-cdl-role="chart-pie-slice"]),
-svg[data-cdl-stage][data-cdl-palette="relief"]
-  [data-cdl-node]:has([data-cdl-role="figure-head"])
-  [data-cdl-role="chart-waffle-cell"] {
-  filter: url(#dragon-relief-well) !important;
-}
