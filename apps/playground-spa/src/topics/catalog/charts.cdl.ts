@@ -343,6 +343,80 @@ export const sourceJson__monthlyDeliveriesLine = `{
 
 export const monthlyDeliveriesLine = textDslToDiagram(sourceYaml__monthlyDeliveriesLine);
 
+// ------------------------------------------------------------
+// 2b. 1 本の線 (`パターン` の切替で選ぶ)
+//
+// 複数系列では意味を持たない塗りとなぞりを試せる、3 段目 b より前の単系列の見本。
+// 値と「計画 → 実績」の tween は主の図と同じに保つ。
+// ------------------------------------------------------------
+export const patternBase__monthlyDeliveriesLine = "計画と実績";
+
+export const sourceYaml__pattern__monthlyDeliveriesLine__1本の線 = `title: "1 本の線で見る月ごとの配達数"
+type: chart
+shape: line
+
+actors:
+  - 6月: "{jun}"
+  - 7月: "{jul}"
+  - 8月: "{aug}"
+  - 9月: "{sep}"
+  - 10月: "{oct}"
+
+states:
+  jun: 1000
+  jul: 1150
+  aug: 1300
+  sep: 1450
+  oct: 1600
+
+animation:
+  - step: "計画" 1.2s
+    draw: line
+    description: "6 月から 10 月までの配達計画を線で結ぶ。"
+  - step: "実績" 1.2s
+    tween:
+      jun: 1000 -> 900
+      jul: 1150 -> 1180
+      aug: 1300 -> 1250
+      sep: 1450 -> 1520
+      oct: 1600 -> 1750
+    description: "実績は 6 月の 900 件から 10 月の 1750 件まで伸びる。"
+`;
+
+export const sourceJson__pattern__monthlyDeliveriesLine__1本の線 = `{
+  "title": "1 本の線で見る月ごとの配達数",
+  "type": "chart",
+  "shape": "line",
+  "actors": [
+    { "name": "6月", "subtitle": "{jun}" },
+    { "name": "7月", "subtitle": "{jul}" },
+    { "name": "8月", "subtitle": "{aug}" },
+    { "name": "9月", "subtitle": "{sep}" },
+    { "name": "10月", "subtitle": "{oct}" }
+  ],
+  "flow": [],
+  "states": { "jun": 1000, "jul": 1150, "aug": 1300, "sep": 1450, "oct": 1600 },
+  "animation": [
+    { "step": "計画", "duration": 1.2, "draw": "line", "description": "6 月から 10 月までの配達計画を線で結ぶ。" },
+    {
+      "step": "実績",
+      "duration": 1.2,
+      "description": "実績は 6 月の 900 件から 10 月の 1750 件まで伸びる。",
+      "tween": {
+        "jun": [1000, 900],
+        "jul": [1150, 1180],
+        "aug": [1300, 1250],
+        "sep": [1450, 1520],
+        "oct": [1600, 1750]
+      }
+    }
+  ]
+}`;
+
+export const pattern__monthlyDeliveriesLine__1本の線 = textDslToDiagram(
+  sourceYaml__pattern__monthlyDeliveriesLine__1本の線,
+);
+
 // ============================================================
 // 3. 割合を見る
 // ============================================================
@@ -1367,7 +1441,7 @@ chartGaugeValue: {"max":100,"current":78,"target":80,"previous":72,"previousLabe
 
 actors:
   - 定時に届いた: "{on_time}"
-  - 遅れた: { value: "{late}", tone: muted }
+  - 遅れた: "{late}"
 
 states:
   on_time: 72
@@ -1391,7 +1465,7 @@ export const sourceJson__onTimeShareGauge = `{
   "chartGaugeValue": { "max": 100, "current": 78, "target": 80, "previous": 72, "previousLabel": "先月" },
   "actors": [
     { "name": "定時に届いた", "subtitle": "{on_time}" },
-    { "name": "遅れた", "value": "{late}", "tone": "muted" }
+    { "name": "遅れた", "subtitle": "{late}" }
   ],
   "flow": [],
   "states": { "on_time": 72, "late": 28 },
@@ -1427,7 +1501,63 @@ export const onTimeShareGauge = textDslToDiagram(sourceYaml__onTimeShareGauge);
 //
 // 前の輪は今の弧と同じ順で同じ色を使う。 順を変えると、内と外で同じ色が別の項目を指す。
 // ------------------------------------------------------------
-export const patternBase__onTimeShareGauge = "今だけ";
+export const patternBase__onTimeShareGauge = "固定の尺";
+
+export const sourceYaml__pattern__onTimeShareGauge__内訳だけ = `title: "定時に届いた割合の内訳"
+type: chart
+shape: gauge
+
+actors:
+  - 定時に届いた: "{on_time}"
+  - 遅れた: { value: "{late}", tone: muted }
+
+states:
+  on_time: 72
+  late: 28
+
+animation:
+  - step: "先月" 1.2s
+    draw: gauge
+    description: "先月は定時に届いた割合 72%、遅れた割合 28% の内訳。"
+  - step: "今月" 1.2s
+    tween:
+      on_time: 72 -> 78
+      late: 28 -> 22
+    description: "定時に届いた割合 78% と遅れた割合 22% の内訳。"
+`;
+
+export const sourceJson__pattern__onTimeShareGauge__内訳だけ = `{
+  "title": "定時に届いた割合の内訳",
+  "type": "chart",
+  "shape": "gauge",
+  "actors": [
+    { "name": "定時に届いた", "subtitle": "{on_time}" },
+    { "name": "遅れた", "value": "{late}", "tone": "muted" }
+  ],
+  "flow": [],
+  "states": { "on_time": 72, "late": 28 },
+  "animation": [
+    {
+      "step": "先月",
+      "duration": 1.2,
+      "draw": "gauge",
+      "description": "先月は定時に届いた割合 72%、遅れた割合 28% の内訳。"
+    },
+    {
+      "step": "今月",
+      "duration": 1.2,
+      "description": "定時に届いた割合 78% と遅れた割合 22% の内訳。",
+      "tween": {
+        "on_time": [72, 78],
+        "late": [28, 22]
+      }
+    }
+  ]
+}`;
+
+export const pattern__onTimeShareGauge__内訳だけ = textDslToDiagram(
+  sourceYaml__pattern__onTimeShareGauge__内訳だけ,
+);
 
 export const sourceYaml__pattern__onTimeShareGauge__前の値つき = `title: "先月と比べた定時に届いた割合"
 type: chart

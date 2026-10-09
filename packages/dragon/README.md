@@ -83,7 +83,7 @@ flow:
 | `ganttBarEnd` | `position` で帯を `end` の位置までにする |
 | `ganttBarThickness` | `thin` で帯を見本の比の細さにする |
 | `chartSeriesSkipMuted` | `true` で `tone: muted` の項目を系列色の番号から外す |
-| `chartLineSeries` | 折れ線の複数系列 (`points` / `label` / `tone` / `dash` / `marker` / `valueIndexes`) |
+| `chartLineSeries` | 折れ線の複数系列 (`points` / `label` / `tone` / `dash` / `marker` / `valueIndexes`)。`marker: dot` は塗った点、`hollow` は中抜きの点、`none` は点を描かない |
 | `chartPieCenterLabel` | 円の中心で合計の下に置く字 |
 | `chartPieTableColumns` | 円の表の列 (`share-value` / `value`) |
 | `chartPieRingWidth` | 円の輪の太さ (`thick` / `thin`) |
@@ -96,7 +96,7 @@ flow:
 | `chartGaugeValue` | 半円の固定尺 (`{ max, current, target?, previous?, previousLabel? }`) |
 | `chartWaffleLegendPosition` | 升目の一覧の位置 (`left` / `right`) |
 | `funnelForm` | 漏斗の形 (`trapezoid` / `proportional-bars`) |
-| `funnelRate` | 漏斗の率 (`drop` / `conversion` / `none`) |
+| `funnelRate` | 漏斗の率。`drop` は前段から減った割合、`conversion` は前段から残った割合、`none` は率を描かない |
 | `quadrantPointLabelSide` | 四象限の座標点の名前を置く側 (`auto` / `right`) |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
 | `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 1 項目は `{ mark, text }`、和名なら `{ 印, 説明 }`。 印の 10 種は下の節を参照 |

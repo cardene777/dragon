@@ -25,10 +25,9 @@ const チャート一覧 = chartsの一覧();
 function 折れ線の図() {
   const item = チャート一覧.find((x) => x.diagram.topic === "月ごとの配達数");
   expect(item, "月ごとの配達数 の見本が見つからない").toBeDefined();
-  return {
-    ...item!.diagram,
-    nodes: item!.diagram.nodes.map(({ chartLineSeries: _series, ...node }) => node),
-  };
+  const pattern = item!.patterns?.find((p) => p.名 === "1本の線");
+  expect(pattern, "1本の線 の変種が見つからない").toBeDefined();
+  return pattern!.diagram;
 }
 
 const 描く = (diagram: ReturnType<typeof 折れ線の図>): string =>

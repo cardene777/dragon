@@ -5130,6 +5130,11 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-gauge-value"] {
   font-weight: 700;
 }
 
+/* 固定尺の残りの弧。chartData を読まないため、datum の tone ではなく役割へ当てる。 */
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-gauge-fixed-scale"] {
+  fill: var(--cdl-tone-muted);
+}
+
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="chart-gauge-delta"] {
   fill: var(--theme-chart-gauge-delta);
   font-family: var(--theme-chart-name-font);

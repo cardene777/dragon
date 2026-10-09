@@ -57,8 +57,8 @@ import {
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 import {
   図の折れ線の見せ方を変える,
+  折れ線で選べる見せ方,
   折れ線を選べる,
-  折れ線の見せ方の選択肢,
   折れ線の見せ方の札,
 } from "@/lib/chart-line-options";
 import {
@@ -546,7 +546,9 @@ export function CategoryPage(): React.ReactElement {
   const 切替を出すか = 見本 ? 描き方の切替を出すか(見本.diagram) : false;
   // 未選択なら図に書かれた意匠を押す。 意匠の無い図では画面の色が押される (#2790)
   const 押されている配色 = 見本 ? 押される配色(見本.diagram, 配色) : 画面の色;
-  // 折れ線以外では 3 つの欄が効かないため、切替を出さない (#1624)
+  // 複数系列では塗りとなぞりが効かないためせり上げだけ、単系列では 3 つとも出す。
+  const 折れ線の選択肢 = 見本 ? 折れ線で選べる見せ方(見本.diagram) : [];
+  // 折れ線以外では欄が効かないため、切替を出さない (#1624)
   const 折れ線を選べるか = 見本 ? 折れ線を選べる(見本.diagram) : false;
   // 円グラフ以外では見せ方の欄が効かないため、切替を出さない (#1645)
   const 円を選べるか = 見本 ? 円の見せ方を選べる(見本.diagram) : false;
@@ -834,7 +836,7 @@ export function CategoryPage(): React.ReactElement {
                       */}
                       {折れ線を選べるか && (
                         <div className="catalog-redraw" role="group" aria-label={isJa ? "折れ線の見せ方" : "Line chart look"}>
-                          {折れ線の見せ方の選択肢.map((v) => (
+                          {折れ線の選択肢.map((v) => (
                             <button
                               key={v}
                               type="button"

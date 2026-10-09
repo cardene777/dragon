@@ -40,6 +40,7 @@ import {
   木の図が伝えない箱の欄,
   値として読む図種,
   値として読む図が伝えない箱の欄,
+  値として読む図が主役を読む,
   骨組みの図種,
   骨組みの図が伝えない箱の欄,
 } from "./compile/actor-option-notice";
@@ -2442,7 +2443,7 @@ function reportChartFieldsNotHonored(
             ...(a.end !== undefined ? ["end"] : []),
             ...(a.startLabel !== undefined ? ["startLabel"] : []),
             ...(a.milestone !== undefined ? ["milestone"] : []),
-            ...(a.emphasis !== undefined && doc.type !== "chart" && doc.type !== "funnel"
+            ...(a.emphasis !== undefined && !値として読む図が主役を読む(doc.type, doc.shape)
               ? ["emphasis"]
               : []),
           ];

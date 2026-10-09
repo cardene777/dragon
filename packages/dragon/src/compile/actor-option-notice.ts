@@ -14,6 +14,7 @@
  * 矢印の側は `edge-option-notice.ts` が同じ形を持つ (#2366)。
  */
 import type { DslActor } from "../types";
+import type { DslDiagramShape } from "../keywords";
 
 /**
  * 効かない箱の欄の呼び名 (#2358)。 **並べた順に知らせへ出す**。
@@ -159,7 +160,7 @@ export const 木の図が伝えない箱の欄: ReadonlySet<string> = new Set([
  * 記法の `offsetX` / `offsetY` は `layoutPos` に入る (`position-offset-ignored` が受け持つ)。
  * 欄の名前で判定するので、記法の項目名ではなく入った先の欄を書く。
  *
- * 体験と工程の 4 欄 (`体験と工程の欄`) は、読む図種と別の知らせが受け持つ図種に分かれる。
+ * 体験と工程の欄 (`体験と工程の欄`) は、読む図種と別の知らせが受け持つ図種に分かれる。
  * どちらも伝えないので 1 つにまとめて除く。
  */
 const 値として読む図に共通の除外: ReadonlySet<string> = new Set([
@@ -181,18 +182,31 @@ const 値として読む図に共通の除外: ReadonlySet<string> = new Set([
  *
  * | 図種 | 共通に加えて読む欄 |
  * |---|---|
- * | 数を描く図 (`chart`) | 色味 (`tone`) / 前の値 (`previous`) / 主役 (`emphasis`) |
- * | じょうご | 色味 (`tone`) / 主役 (`emphasis`) |
+ * | 数を描く図 (`chart`) | 色味 (`tone`) / 前の値 (`previous`) |
+ * | じょうご | 色味 (`tone`) |
  * | 体験の地図 / 四象限 | 無し (名前と値だけを読む) |
  * | ガントチャート | 色味 (`tone`)。 担当と終わる時期は共通の除外に入っている |
  */
 export const 値として読む図種: ReadonlyMap<string, readonly string[]> = new Map([
-  ["chart", ["tone", "previous", "emphasis"]],
-  ["funnel", ["tone", "emphasis"]],
+  ["chart", ["tone", "previous"]],
+  ["funnel", ["tone"]],
   ["gantt", ["tone"]],
   ["journey", []],
   ["quadrant", ["at", "atPos"]],
 ]);
+
+/**
+ * 件ごとの主役 (`emphasis`) を実際に描く値の図。
+ *
+ * `chart` という node の種類だけでは円・折れ線なども混ざるため、`chart/stacked` まで
+ * 形を含めて区別する。じょうごは形を持たず、段の `emphasis` を読む。
+ */
+const 主役を読む値の図: ReadonlySet<string> = new Set(["chart/stacked", "funnel"]);
+
+/** 件ごとの `emphasis` がその図で描かれるか */
+export function 値として読む図が主役を読む(図種: string, 形?: DslDiagramShape): boolean {
+  return 主役を読む値の図.has(形 === undefined ? 図種 : `${図種}/${形}`);
+}
 
 /**
  * その図種で、効かないと伝えない箱の欄を返す (#2370)。

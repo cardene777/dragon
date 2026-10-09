@@ -42,14 +42,33 @@ export const 既定の折れ線の指定: 折れ線の指定 = {
   chartTrace: false,
 };
 
+/**
+ * その図で意味を持つ折れ線の見せ方。
+ *
+ * 複数系列 (`chartLineSeries`) では engine が塗りとなぞりを描かないため、せり上げだけを出す。
+ * 単系列は 3 つとも描く。折れ線を持たない図は空になる。
+ */
+export function 折れ線で選べる見せ方(diagram: CdlDiagram): 折れ線の見せ方[] {
+  const 折れ線 = diagram.nodes.filter((n) => n.kind === "chart-line");
+  if (折れ線.length === 0) return [];
+  if (折れ線.some((n) => n.chartLineSeries !== undefined)) return ["chartValueRise"];
+  return [...折れ線の見せ方の選択肢];
+}
+
 /** その図に、見せ方を切り替えられる折れ線があるか */
 export function 折れ線を選べる(diagram: CdlDiagram): boolean {
-  return diagram.nodes.some((n) => n.kind === "chart-line");
+  return 折れ線で選べる見せ方(diagram).length > 0;
 }
 
 /** 折れ線 node の 3 つの見せ方を、画面で選んだ指定に揃える */
 export function 図の折れ線の見せ方を変える(diagram: CdlDiagram, 指定: 折れ線の指定): CdlDiagram {
   if (!折れ線を選べる(diagram)) return diagram;
+  const 選べる = new Set(折れ線で選べる見せ方(diagram));
+  const 当てる: 折れ線の指定 = {
+    chartFillUnder: 選べる.has("chartFillUnder") && 指定.chartFillUnder,
+    chartValueRise: 選べる.has("chartValueRise") && 指定.chartValueRise,
+    chartTrace: 選べる.has("chartTrace") && 指定.chartTrace,
+  };
 
   const 全て同じ = diagram.nodes
     .filter((n) => n.kind === "chart-line")
@@ -59,7 +78,7 @@ export function 図の折れ線の見せ方を変える(diagram: CdlDiagram, 指
         chartValueRise: n.chartValueRise ?? false,
         chartTrace: n.chartTrace ?? false,
       };
-      return 折れ線の見せ方の選択肢.every((v) => 現在[v] === 指定[v]);
+      return 折れ線の見せ方の選択肢.every((v) => 現在[v] === 当てる[v]);
     });
   if (全て同じ) return diagram;
 
@@ -67,7 +86,7 @@ export function 図の折れ線の見せ方を変える(diagram: CdlDiagram, 指
     ...diagram,
     nodes: diagram.nodes.map((n) =>
       n.kind === "chart-line"
-        ? { ...n, ...指定 }
+        ? { ...n, ...当てる }
         : n,
     ),
   };

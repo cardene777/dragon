@@ -171,15 +171,16 @@ describe("カタログの 大きな数字 が 3 つのパターンを持つ (#16
     expect(選んだ見本(大きな数字, "複数")!.sourceYaml).toContain("問い合わせの内訳");
   });
 
-  it("折れ線は変種を持たない (陰性対照)", () => {
-    // 「どの図でも並びが付く」 形なら、上の検査は通っても意味を持たない。
-    //
-    // 折れ線を選ぶのは、engine が中身の違う形を持たない種別だから (#1698 で実測)。
-    // node から読む欄は `chartData` と 見せ方 3 つだけで、押すと中身が入れ替わる
-    // 変種の作りようがない
+  it("折れ線は計画と実績、1 本の線の 2 変種を持つ", () => {
+    // 複数系列では塗りとなぞりが効かない。 単系列を別の記法として選べることと、
+    // 2 つが実際に `chartLineSeries` の有無で分かれることを固定する
     const 折れ線 = charts.find((i) => i.title === "monthlyDeliveriesLine");
     expect(折れ線, "折れ線の見本が見つからない").toBeDefined();
-    expect(折れ線!.patterns).toBeUndefined();
+    expect(折れ線!.patterns?.map((p) => p.名)).toEqual(["計画と実績", "1本の線"]);
+    expect(折れ線!.patterns?.map((p) => p.diagram.nodes[0]?.chartLineSeries !== undefined)).toEqual([
+      true,
+      false,
+    ]);
   });
 });
 

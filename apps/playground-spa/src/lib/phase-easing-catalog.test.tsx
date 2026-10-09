@@ -21,7 +21,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup, act } from "@testing-library/react";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import { textDslToDiagram } from "@cardenelabs/dragon";
-import { sourceYaml__monthlyDeliveriesLine } from "@/topics/catalog/charts.cdl";
+import { sourceYaml__pattern__monthlyDeliveriesLine__1本の線 } from "@/topics/catalog/charts.cdl";
 
 afterEach(() => cleanup());
 
@@ -33,12 +33,11 @@ afterEach(() => cleanup());
  * 描き始めた瞬間から段の進みを追える。 記法の値と段の長さは見本のまま。
  */
 const 図 = () => {
-  const d = textDslToDiagram(sourceYaml__monthlyDeliveriesLine);
+  const d = textDslToDiagram(sourceYaml__pattern__monthlyDeliveriesLine__1本の線);
   const 動く段 = (d.phases ?? []).filter((p) => p.id === "実績");
   expect(動く段.length, "値を動かす段が見本に無い (検査が空振りしている)").toBe(1);
   return layout({
     ...d,
-    nodes: d.nodes.map(({ chartLineSeries: _series, ...node }) => node),
     phases: 動く段,
   });
 };

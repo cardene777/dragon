@@ -549,13 +549,14 @@ interface 中身の節 {
   欄: 中身の欄;
   kind: string;
   中身: unknown;
+  ノードの番: number;
 }
 
 const 中身たち = (d: CdlDiagram): 中身の節[] =>
-  d.nodes.flatMap((n) =>
+  d.nodes.flatMap((n, ノードの番) =>
     (Object.keys(家族) as 中身の欄[])
       .filter((欄) => (n as unknown as 素)[欄] !== undefined)
-      .map((欄) => ({ 欄, kind: n.kind, 中身: (n as unknown as 素)[欄] })),
+      .map((欄) => ({ 欄, kind: n.kind, 中身: (n as unknown as 素)[欄], ノードの番 })),
   );
 
 /** 軸 1 本 */
@@ -639,7 +640,7 @@ interface 下ごしらえ {
   /** `<欄>/<種別>` ごとの元になる図 */
   基: Map<string, CdlDiagram>;
   /** 見本 1 件ごとの、持っている中身の節 */
-  見本: Array<{ 名: string; 節: 中身の節[][] }>;
+  見本: Array<{ 名: string; 図: CdlDiagram[]; 節: 中身の節[][] }>;
 }
 
 function 下ごしらえする(): 下ごしらえ {
@@ -647,9 +648,10 @@ function 下ごしらえする(): 下ごしらえ {
   const 基 = new Map<string, CdlDiagram>();
   const 見本: 下ごしらえ["見本"] = [];
   for (const item of Object.values(CATALOG_ITEMS).flat()) {
-    const 節 = 図たち(item).map(中身たち);
-    if (節.some((x) => x.length > 0)) 見本.push({ 名: item.title, 節 });
-    図たち(item).forEach((d, i) => {
+    const 図 = 図たち(item);
+    const 節 = 図.map(中身たち);
+    if (節.some((x) => x.length > 0)) 見本.push({ 名: item.title, 図, 節 });
+    図.forEach((d, i) => {
       for (const { 欄, kind } of 節[i]!) {
         const 一覧 = 種別.get(欄) ?? [];
         if (!一覧.includes(kind)) 種別.set(欄, [...一覧, kind]);
@@ -666,8 +668,37 @@ function 下ごしらえする(): 下ごしらえ {
   return { 種別, 基, 見本 };
 }
 
+const 件を描くかの控え = new WeakMap<CdlDiagram, Map<string, boolean>>();
+
+/**
+ * 並びのその件を図が描いているか。件を 1 つだけ除いた時に実物の SVG が変われば描いている。
+ *
+ * 欄が未指定というだけでは「書かない側」に数えない。固定尺の半円の `chartData` のように
+ * datum 全体を読まない図を両側へ混ぜると、見比べられない欄まで網羅済みになるため。
+ */
+function 件を描く(図: CdlDiagram, 節: 中身の節, 軸: 軸, 添字: number): boolean {
+  const 鍵 = `${節.ノードの番}/${節.欄}/${軸.並び.名}/${添字}`;
+  const 控え = 件を描くかの控え.get(図) ?? new Map<string, boolean>();
+  件を描くかの控え.set(図, 控え);
+  const 前 = 控え.get(鍵);
+  if (前 !== undefined) return 前;
+
+  const 除いた = 写す(図);
+  const node = 除いた.nodes[節.ノードの番] as unknown as 素;
+  const 中身 = node[節.欄];
+  if (軸.並び.件数を見る) 軸.並び.取る(中身).splice(添字, 1);
+  else delete node[節.欄];
+  const 描かれる = 控えて描く(図) !== 描く(除いた);
+  控え.set(鍵, 描かれる);
+  return 描かれる;
+}
+
 /**
  * その種別のその軸について、**1 つの見本の切替で両側を見せているか**。
+ *
+ * 件ごとの欄は、同じ図の中に書いた件と書かない件があれば両側に数える。ただし、その図が
+ * 実際に描く件だけを見る。datum 全体を読まない図の未指定欄は「書かない側」ではない。
+ * 件数は並び全体の形なので、従来どおり別の図またはパターンで 1 件 / 複数件を見比べる。
  *
  * **本番と植え込み対照で同じ関数を使う**。 判定を 2 度書くと片方だけ直して drift する
  * (`rules/quality.md § 検査の母集団が守りたい集合と同じことを確認済`)。
@@ -675,16 +706,19 @@ function 下ごしらえする(): 下ごしらえ {
 function 切替で両側(見本: 下ごしらえ["見本"], 軸: 軸, kind: string): boolean {
   for (const v of 見本) {
     const 側 = new Set<0 | 1>();
-    for (const 節 of v.節) {
+    for (const [図の番, 節] of v.節.entries()) {
+      const 図 = v.図[図の番];
+      if (図 === undefined) throw new Error(`${v.名} の図と中身の対応が無い`);
       for (const x of 節) {
         if (x.欄 !== 軸.欄 || x.kind !== kind) continue;
-        側.add(軸.見本の側(x.中身));
-        // 件ごとの任意欄は、1 枚の中で「主役 / それ以外」の両側を同時に見せられる。
-        // 並び全体の件数だけは別の図が要る。
-        if (軸.名 === "件数") continue;
+        if (軸.名 === "件数") {
+          側.add(軸.見本の側(x.中身));
+          continue;
+        }
         const 並列 = 軸.並び.取る(x.中身);
-        if (並列.some((e) => e[軸.名] === undefined)) 側.add(0);
-        if (並列.some((e) => e[軸.名] !== undefined)) 側.add(1);
+        並列.forEach((e, i) => {
+          if (件を描く(図, x, 軸, i)) 側.add(e[軸.名] === undefined ? 0 : 1);
+        });
       }
     }
     // 同じ見本の件の中、またはパターン切替で両側を見せているか。
@@ -931,19 +965,30 @@ describe("中身を持つ節が見せる形をカタログが見せているか 
      */
     const 軸 = 軸ら.find((a) => a.欄 === "treeData" && a.名 === "subtitle");
     expect(軸, "系統樹の説明の軸が無い").toBeDefined();
-    const 節 = (subtitle: boolean): 中身の節[] => [
-      {
-        欄: "treeData",
-        kind: "tree-hierarchy",
-        中身: [{ id: "a", title: "a", ...(subtitle ? { subtitle: "説明" } : {}) }],
-      },
-    ];
+    const 基 = 材料.基.get("treeData/tree-hierarchy");
+    if (基 === undefined) throw new Error("系統樹の基が無い");
+    const 図 = (subtitle: boolean): CdlDiagram => {
+      const d = 写す(基);
+      for (const n of d.nodes)
+        for (const e of n.treeData ?? []) {
+          delete e.subtitle;
+          if (subtitle) e.subtitle = "説明";
+        }
+      return d;
+    };
+    const 見本 = (名: string, 図ら: CdlDiagram[]): 下ごしらえ["見本"][number] => ({
+      名,
+      図: 図ら,
+      節: 図ら.map(中身たち),
+    });
+    const 無し = 図(false);
+    const 有り = 図(true);
     // 片側ずつを別の見本に置く = カタログには両側があるが、切替では見比べられない
     expect(
       切替で両側(
         [
-          { 名: "書かない側だけの見本", 節: [節(false)] },
-          { 名: "書く側だけの見本", 節: [節(true)] },
+          見本("書かない側だけの見本", [無し]),
+          見本("書く側だけの見本", [有り]),
         ],
         軸!,
         "tree-hierarchy",
@@ -952,9 +997,26 @@ describe("中身を持つ節が見せる形をカタログが見せているか 
     ).toBe(false);
     // 同じ見本の切替に両側を置くと見つかる (判定が常に false でないことの確認)
     expect(
-      切替で両側([{ 名: "切替を持つ見本", 節: [節(false), 節(true)] }], 軸!, "tree-hierarchy"),
+      切替で両側([見本("切替を持つ見本", [無し, 有り])], 軸!, "tree-hierarchy"),
       "同じ見本の切替に両側があるのに片側とみなした",
     ).toBe(true);
+  });
+
+  it("描かない datum の未指定欄を両側に数えない", () => {
+    const 軸 = 軸ら.find((a) => a.欄 === "chartData" && a.名 === "emphasis");
+    expect(軸, "chartData の emphasis 軸が無い").toBeDefined();
+    const 基 = Object.values(CATALOG_ITEMS)
+      .flat()
+      .flatMap(図たち)
+      .find((d) => d.nodes.some((n) => n.kind === "chart-gauge" && n.chartGaugeValue !== undefined));
+    if (軸 === undefined || 基 === undefined) throw new Error("固定尺の半円の基が無い");
+    const d = 写す(基);
+    const 半円 = d.nodes.find((n) => n.kind === "chart-gauge" && n.chartGaugeValue !== undefined);
+    if (半円 === undefined || 半円.chartData === undefined) throw new Error("固定尺の半円が無い");
+    半円.chartData[0] = { ...半円.chartData[0]!, emphasis: "primary" };
+    if (半円.chartData[1] !== undefined) delete 半円.chartData[1].emphasis;
+    const 見本 = [{ 名: "chartData を描かない固定尺の半円", 図: [d], 節: [中身たち(d)] }];
+    expect(切替で両側(見本, 軸, "chart-gauge")).toBe(false);
   });
 
   it("覆えない組は、今も engine が形の差を返す組だけ", () => {

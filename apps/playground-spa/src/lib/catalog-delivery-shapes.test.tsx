@@ -55,7 +55,7 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "monthlyDeliveriesLine", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
   { 鍵: "monthlyDeliveriesLine", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
   { 鍵: "monthlyDeliveriesLine", 要素: "計画と実績の線", 見本の数: 2, 今の数: 2, role: "chart-line", 描ける: true },
-  { 鍵: "monthlyDeliveriesLine", 要素: "中抜きの点", 見本の数: 5, 今の数: 5, role: "chart-line-point", 描ける: true },
+  { 鍵: "monthlyDeliveriesLine", 要素: "中抜きの点", 見本の数: 5, 今の数: 5, role: "role+attr:chart-line-point|fill=\"var(--cdl-node-fill, #ffffff)\"", 描ける: true },
   { 鍵: "monthlyDeliveriesLine", 要素: "計画の終点と実績の始点・終点の値", 見本の数: 3, 今の数: 3, role: "chart-line-value", 描ける: true },
   { 鍵: "monthlyDeliveriesLine", 要素: "計画の点線", 見本の数: 1, 今の数: 1, role: "role+attr:chart-line|data-cdl-series=\"0\"", 描ける: true },
 
@@ -64,7 +64,8 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "parcelStatusPie", 要素: "輪の区画", 見本の数: 4, 今の数: 4, role: "chart-pie-slice", 描ける: true },
   { 鍵: "parcelStatusPie", 要素: "中心の合計値", 見本の数: 1, 今の数: 1, role: "texts:1,284", 描ける: true },
   { 鍵: "parcelStatusPie", 要素: "中心の単位『件』", 見本の数: 1, 今の数: 1, role: "texts:件", 描ける: true },
-  { 鍵: "parcelStatusPie", 要素: "右の一覧と値", 見本の数: 4, 今の数: 4, role: "chart-pie-table-mark", 描ける: true },
+  // 「右」は catalog-chart-presentation-2854.spec.ts の座標検査で円の右端との前後を確かめる。
+  { 鍵: "parcelStatusPie", 要素: "円の右に置く一覧と値", 見本の数: 4, 今の数: 4, role: "chart-pie-table-mark", 描ける: true },
 
   { 鍵: "orderToDeliveryFunnel", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
   { 鍵: "orderToDeliveryFunnel", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
@@ -101,14 +102,16 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "parcelSizeWaffle", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
   { 鍵: "parcelSizeWaffle", 要素: "升目", 見本の数: 100, 今の数: 100, role: "chart-waffle-cell", 描ける: true },
   { 鍵: "parcelSizeWaffle", 要素: "升目の 3 色", 見本の数: 3, 今の数: 3, role: "unique-attr:chart-waffle-cell|fill", 描ける: true },
-  { 鍵: "parcelSizeWaffle", 要素: "右の一覧", 見本の数: 3, 今の数: 3, role: "chart-waffle-item", 描ける: true },
+  // 「右」は catalog-chart-presentation-2854.spec.ts の座標検査で升目の右端との前後を確かめる。
+  { 鍵: "parcelSizeWaffle", 要素: "升目の右に置く一覧", 見本の数: 3, 今の数: 3, role: "chart-waffle-item", 描ける: true },
 
   { 鍵: "deliveryResultStacked", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
   { 鍵: "deliveryResultStacked", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },
   { 鍵: "deliveryResultStacked", 要素: "月ごとの帯", 見本の数: 5, 今の数: 5, role: "chart-stacked-bar-row", 描ける: true },
   { 鍵: "deliveryResultStacked", 要素: "3 区画 × 5 か月", 見本の数: 15, 今の数: 15, role: "chart-stacked-bar-slice", 描ける: true },
   { 鍵: "deliveryResultStacked", 要素: "右の率", 見本の数: 5, 今の数: 5, role: "chart-stacked-bar-rate", 描ける: true },
-  { 鍵: "deliveryResultStacked", 要素: "上の凡例", 見本の数: 3, 今の数: 3, role: "chart-stacked-bar-legend", 描ける: true },
+  // 「上」は catalog-chart-presentation-2854.spec.ts の座標検査で最初の帯との上下を確かめる。
+  { 鍵: "deliveryResultStacked", 要素: "帯の上に置く凡例", 見本の数: 3, 今の数: 3, role: "chart-stacked-bar-legend", 描ける: true },
 
   { 鍵: "sortingShelfGantt", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },
   { 鍵: "sortingShelfGantt", 要素: "札の足（種別 + 単位）", 見本の数: 1, 今の数: 0, role: "figure-footer", 描ける: false, 理由: "図の足を渡す欄と描画が無い", 下書き: ".context/scratch/2837/cdl-issue-figure-card-footer.md", 仮の役割名: true },

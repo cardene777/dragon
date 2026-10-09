@@ -119,6 +119,7 @@ const 別の知らせ: Record<string, string> = {
   end: "chart-value-unreadable",
   startLabel: "chart-value-unreadable",
   milestone: "chart-value-unreadable",
+  emphasis: "chart-value-unreadable",
   touchpoint: "chart-value-unreadable",
   opportunity: "chart-value-unreadable",
 };
@@ -163,6 +164,11 @@ function 箱の行の知らせ(図種: string, 書く: string): string[] {
 }
 
 describe("値の図で、箱に書いた指定が黙って消えない (#2368)", () => {
+  it("主役を描く内訳の帯では emphasis を読み、円では読めないと知らせる", () => {
+    expect(箱の行の知らせ("stacked", "emphasis: primary")).not.toContain("chart-value-unreadable");
+    expect(箱の行の知らせ("pie", "emphasis: primary")).toContain("chart-value-unreadable");
+  });
+
   it("箱に書ける項目を走査できている (空振り防止)", () => {
     expect(項目.length, "箱の項目を 1 件も拾えていない").toBeGreaterThan(0);
   });
@@ -201,6 +207,7 @@ describe("値の図で、箱に書いた指定が黙って消えない (#2368)",
     // 受け持つ側が消えたら、除外だけが残って黙って落ちる状態に戻る
     const 出ない = 値の図種.flatMap((t) =>
       Object.entries(別の知らせ)
+        .filter(([k]) => k !== "emphasis" || (t !== "stacked" && t !== "funnel"))
         .filter(([k, 種]) => !箱の行の知らせ(t, `${k}: ${値[k]}`).includes(種))
         .map(([k, 種]) => `${t}: ${k} に ${種} が出ない`),
     );

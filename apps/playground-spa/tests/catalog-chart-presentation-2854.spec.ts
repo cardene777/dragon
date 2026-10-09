@@ -27,6 +27,13 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   await expect(stage.getByText("件", { exact: true })).toHaveCount(1);
   await expect(stage.locator('[data-cdl-role="chart-pie-table-mark"]')).toHaveCount(4);
+  const pieRight = await stage.locator('[data-cdl-role="chart-pie-slice"]').evaluateAll((nodes) =>
+    Math.max(...nodes.map((node) => (node as SVGGraphicsElement).getBBox().x + (node as SVGGraphicsElement).getBBox().width)),
+  );
+  const pieTableLeft = await stage.locator('[data-cdl-role="chart-pie-table-mark"]').first().evaluate(
+    (node) => (node as SVGGraphicsElement).getBBox().x,
+  );
+  expect(pieTableLeft, "円の一覧は円の右に置く").toBeGreaterThan(pieRight);
   const pieSliceFills = await stage.locator('[data-cdl-role="chart-pie-slice"]').evaluateAll((nodes) =>
     nodes.map((node) => getComputedStyle(node).fill),
   );
@@ -55,6 +62,13 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
 
   await openEditorTheme(page, sourceYaml__parcelSizeWaffle, "blueprint", false);
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
+  const waffleRight = await stage.locator('[data-cdl-role="chart-waffle-cell"]').evaluateAll((nodes) =>
+    Math.max(...nodes.map((node) => (node as SVGGraphicsElement).getBBox().x + (node as SVGGraphicsElement).getBBox().width)),
+  );
+  const waffleLegendLeft = await stage.locator('[data-cdl-role="chart-waffle-item"]').first().evaluate(
+    (node) => (node as SVGGraphicsElement).getBBox().x,
+  );
+  expect(waffleLegendLeft, "升目の一覧は升目の右に置く").toBeGreaterThan(waffleRight);
   const waffleMarkFills = await stage.locator('[data-cdl-role="chart-waffle-item-mark"]').evaluateAll((nodes) =>
     nodes.map((node) => getComputedStyle(node).fill),
   );
@@ -63,6 +77,13 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
   await openEditorTheme(page, sourceYaml__deliveryResultStacked, "blueprint", false);
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   await expect(stage.locator('[data-cdl-role="chart-stacked-bar-row"]')).toHaveCount(5);
+  const stackedLegendBottom = await stage.locator('[data-cdl-role="chart-stacked-bar-legend"]').evaluateAll((nodes) =>
+    Math.max(...nodes.map((node) => (node as SVGGraphicsElement).getBBox().y + (node as SVGGraphicsElement).getBBox().height)),
+  );
+  const stackedRowsTop = await stage.locator('[data-cdl-role="chart-stacked-bar-row"]').evaluateAll((nodes) =>
+    Math.min(...nodes.map((node) => (node as SVGGraphicsElement).getBBox().y)),
+  );
+  expect(stackedLegendBottom, "内訳の凡例は帯より上に置く").toBeLessThan(stackedRowsTop);
   const stackedFills = await stage.locator('[data-cdl-role="chart-stacked-bar-slice"]').evaluateAll((nodes) =>
     nodes.map((node) => getComputedStyle(node).fill),
   );
@@ -78,6 +99,18 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
   await expect(stage.locator('[data-cdl-role="chart-gauge-value"]')).toHaveText("78%");
   await expect(stage.locator('[data-cdl-role="chart-gauge-delta"]')).toHaveText("先月より +6");
   await expect(stage.locator('[data-cdl-role="chart-gauge-target"]')).toHaveCount(1);
+  const muted = await stage.evaluate((node) => {
+    const probe = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    probe.style.fill = "var(--cdl-tone-muted)";
+    node.append(probe);
+    const fill = getComputedStyle(probe).fill;
+    probe.remove();
+    return fill;
+  });
+  const remaining = await stage.locator('[data-cdl-role="chart-gauge-fixed-scale"]').evaluate(
+    (node) => getComputedStyle(node).fill,
+  );
+  expect(remaining, "固定尺の残りの弧は意匠の沈んだ色").toBe(muted);
 });
 
 for (const theme of 意匠) {

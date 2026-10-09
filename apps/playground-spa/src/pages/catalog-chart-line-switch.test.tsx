@@ -3,7 +3,8 @@
 /**
  * catalog 画面の折れ線の見せ方切替 (#1624)。
  *
- * 見本一覧から折れ線を選んだ時だけ 3 つの入り切りボタンを出し、通常表示と拡大表示の
+ * 見本一覧から折れ線を選んだ時、2 系列ではせり上げだけ、1 本の変種では 3 つの
+ * 入り切りボタンを出し、通常表示と拡大表示の
  * `CdlDiagramView` の両方へ同じ指定を渡すことを見る。view は差し替えて渡された図の
  * node の欄を data 属性に出し、通常表示と拡大表示を要素ごとに検査する。
  */
@@ -93,8 +94,12 @@ function 折れ線の見本() {
   return item!;
 }
 
+function 一本の線を選ぶ(): void {
+  fireEvent.click(screen.getByRole("radio", { name: "1本の線" }));
+}
+
 describe("catalog の折れ線の見せ方切替 (#1624)", () => {
-  it("折れ線の見本を一覧から選ぶと 3 つの押しボタンが出て、最初は全て切", () => {
+  it("2 系列はせり上げだけ、1 本の線は 3 つの押しボタンを出す", () => {
     // Given
     画面を開く();
 
@@ -103,10 +108,12 @@ describe("catalog の折れ線の見せ方切替 (#1624)", () => {
 
     // Then
     const group = screen.getByRole("group", { name: "折れ線の見せ方" });
-    const buttons = ["塗り", "せり上げ", "なぞり"].map((name) =>
-      screen.getByRole("button", { name }),
-    );
-    expect(buttons, "折れ線の見せ方の押しボタンが 3 つ出ていない").toHaveLength(3);
+    expect(screen.queryByRole("button", { name: "塗り" }), "2 系列に塗りが出ている").toBeNull();
+    expect(screen.getByRole("button", { name: "せり上げ" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "なぞり" }), "2 系列になぞりが出ている").toBeNull();
+    一本の線を選ぶ();
+    const buttons = ["塗り", "せり上げ", "なぞり"].map((name) => screen.getByRole("button", { name }));
+    expect(buttons, "1 本の線で押しボタンが 3 つ出ていない").toHaveLength(3);
     for (const button of buttons)
       expect(
         button.getAttribute("aria-pressed"),
@@ -130,6 +137,7 @@ describe("catalog の折れ線の見せ方切替 (#1624)", () => {
     // Given
     画面を開く();
     一覧から選ぶ(折れ線の見本());
+    一本の線を選ぶ();
     const 塗り = screen.getByRole("button", { name: "塗り" });
 
     // When
@@ -149,6 +157,7 @@ describe("catalog の折れ線の見せ方切替 (#1624)", () => {
     // Given
     画面を開く();
     一覧から選ぶ(折れ線の見本());
+    一本の線を選ぶ();
     fireEvent.click(screen.getByRole("button", { name: "塗り" }));
 
     // When
@@ -188,6 +197,7 @@ describe("catalog の折れ線の見せ方切替 (#1624)", () => {
     画面を開く();
     const line = 折れ線の見本();
     一覧から選ぶ(line);
+    一本の線を選ぶ();
     fireEvent.click(screen.getByRole("button", { name: "塗り" }));
 
     // When
@@ -195,11 +205,8 @@ describe("catalog の折れ線の見せ方切替 (#1624)", () => {
     一覧から選ぶ(line);
 
     // Then
-    for (const name of ["塗り", "せり上げ", "なぞり"]) {
-      expect(
-        screen.getByRole("button", { name }).getAttribute("aria-pressed"),
-        `${name} が見本を選び直しても切へ戻らない`,
-      ).toBe("false");
-    }
+    expect(screen.queryByRole("button", { name: "塗り" }), "元の 2 系列へ戻っていない").toBeNull();
+    expect(screen.getByRole("button", { name: "せり上げ" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.queryByRole("button", { name: "なぞり" }), "元の 2 系列へ戻っていない").toBeNull();
   });
 });

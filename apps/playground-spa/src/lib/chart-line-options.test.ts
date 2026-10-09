@@ -9,6 +9,7 @@ import type { CdlDiagram } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS } from "./catalog-items";
 import {
   図の折れ線の見せ方を変える,
+  折れ線で選べる見せ方,
   折れ線を選べる,
   既定の折れ線の指定,
   type 折れ線の指定,
@@ -64,6 +65,15 @@ describe("折れ線の見せ方を選べる図の判定 (#1624)", () => {
     for (const x of 対象)
       expect(折れ線を選べる(x.diagram), `${x.id} で選べる判定になっている`).toBe(false);
   });
+
+  it("2 系列はせり上げだけ、1 本の線は 3 つとも選べる", () => {
+    const item = Object.values(CATALOG_ITEMS).flat().find((x) => x.title === "monthlyDeliveriesLine");
+    expect(item, "月ごとの配達数が無い").toBeDefined();
+    const 一本 = item?.patterns?.find((p) => p.名 === "1本の線");
+    expect(一本, "1本の線の変種が無い").toBeDefined();
+    expect(折れ線で選べる見せ方(item!.diagram)).toEqual(["chartValueRise"]);
+    expect(折れ線で選べる見せ方(一本!.diagram)).toEqual(["chartFillUnder", "chartValueRise", "chartTrace"]);
+  });
 });
 
 describe("図の折れ線の見せ方を変える (#1624)", () => {
@@ -108,6 +118,20 @@ describe("図の折れ線の見せ方を変える (#1624)", () => {
 
     // Then
     expect(折れ線のnode(後)[0]?.chartFillUnder, "押しボタンは切なのに塗りが残っている").toBe(false);
+  });
+
+  it("複数系列へ塗りとなぞりを指定しても入れず、せり上げだけ入れる", () => {
+    const 元 = 見本を取る("月ごとの配達数");
+    const 後 = 図の折れ線の見せ方を変える(元, {
+      chartFillUnder: true,
+      chartValueRise: true,
+      chartTrace: true,
+    });
+    expect(折れ線のnode(後)[0]).toMatchObject({
+      chartFillUnder: false,
+      chartValueRise: true,
+      chartTrace: false,
+    });
   });
 
   it("折れ線でない node の欄は触らない", () => {
