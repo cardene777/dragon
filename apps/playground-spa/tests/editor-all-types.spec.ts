@@ -123,7 +123,8 @@ for (const { type, label } of TYPES) {
     await page.locator('[data-testid="editor-diagram-scale-up"]').click();
     await 変わるまで待つ(page, `${type} の図の幅`, { sel: DIAGRAM_SVG, 前: b.w }, (渡す) => {
       const r = document.querySelector(渡す.sel)?.getBoundingClientRect();
-      return r !== undefined && Math.abs(r.width - 渡す.前) > 1;
+      // 再描画の途中で一度縮む幅では待ちを抜けず、拡大操作の向きまで満たした状態を測る。
+      return r !== undefined && r.width > 渡す.前 + 1;
     });
     await 大きさが落ち着くまで待つ(page, type);
     const a = await size();

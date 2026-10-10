@@ -129,7 +129,8 @@ describe("#2854 3 段目 l の意匠補正", () => {
     expect(declaration(catalogCard.body, "stroke-width")).toBe("0 !important");
     expect(declaration(catalogCard.body, "filter")).toContain("--theme-stage-card-shadow");
 
-    for (const [palette, width] of [["blueprint", "1.5px"], ["letterpress", "2px"], ["sketch", "2.5px"], ["terminal", "1px"]] as const) {
+    // 端末の分かれ道は見本の 50% 枠 1.5。実装の専用規則と同じ値を固定する。
+    for (const [palette, width] of [["blueprint", "1.5px"], ["letterpress", "2px"], ["sketch", "2.5px"], ["terminal", "1.5px"]] as const) {
       const decision = lastRule(`[data-cdl-palette="${palette}"]`, '[data-cdl-kind="decision"]', '> path');
       expect(declaration(decision.body, "stroke-width"), palette).toBe(`${width} !important`);
       if (palette !== "blueprint") expect(declaration(decision.body, "filter"), palette).toBe("none !important");

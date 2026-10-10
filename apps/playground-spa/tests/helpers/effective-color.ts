@@ -47,6 +47,18 @@ export function parseColor(value: string): Rgba | null {
     return { rgb: channels as Rgb, alpha };
   }
 
+  const srgb = /^color\(srgb\s+([^)]*)\)$/i.exec(normalized)?.[1];
+  if (srgb !== undefined) {
+    const slash = srgb.split("/").map((part) => part.trim());
+    if (slash.length > 2) throw new Error(`色として読めない: ${value}`);
+    const channels = (slash[0] ?? "").split(/\s+/).filter(Boolean).map(Number);
+    const alpha = slash[1] === undefined ? 1 : Number(slash[1]);
+    if (channels.length !== 3 || channels.some((channel) => !Number.isFinite(channel)) || !Number.isFinite(alpha)) {
+      throw new Error(`色として読めない: ${value}`);
+    }
+    return { rgb: channels.map((channel) => channel * 255) as Rgb, alpha };
+  }
+
   throw new Error(`色として読めない: ${value}`);
 }
 

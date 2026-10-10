@@ -180,7 +180,8 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     const dotted = ruleBody(
       'svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-legend-mark="dotted-line"]',
     );
-    expect(declaration(dotted, "--cdl-text-accent")).toBe("var(--er-own)");
+    // 浮彫の段の箱の戻り線は見本の黄土。実装も専用値へ戻したため、旧 --er-own は使わない。
+    expect(declaration(dotted, "--cdl-text-accent")).toBe("#c99a35");
 
     expect(
       declaration(

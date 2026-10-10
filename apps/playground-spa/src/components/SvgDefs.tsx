@@ -310,13 +310,31 @@ export function SvgDefs(): React.ReactElement {
         </pattern>
         <pattern
           id="dragon-sketch-pen-primary"
-          width="10"
-          height="10"
+          width="9"
+          height="9"
           patternUnits="userSpaceOnUse"
           patternTransform="rotate(32)"
         >
-          <rect width="3" height="10" fill="#d2491f" />
+          <rect width="5.5" height="9" fill="#d2491f" />
         </pattern>
+
+        {/* 浮彫の図表は、見本の左上の白い面から系列色へ落ちる 145deg の浮き出し。 */}
+        <linearGradient id="dragon-relief-chart-1" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f2dad4" />
+          <stop offset="1" stopColor="#c4573c" />
+        </linearGradient>
+        <linearGradient id="dragon-relief-chart-2" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#d1e2df" />
+          <stop offset="1" stopColor="#2f7a6e" />
+        </linearGradient>
+        <linearGradient id="dragon-relief-chart-3" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f3e9d3" />
+          <stop offset="1" stopColor="#c99a35" />
+        </linearGradient>
+        <linearGradient id="dragon-relief-chart-4" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#eceae6" />
+          <stop offset="1" stopColor="#a99e8e" />
+        </linearGradient>
 
         {/* `docs/design/proposal/static/流れ-端末.html` の `#光`。
             小さい凡例と始まり・終わりの印ごとに使うため、領域だけを広げる。 */}
@@ -672,6 +690,33 @@ export function SvgDefs(): React.ReactElement {
             <feMergeNode in="raised-sm-dark" />
             <feMergeNode in="raised-sm-light" />
             <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* 線より後に描かれる札用。明暗を札の面内へ切り、手前の矢じりを外光で洗わない。 */}
+        <filter
+          id="dragon-relief-raised-contained"
+          filterUnits="userSpaceOnUse"
+          x="-2%"
+          y="-2%"
+          width="104%"
+          height="104%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="contained-dark-blur" />
+          <feOffset in="contained-dark-blur" dx="4" dy="4" result="contained-dark-offset" />
+          <feComposite in="contained-dark-offset" in2="SourceAlpha" operator="in" result="contained-dark-mask" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".45" result="contained-dark-color" />
+          <feComposite in="contained-dark-color" in2="contained-dark-mask" operator="in" result="contained-dark" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="contained-light-blur" />
+          <feOffset in="contained-light-blur" dx="-4" dy="-4" result="contained-light-offset" />
+          <feComposite in="contained-light-offset" in2="SourceAlpha" operator="in" result="contained-light-mask" />
+          <feFlood floodColor="#ffffff" floodOpacity=".9" result="contained-light-color" />
+          <feComposite in="contained-light-color" in2="contained-light-mask" operator="in" result="contained-light" />
+          <feMerge>
+            <feMergeNode in="SourceGraphic" />
+            <feMergeNode in="contained-dark" />
+            <feMergeNode in="contained-light" />
           </feMerge>
         </filter>
       </defs>

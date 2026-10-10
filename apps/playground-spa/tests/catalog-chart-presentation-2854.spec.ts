@@ -23,6 +23,26 @@ import { openEditorTheme } from "./helpers/fixed-theme-checks";
 
 const 意匠 = ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const;
 
+const 傾きの主役色 = {
+  blueprint: ["rgb(20, 58, 82)", "rgb(168, 67, 31)"],
+  letterpress: ["rgb(200, 67, 31)", "rgb(26, 21, 16)"],
+  catalog: ["rgb(220, 164, 67)", "rgb(232, 112, 90)"],
+  terminal: ["rgb(74, 222, 128)", "rgb(245, 196, 81)"],
+  sketch: ["rgb(210, 73, 31)", "rgb(42, 92, 168)"],
+  neon: ["rgb(255, 46, 151)", "rgb(255, 208, 0)"],
+  relief: ["rgb(196, 87, 60)", "rgb(201, 154, 53)"],
+} as const;
+
+const 路線の駅面 = {
+  blueprint: "rgb(227, 233, 234)",
+  letterpress: "rgb(240, 234, 220)",
+  catalog: "rgb(244, 238, 226)",
+  terminal: "rgb(8, 17, 11)",
+  sketch: "rgb(255, 253, 247)",
+  neon: "rgb(9, 7, 15)",
+  relief: "rgb(232, 227, 218)",
+} as const;
+
 const 放射の枠 = {
   blueprint: { rootWidth: "2.25px", boxWidth: "1px", radius: "12px" },
   letterpress: { rootWidth: "3px", boxWidth: "1.5px", radius: "12px" },
@@ -324,11 +344,21 @@ for (const theme of 意匠) {
 
     await openEditorTheme(page, sourceYaml__onTimeRateSlope, theme, false);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    // CDL は左 4 枚を name、右 4 枚を value として描く。両 role を合わせた 8 枚が左右の名札。
     const slopeNameStrokes = await stage
-      .locator('[data-cdl-role="chart-slope-name"]')
+      .locator(':is([data-cdl-role="chart-slope-name"], [data-cdl-role="chart-slope-value"])')
       .evaluateAll((names) => names.map((name) => getComputedStyle(name).stroke));
     expect(slopeNameStrokes, "傾きの名前は輪郭線を重ねず塗りだけで描く")
       .toEqual(Array.from({ length: 8 }, () => "none"));
+    const primarySlopeLines = await stage
+      .locator('[data-cdl-role="chart-slope-line"][data-cdl-emphasis="primary"]')
+      .evaluateAll((lines) => lines.map((line) => {
+        const style = getComputedStyle(line);
+        return { stroke: style.stroke, width: Number.parseFloat(style.strokeWidth) };
+      }));
+    expect(primarySlopeLines.map(({ stroke }) => stroke).sort(), `${theme} の大阪と名古屋の線色`)
+      .toEqual([...傾きの主役色[theme]].sort());
+    expect(primarySlopeLines.every(({ width }) => width > 0), `${theme} の主役線を消さない`).toBe(true);
 
     await openEditorTheme(page, sourceYaml__deliveryOfficeTree, theme, false);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
@@ -487,7 +517,8 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
     { theme: "catalog", width: "0px", stroke: "none" },
     { theme: "letterpress", width: "2px", stroke: "rgb(26, 21, 16)" },
     { theme: "sketch", width: "2.5px", stroke: "rgb(43, 38, 32)" },
-    { theme: "terminal", width: "1px", stroke: "rgba(74, 222, 128, 0.3)" },
+    // 見本の菱形は罫より強い 50% / 1.5。実装も同じ専用規則へ直した値を固定する。
+    { theme: "terminal", width: "1.5px", stroke: "rgba(74, 222, 128, 0.5)" },
   ] as const;
   for (const source of [sourceYaml__presetDeliveryMetro, sourceYaml__presetDeliveryTimeline]) {
     for (const expected of decisions) {
@@ -502,5 +533,14 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
       expect(style.stroke, `${expected.theme} の分かれ道の縁色`).toBe(expected.stroke);
       expect(style.filter, `${expected.theme} の分かれ道の影`).toBe("none");
     }
+  }
+
+
+  for (const theme of 意匠) {
+    await openEditorTheme(page, sourceYaml__presetDeliveryMetro, theme, false);
+    stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const stationFace = await stage.locator('[data-cdl-legend-mark="station"] > circle')
+      .evaluate((circle) => getComputedStyle(circle).fill);
+    expect(stationFace, `${theme} の凡例駅の面`).toBe(路線の駅面[theme]);
   }
 });
