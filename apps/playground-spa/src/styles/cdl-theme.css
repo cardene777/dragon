@@ -3139,6 +3139,29 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="edge-label-b
   opacity: 1 !important;
 }
 
+/* 採取は 2 倍の画素密度なので、見本の 40px 方眼を図の座標では 20px にする。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"]:has(
+    :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  ) {
+  background-image:
+    linear-gradient(rgb(20 58 82 / 7%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(20 58 82 / 7%) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has(
+    :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  ) {
+  background-image:
+    radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--theme-lead) 6%, transparent), transparent 70%),
+    linear-gradient(to right, color-mix(in srgb, var(--theme-lead) 1%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--theme-lead) 1%, transparent) 1px, transparent 1px);
+  background-size:
+    auto,
+    22px 22px,
+    22px 22px;
+}
+
 /* 面を持つ札の兄弟だけを紙色にし、面を外した札の字は墨のまま残す。 */
 svg[data-cdl-stage][data-cdl-palette="letterpress"]
   g:has(> [data-cdl-role="edge-label-bg"])
@@ -4676,6 +4699,436 @@ svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
   filter: none !important;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 見本帳の階層図とマインドマップ (#2854 6a)
+ *
+ * この 2 図の見本には、CDL の figure kind が足す外枠が無い。図表・数・工程の札は枠を持つため、
+ * 図の id を固定して外し、7 意匠以外（kinari / celadon）へは波及させない。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  [data-cdl-role="node-body"] {
+  display: none !important;
+}
+
+/* 記法・組み上がった図・書き出しでは題を保ち、外題の無い見本帳の画面だけで隠す。 */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  [data-cdl-role="figure-title"] {
+  display: none !important;
+}
+
+/* match の採取中にも終点の色を測れるよう、対象図の外側にだけ付く登場 animation を止める。 */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"]) {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+/* 見本の枝は全て 4.5。tree の marker は markerUnits=strokeWidth なので矢じりも同じ比で広がる。 */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-edge"],
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="再配達を減らす-chart"]
+  :is([data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"]) {
+  stroke-width: 4.5px !important;
+}
+
+/* 4.5 の marker を箱の手前へ戻した分が marker の表示域で切れないよう、三角だけ外側を見せる。 */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="営業所の階層-chart"]
+  marker:has(> [data-cdl-role="tree-edge-head"]) {
+  overflow: visible;
+}
+
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-edge-head"] {
+  transform: translateY(-12.5px);
+}
+
+/* 和字を OS の既定へ落とさず、見本が指定する本文書体へ揃える。 */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is(
+    [data-cdl-role="tree-node-title"],
+    [data-cdl-role="tree-node-subtitle"],
+    [data-cdl-role="mind-root-title"],
+    [data-cdl-role="mind-box-title"],
+    [data-cdl-role="mind-leaf-title"]
+  ) {
+  font-family: "Noto Sans JP", system-ui, sans-serif !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is(
+    [data-cdl-role="tree-node-title"],
+    [data-cdl-role="tree-node-subtitle"],
+    [data-cdl-role="mind-root-title"],
+    [data-cdl-role="mind-box-title"],
+    [data-cdl-role="mind-leaf-title"]
+  ) {
+  font-family: "JetBrains Mono", "M PLUS 1 Code", ui-monospace, monospace !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node-title"], [data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"]) {
+  font-family: "M PLUS Rounded 1c", "Noto Sans JP", sans-serif !important;
+}
+
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="再配達を減らす-chart"]
+  :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"]) {
+  font-weight: 700 !important;
+}
+
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"]
+  )
+  [data-cdl-node="再配達を減らす-chart"]
+  :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"]) {
+  font-weight: 800 !important;
+}
+
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-leaf-title"] {
+  font-weight: 500 !important;
+}
+
+/* tree と mind の札は同じ .ent の値を使う。葉は rect を持たず、字と下線だけのままにする。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-root"], [data-cdl-role="mind-box"]) {
+  fill: rgba(227, 233, 234, 0.82) !important;
+  stroke: #143a52 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-root"], [data-cdl-role="mind-box"]) {
+  fill: transparent !important;
+  stroke: #1a1510 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-root"], [data-cdl-role="mind-box"]) {
+  fill: #f4eee2 !important;
+  stroke: none !important;
+  filter: url(#dragon-catalog-tree-shadow) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-root"], [data-cdl-role="mind-box"]) {
+  fill: url(#dragon-terminal-card-gradient) !important;
+  stroke: rgb(74 222 128 / 30%) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-root"], [data-cdl-role="mind-box"]) {
+  fill: #fffdf7 !important;
+  stroke: #2b2620 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-root"], [data-cdl-role="mind-box"]) {
+  fill: #0a0812 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-box"]) {
+  fill: #e8e3da !important;
+  stroke: none !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node"] {
+  filter: url(#dragon-relief-raised) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-root"] {
+  fill: url(#dragon-relief-mind-root) !important;
+  stroke: none !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-box"] {
+  filter: url(#dragon-relief-raised) !important;
+}
+
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"]
+  )
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node"] {
+  rx: 12px !important;
+  ry: 12px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node"] {
+  rx: 6px !important;
+  ry: 6px !important;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="sketch"], [data-cdl-palette="neon"])
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node"] {
+  rx: 16px !important;
+  ry: 16px !important;
+}
+
+/* 見本の通常札の枠幅。中心札は各意匠の data-w="太" 相当を保つ。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node"], [data-cdl-node="再配達を減らす-chart"] [data-cdl-role="mind-box"]),
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node"], [data-cdl-node="再配達を減らす-chart"] [data-cdl-role="mind-box"]) {
+  stroke-width: 1px !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node"], [data-cdl-node="再配達を減らす-chart"] [data-cdl-role="mind-box"]) {
+  stroke-width: 1.5px !important;
+}
+
+svg[data-cdl-stage]:is([data-cdl-palette="sketch"], [data-cdl-palette="neon"])
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node"], [data-cdl-node="再配達を減らす-chart"] [data-cdl-role="mind-box"]) {
+  stroke-width: 2px !important;
+}
+
+/* 題・補足・葉の字色も、動きの途中の alpha ではなく静止した見本の値に固定する。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node-title"], [data-cdl-node="再配達を減らす-chart"] :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"], [data-cdl-role="mind-leaf-title"])) {
+  fill: #143a52 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node-title"], [data-cdl-node="再配達を減らす-chart"] :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"], [data-cdl-role="mind-leaf-title"])) {
+  fill: #1a1510 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node-title"], [data-cdl-node="再配達を減らす-chart"] :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"])) {
+  fill: #1d242e !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-leaf-title"] {
+  fill: #efe7d8 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node-title"], [data-cdl-node="再配達を減らす-chart"] :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"])) {
+  fill: #9ef0b4 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-leaf-title"] {
+  fill: #a6f0bd !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node-title"], [data-cdl-node="再配達を減らす-chart"] :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"], [data-cdl-role="mind-leaf-title"])) {
+  fill: #2b2620 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node-title"], [data-cdl-node="再配達を減らす-chart"] :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"])) {
+  fill: #fff !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-leaf-title"] {
+  fill: #f3eefe !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node-title"], [data-cdl-node="再配達を減らす-chart"] :is([data-cdl-role="mind-box-title"], [data-cdl-role="mind-leaf-title"])) {
+  fill: #463e33 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-root-title"] {
+  fill: #c4573c !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="blueprint"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node-subtitle"] {
+  fill: #4d7187 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node-subtitle"] {
+  fill: #6b6253 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node-subtitle"] {
+  fill: #6f6757 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node-subtitle"] {
+  fill: #8a9b90 !important;
+}
+
+/* 電飾の 1100px の地を上下へ分け、各 radial-gradient の半径と中心を元の座標で保つ。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-node="営業所の階層-chart"]) {
+  background-image:
+    radial-gradient(820px 560px at 18% 132px, rgb(255 46 151 / 14%), transparent 64%),
+    radial-gradient(760px 540px at 84% 880px, rgb(0 229 255 / 12%), transparent 62%),
+    radial-gradient(1300px 900px at 50% 495px, #0e0b1a, #040308);
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-node="再配達を減らす-chart"]) {
+  background-image:
+    radial-gradient(820px 560px at 18% -378px, rgb(255 46 151 / 14%), transparent 64%),
+    radial-gradient(760px 540px at 84% 370px, rgb(0 229 255 / 12%), transparent 62%),
+    radial-gradient(1300px 900px at 50% -15px, #0e0b1a, #040308);
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-root"] {
+  stroke: rgba(255, 182, 219, 1) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-box"] {
+  filter: none !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-node="再配達を減らす-chart"]) {
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(220, 164, 67, 0.1), transparent 62%);
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-size: 100% 186.441%;
+}
+
+svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-node="再配達を減らす-chart"]) {
+  background-image: radial-gradient(circle at 18% 88%, rgba(26, 21, 16, 0.05), transparent 60%);
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node-subtitle"] {
+  fill: #6d6456 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node-subtitle"] {
+  fill: #c4bce0 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node-subtitle"] {
+  fill: #7a7062 !important;
+}
+
 /* 電飾の見本が図全体へ当てる、標準偏差 1.5 と 5 の二段の光。
    平行移動しない線の組と節の外箱へ当て、線自身の色を舞台の座標で光らせる。 */
 svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-routing="metro"]) [data-cdl-routing="metro"],
@@ -5640,11 +6093,27 @@ svg[data-cdl-stage][data-cdl-palette]
 }
 
 /* 木の線と矢じりは同じ色を不透明で描く。 */
-svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="tree-hierarchy"] [data-cdl-role="tree-edge"] {
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  ) [data-cdl-kind="tree-hierarchy"] [data-cdl-role="tree-edge"] {
   stroke-opacity: 1 !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="tree-hierarchy"] [data-cdl-role="tree-edge-head"] {
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  ) [data-cdl-kind="tree-hierarchy"] [data-cdl-role="tree-edge-head"] {
   fill-opacity: 1 !important;
 }
 
@@ -6013,6 +6482,159 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-routing="metro
   filter: none !important;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 見本帳の階層図とマインドマップ (#2854 7c / round 5)
+ *
+ * CDL の舞台は figureSize の四辺へ 60px ずつ足す。放射は 1680 × 470 で見本の
+ * 1800 × 590 と一致する。木は 91.891px の札 3 段と 58.109px の段間 2 個で
+ * 391.891px 必要なため、切り取らずに収まる figureSize 392 を下限にする。
+ * ───────────────────────────────────────────────────────────────────────────── */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="営業所の階層-chart"] {
+  translate: 0 -14px;
+}
+
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="再配達を減らす-chart"] {
+  translate: 20px -32px;
+}
+
+/* CDL の outline は text の y を箱の光学中心より約 7px 上へ置くため、字だけを戻す。 */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="再配達を減らす-chart"]
+  :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"]) {
+  translate: 0 7px;
+}
+
+/* 見本の `.sub` は全意匠で 19px / letter-spacing .04em。 */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="terminal"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  )
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-node-subtitle"] {
+  letter-spacing: 0.04em !important;
+}
+
+/* 見本の端末は JetBrains Mono / M PLUS 1 Code の後を端末内の等幅書体で補う。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is(
+    [data-cdl-role="tree-node-title"],
+    [data-cdl-role="tree-node-subtitle"],
+    [data-cdl-role="mind-root-title"],
+    [data-cdl-role="mind-box-title"],
+    [data-cdl-role="mind-leaf-title"]
+  ) {
+  font-family: "JetBrains Mono", "M PLUS 1 Code", "SF Mono", Menlo, Monaco, "Osaka-Mono", ui-monospace, monospace !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node-title"], [data-cdl-node="再配達を減らす-chart"] :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"])) {
+  font-size: 25px !important;
+  font-weight: 700 !important;
+  filter: drop-shadow(0 0 10px rgb(74 222 128 / 35%)) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-root"] {
+  stroke-width: 1px !important;
+}
+
+/* 端末見本の 25px / 700 はそのままにし、outline が元から持つ上下位置へ戻す。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  [data-cdl-node="再配達を減らす-chart"]
+  :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"]) {
+  translate: 0 0;
+}
+
+/* 電飾の矢じりは芯だけを描き、枝線に掛ける光を marker へ重ねない。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  [data-cdl-node="営業所の階層-chart"]
+  [data-cdl-role="tree-edge-head"] {
+  filter: none !important;
+}
+
+/* 見本の管は 2px、35% の色 + 白の芯、2 / 10 / 24px の三段の外光。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-root"], [data-cdl-role="mind-box"]) {
+  fill: rgb(10 8 18 / 94%) !important;
+  stroke: color-mix(in srgb, #ff2e97 35%, white) !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0 2px #ff2e97) drop-shadow(0 0 10px rgb(255 46 151 / 55%))
+    drop-shadow(0 0 24px rgb(255 46 151 / 22%)) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is([data-cdl-node="営業所の階層-chart"] [data-cdl-role="tree-node-title"], [data-cdl-node="再配達を減らす-chart"] :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"])) {
+  font-weight: 800 !important;
+  filter: drop-shadow(0 0 5px #ff2e97) drop-shadow(0 0 12px rgb(255 46 151 / 60%)) !important;
+}
+
+/* 図録と浮彫の札は見本に輪郭線を持たない。stroke の値と幅を共に消す。 */
+svg[data-cdl-stage][data-cdl-palette="catalog"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-root"], [data-cdl-role="mind-box"]),
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  :is([data-cdl-node="営業所の階層-chart"], [data-cdl-node="再配達を減らす-chart"])
+  :is([data-cdl-role="tree-node"], [data-cdl-role="mind-root"], [data-cdl-role="mind-box"]) {
+  stroke: none !important;
+  stroke-width: 0 !important;
+}
+
+/* 浮彫の枝札は地と同じ #e8e3da と見本の標準的な浮き出しを保つ。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-node="再配達を減らす-chart"]
+  [data-cdl-role="mind-box"] {
+  fill: #e8e3da !important;
+  filter: url(#dragon-relief-raised) !important;
+}
+
+/* 浮彫見本は木の字が札上端から 14px、放射の字も同じ光学位置に来る。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-node="営業所の階層-chart"]
+  :is([data-cdl-role="tree-node-title"], [data-cdl-role="tree-node-subtitle"]) {
+  translate: 0 3px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-node="再配達を減らす-chart"]
+  :is([data-cdl-role="mind-root-title"], [data-cdl-role="mind-box-title"]) {
+  translate: 0 11px;
+}
+
 /* 路線図固有の札・印。 */
 svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-routing="metro"]) {
   --cdl-metro-lane-badge-name-size: 25px;
@@ -6337,17 +6959,15 @@ svg[data-cdl-stage][data-cdl-palette="neon"]
 /* 浮彫の木は矢じり自身を不透明な系列色へ戻し、札の白い光に負けないようにする。 */
 svg[data-cdl-stage][data-cdl-palette="relief"]
   [data-cdl-kind="tree-hierarchy"]
-  [data-cdl-role="tree-edge-head"][fill*="--cdl-tone-error"] {
+  [data-cdl-role="tree-edge-head"][fill*="--cdl-chart-1"] {
   fill: #c4573c !important;
-  stroke: #c4573c !important;
   fill-opacity: 1 !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="relief"]
   [data-cdl-kind="tree-hierarchy"]
-  [data-cdl-role="tree-edge-head"][fill*="--cdl-tone-success"] {
+  [data-cdl-role="tree-edge-head"][fill*="--cdl-chart-2"] {
   fill: #2f7a6e !important;
-  stroke: #2f7a6e !important;
   fill-opacity: 1 !important;
 }
 

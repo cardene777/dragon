@@ -99,3 +99,334 @@ describe("#2854 5段目a の意匠 selector", () => {
     expect(baseline).toBeDefined();
   });
 });
+
+describe("#2854 6段目の階層図とマインドマップ", () => {
+  const fixedPalettes = [
+    "blueprint",
+    "letterpress",
+    "catalog",
+    "terminal",
+    "sketch",
+    "neon",
+    "relief",
+  ] as const;
+
+  it("この 2 図の外枠だけを 7 意匠で外す", () => {
+    const frame = rules.find(({ selector, body }) =>
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="node-body"') &&
+      body.includes("display: none"));
+
+    expect(frame).toBeDefined();
+    for (const palette of fixedPalettes) {
+      expect(frame?.selector, palette).toContain(`[data-cdl-palette="${palette}"]`);
+    }
+    expect(frame?.selector).not.toMatch(/\[data-cdl-palette\](?!\s*=)/u);
+  });
+
+  it("枝と葉の下線を見本の 4.5 にして tree の矢じりへ同じ比を渡す", () => {
+    const stroke = rules.find(({ selector, body }) =>
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-role="tree-edge"') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-edge"') &&
+      selector.includes('data-cdl-role="mind-leaf-underline"') &&
+      body.includes("stroke-width: 4.5px"));
+    expect(stroke).toBeDefined();
+  });
+
+  it("階層図の矢じりを 7 意匠だけで箱の手前へ戻す", () => {
+    const arrowhead = rules.find(({ selector, body }) =>
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-role="tree-edge-head"') &&
+      body.includes("transform: translateY(-12.5px)"));
+
+    expect(arrowhead).toBeDefined();
+    for (const palette of fixedPalettes) {
+      expect(arrowhead?.selector, palette).toContain(`[data-cdl-palette="${palette}"]`);
+    }
+    expect(arrowhead?.selector).not.toMatch(/\[data-cdl-palette\](?!\s*=)/u);
+
+    const marker = rules.find(({ selector, body }) =>
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('marker:has(> [data-cdl-role="tree-edge-head"])') &&
+      body.includes("overflow: visible"));
+    expect(marker).toBeDefined();
+  });
+
+  it("端末の札は見本の暗い階調を使う", () => {
+    const terminal = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      body.includes("fill: url(#dragon-terminal-card-gradient)"));
+    expect(terminal).toBeDefined();
+
+    const terminalCorner = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-role="tree-node"') &&
+      body.includes("rx: 6px") &&
+      body.includes("ry: 6px"));
+    expect(terminalCorner).toBeDefined();
+  });
+
+  it("図面の方眼を見本の 2 層・1px・7% と採取後 40px になる 20px 間隔にする", () => {
+    const blueprint = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="blueprint"]:has(') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      body.match(/rgb\(20 58 82 \/ 7%\)/gu)?.length === 2 &&
+      body.includes("1px, transparent 1px") &&
+      body.includes("background-size: 20px 20px"));
+    const terminal = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]:has(') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      body.includes("var(--theme-lead) 1%") &&
+      body.includes("22px 22px"));
+    expect(blueprint).toBeDefined();
+    expect(terminal).toBeDefined();
+  });
+
+  it("図面の札を 0.82 で透かし、図録と浮彫の影を見本へ揃える", () => {
+    const blueprint = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="blueprint"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      body.includes("fill: rgba(227, 233, 234, 0.82)"));
+    const catalog = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="catalog"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      body.includes("stroke: none") &&
+      body.includes("filter: url(#dragon-catalog-tree-shadow)"));
+    const relief = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes('data-cdl-role="tree-node"') &&
+      body.includes("filter: url(#dragon-relief-raised-contained)"));
+
+    expect(blueprint).toBeDefined();
+    expect(catalog).toBeDefined();
+    expect(relief).toBeDefined();
+  });
+
+  it("端末の階層図の補足は CDL の寸法を保ち、放射の枝札の光を外す", () => {
+    const subtitle = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-role="tree-node-subtitle"') &&
+      body.includes("fill: #8a9b90") &&
+      !body.includes("font-size:"));
+    const mindBoxes = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-box"') &&
+      body.includes("filter: none"));
+
+    expect(subtitle).toBeDefined();
+    expect(mindBoxes).toBeDefined();
+  });
+
+  it("電飾の 1100px の地を元の半径・中心のまま上下へ分ける", () => {
+    const hierarchyGlow = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]:has([data-cdl-node="営業所の階層-chart"])') &&
+      body.includes("820px 560px at 18% 132px") &&
+      body.includes("760px 540px at 84% 880px") &&
+      body.includes("1300px 900px at 50% 495px"));
+    const mindGlow = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]:has([data-cdl-node="再配達を減らす-chart"])') &&
+      body.includes("820px 560px at 18% -378px") &&
+      body.includes("760px 540px at 84% 370px") &&
+      body.includes("1300px 900px at 50% -15px"));
+    const root = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-root"') &&
+      body.includes("stroke: rgba(255, 182, 219, 1)"));
+
+    expect(hierarchyGlow).toBeDefined();
+    expect(mindGlow).toBeDefined();
+    expect(root).toBeDefined();
+  });
+
+  it("浮彫の枝札は地色と標準の浮き出しを保ち、活版と図録の地を見本の位置へ置く", () => {
+    const relief = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-box"') &&
+      body.includes("fill: #e8e3da") &&
+      body.includes("filter: url(#dragon-relief-raised)"));
+    const letterpress = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="letterpress"]:has([data-cdl-node="再配達を減らす-chart"])') &&
+      body.includes("circle at 18% 88%"));
+    const catalog = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="catalog"]:has([data-cdl-node="再配達を減らす-chart"])') &&
+      body.includes("background-position: center bottom") &&
+      body.includes("background-size: 100% 186.441%"));
+
+    expect(relief).toBeDefined();
+    expect(letterpress).toBeDefined();
+    expect(catalog).toBeDefined();
+  });
+
+  it("電飾の階層札は見本の 94% の黒い面を保つ", () => {
+    const node = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-role="tree-node"') &&
+      body.includes("fill: rgb(10 8 18 / 94%)"));
+    expect(node).toBeDefined();
+  });
+
+  it("枝の字を 700 以上、葉を 500 にして、葉へ箱の規則を足さない", () => {
+    const branches = rules.filter(({ selector }) =>
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-box-title"'));
+    const leaves = rules.filter(({ selector }) =>
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-leaf-title"'));
+
+    expect(branches.some(({ body }) => body.includes("font-weight: 700"))).toBe(true);
+    expect(branches.some(({ body }) => body.includes("font-weight: 800"))).toBe(true);
+    expect(leaves.some(({ body }) => body.includes("font-weight: 500"))).toBe(true);
+    expect(leaves.some(({ body }) => /\b(?:stroke|filter)\s*:/u.test(body))).toBe(false);
+  });
+
+  it("木を切り取らず、放射だけ 20px 右へ寄せて板の中央へ合わせる", () => {
+    const tree = rules.find(({ selector, body }) =>
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      body.includes("translate: 0 -14px"));
+    const mind = rules.find(({ selector, body }) =>
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      body.includes("translate: 20px -32px"));
+
+    expect(css).not.toContain("clip-path: inset(0 0 20px 0)");
+    for (const rule of [tree, mind]) {
+      expect(rule).toBeDefined();
+      for (const palette of fixedPalettes) {
+        expect(rule?.selector, palette).toContain(`[data-cdl-palette="${palette}"]`);
+      }
+      expect(rule?.selector).not.toMatch(/\[data-cdl-palette\](?!\s*=)/u);
+    }
+  });
+
+  it("放射の箱の字を基準 7px 下げ、端末と浮彫は見本固有の位置へ戻す", () => {
+    const mindTitle = rules.find(({ selector, body }) =>
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-root-title"') &&
+      selector.includes('data-cdl-role="mind-box-title"') &&
+      body.includes("translate: 0 7px"));
+    const subtitle = rules.find(({ selector, body }) =>
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-role="tree-node-subtitle"') &&
+      body.includes("letter-spacing: 0.04em"));
+    const terminal = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-root-title"') &&
+      body.includes("translate: 0 0"));
+    const relief = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-root-title"') &&
+      body.includes("translate: 0 11px"));
+
+    expect(mindTitle).toBeDefined();
+    expect(subtitle).toBeDefined();
+    expect(terminal).toBeDefined();
+    expect(relief).toBeDefined();
+    for (const palette of fixedPalettes) {
+      expect(mindTitle?.selector, palette).toContain(`[data-cdl-palette="${palette}"]`);
+      expect(subtitle?.selector, palette).toContain(`[data-cdl-palette="${palette}"]`);
+    }
+  });
+
+  it("端末は OS の等幅候補へ落とし、題を 25・中心枠を 1・光を 10 にする", () => {
+    const family = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      body.includes('"JetBrains Mono", "M PLUS 1 Code", "SF Mono", Menlo, Monaco, "Osaka-Mono", ui-monospace, monospace'));
+    const title = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-role="tree-node-title"') &&
+      selector.includes('data-cdl-role="mind-root-title"') &&
+      selector.includes('data-cdl-role="mind-box-title"') &&
+      body.includes("font-size: 25px") &&
+      body.includes("font-weight: 700") &&
+      body.includes("drop-shadow(0 0 10px rgb(74 222 128 / 35%))"));
+    const root = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      selector.includes('data-cdl-role="mind-root"') &&
+      body.includes("stroke-width: 1px"));
+
+    expect(family).toBeDefined();
+    expect(family?.body).toContain("-webkit-font-smoothing: antialiased");
+    expect(title).toBeDefined();
+    expect(root).toBeDefined();
+  });
+
+  it("電飾は矢じりの光を外し、札と題へ見本の三段光・二段光を戻す", () => {
+    const arrowhead = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-role="tree-edge-head"') &&
+      body.includes("filter: none"));
+    const frame = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-role="tree-node"') &&
+      selector.includes('data-cdl-role="mind-root"') &&
+      selector.includes('data-cdl-role="mind-box"') &&
+      body.includes("stroke-width: 2px") &&
+      body.includes("rgb(10 8 18 / 94%)") &&
+      body.includes("drop-shadow(0 0 24px rgb(255 46 151 / 22%))"));
+    const title = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-role="tree-node-title"') &&
+      selector.includes('data-cdl-role="mind-root-title"') &&
+      body.includes("font-weight: 800") &&
+      body.includes("drop-shadow(0 0 12px rgb(255 46 151 / 60%))"));
+
+    expect(arrowhead).toBeDefined();
+    expect(frame).toBeDefined();
+    expect(title).toBeDefined();
+  });
+
+  it("図録と浮彫の階層・放射の札は枠の値と幅を共に 0 にする", () => {
+    const borderless = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="catalog"]') &&
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-node="再配達を減らす-chart"') &&
+      body.includes("stroke: none") &&
+      body.includes("stroke-width: 0"));
+    expect(borderless).toBeDefined();
+  });
+
+  it("浮彫の木は枝と同じ系列色の不透明な矢じりにし、字を札の中央へ下げる", () => {
+    const redHead = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes('data-cdl-role="tree-edge-head"') &&
+      selector.includes('fill*="--cdl-chart-1"') &&
+      body.includes("fill: #c4573c") &&
+      body.includes("fill-opacity: 1"));
+    const tealHead = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes('data-cdl-role="tree-edge-head"') &&
+      selector.includes('fill*="--cdl-chart-2"') &&
+      body.includes("fill: #2f7a6e") &&
+      body.includes("fill-opacity: 1"));
+    const labels = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes('data-cdl-node="営業所の階層-chart"') &&
+      selector.includes('data-cdl-role="tree-node-title"') &&
+      selector.includes('data-cdl-role="tree-node-subtitle"') &&
+      body.includes("translate: 0 3px"));
+
+    expect(redHead).toBeDefined();
+    expect(tealHead).toBeDefined();
+    expect(labels).toBeDefined();
+  });
+});

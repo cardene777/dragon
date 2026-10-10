@@ -1108,7 +1108,8 @@ export const pattern__shipperFeelingJourney__5つの気持ち = textDslToDiagram
 export const sourceYaml__redeliveryIdeasMind = `title: "再配達を減らす"
 type: mind
 mindForm: outline
-figureSize: {"width":1712,"height":528}
+mindSize: {"root":{"width":330,"height":61.891,"fontSize":29},"branch":{"width":220,"height":62.891,"fontSize":29},"leaf":{"fontSize":23},"rootBranchGap":155,"branchLeafGap":70,"branchRowGap":290,"branchRowOffset":10,"leafRowGap":92,"leafRowOffset":6}
+figureSize: {"width":1680,"height":470}
 
 actors:
   - "{theme}"
@@ -1152,7 +1153,18 @@ export const sourceJson__redeliveryIdeasMind = `{
   "title": "再配達を減らす",
   "type": "mind",
   "mindForm": "outline",
-  "figureSize": { "width": 1712, "height": 528 },
+  "mindSize": {
+    "root": { "width": 330, "height": 61.891, "fontSize": 29 },
+    "branch": { "width": 220, "height": 62.891, "fontSize": 29 },
+    "leaf": { "fontSize": 23 },
+    "rootBranchGap": 155,
+    "branchLeafGap": 70,
+    "branchRowGap": 290,
+    "branchRowOffset": 10,
+    "leafRowGap": 92,
+    "leafRowOffset": 6
+  },
+  "figureSize": { "width": 1680, "height": 470 },
   "actors": [
     { "name": "{theme}" },
     { "name": "置き場所" },
@@ -1197,8 +1209,9 @@ export const redeliveryIdeasMind = textDslToDiagram(sourceYaml__redeliveryIdeasM
 export const patternBase__redeliveryIdeasMind = "見出しだけ";
 
 export const sourceYaml__pattern__redeliveryIdeasMind__説明つき = `title: "再配達を減らす手立ての説明"
-figureSize: {"width":1712,"height":528}
+figureSize: {"width":1680,"height":470}
 type: mind
+mindSize: {"root":{"width":330,"height":61.891,"fontSize":29},"branch":{"width":220,"height":62.891,"fontSize":29},"leaf":{"fontSize":23},"rootBranchGap":155,"branchLeafGap":70,"branchRowGap":290,"branchRowOffset":10,"leafRowGap":92,"leafRowOffset":6}
 
 actors:
   - 再配達を減らす: "受け取りやすくする"
@@ -1215,8 +1228,19 @@ animation:
 
 export const sourceJson__pattern__redeliveryIdeasMind__説明つき = `{
   "title": "再配達を減らす手立ての説明",
-  "figureSize": { "width": 1712, "height": 528 },
+  "figureSize": { "width": 1680, "height": 470 },
   "type": "mind",
+  "mindSize": {
+    "root": { "width": 330, "height": 61.891, "fontSize": 29 },
+    "branch": { "width": 220, "height": 62.891, "fontSize": 29 },
+    "leaf": { "fontSize": 23 },
+    "rootBranchGap": 155,
+    "branchLeafGap": 70,
+    "branchRowGap": 290,
+    "branchRowOffset": 10,
+    "leafRowGap": 92,
+    "leafRowOffset": 6
+  },
   "actors": [
     { "name": "再配達を減らす", "subtitle": "受け取りやすくする" },
     { "name": "置き場所", "subtitle": "宅配箱" },
@@ -1349,7 +1373,8 @@ type: tree
 treeNodeForm: frame
 treeEdgeTone: depth
 treeEdgeHead: triangle
-figureSize: {"width":1712,"height":416}
+treeSize: {"nodeWidths":[260,240,220],"nodeHeight":91.891,"titleFontSize":29,"subtitleFontSize":19,"siblingGap":180,"levelGap":58.109}
+figureSize: {"width":1680,"height":392}
 
 actors:
   - 本社: "全国 12 営業所"
@@ -1380,7 +1405,15 @@ export const sourceJson__deliveryOfficeTree = `{
   "treeNodeForm": "frame",
   "treeEdgeTone": "depth",
   "treeEdgeHead": "triangle",
-  "figureSize": { "width": 1712, "height": 416 },
+  "treeSize": {
+    "nodeWidths": [260, 240, 220],
+    "nodeHeight": 91.891,
+    "titleFontSize": 29,
+    "subtitleFontSize": 19,
+    "siblingGap": 180,
+    "levelGap": 58.109
+  },
+  "figureSize": { "width": 1680, "height": 392 },
   "actors": [
     { "name": "本社", "subtitle": "全国 12 営業所" },
     { "name": "東日本", "subtitle": "7 営業所" },
@@ -1420,8 +1453,9 @@ export const deliveryOfficeTree = textDslToDiagram(sourceYaml__deliveryOfficeTre
 export const patternBase__deliveryOfficeTree = "説明つき";
 
 export const sourceYaml__pattern__deliveryOfficeTree__見出しだけ = `title: "営業所の階層を見出しだけで示す"
-figureSize: {"width":1712,"height":416}
+figureSize: {"width":1680,"height":392}
 type: tree
+treeSize: {"nodeWidths":[260,240,220],"nodeHeight":91.891,"titleFontSize":29,"subtitleFontSize":19,"siblingGap":180,"levelGap":58.109}
 
 actors:
   - 本社
@@ -1448,8 +1482,16 @@ animation:
 
 export const sourceJson__pattern__deliveryOfficeTree__見出しだけ = `{
   "title": "営業所の階層を見出しだけで示す",
-  "figureSize": { "width": 1712, "height": 416 },
+  "figureSize": { "width": 1680, "height": 392 },
   "type": "tree",
+  "treeSize": {
+    "nodeWidths": [260, 240, 220],
+    "nodeHeight": 91.891,
+    "titleFontSize": 29,
+    "subtitleFontSize": 19,
+    "siblingGap": 180,
+    "levelGap": 58.109
+  },
   "actors": [
     { "name": "本社" },
     { "name": "東日本" },

@@ -2,8 +2,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { renderToStaticMarkup } from "react-dom/server";
-import { CdlDiagramView, computeStateValues, layout, type CdlDiagram } from "@cardenelabs/cdl";
+import { CdlDiagramView, computeStateValues, layout, visualValidate, type CdlDiagram } from "@cardenelabs/cdl";
 import { describe, expect, it } from "vitest";
+import { SvgDefs } from "../components/SvgDefs";
 import * as Charts from "@/topics/catalog/charts.cdl";
 
 const css = readFileSync(fileURLToPath(new URL("../styles/cdl-theme.css", import.meta.url)), "utf8")
@@ -54,9 +55,9 @@ const sizes = {
   orderToDeliveryFunnel: { w: 544, h: 496 },
   sortingShelfGantt: { w: 1712, h: 592 },
   shipperFeelingJourney: { w: 1712, h: 384 },
-  redeliveryIdeasMind: { w: 1712, h: 528 },
+  redeliveryIdeasMind: { w: 1680, h: 470 },
   measureEffortQuadrant: { w: 544, h: 496 },
-  deliveryOfficeTree: { w: 1712, h: 416 },
+  deliveryOfficeTree: { w: 1680, h: 392 },
   onTimeShareGauge: { w: 544, h: 496 },
   parcelSizeWaffle: { w: 544, h: 496 },
   deliveryResultStacked: { w: 544, h: 496 },
@@ -104,10 +105,71 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     }
   });
 
-  it("見本帳の 13 図の札の大きさを 16 の格子に丸めて渡す", () => {
+  it("見本帳の 13 図の札を指定した大きさで渡す", () => {
     for (const [key, expected] of Object.entries(sizes) as [keyof typeof sizes, (typeof sizes)[keyof typeof sizes]][]) {
       expect(node(Charts[key]), key).toMatchObject(expected);
     }
+  });
+
+  it("階層図とマインドマップは見本どおり外題を描かず、板に収まる大きさを保つ", () => {
+    const targets = [
+      {
+        diagram: Charts.deliveryOfficeTree,
+        sourceTitles: ['title: "営業所の階層"', '"title": "営業所の階層"'],
+        name: "営業所の階層",
+        id: "営業所の階層-chart",
+        w: 1680,
+        h: 392,
+      },
+      {
+        diagram: Charts.redeliveryIdeasMind,
+        sourceTitles: ['title: "再配達を減らす"', '"title": "再配達を減らす"'],
+        name: "再配達を減らす",
+        id: "再配達を減らす-chart",
+        w: 1680,
+        h: 470,
+      },
+    ] as const;
+
+    for (const target of targets) {
+      expect(node(target.diagram), target.name).toMatchObject({
+        title: target.name,
+        w: target.w,
+        h: target.h,
+      });
+      for (const sourceTitle of target.sourceTitles) {
+        expect(
+          [Charts.sourceYaml__deliveryOfficeTree, Charts.sourceJson__deliveryOfficeTree,
+            Charts.sourceYaml__redeliveryIdeasMind, Charts.sourceJson__redeliveryIdeasMind]
+            .some((source) => source.includes(sourceTitle)),
+          `${target.name}: 記法の題`,
+        ).toBe(true);
+      }
+      const markup = render(target.diagram);
+      expect(markup, `${target.name}: 対象を絞る id`).toContain(`data-cdl-node="${target.id}"`);
+      expect(markup, `${target.name}: 図の外題の描画対象`).toContain('data-cdl-role="figure-title"');
+      const 外題を隠す = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/gu)].some(
+        ([, selector = "", body = ""]) =>
+          selector.includes(`data-cdl-node="${target.id}"`) &&
+          selector.includes('data-cdl-role="figure-title"') &&
+          /display\s*:\s*none\s*!important/u.test(body),
+      );
+      expect(外題を隠す, `${target.name}: 見本には無い外題を画面で隠す`).toBe(true);
+      const overflow = visualValidate(target.diagram).violations.filter(
+        (violation) => violation.axis === "node-inside-viewbox",
+      );
+      expect(overflow, `${target.name}: 板からはみ出す節`).toEqual([]);
+    }
+  });
+
+  it("端末の階層図とマインドマップの札は見本の暗い階調を参照できる", () => {
+    const defs = renderToStaticMarkup(<SvgDefs />);
+    expect(defs).toContain('id="dragon-terminal-card-gradient"');
+    expect(defs).toContain('stop-color="rgb(10, 21, 14)"');
+    expect(defs).toContain('stop-color="rgb(7, 15, 10)"');
+    expect(defs).toContain('id="dragon-catalog-tree-shadow"');
+    expect(defs).toContain('id="dragon-relief-raised"');
+    expect(defs).not.toContain('id="dragon-relief-raised-line-safe"');
   });
 
   it("13 図の YAML・JSON・変種の全てに同じ札の大きさを書く", () => {
@@ -133,8 +195,16 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
       treeNodeForm: "frame",
       treeEdgeTone: "depth",
       treeEdgeHead: "triangle",
-      w: 1712,
-      h: 416,
+      treeSize: {
+        nodeWidths: [260, 240, 220],
+        nodeHeight: 91.891,
+        titleFontSize: 29,
+        subtitleFontSize: 19,
+        siblingGap: 180,
+        levelGap: 58.109,
+      },
+      w: 1680,
+      h: 392,
     });
     const markup = render(diagram, true);
     const edges = (markup.match(/<[^>]+>/gu) ?? [])
@@ -149,8 +219,47 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
   it("放射を outline で描く", () => {
     const diagram = Charts.redeliveryIdeasMind;
     expect(node(diagram).mindForm).toBe("outline");
-    expect(node(diagram)).toMatchObject({ w: 1712, h: 528 });
+    expect(node(diagram)).toMatchObject({
+      mindSize: {
+        root: { width: 330, height: 61.891, fontSize: 29 },
+        branch: { width: 220, height: 62.891, fontSize: 29 },
+        leaf: { fontSize: 23 },
+        rootBranchGap: 155,
+        branchLeafGap: 70,
+        branchRowGap: 290,
+        branchRowOffset: 10,
+        leafRowGap: 92,
+        leafRowOffset: 6,
+      },
+      w: 1680,
+      h: 470,
+    });
     expect(render(diagram)).toContain('data-cdl-mind-form="outline"');
+  });
+
+  it("切替形も同じ見本寸法に収まり、説明つき放射の補足を落とさない", () => {
+    expect(node(Charts.pattern__deliveryOfficeTree__見出しだけ)).toMatchObject({
+      w: 1680,
+      h: 392,
+      treeSize: node(Charts.deliveryOfficeTree).treeSize,
+    });
+    expect(node(Charts.pattern__redeliveryIdeasMind__説明つき)).toMatchObject({
+      w: 1680,
+      h: 470,
+      mindSize: node(Charts.redeliveryIdeasMind).mindSize,
+    });
+
+    const markup = render(Charts.pattern__redeliveryIdeasMind__説明つき, true);
+    expect(markup).toContain("受け取りやすくする");
+    expect(markup).toContain("宅配箱");
+    for (const diagram of [
+      Charts.pattern__deliveryOfficeTree__見出しだけ,
+      Charts.pattern__redeliveryIdeasMind__説明つき,
+    ]) {
+      expect(
+        visualValidate(diagram).violations.filter((violation) => violation.axis === "node-inside-viewbox"),
+      ).toEqual([]);
+    }
   });
 
   it("円と升目の一覧の級は cdl が計算した SVG 値を意匠で上書きしない", () => {
@@ -177,9 +286,7 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
   it("放射の札を見本の横長の比にし、中心・枝・葉を全て残す", () => {
     const diagram = Charts.redeliveryIdeasMind;
     const markup = render(diagram, true);
-    const expectedHeight = (1712 * 550) / 1800;
-
-    expect(Math.abs((node(diagram).h ?? 0) - expectedHeight)).toBeLessThanOrEqual(16);
+    expect(node(diagram)).toMatchObject({ w: 1680, h: 470 });
     expect(markup.match(/data-cdl-role="mind-root"/gu)).toHaveLength(1);
     expect(markup.match(/data-cdl-role="mind-box"/gu)).toHaveLength(4);
     expect(markup.match(/data-cdl-role="mind-leaf-title"/gu)).toHaveLength(8);
@@ -266,14 +373,15 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     expect(markup).not.toContain('data-cdl-role="journey-line-glow"');
   });
 
-  it("見本帳だけが 16 の倍数の横長／低い札を指定する", () => {
+  it("見本帳だけが見本実測の横長の札を指定する", () => {
     const journey = node(Charts.shipperFeelingJourney);
     const tree = node(Charts.deliveryOfficeTree);
     const mind = node(Charts.redeliveryIdeasMind);
-    expect([journey.w, journey.h, tree.w, tree.h, mind.w, mind.h]
+    expect([journey.w, journey.h]
       .every((value) => typeof value === "number" && value % 16 === 0)).toBe(true);
+    expect(tree).toMatchObject({ w: 1680, h: 392 });
+    expect(mind).toMatchObject({ w: 1680, h: 470 });
     expect(journey.w).toBeGreaterThan(journey.h ?? 0);
-    expect(tree.h).toBeLessThan(480);
     expect(mind.w).toBeGreaterThan((mind.h ?? 0) * 3);
   });
 });

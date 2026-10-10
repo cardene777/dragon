@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  deliveryOfficeTree,
+  redeliveryIdeasMind,
   sourceYaml__deliveryOfficeTree,
   sourceYaml__deliveryResultStacked,
   sourceYaml__measureEffortQuadrant,
@@ -345,13 +347,17 @@ for (const theme of 意匠) {
     await openEditorTheme(page, sourceYaml__onTimeRateSlope, theme, false);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     // CDL は左 4 枚を name、右 4 枚を value として描く。両 role を合わせた 8 枚が左右の名札。
-    const slopeNameStrokes = await stage
-      .locator(':is([data-cdl-role="chart-slope-name"], [data-cdl-role="chart-slope-value"])')
+    const slopeNames = stage
+      .locator(':is([data-cdl-role="chart-slope-name"], [data-cdl-role="chart-slope-value"])');
+    await expect(slopeNames).toHaveCount(8, { timeout: 5_000 });
+    const slopeNameStrokes = await slopeNames
       .evaluateAll((names) => names.map((name) => getComputedStyle(name).stroke));
     expect(slopeNameStrokes, "傾きの名前は輪郭線を重ねず塗りだけで描く")
       .toEqual(Array.from({ length: 8 }, () => "none"));
-    const primarySlopeLines = await stage
-      .locator('[data-cdl-role="chart-slope-line"][data-cdl-emphasis="primary"]')
+    const primarySlopeLineElements = stage
+      .locator('[data-cdl-role="chart-slope-line"][data-cdl-emphasis="primary"]');
+    await expect(primarySlopeLineElements).toHaveCount(2, { timeout: 5_000 });
+    const primarySlopeLines = await primarySlopeLineElements
       .evaluateAll((lines) => lines.map((line) => {
         const style = getComputedStyle(line);
         return { stroke: style.stroke, width: Number.parseFloat(style.strokeWidth) };
@@ -363,9 +369,35 @@ for (const theme of 意匠) {
     await openEditorTheme(page, sourceYaml__deliveryOfficeTree, theme, false);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
     const tree = stage.locator('[data-cdl-kind="tree-hierarchy"]');
-    await expect(tree).toHaveAttribute("data-cdl-w", "1712");
-    await expect(tree).toHaveAttribute("data-cdl-h", "416");
+    // 見本の板は 1800 幅。CDL が左右に 60 ずつ余白を足すため、図の指定幅は 1680。
+    expect(deliveryOfficeTree.nodes[0]).toMatchObject({
+      title: "営業所の階層",
+      w: 1680,
+      h: 392,
+      treeEdgeHead: "triangle",
+      treeSize: {
+        nodeWidths: [260, 240, 220],
+        nodeHeight: 91.891,
+        titleFontSize: 29,
+        subtitleFontSize: 19,
+        siblingGap: 180,
+        levelGap: 58.109,
+      },
+    });
+    await expect(tree).toHaveAttribute("data-cdl-w", "1680");
+    await expect(tree).toHaveAttribute("data-cdl-h", "392");
+    const treeNodes = stage.locator('[data-cdl-role="tree-node"]');
+    await expect(treeNodes).toHaveCount(7, { timeout: 5_000 });
+    expect(await treeNodes.evaluateAll((nodes) =>
+      nodes.map((node) => Number(node.getAttribute("width"))).sort((a, b) => a - b),
+    )).toEqual([220, 220, 220, 220, 240, 240, 260]);
+    expect(await treeNodes.evaluateAll((nodes) =>
+      nodes.map((node) => Number(node.getAttribute("height"))),
+    )).toEqual(Array.from({ length: 7 }, () => 91.891));
     await expect(stage.locator('[data-cdl-role="tree-edge"][marker-end]')).toHaveCount(6);
+    await expect(stage.locator('[data-cdl-role="tree-edge-head"]')).toHaveCount(2);
+    await expect(stage.locator('[data-cdl-role="figure-title"]')).toHaveCount(1);
+    await expect(stage.locator('[data-cdl-role="figure-title"]')).toBeHidden();
     expect(await stage.locator('[data-cdl-role="tree-edge"]').evaluateAll((edges) =>
       new Set(edges.map((edge) => getComputedStyle(edge).stroke)).size,
     )).toBe(2);
@@ -375,11 +407,35 @@ for (const theme of 意匠) {
     const mind = stage.locator('[data-cdl-mind-form="outline"]');
     await expect(mind).toHaveCount(1);
     const mindNode = stage.locator('[data-cdl-node]:has([data-cdl-mind-form="outline"])');
-    await expect(mindNode).toHaveAttribute("data-cdl-w", "1712");
-    await expect(mindNode).toHaveAttribute("data-cdl-h", "528");
+    // 高さ 470 と各箱・間隔は、見本から測った放射の寸法をそのまま記法へ渡した値。
+    expect(redeliveryIdeasMind.nodes[0]).toMatchObject({
+      title: "再配達を減らす",
+      w: 1680,
+      h: 470,
+      mindSize: {
+        root: { width: 330, height: 61.891, fontSize: 29 },
+        branch: { width: 220, height: 62.891, fontSize: 29 },
+        leaf: { fontSize: 23 },
+        rootBranchGap: 155,
+        branchLeafGap: 70,
+        branchRowGap: 290,
+        branchRowOffset: 10,
+        leafRowGap: 92,
+        leafRowOffset: 6,
+      },
+    });
+    await expect(mindNode).toHaveAttribute("data-cdl-w", "1680");
+    await expect(mindNode).toHaveAttribute("data-cdl-h", "470");
     await expect(stage.locator('[data-cdl-role="mind-root"]')).toHaveCount(1);
     await expect(stage.locator('[data-cdl-role="mind-box"]')).toHaveCount(4);
     await expect(stage.locator('[data-cdl-role="mind-leaf-underline"]')).toHaveCount(8);
+    await expect(stage.locator('[data-cdl-role="mind-root"]')).toHaveAttribute("width", "330");
+    await expect(stage.locator('[data-cdl-role="mind-root"]')).toHaveAttribute("height", "61.891");
+    expect(await stage.locator('[data-cdl-role="mind-box"]').evaluateAll((boxes) =>
+      boxes.map((box) => ({ width: box.getAttribute("width"), height: box.getAttribute("height") })),
+    )).toEqual(Array.from({ length: 4 }, () => ({ width: "220", height: "62.891" })));
+    await expect(stage.locator('[data-cdl-role="figure-title"]')).toHaveCount(1);
+    await expect(stage.locator('[data-cdl-role="figure-title"]')).toBeHidden();
     const [rootStyle, boxStyle] = await Promise.all([
       stage.locator('[data-cdl-role="mind-root"]').evaluate((root) => ({
         radius: getComputedStyle(root).rx,

@@ -341,6 +341,12 @@ export function SvgDefs(): React.ReactElement {
           <stop offset="1" stopColor="#d9d2c6" />
         </linearGradient>
 
+        {/* 端末の階層図と放射の札は、見本どおり上から下へわずかに暗くする。 */}
+        <linearGradient id="dragon-terminal-card-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="rgb(10, 21, 14)" />
+          <stop offset="1" stopColor="rgb(7, 15, 10)" />
+        </linearGradient>
+
         {/* `docs/design/proposal/static/流れ-端末.html` の `#光`。
             小さい凡例と始まり・終わりの印ごとに使うため、領域だけを広げる。 */}
         <filter
@@ -560,6 +566,31 @@ export function SvgDefs(): React.ReactElement {
           </feComponentTransfer>
           <feMerge>
             <feMergeNode in="metro-terminal-label-dim" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        {/* 図録の階層札。見本の負の spread を、影の元を 14px 縮めてからぼかして再現する。 */}
+        <filter
+          id="dragon-catalog-tree-shadow"
+          x="-20%"
+          y="-20%"
+          width="140%"
+          height="180%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="catalog-near-blur" />
+          <feOffset in="catalog-near-blur" dy="3" result="catalog-near-offset" />
+          <feFlood floodColor="#000000" floodOpacity=".28" result="catalog-near-color" />
+          <feComposite in="catalog-near-color" in2="catalog-near-offset" operator="in" result="catalog-near" />
+          <feMorphology in="SourceAlpha" operator="erode" radius="14" result="catalog-far-spread" />
+          <feGaussianBlur in="catalog-far-spread" stdDeviation="20" result="catalog-far-blur" />
+          <feOffset in="catalog-far-blur" dy="22" result="catalog-far-offset" />
+          <feFlood floodColor="#000000" floodOpacity=".62" result="catalog-far-color" />
+          <feComposite in="catalog-far-color" in2="catalog-far-offset" operator="in" result="catalog-far" />
+          <feMerge>
+            <feMergeNode in="catalog-near" />
+            <feMergeNode in="catalog-far" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
