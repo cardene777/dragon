@@ -45,6 +45,9 @@ import { 日本語の字 } from "./screen-words";
 const src根 = fileURLToPath(new URL("../", import.meta.url));
 const 検査根 = fileURLToPath(new URL("../../tests/", import.meta.url));
 const 記法根 = fileURLToPath(new URL("../../../../packages/dragon/src/", import.meta.url));
+const 測る道具根 = fileURLToPath(
+  new URL("../../../../.claude/skills/dragon-match/scripts/", import.meta.url),
+);
 
 /**
  * 画面へ字を渡しうる側。
@@ -53,6 +56,10 @@ const 記法根 = fileURLToPath(new URL("../../../../packages/dragon/src/", impo
  * (`効きません` は `packages/dragon/src/compile.ts` が持つ)。 入れないと、
  * 記法が出す文を照合する検査が全部偽陽性になる。
  *
+ * 測る道具の source を入れるのは、`figure-match.spec.ts` が名指しする表と JSON の字を
+ * `measure.mjs` / `source.mjs` が作るため (#2859)。 ここを実物に含めると、道具側で呼び名を
+ * 変えて検査だけが古い字を見続ける形も拾える。
+ *
  * 検査 file は外す = 植え込み対照に置いた古い字を「実物に出ている」 と読んでしまう
  * (実測で `プリセット` が 3 つの検査 file にだけ残っていた)。
  */
@@ -60,6 +67,7 @@ function 実物の字(): { 文: string; 走査: number } {
   const files = [
     ...file一覧(src根, /\.tsx?$/, false),
     ...file一覧(記法根, /\.tsx?$/, false),
+    ...file一覧(測る道具根, /\.mjs$/, false),
   ];
   return { 文: files.map((f) => readFileSync(f, "utf8")).join("\n"), 走査: files.length };
 }
