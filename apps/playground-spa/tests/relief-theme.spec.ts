@@ -597,12 +597,28 @@ test.describe("relief theme (#2796)", () => {
         fill: getComputedStyle(element).fill,
         opacity: getComputedStyle(element).fillOpacity,
         filter: getComputedStyle(element).filter,
+        gradient: (() => {
+          const id = /^url\(["']?(#[a-z0-9-]+)["']?\)$/i.exec(getComputedStyle(element).fill)?.[1];
+          const node = id ? element.ownerDocument.querySelector<SVGLinearGradientElement>(id) : null;
+          const stops = node ? [...node.querySelectorAll<SVGStopElement>("stop")] : [];
+          return node
+            ? {
+                direction: [node.getAttribute("x1"), node.getAttribute("y1"), node.getAttribute("x2"), node.getAttribute("y2")],
+                colors: stops.map((stop) => getComputedStyle(stop).stopColor),
+              }
+            : null;
+        })(),
       })),
     );
     expect(bars.some((bar) => bar.main), "主役の棒が無い").toBe(true);
     expect(bars.some((bar) => !bar.main), "主役でない棒が無い").toBe(true);
     for (const bar of bars) {
-      expect(colorKey(bar.fill)).toBe(colorKey(bar.main ? lead : pale));
+      // 見本は平塗りでなく、左上の系列色 78%・白 22% から右下の系列色へ落ちる階調。
+      expect(bar.gradient, `棒の階調 ${bar.fill}`).not.toBeNull();
+      expect(bar.gradient?.direction).toEqual(["0", "0", "1", "1"]);
+      expect(bar.gradient?.colors.map(colorKey)).toEqual(
+        [bar.main ? "#d17c67" : "#bcb3a7", bar.main ? lead : pale].map(colorKey),
+      );
       expect(bar.opacity).toBe("1");
       expect(bar.filter).toContain("dragon-relief-raised-sm");
     }

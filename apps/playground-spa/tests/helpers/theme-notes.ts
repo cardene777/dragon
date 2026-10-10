@@ -91,6 +91,12 @@ export type ThemeToneSeries = {
   opacity: number;
   /** 日程の帯だけで置き直す系列色 (系列番号 1-6 → `#rrggbb`)。無い系列は図表の系列色のまま */
   ganttOverrides: Map<number, string>;
+  /** 系列色を台へ重ねる割合。見本が半透明相当の面を指定する意匠だけが持つ。 */
+  ganttSurfaceOpacity?: number;
+  /** 帯の境を描く枠に残す系列色の割合。 */
+  ganttFrameSeriesRatio?: number;
+  /** 帯の境を描く枠へ混ぜる白の割合。 */
+  ganttFrameWhiteRatio?: number;
   ganttOwnerColor: string;
   /** 模様の通常帯だけで使う担当字。無ければ主役と同じ `ganttOwnerColor`。 */
   ganttSecondaryOwnerColor?: string;
@@ -543,7 +549,8 @@ function 棒の側を読む(name: DslTheme, side: string): ThemeBarStyle {
     ? patternWithColor[1]?.toLowerCase()
     : undefined;
   const fillColor = /`(#[0-9a-fA-F]{6})`/.exec(side)?.[1];
-  const fill = pattern ? `url(${pattern})` : fillColor?.toLowerCase();
+  // 図面の見本は副棒の内側を塗らず格子を通すため、枠色を塗りと誤読しない。
+  const fill = pattern ? `url(${pattern})` : /塗りなし/.test(side) ? "none" : fillColor?.toLowerCase();
   if (!fill) throw new Error(`意匠帳の ${name} の単系列の棒から塗りを読めない (${side})`);
   const opacityText = /濃さ(?:は)?\s*((?:\d+(?:\.\d+)?)|(?:\.\d+))/.exec(side)?.[1];
   const style: ThemeBarStyle = {
@@ -605,7 +612,10 @@ export function readFixedThemeToneSeries(
     if (!opacity) throw new Error(`意匠帳の ${name} の日程の棒と漏斗の段に濃さが無い`);
     const ganttSentence = /日程の帯は([^。]+)。/.exec(row)?.[1];
     if (!ganttSentence) throw new Error(`意匠帳の ${name} の日程の棒と漏斗の段に日程の帯が無い`);
-    if (!ganttSentence.includes("系列色のまま")) {
+    const translucentSurface = /系列色 (\d+(?:\.\d+)?)% と台を混ぜた面を、系列色 (\d+(?:\.\d+)?)%・白 (\d+(?:\.\d+)?)% の枠/.exec(
+      ganttSentence,
+    );
+    if (!ganttSentence.includes("系列色のまま") && !translucentSurface) {
       throw new Error(`意匠帳の ${name} の日程の帯に系列色のままの範囲が無い`);
     }
     const ganttOverrides = new Map(
@@ -627,6 +637,11 @@ export function readFixedThemeToneSeries(
       ganttOverrides,
       ganttOwnerColor,
     };
+    if (translucentSurface) {
+      style.ganttSurfaceOpacity = Number(translucentSurface[1]) / 100;
+      style.ganttFrameSeriesRatio = Number(translucentSurface[2]) / 100;
+      style.ganttFrameWhiteRatio = Number(translucentSurface[3]) / 100;
+    }
     const secondaryOwner = /通常帯の上の担当の字は[^`]*`(#[0-9a-fA-F]{6})`/
       .exec(row)?.[1]?.toLowerCase();
     if (secondaryOwner) style.ganttSecondaryOwnerColor = secondaryOwner;

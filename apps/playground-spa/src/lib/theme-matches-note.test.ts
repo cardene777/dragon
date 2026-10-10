@@ -36,6 +36,7 @@ import {
   type ThemeToneSeries,
 } from "../../tests/helpers/theme-notes";
 import { contrast } from "../../tests/helpers/pixel-contrast";
+import { over } from "../../tests/helpers/effective-color";
 
 const 読む = (rel: string): string =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
@@ -328,6 +329,7 @@ function cssVariableName(value: string): string {
 
 function resolvedCssPaint(declarations: Map<string, string>, body: string, property: string): string {
   const value = cssDeclaration(body, property).toLowerCase();
+  if (value === "none") return value;
   const pattern = /^url\(["']?(#[a-z0-9-]+)["']?\)$/.exec(value)?.[1];
   if (pattern) return `url(${pattern})`;
   const literal = /^(#[0-9a-f]{6})$/.exec(value)?.[1];
@@ -378,6 +380,25 @@ function compareGanttCss(
       const actualSecondary = resolvedCssPaint(cssFixedThemeDeclarations(cssText, name), secondary, "fill");
       if (actualSecondary !== style.ganttSecondaryOwnerColor) {
         failures.push(`${name} 通常帯の担当の字: 意匠帳 ${style.ganttSecondaryOwnerColor} / CSS ${actualSecondary}`);
+      }
+    }
+    if (
+      style.ganttSurfaceOpacity !== undefined &&
+      style.ganttFrameSeriesRatio !== undefined &&
+      style.ganttFrameWhiteRatio !== undefined
+    ) {
+      // 電飾の見本は平塗りでなく、18% の面と明るい枠を別々の役割として指定する。
+      const bar = cssRuleBody(cssText, `${stage} [data-cdl-role="gantt-bar"][data-cdl-tone]`, "fill");
+      const fill = cssDeclaration(bar, "fill").replace(/\s+/g, " ");
+      const stroke = cssDeclaration(bar, "stroke").replace(/\s+/g, " ");
+      const surface = style.ganttSurfaceOpacity * 100;
+      const series = style.ganttFrameSeriesRatio * 100;
+      const white = style.ganttFrameWhiteRatio * 100;
+      if (fill !== `color-mix(in srgb, currentColor ${surface}%, var(--theme-neon-chart-ground))`) {
+        failures.push(`${name} 日程の帯の面: 意匠帳 ${surface}% / CSS ${fill}`);
+      }
+      if (stroke !== `color-mix(in srgb, currentColor ${series}%, white ${white}%)`) {
+        failures.push(`${name} 日程の帯の枠: 意匠帳 ${series}%・白 ${white}% / CSS ${stroke}`);
       }
     }
   }
@@ -1072,8 +1093,15 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
         if (!original || !color) throw new Error(`${name} の日程の帯 ${series} の色が無い`);
         const overridden = tones.ganttOverrides.has(series);
         const patternedSecondary = name === "sketch" && series > 1;
-        const originalRatio = contrast(rgb(original), rgb(tones.ganttOwnerColor));
-        const ownerRatio = contrast(rgb(color), rgb(tones.ganttOwnerColor));
+        const ground = rgb(note.value.ground);
+        const originalSurface = tones.ganttSurfaceOpacity === undefined
+          ? rgb(original)
+          : over(rgb(original), tones.ganttSurfaceOpacity, ground);
+        const surface = tones.ganttSurfaceOpacity === undefined
+          ? rgb(color)
+          : over(rgb(color), tones.ganttSurfaceOpacity, ground);
+        const originalRatio = contrast(originalSurface, rgb(tones.ganttOwnerColor));
+        const ownerRatio = contrast(surface, rgb(tones.ganttOwnerColor));
         if (!patternedSecondary && overridden !== (originalRatio < 4.5)) {
           failures.push(`${name} 日程の帯 ${series}: 元の担当との対比 ${originalRatio.toFixed(2)} なのに上書き ${overridden ? "あり" : "なし"}`);
         }
@@ -1090,7 +1118,11 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
         if (!patternedSecondary && ownerRatio < 4.5) {
           failures.push(`${name} 日程の帯 ${series}: 担当との対比 ${ownerRatio.toFixed(2)} < 4.5`);
         }
-        const groundRatio = contrast(rgb(color), rgb(note.value.ground));
+        // 電飾の半透明相当の面は枠で形を示すため、台との 3:1 は見本の枠色で測る。
+        const boundary = tones.ganttFrameWhiteRatio === undefined
+          ? rgb(color)
+          : over([255, 255, 255], tones.ganttFrameWhiteRatio, rgb(color));
+        const groundRatio = contrast(boundary, rgb(note.value.ground));
         if (groundRatio < 3) {
           failures.push(`${name} 日程の帯 ${series}: 台との対比 ${groundRatio.toFixed(2)} < 3`);
         }

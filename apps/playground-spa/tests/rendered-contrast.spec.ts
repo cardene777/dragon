@@ -43,6 +43,7 @@ import {
 } from "./helpers/theme-notes";
 import {
   effectivePaint,
+  over,
   parseColor,
   readPaints,
   type Rgb,
@@ -1534,13 +1535,21 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
           if (!bar || !expected) continue;
           if (note.name === "sketch" && !bar.fill.includes("dragon-sketch-pen")) {
             failures.push(`${note.name}/${mode}/${tone}: 日程の帯が淡い斜線でない (${bar.fill})`);
-          } else if (note.name !== "sketch" && colorKey(bar.fill) !== colorKey(expected)) {
-            failures.push(`${note.name}/${mode}/${tone}: 日程の帯 ${bar.fill} / 帯の系列 ${tones.seriesByTone[tone]} ${expected}`);
+          } else if (note.name !== "sketch") {
+            // 電飾の見本は系列色 18% と台を混ぜた面。系列色そのものを期待する他の 6 意匠は変えない。
+            const expectedFill = note.name === "neon"
+              ? `rgb(${over(color(expected), 0.18, ground).join(" ")})`
+              : expected;
+            if (colorKey(bar.fill) !== colorKey(expectedFill)) {
+              failures.push(`${note.name}/${mode}/${tone}: 日程の帯 ${bar.fill} / 見本の面 ${expectedFill}`);
+            }
           }
           if (bar.fillOpacity !== tones.opacity) failures.push(`${note.name}/${mode}/${tone}: 濃さ ${bar.fillOpacity} / ${tones.opacity}`);
           if (note.name !== "sketch") {
-            const ratio = contrast(color(bar.fill), ground);
-            if (ratio < 3) failures.push(`${note.name}/${mode}/${tone}: 日程の棒と台 ${ratio.toFixed(2)}:1 < 3:1`);
+            // 電飾の 18% 面は見本どおり枠で境を描くため、非文字部品の境界色を台と比べる。
+            const boundary = note.name === "neon" ? color(bar.stroke) : color(bar.fill);
+            const ratio = contrast(boundary, ground);
+            if (ratio < 3) failures.push(`${note.name}/${mode}/${tone}: 日程の棒の境と台 ${ratio.toFixed(2)}:1 < 3:1`);
           }
           if (tones.stroke && colorKey(bar.stroke) !== colorKey(tones.stroke)) {
             failures.push(`${note.name}/${mode}/${tone}: 日程の枠 ${bar.stroke} / ${tones.stroke}`);
@@ -1584,21 +1593,31 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
         await openEditorTheme(page, defaultGantt, note.name, dark);
         stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
         ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
-        const defaultFills = await stage.locator('[data-cdl-role="gantt-bar"]').evaluateAll((elements) =>
-          elements.map((element) => getComputedStyle(element).fill));
-        if (defaultFills.length === 0) failures.push(`${note.name}/${mode}: 色みの無い日程の棒が 0 件`);
-        for (const fill of defaultFills) {
+        const defaultBars = await stage.locator('[data-cdl-role="gantt-bar"]').evaluateAll((elements) =>
+          elements.map((element) => {
+            const style = getComputedStyle(element);
+            return { fill: style.fill, stroke: style.stroke };
+          }));
+        if (defaultBars.length === 0) failures.push(`${note.name}/${mode}: 色みの無い日程の棒が 0 件`);
+        for (const bar of defaultBars) {
+          const fill = bar.fill;
           if (note.name === "sketch" && !fill.includes("dragon-sketch-pen")) {
             failures.push(`${note.name}/${mode}: 色みの無い日程が淡い斜線でない (${fill})`);
-          } else if (note.name !== "sketch" && colorKey(fill) !== colorKey(ganttColors[0]!)) {
-            failures.push(`${note.name}/${mode}: 色みの無い日程 ${fill} / 帯の系列 1 ${ganttColors[0]}`);
+          } else if (note.name !== "sketch") {
+            const expectedFill = note.name === "neon"
+              ? `rgb(${over(color(ganttColors[0]!), 0.18, ground).join(" ")})`
+              : ganttColors[0]!;
+            if (colorKey(fill) !== colorKey(expectedFill)) {
+              failures.push(`${note.name}/${mode}: 色みの無い日程 ${fill} / 見本の面 ${expectedFill}`);
+            }
           }
           if (note.name === "relief" && colorKey(fill) === colorKey(note.value.ink)) {
             failures.push(`${note.name}/${mode}: 色みの無い日程の棒が墨になっている`);
           }
           if (note.name !== "sketch") {
-            const ratio = contrast(color(fill), ground);
-            if (ratio < 3) failures.push(`${note.name}/${mode}: 色みの無い日程の棒と台 ${ratio.toFixed(2)}:1 < 3:1`);
+            const boundary = note.name === "neon" ? color(bar.stroke) : color(fill);
+            const ratio = contrast(boundary, ground);
+            if (ratio < 3) failures.push(`${note.name}/${mode}: 色みの無い日程の棒の境と台 ${ratio.toFixed(2)}:1 < 3:1`);
           }
         }
 

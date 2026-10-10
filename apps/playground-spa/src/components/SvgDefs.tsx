@@ -319,21 +319,26 @@ export function SvgDefs(): React.ReactElement {
         </pattern>
 
         {/* 浮彫の図表は、見本の左上の白い面から系列色へ落ちる 145deg の浮き出し。 */}
-        <linearGradient id="dragon-relief-chart-1" x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#f2dad4" />
+        <linearGradient id="dragon-relief-chart-1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#d17c67" />
           <stop offset="1" stopColor="#c4573c" />
         </linearGradient>
-        <linearGradient id="dragon-relief-chart-2" x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#d1e2df" />
+        <linearGradient id="dragon-relief-chart-2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#5d978e" />
           <stop offset="1" stopColor="#2f7a6e" />
         </linearGradient>
-        <linearGradient id="dragon-relief-chart-3" x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#f3e9d3" />
+        <linearGradient id="dragon-relief-chart-3" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#d5b061" />
           <stop offset="1" stopColor="#c99a35" />
         </linearGradient>
-        <linearGradient id="dragon-relief-chart-4" x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#eceae6" />
+        <linearGradient id="dragon-relief-chart-4" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#bcb3a7" />
           <stop offset="1" stopColor="#a99e8e" />
+        </linearGradient>
+
+        <linearGradient id="dragon-relief-mind-root" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f3efe8" />
+          <stop offset="1" stopColor="#d9d2c6" />
         </linearGradient>
 
         {/* `docs/design/proposal/static/流れ-端末.html` の `#光`。
@@ -488,10 +493,10 @@ export function SvgDefs(): React.ReactElement {
         <filter
           id="dragon-metro-neon-glow"
           filterUnits="userSpaceOnUse"
-          x="-3%"
-          y="-3%"
-          width="106%"
-          height="106%"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
         >
           <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="metro-neon-halo" />
           <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="metro-neon-haze" />
@@ -693,29 +698,28 @@ export function SvgDefs(): React.ReactElement {
           </feMerge>
         </filter>
 
-        {/* 線より後に描かれる札用。明暗を札の面内へ切り、手前の矢じりを外光で洗わない。 */}
+        {/* 線より後に描かれる札用。右下の暗い影は外へ出し、白い光だけ面内へ切って上の矢じりを洗わない。 */}
         <filter
           id="dragon-relief-raised-contained"
           filterUnits="userSpaceOnUse"
-          x="-2%"
-          y="-2%"
-          width="104%"
-          height="104%"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
           colorInterpolationFilters="sRGB"
         >
           <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="contained-dark-blur" />
           <feOffset in="contained-dark-blur" dx="4" dy="4" result="contained-dark-offset" />
-          <feComposite in="contained-dark-offset" in2="SourceAlpha" operator="in" result="contained-dark-mask" />
           <feFlood floodColor="rgb(160,144,120)" floodOpacity=".45" result="contained-dark-color" />
-          <feComposite in="contained-dark-color" in2="contained-dark-mask" operator="in" result="contained-dark" />
+          <feComposite in="contained-dark-color" in2="contained-dark-offset" operator="in" result="contained-dark" />
           <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="contained-light-blur" />
           <feOffset in="contained-light-blur" dx="-4" dy="-4" result="contained-light-offset" />
           <feComposite in="contained-light-offset" in2="SourceAlpha" operator="in" result="contained-light-mask" />
           <feFlood floodColor="#ffffff" floodOpacity=".9" result="contained-light-color" />
           <feComposite in="contained-light-color" in2="contained-light-mask" operator="in" result="contained-light" />
           <feMerge>
-            <feMergeNode in="SourceGraphic" />
             <feMergeNode in="contained-dark" />
+            <feMergeNode in="SourceGraphic" />
             <feMergeNode in="contained-light" />
           </feMerge>
         </filter>

@@ -8,11 +8,25 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { presetDeliveryStages } from "@/topics/catalog/presets.cdl";
+import {
+  presetDeliveryFlow,
+  presetDeliveryStages,
+  presetDeliveryTimeline,
+} from "@/topics/catalog/presets.cdl";
 
 const css = readFileSync(fileURLToPath(new URL("../styles/cdl-theme.css", import.meta.url)), "utf8");
 const fixedPalettes =
   ':is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"])';
+const fixedPaletteNames = [
+  "blueprint",
+  "letterpress",
+  "catalog",
+  "terminal",
+  "sketch",
+  "neon",
+  "relief",
+] as const;
+const fixedThemeStage = `svg[data-cdl-stage]${fixedPalettes}`;
 const fixedStages = `svg[data-cdl-stage]${fixedPalettes}:has([data-cdl-role="stage-column"])`;
 const legendColors = [
   {
@@ -91,6 +105,46 @@ function declaration(body: string, property: string): string {
   return value;
 }
 
+function selectorPaletteNames(selector: string): string[] {
+  return [...selector.matchAll(/\[data-cdl-palette="([^"]+)"\]/g)]
+    .flatMap((match) => match[1] ? [match[1]] : []);
+}
+
+function 凡例の点線色を読む(markup: string, palette: string): string {
+  const dom = new JSDOM(`<!doctype html><html><head><style>${css}</style></head><body>${markup}</body></html>`);
+  const svg = dom.window.document.querySelector("svg");
+  if (!svg) throw new Error("dragon の SVG が無い");
+  svg.setAttribute("data-cdl-palette", palette);
+  const path = svg.querySelector<SVGPathElement>('[data-cdl-legend-mark="dotted-line"] path');
+  if (!path) throw new Error(`${palette} の凡例の点線が無い`);
+
+  const computed = dom.window.getComputedStyle(path);
+  const stroke = path.getAttribute("stroke")?.trim() || computed.stroke.trim();
+  const variable = /^var\((--[a-z0-9-]+)/i.exec(stroke);
+  if (!variable) return stroke.toLowerCase();
+  let property = variable[1]!;
+  const seen = new Set<string>();
+  while (!seen.has(property)) {
+    seen.add(property);
+    const resolved = computed.getPropertyValue(property).trim();
+    if (!resolved) throw new Error(`${palette} の ${property} を色へ解けない`);
+    const nested = /^var\((--[a-z0-9-]+)/i.exec(resolved)?.[1];
+    if (!nested) return resolved.toLowerCase();
+    property = nested;
+  }
+  throw new Error(`${palette} の ${property} が循環している`);
+}
+
+function 見本の凡例の点線色を読む(figure: string, theme: string): string {
+  const sample = readFileSync(resolve(process.cwd(), `docs/design/proposal/static/${figure}-${theme}.html`), "utf8");
+  const path = new JSDOM(sample).window.document.querySelector<SVGPathElement>(
+    ".legend path[stroke-dasharray]",
+  );
+  const stroke = path?.getAttribute("stroke");
+  if (!stroke) throw new Error(`${figure}-${theme}.html の凡例の点線色が無い`);
+  return stroke.toLowerCase();
+}
+
 type 札の値 = { 見本: string; dragon: string };
 
 function 段の箱の札を読む(palette: "catalog" | "neon"): Map<string, 札の値> {
@@ -111,6 +165,100 @@ function 段の箱の札を読む(palette: "catalog" | "neon"): Map<string, 札�
 }
 
 describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () => {
+  it("階層と工程の字の太さを 7 意匠の見本に合わせる", () => {
+    const leaf = `${fixedThemeStage} [data-cdl-mind-form="outline"] [data-cdl-role="mind-leaf-title"]`;
+    expect(declaration(ruleBody(leaf), "font-weight")).toBe("500 !important");
+
+    const tree =
+      'svg[data-cdl-stage]:is([data-cdl-palette="letterpress"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"]) [data-cdl-role="tree-node-title"]';
+    expect(declaration(ruleBody(tree), "font-weight")).toBe("800 !important");
+
+    const gantt = `${fixedThemeStage} [data-cdl-kind="gantt-timeline"] text:not([data-cdl-role])`;
+    expect(declaration(ruleBody(gantt), "font-weight")).toBe("500 !important");
+  });
+
+  it("5 段目 d で足した共通規則を固定 7 意匠だけに当てる", () => {
+    const rules = [
+      {
+        selectorParts: ['[data-cdl-kind="chart-slope"]', '[data-cdl-role="chart-slope-period"]'],
+        declarations: { "font-weight": "400 !important" },
+      },
+      {
+        selectorParts: ['[data-cdl-role="chart-stacked-bar-period"]'],
+        declarations: { "font-weight": "400 !important" },
+      },
+      {
+        selectorParts: ['[data-cdl-kind="chart-stacked-bar"]', '[data-cdl-role="legend-text"]'],
+        declarations: { fill: "var(--theme-chart-axis-color) !important" },
+      },
+      {
+        selectorParts: ['[data-cdl-role="quadrant-canvas"]'],
+        declarations: { rx: "0", ry: "0" },
+      },
+      {
+        selectorParts: ['[data-cdl-kind="chart-pie"]', 'text:not([data-cdl-role])[font-weight="600"]'],
+        declarations: { "font-weight": "700 !important" },
+      },
+      {
+        selectorParts: ['[data-cdl-kind="gantt-timeline"]', 'text:not([data-cdl-role])'],
+        declarations: { "font-weight": "500 !important" },
+      },
+    ];
+    const cssRules = [
+      ...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g),
+    ].map((match) => ({ selector: match[1]?.trim() ?? "", body: match[2] ?? "" }));
+
+    for (const { selectorParts, declarations } of rules) {
+      const matches = cssRules.filter(({ selector, body }) =>
+        selectorParts.every((part) => selector.includes(part)) &&
+        Object.entries(declarations).every(([property, value]) => {
+          const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          return new RegExp(`(?:^|;)\\s*${escaped}\\s*:\\s*${value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*(?:;|$)`, "m").test(body);
+        })
+      );
+      expect(matches, selectorParts.join(" ")).toHaveLength(1);
+      const selector = matches[0]?.selector ?? "";
+      expect(selectorPaletteNames(selector).sort(), selector).toEqual([...fixedPaletteNames].sort());
+    }
+  });
+
+  it("手描きの主役でない棒の枠を見本の 2.5 にする", () => {
+    const selector =
+      'svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="chart-bar"]:not([data-cdl-emphasis="primary"])';
+    expect(declaration(ruleBody(selector), "stroke-width")).toBe("2.5px !important");
+  });
+
+  it("電飾の桃 35%・白 65% の枠を計算値 #ffb6db にする", () => {
+    const note = readFileSync(resolve(process.cwd(), "docs/design/neon/note.md"), "utf8");
+    expect(note).not.toContain("#ffb5db");
+    expect(css).not.toContain("#ffb5db");
+
+    const selector =
+      'svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-kind="chart-bar"] [data-cdl-role="chart-bar"][data-cdl-emphasis="primary"]';
+    expect(declaration(ruleBody(selector), "stroke")).toBe("#ffb6db");
+  });
+
+  it.each([
+    ["段箱", presetDeliveryStages],
+    ["時間軸", presetDeliveryTimeline],
+    ["流れ", presetDeliveryFlow],
+  ] as const)("%s の凡例の点線は 7 意匠とも見本の計算後の色になる", (figure, diagram) => {
+    const markup = renderToStaticMarkup(createElement(CdlDiagramView, { diagram }));
+    for (const { palette, theme } of [
+      { palette: "blueprint", theme: "図面" },
+      { palette: "letterpress", theme: "活版" },
+      { palette: "catalog", theme: "図録" },
+      { palette: "terminal", theme: "端末" },
+      { palette: "sketch", theme: "手描き" },
+      { palette: "neon", theme: "電飾" },
+      { palette: "relief", theme: "浮彫" },
+    ] as const) {
+      expect(凡例の点線色を読む(markup, palette), `${figure} / ${theme}`).toBe(
+        見本の凡例の点線色を読む(figure, theme),
+      );
+    }
+  });
+
   it("全図共通の太さ 7 を残し、段の箱の主役・枝・強調中・済んだ線を 5 にする", () => {
     expect(declaration(ruleBody('[data-cdl-role="edge-line"]'), "stroke-width")).toBe("7 !important");
 

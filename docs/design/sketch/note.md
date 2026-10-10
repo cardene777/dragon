@@ -68,7 +68,7 @@
 | 札           | 面 `#fffdf7` に字 `#2b2620`。`accent` / `info` は一 `#d2491f`、`success` は二 `#2f7d4f`、`teal` / `error` / `warning` は三 `#2a5ca8` の枠。`data-cdl-edge-role="main"` は一。色みを持たない札は墨の枠。枠の太さ 2 |
 | 時間軸の線の札 | success 面 `#2f7d4f`、error 面 `#2a5ca8`、success 字 `#fffdf7`、error 字 `#fffdf7`、success 枠 `none`、error 枠 `none`、枠の太さ 0、角 9px、高さ 40px、字 21px、字の太さ 700 |
 | 鍵           | 一。下線と同じ行の印に使う                                                                               |
-| 単系列の棒   | `data-cdl-emphasis="primary"` の棒は一の朱 `#d2491f` のペン斜線 `#dragon-sketch-pen-primary` に一 `#d2491f` の 2 の枠、それ以外は淡のペン斜線 `#dragon-sketch-pen` に墨 `#2b2620` の 2 の枠。濃さは 1 |
+| 単系列の棒   | `data-cdl-emphasis="primary"` の棒は一の朱 `#d2491f` のペン斜線 `#dragon-sketch-pen-primary` に墨 `#2b2620` の 2.5 の枠、それ以外は淡のペン斜線 `#dragon-sketch-pen` に墨 `#2b2620` の 2.5 の枠。濃さは 1 |
 | 書体         | 画面が持つ 2 書体のまま                                                                                  |
 | 動き         | 描く (下の「動き」)                                                                                      |
 | 図表の系列色 | 1 = 一、2 = 二、3 = 三、4 = 薄、5 = 濃二、6 = 濃三                                                      |
@@ -183,7 +183,7 @@ dragon は軸と番号の縁を一の `--er-line`、「はい」を二の `--er-
 
 ![図表。左が見本、右が dragon の棒・折れ線・内訳](images/compare-chart.png)
 
-単系列の棒は全てペンの斜線で塗り、最も大きい東京を一の 2 の枠、他を墨の 2 の枠で描く。
+単系列の棒は全てペンの斜線で塗り、全てを墨の 2.5 の枠で描く。
 内訳は系列 1 から 4 を一・二・三・薄で塗る。見本の 4 色目の淡は地との対比が足りないため薄を使う。
 図表の枠は箱と同じ墨の揺れる枠と影で描き、折れ線には 5 か月の配達実績を載せる。
 

@@ -67,7 +67,7 @@
 | 札               | `accent` / `info` は一 `#dca443`、`success` は二 `#4fae9a`、`teal` / `error` / `warning` は三 `#e8705a` の面。`data-cdl-edge-role="main"` は一。字 `#1b222c` は台の色。枠は持たず、面の無い札は地の字 |
 | 時間軸の線の札   | success 面 `#4fae9a`、error 面 `#e8705a`、success 字 `#1b222c`、error 字 `#1b222c`、success 枠 `none`、error 枠 `none`、枠の太さ 0、角 9px、高さ 40px、字 21px、字の太さ 700 |
 | 鍵               | 一。下線と同じ行の印に使う                                                                          |
-| 単系列の棒       | `data-cdl-emphasis="primary"` の棒は一 `#dca443`、それ以外は淡 `#9c9381`。濃さは 1               |
+| 単系列の棒       | `data-cdl-emphasis="primary"` の棒は一 `#dca443`、それ以外は淡 `#9c9381`。濃さは 1。どちらも `0 8px 16px -8px rgba(0,0,0,.4)` の影 |
 | 始まり・終わりの印 | 箱の面の色。塗りと輪郭の両方                                                                        |
 | 縦列             | 名前は地の字、区切りの点線は地の薄                                                                 |
 | 囲い             | 囲いの面で塗り、名前は地の字                                                                        |
