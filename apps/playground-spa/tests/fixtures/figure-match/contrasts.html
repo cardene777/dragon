@@ -175,6 +175,27 @@
       <path d="M 20 20 L 240 20"></path>
       <path d="M 20 60 L 240 60"></path>
     </svg>
+    <svg class="font-sample" id="zero-size-expected" viewBox="0 0 260 80">
+      <text x="32" y="52" font-family="Arial, sans-serif" font-size="16" fill="rgb(20, 40, 60)">Zero box</text>
+    </svg>
+    <svg class="font-sample" id="zero-size-actual" viewBox="0 0 260 80">
+      <rect x="32" y="12" width="0" height="40" fill="rgb(120, 80, 40)"></rect>
+      <rect x="128" y="12" width="40" height="0" fill="rgb(120, 80, 40)"></rect>
+      <text x="32" y="52" font-family="Arial, sans-serif" font-size="16" fill="rgb(20, 40, 60)">Zero box</text>
+    </svg>
+    <svg class="font-sample" id="unlabeled-area-expected" viewBox="0 0 260 80">
+      <rect x="10" y="10" width="100" height="40" fill="rgb(224, 235, 244)" stroke="rgb(32, 64, 96)" stroke-width="2"></rect>
+      <text x="22" y="36" font-family="Arial, sans-serif" font-size="16" fill="rgb(20, 40, 60)">Area scale</text>
+      <rect x="150" y="10" width="20" height="20" fill="rgb(120, 80, 40)"></rect>
+    </svg>
+    <svg class="font-sample" id="unlabeled-area-actual" viewBox="0 0 260 80">
+      <g transform="scale(0.5)">
+        <rect x="10" y="10" width="100" height="40" fill="rgb(224, 235, 244)" stroke="rgb(32, 64, 96)" stroke-width="2"></rect>
+        <text x="22" y="36" font-family="Arial, sans-serif" font-size="16" fill="rgb(20, 40, 60)">Area scale</text>
+        <rect x="150" y="10" width="20" height="20" fill="rgb(120, 80, 40)"></rect>
+        <rect x="190" y="10" width="19" height="20" fill="rgb(120, 80, 40)"></rect>
+      </g>
+    </svg>
   </main>
   <script>
     const template = document.querySelector("#contents");
