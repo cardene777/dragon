@@ -113,10 +113,25 @@ flow:
 | `sequenceKindLabels` | 順序図の種類名 (`{ call?, return?, fire? }`) を言い換える |
 | `figureCard` | 図表の見出し帯と足 (`{ label, note? }`) |
 | `figureSize` | 図全体を 1 箱にする図種の札の幅と高さ (`{ width, height }`) |
+| `terminalDecoration` | 端末意匠用の窓操作・字送り・行番号 (`{ windowControls?, cursor?, rowOrdinal? }`) |
+| `cornerForm` | `theme-variants` で矩形札の一様角と手描き角を意匠から選ぶ |
+| `figureKindLabel` | 階層図・放射図の種類札 (`{ text, x?, y?, fontSize?, fontWeight?, letterSpacing? }`) |
+| `figureInset` | 図表札の凹み面 (`{ top?, right?, bottom?, left?, radius? }`) |
+| `chartBarSize` | 棒の目盛り・値・名前・余白・棒幅 |
+| `chartLineSize` | 折れ線の値札間隔・目盛り・時点・点・上下余白 |
+| `chartPieSize` | 円の一覧幅・字・行間・余白・外半径 |
+| `chartSlopeLabelTemplate` | 傾き図の左右の札 (`{ left?, right? }`、`{name}` / `{value}` / `{unit}`) |
+| `chartSlopeSize` | 傾き図の点・時点・札・軸の寸法 |
+| `chartStackedLayout` | 内訳の帯の凡例列・間隔・帯・字の寸法 |
+| `chartGaugeSize` | 半円の帯・外半径・上位置・値の字 |
+| `ganttSize` | 工程名・目盛り・帯・節目・依存線の寸法 |
+| `quadrantLabelPosition` | `outside-corners` で四象限の区画名を角の外へ置く |
+| `quadrantSize` | 四象限の面・点・字・札間の寸法 |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
 | `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 印付きは `{ mark, text, tone?, lineStyle? }`、注記は `{ text, align?, lead? }`。和名なら `{ 印, 説明 }`。 印の種類は下の節を参照 |
 | `legendFontSize` | 凡例の字の大きさ |
 | `stageHeaders` | `shape: stages` の見出し寸法を意匠名ごとに書く (`leftPad` / `topPad` / `numberSize` / `gap` / `nameSize` / `bottomPad`) |
+| `stageLayout` | `shape: stages` の列幅・列間・戻る線の迂回寸法 (`columnWidths` / `columnGap` / `backDetourTopGap` / `backDetourSideGap`) |
 
 <!-- notation:top-level:end -->
 
@@ -261,6 +276,8 @@ legend:
 | `labelPlate`     | 説明文の下地を敷くか (`false` で外す)。 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える |
 | `labelOffsetX`   | 説明文の位置を横にずらす                                            |
 | `labelOffsetY`   | 説明文の位置を縦にずらす                                            |
+| `labelCollision` | `auto` で自動回避、`author` で作者が書いた札位置を保つ              |
+| `labelSize`      | 説明文の札の幅・高さ・字 (`{ width?, height?, fontSize? }`)          |
 | `overlay`        | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用)              |
 | `fromPartNode`   | 出どころが部品 (kind に部品の名前を書いた箱) の時、矢印を繋ぐ部品の中の要素の id。 要素を 1 つだけ持つ部品は書かなくてもその要素に繋がり、2 つ以上持つ部品は書かないと矢印を外して知らせる |
 | `toPartNode`     | 行き先が部品の時、矢印を繋ぐ部品の中の要素の id (`fromPartNode` と同じ読み方) |

@@ -63,6 +63,15 @@ const 見本 = (
   return { 名, 記法: src, 項目名: 綴り, 行, 正しい記法: 記法(正), json };
 };
 
+const 新しい複合欄の見本 = (欄: string, 綴り: string, 正: string, 値: unknown): 綴り違いの見本 =>
+  見本(
+    欄,
+    (k) => `${頭}${欄}: {"${k}":${JSON.stringify(値)}}\n\nactors:\n  - A\n`,
+    綴り,
+    正,
+    { input: 図({ [欄]: { [綴り]: 値 } }), path: `$.${欄}.${綴り}` },
+  );
+
 const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持たない> = {
   title: { 項目名を持たない理由: "図の題 1 つを書く欄で、値は文字列" },
   type: { 項目名を持たない理由: "図種の語を 1 つ書く欄" },
@@ -228,6 +237,21 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
       { input: 図({ figureSize: { widht: 640, height: 320 } }), path: "$.figureSize.widht" },
     ),
   ],
+  terminalDecoration: [新しい複合欄の見本("terminalDecoration", "windowContorls", "windowControls", true)],
+  cornerForm: { 項目名を持たない理由: "矩形札の角の語を 1 つ書く欄" },
+  figureKindLabel: [新しい複合欄の見本("figureKindLabel", "tetx", "text", "tree")],
+  figureInset: [新しい複合欄の見本("figureInset", "tp", "top", 4)],
+  chartBarSize: [新しい複合欄の見本("chartBarSize", "barWidht", "barWidth", 82)],
+  chartLineSize: [新しい複合欄の見本("chartLineSize", "pointRaduis", "pointRadius", 7)],
+  chartPieSize: [新しい複合欄の見本("chartPieSize", "outerRaduis", "outerRadius", 171)],
+  chartSlopeLabelTemplate: [新しい複合欄の見本("chartSlopeLabelTemplate", "lef", "left", "{name}")],
+  chartSlopeSize: [新しい複合欄の見本("chartSlopeSize", "axisGpa", "axisGap", 250)],
+  chartStackedLayout: [新しい複合欄の見本("chartStackedLayout", "segmentGpa", "segmentGap", 3)],
+  chartGaugeSize: [新しい複合欄の見本("chartGaugeSize", "arcThicknes", "arcThickness", 34)],
+  ganttSize: [新しい複合欄の見本("ganttSize", "tickCont", "tickCount", 6)],
+  quadrantLabelPosition: { 項目名を持たない理由: "四象限の区画名の位置の語を 1 つ書く欄" },
+  quadrantSize: [新しい複合欄の見本("quadrantSize", "plotSzie", "plotSize", 325)],
+  stageLayout: [新しい複合欄の見本("stageLayout", "columnGpa", "columnGap", 64)],
   theme: { 項目名を持たない理由: "意匠の語を 1 つ書く欄" },
   legend: [
     見本(

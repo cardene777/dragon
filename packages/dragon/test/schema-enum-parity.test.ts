@@ -66,6 +66,10 @@ import {
   SEQUENCE_RETURN_HEAD_VALUES,
   LEGEND_LINE_STYLE_VALUES,
   LEGEND_NOTE_ALIGN_VALUES,
+  CORNER_FORM_VALUES,
+  QUADRANT_LABEL_POSITION_VALUES,
+  LABEL_COLLISION_VALUES,
+  GANTT_TASK_LABEL_ALIGN_VALUES,
 } from "../src/v05/parser";
 import {
   THEMES,
@@ -151,6 +155,9 @@ const 対応表: Record<string, readonly string[]> = {
   見せ方: [...CHART_PIE_FORM_WORDS.keys()],
   ganttBarEnd: ["position"],
   ganttBarThickness: ["thin"],
+  cornerForm: [...CORNER_FORM_VALUES],
+  "ganttSize.taskLabelAlign": [...GANTT_TASK_LABEL_ALIGN_VALUES],
+  quadrantLabelPosition: [...QUADRANT_LABEL_POSITION_VALUES],
   "chartLineSeries[].dash": [...CHART_LINE_DASH_VALUES],
   "chartLineSeries[].marker": [...CHART_LINE_MARKER_VALUES],
   chartPieTableColumns: [...CHART_PIE_TABLE_COLUMN_VALUES],
@@ -189,6 +196,7 @@ const 対応表: Record<string, readonly string[]> = {
   "flow[].relation": [...CLASS_RELATION_VALUES],
   "flow[].kind": [...SEQ_MESSAGE_VALUES],
   "flow[].role": [...EDGE_ROLE_VALUES],
+  "flow[].labelCollision": [...LABEL_COLLISION_VALUES],
   "animation[].draw": [...DRAW_WORDS],
   "events[].on": [...EVENT_KINDS],
   "readouts[].kind": Object.keys(部品の表),

@@ -96,7 +96,7 @@ const 形の要素たち: 形の要素[] = [
   { 鍵: "onTimeRateSlope", 要素: "縦軸の見出し（先月 / 今月）", 見本の数: 2, 今の数: 2, role: "texts:先月|今月", 描ける: true },
   { 鍵: "onTimeRateSlope", 要素: "営業所を結ぶ線", 見本の数: 4, 今の数: 4, role: "chart-slope-line", 描ける: true },
   { 鍵: "onTimeRateSlope", 要素: "両端の点", 見本の数: 8, 今の数: 8, role: "chart-slope-dot", 描ける: true },
-  { 鍵: "onTimeRateSlope", 要素: "両端の名札", 見本の数: 8, 今の数: 8, role: "chart-slope-name", 描ける: true },
+  { 鍵: "onTimeRateSlope", 要素: "両端の名札", 見本の数: 8, 今の数: 8, role: "chart-slope-label", 描ける: true },
   { 鍵: "onTimeRateSlope", 要素: "主役 2 本だけの色", 見本の数: 2, 今の数: 2, role: "role+attr:chart-slope-line|data-cdl-emphasis=\"primary\"", 描ける: true },
 
   { 鍵: "onTimeShareGauge", 要素: "札の見出し", 見本の数: 1, 今の数: 1, role: "figure-title", 描ける: true },

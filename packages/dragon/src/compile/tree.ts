@@ -63,6 +63,7 @@ export function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => v
     ...(doc.treeSize !== undefined ? { treeSize: doc.treeSize } : {}),
     ...(doc.treeEdgeTone !== undefined ? { treeEdgeTone: doc.treeEdgeTone } : {}),
     ...(doc.treeEdgeHead !== undefined ? { treeEdgeHead: doc.treeEdgeHead } : {}),
+    ...(doc.figureKindLabel !== undefined ? { figureKindLabel: doc.figureKindLabel } : {}),
   });
   return b.build();
 }

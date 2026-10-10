@@ -202,6 +202,7 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
     ...(doc.ganttTickLabels !== undefined ? { ganttTickLabels: doc.ganttTickLabels } : {}),
     ...(doc.ganttBarEnd !== undefined ? { ganttBarEnd: doc.ganttBarEnd } : {}),
     ...(doc.ganttBarThickness !== undefined ? { ganttBarThickness: doc.ganttBarThickness } : {}),
+    ...(doc.ganttSize !== undefined ? { ganttSize: doc.ganttSize } : {}),
   });
 
   return b.build();

@@ -277,8 +277,8 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
       升目の名前: 数の属性(/<text[^>]*data-cdl-role="chart-waffle-item-label"[^>]*>/u.exec(waffle)?.[0] ?? "", "font-size"),
       升目の値: 数の属性(/<text[^>]*data-cdl-role="chart-waffle-item-share"[^>]*>/u.exec(waffle)?.[0] ?? "", "font-size"),
     };
-    expect(一覧の級.円の名前).toBe(15);
-    expect(一覧の級.円の値).toBeCloseTo(12.9545454545, 10);
+    expect(一覧の級.円の名前).toBe(22);
+    expect(一覧の級.円の値).toBe(19);
     expect(一覧の級.升目の名前).toBeCloseTo(22.9541455336, 10);
     expect(一覧の級.升目の値).toBeCloseTo(19.824034779, 10);
   });

@@ -54,6 +54,10 @@ import {
   JOURNEY_LINE_FORM_VALUES,
   JOURNEY_OPPORTUNITY_POSITION_VALUES,
   JOURNEY_LABEL_KEYS,
+  CORNER_FORM_VALUES,
+  QUADRANT_LABEL_POSITION_VALUES,
+  LABEL_COLLISION_VALUES,
+  GANTT_TASK_LABEL_ALIGN_VALUES,
   CDL_ICON_VALUES,
   KIND_FORM_VALUES,
   TITLE_ALIGN_VALUES,
@@ -191,6 +195,20 @@ export interface DragonJson {
   sequenceKindLabels?: DslDocument["sequenceKindLabels"];
   figureCard?: DslDocument["figureCard"];
   figureSize?: DslDocument["figureSize"];
+  terminalDecoration?: DslDocument["terminalDecoration"];
+  cornerForm?: DslDocument["cornerForm"];
+  figureKindLabel?: DslDocument["figureKindLabel"];
+  figureInset?: DslDocument["figureInset"];
+  chartBarSize?: DslDocument["chartBarSize"];
+  chartLineSize?: DslDocument["chartLineSize"];
+  chartPieSize?: DslDocument["chartPieSize"];
+  chartSlopeLabelTemplate?: DslDocument["chartSlopeLabelTemplate"];
+  chartSlopeSize?: DslDocument["chartSlopeSize"];
+  chartStackedLayout?: DslDocument["chartStackedLayout"];
+  chartGaugeSize?: DslDocument["chartGaugeSize"];
+  ganttSize?: DslDocument["ganttSize"];
+  quadrantLabelPosition?: DslDocument["quadrantLabelPosition"];
+  quadrantSize?: DslDocument["quadrantSize"];
   /**
    * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
    *
@@ -219,6 +237,7 @@ export interface DragonJson {
   legendFontSize?: number;
   /** 段の箱で、意匠ごとに描く見出しの寸法。 */
   stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
+  stageLayout?: DslDocument["stageLayout"];
   /** 登場人物 (必須): 文字列 or { name, kind, ... } object */
   actors: (string | JsonActor)[];
   /** flow step 配列 (必須): { from, to, label, ... } */
@@ -581,6 +600,8 @@ export interface JsonStep {
   dashOffsetBind?: string;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  labelCollision?: DslStep["labelCollision"];
+  labelSize?: DslStep["labelSize"];
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
   overlay?: boolean;
   /**
@@ -738,6 +759,20 @@ export const ACCEPTED_KEYS = {
     "sequenceKindLabels",
     "figureCard",
     "figureSize",
+    "terminalDecoration",
+    "cornerForm",
+    "figureKindLabel",
+    "figureInset",
+    "chartBarSize",
+    "chartLineSize",
+    "chartPieSize",
+    "chartSlopeLabelTemplate",
+    "chartSlopeSize",
+    "chartStackedLayout",
+    "chartGaugeSize",
+    "ganttSize",
+    "quadrantLabelPosition",
+    "quadrantSize",
     "eyebrow",
     "axes",
     "regions",
@@ -776,6 +811,7 @@ export const ACCEPTED_KEYS = {
     "legend",
     "legendFontSize",
     "stageHeaders",
+    "stageLayout",
   ],
   actor: [
     "name",
@@ -873,6 +909,8 @@ export const ACCEPTED_KEYS = {
     "dashOffsetBind",
     "labelOffsetX",
     "labelOffsetY",
+    "labelCollision",
+    "labelSize",
     "overlay",
     "pos",
     // 部品の端で繋ぐ要素の id (#1979)
@@ -941,6 +979,9 @@ export type 欄の型 =
   | "図の形"
   | "ガントの帯の終わり"
   | "ガントの帯の厚み"
+  | "札の角"
+  | "四象限の区画名位置"
+  | "線札の衝突"
   | "主役"
   | "必須の図種"
   | "object"
@@ -991,6 +1032,20 @@ export const 欄の型表 = {
     sequenceKindLabels: "object",
     figureCard: "object",
     figureSize: "object",
+    terminalDecoration: "object",
+    cornerForm: "札の角",
+    figureKindLabel: "object",
+    figureInset: "object",
+    chartBarSize: "object",
+    chartLineSize: "object",
+    chartPieSize: "object",
+    chartSlopeLabelTemplate: "object",
+    chartSlopeSize: "object",
+    chartStackedLayout: "object",
+    chartGaugeSize: "object",
+    ganttSize: "object",
+    quadrantLabelPosition: "四象限の区画名位置",
+    quadrantSize: "object",
     eyebrow: "文字列",
     axes: "object",
     regions: "object",
@@ -1029,6 +1084,7 @@ export const 欄の型表 = {
     legend: "並び",
     legendFontSize: "数",
     stageHeaders: "object",
+    stageLayout: "object",
   },
   actor: {
     name: "必須の非空文字列",
@@ -1124,6 +1180,8 @@ export const 欄の型表 = {
     dashOffsetBind: "非空の文字列",
     labelOffsetX: "数",
     labelOffsetY: "数",
+    labelCollision: "線札の衝突",
+    labelSize: "object",
     overlay: "真偽",
     pos: "object",
     // 部品の端で繋ぐ要素の id (#1979)。 空の id は要素を指せないので受けない
@@ -1361,6 +1419,24 @@ function 値を検査(
     case "ガントの帯の厚み":
       if (v === undefined) return;
       if (v !== "thin") 型違い('"thin" if present');
+      return;
+    case "札の角":
+      if (v === undefined) return;
+      if (!(CORNER_FORM_VALUES as readonly unknown[]).includes(v)) {
+        型違い(`one of: ${CORNER_FORM_VALUES.join(", ")}`);
+      }
+      return;
+    case "四象限の区画名位置":
+      if (v === undefined) return;
+      if (!(QUADRANT_LABEL_POSITION_VALUES as readonly unknown[]).includes(v)) {
+        型違い(`one of: ${QUADRANT_LABEL_POSITION_VALUES.join(", ")}`);
+      }
+      return;
+    case "線札の衝突":
+      if (v === undefined) return;
+      if (!(LABEL_COLLISION_VALUES as readonly unknown[]).includes(v)) {
+        型違い(`one of: ${LABEL_COLLISION_VALUES.join(", ")}`);
+      }
       return;
     case "主役":
       if (v === undefined) return;
@@ -2509,9 +2585,14 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   enumField("sequenceActorForm", SEQUENCE_ACTOR_FORM_VALUES);
   enumField("sequenceLabelForm", SEQUENCE_LABEL_FORM_VALUES);
   enumField("sequenceReturnHead", SEQUENCE_RETURN_HEAD_VALUES);
+  enumField("cornerForm", CORNER_FORM_VALUES);
+  enumField("quadrantLabelPosition", QUADRANT_LABEL_POSITION_VALUES);
 
   const closedObject = (
-    name: "journeyLabels" | "figureCard" | "figureSize" | "treeSize" | "mindSize",
+    name: "journeyLabels" | "figureCard" | "figureSize" | "treeSize" | "mindSize" |
+      "terminalDecoration" | "figureKindLabel" | "figureInset" | "chartBarSize" |
+      "chartLineSize" | "chartPieSize" | "chartSlopeLabelTemplate" | "chartSlopeSize" |
+      "chartStackedLayout" | "chartGaugeSize" | "ganttSize" | "quadrantSize" | "stageLayout",
     keys: readonly string[],
   ): Record<string, unknown> | undefined => {
     const value = j[name];
@@ -2646,6 +2727,77 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
       }
     }
   }
+
+  const specs = {
+    terminalDecoration: ["windowControls", "cursor", "rowOrdinal"],
+    figureKindLabel: ["text", "x", "y", "fontSize", "fontWeight", "letterSpacing"],
+    figureInset: ["top", "right", "bottom", "left", "radius"],
+    chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "plotPadding", "barWidth"],
+    chartLineSize: ["valueLabelOffset", "tickFontSize", "periodFontSize", "pointRadius", "plotPadding"],
+    chartPieSize: ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "tableRowGap", "tablePaddingInline", "outerRadius"],
+    chartSlopeLabelTemplate: ["left", "right"],
+    chartSlopeSize: ["pointRadius", "periodFontSize", "labelFontSize", "leftAxisX", "axisGap", "labelAxisGap"],
+    chartStackedLayout: ["legendColumns", "legendColumnGap", "segmentGap", "barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize"],
+    chartGaugeSize: ["arcThickness", "outerRadius", "plotTop", "valueFontSize"],
+    ganttSize: ["taskLabelFontSize", "taskLabelAlign", "taskLabelX", "tickFontSize", "tickCount", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth"],
+    quadrantSize: ["plotOffset", "plotSize", "pointRadius", "pointFontSize", "pointLabelGap", "quadrantFontSize", "axisFontSize"],
+    stageLayout: ["columnWidths", "columnGap", "backDetourTopGap", "backDetourSideGap"],
+  } as const;
+  const objects = Object.fromEntries(Object.entries(specs).map(([name, keys]) => [name, closedObject(name as keyof typeof specs, keys)])) as Record<keyof typeof specs, Record<string, unknown> | undefined>;
+  const positiveKeys: Partial<Record<keyof typeof specs, readonly string[]>> = {
+    figureKindLabel: ["fontSize", "fontWeight"],
+    chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "barWidth"],
+    chartLineSize: ["tickFontSize", "periodFontSize", "pointRadius"],
+    chartPieSize: ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "outerRadius"],
+    chartSlopeSize: ["pointRadius", "periodFontSize", "labelFontSize", "axisGap"],
+    chartStackedLayout: ["barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize"],
+    chartGaugeSize: ["arcThickness", "outerRadius", "valueFontSize"],
+    ganttSize: ["taskLabelFontSize", "tickFontSize", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth"],
+    quadrantSize: ["plotSize", "pointRadius", "pointFontSize", "quadrantFontSize", "axisFontSize"],
+  };
+  const nonNegativeKeys: Partial<Record<keyof typeof specs, readonly string[]>> = {
+    figureKindLabel: ["letterSpacing"], figureInset: specs.figureInset,
+    chartPieSize: ["tableRowGap", "tablePaddingInline"], chartSlopeSize: ["leftAxisX", "labelAxisGap"],
+    chartStackedLayout: ["legendColumnGap", "segmentGap"], chartGaugeSize: ["plotTop"],
+    ganttSize: ["taskLabelX"], quadrantSize: ["pointLabelGap"],
+    stageLayout: ["columnGap", "backDetourTopGap", "backDetourSideGap"],
+  };
+  for (const [name, object] of Object.entries(objects) as [keyof typeof specs, Record<string, unknown> | undefined][]) {
+    if (object === undefined) continue;
+    for (const key of positiveKeys[name] ?? []) if (object[key] !== undefined) positiveNumber(object[key], `$.${name}.${key}`);
+    for (const key of nonNegativeKeys[name] ?? []) if (object[key] !== undefined) nonNegativeNumber(object[key], `$.${name}.${key}`);
+  }
+  const finite = (value: unknown, path: string): void => { if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) errors.push({ path, message: "must be a finite number" }); };
+  if (objects.terminalDecoration) for (const key of specs.terminalDecoration) if (objects.terminalDecoration[key] !== undefined && typeof objects.terminalDecoration[key] !== "boolean") errors.push({ path: `$.terminalDecoration.${key}`, message: "must be boolean" });
+  if (objects.figureKindLabel) {
+    if (typeof objects.figureKindLabel.text !== "string" || objects.figureKindLabel.text.trim() === "") errors.push({ path: "$.figureKindLabel.text", message: "must be a non-empty string" });
+    finite(objects.figureKindLabel.x, "$.figureKindLabel.x"); finite(objects.figureKindLabel.y, "$.figureKindLabel.y");
+  }
+  if (objects.chartSlopeLabelTemplate) for (const key of specs.chartSlopeLabelTemplate) if (objects.chartSlopeLabelTemplate[key] !== undefined && typeof objects.chartSlopeLabelTemplate[key] !== "string") errors.push({ path: `$.chartSlopeLabelTemplate.${key}`, message: "must be a string" });
+  const nestedNumberObject = (parent: keyof typeof specs, key: string, keys: readonly string[], positive: boolean): void => {
+    const value = objects[parent]?.[key]; if (value === undefined) return;
+    if (!value || typeof value !== "object" || Array.isArray(value)) { errors.push({ path: `$.${parent}.${key}`, message: "must be an object" }); return; }
+    const object = value as Record<string, unknown>;
+    for (const child of Object.keys(object)) if (!keys.includes(child)) errors.push({ path: `$.${parent}.${key}.${child}`, message: `unknown key "${child}"` });
+    for (const child of keys) if (object[child] !== undefined) (positive ? positiveNumber : nonNegativeNumber)(object[child], `$.${parent}.${key}.${child}`);
+  };
+  nestedNumberObject("chartBarSize", "plotPadding", ["top", "right", "bottom", "left"], false);
+  nestedNumberObject("chartLineSize", "valueLabelOffset", ["above", "below"], false);
+  nestedNumberObject("chartLineSize", "plotPadding", ["top", "bottom"], false);
+  nestedNumberObject("quadrantSize", "plotOffset", ["x", "y"], false);
+  const columnWidths = objects.stageLayout?.columnWidths;
+  if (columnWidths !== undefined) {
+    if (!columnWidths || typeof columnWidths !== "object" || Array.isArray(columnWidths)) errors.push({ path: "$.stageLayout.columnWidths", message: "must be an object" });
+    else for (const [key, value] of Object.entries(columnWidths)) nonNegativeNumber(value, `$.stageLayout.columnWidths.${key}`);
+  }
+  const stackedColumns = objects.chartStackedLayout?.legendColumns;
+  if (stackedColumns !== undefined && (!Number.isInteger(stackedColumns) || typeof stackedColumns !== "number" || stackedColumns <= 0)) errors.push({ path: "$.chartStackedLayout.legendColumns", message: "must be a positive integer" });
+  if (
+    objects.ganttSize?.taskLabelAlign !== undefined &&
+    !(GANTT_TASK_LABEL_ALIGN_VALUES as readonly unknown[]).includes(objects.ganttSize.taskLabelAlign)
+  ) errors.push({ path: "$.ganttSize.taskLabelAlign", message: "must be start or end" });
+  const tickCount = objects.ganttSize?.tickCount;
+  if (tickCount !== undefined && (!Number.isInteger(tickCount) || typeof tickCount !== "number" || tickCount < 2)) errors.push({ path: "$.ganttSize.tickCount", message: "must be an integer greater than or equal to 2" });
 
   if (Array.isArray(j.chartSlopePeriods) &&
       (j.chartSlopePeriods.length !== 2 || j.chartSlopePeriods.some((v) => typeof v !== "string" || v.trim() === ""))) {
@@ -3231,6 +3383,19 @@ function validateJson(
       checkUnknownKeys(so, "step", `$.flow[${i}]`, errors);
       // 値そのものの型は表が見る (#1304)。 色と線種は engine の一覧と突き合わせる
       表で検査(so, "step", `$.flow[${i}]`, "step", errors);
+      if (so.labelCollision !== undefined && !(LABEL_COLLISION_VALUES as readonly unknown[]).includes(so.labelCollision)) {
+        errors.push({ path: `$.flow[${i}].labelCollision`, message: `labelCollision must be one of: ${LABEL_COLLISION_VALUES.join(", ")}` });
+      }
+      if (
+        so.labelSize !== undefined &&
+        (!so.labelSize || typeof so.labelSize !== "object" || Array.isArray(so.labelSize))
+      ) {
+        errors.push({ path: `$.flow[${i}].labelSize`, message: "labelSize must be an object" });
+      } else if (so.labelSize !== undefined) {
+        const size = so.labelSize as Record<string, unknown>;
+        for (const key of Object.keys(size)) if (!["width", "height", "fontSize"].includes(key)) errors.push({ path: `$.flow[${i}].labelSize.${key}`, message: `unknown key "${key}"` });
+        for (const key of ["width", "height", "fontSize"]) if (size[key] !== undefined && (typeof size[key] !== "number" || !Number.isFinite(size[key]) || size[key] <= 0)) errors.push({ path: `$.flow[${i}].labelSize.${key}`, message: "must be a positive finite number" });
+      }
       // CAR-1693 Phase 1: step DSL 表面 pos の validation
       validateLayoutPos(so.pos, `$.flow[${i}].pos`, errors);
     });
@@ -3624,6 +3789,8 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     dashOffsetBind: s.dashOffsetBind,
     labelOffsetX: s.labelOffsetX,
     labelOffsetY: s.labelOffsetY,
+    labelCollision: s.labelCollision,
+    labelSize: s.labelSize,
     overlay: s.overlay,
     // 部品の端で繋ぐ要素の id (#1979)。 書かない矢印には欄を足さない = 記法と同じ形になる
     ...(s.fromPartNode !== undefined ? { fromPartNode: s.fromPartNode } : {}),
@@ -3774,6 +3941,20 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.sequenceKindLabels !== undefined ? { sequenceKindLabels: json.sequenceKindLabels } : {}),
     ...(json.figureCard !== undefined ? { figureCard: json.figureCard } : {}),
     ...(json.figureSize !== undefined ? { figureSize: json.figureSize } : {}),
+    ...(json.terminalDecoration !== undefined ? { terminalDecoration: json.terminalDecoration } : {}),
+    ...(json.cornerForm !== undefined ? { cornerForm: json.cornerForm } : {}),
+    ...(json.figureKindLabel !== undefined ? { figureKindLabel: json.figureKindLabel } : {}),
+    ...(json.figureInset !== undefined ? { figureInset: json.figureInset } : {}),
+    ...(json.chartBarSize !== undefined ? { chartBarSize: json.chartBarSize } : {}),
+    ...(json.chartLineSize !== undefined ? { chartLineSize: json.chartLineSize } : {}),
+    ...(json.chartPieSize !== undefined ? { chartPieSize: json.chartPieSize } : {}),
+    ...(json.chartSlopeLabelTemplate !== undefined ? { chartSlopeLabelTemplate: json.chartSlopeLabelTemplate } : {}),
+    ...(json.chartSlopeSize !== undefined ? { chartSlopeSize: json.chartSlopeSize } : {}),
+    ...(json.chartStackedLayout !== undefined ? { chartStackedLayout: json.chartStackedLayout } : {}),
+    ...(json.chartGaugeSize !== undefined ? { chartGaugeSize: json.chartGaugeSize } : {}),
+    ...(json.ganttSize !== undefined ? { ganttSize: json.ganttSize } : {}),
+    ...(json.quadrantLabelPosition !== undefined ? { quadrantLabelPosition: json.quadrantLabelPosition } : {}),
+    ...(json.quadrantSize !== undefined ? { quadrantSize: json.quadrantSize } : {}),
     ...(別名?.order !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
     ...(別名?.shape !== undefined ? { shape: 別名.shape, shapePos: 位置("type") } : {}),
     // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから
@@ -3793,6 +3974,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       : { regions: 区画の名前を直す(json.regions) }),
     ...(json.legendFontSize !== undefined ? { legendFontSize: json.legendFontSize } : {}),
     ...(json.stageHeaders !== undefined ? { stageHeaders: json.stageHeaders } : {}),
+    ...(json.stageLayout !== undefined ? { stageLayout: json.stageLayout } : {}),
     actors,
     flow,
     animate,

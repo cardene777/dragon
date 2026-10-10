@@ -13,13 +13,21 @@ const 段階の見本 = (): Array<{ key: string; source: string }> =>
     .map(([key, value]) => ({ key: key.slice("sourceYaml__".length), source: value as string }));
 
 describe("見本帳の段階ごとの箱 (#2797)", () => {
-  it("cdl#1031/#1072: 戻る線を右から出して上へ入れ、札の字を高さ 40 の位置へ置く", () => {
+  it("cdl#1031/#1072/#1157/#1158: 線札と段の列を見本の寸法へ合わせる", () => {
     expect(presetDeliveryStages.edges.find((edge) => edge.label === "翌日もう一度")).toMatchObject({
       fromSide: "right",
       toSide: "top",
     });
     expect(presetDeliveryStages.edges.find((edge) => edge.label === "いいえ")).toMatchObject({
-      labelOffsetY: 36,
+      labelCollision: "author",
+      labelSize: { width: 96, height: 40, fontSize: 21 },
+      labelOffsetY: 44,
+    });
+    expect(presetDeliveryStages.stageLayout).toEqual({
+      columnWidths: { 申し込み: 300, 受付: 360, 配送: 400, 結果: 420 },
+      columnGap: 64,
+      backDetourTopGap: 34,
+      backDetourSideGap: 58,
     });
   });
 

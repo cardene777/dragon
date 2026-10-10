@@ -140,6 +140,16 @@ const 型たち: Record<string, 型> = {
     英語: (m) =>
       `In lane "${m[1]}", box "${m[2]}" sticks out ${m[3]} world past the lane width`,
   },
+  "box-line-dropped": {
+    形: /^node "(.*)" の terminalDecoration 見出し外接 (-?[\d.]+)\.\.(-?[\d.]+) が主役の箱 (-?[\d.]+)\.\.(-?[\d.]+) に収まらない$/,
+    英語: (m) =>
+      `The terminal heading on box "${m[1]}" spans ${m[2]}..${m[3]}, outside its main bounds ${m[4]}..${m[5]}`,
+  },
+  "node-inside-viewbox": {
+    形: /^node "(.*)" の terminalDecoration 升目一覧外接 (-?[\d.]+)\.\.(-?[\d.]+) が figureSize 幅 ([\d.]+) に収まらない$/,
+    英語: (m) =>
+      `The terminal row list on box "${m[1]}" spans ${m[2]}..${m[3]}, outside its figure width ${m[4]}`,
+  },
 };
 
 /** 型を持つ軸の一覧。 検査が母集団と突き合わせる */

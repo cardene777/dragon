@@ -297,6 +297,14 @@ export function compileValueChart(
     ...(型 === "pie" && doc.chartPieRingWidth !== undefined
       ? { chartPieRingWidth: doc.chartPieRingWidth }
       : {}),
+    ...(型 === "bar" && doc.chartBarSize !== undefined ? { chartBarSize: doc.chartBarSize } : {}),
+    ...(型 === "line" && doc.chartLineSize !== undefined ? { chartLineSize: doc.chartLineSize } : {}),
+    ...(型 === "pie" && doc.chartPieSize !== undefined ? { chartPieSize: doc.chartPieSize } : {}),
+    ...(型 === "slope" && doc.chartSlopeLabelTemplate !== undefined ? { chartSlopeLabelTemplate: doc.chartSlopeLabelTemplate } : {}),
+    ...(型 === "slope" && doc.chartSlopeSize !== undefined ? { chartSlopeSize: doc.chartSlopeSize } : {}),
+    ...(型 === "stacked" && doc.chartStackedLayout !== undefined ? { chartStackedLayout: doc.chartStackedLayout } : {}),
+    ...(型 === "gauge" && doc.chartGaugeSize !== undefined ? { chartGaugeSize: doc.chartGaugeSize } : {}),
+    ...((型 === "pie" || 型 === "waffle") && doc.terminalDecoration !== undefined ? { terminalDecoration: doc.terminalDecoration } : {}),
     ...(型 === "slope" && doc.chartSlopePeriods !== undefined
       ? { chartSlopePeriods: doc.chartSlopePeriods }
       : {}),

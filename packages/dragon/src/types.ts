@@ -203,6 +203,38 @@ export type DslDocument = {
   journeyLabels?: NonNullable<CdlDiagram["nodes"][number]["journeyLabels"]>;
   /** 図表の見出し帯と足。 */
   figureCard?: NonNullable<CdlDiagram["nodes"][number]["figureCard"]>;
+  /** 端末意匠用の窓操作・字送り・行番号。 */
+  terminalDecoration?: NonNullable<CdlDiagram["nodes"][number]["terminalDecoration"]>;
+  /** 矩形札の一様角と手描き角を意匠で選ぶ。 */
+  cornerForm?: NonNullable<CdlDiagram["nodes"][number]["cornerForm"]>;
+  /** 階層図とマインドマップの種類札。 */
+  figureKindLabel?: NonNullable<CdlDiagram["nodes"][number]["figureKindLabel"]>;
+  /** 図表札の見出しと足の間に置く凹み面。 */
+  figureInset?: NonNullable<CdlDiagram["nodes"][number]["figureInset"]>;
+  /** 棒グラフの見本寸法。 */
+  chartBarSize?: NonNullable<CdlDiagram["nodes"][number]["chartBarSize"]>;
+  /** 折れ線グラフの見本寸法。 */
+  chartLineSize?: NonNullable<CdlDiagram["nodes"][number]["chartLineSize"]>;
+  /** 円グラフの見本寸法。 */
+  chartPieSize?: NonNullable<CdlDiagram["nodes"][number]["chartPieSize"]>;
+  /** 傾き図の左右の札の書式。 */
+  chartSlopeLabelTemplate?: NonNullable<
+    CdlDiagram["nodes"][number]["chartSlopeLabelTemplate"]
+  >;
+  /** 傾き図の見本寸法。 */
+  chartSlopeSize?: NonNullable<CdlDiagram["nodes"][number]["chartSlopeSize"]>;
+  /** 内訳の帯の見本配置。 */
+  chartStackedLayout?: NonNullable<CdlDiagram["nodes"][number]["chartStackedLayout"]>;
+  /** 半円図の見本寸法。 */
+  chartGaugeSize?: NonNullable<CdlDiagram["nodes"][number]["chartGaugeSize"]>;
+  /** ガント図の見本寸法。 */
+  ganttSize?: NonNullable<CdlDiagram["nodes"][number]["ganttSize"]>;
+  /** 四象限の区画名を置く位置。 */
+  quadrantLabelPosition?: NonNullable<
+    CdlDiagram["nodes"][number]["quadrantLabelPosition"]
+  >;
+  /** 四象限の見本寸法。 */
+  quadrantSize?: NonNullable<CdlDiagram["nodes"][number]["quadrantSize"]>;
   /**
    * 図全体を 1 箱にする図種の札の大きさ。
    *
@@ -224,6 +256,8 @@ export type DslDocument = {
   legendFontSize?: number;
   /** 段の箱で、意匠ごとに描く見出しの寸法。 */
   stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
+  /** 段の列幅・列間と戻る線の迂回寸法。 */
+  stageLayout?: NonNullable<CdlDiagram["stageLayout"]>;
   /**
    * 図全体を 1 箱にする図種 (`pie` / `bar` / `line` / `funnel` / `tree` / `journey` /
    * `quadrant` / `mind` / `gantt`) で、 その箱の上に出す小見出し (#1247)。
@@ -701,6 +735,10 @@ export type DslStep = {
   labelPlate?: boolean;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  /** 線の名札を自動回避するか、作者の位置に固定するか。 */
+  labelCollision?: NonNullable<CdlDiagram["edges"][number]["labelCollision"]>;
+  /** 線の名札の幅・高さ・字の大きさ。 */
+  labelSize?: NonNullable<CdlDiagram["edges"][number]["labelSize"]>;
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
   overlay?: boolean;
   /**

@@ -7,6 +7,14 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- **描く側を `^0.132.0` に上げ、17 個の公開欄と 15 件の見本寸法を登録した** (#2854)
+
+  節の `terminalDecoration:`・`cornerForm:`・`figureKindLabel:`・`figureInset:`・`chartBarSize:`・
+  `chartLineSize:`・`chartPieSize:`・`chartSlopeLabelTemplate:`・`chartSlopeSize:`・
+  `chartStackedLayout:`・`chartGaugeSize:`・`ganttSize:`・`quadrantLabelPosition:`・`quadrantSize:`、
+  線の `labelCollision:`・`labelSize:`、図全体の `stageLayout:` を YAML / JSON / schema / 組み立てへ渡す。
+  見本帳では図ごとの値だけを各図へ書き、意匠差は新しい role と角の variant に限定した CSS で当てる。
+
 - **描く側を `^0.131.0` に上げ、宅配の流れ図と図表を見本の値で描けるようにした** (#2854)
 
   工程の `dependsOn` に前工程を複数渡し、段の箱・路線図・時間軸・宅配の流れ図へ 0.127.0 の欄と見本の値を当てた。

@@ -378,6 +378,8 @@ export function compileMind(
     })(),
     ...(doc.mindForm !== undefined ? { mindForm: doc.mindForm } : {}),
     ...(doc.mindSize !== undefined ? { mindSize: doc.mindSize } : {}),
+    ...(doc.figureKindLabel !== undefined ? { figureKindLabel: doc.figureKindLabel } : {}),
+    ...(doc.terminalDecoration !== undefined ? { terminalDecoration: doc.terminalDecoration } : {}),
   });
   return b.build();
 }

@@ -112,6 +112,10 @@ export const JOURNEY_FORM_VALUES = ["bands", "rules"] as const;
 export const JOURNEY_LINE_FORM_VALUES = ["curve", "straight"] as const;
 export const JOURNEY_OPPORTUNITY_POSITION_VALUES = ["below-chart", "below-point"] as const;
 export const JOURNEY_LABEL_KEYS = ["delighted", "happy", "neutral", "frustrated", "angry"] as const;
+export const CORNER_FORM_VALUES = ["theme-variants"] as const;
+export const QUADRANT_LABEL_POSITION_VALUES = ["outside-corners"] as const;
+export const LABEL_COLLISION_VALUES = ["auto", "author"] as const;
+export const GANTT_TASK_LABEL_ALIGN_VALUES = ["start", "end"] as const;
 const TREE_SIZE_KEYS = [
   "nodeWidths",
   "nodeHeight",
@@ -323,6 +327,21 @@ export const TOP_LEVEL_KEYS = [
   "sequenceKindLabels",
   "figureCard",
   "figureSize",
+  "terminalDecoration",
+  "cornerForm",
+  "figureKindLabel",
+  "figureInset",
+  "chartBarSize",
+  "chartLineSize",
+  "chartPieSize",
+  "chartSlopeLabelTemplate",
+  "chartSlopeSize",
+  "chartStackedLayout",
+  "chartGaugeSize",
+  "ganttSize",
+  "quadrantLabelPosition",
+  "quadrantSize",
+  "stageLayout",
   /*
    * 図の意匠 (#1553 / #2790)。
    *
@@ -720,6 +739,21 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let sequenceKindLabels: DslDocument["sequenceKindLabels"];
   let figureCard: DslDocument["figureCard"];
   let figureSize: DslDocument["figureSize"];
+  let terminalDecoration: DslDocument["terminalDecoration"];
+  let cornerForm: DslDocument["cornerForm"];
+  let figureKindLabel: DslDocument["figureKindLabel"];
+  let figureInset: DslDocument["figureInset"];
+  let chartBarSize: DslDocument["chartBarSize"];
+  let chartLineSize: DslDocument["chartLineSize"];
+  let chartPieSize: DslDocument["chartPieSize"];
+  let chartSlopeLabelTemplate: DslDocument["chartSlopeLabelTemplate"];
+  let chartSlopeSize: DslDocument["chartSlopeSize"];
+  let chartStackedLayout: DslDocument["chartStackedLayout"];
+  let chartGaugeSize: DslDocument["chartGaugeSize"];
+  let ganttSize: DslDocument["ganttSize"];
+  let quadrantLabelPosition: DslDocument["quadrantLabelPosition"];
+  let quadrantSize: DslDocument["quadrantSize"];
+  let stageLayout: DslDocument["stageLayout"];
   let aliasShape: DslShape | null = null;
   let aliasShapeLine = 0;
   let theme: DslTheme | null = null;
@@ -1256,6 +1290,44 @@ export function parseTextDslV05(src: string): V05ParseResult {
       if (value !== undefined) {
         if (head.key === "treeSize" && 木の寸法を読む(value, line.no, errors)) treeSize = value;
         if (head.key === "mindSize" && 放射の寸法を読む(value, line.no, errors)) mindSize = value;
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "cornerForm" || head.key === "quadrantLabelPosition") {
+      const value = stripQuotes((head.value ?? "").trim());
+      const values = head.key === "cornerForm" ? CORNER_FORM_VALUES : QUADRANT_LABEL_POSITION_VALUES;
+      if ((values as readonly string[]).includes(value)) {
+        if (head.key === "cornerForm") cornerForm = value as typeof cornerForm;
+        else quadrantLabelPosition = value as typeof quadrantLabelPosition;
+      } else errors.push({ line: line.no, message: `${head.key} が読めません: "${value}"`, hint: `使える値 = ${values.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "stageLayout") {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      if (value !== undefined && cdl0132の欄を読む(head.key, value, line.no, errors)) {
+        stageLayout = value as NonNullable<typeof stageLayout>;
+      }
+      i += 1;
+      continue;
+    }
+    if ((CDL_0132_OBJECT_FIELDS as readonly string[]).includes(head.key)) {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      if (value !== undefined && cdl0132の欄を読む(head.key as Cdl0132ObjectField, value, line.no, errors)) {
+        if (head.key === "terminalDecoration") terminalDecoration = value as NonNullable<typeof terminalDecoration>;
+        else if (head.key === "figureKindLabel") figureKindLabel = value as NonNullable<typeof figureKindLabel>;
+        else if (head.key === "figureInset") figureInset = value as NonNullable<typeof figureInset>;
+        else if (head.key === "chartBarSize") chartBarSize = value as NonNullable<typeof chartBarSize>;
+        else if (head.key === "chartLineSize") chartLineSize = value as NonNullable<typeof chartLineSize>;
+        else if (head.key === "chartPieSize") chartPieSize = value as NonNullable<typeof chartPieSize>;
+        else if (head.key === "chartSlopeLabelTemplate") chartSlopeLabelTemplate = value as NonNullable<typeof chartSlopeLabelTemplate>;
+        else if (head.key === "chartSlopeSize") chartSlopeSize = value as NonNullable<typeof chartSlopeSize>;
+        else if (head.key === "chartStackedLayout") chartStackedLayout = value as NonNullable<typeof chartStackedLayout>;
+        else if (head.key === "chartGaugeSize") chartGaugeSize = value as NonNullable<typeof chartGaugeSize>;
+        else if (head.key === "ganttSize") ganttSize = value as NonNullable<typeof ganttSize>;
+        else if (head.key === "quadrantSize") quadrantSize = value as NonNullable<typeof quadrantSize>;
+        else stageLayout = value as NonNullable<typeof stageLayout>;
       }
       i += 1;
       continue;
@@ -1947,6 +2019,21 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(sequenceKindLabels !== undefined ? { sequenceKindLabels } : {}),
       ...(figureCard !== undefined ? { figureCard } : {}),
       ...(figureSize !== undefined ? { figureSize } : {}),
+      ...(terminalDecoration !== undefined ? { terminalDecoration } : {}),
+      ...(cornerForm !== undefined ? { cornerForm } : {}),
+      ...(figureKindLabel !== undefined ? { figureKindLabel } : {}),
+      ...(figureInset !== undefined ? { figureInset } : {}),
+      ...(chartBarSize !== undefined ? { chartBarSize } : {}),
+      ...(chartLineSize !== undefined ? { chartLineSize } : {}),
+      ...(chartPieSize !== undefined ? { chartPieSize } : {}),
+      ...(chartSlopeLabelTemplate !== undefined ? { chartSlopeLabelTemplate } : {}),
+      ...(chartSlopeSize !== undefined ? { chartSlopeSize } : {}),
+      ...(chartStackedLayout !== undefined ? { chartStackedLayout } : {}),
+      ...(chartGaugeSize !== undefined ? { chartGaugeSize } : {}),
+      ...(ganttSize !== undefined ? { ganttSize } : {}),
+      ...(quadrantLabelPosition !== undefined ? { quadrantLabelPosition } : {}),
+      ...(quadrantSize !== undefined ? { quadrantSize } : {}),
+      ...(stageLayout !== undefined ? { stageLayout } : {}),
       ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
       ...(legend.length > 0 ? { legend } : {}),
       ...(legendFontSize !== undefined ? { legendFontSize } : {}),
@@ -4792,6 +4879,11 @@ const FLOW_INLINE_READERS = {
    */
   labelPlate: (v: string | undefined) =>
     v === undefined ? undefined : v !== "false" && v !== "なし",
+  labelCollision: (v: string | undefined) =>
+    v !== undefined && (LABEL_COLLISION_VALUES as readonly string[]).includes(v)
+      ? (v as "auto" | "author")
+      : undefined,
+  labelSize: (v: string | undefined) => v,
   // 矢印がどの辺から出るか (#1385)。 描画側は 4 方向を取り、書かなければ自動で選ぶ
   side: (v: string | undefined) =>
     v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
@@ -5222,6 +5314,9 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
         });
       }
     }
+    if (opts.labelCollision !== undefined && 中括弧.labelCollision === undefined) {
+      errors.push({ line: line.no, message: `矢印の labelCollision が読めません: "${opts.labelCollision}"`, hint: `使える値 = ${LABEL_COLLISION_VALUES.join(", ")}` });
+    }
     // 読めない語を黙って捨てない (#1462)。 捨てると「書いたのに端の形が変わらない」 が
     // 手掛かりなしで起きる
     // 読めない語を黙って捨てない (#1462 / #1466)。 捨てると「書いたのに見た目が変わらない」 が
@@ -5261,6 +5356,19 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   // 辺の役目と名前の下地 (cdl#618)
   const role = 中括弧.role as "main" | undefined;
   const labelPlate = 中括弧.labelPlate as boolean | undefined;
+  const labelCollision = 中括弧.labelCollision as DslStep["labelCollision"];
+  let labelSize: DslStep["labelSize"];
+  if (中括弧.labelSize !== undefined) {
+    const value = JSONの欄を読む(中括弧.labelSize as string, "labelSize", line.no, errors);
+    if (objectか(value)) {
+      let invalid = 図表の知らない項目を知らせる(value, ["width", "height", "fontSize"], "labelSize", line.no, errors);
+      for (const key of ["width", "height", "fontSize"] as const) {
+        if (value[key] !== undefined && !正の有限数か(value[key])) invalid = true;
+      }
+      if (!invalid) labelSize = value;
+      else errors.push({ line: line.no, message: "labelSize の値の形が読めません" });
+    } else if (value !== undefined) errors.push({ line: line.no, message: "labelSize は object で書きます" });
+  }
   // 値に追随する 3 欄 (#1396)。 空は捨てずに知らせる = 描画側は空文字を既定値へ落とさず
   // そのまま置換に使うため、書き忘れが「線が消えた」 形で出る
   const widthBind = 追随する大きさとして読む(
@@ -5360,6 +5468,8 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     dashOffsetBind,
     labelOffsetX,
     labelOffsetY,
+    labelCollision,
+    labelSize,
     overlay,
     ...(fromPartNode !== undefined ? { fromPartNode } : {}),
     ...(toPartNode !== undefined ? { toPartNode } : {}),
@@ -5509,6 +5619,107 @@ const 正の有限数か = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0;
 const 負でない有限数か = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+const CDL_0132_OBJECT_FIELDS = [
+  "terminalDecoration", "figureKindLabel", "figureInset", "chartBarSize", "chartLineSize",
+  "chartPieSize", "chartSlopeLabelTemplate", "chartSlopeSize", "chartStackedLayout",
+  "chartGaugeSize", "ganttSize", "quadrantSize", "stageLayout",
+] as const;
+type Cdl0132ObjectField = (typeof CDL_0132_OBJECT_FIELDS)[number];
+
+const CDL_0132_KEYS: Record<Cdl0132ObjectField, readonly string[]> = {
+  terminalDecoration: ["windowControls", "cursor", "rowOrdinal"],
+  figureKindLabel: ["text", "x", "y", "fontSize", "fontWeight", "letterSpacing"],
+  figureInset: ["top", "right", "bottom", "left", "radius"],
+  chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "plotPadding", "barWidth"],
+  chartLineSize: ["valueLabelOffset", "tickFontSize", "periodFontSize", "pointRadius", "plotPadding"],
+  chartPieSize: ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "tableRowGap", "tablePaddingInline", "outerRadius"],
+  chartSlopeLabelTemplate: ["left", "right"],
+  chartSlopeSize: ["pointRadius", "periodFontSize", "labelFontSize", "leftAxisX", "axisGap", "labelAxisGap"],
+  chartStackedLayout: ["legendColumns", "legendColumnGap", "segmentGap", "barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize"],
+  chartGaugeSize: ["arcThickness", "outerRadius", "plotTop", "valueFontSize"],
+  ganttSize: ["taskLabelFontSize", "taskLabelAlign", "taskLabelX", "tickFontSize", "tickCount", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth"],
+  quadrantSize: ["plotOffset", "plotSize", "pointRadius", "pointFontSize", "pointLabelGap", "quadrantFontSize", "axisFontSize"],
+  stageLayout: ["columnWidths", "columnGap", "backDetourTopGap", "backDetourSideGap"],
+};
+
+function cdl0132の欄を読む(
+  name: Cdl0132ObjectField,
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): value is NonNullable<DslDocument[Cdl0132ObjectField]> {
+  if (!objectか(value)) {
+    errors.push({ line, message: `${name} は object で書きます` });
+    return false;
+  }
+  let invalid = 図表の知らない項目を知らせる(value, CDL_0132_KEYS[name], name, line, errors);
+  const positive = (key: string): void => {
+    if (value[key] !== undefined && !正の有限数か(value[key])) invalid = true;
+  };
+  const nonNegative = (key: string): void => {
+    if (value[key] !== undefined && !負でない有限数か(value[key])) invalid = true;
+  };
+  const nested = (key: string, keys: readonly string[], kind: "positive" | "nonNegative"): void => {
+    const item = value[key];
+    if (item === undefined) return;
+    if (!objectか(item)) { invalid = true; return; }
+    invalid = 図表の知らない項目を知らせる(item, keys, `${name}.${key}`, line, errors) || invalid;
+    for (const nestedKey of keys) {
+      if (item[nestedKey] === undefined) continue;
+      if (kind === "positive" ? !正の有限数か(item[nestedKey]) : !負でない有限数か(item[nestedKey])) invalid = true;
+    }
+  };
+  if (name === "terminalDecoration") {
+    for (const key of CDL_0132_KEYS[name]) if (value[key] !== undefined && typeof value[key] !== "boolean") invalid = true;
+  } else if (name === "figureKindLabel") {
+    if (typeof value.text !== "string" || value.text.trim() === "") invalid = true;
+    for (const key of ["x", "y"]) if (value[key] !== undefined && (typeof value[key] !== "number" || !Number.isFinite(value[key]))) invalid = true;
+    for (const key of ["fontSize", "fontWeight"]) positive(key);
+    nonNegative("letterSpacing");
+  } else if (name === "figureInset") {
+    for (const key of CDL_0132_KEYS[name]) nonNegative(key);
+  } else if (name === "chartBarSize") {
+    for (const key of ["tickFontSize", "valueFontSize", "labelFontSize", "barWidth"]) positive(key);
+    nested("plotPadding", ["top", "right", "bottom", "left"], "nonNegative");
+  } else if (name === "chartLineSize") {
+    for (const key of ["tickFontSize", "periodFontSize", "pointRadius"]) positive(key);
+    nested("valueLabelOffset", ["above", "below"], "nonNegative");
+    nested("plotPadding", ["top", "bottom"], "nonNegative");
+  } else if (name === "chartPieSize") {
+    for (const key of ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "outerRadius"]) positive(key);
+    for (const key of ["tableRowGap", "tablePaddingInline"]) nonNegative(key);
+  } else if (name === "chartSlopeLabelTemplate") {
+    for (const key of CDL_0132_KEYS[name]) if (value[key] !== undefined && typeof value[key] !== "string") invalid = true;
+  } else if (name === "chartSlopeSize") {
+    for (const key of ["pointRadius", "periodFontSize", "labelFontSize", "axisGap"]) positive(key);
+    for (const key of ["leftAxisX", "labelAxisGap"]) nonNegative(key);
+  } else if (name === "chartStackedLayout") {
+    for (const key of ["barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize"]) positive(key);
+    for (const key of ["legendColumnGap", "segmentGap"]) nonNegative(key);
+    if (value.legendColumns !== undefined && (!Number.isInteger(value.legendColumns) || !正の有限数か(value.legendColumns))) invalid = true;
+  } else if (name === "chartGaugeSize") {
+    for (const key of ["arcThickness", "outerRadius", "valueFontSize"]) positive(key);
+    nonNegative("plotTop");
+  } else if (name === "ganttSize") {
+    for (const key of ["taskLabelFontSize", "tickFontSize", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth"]) positive(key);
+    nonNegative("taskLabelX");
+    if (
+      value.taskLabelAlign !== undefined &&
+      !(GANTT_TASK_LABEL_ALIGN_VALUES as readonly unknown[]).includes(value.taskLabelAlign)
+    ) invalid = true;
+    if (value.tickCount !== undefined && (!Number.isInteger(value.tickCount) || typeof value.tickCount !== "number" || value.tickCount < 2)) invalid = true;
+  } else if (name === "quadrantSize") {
+    nested("plotOffset", ["x", "y"], "nonNegative");
+    for (const key of ["plotSize", "pointRadius", "pointFontSize", "quadrantFontSize", "axisFontSize"]) positive(key);
+    nonNegative("pointLabelGap");
+  } else if (name === "stageLayout") {
+    nested("columnWidths", Object.keys(objectか(value.columnWidths) ? value.columnWidths : {}), "nonNegative");
+    for (const key of ["columnGap", "backDetourTopGap", "backDetourSideGap"]) nonNegative(key);
+  }
+  if (invalid) errors.push({ line, message: `${name} の値の形が読めません` });
+  return !invalid;
+}
 
 function 木の寸法を読む(
   value: unknown,

@@ -282,6 +282,7 @@ describe("axis 発火 count field (列挙した軸と engine の軸が一致)", 
       "locale-parity",
       "validate-performance-budget",
       "node-inside-viewbox",
+      "figure-inset-bounds",
       "node-inside-lane",
       "edge-inside-viewbox",
       "lane-label-inside-viewbox",
@@ -403,4 +404,3 @@ describe("Axis 7 edge-label-proximity (layout regression safety net)", () => {
     expect(r.counts["edge-label-proximity"]).toBeGreaterThanOrEqual(1);
   });
 });
-

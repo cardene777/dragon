@@ -27,9 +27,17 @@ const 時間軸の見本 = (): Array<{ key: string; source: string }> =>
 
 describe("見本帳の時間軸の形 (#2798)", () => {
   it("cdl#1031/#1032: 戻る線を右どうしで結び、持ち戻るの担当を右へ置く", () => {
+    expect(presetDeliveryTimeline.edges.find((edge) => edge.label === "いいえ")).toMatchObject({
+      labelCollision: "author",
+      labelSize: { width: 96, height: 40, fontSize: 21 },
+      labelOffsetY: -40,
+    });
     expect(presetDeliveryTimeline.edges.find((edge) => edge.label === "翌日もう一度")).toMatchObject({
       fromSide: "right",
       toSide: "right",
+      labelCollision: "author",
+      labelSize: { width: 162, height: 40, fontSize: 21 },
+      labelOffsetX: 20,
     });
     expect(presetDeliveryTimeline.nodes.find((node) => node.title === "持ち戻る")).toMatchObject({
       subtitlePlacement: "right",
@@ -60,10 +68,10 @@ describe("見本帳の時間軸の形 (#2798)", () => {
     if (!axis || !returned) return;
     const axisCenter = (axis.posX ?? 0) + (axis.posW ?? 0) / 2;
     const returnedInnerEdge = Math.abs((returned.posX ?? 0) - axisCenter) - (returned.w ?? 0) / 2;
-    // CDL の標準線札は幅 108、node-label clearance は左右 32。横線を 172 にして
-    // 札が衝突回避で上へ逃げず、見本どおり線の上 20 に留まる値と対にする。
+    // 線札を labelCollision: author で固定できるため、時間軸から脇札の内側までを
+    // 正解頁の座標 (軸 x=800、持ち戻るの左辺 x=1020) から測った 220 に戻す。
     expect(returnedInnerEdge).toBe(TIMELINE_AXIS_TO_SIDE_CARD);
-    expect(TIMELINE_AXIS_TO_SIDE_CARD).toBe(242);
+    expect(TIMELINE_AXIS_TO_SIDE_CARD).toBe(220);
   });
 
   it("意匠を書かない見本帳で分かれ道の前後を 142.5 にする", () => {

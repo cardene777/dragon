@@ -57,6 +57,9 @@ figureSize: {"width":896,"height":1008}
 type: chart
 shape: bar
 figureCard: {"label":"棒","note":"今月 / 単位 件"}
+figureInset: {}
+cornerForm: theme-variants
+chartBarSize: {"tickFontSize":19,"valueFontSize":25,"labelFontSize":22,"plotPadding":{"top":136.891,"right":32,"bottom":100,"left":82},"barWidth":82.944}
 
 actors:
   - 東京: "{tokyo}"
@@ -92,6 +95,9 @@ export const sourceJson__branchParcelsBar = `{
   "type": "chart",
   "shape": "bar",
   "figureCard": { "label": "棒", "note": "今月 / 単位 件" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
+  "chartBarSize": { "tickFontSize": 19, "valueFontSize": 25, "labelFontSize": 22, "plotPadding": { "top": 136.891, "right": 32, "bottom": 100, "left": 82 }, "barWidth": 82.944 },
   "actors": [
     { "name": "東京", "subtitle": "{tokyo}" },
     { "name": "大阪", "subtitle": "{osaka}" },
@@ -285,6 +291,9 @@ figureSize: {"width":768,"height":464}
 type: chart
 shape: line
 figureCard: {"label":"折れ線","note":"計画 と 実績"}
+figureInset: {}
+cornerForm: theme-variants
+chartLineSize: {"valueLabelOffset":{"above":20,"below":34},"tickFontSize":17,"periodFontSize":19,"pointRadius":7.5,"plotPadding":{"top":106.891,"bottom":82}}
 chartSeriesSkipMuted: true
 chartLineSeries: [{"label":"計画","points":[{"label":"6月","value":1000},{"label":"7月","value":1150},{"label":"8月","value":1300},{"label":"9月","value":1450},{"label":"10月","value":1600}],"tone":"muted","dash":"dotted","marker":"none","valueIndexes":[4]},{"points":[{"label":"6月","value":900},{"label":"7月","value":1180},{"label":"8月","value":1250},{"label":"9月","value":1520},{"label":"10月","value":1750}],"dash":"solid","marker":"hollow","valueIndexes":[0,4]}]
 
@@ -316,6 +325,9 @@ export const sourceJson__monthlyDeliveriesLine = `{
   "type": "chart",
   "shape": "line",
   "figureCard": { "label": "折れ線", "note": "計画 と 実績" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
+  "chartLineSize": { "valueLabelOffset": { "above": 20, "below": 34 }, "tickFontSize": 17, "periodFontSize": 19, "pointRadius": 7.5, "plotPadding": { "top": 106.891, "bottom": 82 } },
   "chartSeriesSkipMuted": true,
   "chartLineSeries": [
     { "label": "計画", "points": [{ "label": "6月", "value": 1000 }, { "label": "7月", "value": 1150 }, { "label": "8月", "value": 1300 }, { "label": "9月", "value": 1450 }, { "label": "10月", "value": 1600 }], "tone": "muted", "dash": "dotted", "marker": "none", "valueIndexes": [4] },
@@ -426,6 +438,10 @@ figureSize: {"width":768,"height":496}
 type: chart
 shape: pie
 figureCard: {"label":"内訳","note":"合計 1,284 件"}
+figureInset: {}
+cornerForm: theme-variants
+terminalDecoration: {"rowOrdinal":true}
+chartPieSize: {"tableWidth":310,"tableLabelFontSize":22,"tableValueFontSize":19,"tableRowGap":46,"tablePaddingInline":24,"outerRadius":171.055}
 form: table
 chartPieCenterLabel: "件"
 chartPieTableColumns: value
@@ -462,6 +478,10 @@ export const sourceJson__parcelStatusPie = `{
   "type": "chart",
   "shape": "pie",
   "figureCard": { "label": "内訳", "note": "合計 1,284 件" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
+  "terminalDecoration": { "rowOrdinal": true },
+  "chartPieSize": { "tableWidth": 310, "tableLabelFontSize": 22, "tableValueFontSize": 19, "tableRowGap": 46, "tablePaddingInline": 24, "outerRadius": 171.055 },
   "見せ方": "銘板",
   "chartPieCenterLabel": "件",
   "chartPieTableColumns": "value",
@@ -569,6 +589,8 @@ export const sourceYaml__orderToDeliveryFunnel = `title: "申し込みから届�
 figureSize: {"width":544,"height":496}
 type: funnel
 figureCard: {"label":"漏斗","note":"先月 / 件"}
+figureInset: {}
+cornerForm: theme-variants
 funnelForm: proportional-bars
 funnelRate: conversion
 chartSeriesSkipMuted: true
@@ -603,6 +625,8 @@ export const sourceJson__orderToDeliveryFunnel = `{
   "figureSize": { "width": 544, "height": 496 },
   "type": "funnel",
   "figureCard": { "label": "漏斗", "note": "先月 / 件" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
   "funnelForm": "proportional-bars",
   "funnelRate": "conversion",
   "chartSeriesSkipMuted": true,
@@ -638,6 +662,9 @@ export const orderToDeliveryFunnel = textDslToDiagram(sourceYaml__orderToDeliver
 export const sourceYaml__sortingShelfGantt = `title: "仕分け棚を入れ替える工程"
 type: gantt
 figureCard: {"label":"ガント","note":"色の付いた棒が遅れると本番も遅れる"}
+figureInset: {}
+cornerForm: theme-variants
+ganttSize: {"taskLabelFontSize":23,"taskLabelAlign":"start","taskLabelX":36,"tickFontSize":20,"tickCount":6,"barThickness":30,"milestoneFontSize":19,"milestoneRadius":18,"dependencyStrokeWidth":3.5}
 figureSize: {"width":1712,"height":592}
 ticks: [2026年6月, 2026年7月, 2026年8月, 2026年9月, 2026年10月]
 ganttToday: { index: 3.30, label: "今日" }
@@ -682,6 +709,9 @@ export const sourceJson__sortingShelfGantt = `{
   "title": "仕分け棚を入れ替える工程",
   "type": "gantt",
   "figureCard": { "label": "ガント", "note": "色の付いた棒が遅れると本番も遅れる" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
+  "ganttSize": { "taskLabelFontSize": 23, "taskLabelAlign": "start", "taskLabelX": 36, "tickFontSize": 20, "tickCount": 6, "barThickness": 30, "milestoneFontSize": 19, "milestoneRadius": 18, "dependencyStrokeWidth": 3.5 },
   "figureSize": { "width": 1712, "height": 592 },
   "目盛り": ["2026年6月", "2026年7月", "2026年8月", "2026年9月", "2026年10月"],
   "ganttToday": { "index": 3.30, "label": "今日" },
@@ -894,6 +924,8 @@ journeyForm: rules
 journeyLineForm: straight
 journeyLabels: {"delighted":"最高","happy":"満足","neutral":"普通","frustrated":"不満","angry":"怒り"}
 figureCard: {"label":"ジャーニー","note":"最高 から 怒り の 5 段"}
+figureInset: {}
+cornerForm: theme-variants
 figureSize: {"width":1712,"height":384}
 
 actors:
@@ -934,6 +966,8 @@ export const sourceJson__shipperFeelingJourney = `{
   "journeyLineForm": "straight",
   "journeyLabels": { "delighted": "最高", "happy": "満足", "neutral": "普通", "frustrated": "不満", "angry": "怒り" },
   "figureCard": { "label": "ジャーニー", "note": "最高 から 怒り の 5 段" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
   "figureSize": { "width": 1712, "height": 384 },
   "actors": [
     { "name": "申し込む", "subtitle": "{order}" },
@@ -1109,6 +1143,9 @@ export const sourceYaml__redeliveryIdeasMind = `title: "再配達を減らす"
 type: mind
 mindForm: outline
 mindSize: {"root":{"width":330,"height":61.891,"fontSize":29},"branch":{"width":220,"height":62.891,"fontSize":29},"leaf":{"fontSize":23},"rootBranchGap":155,"branchLeafGap":70,"branchRowGap":290,"branchRowOffset":10,"leafRowGap":92,"leafRowOffset":6}
+figureKindLabel: {"text":"mind · マインドマップ"}
+terminalDecoration: {"windowControls":true,"cursor":true}
+cornerForm: theme-variants
 figureSize: {"width":1680,"height":470}
 
 actors:
@@ -1164,6 +1201,9 @@ export const sourceJson__redeliveryIdeasMind = `{
     "leafRowGap": 92,
     "leafRowOffset": 6
   },
+  "figureKindLabel": { "text": "mind · マインドマップ" },
+  "terminalDecoration": { "windowControls": true, "cursor": true },
+  "cornerForm": "theme-variants",
   "figureSize": { "width": 1680, "height": 470 },
   "actors": [
     { "name": "{theme}" },
@@ -1270,7 +1310,11 @@ export const sourceYaml__measureEffortQuadrant = `title: "打ち手の手間と�
 figureSize: {"width":544,"height":496}
 type: quadrant
 figureCard: {"label":"四象限","note":"左上から手を付ける"}
+figureInset: {}
+cornerForm: theme-variants
 quadrantPointLabelSide: right
+quadrantLabelPosition: outside-corners
+quadrantSize: {"plotOffset":{"x":70,"y":80.891},"plotSize":325.109,"pointRadius":11,"pointFontSize":19,"pointLabelGap":9,"quadrantFontSize":17,"axisFontSize":18}
 
 axes:
   x: { label: "手間", direction: true }
@@ -1324,7 +1368,11 @@ export const sourceJson__measureEffortQuadrant = `{
   "figureSize": { "width": 544, "height": 496 },
   "type": "quadrant",
   "figureCard": { "label": "四象限", "note": "左上から手を付ける" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
   "quadrantPointLabelSide": "right",
+  "quadrantLabelPosition": "outside-corners",
+  "quadrantSize": { "plotOffset": { "x": 70, "y": 80.891 }, "plotSize": 325.109, "pointRadius": 11, "pointFontSize": 19, "pointLabelGap": 9, "quadrantFontSize": 17, "axisFontSize": 18 },
   "axes": {
     "x": { "label": "手間", "direction": true },
     "y": { "label": "効き目", "direction": true }
@@ -1374,6 +1422,8 @@ treeNodeForm: frame
 treeEdgeTone: depth
 treeEdgeHead: triangle
 treeSize: {"nodeWidths":[260,240,220],"nodeHeight":91.891,"titleFontSize":29,"subtitleFontSize":19,"siblingGap":180,"levelGap":58.109}
+figureKindLabel: {"text":"tree · 階層図"}
+cornerForm: theme-variants
 figureSize: {"width":1680,"height":392}
 
 actors:
@@ -1413,6 +1463,8 @@ export const sourceJson__deliveryOfficeTree = `{
     "siblingGap": 180,
     "levelGap": 58.109
   },
+  "figureKindLabel": { "text": "tree · 階層図" },
+  "cornerForm": "theme-variants",
   "figureSize": { "width": 1680, "height": 392 },
   "actors": [
     { "name": "本社", "subtitle": "全国 12 営業所" },
@@ -1534,6 +1586,9 @@ figureSize: {"width":544,"height":496}
 type: chart
 shape: gauge
 figureCard: {"label":"半円","note":"目標 80%"}
+figureInset: {}
+cornerForm: theme-variants
+chartGaugeSize: {"arcThickness":34,"outerRadius":222,"plotTop":165,"valueFontSize":66}
 chartGaugeValue: {"max":100,"current":"{on_time}","target":80,"previous":72,"previousLabel":"先月"}
 
 actors:
@@ -1561,6 +1616,9 @@ export const sourceJson__onTimeShareGauge = `{
   "type": "chart",
   "shape": "gauge",
   "figureCard": { "label": "半円", "note": "目標 80%" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
+  "chartGaugeSize": { "arcThickness": 34, "outerRadius": 222, "plotTop": 165, "valueFontSize": 66 },
   "chartGaugeValue": { "max": 100, "current": "{on_time}", "target": 80, "previous": 72, "previousLabel": "先月" },
   "actors": [
     { "name": "定時に届いた", "subtitle": "{on_time}" },
@@ -2041,6 +2099,9 @@ figureSize: {"width":544,"height":496}
 type: chart
 shape: waffle
 figureCard: {"label":"升目","note":"1 マス = 1%"}
+figureInset: {}
+cornerForm: theme-variants
+terminalDecoration: {"rowOrdinal":true}
 chartWaffleLegendPosition: right
 
 actors:
@@ -2071,6 +2132,9 @@ export const sourceJson__parcelSizeWaffle = `{
   "type": "chart",
   "shape": "waffle",
   "figureCard": { "label": "升目", "note": "1 マス = 1%" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
+  "terminalDecoration": { "rowOrdinal": true },
   "chartWaffleLegendPosition": "right",
   "actors": [
     { "name": "小さい", "subtitle": "{small}" },
@@ -2111,6 +2175,9 @@ figureSize: {"width":544,"height":496}
 type: chart
 shape: stacked
 figureCard: {"label":"内訳の帯","note":"月ごと / %"}
+figureInset: {}
+cornerForm: theme-variants
+chartStackedLayout: {"legendColumns":3,"legendColumnGap":170,"segmentGap":3,"barThickness":32,"barWidth":365,"legendMarkSize":16,"legendFontSize":17,"periodFontSize":19,"rateFontSize":19}
 chartStackedPeriods: [{"label":"6月","values":[79,19,2]},{"label":"7月","values":[81,17,2]},{"label":"8月","values":[77,21,2]},{"label":"9月","values":[83,16,1]},{"label":"10月","values":[86,13,1]}]
 chartStackedRateId: "再配達"
 chartStackedLegendPosition: top
@@ -2144,6 +2211,9 @@ export const sourceJson__deliveryResultStacked = `{
   "type": "chart",
   "shape": "stacked",
   "figureCard": { "label": "内訳の帯", "note": "月ごと / %" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
+  "chartStackedLayout": { "legendColumns": 3, "legendColumnGap": 170, "segmentGap": 3, "barThickness": 32, "barWidth": 365, "legendMarkSize": 16, "legendFontSize": 17, "periodFontSize": 19, "rateFontSize": 19 },
   "chartStackedPeriods": [
     { "label": "6月", "values": [79, 19, 2] },
     { "label": "7月", "values": [81, 17, 2] },
@@ -2256,6 +2326,10 @@ figureSize: {"width":544,"height":496}
 type: chart
 shape: slope
 figureCard: {"label":"傾き","note":"先月 → 今月"}
+figureInset: {}
+cornerForm: theme-variants
+chartSlopeLabelTemplate: {"left":"{name} {value}{unit}","right":"{value}{unit} {name}"}
+chartSlopeSize: {"pointRadius":7,"periodFontSize":19,"labelFontSize":19,"leftAxisX":150,"axisGap":250,"labelAxisGap":18}
 chartSlopePeriods: ["先月", "今月"]
 chartSlopeEmphasisIds: ["大阪", "名古屋"]
 chartSlopeUnit: "%"
@@ -2291,6 +2365,10 @@ export const sourceJson__onTimeRateSlope = `{
   "type": "chart",
   "shape": "slope",
   "figureCard": { "label": "傾き", "note": "先月 → 今月" },
+  "figureInset": {},
+  "cornerForm": "theme-variants",
+  "chartSlopeLabelTemplate": { "left": "{name} {value}{unit}", "right": "{value}{unit} {name}" },
+  "chartSlopeSize": { "pointRadius": 7, "periodFontSize": 19, "labelFontSize": 19, "leftAxisX": 150, "axisGap": 250, "labelAxisGap": 18 },
   "chartSlopePeriods": ["先月", "今月"],
   "chartSlopeEmphasisIds": ["大阪", "名古屋"],
   "chartSlopeUnit": "%",

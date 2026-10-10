@@ -4,6 +4,9 @@
   "title": "Dragon DSL Diagram",
   "description": "LLM 向け Dragon DSL の JSON Schema。 Anthropic Claude tool use / OpenAI GPT structured output の schema field に注入して使う。 生成された JSON は jsonToDiagram() に渡して CdlDiagram に変換する。",
   "type": "object",
+  "$defs": {
+    "positiveNumber": { "type": "number", "exclusiveMinimum": 0 }
+  },
   "required": [
     "title",
     "type",
@@ -287,6 +290,20 @@
         "height": { "type": "number", "exclusiveMinimum": 0 }
       }
     },
+    "terminalDecoration": { "type": "object", "additionalProperties": false, "properties": { "windowControls": { "type": "boolean" }, "cursor": { "type": "boolean" }, "rowOrdinal": { "type": "boolean" } } },
+    "cornerForm": { "type": "string", "enum": ["theme-variants"] },
+    "figureKindLabel": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "minLength": 1 }, "x": { "type": "number" }, "y": { "type": "number" }, "fontSize": { "type": "number", "exclusiveMinimum": 0 }, "fontWeight": { "type": "number", "exclusiveMinimum": 0 }, "letterSpacing": { "type": "number", "minimum": 0 } } },
+    "figureInset": { "type": "object", "additionalProperties": false, "properties": { "top": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 }, "bottom": { "type": "number", "minimum": 0 }, "left": { "type": "number", "minimum": 0 }, "radius": { "type": "number", "minimum": 0 } } },
+    "chartBarSize": { "type": "object", "additionalProperties": false, "properties": { "tickFontSize": { "$ref": "#/$defs/positiveNumber" }, "valueFontSize": { "$ref": "#/$defs/positiveNumber" }, "labelFontSize": { "$ref": "#/$defs/positiveNumber" }, "plotPadding": { "type": "object", "additionalProperties": false, "properties": { "top": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 }, "bottom": { "type": "number", "minimum": 0 }, "left": { "type": "number", "minimum": 0 } } }, "barWidth": { "$ref": "#/$defs/positiveNumber" } } },
+    "chartLineSize": { "type": "object", "additionalProperties": false, "properties": { "valueLabelOffset": { "type": "object", "additionalProperties": false, "properties": { "above": { "type": "number", "minimum": 0 }, "below": { "type": "number", "minimum": 0 } } }, "tickFontSize": { "$ref": "#/$defs/positiveNumber" }, "periodFontSize": { "$ref": "#/$defs/positiveNumber" }, "pointRadius": { "$ref": "#/$defs/positiveNumber" }, "plotPadding": { "type": "object", "additionalProperties": false, "properties": { "top": { "type": "number", "minimum": 0 }, "bottom": { "type": "number", "minimum": 0 } } } } },
+    "chartPieSize": { "type": "object", "additionalProperties": false, "properties": { "tableWidth": { "$ref": "#/$defs/positiveNumber" }, "tableLabelFontSize": { "$ref": "#/$defs/positiveNumber" }, "tableValueFontSize": { "$ref": "#/$defs/positiveNumber" }, "tableRowGap": { "type": "number", "minimum": 0 }, "tablePaddingInline": { "type": "number", "minimum": 0 }, "outerRadius": { "$ref": "#/$defs/positiveNumber" } } },
+    "chartSlopeLabelTemplate": { "type": "object", "additionalProperties": false, "properties": { "left": { "type": "string" }, "right": { "type": "string" } } },
+    "chartSlopeSize": { "type": "object", "additionalProperties": false, "properties": { "pointRadius": { "$ref": "#/$defs/positiveNumber" }, "periodFontSize": { "$ref": "#/$defs/positiveNumber" }, "labelFontSize": { "$ref": "#/$defs/positiveNumber" }, "leftAxisX": { "type": "number", "minimum": 0 }, "axisGap": { "$ref": "#/$defs/positiveNumber" }, "labelAxisGap": { "type": "number", "minimum": 0 } } },
+    "chartStackedLayout": { "type": "object", "additionalProperties": false, "properties": { "legendColumns": { "type": "integer", "minimum": 1 }, "legendColumnGap": { "type": "number", "minimum": 0 }, "segmentGap": { "type": "number", "minimum": 0 }, "barThickness": { "$ref": "#/$defs/positiveNumber" }, "barWidth": { "$ref": "#/$defs/positiveNumber" }, "legendMarkSize": { "$ref": "#/$defs/positiveNumber" }, "legendFontSize": { "$ref": "#/$defs/positiveNumber" }, "periodFontSize": { "$ref": "#/$defs/positiveNumber" }, "rateFontSize": { "$ref": "#/$defs/positiveNumber" } } },
+    "chartGaugeSize": { "type": "object", "additionalProperties": false, "properties": { "arcThickness": { "$ref": "#/$defs/positiveNumber" }, "outerRadius": { "$ref": "#/$defs/positiveNumber" }, "plotTop": { "type": "number", "minimum": 0 }, "valueFontSize": { "$ref": "#/$defs/positiveNumber" } } },
+    "ganttSize": { "type": "object", "additionalProperties": false, "properties": { "taskLabelFontSize": { "$ref": "#/$defs/positiveNumber" }, "taskLabelAlign": { "type": "string", "enum": ["start", "end"] }, "taskLabelX": { "type": "number", "minimum": 0 }, "tickFontSize": { "$ref": "#/$defs/positiveNumber" }, "tickCount": { "type": "integer", "minimum": 2 }, "barThickness": { "$ref": "#/$defs/positiveNumber" }, "milestoneFontSize": { "$ref": "#/$defs/positiveNumber" }, "milestoneRadius": { "$ref": "#/$defs/positiveNumber" }, "dependencyStrokeWidth": { "$ref": "#/$defs/positiveNumber" } } },
+    "quadrantLabelPosition": { "type": "string", "enum": ["outside-corners"] },
+    "quadrantSize": { "type": "object", "additionalProperties": false, "properties": { "plotOffset": { "type": "object", "additionalProperties": false, "properties": { "x": { "type": "number", "minimum": 0 }, "y": { "type": "number", "minimum": 0 } } }, "plotSize": { "$ref": "#/$defs/positiveNumber" }, "pointRadius": { "$ref": "#/$defs/positiveNumber" }, "pointFontSize": { "$ref": "#/$defs/positiveNumber" }, "pointLabelGap": { "type": "number", "minimum": 0 }, "quadrantFontSize": { "$ref": "#/$defs/positiveNumber" }, "axisFontSize": { "$ref": "#/$defs/positiveNumber" } } },
     "eyebrow": {
       "type": "string",
       "description": "図表の箱の上に出す小見出し (省略可)。 効くのは図全体を 1 箱にする型 (chart / funnel / tree / journey / quadrant / mind / gantt) だけ。 箱ごとに分かれる型では相手が決まらないため、 actors[].eyebrow に書く"
@@ -1032,6 +1049,19 @@
           "labelOffsetY": {
             "type": "number",
             "description": "ラベル位置 y 調整"
+          },
+          "labelCollision": {
+            "type": "string",
+            "enum": ["auto", "author"]
+          },
+          "labelSize": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "width": { "$ref": "#/$defs/positiveNumber" },
+              "height": { "$ref": "#/$defs/positiveNumber" },
+              "fontSize": { "$ref": "#/$defs/positiveNumber" }
+            }
           },
           "overlay": {
             "type": "boolean",
@@ -2801,6 +2831,19 @@
           "nameSize": { "type": "number", "exclusiveMinimum": 0 },
           "bottomPad": { "type": "number", "minimum": 0 }
         }
+      }
+    },
+    "stageLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "columnWidths": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 0 }
+        },
+        "columnGap": { "type": "number", "minimum": 0 },
+        "backDetourTopGap": { "type": "number", "minimum": 0 },
+        "backDetourSideGap": { "type": "number", "minimum": 0 }
       }
     },
     "reveal": {

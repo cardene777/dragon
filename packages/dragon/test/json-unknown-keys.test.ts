@@ -166,6 +166,20 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     sequenceKindLabels: { call: "呼出", return: "返却" },
     figureCard: { label: "図", note: "注記" },
     figureSize: { width: 640, height: 320 },
+    terminalDecoration: { windowControls: true, cursor: true, rowOrdinal: true },
+    cornerForm: "theme-variants",
+    figureKindLabel: { text: "tree · 階層図" },
+    figureInset: {},
+    chartBarSize: { barWidth: 82 },
+    chartLineSize: { pointRadius: 7 },
+    chartPieSize: { outerRadius: 171 },
+    chartSlopeLabelTemplate: { left: "{name}" },
+    chartSlopeSize: { axisGap: 250 },
+    chartStackedLayout: { legendColumns: 3 },
+    chartGaugeSize: { arcThickness: 34 },
+    ganttSize: { tickCount: 6 },
+    quadrantLabelPosition: "outside-corners",
+    quadrantSize: { plotSize: 325 },
     // 図の意匠とその別名 (#1553 / #2790)
     theme: "blueprint",
     palette: "celadon",
@@ -174,6 +188,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     stageHeaders: {
       blueprint: { topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 },
     },
+    stageLayout: { columnWidths: { 受付: 360 }, columnGap: 64 },
   },
   actor: {
     name: "A",
@@ -269,6 +284,8 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     cardinality: "1..N",
     labelOffsetX: 1,
     labelOffsetY: 2,
+    labelCollision: "author",
+    labelSize: { width: 96, height: 40, fontSize: 21 },
     overlay: true,
     pos: { x: 1, y: 2 },
     // 部品の端で繋ぐ要素の id (#1979)

@@ -234,6 +234,17 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       head: { 書く: "triangle", 期待: "triangle" },
       labelOffsetX: { 書く: "3", 期待: 3 },
       labelOffsetY: { 書く: "-8", 期待: -8 },
+      labelCollision: { 書く: "author", 期待: "author" },
+      labelSize: {
+        書く: '{"width":96,"height":40,"fontSize":21}',
+        確かめる: (d) => {
+          expect(d.edges[0]?.labelSize, "labelSize が矢印に届いていない").toEqual({
+            width: 96,
+            height: 40,
+            fontSize: 21,
+          });
+        },
+      },
       // 矢印を値に追随させる 3 欄 (#1396)
       widthBind: { 書く: '"{flow}"', 期待: "{flow}" },
       strokeBind: { 書く: '"{hue}"', 期待: "{hue}" },

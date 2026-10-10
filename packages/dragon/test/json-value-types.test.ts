@@ -35,7 +35,15 @@ import {
   jsonToDiagram,
   type 欄の型,
 } from "../src/json-parser";
-import { EDGE_SIDE_VALUES, EDGE_HEAD_VALUES, STYLE_VALID, 書ける色名 } from "../src/v05/parser";
+import {
+  CORNER_FORM_VALUES,
+  EDGE_HEAD_VALUES,
+  EDGE_SIDE_VALUES,
+  LABEL_COLLISION_VALUES,
+  QUADRANT_LABEL_POSITION_VALUES,
+  STYLE_VALID,
+  書ける色名,
+} from "../src/v05/parser";
 import { RELATIVE_DIRECTIONS } from "../src/relative-pos";
 import { 図, 欄に値を置く, 欄のpath } from "./support/json-field-input";
 
@@ -73,6 +81,13 @@ const 型ごとの値: Record<string, { 誤り: unknown; 他の誤り?: unknown[
   図の形: { 誤り: "bogus", 他の誤り: [1], 正しい: "pie" },
   ガントの帯の終わり: { 誤り: "cell", 他の誤り: [1], 正しい: "position" },
   ガントの帯の厚み: { 誤り: "thick", 他の誤り: [1], 正しい: "thin" },
+  札の角: { 誤り: "round", 他の誤り: [1], 正しい: CORNER_FORM_VALUES[0] },
+  四象限の区画名位置: {
+    誤り: "inside",
+    他の誤り: [1],
+    正しい: QUADRANT_LABEL_POSITION_VALUES[0],
+  },
+  線札の衝突: { 誤り: "fixed", 他の誤り: [1], 正しい: LABEL_COLLISION_VALUES[0] },
   主役: { 誤り: "secondary", 他の誤り: [1], 正しい: "primary" },
   色か色番号: { 誤り: "bogus", 正しい: "#f59e0b" },
   必須の図種: { 誤り: "bogus", 正しい: "flow" },

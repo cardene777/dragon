@@ -65,6 +65,7 @@ export const AXIS_NAMES: Record<string, 二言語> = {
   "locale-parity": { ja: "日本語と英語の中身が揃っているか", en: "Whether the Japanese and the English hold the same content" },
   "validate-performance-budget": { ja: "走査にかかる時間が長引いていないか", en: "Whether the checks are taking too long" },
   "node-inside-viewbox": { ja: "箱が図の枠に収まっているか", en: "Whether the boxes fit inside the frame" },
+  "figure-inset-bounds": { ja: "図の凹みが札の中に収まっているか", en: "Whether the figure inset fits inside its card" },
   "node-inside-lane": { ja: "箱が帯の中に収まっているか", en: "Whether the boxes fit inside their lane" },
   "shape-label-dropped": { ja: "形に書いた名札が描かれているか", en: "Whether a label written on a shape is drawn" },
   "box-line-dropped": { ja: "箱に書いた補足が描かれているか", en: "Whether a note written on a box is drawn" },

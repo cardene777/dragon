@@ -113,6 +113,8 @@ export function compileQuadrant(
     ...(doc.quadrantPointLabelSide !== undefined
       ? { quadrantPointLabelSide: doc.quadrantPointLabelSide }
       : {}),
+    ...(doc.quadrantLabelPosition !== undefined ? { quadrantLabelPosition: doc.quadrantLabelPosition } : {}),
+    ...(doc.quadrantSize !== undefined ? { quadrantSize: doc.quadrantSize } : {}),
   });
   return b.build();
 }

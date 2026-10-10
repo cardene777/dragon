@@ -31,8 +31,8 @@ export const TIMELINE_END_HEIGHT = 42;
  */
 export const TIMELINE_AXIS_TO_CARD = 70;
 
-/** 108 幅の線札と両側の箱へ CDL の 32px clearance を保つため、軸から内側まで 242 離す。 */
-export const TIMELINE_AXIS_TO_SIDE_CARD = 242;
+/** 正解頁の軸 x=800 と「持ち戻る」の左辺 x=1020 から測った距離。 */
+export const TIMELINE_AXIS_TO_SIDE_CARD = 220;
 
 /** 見本どおり、番号の段を 125 ずつ進める。 */
 export const TIMELINE_STEP_GAP = 125;

@@ -13,10 +13,17 @@ import type { DslDocument } from "../types";
  */
 export function 図の小見出し(
   doc: DslDocument,
-): { eyebrow?: string; figureCard?: NonNullable<DslDocument["figureCard"]> } {
+): {
+  eyebrow?: string;
+  figureCard?: NonNullable<DslDocument["figureCard"]>;
+  cornerForm?: NonNullable<DslDocument["cornerForm"]>;
+  figureInset?: NonNullable<DslDocument["figureInset"]>;
+} {
   return {
     ...(doc.eyebrow === undefined ? {} : { eyebrow: doc.eyebrow }),
     ...(doc.figureCard === undefined ? {} : { figureCard: doc.figureCard }),
+    ...(doc.cornerForm === undefined ? {} : { cornerForm: doc.cornerForm }),
+    ...(doc.figureInset === undefined ? {} : { figureInset: doc.figureInset }),
   };
 }
 

@@ -4699,6 +4699,84 @@ svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-routing="metro"])
   filter: none !important;
 }
 
+/* cdl 0.132.0: 図の種類札は正解頁の意匠ごとの墨色で読む。 */
+svg[data-cdl-stage][data-cdl-palette="blueprint"] { --cdl-figure-kind-label: #4d7187; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
+svg[data-cdl-stage][data-cdl-palette="letterpress"] { --cdl-figure-kind-label: #6b6253; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
+svg[data-cdl-stage][data-cdl-palette="catalog"] { --cdl-figure-kind-label: #a39a87; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
+svg[data-cdl-stage][data-cdl-palette="terminal"] { --cdl-figure-kind-label: #7f9186; --cdl-metro-label-radius: 4px; --dragon-authored-label-radius: 4px; }
+svg[data-cdl-stage][data-cdl-palette="sketch"] { --cdl-figure-kind-label: #6d6456; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
+svg[data-cdl-stage][data-cdl-palette="neon"] { --cdl-figure-kind-label: #c4bce0; --cdl-metro-label-radius: 9px; --dragon-authored-label-radius: 9px; }
+svg[data-cdl-stage][data-cdl-palette="relief"] { --cdl-figure-kind-label: #7a7062; --cdl-metro-label-radius: 20px; --dragon-authored-label-radius: 20px; }
+
+/* 端末だけが窓操作・字送り・行番号を見せる。ほかの意匠は元の組位置を保つ。 */
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  ) :is(
+    [data-cdl-role="terminal-window-control"],
+    [data-cdl-role="terminal-cursor"],
+    [data-cdl-role="terminal-row-ordinal"]
+  ) {
+  display: none;
+}
+
+svg[data-cdl-stage]:is(
+    [data-cdl-palette="blueprint"],
+    [data-cdl-palette="letterpress"],
+    [data-cdl-palette="catalog"],
+    [data-cdl-palette="sketch"],
+    [data-cdl-palette="neon"],
+    [data-cdl-palette="relief"]
+  ) :is([data-cdl-role="terminal-title-content"], [data-cdl-role="terminal-row-content"]) {
+  transform: none;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-title-content"] { transform: translateX(68px); }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-row-content"] { transform: translateX(30px); }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-window-control"][data-cdl-terminal-control="close"] { fill: #ff5f57; }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-window-control"][data-cdl-terminal-control="minimize"] { fill: #febc2e; }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-window-control"][data-cdl-terminal-control="maximize"] { fill: #28c840; }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-cursor"] { fill: #4ade80; }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="terminal-row-ordinal"] { fill: #3f5a49; }
+
+/* 浮彫だけ、cdl が個体ごとに作る filter id を要素の CSS 変数から参照する。 */
+svg[data-cdl-stage]:not([data-cdl-palette="relief"]) [data-cdl-role="figure-content-inset"] { filter: none; }
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="figure-content-inset"] { filter: var(--cdl-figure-content-inset-filter); }
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="figure-content-inset-shadow-dark"] { flood-color: rgb(160 144 120); flood-opacity: 0.42; }
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="figure-content-inset-shadow-light"] { flood-color: rgb(255 255 255); flood-opacity: 0.88; }
+
+/* cornerForm を書いた矩形だけ、意匠に応じて一様角か手描き角の片方を出す。 */
+svg[data-cdl-stage]:not([data-cdl-palette="sketch"]) [data-cdl-corner-variant="handdraw"] { display: none; }
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-corner-variant="uniform"] { display: none; }
+svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-corner-variant="handdraw"] { display: inline; }
+svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-corner-variant="uniform"],
+svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-corner-variant="uniform"],
+svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-corner-variant="uniform"] { rx: 12px; ry: 12px; }
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-corner-variant="uniform"] { rx: 6px; ry: 6px; }
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-corner-variant="uniform"] { rx: 16px; ry: 16px; }
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-corner-variant="uniform"] { rx: 22px; ry: 22px; }
+
+svg[data-cdl-stage]:has([data-cdl-routing="metro"]) [data-cdl-role="edge-label-bg"] {
+  rx: var(--cdl-metro-label-radius);
+  ry: var(--cdl-metro-label-radius);
+}
+
+/* 作者固定を書いた 3 枚の線札だけを、正解頁の意匠角へ替える。 */
+svg[data-cdl-stage]:has([data-cdl-role="timeline-axis"])
+  :is(
+    [data-cdl-edge-label-for="e7-在宅-持ち戻る"],
+    [data-cdl-edge-label-for="e8-持ち戻る-便に積む"]
+  ) [data-cdl-role="edge-label-bg"],
+svg[data-cdl-stage]:has([data-cdl-role="stage-column"])
+  [data-cdl-edge-label-for="e6-在宅-持ち戻る"] [data-cdl-role="edge-label-bg"] {
+  rx: var(--dragon-authored-label-radius);
+  ry: var(--dragon-authored-label-radius);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * 見本帳の階層図とマインドマップ (#2854 6a)
  *

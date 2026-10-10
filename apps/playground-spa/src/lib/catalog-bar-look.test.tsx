@@ -31,7 +31,7 @@ type 棒 = { x: number; w: number; 濃さ: number };
 /** 棒の `x` / `width` / `fill-opacity` を読む。 属性の並び順に依らない形で拾う */
 function 棒たち(svg: string): 棒[] {
   const 出た: 棒[] = [];
-  for (const m of svg.matchAll(/<rect[^>]*data-cdl-role="chart-bar"[^>]*>/g)) {
+  for (const m of svg.matchAll(/<g[^>]*data-cdl-role="chart-bar"[^>]*>/g)) {
     const 札 = m[0];
     const 取る = (名: string): number => {
       const r = new RegExp(`${名}="([-\\d.]+)"`).exec(札);

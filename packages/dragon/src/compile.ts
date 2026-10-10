@@ -582,6 +582,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     (merged as CdlDiagram & { stageHeaders?: DslDocument["stageHeaders"] }).stageHeaders =
       doc.stageHeaders;
   }
+  if (doc.stageLayout !== undefined) merged.stageLayout = doc.stageLayout;
   静止した図の焦点を外す(merged, doc);
   // 位置のずらしは **配置に効く欄を全て載せた後** に当てる (#1971)。 縦列の幅や視点の間隔を
   // 足す前に測ると、後から足された分だけ狙いがずれる
@@ -589,7 +590,33 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 組の枠は **縦列の位置が全て決まった後** に置く (#1972)。 位置のずらしより前に置くと、
   // ずらした縦列から枠が離れる
   applyGroupFrames(merged, doc, 作った組の枠, opts?.onNotice);
+  cdl0132の未指定欄を外す(merged);
   return merged;
+}
+
+/** cdl 0.132.0 が object に足す未指定欄を、0.131.0 までと同じ省略形へ戻す。 */
+function cdl0132の未指定欄を外す(diagram: CdlDiagram): void {
+  for (const node of diagram.nodes) {
+    if (node.terminalDecoration === undefined) delete node.terminalDecoration;
+    if (node.cornerForm === undefined) delete node.cornerForm;
+    if (node.figureKindLabel === undefined) delete node.figureKindLabel;
+    if (node.figureInset === undefined) delete node.figureInset;
+    if (node.chartBarSize === undefined) delete node.chartBarSize;
+    if (node.chartLineSize === undefined) delete node.chartLineSize;
+    if (node.chartPieSize === undefined) delete node.chartPieSize;
+    if (node.chartSlopeLabelTemplate === undefined) delete node.chartSlopeLabelTemplate;
+    if (node.chartSlopeSize === undefined) delete node.chartSlopeSize;
+    if (node.chartStackedLayout === undefined) delete node.chartStackedLayout;
+    if (node.chartGaugeSize === undefined) delete node.chartGaugeSize;
+    if (node.ganttSize === undefined) delete node.ganttSize;
+    if (node.quadrantLabelPosition === undefined) delete node.quadrantLabelPosition;
+    if (node.quadrantSize === undefined) delete node.quadrantSize;
+  }
+  for (const edge of diagram.edges) {
+    if (edge.labelCollision === undefined) delete edge.labelCollision;
+    if (edge.labelSize === undefined) delete edge.labelSize;
+  }
+  if (diagram.stageLayout === undefined) delete diagram.stageLayout;
 }
 
 /**
@@ -2266,6 +2293,8 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.labelPlate !== undefined) target.labelPlate = s.labelPlate;
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
+  if (s.labelCollision !== undefined) target.labelCollision = s.labelCollision;
+  if (s.labelSize !== undefined) target.labelSize = s.labelSize;
   // 矢印の位置のずらし (#1971)。 矢印は自分の位置を持たず、通り道は両端の箱で決まるので、
   // 動かせるのは名前だけ。 名前のずらしに足す = 両方書いた時は合わせた量だけ動く
   if (s.layoutPos !== undefined) {
