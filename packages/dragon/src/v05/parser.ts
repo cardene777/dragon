@@ -112,6 +112,25 @@ export const JOURNEY_FORM_VALUES = ["bands", "rules"] as const;
 export const JOURNEY_LINE_FORM_VALUES = ["curve", "straight"] as const;
 export const JOURNEY_OPPORTUNITY_POSITION_VALUES = ["below-chart", "below-point"] as const;
 export const JOURNEY_LABEL_KEYS = ["delighted", "happy", "neutral", "frustrated", "angry"] as const;
+const TREE_SIZE_KEYS = [
+  "nodeWidths",
+  "nodeHeight",
+  "titleFontSize",
+  "subtitleFontSize",
+  "siblingGap",
+  "levelGap",
+] as const;
+const MIND_SIZE_KEYS = [
+  "root",
+  "branch",
+  "leaf",
+  "rootBranchGap",
+  "branchLeafGap",
+  "branchRowGap",
+  "branchRowOffset",
+  "leafRowGap",
+  "leafRowOffset",
+] as const;
 import {
   checkValueExpression,
   isTriggerBody,
@@ -290,9 +309,11 @@ export const TOP_LEVEL_KEYS = [
   "funnelRate",
   "quadrantPointLabelSide",
   "treeNodeForm",
+  "treeSize",
   "treeEdgeTone",
   "treeEdgeHead",
   "mindForm",
+  "mindSize",
   "journeyForm",
   "journeyLineForm",
   "journeyLabels",
@@ -685,9 +706,11 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let funnelRate: DslDocument["funnelRate"];
   let quadrantPointLabelSide: DslDocument["quadrantPointLabelSide"];
   let treeNodeForm: DslDocument["treeNodeForm"];
+  let treeSize: DslDocument["treeSize"];
   let treeEdgeTone: DslDocument["treeEdgeTone"];
   let treeEdgeHead: DslDocument["treeEdgeHead"];
   let mindForm: DslDocument["mindForm"];
+  let mindSize: DslDocument["mindSize"];
   let journeyForm: DslDocument["journeyForm"];
   let journeyLineForm: DslDocument["journeyLineForm"];
   let journeyLabels: DslDocument["journeyLabels"];
@@ -1224,6 +1247,15 @@ export function parseTextDslV05(src: string): V05ParseResult {
         else journeyLineForm = value as typeof journeyLineForm;
       } else {
         errors.push({ line: line.no, message: `${head.key} が読めません: "${value}"`, hint: `使える値 = ${values.join(", ")}` });
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "treeSize" || head.key === "mindSize") {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      if (value !== undefined) {
+        if (head.key === "treeSize" && 木の寸法を読む(value, line.no, errors)) treeSize = value;
+        if (head.key === "mindSize" && 放射の寸法を読む(value, line.no, errors)) mindSize = value;
       }
       i += 1;
       continue;
@@ -1901,9 +1933,11 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(funnelRate !== undefined ? { funnelRate } : {}),
       ...(quadrantPointLabelSide !== undefined ? { quadrantPointLabelSide } : {}),
       ...(treeNodeForm !== undefined ? { treeNodeForm } : {}),
+      ...(treeSize !== undefined ? { treeSize } : {}),
       ...(treeEdgeTone !== undefined ? { treeEdgeTone } : {}),
       ...(treeEdgeHead !== undefined ? { treeEdgeHead } : {}),
       ...(mindForm !== undefined ? { mindForm } : {}),
+      ...(mindSize !== undefined ? { mindSize } : {}),
       ...(journeyForm !== undefined ? { journeyForm } : {}),
       ...(journeyLineForm !== undefined ? { journeyLineForm } : {}),
       ...(journeyLabels !== undefined ? { journeyLabels } : {}),
@@ -5469,6 +5503,79 @@ function 図表の知らない項目を知らせる(
     });
   }
   return 知らない.length > 0;
+}
+
+const 正の有限数か = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+const 負でない有限数か = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+function 木の寸法を読む(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): value is NonNullable<DslDocument["treeSize"]> {
+  if (!objectか(value)) {
+    errors.push({ line, message: "treeSize は object で書きます" });
+    return false;
+  }
+  let invalid = 図表の知らない項目を知らせる(value, TREE_SIZE_KEYS, "treeSize", line, errors);
+  if (
+    value.nodeWidths !== undefined &&
+    (!Array.isArray(value.nodeWidths) ||
+      value.nodeWidths.length === 0 ||
+      value.nodeWidths.some((width) => !正の有限数か(width)))
+  )
+    invalid = true;
+  for (const key of ["nodeHeight", "titleFontSize", "subtitleFontSize"] as const) {
+    if (value[key] !== undefined && !正の有限数か(value[key])) invalid = true;
+  }
+  for (const key of ["siblingGap", "levelGap"] as const) {
+    if (value[key] !== undefined && !負でない有限数か(value[key])) invalid = true;
+  }
+  if (invalid) errors.push({ line, message: "treeSize の値の形が読めません" });
+  return !invalid;
+}
+
+function 放射の寸法を読む(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): value is NonNullable<DslDocument["mindSize"]> {
+  if (!objectか(value)) {
+    errors.push({ line, message: "mindSize は object で書きます" });
+    return false;
+  }
+  let invalid = 図表の知らない項目を知らせる(value, MIND_SIZE_KEYS, "mindSize", line, errors);
+  for (const [key, allowed] of [
+    ["root", ["width", "height", "fontSize"]],
+    ["branch", ["width", "height", "fontSize"]],
+    ["leaf", ["fontSize"]],
+  ] as const) {
+    const nested = value[key];
+    if (nested === undefined) continue;
+    if (!objectか(nested)) {
+      invalid = true;
+      continue;
+    }
+    invalid =
+      図表の知らない項目を知らせる(nested, allowed, `mindSize.${key}`, line, errors) || invalid;
+    for (const nestedKey of allowed) {
+      if (nested[nestedKey] !== undefined && !正の有限数か(nested[nestedKey])) invalid = true;
+    }
+  }
+  for (const key of ["rootBranchGap", "branchLeafGap", "branchRowGap", "leafRowGap"] as const) {
+    if (value[key] !== undefined && !負でない有限数か(value[key])) invalid = true;
+  }
+  for (const key of ["branchRowOffset", "leafRowOffset"] as const) {
+    if (
+      value[key] !== undefined &&
+      (typeof value[key] !== "number" || !Number.isFinite(value[key]))
+    )
+      invalid = true;
+  }
+  if (invalid) errors.push({ line, message: "mindSize の値の形が読めません" });
+  return !invalid;
 }
 
 function chartLineSeriesの知らない項目を知らせる(

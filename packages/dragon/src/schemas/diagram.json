@@ -187,9 +187,62 @@
     "funnelRate": { "type": "string", "enum": ["drop", "conversion", "none"] },
     "quadrantPointLabelSide": { "type": "string", "enum": ["auto", "right"] },
     "treeNodeForm": { "type": "string", "enum": ["accent", "frame"] },
+    "treeSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nodeWidths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "number", "exclusiveMinimum": 0 }
+        },
+        "nodeHeight": { "type": "number", "exclusiveMinimum": 0 },
+        "titleFontSize": { "type": "number", "exclusiveMinimum": 0 },
+        "subtitleFontSize": { "type": "number", "exclusiveMinimum": 0 },
+        "siblingGap": { "type": "number", "minimum": 0 },
+        "levelGap": { "type": "number", "minimum": 0 }
+      }
+    },
     "treeEdgeTone": { "type": "string", "enum": ["accent", "depth"] },
     "treeEdgeHead": { "type": "string", "enum": ["none", "triangle"] },
     "mindForm": { "type": "string", "enum": ["filled", "outline"] },
+    "mindSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "root": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "width": { "type": "number", "exclusiveMinimum": 0 },
+            "height": { "type": "number", "exclusiveMinimum": 0 },
+            "fontSize": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "branch": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "width": { "type": "number", "exclusiveMinimum": 0 },
+            "height": { "type": "number", "exclusiveMinimum": 0 },
+            "fontSize": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "leaf": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fontSize": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "rootBranchGap": { "type": "number", "minimum": 0 },
+        "branchLeafGap": { "type": "number", "minimum": 0 },
+        "branchRowGap": { "type": "number", "minimum": 0 },
+        "branchRowOffset": { "type": "number" },
+        "leafRowGap": { "type": "number", "minimum": 0 },
+        "leafRowOffset": { "type": "number" }
+      }
+    },
     "journeyForm": { "type": "string", "enum": ["bands", "rules"] },
     "journeyLineForm": { "type": "string", "enum": ["curve", "straight"] },
     "journeyLabels": {

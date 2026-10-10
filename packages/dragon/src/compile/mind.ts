@@ -377,6 +377,7 @@ export function compileMind(
       };
     })(),
     ...(doc.mindForm !== undefined ? { mindForm: doc.mindForm } : {}),
+    ...(doc.mindSize !== undefined ? { mindSize: doc.mindSize } : {}),
   });
   return b.build();
 }

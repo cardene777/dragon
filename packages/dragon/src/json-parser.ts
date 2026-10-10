@@ -177,9 +177,11 @@ export interface DragonJson {
   funnelRate?: DslDocument["funnelRate"];
   quadrantPointLabelSide?: DslDocument["quadrantPointLabelSide"];
   treeNodeForm?: DslDocument["treeNodeForm"];
+  treeSize?: DslDocument["treeSize"];
   treeEdgeTone?: DslDocument["treeEdgeTone"];
   treeEdgeHead?: DslDocument["treeEdgeHead"];
   mindForm?: DslDocument["mindForm"];
+  mindSize?: DslDocument["mindSize"];
   journeyForm?: DslDocument["journeyForm"];
   journeyLineForm?: DslDocument["journeyLineForm"];
   journeyLabels?: DslDocument["journeyLabels"];
@@ -722,9 +724,11 @@ export const ACCEPTED_KEYS = {
     "funnelRate",
     "quadrantPointLabelSide",
     "treeNodeForm",
+    "treeSize",
     "treeEdgeTone",
     "treeEdgeHead",
     "mindForm",
+    "mindSize",
     "journeyForm",
     "journeyLineForm",
     "journeyLabels",
@@ -973,9 +977,11 @@ export const 欄の型表 = {
     funnelRate: "文字列",
     quadrantPointLabelSide: "文字列",
     treeNodeForm: "文字列",
+    treeSize: "object",
     treeEdgeTone: "文字列",
     treeEdgeHead: "文字列",
     mindForm: "文字列",
+    mindSize: "object",
     journeyForm: "文字列",
     journeyLineForm: "文字列",
     journeyLabels: "object",
@@ -2505,7 +2511,7 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   enumField("sequenceReturnHead", SEQUENCE_RETURN_HEAD_VALUES);
 
   const closedObject = (
-    name: "journeyLabels" | "figureCard" | "figureSize",
+    name: "journeyLabels" | "figureCard" | "figureSize" | "treeSize" | "mindSize",
     keys: readonly string[],
   ): Record<string, unknown> | undefined => {
     const value = j[name];
@@ -2551,6 +2557,93 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
     for (const key of ["width", "height"] as const) {
       if (typeof size[key] !== "number" || !Number.isFinite(size[key]) || size[key] <= 0)
         errors.push({ path: `$.figureSize.${key}`, message: `${key} must be a positive finite number` });
+    }
+  }
+  const positiveNumber = (value: unknown, path: string): boolean => {
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) return true;
+    errors.push({ path, message: "must be a positive finite number" });
+    return false;
+  };
+  const nonNegativeNumber = (value: unknown, path: string): boolean => {
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0) return true;
+    errors.push({ path, message: "must be a non-negative finite number" });
+    return false;
+  };
+  const treeSize = closedObject("treeSize", [
+    "nodeWidths",
+    "nodeHeight",
+    "titleFontSize",
+    "subtitleFontSize",
+    "siblingGap",
+    "levelGap",
+  ]);
+  if (treeSize !== undefined) {
+    if (treeSize.nodeWidths !== undefined) {
+      if (!Array.isArray(treeSize.nodeWidths) || treeSize.nodeWidths.length === 0) {
+        errors.push({ path: "$.treeSize.nodeWidths", message: "must be a non-empty array" });
+      } else {
+        treeSize.nodeWidths.forEach((value, index) => {
+          positiveNumber(value, `$.treeSize.nodeWidths[${index}]`);
+        });
+      }
+    }
+    for (const key of ["nodeHeight", "titleFontSize", "subtitleFontSize"] as const) {
+      if (treeSize[key] !== undefined) positiveNumber(treeSize[key], `$.treeSize.${key}`);
+    }
+    for (const key of ["siblingGap", "levelGap"] as const) {
+      if (treeSize[key] !== undefined) nonNegativeNumber(treeSize[key], `$.treeSize.${key}`);
+    }
+  }
+  const mindSize = closedObject("mindSize", [
+    "root",
+    "branch",
+    "leaf",
+    "rootBranchGap",
+    "branchLeafGap",
+    "branchRowGap",
+    "branchRowOffset",
+    "leafRowGap",
+    "leafRowOffset",
+  ]);
+  if (mindSize !== undefined) {
+    const nestedSize = (
+      key: "root" | "branch" | "leaf",
+      allowed: readonly string[],
+    ): Record<string, unknown> | undefined => {
+      const value = mindSize[key];
+      if (value === undefined) return undefined;
+      const path = `$.mindSize.${key}`;
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        errors.push({ path, message: `${key} must be an object` });
+        return undefined;
+      }
+      const object = value as Record<string, unknown>;
+      for (const nestedKey of Object.keys(object)) {
+        if (!allowed.includes(nestedKey))
+          errors.push({ path: `${path}.${nestedKey}`, message: `unknown key "${nestedKey}"` });
+      }
+      return object;
+    };
+    for (const [key, allowed] of [
+      ["root", ["width", "height", "fontSize"]],
+      ["branch", ["width", "height", "fontSize"]],
+      ["leaf", ["fontSize"]],
+    ] as const) {
+      const nested = nestedSize(key, allowed);
+      if (nested === undefined) continue;
+      for (const nestedKey of allowed) {
+        if (nested[nestedKey] !== undefined)
+          positiveNumber(nested[nestedKey], `$.mindSize.${key}.${nestedKey}`);
+      }
+    }
+    for (const key of ["rootBranchGap", "branchLeafGap", "branchRowGap", "leafRowGap"] as const) {
+      if (mindSize[key] !== undefined) nonNegativeNumber(mindSize[key], `$.mindSize.${key}`);
+    }
+    for (const key of ["branchRowOffset", "leafRowOffset"] as const) {
+      const value = mindSize[key];
+      if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) {
+        errors.push({ path: `$.mindSize.${key}`, message: "must be a finite number" });
+      }
     }
   }
 
@@ -3667,9 +3760,11 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.funnelRate !== undefined ? { funnelRate: json.funnelRate } : {}),
     ...(json.quadrantPointLabelSide !== undefined ? { quadrantPointLabelSide: json.quadrantPointLabelSide } : {}),
     ...(json.treeNodeForm !== undefined ? { treeNodeForm: json.treeNodeForm } : {}),
+    ...(json.treeSize !== undefined ? { treeSize: json.treeSize } : {}),
     ...(json.treeEdgeTone !== undefined ? { treeEdgeTone: json.treeEdgeTone } : {}),
     ...(json.treeEdgeHead !== undefined ? { treeEdgeHead: json.treeEdgeHead } : {}),
     ...(json.mindForm !== undefined ? { mindForm: json.mindForm } : {}),
+    ...(json.mindSize !== undefined ? { mindSize: json.mindSize } : {}),
     ...(json.journeyForm !== undefined ? { journeyForm: json.journeyForm } : {}),
     ...(json.journeyLineForm !== undefined ? { journeyLineForm: json.journeyLineForm } : {}),
     ...(json.journeyLabels !== undefined ? { journeyLabels: json.journeyLabels } : {}),

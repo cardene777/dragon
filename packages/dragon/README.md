@@ -99,9 +99,11 @@ flow:
 | `funnelRate` | 漏斗の率。`drop` は前段から減った割合、`conversion` は前段から残った割合、`none` は率を描かない |
 | `quadrantPointLabelSide` | 四象限の座標点の名前を置く側 (`auto` / `right`) |
 | `treeNodeForm` | 木の箱の見せ方 (`accent` / `frame`) |
+| `treeSize` | 木の深さごとの札幅、札高、題・副題の字、同段・段間の隙間 (`{ nodeWidths?, nodeHeight?, titleFontSize?, subtitleFontSize?, siblingGap?, levelGap? }`) |
 | `treeEdgeTone` | 木の枝色の付け方 (`accent` / `depth`) |
 | `treeEdgeHead` | 木の枝先の形 (`none` / `triangle`) |
 | `mindForm` | 放射の箱の見せ方 (`filled` / `outline`) |
+| `mindSize` | 放射の中心・枝・葉の札と字、中心から枝・枝から葉・各行の間隔とずらし (`{ root?, branch?, leaf?, rootBranchGap?, branchLeafGap?, branchRowGap?, branchRowOffset?, leafRowGap?, leafRowOffset? }`) |
 | `journeyForm` | ジャーニーの段の見せ方 (`bands` / `rules`) |
 | `journeyLineForm` | ジャーニーの点を結ぶ線 (`curve` / `straight`) |
 | `journeyLabels` | ジャーニーの 5 段の名前 (`{ delighted, happy, neutral, frustrated, angry }`) |

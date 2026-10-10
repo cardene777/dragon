@@ -145,9 +145,33 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   funnelRate: { 項目名を持たない理由: "漏斗の率の見せ方の語を 1 つ書く欄" },
   quadrantPointLabelSide: { 項目名を持たない理由: "四象限の点の名前を置く側の語を 1 つ書く欄" },
   treeNodeForm: { 項目名を持たない理由: "木の箱の見せ方の語を 1 つ書く欄" },
+  treeSize: [
+    見本(
+      "木の寸法",
+      (k) => `${頭}treeSize: {"nodeWidths":[260,240,220],"${k}":89.891}\n\nactors:\n  - A\n`,
+      "nodeHeigth",
+      "nodeHeight",
+      {
+        input: 図({ treeSize: { nodeWidths: [260, 240, 220], nodeHeigth: 89.891 } }),
+        path: "$.treeSize.nodeHeigth",
+      },
+    ),
+  ],
   treeEdgeTone: { 項目名を持たない理由: "木の枝色の付け方の語を 1 つ書く欄" },
   treeEdgeHead: { 項目名を持たない理由: "木の枝先の形の語を 1 つ書く欄" },
   mindForm: { 項目名を持たない理由: "放射の箱の見せ方の語を 1 つ書く欄" },
+  mindSize: [
+    見本(
+      "放射の寸法",
+      (k) => `${頭}mindSize: {"branch":{"width":220},"${k}":155}\n\nactors:\n  - A\n`,
+      "rootBrnachGap",
+      "rootBranchGap",
+      {
+        input: 図({ mindSize: { branch: { width: 220 }, rootBrnachGap: 155 } }),
+        path: "$.mindSize.rootBrnachGap",
+      },
+    ),
+  ],
   journeyForm: { 項目名を持たない理由: "ジャーニーの段の見せ方の語を 1 つ書く欄" },
   journeyLineForm: { 項目名を持たない理由: "ジャーニーの線の見せ方の語を 1 つ書く欄" },
   sequenceActorForm: { 項目名を持たない理由: "順序図の参加者の枠の語を 1 つ書く欄" },

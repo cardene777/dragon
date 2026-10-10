@@ -185,12 +185,16 @@ export type DslDocument = {
   >;
   /** 木の箱を根まで同じ枠で描くか。 */
   treeNodeForm?: NonNullable<CdlDiagram["nodes"][number]["treeNodeForm"]>;
+  /** 木の札・字・枝間の寸法。 */
+  treeSize?: NonNullable<CdlDiagram["nodes"][number]["treeSize"]>;
   /** 木の枝色を 1 色にするか、段ごとに分けるか。 */
   treeEdgeTone?: NonNullable<CdlDiagram["nodes"][number]["treeEdgeTone"]>;
   /** 木の枝先の印。 */
   treeEdgeHead?: NonNullable<CdlDiagram["nodes"][number]["treeEdgeHead"]>;
   /** 放射の中心・枝・葉を、面か輪郭のどちらで描くか。 */
   mindForm?: NonNullable<CdlDiagram["nodes"][number]["mindForm"]>;
+  /** 放射の札・字・枝間の寸法。 */
+  mindSize?: NonNullable<CdlDiagram["nodes"][number]["mindSize"]>;
   /** ジャーニーの段を帯か罫で描くか。 */
   journeyForm?: NonNullable<CdlDiagram["nodes"][number]["journeyForm"]>;
   /** ジャーニーの点を曲線か直線で結ぶか。 */

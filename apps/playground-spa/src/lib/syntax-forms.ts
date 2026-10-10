@@ -938,10 +938,11 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: "treeNodeForm: frame", note: "根まで同じ枠で描く", noteEn: "Frames every node, including the root" },
+      { code: 'treeSize: {"nodeWidths":[260,240,220],"nodeHeight":89.891,"titleFontSize":29,"subtitleFontSize":19,"siblingGap":180,"levelGap":60.109}', note: "深さごとの札・字・枝間の寸法", noteEn: "Sizes tree nodes, text, siblings, and levels" },
       { code: "treeEdgeTone: depth", note: "段ごとに枝色を分ける", noteEn: "Colors edges by depth" },
       { code: "treeEdgeHead: triangle", note: "枝先に矢じりを付ける", noteEn: "Adds arrowheads to branches" },
       { code: 'figureCard: {"label":"階層","note":"全国 12 営業所"}', note: "図の見出し帯と足", noteEn: "Figure header and footer" },
-      { code: 'figureSize: {"width":1712,"height":416}', note: "札の幅と高さ", noteEn: "Figure card width and height" },
+      { code: 'figureSize: {"width":1800,"height":490}', note: "札の幅と高さ", noteEn: "Figure card width and height" },
     ],
   },
   {
@@ -955,6 +956,7 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: "mindForm: outline", note: "中心・枝・葉を輪郭で描く", noteEn: "Outlines the root, branches, and leaves" },
+      { code: 'mindSize: {"root":{"width":330,"height":60.891,"fontSize":29},"branch":{"width":220,"height":60.891,"fontSize":29},"leaf":{"fontSize":23},"rootBranchGap":155,"branchLeafGap":70,"branchRowGap":290,"branchRowOffset":10,"leafRowGap":92,"leafRowOffset":6}', note: "中心・枝・葉と行間の寸法", noteEn: "Sizes mind-map nodes, text, gaps, and row offsets" },
     ],
   },
   {

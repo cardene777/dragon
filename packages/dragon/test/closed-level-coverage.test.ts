@@ -147,6 +147,31 @@ const 入力: Record<string, 図> = {
     ...基本,
     figureSize: { width: 640, height: 320, [知らない項目]: 1 },
   },
+  "$.treeSize": {
+    ...基本,
+    type: "tree",
+    treeSize: { nodeHeight: 91.891, [知らない項目]: 1 },
+  },
+  "$.mindSize": {
+    ...基本,
+    type: "mind",
+    mindSize: { rootBranchGap: 155, [知らない項目]: 1 },
+  },
+  "$.mindSize.root": {
+    ...基本,
+    type: "mind",
+    mindSize: { root: { width: 330, [知らない項目]: 1 } },
+  },
+  "$.mindSize.branch": {
+    ...基本,
+    type: "mind",
+    mindSize: { branch: { width: 220, [知らない項目]: 1 } },
+  },
+  "$.mindSize.leaf": {
+    ...基本,
+    type: "mind",
+    mindSize: { leaf: { fontSize: 23, [知らない項目]: 1 } },
+  },
   "$.axes": { ...基本, type: "quadrant", axes: { [知らない項目]: {} } },
   "$.axes.x": { ...基本, type: "quadrant", axes: { x: { left: "低", right: "高", [知らない項目]: 1 } } },
   "$.axes.y": { ...基本, type: "quadrant", axes: { y: { top: "上", bottom: "下", [知らない項目]: 1 } } },

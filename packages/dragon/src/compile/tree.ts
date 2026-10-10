@@ -60,6 +60,7 @@ export function compileTree(doc: DslDocument, onNotice?: (n: CompileNotice) => v
     h: H,
     treeData: data,
     ...(doc.treeNodeForm !== undefined ? { treeNodeForm: doc.treeNodeForm } : {}),
+    ...(doc.treeSize !== undefined ? { treeSize: doc.treeSize } : {}),
     ...(doc.treeEdgeTone !== undefined ? { treeEdgeTone: doc.treeEdgeTone } : {}),
     ...(doc.treeEdgeHead !== undefined ? { treeEdgeHead: doc.treeEdgeHead } : {}),
   });
