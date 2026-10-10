@@ -5942,7 +5942,8 @@ svg[data-cdl-stage][data-cdl-palette]
   :is(
     [data-cdl-role="chart-slope-name"],
     [data-cdl-role="chart-slope-value"],
-    [data-cdl-role="chart-slope-delta"]
+    [data-cdl-role="chart-slope-delta"],
+    [data-cdl-role="chart-slope-label"]
   ) {
   fill: var(--theme-chart-name-color) !important;
   stroke: none !important;
@@ -5997,7 +5998,8 @@ svg[data-cdl-stage][data-cdl-palette]
   > :is(
     [data-cdl-role="chart-slope-name"],
     [data-cdl-role="chart-slope-value"],
-    [data-cdl-role="chart-slope-delta"]
+    [data-cdl-role="chart-slope-delta"],
+    [data-cdl-role="chart-slope-label"]
   ):not([text-anchor="end"]) {
   fill: var(--theme-slope-osaka) !important;
   stroke: none !important;
@@ -6025,7 +6027,8 @@ svg[data-cdl-stage][data-cdl-palette]
   > :is(
     [data-cdl-role="chart-slope-name"],
     [data-cdl-role="chart-slope-value"],
-    [data-cdl-role="chart-slope-delta"]
+    [data-cdl-role="chart-slope-delta"],
+    [data-cdl-role="chart-slope-label"]
   ):not([text-anchor="end"]) {
   fill: var(--theme-lead) !important;
   stroke: none !important;
@@ -7207,7 +7210,7 @@ svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="gantt-today-label
 }
 
 svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-kind="gantt-timeline"] text:not([data-cdl-role]) {
-  font-weight: 500 !important;
+  font-weight: 700 !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"]
@@ -7229,4 +7232,165 @@ svg[data-cdl-stage]:is(
   [data-cdl-node][data-cdl-lane][data-cdl-kind="decision"]
   [data-cdl-role="node-body"] {
   filter: none !important;
+}
+
+/* cdl 0.132.0 で増えた図表 role と、見本帳 2 回目の実測差を意匠ごとに補う。 */
+
+/* 棒は上下 2 枚の clip 境界だけを画素へ揃え、途中のアンチエイリアス線を出さない。 */
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="chart-bar"] clipPath > rect {
+  shape-rendering: crispEdges;
+}
+
+/* 新しい一体型の傾きラベルと、電飾の線・点・字を従来の役割と同じ見えへ戻す。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  [data-cdl-kind="chart-slope"]
+  :is(
+    [data-cdl-role="chart-slope-line"],
+    [data-cdl-role="chart-slope-dot"],
+    [data-cdl-role="chart-slope-label"]
+  ) {
+  filter: url(#dragon-metro-neon-glow) !important;
+}
+
+/* 四象限の区画名は点名より弱い灰字。0.132.0 の専用 role へ適用する。 */
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-kind="quadrant-matrix"]
+  :is([data-cdl-role="quadrant-item"], [data-cdl-role="quadrant-item-subtitle"]) {
+  fill: var(--theme-quadrant-label) !important;
+  font-weight: 400 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  [data-cdl-kind="quadrant-matrix"]
+  :is([data-cdl-role="quadrant-point"], [data-cdl-role="quadrant-point-label"]) {
+  filter: url(#dragon-metro-neon-glow) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-kind="quadrant-matrix"]
+  :is([data-cdl-role="quadrant-point"], [data-cdl-role="quadrant-point-label"]) {
+  filter: url(#dragon-relief-raised-sm) !important;
+}
+
+/* 半円の主弧・残り・数字を、電飾は発光、浮彫は小さい浮き出しへ戻す。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is(
+    [data-cdl-role="chart-gauge-arc"],
+    [data-cdl-role="chart-gauge-fixed-scale"],
+    [data-cdl-role="chart-gauge-value"],
+    [data-cdl-role="chart-gauge-delta"],
+    [data-cdl-role="chart-gauge-scale-endpoint"]
+  ) {
+  filter: url(#dragon-metro-neon-glow) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  :is(
+    [data-cdl-role="chart-gauge-arc"],
+    [data-cdl-role="chart-gauge-fixed-scale"],
+    [data-cdl-role="chart-gauge-value"],
+    [data-cdl-role="chart-gauge-delta"]
+  ) {
+  filter: url(#dragon-relief-raised-sm) !important;
+}
+
+/* 升目の割合を右枠の内側へ戻し、意匠固有の丸の効き目も復元する。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="chart-waffle-item-share"] {
+  transform: translateX(-16px);
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="chart-waffle-cell"] {
+  filter: url(#dragon-metro-neon-glow) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="chart-waffle-cell"] {
+  filter: url(#dragon-relief-raised-sm) !important;
+}
+
+/* 手描きの内訳帯は、沈めた区画と主役だけ既存の 2 つのペン模様へ戻す。 */
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  [data-cdl-role="chart-stacked-bar-slice"][data-cdl-tone="muted"] {
+  fill: url(#dragon-sketch-pen) !important;
+  fill-opacity: 1 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  [data-cdl-role="chart-stacked-bar-slice"][data-cdl-emphasis="primary"] {
+  fill: var(--er-face) !important;
+  fill-opacity: 1 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  :is([data-cdl-role="chart-stacked-bar-slice"], [data-cdl-role="chart-stacked-bar-slice-hatch"]) {
+  rx: 10px;
+  ry: 10px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  [data-cdl-role="chart-stacked-bar-slice-hatch"] {
+  fill: url(#dragon-sketch-pen-primary) !important;
+  stroke: none !important;
+}
+
+/* 浮彫の工程帯は、見本の 145 度の系列階調と半円端を使う。 */
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-role="gantt-bar"][data-cdl-tone="muted"] {
+  fill: url(#dragon-relief-chart-4) !important;
+  rx: 15px;
+  ry: 15px;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-role="gantt-bar"][data-cdl-emphasis="primary"] {
+  fill: url(#dragon-relief-chart-1) !important;
+  rx: 15px;
+  ry: 15px;
+}
+
+/* ジャーニーの線・点・注記は、端末と電飾の専用光を同じまとまりへ当てる。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  [data-cdl-kind="journey-map"]
+  :is([data-cdl-role="journey-line"], [data-cdl-role="journey-step"] > circle, [data-cdl-role="journey-opportunity"] > text) {
+  filter: url(#dragon-metro-terminal-glow) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  [data-cdl-kind="journey-map"]
+  :is([data-cdl-role="journey-line"], [data-cdl-role="journey-step"] > circle, [data-cdl-role="journey-opportunity"] > text) {
+  filter: url(#dragon-metro-neon-glow) !important;
+}
+
+/* 手描きの段の箱だけは、正解頁どおり札と道筋を滑らかに保つ。 */
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"])
+  [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"])
+  [data-cdl-kind="card"]
+  [data-cdl-role="node-body"] {
+  filter: none !important;
+}
+
+/* 図録の時間軸だけ、後段の図録共通規則に消された終点の中点を戻す。 */
+svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-role="timeline-axis"])
+  [data-cdl-lane="timeline-axis"]
+  [data-cdl-role="node-inner"] {
+  fill: var(--timeline-end-ink) !important;
+  stroke: none !important;
+}
+
+/* 端末の時間軸は意匠帳の等幅指定を描画書体にも反映する。 */
+svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-role="timeline-axis"])
+  :is(
+    [data-cdl-lane="timeline-axis"] [data-cdl-role="node-label"],
+    [data-cdl-lane="timeline-steps"] [data-cdl-role="node-label"],
+    [data-cdl-role="edge-label"],
+    [data-cdl-role="legend-text"]
+  ) {
+  font-family: var(--d-mono) !important;
+}
+
+/* 電飾の棒と折れ線では、値・目盛・月も図形と同じ光を持つ。 */
+svg[data-cdl-stage][data-cdl-palette="neon"]
+  :is([data-cdl-kind="chart-bar"], [data-cdl-kind="chart-line"])
+  text {
+  filter: url(#dragon-metro-neon-glow) !important;
 }

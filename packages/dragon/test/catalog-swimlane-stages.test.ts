@@ -4,7 +4,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
-import { presetDeliveryStages } from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
+import {
+  presetDeliveryStages,
+  sourceJson__presetDeliveryStages,
+  sourceYaml__presetDeliveryStages,
+} from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import { textDslToDiagram } from "../src/index";
 
 const 段階の見本 = (): Array<{ key: string; source: string }> =>
@@ -33,6 +37,27 @@ describe("見本帳の段階ごとの箱 (#2797)", () => {
 
   it("凡例の字を見本の 21 にする", () => {
     expect(presetDeliveryStages.legendFontSize).toBe(21);
+  });
+
+  it("盤を 1100 高に戻し、明示した列幅から左右 24 ずつ空けた札幅を作る", () => {
+    expect(presetDeliveryStages.viewport).toEqual({ width: 1800, height: 1048.118 });
+    expect(JSON.parse(sourceJson__presetDeliveryStages).viewport).toEqual({
+      width: 1800,
+      height: 1048.118,
+    });
+
+    // preset export は build 済み dist を読むため、変更した組み立て自身から札幅を測る。
+    const diagram = textDslToDiagram(sourceYaml__presetDeliveryStages);
+    expect(diagram.nodes.map((node) => [node.title, node.w])).toEqual([
+      ["集荷を頼む", 252],
+      ["受け付ける", 312],
+      ["送り状を起こす", 312],
+      ["便に積む", 352],
+      ["届けに行く", 352],
+      ["在宅?", 352],
+      ["受け取る", 372],
+      ["持ち戻る", 372],
+    ]);
   });
 
   it("shape: stages を記法と JSON の両方で持つ見本がある", () => {

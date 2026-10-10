@@ -11,6 +11,7 @@ import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
 import {
   placeStages,
+  STAGE_CARD_COLUMN_INSET,
   STAGE_CARD_HEIGHT,
   STAGE_CARD_PITCH,
   STAGE_CARD_WIDTH,
@@ -377,10 +378,16 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       actorToNodeId.set(a.name, id);
       const card = placement.cards.get(a.name);
       if (card === undefined) throw new Error(`段の箱の "${a.name}" を置く列がありません`);
+      const columnName = placement.columns[card.column]?.name;
+      const writtenColumnWidth = columnName === undefined
+        ? undefined
+        : doc.stageLayout?.columnWidths?.[columnName];
       b.node(id, {
         lane: card.columnId,
         stack: card.stack,
-        w: STAGE_CARD_WIDTH,
+        w: writtenColumnWidth === undefined
+          ? STAGE_CARD_WIDTH
+          : Math.max(1, writtenColumnWidth - STAGE_CARD_COLUMN_INSET),
         h: STAGE_CARD_HEIGHT,
         posX: card.column * (laneWidth + STAGE_LANE_GAP) + laneWidth / 2,
         posY: STAGE_FIRST_CARD_CENTER_Y + card.stack * STAGE_CARD_PITCH,

@@ -76,9 +76,9 @@ describe("#2854 5段目a の意匠 selector", () => {
     }
   });
 
-  it("手描きの内訳と升目を模様にせず、漏斗だけを斜線にする", () => {
+  it("手描きの内訳と漏斗を既存のペン模様にし、升目へは流さない", () => {
     const patterned = rules.filter(({ body }) => body.includes("url(#dragon-sketch-pen)"));
-    expect(patterned.some(({ selector }) => selector.includes('chart-stacked-bar-slice'))).toBe(false);
+    expect(patterned.some(({ selector }) => selector.includes('chart-stacked-bar-slice'))).toBe(true);
     expect(patterned.some(({ selector }) => selector.includes('chart-waffle-cell'))).toBe(false);
     expect(patterned.some(({ selector }) => selector.includes('funnel-proportional-bar'))).toBe(true);
   });
@@ -97,6 +97,73 @@ describe("#2854 5段目a の意匠 selector", () => {
       selector.includes('line:not([data-cdl-role])') &&
       body.includes("stroke-dasharray: none"));
     expect(baseline).toBeDefined();
+  });
+});
+
+describe("#2854 2 回目の図表回帰", () => {
+  it("0.132.0 の傾きラベル role を通常色と 2 本の主役色へ流す", () => {
+    const labelRules = rules.filter(({ selector }) =>
+      selector.includes('data-cdl-role="chart-slope-label"'));
+    expect(labelRules.some(({ body }) => body.includes("--theme-chart-name-color"))).toBe(true);
+    expect(labelRules.some(({ body }) => body.includes("--theme-slope-osaka"))).toBe(true);
+    expect(labelRules.some(({ body }) => body.includes("--theme-lead"))).toBe(true);
+  });
+
+  it("上下に分かれた棒の clip 境界を画素へ揃える", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-kind="chart-bar"] clipPath > rect') &&
+        body.includes("shape-rendering: crispEdges")),
+    ).toBe(true);
+  });
+
+  it("端末の升目率を 16 左へ戻す", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="terminal"]') &&
+        selector.includes('data-cdl-role="chart-waffle-item-share"') &&
+        body.includes("translateX(-16px)")),
+    ).toBe(true);
+  });
+
+  it("浮彫の工程帯を系列階調と半円端で描く", () => {
+    const gantt = rules.filter(({ selector }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes('data-cdl-role="gantt-bar"'));
+    expect(gantt.some(({ body }) => body.includes("url(#dragon-relief-chart-4)"))).toBe(true);
+    expect(gantt.some(({ body }) =>
+      body.includes("url(#dragon-relief-chart-1)") && body.includes("rx: 15px"))).toBe(true);
+  });
+
+  it.each([
+    ["terminal", "dragon-metro-terminal-glow"],
+    ["neon", "dragon-metro-neon-glow"],
+  ])("%s のジャーニーへ %s を戻す", (palette, filter) => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes(`[data-cdl-palette="${palette}"]`) &&
+        selector.includes('data-cdl-role="journey-line"') &&
+        body.includes(`url(#${filter})`)),
+    ).toBe(true);
+  });
+
+  it("手描きの段の箱だけは札と線を揺らさない", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"])') &&
+        selector.includes('data-cdl-role="edge-line"') &&
+        selector.includes('data-cdl-kind="card"') &&
+        body.includes("filter: none !important")),
+    ).toBe(true);
+  });
+
+  it("端末の時間軸だけを等幅書体へ戻す", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="terminal"]:has([data-cdl-role="timeline-axis"])') &&
+        selector.includes('data-cdl-role="edge-label"') &&
+        body.includes("font-family: var(--d-mono)")),
+    ).toBe(true);
   });
 });
 

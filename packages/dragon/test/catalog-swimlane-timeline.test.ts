@@ -12,7 +12,10 @@ import {
   TIMELINE_END_GAP,
   TIMELINE_STEP_GAP,
 } from "../src/compile/timeline";
-import { presetDeliveryTimeline } from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
+import {
+  presetDeliveryTimeline,
+  sourceJson__presetDeliveryTimeline,
+} from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 
 const 時間軸の見本 = (): Array<{ key: string; source: string }> =>
   Object.entries(textDsl)
@@ -30,7 +33,7 @@ describe("見本帳の時間軸の形 (#2798)", () => {
     expect(presetDeliveryTimeline.edges.find((edge) => edge.label === "いいえ")).toMatchObject({
       labelCollision: "author",
       labelSize: { width: 96, height: 40, fontSize: 21 },
-      labelOffsetY: -40,
+      labelOffsetY: 64,
     });
     expect(presetDeliveryTimeline.edges.find((edge) => edge.label === "翌日もう一度")).toMatchObject({
       fromSide: "right",
@@ -46,6 +49,30 @@ describe("見本帳の時間軸の形 (#2798)", () => {
 
   it("凡例の字を見本の 21 にする", () => {
     expect(presetDeliveryTimeline.legendFontSize).toBe(21);
+  });
+
+  it("1800 幅の盤を保ち、いいえの札を対象線の 20 上へ置く", () => {
+    expect(presetDeliveryTimeline.viewport).toEqual({ width: 1800 });
+    const json = JSON.parse(sourceJson__presetDeliveryTimeline);
+    expect(json.viewport).toEqual({ width: 1800 });
+    expect(json.flow.find((edge: { label?: string }) => edge.label === "いいえ")).toMatchObject({
+      labelCollision: "author",
+      labelOffsetY: 64,
+    });
+
+    const markup = renderToStaticMarkup(createElement(CdlDiagramView, {
+      diagram: presetDeliveryTimeline,
+      focusPhaseId: presetDeliveryTimeline.phases.at(-1)?.id,
+    }));
+    const viewBox = /data-cdl-viewbox="([^"]+)"/u.exec(markup)?.[1]?.split(" ").map(Number);
+    expect(viewBox?.[2]).toBe(1800);
+
+    const edge = /<g data-cdl-edge="e6-在宅-持ち戻る"[^>]+>/u.exec(markup)?.[0];
+    if (edge === undefined) throw new Error("いいえの線が無い");
+    const pathY = Number(/data-cdl-path-d="M [^ ]+ ([^ ]+) L/u.exec(edge)?.[1]);
+    const labelY = Number(/data-cdl-label-y="([^"]+)"/u.exec(edge)?.[1]);
+    // 高さ 40 の札の下端が対象線から 20 上 = 中心どうしは 40。
+    expect(pathY - labelY).toBe(40);
   });
 
   it("cdl#1070/#1071: 時間軸の暫定値を見本へ戻す", () => {

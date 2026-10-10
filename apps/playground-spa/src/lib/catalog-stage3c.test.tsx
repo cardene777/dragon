@@ -105,6 +105,52 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     }
   });
 
+  it("11 図の図表札は従来の外枠を保ち、角の意匠切替を札全体へ重ねない", () => {
+    for (const key of Object.keys(cards) as (keyof typeof cards)[]) {
+      expect(node(chart(key)).cornerForm, key).toBeUndefined();
+      const yaml = Charts[`sourceYaml__${key}` as keyof typeof Charts];
+      const json = Charts[`sourceJson__${key}` as keyof typeof Charts];
+      expect(yaml, `${key}: YAML`).not.toContain("cornerForm:");
+      expect(json, `${key}: JSON`).not.toContain('"cornerForm"');
+    }
+    expect(node(Charts.deliveryOfficeTree).cornerForm).toBe("theme-variants");
+    expect(node(Charts.redeliveryIdeasMind).cornerForm).toBe("theme-variants");
+  });
+
+  it("見出しと足を除いた描画面へ棒・折れ線・四象限・半円の実測余白を渡す", () => {
+    expect(node(Charts.branchParcelsBar).chartBarSize?.plotPadding).toEqual({
+      top: 75.891,
+      right: 32,
+      bottom: 64,
+      left: 82,
+    });
+    expect(node(Charts.monthlyDeliveriesLine).chartLineSize?.plotPadding).toEqual({
+      top: 45.891,
+      bottom: 46,
+    });
+    expect(node(Charts.measureEffortQuadrant).quadrantSize?.plotOffset).toEqual({ x: 70, y: 19.891 });
+    expect(node(Charts.onTimeShareGauge).chartGaugeSize?.plotTop).toBe(104);
+
+    const jsonNodes = [
+      JSON.parse(Charts.sourceJson__branchParcelsBar),
+      JSON.parse(Charts.sourceJson__monthlyDeliveriesLine),
+      JSON.parse(Charts.sourceJson__measureEffortQuadrant),
+      JSON.parse(Charts.sourceJson__onTimeShareGauge),
+    ];
+    expect(jsonNodes.map((item) => item.chartBarSize?.plotPadding?.top)).toContain(75.891);
+    expect(jsonNodes.map((item) => item.chartLineSize?.plotPadding?.top)).toContain(45.891);
+    expect(jsonNodes.map((item) => item.quadrantSize?.plotOffset?.y)).toContain(19.891);
+    expect(jsonNodes.map((item) => item.chartGaugeSize?.plotTop)).toContain(104);
+  });
+
+  it("ガントの工程名は cdl の右揃え既定へ戻し、描画面へ食い込ませない", () => {
+    expect(node(Charts.sortingShelfGantt).ganttSize).not.toHaveProperty("taskLabelAlign");
+    expect(node(Charts.sortingShelfGantt).ganttSize).not.toHaveProperty("taskLabelX");
+    const jsonNode = JSON.parse(Charts.sourceJson__sortingShelfGantt);
+    expect(jsonNode.ganttSize).not.toHaveProperty("taskLabelAlign");
+    expect(jsonNode.ganttSize).not.toHaveProperty("taskLabelX");
+  });
+
   it("見本帳の 13 図の札を指定した大きさで渡す", () => {
     for (const [key, expected] of Object.entries(sizes) as [keyof typeof sizes, (typeof sizes)[keyof typeof sizes]][]) {
       expect(node(Charts[key]), key).toMatchObject(expected);

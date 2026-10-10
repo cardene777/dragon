@@ -186,6 +186,28 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
       },
     ].map(({ 対象, 理由 }) => ({ diagramId, axis: "clearance", 対象, 理由 })),
   ),
+  ...[
+    "node:在宅 ↔ edge-label:e6-在宅-持ち戻る",
+    "node:持ち戻る ↔ edge-label:e6-在宅-持ち戻る",
+  ].map((対象) => ({
+    diagramId: "delivery-stages-demo",
+    axis: "clearance",
+    対象,
+    理由:
+      "正解頁の列幅から 48 を引いた札幅では、分岐札との間が 8 world になる。" +
+      "札どうしは重ならず、列幅を狭めると見本の札幅が崩れる (#2854)",
+  })),
+  ...[
+    "node:在宅 ↔ edge-label:e6-在宅-持ち戻る",
+    "node:持ち戻る ↔ edge-label:e6-在宅-持ち戻る",
+  ].map((対象) => ({
+    diagramId: "delivery-timeline-demo",
+    axis: "clearance",
+    対象,
+    理由:
+      "「いいえ」の札を正解頁どおり線の上 40 world に置くと、左右の札との間は 27 world になる。" +
+      "札どうしは重ならず、32 まで離すと見本の線上位置が崩れる (#2854)",
+  })),
   {
     diagramId: "delivery-flow-demo",
     axis: "node-visibility",
@@ -768,7 +790,6 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       " (#2302 で名指しで固定)、名前を線に寄せると交差した線の上に載る。" +
       " `間隔をまとめて広げる` は間隔を広げること自体が見本の題",
     図: [
-      "delivery-timeline-demo",
       "interactive-oauth-flow",
       "時間軸で書く荷物の届け方",
       "間隔をまとめて広げる",

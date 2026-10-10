@@ -652,7 +652,19 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.figureKindLabel.fontWeight": { 種類: "記法一覧", 理由: "種類札の省略時寸法は README で見せる" },
   "$.figureKindLabel.letterSpacing": { 種類: "記法一覧", 理由: "種類札の省略時寸法は README で見せる" },
   "$.flow[].labelCollision=auto": { 種類: "記法一覧", 理由: "線札の自動配置は README で見せる" },
+  "$.ganttSize.taskLabelAlign": {
+    種類: "記法一覧",
+    理由: "工程名の揃え方は README で見せ、見本帳は描画側の既定へ戻す",
+  },
+  "$.ganttSize.taskLabelAlign=start": {
+    種類: "記法一覧",
+    理由: "工程名の左揃えは README で見せ、見本帳は描画側の既定へ戻す",
+  },
   "$.ganttSize.taskLabelAlign=end": { 種類: "記法一覧", 理由: "工程名の揃え方は README で見せる" },
+  "$.ganttSize.taskLabelX": {
+    種類: "記法一覧",
+    理由: "工程名の横位置は README で見せ、見本帳は描画側の既定へ戻す",
+  },
   "$.treeNodeForm=accent": { 種類: "既定", 別の値: "frame" },
   "$.treeEdgeTone=accent": { 種類: "既定", 別の値: "depth" },
   "$.treeEdgeHead=none": { 種類: "既定", 別の値: "triangle" },

@@ -24,6 +24,9 @@ export const STAGE_LANE_WIDTH = 380;
  */
 export const STAGE_CARD_WIDTH = STAGE_LANE_WIDTH - 112;
 
+/** `stageLayout.columnWidths` を書いた列では、見本どおり列面の左右を 24 ずつ空ける。 */
+export const STAGE_CARD_COLUMN_INSET = 48;
+
 /** 札の高さ。名前 1 行と右の担当を同じ行に置く札で、見本の札と同じく 1 行分に収める。 */
 export const STAGE_CARD_HEIGHT = 48;
 

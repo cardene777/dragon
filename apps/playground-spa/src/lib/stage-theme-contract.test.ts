@@ -174,7 +174,7 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     expect(declaration(ruleBody(tree), "font-weight")).toBe("800 !important");
 
     const gantt = `${fixedThemeStage} [data-cdl-kind="gantt-timeline"] text:not([data-cdl-role])`;
-    expect(declaration(ruleBody(gantt), "font-weight")).toBe("500 !important");
+    expect(declaration(ruleBody(gantt), "font-weight")).toBe("700 !important");
   });
 
   it("5 段目 d で足した共通規則を固定 7 意匠だけに当てる", () => {
@@ -201,7 +201,7 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
       },
       {
         selectorParts: ['[data-cdl-kind="gantt-timeline"]', 'text:not([data-cdl-role])'],
-        declarations: { "font-weight": "500 !important" },
+        declarations: { "font-weight": "700 !important" },
       },
     ];
     const cssRules = [

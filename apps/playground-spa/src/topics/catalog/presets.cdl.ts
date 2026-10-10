@@ -3278,6 +3278,7 @@ title: "荷物を届ける段階"
 type: swimlane
 shape: stages
 legendFontSize: 21
+viewport: { width: 1800, height: 1048.118 }
 stageLayout: {"columnWidths":{"申し込み":300,"受付":360,"配送":400,"結果":420},"columnGap":64,"backDetourTopGap":34,"backDetourSideGap":58}
 
 stageHeaders:
@@ -3353,6 +3354,7 @@ export const sourceJson__presetDeliveryStages = `{
   "type": "swimlane",
   "shape": "stages",
   "legendFontSize": 21,
+  "viewport": { "width": 1800, "height": 1048.118 },
   "stageLayout": { "columnWidths": { "申し込み": 300, "受付": 360, "配送": 400, "結果": 420 }, "columnGap": 64, "backDetourTopGap": 34, "backDetourSideGap": 58 },
   "stageHeaders": {
     "blueprint": { "leftPad": 22, "topPad": 15, "numberSize": 16, "gap": 10, "nameSize": 29, "bottomPad": 13 },
@@ -3431,6 +3433,7 @@ title: "荷物を届ける路線"
 type: swimlane
 shape: metro
 legendFontSize: 21
+viewport: { width: 1800, height: 1048.118 }
 
 lanes:
   shipper: { label: 荷主, subtitle: 頼む人 }
@@ -3497,6 +3500,7 @@ export const sourceJson__presetDeliveryMetro = `{
   "type": "swimlane",
   "shape": "metro",
   "legendFontSize": 21,
+  "viewport": { "width": 1800, "height": 1048.118 },
   "lanes": {
     "shipper": { "label": "荷主", "subtitle": "頼む人" },
     "office": { "label": "営業所", "subtitle": "受け付ける" },
@@ -3570,6 +3574,7 @@ title: "荷物を届ける順番"
 type: swimlane
 shape: timeline
 legendFontSize: 21
+viewport: { width: 1800 }
 
 lanes:
   shipper: { label: 荷主 }
@@ -3596,7 +3601,7 @@ flow:
   - 便に積む -> 届けに行く
   - 届けに行く -> 在宅?
   - 在宅? -> 受け取る: "はい" (success)
-  - 在宅? -> 持ち戻る: "いいえ" (error) { labelCollision: author, labelSize: {"width":96,"height":40,"fontSize":21}, labelOffsetY: -40 }
+  - 在宅? -> 持ち戻る: "いいえ" (error) { labelCollision: author, labelSize: {"width":96,"height":40,"fontSize":21}, labelOffsetY: 64 }
   - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed) { fromSide: right, toSide: right, labelCollision: author, labelSize: {"width":162,"height":40,"fontSize":21}, labelOffsetX: 20 }
   - 受け取る -> 終わり (success)
 
@@ -3630,6 +3635,7 @@ export const sourceJson__presetDeliveryTimeline = `{
   "type": "swimlane",
   "shape": "timeline",
   "legendFontSize": 21,
+  "viewport": { "width": 1800 },
   "lanes": {
     "shipper": { "label": "荷主" },
     "office": { "label": "営業所" },
@@ -3655,7 +3661,7 @@ export const sourceJson__presetDeliveryTimeline = `{
     { "from": "便に積む", "to": "届けに行く", "label": "" },
     { "from": "届けに行く", "to": "在宅?", "label": "" },
     { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
-    { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error", "labelCollision": "author", "labelSize": { "width": 96, "height": 40, "fontSize": 21 }, "labelOffsetY": -40 },
+    { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error", "labelCollision": "author", "labelSize": { "width": 96, "height": 40, "fontSize": 21 }, "labelOffsetY": 64 },
     { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed", "fromSide": "right", "toSide": "right", "labelCollision": "author", "labelSize": { "width": 162, "height": 40, "fontSize": 21 }, "labelOffsetX": 20 },
     { "from": "受け取る", "to": "終わり", "label": "", "tone": "success" }
   ],

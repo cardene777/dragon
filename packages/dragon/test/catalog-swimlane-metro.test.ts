@@ -4,7 +4,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
-import { presetDeliveryMetro } from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
+import {
+  presetDeliveryMetro,
+  sourceJson__presetDeliveryMetro,
+} from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import { textDslToDiagram } from "../src/index";
 
 const 路線図の見本 = (): Array<{ key: string; source: string }> =>
@@ -33,6 +36,17 @@ describe("見本帳の路線図の形 (#2799)", () => {
 
   it("凡例の字を見本の 21 にする", () => {
     expect(presetDeliveryMetro.legendFontSize).toBe(21);
+  });
+
+  it("路線と凡例を 1100 高の盤へ戻す", () => {
+    expect(presetDeliveryMetro.viewport).toEqual({ width: 1800, height: 1048.118 });
+    expect(JSON.parse(sourceJson__presetDeliveryMetro).viewport).toEqual({
+      width: 1800,
+      height: 1048.118,
+    });
+    const markup = renderToStaticMarkup(createElement(CdlDiagramView, { diagram: presetDeliveryMetro }));
+    const viewBox = /data-cdl-viewbox="([^"]+)"/u.exec(markup)?.[1]?.split(" ").map(Number);
+    expect(viewBox?.[3]).toBeCloseTo(1100, 3);
   });
 
   it("shape: metro を記法と JSON の対でちょうど1件持つ", () => {
