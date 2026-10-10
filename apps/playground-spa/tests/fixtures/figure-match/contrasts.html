@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>figure match contrasts</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .diagram {
+      position: relative;
+      width: 520px;
+      height: 260px;
+      overflow: hidden;
+      background: transparent;
+    }
+    .content {
+      position: absolute;
+      inset: 0;
+    }
+    .box {
+      position: absolute;
+      top: 40px;
+      width: 120px;
+      height: 54px;
+      border: 2px solid rgb(32, 64, 96);
+      background: rgb(224, 235, 244);
+      color: rgb(20, 40, 60);
+    }
+    .a { left: 40px; }
+    .b { left: 200px; }
+    .c { left: 360px; }
+    .label {
+      position: absolute;
+      left: 10px;
+      top: 14px;
+      font: 600 16px/1 Arial, sans-serif;
+      white-space: nowrap;
+    }
+    svg {
+      position: absolute;
+      inset: 0;
+      width: 520px;
+      height: 260px;
+      pointer-events: none;
+    }
+    line { stroke: rgb(32, 64, 96); stroke-width: 2; }
+
+    #width-10 .a { width: 130px; }
+    #position-2 .a { left: 42px; }
+    #position-2 .a .label { left: 8px; }
+    #position-3 .a { left: 43px; }
+    #position-3 .a .label { left: 7px; }
+    #shift-22 .box { transform: translateX(22px); }
+    #color .a { background: rgb(244, 220, 210); }
+    #overlap .b { left: 120px; }
+    #gradient .a { background: linear-gradient(90deg, rgb(224, 235, 244), rgb(180, 205, 225)); }
+    #gradient-end .a { background: linear-gradient(90deg, rgb(224, 235, 244), rgb(160, 190, 215)); }
+    #radial-gradient-a .a { background: radial-gradient(circle, rgb(224, 235, 244), rgb(180, 205, 225)); }
+    #radial-gradient-b .a { background: radial-gradient(circle, rgb(224, 235, 244), rgb(160, 190, 215)); }
+    #scale-0636 .content { transform: scale(0.636); transform-origin: 0 0; }
+    #scale-0636 .label { font-size: 16.011px; }
+    .extra-frame {
+      position: absolute;
+      left: 6px;
+      top: 6px;
+      width: 508px;
+      height: 248px;
+      border: 3px solid rgb(120, 80, 40);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+    .sample {
+      position: relative;
+      width: 520px;
+      height: 260px;
+      overflow: hidden;
+    }
+    .region-text {
+      position: absolute;
+      font: 16px/1 Arial, sans-serif;
+    }
+    .region-keep { left: 40px; top: 40px; }
+    .region-ignore { left: 80px; top: 90px; }
+    .region-outside { left: 360px; top: 180px; }
+    .font-sample {
+      width: 260px;
+      height: 80px;
+      font-size: 10px;
+    }
+    #font-mono { font-family: monospace; }
+    #font-serif { font-family: serif; }
+    #transform-half line { stroke-width: 4; }
+    .line-sample { width: 260px; height: 80px; }
+    .line-sample path { fill: none; stroke: rgb(32, 64, 96); stroke-width: 2; }
+  </style>
+</head>
+<body>
+  <template id="contents">
+    <div class="content">
+      <div class="box a"><span class="label">Alpha</span></div>
+      <div class="box b"><span class="label">Beta</span></div>
+      <div class="box c"><span class="label">Gamma</span></div>
+      <svg viewBox="0 0 520 260" aria-hidden="true"><line x1="100" y1="130" x2="420" y2="130"></line></svg>
+    </div>
+  </template>
+  <main>
+    <section class="diagram templated" id="base"></section>
+    <section class="diagram templated" id="same"></section>
+    <section class="diagram templated" id="width-10"></section>
+    <section class="diagram templated" id="position-2"></section>
+    <section class="diagram templated" id="position-3"></section>
+    <section class="diagram templated" id="shift-22"></section>
+    <section class="diagram templated" id="color"></section>
+    <section class="diagram templated" id="overlap"></section>
+    <section class="diagram templated" id="gradient"></section>
+    <section class="diagram templated" id="gradient-end"></section>
+    <section class="diagram templated" id="radial-gradient-a"></section>
+    <section class="diagram templated" id="radial-gradient-b"></section>
+    <svg class="font-sample" id="pattern-a" viewBox="0 0 260 80">
+      <defs>
+        <pattern id="pattern-a-fill" width="12" height="12" patternUnits="userSpaceOnUse">
+          <rect width="12" height="12" fill="rgb(224, 235, 244)"></rect>
+          <path d="M 0 12 L 12 0" stroke="rgb(32, 64, 96)" stroke-width="2"></path>
+        </pattern>
+      </defs>
+      <rect x="20" y="10" width="220" height="60" fill="url(#pattern-a-fill)" stroke="rgb(32, 64, 96)" stroke-width="2"></rect>
+      <text x="40" y="46" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="rgb(20, 40, 60)">Pattern</text>
+    </svg>
+    <svg class="font-sample" id="pattern-b" viewBox="0 0 260 80">
+      <defs>
+        <pattern id="pattern-b-fill" width="12" height="12" patternUnits="userSpaceOnUse">
+          <rect width="12" height="12" fill="rgb(244, 220, 210)"></rect>
+          <path d="M 0 0 L 12 12" stroke="rgb(120, 80, 40)" stroke-width="2"></path>
+        </pattern>
+      </defs>
+      <rect x="20" y="10" width="220" height="60" fill="url(#pattern-b-fill)" stroke="rgb(32, 64, 96)" stroke-width="2"></rect>
+      <text x="40" y="46" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="rgb(20, 40, 60)">Pattern</text>
+    </svg>
+    <section class="diagram templated" id="mask-hidden">
+      <svg viewBox="0 0 520 260" aria-hidden="true">
+        <mask id="hidden-mask"><path d="M 20 220 L 500 220" stroke="white" stroke-width="60"></path></mask>
+      </svg>
+    </section>
+    <section class="diagram templated" id="scale-0636"></section>
+    <section class="diagram templated" id="frame-extra"><div class="extra-frame"></div></section>
+    <section class="sample" id="transform-half">
+      <svg viewBox="0 0 520 260" width="520" height="260">
+        <g transform="scale(0.5)">
+          <rect x="40" y="40" width="200" height="100" fill="rgb(224, 235, 244)" stroke="rgb(32, 64, 96)" stroke-width="4"></rect>
+          <text x="80" y="100" font-size="20" fill="rgb(20, 40, 60)">Scaled</text>
+          <line x1="40" y1="180" x2="240" y2="180" stroke="rgb(32, 64, 96)" stroke-width="4"></line>
+        </g>
+      </svg>
+    </section>
+    <section class="sample" id="region-expected">
+      <span class="region-text region-keep">Keep</span>
+      <span class="region-text region-ignore">Expected only</span>
+      <span class="region-text region-outside">Outside expected</span>
+    </section>
+    <section class="sample" id="region-actual">
+      <span class="region-text region-keep">Keep</span>
+      <span class="region-text region-ignore">Actual only</span>
+      <span class="region-text region-outside">Outside actual</span>
+    </section>
+    <svg class="font-sample" id="font-mono" viewBox="0 0 260 80">
+      <text x="20" y="48" textLength="200" lengthAdjust="spacingAndGlyphs">Font sample</text>
+    </svg>
+    <svg class="font-sample" id="font-serif" viewBox="0 0 260 80">
+      <text x="20" y="48" textLength="200" lengthAdjust="spacingAndGlyphs">Font sample</text>
+    </svg>
+    <svg class="line-sample" id="path-lines-one" viewBox="0 0 260 80">
+      <path d="M 20 20 L 240 20 M 20 60 L 240 60"></path>
+    </svg>
+    <svg class="line-sample" id="path-lines-two" viewBox="0 0 260 80">
+      <path d="M 20 20 L 240 20"></path>
+      <path d="M 20 60 L 240 60"></path>
+    </svg>
+  </main>
+  <script>
+    const template = document.querySelector("#contents");
+    for (const diagram of document.querySelectorAll(".templated")) {
+      diagram.append(template.content.cloneNode(true));
+    }
+  </script>
+</body>
+</html>
