@@ -39,10 +39,46 @@ function 箱の種類(key: string): string {
 /** その階層の `key` に `v` を置いた入力を組む */
 export function 欄に値を置く(層: 階層, key: string, v: unknown): Record<string, unknown> {
   switch (層) {
-    case "root":
-      return 図({ [key]: v });
-    case "actor":
-      return 図({ actors: [{ name: "A", kind: 箱の種類(key), [key]: v }, { name: "B" }] });
+    case "root": {
+      // 外側が同じ「文字列 / 文字列の並び」でも、閉じた語や個数を持つ欄は
+      // 汎用の陰性対照値をその欄の有効値へ置き換える。型違いの値はそのまま渡す。
+      const 閉じた語: Record<string, string> = {
+        chartPieTableColumns: "value",
+        chartPieRingWidth: "thin",
+        chartStackedLegendPosition: "top",
+        chartWaffleLegendPosition: "right",
+        funnelForm: "proportional-bars",
+        funnelRate: "conversion",
+        quadrantPointLabelSide: "right",
+        treeNodeForm: "frame",
+        treeEdgeTone: "depth",
+        treeEdgeHead: "triangle",
+        mindForm: "outline",
+        journeyForm: "rules",
+        journeyLineForm: "straight",
+        sequenceActorForm: "box",
+        sequenceLabelForm: "kind",
+        sequenceReturnHead: "solid",
+      };
+      const value =
+        (v === "a" || v === "storage") && key in 閉じた語
+          ? 閉じた語[key]
+          : key === "chartSlopePeriods" && Array.isArray(v) && v.length === 1
+            ? ["a", "b"]
+            : v;
+      return 図({ [key]: value });
+    }
+    case "actor": {
+      const 閉じた語: Record<string, string> = {
+        opportunityPosition: "below-point",
+        kindForm: "icon",
+        icon: "terminal",
+        titleAlign: "center",
+        rowMarkForm: "tone",
+      };
+      const value = (v === "a" || v === "storage") && key in 閉じた語 ? 閉じた語[key] : v;
+      return 図({ actors: [{ name: "A", kind: 箱の種類(key), [key]: value }, { name: "B" }] });
+    }
     case "step":
       return 図({ flow: [{ from: "A", to: "B", label: "x", [key]: v }] });
     case "phase":
@@ -56,9 +92,27 @@ export function 欄に値を置く(層: 階層, key: string, v: unknown): Record
     case "axes":
       return 図({ type: "quadrant", axes: { [key]: v } });
     case "axesX":
-      return 図({ type: "quadrant", axes: { x: { [key]: v } } });
+      return 図({
+        type: "quadrant",
+        axes: {
+          x: {
+            ...(key === "label" ? { direction: true } : {}),
+            ...(key === "direction" ? { label: "手間" } : {}),
+            [key]: v,
+          },
+        },
+      });
     case "axesY":
-      return 図({ type: "quadrant", axes: { y: { [key]: v } } });
+      return 図({
+        type: "quadrant",
+        axes: {
+          y: {
+            ...(key === "label" ? { direction: true } : {}),
+            ...(key === "direction" ? { label: "効き目" } : {}),
+            [key]: v,
+          },
+        },
+      });
     case "regions":
       return 図({ type: "quadrant", regions: { [key]: v } });
     case "layoutPos":

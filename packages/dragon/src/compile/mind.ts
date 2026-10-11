@@ -1,7 +1,7 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslActor, DslDocument } from "../types";
-import { 図表の大きさ } from "./chart-fields";
+import { 図表の大きさ, 図表の大きさを読む } from "./chart-fields";
 import { 矢印から親を決める, 放射に出す文字 } from "./hierarchy";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
@@ -56,9 +56,18 @@ type 放射で描ける欄 =
 /** 放射では描けない欄。 書かれていたら伝える */
 type 放射で描けない欄 =
   | "kind"
+  | "kindForm"
+  | "icon"
+  | "emptyRowsNote"
+  | "titleAlign"
+  | "rowRules"
+  | "rowMarkForm"
+  | "nestIn"
+  | "figureCard"
   | "eyebrow"
   | "touchpoint"
   | "opportunity"
+  | "opportunityPosition"
   | "owner"
   | "end"
   | "at"
@@ -93,7 +102,14 @@ type 放射で描けない欄 =
   | "hBind"
   | "opacity"
   | "renderOffsetX"
-  | "renderOffsetY";
+  | "renderOffsetY"
+  | "stationNamePosition"
+  | "subtitlePlacement"
+  | "titleFontSize"
+  | "startLabel"
+  | "milestone"
+  | "emphasis"
+  | "markGap";
 
 /** 引数が `never` でなければ型検査が落ちる */
 type 空であること<T extends never> = T;
@@ -126,11 +142,23 @@ export type _放射の欄が重なっていない = 空であること<Extract<�
  */
 const 放射で描けない欄の名前: Record<放射で描けない欄, string> = {
   kind: "種類",
+  kindForm: "部品箱の形",
+  icon: "部品箱の線画",
+  emptyRowsNote: "行のない表の注記",
+  titleAlign: "表の題の位置",
+  rowRules: "表の行の罫線",
+  rowMarkForm: "表の印の形",
+  nestIn: "表の入れ子",
+  figureCard: "表・部品箱の足",
   eyebrow: "上の小見出し",
   touchpoint: "場所 (ユーザージャーニーの欄)",
   opportunity: "改善の余地 (ユーザージャーニーの欄)",
+  opportunityPosition: "改善の余地の位置 (ユーザージャーニーの欄)",
   owner: "担当 (工程の並びの欄)",
   end: "終わる時期 (工程の並びの欄)",
+  startLabel: "始まりの札 (工程の並びの欄)",
+  milestone: "節目 (工程の並びの欄)",
+  emphasis: "主役 (工程の並びの欄)",
   at: "点の位置 (四象限の欄)",
   atPos: "点の位置 (四象限の欄)",
   rows: "行",
@@ -160,6 +188,10 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   opacity: "濃さ",
   renderOffsetX: "描く時のずらし",
   renderOffsetY: "描く時のずらし",
+  stationNamePosition: "駅名の位置",
+  subtitlePlacement: "副題の位置",
+  titleFontSize: "題の字の大きさ",
+  markGap: "印までの間隔",
 };
 
 /**
@@ -196,7 +228,7 @@ export function compileMind(
 ): CdlDiagram {
   // 図の型は描画側の組み立て関数 `mindMap()` と同じ綴り (cdl 0.63.0 で `mindmap` から `mind` に揃った)
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "mind" });
-  const { w: W, h: H } = 図表の大きさ.mind;
+  const { w: W, h: H } = 図表の大きさを読む(doc, 図表の大きさ.mind);
 
   const 伝える = (kind: CompileNotice["kind"], 名: string, message: string, line = 0): void => {
     onNotice?.({ kind, actor: 名, line, message });
@@ -344,6 +376,10 @@ export function compileMind(
         branches,
       };
     })(),
+    ...(doc.mindForm !== undefined ? { mindForm: doc.mindForm } : {}),
+    ...(doc.mindSize !== undefined ? { mindSize: doc.mindSize } : {}),
+    ...(doc.figureKindLabel !== undefined ? { figureKindLabel: doc.figureKindLabel } : {}),
+    ...(doc.terminalDecoration !== undefined ? { terminalDecoration: doc.terminalDecoration } : {}),
   });
   return b.build();
 }

@@ -2032,16 +2032,19 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > slope の図と
       {
         "chartData": [
           {
+            "id": "検索",
             "label": "検索",
             "previous": 380,
             "value": 420,
           },
           {
+            "id": "sns",
             "label": "SNS",
             "previous": 190,
             "value": 310,
           },
           {
+            "id": "メール",
             "label": "メール",
             "previous": 240,
             "value": 180,
@@ -2092,22 +2095,25 @@ exports[`組み立ての結果を丸ごと固定する (#2030) > stacked の図�
       {
         "chartData": [
           {
+            "id": "新規",
             "label": "新規",
             "previous": 280,
             "value": 320,
           },
           {
+            "id": "継続",
             "label": "継続",
             "previous": 210,
             "value": 180,
           },
           {
+            "id": "乗換",
             "label": "乗換",
             "previous": 90,
             "value": 140,
           },
         ],
-        "h": 224,
+        "h": 304,
         "id": "契約の内訳-chart",
         "kind": "chart-stacked-bar",
         "lane": "chart",

@@ -7,6 +7,53 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- **描く側を `^0.134.0` に上げ、浮彫の図表内容を凹み面へ収められるようにした** (#2854)
+
+  `figureInset.holdsContent:` に `true` を書く形を YAML / JSON / schema に登録した。組み立てと見本帳の意匠切替は
+  浮彫の時だけこの指定を描く側へ渡し、ほかの意匠の配置は変えない。
+
+- **描く側を `^0.133.0` に上げ、配置と形を見本帳から指定できる公開欄を登録した** (#2854)
+
+  `chartLineSize:` の左右余白・目盛り間隔・点列余白・時点名基線、`legendOffset:`、
+  `viewport.contentOffsetX:`、`chartBarShape:`、`chartBarSize.cornerRadius:`、`chartSlopeSize:` の上下余白、
+  `ganttSize:` の工程列幅・右余白、`chartPieSize.centerX:`、`chartWaffleSize:`、
+  `chartStackedLayout.legendOffsetY:`、`journeySize:` を YAML / JSON / schema / 組み立てへ渡す。
+  四象限の区画名は `data-cdl-role="quadrant-label"` で意匠を当てる。
+
+- **描く側を `^0.132.0` に上げ、17 個の公開欄と 15 件の見本寸法を登録した** (#2854)
+
+  節の `terminalDecoration:`・`cornerForm:`・`figureKindLabel:`・`figureInset:`・`chartBarSize:`・
+  `chartLineSize:`・`chartPieSize:`・`chartSlopeLabelTemplate:`・`chartSlopeSize:`・
+  `chartStackedLayout:`・`chartGaugeSize:`・`ganttSize:`・`quadrantLabelPosition:`・`quadrantSize:`、
+  線の `labelCollision:`・`labelSize:`、図全体の `stageLayout:` を YAML / JSON / schema / 組み立てへ渡す。
+  見本帳では図ごとの値だけを各図へ書き、意匠差は新しい role と角の variant に限定した CSS で当てる。
+
+- **描く側を `^0.131.0` に上げ、宅配の流れ図と図表を見本の値で描けるようにした** (#2854)
+
+  工程の `dependsOn` に前工程を複数渡し、段の箱・路線図・時間軸・宅配の流れ図へ 0.127.0 の欄と見本の値を当てた。
+  記法では `stationNamePosition:`・`labelOffsetY:`・`fromSide:`・`toSide:`・`subtitlePlacement:`・
+  `legendFontSize:`・`stageHeaders:`・`titleFontSize:`・`markGap:` を読んで組み立て器と同じ図にする。
+  工程の図では `ganttToday:`・`ganttTickLabels:`・`ganttBarEnd:`・`ganttBarThickness:`・
+  `startLabel:`・`milestone:`・`emphasis:` を記法から CDL へ渡す。
+  図表では `chartSeriesSkipMuted:`・`chartLineSeries:`・`chartPieCenterLabel:`・
+  `chartPieTableColumns:`・`chartPieRingWidth:`・`chartSlopePeriods:`・
+  `chartSlopeEmphasisIds:`・`chartSlopeUnit:`・`chartStackedPeriods:`・
+  `chartStackedRateId:`・`chartStackedLegendPosition:`・`chartGaugeValue:`・
+  `chartWaffleLegendPosition:`・`funnelForm:`・`funnelRate:`・`quadrantPointLabelSide:` を
+  記法から CDL へ渡す。`chartGaugeValue:` の `current`・`target`・`previous` は `{名前}` で
+  段の状態を読み、半円の中央の割合と今の値の弧と前との差を動かせる。
+  階層・放射・ジャーニーでは `treeNodeForm:`・`treeEdgeTone:`・`treeEdgeHead:`・`mindForm:`・
+  `journeyForm:`・`journeyLineForm:`・`journeyLabels:`・`opportunityPosition:` を、図の札では
+  `figureCard:` と `figureSize:` を記法から CDL へ渡す。
+  表の箱では `emptyRowsNote:`・`titleAlign:`・`rowRules:`・`rowMarkForm:`・`nestIn:` を、
+  表と部品の箱では `kindForm:`・`icon:`・箱ごとの `figureCard:` を渡す。行頭印は `tone` も読める。
+  線端の `head: dot` / `tailHead: dot` と、凡例項目の `tone`・`lineStyle`・`align`・`lead`、
+  順序図の `sequenceActorForm:`・`sequenceLabelForm:`・`sequenceReturnHead:`・
+  `sequenceKindLabels:`、lane の `subtitle:` も記法と JSON の両方から CDL へ渡す。
+  木の `treeSize:` と放射の `mindSize:` も登録し、札・字・枝間を見本の寸法で渡す。
+  放射の中心と枝の角・枠線、およびジャーニーの字・段間・注記・主線・点を見本の寸法へ揃えた。
+  見本と同じため検査の汎用下限を割る札・印・列の間は、対象と見本の実測値を名指しして受け入れた。
+
 - **クラス図を `record` に畳み、行を持つ図を一つの型で書けるようにした** (#2783)
 
   `type: class` を記法の図種から外し、旧クラス図の見本は `type: record` へ移した。
@@ -19,10 +66,11 @@ dragon DSL の主要変更履歴。
 
   営業所の階層、再配達の手立て、取扱数、荷物の状態、申し込みから配達、仕分け棚の工程、荷主の気持ちなどを、YAML と JSON の対で載せる。
   13件の段と変種も宅配の筋書きへ揃え、`docs/design/<意匠>/images/compare-{hierarchy,chart,numbers,schedule}.png` に見本の画像と並べた比較画像を4図種×7意匠の28枚追加した。
-  固定意匠の系列色順を保つため、棒・円・半円・升目・内訳帯・発想の枝は個別の `tone` を持たない。日程は `ticks` で 6 月から 10 月を明示し、設計を含む帯の端を月内の位置で見本に揃えた。設計・棚・試験を `accent`、調査・端末を `info` に分けた。気持ちの旅の谷の札は固定幅に収まる「不在票に気づかず」とした。
+  固定意匠の系列色順を保つため、棒・円・半円・升目・内訳帯・発想の枝は個別の `tone` を持たない。日程は `ticks` で 6 月から 10 月を明示し、設計を含む帯の端を月内の位置で見本に揃えた。設計・棚・試験を `accent`、調査・端末を `info` に分けた。
   `form:` (`見せ方:`) で円を輪・積層の弧・銘板から選べるようにした。
   円の札は、輪では従来の 480x320 を保ち、積層の弧と銘板では区分数から CDL の余白・行高に合わせて 16 の倍数で高さを決めるようにした。
   固定 7 意匠の発想の枝、折れ線、電飾の棒、手描きと浮彫の傾き図を見本の役割色に揃えた。
+  気持ちの旅の谷の注記は「不在票に気づかなかった」の全文を谷の点の下へ置く。
   `at` (`点の位置`) で四象限の点を x, y 座標に置けるようにした。
   `ticks:` (`目盛り:`) と `月+割合` でガントの尺、目盛り、月内の帯の端を指定できるようにした。
 

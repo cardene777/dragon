@@ -1,7 +1,7 @@
 import { diagram } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslDocument } from "../types";
-import { 図表の大きさ, 数の欄から参照できる名前, 語の欄から参照できる名前 } from "./chart-fields";
+import { 図表の大きさ, 図表の大きさを読む, 数の欄から参照できる名前, 語の欄から参照できる名前 } from "./chart-fields";
 import { 箱の題 } from "./node-title";
 import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
@@ -17,7 +17,7 @@ export function compileQuadrant(
   onNotice?: (n: CompileNotice) => void,
 ): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "quadrant" });
-  const { w: W, h: H } = 図表の大きさ.quadrant;
+  const { w: W, h: H } = 図表の大きさを読む(doc, 図表の大きさ.quadrant);
   b.lane("chart", { width: W + 64 });
   const items: NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>["items"] = [];
   const 読めない: string[] = [];
@@ -110,6 +110,11 @@ export function compileQuadrant(
     w: W,
     h: H,
     quadrantData: { ...軸と区画の名前(doc), items },
+    ...(doc.quadrantPointLabelSide !== undefined
+      ? { quadrantPointLabelSide: doc.quadrantPointLabelSide }
+      : {}),
+    ...(doc.quadrantLabelPosition !== undefined ? { quadrantLabelPosition: doc.quadrantLabelPosition } : {}),
+    ...(doc.quadrantSize !== undefined ? { quadrantSize: doc.quadrantSize } : {}),
   });
   return b.build();
 }
@@ -187,13 +192,19 @@ const 軸の既定 = {
  *
  * 片側だけ書いた形では、書かなかった側は既定のままにする。 空文字を渡すと名前の無い軸が描かれる。
  */
-function 軸と区画の名前(doc: DslDocument): {
-  xAxis: { left: string; right: string };
-  yAxis: { bottom: string; top: string };
-  quadrantLabels: { topLeft: string; topRight: string; bottomLeft: string; bottomRight: string };
-} {
-  const 軸 = 軸の名前(doc);
-  return { ...軸, quadrantLabels: 区画の名前(doc, 軸) };
+function 軸と区画の名前(
+  doc: DslDocument,
+): Omit<NonNullable<CdlDiagram["nodes"][number]["quadrantData"]>, "items"> {
+  const 端 = 軸の名前(doc);
+  const x = doc.axes?.x;
+  const y = doc.axes?.y;
+  const xAxis = x !== undefined && "direction" in x && x.direction === true
+    ? { label: x.label, direction: true as const }
+    : 端.xAxis;
+  const yAxis = y !== undefined && "direction" in y && y.direction === true
+    ? { label: y.label, direction: true as const }
+    : 端.yAxis;
+  return { xAxis, yAxis, quadrantLabels: 区画の名前(doc, 端) };
 }
 
 /** 軸の両端の名前。 書かなかった側は既定のまま = 空文字を渡すと名前の無い軸が描かれる */
@@ -202,14 +213,16 @@ function 軸の名前(doc: DslDocument): {
   yAxis: { bottom: string; top: string };
 } {
   if (doc.axes === undefined) return { xAxis: 軸の既定.xAxis, yAxis: 軸の既定.yAxis };
+  const x = doc.axes.x;
+  const y = doc.axes.y;
   return {
     xAxis: {
-      left: doc.axes.x?.left ?? 軸の既定.xAxis.left,
-      right: doc.axes.x?.right ?? 軸の既定.xAxis.right,
+      left: x !== undefined && "left" in x ? x.left ?? 軸の既定.xAxis.left : 軸の既定.xAxis.left,
+      right: x !== undefined && "right" in x ? x.right ?? 軸の既定.xAxis.right : 軸の既定.xAxis.right,
     },
     yAxis: {
-      bottom: doc.axes.y?.bottom ?? 軸の既定.yAxis.bottom,
-      top: doc.axes.y?.top ?? 軸の既定.yAxis.top,
+      bottom: y !== undefined && "bottom" in y ? y.bottom ?? 軸の既定.yAxis.bottom : 軸の既定.yAxis.bottom,
+      top: y !== undefined && "top" in y ? y.top ?? 軸の既定.yAxis.top : 軸の既定.yAxis.top,
     },
   };
 }

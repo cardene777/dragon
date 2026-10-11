@@ -87,6 +87,19 @@ export const 図表の大きさ = {
 } as const;
 
 /**
+ * 記法に札の寸法があればそれを使い、無ければ図種ごとの既定をそのまま返す (#2854 C13)。
+ * `図表の大きさ` 自体は変更しない。欄を書かない既存の図が byte-level で同じ寸法を保つため。
+ */
+export function 図表の大きさを読む(
+  doc: DslDocument,
+  fallback: { w: number; h: number },
+): { w: number; h: number } {
+  return doc.figureSize === undefined
+    ? fallback
+    : { w: doc.figureSize.width, h: doc.figureSize.height };
+}
+
+/**
  * 図表の欄が `{名前}` で読む値を、**1 か所で** 確かめる (#1200)。
  *
  * 図表には数の欄 (割合 / 段の人数) と語の欄 (気持ち / 区画) があり、どちらも `{名前}` で

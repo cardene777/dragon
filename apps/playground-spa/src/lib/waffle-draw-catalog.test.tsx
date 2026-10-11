@@ -64,6 +64,9 @@ describe("100 個の印がカタログで読む向きに埋まる (#1670)", () =
   });
 
   it("切り抜きは使わない (升が半分で切れると数えられない)", () => {
-    expect(描く(印の図()), "100 個の印に切り抜きが付いている").not.toContain("<clipPath");
+    const 描画用 = [...描く(印の図()).matchAll(/<clipPath\s+id="([^"]+)"/g)]
+      .map((m) => m[1]!)
+      .filter((id) => !id.startsWith("cdl-figure-content-inset-clip-"));
+    expect(描画用, "100 個の印に描画用の切り抜きが付いている").toEqual([]);
   });
 });

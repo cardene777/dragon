@@ -40,6 +40,7 @@ import {
   木の図が伝えない箱の欄,
   値として読む図種,
   値として読む図が伝えない箱の欄,
+  値として読む図が主役を読む,
   骨組みの図種,
   骨組みの図が伝えない箱の欄,
 } from "./compile/actor-option-notice";
@@ -90,7 +91,7 @@ import { truncateForMessage } from "./compile/subtitle";
 import { slugify } from "./compile/slug";
 import { 省く泳法図の印を外す, 泳法図で印をどう描く } from "./compile/swimlane-marks";
 import { 語の状態を図の語へ直す } from "./compile/word-state";
-import type { CdlDiagram, CdlEdge, CdlNode } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlEdge, CdlLegendItem, CdlNode } from "@cardenelabs/cdl";
 import { layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS, 描く語がその図を指すか } from "./v05/parser";
@@ -559,8 +560,60 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 20 か所以上あり、そのどれに足しても残りが取り残される
   配色と縞を当てる(merged, doc);
   if (doc.legend && doc.legend.length > 0) {
-    merged.legend = doc.legend.map(({ mark, text }) => ({ mark, text }));
+    // cdl 0.129.0 の凡例は印付き項目と注記の union。両方の欄を落とさず、組み立て API と
+    // 同じ順 (mark/text/tone/lineStyle または text/align/lead) で写す。
+    merged.legend = doc.legend.map((item) =>
+      (item.mark === undefined
+        ? {
+            text: item.text,
+            ...(item.align === undefined ? {} : { align: item.align }),
+            ...(item.lead === undefined ? {} : { lead: item.lead }),
+          }
+        : {
+            mark: item.mark,
+            text: item.text,
+            ...(item.tone === undefined ? {} : { tone: item.tone }),
+            ...(item.lineStyle === undefined ? {} : { lineStyle: item.lineStyle }),
+          }) as CdlLegendItem,
+    );
   }
+  if (doc.legendFontSize !== undefined) merged.legendFontSize = doc.legendFontSize;
+  if (doc.legendOffset !== undefined) merged.legendOffset = doc.legendOffset;
+  if (doc.stageHeaders !== undefined) {
+    (merged as CdlDiagram & { stageHeaders?: DslDocument["stageHeaders"] }).stageHeaders =
+      doc.stageHeaders;
+  }
+  // 見本帳は意匠なしで一度だけ組むため、浮彫で使う意図を stageHeaders と同じく図全体で運ぶ。
+  if (doc.figureInset?.holdsContent === true) {
+    (merged as CdlDiagram & {
+      figureInsetByTheme?: {
+        relief?: {
+          holdsContent: true;
+          chartLinePeriodY?: number;
+          chartSlopeAxisGap?: number;
+          chartStackedBarWidth?: number;
+          quadrantPlotSize?: number;
+        };
+      };
+    }).figureInsetByTheme = {
+      relief: {
+        holdsContent: true,
+        ...(doc.chartLineSize?.periodY === undefined
+          ? {}
+          : { chartLinePeriodY: doc.chartLineSize.periodY }),
+        ...(doc.chartSlopeSize?.axisGap === undefined
+          ? {}
+          : { chartSlopeAxisGap: doc.chartSlopeSize.axisGap }),
+        ...(doc.chartStackedLayout?.barWidth === undefined
+          ? {}
+          : { chartStackedBarWidth: doc.chartStackedLayout.barWidth }),
+        ...(doc.quadrantSize?.plotSize === undefined
+          ? {}
+          : { quadrantPlotSize: doc.quadrantSize.plotSize }),
+      },
+    };
+  }
+  if (doc.stageLayout !== undefined) merged.stageLayout = doc.stageLayout;
   静止した図の焦点を外す(merged, doc);
   // 位置のずらしは **配置に効く欄を全て載せた後** に当てる (#1971)。 縦列の幅や視点の間隔を
   // 足す前に測ると、後から足された分だけ狙いがずれる
@@ -568,7 +621,36 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 組の枠は **縦列の位置が全て決まった後** に置く (#1972)。 位置のずらしより前に置くと、
   // ずらした縦列から枠が離れる
   applyGroupFrames(merged, doc, 作った組の枠, opts?.onNotice);
+  cdl0132の未指定欄を外す(merged);
   return merged;
+}
+
+/** cdl 0.132.0 が object に足す未指定欄を、0.131.0 までと同じ省略形へ戻す。 */
+function cdl0132の未指定欄を外す(diagram: CdlDiagram): void {
+  for (const node of diagram.nodes) {
+    if (node.terminalDecoration === undefined) delete node.terminalDecoration;
+    if (node.cornerForm === undefined) delete node.cornerForm;
+    if (node.figureKindLabel === undefined) delete node.figureKindLabel;
+    if (node.figureInset === undefined) delete node.figureInset;
+    if (node.chartBarSize === undefined) delete node.chartBarSize;
+    if (node.chartBarShape === undefined) delete node.chartBarShape;
+    if (node.chartLineSize === undefined) delete node.chartLineSize;
+    if (node.chartPieSize === undefined) delete node.chartPieSize;
+    if (node.chartWaffleSize === undefined) delete node.chartWaffleSize;
+    if (node.chartSlopeLabelTemplate === undefined) delete node.chartSlopeLabelTemplate;
+    if (node.chartSlopeSize === undefined) delete node.chartSlopeSize;
+    if (node.chartStackedLayout === undefined) delete node.chartStackedLayout;
+    if (node.chartGaugeSize === undefined) delete node.chartGaugeSize;
+    if (node.ganttSize === undefined) delete node.ganttSize;
+    if (node.journeySize === undefined) delete node.journeySize;
+    if (node.quadrantLabelPosition === undefined) delete node.quadrantLabelPosition;
+    if (node.quadrantSize === undefined) delete node.quadrantSize;
+  }
+  for (const edge of diagram.edges) {
+    if (edge.labelCollision === undefined) delete edge.labelCollision;
+    if (edge.labelSize === undefined) delete edge.labelSize;
+  }
+  if (diagram.stageLayout === undefined) delete diagram.stageLayout;
 }
 
 /**
@@ -648,6 +730,50 @@ function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
   const 字の測り方 = 意匠の字の測り方(配色);
   if (字の測り方 !== undefined) diagram.textMetrics = 字の測り方;
   for (const node of diagram.nodes) {
+    if (配色 === "relief" && doc.figureInset?.holdsContent === true && node.figureInset !== undefined) {
+      node.figureInset.holdsContent = true;
+      const leftInset = node.figureInset.left ?? 18;
+      const rightInset = node.figureInset.right ?? 18;
+      const topInset = node.figureInset.top ?? 4;
+      const bottomInset = node.figureInset.bottom ?? 8;
+      const horizontalInset = leftInset + rightInset;
+      const verticalInset = topInset + bottomInset;
+      if (node.chartLineSize?.periodY !== undefined) {
+        node.chartLineSize = {
+          ...node.chartLineSize,
+          periodY: Math.max(0, node.chartLineSize.periodY - verticalInset),
+        };
+      }
+      if (node.chartSlopeSize?.axisGap !== undefined) {
+        node.chartSlopeSize = {
+          ...node.chartSlopeSize,
+          axisGap: Math.max(0, node.chartSlopeSize.axisGap - horizontalInset),
+        };
+      }
+      if (node.chartStackedLayout?.barWidth !== undefined) {
+        node.chartStackedLayout = {
+          ...node.chartStackedLayout,
+          barWidth: Math.max(1, node.chartStackedLayout.barWidth - horizontalInset),
+        };
+      }
+      if (
+        node.quadrantSize?.plotSize !== undefined &&
+        node.w !== undefined &&
+        node.h !== undefined
+      ) {
+        const contentHeight = node.h - (node.figureCard === undefined ? 0 : 61 + 36);
+        const 元の上限 = Math.min(node.w - 120, contentHeight - 60);
+        const 凹み面の上限 = Math.min(
+          node.w - horizontalInset - 120,
+          contentHeight - verticalInset - 60,
+        );
+        node.quadrantSize = {
+          ...node.quadrantSize,
+          // 見本の min(P幅−120, P高さ−60) が凹み面で失う分だけ、調整済みの元値から引く。
+          plotSize: Math.max(1, node.quadrantSize.plotSize - (元の上限 - 凹み面の上限)),
+        };
+      }
+    }
     if (node.kind === "storage" && 行を書いた箱か(node)) node.rowStripe = true;
   }
 }
@@ -1613,6 +1739,10 @@ function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): Rea
   const 路線図か = doc.type === "swimlane" && doc.shape === "metro";
   const 時間軸か = doc.type === "swimlane" && doc.shape === "timeline";
   const 読まない欄: string[] = [];
+  const この形が読む欄: string[] = [];
+  if (doc.type === "flowchart") この形が読む欄.push("titleFontSize", "markGap");
+  if (路線図か) この形が読む欄.push("stationNamePosition");
+  if (時間軸か) この形が読む欄.push("subtitlePlacement");
   // 段を読まない図では伝える側へ回す。 既に抜けている図種 (c4) は下の `delete` が空振りする
   if (路線図か || 時間軸か || (!段階ごとの箱か && !書いた縦列に置く(doc.type, doc))) 読まない欄.push("stack");
   const 残り = new Set(族の除外);
@@ -1622,6 +1752,10 @@ function 図ごとの条件も見た伝えない箱の欄(doc: DslDocument): Rea
   // 3 形とも種類を固定する (段の箱は札、路線図は駅、時間軸は札)。書いた種類は伝える側へ回す (#2831)
   if ((段階ごとの箱か || 路線図か || 時間軸か) && 残り.delete("kind")) 変えた = true;
   for (const 欄 of 読まない欄) if (残り.delete(欄)) 変えた = true;
+  for (const 欄 of この形が読む欄) {
+    if (!残り.has(欄)) 変えた = true;
+    残り.add(欄);
+  }
   return 変えた ? 残り : 族の除外;
 }
 
@@ -2220,6 +2354,8 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.cardinality !== undefined) target.cardinality = s.cardinality;
   // 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ
   if (s.side !== undefined) target.side = s.side;
+  if (s.fromSide !== undefined) target.fromSide = s.fromSide;
+  if (s.toSide !== undefined) target.toSide = s.toSide;
   // 矢印の先の形 (#1462)。 書かない矢印には値を入れない = 既存の図が変わらない。
   //
   // **矢印を作る 9 図種すべてがここを通る**。 図種ごとの組み立てにも同じ形を置いたが、
@@ -2235,6 +2371,8 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.labelPlate !== undefined) target.labelPlate = s.labelPlate;
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
+  if (s.labelCollision !== undefined) target.labelCollision = s.labelCollision;
+  if (s.labelSize !== undefined) target.labelSize = s.labelSize;
   // 矢印の位置のずらし (#1971)。 矢印は自分の位置を持たず、通り道は両端の箱で決まるので、
   // 動かせるのは名前だけ。 名前のずらしに足す = 両方書いた時は合わせた量だけ動く
   if (s.layoutPos !== undefined) {
@@ -2398,7 +2536,7 @@ function applyGroupFrames(
 /**
  * ユーザージャーニーの欄を、 それを描けない図種で書いた時に伝える (#1251)。
  *
- * `touchpoint` と `opportunity` は `type: journey` の段だけが持つ。 他の図種では相手が無く、
+ * `touchpoint` と `opportunity` と `opportunityPosition` は `type: journey` の段だけが持つ。 他の図種では相手が無く、
  * 黙って捨てると「書いたのに出ない」 が手掛かりなしで起きる。
  *
  * `type: mind` では伝えない = `compileMind` が描けない欄をまとめて 1 件で伝えており、
@@ -2418,11 +2556,20 @@ function reportChartFieldsNotHonored(
         : [
             ...(a.touchpoint !== undefined ? ["touchpoint"] : []),
             ...(a.opportunity !== undefined ? ["opportunity"] : []),
+            ...(a.opportunityPosition !== undefined ? ["opportunityPosition"] : []),
           ];
     const 工程 =
       doc.type === "gantt"
         ? []
-        : [...(a.owner !== undefined ? ["owner"] : []), ...(a.end !== undefined ? ["end"] : [])];
+        : [
+            ...(a.owner !== undefined ? ["owner"] : []),
+            ...(a.end !== undefined ? ["end"] : []),
+            ...(a.startLabel !== undefined ? ["startLabel"] : []),
+            ...(a.milestone !== undefined ? ["milestone"] : []),
+            ...(a.emphasis !== undefined && doc.type !== "record" && !値として読む図が主役を読む(doc.type, doc.shape)
+              ? ["emphasis"]
+              : []),
+          ];
     if (道筋.length > 0) {
       onNotice({
         kind: "chart-value-unreadable",
@@ -2573,6 +2720,15 @@ function applyV05Extensions(
       // ここで落とさないと、 組み立てが読み取った目印がそのまま箱の説明として出る (#1098)
       const 説明 = doc.type === "c4" ? 段を読み取る(a.subtitle).説明 : a.subtitle;
       if (説明 !== undefined) node.subtitle = 説明;
+      if (a.kindForm !== undefined) node.kindForm = a.kindForm;
+      if (a.icon !== undefined) node.icon = a.icon;
+      if (a.emptyRowsNote !== undefined) node.emptyRowsNote = a.emptyRowsNote;
+      if (a.emphasis !== undefined && doc.type === "record") node.emphasis = a.emphasis;
+      if (a.titleAlign !== undefined) node.titleAlign = a.titleAlign;
+      if (a.rowRules !== undefined) node.rowRules = a.rowRules;
+      if (a.rowMarkForm !== undefined) node.rowMarkForm = a.rowMarkForm;
+      if (a.nestIn !== undefined) node.nestIn = slugify(a.nestIn);
+      if (a.figureCard !== undefined) node.figureCard = a.figureCard;
       if (a.eyebrow !== undefined) node.eyebrow = a.eyebrow;
       if (a.value !== undefined) node.value = a.value;
       if (a.rows !== undefined) node.rows = a.rows;
@@ -2645,6 +2801,7 @@ function applyV05Extensions(
         if (laneOpt.x !== undefined) lane.x = laneOpt.x;
         if (laneOpt.width !== undefined) lane.width = laneOpt.width;
         if (laneOpt.label !== undefined) lane.label = laneOpt.label;
+        if (laneOpt.subtitle !== undefined) lane.subtitle = laneOpt.subtitle;
         if (laneOpt.contain !== undefined) lane.contain = laneOpt.contain;
         if (laneOpt.lifeline !== undefined) lane.lifeline = laneOpt.lifeline;
       } else {
@@ -2659,6 +2816,7 @@ function applyV05Extensions(
           ...(laneOpt.x !== undefined ? { x: laneOpt.x } : {}),
           width: laneOpt.width ?? 320,
           label: laneOpt.label,
+          subtitle: laneOpt.subtitle,
           contain: laneOpt.contain,
           lifeline: laneOpt.lifeline,
         });
@@ -2678,6 +2836,7 @@ function applyV05Extensions(
       ...(diagram.viewport ?? {}),
       ...(doc.viewport.width !== undefined ? { width: doc.viewport.width } : {}),
       ...(doc.viewport.height !== undefined ? { height: doc.viewport.height } : {}),
+      ...(doc.viewport.contentOffsetX !== undefined ? { contentOffsetX: doc.viewport.contentOffsetX } : {}),
       ...(doc.viewport.gap !== undefined ? { gap: doc.viewport.gap } : {}),
       ...(doc.viewport.laneGap !== undefined ? { laneGap: doc.viewport.laneGap } : {}),
       ...(doc.viewport.nodeGap !== undefined ? { nodeGap: doc.viewport.nodeGap } : {}),
@@ -2971,29 +3130,41 @@ function reportFormNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) =>
 }
 
 function reportTicksNotHonored(doc: DslDocument, onNotice?: (n: CompileNotice) => void): void {
-  if (doc.ticks === undefined || doc.type === "gantt") return;
+  if (doc.type === "gantt") return;
+  const fields = [
+    ...(doc.ticks !== undefined ? ["ticks (目盛り)"] : []),
+    ...(doc.ganttToday !== undefined ? ["ganttToday"] : []),
+    ...(doc.ganttTickLabels !== undefined ? ["ganttTickLabels"] : []),
+    ...(doc.ganttBarEnd !== undefined ? ["ganttBarEnd"] : []),
+    ...(doc.ganttBarThickness !== undefined ? ["ganttBarThickness"] : []),
+  ];
+  if (fields.length === 0) return;
   onNotice?.({
     kind: "chart-value-unreadable",
     actor: doc.title,
     line: doc.ticksPos?.line ?? 0,
-    message: `ticks (目盛り) は type: gantt にだけ効きます (type: ${doc.type} では無視しました)`,
+    message: `${fields.join(" / ")} は type: gantt にだけ効きます (type: ${doc.type} では無視しました)`,
   });
 }
 
-/** 路線図の名札にしか載らない lane の補足を、別の形で黙って捨てないために伝える。 */
+/** 特別な泳路配置が元の lane を組み直す時、補足を黙って捨てないために伝える。 */
 function reportLaneSubtitleNotHonored(
   doc: DslDocument,
   onNotice?: (n: CompileNotice) => void,
 ): void {
-  if (!onNotice || (doc.type === "swimlane" && doc.shape === "metro")) return;
+  if (
+    !onNotice ||
+    doc.type !== "swimlane" ||
+    (doc.shape !== "stages" && doc.shape !== "timeline")
+  ) return;
   for (const lane of Object.values(doc.lanes ?? {})) {
     if (lane.subtitle === undefined) continue;
     onNotice({
       kind: "lane-option-not-honored",
       actor: lane.id,
       line: lane.pos.line,
-      message: `縦列 "${truncateForMessage(lane.id)}" に書いた subtitle は効きません (担当の補足を描くのは shape: metro だけです)`,
-      hint: "subtitle を消すか、type: swimlane と shape: metro の路線図で使ってください",
+      message: `縦列 "${truncateForMessage(lane.id)}" に書いた subtitle は shape: ${doc.shape} では効きません`,
+      hint: "subtitle を消すか、通常の縦列または shape: metro の路線図で使ってください",
     });
   }
 }

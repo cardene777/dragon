@@ -78,8 +78,64 @@ flow:
 | `shape`     | 図種ごとの形。`chart` は `pie` / `bar` / `line` / `gauge` / `radial` / `stat` / `waffle` / `stacked` / `slope` (書かなければ `bar`)、`swimlane` は `stages` / `metro` / `timeline` |
 | `form`      | `shape: pie` の見せ方 (`ring` / `arcs` / `table`、和名は `輪` / `積層の弧` / `銘板`)。 `見せ方:` とも書ける |
 | `ticks`     | `type: gantt` の目盛りを左から順に並べる (`目盛り:` とも書ける)。 書かなければ工程の始まりから作る |
+| `ganttToday` | `type: gantt` の今日の位置と札 (`{ index, label }`) |
+| `ganttTickLabels` | `type: gantt` の各目盛りに出す名前の並び |
+| `ganttBarEnd` | `position` で帯を `end` の位置までにする |
+| `ganttBarThickness` | `thin` で帯を見本の比の細さにする |
+| `chartSeriesSkipMuted` | `true` で `tone: muted` の項目を系列色の番号から外す |
+| `chartLineSeries` | 折れ線の複数系列 (`points` / `label` / `tone` / `dash` / `marker` / `valueIndexes`)。`marker: dot` は塗った点、`hollow` は中抜きの点、`none` は点を描かない |
+| `chartPieCenterLabel` | 円の中心で合計の下に置く字 |
+| `chartPieTableColumns` | 円の表の列 (`share-value` / `value`) |
+| `chartPieRingWidth` | 円の輪の太さ (`thick` / `thin`) |
+| `chartSlopePeriods` | 傾き図の左右の時点名 2 つ |
+| `chartSlopeEmphasisIds` | 傾き図で主役にする項目の id |
+| `chartSlopeUnit` | 傾き図の値に付ける単位 |
+| `chartStackedPeriods` | 内訳の帯の期間と系列ごとの値 (`{ label, values }`) |
+| `chartStackedRateId` | 内訳の帯の右に割合を出す項目の id |
+| `chartStackedLegendPosition` | 内訳の帯の凡例の位置 (`top` / `bottom`) |
+| `chartGaugeValue` | 半円の固定尺 (`{ max, current, target?, previous?, previousLabel? }`)。`current`・`target`・`previous` は `{名前}` で段の状態を読める。`max` は数だけ |
+| `chartWaffleLegendPosition` | 升目の一覧の位置 (`left` / `right`) |
+| `funnelForm` | 漏斗の形 (`trapezoid` / `proportional-bars`) |
+| `funnelRate` | 漏斗の率。`drop` は前段から減った割合、`conversion` は前段から残った割合、`none` は率を描かない |
+| `quadrantPointLabelSide` | 四象限の座標点の名前を置く側 (`auto` / `right`) |
+| `treeNodeForm` | 木の箱の見せ方 (`accent` / `frame`) |
+| `treeSize` | 木の深さごとの札幅、札高、題・副題の字、同段・段間の隙間 (`{ nodeWidths?, nodeHeight?, titleFontSize?, subtitleFontSize?, siblingGap?, levelGap? }`) |
+| `treeEdgeTone` | 木の枝色の付け方 (`accent` / `depth`) |
+| `treeEdgeHead` | 木の枝先の形 (`none` / `triangle`) |
+| `mindForm` | 放射の箱の見せ方 (`filled` / `outline`) |
+| `mindSize` | 放射の中心・枝・葉の札と字、中心から枝・枝から葉・各行の間隔とずらし (`{ root?, branch?, leaf?, rootBranchGap?, branchLeafGap?, branchRowGap?, branchRowOffset?, leafRowGap?, leafRowOffset? }`) |
+| `journeyForm` | ジャーニーの段の見せ方 (`bands` / `rules`) |
+| `journeyLineForm` | ジャーニーの点を結ぶ線 (`curve` / `straight`) |
+| `journeyLabels` | ジャーニーの 5 段の名前 (`{ delighted, happy, neutral, frustrated, angry }`) |
+| `journeySize` | ジャーニーの描画面と点列の左右余白 (`{ plotPadding?: { left?, right? }, pointPadding?: { left?, right? } }`) |
+| `sequenceActorForm` | `box` で順序図の参加者を枠で囲む |
+| `sequenceLabelForm` | `kind` で順序図の段に種類印と種類名を添える |
+| `sequenceReturnHead` | `solid` で返す言づてにも塗った三角の矢じりを使う |
+| `sequenceKindLabels` | 順序図の種類名 (`{ call?, return?, fire? }`) を言い換える |
+| `figureCard` | 図表の見出し帯と足 (`{ label, note? }`) |
+| `figureSize` | 図全体を 1 箱にする図種の札の幅と高さ (`{ width, height }`) |
+| `terminalDecoration` | 端末意匠用の窓操作・字送り・行番号 (`{ windowControls?, cursor?, rowOrdinal? }`) |
+| `cornerForm` | `theme-variants` で矩形札の一様角と手描き角を意匠から選ぶ |
+| `figureKindLabel` | 階層図・放射図の種類札 (`{ text, x?, y?, fontSize?, fontWeight?, letterSpacing? }`) |
+| `figureInset` | 図表札の凹み面 (`{ top?, right?, bottom?, left?, radius?, holdsContent? }`)。`holdsContent: true` は凹み面を見せる浮彫の時だけ、図表の中身を凹み面の内側へ置く |
+| `chartBarSize` | 棒の目盛り・値・名前・余白・棒幅 |
+| `chartBarShape` | 棒を分割するか上だけ丸めた一体の形にするか (`split` / `top-rounded`) |
+| `chartLineSize` | 折れ線の値札間隔・目盛り・時点・点・描画面と点列の余白・時点名の基線 |
+| `chartPieSize` | 円の一覧幅・字・行間・余白・外半径・中心 x |
+| `chartWaffleSize` | 升目図の左端と升目の送り (`{ gridLeft?, cellPitch? }`) |
+| `chartSlopeLabelTemplate` | 傾き図の左右の札 (`{ left?, right? }`、`{name}` / `{value}` / `{unit}`) |
+| `chartSlopeSize` | 傾き図の点・時点・札・軸・描画面と点列の上下余白 |
+| `chartStackedLayout` | 内訳の帯の凡例列・間隔・帯・字・凡例の縦ずらし |
+| `chartGaugeSize` | 半円の帯・外半径・上位置・値の字 |
+| `ganttSize` | 工程名の列・時間軸の右余白・目盛り・帯・節目・依存線の寸法 |
+| `quadrantLabelPosition` | `outside-corners` で四象限の区画名を角の外へ置く |
+| `quadrantSize` | 四象限の面・点・字・札間の寸法 |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
-| `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 1 項目は `{ mark, text }`、和名なら `{ 印, 説明 }`。 印の 10 種は下の節を参照 |
+| `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 印付きは `{ mark, text, tone?, lineStyle? }`、注記は `{ text, align?, lead? }`。和名なら `{ 印, 説明 }`。 印の種類は下の節を参照 |
+| `legendFontSize` | 凡例の字の大きさ |
+| `legendOffset` | 図全体の凡例の位置をずらす (`{ x?, y? }`) |
+| `stageHeaders` | `shape: stages` の見出し寸法を意匠名ごとに書く (`leftPad` / `topPad` / `numberSize` / `gap` / `nameSize` / `bottomPad`) |
+| `stageLayout` | `shape: stages` の列幅・列間・戻る線の迂回寸法 (`columnWidths` / `columnGap` / `backDetourTopGap` / `backDetourSideGap`) |
 
 <!-- notation:top-level:end -->
 
@@ -106,6 +162,8 @@ CDL の描画時に最寄りの端へ寄せる。区画の語と併記した時�
 legend:
   - { mark: diamond, text: "分かれ道" }
   - { mark: filled-circle, text: "始まり" }
+  - { mark: line-diamond-hollow, text: "参照", tone: accent, lineStyle: dotted }
+  - { text: "注: 点線は参照", align: end, lead: "注:" }
 ```
 
 最上位の語、項目名、印はいずれも和名で書ける。英語と和名を同じ項目に併記した時は英語を使う。
@@ -128,6 +186,10 @@ legend:
 | `numbered-circle` | 番号の丸 |
 | `station` | 駅 |
 | `arrow` | 矢印 |
+| `line-triangle-hollow` | 白抜き三角の線端 |
+| `line-diamond-hollow` | 白抜き菱の線端 |
+| `line-diamond-solid` | 塗った菱の線端 |
+| `rounded-box` | 角丸の箱 |
 
 ### 箱に書ける欄
 
@@ -139,11 +201,23 @@ legend:
 | --------------- | ------------------------------------------------------------------------------ |
 | `kind`          | 見た目の種別 (`card` / `storage` / `service` / `person` 等、`種類` とも書ける)。 種別に無い名前は部品の名前として部品の一覧 (`partsCatalog`) から引き、一覧にも無ければ種別を書かなかった箱になる。 部品を持つ一覧を渡した時は、書いた行に知らせ (`onNotice`) が出て綴りの近い名前を案内する |
 | `subtitle`      | 題の下の補足 (`補足` とも書ける)                                               |
+| `kindForm`      | `icon` で kind の意味を保ったまま共通枠の部品箱にする                         |
+| `icon`          | 共通枠へ描く線画 (`person` / `box` / `database` / `lightning` / `cloud` / `terminal`) |
+| `emptyRowsNote` | 行を持たない `storage` に行の代わりに描く注記                                  |
+| `titleAlign`    | `center` で `storage` の題と小見出しを中央へ揃える                              |
+| `rowRules`      | `true` で `storage` の見出し下と行の間に罫線を描く                             |
+| `rowMarkForm`   | `tone` で行頭の印を形でなく色の段で分ける                                     |
+| `nestIn`        | 親の `storage` の名前。書いた表を親の内側へ入れる                              |
+| `figureCard`    | `storage` または `kindForm: icon` の足 (`{ label, note? }`)                    |
+| `stationNamePosition` | 路線図の駅名を下へ置く (`bottom`) |
+| `subtitlePlacement` | 時間軸の担当を札の右へ置く (`right`) |
+| `titleFontSize` | 流れ図の `function` の札の題の大きさ |
+| `markGap` | 流れ図の始まり・終わりの印と次の箱との間 |
 | `eyebrow`       | 題の上の小見出し                                                               |
 | `value`         | 箱に出す値 (`値` とも書ける)                                                   |
 | `previous`      | 前の時点の値 (`前の値` とも書ける)。 `type: stacked` が 2 本目の帯として描く   |
 | `rows`          | 箱の中に並べる行 (`行` とも書ける)                                             |
-| `marks`         | 行頭の印 (`印` とも書ける。 `rows` と同じ並び。 ER は `pk` / `fk` / `opt`、状態は `entry` / `exit` / `do` / `internal`) |
+| `marks`         | 行頭の印 (`印` とも書ける。`rows` と同じ並び)。文字列のほか `{ mark, tone? }` で `primary` / `muted` の色の段を書ける |
 | `stage`         | `shape: stages` の泳法図で箱を入れる段階 (`段階` とも書ける)                  |
 | `lane`          | どの縦列に置くか                                                               |
 | `stack`         | 縦列の中の何段目に置くか                                                       |
@@ -153,8 +227,12 @@ legend:
 | `color`         | 色 (`tone` と同じ意味。 両方書いた時は `tone` を採る)                          |
 | `touchpoint`    | ユーザージャーニーで、利用者が触れる場所                                               |
 | `opportunity`   | ユーザージャーニーで、改善の余地                                                       |
+| `opportunityPosition` | ユーザージャーニーで、改善の余地を置く場所 (`below-chart` / `below-point`) |
 | `owner`         | 工程の並びで、担当                                                             |
 | `end`           | 工程の並びで、終わりの位置。 始まりより前の時期は始まりと同じに倒し、知らせ (`onNotice`) が出る |
+| `startLabel`    | 工程の始まりに出す札。節目の位置名とは別に書ける                             |
+| `milestone`     | `true` なら工程を帯ではなく節目の菱形で描く                                  |
+| `emphasis`      | `primary` なら工程の帯または `storage` の枠を主役として描く                   |
 | `at`            | 四象限の点の座標 `[x, y]` (`点の位置` とも書ける)。 左下が 0,0、右上が 1,1 |
 | `posX`          | 置く場所の横位置                                                               |
 | `posY`          | 置く場所の縦位置                                                               |
@@ -190,8 +268,10 @@ legend:
 | `strokeBind`     | 線の色を値に追随させる (`widthBind` と同じ読み方)                   |
 | `dashOffsetBind` | 破線の位置を値に追随させる (流れているように見せる)                 |
 | `side`           | 矢印がどの辺から出るか (`top` / `right` / `bottom` / `left`)        |
-| `head`           | 矢印の先の形 (`triangle` 継承・実装 / `diamond` 集約・コンポジション / `open` 関連・依存 / `crow` 多 / `one` `zero-one` `many` `zero-many` ER の端 / `none` 描かない) |
-| `tailHead`       | 出どころ側の端の形 (ER は端ごとに違う個数を示すので両端に要る) |
+| `fromSide`       | 矢印が出どころのどの辺から出るか (`top` / `right` / `bottom` / `left`) |
+| `toSide`         | 矢印が行き先のどの辺へ入るか (`top` / `right` / `bottom` / `left`) |
+| `head`           | 矢印の先の形 (`triangle` 継承・実装 / `diamond` 集約・コンポジション / `open` 関連・依存 / `dot` 点 / `crow` 多 / `one` `zero-one` `many` `zero-many` ER の端 / `none` 描かない) |
+| `tailHead`       | 出どころ側の端の形 (`dot` で点。ER は端ごとに違う個数を示すので両端に要る) |
 | `headFill`       | 端の印の塗り (`solid` 塗る / `hollow` 白抜き) |
 | `tailHeadFill`   | 出どころ側の印の塗り |
 | `relation`       | record に書く UML 関係の種類 (`extends` 継承 / `implements` 実装 / `aggregates` 集約 / `composes` コンポジション / `associates` 関連 / `uses` 依存)。 書くと線と端の形と塗りと付く側がまとめて決まる |
@@ -200,6 +280,8 @@ legend:
 | `labelPlate`     | 説明文の下地を敷くか (`false` で外す)。 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える |
 | `labelOffsetX`   | 説明文の位置を横にずらす                                            |
 | `labelOffsetY`   | 説明文の位置を縦にずらす                                            |
+| `labelCollision` | `auto` で自動回避、`author` で作者が書いた札位置を保つ              |
+| `labelSize`      | 説明文の札の幅・高さ・字 (`{ width?, height?, fontSize? }`)          |
 | `overlay`        | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用)              |
 | `fromPartNode`   | 出どころが部品 (kind に部品の名前を書いた箱) の時、矢印を繋ぐ部品の中の要素の id。 要素を 1 つだけ持つ部品は書かなくてもその要素に繋がり、2 つ以上持つ部品は書かないと矢印を外して知らせる |
 | `toPartNode`     | 行き先が部品の時、矢印を繋ぐ部品の中の要素の id (`fromPartNode` と同じ読み方) |
@@ -302,8 +384,8 @@ flow:
 `decision` からだけ入る普通の段のうち、`decision` の直後に書かれていない段は分かれ道の脇へ置く。
 脇の札は番号と補助線を持たず、分かれ道と同じ高さで担当を名前の下へ中央揃えで置く。
 脇の札は、軸から札の内側までを見本の 220 以上とする。
-戻る線を持つ脇の札は、線の縦の区間が戻り先の札を貫く配置なら、戻り先の札の右端から近接の下限 70 だけ外へ中心を置く。
-普通の段の間は 157 とし、156 以下で起きる戻る線と札の字の重なりを避ける。
+戻る線を持つ脇の札は、軸から札の内側まで 220 空ける。
+普通の段の間は見本どおり 125 とする。
 次の段へ進む線は番号か軸上の印どうしを結び、終わりへ入る線を除いて矢頭を付けない。
 線に書いた色と種類は軸上でも保ち、分かれ道から色付きの線で入る番号はその線と同じ色を持つ。
 字のある線には `overlay: true` を渡し、描く側が線上に置ける札は線へ重ねる。
@@ -315,10 +397,8 @@ flow:
 2 段以上前へ戻る線は、道筋が途中の札や番号と交わる時だけ、それらを避けた一番近い外側の列を回る。
 交わらない線の道筋は変えず、外側を回る線の札は横の区間の中点に置く。
 
-描く側の `back-detour` は札の上辺どうしを結ぶため、見本のように札の横から出入りせず、脇の札も見本の 220 まで軸へ寄せられない (`cardene777/cdl#1031`)。
-`leaderTo` の無い脇の札は担当を右へ出せないため、担当を題の下へ置く (`cardene777/cdl#1032`)。
-線へ重ねる「はい」と「翌日もう一度」の札は描く側の配置で線から押し出される (`cardene777/cdl#1039`)。
-3 課題が全て描く側へ入った時に、「持ち戻る」と軸の距離を実配置の 396 から見本の 220 へ寄せ、段の間を 157 から見本の 125 へ戻す。
+戻る線には `fromSide` / `toSide` を書ける。時間軸は右から右、段の箱は右から上へ結ぶ。
+`leaderTo` の無い脇の札は `subtitlePlacement: right` で担当を右へ置ける。
 
 ### 段の箱・路線図・時間軸に分かれ道と始まりと終わりを書く
 
@@ -379,6 +459,7 @@ actors:
 
 `lanes:` の id は組み立て側が作る形に合わせて、字 / 数 / 下線 / hyphen を受ける
 (`lane-idle` のような自動で作られた縦列の幅も書き直せる)。
+`label` は縦列の名前、`subtitle` はその補足で、通常の `topology` / `flow` の縦列見出しにも使える。
 
 `groups:` は並べた縦列のうち何本かを 1 つの枠で囲む。 枠は縦列の位置が決まった後に、束ねた縦列と
 中の箱を全て含む位置と大きさで描かれ、縦列と箱の位置は組を書かない図と変わらない。

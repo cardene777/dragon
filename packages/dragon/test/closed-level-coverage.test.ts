@@ -95,6 +95,108 @@ type 図 = Record<string, unknown>;
  */
 const 入力: Record<string, 図> = {
   $: { ...基本, [知らない項目]: 1 },
+  "$.ganttToday": {
+    ...基本,
+    type: "gantt",
+    ganttToday: { index: 1.3, label: "今日", [知らない項目]: 1 },
+  },
+  "$.chartLineSeries[]": {
+    ...基本,
+    chartLineSeries: [
+      {
+        label: "実績",
+        points: [{ label: "6月", value: 10 }],
+        [知らない項目]: 1,
+      },
+    ],
+  },
+  "$.chartLineSeries[].points[]": {
+    ...基本,
+    chartLineSeries: [
+      { label: "実績", points: [{ label: "6月", value: 10, [知らない項目]: 1 }] },
+    ],
+  },
+  "$.chartStackedPeriods[]": {
+    ...基本,
+    chartStackedPeriods: [{ label: "6月", values: [90, 10], [知らない項目]: 1 }],
+  },
+  "$.chartGaugeValue": {
+    ...基本,
+    chartGaugeValue: { max: 100, current: "{rate}", [知らない項目]: 1 },
+  },
+  "$.journeyLabels": {
+    ...基本,
+    journeyLabels: {
+      delighted: "最高",
+      happy: "満足",
+      neutral: "普通",
+      frustrated: "不満",
+      angry: "怒り",
+      [知らない項目]: 1,
+    },
+  },
+  "$.sequenceKindLabels": {
+    ...基本,
+    sequenceKindLabels: { call: "呼ぶ", [知らない項目]: "不明" },
+  },
+  "$.figureCard": {
+    ...基本,
+    figureCard: { label: "図", [知らない項目]: 1 },
+  },
+  "$.figureSize": {
+    ...基本,
+    figureSize: { width: 640, height: 320, [知らない項目]: 1 },
+  },
+  "$.treeSize": {
+    ...基本,
+    type: "tree",
+    treeSize: { nodeHeight: 91.891, [知らない項目]: 1 },
+  },
+  "$.mindSize": {
+    ...基本,
+    type: "mind",
+    mindSize: { rootBranchGap: 155, [知らない項目]: 1 },
+  },
+  "$.mindSize.root": {
+    ...基本,
+    type: "mind",
+    mindSize: { root: { width: 330, [知らない項目]: 1 } },
+  },
+  "$.mindSize.branch": {
+    ...基本,
+    type: "mind",
+    mindSize: { branch: { width: 220, [知らない項目]: 1 } },
+  },
+  "$.mindSize.leaf": {
+    ...基本,
+    type: "mind",
+    mindSize: { leaf: { fontSize: 23, [知らない項目]: 1 } },
+  },
+  "$.terminalDecoration": { ...基本, terminalDecoration: { windowControls: true, [知らない項目]: 1 } },
+  "$.figureKindLabel": { ...基本, figureKindLabel: { text: "tree", [知らない項目]: 1 } },
+  "$.figureInset": { ...基本, figureInset: { top: 4, [知らない項目]: 1 } },
+  "$.journeySize": { ...基本, journeySize: { plotPadding: { left: 120 }, [知らない項目]: 1 } },
+  "$.journeySize.plotPadding": { ...基本, journeySize: { plotPadding: { left: 120, [知らない項目]: 1 } } },
+  "$.journeySize.pointPadding": { ...基本, journeySize: { pointPadding: { left: 100, [知らない項目]: 1 } } },
+  "$.chartBarSize": { ...基本, chartBarSize: { barWidth: 82, [知らない項目]: 1 } },
+  "$.chartBarSize.plotPadding": { ...基本, chartBarSize: { plotPadding: { top: 1, [知らない項目]: 1 } } },
+  "$.chartLineSize": { ...基本, chartLineSize: { pointRadius: 7, [知らない項目]: 1 } },
+  "$.chartLineSize.valueLabelOffset": { ...基本, chartLineSize: { valueLabelOffset: { above: 20, [知らない項目]: 1 } } },
+  "$.chartLineSize.plotPadding": { ...基本, chartLineSize: { plotPadding: { top: 1, [知らない項目]: 1 } } },
+  "$.chartLineSize.pointPadding": { ...基本, chartLineSize: { pointPadding: { left: 1, [知らない項目]: 1 } } },
+  "$.chartPieSize": { ...基本, chartPieSize: { outerRadius: 171, [知らない項目]: 1 } },
+  "$.chartWaffleSize": { ...基本, chartWaffleSize: { cellPitch: 30, [知らない項目]: 1 } },
+  "$.chartSlopeLabelTemplate": { ...基本, chartSlopeLabelTemplate: { left: "{name}", [知らない項目]: 1 } },
+  "$.chartSlopeSize": { ...基本, chartSlopeSize: { pointRadius: 7, [知らない項目]: 1 } },
+  "$.chartSlopeSize.plotPadding": { ...基本, chartSlopeSize: { plotPadding: { top: 1, [知らない項目]: 1 } } },
+  "$.chartSlopeSize.pointPadding": { ...基本, chartSlopeSize: { pointPadding: { top: 1, [知らない項目]: 1 } } },
+  "$.chartStackedLayout": { ...基本, chartStackedLayout: { segmentGap: 3, [知らない項目]: 1 } },
+  "$.chartGaugeSize": { ...基本, chartGaugeSize: { arcThickness: 34, [知らない項目]: 1 } },
+  "$.ganttSize": { ...基本, ganttSize: { tickCount: 6, [知らない項目]: 1 } },
+  "$.quadrantSize": { ...基本, quadrantSize: { plotSize: 325, [知らない項目]: 1 } },
+  "$.quadrantSize.plotOffset": { ...基本, quadrantSize: { plotOffset: { x: 70, [知らない項目]: 1 } } },
+  "$.legendOffset": { ...基本, legendOffset: { x: -200, [知らない項目]: 1 } },
+  "$.flow[].labelSize": { ...基本, flow: [{ from: "A", to: "B", label: "x", labelSize: { width: 96, [知らない項目]: 1 } }] },
   "$.axes": { ...基本, type: "quadrant", axes: { [知らない項目]: {} } },
   "$.axes.x": { ...基本, type: "quadrant", axes: { x: { left: "低", right: "高", [知らない項目]: 1 } } },
   "$.axes.y": { ...基本, type: "quadrant", axes: { y: { top: "上", bottom: "下", [知らない項目]: 1 } } },
@@ -114,6 +216,14 @@ const 入力: Record<string, 図> = {
   "$.actors[].oneOf[1].shape": {
     ...基本,
     actors: [{ name: "A", shape: { kind: "rect", [知らない項目]: 1 } }, { name: "B" }],
+  },
+  "$.actors[].oneOf[1].figureCard": {
+    ...基本,
+    actors: [{ name: "A", figureCard: { label: "図", [知らない項目]: 1 } }, { name: "B" }],
+  },
+  "$.actors[].oneOf[1].marks[].oneOf[1]": {
+    ...基本,
+    actors: [{ name: "A", marks: [{ mark: "鍵", [知らない項目]: 1 }] }, { name: "B" }],
   },
   "$.flow[]": { ...基本, flow: [{ from: "A", to: "B", label: "x", [知らない項目]: 1 }] },
   "$.flow[].pos": {
@@ -173,6 +283,20 @@ const 入力: Record<string, 図> = {
     ...基本,
     legend: [{ mark: "diamond", text: "分かれ道", [知らない項目]: 1 }],
   },
+  "$.stageHeaders.additionalProperties": {
+    ...基本,
+    stageHeaders: {
+      blueprint: {
+        topPad: 15,
+        numberSize: 16,
+        gap: 10,
+        nameSize: 29,
+        bottomPad: 13,
+        [知らない項目]: 1,
+      },
+    },
+  },
+  "$.stageLayout": { ...基本, stageLayout: { columnGap: 64, [知らない項目]: 1 } },
   "$.events[]": { ...基本, events: [{ on: "click", handler: "h", box: "A", [知らない項目]: 1 }] },
   "$.scrolls.additionalProperties": {
     ...基本,

@@ -37,6 +37,39 @@ import {
   EVENT_KINDS,
   EVENT_TARGET_KEYS,
   EVENT_REQUIRED_KEYS,
+  CHART_LINE_DASH_VALUES,
+  CHART_LINE_MARKER_VALUES,
+  CHART_PIE_TABLE_COLUMN_VALUES,
+  CHART_PIE_RING_WIDTH_VALUES,
+  CHART_STACKED_LEGEND_POSITION_VALUES,
+  CHART_WAFFLE_LEGEND_POSITION_VALUES,
+  FUNNEL_FORM_VALUES,
+  FUNNEL_RATE_VALUES,
+  QUADRANT_POINT_LABEL_SIDE_VALUES,
+  TREE_NODE_FORM_VALUES,
+  TREE_EDGE_TONE_VALUES,
+  TREE_EDGE_HEAD_VALUES,
+  MIND_FORM_VALUES,
+  JOURNEY_FORM_VALUES,
+  JOURNEY_LINE_FORM_VALUES,
+  JOURNEY_OPPORTUNITY_POSITION_VALUES,
+  JOURNEY_LABEL_KEYS,
+  CORNER_FORM_VALUES,
+  CHART_BAR_SHAPE_VALUES,
+  QUADRANT_LABEL_POSITION_VALUES,
+  LABEL_COLLISION_VALUES,
+  GANTT_TASK_LABEL_ALIGN_VALUES,
+  CDL_ICON_VALUES,
+  KIND_FORM_VALUES,
+  TITLE_ALIGN_VALUES,
+  LEGEND_LINE_STYLE_VALUES,
+  LEGEND_NOTE_ALIGN_VALUES,
+  ROW_MARK_FORM_VALUES,
+  ROW_MARK_TONE_VALUES,
+  SEQUENCE_ACTOR_FORM_VALUES,
+  SEQUENCE_LABEL_FORM_VALUES,
+  SEQUENCE_RETURN_HEAD_VALUES,
+  SEQUENCE_KIND_LABEL_KEYS,
   type 図形の定義,
 } from "./v05/parser";
 // 図の意匠 (#1553 / #2790)。 記法の読み手と同じ解決を通す = 別名の受け方が
@@ -57,10 +90,11 @@ import { 区画 } from "./compile/word-state";
 // 行頭の印の古い語の読み替え (#2782)。 記法と同じ表を通す = JSON だけ古い語が印を持たない
 // 形にならない
 import { 行頭の語へ読み替える } from "./compile/row-marks";
-import type { DslDiagramShape, DslShape } from "./keywords";
+import type { DslDiagramShape, DslShape, DslTheme } from "./keywords";
 import type { CompileToCdlOpts } from "./compile";
 import type {
   CdlDiagram,
+  CdlLegendItem,
   NodeKind,
   Tone,
   EdgeStyle,
@@ -74,6 +108,7 @@ import type {
 import { extractIdentifiers, parseFormula } from "@cardenelabs/cdl";
 import type {
   DslDocument,
+  DslStageHeader,
   DslRegions,
   DslActor,
   DslStep,
@@ -124,6 +159,60 @@ export interface DragonJson {
   ticks?: string[];
   /** `ticks` の和名。両方あれば `ticks` を採る。 */
   目盛り?: string[];
+  /** ガントチャートの今日の線の位置と札。 */
+  ganttToday?: { index: number; label: string };
+  /** 工程の端とは独立した目盛り名。 */
+  ganttTickLabels?: string[];
+  ganttBarEnd?: "position";
+  ganttBarThickness?: "thin";
+  chartSeriesSkipMuted?: DslDocument["chartSeriesSkipMuted"];
+  chartLineSeries?: DslDocument["chartLineSeries"];
+  chartPieCenterLabel?: DslDocument["chartPieCenterLabel"];
+  chartPieTableColumns?: DslDocument["chartPieTableColumns"];
+  chartPieRingWidth?: DslDocument["chartPieRingWidth"];
+  chartSlopePeriods?: DslDocument["chartSlopePeriods"];
+  chartSlopeEmphasisIds?: DslDocument["chartSlopeEmphasisIds"];
+  chartSlopeUnit?: DslDocument["chartSlopeUnit"];
+  chartStackedPeriods?: DslDocument["chartStackedPeriods"];
+  chartStackedRateId?: DslDocument["chartStackedRateId"];
+  chartStackedLegendPosition?: DslDocument["chartStackedLegendPosition"];
+  chartGaugeValue?: DslDocument["chartGaugeValue"];
+  chartWaffleLegendPosition?: DslDocument["chartWaffleLegendPosition"];
+  funnelForm?: DslDocument["funnelForm"];
+  funnelRate?: DslDocument["funnelRate"];
+  quadrantPointLabelSide?: DslDocument["quadrantPointLabelSide"];
+  treeNodeForm?: DslDocument["treeNodeForm"];
+  treeSize?: DslDocument["treeSize"];
+  treeEdgeTone?: DslDocument["treeEdgeTone"];
+  treeEdgeHead?: DslDocument["treeEdgeHead"];
+  mindForm?: DslDocument["mindForm"];
+  mindSize?: DslDocument["mindSize"];
+  journeyForm?: DslDocument["journeyForm"];
+  journeyLineForm?: DslDocument["journeyLineForm"];
+  journeyLabels?: DslDocument["journeyLabels"];
+  journeySize?: DslDocument["journeySize"];
+  sequenceActorForm?: DslDocument["sequenceActorForm"];
+  sequenceLabelForm?: DslDocument["sequenceLabelForm"];
+  sequenceReturnHead?: DslDocument["sequenceReturnHead"];
+  sequenceKindLabels?: DslDocument["sequenceKindLabels"];
+  figureCard?: DslDocument["figureCard"];
+  figureSize?: DslDocument["figureSize"];
+  terminalDecoration?: DslDocument["terminalDecoration"];
+  cornerForm?: DslDocument["cornerForm"];
+  figureKindLabel?: DslDocument["figureKindLabel"];
+  figureInset?: DslDocument["figureInset"];
+  chartBarSize?: DslDocument["chartBarSize"];
+  chartBarShape?: DslDocument["chartBarShape"];
+  chartLineSize?: DslDocument["chartLineSize"];
+  chartPieSize?: DslDocument["chartPieSize"];
+  chartWaffleSize?: DslDocument["chartWaffleSize"];
+  chartSlopeLabelTemplate?: DslDocument["chartSlopeLabelTemplate"];
+  chartSlopeSize?: DslDocument["chartSlopeSize"];
+  chartStackedLayout?: DslDocument["chartStackedLayout"];
+  chartGaugeSize?: DslDocument["chartGaugeSize"];
+  ganttSize?: DslDocument["ganttSize"];
+  quadrantLabelPosition?: DslDocument["quadrantLabelPosition"];
+  quadrantSize?: DslDocument["quadrantSize"];
   /**
    * 図表の箱の上に出す小見出し (optional)。 記法の最上位 `eyebrow:` と同じ (#1247)。
    *
@@ -148,6 +237,12 @@ export interface DragonJson {
    * 同じ区画を 2 通りで呼ぶことになる。
    */
   regions?: JsonRegions;
+  /** 図の凡例の字の大きさ。 */
+  legendFontSize?: number;
+  legendOffset?: DslDocument["legendOffset"];
+  /** 段の箱で、意匠ごとに描く見出しの寸法。 */
+  stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
+  stageLayout?: DslDocument["stageLayout"];
   /** 登場人物 (必須): 文字列 or { name, kind, ... } object */
   actors: (string | JsonActor)[];
   /** flow step 配列 (必須): { from, to, label, ... } */
@@ -260,7 +355,7 @@ export interface DragonJson {
   /** `theme` の別名。 両方書いた時は `theme` を使う。 */
   palette?: string;
   /** 図の下へ置く凡例。 印は記法と同じ英語名または和名で書く。 */
-  legend?: { mark: string; text: string }[];
+  legend?: CdlLegendItem[];
 }
 
 /**
@@ -318,6 +413,18 @@ export interface JsonActor {
    */
   kind?: NodeKind | (string & {});
   subtitle?: string;
+  kindForm?: "icon";
+  icon?: DslActor["icon"];
+  emptyRowsNote?: string;
+  titleAlign?: "center";
+  rowRules?: boolean;
+  rowMarkForm?: "tone";
+  nestIn?: string;
+  figureCard?: DslActor["figureCard"];
+  stationNamePosition?: "bottom";
+  subtitlePlacement?: "right";
+  titleFontSize?: number;
+  markGap?: number;
   eyebrow?: string;
   value?: string;
   /**
@@ -385,6 +492,9 @@ export interface JsonActor {
    * (記法側と同じ扱い)。
    */
   end?: string;
+  startLabel?: string;
+  milestone?: boolean;
+  emphasis?: "primary";
   /** 四象限の座標 `[x, y]`。 */
   at?: [number | string, number | string];
   /** `at` の和名。両方あれば `at` を採る。 */
@@ -397,6 +507,7 @@ export interface JsonActor {
    * ユーザージャーニー (`type: journey`) で、その段階の改善の余地 (#1294)。 記法の `opportunity:` と同じ。
    */
   opportunity?: string;
+  opportunityPosition?: DslActor["opportunityPosition"];
   /**
    * 箱を置く絶対座標と大きさ (#1294)。 記法の `posX:` / `posY:` / `posW:` / `posH:` と同じ。
    *
@@ -425,13 +536,13 @@ export interface JsonActor {
    */
   phase?: boolean;
   /** 行頭の印 (#1466)。 行と対で読む。 語の意味は図の種類が決める */
-  marks?: string[];
+  marks?: Array<string | { mark: string; tone?: "primary" | "muted" }>;
 }
 
 /** 2 軸で仕分ける図の軸の名前 (#1294)。 記法の `axes:` と同じ形 */
 export interface JsonAxes {
-  x?: { left?: string; right?: string };
-  y?: { bottom?: string; top?: string };
+  x?: { left?: string; right?: string; label?: never; direction?: never } | { label: string; direction: true };
+  y?: { bottom?: string; top?: string; label?: never; direction?: never } | { label: string; direction: true };
 }
 
 /** 2 軸で仕分ける図の区画の名前 (#2667)。 記法の `regions:` と同じ形 */
@@ -449,6 +560,8 @@ export interface JsonStep {
   sub?: string;
   /** 矢印がどの辺から出るか (#1385)。 記法の `side:` と同じ */
   side?: "top" | "right" | "bottom" | "left";
+  fromSide?: "top" | "right" | "bottom" | "left";
+  toSide?: "top" | "right" | "bottom" | "left";
   /**
    * 矢印の先の形 (#1462)。 記法の `{ head: triangle }` と同じ。
    *
@@ -492,6 +605,8 @@ export interface JsonStep {
   dashOffsetBind?: string;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  labelCollision?: DslStep["labelCollision"];
+  labelSize?: DslStep["labelSize"];
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
   overlay?: boolean;
   /**
@@ -614,6 +729,58 @@ export const ACCEPTED_KEYS = {
     "見せ方",
     "ticks",
     "目盛り",
+    "ganttToday",
+    "ganttTickLabels",
+    "ganttBarEnd",
+    "ganttBarThickness",
+    "chartSeriesSkipMuted",
+    "chartLineSeries",
+    "chartPieCenterLabel",
+    "chartPieTableColumns",
+    "chartPieRingWidth",
+    "chartSlopePeriods",
+    "chartSlopeEmphasisIds",
+    "chartSlopeUnit",
+    "chartStackedPeriods",
+    "chartStackedRateId",
+    "chartStackedLegendPosition",
+    "chartGaugeValue",
+    "chartWaffleLegendPosition",
+    "funnelForm",
+    "funnelRate",
+    "quadrantPointLabelSide",
+    "treeNodeForm",
+    "treeSize",
+    "treeEdgeTone",
+    "treeEdgeHead",
+    "mindForm",
+    "mindSize",
+    "journeyForm",
+    "journeyLineForm",
+    "journeyLabels",
+    "journeySize",
+    "sequenceActorForm",
+    "sequenceLabelForm",
+    "sequenceReturnHead",
+    "sequenceKindLabels",
+    "figureCard",
+    "figureSize",
+    "terminalDecoration",
+    "cornerForm",
+    "figureKindLabel",
+    "figureInset",
+    "chartBarSize",
+    "chartBarShape",
+    "chartLineSize",
+    "chartPieSize",
+    "chartWaffleSize",
+    "chartSlopeLabelTemplate",
+    "chartSlopeSize",
+    "chartStackedLayout",
+    "chartGaugeSize",
+    "ganttSize",
+    "quadrantLabelPosition",
+    "quadrantSize",
     "eyebrow",
     "axes",
     "regions",
@@ -650,11 +817,27 @@ export const ACCEPTED_KEYS = {
     "theme",
     "palette",
     "legend",
+    "legendFontSize",
+    "legendOffset",
+    "stageHeaders",
+    "stageLayout",
   ],
   actor: [
     "name",
     "kind",
     "subtitle",
+    "kindForm",
+    "icon",
+    "emptyRowsNote",
+    "titleAlign",
+    "rowRules",
+    "rowMarkForm",
+    "nestIn",
+    "figureCard",
+    "stationNamePosition",
+    "subtitlePlacement",
+    "titleFontSize",
+    "markGap",
     "eyebrow",
     "value",
     // 前の時点の値 (#1450)。 内訳の変化を帯で示す図と、値 1 つを大きく示す図が読む
@@ -669,10 +852,14 @@ export const ACCEPTED_KEYS = {
     "color",
     "owner",
     "end",
+    "startLabel",
+    "milestone",
+    "emphasis",
     "at",
     "点の位置",
     "touchpoint",
     "opportunity",
+    "opportunityPosition",
     "posX",
     "posY",
     "posW",
@@ -706,6 +893,8 @@ export const ACCEPTED_KEYS = {
     "sub",
     // 矢印がどの辺から出るか (#1385)
     "side",
+    "fromSide",
+    "toSide",
     // 矢印の先の形 (#1462)
     "head",
     // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
@@ -729,6 +918,8 @@ export const ACCEPTED_KEYS = {
     "dashOffsetBind",
     "labelOffsetX",
     "labelOffsetY",
+    "labelCollision",
+    "labelSize",
     "overlay",
     "pos",
     // 部品の端で繋ぐ要素の id (#1979)
@@ -737,12 +928,12 @@ export const ACCEPTED_KEYS = {
   ],
   // 説明の語は `PHASE_BODY_KEYS` から導く (#2621)。 書き写すと記法の入口とずれる
   phase: ["step", "duration", "focus", ...PHASE_BODY_KEYS, "badge", "tween", "set", "draw", "drawRatio"],
-  viewport: ["width", "height", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
+  viewport: ["width", "height", "contentOffsetX", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
   lane: ["x", "width", "label", "subtitle", "contain", "lifeline", "pos"],
   group: ["label", "lanes"],
   axes: ["x", "y"],
-  axesX: ["left", "right"],
-  axesY: ["bottom", "top"],
+  axesX: ["left", "right", "label", "direction"],
+  axesY: ["bottom", "top", "label", "direction"],
   // 区画を指す語は項目の欄と同じ 4 語 (#2667)
   regions: ["左上", "右上", "左下", "右下"],
   layoutPos: ["x", "y"],
@@ -795,6 +986,12 @@ export type 欄の型 =
   | "描くもの"
   | "意匠"
   | "図の形"
+  | "ガントの帯の終わり"
+  | "ガントの帯の厚み"
+  | "札の角"
+  | "四象限の区画名位置"
+  | "線札の衝突"
+  | "主役"
   | "必須の図種"
   | "object"
   | "並び"
@@ -809,6 +1006,58 @@ export const 欄の型表 = {
     見せ方: "非空の文字列",
     ticks: "文字列の並び",
     目盛り: "文字列の並び",
+    ganttToday: "object",
+    ganttTickLabels: "文字列の並び",
+    ganttBarEnd: "ガントの帯の終わり",
+    ganttBarThickness: "ガントの帯の厚み",
+    chartSeriesSkipMuted: "真偽",
+    chartLineSeries: "並び",
+    chartPieCenterLabel: "文字列",
+    chartPieTableColumns: "文字列",
+    chartPieRingWidth: "文字列",
+    chartSlopePeriods: "文字列の並び",
+    chartSlopeEmphasisIds: "文字列の並び",
+    chartSlopeUnit: "文字列",
+    chartStackedPeriods: "並び",
+    chartStackedRateId: "文字列",
+    chartStackedLegendPosition: "文字列",
+    chartGaugeValue: "object",
+    chartWaffleLegendPosition: "文字列",
+    funnelForm: "文字列",
+    funnelRate: "文字列",
+    quadrantPointLabelSide: "文字列",
+    treeNodeForm: "文字列",
+    treeSize: "object",
+    treeEdgeTone: "文字列",
+    treeEdgeHead: "文字列",
+    mindForm: "文字列",
+    mindSize: "object",
+    journeyForm: "文字列",
+    journeyLineForm: "文字列",
+    journeyLabels: "object",
+    journeySize: "object",
+    sequenceActorForm: "非空の文字列",
+    sequenceLabelForm: "非空の文字列",
+    sequenceReturnHead: "非空の文字列",
+    sequenceKindLabels: "object",
+    figureCard: "object",
+    figureSize: "object",
+    terminalDecoration: "object",
+    cornerForm: "札の角",
+    figureKindLabel: "object",
+    figureInset: "object",
+    chartBarSize: "object",
+    chartBarShape: "非空の文字列",
+    chartLineSize: "object",
+    chartPieSize: "object",
+    chartWaffleSize: "object",
+    chartSlopeLabelTemplate: "object",
+    chartSlopeSize: "object",
+    chartStackedLayout: "object",
+    chartGaugeSize: "object",
+    ganttSize: "object",
+    quadrantLabelPosition: "四象限の区画名位置",
+    quadrantSize: "object",
     eyebrow: "文字列",
     axes: "object",
     regions: "object",
@@ -845,11 +1094,27 @@ export const 欄の型表 = {
     theme: "意匠",
     palette: "意匠",
     legend: "並び",
+    legendFontSize: "数",
+    legendOffset: "object",
+    stageHeaders: "object",
+    stageLayout: "object",
   },
   actor: {
     name: "必須の非空文字列",
     kind: "非空の文字列",
     subtitle: "文字列",
+    kindForm: "非空の文字列",
+    icon: "非空の文字列",
+    emptyRowsNote: "文字列",
+    titleAlign: "非空の文字列",
+    rowRules: "真偽",
+    rowMarkForm: "非空の文字列",
+    nestIn: "非空の文字列",
+    figureCard: "object",
+    stationNamePosition: "非空の文字列",
+    subtitlePlacement: "非空の文字列",
+    titleFontSize: "数",
+    markGap: "数",
     eyebrow: "文字列",
     value: "文字列",
     previous: "文字列",
@@ -863,10 +1128,14 @@ export const 欄の型表 = {
     color: "色か色番号",
     owner: "文字列",
     end: "文字列",
+    startLabel: "文字列",
+    milestone: "真偽",
+    emphasis: "主役",
     at: "並び",
     点の位置: "並び",
     touchpoint: "文字列",
     opportunity: "文字列",
+    opportunityPosition: "文字列",
     posX: "数",
     posY: "数",
     posW: "数",
@@ -887,7 +1156,7 @@ export const 欄の型表 = {
     renderOffsetX: "数か文字列",
     renderOffsetY: "数か文字列",
     // 行頭の印 (#1466)
-    marks: "文字列の並び",
+    marks: "並び",
     // 相対で置く指定 (#2039)。 中身の形は `validateRelativePos` が見る
     posRel: "object",
     // 見本が持つ段を使うか (#2125)
@@ -900,6 +1169,8 @@ export const 欄の型表 = {
     sub: "文字列",
     // 矢印がどの辺から出るか (#1385)
     side: "辺",
+    fromSide: "辺",
+    toSide: "辺",
     head: "端の形",
     // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
     tailHead: "端の形",
@@ -922,6 +1193,8 @@ export const 欄の型表 = {
     dashOffsetBind: "非空の文字列",
     labelOffsetX: "数",
     labelOffsetY: "数",
+    labelCollision: "線札の衝突",
+    labelSize: "object",
     overlay: "真偽",
     pos: "object",
     // 部品の端で繋ぐ要素の id (#1979)。 空の id は要素を指せないので受けない
@@ -944,6 +1217,7 @@ export const 欄の型表 = {
   viewport: {
     width: "数",
     height: "数",
+    contentOffsetX: "数",
     scale: "数",
     laneWidth: "数",
     gap: "数",
@@ -962,8 +1236,8 @@ export const 欄の型表 = {
   },
   group: { label: "文字列", lanes: "文字列の並び" },
   axes: { x: "object", y: "object" },
-  axesX: { left: "文字列", right: "文字列" },
-  axesY: { bottom: "文字列", top: "文字列" },
+  axesX: { left: "文字列", right: "文字列", label: "文字列", direction: "真偽" },
+  axesY: { bottom: "文字列", top: "文字列", label: "文字列", direction: "真偽" },
   regions: { 左上: "文字列", 右上: "文字列", 左下: "文字列", 右下: "文字列" },
   // 位置は書けば x と y の両方が要る。 片方だけでは寄せ幅が決まらない
   layoutPos: { x: "必須の数", y: "必須の数" },
@@ -1036,11 +1310,23 @@ export const 見本にしか効かない欄 = [
  */
 export const 見本に効かない欄 = [
   "tone",
+  "kindForm",
+  "icon",
+  "emptyRowsNote",
+  "titleAlign",
+  "rowRules",
+  "rowMarkForm",
+  "nestIn",
+  "figureCard",
   "at",
   "owner",
   "end",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "touchpoint",
   "opportunity",
+  "opportunityPosition",
   "stage",
   // 箱の中に描く図形 (#1374)。 見本は自分の形を持つため、外から図形を差し替えられない
   "shape",
@@ -1139,6 +1425,36 @@ function 値を検査(
     case "真偽":
       if (v === undefined) return;
       if (typeof v !== "boolean") 型違い("true or false if present");
+      return;
+    case "ガントの帯の終わり":
+      if (v === undefined) return;
+      if (v !== "position") 型違い('"position" if present');
+      return;
+    case "ガントの帯の厚み":
+      if (v === undefined) return;
+      if (v !== "thin") 型違い('"thin" if present');
+      return;
+    case "札の角":
+      if (v === undefined) return;
+      if (!(CORNER_FORM_VALUES as readonly unknown[]).includes(v)) {
+        型違い(`one of: ${CORNER_FORM_VALUES.join(", ")}`);
+      }
+      return;
+    case "四象限の区画名位置":
+      if (v === undefined) return;
+      if (!(QUADRANT_LABEL_POSITION_VALUES as readonly unknown[]).includes(v)) {
+        型違い(`one of: ${QUADRANT_LABEL_POSITION_VALUES.join(", ")}`);
+      }
+      return;
+    case "線札の衝突":
+      if (v === undefined) return;
+      if (!(LABEL_COLLISION_VALUES as readonly unknown[]).includes(v)) {
+        型違い(`one of: ${LABEL_COLLISION_VALUES.join(", ")}`);
+      }
+      return;
+    case "主役":
+      if (v === undefined) return;
+      if (v !== "primary") 型違い('"primary" if present');
       return;
     case "色":
       if (v === undefined) return;
@@ -1653,7 +1969,8 @@ function validateBands(v: unknown, errors: JsonDslError[]): void {
   });
 }
 
-const LEGEND_KEYS = ["mark", "text"] as const;
+const LEGEND_KEYS = ["mark", "text", "tone", "lineStyle", "align", "lead"] as const;
+const LEGEND_LINE_MARKS = ["line-triangle-hollow", "line-diamond-hollow", "line-diamond-solid"] as const;
 
 /** JSON の凡例を、外側の並びから各項目の必須値まで検査する。 */
 function validateLegend(v: unknown, errors: JsonDslError[]): void {
@@ -1677,13 +1994,74 @@ function validateLegend(v: unknown, errors: JsonDslError[]): void {
         hint: `使える項目 = ${LEGEND_KEYS.join(", ")}`,
       });
     }
-    if (typeof o.mark !== "string" || resolveLegendMark(o.mark) === null) {
+    const mark = typeof o.mark === "string" ? resolveLegendMark(o.mark) : undefined;
+    if (o.mark !== undefined && (typeof o.mark !== "string" || mark === null)) {
       errors.push({ path: `${path}.mark`, message: "legend mark is not recognized" });
     }
     if (typeof o.text !== "string" || o.text.trim().length === 0) {
       errors.push({ path: `${path}.text`, message: "legend text must be a non-empty string" });
     }
+    if (o.mark === undefined) {
+      if (o.tone !== undefined || o.lineStyle !== undefined) errors.push({ path, message: "legend note cannot have tone or lineStyle" });
+      if (o.align !== undefined && !(LEGEND_NOTE_ALIGN_VALUES as readonly unknown[]).includes(o.align)) errors.push({ path: `${path}.align`, message: `align must be ${LEGEND_NOTE_ALIGN_VALUES.join(" or ")}` });
+      if (o.lead !== undefined && typeof o.lead !== "string") errors.push({ path: `${path}.lead`, message: "lead must be a string" });
+    } else {
+      if (o.align !== undefined || o.lead !== undefined) errors.push({ path, message: "marked legend item cannot have align or lead" });
+      if (o.tone !== undefined && (typeof o.tone !== "string" || resolveTone(o.tone) === undefined)) errors.push({ path: `${path}.tone`, message: "tone is not recognized" });
+      if (o.lineStyle !== undefined) {
+        if (!(LEGEND_LINE_STYLE_VALUES as readonly unknown[]).includes(o.lineStyle)) errors.push({ path: `${path}.lineStyle`, message: `lineStyle must be ${LEGEND_LINE_STYLE_VALUES.join(" or ")}` });
+        if (mark === undefined || mark === null || !(LEGEND_LINE_MARKS as readonly string[]).includes(mark)) errors.push({ path: `${path}.lineStyle`, message: "lineStyle requires a line-end legend mark" });
+      }
+    }
   });
+}
+
+const STAGE_HEADER_KEYS = ["leftPad", "topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+const REQUIRED_STAGE_HEADER_KEYS = ["topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+
+/** JSON の段の見出し寸法を、意匠名・閉じた欄・必須の正数まで検査する。 */
+function validateStageHeaders(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({ path: "$.stageHeaders", message: "stageHeaders must be an object" });
+    return;
+  }
+  for (const [theme, header] of Object.entries(v as Record<string, unknown>)) {
+    const path = `$.stageHeaders.${theme}`;
+    if (!(THEMES as readonly string[]).includes(theme)) {
+      errors.push({ path, message: `unknown theme "${theme}"`, hint: `使える意匠 = ${THEMES.join(", ")}` });
+      continue;
+    }
+    if (!header || typeof header !== "object" || Array.isArray(header)) {
+      errors.push({ path, message: "stage header must be an object" });
+      continue;
+    }
+    const o = header as Record<string, unknown>;
+    for (const key of Object.keys(o)) {
+      if ((STAGE_HEADER_KEYS as readonly string[]).includes(key)) continue;
+      errors.push({
+        path: `${path}.${key}`,
+        message: `unknown key "${key}"`,
+        hint: `使える項目 = ${STAGE_HEADER_KEYS.join(", ")}`,
+      });
+    }
+    for (const key of REQUIRED_STAGE_HEADER_KEYS) {
+      if (o[key] === undefined) {
+        errors.push({ path: `${path}.${key}`, message: `${key} is required` });
+      }
+    }
+    for (const key of STAGE_HEADER_KEYS) {
+      const value = o[key];
+      if (value === undefined) continue;
+      const zeroAllowed = key === "leftPad" || key === "topPad" || key === "gap" || key === "bottomPad";
+      if (typeof value !== "number" || !Number.isFinite(value) || (zeroAllowed ? value < 0 : value <= 0)) {
+        errors.push({
+          path: `${path}.${key}`,
+          message: `${key} must be ${zeroAllowed ? "a non-negative" : "a positive"} number`,
+        });
+      }
+    }
+  }
 }
 
 /**
@@ -2186,6 +2564,371 @@ function validateAxes(v: unknown, errors: JsonDslError[]): void {
     const o = 一方 as Record<string, unknown>;
     checkUnknownKeys(o, 層の名[名], `$.axes.${名}`, errors);
     表で検査(o, 層の名[名], `$.axes.${名}`, `axes.${名}`, errors);
+    if (o.direction === true) {
+      if (typeof o.label !== "string") {
+        errors.push({ path: `$.axes.${名}.label`, message: `axes.${名}.label must be a string for a directional axis` });
+      }
+    } else if (o.label !== undefined || o.direction !== undefined) {
+      errors.push({ path: `$.axes.${名}.direction`, message: `axes.${名}.direction must be true when label is used` });
+    }
+  }
+}
+
+/** #2854 で足した図表の複合欄と閉じた語を検査する。 */
+function validateChartPresentationFields(j: Record<string, unknown>, errors: JsonDslError[]): void {
+  const enumField = (name: string, allowed: readonly string[]): void => {
+    const value = j[name];
+    if (value === undefined || typeof value !== "string") return;
+    if (!allowed.includes(value)) {
+      errors.push({ path: `$.${name}`, message: `${name} must be one of: ${allowed.join(", ")}` });
+    }
+  };
+  enumField("chartPieTableColumns", CHART_PIE_TABLE_COLUMN_VALUES);
+  enumField("chartPieRingWidth", CHART_PIE_RING_WIDTH_VALUES);
+  enumField("chartStackedLegendPosition", CHART_STACKED_LEGEND_POSITION_VALUES);
+  enumField("chartWaffleLegendPosition", CHART_WAFFLE_LEGEND_POSITION_VALUES);
+  enumField("funnelForm", FUNNEL_FORM_VALUES);
+  enumField("funnelRate", FUNNEL_RATE_VALUES);
+  enumField("quadrantPointLabelSide", QUADRANT_POINT_LABEL_SIDE_VALUES);
+  enumField("treeNodeForm", TREE_NODE_FORM_VALUES);
+  enumField("treeEdgeTone", TREE_EDGE_TONE_VALUES);
+  enumField("treeEdgeHead", TREE_EDGE_HEAD_VALUES);
+  enumField("mindForm", MIND_FORM_VALUES);
+  enumField("journeyForm", JOURNEY_FORM_VALUES);
+  enumField("journeyLineForm", JOURNEY_LINE_FORM_VALUES);
+  enumField("sequenceActorForm", SEQUENCE_ACTOR_FORM_VALUES);
+  enumField("sequenceLabelForm", SEQUENCE_LABEL_FORM_VALUES);
+  enumField("sequenceReturnHead", SEQUENCE_RETURN_HEAD_VALUES);
+  enumField("cornerForm", CORNER_FORM_VALUES);
+  enumField("chartBarShape", CHART_BAR_SHAPE_VALUES);
+  enumField("quadrantLabelPosition", QUADRANT_LABEL_POSITION_VALUES);
+
+  const closedObject = (
+    name: "journeyLabels" | "figureCard" | "figureSize" | "treeSize" | "mindSize" |
+      "terminalDecoration" | "figureKindLabel" | "figureInset" | "journeySize" | "chartBarSize" |
+      "chartLineSize" | "chartPieSize" | "chartWaffleSize" | "chartSlopeLabelTemplate" | "chartSlopeSize" |
+      "chartStackedLayout" | "chartGaugeSize" | "ganttSize" | "quadrantSize" | "legendOffset" | "stageLayout",
+    keys: readonly string[],
+  ): Record<string, unknown> | undefined => {
+    const value = j[name];
+    if (value === undefined) return undefined;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      errors.push({ path: `$.${name}`, message: `${name} must be an object` });
+      return undefined;
+    }
+    const object = value as Record<string, unknown>;
+    for (const key of Object.keys(object)) {
+      if (!keys.includes(key)) errors.push({ path: `$.${name}.${key}`, message: `unknown key "${key}"` });
+    }
+    return object;
+  };
+  const labels = closedObject("journeyLabels", JOURNEY_LABEL_KEYS);
+  if (labels !== undefined) {
+    for (const key of JOURNEY_LABEL_KEYS) {
+      if (typeof labels[key] !== "string" || labels[key].trim() === "") {
+        errors.push({ path: `$.journeyLabels.${key}`, message: `${key} must be a non-empty string` });
+      }
+    }
+  }
+  if (j.sequenceKindLabels !== undefined) {
+    if (!j.sequenceKindLabels || typeof j.sequenceKindLabels !== "object" || Array.isArray(j.sequenceKindLabels)) {
+      errors.push({ path: "$.sequenceKindLabels", message: "sequenceKindLabels must be an object" });
+    } else {
+      const labels = j.sequenceKindLabels as Record<string, unknown>;
+      for (const [key, value] of Object.entries(labels)) {
+        if (!(SEQUENCE_KIND_LABEL_KEYS as readonly string[]).includes(key)) errors.push({ path: `$.sequenceKindLabels.${key}`, message: `unknown key "${key}"` });
+        else if (typeof value !== "string") errors.push({ path: `$.sequenceKindLabels.${key}`, message: `${key} must be a string` });
+      }
+    }
+  }
+  const card = closedObject("figureCard", ["label", "note"]);
+  if (card !== undefined) {
+    if (typeof card.label !== "string" || card.label.trim() === "")
+      errors.push({ path: "$.figureCard.label", message: "label must be a non-empty string" });
+    if (card.note !== undefined && typeof card.note !== "string")
+      errors.push({ path: "$.figureCard.note", message: "note must be a string" });
+  }
+  const size = closedObject("figureSize", ["width", "height"]);
+  if (size !== undefined) {
+    for (const key of ["width", "height"] as const) {
+      if (typeof size[key] !== "number" || !Number.isFinite(size[key]) || size[key] <= 0)
+        errors.push({ path: `$.figureSize.${key}`, message: `${key} must be a positive finite number` });
+    }
+  }
+  const positiveNumber = (value: unknown, path: string): boolean => {
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) return true;
+    errors.push({ path, message: "must be a positive finite number" });
+    return false;
+  };
+  const nonNegativeNumber = (value: unknown, path: string): boolean => {
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0) return true;
+    errors.push({ path, message: "must be a non-negative finite number" });
+    return false;
+  };
+  const treeSize = closedObject("treeSize", [
+    "nodeWidths",
+    "nodeHeight",
+    "titleFontSize",
+    "subtitleFontSize",
+    "siblingGap",
+    "levelGap",
+  ]);
+  if (treeSize !== undefined) {
+    if (treeSize.nodeWidths !== undefined) {
+      if (!Array.isArray(treeSize.nodeWidths) || treeSize.nodeWidths.length === 0) {
+        errors.push({ path: "$.treeSize.nodeWidths", message: "must be a non-empty array" });
+      } else {
+        treeSize.nodeWidths.forEach((value, index) => {
+          positiveNumber(value, `$.treeSize.nodeWidths[${index}]`);
+        });
+      }
+    }
+    for (const key of ["nodeHeight", "titleFontSize", "subtitleFontSize"] as const) {
+      if (treeSize[key] !== undefined) positiveNumber(treeSize[key], `$.treeSize.${key}`);
+    }
+    for (const key of ["siblingGap", "levelGap"] as const) {
+      if (treeSize[key] !== undefined) nonNegativeNumber(treeSize[key], `$.treeSize.${key}`);
+    }
+  }
+  const mindSize = closedObject("mindSize", [
+    "root",
+    "branch",
+    "leaf",
+    "rootBranchGap",
+    "branchLeafGap",
+    "branchRowGap",
+    "branchRowOffset",
+    "leafRowGap",
+    "leafRowOffset",
+  ]);
+  if (mindSize !== undefined) {
+    const nestedSize = (
+      key: "root" | "branch" | "leaf",
+      allowed: readonly string[],
+    ): Record<string, unknown> | undefined => {
+      const value = mindSize[key];
+      if (value === undefined) return undefined;
+      const path = `$.mindSize.${key}`;
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        errors.push({ path, message: `${key} must be an object` });
+        return undefined;
+      }
+      const object = value as Record<string, unknown>;
+      for (const nestedKey of Object.keys(object)) {
+        if (!allowed.includes(nestedKey))
+          errors.push({ path: `${path}.${nestedKey}`, message: `unknown key "${nestedKey}"` });
+      }
+      return object;
+    };
+    for (const [key, allowed] of [
+      ["root", ["width", "height", "fontSize"]],
+      ["branch", ["width", "height", "fontSize"]],
+      ["leaf", ["fontSize"]],
+    ] as const) {
+      const nested = nestedSize(key, allowed);
+      if (nested === undefined) continue;
+      for (const nestedKey of allowed) {
+        if (nested[nestedKey] !== undefined)
+          positiveNumber(nested[nestedKey], `$.mindSize.${key}.${nestedKey}`);
+      }
+    }
+    for (const key of ["rootBranchGap", "branchLeafGap", "branchRowGap", "leafRowGap"] as const) {
+      if (mindSize[key] !== undefined) nonNegativeNumber(mindSize[key], `$.mindSize.${key}`);
+    }
+    for (const key of ["branchRowOffset", "leafRowOffset"] as const) {
+      const value = mindSize[key];
+      if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) {
+        errors.push({ path: `$.mindSize.${key}`, message: "must be a finite number" });
+      }
+    }
+  }
+
+  const specs = {
+    terminalDecoration: ["windowControls", "cursor", "rowOrdinal"],
+    figureKindLabel: ["text", "x", "y", "fontSize", "fontWeight", "letterSpacing"],
+    figureInset: ["top", "right", "bottom", "left", "radius", "holdsContent"],
+    journeySize: ["plotPadding", "pointPadding"],
+    chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "plotPadding", "barWidth", "cornerRadius"],
+    chartLineSize: ["valueLabelOffset", "tickFontSize", "periodFontSize", "pointRadius", "plotPadding", "tickGap", "pointPadding", "periodY"],
+    chartPieSize: ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "tableRowGap", "tablePaddingInline", "outerRadius", "centerX"],
+    chartWaffleSize: ["gridLeft", "cellPitch"],
+    chartSlopeLabelTemplate: ["left", "right"],
+    chartSlopeSize: ["pointRadius", "periodFontSize", "labelFontSize", "leftAxisX", "axisGap", "labelAxisGap", "plotPadding", "pointPadding"],
+    chartStackedLayout: ["legendColumns", "legendColumnGap", "segmentGap", "barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize", "legendOffsetY"],
+    chartGaugeSize: ["arcThickness", "outerRadius", "plotTop", "valueFontSize"],
+    ganttSize: ["taskLabelFontSize", "taskLabelAlign", "taskLabelX", "tickFontSize", "tickCount", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth", "taskColumnWidth", "timelinePaddingRight"],
+    quadrantSize: ["plotOffset", "plotSize", "pointRadius", "pointFontSize", "pointLabelGap", "quadrantFontSize", "axisFontSize"],
+    legendOffset: ["x", "y"],
+    stageLayout: ["columnWidths", "columnGap", "backDetourTopGap", "backDetourSideGap"],
+  } as const;
+  const objects = Object.fromEntries(Object.entries(specs).map(([name, keys]) => [name, closedObject(name as keyof typeof specs, keys)])) as Record<keyof typeof specs, Record<string, unknown> | undefined>;
+  const positiveKeys: Partial<Record<keyof typeof specs, readonly string[]>> = {
+    figureKindLabel: ["fontSize", "fontWeight"],
+    chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "barWidth"],
+    chartLineSize: ["tickFontSize", "periodFontSize", "pointRadius"],
+    chartPieSize: ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "outerRadius"],
+    chartWaffleSize: ["cellPitch"],
+    chartSlopeSize: ["pointRadius", "periodFontSize", "labelFontSize", "axisGap"],
+    chartStackedLayout: ["barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize"],
+    chartGaugeSize: ["arcThickness", "outerRadius", "valueFontSize"],
+    ganttSize: ["taskLabelFontSize", "tickFontSize", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth"],
+    quadrantSize: ["plotSize", "pointRadius", "pointFontSize", "quadrantFontSize", "axisFontSize"],
+  };
+  const nonNegativeKeys: Partial<Record<keyof typeof specs, readonly string[]>> = {
+    figureKindLabel: ["letterSpacing"], figureInset: ["top", "right", "bottom", "left", "radius"],
+    chartBarSize: ["cornerRadius"], chartLineSize: ["tickGap", "periodY"], chartPieSize: ["tableRowGap", "tablePaddingInline", "centerX"], chartWaffleSize: ["gridLeft"], chartSlopeSize: ["leftAxisX", "labelAxisGap"],
+    chartStackedLayout: ["legendColumnGap", "segmentGap"], chartGaugeSize: ["plotTop"],
+    ganttSize: ["taskLabelX", "taskColumnWidth", "timelinePaddingRight"], quadrantSize: ["pointLabelGap"],
+    stageLayout: ["columnGap", "backDetourTopGap", "backDetourSideGap"],
+  };
+  for (const [name, object] of Object.entries(objects) as [keyof typeof specs, Record<string, unknown> | undefined][]) {
+    if (object === undefined) continue;
+    for (const key of positiveKeys[name] ?? []) if (object[key] !== undefined) positiveNumber(object[key], `$.${name}.${key}`);
+    for (const key of nonNegativeKeys[name] ?? []) if (object[key] !== undefined) nonNegativeNumber(object[key], `$.${name}.${key}`);
+  }
+  const finite = (value: unknown, path: string): void => { if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) errors.push({ path, message: "must be a finite number" }); };
+  if (objects.terminalDecoration) for (const key of specs.terminalDecoration) if (objects.terminalDecoration[key] !== undefined && typeof objects.terminalDecoration[key] !== "boolean") errors.push({ path: `$.terminalDecoration.${key}`, message: "must be boolean" });
+  if (objects.figureInset?.holdsContent !== undefined && typeof objects.figureInset.holdsContent !== "boolean") errors.push({ path: "$.figureInset.holdsContent", message: "must be boolean" });
+  if (objects.figureKindLabel) {
+    if (typeof objects.figureKindLabel.text !== "string" || objects.figureKindLabel.text.trim() === "") errors.push({ path: "$.figureKindLabel.text", message: "must be a non-empty string" });
+    finite(objects.figureKindLabel.x, "$.figureKindLabel.x"); finite(objects.figureKindLabel.y, "$.figureKindLabel.y");
+  }
+  if (objects.chartSlopeLabelTemplate) for (const key of specs.chartSlopeLabelTemplate) if (objects.chartSlopeLabelTemplate[key] !== undefined && typeof objects.chartSlopeLabelTemplate[key] !== "string") errors.push({ path: `$.chartSlopeLabelTemplate.${key}`, message: "must be a string" });
+  if (objects.chartStackedLayout) finite(objects.chartStackedLayout.legendOffsetY, "$.chartStackedLayout.legendOffsetY");
+  if (objects.legendOffset) {
+    finite(objects.legendOffset.x, "$.legendOffset.x");
+    finite(objects.legendOffset.y, "$.legendOffset.y");
+  }
+  const nestedNumberObject = (parent: keyof typeof specs, key: string, keys: readonly string[], positive: boolean): void => {
+    const value = objects[parent]?.[key]; if (value === undefined) return;
+    if (!value || typeof value !== "object" || Array.isArray(value)) { errors.push({ path: `$.${parent}.${key}`, message: "must be an object" }); return; }
+    const object = value as Record<string, unknown>;
+    for (const child of Object.keys(object)) if (!keys.includes(child)) errors.push({ path: `$.${parent}.${key}.${child}`, message: `unknown key "${child}"` });
+    for (const child of keys) if (object[child] !== undefined) (positive ? positiveNumber : nonNegativeNumber)(object[child], `$.${parent}.${key}.${child}`);
+  };
+  nestedNumberObject("chartBarSize", "plotPadding", ["top", "right", "bottom", "left"], false);
+  nestedNumberObject("chartLineSize", "valueLabelOffset", ["above", "below"], false);
+  nestedNumberObject("chartLineSize", "plotPadding", ["top", "right", "bottom", "left"], false);
+  nestedNumberObject("chartLineSize", "pointPadding", ["left", "right"], false);
+  nestedNumberObject("chartSlopeSize", "plotPadding", ["top", "bottom"], false);
+  nestedNumberObject("chartSlopeSize", "pointPadding", ["top", "bottom"], false);
+  nestedNumberObject("journeySize", "plotPadding", ["left", "right"], false);
+  nestedNumberObject("journeySize", "pointPadding", ["left", "right"], false);
+  nestedNumberObject("quadrantSize", "plotOffset", ["x", "y"], false);
+  const columnWidths = objects.stageLayout?.columnWidths;
+  if (columnWidths !== undefined) {
+    if (!columnWidths || typeof columnWidths !== "object" || Array.isArray(columnWidths)) errors.push({ path: "$.stageLayout.columnWidths", message: "must be an object" });
+    else for (const [key, value] of Object.entries(columnWidths)) nonNegativeNumber(value, `$.stageLayout.columnWidths.${key}`);
+  }
+  const stackedColumns = objects.chartStackedLayout?.legendColumns;
+  if (stackedColumns !== undefined && (!Number.isInteger(stackedColumns) || typeof stackedColumns !== "number" || stackedColumns <= 0)) errors.push({ path: "$.chartStackedLayout.legendColumns", message: "must be a positive integer" });
+  if (
+    objects.ganttSize?.taskLabelAlign !== undefined &&
+    !(GANTT_TASK_LABEL_ALIGN_VALUES as readonly unknown[]).includes(objects.ganttSize.taskLabelAlign)
+  ) errors.push({ path: "$.ganttSize.taskLabelAlign", message: "must be start or end" });
+  const tickCount = objects.ganttSize?.tickCount;
+  if (tickCount !== undefined && (!Number.isInteger(tickCount) || typeof tickCount !== "number" || tickCount < 2)) errors.push({ path: "$.ganttSize.tickCount", message: "must be an integer greater than or equal to 2" });
+
+  if (Array.isArray(j.chartSlopePeriods) &&
+      (j.chartSlopePeriods.length !== 2 || j.chartSlopePeriods.some((v) => typeof v !== "string" || v.trim() === ""))) {
+    errors.push({ path: "$.chartSlopePeriods", message: "chartSlopePeriods must contain exactly two non-empty strings" });
+  }
+  if (Array.isArray(j.chartSlopeEmphasisIds) && j.chartSlopeEmphasisIds.length === 0) {
+    errors.push({ path: "$.chartSlopeEmphasisIds", message: "chartSlopeEmphasisIds must contain at least one id" });
+  }
+
+  const boundNumber = (value: unknown): boolean =>
+    (typeof value === "number" && Number.isFinite(value)) ||
+    (typeof value === "string" && value.trim() !== "");
+  if (j.chartLineSeries !== undefined && !Array.isArray(j.chartLineSeries)) {
+    errors.push({ path: "$.chartLineSeries", message: "chartLineSeries must be an array" });
+  } else if (Array.isArray(j.chartLineSeries)) {
+    if (j.chartLineSeries.length === 0) {
+      errors.push({ path: "$.chartLineSeries", message: "chartLineSeries must contain at least one series" });
+    }
+    j.chartLineSeries.forEach((series, i) => {
+      const path = `$.chartLineSeries[${i}]`;
+      if (!series || typeof series !== "object" || Array.isArray(series)) {
+        errors.push({ path, message: "chartLineSeries item must be an object" });
+        return;
+      }
+      const value = series as Record<string, unknown>;
+      for (const key of Object.keys(value)) {
+        if (!["label", "points", "tone", "dash", "marker", "valueIndexes"].includes(key))
+          errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+      }
+      if (value.label !== undefined && typeof value.label !== "string")
+        errors.push({ path: `${path}.label`, message: "label must be a string" });
+      if (value.tone !== undefined && (typeof value.tone !== "string" || resolveTone(value.tone) === undefined))
+        errors.push({ path: `${path}.tone`, message: "tone must be a known tone" });
+      if (
+        value.dash !== undefined &&
+        (typeof value.dash !== "string" ||
+          !(CHART_LINE_DASH_VALUES as readonly string[]).includes(value.dash))
+      )
+        errors.push({ path: `${path}.dash`, message: "dash must be solid or dotted" });
+      if (
+        value.marker !== undefined &&
+        (typeof value.marker !== "string" ||
+          !(CHART_LINE_MARKER_VALUES as readonly string[]).includes(value.marker))
+      )
+        errors.push({ path: `${path}.marker`, message: "marker must be dot, hollow, or none" });
+      if (value.valueIndexes !== undefined &&
+          (!Array.isArray(value.valueIndexes) || value.valueIndexes.some((v) => typeof v !== "number" || !Number.isInteger(v) || v < 0)))
+        errors.push({ path: `${path}.valueIndexes`, message: "valueIndexes must contain non-negative integers" });
+      if (!Array.isArray(value.points) || value.points.length === 0) {
+        errors.push({ path: `${path}.points`, message: "points must be a non-empty array" });
+      } else value.points.forEach((point, p) => {
+        const pointPath = `${path}.points[${p}]`;
+        if (!point || typeof point !== "object" || Array.isArray(point)) {
+          errors.push({ path: pointPath, message: "point must be an object" });
+          return;
+        }
+        const item = point as Record<string, unknown>;
+        for (const key of Object.keys(item)) if (key !== "label" && key !== "value")
+          errors.push({ path: `${pointPath}.${key}`, message: `unknown key "${key}"` });
+        if (typeof item.label !== "string") errors.push({ path: `${pointPath}.label`, message: "label must be a string" });
+        if (!boundNumber(item.value)) errors.push({ path: `${pointPath}.value`, message: "value must be a finite number or non-empty string" });
+      });
+    });
+  }
+
+  if (j.chartStackedPeriods !== undefined && !Array.isArray(j.chartStackedPeriods)) {
+    errors.push({ path: "$.chartStackedPeriods", message: "chartStackedPeriods must be an array" });
+  } else if (Array.isArray(j.chartStackedPeriods)) {
+    if (j.chartStackedPeriods.length === 0)
+      errors.push({ path: "$.chartStackedPeriods", message: "chartStackedPeriods must contain at least one period" });
+    j.chartStackedPeriods.forEach((period, i) => {
+      const path = `$.chartStackedPeriods[${i}]`;
+      if (!period || typeof period !== "object" || Array.isArray(period)) {
+        errors.push({ path, message: "chartStackedPeriods item must be an object" });
+        return;
+      }
+      const value = period as Record<string, unknown>;
+      for (const key of Object.keys(value)) if (key !== "label" && key !== "values")
+        errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+      if (typeof value.label !== "string") errors.push({ path: `${path}.label`, message: "label must be a string" });
+      if (!Array.isArray(value.values) || value.values.some((entry) => !boundNumber(entry)))
+        errors.push({ path: `${path}.values`, message: "values must be an array of finite numbers or non-empty strings" });
+    });
+  }
+
+  if (
+    j.chartGaugeValue !== undefined &&
+    (!j.chartGaugeValue || typeof j.chartGaugeValue !== "object" || Array.isArray(j.chartGaugeValue))
+  ) {
+    errors.push({ path: "$.chartGaugeValue", message: "chartGaugeValue must be an object" });
+  } else if (j.chartGaugeValue && typeof j.chartGaugeValue === "object") {
+    const value = j.chartGaugeValue as Record<string, unknown>;
+    for (const key of Object.keys(value)) if (!["max", "current", "target", "previous", "previousLabel"].includes(key))
+      errors.push({ path: `$.chartGaugeValue.${key}`, message: `unknown key "${key}"` });
+    const finite = (entry: unknown): boolean => typeof entry === "number" && Number.isFinite(entry);
+    if (!finite(value.max) || Number(value.max) <= 0) errors.push({ path: "$.chartGaugeValue.max", message: "max must be a positive finite number" });
+    if (!boundNumber(value.current)) errors.push({ path: "$.chartGaugeValue.current", message: "current must be a finite number or non-empty string" });
+    for (const key of ["target", "previous"] as const) if (value[key] !== undefined && !boundNumber(value[key]))
+      errors.push({ path: `$.chartGaugeValue.${key}`, message: `${key} must be a finite number or non-empty string` });
+    if (value.previousLabel !== undefined && typeof value.previousLabel !== "string")
+      errors.push({ path: "$.chartGaugeValue.previousLabel", message: "previousLabel must be a string" });
   }
 }
 
@@ -2489,6 +3232,7 @@ function validateJson(
   validateReadouts(j.readouts, errors);
   validateBands(j.bands, errors);
   validateLegend(j.legend, errors);
+  validateStageHeaders(j.stageHeaders, errors);
   // 読む人が動かすつまみの中身も、記法と同じ表で見る (#1389)
   validateInputs(j.inputs, errors);
   // 式は描画側の parser に通す (#1391)
@@ -2506,6 +3250,23 @@ function validateJson(
       errors.push({ path: `$.${欄}`, message: `${欄} must contain at least one label` });
     }
   }
+  if (j.ganttToday !== undefined) {
+    const today = j.ganttToday;
+    if (!today || typeof today !== "object" || Array.isArray(today)) {
+      errors.push({ path: "$.ganttToday", message: "ganttToday must be an object" });
+    } else {
+      const value = today as Record<string, unknown>;
+      for (const key of Object.keys(value)) {
+        if (key !== "index" && key !== "label") errors.push({ path: `$.ganttToday.${key}`, message: `unknown key "${key}"` });
+      }
+      if (typeof value.index !== "number" || !Number.isFinite(value.index)) {
+        errors.push({ path: "$.ganttToday.index", message: "ganttToday.index must be a finite number" });
+      }
+      if (typeof value.label !== "string") {
+        errors.push({ path: "$.ganttToday.label", message: "ganttToday.label must be a string" });
+      }
+    }
+  }
 
   if (!Array.isArray(j.actors) || j.actors.length === 0) {
     errors.push({ path: "$.actors", message: "actors must be a non-empty array" });
@@ -2521,6 +3282,50 @@ function validateJson(
       // 値そのものの型は表が見る (#1304)。 `kind` は見本 (parts) の名前も受けるため
       // 非空の文字列までしか縛らない (CAR-1657 の unified syntax)
       表で検査(ao, "actor", `$.actors[${i}]`, "actor", errors);
+      const actorEnum = (key: string, allowed: readonly string[]): void => {
+        const value = ao[key];
+        if (value === undefined || typeof value !== "string") return;
+        if (!allowed.includes(value)) errors.push({ path: `$.actors[${i}].${key}`, message: `${key} must be one of: ${allowed.join(", ")}` });
+      };
+      actorEnum("kindForm", KIND_FORM_VALUES);
+      actorEnum("icon", CDL_ICON_VALUES);
+      actorEnum("titleAlign", TITLE_ALIGN_VALUES);
+      actorEnum("rowMarkForm", ROW_MARK_FORM_VALUES);
+      if (ao.figureCard !== undefined) {
+        const path = `$.actors[${i}].figureCard`;
+        if (!ao.figureCard || typeof ao.figureCard !== "object" || Array.isArray(ao.figureCard)) errors.push({ path, message: "figureCard must be an object" });
+        else {
+          const card = ao.figureCard as Record<string, unknown>;
+          for (const key of Object.keys(card)) if (key !== "label" && key !== "note") errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+          if (typeof card.label !== "string" || card.label.trim() === "") errors.push({ path: `${path}.label`, message: "label must be a non-empty string" });
+          if (card.note !== undefined && typeof card.note !== "string") errors.push({ path: `${path}.note`, message: "note must be a string" });
+        }
+      }
+      if (ao.marks !== undefined && !Array.isArray(ao.marks)) {
+        errors.push({ path: `$.actors[${i}].marks`, message: "marks must be an array" });
+      } else if (Array.isArray(ao.marks)) {
+        ao.marks.forEach((mark, markIndex) => {
+          if (typeof mark === "string") return;
+          const path = `$.actors[${i}].marks[${markIndex}]`;
+          if (!mark || typeof mark !== "object" || Array.isArray(mark)) {
+            errors.push({ path, message: "mark must be a string or object" });
+            return;
+          }
+          const entry = mark as Record<string, unknown>;
+          for (const key of Object.keys(entry)) if (key !== "mark" && key !== "tone") errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+          if (typeof entry.mark !== "string") errors.push({ path: `${path}.mark`, message: "mark must be a string" });
+          if (entry.tone !== undefined && !(ROW_MARK_TONE_VALUES as readonly unknown[]).includes(entry.tone)) errors.push({ path: `${path}.tone`, message: `tone must be one of: ${ROW_MARK_TONE_VALUES.join(", ")}` });
+        });
+      }
+      if (
+        typeof ao.opportunityPosition === "string" &&
+        !(JOURNEY_OPPORTUNITY_POSITION_VALUES as readonly string[]).includes(ao.opportunityPosition)
+      ) {
+        errors.push({
+          path: `$.actors[${i}].opportunityPosition`,
+          message: `opportunityPosition must be one of: ${JOURNEY_OPPORTUNITY_POSITION_VALUES.join(", ")}`,
+        });
+      }
       for (const 欄 of ["at", "点の位置"] as const) {
         if (ao[欄] === undefined) continue;
         const at = ao[欄];
@@ -2608,6 +3413,19 @@ function validateJson(
       checkUnknownKeys(so, "step", `$.flow[${i}]`, errors);
       // 値そのものの型は表が見る (#1304)。 色と線種は engine の一覧と突き合わせる
       表で検査(so, "step", `$.flow[${i}]`, "step", errors);
+      if (so.labelCollision !== undefined && !(LABEL_COLLISION_VALUES as readonly unknown[]).includes(so.labelCollision)) {
+        errors.push({ path: `$.flow[${i}].labelCollision`, message: `labelCollision must be one of: ${LABEL_COLLISION_VALUES.join(", ")}` });
+      }
+      if (
+        so.labelSize !== undefined &&
+        (!so.labelSize || typeof so.labelSize !== "object" || Array.isArray(so.labelSize))
+      ) {
+        errors.push({ path: `$.flow[${i}].labelSize`, message: "labelSize must be an object" });
+      } else if (so.labelSize !== undefined) {
+        const size = so.labelSize as Record<string, unknown>;
+        for (const key of Object.keys(size)) if (!["width", "height", "fontSize"].includes(key)) errors.push({ path: `$.flow[${i}].labelSize.${key}`, message: `unknown key "${key}"` });
+        for (const key of ["width", "height", "fontSize"]) if (size[key] !== undefined && (typeof size[key] !== "number" || !Number.isFinite(size[key]) || size[key] <= 0)) errors.push({ path: `$.flow[${i}].labelSize.${key}`, message: "must be a positive finite number" });
+      }
       // CAR-1693 Phase 1: step DSL 表面 pos の validation
       validateLayoutPos(so.pos, `$.flow[${i}].pos`, errors);
     });
@@ -2644,6 +3462,7 @@ function validateJson(
   }
   validateStates(j.states, errors);
   validateValues(j.values, errors);
+  validateChartPresentationFields(j, errors);
   validateAxes(j.axes, errors);
   validateRegions(j.regions, errors);
   if (errors.length > 0) return { ok: false, errors };
@@ -2875,12 +3694,28 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       // 「書かなかった」 と同じ扱いにする (#1058)
       kindWritten: a.kind !== undefined && !isPart,
       subtitle: a.subtitle,
+      kindForm: isPart ? undefined : a.kindForm,
+      icon: isPart ? undefined : a.icon,
+      emptyRowsNote: isPart ? undefined : a.emptyRowsNote,
+      titleAlign: isPart ? undefined : a.titleAlign,
+      rowRules: isPart ? undefined : a.rowRules,
+      rowMarkForm: isPart ? undefined : a.rowMarkForm,
+      nestIn: isPart ? undefined : a.nestIn,
+      figureCard: isPart ? undefined : a.figureCard,
+      stationNamePosition: a.stationNamePosition,
+      subtitlePlacement: a.subtitlePlacement,
+      titleFontSize: a.titleFontSize,
+      markGap: a.markGap,
       eyebrow: a.eyebrow,
       value: a.value,
       previous: a.previous,
       rows: a.rows,
       // 行頭の印 (#1466)。 行と対で読む。 古い語は記法と同じ関数で読み替える (#2782)
-      marks: a.marks?.map((m) => 行頭の語へ読み替える(m)),
+      marks: a.marks?.map((m) =>
+        typeof m === "string"
+          ? 行頭の語へ読み替える(m)
+          : { mark: 行頭の語へ読み替える(m.mark), ...(m.tone === undefined ? {} : { tone: m.tone }) },
+      ),
       stage: isPart ? undefined : a.stage,
       lane: a.lane,
       stack: a.stack,
@@ -2905,6 +3740,9 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
             tone: resolveTone(a.tone) ?? 色.tone,
             owner: a.owner,
             end: a.end,
+            startLabel: a.startLabel,
+            milestone: a.milestone,
+            emphasis: a.emphasis,
             at:
               書いた座標 === undefined
                 ? undefined
@@ -2912,6 +3750,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
             atPos: 書いた座標 === undefined ? undefined : 位置("actors", i, a.at ? "at" : "点の位置"),
             touchpoint: a.touchpoint,
             opportunity: a.opportunity,
+            opportunityPosition: a.opportunityPosition,
           }),
       colorHex: 色.hex,
       // 部品に書いた色の名前は効かない。 記法と同じく書いた名前として残し、組み立て側が知らせる (#1973)
@@ -2940,9 +3779,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
   const 選んだ意匠 = 意匠 ?? 別名の意匠;
   const 並び順 = json.order === undefined ? null : resolveOrder(json.order);
   const 形 = json.shape === undefined ? null : resolveDiagramShape(json.shape);
-  const legend = json.legend?.flatMap(({ mark: rawMark, text }) => {
-    const mark = resolveLegendMark(rawMark);
-    return mark === null ? [] : [{ mark, text }];
+  const legend = json.legend?.flatMap((item) => {
+    if (item.mark === undefined) return [item];
+    const mark = resolveLegendMark(item.mark);
+    return mark === null ? [] : [{ ...item, mark } as CdlLegendItem];
   });
 
   const flow: DslStep[] = json.flow.map((s, i) => ({
@@ -2952,6 +3792,8 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     label: s.label,
     sub: s.sub,
     side: s.side,
+    fromSide: s.fromSide,
+    toSide: s.toSide,
     // 矢印の先の形 (#1462)。 読めない語は組み立てが落とす
     head: s.head,
     // 端の印の残り 3 欄と、関係の語 / 言づての種類 (#1466)
@@ -2977,6 +3819,8 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     dashOffsetBind: s.dashOffsetBind,
     labelOffsetX: s.labelOffsetX,
     labelOffsetY: s.labelOffsetY,
+    labelCollision: s.labelCollision,
+    labelSize: s.labelSize,
     overlay: s.overlay,
     // 部品の端で繋ぐ要素の id (#1979)。 書かない矢印には欄を足さない = 記法と同じ形になる
     ...(s.fromPartNode !== undefined ? { fromPartNode: s.fromPartNode } : {}),
@@ -3092,6 +3936,58 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(ticks !== undefined
       ? { ticks: [...ticks], ticksPos: 位置(json.ticks !== undefined ? "ticks" : "目盛り") }
       : {}),
+    ...(json.ganttToday !== undefined ? { ganttToday: json.ganttToday } : {}),
+    ...(json.ganttTickLabels !== undefined ? { ganttTickLabels: [...json.ganttTickLabels] } : {}),
+    ...(json.ganttBarEnd !== undefined ? { ganttBarEnd: json.ganttBarEnd } : {}),
+    ...(json.ganttBarThickness !== undefined ? { ganttBarThickness: json.ganttBarThickness } : {}),
+    ...(json.chartSeriesSkipMuted !== undefined ? { chartSeriesSkipMuted: json.chartSeriesSkipMuted } : {}),
+    ...(json.chartLineSeries !== undefined ? { chartLineSeries: json.chartLineSeries } : {}),
+    ...(json.chartPieCenterLabel !== undefined ? { chartPieCenterLabel: json.chartPieCenterLabel } : {}),
+    ...(json.chartPieTableColumns !== undefined ? { chartPieTableColumns: json.chartPieTableColumns } : {}),
+    ...(json.chartPieRingWidth !== undefined ? { chartPieRingWidth: json.chartPieRingWidth } : {}),
+    ...(json.chartSlopePeriods !== undefined ? { chartSlopePeriods: json.chartSlopePeriods } : {}),
+    ...(json.chartSlopeEmphasisIds !== undefined ? { chartSlopeEmphasisIds: json.chartSlopeEmphasisIds } : {}),
+    ...(json.chartSlopeUnit !== undefined ? { chartSlopeUnit: json.chartSlopeUnit } : {}),
+    ...(json.chartStackedPeriods !== undefined ? { chartStackedPeriods: json.chartStackedPeriods } : {}),
+    ...(json.chartStackedRateId !== undefined ? { chartStackedRateId: json.chartStackedRateId } : {}),
+    ...(json.chartStackedLegendPosition !== undefined ? { chartStackedLegendPosition: json.chartStackedLegendPosition } : {}),
+    ...(json.chartGaugeValue !== undefined ? { chartGaugeValue: json.chartGaugeValue } : {}),
+    ...(json.chartWaffleLegendPosition !== undefined ? { chartWaffleLegendPosition: json.chartWaffleLegendPosition } : {}),
+    ...(json.funnelForm !== undefined ? { funnelForm: json.funnelForm } : {}),
+    ...(json.funnelRate !== undefined ? { funnelRate: json.funnelRate } : {}),
+    ...(json.quadrantPointLabelSide !== undefined ? { quadrantPointLabelSide: json.quadrantPointLabelSide } : {}),
+    ...(json.treeNodeForm !== undefined ? { treeNodeForm: json.treeNodeForm } : {}),
+    ...(json.treeSize !== undefined ? { treeSize: json.treeSize } : {}),
+    ...(json.treeEdgeTone !== undefined ? { treeEdgeTone: json.treeEdgeTone } : {}),
+    ...(json.treeEdgeHead !== undefined ? { treeEdgeHead: json.treeEdgeHead } : {}),
+    ...(json.mindForm !== undefined ? { mindForm: json.mindForm } : {}),
+    ...(json.mindSize !== undefined ? { mindSize: json.mindSize } : {}),
+    ...(json.journeyForm !== undefined ? { journeyForm: json.journeyForm } : {}),
+    ...(json.journeyLineForm !== undefined ? { journeyLineForm: json.journeyLineForm } : {}),
+    ...(json.journeyLabels !== undefined ? { journeyLabels: json.journeyLabels } : {}),
+    ...(json.journeySize !== undefined ? { journeySize: json.journeySize } : {}),
+    ...(json.sequenceActorForm !== undefined ? { sequenceActorForm: json.sequenceActorForm } : {}),
+    ...(json.sequenceLabelForm !== undefined ? { sequenceLabelForm: json.sequenceLabelForm } : {}),
+    ...(json.sequenceReturnHead !== undefined ? { sequenceReturnHead: json.sequenceReturnHead } : {}),
+    ...(json.sequenceKindLabels !== undefined ? { sequenceKindLabels: json.sequenceKindLabels } : {}),
+    ...(json.figureCard !== undefined ? { figureCard: json.figureCard } : {}),
+    ...(json.figureSize !== undefined ? { figureSize: json.figureSize } : {}),
+    ...(json.terminalDecoration !== undefined ? { terminalDecoration: json.terminalDecoration } : {}),
+    ...(json.cornerForm !== undefined ? { cornerForm: json.cornerForm } : {}),
+    ...(json.figureKindLabel !== undefined ? { figureKindLabel: json.figureKindLabel } : {}),
+    ...(json.figureInset !== undefined ? { figureInset: json.figureInset } : {}),
+    ...(json.chartBarSize !== undefined ? { chartBarSize: json.chartBarSize } : {}),
+    ...(json.chartBarShape !== undefined ? { chartBarShape: json.chartBarShape } : {}),
+    ...(json.chartLineSize !== undefined ? { chartLineSize: json.chartLineSize } : {}),
+    ...(json.chartPieSize !== undefined ? { chartPieSize: json.chartPieSize } : {}),
+    ...(json.chartWaffleSize !== undefined ? { chartWaffleSize: json.chartWaffleSize } : {}),
+    ...(json.chartSlopeLabelTemplate !== undefined ? { chartSlopeLabelTemplate: json.chartSlopeLabelTemplate } : {}),
+    ...(json.chartSlopeSize !== undefined ? { chartSlopeSize: json.chartSlopeSize } : {}),
+    ...(json.chartStackedLayout !== undefined ? { chartStackedLayout: json.chartStackedLayout } : {}),
+    ...(json.chartGaugeSize !== undefined ? { chartGaugeSize: json.chartGaugeSize } : {}),
+    ...(json.ganttSize !== undefined ? { ganttSize: json.ganttSize } : {}),
+    ...(json.quadrantLabelPosition !== undefined ? { quadrantLabelPosition: json.quadrantLabelPosition } : {}),
+    ...(json.quadrantSize !== undefined ? { quadrantSize: json.quadrantSize } : {}),
     ...(別名?.order !== undefined ? { order: 別名.order, orderPos: 位置("type") } : {}),
     ...(別名?.shape !== undefined ? { shape: 別名.shape, shapePos: 位置("type") } : {}),
     // 前後の空白を落としてから見る。 記法側 (`v05/parser.ts`) が `trim()` してから
@@ -3109,6 +4005,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(区画の名前を直す(json.regions) === undefined
       ? {}
       : { regions: 区画の名前を直す(json.regions) }),
+    ...(json.legendFontSize !== undefined ? { legendFontSize: json.legendFontSize } : {}),
+    ...(json.legendOffset !== undefined ? { legendOffset: json.legendOffset } : {}),
+    ...(json.stageHeaders !== undefined ? { stageHeaders: json.stageHeaders } : {}),
+    ...(json.stageLayout !== undefined ? { stageLayout: json.stageLayout } : {}),
     actors,
     flow,
     animate,

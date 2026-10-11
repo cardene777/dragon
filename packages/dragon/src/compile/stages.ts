@@ -24,8 +24,23 @@ export const STAGE_LANE_WIDTH = 380;
  */
 export const STAGE_CARD_WIDTH = STAGE_LANE_WIDTH - 112;
 
+/** `stageLayout.columnWidths` を書いた列では、見本どおり列面の左右を 24 ずつ空ける。 */
+export const STAGE_CARD_COLUMN_INSET = 48;
+
 /** 札の高さ。名前 1 行と右の担当を同じ行に置く札で、見本の札と同じく 1 行分に収める。 */
 export const STAGE_CARD_HEIGHT = 48;
+
+/** cdl の列面の間 48 に足し、見本の列面の間 64 にする lane の間。 */
+export const STAGE_LANE_GAP = 16;
+
+/** 列の上端 130 から見本の 1 段目の中心 324 までを world 座標に直した値。 */
+export const STAGE_FIRST_CARD_CENTER_Y = 222;
+
+/** 描画側の自動配置と同じ、高さ 48 の札と次の札の間 100。 */
+export const STAGE_CARD_PITCH = 148;
+
+/** cdl の自動 lane と同じ上端。列を固定して先頭の余白を保つため使う。 */
+export const STAGE_LANE_Y = 28;
 
 export type StageColumn = {
   id: string;
@@ -185,7 +200,7 @@ export function 段の箱の線の通し方(
  * (`@cardenelabs/cdl` の `LABEL_PILL_H_MAIN_ONLY` / `LABEL_PILL_H_WITH_SUB`、公開されていない)。
  * 描く側が値を変えたら、ここも合わせる。
  */
-const 線の札の高さ = (sub: string | undefined): number => ((sub ?? "") === "" ? 36 : 68);
+const 線の札の高さ = (sub: string | undefined): number => ((sub ?? "") === "" ? 40 : 68);
 
 /**
  * 真横に渡る線と札の上端の間。見本の「いいえ」は線のすぐ下に札を置く。
@@ -208,16 +223,24 @@ const 札を線の下に置く間 = 16;
 export function 段の箱の線の指定(
   placement: StagesPlacement,
   step: Pick<DslStep, "from" | "to" | "label" | "sub">,
-): { routing?: "curve" | "back-detour"; overlay?: true; labelOffsetY?: number } {
+): {
+  routing?: "curve" | "back-detour";
+  overlay?: true;
+  labelOffsetY?: number;
+  fromSide?: "right";
+  toSide?: "top";
+} {
   const routing = 段の箱の線の通し方(placement, step.from, step.to);
   const 札がある = step.label !== "" || (step.sub ?? "") !== "";
   if (routing === undefined) return {};
-  if (!札がある) return { routing };
+  const 戻る辺 = routing === "back-detour" ? { fromSide: "right" as const, toSide: "top" as const } : {};
+  if (!札がある) return { routing, ...戻る辺 };
   const 真横 =
     routing === "curve" &&
     placement.cards.get(step.from)?.stack === placement.cards.get(step.to)?.stack;
   return {
     routing,
+    ...戻る辺,
     overlay: true,
     ...(真横 ? { labelOffsetY: 線の札の高さ(step.sub) / 2 + 札を線の下に置く間 } : {}),
   };

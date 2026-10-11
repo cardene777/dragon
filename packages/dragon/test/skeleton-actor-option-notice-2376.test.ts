@@ -757,6 +757,8 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
   const 書き方: Record<string, string> = {
     // 既定の種類 (`actor`) を避ける = 既定を書いた形は何も変えないのが正しい
     kind: "kind: queue",
+    kindForm: "kindForm: icon",
+    icon: "icon: terminal",
     title: 'title: "だい"',
     subtitle: 'subtitle: "そえ"',
     eyebrow: 'eyebrow: "みだし"',
@@ -764,6 +766,12 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
     previous: "previous: 2",
     stage: "stage: 申請",
     rows: 'rows: ["よむ"]',
+    emptyRowsNote: 'emptyRowsNote: "なし"',
+    titleAlign: "titleAlign: center",
+    rowRules: "rowRules: true",
+    rowMarkForm: "rowMarkForm: tone",
+    nestIn: "nestIn: ぜろ",
+    figureCard: 'figureCard: {"label":"図","note":"注"}',
     marks: "marks: [pk]",
     lane: "lane: m",
     stack: "stack: 2",
@@ -773,8 +781,12 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
     color: 'color: "#123456"',
     touchpoint: 'touchpoint: "まどぐち"',
     opportunity: 'opportunity: "のびしろ"',
+    opportunityPosition: "opportunityPosition: below-point",
     owner: 'owner: "たんとう"',
     end: 'end: "3月"',
+    startLabel: 'startLabel: "3月半ば"',
+    milestone: "milestone: true",
+    emphasis: "emphasis: primary",
     at: "at: [0.2, 0.8]",
     posX: "posX: 100",
     posY: "posY: 100",
@@ -790,6 +802,10 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
     renderOffsetX: 'renderOffsetX: "{あたい}"',
     renderOffsetY: 'renderOffsetY: "{あたい}"',
     scale: "scale: 1.5",
+    stationNamePosition: "stationNamePosition: bottom",
+    subtitlePlacement: "subtitlePlacement: right",
+    titleFontSize: "titleFontSize: 24",
+    markGap: "markGap: 12",
   };
 
   /** 日本語の別名は英語名と同じ欄に入るので、英語名だけを走査する */

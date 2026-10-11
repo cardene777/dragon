@@ -336,6 +336,7 @@ export async function 図を測る(page, opened, source) {
         element instanceof window.SVGElement
           ? svgBoxToRoot(element)
           : screenBoxToRoot(element.getBoundingClientRect());
+      const hasPositiveSize = (box) => box.width > 0 && box.height > 0;
       const boxCenter = (box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 
       const cumulativeOpacity = (element) => {
@@ -490,6 +491,7 @@ export async function 図を測る(page, opened, source) {
           const linePath = tag === "path" && !visibleFill;
           if (
             measured === null ||
+            !hasPositiveSize(measured) ||
             !inRegion(measured) ||
             linePath ||
             (!visibleFill && !visibleStroke(style, element))
@@ -545,7 +547,7 @@ export async function 図を測る(page, opened, source) {
         const frame = htmlFrame(style, element);
         if (fill.fillKind === "一色" && transparent(fill.fill) && frame === null) return null;
         const measured = boxFor(element);
-        if (measured === null || !inRegion(measured)) return null;
+        if (measured === null || !hasPositiveSize(measured) || !inRegion(measured)) return null;
         if (!htmlBoxIds.has(element)) htmlBoxIds.set(element, `box-${nextBoxId++}`);
         return {
           id: htmlBoxIds.get(element),

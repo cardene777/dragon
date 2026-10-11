@@ -43,10 +43,18 @@ const 値: Record<string, string> = {
   eyebrow: '"みだし"',
   value: "3",
   kind: "actor",
+  kindForm: "icon",
+  icon: "terminal",
   tone: "info",
   color: '"#123456"',
   shape: "{ kind: rect, source: 10, fillMax: 100 }",
   rows: "[あ]",
+  emptyRowsNote: '"なし"',
+  titleAlign: "center",
+  rowRules: "true",
+  rowMarkForm: "tone",
+  nestIn: "い",
+  figureCard: '{"label":"図","note":"注"}',
   marks: "[ok]",
   stack: "1",
   lane: "main",
@@ -68,9 +76,17 @@ const 値: Record<string, string> = {
   offsetY: "10",
   owner: '"だれか"',
   end: '"20"',
+  startLabel: '"20日"',
+  milestone: "true",
+  emphasis: "primary",
   touchpoint: '"まど"',
   opportunity: '"のびしろ"',
+  opportunityPosition: "below-point",
   at: "[0.2, 0.8]",
+  stationNamePosition: "bottom",
+  subtitlePlacement: "right",
+  titleFontSize: "24",
+  markGap: "12",
 };
 
 /**
@@ -110,6 +126,9 @@ const 別の知らせ: Record<string, string> = {
   offsetY: "position-offset-ignored",
   owner: "chart-value-unreadable",
   end: "chart-value-unreadable",
+  startLabel: "chart-value-unreadable",
+  milestone: "chart-value-unreadable",
+  emphasis: "chart-value-unreadable",
   touchpoint: "chart-value-unreadable",
   opportunity: "chart-value-unreadable",
 };
@@ -154,6 +173,11 @@ function 箱の行の知らせ(図種: string, 書く: string): string[] {
 }
 
 describe("値の図で、箱に書いた指定が黙って消えない (#2368)", () => {
+  it("主役を描く内訳の帯では emphasis を読み、円では読めないと知らせる", () => {
+    expect(箱の行の知らせ("stacked", "emphasis: primary")).not.toContain("chart-value-unreadable");
+    expect(箱の行の知らせ("pie", "emphasis: primary")).toContain("chart-value-unreadable");
+  });
+
   it("箱に書ける項目を走査できている (空振り防止)", () => {
     expect(項目.length, "箱の項目を 1 件も拾えていない").toBeGreaterThan(0);
   });
@@ -192,6 +216,7 @@ describe("値の図で、箱に書いた指定が黙って消えない (#2368)",
     // 受け持つ側が消えたら、除外だけが残って黙って落ちる状態に戻る
     const 出ない = 値の図種.flatMap((t) =>
       Object.entries(別の知らせ)
+        .filter(([k]) => k !== "emphasis" || (t !== "stacked" && t !== "funnel"))
         .filter(([k, 種]) => !箱の行の知らせ(t, `${k}: ${値[k]}`).includes(種))
         .map(([k, 種]) => `${t}: ${k} に ${種} が出ない`),
     );

@@ -30,12 +30,20 @@ const 走査から外す: Record<string, string> = {
 /** 項目ごとに書く値。 一覧は `INLINE_ACTOR_KEYS` (実装が SSOT) から導き、値だけここで持つ */
 const 値: Record<string, string> = {
   kind: "service",
+  kindForm: "icon",
+  icon: "terminal",
   title: '"だい"',
   subtitle: '"ほそく"',
   eyebrow: '"めじるし"',
   tone: "error",
   color: "error",
   rows: "[いち, に]",
+  emptyRowsNote: '"なし"',
+  titleAlign: "center",
+  rowRules: "true",
+  rowMarkForm: "tone",
+  nestIn: "おや",
+  figureCard: '{"label":"図","note":"注"}',
   marks: "start",
   value: "10",
   previous: "5",
@@ -49,8 +57,12 @@ const 値: Record<string, string> = {
   opacity: "0.5",
   owner: '"わたし"',
   end: '"5月"',
+  startLabel: '"5月半ば"',
+  milestone: "true",
+  emphasis: "primary",
   touchpoint: '"まどぐち"',
   opportunity: '"のびしろ"',
+  opportunityPosition: "below-point",
   at: "[0.2, 0.8]",
   posX: "100",
   posY: "100",
@@ -62,6 +74,10 @@ const 値: Record<string, string> = {
   hBind: '"{v}"',
   renderOffsetX: '"{v}"',
   renderOffsetY: '"{v}"',
+  stationNamePosition: "bottom",
+  subtitlePlacement: "right",
+  titleFontSize: "24",
+  markGap: "12",
 };
 
 /**
@@ -84,8 +100,12 @@ const 別の知らせ: Record<string, string> = {
   offsetY: "position-offset-ignored",
   owner: "chart-value-unreadable",
   end: "chart-value-unreadable",
+  startLabel: "chart-value-unreadable",
+  milestone: "chart-value-unreadable",
+  emphasis: "chart-value-unreadable",
   touchpoint: "chart-value-unreadable",
   opportunity: "chart-value-unreadable",
+  opportunityPosition: "chart-value-unreadable",
 };
 
 function 本文(書く: string, 図種 = "tree"): string {

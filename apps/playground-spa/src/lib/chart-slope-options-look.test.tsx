@@ -24,7 +24,16 @@ function 傾きの図(): CdlDiagram {
     .flat()
     .filter(({ diagram }) => diagram.nodes.some((n) => n.kind === "chart-slope"));
   expect(一覧.length, "傾き図の見本が 1 件も無い (検査が空振りしている)").toBeGreaterThan(0);
-  return 一覧[0]!.diagram;
+  const 元 = 一覧[0]!.diagram;
+  // この検査は従来の左右別名札で mode 切替だけを見る。結合名札は catalog の別検査で見る。
+  return {
+    ...元,
+    nodes: 元.nodes.map((node) => {
+      if (node.kind !== "chart-slope") return node;
+      const { chartSlopeLabelTemplate: _template, ...残り } = node;
+      return 残り;
+    }),
+  };
 }
 
 /** 系列の数。 期待値を手で書かず、図の datum から導く */
@@ -118,7 +127,7 @@ describe("傾き図の見せ方を描いた絵で見る (#1659 / #1664)", () => 
     // 記法の値は `{kensaku}` のような差し込みで、node の datum からは数を取れない
     // (実測 = すべて `NaN` になる)。 差し込みを解いた後の字は絵にしか出ていない
     const 元 = 描き切った図();
-    const 列 = roleの字(描く(元), "chart-slope-value").map((s) => Number(s.replace(/,/g, "")));
+    const 列 = roleの字(描く(元), "chart-slope-value").map((s) => Number(s.replace(/[,%]/g, "")));
     expect(列.length, "値の字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
     expect(列.every((n) => Number.isFinite(n)), "値の字が数として読めない").toBe(true);
     const 期待 = 列.flatMap((_, i) =>

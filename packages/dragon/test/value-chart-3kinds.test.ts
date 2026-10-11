@@ -55,7 +55,7 @@ describe("3 種が記法から書ける (#1450)", () => {
     // 実際に埋まっているかは `chart-card-fill.spec.ts` が実描画で見る
     expect(節("stat", `  - A: "10"\n`)?.h).toBe(240);
     expect(節("waffle", `  - A: "10"\n`)?.h).toBe(320);
-    expect(節("stacked", `  - A: "10"\n`)?.h).toBe(224);
+    expect(節("stacked", `  - A: "10"\n`)?.h).toBe(304);
   });
 
   it("案内の言葉が型ごとに違う (共通化で薄まっていない)", () => {

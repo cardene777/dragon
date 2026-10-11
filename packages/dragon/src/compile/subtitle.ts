@@ -11,8 +11,22 @@ import type { DslDocument } from "../types";
  * 書かなければ何も渡さない = 従来どおり小見出しは付かない。 `undefined` を明示して渡すと、
  * 組立て側が「空の小見出しを書いた」 と区別できなくなるので、 項目ごと落とす。
  */
-export function 図の小見出し(doc: DslDocument): { eyebrow?: string } {
-  return doc.eyebrow === undefined ? {} : { eyebrow: doc.eyebrow };
+export function 図の小見出し(
+  doc: DslDocument,
+): {
+  eyebrow?: string;
+  figureCard?: NonNullable<DslDocument["figureCard"]>;
+  cornerForm?: NonNullable<DslDocument["cornerForm"]>;
+  figureInset?: NonNullable<DslDocument["figureInset"]>;
+} {
+  const figureInset = doc.figureInset === undefined ? undefined : { ...doc.figureInset };
+  if (figureInset !== undefined) delete figureInset.holdsContent;
+  return {
+    ...(doc.eyebrow === undefined ? {} : { eyebrow: doc.eyebrow }),
+    ...(doc.figureCard === undefined ? {} : { figureCard: doc.figureCard }),
+    ...(doc.cornerForm === undefined ? {} : { cornerForm: doc.cornerForm }),
+    ...(figureInset === undefined ? {} : { figureInset }),
+  };
 }
 
 /** 知らせに載せる値を短く切る。 長い URL をそのまま出すと画面の帯が読めなくなる */

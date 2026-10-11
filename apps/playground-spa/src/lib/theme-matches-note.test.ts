@@ -36,6 +36,7 @@ import {
   type ThemeToneSeries,
 } from "../../tests/helpers/theme-notes";
 import { contrast } from "../../tests/helpers/pixel-contrast";
+import { over } from "../../tests/helpers/effective-color";
 
 const 読む = (rel: string): string =>
   readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
@@ -328,6 +329,7 @@ function cssVariableName(value: string): string {
 
 function resolvedCssPaint(declarations: Map<string, string>, body: string, property: string): string {
   const value = cssDeclaration(body, property).toLowerCase();
+  if (value === "none") return value;
   const pattern = /^url\(["']?(#[a-z0-9-]+)["']?\)$/.exec(value)?.[1];
   if (pattern) return `url(${pattern})`;
   const literal = /^(#[0-9a-f]{6})$/.exec(value)?.[1];
@@ -368,6 +370,36 @@ function compareGanttCss(
     const actualOwner = resolvedCssPaint(cssFixedThemeDeclarations(cssText, name), owner, "fill");
     if (actualOwner !== style.ganttOwnerColor) {
       failures.push(`${name} 担当の字: 意匠帳 ${style.ganttOwnerColor} / CSS ${actualOwner}`);
+    }
+    if (style.ganttSecondaryOwnerColor !== undefined) {
+      const secondary = cssRuleBody(
+        cssText,
+        `${stage} g:has(> [data-cdl-role="gantt-bar"]:not([data-cdl-emphasis="primary"])) > [data-cdl-role="gantt-owner"]`,
+        "fill",
+      );
+      const actualSecondary = resolvedCssPaint(cssFixedThemeDeclarations(cssText, name), secondary, "fill");
+      if (actualSecondary !== style.ganttSecondaryOwnerColor) {
+        failures.push(`${name} 通常帯の担当の字: 意匠帳 ${style.ganttSecondaryOwnerColor} / CSS ${actualSecondary}`);
+      }
+    }
+    if (
+      style.ganttSurfaceOpacity !== undefined &&
+      style.ganttFrameSeriesRatio !== undefined &&
+      style.ganttFrameWhiteRatio !== undefined
+    ) {
+      // 電飾の見本は平塗りでなく、18% の面と明るい枠を別々の役割として指定する。
+      const bar = cssRuleBody(cssText, `${stage} [data-cdl-role="gantt-bar"][data-cdl-tone]`, "fill");
+      const fill = cssDeclaration(bar, "fill").replace(/\s+/g, " ");
+      const stroke = cssDeclaration(bar, "stroke").replace(/\s+/g, " ");
+      const surface = style.ganttSurfaceOpacity * 100;
+      const series = style.ganttFrameSeriesRatio * 100;
+      const white = style.ganttFrameWhiteRatio * 100;
+      if (fill !== `color-mix(in srgb, currentColor ${surface}%, var(--theme-neon-chart-ground))`) {
+        failures.push(`${name} 日程の帯の面: 意匠帳 ${surface}% / CSS ${fill}`);
+      }
+      if (stroke !== `color-mix(in srgb, currentColor ${series}%, white ${white}%)`) {
+        failures.push(`${name} 日程の帯の枠: 意匠帳 ${series}%・白 ${white}% / CSS ${stroke}`);
+      }
     }
   }
   return failures;
@@ -722,9 +754,10 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(filter).not.toContain("feColorMatrix");
     const labelFilter = svgFilterSource(読む("../components/SvgDefs.tsx"), "dragon-metro-neon-glow-label");
     expect(labelFilter).toContain('filterUnits="objectBoundingBox"');
-    expect(labelFilter).toContain('x="-10%"');
+    // 横にも光の標準偏差 5 の 3 倍以上を取り、札の端で切らない。
+    expect(labelFilter).toContain('x="-50%"');
     expect(labelFilter).toContain('y="-50%"');
-    expect(labelFilter).toContain('width="120%"');
+    expect(labelFilter).toContain('width="200%"');
     expect(labelFilter).toContain('height="200%"');
     expect(labelFilter).toContain('in="SourceGraphic" stdDeviation="5" result="metro-neon-label-haze"');
   });
@@ -977,8 +1010,7 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     }
     const journeyAxis = cssRuleBodyContaining(cssText, [
       '[data-cdl-kind="journey-map"]',
-      '[data-cdl-role="journey-band"]',
-      "text:last-child",
+      '[data-cdl-role="journey-level-name"]',
     ]);
     expect(cssDeclaration(journeyAxis, "fill")).toBe("var(--theme-journey-axis-label)");
 
@@ -986,20 +1018,20 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       ["accent", "cdl-chart-1"], ["teal", "cdl-chart-2"], ["success", "theme-mind-branch-3"],
     ] as const) {
       expect(cssText).toContain(
-        `[data-cdl-role="mind-edge"][stroke*="--cdl-tone-${tone}"]`,
+        `:is([data-cdl-role="mind-edge"], [data-cdl-role="mind-leaf-underline"])[stroke*="--cdl-tone-${tone}"]`,
       );
       expect(cssText).toMatch(new RegExp(
-        `mind-edge[^{}]+cdl-tone-${tone}[^{}]*\\{[^}]*stroke:\\s*var\\(--${colorVariable}\\)`,
+        `mind-edge[^{}]+mind-leaf-underline[^{}]+cdl-tone-${tone}[^{}]*\\{[^}]*stroke:\\s*var\\(--${colorVariable}\\)`,
         "s",
       ));
     }
     expect(cssText).toMatch(
-      /mind-edge[^{}]+cdl-tone-warning[^{}]*\{[^}]*stroke:\s*var\(--theme-mind-branch-4\)/su,
+      /mind-edge[^{}]+mind-leaf-underline[^{}]+cdl-tone-warning[^{}]*\{[^}]*stroke:\s*var\(--theme-mind-branch-4\)/su,
     );
     expect(cssText).toMatch(/\[data-cdl-kind="chart-line"\]\s*\{\s*--cdl-tone-accent:\s*var\(--cdl-chart-1\)/u);
 
     expect(readFixedThemeRoleColors("sketch", "傾き図")).toEqual(["#d2491f", "#2a5ca8", "#6d6456"]);
-    expect(readFixedThemeRoleColors("relief", "傾き図")).toEqual(["#c4573c", "#966c22", "#685e51"]);
+    expect(readFixedThemeRoleColors("relief", "傾き図")).toEqual(["#c4573c", "#c99a35", "#685e51"]);
     for (const name of ["sketch", "relief"] as const) {
       const selector = `svg[data-cdl-stage][data-cdl-palette="${name}"] [data-cdl-kind="chart-slope"]`;
       const body = cssRuleBody(cssText, selector);
@@ -1060,12 +1092,20 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
         const color = ganttColors[index];
         if (!original || !color) throw new Error(`${name} の日程の帯 ${series} の色が無い`);
         const overridden = tones.ganttOverrides.has(series);
-        const originalRatio = contrast(rgb(original), rgb(tones.ganttOwnerColor));
-        const ownerRatio = contrast(rgb(color), rgb(tones.ganttOwnerColor));
-        if (overridden !== (originalRatio < 4.5)) {
+        const patternedSecondary = name === "sketch" && series > 1;
+        const ground = rgb(note.value.ground);
+        const originalSurface = tones.ganttSurfaceOpacity === undefined
+          ? rgb(original)
+          : over(rgb(original), tones.ganttSurfaceOpacity, ground);
+        const surface = tones.ganttSurfaceOpacity === undefined
+          ? rgb(color)
+          : over(rgb(color), tones.ganttSurfaceOpacity, ground);
+        const originalRatio = contrast(originalSurface, rgb(tones.ganttOwnerColor));
+        const ownerRatio = contrast(surface, rgb(tones.ganttOwnerColor));
+        if (!patternedSecondary && overridden !== (originalRatio < 4.5)) {
           failures.push(`${name} 日程の帯 ${series}: 元の担当との対比 ${originalRatio.toFixed(2)} なのに上書き ${overridden ? "あり" : "なし"}`);
         }
-        if (overridden) {
+        if (!patternedSecondary && overridden) {
           // 必要以上に動かしていないこと = 上書き後の対比が下限のすぐ上に収まる
           if (ownerRatio >= 4.6) {
             failures.push(`${name} 日程の帯 ${series}: 上書き後の担当との対比 ${ownerRatio.toFixed(2)} が 4.6 以上 (動かしすぎ)`);
@@ -1075,12 +1115,27 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
             failures.push(`${name} 日程の帯 ${series}: 元の系列色との色相差 ${difference.toFixed(2)} 度 > 10 度`);
           }
         }
-        if (ownerRatio < 4.5) {
+        if (!patternedSecondary && ownerRatio < 4.5) {
           failures.push(`${name} 日程の帯 ${series}: 担当との対比 ${ownerRatio.toFixed(2)} < 4.5`);
         }
-        const groundRatio = contrast(rgb(color), rgb(note.value.ground));
+        // 電飾の半透明相当の面は枠で形を示すため、台との 3:1 は見本の枠色で測る。
+        const boundary = tones.ganttFrameWhiteRatio === undefined
+          ? rgb(color)
+          : over([255, 255, 255], tones.ganttFrameWhiteRatio, rgb(color));
+        const groundRatio = contrast(boundary, rgb(note.value.ground));
         if (groundRatio < 3) {
           failures.push(`${name} 日程の帯 ${series}: 台との対比 ${groundRatio.toFixed(2)} < 3`);
+        }
+      }
+
+      if (name === "sketch") {
+        const secondaryOwner = tones.ganttSecondaryOwnerColor;
+        const pale = readFixedThemeRoleColor("sketch", "淡");
+        if (!secondaryOwner || !pale) throw new Error("手描きの通常帯の担当字と淡を読めない");
+        const faceRatio = contrast(rgb(secondaryOwner), rgb(note.value.face));
+        const hatchRatio = contrast(rgb(secondaryOwner), rgb(pale));
+        if (faceRatio < 4.5 || hatchRatio < 4.5) {
+          failures.push(`sketch 通常帯の担当: 面 ${faceRatio.toFixed(2)} / 淡い斜線 ${hatchRatio.toFixed(2)}`);
         }
       }
 

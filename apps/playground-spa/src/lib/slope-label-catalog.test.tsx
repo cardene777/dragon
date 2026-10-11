@@ -13,8 +13,8 @@ import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import { CATALOG_ITEMS } from "./catalog-items";
 
-/** 名札 1 行が縦に要する高さ。 描画側が値 14 と名前 13 の大きい方 + 4 から出す */
-const 名札の行 = 18;
+/** 見本値の結合名札 19 + 描画側の行間 4 */
+const 名札の行 = 23;
 
 /** 見本の中で傾き図の箱を持つ図。 id を手で書かず、箱の種類から引く */
 function 傾きの見本(): CdlDiagram[] {
@@ -85,7 +85,7 @@ describe("カタログの傾き図は名札が重ならない (#1672)", () => {
       const 段の数 = ((図 as unknown as { phases?: unknown[] }).phases ?? []).length;
       for (let n = 1; n <= Math.max(1, 段の数); n++) {
         const svg = renderToStaticMarkup(<CdlDiagramView diagram={layout(段の終わりの図(図, n))} />);
-        for (const role of ["chart-slope-name", "chart-slope-value"]) {
+        for (const role of ["chart-slope-label"]) {
           const 名札 = 名札たち(svg, role);
           expect(名札.length, `${n} 段目の ${role} を 1 つも読めない (検査が空振りしている)`).toBeGreaterThan(0);
           測れた += 名札.length;
@@ -112,8 +112,8 @@ describe("カタログの傾き図は名札が重ならない (#1672)", () => {
     const 図 = 傾きの見本()[0]!;
     const 一段目 = renderToStaticMarkup(<CdlDiagramView diagram={layout(段の終わりの図(図, 1))} />);
     const 二段目 = renderToStaticMarkup(<CdlDiagramView diagram={layout(段の終わりの図(図, 2))} />);
-    expect(名札たち(一段目, "chart-slope-value").length).toBe(
-      名札たち(二段目, "chart-slope-value").length,
+    expect(名札たち(一段目, "chart-slope-label").length).toBe(
+      名札たち(二段目, "chart-slope-label").length,
     );
     expect(一段目).not.toBe(二段目);
   });

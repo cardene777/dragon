@@ -32,6 +32,12 @@ const 描く = (diagram: CdlDiagram): string =>
 const roleの数 = (svg: string, role: string): number =>
   (svg.match(new RegExp(`data-cdl-role="${role}"`, "g")) ?? []).length;
 
+/** figureInset の恒常的な切り抜きを除いた、描画 animation 用の切り抜き */
+const 描画の切り抜き = (svg: string): string[] =>
+  [...svg.matchAll(/<clipPath\s+id="([^"]+)"[^>]*>(.*?)<\/clipPath>/gs)]
+    .filter((m) => !m[1]!.startsWith("cdl-figure-content-inset-clip-"))
+    .map((m) => m[2] ?? "");
+
 /** 起点から描く指定を外した図。 描き切った状態の絵を見るため */
 function 描き切った図(diagram: CdlDiagram): CdlDiagram {
   return { ...diagram, phases: diagram.phases?.map(({ draw: _draw, ...残り }) => 残り) };
@@ -57,9 +63,8 @@ describe("弧と帯で量を表す 3 種がカタログで起点から現れる 
   });
 
   it.each(["chart-gauge", "chart-radial"])("%s の最初の絵は切り抜きが空 (弧が 1 つも見えない)", (kind) => {
-    const 切り抜き = 描く(見本の図(kind)).match(/<clipPath[^>]*>(.*?)<\/clipPath>/s);
-    expect(切り抜き, `${kind} の最初の絵に切り抜きが無い`).not.toBeNull();
-    expect(切り抜き![1], "切り抜きの中身が空でない").toBe("");
+    const 切り抜き = 描画の切り抜き(描く(見本の図(kind)));
+    expect(切り抜き, `${kind} の最初の絵の描画用切り抜き`).toEqual([""]);
   });
 
   it("積層帯の最初の絵は切り抜きの右端が帯の左端と揃う (帯が 1 も見えない)", () => {
@@ -70,13 +75,13 @@ describe("弧と帯で量を表す 3 種がカタログで起点から現れる 
     ].map((m) => Number(m[1]));
     expect(区画のx.length, "区画を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
     const 帯の左端 = Math.min(...区画のx);
-    const 幅 = Number(svg.match(/<clipPath[^>]*><rect[^>]*\swidth="([\d.]+)"/)![1]);
+    const 幅 = Number(描画の切り抜き(svg)[0]?.match(/<rect[^>]*\swidth="([\d.]+)"/)?.[1]);
     expect(幅, "切り抜きが帯の左端より右へ広がっている").toBeCloseTo(帯の左端, 6);
   });
 
   it.each(三種)("%s の描く指定を外すと切り抜きが付かない", (_語, kind) => {
     const 図 = 見本の図(kind);
-    expect(描く(描き切った図(図))).not.toContain("<clipPath");
-    expect(描く(図), "見本のままでは切り抜きが付く").toContain("<clipPath");
+    expect(描画の切り抜き(描く(描き切った図(図)))).toEqual([]);
+    expect(描画の切り抜き(描く(図)), "見本のままでは描画用切り抜きが付く").not.toEqual([]);
   });
 });

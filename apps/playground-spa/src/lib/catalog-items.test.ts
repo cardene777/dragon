@@ -13,6 +13,8 @@
  * 書かれていなかった。 規約は 14 群すべてに及ぶので、走査した 3 群の対 699 件に対して
  * **残り 611 件が検査の外** に居た (広げた時の孤立は 0 件)。
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import { CATALOG_ITEMS, loadPartsItems } from "./catalog-items";
 
@@ -219,10 +221,10 @@ describe("見本帳の階層・図表・数・工程は宅配の筋書きで揃�
     (鍵) => {
       const 記法 = 記法を引く(鍵);
       for (const [名前, 始まり, tone] of [
-        ["調べる", "6月", "info"],
+        ["調べる", "6月", "muted"],
         ["設計する", "6月\\+0\\.55", "accent"],
         ["棚を作る", "8月", "accent"],
-        ["端末を入れる", "8月\\+0\\.30", "info"],
+        ["端末を入れる", "8月\\+0\\.30", "muted"],
         ["試す", "9月\\+0\\.60", "accent"],
       ] as const) {
         expect(記法, `${鍵} の ${名前}`).toContain(名前);
@@ -234,33 +236,53 @@ describe("見本帳の階層・図表・数・工程は宅配の筋書きで揃�
         );
       }
       expect(記法).toMatch(/本番[^\n]+10月/u);
-      expect(記法).toMatch(/survey_end["']?\s*:\s*0(?:\D|$)/u);
+      expect(記法).toMatch(/survey_end["']?\s*:\s*0\.75/u);
     },
   );
 
   it.each([
     "branchParcelsBar",
     "pattern__branchParcelsBar__前の値つき",
-    "parcelStatusPie",
-    "pattern__parcelStatusPie__前と今",
     "redeliveryIdeasMind",
     "pattern__redeliveryIdeasMind__説明つき",
-    "onTimeShareGauge",
-    "pattern__onTimeShareGauge__前の値つき",
-    "parcelSizeWaffle",
-    "deliveryResultStacked",
-    "pattern__deliveryResultStacked__今だけ",
   ])("%s は系列色を意匠の並びに任せる", (鍵) => {
     expect(記法を引く(鍵), `${鍵} に tone が残っている`).not.toMatch(/\btone\s*[:=]/u);
+  });
+
+  it.each([
+    ["parcelStatusPie", "完了"],
+    ["pattern__parcelStatusPie__前と今", "完了"],
+    ["pattern__onTimeShareGauge__内訳だけ", "遅れた"],
+    ["pattern__onTimeShareGauge__前の値つき", "遅れた"],
+    ["parcelSizeWaffle", "大きい"],
+    ["deliveryResultStacked", "一度で届いた"],
+    ["pattern__deliveryResultStacked__今だけ", "一度で届いた"],
+  ] as const)("%s は %s だけを沈んだ色にする", (鍵, 名前) => {
+    const 記法 = 記法を引く(鍵);
+    expect(記法, `${鍵} の ${名前} にtone: mutedが無い`).toMatch(
+      new RegExp(`${名前}[^\\n]+tone["']?\\s*:\\s*["']?muted`, "u"),
+    );
+    expect(
+      [...記法.matchAll(/\btone["']?\s*:\s*["']?muted/gu)],
+      `${鍵} で ${名前} 以外の区分まで沈んだ色になっている`,
+    ).toHaveLength(2);
+  });
+
+  it("固定尺の半円は datum の tone でなく、残りの弧を意匠の沈んだ色にする", () => {
+    const 記法 = 記法を引く("onTimeShareGauge");
+    expect(記法, "固定尺が読まない tone を残している").not.toMatch(/\btone["']?\s*:\s*["']?muted/u);
+    const css = readFileSync(resolve(process.cwd(), "apps/playground-spa/src/styles/cdl-theme.css"), "utf8");
+    expect(css).toMatch(/\[data-cdl-role="chart-gauge-fixed-scale"\]\s*\{[^}]*fill:\s*var\(--cdl-tone-muted\)/u);
   });
 
   it.each([
     "shipperFeelingJourney",
     "pattern__shipperFeelingJourney__接点つき",
     "pattern__shipperFeelingJourney__5つの気持ち",
-  ])("%s の谷の札は固定幅に収まる語にする", (鍵) => {
+  ])("%s の谷の注記は全文を点の下へ置く", (鍵) => {
     const 記法 = 記法を引く(鍵);
-    expect(記法).toMatch(/opportunity[^\n]+不在票に気づかず/u);
-    expect(記法).not.toMatch(/opportunity[^\n]+不在票に気づかなかった/u);
+    expect(記法).toMatch(/opportunity[^\n]+不在票に気づかなかった/u);
+    expect(記法).toMatch(/opportunityPosition[^\n]+below-point/u);
+    expect(記法).not.toMatch(/不在票に気づかず["'}]/u);
   });
 });

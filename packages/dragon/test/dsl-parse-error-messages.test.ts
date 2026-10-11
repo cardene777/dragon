@@ -139,6 +139,14 @@ flow:
     値: "42",
     previous: "38",
     前の値: "38",
+    kindForm: "icon",
+    icon: "terminal",
+    emptyRowsNote: '"なし"',
+    titleAlign: "center",
+    rowRules: "true",
+    rowMarkForm: "tone",
+    nestIn: "親",
+    figureCard: '{"label":"図","note":"注記"}',
     rows: '["id: PK"]',
     // 行頭の印 (#1466)。 行と同じ数だけ並べる
     marks: '["pk"]',
@@ -162,11 +170,15 @@ flow:
     // ユーザージャーニーの欄 (#1251)。 解析は図種を見ないので、どの図種でも読める
     touchpoint: '"申込み画面"',
     opportunity: '"入力を減らす"',
+    opportunityPosition: "below-point",
     at: "[0.2, 0.8]",
     点の位置: "[0.2, 0.8]",
     // 工程の並びの欄 (#1251)
     owner: '"デザイナー"',
     end: '"Q3"',
+    startLabel: '"Q3 半ば"',
+    milestone: "true",
+    emphasis: "primary",
     色: "失敗",
     color: "失敗",
     tone: "失敗",
@@ -189,6 +201,10 @@ flow:
     opacity: "0.5",
     renderOffsetX: "30",
     renderOffsetY: '"{dy}"',
+    stationNamePosition: "bottom",
+    subtitlePlacement: "right",
+    titleFontSize: "24",
+    markGap: "12",
   };
 
   /**

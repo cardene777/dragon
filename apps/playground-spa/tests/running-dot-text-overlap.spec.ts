@@ -180,7 +180,7 @@ async function 横切りを測る(page: Page, id: string, 倍: number) {
   expect(箱数, "箱が 1 つも無い").toBeGreaterThan(0);
 
   let 走った = 0;
-  const 丸の出ない箱: number[] = [];
+  const 丸の出ない箱: string[] = [];
   const 最悪 = new Map<string, number>();
 
   for (let n = 0; n < 箱数; n++) {
@@ -188,7 +188,7 @@ async function 横切りを測る(page: Page, id: string, 倍: number) {
     await 丸が落ち着くまで待つ(page, id);
     const 本数 = await page.locator(流れ).count();
     if (本数 === 0) {
-      丸の出ない箱.push(n);
+      丸の出ない箱.push(await 箱.nth(n).getAttribute("data-cdl-node") ?? `(名前なし:${n})`);
       continue;
     }
     走った += 本数;
@@ -281,8 +281,10 @@ test.describe("線の上を走る丸", () => {
     const { 走った, 最悪, 丸の出ない箱, 箱数 } = await 横切りを測る(page, "er-demo", 倍);
 
     expect(走った, "丸が 1 本も走らなかった").toBeGreaterThan(0);
-    // 実測では 3 個の箱すべてから丸が出る (理由はクラス図と同じ)
-    expect(丸の出ない箱, `箱 ${箱数} 個のうち、丸の出ない箱`).toEqual([]);
+    // 明細 (`order_items`) は注文の囲いに入り、線ではなく囲いで「持つ」を表す。線を持たない明細だけを
+    // 丸の検査から外し、他の箱が増えて黙って外れる形は許さない。
+    expect(箱数, "ER 見本の箱が減った").toBe(3);
+    expect(丸の出ない箱, `箱 ${箱数} 個のうち、線を持たない箱`).toEqual(["order_items"]);
     const 超過 = [...最悪].filter(([, v]) => v >= 被りの上限);
     expect(超過.map(([文, v]) => `${文} ${(v * 100).toFixed(1)}%`).join(" / ")).toBe("");
   });

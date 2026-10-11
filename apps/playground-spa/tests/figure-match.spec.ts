@@ -17,6 +17,7 @@ const shoot = path.join(root, ".claude/skills/dragon-match/scripts/shoot.mjs");
 type Difference = { item: string; status: string };
 type BoxMeasurement = {
   width: number;
+  height: number;
   fillKind: string;
   fillStartColor: string | null;
   fillEndColor: string | null;
@@ -144,6 +145,16 @@ test.describe("正解の図と作った図を測る", () => {
           label: "path-lines",
           expected: html("#path-lines-one"),
           actual: html("#path-lines-two"),
+        },
+        {
+          label: "zero-size-shapes",
+          expected: html("#zero-size-expected"),
+          actual: html("#zero-size-actual"),
+        },
+        {
+          label: "unlabeled-area",
+          expected: html("#unlabeled-area-expected"),
+          actual: html("#unlabeled-area-actual"),
         },
       ],
     };
@@ -283,6 +294,27 @@ test.describe("正解の図と作った図を測る", () => {
     expect(result.differenceCount).toBe(0);
     expect(result.measurements.expected.lines[0]?.count).toBe(2);
     expect(result.measurements.actual.lines[0]?.count).toBe(2);
+  });
+
+  test("幅か高さが 0 の図形は箱にも字を持たない図形にも数えない", () => {
+    const result = comparison("zero-size-shapes");
+    expect(result.differenceCount).toBe(0);
+    expect(result.measurements.actual.texts[0]?.box).toBeNull();
+    expect(result.measurements.actual.unlabeledBoxes).toHaveLength(0);
+  });
+
+  test("倍率補正後の面積が 400 未満の図形だけを字なし図形から外す", () => {
+    const result = comparison("unlabeled-area");
+    expect(result.overallScale).toBe(0.5);
+    expect(result.measurements.expected.unlabeledBoxes).toHaveLength(1);
+    expect(result.measurements.actual.unlabeledBoxes).toHaveLength(1);
+    expect(result.measurements.expected.unlabeledBoxes[0]).toEqual(
+      expect.objectContaining({ width: 20, height: 20 }),
+    );
+    expect(result.measurements.actual.unlabeledBoxes[0]).toEqual(
+      expect.objectContaining({ width: 10, height: 10 }),
+    );
+    expect(result.differences.map((entry) => entry.item)).toEqual(["全体の倍率"]);
   });
 
   test("実際に描かれた monospace と serif の書体差を 1 件にする", () => {

@@ -35,7 +35,16 @@ import {
   jsonToDiagram,
   type 欄の型,
 } from "../src/json-parser";
-import { EDGE_SIDE_VALUES, EDGE_HEAD_VALUES, STYLE_VALID, 書ける色名 } from "../src/v05/parser";
+import {
+  CHART_BAR_SHAPE_VALUES,
+  CORNER_FORM_VALUES,
+  EDGE_HEAD_VALUES,
+  EDGE_SIDE_VALUES,
+  LABEL_COLLISION_VALUES,
+  QUADRANT_LABEL_POSITION_VALUES,
+  STYLE_VALID,
+  書ける色名,
+} from "../src/v05/parser";
 import { RELATIVE_DIRECTIONS } from "../src/relative-pos";
 import { 図, 欄に値を置く, 欄のpath } from "./support/json-field-input";
 
@@ -71,6 +80,16 @@ const 型ごとの値: Record<string, { 誤り: unknown; 他の誤り?: unknown[
   描くもの: { 誤り: "bogus", 他の誤り: ["", "LINE", " line"], 正しい: "line" },
   意匠: { 誤り: "bogus", 他の誤り: [1], 正しい: "blueprint" },
   図の形: { 誤り: "bogus", 他の誤り: [1], 正しい: "pie" },
+  ガントの帯の終わり: { 誤り: "cell", 他の誤り: [1], 正しい: "position" },
+  ガントの帯の厚み: { 誤り: "thick", 他の誤り: [1], 正しい: "thin" },
+  札の角: { 誤り: "round", 他の誤り: [1], 正しい: CORNER_FORM_VALUES[0] },
+  四象限の区画名位置: {
+    誤り: "inside",
+    他の誤り: [1],
+    正しい: QUADRANT_LABEL_POSITION_VALUES[0],
+  },
+  線札の衝突: { 誤り: "fixed", 他の誤り: [1], 正しい: LABEL_COLLISION_VALUES[0] },
+  主役: { 誤り: "secondary", 他の誤り: [1], 正しい: "primary" },
   色か色番号: { 誤り: "bogus", 正しい: "#f59e0b" },
   必須の図種: { 誤り: "bogus", 正しい: "flow" },
   // 中身の形は欄ごとに違うため、専用の検査が見る。 ここでは外側の形だけを測る
@@ -160,7 +179,10 @@ describe("型違いの値は誤りになる (#1304)", () => {
     let 測れた = 0;
     const 落ちた: string[] = [];
     for (const { 層, 欄, 型 } of 欄一覧) {
-      const 正しい = 型ごとの値[型]!.正しい;
+      const 正しい =
+        層 === "root" && 欄 === "chartBarShape"
+          ? CHART_BAR_SHAPE_VALUES[0]
+          : 型ごとの値[型]!.正しい;
       if (正しい === undefined) continue;
       測れた += 1;
       const r = validateDragonJson(欄に値を置く(層, 欄, 正しい));

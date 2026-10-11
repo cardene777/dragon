@@ -28,10 +28,10 @@ const 描く = (d: CdlDiagram): string => renderToStaticMarkup(<CdlDiagramView d
 
 type 棒 = { x: number; w: number; 濃さ: number };
 
-/** 棒の `x` / `width` / `fill-opacity` を読む。 属性の並び順に依らない形で拾う */
+/** 一体の path または従来の group から、棒の `x` / `width` / `fill-opacity` を読む。 */
 function 棒たち(svg: string): 棒[] {
   const 出た: 棒[] = [];
-  for (const m of svg.matchAll(/<rect[^>]*data-cdl-role="chart-bar"[^>]*>/g)) {
+  for (const m of svg.matchAll(/<(?:g|path)[^>]*data-cdl-role="chart-bar"[^>]*>/g)) {
     const 札 = m[0];
     const 取る = (名: string): number => {
       const r = new RegExp(`${名}="([-\\d.]+)"`).exec(札);
@@ -48,7 +48,7 @@ const 目盛りたち = (svg: string): string[] =>
     (m) => m[1] ?? "",
   );
 
-/** カタログの棒グラフの図。 記法を変えずに見た目が直るのが期待 */
+/** カタログの棒グラフの図。 */
 const 棒グラフの見本 = (): CdlDiagram[] =>
   Object.values(CATALOG_ITEMS)
     .flat()

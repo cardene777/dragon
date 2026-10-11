@@ -16,22 +16,36 @@
 import { test, expect } from "@playwright/test";
 
 /** 画面に出ている折れ線の dash 属性を読む */
-async function 折れ線のdash(page: import("@playwright/test").Page): Promise<{
+async function 折れ線のdash(page: import("@playwright/test").Page, series?: number): Promise<{
   dasharray: string | null;
   dashoffset: string | null;
   pathLength: string | null;
+  mask: string | null;
+  maskDasharray: string | null;
+  maskPathLength: string | null;
   points: number;
 } | null> {
-  return page.evaluate(() => {
-    const el = document.querySelector('[data-cdl-role="chart-line"]');
+  return page.evaluate((seriesIndex) => {
+    const selector = seriesIndex === undefined
+      ? '[data-cdl-role="chart-line"]'
+      : `[data-cdl-role="chart-line"][data-cdl-series="${seriesIndex}"]`;
+    const el = document.querySelector(selector);
     if (!el) return null;
+    const mask = el.getAttribute("mask");
+    const maskId = /^url\(#(.+)\)$/.exec(mask ?? "")?.[1];
+    const maskLine = maskId === undefined
+      ? null
+      : document.getElementById(maskId)?.querySelector("polyline") ?? null;
     return {
       dasharray: el.getAttribute("stroke-dasharray"),
       dashoffset: el.getAttribute("stroke-dashoffset"),
       pathLength: el.getAttribute("pathLength"),
+      mask,
+      maskDasharray: maskLine?.getAttribute("stroke-dasharray") ?? null,
+      maskPathLength: maskLine?.getAttribute("pathLength") ?? null,
       points: (el.getAttribute("points") ?? "").trim().split(/\s+/).filter(Boolean).length,
     };
-  });
+  }, series);
 }
 
 /** 棒の包み (倍率) を読む */
@@ -249,7 +263,8 @@ test.describe("折れ線を左から伸ばす (#1312)", () => {
     await page.getByText("月ごとの配達数の折れ線グラフ", { exact: true }).first().click();
     await page.waitForTimeout(600);
 
-    const 初回 = await 折れ線のdash(page);
+    // 系列 0 の計画は点線を mask で伸ばす。pathLength を持つ実線の実績を名指しする。
+    const 初回 = await 折れ線のdash(page, 1);
     expect(初回, "折れ線が画面に出ている").not.toBeNull();
     expect(初回!.pathLength, "長さを 1 に正規化している").toBe("1");
     expect(初回!.dasharray, "dash を付けている").toBe("1");
@@ -263,11 +278,18 @@ test.describe("折れ線を左から伸ばす (#1312)", () => {
     // 点の数は進みに関わらず datum 数のまま (点を削って伸ばしていない)
     expect(初回!.points, "5 点すべてが points に残る").toBe(5);
 
+    const 計画 = await 折れ線のdash(page, 0);
+    expect(計画, "計画の点線が画面に出ている").not.toBeNull();
+    expect(計画!.pathLength, "点線自身を実線用 dash で伸ばしていない").toBeNull();
+    expect(計画!.mask, "計画の点線に伸びる mask が付いている").toMatch(/^url\(#cdl-chart-line-draw-/);
+    expect(計画!.maskPathLength, "mask の長さを 1 に正規化している").toBe("1");
+    expect(計画!.maskDasharray, "mask を dash で伸ばしている").toBe("1");
+
     // 段が進むと残りが変わる。 1 段 1.2 秒で図は繰り返し再生されるため、
     // 6 秒の間に 2 種類以上の値が出る
     const 値 = new Set<string>();
     for (let i = 0; i < 60; i++) {
-      const 今 = await 折れ線のdash(page);
+      const 今 = await 折れ線のdash(page, 1);
       if (今?.dashoffset != null) 値.add(今.dashoffset);
       if (値.size >= 2) break;
       await page.waitForTimeout(100);

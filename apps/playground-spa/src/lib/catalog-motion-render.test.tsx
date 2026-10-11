@@ -114,6 +114,26 @@ function 絵の文字(d: CdlDiagram): string[] {
   return 字を拾う(renderToStaticMarkup(<CdlDiagramView diagram={d} hideHeader />));
 }
 
+/** role を持つ要素の開始 tag。弧の経路など、文字にならない描画差を見る */
+function roleのtag(svg: string, role: string): string {
+  const tag = (svg.match(/<[^>]+>/gu) ?? []).find((entry) =>
+    entry.includes(`data-cdl-role="${role}"`),
+  );
+  if (tag === undefined) throw new Error(`${role} が描かれていない`);
+  return tag;
+}
+
+/** role を持つ text の、子要素を除いた見える文字 */
+function roleの文字(svg: string, role: string): string {
+  const pattern = new RegExp(
+    `<text[^>]*data-cdl-role="${role}"[^>]*>([\\s\\S]*?)<\\/text>`,
+    "u",
+  );
+  const body = pattern.exec(svg)?.[1];
+  if (body === undefined) throw new Error(`${role} の文字が描かれていない`);
+  return body.replace(/<[^>]*>/gu, "");
+}
+
 /**
  * 描いた結果のうち、**図の中の見える部分だけ** (#1194)。
  *
@@ -506,6 +526,9 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     "営業所の階層",
     "営業所の階層を見出しだけで示す",
     "再配達を減らす手立ての説明",
+    // 2 本の図は計画と実績を並べて比べる。数の動きは変種『1本の線』が持つ
+    // (利用者の決定 2026-10-09)。
+    "月ごとの配達数",
   ]);
   const 図表 = Object.entries(Charts as unknown as Record<string, CdlDiagram>)
     .filter(([, d]) => {
@@ -515,11 +538,39 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     .filter(([, d]) => !数を動かせない.has(d.id))
     .map(([k, d]) => [k, d] as const);
 
-  it("対象が 23 件ある", () => {
-    expect(図表).toHaveLength(23);
+  it("2 本の折れ線は線を引くだけで、数の動きは変種『1本の線』が持つ", () => {
+    // 2 本の図は計画と実績を並べて比べる。数の動きは変種『1本の線』が持つ
+    // (利用者の決定 2026-10-09)。
+    const 主 = Charts.monthlyDeliveriesLine;
+    const 一本 = Charts.pattern__monthlyDeliveriesLine__1本の線;
+    expect(
+      主.phases.flatMap((p) => [...(p.tweens ?? []), ...(p.sets ?? [])]),
+      "主の 2 本線で数が動いている",
+    ).toHaveLength(0);
+    expect(
+      一本.phases.some((p) => (p.tweens?.length ?? 0) > 0),
+      "変種『1本の線』が数の動く図でなくなっている",
+    ).toBe(true);
   });
 
-  it("23 件すべてが 2 段を持ち、段で動かす値を宣言している", () => {
+  it("主の半円は先月 72%・差分 0 から今月 78%・差分 +6 へ弧と一緒に動く", () => {
+    const gauge = Charts.onTimeShareGauge;
+    const first = 見える部分(gauge, gauge.phases[0]!.id);
+    const last = 見える部分(gauge, gauge.phases[gauge.phases.length - 1]!.id);
+
+    expect(gauge.nodes[0]?.chartGaugeValue?.current).toBe("{on_time}");
+    expect(roleの文字(first, "chart-gauge-value")).toBe("72%");
+    expect(roleの文字(first, "chart-gauge-delta")).toBe("先月より 0");
+    expect(roleの文字(last, "chart-gauge-value")).toBe("78%");
+    expect(roleの文字(last, "chart-gauge-delta")).toBe("先月より +6");
+    expect(roleのtag(first, "chart-gauge-arc")).not.toBe(roleのtag(last, "chart-gauge-arc"));
+  });
+
+  it("対象が 25 件ある", () => {
+    expect(図表).toHaveLength(25);
+  });
+
+  it("25 件すべてが 2 段を持ち、段で動かす値を宣言している", () => {
     // 数の欄は段の中で動かし (`tweens`)、語の欄は段に入った時点で切り替える (`sets`)。
     // 片方だけを見ると、もう片方で動かしている図を「動いていない」 と判定する
     const 足りない = 図表
@@ -531,7 +582,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     expect(足りない, `段か動かす値が無い: ${足りない.join(", ")}`).toHaveLength(0);
   });
 
-  it("23 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
+  it("25 件すべてで、最初の段と最後の段で図の中の見える部分が変わる", () => {
     const 変わらない: string[] = [];
     for (const [k, d] of 図表) {
       const 最初 = 見える部分(d, d.phases[0]!.id);
@@ -541,7 +592,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     expect(変わらない, `段を進めても絵が変わらない: ${変わらない.join(", ")}`).toHaveLength(0);
   });
 
-  it("23 件のうち数を動かす 19 件で、動かす値が絵の文字に出る", () => {
+  it("25 件のうち数を文字で動かす 21 件で、動かす値が絵の文字に出る", () => {
     // 記法の入口が `{名前}` を数に潰すと、宣言はあるのに絵が変わらない (#1198 で塞いだ形)。
     // 段を指定して描き、`<text>` の中身が変わることを見る
     const 文字 = (d: CdlDiagram, phaseId: string) => 字を拾う(見える部分(d, phaseId)).join("|");
@@ -554,7 +605,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       "再配達を減らす",
     ]);
     const 数で動く = 図表.filter(([, d]) => !語で動く.has(d.id));
-    expect(数で動く, "数を動かす図の数が変わっている").toHaveLength(19);
+    expect(数で動く, "数を文字で動かす図の数が変わっている").toHaveLength(21);
     const 出ない: string[] = [];
     for (const [k, d] of 数で動く) {
       const 最初 = 文字(d, d.phases[0]!.id);
@@ -564,7 +615,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
     expect(出ない, `動かす値が絵の文字に出ない: ${出ない.join(", ")}`).toHaveLength(0);
   });
 
-  it("23 件すべてで、項目が 1 つも落ちていない", () => {
+  it("25 件すべてで、項目が 1 つも落ちていない", () => {
     // 記法が `{名前}` を読めないと項目ごと落ちる。 落ちた図は「正しい図」 に見えてしまう。
     //
     // **一覧に無い図を黙って飛ばさない**。 期待値の無い図を素通りさせると、対象が増えた時に
@@ -579,7 +630,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       営業所ごとの取扱数: { 中身: 5 },
       // 棒を段の 4 割で伸ばし終える変種 (#1969)。 項目は元の図と同じ 5 つ
       "段の-4-割で伸ばし終える営業所ごとの取扱数": { 中身: 5 },
-      月ごとの配達数: { 中身: 5 },
+      "1-本の線で見る月ごとの配達数": { 中身: 5 },
       荷物の状態: { 中身: 4 },
       申し込みから届くまで: { 中身: 4 },
       "再配達を減らす": { 中身: 12 },
@@ -588,6 +639,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       "荷主が通る-5-つの気持ち": { 中身: 6 },
       打ち手の手間と効き目: { 中身: 5 },
       定時に届いた割合: { 中身: 2 },
+      定時に届いた割合の内訳: { 中身: 2 },
       機能ごとの利用率: { 中身: 4 },
       今月の解約件数: { 中身: 1 },
       前の月と比べた解約件数: { 中身: 1 },
@@ -600,6 +652,7 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       営業所ごとの定時率: { 中身: 4 },
       昨日と比べた荷物の状態: { 中身: 4 },
       "10月の配達の結果": { 中身: 3 },
+      強調なしの仕分け棚を入れ替える工程: { 中身: 6 },
     };
     expect(Object.keys(期待).sort(), "期待値の一覧が対象とずれている").toEqual(
       図表.map(([, d]) => d.id).sort(),
@@ -610,18 +663,19 @@ describe("図表の見本は数が段で動く (#1198)", () => {
       const e = 期待[d.id]!;
       const n = d.nodes[0] as unknown as {
         chartData?: unknown[]; funnelData?: unknown[];
-        journeyData?: unknown[]; quadrantData?: { items?: unknown[] };
+        ganttData?: unknown[]; journeyData?: unknown[]; quadrantData?: { items?: unknown[] };
         mindData?: { branches?: unknown[] };
       };
       const 件数 = (
-        n.chartData ?? n.funnelData ?? n.journeyData ?? n.quadrantData?.items ?? n.mindData?.branches
+        n.chartData ?? n.funnelData ?? n.ganttData ?? n.journeyData ?? n.quadrantData?.items ??
+        n.mindData?.branches
       )?.length;
       if (件数 !== e.中身) 違う.push(`${d.id}: 中身 ${件数} (期待 ${e.中身})`);
     }
     expect(違う, `項目が落ちている: ${違う.join(", ")}`).toHaveLength(0);
   });
 
-  it("23 件すべてで、解決できない欄が無い", () => {
+  it("25 件すべてで、解決できない欄が無い", () => {
     const 未解決: string[] = [];
     for (const [k, d] of 図表) {
       for (const p of d.phases) if (見える部分(d, p.id).includes("data-cdl-unresolved")) 未解決.push(`${k}[${p.id}]`);

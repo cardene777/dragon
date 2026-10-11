@@ -120,9 +120,9 @@ type 素 = Record<string, unknown>;
  * 軸を組む時に欄へ入れる値。 添字を見て決める欄 (前の工程を指す等) は関数で書く。
  *
  * `unknown` にしないのは、関数の引数の型が推論されなくなるため (`unknown | 関数` は
- * `unknown` に潰れる)。 値そのものに意味は無いので、書ける形はこの 3 つで足りる。
+ * `unknown` に潰れる)。 値そのものに意味は無いので、書ける形はこの 4 つで足りる。
  */
-type 見本値 = string | number | ((並び: 素[], 添字: number) => unknown);
+type 見本値 = string | number | boolean | ((並び: 素[], 添字: number) => unknown);
 
 /** 中身の中の 1 並び (図表の件 / 発想の枝 / 時系列の面々 等) */
 interface 並びの決め {
@@ -156,7 +156,7 @@ const 並び = <T, E>(
  * 中身を持つ節の家族。 **`satisfies` で閉じる** = engine が `*Data` の欄を足すと `tsc` が落ちる。
  */
 const 家族 = {
-  chartData: [並び("件", (v: 図表の中身[]) => v, { previous: 8, tone: "accent" }, true)],
+  chartData: [並び("件", (v: 図表の中身[]) => v, { id: "item", previous: 8, tone: "muted", emphasis: "primary" }, true)],
   ganttData: [
     並び(
       "工程",
@@ -166,6 +166,8 @@ const 家族 = {
         // 前の工程を指す。 先頭は指す相手がいないので書かない
         dependsOn: (並, i) => (i > 0 ? String(並[i - 1]!.id) : undefined),
         tone: "accent",
+        milestone: true,
+        emphasis: "primary",
       },
       true,
     ),
@@ -174,7 +176,7 @@ const 家族 = {
     並び("根", (v: 枝の根) => [v], { rootSubtitle: "説明" }, false),
     並び("枝", (v: 枝の根) => v.branches, { tone: "accent", subtitle: "説明" }, true),
   ],
-  funnelData: [並び("段", (v: 漏斗の段[]) => v, { subtitle: "説明" }, true)],
+  funnelData: [並び("段", (v: 漏斗の段[]) => v, { subtitle: "説明", tone: "muted", emphasis: "primary" }, true)],
   quadrantData: [
     並び("面", (v: 四象限) => [v], {}, false),
     並び(
@@ -203,7 +205,12 @@ const 家族 = {
     ),
   ],
   journeyData: [
-    並び("段", (v: 道筋の段[]) => v, { touchpoint: "窓口", opportunity: "改善の余地" }, true),
+    並び(
+      "段",
+      (v: 道筋の段[]) => v,
+      { touchpoint: "窓口", opportunity: "改善の余地", opportunityPosition: "below-point" },
+      true,
+    ),
   ],
   sequenceData: [
     並び("面々", (v: やり取り) => v.actors, { subtitle: "説明" }, true),
@@ -260,15 +267,74 @@ const 節の欄の扱い = {
   posW: "置き場所",
   posH: "置き場所",
   role: "置き場所",
+  cornerForm: "置き場所",
+  chartBarSize: "置き場所",
+  chartLineSize: "置き場所",
+  chartPieSize: "置き場所",
+  chartSlopeLabelTemplate: "置き場所",
+  chartSlopeSize: "置き場所",
+  chartStackedLayout: "記法",
+  chartGaugeSize: "置き場所",
+  ganttSize: "置き場所",
+  quadrantLabelPosition: "置き場所",
+  quadrantSize: "置き場所",
   // 記法 = 記法から書く表現の欄
   leaderTo: "記法",
   eyebrow: "記法",
   subtitle: "記法",
+  kindForm: "記法",
+  icon: "記法",
+  emptyRowsNote: "記法",
+  emphasis: "記法",
+  titleAlign: "記法",
+  rowRules: "記法",
+  rowMarkForm: "記法",
+  nestIn: "記法",
+  stationNamePosition: "記法",
+  subtitlePlacement: "記法",
+  titleFontSize: "記法",
+  markGap: "記法",
   rows: "記法",
   rowMarks: "記法",
   rowStripe: "記法",
   tone: "記法",
   shape: "記法",
+  ganttToday: "記法",
+  ganttTickLabels: "記法",
+  ganttBarEnd: "記法",
+  ganttBarThickness: "記法",
+  chartSeriesSkipMuted: "記法",
+  chartLineSeries: "記法",
+  chartPieCenterLabel: "記法",
+  chartPieTableColumns: "記法",
+  chartPieRingWidth: "記法",
+  chartSlopePeriods: "記法",
+  chartSlopeEmphasisIds: "記法",
+  chartSlopeUnit: "記法",
+  chartStackedPeriods: "記法",
+  chartStackedRateId: "記法",
+  chartStackedLegendPosition: "記法",
+  chartGaugeValue: "記法",
+  chartWaffleLegendPosition: "記法",
+  funnelForm: "記法",
+  funnelRate: "記法",
+  quadrantPointLabelSide: "記法",
+  treeNodeForm: "記法",
+  treeSize: "記法",
+  treeEdgeTone: "記法",
+  treeEdgeHead: "記法",
+  mindForm: "記法",
+  mindSize: "記法",
+  journeyForm: "記法",
+  journeyLineForm: "記法",
+  journeyLabels: "記法",
+  journeySize: "記法",
+  figureCard: "記法",
+  terminalDecoration: "記法",
+  figureKindLabel: "記法",
+  figureInset: "記法",
+  chartBarShape: "記法",
+  chartWaffleSize: "記法",
   // 横軸の尺を固定する配置の指定。帯や目盛りという新しい役割は増やさない。
   ganttAxisMax: "置き場所",
 } satisfies Record<節の任意の欄, string>;
@@ -284,6 +350,8 @@ const 矢印の欄の扱い = {
   // 置き場所 = 図を組む側が決める
   labelOffsetX: "置き場所",
   labelOffsetY: "置き場所",
+  labelCollision: "置き場所",
+  labelSize: "置き場所",
   posX1: "置き場所",
   posY1: "置き場所",
   posX2: "置き場所",
@@ -291,6 +359,8 @@ const 矢印の欄の扱い = {
   // 記法 = 記法から書く表現の欄
   sub: "記法",
   side: "記法",
+  fromSide: "記法",
+  toSide: "記法",
   style: "記法",
   role: "記法",
   labelPlate: "記法",
@@ -359,6 +429,8 @@ const 覆えない組: Record<string, string> = {
     "親を書かない系統樹は木にならない (`tree-edge` が 1 本も出ず、箱が並ぶだけ) = 形が 2 通りあるのではなく、木という図が成立していない",
   "gantt-timeline/工程/件数":
     "工程が 1 つの段取りは前後を持たない (`gantt-arrow` が 1 本も出ない) = 帯 1 本で、段取り図にならない。 前後の有無そのものは `dependsOn` の切替が見せる",
+  "chart-waffle/件/件数":
+    "区分が 1 つの升目には比べる内訳が無く、荷物の大きさの分布を見せる図として成立しない。区切り線の有無は複数区分であることから決まる",
 };
 
 /**
@@ -375,7 +447,8 @@ const 覆えない組: Record<string, string> = {
  * 表から外して見本を足す側へ回す。
  */
 const 描かない欄: Record<string, string> = {
-  "ganttData/工程/tone": "帯の色は工程の並び順で決まる。 工程ごとの色を書いても帯には出ない",
+  "chartData/件/id":
+    "id は傾き図の主役と内訳の帯の率を別欄から指す識別子で、id を単独で書いても像素は変わらない",
 };
 
 /**
@@ -420,6 +493,14 @@ const この種別だけ描かない組: Record<string, string> = {
     "棒は 1 色のまま濃さだけを変えると決めた (`cdl#747`)。 同じ量どうしの比較で色は量を表さないので、件ごとに色を配ると『色に意味がある』 と誤読される",
   "chart-line/件/tone":
     "折れ線は 1 本の線で、色は線に付く。 点ごとの色を書いても線は 1 色のまま",
+  "chart-pie/件/emphasis": "円の扇は面積で量を比べ、主役の重ね模様は持たない",
+  "chart-line/件/emphasis": "単系列の折れ線は点ごとの主役の重ね模様を持たない",
+  "chart-bar/件/emphasis": "棒は量を長さで比べ、主役の重ね模様は持たない",
+  "chart-gauge/件/emphasis": "半円は合計または現在値を主役にするため、内訳ごとの主役は持たない",
+  "chart-radial/件/emphasis": "弧の並びは量を長さで比べ、主役の重ね模様は持たない",
+  "chart-stat/件/emphasis": "大きな数字は 1 件そのものが主役で、件ごとの主役模様は持たない",
+  "chart-waffle/件/emphasis": "100 個の印は面で割合を比べ、主役の重ね模様は持たない",
+  "chart-slope/件/emphasis": "傾き図の主役は node の chartSlopeEmphasisIds から id を指すため、datum の emphasis は読まない",
 };
 
 /**
@@ -510,13 +591,14 @@ interface 中身の節 {
   欄: 中身の欄;
   kind: string;
   中身: unknown;
+  ノードの番: number;
 }
 
 const 中身たち = (d: CdlDiagram): 中身の節[] =>
-  d.nodes.flatMap((n) =>
+  d.nodes.flatMap((n, ノードの番) =>
     (Object.keys(家族) as 中身の欄[])
       .filter((欄) => (n as unknown as 素)[欄] !== undefined)
-      .map((欄) => ({ 欄, kind: n.kind, 中身: (n as unknown as 素)[欄] })),
+      .map((欄) => ({ 欄, kind: n.kind, 中身: (n as unknown as 素)[欄], ノードの番 })),
   );
 
 /** 軸 1 本 */
@@ -600,7 +682,7 @@ interface 下ごしらえ {
   /** `<欄>/<種別>` ごとの元になる図 */
   基: Map<string, CdlDiagram>;
   /** 見本 1 件ごとの、持っている中身の節 */
-  見本: Array<{ 名: string; 節: 中身の節[][] }>;
+  見本: Array<{ 名: string; 図: CdlDiagram[]; 節: 中身の節[][] }>;
 }
 
 function 下ごしらえする(): 下ごしらえ {
@@ -608,21 +690,57 @@ function 下ごしらえする(): 下ごしらえ {
   const 基 = new Map<string, CdlDiagram>();
   const 見本: 下ごしらえ["見本"] = [];
   for (const item of Object.values(CATALOG_ITEMS).flat()) {
-    const 節 = 図たち(item).map(中身たち);
-    if (節.some((x) => x.length > 0)) 見本.push({ 名: item.title, 節 });
-    図たち(item).forEach((d, i) => {
+    const 図 = 図たち(item);
+    const 節 = 図.map(中身たち);
+    if (節.some((x) => x.length > 0)) 見本.push({ 名: item.title, 図, 節 });
+    図.forEach((d, i) => {
       for (const { 欄, kind } of 節[i]!) {
         const 一覧 = 種別.get(欄) ?? [];
         if (!一覧.includes(kind)) 種別.set(欄, [...一覧, kind]);
-        if (!基.has(`${欄}/${kind}`)) 基.set(`${欄}/${kind}`, d);
+        const 鍵 = `${欄}/${kind}`;
+        const 前 = 基.get(鍵);
+        const 固定尺の半円 = (diagram: CdlDiagram): boolean =>
+          diagram.nodes.some((n) => n.kind === "chart-gauge" && n.chartGaugeValue !== undefined);
+        // 固定尺の半円は chartData を描かない。chartData の軸は内訳型の変種で測る。
+        if (前 === undefined || (欄 === "chartData" && 固定尺の半円(前) && !固定尺の半円(d)))
+          基.set(鍵, d);
       }
     });
   }
   return { 種別, 基, 見本 };
 }
 
+const 件を描くかの控え = new WeakMap<CdlDiagram, Map<string, boolean>>();
+
+/**
+ * 並びのその件を図が描いているか。件を 1 つだけ除いた時に実物の SVG が変われば描いている。
+ *
+ * 欄が未指定というだけでは「書かない側」に数えない。固定尺の半円の `chartData` のように
+ * datum 全体を読まない図を両側へ混ぜると、見比べられない欄まで網羅済みになるため。
+ */
+function 件を描く(図: CdlDiagram, 節: 中身の節, 軸: 軸, 添字: number): boolean {
+  const 鍵 = `${節.ノードの番}/${節.欄}/${軸.並び.名}/${添字}`;
+  const 控え = 件を描くかの控え.get(図) ?? new Map<string, boolean>();
+  件を描くかの控え.set(図, 控え);
+  const 前 = 控え.get(鍵);
+  if (前 !== undefined) return 前;
+
+  const 除いた = 写す(図);
+  const node = 除いた.nodes[節.ノードの番] as unknown as 素;
+  const 中身 = node[節.欄];
+  if (軸.並び.件数を見る) 軸.並び.取る(中身).splice(添字, 1);
+  else delete node[節.欄];
+  const 描かれる = 控えて描く(図) !== 描く(除いた);
+  控え.set(鍵, 描かれる);
+  return 描かれる;
+}
+
 /**
  * その種別のその軸について、**1 つの見本の切替で両側を見せているか**。
+ *
+ * 件ごとの欄は、同じ図の中に書いた件と書かない件があれば両側に数える。ただし、その図が
+ * 実際に描く件だけを見る。datum 全体を読まない図の未指定欄は「書かない側」ではない。
+ * 件数は並び全体の形なので、従来どおり別の図またはパターンで 1 件 / 複数件を見比べる。
  *
  * **本番と植え込み対照で同じ関数を使う**。 判定を 2 度書くと片方だけ直して drift する
  * (`rules/quality.md § 検査の母集団が守りたい集合と同じことを確認済`)。
@@ -630,11 +748,22 @@ function 下ごしらえする(): 下ごしらえ {
 function 切替で両側(見本: 下ごしらえ["見本"], 軸: 軸, kind: string): boolean {
   for (const v of 見本) {
     const 側 = new Set<0 | 1>();
-    for (const 節 of v.節)
-      for (const x of 節)
-        if (x.欄 === 軸.欄 && x.kind === kind) 側.add(軸.見本の側(x.中身));
-    // 1 つの図が両側を同時に持つことはない (軸は「書いたか」 の 2 値)。
-    // 同じ見本の別の図 (= パターンの切替) で分かれている時だけ両側になる
+    for (const [図の番, 節] of v.節.entries()) {
+      const 図 = v.図[図の番];
+      if (図 === undefined) throw new Error(`${v.名} の図と中身の対応が無い`);
+      for (const x of 節) {
+        if (x.欄 !== 軸.欄 || x.kind !== kind) continue;
+        if (軸.名 === "件数") {
+          側.add(軸.見本の側(x.中身));
+          continue;
+        }
+        const 並列 = 軸.並び.取る(x.中身);
+        並列.forEach((e, i) => {
+          if (件を描く(図, x, 軸, i)) 側.add(e[軸.名] === undefined ? 0 : 1);
+        });
+      }
+    }
+    // 同じ見本の件の中、またはパターン切替で両側を見せているか。
     if (側.has(0) && 側.has(1)) return true;
   }
   return false;
@@ -878,19 +1007,30 @@ describe("中身を持つ節が見せる形をカタログが見せているか 
      */
     const 軸 = 軸ら.find((a) => a.欄 === "treeData" && a.名 === "subtitle");
     expect(軸, "系統樹の説明の軸が無い").toBeDefined();
-    const 節 = (subtitle: boolean): 中身の節[] => [
-      {
-        欄: "treeData",
-        kind: "tree-hierarchy",
-        中身: [{ id: "a", title: "a", ...(subtitle ? { subtitle: "説明" } : {}) }],
-      },
-    ];
+    const 基 = 材料.基.get("treeData/tree-hierarchy");
+    if (基 === undefined) throw new Error("系統樹の基が無い");
+    const 図 = (subtitle: boolean): CdlDiagram => {
+      const d = 写す(基);
+      for (const n of d.nodes)
+        for (const e of n.treeData ?? []) {
+          delete e.subtitle;
+          if (subtitle) e.subtitle = "説明";
+        }
+      return d;
+    };
+    const 見本 = (名: string, 図ら: CdlDiagram[]): 下ごしらえ["見本"][number] => ({
+      名,
+      図: 図ら,
+      節: 図ら.map(中身たち),
+    });
+    const 無し = 図(false);
+    const 有り = 図(true);
     // 片側ずつを別の見本に置く = カタログには両側があるが、切替では見比べられない
     expect(
       切替で両側(
         [
-          { 名: "書かない側だけの見本", 節: [節(false)] },
-          { 名: "書く側だけの見本", 節: [節(true)] },
+          見本("書かない側だけの見本", [無し]),
+          見本("書く側だけの見本", [有り]),
         ],
         軸!,
         "tree-hierarchy",
@@ -899,9 +1039,26 @@ describe("中身を持つ節が見せる形をカタログが見せているか 
     ).toBe(false);
     // 同じ見本の切替に両側を置くと見つかる (判定が常に false でないことの確認)
     expect(
-      切替で両側([{ 名: "切替を持つ見本", 節: [節(false), 節(true)] }], 軸!, "tree-hierarchy"),
+      切替で両側([見本("切替を持つ見本", [無し, 有り])], 軸!, "tree-hierarchy"),
       "同じ見本の切替に両側があるのに片側とみなした",
     ).toBe(true);
+  });
+
+  it("描かない datum の未指定欄を両側に数えない", () => {
+    const 軸 = 軸ら.find((a) => a.欄 === "chartData" && a.名 === "emphasis");
+    expect(軸, "chartData の emphasis 軸が無い").toBeDefined();
+    const 基 = Object.values(CATALOG_ITEMS)
+      .flat()
+      .flatMap(図たち)
+      .find((d) => d.nodes.some((n) => n.kind === "chart-gauge" && n.chartGaugeValue !== undefined));
+    if (軸 === undefined || 基 === undefined) throw new Error("固定尺の半円の基が無い");
+    const d = 写す(基);
+    const 半円 = d.nodes.find((n) => n.kind === "chart-gauge" && n.chartGaugeValue !== undefined);
+    if (半円 === undefined || 半円.chartData === undefined) throw new Error("固定尺の半円が無い");
+    半円.chartData[0] = { ...半円.chartData[0]!, emphasis: "primary" };
+    if (半円.chartData[1] !== undefined) delete 半円.chartData[1].emphasis;
+    const 見本 = [{ 名: "chartData を描かない固定尺の半円", 図: [d], 節: [中身たち(d)] }];
+    expect(切替で両側(見本, 軸, "chart-gauge")).toBe(false);
   });
 
   it("覆えない組は、今も engine が形の差を返す組だけ", () => {
@@ -1123,8 +1280,20 @@ const 置き場所の見本値: Record<string, unknown> = {
   "節/posH": 160,
   "節/role": "lifeline-footer",
   "節/ganttAxisMax": 5,
+  "節/cornerForm": "theme-variants",
+  "節/chartBarSize": { tickFontSize: 19 },
+  "節/chartLineSize": { pointRadius: 7.5 },
+  "節/chartPieSize": { outerRadius: 171 },
+  "節/chartSlopeLabelTemplate": { left: "{name} {value}{unit}" },
+  "節/chartSlopeSize": { pointRadius: 7 },
+  "節/chartGaugeSize": { arcThickness: 34 },
+  "節/ganttSize": { tickCount: 6 },
+  "節/quadrantLabelPosition": "outside-corners",
+  "節/quadrantSize": { pointRadius: 11 },
   "矢印/labelOffsetX": 40,
   "矢印/labelOffsetY": 40,
+  "矢印/labelCollision": "author",
+  "矢印/labelSize": { width: 96, height: 40, fontSize: 21 },
   "矢印/posX1": 20,
   "矢印/posY1": 20,
   "矢印/posX2": 220,

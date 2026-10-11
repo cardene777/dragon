@@ -68,6 +68,7 @@ describe("実効色", () => {
     ["none", null],
     ["transparent", { rgb: BLACK, alpha: 0 }],
     ["rgb(20 58 82 / 0.5)", { rgb: [20, 58, 82], alpha: 0.5 }],
+    ["color(srgb 1 0.180392 0.592157 / 0.18)", { rgb: [255, 45.99996, 151.00003500000003], alpha: 0.18 }],
     ["#143a52", { rgb: [20, 58, 82], alpha: 1 }],
   ])("%s を読む", (value, expected) => {
     expect(parseColor(value)).toEqual(expected);

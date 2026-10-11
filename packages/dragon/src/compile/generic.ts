@@ -1,4 +1,9 @@
-import { diagram } from "@cardenelabs/cdl";
+import {
+  CLEARANCE_NODE_LABEL,
+  diagram,
+  LABEL_INIT_CLEARANCE,
+  LABEL_TO_PATH_CLEARANCE,
+} from "@cardenelabs/cdl";
 import type { CdlDiagram, CdlEdge, NodeKind, Tone } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "../focus";
 import type { DslDocument, DslPhase, DslStep } from "../types";
@@ -11,8 +16,13 @@ import { 箱の題 } from "./node-title";
 import { slugify } from "./slug";
 import {
   placeStages,
+  STAGE_CARD_COLUMN_INSET,
   STAGE_CARD_HEIGHT,
+  STAGE_CARD_PITCH,
   STAGE_CARD_WIDTH,
+  STAGE_FIRST_CARD_CENTER_Y,
+  STAGE_LANE_GAP,
+  STAGE_LANE_Y,
   段の箱の線の指定,
   type StagesPlacement,
 } from "./stages";
@@ -29,8 +39,21 @@ import {
   TIMELINE_NUMBER_SIZE,
 } from "./timeline";
 
-/** 時間軸の 40px 高の札を、横線から 20px 空けて上へ置く。 */
-const 時間軸の横分岐の札の上げ幅 = -(40 / 2 + 20);
+/** 見本帳と共通の、時間軸の横分岐に置く札の寸法。 */
+const 時間軸の横分岐の札の大きさ = { width: 96, height: 40, fontSize: 21 } as const;
+
+/** 時間軸の横分岐の札の下端と線の間。 */
+const 時間軸の横分岐の札と線の間 = 20;
+
+/*
+ * 短い横線では札の横幅が両端の節の安全域に重なるため、cdl の routePath は札の中心を
+ * `線 - 節の半高 - 節との余白 - 標準札の半高` に置く。そこから見本の位置へ戻す量を渡す。
+ */
+const 時間軸の横分岐の札の下げ幅 =
+  TIMELINE_DECISION_HEIGHT / 2 +
+  CLEARANCE_NODE_LABEL +
+  (LABEL_INIT_CLEARANCE - LABEL_TO_PATH_CLEARANCE) -
+  (時間軸の横分岐の札の大きさ.height / 2 + 時間軸の横分岐の札と線の間);
 
 /**
  * 段を持つ図種の共通の組み立て (#2030 で `compile.ts` から移した)。
@@ -260,6 +283,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
           stack: index,
           kind: 箱の種類(actor),
           title: 箱の題(actor),
+          ...(actor.subtitlePlacement !== undefined
+            ? { subtitlePlacement: actor.subtitlePlacement }
+            : {}),
           ...markSize,
           posX: placement.axisX,
           posY: step.y,
@@ -289,6 +315,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         title: 箱の題(actor),
         ...(actor.lane !== undefined
           ? { subtitle: doc.lanes?.[actor.lane]?.label ?? actor.lane }
+          : {}),
+        ...(actor.subtitlePlacement !== undefined
+          ? { subtitlePlacement: actor.subtitlePlacement }
           : {}),
         ...(numberId !== undefined ? { leaderTo: numberId } : {}),
         w: step.cardWidth,
@@ -320,6 +349,9 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         stack: index,
         kind: 泳法図で印をどう描く(doc, actor) === "描く" ? 箱の種類(actor) : "station",
         title: 箱の題(actor),
+        ...(actor.stationNamePosition !== undefined
+          ? { stationNamePosition: actor.stationNamePosition }
+          : {}),
         ...(路線図の色?.nodeToneByName.get(actor.name) !== undefined
           ? { tone: 路線図の色.nodeToneByName.get(actor.name) }
           : {}),
@@ -338,10 +370,25 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
      */
     const placement = placeStages(doc);
     stagesPlacement = placement;
-    for (const column of placement.columns) {
+    const lastStack = Math.max(0, ...[...placement.cards.values()].map((card) => card.stack));
+    const stageLaneHeight =
+      STAGE_FIRST_CARD_CENTER_Y + lastStack * STAGE_CARD_PITCH + STAGE_CARD_HEIGHT / 2;
+    for (const [columnIndex, column] of placement.columns.entries()) {
       b.lane(column.id, {
         width: laneWidth,
-        stage: { number: column.number, name: column.name },
+        // cdl は段階列の面の間を 48 取る。見本の 64 にするため、
+        // lane 自体の間に残りの 16 を書き、描画側の列幅は変えない。
+        posX: columnIndex * (laneWidth + STAGE_LANE_GAP),
+        posY: STAGE_LANE_Y,
+        posW: laneWidth,
+        posH: stageLaneHeight,
+        stage: {
+          number: column.number,
+          name: column.name,
+          ...(doc.theme !== undefined && doc.stageHeaders?.[doc.theme] !== undefined
+            ? { header: doc.stageHeaders[doc.theme] }
+            : {}),
+        },
       });
     }
     doc.actors.forEach((a, idx) => {
@@ -349,11 +396,19 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       actorToNodeId.set(a.name, id);
       const card = placement.cards.get(a.name);
       if (card === undefined) throw new Error(`段の箱の "${a.name}" を置く列がありません`);
+      const columnName = placement.columns[card.column]?.name;
+      const writtenColumnWidth = columnName === undefined
+        ? undefined
+        : doc.stageLayout?.columnWidths?.[columnName];
       b.node(id, {
         lane: card.columnId,
         stack: card.stack,
-        w: STAGE_CARD_WIDTH,
+        w: writtenColumnWidth === undefined
+          ? STAGE_CARD_WIDTH
+          : Math.max(1, writtenColumnWidth - STAGE_CARD_COLUMN_INSET),
         h: STAGE_CARD_HEIGHT,
+        posX: card.column * (laneWidth + STAGE_LANE_GAP) + laneWidth / 2,
+        posY: STAGE_FIRST_CARD_CENTER_Y + card.stack * STAGE_CARD_PITCH,
         kind: "card",
         title: 箱の題(a),
         ...(card.subtitle === undefined ? {} : { subtitle: card.subtitle }),
@@ -491,7 +546,7 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
         ? { tone: 路線図の色.edgeToneByIndex.get(idx) }
         : {}),
       ...(timelineEdgeKind === "back"
-        ? { routing: "back-detour" as const }
+        ? { routing: "back-detour" as const, fromSide: "right" as const, toSide: "right" as const }
         : 路線図か
         ? { routing: "metro" as const }
         : stagesPlacement !== undefined
@@ -508,8 +563,15 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       ...(関係?.headLabel ? { headLabel: 関係.headLabel } : {}),
       ...(関係?.tailLabel ? { tailLabel: 関係.tailLabel } : {}),
       ...(s.side ? { side: s.side } : {}),
+      ...(s.fromSide !== undefined ? { fromSide: s.fromSide } : {}),
+      ...(s.toSide !== undefined ? { toSide: s.toSide } : {}),
       ...(timelineHorizontalBranch && s.label !== ""
-        ? { overlay: true, labelOffsetY: 時間軸の横分岐の札の上げ幅 }
+        ? {
+            overlay: true,
+            labelCollision: "author" as const,
+            labelSize: 時間軸の横分岐の札の大きさ,
+            labelOffsetY: 時間軸の横分岐の札の下げ幅,
+          }
         : timelineEdgeKind !== undefined && s.label !== ""
           ? { overlay: true }
           : {}),

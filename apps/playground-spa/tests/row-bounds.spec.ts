@@ -147,8 +147,11 @@ const 必ず在る見本: Array<{ slug: string; id: string; rows: number }> = [
    * | `er-demo` | 14 | 11 | 鍵と値を分ける空行 3 つが消えた |
    *
    * 群の区切りは行頭の印が持っているので、空行は 2 つ目の手掛かりだった。
+   *
+   * cdl 0.130 の `emptyRowsNote` をひな形へ 1 度だけ書く決定で、`Auditable` の行を
+   * 意図して空にした。行の欠落ではなく、空の意味を注記へ移した分なので記録は 14。
    */
-  { slug: "presets", id: "class-demo", rows: 15 },
+  { slug: "presets", id: "class-demo", rows: 14 },
   { slug: "presets", id: "er-demo", rows: 11 },
   /*
    * 込み入った 2 図が見本に足された分 (#1709 で実測)。 一覧を直していなかったため

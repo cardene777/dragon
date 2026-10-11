@@ -150,6 +150,8 @@ const 利用者から見えない: Record<string, string> = {
   //
   // **検査側で宣言 commit を特別扱いしない**。 除くと、本当に宣言が要る変更まで素通りする。
   "2276": "版を切る commit そのもの。 変更履歴の更新が中身",
+  "2861":
+    "正解の図と見本帳の図を測って比べる開発用の `dragon-match` skill・測定 script・専用検査を足しただけ。 配る package の記法・図と見本帳の利用者向け画面は変えていない",
   "2829":
     "見本帳の件数を固定していた検査 4 種を登録表から数える形にし、画面が使う部品の件数 (`PARTS_COUNT_ESTIMATE`) を名前の表から導くようにしただけ。 画面に出る件数は前後で同じで、`parts-count.test.ts` が `loadPartsItems()` の行数との一致を確かめている。 記法も図も画面も 1 文字も変わらない",
   "2828":
@@ -272,6 +274,17 @@ const 利用者から見えない: Record<string, string> = {
 };
 
 /**
+ * 番号を持たない merge のうち、利用者から見えないと確認したもの。
+ *
+ * merge を一律に除くと、競合解消で入った変更まで素通りする。番号で宣言できないものだけを
+ * 元件名そのものと理由の組で宣言し、通常の宣言と同じく範囲との両方向を確かめる。
+ */
+const 利用者から見えないmerge: Record<string, string> = {
+  "Merge remote-tracking branch 'origin/main' into feature/2854-cdl-0127-catalog":
+    "origin/main の #2861 を作業 branch へ結んだ merge。競合解消による固有の差分は無く、取り込んだ開発用 `dragon-match` は #2861 で利用者から見えないと宣言している",
+};
+
+/**
  * `git log --format=%B%x00` の出力を commit ごとに割る (#1279)。
  *
  * **区切りは NUL** (Round 2 の指摘)。 記録区切り (U+001E) は commit の本文に書けてしまう
@@ -324,6 +337,23 @@ function 本文で割る(raw: string): string[] {
 function commitの番号(message: string): string[] {
   const { 件名, 元件名 } = 名乗る行の番号(message);
   return [...件名, ...元件名.flat()];
+}
+
+/** commit 自身の件名と、squash 後の本文に残る元件名。 */
+function commitの件名(message: string): string[] {
+  const 行 = message.split("\n");
+  return [
+    行[0] ?? "",
+    ...行
+      .slice(1)
+      .filter((line) => line.startsWith("* "))
+      .map((line) => line.slice(2)),
+  ].filter((line) => line !== "");
+}
+
+/** 番号を持たない merge が、理由付きの元件名宣言から辿れるか。 */
+function merge宣言から辿れるか(message: string): boolean {
+  return commitの件名(message).some((subject) => subject in 利用者から見えないmerge);
 }
 
 /**
@@ -400,7 +430,7 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
     const 載っている = new Set([...対象の節().matchAll(/#(\d+)/g)].map((m) => m[1]!));
     /** その番号が変更履歴か宣言のどちらかにあるか */
     const 載る = (n: string): boolean => 載っている.has(n) || n in 利用者から見えない;
-    const 辿れない = commit.filter((s) => !辿れるか(s, 載る));
+    const 辿れない = commit.filter((s) => !辿れるか(s, 載る) && !merge宣言から辿れるか(s));
     expect(
       辿れない.map((c) => c.split("\n")[0]),
       "変更履歴にも宣言にも無い commit がある",
@@ -419,6 +449,12 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
     // 取り込み後も残る = 宣言は常に範囲の中にあるはず
     const 範囲に無い = Object.keys(利用者から見えない).filter((n) => !範囲の番号.has(n));
     expect(範囲に無い, "宣言に、この版の範囲に無い番号がある").toEqual([]);
+
+    const 範囲の件名 = new Set(commit.flatMap((message) => commitの件名(message)));
+    const 範囲に無いmerge = Object.keys(利用者から見えないmerge).filter(
+      (subject) => !範囲の件名.has(subject),
+    );
+    expect(範囲に無いmerge, "宣言に、この版の範囲に無い merge 元件名がある").toEqual([]);
   });
 
   it("版を上げた commit が範囲に入っている", () => {
@@ -611,7 +647,10 @@ describe("版に入る commit が変更履歴から辿れる (#1277)", () => {
   });
 
   it("宣言に理由が書かれている", () => {
-    const 理由なし = Object.entries(利用者から見えない).filter(([, v]) => v.trim() === "");
+    const 理由なし = [
+      ...Object.entries(利用者から見えない),
+      ...Object.entries(利用者から見えないmerge),
+    ].filter(([, v]) => v.trim() === "");
     expect(理由なし, "宣言に理由の無い項目がある").toEqual([]);
   });
 });

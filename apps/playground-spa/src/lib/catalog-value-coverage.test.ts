@@ -159,6 +159,7 @@ const 軸たち: 軸[] = [
       error: "見本",
       warning: "見本",
       info: "見本",
+      muted: "見本",
     } satisfies Record<Tone, 覆い方>,
     読む: (d) => d.nodes.map((n) => n.tone),
   },
@@ -171,6 +172,7 @@ const 軸たち: 軸[] = [
       error: "見本",
       warning: "見本",
       info: "見本",
+      muted: "見本",
     } satisfies Record<Tone, 覆い方>,
     読む: 矢印の欄を読む("tone"),
   },
@@ -195,6 +197,7 @@ const 軸たち: 軸[] = [
       "zero-one": "見本",
       many: "見本",
       "zero-many": "見本",
+      dot: "見本",
     } satisfies Record<EdgeHead, 覆い方>,
     読む: 矢印の欄を読む("head"),
   },
@@ -210,6 +213,7 @@ const 軸たち: 軸[] = [
       "zero-one": "見本",
       many: "見本",
       "zero-many": "見本",
+      dot: "見本",
     } satisfies Record<EdgeHead, 覆い方>,
     読む: 矢印の欄を読む("tailHead"),
   },
@@ -417,21 +421,25 @@ describe("欄が取る値を、カタログが全て見せている (#1966)", ()
             .filter(([, x]) => x === "見本")
             .map(([v]) => v),
         );
+        const 配置 = (d: CdlDiagram): string =>
+          JSON.stringify(layout(d), (鍵, v: unknown) => (鍵 === 置く!.欄 ? undefined : v));
         let 元: CdlDiagram | undefined;
         let 添字 = -1;
         for (const d of 全ての図) {
-          添字 = a.読む(d).findIndex((v) => typeof v === "string" && 別の値たち.has(v));
-          if (添字 >= 0) {
+          const 候補の添字 = a.読む(d).findIndex((v) => typeof v === "string" && 別の値たち.has(v));
+          if (
+            候補の添字 >= 0 &&
+            配置(d) !== 配置(置く!.書く(d, 候補の添字, undefined))
+          ) {
             元 = d;
+            添字 = 候補の添字;
             break;
           }
         }
         expect(
           元,
-          `${a.名} の既定でない値を書いた図がカタログに無い (比べる相手が無い)`,
+          `${a.名} の既定でない値を書き、消すと配置が変わる図がカタログに無い (比べる相手が無い)`,
         ).toBeDefined();
-        const 配置 = (d: CdlDiagram): string =>
-          JSON.stringify(layout(d), (鍵, v: unknown) => (鍵 === 置く!.欄 ? undefined : v));
         const 書かない = 配置(置く!.書く(元!, 添字, undefined));
         expect(
           配置(置く!.書く(元!, 添字, 値)),
@@ -615,6 +623,38 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.relations=off": { 種類: "既定", 別の値: "hover" },
   "$.theme": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
+  "$.chartLineSeries[].marker=dot": {
+    種類: "記法一覧",
+    理由: "折れ線の点の印の値は README で見せる",
+  },
+  "$.chartPieRingWidth=thick": { 種類: "既定", 別の値: "thin" },
+  "$.chartBarShape=split": { 種類: "既定", 別の値: "top-rounded" },
+  "$.chartPieTableColumns=share-value": { 種類: "既定", 別の値: "value" },
+  "$.chartStackedLegendPosition=bottom": { 種類: "既定", 別の値: "top" },
+  "$.chartWaffleLegendPosition=left": { 種類: "既定", 別の値: "right" },
+  "$.funnelForm=trapezoid": { 種類: "既定", 別の値: "proportional-bars" },
+  "$.funnelRate=drop": {
+    種類: "記法一覧",
+    理由: "前段からの減少率を出す漏斗の値は README で見せる",
+  },
+  "$.funnelRate=none": {
+    種類: "記法一覧",
+    理由: "率を出さない漏斗の値は README で見せる",
+  },
+  "$.quadrantPointLabelSide=auto": { 種類: "既定", 別の値: "right" },
+  "$.figureKindLabel.x": { 種類: "記法一覧", 理由: "種類札の省略時寸法は README で見せる" },
+  "$.figureKindLabel.y": { 種類: "記法一覧", 理由: "種類札の省略時寸法は README で見せる" },
+  "$.figureKindLabel.fontSize": { 種類: "記法一覧", 理由: "種類札の省略時寸法は README で見せる" },
+  "$.figureKindLabel.fontWeight": { 種類: "記法一覧", 理由: "種類札の省略時寸法は README で見せる" },
+  "$.figureKindLabel.letterSpacing": { 種類: "記法一覧", 理由: "種類札の省略時寸法は README で見せる" },
+  "$.flow[].labelCollision=auto": { 種類: "記法一覧", 理由: "線札の自動配置は README で見せる" },
+  "$.ganttSize.taskLabelAlign=end": { 種類: "記法一覧", 理由: "工程名の揃え方は README で見せる" },
+  "$.treeNodeForm=accent": { 種類: "既定", 別の値: "frame" },
+  "$.treeEdgeTone=accent": { 種類: "既定", 別の値: "depth" },
+  "$.treeEdgeHead=none": { 種類: "既定", 別の値: "triangle" },
+  "$.mindForm=filled": { 種類: "既定", 別の値: "outline" },
+  "$.journeyForm=bands": { 種類: "既定", 別の値: "rules" },
+  "$.journeyLineForm=curve": { 種類: "既定", 別の値: "straight" },
   // 宅配の見本は英名の欄を使う。和名と、同値の別表記は README の記法一覧で見せる。
   "$.actors[].点の位置": { 種類: "記法一覧", 理由: "at の和名は README で見せる" },
   "$.ticks": { 種類: "記法一覧", 理由: "目盛りの英名は README で見せる" },

@@ -251,6 +251,23 @@ describe("compileGantt", () => {
     expect(data.find((t) => t.title === "B")?.dependsOn).toBe("a");
     expect(data.find((t) => t.title === "A")?.dependsOn).toBeUndefined();
   });
+
+  it("同じ帯へ入る複数の矢印は重複を除いて配列で載る", () => {
+    const d = compile("gantt", {
+      actors: [
+        actor("A", { subtitle: "Q1" }),
+        actor("B", { subtitle: "Q1" }),
+        actor("C", { subtitle: "Q2" }),
+      ],
+      flow: [
+        step("A", "C", { label: "" }),
+        step("B", "C", { label: "" }),
+        step("A", "C", { label: "" }),
+      ],
+    });
+    const data = d.nodes[0]!.ganttData!;
+    expect(data.find((t) => t.title === "C")?.dependsOn).toEqual(["a", "b"]);
+  });
 });
 
 // ── compileC4: 3 lane 座標 + subtitle 別配置 ──

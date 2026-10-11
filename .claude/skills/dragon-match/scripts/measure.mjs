@@ -17,6 +17,7 @@ import { 図を測る, 図を開く, 比較一覧, sourceのpathを整える } f
 const 位置と大きさで許す差 = 2;
 const 字の大きさで許す差 = 0.25;
 const 線と枠の太さで許す差 = 0.1;
+const 字を持たない図形の最小面積 = 400;
 
 function 丸める(value) {
   return Math.round(value * 1000) / 1000;
@@ -455,6 +456,24 @@ function 字なし図形を比べる(state, wait, label, expectedBoxes, actualBo
   }
 }
 
+function 小さい字なし図形を除く(measurement, scale) {
+  const unlabeledBoxes = measurement.unlabeledBoxes.filter(
+    (box) => (box.width / scale) * (box.height / scale) >= 字を持たない図形の最小面積,
+  );
+  const keptIds = new Set(unlabeledBoxes.map((box) => box.id));
+  const removedIds = new Set(
+    measurement.unlabeledBoxes.filter((box) => !keptIds.has(box.id)).map((box) => box.id),
+  );
+  return {
+    ...measurement,
+    boxes: measurement.boxes.filter((box) => !removedIds.has(box.id)),
+    unlabeledBoxes,
+    elements: measurement.elements.filter(
+      (element) => element.kind !== "box" || !removedIds.has(element.id),
+    ),
+  };
+}
+
 function 含む(outer, inner) {
   return (
     outer.x <= inner.x &&
@@ -518,6 +537,8 @@ function 崩れを調べる(actual) {
 
 function 一つを比べる(label, expected, actual, wait) {
   const matching = 組にする(expected.texts, actual.texts);
+  const countedExpected = 小さい字なし図形を除く(expected, 1);
+  const countedActual = 小さい字なし図形を除く(actual, matching.overallScale);
   const state = { differences: [], unmeasurable: [], cdlWait: [] };
   if (Math.abs(matching.overallScale - 1) > 0.01) {
     違いを足す(
@@ -558,11 +579,11 @@ function 一つを比べる(label, expected, actual, wait) {
     state,
     wait,
     label,
-    expected.unlabeledBoxes,
-    actual.unlabeledBoxes,
+    countedExpected.unlabeledBoxes,
+    countedActual.unlabeledBoxes,
     matching.overallScale,
   );
-  const layout = 崩れを調べる(actual);
+  const layout = 崩れを調べる(countedActual);
   return {
     label,
     overallScale: matching.overallScale,
@@ -574,7 +595,7 @@ function 一つを比べる(label, expected, actual, wait) {
     unmeasurable: state.unmeasurable,
     cdlWait: state.cdlWait,
     layout,
-    measurements: { expected, actual },
+    measurements: { expected: countedExpected, actual: countedActual },
   };
 }
 

@@ -1,4 +1,4 @@
-import type { CdlDiagram } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlNode } from "@cardenelabs/cdl";
 import { THEMES, type DslTheme, 意匠の字の測り方 } from "@cardenelabs/dragon";
 import { 字を引く, type 二言語 } from "./bilingual";
 import type { Locale } from "./i18n";
@@ -43,6 +43,87 @@ export type 配色 = DslTheme | typeof 画面の色;
 /** `null` は選んでいない状態で、図に書かれた意匠をそのまま使う。 */
 export type 配色の選択 = 配色 | null;
 
+type 浮彫の凹み面の値 = Pick<NonNullable<CdlNode["figureInset"]>, "holdsContent"> & {
+  chartLinePeriodY?: number;
+  chartSlopeAxisGap?: number;
+  chartStackedBarWidth?: number;
+  quadrantPlotSize?: number;
+};
+
+type 凹み面の意図を持つ図 = CdlDiagram & {
+  figureInsetByTheme?: Partial<Record<DslTheme, 浮彫の凹み面の値>>;
+};
+
+function 浮彫の凹み面の値を当てる(
+  node: CdlDiagram["nodes"][number],
+  元の値: 浮彫の凹み面の値,
+  収める: boolean,
+): CdlDiagram["nodes"][number] {
+  if (node.figureInset === undefined) return node;
+
+  const figureInset = { ...node.figureInset };
+  if (収める) figureInset.holdsContent = true;
+  else delete figureInset.holdsContent;
+  const leftInset = figureInset.left ?? 18;
+  const rightInset = figureInset.right ?? 18;
+  const topInset = figureInset.top ?? 4;
+  const bottomInset = figureInset.bottom ?? 8;
+  const horizontalInset = leftInset + rightInset;
+  const verticalInset = topInset + bottomInset;
+
+  const 次: CdlDiagram["nodes"][number] = { ...node, figureInset };
+  if (元の値.chartLinePeriodY !== undefined) {
+    次.chartLineSize = {
+      ...node.chartLineSize,
+      periodY: 収める
+        ? Math.max(0, 元の値.chartLinePeriodY - verticalInset)
+        : 元の値.chartLinePeriodY,
+    };
+  }
+  if (元の値.chartSlopeAxisGap !== undefined) {
+    次.chartSlopeSize = {
+      ...node.chartSlopeSize,
+      axisGap: 収める
+        ? Math.max(0, 元の値.chartSlopeAxisGap - horizontalInset)
+        : 元の値.chartSlopeAxisGap,
+    };
+  }
+  if (元の値.chartStackedBarWidth !== undefined) {
+    次.chartStackedLayout = {
+      ...node.chartStackedLayout,
+      barWidth: 収める
+        ? Math.max(1, 元の値.chartStackedBarWidth - horizontalInset)
+        : 元の値.chartStackedBarWidth,
+    };
+  }
+  if (元の値.quadrantPlotSize !== undefined) {
+    let plotSize = 元の値.quadrantPlotSize;
+    if (収める && node.w !== undefined && node.h !== undefined) {
+      const contentHeight = node.h - (node.figureCard === undefined ? 0 : 61 + 36);
+      const 元の上限 = Math.min(node.w - 120, contentHeight - 60);
+      const 凹み面の上限 = Math.min(
+        node.w - horizontalInset - 120,
+        contentHeight - verticalInset - 60,
+      );
+      // 見本の min(P幅−120, P高さ−60) が凹み面で失う分だけ、調整済みの元値から引く。
+      plotSize = Math.max(1, 元の値.quadrantPlotSize - (元の上限 - 凹み面の上限));
+    }
+    次.quadrantSize = {
+      ...node.quadrantSize,
+      plotSize,
+    };
+  }
+  return 次;
+}
+
+const 凹み面の比較値 = (node: CdlNode): string => JSON.stringify({
+  holdsContent: node.figureInset?.holdsContent,
+  chartLinePeriodY: node.chartLineSize?.periodY,
+  chartSlopeAxisGap: node.chartSlopeSize?.axisGap,
+  chartStackedBarWidth: node.chartStackedLayout?.barWidth,
+  quadrantPlotSize: node.quadrantSize?.plotSize,
+});
+
 /** 画面に出す札を引く */
 export function 配色の札(配色: DslTheme, locale: Locale): string {
   return 字を引く(値と札[配色], locale);
@@ -71,7 +152,8 @@ export function 押される配色(diagram: CdlDiagram, 選択: 配色の選択)
  * (`playback-speed.ts` と同じ理由)。
  *
  * 端末では `textMetrics` を等幅へ替えて配置を測り直す。端末から外す時は key ごと消し、
- * 描き手の既定である比例の測り方へ戻す。
+ * 描き手の既定である比例の測り方へ戻す。凹み面へ中身を収める意図も図全体から読み、
+ * 浮彫へ替えた時だけ節へ載せ、浮彫から外す時は key ごと消す。
  */
 export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の選択): CdlDiagram {
   if (選択 === null) return diagram;
@@ -84,12 +166,41 @@ export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の�
   const 測り方が同じ = 次の測り方 === undefined
     ? !Object.hasOwn(diagram, "textMetrics")
     : diagram.textMetrics === 次の測り方;
-  if (配色が同じ && 測り方が同じ) return diagram;
+  type 段の見出し = NonNullable<NonNullable<CdlDiagram["lanes"]>[number]["stage"]>["header"];
+  type 見出しを持つ図 = CdlDiagram & {
+    stageHeaders?: Partial<Record<DslTheme, 段の見出し>>;
+  };
+  const 見出しの表 = (diagram as 見出しを持つ図).stageHeaders;
+  const 次の見出し = 次の配色 === undefined ? undefined : 見出しの表?.[次の配色];
+  const 凹み面の表 = (diagram as 凹み面の意図を持つ図).figureInsetByTheme;
+  const 元の凹み面の値 = 凹み面の表?.relief;
+  const 次は凹み面に収める = 次の配色 === "relief" && 元の凹み面の値?.holdsContent === true;
+  const 次の節 = 元の凹み面の値 === undefined
+    ? diagram.nodes
+    : diagram.nodes.map((node) => 浮彫の凹み面の値を当てる(node, 元の凹み面の値, 次は凹み面に収める));
+  const 見出しが同じ = diagram.lanes.every((lane) =>
+    lane.stage === undefined || lane.stage.header === 次の見出し,
+  );
+  const 凹み面が同じ = diagram.nodes.every((node, index) =>
+    凹み面の比較値(node) === 凹み面の比較値(次の節[index] ?? node));
+  if (配色が同じ && 測り方が同じ && 見出しが同じ && 凹み面が同じ) return diagram;
 
   const 次 = { ...diagram };
   if (次の配色 === undefined) delete 次.palette;
   else 次.palette = 次の配色;
   if (次の測り方 === undefined) delete 次.textMetrics;
   else 次.textMetrics = 次の測り方;
+  if (見出しの表 !== undefined) {
+    次.lanes = diagram.lanes.map((lane) => {
+      if (lane.stage === undefined) return lane;
+      const stage = { ...lane.stage };
+      if (次の見出し === undefined) delete stage.header;
+      else stage.header = 次の見出し;
+      return { ...lane, stage };
+    });
+  }
+  if (凹み面の表 !== undefined) {
+    次.nodes = 次の節;
+  }
   return 次;
 }

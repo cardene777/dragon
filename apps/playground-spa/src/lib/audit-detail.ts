@@ -76,6 +76,11 @@ const 型たち: Record<string, 型> = {
     英語: (m) =>
       `The label for line "${m[1]}" sits ${m[2]}px away from it (${m[3]}, move the label, warning threshold ${m[4]}px)`,
   },
+  "label-char-range": {
+    形: /^edge "(.*)" label bbox width ([\d.]+) が実測 char range ([\d.]+) world より狭い \(text 溢れ\)$/,
+    英語: (m) =>
+      `The label box for line "${m[1]}" is ${m[2]} world wide, narrower than the measured ${m[3]} world needed for its text`,
+  },
   "text-readability": {
     形: /^名札 "(.*)" title "(.*)" が node 幅 (\d+)px を超過する可能性 \(期待 (\d+)px\)$/,
     英語: (m) =>
@@ -125,10 +130,25 @@ const 型たち: Record<string, 型> = {
     英語: (m) =>
       `Lines "${m[1]}" and "${m[2]}" detour ${m[3] === "上方" ? "above" : "below"} the same obstacle (${m[4] === "peak X 差" ? "peak X difference" : "crest overlap"} ${m[5]} world), but their peak Y positions are only ${m[6]} world apart, under the ${m[7]} required`,
   },
+  "edge-stubout-min": {
+    形: /^edge "(.*)" 起点 stub 長 ([\d.]+) world が spec ([\d.]+) 未満 \(from-to 距離 (\?|[\d.]+)\)$/,
+    英語: (m) =>
+      `Line "${m[1]}" runs only ${m[2]} world straight from its start, under the ${m[3]} world required (from-to distance ${m[4]})`,
+  },
   "group-boundary-clearance": {
     形: /^lane "(.*)" 内 名札 "(.*)" が lane 幅から水平方向に (-?\d+) world はみ出し$/,
     英語: (m) =>
       `In lane "${m[1]}", box "${m[2]}" sticks out ${m[3]} world past the lane width`,
+  },
+  "box-line-dropped": {
+    形: /^node "(.*)" の terminalDecoration 見出し外接 (-?[\d.]+)\.\.(-?[\d.]+) が主役の箱 (-?[\d.]+)\.\.(-?[\d.]+) に収まらない$/,
+    英語: (m) =>
+      `The terminal heading on box "${m[1]}" spans ${m[2]}..${m[3]}, outside its main bounds ${m[4]}..${m[5]}`,
+  },
+  "node-inside-viewbox": {
+    形: /^node "(.*)" の terminalDecoration 升目一覧外接 (-?[\d.]+)\.\.(-?[\d.]+) が figureSize 幅 ([\d.]+) に収まらない$/,
+    英語: (m) =>
+      `The terminal row list on box "${m[1]}" spans ${m[2]}..${m[3]}, outside its figure width ${m[4]}`,
   },
 };
 

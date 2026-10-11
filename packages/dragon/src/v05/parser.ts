@@ -42,6 +42,7 @@
  */
 
 import type {
+  CdlLegendItem,
   LegendMark,
   NodeKind,
   Tone,
@@ -92,6 +93,49 @@ import type { DslDirection } from "../keywords";
 import type { DslOrder } from "../keywords";
 import type { DslDiagramShape, DslShape } from "../keywords";
 import { parseRelativePos, findRelativeProblems, type RelativeProblem } from "../relative-pos";
+
+/** #2854 で記法に足した図表欄の閉じた語。JSON / schema と共有する。 */
+export const CHART_LINE_DASH_VALUES = ["solid", "dotted"] as const;
+export const CHART_LINE_MARKER_VALUES = ["dot", "hollow", "none"] as const;
+export const CHART_PIE_TABLE_COLUMN_VALUES = ["share-value", "value"] as const;
+export const CHART_PIE_RING_WIDTH_VALUES = ["thick", "thin"] as const;
+export const CHART_STACKED_LEGEND_POSITION_VALUES = ["top", "bottom"] as const;
+export const CHART_WAFFLE_LEGEND_POSITION_VALUES = ["left", "right"] as const;
+export const FUNNEL_FORM_VALUES = ["trapezoid", "proportional-bars"] as const;
+export const FUNNEL_RATE_VALUES = ["drop", "conversion", "none"] as const;
+export const QUADRANT_POINT_LABEL_SIDE_VALUES = ["auto", "right"] as const;
+export const TREE_NODE_FORM_VALUES = ["accent", "frame"] as const;
+export const TREE_EDGE_TONE_VALUES = ["accent", "depth"] as const;
+export const TREE_EDGE_HEAD_VALUES = ["none", "triangle"] as const;
+export const MIND_FORM_VALUES = ["filled", "outline"] as const;
+export const JOURNEY_FORM_VALUES = ["bands", "rules"] as const;
+export const JOURNEY_LINE_FORM_VALUES = ["curve", "straight"] as const;
+export const JOURNEY_OPPORTUNITY_POSITION_VALUES = ["below-chart", "below-point"] as const;
+export const JOURNEY_LABEL_KEYS = ["delighted", "happy", "neutral", "frustrated", "angry"] as const;
+export const CORNER_FORM_VALUES = ["theme-variants"] as const;
+export const CHART_BAR_SHAPE_VALUES = ["split", "top-rounded"] as const;
+export const QUADRANT_LABEL_POSITION_VALUES = ["outside-corners"] as const;
+export const LABEL_COLLISION_VALUES = ["auto", "author"] as const;
+export const GANTT_TASK_LABEL_ALIGN_VALUES = ["start", "end"] as const;
+const TREE_SIZE_KEYS = [
+  "nodeWidths",
+  "nodeHeight",
+  "titleFontSize",
+  "subtitleFontSize",
+  "siblingGap",
+  "levelGap",
+] as const;
+const MIND_SIZE_KEYS = [
+  "root",
+  "branch",
+  "leaf",
+  "rootBranchGap",
+  "branchLeafGap",
+  "branchRowGap",
+  "branchRowOffset",
+  "leafRowGap",
+  "leafRowOffset",
+] as const;
 import {
   checkValueExpression,
   isTriggerBody,
@@ -103,6 +147,7 @@ import type {
   DslAxes,
   DslRegions,
   DslDocument,
+  DslStageHeader,
   DslActor,
   DslNodeKind,
   DslDynShape,
@@ -141,6 +186,21 @@ export const EDGE_HEAD_VALUES: readonly string[] = EDGE_HEADS;
 
 /** 端の印の塗り方 (#1466)。 描画側の一覧から導く = 描画側が増やせば書ける */
 export const EDGE_HEAD_FILL_VALUES: readonly string[] = EDGE_HEAD_FILLS;
+
+/** cdl 0.130.0 の共通部品箱へ描ける線画。 */
+export const CDL_ICON_VALUES = ["person", "box", "database", "lightning", "cloud", "terminal"] as const satisfies readonly NonNullable<DslActor["icon"]>[];
+
+/** cdl 0.130.0 の表・部品箱と順序図が受ける閉じた値。 */
+export const KIND_FORM_VALUES = ["icon"] as const;
+export const TITLE_ALIGN_VALUES = ["center"] as const;
+export const ROW_MARK_FORM_VALUES = ["tone"] as const;
+export const ROW_MARK_TONE_VALUES = ["primary", "muted"] as const;
+export const SEQUENCE_ACTOR_FORM_VALUES = ["box"] as const;
+export const SEQUENCE_LABEL_FORM_VALUES = ["kind"] as const;
+export const SEQUENCE_RETURN_HEAD_VALUES = ["solid"] as const;
+export const SEQUENCE_KIND_LABEL_KEYS = ["call", "return", "fire"] as const;
+export const LEGEND_LINE_STYLE_VALUES = ["solid", "dotted"] as const;
+export const LEGEND_NOTE_ALIGN_VALUES = ["start", "end"] as const;
 
 /**
  * 辺の役目として書ける語 (#1559)。
@@ -233,6 +293,59 @@ export const TOP_LEVEL_KEYS = [
   "form",
   // ガントチャートの目盛り (#2837)
   "ticks",
+  "ganttToday",
+  "ganttTickLabels",
+  "ganttBarEnd",
+  "ganttBarThickness",
+  "chartSeriesSkipMuted",
+  "chartLineSeries",
+  "chartPieCenterLabel",
+  "chartPieTableColumns",
+  "chartPieRingWidth",
+  "chartSlopePeriods",
+  "chartSlopeEmphasisIds",
+  "chartSlopeUnit",
+  "chartStackedPeriods",
+  "chartStackedRateId",
+  "chartStackedLegendPosition",
+  "chartGaugeValue",
+  "chartWaffleLegendPosition",
+  "funnelForm",
+  "funnelRate",
+  "quadrantPointLabelSide",
+  "treeNodeForm",
+  "treeSize",
+  "treeEdgeTone",
+  "treeEdgeHead",
+  "mindForm",
+  "mindSize",
+  "journeyForm",
+  "journeyLineForm",
+  "journeyLabels",
+  "journeySize",
+  "sequenceActorForm",
+  "sequenceLabelForm",
+  "sequenceReturnHead",
+  "sequenceKindLabels",
+  "figureCard",
+  "figureSize",
+  "terminalDecoration",
+  "cornerForm",
+  "figureKindLabel",
+  "figureInset",
+  "chartBarSize",
+  "chartBarShape",
+  "chartLineSize",
+  "chartPieSize",
+  "chartWaffleSize",
+  "chartSlopeLabelTemplate",
+  "chartSlopeSize",
+  "chartStackedLayout",
+  "chartGaugeSize",
+  "ganttSize",
+  "quadrantLabelPosition",
+  "quadrantSize",
+  "stageLayout",
   /*
    * 図の意匠 (#1553 / #2790)。
    *
@@ -243,6 +356,9 @@ export const TOP_LEVEL_KEYS = [
    */
   "theme",
   "legend",
+  "legendOffset",
+  "legendFontSize",
+  "stageHeaders",
 ] as const;
 
 /**
@@ -593,6 +709,59 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let formWritten: { value: string; line: number } | null = null;
   let ticks: string[] | undefined;
   let ticksLine = 0;
+  let ganttToday: DslDocument["ganttToday"];
+  let ganttTickLabels: string[] | undefined;
+  let ganttBarEnd: DslDocument["ganttBarEnd"];
+  let ganttBarThickness: DslDocument["ganttBarThickness"];
+  let chartSeriesSkipMuted: DslDocument["chartSeriesSkipMuted"];
+  let chartLineSeries: DslDocument["chartLineSeries"];
+  let chartPieCenterLabel: DslDocument["chartPieCenterLabel"];
+  let chartPieTableColumns: DslDocument["chartPieTableColumns"];
+  let chartPieRingWidth: DslDocument["chartPieRingWidth"];
+  let chartSlopePeriods: DslDocument["chartSlopePeriods"];
+  let chartSlopeEmphasisIds: DslDocument["chartSlopeEmphasisIds"];
+  let chartSlopeUnit: DslDocument["chartSlopeUnit"];
+  let chartStackedPeriods: DslDocument["chartStackedPeriods"];
+  let chartStackedRateId: DslDocument["chartStackedRateId"];
+  let chartStackedLegendPosition: DslDocument["chartStackedLegendPosition"];
+  let chartGaugeValue: DslDocument["chartGaugeValue"];
+  let chartWaffleLegendPosition: DslDocument["chartWaffleLegendPosition"];
+  let funnelForm: DslDocument["funnelForm"];
+  let funnelRate: DslDocument["funnelRate"];
+  let quadrantPointLabelSide: DslDocument["quadrantPointLabelSide"];
+  let treeNodeForm: DslDocument["treeNodeForm"];
+  let treeSize: DslDocument["treeSize"];
+  let treeEdgeTone: DslDocument["treeEdgeTone"];
+  let treeEdgeHead: DslDocument["treeEdgeHead"];
+  let mindForm: DslDocument["mindForm"];
+  let mindSize: DslDocument["mindSize"];
+  let journeyForm: DslDocument["journeyForm"];
+  let journeyLineForm: DslDocument["journeyLineForm"];
+  let journeyLabels: DslDocument["journeyLabels"];
+  let journeySize: DslDocument["journeySize"];
+  let sequenceActorForm: DslDocument["sequenceActorForm"];
+  let sequenceLabelForm: DslDocument["sequenceLabelForm"];
+  let sequenceReturnHead: DslDocument["sequenceReturnHead"];
+  let sequenceKindLabels: DslDocument["sequenceKindLabels"];
+  let figureCard: DslDocument["figureCard"];
+  let figureSize: DslDocument["figureSize"];
+  let terminalDecoration: DslDocument["terminalDecoration"];
+  let cornerForm: DslDocument["cornerForm"];
+  let figureKindLabel: DslDocument["figureKindLabel"];
+  let figureInset: DslDocument["figureInset"];
+  let chartBarSize: DslDocument["chartBarSize"];
+  let chartBarShape: DslDocument["chartBarShape"];
+  let chartLineSize: DslDocument["chartLineSize"];
+  let chartPieSize: DslDocument["chartPieSize"];
+  let chartWaffleSize: DslDocument["chartWaffleSize"];
+  let chartSlopeLabelTemplate: DslDocument["chartSlopeLabelTemplate"];
+  let chartSlopeSize: DslDocument["chartSlopeSize"];
+  let chartStackedLayout: DslDocument["chartStackedLayout"];
+  let chartGaugeSize: DslDocument["chartGaugeSize"];
+  let ganttSize: DslDocument["ganttSize"];
+  let quadrantLabelPosition: DslDocument["quadrantLabelPosition"];
+  let quadrantSize: DslDocument["quadrantSize"];
+  let stageLayout: DslDocument["stageLayout"];
   let aliasShape: DslShape | null = null;
   let aliasShapeLine = 0;
   let theme: DslTheme | null = null;
@@ -617,7 +786,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let scrollsList: DslScrollTrigger[] | undefined = undefined;
   let scrollLines = new Map<string, number>();
   let groupsMap: Record<string, DslGroup> | undefined = undefined;
-  const legend: { mark: LegendMark; text: string }[] = [];
+  const legend: CdlLegendItem[] = [];
+  let legendOffset: DslDocument["legendOffset"];
+  let legendFontSize: number | undefined;
+  let stageHeaders: DslDocument["stageHeaders"];
 
   let i = 0;
   while (i < lines.length) {
@@ -799,6 +971,62 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i = next;
       continue;
     }
+    if (head.key === "legendFontSize") {
+      const value = Number((head.value ?? "").trim());
+      if (Number.isFinite(value) && value > 0) legendFontSize = value;
+      else {
+        errors.push({
+          line: line.no,
+          message: `legendFontSize が読めません: "${head.value ?? ""}"`,
+          hint: "0 より大きい数を書く",
+        });
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "stageHeaders") {
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      stageHeaders = {};
+      for (const item of items) {
+        const match = item.trimmed.match(LANE_ID_ENTRY);
+        const themeName = match === null ? null : resolveTheme(match[1]!);
+        if (match === null || themeName === null) {
+          errors.push({
+            line: item.no,
+            message: `段の見出しの行が読めません: "${item.trimmed}"`,
+            hint: "意匠名: { leftPad: 22, topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 } の形で書く",
+          });
+          continue;
+        }
+        const opts = parseInlineMapping(match[2]!);
+        const keys = ["leftPad", "topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+        中括弧の知らない項目名を知らせる(
+          match[2]!,
+          keys,
+          `段の見出し ${themeName} の `,
+          item.no,
+          errors,
+        );
+        const values = Object.fromEntries(
+          keys.map((key) => [key, opts[key] === undefined ? undefined : Number(opts[key])]),
+        ) as Record<(typeof keys)[number], number | undefined>;
+        const required = ["topPad", "numberSize", "gap", "nameSize", "bottomPad"] as const;
+        if (
+          required.some((key) => !Number.isFinite(values[key])) ||
+          (values.leftPad !== undefined && !Number.isFinite(values.leftPad))
+        ) {
+          errors.push({
+            line: item.no,
+            message: `段の見出し ${themeName} の寸法が読めません`,
+            hint: "各寸法を数で書く",
+          });
+          continue;
+        }
+        stageHeaders[themeName] = values as DslStageHeader;
+      }
+      i = next;
+      continue;
+    }
     if (head.key === "eyebrow") {
       // 空で書いた形 (`eyebrow:`) は「書かなかった」 と同じにする。 空文字を残すと
       // 描画側が中身のない帯を出す
@@ -850,6 +1078,297 @@ export function parseTextDslV05(src: string): V05ParseResult {
           ticks = values;
           ticksLine = line.no;
         }
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "ganttToday") {
+      const raw = (head.value ?? "").trim();
+      if (raw.startsWith("{") && raw.endsWith("}")) {
+        中括弧の知らない項目名を知らせる(
+          raw.slice(1, -1),
+          ["index", "label"],
+          "ganttToday の ",
+          line.no,
+          errors,
+        );
+      }
+      const inner = raw.startsWith("{") && raw.endsWith("}")
+        ? parseInlineMapping(raw.slice(1, -1))
+        : {};
+      const index = Number(inner.index);
+      const label = inner.label === undefined ? undefined : stripQuotes(inner.label);
+      if (!Number.isFinite(index) || label === undefined) {
+        errors.push({
+          line: line.no,
+          message: `ganttToday の書き方が読めません: "${raw}"`,
+          hint: '`ganttToday: { index: 3.3, label: "今日" }` の形で書く',
+        });
+      } else {
+        ganttToday = { index, label };
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "ganttTickLabels") {
+      const raw = (head.value ?? "").trim();
+      const values = raw.startsWith("[") && raw.endsWith("]")
+        ? splitTopLevelCommas(raw.slice(1, -1)).map((value) => stripQuotes(value.trim()))
+        : [];
+      if (values.length === 0 || values.some((value) => value.length === 0)) {
+        errors.push({
+          line: line.no,
+          message: `ganttTickLabels の書き方が読めません: "${raw}"`,
+          hint: "`ganttTickLabels: [6月, 7月, 8月]` の形で 1 つ以上書く",
+        });
+      } else {
+        ganttTickLabels = values;
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "ganttBarEnd") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if (value === "position") ganttBarEnd = value;
+      else errors.push({ line: line.no, message: `ganttBarEnd が読めません: "${value}"`, hint: "使える値 = position" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "ganttBarThickness") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if (value === "thin") ganttBarThickness = value;
+      else errors.push({ line: line.no, message: `ganttBarThickness が読めません: "${value}"`, hint: "使える値 = thin" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartSeriesSkipMuted") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if (value === "true") chartSeriesSkipMuted = true;
+      else errors.push({ line: line.no, message: `chartSeriesSkipMuted が読めません: "${value}"`, hint: "使える値 = true" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartLineSeries") {
+      const value = JSONの欄を読む(head.value, "chartLineSeries", line.no, errors);
+      const unknown = chartLineSeriesの知らない項目を知らせる(value, line.no, errors);
+      if (!unknown && chartLineSeriesの形(value)) chartLineSeries = value;
+      else if (value !== undefined) errors.push({ line: line.no, message: "chartLineSeries の系列または点の形が読めません" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartStackedPeriods") {
+      const value = JSONの欄を読む(head.value, "chartStackedPeriods", line.no, errors);
+      const unknown = chartStackedPeriodsの知らない項目を知らせる(value, line.no, errors);
+      if (!unknown && chartStackedPeriodsの形(value)) chartStackedPeriods = value;
+      else if (value !== undefined) errors.push({ line: line.no, message: "chartStackedPeriods の期間または値の形が読めません" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartGaugeValue") {
+      const value = JSONの欄を読む(head.value, "chartGaugeValue", line.no, errors);
+      const unknown = chartGaugeValueの知らない項目を知らせる(value, line.no, errors);
+      if (!unknown && chartGaugeValueの形(value)) chartGaugeValue = value;
+      else if (value !== undefined) errors.push({ line: line.no, message: "chartGaugeValue の値の形が読めません" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartSlopePeriods" || head.key === "chartSlopeEmphasisIds") {
+      const raw = (head.value ?? "").trim();
+      const values = raw.startsWith("[") && raw.endsWith("]")
+        ? splitTopLevelCommas(raw.slice(1, -1)).map((value) => stripQuotes(value.trim()))
+        : [];
+      if (values.length === 0 || values.some((value) => value.length === 0)) {
+        errors.push({ line: line.no, message: `${head.key} の書き方が読めません`, hint: `${head.key}: ["先月", "今月"] の形で書く` });
+      } else if (head.key === "chartSlopePeriods") {
+        if (values.length === 2) chartSlopePeriods = [values[0]!, values[1]!];
+        else errors.push({ line: line.no, message: "chartSlopePeriods は時点名を 2 つ書く" });
+      } else chartSlopeEmphasisIds = values;
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartPieCenterLabel" || head.key === "chartSlopeUnit" || head.key === "chartStackedRateId") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if (head.key === "chartPieCenterLabel") chartPieCenterLabel = value;
+      else if (head.key === "chartSlopeUnit") chartSlopeUnit = value;
+      else chartStackedRateId = value;
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartPieTableColumns") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((CHART_PIE_TABLE_COLUMN_VALUES as readonly string[]).includes(value)) chartPieTableColumns = value as typeof chartPieTableColumns;
+      else errors.push({ line: line.no, message: `chartPieTableColumns が読めません: "${value}"`, hint: `使える値 = ${CHART_PIE_TABLE_COLUMN_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartPieRingWidth") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((CHART_PIE_RING_WIDTH_VALUES as readonly string[]).includes(value)) chartPieRingWidth = value as typeof chartPieRingWidth;
+      else errors.push({ line: line.no, message: `chartPieRingWidth が読めません: "${value}"`, hint: `使える値 = ${CHART_PIE_RING_WIDTH_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartStackedLegendPosition") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((CHART_STACKED_LEGEND_POSITION_VALUES as readonly string[]).includes(value)) chartStackedLegendPosition = value as typeof chartStackedLegendPosition;
+      else errors.push({ line: line.no, message: `chartStackedLegendPosition が読めません: "${value}"`, hint: `使える値 = ${CHART_STACKED_LEGEND_POSITION_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (
+      head.key === "sequenceActorForm" || head.key === "sequenceLabelForm" ||
+      head.key === "sequenceReturnHead"
+    ) {
+      const value = stripQuotes((head.value ?? "").trim());
+      const values = head.key === "sequenceActorForm"
+        ? SEQUENCE_ACTOR_FORM_VALUES
+        : head.key === "sequenceLabelForm" ? SEQUENCE_LABEL_FORM_VALUES : SEQUENCE_RETURN_HEAD_VALUES;
+      if ((values as readonly string[]).includes(value)) {
+        if (head.key === "sequenceActorForm") sequenceActorForm = value as "box";
+        else if (head.key === "sequenceLabelForm") sequenceLabelForm = value as "kind";
+        else sequenceReturnHead = value as "solid";
+      } else errors.push({ line: line.no, message: `${head.key} が読めません: "${value}"`, hint: `使える値 = ${values.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "sequenceKindLabels") {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      const unknown = 図表の知らない項目を知らせる(value, SEQUENCE_KIND_LABEL_KEYS, head.key, line.no, errors);
+      if (!unknown && objectか(value) && Object.values(value).every((label) => typeof label === "string")) {
+        sequenceKindLabels = value;
+      } else if (value !== undefined && !unknown) errors.push({ line: line.no, message: "sequenceKindLabels の値の形が読めません" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "chartWaffleLegendPosition") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((CHART_WAFFLE_LEGEND_POSITION_VALUES as readonly string[]).includes(value)) chartWaffleLegendPosition = value as typeof chartWaffleLegendPosition;
+      else errors.push({ line: line.no, message: `chartWaffleLegendPosition が読めません: "${value}"`, hint: `使える値 = ${CHART_WAFFLE_LEGEND_POSITION_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "funnelForm") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((FUNNEL_FORM_VALUES as readonly string[]).includes(value)) funnelForm = value as typeof funnelForm;
+      else errors.push({ line: line.no, message: `funnelForm が読めません: "${value}"`, hint: `使える値 = ${FUNNEL_FORM_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "funnelRate") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((FUNNEL_RATE_VALUES as readonly string[]).includes(value)) funnelRate = value as typeof funnelRate;
+      else errors.push({ line: line.no, message: `funnelRate が読めません: "${value}"`, hint: `使える値 = ${FUNNEL_RATE_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "quadrantPointLabelSide") {
+      const value = stripQuotes((head.value ?? "").trim());
+      if ((QUADRANT_POINT_LABEL_SIDE_VALUES as readonly string[]).includes(value)) quadrantPointLabelSide = value as typeof quadrantPointLabelSide;
+      else errors.push({ line: line.no, message: `quadrantPointLabelSide が読めません: "${value}"`, hint: `使える値 = ${QUADRANT_POINT_LABEL_SIDE_VALUES.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (
+      head.key === "treeNodeForm" || head.key === "treeEdgeTone" || head.key === "treeEdgeHead" ||
+      head.key === "mindForm" || head.key === "journeyForm" || head.key === "journeyLineForm"
+    ) {
+      const value = stripQuotes((head.value ?? "").trim());
+      const values = {
+        treeNodeForm: TREE_NODE_FORM_VALUES,
+        treeEdgeTone: TREE_EDGE_TONE_VALUES,
+        treeEdgeHead: TREE_EDGE_HEAD_VALUES,
+        mindForm: MIND_FORM_VALUES,
+        journeyForm: JOURNEY_FORM_VALUES,
+        journeyLineForm: JOURNEY_LINE_FORM_VALUES,
+      }[head.key];
+      if ((values as readonly string[]).includes(value)) {
+        if (head.key === "treeNodeForm") treeNodeForm = value as typeof treeNodeForm;
+        else if (head.key === "treeEdgeTone") treeEdgeTone = value as typeof treeEdgeTone;
+        else if (head.key === "treeEdgeHead") treeEdgeHead = value as typeof treeEdgeHead;
+        else if (head.key === "mindForm") mindForm = value as typeof mindForm;
+        else if (head.key === "journeyForm") journeyForm = value as typeof journeyForm;
+        else journeyLineForm = value as typeof journeyLineForm;
+      } else {
+        errors.push({ line: line.no, message: `${head.key} が読めません: "${value}"`, hint: `使える値 = ${values.join(", ")}` });
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "treeSize" || head.key === "mindSize") {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      if (value !== undefined) {
+        if (head.key === "treeSize" && 木の寸法を読む(value, line.no, errors)) treeSize = value;
+        if (head.key === "mindSize" && 放射の寸法を読む(value, line.no, errors)) mindSize = value;
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "cornerForm" || head.key === "quadrantLabelPosition" || head.key === "chartBarShape") {
+      const value = stripQuotes((head.value ?? "").trim());
+      const values = head.key === "cornerForm"
+        ? CORNER_FORM_VALUES
+        : head.key === "chartBarShape" ? CHART_BAR_SHAPE_VALUES : QUADRANT_LABEL_POSITION_VALUES;
+      if ((values as readonly string[]).includes(value)) {
+        if (head.key === "cornerForm") cornerForm = value as typeof cornerForm;
+        else if (head.key === "chartBarShape") chartBarShape = value as typeof chartBarShape;
+        else quadrantLabelPosition = value as typeof quadrantLabelPosition;
+      } else errors.push({ line: line.no, message: `${head.key} が読めません: "${value}"`, hint: `使える値 = ${values.join(", ")}` });
+      i += 1;
+      continue;
+    }
+    if (head.key === "stageLayout") {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      if (value !== undefined && cdl0132の欄を読む(head.key, value, line.no, errors)) {
+        stageLayout = value as NonNullable<typeof stageLayout>;
+      }
+      i += 1;
+      continue;
+    }
+    if ((CDL_0132_OBJECT_FIELDS as readonly string[]).includes(head.key)) {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      if (value !== undefined && cdl0132の欄を読む(head.key as Cdl0132ObjectField, value, line.no, errors)) {
+        if (head.key === "terminalDecoration") terminalDecoration = value as NonNullable<typeof terminalDecoration>;
+        else if (head.key === "figureKindLabel") figureKindLabel = value as NonNullable<typeof figureKindLabel>;
+        else if (head.key === "figureInset") figureInset = value as NonNullable<typeof figureInset>;
+        else if (head.key === "journeySize") journeySize = value as NonNullable<typeof journeySize>;
+        else if (head.key === "chartBarSize") chartBarSize = value as NonNullable<typeof chartBarSize>;
+        else if (head.key === "chartLineSize") chartLineSize = value as NonNullable<typeof chartLineSize>;
+        else if (head.key === "chartPieSize") chartPieSize = value as NonNullable<typeof chartPieSize>;
+        else if (head.key === "chartWaffleSize") chartWaffleSize = value as NonNullable<typeof chartWaffleSize>;
+        else if (head.key === "chartSlopeLabelTemplate") chartSlopeLabelTemplate = value as NonNullable<typeof chartSlopeLabelTemplate>;
+        else if (head.key === "chartSlopeSize") chartSlopeSize = value as NonNullable<typeof chartSlopeSize>;
+        else if (head.key === "chartStackedLayout") chartStackedLayout = value as NonNullable<typeof chartStackedLayout>;
+        else if (head.key === "chartGaugeSize") chartGaugeSize = value as NonNullable<typeof chartGaugeSize>;
+        else if (head.key === "ganttSize") ganttSize = value as NonNullable<typeof ganttSize>;
+        else if (head.key === "quadrantSize") quadrantSize = value as NonNullable<typeof quadrantSize>;
+        else if (head.key === "legendOffset") legendOffset = value as NonNullable<typeof legendOffset>;
+        else stageLayout = value as NonNullable<typeof stageLayout>;
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "journeyLabels" || head.key === "figureCard" || head.key === "figureSize") {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      const keys = head.key === "journeyLabels"
+        ? JOURNEY_LABEL_KEYS
+        : head.key === "figureCard" ? (["label", "note"] as const) : (["width", "height"] as const);
+      const unknown = 図表の知らない項目を知らせる(value, keys, head.key, line.no, errors);
+      if (!unknown && objectか(value)) {
+        if (
+          head.key === "journeyLabels" &&
+          JOURNEY_LABEL_KEYS.every((key) => typeof value[key] === "string" && value[key].trim() !== "")
+        ) journeyLabels = value as typeof journeyLabels;
+        else if (
+          head.key === "figureCard" && typeof value.label === "string" && value.label.trim() !== "" &&
+          (value.note === undefined || typeof value.note === "string")
+        ) figureCard = value as typeof figureCard;
+        else if (
+          head.key === "figureSize" && typeof value.width === "number" && Number.isFinite(value.width) && value.width > 0 &&
+          typeof value.height === "number" && Number.isFinite(value.height) && value.height > 0
+        ) figureSize = value as typeof figureSize;
+        else errors.push({ line: line.no, message: `${head.key} の値の形が読めません` });
+      } else if (value !== undefined && !unknown) {
+        errors.push({ line: line.no, message: `${head.key} は object で書きます` });
       }
       i += 1;
       continue;
@@ -1106,7 +1625,12 @@ export function parseTextDslV05(src: string): V05ParseResult {
           it.no,
           errors,
         );
-        if (m[1] === "x") 組み立て.x = { left: opts.left, right: opts.right };
+        const direction = opts.direction === "true";
+        if (direction && opts.label !== undefined) {
+          const axis = { label: stripQuotes(opts.label), direction: true } as const;
+          if (m[1] === "x") 組み立て.x = axis;
+          else 組み立て.y = axis;
+        } else if (m[1] === "x") 組み立て.x = { left: opts.left, right: opts.right };
         else 組み立て.y = { bottom: opts.bottom, top: opts.top };
       }
       // 1 本も読めなかった形は「書かなかった」 と同じにする。 空の軸を渡すと、
@@ -1475,8 +1999,64 @@ export function parseTextDslV05(src: string): V05ParseResult {
         ? { form: formWritten.value, formPos: { line: formWritten.line } }
         : {}),
       ...(ticks !== undefined ? { ticks, ticksPos: { line: ticksLine } } : {}),
+      ...(ganttToday !== undefined ? { ganttToday } : {}),
+      ...(ganttTickLabels !== undefined ? { ganttTickLabels } : {}),
+      ...(ganttBarEnd !== undefined ? { ganttBarEnd } : {}),
+      ...(ganttBarThickness !== undefined ? { ganttBarThickness } : {}),
+      ...(chartSeriesSkipMuted !== undefined ? { chartSeriesSkipMuted } : {}),
+      ...(chartLineSeries !== undefined ? { chartLineSeries } : {}),
+      ...(chartPieCenterLabel !== undefined ? { chartPieCenterLabel } : {}),
+      ...(chartPieTableColumns !== undefined ? { chartPieTableColumns } : {}),
+      ...(chartPieRingWidth !== undefined ? { chartPieRingWidth } : {}),
+      ...(chartSlopePeriods !== undefined ? { chartSlopePeriods } : {}),
+      ...(chartSlopeEmphasisIds !== undefined ? { chartSlopeEmphasisIds } : {}),
+      ...(chartSlopeUnit !== undefined ? { chartSlopeUnit } : {}),
+      ...(chartStackedPeriods !== undefined ? { chartStackedPeriods } : {}),
+      ...(chartStackedRateId !== undefined ? { chartStackedRateId } : {}),
+      ...(chartStackedLegendPosition !== undefined ? { chartStackedLegendPosition } : {}),
+      ...(chartGaugeValue !== undefined ? { chartGaugeValue } : {}),
+      ...(chartWaffleLegendPosition !== undefined ? { chartWaffleLegendPosition } : {}),
+      ...(funnelForm !== undefined ? { funnelForm } : {}),
+      ...(funnelRate !== undefined ? { funnelRate } : {}),
+      ...(quadrantPointLabelSide !== undefined ? { quadrantPointLabelSide } : {}),
+      ...(treeNodeForm !== undefined ? { treeNodeForm } : {}),
+      ...(treeSize !== undefined ? { treeSize } : {}),
+      ...(treeEdgeTone !== undefined ? { treeEdgeTone } : {}),
+      ...(treeEdgeHead !== undefined ? { treeEdgeHead } : {}),
+      ...(mindForm !== undefined ? { mindForm } : {}),
+      ...(mindSize !== undefined ? { mindSize } : {}),
+      ...(journeyForm !== undefined ? { journeyForm } : {}),
+      ...(journeyLineForm !== undefined ? { journeyLineForm } : {}),
+      ...(journeyLabels !== undefined ? { journeyLabels } : {}),
+      ...(journeySize !== undefined ? { journeySize } : {}),
+      ...(sequenceActorForm !== undefined ? { sequenceActorForm } : {}),
+      ...(sequenceLabelForm !== undefined ? { sequenceLabelForm } : {}),
+      ...(sequenceReturnHead !== undefined ? { sequenceReturnHead } : {}),
+      ...(sequenceKindLabels !== undefined ? { sequenceKindLabels } : {}),
+      ...(figureCard !== undefined ? { figureCard } : {}),
+      ...(figureSize !== undefined ? { figureSize } : {}),
+      ...(terminalDecoration !== undefined ? { terminalDecoration } : {}),
+      ...(cornerForm !== undefined ? { cornerForm } : {}),
+      ...(figureKindLabel !== undefined ? { figureKindLabel } : {}),
+      ...(figureInset !== undefined ? { figureInset } : {}),
+      ...(chartBarSize !== undefined ? { chartBarSize } : {}),
+      ...(chartBarShape !== undefined ? { chartBarShape } : {}),
+      ...(chartLineSize !== undefined ? { chartLineSize } : {}),
+      ...(chartPieSize !== undefined ? { chartPieSize } : {}),
+      ...(chartWaffleSize !== undefined ? { chartWaffleSize } : {}),
+      ...(chartSlopeLabelTemplate !== undefined ? { chartSlopeLabelTemplate } : {}),
+      ...(chartSlopeSize !== undefined ? { chartSlopeSize } : {}),
+      ...(chartStackedLayout !== undefined ? { chartStackedLayout } : {}),
+      ...(chartGaugeSize !== undefined ? { chartGaugeSize } : {}),
+      ...(ganttSize !== undefined ? { ganttSize } : {}),
+      ...(quadrantLabelPosition !== undefined ? { quadrantLabelPosition } : {}),
+      ...(quadrantSize !== undefined ? { quadrantSize } : {}),
+      ...(stageLayout !== undefined ? { stageLayout } : {}),
       ...(選んだ意匠 !== null ? { theme: 選んだ意匠 } : {}),
       ...(legend.length > 0 ? { legend } : {}),
+      ...(legendOffset !== undefined ? { legendOffset } : {}),
+      ...(legendFontSize !== undefined ? { legendFontSize } : {}),
+      ...(stageHeaders !== undefined ? { stageHeaders } : {}),
       ...(theme !== null && palette !== null
         ? { themeAlsoPalettePos: { themeLine, paletteLine } }
         : {}),
@@ -1519,16 +2099,20 @@ function matchTopHeader(trimmed: string): TopHeader | null {
   const m = trimmed.match(/^([^\s:]+)\s*:\s*(.*)$/u);
   if (!m) return null;
   const value = (m[2] ?? "").trim();
-  return { key: (m[1] ?? "").toLowerCase(), value: value.length ? stripQuotes(value) : null };
+  const writtenKey = m[1] ?? "";
+  const lowerKey = writtenKey.toLowerCase();
+  const canonicalKey = TOP_LEVEL_KEYS.find((key) => key.toLowerCase() === lowerKey);
+  return { key: canonicalKey ?? lowerKey, value: value.length ? stripQuotes(value) : null };
 }
 
-const LEGEND_ITEM_KEYS = ["mark", "text", "印", "説明"] as const;
+const LEGEND_ITEM_KEYS = ["mark", "text", "tone", "lineStyle", "align", "lead", "印", "説明"] as const;
+const LEGEND_LINE_MARKS = ["line-triangle-hollow", "line-diamond-hollow", "line-diamond-solid"] as const;
 
 /** 凡例の 1 行を読み、描画側へ渡せる印と文字へ揃える。 */
 function parseLegendItem(
   line: Line,
   errors: DslError[],
-): { mark: LegendMark; text: string } | null {
+): CdlLegendItem | null {
   const match = line.trimmed.match(/^\{([\s\S]*)\}$/u);
   if (!match) {
     errors.push({
@@ -1561,10 +2145,10 @@ function parseLegendItem(
     fields.set(key, value);
   }
 
-  const markRaw = fields.get("mark") ?? fields.get("印") ?? "";
-  const markValue = stripQuotes(markRaw);
-  const mark = resolveLegendMark(markValue);
-  if (mark === null) {
+  const markRaw = fields.get("mark") ?? fields.get("印");
+  const markValue = markRaw === undefined ? undefined : stripQuotes(markRaw);
+  const mark = markValue === undefined ? undefined : resolveLegendMark(markValue);
+  if (markValue !== undefined && mark === null) {
     errors.push({
       line: line.no,
       message: `凡例の印が読めません: "${markValue}"`,
@@ -1592,7 +2176,45 @@ function parseLegendItem(
     unreadable = true;
   }
 
-  return unreadable || mark === null ? null : { mark, text };
+  const toneRaw = fields.get("tone");
+  const tone = toneRaw === undefined ? undefined : resolveTone(stripQuotes(toneRaw));
+  if (toneRaw !== undefined && tone === undefined) {
+    errors.push({ line: line.no, message: `凡例の tone が読めません: "${stripQuotes(toneRaw)}"`, hint: `使える値 = ${書ける色名().join(", ")}` });
+    unreadable = true;
+  }
+  const lineStyleRaw = fields.get("lineStyle");
+  const lineStyle = lineStyleRaw === undefined ? undefined : stripQuotes(lineStyleRaw);
+  if (lineStyle !== undefined && !(LEGEND_LINE_STYLE_VALUES as readonly string[]).includes(lineStyle)) {
+    errors.push({ line: line.no, message: `凡例の lineStyle が読めません: "${lineStyle}"`, hint: `使える値 = ${LEGEND_LINE_STYLE_VALUES.join(", ")}` });
+    unreadable = true;
+  }
+  const alignRaw = fields.get("align");
+  const align = alignRaw === undefined ? undefined : stripQuotes(alignRaw);
+  if (align !== undefined && !(LEGEND_NOTE_ALIGN_VALUES as readonly string[]).includes(align)) {
+    errors.push({ line: line.no, message: `凡例の align が読めません: "${align}"`, hint: `使える値 = ${LEGEND_NOTE_ALIGN_VALUES.join(", ")}` });
+    unreadable = true;
+  }
+  const lead = fields.get("lead") === undefined ? undefined : stripQuotes(fields.get("lead")!);
+  if (mark === undefined && (tone !== undefined || lineStyle !== undefined)) {
+    errors.push({ line: line.no, message: "印のない凡例に tone / lineStyle は書けません", hint: "注記には text / align / lead を使う" });
+    unreadable = true;
+  }
+  if (mark !== undefined && (align !== undefined || lead !== undefined)) {
+    errors.push({ line: line.no, message: "印を持つ凡例に align / lead は書けません", hint: "align / lead は印のない注記に使う" });
+    unreadable = true;
+  }
+  if (lineStyle !== undefined && (mark === undefined || mark === null || !(LEGEND_LINE_MARKS as readonly LegendMark[]).includes(mark))) {
+    errors.push({ line: line.no, message: "lineStyle は線端を持つ凡例の印にだけ書けます", hint: `使える印 = ${LEGEND_LINE_MARKS.join(", ")}` });
+    unreadable = true;
+  }
+  if (unreadable || mark === null) return null;
+  if (mark === undefined) return { text, ...(align === undefined ? {} : { align: align as "start" | "end" }), ...(lead === undefined ? {} : { lead }) };
+  return {
+    mark,
+    ...(tone === undefined ? {} : { tone }),
+    ...(lineStyle === undefined ? {} : { lineStyle }),
+    text,
+  } as CdlLegendItem;
 }
 
 /**
@@ -1889,6 +2511,7 @@ function 表で読む<T extends Record<string, 値の形>>(
 export const VIEWPORT_VALUE_KINDS = {
   width: "数",
   height: "数",
+  contentOffsetX: "数",
   scale: "数",
   laneWidth: "数",
   gap: "数",
@@ -1944,12 +2567,18 @@ export const GROUP_INLINE_KEYS = ["label", "lanes"] as const satisfies readonly 
 >[];
 
 /** 軸の名前の中括弧に書ける項目 (#1968)。 横軸は左右、縦軸は下上 */
-export const AXIS_X_KEYS = ["left", "right"] as const satisfies readonly (keyof NonNullable<
-  DslAxes["x"]
->)[];
-export const AXIS_Y_KEYS = ["bottom", "top"] as const satisfies readonly (keyof NonNullable<
-  DslAxes["y"]
->)[];
+export const AXIS_X_KEYS = ["left", "right", "label", "direction"] as const satisfies readonly (
+  | "left"
+  | "right"
+  | "label"
+  | "direction"
+)[];
+export const AXIS_Y_KEYS = ["bottom", "top", "label", "direction"] as const satisfies readonly (
+  | "bottom"
+  | "top"
+  | "label"
+  | "direction"
+)[];
 
 /**
  * 箱の中に描く図形 (`shape:`) と、値を見せる部品 (`readouts:`) の欄 (#1374)。
@@ -2866,6 +3495,10 @@ export const ACTOR_INLINE_VALUE_KINDS = {
   posY: "数",
   posW: "数",
   posH: "数",
+  titleFontSize: "数",
+  markGap: "数",
+  milestone: "真偽",
+  rowRules: "真偽",
 } as const satisfies Record<string, 値の形>;
 
 /**
@@ -2880,6 +3513,10 @@ export const ACTOR_BLOCK_VALUE_KINDS = {
   posY: "数",
   initial: "真偽",
   final: "真偽",
+  titleFontSize: "数",
+  markGap: "数",
+  milestone: "真偽",
+  rowRules: "真偽",
 } as const satisfies Record<string, 値の形>;
 
 /** 矢印の中括弧に書ける、数と真偽の欄 (#1306) */
@@ -3065,6 +3702,56 @@ function splitInlineFields(inner: string): string[] {
   // 今まで通っていた書き方が黙って別の結果になる。 実測では見本 9832 件の中括弧のうち
   // 閉じない形は 0 件で、この経路は保険
   return 見た.閉じた ? 見た.parts : 引用符を見て割る(false).parts;
+}
+
+/** 行頭の印を、従来の語または色の段を持つ組として読む。 */
+function 行頭の印の並びとして読む(
+  raw: string,
+  line: number,
+  errors: DslError[],
+): DslActor["marks"] {
+  if (!raw.includes("{")) {
+    return raw
+      .replace(/^\[|\]$/g, "")
+      .split(/,(?![^[]*\])/)
+      .map((x) => 行頭の語へ読み替える(stripQuotes(x.trim())));
+  }
+  const value = JSONの欄を読む(raw, "marks", line, errors);
+  if (!Array.isArray(value)) {
+    errors.push({ line, message: "marks は並びで書きます" });
+    return undefined;
+  }
+  const out: NonNullable<DslActor["marks"]> = [];
+  value.forEach((item, index) => {
+    if (typeof item === "string") {
+      out.push(行頭の語へ読み替える(item));
+      return;
+    }
+    if (!objectか(item)) {
+      errors.push({ line, message: `marks[${index}] の値の形が読めません` });
+      return;
+    }
+    const 受ける項目 = ["mark", "tone"] as const;
+    const unknown = Object.keys(item).filter((key) => !(受ける項目 as readonly string[]).includes(key));
+    if (unknown.length > 0) {
+      for (const key of unknown) errors.push({ line, message: `marks[${index}] の項目名が読めません: "${key}"`, hint: `使える項目 = ${受ける項目.join(", ")}` });
+      return;
+    }
+    if (typeof item.mark !== "string") {
+      errors.push({ line, message: `marks[${index}].mark は文字で書きます` });
+      return;
+    }
+    if (item.tone !== undefined && !(ROW_MARK_TONE_VALUES as readonly unknown[]).includes(item.tone)) {
+      const shown = typeof item.tone === "string" ? item.tone : (JSON.stringify(item.tone) ?? typeof item.tone);
+      errors.push({ line, message: `marks[${index}].tone が読めません: "${shown}"`, hint: `使える値 = ${ROW_MARK_TONE_VALUES.join(", ")}` });
+      return;
+    }
+    out.push({
+      mark: 行頭の語へ読み替える(item.mark),
+      ...(item.tone === undefined ? {} : { tone: item.tone as "primary" | "muted" }),
+    });
+  });
+  return out;
 }
 
 /**
@@ -3276,6 +3963,75 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "補足":
         out.subtitle = stripQuotes(raw);
         break;
+      case "kindForm": {
+        const value = stripQuotes(raw);
+        if (value === "icon") out.kindForm = value;
+        else errors.push({ line: ln.no, message: `箱の kindForm が読めません: "${value}"`, hint: `使える値 = ${KIND_FORM_VALUES.join(", ")}` });
+        break;
+      }
+      case "icon": {
+        const value = stripQuotes(raw);
+        if ((CDL_ICON_VALUES as readonly string[]).includes(value)) out.icon = value as NonNullable<DslActor["icon"]>;
+        else errors.push({ line: ln.no, message: `箱の icon が読めません: "${value}"`, hint: `使える値 = ${CDL_ICON_VALUES.join(", ")}` });
+        break;
+      }
+      case "emptyRowsNote":
+        out.emptyRowsNote = stripQuotes(raw);
+        break;
+      case "titleAlign": {
+        const value = stripQuotes(raw);
+        if (value === "center") out.titleAlign = value;
+        else errors.push({ line: ln.no, message: `箱の titleAlign が読めません: "${value}"`, hint: `使える値 = ${TITLE_ALIGN_VALUES.join(", ")}` });
+        break;
+      }
+      case "rowRules": {
+        const read = 表で読む(ACTOR_BLOCK_VALUE_KINDS, { rowRules: raw }, "箱の ", ln.no, errors);
+        out.rowRules = read.rowRules;
+        break;
+      }
+      case "rowMarkForm": {
+        const value = stripQuotes(raw);
+        if (value === "tone") out.rowMarkForm = value;
+        else errors.push({ line: ln.no, message: `箱の rowMarkForm が読めません: "${value}"`, hint: `使える値 = ${ROW_MARK_FORM_VALUES.join(", ")}` });
+        break;
+      }
+      case "nestIn":
+        out.nestIn = stripQuotes(raw);
+        break;
+      case "figureCard": {
+        const value = JSONの欄を読む(raw, "figureCard", ln.no, errors);
+        const unknown = 図表の知らない項目を知らせる(value, ["label", "note"] as const, "figureCard", ln.no, errors);
+        if (!unknown && objectか(value) && typeof value.label === "string" && value.label.trim() !== "" && (value.note === undefined || typeof value.note === "string")) out.figureCard = value as NonNullable<DslActor["figureCard"]>;
+        else if (!unknown && value !== undefined) errors.push({ line: ln.no, message: "figureCard の値の形が読めません" });
+        break;
+      }
+      case "stationNamePosition":
+        if (stripQuotes(raw) === "bottom") out.stationNamePosition = "bottom";
+        break;
+      case "subtitlePlacement":
+        if (stripQuotes(raw) === "right") out.subtitlePlacement = "right";
+        break;
+      case "titleFontSize":
+      case "markGap": {
+        const read = 表で読む(ACTOR_BLOCK_VALUE_KINDS, { [key]: raw }, "箱の ", ln.no, errors);
+        if (key === "titleFontSize") out.titleFontSize = read.titleFontSize;
+        else out.markGap = read.markGap;
+        break;
+      }
+      case "milestone": {
+        const read = 表で読む(ACTOR_BLOCK_VALUE_KINDS, { milestone: raw }, "箱の ", ln.no, errors);
+        out.milestone = read.milestone;
+        break;
+      }
+      case "startLabel":
+        out.startLabel = stripQuotes(raw);
+        break;
+      case "emphasis": {
+        const value = stripQuotes(raw);
+        if (value === "primary") out.emphasis = value;
+        else errors.push({ line: ln.no, message: `箱の emphasis が読めません: "${value}"`, hint: "使える値 = primary" });
+        break;
+      }
       /*
        * 箱の目次と、始まりと終わりの印 (#2346)。
        *
@@ -3355,10 +4111,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
        */
       case "marks":
       case "印":
-        out.marks = raw
-          .replace(/^\[|\]$/g, "")
-          .split(/,(?![^[]*\])/)
-          .map((x) => 行頭の語へ読み替える(stripQuotes(x.trim())));
+        out.marks = 行頭の印の並びとして読む(raw, ln.no, errors);
         break;
       case "位置":
       case "pos": {
@@ -3443,6 +4196,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       }
       case "touchpoint":
       case "opportunity":
+      case "opportunityPosition":
       case "owner":
       case "end":
       case "stage":
@@ -3482,6 +4236,17 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
     }
     if (key === "touchpoint") out.touchpoint = v;
     else if (key === "opportunity") out.opportunity = v;
+    else if (key === "opportunityPosition") {
+      if ((JOURNEY_OPPORTUNITY_POSITION_VALUES as readonly string[]).includes(v)) {
+        out.opportunityPosition = v as DslActor["opportunityPosition"];
+      } else {
+        errors.push({
+          line: actor.pos.line,
+          message: `opportunityPosition が読めません: "${v}"`,
+          hint: `使える値 = ${JOURNEY_OPPORTUNITY_POSITION_VALUES.join(", ")}`,
+        });
+      }
+    }
     else if (key === "owner") out.owner = v;
     else if (key === "end") out.end = v;
     else out.stage = v;
@@ -3540,6 +4305,18 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "kind",
   "種類",
   "subtitle",
+  "kindForm",
+  "icon",
+  "emptyRowsNote",
+  "titleAlign",
+  "rowRules",
+  "rowMarkForm",
+  "nestIn",
+  "figureCard",
+  "stationNamePosition",
+  "subtitlePlacement",
+  "titleFontSize",
+  "markGap",
   "補足",
   "value",
   "値",
@@ -3584,9 +4361,13 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   // ユーザージャーニーの欄 (#1251)
   "touchpoint",
   "opportunity",
+  "opportunityPosition",
   // 工程の並びの欄 (#1251)
   "owner",
   "end",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "at",
   "点の位置",
   // 箱の目次と、始まりと終わりの印 (#2346)。 中括弧にしか書き方が無かった 3 件
@@ -3789,6 +4570,14 @@ function collectAnimationSteps(
 export const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "kind",
   "subtitle",
+  "kindForm",
+  "icon",
+  "emptyRowsNote",
+  "titleAlign",
+  "rowRules",
+  "rowMarkForm",
+  "nestIn",
+  "figureCard",
   "eyebrow",
   "value",
   "previous",
@@ -3799,6 +4588,9 @@ export const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "stage",
   "initial",
   "final",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "at",
   "state",
   // ユーザージャーニーの欄 (`touchpoint` / `opportunity`) はここに載せない (#1251 Round 1 の指摘)。
@@ -3918,6 +4710,18 @@ function reportScaleOnNonPart(
 const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   "kind",
   "subtitle",
+  "kindForm",
+  "icon",
+  "emptyRowsNote",
+  "titleAlign",
+  "rowRules",
+  "rowMarkForm",
+  "nestIn",
+  "figureCard",
+  "stationNamePosition",
+  "subtitlePlacement",
+  "titleFontSize",
+  "markGap",
   "eyebrow",
   "value",
   "previous",
@@ -3935,9 +4739,13 @@ const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   // ユーザージャーニーの欄 (#1251)。 他の図種では組み立て側が知らせる
   "touchpoint",
   "opportunity",
+  "opportunityPosition",
   // 工程の並びの欄 (#1251)
   "owner",
   "end",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "at",
   "posX",
   "posY",
@@ -4091,8 +4899,21 @@ const FLOW_INLINE_READERS = {
    */
   labelPlate: (v: string | undefined) =>
     v === undefined ? undefined : v !== "false" && v !== "なし",
+  labelCollision: (v: string | undefined) =>
+    v !== undefined && (LABEL_COLLISION_VALUES as readonly string[]).includes(v)
+      ? (v as "auto" | "author")
+      : undefined,
+  labelSize: (v: string | undefined) => v,
   // 矢印がどの辺から出るか (#1385)。 描画側は 4 方向を取り、書かなければ自動で選ぶ
   side: (v: string | undefined) =>
+    v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
+      ? (v as "top" | "right" | "bottom" | "left")
+      : undefined,
+  fromSide: (v: string | undefined) =>
+    v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
+      ? (v as "top" | "right" | "bottom" | "left")
+      : undefined,
+  toSide: (v: string | undefined) =>
     v !== undefined && (EDGE_SIDE_VALUES as readonly string[]).includes(v)
       ? (v as "top" | "right" | "bottom" | "left")
       : undefined,
@@ -4278,6 +5099,40 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     if (!isPart && opts.tone !== undefined && resolveTone(opts.tone) === undefined) {
       report読めない色(opts.tone, line.no, errors, { 線種も受ける: false });
     }
+    if (!isPart && opts.emphasis !== undefined && opts.emphasis !== "primary") {
+      errors.push({
+        line: line.no,
+        message: `箱の emphasis が読めません: "${opts.emphasis}"`,
+        hint: "使える値 = primary",
+      });
+    }
+    if (
+      !isPart && opts.opportunityPosition !== undefined &&
+      !(JOURNEY_OPPORTUNITY_POSITION_VALUES as readonly string[]).includes(opts.opportunityPosition)
+    ) {
+      errors.push({
+        line: line.no,
+        message: `opportunityPosition が読めません: "${opts.opportunityPosition}"`,
+        hint: `使える値 = ${JOURNEY_OPPORTUNITY_POSITION_VALUES.join(", ")}`,
+      });
+    }
+    const 閉じた箱の値 = <T extends string>(
+      key: string,
+      values: readonly T[],
+    ): T | undefined => {
+      const value = opts[key];
+      if (value === undefined || isPart) return undefined;
+      if ((values as readonly string[]).includes(value)) return value as T;
+      errors.push({ line: line.no, message: `箱の ${key} が読めません: "${value}"`, hint: `使える値 = ${values.join(", ")}` });
+      return undefined;
+    };
+    let actorFigureCard: DslActor["figureCard"];
+    if (!isPart && opts.figureCard !== undefined) {
+      const value = JSONの欄を読む(opts.figureCard, "figureCard", line.no, errors);
+      const unknown = 図表の知らない項目を知らせる(value, ["label", "note"] as const, "figureCard", line.no, errors);
+      if (!unknown && objectか(value) && typeof value.label === "string" && value.label.trim() !== "" && (value.note === undefined || typeof value.note === "string")) actorFigureCard = value as NonNullable<DslActor["figureCard"]>;
+      else if (!unknown && value !== undefined) errors.push({ line: line.no, message: "figureCard の値の形が読めません" });
+    }
     // `color` は縦に並べた形と JSON と同じ振り分けを通す (#1969)。 色の名前は箱の色、`#` で
     // 始まる値は色番号になる。
     //
@@ -4298,13 +5153,31 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // 「書かなかった」 と同じ扱いにする (#1058)
       kindWritten: kindRaw !== "" && !isPart,
       subtitle: opts.subtitle,
+      kindForm: 閉じた箱の値("kindForm", KIND_FORM_VALUES),
+      icon: 閉じた箱の値("icon", CDL_ICON_VALUES),
+      emptyRowsNote: isPart ? undefined : opts.emptyRowsNote,
+      titleAlign: 閉じた箱の値("titleAlign", TITLE_ALIGN_VALUES),
+      rowMarkForm: 閉じた箱の値("rowMarkForm", ROW_MARK_FORM_VALUES),
+      nestIn: isPart ? undefined : opts.nestIn,
+      figureCard: actorFigureCard,
+      stationNamePosition:
+        opts.stationNamePosition === "bottom" ? opts.stationNamePosition : undefined,
+      subtitlePlacement:
+        opts.subtitlePlacement === "right" ? opts.subtitlePlacement : undefined,
       eyebrow: opts.eyebrow,
       // パーツでは状態の上書きとして意味を持つため、道筋の欄として横取りしない (#1251)
       touchpoint: isPart ? undefined : opts.touchpoint,
       opportunity: isPart ? undefined : opts.opportunity,
+      opportunityPosition:
+        isPart || opts.opportunityPosition === undefined ||
+        !(JOURNEY_OPPORTUNITY_POSITION_VALUES as readonly string[]).includes(opts.opportunityPosition)
+          ? undefined
+          : opts.opportunityPosition as DslActor["opportunityPosition"],
       // 見本では状態の上書きとして意味を持つため横取りしない (#1251)
       owner: isPart ? undefined : opts.owner,
       end: isPart ? undefined : opts.end,
+      startLabel: isPart ? undefined : opts.startLabel,
+      emphasis: isPart || opts.emphasis !== "primary" ? undefined : "primary",
       at: isPart || opts.at === undefined ? undefined : 四象限の座標として控える(opts.at),
       atPos: isPart || opts.at === undefined ? undefined : { line: line.no },
       stage: isPart ? undefined : opts.stage,
@@ -4321,10 +5194,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       // 古い語の読み替えは縦に並べた形と同じ関数を通す (#2782) = 片方だけ通すと、
       // 中括弧で書いた `pk` が印を持たないまま通る
       marks: opts.marks
-        ? opts.marks
-            .replace(/^\[|\]$/g, "")
-            .split(/,(?![^[]*\])/)
-            .map((x) => 行頭の語へ読み替える(stripQuotes(x.trim())))
+        ? 行頭の印の並びとして読む(opts.marks, line.no, errors)
         : undefined,
       lane: opts.lane,
       // 箱の中に描く図形 (#1374)。 パーツでは状態の上書きとして意味を持つため横取りしない
@@ -4455,12 +5325,17 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
       if (読み手 === null) continue;
       中括弧[k] = 読み手(opts[k]);
     }
-    if (opts.side !== undefined && 中括弧.side === undefined) {
-      errors.push({
-        line: line.no,
-        message: `矢印の side が読めません: "${opts.side}"`,
-        hint: `使える値 = ${EDGE_SIDE_VALUES.join(", ")}`,
-      });
+    for (const field of ["side", "fromSide", "toSide"] as const) {
+      if (opts[field] !== undefined && 中括弧[field] === undefined) {
+        errors.push({
+          line: line.no,
+          message: `矢印の ${field} が読めません: "${opts[field]}"`,
+          hint: `使える値 = ${EDGE_SIDE_VALUES.join(", ")}`,
+        });
+      }
+    }
+    if (opts.labelCollision !== undefined && 中括弧.labelCollision === undefined) {
+      errors.push({ line: line.no, message: `矢印の labelCollision が読めません: "${opts.labelCollision}"`, hint: `使える値 = ${LABEL_COLLISION_VALUES.join(", ")}` });
     }
     // 読めない語を黙って捨てない (#1462)。 捨てると「書いたのに端の形が変わらない」 が
     // 手掛かりなしで起きる
@@ -4490,6 +5365,8 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   const guard = 中括弧.guard as string | undefined;
   const cardinality = 中括弧.cardinality as string | undefined;
   const side = 中括弧.side as "top" | "right" | "bottom" | "left" | undefined;
+  const fromSide = 中括弧.fromSide as "top" | "right" | "bottom" | "left" | undefined;
+  const toSide = 中括弧.toSide as "top" | "right" | "bottom" | "left" | undefined;
   const head = 中括弧.head as EdgeHead | undefined;
   const tailHead = 中括弧.tailHead as EdgeHead | undefined;
   const headFill = 中括弧.headFill as EdgeHeadFill | undefined;
@@ -4499,6 +5376,19 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   // 辺の役目と名前の下地 (cdl#618)
   const role = 中括弧.role as "main" | undefined;
   const labelPlate = 中括弧.labelPlate as boolean | undefined;
+  const labelCollision = 中括弧.labelCollision as DslStep["labelCollision"];
+  let labelSize: DslStep["labelSize"];
+  if (中括弧.labelSize !== undefined) {
+    const value = JSONの欄を読む(中括弧.labelSize as string, "labelSize", line.no, errors);
+    if (objectか(value)) {
+      let invalid = 図表の知らない項目を知らせる(value, ["width", "height", "fontSize"], "labelSize", line.no, errors);
+      for (const key of ["width", "height", "fontSize"] as const) {
+        if (value[key] !== undefined && !正の有限数か(value[key])) invalid = true;
+      }
+      if (!invalid) labelSize = value;
+      else errors.push({ line: line.no, message: "labelSize の値の形が読めません" });
+    } else if (value !== undefined) errors.push({ line: line.no, message: "labelSize は object で書きます" });
+  }
   // 値に追随する 3 欄 (#1396)。 空は捨てずに知らせる = 描画側は空文字を既定値へ落とさず
   // そのまま置換に使うため、書き忘れが「線が消えた」 形で出る
   const widthBind = 追随する大きさとして読む(
@@ -4583,6 +5473,8 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     guard,
     cardinality,
     side,
+    fromSide,
+    toSide,
     head,
     tailHead,
     headFill,
@@ -4596,6 +5488,8 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     dashOffsetBind,
     labelOffsetX,
     labelOffsetY,
+    labelCollision,
+    labelSize,
     overlay,
     ...(fromPartNode !== undefined ? { fromPartNode } : {}),
     ...(toPartNode !== undefined ? { toPartNode } : {}),
@@ -4694,6 +5588,379 @@ function parseValueEntry(text: string, lineNo: number, errors: DslError[]): DslV
     return null;
   }
   return { name, expression, pos: { line: lineNo } };
+}
+
+/** JSON と同じ 1 行の配列 / object を、図表の複合欄で読む。 */
+function JSONの欄を読む(
+  source: string | null,
+  name: string,
+  line: number,
+  errors: DslError[],
+): unknown {
+  const raw = (source ?? "").trim();
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    errors.push({
+      line,
+      message: `${name} の JSON の形が読めません`,
+      hint: `${name}: [...] または ${name}: {...} の形で 1 行に書く`,
+    });
+    return undefined;
+  }
+}
+
+const objectか = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+const 図表の数か = (value: unknown): value is number | string =>
+  (typeof value === "number" && Number.isFinite(value)) ||
+  (typeof value === "string" && value.trim().length > 0);
+
+function 図表の知らない項目を知らせる(
+  value: unknown,
+  使える: readonly string[],
+  名: string,
+  line: number,
+  errors: DslError[],
+): boolean {
+  if (!objectか(value)) return false;
+  const 知らない = Object.keys(value).filter((key) => !使える.includes(key));
+  for (const key of 知らない) {
+    errors.push({
+      line,
+      message: `${名} の項目名が読めません: "${key}"`,
+      hint: `使える項目 = ${使える.join(", ")}`,
+    });
+  }
+  return 知らない.length > 0;
+}
+
+const 正の有限数か = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+const 負でない有限数か = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+const CDL_0132_OBJECT_FIELDS = [
+  "terminalDecoration", "figureKindLabel", "figureInset", "journeySize", "chartBarSize", "chartLineSize",
+  "chartPieSize", "chartWaffleSize", "chartSlopeLabelTemplate", "chartSlopeSize", "chartStackedLayout",
+  "chartGaugeSize", "ganttSize", "quadrantSize", "legendOffset", "stageLayout",
+] as const;
+type Cdl0132ObjectField = (typeof CDL_0132_OBJECT_FIELDS)[number];
+
+const CDL_0132_KEYS: Record<Cdl0132ObjectField, readonly string[]> = {
+  terminalDecoration: ["windowControls", "cursor", "rowOrdinal"],
+  figureKindLabel: ["text", "x", "y", "fontSize", "fontWeight", "letterSpacing"],
+  figureInset: ["top", "right", "bottom", "left", "radius", "holdsContent"],
+  journeySize: ["plotPadding", "pointPadding"],
+  chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "plotPadding", "barWidth", "cornerRadius"],
+  chartLineSize: ["valueLabelOffset", "tickFontSize", "periodFontSize", "pointRadius", "plotPadding", "tickGap", "pointPadding", "periodY"],
+  chartPieSize: ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "tableRowGap", "tablePaddingInline", "outerRadius", "centerX"],
+  chartWaffleSize: ["gridLeft", "cellPitch"],
+  chartSlopeLabelTemplate: ["left", "right"],
+  chartSlopeSize: ["pointRadius", "periodFontSize", "labelFontSize", "leftAxisX", "axisGap", "labelAxisGap", "plotPadding", "pointPadding"],
+  chartStackedLayout: ["legendColumns", "legendColumnGap", "segmentGap", "barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize", "legendOffsetY"],
+  chartGaugeSize: ["arcThickness", "outerRadius", "plotTop", "valueFontSize"],
+  ganttSize: ["taskLabelFontSize", "taskLabelAlign", "taskLabelX", "tickFontSize", "tickCount", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth", "taskColumnWidth", "timelinePaddingRight"],
+  quadrantSize: ["plotOffset", "plotSize", "pointRadius", "pointFontSize", "pointLabelGap", "quadrantFontSize", "axisFontSize"],
+  legendOffset: ["x", "y"],
+  stageLayout: ["columnWidths", "columnGap", "backDetourTopGap", "backDetourSideGap"],
+};
+
+function cdl0132の欄を読む(
+  name: Cdl0132ObjectField,
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): value is NonNullable<DslDocument[Cdl0132ObjectField]> {
+  if (!objectか(value)) {
+    errors.push({ line, message: `${name} は object で書きます` });
+    return false;
+  }
+  let invalid = 図表の知らない項目を知らせる(value, CDL_0132_KEYS[name], name, line, errors);
+  const positive = (key: string): void => {
+    if (value[key] !== undefined && !正の有限数か(value[key])) invalid = true;
+  };
+  const nonNegative = (key: string): void => {
+    if (value[key] !== undefined && !負でない有限数か(value[key])) invalid = true;
+  };
+  const nested = (key: string, keys: readonly string[], kind: "positive" | "nonNegative"): void => {
+    const item = value[key];
+    if (item === undefined) return;
+    if (!objectか(item)) { invalid = true; return; }
+    invalid = 図表の知らない項目を知らせる(item, keys, `${name}.${key}`, line, errors) || invalid;
+    for (const nestedKey of keys) {
+      if (item[nestedKey] === undefined) continue;
+      if (kind === "positive" ? !正の有限数か(item[nestedKey]) : !負でない有限数か(item[nestedKey])) invalid = true;
+    }
+  };
+  if (name === "terminalDecoration") {
+    for (const key of CDL_0132_KEYS[name]) if (value[key] !== undefined && typeof value[key] !== "boolean") invalid = true;
+  } else if (name === "figureKindLabel") {
+    if (typeof value.text !== "string" || value.text.trim() === "") invalid = true;
+    for (const key of ["x", "y"]) if (value[key] !== undefined && (typeof value[key] !== "number" || !Number.isFinite(value[key]))) invalid = true;
+    for (const key of ["fontSize", "fontWeight"]) positive(key);
+    nonNegative("letterSpacing");
+  } else if (name === "figureInset") {
+    for (const key of ["top", "right", "bottom", "left", "radius"]) nonNegative(key);
+    if (value.holdsContent !== undefined && typeof value.holdsContent !== "boolean") invalid = true;
+  } else if (name === "journeySize") {
+    nested("plotPadding", ["left", "right"], "nonNegative");
+    nested("pointPadding", ["left", "right"], "nonNegative");
+  } else if (name === "chartBarSize") {
+    for (const key of ["tickFontSize", "valueFontSize", "labelFontSize", "barWidth"]) positive(key);
+    nested("plotPadding", ["top", "right", "bottom", "left"], "nonNegative");
+    nonNegative("cornerRadius");
+  } else if (name === "chartLineSize") {
+    for (const key of ["tickFontSize", "periodFontSize", "pointRadius"]) positive(key);
+    nested("valueLabelOffset", ["above", "below"], "nonNegative");
+    nested("plotPadding", ["top", "right", "bottom", "left"], "nonNegative");
+    nested("pointPadding", ["left", "right"], "nonNegative");
+    nonNegative("tickGap");
+    nonNegative("periodY");
+  } else if (name === "chartPieSize") {
+    for (const key of ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "outerRadius"]) positive(key);
+    for (const key of ["tableRowGap", "tablePaddingInline"]) nonNegative(key);
+    nonNegative("centerX");
+  } else if (name === "chartWaffleSize") {
+    nonNegative("gridLeft");
+    positive("cellPitch");
+  } else if (name === "chartSlopeLabelTemplate") {
+    for (const key of CDL_0132_KEYS[name]) if (value[key] !== undefined && typeof value[key] !== "string") invalid = true;
+  } else if (name === "chartSlopeSize") {
+    for (const key of ["pointRadius", "periodFontSize", "labelFontSize", "axisGap"]) positive(key);
+    for (const key of ["leftAxisX", "labelAxisGap"]) nonNegative(key);
+    nested("plotPadding", ["top", "bottom"], "nonNegative");
+    nested("pointPadding", ["top", "bottom"], "nonNegative");
+  } else if (name === "chartStackedLayout") {
+    for (const key of ["barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize"]) positive(key);
+    for (const key of ["legendColumnGap", "segmentGap"]) nonNegative(key);
+    if (value.legendOffsetY !== undefined && (typeof value.legendOffsetY !== "number" || !Number.isFinite(value.legendOffsetY))) invalid = true;
+    if (value.legendColumns !== undefined && (!Number.isInteger(value.legendColumns) || !正の有限数か(value.legendColumns))) invalid = true;
+  } else if (name === "chartGaugeSize") {
+    for (const key of ["arcThickness", "outerRadius", "valueFontSize"]) positive(key);
+    nonNegative("plotTop");
+  } else if (name === "ganttSize") {
+    for (const key of ["taskLabelFontSize", "tickFontSize", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth"]) positive(key);
+    nonNegative("taskLabelX");
+    nonNegative("taskColumnWidth");
+    nonNegative("timelinePaddingRight");
+    if (
+      value.taskLabelAlign !== undefined &&
+      !(GANTT_TASK_LABEL_ALIGN_VALUES as readonly unknown[]).includes(value.taskLabelAlign)
+    ) invalid = true;
+    if (value.tickCount !== undefined && (!Number.isInteger(value.tickCount) || typeof value.tickCount !== "number" || value.tickCount < 2)) invalid = true;
+  } else if (name === "quadrantSize") {
+    nested("plotOffset", ["x", "y"], "nonNegative");
+    for (const key of ["plotSize", "pointRadius", "pointFontSize", "quadrantFontSize", "axisFontSize"]) positive(key);
+    nonNegative("pointLabelGap");
+  } else if (name === "legendOffset") {
+    for (const key of ["x", "y"])
+      if (value[key] !== undefined && (typeof value[key] !== "number" || !Number.isFinite(value[key]))) invalid = true;
+  } else if (name === "stageLayout") {
+    nested("columnWidths", Object.keys(objectか(value.columnWidths) ? value.columnWidths : {}), "nonNegative");
+    for (const key of ["columnGap", "backDetourTopGap", "backDetourSideGap"]) nonNegative(key);
+  }
+  if (invalid) errors.push({ line, message: `${name} の値の形が読めません` });
+  return !invalid;
+}
+
+function 木の寸法を読む(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): value is NonNullable<DslDocument["treeSize"]> {
+  if (!objectか(value)) {
+    errors.push({ line, message: "treeSize は object で書きます" });
+    return false;
+  }
+  let invalid = 図表の知らない項目を知らせる(value, TREE_SIZE_KEYS, "treeSize", line, errors);
+  if (
+    value.nodeWidths !== undefined &&
+    (!Array.isArray(value.nodeWidths) ||
+      value.nodeWidths.length === 0 ||
+      value.nodeWidths.some((width) => !正の有限数か(width)))
+  )
+    invalid = true;
+  for (const key of ["nodeHeight", "titleFontSize", "subtitleFontSize"] as const) {
+    if (value[key] !== undefined && !正の有限数か(value[key])) invalid = true;
+  }
+  for (const key of ["siblingGap", "levelGap"] as const) {
+    if (value[key] !== undefined && !負でない有限数か(value[key])) invalid = true;
+  }
+  if (invalid) errors.push({ line, message: "treeSize の値の形が読めません" });
+  return !invalid;
+}
+
+function 放射の寸法を読む(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): value is NonNullable<DslDocument["mindSize"]> {
+  if (!objectか(value)) {
+    errors.push({ line, message: "mindSize は object で書きます" });
+    return false;
+  }
+  let invalid = 図表の知らない項目を知らせる(value, MIND_SIZE_KEYS, "mindSize", line, errors);
+  for (const [key, allowed] of [
+    ["root", ["width", "height", "fontSize"]],
+    ["branch", ["width", "height", "fontSize"]],
+    ["leaf", ["fontSize"]],
+  ] as const) {
+    const nested = value[key];
+    if (nested === undefined) continue;
+    if (!objectか(nested)) {
+      invalid = true;
+      continue;
+    }
+    invalid =
+      図表の知らない項目を知らせる(nested, allowed, `mindSize.${key}`, line, errors) || invalid;
+    for (const nestedKey of allowed) {
+      if (nested[nestedKey] !== undefined && !正の有限数か(nested[nestedKey])) invalid = true;
+    }
+  }
+  for (const key of ["rootBranchGap", "branchLeafGap", "branchRowGap", "leafRowGap"] as const) {
+    if (value[key] !== undefined && !負でない有限数か(value[key])) invalid = true;
+  }
+  for (const key of ["branchRowOffset", "leafRowOffset"] as const) {
+    if (
+      value[key] !== undefined &&
+      (typeof value[key] !== "number" || !Number.isFinite(value[key]))
+    )
+      invalid = true;
+  }
+  if (invalid) errors.push({ line, message: "mindSize の値の形が読めません" });
+  return !invalid;
+}
+
+function chartLineSeriesの知らない項目を知らせる(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): boolean {
+  if (!Array.isArray(value)) return false;
+  let unknown = false;
+  value.forEach((series, index) => {
+    unknown =
+      図表の知らない項目を知らせる(
+        series,
+        ["label", "points", "tone", "dash", "marker", "valueIndexes"],
+        `chartLineSeries[${index}]`,
+        line,
+        errors,
+      ) || unknown;
+    if (!objectか(series) || !Array.isArray(series.points)) return;
+    series.points.forEach((point, pointIndex) => {
+      unknown =
+        図表の知らない項目を知らせる(
+          point,
+          ["label", "value"],
+          `chartLineSeries[${index}].points[${pointIndex}]`,
+          line,
+          errors,
+        ) || unknown;
+    });
+  });
+  return unknown;
+}
+
+function chartStackedPeriodsの知らない項目を知らせる(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): boolean {
+  if (!Array.isArray(value)) return false;
+  let unknown = false;
+  value.forEach((period, index) => {
+    unknown =
+      図表の知らない項目を知らせる(
+        period,
+        ["label", "values"],
+        `chartStackedPeriods[${index}]`,
+        line,
+        errors,
+      ) || unknown;
+  });
+  return unknown;
+}
+
+function chartGaugeValueの知らない項目を知らせる(
+  value: unknown,
+  line: number,
+  errors: DslError[],
+): boolean {
+  return 図表の知らない項目を知らせる(
+    value,
+    ["max", "current", "target", "previous", "previousLabel"],
+    "chartGaugeValue",
+    line,
+    errors,
+  );
+}
+
+function chartLineSeriesの形(
+  value: unknown,
+): value is NonNullable<DslDocument["chartLineSeries"]> {
+  if (!Array.isArray(value) || value.length === 0) return false;
+  return value.every((series) => {
+    if (!objectか(series) || !Array.isArray(series.points) || series.points.length === 0) return false;
+    if (series.label !== undefined && typeof series.label !== "string") return false;
+    if (
+      series.tone !== undefined &&
+      (typeof series.tone !== "string" || resolveTone(series.tone) === undefined)
+    )
+      return false;
+    if (
+      series.dash !== undefined &&
+      (typeof series.dash !== "string" ||
+        !(CHART_LINE_DASH_VALUES as readonly string[]).includes(series.dash))
+    )
+      return false;
+    if (
+      series.marker !== undefined &&
+      (typeof series.marker !== "string" ||
+        !(CHART_LINE_MARKER_VALUES as readonly string[]).includes(series.marker))
+    ) return false;
+    if (
+      series.valueIndexes !== undefined &&
+      (!Array.isArray(series.valueIndexes) ||
+        series.valueIndexes.some((index) => !Number.isInteger(index) || Number(index) < 0))
+    ) return false;
+    return series.points.every(
+      (point) => objectか(point) && typeof point.label === "string" && 図表の数か(point.value),
+    );
+  });
+}
+
+function chartStackedPeriodsの形(
+  value: unknown,
+): value is NonNullable<DslDocument["chartStackedPeriods"]> {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every(
+      (period) =>
+        objectか(period) &&
+        typeof period.label === "string" &&
+        Array.isArray(period.values) &&
+        period.values.every(図表の数か),
+    )
+  );
+}
+
+function chartGaugeValueの形(
+  value: unknown,
+): value is NonNullable<DslDocument["chartGaugeValue"]> {
+  if (!objectか(value)) return false;
+  const finite = (entry: unknown): entry is number =>
+    typeof entry === "number" && Number.isFinite(entry);
+  return (
+    finite(value.max) &&
+    value.max > 0 &&
+    図表の数か(value.current) &&
+    (value.target === undefined || 図表の数か(value.target)) &&
+    (value.previous === undefined || 図表の数か(value.previous)) &&
+    (value.previousLabel === undefined || typeof value.previousLabel === "string")
+  );
 }
 
 function splitTopLevelCommas(s: string): string[] {

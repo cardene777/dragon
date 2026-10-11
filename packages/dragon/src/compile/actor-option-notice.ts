@@ -14,6 +14,7 @@
  * 矢印の側は `edge-option-notice.ts` が同じ形を持つ (#2366)。
  */
 import type { DslActor } from "../types";
+import type { DslDiagramShape } from "../keywords";
 
 /**
  * 効かない箱の欄の呼び名 (#2358)。 **並べた順に知らせへ出す**。
@@ -59,32 +60,40 @@ export const 効かない箱の欄の呼び名 = [
   ["owner", "担当"],
   ["stage", "段階"],
   ["end", "終わる時期"],
+  ["startLabel", "始まりの札"],
+  ["milestone", "節目"],
+  ["emphasis", "主役"],
   ["at", "点の位置"],
   ["atPos", "点の位置"],
   ["touchpoint", "接点"],
   ["opportunity", "伸びしろ"],
+  ["opportunityPosition", "伸びしろの位置"],
 ] as const satisfies readonly (readonly [keyof DslActor, string])[];
 
 /**
  * 体験と工程の欄 (#2380)。 **どの族の除外にも入る**。
  *
  * 担当 (`owner`) と終わる時期 (`end`) はガントチャートが、接点 (`touchpoint`) と伸びしろ
- * (`opportunity`) は体験の地図が描く。 描けない図種で書いた時は
+ * (`opportunity`) と伸びしろの位置 (`opportunityPosition`) は体験の地図が描く。 描けない図種で書いた時は
  * `reportChartFieldsNotHonored` が図種ごとの行き先を添えて伝える。
  *
  * 箱の知らせが同じ欄を重ねて伝えると、1 つの欄が 2 つの名前で呼ばれる (「担当」 と `owner`)
  * うえ、案内が食い違う = 箱の知らせは「箱を持つ図種へ」 と言うが、担当は箱を持つ図種でも
  * 効かない。
  *
- * **1 か所に置いて各族が読む**。 4 欄を族ごとに書き並べると、5 つ目を足した日に
+ * **1 か所に置いて各族が読む**。 欄を族ごとに書き並べると、新しい欄を足した日に
  * 直し忘れた族だけが 2 件並べるようになる (実測 = 板の族だけが 4 欄を持たず、
  * `sequence` / `solidity` の 8 通りで知らせが 2 件並んでいた)。
  */
 export const 体験と工程の欄: ReadonlySet<string> = new Set([
   "owner",
   "end",
+  "startLabel",
+  "milestone",
+  "emphasis",
   "touchpoint",
   "opportunity",
+  "opportunityPosition",
 ]);
 
 /**
@@ -153,7 +162,7 @@ export const 木の図が伝えない箱の欄: ReadonlySet<string> = new Set([
  * 記法の `offsetX` / `offsetY` は `layoutPos` に入る (`position-offset-ignored` が受け持つ)。
  * 欄の名前で判定するので、記法の項目名ではなく入った先の欄を書く。
  *
- * 体験と工程の 4 欄 (`体験と工程の欄`) は、読む図種と別の知らせが受け持つ図種に分かれる。
+ * 体験と工程の欄 (`体験と工程の欄`) は、読む図種と別の知らせが受け持つ図種に分かれる。
  * どちらも伝えないので 1 つにまとめて除く。
  */
 const 値として読む図に共通の除外: ReadonlySet<string> = new Set([
@@ -176,16 +185,30 @@ const 値として読む図に共通の除外: ReadonlySet<string> = new Set([
  * | 図種 | 共通に加えて読む欄 |
  * |---|---|
  * | 数を描く図 (`chart`) | 色味 (`tone`) / 前の値 (`previous`) |
- * | じょうご / 体験の地図 / 四象限 | 無し (名前と値だけを読む) |
+ * | じょうご | 色味 (`tone`) |
+ * | 体験の地図 / 四象限 | 無し (名前と値だけを読む) |
  * | ガントチャート | 色味 (`tone`)。 担当と終わる時期は共通の除外に入っている |
  */
 export const 値として読む図種: ReadonlyMap<string, readonly string[]> = new Map([
   ["chart", ["tone", "previous"]],
-  ["funnel", []],
+  ["funnel", ["tone"]],
   ["gantt", ["tone"]],
   ["journey", []],
   ["quadrant", ["at", "atPos"]],
 ]);
+
+/**
+ * 件ごとの主役 (`emphasis`) を実際に描く値の図。
+ *
+ * `chart` という node の種類だけでは円・折れ線なども混ざるため、`chart/stacked` まで
+ * 形を含めて区別する。じょうごは形を持たず、段の `emphasis` を読む。
+ */
+const 主役を読む値の図: ReadonlySet<string> = new Set(["chart/stacked", "funnel"]);
+
+/** 件ごとの `emphasis` がその図で描かれるか */
+export function 値として読む図が主役を読む(図種: string, 形?: DslDiagramShape): boolean {
+  return 主役を読む値の図.has(形 === undefined ? 図種 : `${図種}/${形}`);
+}
 
 /**
  * その図種で、効かないと伝えない箱の欄を返す (#2370)。
@@ -239,6 +262,16 @@ const 骨組みの図に共通の除外: ReadonlySet<string> = new Set([
   "eyebrow",
   "tone",
   "rows",
+  // cdl 0.129.0-0.130.0 の表箱・部品箱の欄。 applyV05Extensions が node へ渡し、
+  // 描き手が箱の種類に応じて題・罫線・印・入れ子・線画・足として読む (#2854)。
+  "kindForm",
+  "icon",
+  "emptyRowsNote",
+  "titleAlign",
+  "rowRules",
+  "rowMarkForm",
+  "nestIn",
+  "figureCard",
   "shape",
   "kind",
   "stack",

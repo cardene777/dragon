@@ -4,6 +4,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import * as textDsl from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
+import {
+  presetDeliveryMetro,
+  sourceJson__presetDeliveryMetro,
+} from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import { textDslToDiagram } from "../src/index";
 
 const 路線図の見本 = (): Array<{ key: string; source: string }> =>
@@ -18,6 +22,35 @@ const 路線図の見本 = (): Array<{ key: string; source: string }> =>
     .map(([key, value]) => ({ key: key.slice("sourceYaml__".length), source: value as string }));
 
 describe("見本帳の路線図の形 (#2799)", () => {
+  it("cdl#1028: 届けに行くの駅名を下へ置く", () => {
+    expect(presetDeliveryMetro.nodes.find((node) => node.title === "届けに行く")).toMatchObject({
+      stationNamePosition: "bottom",
+    });
+  });
+
+  it("cdl#1029: はいの札を下へ 110 ずらす", () => {
+    expect(presetDeliveryMetro.edges.find((edge) => edge.label === "はい")).toMatchObject({
+      labelOffsetY: 110,
+    });
+  });
+
+  it("凡例の字を見本の 21 にする", () => {
+    expect(presetDeliveryMetro.legendFontSize).toBe(21);
+    expect(presetDeliveryMetro.legendOffset).toEqual({ x: -200, y: -40 });
+    expect(JSON.parse(sourceJson__presetDeliveryMetro).legendOffset).toEqual({ x: -200, y: -40 });
+  });
+
+  it("1100 高の路線盤で凡例を上へ 40 ずらす", () => {
+    expect(presetDeliveryMetro.viewport).toEqual({ width: 1800, height: 1048.118 });
+    expect(JSON.parse(sourceJson__presetDeliveryMetro).viewport).toEqual({
+      width: 1800,
+      height: 1048.118,
+    });
+    const markup = renderToStaticMarkup(createElement(CdlDiagramView, { diagram: presetDeliveryMetro }));
+    const viewBox = /data-cdl-viewbox="([^"]+)"/u.exec(markup)?.[1]?.split(" ").map(Number);
+    expect(viewBox?.[3]).toBeCloseTo(1060, 2);
+  });
+
   it("shape: metro を記法と JSON の対でちょうど1件持つ", () => {
     const items = 路線図の見本();
     expect(items).toHaveLength(1);

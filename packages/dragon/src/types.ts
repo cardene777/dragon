@@ -3,7 +3,7 @@
  * docs/cdl/text-dsl-spec.md の文法を AST に変換した中間表現
  */
 
-import type { CdlDiagram, LegendMark, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlLegendItem, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
 import type { DslDiagramShape, DslDirection, DslOrder, DslTheme } from "./keywords";
 
@@ -137,8 +137,135 @@ export type DslDocument = {
   ticks?: string[];
   /** `ticks` を書いた行。 */
   ticksPos?: Position;
+  /** ガントチャートの今日の線の位置と札。 */
+  ganttToday?: { index: number; label: string };
+  /** 工程の端とは独立して描く目盛り名。 */
+  ganttTickLabels?: string[];
+  /** 帯の終わりを位置として扱う。 */
+  ganttBarEnd?: "position";
+  /** 行の字に対して見本の比で細くする。 */
+  ganttBarThickness?: "thin";
+  /** 図表の系列色で `muted` の項目を数えない。 */
+  chartSeriesSkipMuted?: NonNullable<CdlDiagram["nodes"][number]["chartSeriesSkipMuted"]>;
+  /** 折れ線の複数系列。 */
+  chartLineSeries?: NonNullable<CdlDiagram["nodes"][number]["chartLineSeries"]>;
+  /** 円の中心で合計の下に置く字。 */
+  chartPieCenterLabel?: NonNullable<CdlDiagram["nodes"][number]["chartPieCenterLabel"]>;
+  /** 円の表に置く列。 */
+  chartPieTableColumns?: NonNullable<CdlDiagram["nodes"][number]["chartPieTableColumns"]>;
+  /** 円の輪の太さ。 */
+  chartPieRingWidth?: NonNullable<CdlDiagram["nodes"][number]["chartPieRingWidth"]>;
+  /** 傾き図の左右の時点名。 */
+  chartSlopePeriods?: NonNullable<CdlDiagram["nodes"][number]["chartSlopePeriods"]>;
+  /** 傾き図で主役にする項目の id。 */
+  chartSlopeEmphasisIds?: NonNullable<CdlDiagram["nodes"][number]["chartSlopeEmphasisIds"]>;
+  /** 傾き図の値に付ける単位。 */
+  chartSlopeUnit?: NonNullable<CdlDiagram["nodes"][number]["chartSlopeUnit"]>;
+  /** 内訳の帯の期間。 */
+  chartStackedPeriods?: NonNullable<CdlDiagram["nodes"][number]["chartStackedPeriods"]>;
+  /** 内訳の帯の右に率を描く項目の id。 */
+  chartStackedRateId?: NonNullable<CdlDiagram["nodes"][number]["chartStackedRateId"]>;
+  /** 内訳の帯の凡例の位置。 */
+  chartStackedLegendPosition?: NonNullable<
+    CdlDiagram["nodes"][number]["chartStackedLegendPosition"]
+  >;
+  /** 半円を固定の尺で読む値。 */
+  chartGaugeValue?: NonNullable<CdlDiagram["nodes"][number]["chartGaugeValue"]>;
+  /** 升目の一覧を置く側。 */
+  chartWaffleLegendPosition?: NonNullable<
+    CdlDiagram["nodes"][number]["chartWaffleLegendPosition"]
+  >;
+  /** 漏斗の形。 */
+  funnelForm?: NonNullable<CdlDiagram["nodes"][number]["funnelForm"]>;
+  /** 漏斗に描く率。 */
+  funnelRate?: NonNullable<CdlDiagram["nodes"][number]["funnelRate"]>;
+  /** 座標で置いた四象限の点の名前を置く側。 */
+  quadrantPointLabelSide?: NonNullable<
+    CdlDiagram["nodes"][number]["quadrantPointLabelSide"]
+  >;
+  /** 木の箱を根まで同じ枠で描くか。 */
+  treeNodeForm?: NonNullable<CdlDiagram["nodes"][number]["treeNodeForm"]>;
+  /** 木の札・字・枝間の寸法。 */
+  treeSize?: NonNullable<CdlDiagram["nodes"][number]["treeSize"]>;
+  /** 木の枝色を 1 色にするか、段ごとに分けるか。 */
+  treeEdgeTone?: NonNullable<CdlDiagram["nodes"][number]["treeEdgeTone"]>;
+  /** 木の枝先の印。 */
+  treeEdgeHead?: NonNullable<CdlDiagram["nodes"][number]["treeEdgeHead"]>;
+  /** 放射の中心・枝・葉を、面か輪郭のどちらで描くか。 */
+  mindForm?: NonNullable<CdlDiagram["nodes"][number]["mindForm"]>;
+  /** 放射の札・字・枝間の寸法。 */
+  mindSize?: NonNullable<CdlDiagram["nodes"][number]["mindSize"]>;
+  /** ジャーニーの段を帯か罫で描くか。 */
+  journeyForm?: NonNullable<CdlDiagram["nodes"][number]["journeyForm"]>;
+  /** ジャーニーの点を曲線か直線で結ぶか。 */
+  journeyLineForm?: NonNullable<CdlDiagram["nodes"][number]["journeyLineForm"]>;
+  /** ジャーニーの 5 段に描く名前。 */
+  journeyLabels?: NonNullable<CdlDiagram["nodes"][number]["journeyLabels"]>;
+  /** ジャーニーの描画面と点列の左右余白。 */
+  journeySize?: NonNullable<CdlDiagram["nodes"][number]["journeySize"]>;
+  /** 図表の見出し帯と足。 */
+  figureCard?: NonNullable<CdlDiagram["nodes"][number]["figureCard"]>;
+  /** 端末意匠用の窓操作・字送り・行番号。 */
+  terminalDecoration?: NonNullable<CdlDiagram["nodes"][number]["terminalDecoration"]>;
+  /** 矩形札の一様角と手描き角を意匠で選ぶ。 */
+  cornerForm?: NonNullable<CdlDiagram["nodes"][number]["cornerForm"]>;
+  /** 階層図とマインドマップの種類札。 */
+  figureKindLabel?: NonNullable<CdlDiagram["nodes"][number]["figureKindLabel"]>;
+  /** 図表札の見出しと足の間に置く凹み面と、中身をその内側へ収める指定。 */
+  figureInset?: NonNullable<CdlDiagram["nodes"][number]["figureInset"]>;
+  /** 棒グラフの見本寸法。 */
+  chartBarSize?: NonNullable<CdlDiagram["nodes"][number]["chartBarSize"]>;
+  /** 棒グラフの棒を分割するか、上だけ丸めて一体にするか。 */
+  chartBarShape?: NonNullable<CdlDiagram["nodes"][number]["chartBarShape"]>;
+  /** 折れ線グラフの見本寸法。 */
+  chartLineSize?: NonNullable<CdlDiagram["nodes"][number]["chartLineSize"]>;
+  /** 円グラフの見本寸法。 */
+  chartPieSize?: NonNullable<CdlDiagram["nodes"][number]["chartPieSize"]>;
+  /** 升目図の左端と升目の送り。 */
+  chartWaffleSize?: NonNullable<CdlDiagram["nodes"][number]["chartWaffleSize"]>;
+  /** 傾き図の左右の札の書式。 */
+  chartSlopeLabelTemplate?: NonNullable<
+    CdlDiagram["nodes"][number]["chartSlopeLabelTemplate"]
+  >;
+  /** 傾き図の見本寸法。 */
+  chartSlopeSize?: NonNullable<CdlDiagram["nodes"][number]["chartSlopeSize"]>;
+  /** 内訳の帯の見本配置。 */
+  chartStackedLayout?: NonNullable<CdlDiagram["nodes"][number]["chartStackedLayout"]>;
+  /** 半円図の見本寸法。 */
+  chartGaugeSize?: NonNullable<CdlDiagram["nodes"][number]["chartGaugeSize"]>;
+  /** ガント図の見本寸法。 */
+  ganttSize?: NonNullable<CdlDiagram["nodes"][number]["ganttSize"]>;
+  /** 四象限の区画名を置く位置。 */
+  quadrantLabelPosition?: NonNullable<
+    CdlDiagram["nodes"][number]["quadrantLabelPosition"]
+  >;
+  /** 四象限の見本寸法。 */
+  quadrantSize?: NonNullable<CdlDiagram["nodes"][number]["quadrantSize"]>;
+  /**
+   * 図全体を 1 箱にする図種の札の大きさ。
+   *
+   * `viewport` は図全体の画布なので分ける。`width` / `height` は既存の viewport と lane の
+   * 綴りに揃え、描画側だけが使う短い `w` / `h` を記法へ漏らさない。
+   */
+  figureSize?: { width: number; height: number };
   /** 図の下へ指定順に置く凡例。 */
-  legend?: { mark: LegendMark; text: string }[];
+  legend?: CdlLegendItem[];
+  /** 図全体の凡例の位置を既定位置からずらす。 */
+  legendOffset?: NonNullable<CdlDiagram["legendOffset"]>;
+  /** 順序図の参加者を枠で囲む。 */
+  sequenceActorForm?: "box";
+  /** 順序図の段へ種類印と種類名を添える。 */
+  sequenceLabelForm?: "kind";
+  /** 順序図の返す言づてにも塗った三角の矢じりを使う。 */
+  sequenceReturnHead?: "solid";
+  /** 順序図の種類名の表示語。 */
+  sequenceKindLabels?: Partial<Record<"call" | "return" | "fire", string>>;
+  /** 図の凡例の字の大きさ。 */
+  legendFontSize?: number;
+  /** 段の箱で、意匠ごとに描く見出しの寸法。 */
+  stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
+  /** 段の列幅・列間と戻る線の迂回寸法。 */
+  stageLayout?: NonNullable<CdlDiagram["stageLayout"]>;
   /**
    * 図全体を 1 箱にする図種 (`pie` / `bar` / `line` / `funnel` / `tree` / `journey` /
    * `quadrant` / `mind` / `gantt`) で、 その箱の上に出す小見出し (#1247)。
@@ -294,9 +421,12 @@ export type DslDocument = {
 
 /** 2 軸で仕分ける図の軸の名前 (#1251) */
 export type DslAxes = {
-  x?: { left?: string; right?: string };
-  y?: { bottom?: string; top?: string };
+  x?: { left?: string; right?: string; label?: never; direction?: never } | DslAxisDirection;
+  y?: { bottom?: string; top?: string; label?: never; direction?: never } | DslAxisDirection;
 };
+
+/** 端の名前ではなく、向き付きの軸名を 1 つだけ描く形。 */
+export type DslAxisDirection = { label: string; direction: true };
 
 /**
  * 2 軸で仕分ける図の区画の名前 (#2667)。
@@ -326,6 +456,30 @@ export type DslActor = {
   kindWritten?: boolean;
   /** v0.5+ inline option */
   subtitle?: string;
+  /** kind の意味を保ったまま共通の部品箱で描く。 */
+  kindForm?: "icon";
+  /** 共通の部品箱へ描く線画。 */
+  icon?: "person" | "box" | "database" | "lightning" | "cloud" | "terminal";
+  /** 行を持たない表の箱で行の代わりに描く注記。 */
+  emptyRowsNote?: string;
+  /** 表の箱の名前と小見出しを中央へ揃える。 */
+  titleAlign?: "center";
+  /** 表の箱の行の間に罫線を引く。 */
+  rowRules?: boolean;
+  /** 表の箱の行頭の印を色の段で分ける。 */
+  rowMarkForm?: "tone";
+  /** 表の箱を内側へ抱える親の表の箱の名前。 */
+  nestIn?: string;
+  /** 表または共通の部品箱の足。 */
+  figureCard?: NonNullable<CdlDiagram["nodes"][number]["figureCard"]>;
+  /** 路線図の駅名を駅の上下どちらへ置くか。 */
+  stationNamePosition?: "bottom";
+  /** 時間軸の担当を札のどちらへ置くか。 */
+  subtitlePlacement?: "right";
+  /** 流れ図の function の札の題の大きさ。 */
+  titleFontSize?: number;
+  /** 流れ図の始まり・終わりの印と次の箱との間。 */
+  markGap?: number;
   eyebrow?: string;
   value?: string;
   /**
@@ -346,7 +500,7 @@ export type DslActor = {
    * `entry` / `exit` / `do` / `internal`。 印の 2 軸 (形 × 塗り) は共通だが、その軸が
    * 何を指すかは種類ごとに違う。
    */
-  marks?: string[];
+  marks?: Array<string | { mark: string; tone?: "primary" | "muted" }>;
   /**
    * 箱の中に描く図形 (`shape:`、 #1374)。 水位や角度を状態で動かせる。
    *
@@ -405,6 +559,12 @@ export type DslActor = {
    * 他の図種では相手が無いため、書かれていたら組み立て側が知らせる。
    */
   end?: string;
+  /** 工程の始まりに出す札。節目の位置名とは独立して書ける。 */
+  startLabel?: string;
+  /** 帯を菱形の節目として描く。 */
+  milestone?: boolean;
+  /** 工程の帯を主役として描く。 */
+  emphasis?: "primary";
   /**
    * 四象限の点を置く座標。 左下が (0, 0)、右上が (1, 1)。
    * 数のほか `{名前}` を受け、描画側の BoundNumber へそのまま渡す。
@@ -426,6 +586,10 @@ export type DslActor = {
    * 書かれていたら組み立て側が知らせる。
    */
   opportunity?: string;
+  /** ジャーニーの改善注記を置く場所。 */
+  opportunityPosition?: NonNullable<
+    NonNullable<CdlDiagram["nodes"][number]["journeyData"]>[number]["opportunityPosition"]
+  >;
   /**
    * 段階ごとの箱 (`type: swimlane` + `shape: stages`) で、この箱を入れる段階 (#2797)。
    *
@@ -534,6 +698,9 @@ export type DslStep = {
   dashOffsetBind?: string;
   /** 矢印がどの辺から出るか (#1385)。 書かなければ描画側が自動で選ぶ */
   side?: "top" | "right" | "bottom" | "left";
+  /** 矢印の出どころと行き先で、個別に使う辺。 */
+  fromSide?: "top" | "right" | "bottom" | "left";
+  toSide?: "top" | "right" | "bottom" | "left";
   /**
    * 矢印の先の形 (#1462)。 書かなければ従来どおり塗った三角。
    *
@@ -576,6 +743,10 @@ export type DslStep = {
   labelPlate?: boolean;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  /** 線の名札を自動回避するか、作者の位置に固定するか。 */
+  labelCollision?: NonNullable<CdlDiagram["edges"][number]["labelCollision"]>;
+  /** 線の名札の幅・高さ・字の大きさ。 */
+  labelSize?: NonNullable<CdlDiagram["edges"][number]["labelSize"]>;
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
   overlay?: boolean;
   /**
@@ -614,6 +785,16 @@ export type DslLane = {
   pos: Position;
 };
 
+/** 段の箱の列見出しの寸法。 */
+export type DslStageHeader = {
+  leftPad?: number;
+  topPad: number;
+  numberSize: number;
+  gap: number;
+  nameSize: number;
+  bottomPad: number;
+};
+
 /**
  * 組の宣言 (v0.5+ top-level groups section)。
  *
@@ -632,6 +813,8 @@ export type DslGroup = {
 export type DslViewport = {
   width?: number;
   height?: number;
+  /** 描画内容だけを画布の中で横へずらす。 */
+  contentOffsetX?: number;
   /**
    * 図全体の倍率 (default 1)。 箱 / 文字 / 線 / 間隔のすべてが等比で拡大縮小される。
    *

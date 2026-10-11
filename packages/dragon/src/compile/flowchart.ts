@@ -100,6 +100,21 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
   const lanes = 縦列の並び(doc);
   const 既定の縦列 = lanes[0];
   /*
+   * 補足を書いた縦列だけ、0.127.0 の見出しの object 形へ広げる。
+   *
+   * 全縦列を `{ label }` にすると、subtitle を書いていない従来の flowchart まで見出しの
+   * 配置へ切り替わる。実測では経費申請の図が幅 1743 から 1986 へ広がり、線の札と箱の
+   * clearance も変わった。欄を書かない図を変えないため、従来どおり id の文字列を渡す。
+   */
+  const 描く側の縦列 = (id: string): string | { label: string; subtitle: string } => {
+    const subtitle = doc.lanes?.[id]?.subtitle;
+    return subtitle === undefined ? id : { label: doc.lanes?.[id]?.label ?? id, subtitle };
+  };
+  const 描く側の縦列名 = (id: string): string => {
+    const lane = 描く側の縦列(id);
+    return typeof lane === "string" ? lane : lane.label;
+  };
+  /*
    * 並べる向きを描く側へ渡す (#2524)。
    *
    * 記法の 縦 / 横 と描く側の綴りは 1 対 1 で対応する。 既定は 横 で、書かない図は
@@ -113,7 +128,7 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
   const fc = flowchart({
     id: slugify(doc.title),
     topic: doc.title,
-    lanes,
+    lanes: lanes.map(描く側の縦列),
     direction: 縦に積む ? "vertical" : "horizontal",
   });
 
@@ -145,7 +160,14 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
       id,
       title: 箱の題(a),
       shape: 箱の形(a),
-      lane: a.lane !== undefined && a.lane !== "" ? a.lane : (既定の縦列 ?? ""),
+      lane:
+        a.lane !== undefined && a.lane !== ""
+          ? 描く側の縦列名(a.lane)
+          : (既定の縦列 === undefined
+              ? ""
+              : 描く側の縦列名(既定の縦列)),
+      ...(a.titleFontSize !== undefined ? { titleFontSize: a.titleFontSize } : {}),
+      ...(a.markGap !== undefined ? { markGap: a.markGap } : {}),
     });
   });
 
@@ -163,6 +185,15 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
 
   const diagram = fc.build();
   const 箱の一覧 = new Map(diagram.nodes.map((n) => [n.id, n]));
+
+  // cdl の flowchart builder は札固有の文字サイズと印の間隔を入力から写さないため、
+  // 記法の箱と確定した node id を対応させて build 後の payload へ補う。
+  doc.actors.forEach((actor, i) => {
+    const node = 箱の一覧.get(決めたid[i] ?? "");
+    if (node === undefined) return;
+    if (actor.titleFontSize !== undefined) node.titleFontSize = actor.titleFontSize;
+    if (actor.markGap !== undefined) node.markGap = actor.markGap;
+  });
 
   /*
    * 横向きだけを宅配の見本と同じ形へ直す。縦向きは役割と形の小見出しを箱の上へ移すことが

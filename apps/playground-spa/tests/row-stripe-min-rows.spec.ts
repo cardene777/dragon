@@ -26,6 +26,8 @@ import { 一覧の行 } from "./catalog-item-pick";
 const 見本 = [
   { slug: "presets", id: "class-demo" },
   { slug: "presets", id: "er-demo" },
+  // class-demo の Auditable を空にした後も、配色を当てた実在の 1 行箱で出ない側を見る。
+  { slug: "patterns", id: "pattern-call-rw" },
 ] as const;
 
 async function 開く(page: Page, slug: string, id: string): Promise<void> {

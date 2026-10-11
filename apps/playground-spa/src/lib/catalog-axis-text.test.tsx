@@ -41,6 +41,11 @@ const 見本 = (kind: string): CdlDiagram[] =>
     .filter(({ diagram }) => diagram.nodes.some((n) => n.kind === kind))
     .map(({ diagram }) => diagram);
 
+const 見本寸法つき折れ線 = (): CdlDiagram[] =>
+  見本("chart-line").filter((diagram) =>
+    diagram.nodes.some((node) => node.kind === "chart-line" && node.chartLineSize !== undefined),
+  );
+
 describe("カタログの軸を持つ図の字 (#1688)", () => {
   it("棒と折れ線の見本をどちらも 1 件以上走査できている", () => {
     // 空振り検知。 片方でも 0 件なら、下の比べ合いは何も見ていない
@@ -48,17 +53,17 @@ describe("カタログの軸を持つ図の字 (#1688)", () => {
     expect(見本("chart-line").length, "折れ線グラフの見本が 1 件も無い").toBeGreaterThan(0);
   });
 
-  it("折れ線の値札が横軸の名前より大きい", () => {
-    // 上げる前は値札 11 / 軸名 12 で、値の方が小さかった
+  it("折れ線の横軸名を見本の 19 級で書く", () => {
     let 測れた = 0;
-    for (const d of 見本("chart-line")) {
+    for (const d of 見本寸法つき折れ線()) {
       const svg = 描く(d);
       const 値 = 役の字(svg, "chart-line-value");
       const 名 = 役の字(svg, "chart-line-label");
       expect(値.length, "値札を 1 つも拾えない").toBeGreaterThan(0);
       expect(名.length, "横軸の名前を 1 つも拾えない").toBeGreaterThan(0);
       測れた += 値.length + 名.length;
-      expect(値[0]!.級, `値札 ${値[0]!.級} / 軸名 ${名[0]!.級}`).toBeGreaterThan(名[0]!.級);
+      expect(値[0]!.級, "値札は cdl の既定値").toBe(12);
+      expect(名[0]!.級, "横軸名は #1150 の見本値").toBe(19);
     }
     expect(測れた, "字を 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
   });
@@ -74,9 +79,9 @@ describe("カタログの軸を持つ図の字 (#1688)", () => {
     expect(測れた, "目盛りを 1 つも測れていない (検査が空振りしている)").toBeGreaterThan(0);
   });
 
-  it("棒と折れ線で値札と軸の名前の大きさが揃う", () => {
+  it("棒と折れ線へそれぞれの見本の級を渡す", () => {
     const 棒 = 描く(見本("chart-bar")[0]!);
-    const 線 = 描く(見本("chart-line")[0]!);
+    const 線 = 描く(見本寸法つき折れ線()[0]!);
     const 棒の値 = 役の字(棒, "chart-bar-value")[0]?.級;
     const 棒の名 = 役の字(棒, "chart-bar-label")[0]?.級;
     const 線の値 = 役の字(線, "chart-line-value")[0]?.級;
@@ -88,7 +93,9 @@ describe("カタログの軸を持つ図の字 (#1688)", () => {
       ["折れ線の軸名", 線の名],
     ] as const)
       expect(v, `${名} を拾えない (検査が空振りしている)`).toBeDefined();
-    expect(線の値).toBe(棒の値);
-    expect(線の名).toBe(棒の名);
+    expect(棒の値).toBe(25);
+    expect(棒の名).toBe(22);
+    expect(線の値).toBe(12);
+    expect(線の名).toBe(19);
   });
 });

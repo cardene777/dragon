@@ -40,7 +40,11 @@ const 値: Record<string, string> = {
   toPartNode: "x",
   labelOffsetX: "30",
   labelOffsetY: "30",
+  labelCollision: "author",
+  labelSize: '{"width":96,"height":40,"fontSize":21}',
   overlay: "true",
+  fromSide: "left",
+  toSide: "right",
 };
 
 function 本文(図種: string, 項目: string): string {

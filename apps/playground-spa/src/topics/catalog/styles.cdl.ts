@@ -730,7 +730,7 @@ export const sourceJson__stateInactive = `{
 
 // ---- 節の色 ----
 
-export const sourceYaml__nodeTone = `title: "節の色 6 種"
+export const sourceYaml__nodeTone = `title: "節の色 7 種"
 type: flow
 
 lanes:
@@ -744,15 +744,16 @@ actors:
   - 失敗: { kind: card, lane: l2, stack: 0, tone: error, subtitle: "error" }
   - 注意: { kind: card, lane: l2, stack: 1, tone: warning, subtitle: "warning" }
   - 案内: { kind: card, lane: l2, stack: 2, tone: info, subtitle: "info" }
+  - 控え: { kind: card, lane: l2, stack: 3, tone: muted, subtitle: "muted" }
 
 animation:
-  - step: "6 色を並べる" 1.8s
-    focus: ["主張", "青緑", "成功", "失敗", "注意", "案内"]
+  - step: "7 色を並べる" 1.8s
+    focus: ["主張", "青緑", "成功", "失敗", "注意", "案内", "控え"]
     description: "強調した箱の枠が、書いた色の名前で描かれる。 主張の色は強調の既定の色と同じ。"
 `;
 
 export const sourceJson__nodeTone = `{
-  "title": "節の色 6 種",
+  "title": "節の色 7 種",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },
@@ -764,14 +765,15 @@ export const sourceJson__nodeTone = `{
     { "name": "成功", "kind": "card", "lane": "l1", "stack": 2, "tone": "success", "subtitle": "success" },
     { "name": "失敗", "kind": "card", "lane": "l2", "stack": 0, "tone": "error", "subtitle": "error" },
     { "name": "注意", "kind": "card", "lane": "l2", "stack": 1, "tone": "warning", "subtitle": "warning" },
-    { "name": "案内", "kind": "card", "lane": "l2", "stack": 2, "tone": "info", "subtitle": "info" }
+    { "name": "案内", "kind": "card", "lane": "l2", "stack": 2, "tone": "info", "subtitle": "info" },
+    { "name": "控え", "kind": "card", "lane": "l2", "stack": 3, "tone": "muted", "subtitle": "muted" }
   ],
   "flow": [],
   "animation": [
     {
-      "step": "6 色を並べる",
+      "step": "7 色を並べる",
       "duration": 1.8,
-      "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内"],
+      "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内", "控え"],
       "description": "強調した箱の枠が、書いた色の名前で描かれる。 主張の色は強調の既定の色と同じ。"
     }
   ]
@@ -803,7 +805,7 @@ actors:
   - 成功: { kind: card, lane: l1, stack: 2, tone: success, title: "success", subtitle: "名前は 成功" }
   - 失敗: { kind: card, lane: l2, stack: 0, tone: error, title: "error", subtitle: "名前は 失敗" }
   - 注意: { kind: card, lane: l2, stack: 1, tone: warning, title: "warning", subtitle: "名前は 注意" }
-  - 案内: { kind: card, lane: l2, stack: 2, tone: info, title: "info", subtitle: "名前は 案内" }
+  - 案内: { kind: card, lane: l2, stack: 2, tone: muted, title: "muted", subtitle: "名前は 案内" }
 
 animation:
   - step: "題を書いても色は残る" 1.8s
@@ -824,7 +826,7 @@ export const sourceJson__pattern__nodeTone__題も書く = `{
     { "name": "成功", "kind": "card", "lane": "l1", "stack": 2, "tone": "success", "title": "success", "subtitle": "名前は 成功" },
     { "name": "失敗", "kind": "card", "lane": "l2", "stack": 0, "tone": "error", "title": "error", "subtitle": "名前は 失敗" },
     { "name": "注意", "kind": "card", "lane": "l2", "stack": 1, "tone": "warning", "title": "warning", "subtitle": "名前は 注意" },
-    { "name": "案内", "kind": "card", "lane": "l2", "stack": 2, "tone": "info", "title": "info", "subtitle": "名前は 案内" }
+    { "name": "案内", "kind": "card", "lane": "l2", "stack": 2, "tone": "muted", "title": "muted", "subtitle": "名前は 案内" }
   ],
   "flow": [],
   "animation": [
@@ -1605,7 +1607,7 @@ actors:
   - 台帳: { kind: card, lane: l2, stack: 0 }
 
 flow:
-  - 受付 -> 台帳: "書く" 情報 dashed { tailSub: "1", sub: "1..*" }
+  - 受付 -> 台帳: "書く" muted dashed { tailSub: "1", sub: "1..*" }
 `;
 
 export const sourceJson__edgeDeco = `{
@@ -1625,7 +1627,7 @@ export const sourceJson__edgeDeco = `{
       "to": "台帳",
       "label": "書く",
       "sub": "1..*",
-      "tone": "info",
+      "tone": "muted",
       "style": "dashed",
       "tailSub": "1"
     }
@@ -1668,6 +1670,55 @@ export const sourceJson__pattern__edgeDeco__縦列を書かない = `{
 export const pattern__edgeDeco__縦列を書かない = textDslToDiagram(
   sourceYaml__pattern__edgeDeco__縦列を書かない,
 );
+
+// ---- 戻る線の出入りする辺 ----
+
+export const sourceYaml__edgeSides = `title: "戻る線の出入りする辺"
+type: flow
+
+lanes:
+  p1: { x: 0, width: 280 }
+  p2: { x: 400, width: 280 }
+  p3: { x: 800, width: 280 }
+
+actors:
+  - 受付一: { kind: card, lane: p1, stack: 0 }
+  - 完了一: { kind: card, lane: p1, stack: 1 }
+  - 受付二: { kind: card, lane: p2, stack: 0 }
+  - 完了二: { kind: card, lane: p2, stack: 1 }
+  - 受付三: { kind: card, lane: p3, stack: 0 }
+  - 完了三: { kind: card, lane: p3, stack: 1 }
+
+flow:
+  - 完了一 -> 受付一: "下から下" { fromSide: bottom, toSide: bottom }
+  - 完了二 -> 受付二: "左から左" { fromSide: left, toSide: left }
+  - 完了三 -> 受付三: "上から右" { fromSide: top, toSide: right }
+`;
+
+export const sourceJson__edgeSides = `{
+  "title": "戻る線の出入りする辺",
+  "type": "flow",
+  "lanes": {
+    "p1": { "x": 0, "width": 280 },
+    "p2": { "x": 400, "width": 280 },
+    "p3": { "x": 800, "width": 280 }
+  },
+  "actors": [
+    { "name": "受付一", "kind": "card", "lane": "p1", "stack": 0 },
+    { "name": "完了一", "kind": "card", "lane": "p1", "stack": 1 },
+    { "name": "受付二", "kind": "card", "lane": "p2", "stack": 0 },
+    { "name": "完了二", "kind": "card", "lane": "p2", "stack": 1 },
+    { "name": "受付三", "kind": "card", "lane": "p3", "stack": 0 },
+    { "name": "完了三", "kind": "card", "lane": "p3", "stack": 1 }
+  ],
+  "flow": [
+    { "from": "完了一", "to": "受付一", "label": "下から下", "fromSide": "bottom", "toSide": "bottom" },
+    { "from": "完了二", "to": "受付二", "label": "左から左", "fromSide": "left", "toSide": "left" },
+    { "from": "完了三", "to": "受付三", "label": "上から右", "fromSide": "top", "toSide": "right" }
+  ]
+}`;
+
+export const edgeSides = textDslToDiagram(sourceYaml__edgeSides);
 
 // ---- 形の満ちる向き ----
 //
@@ -1772,7 +1823,7 @@ export const shapeOrient = textDslToDiagram(sourceYaml__shapeOrient);
 
 export const patternBase__nodeTone = "色調の欄で書く";
 
-export const sourceYaml__pattern__nodeTone__色の欄で書く = `title: "節の色 6 種を色の欄で書く"
+export const sourceYaml__pattern__nodeTone__色の欄で書く = `title: "節の色 7 種を色の欄で書く"
 type: flow
 
 lanes:
@@ -1786,15 +1837,16 @@ actors:
   - 失敗: { kind: card, lane: l2, stack: 0, color: error, subtitle: "error" }
   - 注意: { kind: card, lane: l2, stack: 1, color: warning, subtitle: "warning" }
   - 案内: { kind: card, lane: l2, stack: 2, color: info, subtitle: "info" }
+  - 控え: { kind: card, lane: l2, stack: 3, color: muted, subtitle: "muted" }
 
 animation:
-  - step: "6 色を並べる" 1.8s
-    focus: ["主張", "青緑", "成功", "失敗", "注意", "案内"]
-    description: "tone の代わりに color と書いても、同じ 6 色で描かれる。 color は部品の色番号 (# で始まる値) も受ける。"
+  - step: "7 色を並べる" 1.8s
+    focus: ["主張", "青緑", "成功", "失敗", "注意", "案内", "控え"]
+    description: "tone の代わりに color と書いても、同じ 7 色で描かれる。 color は部品の色番号 (# で始まる値) も受ける。"
 `;
 
 export const sourceJson__pattern__nodeTone__色の欄で書く = `{
-  "title": "節の色 6 種を色の欄で書く",
+  "title": "節の色 7 種を色の欄で書く",
   "type": "flow",
   "lanes": {
     "l1": { "x": 0, "width": 280 },
@@ -1806,15 +1858,16 @@ export const sourceJson__pattern__nodeTone__色の欄で書く = `{
     { "name": "成功", "kind": "card", "lane": "l1", "stack": 2, "color": "success", "subtitle": "success" },
     { "name": "失敗", "kind": "card", "lane": "l2", "stack": 0, "color": "error", "subtitle": "error" },
     { "name": "注意", "kind": "card", "lane": "l2", "stack": 1, "color": "warning", "subtitle": "warning" },
-    { "name": "案内", "kind": "card", "lane": "l2", "stack": 2, "color": "info", "subtitle": "info" }
+    { "name": "案内", "kind": "card", "lane": "l2", "stack": 2, "color": "info", "subtitle": "info" },
+    { "name": "控え", "kind": "card", "lane": "l2", "stack": 3, "color": "muted", "subtitle": "muted" }
   ],
   "flow": [],
   "animation": [
     {
-      "step": "6 色を並べる",
+      "step": "7 色を並べる",
       "duration": 1.8,
-      "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内"],
-      "description": "tone の代わりに color と書いても、同じ 6 色で描かれる。 color は部品の色番号 (# で始まる値) も受ける。"
+      "focus": ["主張", "青緑", "成功", "失敗", "注意", "案内", "控え"],
+      "description": "tone の代わりに color と書いても、同じ 7 色で描かれる。 color は部品の色番号 (# で始まる値) も受ける。"
     }
   ]
 }`;

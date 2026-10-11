@@ -125,6 +125,33 @@ describe("lintDiagram — gantt 未定義 dependsOn rule", () => {
     const report = lintDiagram(diagram({ nodes: [node({ kind: "gantt-timeline", ganttData: [{ id: "t1", dependsOn: "missing" }] })] }));
     const issue = report.issues.find((i) => i.rule === "gantt-unknown-depends-on");
     expect(issue?.target).toBe("t1");
+    expect(issue?.message).toBe("作業 `t1` の `dependsOn` が、 無い作業 `missing` を指している");
+  });
+
+  it("存在しない task を dependsOn の配列に 2 件書く → id ごとに検出", () => {
+    const ganttData: NonNullable<CdlNode["ganttData"]> = [
+      {
+        id: "t1",
+        title: "T1",
+        startIdx: 0,
+        endIdx: 1,
+        startLabel: "Q1",
+        endLabel: "Q2",
+        dependsOn: ["missing-a", "missing-b"],
+      },
+    ];
+    const report = lintDiagram(diagram({
+      nodes: [node({
+        kind: "gantt-timeline",
+        ganttData,
+      })],
+    }));
+    const issues = report.issues.filter((i) => i.rule === "gantt-unknown-depends-on");
+    expect(issues).toHaveLength(2);
+    expect(issues.map((i) => i.message)).toEqual([
+      "作業 `t1` の `dependsOn` が、 無い作業 `missing-a` を指している",
+      "作業 `t1` の `dependsOn` が、 無い作業 `missing-b` を指している",
+    ]);
   });
 
   it("正しい dependsOn → 無発火", () => {

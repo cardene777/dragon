@@ -56,9 +56,21 @@ const 見本 = (
   json: 綴り違いの見本["json"],
 ): 綴り違いの見本 => {
   const src = 記法(綴り);
-  const 行 = src.split("\n").findIndex((l) => l.includes(`${綴り}:`)) + 1;
+  const 行 =
+    src
+      .split("\n")
+      .findIndex((l) => l.includes(`${綴り}:`) || l.includes(`"${綴り}":`)) + 1;
   return { 名, 記法: src, 項目名: 綴り, 行, 正しい記法: 記法(正), json };
 };
+
+const 新しい複合欄の見本 = (欄: string, 綴り: string, 正: string, 値: unknown): 綴り違いの見本 =>
+  見本(
+    欄,
+    (k) => `${頭}${欄}: {"${k}":${JSON.stringify(値)}}\n\nactors:\n  - A\n`,
+    綴り,
+    正,
+    { input: 図({ [欄]: { [綴り]: 値 } }), path: `$.${欄}.${綴り}` },
+  );
 
 const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持たない> = {
   title: { 項目名を持たない理由: "図の題 1 つを書く欄で、値は文字列" },
@@ -71,6 +83,178 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   shape: { 項目名を持たない理由: "数を描く図の形の語を 1 つ書く欄" },
   form: { 項目名を持たない理由: "円グラフの見せ方の語を 1 つ書く欄" },
   ticks: { 項目名を持たない理由: "ガントチャートの目盛り名を並べる欄" },
+  ganttToday: [
+    見本(
+      "今日の位置と札",
+      (k) =>
+        `title: "t"\ntype: gantt\nganttToday: { index: 3.3, ${k}: "今日" }\n\nactors:\n  - A: "6月"\n`,
+      "lable",
+      "label",
+      {
+        input: 図({
+          type: "gantt",
+          ganttToday: { index: 3.3, lable: "今日" },
+        }),
+        path: "$.ganttToday.lable",
+      },
+    ),
+  ],
+  ganttTickLabels: { 項目名を持たない理由: "ガントチャートの目盛り名を並べる欄" },
+  ganttBarEnd: { 項目名を持たない理由: "ガントチャートの帯の終わり方の語を 1 つ書く欄" },
+  ganttBarThickness: { 項目名を持たない理由: "ガントチャートの帯の太さの語を 1 つ書く欄" },
+  chartSeriesSkipMuted: { 項目名を持たない理由: "沈んだ系列を数えないかを true で書く欄" },
+  chartLineSeries: [
+    見本(
+      "折れ線の系列",
+      (k) =>
+        `${頭}chartLineSeries: [{ "${k}": "実績", "points": [{ "label": "6月", "value": 10 }] }]\n\nactors:\n  - A\n`,
+      "lable",
+      "label",
+      {
+        input: 図({ chartLineSeries: [{ lable: "実績", points: [{ label: "6月", value: 10 }] }] }),
+        path: "$.chartLineSeries[0].lable",
+      },
+    ),
+  ],
+  chartPieCenterLabel: { 項目名を持たない理由: "円の中心に描く文字列を 1 つ書く欄" },
+  chartPieTableColumns: { 項目名を持たない理由: "円の表の列の語を 1 つ書く欄" },
+  chartPieRingWidth: { 項目名を持たない理由: "円の輪の太さの語を 1 つ書く欄" },
+  chartSlopePeriods: { 項目名を持たない理由: "傾き図の時点名を並べる欄" },
+  chartSlopeEmphasisIds: { 項目名を持たない理由: "傾き図で主役にする id を並べる欄" },
+  chartSlopeUnit: { 項目名を持たない理由: "傾き図の単位の文字列を 1 つ書く欄" },
+  chartStackedPeriods: [
+    見本(
+      "内訳の帯の期間",
+      (k) =>
+        `${頭}chartStackedPeriods: [{ "${k}": "6月", "values": [90, 10] }]\n\nactors:\n  - A\n`,
+      "lable",
+      "label",
+      {
+        input: 図({ chartStackedPeriods: [{ lable: "6月", values: [90, 10] }] }),
+        path: "$.chartStackedPeriods[0].lable",
+      },
+    ),
+  ],
+  chartStackedRateId: { 項目名を持たない理由: "右に率を描く項目の id を 1 つ書く欄" },
+  chartStackedLegendPosition: { 項目名を持たない理由: "内訳の帯の凡例位置の語を 1 つ書く欄" },
+  chartGaugeValue: [
+    見本(
+      "半円の値",
+      (k) => `${頭}chartGaugeValue: { "max": 100, "current": "{rate}", "${k}": 80 }\n\nactors:\n  - A\n`,
+      "targte",
+      "target",
+      {
+        input: 図({ chartGaugeValue: { max: 100, current: "{rate}", targte: 80 } }),
+        path: "$.chartGaugeValue.targte",
+      },
+    ),
+  ],
+  chartWaffleLegendPosition: { 項目名を持たない理由: "升目の凡例位置の語を 1 つ書く欄" },
+  funnelForm: { 項目名を持たない理由: "漏斗の棒の形の語を 1 つ書く欄" },
+  funnelRate: { 項目名を持たない理由: "漏斗の率の見せ方の語を 1 つ書く欄" },
+  quadrantPointLabelSide: { 項目名を持たない理由: "四象限の点の名前を置く側の語を 1 つ書く欄" },
+  treeNodeForm: { 項目名を持たない理由: "木の箱の見せ方の語を 1 つ書く欄" },
+  treeSize: [
+    見本(
+      "木の寸法",
+      (k) => `${頭}treeSize: {"nodeWidths":[260,240,220],"${k}":89.891}\n\nactors:\n  - A\n`,
+      "nodeHeigth",
+      "nodeHeight",
+      {
+        input: 図({ treeSize: { nodeWidths: [260, 240, 220], nodeHeigth: 89.891 } }),
+        path: "$.treeSize.nodeHeigth",
+      },
+    ),
+  ],
+  treeEdgeTone: { 項目名を持たない理由: "木の枝色の付け方の語を 1 つ書く欄" },
+  treeEdgeHead: { 項目名を持たない理由: "木の枝先の形の語を 1 つ書く欄" },
+  mindForm: { 項目名を持たない理由: "放射の箱の見せ方の語を 1 つ書く欄" },
+  mindSize: [
+    見本(
+      "放射の寸法",
+      (k) => `${頭}mindSize: {"branch":{"width":220},"${k}":155}\n\nactors:\n  - A\n`,
+      "rootBrnachGap",
+      "rootBranchGap",
+      {
+        input: 図({ mindSize: { branch: { width: 220 }, rootBrnachGap: 155 } }),
+        path: "$.mindSize.rootBrnachGap",
+      },
+    ),
+  ],
+  journeyForm: { 項目名を持たない理由: "ジャーニーの段の見せ方の語を 1 つ書く欄" },
+  journeyLineForm: { 項目名を持たない理由: "ジャーニーの線の見せ方の語を 1 つ書く欄" },
+  sequenceActorForm: { 項目名を持たない理由: "順序図の参加者の枠の語を 1 つ書く欄" },
+  sequenceLabelForm: { 項目名を持たない理由: "順序図の段の種類表示の語を 1 つ書く欄" },
+  sequenceReturnHead: { 項目名を持たない理由: "順序図の返す矢じりの語を 1 つ書く欄" },
+  sequenceKindLabels: [
+    見本(
+      "順序図の種類名",
+      (k) => `${頭}sequenceKindLabels: {"call":"呼ぶ","${k}":"返す"}\n\nactors:\n  - A\n`,
+      "retrun",
+      "return",
+      {
+        input: 図({ sequenceKindLabels: { call: "呼ぶ", retrun: "返す" } }),
+        path: "$.sequenceKindLabels.retrun",
+      },
+    ),
+  ],
+  journeyLabels: [
+    見本(
+      "ジャーニーの段名",
+      (k) =>
+        `${頭}journeyLabels: {"delighted":"最高","happy":"満足","neutral":"普通","frustrated":"不満","${k}":"怒り"}\n\nactors:\n  - A\n`,
+      "angyr",
+      "angry",
+      {
+        input: 図({
+          journeyLabels: {
+            delighted: "最高",
+            happy: "満足",
+            neutral: "普通",
+            frustrated: "不満",
+            angyr: "怒り",
+          },
+        }),
+        path: "$.journeyLabels.angyr",
+      },
+    ),
+  ],
+  journeySize: [新しい複合欄の見本("journeySize", "plotPaddign", "plotPadding", { left: 120 })],
+  figureCard: [
+    見本(
+      "図の札",
+      (k) => `${頭}figureCard: {"${k}":"図","note":"注記"}\n\nactors:\n  - A\n`,
+      "lable",
+      "label",
+      { input: 図({ figureCard: { lable: "図", note: "注記" } }), path: "$.figureCard.lable" },
+    ),
+  ],
+  figureSize: [
+    見本(
+      "図表の大きさ",
+      (k) => `${頭}figureSize: {"${k}":640,"height":320}\n\nactors:\n  - A\n`,
+      "widht",
+      "width",
+      { input: 図({ figureSize: { widht: 640, height: 320 } }), path: "$.figureSize.widht" },
+    ),
+  ],
+  terminalDecoration: [新しい複合欄の見本("terminalDecoration", "windowContorls", "windowControls", true)],
+  cornerForm: { 項目名を持たない理由: "矩形札の角の語を 1 つ書く欄" },
+  figureKindLabel: [新しい複合欄の見本("figureKindLabel", "tetx", "text", "tree")],
+  figureInset: [新しい複合欄の見本("figureInset", "tp", "top", 4)],
+  chartBarSize: [新しい複合欄の見本("chartBarSize", "barWidht", "barWidth", 82)],
+  chartBarShape: { 項目名を持たない理由: "棒の形の語を 1 つ書く欄" },
+  chartLineSize: [新しい複合欄の見本("chartLineSize", "pointRaduis", "pointRadius", 7)],
+  chartPieSize: [新しい複合欄の見本("chartPieSize", "outerRaduis", "outerRadius", 171)],
+  chartWaffleSize: [新しい複合欄の見本("chartWaffleSize", "cellPtich", "cellPitch", 30)],
+  chartSlopeLabelTemplate: [新しい複合欄の見本("chartSlopeLabelTemplate", "lef", "left", "{name}")],
+  chartSlopeSize: [新しい複合欄の見本("chartSlopeSize", "axisGpa", "axisGap", 250)],
+  chartStackedLayout: [新しい複合欄の見本("chartStackedLayout", "segmentGpa", "segmentGap", 3)],
+  chartGaugeSize: [新しい複合欄の見本("chartGaugeSize", "arcThicknes", "arcThickness", 34)],
+  ganttSize: [新しい複合欄の見本("ganttSize", "tickCont", "tickCount", 6)],
+  quadrantLabelPosition: { 項目名を持たない理由: "四象限の区画名の位置の語を 1 つ書く欄" },
+  quadrantSize: [新しい複合欄の見本("quadrantSize", "plotSzie", "plotSize", 325)],
+  stageLayout: [新しい複合欄の見本("stageLayout", "columnGpa", "columnGap", 64)],
   theme: { 項目名を持たない理由: "意匠の語を 1 つ書く欄" },
   legend: [
     見本(
@@ -84,6 +268,9 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
       },
     ),
   ],
+  legendOffset: [新しい複合欄の見本("legendOffset", "ofsetX", "x", -200)],
+  legendFontSize: { 項目名を持たない理由: "凡例の字の大きさを数で書く欄" },
+  stageHeaders: { 項目名を持たない理由: "意匠名を鍵に、段の見出しの寸法を書く欄" },
   states: { 項目名を持たない理由: "`名前: 初期値` を並べる欄で、左辺は書き手が決める名前" },
   values: { 項目名を持たない理由: "`名前: 式` を並べる欄で、左辺は書き手が決める名前" },
   formulas: { 項目名を持たない理由: "`名前: 式` を並べる欄で、左辺は書き手が決める名前" },

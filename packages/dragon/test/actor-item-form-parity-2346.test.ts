@@ -30,6 +30,8 @@ const 頭 = `title: "t"\ntype: flow\n`;
  */
 const 見本の値: Record<string, string> = {
   kind: "service",
+  kindForm: "icon",
+  icon: "terminal",
   種類: "service",
   title: '"だい"',
   題: '"だい"',
@@ -40,6 +42,12 @@ const 見本の値: Record<string, string> = {
   color: "error",
   色: "error",
   rows: "[いち, に]",
+  emptyRowsNote: '"なし"',
+  titleAlign: "center",
+  rowRules: "true",
+  rowMarkForm: "tone",
+  nestIn: "B",
+  figureCard: '{"label":"図","note":"注"}',
   行: "[いち, に]",
   marks: "start",
   印: "start",
@@ -66,8 +74,12 @@ const 見本の値: Record<string, string> = {
   opacity: "0.5",
   owner: '"わたし"',
   end: '"5月"',
+  startLabel: '"5月半ば"',
+  milestone: "true",
+  emphasis: "primary",
   touchpoint: '"まどぐち"',
   opportunity: '"のびしろ"',
+  opportunityPosition: "below-point",
   at: "[0.2, 0.8]",
   点の位置: "[0.2, 0.8]",
   posX: "100",
@@ -80,6 +92,10 @@ const 見本の値: Record<string, string> = {
   hBind: '"{v}"',
   renderOffsetX: '"{v}"',
   renderOffsetY: '"{v}"',
+  stationNamePosition: "bottom",
+  subtitlePlacement: "right",
+  titleFontSize: "24",
+  markGap: "12",
 };
 
 const 段を分けた形 = (k: string, v: string): string =>

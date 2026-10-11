@@ -104,6 +104,32 @@ export const FORMS: Section[] = [
     lines: [
       { code: 'title: "ログイン"', note: "図の題名", noteEn: "The diagram title" },
       { code: "type: sequence", note: "図種。 一覧は下", noteEn: "The diagram type. The list is below" },
+      { code: "legendFontSize: 18", note: "凡例の字の大きさ", noteEn: "Legend font size" },
+      { code: 'legendOffset: {"x":-200,"y":-40}', note: "凡例の位置のずらし", noteEn: "Legend position offset" },
+      { code: "stageHeaders:", note: "段の見出しを意匠ごとに調整", noteEn: "Stage header sizing by theme" },
+      {
+        code: "  blueprint: { topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 }",
+        note: "図面の意匠で使う見出し寸法",
+        noteEn: "Header dimensions for the blueprint theme",
+      },
+      { code: 'stageLayout: {"columnWidths":{"受付":360},"columnGap":64,"backDetourTopGap":34,"backDetourSideGap":58}', note: "段の列と戻る線の寸法", noteEn: "Stage columns and back-detour sizing" },
+      { code: 'terminalDecoration: {"windowControls":true,"cursor":true,"rowOrdinal":true}', note: "端末意匠の飾り", noteEn: "Terminal-theme decorations" },
+      { code: "cornerForm: theme-variants", note: "意匠で矩形札の角を選ぶ", noteEn: "Theme-selectable rectangular corners" },
+      { code: 'figureKindLabel: {"text":"tree · 階層図"}', note: "図の種類札", noteEn: "Figure kind label" },
+      { code: 'figureInset: {"holdsContent":true}', note: "浮彫では図表の中身を凹み面に収める", noteEn: "Keep relief figure content inside the inset surface" },
+      { code: "chartBarShape: top-rounded", note: "棒の形", noteEn: "Bar-chart shape" },
+      { code: 'chartBarSize: {"tickFontSize":19,"barWidth":82.944,"cornerRadius":4}', note: "棒の寸法", noteEn: "Bar-chart sizing" },
+      { code: 'chartLineSize: {"pointRadius":7.5,"tickGap":12,"pointPadding":{"left":46,"right":0},"periodY":355.988}', note: "折れ線の寸法", noteEn: "Line-chart sizing" },
+      { code: 'chartPieSize: {"tableWidth":310,"outerRadius":171.055,"centerX":227}', note: "円と一覧の寸法", noteEn: "Pie and table sizing" },
+      { code: 'chartWaffleSize: {"gridLeft":42.5,"cellPitch":30}', note: "升目の寸法", noteEn: "Waffle-chart sizing" },
+      { code: 'chartSlopeLabelTemplate: {"left":"{name} {value}{unit}","right":"{value}{unit} {name}"}', note: "傾き図の札", noteEn: "Slope label templates" },
+      { code: 'chartSlopeSize: {"pointRadius":7,"axisGap":250,"plotPadding":{"top":54.036,"bottom":12.552},"pointPadding":{"top":46.707,"bottom":42.862}}', note: "傾き図の寸法", noteEn: "Slope-chart sizing" },
+      { code: 'chartStackedLayout: {"legendColumns":3,"segmentGap":3,"legendOffsetY":-20.609375}', note: "内訳の帯の配置", noteEn: "Stacked-chart layout" },
+      { code: 'chartGaugeSize: {"arcThickness":34,"outerRadius":222}', note: "半円の寸法", noteEn: "Gauge sizing" },
+      { code: 'ganttSize: {"tickCount":6,"barThickness":30,"taskColumnWidth":330,"timelinePaddingRight":64}', note: "ガントの寸法", noteEn: "Gantt sizing" },
+      { code: 'journeySize: {"plotPadding":{"left":120,"right":44},"pointPadding":{"left":100,"right":70}}', note: "ジャーニーの余白", noteEn: "Journey-map padding" },
+      { code: "quadrantLabelPosition: outside-corners", note: "四象限の区画名の位置", noteEn: "Quadrant label position" },
+      { code: 'quadrantSize: {"plotSize":325.109,"pointRadius":11}', note: "四象限の寸法", noteEn: "Quadrant sizing" },
     ],
   },
   {
@@ -138,6 +164,16 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "表と部品箱の見せ方",
+    titleEn: "Table and component boxes",
+    sample: { slot: "actors", type: "record", flow: [] },
+    lines: [
+      { code: '  - 主表: { kind: storage, emptyRowsNote: "まだありません", emphasis: primary, titleAlign: center, rowRules: true, rowMarkForm: tone, figureCard: {"label":"表","note":"主"}, rows: [id, 状態], marks: [{"mark":"鍵","tone":"primary"},{"mark":"","tone":"muted"}] }', note: "表の題・罫・行頭印・足", noteEn: "Table title, rules, row marks, and footer" },
+      { code: "  - 内表: { kind: storage, nestIn: 主表 }", note: "親の表の内側に入れる", noteEn: "Nests a table inside its parent" },
+      { code: '  - 受付: { kind: service, kindForm: icon, icon: terminal, figureCard: {"label":"部品","note":"利用者"} }', note: "共通枠の部品箱と線画と足", noteEn: "Shared component frame, icon, and footer" },
+    ],
+  },
+  {
     title: "部品",
     titleEn: "Parts",
     // 自分へ戻る矢印は描けない (#1227)。 例文が使うと、記法一覧が描けない形を教えることになる
@@ -162,6 +198,8 @@ export const FORMS: Section[] = [
       { code: '  - Client -> API: "要求"', note: "矢印と説明", noteEn: "An arrow and its label" },
       { code: '  - API -> DB: "検索" 成功', note: "矢印の色", noteEn: "Arrow color" },
       { code: '  - DB -> API: "結果" 成功 dotted-flow', note: "色と線の種類", noteEn: "Color and line style" },
+      { code: '  - Client -> DB: "根元を点にする" { tailHead: dot }', note: "線の根元を点にする", noteEn: "Uses a dot at the tail of the line" },
+      { code: '  - API -> DB: "固定した札" { labelCollision: author, labelSize: {"width":96,"height":40,"fontSize":21} }', note: "線の札の位置と大きさを作者が決める", noteEn: "Author-controlled edge-label position and size" },
     ],
   },
   {
@@ -426,6 +464,24 @@ export const FORMS: Section[] = [
     lines: [
       { code: '  - { mark: diamond, text: "分かれ道" }', note: "印と説明", noteEn: "A mark and its text" },
       { code: '  - { 印: 塗った丸, 説明: "始まり" }', note: "和名でも書ける", noteEn: "Japanese field and mark names work too" },
+      { code: '  - { mark: line-diamond-hollow, text: "参照", tone: accent, lineStyle: dotted }', note: "線端の印・色・線種", noteEn: "Line-end mark, tone, and line style" },
+      { code: '  - { text: "注: 点線は参照", align: end, lead: "注:" }', note: "印のない注記・位置・太字の導入句", noteEn: "A note without a mark, its alignment, and bold lead" },
+    ],
+  },
+  {
+    title: "順序図の見せ方",
+    titleEn: "Sequence presentation",
+    sample: {
+      slot: "root",
+      type: "sequence",
+      actors: ["  - 荷主", "  - 営業所"],
+      flow: ['  - 荷主 -> 営業所: "依頼" { kind: call }'],
+    },
+    lines: [
+      { code: "sequenceActorForm: box", note: "参加者を枠で囲む", noteEn: "Frames participants" },
+      { code: "sequenceLabelForm: kind", note: "段に種類印と種類名を添える", noteEn: "Adds kind marks and labels to messages" },
+      { code: "sequenceReturnHead: solid", note: "返す矢じりも塗る", noteEn: "Uses a solid arrowhead for returns" },
+      { code: 'sequenceKindLabels: {"call":"呼ぶ","return":"返す","fire":"投げる"}', note: "種類名を言い換える", noteEn: "Renames message kinds" },
     ],
   },
   {
@@ -742,6 +798,7 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: "viewport: { scale: 1.5 }", note: "図全体の倍率", noteEn: "The scale of the whole diagram" },
+      { code: "viewport: { width: 1800, contentOffsetX: 250 }", note: "画布内の内容の横ずらし", noteEn: "Horizontal content offset inside the viewport" },
       { code: "viewport: { laneWidth: 400 }", note: "縦列の幅", noteEn: "Lane width" },
     ],
   },
@@ -777,8 +834,8 @@ export const FORMS: Section[] = [
   },
   {
     // 工程の並びだけが持つ欄。 他の図種で書くと組み立て側が知らせる (#1251)
-    title: "工程の並びの欄 (owner: / end:)",
-    titleEn: "Schedule fields (owner: / end:)",
+    title: "工程の並びの欄",
+    titleEn: "Schedule fields",
     sample: {
       slot: "actors",
       type: "gantt",
@@ -787,6 +844,8 @@ export const FORMS: Section[] = [
       { code: '  - 設計: { value: "Q1", owner: "デザイナー" }', note: "担当", noteEn: "Owner" },
       { code: '  - 実装: { value: "Q2", end: "Q3" }', note: "終わる時期。 帯が 2 コマになる", noteEn: "When it ends. The bar then spans two periods" },
       { code: '  - 検証: { value: "Q3", end: "{done}" }', note: "状態から取ると段で伸び縮みする", noteEn: "Taken from a state, it grows and shrinks by phase" },
+      { code: '  - 本番: { value: "Q4+0.45", startLabel: "Q4 半ば", milestone: true }', note: "節目の菱形と札", noteEn: "A milestone diamond and its label" },
+      { code: '  - 試す: { value: "Q3", emphasis: primary }', note: "主役として強調する", noteEn: "Emphasizes the main task" },
     ],
   },
   {
@@ -803,6 +862,10 @@ export const FORMS: Section[] = [
         note: "尺と目盛りの順を固定する。 書かなければ工程の始まりから作る",
         noteEn: "Fixes the scale and tick order. Without it, ticks come from task starts",
       },
+      { code: 'ganttToday: { index: 3.3, label: "今日" }', note: "今日の線と札", noteEn: "The today line and its label" },
+      { code: "ganttTickLabels: [6月, 7月, 8月, 9月, 10月]", note: "目盛りに出す名前", noteEn: "Labels shown on the ticks" },
+      { code: "ganttBarEnd: position", note: "帯を月内の位置で終える", noteEn: "Ends bars at positions within a period" },
+      { code: "ganttBarThickness: thin", note: "帯を細く描く", noteEn: "Draws thin bars" },
     ],
   },
   {
@@ -822,6 +885,112 @@ export const FORMS: Section[] = [
     ],
   },
   {
+    title: "折れ線の複数系列",
+    titleEn: "Multiple line series",
+    sample: { slot: "root", type: "chart", shape: "line", actors: ['  - 実績: "10"'] },
+    lines: [
+      { code: "chartSeriesSkipMuted: true", note: "沈んだ系列を配色の番号から外す", noteEn: "Skips muted series when assigning palette colors" },
+      { code: 'chartLineSeries: [{ "label": "実績", "points": [{ "label": "6月", "value": 10 }], "marker": "hollow" }]', note: "系列ごとの点・線・印・値の札", noteEn: "Points, line, marker, and value labels for each series" },
+    ],
+  },
+  {
+    title: "円の中心と表",
+    titleEn: "Pie center and table",
+    sample: { slot: "root", type: "chart", shape: "pie", root: ["form: table"], actors: ['  - 完了: "78"', '  - 未完了: "22"'] },
+    lines: [
+      { code: 'chartPieCenterLabel: "件"', note: "中心の合計の下に置く字", noteEn: "Text below the center total" },
+      { code: "chartPieTableColumns: value", note: "表を名前と値の 2 列にする", noteEn: "Uses name and value columns" },
+      { code: "chartPieRingWidth: thin", note: "輪を細くする", noteEn: "Uses a thin ring" },
+    ],
+  },
+  {
+    title: "傾き図の時点と主役",
+    titleEn: "Slope periods and emphasis",
+    sample: { slot: "root", type: "chart", shape: "slope", actors: ['  - Osaka: { value: "80", previous: "70" }'] },
+    lines: [
+      { code: 'chartSlopePeriods: ["先月", "今月"]', note: "左右の時点名", noteEn: "Labels for the two periods" },
+      { code: "chartSlopeEmphasisIds: [osaka]", note: "主役にする項目の id", noteEn: "IDs of emphasized items" },
+      { code: 'chartSlopeUnit: "%"', note: "値の単位", noteEn: "Unit appended to values" },
+    ],
+  },
+  {
+    title: "内訳の帯の期間",
+    titleEn: "Stacked-bar periods",
+    sample: { slot: "root", type: "chart", shape: "stacked", actors: ['  - first: "90"', '  - redelivery: "10"'] },
+    lines: [
+      { code: 'chartStackedPeriods: [{ "label": "6月", "values": [90, 10] }]', note: "期間ごとの内訳", noteEn: "Breakdown for each period" },
+      { code: "chartStackedRateId: redelivery", note: "右に率を描く項目の id", noteEn: "ID whose rate is shown on the right" },
+      { code: "chartStackedLegendPosition: top", note: "凡例を上に置く", noteEn: "Places the legend above" },
+    ],
+  },
+  {
+    title: "半円の固定値",
+    titleEn: "Fixed gauge value",
+    sample: { slot: "root", type: "chart", shape: "gauge", actors: ['  - 定時: "78"', '  - 遅れ: "22"'] },
+    lines: [
+      { code: 'chartGaugeValue: { "max": 100, "current": "{rate}", "target": 80, "previous": 72, "previousLabel": "先月" }', note: "現在・目標・前回の値。3 欄は段の状態も読める", noteEn: "Current, target, and previous values; all three can read phase state" },
+    ],
+  },
+  {
+    title: "升目の凡例",
+    titleEn: "Waffle legend",
+    sample: { slot: "root", type: "chart", shape: "waffle", actors: ['  - 小さい: "70"', '  - 大きい: "30"'] },
+    lines: [
+      { code: "chartWaffleLegendPosition: right", note: "凡例を右に置く", noteEn: "Places the legend on the right" },
+    ],
+  },
+  {
+    title: "漏斗の棒と率",
+    titleEn: "Funnel bars and rates",
+    sample: { slot: "root", type: "funnel", actors: ['  - 見た: "100"', '  - 申し込んだ: "28"'] },
+    lines: [
+      { code: "funnelForm: proportional-bars", note: "量に比例する棒", noteEn: "Uses bars proportional to values" },
+      { code: "funnelRate: conversion", note: "前段からの通過率", noteEn: "Shows conversion from the previous stage" },
+    ],
+  },
+  {
+    title: "木の箱と枝、図の札",
+    titleEn: "Tree nodes, edges, and figure card",
+    sample: {
+      slot: "root",
+      type: "tree",
+      actors: ["  - 本社", "  - 支社"],
+      flow: ["  - 本社 -> 支社"],
+    },
+    lines: [
+      { code: "treeNodeForm: frame", note: "根まで同じ枠で描く", noteEn: "Frames every node, including the root" },
+      { code: 'treeSize: {"nodeWidths":[260,240,220],"nodeHeight":89.891,"titleFontSize":29,"subtitleFontSize":19,"siblingGap":180,"levelGap":60.109}', note: "深さごとの札・字・枝間の寸法", noteEn: "Sizes tree nodes, text, siblings, and levels" },
+      { code: "treeEdgeTone: depth", note: "段ごとに枝色を分ける", noteEn: "Colors edges by depth" },
+      { code: "treeEdgeHead: triangle", note: "枝先に矢じりを付ける", noteEn: "Adds arrowheads to branches" },
+      { code: 'figureCard: {"label":"階層","note":"全国 12 営業所"}', note: "図の見出し帯と足", noteEn: "Figure header and footer" },
+      { code: 'figureSize: {"width":1800,"height":490}', note: "札の幅と高さ", noteEn: "Figure card width and height" },
+    ],
+  },
+  {
+    title: "放射の輪郭",
+    titleEn: "Mind-map outlines",
+    sample: {
+      slot: "root",
+      type: "mind",
+      actors: ["  - 再配達", "  - 置き場所"],
+      flow: ["  - 再配達 -> 置き場所"],
+    },
+    lines: [
+      { code: "mindForm: outline", note: "中心・枝・葉を輪郭で描く", noteEn: "Outlines the root, branches, and leaves" },
+      { code: 'mindSize: {"root":{"width":330,"height":60.891,"fontSize":29},"branch":{"width":220,"height":60.891,"fontSize":29},"leaf":{"fontSize":23},"rootBranchGap":155,"branchLeafGap":70,"branchRowGap":290,"branchRowOffset":10,"leafRowGap":92,"leafRowOffset":6}', note: "中心・枝・葉と行間の寸法", noteEn: "Sizes mind-map nodes, text, gaps, and row offsets" },
+    ],
+  },
+  {
+    title: "ジャーニーの罫と段名",
+    titleEn: "Journey rules and labels",
+    sample: { slot: "root", type: "journey", actors: ['  - 登録: "不満"'] },
+    lines: [
+      { code: "journeyForm: rules", note: "段を帯でなく罫で分ける", noteEn: "Separates levels with rules instead of bands" },
+      { code: "journeyLineForm: straight", note: "点を直線で結ぶ", noteEn: "Connects points with straight lines" },
+      { code: 'journeyLabels: {"delighted":"最高","happy":"満足","neutral":"普通","frustrated":"不満","angry":"怒り"}', note: "5 段の名前", noteEn: "Labels for the five levels" },
+    ],
+  },
+  {
     // 2 つの軸で仕分ける図だけが持つ。 他の図種で書くと組み立て側が知らせる (#1251)
     title: "軸の名前 (axes:)",
     titleEn: "Axis names (axes:)",
@@ -832,11 +1001,12 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: "axes:", note: "2 つの軸に名前を付ける", noteEn: "Names the two axes" },
-      { code: '  x: { left: "手間 小", right: "手間 大" }', note: "横の軸", noteEn: "The horizontal axis" },
+      { code: '  x: { label: "手間", direction: true }', note: "右向きの軸名", noteEn: "A rightward axis label" },
       {
-        code: '  y: { bottom: "効き 小", top: "効き 大" }',
-        note: "縦の軸。 区画の名前は軸から決まる", noteEn: "The vertical axis. The quadrant names follow from the axes",
+        code: '  y: { label: "効き目", direction: true }',
+        note: "上向きの軸名。 区画の名前は軸から決まる", noteEn: "An upward axis label. The quadrant names follow from the axes",
       },
+      { code: "quadrantPointLabelSide: right", note: "点の名前を常に右へ置く", noteEn: "Always places point labels on the right" },
     ],
   },
   {
@@ -892,7 +1062,7 @@ export const FORMS: Section[] = [
     },
     lines: [
       { code: '  - 登録: { value: "不満", touchpoint: "申込み画面" }', note: "どこで起きたか", noteEn: "Where it happened" },
-      { code: '  - 決済: { value: "普通", opportunity: "入力を減らす" }', note: "何を直せるか", noteEn: "What can be improved" },
+      { code: '  - 決済: { value: "普通", opportunity: "入力を減らす", opportunityPosition: below-point }', note: "何を直せるかと、注記を置く場所", noteEn: "What can be improved and where to place the note" },
     ],
   },
   {
@@ -927,8 +1097,9 @@ export const FORMS: Section[] = [
       { code: "lanes:", note: "縦列の位置と幅を決める", noteEn: "Sets each lane's position and width" },
       // **図が作る縦列の id を書く**。 合わない id を書くと箱の入らない縦列が増えるだけで、
       // 書いた幅も見出しも元の縦列に届かない (#1241 で知らせが出るようにした)。
-      // `type: topology` は箱を全て `main` に入れる
-      { code: '  main: { x: 0, width: 360, label: "表" }', note: "id: { x, width, label }", noteEn: "id: { x, width, label }" },
+      // `type: topology` は箱を全て `main` に入れる。cdl 0.130.0 から通常の縦列も
+      // subtitle を描くため、路線図だけの欄として扱わない (#2854)。
+      { code: '  main: { x: 0, width: 360, label: "配送システム", subtitle: "中の部品" }', note: "id: { x, width, label, subtitle }", noteEn: "id: { x, width, label, subtitle }" },
       { code: "groups:", note: "縦列をまとめて囲む", noteEn: "Wraps several lanes together" },
       { code: '  aws: { label: "AWS", lanes: [main] }', note: "id: { label, lanes: [...] }", noteEn: "id: { label, lanes: [...] }" },
     ],

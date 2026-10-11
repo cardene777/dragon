@@ -8,14 +8,14 @@ import type { CompileNotice } from "./notice";
 import { slugify } from "./slug";
 import { 箱の題 } from "./node-title";
 import { truncateForMessage, 図の小見出し } from "./subtitle";
+import { 図表の大きさを読む } from "./chart-fields";
 /**
  * ガントチャート (`type: gantt`) の組み立て (#2030 で `compile.ts` から移した)。
  */
 
 export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => void): CdlDiagram {
   const b = diagram(slugify(doc.title), { topic: doc.title, type: "gantt" });
-  const CHART_W = 720;
-  b.lane("gantt", { width: CHART_W });
+  const 既定W = 720;
 
   /**
    * 書いたのに効かない形を伝える。 **`console.warn` だけにしない** (#2111) = 編集画面は知らせだけを
@@ -41,6 +41,9 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
     tone?: DslDocument["actors"][number]["tone"];
     owner?: string;
     end?: string;
+    startLabel?: string;
+    milestone?: boolean;
+    emphasis?: "primary";
     startFraction: number;
     precise: boolean;
   }[] = [];
@@ -82,6 +85,9 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       ...(a.tone !== undefined ? { tone: a.tone } : {}),
       ...(a.owner !== undefined ? { owner: a.owner } : {}),
       ...(a.end !== undefined ? { end: a.end } : {}),
+      ...(a.startLabel !== undefined ? { startLabel: a.startLabel } : {}),
+      ...(a.milestone !== undefined ? { milestone: a.milestone } : {}),
+      ...(a.emphasis !== undefined ? { emphasis: a.emphasis } : {}),
     });
   }
   if (目盛りなし.length > 0) {
@@ -99,7 +105,7 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
   const タスク名 = new Set(タスク.map((t) => t.name));
   // 矢印の端の名前を引く表。 全ての図種に共通の「居ない名前」 の知らせと同じ表を使う
   const 名前の表 = actorRefTable(doc);
-  const 依存元 = new Map<string, string>();
+  const 依存元 = new Map<string, string[]>();
   for (const s of doc.flow) {
     const line = s.pos?.line ?? 0;
     const 矢印 = `${truncateForMessage(s.from)} -> ${truncateForMessage(s.to)}`;
@@ -116,7 +122,11 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       );
       continue;
     }
-    依存元.set(s.to, s.from);
+    const 前工程 = 依存元.get(s.to) ?? [];
+    if (!前工程.includes(s.from)) {
+      前工程.push(s.from);
+      依存元.set(s.to, 前工程);
+    }
     /*
      * 帯の依存は「どちらが先か」 だけを持つ。 矢印に書いた飾りは描けないので伝える。
      *
@@ -139,7 +149,9 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
 
   // 高さは件数から決める。 描画側は 1 行 28 以上 + 行間 20 で積み、 上下に 32 / 44 の余白を取る
   // (`kinds/gantt.tsx`)。 360 の固定だと 8 件目から最後の帯が枠の外に出る (実測 = 8 件で 56 はみ出す)
-  const CHART_H = Math.max(360, 48 * タスク.length + 96);
+  const 既定H = Math.max(360, 48 * タスク.length + 96);
+  const { w: CHART_W, h: CHART_H } = 図表の大きさを読む(doc, { w: 既定W, h: 既定H });
+  b.lane("gantt", { width: CHART_W });
 
   b.node(`${slugify(doc.title) || "gantt"}-chart`, {
     lane: "gantt",
@@ -153,7 +165,11 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
       const startName = 時期を読む(t.label)?.label ?? t.label;
       const idx = 目盛り.indexOf(startName);
       const startIdx = idx + t.startFraction;
-      const from = 依存元.get(t.name);
+      const dependencies = (依存元.get(t.name) ?? []).map((from) => slugify(from) || from);
+      const [firstDependency] = dependencies;
+      const dependsOn = firstDependency === undefined
+        ? undefined
+        : dependencies.length === 1 ? firstDependency : dependencies;
       // 帯の誤りは、その項目を書いた行で伝える。 知らせの種類は呼ばれる側が決める (#2392)
       const 帯を伝える = (種類: CompileNotice["kind"], 名: string, message: string): void =>
         伝える(種類, 名, message, t.line);
@@ -166,7 +182,7 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
         doc,
         t.precise,
       );
-      const startLabel = t.precise ? 位置の目盛り(startIdx, 目盛り) : t.label;
+      const startLabel = t.startLabel ?? (t.precise ? 位置の目盛り(startIdx, 目盛り) : t.label);
       return {
         id: slugify(t.name) || t.name,
         title: t.title,
@@ -175,11 +191,18 @@ export function compileGantt(doc: DslDocument, onNotice?: (n: CompileNotice) => 
         startLabel,
         endLabel: 終わり.label ?? startLabel,
         ...(t.owner !== undefined ? { owner: t.owner } : {}),
-        ...(from !== undefined ? { dependsOn: slugify(from) || from } : {}),
+        ...(dependsOn !== undefined ? { dependsOn } : {}),
         ...(t.tone !== undefined ? { tone: t.tone } : {}),
+        ...(t.emphasis !== undefined ? { emphasis: t.emphasis } : {}),
+        ...(t.milestone === true ? { milestone: true as const } : {}),
       };
     }),
     ...(明示した目盛り ? { ganttAxisMax: 目盛り.length } : {}),
+    ...(doc.ganttToday !== undefined ? { ganttToday: doc.ganttToday } : {}),
+    ...(doc.ganttTickLabels !== undefined ? { ganttTickLabels: doc.ganttTickLabels } : {}),
+    ...(doc.ganttBarEnd !== undefined ? { ganttBarEnd: doc.ganttBarEnd } : {}),
+    ...(doc.ganttBarThickness !== undefined ? { ganttBarThickness: doc.ganttBarThickness } : {}),
+    ...(doc.ganttSize !== undefined ? { ganttSize: doc.ganttSize } : {}),
   });
 
   return b.build();
