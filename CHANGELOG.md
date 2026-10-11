@@ -7,6 +7,19 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- **描く側を `^0.134.0` に上げ、浮彫の図表内容を凹み面へ収められるようにした** (#2854)
+
+  `figureInset.holdsContent:` に `true` を書く形を YAML / JSON / schema に登録した。組み立てと見本帳の意匠切替は
+  浮彫の時だけこの指定を描く側へ渡し、ほかの意匠の配置は変えない。
+
+- **描く側を `^0.133.0` に上げ、配置と形を見本帳から指定できる公開欄を登録した** (#2854)
+
+  `chartLineSize:` の左右余白・目盛り間隔・点列余白・時点名基線、`legendOffset:`、
+  `viewport.contentOffsetX:`、`chartBarShape:`、`chartBarSize.cornerRadius:`、`chartSlopeSize:` の上下余白、
+  `ganttSize:` の工程列幅・右余白、`chartPieSize.centerX:`、`chartWaffleSize:`、
+  `chartStackedLayout.legendOffsetY:`、`journeySize:` を YAML / JSON / schema / 組み立てへ渡す。
+  四象限の区画名は `data-cdl-role="quadrant-label"` で意匠を当てる。
+
 - **描く側を `^0.132.0` に上げ、17 個の公開欄と 15 件の見本寸法を登録した** (#2854)
 
   節の `terminalDecoration:`・`cornerForm:`・`figureKindLabel:`・`figureInset:`・`chartBarSize:`・

@@ -3433,6 +3433,7 @@ title: "荷物を届ける路線"
 type: swimlane
 shape: metro
 legendFontSize: 21
+legendOffset: {"x":-200,"y":-40}
 viewport: { width: 1800, height: 1048.118 }
 
 lanes:
@@ -3500,6 +3501,7 @@ export const sourceJson__presetDeliveryMetro = `{
   "type": "swimlane",
   "shape": "metro",
   "legendFontSize": 21,
+  "legendOffset": { "x": -200, "y": -40 },
   "viewport": { "width": 1800, "height": 1048.118 },
   "lanes": {
     "shipper": { "label": "荷主", "subtitle": "頼む人" },
@@ -3574,7 +3576,7 @@ title: "荷物を届ける順番"
 type: swimlane
 shape: timeline
 legendFontSize: 21
-viewport: { width: 1800 }
+viewport: { width: 1800, contentOffsetX: 250 }
 
 lanes:
   shipper: { label: 荷主 }
@@ -3635,7 +3637,7 @@ export const sourceJson__presetDeliveryTimeline = `{
   "type": "swimlane",
   "shape": "timeline",
   "legendFontSize": 21,
-  "viewport": { "width": 1800 },
+  "viewport": { "width": 1800, "contentOffsetX": 250 },
   "lanes": {
     "shipper": { "label": "荷主" },
     "office": { "label": "営業所" },

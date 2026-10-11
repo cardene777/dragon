@@ -45,10 +45,11 @@ import { contrast, luminance, shoot, type Box } from "./helpers/pixel-contrast";
 const relief = readThemeNotes().get("relief");
 if (relief?.mode !== "fixed") throw new Error("浮彫の意匠帳が固定の表ではない");
 const lead = readFixedThemeLead().get("relief");
-const pale = readFixedThemeRoleColor("relief", "淡");
 const title = readFixedThemeRoleColor("relief", "題");
 const white = readFixedThemeRoleColor("relief", "白");
-if (!lead || !pale || !title || !white) throw new Error("浮彫の作りの色を意匠帳から読めない");
+if (!lead || !title || !white) {
+  throw new Error("浮彫の作りの色を意匠帳から読めない");
+}
 
 const stage = (page: Page) => page.locator('svg[data-cdl-stage][data-cdl-palette="relief"]');
 const samples = samplesByType();
@@ -309,10 +310,12 @@ test.describe("relief theme (#2796)", () => {
     });
   }
 
-  test("relief chart: 見出しを持つ 13 図の札を浮かせ、札の中の図形へ凹み filter を付けない", async ({ page }) => {
-    const cardSources = [
+  test("relief chart: 見出しを持つ 11 図だけを板にし、木と放射の外枠と題を隠す", async ({ page }) => {
+    const unframedSources = [
       sourceYaml__deliveryOfficeTree,
       sourceYaml__redeliveryIdeasMind,
+    ] as const;
+    const cardSources = [
       sourceYaml__branchParcelsBar,
       sourceYaml__monthlyDeliveriesLine,
       sourceYaml__parcelStatusPie,
@@ -335,46 +338,59 @@ test.describe("relief theme (#2796)", () => {
         const title = node.querySelector<SVGGraphicsElement>('[data-cdl-role="figure-title"]');
         const footer = node.querySelector<SVGGraphicsElement>('[data-cdl-role="figure-footer"]');
         if (!frame || !title) throw new Error("浮彫の図の frame または題を測れない");
-        const frameBox = frame.getBoundingClientRect();
-        const bodies = [...node.querySelectorAll<SVGGraphicsElement>('[data-cdl-role="node-body"]')]
-          .filter((body) => {
-            const box = body.getBoundingClientRect();
-            return Math.abs(box.left - frameBox.left) <= 1 &&
-              Math.abs(box.top - frameBox.top) <= 1 &&
-              Math.abs(box.width - frameBox.width) <= 1 &&
-              Math.abs(box.height - frameBox.height) <= 1;
-          });
-        if (bodies.length !== 1) throw new Error(`浮彫の図の外札面が ${bodies.length} 件`);
-        const body = bodies[0]!;
+        // cdl 0.134.0 の data-cdl-frame は内側の木・放射の札と区別できる、図全体の実寸枠。
         const titleBox = title.getBoundingClientRect();
-        const bodyBox = body.getBoundingClientRect();
+        const frameBox = frame.getBoundingClientRect();
         return {
           kind: node.getAttribute("data-cdl-kind"),
-          bodyTop: bodyBox.top,
-          bodyBottom: bodyBox.bottom,
+          title: title.textContent?.trim() ?? "",
+          frameTop: frameBox.top,
+          frameBottom: frameBox.bottom,
           titleTop: titleBox.top,
           titleBottom: titleBox.bottom,
           footerTop: footer?.getBoundingClientRect().top ?? null,
-          bodyFilter: getComputedStyle(body).filter,
+          frameFilter: getComputedStyle(frame).filter,
           innerWellFilters: [...node.querySelectorAll<SVGGraphicsElement>("*")]
-            .filter((element) => element !== body)
+            .filter((element) => element !== frame)
             .flatMap((element) => getComputedStyle(element).filter.includes("dragon-relief-well")
               ? [element.getAttribute("data-cdl-role") ?? element.tagName]
               : []),
         };
       });
-      expect(parts.bodyFilter, "札の浮き").toContain("dragon-relief-raised");
-      expect(parts.bodyFilter, "札全体を凹ませない").not.toContain("dragon-relief-well");
-      expect(parts.innerWellFilters, "札の中の図形へ凹み filter が届いた").toEqual([]);
+      // figure-head を持つ 11 図は板の影を専用の figure-frame filter で再現する。
+      const figure = `${parts.kind ?? "kind不明"}「${parts.title || "題なし"}」`;
+      expect(parts.frameFilter, `札の浮き: ${figure}`).toContain("dragon-relief-figure-frame");
+      expect(parts.frameFilter, `札全体を凹ませない: ${figure}`).not.toContain("dragon-relief-well");
+      expect(parts.innerWellFilters, `札の中の図形へ凹み filter が届いた: ${figure}`).toEqual([]);
       expect(parts.titleBottom, "図の題を測れていない").toBeGreaterThan(parts.titleTop);
-      if (parts.kind === "mind-map" || parts.kind === "tree-hierarchy") {
-        expect(parts.titleBottom, "放射と木の題は札の上").toBeLessThanOrEqual(parts.bodyTop + 1);
-      } else {
-        expect(parts.bodyTop, "題は浮いた札の中").toBeLessThan(parts.titleBottom);
-      }
+      expect(parts.frameTop, "題は浮いた札の中").toBeLessThan(parts.titleBottom);
       if (parts.footerTop !== null) {
-        expect(parts.bodyBottom, "足は浮いた札の中").toBeGreaterThan(parts.footerTop);
+        expect(parts.frameBottom, "足は浮いた札の中").toBeGreaterThan(parts.footerTop);
       }
+    }
+
+    for (const source of unframedSources) {
+      await openEditorTheme(page, source, "relief", false);
+      const root = stage(page);
+      const surface = root.locator('[data-cdl-node]:has(> [data-cdl-frame])');
+      await expect(surface).toHaveCount(1);
+      const parts = await surface.evaluate((node) => {
+        const frame = node.querySelector<SVGGraphicsElement>(':scope > [data-cdl-frame]');
+        const title = node.querySelector<SVGGraphicsElement>('[data-cdl-role="figure-title"]');
+        if (!frame || !title) throw new Error("浮彫の木または放射の frame / 題を測れない");
+        const frameStyle = getComputedStyle(frame);
+        return {
+          kind: node.getAttribute("data-cdl-kind") ?? "kind不明",
+          title: title.textContent?.trim() ?? "題なし",
+          frameFill: frameStyle.fill,
+          frameFilter: frameStyle.filter,
+          titleDisplay: getComputedStyle(title).display,
+        };
+      });
+      const figure = `${parts.kind}「${parts.title}」`;
+      expect(parts.frameFill, `外枠の面を描かない: ${figure}`).toBe("none");
+      expect(parts.frameFilter, `外枠の影を描かない: ${figure}`).toBe("none");
+      expect(parts.titleDisplay, `外題を描かない: ${figure}`).toBe("none");
     }
 
     await openEditorTheme(page, sourceYaml__parcelStatusPie, "relief", false);
@@ -400,7 +416,9 @@ test.describe("relief theme (#2796)", () => {
     const cellFilters = await root.locator('[data-cdl-role="chart-waffle-cell"]')
       .evaluateAll((elements) => elements.map((element) => getComputedStyle(element).filter));
     expect(cellFilters.length, "升目を測れていない").toBeGreaterThan(0);
-    expect(cellFilters.every((filter) => filter === "none"), "升目の丸を平らにする").toBe(true);
+    // 見本の頁では升目の丸が左上の白い光と右下の影を持つため、小さな浮き出しを求める。
+    expect(cellFilters.every((filter) => filter.includes("dragon-relief-raised-sm")), "升目の丸を浮き出しにする").toBe(true);
+    expect(cellFilters.every((filter) => !filter.includes("dragon-relief-well")), "升目の丸を凹ませない").toBe(true);
   });
 
   test("relief filter: 4 つの filter の外の影が意匠帳どおりになる", async ({ page }) => {
@@ -616,8 +634,14 @@ test.describe("relief theme (#2796)", () => {
       // 見本は平塗りでなく、左上の系列色 78%・白 22% から右下の系列色へ落ちる階調。
       expect(bar.gradient, `棒の階調 ${bar.fill}`).not.toBeNull();
       expect(bar.gradient?.direction).toEqual(["0", "0", "1", "1"]);
+      // 単系列の棒の行は終端を一 #c4573c / 沈んだ淡 #a99e8e と定める。役割表の「淡」は字向け。
+      const ends = /一\s+`(#[0-9a-f]{6})`\s*\/\s*沈んだ淡\s+`(#[0-9a-f]{6})`/iu.exec(
+        roleValue("単系列の棒"),
+      );
+      if (!ends?.[1] || !ends[2]) throw new Error("浮彫の単系列の棒の階調終端を意匠帳から読めない");
+      const end = bar.main ? ends[1] : ends[2];
       expect(bar.gradient?.colors.map(colorKey)).toEqual(
-        [bar.main ? "#d17c67" : "#bcb3a7", bar.main ? lead : pale].map(colorKey),
+        [bar.main ? "#d17c67" : "#bcb3a7", end].map(colorKey),
       );
       expect(bar.opacity).toBe("1");
       expect(bar.filter).toContain("dragon-relief-raised-sm");

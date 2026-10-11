@@ -55,6 +55,7 @@ import {
   JOURNEY_OPPORTUNITY_POSITION_VALUES,
   JOURNEY_LABEL_KEYS,
   CORNER_FORM_VALUES,
+  CHART_BAR_SHAPE_VALUES,
   QUADRANT_LABEL_POSITION_VALUES,
   LABEL_COLLISION_VALUES,
   GANTT_TASK_LABEL_ALIGN_VALUES,
@@ -189,6 +190,7 @@ export interface DragonJson {
   journeyForm?: DslDocument["journeyForm"];
   journeyLineForm?: DslDocument["journeyLineForm"];
   journeyLabels?: DslDocument["journeyLabels"];
+  journeySize?: DslDocument["journeySize"];
   sequenceActorForm?: DslDocument["sequenceActorForm"];
   sequenceLabelForm?: DslDocument["sequenceLabelForm"];
   sequenceReturnHead?: DslDocument["sequenceReturnHead"];
@@ -200,8 +202,10 @@ export interface DragonJson {
   figureKindLabel?: DslDocument["figureKindLabel"];
   figureInset?: DslDocument["figureInset"];
   chartBarSize?: DslDocument["chartBarSize"];
+  chartBarShape?: DslDocument["chartBarShape"];
   chartLineSize?: DslDocument["chartLineSize"];
   chartPieSize?: DslDocument["chartPieSize"];
+  chartWaffleSize?: DslDocument["chartWaffleSize"];
   chartSlopeLabelTemplate?: DslDocument["chartSlopeLabelTemplate"];
   chartSlopeSize?: DslDocument["chartSlopeSize"];
   chartStackedLayout?: DslDocument["chartStackedLayout"];
@@ -235,6 +239,7 @@ export interface DragonJson {
   regions?: JsonRegions;
   /** 図の凡例の字の大きさ。 */
   legendFontSize?: number;
+  legendOffset?: DslDocument["legendOffset"];
   /** 段の箱で、意匠ごとに描く見出しの寸法。 */
   stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
   stageLayout?: DslDocument["stageLayout"];
@@ -753,6 +758,7 @@ export const ACCEPTED_KEYS = {
     "journeyForm",
     "journeyLineForm",
     "journeyLabels",
+    "journeySize",
     "sequenceActorForm",
     "sequenceLabelForm",
     "sequenceReturnHead",
@@ -764,8 +770,10 @@ export const ACCEPTED_KEYS = {
     "figureKindLabel",
     "figureInset",
     "chartBarSize",
+    "chartBarShape",
     "chartLineSize",
     "chartPieSize",
+    "chartWaffleSize",
     "chartSlopeLabelTemplate",
     "chartSlopeSize",
     "chartStackedLayout",
@@ -810,6 +818,7 @@ export const ACCEPTED_KEYS = {
     "palette",
     "legend",
     "legendFontSize",
+    "legendOffset",
     "stageHeaders",
     "stageLayout",
   ],
@@ -919,7 +928,7 @@ export const ACCEPTED_KEYS = {
   ],
   // 説明の語は `PHASE_BODY_KEYS` から導く (#2621)。 書き写すと記法の入口とずれる
   phase: ["step", "duration", "focus", ...PHASE_BODY_KEYS, "badge", "tween", "set", "draw", "drawRatio"],
-  viewport: ["width", "height", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
+  viewport: ["width", "height", "contentOffsetX", "scale", "laneWidth", "gap", "laneGap", "nodeGap", "labelMargin"],
   lane: ["x", "width", "label", "subtitle", "contain", "lifeline", "pos"],
   group: ["label", "lanes"],
   axes: ["x", "y"],
@@ -1026,6 +1035,7 @@ export const 欄の型表 = {
     journeyForm: "文字列",
     journeyLineForm: "文字列",
     journeyLabels: "object",
+    journeySize: "object",
     sequenceActorForm: "非空の文字列",
     sequenceLabelForm: "非空の文字列",
     sequenceReturnHead: "非空の文字列",
@@ -1037,8 +1047,10 @@ export const 欄の型表 = {
     figureKindLabel: "object",
     figureInset: "object",
     chartBarSize: "object",
+    chartBarShape: "非空の文字列",
     chartLineSize: "object",
     chartPieSize: "object",
+    chartWaffleSize: "object",
     chartSlopeLabelTemplate: "object",
     chartSlopeSize: "object",
     chartStackedLayout: "object",
@@ -1083,6 +1095,7 @@ export const 欄の型表 = {
     palette: "意匠",
     legend: "並び",
     legendFontSize: "数",
+    legendOffset: "object",
     stageHeaders: "object",
     stageLayout: "object",
   },
@@ -1204,6 +1217,7 @@ export const 欄の型表 = {
   viewport: {
     width: "数",
     height: "数",
+    contentOffsetX: "数",
     scale: "数",
     laneWidth: "数",
     gap: "数",
@@ -2586,13 +2600,14 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   enumField("sequenceLabelForm", SEQUENCE_LABEL_FORM_VALUES);
   enumField("sequenceReturnHead", SEQUENCE_RETURN_HEAD_VALUES);
   enumField("cornerForm", CORNER_FORM_VALUES);
+  enumField("chartBarShape", CHART_BAR_SHAPE_VALUES);
   enumField("quadrantLabelPosition", QUADRANT_LABEL_POSITION_VALUES);
 
   const closedObject = (
     name: "journeyLabels" | "figureCard" | "figureSize" | "treeSize" | "mindSize" |
-      "terminalDecoration" | "figureKindLabel" | "figureInset" | "chartBarSize" |
-      "chartLineSize" | "chartPieSize" | "chartSlopeLabelTemplate" | "chartSlopeSize" |
-      "chartStackedLayout" | "chartGaugeSize" | "ganttSize" | "quadrantSize" | "stageLayout",
+      "terminalDecoration" | "figureKindLabel" | "figureInset" | "journeySize" | "chartBarSize" |
+      "chartLineSize" | "chartPieSize" | "chartWaffleSize" | "chartSlopeLabelTemplate" | "chartSlopeSize" |
+      "chartStackedLayout" | "chartGaugeSize" | "ganttSize" | "quadrantSize" | "legendOffset" | "stageLayout",
     keys: readonly string[],
   ): Record<string, unknown> | undefined => {
     const value = j[name];
@@ -2731,16 +2746,19 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   const specs = {
     terminalDecoration: ["windowControls", "cursor", "rowOrdinal"],
     figureKindLabel: ["text", "x", "y", "fontSize", "fontWeight", "letterSpacing"],
-    figureInset: ["top", "right", "bottom", "left", "radius"],
-    chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "plotPadding", "barWidth"],
-    chartLineSize: ["valueLabelOffset", "tickFontSize", "periodFontSize", "pointRadius", "plotPadding"],
-    chartPieSize: ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "tableRowGap", "tablePaddingInline", "outerRadius"],
+    figureInset: ["top", "right", "bottom", "left", "radius", "holdsContent"],
+    journeySize: ["plotPadding", "pointPadding"],
+    chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "plotPadding", "barWidth", "cornerRadius"],
+    chartLineSize: ["valueLabelOffset", "tickFontSize", "periodFontSize", "pointRadius", "plotPadding", "tickGap", "pointPadding", "periodY"],
+    chartPieSize: ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "tableRowGap", "tablePaddingInline", "outerRadius", "centerX"],
+    chartWaffleSize: ["gridLeft", "cellPitch"],
     chartSlopeLabelTemplate: ["left", "right"],
-    chartSlopeSize: ["pointRadius", "periodFontSize", "labelFontSize", "leftAxisX", "axisGap", "labelAxisGap"],
-    chartStackedLayout: ["legendColumns", "legendColumnGap", "segmentGap", "barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize"],
+    chartSlopeSize: ["pointRadius", "periodFontSize", "labelFontSize", "leftAxisX", "axisGap", "labelAxisGap", "plotPadding", "pointPadding"],
+    chartStackedLayout: ["legendColumns", "legendColumnGap", "segmentGap", "barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize", "legendOffsetY"],
     chartGaugeSize: ["arcThickness", "outerRadius", "plotTop", "valueFontSize"],
-    ganttSize: ["taskLabelFontSize", "taskLabelAlign", "taskLabelX", "tickFontSize", "tickCount", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth"],
+    ganttSize: ["taskLabelFontSize", "taskLabelAlign", "taskLabelX", "tickFontSize", "tickCount", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth", "taskColumnWidth", "timelinePaddingRight"],
     quadrantSize: ["plotOffset", "plotSize", "pointRadius", "pointFontSize", "pointLabelGap", "quadrantFontSize", "axisFontSize"],
+    legendOffset: ["x", "y"],
     stageLayout: ["columnWidths", "columnGap", "backDetourTopGap", "backDetourSideGap"],
   } as const;
   const objects = Object.fromEntries(Object.entries(specs).map(([name, keys]) => [name, closedObject(name as keyof typeof specs, keys)])) as Record<keyof typeof specs, Record<string, unknown> | undefined>;
@@ -2749,6 +2767,7 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
     chartBarSize: ["tickFontSize", "valueFontSize", "labelFontSize", "barWidth"],
     chartLineSize: ["tickFontSize", "periodFontSize", "pointRadius"],
     chartPieSize: ["tableWidth", "tableLabelFontSize", "tableValueFontSize", "outerRadius"],
+    chartWaffleSize: ["cellPitch"],
     chartSlopeSize: ["pointRadius", "periodFontSize", "labelFontSize", "axisGap"],
     chartStackedLayout: ["barThickness", "barWidth", "legendMarkSize", "legendFontSize", "periodFontSize", "rateFontSize"],
     chartGaugeSize: ["arcThickness", "outerRadius", "valueFontSize"],
@@ -2756,10 +2775,10 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
     quadrantSize: ["plotSize", "pointRadius", "pointFontSize", "quadrantFontSize", "axisFontSize"],
   };
   const nonNegativeKeys: Partial<Record<keyof typeof specs, readonly string[]>> = {
-    figureKindLabel: ["letterSpacing"], figureInset: specs.figureInset,
-    chartPieSize: ["tableRowGap", "tablePaddingInline"], chartSlopeSize: ["leftAxisX", "labelAxisGap"],
+    figureKindLabel: ["letterSpacing"], figureInset: ["top", "right", "bottom", "left", "radius"],
+    chartBarSize: ["cornerRadius"], chartLineSize: ["tickGap", "periodY"], chartPieSize: ["tableRowGap", "tablePaddingInline", "centerX"], chartWaffleSize: ["gridLeft"], chartSlopeSize: ["leftAxisX", "labelAxisGap"],
     chartStackedLayout: ["legendColumnGap", "segmentGap"], chartGaugeSize: ["plotTop"],
-    ganttSize: ["taskLabelX"], quadrantSize: ["pointLabelGap"],
+    ganttSize: ["taskLabelX", "taskColumnWidth", "timelinePaddingRight"], quadrantSize: ["pointLabelGap"],
     stageLayout: ["columnGap", "backDetourTopGap", "backDetourSideGap"],
   };
   for (const [name, object] of Object.entries(objects) as [keyof typeof specs, Record<string, unknown> | undefined][]) {
@@ -2769,11 +2788,17 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   }
   const finite = (value: unknown, path: string): void => { if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) errors.push({ path, message: "must be a finite number" }); };
   if (objects.terminalDecoration) for (const key of specs.terminalDecoration) if (objects.terminalDecoration[key] !== undefined && typeof objects.terminalDecoration[key] !== "boolean") errors.push({ path: `$.terminalDecoration.${key}`, message: "must be boolean" });
+  if (objects.figureInset?.holdsContent !== undefined && typeof objects.figureInset.holdsContent !== "boolean") errors.push({ path: "$.figureInset.holdsContent", message: "must be boolean" });
   if (objects.figureKindLabel) {
     if (typeof objects.figureKindLabel.text !== "string" || objects.figureKindLabel.text.trim() === "") errors.push({ path: "$.figureKindLabel.text", message: "must be a non-empty string" });
     finite(objects.figureKindLabel.x, "$.figureKindLabel.x"); finite(objects.figureKindLabel.y, "$.figureKindLabel.y");
   }
   if (objects.chartSlopeLabelTemplate) for (const key of specs.chartSlopeLabelTemplate) if (objects.chartSlopeLabelTemplate[key] !== undefined && typeof objects.chartSlopeLabelTemplate[key] !== "string") errors.push({ path: `$.chartSlopeLabelTemplate.${key}`, message: "must be a string" });
+  if (objects.chartStackedLayout) finite(objects.chartStackedLayout.legendOffsetY, "$.chartStackedLayout.legendOffsetY");
+  if (objects.legendOffset) {
+    finite(objects.legendOffset.x, "$.legendOffset.x");
+    finite(objects.legendOffset.y, "$.legendOffset.y");
+  }
   const nestedNumberObject = (parent: keyof typeof specs, key: string, keys: readonly string[], positive: boolean): void => {
     const value = objects[parent]?.[key]; if (value === undefined) return;
     if (!value || typeof value !== "object" || Array.isArray(value)) { errors.push({ path: `$.${parent}.${key}`, message: "must be an object" }); return; }
@@ -2783,7 +2808,12 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
   };
   nestedNumberObject("chartBarSize", "plotPadding", ["top", "right", "bottom", "left"], false);
   nestedNumberObject("chartLineSize", "valueLabelOffset", ["above", "below"], false);
-  nestedNumberObject("chartLineSize", "plotPadding", ["top", "bottom"], false);
+  nestedNumberObject("chartLineSize", "plotPadding", ["top", "right", "bottom", "left"], false);
+  nestedNumberObject("chartLineSize", "pointPadding", ["left", "right"], false);
+  nestedNumberObject("chartSlopeSize", "plotPadding", ["top", "bottom"], false);
+  nestedNumberObject("chartSlopeSize", "pointPadding", ["top", "bottom"], false);
+  nestedNumberObject("journeySize", "plotPadding", ["left", "right"], false);
+  nestedNumberObject("journeySize", "pointPadding", ["left", "right"], false);
   nestedNumberObject("quadrantSize", "plotOffset", ["x", "y"], false);
   const columnWidths = objects.stageLayout?.columnWidths;
   if (columnWidths !== undefined) {
@@ -3935,6 +3965,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.journeyForm !== undefined ? { journeyForm: json.journeyForm } : {}),
     ...(json.journeyLineForm !== undefined ? { journeyLineForm: json.journeyLineForm } : {}),
     ...(json.journeyLabels !== undefined ? { journeyLabels: json.journeyLabels } : {}),
+    ...(json.journeySize !== undefined ? { journeySize: json.journeySize } : {}),
     ...(json.sequenceActorForm !== undefined ? { sequenceActorForm: json.sequenceActorForm } : {}),
     ...(json.sequenceLabelForm !== undefined ? { sequenceLabelForm: json.sequenceLabelForm } : {}),
     ...(json.sequenceReturnHead !== undefined ? { sequenceReturnHead: json.sequenceReturnHead } : {}),
@@ -3946,8 +3977,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.figureKindLabel !== undefined ? { figureKindLabel: json.figureKindLabel } : {}),
     ...(json.figureInset !== undefined ? { figureInset: json.figureInset } : {}),
     ...(json.chartBarSize !== undefined ? { chartBarSize: json.chartBarSize } : {}),
+    ...(json.chartBarShape !== undefined ? { chartBarShape: json.chartBarShape } : {}),
     ...(json.chartLineSize !== undefined ? { chartLineSize: json.chartLineSize } : {}),
     ...(json.chartPieSize !== undefined ? { chartPieSize: json.chartPieSize } : {}),
+    ...(json.chartWaffleSize !== undefined ? { chartWaffleSize: json.chartWaffleSize } : {}),
     ...(json.chartSlopeLabelTemplate !== undefined ? { chartSlopeLabelTemplate: json.chartSlopeLabelTemplate } : {}),
     ...(json.chartSlopeSize !== undefined ? { chartSlopeSize: json.chartSlopeSize } : {}),
     ...(json.chartStackedLayout !== undefined ? { chartStackedLayout: json.chartStackedLayout } : {}),
@@ -3973,6 +4006,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       ? {}
       : { regions: 区画の名前を直す(json.regions) }),
     ...(json.legendFontSize !== undefined ? { legendFontSize: json.legendFontSize } : {}),
+    ...(json.legendOffset !== undefined ? { legendOffset: json.legendOffset } : {}),
     ...(json.stageHeaders !== undefined ? { stageHeaders: json.stageHeaders } : {}),
     ...(json.stageLayout !== undefined ? { stageLayout: json.stageLayout } : {}),
     actors,

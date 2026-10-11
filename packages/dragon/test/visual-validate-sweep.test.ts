@@ -197,17 +197,19 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
       "正解頁の列幅から 48 を引いた札幅では、分岐札との間が 8 world になる。" +
       "札どうしは重ならず、列幅を狭めると見本の札幅が崩れる (#2854)",
   })),
-  ...[
-    "node:在宅 ↔ edge-label:e6-在宅-持ち戻る",
-    "node:持ち戻る ↔ edge-label:e6-在宅-持ち戻る",
-  ].map((対象) => ({
-    diagramId: "delivery-timeline-demo",
-    axis: "clearance",
-    対象,
-    理由:
-      "「いいえ」の札を正解頁どおり線の上 40 world に置くと、左右の札との間は 27 world になる。" +
-      "札どうしは重ならず、32 まで離すと見本の線上位置が崩れる (#2854)",
-  })),
+  ...["delivery-timeline-demo", "時間軸で書く荷物の届け方"].flatMap((diagramId) =>
+    [
+      "node:在宅 ↔ edge-label:e6-在宅-持ち戻る",
+      "node:持ち戻る ↔ edge-label:e6-在宅-持ち戻る",
+    ].map((対象) => ({
+      diagramId,
+      axis: "clearance",
+      対象,
+      理由:
+        "「いいえ」の札を正解頁どおり線の上 40 world に置くと、左右の札との間は 27 world になる。" +
+        "札どうしは重ならず、32 まで離すと見本の線上位置が崩れる (#2854)",
+    })),
+  ),
   {
     diagramId: "delivery-flow-demo",
     axis: "node-visibility",
@@ -229,6 +231,7 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     ["delivery-metro-demo", ["e6-在宅-受け取る", "e7-在宅-持ち戻る", "e8-持ち戻る-便に積む"]],
     ["路線図で書く荷物の届け方", ["e6-在宅-受け取る", "e7-在宅-持ち戻る", "e8-持ち戻る-便に積む"]],
     ["delivery-timeline-demo", ["e6-在宅-持ち戻る", "e7-持ち戻る-便に積む"]],
+    ["時間軸で書く荷物の届け方", ["e6-在宅-持ち戻る"]],
   ].flatMap(([diagramId, edges]) =>
     (edges as string[]).map((edge) => ({
       diagramId: diagramId as string,
@@ -240,20 +243,20 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     })),
   ),
   {
+    diagramId: "営業所ごとの取扱数",
+    axis: "node-inside-viewbox",
+    対象: 'node "営業所ごとの取扱数-chart" の chartBarSize.cornerRadius 4',
+    理由:
+      "見本の 5 本は states の初期値 620 / 390 / 280 / 210 / 130 を読むため、高さ 0 の棒は無い。" +
+      "描く側 0.134.0 の検査だけが空の state で参照を 0 へ落とすので、見本値 cornerRadius 4 は保持する (#2854、cardene777/cdl#1210 が入った版で消す)",
+  },
+  {
     diagramId: "再配達を減らす",
     axis: "box-line-dropped",
     対象: 'node "再配達を減らす-chart"',
     理由:
-      "端末意匠だけ窓の丸 52 と間 16 の分だけ題の組を動かす指定である。" +
-      "engine の検査は意匠別 CSS の表示と移動を読まないため、端末の見本は画面実測で確かめる (#1161)",
-  },
-  {
-    diagramId: "荷物の大きさ",
-    axis: "node-inside-viewbox",
-    対象: 'node "荷物の大きさ-chart"',
-    理由:
-      "端末意匠だけ番号幅 16 と間 14 の分だけ一覧の組を動かす指定である。" +
-      "engine の検査は意匠別 CSS の表示と移動を読まないため、端末の見本は画面実測で確かめる (#1161)",
+      "静止した端末見本は states の「困りごと」を 25px の等幅字で描き、題の組を 68px 動かす。" +
+      "描く側 0.134.0 の検査は空の state の未解決文字 {theme} を 29px で測り、見本 CSS の字寸法を読まない (#1161)",
   },
   {
     diagramId: "edge-routing",
@@ -789,11 +792,7 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       "矢印の名前が線から離れる見本。 `interactive-oauth-flow` は線が往復して交差しており" +
       " (#2302 で名指しで固定)、名前を線に寄せると交差した線の上に載る。" +
       " `間隔をまとめて広げる` は間隔を広げること自体が見本の題",
-    図: [
-      "interactive-oauth-flow",
-      "時間軸で書く荷物の届け方",
-      "間隔をまとめて広げる",
-    ],
+    図: ["interactive-oauth-flow", "間隔をまとめて広げる"],
   },
   "print-media-compat": {
     理由:

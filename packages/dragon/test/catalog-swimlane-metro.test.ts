@@ -36,9 +36,11 @@ describe("見本帳の路線図の形 (#2799)", () => {
 
   it("凡例の字を見本の 21 にする", () => {
     expect(presetDeliveryMetro.legendFontSize).toBe(21);
+    expect(presetDeliveryMetro.legendOffset).toEqual({ x: -200, y: -40 });
+    expect(JSON.parse(sourceJson__presetDeliveryMetro).legendOffset).toEqual({ x: -200, y: -40 });
   });
 
-  it("路線と凡例を 1100 高の盤へ戻す", () => {
+  it("1100 高の路線盤で凡例を上へ 40 ずらす", () => {
     expect(presetDeliveryMetro.viewport).toEqual({ width: 1800, height: 1048.118 });
     expect(JSON.parse(sourceJson__presetDeliveryMetro).viewport).toEqual({
       width: 1800,
@@ -46,7 +48,7 @@ describe("見本帳の路線図の形 (#2799)", () => {
     });
     const markup = renderToStaticMarkup(createElement(CdlDiagramView, { diagram: presetDeliveryMetro }));
     const viewBox = /data-cdl-viewbox="([^"]+)"/u.exec(markup)?.[1]?.split(" ").map(Number);
-    expect(viewBox?.[3]).toBeCloseTo(1100, 3);
+    expect(viewBox?.[3]).toBeCloseTo(1060, 2);
   });
 
   it("shape: metro を記法と JSON の対でちょうど1件持つ", () => {

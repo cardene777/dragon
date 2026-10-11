@@ -1497,7 +1497,16 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
 
         await openEditorTheme(page, 色みごとの日程, note.name, dark);
         let stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
-        let ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
+        let groundPaints = await stage.evaluate((element) => {
+          const style = getComputedStyle(element);
+          // 電飾の note.md にある「台」は舞台の地でなく、図表内の --theme-neon-chart-ground。
+          return {
+            stage: style.backgroundColor,
+            chart: style.getPropertyValue("--theme-neon-chart-ground").trim(),
+          };
+        });
+        let ground = color(groundPaints.stage);
+        let ganttGround = color(groundPaints.chart || groundPaints.stage);
         const { ownerCount, bars: gantt } = await stage.evaluate((root) => {
           const box = ({ left, top, right, bottom }: DOMRect) => ({ left, top, right, bottom });
           return {
@@ -1538,7 +1547,7 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
           } else if (note.name !== "sketch") {
             // 電飾の見本は系列色 18% と台を混ぜた面。系列色そのものを期待する他の 6 意匠は変えない。
             const expectedFill = note.name === "neon"
-              ? `rgb(${over(color(expected), 0.18, ground).join(" ")})`
+              ? `rgb(${over(color(expected), 0.18, ganttGround).join(" ")})`
               : expected;
             if (colorKey(bar.fill) !== colorKey(expectedFill)) {
               failures.push(`${note.name}/${mode}/${tone}: 日程の帯 ${bar.fill} / 見本の面 ${expectedFill}`);
@@ -1592,7 +1601,15 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
         if (!defaultGantt) throw new Error("色みを書かない日程の見本が無い");
         await openEditorTheme(page, defaultGantt, note.name, dark);
         stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${note.name}"]`);
-        ground = color(await stage.evaluate((element) => getComputedStyle(element).backgroundColor));
+        groundPaints = await stage.evaluate((element) => {
+          const style = getComputedStyle(element);
+          return {
+            stage: style.backgroundColor,
+            chart: style.getPropertyValue("--theme-neon-chart-ground").trim(),
+          };
+        });
+        ground = color(groundPaints.stage);
+        ganttGround = color(groundPaints.chart || groundPaints.stage);
         const defaultBars = await stage.locator('[data-cdl-role="gantt-bar"]').evaluateAll((elements) =>
           elements.map((element) => {
             const style = getComputedStyle(element);
@@ -1605,7 +1622,7 @@ test.describe("日程の図の棒と漏斗図の段 (#2801)", () => {
             failures.push(`${note.name}/${mode}: 色みの無い日程が淡い斜線でない (${fill})`);
           } else if (note.name !== "sketch") {
             const expectedFill = note.name === "neon"
-              ? `rgb(${over(color(ganttColors[0]!), 0.18, ground).join(" ")})`
+              ? `rgb(${over(color(ganttColors[0]!), 0.18, ganttGround).join(" ")})`
               : ganttColors[0]!;
             if (colorKey(fill) !== colorKey(expectedFill)) {
               failures.push(`${note.name}/${mode}: 色みの無い日程 ${fill} / 見本の面 ${expectedFill}`);

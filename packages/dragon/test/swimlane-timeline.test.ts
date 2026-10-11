@@ -717,12 +717,44 @@ describe("時間軸を見本と同じ丸い番号と実線の軸で描く (#2832
     );
   });
 
-  it("横に引く分かれ道の札を高さの半分と間の分だけ線の上へ浮かせる", () => {
+  it("横に引く分かれ道の札を見本と同じ寸法で線の 20 上へ置く", () => {
     const labeled = 宅配.diagram.edges.filter((edge) => edge.label !== "");
-    expect(labeled.map((edge) => [edge.label, edge.overlay, edge.labelOffsetY])).toEqual([
-      ["はい", true, undefined],
-      ["いいえ", true, -40],
-      ["翌日もう一度", true, undefined],
+    expect(
+      labeled.map((edge) => [
+        edge.label,
+        edge.overlay,
+        edge.labelCollision,
+        edge.labelSize,
+        edge.labelOffsetY,
+      ]),
+    ).toEqual([
+      ["はい", true, undefined, undefined, undefined],
+      ["いいえ", true, "author", { width: 96, height: 40, fontSize: 21 }, 64],
+      ["翌日もう一度", true, undefined, undefined, undefined],
+    ]);
+
+    const edge = 宅配.diagram.edges.find((candidate) => candidate.label === "いいえ");
+    const laidEdge = 宅配.laid.edges.find((candidate) => candidate.id === edge?.id);
+    expect(laidEdge).toBeDefined();
+    if (laidEdge === undefined) return;
+    const points = 道筋の折れ点(laidEdge.d);
+    expect(new Set(points.map((point) => point.y)).size).toBe(1);
+    expect(points[0]!.y - laidEdge.labelY).toBe(40);
+  });
+
+  it("書き手の位置に残した横分岐の札が他の箱や字へ重ならない", () => {
+    const edgeId = 宅配.diagram.edges.find((edge) => edge.label === "いいえ")!.id;
+    const involvesLabel = ({ a, b }: { a: { id: string }; b: { id: string } }): boolean =>
+      a.id === edgeId || b.id === edgeId;
+    expect(宅配.laid.collisions.filter(involvesLabel)).toEqual([]);
+    // 見本の位置では両端の節から 27 離れて重ならないが、cdl の near 閾値 32 には入る。
+    expect(
+      宅配.laid.nearCollisions
+        .filter(involvesLabel)
+        .map(({ a, b, gap, required }) => [a.id, b.id, gap, required]),
+    ).toEqual([
+      ["在宅", edgeId, 27, 32],
+      ["持ち戻る", edgeId, 27, 32],
     ]);
   });
 

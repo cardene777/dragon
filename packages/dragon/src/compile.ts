@@ -578,9 +578,40 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     );
   }
   if (doc.legendFontSize !== undefined) merged.legendFontSize = doc.legendFontSize;
+  if (doc.legendOffset !== undefined) merged.legendOffset = doc.legendOffset;
   if (doc.stageHeaders !== undefined) {
     (merged as CdlDiagram & { stageHeaders?: DslDocument["stageHeaders"] }).stageHeaders =
       doc.stageHeaders;
+  }
+  // 見本帳は意匠なしで一度だけ組むため、浮彫で使う意図を stageHeaders と同じく図全体で運ぶ。
+  if (doc.figureInset?.holdsContent === true) {
+    (merged as CdlDiagram & {
+      figureInsetByTheme?: {
+        relief?: {
+          holdsContent: true;
+          chartLinePeriodY?: number;
+          chartSlopeAxisGap?: number;
+          chartStackedBarWidth?: number;
+          quadrantPlotSize?: number;
+        };
+      };
+    }).figureInsetByTheme = {
+      relief: {
+        holdsContent: true,
+        ...(doc.chartLineSize?.periodY === undefined
+          ? {}
+          : { chartLinePeriodY: doc.chartLineSize.periodY }),
+        ...(doc.chartSlopeSize?.axisGap === undefined
+          ? {}
+          : { chartSlopeAxisGap: doc.chartSlopeSize.axisGap }),
+        ...(doc.chartStackedLayout?.barWidth === undefined
+          ? {}
+          : { chartStackedBarWidth: doc.chartStackedLayout.barWidth }),
+        ...(doc.quadrantSize?.plotSize === undefined
+          ? {}
+          : { quadrantPlotSize: doc.quadrantSize.plotSize }),
+      },
+    };
   }
   if (doc.stageLayout !== undefined) merged.stageLayout = doc.stageLayout;
   静止した図の焦点を外す(merged, doc);
@@ -602,13 +633,16 @@ function cdl0132の未指定欄を外す(diagram: CdlDiagram): void {
     if (node.figureKindLabel === undefined) delete node.figureKindLabel;
     if (node.figureInset === undefined) delete node.figureInset;
     if (node.chartBarSize === undefined) delete node.chartBarSize;
+    if (node.chartBarShape === undefined) delete node.chartBarShape;
     if (node.chartLineSize === undefined) delete node.chartLineSize;
     if (node.chartPieSize === undefined) delete node.chartPieSize;
+    if (node.chartWaffleSize === undefined) delete node.chartWaffleSize;
     if (node.chartSlopeLabelTemplate === undefined) delete node.chartSlopeLabelTemplate;
     if (node.chartSlopeSize === undefined) delete node.chartSlopeSize;
     if (node.chartStackedLayout === undefined) delete node.chartStackedLayout;
     if (node.chartGaugeSize === undefined) delete node.chartGaugeSize;
     if (node.ganttSize === undefined) delete node.ganttSize;
+    if (node.journeySize === undefined) delete node.journeySize;
     if (node.quadrantLabelPosition === undefined) delete node.quadrantLabelPosition;
     if (node.quadrantSize === undefined) delete node.quadrantSize;
   }
@@ -696,6 +730,50 @@ function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
   const 字の測り方 = 意匠の字の測り方(配色);
   if (字の測り方 !== undefined) diagram.textMetrics = 字の測り方;
   for (const node of diagram.nodes) {
+    if (配色 === "relief" && doc.figureInset?.holdsContent === true && node.figureInset !== undefined) {
+      node.figureInset.holdsContent = true;
+      const leftInset = node.figureInset.left ?? 18;
+      const rightInset = node.figureInset.right ?? 18;
+      const topInset = node.figureInset.top ?? 4;
+      const bottomInset = node.figureInset.bottom ?? 8;
+      const horizontalInset = leftInset + rightInset;
+      const verticalInset = topInset + bottomInset;
+      if (node.chartLineSize?.periodY !== undefined) {
+        node.chartLineSize = {
+          ...node.chartLineSize,
+          periodY: Math.max(0, node.chartLineSize.periodY - verticalInset),
+        };
+      }
+      if (node.chartSlopeSize?.axisGap !== undefined) {
+        node.chartSlopeSize = {
+          ...node.chartSlopeSize,
+          axisGap: Math.max(0, node.chartSlopeSize.axisGap - horizontalInset),
+        };
+      }
+      if (node.chartStackedLayout?.barWidth !== undefined) {
+        node.chartStackedLayout = {
+          ...node.chartStackedLayout,
+          barWidth: Math.max(1, node.chartStackedLayout.barWidth - horizontalInset),
+        };
+      }
+      if (
+        node.quadrantSize?.plotSize !== undefined &&
+        node.w !== undefined &&
+        node.h !== undefined
+      ) {
+        const contentHeight = node.h - (node.figureCard === undefined ? 0 : 61 + 36);
+        const 元の上限 = Math.min(node.w - 120, contentHeight - 60);
+        const 凹み面の上限 = Math.min(
+          node.w - horizontalInset - 120,
+          contentHeight - verticalInset - 60,
+        );
+        node.quadrantSize = {
+          ...node.quadrantSize,
+          // 見本の min(P幅−120, P高さ−60) が凹み面で失う分だけ、調整済みの元値から引く。
+          plotSize: Math.max(1, node.quadrantSize.plotSize - (元の上限 - 凹み面の上限)),
+        };
+      }
+    }
     if (node.kind === "storage" && 行を書いた箱か(node)) node.rowStripe = true;
   }
 }
@@ -2758,6 +2836,7 @@ function applyV05Extensions(
       ...(diagram.viewport ?? {}),
       ...(doc.viewport.width !== undefined ? { width: doc.viewport.width } : {}),
       ...(doc.viewport.height !== undefined ? { height: doc.viewport.height } : {}),
+      ...(doc.viewport.contentOffsetX !== undefined ? { contentOffsetX: doc.viewport.contentOffsetX } : {}),
       ...(doc.viewport.gap !== undefined ? { gap: doc.viewport.gap } : {}),
       ...(doc.viewport.laneGap !== undefined ? { laneGap: doc.viewport.laneGap } : {}),
       ...(doc.viewport.nodeGap !== undefined ? { nodeGap: doc.viewport.nodeGap } : {}),

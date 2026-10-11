@@ -201,6 +201,8 @@ export type DslDocument = {
   journeyLineForm?: NonNullable<CdlDiagram["nodes"][number]["journeyLineForm"]>;
   /** ジャーニーの 5 段に描く名前。 */
   journeyLabels?: NonNullable<CdlDiagram["nodes"][number]["journeyLabels"]>;
+  /** ジャーニーの描画面と点列の左右余白。 */
+  journeySize?: NonNullable<CdlDiagram["nodes"][number]["journeySize"]>;
   /** 図表の見出し帯と足。 */
   figureCard?: NonNullable<CdlDiagram["nodes"][number]["figureCard"]>;
   /** 端末意匠用の窓操作・字送り・行番号。 */
@@ -209,14 +211,18 @@ export type DslDocument = {
   cornerForm?: NonNullable<CdlDiagram["nodes"][number]["cornerForm"]>;
   /** 階層図とマインドマップの種類札。 */
   figureKindLabel?: NonNullable<CdlDiagram["nodes"][number]["figureKindLabel"]>;
-  /** 図表札の見出しと足の間に置く凹み面。 */
+  /** 図表札の見出しと足の間に置く凹み面と、中身をその内側へ収める指定。 */
   figureInset?: NonNullable<CdlDiagram["nodes"][number]["figureInset"]>;
   /** 棒グラフの見本寸法。 */
   chartBarSize?: NonNullable<CdlDiagram["nodes"][number]["chartBarSize"]>;
+  /** 棒グラフの棒を分割するか、上だけ丸めて一体にするか。 */
+  chartBarShape?: NonNullable<CdlDiagram["nodes"][number]["chartBarShape"]>;
   /** 折れ線グラフの見本寸法。 */
   chartLineSize?: NonNullable<CdlDiagram["nodes"][number]["chartLineSize"]>;
   /** 円グラフの見本寸法。 */
   chartPieSize?: NonNullable<CdlDiagram["nodes"][number]["chartPieSize"]>;
+  /** 升目図の左端と升目の送り。 */
+  chartWaffleSize?: NonNullable<CdlDiagram["nodes"][number]["chartWaffleSize"]>;
   /** 傾き図の左右の札の書式。 */
   chartSlopeLabelTemplate?: NonNullable<
     CdlDiagram["nodes"][number]["chartSlopeLabelTemplate"]
@@ -244,6 +250,8 @@ export type DslDocument = {
   figureSize?: { width: number; height: number };
   /** 図の下へ指定順に置く凡例。 */
   legend?: CdlLegendItem[];
+  /** 図全体の凡例の位置を既定位置からずらす。 */
+  legendOffset?: NonNullable<CdlDiagram["legendOffset"]>;
   /** 順序図の参加者を枠で囲む。 */
   sequenceActorForm?: "box";
   /** 順序図の段へ種類印と種類名を添える。 */
@@ -805,6 +813,8 @@ export type DslGroup = {
 export type DslViewport = {
   width?: number;
   height?: number;
+  /** 描画内容だけを画布の中で横へずらす。 */
+  contentOffsetX?: number;
   /**
    * 図全体の倍率 (default 1)。 箱 / 文字 / 線 / 間隔のすべてが等比で拡大縮小される。
    *

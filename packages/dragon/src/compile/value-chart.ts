@@ -298,8 +298,10 @@ export function compileValueChart(
       ? { chartPieRingWidth: doc.chartPieRingWidth }
       : {}),
     ...(型 === "bar" && doc.chartBarSize !== undefined ? { chartBarSize: doc.chartBarSize } : {}),
+    ...(型 === "bar" && doc.chartBarShape !== undefined ? { chartBarShape: doc.chartBarShape } : {}),
     ...(型 === "line" && doc.chartLineSize !== undefined ? { chartLineSize: doc.chartLineSize } : {}),
     ...(型 === "pie" && doc.chartPieSize !== undefined ? { chartPieSize: doc.chartPieSize } : {}),
+    ...(型 === "waffle" && doc.chartWaffleSize !== undefined ? { chartWaffleSize: doc.chartWaffleSize } : {}),
     ...(型 === "slope" && doc.chartSlopeLabelTemplate !== undefined ? { chartSlopeLabelTemplate: doc.chartSlopeLabelTemplate } : {}),
     ...(型 === "slope" && doc.chartSlopeSize !== undefined ? { chartSlopeSize: doc.chartSlopeSize } : {}),
     ...(型 === "stacked" && doc.chartStackedLayout !== undefined ? { chartStackedLayout: doc.chartStackedLayout } : {}),

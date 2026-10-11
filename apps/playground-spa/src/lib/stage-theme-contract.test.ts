@@ -170,7 +170,9 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     expect(declaration(ruleBody(leaf), "font-weight")).toBe("500 !important");
 
     const tree =
-      'svg[data-cdl-stage]:is([data-cdl-palette="letterpress"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"]) [data-cdl-role="tree-node-title"]';
+      'svg[data-cdl-stage]:is([data-cdl-palette="letterpress"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"])\n' +
+      '  [data-cdl-node="営業所の階層-chart"]\n' +
+      '  [data-cdl-role="tree-node-title"]';
     expect(declaration(ruleBody(tree), "font-weight")).toBe("800 !important");
 
     const gantt = `${fixedThemeStage} [data-cdl-kind="gantt-timeline"] text:not([data-cdl-role])`;
@@ -357,11 +359,16 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     expect(declaration(body, "transform-origin")).toBe("9px 5px");
   });
 
-  it("手描きの段の札は揺れを残して影を外す", () => {
+  it("手描きの段の札は見本どおり揺れと影を外し、滑らかな 2px 枠を戻す", () => {
     const body = ruleBody(
       'svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"]) [data-cdl-kind="card"] [data-cdl-role="node-body"]',
     );
-    expect(declaration(body, "filter")).toBe("url(#dragon-sketch-wobble) !important");
+    expect(declaration(body, "filter")).toBe("none !important");
+    expect(declaration(body, "fill")).toBe("#fffdf7 !important");
+    expect(declaration(body, "stroke")).toBe("#2b2620 !important");
+    expect(declaration(body, "stroke-width")).toBe("2px !important");
+    expect(declaration(body, "rx")).toBe("13px !important");
+    expect(declaration(body, "ry")).toBe("13px !important");
     expect(body).not.toContain("drop-shadow");
   });
 
@@ -389,8 +396,7 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
         太さ: { 見本: "2px", dragon: "2" },
         影: {
           見本: "0 0 2px 1px #b26bff, 0 0 10px 2px color-mix(in srgb, #b26bff 60%, transparent), inset 0 0 12px 1px color-mix(in srgb, #b26bff 32%, transparent)",
-          dragon:
-            "drop-shadow(0 0 2px #b26bff) drop-shadow(0 0 10px color-mix(in srgb, #b26bff 60%, transparent))",
+          dragon: "url(#dragon-neon-violet-frame)",
         },
       },
     },
@@ -400,6 +406,7 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     expect(declaration(paletteBody, "--theme-stage-card-face")).toBe(expected.面.dragon);
     if (palette === "neon") {
       expect(declaration(paletteBody, "--theme-stage-card-frame")).toBe(expected.枠.dragon);
+      expect(declaration(paletteBody, "--theme-stage-card-radius")).toBe("16px");
     }
     expect(declaration(paletteBody, "--theme-stage-card-frame-width")).toBe(expected.太さ.dragon);
     expect(declaration(paletteBody, "--theme-stage-card-shadow").replace(/\s+/g, " ")).toBe(

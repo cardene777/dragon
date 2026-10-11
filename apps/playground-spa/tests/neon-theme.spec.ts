@@ -9,7 +9,6 @@ import {
   readFixedThemeSingleSeriesBars,
   readFlowchartDecisionStyles,
   readThemeNotes,
-  readThemeNoteText,
 } from "./helpers/theme-notes";
 
 const neon = readThemeNotes().get("neon");
@@ -21,11 +20,6 @@ const pale = readFixedThemeRoleColor("neon", "淡");
 const title = readFixedThemeRoleColor("neon", "題");
 if (!lead || !pale || !title || !flowchartDecision)
   throw new Error("電飾の作りの色を意匠帳から読めない");
-
-const tubeRow = /^\|\s*管\s*\|([^\n]+)$/m.exec(readThemeNoteText("neon"))?.[1] ?? "";
-const tubeMix = [...tubeRow.matchAll(/(\d+)%/g)].map((match) => Number(match[1]) / 100);
-if (tubeMix.length !== 2) throw new Error("電飾の意匠帳の「管」から 2 つの割合を読めない");
-const [tubeColor, white] = tubeMix as [number, number];
 
 const hexToRgb = (hex: string): string => {
   const value = Number.parseInt(hex.slice(1), 16);
@@ -123,18 +117,20 @@ test.describe("neon theme (#2795)", () => {
       await openEditorTheme(page, target.source, "neon", false);
       await expect(page.locator("filter#dragon-neon-tube")).toHaveCount(1);
       const filter = page.locator("filter#dragon-neon-tube");
-      await expect(filter.locator('feMorphology[operator="erode"]')).toHaveCount(1);
-      const coreMatrix = await filter
-        .locator('feColorMatrix[result="core"]')
-        .getAttribute("values");
-      const matrix = (coreMatrix ?? "").trim().split(/\s+/).map(Number);
-      expect(matrix).toHaveLength(20);
-      expect(matrix[0], "管の色の混ぜる割合").toBeCloseTo(tubeColor, 5);
-      expect(matrix[4], "白の混ぜる割合").toBeCloseTo(white, 5);
-      expect(matrix[6]).toBeCloseTo(tubeColor, 5);
-      expect(matrix[9]).toBeCloseTo(white, 5);
-      expect(matrix[12]).toBeCloseTo(tubeColor, 5);
-      expect(matrix[14]).toBeCloseTo(white, 5);
+      // 見本頁の filter#光 は SourceGraphic を 1.5 / 5 でぼかし、遠い光・近い光・元絵の順に重ねる。
+      const tube = await filter.evaluate((node) => ({
+        blurs: [...node.querySelectorAll("feGaussianBlur")].map((blur) => ({
+          input: blur.getAttribute("in"),
+          result: blur.getAttribute("result"),
+          stdDeviation: blur.getAttribute("stdDeviation"),
+        })),
+        merge: [...node.querySelectorAll("feMergeNode")].map((part) => part.getAttribute("in")),
+      }));
+      expect(tube.blurs).toEqual([
+        { input: "SourceGraphic", result: "tube-halo", stdDeviation: "1.5" },
+        { input: "SourceGraphic", result: "tube-haze", stdDeviation: "5" },
+      ]);
+      expect(tube.merge).toEqual(["tube-haze", "tube-halo", "SourceGraphic"]);
 
       const background = await stage(page).evaluate((element) => {
         const style = getComputedStyle(element);
@@ -202,6 +198,7 @@ test.describe("neon theme (#2795)", () => {
             return {
               role: element.getAttribute("data-cdl-role") ?? "",
               fill: style.fill,
+              family: style.fontFamily,
               weight: style.fontWeight,
               filter: style.filter,
             };
@@ -211,19 +208,22 @@ test.describe("neon theme (#2795)", () => {
         titleRoles.add(value.role);
         expect(value.fill, `${target.name} の題`).toBe(hexToRgb(title));
         expect(value.weight, `${target.name} の題の太さ`).toBe("800");
-        expect(value.filter, `${target.name} の題の光`).toContain("drop-shadow");
+        if (value.role === "figure-title") {
+          // 電飾の見本頁の `.ti` は丸ゴシック。図の題は字形ごとの水色 filter で同じ光を描く。
+          expect(value.family, `${target.name} の図の題の書体`).toContain("M PLUS Rounded");
+          expect(value.filter, `${target.name} の図の題の光`).toContain("dragon-neon-title-cyan");
+        } else {
+          expect(value.filter, `${target.name} の箱の題の光`).toContain("drop-shadow");
+        }
       }
 
       const textResult = await stage(page).evaluate((root) => {
         const failures: string[] = [];
         let count = 0;
-        // 図の題も数える (#2749)。管を祖先へ掛けない約束と書体を足さない約束は、
-        // 箱の中身だけでなく題を含む舞台の全ての字に及ぶ。
+        // 図の題も数える (#2749)。管を祖先へ掛けない約束は、箱の中身だけでなく
+        // 題を含む舞台の全ての字に及ぶ。
         for (const text of root.querySelectorAll("text")) {
           count += 1;
-          if (getComputedStyle(text).fontFamily.includes("M PLUS Rounded")) {
-            failures.push(`${text.textContent ?? ""}: 書体`);
-          }
           for (let current: Element | null = text; current && current !== root.parentElement; current = current.parentElement) {
             if (getComputedStyle(current).filter.includes("dragon-neon-tube")) {
               failures.push(`${text.textContent ?? ""}: ${current.tagName}`);

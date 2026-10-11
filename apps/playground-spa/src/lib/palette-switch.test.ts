@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { THEMES, textDslToDiagram } from "@cardenelabs/dragon";
+import { jsonToDiagram, THEMES, textDslToDiagram } from "@cardenelabs/dragon";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+
+import * as Charts from "@/topics/catalog/charts.cdl";
 
 import { 図の配色を変える, 配色の選択肢, 押される配色, 画面の色 } from "./palette-switch";
 
@@ -143,5 +145,136 @@ describe("端末の字の測り方 (#2818)", () => {
     const 切替後 = 図の配色を変える(textDslToDiagram(本文), "terminal");
     const 記法で指定 = textDslToDiagram(本文.replace("type: flow", "type: flow\ntheme: terminal"));
     expect([切替後.textMetrics, 記法で指定.textMetrics]).toEqual(["monospace", "monospace"]);
+  });
+});
+
+describe("浮彫の凹み面に中身を収める切替 (#2854)", () => {
+  const 本文 = `title: "月ごとの配達数"
+type: chart
+shape: line
+figureInset: {"holdsContent":true}
+actors:
+  - 6月: "900"
+  - 10月: "1750"
+flow: []
+`;
+
+  it("意匠なしで組んだ図は元の object のまま意図を運び、未選択ではそのまま返す", () => {
+    const 元 = textDslToDiagram(本文);
+    expect(元.nodes[0]?.figureInset).toEqual({});
+    expect(図の配色を変える(元, null)).toBe(元);
+  });
+
+  it("浮彫だけ holdsContent を立て、浮彫から外すと key ごと外す", () => {
+    const 元 = textDslToDiagram(本文);
+    const 浮彫 = 図の配色を変える(元, "relief");
+    expect(浮彫.nodes[0]?.figureInset).toEqual({ holdsContent: true });
+
+    const 図面 = 図の配色を変える(浮彫, "blueprint");
+    expect(図面.nodes[0]?.figureInset).toEqual({});
+    expect(Object.hasOwn(図面.nodes[0]?.figureInset ?? {}, "holdsContent")).toBe(false);
+  });
+
+  it("浮彫以外では holdsContent を渡さず、同じ意匠への切替は元の object を返す", () => {
+    const 浮彫以外 = THEMES.filter((theme) => theme !== "relief");
+    expect(浮彫以外).toHaveLength(8);
+    for (const theme of 浮彫以外) {
+      const switched = 図の配色を変える(textDslToDiagram(本文), theme);
+      expect(Object.hasOwn(switched.nodes[0]?.figureInset ?? {}, "holdsContent"), theme).toBe(false);
+      expect(図の配色を変える(switched, theme), theme).toBe(switched);
+    }
+  });
+
+  it("傾きの固定軸間は浮彫の左右余白だけ狭め、外すと元へ戻す", () => {
+    const 元 = textDslToDiagram(本文
+      .replace("shape: line", "shape: slope")
+      .replace("actors:", 'chartSlopeSize: {"leftAxisX":150,"axisGap":250}\nactors:'));
+    const 浮彫 = 図の配色を変える(元, "relief");
+    expect(浮彫.nodes[0]?.chartSlopeSize?.axisGap).toBe(214);
+    expect(図の配色を変える(浮彫, "blueprint").nodes[0]?.chartSlopeSize?.axisGap).toBe(250);
+  });
+
+  it("固定した図表寸法は凹み面の余白から導き、浮彫から外すと全て元へ戻す", () => {
+    const cases = [
+      {
+        diagram: Charts.branchParcelsBar,
+        relief: { chartBarSize: { plotPadding: { top: 75.891, right: 32, bottom: 64, left: 82 } } },
+        original: { chartBarSize: { plotPadding: { top: 75.891, right: 32, bottom: 64, left: 82 } } },
+      },
+      {
+        diagram: Charts.monthlyDeliveriesLine,
+        relief: { chartLineSize: { periodY: 343.988 } },
+        original: { chartLineSize: { periodY: 355.988 } },
+      },
+      {
+        diagram: Charts.measureEffortQuadrant,
+        relief: {
+          quadrantSize: { plotOffset: { x: 70, y: 19.891 }, plotSize: 313.109 },
+        },
+        original: {
+          quadrantSize: { plotOffset: { x: 70, y: 19.891 }, plotSize: 325.109 },
+        },
+      },
+      {
+        diagram: Charts.deliveryResultStacked,
+        relief: { chartStackedLayout: { barWidth: 329 } },
+        original: { chartStackedLayout: { barWidth: 365 } },
+      },
+      {
+        diagram: Charts.onTimeRateSlope,
+        relief: { chartSlopeSize: { axisGap: 214 } },
+        original: { chartSlopeSize: { axisGap: 250 } },
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      const 浮彫 = 図の配色を変える(testCase.diagram, "relief");
+      expect(浮彫.nodes[0]).toMatchObject(testCase.relief);
+      expect(図の配色を変える(浮彫, "blueprint").nodes[0]).toMatchObject(testCase.original);
+    }
+  });
+
+  it("記法の relief と見本帳の浮彫切替は固定した図表寸法が同じになる", () => {
+    const cases = [
+      Charts.sourceYaml__branchParcelsBar,
+      Charts.sourceYaml__monthlyDeliveriesLine,
+      Charts.sourceYaml__measureEffortQuadrant,
+      Charts.sourceYaml__deliveryResultStacked,
+      Charts.sourceYaml__onTimeRateSlope,
+    ] as const;
+    const values = (diagram: CdlDiagram) => {
+      const node = diagram.nodes[0];
+      return {
+        chartBarPlotPadding: node?.chartBarSize?.plotPadding,
+        chartLinePeriodY: node?.chartLineSize?.periodY,
+        chartSlopeAxisGap: node?.chartSlopeSize?.axisGap,
+        chartStackedBarWidth: node?.chartStackedLayout?.barWidth,
+        quadrantPlotOffset: node?.quadrantSize?.plotOffset,
+        quadrantPlotSize: node?.quadrantSize?.plotSize,
+      };
+    };
+
+    for (const source of cases) {
+      const 切替 = 図の配色を変える(textDslToDiagram(source), "relief");
+      const 記法 = textDslToDiagram(source.replace("type:", "theme: relief\ntype:"));
+      expect(values(切替)).toEqual(values(記法));
+    }
+  });
+
+  it("内訳の帯は YAML と JSON のどちらでも 365 から左右余白を引く", () => {
+    const json = JSON.parse(Charts.sourceJson__deliveryResultStacked);
+    const JSON切替 = 図の配色を変える(jsonToDiagram(json), "relief");
+    const JSON記法 = jsonToDiagram({ ...json, theme: "relief" });
+    const YAML切替 = 図の配色を変える(
+      textDslToDiagram(Charts.sourceYaml__deliveryResultStacked),
+      "relief",
+    );
+    const YAML記法 = textDslToDiagram(
+      Charts.sourceYaml__deliveryResultStacked.replace("type:", "theme: relief\ntype:"),
+    );
+
+    for (const diagram of [JSON切替, JSON記法, YAML切替, YAML記法]) {
+      expect(diagram.nodes[0]?.chartStackedLayout?.barWidth).toBe(329);
+    }
   });
 });

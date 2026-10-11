@@ -60,7 +60,7 @@
 | 箱の枠       | 通常は一の 2、`data-cdl-active="true"` の箱は一の 3 と外光。段の箱の通常の札だけは薄紫 `#e4cbff` の 2       |
 | 枠の濃さ     | 1。通常の箱と強調の箱の両方。始まりと終わりの印、見せ方を持つ箱は除く                                          |
 | 路線図の線の濃さ | 1。見本の線路は透かさない                                                                                   |
-| 管           | `#dragon-neon-tube` の filter。芯は管の色を 35%、白を 65% 混ぜた色で、周りに管の色の光がにじむ                    |
+| 管           | `#dragon-neon-tube` の filter。元の管を芯に残し、標準偏差 1.5 と 5 の二重の光を周りへにじませる                    |
 | 地のにじみ   | 左上に一 10%、右下に二 8% の放射状のにじみ                                                                        |
 | 題の光       | 一の `drop-shadow(0 0 5px ...)` と一 60% の `drop-shadow(0 0 12px ...)`                                            |
 | 題の太さ     | 800                                                                                                             |
@@ -80,8 +80,8 @@
 | 傾き図 | 名古屋 (`accent`) は桃 `#ff2e97`、大阪 (`error`) は黄 `#ffd000`、tone の無い東京と福岡は薄 `#c4bce0` |
 | 日程の棒と漏斗の段   | 図表の系列色を色みの順に塗る。`accent` は 1、`teal` は 2、`success` は 3、`warning` は 4、`info` は 5、`error` は 6。濃さは 1。日程の帯は系列色 18% と台を混ぜた面を、系列色 35%・白 65% の枠で囲む。帯の上の担当の字は字 `#f3eefe` |
 | 日程の帯の角 | 2px |
-| 段階の列         | 面 `#0a0812`、枠 `#ffb6db` の 2、一の `0 0 2px` と一 55% の `0 0 10px` の光。列の角は 16px、札の角は 8px。札は活動中かどうかに依らず薄紫 `#e4cbff` の 2 の枠と紫 `#b26bff` の光 |
-| 段階の見出し     | 番号 `#c4bce0`、名前 `#ffffff` に一の `0 0 5px` と一 60% の `0 0 12px` の光 |
+| 段階の列         | 面 `rgba(10,8,18,.94)`、枠 `#ffb6db` の 2。桃 `#ff2e97` の `0 0 2px 1px`、55% の `0 0 10px 2px`、22% の `0 0 24px 4px` の外光と、`inset 0 0 2px 1px`、20% の `inset 0 0 10px 0` の内光。列と札の角は 16px。札は活動中かどうかに依らず面 `rgba(10,8,18,.94)`、薄紫 `#e4cbff` の 2 の枠と紫 `#b26bff` の外光・内光 |
+| 段階の見出し     | 番号 `#c4bce0`、名前 `#ffffff` に桃 `#ff2e97` の `0 0 5px` と 60% の `0 0 12px` の光。段内札の名前は紫 `#b26bff` の同じ光 |
 | 札の右の字       | `#c4bce0` |
 | 段の箱の線の札   | 線は主役と枝が 5、戻る点線が 6 の `0 9.6`、三角の矢じりが 17 × 19。台 `#07060c` の面。はいは二 `#00e5ff`、いいえ・翌日もう一度は三 `#ffd000` の太さ 700 の字と 2.5 の枠、角 9px |
 | 段の箱の凡例     | 「札 = 段。 右の小さな字が担当」は角丸枠、「段階をまたぐ線」は曲線、「点線 = 前の段へ戻る」は丸い点線。枠と曲線は `#f3eefe`、点線は `#ffd000`、字は `#c4bce0` |
@@ -95,11 +95,11 @@
 | 面 | `rgba(10,8,18,.94)` | `rgb(10 8 18 / 94%)` |
 | 枠 | `color-mix(in srgb, #b26bff 35%, white)` | `#e4cbff` |
 | 太さ | `2px` | `2` |
-| 影 | `0 0 2px 1px #b26bff, 0 0 10px 2px color-mix(in srgb, #b26bff 60%, transparent), inset 0 0 12px 1px color-mix(in srgb, #b26bff 32%, transparent)` | `drop-shadow(0 0 2px #b26bff) drop-shadow(0 0 10px color-mix(in srgb, #b26bff 60%, transparent))` |
+| 影 | `0 0 2px 1px #b26bff, 0 0 10px 2px color-mix(in srgb, #b26bff 60%, transparent), inset 0 0 12px 1px color-mix(in srgb, #b26bff 32%, transparent)` | `url(#dragon-neon-violet-frame)` |
 
 見本の `color-mix(in srgb, #b26bff 35%, white)` を計算すると `#e4cbff` で、暗い面との対比は
 13.52 となり箱の枠の下限 4.61 を保つ。
-SVG の `drop-shadow` は広がりと内側の影を持たないため、通常の札には同じ 2 段の外光だけを当てる。
+SVG の `drop-shadow` では持てない広がりと内側の影を、`dragon-neon-violet-frame` の morphology・blur・合成で再現する。
 活動中の札は従来の紫 `#b26bff` の管と強い外光を保つ。
 
 ## 管と光
@@ -108,13 +108,10 @@ SVG の `drop-shadow` は広がりと内側の影を持たないため、通常�
 `width="120%"` / `height="120%"`、色の計算は `sRGB` の filter とする。外接矩形の幅または高さが 0 の
 直線でも管を残すため、filter の領域は舞台の座標から取る。
 
-1 段目の `feColorMatrix` は入力の不透明度に依らず、`0.6 × (R + G + B) − 0.2` で明るい画素だけを
-`tube` へ残す。台と面は落ち、一・二・三と芯は残る。`tube` を標準偏差 5 の `haze` と 1.5 の
-`halo` へぼかし、`feMorphology` の `erode` を半径 0.5 で掛けた `thin` を作る。
-
-2 段目の `feColorMatrix` は `thin` の各成分を 35% 残し、白を 65% 足して `core` を作る。
-`feMerge` は `haze` / `halo` / `SourceGraphic` / `core` の順に重ね、元の枠と線の色を意匠帳の
-一・二・三のまま残す。
+`SourceGraphic` を標準偏差 5 の `haze` と 1.5 の `halo` へぼかす。
+`feMerge` は `haze` / `halo` / `SourceGraphic` の順に重ね、元の枠と線の色を意匠帳の
+一・二・三のまま芯として残す。見本頁の `#光` と同じ三層で、字を一字ずつ光らせても
+輪郭を削らない。
 
 管は見せ方と印を持たない箱の輪郭を描く図形と、`edge-line` / `sequence-line` / `tree-edge` /
 `mind-edge` に当てる。字を子に持つ `g` と `text` には当てず、芯と光で字の輪郭をぼかさない。

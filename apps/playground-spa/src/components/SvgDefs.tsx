@@ -9,7 +9,7 @@
  *   - Pinboard    : dragon-pin-board-pattern / dragon-pin-sticky-shadow
  *   - Blueprint   : dragon-bp-hatch / dragon-bp-graticule (+ dark) / dragon-bp-arrow-ortho marker
  *   - Sketch      : dragon-sketch-wobble (turbulence displacement) / dragon-sketch-pen (-primary)
- *   - Neon        : dragon-neon-tube (white core + colored glow)
+ *   - Neon        : dragon-neon-tube / title-* / *-frame (colored glow)
  *   - Relief      : dragon-relief-raised / -dome / -well / -raised-sm (light and shadow)
  *   - Metro       : dragon-metro-relief-shadow / -neon-glow / -terminal-glow と枝札用の -label
  *
@@ -411,9 +411,8 @@ export function SvgDefs(): React.ReactElement {
         </filter>
 
         {/* ═════════════════ Neon ═════════════════
-            `[data-cdl-palette="neon"]` の規則が枠と線の管を参照する。
-            芯の 35% と 65% は見本の `color-mix(in srgb, 管の色 35%, white)` と同じ混ぜ方で、
-            neon-theme.spec.ts が意匠帳の「管」 と突き合わせる (#2795)。 */}
+            線の管は見本どおり入力色の 1.5 / 5 の光と、入力色の芯を重ねる。
+            題は SourceAlpha を管色で塗り、札の枠は面全体の SourceAlpha から外光と内光を作る。 */}
         <filter
           id="dragon-neon-tube"
           filterUnits="userSpaceOnUse"
@@ -421,29 +420,186 @@ export function SvgDefs(): React.ReactElement {
           y="-10%"
           width="120%"
           height="120%"
+        >
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="tube-halo" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="tube-haze" />
+          <feMerge>
+            <feMergeNode in="tube-haze" />
+            <feMergeNode in="tube-halo" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-neon-figure-frame"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
           colorInterpolationFilters="sRGB"
         >
-          {/* 明るい画素だけを残す。 面と台 (明るさ 0.1 未満) は落ち、管だけが残る */}
-          <feColorMatrix
-            in="SourceGraphic"
-            type="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0.6 0.6 0.6 0 -0.2"
-            result="tube"
-          />
-          <feGaussianBlur in="tube" stdDeviation="5" result="haze" />
-          <feGaussianBlur in="tube" stdDeviation="1.5" result="halo" />
-          <feMorphology in="tube" operator="erode" radius="0.5" result="thin" />
-          <feColorMatrix
-            in="thin"
-            type="matrix"
-            values="0.35 0 0 0 0.65  0 0.35 0 0 0.65  0 0 0.35 0 0.65  0 0 0 1 0"
-            result="core"
-          />
+          <feMorphology in="SourceAlpha" operator="dilate" radius="1" result="frame-near-spread" />
+          <feGaussianBlur in="frame-near-spread" stdDeviation="1" result="frame-near-blur" />
+          <feComposite in="frame-near-blur" in2="SourceAlpha" operator="out" result="frame-near-mask" />
+          <feFlood floodColor="#00e5ff" result="frame-near-color" />
+          <feComposite in="frame-near-color" in2="frame-near-mask" operator="in" result="frame-near" />
+          <feMorphology in="SourceAlpha" operator="dilate" radius="2" result="frame-haze-spread" />
+          <feGaussianBlur in="frame-haze-spread" stdDeviation="5" result="frame-haze-blur" />
+          <feComposite in="frame-haze-blur" in2="SourceAlpha" operator="out" result="frame-haze-mask" />
+          <feFlood floodColor="#00e5ff" floodOpacity=".6" result="frame-haze-color" />
+          <feComposite in="frame-haze-color" in2="frame-haze-mask" operator="in" result="frame-haze" />
+          <feMorphology in="SourceAlpha" operator="erode" radius="1" result="frame-inner-spread" />
+          <feGaussianBlur in="frame-inner-spread" stdDeviation="6" result="frame-inner-blur" />
+          <feComposite in="SourceAlpha" in2="frame-inner-blur" operator="out" result="frame-inner-mask" />
+          <feFlood floodColor="#00e5ff" floodOpacity=".32" result="frame-inner-color" />
+          <feComposite in="frame-inner-color" in2="frame-inner-mask" operator="in" result="frame-inner" />
           <feMerge>
-            <feMergeNode in="haze" />
-            <feMergeNode in="halo" />
+            <feMergeNode in="frame-haze" />
+            <feMergeNode in="frame-near" />
             <feMergeNode in="SourceGraphic" />
-            <feMergeNode in="core" />
+            <feMergeNode in="frame-inner" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-neon-title-cyan"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="title-cyan-near-blur" />
+          <feFlood floodColor="#00e5ff" floodOpacity="1" result="title-cyan-near-color" />
+          <feComposite in="title-cyan-near-color" in2="title-cyan-near-blur" operator="in" result="title-cyan-near" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="title-cyan-haze-blur" />
+          <feFlood floodColor="#00e5ff" floodOpacity=".6" result="title-cyan-haze-color" />
+          <feComposite in="title-cyan-haze-color" in2="title-cyan-haze-blur" operator="in" result="title-cyan-haze" />
+          <feMerge>
+            <feMergeNode in="title-cyan-haze" />
+            <feMergeNode in="title-cyan-near" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-neon-title-pink"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="title-pink-near-blur" />
+          <feFlood floodColor="#ff2e97" floodOpacity="1" result="title-pink-near-color" />
+          <feComposite in="title-pink-near-color" in2="title-pink-near-blur" operator="in" result="title-pink-near" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="title-pink-haze-blur" />
+          <feFlood floodColor="#ff2e97" floodOpacity=".6" result="title-pink-haze-color" />
+          <feComposite in="title-pink-haze-color" in2="title-pink-haze-blur" operator="in" result="title-pink-haze" />
+          <feMerge>
+            <feMergeNode in="title-pink-haze" />
+            <feMergeNode in="title-pink-near" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-neon-title-violet"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2.5" result="title-violet-near-blur" />
+          <feFlood floodColor="#b26bff" floodOpacity="1" result="title-violet-near-color" />
+          <feComposite in="title-violet-near-color" in2="title-violet-near-blur" operator="in" result="title-violet-near" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="title-violet-haze-blur" />
+          <feFlood floodColor="#b26bff" floodOpacity=".6" result="title-violet-haze-color" />
+          <feComposite in="title-violet-haze-color" in2="title-violet-haze-blur" operator="in" result="title-violet-haze" />
+          <feMerge>
+            <feMergeNode in="title-violet-haze" />
+            <feMergeNode in="title-violet-near" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-neon-pink-frame"
+          filterUnits="userSpaceOnUse"
+          x="-15%"
+          y="-15%"
+          width="130%"
+          height="130%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feMorphology in="SourceAlpha" operator="dilate" radius="1" result="pink-frame-near-spread" />
+          <feGaussianBlur in="pink-frame-near-spread" stdDeviation="1" result="pink-frame-near-blur" />
+          <feComposite in="pink-frame-near-blur" in2="SourceAlpha" operator="out" result="pink-frame-near-mask" />
+          <feFlood floodColor="#ff2e97" floodOpacity="1" result="pink-frame-near-color" />
+          <feComposite in="pink-frame-near-color" in2="pink-frame-near-mask" operator="in" result="pink-frame-near" />
+          <feMorphology in="SourceAlpha" operator="dilate" radius="2" result="pink-frame-haze-spread" />
+          <feGaussianBlur in="pink-frame-haze-spread" stdDeviation="5" result="pink-frame-haze-blur" />
+          <feComposite in="pink-frame-haze-blur" in2="SourceAlpha" operator="out" result="pink-frame-haze-mask" />
+          <feFlood floodColor="#ff2e97" floodOpacity=".55" result="pink-frame-haze-color" />
+          <feComposite in="pink-frame-haze-color" in2="pink-frame-haze-mask" operator="in" result="pink-frame-haze" />
+          <feMorphology in="SourceAlpha" operator="dilate" radius="4" result="pink-frame-far-spread" />
+          <feGaussianBlur in="pink-frame-far-spread" stdDeviation="12" result="pink-frame-far-blur" />
+          <feComposite in="pink-frame-far-blur" in2="SourceAlpha" operator="out" result="pink-frame-far-mask" />
+          <feFlood floodColor="#ff2e97" floodOpacity=".22" result="pink-frame-far-color" />
+          <feComposite in="pink-frame-far-color" in2="pink-frame-far-mask" operator="in" result="pink-frame-far" />
+          <feMorphology in="SourceAlpha" operator="erode" radius="1" result="pink-frame-inner-near-spread" />
+          <feGaussianBlur in="pink-frame-inner-near-spread" stdDeviation="1" result="pink-frame-inner-near-blur" />
+          <feComposite in="SourceAlpha" in2="pink-frame-inner-near-blur" operator="out" result="pink-frame-inner-near-mask" />
+          <feFlood floodColor="#ff2e97" floodOpacity="1" result="pink-frame-inner-near-color" />
+          <feComposite in="pink-frame-inner-near-color" in2="pink-frame-inner-near-mask" operator="in" result="pink-frame-inner-near" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="pink-frame-inner-haze-blur" />
+          <feComposite in="SourceAlpha" in2="pink-frame-inner-haze-blur" operator="out" result="pink-frame-inner-haze-mask" />
+          <feFlood floodColor="#ff2e97" floodOpacity=".2" result="pink-frame-inner-haze-color" />
+          <feComposite in="pink-frame-inner-haze-color" in2="pink-frame-inner-haze-mask" operator="in" result="pink-frame-inner-haze" />
+          <feMerge>
+            <feMergeNode in="pink-frame-far" />
+            <feMergeNode in="pink-frame-haze" />
+            <feMergeNode in="pink-frame-near" />
+            <feMergeNode in="SourceGraphic" />
+            <feMergeNode in="pink-frame-inner-haze" />
+            <feMergeNode in="pink-frame-inner-near" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-neon-violet-frame"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feMorphology in="SourceAlpha" operator="dilate" radius="1" result="violet-frame-near-spread" />
+          <feGaussianBlur in="violet-frame-near-spread" stdDeviation="1" result="violet-frame-near-blur" />
+          <feComposite in="violet-frame-near-blur" in2="SourceAlpha" operator="out" result="violet-frame-near-mask" />
+          <feFlood floodColor="#b26bff" floodOpacity="1" result="violet-frame-near-color" />
+          <feComposite in="violet-frame-near-color" in2="violet-frame-near-mask" operator="in" result="violet-frame-near" />
+          <feMorphology in="SourceAlpha" operator="dilate" radius="2" result="violet-frame-haze-spread" />
+          <feGaussianBlur in="violet-frame-haze-spread" stdDeviation="5" result="violet-frame-haze-blur" />
+          <feComposite in="violet-frame-haze-blur" in2="SourceAlpha" operator="out" result="violet-frame-haze-mask" />
+          <feFlood floodColor="#b26bff" floodOpacity=".6" result="violet-frame-haze-color" />
+          <feComposite in="violet-frame-haze-color" in2="violet-frame-haze-mask" operator="in" result="violet-frame-haze" />
+          <feMorphology in="SourceAlpha" operator="erode" radius="1" result="violet-frame-inner-spread" />
+          <feGaussianBlur in="violet-frame-inner-spread" stdDeviation="6" result="violet-frame-inner-blur" />
+          <feComposite in="SourceAlpha" in2="violet-frame-inner-blur" operator="out" result="violet-frame-inner-mask" />
+          <feFlood floodColor="#b26bff" floodOpacity=".32" result="violet-frame-inner-color" />
+          <feComposite in="violet-frame-inner-color" in2="violet-frame-inner-mask" operator="in" result="violet-frame-inner" />
+          <feMerge>
+            <feMergeNode in="violet-frame-haze" />
+            <feMergeNode in="violet-frame-near" />
+            <feMergeNode in="SourceGraphic" />
+            <feMergeNode in="violet-frame-inner" />
           </feMerge>
         </filter>
 
@@ -453,10 +609,10 @@ export function SvgDefs(): React.ReactElement {
         <filter
           id="dragon-metro-relief-shadow"
           filterUnits="userSpaceOnUse"
-          x="-3%"
-          y="-3%"
-          width="106%"
-          height="106%"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
         >
           <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="metro-relief-blur" />
           <feOffset in="metro-relief-blur" dx="2.5" dy="2.5" result="metro-relief-dark-offset" />
@@ -535,10 +691,10 @@ export function SvgDefs(): React.ReactElement {
         <filter
           id="dragon-metro-terminal-glow"
           filterUnits="userSpaceOnUse"
-          x="-3%"
-          y="-3%"
-          width="106%"
-          height="106%"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
         >
           <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="metro-terminal-blur" />
           <feComponentTransfer in="metro-terminal-blur" result="metro-terminal-dim">
@@ -623,6 +779,56 @@ export function SvgDefs(): React.ReactElement {
             <feMergeNode in="raised-dark" />
             <feMergeNode in="raised-light" />
             <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-relief-figure-frame"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="7.5" result="figure-frame-dark-blur" />
+          <feOffset in="figure-frame-dark-blur" dx="7" dy="7" result="figure-frame-dark-offset" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".5" result="figure-frame-dark-color" />
+          <feComposite in="figure-frame-dark-color" in2="figure-frame-dark-offset" operator="in" result="figure-frame-dark" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="7.5" result="figure-frame-light-blur" />
+          <feOffset in="figure-frame-light-blur" dx="-7" dy="-7" result="figure-frame-light-offset" />
+          <feFlood floodColor="#ffffff" floodOpacity=".92" result="figure-frame-light-color" />
+          <feComposite in="figure-frame-light-color" in2="figure-frame-light-offset" operator="in" result="figure-frame-light" />
+          <feMerge>
+            <feMergeNode in="figure-frame-dark" />
+            <feMergeNode in="figure-frame-light" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter
+          id="dragon-relief-figure-inset"
+          filterUnits="userSpaceOnUse"
+          x="-10%"
+          y="-10%"
+          width="120%"
+          height="120%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="5.5" result="figure-inset-dark-blur" />
+          <feOffset in="figure-inset-dark-blur" dx="5" dy="5" result="figure-inset-dark-offset" />
+          <feComposite in="SourceAlpha" in2="figure-inset-dark-offset" operator="out" result="figure-inset-dark-mask" />
+          <feFlood floodColor="rgb(160,144,120)" floodOpacity=".42" result="figure-inset-dark-color" />
+          <feComposite in="figure-inset-dark-color" in2="figure-inset-dark-mask" operator="in" result="figure-inset-dark" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="5.5" result="figure-inset-light-blur" />
+          <feOffset in="figure-inset-light-blur" dx="-5" dy="-5" result="figure-inset-light-offset" />
+          <feComposite in="SourceAlpha" in2="figure-inset-light-offset" operator="out" result="figure-inset-light-mask" />
+          <feFlood floodColor="#ffffff" floodOpacity=".88" result="figure-inset-light-color" />
+          <feComposite in="figure-inset-light-color" in2="figure-inset-light-mask" operator="in" result="figure-inset-light" />
+          <feMerge>
+            <feMergeNode in="SourceGraphic" />
+            <feMergeNode in="figure-inset-dark" />
+            <feMergeNode in="figure-inset-light" />
           </feMerge>
         </filter>
 

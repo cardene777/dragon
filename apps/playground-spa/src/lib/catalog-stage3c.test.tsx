@@ -126,7 +126,9 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     });
     expect(node(Charts.monthlyDeliveriesLine).chartLineSize?.plotPadding).toEqual({
       top: 45.891,
+      right: 60,
       bottom: 46,
+      left: 92,
     });
     expect(node(Charts.measureEffortQuadrant).quadrantSize?.plotOffset).toEqual({ x: 70, y: 19.891 });
     expect(node(Charts.onTimeShareGauge).chartGaugeSize?.plotTop).toBe(104);
@@ -143,12 +145,89 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     expect(jsonNodes.map((item) => item.chartGaugeSize?.plotTop)).toContain(104);
   });
 
-  it("ガントの工程名は cdl の右揃え既定へ戻し、描画面へ食い込ませない", () => {
-    expect(node(Charts.sortingShelfGantt).ganttSize).not.toHaveProperty("taskLabelAlign");
-    expect(node(Charts.sortingShelfGantt).ganttSize).not.toHaveProperty("taskLabelX");
+  it("ガントの工程名を正解頁の左揃えと x=36 に戻す", () => {
+    expect(node(Charts.sortingShelfGantt).ganttSize).toMatchObject({
+      taskLabelAlign: "start",
+      taskLabelX: 36,
+    });
     const jsonNode = JSON.parse(Charts.sourceJson__sortingShelfGantt);
-    expect(jsonNode.ganttSize).not.toHaveProperty("taskLabelAlign");
-    expect(jsonNode.ganttSize).not.toHaveProperty("taskLabelX");
+    expect(jsonNode.ganttSize).toMatchObject({ taskLabelAlign: "start", taskLabelX: 36 });
+  });
+
+  it("cdl 0.133.0 の配置欄へ見本帳で測った値を YAML / JSON の両方から渡す", () => {
+    const cases = [
+      [Charts.branchParcelsBar, Charts.sourceJson__branchParcelsBar, { chartBarShape: "top-rounded", chartBarSize: { cornerRadius: 4 } }],
+      [Charts.monthlyDeliveriesLine, Charts.sourceJson__monthlyDeliveriesLine, { chartLineSize: { tickGap: 12, pointPadding: { left: 46, right: 0 }, periodY: 355.988 } }],
+      [Charts.parcelStatusPie, Charts.sourceJson__parcelStatusPie, { chartPieSize: { centerX: 227 } }],
+      [Charts.sortingShelfGantt, Charts.sourceJson__sortingShelfGantt, { ganttSize: { taskColumnWidth: 330, timelinePaddingRight: 64 } }],
+      [Charts.shipperFeelingJourney, Charts.sourceJson__shipperFeelingJourney, { figureInset: { top: 0, bottom: 0 }, journeySize: { plotPadding: { left: 120, right: 44 }, pointPadding: { left: 100, right: 70 } } }],
+      [Charts.parcelSizeWaffle, Charts.sourceJson__parcelSizeWaffle, { chartWaffleSize: { gridLeft: 42.5, cellPitch: 30 } }],
+      [Charts.deliveryResultStacked, Charts.sourceJson__deliveryResultStacked, { chartStackedLayout: { legendOffsetY: -20.609375 } }],
+      [Charts.onTimeRateSlope, Charts.sourceJson__onTimeRateSlope, { chartSlopeSize: { plotPadding: { top: 54.036, bottom: 12.552 }, pointPadding: { top: 46.707, bottom: 42.862 } } }],
+    ] as const;
+    for (const [diagram, jsonSource, expected] of cases) {
+      expect(node(diagram)).toMatchObject(expected);
+      expect(JSON.parse(jsonSource)).toMatchObject(expected);
+    }
+  });
+
+  it("浮彫で全内容を凹み面に収め、凡例が外にある円と升目は面だけを絞る", () => {
+    const expected = [
+      [Charts.monthlyDeliveriesLine, {}],
+      [Charts.parcelStatusPie, { right: 328, left: 18, radius: 18 }],
+      [Charts.parcelSizeWaffle, { right: 203, left: 18, radius: 18 }],
+      [Charts.deliveryResultStacked, {}],
+    ] as const;
+    for (const [diagram, inset] of expected) expect(node(diagram).figureInset).toEqual(inset);
+
+    expect(JSON.parse(Charts.sourceJson__monthlyDeliveriesLine).figureInset).toEqual({ holdsContent: true });
+    expect(JSON.parse(Charts.sourceJson__parcelStatusPie).figureInset).toEqual(expected[1][1]);
+    expect(JSON.parse(Charts.sourceJson__parcelSizeWaffle).figureInset).toEqual(expected[2][1]);
+    expect(JSON.parse(Charts.sourceJson__deliveryResultStacked).figureInset).toEqual({ holdsContent: true });
+  });
+
+  it("浮彫の凹み面が全内容を囲む 9 図だけ holdsContent の意図を運ぶ", () => {
+    type 意匠別凹み面を持つ図 = CdlDiagram & {
+      figureInsetByTheme?: {
+        relief?: {
+          holdsContent?: boolean;
+          chartLinePeriodY?: number;
+          chartSlopeAxisGap?: number;
+          chartStackedBarWidth?: number;
+          quadrantPlotSize?: number;
+        };
+      };
+    };
+    const inside = [
+      "branchParcelsBar",
+      "monthlyDeliveriesLine",
+      "orderToDeliveryFunnel",
+      "sortingShelfGantt",
+      "shipperFeelingJourney",
+      "measureEffortQuadrant",
+      "onTimeShareGauge",
+      "deliveryResultStacked",
+      "onTimeRateSlope",
+    ] as const;
+    for (const key of inside) {
+      expect((Charts[key] as 意匠別凹み面を持つ図).figureInsetByTheme, key)
+        .toMatchObject({ relief: { holdsContent: true } });
+    }
+    expect((Charts.onTimeRateSlope as 意匠別凹み面を持つ図).figureInsetByTheme)
+      .toMatchObject({ relief: { chartSlopeAxisGap: 250 } });
+    expect((Charts.monthlyDeliveriesLine as 意匠別凹み面を持つ図).figureInsetByTheme)
+      .toMatchObject({ relief: { chartLinePeriodY: 355.988 } });
+    expect((Charts.deliveryResultStacked as 意匠別凹み面を持つ図).figureInsetByTheme)
+      .toMatchObject({ relief: { chartStackedBarWidth: 365 } });
+    expect((Charts.measureEffortQuadrant as 意匠別凹み面を持つ図).figureInsetByTheme)
+      .toMatchObject({ relief: { quadrantPlotSize: 325.109 } });
+    expect((Charts.branchParcelsBar as 意匠別凹み面を持つ図).figureInsetByTheme)
+      .not.toHaveProperty("relief.chartBarPlotPadding");
+    expect((Charts.measureEffortQuadrant as 意匠別凹み面を持つ図).figureInsetByTheme)
+      .not.toHaveProperty("relief.quadrantPlotOffset");
+    for (const key of ["parcelStatusPie", "parcelSizeWaffle"] as const) {
+      expect((Charts[key] as 意匠別凹み面を持つ図).figureInsetByTheme, key).toBeUndefined();
+    }
   });
 
   it("見本帳の 13 図の札を指定した大きさで渡す", () => {
@@ -216,6 +295,88 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     expect(defs).toContain('id="dragon-catalog-tree-shadow"');
     expect(defs).toContain('id="dragon-relief-raised"');
     expect(defs).not.toContain('id="dragon-relief-raised-line-safe"');
+  });
+
+  it("電飾の線は自色の二段の光と芯、図表札は水色の外光と内光を別に持つ", () => {
+    const defs = renderToStaticMarkup(<SvgDefs />);
+    const tube = /<filter id="dragon-neon-tube"[\s\S]*?<\/filter>/u.exec(defs)?.[0];
+    const frame = /<filter id="dragon-neon-figure-frame"[\s\S]*?<\/filter>/u.exec(defs)?.[0];
+    expect(tube).toBeDefined();
+    expect(frame).toBeDefined();
+    expect(tube).toContain('x="-10%" y="-10%" width="120%" height="120%"');
+    expect(tube).toContain('stdDeviation="1.5" result="tube-halo"');
+    expect(tube).toContain('stdDeviation="5" result="tube-haze"');
+    expect(tube).not.toContain("feColorMatrix");
+    expect(tube).not.toContain("feComponentTransfer");
+    expect(tube).toContain('<feMergeNode in="tube-haze"></feMergeNode>');
+    expect(tube).toContain('<feMergeNode in="tube-halo"></feMergeNode>');
+    expect(tube).toContain('<feMergeNode in="SourceGraphic"></feMergeNode>');
+
+    expect(frame).toContain('operator="dilate" radius="1" result="frame-near-spread"');
+    expect(frame).toContain('stdDeviation="1" result="frame-near-blur"');
+    expect(frame).toContain('operator="dilate" radius="2" result="frame-haze-spread"');
+    expect(frame).toContain('stdDeviation="5" result="frame-haze-blur"');
+    expect(frame).toContain('operator="erode" radius="1" result="frame-inner-spread"');
+    expect(frame).toContain('stdDeviation="6" result="frame-inner-blur"');
+    expect(frame).toContain('flood-color="#00e5ff" flood-opacity=".32" result="frame-inner-color"');
+    expect(frame?.indexOf('in="SourceGraphic"')).toBeLessThan(frame?.indexOf('in="frame-inner"') ?? -1);
+  });
+
+  it("電飾の題は管色の SourceAlpha 光、段と時間軸の枠は広がりを含む外光と内光を持つ", () => {
+    const defs = renderToStaticMarkup(<SvgDefs />);
+    for (const [name, color] of [
+      ["cyan", "#00e5ff"],
+      ["pink", "#ff2e97"],
+      ["violet", "#b26bff"],
+    ] as const) {
+      const title = new RegExp(`<filter id="dragon-neon-title-${name}"[\\s\\S]*?<\\/filter>`, "u")
+        .exec(defs)?.[0];
+      expect(title).toContain(`in="SourceAlpha" stdDeviation="2.5" result="title-${name}-near-blur"`);
+      expect(title).toContain(`flood-color="${color}" flood-opacity="1"`);
+      expect(title).toContain(`in="SourceAlpha" stdDeviation="6" result="title-${name}-haze-blur"`);
+      expect(title).toContain(`flood-color="${color}" flood-opacity=".6"`);
+      expect(title?.indexOf(`in="title-${name}-haze"`)).toBeLessThan(
+        title?.indexOf('in="SourceGraphic"') ?? -1,
+      );
+    }
+
+    const pink = /<filter id="dragon-neon-pink-frame"[\s\S]*?<\/filter>/u.exec(defs)?.[0];
+    expect(pink).toContain('operator="dilate" radius="1" result="pink-frame-near-spread"');
+    expect(pink).toContain('stdDeviation="1" result="pink-frame-near-blur"');
+    expect(pink).toContain('operator="dilate" radius="2" result="pink-frame-haze-spread"');
+    expect(pink).toContain('stdDeviation="5" result="pink-frame-haze-blur"');
+    expect(pink).toContain('flood-color="#ff2e97" flood-opacity=".55"');
+    expect(pink).toContain('operator="dilate" radius="4" result="pink-frame-far-spread"');
+    expect(pink).toContain('stdDeviation="12" result="pink-frame-far-blur"');
+    expect(pink).toContain('flood-color="#ff2e97" flood-opacity=".22"');
+    expect(pink).toContain('operator="erode" radius="1" result="pink-frame-inner-near-spread"');
+    expect(pink).toContain('stdDeviation="5" result="pink-frame-inner-haze-blur"');
+    expect(pink).toContain('flood-color="#ff2e97" flood-opacity=".2"');
+
+    const violet = /<filter id="dragon-neon-violet-frame"[\s\S]*?<\/filter>/u.exec(defs)?.[0];
+    expect(violet).toContain('operator="dilate" radius="1" result="violet-frame-near-spread"');
+    expect(violet).toContain('stdDeviation="1" result="violet-frame-near-blur"');
+    expect(violet).toContain('operator="dilate" radius="2" result="violet-frame-haze-spread"');
+    expect(violet).toContain('stdDeviation="5" result="violet-frame-haze-blur"');
+    expect(violet).toContain('flood-color="#b26bff" flood-opacity=".6"');
+    expect(violet).toContain('operator="erode" radius="1" result="violet-frame-inner-spread"');
+    expect(violet).toContain('stdDeviation="6" result="violet-frame-inner-blur"');
+    expect(violet).toContain('flood-color="#b26bff" flood-opacity=".32"');
+  });
+
+  it("浮彫の図表札は 7/15 の外影、凹みは 5/11 の内影を使う", () => {
+    const defs = renderToStaticMarkup(<SvgDefs />);
+    const frame = /<filter id="dragon-relief-figure-frame"[\s\S]*?<\/filter>/u.exec(defs)?.[0];
+    const inset = /<filter id="dragon-relief-figure-inset"[\s\S]*?<\/filter>/u.exec(defs)?.[0];
+    expect(frame).toContain('stdDeviation="7.5" result="figure-frame-dark-blur"');
+    expect(frame).toContain('dx="7" dy="7"');
+    expect(frame).toContain('dx="-7" dy="-7"');
+    expect(frame).toContain('flood-opacity=".92" result="figure-frame-light-color"');
+    expect(inset).toContain('stdDeviation="5.5" result="figure-inset-dark-blur"');
+    expect(inset).toContain('dx="5" dy="5"');
+    expect(inset).toContain('dx="-5" dy="-5"');
+    expect(inset).toContain('flood-opacity=".42" result="figure-inset-dark-color"');
+    expect(inset).toContain('flood-opacity=".88" result="figure-inset-light-color"');
   });
 
   it("13 図の YAML・JSON・変種の全てに同じ札の大きさを書く", () => {
@@ -325,8 +486,8 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     };
     expect(一覧の級.円の名前).toBe(22);
     expect(一覧の級.円の値).toBe(19);
-    expect(一覧の級.升目の名前).toBeCloseTo(22.9541455336, 10);
-    expect(一覧の級.升目の値).toBeCloseTo(19.824034779, 10);
+    expect(一覧の級.升目の名前).toBe(22);
+    expect(一覧の級.升目の値).toBe(19);
   });
 
   it("放射の札を見本の横長の比にし、中心・枝・葉を全て残す", () => {

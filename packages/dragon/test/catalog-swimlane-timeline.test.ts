@@ -52,9 +52,9 @@ describe("見本帳の時間軸の形 (#2798)", () => {
   });
 
   it("1800 幅の盤を保ち、いいえの札を対象線の 20 上へ置く", () => {
-    expect(presetDeliveryTimeline.viewport).toEqual({ width: 1800 });
+    expect(presetDeliveryTimeline.viewport).toEqual({ width: 1800, contentOffsetX: 250 });
     const json = JSON.parse(sourceJson__presetDeliveryTimeline);
-    expect(json.viewport).toEqual({ width: 1800 });
+    expect(json.viewport).toEqual({ width: 1800, contentOffsetX: 250 });
     expect(json.flow.find((edge: { label?: string }) => edge.label === "いいえ")).toMatchObject({
       labelCollision: "author",
       labelOffsetY: 64,

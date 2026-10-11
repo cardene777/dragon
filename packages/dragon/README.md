@@ -107,6 +107,7 @@ flow:
 | `journeyForm` | ジャーニーの段の見せ方 (`bands` / `rules`) |
 | `journeyLineForm` | ジャーニーの点を結ぶ線 (`curve` / `straight`) |
 | `journeyLabels` | ジャーニーの 5 段の名前 (`{ delighted, happy, neutral, frustrated, angry }`) |
+| `journeySize` | ジャーニーの描画面と点列の左右余白 (`{ plotPadding?: { left?, right? }, pointPadding?: { left?, right? } }`) |
 | `sequenceActorForm` | `box` で順序図の参加者を枠で囲む |
 | `sequenceLabelForm` | `kind` で順序図の段に種類印と種類名を添える |
 | `sequenceReturnHead` | `solid` で返す言づてにも塗った三角の矢じりを使う |
@@ -116,20 +117,23 @@ flow:
 | `terminalDecoration` | 端末意匠用の窓操作・字送り・行番号 (`{ windowControls?, cursor?, rowOrdinal? }`) |
 | `cornerForm` | `theme-variants` で矩形札の一様角と手描き角を意匠から選ぶ |
 | `figureKindLabel` | 階層図・放射図の種類札 (`{ text, x?, y?, fontSize?, fontWeight?, letterSpacing? }`) |
-| `figureInset` | 図表札の凹み面 (`{ top?, right?, bottom?, left?, radius? }`) |
+| `figureInset` | 図表札の凹み面 (`{ top?, right?, bottom?, left?, radius?, holdsContent? }`)。`holdsContent: true` は凹み面を見せる浮彫の時だけ、図表の中身を凹み面の内側へ置く |
 | `chartBarSize` | 棒の目盛り・値・名前・余白・棒幅 |
-| `chartLineSize` | 折れ線の値札間隔・目盛り・時点・点・上下余白 |
-| `chartPieSize` | 円の一覧幅・字・行間・余白・外半径 |
+| `chartBarShape` | 棒を分割するか上だけ丸めた一体の形にするか (`split` / `top-rounded`) |
+| `chartLineSize` | 折れ線の値札間隔・目盛り・時点・点・描画面と点列の余白・時点名の基線 |
+| `chartPieSize` | 円の一覧幅・字・行間・余白・外半径・中心 x |
+| `chartWaffleSize` | 升目図の左端と升目の送り (`{ gridLeft?, cellPitch? }`) |
 | `chartSlopeLabelTemplate` | 傾き図の左右の札 (`{ left?, right? }`、`{name}` / `{value}` / `{unit}`) |
-| `chartSlopeSize` | 傾き図の点・時点・札・軸の寸法 |
-| `chartStackedLayout` | 内訳の帯の凡例列・間隔・帯・字の寸法 |
+| `chartSlopeSize` | 傾き図の点・時点・札・軸・描画面と点列の上下余白 |
+| `chartStackedLayout` | 内訳の帯の凡例列・間隔・帯・字・凡例の縦ずらし |
 | `chartGaugeSize` | 半円の帯・外半径・上位置・値の字 |
-| `ganttSize` | 工程名・目盛り・帯・節目・依存線の寸法 |
+| `ganttSize` | 工程名の列・時間軸の右余白・目盛り・帯・節目・依存線の寸法 |
 | `quadrantLabelPosition` | `outside-corners` で四象限の区画名を角の外へ置く |
 | `quadrantSize` | 四象限の面・点・字・札間の寸法 |
 | `theme`     | 図の意匠 (`kinari` = 生成りに茶 / `celadon` = 青磁に墨 / `blueprint` = 図面 / `letterpress` = 活版 / `catalog` = 図録 / `terminal` = 端末 / `sketch` = 手描き / `neon` = 電飾 / `relief` = 浮彫、日本語なら `生成り` / `青磁` / `図面` / `活版` / `図録` / `端末` / `手描き` / `電飾` / `浮彫`)。 `palette:` も別名として読み、両方書くと `theme:` が勝って知らせが出る |
 | `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 印付きは `{ mark, text, tone?, lineStyle? }`、注記は `{ text, align?, lead? }`。和名なら `{ 印, 説明 }`。 印の種類は下の節を参照 |
 | `legendFontSize` | 凡例の字の大きさ |
+| `legendOffset` | 図全体の凡例の位置をずらす (`{ x?, y? }`) |
 | `stageHeaders` | `shape: stages` の見出し寸法を意匠名ごとに書く (`leftPad` / `topPad` / `numberSize` / `gap` / `nameSize` / `bottomPad`) |
 | `stageLayout` | `shape: stages` の列幅・列間・戻る線の迂回寸法 (`columnWidths` / `columnGap` / `backDetourTopGap` / `backDetourSideGap`) |
 

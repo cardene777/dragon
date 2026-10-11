@@ -101,6 +101,26 @@ describe("#2854 5段目a の意匠 selector", () => {
 });
 
 describe("#2854 2 回目の図表回帰", () => {
+  it("SVG の座標属性で要素を選ばず、図表本体の role を display none にしない", () => {
+    const coordinateAttribute = /\[(?:x|y|cx|cy|width|height)=/u;
+    expect(rules.filter(({ selector }) => coordinateAttribute.test(selector))).toEqual([]);
+
+    const figureRoles = [
+      "chart-bar-top",
+      "chart-bar-bottom",
+      "chart-stacked-bar-slice",
+      "funnel-proportional-bar",
+      "gantt-bar",
+    ] as const;
+    for (const role of figureRoles) {
+      expect(
+        rules.filter(({ selector, body }) =>
+          selector.includes(`data-cdl-role="${role}"`) && /display\s*:\s*none/u.test(body)),
+        role,
+      ).toEqual([]);
+    }
+  });
+
   it("0.132.0 の傾きラベル role を通常色と 2 本の主役色へ流す", () => {
     const labelRules = rules.filter(({ selector }) =>
       selector.includes('data-cdl-role="chart-slope-label"'));
@@ -109,11 +129,207 @@ describe("#2854 2 回目の図表回帰", () => {
     expect(labelRules.some(({ body }) => body.includes("--theme-lead"))).toBe(true);
   });
 
-  it("上下に分かれた棒の clip 境界を画素へ揃える", () => {
+  it("上下に分かれた棒を残し、clip 境界だけを画素へそろえる", () => {
     expect(
       rules.some(({ selector, body }) =>
         selector.includes('[data-cdl-kind="chart-bar"] clipPath > rect') &&
         body.includes("shape-rendering: crispEdges")),
+    ).toBe(true);
+    expect(css).not.toMatch(/data-cdl-role="chart-bar-top"[^{}]*\{[^{}]*clip-path\s*:\s*none/gu);
+    expect(css).not.toMatch(/data-cdl-role="chart-bar-bottom"[^{}]*\{[^{}]*display\s*:\s*none/gu);
+  });
+
+  it("四象限の quadrant-label role の区画名だけを細い補助色へ戻す", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-kind="quadrant-matrix"]') &&
+        selector.includes('[data-cdl-role="quadrant-label"]') &&
+        body.includes("--theme-quadrant-label") &&
+        body.includes("font-weight: 400")),
+    ).toBe(true);
+  });
+
+  it("小さな四象限の点名だけを墨へ戻し、見本帳の四象限には広げない", () => {
+    const pointLabels = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-kind="quadrant-matrix"]:not([data-cdl-node="打ち手の手間と効き目-chart"])') &&
+      selector.includes('[data-cdl-role="quadrant-point-label"]') &&
+      body.includes("fill: var(--er-ink) !important"));
+    expect(pointLabels).toBeDefined();
+    expect(pointLabels?.selector).toContain('[data-cdl-palette="blueprint"]');
+    expect(pointLabels?.selector).toContain('[data-cdl-palette="letterpress"]');
+    expect(pointLabels?.selector).toContain('[data-cdl-palette="catalog"]');
+    expect(pointLabels?.selector).toContain('[data-cdl-palette="relief"]');
+  });
+
+  it("浮彫の見本帳ジャーニーの字の大きさを規則で固定しない", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="relief"]') &&
+        selector.includes('[data-cdl-node="荷主の気持ち-chart"][data-cdl-kind="journey-map"]') &&
+        selector.includes('[data-cdl-role="journey-step"]') &&
+        body.includes("font-size")),
+    ).toBe(false);
+  });
+
+  it("工程名を正解頁の太さ 500 で描く", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-kind="gantt-timeline"]') &&
+        selector.includes('text:not([data-cdl-role])') &&
+        body.includes("font-weight: 500")),
+    ).toBe(true);
+  });
+
+  it("段名は描画側の 29/25 を保ち、段の札だけを 22/700、担当を 16 で描く", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('data-cdl-role="stage-name"') &&
+        (body.includes("font-size: 22px") || body.includes("font-weight: 700"))),
+    ).toBe(false);
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('data-cdl-role="stage-column"') &&
+        selector.includes('data-cdl-kind="card"') &&
+        selector.includes('data-cdl-role="node-label"') &&
+        body.includes("font-size: 22px") &&
+        body.includes("font-weight: 700")),
+    ).toBe(true);
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('data-cdl-role="stage-column"') &&
+        selector.includes('data-cdl-role="stage-note"') &&
+        body.includes("font-size: 16px")),
+    ).toBe(true);
+  });
+
+  it("時間軸の番号を 21 にし、路線図の凡例は CDL の配置を保つ", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('data-cdl-mark="timeline-number"') &&
+        selector.includes('data-cdl-role="node-label"') &&
+        body.includes("font-size: 21px")),
+    ).toBe(true);
+    expect(css).not.toMatch(/data-cdl-routing="metro"[^{}]*data-cdl-role="legend"[^{}]*\{[^{}]*transform/gu);
+  });
+
+  it("棒の地名と値を正解頁の意匠別 y へ分ける", () => {
+    expect(css).toContain("--catalog-bar-label-y: 24px; --catalog-bar-value-y: -18px;");
+    expect(css).toContain("--catalog-bar-label-y: 20px; --catalog-bar-value-y: -15px;");
+    expect(css).toContain("--catalog-bar-label-y: 7px; --catalog-bar-value-y: -14.5px;");
+  });
+
+  it("図表の帯と工程の棒を正解頁の意匠別半径へ分ける", () => {
+    const radius = (palette: string, role: string, px: number): boolean =>
+      rules.some(({ selector, body }) =>
+        selector.includes(`[data-cdl-palette="${palette}"]`) &&
+        selector.includes(`data-cdl-role="${role}"`) &&
+        body.includes(`rx: ${px}px`) &&
+        body.includes(`ry: ${px}px`));
+
+    expect(radius("catalog", "chart-stacked-bar-slice", 4)).toBe(true);
+    expect(radius("sketch", "funnel-proportional-bar", 10)).toBe(true);
+    expect(radius("neon", "chart-stacked-bar-slice", 12)).toBe(true);
+    expect(radius("relief", "gantt-bar", 12)).toBe(true);
+    expect(radius("neon", "chart-bar-top", 10)).toBe(true);
+    expect(radius("neon", "chart-bar-bottom", 3)).toBe(true);
+  });
+
+  it("電飾の図表札は発光中も不透明な水色の管を保つ", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="neon"]') &&
+        selector.includes('data-cdl-node]:has([data-cdl-role="figure-head"])') &&
+        body.includes("animation: none !important") &&
+        body.includes("opacity: 1 !important")),
+    ).toBe(true);
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="neon"]') &&
+        selector.includes('data-cdl-role="node-body"') &&
+        body.includes("35%, white 65%") &&
+        body.includes("url(#dragon-neon-figure-frame)")),
+    ).toBe(true);
+  });
+
+  it("電飾の円は黒い区切り線を外し、端末の半円は正解頁の緑の光を使う", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="neon"]') &&
+        selector.includes('[data-cdl-kind="chart-pie"]') &&
+        selector.includes('[data-cdl-role="chart-pie-slice"]') &&
+        body.includes("stroke: none !important")),
+    ).toBe(true);
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="terminal"]') &&
+        selector.includes('[data-cdl-role="chart-gauge-arc"]') &&
+        selector.includes('[data-cdl-role="chart-gauge-value"]') &&
+        selector.includes('[data-cdl-role="chart-gauge-delta"]') &&
+        body.includes("url(#dragon-metro-terminal-glow)")),
+    ).toBe(true);
+  });
+
+  it("手描き漏斗の斜線を帯と同じ半径 10 にし、四象限の点名を 500 にする", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="sketch"]') &&
+        selector.includes('[data-cdl-kind="funnel-stages"]') &&
+        selector.includes('[data-cdl-role="funnel-stage-hatch"]') &&
+        body.includes("rx: 10px") &&
+        body.includes("ry: 10px")),
+    ).toBe(true);
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-kind="quadrant-matrix"]') &&
+        selector.includes('[data-cdl-role="quadrant-point-label"]') &&
+        body.includes("font-weight: 500")),
+    ).toBe(true);
+  });
+
+  it("浮彫の図表札と凹みを専用 filter に分け、CDL 個別 filter を参照しない", () => {
+    // 外枠の板は figure-head を持つ 11 図だけ。figure-title だけの木と放射には広げない。
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="relief"]') &&
+        selector.includes('data-cdl-node]:has([data-cdl-role="figure-head"])') &&
+        body.includes("url(#dragon-relief-figure-frame)")),
+    ).toBe(true);
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="relief"]') &&
+        selector.includes('data-cdl-node]:has([data-cdl-role="figure-title"])') &&
+        body.includes("url(#dragon-relief-figure-frame)")),
+    ).toBe(false);
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="relief"]') &&
+        selector.includes('[data-cdl-role="figure-content-inset"]') &&
+        body.includes("fill: #e8e3da") &&
+        body.includes("url(#dragon-relief-figure-inset)")),
+    ).toBe(true);
+    expect(css).not.toContain("var(--cdl-figure-content-inset-filter)");
+  });
+
+  it("折れ線の座標と月名基線を CSS で動かさない", () => {
+    expect(css).not.toContain("--catalog-line-series-matrix");
+    expect(css).not.toContain("--catalog-line-grid-matrix");
+    expect(css).not.toContain("--catalog-line-tick-x");
+    expect(css).not.toContain("--catalog-line-label-y");
+    expect(css).not.toMatch(/data-cdl-role="chart-line-label"[^{}]*\{[^{}]*translateY/gu);
+  });
+
+  it("図面・端末の路線図系だけ方眼を 20/22 に細かくする", () => {
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="blueprint"]') &&
+        selector.includes('data-cdl-routing="metro"') &&
+        body.includes("background-size: 20px 20px")),
+    ).toBe(true);
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="terminal"]') &&
+        selector.includes('data-cdl-role="timeline-axis"') &&
+        body.includes("22px 22px")),
     ).toBe(true);
   });
 
@@ -126,13 +342,13 @@ describe("#2854 2 回目の図表回帰", () => {
     ).toBe(true);
   });
 
-  it("浮彫の工程帯を系列階調と半円端で描く", () => {
+  it("浮彫の工程帯を系列階調と正解頁の半径 12 で描く", () => {
     const gantt = rules.filter(({ selector }) =>
       selector.includes('[data-cdl-palette="relief"]') &&
       selector.includes('data-cdl-role="gantt-bar"'));
     expect(gantt.some(({ body }) => body.includes("url(#dragon-relief-chart-4)"))).toBe(true);
-    expect(gantt.some(({ body }) =>
-      body.includes("url(#dragon-relief-chart-1)") && body.includes("rx: 15px"))).toBe(true);
+    expect(gantt.some(({ body }) => body.includes("url(#dragon-relief-chart-1)"))).toBe(true);
+    expect(gantt.some(({ body }) => body.includes("rx: 12px") && body.includes("ry: 12px"))).toBe(true);
   });
 
   it.each([
@@ -147,14 +363,61 @@ describe("#2854 2 回目の図表回帰", () => {
     ).toBe(true);
   });
 
-  it("手描きの段の箱だけは札と線を揺らさない", () => {
+  it("手描きの段の箱は線も札も揺らさず、札を滑らかな 2px 枠にする (#2831)", () => {
     expect(
       rules.some(({ selector, body }) =>
         selector.includes('[data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"])') &&
         selector.includes('data-cdl-role="edge-line"') &&
-        selector.includes('data-cdl-kind="card"') &&
         body.includes("filter: none !important")),
     ).toBe(true);
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"])') &&
+        selector.includes('[data-cdl-kind="card"] [data-cdl-role="node-body"]') &&
+        body.includes("fill: #fffdf7 !important") &&
+        body.includes("filter: none !important") &&
+        body.includes("stroke: #2b2620 !important") &&
+        body.includes("stroke-width: 2px !important") &&
+        body.includes("rx: 13px !important") &&
+        body.includes("ry: 13px !important")),
+    ).toBe(true);
+    expect(
+      rules.filter(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"])') &&
+        (selector.includes('data-cdl-role="edge-line"') || selector.includes('[data-cdl-kind="card"]')) &&
+        body.includes("url(#dragon-sketch-wobble)")),
+      "段の線と札へ揺れを戻す規則を置かない",
+    ).toEqual([]);
+
+    const timelineCard = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="sketch"]:has([data-cdl-role="timeline-axis"])') &&
+      selector.includes('[data-cdl-lane="timeline-steps"][data-cdl-kind="card"]') &&
+      selector.includes('[data-cdl-role="node-body"]') &&
+      body.includes("drop-shadow(3px 4px 0 rgb(43 38 32 / 16%))"));
+    expect(timelineCard, "時間軸の札は影だけを残す").toBeDefined();
+    expect(timelineCard?.body).not.toContain("dragon-sketch-wobble");
+  });
+
+  it("浮彫の段札を地色と小さい浮き出しにし、分岐札の字は対比の下限を守る濃い色にする", () => {
+    // 見本の白 #ffffff は #c99a35 の上で 2.57:1 で、大きな字の下限 3 を割る
+    expect(css).toContain("--theme-stage-label-error-text: #383838;");
+    expect(css).toContain("--theme-timeline-label-error-text: #383838;");
+    expect(
+      rules.some(({ selector, body }) =>
+        selector.includes('[data-cdl-palette="relief"]:has([data-cdl-role="stage-column"])') &&
+        selector.includes('[data-cdl-node][data-cdl-lane][data-cdl-kind="card"]') &&
+        body.includes("fill: #e8e3da !important") &&
+        body.includes("url(#dragon-relief-raised-sm)")),
+    ).toBe(true);
+  });
+
+  it("浮彫の円は扇を平らに保ち、字だけを小さく浮かせる", () => {
+    const raised = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="relief"]') &&
+      selector.includes('[data-cdl-kind="chart-pie"] text:not([data-cdl-role])') &&
+      body.includes("url(#dragon-relief-raised-sm)"));
+    expect(raised).toBeDefined();
+    expect(raised?.selector).not.toContain('[data-cdl-role="chart-pie-slice"]');
   });
 
   it("端末の時間軸だけを等幅書体へ戻す", () => {
@@ -409,12 +672,12 @@ describe("#2854 6段目の階層図とマインドマップ", () => {
     }
   });
 
-  it("端末は OS の等幅候補へ落とし、題を 25・中心枠を 1・光を 10 にする", () => {
+  it("端末は同梱した Variable 等幅書体を先頭に置き、題を 25・中心枠を 1・光を 10 にする", () => {
     const family = rules.find(({ selector, body }) =>
       selector.includes('[data-cdl-palette="terminal"]') &&
       selector.includes('data-cdl-node="営業所の階層-chart"') &&
       selector.includes('data-cdl-node="再配達を減らす-chart"') &&
-      body.includes('"JetBrains Mono", "M PLUS 1 Code", "SF Mono", Menlo, Monaco, "Osaka-Mono", ui-monospace, monospace'));
+      body.includes('"JetBrains Mono Variable", "JetBrains Mono", "M PLUS 1 Code", "SF Mono", Menlo, Monaco, "Osaka-Mono", ui-monospace, monospace'));
     const title = rules.find(({ selector, body }) =>
       selector.includes('[data-cdl-palette="terminal"]') &&
       selector.includes('data-cdl-role="tree-node-title"') &&
@@ -495,5 +758,103 @@ describe("#2854 6段目の階層図とマインドマップ", () => {
     expect(redHead).toBeDefined();
     expect(tealHead).toBeDefined();
     expect(labels).toBeDefined();
+  });
+
+  it.each([
+    ["relief", "dragon-metro-relief-shadow", 'data-cdl-role="chart-slope-line"'],
+    ["terminal", "dragon-metro-terminal-glow", 'data-cdl-role="quadrant-point"'],
+    ["neon", "dragon-neon-tube", 'data-cdl-role="chart-line"'],
+  ] as const)("%s の SVG 相当 role だけへ見本の %s を当てる", (palette, filter, role) => {
+    const light = rules.find(({ selector, body }) =>
+      selector.includes(`[data-cdl-palette="${palette}"]`) &&
+      selector.includes(role) &&
+      body.includes(`filter: url(#${filter}) !important`));
+    expect(light).toBeDefined();
+    expect(light?.selector).not.toContain('data-cdl-role="chart-bar"]');
+    expect(light?.selector).not.toContain('data-cdl-role="chart-stacked-bar-slice"');
+    expect(light?.selector).not.toContain('data-cdl-role="funnel-proportional-bar"');
+    expect(light?.selector).not.toContain('data-cdl-role="gantt-bar"');
+  });
+
+  it("題の意匠別の光を確定し、浮彫の題と電飾の HTML 相当の字から見本に無い影を外す", () => {
+    const terminalTitle = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-role="figure-title"') &&
+      body.includes("drop-shadow(0 0 10px rgb(74 222 128 / 35%))"));
+    const neonTitle = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-role="figure-title"') &&
+      body.includes("filter: url(#dragon-neon-title-cyan) !important") &&
+      !body.includes("drop-shadow") &&
+      !body.includes("dragon-neon-tube"));
+    const withoutExtraShadow = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="relief"] [data-cdl-role="figure-title"]') &&
+      selector.includes('data-cdl-role="figure-footer-label"') &&
+      selector.includes('data-cdl-role="figure-footer-note"') &&
+      body.includes("filter: none !important"));
+    const tablesWithoutLight = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-role="chart-pie-table-label"') &&
+      selector.includes('data-cdl-role="chart-pie-table-value"') &&
+      selector.includes('data-cdl-role="chart-waffle-item-label"') &&
+      selector.includes('data-cdl-role="chart-waffle-item-share"') &&
+      body.includes("filter: none !important"));
+    const chartTextWithTube = rules.filter(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes("text") &&
+      /data-cdl-kind="(?:chart-|funnel-stages|gantt-timeline|journey-map|quadrant-matrix)/u.test(selector) &&
+      body.includes("filter: url(#dragon-neon-tube) !important"));
+
+    expect(terminalTitle).toBeDefined();
+    expect(neonTitle).toBeDefined();
+    expect(withoutExtraShadow).toBeDefined();
+    expect(tablesWithoutLight).toBeDefined();
+    expect(chartTextWithTube).toEqual([]);
+  });
+
+  it("電飾の段・段内札・時間軸札を管色の題と淡い芯の枠へ分け、端末の塗り帯は SVG の光から外す", () => {
+    const stageName = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-role="stage-name"') &&
+      body.includes("filter: url(#dragon-neon-title-pink) !important"));
+    const nestedName = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-role="stage-column"') &&
+      selector.includes('data-cdl-kind="card"') &&
+      selector.includes('data-cdl-role="node-label"') &&
+      body.includes("filter: url(#dragon-neon-title-violet) !important"));
+    const timelineName = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-role="timeline-axis"') &&
+      selector.includes('data-cdl-lane="timeline-steps"') &&
+      selector.includes('data-cdl-role="node-label"') &&
+      body.includes("filter: url(#dragon-neon-title-pink) !important"));
+    const timelineFrame = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="neon"]') &&
+      selector.includes('data-cdl-role="timeline-axis"') &&
+      selector.includes('data-cdl-role="node-body"') &&
+      body.includes("fill: rgb(10 8 18 / 94%) !important") &&
+      body.includes("stroke: #ffb6db !important") &&
+      body.includes("stroke-width: 2px !important") &&
+      body.includes("filter: url(#dragon-neon-pink-frame) !important") &&
+      body.includes("rx: 16px !important") &&
+      body.includes("ry: 16px !important"));
+    const stagePalette = rules.find(({ selector, body }) =>
+      selector.trim() === 'svg[data-cdl-stage][data-cdl-palette="neon"]' &&
+      body.includes("--theme-stage-card-shadow: url(#dragon-neon-violet-frame)") &&
+      body.includes("--theme-stage-shadow: url(#dragon-neon-pink-frame)") &&
+      body.includes("--theme-stage-card-radius: 16px") &&
+      body.includes("--theme-stage-face: rgb(10 8 18 / 94%)"));
+    const bands = rules.find(({ selector, body }) =>
+      selector.includes('[data-cdl-palette="terminal"]') &&
+      selector.includes('data-cdl-role="chart-stacked-bar-slice"') &&
+      body.includes("filter: none !important"));
+
+    expect(stageName).toBeDefined();
+    expect(nestedName).toBeDefined();
+    expect(timelineName).toBeDefined();
+    expect(timelineFrame).toBeDefined();
+    expect(stagePalette).toBeDefined();
+    expect(bands).toBeDefined();
   });
 });

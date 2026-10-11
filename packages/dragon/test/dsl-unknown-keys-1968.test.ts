@@ -219,6 +219,7 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
       },
     ),
   ],
+  journeySize: [新しい複合欄の見本("journeySize", "plotPaddign", "plotPadding", { left: 120 })],
   figureCard: [
     見本(
       "図の札",
@@ -242,8 +243,10 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   figureKindLabel: [新しい複合欄の見本("figureKindLabel", "tetx", "text", "tree")],
   figureInset: [新しい複合欄の見本("figureInset", "tp", "top", 4)],
   chartBarSize: [新しい複合欄の見本("chartBarSize", "barWidht", "barWidth", 82)],
+  chartBarShape: { 項目名を持たない理由: "棒の形の語を 1 つ書く欄" },
   chartLineSize: [新しい複合欄の見本("chartLineSize", "pointRaduis", "pointRadius", 7)],
   chartPieSize: [新しい複合欄の見本("chartPieSize", "outerRaduis", "outerRadius", 171)],
+  chartWaffleSize: [新しい複合欄の見本("chartWaffleSize", "cellPtich", "cellPitch", 30)],
   chartSlopeLabelTemplate: [新しい複合欄の見本("chartSlopeLabelTemplate", "lef", "left", "{name}")],
   chartSlopeSize: [新しい複合欄の見本("chartSlopeSize", "axisGpa", "axisGap", 250)],
   chartStackedLayout: [新しい複合欄の見本("chartStackedLayout", "segmentGpa", "segmentGap", 3)],
@@ -265,6 +268,7 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
       },
     ),
   ],
+  legendOffset: [新しい複合欄の見本("legendOffset", "ofsetX", "x", -200)],
   legendFontSize: { 項目名を持たない理由: "凡例の字の大きさを数で書く欄" },
   stageHeaders: { 項目名を持たない理由: "意匠名を鍵に、段の見出しの寸法を書く欄" },
   states: { 項目名を持たない理由: "`名前: 初期値` を並べる欄で、左辺は書き手が決める名前" },

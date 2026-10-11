@@ -128,7 +128,7 @@ for (const theme of THEMES) {
 }
 
 for (const theme of 見本のある意匠) {
-  test(`${theme}: 凡例の印が印の変数と戻る線 (--er-own) の色に揃う (#2834)`, async ({ page }) => {
+  test(`${theme}: 凡例の印が印の変数と見本の戻る線の色に揃う (#2834)`, async ({ page }) => {
     await openEditorTheme(page, 印の色を測る凡例つき, theme, false);
 
     const 色 = await page.locator("svg[data-cdl-stage]").evaluate((stage) => {
@@ -185,8 +185,10 @@ for (const theme of 見本のある意匠) {
       ],
       `${theme}: 菱形・塗った丸・二重丸が印の変数の色に揃わない`,
     ).toEqual(Array.from({ length: 4 }, () => 色.expected.mark));
-    expect(色.actual["dotted-line"], `${theme}: 点線が戻る線 (--er-own) の色に揃わない`).toBe(
-      色.expected.dotted,
+    // 浮彫の段の箱だけは note.md が見本の黄土 #c99a35 を戻る線と凡例に指定する。
+    const expectedDotted = theme === "relief" ? "rgb(201, 154, 53)" : 色.expected.dotted;
+    expect(色.actual["dotted-line"], `${theme}: 点線が見本の戻る線の色に揃わない`).toBe(
+      expectedDotted,
     );
     console.log(
       `${theme}: 印 ${色.expected.mark} / 点線 ${色.actual["dotted-line"]} / 字 ${色.actual.text}`,

@@ -69,6 +69,7 @@ export function compileJourney(
     ...(doc.journeyForm !== undefined ? { journeyForm: doc.journeyForm } : {}),
     ...(doc.journeyLineForm !== undefined ? { journeyLineForm: doc.journeyLineForm } : {}),
     ...(doc.journeyLabels !== undefined ? { journeyLabels: doc.journeyLabels } : {}),
+    ...(doc.journeySize !== undefined ? { journeySize: doc.journeySize } : {}),
   });
   return b.build();
 }

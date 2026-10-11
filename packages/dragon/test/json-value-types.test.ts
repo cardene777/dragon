@@ -36,6 +36,7 @@ import {
   type 欄の型,
 } from "../src/json-parser";
 import {
+  CHART_BAR_SHAPE_VALUES,
   CORNER_FORM_VALUES,
   EDGE_HEAD_VALUES,
   EDGE_SIDE_VALUES,
@@ -178,7 +179,10 @@ describe("型違いの値は誤りになる (#1304)", () => {
     let 測れた = 0;
     const 落ちた: string[] = [];
     for (const { 層, 欄, 型 } of 欄一覧) {
-      const 正しい = 型ごとの値[型]!.正しい;
+      const 正しい =
+        層 === "root" && 欄 === "chartBarShape"
+          ? CHART_BAR_SHAPE_VALUES[0]
+          : 型ごとの値[型]!.正しい;
       if (正しい === undefined) continue;
       測れた += 1;
       const r = validateDragonJson(欄に値を置く(層, 欄, 正しい));

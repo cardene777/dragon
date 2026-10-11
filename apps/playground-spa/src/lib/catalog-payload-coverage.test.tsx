@@ -328,10 +328,13 @@ const 節の欄の扱い = {
   journeyForm: "記法",
   journeyLineForm: "記法",
   journeyLabels: "記法",
+  journeySize: "記法",
   figureCard: "記法",
   terminalDecoration: "記法",
   figureKindLabel: "記法",
   figureInset: "記法",
+  chartBarShape: "記法",
+  chartWaffleSize: "記法",
   // 横軸の尺を固定する配置の指定。帯や目盛りという新しい役割は増やさない。
   ganttAxisMax: "置き場所",
 } satisfies Record<節の任意の欄, string>;

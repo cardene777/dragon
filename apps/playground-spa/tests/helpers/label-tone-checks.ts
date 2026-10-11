@@ -208,6 +208,9 @@ function checkBars(theme: string, bars: BarValue[], allowPrimary: boolean): void
     if (expectedPattern) {
       expect(bar.fill, `${theme} の${bar.primary ? "主役" : "それ以外"}の棒の模様`)
         .toMatch(new RegExp(`^url\\(["']?${expectedPattern}["']?\\)$`));
+    } else if (expected.fill === "none") {
+      // 図面の副棒は見本帳どおり塗りを持たず、下の枠検査で輪郭を確かめる。
+      expect(bar.fill, `${theme} の${bar.primary ? "主役" : "それ以外"}の棒の塗り`).toBe("none");
     } else {
       expect(colorKey(bar.fill), `${theme} の${bar.primary ? "主役" : "それ以外"}の棒`).toBe(
         colorKey(expected.fill),

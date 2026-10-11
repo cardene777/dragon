@@ -1,4 +1,9 @@
-import { diagram } from "@cardenelabs/cdl";
+import {
+  CLEARANCE_NODE_LABEL,
+  diagram,
+  LABEL_INIT_CLEARANCE,
+  LABEL_TO_PATH_CLEARANCE,
+} from "@cardenelabs/cdl";
 import type { CdlDiagram, CdlEdge, NodeKind, Tone } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "../focus";
 import type { DslDocument, DslPhase, DslStep } from "../types";
@@ -34,8 +39,21 @@ import {
   TIMELINE_NUMBER_SIZE,
 } from "./timeline";
 
-/** 時間軸の 40px 高の札を、横線から 20px 空けて上へ置く。 */
-const 時間軸の横分岐の札の上げ幅 = -(40 / 2 + 20);
+/** 見本帳と共通の、時間軸の横分岐に置く札の寸法。 */
+const 時間軸の横分岐の札の大きさ = { width: 96, height: 40, fontSize: 21 } as const;
+
+/** 時間軸の横分岐の札の下端と線の間。 */
+const 時間軸の横分岐の札と線の間 = 20;
+
+/*
+ * 短い横線では札の横幅が両端の節の安全域に重なるため、cdl の routePath は札の中心を
+ * `線 - 節の半高 - 節との余白 - 標準札の半高` に置く。そこから見本の位置へ戻す量を渡す。
+ */
+const 時間軸の横分岐の札の下げ幅 =
+  TIMELINE_DECISION_HEIGHT / 2 +
+  CLEARANCE_NODE_LABEL +
+  (LABEL_INIT_CLEARANCE - LABEL_TO_PATH_CLEARANCE) -
+  (時間軸の横分岐の札の大きさ.height / 2 + 時間軸の横分岐の札と線の間);
 
 /**
  * 段を持つ図種の共通の組み立て (#2030 で `compile.ts` から移した)。
@@ -548,7 +566,12 @@ export function compileGenericWithAnimate(doc: DslDocument, opts: GenericOpts): 
       ...(s.fromSide !== undefined ? { fromSide: s.fromSide } : {}),
       ...(s.toSide !== undefined ? { toSide: s.toSide } : {}),
       ...(timelineHorizontalBranch && s.label !== ""
-        ? { overlay: true, labelOffsetY: 時間軸の横分岐の札の上げ幅 }
+        ? {
+            overlay: true,
+            labelCollision: "author" as const,
+            labelSize: 時間軸の横分岐の札の大きさ,
+            labelOffsetY: 時間軸の横分岐の札の下げ幅,
+          }
         : timelineEdgeKind !== undefined && s.label !== ""
           ? { overlay: true }
           : {}),

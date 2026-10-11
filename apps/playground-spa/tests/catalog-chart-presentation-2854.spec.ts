@@ -25,6 +25,33 @@ import { openEditorTheme } from "./helpers/fixed-theme-checks";
 
 const 意匠 = ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"] as const;
 
+function 色の成分(value: string): [red: number, green: number, blue: number, alpha: number] | undefined {
+  const values = value.match(/\d+(?:\.\d+)?/gu)?.map(Number) ?? [];
+  if (values.length < 3 || values.some((component) => !Number.isFinite(component))) {
+    return undefined;
+  }
+  return [values[0]!, values[1]!, values[2]!, values[3] ?? 1];
+}
+
+function 色を成分ごとに比べる(actual: string, expected: string, message: string): void {
+  const actualComponents = 色の成分(actual);
+  const expectedComponents = 色の成分(expected);
+  if (actualComponents === undefined || expectedComponents === undefined) {
+    expect(actual, message).toBe(expected);
+    return;
+  }
+  for (let index = 0; index < 3; index += 1) {
+    expect(
+      Math.abs(actualComponents[index]! - expectedComponents[index]!),
+      `${message}の RGB ${index + 1} 成分`,
+    ).toBeLessThanOrEqual(0.5);
+  }
+  expect(
+    Math.abs(actualComponents[3] - expectedComponents[3]),
+    `${message}の alpha 成分`,
+  ).toBeLessThanOrEqual(0.005);
+}
+
 const 傾きの主役色 = {
   blueprint: ["rgb(20, 58, 82)", "rgb(168, 67, 31)"],
   letterpress: ["rgb(200, 67, 31)", "rgb(26, 21, 16)"],
@@ -99,7 +126,13 @@ test("図表8種へ #2854 3段目b の欄を描き、枠を他の図形へ漏ら
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
   await expect(stage.locator('[data-cdl-role="chart-slope-period"]')).toHaveText(["先月", "今月"]);
   await expect(stage.locator('[data-cdl-role="chart-slope-line"][data-cdl-emphasis="primary"]')).toHaveCount(2);
-  await expect(stage.locator('[data-cdl-role="chart-slope-name"][data-cdl-emphasis="primary"]')).toContainText(["名古屋", "名古屋", "大阪", "大阪"]);
+  // cdl 0.132.0 は左右の名札を一体の chart-slope-label role で描く。
+  await expect(stage.locator('[data-cdl-role="chart-slope-label"][data-cdl-emphasis="primary"]')).toContainText([
+    "名古屋",
+    "名古屋",
+    "大阪",
+    "大阪",
+  ]);
 
   await openEditorTheme(page, sourceYaml__parcelSizeWaffle, "blueprint", false);
   stage = page.locator('svg[data-cdl-stage][data-cdl-palette="blueprint"]');
@@ -169,8 +202,9 @@ for (const theme of 意匠) {
       rule.evaluate((node) => ({ display: getComputedStyle(node).display, dash: getComputedStyle(node).strokeDasharray })),
     ]);
 
-    expect(styles[1].size).toBe("15px");
-    expect(Number.parseFloat(styles[2].size)).toBeCloseTo(12.95, 1);
+    // 図表の見本頁は円の一覧名を `.nm` 22px、値を `.ty` 19px で描く。
+    expect(styles[1].size).toBe("22px");
+    expect(styles[2].size).toBe("19px");
     expect(styles[2].family).toContain("JetBrains Mono");
     if (theme === "terminal") expect(styles[1].family).toContain("JetBrains Mono");
     else expect(styles[1].family).toContain("Noto Sans JP");
@@ -226,6 +260,205 @@ for (const theme of 意匠) {
         (row) => Number.isFinite(row.valueSvgSize) && Math.abs(row.valueSize - row.valueSvgSize) <= 0.01,
       ),
       "升目の一覧値は cdl の級",
+    ).toBe(true);
+  });
+
+  test(`${theme}: 漏斗・円・内訳の帯・折れ線を最終画面の値で描く`, async ({ page }) => {
+    await openEditorTheme(page, sourceYaml__orderToDeliveryFunnel, theme, false);
+    let stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const funnelBars = stage.locator('[data-cdl-role="funnel-proportional-bar"]');
+    await expect(funnelBars, `${theme}: 漏斗の4段を測れない`).toHaveCount(4);
+    const funnelPaint = await stage.evaluate((element) => {
+      const probe = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      probe.style.fill = "var(--cdl-tone-muted)";
+      element.append(probe);
+      const muted = getComputedStyle(probe).fill;
+      probe.style.fill = "var(--er-ink)";
+      const ink = getComputedStyle(probe).fill;
+      probe.style.fill = "color-mix(in srgb, var(--cdl-chart-4) 18%, var(--theme-neon-chart-ground))";
+      const neonFill = getComputedStyle(probe).fill;
+      probe.style.stroke = "color-mix(in srgb, var(--cdl-chart-4) 35%, white 65%)";
+      const neonStroke = getComputedStyle(probe).stroke;
+      probe.remove();
+      const bars = [...element.querySelectorAll<SVGElement>('[data-cdl-role="funnel-proportional-bar"]')]
+        .map((bar) => {
+          const style = getComputedStyle(bar);
+          return {
+            emphasis: bar.getAttribute("data-cdl-emphasis"),
+            fill: style.fill,
+            stroke: style.stroke,
+            tone: bar.getAttribute("data-cdl-tone"),
+          };
+        });
+      return { ink, muted, neonFill, neonStroke, bars };
+    });
+    // cdl の proportional-bars は tone を DOM 属性へ写さない。charts.cdl.ts の記法と計算後の絵を別々に測る。
+    const sourceTones = [...sourceYaml__orderToDeliveryFunnel.matchAll(
+      /^\s*-\s+[^:]+:\s+\{(.+)\}\s*$/gmu,
+    )].slice(0, 4).map(([, fields]) => /\btone:\s*([a-z-]+)/u.exec(fields ?? "")?.[1] ?? null);
+    expect.soft(sourceTones, `${theme}: 漏斗の記法の沈んだ3段と主役段`).toEqual([
+      "muted",
+      "muted",
+      "muted",
+      null,
+    ]);
+    expect.soft(
+      funnelPaint.bars.map(({ tone }) => tone),
+      `${theme}: proportional-bars は tone 属性を描かない; paints=${JSON.stringify(funnelPaint.bars)}`,
+    ).toEqual([null, null, null, null]);
+    const mutedPairs = funnelPaint.bars.slice(0, 3).map(({ fill, stroke }) => ({ fill, stroke }));
+    expect.soft(
+      new Set(mutedPairs.map(({ fill, stroke }) => `${fill}|${stroke}`)).size,
+      `${theme}: 漏斗1〜3段の塗りと枠が揃わない; paints=${JSON.stringify(funnelPaint.bars)}`,
+    ).toBe(1);
+    expect.soft(
+      mutedPairs[0],
+      `${theme}: 漏斗1〜3段が4段目と同じ; paints=${JSON.stringify(funnelPaint.bars)}`,
+    ).not.toEqual(funnelPaint.bars[3] === undefined
+      ? undefined
+      : { fill: funnelPaint.bars[3].fill, stroke: funnelPaint.bars[3].stroke });
+    // figs-more.mjs の c.淡 / c.一を、各意匠の CSS が次の計算後の面と枠へ写す。
+    const expectedMuted = theme === "blueprint"
+      ? { fill: "none", stroke: funnelPaint.muted }
+      : theme === "letterpress"
+      ? { fill: "none", stroke: funnelPaint.ink }
+      : theme === "sketch"
+      ? { fill: 'url("#dragon-sketch-pen")', stroke: "rgb(43, 38, 32)" }
+      : theme === "neon"
+      ? { fill: funnelPaint.neonFill, stroke: funnelPaint.neonStroke }
+      : theme === "relief"
+      ? { fill: 'url("#dragon-relief-chart-4")', stroke: "none" }
+      : { fill: funnelPaint.muted, stroke: "none" };
+    expect.soft(mutedPairs[0], `${theme}: 漏斗1〜3段の意匠別の面と枠`).toEqual(expectedMuted);
+
+    await openEditorTheme(page, sourceYaml__parcelStatusPie, theme, false);
+    stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const pieCenter = await stage.locator('[data-cdl-kind="chart-pie"]').evaluate((element) => {
+      const total = element.querySelector<SVGTextElement>('text:not([data-cdl-role])[font-weight="600"]');
+      const unit = [...element.querySelectorAll<SVGTextElement>("text")]
+        .find((text) => text.textContent === "件");
+      if (!total || !unit) throw new Error("円の中心の合計か「件」が無い");
+      const totalBox = total.getBBox();
+      const unitBox = unit.getBBox();
+      return {
+        total: {
+          text: total.textContent,
+          x: totalBox.x,
+          y: totalBox.y,
+          width: totalBox.width,
+          height: totalBox.height,
+        },
+        unit: {
+          text: unit.textContent,
+          x: unitBox.x,
+          y: unitBox.y,
+          width: unitBox.width,
+          height: unitBox.height,
+        },
+      };
+    });
+    expect.soft(
+      pieCenter.unit.y,
+      `${theme}: 「件」の上端が合計の下端以下でない; center=${JSON.stringify(pieCenter)}`,
+    ).toBeGreaterThan(pieCenter.total.y + pieCenter.total.height);
+    expect.soft(
+      Math.abs(
+        pieCenter.unit.x + pieCenter.unit.width / 2 -
+          (pieCenter.total.x + pieCenter.total.width / 2),
+      ),
+      `${theme}: 「件」と合計の横中心が4を超えてずれている; center=${JSON.stringify(pieCenter)}`,
+    ).toBeLessThanOrEqual(4);
+
+    await openEditorTheme(page, sourceYaml__deliveryResultStacked, theme, false);
+    stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const stackedSlices = stage.locator('[data-cdl-role="chart-stacked-bar-slice"]');
+    await expect(stackedSlices, `${theme}: 内訳の帯15区画を測れない`).toHaveCount(15);
+    const slicePaints = await stackedSlices.evaluateAll((slices) => slices.map((slice) => {
+      const style = getComputedStyle(slice);
+      return { fill: style.fill, stroke: style.stroke };
+    }));
+    if (theme === "blueprint") {
+      expect.soft(
+        slicePaints.every(({ fill }) => fill === "none"),
+        `${theme}: 内訳の帯に塗られた区画がある; paints=${JSON.stringify(slicePaints)}`,
+      ).toBe(true);
+      expect.soft(
+        slicePaints.every(({ stroke }) => stroke !== "none"),
+        `${theme}: 内訳の帯に枠の無い区画がある; paints=${JSON.stringify(slicePaints)}`,
+      ).toBe(true);
+    } else if (theme === "letterpress") {
+      const primary = await stackedSlices.evaluateAll((slices) => slices.map((slice) => ({
+        fill: getComputedStyle(slice).fill,
+        primary: slice.getAttribute("data-cdl-emphasis") === "primary",
+        stroke: getComputedStyle(slice).stroke,
+      })));
+      expect.soft(primary.filter(({ primary: value }) => value).every(({ fill }) => fill !== "none"),
+        "活版の内訳は主役の区画だけを赤で塗る").toBe(true);
+      expect.soft(primary.filter(({ primary: value }) => !value).every(({ fill, stroke }) =>
+        fill === "none" && stroke !== "none"), "活版の内訳は主役以外を墨の枠で描く").toBe(true);
+    } else {
+      expect.soft(
+        slicePaints.every(({ fill }) => fill !== "none"),
+        `${theme}: 内訳の帯に塗りの無い区画がある; paints=${JSON.stringify(slicePaints)}`,
+      ).toBe(true);
+    }
+    // figs-more.mjs の帯の凡例は7意匠とも系列色の塗りを残す。
+    const legendFills = await stage
+      .locator('[data-cdl-role="chart-stacked-bar-legend"] rect')
+      .evaluateAll((marks) => marks.map((mark) => getComputedStyle(mark).fill));
+    expect.soft(legendFills.length, `${theme}: 内訳の凡例の色見本を測れない`).toBeGreaterThan(0);
+    expect.soft(
+      legendFills.every((fill) => fill !== "none"),
+      `${theme}: 内訳の凡例の色見本が塗られていない; fills=${JSON.stringify(legendFills)}`,
+    ).toBe(true);
+
+    await openEditorTheme(page, sourceYaml__monthlyDeliveriesLine, theme, false);
+    stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const planLine = stage.locator('[data-cdl-role="chart-line"][data-cdl-series="0"]');
+    const actualLine = stage.locator('[data-cdl-role="chart-line"][data-cdl-series="1"]');
+    await expect(planLine, `${theme}: 計画の線を1本に特定できない`).toHaveCount(1);
+    await expect(actualLine, `${theme}: 実績の線を1本に特定できない`).toHaveCount(1);
+    const [planStroke, actualStroke] = await Promise.all([
+      planLine.evaluate((line) => ({
+        dash: getComputedStyle(line).strokeDasharray,
+        pathLength: line.getAttribute("pathLength"),
+      })),
+      actualLine.evaluate((line) => ({
+        dash: getComputedStyle(line).strokeDasharray,
+        pathLength: line.getAttribute("pathLength"),
+      })),
+    ]);
+    expect.soft(
+      planStroke.dash !== "" && planStroke.dash !== "none" && planStroke.dash !== "1px" &&
+        planStroke.pathLength === null,
+      `${theme}: 計画の線が意味上の点線でない; stroke=${JSON.stringify(planStroke)}`,
+    ).toBe(true);
+    // cdl は実線を pathLength=1 / dasharray=1 で描き伸ばす。点線は mask で伸ばすため両者を区別できる。
+    expect.soft(
+      actualStroke.pathLength === "1" && actualStroke.dash === "1px",
+      `${theme}: 実績の線が描き伸ばす実線でない; stroke=${JSON.stringify(actualStroke)}`,
+    ).toBe(true);
+    await expect(
+      stage.locator('[data-cdl-role="chart-line-point"][data-cdl-series="0"]'),
+      `${theme}: 計画の線に点の印がある`,
+    ).toHaveCount(0);
+    const actualPoints = stage.locator('[data-cdl-role="chart-line-point"][data-cdl-series="1"]');
+    await expect(actualPoints, `${theme}: 実績の中空点5個を測れない`).toHaveCount(5);
+    const actualPointPaint = await stage.evaluate((element) => {
+      const probe = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      probe.style.fill = "var(--cdl-node-fill, #ffffff)";
+      element.append(probe);
+      const ground = getComputedStyle(probe).fill;
+      probe.remove();
+      const fills = [...element.querySelectorAll<SVGElement>(
+        '[data-cdl-role="chart-line-point"][data-cdl-series="1"]',
+      )].map((point) => getComputedStyle(point).fill);
+      return { ground, fills };
+    });
+    expect.soft(
+      actualPointPaint.fills.every((fill) => fill === "none" || fill === actualPointPaint.ground),
+      `${theme}: 実績の点が中空でない; ground=${actualPointPaint.ground} ` +
+        `fills=${JSON.stringify(actualPointPaint.fills)}`,
     ).toBe(true);
   });
 
@@ -346,9 +579,8 @@ for (const theme of 意匠) {
 
     await openEditorTheme(page, sourceYaml__onTimeRateSlope, theme, false);
     stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
-    // CDL は左 4 枚を name、右 4 枚を value として描く。両 role を合わせた 8 枚が左右の名札。
-    const slopeNames = stage
-      .locator(':is([data-cdl-role="chart-slope-name"], [data-cdl-role="chart-slope-value"])');
+    // cdl 0.132.0 は左右の名札を各系列1枚の chart-slope-label として描く。
+    const slopeNames = stage.locator('[data-cdl-role="chart-slope-label"]');
     await expect(slopeNames).toHaveCount(8, { timeout: 5_000 });
     const slopeNameStrokes = await slopeNames
       .evaluateAll((names) => names.map((name) => getComputedStyle(name).stroke));
@@ -463,6 +695,57 @@ for (const theme of 意匠) {
     });
     expect(matchingMindStrokes, "放射の葉の下線は同じ系列の枝と同色").toBe(true);
   });
+
+  test(`${theme}: 時間軸の持ち戻るを左寄せし、3形の凡例を21pxで描く`, async ({ page }) => {
+    await openEditorTheme(page, sourceYaml__presetDeliveryTimeline, theme, false);
+    let stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+    const returnCard = stage.locator('[data-cdl-title="持ち戻る"][data-cdl-kind="card"]');
+    await expect(returnCard, `${theme}: 時間軸の「持ち戻る」の札を1枚に特定できない`).toHaveCount(1);
+    const returnTitle = await returnCard.evaluate((card) => {
+      const body = card.querySelector<SVGGraphicsElement>('[data-cdl-role="node-body"]');
+      const label = card.querySelector<SVGTextElement>('[data-cdl-role="node-label"]');
+      if (!body || !label) throw new Error("持ち戻るの札の面か題が無い");
+      const bodyBox = body.getBBox();
+      const labelBox = label.getBBox();
+      return {
+        card: { left: bodyBox.x, width: bodyBox.width, center: bodyBox.x + bodyBox.width / 2 },
+        label: { left: labelBox.x, width: labelBox.width, center: labelBox.x + labelBox.width / 2 },
+      };
+    });
+    const leftInset = returnTitle.label.left - returnTitle.card.left;
+    expect.soft(
+      leftInset,
+      `${theme}: 「持ち戻る」の題が札の左外へ出ている; geometry=${JSON.stringify(returnTitle)}`,
+    ).toBeGreaterThanOrEqual(0);
+    expect.soft(
+      leftInset,
+      `${theme}: 「持ち戻る」の題の左端が札幅の1/4より右; geometry=${JSON.stringify(returnTitle)}`,
+    ).toBeLessThanOrEqual(returnTitle.card.width / 4);
+    expect.soft(
+      returnTitle.card.center - returnTitle.label.center,
+      `${theme}: 「持ち戻る」の題の中心が札の中心から左へ8以上離れていない; ` +
+        `geometry=${JSON.stringify(returnTitle)}`,
+    ).toBeGreaterThanOrEqual(8);
+
+    for (const [figure, source] of [
+      ["段の箱", sourceYaml__presetDeliveryStages],
+      ["路線図", sourceYaml__presetDeliveryMetro],
+      ["時間軸", sourceYaml__presetDeliveryTimeline],
+    ] as const) {
+      await openEditorTheme(page, source, theme, false);
+      stage = page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"]`);
+      const legendTexts = stage.locator('[data-cdl-role="legend-text"]');
+      const count = await legendTexts.count();
+      expect.soft(count, `${theme}: ${figure}の凡例の字を測れない`).toBeGreaterThan(0);
+      const sizes = await legendTexts.evaluateAll((texts) =>
+        texts.map((text) => getComputedStyle(text).fontSize),
+      );
+      expect.soft(
+        sizes.every((size) => size === "21px"),
+        `${theme}: ${figure}の凡例の字が21pxでない; sizes=${JSON.stringify(sizes)}`,
+      ).toBe(true);
+    }
+  });
 }
 
 test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と影で描く", async ({ page }) => {
@@ -534,9 +817,11 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
   const stageCardLooks = [
     { theme: "catalog", width: "0px", stroke: "none", filter: "drop-shadow" },
     { theme: "letterpress", width: "1.5px", stroke: "rgb(26, 21, 16)", filter: "none" },
-    { theme: "sketch", width: "2px", stroke: "rgb(43, 38, 32)", filter: "dragon-sketch-wobble" },
+    // 段の箱の手描きの札は見本どおり揺らさず影も付けない (#2831、sketch/note.md の段階の列)。
+    { theme: "sketch", width: "2px", stroke: "rgb(43, 38, 32)", filter: "none" },
     { theme: "terminal", width: "1px", stroke: "rgba(74, 222, 128, 0.3)", filter: "none" },
-    { theme: "neon", width: "2px", stroke: "rgb(228, 203, 255)", filter: "drop-shadow" },
+    // neon/note.md「段の箱の札」は広がりと内光を持つ violet-frame を正とする。
+    { theme: "neon", width: "2px", stroke: "rgb(228, 203, 255)", filter: "dragon-neon-violet-frame" },
   ] as const;
   // 時間軸だけは、活版の右下の影と手描きの滑らかな影を残す。
   const timelineCardLooks = [
@@ -586,7 +871,7 @@ test("段の箱・時間軸・路線図の札と分かれ道を見本の枠と�
           return { filter: computed.filter, stroke: computed.stroke, width: computed.strokeWidth };
         });
       expect(style.width, `${expected.theme} の分かれ道の縁`).toBe(expected.width);
-      expect(style.stroke, `${expected.theme} の分かれ道の縁色`).toBe(expected.stroke);
+      色を成分ごとに比べる(style.stroke, expected.stroke, `${expected.theme} の分かれ道の縁色`);
       expect(style.filter, `${expected.theme} の分かれ道の影`).toBe("none");
     }
   }

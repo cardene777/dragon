@@ -17,7 +17,6 @@
  * 実行 = `pnpm --filter dragon-playground-spa exec playwright test chart-card-fill`
  */
 import { test, expect } from "@playwright/test";
-import { THEMES } from "@cardenelabs/dragon";
 
 import { EDITOR_SAMPLES } from "../src/data/editor-samples";
 import { openEditorTheme } from "./helpers/fixed-theme-checks";
@@ -27,6 +26,7 @@ import {
   readFixedThemeRoleColor,
   readFixedThemeSingleSeriesBars,
   readThemeNotes,
+  readThemeNoteText,
 } from "./helpers/theme-notes";
 
 type Page = import("@playwright/test").Page;
@@ -226,6 +226,8 @@ const hexToRgb = (hex: string): string => {
 };
 
 const computedFill = (fill: string): string => {
+  // 図面の見本は主役でない棒を塗らず、枠だけで描く。
+  if (fill === "none") return fill;
   const pattern = /^url\((#[a-z0-9-]+)\)$/.exec(fill)?.[1];
   return pattern ? `url("${pattern}")` : hexToRgb(fill);
 };
@@ -243,8 +245,15 @@ type BarPaint = {
   fillOpacity: string;
   stroke: string;
   strokeWidth: string;
-  referencedPaint: { tag: string; lastStop: string | null } | null;
+  referencedPaint: { id: string; tag: string; lastStop: string | null } | null;
 };
+
+function reliefSingleSeriesEnds(): { primary: string; secondary: string } {
+  const row = /^\|\s*単系列の棒\s*\|([^\n]+)$/mu.exec(readThemeNoteText("relief"))?.[1] ?? "";
+  const match = /一\s+`(#[0-9a-f]{6})`\s*\/\s*沈んだ淡\s+`(#[0-9a-f]{6})`/iu.exec(row);
+  if (!match?.[1] || !match[2]) throw new Error("浮彫の単系列の棒の階調終端を意匠帳から読めない");
+  return { primary: match[1], secondary: match[2] };
+}
 
 async function chartBars(page: Page, theme: string): Promise<BarPaint[]> {
   return page.locator(`svg[data-cdl-stage][data-cdl-palette="${theme}"] [data-cdl-role="chart-bar"]`)
@@ -261,7 +270,7 @@ async function chartBars(page: Page, theme: string): Promise<BarPaint[]> {
           const paint = id ? element.ownerDocument.querySelector<SVGElement>(id) : null;
           const lastStop = paint?.querySelector<SVGStopElement>("stop:last-of-type") ?? null;
           return paint
-            ? { tag: paint.tagName, lastStop: lastStop ? getComputedStyle(lastStop).stopColor : null }
+            ? { id: id!, tag: paint.tagName, lastStop: lastStop ? getComputedStyle(lastStop).stopColor : null }
             : null;
         })(),
       };
@@ -360,9 +369,11 @@ test.describe("図表の棒の内側の模様 (#2801)", () => {
 
   test("他の意匠: 単系列の棒へ模様を当てず、浮彫の階調は系列色で終える", async ({ page }) => {
     const failures: string[] = [];
-    for (const theme of THEMES.filter((name) => name !== "blueprint" && name !== "sketch")) {
-      const style = readFixedThemeSingleSeriesBars().get(theme);
-      if (!style) throw new Error(`${theme} の単系列の棒を意匠帳から読めない`);
+    // 固定の見本帳を持つ7意匠だけが note.md に単系列の棒の正解値を持つ。
+    const styles = readFixedThemeSingleSeriesBars();
+    const reliefEnds = reliefSingleSeriesEnds();
+    for (const [theme, style] of styles) {
+      if (theme === "blueprint" || theme === "sketch") continue;
       for (const dark of [false, true]) {
         await openEditorTheme(page, SINGLE_SERIES_SOURCE, theme, dark);
         const bars = await chartBars(page, theme);
@@ -370,12 +381,18 @@ test.describe("図表の棒の内側の模様 (#2801)", () => {
         for (const bar of bars) {
           if (theme === "relief") {
             // 見本の浮彫は <linearGradient>。禁止する模様は <pattern> なので、参照先の種類と終端色を分けて確かめる。
-            const expected = readFixedThemeRoleColor("relief", bar.primary ? "一" : "淡");
+            const expectedPaint = bar.primary ? style.primary.fill : style.secondary.fill;
+            const expectedId = /^url\((#[a-z0-9-]+)\)$/iu.exec(expectedPaint)?.[1];
+            const expectedEnd = bar.primary ? reliefEnds.primary : reliefEnds.secondary;
             if (bar.referencedPaint?.tag.toLowerCase() !== "lineargradient") {
               failures.push(`${theme}/${dark ? "暗" : "明"}: 階調でない ${bar.fill}`);
-            } else if (!expected || bar.referencedPaint.lastStop !== hexToRgb(expected)) {
+            } else if (bar.referencedPaint.id !== expectedId) {
               failures.push(
-                `${theme}/${dark ? "暗" : "明"}: 階調の終端 ${bar.referencedPaint.lastStop} / ${expected}`,
+                `${theme}/${dark ? "暗" : "明"}: 階調 ${bar.referencedPaint.id} / ${expectedId}`,
+              );
+            } else if (bar.referencedPaint.lastStop !== hexToRgb(expectedEnd)) {
+              failures.push(
+                `${theme}/${dark ? "暗" : "明"}: 階調の終端 ${bar.referencedPaint.lastStop} / ${expectedEnd}`,
               );
             }
           } else if (bar.referencedPaint?.tag.toLowerCase() === "pattern") {

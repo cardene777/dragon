@@ -62,21 +62,30 @@ describe("#2854 3 段目 l の意匠補正", () => {
     expect(declaration(numeric.body, "font-family")).not.toContain("!important");
   });
 
-  it("浮彫は見出し付きの札だけを浮かせ、その札の図形へ凹み filter を足さない", () => {
+  it("浮彫は figure-head を持つ 11 図の枠だけを浮かせ、その図形へ凹み filter を足さない", () => {
     const headedSurface = lastRule(
       '[data-cdl-palette="relief"]',
       ':has([data-cdl-role="figure-head"])',
-      '> [data-cdl-role="node-body"]',
+      '> [data-cdl-frame]',
     );
-    expect(declaration(headedSurface.body, "filter")).toBe("url(#dragon-relief-raised) !important");
+    expect(declaration(headedSurface.body, "filter")).toBe("url(#dragon-relief-figure-frame) !important");
     expect(headedSurface.body).not.toMatch(/(?:^|;)\s*(?:width|height|transform)\s*:/mu);
 
     const headedFilters = rules.filter(({ selector, body }) =>
       selector.includes('[data-cdl-palette="relief"]') &&
       selector.includes(':has([data-cdl-role="figure-head"])') &&
+      selector.includes('> [data-cdl-frame]') &&
       body.includes("filter:"),
     );
-    expect(headedFilters, "見出し付きの札の中へ別の filter を足さない").toEqual([headedSurface]);
+    expect(headedFilters, "見出しを持つ実寸枠へ別の filter を足さない").toEqual([headedSurface]);
+    expect(headedSurface.selector).not.toContain(':has([data-cdl-role="figure-title"])');
+
+    const headedBody = lastRule(
+      '[data-cdl-palette="relief"]',
+      ':has([data-cdl-role="figure-head"])',
+      '> [data-cdl-role="node-body"]',
+    );
+    expect(declaration(headedBody.body, "filter"), "札の中へ板の影を重ねない").toBe("none !important");
 
     // 見出しの無い図表は #2796 の well を保ち、見本帳の札だけを後段の例外で浮かせる。
     const chartContents = lastRule(
@@ -103,7 +112,6 @@ describe("#2854 3 段目 l の意匠補正", () => {
     const cards = [
       ["blueprint", "1px", "#143a52 !important", "none !important"],
       ["letterpress", "1.5px", "#1a1510 !important", "none !important"],
-      ["sketch", "2px", "#2b2620 !important", "url(#dragon-sketch-wobble) !important"],
       ["terminal", "1px", "rgb(74 222 128 / 30%) !important", "none !important"],
     ] as const;
     for (const [palette, width, stroke, filter] of cards) {
@@ -118,6 +126,33 @@ describe("#2854 3 段目 l の意匠補正", () => {
       expect(declaration(card.body, "stroke"), palette).toBe(stroke);
       expect(declaration(card.body, "filter"), palette).toBe(filter);
     }
+
+    const sketchCard = lastRule(
+      '[data-cdl-palette="sketch"]',
+      ':has([data-cdl-role="stage-column"])',
+      ':has([data-cdl-role="timeline-axis"])',
+      '[data-cdl-kind="card"]',
+    );
+    expect(declaration(sketchCard.body, "stroke-width")).toBe("2px !important");
+    expect(declaration(sketchCard.body, "stroke")).toBe("#2b2620 !important");
+    expect(sketchCard.body).not.toMatch(/(?:^|;)\s*filter\s*:/mu);
+
+    const sketchStageCard = lastRule(
+      '[data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"])',
+      '[data-cdl-kind="card"]',
+      '[data-cdl-role="node-body"]',
+    );
+    expect(declaration(sketchStageCard.body, "filter")).toBe("none !important");
+
+    const sketchTimelineCard = lastRule(
+      '[data-cdl-palette="sketch"]:has([data-cdl-role="timeline-axis"])',
+      '[data-cdl-lane="timeline-steps"][data-cdl-kind="card"]',
+      '[data-cdl-role="node-body"]',
+    );
+    expect(declaration(sketchTimelineCard.body, "filter")).toBe(
+      "drop-shadow(3px 4px 0 rgb(43 38 32 / 16%)) !important",
+    );
+    expect(sketchTimelineCard.body).not.toContain("dragon-sketch-wobble");
 
     const catalogCard = lastRule(
       '[data-cdl-palette="catalog"]',
