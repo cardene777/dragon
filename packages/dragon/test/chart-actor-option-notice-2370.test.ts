@@ -62,6 +62,8 @@ const 値: Record<string, string> = {
   emptyRowsNote: '"なし"',
   titleAlign: "center",
   rowRules: "true",
+  rowStripe: "false",
+  rowLayout: '{"titleBaseline":43,"rowTop":91,"rowPitch":46.5}',
   rowMarkForm: "tone",
   nestIn: "い",
   figureCard: '{"label":"図","note":"注"}',
@@ -97,6 +99,8 @@ const 値: Record<string, string> = {
   subtitlePlacement: "right",
   titleFontSize: "24",
   markGap: "12",
+  rowDividerForm: "full",
+  rowWell: "{}",
 };
 
 /**

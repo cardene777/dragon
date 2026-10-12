@@ -769,6 +769,8 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
     emptyRowsNote: 'emptyRowsNote: "なし"',
     titleAlign: "titleAlign: center",
     rowRules: "rowRules: true",
+    rowStripe: "rowStripe: false",
+    rowLayout: 'rowLayout: {"titleBaseline":43,"rowTop":91,"rowPitch":46.5}',
     rowMarkForm: "rowMarkForm: tone",
     nestIn: "nestIn: ぜろ",
     figureCard: 'figureCard: {"label":"図","note":"注"}',
@@ -806,6 +808,8 @@ describe("骨組みの図で箱の欄が黙って消えない (#2388)", () => {
     subtitlePlacement: "subtitlePlacement: right",
     titleFontSize: "titleFontSize: 24",
     markGap: "markGap: 12",
+    rowDividerForm: "rowDividerForm: full",
+    rowWell: "rowWell: {}",
   };
 
   /** 日本語の別名は英語名と同じ欄に入るので、英語名だけを走査する */

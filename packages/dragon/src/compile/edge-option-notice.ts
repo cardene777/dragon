@@ -33,6 +33,11 @@ export const 効かない矢印の欄の呼び名: readonly (readonly [string, s
   ["labelOffsetX", "名前のずらし"],
   ["labelOffsetY", "名前のずらし"],
   ["layoutPos", "名前のずらし"],
+  ["posX1", "線の固定座標"],
+  ["posY1", "線の固定座標"],
+  ["posX2", "線の固定座標"],
+  ["posY2", "線の固定座標"],
+  ["waypoints", "線の固定座標"],
   ["labelPlate", "名前の下地"],
   // 多重度も板には描く先が無い (#2107)。 他の図種は `reportCardinalityNotHonored` が知らせる
   ["cardinality", "多重度"],

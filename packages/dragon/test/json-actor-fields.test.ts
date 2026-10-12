@@ -38,6 +38,11 @@ const 対応表: Record<string, 対応> = {
   emptyRowsNote: { 記法: 'emptyRowsNote: "なし"', json: { emptyRowsNote: "なし" } },
   titleAlign: { 記法: "titleAlign: center", json: { titleAlign: "center" } },
   rowRules: { 記法: "rowRules: true", json: { rowRules: true } },
+  rowStripe: { 記法: "rowStripe: false", json: { rowStripe: false } },
+  rowLayout: {
+    記法: 'rowLayout: {"titleBaseline":43,"rowTop":91,"rowPitch":46.5}',
+    json: { rowLayout: { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 } },
+  },
   rowMarkForm: { 記法: "rowMarkForm: tone", json: { rowMarkForm: "tone" } },
   nestIn: { 記法: "nestIn: B", json: { nestIn: "B" } },
   figureCard: {
@@ -48,6 +53,11 @@ const 対応表: Record<string, 対応> = {
   subtitlePlacement: { 記法: "subtitlePlacement: right", json: { subtitlePlacement: "right" } },
   titleFontSize: { 記法: "titleFontSize: 24", json: { titleFontSize: 24 } },
   markGap: { 記法: "markGap: 12", json: { markGap: 12 } },
+  rowDividerForm: { 記法: "rowDividerForm: full", json: { rowDividerForm: "full" } },
+  rowWell: {
+    記法: 'rowWell: {"top":2,"right":16,"bottom":4,"left":16,"radius":15}',
+    json: { rowWell: { top: 2, right: 16, bottom: 4, left: 16, radius: 15 } },
+  },
   eyebrow: { 記法: 'eyebrow: "分類"', json: { eyebrow: "分類" } },
   value: { 記法: 'value: "42"', json: { value: "42" } },
   previous: { 記法: 'previous: "38"', json: { previous: "38" } },

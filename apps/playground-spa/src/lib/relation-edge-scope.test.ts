@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { EDITOR_SAMPLES } from "@/data/editor-samples";
-import { presetClassDiagram, sourceYaml__presetClassDiagram } from "@/topics/catalog/presets.cdl";
+import { presetDeliveryClasses, sourceYaml__presetDeliveryClasses } from "@/topics/catalog/presets.cdl";
 import { sourceYaml__textDslStateMachine } from "@/topics/catalog/text-dsl.cdl";
 import {
   UMLだけの端の組,
@@ -31,8 +31,10 @@ const CSS = readFileSync(
 const recordの規則 = [...CSS.matchAll(/([^{}]+)\{([^{}]*)\}/gu)]
   .map((一致) => ({ 選び方: 一致[1] ?? "", 宣言: 一致[2] ?? "" }))
   .filter(
-    ({ 選び方 }) =>
-      選び方.includes('data-cdl-type="record"') && 選び方.includes('data-cdl-role="edge-line"'),
+    ({ 選び方, 宣言 }) =>
+      選び方.includes('data-cdl-type="record"') &&
+      選び方.includes('data-cdl-role="edge-line"') &&
+      宣言.includes("--d-relation-edge-opacity"),
   );
 
 const 選び方の端 = (選び方: string): readonly { 端: string; 塗り?: string }[] =>
@@ -116,7 +118,7 @@ describe("record の関係に当てる線の薄さ (#2783 / #2805)", () => {
   });
 
   it("継承・実装・集約・合成を含む書き直したクラス図の線は細い線の選び方に当たる", () => {
-    const 文書 = 描いた文書(sourceYaml__presetClassDiagram);
+    const 文書 = 描いた文書(sourceYaml__presetDeliveryClasses);
     const 線 = [...文書.querySelectorAll('[data-cdl-role="edge-line"]')];
     const 印の組 = new Set(
       [...文書.querySelectorAll('[data-cdl-role="edge-arrowhead"]')].map((要素) =>
@@ -144,27 +146,29 @@ describe("record の関係に当てる線の薄さ (#2783 / #2805)", () => {
 
   it("型の凡例 4 項目の印・線種・色は図が描く関係と同じ", () => {
     const 対応 = [
-      { 関係: "継承", 凡例: "継承", 印: "line-triangle-hollow" },
-      { 関係: "集約", 凡例: "集約 (外しても残る)", 印: "line-diamond-hollow" },
+      { 関係: "である", 凡例: "受け継ぐ", 印: "line-triangle-hollow" },
+      { 関係: "集める", 凡例: "集める (外しても残る)", 印: "line-diamond-hollow" },
       {
-        関係: "コンポジション",
-        凡例: "コンポジション (一緒に消える)",
+        関係: "持つ",
+        凡例: "持つ (一緒に消える)",
         印: "line-diamond-solid",
       },
-      { 関係: "依存", 凡例: "依存", 印: "dotted-line" },
+      { 関係: "使う", 凡例: "使う", 印: "dotted-line" },
     ] as const;
-    const 凡例 = presetClassDiagram.legend ?? [];
+    const 凡例 = presetDeliveryClasses.legend ?? [];
 
     expect(凡例, "見本に無い項目または注記が凡例に残っている").toHaveLength(対応.length);
     for (const 項目 of 対応) {
-      const 線 = presetClassDiagram.edges.find((候補) => 候補.label === 項目.関係);
+      const 線 = presetDeliveryClasses.edges.find((候補) => 候補.label === 項目.関係);
       const 印 = 凡例.find((候補) => 候補.text === 項目.凡例);
 
       expect(線, `${項目.関係}の線が図に無い`).toBeDefined();
       expect(印, `${項目.凡例}が凡例に無い`).toMatchObject({ mark: 項目.印 });
       if (!印 || 印.mark === undefined)
         throw new Error(`${項目.凡例}が印を持たない注記になっている`);
-      const 凡例の線種 = 印.mark === "dotted-line" ? "dashed" : (印.lineStyle ?? "solid");
+      const 凡例の線種 = 印.mark === "dotted-line" || 印.lineStyle === "dotted"
+        ? "dashed"
+        : (印.lineStyle ?? "solid");
       expect({ tone: 印.tone, style: 凡例の線種 }, `${項目.関係}の凡例と図の線が違う`).toEqual({
         tone: 線?.tone,
         style: 線?.style,
@@ -173,11 +177,11 @@ describe("record の関係に当てる線の薄さ (#2783 / #2805)", () => {
   });
 
   it("出どころ側の菱は marker-start が指す data-cdl-edge-head と塗りに出る", () => {
-    const 文書 = 描いた文書(sourceYaml__presetClassDiagram);
+    const 文書 = 描いた文書(sourceYaml__presetDeliveryClasses);
 
     for (const [関係, 塗り] of [
-      ["集約", "hollow"],
-      ["コンポジション", "solid"],
+      ["集める", "hollow"],
+      ["持つ", "solid"],
     ] as const) {
       const 線 = 文書.querySelector(`[data-cdl-edge-label="${関係}"] [data-cdl-role="edge-line"]`);
       const 印のID = 線?.getAttribute("marker-start")?.match(/^url\(#(.+)\)$/u)?.[1];

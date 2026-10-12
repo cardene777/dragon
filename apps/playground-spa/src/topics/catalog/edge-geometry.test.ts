@@ -11,7 +11,15 @@ type 重なり = { 一本目: 配置済みの関係; 二本目: 配置済みの�
 const 許容px = 1;
 // 角丸の端だけが触れる短い区間は画面上で線の重なりとして読めないため、数えない。
 const 数える最小の重なりpx = 8;
-const 対象の図id = new Set(["class-demo", "class-complex-demo", "er-demo", "er-complex-demo"]);
+const 対象の図id = new Set([
+  "delivery-classes-demo",
+  "class-complex-demo",
+  "delivery-relations-demo",
+  "er-complex-demo",
+]);
+
+/** #2836 で固定端点を記法から渡し、30px 未満の短い直線区間を 0 件にした。 */
+const 認める短い区間: Record<string, string> = {};
 
 /** SVG path の命令から、線が実際に通る点だけを読む。 */
 function dから点列を読む(d: string): 点[] {
@@ -218,14 +226,13 @@ describe("カタログの関係線の幾何 (#1600)", () => {
     expect(折れの数, `class-complex-demo の折れが ${折れの数} 個ある`).toBeLessThanOrEqual(32);
   });
 
-  it("4 見本すべてで 30px 未満の直線区間が無い", () => {
+  it("4 見本の 30px 未満の直線区間が理由つきの宣言と一致する", () => {
     const 短い区間 = 対象の見本を配置する().flatMap(({ id: 図id, 関係列 }) =>
       関係列.flatMap(({ id: 線id, d }) => 短い直線区間を測る(d).map((長さ) => ({ 図id, 線id, 長さ }))),
     );
-    expect(
-      短い区間,
-      `短い直線区間: ${短い区間.map(({ 図id, 線id, 長さ }) => `${図id} の ${線id} が ${長さ}px`).join("、")}`,
-    ).toHaveLength(0);
+    const 実測 = 短い区間.map(({ 図id, 線id, 長さ }) => `${図id}:${線id}:${長さ}`).sort();
+    expect(実測, `短い直線区間: ${実測.join("、")}`).toEqual(Object.keys(認める短い区間).sort());
+    expect(Object.values(認める短い区間).filter((理由) => 理由.trim().length === 0)).toEqual([]);
   });
 
   it("4 件を走査し、指定された id の集合と一致する", () => {

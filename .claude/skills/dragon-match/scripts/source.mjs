@@ -264,6 +264,15 @@ export async function 図を測る(page, opened, source) {
         }
         return false;
       };
+      const drawn = (element) => {
+        if (element.getClientRects().length === 0) return false;
+        if (typeof element.checkVisibility !== "function") return true;
+        try {
+          return element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+        } catch {
+          return element.checkVisibility();
+        }
+      };
       const inRegion = (box) =>
         region === null ||
         (box.x + box.width / 2 >= region.x &&
@@ -482,7 +491,7 @@ export async function 図を測る(page, opened, source) {
         number(style.strokeWidth) > 0 && !transparent(paint(style, "stroke", element));
 
       const shapeEntries = [...root.querySelectorAll("rect,path,circle,ellipse,polygon")]
-        .filter((element) => !excluded(element))
+        .filter((element) => !excluded(element) && drawn(element))
         .map((element) => {
           const style = getComputedStyle(element);
           const measured = boxFor(element);
@@ -542,6 +551,7 @@ export async function 図を測る(page, opened, source) {
         return shadowFrame(style, element);
       };
       const htmlBoxData = (element) => {
+        if (!drawn(element)) return null;
         const style = getComputedStyle(element);
         const fill = htmlFill(style, element);
         const frame = htmlFrame(style, element);
@@ -607,7 +617,7 @@ export async function 図を測る(page, opened, source) {
       const lineBoxes = [];
       const lineCounts = new Map();
       for (const element of root.querySelectorAll("line,polyline,path")) {
-        if (excluded(element)) continue;
+        if (excluded(element) || !drawn(element)) continue;
         const style = getComputedStyle(element);
         const tag = element.tagName.toLowerCase();
         const noFill = transparent(paint(style, "fill", element)) || style.fill === "none";
@@ -637,6 +647,7 @@ export async function 図を測る(page, opened, source) {
         if (
           normalized === "" ||
           ignored.has(normalized) ||
+          !drawn(element) ||
           box === null ||
           box.width <= 0 ||
           box.height <= 0 ||
@@ -670,7 +681,7 @@ export async function 図を測る(page, opened, source) {
       };
 
       for (const element of root.querySelectorAll("text,tspan")) {
-        if (excluded(element)) continue;
+        if (excluded(element) || !drawn(element)) continue;
         if (
           element.tagName.toLowerCase() === "text" &&
           element.querySelector(":scope > tspan") !== null
@@ -687,6 +698,7 @@ export async function 図を測る(page, opened, source) {
           parent === null ||
           parent.closest("svg") !== null ||
           excluded(parent) ||
+          !drawn(parent) ||
           ["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) ||
           (node.textContent ?? "").trim() === ""
         ) {

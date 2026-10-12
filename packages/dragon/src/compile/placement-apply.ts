@@ -1,4 +1,3 @@
-import { layout } from "@cardenelabs/cdl";
 import type { CdlDiagram, LaidDiagram } from "@cardenelabs/cdl";
 import {
   orderByDependency,
@@ -9,7 +8,7 @@ import {
 import type { DslDocument } from "../types";
 import type { CompileNotice } from "./notice";
 import { 箱の題 } from "./node-title";
-import { partBoxes, partSizes } from "./parts";
+import { partBoxes, partSizes, 測るために配置する } from "./parts";
 import { PLACEMENT_TOLERANCE } from "./placement";
 import { slugify } from "./slug";
 import { truncateForMessage } from "./subtitle";
@@ -242,7 +241,7 @@ export function measureActorBoxes(
    */
   laidHint?: LaidDiagram,
 ): Map<string, AnchorBox> {
-  const laid = laidHint ?? layout(diagram);
+  const laid = laidHint ?? 測るために配置する(diagram);
   const bounds = new Map<string, { x0: number; y0: number; x1: number; y1: number }>();
   for (const n of laid.nodes) {
     const title = n.title;
@@ -354,7 +353,7 @@ export function applyLayoutOffsets(
   // 順序図の板は面ごとの箱を持たない。 効かないことは `reportActorKindNotHonored` が伝える
   if (doc.type === "sequence") return;
 
-  const 前 = layout(diagram);
+  const 前 = 測るために配置する(diagram);
   const 箱の配置 = new Map(前.nodes.map((n) => [n.id, n] as const));
   const 縦列の配置 = new Map(前.lanes.map((l) => [l.id, l] as const));
   const 相手たち: ずらしの相手[] = [];
@@ -458,7 +457,7 @@ export function applyLayoutOffsets(
         node.posX = 狙い.x;
         node.posY = 狙い.y;
       }
-      基準 = layout(diagram);
+      基準 = 測るために配置する(diagram);
       for (const node of diagram.nodes) {
         if (!箱だけの狙い.has(node.id)) continue;
         const 元 = 元の箱.get(node.id)!;
@@ -509,7 +508,7 @@ export function applyLayoutOffsets(
   };
   /** 狙いと実際の差。 縦列を固定する時は、ずらさない縦列と箱も元の位置に居るかを見る */
   const 測る = (): Map<string, { x: number; y: number }> => {
-    const 後 = layout(diagram);
+    const 後 = 測るために配置する(diagram);
     const 差 = new Map<string, { x: number; y: number }>();
     for (const n of 後.nodes) {
       const 狙い = 箱の狙い.get(n.id);

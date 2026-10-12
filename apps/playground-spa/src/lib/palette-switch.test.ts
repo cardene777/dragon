@@ -148,6 +148,70 @@ describe("端末の字の測り方 (#2818)", () => {
   });
 });
 
+describe("箱と線の意匠別配置 (#2836)", () => {
+  const yaml = `title: 配置
+type: record
+layoutByTheme:
+  blueprint: {"nodes":{"A":{"h":199.890625,"posH":199.890625,"posY":169.9453125,"rowLayout":{"titleBaseline":43,"rowTop":91,"rowPitch":46.5},"rowStripe":true}},"edges":{"A -> B":{"posX1":0,"posY1":0,"posX2":100,"posY2":100,"waypoints":[{"x":0,"y":50},{"x":100,"y":50}],"labelOffsetX":12,"labelOffsetY":-4}}}
+  relief: {"nodes":{"A":{"h":236.890625,"posH":236.890625,"posY":188.4453125,"rowLayout":{"titleBaseline":48,"rowTop":108.9,"rowPitch":46.5},"rowStripe":false}},"edges":{"A -> B":{"posX1":10,"posY1":0,"posX2":110,"posY2":100,"waypoints":[{"x":10,"y":60},{"x":110,"y":60}],"labelOffsetX":18,"labelOffsetY":2}}}
+actors:
+  - A: { kind: storage, posX: 100, posY: 220, posH: 240, rowLayout: {"titleBaseline":86,"rowTop":152,"rowPitch":56}, rows: [a, b] }
+  - B
+flow:
+  - A -> B: 線 { posX1: 0, posY1: 0, posX2: 100, posY2: 0, labelOffsetX: 1 }
+`;
+  const json = {
+    title: "配置",
+    type: "record",
+    layoutByTheme: {
+      blueprint: {
+        nodes: { A: { h: 199.890625, posH: 199.890625, posY: 169.9453125, rowLayout: { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 }, rowStripe: true } },
+        edges: { "A -> B": { posX1: 0, posY1: 0, posX2: 100, posY2: 100, waypoints: [{ x: 0, y: 50 }, { x: 100, y: 50 }], labelOffsetX: 12, labelOffsetY: -4 } },
+      },
+      relief: {
+        nodes: { A: { h: 236.890625, posH: 236.890625, posY: 188.4453125, rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 }, rowStripe: false } },
+        edges: { "A -> B": { posX1: 10, posY1: 0, posX2: 110, posY2: 100, waypoints: [{ x: 10, y: 60 }, { x: 110, y: 60 }], labelOffsetX: 18, labelOffsetY: 2 } },
+      },
+    },
+    actors: [{ name: "A", kind: "storage", posX: 100, posY: 220, posH: 240, rowLayout: { titleBaseline: 86, rowTop: 152, rowPitch: 56 }, rows: ["a", "b"] }, "B"],
+    flow: [{ from: "A", to: "B", label: "線", posX1: 0, posY1: 0, posX2: 100, posY2: 0, labelOffsetX: 1 }],
+  };
+
+  it("YAML / JSON とも選んだ意匠の node・edge をまとめて上書きする", () => {
+    for (const diagram of [textDslToDiagram(yaml), jsonToDiagram(json)]) {
+      const blueprint = 図の配色を変える(diagram, "blueprint");
+      expect(blueprint.nodes.find((node) => node.id === "a")).toMatchObject({
+        h: 199.890625,
+        posH: 199.890625,
+        posY: 169.9453125,
+        rowLayout: { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 },
+        rowStripe: true,
+      });
+      expect(blueprint.edges[0]).toMatchObject({
+        posX1: 0, posY1: 0, posX2: 100, posY2: 100,
+        waypoints: [{ x: 0, y: 50 }, { x: 100, y: 50 }],
+        labelOffsetX: 12, labelOffsetY: -4,
+      });
+      const relief = 図の配色を変える(blueprint, "relief");
+      expect(relief.nodes.find((node) => node.id === "a")).toMatchObject({
+        h: 236.890625,
+        posH: 236.890625,
+        posY: 188.4453125,
+        rowLayout: { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
+        rowStripe: false,
+      });
+      expect(relief.edges[0]).toMatchObject({ posX1: 10, posX2: 110, labelOffsetX: 18, labelOffsetY: 2 });
+      const site = 図の配色を変える(relief, 画面の色);
+      expect(site.nodes.find((node) => node.id === "a")?.rowLayout).toEqual({ titleBaseline: 86, rowTop: 152, rowPitch: 56 });
+      expect(site.nodes.find((node) => node.id === "a")?.h).toBe(240);
+      expect(site.nodes.find((node) => node.id === "a")?.posY).toBe(220);
+      expect(site.nodes.find((node) => node.id === "a")?.posH).toBe(240);
+      expect(site.edges[0]).toMatchObject({ posX1: 0, posY1: 0, posX2: 100, posY2: 0, labelOffsetX: 1 });
+      expect(site.edges[0]?.waypoints).toBeUndefined();
+    }
+  });
+});
+
 describe("浮彫の凹み面に中身を収める切替 (#2854)", () => {
   const 本文 = `title: "月ごとの配達数"
 type: chart

@@ -66,10 +66,13 @@ import {
   LEGEND_NOTE_ALIGN_VALUES,
   ROW_MARK_FORM_VALUES,
   ROW_MARK_TONE_VALUES,
+  ROW_DIVIDER_FORM_VALUES,
+  ROW_WELL_KEYS,
   SEQUENCE_ACTOR_FORM_VALUES,
   SEQUENCE_LABEL_FORM_VALUES,
   SEQUENCE_RETURN_HEAD_VALUES,
   SEQUENCE_KIND_LABEL_KEYS,
+  SEQUENCE_SELF_LOOP_KEYS,
   type 図形の定義,
 } from "./v05/parser";
 // 図の意匠 (#1553 / #2790)。 記法の読み手と同じ解決を通す = 別名の受け方が
@@ -195,6 +198,10 @@ export interface DragonJson {
   sequenceLabelForm?: DslDocument["sequenceLabelForm"];
   sequenceReturnHead?: DslDocument["sequenceReturnHead"];
   sequenceKindLabels?: DslDocument["sequenceKindLabels"];
+  sequenceRowGap?: DslDocument["sequenceRowGap"];
+  sequenceGutter?: DslDocument["sequenceGutter"];
+  sequenceBandWidth?: DslDocument["sequenceBandWidth"];
+  sequenceSelfLoop?: DslDocument["sequenceSelfLoop"];
   figureCard?: DslDocument["figureCard"];
   figureSize?: DslDocument["figureSize"];
   terminalDecoration?: DslDocument["terminalDecoration"];
@@ -242,6 +249,8 @@ export interface DragonJson {
   legendOffset?: DslDocument["legendOffset"];
   /** 段の箱で、意匠ごとに描く見出しの寸法。 */
   stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
+  /** 意匠ごとの表の行配置と固定線。 */
+  layoutByTheme?: DslDocument["layoutByTheme"];
   stageLayout?: DslDocument["stageLayout"];
   /** 登場人物 (必須): 文字列 or { name, kind, ... } object */
   actors: (string | JsonActor)[];
@@ -418,6 +427,10 @@ export interface JsonActor {
   emptyRowsNote?: string;
   titleAlign?: "center";
   rowRules?: boolean;
+  rowStripe?: boolean;
+  rowLayout?: DslActor["rowLayout"];
+  rowDividerForm?: DslActor["rowDividerForm"];
+  rowWell?: DslActor["rowWell"];
   rowMarkForm?: "tone";
   nestIn?: string;
   figureCard?: DslActor["figureCard"];
@@ -605,6 +618,11 @@ export interface JsonStep {
   dashOffsetBind?: string;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  posX1?: number;
+  posY1?: number;
+  posX2?: number;
+  posY2?: number;
+  waypoints?: DslStep["waypoints"];
   labelCollision?: DslStep["labelCollision"];
   labelSize?: DslStep["labelSize"];
   /** true で説明文を矢印の線の上に重ねる。 分岐図の条件ラベル用。 */
@@ -763,6 +781,10 @@ export const ACCEPTED_KEYS = {
     "sequenceLabelForm",
     "sequenceReturnHead",
     "sequenceKindLabels",
+    "sequenceRowGap",
+    "sequenceGutter",
+    "sequenceBandWidth",
+    "sequenceSelfLoop",
     "figureCard",
     "figureSize",
     "terminalDecoration",
@@ -820,6 +842,7 @@ export const ACCEPTED_KEYS = {
     "legendFontSize",
     "legendOffset",
     "stageHeaders",
+    "layoutByTheme",
     "stageLayout",
   ],
   actor: [
@@ -831,6 +854,10 @@ export const ACCEPTED_KEYS = {
     "emptyRowsNote",
     "titleAlign",
     "rowRules",
+    "rowStripe",
+    "rowLayout",
+    "rowDividerForm",
+    "rowWell",
     "rowMarkForm",
     "nestIn",
     "figureCard",
@@ -918,6 +945,11 @@ export const ACCEPTED_KEYS = {
     "dashOffsetBind",
     "labelOffsetX",
     "labelOffsetY",
+    "posX1",
+    "posY1",
+    "posX2",
+    "posY2",
+    "waypoints",
     "labelCollision",
     "labelSize",
     "overlay",
@@ -1040,6 +1072,10 @@ export const 欄の型表 = {
     sequenceLabelForm: "非空の文字列",
     sequenceReturnHead: "非空の文字列",
     sequenceKindLabels: "object",
+    sequenceRowGap: "数",
+    sequenceGutter: "数",
+    sequenceBandWidth: "数",
+    sequenceSelfLoop: "object",
     figureCard: "object",
     figureSize: "object",
     terminalDecoration: "object",
@@ -1097,6 +1133,7 @@ export const 欄の型表 = {
     legendFontSize: "数",
     legendOffset: "object",
     stageHeaders: "object",
+    layoutByTheme: "object",
     stageLayout: "object",
   },
   actor: {
@@ -1108,6 +1145,10 @@ export const 欄の型表 = {
     emptyRowsNote: "文字列",
     titleAlign: "非空の文字列",
     rowRules: "真偽",
+    rowStripe: "真偽",
+    rowLayout: "object",
+    rowDividerForm: "非空の文字列",
+    rowWell: "object",
     rowMarkForm: "非空の文字列",
     nestIn: "非空の文字列",
     figureCard: "object",
@@ -1193,6 +1234,11 @@ export const 欄の型表 = {
     dashOffsetBind: "非空の文字列",
     labelOffsetX: "数",
     labelOffsetY: "数",
+    posX1: "数",
+    posY1: "数",
+    posX2: "数",
+    posY2: "数",
+    waypoints: "並び",
     labelCollision: "線札の衝突",
     labelSize: "object",
     overlay: "真偽",
@@ -1315,6 +1361,10 @@ export const 見本に効かない欄 = [
   "emptyRowsNote",
   "titleAlign",
   "rowRules",
+  "rowStripe",
+  "rowLayout",
+  "rowDividerForm",
+  "rowWell",
   "rowMarkForm",
   "nestIn",
   "figureCard",
@@ -2064,6 +2114,75 @@ function validateStageHeaders(v: unknown, errors: JsonDslError[]): void {
   }
 }
 
+/** 意匠別の表の行配置と固定線を検査する。 */
+function validateLayoutByTheme(v: unknown, errors: JsonDslError[]): void {
+  if (v === undefined) return;
+  if (!v || typeof v !== "object" || Array.isArray(v)) {
+    errors.push({ path: "$.layoutByTheme", message: "layoutByTheme must be an object" });
+    return;
+  }
+  for (const [theme, rawTheme] of Object.entries(v as Record<string, unknown>)) {
+    const themePath = `$.layoutByTheme.${theme}`;
+    if (!(THEMES as readonly string[]).includes(theme)) {
+      errors.push({ path: themePath, message: `unknown theme "${theme}"` });
+      continue;
+    }
+    if (!rawTheme || typeof rawTheme !== "object" || Array.isArray(rawTheme)) {
+      errors.push({ path: themePath, message: "theme layout must be an object" });
+      continue;
+    }
+    const themeValue = rawTheme as Record<string, unknown>;
+    for (const key of Object.keys(themeValue)) if (key !== "nodes" && key !== "edges") errors.push({ path: `${themePath}.${key}`, message: `unknown key "${key}"` });
+    for (const section of ["nodes", "edges"] as const) {
+      const entries = themeValue[section];
+      if (entries === undefined) continue;
+      const sectionPath = `${themePath}.${section}`;
+      if (!entries || typeof entries !== "object" || Array.isArray(entries)) {
+        errors.push({ path: sectionPath, message: `${section} must be an object` });
+        continue;
+      }
+      for (const [name, raw] of Object.entries(entries as Record<string, unknown>)) {
+        const path = `${sectionPath}.${name}`;
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+          errors.push({ path, message: "layout override must be an object" });
+          continue;
+        }
+        const value = raw as Record<string, unknown>;
+        const allowed = section === "nodes"
+          ? ["rowLayout", "rowStripe", "h", "posH", "posY"]
+          : ["posX1", "posY1", "posX2", "posY2", "waypoints", "labelOffsetX", "labelOffsetY"];
+        for (const key of Object.keys(value)) if (!allowed.includes(key)) errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+        if (section === "nodes") {
+          if (value.rowStripe !== undefined && typeof value.rowStripe !== "boolean") errors.push({ path: `${path}.rowStripe`, message: "rowStripe must be boolean" });
+          if (value.h !== undefined && (typeof value.h !== "number" || !Number.isFinite(value.h) || value.h <= 0)) errors.push({ path: `${path}.h`, message: "h must be a positive number" });
+          if (value.posH !== undefined && (typeof value.posH !== "number" || !Number.isFinite(value.posH) || value.posH <= 0)) errors.push({ path: `${path}.posH`, message: "posH must be a positive number" });
+          if (value.posY !== undefined && (typeof value.posY !== "number" || !Number.isFinite(value.posY))) errors.push({ path: `${path}.posY`, message: "posY must be a finite number" });
+          if (value.rowLayout !== undefined) {
+            if (!value.rowLayout || typeof value.rowLayout !== "object" || Array.isArray(value.rowLayout)) errors.push({ path: `${path}.rowLayout`, message: "rowLayout must be an object" });
+            else for (const [key, item] of Object.entries(value.rowLayout as Record<string, unknown>)) {
+              if (!["titleBaseline", "rowTop", "rowPitch"].includes(key)) errors.push({ path: `${path}.rowLayout.${key}`, message: `unknown key "${key}"` });
+              else if (typeof item !== "number" || !Number.isFinite(item) || (key === "rowPitch" ? item <= 0 : item < 0)) errors.push({ path: `${path}.rowLayout.${key}`, message: "invalid row layout value" });
+            }
+          }
+        } else {
+          for (const key of ["posX1", "posY1", "posX2", "posY2", "labelOffsetX", "labelOffsetY"]) if (value[key] !== undefined && (typeof value[key] !== "number" || !Number.isFinite(value[key]))) errors.push({ path: `${path}.${key}`, message: "must be a finite number" });
+          if (value.waypoints !== undefined && !Array.isArray(value.waypoints)) errors.push({ path: `${path}.waypoints`, message: "waypoints must be an array" });
+          else if (Array.isArray(value.waypoints)) value.waypoints.forEach((point, index) => {
+            const pointPath = `${path}.waypoints[${index}]`;
+            if (!point || typeof point !== "object" || Array.isArray(point)) {
+              errors.push({ path: pointPath, message: "waypoint must be an object" });
+              return;
+            }
+            const pointValue = point as Record<string, unknown>;
+            for (const key of Object.keys(pointValue)) if (key !== "x" && key !== "y") errors.push({ path: `${pointPath}.${key}`, message: `unknown key "${key}"` });
+            if (typeof pointValue.x !== "number" || !Number.isFinite(pointValue.x) || typeof pointValue.y !== "number" || !Number.isFinite(pointValue.y)) errors.push({ path: pointPath, message: "waypoint x and y must be finite numbers" });
+          });
+        }
+      }
+    }
+  }
+}
+
 /**
  * 値を見せる部品の並びを検査する (#1374)。
  *
@@ -2641,10 +2760,35 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
       }
     }
   }
+  if (
+    j.sequenceRowGap !== undefined &&
+    (typeof j.sequenceRowGap !== "number" || !Number.isFinite(j.sequenceRowGap) || j.sequenceRowGap <= 0)
+  ) {
+    errors.push({ path: "$.sequenceRowGap", message: "sequenceRowGap must be a positive finite number" });
+  }
+  for (const key of ["sequenceGutter", "sequenceBandWidth"] as const) {
+    if (j[key] !== undefined && (typeof j[key] !== "number" || !Number.isFinite(j[key]) || j[key] <= 0)) {
+      errors.push({ path: `$.${key}`, message: `${key} must be a positive finite number` });
+    }
+  }
+  if (j.sequenceSelfLoop !== undefined) {
+    if (!j.sequenceSelfLoop || typeof j.sequenceSelfLoop !== "object" || Array.isArray(j.sequenceSelfLoop)) {
+      errors.push({ path: "$.sequenceSelfLoop", message: "sequenceSelfLoop must be an object" });
+    } else {
+      const loop = j.sequenceSelfLoop as Record<string, unknown>;
+      for (const key of Object.keys(loop)) {
+        if (!(SEQUENCE_SELF_LOOP_KEYS as readonly string[]).includes(key)) errors.push({ path: `$.sequenceSelfLoop.${key}`, message: `unknown key "${key}"` });
+      }
+      if (loop.form !== undefined && loop.form !== "orthogonal") errors.push({ path: "$.sequenceSelfLoop.form", message: "form must be orthogonal" });
+      for (const key of ["width", "drop"] as const) {
+        if (loop[key] !== undefined && (typeof loop[key] !== "number" || !Number.isFinite(loop[key]) || loop[key] <= 0)) errors.push({ path: `$.sequenceSelfLoop.${key}`, message: "must be a positive finite number" });
+      }
+    }
+  }
   const card = closedObject("figureCard", ["label", "note"]);
   if (card !== undefined) {
-    if (typeof card.label !== "string" || card.label.trim() === "")
-      errors.push({ path: "$.figureCard.label", message: "label must be a non-empty string" });
+    if (typeof card.label !== "string")
+      errors.push({ path: "$.figureCard.label", message: "label must be a string" });
     if (card.note !== undefined && typeof card.note !== "string")
       errors.push({ path: "$.figureCard.note", message: "note must be a string" });
   }
@@ -3233,6 +3377,7 @@ function validateJson(
   validateBands(j.bands, errors);
   validateLegend(j.legend, errors);
   validateStageHeaders(j.stageHeaders, errors);
+  validateLayoutByTheme(j.layoutByTheme, errors);
   // 読む人が動かすつまみの中身も、記法と同じ表で見る (#1389)
   validateInputs(j.inputs, errors);
   // 式は描画側の parser に通す (#1391)
@@ -3291,13 +3436,42 @@ function validateJson(
       actorEnum("icon", CDL_ICON_VALUES);
       actorEnum("titleAlign", TITLE_ALIGN_VALUES);
       actorEnum("rowMarkForm", ROW_MARK_FORM_VALUES);
+      actorEnum("rowDividerForm", ROW_DIVIDER_FORM_VALUES);
+      if (ao.rowWell !== undefined) {
+        const path = `$.actors[${i}].rowWell`;
+        if (!ao.rowWell || typeof ao.rowWell !== "object" || Array.isArray(ao.rowWell)) {
+          errors.push({ path, message: "rowWell must be an object" });
+        } else {
+          const well = ao.rowWell as Record<string, unknown>;
+          for (const key of Object.keys(well)) {
+            if (!(ROW_WELL_KEYS as readonly string[]).includes(key)) errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+          }
+          for (const key of ROW_WELL_KEYS) {
+            const value = well[key];
+            if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value) || value < 0)) errors.push({ path: `${path}.${key}`, message: "must be a non-negative finite number" });
+          }
+        }
+      }
+      if (ao.rowLayout !== undefined) {
+        const path = `$.actors[${i}].rowLayout`;
+        if (!ao.rowLayout || typeof ao.rowLayout !== "object" || Array.isArray(ao.rowLayout)) {
+          errors.push({ path, message: "rowLayout must be an object" });
+        } else {
+          const layout = ao.rowLayout as Record<string, unknown>;
+          for (const key of Object.keys(layout)) if (!["titleBaseline", "rowTop", "rowPitch"].includes(key)) errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
+          for (const key of ["titleBaseline", "rowTop", "rowPitch"] as const) {
+            const value = layout[key];
+            if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value) || (key === "rowPitch" ? value <= 0 : value < 0))) errors.push({ path: `${path}.${key}`, message: key === "rowPitch" ? "must be a positive finite number" : "must be a non-negative finite number" });
+          }
+        }
+      }
       if (ao.figureCard !== undefined) {
         const path = `$.actors[${i}].figureCard`;
         if (!ao.figureCard || typeof ao.figureCard !== "object" || Array.isArray(ao.figureCard)) errors.push({ path, message: "figureCard must be an object" });
         else {
           const card = ao.figureCard as Record<string, unknown>;
           for (const key of Object.keys(card)) if (key !== "label" && key !== "note") errors.push({ path: `${path}.${key}`, message: `unknown key "${key}"` });
-          if (typeof card.label !== "string" || card.label.trim() === "") errors.push({ path: `${path}.label`, message: "label must be a non-empty string" });
+          if (typeof card.label !== "string") errors.push({ path: `${path}.label`, message: "label must be a string" });
           if (card.note !== undefined && typeof card.note !== "string") errors.push({ path: `${path}.note`, message: "note must be a string" });
         }
       }
@@ -3425,6 +3599,31 @@ function validateJson(
         const size = so.labelSize as Record<string, unknown>;
         for (const key of Object.keys(size)) if (!["width", "height", "fontSize"].includes(key)) errors.push({ path: `$.flow[${i}].labelSize.${key}`, message: `unknown key "${key}"` });
         for (const key of ["width", "height", "fontSize"]) if (size[key] !== undefined && (typeof size[key] !== "number" || !Number.isFinite(size[key]) || size[key] <= 0)) errors.push({ path: `$.flow[${i}].labelSize.${key}`, message: "must be a positive finite number" });
+      }
+      if (so.waypoints !== undefined) {
+        const path = `$.flow[${i}].waypoints`;
+        if (!Array.isArray(so.waypoints)) errors.push({ path, message: "waypoints must be an array" });
+        else {
+          const points: Array<{ x: number; y: number }> = [];
+          so.waypoints.forEach((point, pointIndex) => {
+            const pointPath = `${path}[${pointIndex}]`;
+            if (!point || typeof point !== "object" || Array.isArray(point)) {
+              errors.push({ path: pointPath, message: "waypoint must be an object" });
+              return;
+            }
+            const value = point as Record<string, unknown>;
+            for (const key of Object.keys(value)) if (key !== "x" && key !== "y") errors.push({ path: `${pointPath}.${key}`, message: `unknown key "${key}"` });
+            if (typeof value.x !== "number" || !Number.isFinite(value.x) || typeof value.y !== "number" || !Number.isFinite(value.y)) errors.push({ path: pointPath, message: "waypoint x and y must be finite numbers" });
+            else points.push({ x: value.x, y: value.y });
+          });
+          const ends = [so.posX1, so.posY1, so.posX2, so.posY2];
+          if (ends.every((value) => typeof value === "number" && Number.isFinite(value)) && points.length === so.waypoints.length) {
+            const all = [{ x: so.posX1 as number, y: so.posY1 as number }, ...points, { x: so.posX2 as number, y: so.posY2 as number }];
+            all.forEach((point, pointIndex) => {
+              if (pointIndex > 0 && point.x !== all[pointIndex - 1]!.x && point.y !== all[pointIndex - 1]!.y) errors.push({ path: `${path}[${Math.min(pointIndex - 1, points.length - 1)}]`, message: "each waypoint segment must be orthogonal" });
+            });
+          }
+        }
       }
       // CAR-1693 Phase 1: step DSL 表面 pos の validation
       validateLayoutPos(so.pos, `$.flow[${i}].pos`, errors);
@@ -3699,6 +3898,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
       emptyRowsNote: isPart ? undefined : a.emptyRowsNote,
       titleAlign: isPart ? undefined : a.titleAlign,
       rowRules: isPart ? undefined : a.rowRules,
+      rowStripe: isPart ? undefined : a.rowStripe,
+      rowLayout: isPart ? undefined : a.rowLayout,
+      rowDividerForm: isPart ? undefined : a.rowDividerForm,
+      rowWell: isPart ? undefined : a.rowWell,
       rowMarkForm: isPart ? undefined : a.rowMarkForm,
       nestIn: isPart ? undefined : a.nestIn,
       figureCard: isPart ? undefined : a.figureCard,
@@ -3819,6 +4022,11 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     dashOffsetBind: s.dashOffsetBind,
     labelOffsetX: s.labelOffsetX,
     labelOffsetY: s.labelOffsetY,
+    posX1: s.posX1,
+    posY1: s.posY1,
+    posX2: s.posX2,
+    posY2: s.posY2,
+    waypoints: s.waypoints,
     labelCollision: s.labelCollision,
     labelSize: s.labelSize,
     overlay: s.overlay,
@@ -3970,6 +4178,10 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.sequenceLabelForm !== undefined ? { sequenceLabelForm: json.sequenceLabelForm } : {}),
     ...(json.sequenceReturnHead !== undefined ? { sequenceReturnHead: json.sequenceReturnHead } : {}),
     ...(json.sequenceKindLabels !== undefined ? { sequenceKindLabels: json.sequenceKindLabels } : {}),
+    ...(json.sequenceRowGap !== undefined ? { sequenceRowGap: json.sequenceRowGap } : {}),
+    ...(json.sequenceGutter !== undefined ? { sequenceGutter: json.sequenceGutter } : {}),
+    ...(json.sequenceBandWidth !== undefined ? { sequenceBandWidth: json.sequenceBandWidth } : {}),
+    ...(json.sequenceSelfLoop !== undefined ? { sequenceSelfLoop: json.sequenceSelfLoop } : {}),
     ...(json.figureCard !== undefined ? { figureCard: json.figureCard } : {}),
     ...(json.figureSize !== undefined ? { figureSize: json.figureSize } : {}),
     ...(json.terminalDecoration !== undefined ? { terminalDecoration: json.terminalDecoration } : {}),
@@ -4008,6 +4220,7 @@ export function jsonToDoc(json: DragonJson, 行の表?: 書いた行の表): Dsl
     ...(json.legendFontSize !== undefined ? { legendFontSize: json.legendFontSize } : {}),
     ...(json.legendOffset !== undefined ? { legendOffset: json.legendOffset } : {}),
     ...(json.stageHeaders !== undefined ? { stageHeaders: json.stageHeaders } : {}),
+    ...(json.layoutByTheme !== undefined ? { layoutByTheme: json.layoutByTheme } : {}),
     ...(json.stageLayout !== undefined ? { stageLayout: json.stageLayout } : {}),
     actors,
     flow,

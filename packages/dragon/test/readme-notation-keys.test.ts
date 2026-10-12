@@ -234,6 +234,16 @@ describe("README の記法の一覧が実装と一致する (#1275)", () => {
       head: { 書く: "triangle", 期待: "triangle" },
       labelOffsetX: { 書く: "3", 期待: 3 },
       labelOffsetY: { 書く: "-8", 期待: -8 },
+      posX1: { 書く: "10", 期待: 10 },
+      posY1: { 書く: "20", 期待: 20 },
+      posX2: { 書く: "30", 期待: 30 },
+      posY2: { 書く: "40", 期待: 40 },
+      waypoints: {
+        書く: '[{"x":10,"y":40}], posX1: 10, posY1: 20, posX2: 30, posY2: 40',
+        確かめる: (d) => {
+          expect(d.edges[0]?.waypoints).toEqual([{ x: 10, y: 40 }]);
+        },
+      },
       labelCollision: { 書く: "author", 期待: "author" },
       labelSize: {
         書く: '{"width":96,"height":40,"fontSize":21}',

@@ -48,26 +48,26 @@ const hexToRgb = (hex: string): string => {
 test("switch: 意匠の札が全て並び、配色を持つ図で切り替えられる (#1569 / #2790)", async ({
   page,
 }) => {
-  await 開く(page, "presets", "er-demo");
+  await 開く(page, "presets", "delivery-relations-demo");
 
   await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
   const expected = 配色の選択肢.map((theme) => 配色の札(theme, "ja"));
   expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末", "手描き", "電飾", "浮彫"]);
   for (const label of expected)
     await expect(切替(page).getByRole("radio", { name: label })).toHaveCount(1);
-  expect(await 配色(page, "er-demo"), "既定が生成りに茶でない").toBe("kinari");
+  expect(await 配色(page, "delivery-relations-demo"), "既定が生成りに茶でない").toBe("kinari");
 
   await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
-  await expect.poll(async () => await 配色(page, "er-demo"), { timeout: 5000 }).toBe("celadon");
+  await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("celadon");
 
   await 切替(page).getByRole("radio", { name: "生成りに茶" }).click();
-  await expect.poll(async () => await 配色(page, "er-demo"), { timeout: 5000 }).toBe("kinari");
+  await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("kinari");
 });
 
 test('switch: 意匠の札を全て並べても「図 / コード」 のタブは 1 行のまま (#2794)', async ({
   page,
 }) => {
-  await 開く(page, "presets", "er-demo");
+  await 開く(page, "presets", "delivery-relations-demo");
   await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
 
   const tabs = page.locator('.catalog-preview-tabs [role="tab"]:visible');
@@ -107,9 +107,9 @@ test("switch: 狭い幅でも意匠の札の字は 1 行のまま、札は画面
     await page.setViewportSize({ width, height: 900 });
     await page.goto("catalog/presets");
     await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
-    await 一覧の行(page, "er-demo").click();
+    await 一覧の行(page, "delivery-relations-demo").click();
     await page.locator(".catalog-preview-stage").scrollIntoViewIfNeeded();
-    await page.waitForSelector('[data-cdl-diagram="er-demo"]', { timeout: 15000 });
+    await page.waitForSelector('[data-cdl-diagram="delivery-relations-demo"]', { timeout: 15000 });
     await page.evaluate(() => document.fonts.ready);
     await expect(切替(page), `${width}px で図の色味の切替が出ていない`).toBeVisible();
 
@@ -155,11 +155,11 @@ test("switch: 狭い幅でも意匠の札の字は 1 行のまま、札は画面
 
 test("switch: クラス図でも切り替えられる (#1569)", async ({ page }) => {
   // ER 図だけを見ると、配色を持つ図が 1 種類しか無い形でも通る
-  await 開く(page, "presets", "class-demo");
+  await 開く(page, "presets", "delivery-classes-demo");
   await expect(切替(page), "クラス図に切替が出ていない").toBeVisible();
 
   await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
-  await expect.poll(async () => await 配色(page, "class-demo"), { timeout: 5000 }).toBe("celadon");
+  await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBe("celadon");
 });
 
 test("terminal switch: 見本帳で端末を選ぶと字を等幅で測り直し、生成りへ戻すと元の測り方に戻る (#2818)", async ({
@@ -268,7 +268,7 @@ test("letterpress switch: 配色のない図と表の図へ活版の名前と地
   const letterpress = readThemeNotes().get("letterpress");
   if (letterpress?.mode !== "fixed") throw new Error("活版の意匠帳が固定の表ではない");
 
-  for (const id of ["infra-demo", "er-demo"]) {
+  for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
     await 切替(page)
       .getByRole("radio", { name: 配色の札("letterpress", "ja") })
@@ -286,7 +286,7 @@ test("catalog switch: 配色のない図と表の図へ図録の名前と地が�
   const catalog = readThemeNotes().get("catalog");
   if (catalog?.mode !== "fixed") throw new Error("図録の意匠帳が固定の表ではない");
 
-  for (const id of ["infra-demo", "er-demo"]) {
+  for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
     await 切替(page)
       .getByRole("radio", { name: 配色の札("catalog", "ja") })
@@ -304,7 +304,7 @@ test("terminal switch: 配色のない図と表の図へ端末の名前と地が
   const terminal = readThemeNotes().get("terminal");
   if (terminal?.mode !== "fixed") throw new Error("端末の意匠帳が固定の表ではない");
 
-  for (const id of ["infra-demo", "er-demo"]) {
+  for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
     await 切替(page)
       .getByRole("radio", { name: 配色の札("terminal", "ja") })
@@ -322,7 +322,7 @@ test("sketch switch: 配色のない図と表の図へ手描きの名前と地�
   const sketch = readThemeNotes().get("sketch");
   if (sketch?.mode !== "fixed") throw new Error("手描きの意匠帳が固定の表ではない");
 
-  for (const id of ["infra-demo", "er-demo"]) {
+  for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
     const option = 切替(page).getByRole("radio", { name: 配色の札("sketch", "ja") });
     const count = await option.count();
@@ -342,7 +342,7 @@ test("neon switch: 配色のない図と表の図へ電飾の名前と地が届�
   const neon = readThemeNotes().get("neon");
   if (neon?.mode !== "fixed") throw new Error("電飾の意匠帳が固定の表ではない");
 
-  for (const id of ["infra-demo", "er-demo"]) {
+  for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
     const option = 切替(page).getByRole("radio", { name: 配色の札("neon", "ja") });
     const count = await option.count();
@@ -362,7 +362,7 @@ test("relief switch: 配色のない図と表の図へ浮彫の名前と地が�
   const relief = readThemeNotes().get("relief");
   if (relief?.mode !== "fixed") throw new Error("浮彫の意匠帳が固定の表ではない");
 
-  for (const id of ["infra-demo", "er-demo"]) {
+  for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
     const option = 切替(page).getByRole("radio", { name: 配色の札("relief", "ja") });
     const count = await option.count();
@@ -380,13 +380,13 @@ test("relief switch: 配色のない図と表の図へ浮彫の名前と地が�
 
 test("switch: 項目を選び直すと既定へ戻る (#1569)", async ({ page }) => {
   // 残すと、次の図が別の色みで出る理由を見失う (速さ / 描き方 と同じ扱い)
-  await 開く(page, "presets", "er-demo");
+  await 開く(page, "presets", "delivery-relations-demo");
   await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
-  await expect.poll(async () => await 配色(page, "er-demo"), { timeout: 5000 }).toBe("celadon");
+  await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("celadon");
 
-  await 一覧の行(page, "class-demo").click();
-  await page.waitForSelector('[data-cdl-diagram="class-demo"]', { timeout: 15000 });
-  await expect.poll(async () => await 配色(page, "class-demo"), { timeout: 5000 }).toBe("kinari");
+  await 一覧の行(page, "delivery-classes-demo").click();
+  await page.waitForSelector('[data-cdl-diagram="delivery-classes-demo"]', { timeout: 15000 });
+  await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBe("kinari");
 });
 
 test("switch: 生成りと青磁では札へ線の色みが漏れない", async ({ page }, testInfo) => {

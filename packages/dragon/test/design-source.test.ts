@@ -244,7 +244,9 @@ describe("落ちた名前", () => {
 describe("実物で確かめる", () => {
   const repo = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
   const catalog = join(repo, "apps/playground-spa/src/topics/catalog/presets.cdl.ts");
-  const 図たち = ["er-demo", "seq-demo", "infra-demo", "chart-line-demo"];
+  // 記法から後付けする simple の id は source の塊の中に無いため、組み立て API 版で
+  // source の依存を辿る検査を続ける。 simple の記法は catalog-delivery-four-templates.test.tsx が見る。
+  const 図たち = ["fsm-demo", "network-demo", "infra-demo", "chart-line-demo"];
 
   it("catalog の 4 図で落ちる名前が 0 件", () => {
     // **抜ける形にしない** (#2500)。 この file は commit されているので、

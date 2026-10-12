@@ -1,9 +1,10 @@
-import { flowchart, layout } from "@cardenelabs/cdl";
+import { flowchart } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 import type { DslActor, DslDocument } from "../types";
 import { 箱の題 } from "./node-title";
 import { 縦列ごとの段を決める, 書いた縦列に置く } from "./lanes";
 import { 並べる向き } from "./direction";
+import { 測るために配置する } from "./parts";
 import { slugify } from "./slug";
 /**
  * 記法の `type: flowchart` を分かれ道の図に直す (#2513)。
@@ -249,7 +250,7 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
    */
   if (!縦に積む && diagram.nodes.length > 0) {
     const 自分の高さ = new Map(
-      layout({
+      測るために配置する({
         ...diagram,
         nodes: diagram.nodes.map((node, index) => ({ ...node, stack: index })),
         edges: [],

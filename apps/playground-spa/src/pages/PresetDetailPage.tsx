@@ -20,7 +20,7 @@ import { PhaseChrome, PhaseNote } from "@/components/PhaseChrome";
 import { DiagramZoomControls } from "@/components/DiagramZoomControls";
 import { useDiagramPanZoom } from "@/components/useDiagramPanZoom";
 import { useScrollEdges } from "@/components/useScrollEdges";
-import { 収める, 次の倍率, svgの幅, type 倍率の指定 } from "@/lib/diagram-zoom";
+import { 収める, 次の倍率, type 倍率の指定 } from "@/lib/diagram-zoom";
 import "@/styles/compare.css";
 
 /**
@@ -100,7 +100,7 @@ export function PresetDetailPage(): React.ReactElement {
     読める下限を課す: true,
   });
   // 幅に合わせる指定でも、読める下限を割る図は下限の倍率で描く (#2269)
-  const 指定した幅 = svgの幅(倍率, viewBox幅) ?? svgの幅(操作.読める下限の倍率 ?? 収める, viewBox幅);
+  const 指定した幅 = 操作.図に当てる幅;
   // 続きが隠れている端 (#2427)。 掴める形のカーソルは触れないと出ず、どちら側に続くかも言わない
   const 隠れた端 = useScrollEdges({ 器: stageEl, 巻き取りを探す: 台の巻き取りを探す, 図の鍵: 描く図 });
   function 倍率を動かす(向き: "上げる" | "下げる"): void {

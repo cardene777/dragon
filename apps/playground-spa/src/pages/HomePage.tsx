@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { CdlDiagramView } from "@cardenelabs/cdl";
 import { PenLine, Play, Share2 } from "lucide-react";
-import { presetSequence, presetTopology, presetEr } from "@/topics/catalog/presets.cdl";
+import { presetDeliverySequence, presetTopology, presetDeliveryRelations } from "@/topics/catalog/presets.cdl";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useLocale } from "@/lib/useLocale";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
@@ -81,6 +81,10 @@ const STEP_CODE = [
   "flow:",
   "  - user -> api: GET /me",
 ];
+
+// トップの縮小見本は全体が一覧への行き先。中の表まで押す対象にすると、縮小された行が
+// 24px 未満の入れ子の的になる。関係を触って読む操作は詳細画面だけに残す。
+const HOME_DELIVERY_RELATIONS = { ...presetDeliveryRelations, relationFocus: "off" as const };
 
 export function HomePage(): React.ReactElement {
   const [locale] = useLocale();
@@ -296,7 +300,7 @@ export function HomePage(): React.ReactElement {
         <div className="examples-grid">
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(presetSequence, locale)} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(presetDeliverySequence, locale)} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag tag-seq">{isJa ? "シーケンス図" : "sequence"}</span>
@@ -316,7 +320,7 @@ export function HomePage(): React.ReactElement {
           </Link>
           <Link className="example" to="/catalog/presets">
             <div className="example-thumb">
-              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(presetEr, locale)} hideHeader />
+              <CdlDiagramView hideMiniPhaseIndicator diagram={図に画面の言語を当てる(HOME_DELIVERY_RELATIONS, locale)} hideHeader />
             </div>
             <div className="example-body">
               <span className="example-tag tag-er">{isJa ? "ER図" : "er"}</span>

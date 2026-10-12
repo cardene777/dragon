@@ -8,8 +8,9 @@
  *
  * 見るのは 3 つ。
  *
- * 1. 下げた値が実際に効き、記法の表の図と `er()` の見本で同じになる
+ * 1. 下げた値が実際に効き、対象の 2 図で通常 / 光るの値になる
  *    (`cdl-theme.css` の `!important` の重なりで決まるので、規則を読んだだけでは効く値が判らない)
+ *    宅配の関係図の状態線と利用線は、図録の見本色をそのまま描くため不透明にする (#2836)
  * 2. 下げた後も紙に対する対比が 3 以上ある (図形が読める下限)
  * 3. 移り変わりの図と他の図種は描く側の値のまま (`edge-line` は線を引く全図種が共有する役割で、
  *    囲いが外れると分かれ道の図まで薄くなり、`record` 全体を囲うと移り変わりの図まで薄くなる)
@@ -93,8 +94,6 @@ async function 光り方ごとの薄さを読む(
 async function 図種を読む(page: Page, 選び方 = 舞台): Promise<string | null> {
   return page.locator(選び方).first().getAttribute("data-cdl-type");
 }
-
-const 重複を除いて並べる = (値: number[]): number[] => [...new Set(値)].sort((a, b) => a - b);
 
 /**
  * 線を出した写しと隠した写しを撮り、画素の差から対比を出す。
@@ -185,8 +184,7 @@ async function 線の対比を測る(page: Page): Promise<{ 比: number; 本数:
 }
 
 for (const [名, 頁, 識別子] of [
-  ["クラス図", "presets", "class-demo"],
-  ["表のつながりの図", "presets", "er-demo"],
+  ["荷物を運ぶ型", "presets", "delivery-classes-demo"],
   ["記法で書いた表のつながりの図", "patterns", "集まる形-6-表-5-関係"],
 ] as const) {
   test(`${名}の線が薄くなっている`, async ({ page }) => {
@@ -216,26 +214,32 @@ for (const [名, 頁, 識別子] of [
   }
 }
 
-test("記法で書いた表のつながりの図の線は `er()` の見本と同じ薄さ (#2805)", async ({ page }) => {
-  await 見本を開く(page, "er-demo", false);
-  expect(await 図種を読む(page), "`er()` の見本の図種").toBe("er");
-  const erの値 = await 光り方ごとの薄さを読む(page);
+for (const 暗い of [false, true]) {
+  test(`契約と荷物と配送状態の関係の状態線と利用線は${暗い ? "暗い" : "明るい"}画面でも見本色を透かさない (#2836)`, async ({
+    page,
+  }) => {
+    await 見本を開く(page, "delivery-relations-demo", 暗い);
+    const 値 = await page.locator(線).evaluateAll((線たち) =>
+      線たち
+        .map((要素) => ({
+          tone: 要素.closest("[data-cdl-tone]")?.getAttribute("data-cdl-tone") ?? "",
+          opacity: Number(getComputedStyle(要素).strokeOpacity),
+        }))
+        .filter((x) => x.tone === "warning" || x.tone === "teal"),
+    );
 
-  await 見本を開く(page, "集まる形-6-表-5-関係", false, "patterns");
-  expect(await 図種を読む(page), "記法で書いた表の図の図種").toBe("record");
-  const recordの値 = await 光り方ごとの薄さを読む(page);
+    // 状態 3 本 + 利用 3 本。線を減らして全件が通る空振りも、本数で落とす。
+    expect(値.filter((x) => x.tone === "warning"), "状態線").toHaveLength(3);
+    expect(値.filter((x) => x.tone === "teal"), "利用線").toHaveLength(3);
+    expect(値.map((x) => x.opacity), "状態線と利用線の不透明度").toEqual([1, 1, 1, 1, 1, 1]);
+  });
+}
 
-  for (const 光り方 of ["光る", "光らない"] as const) {
-    expect(erの値[光り方].length, `er() に${光り方}線が無い`).toBeGreaterThan(0);
-    expect(recordの値[光り方].length, `記法の表の図に${光り方}線が無い`).toBeGreaterThan(0);
-    const erの集合 = 重複を除いて並べる(erの値[光り方]);
-    const recordの集合 = 重複を除いて並べる(recordの値[光り方]);
-    expect(
-      recordの集合,
-      `${光り方}線の薄さが違う (er(): ${erの集合.join(" / ")}、記法: ${recordの集合.join(" / ")})`,
-    ).toEqual(erの集合);
-  }
-});
+/*
+ * #2836 で一覧の簡単な `er()` 見本は宅配の record 図に置き換わり、`er-complex-demo` は
+ * 単独の一覧行ではなくパターン「複雑」だけになった。旧 id を直接開く同値比較は目的を失ったため畳む。
+ * 薄さ 0.8 / 0.85 は直前の 3 図の検査が各図を直接測り、対比 3 の下限も同じ線ごとに守る。
+ */
 
 for (const [名, 識別子] of [
   ["注文の状態", "注文の状態"],

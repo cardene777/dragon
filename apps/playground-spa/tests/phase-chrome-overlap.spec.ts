@@ -12,8 +12,9 @@ type 被り = {
 };
 
 const 見本 = {
-  一覧の識別子: "seq-demo",
-  詳細の道: "preset/sequence",
+  一覧の識別子: "delivery-sequence-demo",
+  // #2836 で詳細用 preset の slug も宅配見本へ替わった。旧 `sequence` は一覧の図を指さない。
+  詳細の道: "preset/delivery-sequence",
 } as const;
 
 const 覆いの必要量 = [

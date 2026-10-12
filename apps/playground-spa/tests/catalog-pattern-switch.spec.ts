@@ -406,14 +406,14 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
 test.describe("ひな形の簡単な版と複雑な版を切り替える (#1960)", () => {
   const 規模違い = [
     {
-      名前: "クラス図",
-      簡単: "class-demo",
+      名前: "荷物を運ぶ型",
+      簡単: "delivery-classes-demo",
       複雑: "class-complex-demo",
       複雑の題: "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
     },
     {
-      名前: "ER図",
-      簡単: "er-demo",
+      名前: "契約と荷物と配送状態の関係",
+      簡単: "delivery-relations-demo",
       複雑: "er-complex-demo",
       複雑の題: "商取引の表と必須・任意の関係を表す ER 図",
     },
@@ -461,58 +461,46 @@ test.describe("ひな形の簡単な版と複雑な版を切り替える (#1960)
   }
 });
 
-test.describe("cdl 0.130.0 の欄を関係・型・構成・順序のひな形で描く (#2854)", () => {
+test.describe("cdl 0.134.0 の欄を関係・型・構成・順序のひな形で描く (#2836)", () => {
   test("関係の入れ子の足と注記、型の空注記・行印・凡例が出る", async ({ page }) => {
-    await 開く(page, "ER図", "presets");
+    await 開く(page, "契約と荷物と配送状態の関係", "presets");
     const 関係 = page.locator(".catalog-preview-stage svg[data-cdl-stage]").first();
-    await expect(関係.locator('[data-cdl-role="node-footer-label"]')).toHaveText("抱える 1");
-    await expect(関係.locator('[data-cdl-role="node-footer-note"]')).toHaveText("記録 4");
+    // Phase 1 見本で「抱える 2」を持つのは営業所 1 件。複数の footer を strict locator で読まない。
+    await expect(関係.locator('[data-cdl-node="営業所"] [data-cdl-role="node-footer-label"]')).toHaveText("抱える 2");
+    await expect(関係.locator('[data-cdl-node="荷物"] [data-cdl-role="node-footer-note"]')).toHaveText("記録 3");
     await expect(関係.locator('[data-cdl-role="legend-item"]')).toContainText([
-      "持つ は線を引かない。 注文 が 明細 を抱えるように、囲いで出す",
+      "持つ は線を引かない。 営業所 が 受付 と 仕分け を抱えるように、囲いで出す",
     ]);
 
-    await 開く(page, "クラス図", "presets");
+    await 開く(page, "荷物を運ぶ型", "presets");
     const 型 = page.locator(".catalog-preview-stage svg[data-cdl-stage]").first();
-    const 注文 = 型.locator('[data-cdl-node="Order"]');
-    await expect(型.locator('[data-cdl-role="node-row-empty"]')).toHaveText("操作を持たない");
-    await expect(注文.locator('[data-cdl-row-tone="primary"]')).toHaveCount(3);
-    await expect(注文.locator('[data-cdl-row-tone="muted"]')).toHaveCount(0);
-    await expect(注文.locator('[data-cdl-role="node-row-rule"]')).toHaveCount(0);
-    await expect(注文.locator('[data-cdl-role="node-row-group-divider"]')).toHaveCount(1);
-    await expect(注文.locator('[data-cdl-role^="node-footer-"]')).toHaveCount(0);
-    await expect(型.locator('[data-cdl-role="legend-item"]')).toHaveText([
-      "継承",
-      "集約 (外しても残る)",
-      "コンポジション (一緒に消える)",
-      "依存",
-    ]);
+    const 荷物 = 型.locator('[data-cdl-node="荷物"]');
+    await expect(荷物.locator('[data-cdl-row-tone="primary"]')).toHaveCount(2);
+    // 5 行の間は 4 か所。群の境 1 か所は専用線へ置き換わるため、通常線 3 + 群線 1。
+    await expect(荷物.locator('[data-cdl-role="node-row-rule"]')).toHaveCount(3);
+    await expect(荷物.locator('[data-cdl-role="node-row-group-divider"]')).toHaveCount(1);
+    await expect(荷物.locator('[data-cdl-role^="node-footer-"]')).toHaveCount(0);
+    await expect(型.locator('[data-cdl-role="legend-item"]')).toHaveCount(4);
   });
 
   test("構成のひな形に線画の部品箱と縦列の補足が出る", async ({ page }) => {
-    await 開く(page, "トポロジー図", "presets");
+    await 開く(page, "配送システムの部品", "presets");
     const 図 = page.locator(".catalog-preview-stage svg[data-cdl-stage]").first();
-    await expect(図.locator('[data-cdl-role="node-kind-icon"]')).toHaveCount(4);
-    const HTTPSの線 = 図.locator('[data-cdl-edge-label="HTTPS"] [data-cdl-role="edge-line"]');
-    const ラウンドロビンの線 = 図.locator('[data-cdl-edge-label="ラウンドロビン"] [data-cdl-role="edge-line"]');
-    const dotの参照 = /^url\(#cdl-arrow-teal-dot(?:-sm)?\)$/u;
-    await expect(HTTPSの線).toHaveAttribute("marker-start", dotの参照);
-    await expect(ラウンドロビンの線).toHaveAttribute("marker-end", dotの参照);
-    await expect(図.locator('[data-cdl-role="lane-label-subtitle"]')).toHaveText([
-      "L1 · 外の利用者",
-      "L2 · 中の部品",
-    ]);
-    await expect(図.locator('[data-cdl-role="node-footer-label"]')).toHaveText("人");
-    await expect(図.locator('[data-cdl-role="node-footer-note"]')).toHaveText("L1");
+    // Phase 1 の構成見本は 9 個すべての部品箱に図記号を持つ。
+    await expect(図.locator('[data-cdl-role="node-kind-icon"]')).toHaveCount(9);
+    await expect(図.locator('[data-cdl-role="lane-label-subtitle"]')).toHaveText("L2 · 中の部品");
+    await expect(図.locator('[data-cdl-node="地図サービス"] [data-cdl-role="node-footer-label"]')).toHaveText("外のサービス");
+    await expect(図.locator('[data-cdl-role="node-footer-note"]')).toContainText(["L1", "L2", "外"]);
   });
 
   test("順序のひな形に参加者の枠と段の種類名が出る", async ({ page }) => {
-    await 開く(page, "シーケンス図", "presets");
+    await 開く(page, "集荷から配達までの呼び出し順", "presets");
     const 図 = page.locator(".catalog-preview-stage svg[data-cdl-stage]").first();
     await expect(図.locator('[data-cdl-role="sequence-actor-box"]')).toHaveCount(4);
-    await expect(図.getByText("キュー", { exact: true })).toBeVisible();
-    await expect(図.getByText("待ち行列", { exact: true })).toBeVisible();
-    await expect(図.getByText("発送を頼む", { exact: true })).toBeVisible();
-    await expect(図.getByText("引当を確定", { exact: true })).toBeVisible();
+    await expect(図.getByText("配送便", { exact: true })).toBeVisible();
+    await expect(図.locator('[data-cdl-role="sequence-actor-subtitle"]')).toHaveCount(4);
+    await expect(図.getByText("便に積む", { exact: true })).toBeVisible();
+    await expect(図.getByText("配達中にする", { exact: true })).toBeVisible();
     expect(
       await 図.locator('[data-cdl-role="sequence-label-kind"]').count(),
       "段の種類名が無い",

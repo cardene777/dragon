@@ -135,7 +135,7 @@ describe("実物で確かめる", () => {
    */
   it("納めた look.svg は引き終わっている", (ctx) => {
     const repo = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-    const 対象 = ["er-demo", "seq-demo", "infra-demo", "chart-line-demo"]
+    const 対象 = ["delivery-relations-demo", "delivery-sequence-demo", "infra-demo", "chart-line-demo"]
       .map((id) => join(repo, "docs/design/notation/presets", id, "look.svg"))
       .filter((p) => existsSync(p));
 

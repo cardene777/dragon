@@ -22,12 +22,15 @@
 import { test, expect, type Page } from "@playwright/test";
 import { 一覧の行 } from "./catalog-item-pick";
 
-/** 縞を持つ見本。 配色を書いた図から選ぶ */
+/**
+ * 縞を持つ見本。宅配の型・関係は Phase 1 の 7 意匠すべてで縞が無いのが正解なので対象外。
+ * 1 行側は `pattern-call-rw`、2 行以上側は配色つきの「行と印を英語で書く」で測る。
+ * text DSL の export 名ではなく、一覧と図に実際に載る diagram id を使う。
+ * 宅配の 2 図を外しても、「出ない / 出る」の両方を別の現行見本で保つ。
+ */
 const 見本 = [
-  { slug: "presets", id: "class-demo" },
-  { slug: "presets", id: "er-demo" },
-  // class-demo の Auditable を空にした後も、配色を当てた実在の 1 行箱で出ない側を見る。
   { slug: "patterns", id: "pattern-call-rw" },
+  { slug: "text-dsl", id: "行と印を英語で書く" },
 ] as const;
 
 async function 開く(page: Page, slug: string, id: string): Promise<void> {

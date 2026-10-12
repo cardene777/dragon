@@ -195,12 +195,178 @@ export const KIND_FORM_VALUES = ["icon"] as const;
 export const TITLE_ALIGN_VALUES = ["center"] as const;
 export const ROW_MARK_FORM_VALUES = ["tone"] as const;
 export const ROW_MARK_TONE_VALUES = ["primary", "muted"] as const;
+export const ROW_DIVIDER_FORM_VALUES = ["full"] as const;
+export const SEQUENCE_SELF_LOOP_FORM_VALUES = ["orthogonal"] as const;
 export const SEQUENCE_ACTOR_FORM_VALUES = ["box"] as const;
 export const SEQUENCE_LABEL_FORM_VALUES = ["kind"] as const;
 export const SEQUENCE_RETURN_HEAD_VALUES = ["solid"] as const;
 export const SEQUENCE_KIND_LABEL_KEYS = ["call", "return", "fire"] as const;
+export const SEQUENCE_SELF_LOOP_KEYS = ["form", "width", "drop"] as const;
+export const ROW_WELL_KEYS = ["top", "right", "bottom", "left", "radius"] as const;
+export const ROW_LAYOUT_KEYS = ["titleBaseline", "rowTop", "rowPitch"] as const;
 export const LEGEND_LINE_STYLE_VALUES = ["solid", "dotted"] as const;
 export const LEGEND_NOTE_ALIGN_VALUES = ["start", "end"] as const;
+
+/** 表の行の受け皿を閉じた object として読み、寸法を 0 以上に限る。 */
+function 行の受け皿として読む(
+  raw: string | undefined,
+  line: number,
+  errors: DslError[],
+): DslActor["rowWell"] {
+  const value = JSONの欄を読む(raw ?? null, "rowWell", line, errors);
+  const unknown = 図表の知らない項目を知らせる(
+    value,
+    ROW_WELL_KEYS,
+    "rowWell",
+    line,
+    errors,
+  );
+  if (unknown || value === undefined) return undefined;
+  if (!objectか(value)) {
+    errors.push({ line, message: "rowWell の値の形が読めません" });
+    return undefined;
+  }
+  for (const key of ROW_WELL_KEYS) {
+    const item = value[key];
+    if (item !== undefined && (typeof item !== "number" || !Number.isFinite(item) || item < 0)) {
+      errors.push({ line, message: `rowWell.${key} が読めません`, hint: "0 以上の数で書く" });
+      return undefined;
+    }
+  }
+  return value;
+}
+
+/** 表の題と行の baseline を閉じた object として読む。 */
+function 行の配置として読む(
+  raw: string | undefined,
+  line: number,
+  errors: DslError[],
+): DslActor["rowLayout"] {
+  const value = JSONの欄を読む(raw ?? null, "rowLayout", line, errors);
+  const unknown = 図表の知らない項目を知らせる(value, ROW_LAYOUT_KEYS, "rowLayout", line, errors);
+  if (unknown || value === undefined) return undefined;
+  if (!objectか(value)) {
+    errors.push({ line, message: "rowLayout の値の形が読めません" });
+    return undefined;
+  }
+  for (const key of ROW_LAYOUT_KEYS) {
+    const item = value[key];
+    const valid = typeof item === "number" && Number.isFinite(item) &&
+      (key === "rowPitch" ? item > 0 : item >= 0);
+    if (item !== undefined && !valid) {
+      errors.push({ line, message: `rowLayout.${key} が読めません`, hint: key === "rowPitch" ? "正の数で書く" : "0 以上の数で書く" });
+      return undefined;
+    }
+  }
+  return value;
+}
+
+/** 固定線の途中の点を読み、始点から終点までの各区間を直角に限る。 */
+function 線の途中の点として読む(
+  raw: string | undefined,
+  ends: readonly [number | undefined, number | undefined, number | undefined, number | undefined],
+  line: number,
+  errors: DslError[],
+): DslStep["waypoints"] {
+  if (raw === undefined) return undefined;
+  const value = JSONの欄を読む(raw ?? null, "waypoints", line, errors);
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) {
+    const unknown = value.some((point, index) =>
+      図表の知らない項目を知らせる(point, ["x", "y"], `waypoints[${index}]`, line, errors));
+    if (unknown) return undefined;
+  }
+  if (!Array.isArray(value) || value.some((point) => !objectか(point) || typeof point.x !== "number" || !Number.isFinite(point.x) || typeof point.y !== "number" || !Number.isFinite(point.y))) {
+    errors.push({ line, message: "waypoints の値の形が読めません", hint: '`[{"x":232,"y":293.45}]` の形で書く' });
+    return undefined;
+  }
+  const [x1, y1, x2, y2] = ends;
+  if ([x1, y1, x2, y2].every((item) => item !== undefined)) {
+    const points = [{ x: x1!, y: y1! }, ...value, { x: x2!, y: y2! }];
+    if (points.some((point, index) => index > 0 && point.x !== points[index - 1]!.x && point.y !== points[index - 1]!.y)) {
+      errors.push({ line, message: "waypoints の各区間は縦か横にする" });
+      return undefined;
+    }
+  }
+  return value;
+}
+
+/** 意匠 1 つ分の箱と線の配置を閉じた object として読む。 */
+function 意匠別配置として読む(
+  value: unknown,
+  theme: DslTheme,
+  line: number,
+  errors: DslError[],
+): NonNullable<DslDocument["layoutByTheme"]>[DslTheme] | undefined {
+  if (!objectか(value) || Object.keys(value).some((key) => key !== "nodes" && key !== "edges")) {
+    errors.push({ line, message: `layoutByTheme.${theme} の値の形が読めません` });
+    return undefined;
+  }
+  type ThemeLayout = NonNullable<NonNullable<DslDocument["layoutByTheme"]>[DslTheme]>;
+  type NodeLayout = NonNullable<ThemeLayout["nodes"]>[string];
+  type EdgeLayout = NonNullable<ThemeLayout["edges"]>[string];
+  const nodes: Record<string, NodeLayout> = {};
+  if (value.nodes !== undefined) {
+    if (!objectか(value.nodes)) errors.push({ line, message: `layoutByTheme.${theme}.nodes は object で書く` });
+    else for (const [name, raw] of Object.entries(value.nodes)) {
+      const keys = ["rowLayout", "rowStripe", "h", "posH", "posY"];
+      if (
+        !objectか(raw) ||
+        Object.keys(raw).some((key) => !keys.includes(key)) ||
+        (raw.rowStripe !== undefined && typeof raw.rowStripe !== "boolean") ||
+        (raw.h !== undefined && (typeof raw.h !== "number" || !Number.isFinite(raw.h) || raw.h <= 0)) ||
+        (raw.posH !== undefined && (typeof raw.posH !== "number" || !Number.isFinite(raw.posH) || raw.posH <= 0)) ||
+        (raw.posY !== undefined && (typeof raw.posY !== "number" || !Number.isFinite(raw.posY)))
+      ) {
+        errors.push({ line, message: `layoutByTheme.${theme}.nodes.${name} の値の形が読めません` });
+        continue;
+      }
+      const rowLayout = raw.rowLayout === undefined ? undefined : 行の配置として読む(JSON.stringify(raw.rowLayout), line, errors);
+      nodes[name] = {
+        ...(rowLayout === undefined ? {} : { rowLayout }),
+        ...(raw.rowStripe === undefined ? {} : { rowStripe: raw.rowStripe }),
+        ...(raw.h === undefined ? {} : { h: raw.h }),
+        ...(raw.posH === undefined ? {} : { posH: raw.posH }),
+        ...(raw.posY === undefined ? {} : { posY: raw.posY }),
+      };
+    }
+  }
+  const edges: Record<string, EdgeLayout> = {};
+  if (value.edges !== undefined) {
+    if (!objectか(value.edges)) errors.push({ line, message: `layoutByTheme.${theme}.edges は object で書く` });
+    else for (const [name, raw] of Object.entries(value.edges)) {
+      const keys = ["posX1", "posY1", "posX2", "posY2", "waypoints", "labelOffsetX", "labelOffsetY"];
+      if (!objectか(raw) || Object.keys(raw).some((key) => !keys.includes(key))) {
+        errors.push({ line, message: `layoutByTheme.${theme}.edges.${name} の値の形が読めません` });
+        continue;
+      }
+      const numeric = ["posX1", "posY1", "posX2", "posY2", "labelOffsetX", "labelOffsetY"] as const;
+      if (numeric.some((key) => raw[key] !== undefined && (typeof raw[key] !== "number" || !Number.isFinite(raw[key])))) {
+        errors.push({ line, message: `layoutByTheme.${theme}.edges.${name} の座標が読めません` });
+        continue;
+      }
+      const 数 = (key: (typeof numeric)[number]): number | undefined =>
+        typeof raw[key] === "number" ? raw[key] : undefined;
+      const posX1 = 数("posX1");
+      const posY1 = 数("posY1");
+      const posX2 = 数("posX2");
+      const posY2 = 数("posY2");
+      const labelOffsetX = 数("labelOffsetX");
+      const labelOffsetY = 数("labelOffsetY");
+      const waypoints = raw.waypoints === undefined ? undefined : 線の途中の点として読む(JSON.stringify(raw.waypoints), [posX1, posY1, posX2, posY2], line, errors);
+      edges[name] = {
+        ...(posX1 === undefined ? {} : { posX1 }),
+        ...(posY1 === undefined ? {} : { posY1 }),
+        ...(posX2 === undefined ? {} : { posX2 }),
+        ...(posY2 === undefined ? {} : { posY2 }),
+        ...(waypoints === undefined ? {} : { waypoints }),
+        ...(labelOffsetX === undefined ? {} : { labelOffsetX }),
+        ...(labelOffsetY === undefined ? {} : { labelOffsetY }),
+      };
+    }
+  }
+  return { ...(Object.keys(nodes).length === 0 ? {} : { nodes }), ...(Object.keys(edges).length === 0 ? {} : { edges }) };
+}
 
 /**
  * 辺の役目として書ける語 (#1559)。
@@ -327,6 +493,10 @@ export const TOP_LEVEL_KEYS = [
   "sequenceLabelForm",
   "sequenceReturnHead",
   "sequenceKindLabels",
+  "sequenceRowGap",
+  "sequenceGutter",
+  "sequenceBandWidth",
+  "sequenceSelfLoop",
   "figureCard",
   "figureSize",
   "terminalDecoration",
@@ -359,6 +529,7 @@ export const TOP_LEVEL_KEYS = [
   "legendOffset",
   "legendFontSize",
   "stageHeaders",
+  "layoutByTheme",
 ] as const;
 
 /**
@@ -743,6 +914,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let sequenceLabelForm: DslDocument["sequenceLabelForm"];
   let sequenceReturnHead: DslDocument["sequenceReturnHead"];
   let sequenceKindLabels: DslDocument["sequenceKindLabels"];
+  let sequenceRowGap: DslDocument["sequenceRowGap"];
+  let sequenceGutter: DslDocument["sequenceGutter"];
+  let sequenceBandWidth: DslDocument["sequenceBandWidth"];
+  let sequenceSelfLoop: DslDocument["sequenceSelfLoop"];
   let figureCard: DslDocument["figureCard"];
   let figureSize: DslDocument["figureSize"];
   let terminalDecoration: DslDocument["terminalDecoration"];
@@ -790,6 +965,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   let legendOffset: DslDocument["legendOffset"];
   let legendFontSize: number | undefined;
   let stageHeaders: DslDocument["stageHeaders"];
+  let layoutByTheme: DslDocument["layoutByTheme"];
 
   let i = 0;
   while (i < lines.length) {
@@ -1027,6 +1203,23 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i = next;
       continue;
     }
+    if (head.key === "layoutByTheme") {
+      const { items, next } = collectIndentedList(lines, i + 1, line.indent);
+      layoutByTheme = {};
+      for (const item of items) {
+        const entry = 名前と中括弧に割る(item.trimmed);
+        const themeName = entry === undefined ? null : resolveTheme(entry[0]);
+        if (entry === undefined || themeName === null) {
+          errors.push({ line: item.no, message: `意匠別配置の行が読めません: "${item.trimmed}"` });
+          continue;
+        }
+        const value = JSONの欄を読む(`{${entry[1]}}`, `layoutByTheme.${themeName}`, item.no, errors);
+        const parsed = 意匠別配置として読む(value, themeName, item.no, errors);
+        if (parsed !== undefined) layoutByTheme[themeName] = parsed;
+      }
+      i = next;
+      continue;
+    }
     if (head.key === "eyebrow") {
       // 空で書いた形 (`eyebrow:`) は「書かなかった」 と同じにする。 空文字を残すと
       // 描画側が中身のない帯を出す
@@ -1240,6 +1433,34 @@ export function parseTextDslV05(src: string): V05ParseResult {
       i += 1;
       continue;
     }
+    if (head.key === "sequenceRowGap" || head.key === "sequenceGutter" || head.key === "sequenceBandWidth") {
+      const value = Number(stripQuotes((head.value ?? "").trim()));
+      if (Number.isFinite(value) && value > 0) {
+        if (head.key === "sequenceRowGap") sequenceRowGap = value;
+        else if (head.key === "sequenceGutter") sequenceGutter = value;
+        else sequenceBandWidth = value;
+      } else errors.push({ line: line.no, message: `${head.key} が読めません: "${head.value ?? ""}"`, hint: "正の数で書く" });
+      i += 1;
+      continue;
+    }
+    if (head.key === "sequenceSelfLoop") {
+      const value = JSONの欄を読む(head.value, head.key, line.no, errors);
+      const unknown = 図表の知らない項目を知らせる(value, SEQUENCE_SELF_LOOP_KEYS, head.key, line.no, errors);
+      if (!unknown && objectか(value)) {
+        const form = value.form;
+        const width = value.width;
+        const drop = value.drop;
+        const validForm =
+          form === undefined ||
+          (SEQUENCE_SELF_LOOP_FORM_VALUES as readonly unknown[]).includes(form);
+        const validWidth = width === undefined || (typeof width === "number" && Number.isFinite(width) && width > 0);
+        const validDrop = drop === undefined || (typeof drop === "number" && Number.isFinite(drop) && drop > 0);
+        if (validForm && validWidth && validDrop) sequenceSelfLoop = value;
+        else errors.push({ line: line.no, message: "sequenceSelfLoop の値の形が読めません", hint: '`{"form":"orthogonal","width":127,"drop":46}` の形で書く' });
+      } else if (value !== undefined && !unknown) errors.push({ line: line.no, message: "sequenceSelfLoop の値の形が読めません" });
+      i += 1;
+      continue;
+    }
     if (head.key === "chartWaffleLegendPosition") {
       const value = stripQuotes((head.value ?? "").trim());
       if ((CHART_WAFFLE_LEGEND_POSITION_VALUES as readonly string[]).includes(value)) chartWaffleLegendPosition = value as typeof chartWaffleLegendPosition;
@@ -1359,7 +1580,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
           JOURNEY_LABEL_KEYS.every((key) => typeof value[key] === "string" && value[key].trim() !== "")
         ) journeyLabels = value as typeof journeyLabels;
         else if (
-          head.key === "figureCard" && typeof value.label === "string" && value.label.trim() !== "" &&
+          head.key === "figureCard" && typeof value.label === "string" &&
           (value.note === undefined || typeof value.note === "string")
         ) figureCard = value as typeof figureCard;
         else if (
@@ -2033,6 +2254,10 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(sequenceLabelForm !== undefined ? { sequenceLabelForm } : {}),
       ...(sequenceReturnHead !== undefined ? { sequenceReturnHead } : {}),
       ...(sequenceKindLabels !== undefined ? { sequenceKindLabels } : {}),
+      ...(sequenceRowGap !== undefined ? { sequenceRowGap } : {}),
+      ...(sequenceGutter !== undefined ? { sequenceGutter } : {}),
+      ...(sequenceBandWidth !== undefined ? { sequenceBandWidth } : {}),
+      ...(sequenceSelfLoop !== undefined ? { sequenceSelfLoop } : {}),
       ...(figureCard !== undefined ? { figureCard } : {}),
       ...(figureSize !== undefined ? { figureSize } : {}),
       ...(terminalDecoration !== undefined ? { terminalDecoration } : {}),
@@ -2057,6 +2282,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(legendOffset !== undefined ? { legendOffset } : {}),
       ...(legendFontSize !== undefined ? { legendFontSize } : {}),
       ...(stageHeaders !== undefined ? { stageHeaders } : {}),
+      ...(layoutByTheme !== undefined ? { layoutByTheme } : {}),
       ...(theme !== null && palette !== null
         ? { themeAlsoPalettePos: { themeLine, paletteLine } }
         : {}),
@@ -3499,6 +3725,7 @@ export const ACTOR_INLINE_VALUE_KINDS = {
   markGap: "数",
   milestone: "真偽",
   rowRules: "真偽",
+  rowStripe: "真偽",
 } as const satisfies Record<string, 値の形>;
 
 /**
@@ -3517,12 +3744,17 @@ export const ACTOR_BLOCK_VALUE_KINDS = {
   markGap: "数",
   milestone: "真偽",
   rowRules: "真偽",
+  rowStripe: "真偽",
 } as const satisfies Record<string, 値の形>;
 
 /** 矢印の中括弧に書ける、数と真偽の欄 (#1306) */
 export const FLOW_INLINE_VALUE_KINDS = {
   labelOffsetX: "数",
   labelOffsetY: "数",
+  posX1: "数",
+  posY1: "数",
+  posX2: "数",
+  posY2: "数",
   overlay: "真偽",
 } as const satisfies Record<string, 値の形>;
 
@@ -3989,6 +4221,23 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
         out.rowRules = read.rowRules;
         break;
       }
+      case "rowStripe": {
+        const read = 表で読む(ACTOR_BLOCK_VALUE_KINDS, { rowStripe: raw }, "箱の ", ln.no, errors);
+        out.rowStripe = read.rowStripe;
+        break;
+      }
+      case "rowLayout":
+        out.rowLayout = 行の配置として読む(raw, ln.no, errors);
+        break;
+      case "rowDividerForm": {
+        const value = stripQuotes(raw);
+        if (value === "full") out.rowDividerForm = value;
+        else errors.push({ line: ln.no, message: `箱の rowDividerForm が読めません: "${value}"`, hint: `使える値 = ${ROW_DIVIDER_FORM_VALUES.join(", ")}` });
+        break;
+      }
+      case "rowWell":
+        out.rowWell = 行の受け皿として読む(raw, ln.no, errors);
+        break;
       case "rowMarkForm": {
         const value = stripQuotes(raw);
         if (value === "tone") out.rowMarkForm = value;
@@ -4001,7 +4250,7 @@ function applyContinuationLines(actor: DslActor, rest: Line[], errors: DslError[
       case "figureCard": {
         const value = JSONの欄を読む(raw, "figureCard", ln.no, errors);
         const unknown = 図表の知らない項目を知らせる(value, ["label", "note"] as const, "figureCard", ln.no, errors);
-        if (!unknown && objectか(value) && typeof value.label === "string" && value.label.trim() !== "" && (value.note === undefined || typeof value.note === "string")) out.figureCard = value as NonNullable<DslActor["figureCard"]>;
+        if (!unknown && objectか(value) && typeof value.label === "string" && (value.note === undefined || typeof value.note === "string")) out.figureCard = value as NonNullable<DslActor["figureCard"]>;
         else if (!unknown && value !== undefined) errors.push({ line: ln.no, message: "figureCard の値の形が読めません" });
         break;
       }
@@ -4310,6 +4559,10 @@ export const ACTOR_ITEM_KEYS: ReadonlySet<string> = new Set([
   "emptyRowsNote",
   "titleAlign",
   "rowRules",
+  "rowStripe",
+  "rowLayout",
+  "rowDividerForm",
+  "rowWell",
   "rowMarkForm",
   "nestIn",
   "figureCard",
@@ -4575,6 +4828,10 @@ export const ACTOR_RESERVED_FIELDS: ReadonlySet<string> = new Set([
   "emptyRowsNote",
   "titleAlign",
   "rowRules",
+  "rowStripe",
+  "rowLayout",
+  "rowDividerForm",
+  "rowWell",
   "rowMarkForm",
   "nestIn",
   "figureCard",
@@ -4715,6 +4972,10 @@ const INLINE_ACTOR_ENGLISH_KEYS: ReadonlySet<string> = new Set([
   "emptyRowsNote",
   "titleAlign",
   "rowRules",
+  "rowStripe",
+  "rowLayout",
+  "rowDividerForm",
+  "rowWell",
   "rowMarkForm",
   "nestIn",
   "figureCard",
@@ -4957,10 +5218,15 @@ const FLOW_INLINE_READERS = {
    */
   fromPartNode: (v: string | undefined) => v,
   toPartNode: (v: string | undefined) => v,
+  waypoints: (v: string | undefined) => v,
   // 数と真偽の欄は `FLOW_INLINE_VALUE_KINDS` の表が読む (#1306)。 ここでは名前だけを持つ =
   // 読める欄の一覧 (`FLOW_INLINE_KEYS`) は本表から導くため、載せないと欄ごと消える
   labelOffsetX: null,
   labelOffsetY: null,
+  posX1: null,
+  posY1: null,
+  posX2: null,
+  posY2: null,
   overlay: null,
 } as const;
 
@@ -5130,7 +5396,7 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
     if (!isPart && opts.figureCard !== undefined) {
       const value = JSONの欄を読む(opts.figureCard, "figureCard", line.no, errors);
       const unknown = 図表の知らない項目を知らせる(value, ["label", "note"] as const, "figureCard", line.no, errors);
-      if (!unknown && objectか(value) && typeof value.label === "string" && value.label.trim() !== "" && (value.note === undefined || typeof value.note === "string")) actorFigureCard = value as NonNullable<DslActor["figureCard"]>;
+      if (!unknown && objectか(value) && typeof value.label === "string" && (value.note === undefined || typeof value.note === "string")) actorFigureCard = value as NonNullable<DslActor["figureCard"]>;
       else if (!unknown && value !== undefined) errors.push({ line: line.no, message: "figureCard の値の形が読めません" });
     }
     // `color` は縦に並べた形と JSON と同じ振り分けを通す (#1969)。 色の名前は箱の色、`#` で
@@ -5158,6 +5424,15 @@ function parseActor(line: Line, errors: DslError[]): DslActor | null {
       emptyRowsNote: isPart ? undefined : opts.emptyRowsNote,
       titleAlign: 閉じた箱の値("titleAlign", TITLE_ALIGN_VALUES),
       rowMarkForm: 閉じた箱の値("rowMarkForm", ROW_MARK_FORM_VALUES),
+      rowDividerForm: 閉じた箱の値("rowDividerForm", ROW_DIVIDER_FORM_VALUES),
+      rowLayout:
+        isPart || opts.rowLayout === undefined
+          ? undefined
+          : 行の配置として読む(opts.rowLayout, line.no, errors),
+      rowWell:
+        isPart || opts.rowWell === undefined
+          ? undefined
+          : 行の受け皿として読む(opts.rowWell, line.no, errors),
       nestIn: isPart ? undefined : opts.nestIn,
       figureCard: actorFigureCard,
       stationNamePosition:
@@ -5411,6 +5686,16 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
   );
   const labelOffsetX = 数と真偽?.labelOffsetX;
   const labelOffsetY = 数と真偽?.labelOffsetY;
+  const posX1 = 数と真偽?.posX1;
+  const posY1 = 数と真偽?.posY1;
+  const posX2 = 数と真偽?.posX2;
+  const posY2 = 数と真偽?.posY2;
+  const waypoints = 線の途中の点として読む(
+    中括弧.waypoints as string | undefined,
+    [posX1, posY1, posX2, posY2],
+    line.no,
+    errors,
+  );
   const overlay = 数と真偽?.overlay;
   // 空の名指し (`toPartNode: ""`) は書かなかったことにする = 要素 1 つの部品なら自動で繋ぐ
   const fromPartNode = (中括弧.fromPartNode as string | undefined) || undefined;
@@ -5488,6 +5773,11 @@ function parseFlowStep(line: Line, no: number, errors: DslError[]): DslStep | nu
     dashOffsetBind,
     labelOffsetX,
     labelOffsetY,
+    posX1,
+    posY1,
+    posX2,
+    posY2,
+    waypoints,
     labelCollision,
     labelSize,
     overlay,

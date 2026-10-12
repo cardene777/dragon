@@ -61,9 +61,11 @@ import {
   TITLE_ALIGN_VALUES,
   ROW_MARK_FORM_VALUES,
   ROW_MARK_TONE_VALUES,
+  ROW_DIVIDER_FORM_VALUES,
   SEQUENCE_ACTOR_FORM_VALUES,
   SEQUENCE_LABEL_FORM_VALUES,
   SEQUENCE_RETURN_HEAD_VALUES,
+  SEQUENCE_SELF_LOOP_FORM_VALUES,
   LEGEND_LINE_STYLE_VALUES,
   LEGEND_NOTE_ALIGN_VALUES,
   CORNER_FORM_VALUES,
@@ -184,6 +186,7 @@ const 対応表: Record<string, readonly string[]> = {
   sequenceActorForm: [...SEQUENCE_ACTOR_FORM_VALUES],
   sequenceLabelForm: [...SEQUENCE_LABEL_FORM_VALUES],
   sequenceReturnHead: [...SEQUENCE_RETURN_HEAD_VALUES],
+  "sequenceSelfLoop.form": [...SEQUENCE_SELF_LOOP_FORM_VALUES],
   reveal: [...EDGE_REVEALS],
   relations: [...RELATION_FOCUSES],
   "flow[].tone": 書ける色名(),
@@ -208,6 +211,7 @@ const 対応表: Record<string, readonly string[]> = {
   "actors[].oneOf[1].icon": [...CDL_ICON_VALUES],
   "actors[].oneOf[1].titleAlign": [...TITLE_ALIGN_VALUES],
   "actors[].oneOf[1].rowMarkForm": [...ROW_MARK_FORM_VALUES],
+  "actors[].oneOf[1].rowDividerForm": [...ROW_DIVIDER_FORM_VALUES],
   "actors[].oneOf[1].marks[].oneOf[1].tone": [...ROW_MARK_TONE_VALUES],
   "actors[].oneOf[1].emphasis": ["primary"],
   "actors[].oneOf[1].color.anyOf[0]": 書ける色名(),
@@ -218,6 +222,7 @@ const 対応表: Record<string, readonly string[]> = {
   // 相対で置く時の向き (#2039)。 本文側と同じ一覧から取る
   "actors[].oneOf[1].posRel.dir": [...RELATIVE_DIRECTIONS],
   "stageHeaders.propertyNames": [...THEMES],
+  "layoutByTheme.propertyNames": [...THEMES],
 };
 
 const 並べ = (x: Iterable<string>): string[] => [...new Set(x)].sort();

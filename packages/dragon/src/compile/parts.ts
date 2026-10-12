@@ -443,8 +443,8 @@ let 測るために受け取った知らせ = 0;
 /**
  * **測るためだけに配置する** (#2312)。
  *
- * 部品を置く処理は、縦列の位置や部品の図枠を知るために図を配置する。 その配置は読むだけで、
- * 画面にも書き出しにも出ない。 部品はこの後に動かすので、測った時の並びは残らない。
+ * 組み立て処理は、縦列の位置や部品の図枠を知るために図を配置する。 その配置は読むだけで、
+ * 画面にも書き出しにも出ない。 部品や位置はこの後に動かすので、測った時の並びは残らない。
  *
  * ところが記法の engine は配置のたびに重なりを `console.warn` に出す。 測るためだけの配置でも
  * 出るので、**描かれない図についての知らせ** が端末に流れていた。 カタログの群 14 file を
@@ -466,7 +466,7 @@ let 測るために受け取った知らせ = 0;
  * 例外を投げていた呼び出し (`partsBaseBottomWithoutParts`) が黙って `undefined` を返す形に
  * 変わる。 知らせを受け取ること以外は何も変えない。
  */
-function 測るために配置する(d: CdlDiagram): LaidDiagram {
+export function 測るために配置する(d: CdlDiagram): LaidDiagram {
   const 元 =
     typeof console !== "undefined" && typeof console.warn === "function" ? console.warn : undefined;
   if (元) {

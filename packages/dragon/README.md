@@ -112,6 +112,10 @@ flow:
 | `sequenceLabelForm` | `kind` で順序図の段に種類印と種類名を添える |
 | `sequenceReturnHead` | `solid` で返す言づてにも塗った三角の矢じりを使う |
 | `sequenceKindLabels` | 順序図の種類名 (`{ call?, return?, fire? }`) を言い換える |
+| `sequenceRowGap` | 順序図の言づての段の間 (正の数、既定 64) |
+| `sequenceGutter` | 順序図の左の札の列の幅。最初の糸は「この幅 + 列幅 / 2」に来る |
+| `sequenceBandWidth` | 順序図の動いている間の帯の幅 |
+| `sequenceSelfLoop` | 順序図の自分へ戻る線 (`{ form?: "orthogonal", width?, drop? }`) |
 | `figureCard` | 図表の見出し帯と足 (`{ label, note? }`) |
 | `figureSize` | 図全体を 1 箱にする図種の札の幅と高さ (`{ width, height }`) |
 | `terminalDecoration` | 端末意匠用の窓操作・字送り・行番号 (`{ windowControls?, cursor?, rowOrdinal? }`) |
@@ -136,6 +140,7 @@ flow:
 | `legendOffset` | 図全体の凡例の位置をずらす (`{ x?, y? }`) |
 | `stageHeaders` | `shape: stages` の見出し寸法を意匠名ごとに書く (`leftPad` / `topPad` / `numberSize` / `gap` / `nameSize` / `bottomPad`) |
 | `stageLayout` | `shape: stages` の列幅・列間・戻る線の迂回寸法 (`columnWidths` / `columnGap` / `backDetourTopGap` / `backDetourSideGap`) |
+| `layoutByTheme` | 意匠名ごとに表の箱の高さ・固定高さ・中心 y (`h` / `posH` / `posY`)・`rowLayout` / `rowStripe` と線の固定端点・`waypoints`・札のずらしをまとめて上書きする |
 
 <!-- notation:top-level:end -->
 
@@ -206,7 +211,11 @@ legend:
 | `emptyRowsNote` | 行を持たない `storage` に行の代わりに描く注記                                  |
 | `titleAlign`    | `center` で `storage` の題と小見出しを中央へ揃える                              |
 | `rowRules`      | `true` で `storage` の見出し下と行の間に罫線を描く                             |
+| `rowDividerForm` | `full` で `storage` の見出し下の線を箱の左右端まで引く                        |
+| `rowWell`       | 行のまとまりを収める透明な面 (`{ top?, right?, bottom?, left?, radius? }`。空 object は 2 / 16 / 4 / 16 / 15) |
 | `rowMarkForm`   | `tone` で行頭の印を形でなく色の段で分ける                                     |
+| `rowLayout`     | `storage` の箱上端からの題の基準線・1 行目の基準線・行間 (`{ titleBaseline?, rowTop?, rowPitch? }`) |
+| `rowStripe`     | `false` で `storage` の行の縞を描かない                                 |
 | `nestIn`        | 親の `storage` の名前。書いた表を親の内側へ入れる                              |
 | `figureCard`    | `storage` または `kindForm: icon` の足 (`{ label, note? }`)                    |
 | `stationNamePosition` | 路線図の駅名を下へ置く (`bottom`) |
@@ -280,6 +289,11 @@ legend:
 | `labelPlate`     | 説明文の下地を敷くか (`false` で外す)。 丸い下地は箱と同じ形なので、罫の細い図では名前が小さな箱に見える |
 | `labelOffsetX`   | 説明文の位置を横にずらす                                            |
 | `labelOffsetY`   | 説明文の位置を縦にずらす                                            |
+| `posX1`          | 線の出どころ側を固定する world x 座標                               |
+| `posY1`          | 線の出どころ側を固定する world y 座標                               |
+| `posX2`          | 線の行き先側を固定する world x 座標                                 |
+| `posY2`          | 線の行き先側を固定する world y 座標                                 |
+| `waypoints`      | 4 つの固定端点と一緒に書く直角折れ線の途中点 (`[{ x, y }, ...]`) |
 | `labelCollision` | `auto` で自動回避、`author` で作者が書いた札位置を保つ              |
 | `labelSize`      | 説明文の札の幅・高さ・字 (`{ width?, height?, fontSize? }`)          |
 | `overlay`        | `true` で説明文を線の上に重ねる (分岐図の条件ラベル用)              |

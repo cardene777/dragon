@@ -94,8 +94,8 @@ describe("順序図の板を持つ見本が段を追って進む (#2133)", () =>
       expect(板の動き(Cookbook.tokenTransferSolidity)?.番号).toEqual([0, 1, 2, 3]);
     });
 
-    it("矢印で書いた見本は変わらない (presetSequence)", () => {
-      expect(板の動き(Presets.presetSequence)?.番号).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    it("矢印で書いた見本は変わらない (presetDeliverySequence)", () => {
+      expect(板の動き(Presets.presetDeliverySequence)?.番号).toEqual([0, 1, 2, 3, 4, 5, 6]);
     });
 
     it("箱の名前で束ねた段は束の最後を強調する (jwtAuth / rateLimit)", () => {

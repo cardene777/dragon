@@ -90,12 +90,11 @@ function ruleBody(selector: string): string {
 }
 
 function lastRuleBody(selector: string): string {
-  const start = css.lastIndexOf(`${selector} {`);
-  if (start < 0) throw new Error(`${selector} の CSS 規則が無い`);
-  const bodyStart = css.indexOf("{", start) + 1;
-  const end = css.indexOf("}", bodyStart);
-  if (end < 0) throw new Error(`${selector} の CSS 規則が閉じていない`);
-  return css.slice(bodyStart, end);
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter((match) => match[1]?.trim() === selector);
+  const body = rules.at(-1)?.[2];
+  if (body === undefined) throw new Error(`${selector} の CSS 規則が無い`);
+  return body;
 }
 
 function declaration(body: string, property: string): string {

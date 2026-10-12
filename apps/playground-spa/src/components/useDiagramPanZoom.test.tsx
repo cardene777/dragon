@@ -13,17 +13,24 @@
  * | 図の鍵が替わった描画で、新しい図の倍率になる | 次のフレームを待つと、前の図の倍率を起点に刻みを選ぶ (200% の図で「上げる」 が 75% へ縮む) |
  * | 移った先に図がまだ無ければ、測れていない値になる | 前の図の倍率を別の図の欄に残さない |
  *
- * jsdom は `ResizeObserver` を持たないので、大きさの見張りはここでは動かない = 測れた値は全て
- * 描画の中の測り直しから来ている。
+ * jsdom は `ResizeObserver` を持たないので、通常は大きさの見張りが動かない = 測れた値は全て
+ * 描画の中の測り直しから来る。 MutationObserver の検査だけは空の見張りを置いて観測経路を動かす。
  */
-import { afterEach, describe, it, expect } from "vitest";
-import { cleanup, renderHook } from "@testing-library/react";
-import { useDiagramPanZoom, 忘れない最小, 動き終わりの実効 } from "./useDiagramPanZoom";
+import { useCallback, useState, type CSSProperties } from "react";
+import { act, cleanup, render, renderHook } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import {
+  useDiagramPanZoom,
+  倍率の表示が同じ,
+  忘れない最小,
+  動き終わりの実効,
+} from "./useDiagramPanZoom";
 import { 収める } from "@/lib/diagram-zoom";
 
 afterEach(() => {
   cleanup();
   document.body.innerHTML = "";
+  vi.unstubAllGlobals();
 });
 
 const SVGの名前空間 = "http://www.w3.org/2000/svg";
@@ -56,10 +63,27 @@ function 描いたことにする(
 }
 
 /** 台 (器) と、engine が図を描く入れ物と svg を作る */
-function 台を作る(器の幅 = 0): { 器: HTMLElement; 入れ物: HTMLElement; svg: SVGSVGElement } {
+function 台を作る(
+  器の幅 = 0,
+  描かれた器の幅 = 器の幅,
+): { 器: HTMLElement; 入れ物: HTMLElement; svg: SVGSVGElement } {
   const 器 = document.createElement("div");
   // jsdom は描かないので巻き取る要素の内側の幅を書き込む (下限は器の幅から出る)
   Object.defineProperty(器, "clientWidth", { configurable: true, value: 器の幅 });
+  Object.defineProperty(器, "getBoundingClientRect", {
+    configurable: true,
+    value: () => ({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      width: 描かれた器の幅,
+      height: 0,
+      right: 描かれた器の幅,
+      bottom: 0,
+      toJSON: () => ({}),
+    }),
+  });
   const 入れ物 = document.createElement("div");
   入れ物.setAttribute("data-cdl-diagram", "swim-demo");
   const svg = document.createElementNS(SVGの名前空間, "svg");
@@ -163,6 +187,213 @@ describe("useDiagramPanZoom の図が替わった時の測り直し (#2044)", ()
     expect(最初の描画?.鍵).toBe(次の鍵);
     expect(最初の描画?.読める下限の倍率, "前の図の 14 から 10/14 を出している").toBeUndefined();
     expect(最初の描画?.収めた倍率, "欄が svg の幅合わせ 0.62 と揃っていない").toBeCloseTo(0.62, 4);
+  });
+
+  it("切替直後の倍率は整数の clientWidth でなく実際に描かれた小数の幅から出す", () => {
+    // 1000px の viewBox に対して 624.9px は 62%、整数の clientWidth 625px は 63% になる。
+    const { 器, 入れ物, svg } = 台を作る(625, 624.9);
+    描いたことにする(svg, { 幅: 500, 高さ: 400 }, { 幅: 624.9, 高さ: 499.92 });
+    const 最初の鍵 = { 名: "最初" };
+    const 次の鍵 = { 名: "次" };
+    const { rerender, result } = 測る部品を置く(器, 最初の鍵);
+
+    入れ物.setAttribute("data-cdl-diagram", "next-demo");
+    描いたことにする(svg, { 幅: 1000, 高さ: 400 }, { 幅: 624.9, 高さ: 249.96 });
+    rerender({ 鍵: 次の鍵 });
+
+    expect(Math.round((result.current.収めた倍率 ?? 0) * 100)).toBe(62);
+  });
+
+  it("小数の幅が後から変わり、百分率の丸め境界をまたいだ時は同じ倍率とみなさない", () => {
+    expect(倍率の表示が同じ(0.625, 0.6249), "63% と 62% の差を捨てている").toBe(false);
+    expect(倍率の表示が同じ(0.6249, 0.62489), "同じ 62% の小数の揺れで描き直す").toBe(true);
+  });
+
+  it("読める下限との差が配置の丸めだけなら、欄は描かれた倍率の百分率を返す", () => {
+    const viewBox = { 幅: 1870, 高さ: 1151.88232421875 };
+    const 幅の比 = 0.625;
+    const 高さの比 = 0.624996;
+    const { 器, svg } = 台を作る(viewBox.幅 * 幅の比);
+    描いたことにする(
+      svg,
+      viewBox,
+      { 幅: viewBox.幅 * 幅の比, 高さ: viewBox.高さ * 高さの比 },
+    );
+    // 下限を幅の比より僅かに上げ、下限を課す分岐を通す。差は Chromium の配置単位 1/64px 未満。
+    文字を置く(svg, [10 / (幅の比 + 1e-9)]);
+    const 図の鍵 = { 名: "delivery-sequence" };
+
+    const { result } = renderHook(() =>
+      useDiagramPanZoom({
+        器,
+        倍率: 収める,
+        倍率を置く: () => {},
+        viewBox幅: viewBox.幅,
+        修飾キー無しで拡大: false,
+        頁も送る: true,
+        図の鍵,
+        読める下限を課す: true,
+      }),
+    );
+
+    expect(result.current.読める下限の倍率, "読める下限を課す分岐を通っていない").toBeCloseTo(幅の比, 8);
+    expect(Math.round((result.current.収めた倍率 ?? 0) * 100), "欄が描かれた倍率 62% でない").toBe(62);
+  });
+
+  it("読める下限から作った幅を当てた commit で、ResizeObserver を待たず欄を描かれた倍率へ揃える", () => {
+    const viewBox = { 幅: 1870, 高さ: 1151.88232421875 };
+    const 幅の比 = 0.625;
+    const 高さの比 = 0.624996;
+    const 図の鍵 = { 名: "delivery-sequence" };
+
+    function AppliedWidthScreen(): React.JSX.Element {
+      const [器, set器] = useState<HTMLDivElement | null>(null);
+      const 器を置く = useCallback((node: HTMLDivElement | null) => {
+        if (node) {
+          Object.defineProperty(node, "clientWidth", {
+            configurable: true,
+            value: viewBox.幅 * 幅の比,
+          });
+          Object.defineProperty(node, "getBoundingClientRect", {
+            configurable: true,
+            value: () => ({
+              x: 0,
+              y: 0,
+              left: 0,
+              top: 0,
+              width: viewBox.幅 * 幅の比,
+              height: 0,
+              right: viewBox.幅 * 幅の比,
+              bottom: 0,
+              toJSON: () => ({}),
+            }),
+          });
+        }
+        set器(node);
+      }, []);
+      const svgを置く = useCallback((node: SVGSVGElement | null) => {
+        if (!node) return;
+        Object.defineProperty(node, "viewBox", {
+          configurable: true,
+          value: { baseVal: { x: 0, y: 0, width: viewBox.幅, height: viewBox.高さ } },
+        });
+        Object.defineProperty(node, "getBoundingClientRect", {
+          configurable: true,
+          value: () => {
+            const 幅が当たった = node.closest<HTMLElement>("[data-testid='stage']")?.style.getPropertyValue(
+              "--cdl-zoom-width",
+            );
+            const 高さ = viewBox.高さ * (幅が当たった ? 高さの比 : 幅の比);
+            return {
+              x: 0,
+              y: 0,
+              left: 0,
+              top: 0,
+              width: viewBox.幅 * 幅の比,
+              height: 高さ,
+              right: viewBox.幅 * 幅の比,
+              bottom: 高さ,
+              toJSON: () => ({}),
+            };
+          },
+        });
+      }, []);
+      const 操作 = useDiagramPanZoom({
+        器,
+        倍率: 収める,
+        倍率を置く: () => {},
+        viewBox幅: viewBox.幅,
+        修飾キー無しで拡大: false,
+        頁も送る: true,
+        図の鍵,
+        読める下限を課す: true,
+      });
+      const 指定した幅 = 操作.図に当てる幅;
+
+      return (
+        <>
+          <output data-testid="倍率">{Math.round((操作.収めた倍率 ?? 0) * 100)}%</output>
+          <div
+            ref={器を置く}
+            data-testid="stage"
+            style={
+              指定した幅 === undefined
+                ? undefined
+                : ({ "--cdl-zoom-width": `${指定した幅}px` } as CSSProperties)
+            }
+          >
+            <div data-cdl-diagram="delivery-sequence-demo">
+              <svg ref={svgを置く} viewBox={`0 0 ${viewBox.幅} ${viewBox.高さ}`}>
+                <text fontSize={10 / (幅の比 + 1e-9)}>字</text>
+              </svg>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    const { getByTestId } = render(<AppliedWidthScreen />);
+
+    expect(getByTestId("倍率").textContent, "幅を当てた直後の欄が描かれた倍率 62% でない").toBe("62%");
+  });
+
+  it("svg が替わった MutationObserver の時点で、rAF を待たず欄を描かれた倍率へ揃える", async () => {
+    class 大きさの見張り {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+    vi.stubGlobal("ResizeObserver", 大きさの見張り);
+    vi.stubGlobal("requestAnimationFrame", () => 1);
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+
+    const viewBox = { 幅: 1870, 高さ: 1151.88232421875 };
+    const 幅の比 = 0.625;
+    const 高さの比 = 0.624996;
+    const { 器, 入れ物, svg } = 台を作る(viewBox.幅 * 幅の比);
+    描いたことにする(svg, viewBox, {
+      幅: viewBox.幅 * 幅の比,
+      高さ: viewBox.高さ * 幅の比,
+    });
+    文字を置く(svg, [10 / (幅の比 + 1e-9)]);
+    const 図の鍵 = { 名: "delivery-sequence" };
+    const { result } = renderHook(() =>
+      useDiagramPanZoom({
+        器,
+        倍率: 収める,
+        倍率を置く: () => {},
+        viewBox幅: viewBox.幅,
+        修飾キー無しで拡大: false,
+        頁も送る: true,
+        図の鍵,
+        読める下限を課す: true,
+      }),
+    );
+    expect(Math.round((result.current.収めた倍率 ?? 0) * 100)).toBe(63);
+
+    const 次のsvg = document.createElementNS(SVGの名前空間, "svg");
+    描いたことにする(次のsvg, viewBox, {
+      幅: viewBox.幅 * 幅の比,
+      高さ: viewBox.高さ * 高さの比,
+    });
+    文字を置く(次のsvg, [10 / (幅の比 + 1e-9)]);
+    const mutationが届く = new Promise<void>((resolve) => {
+      const observer = new MutationObserver(() => {
+        observer.disconnect();
+        resolve();
+      });
+      observer.observe(入れ物, { childList: true });
+    });
+    await act(async () => {
+      入れ物.replaceChildren(次のsvg);
+      // MutationObserver の microtask だけを通し、予約された rAF は進めない。
+      await mutationが届く;
+    });
+
+    expect(
+      Math.round((result.current.収めた倍率 ?? 0) * 100),
+      "svg が DOM に入った直後の欄が描かれた倍率 62% でない",
+    ).toBe(62);
   });
 });
 

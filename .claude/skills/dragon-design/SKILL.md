@@ -18,7 +18,7 @@ description: dragon 記法で描ける図 1 つの見た目を artifact で詰�
 user 明示起動のみ。
 
 ```
-/dragon-design er-demo
+/dragon-design delivery-relations-demo
 /dragon-design shape-file
 ```
 
@@ -155,7 +155,7 @@ decided: 2026-08-30
 一部が測れないのは、その形が角や太さを持たないため = 図の意匠としては 1 つの値で決まっている。
 
 **色は変数の名前で書く**。 16 進の値を書くと、engine の配色を変えた時にそこだけ古い値が残る。
-`#1531` で茶墨に変えた時、`er-demo` の `note.md` に書いてあった 4 値が全て古くなった。
+`#1531` で茶墨に変えた時、関係図の `note.md` に書いてあった 4 値が全て古くなった。
 
 変数の名前 (`--d-surface` / `--d-bg` 等) なら、指す先が変わっても記述は正しいまま。
 値そのものは `apps/playground-spa/src/styles/globals.css` を見る。
@@ -193,7 +193,7 @@ engine は `transition` を要素の inline style に持たせている
 | 階層 | 何を使うか | 例 |
 |---|---|---|
 | 群 | catalog の file 名から `.cdl.ts` を落とす | `presets` |
-| 図 | catalog の図の id をそのまま | `er-demo` |
+| 図 | catalog の図の id をそのまま | `delivery-relations-demo` |
 
 考えると catalog との対応を人が覚えることになる。
 置き方の詳細は [`docs/design/notation/README.md`](../../../docs/design/notation/README.md) が持つ。

@@ -64,8 +64,8 @@ import { 記法つき, 記法を持つカタログ, 部品の一覧 } from "./ca
  *
  * **今は 1 件も無い** (cdl#578)。
  *
- * `presetSequence` を載せていたが、順序図は 1 つの箱が図を丸ごと描く形になり、その箱の id が
- * 組み立て API では書いた値 (`seq-demo`)、記法では題から導いた値になる = 一致しようがない。
+ * `presetDeliverySequence` を載せていたが、順序図は 1 つの箱が図を丸ごと描く形になり、その箱の id が
+ * 組み立て API では書いた値 (`delivery-sequence-demo`)、記法では題から導いた値になる = 一致しようがない。
  * 偶然一致していた縦線や名札の id も、その形ごと消えた。
  */
 const id完全一致: readonly string[] = [];
@@ -73,7 +73,7 @@ const id完全一致: readonly string[] = [];
 /**
  * 縦列の見出しが合わないと分かっている preset。 1 件ずつ理由を書く。
  *
- * **今は 1 件も無い**。 `presetEr` を「この図種は縦列の見出しを描かない」 として宣言していたが、
+ * **今は 1 件も無い**。 `presetDeliveryRelations` を「この図種は縦列の見出しを描かない」 として宣言していたが、
  * **その判断は誤りだった** = 描いた絵を数えると記法側だけ表の名前が 2 度出ていた
  * (縦列の見出しと箱の題)。 #1241 で見出しを付けるのを `swimlane` だけに絞って解消した。
  *
@@ -149,26 +149,14 @@ const 図種の既知の差: Record<string, 図種の差> = {
     組み立て器経路: "infrastructure",
     理由: "dragon の記法に infrastructure が無く、flow として書くため",
   },
-  presetEr: {
-    見本: "presetEr",
+  pattern__presetDeliveryRelations__複雑: {
+    見本: "pattern__presetDeliveryRelations__複雑",
     記法経路: "record",
     組み立て器経路: "er",
     理由: "記法は図種の名前を持たず record 1 つに畳んだため (#2782)",
   },
-  pattern__presetEr__複雑: {
-    見本: "pattern__presetEr__複雑",
-    記法経路: "record",
-    組み立て器経路: "er",
-    理由: "記法は図種の名前を持たず record 1 つに畳んだため (#2782)",
-  },
-  presetClassDiagram: {
-    見本: "presetClassDiagram",
-    記法経路: "record",
-    組み立て器経路: "class",
-    理由: "記法はクラス図の名前を持たず record 1 つに畳んだため (#2783)",
-  },
-  pattern__presetClassDiagram__複雑: {
-    見本: "pattern__presetClassDiagram__複雑",
+  pattern__presetDeliveryClasses__複雑: {
+    見本: "pattern__presetDeliveryClasses__複雑",
     記法経路: "record",
     組み立て器経路: "class",
     理由: "記法はクラス図の名前を持たず record 1 つに畳んだため (#2783)",
@@ -304,7 +292,7 @@ describe("矢印と段の表示要素への読み替え", () => {
   it("題のない箱でも、矢印の向きを区別する", () => {
     // **順序図では確かめられなくなった** (cdl#578)。 言づてが箱の中の行になり矢印を持たない。
     // 題を持たない箱を含む図として、格子に置いたクラス図で見る
-    const 元 = Presets.presetClassDiagram;
+    const 元 = Presets.presetDeliveryClasses;
     const 反転 = {
       ...元,
       edges: 元.edges.map((e, i) => (i === 0 ? { ...e, from: e.to, to: e.from } : e)),
@@ -315,7 +303,7 @@ describe("矢印と段の表示要素への読み替え", () => {
   it("どの段も光らせない矢印の向きは、両端の比較だけが捕まえる", () => {
     // **2 つの検査は役割が違う**。 向きの違いはどちらも捕まえるが、それは段がその矢印を
     // 光らせている時だけ。 光らせない矢印では両端の比較だけが残る = 片方に寄せられない
-    const 元 = Presets.presetEr;
+    const 元 = Presets.presetDeliveryRelations;
     const 光らせない = { ...元, phases: 元.phases.map((p) => ({ ...p, activate: [] })) };
     const 反転 = {
       ...光らせない,
@@ -327,7 +315,7 @@ describe("矢印と段の表示要素への読み替え", () => {
 
   it("同じ説明の矢印が 2 本ある時、光らせる先が取り違えを捕まえる", () => {
     // 逆に、説明だけで名乗らせると同じ説明の矢印を区別できない = 両端を名前に含める理由
-    const 元 = Presets.presetEr;
+    const 元 = Presets.presetDeliveryRelations;
     const 先頭 = 元.edges[0];
     if (先頭 === undefined) throw new Error("矢印を持たない preset では確かめられない");
     const 二本 = {
@@ -343,11 +331,11 @@ describe("矢印と段の表示要素への読み替え", () => {
   });
 
   it("題のない箱でも、段が光らせる位置を区別する", () => {
-    const 元 = Presets.presetClassDiagram;
+    const 元 = Presets.presetDeliveryClasses;
     const 取違え = {
       ...元,
       phases: 元.phases.map((p, i) =>
-        i === 0 ? { ...p, activate: p.activate.map((id) => (id === "User" ? "Sku" : id)) } : p,
+        i === 0 ? { ...p, activate: p.activate.map((id) => (id === "荷主" ? "冷蔵荷物" : id)) } : p,
       ),
     };
     expect(光らせる先(取違え)).not.toEqual(光らせる先(元));
@@ -516,7 +504,7 @@ const 箱の宣言: 欄の宣言 = {
     id: "記法と組立て API で作り方が違う (本 file 冒頭)。 読む人に見える名前へ直した上で `光らせる先` が使う",
     // 大きさは書いていない側が既定に落ちるだけで、描いた図は変わらない。
     // 実測 = 組立て API 側から `w` を落として描くと出力が 1 文字も変わらない
-    // (`presetEr` 13305 byte / `presetStateMachine` 16185 byte がいずれも同一)。
+    // (`presetDeliveryRelations` 13305 byte / `presetStateMachine` 16185 byte がいずれも同一)。
     // **変わる場合は `描いた図が一致する` が捕まえる**
     w: "書かない側は既定に落ちる。 描画に出るかは `描いた図が一致する` が見る",
     h: "同上",
@@ -1323,15 +1311,10 @@ describe("記法が組み立て API と同じ図になる (#1237)", () => {
 });
 
 describe("クラス図を record で書き直しても見た目を変えない (#2783)", () => {
-  const 書き直した見本 = 対象.filter((t) =>
-    ["presetClassDiagram", "pattern__presetClassDiagram__複雑"].includes(t.key),
-  );
+  const 書き直した見本 = 対象.filter((t) => t.key === "pattern__presetDeliveryClasses__複雑");
 
-  it("書き直す前の classDiagram と比べる見本を 2 件集めている", () => {
-    expect(書き直した見本.map((t) => t.key).sort()).toEqual([
-      "pattern__presetClassDiagram__複雑",
-      "presetClassDiagram",
-    ]);
+  it("書き直す前の classDiagram と比べる見本を 1 件集めている", () => {
+    expect(書き直した見本.map((t) => t.key)).toEqual(["pattern__presetDeliveryClasses__複雑"]);
   });
 
   for (const t of 書き直した見本) {

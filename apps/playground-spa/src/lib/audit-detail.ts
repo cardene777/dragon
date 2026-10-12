@@ -92,8 +92,19 @@ const 型たち: Record<string, 型> = {
       `Box "${m[1]}" is ${m[2]}x${m[3]}, under the required ${m[4]}x${m[5]}`,
   },
   "edge-node-cross": {
-    形: /^edge "(.*)" \(from=(.*) to=(.*)\) が関係ない 名札 "(.*)" を貫通$/,
-    英語: (m) => `Line "${m[1]}" (from=${m[2]} to=${m[3]}) runs through the unrelated box "${m[4]}"`,
+    形: /^edge "(.*)" \(from=(.*) to=(.*)\) が関係ない (?:名札|node) "(.*)" を貫通$/,
+    英語: (m) =>
+      `Line "${m[1]}" (from="${m[2]}" to="${m[3]}") runs through the unrelated box "${m[4]}"`,
+  },
+  "edge-segment-orthogonality": {
+    形: /^edge "(.*)" segment 角度 ([\d.]+)° \(0\/45\/90\/135\/180 のいずれにも近くない、 L 字破綻の可能性\)$/,
+    英語: (m) =>
+      `A segment of line "${m[1]}" is at ${m[2]}°, away from the expected 0/45/90/135/180° directions`,
+  },
+  "fan-origin-single-point": {
+    形: /^node "(.*)" side=(\w+) 起点 ([XY]) が edge "(.*)" \((-?[\d.]+)\) と "(.*)" \((-?[\d.]+)\) で ([\d.]+) world 差 \(fan 起点は同点収束が正しい\)$/,
+    英語: (m) =>
+      `Lines "${m[4]}" and "${m[6]}" leave the ${m[2]} side of box "${m[1]}" from ${m[3]}=${m[5]} and ${m[7]}, ${m[8]} world apart instead of one fan origin`,
   },
   "column-gap-uniform": {
     形: /^lane "(.*)" 内 node 間の端間 gap variance ([\d.]+) world が spec ([\d.]+) 超過 \(min=(-?[\d.]+) max=(-?[\d.]+)\)$/,
@@ -119,6 +130,21 @@ const 型たち: Record<string, 型> = {
     形: /^lane "(.*)" 内 名札 "(.*)" ↔ "(.*)" の垂直 gap (-?\d+) world が (\d+) 未満$/,
     英語: (m) =>
       `In lane "${m[1]}", the vertical gap between "${m[2]}" and "${m[3]}" is ${m[4]} world, under the ${m[5]} required`,
+  },
+  "row-alignment": {
+    形: /^stack=(\d+) row 内 node "(.*)" cy=(-?[\d.]+) が row 基準 cy=(-?[\d.]+) と ([\d.]+) world 差 \(許容 ([\d.]+)\)$/,
+    英語: (m) =>
+      `In stack ${m[1]}, box "${m[2]}" has center y=${m[3]}, ${m[5]} world away from the row's reference y=${m[4]} (allowed ${m[6]})`,
+  },
+  "row-gap-uniform": {
+    形: /^stack=(\d+) 内 node 間 gap variance ([\d.]+) world が spec ([\d.]+) 超過 \(min=(-?[\d.]+) max=(-?[\d.]+)\)$/,
+    英語: (m) =>
+      `In stack ${m[1]}, the gap variance between boxes is ${m[2]} world, over the ${m[3]} allowed (min=${m[4]} max=${m[5]})`,
+  },
+  "row-vertical-spacing": {
+    形: /^node "(.*)" \(kind=(.*)\) の (\d+) 行目 baseline y=([\d.]+) \+ 字形の深さ ([\d.]+) が node 高さ ([\d.]+) を ([\d.]+) world 越え、 文字が枠外に出る$/,
+    英語: (m) =>
+      `In box "${m[1]}" (kind=${m[2]}), row ${m[3]} needs a baseline of ${m[4]} plus ${m[5]} for the glyph depth, which runs ${m[7]} world past the box height ${m[6]}`,
   },
   "arrow-endpoint-center": {
     形: /^edge "(.*)" 終点 \((-?\d+),(-?\d+)\) が 名札 "(.*)" toSide=(\w+) 辺中央 \((-?\d+),(-?\d+)\) から ([\d.]+) world 離れ、 4 隅 zone 判定 \(許容 ([\d.]+)\)$/,

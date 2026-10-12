@@ -93,6 +93,10 @@ function 板を組む(doc: DslDocument, 面の名: (a: DslActor) => string): Cdl
     ...(doc.sequenceLabelForm !== undefined ? { sequenceLabelForm: doc.sequenceLabelForm } : {}),
     ...(doc.sequenceReturnHead !== undefined ? { sequenceReturnHead: doc.sequenceReturnHead } : {}),
     ...(doc.sequenceKindLabels !== undefined ? { sequenceKindLabels: doc.sequenceKindLabels } : {}),
+    ...(doc.sequenceRowGap !== undefined ? { sequenceRowGap: doc.sequenceRowGap } : {}),
+    ...(doc.sequenceGutter !== undefined ? { sequenceGutter: doc.sequenceGutter } : {}),
+    ...(doc.sequenceBandWidth !== undefined ? { sequenceBandWidth: doc.sequenceBandWidth } : {}),
+    ...(doc.sequenceSelfLoop !== undefined ? { sequenceSelfLoop: doc.sequenceSelfLoop } : {}),
   });
   for (const s of doc.flow) {
     b.step({
@@ -106,7 +110,24 @@ function 板を組む(doc: DslDocument, 面の名: (a: DslActor) => string): Cdl
       ...(s.msgKind ? { kind: s.msgKind } : {}),
     });
   }
-  return b.build();
+  const built = b.build();
+  if (doc.sequenceGutter === undefined || doc.viewport?.width === undefined) return built;
+  const canvasWidth = doc.viewport.width;
+
+  /*
+   * `sequenceGutter` は見本の canvas 原点から最初の糸を決める。cdl の sequence preset は
+   * 板の左右へさらに lane padding を足すため、そのままでは gutter 610 の糸が 25 右へずれ、
+   * 1800 の canvas も 1948 まで広がる。幅を書いた図では lane の左右 25 ずつを除いた幅を
+   * 板へ渡し、layout 後の lane を canvas 幅に揃える。gutter + 列幅 / 2 は板の原点から測る。
+   * 幅を書かない従来図は cdl の自動幅を保つ。
+   */
+  return {
+    ...built,
+    lanes: built.lanes.map((lane) => lane.id === "seq" ? { ...lane, width: canvasWidth } : lane),
+    nodes: built.nodes.map((node) => node.kind === "sequence-board"
+      ? { ...node, w: Math.max(1, canvasWidth - 50) }
+      : node),
+  };
 }
 
 /**

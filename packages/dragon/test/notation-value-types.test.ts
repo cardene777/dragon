@@ -153,20 +153,22 @@ describe("読めない値を知らせる欄を網羅している (#1306)", () =>
     expect(Object.keys(場所).length, "場所が 1 つも無い (検査が空振りしている)").toBeGreaterThan(0);
   });
 
-  it("欄の異なりが 28 ある (実装から導く)", () => {
+  it("欄の異なりが 33 ある (実装から導く)", () => {
     // Issue #1306 が数えた 21 欄を、表から導いて突き合わせる。 表に欄を足して呼出側に
     // 配線し忘れると、下の 2 方向の検査が落ちる。 #1971 で位置のずらし (`offsetX` / `offsetY`) を足して 23
-    // #2854 で `viewport.contentOffsetX` を 0.133.0 の数の欄として登録したため 28。
+    // #2854 で `viewport.contentOffsetX` を 0.133.0 の数の欄として登録して 28、#2836 で cdl 0.134.0 の
+    // 線の固定端点 (`posX1` / `posY1` / `posX2` / `posY2`) を通して 32、
+    // cdl 0.136.0 の `rowStripe` を通して 33。
     const 名前 = new Set(全欄().map((f) => f.欄));
-    expect(名前.size, `欄の異なりが変わった (${[...名前].sort().join(",")})`).toBe(28);
+    expect(名前.size, `欄の異なりが変わった (${[...名前].sort().join(",")})`).toBe(33);
   });
 
-  it("数の欄が 21、真偽の欄が 7", () => {
+  it("数の欄が 25、真偽の欄が 8", () => {
     const 欄 = 全欄();
     const 数 = new Set(欄.filter((f) => f.形 === "数").map((f) => f.欄));
     const 真偽 = new Set(欄.filter((f) => f.形 === "真偽").map((f) => f.欄));
-    expect(数.size, `数の欄 = ${[...数].sort().join(",")}`).toBe(21);
-    expect(真偽.size, `真偽の欄 = ${[...真偽].sort().join(",")}`).toBe(7);
+    expect(数.size, `数の欄 = ${[...数].sort().join(",")}`).toBe(25);
+    expect(真偽.size, `真偽の欄 = ${[...真偽].sort().join(",")}`).toBe(8);
   });
 
   it("表に出てくる形は全て、測る値を用意してある", () => {

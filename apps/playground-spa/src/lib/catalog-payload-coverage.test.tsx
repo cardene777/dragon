@@ -289,6 +289,8 @@ const 節の欄の扱い = {
   titleAlign: "記法",
   rowRules: "記法",
   rowMarkForm: "記法",
+  rowDividerForm: "記法",
+  rowWell: "記法",
   nestIn: "記法",
   stationNamePosition: "記法",
   subtitlePlacement: "記法",
@@ -297,6 +299,7 @@ const 節の欄の扱い = {
   rows: "記法",
   rowMarks: "記法",
   rowStripe: "記法",
+  rowLayout: "置き場所",
   tone: "記法",
   shape: "記法",
   ganttToday: "記法",
@@ -356,6 +359,7 @@ const 矢印の欄の扱い = {
   posY1: "置き場所",
   posX2: "置き場所",
   posY2: "置き場所",
+  waypoints: "置き場所",
   // 記法 = 記法から書く表現の欄
   sub: "記法",
   side: "記法",
@@ -1290,6 +1294,7 @@ const 置き場所の見本値: Record<string, unknown> = {
   "節/ganttSize": { tickCount: 6 },
   "節/quadrantLabelPosition": "outside-corners",
   "節/quadrantSize": { pointRadius: 11 },
+  "節/rowLayout": { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 },
   "矢印/labelOffsetX": 40,
   "矢印/labelOffsetY": 40,
   "矢印/labelCollision": "author",
@@ -1298,6 +1303,7 @@ const 置き場所の見本値: Record<string, unknown> = {
   "矢印/posY1": 20,
   "矢印/posX2": 220,
   "矢印/posY2": 220,
+  "矢印/waypoints": [{ x: 20, y: 220 }],
 };
 
 describe("節と矢印の任意の欄が、何かに覆われている (#1700 / #1707)", () => {

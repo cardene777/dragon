@@ -3,8 +3,8 @@ import { CLASS_RELATION_LOOK, type CdlDiagram, type CdlEdge, type ClassRelationT
 
 // 複雑な版は見本の中のパターン「複雑」 として書く (#1960)
 import {
-  pattern__presetClassDiagram__複雑 as presetClassComplex,
-  pattern__presetEr__複雑 as presetErComplex,
+  pattern__presetDeliveryClasses__複雑 as presetClassComplex,
+  pattern__presetDeliveryRelations__複雑 as presetDeliveryRelationsComplex,
   pattern__presetInfrastructure__複雑 as presetInfraComplex,
 } from "../../../apps/playground-spa/src/topics/catalog/presets.cdl";
 import { pattern__textDslFlowchart__複雑 as textDslFlowchartComplex } from "../../../apps/playground-spa/src/topics/catalog/text-dsl.cdl";
@@ -42,21 +42,21 @@ function 中継表(diagram: CdlDiagram): string[] {
 
 describe("複雑な ER 図", () => {
   it("12 表と 14 関係を持つ", () => {
-    expect(presetErComplex.nodes.length, "表が 1 件も無い").toBeGreaterThan(0);
-    expect(presetErComplex.edges.length, "関係が 1 件も無い").toBeGreaterThan(0);
-    expect(presetErComplex.nodes.length).toBe(12);
-    expect(presetErComplex.edges.length).toBe(14);
+    expect(presetDeliveryRelationsComplex.nodes.length, "表が 1 件も無い").toBeGreaterThan(0);
+    expect(presetDeliveryRelationsComplex.edges.length, "関係が 1 件も無い").toBeGreaterThan(0);
+    expect(presetDeliveryRelationsComplex.nodes.length).toBe(12);
+    expect(presetDeliveryRelationsComplex.edges.length).toBe(14);
   });
 
   it("両端から線を受ける中継表が 2 つある", () => {
-    expect(presetErComplex.nodes.length, "中継表を探す対象が 1 件も無い").toBeGreaterThan(0);
-    const tables = 中継表(presetErComplex);
+    expect(presetDeliveryRelationsComplex.nodes.length, "中継表を探す対象が 1 件も無い").toBeGreaterThan(0);
+    const tables = 中継表(presetDeliveryRelationsComplex);
     expect(tables.length, `中継表: ${tables.join(", ") || "無し"}`).toBe(2);
   });
 
   it("自己参照が 1 本ある", () => {
-    expect(presetErComplex.edges.length, "自己参照を探す対象が 1 件も無い").toBeGreaterThan(0);
-    const loops = presetErComplex.edges.filter((edge) => edge.from === edge.to);
+    expect(presetDeliveryRelationsComplex.edges.length, "自己参照を探す対象が 1 件も無い").toBeGreaterThan(0);
+    const loops = presetDeliveryRelationsComplex.edges.filter((edge) => edge.from === edge.to);
     expect(loops.length, `自己参照: ${loops.map((edge) => edge.id).join(", ") || "無し"}`).toBe(1);
   });
 });

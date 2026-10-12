@@ -205,11 +205,11 @@ describe("詳細画面の説明文と札 (#1777)", () => {
 
   it("数の食い違いを拾える (植え込み対照)", () => {
     // 箱・線・縦列の 3 つを 1 つずつずらす = どれか 1 つの照合が死んでいれば、その行が落ちる
-    const クラス図 = PRESETS.find((p) => p.id === "classDiagram")!;
+    const クラス図 = PRESETS.find((p) => p.id === "deliveryClasses")!;
     const 泳ぎ線 = PRESETS.find((p) => p.id === "swimlane")!;
     expect(数の食い違い(クラス図), "直したままの説明文を食い違いと読む").toEqual([]);
-    expect(数の食い違い({ ...クラス図, subtitle: "8 クラス × 6 関係。" })).toHaveLength(1);
     expect(数の食い違い({ ...クラス図, subtitle: "7 クラス × 5 関係。" })).toHaveLength(1);
+    expect(数の食い違い({ ...クラス図, subtitle: "6 クラス × 4 関係。" })).toHaveLength(1);
     expect(数の食い違い(泳ぎ線), "直したままの説明文を食い違いと読む").toEqual([]);
     expect(数の食い違い({ ...泳ぎ線, subtitle: "4 つの縦列で分ける図。" })).toHaveLength(1);
   });

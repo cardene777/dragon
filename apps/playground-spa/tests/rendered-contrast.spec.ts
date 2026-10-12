@@ -16,6 +16,10 @@ import { 六色の記法 } from "./box-and-edge-figure";
 import { 一覧の行 } from "./catalog-item-pick";
 import { sourceYaml__textDslSwimlaneStages } from "../src/topics/catalog/text-dsl.cdl";
 import {
+  sourceYaml__presetDeliveryClasses,
+  sourceYaml__presetDeliveryRelations,
+} from "../src/topics/catalog/presets.cdl";
+import {
   sourceYaml__branchParcelsBar,
   sourceYaml__deliveryOfficeTree,
   sourceYaml__deliveryResultStacked,
@@ -869,6 +873,92 @@ test.describe("edge label の描画対比 (#977)", () => {
     expect(failures.length, "対比を落としたのに検知しない").toBeGreaterThan(0);
     // 「測れなかった」 ではなく「閾値を割った」 として検知していること。
     expect(failures.some((f) => /:1 が要るが/.test(f)), `検知の内容: ${failures.join(" | ")}`).toBe(true);
+  });
+});
+
+test.describe("図録の関係と型の多重度 (#2836)", () => {
+  test.describe.configure({ timeout: 120000 });
+
+  for (const [name, source] of [
+    ["関係", sourceYaml__presetDeliveryRelations],
+    ["型", sourceYaml__presetDeliveryClasses],
+  ] as const) {
+    test(`${name}の多重度が暗い台の上で 4.5 以上`, async ({ page }) => {
+      await openEditorTheme(page, source, "catalog", false);
+      await stopDiagram(page);
+      const stage = page.locator('svg[data-cdl-stage][data-cdl-palette="catalog"]');
+      const result = await stage.evaluate((element) => {
+        const ground = getComputedStyle(element).backgroundColor;
+        return {
+          ground,
+          labels: [...element.querySelectorAll('[data-cdl-role="edge-end-label"]')].map((label) => ({
+            text: label.textContent ?? "",
+            fill: getComputedStyle(label).fill,
+          })),
+        };
+      });
+      expect(result.labels, `${name}の多重度`).toHaveLength(3);
+      for (const label of result.labels) {
+        expect(label.fill, `${name}/${label.text} の見本色`).toBe("rgb(163, 154, 135)");
+        expect(
+          contrast(color(label.fill), color(result.ground)),
+          `${name}/${label.text}: ${label.fill} on ${result.ground}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(contrast(color("rgb(111, 103, 87)"), color(result.ground))).toBeLessThan(4.5);
+    });
+  }
+});
+
+test.describe("図録の関係線の描画対比 (#2836)", () => {
+  test.describe.configure({ timeout: 120000 });
+
+  test("状態の矢印と使う点線が地に対して 3 以上", async ({ page }) => {
+    await open(page, { slug: "presets", id: "delivery-relations-demo" }, "light");
+    await page
+      .getByRole("radiogroup", { name: "図の色味" })
+      .getByRole("radio", { name: "図録" })
+      .click();
+    const stage = page.locator(
+      '[data-cdl-diagram="delivery-relations-demo"] svg[data-cdl-stage][data-cdl-palette="catalog"]',
+    );
+    await expect(stage).toHaveCount(1);
+    await expect(stage.locator('[data-cdl-tone="warning"] [data-cdl-role="edge-line"]')).toHaveCount(3);
+    await expect(stage.locator('[data-cdl-tone="teal"] [data-cdl-role="edge-line"]')).toHaveCount(3);
+    await stopDiagram(page);
+    const result = await stage.evaluate((element) => ({
+      ground: getComputedStyle(element).backgroundColor,
+      lines: [...element.querySelectorAll<SVGPathElement>('[data-cdl-role="edge-line"]')]
+        .filter((line) => ["warning", "teal"].includes(line.closest("[data-cdl-tone]")?.getAttribute("data-cdl-tone") ?? ""))
+        .map((line) => {
+          const style = getComputedStyle(line);
+          return {
+            tone: line.closest("[data-cdl-tone]")?.getAttribute("data-cdl-tone") ?? "",
+            stroke: style.stroke,
+            strokeOpacity: Number(style.strokeOpacity || 1),
+          };
+        }),
+    }));
+    const ground = color(result.ground);
+    const expected = {
+      warning: "rgb(232, 112, 90)",
+      teal: "rgb(79, 174, 154)",
+    } as const;
+    for (const tone of ["warning", "teal"] as const) {
+      const lines = result.lines.filter((line) => line.tone === tone);
+      expect(lines, `${tone} の関係線`).toHaveLength(3);
+      for (const [index, line] of lines.entries()) {
+        expect(line.stroke, `${tone} ${index + 1} の見本色`).toBe(expected[tone]);
+        expect(line.strokeOpacity, `${tone} ${index + 1} の不透明度`).toBe(1);
+        expect(
+          contrast(over(color(line.stroke), line.strokeOpacity, ground), ground),
+          `${tone} ${index + 1}: ${line.stroke} / ${line.strokeOpacity} on ${result.ground}`,
+        ).toBeGreaterThanOrEqual(3);
+      }
+    }
+
+    expect(contrast(over([167, 88, 76], 0.85, ground), ground), "旧い状態色を検知する").toBeLessThan(3);
+    expect(contrast(over([63, 130, 119], 0.85, ground), ground), "旧い使う色を検知する").toBeLessThan(3);
   });
 });
 

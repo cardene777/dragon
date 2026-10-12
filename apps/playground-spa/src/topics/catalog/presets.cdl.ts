@@ -32,6 +32,53 @@ type Phase = CdlDiagram["phases"][number];
 type State = NonNullable<CdlDiagram["states"]>[number];
 type Node = CdlDiagram["nodes"][number];
 
+type 見本の行配置 = { titleBaseline: number; rowTop: number; rowPitch: number };
+type 見本の途中点 = { x: number; y: number };
+
+/** YAML でも JSON と同じ意匠単位の表を読む。
+ * 欄別の表へ分けず、1 意匠を 1 行で運ぶ。
+ */
+const 意匠別配置をYAMLで書く = (values: Record<string, unknown>): string =>
+  Object.entries(values).map(([theme, value]) => `  ${theme}: ${JSON.stringify(value)}`).join("\n");
+
+const 表の箱の配置 = (
+  names: readonly string[],
+  topByName: Readonly<Record<string, number>>,
+  heights: readonly number[],
+  rowLayout: 見本の行配置,
+  eyebrowNames: readonly string[] = [],
+  rowStripe?: boolean,
+): Record<string, { h: number; posH: number; posY: number; rowLayout: 見本の行配置; rowStripe?: boolean }> => Object.fromEntries(names.map((name, index) => [
+  name,
+  {
+    rowLayout: eyebrowNames.includes(name)
+      ? {
+          titleBaseline: rowLayout.titleBaseline + 25,
+          rowTop: rowLayout.rowTop + 25,
+          rowPitch: rowLayout.rowPitch,
+        }
+      : rowLayout,
+    ...(rowStripe === undefined ? {} : { rowStripe }),
+    h: heights[index]!,
+    posH: heights[index]!,
+    posY: topByName[name]! + heights[index]! / 2,
+  },
+]));
+
+const 見本の直角線 = (
+  points: readonly 見本の途中点[],
+  labelOffsetX?: number,
+  labelOffsetY?: number,
+) => ({
+  posX1: points[0]?.x ?? 0,
+  posY1: points[0]?.y ?? 0,
+  posX2: points.at(-1)?.x ?? 0,
+  posY2: points.at(-1)?.y ?? 0,
+  waypoints: points.slice(1, -1),
+  ...(labelOffsetX === undefined ? {} : { labelOffsetX }),
+  ...(labelOffsetY === undefined ? {} : { labelOffsetY }),
+});
+
 /** 段 1 つ分の指定 */
 type Step = {
   /** その段で新しく光らせる要素。 前の段で光ったものは光ったまま積み上がる */
@@ -437,88 +484,140 @@ export const presetFlow = withSteps(flowB.build(), [
 // 教科書の縦形 (箱 + 寿命線 + 線の上の札) は 3 版まで詰めて却下されている。 骨格の選び方の
 // 問題ではなく、時間を位置に畳んでいたのが原因だった。
 //
-// **段が進むと濃さが移る**。 済んだ言づては薄く残り、今の 1 本だけが濃い。 全部同じ濃さで
-// 残すと、どこを見ているのか判らなくなる。
-export const presetSequence = withSteps(
-  sequence({
-    id: "seq-demo",
-    topic: "時系列のやり取りを縦の時間軸で並べる図",
-    actors: [
-      { name: "ブラウザ", subtitle: "画面" },
-      { name: "API", subtitle: "受付" },
-      { name: "DB", subtitle: "台帳" },
-      { name: "キュー", subtitle: "待ち行列" },
-    ],
-    sequenceActorForm: "box",
-    sequenceLabelForm: "kind",
-    sequenceReturnHead: "solid",
-    sequenceKindLabels: { call: "呼ぶ", return: "返す", fire: "投げる" },
-    // 動いている間の帯。 台帳は途中で手が空くので区間が 2 つに分かれる
-    bands: [
-      { actor: "ブラウザ", from: 0, to: 5 },
-      { actor: "API", from: 0, to: 5 },
-      { actor: "DB", from: 1, to: 2 },
-      { actor: "DB", from: 6, to: 6 },
-      { actor: "キュー", from: 4, to: 6 },
-    ],
-  })
-    // 呼ぶ = 相手にやらせて待つ (実線 + 塗った矢)
-    .step({ from: "ブラウザ", to: "API", label: "注文を出す", kind: "call" })
-    .step({ from: "API", to: "DB", label: "在庫を押さえる", kind: "call" })
-    // 返す = 呼ばれた側から戻る。 新しい仕事ではないので線が切れる
-    .step({ from: "DB", to: "API", label: "押さえた", kind: "return" })
-    // 自分宛て。 控えを書くだけで相手がいない
-    .step({ from: "API", to: "API", label: "控えを書く", kind: "call" })
-    // 投げる = 返事を待たない。 実線だが矢を閉じない
-    .step({ from: "API", to: "キュー", label: "発送を頼む", kind: "fire" })
-    .step({ from: "API", to: "ブラウザ", label: "受け付けた", kind: "return" })
-    .step({ from: "キュー", to: "DB", label: "引当を確定", kind: "call" })
-    .build(),
-  [
-    {
-      ids: ["seq-demo"],
-      title: "1. 注文を出す",
-      body: "実線に塗った矢。 相手にやらせて待つ。 左の点が出どころ。",
-      sets: [{ id: "seq_step", value: 0 }],
-    },
-    {
-      title: "2. 在庫を押さえる",
-      body: "受付が台帳に問い合わせる。 動いている間だけ帯が伸びる。",
-      sets: [{ id: "seq_step", value: 1 }],
-    },
-    {
-      title: "3. 押さえた",
-      body: "破線に開いた矢。 新しい仕事ではないので線が切れる。",
-      sets: [{ id: "seq_step", value: 2 }],
-    },
-    {
-      title: "4. 控えを書く",
-      body: "自分宛ての言づて。 相手がいない仕事。",
-      sets: [{ id: "seq_step", value: 3 }],
-    },
-    {
-      title: "5. 発送を頼む",
-      body: "実線に開いた矢。 矢を閉じないことで返事を待たないと示す。",
-      sets: [{ id: "seq_step", value: 4 }],
-    },
-    {
-      title: "6. 受け付けた",
-      body: "待ち行列の返事を待たずに画面へ返す。",
-      sets: [{ id: "seq_step", value: 5 }],
-    },
-    {
-      body: "台帳は途中で手が空く。 帯が途切れることでそれと判る。",
-      sets: [{ id: "seq_step", value: 6 }],
-    },
+// 言づての色は段の進みではなく種類で決める。呼ぶは墨、返すは青緑、投げるは錆とし、
+// 最後の段まで描いた時にも種類を色から読めるようにする。
+export const sourceYaml__presetDeliverySequence = `title: "集荷から配達までの呼び出し順"
+type: sequence
+legendFontSize: 21
+viewport: { width: 1800, height: 1100 }
+sequenceActorForm: box
+sequenceLabelForm: kind
+sequenceReturnHead: solid
+sequenceKindLabels: {"call":"呼ぶ","return":"返す","fire":"投げる"}
+sequenceRowGap: 100
+sequenceGutter: 610
+sequenceBandWidth: 30
+sequenceSelfLoop: {"form":"orthogonal","width":127,"drop":46}
+
+actors:
+  - 荷主: { subtitle: "画面" }
+  - 営業所: { subtitle: "受付" }
+  - 台帳: { subtitle: "記録" }
+  - 配送便: { subtitle: "運ぶ" }
+
+bands:
+  - 荷主: 0..5
+  - 営業所: 0..5
+  - 台帳: 1..2
+  - 台帳: 6..6
+  - 配送便: 4..6
+
+flow:
+  - 荷主 -> 営業所: "集荷を頼む" { kind: call }
+  - 営業所 -> 台帳: "送り状を起こす" { kind: call }
+  - 台帳 -> 営業所: "送り状番号" { kind: return }
+  - 営業所 -> 営業所: "棚を割り当てる" { kind: call }
+  - 営業所 -> 配送便: "便に積む" { kind: fire }
+  - 営業所 -> 荷主: "受け付けた" { kind: return }
+  - 配送便 -> 台帳: "配達中にする" { kind: call }
+
+legend:
+  - { mark: solid-line, text: "呼ぶ = 相手にやらせて待つ", tone: accent }
+  - { mark: dotted-line, text: "返す = 呼ばれた側から戻る", tone: teal }
+  - { mark: solid-line, text: "投げる = 返事を待たない", tone: warning }
+  - { text: "縦の帯は手が動いている間", align: end }
+
+animation:
+  - step: "1. 集荷を頼む" 0.9s
+    focus: ["荷主 -> 営業所"]
+    badge: "sequence"
+    body: "荷主が営業所へ集荷を頼む。"
+  - step: "2. 送り状を起こす" 0.9s
+    focus: ["営業所 -> 台帳"]
+    badge: "sequence"
+    body: "営業所が台帳に送り状を起こす。"
+  - step: "3. 送り状番号" 0.9s
+    focus: ["台帳 -> 営業所"]
+    badge: "sequence"
+    body: "台帳から送り状番号が返る。"
+  - step: "4. 棚を割り当てる" 0.9s
+    focus: ["営業所 -> 営業所"]
+    badge: "sequence"
+    body: "営業所が自分の棚を割り当てる。"
+  - step: "5. 便に積む" 0.9s
+    focus: ["営業所 -> 配送便"]
+    badge: "sequence"
+    body: "返事を待たず配送便へ積む。"
+  - step: "6. 受け付けた" 0.9s
+    focus: ["営業所 -> 荷主"]
+    badge: "sequence"
+    body: "営業所から荷主へ受付の返事を返す。"
+  - step: "集荷から配達までの呼び出し順" 0.9s
+    focus: ["配送便 -> 台帳"]
+    badge: "sequence"
+    body: "配送便が台帳の状態を配達中にする。"
+`;
+
+export const sourceJson__presetDeliverySequence = JSON.stringify({
+  title: "集荷から配達までの呼び出し順",
+  type: "sequence",
+  legendFontSize: 21,
+  viewport: { width: 1800, height: 1100 },
+  sequenceActorForm: "box",
+  sequenceLabelForm: "kind",
+  sequenceReturnHead: "solid",
+  sequenceKindLabels: { call: "呼ぶ", return: "返す", fire: "投げる" },
+  sequenceRowGap: 100,
+  sequenceGutter: 610,
+  sequenceBandWidth: 30,
+  sequenceSelfLoop: { form: "orthogonal", width: 127, drop: 46 },
+  actors: [
+    { name: "荷主", subtitle: "画面" },
+    { name: "営業所", subtitle: "受付" },
+    { name: "台帳", subtitle: "記録" },
+    { name: "配送便", subtitle: "運ぶ" },
   ],
-  [{ id: "seq_step", initial: "0" }],
-);
+  bands: [
+    { actor: "荷主", from: 0, to: 5 },
+    { actor: "営業所", from: 0, to: 5 },
+    { actor: "台帳", from: 1, to: 2 },
+    { actor: "台帳", from: 6, to: 6 },
+    { actor: "配送便", from: 4, to: 6 },
+  ],
+  flow: [
+    { from: "荷主", to: "営業所", label: "集荷を頼む", kind: "call" },
+    { from: "営業所", to: "台帳", label: "送り状を起こす", kind: "call" },
+    { from: "台帳", to: "営業所", label: "送り状番号", kind: "return" },
+    { from: "営業所", to: "営業所", label: "棚を割り当てる", kind: "call" },
+    { from: "営業所", to: "配送便", label: "便に積む", kind: "fire" },
+    { from: "営業所", to: "荷主", label: "受け付けた", kind: "return" },
+    { from: "配送便", to: "台帳", label: "配達中にする", kind: "call" },
+  ],
+  legend: [
+    { mark: "solid-line", text: "呼ぶ = 相手にやらせて待つ", tone: "accent" },
+    { mark: "dotted-line", text: "返す = 呼ばれた側から戻る", tone: "teal" },
+    { mark: "solid-line", text: "投げる = 返事を待たない", tone: "warning" },
+    { text: "縦の帯は手が動いている間", align: "end" },
+  ],
+  animation: [
+    { step: "1. 集荷を頼む", duration: 0.9, focus: ["荷主 -> 営業所"], badge: "sequence", body: "荷主が営業所へ集荷を頼む。" },
+    { step: "2. 送り状を起こす", duration: 0.9, focus: ["営業所 -> 台帳"], badge: "sequence", body: "営業所が台帳に送り状を起こす。" },
+    { step: "3. 送り状番号", duration: 0.9, focus: ["台帳 -> 営業所"], badge: "sequence", body: "台帳から送り状番号が返る。" },
+    { step: "4. 棚を割り当てる", duration: 0.9, focus: ["営業所 -> 営業所"], badge: "sequence", body: "営業所が自分の棚を割り当てる。" },
+    { step: "5. 便に積む", duration: 0.9, focus: ["営業所 -> 配送便"], badge: "sequence", body: "返事を待たず配送便へ積む。" },
+    { step: "6. 受け付けた", duration: 0.9, focus: ["営業所 -> 荷主"], badge: "sequence", body: "営業所から荷主へ受付の返事を返す。" },
+    { step: "集荷から配達までの呼び出し順", duration: 0.9, focus: ["配送便 -> 台帳"], badge: "sequence", body: "配送便が台帳の状態を配達中にする。" },
+  ],
+}, null, 2);
+
+export const presetDeliverySequence = textDslToDiagram(sourceYaml__presetDeliverySequence);
+presetDeliverySequence.id = "delivery-sequence-demo";
 
 /**
  * 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960)。
  * 一覧の別の行にすると、同じ種類の図の規模違いを見比べるのに行を選び直すことになる
  */
-export const patternBase__presetSequence = "簡単";
+export const patternBase__presetDeliverySequence = "簡単";
 
 /**
  * 順序図の複雑な版 (#2161)。
@@ -576,7 +675,7 @@ const seqComplex = sequence({
   .step({ from: "API", to: "ブラウザ", label: "受け付けた", kind: "return", tone: "success" })
   .build();
 
-export const pattern__presetSequence__複雑 = withSteps(
+export const pattern__presetDeliverySequence__複雑 = withSteps(
   seqComplex,
   [
     {
@@ -779,6 +878,303 @@ export const pattern__presetTopology__複雑 = withSteps(topoComplex.build(), [
   },
 ]);
 
+const deliveryComponentsLayoutByTheme = Object.fromEntries(Object.entries({
+  blueprint: 18.1453125,
+  catalog: 22.6453125,
+  sketch: 21.6453125,
+  letterpress: 21.1453125,
+  relief: 24.1453125,
+  terminal: 17.95,
+  neon: 22.1453125,
+}).map(([theme, labelOffsetY]) => [theme, {
+  edges: {
+    "荷主 -> 受付 API": { labelOffsetX: 2, labelOffsetY: labelOffsetY + 94.8 },
+    "位置の控え -> 台帳": {
+      posX1: 862.2,
+      posY1: 600.8,
+      posX2: 762.2,
+      posY2: 600.8,
+      labelOffsetX: -2,
+      labelOffsetY: labelOffsetY - 18.2,
+    },
+  },
+}])) as Record<string, {
+  edges: Record<string, {
+    posX1?: number;
+    posY1?: number;
+    posX2?: number;
+    posY2?: number;
+    labelOffsetX: number;
+    labelOffsetY: number;
+  }>;
+}>;
+
+export const sourceYaml__presetDeliveryComponents = `title: "配送システムの部品"
+type: c4
+palette: kinari
+relations: hover
+reveal: all
+legendFontSize: 21
+viewport: { width: 1800, height: 1100 }
+layoutByTheme:
+${意匠別配置をYAMLで書く(deliveryComponentsLayoutByTheme)}
+
+lanes:
+  c4-l1: { label: "", contain: false }
+  c4-l2: { label: "配送システム", subtitle: "L2 · 中の部品", contain: true, x: 355.2, width: 920, offsetX: -17.8 }
+
+actors:
+  - 荷主: { posX: 128.2, posY: 310.8, posW: 300, posH: 126, kind: person, subtitle: "L1 集荷を頼む人", kindForm: icon, icon: person, figureCard: {"label":"人","note":"L1"} }
+  - 受付 API: { posX: 600, posY: 310.8, posW: 360, posH: 126, kind: service, subtitle: "L2 申し込みを受ける", kindForm: icon, icon: box, figureCard: {"label":"サービス","note":"L2"} }
+  - 追跡: { posX: 1060, posY: 310.8, posW: 360, posH: 126, kind: service, subtitle: "L2 荷物の今を答える", kindForm: icon, icon: box, figureCard: {"label":"サービス","note":"L2"} }
+  - 地図サービス: { posX: 1519.2, posY: 310.8, posW: 334, posH: 126, kind: service, subtitle: "L1 道順を返す", kindForm: icon, icon: cloud, figureCard: {"label":"外のサービス","note":"外"} }
+  - 位置の控え: { posX: 1060, posY: 600.8, posW: 360, posH: 126, kind: cache, subtitle: "L2 最新の位置だけ持つ", kindForm: icon, icon: lightning, figureCard: {"label":"キャッシュ","note":"L2"} }
+  - 台帳: { posX: 600, posY: 600.8, posW: 360, posH: 126, kind: database, subtitle: "L2 送り状を残す", kindForm: icon, icon: database, figureCard: {"label":"データベース","note":"L2"} }
+  - 配送便の端末: { posX: 1519.2, posY: 600.8, posW: 334, posH: 126, kind: service, subtitle: "L1 運転手が持つ", kindForm: icon, icon: terminal, figureCard: {"label":"端末","note":"L1"} }
+  - メール配信: { posX: 128.2, posY: 890.8, posW: 300, posH: 126, kind: service, subtitle: "L1 知らせを届ける", kindForm: icon, icon: cloud, figureCard: {"label":"外のサービス","note":"外"} }
+  - 通知: { posX: 600, posY: 890.8, posW: 360, posH: 126, kind: service, subtitle: "L2 着く前に知らせる", kindForm: icon, icon: box, figureCard: {"label":"サービス","note":"L2"} }
+
+flow:
+  - 荷主 -> 受付 API: "頼む" (accent) { labelCollision: author, labelOffsetX: 2, labelOffsetY: 112.9453125, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 受付 API -> 台帳: "書く" (teal) { overlay: true, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 荷主 -> 追跡: "聞く" (accent) { fromSide: top, toSide: top, posX1: 128.2, posY1: 243.8, posX2: 1042.2, posY2: 245.8, waypoints: [{"x":128.2,"y":201.8},{"x":1042.2,"y":201.8}], labelCollision: author, labelOffsetX: 226, labelOffsetY: 0, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 配送便の端末 -> 位置の控え: "送る" (accent) { labelCollision: author, labelOffsetX: 3, labelOffsetY: 78, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 追跡 -> 位置の控え: "読む" (teal) { overlay: true, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 追跡 -> 地図サービス: "道を聞く" (warning, dashed) { labelCollision: author, labelOffsetY: 78, labelSize: {"width":118,"height":40,"fontSize":21} }
+  - 位置の控え -> 台帳: "移す" (warning, dashed) { posX1: 862.2, posY1: 600.8, posX2: 762.2, posY2: 600.8, labelCollision: author, labelOffsetX: -2, labelOffsetY: -0.0546875, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 台帳 -> 通知: "書いたら" (teal) { labelCollision: author, labelOffsetX: -73, labelOffsetY: -36, labelSize: {"width":118,"height":40,"fontSize":21} }
+  - 通知 -> メール配信: "送る" (warning, dashed) { labelCollision: author, labelOffsetX: 3, labelOffsetY: 111, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - メール配信 -> 荷主: "届く" (warning, dashed) { overlay: true, labelSize: {"width":74,"height":40,"fontSize":21} }
+
+legend:
+  - { mark: rounded-box, text: "区画の中 = 配送システムの部品 (L2)", tone: accent }
+  - { mark: dotted-line, text: "点線 = 外への問い合わせと、夜にまとめて移すもの", tone: warning }
+
+animation:
+  - step: "1. 集荷を頼む" 0.9s
+    focus: [荷主, "受付 API", "荷主 -> 受付 API"]
+    badge: "c4"
+    body: "荷主が受付 API に集荷を頼む。"
+  - step: "2. 送り状と位置" 0.9s
+    focus: [荷主, "受付 API", "荷主 -> 受付 API", 台帳, 追跡, "位置の控え", "受付 API -> 台帳", "追跡 -> 位置の控え"]
+    badge: "c4"
+    body: "配送システムの中で送り状と現在地を読み書きする。"
+  - step: "配送システムの部品" 0.9s
+    focus: [荷主, "受付 API", "荷主 -> 受付 API", 台帳, 追跡, "位置の控え", "受付 API -> 台帳", "追跡 -> 位置の控え", 地図サービス, "配送便の端末", メール配信, 通知, "荷主 -> 追跡", "配送便の端末 -> 位置の控え", "追跡 -> 地図サービス", "位置の控え -> 台帳", "台帳 -> 通知", "通知 -> メール配信", "メール配信 -> 荷主"]
+    badge: "c4"
+    body: "外への問い合わせと夜にまとめて移す線を点線で分ける。"
+`;
+
+export const sourceJson__presetDeliveryComponents = JSON.stringify({
+  title: "配送システムの部品",
+  type: "c4",
+  palette: "kinari",
+  relations: "hover",
+  reveal: "all",
+  legendFontSize: 21,
+  viewport: { width: 1800, height: 1100 },
+  layoutByTheme: deliveryComponentsLayoutByTheme,
+  lanes: {
+    "c4-l1": { label: "", contain: false },
+    "c4-l2": { label: "配送システム", subtitle: "L2 · 中の部品", contain: true, x: 355.2, width: 920, pos: { x: -17.8, y: 0 } },
+  },
+  actors: [
+    { name: "荷主", posX: 128.2, posY: 310.8, posW: 300, posH: 126, kind: "person", subtitle: "L1 集荷を頼む人", kindForm: "icon", icon: "person", figureCard: { label: "人", note: "L1" } },
+    { name: "受付 API", posX: 600, posY: 310.8, posW: 360, posH: 126, kind: "service", subtitle: "L2 申し込みを受ける", kindForm: "icon", icon: "box", figureCard: { label: "サービス", note: "L2" } },
+    { name: "追跡", posX: 1060, posY: 310.8, posW: 360, posH: 126, kind: "service", subtitle: "L2 荷物の今を答える", kindForm: "icon", icon: "box", figureCard: { label: "サービス", note: "L2" } },
+    { name: "地図サービス", posX: 1519.2, posY: 310.8, posW: 334, posH: 126, kind: "service", subtitle: "L1 道順を返す", kindForm: "icon", icon: "cloud", figureCard: { label: "外のサービス", note: "外" } },
+    { name: "位置の控え", posX: 1060, posY: 600.8, posW: 360, posH: 126, kind: "cache", subtitle: "L2 最新の位置だけ持つ", kindForm: "icon", icon: "lightning", figureCard: { label: "キャッシュ", note: "L2" } },
+    { name: "台帳", posX: 600, posY: 600.8, posW: 360, posH: 126, kind: "database", subtitle: "L2 送り状を残す", kindForm: "icon", icon: "database", figureCard: { label: "データベース", note: "L2" } },
+    { name: "配送便の端末", posX: 1519.2, posY: 600.8, posW: 334, posH: 126, kind: "service", subtitle: "L1 運転手が持つ", kindForm: "icon", icon: "terminal", figureCard: { label: "端末", note: "L1" } },
+    { name: "メール配信", posX: 128.2, posY: 890.8, posW: 300, posH: 126, kind: "service", subtitle: "L1 知らせを届ける", kindForm: "icon", icon: "cloud", figureCard: { label: "外のサービス", note: "外" } },
+    { name: "通知", posX: 600, posY: 890.8, posW: 360, posH: 126, kind: "service", subtitle: "L2 着く前に知らせる", kindForm: "icon", icon: "box", figureCard: { label: "サービス", note: "L2" } },
+  ],
+  flow: [
+    { from: "荷主", to: "受付 API", label: "頼む", tone: "accent", labelCollision: "author", labelOffsetX: 2, labelOffsetY: 112.9453125, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "受付 API", to: "台帳", label: "書く", tone: "teal", overlay: true, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "荷主", to: "追跡", label: "聞く", tone: "accent", fromSide: "top", toSide: "top", posX1: 128.2, posY1: 243.8, posX2: 1042.2, posY2: 245.8, waypoints: [{ x: 128.2, y: 201.8 }, { x: 1042.2, y: 201.8 }], labelCollision: "author", labelOffsetX: 226, labelOffsetY: 0, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "配送便の端末", to: "位置の控え", label: "送る", tone: "accent", labelCollision: "author", labelOffsetX: 3, labelOffsetY: 78, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "追跡", to: "位置の控え", label: "読む", tone: "teal", overlay: true, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "追跡", to: "地図サービス", label: "道を聞く", tone: "warning", style: "dashed", labelCollision: "author", labelOffsetY: 78, labelSize: { width: 118, height: 40, fontSize: 21 } },
+    { from: "位置の控え", to: "台帳", label: "移す", tone: "warning", style: "dashed", posX1: 862.2, posY1: 600.8, posX2: 762.2, posY2: 600.8, labelCollision: "author", labelOffsetX: -2, labelOffsetY: -0.0546875, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "台帳", to: "通知", label: "書いたら", tone: "teal", labelCollision: "author", labelOffsetX: -73, labelOffsetY: -36, labelSize: { width: 118, height: 40, fontSize: 21 } },
+    { from: "通知", to: "メール配信", label: "送る", tone: "warning", style: "dashed", labelCollision: "author", labelOffsetX: 3, labelOffsetY: 111, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "メール配信", to: "荷主", label: "届く", tone: "warning", style: "dashed", overlay: true, labelSize: { width: 74, height: 40, fontSize: 21 } },
+  ],
+  legend: [
+    { mark: "rounded-box", text: "区画の中 = 配送システムの部品 (L2)", tone: "accent" },
+    { mark: "dotted-line", text: "点線 = 外への問い合わせと、夜にまとめて移すもの", tone: "warning" },
+  ],
+  animation: [
+    { step: "1. 集荷を頼む", duration: 0.9, focus: ["荷主", "受付 API", "荷主 -> 受付 API"], badge: "c4", body: "荷主が受付 API に集荷を頼む。" },
+    { step: "2. 送り状と位置", duration: 0.9, focus: ["荷主", "受付 API", "荷主 -> 受付 API", "台帳", "追跡", "位置の控え", "受付 API -> 台帳", "追跡 -> 位置の控え"], badge: "c4", body: "配送システムの中で送り状と現在地を読み書きする。" },
+    { step: "配送システムの部品", duration: 0.9, focus: ["荷主", "受付 API", "荷主 -> 受付 API", "台帳", "追跡", "位置の控え", "受付 API -> 台帳", "追跡 -> 位置の控え", "地図サービス", "配送便の端末", "メール配信", "通知", "荷主 -> 追跡", "配送便の端末 -> 位置の控え", "追跡 -> 地図サービス", "位置の控え -> 台帳", "台帳 -> 通知", "通知 -> メール配信", "メール配信 -> 荷主"], badge: "c4", body: "外への問い合わせと夜にまとめて移す線を点線で分ける。" },
+  ],
+}, null, 2);
+
+export const presetDeliveryComponents = textDslToDiagram(sourceYaml__presetDeliveryComponents);
+presetDeliveryComponents.id = "delivery-components-demo";
+
+const 関係の表の箱 = [
+  "契約", "法人契約", "個人契約", "営業所", "荷物", "配送便",
+  "受付済", "集荷済", "配達中", "完了",
+] as const;
+const 関係の箱の上端 = {
+  契約: 46,
+  法人契約: 352,
+  個人契約: 352,
+  営業所: 46,
+  荷物: 672,
+  配送便: 672,
+  受付済: 46,
+  集荷済: 288,
+  配達中: 530,
+  完了: 848,
+} as const;
+
+const 関係の意匠別配置 = (
+  rowLayout: 見本の行配置,
+  heights: readonly number[],
+  paths: readonly (readonly 見本の途中点[])[],
+  deliveryLabelOffsetY: number,
+  sortingLabelOffsetY: number,
+  rowStripe?: boolean,
+) => ({
+  nodes: {
+    ...表の箱の配置(関係の表の箱, 関係の箱の上端, heights, rowLayout, [], rowStripe),
+    ...(rowStripe === undefined
+      ? {}
+      : { 受付: { rowStripe }, 仕分け: { rowStripe } }),
+  },
+  edges: {
+    "法人契約 -> 契約": 見本の直角線(paths[0] ?? [], 152, 0),
+    "個人契約 -> 契約": 見本の直角線(paths[1] ?? []),
+    "荷物 -> 配送便": 見本の直角線(paths[2] ?? [], -5, -46),
+    "配送便 -> 配達中": 見本の直角線(paths[3] ?? [], 0, deliveryLabelOffsetY),
+    "受付済 -> 仕分け": 見本の直角線(paths[4] ?? [], 0, sortingLabelOffsetY),
+    "受付済 -> 集荷済": 見本の直角線(paths[5] ?? [], 118, -1),
+    "集荷済 -> 配達中": 見本の直角線(paths[6] ?? [], 118, -1),
+    "配達中 -> 完了": 見本の直角線(paths[7] ?? [], 118, -1),
+  },
+});
+
+const deliveryRelationsLayoutByTheme = {
+  blueprint: 関係の意匠別配置(
+    { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 },
+    [188.890625, 188.890625, 142.890625, 371.265625, 234.890625, 234.890625, 157.890625, 157.890625, 142.890625, 157.890625],
+    [
+      [{ x: 232, y: 346 }, { x: 232, y: 293.4453125 }, { x: 360, y: 293.4453125 }, { x: 360, y: 236.890625 }],
+      [{ x: 656, y: 346 }, { x: 656, y: 293.4453125 }, { x: 540, y: 293.4453125 }, { x: 540, y: 236.890625 }],
+      [{ x: 530, y: 755.890625 }, { x: 708, y: 755.890625 }],
+      [{ x: 1156, y: 847.890625 }, { x: 1250, y: 847.890625 }, { x: 1250, y: 601.4453125 }, { x: 1448, y: 601.4453125 }],
+      [{ x: 1438, y: 124.9453125 }, { x: 1434, y: 124.9453125 }, { x: 1434, y: 335.265625 }, { x: 1370, y: 335.265625 }],
+      [{ x: 1611, y: 207.890625 }, { x: 1611, y: 286 }],
+      [{ x: 1611, y: 449.890625 }, { x: 1611, y: 528 }],
+      [{ x: 1611, y: 676.890625 }, { x: 1611, y: 846 }],
+    ],
+    52,
+    -30,
+  ),
+  catalog: 関係の意匠別配置(
+    { titleBaseline: 46, rowTop: 103.4, rowPitch: 46.5 },
+    [197.890625, 197.890625, 151.890625, 388.265625, 243.890625, 243.890625, 166.890625, 166.890625, 151.890625, 166.890625],
+    [
+      [{ x: 232, y: 346 }, { x: 232, y: 297.9453125 }, { x: 360, y: 297.9453125 }, { x: 360, y: 245.890625 }],
+      [{ x: 656, y: 346 }, { x: 656, y: 297.9453125 }, { x: 540, y: 297.9453125 }, { x: 540, y: 245.890625 }],
+      [{ x: 530, y: 760.890625 }, { x: 708, y: 760.890625 }],
+      [{ x: 1156, y: 852.890625 }, { x: 1250, y: 852.890625 }, { x: 1250, y: 605.9453125 }, { x: 1448, y: 605.9453125 }],
+      [{ x: 1438, y: 129.4453125 }, { x: 1434, y: 129.4453125 }, { x: 1434, y: 348.265625 }, { x: 1370, y: 348.265625 }],
+      [{ x: 1611, y: 216.890625 }, { x: 1611, y: 286 }],
+      [{ x: 1611, y: 458.890625 }, { x: 1611, y: 528 }],
+      [{ x: 1611, y: 685.890625 }, { x: 1611, y: 846 }],
+    ],
+    52,
+    -30,
+  ),
+  sketch: 関係の意匠別配置(
+    { titleBaseline: 45, rowTop: 102.4, rowPitch: 46.5 },
+    [195.890625, 195.890625, 149.890625, 378.265625, 241.890625, 241.890625, 164.890625, 164.890625, 149.890625, 164.890625],
+    [
+      [{ x: 232, y: 346 }, { x: 232, y: 296.9453125 }, { x: 360, y: 296.9453125 }, { x: 360, y: 243.890625 }],
+      [{ x: 656, y: 346 }, { x: 656, y: 296.9453125 }, { x: 540, y: 296.9453125 }, { x: 540, y: 243.890625 }],
+      [{ x: 530, y: 759.890625 }, { x: 708, y: 759.890625 }],
+      [{ x: 1156, y: 851.890625 }, { x: 1250, y: 851.890625 }, { x: 1250, y: 604.9453125 }, { x: 1448, y: 604.9453125 }],
+      [{ x: 1438, y: 128.4453125 }, { x: 1434, y: 128.4453125 }, { x: 1434, y: 339.265625 }, { x: 1370, y: 339.265625 }],
+      [{ x: 1611, y: 214.890625 }, { x: 1611, y: 286 }],
+      [{ x: 1611, y: 456.890625 }, { x: 1611, y: 528 }],
+      [{ x: 1611, y: 683.890625 }, { x: 1611, y: 846 }],
+    ],
+    52,
+    -30,
+  ),
+  letterpress: 関係の意匠別配置(
+    { titleBaseline: 44, rowTop: 101.4, rowPitch: 46.5 },
+    [194.890625, 194.890625, 148.890625, 377.265625, 240.890625, 240.890625, 163.890625, 163.890625, 148.890625, 163.890625],
+    [
+      [{ x: 232, y: 346 }, { x: 232, y: 296.4453125 }, { x: 360, y: 296.4453125 }, { x: 360, y: 242.890625 }],
+      [{ x: 656, y: 346 }, { x: 656, y: 296.4453125 }, { x: 540, y: 296.4453125 }, { x: 540, y: 242.890625 }],
+      [{ x: 530, y: 758.890625 }, { x: 708, y: 758.890625 }],
+      [{ x: 1156, y: 850.890625 }, { x: 1250, y: 850.890625 }, { x: 1250, y: 604.4453125 }, { x: 1448, y: 604.4453125 }],
+      [{ x: 1438, y: 127.9453125 }, { x: 1434, y: 127.9453125 }, { x: 1434, y: 338.265625 }, { x: 1370, y: 338.265625 }],
+      [{ x: 1611, y: 213.890625 }, { x: 1611, y: 286 }],
+      [{ x: 1611, y: 455.890625 }, { x: 1611, y: 528 }],
+      [{ x: 1611, y: 682.890625 }, { x: 1611, y: 846 }],
+    ],
+    52,
+    -30,
+  ),
+  relief: 関係の意匠別配置(
+    { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
+    [218.890625, 218.890625, 172.890625, 373.265625, 264.890625, 264.890625, 169.890625, 169.890625, 172.890625, 169.890625],
+    [
+      [{ x: 232, y: 346 }, { x: 232, y: 308.4453125 }, { x: 360, y: 308.4453125 }, { x: 360, y: 266.890625 }],
+      [{ x: 656, y: 346 }, { x: 656, y: 308.4453125 }, { x: 540, y: 308.4453125 }, { x: 540, y: 266.890625 }],
+      [{ x: 514, y: 766.890625 }, { x: 724, y: 766.890625 }],
+      [{ x: 1140, y: 858.890625 }, { x: 1250, y: 858.890625 }, { x: 1250, y: 616.4453125 }, { x: 1448, y: 616.4453125 }],
+      [{ x: 1438, y: 130.9453125 }, { x: 1434, y: 130.9453125 }, { x: 1434, y: 332.265625 }, { x: 1364, y: 332.265625 }],
+      [{ x: 1611, y: 219.890625 }, { x: 1611, y: 286 }],
+      [{ x: 1611, y: 461.890625 }, { x: 1611, y: 528 }],
+      [{ x: 1611, y: 706.890625 }, { x: 1611, y: 846 }],
+    ],
+    44,
+    -33,
+    false,
+  ),
+  terminal: 関係の意匠別配置(
+    { titleBaseline: 38, rowTop: 95, rowPitch: 46.5 },
+    [188.5, 188.5, 142.5, 372.875, 234.5, 234.5, 157.5, 157.5, 142.5, 157.5],
+    [
+      [{ x: 232, y: 346 }, { x: 232, y: 293.25 }, { x: 360, y: 293.25 }, { x: 360, y: 236.5 }],
+      [{ x: 656, y: 346 }, { x: 656, y: 293.25 }, { x: 540, y: 293.25 }, { x: 540, y: 236.5 }],
+      [{ x: 529, y: 752.5 }, { x: 709, y: 752.5 }],
+      [{ x: 1155, y: 844.5 }, { x: 1250, y: 844.5 }, { x: 1250, y: 601.25 }, { x: 1448, y: 601.25 }],
+      [{ x: 1438, y: 124.75 }, { x: 1434, y: 124.75 }, { x: 1434, y: 331.875 }, { x: 1367, y: 331.875 }],
+      [{ x: 1611, y: 207.5 }, { x: 1611, y: 286 }],
+      [{ x: 1611, y: 449.5 }, { x: 1611, y: 528 }],
+      [{ x: 1611, y: 676.5 }, { x: 1611, y: 846 }],
+    ],
+    51.5,
+    -31.5,
+  ),
+  neon: 関係の意匠別配置(
+    { titleBaseline: 44, rowTop: 102.4, rowPitch: 46.5 },
+    [196.890625, 196.890625, 150.890625, 407.265625, 242.890625, 242.890625, 165.890625, 165.890625, 150.890625, 165.890625],
+    [
+      [{ x: 232, y: 346 }, { x: 232, y: 297.4453125 }, { x: 360, y: 297.4453125 }, { x: 360, y: 244.890625 }],
+      [{ x: 656, y: 346 }, { x: 656, y: 297.4453125 }, { x: 540, y: 297.4453125 }, { x: 540, y: 244.890625 }],
+      [{ x: 528, y: 759.890625 }, { x: 710, y: 759.890625 }],
+      [{ x: 1154, y: 851.890625 }, { x: 1250, y: 851.890625 }, { x: 1250, y: 605.4453125 }, { x: 1448, y: 605.4453125 }],
+      [{ x: 1438, y: 128.9453125 }, { x: 1434, y: 128.9453125 }, { x: 1434, y: 365.265625 }, { x: 1366, y: 365.265625 }],
+      [{ x: 1611, y: 215.890625 }, { x: 1611, y: 286 }],
+      [{ x: 1611, y: 457.890625 }, { x: 1611, y: 528 }],
+      [{ x: 1611, y: 684.890625 }, { x: 1611, y: 846 }],
+    ],
+    51,
+    -32,
+    false,
+  ),
+} as const;
+
 // er preset ... ER 図 (設計「箱と行と関係」 の意匠)
 //
 // `users` が `orders` を注文し、`orders` が `order_items` を明細として持つ。 `users` は自分自身を
@@ -787,112 +1183,127 @@ export const pattern__presetTopology__複雑 = withSteps(topoComplex.build(), [
 // **端の印は両端に付く**。 クラス図の印は「どちらが親か」 のような関係そのものの性質を指す
 // ので 1 つで足りるが、ER の印が指すのは端ごとに違う個数なので両端に要る。
 // 箱に近い側が個数 (棒 = 1 / 三又 = 多)、その外側が任意か (棒 = 必須 / 丸 = 任意)。
-const 宅配のER欄 = (diagram: CdlDiagram): CdlDiagram => {
-  Object.assign(diagram.nodes.find((node) => node.id === "order_items") ?? {}, {
-    nestIn: "orders",
-    h: 300,
-    stack: 3,
-  });
-  Object.assign(diagram.nodes.find((node) => node.id === "orders") ?? {}, {
-    h: 340,
-    figureCard: { label: "抱える 1", note: "記録 4" },
-  });
-  diagram.legend = [
-    {
-      text: "持つ は線を引かない。 注文 が 明細 を抱えるように、囲いで出す",
-      align: "start",
-      lead: "持つ",
-    },
-  ];
-  return diagram;
-};
+export const sourceYaml__presetDeliveryRelations = `title: "契約と荷物と配送状態の関係"
+type: record
+palette: kinari
+relations: hover
+reveal: all
+legendFontSize: 21
+viewport: { width: 1800, height: 1100 }
+layoutByTheme:
+${意匠別配置をYAMLで書く(deliveryRelationsLayoutByTheme)}
 
-export const presetEr = 触れて読む(
-  withSteps(
-    宅配のER欄(
-  // 配色は生成りに茶 (#1553)。 ER 図は小さい字が密に並ぶので、他の図種と同じ色みだと行を
-  // 追えない。 記法から作った ER 図は `compileToCdl` が同じ名前を既定で入れるので、ここは
-  // 組み立て API から作る図をそれに揃える手当て
-  er({ id: "er-demo", topic: "テーブル間の関係を表す図", defaultTone: "info", palette: "kinari" })
-    .entity({
-      id: "users",
-      title: "users",
-      subtitle: "利用者",
-      columns: [
-        { name: "id", type: "bigint", pk: true },
-        { name: "email", type: "text" },
-        { name: "manager_id", type: "bigint", fk: true, optional: true },
-        { name: "created_at", type: "timestamptz" },
-      ],
-    })
-    .entity({
-      id: "orders",
-      title: "orders",
-      subtitle: "注文",
-      columns: [
-        { name: "id", type: "bigint", pk: true },
-        { name: "user_id", type: "bigint", fk: true },
-        { name: "total", type: "numeric" },
-        { name: "placed_at", type: "timestamptz" },
-      ],
-    })
-    .entity({
-      id: "order_items",
-      title: "order_items",
-      subtitle: "注文の明細",
-      columns: [
-        // 親の鍵が自分の鍵に入る = 識別する関係の子側。 山形 + 下線で重ねて示す
-        { name: "order_id", type: "bigint", pk: true, fk: true },
-        { name: "product_id", type: "bigint", pk: true, fk: true },
-        { name: "qty", type: "int" },
-      ],
-    })
-    // 識別しない = 破線。 子は自分の鍵を持ち、親はただの参照先。 1 人の利用者が 0 件以上の注文をする
-    .relation({
-      from: "users",
-      to: "orders",
-      label: "注文する",
-      style: "dashed",
-      tailHead: "one",
-      head: "zero-many",
-    })
-    // 識別する関係は、親の表へ入れ子にした明細箱そのもので示す。
-    // 自分への関係。 0 か 1 人の上司が 0 人以上の部下を持つ
-    .relation({
-      from: "users",
-      to: "users",
-      label: "上司",
-      style: "dashed",
-      tailHead: "zero-one",
-      head: "zero-many",
-    })
-    .build(),
-    ),
-  [
-    { ids: ["users"], title: "1. users 表", body: "主キーは名前に下線。 印は形 × 塗りの 2 軸。" },
-    {
-      ids: ["orders", "rel-0-users-orders"],
-      title: "2. 注文する",
-      body: "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。",
-    },
-    {
-      ids: ["order_items"],
-      title: "3. 明細を持つ",
-      body: "注文が明細を抱える入れ子で識別する関係を示す。 親の鍵が子の鍵に入る。",
-    },
-    {
-      ids: ["rel-1-users-users"],
-      body: "上司も利用者。 manager_id は同じ表を指す。",
-    },
+actors:
+  - 契約: { posX: 450, posY: 140.445, posW: 400, posH: 188.891, kind: storage, emphasis: primary, rowRules: true, rowDividerForm: full, rowWell: {"top":2,"right":16,"bottom":4,"left":16,"radius":15}, rowMarkForm: tone, figureCard: {"label":"もと","note":"記録 2"}, rows: ["契約番号: 番号", "締結日: 日付"], marks: [{"mark":"鍵","tone":"primary"}, ""] }
+  - 法人契約: { posX: 232, posY: 446.445, posW: 372, posH: 188.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"派生","note":"記録 2"}, rows: ["請求先: 名前", "与信枠: 金額"], marks: [{"mark":"鍵","tone":"primary"}, {"mark":"","tone":"muted"}] }
+  - 個人契約: { posX: 656, posY: 423.445, posW: 372, posH: 142.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"派生","note":"記録 1"}, rows: ["住所: 文字"], marks: [{"mark":"鍵","tone":"primary"}] }
+  - 営業所: { posX: 1177, posY: 231.633, posW: 430, posH: 371.266, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"抱える 2","note":"記録 0"}, rows: [], marks: [] }
+  - 荷物: { posX: 281, posY: 789.445, posW: 470, posH: 234.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"","note":"記録 3"}, rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分"], marks: [{"mark":"鍵","tone":"primary"}, "", ""] }
+  - 配送便: { posX: 927, posY: 789.445, posW: 430, posH: 234.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"","note":"記録 3"}, rows: ["便番号: 番号", "出発: 地点", "到着: 地点"], marks: [{"mark":"鍵","tone":"primary"}, "", {"mark":"","tone":"muted"}] }
+  - 受付: { posX: 1187, posY: 195.5, posW: 378, posH: 125, kind: storage, rowRules: true, rowDividerForm: full, rowMarkForm: tone, nestIn: 営業所, rows: ["受付番号: 番号", "窓口: 区分"], marks: [{"mark":"鍵","tone":"primary"}, ""] }
+  - 仕分け: { posX: 1187, posY: 312.5, posW: 378, posH: 85, kind: storage, rowRules: true, rowDividerForm: full, rowMarkForm: tone, nestIn: 営業所, rows: ["棚: 位置"], marks: [{"mark":"鍵","tone":"primary"}] }
+  - 受付済: { posX: 1611, posY: 124.945, posW: 318, posH: 157.891, kind: storage, rowDividerForm: full, rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: {"label":"段階","note":"記録 0"}, rows: [], marks: [] }
+  - 集荷済: { posX: 1611, posY: 366.945, posW: 318, posH: 157.891, kind: storage, rowDividerForm: full, rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: {"label":"段階","note":"記録 0"}, rows: [], marks: [] }
+  - 配達中: { posX: 1611, posY: 601.445, posW: 318, posH: 142.891, kind: storage, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, figureCard: {"label":"段階","note":"記録 1"}, rows: ["現在地: 地点"], marks: [{"mark":"","tone":"muted"}] }
+  - 完了: { posX: 1611, posY: 926.945, posW: 318, posH: 157.891, kind: storage, rowDividerForm: full, rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: {"label":"段階","note":"記録 0"}, rows: [], marks: [] }
+
+flow:
+  - 法人契約 -> 契約: "である" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom, labelSize: {"width":96,"height":40,"fontSize":21} }
+  - 個人契約 -> 契約: "" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom }
+  - 荷物 -> 配送便: "使う" (teal, dashed) { relation: uses, tailHead: dot, head: triangle, headFill: solid, tailSub: "1..*", sub: "1", labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 配送便 -> 配達中: "使う" (teal, dashed) { relation: uses, tailHead: dot, head: triangle, headFill: solid, tailSub: "1", labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 受付済 -> 仕分け: "使う" (teal, dashed) { relation: uses, tailHead: dot, head: triangle, headFill: solid, fromSide: left, toSide: right, posX1: 1452, posY1: 124.945, posX2: 1366, posY2: 312.5, labelCollision: author, labelOffsetX: 26, labelOffsetY: 28, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 受付済 -> 集荷済: "集める" (warning) { head: triangle, headFill: solid, fromSide: bottom, toSide: top, posX1: 1611, posY1: 203.891, posX2: 1611, posY2: 288, labelCollision: author, labelOffsetX: 36, labelSize: {"width":96,"height":40,"fontSize":21} }
+  - 集荷済 -> 配達中: "積む" (warning) { head: triangle, headFill: solid, fromSide: bottom, toSide: top, posX1: 1611, posY1: 445.891, posX2: 1611, posY2: 530, labelCollision: author, labelOffsetX: 36, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 配達中 -> 完了: "渡す" (warning) { head: triangle, headFill: solid, fromSide: bottom, toSide: top, posX1: 1611, posY1: 672.891, posX2: 1611, posY2: 848, labelCollision: author, labelOffsetX: 36, labelSize: {"width":74,"height":40,"fontSize":21} }
+
+legend:
+  - { text: "持つ は線を引かない。 営業所 が 受付 と 仕分け を抱えるように、囲いで出す", align: start, lead: "持つ" }
+
+animation:
+  - step: "1. 契約のもと" 0.9s
+    focus: [契約, 法人契約, "法人契約 -> 契約"]
+    badge: "record"
+    body: "法人契約は契約から派生する。"
+  - step: "2. 個人契約" 0.9s
+    focus: [契約, 法人契約, "法人契約 -> 契約", 個人契約, "個人契約 -> 契約"]
+    badge: "record"
+    body: "個人契約も同じ契約から派生する。"
+  - step: "3. 荷物と配送便" 0.9s
+    focus: [契約, 法人契約, "法人契約 -> 契約", 個人契約, "個人契約 -> 契約", 荷物, 配送便, "荷物 -> 配送便"]
+    badge: "record"
+    body: "複数の荷物が 1 つの配送便を使う。"
+  - step: "4. 営業所が抱える" 0.9s
+    focus: [契約, 法人契約, "法人契約 -> 契約", 個人契約, "個人契約 -> 契約", 荷物, 配送便, "荷物 -> 配送便", 営業所, 受付, 仕分け, "受付済 -> 仕分け"]
+    badge: "record"
+    body: "営業所が受付と仕分けを囲いで抱える。"
+  - step: "5. 受付と集荷" 0.9s
+    focus: [契約, 法人契約, "法人契約 -> 契約", 個人契約, "個人契約 -> 契約", 荷物, 配送便, "荷物 -> 配送便", 営業所, 受付, 仕分け, "受付済 -> 仕分け", 受付済, 集荷済, "受付済 -> 集荷済"]
+    badge: "record"
+    body: "受付済の荷物を集めて集荷済にする。"
+  - step: "6. 配送便と配達中" 0.9s
+    focus: [契約, 法人契約, "法人契約 -> 契約", 個人契約, "個人契約 -> 契約", 荷物, 配送便, "荷物 -> 配送便", 営業所, 受付, 仕分け, "受付済 -> 仕分け", 受付済, 集荷済, "受付済 -> 集荷済", 配達中, "配送便 -> 配達中"]
+    badge: "record"
+    body: "配送便が配達中の状態を使う。"
+  - step: "契約と荷物と配送状態の関係" 0.9s
+    focus: [契約, 法人契約, "法人契約 -> 契約", 個人契約, "個人契約 -> 契約", 荷物, 配送便, "荷物 -> 配送便", 営業所, 受付, 仕分け, "受付済 -> 仕分け", 受付済, 集荷済, "受付済 -> 集荷済", 配達中, 完了, "配送便 -> 配達中", "集荷済 -> 配達中", "配達中 -> 完了"]
+    badge: "record"
+    body: "受付済から完了まで配送状態が移り変わる。"
+`;
+
+export const sourceJson__presetDeliveryRelations = JSON.stringify({
+  title: "契約と荷物と配送状態の関係",
+  type: "record",
+  palette: "kinari",
+  relations: "hover",
+  reveal: "all",
+  legendFontSize: 21,
+  viewport: { width: 1800, height: 1100 },
+  layoutByTheme: deliveryRelationsLayoutByTheme,
+  actors: [
+    { name: "契約", posX: 450, posY: 140.445, posW: 400, posH: 188.891, kind: "storage", emphasis: "primary", rowRules: true, rowDividerForm: "full", rowWell: { top: 2, right: 16, bottom: 4, left: 16, radius: 15 }, rowMarkForm: "tone", figureCard: { label: "もと", note: "記録 2" }, rows: ["契約番号: 番号", "締結日: 日付"], marks: [{ mark: "鍵", tone: "primary" }, ""] },
+    { name: "法人契約", posX: 232, posY: 446.445, posW: 372, posH: 188.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "派生", note: "記録 2" }, rows: ["請求先: 名前", "与信枠: 金額"], marks: [{ mark: "鍵", tone: "primary" }, { mark: "", tone: "muted" }] },
+    { name: "個人契約", posX: 656, posY: 423.445, posW: 372, posH: 142.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "派生", note: "記録 1" }, rows: ["住所: 文字"], marks: [{ mark: "鍵", tone: "primary" }] },
+    { name: "営業所", posX: 1177, posY: 231.633, posW: 430, posH: 371.266, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "抱える 2", note: "記録 0" }, rows: [], marks: [] },
+    { name: "荷物", posX: 281, posY: 789.445, posW: 470, posH: 234.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "", note: "記録 3" }, rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分"], marks: [{ mark: "鍵", tone: "primary" }, "", ""] },
+    { name: "配送便", posX: 927, posY: 789.445, posW: 430, posH: 234.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "", note: "記録 3" }, rows: ["便番号: 番号", "出発: 地点", "到着: 地点"], marks: [{ mark: "鍵", tone: "primary" }, "", { mark: "", tone: "muted" }] },
+    { name: "受付", posX: 1187, posY: 195.5, posW: 378, posH: 125, kind: "storage", rowRules: true, rowDividerForm: "full", rowMarkForm: "tone", nestIn: "営業所", rows: ["受付番号: 番号", "窓口: 区分"], marks: [{ mark: "鍵", tone: "primary" }, ""] },
+    { name: "仕分け", posX: 1187, posY: 312.5, posW: 378, posH: 85, kind: "storage", rowRules: true, rowDividerForm: "full", rowMarkForm: "tone", nestIn: "営業所", rows: ["棚: 位置"], marks: [{ mark: "鍵", tone: "primary" }] },
+    { name: "受付済", posX: 1611, posY: 124.945, posW: 318, posH: 157.891, kind: "storage", rowDividerForm: "full", rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: { label: "段階", note: "記録 0" }, rows: [], marks: [] },
+    { name: "集荷済", posX: 1611, posY: 366.945, posW: 318, posH: 157.891, kind: "storage", rowDividerForm: "full", rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: { label: "段階", note: "記録 0" }, rows: [], marks: [] },
+    { name: "配達中", posX: 1611, posY: 601.445, posW: 318, posH: 142.891, kind: "storage", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", figureCard: { label: "段階", note: "記録 1" }, rows: ["現在地: 地点"], marks: [{ mark: "", tone: "muted" }] },
+    { name: "完了", posX: 1611, posY: 926.945, posW: 318, posH: 157.891, kind: "storage", rowDividerForm: "full", rowWell: {}, emptyRowsNote: "記録を持たない", figureCard: { label: "段階", note: "記録 0" }, rows: [], marks: [] },
   ],
-  ),
-);
+  flow: [
+    { from: "法人契約", to: "契約", label: "である", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom", labelSize: { width: 96, height: 40, fontSize: 21 } },
+    { from: "個人契約", to: "契約", label: "", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom" },
+    { from: "荷物", to: "配送便", label: "使う", tone: "teal", style: "dashed", relation: "uses", tailHead: "dot", head: "triangle", headFill: "solid", tailSub: "1..*", sub: "1", labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "配送便", to: "配達中", label: "使う", tone: "teal", style: "dashed", relation: "uses", tailHead: "dot", head: "triangle", headFill: "solid", tailSub: "1", labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "受付済", to: "仕分け", label: "使う", tone: "teal", style: "dashed", relation: "uses", tailHead: "dot", head: "triangle", headFill: "solid", fromSide: "left", toSide: "right", posX1: 1452, posY1: 124.945, posX2: 1366, posY2: 312.5, labelCollision: "author", labelOffsetX: 26, labelOffsetY: 28, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "受付済", to: "集荷済", label: "集める", tone: "warning", head: "triangle", headFill: "solid", fromSide: "bottom", toSide: "top", posX1: 1611, posY1: 203.891, posX2: 1611, posY2: 288, labelCollision: "author", labelOffsetX: 36, labelSize: { width: 96, height: 40, fontSize: 21 } },
+    { from: "集荷済", to: "配達中", label: "積む", tone: "warning", head: "triangle", headFill: "solid", fromSide: "bottom", toSide: "top", posX1: 1611, posY1: 445.891, posX2: 1611, posY2: 530, labelCollision: "author", labelOffsetX: 36, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "配達中", to: "完了", label: "渡す", tone: "warning", head: "triangle", headFill: "solid", fromSide: "bottom", toSide: "top", posX1: 1611, posY1: 672.891, posX2: 1611, posY2: 848, labelCollision: "author", labelOffsetX: 36, labelSize: { width: 74, height: 40, fontSize: 21 } },
+  ],
+  legend: [{ text: "持つ は線を引かない。 営業所 が 受付 と 仕分け を抱えるように、囲いで出す", align: "start", lead: "持つ" }],
+  animation: [
+    { step: "1. 契約のもと", duration: 0.9, focus: ["契約", "法人契約", "法人契約 -> 契約"], badge: "record", body: "法人契約は契約から派生する。" },
+    { step: "2. 個人契約", duration: 0.9, focus: ["契約", "法人契約", "法人契約 -> 契約", "個人契約", "個人契約 -> 契約"], badge: "record", body: "個人契約も同じ契約から派生する。" },
+    { step: "3. 荷物と配送便", duration: 0.9, focus: ["契約", "法人契約", "法人契約 -> 契約", "個人契約", "個人契約 -> 契約", "荷物", "配送便", "荷物 -> 配送便"], badge: "record", body: "複数の荷物が 1 つの配送便を使う。" },
+    { step: "4. 営業所が抱える", duration: 0.9, focus: ["契約", "法人契約", "法人契約 -> 契約", "個人契約", "個人契約 -> 契約", "荷物", "配送便", "荷物 -> 配送便", "営業所", "受付", "仕分け", "受付済 -> 仕分け"], badge: "record", body: "営業所が受付と仕分けを囲いで抱える。" },
+    { step: "5. 受付と集荷", duration: 0.9, focus: ["契約", "法人契約", "法人契約 -> 契約", "個人契約", "個人契約 -> 契約", "荷物", "配送便", "荷物 -> 配送便", "営業所", "受付", "仕分け", "受付済 -> 仕分け", "受付済", "集荷済", "受付済 -> 集荷済"], badge: "record", body: "受付済の荷物を集めて集荷済にする。" },
+    { step: "6. 配送便と配達中", duration: 0.9, focus: ["契約", "法人契約", "法人契約 -> 契約", "個人契約", "個人契約 -> 契約", "荷物", "配送便", "荷物 -> 配送便", "営業所", "受付", "仕分け", "受付済 -> 仕分け", "受付済", "集荷済", "受付済 -> 集荷済", "配達中", "配送便 -> 配達中"], badge: "record", body: "配送便が配達中の状態を使う。" },
+    { step: "契約と荷物と配送状態の関係", duration: 0.9, focus: ["契約", "法人契約", "法人契約 -> 契約", "個人契約", "個人契約 -> 契約", "荷物", "配送便", "荷物 -> 配送便", "営業所", "受付", "仕分け", "受付済 -> 仕分け", "受付済", "集荷済", "受付済 -> 集荷済", "配達中", "完了", "配送便 -> 配達中", "集荷済 -> 配達中", "配達中 -> 完了"], badge: "record", body: "受付済から完了まで配送状態が移り変わる。" },
+  ],
+}, null, 2);
+
+export const presetDeliveryRelations = textDslToDiagram(sourceYaml__presetDeliveryRelations);
+presetDeliveryRelations.id = "delivery-relations-demo";
 
 /**
  * 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960)。
  * 一覧の別の行にすると、同じ種類の図の規模違いを見比べるのに行を選び直すことになる
  */
-export const patternBase__presetEr = "簡単";
+export const patternBase__presetDeliveryRelations = "簡単";
 
 const erComplex = er({
   id: "er-complex-demo",
@@ -1116,7 +1527,7 @@ const erComplex = er({
  * 列の割当と列内の上下順を保って間隔だけを 3375 通り数え、5 段以内では `addresses → orders` が
  * `payments` を貫くため 6 段にした。
  */
-const presetErComplexSteps = withSteps(
+const presetDeliveryRelationsComplexSteps = withSteps(
   placeErOnGrid(erComplex, [
     { id: "roles", col: 0, row: 0 },
     { id: "user_roles", col: 0, row: 1 },
@@ -1184,7 +1595,7 @@ const presetErComplexSteps = withSteps(
   ],
 );
 /** 順番を持たない図なので触れて読む形にする (#1757)。 ER 図の中のパターン「複雑」 (#1960) */
-export const pattern__presetEr__複雑 = 触れて読む(presetErComplexSteps);
+export const pattern__presetDeliveryRelations__複雑 = 触れて読む(presetDeliveryRelationsComplexSteps);
 
 // stateMachine preset ... 状態遷移図 (設計「箱と行と関係」 の意匠)
 //
@@ -1552,169 +1963,216 @@ export const pattern__presetInfrastructure__複雑 = withSteps(
   ],
 );
 
-// classDiagram preset ... UML クラス図 (設計「箱と行と関係」 の意匠)
-//
-// **6 種すべてを 1 枚で使う**。 見本にあって図に無い記法は、読み手が確かめられない決まりに
-// なる。 並べ方の決まりは 1 つで、**箱の 1 つの辺には関係を 1 本しか載せない** = 同じ辺から
-// 2 本出すと、どちらも辺の芯から出るので重なる。 7 箱を 3 列 3 段に置いて、6 本が
-// 上 / 下 / 左 / 右 に散るようにしてある。
-// 描き手は元から種類の札を持つが、カタログでは 1 度も使っていなかった。 `interface` と
-// `abstract` の異なる 2 値を出し、札が種類を分ける入口だと読めるようにする。
-// **関係に色みを書かない** (#1583)。 描き手が種類から 3 群の色みを決めるので、書くとそちらが
-// 勝って 6 本とも同じ色になる。 記法 3 形とも書かない形で揃える。
-//
-//   段 0   User        Auditable
-//   段 1   Admin ──集約── Order ──依存── Receipt
-//   段 2               Line ──関連── Sku
-const 宅配の関係欄 = (diagram: CdlDiagram): CdlDiagram => {
-  Object.assign(diagram.nodes.find((node) => node.id === "User") ?? {}, {
-    titleAlign: "center",
-  });
-  Object.assign(diagram.nodes.find((node) => node.id === "Order") ?? {}, {
-    emphasis: "primary",
-    rowMarkForm: "tone",
-  });
-  const order = diagram.nodes.find((node) => node.id === "Order");
-  if (order?.rowMarks) {
-    order.rowMarks = order.rowMarks.map((mark) =>
-      mark === null ? null : { ...mark, tone: "primary" },
-    );
-  }
-  const auditable = diagram.nodes.find((node) => node.id === "Auditable");
-  Object.assign(auditable ?? {}, {
-    rows: [],
-    rowMarks: [],
-    emptyRowsNote: "操作を持たない",
-  });
-  if (auditable) delete auditable.rowStripe;
-  diagram.legend = [
-    { mark: "line-triangle-hollow", text: "継承", tone: "accent", lineStyle: "solid" },
-    {
-      mark: "line-diamond-hollow",
-      text: "集約 (外しても残る)",
-      tone: "teal",
-      lineStyle: "solid",
-    },
-    {
-      mark: "line-diamond-solid",
-      text: "コンポジション (一緒に消える)",
-      tone: "teal",
-      lineStyle: "solid",
-    },
-    { mark: "dotted-line", text: "依存", tone: "success" },
-  ];
-  return diagram;
-};
+const 型の表の箱 = ["荷主", "荷物", "配送便", "冷蔵荷物", "割れ物", "営業所"] as const;
+const 型の箱の上端 = {
+  荷主: 70,
+  荷物: 70,
+  配送便: 70,
+  冷蔵荷物: 700,
+  割れ物: 700,
+  営業所: 700,
+} as const;
 
-const presetClassDiagramSteps = withSteps(
-  // 配色は生成りに茶 (#1567)。 クラス図の箱は ER 図と同じ作り (行頭の印 + 左に名前 +
-  // 右に型) で、名前と型が離れて並ぶ。 縞の色は配色から取るので、書かないと縞が箱の面と
-  // 同じ色になって出ない
-  宅配の関係欄(
-  classDiagram({ id: "class-demo", topic: "クラスどうしの 6 種の関係を示す UML クラス図", palette: "kinari" })
-    .class({
-      id: "User",
-      title: "User",
-      stereotype: "abstract",
-      col: 0,
-      row: 0,
-      attributes: ["+name: string", "+email: string"],
-      methods: ["+login(): Session"],
-    })
-    .class({
-      id: "Auditable",
-      title: "Auditable",
-      stereotype: "interface",
-      col: 1,
-      row: 0,
-      methods: ["+audit(): Log[]"],
-    })
-    .class({
-      id: "Admin",
-      title: "Admin",
-      col: 0,
-      row: 1,
-      attributes: ["+permissions: string[]"],
-      methods: ["+banUser(): void"],
-    })
-    .class({
-      id: "Order",
-      title: "Order",
-      col: 1,
-      row: 1,
-      attributes: ["+id: number", "+total: number"],
-      methods: ["+pay(): Receipt"],
-    })
-    .class({
-      id: "Receipt",
-      title: "Receipt",
-      col: 2,
-      row: 1,
-      attributes: ["+no: string", "+amount: number"],
-    })
-    .class({
-      id: "Line",
-      title: "Line",
-      col: 1,
-      row: 2,
-      attributes: ["+qty: number", "+price: number"],
-    })
-    .class({
-      id: "Sku",
-      title: "Sku",
-      col: 2,
-      row: 2,
-      attributes: ["+code: string", "+name: string"],
-    })
-    // 線 / 印の形 / 印の塗り / 印が付く側 は種類から決まる (`CLASS_RELATION_LOOK`)。
-    // 継承 = 実線 + 白抜きの三角が親の側 / 実装 = 破線 + 白抜きの三角 /
-    // 集約 = 実線 + 白抜きの菱が全体の側 / コンポジション = 菱を塗る /
-    // 関連 = 実線 + 開いた矢 / 依存 = 破線 + 開いた矢
-    .relation({ from: "Admin", to: "User", type: "extends", label: "継承" })
-    .relation({ from: "Order", to: "Auditable", type: "implements", label: "実装" })
-    .relation({ from: "Admin", to: "Order", type: "aggregates", label: "集約", cardinality: "1..*", tailCardinality: "1" })
-    .relation({ from: "Order", to: "Receipt", type: "uses", label: "依存" })
-    .relation({ from: "Order", to: "Line", type: "composes", label: "コンポジション", cardinality: "1..*", tailCardinality: "1" })
-    .relation({ from: "Line", to: "Sku", type: "associates", label: "関連" })
-    .build(),
+const 型の意匠別配置 = (
+  rowLayout: 見本の行配置,
+  heights: readonly number[],
+  paths: readonly (readonly 見本の途中点[])[],
+  rowStripe?: boolean,
+) => ({
+  nodes: 表の箱の配置(型の表の箱, 型の箱の上端, heights, rowLayout, ["荷物"], rowStripe),
+  edges: {
+    "冷蔵荷物 -> 荷物": 見本の直角線(paths[0] ?? [], 148, 0),
+    "割れ物 -> 荷物": 見本の直角線(paths[1] ?? []),
+    "配送便 -> 荷物": 見本の直角線(paths[2] ?? [], -1, -46),
+    "営業所 -> 配送便": 見本の直角線(paths[3] ?? [], 0, -11),
+    "荷主 -> 荷物": 見本の直角線(paths[4] ?? [], -1.5, -44),
+  },
+});
+
+const deliveryClassesLayoutByTheme = {
+  blueprint: 型の意匠別配置(
+    { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 },
+    [199.890625, 316.890625, 245.890625, 153.890625, 153.890625, 199.890625],
+    [
+      [{ x: 530, y: 694 }, { x: 530, y: 543.4453125 }, { x: 750, y: 543.4453125 }, { x: 750, y: 388.890625 }],
+      [{ x: 1050, y: 694 }, { x: 1050, y: 543.4453125 }, { x: 830, y: 543.4453125 }, { x: 830, y: 388.890625 }],
+      [{ x: 1332, y: 178.890625 }, { x: 1024, y: 178.890625 }],
+      [{ x: 1544, y: 698 }, { x: 1544, y: 319.890625 }],
+      [{ x: 452, y: 153.890625 }, { x: 557, y: 153.890625 }],
+    ],
   ),
-  [
-    { ids: ["User"], title: "1. User", body: "抽象クラス。 直接は作らず、Admin が継承して使う。" },
-    {
-      ids: ["Admin", "cr-0-Admin-User"],
-      title: "2. 継承",
-      body: "実線に白抜きの三角。 三角は親クラスの側に付く。",
-    },
-    {
-      ids: ["Auditable", "Order", "cr-1-Order-Auditable"],
-      title: "3. 実装",
-      body: "破線に白抜きの三角。 Auditable は操作を持たない印だけの取り決めで、Order はその印を実装する。",
-    },
-    {
-      ids: ["cr-2-Admin-Order"],
-      title: "4. 集約",
-      body: "実線に白抜きの菱。 菱は全体の側に付く。 部分は全体が無くなっても残る。",
-    },
-    {
-      ids: ["Line", "cr-4-Order-Line"],
-      title: "5. コンポジション",
-      body: "菱を塗る。 部分の寿命は全体と同じで、全体を消すと部分も消える。",
-    },
-    {
-      ids: ["Sku", "Receipt", "cr-5-Line-Sku", "cr-3-Order-Receipt"],
-      // 色の話は最後の段に置く (#2601)。 群は段をまたぐ (継承が 2 段目 / 実装が 3 段目) ので、
-      // 段ごとに色を書くと「この 2 つが同じ色」 という対応が 1 つの画面に揃わない。
-      // 色だけを説明する段は足せない = 光る要素が増えない段は静止画と区別が付かず、
-      // `catalog-motion-render.test.tsx` が落とす。 6 本が出揃う最後の段が唯一の置き場になる
-      body: "関連は実線に開いた矢で参照し続け、依存は破線に開いた矢で一時的に使う。 色の 3 群は縦の関係と向きだけの関係と所有の関係。",
-    },
+  catalog: 型の意匠別配置(
+    { titleBaseline: 46, rowTop: 103.4, rowPitch: 46.5 },
+    [204.890625, 321.890625, 250.890625, 158.890625, 158.890625, 204.890625],
+    [
+      [{ x: 530, y: 694 }, { x: 530, y: 545.9453125 }, { x: 750, y: 545.9453125 }, { x: 750, y: 393.890625 }],
+      [{ x: 1050, y: 694 }, { x: 1050, y: 545.9453125 }, { x: 830, y: 545.9453125 }, { x: 830, y: 393.890625 }],
+      [{ x: 1332, y: 183.890625 }, { x: 1024, y: 183.890625 }],
+      [{ x: 1544, y: 698 }, { x: 1544, y: 324.890625 }],
+      [{ x: 452, y: 158.890625 }, { x: 557, y: 158.890625 }],
+    ],
+  ),
+  sketch: 型の意匠別配置(
+    { titleBaseline: 45, rowTop: 102.4, rowPitch: 46.5 },
+    [203.890625, 320.890625, 249.890625, 157.890625, 157.890625, 203.890625],
+    [
+      [{ x: 530, y: 694 }, { x: 530, y: 545.4453125 }, { x: 750, y: 545.4453125 }, { x: 750, y: 392.890625 }],
+      [{ x: 1050, y: 694 }, { x: 1050, y: 545.4453125 }, { x: 830, y: 545.4453125 }, { x: 830, y: 392.890625 }],
+      [{ x: 1332, y: 182.890625 }, { x: 1024, y: 182.890625 }],
+      [{ x: 1544, y: 698 }, { x: 1544, y: 323.890625 }],
+      [{ x: 452, y: 157.890625 }, { x: 557, y: 157.890625 }],
+    ],
+  ),
+  letterpress: 型の意匠別配置(
+    { titleBaseline: 44, rowTop: 101.4, rowPitch: 46.5 },
+    [202.890625, 319.890625, 248.890625, 156.890625, 156.890625, 202.890625],
+    [
+      [{ x: 530, y: 694 }, { x: 530, y: 544.9453125 }, { x: 750, y: 544.9453125 }, { x: 750, y: 391.890625 }],
+      [{ x: 1050, y: 694 }, { x: 1050, y: 544.9453125 }, { x: 830, y: 544.9453125 }, { x: 830, y: 391.890625 }],
+      [{ x: 1332, y: 181.890625 }, { x: 1024, y: 181.890625 }],
+      [{ x: 1544, y: 698 }, { x: 1544, y: 322.890625 }],
+      [{ x: 452, y: 156.890625 }, { x: 557, y: 156.890625 }],
+    ],
+  ),
+  relief: 型の意匠別配置(
+    { titleBaseline: 48, rowTop: 108.9, rowPitch: 46.5 },
+    [236.890625, 353.890625, 282.890625, 190.890625, 190.890625, 236.890625],
+    [
+      [{ x: 530, y: 694 }, { x: 530, y: 561.9453125 }, { x: 750, y: 561.9453125 }, { x: 750, y: 425.890625 }],
+      [{ x: 1050, y: 694 }, { x: 1050, y: 561.9453125 }, { x: 830, y: 561.9453125 }, { x: 830, y: 425.890625 }],
+      [{ x: 1332, y: 189.890625 }, { x: 1024, y: 189.890625 }],
+      [{ x: 1544, y: 698 }, { x: 1544, y: 356.890625 }],
+      [{ x: 452, y: 164.890625 }, { x: 557, y: 164.890625 }],
+    ],
+    false,
+  ),
+  terminal: 型の意匠別配置(
+    { titleBaseline: 38, rowTop: 91, rowPitch: 46.5 },
+    [197.5, 314.5, 243.5, 151.5, 151.5, 197.5],
+    [
+      [{ x: 530, y: 694 }, { x: 530, y: 542.25 }, { x: 750, y: 542.25 }, { x: 750, y: 386.5 }],
+      [{ x: 1050, y: 694 }, { x: 1050, y: 542.25 }, { x: 830, y: 542.25 }, { x: 830, y: 386.5 }],
+      [{ x: 1332, y: 175.5 }, { x: 1024, y: 175.5 }],
+      [{ x: 1544, y: 698 }, { x: 1544, y: 317.5 }],
+      [{ x: 452, y: 150.5 }, { x: 557, y: 150.5 }],
+    ],
+  ),
+  neon: 型の意匠別配置(
+    { titleBaseline: 44, rowTop: 102.4, rowPitch: 46.5 },
+    [205.890625, 322.890625, 251.890625, 159.890625, 159.890625, 205.890625],
+    [
+      [{ x: 530, y: 694 }, { x: 530, y: 546.4453125 }, { x: 750, y: 546.4453125 }, { x: 750, y: 394.890625 }],
+      [{ x: 1050, y: 694 }, { x: 1050, y: 546.4453125 }, { x: 830, y: 546.4453125 }, { x: 830, y: 394.890625 }],
+      [{ x: 1332, y: 182.890625 }, { x: 1024, y: 182.890625 }],
+      [{ x: 1544, y: 698 }, { x: 1544, y: 325.890625 }],
+      [{ x: 452, y: 157.890625 }, { x: 557, y: 157.890625 }],
+    ],
+    false,
+  ),
+} as const;
+
+// classDiagram preset ... 宅配の型 (設計「箱と行と関係」 の意匠)
+//
+// 荷主・荷物・配送便を上段、冷蔵荷物・割れ物・営業所を下段に置き、見本の 5 本の関係を描く。
+// 荷物だけに「抽象」の札を出す。
+// `interface` と `abstract` の 2 値は、複雑な版の
+// `class-complex-demo` で確かめられる。
+// **関係に色みを書かない** (#1583)。
+// 描き手が種類から 3 群の色みを決めるので、書くとそちらが勝って 5 本とも同じ色になる。
+// 記法 3 形とも書かない形で揃える。
+export const sourceYaml__presetDeliveryClasses = `title: "荷物を運ぶ型"
+type: record
+palette: kinari
+relations: hover
+reveal: all
+legendFontSize: 21
+viewport: { width: 1800, height: 1100 }
+layoutByTheme:
+${意匠別配置をYAMLで書く(deliveryClassesLayoutByTheme)}
+
+actors:
+  - 荷主: { posX: 246, posY: 260, posW: 400, posH: 316, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["名前: 文字", "住所: 文字", "頼む(): 荷物"], marks: ["", "", {"mark":"外","tone":"primary"}] }
+  - 荷物: { posX: 800, posY: 260, posW: 460, posH: 428, kind: storage, eyebrow: "抽象", titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分", "追跡する(): 位置", "届ける(): なし"], marks: ["", "", "", {"mark":"外","tone":"primary"}, {"mark":"外","tone":"primary"}] }
+  - 配送便: { posX: 1500.5, posY: 232, posW: 333, posH: 372, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["便番号: 番号", "出発: 地点", "積む(): なし", "走る(): なし"], marks: ["", "", {"mark":"外","tone":"primary"}, {"mark":"外","tone":"primary"}] }
+  - 冷蔵荷物: { posX: 530, posY: 800, posW: 400, posH: 260, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["温度: 数", "冷やす(): なし"], marks: ["", {"mark":"外","tone":"primary"}] }
+  - 割れ物: { posX: 1050, posY: 800, posW: 400, posH: 260, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["梱包: 区分", "そっと運ぶ(): なし"], marks: ["", {"mark":"外","tone":"primary"}] }
+  - 営業所: { posX: 1500.5, posY: 800, posW: 333, posH: 316, kind: storage, titleAlign: center, rowRules: true, rowDividerForm: full, rowWell: {}, rowMarkForm: tone, rows: ["名前: 文字", "電話: 番号", "受け付ける(): 荷物"], marks: ["", {"mark":"","tone":"muted"}, {"mark":"外","tone":"primary"}] }
+
+flow:
+  - 冷蔵荷物 -> 荷物: "である" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom, overlay: true, labelSize: {"width":96,"height":40,"fontSize":21} }
+  - 割れ物 -> 荷物: "" (accent, dashed) { relation: extends, fromSide: top, toSide: bottom }
+  - 配送便 -> 荷物: "集める" (teal) { relation: aggregates, tailSub: "1", sub: "0..*", fromSide: left, toSide: right, overlay: true, labelSize: {"width":96,"height":40,"fontSize":21} }
+  - 営業所 -> 配送便: "持つ" (teal) { relation: composes, sub: "1..*", fromSide: top, toSide: bottom, overlay: true, labelSize: {"width":74,"height":40,"fontSize":21} }
+  - 荷主 -> 荷物: "使う" (warning) { relation: uses, posX1: 446, posY1: 260, posX2: 570, posY2: 260, labelCollision: author, labelOffsetY: -36, labelSize: {"width":74,"height":40,"fontSize":21} }
+
+legend:
+  - { mark: line-triangle-hollow, text: "受け継ぐ", tone: accent, lineStyle: dotted }
+  - { mark: line-diamond-hollow, text: "集める (外しても残る)", tone: teal, lineStyle: solid }
+  - { mark: line-diamond-solid, text: "持つ (一緒に消える)", tone: teal, lineStyle: solid }
+  - { mark: dotted-line, text: "使う", tone: warning }
+
+animation:
+  - step: "1. 荷物の型" 0.9s
+    focus: [荷主, 荷物, 配送便, 営業所]
+    badge: "class"
+    body: "属性と操作を行の色の段で分ける。"
+  - step: "2. 受け継ぐ" 0.9s
+    focus: [荷主, 荷物, 配送便, 営業所, 冷蔵荷物, 割れ物, "冷蔵荷物 -> 荷物", "割れ物 -> 荷物"]
+    badge: "class"
+    body: "冷蔵荷物と割れ物が抽象の荷物を受け継ぐ。"
+  - step: "3. 荷物を集める" 0.9s
+    focus: [荷主, 荷物, 配送便, 営業所, 冷蔵荷物, 割れ物, "冷蔵荷物 -> 荷物", "割れ物 -> 荷物", "配送便 -> 荷物"]
+    badge: "class"
+    body: "配送便が複数の荷物を集める。"
+  - step: "荷物を運ぶ型" 0.9s
+    focus: [荷主, 荷物, 配送便, 営業所, 冷蔵荷物, 割れ物, "冷蔵荷物 -> 荷物", "割れ物 -> 荷物", "配送便 -> 荷物", "営業所 -> 配送便", "荷主 -> 荷物"]
+    badge: "class"
+    body: "集める・持つ・使うの 3 種の関係を示す。"
+`;
+
+export const sourceJson__presetDeliveryClasses = JSON.stringify({
+  title: "荷物を運ぶ型",
+  type: "record",
+  palette: "kinari",
+  relations: "hover",
+  reveal: "all",
+  legendFontSize: 21,
+  viewport: { width: 1800, height: 1100 },
+  layoutByTheme: deliveryClassesLayoutByTheme,
+  actors: [
+    { name: "荷主", posX: 246, posY: 260, posW: 400, posH: 316, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["名前: 文字", "住所: 文字", "頼む(): 荷物"], marks: ["", "", { mark: "外", tone: "primary" }] },
+    { name: "荷物", posX: 800, posY: 260, posW: 460, posH: 428, kind: "storage", eyebrow: "抽象", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["送り状番号: 番号", "重さ: 数", "状態: 区分", "追跡する(): 位置", "届ける(): なし"], marks: ["", "", "", { mark: "外", tone: "primary" }, { mark: "外", tone: "primary" }] },
+    { name: "配送便", posX: 1500.5, posY: 232, posW: 333, posH: 372, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["便番号: 番号", "出発: 地点", "積む(): なし", "走る(): なし"], marks: ["", "", { mark: "外", tone: "primary" }, { mark: "外", tone: "primary" }] },
+    { name: "冷蔵荷物", posX: 530, posY: 800, posW: 400, posH: 260, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["温度: 数", "冷やす(): なし"], marks: ["", { mark: "外", tone: "primary" }] },
+    { name: "割れ物", posX: 1050, posY: 800, posW: 400, posH: 260, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["梱包: 区分", "そっと運ぶ(): なし"], marks: ["", { mark: "外", tone: "primary" }] },
+    { name: "営業所", posX: 1500.5, posY: 800, posW: 333, posH: 316, kind: "storage", titleAlign: "center", rowRules: true, rowDividerForm: "full", rowWell: {}, rowMarkForm: "tone", rows: ["名前: 文字", "電話: 番号", "受け付ける(): 荷物"], marks: ["", { mark: "", tone: "muted" }, { mark: "外", tone: "primary" }] },
   ],
-);
-/** 順番を持たない図なので触れて読む形にする (#1757) */
-export const presetClassDiagram = 触れて読む(presetClassDiagramSteps);
+  flow: [
+    { from: "冷蔵荷物", to: "荷物", label: "である", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom", overlay: true, labelSize: { width: 96, height: 40, fontSize: 21 } },
+    { from: "割れ物", to: "荷物", label: "", tone: "accent", style: "dashed", relation: "extends", fromSide: "top", toSide: "bottom" },
+    { from: "配送便", to: "荷物", label: "集める", tone: "teal", relation: "aggregates", tailSub: "1", sub: "0..*", fromSide: "left", toSide: "right", overlay: true, labelSize: { width: 96, height: 40, fontSize: 21 } },
+    { from: "営業所", to: "配送便", label: "持つ", tone: "teal", relation: "composes", sub: "1..*", fromSide: "top", toSide: "bottom", overlay: true, labelSize: { width: 74, height: 40, fontSize: 21 } },
+    { from: "荷主", to: "荷物", label: "使う", tone: "warning", relation: "uses", posX1: 446, posY1: 260, posX2: 570, posY2: 260, labelCollision: "author", labelOffsetY: -36, labelSize: { width: 74, height: 40, fontSize: 21 } },
+  ],
+  legend: [
+    { mark: "line-triangle-hollow", text: "受け継ぐ", tone: "accent", lineStyle: "dotted" },
+    { mark: "line-diamond-hollow", text: "集める (外しても残る)", tone: "teal", lineStyle: "solid" },
+    { mark: "line-diamond-solid", text: "持つ (一緒に消える)", tone: "teal", lineStyle: "solid" },
+    { mark: "dotted-line", text: "使う", tone: "warning" },
+  ],
+  animation: [
+    { step: "1. 荷物の型", duration: 0.9, focus: ["荷主", "荷物", "配送便", "営業所"], badge: "class", body: "属性と操作を行の色の段で分ける。" },
+    { step: "2. 受け継ぐ", duration: 0.9, focus: ["荷主", "荷物", "配送便", "営業所", "冷蔵荷物", "割れ物", "冷蔵荷物 -> 荷物", "割れ物 -> 荷物"], badge: "class", body: "冷蔵荷物と割れ物が抽象の荷物を受け継ぐ。" },
+    { step: "3. 荷物を集める", duration: 0.9, focus: ["荷主", "荷物", "配送便", "営業所", "冷蔵荷物", "割れ物", "冷蔵荷物 -> 荷物", "割れ物 -> 荷物", "配送便 -> 荷物"], badge: "class", body: "配送便が複数の荷物を集める。" },
+    { step: "荷物を運ぶ型", duration: 0.9, focus: ["荷主", "荷物", "配送便", "営業所", "冷蔵荷物", "割れ物", "冷蔵荷物 -> 荷物", "割れ物 -> 荷物", "配送便 -> 荷物", "営業所 -> 配送便", "荷主 -> 荷物"], badge: "class", body: "集める・持つ・使うの 3 種の関係を示す。" },
+  ],
+}, null, 2);
+
+export const presetDeliveryClasses = textDslToDiagram(sourceYaml__presetDeliveryClasses);
+presetDeliveryClasses.id = "delivery-classes-demo";
 
 /** 簡単な版と複雑な版は、1 つの見本の中のパターンで切り替える (#1960) */
-export const patternBase__presetClassDiagram = "簡単";
+export const patternBase__presetDeliveryClasses = "簡単";
 
 // 同じ辺に 2 本以上の関係が付くと、@cardenelabs/cdl が全ての線を辺の中点へ寄せる
 // (`layout/edges.ts` の offset 0) ため、辺から最初の折れまでが必ず重なる。
@@ -1942,7 +2400,7 @@ const presetClassComplexSteps = withSteps(
   ],
 );
 /** 順番を持たない図なので触れて読む形にする (#1757)。 クラス図の中のパターン「複雑」 (#1960) */
-export const pattern__presetClassDiagram__複雑 = 触れて読む(presetClassComplexSteps);
+export const pattern__presetDeliveryClasses__複雑 = 触れて読む(presetClassComplexSteps);
 
 // tree preset ... 組織図 / file tree / class 階層
 // 名前を状態から取り、組織の呼び方が変わる様子を見せる (cdl 0.7.0 で名前が状態を読む)。
@@ -3852,294 +4310,7 @@ export const presetStateMachine2 = withSteps(
 // 段の `focus:` は **箱の名前か矢印しか受けない** (`focus.ts` が生成 id を意図的に拒否する)。
 // 組み立て API 側は光った先を積み上げるので、記法でも各段に前の段の分を並べて書く。
 
-export const sourceYaml__presetSequence = `title: "時系列のやり取りを縦の時間軸で並べる図"
-type: sequence
-sequenceActorForm: box
-sequenceLabelForm: kind
-sequenceReturnHead: solid
-sequenceKindLabels: {"call":"呼ぶ","return":"返す","fire":"投げる"}
-
-actors:
-  - ブラウザ: { subtitle: "画面" }
-  - API: { subtitle: "受付" }
-  - DB: { subtitle: "台帳" }
-  - キュー: { subtitle: "待ち行列" }
-
-# 動いている間の帯。 台帳は途中で手が空くので区間が 2 つに分かれる
-bands:
-  - ブラウザ: 0..5
-  - API: 0..5
-  - DB: 1..2
-  - DB: 6..6
-  - キュー: 4..6
-
-# kind を書くと線と矢の形がまとめて決まる
-flow:
-  - ブラウザ -> API: "注文を出す" { kind: call }
-  - API -> DB: "在庫を押さえる" { kind: call }
-  - DB -> API: "押さえた" { kind: return }
-  - API -> API: "控えを書く" { kind: call }
-  - API -> キュー: "発送を頼む" { kind: fire }
-  - API -> ブラウザ: "受け付けた" { kind: return }
-  - キュー -> DB: "引当を確定" { kind: call }
-
-animation:
-  - step: "1. 注文を出す" 0.9s
-    focus: ["ブラウザ -> API"]
-    badge: "sequence"
-    body: "実線に塗った矢。 相手にやらせて待つ。 左の点が出どころ。"
-  - step: "2. 在庫を押さえる" 0.9s
-    focus: ["API -> DB"]
-    badge: "sequence"
-    body: "受付が台帳に問い合わせる。 動いている間だけ帯が伸びる。"
-  - step: "3. 押さえた" 0.9s
-    focus: ["DB -> API"]
-    badge: "sequence"
-    body: "破線に開いた矢。 新しい仕事ではないので線が切れる。"
-  - step: "4. 控えを書く" 0.9s
-    focus: ["API -> API"]
-    badge: "sequence"
-    body: "自分宛ての言づて。 相手がいない仕事。"
-  - step: "5. 発送を頼む" 0.9s
-    focus: ["API -> キュー"]
-    badge: "sequence"
-    body: "実線に開いた矢。 矢を閉じないことで返事を待たないと示す。"
-  - step: "6. 受け付けた" 0.9s
-    focus: ["API -> ブラウザ"]
-    badge: "sequence"
-    body: "待ち行列の返事を待たずに画面へ返す。"
-  - step: "時系列のやり取りを縦の時間軸で並べる図" 0.9s
-    focus: ["キュー -> DB"]
-    badge: "sequence"
-    body: "台帳は途中で手が空く。 帯が途切れることでそれと判る。"
-`;
-
-export const sourceJson__presetSequence = `{
-  "title": "時系列のやり取りを縦の時間軸で並べる図",
-  "type": "sequence",
-  "sequenceActorForm": "box",
-  "sequenceLabelForm": "kind",
-  "sequenceReturnHead": "solid",
-  "sequenceKindLabels": {"call": "呼ぶ", "return": "返す", "fire": "投げる"},
-  "actors": [{"name": "ブラウザ", "subtitle": "画面"}, {"name": "API", "subtitle": "受付"}, {"name": "DB", "subtitle": "台帳"}, {"name": "キュー", "subtitle": "待ち行列"}],
-  "bands": [{"actor": "ブラウザ", "from": 0, "to": 5}, {"actor": "API", "from": 0, "to": 5}, {"actor": "DB", "from": 1, "to": 2}, {"actor": "DB", "from": 6, "to": 6}, {"actor": "キュー", "from": 4, "to": 6}],
-  "flow": [
-    { "from": "ブラウザ", "to": "API", "label": "注文を出す", "kind": "call" },
-    { "from": "API", "to": "DB", "label": "在庫を押さえる", "kind": "call" },
-    { "from": "DB", "to": "API", "label": "押さえた", "kind": "return" },
-    { "from": "API", "to": "API", "label": "控えを書く", "kind": "call" },
-    { "from": "API", "to": "キュー", "label": "発送を頼む", "kind": "fire" },
-    { "from": "API", "to": "ブラウザ", "label": "受け付けた", "kind": "return" },
-    { "from": "キュー", "to": "DB", "label": "引当を確定", "kind": "call" }
-  ],
-  "animation": [
-    {
-      "step": "1. 注文を出す",
-      "duration": 0.9,
-      "focus": ["ブラウザ -> API"],
-      "body": "実線に塗った矢。 相手にやらせて待つ。 左の点が出どころ。",
-      "badge": "sequence"
-    },
-    {
-      "step": "2. 在庫を押さえる",
-      "duration": 0.9,
-      "focus": ["API -> DB"],
-      "body": "受付が台帳に問い合わせる。 動いている間だけ帯が伸びる。",
-      "badge": "sequence"
-    },
-    {
-      "step": "3. 押さえた",
-      "duration": 0.9,
-      "focus": ["DB -> API"],
-      "body": "破線に開いた矢。 新しい仕事ではないので線が切れる。",
-      "badge": "sequence"
-    },
-    {
-      "step": "4. 控えを書く",
-      "duration": 0.9,
-      "focus": ["API -> API"],
-      "body": "自分宛ての言づて。 相手がいない仕事。",
-      "badge": "sequence"
-    },
-    {
-      "step": "5. 発送を頼む",
-      "duration": 0.9,
-      "focus": ["API -> キュー"],
-      "body": "実線に開いた矢。 矢を閉じないことで返事を待たないと示す。",
-      "badge": "sequence"
-    },
-    {
-      "step": "6. 受け付けた",
-      "duration": 0.9,
-      "focus": ["API -> ブラウザ"],
-      "body": "待ち行列の返事を待たずに画面へ返す。",
-      "badge": "sequence"
-    },
-    {
-      "step": "時系列のやり取りを縦の時間軸で並べる図",
-      "duration": 0.9,
-      "focus": ["キュー -> DB"],
-      "body": "台帳は途中で手が空く。 帯が途切れることでそれと判る。",
-      "badge": "sequence"
-    }
-  ]
-}`;
-
-export const sourceYaml__presetEr = `title: "テーブル間の関係を表す図"
-type: record
-# 表の図は配色を書く (#2782)。 畳んだ先には移り変わりの図も入るので、書かない図が
-# 色みを名乗らない形にした
-palette: kinari
-# 順番を持たない図なので触れて読む形にする (#1757)。
-# 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
-relations: hover
-reveal: all
-
-# 幅は組み立て API 側が行の長さから導く。 記法は導けないので書く。
-# 書いた値がずれたら catalog-source-parity が落ちる
-lanes:
-  lane-users: { width: 462 }
-  lane-orders: { width: 450 }
-  lane-order_items: { width: 450 }
-
-# 印は行ごとに書く。 pk は名前の下線、fk は山形、opt は中空 = 形 × 塗り の 2 軸
-actors:
-  - users: { kind: storage, subtitle: "利用者", lane: lane-users, stack: 0, posW: 412, rows: ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"], marks: ["鍵", "", "外 条件", ""] }
-  - orders: { kind: storage, subtitle: "注文", lane: lane-orders, stack: 0, posH: 340, figureCard: {"label":"抱える 1","note":"記録 4"}, rows: ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"], marks: ["鍵", "外", "", ""] }
-  - order_items: { kind: storage, subtitle: "注文の明細", lane: lane-order_items, nestIn: orders, posH: 300, stack: 3, rows: ["order_id: bigint", "product_id: bigint", "qty: int"], marks: ["鍵 外", "鍵 外", ""] }
-
-# 端の印は両端に立つ。 箱に近い側が個数、その外側が任意か
-flow:
-  - users -> orders: "注文する" (info, dashed) { tailHead: one, head: zero-many }
-  - users -> users: "上司" (info, dashed) { tailHead: zero-one, head: zero-many }
-
-legend:
-  - { text: "持つ は線を引かない。 注文 が 明細 を抱えるように、囲いで出す", align: start, lead: "持つ" }
-
-animation:
-  - step: "1. users 表" 0.9s
-    focus: [users]
-    badge: "record"
-    body: "主キーは名前に下線。 印は形 × 塗りの 2 軸。"
-  - step: "2. 注文する" 0.9s
-    focus: [users, orders, "users -> orders"]
-    badge: "record"
-    body: "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。"
-  - step: "3. 明細を持つ" 0.9s
-    focus: [users, orders, order_items, "users -> orders"]
-    badge: "record"
-    body: "注文が明細を抱える入れ子で識別する関係を示す。 親の鍵が子の鍵に入る。"
-  - step: "テーブル間の関係を表す図" 0.9s
-    focus: [users, orders, order_items, "users -> orders", "users -> users"]
-    badge: "record"
-    body: "上司も利用者。 manager_id は同じ表を指す。"
-`;
-
-export const sourceJson__presetEr = `{
-  "title": "テーブル間の関係を表す図",
-  "type": "record",
-  "palette": "kinari",
-  "relations": "hover",
-  "reveal": "all",
-  "lanes": {
-    "lane-users": { "width": 462 },
-    "lane-orders": { "width": 450 },
-    "lane-order_items": { "width": 450 }
-  },
-  "actors": [
-    {
-      "name": "users",
-      "kind": "storage",
-      "subtitle": "利用者",
-      "lane": "lane-users",
-      "stack": 0,
-      "posW": 412,
-      "rows": ["id: bigint", "email: text", "manager_id: bigint", "created_at: timestamptz"],
-      "marks": ["鍵", "", "外 条件", ""]
-    },
-    {
-      "name": "orders",
-      "kind": "storage",
-      "subtitle": "注文",
-      "lane": "lane-orders",
-      "stack": 0,
-      "posH": 340,
-      "figureCard": { "label": "抱える 1", "note": "記録 4" },
-      "rows": ["id: bigint", "user_id: bigint", "total: numeric", "placed_at: timestamptz"],
-      "marks": ["鍵", "外", "", ""]
-    },
-    {
-      "name": "order_items",
-      "kind": "storage",
-      "subtitle": "注文の明細",
-      "lane": "lane-order_items",
-      "nestIn": "orders",
-      "posH": 300,
-      "stack": 3,
-      "rows": ["order_id: bigint", "product_id: bigint", "qty: int"],
-      "marks": ["鍵 外", "鍵 外", ""]
-    }
-  ],
-  "flow": [
-    {
-      "from": "users",
-      "to": "orders",
-      "label": "注文する",
-      "tone": "info",
-      "style": "dashed",
-      "tailHead": "one",
-      "head": "zero-many"
-    },
-    {
-      "from": "users",
-      "to": "users",
-      "label": "上司",
-      "tone": "info",
-      "style": "dashed",
-      "tailHead": "zero-one",
-      "head": "zero-many"
-    }
-  ],
-  "legend": [
-    {
-      "text": "持つ は線を引かない。 注文 が 明細 を抱えるように、囲いで出す",
-      "align": "start",
-      "lead": "持つ"
-    }
-  ],
-  "animation": [
-    {
-      "step": "1. users 表",
-      "duration": 0.9,
-      "focus": ["users"],
-      "body": "主キーは名前に下線。 印は形 × 塗りの 2 軸。",
-      "badge": "record"
-    },
-    {
-      "step": "2. 注文する",
-      "duration": 0.9,
-      "focus": ["users", "orders", "users -> orders"],
-      "body": "破線は識別しない関係。 1 人の利用者が 0 件以上の注文をする。",
-      "badge": "record"
-    },
-    {
-      "step": "3. 明細を持つ",
-      "duration": 0.9,
-      "focus": ["users", "orders", "order_items", "users -> orders"],
-      "body": "注文が明細を抱える入れ子で識別する関係を示す。 親の鍵が子の鍵に入る。",
-      "badge": "record"
-    },
-    {
-      "step": "テーブル間の関係を表す図",
-      "duration": 0.9,
-      "focus": ["users", "orders", "order_items", "users -> orders", "users -> users"],
-      "body": "上司も利用者。 manager_id は同じ表を指す。",
-      "badge": "record"
-    }
-  ]
-}`;
-
-export const sourceYaml__pattern__presetEr__複雑 = `title: "商取引の表と必須・任意の関係を表す ER 図"
+export const sourceYaml__pattern__presetDeliveryRelations__複雑 = `title: "商取引の表と必須・任意の関係を表す ER 図"
 type: record
 palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
@@ -4221,7 +4392,7 @@ animation:
     body: "同じ表へ 2 本入る。 届け先と請求先で役割が違う。"
 `;
 
-export const sourceJson__pattern__presetEr__複雑 = JSON.stringify(
+export const sourceJson__pattern__presetDeliveryRelations__複雑 = JSON.stringify(
   {
     title: "商取引の表と必須・任意の関係を表す ER 図",
     type: "record",
@@ -5303,225 +5474,7 @@ export const sourceJson__presetSwimlane = `{
   ]
 }`;
 
-export const sourceYaml__presetClassDiagram = `title: "クラスどうしの 6 種の関係を示す UML クラス図"
-type: record
-palette: kinari
-# 順番を持たない図なので触れて読む形にする (#1757)。
-# 線は最初から全部出す = 段は引くのをやめて光らせるだけになる
-relations: hover
-reveal: all
-
-# 縦列は lane の並び、段は stack。 箱の 1 つの辺には関係を 1 本しか載せない
-actors:
-  - User: { eyebrow: "abstract", titleAlign: center, lane: c0, stack: 0, rows: ["name: string", "email: string", "login: Session"], marks: ["", "", "外"] }
-  - Auditable: { kind: storage, eyebrow: "interface", emptyRowsNote: "操作を持たない", lane: c1, stack: 0, rows: [], marks: [] }
-  - Admin: { lane: c0, stack: 1, rows: ["permissions: string[]", "banUser: void"], marks: ["", "外"] }
-  - Order: { emphasis: primary, rowMarkForm: tone, lane: c1, stack: 1, rows: ["id: number", "total: number", "pay: Receipt"], marks: [{"mark":"","tone":"primary"},{"mark":"","tone":"primary"},{"mark":"外","tone":"primary"}] }
-  - Receipt: { lane: c2, stack: 1, rows: ["no: string", "amount: number"], marks: ["", ""] }
-  - Line: { lane: c1, stack: 2, rows: ["qty: number", "price: number"], marks: ["", ""] }
-  - Sku: { lane: c2, stack: 2, rows: ["code: string", "name: string"], marks: ["", ""] }
-
-# relation を書くと 線 / 端の形 / 塗り / 付く側 がまとめて決まる
-flow:
-  - Admin -> User: "継承" { relation: extends }
-  - Order -> Auditable: "実装" { relation: implements }
-  - Admin -> Order: "集約" { relation: aggregates, sub: "1..*", tailSub: "1" }
-  - Order -> Receipt: "依存" { relation: uses }
-  - Order -> Line: "コンポジション" { relation: composes, sub: "1..*", tailSub: "1" }
-  - Line -> Sku: "関連" { relation: associates }
-
-legend:
-  - { mark: line-triangle-hollow, text: "継承", tone: accent, lineStyle: solid }
-  - { mark: line-diamond-hollow, text: "集約 (外しても残る)", tone: teal, lineStyle: solid }
-  - { mark: line-diamond-solid, text: "コンポジション (一緒に消える)", tone: teal, lineStyle: solid }
-  - { mark: dotted-line, text: "依存", tone: success }
-
-animation:
-  - step: "1. User" 0.9s
-    badge: "class"
-    focus: [User]
-    body: "抽象クラス。 直接は作らず、Admin が継承して使う。"
-  - step: "2. 継承" 0.9s
-    badge: "class"
-    focus: [User, Admin, "Admin -> User"]
-    body: "実線に白抜きの三角。 三角は親クラスの側に付く。"
-  - step: "3. 実装" 0.9s
-    badge: "class"
-    focus: [User, Admin, Auditable, Order, "Admin -> User", "Order -> Auditable"]
-    body: "破線に白抜きの三角。 Auditable は操作を持たない印だけの取り決めで、Order はその印を実装する。"
-  - step: "4. 集約" 0.9s
-    badge: "class"
-    focus: [User, Admin, Auditable, Order, "Admin -> User", "Order -> Auditable", "Admin -> Order"]
-    body: "実線に白抜きの菱。 菱は全体の側に付く。 部分は全体が無くなっても残る。"
-  - step: "5. コンポジション" 0.9s
-    badge: "class"
-    focus: [User, Admin, Auditable, Order, Line, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line"]
-    body: "菱を塗る。 部分の寿命は全体と同じで、全体を消すと部分も消える。"
-  - step: "クラスどうしの 6 種の関係を示す UML クラス図" 0.9s
-    badge: "class"
-    focus: [User, Admin, Auditable, Order, Line, Sku, Receipt, "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"]
-    body: "関連は実線に開いた矢で参照し続け、依存は破線に開いた矢で一時的に使う。 色の 3 群は縦の関係と向きだけの関係と所有の関係。"
-`;
-
-export const sourceJson__presetClassDiagram = `{
-  "title": "クラスどうしの 6 種の関係を示す UML クラス図",
-  "type": "record",
-  "palette": "kinari",
-  "relations": "hover",
-  "reveal": "all",
-  "actors": [
-    {
-      "name": "User",
-      "eyebrow": "abstract",
-      "titleAlign": "center",
-      "lane": "c0",
-      "stack": 0,
-      "rows": ["name: string", "email: string", "login: Session"],
-      "marks": ["", "", "外"]
-    },
-    {
-      "name": "Auditable",
-      "kind": "storage",
-      "eyebrow": "interface",
-      "emptyRowsNote": "操作を持たない",
-      "lane": "c1",
-      "stack": 0,
-      "rows": [],
-      "marks": []
-    },
-    {
-      "name": "Admin",
-      "lane": "c0",
-      "stack": 1,
-      "rows": ["permissions: string[]", "banUser: void"],
-      "marks": ["", "外"]
-    },
-    {
-      "name": "Order",
-      "emphasis": "primary",
-      "rowMarkForm": "tone",
-      "lane": "c1",
-      "stack": 1,
-      "rows": ["id: number", "total: number", "pay: Receipt"],
-      "marks": [{"mark": "", "tone": "primary"}, {"mark": "", "tone": "primary"}, {"mark": "外", "tone": "primary"}]
-    },
-    {
-      "name": "Receipt",
-      "lane": "c2",
-      "stack": 1,
-      "rows": ["no: string", "amount: number"],
-      "marks": ["", ""]
-    },
-    {
-      "name": "Line",
-      "lane": "c1",
-      "stack": 2,
-      "rows": ["qty: number", "price: number"],
-      "marks": ["", ""]
-    },
-    {
-      "name": "Sku",
-      "lane": "c2",
-      "stack": 2,
-      "rows": ["code: string", "name: string"],
-      "marks": ["", ""]
-    }
-  ],
-  "flow": [
-    {
-      "from": "Admin",
-      "to": "User",
-      "label": "継承",
-      "relation": "extends"
-    },
-    {
-      "from": "Order",
-      "to": "Auditable",
-      "label": "実装",
-      "relation": "implements"
-    },
-    {
-      "from": "Admin",
-      "to": "Order",
-      "label": "集約",
-      "sub": "1..*",
-      "tailSub": "1",
-      "relation": "aggregates"
-    },
-    {
-      "from": "Order",
-      "to": "Receipt",
-      "label": "依存",
-      "relation": "uses"
-    },
-    {
-      "from": "Order",
-      "to": "Line",
-      "label": "コンポジション",
-      "sub": "1..*",
-      "tailSub": "1",
-      "relation": "composes"
-    },
-    {
-      "from": "Line",
-      "to": "Sku",
-      "label": "関連",
-      "relation": "associates"
-    }
-  ],
-  "legend": [
-    { "mark": "line-triangle-hollow", "text": "継承", "tone": "accent", "lineStyle": "solid" },
-    { "mark": "line-diamond-hollow", "text": "集約 (外しても残る)", "tone": "teal", "lineStyle": "solid" },
-    { "mark": "line-diamond-solid", "text": "コンポジション (一緒に消える)", "tone": "teal", "lineStyle": "solid" },
-    { "mark": "dotted-line", "text": "依存", "tone": "success" }
-  ],
-  "animation": [
-    {
-      "step": "1. User",
-      "duration": 0.9,
-      "focus": ["User"],
-      "body": "抽象クラス。 直接は作らず、Admin が継承して使う。",
-      "badge": "class"
-    },
-    {
-      "step": "2. 継承",
-      "duration": 0.9,
-      "focus": ["User", "Admin", "Admin -> User"],
-      "body": "実線に白抜きの三角。 三角は親クラスの側に付く。",
-      "badge": "class"
-    },
-    {
-      "step": "3. 実装",
-      "duration": 0.9,
-      "focus": ["User", "Admin", "Auditable", "Order", "Admin -> User", "Order -> Auditable"],
-      "body": "破線に白抜きの三角。 Auditable は操作を持たない印だけの取り決めで、Order はその印を実装する。",
-      "badge": "class"
-    },
-    {
-      "step": "4. 集約",
-      "duration": 0.9,
-      "focus": ["User", "Admin", "Auditable", "Order", "Admin -> User", "Order -> Auditable", "Admin -> Order"],
-      "body": "実線に白抜きの菱。 菱は全体の側に付く。 部分は全体が無くなっても残る。",
-      "badge": "class"
-    },
-    {
-      "step": "5. コンポジション",
-      "duration": 0.9,
-      "focus": ["User", "Admin", "Auditable", "Order", "Line", "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line"],
-      "body": "菱を塗る。 部分の寿命は全体と同じで、全体を消すと部分も消える。",
-      "badge": "class"
-    },
-    {
-      "step": "クラスどうしの 6 種の関係を示す UML クラス図",
-      "duration": 0.9,
-      "focus": ["User", "Admin", "Auditable", "Order", "Line", "Sku", "Receipt", "Admin -> User", "Order -> Auditable", "Admin -> Order", "Order -> Line", "Line -> Sku", "Order -> Receipt"],
-      "body": "関連は実線に開いた矢で参照し続け、依存は破線に開いた矢で一時的に使う。 色の 3 群は縦の関係と向きだけの関係と所有の関係。",
-      "badge": "class"
-    }
-  ]
-}`;
-
-export const sourceYaml__pattern__presetClassDiagram__複雑 = `title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図"
+export const sourceYaml__pattern__presetDeliveryClasses__複雑 = `title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図"
 type: record
 palette: kinari
 # 順番を持たない図なので触れて読む形にする (#1757)。
@@ -5596,7 +5549,7 @@ animation:
     body: "リスク判定と取引が、同じ通知クラスに依存する。 色の 3 群は縦の関係と向きだけの関係と所有の関係。"
 `;
 
-export const sourceJson__pattern__presetClassDiagram__複雑 = JSON.stringify(
+export const sourceJson__pattern__presetDeliveryClasses__複雑 = JSON.stringify(
   {
     title: "決済の抽象クラスとインターフェースと関係を示す UML クラス図",
     type: "record",

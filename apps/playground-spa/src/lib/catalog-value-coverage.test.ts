@@ -557,12 +557,13 @@ function 型定義の道を集める(): Set<string> {
   return 出;
 }
 
-/** 鍵が自由な組の道 (`$.lanes` 等)。 型定義の道のうち `.*` の手前を集める */
+/** 鍵が自由な組の道 (`$.lanes` 等)。 入れ子の `.*` も全てその手前を集める。 */
 const 鍵が自由な道 = (型の道: ReadonlySet<string>): Set<string> =>
   new Set(
     [...型の道].flatMap((p) => {
-      const i = p.indexOf(".*");
-      return i >= 0 ? [p.slice(0, i)] : [];
+      const out: string[] = [];
+      for (let i = p.indexOf(".*"); i >= 0; i = p.indexOf(".*", i + 2)) out.push(p.slice(0, i));
+      return out;
     }),
   );
 
@@ -623,6 +624,11 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.relations=off": { 種類: "既定", 別の値: "hover" },
   "$.theme": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
   "$.palette=celadon": { 種類: "画面の切替", 選択肢: 配色の選択肢 },
+  "$.actors[].rowLayout": { 種類: "記法一覧", 理由: "表の行配置は README と宅配見本の layoutByTheme で見せる" },
+  "$.actors[].rowLayout.titleBaseline": { 種類: "記法一覧", 理由: "rowLayout の題の基準線は README と宅配見本で見せる" },
+  "$.actors[].rowLayout.rowTop": { 種類: "記法一覧", 理由: "rowLayout の 1 行目は README と宅配見本で見せる" },
+  "$.actors[].rowLayout.rowPitch": { 種類: "記法一覧", 理由: "rowLayout の行間は README と宅配見本で見せる" },
+  "$.actors[].rowStripe": { 種類: "記法一覧", 理由: "縞を外す書き方は README と宅配の浮彫見本で見せる" },
   "$.chartLineSeries[].marker=dot": {
     種類: "記法一覧",
     理由: "折れ線の点の印の値は README で見せる",
@@ -671,7 +677,6 @@ const 道の覆い方表: Record<string, 道の覆い方> = {
   "$.見せ方=輪": { 種類: "記法一覧", 理由: "円の見せ方の和名は README で見せる" },
   "$.見せ方=積層の弧": { 種類: "記法一覧", 理由: "円の見せ方の和名は README で見せる" },
   // 見本帳が使わない印は記法一覧と README で見せる。 10 種の印は schema と描画側の一覧を突き合わせる。
-  "$.legend[].mark=solid-line": { 種類: "記法一覧", 理由: "印の一覧は README で見せる" },
 };
 
 /**

@@ -139,6 +139,11 @@ const 入力: Record<string, 図> = {
     ...基本,
     sequenceKindLabels: { call: "呼ぶ", [知らない項目]: "不明" },
   },
+  "$.sequenceSelfLoop": {
+    ...基本,
+    type: "sequence",
+    sequenceSelfLoop: { form: "orthogonal", [知らない項目]: 1 },
+  },
   "$.figureCard": {
     ...基本,
     figureCard: { label: "図", [知らない項目]: 1 },
@@ -221,11 +226,23 @@ const 入力: Record<string, 図> = {
     ...基本,
     actors: [{ name: "A", figureCard: { label: "図", [知らない項目]: 1 } }, { name: "B" }],
   },
+  "$.actors[].oneOf[1].rowWell": {
+    ...基本,
+    actors: [{ name: "A", rowWell: { top: 2, [知らない項目]: 1 } }, { name: "B" }],
+  },
+  "$.actors[].oneOf[1].rowLayout": {
+    ...基本,
+    actors: [{ name: "A", rowLayout: { rowPitch: 46.5, [知らない項目]: 1 } }, { name: "B" }],
+  },
   "$.actors[].oneOf[1].marks[].oneOf[1]": {
     ...基本,
     actors: [{ name: "A", marks: [{ mark: "鍵", [知らない項目]: 1 }] }, { name: "B" }],
   },
   "$.flow[]": { ...基本, flow: [{ from: "A", to: "B", label: "x", [知らない項目]: 1 }] },
+  "$.flow[].waypoints[]": {
+    ...基本,
+    flow: [{ from: "A", to: "B", label: "x", waypoints: [{ x: 1, y: 2, [知らない項目]: 3 }] }],
+  },
   "$.flow[].pos": {
     ...基本,
     flow: [{ from: "A", to: "B", label: "x", pos: { x: 1, y: 2, [知らない項目]: 3 } }],
@@ -294,6 +311,30 @@ const 入力: Record<string, 図> = {
         bottomPad: 13,
         [知らない項目]: 1,
       },
+    },
+  },
+  "$.layoutByTheme.additionalProperties": {
+    ...基本,
+    layoutByTheme: { blueprint: { [知らない項目]: 1 } },
+  },
+  "$.layoutByTheme.additionalProperties.nodes.additionalProperties": {
+    ...基本,
+    layoutByTheme: { blueprint: { nodes: { A: { [知らない項目]: 1 } } } },
+  },
+  "$.layoutByTheme.additionalProperties.nodes.additionalProperties.rowLayout": {
+    ...基本,
+    layoutByTheme: {
+      blueprint: { nodes: { A: { rowLayout: { rowPitch: 46.5, [知らない項目]: 1 } } } },
+    },
+  },
+  "$.layoutByTheme.additionalProperties.edges.additionalProperties": {
+    ...基本,
+    layoutByTheme: { blueprint: { edges: { "A -> B": { [知らない項目]: 1 } } } },
+  },
+  "$.layoutByTheme.additionalProperties.edges.additionalProperties.waypoints[]": {
+    ...基本,
+    layoutByTheme: {
+      blueprint: { edges: { "A -> B": { waypoints: [{ x: 1, y: 2, [知らない項目]: 3 }] } } },
     },
   },
   "$.stageLayout": { ...基本, stageLayout: { columnGap: 64, [知らない項目]: 1 } },

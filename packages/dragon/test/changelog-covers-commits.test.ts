@@ -279,10 +279,7 @@ const 利用者から見えない: Record<string, string> = {
  * merge を一律に除くと、競合解消で入った変更まで素通りする。番号で宣言できないものだけを
  * 元件名そのものと理由の組で宣言し、通常の宣言と同じく範囲との両方向を確かめる。
  */
-const 利用者から見えないmerge: Record<string, string> = {
-  "Merge remote-tracking branch 'origin/main' into feature/2854-cdl-0127-catalog":
-    "origin/main の #2861 を作業 branch へ結んだ merge。競合解消による固有の差分は無く、取り込んだ開発用 `dragon-match` は #2861 で利用者から見えないと宣言している",
-};
+const 利用者から見えないmerge: Record<string, string> = {};
 
 /**
  * `git log --format=%B%x00` の出力を commit ごとに割る (#1279)。

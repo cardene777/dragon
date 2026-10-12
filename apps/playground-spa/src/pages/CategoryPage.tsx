@@ -78,7 +78,6 @@ import {
 import {
   収める,
   次の倍率,
-  svgの幅,
   type 倍率の指定,
 } from "@/lib/diagram-zoom";
 
@@ -480,8 +479,7 @@ export function CategoryPage(): React.ReactElement {
     読める下限を課す: true,
   });
   // 幅に合わせる指定でも、読める下限を割る図は下限の倍率で描く (#2269 と同じ形)
-  const 指定した幅 =
-    svgの幅(倍率, 拡大のviewBox幅) ?? svgの幅(拡大の操作.読める下限の倍率 ?? 収める, 拡大のviewBox幅);
+  const 指定した幅 = 拡大の操作.図に当てる幅;
   // 続きが隠れている端 (#2429)。 拡大表示も読ませるために開く場所で、見本の頁と同じく
   // 読める下限の倍率で描いて余りを巻き取る
   const 隠れた端 = useScrollEdges({ 器: modalStageEl, 図の鍵: 拡大の図 ?? modalItem?.diagram });
@@ -534,7 +532,7 @@ export function CategoryPage(): React.ReactElement {
     // 描かれる / 収めている図はドラッグで巻き取らない 等)。 下限を課すと既定が
     // 「台より広く描いて辿る」 に変わるため、既定を変えるかの判断が要る (#2286)
   });
-  const 並びで指定した幅 = svgの幅(並びの倍率, 並びのviewBox幅);
+  const 並びで指定した幅 = 並びの操作.図に当てる幅;
   function 並びの倍率を動かす(向き: "上げる" | "下げる"): void {
     set並びの倍率の状態({ 図: 見ている図, 値: 次の倍率(並びの倍率, 向き, 並びの操作.収めた倍率) });
   }

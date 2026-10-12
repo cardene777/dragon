@@ -29,7 +29,7 @@ const 図 = (名: string): CdlDiagram => {
 };
 
 describe("クラス図が端の形で関係を分ける (#1464)", () => {
-  const d = () => 図("presetClassDiagram");
+  const d = () => 図("pattern__presetDeliveryClasses__複雑");
 
   it("矢印を 1 本以上持つ (検査が空振りしていない)", () => {
     expect(d().edges.length, "矢印が 0 本").toBeGreaterThan(0);
@@ -79,8 +79,8 @@ describe("クラス図が端の形で関係を分ける (#1464)", () => {
 
   it("6 種が 6 通りの見た目になる (2 つが同じ絵にならない)", () => {
     // 形だけで分けると 3 通りに畳まる。 塗りと線の種類まで含めて初めて 6 種が分かれる
-    const 見た目 = d()
-      .edges.filter((e) => 設計の6種.some(([語]) => 語 === e.label))
+    const 見た目 = 設計の6種.map(([語]) => d().edges.find((e) => e.label === 語))
+      .filter((e) => e !== undefined)
       .map((e) => `${e.tailHead ?? "none"}/${e.tailHeadFill ?? "solid"}|${e.head}/${e.headFill ?? "solid"}|${e.style ?? "solid"}`);
     expect(見た目.length, "関係を 1 本も測れていない (検査が空振りしている)").toBe(6);
     expect(new Set(見た目).size, "同じ絵になる関係がある").toBe(6);
