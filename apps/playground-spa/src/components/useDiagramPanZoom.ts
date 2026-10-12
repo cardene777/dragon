@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   収める,
   カーソルの下を残す差,
   ホイールで動かした倍率,
+  svgの幅,
   type 倍率の指定,
   type 区間,
 } from "@/lib/diagram-zoom";
@@ -33,6 +35,9 @@ import {
 
 /** ドラッグと見なすまでに動かす距離 (px)。 これより短い動きは、図の中の押す操作として残す */
 const ドラッグの閾値 = 3;
+
+/** Chromium が配置を持つ最小単位。倍率へ戻して下限との差が描画の丸めだけかを判定する */
+const 配置の丸め幅 = 1 / 64;
 
 /**
  * ドラッグを始めない要素。 図の中の切替や、図に重なる段の札のボタンを押す操作を奪わない。
@@ -74,6 +79,8 @@ export type 拡大と移動の設定 = {
 export type 拡大と移動の状態 = {
   /** 器に収めている時に実際に描かれている倍率。 測れていなければ `undefined` */
   収めた倍率: number | undefined;
+  /** 数値の倍率または読める下限から、呼出側が svg に当てる幅 (px) */
+  図に当てる幅: number | undefined;
   /** ドラッグで巻き取れる状態か (掴める見た目を出すか) */
   動かせる: boolean;
   /** いまドラッグで巻き取っているか */
@@ -113,7 +120,7 @@ type 測った値 = {
   svgがある: boolean | undefined;
   /** 図の中で最も小さい文字 (世界座標)。 測れなければ `undefined` */
   最小の文字: number | undefined;
-  /** 巻き取る要素の内側の幅 (px)。 図に幅を与えても変わらない = 収めた時の倍率の土台になる */
+  /** 巻き取る要素の描かれた幅 (px)。 図に幅を与えても変わらない = 収めた時の倍率の土台になる */
   器の幅: number;
 };
 
@@ -152,7 +159,9 @@ function 画面を測る(
     溢れている:
       巻き取り.scrollWidth > 巻き取り.clientWidth || 巻き取り.scrollHeight > 巻き取り.clientHeight,
     最小の文字: 文字 > 0 ? 文字 : undefined,
-    器の幅: 巻き取り.clientWidth,
+    // `clientWidth` は整数に丸められる。図の切替直後だけそれを使うと、実際の svg が持つ
+    // 小数の幅と百分率の丸め境界をまたぎ、欄が 63% / 図が 62% のようにずれる。
+    器の幅: 巻き取り.getBoundingClientRect().width || 巻き取り.clientWidth,
   };
 }
 
@@ -212,14 +221,16 @@ const 実効を測る回数 = 6;
 const 実効を測る間隔 = 500;
 
 /** 測り直した値が前と同じなら前をそのまま返す = 状態を置き換えず、描き直しを起こさない */
+export function 倍率の表示が同じ(前: number | undefined, 次: number | undefined): boolean {
+  if (前 === 次) return true;
+  if (前 === undefined || 次 === undefined) return false;
+  // 小数の揺れは描き直さない。ただし百分率の丸め境界をまたぐ差は欄へ反映する。
+  return Math.round(前 * 100) === Math.round(次 * 100) && Math.abs(前 - 次) < 1e-4;
+}
+
 function 変わった時だけ置き換える(前: 測った値, 次: 測った値): 測った値 {
-  const 倍率が同じ =
-    前.描かれた倍率 === 次.描かれた倍率 ||
-    (前.描かれた倍率 !== undefined &&
-      次.描かれた倍率 !== undefined &&
-      Math.abs(前.描かれた倍率 - 次.描かれた倍率) < 1e-4);
   return 前.溢れている === 次.溢れている &&
-    倍率が同じ &&
+    倍率の表示が同じ(前.描かれた倍率, 次.描かれた倍率) &&
     前.最小の文字 === 次.最小の文字 &&
     前.器の幅 === 次.器の幅 &&
     前.svgがある === 次.svgがある &&
@@ -350,10 +361,27 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
     図が替わった && viewBox幅 !== undefined && viewBox幅 > 0 && 測った.器の幅 > 0
       ? 測った.器の幅 / viewBox幅
       : undefined;
+  const 今の図の描かれた倍率 = 図が替わった ? undefined : 測った.描かれた倍率;
+  // 下限と実測の差が配置の丸めだけなら、欄の百分率は実際に描かれた倍率へ揃える。
+  // 差が大きい間は下限を返し、幅を当てた直後の 1 フレームで古い実測を出さない (#2269)。
+  const 下限が効いている時の収めた倍率 =
+    読める下限の倍率 !== undefined &&
+    今の図の描かれた倍率 !== undefined &&
+    viewBox幅 !== undefined &&
+    viewBox幅 > 0 &&
+    Math.abs(読める下限の倍率 - 今の図の描かれた倍率) * viewBox幅 <= 配置の丸め幅
+      ? 今の図の描かれた倍率
+      : 読める下限の倍率;
   const 収めた倍率 =
     viewBox幅 === undefined
       ? undefined
-      : (読める下限の倍率 ?? 図が替わった時の収めた倍率 ?? 測った.描かれた倍率);
+      : (下限が効いている時の収めた倍率 ??
+        図が替わった時の収めた倍率 ??
+        測った.描かれた倍率);
+  // 幅の決定と測り直しの依存を 1 か所に置く。呼出側が同じ式を持つと、
+  // 幅を当てた commit で箱が変わったことを hook が知れない。
+  const 図に当てる幅 =
+    svgの幅(倍率, viewBox幅) ?? svgの幅(読める下限の倍率 ?? 収める, viewBox幅);
   // 下限で拡げた図は器から出るので、収めている間もドラッグで辿れるようにする。
   // 下限を課していない場所では今まで通り、倍率を指定した時だけ掴める
   const 動かせる =
@@ -399,7 +427,7 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
     const 次 = 画面を測る(器, 図のsvgを探す(器), 最新.current.設定.巻き取りを探す, 図の鍵);
     覚えた最小.current = 忘れない最小(覚えた最小.current, 次.最小の文字);
     set測った((前) => 変わった時だけ置き換える(前, { ...次, 最小の文字: 覚えた最小.current }));
-  }, [器, viewBox幅, 図の鍵]);
+  }, [器, viewBox幅, 図の鍵, 図に当てる幅]);
 
   // 描かれている倍率と、巻き取りが溢れているかを測る。
   //
@@ -454,6 +482,8 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
         if (svg) ro.observe(svg);
         // 図が現れた / 差し替わった所から窓を開き直す = 描かれる前の標本で窓を埋めない
         if (svg) 実効を測り始める();
+        // ResizeObserver の最初の通知は次のフレームになる。新しい svg は今測り、欄も同じ task で替える。
+        測る();
         return;
       }
       // **同じ svg の中で文字が増える** (#2280)。 svg が替わったかだけを見ると、
@@ -462,6 +492,11 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
       測る();
     };
     const mo = new MutationObserver(() => {
+      if (図のsvgを探す(器) !== 見ているsvg) {
+        if (予約 !== 0) cancelAnimationFrame(予約);
+        flushSync(中身が変わった);
+        return;
+      }
       if (予約 === 0) 予約 = requestAnimationFrame(中身が変わった);
     });
     中身が変わった();
@@ -603,5 +638,12 @@ export function useDiagramPanZoom(設定: 拡大と移動の設定): 拡大と�
   // 測っていない状態を「無い」 に潰さない (#2682)。 潰すと描かれる前の 1 フレームで操作が消える
   const 図の欄 =
     測った.svgがある === undefined ? "まだ測っていない" : 測った.svgがある ? "ある" : "無い";
-  return { 収めた倍率, 動かせる, 移動中: 移動中 && 動かせる, 読める下限の倍率, 図の欄 };
+  return {
+    収めた倍率,
+    図に当てる幅,
+    動かせる,
+    移動中: 移動中 && 動かせる,
+    読める下限の倍率,
+    図の欄,
+  };
 }

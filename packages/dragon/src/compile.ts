@@ -49,7 +49,11 @@ import {
   向きだけを使う図が伝えない矢印の欄,
 } from "./compile/edge-option-notice";
 import { recordDerivedSourceLine } from "./compile/derived-source";
-import { mergePartsFromActors, reportPartNodeNotHonored } from "./compile/parts";
+import {
+  mergePartsFromActors,
+  reportPartNodeNotHonored,
+  測るために配置する,
+} from "./compile/parts";
 // 見本の取り込みが外へ出していた 13 個を、この file から出していた形のまま渡す (#2034)。
 // `index.ts` と検査が `./compile` から取り込んでいるので、窓口をここに残す
 export {
@@ -92,7 +96,7 @@ import { slugify } from "./compile/slug";
 import { 省く泳法図の印を外す, 泳法図で印をどう描く } from "./compile/swimlane-marks";
 import { 語の状態を図の語へ直す } from "./compile/word-state";
 import type { CdlDiagram, CdlEdge, CdlLegendItem, CdlNode } from "@cardenelabs/cdl";
-import { layout, parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
+import { parseFormula, extractIdentifiers, inputDefaultValue } from "@cardenelabs/cdl";
 import { parseFocusEntry } from "./focus";
 import { DRAW_TARGETS, 描く語がその図を指すか } from "./v05/parser";
 import {
@@ -583,6 +587,56 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
     (merged as CdlDiagram & { stageHeaders?: DslDocument["stageHeaders"] }).stageHeaders =
       doc.stageHeaders;
   }
+  if (doc.layoutByTheme !== undefined) {
+    // 画面の色へ戻した時は、記法に書かれた固定位置と高さを 1 bit も変えず戻す。
+    const nodeFields = ["rowLayout", "rowStripe", "h", "posH", "posY"] as const;
+    const edgeFields = ["posX1", "posY1", "posX2", "posY2", "waypoints", "labelOffsetX", "labelOffsetY", "labelCollision"] as const;
+    type NodeLayout = Pick<CdlDiagram["nodes"][number], (typeof nodeFields)[number]>;
+    type EdgeLayout = Pick<CdlDiagram["edges"][number], (typeof edgeFields)[number]>;
+    type Values = { nodes?: Record<string, NodeLayout>; edges?: Record<string, EdgeLayout> };
+    const ownFields = <T extends object, K extends readonly (keyof T)[]>(
+      value: T,
+      fields: K,
+    ): Pick<T, K[number]> => Object.fromEntries(
+      fields.flatMap((field) => Object.hasOwn(value, field) ? [[field, value[field]]] : []),
+    ) as Pick<T, K[number]>;
+    const themes: Partial<Record<keyof typeof doc.layoutByTheme, Values>> = {};
+    const controlledNodes = new Set<string>();
+    const controlledEdges = new Set<string>();
+    for (const [theme, values] of Object.entries(doc.layoutByTheme)) {
+      if (values === undefined) continue;
+      const nodes: Record<string, NodeLayout> = {};
+      for (const [name, value] of Object.entries(values.nodes ?? {})) {
+        const id = slugify(name);
+        if (!merged.nodes.some((node) => node.id === id)) continue;
+        nodes[id] = value;
+        controlledNodes.add(id);
+      }
+      const edges: Record<string, EdgeLayout> = {};
+      for (const [name, value] of Object.entries(values.edges ?? {})) {
+        const flowIndex = doc.flow.findIndex((step) => `${step.from} -> ${step.to}` === name);
+        const id = flowIndex < 0 ? undefined : merged.edges[flowIndex]?.id;
+        if (id === undefined) continue;
+        edges[id] = value;
+        controlledEdges.add(id);
+      }
+      themes[theme as keyof typeof doc.layoutByTheme] = {
+        ...(Object.keys(nodes).length === 0 ? {} : { nodes }),
+        ...(Object.keys(edges).length === 0 ? {} : { edges }),
+      };
+    }
+    const base: Values = {
+      nodes: Object.fromEntries([...controlledNodes].flatMap((id) => {
+        const node = merged.nodes.find((item) => item.id === id);
+        return node === undefined ? [] : [[id, ownFields(node, nodeFields)]];
+      })),
+      edges: Object.fromEntries([...controlledEdges].flatMap((id) => {
+        const edge = merged.edges.find((item) => item.id === id);
+        return edge === undefined ? [] : [[id, ownFields(edge, edgeFields)]];
+      })),
+    };
+    (merged as CdlDiagram & { layoutByTheme?: { base: Values; themes: typeof themes } }).layoutByTheme = { base, themes };
+  }
   // 見本帳は意匠なしで一度だけ組むため、浮彫で使う意図を stageHeaders と同じく図全体で運ぶ。
   if (doc.figureInset?.holdsContent === true) {
     (merged as CdlDiagram & {
@@ -621,12 +675,12 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   // 組の枠は **縦列の位置が全て決まった後** に置く (#1972)。 位置のずらしより前に置くと、
   // ずらした縦列から枠が離れる
   applyGroupFrames(merged, doc, 作った組の枠, opts?.onNotice);
-  cdl0132の未指定欄を外す(merged);
+  cdlの未指定欄を外す(merged);
   return merged;
 }
 
-/** cdl 0.132.0 が object に足す未指定欄を、0.131.0 までと同じ省略形へ戻す。 */
-function cdl0132の未指定欄を外す(diagram: CdlDiagram): void {
+/** cdl が object に足す未指定欄を、記法で値を書かなかった時の省略形へ戻す。 */
+function cdlの未指定欄を外す(diagram: CdlDiagram): void {
   for (const node of diagram.nodes) {
     if (node.terminalDecoration === undefined) delete node.terminalDecoration;
     if (node.cornerForm === undefined) delete node.cornerForm;
@@ -647,6 +701,11 @@ function cdl0132の未指定欄を外す(diagram: CdlDiagram): void {
     if (node.quadrantSize === undefined) delete node.quadrantSize;
   }
   for (const edge of diagram.edges) {
+    if (edge.posX1 === undefined) delete edge.posX1;
+    if (edge.posY1 === undefined) delete edge.posY1;
+    if (edge.posX2 === undefined) delete edge.posX2;
+    if (edge.posY2 === undefined) delete edge.posY2;
+    if (edge.waypoints === undefined) delete edge.waypoints;
     if (edge.labelCollision === undefined) delete edge.labelCollision;
     if (edge.labelSize === undefined) delete edge.labelSize;
   }
@@ -2371,6 +2430,11 @@ function 矢印へ書き写す(target: CdlEdge, s: DslStep, doc: DslDocument): v
   if (s.labelPlate !== undefined) target.labelPlate = s.labelPlate;
   if (s.labelOffsetX !== undefined) target.labelOffsetX = s.labelOffsetX;
   if (s.labelOffsetY !== undefined) target.labelOffsetY = s.labelOffsetY;
+  if (s.posX1 !== undefined) target.posX1 = s.posX1;
+  if (s.posY1 !== undefined) target.posY1 = s.posY1;
+  if (s.posX2 !== undefined) target.posX2 = s.posX2;
+  if (s.posY2 !== undefined) target.posY2 = s.posY2;
+  if (s.waypoints !== undefined) target.waypoints = s.waypoints;
   if (s.labelCollision !== undefined) target.labelCollision = s.labelCollision;
   if (s.labelSize !== undefined) target.labelSize = s.labelSize;
   // 矢印の位置のずらし (#1971)。 矢印は自分の位置を持たず、通り道は両端の箱で決まるので、
@@ -2497,7 +2561,10 @@ function applyGroupFrames(
   // 外しても測る値は変わらない。 枠は `posX` と `posY` を持つ縦列として並べ直しの対象から
   // 外れており (`role: "overlay"` で間隔の調整からも外れる)、 結果からは元から捨てていた。
   // 渡す時点で外すだけで、 縦列と箱の位置は 1 単位も動かない。
-  const 配置 = layout({ ...diagram, lanes: diagram.lanes.filter((l) => !作った枠.has(l.id)) });
+  const 配置 = 測るために配置する({
+    ...diagram,
+    lanes: diagram.lanes.filter((l) => !作った枠.has(l.id)),
+  });
   const 並びの縦列 = 配置.lanes;
   for (const { 枠, 名前, line, 縦列 } of 置く) {
     const 束 = 並びの縦列.filter((l) => 縦列.includes(l.id));
@@ -2726,6 +2793,10 @@ function applyV05Extensions(
       if (a.emphasis !== undefined && doc.type === "record") node.emphasis = a.emphasis;
       if (a.titleAlign !== undefined) node.titleAlign = a.titleAlign;
       if (a.rowRules !== undefined) node.rowRules = a.rowRules;
+      if (a.rowStripe !== undefined) node.rowStripe = a.rowStripe;
+      if (a.rowLayout !== undefined) node.rowLayout = a.rowLayout;
+      if (a.rowDividerForm !== undefined) node.rowDividerForm = a.rowDividerForm;
+      if (a.rowWell !== undefined) node.rowWell = a.rowWell;
       if (a.rowMarkForm !== undefined) node.rowMarkForm = a.rowMarkForm;
       if (a.nestIn !== undefined) node.nestIn = slugify(a.nestIn);
       if (a.figureCard !== undefined) node.figureCard = a.figureCard;

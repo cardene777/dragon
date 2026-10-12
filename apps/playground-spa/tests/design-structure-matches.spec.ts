@@ -84,7 +84,7 @@ const 画面 = [
   { 設計: "03 カタログの分類", path: "catalog/animation" },
   { 設計: "04 編集画面", path: "editor" },
   { 設計: "05 使い方", path: "docs" },
-  { 設計: "06 見本の詳細", path: "preset/sequence" },
+  { 設計: "06 見本の詳細", path: "preset/delivery-sequence" },
   { 設計: "07 更新履歴", path: "release-notes" },
   { 設計: "08 参加方法", path: "contribute" },
   { 設計: "09 見つからない頁", path: "no-such-page" },

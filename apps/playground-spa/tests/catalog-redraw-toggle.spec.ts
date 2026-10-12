@@ -44,9 +44,9 @@ test.describe("2 段目以降の描き方を切替えられる (#1359)", () => {
   test("起点から描けない図では切替が出ない (陰性対照)", async ({ page }) => {
     /*
      * 「どの図でも出る」 形なら、上の検査は通っても意味を持たない。
-     * 描けない図 (シーケンス図) では出ないことを見る。
+     * 描けない図 (集荷から配達までの呼び出し順) では出ないことを見る。
      */
-    await 開く(page, "シーケンス図");
+    await 開く(page, "集荷から配達までの呼び出し順");
     await expect(page.getByRole("radiogroup", { name: "2 段目以降" })).toHaveCount(0);
     // 速さの切替は出たままであることも見る = 列ごと消えたのではない
     await expect(page.getByRole("radiogroup", { name: "再生速度" })).toBeVisible();

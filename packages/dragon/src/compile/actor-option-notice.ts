@@ -262,13 +262,17 @@ const 骨組みの図に共通の除外: ReadonlySet<string> = new Set([
   "eyebrow",
   "tone",
   "rows",
-  // cdl 0.129.0-0.130.0 の表箱・部品箱の欄。 applyV05Extensions が node へ渡し、
+  // cdl 0.129.0-0.136.0 の表箱・部品箱の欄。 applyV05Extensions が node へ渡し、
   // 描き手が箱の種類に応じて題・罫線・印・入れ子・線画・足として読む (#2854)。
   "kindForm",
   "icon",
   "emptyRowsNote",
   "titleAlign",
   "rowRules",
+  "rowStripe",
+  "rowLayout",
+  "rowDividerForm",
+  "rowWell",
   "rowMarkForm",
   "nestIn",
   "figureCard",

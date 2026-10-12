@@ -54,6 +54,83 @@ type 凹み面の意図を持つ図 = CdlDiagram & {
   figureInsetByTheme?: Partial<Record<DslTheme, 浮彫の凹み面の値>>;
 };
 
+const 箱の配置欄 = ["rowLayout", "rowStripe", "h", "posH", "posY"] as const;
+const 線の配置欄 = [
+  "posX1",
+  "posY1",
+  "posX2",
+  "posY2",
+  "waypoints",
+  "labelOffsetX",
+  "labelOffsetY",
+  "labelCollision",
+] as const;
+type 箱の配置 = Pick<CdlDiagram["nodes"][number], (typeof 箱の配置欄)[number]>;
+type 線の配置 = Pick<CdlDiagram["edges"][number], (typeof 線の配置欄)[number]>;
+type 意匠別配置の値 = {
+  nodes?: Record<string, 箱の配置>;
+  edges?: Record<string, 線の配置>;
+};
+type 意匠別配置を持つ図 = CdlDiagram & {
+  layoutByTheme?: {
+    base: 意匠別配置の値;
+    themes: Partial<Record<DslTheme, 意匠別配置の値>>;
+  };
+};
+
+function 配置を当てる<T extends object, K extends readonly (keyof T)[]>(
+  value: T,
+  fields: K,
+  base: Pick<T, K[number]>,
+  override: Pick<T, K[number]> | undefined,
+): T {
+  const target = { ...base, ...override };
+  const 次 = { ...value };
+  for (const field of fields) {
+    if (target[field] === undefined) delete 次[field];
+    else 次[field] = target[field];
+  }
+  return 次;
+}
+
+function 箱の配置を当てる(
+  node: CdlDiagram["nodes"][number],
+  base: 箱の配置,
+  override: 箱の配置 | undefined,
+): CdlDiagram["nodes"][number] {
+  return 配置を当てる(node, 箱の配置欄, base, override);
+}
+
+function 箱の配置が同じか(
+  node: CdlDiagram["nodes"][number],
+  base: 箱の配置,
+  override: 箱の配置 | undefined,
+): boolean {
+  const target = 箱の配置を当てる(node, base, override);
+  return 箱の配置欄.every((field) => node[field] === target[field]);
+}
+
+function 線の配置を当てる(
+  edge: CdlDiagram["edges"][number],
+  base: 線の配置,
+  override: 線の配置 | undefined,
+): CdlDiagram["edges"][number] {
+  const 次 = 配置を当てる(edge, 線の配置欄, base, override);
+  if (override?.labelOffsetX !== undefined || override?.labelOffsetY !== undefined) {
+    次.labelCollision = "author";
+  }
+  return 次;
+}
+
+function 線の配置が同じか(
+  edge: CdlDiagram["edges"][number],
+  base: 線の配置,
+  override: 線の配置 | undefined,
+): boolean {
+  const target = 線の配置を当てる(edge, base, override);
+  return 線の配置欄.every((field) => edge[field] === target[field]);
+}
+
 function 浮彫の凹み面の値を当てる(
   node: CdlDiagram["nodes"][number],
   元の値: 浮彫の凹み面の値,
@@ -183,7 +260,24 @@ export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の�
   );
   const 凹み面が同じ = diagram.nodes.every((node, index) =>
     凹み面の比較値(node) === 凹み面の比較値(次の節[index] ?? node));
-  if (配色が同じ && 測り方が同じ && 見出しが同じ && 凹み面が同じ) return diagram;
+  const 配置の表 = (diagram as 意匠別配置を持つ図).layoutByTheme;
+  const 次の配置 = 次の配色 === undefined ? undefined : 配置の表?.themes[次の配色];
+  const 箱の配置が同じ = 配置の表 === undefined || diagram.nodes.every((node) => {
+    const base = 配置の表.base.nodes?.[node.id];
+    return base === undefined || 箱の配置が同じか(node, base, 次の配置?.nodes?.[node.id]);
+  });
+  const 線の配置が同じ = 配置の表 === undefined || diagram.edges.every((edge) => {
+    const base = 配置の表.base.edges?.[edge.id];
+    return base === undefined || 線の配置が同じか(edge, base, 次の配置?.edges?.[edge.id]);
+  });
+  if (
+    配色が同じ &&
+    測り方が同じ &&
+    見出しが同じ &&
+    凹み面が同じ &&
+    箱の配置が同じ &&
+    線の配置が同じ
+  ) return diagram;
 
   const 次 = { ...diagram };
   if (次の配色 === undefined) delete 次.palette;
@@ -201,6 +295,20 @@ export function 図の配色を変える(diagram: CdlDiagram, 選択: 配色の�
   }
   if (凹み面の表 !== undefined) {
     次.nodes = 次の節;
+  }
+  if (配置の表 !== undefined) {
+    次.nodes = 次.nodes.map((node) => {
+      const base = 配置の表.base.nodes?.[node.id];
+      return base === undefined
+        ? node
+        : 箱の配置を当てる(node, base, 次の配置?.nodes?.[node.id]);
+    });
+    次.edges = diagram.edges.map((edge) => {
+      const base = 配置の表.base.edges?.[edge.id];
+      return base === undefined
+        ? edge
+        : 線の配置を当てる(edge, base, 次の配置?.edges?.[edge.id]);
+    });
   }
   return 次;
 }

@@ -132,8 +132,8 @@ const 必ず在る見本: Array<{ slug: string; id: string; rows: number }> = [
    *
    * | 見本 | 変更前 | 変更後 | 何が変わったか |
    * |---|---|---|---|
-   * | `class-demo` | 12 | 18 | 属性と操作を設計どおりに並べ直して行が増えた |
-   * | `er-demo` | 7 | 14 | 列を印 (主キー / 外部キー) 付きで並べ直して行が増えた |
+   * | `delivery-classes-demo` | 12 | 18 | 属性と操作を設計どおりに並べ直して行が増えた |
+   * | `delivery-relations-demo` | 7 | 14 | 列を印 (主キー / 外部キー) 付きで並べ直して行が増えた |
    * | `fsm-demo` | (無) | 4 | 状態に `actions` を書けるようになり、行を持つ側に入った |
    * | `service-call-write-emit` | 1 | (無) | 行を持っていた `DB: storage` を見本から外した |
    *
@@ -143,16 +143,20 @@ const 必ず在る見本: Array<{ slug: string; id: string; rows: number }> = [
    *
    * | 見本 | 変更前 | 変更後 | 何が変わったか |
    * |---|---|---|---|
-   * | `class-demo` | 18 | 15 | 持ち物と振る舞いを分ける空行 3 つが消えた |
-   * | `er-demo` | 14 | 11 | 鍵と値を分ける空行 3 つが消えた |
+   * | `delivery-classes-demo` | 18 | 15 | 持ち物と振る舞いを分ける空行 3 つが消えた |
+   * | `delivery-relations-demo` | 14 | 11 | 鍵と値を分ける空行 3 つが消えた |
    *
    * 群の区切りは行頭の印が持っているので、空行は 2 つ目の手掛かりだった。
    *
    * cdl 0.130 の `emptyRowsNote` をひな形へ 1 度だけ書く決定で、`Auditable` の行を
    * 意図して空にした。行の欠落ではなく、空の意味を注記へ移した分なので記録は 14。
+   *
+   * `#2836` の宅配への書き換えでは、型は 6 箱の属性・操作を合わせて 19 行、関係は
+   * 入れ子の受付・仕分けを含む 12 箱で 15 行になった。構成・順序は行を持つ箱が 0 個。
+   * 4 図の Phase 1 見本を数え直した値であり、行を減らして検査へ合わせた値ではない。
    */
-  { slug: "presets", id: "class-demo", rows: 14 },
-  { slug: "presets", id: "er-demo", rows: 11 },
+  { slug: "presets", id: "delivery-classes-demo", rows: 19 },
+  { slug: "presets", id: "delivery-relations-demo", rows: 15 },
   /*
    * 込み入った 2 図が見本に足された分 (#1709 で実測)。 一覧を直していなかったため
    * 落ちたまま積み上がっていた。 2 図とも ER 図とクラス図の中のパターン「複雑」 で開く (#1960)。

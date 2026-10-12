@@ -61,6 +61,8 @@ type 放射で描けない欄 =
   | "emptyRowsNote"
   | "titleAlign"
   | "rowRules"
+  | "rowDividerForm"
+  | "rowWell"
   | "rowMarkForm"
   | "nestIn"
   | "figureCard"
@@ -109,7 +111,9 @@ type 放射で描けない欄 =
   | "startLabel"
   | "milestone"
   | "emphasis"
-  | "markGap";
+  | "markGap"
+  | "rowStripe"
+  | "rowLayout";
 
 /** 引数が `never` でなければ型検査が落ちる */
 type 空であること<T extends never> = T;
@@ -147,6 +151,10 @@ const 放射で描けない欄の名前: Record<放射で描けない欄, string
   emptyRowsNote: "行のない表の注記",
   titleAlign: "表の題の位置",
   rowRules: "表の行の罫線",
+  rowStripe: "表の行の縞",
+  rowLayout: "表の題と行の位置",
+  rowDividerForm: "表の見出し下の罫線",
+  rowWell: "表の行の受け皿",
   rowMarkForm: "表の印の形",
   nestIn: "表の入れ子",
   figureCard: "表・部品箱の足",

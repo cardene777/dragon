@@ -361,16 +361,22 @@ describe("#2854 見本の SVG / HTML に合わせた字の光と影", () => {
     let inspected = 0;
     for (const [name] of Object.entries(diagrams)) {
       const dom = domFor("neon", name as keyof typeof diagrams);
+      // 同じ祖先を子孫の数だけ何度も `getComputedStyle` で測らない。表の図では深い祖先を
+      // 数百回ずつ辿るため、全件を並列に走らせると既定の 30 秒を超えていた。
+      const filterIds = new Map<Element, string | undefined>();
+      const filterId = (element: Element): string | undefined => {
+        if (filterIds.has(element)) return filterIds.get(element);
+        const id = matchingFilterId(dom.window.getComputedStyle(element).filter, neonContentFilterIds);
+        filterIds.set(element, id);
+        return id;
+      };
       for (const element of dom.window.document.querySelectorAll("*")) {
-        const ownFilter = matchingFilterId(dom.window.getComputedStyle(element).filter, neonContentFilterIds);
+        const ownFilter = filterId(element);
         if (ownFilter === undefined) continue;
         inspected += 1;
         let ancestor = element.parentElement;
         while (ancestor !== null && ancestor.tagName.toLowerCase() !== "svg") {
-          const ancestorFilter = matchingFilterId(
-            dom.window.getComputedStyle(ancestor).filter,
-            neonContentFilterIds,
-          );
+          const ancestorFilter = filterId(ancestor);
           expect(
             ancestorFilter,
             `${name}/${element.getAttribute("data-cdl-role") ?? element.tagName}/${ownFilter}`,
@@ -380,7 +386,8 @@ describe("#2854 見本の SVG / HTML に合わせた字の光と影", () => {
       }
     }
     expect(inspected).toBeGreaterThan(0);
-  });
+    // 14 図を描く検査なので、全件の並列実行では既定の 30 秒を超えることがある
+  }, 120_000);
 
   it("浮彫・電飾・端末の 14 図で、字と線が filter の描画範囲に光の広がりごと入る", () => {
     let inspected = 0;

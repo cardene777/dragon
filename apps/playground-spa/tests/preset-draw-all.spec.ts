@@ -106,9 +106,9 @@ test.describe("プリセットの見本も起点から描かれる (#1357)", () 
   test("起点から描けない見本は動かない (陰性対照)", async ({ page }) => {
     /*
      * 「全ての図で何かが動いている」 形なら、上の検査は通っても意味を持たない。
-     * 起点から描けない種別 (シーケンス図) では、線の残りが 1 つも付かないことを見る。
+     * 起点から描けない種別 (集荷から配達までの呼び出し順) では、線の残りが 1 つも付かないことを見る。
      */
-    await 開く(page, "シーケンス図");
+    await 開く(page, "集荷から配達までの呼び出し順");
     await page.waitForTimeout(600);
     const 残り = await page.evaluate(() =>
       Array.from(document.querySelectorAll("[stroke-dashoffset]")).map((el) =>

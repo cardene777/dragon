@@ -9,8 +9,8 @@
  * engine が要素の inline style に transition を持たせているため、差し替えると宣言ごと捨てて動かない。
  *
  * 使い方
- *   node apps/playground-spa/scripts/design-export.mjs er-demo
- *   node apps/playground-spa/scripts/design-export.mjs er-demo --url http://localhost:4323
+ *   node apps/playground-spa/scripts/design-export.mjs delivery-relations-demo
+ *   node apps/playground-spa/scripts/design-export.mjs delivery-relations-demo --url http://localhost:4323
  */
 import { chromium } from "playwright";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -34,7 +34,7 @@ const flag = (name, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 if (!id) {
-  console.error("図の id を渡す (例 ... er-demo)");
+  console.error("図の id を渡す (例 ... delivery-relations-demo)");
   process.exit(2);
 }
 const BASE = flag("url", "http://localhost:4323");
@@ -246,7 +246,7 @@ await page.waitForTimeout(500);
 
 // 段は時間で進むので、新しい段が出なくなるまで控える。
 // 寸法は段ごとに測る = 段が進むと要素が増えるため、最初の段だけ見ると後から出る線を 1 本も
-// 測れない (`er-demo` の繋がり 6 本が実際にそうなった、#1540)
+// 測れない (`delivery-relations-demo` の繋がりが実際にそうなった、#1540 / #2836)
 const seen = new Map();
 const measuredByPhase = [];
 let idle = 0;

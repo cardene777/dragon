@@ -51,8 +51,13 @@ function 中身(path: string): string {
   }
 }
 
+/** 同じ script を複数の検査から調べても、追跡 file の走査は 1 度だけにする */
+const 名指し元の記録 = new Map<string, string[]>();
+
 /** file 名を本文に持つ file (自分自身は除く) */
 function 名指し元(path: string): string[] {
+  const 記録 = 名指し元の記録.get(path);
+  if (記録 !== undefined) return 記録;
   const 名 = path.slice(SCRIPT_DIR.length + 1);
   let 追跡側: string[] = [];
   try {
@@ -62,7 +67,9 @@ function 名指し元(path: string): string[] {
     追跡側 = [];
   }
   const 未追跡側 = 未追跡.filter((p) => 中身(p).includes(名));
-  return [...new Set([...追跡側, ...未追跡側])].filter((p) => p !== "" && p !== path);
+  const 結果 = [...new Set([...追跡側, ...未追跡側])].filter((p) => p !== "" && p !== path);
+  名指し元の記録.set(path, 結果);
+  return 結果;
 }
 
 /** 型の宣言 (`X.d.mts`) は、対になる実体 (`X.mjs`) が追跡されていれば名指し不要 */

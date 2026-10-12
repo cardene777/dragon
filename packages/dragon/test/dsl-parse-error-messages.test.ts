@@ -144,6 +144,8 @@ flow:
     emptyRowsNote: '"なし"',
     titleAlign: "center",
     rowRules: "true",
+    rowStripe: "false",
+    rowLayout: '{"titleBaseline":43,"rowTop":91,"rowPitch":46.5}',
     rowMarkForm: "tone",
     nestIn: "親",
     figureCard: '{"label":"図","note":"注記"}',
@@ -205,6 +207,8 @@ flow:
     subtitlePlacement: "right",
     titleFontSize: "24",
     markGap: "12",
+    rowDividerForm: "full",
+    rowWell: "{}",
   };
 
   /**

@@ -104,11 +104,11 @@ describe("複雑なカタログの段の進み方 (#1599)", () => {
       "複雑な版の名前から元の見本を引けていない",
     ).toEqual(
       new Set([
-        "class-demo",
-        "er-demo",
+        "delivery-classes-demo",
+        "delivery-relations-demo",
         "infra-demo",
         "経費申請の承認",
-        "seq-demo",
+        "delivery-sequence-demo",
         "fsm-demo",
         "network-demo",
         "topo-demo",

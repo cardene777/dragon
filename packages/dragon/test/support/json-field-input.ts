@@ -75,6 +75,7 @@ export function 欄に値を置く(層: 階層, key: string, v: unknown): Record
         icon: "terminal",
         titleAlign: "center",
         rowMarkForm: "tone",
+        rowDividerForm: "full",
       };
       const value = (v === "a" || v === "storage") && key in 閉じた語 ? 閉じた語[key] : v;
       return 図({ actors: [{ name: "A", kind: 箱の種類(key), [key]: value }, { name: "B" }] });

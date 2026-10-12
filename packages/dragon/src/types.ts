@@ -3,7 +3,7 @@
  * docs/cdl/text-dsl-spec.md の文法を AST に変換した中間表現
  */
 
-import type { CdlDiagram, CdlLegendItem, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind } from "@cardenelabs/cdl";
+import type { CdlDiagram, CdlLegendItem, NodeKind, Tone, EdgeStyle, EdgeHead, EdgeHeadFill, EdgeReveal, RelationFocus, ClassRelationType, SequenceMessageKind, RowWell } from "@cardenelabs/cdl";
 import type { DslOnlyKind } from "./v05/parser";
 import type { DslDiagramShape, DslDirection, DslOrder, DslTheme } from "./keywords";
 
@@ -258,12 +258,22 @@ export type DslDocument = {
   sequenceLabelForm?: "kind";
   /** 順序図の返す言づてにも塗った三角の矢じりを使う。 */
   sequenceReturnHead?: "solid";
+  /** 順序図の言づての段の間。 */
+  sequenceRowGap?: number;
+  /** 順序図の左の札の列幅。 */
+  sequenceGutter?: number;
+  /** 順序図の動いている間の帯幅。 */
+  sequenceBandWidth?: number;
+  /** 順序図の自分へ戻る線の形と寸法。 */
+  sequenceSelfLoop?: { form?: "orthogonal"; width?: number; drop?: number };
   /** 順序図の種類名の表示語。 */
   sequenceKindLabels?: Partial<Record<"call" | "return" | "fire", string>>;
   /** 図の凡例の字の大きさ。 */
   legendFontSize?: number;
   /** 段の箱で、意匠ごとに描く見出しの寸法。 */
   stageHeaders?: Partial<Record<DslTheme, DslStageHeader>>;
+  /** 意匠ごとに表の行配置と線の固定経路を上書きする。 */
+  layoutByTheme?: DslLayoutByTheme;
   /** 段の列幅・列間と戻る線の迂回寸法。 */
   stageLayout?: NonNullable<CdlDiagram["stageLayout"]>;
   /**
@@ -441,6 +451,20 @@ export type DslRegions = {
   bottomRight?: string;
 };
 
+export type DslThemeNodeLayout = Pick<DslActor, "rowLayout" | "rowStripe" | "posH" | "posY"> & {
+  /** 描き手へ直接渡す意匠別の箱の高さ。 */
+  h?: number;
+};
+export type DslThemeEdgeLayout = Pick<
+  DslStep,
+  "posX1" | "posY1" | "posX2" | "posY2" | "waypoints" | "labelOffsetX" | "labelOffsetY"
+>;
+export type DslThemeLayout = {
+  nodes?: Record<string, DslThemeNodeLayout>;
+  edges?: Record<string, DslThemeEdgeLayout>;
+};
+export type DslLayoutByTheme = Partial<Record<DslTheme, DslThemeLayout>>;
+
 /** 登場人物 (v0.5+ ... inline option 拡張) */
 export type DslActor = {
   name: string;
@@ -466,6 +490,14 @@ export type DslActor = {
   titleAlign?: "center";
   /** 表の箱の行の間に罫線を引く。 */
   rowRules?: boolean;
+  /** 表の箱の行へ交互の縞を敷く。 */
+  rowStripe?: boolean;
+  /** 表の箱の題と行の baseline。 */
+  rowLayout?: NonNullable<CdlDiagram["nodes"][number]["rowLayout"]>;
+  /** 表の箱の見出し下の線を左右端まで引く。 */
+  rowDividerForm?: "full";
+  /** 表の箱の行のまとまりを収める透明な面。 */
+  rowWell?: RowWell;
   /** 表の箱の行頭の印を色の段で分ける。 */
   rowMarkForm?: "tone";
   /** 表の箱を内側へ抱える親の表の箱の名前。 */
@@ -743,6 +775,13 @@ export type DslStep = {
   labelPlate?: boolean;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  /** cdl の固定直線経路。4 欄が全て揃った時だけ描画側が採用する。 */
+  posX1?: number;
+  posY1?: number;
+  posX2?: number;
+  posY2?: number;
+  /** 固定した両端の間を通る直角の折れ線の点。 */
+  waypoints?: NonNullable<CdlDiagram["edges"][number]["waypoints"]>;
   /** 線の名札を自動回避するか、作者の位置に固定するか。 */
   labelCollision?: NonNullable<CdlDiagram["edges"][number]["labelCollision"]>;
   /** 線の名札の幅・高さ・字の大きさ。 */

@@ -136,6 +136,165 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     axis: "edge-node-cross",
     理由: "「a → router → c」 の通過を見せる図で、 router を貫くこと自体が意図",
   },
+  ...[
+    {
+      diagramId: "delivery-relations-demo",
+      axis: "edge-node-cross",
+      対象: 'edge "e4-受付済-仕分け"',
+      理由:
+        "見本が外側の「営業所」の面を通り、その中の「仕分け」まで線を届ける形であるため (#2836)",
+    },
+  ],
+  ...[
+    "node:荷主 ↔ edge-label:荷主-受付-api",
+    "node:受付-api ↔ edge-label:荷主-受付-api",
+    "node:受付-api ↔ edge-label:荷主-追跡",
+    "node:追跡 ↔ edge-label:荷主-追跡",
+    "node:追跡 ↔ edge-label:追跡-地図サービス",
+    "node:地図サービス ↔ edge-label:追跡-地図サービス",
+    "node:位置の控え ↔ edge-label:配送便の端末-位置の控え",
+    "node:位置の控え ↔ edge-label:位置の控え-台帳",
+    "node:台帳 ↔ edge-label:位置の控え-台帳",
+    "node:台帳 ↔ edge-label:台帳-通知",
+    "node:配送便の端末 ↔ edge-label:配送便の端末-位置の控え",
+    "node:メール配信 ↔ edge-label:通知-メール配信",
+    "node:通知 ↔ edge-label:通知-メール配信",
+  ].map((対象) => ({
+    diagramId: "delivery-components-demo",
+    axis: "clearance",
+    対象,
+    理由:
+      "箱と札を見本の実測座標に固定すると間隔が 6–31 world となり、" +
+      "札と箱の汎用下限 32 world を割るため (#2836)",
+  })),
+  {
+    diagramId: "delivery-components-demo",
+    axis: "row-alignment",
+    対象: 'node "メール配信"',
+    理由:
+      "見本は外部の左右を同じ L1 lane の別列へ置くが、検査は右中段の端末と左下段のメールを同じ段として比較する。" +
+      "記法には L1 lane を左右へ分割する欄が無いため (#2836)",
+  },
+  ...['lane "c4-l1"', 'lane "c4-l2"'].map((対象) => ({
+    diagramId: "delivery-components-demo",
+    axis: "column-gap-uniform",
+    対象,
+    理由:
+      "見本は外部の左右 2 列と区画内の 2 列を 3 段へ手置きするが、検査は各 lane を一列として間隔を測るため (#2836)",
+  })),
+  {
+    diagramId: "delivery-components-demo",
+    axis: "arrow-endpoint-center",
+    対象: 'edge "位置の控え-台帳"',
+    理由:
+      "固定終点 (762.2, 600.8) は台帳の右辺中央そのものだが、C4 の自動辺情報 bottom を検査が使うため (#2836)",
+  },
+  ...[
+    "node:法人契約 ↔ node:個人契約",
+    "node:営業所 ↔ node:受付済",
+    "node:営業所 ↔ node:集荷済",
+    "node:営業所 ↔ edge-label:e4-受付済-仕分け",
+    "node:受付 ↔ node:仕分け",
+    "node:受付済 ↔ edge-label:e4-受付済-仕分け",
+    "node:受付済 ↔ edge-label:e5-受付済-集荷済",
+    "node:集荷済 ↔ edge-label:e4-受付済-仕分け",
+    "node:集荷済 ↔ edge-label:e5-受付済-集荷済",
+    "node:集荷済 ↔ edge-label:e6-集荷済-配達中",
+    "node:配達中 ↔ edge-label:e6-集荷済-配達中",
+  ].map((対象) => ({
+    diagramId: "delivery-relations-demo",
+    axis: "clearance",
+    対象,
+    理由:
+      "見本の実測座標では箱間が 52 / 60 / 12 world、札と箱の間が 1.0–27.5 world となり、" +
+      "汎用下限 70 / 32 より狭いため (#2836)",
+  })),
+  {
+    diagramId: "delivery-relations-demo",
+    axis: "fan-origin-single-point",
+    対象: 'node "受付済"',
+    理由:
+      "見本は受付済から仕分けへ出る左向きの線と、集荷済へ下りる線を別々の実測始点から出すため (#2836)",
+  },
+  ...[
+    'edge "e5-受付済-集荷済"',
+    'edge "e6-集荷済-配達中"',
+    'edge "e7-配達中-完了"',
+  ].map((対象) => ({
+    diagramId: "delivery-relations-demo",
+    axis: "arrow-endpoint-center",
+    対象,
+    理由:
+      "状態列の縦線は見本の path の矢じり先端へ固定しており、検査が推定する右辺中央とは一致しないため (#2836)",
+  })),
+  ...[
+    "法人契約", "個人契約", "営業所", "受付", "仕分け", "荷物", "配送便",
+    "受付済", "集荷済", "配達中", "完了",
+  ].map((名前) => ({
+    diagramId: "delivery-relations-demo",
+    axis: "row-alignment",
+    対象: `node "${名前}"`,
+    理由:
+      "見本は契約群、営業所、荷物群、状態列を独立して手置きする。縦列を書かない箱を検査が stack=0 の同じ段として比較するため (#2836)",
+  })),
+  {
+    diagramId: "delivery-relations-demo",
+    axis: "row-gap-uniform",
+    対象: "stack=0",
+    理由:
+      "見本は高さの異なる契約群と状態列を独立した間隔で置くが、検査は手置き座標にも自動段の均等間隔を求めるため (#2836)",
+  },
+  ...[
+    "node:荷主 ↔ edge-label:e4-荷主-荷物",
+    "node:荷物 ↔ edge-label:e4-荷主-荷物",
+  ].map((対象) => ({
+    diagramId: "delivery-classes-demo",
+    axis: "clearance",
+    対象,
+    理由:
+      "荷主と荷物の見本の端間 114 world に幅 74 world の「使う」札を置くため、両箱から汎用下限 32 world は取れない (#2836)",
+  })),
+  ...([
+    {
+      diagramId: "delivery-components-demo",
+      edges: [
+        "荷主-受付-api", "受付-api-台帳", "荷主-追跡", "配送便の端末-位置の控え", "追跡-位置の控え",
+        "追跡-地図サービス", "位置の控え-台帳", "台帳-通知", "通知-メール配信", "メール配信-荷主",
+      ],
+    },
+    {
+      diagramId: "delivery-relations-demo",
+      edges: [
+        "e0-法人契約-契約", "e2-荷物-配送便", "e3-配送便-配達中", "e4-受付済-仕分け", "e5-受付済-集荷済",
+        "e6-集荷済-配達中", "e7-配達中-完了",
+      ],
+    },
+    {
+      diagramId: "delivery-classes-demo",
+      edges: ["e0-冷蔵荷物-荷物", "e2-配送便-荷物", "e3-営業所-配送便", "e4-荷主-荷物"],
+    },
+  ] as const).flatMap(({ diagramId, edges }) => edges.map((edge) => ({
+    diagramId,
+    axis: "label-char-range",
+    対象: `edge "${edge}"`,
+    理由:
+      "見本 7 意匠の線の札は 2 / 3 / 4 字を実測幅 74 / 96 / 118、字 21 で描く。" +
+      "描く側の汎用字幅推定 84 / 107 / 131 では狭い判定になるため (#2836)",
+  }))),
+  ...["配送便", "冷蔵荷物", "割れ物", "営業所"].map((名前) => ({
+    diagramId: "delivery-classes-demo",
+    axis: "row-alignment",
+    対象: `node "${名前}"`,
+    理由:
+      "見本は高さの異なる型を上端と下端で揃えるが、検査は上端でなく中心を同じ段として比較するため (#2836)",
+  })),
+  {
+    diagramId: "delivery-classes-demo",
+    axis: "row-gap-uniform",
+    対象: "stack=0",
+    理由:
+      "見本は上段 3 箱と下段 3 箱を上端基準で置くが、検査は手置きした高さの差を自動段の間隔差として数えるため (#2836)",
+  },
   ...["delivery-metro-demo", "路線図で書く荷物の届け方"].flatMap((diagramId) => [
     {
       diagramId,
@@ -728,6 +887,11 @@ describe("一覧に載る図が 1 つ残らず sweep の対象に入っている
  * 数える側の母数 (漏らさないため) は目的が違う。
  */
 const 軽い違反を認める図: Record<string, { 理由: string; 図: readonly string[] }> = {
+  "edge-segment-orthogonality": {
+    理由:
+      "関係の線は意匠ごとに見本の path を固定しており、描画後の端点補正を含む汎用の直角判定だけが軽い違反を返すため (#2836)",
+    図: ["delivery-relations-demo"],
+  },
   "responsive-viewport": {
     理由:
       "カタログの一覧は幅に合わせたままにし、読むのは拡大表示で行うと決めた (#2286)。" +
@@ -736,7 +900,6 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       " 読む手段は拡大表示が受け持つ (#2284 で 10.0px に乗せた)",
     図: [
       "class-complex-demo",
-      "class-demo",
       "er-complex-demo",
       "fsm-complex-demo",
       "fsm-demo",
@@ -767,12 +930,20 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
       "認証の状態遷移",
     ],
   },
+  "row-vertical-spacing": {
+    理由:
+      "関係の受付と仕分けは入れ子専用の小型表で、見た目検査が通常の storage の中心間隔を当てるため (#2836)",
+    図: ["delivery-relations-demo"],
+  },
   "group-boundary-clearance": {
     理由:
       "位置を相対で書く見本。 自動の配置の並びから外して置くこと自体が見本の意図で、" +
       " 縦列の幅は自動で置いた時の値のまま残る。 揃えの 2 軸は engine が位置を手で書いた箱を" +
       " 判定から外すので出ない (`cdl#972`)、 本軸は縦列の幅を見るので残る",
     図: [
+      "delivery-classes-demo",
+      "delivery-components-demo",
+      "delivery-relations-demo",
       "受付の右に確認を置く",
       "受付の左に確認を置く",
       "箱を自動で決まった位置からずらす",
@@ -789,8 +960,8 @@ const 軽い違反を認める図: Record<string, { 理由: string; 図: readonl
   },
   "edge-label-proximity": {
     理由:
-      "矢印の名前が線から離れる見本。 `interactive-oauth-flow` は線が往復して交差しており" +
-      " (#2302 で名指しで固定)、名前を線に寄せると交差した線の上に載る。" +
+      "`interactive-oauth-flow` は線が往復して交差しており (#2302 で名指しで固定)、" +
+      "名前を線に寄せると交差した線の上に載る。" +
       " `間隔をまとめて広げる` は間隔を広げること自体が見本の題",
     図: ["interactive-oauth-flow", "間隔をまとめて広げる"],
   },

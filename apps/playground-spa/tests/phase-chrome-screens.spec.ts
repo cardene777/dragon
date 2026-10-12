@@ -31,7 +31,7 @@ async function 札(page: Page): Promise<string> {
 
 const 画面 = [
   { 名: "カタログの分類", path: "catalog/animation", 寄せ: "is-right", 舞台: ".catalog-preview-stage" },
-  { 名: "見本の詳細", path: "preset/sequence", 寄せ: "is-left", 舞台: ".nm-preset-detail-stage" },
+  { 名: "見本の詳細", path: "preset/delivery-sequence", 寄せ: "is-left", 舞台: ".nm-preset-detail-stage" },
 ] as const;
 
 for (const s of 画面) {

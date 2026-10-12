@@ -3,7 +3,7 @@ import type { Locator, Page } from "@playwright/test";
 /**
  * 一覧からその見本の行を引く (#2461)。
  *
- * 見本の識別子 (`api-call` / `class-demo`) は画面に出さなくなったので、字で引く形は当たらない。
+ * 見本の識別子 (`api-call` / `delivery-classes-demo`) は画面に出さなくなったので、字で引く形は当たらない。
  * 行には `data-item-id` が付くため、まず属性で引き、当たらなければ字で引く。
  * 呼ぶ側は識別子と画面に出る名前のどちらを渡してもよい。
  *

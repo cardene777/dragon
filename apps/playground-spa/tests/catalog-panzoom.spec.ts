@@ -167,7 +167,7 @@ async function ドラッグする(
 
 test.describe("並べて見る側のホイールとドラッグ (#1961)", () => {
   test("Ctrl を押したホイールで拡大し、カーソルの下の点が残る", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     const 枠 = await 図の外枠(page, 並び);
     const 点 = { x: 枠.左 + 枠.幅 * 0.3, y: Math.min(枠.上 + 枠.高さ * 0.3, 700) };
     const r = await カーソルの下が残るか(page, 並び, 点, -100, true);
@@ -181,7 +181,7 @@ test.describe("並べて見る側のホイールとドラッグ (#1961)", () => 
   });
 
   test("Ctrl を押したホイールで縮めても、カーソルの下の点が残る", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     // 巻き取れる大きさまで拡げてから縮める = 収まった図は中央に寄るので、残す位置が決まらない
     for (let i = 0; i < 2; i += 1) {
       await page.locator(並びの操作).getByRole("button", { name: "並びの倍率を上げる" }).click();
@@ -201,7 +201,7 @@ test.describe("並べて見る側のホイールとドラッグ (#1961)", () => 
   });
 
   test("修飾キー無しのホイールは図の幅を変えず、頁を送る", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     /*
      * 上向き (拡大の向き) に回す。 下向きだと、器に収めた 38% の図は刻みの下端 (50%) より小さく、
      * 拡大に使われても外へは縮まないので、幅の判定が奪われたことを見分けられない。
@@ -220,7 +220,7 @@ test.describe("並べて見る側のホイールとドラッグ (#1961)", () => 
   });
 
   test("拡げた図をドラッグすると、ドラッグした向きと逆に巻き取る", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await page.locator(並びの操作).getByRole("button", { name: "並びの倍率を上げる" }).click();
     await page.waitForTimeout(400);
     // 右に巻き取れる余地を作る = 左端から左へは巻き取れない
@@ -258,7 +258,7 @@ test.describe("並べて見る側のホイールとドラッグ (#1961)", () => 
   test("器に収めている図はドラッグしても巻き取らない (字の選択や図を押す操作を奪わない)", async ({
     page,
   }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     const 枠 = await 図の外枠(page, 並び);
     const 前 = await 巻き取りの位置(page, "並び");
     await ドラッグする(page, 図の点(枠, { x: 0.5, y: 0.2 }), { x: -120, y: -80 });
@@ -270,7 +270,7 @@ test.describe("並べて見る側のホイールとドラッグ (#1961)", () => 
   });
 
   test("ホイールで刻みの外にした後、倍率を上げると次に大きい刻みへ動く", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     const 表示 = page.locator(`${並びの操作} .cdl-zoom-value`);
     const 数を読む = async (): Promise<number> =>
       Number((await 表示.textContent())?.match(/^(\d+)%$/)?.[1]);
@@ -296,7 +296,7 @@ test.describe("拡大表示のホイールとドラッグ (#1961)", () => {
   }
 
   test("修飾キー無しのホイールで拡大し、カーソルの下の点が残る", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await 拡大を開く(page);
     await 巻き取れるまで拡げる(page);
     const r = await カーソルの下が残るか(page, 拡大, { x: 600, y: 520 }, -100, false);
@@ -306,7 +306,7 @@ test.describe("拡大表示のホイールとドラッグ (#1961)", () => {
   });
 
   test("Ctrl を押したホイールでも拡大し、カーソルの下の点が残る", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await 拡大を開く(page);
     await 巻き取れるまで拡げる(page);
     const r = await カーソルの下が残るか(page, 拡大, { x: 900, y: 420 }, -100, true);
@@ -320,7 +320,7 @@ test.describe("拡大表示のホイールとドラッグ (#1961)", () => {
      * 器に収めた `er-complex-demo` は縦に長く、箱 1150 × 630 の中央に幅 500px ほどで描かれる。
      * 箱の幅で起点を測ると 50% から動き、1 目盛で図が 2 倍を超えて跳ねる。
      */
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await 拡大を開く(page);
     const 前 = await 図の外枠(page, 拡大);
     // 箱で測ると幅は約 2.3 倍になっている = 下の上限で箱の誤りを捕まえられる図を使っている
@@ -332,7 +332,7 @@ test.describe("拡大表示のホイールとドラッグ (#1961)", () => {
   });
 
   test("拡げた図をドラッグすると、ドラッグした向きと逆に巻き取る", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await 拡大を開く(page);
     await 巻き取れるまで拡げる(page);
     await page.evaluate(() => {
@@ -368,7 +368,7 @@ test.describe("拡大表示のホイールとドラッグ (#1961)", () => {
      * 掴んで離すと、ブラウザは離した所で押す操作 (`click`) を起こす。 捨てないと、掴んだ所の箱が
      * 押されて状態が変わる図 (押すと開閉する図など) で、動かしただけで図が変わる。
      */
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await 拡大を開く(page);
     await 巻き取れるまで拡げる(page);
     await page.evaluate(() => {
@@ -439,7 +439,7 @@ test.describe("倍率の欄に出る文字 (#1961)", () => {
   });
 
   test("器に収めた時の欄は、実際に描かれた倍率を出す", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     const 測る = async (場所: string) =>
       await page.evaluate((場所) => {
         const svg = [
@@ -584,7 +584,7 @@ test.describe("図を切り替えた直後の倍率の欄 (#2048)", () => {
   test("並べて見る側でパターンを替えると、全てのフレームで欄が描かれた倍率と一致する", async ({
     page,
   }) => {
-    await 図を選ぶ(page, "presets", "ER図");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係");
     const 前 = await いまの図(page, 並び);
 
     await 記録を始める(page, 並び, `${並びの操作} .cdl-zoom-value`);
@@ -599,7 +599,7 @@ test.describe("図を切り替えた直後の倍率の欄 (#2048)", () => {
   });
 
   test("並べて見る側で再生速度を替えても、欄が測れていない表示を挟まない", async ({ page }) => {
-    await 図を選ぶ(page, "presets", "ER図");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係");
     const 速さの群 = page.getByRole("radiogroup", { name: "再生速度" });
     // 押す速さは名前で固定する。 「選ばれていない最初の速さ」 のまま持つと、押した後は別の速さを指す
     const 名前 = (
@@ -623,7 +623,7 @@ test.describe("図を切り替えた直後の倍率の欄 (#2048)", () => {
   test("別の項目で拡大表示を開き直すと、全てのフレームで欄が描かれた倍率と一致する", async ({
     page,
   }) => {
-    await 図を選ぶ(page, "presets", "ER図", "複雑");
+    await 図を選ぶ(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await 拡大を開く(page);
     const 前 = await いまの図(page, 拡大);
     await page.keyboard.press("Escape");

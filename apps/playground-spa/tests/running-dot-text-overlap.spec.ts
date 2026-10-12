@@ -57,7 +57,7 @@ async function 図が落ち着くまで待つ(page: Page, id: string): Promise<n
  *
  * かつては 700 ミリ秒 待って、出ていなければ **その箱を黙って飛ばしていた**。
  * 実測では丸は 1-3 ミリ秒で出て、飛ばす経路は待ちが足りなかった時にしか通らない
- * (class-demo は 7 個中 7 個、er-demo は 3 個中 3 個の箱から出る)。
+ * (delivery-classes-demo は 6 箱、delivery-relations-demo は 12 箱を走査する)。
  * 飛ばすと「被りなし」 が、見なかったことを意味するようになる。
  *
  * 丸そのものは線の上を動き続けるので位置では落ち着かない。 **どの線に付いているか** を見る。
@@ -184,7 +184,17 @@ async function 横切りを測る(page: Page, id: string, 倍: number) {
   const 最悪 = new Map<string, number>();
 
   for (let n = 0; n < 箱数; n++) {
-    await 箱.nth(n).hover();
+    /*
+     * SVG の active 表現は filter / transform を持つ。Playwright の hover() は「要素が
+     * 連続 2 frame 動かない」ことも待つため、絵は描けていても actionability だけで
+     * timeout になる。描く側は hover と keyboard focus を同じ関係 focus へ結ぶので、
+     * role=button の箱へ focus して、線が流れるという検査の前提を保つ。
+     */
+    const 本体 = 箱.nth(n).locator('[data-cdl-role="node-body"]').first();
+    const 縁 = await 本体.boundingBox();
+    expect(縁, `箱 ${n} の本体の範囲が取れない`).not.toBeNull();
+    if (縁 === null) continue;
+    await 箱.nth(n).focus();
     await 丸が落ち着くまで待つ(page, id);
     const 本数 = await page.locator(流れ).count();
     if (本数 === 0) {
@@ -259,12 +269,12 @@ async function 横切りを測る(page: Page, id: string, 倍: number) {
 test.describe("線の上を走る丸", () => {
   test("クラス図で、線のそばの文字を横切らない", async ({ page }, info) => {
     const 倍 = info.project.use.deviceScaleFactor ?? 1;
-    await 見本を開く(page, "class-demo");
-    const { 走った, 最悪, 丸の出ない箱, 箱数 } = await 横切りを測る(page, "class-demo", 倍);
+    await 見本を開く(page, "delivery-classes-demo");
+    const { 走った, 最悪, 丸の出ない箱, 箱数 } = await 横切りを測る(page, "delivery-classes-demo", 倍);
 
     // 1 本も走らなければ「被りなし」 も意味を持たない
     expect(走った, "丸が 1 本も走らなかった").toBeGreaterThan(0);
-    // 実測では 7 個の箱すべてから丸が出る。 出ない箱を飛ばすと、そのそばの文字が
+    // 6 個の箱すべてから丸が出る。 出ない箱を飛ばすと、そのそばの文字が
     // 1 度も確かめられないまま「被りなし」 になる (#2555)
     expect(丸の出ない箱, `箱 ${箱数} 個のうち、丸の出ない箱`).toEqual([]);
 
@@ -277,20 +287,19 @@ test.describe("線の上を走る丸", () => {
 
   test("表どうしのつながりを描く図で、文字を横切らない", async ({ page }, info) => {
     const 倍 = info.project.use.deviceScaleFactor ?? 1;
-    await 見本を開く(page, "er-demo");
-    const { 走った, 最悪, 丸の出ない箱, 箱数 } = await 横切りを測る(page, "er-demo", 倍);
+    await 見本を開く(page, "delivery-relations-demo");
+    const { 走った, 最悪, 丸の出ない箱, 箱数 } = await 横切りを測る(page, "delivery-relations-demo", 倍);
 
     expect(走った, "丸が 1 本も走らなかった").toBeGreaterThan(0);
-    // 明細 (`order_items`) は注文の囲いに入り、線ではなく囲いで「持つ」を表す。線を持たない明細だけを
-    // 丸の検査から外し、他の箱が増えて黙って外れる形は許さない。
-    expect(箱数, "ER 見本の箱が減った").toBe(3);
-    expect(丸の出ない箱, `箱 ${箱数} 個のうち、線を持たない箱`).toEqual(["order_items"]);
+    // 営業所と受付は囲いで「持つ」を表し、直接の線を持たない。この 2 箱だけを丸の検査から外す。
+    expect(箱数, "関係の見本の箱が減った").toBe(12);
+    expect(丸の出ない箱, `箱 ${箱数} 個のうち、線を持たない箱`).toEqual(["営業所", "受付"]);
     const 超過 = [...最悪].filter(([, v]) => v >= 被りの上限);
     expect(超過.map(([文, v]) => `${文} ${(v * 100).toFixed(1)}%`).join(" / ")).toBe("");
   });
 
   test("丸は線の色の芯がにじみ、外の 2 枚が波になって広がる", async ({ page }) => {
-    await 見本を開く(page, "er-demo");
+    await 見本を開く(page, "delivery-relations-demo");
     await page.locator(`${舞台} [data-cdl-node]`).first().hover();
     await page.waitForSelector(流れ, { state: "attached" });
 
@@ -354,7 +363,7 @@ test.describe("線の上を走る丸", () => {
   });
 
   test("線のそばの数には、台と同じ色の下敷きが敷いてある", async ({ page }) => {
-    await 見本を開く(page, "class-demo");
+    await 見本を開く(page, "delivery-classes-demo");
     const 数 = page.locator(端の数).first();
     await 数.waitFor({ state: "attached" });
 

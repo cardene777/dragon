@@ -244,10 +244,10 @@ const 描画側の印: Record<string, string> = {
  * 鍵が実在することは下の検査が確かめる (消えた図の宣言を残さない)。
  */
 const 識別子を見せる図: Record<string, string> = {
-  presetEr: "表の名前と列の名前と型は SQL に書く識別子",
-  pattern__presetEr__複雑: "表の名前と列の名前と型は SQL に書く識別子 (ER 図の中のパターン、#1960)",
-  presetClassDiagram: "クラスの名前と型はコードに書く識別子",
-  pattern__presetClassDiagram__複雑:
+  presetDeliveryRelations: "表の名前と列の名前と型は SQL に書く識別子",
+  pattern__presetDeliveryRelations__複雑: "表の名前と列の名前と型は SQL に書く識別子 (ER 図の中のパターン、#1960)",
+  presetDeliveryClasses: "クラスの名前と型はコードに書く識別子",
+  pattern__presetDeliveryClasses__複雑:
     "クラスの名前と型はコードに書く識別子 (クラス図の中のパターン、#1960)",
   textDslEr: "表の名前と列の名前は SQL に書く識別子 (#1886)",
   erShapeSmall: "表の名前と列の名前と型は SQL に書く識別子 (表の繋がり方の型、#2583)",
@@ -800,9 +800,9 @@ describe("絵だけを描く種別の箱の題 (#1882)", () => {
     // 同じ語が 2 度挙がる (#2681)。 副題を描くようになったので、描いた字から差し込みを
     // 解いた形 (`30% full`) と、記法の側から差し込みを外した形 (` % full`) の両方に出る。
     // どちらも同じ語を指すので、片方だけを期待すると経路が 1 つ減ったことに気付けない
-    expect(英語の残り("絵だけの土台", 絵だけの土台("水槽", "{lvl}% full"))).toEqual([
-      "full (「30% full」)",
-      "full (「 % full」)",
+    expect(英語の残り("絵だけの土台", 絵だけの土台("水槽", "{lvl}% remaining"))).toEqual([
+      "remaining (「30% remaining」)",
+      "remaining (「 % remaining」)",
     ]);
   });
 

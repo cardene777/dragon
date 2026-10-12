@@ -137,14 +137,24 @@ function 知らせを集める(): { 出た: 知らせ[]; 読めない: string[];
  * ここに無い種類が出たら落ちる = engine の配置が新しい壊れ方をした合図になる。
  */
 const 認める種類: Record<string, string> = {
+  "near node ∩ node":
+    "関係の見本は法人契約と個人契約を 24px、営業所と状態列を 60px で置く。" +
+    " 汎用の 70px 未満として知らせるが、同じ組を visual-validate-sweep.test.ts が図と距離つきで固定する (#2836)",
   "near node ∩ edge-label":
     "0.127.0 の #1029 は metro の札を自動の逃がしから外して指定位置に保ち、#1039 は overlay の札を" +
     "自分の線上に戻す。宅配の路線図と時間軸は見本の位置を指定しており、汎用の 32px を割るが、" +
-    "同じ対象を `visual-validate-sweep.test.ts` が見本の実測値つきで名指ししている (#2854)",
+    "関係・型・構成も 1800×1100 の見本の札位置を優先する。同じ対象を `visual-validate-sweep.test.ts` が" +
+    "見本の実測値つきで名指ししている (#2836 / #2854)",
   "overlap edge-path ∩ edge-path":
     "engine は箱の縁で線が触れる分も重なりとして数える。" +
     " 箱を共有する 2 本の線 (`a → b` と `b → c`) は必ず縁で触れるので、図の数に比例して出る。" +
     " 線が本当に交差しているかは `crossing-distribution.test.ts` が別に測る (#2302 / #2306)",
+  "overlap lane-label ∩ edge-path":
+    "構成の見本は「聞く」を waypoints で区画の上へ回す。配置警告は CSS で下げる前の区画名を測るため、" +
+    "画面では離れている線を重なりとして 1 件知らせる (#2836)",
+  "overlap node ∩ edge-path":
+    "関係の見本は外側の「営業所」をまたぎ、その入れ子の「仕分け」まで線を届ける。" +
+    "描く側 0.135.0 の配置警告は nestIn の親箱を発着箱として扱わないため (#2836)",
 };
 
 const 鍵 = (x: { 図: string; 左: string; 右: string }): string => `${x.図} : ${x.左} ∩ ${x.右}`;
@@ -199,6 +209,8 @@ describe("図を配置した時に出る知らせを、宣言と突き合わせ�
       .filter((x) => x.種類 === "overlap lane-label ∩ edge-path")
       .map(鍵)
       .sort();
-    expect(出た, "離れている名札と線が重なると知らされている").toEqual([]);
+    expect(出た, "CSS 適用前だけ重なる名札と線が増えている").toEqual([
+      "delivery-components-demo : c4-l2 ∩ 荷主-追跡",
+    ]);
   });
 });

@@ -131,6 +131,8 @@ const 全群を見ない検査: Record<string, string> = {
     "#1172 が名指しした 21 見本を描いて見る検査。 まだ動かしていない図と動かさないと決めた図の区別は `catalog-motion-coverage.test.ts` が持つ、と自分で書いている",
   "apps/playground-spa/tests/catalog-parts-source-tab.spec.ts":
     "部品の頁 1 枚を押して回る検査で、並べた 3 群はその頁を組む群そのもの (`loadPartsItems` が同じ 3 つを読む)。 群を足しても本検査の対象は増えず、頁に 4 つ目の群が入った時は画面の行数と導いた数が食い違って落ちる (#2762)",
+  "apps/playground-spa/tests/rendered-contrast.spec.ts":
+    "図表 13 枚、段の箱、宅配の関係・型という描画対象を名指しして対比を測る検査。各対象の全意匠を走査しており、別の群を足してもこの検査が測る図種は増えない",
 };
 
 /** 検査の file を根から集める (`node_modules` と生成物は降りない) */

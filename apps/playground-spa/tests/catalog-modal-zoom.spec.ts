@@ -52,7 +52,7 @@ async function 図を測る(page: Page): Promise<{ 幅: number; 高さ: number; 
 /**
  * 一覧から図を開き、拡大表示まで進む。
  *
- * 複雑な ER 図は「ER図」 の中のパターン「複雑」 なので、パターンの名前を受けて押す (#1960)
+ * 複雑な関係図は「契約と荷物と配送状態の関係」 の中のパターン「複雑」 なので、パターンの名前を受けて押す (#1960)
  */
 async function 拡大を開く(page: Page, 分類: string, 名前: string, パターン?: string): Promise<void> {
   await page.goto(`catalog/${分類}`, { waitUntil: "networkidle" });
@@ -86,7 +86,7 @@ const 百分率 = (倍率: number): string => `${Math.round(倍率 * 100)}%`;
 
 test.describe("拡大表示の倍率 (#1745)", () => {
   test("既定は収める = 図が器に収まっていて、描かれた倍率を欄に出す", async ({ page }) => {
-    await 拡大を開く(page, "presets", "ER図", "複雑");
+    await 拡大を開く(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await expect(収める(page)).toBeDisabled();
     const s = await 図を測る(page);
     // 器は 1150 × 630。 収める側は必ずその中に入る
@@ -98,7 +98,7 @@ test.describe("拡大表示の倍率 (#1745)", () => {
   });
 
   test("倍率を上げると、描かれていた倍率の次に大きい刻みで viewBox の幅 × 倍率 に描かれる", async ({ page }) => {
-    await 拡大を開く(page, "presets", "ER図", "複雑");
+    await 拡大を開く(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     const 収めた = await 図を測る(page);
     const 次 = 上の刻み(描かれた倍率(収めた));
 
@@ -116,7 +116,7 @@ test.describe("拡大表示の倍率 (#1745)", () => {
   });
 
   test("刻みの上で下げると、1 つ下の刻みで viewBox の幅 × 倍率 に描かれる", async ({ page }) => {
-    await 拡大を開く(page, "presets", "ER図", "複雑");
+    await 拡大を開く(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     const 一つ目 = 上の刻み(描かれた倍率(await 図を測る(page)));
     await 上げる(page).click();
     await 上げる(page).click();
@@ -134,7 +134,7 @@ test.describe("拡大表示の倍率 (#1745)", () => {
      * 器に収めた `er-complex-demo` は 22% で描かれ、いちばん小さい刻み (50%) より小さい。
      * 押せると刻みの端へ跳ねて、下げる向きなのに図が大きくなる。
      */
-    await 拡大を開く(page, "presets", "ER図", "複雑");
+    await 拡大を開く(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     const 倍率 = 描かれた倍率(await 図を測る(page));
     expect(倍率, "この図が小さい刻みより大きく描かれていて、確かめたい形になっていない").toBeLessThan(倍率の刻み[0]!);
     await expect(下げる(page)).toBeDisabled();
@@ -142,7 +142,7 @@ test.describe("拡大表示の倍率 (#1745)", () => {
   });
 
   test("器に収まらない倍率では本体が巻き取れる", async ({ page }) => {
-    await 拡大を開く(page, "presets", "ER図", "複雑");
+    await 拡大を開く(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await 上げる(page).click();
     await page.waitForTimeout(400);
     const 巻き取り = await page.evaluate(() => {
@@ -154,7 +154,7 @@ test.describe("拡大表示の倍率 (#1745)", () => {
   });
 
   test("収めるへ戻すと元の大きさに戻る", async ({ page }) => {
-    await 拡大を開く(page, "presets", "ER図", "複雑");
+    await 拡大を開く(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     const 前 = await 図を測る(page);
     const 前の表示 = await 表示(page).textContent();
     await 上げる(page).click();
@@ -169,7 +169,7 @@ test.describe("拡大表示の倍率 (#1745)", () => {
   });
 
   test("別の図を開くと収めるへ戻る", async ({ page }) => {
-    await 拡大を開く(page, "presets", "ER図", "複雑");
+    await 拡大を開く(page, "presets", "契約と荷物と配送状態の関係", "複雑");
     await 上げる(page).click();
     await page.waitForTimeout(400);
     await expect(収める(page)).toBeEnabled();

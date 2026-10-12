@@ -28,7 +28,7 @@
 import { test, expect } from "@playwright/test";
 import { 図の箱が出るまで待つ } from "./wait-for-render";
 import { PRESETS } from "../src/lib/presets";
-import { sourceYaml__presetEr } from "../src/topics/catalog/presets.cdl";
+import { sourceYaml__presetDeliveryRelations } from "../src/topics/catalog/presets.cdl";
 
 /**
  * `relations: hover` を書いた見本。 押せる箱を持つのはこれだけ。
@@ -115,7 +115,7 @@ test("押せない箱には押せる形の cursor を出さない (対照)", asy
 test("編集画面で関係を書いた図の押せる箱が押せる形になる", async ({ page }) => {
   const 載せる = (src: string): string =>
     Buffer.from(unescape(encodeURIComponent(src)), "binary").toString("base64");
-  await page.goto(`editor#s=${載せる(sourceYaml__presetEr)}`, { waitUntil: "networkidle" });
+  await page.goto(`editor#s=${載せる(sourceYaml__presetDeliveryRelations)}`, { waitUntil: "networkidle" });
   await 図の箱が出るまで待つ(page, "編集画面");
 
   const m = await page.evaluate(() => {

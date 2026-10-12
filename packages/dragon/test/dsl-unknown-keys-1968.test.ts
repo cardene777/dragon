@@ -186,6 +186,12 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   sequenceActorForm: { 項目名を持たない理由: "順序図の参加者の枠の語を 1 つ書く欄" },
   sequenceLabelForm: { 項目名を持たない理由: "順序図の段の種類表示の語を 1 つ書く欄" },
   sequenceReturnHead: { 項目名を持たない理由: "順序図の返す矢じりの語を 1 つ書く欄" },
+  sequenceRowGap: { 項目名を持たない理由: "順序図の段間を正の数で書く欄" },
+  sequenceGutter: { 項目名を持たない理由: "順序図の左の札の列幅を正の数で書く欄" },
+  sequenceBandWidth: { 項目名を持たない理由: "順序図の活性帯の幅を正の数で書く欄" },
+  sequenceSelfLoop: [
+    新しい複合欄の見本("sequenceSelfLoop", "widht", "width", 127),
+  ],
   sequenceKindLabels: [
     見本(
       "順序図の種類名",
@@ -271,6 +277,7 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   legendOffset: [新しい複合欄の見本("legendOffset", "ofsetX", "x", -200)],
   legendFontSize: { 項目名を持たない理由: "凡例の字の大きさを数で書く欄" },
   stageHeaders: { 項目名を持たない理由: "意匠名を鍵に、段の見出しの寸法を書く欄" },
+  layoutByTheme: { 項目名を持たない理由: "意匠名と箱・線の名前を鍵に配置の上書きを書く欄" },
   states: { 項目名を持たない理由: "`名前: 初期値` を並べる欄で、左辺は書き手が決める名前" },
   values: { 項目名を持たない理由: "`名前: 式` を並べる欄で、左辺は書き手が決める名前" },
   formulas: { 項目名を持たない理由: "`名前: 式` を並べる欄で、左辺は書き手が決める名前" },

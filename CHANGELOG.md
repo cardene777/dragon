@@ -7,6 +7,20 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- **見本帳の関係・型・構成・順序の 4 件を宅配の見本へ書き換えた** (#2836)
+
+  契約と荷物と配送状態の関係、荷物を運ぶ型、配送システムの部品、集荷から配達までの呼び出し順を、
+  YAML・JSON・組み立て API で同じ図にした。
+  7 意匠では関係の種類ごとの線色・点線・札・行頭印・
+  区画・生命線・活性帯を宅配の見本へ揃えた。
+  記法では線の固定端点 `posX1` / `posY1` / `posX2` / `posY2` と空の線札を受け付け、
+  描く側を `^0.136.0` に上げ、`sequenceRowGap:` / `sequenceSelfLoop:` / `rowDividerForm:` /
+  `rowWell:` に加えて 4 図へ `layoutByTheme:` を当て、意匠ごとの箱・線の配置を切り替える。
+  記法の `rowLayout:` / `waypoints:` / `sequenceGutter:` / `sequenceBandWidth:` を YAML と JSON から
+  CDL へ渡し、線札の `labelSize` には見本帳で測った幅・高さ・字の大きさを使う。
+  群の間、罫、入れ子の子の寸法、区画の題の帯、順序の横線と帯の余白、線と箱の描画順に残る 7 件は
+  `cardene777/cdl#1226` にまとめた。
+
 - **描く側を `^0.134.0` に上げ、浮彫の図表内容を凹み面へ収められるようにした** (#2854)
 
   `figureInset.holdsContent:` に `true` を書く形を YAML / JSON / schema に登録した。組み立てと見本帳の意匠切替は

@@ -26,13 +26,12 @@ import { FORMS } from "../../../apps/playground-spa/src/lib/syntax-forms";
 /**
  * 順番を持たない図か (#2782)。
  *
- * 直接の組み立て器で作るクラス図は図種で決まる。記法の `record` は UML / 表 / 移り変わりを
- * 書けるので、**矢印の端で見分ける**。UML の6種は両端の形と塗りを必ず持つ (#2783)。
+ * 直接の組み立て器で作るクラス図と、記法の `record` / `c4` は図種で決まる。
+ * どれも関係が同時に成り立つ構造の図で、順番を追う図ではない (#2836)。
  */
 const UMLの関係を持つ = (d: CdlDiagram): boolean =>
   d.type === "record" &&
-  d.edges.length > 0 &&
-  d.edges.every(
+  d.edges.some(
     (edge) =>
       edge.headFill !== undefined &&
       edge.tailHeadFill !== undefined &&
@@ -40,8 +39,12 @@ const UMLの関係を持つ = (d: CdlDiagram): boolean =>
       ["none", "diamond"].includes(edge.tailHead ?? ""),
   );
 
+const C4の段を持つ = (d: CdlDiagram): boolean =>
+  d.type === "infrastructure" &&
+  d.lanes.some((lane) => /^c4-l[123]$/u.test(lane.id) && lane.contain === false);
+
 const 順番を持たないか = (d: { type?: string } & CdlDiagram): boolean =>
-  d.type === "class" || UMLの関係を持つ(d) || 表のつながりの図(d);
+  d.type === "class" || UMLの関係を持つ(d) || 表のつながりの図(d) || C4の段を持つ(d);
 
 type 図 = (typeof 全図)[number] & {
   id?: string;

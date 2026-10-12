@@ -45,6 +45,8 @@ const 見本の値: Record<string, string> = {
   emptyRowsNote: '"なし"',
   titleAlign: "center",
   rowRules: "true",
+  rowStripe: "false",
+  rowLayout: '{"titleBaseline":43,"rowTop":91,"rowPitch":46.5}',
   rowMarkForm: "tone",
   nestIn: "B",
   figureCard: '{"label":"図","note":"注"}',
@@ -96,6 +98,8 @@ const 見本の値: Record<string, string> = {
   subtitlePlacement: "right",
   titleFontSize: "24",
   markGap: "12",
+  rowDividerForm: "full",
+  rowWell: "{}",
 };
 
 const 段を分けた形 = (k: string, v: string): string =>

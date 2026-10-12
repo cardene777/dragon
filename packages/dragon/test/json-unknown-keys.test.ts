@@ -165,6 +165,10 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     sequenceLabelForm: "kind",
     sequenceReturnHead: "solid",
     sequenceKindLabels: { call: "呼出", return: "返却" },
+    sequenceRowGap: 100,
+    sequenceGutter: 610,
+    sequenceBandWidth: 30,
+    sequenceSelfLoop: { form: "orthogonal", width: 127, drop: 46 },
     figureCard: { label: "図", note: "注記" },
     figureSize: { width: 640, height: 320 },
     terminalDecoration: { windowControls: true, cursor: true, rowOrdinal: true },
@@ -192,6 +196,12 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     stageHeaders: {
       blueprint: { topPad: 15, numberSize: 16, gap: 10, nameSize: 29, bottomPad: 13 },
     },
+    layoutByTheme: {
+      blueprint: {
+        nodes: { A: { rowLayout: { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 } } },
+        edges: {},
+      },
+    },
     stageLayout: { columnWidths: { 受付: 360 }, columnGap: 64 },
   },
   actor: {
@@ -202,6 +212,10 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     emptyRowsNote: "なし",
     titleAlign: "center",
     rowRules: true,
+    rowStripe: false,
+    rowLayout: { titleBaseline: 43, rowTop: 91, rowPitch: 46.5 },
+    rowDividerForm: "full",
+    rowWell: {},
     rowMarkForm: "tone",
     nestIn: "B",
     figureCard: { label: "図", note: "注記" },
@@ -288,6 +302,12 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
     cardinality: "1..N",
     labelOffsetX: 1,
     labelOffsetY: 2,
+    // 線の両端を world 座標で固定する (#2836)
+    posX1: 10,
+    posY1: 20,
+    posX2: 30,
+    posY2: 40,
+    waypoints: [{ x: 10, y: 40 }],
     labelCollision: "author",
     labelSize: { width: 96, height: 40, fontSize: 21 },
     overlay: true,

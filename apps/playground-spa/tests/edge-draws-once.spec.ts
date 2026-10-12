@@ -82,10 +82,11 @@ const 描き手たち: Record<string, 描き手> = {
   swimlane: "矢印",
   flow: "矢印",
   topology: "矢印",
-  er: "矢印",
+  deliveryComponents: "矢印",
+  deliveryRelations: "矢印",
   stateMachine: "矢印",
   infrastructure: "矢印",
-  classDiagram: "矢印",
+  deliveryClasses: "矢印",
   deliveryFlow: "矢印",
   deliveryStages: "矢印",
   deliveryMetro: "矢印",
@@ -103,14 +104,14 @@ const 描き手たち: Record<string, 描き手> = {
   /*
    * 伸びるものを持たない図。
    *
-   * シーケンス図は 1 枚の板で描き、言づては矢印ではなく板の中の行になる (#1466)。
+   * 集荷から配達までの呼び出し順は 1 枚の板で描き、言づては矢印ではなく板の中の行になる (#1466)。
    * 四象限図は軸と点だけで、起点から現す形を持たない。
    *
    * **0 件は植え込みで裏を取る**。 この 2 つの検査は印を 1 つ足して、読み手がそれを
    * 見つけることまで見る。 他の図で見つかっていることと合わせて、「探し方が何にも
    * 当たらないから 0 件」 ではないと言える。
    */
-  sequence: "なし",
+  deliverySequence: "なし",
   quadrant: "なし",
 };
 
@@ -312,7 +313,7 @@ test.describe("伸びるのは 1 度だけ (#1474 / #1476)", () => {
       "母集団の内訳が変わった (担い手の表を見直す)",
     ).toEqual({
       対象: 登録簿の鍵.length + 記法のパターン数,
-      矢印: 13,
+      矢印: 14,
       図: 7,
       描かない: 2,
     });

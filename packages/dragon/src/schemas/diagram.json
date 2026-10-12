@@ -263,6 +263,18 @@
     "sequenceActorForm": { "type": "string", "enum": ["box"] },
     "sequenceLabelForm": { "type": "string", "enum": ["kind"] },
     "sequenceReturnHead": { "type": "string", "enum": ["solid"] },
+    "sequenceRowGap": { "type": "number", "exclusiveMinimum": 0 },
+    "sequenceGutter": { "type": "number", "exclusiveMinimum": 0 },
+    "sequenceBandWidth": { "type": "number", "exclusiveMinimum": 0 },
+    "sequenceSelfLoop": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "form": { "type": "string", "enum": ["orthogonal"] },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "drop": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
     "sequenceKindLabels": {
       "type": "object",
       "additionalProperties": false,
@@ -277,7 +289,7 @@
       "additionalProperties": false,
       "required": ["label"],
       "properties": {
-        "label": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
         "note": { "type": "string" }
       }
     },
@@ -400,6 +412,28 @@
               "emptyRowsNote": { "type": "string" },
               "titleAlign": { "type": "string", "enum": ["center"] },
               "rowRules": { "type": "boolean" },
+              "rowStripe": { "type": "boolean" },
+              "rowLayout": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "titleBaseline": { "type": "number", "minimum": 0 },
+                  "rowTop": { "type": "number", "minimum": 0 },
+                  "rowPitch": { "type": "number", "exclusiveMinimum": 0 }
+                }
+              },
+              "rowDividerForm": { "type": "string", "enum": ["full"] },
+              "rowWell": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "top": { "type": "number", "minimum": 0 },
+                  "right": { "type": "number", "minimum": 0 },
+                  "bottom": { "type": "number", "minimum": 0 },
+                  "left": { "type": "number", "minimum": 0 },
+                  "radius": { "type": "number", "minimum": 0 }
+                }
+              },
               "rowMarkForm": { "type": "string", "enum": ["tone"] },
               "nestIn": { "type": "string", "minLength": 1 },
               "figureCard": {
@@ -407,7 +441,7 @@
                 "additionalProperties": false,
                 "required": ["label"],
                 "properties": {
-                  "label": { "type": "string", "minLength": 1 },
+                  "label": { "type": "string" },
                   "note": { "type": "string" }
                 }
               },
@@ -1052,6 +1086,34 @@
           "labelOffsetY": {
             "type": "number",
             "description": "ラベル位置 y 調整"
+          },
+          "posX1": {
+            "type": "number",
+            "description": "線の出どころ側を固定する world x 座標"
+          },
+          "posY1": {
+            "type": "number",
+            "description": "線の出どころ側を固定する world y 座標"
+          },
+          "posX2": {
+            "type": "number",
+            "description": "線の行き先側を固定する world x 座標"
+          },
+          "posY2": {
+            "type": "number",
+            "description": "線の行き先側を固定する world y 座標"
+          },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["x", "y"],
+              "properties": {
+                "x": { "type": "number" },
+                "y": { "type": "number" }
+              }
+            }
           },
           "labelCollision": {
             "type": "string",
@@ -2844,6 +2906,65 @@
           "gap": { "type": "number", "minimum": 0 },
           "nameSize": { "type": "number", "exclusiveMinimum": 0 },
           "bottomPad": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "layoutByTheme": {
+      "type": "object",
+      "description": "意匠ごとの表の行配置と固定線",
+      "propertyNames": {
+        "enum": ["kinari", "celadon", "blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief"]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "nodes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "h": { "type": "number", "exclusiveMinimum": 0 },
+                "posH": { "type": "number", "exclusiveMinimum": 0 },
+                "posY": { "type": "number" },
+                "rowStripe": { "type": "boolean" },
+                "rowLayout": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "titleBaseline": { "type": "number", "minimum": 0 },
+                    "rowTop": { "type": "number", "minimum": 0 },
+                    "rowPitch": { "type": "number", "exclusiveMinimum": 0 }
+                  }
+                }
+              }
+            }
+          },
+          "edges": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "posX1": { "type": "number" },
+                "posY1": { "type": "number" },
+                "posX2": { "type": "number" },
+                "posY2": { "type": "number" },
+                "labelOffsetX": { "type": "number" },
+                "labelOffsetY": { "type": "number" },
+                "waypoints": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["x", "y"],
+                    "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

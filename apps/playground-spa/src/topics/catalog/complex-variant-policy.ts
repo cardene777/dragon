@@ -20,6 +20,8 @@
  * 見送りを取り消す (複雑な版を足す) 時は、ここから行を消す。
  */
 export const 複雑な版を作らない見本: Readonly<Record<string, string>> = {
+  presetDeliveryComponents:
+    "宅配の関係・型・構成・順序を見比べるひな形。 9 部品と 10 接続で構成の見本を満たしており、別の規模の筋書きを重ねて持たない (#2836)",
   presetDeliveryFlow:
     "宅配の同じ筋書きを 4 形で見比べるひな形。 複雑な版はテキスト記法のフローチャートが受け持ち、ここへ重ねて持たない (#2835)",
   presetDeliveryStages:
