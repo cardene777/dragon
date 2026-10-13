@@ -25,13 +25,9 @@ async function open(page: Page): Promise<Locator> {
   return preview;
 }
 
-/** パターンの切替を押す */
+/** パターンを選ぶ */
 async function choose(page: Page, 名: string): Promise<void> {
-  await page
-    .getByRole("radio", { name: 名, exact: true })
-    .or(page.getByRole("button", { name: 名, exact: true }))
-    .first()
-    .click();
+  await page.getByRole("combobox", { name: "パターン" }).selectOption(名);
   await page.waitForTimeout(500);
 }
 

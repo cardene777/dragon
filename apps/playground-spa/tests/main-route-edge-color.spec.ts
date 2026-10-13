@@ -218,7 +218,7 @@ test("カタログの線の役目: 切替で main を選ぶと通り道の 2 本
   expect(書かない.filter((l) => l.順路), "書かない形に順路の線がある").toHaveLength(0);
   expect(書かない.filter((l) => l.stroke === 色), "書かない形に強調の色の線がある").toHaveLength(0);
 
-  await page.getByRole("radio", { name: "main" }).click();
+  await page.getByRole("combobox", { name: "パターン" }).selectOption("main");
   await page.waitForTimeout(1500);
   const 書いた = await 読む();
   expect(書いた.length, "main の形の線を 4 本読めていない").toBe(4);

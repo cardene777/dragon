@@ -464,6 +464,7 @@
 
 .catalog-preview-tabs {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   padding: 8px 18px 0;
@@ -501,12 +502,8 @@
   cursor: not-allowed;
 }
 
-/* ── 再生速度の切替 (#1355) ── */
+/* ── 図の見せ方 (#2867) ── */
 
-/*
-  タブ列の右端に寄せる。 表示の切替 (図 / コード) とは役割が違うので、間を空けて
-  区切りを付ける = 並べて置くと 4 つ目のタブに見える。
-*/
 .catalog-speed,
 .catalog-redraw {
   display: flex;
@@ -521,38 +518,86 @@
   flex-wrap: wrap;
 }
 
-/*
-  切替は オプション と パターン の 2 群に分かれる (#1696)。
-
-  間は `gap` で開ける。 個々の切替に `margin-left` を振る形だと、並ぶ数と順番で
-  「左端の 1 つだけ寄せる」 の条件が変わり、切替を 1 つ足すたびに条件が増える
-  (実際に 4 本の規則に育っていた)。
-*/
-.catalog-toggle-groups {
-  /* 操作の札が増えると、札の字が 1 字ずつ縦に潰れていた。札は押す先の名前なので、
-   * 字を折って読めなくせず、幅が足りない時は札ごと次の行へ回す (#2796) */
+/* 57 図で数えると札ではタブの列に収まらなかったため、パターンは 1 つの選ぶ欄にする (#2867)。 */
+.catalog-pattern-controls {
   display: flex;
-  flex-wrap: wrap;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 6px 16px;
+  gap: 8px;
   min-width: 0;
+  max-width: 100%;
   margin-left: auto;
+  padding-bottom: 4px;
 }
 
-.catalog-toggle-group {
+.catalog-option-strip {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 8px 24px;
+  padding: 8px 22px;
+  border-top: 1px solid var(--d-border);
+  background: var(--d-surface-2, rgba(0, 0, 0, 0.03));
 }
 
-/* 群の名前。 押せる見た目にしない = 押す物ではなく、隣の切替が何を変えるかの札 */
-.catalog-toggle-group-label {
+.catalog-option-group {
+  /* 群の中を折ると名前だけが行末に残るため、幅が足りない時は群ごと次の行へ送る (#2867)。 */
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.catalog-option-group > :is(.catalog-redraw, .catalog-speed) {
+  flex-wrap: nowrap;
+}
+
+/* 群の名前は押す物ではないので、隣の切替と同じ面や枠を持たせない。 */
+.catalog-option-label,
+.catalog-pattern-label {
   font-family: var(--d-body);
   font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--d-text-secondary);
   white-space: nowrap;
+}
+
+.catalog-select-field {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+}
+
+.catalog-select-field::after {
+  content: "";
+  position: absolute;
+  top: 11px;
+  right: 9px;
+  width: 0;
+  height: 0;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  border-top: 5px solid var(--d-text-secondary);
+  pointer-events: none;
+}
+
+.catalog-select {
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 4px 26px 4px 9px;
+  border: 1px solid var(--d-border-strong);
+  border-radius: 5px;
+  background: var(--d-bg, #fff);
+  font-family: var(--d-body);
+  font-size: 12px;
+  color: var(--d-text-primary);
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .catalog-speed-btn {

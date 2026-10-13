@@ -69,7 +69,7 @@ async function 図を選ぶ(page: Page, 分類: string, 名前: string, パタ�
   await page.waitForTimeout(800);
   await 一覧の行(page, 名前, true).click();
   if (パターン !== undefined) {
-    await page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio", { name: パターン }).click();
+    await page.getByRole("combobox", { name: "パターン" }).selectOption(パターン);
   }
   await page.waitForTimeout(600);
 }

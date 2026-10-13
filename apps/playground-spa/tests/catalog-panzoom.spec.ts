@@ -93,10 +93,7 @@ async function 図を選ぶ(page: Page, 分類: string, 名前: string, パタ�
   await page.waitForTimeout(800);
   await page.getByText(名前, { exact: true }).first().click();
   if (パターン !== undefined) {
-    await page
-      .getByRole("radiogroup", { name: "パターン" })
-      .getByRole("radio", { name: パターン })
-      .click();
+    await page.getByRole("combobox", { name: "パターン" }).selectOption(パターン);
   }
   await page.waitForTimeout(600);
 }
@@ -588,7 +585,7 @@ test.describe("図を切り替えた直後の倍率の欄 (#2048)", () => {
     const 前 = await いまの図(page, 並び);
 
     await 記録を始める(page, 並び, `${並びの操作} .cdl-zoom-value`);
-    await page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio", { name: "複雑" }).click();
+    await page.getByRole("combobox", { name: "パターン" }).selectOption("複雑");
     const 記録 = await 図が替わるまで記録する(page, 前.図);
 
     const 後 = 記録.at(-1);

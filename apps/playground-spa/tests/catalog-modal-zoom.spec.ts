@@ -59,7 +59,7 @@ async function 拡大を開く(page: Page, 分類: string, 名前: string, パ�
   await page.waitForTimeout(800);
   await page.getByText(名前, { exact: true }).first().click();
   if (パターン !== undefined) {
-    await page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio", { name: パターン }).click();
+    await page.getByRole("combobox", { name: "パターン" }).selectOption(パターン);
   }
   await page.waitForTimeout(400);
   await page.getByRole("button", { name: /を拡大表示$/ }).first().click();

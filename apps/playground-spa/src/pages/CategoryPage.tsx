@@ -53,6 +53,7 @@ import {
   押される配色,
   画面の色,
   画面の色の札,
+  type 配色 as 配色の値,
 } from "@/lib/palette-switch";
 import { 図に画面の言語を当てる } from "@/lib/diagram-lang";
 import {
@@ -552,7 +553,7 @@ export function CategoryPage(): React.ReactElement {
   const 円を選べるか = 見本 ? 円の見せ方を選べる(見本.diagram) : false;
   // 傾き図以外では見せ方の欄が効かないため、切替を出さない (#1659)
   const 傾きを選べるか = 見本 ? 傾きの見せ方を選べる(見本.diagram) : false;
-  // 中身が違う見本を持つ図でだけ パターン の群を出す (#1696)
+  // 中身が違う見本を持つ図でだけ パターン の群を出す (#2867)
   const パターンの並び = currentItem?.patterns ?? [];
   const 選んでいるパターン = パターンの並び.find((p) => p.名 === パターン) ?? パターンの並び[0];
 
@@ -747,213 +748,207 @@ export function CategoryPage(): React.ReactElement {
                     {isJa ? "コード" : "Code"}
                   </button>
                   {/*
-                    再生速度の切替 (#1355)。 **コードのタブでも出したまま** にする =
-                    出ている秒数がこの倍率で決まるため、隠すと数字が変わった理由が読めない。
-
-                    `role="tablist"` の中に置くが、これは表示の切替ではないので `radiogroup`
-                    として別に名前を付ける (支援技術に 4 つ目のタブとして読ませない)。
+                    パターンは図とコードの中身を一緒に入れ替えるため、表示を選ぶタブと同じ列に置く
+                    (#2867)。 他の見せ方と混ぜると、押した時に中身まで替わる操作を見分けられない。
                   */}
-                  {/*
-                    切替は 2 群に分かれる (#1696)。
-
-                    `オプション` は **1 つの記法を変換する** 操作で、押しても図に載る項目と
-                    値は変わらない。 `パターン` は **複数の記法から選ぶ** 操作で、押すと中身が
-                    入れ替わる。 混ぜて並べると、押す前に どちらが起きるか読めない。
-
-                    群の名前は見出しではなく札にする = `role="tablist"` の中なので、
-                    見出しにすると支援技術がタブの並びを見出しで割ることになる。
-                  */}
-                  <div className="catalog-toggle-groups">
-                    <div className="catalog-toggle-group">
-                      <span className="catalog-toggle-group-label" aria-hidden="true">
-                        {isJa ? "オプション" : "Options"}
+                  {パターンの並び.length > 0 && (
+                    <div className="catalog-pattern-controls">
+                      <span className="catalog-pattern-label" aria-hidden="true">
+                        {isJa ? "パターン" : "Variants"}
                       </span>
-                      {/*
-                        2 段目以降の描き方 (#1359)。 起点から描ける図でだけ出す = 描けない図では
-                        押しても何も変わらないため、置くと「効かない操作」 になる。
-                      */}
-                      {切替を出すか && (
-                        <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "2 段目以降" : "From the second phase on"}>
-                          {描き方の選択肢.map((v) => (
-                            <button
-                              key={v}
-                              type="button"
-                              role="radio"
-                              aria-checked={描き方 === v}
-                              className={`catalog-speed-btn ${描き方 === v ? "is-active" : ""}`}
-                              onClick={() => 見せ方を置く({ 描き方: v })}
-                              title={
-                                isJa
-                                  ? `2 段目以降を${描き方の札(v, locale)}`
-                                  : `From the second phase on, ${描き方の札(v, locale).toLowerCase()}`
-                              }
-                            >
-                              {描き方の札(v, locale)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {/* 15 種のどの図でも意匠を当てて見比べられるよう、色味の切替は常に出す (#2790)。 */}
-                      <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "図の色味" : "Diagram colours"}>
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={押されている配色 === 画面の色}
-                          className={`catalog-speed-btn ${押されている配色 === 画面の色 ? "is-active" : ""}`}
-                          onClick={() => 見せ方を置く({ 配色: 画面の色 })}
-                          title={
-                            isJa
-                              ? "図の色味を画面の色にする"
-                              : "Draw the diagram in site colours"
+                      <span className="catalog-select-field">
+                        <select
+                          className="catalog-select"
+                          aria-label={isJa ? "パターン" : "Variants"}
+                          value={選んでいるパターン?.名}
+                          onChange={(event) =>
+                            見せ方を置く({ パターン: event.currentTarget.value })
                           }
                         >
-                          {画面の色の札(locale)}
-                        </button>
+                          {パターンの並び.map((p) => (
+                            <option key={p.名} value={p.名}>
+                              {patternName(p, locale)}
+                            </option>
+                          ))}
+                        </select>
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {/*
+                  見せ方は群ごとに名前を添えて別の帯へ置く (#2867)。 名前の無い切替を続けると、
+                  種類が増えた時にどの図形へ効くかを押す前に読めず、狭い幅では切替単位も崩れる。
+
+                  速さはコードに出る秒数も決めるため、図とコードのどちらでも帯を残す。 コード側で
+                  隠すと、出ている秒数が変わった理由を同じ画面から辿れない。
+                */}
+                <div className="catalog-option-strip">
+                  <div className="catalog-option-group">
+                    <span className="catalog-option-label" aria-hidden="true">
+                      {isJa ? "色味" : "Colours"}
+                    </span>
+                    <span className="catalog-select-field">
+                      <select
+                        className="catalog-select"
+                        aria-label={isJa ? "図の色味" : "Diagram colours"}
+                        value={押されている配色}
+                        onChange={(event) =>
+                          見せ方を置く({ 配色: event.currentTarget.value as 配色の値 })
+                        }
+                      >
+                        <option value={画面の色}>{画面の色の札(locale)}</option>
                         {配色の選択肢.map((v) => (
+                          <option key={v} value={v}>
+                            {配色の札(v, locale)}
+                          </option>
+                        ))}
+                      </select>
+                    </span>
+                  </div>
+                  {切替を出すか && (
+                    <div className="catalog-option-group">
+                      <span className="catalog-option-label" aria-hidden="true">
+                        {isJa ? "2 段目から" : "From phase 2"}
+                      </span>
+                      <div
+                        className="catalog-redraw"
+                        role="radiogroup"
+                        aria-label={isJa ? "2 段目以降" : "From the second phase on"}
+                      >
+                        {描き方の選択肢.map((v) => (
                           <button
                             key={v}
                             type="button"
                             role="radio"
-                            aria-checked={押されている配色 === v}
-                            className={`catalog-speed-btn ${押されている配色 === v ? "is-active" : ""}`}
-                            onClick={() => 見せ方を置く({ 配色: v })}
+                            aria-checked={描き方 === v}
+                            className={`catalog-speed-btn ${描き方 === v ? "is-active" : ""}`}
+                            onClick={() => 見せ方を置く({ 描き方: v })}
                             title={
                               isJa
-                                ? `図の色味を${配色の札(v, locale)}にする`
-                                : `Draw the diagram in ${配色の札(v, locale).toLowerCase()}`
+                                ? `2 段目以降を${描き方の札(v, locale)}`
+                                : `From the second phase on, ${描き方の札(v, locale).toLowerCase()}`
                             }
                           >
-                            {配色の札(v, locale)}
-                          </button>
-                        ))}
-                      </div>
-                      {/*
-                        折れ線の見せ方 (#1624)。 折れ線を持つ図でだけ出す = 他の図では 3 つの
-                        指定が効かず「効かない操作」 になる。 互いに排他ではなく個別に入り切り
-                        するため、 `radiogroup` ではなく押した状態を持つ 1 つの `group` にする。
-                      */}
-                      {折れ線を選べるか && (
-                        <div className="catalog-redraw" role="group" aria-label={isJa ? "折れ線の見せ方" : "Line chart look"}>
-                          {折れ線の選択肢.map((v) => (
-                            <button
-                              key={v}
-                              type="button"
-                              aria-pressed={折れ線[v]}
-                              className={`catalog-speed-btn ${折れ線[v] ? "is-active" : ""}`}
-                              onClick={() => 見せ方を置く({ 折れ線: { ...折れ線, [v]: !折れ線[v] } })}
-                              title={
-                                isJa
-                                  ? `折れ線の${折れ線の見せ方の札(v, locale)}を${折れ線[v] ? "切る" : "入れる"}`
-                                  : `${折れ線[v] ? "Turn off" : "Turn on"} ${折れ線の見せ方の札(v, locale).toLowerCase()}`
-                              }
-                            >
-                              {折れ線の見せ方の札(v, locale)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {/*
-                        円グラフの見せ方 (#1645)。 円グラフを持つ図でだけ出す = 他の図では欄が
-                        効かず「効かない操作」 になる。 3 つは互いに排他なので `radiogroup` にする。
-                      */}
-                      {円を選べるか && (
-                        <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "円グラフの見せ方" : "Pie chart look"}>
-                          {円の見せ方の選択肢.map((v) => (
-                            <button
-                              key={v}
-                              type="button"
-                              role="radio"
-                              aria-checked={円 === v}
-                              className={`catalog-speed-btn ${円 === v ? "is-active" : ""}`}
-                              onClick={() => 見せ方を置く({ 円: v })}
-                              title={
-                                isJa
-                                  ? `円グラフを${円の見せ方の札(v, locale)}で描く`
-                                  : `Draw the pie chart as ${円の見せ方の札(v, locale).toLowerCase()}`
-                              }
-                            >
-                              {円の見せ方の札(v, locale)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {/*
-                        傾き図の見せ方 (#1659)。 傾き図を持つ図でだけ出す = 他の図では欄が
-                        効かず「効かない操作」 になる。 2 つは互いに排他なので `radiogroup` にする。
-                      */}
-                      {傾きを選べるか && (
-                        <div className="catalog-redraw" role="radiogroup" aria-label={isJa ? "傾き図の見せ方" : "Slope chart look"}>
-                          {傾きの見せ方の選択肢.map((v) => (
-                            <button
-                              key={v}
-                              type="button"
-                              role="radio"
-                              aria-checked={傾き === v}
-                              className={`catalog-speed-btn ${傾き === v ? "is-active" : ""}`}
-                              onClick={() => 見せ方を置く({ 傾き: v })}
-                              title={
-                                isJa
-                                  ? `傾き図の右の列に${傾きの見せ方の札(v, locale)}を出す`
-                                  : `Show the ${傾きの見せ方の札(v, locale).toLowerCase()} in the right column`
-                              }
-                            >
-                              {傾きの見せ方の札(v, locale)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      <div className="catalog-speed" role="radiogroup" aria-label={isJa ? "再生速度" : "Playback speed"}>
-                        {速さの選択肢.map((v) => (
-                          <button
-                            key={v}
-                            type="button"
-                            role="radio"
-                            aria-checked={速さ === v}
-                            className={`catalog-speed-btn ${速さ === v ? "is-active" : ""}`}
-                            onClick={() => 見せ方を置く({ 速さ: v })}
-                            title={isJa ? `再生速度 ${v}x` : `Playback speed ${v}x`}
-                          >
-                            {v}x
+                            {描き方の札(v, locale)}
                           </button>
                         ))}
                       </div>
                     </div>
-                    {/*
-                      中身が違う見本を持つ図でだけ出す。 持たない図で空の群を出すと、
-                      押す先が無い札だけが並ぶ。
-                    */}
-                    {パターンの並び.length > 0 && (
-                      <div className="catalog-toggle-group">
-                        <span className="catalog-toggle-group-label" aria-hidden="true">
-                          {isJa ? "パターン" : "Variants"}
-                        </span>
-                        <div
-                          className="catalog-redraw"
-                          role="radiogroup"
-                          aria-label={isJa ? "パターン" : "Variants"}
-                        >
-                          {パターンの並び.map((p) => (
-                            <button
-                              key={p.名}
-                              type="button"
-                              role="radio"
-                              aria-checked={選んでいるパターン?.名 === p.名}
-                              className={`catalog-speed-btn ${
-                                選んでいるパターン?.名 === p.名 ? "is-active" : ""
-                              }`}
-                              onClick={() => 見せ方を置く({ パターン: p.名 })}
-                              title={
-                                isJa
-                                  ? `${p.名}の見本を出す`
-                                  : `Show the ${patternName(p, locale)} sample`
-                              }
-                            >
-                              {patternName(p, locale)}
-                            </button>
-                          ))}
-                        </div>
+                  )}
+                  {折れ線を選べるか && (
+                    <div className="catalog-option-group">
+                      <span className="catalog-option-label" aria-hidden="true">
+                        {isJa ? "折れ線" : "Line chart"}
+                      </span>
+                      <div
+                        className="catalog-redraw"
+                        role="group"
+                        aria-label={isJa ? "折れ線の見せ方" : "Line chart look"}
+                      >
+                        {折れ線の選択肢.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            aria-pressed={折れ線[v]}
+                            className={`catalog-speed-btn ${折れ線[v] ? "is-active" : ""}`}
+                            onClick={() =>
+                              見せ方を置く({ 折れ線: { ...折れ線, [v]: !折れ線[v] } })
+                            }
+                            title={
+                              isJa
+                                ? `折れ線の${折れ線の見せ方の札(v, locale)}を${折れ線[v] ? "切る" : "入れる"}`
+                                : `${折れ線[v] ? "Turn off" : "Turn on"} ${折れ線の見せ方の札(v, locale).toLowerCase()}`
+                            }
+                          >
+                            {折れ線の見せ方の札(v, locale)}
+                          </button>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  )}
+                  {円を選べるか && (
+                    <div className="catalog-option-group">
+                      <span className="catalog-option-label" aria-hidden="true">
+                        {isJa ? "円グラフ" : "Pie chart"}
+                      </span>
+                      <div
+                        className="catalog-redraw"
+                        role="radiogroup"
+                        aria-label={isJa ? "円グラフの見せ方" : "Pie chart look"}
+                      >
+                        {円の見せ方の選択肢.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            role="radio"
+                            aria-checked={円 === v}
+                            className={`catalog-speed-btn ${円 === v ? "is-active" : ""}`}
+                            onClick={() => 見せ方を置く({ 円: v })}
+                            title={
+                              isJa
+                                ? `円グラフを${円の見せ方の札(v, locale)}で描く`
+                                : `Draw the pie chart as ${円の見せ方の札(v, locale).toLowerCase()}`
+                            }
+                          >
+                            {円の見せ方の札(v, locale)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {傾きを選べるか && (
+                    <div className="catalog-option-group">
+                      <span className="catalog-option-label" aria-hidden="true">
+                        {isJa ? "傾き図" : "Slope chart"}
+                      </span>
+                      <div
+                        className="catalog-redraw"
+                        role="radiogroup"
+                        aria-label={isJa ? "傾き図の見せ方" : "Slope chart look"}
+                      >
+                        {傾きの見せ方の選択肢.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            role="radio"
+                            aria-checked={傾き === v}
+                            className={`catalog-speed-btn ${傾き === v ? "is-active" : ""}`}
+                            onClick={() => 見せ方を置く({ 傾き: v })}
+                            title={
+                              isJa
+                                ? `傾き図の右の列に${傾きの見せ方の札(v, locale)}を出す`
+                                : `Show the ${傾きの見せ方の札(v, locale).toLowerCase()} in the right column`
+                            }
+                          >
+                            {傾きの見せ方の札(v, locale)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="catalog-option-group">
+                    <span className="catalog-option-label" aria-hidden="true">
+                      {isJa ? "速さ" : "Speed"}
+                    </span>
+                    <div
+                      className="catalog-speed"
+                      role="radiogroup"
+                      aria-label={isJa ? "再生速度" : "Playback speed"}
+                    >
+                      {速さの選択肢.map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          role="radio"
+                          aria-checked={速さ === v}
+                          className={`catalog-speed-btn ${速さ === v ? "is-active" : ""}`}
+                          onClick={() => 見せ方を置く({ 速さ: v })}
+                          title={isJa ? `再生速度 ${v}x` : `Playback speed ${v}x`}
+                        >
+                          {v}x
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div

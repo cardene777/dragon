@@ -77,12 +77,10 @@ async function 開く(page: Page): Promise<void> {
  * `字が落ち着くまで待つ` を続けて呼ぶ。
  */
 async function 押す(page: Page, 名: string): Promise<void> {
-  const ボタン = page
-    .getByRole("radiogroup", { name: "パターン" })
-    .getByRole("radio", { name: 名, exact: true });
-  await ボタン.click();
+  const 欄 = page.getByRole("combobox", { name: "パターン" });
+  await 欄.selectOption(名);
   // 押せたことを確かめてから戻る。 押す前の形のまま「落ち着いた」 と判定しないため
-  await expect(ボタン).toHaveAttribute("aria-checked", "true");
+  await expect(欄).toHaveValue(名);
 }
 
 /** 図に書かれた字ごとの中心 (図の座標)。 同じ字が複数あれば最初の 1 つ */
@@ -133,12 +131,9 @@ function 動いた(量: Record<string, 点>, 字: string, 期待: 点): void {
 test.describe("位置のずらしの見本でパターンを押すと書いた量だけ動く (#1971)", () => {
   test("パターンが 4 つ出ていて、既定は ずらさない", async ({ page }) => {
     await 開く(page);
-    const 群 = page.getByRole("radiogroup", { name: "パターン" });
-    await expect(群.getByRole("radio")).toHaveCount(4);
-    await expect(群.getByRole("radio", { name: "ずらさない" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    const 群 = page.getByRole("combobox", { name: "パターン" });
+    await expect(群.locator("option")).toHaveCount(4);
+    await expect(群).toHaveValue("ずらさない");
   });
 
   test("箱をずらす は注文するの箱だけが右へ 40、下へ 60 動く", async ({ page }) => {
