@@ -4062,7 +4062,7 @@ flow:
   - 届けに行く -> 在宅?
   - 在宅? -> 受け取る: "はい" (success)
   - 在宅? -> 持ち戻る: "いいえ" (error) { labelCollision: author, labelSize: {"width":96,"height":40,"fontSize":21}, labelOffsetY: 64 }
-  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed) { fromSide: right, toSide: right, labelCollision: author, labelSize: {"width":162,"height":40,"fontSize":21}, labelOffsetX: 20 }
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed) { fromSide: right, toSide: right, labelCollision: author, labelSize: {"width":162,"height":40,"fontSize":21} }
   - 受け取る -> 終わり (success)
 
 legend:
@@ -4122,7 +4122,7 @@ export const sourceJson__presetDeliveryTimeline = `{
     { "from": "届けに行く", "to": "在宅?", "label": "" },
     { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
     { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error", "labelCollision": "author", "labelSize": { "width": 96, "height": 40, "fontSize": 21 }, "labelOffsetY": 64 },
-    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed", "fromSide": "right", "toSide": "right", "labelCollision": "author", "labelSize": { "width": 162, "height": 40, "fontSize": 21 }, "labelOffsetX": 20 },
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed", "fromSide": "right", "toSide": "right", "labelCollision": "author", "labelSize": { "width": 162, "height": 40, "fontSize": 21 } },
     { "from": "受け取る", "to": "終わり", "label": "", "tone": "success" }
   ],
   "legend": [
