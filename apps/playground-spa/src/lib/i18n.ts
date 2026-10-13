@@ -226,6 +226,7 @@ export const ITEM_NAME_JA: Record<string, string> = {
 
   // === composite exemplar (dragon-diagram skill 生成) ===
   richLayeredPriorityFee: "3層優先度手数料",
+  sortParcelsByRegion: "荷物を地区別の車へ仕分け",
 
   // === charts = 図表系 15 種 (#1152 / #1446) ===
   branchParcelsBar: "営業所ごとの取扱数の棒グラフ",
@@ -638,6 +639,7 @@ export const ITEM_NAME_EN: Record<string, string> = {
   richOrderStatusFlow: "Order status flow",
   richScoreLeaderboard: "Four-player score race",
   richLayeredPriorityFee: "Three-layer priority fee",
+  sortParcelsByRegion: "Sort parcels into regional trucks",
   styleSolid: "Solid line",
   styleDottedFlow: "Dotted flow line",
   styleDashed: "Dashed line",

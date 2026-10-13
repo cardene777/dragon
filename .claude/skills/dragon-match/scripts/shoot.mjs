@@ -102,8 +102,7 @@ export async function shootConfig(config, output) {
       const actual = await 撮る(browser, comparison.actual);
       entries.push({
         label: comparison.label,
-        fileName:
-          comparison.actual?.palette ?? comparison.expected?.palette ?? comparison.label,
+        fileName: comparison.palette ?? comparison.label,
         expected,
         actual,
       });

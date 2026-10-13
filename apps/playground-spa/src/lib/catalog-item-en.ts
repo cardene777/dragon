@@ -291,6 +291,7 @@ export const ITEM_SUBTITLE_EN: Record<string, string> = {
   "richPipelineDemo": "Progress through a five-stage CSV pipeline",
   "richScoreLeaderboard": "How four players' scores move (the ranking changes over four rounds, and circle size stands for strength)",
   "richServerLoadDashboard": "CPU load on four servers (a morning peak, a steady midday, an evening scale-down and an idle night)",
+  "sortParcelsByRegion": "Sorts incoming parcels and loads them into trucks for the north, central and south districts",
   "roomThermometer": "Splits room temperature into bands below 15°C, 15 to 25°C and 25°C and above, and shows the temperature set by the slider as a vertical bar (thermometer)",
   "saasPricingTier": "Splits three price plans — starter, standard and enterprise — into lanes, and compares their name, price and benefits side by side (pricing-tier)",
   "salesFunnel": "Joins four stages — visit, sign-up, trial and purchase — with arrows, and shows the head count falling at each step as a funnel (funnel)",
