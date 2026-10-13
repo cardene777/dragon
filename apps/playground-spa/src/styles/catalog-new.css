@@ -341,10 +341,6 @@
 }
 
 .catalog-preview-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
   padding: 20px 22px;
 }
 
@@ -374,9 +370,13 @@
 
 .catalog-preview-actions {
   display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
+  max-width: 100%;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .catalog-expand-btn {
@@ -845,8 +845,8 @@
 }
 
 /* 倍率の操作 (#1745 / #1749)。 **拡大表示と並べて見る側の両方で使う** ので、
- * 選択子に場所を書かない。 置き場所ごとの見た目の差は親側 (`.cdl-modal-actions` /
- * `.catalog-preview-actions`) の並べ方で吸収する。 */
+ * 選択子に場所を書かない。 頭で題と説明を押し潰さないよう並べて見る側は帯へ置き (#2869)、
+ * 置き場所ごとの差は親側 (`.cdl-modal-actions` / `.catalog-preview-actions`) が持つ。 */
 .cdl-zoom {
   display: flex;
   align-items: center;

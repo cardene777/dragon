@@ -84,7 +84,8 @@ async function 選ぶ(id: string): Promise<void> {
   });
 }
 
-const 操作の枠 = (): HTMLElement | null => document.querySelector(".catalog-preview-actions");
+const 帯の操作 = (): HTMLElement | null =>
+  document.querySelector(".catalog-option-strip .catalog-preview-actions");
 
 let 元の図: CdlDiagram;
 
@@ -111,12 +112,14 @@ describe("図の欄が無い頁の拡大の操作 (#2682)", () => {
       await Promise.resolve();
     });
     await 選ぶ("stageless-demo");
-    expect(操作の枠(), "欄が無いのに拡大の操作が出ている").toBeNull();
+    expect(帯の操作(), "欄が無いのに帯へ拡大の操作が出ている").toBeNull();
+    expect(document.querySelectorAll(".catalog-preview-head .cdl-zoom, .catalog-preview-head .catalog-expand-btn"))
+      .toHaveLength(0);
     expect(document.querySelector(".cdl-zoom-value"), "倍率の欄が残っている").toBeNull();
     expect(screen.queryByText("拡大"), "「拡大」 が残っている").toBeNull();
   });
 
-  it("欄がある頁では、拡大の操作が今までどおり出る (対照)", async () => {
+  it("欄がある頁では、頭でなく操作の帯に倍率と拡大が 1 組出る (対照)", async () => {
     const 欄あり = 見本を作る("staged-demo", "欄を持つ見本", 元の図);
     欄を出す.add("staged-demo");
     読込.部品を読む.mockResolvedValue([欄あり]);
@@ -125,7 +128,12 @@ describe("図の欄が無い頁の拡大の操作 (#2682)", () => {
       await Promise.resolve();
     });
     await 選ぶ("staged-demo");
-    expect(操作の枠(), "欄があるのに拡大の操作が消えている").not.toBeNull();
+    expect(document.querySelectorAll(".catalog-preview-head .cdl-zoom, .catalog-preview-head .catalog-expand-btn"))
+      .toHaveLength(0);
+    expect(document.querySelectorAll(".catalog-option-strip .catalog-preview-actions")).toHaveLength(1);
+    expect(document.querySelectorAll(".catalog-option-strip .catalog-preview-actions .cdl-zoom")).toHaveLength(1);
+    expect(document.querySelectorAll(".catalog-option-strip .catalog-preview-actions .catalog-expand-btn"))
+      .toHaveLength(1);
     expect(document.querySelector(".cdl-zoom-value"), "倍率の欄が出ていない").not.toBeNull();
   });
 
@@ -139,8 +147,8 @@ describe("図の欄が無い頁の拡大の操作 (#2682)", () => {
       await Promise.resolve();
     });
     await 選ぶ("stageless-demo");
-    expect(操作の枠(), "欄が無いのに拡大の操作が出ている").toBeNull();
+    expect(帯の操作(), "欄が無いのに帯へ拡大の操作が出ている").toBeNull();
     await 選ぶ("staged-demo");
-    expect(操作の枠(), "欄のある図へ移っても操作が戻らない").not.toBeNull();
+    expect(帯の操作(), "欄のある図へ移っても帯の操作が戻らない").not.toBeNull();
   });
 });

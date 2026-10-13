@@ -673,44 +673,14 @@ export function CategoryPage(): React.ReactElement {
             {currentItem ? (
               <article className="catalog-preview-card" data-item-id={currentItem.id}>
                 <header className="catalog-preview-head">
-                  <div>
-                    <h2 className="catalog-preview-title">{displayName(currentItem)}</h2>
-                    {/* 図が自分で題を描く時は出さない (#2691)。 判定は `showsSubtitleLine` が持つ */}
-                    {showsSubtitleLine(currentItem, locale) && (
-                      <p className="catalog-preview-sub">{itemSubtitle(currentItem, locale)}</p>
-                    )}
-                    {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す
-                        (出さないと説明が単独で出る、 #1053)。 SSOT = catalog-motion.ts */}
-                    <p className="catalog-preview-motion">{motionNote(currentItem.diagram, locale)}</p>
-                  </div>
-                  {/* 図の欄が無い頁では拡大する相手が居ないので、倍率も拡大も出さない (#2682)。
-                      判定は欄の `svg` が在るかの 1 点で、図の中身は見ない */}
-                  {並びの操作.図の欄 !== "無い" && (
-                    <div className="catalog-preview-actions">
-                      {/* 倍率の操作 (#1749)。 台は幅に合わせるので、広い図は縮み細い図は伸びる */}
-                      <DiagramZoomControls
-                        場所="並び"
-                        倍率={並びの倍率}
-                        収めた倍率={並びの操作.収めた倍率}
-                        使える={並びのviewBox幅 !== undefined}
-                        倍率を動かす={並びの倍率を動かす}
-                        器に合わせる={並びを器に合わせる}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setModalItem(currentItem)}
-                        aria-label={
-                          isJa
-                            ? `${displayName(currentItem)} を拡大表示`
-                            : `Enlarge ${displayName(currentItem)}`
-                        }
-                        className="catalog-expand-btn"
-                      >
-                        <Maximize2 size={14} />
-                        <span>{isJa ? "拡大" : "Enlarge"}</span>
-                      </button>
-                    </div>
+                  <h2 className="catalog-preview-title">{displayName(currentItem)}</h2>
+                  {/* 図が自分で題を描く時は出さない (#2691)。 判定は `showsSubtitleLine` が持つ */}
+                  {showsSubtitleLine(currentItem, locale) && (
+                    <p className="catalog-preview-sub">{itemSubtitle(currentItem, locale)}</p>
                   )}
+                  {/* 動きの種類は人が書かず図から導く (#1043)。 動かない図にも必ず出す
+                      (出さないと説明が単独で出る、 #1053)。 SSOT = catalog-motion.ts */}
+                  <p className="catalog-preview-motion">{motionNote(currentItem.diagram, locale)}</p>
                 </header>
                 {/*
                   図とコードは **どちらも DOM に残したまま** 表示だけ入れ替える (#1236)。
@@ -950,6 +920,34 @@ export function CategoryPage(): React.ReactElement {
                       ))}
                     </div>
                   </div>
+                  {/* 倍率 (#1749) と拡大を頭に置くと題と説明の幅を押し潰すため、帯の末尾へ置く
+                      (#2869)。 図の欄が無い頁では相手が居ないので出さず (#2682)、判定は欄の
+                      `svg` が在るかの 1 点にして図の中身は見ない */}
+                  {並びの操作.図の欄 !== "無い" && (
+                    <div className="catalog-preview-actions">
+                      <DiagramZoomControls
+                        場所="並び"
+                        倍率={並びの倍率}
+                        収めた倍率={並びの操作.収めた倍率}
+                        使える={並びのviewBox幅 !== undefined}
+                        倍率を動かす={並びの倍率を動かす}
+                        器に合わせる={並びを器に合わせる}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setModalItem(currentItem)}
+                        aria-label={
+                          isJa
+                            ? `${displayName(currentItem)} を拡大表示`
+                            : `Enlarge ${displayName(currentItem)}`
+                        }
+                        className="catalog-expand-btn"
+                      >
+                        <Maximize2 size={14} />
+                        <span>{isJa ? "拡大" : "Enlarge"}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div
                   className="catalog-preview-stage"

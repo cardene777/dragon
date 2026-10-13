@@ -32,7 +32,7 @@ type Page = import("@playwright/test").Page;
 test.use({ actionTimeout: 10_000, viewport: { width: 1440, height: 900 } });
 
 /** 並べて見る側の操作だけを指す (拡大表示は別の場所に同じ部品を持つ) */
-const 並び = ".catalog-preview-actions";
+const 並び = ".catalog-option-strip .catalog-preview-actions";
 
 /** 並べて見る側の図の実寸と viewBox、それと巻き取りの状態 */
 async function 図を測る(page: Page): Promise<{
@@ -92,6 +92,96 @@ const 下の刻み = (倍率: number): number => {
   return 刻み;
 };
 const 百分率 = (倍率: number): string => `${Math.round(倍率 * 100)}%`;
+
+const 頭を測る幅 = [360, 390, 430, 600, 768, 900, 1024, 1280] as const;
+const 頭を測る図 = [
+  { 分類: "presets", id: "chart-line-demo", 題: "折れ線グラフ" },
+  { 分類: "charts", id: "営業所ごとの取扱数", 題: "営業所ごとの取扱数の棒グラフ" },
+  { 分類: "parts", id: "入ってくる量を溜めて送り出す", 題: "部品を繋いで動かす" },
+] as const;
+
+async function 頭を測る図を開く(
+  page: Page,
+  図: (typeof 頭を測る図)[number],
+): Promise<void> {
+  await page.goto(`catalog/${図.分類}`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".catalog-list-item", { timeout: 15_000 });
+  await 一覧の行(page, 図.id, true).click();
+  await expect(page.locator(".catalog-preview-card")).toHaveAttribute("data-item-id", 図.id);
+  await expect(page.locator(".catalog-preview-title")).toHaveText(図.題);
+}
+
+test.describe("見本帳の頭と帯の狭い幅 (#2869)", () => {
+  for (const 図 of 頭を測る図) {
+    test(`${図.題}の題は 8 幅で頭の内側を全て使う`, async ({ page }) => {
+      for (const width of 頭を測る幅) {
+        await page.setViewportSize({ width, height: 900 });
+        await 頭を測る図を開く(page, 図);
+        const 測った = await page.evaluate(() => {
+          const head = document.querySelector<HTMLElement>(".catalog-preview-head");
+          const title = document.querySelector<HTMLElement>(".catalog-preview-title");
+          if (!head || !title) throw new Error("頭か題が見つからない (検査が空振りしている)");
+          const style = getComputedStyle(head);
+          const 頭の内側 =
+            head.getBoundingClientRect().width -
+            Number.parseFloat(style.paddingLeft) -
+            Number.parseFloat(style.paddingRight);
+          return { 頭の内側, 題: title.getBoundingClientRect().width };
+        });
+        expect(
+          Math.abs(測った.題 - 測った.頭の内側),
+          `${図.題} / 幅 ${width}: 題 ${測った.題}px、頭の内側 ${測った.頭の内側}px`,
+        ).toBeLessThanOrEqual(1);
+      }
+    });
+  }
+
+  test("幅 390 で短い題は 1 行、長い題も 2 行以内に収まる", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    for (const [図, 上限] of [
+      [頭を測る図[0], 1],
+      [頭を測る図[1], 2],
+    ] as const) {
+      await 頭を測る図を開く(page, 図);
+      const 行数 = await page.locator(".catalog-preview-title").evaluate((title) => {
+        const range = document.createRange();
+        range.selectNodeContents(title);
+        return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size;
+      });
+      expect(行数, `${図.題} が ${行数} 行に折れている`).toBeLessThanOrEqual(上限);
+    }
+  });
+
+  test("幅 360 と 390 で帯の倍率と拡大がはみ出さず、幅に合わせるを折らない", async ({
+    page,
+  }) => {
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await 頭を測る図を開く(page, 頭を測る図[0]);
+      const 操作 = page.locator(並び);
+      await expect(操作).toBeVisible();
+      const 測った = await 操作.evaluate((actions) => {
+        const strip = actions.closest<HTMLElement>(".catalog-option-strip");
+        const fit = [...actions.querySelectorAll("button")].find(
+          (button) => button.textContent?.trim() === "幅に合わせる",
+        );
+        if (!strip || !fit) throw new Error("帯か「幅に合わせる」が見つからない (検査が空振りしている)");
+        const range = document.createRange();
+        range.selectNodeContents(fit);
+        return {
+          操作の右: actions.getBoundingClientRect().right,
+          帯の右: strip.getBoundingClientRect().right,
+          行数: new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size,
+        };
+      });
+      expect(
+        測った.操作の右,
+        `幅 ${width}: 操作の右 ${測った.操作の右}px が帯の右 ${測った.帯の右}px を越えている`,
+      ).toBeLessThanOrEqual(測った.帯の右 + 1);
+      expect(測った.行数, `幅 ${width}: 「幅に合わせる」が ${測った.行数} 行に折れている`).toBe(1);
+    }
+  });
+});
 
 test.describe("並べて見る側の倍率 (#1749)", () => {
   test("既定は幅に合わせる = 図が台の幅いっぱいに描かれ、描かれた倍率を欄に出す", async ({ page }) => {
