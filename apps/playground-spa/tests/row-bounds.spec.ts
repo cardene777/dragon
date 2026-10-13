@@ -240,10 +240,7 @@ async function openDiagram(page: Page, slug: string, id: string): Promise<void> 
   await 一覧の行(page, 開き方?.行 ?? id)
     .click();
   if (開き方) {
-    await page
-      .getByRole("radiogroup", { name: "パターン" })
-      .getByRole("radio", { name: 開き方.名 })
-      .click();
+    await page.getByRole("combobox", { name: "パターン" }).selectOption(開き方.名);
   }
   await page.waitForSelector(`[data-cdl-diagram="${id}"]`, { timeout: 15000 });
   // font 未読込だと代替 font の字形で測ることになり、 判定が環境に依存する。

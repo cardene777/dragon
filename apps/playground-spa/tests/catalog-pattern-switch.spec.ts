@@ -1,8 +1,8 @@
 /**
  * 中身が違う見本を選ぶ切替 (#1696)。
  *
- * 図の上の切替が `オプション` と `パターン` の 2 群に分かれ、パターンを押すと **図に載る
- * 項目そのもの** が入れ替わることを画面で見る。
+ * `パターン` が図とコードのタブの列にあり、選ぶと **図に載る項目そのもの** が入れ替わる
+ * ことを画面で見る。
  *
  * 押しても中身が変わらない形 (図だけ替わってコードが元のまま等) を落とすのが目的。
  *
@@ -26,26 +26,27 @@ async function 割合の数(page: Page): Promise<number> {
   return page.locator('.catalog-preview-stage [data-cdl-role="chart-stat-share"]').count();
 }
 
+const パターン = (page: Page) => page.getByRole("combobox", { name: "パターン" });
+
 test.describe("パターンで中身を入れ替えられる (#1696)", () => {
-  test("切替が オプション と パターン の 2 群に分かれて出る", async ({ page }) => {
+  test("パターンはタブの列に出て、見せ方の帯には入らない (#2867)", async ({ page }) => {
     await 開く(page, "大きな数字");
-    const 群 = page.locator(".catalog-toggle-group");
-    await expect(群).toHaveCount(2);
-    await expect(群.nth(0).locator(".catalog-toggle-group-label")).toHaveText("オプション");
-    await expect(群.nth(1).locator(".catalog-toggle-group-label")).toHaveText("パターン");
+    await expect(
+      page.locator(".catalog-preview-tabs").getByRole("combobox", { name: "パターン" }),
+    ).toBeVisible();
+    await expect(
+      page.locator(".catalog-option-strip").getByRole("combobox", { name: "パターン" }),
+    ).toHaveCount(0);
+    await expect(page.locator(".catalog-pattern-label")).toHaveText("パターン");
   });
 
   test("パターンが 3 つ出ていて、既定は 1 件", async ({ page }) => {
     await 開く(page, "大きな数字");
-    const 群 = page.getByRole("radiogroup", { name: "パターン" });
+    const 群 = パターン(page);
     await expect(群).toBeVisible();
-    await expect(群.getByRole("radio")).toHaveCount(3);
-    await expect(群.getByRole("radio", { name: "1 件" })).toHaveAttribute("aria-checked", "true");
-    await expect(群.getByRole("radio", { name: "複数" })).toHaveAttribute("aria-checked", "false");
-    await expect(群.getByRole("radio", { name: "前の値つき" })).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
+    await expect(群.locator("option")).toHaveCount(3);
+    await expect(群).toHaveValue("1 件");
+    await expect(群.locator("option")).toHaveText(["1 件", "前の値つき", "複数"]);
   });
 
   test("前の値つき を選ぶと数値の下に前の時点が出る (#1711)", async ({ page }) => {
@@ -55,11 +56,11 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
     await 開く(page, "大きな数字");
     await expect(前).toHaveCount(0);
 
-    await page.getByRole("radio", { name: "前の値つき" }).click();
+    await パターン(page).selectOption("前の値つき");
     await expect(前).toHaveCount(1);
     await expect(前).toHaveText("前 38");
 
-    await page.getByRole("radio", { name: "1 件" }).click();
+    await パターン(page).selectOption("1 件");
     await expect(前).toHaveCount(0);
   });
 
@@ -69,7 +70,7 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
     await page.waitForTimeout(300);
     await expect(page.locator(".catalog-source-code").first()).not.toContainText("previous");
 
-    await page.getByRole("radio", { name: "前の値つき" }).click();
+    await パターン(page).selectOption("前の値つき");
     await page.waitForTimeout(500);
     await expect(page.locator(".catalog-source-code").first()).toContainText("previous");
   });
@@ -77,14 +78,15 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
   test("変種を持たない図ではパターンの群が出ない (陰性対照)", async ({ page }) => {
     /*
      * 「どの図でも出る」 形なら、上の 4 件は通っても意味を持たない。
-     * ファネルでは出ないこと、そして オプション の群は出たままであることを見る。
+     * ファネルでは出ないこと、そして見せ方の帯は出たままであることを見る。
      *
      * 折れ線は #2854 で「計画と実績 / 1 本の線」の変種を持ったため、変種のない
      * ファネルを陰性対照にする。
      */
     await 開く(page, "申し込みから届くまでのファネル図");
-    await expect(page.getByRole("radiogroup", { name: "パターン" })).toHaveCount(0);
-    await expect(page.locator(".catalog-toggle-group")).toHaveCount(1);
+    await expect(パターン(page)).toHaveCount(0);
+    await expect(page.locator(".catalog-pattern-controls")).toHaveCount(0);
+    await expect(page.locator(".catalog-option-strip")).toBeVisible();
     await expect(page.getByRole("radiogroup", { name: "再生速度" })).toBeVisible();
   });
 
@@ -94,11 +96,11 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
     await 開く(page, "大きな数字");
     expect(await 割合の数(page)).toBe(0);
 
-    await page.getByRole("radio", { name: "複数" }).click();
+    await パターン(page).selectOption("複数");
     await page.waitForTimeout(500);
     expect(await 割合の数(page)).toBeGreaterThanOrEqual(2);
 
-    await page.getByRole("radio", { name: "1 件" }).click();
+    await パターン(page).selectOption("1 件");
     await page.waitForTimeout(500);
     expect(await 割合の数(page)).toBe(0);
   });
@@ -110,7 +112,7 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
     await page.waitForTimeout(300);
     await expect(page.locator(".catalog-source-code").first()).toContainText("今月の解約件数");
 
-    await page.getByRole("radio", { name: "複数" }).click();
+    await パターン(page).selectOption("複数");
     await page.waitForTimeout(500);
     await expect(page.locator(".catalog-source-code").first()).toContainText("問い合わせの内訳");
   });
@@ -118,7 +120,7 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
   test("別の図を選ぶと 1 件へ戻る", async ({ page }) => {
     // 残すと、次に 大きな数字 を開いた時に前の選択が出て理由を見失う (#1355 と同じ形)
     await 開く(page, "大きな数字");
-    await page.getByRole("radio", { name: "複数" }).click();
+    await パターン(page).selectOption("複数");
     await page.waitForTimeout(400);
 
     await page.getByText("月ごとの配達数の折れ線グラフ", { exact: true }).first().click();
@@ -126,7 +128,7 @@ test.describe("パターンで中身を入れ替えられる (#1696)", () => {
     await page.getByText("大きな数字", { exact: true }).first().click();
     await page.waitForTimeout(400);
 
-    await expect(page.getByRole("radio", { name: "1 件" })).toHaveAttribute("aria-checked", "true");
+    await expect(パターン(page)).toHaveValue("1 件");
     expect(await 割合の数(page)).toBe(0);
   });
 });
@@ -143,11 +145,11 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
     const 内側 = page.locator(
       '.catalog-preview-stage [data-cdl-role="chart-pie-slice-previous"]',
     );
-    await expect(page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio")).toHaveCount(2);
-    await expect(page.getByRole("radio", { name: "今だけ" })).toHaveAttribute("aria-checked", "true");
+    await expect(パターン(page).locator("option")).toHaveCount(2);
+    await expect(パターン(page)).toHaveValue("今だけ");
     expect(await 内側.count()).toBe(0);
 
-    await page.getByRole("radio", { name: "前と今" }).click();
+    await パターン(page).selectOption("前と今");
     await page.waitForTimeout(900);
     expect(await 内側.count()).toBeGreaterThanOrEqual(2);
   });
@@ -157,10 +159,10 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
     const 時点 = page.locator(
       '.catalog-preview-stage [data-cdl-role="chart-stacked-bar-period"]',
     );
-    await expect(page.getByRole("radio", { name: "前と今" })).toHaveAttribute("aria-checked", "true");
+    await expect(パターン(page)).toHaveValue("前と今");
     expect(await 時点.count()).toBeGreaterThanOrEqual(2);
 
-    await page.getByRole("radio", { name: "今だけ" }).click();
+    await パターン(page).selectOption("今だけ");
     await page.waitForTimeout(900);
     expect(await 時点.count()).toBe(0);
   });
@@ -174,12 +176,12 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
     const 見せ方 = page.getByRole("radiogroup", { name: "円グラフの見せ方" });
     await expect(見せ方.getByRole("radio")).toHaveCount(3);
 
-    await page.getByRole("radio", { name: "前と今" }).click();
+    await パターン(page).selectOption("前と今");
     await page.waitForTimeout(600);
     await expect(見せ方).toHaveCount(0);
 
     // 戻すと出る = 消えたままにならない
-    await page.getByRole("radio", { name: "今だけ" }).click();
+    await パターン(page).selectOption("今だけ");
     await page.waitForTimeout(600);
     await expect(見せ方.getByRole("radio")).toHaveCount(3);
   });
@@ -190,7 +192,7 @@ test.describe("前の時点の有無をパターンで選べる (#1698)", () => 
     await page.waitForTimeout(300);
     await expect(page.locator(".catalog-source-code").first()).not.toContainText("previous");
 
-    await page.getByRole("radio", { name: "前と今" }).click();
+    await パターン(page).selectOption("前と今");
     await page.waitForTimeout(500);
     await expect(page.locator(".catalog-source-code").first()).toContainText("previous");
   });
@@ -210,74 +212,59 @@ test.describe("中身つきの図でも切替で両側を見せる (#1706)", () 
     await 開く(page, "営業所の階層図");
     const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="tree-node-subtitle"]');
     await expect(
-      page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio"),
+      パターン(page).locator("option"),
     ).toHaveCount(2);
-    await expect(page.getByRole("radio", { name: "説明つき" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    await expect(パターン(page)).toHaveValue("説明つき");
     await expect(説明).not.toHaveCount(0);
 
-    await page.getByRole("radio", { name: "見出しだけ" }).click();
+    await パターン(page).selectOption("見出しだけ");
     await expect(説明).toHaveCount(0);
   });
 
   test("ガントチャートで 帯だけ を選ぶと前後の矢印が消える", async ({ page }) => {
     await 開く(page, "仕分け棚を入れ替える工程のガントチャート");
     const 矢印 = page.locator('.catalog-preview-stage [data-cdl-role="gantt-arrow"]');
-    await expect(page.getByRole("radio", { name: "前後つき" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    await expect(パターン(page)).toHaveValue("前後つき");
     await expect(矢印).not.toHaveCount(0);
 
-    await page.getByRole("radio", { name: "帯だけ" }).click();
+    await パターン(page).selectOption("帯だけ");
     await expect(矢印).toHaveCount(0);
   });
 
   test("ユーザージャーニーで 接点つき を選ぶと接点の札が出る", async ({ page }) => {
     await 開く(page, "荷主の気持ちのユーザージャーニー");
     const 札 = page.locator('.catalog-preview-stage [data-cdl-role="journey-chip"]');
-    await expect(page.getByRole("radio", { name: "気持ちだけ" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    await expect(パターン(page)).toHaveValue("気持ちだけ");
     await expect(札).toHaveCount(0);
 
-    await page.getByRole("radio", { name: "接点つき" }).click();
+    await パターン(page).selectOption("接点つき");
     await expect(札).not.toHaveCount(0);
   });
 
   test("マインドマップで 説明つき を選ぶと説明が出る", async ({ page }) => {
     await 開く(page, "再配達を減らす手立てのマインドマップ");
     const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="mind-node-subtitle"]');
-    await expect(page.getByRole("radio", { name: "見出しだけ" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    await expect(パターン(page)).toHaveValue("見出しだけ");
     await expect(説明).toHaveCount(0);
 
-    await page.getByRole("radio", { name: "説明つき" }).click();
+    await パターン(page).selectOption("説明つき");
     await expect(説明).not.toHaveCount(0);
   });
 
   test("時系列のやり取りで 説明つき を選ぶと面に説明が出る", async ({ page }) => {
     await 開く(page, "テキスト記法のシーケンス", "text-dsl");
     const 説明 = page.locator('.catalog-preview-stage [data-cdl-role="sequence-actor-subtitle"]');
-    await expect(page.getByRole("radio", { name: "名前だけ" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    await expect(パターン(page)).toHaveValue("名前だけ");
     await expect(説明).toHaveCount(0);
 
-    await page.getByRole("radio", { name: "説明つき" }).click();
+    await パターン(page).selectOption("説明つき");
     await expect(説明).not.toHaveCount(0);
   });
 
   test("変種を持たない図ではパターンの群が出ない (陰性対照)", async ({ page }) => {
     // 「どの図でも出る」 形なら上の 5 件は通っても意味を持たない
     await 開く(page, "申し込みから届くまでのファネル図");
-    await expect(page.getByRole("radiogroup", { name: "パターン" })).toHaveCount(0);
+    await expect(パターン(page)).toHaveCount(0);
   });
 });
 
@@ -305,19 +292,16 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
       await 開く(page, 名);
       const 前 = page.locator(`.catalog-preview-stage [data-cdl-role="${役割}"]`);
       await expect(
-        page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio"),
+        パターン(page).locator("option"),
       ).toHaveCount(切替の数);
-      await expect(page.getByRole("radio", { name: "今だけ" })).toHaveAttribute(
-        "aria-checked",
-        "true",
-      );
+      await expect(パターン(page)).toHaveValue("今だけ");
       await expect(前).toHaveCount(0);
 
-      await page.getByRole("radio", { name: "前の値つき" }).click();
+      await パターン(page).selectOption("前の値つき");
       await expect(前).toHaveCount(件数);
 
       // 戻すと消える = 押した側だけを見ると、常に出る実装でも通る
-      await page.getByRole("radio", { name: "今だけ" }).click();
+      await パターン(page).selectOption("今だけ");
       await expect(前).toHaveCount(0);
     });
 
@@ -328,7 +312,7 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
       await page.waitForTimeout(300);
       await expect(page.locator(".catalog-source-code").first()).not.toContainText("previous");
 
-      await page.getByRole("radio", { name: "前の値つき" }).click();
+      await パターン(page).selectOption("前の値つき");
       await page.waitForTimeout(500);
       await expect(page.locator(".catalog-source-code").first()).toContainText("previous");
     });
@@ -336,22 +320,19 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
 
   test("半円は 固定の尺 / 内訳だけ / 前の値つき の三つで前の時点を描き分ける", async ({ page }) => {
     await 開く(page, "定時に届いた割合の半円ゲージ");
-    const 群 = page.getByRole("radiogroup", { name: "パターン" });
+    const 群 = パターン(page);
     const 前 = page.locator('.catalog-preview-stage [data-cdl-role="chart-gauge-previous"]');
     const 差 = page.locator('.catalog-preview-stage [data-cdl-role="chart-gauge-delta"]');
-    await expect(群.getByRole("radio")).toHaveCount(3);
-    await expect(群.getByRole("radio", { name: "固定の尺" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    await expect(群.locator("option")).toHaveCount(3);
+    await expect(群).toHaveValue("固定の尺");
     await expect(前).toHaveCount(0);
     await expect(差).toHaveText("先月より 0");
 
-    await 群.getByRole("radio", { name: "内訳だけ" }).click();
+    await 群.selectOption("内訳だけ");
     await expect(前).toHaveCount(0);
     await expect(差).toHaveCount(0);
 
-    await 群.getByRole("radio", { name: "前の値つき" }).click();
+    await 群.selectOption("前の値つき");
     await expect(前).toHaveCount(2);
     await expect(差).toHaveCount(0);
   });
@@ -363,11 +344,11 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
     await expect(コード).toContainText('chartGaugeValue: {"max":100');
     await expect(コード).toContainText('"previous":72');
 
-    await page.getByRole("radio", { name: "内訳だけ" }).click();
+    await パターン(page).selectOption("内訳だけ");
     await expect(コード).not.toContainText("chartGaugeValue");
     await expect(コード).not.toContainText("previous");
 
-    await page.getByRole("radio", { name: "前の値つき" }).click();
+    await パターン(page).selectOption("前の値つき");
     await expect(コード).toContainText('previous: "72"');
   });
 
@@ -380,7 +361,7 @@ test.describe("棒と弧と半円でも前の時点を切替で見せる (#1722)
      * 検査が持つ。
      */
     await 開く(page, "営業所ごとの取扱数の棒グラフ");
-    await page.getByRole("radio", { name: "前の値つき" }).click();
+    await パターン(page).selectOption("前の値つき");
     const 前 = page.locator('.catalog-preview-stage [data-cdl-role="chart-bar-previous"]');
     await expect(前).toHaveCount(5);
 
@@ -441,19 +422,19 @@ test.describe("ひな形の簡単な版と複雑な版を切り替える (#1960)
       const 図 = page.locator(".catalog-preview-stage [data-cdl-diagram]").first();
       await 開く(page, 名前, "presets");
 
-      const 群 = page.getByRole("radiogroup", { name: "パターン" });
-      await expect(群.getByRole("radio")).toHaveCount(2);
-      await expect(群.getByRole("radio", { name: "簡単" })).toHaveAttribute("aria-checked", "true");
+      const 群 = パターン(page);
+      await expect(群.locator("option")).toHaveCount(2);
+      await expect(群).toHaveValue("簡単");
       await expect(図).toHaveAttribute("data-cdl-diagram", 簡単);
 
-      await 群.getByRole("radio", { name: "複雑" }).click();
-      await expect(群.getByRole("radio", { name: "複雑" })).toHaveAttribute("aria-checked", "true");
+      await 群.selectOption("複雑");
+      await expect(群).toHaveValue("複雑");
       await expect(図).toHaveAttribute("data-cdl-diagram", 複雑);
 
       await page.getByRole("tab", { name: "コード" }).click();
       await expect(page.locator(".catalog-source-code").first()).toContainText(複雑の題);
 
-      await 群.getByRole("radio", { name: "簡単" }).click();
+      await 群.selectOption("簡単");
       await expect(page.locator(".catalog-source-code").first()).not.toContainText(複雑の題);
       await page.getByRole("tab", { name: "図" }).click();
       await expect(図).toHaveAttribute("data-cdl-diagram", 簡単);

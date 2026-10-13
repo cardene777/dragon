@@ -23,10 +23,7 @@ async function 開く(page: Page): Promise<void> {
 }
 
 async function 押す(page: Page, 名: string): Promise<void> {
-  await page
-    .getByRole("radiogroup", { name: "パターン" })
-    .getByRole("radio", { name: 名, exact: true })
-    .click();
+  await page.getByRole("combobox", { name: "パターン" }).selectOption(名);
   await page.waitForTimeout(600);
 }
 
@@ -69,9 +66,7 @@ const 字たち = ["受付の層", "処理の層", "保存の層", "利用者", 
 test.describe("縦列の組の見本で枠が束ねた縦列を囲む (#1972)", () => {
   test("パターンが 3 つ出ていて、組を書かない図には枠が無い", async ({ page }) => {
     await 開く(page);
-    await expect(page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio")).toHaveCount(
-      3,
-    );
+    await expect(page.getByRole("combobox", { name: "パターン" }).locator("option")).toHaveCount(3);
     const { 枠, 字 } = await 測る(page, 字たち);
     expect(Object.keys(字), "字を 1 つも見つけられていない (検査が空振りしている)").toEqual([
       ...字たち,

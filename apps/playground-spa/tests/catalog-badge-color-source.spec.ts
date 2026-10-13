@@ -42,12 +42,9 @@ async function 背景(page: Page): Promise<string> {
 test.describe("札の色の引き方を切り替える (#1974)", () => {
   test("パターンが 3 つ出ていて、既定は 札に色を付けない", async ({ page }) => {
     await 開く(page);
-    const 群 = page.getByRole("radiogroup", { name: "パターン" });
-    await expect(群.getByRole("radio")).toHaveCount(3);
-    await expect(群.getByRole("radio", { name: "札に色を付けない" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    const 群 = page.getByRole("combobox", { name: "パターン" });
+    await expect(群.locator("option")).toHaveCount(3);
+    await expect(群).toHaveValue("札に色を付けない");
   });
 
   test("札に色を付けない は、状態を変えても札に色が付かない (陰性対照)", async ({ page }) => {
@@ -61,7 +58,7 @@ test.describe("札の色の引き方を切り替える (#1974)", () => {
 
   test("札の字で色を引く は、字も色も状態に付いて変わる", async ({ page }) => {
     await 開く(page);
-    await page.getByRole("radio", { name: "札の字で色を引く" }).click();
+    await page.getByRole("combobox", { name: "パターン" }).selectOption("札の字で色を引く");
     for (const 値 of ["稼働", "停止", "異常"] as const) {
       await 状態を選ぶ(page, 値);
       await expect(札(page)).toHaveText(値);
@@ -71,7 +68,7 @@ test.describe("札の色の引き方を切り替える (#1974)", () => {
 
   test("別の状態で色を引く は、字は温度のまま色だけが状態に付いて変わる", async ({ page }) => {
     await 開く(page);
-    await page.getByRole("radio", { name: "別の状態で色を引く" }).click();
+    await page.getByRole("combobox", { name: "パターン" }).selectOption("別の状態で色を引く");
     for (const 値 of ["異常", "停止", "稼働"] as const) {
       await 状態を選ぶ(page, 値);
       await expect(札(page)).toHaveText("42");
@@ -85,7 +82,7 @@ test.describe("札の色の引き方を切り替える (#1974)", () => {
     await page.waitForTimeout(300);
     await expect(page.locator(".catalog-source-code").first()).not.toContainText("colorSource");
 
-    await page.getByRole("radio", { name: "別の状態で色を引く" }).click();
+    await page.getByRole("combobox", { name: "パターン" }).selectOption("別の状態で色を引く");
     await page.waitForTimeout(500);
     await expect(page.locator(".catalog-source-code").first()).toContainText(
       'colorSource: "state"',

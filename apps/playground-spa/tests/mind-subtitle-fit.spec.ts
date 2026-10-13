@@ -114,12 +114,9 @@ async function 開く(page: Page): Promise<void> {
   await page.waitForTimeout(700);
   await 一覧の行(page, "再配達を減らす手立てのマインドマップ", false).click();
   await page.waitForTimeout(500);
-  const パターン = page.getByRole("radiogroup", { name: "パターン" });
-  await パターン.getByRole("radio", { name: "説明つき" }).click();
-  await expect(パターン.getByRole("radio", { name: "説明つき" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
+  const パターン = page.getByRole("combobox", { name: "パターン" });
+  await パターン.selectOption("説明つき");
+  await expect(パターン).toHaveValue("説明つき");
 }
 
 /**

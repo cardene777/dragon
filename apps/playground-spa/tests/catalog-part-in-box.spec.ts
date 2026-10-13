@@ -26,10 +26,7 @@ async function 開く(page: Page): Promise<void> {
 }
 
 async function 押す(page: Page, 名: string): Promise<void> {
-  await page
-    .getByRole("radiogroup", { name: "パターン" })
-    .getByRole("radio", { name: 名, exact: true })
-    .click();
+  await page.getByRole("combobox", { name: "パターン" }).selectOption(名);
   await page.waitForTimeout(800);
 }
 
@@ -58,9 +55,7 @@ const カタログの図 = "main.catalog-preview svg[data-cdl-stage]";
 test.describe("部品を箱に使う見本 (#1973)", () => {
   test("部品の頁に並び、切替が 14 つ出る", async ({ page }) => {
     await 開く(page);
-    await expect(page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio")).toHaveCount(
-      14,
-    );
+    await expect(page.getByRole("combobox", { name: "パターン" }).locator("option")).toHaveCount(14);
   });
 
   test("部品を 2 つ置く 4 つの切替が、どれも矢印の線を描く (#2010 / #2012 / #2011)", async ({

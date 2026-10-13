@@ -40,10 +40,11 @@ export class MetroMapPage {
   }
 
   async choosePalette(name: string): Promise<void> {
-    const group = this.page.getByRole("radiogroup", { name: "図の色味" });
-    const radio = group.getByRole("radio", { name, exact: true });
-    await radio.click();
-    await expect(radio).toHaveAttribute("aria-checked", "true");
+    const select = this.page.getByRole("combobox", { name: "図の色味" });
+    const value = await select.getByRole("option", { name, exact: true }).getAttribute("value");
+    if (value === null) throw new Error(`図の色味 ${name} の値が無い`);
+    await select.selectOption(value);
+    await expect(select).toHaveValue(value);
   }
 
   /** 自動再生で対象の段を待ち、描き終わりから測定まで同じ段に居た時だけ値を返す。 */

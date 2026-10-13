@@ -10,7 +10,7 @@
  *
  */
 import { test, expect, type Page } from "@playwright/test";
-import { 配色の札, 配色の選択肢, 画面の色の札 } from "../src/lib/palette-switch";
+import { 配色の札, 配色の選択肢 } from "../src/lib/palette-switch";
 import { 一覧の行 } from "./catalog-item-pick";
 import { colorKey, openEditorTheme } from "./helpers/fixed-theme-checks";
 import { LABEL_TONE_SOURCE } from "./helpers/label-tone-checks";
@@ -33,7 +33,7 @@ async function 配色(page: Page, id: string): Promise<string | null> {
   }, id);
 }
 
-const 切替 = (page: Page) => page.locator('[role="radiogroup"][aria-label="図の色味"]');
+const 色味 = (page: Page) => page.getByRole("combobox", { name: "図の色味" });
 
 /** 図を組み立てた外側の器が持つ viewBox を読む。 SVG の属性と同じ配置結果を載せる。 */
 async function 描いた大きさ(page: Page, id: string): Promise<string | null> {
@@ -50,17 +50,17 @@ test("switch: 意匠の札が全て並び、配色を持つ図で切り替えら
 }) => {
   await 開く(page, "presets", "delivery-relations-demo");
 
-  await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
+  await expect(色味(page), "配色を持つ図に選ぶ欄が出ていない").toBeVisible();
   const expected = 配色の選択肢.map((theme) => 配色の札(theme, "ja"));
   expect(expected).toEqual(["生成りに茶", "青磁に墨", "図面", "活版", "図録", "端末", "手描き", "電飾", "浮彫"]);
   for (const label of expected)
-    await expect(切替(page).getByRole("radio", { name: label })).toHaveCount(1);
+    await expect(色味(page).getByRole("option", { name: label, exact: true })).toHaveCount(1);
   expect(await 配色(page, "delivery-relations-demo"), "既定が生成りに茶でない").toBe("kinari");
 
-  await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
+  await 色味(page).selectOption({ label: "青磁に墨" });
   await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("celadon");
 
-  await 切替(page).getByRole("radio", { name: "生成りに茶" }).click();
+  await 色味(page).selectOption({ label: "生成りに茶" });
   await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("kinari");
 });
 
@@ -68,7 +68,7 @@ test('switch: 意匠の札を全て並べても「図 / コード」 のタブ�
   page,
 }) => {
   await 開く(page, "presets", "delivery-relations-demo");
-  await expect(切替(page), "配色を持つ図に切替が出ていない").toBeVisible();
+  await expect(色味(page), "配色を持つ図に選ぶ欄が出ていない").toBeVisible();
 
   const tabs = page.locator('.catalog-preview-tabs [role="tab"]:visible');
   expect(await tabs.count(), "見えている図 / コードのタブが 2 つ未満").toBeGreaterThanOrEqual(2);
@@ -100,7 +100,7 @@ test('switch: 意匠の札を全て並べても「図 / コード」 のタブ�
   );
 });
 
-test("switch: 狭い幅でも意匠の札の字は 1 行のまま、札は画面の中に収まる (#2796)", async ({
+test("switch: 狭い幅でも色味の選ぶ欄は画面の中に収まる (#2867)", async ({
   page,
 }) => {
   for (const width of [1440, 1366, 1280, 1024, 768, 390]) {
@@ -111,54 +111,34 @@ test("switch: 狭い幅でも意匠の札の字は 1 行のまま、札は画面
     await page.locator(".catalog-preview-stage").scrollIntoViewIfNeeded();
     await page.waitForSelector('[data-cdl-diagram="delivery-relations-demo"]', { timeout: 15000 });
     await page.evaluate(() => document.fonts.ready);
-    await expect(切替(page), `${width}px で図の色味の切替が出ていない`).toBeVisible();
+    await expect(色味(page), `${width}px で図の色味の選ぶ欄が出ていない`).toBeVisible();
 
-    const 札 = 切替(page).getByRole("radio");
-    expect(await 札.count(), `${width}px で意匠の札が欠けている`).toBeGreaterThanOrEqual(9);
-    const 測った = await 札.evaluateAll((elements) => {
-      const chips = elements.map((element) => {
-        const textNode = [...element.childNodes].find(
-          (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
-        );
-        if (!textNode) throw new Error("意匠の札の字を測れない (検査が空振りしている)");
-        const range = document.createRange();
-        range.selectNodeContents(textNode);
-        const rect = element.getBoundingClientRect();
-        return {
-          名前: textNode.textContent?.trim() ?? "",
-          行数: new Set([...range.getClientRects()].map((line) => Math.round(line.top))).size,
-          上端: Math.round(rect.top),
-          左端: rect.left,
-          右端: rect.right,
-        };
-      });
+    const 測った = await 色味(page).evaluate((element) => {
+      const rect = element.getBoundingClientRect();
       return {
-        chips,
-        rows: new Set(chips.map((chip) => chip.上端)).size,
-        outside: chips.filter((chip) => chip.左端 < 0 || chip.右端 > window.innerWidth).length,
+        whiteSpace: getComputedStyle(element).whiteSpace,
+        left: rect.left,
+        right: rect.right,
         viewportWidth: window.innerWidth,
       };
     });
-
     console.log(
-      `chip lines width=${width}: rows=${測った.rows} maxLines=${Math.max(...測った.chips.map((chip) => chip.行数))} outside=${測った.outside}`,
+      `palette select width=${width}: left=${測った.left} right=${測った.right} viewport=${測った.viewportWidth}`,
     );
-    for (const chip of 測った.chips) {
-      expect(chip.行数, `${width}px で ${chip.名前} の字が折れている`).toBe(1);
-      expect(chip.左端, `${width}px で ${chip.名前} が画面の左へ出ている`).toBeGreaterThanOrEqual(0);
-      expect(chip.右端, `${width}px で ${chip.名前} が画面の右へ出ている`).toBeLessThanOrEqual(
-        測った.viewportWidth,
-      );
-    }
+    expect(測った.whiteSpace, `${width}px で色味の字を折る指定になっている`).toBe("nowrap");
+    expect(測った.left, `${width}px で色味の欄が画面の左へ出ている`).toBeGreaterThanOrEqual(0);
+    expect(測った.right, `${width}px で色味の欄が画面の右へ出ている`).toBeLessThanOrEqual(
+      測った.viewportWidth,
+    );
   }
 });
 
 test("switch: クラス図でも切り替えられる (#1569)", async ({ page }) => {
   // ER 図だけを見ると、配色を持つ図が 1 種類しか無い形でも通る
   await 開く(page, "presets", "delivery-classes-demo");
-  await expect(切替(page), "クラス図に切替が出ていない").toBeVisible();
+  await expect(色味(page), "クラス図に選ぶ欄が出ていない").toBeVisible();
 
-  await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
+  await 色味(page).selectOption({ label: "青磁に墨" });
   await expect.poll(async () => await 配色(page, "delivery-classes-demo"), { timeout: 5000 }).toBe("celadon");
 });
 
@@ -167,19 +147,19 @@ test("terminal switch: 見本帳で端末を選ぶと字を等幅で測り直し
 }) => {
   await 開く(page, "presets", "infra-demo");
 
-  await 切替(page).getByRole("radio", { name: 配色の札("kinari", "ja") }).click();
+  await 色味(page).selectOption({ label: 配色の札("kinari", "ja") });
   await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("kinari");
   const 生成り = await 描いた大きさ(page, "infra-demo");
   expect(生成り, "生成りの data-cdl-viewbox が無く、測り直しの検査が空振りしている").not.toBeNull();
   if (生成り === null) throw new Error("生成りの data-cdl-viewbox を文字列として確かめられない");
   expect(生成り, "生成りの data-cdl-viewbox が 4 つの数でない").toMatch(/^-?[\d.]+ -?[\d.]+ [\d.]+ [\d.]+$/);
 
-  await 切替(page).getByRole("radio", { name: 配色の札("terminal", "ja") }).click();
+  await 色味(page).selectOption({ label: 配色の札("terminal", "ja") });
   await expect.poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 }).toBe("terminal");
   await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).not.toBe(生成り);
   const 端末 = await 描いた大きさ(page, "infra-demo");
 
-  await 切替(page).getByRole("radio", { name: 配色の札("kinari", "ja") }).click();
+  await 色味(page).selectOption({ label: 配色の札("kinari", "ja") });
   await expect.poll(async () => await 描いた大きさ(page, "infra-demo"), { timeout: 5000 }).toBe(生成り);
   const 戻した後 = await 描いた大きさ(page, "infra-demo");
   console.log(`生成り=${生成り} 端末=${端末} 戻した後=${戻した後}`);
@@ -246,12 +226,10 @@ flow:
 test("switch: 配色を持たない図にも切替が出て、図面を当てられる (#2790)", async ({ page }) => {
   await 開く(page, "presets", "infra-demo");
   expect(await 配色(page, "infra-demo"), "この図が配色を持ってしまっている").toBeNull();
-  await expect(切替(page), "配色を持たない図に切替が出ていない").toBeVisible();
-  await expect(切替(page).getByRole("radio", { name: 画面の色の札("ja") })).toBeChecked();
+  await expect(色味(page), "配色を持たない図に選ぶ欄が出ていない").toBeVisible();
+  await expect(色味(page)).toHaveValue("site-colours");
 
-  await 切替(page)
-    .getByRole("radio", { name: 配色の札("blueprint", "ja") })
-    .click();
+  await 色味(page).selectOption({ label: 配色の札("blueprint", "ja") });
   await expect
     .poll(async () => await 配色(page, "infra-demo"), { timeout: 5000 })
     .toBe("blueprint");
@@ -270,9 +248,7 @@ test("letterpress switch: 配色のない図と表の図へ活版の名前と地
 
   for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
-    await 切替(page)
-      .getByRole("radio", { name: 配色の札("letterpress", "ja") })
-      .click();
+    await 色味(page).selectOption({ label: 配色の札("letterpress", "ja") });
     await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("letterpress");
     const ground = await page.evaluate(() => {
       const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="letterpress"]');
@@ -288,9 +264,7 @@ test("catalog switch: 配色のない図と表の図へ図録の名前と地が�
 
   for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
-    await 切替(page)
-      .getByRole("radio", { name: 配色の札("catalog", "ja") })
-      .click();
+    await 色味(page).selectOption({ label: 配色の札("catalog", "ja") });
     await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("catalog");
     const ground = await page.evaluate(() => {
       const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="catalog"]');
@@ -306,9 +280,7 @@ test("terminal switch: 配色のない図と表の図へ端末の名前と地が
 
   for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
-    await 切替(page)
-      .getByRole("radio", { name: 配色の札("terminal", "ja") })
-      .click();
+    await 色味(page).selectOption({ label: 配色の札("terminal", "ja") });
     await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("terminal");
     const ground = await page.evaluate(() => {
       const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="terminal"]');
@@ -324,11 +296,11 @@ test("sketch switch: 配色のない図と表の図へ手描きの名前と地�
 
   for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
-    const option = 切替(page).getByRole("radio", { name: 配色の札("sketch", "ja") });
+    const option = 色味(page).getByRole("option", { name: 配色の札("sketch", "ja") });
     const count = await option.count();
     console.log(`sketch switch ${id}: options=${count}`);
     expect(count, `${id} の手描きの選択肢`).toBe(1);
-    await option.click();
+    await 色味(page).selectOption({ label: 配色の札("sketch", "ja") });
     await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("sketch");
     const ground = await page.evaluate(() => {
       const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="sketch"]');
@@ -344,11 +316,11 @@ test("neon switch: 配色のない図と表の図へ電飾の名前と地が届�
 
   for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
-    const option = 切替(page).getByRole("radio", { name: 配色の札("neon", "ja") });
+    const option = 色味(page).getByRole("option", { name: 配色の札("neon", "ja") });
     const count = await option.count();
     console.log(`neon switch ${id}: options=${count}`);
     expect(count, `${id} の電飾の選択肢`).toBe(1);
-    await option.click();
+    await 色味(page).selectOption({ label: 配色の札("neon", "ja") });
     await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("neon");
     const ground = await page.evaluate(() => {
       const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="neon"]');
@@ -364,11 +336,11 @@ test("relief switch: 配色のない図と表の図へ浮彫の名前と地が�
 
   for (const id of ["infra-demo", "delivery-relations-demo"]) {
     await 開く(page, "presets", id);
-    const option = 切替(page).getByRole("radio", { name: 配色の札("relief", "ja") });
+    const option = 色味(page).getByRole("option", { name: 配色の札("relief", "ja") });
     const count = await option.count();
     console.log(`relief switch ${id}: options=${count}`);
     expect(count, `${id} の浮彫の選択肢`).toBe(1);
-    await option.click();
+    await 色味(page).selectOption({ label: 配色の札("relief", "ja") });
     await expect.poll(async () => await 配色(page, id), { timeout: 5000 }).toBe("relief");
     const ground = await page.evaluate(() => {
       const stage = document.querySelector('svg[data-cdl-stage][data-cdl-palette="relief"]');
@@ -381,7 +353,7 @@ test("relief switch: 配色のない図と表の図へ浮彫の名前と地が�
 test("switch: 項目を選び直すと既定へ戻る (#1569)", async ({ page }) => {
   // 残すと、次の図が別の色みで出る理由を見失う (速さ / 描き方 と同じ扱い)
   await 開く(page, "presets", "delivery-relations-demo");
-  await 切替(page).getByRole("radio", { name: "青磁に墨" }).click();
+  await 色味(page).selectOption({ label: "青磁に墨" });
   await expect.poll(async () => await 配色(page, "delivery-relations-demo"), { timeout: 5000 }).toBe("celadon");
 
   await 一覧の行(page, "delivery-classes-demo").click();

@@ -118,9 +118,8 @@ async function catalogを開く(page, source) {
   const root = page.locator(selector);
   await root.waitFor({ state: "visible" });
   await page
-    .getByRole("radiogroup", { name: "図の色味" })
-    .getByRole("radio", { name: palette === 画面の色 ? "画面の色" : label, exact: true })
-    .click();
+    .getByRole("combobox", { name: "図の色味" })
+    .selectOption({ label: palette === 画面の色 ? "画面の色" : label });
   for (let index = 0; index < 50; index += 1) {
     const selected = (await 状態(page)).palette;
     if (palette === 画面の色 ? selected === null : selected === palette) break;

@@ -96,13 +96,16 @@ test("携帯の幅で段の説明の枠が空きすぎない", async ({ page }, 
 
       // **パターンを持つ項目は中身の数だけ測る** (§ パターンの切替も押す)。 持たない項目は
       // 切替そのものが出ないので、`0` を 1 回に読み替えて既定の中身だけを測る
-      const 切替 = page.locator(`[role="radiogroup"][aria-label="${パターンの札}"] button`);
-      const 中身の数 = await 切替.count();
+      const 切替 = page.getByRole("combobox", { name: パターンの札 });
+      const 選択肢 = 切替.locator("option");
+      const 中身の数 = await 選択肢.count();
       for (let j = 0; j < Math.max(中身の数, 1); j += 1) {
         let 中身 = "既定";
         if (中身の数 > 0) {
-          中身 = ((await 切替.nth(j).textContent()) ?? `${j}`).trim();
-          await 切替.nth(j).click();
+          const 選択肢の値 = await 選択肢.nth(j).getAttribute("value");
+          if (選択肢の値 === null) throw new Error(`${分類.slug}/${id} の ${j} 番目に値が無い`);
+          中身 = ((await 選択肢.nth(j).textContent()) ?? `${j}`).trim();
+          await 切替.selectOption(選択肢の値);
           // 切替も図を差し替えるので、行を押した時と同じだけ描き直しを待つ
           await page.waitForTimeout(60);
         }

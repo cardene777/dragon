@@ -13,10 +13,7 @@ const 見本 = "フローの並ぶ向きを書かない";
 const 図 = "main.catalog-preview svg[data-cdl-stage]";
 
 async function 押す(page: Page, 名: string): Promise<void> {
-  await page
-    .getByRole("radiogroup", { name: "パターン" })
-    .getByRole("radio", { name: 名, exact: true })
-    .click();
+  await page.getByRole("combobox", { name: "パターン" }).selectOption(名);
   await page.waitForTimeout(800);
 }
 

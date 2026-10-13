@@ -117,7 +117,7 @@ noteRoot は省略でき、省略時は docs/design とする。
 
 見本帳は baseUrl、page、name と任意の palette を持つ。
 
-palette に site-colours を書くか palette を省いた時は、図の色味の「画面の色」を選ぶ。
+palette に site-colours を書くか palette を省いた時は、図の色味の選ぶ欄で「画面の色」を選ぶ。
 
 その時は svg[data-cdl-stage] に data-cdl-palette が無いことを確かめてから測る。
 

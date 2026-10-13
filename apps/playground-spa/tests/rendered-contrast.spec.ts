@@ -915,10 +915,7 @@ test.describe("図録の関係線の描画対比 (#2836)", () => {
 
   test("状態の矢印と使う点線が地に対して 3 以上", async ({ page }) => {
     await open(page, { slug: "presets", id: "delivery-relations-demo" }, "light");
-    await page
-      .getByRole("radiogroup", { name: "図の色味" })
-      .getByRole("radio", { name: "図録" })
-      .click();
+    await page.getByRole("combobox", { name: "図の色味" }).selectOption({ label: "図録" });
     const stage = page.locator(
       '[data-cdl-diagram="delivery-relations-demo"] svg[data-cdl-stage][data-cdl-palette="catalog"]',
     );

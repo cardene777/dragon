@@ -12,7 +12,7 @@
  * 通る。 同じ見本を日本語で開いて札に日本語が出ていることを併せて見る。
  */
 import { test, expect, type Page } from "@playwright/test";
-import { CATALOG_ITEMS, type CatalogItem } from "../src/lib/catalog-items";
+import { CATALOG_ITEMS, patternName, type CatalogItem } from "../src/lib/catalog-items";
 import { 描き方を選べる } from "../src/lib/redraw-mode";
 import { 折れ線を選べる } from "../src/lib/chart-line-options";
 import { 円の見せ方を選べる } from "../src/lib/chart-pie-options";
@@ -42,6 +42,18 @@ function 当たる見本(出る: (d: CatalogItem["diagram"]) => boolean): { 分�
   throw new Error("条件に当たる見本が 1 件も無い (検査の前提が崩れた)");
 }
 
+function パターンを持つ見本(): { 分類: string; item: CatalogItem } {
+  for (const [分類, items] of Object.entries(CATALOG_ITEMS)) {
+    const item = items.find(
+      (candidate) =>
+        (candidate.patterns?.length ?? 0) > 1 &&
+        candidate.patterns?.every((pattern) => pattern.名En !== ""),
+    );
+    if (item) return { 分類, item };
+  }
+  throw new Error("英語名を持つパターンの見本が 1 件も無い (検査の前提が崩れた)");
+}
+
 async function 開く(page: Page, 分類: string, id: string, lang: "ja" | "en"): Promise<void> {
   await page.goto(`catalog/${分類}?lang=${lang}`, { waitUntil: "networkidle" });
   await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
@@ -49,12 +61,12 @@ async function 開く(page: Page, 分類: string, id: string, lang: "ja" | "en")
   await page.waitForTimeout(500);
 }
 
-/** いま出ている切替の札を全部拾う (見せ方の群と再生速度の群) */
+/** いま出ている見せ方の選択肢を全部拾う */
 async function 札たち(page: Page): Promise<string[]> {
   return await page.evaluate(() =>
-    Array.from(document.querySelectorAll(".catalog-redraw button, .catalog-speed button")).map(
-      (b) => (b.textContent ?? "").trim(),
-    ),
+    Array.from(
+      document.querySelectorAll(".catalog-option-strip button, .catalog-option-strip option"),
+    ).map((element) => (element.textContent ?? "").trim()),
   );
 }
 
@@ -79,3 +91,82 @@ for (const { 名, 出る } of 群) {
     ).toBeGreaterThan(0);
   });
 }
+
+test("パターンの選択肢が日本語と英語で見本の並びどおりに出る", async ({ page }) => {
+  const { 分類, item } = パターンを持つ見本();
+  const patterns = item.patterns ?? [];
+
+  await 開く(page, 分類, item.id, "ja");
+  await expect(page.getByRole("combobox", { name: "パターン" }).locator("option")).toHaveText(
+    patterns.map((pattern) => patternName(pattern, "ja")),
+  );
+
+  await 開く(page, 分類, item.id, "en");
+  await expect(page.getByRole("combobox", { name: "Variants" }).locator("option")).toHaveText(
+    patterns.map((pattern) => patternName(pattern, "en")),
+  );
+});
+
+test("見せ方の群の名前が日本語と英語で順番どおりに出る (#2867)", async ({ page }) => {
+  await 開く(page, "presets", "chart-line-demo", "ja");
+  await expect(page.locator(".catalog-option-label")).toHaveText([
+    "色味",
+    "2 段目から",
+    "折れ線",
+    "速さ",
+  ]);
+
+  await 開く(page, "presets", "chart-line-demo", "en");
+  await expect(page.locator(".catalog-option-label")).toHaveText([
+    "Colours",
+    "From phase 2",
+    "Line chart",
+    "Speed",
+  ]);
+});
+
+test("幅 1100 では見せ方の群が 2 行以内に並ぶ (#2867)", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await 開く(page, "presets", "chart-line-demo", "ja");
+
+  const groups = page.locator(".catalog-option-strip .catalog-option-group");
+  await expect(groups).toHaveCount(4);
+  const centers = await groups.evaluateAll((elements) =>
+    elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.top + rect.height / 2;
+    }),
+  );
+  const sameRowTolerance = 3;
+  const rowCenters = centers.reduce<number[]>((rows, center) => {
+    if (!rows.some((rowCenter) => Math.abs(rowCenter - center) <= sameRowTolerance)) {
+      rows.push(center);
+    }
+    return rows;
+  }, []);
+  expect(
+    rowCenters.length,
+    `群の縦の中心=${centers.map((center) => Math.round(center)).join(", ")}`,
+  ).toBeLessThanOrEqual(2);
+});
+
+test("幅 390 でも見せ方の群の名前を折らない (#2867)", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await 開く(page, "presets", "chart-line-demo", "ja");
+
+  const labels = page.locator(".catalog-option-strip .catalog-option-label");
+  await expect(labels).toHaveCount(4);
+  const lines = await labels.evaluateAll((elements) =>
+    elements.map((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return {
+        label: element.textContent?.trim() ?? "",
+        count: new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size,
+      };
+    }),
+  );
+  for (const { label, count } of lines) {
+    expect(count, `${label} が ${count} 行に折れている`).toBe(1);
+  }
+});

@@ -95,7 +95,9 @@ function 折れ線の見本() {
 }
 
 function 一本の線を選ぶ(): void {
-  fireEvent.click(screen.getByRole("radio", { name: "1本の線" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "パターン" }), {
+    target: { value: "1本の線" },
+  });
 }
 
 describe("catalog の折れ線の見せ方切替 (#1624)", () => {

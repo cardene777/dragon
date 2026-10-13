@@ -165,7 +165,7 @@ async function 見本を開く(page: Page, label: string, パターン?: string)
     .first()
     .click();
   if (パターン !== undefined) {
-    await page.getByRole("radiogroup", { name: "パターン" }).getByRole("radio", { name: パターン }).click();
+    await page.getByRole("combobox", { name: "パターン" }).selectOption(パターン);
   }
   await page.waitForSelector("[data-cdl-phase-index]", { timeout: 15_000 });
 }

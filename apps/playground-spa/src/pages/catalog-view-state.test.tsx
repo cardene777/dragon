@@ -27,8 +27,9 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import type { CdlDiagram } from "@cardenelabs/cdl";
 
 import { CategoryPage } from "./CategoryPage";
-import { CATALOG_ITEMS, type CatalogItem } from "@/lib/catalog-items";
+import { CATALOG_ITEMS, patternName, type CatalogItem } from "@/lib/catalog-items";
 import { ToastProvider } from "@/components/Toast";
+import { 配色の札, 配色の選択肢, 画面の色, 画面の色の札 } from "@/lib/palette-switch";
 import { 図ごとの既定の描き方, 描き方を選べる } from "@/lib/redraw-mode";
 import {
   drive,
@@ -47,7 +48,12 @@ vi.mock("@cardenelabs/cdl", async (importOriginal) => {
   return {
     ...actual,
     CdlDiagramView: ({ diagram }: { diagram: CdlDiagram }): React.ReactElement => (
-      <div data-testid="catalog-diagram" data-drawn={描かれた印(diagram)} />
+      <div
+        data-testid="catalog-diagram"
+        data-drawn={描かれた印(diagram)}
+        data-cdl-palette={diagram.palette}
+        data-diagram-id={diagram.id}
+      />
     ),
   };
 });
@@ -68,6 +74,21 @@ function 既定の描き方が違う2件(): { 縦列: string; 先に見る: Cata
       return { 縦列, 先に見る, 後に見る };
   }
   throw new Error("既定の描き方が違う 2 件を同じ縦列で見つけられない (検査の前提が崩れた)");
+}
+
+/** パターンを持つ見本を、登録表から 1 件選ぶ。 */
+function パターンを持つ見本(): { 縦列: string; item: CatalogItem } {
+  for (const [縦列, items] of Object.entries(CATALOG_ITEMS)) {
+    const item = items.find(
+      (candidate) =>
+        (candidate.patterns?.length ?? 0) > 1 &&
+        candidate.patterns?.[1] !== undefined &&
+        (candidate.patterns[1].sourceYaml !== undefined ||
+          candidate.patterns[1].sourceJson !== undefined),
+    );
+    if (item) return { 縦列, item };
+  }
+  throw new Error("パターンを持つ見本が 1 件も無い (検査の前提が崩れた)");
 }
 
 /** 見張りを始めてから描画側へ渡った図の印を全部集める */
@@ -228,5 +249,66 @@ describe("項目を選び直した時の見せ方 (#2022)", () => {
     act(() => 描き直す釦.click());
 
     expect(今の印(), "押した描き方が図に効いていない").toBe(`${後に見る.diagram.topic}/描き直す`);
+  });
+});
+
+describe("見せ方の帯 (#2867)", () => {
+  it("色味の選ぶ欄が画面の色と 9 意匠を持ち、選ぶと図の配色が替わる", () => {
+    開く("presets");
+
+    const select = screen.getByRole("combobox", { name: "図の色味" });
+    if (!(select instanceof HTMLSelectElement))
+      throw new Error("図の色味が select でない (検査の前提が崩れた)");
+    expect([...select.options].map((option) => option.text)).toEqual([
+      画面の色の札("ja"),
+      ...配色の選択肢.map((theme) => 配色の札(theme, "ja")),
+    ]);
+    expect([...select.options].map((option) => option.value)).toEqual([
+      画面の色,
+      ...配色の選択肢,
+    ]);
+
+    act(() => {
+      fireEvent.change(select, { target: { value: "celadon" } });
+    });
+    expect(select.value).toBe("celadon");
+    expect(screen.getByTestId("catalog-diagram").getAttribute("data-cdl-palette")).toBe(
+      "celadon",
+    );
+    expect(screen.queryAllByText("オプション")).toHaveLength(0);
+  });
+
+  it("パターンの選ぶ欄はタブの列にあり、見本と同じ並びで図と記法を替える", () => {
+    const { 縦列, item } = パターンを持つ見本();
+    開く(縦列);
+    選ぶ(item);
+
+    const pattern = screen.getByRole("combobox", { name: "パターン" });
+    if (!(pattern instanceof HTMLSelectElement))
+      throw new Error("パターンが select でない (検査の前提が崩れた)");
+    const patterns = item.patterns ?? [];
+    const tabs = document.querySelector(".catalog-preview-tabs");
+    const strip = document.querySelector(".catalog-option-strip");
+    expect(tabs?.contains(pattern)).toBe(true);
+    expect(strip?.contains(pattern)).toBe(false);
+    expect([...pattern.options].map((option) => option.text)).toEqual(
+      patterns.map((candidate) => patternName(candidate, "ja")),
+    );
+    expect([...pattern.options].map((option) => option.value)).toEqual(
+      patterns.map((candidate) => candidate.名),
+    );
+
+    const next = patterns[1];
+    if (next === undefined) throw new Error("2 つ目のパターンが無い (検査の前提が崩れた)");
+    act(() => {
+      fireEvent.change(pattern, { target: { value: next.名 } });
+    });
+    expect(screen.getByTestId("catalog-diagram").getAttribute("data-diagram-id")).toBe(
+      next.diagram.id,
+    );
+    act(() => screen.getByRole("tab", { name: "コード" }).click());
+    const source = next.sourceYaml ?? next.sourceJson;
+    if (source === undefined) throw new Error("2 つ目の記法が無い (検査の前提が崩れた)");
+    expect(document.querySelector(".catalog-source-code")?.textContent).toContain(source);
   });
 });
