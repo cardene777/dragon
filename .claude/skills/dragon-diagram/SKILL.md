@@ -1,262 +1,302 @@
 ---
 name: dragon-diagram
-description: dragon 記法 (cdl) で animated diagram を生成する汎用 skill。 theme (「EIP-1559 gas fee」 「incident response」 等) を入力すると、 既存 parts catalog を活用し、 登録簿のどれとも異なる shape kind / metaphor が要る時だけ新規 parts を作成、 意味のある composite exemplar を animation.cdl.ts に追加する。 新規 parts 発生時は user 確認後、 dragon repo に GitHub Issue を起票して parts catalog 標準化議論に載せる。 skill は「parts 主義 + 意味のある図」 の 2 原則で品質担保、 dyn-wave 規約 + narrative title + 日本語 label を強制。
+description: 題材を分けて考え、正解の頁と合わせる一覧を user と握ってから、dragon 記法で animated diagram を作る skill。
 ---
 
-# dragon-diagram — dragon 記法で animated diagram を生成する汎用 skill
+# dragon-diagram — 正解を先に握って animated diagram を作る
 
 ## 位置付け
 
-dragon repo 内で animation catalog に rich exemplar を追加する時の SSOT 経路。 「登録簿の parts だけを使い回す」 のは理想論、 実際は theme 固有の parts が必要になることが多い。 本 skill が theme を受取り、 既存 parts で組立てるか / 新規 parts が必要か を判定して自動処理する。
+dragon repo の animation catalog に、題材固有の意味を持つ composite exemplar を追加する。
+
+既存 parts を優先し、登録簿のどれとも異なる shape kind または metaphor が要る時だけ新規 parts を検討する。
+
+作り始める前に正解の頁と合わせる一覧を user と握る。
+
+作った後は dragon-match で 1 回測って撮り、2 枚の絵と一覧の表を user に見せる。
 
 ## 起動 trigger
 
-user 明示起動のみ:
+user 明示起動だけで使う。
 
-- `/dragon-diagram <theme>` — theme を引数で指定
-- `/dragon-diagram` (引数なし) — AskUserQuestion で theme 聞取り
-
-例:
-```
-/dragon-diagram EIP-1559 gas fee
-/dragon-diagram incident response の 25 分間の severity 遷移
-/dragon-diagram Kubernetes pod scheduling
-```
+- /dragon-diagram <theme> で題材を指定する。
+- /dragon-diagram だけなら AskUserQuestion で題材を聞く。
 
 ## 前提
 
-- 起動 dir = dragon repo root (`/Users/cardene/Desktop/projects/dragon` or clone dir)
-- dev server 起動中 (`http://localhost:4323`) — Playwright screenshot 用
-- Node.js + pnpm 使用可能
+- 起動 dir は dragon repo root とする。
+- 見本帳の dev server を起動しておく。
+- Node.js と pnpm を使えることを確かめる。
 
 ## Skill 実行 flow
 
-### Step 1. Theme 分析
+### Step 1. 題材を分けて考える
 
-user 入力 theme を分析、 以下を特定:
+次の 4 点を決める。
 
-- **core message** = この図で伝えたい 1 つの concept
-- **story arc** = 時間軸で何がどう変化するか (before → during → after)
-- **visual metaphor** = どの視覚表現が最も直感的か (bar race / gauge / flow / timeline / state machine 等)
-- **必要 element 数** = 主役 1-3 + 補助 1-2 が理想 (parts 5-10 個以上は overload)
+- core message は、この図で伝える 1 つの概念とする。
+- story arc は、時間軸で何がどう変わるかとする。
+- visual metaphor は、flow、timeline、state machine などから最も直感的な形を選ぶ。
+- element 数は、主役 1〜3 個と補助 1〜2 個を目安にする。
 
-### Step 2. Parts catalog Read (SSOT 参照)
+### Step 2. Parts catalog を読む
 
-`apps/playground-spa/src/topics/catalog/parts.cdl.ts` を Read する。
-**この file が登録簿そのもので、ここに写しは置かない** (#2264)。
+apps/playground-spa/src/topics/catalog/parts.cdl.ts を読む。
 
-写しを置いていた間、表は 20 行で止まったまま登録簿が 5 倍以上に増えており、
-下の Step 3 が **表に無い部品と同じものを「真に新規」 と判定していた**。
-手順書が防ごうとしている失敗 (同じ部品を二重に作る) を、手順書自身が起こす形だった。
+この file が parts の登録簿であり、手順書に写しを持たない。
 
-一覧の出し方。
+名前と図の題は次の command で調べる。
 
-```bash
-# 名前と、図の中の題を並べる
-grep -n '^export const parts' apps/playground-spa/src/topics/catalog/parts.cdl.ts
-```
+    grep -n '^export const parts' apps/playground-spa/src/topics/catalog/parts.cdl.ts
 
-`export const parts{名前} = diagram("parts-{綴り}", { … })` の形で 1 件 1 つ。
-用途は各 entry の `title` と `subtitle` が持つ。
+各 entry の title と subtitle を読み、題材の visual metaphor を既存 parts だけで組めるか判断する。
 
-theme の visual metaphor と照合し、 既存 parts で 100% 賄えるか判定。
+### Step 3. 新規 parts の要否を決める
 
-### Step 3. 新規 parts 必要判定
+登録簿のどれとも異なる shape kind または metaphor が要る時だけ新規 parts を検討する。
 
-既存 parts で 覆えない visual element が theme に含まれる場合、 新規 parts 候補を列挙:
+色や大きさだけが違う時は composite 側で調整する。
 
-**判定基準** — 以下いずれか該当時のみ新規 parts 検討:
-- 登録簿のどれとも異なる shape kind / metaphor
-- 既存 parts の変形 (color / size 違い) で対応可能なら新規禁止 (composite 側で調整)
-- 既存 parts の組合せで代替できるなら新規禁止
+既存 parts の組合せで表せる時も新規 parts を作らない。
 
-**真に新規** の例:
-- ネットワークトポロジ 図 (star / mesh) → 既存 parts に該当なし → 新規候補
-- 3D バブルチャート → 既存 parts に該当なし → 新規候補
-- コード diff highlight → 既存 parts に該当なし → 新規候補
+### Step 4. 新規 parts が要る時だけ user に聞く
 
-**既存で足りる** の例:
-- 「特定色の bar」 → 横進捗バーの fill 変更で対応
-- 「大きい gauge」 → アークゲージの w/h 変更で対応
-- 「5 個の progress」 → 横進捗バー ×5 で composite 側対応
+AskUserQuestion で次の 3 案を示す。
 
-### Step 4. AskUserQuestion (新規 parts 発生時のみ)
+1. 新規 parts を追加し、標準化を話す Issue を起票する。
+2. composite 内だけで描き、parts を追加しない。
+3. 作業を止め、別の組み方を考える。
 
-新規 parts 候補が発生した場合、 skill 進行前に user 確認:
+user が選ぶまで新規 parts を追加しない。
 
-```
-質問例:
-「theme "X" の生成で新規 parts が必要と判定しました。
-候補 parts:
-  1. {name} — {metaphor / 用途}
-以下いずれか選んでください:
-  A. 新規 parts 追加 + dragon repo Issue 起票 (parts 標準化議論)
-  B. composite 内で inline 対応 (parts 追加なし、 skill 完了)
-  C. skill abort (別 approach 検討)」
-```
-
-新規 parts なしなら本 step skip、 Step 5 へ直進。
+新規 parts が無ければこの step を飛ばす。
 
 ### Step 4.5. 組み方の案を見せて選んでもらう
 
-**同じ題材で組み方が 2 通り以上ある時は `/dragon-propose` を起動する**。
-視覚表現 (bar race / gauge / flow / timeline / state machine) の選び方や、lane の分け方が
-割れた時が該当する。
+同じ題材で組み方が 2 通り以上ある時は dragon-propose を起動する。
 
-候補ごとに実寸の図を撮って渡し、選ばれた案で Step 5 へ進む。
-選ばずに作ると、出来てから作り直すことになる。
+候補ごとに実寸の図を撮って渡し、選ばれた案で次へ進む。
 
-組み方が 1 通りしか無い (題材から自明) 時は飛ばす。
+組み方が 1 通りしか無い時はこの step を飛ばす。
 
-### Step 5. Composite exemplar 生成
+### Step 4.6. 正解の頁と合わせる一覧を握る
 
-`apps/playground-spa/src/topics/catalog/animation.cdl.ts` に composite exemplar を追加:
+この step は Step 4.5 を飛ばした時も必ず通る。
 
-**規約遵守 checklist:**
-- [ ] title = 抽象化 (「EIP-1559」 でなく 「3 層優先度手数料」)
-- [ ] topic = 日本語で 1 文
-- [ ] state 名は英字 (id として)、 subtitle template で日本語表示
-- [ ] phase title = narrative (「均等分配」 「収集期」)、 data 値 (`[1,2,3]` / `0→60`) 禁止
-- [ ] phase badge = 抽象 phase 名 (「初期」 「拡大」)
-- [ ] lane gap ≥ 70px 確保
-- [ ] dyn-wave 規約 = rectangle 内 gauge は wave (parts 1/2 経由)
-- [ ] 使用 parts を comment で明示 (`// uses: partsWaveGauge / partsCounterActor / partsEdgeChain`)
+1. 正解の頁は docs/design/proposal/static/ の見本と同じ形の HTML にする。
 
-**composite structure:**
-- primary parts 1-3 個 + support parts 1-2 個
-- 4-5 phase で story 進行
-- 各 phase で複数 state を tween/set
+   箱は位置と大きさを持つ div にし、線は SVG にする。
 
-### Step 6. i18n + export 登録
+2. 正解の頁は既定の配色 1 つで作る。
 
-`apps/playground-spa/src/lib/i18n.ts` に export 名 → 日本語 label を追加。 export 名は composite 内容を表す動詞 (`richPipelineFlow` / `richIncidentRecovery` 等)、 label は日本語で「〜が〜する」 の narrative。
+   残りの意匠は、作った後の絵で user に見せる。
 
-### Step 7. Verify
+3. dragon-match が読む合わせる一覧を user と一緒に作る。
 
-1. `pnpm --filter dragon-playground-spa exec tsc --noEmit` で typecheck (EXIT=0 必須)
-2. Playwright script で screenshot 撮影 (`http://localhost:4323/catalog/animation` → target 選択 → t3/t7 で撮影)
-3. screenshot Read で AI 目視 (rich judgment 5 criteria):
-   - 見てて楽しい (visual richness)
-   - 理解しやすい (message clarity at glance)
-   - primary parts + support の役割分離明確
-   - mermaid で描けない dynamism
-   - 逆算設計 (theme → parts の因果連鎖 comment 明記)
+   形、並び、つながりは意匠に依らず 1 つにし、色の項目だけが意匠ごとの note.md の役を指す。
 
-1-4 criteria pass 必須、 fail 時は composite 再設計 loop (最大 3 回)。
+4. 正解の頁は docs/design/proposal/<図の名>.html に置く。
 
-### Step 8. 新規 parts Issue 起票 (Step 4 で A を選択した場合のみ)
+   一覧は docs/design/proposal/<図の名>.checklist.json に置く。
 
-新規 parts を parts.cdl.ts に追加した場合、 dragon repo GitHub Issue を起票:
+   既存の docs/design/proposal/static/ は変えない。
 
-```bash
-# body cache 事前作成
-cat > /tmp/dragon-parts-proposal-{slug}.md <<EOF
-# [parts] {parts 名} を parts catalog 標準化検討
+5. claude.ai の artifact は作らない。
 
-## 発生 context
-theme = "{user 入力 theme}" の生成で新規 parts が必要と判定。
+   手元の 2 file を正本にし、直す時も手元の file を直す。
 
-## 提案 parts spec
-- id: parts-{slug}
-- kind: dyn-{shape}
-- metaphor: {description}
-- shape spec: {source / fillMax / orient / fill 等}
+6. 正解の頁の絵と一覧をチャットに貼り、AskUserQuestion で合意を取る。
 
-## 既存 parts で代替不可の理由
-{登録簿の parts を検討したが以下の理由で代替不可}
-{...}
+   user が合意した時に 2 file を commit する。
 
-## 使用実績
-- composite: {generated exemplar name}
-- file: apps/playground-spa/src/topics/catalog/animation.cdl.ts
-- 生成日時: {ISO date}
+正解の頁と一覧を握る時は、必ず絵を user に見せる。
 
-## 次アクション
-- [ ] parts spec review (別 skill or user)
-- [ ] parts.cdl.ts に恒久追加
-- [ ] i18n 対応
-- [ ] parts catalog 説明追加
-EOF
+正解の頁は動く図の最後の段の絵にする。
 
-# GitHub Issue 起票 (REST 経路、 rate limit 対策 = rules/git-workflow.md § SSOT)
-gh api -X POST repos/cardene777/dragon/issues \
-  -f title="[parts] {parts 名} を parts catalog 標準化検討" \
-  -F 'labels[]=parts' -F 'labels[]=enhancement' \
-  -f body="$(cat /tmp/dragon-parts-proposal-{slug}.md)" \
-  --jq '.number,.html_url'
-```
+dragon-match は見本帳の図を最後の段まで進めてから測る。
 
-### Step 9. 完了 report
+数の表示 readout と段の札 badge は図の外に出るため、正解の頁には入れない。
 
-user に以下 report:
+### Step 5. Dragon 記法で composite exemplar を書く
 
-- 生成 composite = {export 名} (animation.cdl.ts に追加)
-- 使用 parts = {list}
-- 新規追加 parts = {list} (発生時のみ)
-- Issue link = {GitHub Issue URL} (発生時のみ)
-- screenshot = {saved paths}
-- verify status = {typecheck / playwright / AI 目視 の 3 pass}
+apps/playground-spa/src/topics/catalog/animation.cdl.ts に composite exemplar を追加する。
 
-## SSOT 参照
+図は sourceYaml__<export 名> の dragon 記法 YAML で書く。
 
-- **parts catalog** = `apps/playground-spa/src/topics/catalog/parts.cdl.ts` (登録簿そのもの。 件数と一覧はこの file が持つ)
-- **composite 置場** = `apps/playground-spa/src/topics/catalog/animation.cdl.ts`
-- **i18n** = `apps/playground-spa/src/lib/i18n.ts`
-- **情報伝達第一主義** = 「見た目 rich かつ意味明確」 の設計原則 (V/V-R/V-C/P6 = visual richness / visual reasoning / visual clarity / P6 逆算設計) を各 parts / composite で遵守する
-- **dyn-wave 規約** = parts.cdl.ts header comment (「rectangle 内 gauge は wave 型 default」)
-- **narrative title 規約** = parts.cdl.ts header comment (「data 値排除、 story 局面名で」)
-- **日本語 label 規約** = i18n.ts 記述例
-- **GitHub API rate limit 対策** = `gh pr create` / `gh issue create` 等 GraphQL 5000/hr 超過時は REST 経路 (`gh api -X POST repos/{owner}/{repo}/...`) に切替、 core rate limit (5000/hr、 独立 counter) を利用
+cdl の組み立て API diagram(...) で同じ図を書かない。
+
+記法で正解の絵に届かない所は、組み立て API や見本帳側の細工で埋めない。
+
+届かない所を一覧の「合わない」に出し、記法を直すか正解を譲るかを user に決めてもらう。
+
+次を守る。
+
+- title は題材名ではなく、図が表す構造を抽象化した名前にする。
+- topic は日本語の 1 文にする。
+- state 名は id として使える英字にする。
+- phase title は data 値ではなく物語の局面名にする。
+- phase badge は短い抽象名にする。
+- lane gap は 70px 以上を確保する。
+- 動く形は記法の shape から指定する。
+- 使用 parts を source の comment に残す。
+- 主役 parts は 1〜3 個、補助 parts は 1〜2 個にする。
+- 4〜5 phase で変化を見せる。
+
+### Step 6. 記法から描いて i18n と export を登録する
+
+見本帳に出す export は textDslToDiagram(sourceYaml__<export 名>) で描く。
+
+animation.cdl.ts の pattern__richPipelineDemo__ゆっくり数えるが同じ形の先例である。
+
+組み立て API で書くと、測るのは cdl の絵になり、利用者が書く記法で正解の絵が描けるかを確かめられない。
+
+記法から描けば、届かない所が記法の穴として一覧の「合わない」に出る。
+
+apps/playground-spa/src/lib/i18n.ts に export 名と日本語 label を追加する。
+
+export 名は composite の内容を表す動詞句にする。
+
+label は「何がどうなるか」が読める日本語にする。
+
+### Step 7. 1 回測って撮り、user に見せる
+
+最初に次の型検査を通す。
+
+    pnpm --filter dragon-playground-spa exec tsc --noEmit
+
+次に dragon-match を 1 回だけ呼ぶ。
+
+正解の頁の path、合わせる一覧の path、作った図の名前、見せる意匠の一覧を渡す。
+
+dragon-match が出した expected.png、actual.png、checklist.md の表を user に見せる。
+
+最初に作った直後は必ずこの 3 点を見せる。
+
+一覧の全ての升が「合う」なら仕上げを終える。
+
+「測れない」または「cdl 待ち」が残る時は、その内容を添えて user に見せる。
+
+その状態で終えるかは user が決める。
+
+合わない項目または user の絵への指摘があれば、直す内容と対象 file を codex-runner に渡す。
+
+main session は図を直さない。
+
+直すたびに dragon-match を 1 回呼び、2 枚の絵と一覧の表を再び見せる。
+
+回数の上限は置かない。
+
+一覧に無い字体、数 px、cdl で描けない所は、user が絵で指摘した時だけ直す。
+
+### Step 7.5. PR の前に全件の検査を 1 回だけ行う
+
+絵を見せるたびには全件の検査を回さない。
+
+PR の前に、次の 6 command を 1 回ずつ順に実行する。
+
+    pnpm typecheck
+    pnpm build
+    pnpm lint
+    pnpm exec vitest run --exclude '**/dependency-vulnerability-check.test.ts'
+    pnpm lint:notation
+    pnpm test:screens
+
+全て exit 0 になるまで、落ちた原因を直して同じ command を再実行する。
+
+pnpm test と pnpm run verify は依存の脆弱性検査を含むため使わない。
+
+verify:deps も使わない。
+
+### Step 8. 新規 parts の Issue を起票する
+
+この step は Step 4 で「新規 parts を追加する」を user が選んだ時だけ行う。
+
+Issue 本文の一時 file は .context/dragon-diagram/parts-proposal-<slug>.md に置く。
+
+    mkdir -p .context/dragon-diagram
+
+本文には発生 context、parts spec、既存 parts で代替できない理由、使用実績、次の action を書く。
+
+本文 file は次の形で REST API に渡す。
+
+    gh api -X POST repos/cardene777/dragon/issues \
+      -f title="[parts] <parts 名> を parts catalog 標準化検討" \
+      -F 'labels[]=parts' \
+      -F 'labels[]=enhancement' \
+      -F 'body=@.context/dragon-diagram/parts-proposal-<slug>.md' \
+      --jq '.number,.html_url'
+
+### Step 9. 完了を報告する
+
+次を user に報告する。
+
+- 生成した composite の export 名と変更 file。
+- 使用した parts。
+- 新規 parts と Issue の URL。
+- 正解の expected.png。
+- 作った図の actual.png。
+- 最後の checklist.md の表。
+- Step 7 の型検査結果。
+- Step 7.5 の 6 command の結果。
 
 ## 品質保証 principle
 
-- **1 parts = 1 concept** — parts は minimal、 混在禁止
-- **composite = 意味ある story** — parts の並列でなく theme 固有の narrative
-- **新規 parts は真に新規のみ** — 既存 parts の変形 (color / size) は新規化しない
-- **user 判断が最優先** — 新規 parts 発生時は必ず AskUserQuestion 経由
-- **verify 4 条件** — typecheck + layer 2 + Playwright + AI 目視 の 4 経路 pass 必須
+- 正解の頁と一覧を user と握ってから実装を始める。
+- 1 parts は 1 concept に絞る。
+- composite は parts の陳列ではなく、題材固有の story を持たせる。
+- 新規 parts は既存 parts で表せない時だけ作る。
+- 合否は一覧の升で決め、一覧に無い違いは user の絵への指摘だけを直す。
+- 正解の合意時、最初の実装直後、以後の各修正後に絵を見せる。
+- 全件の検査は PR の前に 1 回だけ行う。
 
-## Anti-pattern (絶対禁止)
+## Anti-pattern
 
-- 既存 parts の 単純色違い / サイズ違い を新規 parts として追加
-- title に data 値 (「[30, 25, 20, 25]」 / 「0 → 60」) を書く
-- 英語のみの label / topic (日本語 page 前提)
-- rectangle 内 fill gauge を wave なしで作る (dyn-wave 規約違反)
-- verify skip して user 送付
-- Issue 起票を確認なしで自動実行
+- 正解の頁と一覧を握らずに composite を作り始めない。
+- claude.ai の artifact を正本にしない。
+- 既存 parts の色違いまたは大きさ違いを新規 parts にしない。
+- title に配列や数の遷移をそのまま書かない。
+- 英語だけの label または topic を作らない。
+- composite を cdl の組み立て API だけで作らない。
+- main session が composite を直接直さない。
+- 一覧に無い違いを AI が自動で合否へ足さない。
+- 修正回数に上限を置かない。
+- user の確認なしに Issue を起票しない。
 
 ## 使用例
 
-```
-user: /dragon-diagram EIP-1559 gas fee
+EIP-1559 の手数料を題材にする場合、まず core message を 3 層の優先度手数料と決める。
 
-skill:
-  1. theme 分析 = 「3 層手数料 (base burn + priority tip + max cap) の階層構造」
-  2. parts 照合 = 縦積み層バー (partsStackedLayer) が完全一致、 新規 parts 不要
-  3. composite 生成 = richLayeredPriorityFee を animation.cdl.ts に追加
-     - 縦積み層バー (base/tip/cap の 3 layer) 主役
-     - 補助 = カウンタ表示 (有効総額 gwei) + アークゲージ (混雑度 %)
-  4. phase 設計 = 空 block → 平常 → 混雑 → 極混雑 の 4 phase
-  5. typecheck EXIT=0
-  6. Playwright screenshot t7 = 3 stacked layer + counter + arc が確認
-  7. AI 目視 = 5 criteria 全 pass
-  8. 新規 parts なし → Issue 起票 skip
-  9. report: richLayeredPriorityFee 生成 (partsStackedLayer + partsCounterActor + partsArcGauge)
-```
+組み方が複数あれば dragon-propose で選んでもらう。
 
-```
-user: /dragon-diagram メッシュ状の 5-node network topology
+次に既定配色の正解 HTML と、3 層の字、縦の並び、層のつながり、色の役を持つ一覧を作る。
 
-skill:
-  1. theme 分析 = 「5 node が全対全接続の network、 中央 node hub」
-  2. parts 照合 = 登録簿に該当なし (エッジ連鎖は 3 直列、 mesh 非対応)
-  3. 新規 parts 候補 = "partsMeshTopology" (5 node + 10 edge の star/mesh レイアウト)
-  4. AskUserQuestion: 「新規 parts 追加 + Issue 起票 / composite inline / abort」
-  5. user が A 選択 → parts.cdl.ts に追加 + composite 生成 + Issue 起票
-```
+絵と一覧を user に見せ、合意後に 2 file を commit する。
+
+composite を作った直後に dragon-match を 1 回呼び、正解と実装の絵と一覧表を見せる。
+
+合わない項目を codex-runner で直し、直すたびに同じ 3 点を再び見せる。
+
+全て合うか、残る「測れない」と「cdl 待ち」を user が受け入れた後、PR 前の全件検査へ進む。
 
 ## Known limitations
 
-- cdl engine が radial / tree layout をサポートしていないため、 mesh / graph 系 topology は近似のみ
-- parts 新規追加時、 parts.cdl.ts + i18n.ts + catalog.ts の 3 file 更新が必要 (skill 内で自動化)
-- rate limit で GitHub API 起票失敗時は marker Write して user に手動起票を依頼 (自動 retry しない)
+- cdl が表せない形は cdl待ち として一覧に理由と課題を残す。
+- 意匠の note.md が無い色は測れない。
+- 一覧に無い字体や数 px の違いは自動判定しない。
+- 線の曲がり方と通り道そのものは判定せず、指定した箱への両端の接続だけを見る。
+
+## 統合先 skill
+
+| 関係 | skill | 何を渡すか |
+|---|---|---|
+| 上流 | 無し | user が /dragon-diagram <題材> で直接起動する |
+| 下流 | dragon-propose | 組み方が 2 通り以上ある時の案 |
+| 下流 | dragon-match | 正解の頁の path、一覧の path、作った図の名前、意匠の一覧 |
+
+## 責務外
+
+- dragon-match は図を直さない。
+- 図を直す作業は呼ぶ側が codex-runner に渡す。
+- 案を並べて選んでもらうことは dragon-propose が持つ。
+- 採点役の agent 自体は変えない。
+- dragon-propose の頁を公開する方法は変えない。

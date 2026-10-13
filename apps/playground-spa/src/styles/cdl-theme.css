@@ -1985,6 +1985,35 @@ svg[data-cdl-stage][data-cdl-palette] {
   --cdl-text-accent: var(--er-line);
 }
 
+/* 満ちる四角の既定枠は --cdl-line (= 線) を読む。箱の輪郭だけを意匠帳の枠へ戻す。 */
+svg[data-cdl-stage][data-cdl-palette="catalog"]
+  [data-cdl-kind="dyn-rect"]
+  [data-cdl-shape="rect"]
+  > rect:first-child {
+  stroke: var(--er-frame) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="terminal"]
+  [data-cdl-kind="dyn-rect"]
+  [data-cdl-shape="rect"]
+  > rect:first-child {
+  stroke: var(--er-frame) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="sketch"]
+  [data-cdl-kind="dyn-rect"]
+  [data-cdl-shape="rect"]
+  > rect:first-child {
+  stroke: var(--er-frame) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette="relief"]
+  [data-cdl-kind="dyn-rect"]
+  [data-cdl-shape="rect"]
+  > rect:first-child {
+  stroke: var(--er-frame) !important;
+}
+
 /* ── 宅配の図表を意匠帳の役割色へ揃える (#2837) ───────────────────────────
  * 描き手が埋め込む tone の変数名を手掛かりにする。変数そのものは関係図も読むため変えず、
  * mind / line / slope の中だけで系列色へ流す。

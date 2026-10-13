@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 /**
  * 意匠帳と画面の CSS の 9 つの口を突き合わせる (#2790)。
  *
@@ -7,8 +9,14 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { CdlDiagramView } from "@cardenelabs/cdl";
 import { THEMES, type DslTheme } from "@cardenelabs/dragon";
+import { JSDOM } from "jsdom";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+
+import { sortParcelsByRegion } from "@/topics/catalog/animation.cdl";
 
 import {
   THEME_PORTS,
@@ -591,6 +599,27 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     mismatch.push(...result.mismatch);
     expect(result.count, "突き合わせた組の数が意匠 × 口 × 明暗と違う").toBe(expected);
     expect(mismatch, "意匠帳と CSS の値が食い違う").toEqual([]);
+  });
+
+  it("満ちる四角の枠は該当 4 意匠それぞれの枠の口を使う", () => {
+    const markup = renderToStaticMarkup(
+      createElement(CdlDiagramView, {
+        diagram: sortParcelsByRegion,
+        focusPhaseId: sortParcelsByRegion.phases.at(-1)?.id,
+      }),
+    );
+    const document = new JSDOM(markup).window.document;
+    const frameSelector =
+      '[data-cdl-kind="dyn-rect"] [data-cdl-shape="rect"] > rect:first-child';
+    expect(document.querySelectorAll(frameSelector)).toHaveLength(5);
+
+    for (const name of ["catalog", "terminal", "sketch", "relief"]) {
+      const body = cssRuleBodyContaining(cssText, [
+        `[data-cdl-palette="${name}"]`,
+        frameSelector,
+      ]);
+      expect(cssDeclaration(body, "stroke"), name).toBe("var(--er-frame)");
+    }
   });
 
   it("路線図専用の 16 色が全ての意匠帳と一致する", () => {

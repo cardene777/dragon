@@ -855,12 +855,13 @@ export const richLayeredPriorityFee = diagram("animation-rich-layered-priority-f
 // catalog は `sourceYaml__<図の export 名>` の名前で記法を拾う (`lib/catalog-items.ts`)。
 // 記法があると画面で「コード」 を読めて「エディタで開く」 が押せる。
 //
-// **10 件とも記法を持つ**。 rich な 5 件 (`richPipelineDemo` 以降) は `dyn-wave` /
+// この頁の図はそれぞれ記法を持つ。 rich な 5 件 (`richPipelineDemo` 以降) は `dyn-wave` /
 // `dyn-arc` の箱に `shape` を渡し、うち 4 件は `readouts` (割合の輪 / 数え上げ) も使う。
 // #1374 で記法にこの 2 つの欄を足したので、下の「記法 (#1374)」 の節で書けるようになった。
 //
-// **図は組み立て API のまま残す**。 記法から組み立て直すと図の識別子が題から導かれる。
-// 併記の写し違いは `lib/catalog-source-parity.test.tsx` が止める。
+// 既存の見本は組み立て API と記法を併記し、写し違いを
+// `lib/catalog-source-parity.test.tsx` が止める。 dragon-diagram で新しく足す見本は、利用者が
+// 書く記法自体を測るため `textDslToDiagram(sourceYaml__<名前>)` から描く。
 
 export const sourceYaml__tweenSimple = `title: "tween: 数値線形補間"
 type: flow
@@ -2532,3 +2533,186 @@ export const sourceJson__richLayeredPriorityFee = `{
     }
   ]
 }`;
+
+// uses: partsHorizontalBar / partsCountup / partsEdgeChain
+export const sourceYaml__sortParcelsByRegion = `title: "荷物を地区別の車へ仕分けて積み込む"
+type: flow
+
+lanes:
+  inbound: { x: 0, width: 120 }
+  sorting: { x: 260, width: 120 }
+  trucks: { x: 560, width: 200 }
+
+states:
+  incomingCount: 0
+  sortedCount: 0
+  northLoad: 0
+  centralLoad: 0
+  southLoad: 0
+  processedCount: 0
+
+readouts:
+  processed: { kind: countup, source: processedCount, decimals: 0, unit: " 個", label: "仕分け済み" }
+
+actors:
+  - 入荷: { kind: dyn-rect, lane: inbound, stack: 1, subtitle: "{incomingCount} 個", posW: 120, posH: 200, shape: { kind: rect, source: "{incomingCount}", fillMax: 1200, orient: "up", fill: "#4e9dc4" } }
+  - 仕分け: { kind: dyn-rect, lane: sorting, stack: 1, subtitle: "{sortedCount} 個", posW: 120, posH: 200, shape: { kind: rect, source: "{sortedCount}", fillMax: 1200, orient: "up", fill: "#4e9dc4" } }
+  - 北地区の車: { kind: dyn-rect, lane: trucks, stack: 0, subtitle: "{northLoad} 個", posW: 200, posH: 100, shape: { kind: rect, source: "{northLoad}", fillMax: 500, orient: "right", fill: "#f97316" } }
+  - 中央地区の車: { kind: dyn-rect, lane: trucks, stack: 1, subtitle: "{centralLoad} 個", posW: 200, posH: 100, shape: { kind: rect, source: "{centralLoad}", fillMax: 500, orient: "right", fill: "#f97316" } }
+  - 南地区の車: { kind: dyn-rect, lane: trucks, stack: 2, subtitle: "{southLoad} 個", posW: 200, posH: 100, shape: { kind: rect, source: "{southLoad}", fillMax: 500, orient: "right", fill: "#f97316" } }
+
+flow:
+  - 入荷 -> 仕分け: "流す" (info)
+  - 仕分け -> 北地区の車: "北へ" (info)
+  - 仕分け -> 中央地区の車: "中央へ" (info)
+  - 仕分け -> 南地区の車: "南へ" (info)
+
+animation:
+  - step: "入荷" 1.5s
+    focus: ["入荷"]
+    tween:
+      incomingCount: 0 -> 1200
+    badge: "入荷"
+    description: "入荷した荷物が 1200 個まで満ちる。"
+  - step: "仕分け" 1.5s
+    focus: ["入荷", "仕分け", "入荷 -> 仕分け"]
+    tween:
+      sortedCount: 0 -> 1200
+      processedCount: 0 -> 1200
+    badge: "仕分け"
+    description: "入荷した荷物を仕分けへ流し、仕分け済みの数を数える。"
+  - step: "積み込み" 1.5s
+    focus: ["入荷", "仕分け", "北地区の車", "中央地区の車", "南地区の車", "入荷 -> 仕分け", "仕分け -> 北地区の車", "仕分け -> 中央地区の車", "仕分け -> 南地区の車"]
+    tween:
+      northLoad: 0 -> 350
+      centralLoad: 0 -> 250
+      southLoad: 0 -> 200
+    badge: "積み込み"
+    description: "仕分けた荷物を北、中央、南地区の 3 台へ途中まで積み込む。"
+  - step: "出発" 1.5s
+    focus: ["入荷", "仕分け", "北地区の車", "中央地区の車", "南地区の車", "入荷 -> 仕分け", "仕分け -> 北地区の車", "仕分け -> 中央地区の車", "仕分け -> 南地区の車"]
+    tween:
+      northLoad: 350 -> 500
+      centralLoad: 250 -> 400
+      southLoad: 200 -> 300
+    badge: "出発"
+    description: "北に 500 個、中央に 400 個、南に 300 個を積み、3 台が出発する。"
+`;
+
+export const sourceJson__sortParcelsByRegion = `{
+  "title": "荷物を地区別の車へ仕分けて積み込む",
+  "type": "flow",
+  "lanes": {
+    "inbound": { "x": 0, "width": 120 },
+    "sorting": { "x": 260, "width": 120 },
+    "trucks": { "x": 560, "width": 200 }
+  },
+  "actors": [
+    {
+      "name": "入荷",
+      "kind": "dyn-rect",
+      "lane": "inbound",
+      "stack": 1,
+      "subtitle": "{incomingCount} 個",
+      "posW": 120,
+      "posH": 200,
+      "shape": { "kind": "rect", "source": "{incomingCount}", "fillMax": 1200, "orient": "up", "fill": "#4e9dc4" }
+    },
+    {
+      "name": "仕分け",
+      "kind": "dyn-rect",
+      "lane": "sorting",
+      "stack": 1,
+      "subtitle": "{sortedCount} 個",
+      "posW": 120,
+      "posH": 200,
+      "shape": { "kind": "rect", "source": "{sortedCount}", "fillMax": 1200, "orient": "up", "fill": "#4e9dc4" }
+    },
+    {
+      "name": "北地区の車",
+      "kind": "dyn-rect",
+      "lane": "trucks",
+      "stack": 0,
+      "subtitle": "{northLoad} 個",
+      "posW": 200,
+      "posH": 100,
+      "shape": { "kind": "rect", "source": "{northLoad}", "fillMax": 500, "orient": "right", "fill": "#f97316" }
+    },
+    {
+      "name": "中央地区の車",
+      "kind": "dyn-rect",
+      "lane": "trucks",
+      "stack": 1,
+      "subtitle": "{centralLoad} 個",
+      "posW": 200,
+      "posH": 100,
+      "shape": { "kind": "rect", "source": "{centralLoad}", "fillMax": 500, "orient": "right", "fill": "#f97316" }
+    },
+    {
+      "name": "南地区の車",
+      "kind": "dyn-rect",
+      "lane": "trucks",
+      "stack": 2,
+      "subtitle": "{southLoad} 個",
+      "posW": 200,
+      "posH": 100,
+      "shape": { "kind": "rect", "source": "{southLoad}", "fillMax": 500, "orient": "right", "fill": "#f97316" }
+    }
+  ],
+  "flow": [
+    { "from": "入荷", "to": "仕分け", "label": "流す", "tone": "info" },
+    { "from": "仕分け", "to": "北地区の車", "label": "北へ", "tone": "info" },
+    { "from": "仕分け", "to": "中央地区の車", "label": "中央へ", "tone": "info" },
+    { "from": "仕分け", "to": "南地区の車", "label": "南へ", "tone": "info" }
+  ],
+  "states": {
+    "incomingCount": 0,
+    "sortedCount": 0,
+    "northLoad": 0,
+    "centralLoad": 0,
+    "southLoad": 0,
+    "processedCount": 0
+  },
+  "readouts": [
+    { "id": "processed", "kind": "countup", "source": "processedCount", "decimals": 0, "unit": " 個", "label": "仕分け済み" }
+  ],
+  "animation": [
+    {
+      "step": "入荷",
+      "duration": 1.5,
+      "focus": ["入荷"],
+      "tween": { "incomingCount": [0, 1200] },
+      "badge": "入荷",
+      "description": "入荷した荷物が 1200 個まで満ちる。"
+    },
+    {
+      "step": "仕分け",
+      "duration": 1.5,
+      "focus": ["入荷", "仕分け", "入荷 -> 仕分け"],
+      "tween": { "sortedCount": [0, 1200], "processedCount": [0, 1200] },
+      "badge": "仕分け",
+      "description": "入荷した荷物を仕分けへ流し、仕分け済みの数を数える。"
+    },
+    {
+      "step": "積み込み",
+      "duration": 1.5,
+      "focus": ["入荷", "仕分け", "北地区の車", "中央地区の車", "南地区の車", "入荷 -> 仕分け", "仕分け -> 北地区の車", "仕分け -> 中央地区の車", "仕分け -> 南地区の車"],
+      "tween": { "northLoad": [0, 350], "centralLoad": [0, 250], "southLoad": [0, 200] },
+      "badge": "積み込み",
+      "description": "仕分けた荷物を北、中央、南地区の 3 台へ途中まで積み込む。"
+    },
+    {
+      "step": "出発",
+      "duration": 1.5,
+      "focus": ["入荷", "仕分け", "北地区の車", "中央地区の車", "南地区の車", "入荷 -> 仕分け", "仕分け -> 北地区の車", "仕分け -> 中央地区の車", "仕分け -> 南地区の車"],
+      "tween": { "northLoad": [350, 500], "centralLoad": [250, 400], "southLoad": [200, 300] },
+      "badge": "出発",
+      "description": "北に 500 個、中央に 400 個、南に 300 個を積み、3 台が出発する。"
+    }
+  ]
+}`;
+
+export const sortParcelsByRegion = textDslToDiagram(sourceYaml__sortParcelsByRegion);
+
+export const subtitle__sortParcelsByRegion =
+  "入荷した荷物を仕分け、北・中央・南地区の車へ積み込む。";
