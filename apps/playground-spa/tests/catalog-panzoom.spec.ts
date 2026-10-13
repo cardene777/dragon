@@ -27,7 +27,7 @@ type 外枠 = { 左: number; 上: number; 幅: number; 高さ: number };
 test.use({ actionTimeout: 10_000, viewport: { width: 1440, height: 900 } });
 
 const 並び = ".catalog-preview-stage";
-const 並びの操作 = ".catalog-preview-actions";
+const 並びの操作 = ".catalog-option-strip .catalog-preview-actions";
 const 拡大 = ".cdl-modal-content";
 
 /** カーソルの下にあった図の点が、操作の後に同じ画面の位置に残っているとみなす距離 (px) */
