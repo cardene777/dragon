@@ -35,13 +35,14 @@ describe("見本帳の時間軸の形 (#2798)", () => {
       labelSize: { width: 96, height: 40, fontSize: 21 },
       labelOffsetY: 64,
     });
-    expect(presetDeliveryTimeline.edges.find((edge) => edge.label === "翌日もう一度")).toMatchObject({
+    const 戻り線 = presetDeliveryTimeline.edges.find((edge) => edge.label === "翌日もう一度");
+    expect(戻り線).toMatchObject({
       fromSide: "right",
       toSide: "right",
       labelCollision: "author",
       labelSize: { width: 162, height: 40, fontSize: 21 },
-      labelOffsetX: 20,
     });
+    expect(戻り線?.labelOffsetX).toBeUndefined();
     expect(presetDeliveryTimeline.nodes.find((node) => node.title === "持ち戻る")).toMatchObject({
       subtitlePlacement: "right",
     });
