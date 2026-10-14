@@ -1,0 +1,721 @@
+{
+  "version": 3,
+  "generatedFrom": "origin/main",
+  "pages": [
+    "presets",
+    "cookbook",
+    "patterns",
+    "primitives",
+    "text-dsl",
+    "animation",
+    "ethereum",
+    "charts",
+    "parts",
+    "styles",
+    "interactive"
+  ],
+  "figures": [
+    {
+      "page": "presets",
+      "itemId": "delivery-metro-demo",
+      "phaseCount": 4,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 224,
+      "referenceKinds": [
+        "路線"
+      ],
+      "evidence": [
+        "presets.cdl.ts の題「荷物を届ける路線」と match.json"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "荷物の状態",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 55,
+      "referenceKinds": [
+        "図表"
+      ],
+      "evidence": [
+        "charts.cdl.ts の pie 定義と match.json"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "営業所ごとの取扱数",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 31,
+      "referenceKinds": [
+        "図表"
+      ],
+      "evidence": [
+        "charts.cdl.ts の bar 定義の題と図表見本の棒"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "月ごとの配達数",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 10,
+      "referenceKinds": [
+        "図表"
+      ],
+      "evidence": [
+        "charts.cdl.ts の line 定義の題と図表見本の折れ線"
+      ]
+    },
+    {
+      "page": "presets",
+      "itemId": "delivery-stages-demo",
+      "phaseCount": 4,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 48,
+      "referenceKinds": [
+        "段箱"
+      ],
+      "evidence": [
+        "presets.cdl.ts の題「荷物を届ける段階」と match.json"
+      ]
+    },
+    {
+      "page": "presets",
+      "itemId": "delivery-timeline-demo",
+      "phaseCount": 3,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 52,
+      "referenceKinds": [
+        "時間軸"
+      ],
+      "evidence": [
+        "presets.cdl.ts の題「荷物を届ける順番」と match.json"
+      ]
+    },
+    {
+      "page": "presets",
+      "itemId": "delivery-flow-demo",
+      "phaseCount": 4,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 29,
+      "referenceKinds": [
+        "流れ"
+      ],
+      "evidence": [
+        "presets.cdl.ts の flowchart 定義と stage-theme-contract.test.ts"
+      ]
+    },
+    {
+      "page": "presets",
+      "itemId": "delivery-relations-demo",
+      "phaseCount": 7,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 92,
+      "referenceKinds": [
+        "関係"
+      ],
+      "evidence": [
+        "presets.cdl.ts の題「契約と荷物と配送状態の関係」"
+      ]
+    },
+    {
+      "page": "presets",
+      "itemId": "delivery-classes-demo",
+      "phaseCount": 4,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 13,
+      "referenceKinds": [
+        "型"
+      ],
+      "evidence": [
+        "presets.cdl.ts の題「荷物を運ぶ型」"
+      ]
+    },
+    {
+      "page": "presets",
+      "itemId": "delivery-components-demo",
+      "phaseCount": 3,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 21,
+      "referenceKinds": [
+        "構成"
+      ],
+      "evidence": [
+        "presets.cdl.ts の題「配送システムの部品」"
+      ]
+    },
+    {
+      "page": "presets",
+      "itemId": "delivery-sequence-demo",
+      "phaseCount": 7,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 47,
+      "referenceKinds": [
+        "順序"
+      ],
+      "evidence": [
+        "presets.cdl.ts の題「集荷から配達までの呼び出し順」"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "営業所の階層",
+      "phaseCount": 1,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 68,
+      "referenceKinds": [
+        "階層"
+      ],
+      "evidence": [
+        "charts.cdl.ts の tree 定義の題"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "再配達を減らす",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 39,
+      "referenceKinds": [
+        "階層"
+      ],
+      "evidence": [
+        "charts.cdl.ts の mind 定義の題"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "仕分け棚を入れ替える工程",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 40,
+      "referenceKinds": [
+        "工程"
+      ],
+      "evidence": [
+        "charts.cdl.ts の gantt 定義の題"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "荷主の気持ち",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 6,
+      "referenceKinds": [
+        "工程"
+      ],
+      "evidence": [
+        "charts.cdl.ts の journey 定義の題"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "申し込みから届くまで",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 26,
+      "referenceKinds": [
+        "数"
+      ],
+      "evidence": [
+        "charts.cdl.ts の funnel 定義の題"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "打ち手の手間と効き目",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 13,
+      "referenceKinds": [
+        "数"
+      ],
+      "evidence": [
+        "charts.cdl.ts の quadrant 定義の題"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "営業所ごとの定時率",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 21,
+      "referenceKinds": [
+        "数"
+      ],
+      "evidence": [
+        "charts.cdl.ts の slope 定義の題"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "定時に届いた割合",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 7,
+      "referenceKinds": [
+        "数"
+      ],
+      "evidence": [
+        "charts.cdl.ts の gauge 定義の題"
+      ]
+    },
+    {
+      "page": "charts",
+      "itemId": "配達の結果",
+      "phaseCount": 2,
+      "reason": "静的見本に対応する宅配の見本",
+      "newlyCoveredRules": 16,
+      "referenceKinds": [
+        "数"
+      ],
+      "evidence": [
+        "charts.cdl.ts の stacked 定義の題"
+      ]
+    },
+    {
+      "page": "patterns",
+      "itemId": "連なる形-6-表-5-関係",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 15,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "presets",
+      "itemId": "swim-demo",
+      "phaseCount": 3,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 7,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "presets",
+      "itemId": "flow-demo",
+      "phaseCount": 4,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 6,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "presets",
+      "itemId": "gantt-demo",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 5,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "charts",
+      "itemId": "荷物の大きさ",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 5,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "text-dsl",
+      "itemId": "箱の項目名を英語で書く",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 4,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "presets",
+      "itemId": "journey-demo",
+      "phaseCount": 3,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 2,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "text-dsl",
+      "itemId": "販路ごとの売上",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 2,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "presets",
+      "itemId": "funnel-demo",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 1,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "presets",
+      "itemId": "mind-demo",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 1,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "presets",
+      "itemId": "quad-demo",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 1,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "primitives",
+      "itemId": "k-cloud",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 1,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "text-dsl",
+      "itemId": "新しい画面を出すまで",
+      "phaseCount": 2,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 1,
+      "referenceKinds": [],
+      "evidence": []
+    },
+    {
+      "page": "styles",
+      "itemId": "矢印の先端の矢じり-5-形",
+      "phaseCount": 1,
+      "reason": "未命中の規則を最も多く増やす図",
+      "newlyCoveredRules": 1,
+      "referenceKinds": [],
+      "evidence": []
+    }
+  ],
+  "figuresWithoutCdlSvg": [
+    {
+      "page": "parts",
+      "itemId": "parts-coin-balance",
+      "stageSummary": {
+        "elementCount": 8,
+        "tagCounts": {
+          "div": 5,
+          "span": 3
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-countup",
+      "stageSummary": {
+        "elementCount": 8,
+        "tagCounts": {
+          "div": 5,
+          "span": 3
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-digital-clock",
+      "stageSummary": {
+        "elementCount": 8,
+        "tagCounts": {
+          "div": 5,
+          "span": 3
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-donut",
+      "stageSummary": {
+        "elementCount": 15,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "path": 4,
+          "title": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-donut-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-heartbeat",
+      "stageSummary": {
+        "elementCount": 13,
+        "tagCounts": {
+          "div": 6,
+          "span": 5,
+          "svg": 1,
+          "path": 1
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-sparkline-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-kpi-card",
+      "stageSummary": {
+        "elementCount": 10,
+        "tagCounts": {
+          "div": 6,
+          "span": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-multi-sparkline",
+      "stageSummary": {
+        "elementCount": 19,
+        "tagCounts": {
+          "div": 7,
+          "span": 6,
+          "svg": 3,
+          "path": 3
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-sparkline-svg",
+          "svg.cdl-ip-readout-sparkline-svg",
+          "svg.cdl-ip-readout-sparkline-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-notification",
+      "stageSummary": {
+        "elementCount": 11,
+        "tagCounts": {
+          "div": 9,
+          "span": 2
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-percent-ring",
+      "stageSummary": {
+        "elementCount": 10,
+        "tagCounts": {
+          "div": 5,
+          "span": 2,
+          "svg": 1,
+          "circle": 2
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-ring-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-price-card",
+      "stageSummary": {
+        "elementCount": 10,
+        "tagCounts": {
+          "div": 6,
+          "span": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-progress-long",
+      "stageSummary": {
+        "elementCount": 39,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "line": 2,
+          "g": 6,
+          "circle": 6,
+          "text": 12,
+          "title": 6
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-step-progress-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-radar",
+      "stageSummary": {
+        "elementCount": 26,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "polygon": 4,
+          "line": 5,
+          "circle": 5,
+          "text": 5
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-radar-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-sparkline",
+      "stageSummary": {
+        "elementCount": 9,
+        "tagCounts": {
+          "div": 5,
+          "span": 2,
+          "svg": 1,
+          "path": 1
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-sparkline-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-status-dot",
+      "stageSummary": {
+        "elementCount": 9,
+        "tagCounts": {
+          "div": 5,
+          "span": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-status-timeline-week",
+      "stageSummary": {
+        "elementCount": 35,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "g": 7,
+          "rect": 7,
+          "text": 14
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-status-timeline-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-step-progress",
+      "stageSummary": {
+        "elementCount": 29,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "line": 2,
+          "g": 4,
+          "circle": 4,
+          "text": 8,
+          "title": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-step-progress-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-timeline-strip",
+      "stageSummary": {
+        "elementCount": 23,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "g": 4,
+          "rect": 4,
+          "text": 8
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-status-timeline-svg"
+        ]
+      }
+    }
+  ],
+  "undrawableFigures": []
+}

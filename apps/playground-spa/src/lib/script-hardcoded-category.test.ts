@@ -51,6 +51,8 @@ const この検査 = "script-hardcoded-category.test.ts";
 const 例外: Record<string, string> = {
   "shoot-3vp.mjs":
     "分類の頁ではなく画面の種類を 3 通りの見え方で撮る道具で、分類の頁は見え方の代表として数件だけ載せている。 全分類に広げると撮る枚数が分類の数 x 3 倍になり、目視用の道具の長さを超える",
+  "theme-css-equivalence.mjs":
+    "走査する分類は catalog 画面から拾い、名指しする分類は静的見本の各頁へ対応する必須図と比較対象 CSS の置き場だけである",
 };
 
 /** 走査する道具 (`scripts/` の下にある `.mjs`) */
