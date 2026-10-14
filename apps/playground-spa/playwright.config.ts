@@ -77,7 +77,7 @@ const 重ねない検査 =
  * 待ちの上限だけでは「頁が壊れた」 と「server が古い」 を分けられない (#1998)。
  * 前に `開発serverの下ごしらえ` を置き、束ねの古さを直し方つきで出す。
  */
-const 開発serverの検査 = /row-bounds-offset\.spec\.ts$/;
+const 開発serverの検査 = /(row-bounds-offset|theme-css-equivalence)\.spec\.ts$/;
 
 /**
  * 開発 server を見る検査の下ごしらえ (#1998)。

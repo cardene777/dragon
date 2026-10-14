@@ -1,0 +1,742 @@
+{
+  "version": 3,
+  "totalRules": 961,
+  "coveredRules": 910,
+  "unmatchedRules": [
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:501:43",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "[data-cdl-role=\"lane-lifeline\"]",
+      "line": 501,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:554:48",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-type=\"er\"] [data-cdl-role=\"edge-line\"],\nsvg[data-cdl-stage][data-cdl-type=\"class\"] [data-cdl-role=\"edge-line\"]",
+      "line": 554,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:559:49",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-type=\"er\"] [data-cdl-active=\"true\"] [data-cdl-role=\"edge-line\"],\nsvg[data-cdl-stage][data-cdl-type=\"class\"] [data-cdl-active=\"true\"] [data-cdl-role=\"edge-line\"]",
+      "line": 559,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:3173:198",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"letterpress\"]\n  g:has(> [data-cdl-role=\"node-row-underline\"])\n  > [data-cdl-role=\"node-row-glyph\"][data-cdl-row-glyph$=\"-hollow\"]",
+      "line": 3173,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:3442:223",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"catalog\"] [data-cdl-role=\"lane-lifeline\"]",
+      "line": 3442,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:3461:227",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"catalog\"]\n  g:has(> [data-cdl-role=\"node-row-underline\"])\n  > [data-cdl-role=\"node-row-glyph\"][data-cdl-row-glyph$=\"-hollow\"]",
+      "line": 3461,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:3523:236",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"catalog\"]\n  [data-cdl-edge-label-for][data-cdl-edge-role=\"main\"]\n  > [data-cdl-role=\"edge-label-bg\"]",
+      "line": 3523,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:3609:248",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"terminal\"]\n  g:has(> [data-cdl-role=\"node-row-underline\"])\n  > [data-cdl-role=\"node-row-glyph\"][data-cdl-row-glyph$=\"-hollow\"]",
+      "line": 3609,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:3662:255",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"terminal\"]\n  [data-cdl-edge-label-for][data-cdl-edge-role=\"main\"]\n  > [data-cdl-role=\"edge-label-bg\"]",
+      "line": 3662,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:3777:270",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"sketch\"]\n  g:has(> [data-cdl-role=\"node-row-underline\"])\n  > [data-cdl-role=\"node-row-glyph\"][data-cdl-row-glyph$=\"-hollow\"]",
+      "line": 3777,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:3823:276",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"sketch\"]\n  [data-cdl-edge-label-for][data-cdl-edge-role=\"main\"]\n  > [data-cdl-role=\"edge-label-bg\"]",
+      "line": 3823,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:3941:289",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"neon\"]\n  g:has(> [data-cdl-role=\"node-row-underline\"])\n  > [data-cdl-role=\"node-row-glyph\"][data-cdl-row-glyph$=\"-hollow\"]",
+      "line": 3941,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4020:298",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"neon\"]\n  [data-cdl-edge-label-for][data-cdl-edge-role=\"main\"]\n  > [data-cdl-role=\"edge-label-bg\"]",
+      "line": 4020,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4027:299",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"neon\"]\n  [data-cdl-edge-label-for][data-cdl-edge-role=\"main\"]:has(> [data-cdl-role=\"edge-label-bg\"])\n  > [data-cdl-role=\"edge-label\"]",
+      "line": 4027,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4167:313",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"relief\"]\n  g:has(> [data-cdl-role=\"node-row-underline\"])\n  > [data-cdl-role=\"node-row-glyph\"][data-cdl-row-glyph$=\"-hollow\"]",
+      "line": 4167,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4220:320",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"relief\"]\n  [data-cdl-edge-label-for][data-cdl-edge-role=\"main\"]\n  > [data-cdl-role=\"edge-label-bg\"]",
+      "line": 4220,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4303:323",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette] [data-cdl-role=\"edge-flow\"] circle[r=\"12\"]",
+      "line": 4303,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4324:324",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette] [data-cdl-role=\"edge-flow\"] circle[r=\"28\"]",
+      "line": 4324,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4331:325",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette] [data-cdl-role=\"edge-flow\"] circle[r=\"18\"]",
+      "line": 4331,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4397:332",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing=\"metro\"])\n  [data-cdl-routing=\"metro\"][data-cdl-tone=\"error\"]\n  [data-cdl-mark=\"metro-return-arrow\"]",
+      "line": 4397,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4790:397",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage]:not([data-cdl-palette=\"sketch\"]) [data-cdl-corner-variant=\"handdraw\"]",
+      "line": 4790,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4791:398",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"sketch\"] [data-cdl-corner-variant=\"uniform\"]",
+      "line": 4791,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4792:399",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"sketch\"] [data-cdl-corner-variant=\"handdraw\"]",
+      "line": 4792,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4793:400",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"blueprint\"] [data-cdl-corner-variant=\"uniform\"],\nsvg[data-cdl-stage][data-cdl-palette=\"letterpress\"] [data-cdl-corner-variant=\"uniform\"],\nsvg[data-cdl-stage][data-cdl-palette=\"catalog\"] [data-cdl-corner-variant=\"uniform\"]",
+      "line": 4793,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4796:401",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"terminal\"] [data-cdl-corner-variant=\"uniform\"]",
+      "line": 4796,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4797:402",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"neon\"] [data-cdl-corner-variant=\"uniform\"]",
+      "line": 4797,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:4798:403",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"relief\"] [data-cdl-corner-variant=\"uniform\"]",
+      "line": 4798,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:5995:543",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage]:is([data-cdl-palette=\"blueprint\"], [data-cdl-palette=\"letterpress\"], [data-cdl-palette=\"catalog\"], [data-cdl-palette=\"terminal\"], [data-cdl-palette=\"sketch\"], [data-cdl-palette=\"neon\"], [data-cdl-palette=\"relief\"]) [data-cdl-kind=\"chart-stacked-bar\"] [data-cdl-role=\"legend-text\"]",
+      "line": 5995,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:6184:568",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-role=\"mind-edge\"][stroke*=\"--cdl-chart-1\"],\nsvg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-role=\"mind-leaf-underline\"][stroke*=\"--cdl-chart-1\"]",
+      "line": 6184,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:6191:569",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-role=\"mind-edge\"][stroke*=\"--cdl-chart-2\"],\nsvg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-role=\"mind-leaf-underline\"][stroke*=\"--cdl-chart-2\"]",
+      "line": 6191,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:6198:570",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-role=\"mind-edge\"][stroke*=\"--cdl-chart-3\"],\nsvg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-role=\"mind-leaf-underline\"][stroke*=\"--cdl-chart-3\"]",
+      "line": 6198,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:6205:571",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-role=\"mind-edge\"][stroke*=\"--cdl-chart-4\"],\nsvg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-role=\"mind-leaf-underline\"][stroke*=\"--cdl-chart-4\"]",
+      "line": 6205,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:6322:589",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"sketch\"] pattern#dragon-sketch-pen-primary",
+      "line": 6322,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:6327:590",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"sketch\"] pattern#dragon-sketch-pen-primary > rect",
+      "line": 6327,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7001:667",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"relief\"]\n  :is([data-cdl-role=\"chart-stacked-bar-slice\"], [data-cdl-role=\"funnel-proportional-bar\"])[fill*=\"--cdl-chart-4\"]",
+      "line": 7001,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7056:676",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette]\n  :is([data-cdl-role=\"chart-stacked-bar-slice\"], [data-cdl-role=\"funnel-proportional-bar\"])[fill*=\"--cdl-chart-4\"]",
+      "line": 7056,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7295:710",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-node=\"打ち手の手間と効き目-chart\"][data-cdl-kind=\"quadrant-matrix\"]\n  :is([data-cdl-role=\"quadrant-item\"], [data-cdl-role=\"quadrant-item-subtitle\"])",
+      "line": 7295,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7480:742",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage]:is(\n    [data-cdl-palette=\"blueprint\"],\n    [data-cdl-palette=\"letterpress\"],\n    [data-cdl-palette=\"catalog\"],\n    [data-cdl-palette=\"relief\"]\n  )\n  [data-cdl-kind=\"quadrant-matrix\"]:not([data-cdl-node=\"打ち手の手間と効き目-chart\"])\n  [data-cdl-role=\"quadrant-point-label\"]",
+      "line": 7480,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7522:747",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role=\"timeline-axis\"])\n  [data-cdl-mark=\"timeline-number\"]\n  [data-cdl-role=\"node-label\"]",
+      "line": 7522,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7738:776",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage]:is([data-cdl-palette=\"blueprint\"], [data-cdl-palette=\"letterpress\"])\n  :is([data-cdl-role=\"chart-bar-top\"], [data-cdl-role=\"chart-bar-bottom\"])",
+      "line": 7738,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7744:777",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"catalog\"] [data-cdl-role=\"chart-bar-top\"]",
+      "line": 7744,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7749:778",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"terminal\"] [data-cdl-role=\"chart-bar-top\"]",
+      "line": 7749,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7754:779",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"sketch\"] [data-cdl-role=\"chart-bar-top\"],\nsvg[data-cdl-stage][data-cdl-palette=\"neon\"] [data-cdl-role=\"chart-bar-top\"]",
+      "line": 7754,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7760:780",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"relief\"] [data-cdl-role=\"chart-bar-top\"]",
+      "line": 7760,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7765:781",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage]:is([data-cdl-palette=\"catalog\"], [data-cdl-palette=\"terminal\"])\n  [data-cdl-role=\"chart-bar-bottom\"]",
+      "line": 7765,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7771:782",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"sketch\"] [data-cdl-role=\"chart-bar-bottom\"]",
+      "line": 7771,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7776:783",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"neon\"] [data-cdl-role=\"chart-bar-bottom\"]",
+      "line": 7776,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:7781:784",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "svg[data-cdl-stage][data-cdl-palette=\"relief\"] [data-cdl-role=\"chart-bar-bottom\"]",
+      "line": 7781,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:8362:837",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "[data-cdl-diagram=\"delivery-components-demo\"]\n  svg[data-cdl-stage][data-cdl-palette]\n  [data-cdl-role=\"node-kind-icon\"][data-cdl-icon=\"terminal\"]\n  > rect",
+      "line": 8362,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:9313:951",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "[data-cdl-diagram=\"delivery-components-demo\"]\n  svg[data-cdl-stage]:is([data-cdl-palette=\"letterpress\"], [data-cdl-palette=\"sketch\"])\n  :is([data-cdl-role=\"figure-head-divider\"], [data-cdl-role=\"figure-footer-divider\"])",
+      "line": 9313,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    },
+    {
+      "id": "apps/playground-spa/src/styles/cdl-theme.css:9331:953",
+      "source": "apps/playground-spa/src/styles/cdl-theme.css",
+      "selector": "[data-cdl-diagram=\"delivery-components-demo\"]\n  svg[data-cdl-stage][data-cdl-palette=\"relief\"]\n  [data-cdl-role=\"figure-footer-divider\"]",
+      "line": 9331,
+      "reason": "描ける全図・全色味・明暗・全段のどれにも一致しない"
+    }
+  ],
+  "ignoredAtRules": [
+    {
+      "type": "keyframes",
+      "line": 2654
+    },
+    {
+      "type": "keyframes",
+      "line": 2663
+    },
+    {
+      "type": "keyframes",
+      "line": 2673
+    },
+    {
+      "type": "keyframes",
+      "line": 2685
+    },
+    {
+      "type": "keyframes",
+      "line": 2691
+    },
+    {
+      "type": "keyframes",
+      "line": 2700
+    },
+    {
+      "type": "keyframes",
+      "line": 2709
+    },
+    {
+      "type": "keyframes",
+      "line": 2719
+    },
+    {
+      "type": "keyframes",
+      "line": 2728
+    },
+    {
+      "type": "keyframes",
+      "line": 2752
+    },
+    {
+      "type": "keyframes",
+      "line": 2761
+    },
+    {
+      "type": "keyframes",
+      "line": 2771
+    },
+    {
+      "type": "keyframes",
+      "line": 4257
+    },
+    {
+      "type": "keyframes",
+      "line": 4269
+    }
+  ],
+  "ignoredTypes": [
+    "font-face",
+    "keyframes"
+  ],
+  "figuresWithoutCdlSvg": [
+    {
+      "page": "parts",
+      "itemId": "parts-coin-balance",
+      "stageSummary": {
+        "elementCount": 8,
+        "tagCounts": {
+          "div": 5,
+          "span": 3
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-countup",
+      "stageSummary": {
+        "elementCount": 8,
+        "tagCounts": {
+          "div": 5,
+          "span": 3
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-digital-clock",
+      "stageSummary": {
+        "elementCount": 8,
+        "tagCounts": {
+          "div": 5,
+          "span": 3
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-donut",
+      "stageSummary": {
+        "elementCount": 15,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "path": 4,
+          "title": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-donut-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-heartbeat",
+      "stageSummary": {
+        "elementCount": 13,
+        "tagCounts": {
+          "div": 6,
+          "span": 5,
+          "svg": 1,
+          "path": 1
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-sparkline-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-kpi-card",
+      "stageSummary": {
+        "elementCount": 10,
+        "tagCounts": {
+          "div": 6,
+          "span": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-multi-sparkline",
+      "stageSummary": {
+        "elementCount": 19,
+        "tagCounts": {
+          "div": 7,
+          "span": 6,
+          "svg": 3,
+          "path": 3
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-sparkline-svg",
+          "svg.cdl-ip-readout-sparkline-svg",
+          "svg.cdl-ip-readout-sparkline-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-notification",
+      "stageSummary": {
+        "elementCount": 11,
+        "tagCounts": {
+          "div": 9,
+          "span": 2
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-percent-ring",
+      "stageSummary": {
+        "elementCount": 10,
+        "tagCounts": {
+          "div": 5,
+          "span": 2,
+          "svg": 1,
+          "circle": 2
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-ring-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-price-card",
+      "stageSummary": {
+        "elementCount": 10,
+        "tagCounts": {
+          "div": 6,
+          "span": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-progress-long",
+      "stageSummary": {
+        "elementCount": 39,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "line": 2,
+          "g": 6,
+          "circle": 6,
+          "text": 12,
+          "title": 6
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-step-progress-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-radar",
+      "stageSummary": {
+        "elementCount": 26,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "polygon": 4,
+          "line": 5,
+          "circle": 5,
+          "text": 5
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-radar-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-sparkline",
+      "stageSummary": {
+        "elementCount": 9,
+        "tagCounts": {
+          "div": 5,
+          "span": 2,
+          "svg": 1,
+          "path": 1
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-sparkline-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-status-dot",
+      "stageSummary": {
+        "elementCount": 9,
+        "tagCounts": {
+          "div": 5,
+          "span": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": []
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-status-timeline-week",
+      "stageSummary": {
+        "elementCount": 35,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "g": 7,
+          "rect": 7,
+          "text": 14
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-status-timeline-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-step-progress",
+      "stageSummary": {
+        "elementCount": 29,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "line": 2,
+          "g": 4,
+          "circle": 4,
+          "text": 8,
+          "title": 4
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-step-progress-svg"
+        ]
+      }
+    },
+    {
+      "page": "parts",
+      "itemId": "parts-timeline-strip",
+      "stageSummary": {
+        "elementCount": 23,
+        "tagCounts": {
+          "div": 5,
+          "span": 1,
+          "svg": 1,
+          "g": 4,
+          "rect": 4,
+          "text": 8
+        },
+        "topLevel": [
+          "div.catalog-preview-stage-inner"
+        ],
+        "svgElements": [
+          "svg.cdl-ip-readout-status-timeline-svg"
+        ]
+      }
+    }
+  ],
+  "undrawableFigures": []
+}

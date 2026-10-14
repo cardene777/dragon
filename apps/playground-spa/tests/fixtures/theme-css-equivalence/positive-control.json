@@ -1,0 +1,16 @@
+{
+  "description": "図面の通常の棒だけ、枠を青灰から赤へ変える",
+  "file": "apps/playground-spa/src/styles/cdl-theme.css",
+  "search": "stroke: #6a8596 !important;",
+  "replacement": "stroke: #ff0000 !important;",
+  "figure": {
+    "page": "charts",
+    "itemId": "営業所ごとの取扱数"
+  },
+  "palette": "blueprint",
+  "expected": {
+    "elementAttribute": "data-cdl-role",
+    "elementValue": "chart-bar",
+    "property": "stroke"
+  }
+}
