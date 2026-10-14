@@ -97,6 +97,19 @@ function lastRuleBody(selector: string): string {
   return body;
 }
 
+function ruleBodyContaining(fragments: string[]): string {
+  const bodies = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap((match) => {
+    const selector = (match[1] ?? "").replace(/\s+/g, " ");
+    const body = match[2] ?? "";
+    const rule = `${selector} ${body}`;
+    return fragments.every((fragment) => rule.includes(fragment)) ? [body] : [];
+  });
+  if (bodies.length !== 1) {
+    throw new Error(`${fragments.join(" + ")} を持つ CSS 規則が ${bodies.length} 件ある`);
+  }
+  return bodies[0]!;
+}
+
 function declaration(body: string, property: string): string {
   const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const value = new RegExp(`(?:^|;)\\s*${escaped}\\s*:\\s*([^;]+)`, "m").exec(body)?.[1]?.trim();
@@ -261,7 +274,15 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
   });
 
   it("全図共通の太さ 7 を残し、段の箱の主役・枝・強調中・済んだ線を 5 にする", () => {
-    expect(declaration(ruleBody('[data-cdl-role="edge-line"]'), "stroke-width")).toBe("7 !important");
+    expect(declaration(ruleBody('[data-cdl-role="edge-line"]'), "stroke-width")).toBe(
+      "var(--dragon-theme-line-width, 7) !important",
+    );
+    for (const palette of fixedPaletteNames) {
+      expect(
+        declaration(ruleBody(`svg[data-cdl-stage][data-cdl-palette="${palette}"]`), "--dragon-theme-line-width"),
+        palette,
+      ).toBe("7");
+    }
 
     const selector = `${fixedStages} [data-cdl-role="edge-line"]`;
     expect(declaration(ruleBody(selector), "stroke-width")).toBe("5 !important");
@@ -271,6 +292,25 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     expect(selector).not.toContain("data-cdl-active");
     expect(selector).not.toContain("stroke-dasharray");
   });
+
+  it.each([
+    ["blueprint", "12px", "1", "2.25", "1"],
+    ["letterpress", "12px", "1.5", "3", "2.5"],
+    ["catalog", "12px", "1", "2", "1"],
+    ["terminal", "6px", "1", "1.5", "1"],
+    ["sketch", "16px", "2", "3", "1"],
+    ["neon", "16px", "2", "3", "1"],
+    ["relief", "22px", "0", "0", "1"],
+  ] as const)(
+    "%s の角・箱の枠・強調中の枠・項目の区切り線の太さを表に持つ",
+    (palette, radius, frame, selectedFrame, divider) => {
+      const body = ruleBody(`svg[data-cdl-stage][data-cdl-palette="${palette}"]`);
+      expect(declaration(body, "--dragon-theme-box-radius")).toBe(radius);
+      expect(declaration(body, "--dragon-theme-box-frame-width")).toBe(frame);
+      expect(declaration(body, "--dragon-theme-selected-box-frame-width")).toBe(selectedFrame);
+      expect(declaration(body, "--dragon-theme-row-divider-width")).toBe(divider);
+    },
+  );
 
   it("戻る点線を太さ 6 の丸い点へ替える", () => {
     const body = ruleBody(
@@ -316,9 +356,12 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
   );
 
   it("凡例の枠と曲線は印色を、点線は戻り線色を読む", () => {
-    const palette = ruleBody('svg[data-cdl-stage][data-cdl-palette]');
-    expect(declaration(palette, "--d-text-primary")).toBe("var(--er-ink)");
-    expect(declaration(palette, "--cdl-text-mute")).toBe("var(--er-type)");
+    const palette = ruleBodyContaining([
+      'svg[data-cdl-stage][data-cdl-palette]:not(',
+      "--dragon-edge-tone: var(--dragon-theme-line)",
+    ]);
+    expect(declaration(palette, "--d-text-primary")).toBe("var(--dragon-theme-text)");
+    expect(declaration(palette, "--cdl-text-mute")).toBe("var(--dragon-theme-muted-text)");
 
     const legend = ruleBody(
       'svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="legend"]',
@@ -453,9 +496,14 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     const palette = ruleBody('svg[data-cdl-stage][data-cdl-palette="relief"]');
     expect(declaration(palette, "--er-line")).toBe("#c4573c");
     expect(declaration(palette, "--theme-lead")).toBe("#c4573c");
-    expect(
-      declaration(ruleBody("svg[data-cdl-stage][data-cdl-palette]"), "--dragon-edge-tone"),
-    ).toBe("var(--er-line)");
+    expect(declaration(palette, "--dragon-theme-line")).toBe("var(--er-line)");
+    expect(declaration(
+      ruleBodyContaining([
+        'svg[data-cdl-stage][data-cdl-palette]:not(',
+        "--dragon-edge-tone: var(--dragon-theme-line)",
+      ]),
+      "--dragon-edge-tone",
+    )).toBe("var(--dragon-theme-line)");
     const line = ruleBody('[data-cdl-role="edge-line"]');
     expect(declaration(line, "stroke")).toBe(
       "var(--dragon-edge-tone, var(--d-text-secondary)) !important",

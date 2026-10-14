@@ -9,27 +9,10 @@
     animation: none !important;
   }
 
-  svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge] {
-    animation: none !important;
-  }
-
-  /* 端末の線も箱と別の現れ方を持つため、動きを減らす時は明示して止める (#2793)。 */
-  svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-edge] {
-    animation: none !important;
-  }
-
-  /* 手描きの線も箱を描いた後に現れるため、動きを減らす時は明示して止める (#2794)。 */
-  svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-edge] {
-    animation: none !important;
-  }
-
-  /* 電飾の線も箱が点き終えた後に流れるため、動きを減らす時は明示して止める (#2795)。 */
-  svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-edge] {
-    animation: none !important;
-  }
-
-  /* 浮彫の線も箱が浮き出た後に引かれるため、動きを減らす時は明示して止める (#2796)。 */
-  svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-edge] {
-    animation: none !important;
+  /* 意匠の名前ではなく、値の表が持つ動きの止め方を読む。 */
+  svg[data-cdl-stage][data-cdl-palette]:not(
+      :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+    ) [data-cdl-edge] {
+    animation: var(--dragon-theme-edge-motion) !important;
   }
 }

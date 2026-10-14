@@ -12,16 +12,13 @@ const css = readFileSync(
   "utf8",
 ).replace(/\/\*[\s\S]*?\*\//g, "");
 
-/** 変数名は実装から導く。意匠を足すたびに検査側の一覧を書き直さない (#2790)。 */
-function fixedVariableNames(): string[] {
-  const root = /:root\s*\{([^{}]*)\}/.exec(css)?.[1] ?? "";
-  const cdl = [...root.matchAll(/(--cdl-[\w-]+)\s*:/g)]
-    .map((m) => m[1]!)
-    .filter((name) => !name.startsWith("--cdl-thumbnail-"));
-  const d = [...css.matchAll(/var\((--d-[\w-]+)/g)]
-    .map((m) => m[1]!)
-    .filter((name) => name !== "--d-body");
-  return [...new Set([...cdl, ...d])].sort();
+/** 明暗で不変であるべき値は、意匠ごとの値表が宣言した共通の役から導く。 */
+function fixedVariableNames(name: string): string[] {
+  const selector = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
+  const body = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .find((match) => (match[1] ?? "").trim() === selector &&
+      /--dragon-theme-ground\s*:/.test(match[2] ?? ""))?.[2] ?? "";
+  return [...body.matchAll(/(--dragon-theme-[\w-]+)\s*:/g)].map((match) => match[1]!);
 }
 
 const er = EDITOR_SAMPLES.find((sample) => sample.slug === "er");
@@ -75,7 +72,7 @@ for (const note of fixedThemes()) {
   });
 
   test(`${note.name} dark-ground: 舞台内で図が読む変数は明暗で全て同じ`, async ({ page }) => {
-    const names = fixedVariableNames();
+    const names = fixedVariableNames(note.name);
     expect(names.length, "固定を調べる変数を 1 件も導けていない").toBeGreaterThan(0);
     const read = async (dark: boolean): Promise<Record<string, string>> => {
       await open(page, source(note.name), dark);
