@@ -78,12 +78,12 @@ const TEXT_BACKGROUNDS = ["ground", "face", "stripe"] as const;
 const CARD_TEXT_BACKGROUNDS = ["face", "stripe"] as const;
 const FIXED_TIMELINE_STAGE_SELECTOR = 'svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])';
 const LABEL_TONES = {
-  accent: "one",
-  info: "one",
-  success: "two",
-  teal: "three",
-  error: "three",
-  warning: "three",
+  accent: { note: "one", role: "line" },
+  info: { note: "one", role: "line" },
+  success: { note: "two", role: "link" },
+  teal: { note: "three", role: "own" },
+  error: { note: "three", role: "own" },
+  warning: { note: "three", role: "own" },
 } as const;
 
 function cssThemes(cssText: string): Map<string, CssTheme> {
@@ -96,6 +96,8 @@ function cssThemes(cssText: string): Map<string, CssTheme> {
     const body = m[2] ?? "";
     const named = /\[data-cdl-palette="([^"]+)"\]/.exec(selector);
     if (!named?.[1]) continue;
+    const ports = [...body.matchAll(/--er-([a-z-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)];
+    if (ports.length === 0) continue;
     const theme = out.get(named[1]) ?? {
       light: new Map<ThemePort, string>(),
       dark: new Map<ThemePort, string>(),
@@ -104,7 +106,7 @@ function cssThemes(cssText: string): Map<string, CssTheme> {
     const dark = selector.includes("html.dark");
     if (dark) theme.hasDarkBlock = true;
     const side = dark ? theme.dark : theme.light;
-    for (const value of body.matchAll(/--er-([a-z-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) {
+    for (const value of ports) {
       const port = value[1] as ThemePort | undefined;
       if (port && THEME_PORTS.includes(port)) side.set(port, value[2]!.toLowerCase());
     }
@@ -206,15 +208,16 @@ function cssFixedThemeDeclarations(cssText: string, themeName: string): Map<stri
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
   const declarations = new Map<string, string>();
   const namedStage = `svg[data-cdl-stage][data-cdl-palette="${themeName}"]`;
-  const sharedStage = "svg[data-cdl-stage][data-cdl-palette]";
   for (const m of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
     const selector = m[1] ?? "";
-    const applies = selector.split(",").some((part) => {
-      const exact = part.trim();
-      return exact === namedStage || exact === sharedStage;
-    });
+    const body = m[2] ?? "";
+    const named = selector.split(",").some((part) => part.trim() === namedStage);
+    const shared =
+      selector.includes("svg[data-cdl-stage][data-cdl-palette]:not(") &&
+      body.includes("--cdl-canvas-bg: var(--dragon-theme-ground)");
+    const applies = named || shared;
     if (!applies) continue;
-    for (const value of (m[2] ?? "").matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)\s*;/gi)) {
+    for (const value of body.matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+)\s*;/gi)) {
       const property = value[1];
       const declaration = value[2];
       if (!property || !declaration) throw new Error(`${themeName} の CSS 宣言を読めない`);
@@ -413,35 +416,6 @@ function compareGanttCss(
   return failures;
 }
 
-/** 色みと主役の札が継承する、意匠ごとの字の決まり。 */
-function fixedLabelTextBody(
-  cssText: string,
-  stage: string,
-  themeName: string,
-  tone: string,
-  main = false,
-): string {
-  if (themeName === "neon") {
-    const selector = main
-      ? `${stage} [data-cdl-edge-label-for][data-cdl-edge-role="main"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"]`
-      : `${stage} [data-cdl-edge-label-for][data-cdl-tone="${tone}"]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"]`;
-    return cssRuleBody(cssText, selector);
-  }
-  if (themeName === "terminal") {
-    return cssRuleBody(
-      cssText,
-      `${stage} g:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"]`,
-    );
-  }
-  if (themeName === "sketch") {
-    return cssRuleBody(cssText, `${stage} [data-cdl-role="edge-label"]`);
-  }
-  return cssRuleBody(
-    cssText,
-    `${stage} [data-cdl-edge-label-for][data-cdl-tone]:has(> [data-cdl-role="edge-label-bg"]) > [data-cdl-role="edge-label"]`,
-  );
-}
-
 function fixedTextToneContrast(cssText: string): { checked: number; failures: string[] } {
   const failures: string[] = [];
   let checked = 0;
@@ -491,57 +465,39 @@ function compareFrameOpacity(
   expected: Map<DslTheme, number>,
 ): { checked: number; failures: string[] } {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-  const blocks: Array<{ names: Set<string>; value: number | null }> = [];
+  const blocks: string[] = [];
   for (const match of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
     const selector = match[1] ?? "";
     const body = match[2] ?? "";
     if (!selector.includes('[data-cdl-role="node-body"]') || !/stroke-opacity\s*:/.test(body)) continue;
-    const names = new Set(
-      [...selector.matchAll(/\[data-cdl-palette="([^"]+)"\]/g)]
-        .map((name) => name[1])
-        .filter((name): name is string => name !== undefined),
-    );
-    const value = /stroke-opacity\s*:\s*(\d+(?:\.\d+)?)\s*!important\b/.exec(body)?.[1];
-    blocks.push({ names, value: value === undefined ? null : Number(value) });
+    blocks.push(body);
   }
 
   const failures: string[] = [];
   if (blocks.length !== 1) {
     failures.push(`枠の濃さの決まりは ${blocks.length} か所ある (1 か所に寄せる)`);
   }
-  for (const block of blocks) {
-    if (block.names.size === 0) {
-      failures.push("枠の濃さの決まりに意匠の名前が無く、全ての意匠の枠を変えてしまう");
+  if (blocks.length === 1 && !/stroke-opacity\s*:\s*var\(--dragon-theme-box-frame-opacity\)\s*!important\b/.test(blocks[0]!)) {
+    failures.push("枠の濃さの決まりが表の --dragon-theme-box-frame-opacity を読んでいない");
+  }
+
+  let checked = 0;
+  for (const [name, want] of expected) {
+    const value = cssFixedThemeDeclarations(cssText, name).get("dragon-theme-box-frame-opacity");
+    if (value === undefined) {
+      failures.push(`足りない名前: ${name} (--dragon-theme-box-frame-opacity が無い)`);
+      continue;
+    }
+    const actual = /^\d+(?:\.\d+)?$/.test(value) ? Number(value) : null;
+    checked += 1;
+    if (actual === null) {
+      failures.push(`${name}: --dragon-theme-box-frame-opacity が数ではない`);
+    } else if (actual !== want) {
+      failures.push(`${name}: 枠の濃さは意匠帳 ${want} / CSS ${actual}`);
     }
   }
 
-  const actualNames = new Set(blocks.flatMap((block) => [...block.names]));
-  const expectedNames = new Set(expected.keys());
-  const missing = [...expectedNames].filter((name) => !actualNames.has(name));
-  const extra = [...actualNames].filter((name) => !expectedNames.has(name as DslTheme));
-  if (missing.length > 0 || extra.length > 0) {
-    failures.push(
-      `枠の濃さの意匠が意匠帳と違う (足りない名前: ${missing.join(" / ") || "なし"}; ` +
-      `余計な名前: ${extra.join(" / ") || "なし"})`,
-    );
-  }
-
-  for (const block of blocks) {
-    for (const name of block.names) {
-      const want = expected.get(name as DslTheme);
-      if (want === undefined) continue;
-      if (block.value === null) {
-        failures.push(`${name}: stroke-opacity が「数 !important」ではない`);
-      } else if (block.value !== want) {
-        failures.push(`${name}: 枠の濃さは意匠帳 ${want} / CSS ${block.value}`);
-      }
-    }
-  }
-
-  return {
-    checked: [...expectedNames].filter((name) => actualNames.has(name)).length,
-    failures,
-  };
+  return { checked, failures };
 }
 
 function compare(notes: Map<DslTheme, ThemeNote>, css: Map<string, CssTheme>): { count: number; mismatch: string[] } {
@@ -899,45 +855,30 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(result.mismatch.some((line) => line.includes("blueprint.ground"))).toBe(true);
   });
 
-  it("5 意匠の札は色みと主役の属性で意匠帳の一・二・三を塗る", () => {
+  it("5 意匠の札は色みと主役の属性で意匠帳の線・向きだけ・所有を塗る", () => {
     const expected = readFixedThemeLabelToneStyles();
     const failures: string[] = [];
     for (const [name, style] of expected) {
       const declarations = cssFixedThemeDeclarations(cssText, name);
-      const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
-      const property = style.paint;
-      for (const [tone, group] of Object.entries(LABEL_TONES)) {
-        const backgroundSelector = `${stage} [data-cdl-edge-label-for][data-cdl-tone="${tone}"] > [data-cdl-role="edge-label-bg"]`;
-        const backgroundBody = cssRuleBody(cssText, backgroundSelector);
-        const textBody = fixedLabelTextBody(cssText, stage, name, tone);
-        const paint = resolveCssColor(declarations, cssVariableName(cssDeclaration(backgroundBody, property)));
-        if (paint !== style[group]) failures.push(`${name}/${tone} ${property}: 意匠帳 ${style[group]} / CSS ${paint}`);
-        const ink = resolveCssColor(declarations, cssVariableName(cssDeclaration(textBody, "fill")));
-        const expectedInk = style.inkMode === "tone" ? style[group] : style.ink;
+      for (const [tone, { note, role }] of Object.entries(LABEL_TONES)) {
+        const paintRole = `dragon-theme-tag-${role}-${style.paint === "fill" ? "fill" : "frame"}`;
+        const paint = resolveCssColor(declarations, paintRole);
+        if (paint !== style[note]) failures.push(`${name}/${tone} ${style.paint}: 意匠帳 ${style[note]} / CSS ${paint}`);
+        const ink = resolveCssColor(declarations, `dragon-theme-tag-${role}-text`);
+        const expectedInk = style.inkMode === "tone" ? style[note] : style.ink;
         if (ink !== expectedInk) failures.push(`${name}/${tone} 字: 意匠帳 ${expectedInk} / CSS ${ink}`);
         if (name === "neon") {
-          const glow = resolveCssColor(
-            declarations,
-            cssVariableName(cssDeclaration(backgroundBody, "--neon-tag-glow")),
-          );
-          if (glow !== style[group]) failures.push(`${name}/${tone} 光: 意匠帳 ${style[group]} / CSS ${glow}`);
+          const glow = resolveCssColor(declarations, `dragon-theme-tag-${role}-frame`);
+          if (glow !== style[note]) failures.push(`${name}/${tone} 光: 意匠帳 ${style[note]} / CSS ${glow}`);
         }
       }
 
-      const mainBackground = `${stage} [data-cdl-edge-label-for][data-cdl-edge-role="main"] > [data-cdl-role="edge-label-bg"]`;
-      const mainBody = cssRuleBody(cssText, mainBackground);
-      const mainPaint = resolveCssColor(declarations, cssVariableName(cssDeclaration(mainBody, property)));
-      if (mainPaint !== style.one) failures.push(`${name}/main ${property}: 意匠帳 ${style.one} / CSS ${mainPaint}`);
-      const mainInk = resolveCssColor(
-        declarations,
-        cssVariableName(cssDeclaration(fixedLabelTextBody(cssText, stage, name, "accent", true), "fill")),
-      );
+      const mainPaintRole = `dragon-theme-tag-line-${style.paint === "fill" ? "fill" : "frame"}`;
+      const mainPaint = resolveCssColor(declarations, mainPaintRole);
+      if (mainPaint !== style.one) failures.push(`${name}/main ${style.paint}: 意匠帳 ${style.one} / CSS ${mainPaint}`);
+      const mainInk = resolveCssColor(declarations, "dragon-theme-tag-line-text");
       const expectedMainInk = style.inkMode === "tone" ? style.one : style.ink;
       if (mainInk !== expectedMainInk) failures.push(`${name}/main 字: 意匠帳 ${expectedMainInk} / CSS ${mainInk}`);
-      const lastToneSelector = `${stage} [data-cdl-edge-label-for][data-cdl-tone="warning"]`;
-      if (cssText.indexOf(mainBackground) < cssText.indexOf(lastToneSelector)) {
-        failures.push(`${name}: 主役の札の決まりが色みの決まりより前にある`);
-      }
     }
     expect(expected.size).toBe(5);
     expect(failures, "札の意味属性と意匠帳が違う").toEqual([]);
@@ -1262,16 +1203,15 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     expect(cssText).not.toContain('fill-opacity="1"');
   });
 
-  it("意匠帳の図録の一の札を書き換えると CSS との不一致を検知する", () => {
+  it("意匠帳の図録の線の札を書き換えると CSS との不一致を検知する", () => {
     const original = readThemeNoteText("catalog");
     const changed = original.replace("一 `#dca443`", "一 `#ffffff`");
     expect(changed, "札の変異を本文へ植え込めていない").not.toBe(original);
     const expected = readFixedThemeLabelToneStyles({ catalog: changed }).get("catalog");
     if (!expected) throw new Error("図録の札を読めない");
-    const selector = 'svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-edge-label-for][data-cdl-tone="accent"] > [data-cdl-role="edge-label-bg"]';
     const actual = resolveCssColor(
       cssFixedThemeDeclarations(cssText, "catalog"),
-      cssVariableName(cssDeclaration(cssRuleBody(cssText, selector), "fill")),
+      "dragon-theme-tag-line-fill",
     );
     expect(actual).not.toBe(expected.one);
   });
@@ -1436,10 +1376,10 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     ).toBe(true);
   });
 
-  it("枠の濃さの決まりから図面を外すと名前の不足を検知する", () => {
+  it("枠の濃さの表から図面の値を外すと名前の不足を検知する", () => {
     const changed = cssText.replace(
-      /\[data-cdl-palette="blueprint"\]\s*,\s*(?=\[data-cdl-palette="letterpress"\])/g,
-      "",
+      /(svg\[data-cdl-stage\]\[data-cdl-palette="blueprint"\]\s*\{[\s\S]*?)\n\s*--dragon-theme-box-frame-opacity:\s*1;/,
+      "$1",
     );
     expect(changed, "図面を外す変異を CSS へ植え込めていない").not.toBe(cssText);
 

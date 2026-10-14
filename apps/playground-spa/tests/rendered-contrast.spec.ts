@@ -702,10 +702,14 @@ test.describe("edge label の描画対比 (#977)", () => {
        * 忘れる形が通る。 下で「どの名前も明暗の両方で同じ 7 つを定義していること」 を見る。
        */
       const 塊 = [...規則だけ全部.matchAll(/([^{}]*)\{([^{}]*)\}/g)];
+      const 名前で選ぶ = (selector: string): RegExpExecArray | null => {
+        const 外す側を除いた選択子 = selector.replace(/:not\(\s*:where\([^)]*\)\s*\)/g, "");
+        return /\[data-cdl-palette="([^"]+)"\]/.exec(外す側を除いた選択子);
+      };
       for (const m of 塊) {
         const sel = m[1] ?? "";
         const body = m[2] ?? "";
-        const 名前 = /\[data-cdl-palette="([^"]+)"\]/.exec(sel);
+        const 名前 = 名前で選ぶ(sel);
         if (!名前) continue;
         const 明暗 = sel.includes("html.dark") ? "暗" : "明";
         const 口 = new Set(
@@ -719,7 +723,7 @@ test.describe("edge label の描画対比 (#977)", () => {
         配色.set(名前[1]!, 表);
       }
       const 規則だけ = 塊
-        .filter((m) => !/\[data-cdl-palette="[^"]+"\]/.test(m[1] ?? ""))
+        .filter((m) => 名前で選ぶ(m[1] ?? "") === null)
         .map((m) => m[0])
         .join("\n");
       const n = (規則だけ.match(/html\.dark/g) ?? []).length;
@@ -1026,16 +1030,19 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
         `${note.name} の決まりを外す前から箱の枠が落ちている`,
       ).toEqual([]);
 
-      const removed = await page.evaluate((theme) => {
+      const removed = await page.evaluate(() => {
         const removeFrom = (rules: CSSRuleList): number => {
           let count = 0;
           for (const rule of rules) {
             if (
               rule instanceof CSSStyleRule &&
-              rule.selectorText.includes("node-body") &&
-              rule.selectorText.includes(theme) &&
-              rule.style.getPropertyValue("stroke-opacity") !== ""
+              rule.selectorText.includes('[data-cdl-role="node-body"]') &&
+              rule.style
+                .getPropertyValue("stroke-opacity")
+                .includes("var(--dragon-theme-box-frame-opacity)")
             ) {
+              // 共通の宣言は全意匠から外れるが、この頁に開く図は検査中の意匠だけなので、
+              // 測る対象は「その意匠で枠の濃さの決まりが無い時」のまま変わらない。
               rule.style.removeProperty("stroke-opacity");
               count += 1;
             }
@@ -1047,7 +1054,7 @@ test.describe("固定の意匠 × 図種 (#2790)", () => {
         let count = 0;
         for (const sheet of document.styleSheets) count += removeFrom(sheet.cssRules);
         return count;
-      }, note.name);
+      });
       expect(removed, `${note.name} の枠の濃さの決まりを見つけられない`).toBeGreaterThanOrEqual(1);
 
       const after = await checkBoxAndLineContrast(page, target.stage, target.type, "明", note, lead);

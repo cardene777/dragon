@@ -382,8 +382,17 @@ describe("固定の 7 意匠の流れ図を見本の線と札で描く (#2835)",
 
   it("全図共通の太さ 7 を残し、主役と枝を 5、戻る点線を 6 にする", () => {
     expect(declaration(ruleBody('[data-cdl-role="edge-line"]'), "stroke-width")).toBe(
-      "7 !important",
+      "var(--dragon-theme-line-width, 7) !important",
     );
+    for (const { palette } of palettes) {
+      expect(
+        declaration(
+          ruleBody(`svg[data-cdl-stage][data-cdl-palette="${palette}"]`),
+          "--dragon-theme-line-width",
+        ),
+        palette,
+      ).toBe("7");
+    }
     expect(
       declaration(ruleBody(`${fixedFlowcharts} [data-cdl-role="edge-line"]`), "stroke-width"),
     ).toBe("5 !important");
