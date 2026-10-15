@@ -1078,6 +1078,43 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --dragon-chart-decision-frame: #143a52;
   --dragon-chart-decision-frame-width: 1.5px;
   --dragon-stage-detail-card-frame-width: var(--theme-stage-frame-width);
+  --dragon-delivery-relation-state: #a8431f;
+  --dragon-delivery-relation-use: #1f7a6b;
+  --dragon-delivery-warning: var(--er-own);
+  --dragon-delivery-tag-frame-width: 1px;
+  --dragon-delivery-terminal-tag-text: var(--er-ground);
+  --dragon-delivery-row-well-effect: none;
+  --dragon-delivery-row-glyph-radius: 0;
+  --dragon-delivery-lane-fill: none;
+  --dragon-delivery-lane-frame: var(--er-frame);
+  --dragon-delivery-lane-frame-width: 1px;
+  --dragon-delivery-lane-dash: none;
+  --dragon-delivery-lane-effect: none;
+  --dragon-delivery-body-frame-width: 1px;
+  --dragon-delivery-focus-frame-width: var(--dragon-theme-selected-box-frame-width);
+  --dragon-delivery-focus-effect: none;
+  --dragon-delivery-cyan-frame: var(--er-link);
+  --dragon-delivery-cyan-effect: none;
+  --dragon-delivery-violet-frame: var(--er-own);
+  --dragon-delivery-violet-effect: none;
+  --dragon-delivery-own-effect: none;
+  --dragon-delivery-divider-width: 1px;
+  --dragon-delivery-group-divider: none;
+  --dragon-delivery-group-divider-width: 0;
+  --dragon-delivery-sequence-label-radius: 0;
+  --dragon-delivery-sequence-band-fill: color-mix(in srgb, var(--er-line) 12%, transparent);
+  --dragon-delivery-sequence-band-frame: var(--er-type);
+  --dragon-delivery-sequence-band-frame-width: 1.5px;
+  --dragon-delivery-sequence-band-radius: 0;
+  --dragon-delivery-sequence-band-effect: none;
+  --dragon-delivery-sequence-thread: var(--er-type);
+  --dragon-delivery-sequence-actor-effect: none;
+  --dragon-delivery-sequence-main-text: var(--er-ink);
+  --dragon-delivery-sequence-main-text-effect: none;
+  --dragon-delivery-active-body-frame-width: 1px;
+  --dragon-delivery-active-body-effect: none;
+  --dragon-delivery-component-divider-width: 1px;
+  --dragon-delivery-tag-radius: 9px;
   --theme-lead: #143a52;
   --theme-mind-branch-3: #a8431f;
   --theme-mind-branch-4: #4d7187;
@@ -1408,6 +1445,43 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --dragon-chart-decision-frame: var(--dragon-flow-decision-frame);
   --dragon-chart-decision-frame-width: 2px;
   --dragon-stage-detail-card-frame-width: var(--theme-stage-frame-width);
+  --dragon-delivery-relation-state: #1a1510;
+  --dragon-delivery-relation-use: #1a1510;
+  --dragon-delivery-warning: var(--theme-lead);
+  --dragon-delivery-tag-frame-width: 1px;
+  --dragon-delivery-terminal-tag-text: var(--er-ground);
+  --dragon-delivery-row-well-effect: none;
+  --dragon-delivery-row-glyph-radius: 0;
+  --dragon-delivery-lane-fill: none;
+  --dragon-delivery-lane-frame: var(--er-frame);
+  --dragon-delivery-lane-frame-width: 1px;
+  --dragon-delivery-lane-dash: none;
+  --dragon-delivery-lane-effect: none;
+  --dragon-delivery-body-frame-width: 1.5px;
+  --dragon-delivery-focus-frame-width: var(--dragon-theme-selected-box-frame-width);
+  --dragon-delivery-focus-effect: none;
+  --dragon-delivery-cyan-frame: var(--er-link);
+  --dragon-delivery-cyan-effect: none;
+  --dragon-delivery-violet-frame: var(--er-own);
+  --dragon-delivery-violet-effect: none;
+  --dragon-delivery-own-effect: none;
+  --dragon-delivery-divider-width: 1px;
+  --dragon-delivery-group-divider: none;
+  --dragon-delivery-group-divider-width: 0;
+  --dragon-delivery-sequence-label-radius: 0;
+  --dragon-delivery-sequence-band-fill: var(--er-face);
+  --dragon-delivery-sequence-band-frame: var(--er-ink);
+  --dragon-delivery-sequence-band-frame-width: 2px;
+  --dragon-delivery-sequence-band-radius: 0;
+  --dragon-delivery-sequence-band-effect: none;
+  --dragon-delivery-sequence-thread: var(--er-type);
+  --dragon-delivery-sequence-actor-effect: drop-shadow(3px 4px 0 rgb(26 21 16 / 18%));
+  --dragon-delivery-sequence-main-text: var(--er-ink);
+  --dragon-delivery-sequence-main-text-effect: none;
+  --dragon-delivery-active-body-frame-width: 1.5px;
+  --dragon-delivery-active-body-effect: none;
+  --dragon-delivery-component-divider-width: 3px;
+  --dragon-delivery-tag-radius: 9px;
   --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-mind-branch-3: #1a1510;
   --theme-mind-branch-4: #6b6253;
@@ -1738,6 +1812,43 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --dragon-chart-decision-frame: none;
   --dragon-chart-decision-frame-width: 0;
   --dragon-stage-detail-card-frame-width: var(--theme-stage-frame-width);
+  --dragon-delivery-relation-state: #e8705a;
+  --dragon-delivery-relation-use: #4fae9a;
+  --dragon-delivery-warning: var(--er-own);
+  --dragon-delivery-tag-frame-width: 1px;
+  --dragon-delivery-terminal-tag-text: var(--er-ground);
+  --dragon-delivery-row-well-effect: none;
+  --dragon-delivery-row-glyph-radius: 50%;
+  --dragon-delivery-lane-fill: var(--er-face);
+  --dragon-delivery-lane-frame: none;
+  --dragon-delivery-lane-frame-width: 0;
+  --dragon-delivery-lane-dash: none;
+  --dragon-delivery-lane-effect: drop-shadow(0 10px 18px rgb(0 0 0 / 42%));
+  --dragon-delivery-body-frame-width: 0;
+  --dragon-delivery-focus-frame-width: var(--dragon-theme-selected-box-frame-width);
+  --dragon-delivery-focus-effect: none;
+  --dragon-delivery-cyan-frame: var(--er-link);
+  --dragon-delivery-cyan-effect: none;
+  --dragon-delivery-violet-frame: var(--er-own);
+  --dragon-delivery-violet-effect: none;
+  --dragon-delivery-own-effect: none;
+  --dragon-delivery-divider-width: 1px;
+  --dragon-delivery-group-divider: none;
+  --dragon-delivery-group-divider-width: 0;
+  --dragon-delivery-sequence-label-radius: 50%;
+  --dragon-delivery-sequence-band-fill: rgb(157 148 129 / 55%);
+  --dragon-delivery-sequence-band-frame: rgb(238 232 215 / 30%);
+  --dragon-delivery-sequence-band-frame-width: 1px;
+  --dragon-delivery-sequence-band-radius: 0;
+  --dragon-delivery-sequence-band-effect: none;
+  --dragon-delivery-sequence-thread: var(--er-type);
+  --dragon-delivery-sequence-actor-effect: drop-shadow(0 8px 10px rgb(0 0 0 / 38%));
+  --dragon-delivery-sequence-main-text: var(--er-ground);
+  --dragon-delivery-sequence-main-text-effect: none;
+  --dragon-delivery-active-body-frame-width: 0;
+  --dragon-delivery-active-body-effect: drop-shadow(0 8px 10px rgb(0 0 0 / 38%));
+  --dragon-delivery-component-divider-width: 1px;
+  --dragon-delivery-tag-radius: 9px;
   --theme-mind-branch-3: #e8705a;
   --theme-mind-branch-4: #6f6757;
   --theme-journey-axis-label: #6f6757;
@@ -2081,6 +2192,43 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --dragon-chart-decision-frame: rgb(74 222 128 / 50%);
   --dragon-chart-decision-frame-width: 1.5px;
   --dragon-stage-detail-card-frame-width: var(--theme-stage-frame-width);
+  --dragon-delivery-relation-state: #f5c451;
+  --dragon-delivery-relation-use: #c792ea;
+  --dragon-delivery-warning: var(--er-own);
+  --dragon-delivery-tag-frame-width: 1px;
+  --dragon-delivery-terminal-tag-text: #050b07;
+  --dragon-delivery-row-well-effect: none;
+  --dragon-delivery-row-glyph-radius: 2px;
+  --dragon-delivery-lane-fill: none;
+  --dragon-delivery-lane-frame: var(--er-frame);
+  --dragon-delivery-lane-frame-width: 1;
+  --dragon-delivery-lane-dash: 3 7;
+  --dragon-delivery-lane-effect: none;
+  --dragon-delivery-body-frame-width: 1px;
+  --dragon-delivery-focus-frame-width: 2px;
+  --dragon-delivery-focus-effect: drop-shadow(0 0 10px rgb(74 222 128 / 35%));
+  --dragon-delivery-cyan-frame: var(--er-link);
+  --dragon-delivery-cyan-effect: none;
+  --dragon-delivery-violet-frame: var(--er-own);
+  --dragon-delivery-violet-effect: none;
+  --dragon-delivery-own-effect: none;
+  --dragon-delivery-divider-width: 1px;
+  --dragon-delivery-group-divider: none;
+  --dragon-delivery-group-divider-width: 0;
+  --dragon-delivery-sequence-label-radius: 2px;
+  --dragon-delivery-sequence-band-fill: rgb(53 85 66 / 16%);
+  --dragon-delivery-sequence-band-frame: #355542;
+  --dragon-delivery-sequence-band-frame-width: 1px;
+  --dragon-delivery-sequence-band-radius: 0;
+  --dragon-delivery-sequence-band-effect: none;
+  --dragon-delivery-sequence-thread: #355542;
+  --dragon-delivery-sequence-actor-effect: none;
+  --dragon-delivery-sequence-main-text: #a6f0bd;
+  --dragon-delivery-sequence-main-text-effect: none;
+  --dragon-delivery-active-body-frame-width: 1px;
+  --dragon-delivery-active-body-effect: none;
+  --dragon-delivery-component-divider-width: 1px;
+  --dragon-delivery-tag-radius: 4px;
   --cdl-flowchart-lane-heading-name-size: 25px;
   --theme-mind-branch-3: #f5c451;
   --theme-mind-branch-4: #8a9b90;
@@ -2412,6 +2560,43 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --dragon-chart-decision-frame: var(--dragon-flow-decision-frame);
   --dragon-chart-decision-frame-width: 2.5px;
   --dragon-stage-detail-card-frame-width: var(--theme-stage-frame-width);
+  --dragon-delivery-relation-state: #2a5ca8;
+  --dragon-delivery-relation-use: #2f7d4f;
+  --dragon-delivery-warning: var(--er-own);
+  --dragon-delivery-tag-frame-width: 1px;
+  --dragon-delivery-terminal-tag-text: var(--er-ground);
+  --dragon-delivery-row-well-effect: none;
+  --dragon-delivery-row-glyph-radius: 50%;
+  --dragon-delivery-lane-fill: none;
+  --dragon-delivery-lane-frame: var(--er-frame);
+  --dragon-delivery-lane-frame-width: 1px;
+  --dragon-delivery-lane-dash: none;
+  --dragon-delivery-lane-effect: none;
+  --dragon-delivery-body-frame-width: 2px;
+  --dragon-delivery-focus-frame-width: var(--dragon-theme-selected-box-frame-width);
+  --dragon-delivery-focus-effect: none;
+  --dragon-delivery-cyan-frame: var(--er-link);
+  --dragon-delivery-cyan-effect: none;
+  --dragon-delivery-violet-frame: var(--er-own);
+  --dragon-delivery-violet-effect: none;
+  --dragon-delivery-own-effect: none;
+  --dragon-delivery-divider-width: 1px;
+  --dragon-delivery-group-divider: none;
+  --dragon-delivery-group-divider-width: 0;
+  --dragon-delivery-sequence-label-radius: 50%;
+  --dragon-delivery-sequence-band-fill: url(#dragon-sketch-pen);
+  --dragon-delivery-sequence-band-frame: var(--er-ink);
+  --dragon-delivery-sequence-band-frame-width: 2px;
+  --dragon-delivery-sequence-band-radius: 10px;
+  --dragon-delivery-sequence-band-effect: none;
+  --dragon-delivery-sequence-thread: var(--er-type);
+  --dragon-delivery-sequence-actor-effect: drop-shadow(5px 6px 0 rgb(43 38 32 / 16%));
+  --dragon-delivery-sequence-main-text: var(--er-ink);
+  --dragon-delivery-sequence-main-text-effect: none;
+  --dragon-delivery-active-body-frame-width: 2px;
+  --dragon-delivery-active-body-effect: none;
+  --dragon-delivery-component-divider-width: 3px;
+  --dragon-delivery-tag-radius: 9px;
   --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-mind-branch-3: #2a5ca8;
   --theme-mind-branch-4: #6d6456;
@@ -2757,6 +2942,43 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --dragon-chart-decision-frame: var(--dragon-flow-decision-frame);
   --dragon-chart-decision-frame-width: 3px;
   --dragon-stage-detail-card-frame-width: var(--theme-stage-frame-width);
+  --dragon-delivery-relation-state: #ffd000;
+  --dragon-delivery-relation-use: #00e5ff;
+  --dragon-delivery-warning: var(--er-own);
+  --dragon-delivery-tag-frame-width: 2.5px;
+  --dragon-delivery-terminal-tag-text: var(--er-ground);
+  --dragon-delivery-row-well-effect: none;
+  --dragon-delivery-row-glyph-radius: 50%;
+  --dragon-delivery-lane-fill: none;
+  --dragon-delivery-lane-frame: var(--theme-lead);
+  --dragon-delivery-lane-frame-width: 2;
+  --dragon-delivery-lane-dash: none;
+  --dragon-delivery-lane-effect: url(#dragon-neon-tube);
+  --dragon-delivery-body-frame-width: 2px;
+  --dragon-delivery-focus-frame-width: var(--dragon-theme-selected-box-frame-width);
+  --dragon-delivery-focus-effect: url(#dragon-neon-tube);
+  --dragon-delivery-cyan-frame: #00e5ff;
+  --dragon-delivery-cyan-effect: drop-shadow(0 0 8px rgb(0 229 255 / 65%));
+  --dragon-delivery-violet-frame: #b26bff;
+  --dragon-delivery-violet-effect: drop-shadow(0 0 8px rgb(178 107 255 / 65%));
+  --dragon-delivery-own-effect: drop-shadow(0 0 8px color-mix(in srgb, var(--er-own) 65%, transparent));
+  --dragon-delivery-divider-width: 1px;
+  --dragon-delivery-group-divider: color-mix(in srgb, #f3eefe 40%, transparent);
+  --dragon-delivery-group-divider-width: 1.5px;
+  --dragon-delivery-sequence-label-radius: 50%;
+  --dragon-delivery-sequence-band-fill: rgb(144 133 177 / 18%);
+  --dragon-delivery-sequence-band-frame: #d8d5e4;
+  --dragon-delivery-sequence-band-frame-width: 2px;
+  --dragon-delivery-sequence-band-radius: 12px;
+  --dragon-delivery-sequence-band-effect: drop-shadow(0 0 8px rgb(216 213 228 / 55%));
+  --dragon-delivery-sequence-thread: var(--er-type);
+  --dragon-delivery-sequence-actor-effect: drop-shadow(0 0 8px color-mix(in srgb, var(--er-link) 65%, transparent));
+  --dragon-delivery-sequence-main-text: #ffffff;
+  --dragon-delivery-sequence-main-text-effect: drop-shadow(0 0 5px var(--er-link));
+  --dragon-delivery-active-body-frame-width: 2px;
+  --dragon-delivery-active-body-effect: url(#dragon-neon-tube);
+  --dragon-delivery-component-divider-width: 1px;
+  --dragon-delivery-tag-radius: 9px;
   --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-mind-branch-3: #ffd000;
   --theme-mind-branch-4: #c4bce0;
@@ -3087,6 +3309,43 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --dragon-chart-decision-frame: var(--dragon-flow-decision-frame);
   --dragon-chart-decision-frame-width: 0;
   --dragon-stage-detail-card-frame-width: 0;
+  --dragon-delivery-relation-state: #c99a35;
+  --dragon-delivery-relation-use: #2f7a6e;
+  --dragon-delivery-warning: #c99a35;
+  --dragon-delivery-tag-frame-width: 1px;
+  --dragon-delivery-terminal-tag-text: var(--er-ground);
+  --dragon-delivery-row-well-effect: url(#dragon-relief-figure-inset);
+  --dragon-delivery-row-glyph-radius: 50%;
+  --dragon-delivery-lane-fill: var(--er-ground);
+  --dragon-delivery-lane-frame: none;
+  --dragon-delivery-lane-frame-width: 0;
+  --dragon-delivery-lane-dash: none;
+  --dragon-delivery-lane-effect: url(#dragon-relief-figure-inset);
+  --dragon-delivery-body-frame-width: 0;
+  --dragon-delivery-focus-frame-width: var(--dragon-theme-selected-box-frame-width);
+  --dragon-delivery-focus-effect: none;
+  --dragon-delivery-cyan-frame: var(--er-link);
+  --dragon-delivery-cyan-effect: none;
+  --dragon-delivery-violet-frame: var(--er-own);
+  --dragon-delivery-violet-effect: none;
+  --dragon-delivery-own-effect: none;
+  --dragon-delivery-divider-width: 1px;
+  --dragon-delivery-group-divider: none;
+  --dragon-delivery-group-divider-width: 0;
+  --dragon-delivery-sequence-label-radius: 50%;
+  --dragon-delivery-sequence-band-fill: color-mix(in srgb, var(--er-face) 68%, white);
+  --dragon-delivery-sequence-band-frame: none;
+  --dragon-delivery-sequence-band-frame-width: 1.5px;
+  --dragon-delivery-sequence-band-radius: 0;
+  --dragon-delivery-sequence-band-effect: url(#dragon-relief-raised-contained);
+  --dragon-delivery-sequence-thread: var(--er-type);
+  --dragon-delivery-sequence-actor-effect: url(#dragon-relief-raised);
+  --dragon-delivery-sequence-main-text: var(--er-ink);
+  --dragon-delivery-sequence-main-text-effect: none;
+  --dragon-delivery-active-body-frame-width: 0;
+  --dragon-delivery-active-body-effect: url(#dragon-relief-raised);
+  --dragon-delivery-component-divider-width: 1px;
+  --dragon-delivery-tag-radius: 20px;
   --theme-mind-branch-3: #c99a35;
   --theme-mind-branch-4: #7a7062;
   --theme-journey-axis-label: #685e51;
@@ -8527,10 +8786,17 @@ svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-role="timeline-axis"]
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+ * 宅配の 4 つの記法見本 (#2836)
+ *
+ * 役の値は意匠の表へ移し、図を名指しする規則は直後の節へ集める。
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* ─────────────────────────────────────────────────────────────────────────────
  * 図だけの規則
  *
  * 同じ部品へ当たる共通の決まりを先に確定し、元と同じ図固有の補正を後から勝たせるため、
- * この節を対象 2 節の後ろに置く。選択子の対象は図種全体へ広げない。
+ * この節を対象の共通規則より後ろに置く。宅配の節も空のまま直前へ置き、
+ * 選択子の順と対象を変えずに元のカスケードを保つ。
  * ───────────────────────────────────────────────────────────────────────────── */
 
 /* この図だけの持ち越しの規則。値と対象を変えず、理由を各規則の直前へ残す。 */
@@ -8660,6 +8926,24 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="chart-bar"] [data-cdl-role
 /* 持ち越しの目印: 棒の値を見本の位置へ合わせる */
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="chart-bar"] [data-cdl-role="chart-bar-value"] {
   transform: translateY(var(--catalog-bar-value-y));
+}
+
+/* 持ち越しの目印: 図面の行頭の印を菱形へ回す */
+:is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
+  svg[data-cdl-stage][data-cdl-palette="blueprint"]
+  [data-cdl-role="node-row-glyph"] {
+  rx: var(--dragon-delivery-row-glyph-radius);
+  ry: var(--dragon-delivery-row-glyph-radius);
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(45deg) !important;
+}
+
+/* 持ち越しの目印: 図面の言づての印を菱形へ回す */
+[data-cdl-diagram="delivery-sequence-demo"]
+  svg[data-cdl-stage][data-cdl-palette="blueprint"]
+  [data-cdl-role="sequence-label-mark"] {
+  transform: rotate(45deg) !important;
 }
 
 /* #2854 6a から移した、階層図とマインドマップだけの規則。 */
@@ -9174,12 +9458,8 @@ svg[data-cdl-stage]:is(
 }
 
 
-/* ─────────────────────────────────────────────────────────────────────────────
- * 宅配の 4 つの記法見本 (#2836)
- *
- * proposal の 1800 × 1100 の見本へ限定して戻す規則。図の意味色は記法の tone に残し、
- * ここでは 7 意匠それぞれの線・向きだけ・所有へ写す。
- * ───────────────────────────────────────────────────────────────────────────── */
+/* #2836 から移した、宅配の 4 つの記法見本だけの規則。
+ * proposal の 1800 × 1100 の図へ限定し、記法の tone を 7 意匠の役へ写す。 */
 
 :is(
     [data-cdl-diagram="delivery-relations-demo"],
@@ -9215,7 +9495,7 @@ svg[data-cdl-stage]:is(
 [data-cdl-diagram="delivery-classes-demo"]
   svg[data-cdl-stage][data-cdl-palette="relief"]
   [data-cdl-tone="warning"] {
-  --dragon-edge-tone: #c99a35;
+  --dragon-edge-tone: var(--dragon-delivery-warning);
 }
 
 :is(
@@ -9374,7 +9654,7 @@ svg[data-cdl-stage]:is(
   --neon-tag-glow: var(--dragon-edge-tone);
   fill: var(--er-ground) !important;
   stroke: var(--dragon-edge-tone) !important;
-  stroke-width: 2.5px !important;
+  stroke-width: var(--dragon-delivery-tag-frame-width) !important;
   opacity: 1 !important;
   filter: none !important;
 }
@@ -9414,7 +9694,7 @@ svg[data-cdl-stage]:is(
   svg[data-cdl-stage][data-cdl-palette="terminal"]
   [data-cdl-edge-label-for]
   > [data-cdl-role="edge-label"] {
-  fill: #050b07 !important;
+  fill: var(--dragon-delivery-terminal-tag-text) !important;
   font-weight: 800 !important;
 }
 
@@ -9423,7 +9703,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="node-row-well"] {
   fill: var(--er-ground) !important;
   stroke: none !important;
-  filter: url(#dragon-relief-figure-inset) !important;
+  filter: var(--dragon-delivery-row-well-effect) !important;
 }
 
 /* 浮彫の縞は rowStripe: false で描かない。cdl に欄がない罫だけ CSS で消す。 */
@@ -9450,41 +9730,31 @@ svg[data-cdl-stage]:is(
 }
 
 :is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
-  svg[data-cdl-stage][data-cdl-palette="blueprint"]
-  [data-cdl-role="node-row-glyph"] {
-  rx: 0;
-  ry: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  transform: rotate(45deg) !important;
-}
-
-:is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
   svg[data-cdl-stage][data-cdl-palette="letterpress"]
   [data-cdl-role="node-row-glyph"] {
-  rx: 0;
-  ry: 0;
+  rx: var(--dragon-delivery-row-glyph-radius);
+  ry: var(--dragon-delivery-row-glyph-radius);
 }
 
 :is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
   svg[data-cdl-stage]:is([data-cdl-palette="catalog"], [data-cdl-palette="neon"], [data-cdl-palette="relief"])
   [data-cdl-role="node-row-glyph"] {
-  rx: 50%;
-  ry: 50%;
+  rx: var(--dragon-delivery-row-glyph-radius);
+  ry: var(--dragon-delivery-row-glyph-radius);
 }
 
 :is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
   svg[data-cdl-stage][data-cdl-palette="terminal"]
   [data-cdl-role="node-row-glyph"] {
-  rx: 2px;
-  ry: 2px;
+  rx: var(--dragon-delivery-row-glyph-radius);
+  ry: var(--dragon-delivery-row-glyph-radius);
 }
 
 :is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
   svg[data-cdl-stage][data-cdl-palette="sketch"]
   [data-cdl-role="node-row-glyph"] {
-  rx: 50%;
-  ry: 50%;
+  rx: var(--dragon-delivery-row-glyph-radius);
+  ry: var(--dragon-delivery-row-glyph-radius);
 }
 
 :is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
@@ -9539,49 +9809,49 @@ svg[data-cdl-stage]:is(
 [data-cdl-diagram="delivery-components-demo"]
   svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="sketch"])
   [data-cdl-role="lane-container"] {
-  fill: none !important;
-  stroke: var(--er-frame) !important;
-  stroke-width: 1px !important;
-  stroke-dasharray: none !important;
-  filter: none !important;
+  fill: var(--dragon-delivery-lane-fill) !important;
+  stroke: var(--dragon-delivery-lane-frame) !important;
+  stroke-width: var(--dragon-delivery-lane-frame-width) !important;
+  stroke-dasharray: var(--dragon-delivery-lane-dash) !important;
+  filter: var(--dragon-delivery-lane-effect) !important;
 }
 
 [data-cdl-diagram="delivery-components-demo"]
   svg[data-cdl-stage][data-cdl-palette="catalog"]
   [data-cdl-role="lane-container"] {
-  fill: var(--er-face) !important;
-  stroke: none !important;
-  stroke-dasharray: none !important;
-  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 42%)) !important;
+  fill: var(--dragon-delivery-lane-fill) !important;
+  stroke: var(--dragon-delivery-lane-frame) !important;
+  stroke-dasharray: var(--dragon-delivery-lane-dash) !important;
+  filter: var(--dragon-delivery-lane-effect) !important;
 }
 
 [data-cdl-diagram="delivery-components-demo"]
   svg[data-cdl-stage][data-cdl-palette="terminal"]
   [data-cdl-role="lane-container"] {
-  fill: none !important;
-  stroke: var(--er-frame) !important;
-  stroke-width: 1 !important;
-  stroke-dasharray: 3 7 !important;
-  filter: none !important;
+  fill: var(--dragon-delivery-lane-fill) !important;
+  stroke: var(--dragon-delivery-lane-frame) !important;
+  stroke-width: var(--dragon-delivery-lane-frame-width) !important;
+  stroke-dasharray: var(--dragon-delivery-lane-dash) !important;
+  filter: var(--dragon-delivery-lane-effect) !important;
 }
 
 [data-cdl-diagram="delivery-components-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   [data-cdl-role="lane-container"] {
-  fill: none !important;
-  stroke: var(--theme-lead) !important;
-  stroke-width: 2 !important;
-  stroke-dasharray: none !important;
-  filter: url(#dragon-neon-tube) !important;
+  fill: var(--dragon-delivery-lane-fill) !important;
+  stroke: var(--dragon-delivery-lane-frame) !important;
+  stroke-width: var(--dragon-delivery-lane-frame-width) !important;
+  stroke-dasharray: var(--dragon-delivery-lane-dash) !important;
+  filter: var(--dragon-delivery-lane-effect) !important;
 }
 
 [data-cdl-diagram="delivery-components-demo"]
   svg[data-cdl-stage][data-cdl-palette="relief"]
   [data-cdl-role="lane-container"] {
-  fill: var(--er-ground) !important;
-  stroke: none !important;
-  stroke-dasharray: none !important;
-  filter: url(#dragon-relief-figure-inset) !important;
+  fill: var(--dragon-delivery-lane-fill) !important;
+  stroke: var(--dragon-delivery-lane-frame) !important;
+  stroke-dasharray: var(--dragon-delivery-lane-dash) !important;
+  filter: var(--dragon-delivery-lane-effect) !important;
 }
 
 /* 図録と浮彫の見本は部品箱へ濃い外枠を足さない。面と影で箱を分ける。 */
@@ -9589,7 +9859,7 @@ svg[data-cdl-stage]:is(
   svg[data-cdl-stage]:is([data-cdl-palette="catalog"], [data-cdl-palette="relief"])
   [data-cdl-role="node-body"] {
   stroke: var(--er-face) !important;
-  stroke-width: 0 !important;
+  stroke-width: var(--dragon-delivery-body-frame-width) !important;
 }
 
 [data-cdl-diagram="delivery-components-demo"]
@@ -9639,7 +9909,7 @@ svg[data-cdl-stage]:is(
   svg[data-cdl-stage][data-cdl-palette="terminal"]
   [data-cdl-role="node-body"] {
   stroke: var(--er-frame) !important;
-  stroke-width: 1px !important;
+  stroke-width: var(--dragon-delivery-body-frame-width) !important;
   filter: none !important;
 }
 
@@ -9648,8 +9918,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-node="契約"]
   [data-cdl-role="node-body"] {
   stroke: var(--theme-lead) !important;
-  stroke-width: 2px !important;
-  filter: drop-shadow(0 0 10px rgb(74 222 128 / 35%)) !important;
+  stroke-width: var(--dragon-delivery-focus-frame-width) !important;
+  filter: var(--dragon-delivery-focus-effect) !important;
 }
 
 /* 電飾の関係図は、契約・荷物・営業所・状態を 4 色の群で読む。 */
@@ -9658,31 +9928,31 @@ svg[data-cdl-stage]:is(
   :is([data-cdl-node="契約"], [data-cdl-node="法人契約"], [data-cdl-node="個人契約"])
   [data-cdl-role="node-body"] {
   stroke: var(--theme-lead) !important;
-  filter: url(#dragon-neon-tube) !important;
+  filter: var(--dragon-delivery-focus-effect) !important;
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   [data-cdl-node="営業所"]
   [data-cdl-role="node-body"] {
-  stroke: #00e5ff !important;
-  filter: drop-shadow(0 0 8px rgb(0 229 255 / 65%)) !important;
+  stroke: var(--dragon-delivery-cyan-frame) !important;
+  filter: var(--dragon-delivery-cyan-effect) !important;
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   :is([data-cdl-node="受付"], [data-cdl-node="仕分け"])
   [data-cdl-role="node-body"] {
-  stroke: #b26bff !important;
-  filter: drop-shadow(0 0 8px rgb(178 107 255 / 65%)) !important;
+  stroke: var(--dragon-delivery-violet-frame) !important;
+  filter: var(--dragon-delivery-violet-effect) !important;
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   :is([data-cdl-node="荷物"], [data-cdl-node="配送便"])
   [data-cdl-role="node-body"] {
-  stroke: #00e5ff !important;
-  filter: drop-shadow(0 0 8px rgb(0 229 255 / 65%)) !important;
+  stroke: var(--dragon-delivery-cyan-frame) !important;
+  filter: var(--dragon-delivery-cyan-effect) !important;
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
@@ -9690,7 +9960,7 @@ svg[data-cdl-stage]:is(
   :is([data-cdl-node="受付済"], [data-cdl-node="集荷済"], [data-cdl-node="配達中"], [data-cdl-node="完了"])
   [data-cdl-role="node-body"] {
   stroke: var(--er-own) !important;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--er-own) 65%, transparent)) !important;
+  filter: var(--dragon-delivery-own-effect) !important;
 }
 
 /* 浮彫では題字を契約だけ朱にし、その他の型・部品は墨にする。 */
@@ -9722,44 +9992,44 @@ svg[data-cdl-stage]:is(
 /* 関係図の状態線と「使う」は、7 意匠それぞれの見本色を不透明で描く。 */
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="blueprint"] {
-  --delivery-relation-state: #a8431f;
-  --delivery-relation-use: #1f7a6b;
+  --delivery-relation-state: var(--dragon-delivery-relation-state);
+  --delivery-relation-use: var(--dragon-delivery-relation-use);
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="catalog"] {
-  --delivery-relation-state: #e8705a;
-  --delivery-relation-use: #4fae9a;
+  --delivery-relation-state: var(--dragon-delivery-relation-state);
+  --delivery-relation-use: var(--dragon-delivery-relation-use);
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="sketch"] {
-  --delivery-relation-state: #2a5ca8;
-  --delivery-relation-use: #2f7d4f;
+  --delivery-relation-state: var(--dragon-delivery-relation-state);
+  --delivery-relation-use: var(--dragon-delivery-relation-use);
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="letterpress"] {
-  --delivery-relation-state: #1a1510;
-  --delivery-relation-use: #1a1510;
+  --delivery-relation-state: var(--dragon-delivery-relation-state);
+  --delivery-relation-use: var(--dragon-delivery-relation-use);
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="relief"] {
-  --delivery-relation-state: #c99a35;
-  --delivery-relation-use: #2f7a6e;
+  --delivery-relation-state: var(--dragon-delivery-relation-state);
+  --delivery-relation-use: var(--dragon-delivery-relation-use);
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="terminal"] {
-  --delivery-relation-state: #f5c451;
-  --delivery-relation-use: #c792ea;
+  --delivery-relation-state: var(--dragon-delivery-relation-state);
+  --delivery-relation-use: var(--dragon-delivery-relation-use);
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"] {
-  --delivery-relation-state: #ffd000;
-  --delivery-relation-use: #00e5ff;
+  --delivery-relation-state: var(--dragon-delivery-relation-state);
+  --delivery-relation-use: var(--dragon-delivery-relation-use);
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
@@ -9800,13 +10070,13 @@ svg[data-cdl-stage]:is(
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   :is([data-cdl-node="営業所"], [data-cdl-node="荷物"], [data-cdl-node="配送便"]) {
-  --delivery-neon-table-frame: #00e5ff;
+  --delivery-neon-table-frame: var(--dragon-delivery-cyan-frame);
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   :is([data-cdl-node="受付"], [data-cdl-node="仕分け"]) {
-  --delivery-neon-table-frame: #b26bff;
+  --delivery-neon-table-frame: var(--dragon-delivery-violet-frame);
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
@@ -9819,22 +10089,22 @@ svg[data-cdl-stage]:is(
   svg[data-cdl-stage][data-cdl-palette="neon"]
   [data-cdl-role="node-row-divider"] {
   stroke: color-mix(in srgb, var(--delivery-neon-table-frame) 32%, transparent) !important;
-  stroke-width: 1px !important;
+  stroke-width: var(--dragon-delivery-divider-width) !important;
 }
 
 :is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
   svg[data-cdl-stage][data-cdl-palette="neon"]
   [data-cdl-role="node-footer-divider"] {
   stroke: color-mix(in srgb, var(--delivery-neon-table-frame) 24%, transparent) !important;
-  stroke-width: 1px !important;
+  stroke-width: var(--dragon-delivery-divider-width) !important;
 }
 
 [data-cdl-diagram="delivery-classes-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   [data-cdl-role="node-row-group-divider"] {
-  stroke: color-mix(in srgb, #f3eefe 40%, transparent) !important;
+  stroke: var(--dragon-delivery-group-divider) !important;
   stroke-opacity: 1 !important;
-  stroke-width: 1.5px !important;
+  stroke-width: var(--dragon-delivery-group-divider-width) !important;
 }
 
 :is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
@@ -9923,23 +10193,17 @@ svg[data-cdl-stage]:is(
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
-  svg[data-cdl-stage][data-cdl-palette="blueprint"]
-  [data-cdl-role="sequence-label-mark"] {
-  transform: rotate(45deg) !important;
-}
-
-[data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage]:is([data-cdl-palette="catalog"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"])
   [data-cdl-role="sequence-label-mark"] {
-  rx: 50%;
-  ry: 50%;
+  rx: var(--dragon-delivery-sequence-label-radius);
+  ry: var(--dragon-delivery-sequence-label-radius);
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="terminal"]
   [data-cdl-role="sequence-label-mark"] {
-  rx: 2px;
-  ry: 2px;
+  rx: var(--dragon-delivery-sequence-label-radius);
+  ry: var(--dragon-delivery-sequence-label-radius);
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
@@ -9954,56 +10218,56 @@ svg[data-cdl-stage]:is(
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="letterpress"]
   [data-cdl-role="sequence-band"] {
-  fill: var(--er-face) !important;
-  stroke: var(--er-ink) !important;
-  stroke-width: 2px !important;
-  filter: none !important;
+  fill: var(--dragon-delivery-sequence-band-fill) !important;
+  stroke: var(--dragon-delivery-sequence-band-frame) !important;
+  stroke-width: var(--dragon-delivery-sequence-band-frame-width) !important;
+  filter: var(--dragon-delivery-sequence-band-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="catalog"]
   [data-cdl-role="sequence-band"] {
-  fill: rgb(157 148 129 / 55%) !important;
-  stroke: rgb(238 232 215 / 30%) !important;
-  stroke-width: 1px !important;
+  fill: var(--dragon-delivery-sequence-band-fill) !important;
+  stroke: var(--dragon-delivery-sequence-band-frame) !important;
+  stroke-width: var(--dragon-delivery-sequence-band-frame-width) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="terminal"]
   [data-cdl-role="sequence-band"] {
-  fill: rgb(53 85 66 / 16%) !important;
-  stroke: #355542 !important;
-  stroke-width: 1px !important;
+  fill: var(--dragon-delivery-sequence-band-fill) !important;
+  stroke: var(--dragon-delivery-sequence-band-frame) !important;
+  stroke-width: var(--dragon-delivery-sequence-band-frame-width) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="sketch"]
   [data-cdl-role="sequence-band"] {
-  fill: url(#dragon-sketch-pen) !important;
+  fill: var(--dragon-delivery-sequence-band-fill) !important;
   fill-opacity: 1 !important;
-  stroke: var(--er-ink) !important;
-  stroke-width: 2px !important;
-  rx: 10px;
-  ry: 10px;
+  stroke: var(--dragon-delivery-sequence-band-frame) !important;
+  stroke-width: var(--dragon-delivery-sequence-band-frame-width) !important;
+  rx: var(--dragon-delivery-sequence-band-radius);
+  ry: var(--dragon-delivery-sequence-band-radius);
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   [data-cdl-role="sequence-band"] {
-  fill: rgb(144 133 177 / 18%) !important;
-  stroke: #d8d5e4 !important;
-  stroke-width: 2px !important;
-  rx: 12px;
-  ry: 12px;
-  filter: drop-shadow(0 0 8px rgb(216 213 228 / 55%)) !important;
+  fill: var(--dragon-delivery-sequence-band-fill) !important;
+  stroke: var(--dragon-delivery-sequence-band-frame) !important;
+  stroke-width: var(--dragon-delivery-sequence-band-frame-width) !important;
+  rx: var(--dragon-delivery-sequence-band-radius);
+  ry: var(--dragon-delivery-sequence-band-radius);
+  filter: var(--dragon-delivery-sequence-band-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="relief"]
   [data-cdl-role="sequence-band"] {
-  fill: color-mix(in srgb, var(--er-face) 68%, white) !important;
-  stroke: none !important;
-  filter: url(#dragon-relief-raised-contained) !important;
+  fill: var(--dragon-delivery-sequence-band-fill) !important;
+  stroke: var(--dragon-delivery-sequence-band-frame) !important;
+  filter: var(--dragon-delivery-sequence-band-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
@@ -10036,7 +10300,7 @@ svg[data-cdl-stage]:is(
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="terminal"]
   [data-cdl-role="sequence-thread"] {
-  stroke: #355542 !important;
+  stroke: var(--dragon-delivery-sequence-thread) !important;
   stroke-dasharray: 3 7 !important;
 }
 
@@ -10051,7 +10315,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="sequence-actor-box"] {
   fill: var(--er-face) !important;
   stroke: var(--er-frame) !important;
-  stroke-width: 1px !important;
+  stroke-width: var(--dragon-theme-box-frame-width) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
@@ -10059,8 +10323,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="sequence-actor-box"] {
   fill: var(--er-face) !important;
   stroke: var(--er-ink) !important;
-  stroke-width: 1.5px !important;
-  filter: drop-shadow(3px 4px 0 rgb(26 21 16 / 18%)) !important;
+  stroke-width: var(--dragon-theme-box-frame-width) !important;
+  filter: var(--dragon-delivery-sequence-actor-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
@@ -10068,7 +10332,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="sequence-actor-box"] {
   fill: var(--er-face) !important;
   stroke: var(--er-face) !important;
-  filter: drop-shadow(0 8px 10px rgb(0 0 0 / 38%)) !important;
+  filter: var(--dragon-delivery-sequence-actor-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
@@ -10082,8 +10346,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="sequence-actor-box"] {
   fill: var(--er-face) !important;
   stroke: var(--er-frame) !important;
-  stroke-width: 1px !important;
-  filter: none !important;
+  stroke-width: var(--dragon-theme-box-frame-width) !important;
+  filter: var(--dragon-delivery-sequence-actor-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
@@ -10091,8 +10355,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="sequence-actor-box"] {
   fill: var(--er-face) !important;
   stroke: var(--er-ink) !important;
-  stroke-width: 2px !important;
-  filter: drop-shadow(5px 6px 0 rgb(43 38 32 / 16%)) !important;
+  stroke-width: var(--dragon-theme-box-frame-width) !important;
+  filter: var(--dragon-delivery-sequence-actor-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
@@ -10100,8 +10364,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="sequence-actor-box"] {
   fill: var(--er-face) !important;
   stroke: var(--er-link) !important;
-  stroke-width: 2px !important;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--er-link) 65%, transparent)) !important;
+  stroke-width: var(--dragon-theme-box-frame-width) !important;
+  filter: var(--dragon-delivery-sequence-actor-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
@@ -10109,22 +10373,22 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="sequence-actor-box"] {
   fill: var(--er-face) !important;
   stroke: none !important;
-  filter: url(#dragon-relief-raised) !important;
+  filter: var(--dragon-delivery-sequence-actor-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="terminal"]
   :is([data-cdl-role="sequence-actor"], [data-cdl-role="sequence-label"]) {
-  fill: #a6f0bd !important;
+  fill: var(--dragon-delivery-sequence-main-text) !important;
   font-weight: 600 !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   :is([data-cdl-role="sequence-actor"], [data-cdl-role="sequence-label"]) {
-  fill: #ffffff !important;
+  fill: var(--dragon-delivery-sequence-main-text) !important;
   font-weight: 800 !important;
-  filter: drop-shadow(0 0 5px var(--er-link)) !important;
+  filter: var(--dragon-delivery-sequence-main-text-effect) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]
@@ -10181,8 +10445,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   fill: var(--er-face) !important;
   stroke: var(--er-frame) !important;
-  stroke-width: 1px !important;
-  filter: none !important;
+  stroke-width: var(--dragon-delivery-active-body-frame-width) !important;
+  filter: var(--dragon-delivery-active-body-effect) !important;
 }
 
 :is(
@@ -10195,8 +10459,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   fill: var(--er-face) !important;
   stroke: var(--er-ink) !important;
-  stroke-width: 1.5px !important;
-  filter: none !important;
+  stroke-width: var(--dragon-delivery-active-body-frame-width) !important;
+  filter: var(--dragon-delivery-active-body-effect) !important;
 }
 
 :is(
@@ -10209,8 +10473,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   fill: var(--er-face) !important;
   stroke: var(--er-face) !important;
-  stroke-width: 0 !important;
-  filter: drop-shadow(0 8px 10px rgb(0 0 0 / 38%)) !important;
+  stroke-width: var(--dragon-delivery-active-body-frame-width) !important;
+  filter: var(--dragon-delivery-active-body-effect) !important;
 }
 
 :is(
@@ -10223,8 +10487,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   fill: var(--er-face) !important;
   stroke: var(--er-frame) !important;
-  stroke-width: 1px !important;
-  filter: none !important;
+  stroke-width: var(--dragon-delivery-active-body-frame-width) !important;
+  filter: var(--dragon-delivery-active-body-effect) !important;
 }
 
 :is(
@@ -10237,8 +10501,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   fill: var(--er-face) !important;
   stroke: var(--er-ink) !important;
-  stroke-width: 2px !important;
-  filter: none !important;
+  stroke-width: var(--dragon-delivery-active-body-frame-width) !important;
+  filter: var(--dragon-delivery-active-body-effect) !important;
 }
 
 :is(
@@ -10251,8 +10515,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   fill: var(--er-face) !important;
   stroke: var(--er-line) !important;
-  stroke-width: 2px !important;
-  filter: url(#dragon-neon-tube) !important;
+  stroke-width: var(--dragon-delivery-active-body-frame-width) !important;
+  filter: var(--dragon-delivery-active-body-effect) !important;
 }
 
 :is(
@@ -10265,8 +10529,8 @@ svg[data-cdl-stage]:is(
   rect[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   fill: var(--er-ground) !important;
   stroke: none !important;
-  stroke-width: 0 !important;
-  filter: url(#dragon-relief-raised) !important;
+  stroke-width: var(--dragon-delivery-active-body-frame-width) !important;
+  filter: var(--dragon-delivery-active-body-effect) !important;
 }
 
 /* node-body の g は字と印も抱えるため、面用の浮き出しを掛けない。 */
@@ -10284,8 +10548,8 @@ svg[data-cdl-stage]:is(
   > rect:first-child {
   fill: var(--er-ground) !important;
   stroke: none !important;
-  stroke-width: 0 !important;
-  filter: url(#dragon-relief-raised) !important;
+  stroke-width: var(--dragon-delivery-active-body-frame-width) !important;
+  filter: var(--dragon-delivery-active-body-effect) !important;
 }
 
 /* 端末の契約だけを焦点にする。上の active 初期化より node 属性 1 個分強い。 */
@@ -10294,8 +10558,8 @@ svg[data-cdl-stage]:is(
   [data-cdl-node][data-cdl-node="契約"][data-cdl-active="true"]
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   stroke: var(--theme-lead) !important;
-  stroke-width: 2px !important;
-  filter: drop-shadow(0 0 10px rgb(74 222 128 / 35%)) !important;
+  stroke-width: var(--dragon-delivery-focus-frame-width) !important;
+  filter: var(--dragon-delivery-focus-effect) !important;
 }
 
 /* 電飾の関係図は active と群名の両方を選び、共通の桃枠より強くする。 */
@@ -10304,31 +10568,31 @@ svg[data-cdl-stage]:is(
   [data-cdl-node]:is([data-cdl-node="契約"], [data-cdl-node="法人契約"], [data-cdl-node="個人契約"])[data-cdl-active="true"]
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   stroke: var(--theme-lead) !important;
-  filter: url(#dragon-neon-tube) !important;
+  filter: var(--dragon-delivery-focus-effect) !important;
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   [data-cdl-node][data-cdl-node="営業所"][data-cdl-active="true"]
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
-  stroke: #00e5ff !important;
-  filter: drop-shadow(0 0 8px rgb(0 229 255 / 65%)) !important;
+  stroke: var(--dragon-delivery-cyan-frame) !important;
+  filter: var(--dragon-delivery-cyan-effect) !important;
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   [data-cdl-node]:is([data-cdl-node="受付"], [data-cdl-node="仕分け"])[data-cdl-active="true"]
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
-  stroke: #b26bff !important;
-  filter: drop-shadow(0 0 8px rgb(178 107 255 / 65%)) !important;
+  stroke: var(--dragon-delivery-violet-frame) !important;
+  filter: var(--dragon-delivery-violet-effect) !important;
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
   svg[data-cdl-stage][data-cdl-palette="neon"]
   [data-cdl-node]:is([data-cdl-node="荷物"], [data-cdl-node="配送便"])[data-cdl-active="true"]
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
-  stroke: #00e5ff !important;
-  filter: drop-shadow(0 0 8px rgb(0 229 255 / 65%)) !important;
+  stroke: var(--dragon-delivery-cyan-frame) !important;
+  filter: var(--dragon-delivery-cyan-effect) !important;
 }
 
 [data-cdl-diagram="delivery-relations-demo"]
@@ -10336,7 +10600,7 @@ svg[data-cdl-stage]:is(
   [data-cdl-node]:is([data-cdl-node="受付済"], [data-cdl-node="集荷済"], [data-cdl-node="配達中"], [data-cdl-node="完了"])[data-cdl-active="true"]
   [data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark]) {
   stroke: var(--er-own) !important;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--er-own) 65%, transparent)) !important;
+  filter: var(--dragon-delivery-own-effect) !important;
 }
 
 /* 電飾の札は :has() を持つ共通規則より tone + diagram の 2 属性分強く選ぶ。 */
@@ -10451,7 +10715,7 @@ svg[data-cdl-stage]:is(
 [data-cdl-diagram="delivery-sequence-demo"]
   svg[data-cdl-stage][data-cdl-palette="relief"]
   [data-cdl-role="sequence-message"][data-cdl-message-kind="fire"] {
-  --delivery-sequence-tone: #c99a35;
+  --delivery-sequence-tone: var(--dragon-delivery-warning);
 }
 
 /* 図面の行の境は実線でなく裁線の点線にする。 */
@@ -10479,7 +10743,7 @@ svg[data-cdl-stage]:is(
 [data-cdl-diagram="delivery-components-demo"]
   svg[data-cdl-stage]:is([data-cdl-palette="letterpress"], [data-cdl-palette="sketch"])
   :is([data-cdl-role="figure-head-divider"], [data-cdl-role="figure-footer-divider"]) {
-  stroke-width: 3px !important;
+  stroke-width: var(--dragon-delivery-component-divider-width) !important;
 }
 
 /* 浮彫の 3 図は見本の丸札にし、構成図の脚上の罫を足さない。 */
@@ -10490,8 +10754,8 @@ svg[data-cdl-stage]:is(
   )
   svg[data-cdl-stage][data-cdl-palette="relief"]
   [data-cdl-role="edge-label-bg"] {
-  rx: 20px !important;
-  ry: 20px !important;
+  rx: var(--dragon-delivery-tag-radius) !important;
+  ry: var(--dragon-delivery-tag-radius) !important;
 }
 
 [data-cdl-diagram="delivery-components-demo"]
@@ -10505,7 +10769,7 @@ svg[data-cdl-stage]:is(
   svg[data-cdl-stage][data-cdl-palette="blueprint"]
   [data-cdl-role="sequence-band"] {
   stroke: var(--er-type) !important;
-  stroke-width: 1.5px !important;
+  stroke-width: var(--dragon-delivery-sequence-band-frame-width) !important;
 }
 
 [data-cdl-diagram="delivery-sequence-demo"]

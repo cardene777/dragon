@@ -48,8 +48,12 @@
  * 走査が空振りしても 0 件になるので、0 だけを見てもどちらか判らない
  * (`rules/quality.md § 0 件を報告する時は母数を併記する`)。
  */
-import { describe, it, expect } from "vitest";
-import type { CdlDiagram } from "@cardenelabs/cdl";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { CdlDiagramView, layout, type CdlDiagram } from "@cardenelabs/cdl";
+import { JSDOM } from "jsdom";
+import { describe, it, expect, vi } from "vitest";
 
 import { 全図 } from "./support/responsive-accepted";
 
@@ -196,6 +200,37 @@ describe("クラス図の関係の名前と描き方 (#2589)", () => {
       `関係の名前と描き方を対応表に揃える` +
         ` (クラス図 ${クラス図.length} 枚 / 矢印 ${矢印の数(クラス図)} 本を走査)\n  ${出た.join("\n  ")}`,
     ).toEqual([]);
+  });
+
+  it("描いた線に 3 群の色と実線・破線の違いが残る", () => {
+    const 警告を黙らせる = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      for (const 図 of クラス図) {
+        const html = renderToStaticMarkup(createElement(CdlDiagramView, { diagram: layout(図) }));
+        const 文書 = new JSDOM(html).window.document;
+        const 描いた線 = [...文書.querySelectorAll<SVGGElement>("[data-cdl-edge]")];
+
+        expect(描いた線, `${図.id} の描画線`).toHaveLength(図.edges.length);
+        図.edges.forEach((edge, index) => {
+          const group = 描いた線[index];
+          const line = group?.querySelector('[data-cdl-role="edge-line"]');
+          const tone = typeof edge.tone === "string" ? edge.tone : "";
+          const dash = line?.getAttribute("stroke-dasharray") ?? "";
+
+          expect(group?.getAttribute("data-cdl-tone"), `${名(図, edge)} の色群`).toBe(tone);
+          expect(line?.getAttribute("stroke"), `${名(図, edge)} の描画色`).toContain(
+            `--cdl-tone-${tone}`,
+          );
+          if (edge.style === "dashed") {
+            expect(dash, `${名(図, edge)} の破線`).toBe("10 8");
+          } else {
+            expect(dash, `${名(図, edge)} の実線`).not.toBe("10 8");
+          }
+        });
+      }
+    } finally {
+      警告を黙らせる.mockRestore();
+    }
   });
 
   it("対応表の行が全て実物に出ている", () => {

@@ -9,7 +9,13 @@ import {
   colorHex,
   readSnapshot,
 } from "@/components/CatalogSkeletonParts";
-import { presetDeliveryFlow } from "@/topics/catalog/presets.cdl";
+import {
+  presetDeliveryClasses,
+  presetDeliveryComponents,
+  presetDeliveryFlow,
+  presetDeliveryRelations,
+  presetDeliverySequence,
+} from "@/topics/catalog/presets.cdl";
 import {
   pattern__textDslFlowchart__縦に積む,
   pattern__textDslFlowchart__複雑,
@@ -17,7 +23,10 @@ import {
 } from "@/topics/catalog/text-dsl.cdl";
 import {
   FLOWCHART_SKELETON_PARTS,
+  INFRASTRUCTURE_SKELETON_PARTS,
   MIND_SKELETON_PARTS,
+  RECORD_SKELETON_PARTS,
+  SEQUENCE_SKELETON_PARTS,
   TREE_SKELETON_PARTS,
   avoidCatalogSkeletonBadgeOverlaps,
   catalogSkeletonLineBadgePoint,
@@ -53,8 +62,8 @@ function 描く(図: CdlDiagram): SVGSVGElement {
         hideMiniPhaseIndicator
       />,
     );
-    const svg = 器.querySelector<SVGSVGElement>('svg[data-cdl-type="flowchart"]');
-    if (!svg) throw new Error(`${図.id} を flowchart の SVG として描けない`);
+    const svg = 器.querySelector<SVGSVGElement>("svg[data-cdl-type]");
+    if (!svg) throw new Error(`${図.id} を SVG として描けない`);
     return svg;
   } finally {
     警告を黙らせる.mockRestore();
@@ -357,7 +366,9 @@ describe("階層図とマインドマップで骨組みの部品を選ぶ", () =
     expect(catalogSkeletonPartsFor("flowchart")).toBe(FLOWCHART_SKELETON_PARTS);
     expect(catalogSkeletonPartsFor("tree")).toBe(TREE_SKELETON_PARTS);
     expect(catalogSkeletonPartsFor("mind")).toBe(MIND_SKELETON_PARTS);
-    expect(catalogSkeletonPartsFor("sequence")).toBeNull();
+    expect(catalogSkeletonPartsFor("sequence")).toBe(SEQUENCE_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("infrastructure")).toBe(INFRASTRUCTURE_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("record")).toBe(RECORD_SKELETON_PARTS);
     expect(catalogSkeletonPartsFor(null)).toBeNull();
   });
 
@@ -420,13 +431,86 @@ describe("階層図とマインドマップで骨組みの部品を選ぶ", () =
       candidate.textContent?.includes("枝の矢じり"),
     );
     const number = row?.querySelector(".catalog-skeleton-number span");
+    expect(number?.textContent).toBe("2");
     expect(number?.classList.contains("is-unplaced")).toBe(true);
     expect(row?.textContent).toContain("骨組みの上に出ない");
     expect(
       Array.from(skeletonStage.querySelectorAll(".catalog-skeleton-badge")).some(
-        (badge) => badge.textContent === "6",
+        (badge) => badge.textContent === "2",
       ),
     ).toBe(false);
+  });
+
+  it("途中の部品が図に無くても表と丸を 1 から飛ばさず同じ番号で並べる", () => {
+    const stageMarkup = `
+      <svg data-cdl-stage data-cdl-type="tree">
+        <g data-cdl-role="tree-node">
+          <text data-cdl-role="tree-node-subtitle"></text>
+        </g>
+        <path data-cdl-role="tree-edge"></path>
+        <path data-cdl-role="tree-edge-head"></path>
+        <text data-cdl-role="figure-title"></text>
+        <text data-cdl-role="figure-kind-label"></text>
+      </svg>
+    `;
+    const skeletonStage = document.createElement("div");
+    skeletonStage.innerHTML = stageMarkup;
+    const designStage = document.createElement("div");
+    designStage.innerHTML = stageMarkup;
+    document.body.append(skeletonStage, designStage);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(矩形(0, 0, 200, 200));
+
+    const skeletonEdge = skeletonStage.querySelector<SVGElement>('[data-cdl-role="tree-edge"]');
+    if (!skeletonEdge) throw new Error("検査用の枝を描けない");
+    Object.defineProperties(skeletonEdge, {
+      getTotalLength: { configurable: true, value: () => 100 },
+      getPointAtLength: { configurable: true, value: (distance: number) => ({ x: distance, y: 20 }) },
+      getScreenCTM: {
+        configurable: true,
+        value: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }),
+      },
+    });
+
+    const snapshot = readSnapshot(skeletonStage, designStage);
+
+    expect(snapshot.rows.map(({ number }) => number)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(snapshot.badges.map(({ number }) => number)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  });
+});
+
+describe("宅配の 4 記法で骨組みの部品を選ぶ", () => {
+  const 図と一覧 = [
+    [presetDeliverySequence, "sequence", SEQUENCE_SKELETON_PARTS, ["動作中の帯", "生命線", "言づての線"]],
+    [presetDeliveryComponents, "infrastructure", INFRASTRUCTURE_SKELETON_PARTS, ["区画", "部品の箱", "つながりの線"]],
+    [presetDeliveryRelations, "record", RECORD_SKELETON_PARTS, ["箱", "行", "関係の線"]],
+    [presetDeliveryClasses, "record", RECORD_SKELETON_PARTS, ["箱", "行", "関係の線"]],
+  ] as const;
+
+  it("3 図種の一覧は 8〜12 部品を持ち、4 図の主な部品へ当たる", () => {
+    expect(new Set(図と一覧.map(([, type]) => type))).toEqual(
+      new Set(["sequence", "infrastructure", "record"]),
+    );
+    for (const 一覧 of [SEQUENCE_SKELETON_PARTS, INFRASTRUCTURE_SKELETON_PARTS, RECORD_SKELETON_PARTS]) {
+      expect(一覧.length).toBeGreaterThanOrEqual(8);
+      expect(一覧.length).toBeLessThanOrEqual(12);
+    }
+
+    for (const [図, type, 一覧, 主な部品] of 図と一覧) {
+      const svg = 描く(図);
+      expect(svg.getAttribute("data-cdl-type"), 図.id).toBe(type);
+      const 当たった = 一覧.filter((part) => catalogSkeletonPartTarget(svg, part)).map(({ label }) => label);
+      expect(当たった, `${図.id} の主な部品`).toEqual(expect.arrayContaining([...主な部品]));
+    }
+  });
+
+  it("3 図種の一覧は役を選び、小さな行頭の印を一覧に含めない", () => {
+    for (const 一覧 of [SEQUENCE_SKELETON_PARTS, INFRASTRUCTURE_SKELETON_PARTS, RECORD_SKELETON_PARTS]) {
+      expect(一覧[0]).toMatchObject({ label: "地", selector: ":scope" });
+      expect(一覧.every(({ selector }) => selector === ":scope" || selector.includes("data-cdl-role"))).toBe(true);
+    }
+    expect(RECORD_SKELETON_PARTS.some(({ selector }) => selector.includes("node-row-glyph"))).toBe(false);
+    expect(RECORD_SKELETON_PARTS.some(({ selector }) => selector.includes("node-row-well"))).toBe(false);
+    expect(INFRASTRUCTURE_SKELETON_PARTS.some(({ selector }) => selector.includes("lane-label"))).toBe(false);
   });
 });
 

@@ -215,6 +215,43 @@ const fixedThemeRoles = [
   "--dragon-tree-sales-office-ground-pattern",
   "--dragon-mind-redelivery-ground-pattern",
   "--dragon-mind-redelivery-root-fill",
+  "--dragon-delivery-relation-state",
+  "--dragon-delivery-relation-use",
+  "--dragon-delivery-warning",
+  "--dragon-delivery-tag-frame-width",
+  "--dragon-delivery-terminal-tag-text",
+  "--dragon-delivery-row-well-effect",
+  "--dragon-delivery-row-glyph-radius",
+  "--dragon-delivery-lane-fill",
+  "--dragon-delivery-lane-frame",
+  "--dragon-delivery-lane-frame-width",
+  "--dragon-delivery-lane-dash",
+  "--dragon-delivery-lane-effect",
+  "--dragon-delivery-body-frame-width",
+  "--dragon-delivery-focus-frame-width",
+  "--dragon-delivery-focus-effect",
+  "--dragon-delivery-cyan-frame",
+  "--dragon-delivery-cyan-effect",
+  "--dragon-delivery-violet-frame",
+  "--dragon-delivery-violet-effect",
+  "--dragon-delivery-own-effect",
+  "--dragon-delivery-divider-width",
+  "--dragon-delivery-group-divider",
+  "--dragon-delivery-group-divider-width",
+  "--dragon-delivery-sequence-label-radius",
+  "--dragon-delivery-sequence-band-fill",
+  "--dragon-delivery-sequence-band-frame",
+  "--dragon-delivery-sequence-band-frame-width",
+  "--dragon-delivery-sequence-band-radius",
+  "--dragon-delivery-sequence-band-effect",
+  "--dragon-delivery-sequence-thread",
+  "--dragon-delivery-sequence-actor-effect",
+  "--dragon-delivery-sequence-main-text",
+  "--dragon-delivery-sequence-main-text-effect",
+  "--dragon-delivery-active-body-frame-width",
+  "--dragon-delivery-active-body-effect",
+  "--dragon-delivery-component-divider-width",
+  "--dragon-delivery-tag-radius",
   "--dragon-chart-secondary-effect",
   "--dragon-chart-primary-effect",
   "--dragon-funnel-primary-effect",
@@ -524,8 +561,8 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect([...declared].filter((role) => !read.has(role))).toEqual([]);
   });
 
-  it("階層図・マインドマップと同じ節で足した表の全役は規則から少なくとも 1 回読まれる", () => {
-    const addedRole = /^--dragon-(?:hierarchy-|tree-sales-office-|mind-redelivery-|chart-|metro-label-|stage-detail-|stage-name-|stage-card-name-)/;
+  it("階層図・マインドマップ・宅配と同じ節で足した表の全役は規則から少なくとも 1 回読まれる", () => {
+    const addedRole = /^--dragon-(?:hierarchy-|tree-sales-office-|mind-redelivery-|delivery-|chart-|metro-label-|stage-detail-|stage-name-|stage-card-name-)/;
     const declared = new Set(fixedThemeRoles.filter((role) => addedRole.test(role)));
     const read = new Set(
       flatRules(css).flatMap(({ body }) =>
@@ -548,7 +585,7 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(named).toEqual([]);
   });
 
-  it("図だけの規則 73 件を移動先だけに持ち、移動元 2 節は 0 件", () => {
+  it("図だけの規則 225 件を移動先だけに持ち、移動元 3 節は 0 件", () => {
     const heading = " * 図だけの規則\n";
     expect(css.split(heading)).toHaveLength(2);
     const namedDiagramRule = /data-cdl-diagram="|data-cdl-node="[^"]*-chart"/;
@@ -564,11 +601,16 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       sectionAfter(" * 見本帳の階層図とマインドマップ (#2854 7c / round 5)"),
       "hierarchy-source-7c",
     ).rules;
+    const deliverySourceRules = parseCssRules(
+      sectionAfter(" * 宅配の 4 つの記法見本 (#2836)"),
+      "delivery-source",
+    ).rules;
 
-    expect(diagramRules).toHaveLength(76);
-    expect(diagramRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(73);
+    expect(diagramRules).toHaveLength(228);
+    expect(diagramRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(225);
     expect(firstSourceRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(0);
     expect(secondSourceRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(0);
+    expect(deliverySourceRules.filter(({ selector }) => namedDiagramRule.test(selector))).toHaveLength(0);
 
     const firstHeadingAt = css.indexOf(" * 見本帳の階層図とマインドマップ (#2854 6a)");
     const secondHeadingAt = css.indexOf(" * 見本帳の階層図とマインドマップ (#2854 7c / round 5)");
@@ -577,9 +619,9 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(diagramHeadingAt).toBeGreaterThan(secondHeadingAt);
   });
 
-  it("持ち越し 25 件を同じ選択子と宣言で持ち、危険な規則は基準 41 件を超えない", () => {
+  it("持ち越し 27 件を同じ選択子と宣言で持ち、危険な規則は基準 41 件を超えない", () => {
     const carryoverMarkers = css.match(/\/\* 持ち越しの目印:/g) ?? [];
-    expect(carryoverMarkers).toHaveLength(25);
+    expect(carryoverMarkers).toHaveLength(27);
 
     const actual = flatRules(css).map((rule) => ({
       selector: normalized(rule.selector),
@@ -663,6 +705,18 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       `svg[data-cdl-stage][data-cdl-palette] [data-cdl-kind="chart-bar"] [data-cdl-role="chart-bar-value"] {
         transform: translateY(var(--catalog-bar-value-y));
       }`,
+      `:is([data-cdl-diagram="delivery-relations-demo"], [data-cdl-diagram="delivery-classes-demo"])
+        svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="node-row-glyph"] {
+        rx: var(--dragon-delivery-row-glyph-radius);
+        ry: var(--dragon-delivery-row-glyph-radius);
+        transform-box: fill-box;
+        transform-origin: center;
+        transform: rotate(45deg) !important;
+      }`,
+      `[data-cdl-diagram="delivery-sequence-demo"]
+        svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="sequence-label-mark"] {
+        transform: rotate(45deg) !important;
+      }`,
     ].map(exactRule);
     for (const rule of expected) expect(actual).toContainEqual(rule);
 
@@ -712,18 +766,18 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(risky).toEqual([]);
   });
 
-  it("階層図の 2 節と図だけの規則に直書きの色・太さ・角・影は 0 件", () => {
+  it("階層図の 2 節と図だけの規則（宅配を含む）に直書きの色・太さ・角・影は 0 件", () => {
     const hierarchy = [
       sectionAfter(" * 見本帳の階層図とマインドマップ (#2854 6a)"),
       sectionAfter(" * 見本帳の階層図とマインドマップ (#2854 7c / round 5)"),
       sectionAfter(" * 図だけの規則"),
     ];
     const direct = hierarchy.flatMap(directStyleValues);
-    console.log(`#2879 の 3 節に残る直書きの色・太さ・角・影: ${direct.length} 件`);
+    console.log(`#2879 / #2880 の 3 節に残る直書きの色・太さ・角・影: ${direct.length} 件`);
     expect(direct).toEqual([]);
   });
 
-  it("持ち越し 10 件を移しても競合規則との前後関係は変わらない", () => {
+  it("持ち越し 12 件を移しても競合規則との前後関係は変わらない", () => {
     const rules = flatRules(css);
     const flowTransform = rules.findIndex(({ selector }) =>
       selector.includes('[data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"]'));
@@ -739,6 +793,14 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       body.includes("display: none"));
     const radiusRules = rules.filter(({ selector }) =>
       /\[data-cdl-role="edge-flow"\] circle\[r="(?:12|18|28)"\]/.test(selector));
+    const deliveryGlyphTransform = rules.filter(({ selector, body }) =>
+      selector.includes('[data-cdl-diagram="delivery-relations-demo"]') &&
+      selector.includes('[data-cdl-role="node-row-glyph"]') &&
+      body.includes("transform: rotate(45deg)"));
+    const deliverySequenceTransform = rules.filter(({ selector, body }) =>
+      selector.includes('[data-cdl-diagram="delivery-sequence-demo"]') &&
+      selector.includes('[data-cdl-role="sequence-label-mark"]') &&
+      body.includes("transform: rotate(45deg)"));
 
     // 移動前と同じく、図種固有の矢じりは全図の scale(2) より後に置く。
     expect(globalTransform).toBeGreaterThanOrEqual(0);
@@ -751,6 +813,9 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     // 半径で選ぶ円には同じ半径を選ぶ競合規則が無い。
     expect(radiusRules.map(({ selector }) => selector.match(/circle\[r="(\d+)"\]/)?.[1]).sort())
       .toEqual(["12", "18", "28"]);
+    // 2 規則は別の役と意匠だけを選び、同じ transform を競合させる規則を持たない。
+    expect(deliveryGlyphTransform).toHaveLength(1);
+    expect(deliverySequenceTransform).toHaveLength(1);
   });
 
   it("表の filter ID は全て定義済みで、元から無い ID は 0 件", () => {
@@ -792,6 +857,7 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
       "dragon-sketch-pen-primary",
       "dragon-sketch-pen",
       "dragon-relief-mind-root",
+      "dragon-relief-figure-inset",
     ]);
     expect([...tableIds].filter((id) => !ids.has(id))).toEqual([]);
     expect([...tableIds].filter((id) => !originalTableIds.has(id))).toEqual([]);

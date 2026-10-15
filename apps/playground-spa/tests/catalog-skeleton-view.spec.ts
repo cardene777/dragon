@@ -95,3 +95,35 @@ for (const [見本, 部品] of [
     }
   });
 }
+
+for (const [識別子, 見本, 部品] of [
+  ["delivery-sequence-demo", "集荷から配達までの呼び出し順", ["動作中の帯", "生命線", "言づての線"]],
+  ["delivery-components-demo", "配送システムの部品", ["区画", "部品の箱", "つながりの線"]],
+  ["delivery-relations-demo", "契約と荷物と配送状態の関係", ["箱", "行", "関係の線"]],
+  ["delivery-classes-demo", "荷物を運ぶ型", ["箱", "行", "関係の線"]],
+] as const) {
+  test(`${見本}の骨組みに部品の表を出す`, async ({ page }) => {
+    await page.goto("catalog/presets", { waitUntil: "networkidle" });
+    await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
+    await 一覧の行(page, 識別子).click();
+    await page.getByRole("radio", { name: "骨組み", exact: true }).click();
+
+    const 表 = page.locator(".catalog-skeleton-parts table");
+    await expect(表.locator("tbody tr").first()).toBeVisible();
+    for (const 名前 of 部品) {
+      await expect(表.getByRole("rowheader", { name: 名前, exact: true })).toBeVisible();
+    }
+  });
+}
+
+test("関係の図の部品表は番号が 1 から飛ばずに並ぶ", async ({ page }) => {
+  await page.goto("catalog/presets", { waitUntil: "networkidle" });
+  await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
+  await 一覧の行(page, "delivery-relations-demo").click();
+  await page.getByRole("radio", { name: "骨組み", exact: true }).click();
+
+  const 番号 = page.locator(".catalog-skeleton-parts .catalog-skeleton-number span");
+  await expect(番号.first()).toBeVisible();
+  const 件数 = await 番号.count();
+  await expect(番号).toHaveText(Array.from({ length: 件数 }, (_, index) => String(index + 1)));
+});
