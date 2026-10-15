@@ -363,30 +363,41 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     expect(declaration(palette, "--d-text-primary")).toBe("var(--dragon-theme-text)");
     expect(declaration(palette, "--cdl-text-mute")).toBe("var(--dragon-theme-muted-text)");
 
-    const legend = ruleBody(
-      'svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="legend"]',
-    );
-    expect(declaration(legend, "--cdl-text-accent")).toBe(
+    const legend = ruleBodyContaining([
+      'svg[data-cdl-stage][data-cdl-palette]:not(',
+      '[data-cdl-role="legend"]',
+      "--cdl-text-accent: var(--dragon-timeline-legend-mark)",
+    ]);
+    expect(declaration(legend, "--cdl-text-accent")).toBe("var(--dragon-timeline-legend-mark)");
+    const relief = ruleBody('svg[data-cdl-stage][data-cdl-palette="relief"]');
+    expect(declaration(relief, "--dragon-timeline-legend-mark")).toBe(
       "var(--theme-flow-mark, var(--d-text-primary))",
     );
-    const dotted = ruleBody(
-      'svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-legend-mark="dotted-line"]',
-    );
+    const dotted = ruleBodyContaining([
+      'svg[data-cdl-stage][data-cdl-palette]:not(',
+      '[data-cdl-legend-mark="dotted-line"]',
+      "--cdl-text-accent: var(--dragon-timeline-return-legend)",
+    ]);
     // 浮彫の段の箱の戻り線は見本の黄土。実装も専用値へ戻したため、旧 --er-own は使わない。
-    expect(declaration(dotted, "--cdl-text-accent")).toBe("#c99a35");
+    expect(declaration(dotted, "--cdl-text-accent")).toBe("var(--dragon-timeline-return-legend)");
+    expect(declaration(relief, "--dragon-timeline-return-legend")).toBe("#c99a35");
 
     expect(
       declaration(
         ruleBody('svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="legend-text"]'),
         "fill",
       ),
-    ).toBe("var(--theme-ground-type)");
+    ).toBe("var(--dragon-timeline-legend-text)");
+    expect(declaration(ruleBody('svg[data-cdl-stage][data-cdl-palette="catalog"]'),
+      "--dragon-timeline-legend-text")).toBe("var(--theme-ground-type)");
     expect(
       declaration(
         ruleBody('svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend-text"]'),
         "fill",
       ),
-    ).toBe("var(--theme-legend-text)");
+    ).toBe("var(--dragon-timeline-legend-text)");
+    expect(declaration(ruleBody('svg[data-cdl-stage][data-cdl-palette="terminal"]'),
+      "--dragon-timeline-legend-text")).toBe("var(--theme-legend-text)");
   });
 
   it("14 の枠の三角を横 17・縦 19 にする", () => {

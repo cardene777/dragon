@@ -76,7 +76,8 @@ const METRO_CSS_ROLES = {
 const TEXT_TONES = ["accent", "teal", "success", "error", "warning", "info"] as const;
 const TEXT_BACKGROUNDS = ["ground", "face", "stripe"] as const;
 const CARD_TEXT_BACKGROUNDS = ["face", "stripe"] as const;
-const FIXED_TIMELINE_STAGE_SELECTOR = 'svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])';
+const FIXED_TIMELINE_STAGE_SELECTOR = 'svg[data-cdl-stage][data-cdl-palette]:not( :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"]) ):has([data-cdl-role="timeline-axis"])';
+const CARRYOVER_TIMELINE_STAGE_SELECTOR = 'svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])';
 const LABEL_TONES = {
   accent: { note: "one", role: "line" },
   info: { note: "one", role: "line" },
@@ -801,7 +802,9 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       expect(
         cssDeclaration(cssRuleBody(cssText, `${stage} [data-cdl-role="legend"]`, "filter"), "filter"),
         `${theme} の凡例`,
-      ).toBe(`url(#${filter})`);
+      ).toBe("var(--dragon-timeline-sign-effect)");
+      expect(cssFixedThemeDeclarations(cssText, theme).get("dragon-timeline-sign-effect"), theme)
+        .toBe(`url(#${filter})`);
       for (const inner of [
         '[data-cdl-role="node-body"][data-cdl-mark="start"]',
         '[data-cdl-role="node-body"][data-cdl-mark="end"]',
@@ -1588,8 +1591,11 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     ]);
     expect(cssDeclaration(decision, "fill")).toBe("var(--er-face)");
     expect(cssDeclaration(decision, "stroke")).toBe("var(--er-link)");
-    expect(cssDeclaration(decision, "stroke-width")).toBe("3");
-    expect(cssDeclaration(decision, "filter")).toContain("var(--er-link)");
+    expect(cssDeclaration(decision, "stroke-width")).toBe("var(--dragon-flow-decision-frame-width)");
+    expect(cssDeclaration(decision, "filter")).toBe("var(--dragon-timeline-decision-effect)");
+    const neonTimeline = cssFixedTimelineDeclarations(cssText, "neon");
+    expect(neonTimeline.get("dragon-flow-decision-frame-width")).toBe("3");
+    expect(neonTimeline.get("dragon-timeline-decision-effect")).toContain("var(--er-link)");
 
     const normalArrow = cssRuleBodyContaining(cssText, [
       ':has([data-cdl-role="timeline-axis"])',
@@ -1624,7 +1630,11 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
 
     expect(readers.length, "時間軸の変数を読む規則が 0 件").toBeGreaterThan(0);
     for (const selector of readers) {
-      expect(selector.startsWith(`${FIXED_TIMELINE_STAGE_SELECTOR} `), selector).toBe(true);
+      expect(
+        selector.startsWith(`${FIXED_TIMELINE_STAGE_SELECTOR} `) ||
+          selector.startsWith(`${CARRYOVER_TIMELINE_STAGE_SELECTOR} `),
+        selector,
+      ).toBe(true);
     }
   });
 });

@@ -521,6 +521,43 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"]
   animation: running-dot-wave-inner 1.4s linear infinite -0.7s;
 }
 
+/* 持ち越しの目印: 時間軸の分かれ道から種類の絵を隠す */
+svg[data-cdl-stage][data-cdl-palette]
+  [data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]
+  [data-cdl-role="node-kind-icon"] {
+  display: none;
+}
+
+@keyframes catalog-lift-in {
+  /* 持ち越しの目印: 図録の箱を下から浮かせる */
+  from {
+    opacity: 0;
+    translate: 0 22px;
+    scale: 0.985;
+  }
+  /* 持ち越しの目印: 図録の箱を元の位置へ戻す */
+  to {
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+/* 持ち越しの目印: 時間軸の通常の三角の矢じりを見本の大きさへ合わせる */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  marker:not([id$="-sm"])
+  > [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="triangle"] {
+  transform: scale(var(--theme-timeline-arrow-scale-x), var(--theme-timeline-arrow-scale-y));
+  transform-origin: 9px 5px;
+}
+
+/* 持ち越しの目印: 時間軸の小さい三角の矢じりを見本の大きさへ合わせる */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+  marker[id$="-sm"]
+  > [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="triangle"] {
+  transform: scale(var(--theme-timeline-small-arrow-scale-x), var(--theme-timeline-small-arrow-scale-y));
+  transform-origin: 9px 5px;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * 区画
  * ───────────────────────────────────────────────────────────────────────────── */
@@ -895,6 +932,35 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --dragon-timeline-axis: var(--timeline-axis);
+  --dragon-timeline-axis-width: 6;
+  --dragon-timeline-number-fill: var(--er-face);
+  --dragon-timeline-number-frame: var(--timeline-axis);
+  --dragon-timeline-number-frame-width: 4;
+  --dragon-timeline-number-text: var(--er-ink);
+  --dragon-timeline-number-font: var(--d-mono);
+  --dragon-timeline-number-font-weight: 700;
+  --dragon-timeline-leader: var(--er-type);
+  --dragon-timeline-leader-width: 2;
+  --dragon-timeline-leader-dash: 2 6;
+  --dragon-timeline-leader-opacity: 0.6;
+  --dragon-timeline-note-text: var(--er-type);
+  --dragon-timeline-note-font: var(--d-mono);
+  --dragon-timeline-note-font-size: 16px;
+  --dragon-timeline-note-font-weight: 500;
+  --dragon-timeline-card-font-size: 25px;
+  --dragon-timeline-card-font-weight: 700;
+  --dragon-timeline-decision-font-size: 26px;
+  --dragon-timeline-end-fill: var(--er-ground);
+  --dragon-timeline-end-frame: var(--timeline-end-ink);
+  --dragon-timeline-end-frame-width: 3.5;
+  --dragon-timeline-end-core-fill: var(--timeline-end-ink);
+  --dragon-timeline-end-core-radius: 10px;
+  --dragon-timeline-legend-mark: var(--theme-flow-mark, var(--d-text-primary));
+  --dragon-timeline-return-legend: var(--er-own);
+  --dragon-timeline-legend-text: var(--er-type);
+  --dragon-timeline-sign-effect: none;
+  --dragon-timeline-decision-effect: none;
   --theme-timeline-label-success-fill: var(--er-link);
   --theme-timeline-label-error-fill: var(--er-own);
   --theme-timeline-label-success-text: #ebf0f0;
@@ -1103,6 +1169,35 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --dragon-timeline-axis: var(--timeline-axis);
+  --dragon-timeline-axis-width: 6;
+  --dragon-timeline-number-fill: var(--er-face);
+  --dragon-timeline-number-frame: var(--timeline-axis);
+  --dragon-timeline-number-frame-width: 4;
+  --dragon-timeline-number-text: var(--er-ink);
+  --dragon-timeline-number-font: var(--d-mono);
+  --dragon-timeline-number-font-weight: 700;
+  --dragon-timeline-leader: var(--er-type);
+  --dragon-timeline-leader-width: 2;
+  --dragon-timeline-leader-dash: 2 6;
+  --dragon-timeline-leader-opacity: 0.6;
+  --dragon-timeline-note-text: var(--er-type);
+  --dragon-timeline-note-font: var(--d-mono);
+  --dragon-timeline-note-font-size: 16px;
+  --dragon-timeline-note-font-weight: 500;
+  --dragon-timeline-card-font-size: 25px;
+  --dragon-timeline-card-font-weight: 800;
+  --dragon-timeline-decision-font-size: 26px;
+  --dragon-timeline-end-fill: var(--er-ground);
+  --dragon-timeline-end-frame: var(--timeline-end-ink);
+  --dragon-timeline-end-frame-width: 3.5;
+  --dragon-timeline-end-core-fill: var(--timeline-end-ink);
+  --dragon-timeline-end-core-radius: 10px;
+  --dragon-timeline-legend-mark: var(--theme-flow-mark, var(--d-text-primary));
+  --dragon-timeline-return-legend: var(--er-own);
+  --dragon-timeline-legend-text: var(--er-type);
+  --dragon-timeline-sign-effect: none;
+  --dragon-timeline-decision-effect: none;
   --theme-timeline-label-success-fill: var(--er-link);
   --theme-timeline-label-error-fill: var(--er-own);
   --theme-timeline-label-success-text: #f0eadc;
@@ -1307,6 +1402,35 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --dragon-timeline-axis: var(--timeline-axis);
+  --dragon-timeline-axis-width: 6;
+  --dragon-timeline-number-fill: var(--er-face);
+  --dragon-timeline-number-frame: var(--timeline-axis);
+  --dragon-timeline-number-frame-width: 4;
+  --dragon-timeline-number-text: var(--er-ink);
+  --dragon-timeline-number-font: var(--d-mono);
+  --dragon-timeline-number-font-weight: 700;
+  --dragon-timeline-leader: var(--er-type);
+  --dragon-timeline-leader-width: 2;
+  --dragon-timeline-leader-dash: 2 6;
+  --dragon-timeline-leader-opacity: 0.6;
+  --dragon-timeline-note-text: var(--er-type);
+  --dragon-timeline-note-font: var(--d-mono);
+  --dragon-timeline-note-font-size: 16px;
+  --dragon-timeline-note-font-weight: 500;
+  --dragon-timeline-card-font-size: 25px;
+  --dragon-timeline-card-font-weight: 700;
+  --dragon-timeline-decision-font-size: 26px;
+  --dragon-timeline-end-fill: var(--er-ground);
+  --dragon-timeline-end-frame: var(--timeline-end-ink);
+  --dragon-timeline-end-frame-width: 3.5;
+  --dragon-timeline-end-core-fill: var(--timeline-end-ink);
+  --dragon-timeline-end-core-radius: 10px;
+  --dragon-timeline-legend-mark: var(--theme-flow-mark, var(--d-text-primary));
+  --dragon-timeline-return-legend: var(--er-own);
+  --dragon-timeline-legend-text: var(--theme-ground-type);
+  --dragon-timeline-sign-effect: none;
+  --dragon-timeline-decision-effect: none;
   --theme-timeline-label-success-fill: var(--er-link);
   --theme-timeline-label-error-fill: var(--er-own);
   --theme-timeline-label-success-text: #1b222c;
@@ -1526,6 +1650,35 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --dragon-timeline-axis: var(--timeline-axis);
+  --dragon-timeline-axis-width: 6;
+  --dragon-timeline-number-fill: var(--er-face);
+  --dragon-timeline-number-frame: var(--timeline-axis);
+  --dragon-timeline-number-frame-width: 4;
+  --dragon-timeline-number-text: var(--er-ink);
+  --dragon-timeline-number-font: var(--d-mono);
+  --dragon-timeline-number-font-weight: 700;
+  --dragon-timeline-leader: var(--er-type);
+  --dragon-timeline-leader-width: 2;
+  --dragon-timeline-leader-dash: 2 6;
+  --dragon-timeline-leader-opacity: 0.6;
+  --dragon-timeline-note-text: var(--er-type);
+  --dragon-timeline-note-font: var(--d-mono);
+  --dragon-timeline-note-font-size: 16px;
+  --dragon-timeline-note-font-weight: 500;
+  --dragon-timeline-card-font-size: 25px;
+  --dragon-timeline-card-font-weight: 700;
+  --dragon-timeline-decision-font-size: 26px;
+  --dragon-timeline-end-fill: var(--er-ground);
+  --dragon-timeline-end-frame: var(--timeline-end-ink);
+  --dragon-timeline-end-frame-width: 3.5;
+  --dragon-timeline-end-core-fill: var(--timeline-end-ink);
+  --dragon-timeline-end-core-radius: 10px;
+  --dragon-timeline-legend-mark: var(--theme-flow-mark, var(--d-text-primary));
+  --dragon-timeline-return-legend: var(--er-own);
+  --dragon-timeline-legend-text: var(--theme-legend-text);
+  --dragon-timeline-sign-effect: url(#dragon-flow-sign-terminal-glow);
+  --dragon-timeline-decision-effect: none;
   --theme-timeline-label-success-fill: var(--er-link);
   --theme-timeline-label-error-fill: var(--er-own);
   --theme-timeline-label-success-text: #03110a;
@@ -1735,6 +1888,35 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --dragon-timeline-axis: var(--timeline-axis);
+  --dragon-timeline-axis-width: 6;
+  --dragon-timeline-number-fill: var(--er-face);
+  --dragon-timeline-number-frame: var(--timeline-axis);
+  --dragon-timeline-number-frame-width: 4;
+  --dragon-timeline-number-text: var(--er-ink);
+  --dragon-timeline-number-font: var(--d-mono);
+  --dragon-timeline-number-font-weight: 700;
+  --dragon-timeline-leader: var(--er-type);
+  --dragon-timeline-leader-width: 2;
+  --dragon-timeline-leader-dash: 2 6;
+  --dragon-timeline-leader-opacity: 0.6;
+  --dragon-timeline-note-text: var(--er-type);
+  --dragon-timeline-note-font: var(--d-mono);
+  --dragon-timeline-note-font-size: 16px;
+  --dragon-timeline-note-font-weight: 500;
+  --dragon-timeline-card-font-size: 25px;
+  --dragon-timeline-card-font-weight: 800;
+  --dragon-timeline-decision-font-size: 26px;
+  --dragon-timeline-end-fill: var(--er-ground);
+  --dragon-timeline-end-frame: var(--timeline-end-ink);
+  --dragon-timeline-end-frame-width: 3.5;
+  --dragon-timeline-end-core-fill: var(--timeline-end-ink);
+  --dragon-timeline-end-core-radius: 10px;
+  --dragon-timeline-legend-mark: var(--theme-flow-mark, var(--d-text-primary));
+  --dragon-timeline-return-legend: var(--er-own);
+  --dragon-timeline-legend-text: var(--er-type);
+  --dragon-timeline-sign-effect: none;
+  --dragon-timeline-decision-effect: none;
   --theme-timeline-label-success-fill: var(--er-link);
   --theme-timeline-label-error-fill: var(--er-own);
   --theme-timeline-label-success-text: #fffdf7;
@@ -1947,6 +2129,36 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --dragon-flow-label-frame-width: 2.5px;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --dragon-timeline-axis: var(--timeline-axis);
+  --dragon-timeline-axis-width: 6;
+  --dragon-timeline-number-fill: var(--er-face);
+  --dragon-timeline-number-frame: var(--timeline-axis);
+  --dragon-timeline-number-frame-width: 4;
+  --dragon-timeline-number-text: var(--er-ink);
+  --dragon-timeline-number-font: var(--d-mono);
+  --dragon-timeline-number-font-weight: 700;
+  --dragon-timeline-leader: var(--er-type);
+  --dragon-timeline-leader-width: 2;
+  --dragon-timeline-leader-dash: 2 6;
+  --dragon-timeline-leader-opacity: 0.6;
+  --dragon-timeline-note-text: var(--er-type);
+  --dragon-timeline-note-font: var(--d-mono);
+  --dragon-timeline-note-font-size: 16px;
+  --dragon-timeline-note-font-weight: 500;
+  --dragon-timeline-card-font-size: 25px;
+  --dragon-timeline-card-font-weight: 800;
+  --dragon-timeline-decision-font-size: 26px;
+  --dragon-timeline-end-fill: var(--er-ground);
+  --dragon-timeline-end-frame: var(--timeline-end-ink);
+  --dragon-timeline-end-frame-width: 3.5;
+  --dragon-timeline-end-core-fill: var(--timeline-end-ink);
+  --dragon-timeline-end-core-radius: 10px;
+  --dragon-timeline-legend-mark: var(--theme-flow-mark, var(--d-text-primary));
+  --dragon-timeline-return-legend: var(--er-own);
+  --dragon-timeline-legend-text: var(--er-type);
+  --dragon-timeline-sign-effect: url(#dragon-flow-sign-neon-glow);
+  --dragon-timeline-decision-effect: url(#dragon-neon-tube)
+    drop-shadow(0 0 14px color-mix(in srgb, var(--er-link) 45%, transparent));
   --theme-timeline-label-success-fill: var(--er-ground);
   --theme-timeline-label-error-fill: var(--er-ground);
   --theme-timeline-label-success-text: var(--er-link);
@@ -2155,6 +2367,35 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --dragon-timeline-axis: var(--timeline-axis);
+  --dragon-timeline-axis-width: 6;
+  --dragon-timeline-number-fill: var(--er-face);
+  --dragon-timeline-number-frame: var(--timeline-axis);
+  --dragon-timeline-number-frame-width: 4;
+  --dragon-timeline-number-text: var(--er-ink);
+  --dragon-timeline-number-font: var(--d-mono);
+  --dragon-timeline-number-font-weight: 700;
+  --dragon-timeline-leader: var(--er-type);
+  --dragon-timeline-leader-width: 2;
+  --dragon-timeline-leader-dash: 2 6;
+  --dragon-timeline-leader-opacity: 0.6;
+  --dragon-timeline-note-text: var(--er-type);
+  --dragon-timeline-note-font: var(--d-mono);
+  --dragon-timeline-note-font-size: 16px;
+  --dragon-timeline-note-font-weight: 500;
+  --dragon-timeline-card-font-size: 25px;
+  --dragon-timeline-card-font-weight: 700;
+  --dragon-timeline-decision-font-size: 26px;
+  --dragon-timeline-end-fill: var(--er-ground);
+  --dragon-timeline-end-frame: var(--timeline-end-ink);
+  --dragon-timeline-end-frame-width: 3.5;
+  --dragon-timeline-end-core-fill: var(--timeline-end-ink);
+  --dragon-timeline-end-core-radius: 10px;
+  --dragon-timeline-legend-mark: var(--theme-flow-mark, var(--d-text-primary));
+  --dragon-timeline-return-legend: #c99a35;
+  --dragon-timeline-legend-text: var(--er-type);
+  --dragon-timeline-sign-effect: url(#dragon-flow-sign-relief-raised);
+  --dragon-timeline-decision-effect: none;
   --theme-timeline-label-success-fill: var(--er-link);
   --theme-timeline-label-error-fill: #c99a35;
   --theme-timeline-label-success-text: #ffffff;
@@ -3146,6 +3387,13 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="timeline-axis"] {
   stroke-width: 6 !important;
 }
 
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="timeline-axis"] {
+  stroke: var(--dragon-timeline-axis) !important;
+  stroke-width: var(--dragon-timeline-axis-width) !important;
+}
+
 /*
  * 番号と印の間を進む線は軸の上へ重なるため、6 の芯にする。
  * 終わりへ入る線は矢頭を持つが、番号から出る点で同じ進行線と判別できる。
@@ -3162,6 +3410,19 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])
   stroke-linecap: butt !important;
 }
 
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge]:has([data-cdl-role="edge-line"]:not([marker-end]))
+  [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge][data-cdl-from^="timeline-number-"]:has([data-cdl-role="edge-line"][marker-end])
+  [data-cdl-role="edge-line"] {
+  stroke-width: var(--dragon-timeline-axis-width) !important;
+}
+
 /* 色を書かない進行線だけを軸の色にし、書いた色は `tone` の色を保つ。 */
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])
   [data-cdl-edge][data-cdl-tone="accent"]:has([data-cdl-role="edge-line"]:not([marker-end]))
@@ -3174,10 +3435,33 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])
   stroke: var(--timeline-axis) !important;
 }
 
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge][data-cdl-tone="accent"]:has([data-cdl-role="edge-line"]:not([marker-end]))
+  [data-cdl-role="edge-line"],
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
+  [data-cdl-edge][data-cdl-tone="accent"][data-cdl-from^="timeline-number-"]:has(
+    [data-cdl-role="edge-line"][marker-end]
+  )
+  [data-cdl-role="edge-line"] {
+  stroke: var(--dragon-timeline-axis) !important;
+}
+
 svg[data-cdl-stage][data-cdl-palette] circle[data-cdl-mark="timeline-number"] {
   fill: var(--er-face) !important;
   stroke: var(--timeline-axis) !important;
   stroke-width: 4 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) circle[data-cdl-mark="timeline-number"] {
+  fill: var(--dragon-timeline-number-fill) !important;
+  stroke: var(--dragon-timeline-number-frame) !important;
+  stroke-width: var(--dragon-timeline-number-frame-width) !important;
 }
 
 /* 分かれ道から色付きの線で入る番号は、線と同じ `tone` で縁を描く。 */
@@ -3193,6 +3477,16 @@ svg[data-cdl-stage][data-cdl-palette]
   font-weight: 700 !important;
 }
 
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  )
+  [data-cdl-node]:has(circle[data-cdl-mark="timeline-number"])
+  [data-cdl-role="node-label"] {
+  fill: var(--dragon-timeline-number-text) !important;
+  font-family: var(--dragon-timeline-number-font) !important;
+  font-weight: var(--dragon-timeline-number-font-weight) !important;
+}
+
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="timeline-leader"] {
   stroke: var(--er-type) !important;
   stroke-width: 2 !important;
@@ -3200,11 +3494,29 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="timeline-leader"] {
   opacity: 0.6 !important;
 }
 
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="timeline-leader"] {
+  stroke: var(--dragon-timeline-leader) !important;
+  stroke-width: var(--dragon-timeline-leader-width) !important;
+  stroke-dasharray: var(--dragon-timeline-leader-dash) !important;
+  opacity: var(--dragon-timeline-leader-opacity) !important;
+}
+
 svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"]) [data-cdl-role="stage-note"] {
   fill: var(--er-type) !important;
   font-family: var(--d-mono) !important;
   font-size: 16px !important;
   font-weight: 500 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"]) [data-cdl-role="stage-note"] {
+  fill: var(--dragon-timeline-note-text) !important;
+  font-family: var(--dragon-timeline-note-font) !important;
+  font-size: var(--dragon-timeline-note-font-size) !important;
+  font-weight: var(--dragon-timeline-note-font-weight) !important;
 }
 
 /* 時間軸の札は、描く側が 20px で測った幅を保ちつつ見本の 25px で描く。 */
@@ -3215,12 +3527,13 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])
   font-weight: 700 !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="letterpress"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"]):has(
-    [data-cdl-role="timeline-axis"]
-  )
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
   [data-cdl-lane="timeline-steps"][data-cdl-kind="card"]
   [data-cdl-role="node-label"] {
-  font-weight: 800 !important;
+  font-size: var(--dragon-timeline-card-font-size) !important;
+  font-weight: var(--dragon-timeline-card-font-weight) !important;
 }
 
 /* 見本の菱形は種類の絵を持たず、題だけで分かれ道を表す。 */
@@ -3230,10 +3543,12 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])
   font-size: 26px !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette]
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
   [data-cdl-lane="timeline-axis"][data-cdl-kind="decision"]
-  [data-cdl-role="node-kind-icon"] {
-  display: none;
+  [data-cdl-role="node-label"] {
+  font-size: var(--dragon-timeline-decision-font-size) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-lane="timeline-axis"] [data-cdl-role="node-body"][data-cdl-mark="end"],
@@ -3245,35 +3560,44 @@ svg[data-cdl-stage][data-cdl-palette]
   stroke-width: 3.5 !important;
 }
 
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-lane="timeline-axis"] [data-cdl-role="node-body"][data-cdl-mark="end"],
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  )
+  [data-cdl-lane="timeline-axis"][data-cdl-active="true"]
+  [data-cdl-role="node-body"][data-cdl-mark="end"] {
+  fill: var(--dragon-timeline-end-fill) !important;
+  stroke: var(--dragon-timeline-end-frame) !important;
+  stroke-width: var(--dragon-timeline-end-frame-width) !important;
+}
+
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-lane="timeline-axis"] [data-cdl-role="node-inner"] {
   fill: var(--timeline-end-ink) !important;
   r: 10px;
 }
 
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-lane="timeline-axis"] [data-cdl-role="node-inner"] {
+  fill: var(--dragon-timeline-end-core-fill) !important;
+  r: var(--dragon-timeline-end-core-radius);
+}
+
 /* 見本は凡例の印を本体の始まりと終わりの印と同じ色で描く。dragon は凡例に、本体の印へ使う墨 (`--d-text-primary`) を読ませる。
  * 図録だけは本体の印を面の色 (`--er-face`) で塗るため僅かに違うが、凡例の #efe7d8 は見本と一致する。 */
-svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="legend"],
-svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="legend"],
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="legend"],
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="legend"],
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="legend"],
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="legend"] {
-  --cdl-text-accent: var(--theme-flow-mark, var(--d-text-primary));
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="legend"] {
+  --cdl-text-accent: var(--dragon-timeline-legend-mark);
 }
 
 /* 見本は凡例の点線を「前の段へ戻る」線と同色にする。浮彫だけは専用の黄土を使う。 */
-svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-legend-mark="dotted-line"],
-svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-legend-mark="dotted-line"],
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-legend-mark="dotted-line"],
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-legend-mark="dotted-line"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-legend-mark="dotted-line"],
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-legend-mark="dotted-line"] {
-  --cdl-text-accent: var(--er-own);
-}
-
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-legend-mark="dotted-line"] {
-  --cdl-text-accent: #c99a35;
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-legend-mark="dotted-line"] {
+  --cdl-text-accent: var(--dragon-timeline-return-legend);
 }
 
 /* 路線図の凡例は、前の駅へ戻る点線と同じ専用色にする。 */
@@ -3288,12 +3612,12 @@ html:not(.dark) svg[data-cdl-stage][data-cdl-palette="celadon"] [data-cdl-role="
 
 /* 図録の見本の凡例字 #a39a87 に合わせ、暗い台との対比を保つ。 */
 svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="legend-text"] {
-  fill: var(--theme-ground-type);
+  fill: var(--dragon-timeline-legend-text);
 }
 
 /* 端末の見本は凡例の字を台の薄い緑で描き、印の明るい緑と役を分ける。 */
 svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend-text"] {
-  fill: var(--theme-legend-text);
+  fill: var(--dragon-timeline-legend-text);
 }
 
 /* 見本は図全体へ掛ける光と浮きを、dragon では凡例のまとまりと印へ分けて掛ける。
@@ -3302,21 +3626,21 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend"],
 svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="node-body"][data-cdl-mark="start"],
 svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="node-body"][data-cdl-mark="end"],
 svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="node-inner"] {
-  filter: url(#dragon-flow-sign-terminal-glow);
+  filter: var(--dragon-timeline-sign-effect);
 }
 
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="legend"],
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="node-body"][data-cdl-mark="start"],
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="node-body"][data-cdl-mark="end"],
 svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="node-inner"] {
-  filter: url(#dragon-flow-sign-neon-glow);
+  filter: var(--dragon-timeline-sign-effect);
 }
 
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="legend"],
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="node-body"][data-cdl-mark="start"],
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="node-body"][data-cdl-mark="end"],
 svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="node-inner"] {
-  filter: url(#dragon-flow-sign-relief-raised);
+  filter: var(--dragon-timeline-sign-effect);
 }
 
 /*
@@ -3351,18 +3675,6 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-node] {
     scale: 1.035;
   }
   to {
-    scale: 1;
-  }
-}
-
-@keyframes catalog-lift-in {
-  from {
-    opacity: 0;
-    translate: 0 22px;
-    scale: 0.985;
-  }
-  to {
-    translate: 0 0;
     scale: 1;
   }
 }
@@ -6034,12 +6346,14 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
 /* ─────────────────────────────────────────────────────────────────────────────
  * 固定 7 意匠の時間軸。
  *
- * 値を持つのは上で palette 名を列挙した時間軸だけ。読む規則も同じ 7 意匠へ絞り、生成り・青磁は
+ * 値を持つのは上の表に時間軸の役を置いた 7 意匠だけ。読む規則も同じ 7 意匠へ絞り、生成り・青磁は
  * 無効な var() を計算して初期値へ落とさず、描く側と全図共通の線・札の規則を保つ。
  * ───────────────────────────────────────────────────────────────────────────── */
 
 /* 見本の札は線の success / error と同じ面を持つ。高さ 40 の中心を描く側の原点へ合わせる。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
   [data-cdl-edge-label-for][data-cdl-tone="success"]
   > [data-cdl-role="edge-label-bg"] {
   fill: var(--theme-timeline-label-success-fill) !important;
@@ -6051,7 +6365,9 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   ry: var(--theme-timeline-label-radius) !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
   [data-cdl-edge-label-for][data-cdl-tone="error"]
   > [data-cdl-role="edge-label-bg"] {
   fill: var(--theme-timeline-label-error-fill) !important;
@@ -6063,7 +6379,9 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   ry: var(--theme-timeline-label-radius) !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
   [data-cdl-edge-label-for][data-cdl-tone="success"]
   > [data-cdl-role="edge-label"] {
   fill: var(--theme-timeline-label-success-text) !important;
@@ -6072,7 +6390,9 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   y: 8px !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
   [data-cdl-edge-label-for][data-cdl-tone="error"]
   > [data-cdl-role="edge-label"] {
   fill: var(--theme-timeline-label-error-text) !important;
@@ -6083,13 +6403,17 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
 
 /* 動き中も見本の構造上の太さを保つ。活動状態は既存の色・出現・外光で伝わるため、
    静止画に無い太さの差は足さない。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
   [data-cdl-edge][data-cdl-edge-label="はい"]
   [data-cdl-role="edge-line"] {
   stroke-width: var(--theme-timeline-yes-width) !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
   [data-cdl-edge][data-cdl-edge-label="いいえ"]
   [data-cdl-role="edge-line"] {
   stroke-width: var(--theme-timeline-no-width) !important;
@@ -6103,7 +6427,9 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-role="timeline-axis"])
   stroke-linecap: round !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="timeline-axis"])
   [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {
   stroke-width: var(--theme-timeline-return-width) !important;
 }
@@ -6115,24 +6441,8 @@ svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-role="timeline-axis"]
   > :is(rect, path, ellipse, circle, polygon) {
   fill: var(--er-face) !important;
   stroke: var(--er-link) !important;
-  stroke-width: 3 !important;
-  filter: url(#dragon-neon-tube) drop-shadow(0 0 14px color-mix(in srgb, var(--er-link) 45%, transparent));
-}
-
-/* markerUnits=userSpaceOnUse の 14 / 10 の枠は線幅に比例しない。
-   通常と小型の三角を別倍率にし、どちらも見本の長さ 17・幅 19 に揃える。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
-  marker:not([id$="-sm"])
-  > [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="triangle"] {
-  transform: scale(var(--theme-timeline-arrow-scale-x), var(--theme-timeline-arrow-scale-y));
-  transform-origin: 9px 5px;
-}
-
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])
-  marker[id$="-sm"]
-  > [data-cdl-role="edge-arrowhead"][data-cdl-edge-head="triangle"] {
-  transform: scale(var(--theme-timeline-small-arrow-scale-x), var(--theme-timeline-small-arrow-scale-y));
-  transform-origin: 9px 5px;
+  stroke-width: var(--dragon-flow-decision-frame-width) !important;
+  filter: var(--dragon-timeline-decision-effect);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

@@ -145,6 +145,35 @@ function cssValue(body: string, property: string): string {
   return value.trim().replace(/\s*!important$/, "");
 }
 
+function cssRuleBodyContaining(fragments: string[], property: string): string {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const bodies = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
+    const selector = (match[1] ?? "").replace(/\s+/g, " ").trim();
+    const body = match[2] ?? "";
+    return fragments.every((fragment) => selector.includes(fragment)) &&
+      new RegExp(`(?:^|;)\\s*${escaped}\\s*:`).test(body)
+      ? [body]
+      : [];
+  });
+  if (bodies.length !== 1) throw new Error(`${fragments.join(" + ")} の ${property} が ${bodies.length} 件ある`);
+  return bodies[0]!;
+}
+
+function tableDeclarations(palette: string): Map<string, string> {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
+  const selector = `svg[data-cdl-stage][data-cdl-palette="${palette}"]`;
+  const body = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].find((match) =>
+    (match[1] ?? "").trim() === selector && (match[2] ?? "").includes("--dragon-theme-ground:"))?.[2];
+  if (!body) throw new Error(`${palette} の意匠表が無い`);
+  return new Map(
+    [...body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)].map((match) => [
+      match[1]!,
+      match[2]!.replace(/\s+/g, " ").trim(),
+    ]),
+  );
+}
+
 function rgb(hex: string): [number, number, number] {
   const value = Number.parseInt(hex.slice(1), 16);
   return [value >> 16, (value >> 8) & 255, value & 255];
@@ -171,9 +200,12 @@ describe("流れの凡例と始まり・終わりの印 (#2834)", () => {
   });
 
   it("3 意匠の凡例と始まり・終わりの各図形へ専用 filter を 1 回だけ当てる", () => {
-    for (const { id, selectors } of Object.values(FILTER_RULES)) {
+    for (const [palette, { id, selectors }] of Object.entries(FILTER_RULES)) {
+      const table = tableDeclarations(palette);
+      expect(table.get("--dragon-timeline-sign-effect"), palette).toBe(`url(#${id})`);
       for (const selector of selectors) {
-        expect(cssValue(cssRuleBody(selector, "filter"), "filter"), selector).toBe(`url(#${id})`);
+        expect(cssValue(cssRuleBody(selector, "filter"), "filter"), selector)
+          .toBe("var(--dragon-timeline-sign-effect)");
       }
     }
   });
@@ -197,7 +229,9 @@ describe("流れの凡例と始まり・終わりの印 (#2834)", () => {
         ),
         "fill",
       ),
-    ).toBe("var(--theme-legend-text)");
+    ).toBe("var(--dragon-timeline-legend-text)");
+    expect(tableDeclarations("terminal").get("--dragon-timeline-legend-text"))
+      .toBe("var(--theme-legend-text)");
     const ratio = contrast(rgb(legendText), rgb(ground));
     expect(ratio).toBeCloseTo(5.955051, 6);
     expect(ratio).toBeGreaterThanOrEqual(4.5);
@@ -209,12 +243,14 @@ describe("流れの凡例と始まり・終わりの印 (#2834)", () => {
       ['[data-cdl-role="node-body"][data-cdl-mark="start"]', "fill"],
       ['[data-cdl-role="node-body"][data-cdl-mark="end"]', "stroke"],
       ['[data-cdl-role="node-inner"]', "fill"],
-      [
-        'svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend"]',
-        "--cdl-text-accent",
-      ],
     ] as const) {
       expect(cssValue(cssRuleBody(selector, property), property), selector).toBe(fallback);
     }
+    const legend = cssRuleBodyContaining(
+      ['svg[data-cdl-stage][data-cdl-palette]:not(', '[data-cdl-role="legend"]'],
+      "--cdl-text-accent",
+    );
+    expect(cssValue(legend, "--cdl-text-accent")).toBe("var(--dragon-timeline-legend-mark)");
+    expect(tableDeclarations("terminal").get("--dragon-timeline-legend-mark")).toBe(fallback);
   });
 });

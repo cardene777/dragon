@@ -22,6 +22,36 @@ const paletteBlocks = (palette: string): string =>
     .map(({ body }) => body)
     .join("\n");
 
+const tableDeclarations = (palette: string): Map<string, string> => {
+  const selector = `svg[data-cdl-stage][data-cdl-palette="${palette}"]`;
+  const blocks = rules.filter((rule) =>
+    rule.selector.includes(selector) && rule.body.includes("--dragon-theme-ground:"));
+  if (blocks.length === 0) throw new Error(`${palette} の意匠表が無い`);
+  const result = new Map<string, string>();
+  for (const table of blocks) {
+    for (const match of table.body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/giu)) {
+      result.set(match[1]!, match[2]!.replace(/\s+/gu, " ").trim());
+    }
+  }
+  return result;
+};
+
+const resolvedRole = (table: Map<string, string>, role: string): string | undefined => {
+  const value = table.get(role);
+  const reference = /^var\((--[a-z0-9-]+)\)$/iu.exec(value ?? "")?.[1];
+  return reference ? resolvedRole(table, reference) : value;
+};
+
+const timelineLabels = [
+  ["blueprint", "#1f7a6b", "#a8431f", "#ebf0f0", "#e3e9ea", "none", "none", "0", "9px"],
+  ["letterpress", "#1a1510", "#1a1510", "#f0eadc", "#f0eadc", "none", "none", "0", "9px"],
+  ["catalog", "#4fae9a", "#e8705a", "#1b222c", "#1b222c", "none", "none", "0", "9px"],
+  ["terminal", "#c792ea", "#f5c451", "#03110a", "#03110a", "none", "none", "0", "4px"],
+  ["sketch", "#2f7d4f", "#2a5ca8", "#fffdf7", "#fffdf7", "none", "none", "0", "9px"],
+  ["neon", "#07060c", "#07060c", "#00e5ff", "#ffd000", "#00e5ff", "#ffd000", "2.5px", "9px"],
+  ["relief", "#2f7a6e", "#c99a35", "#ffffff", "#383838", "none", "none", "0", "20px"],
+] as const;
+
 describe("#2854 5段目a の意匠 selector", () => {
   it("主役色を図形の stroke と文字の fill にだけ当てる", () => {
     const slopeName = leadRule("chart-slope-name");
@@ -401,7 +431,6 @@ describe("#2854 2 回目の図表回帰", () => {
   it("浮彫の段札を地色と小さい浮き出しにし、分岐札の字は対比の下限を守る濃い色にする", () => {
     // 見本の白 #ffffff は #c99a35 の上で 2.57:1 で、大きな字の下限 3 を割る
     expect(css).toContain("--theme-stage-label-error-text: #383838;");
-    expect(css).toContain("--theme-timeline-label-error-text: #383838;");
     expect(
       rules.some(({ selector, body }) =>
         selector.includes('[data-cdl-palette="relief"]:has([data-cdl-role="stage-column"])') &&
@@ -410,6 +439,24 @@ describe("#2854 2 回目の図表回帰", () => {
         body.includes("url(#dragon-relief-raised-sm)")),
     ).toBe(true);
   });
+
+  it.each(timelineLabels)(
+    "%s の時間軸は意匠帳の分岐札を値の表に持つ",
+    (palette, successFill, errorFill, successText, errorText, successFrame, errorFrame, frameWidth, radius) => {
+      const table = tableDeclarations(palette);
+      expect(resolvedRole(table, "--theme-timeline-label-success-fill")).toBe(successFill);
+      expect(resolvedRole(table, "--theme-timeline-label-error-fill")).toBe(errorFill);
+      expect(resolvedRole(table, "--theme-timeline-label-success-text")).toBe(successText);
+      expect(resolvedRole(table, "--theme-timeline-label-error-text")).toBe(errorText);
+      expect(resolvedRole(table, "--theme-timeline-label-success-frame")).toBe(successFrame);
+      expect(resolvedRole(table, "--theme-timeline-label-error-frame")).toBe(errorFrame);
+      expect(table.get("--theme-timeline-label-frame-width")).toBe(frameWidth);
+      expect(table.get("--theme-timeline-label-radius")).toBe(radius);
+      expect(table.get("--theme-timeline-label-height")).toBe("40px");
+      expect(table.get("--theme-timeline-label-font-size")).toBe("21px");
+      expect(table.get("--theme-timeline-label-font-weight")).toBe("700");
+    },
+  );
 
   it("浮彫の円は扇を平らに保ち、字だけを小さく浮かせる", () => {
     const raised = rules.find(({ selector, body }) =>
