@@ -148,10 +148,12 @@ export function readSnapshot(skeletonStage: HTMLElement, designStage: HTMLElemen
     const rules = documentStyleRules();
     const diagramType = designSvg.getAttribute("data-cdl-type");
     const parts = catalogSkeletonPartsFor(diagramType);
-    const unmeasuredRows = (parts ?? []).flatMap((part, index) => {
-      if (!catalogSkeletonPartTarget(designSvg, part)) return [];
+    const matchedParts = (parts ?? []).filter((part) =>
+      catalogSkeletonPartTarget(designSvg, part),
+    );
+    const unmeasuredRows = matchedParts.map((part, index) => {
       const values = computedPartValues(designSvg, part, rules);
-      return [{ number: index + 1, part, values: values.length > 0 ? values : [{ kind: "—", value: "—" }] }];
+      return { number: index + 1, part, values: values.length > 0 ? values : [{ kind: "—", value: "—" }] };
     });
     const measuredRows = unmeasuredRows.map((row) => {
       const { number, part } = row;

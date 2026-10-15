@@ -705,43 +705,59 @@ describe("宅配の関係・型・構成・順序の記法 (#2836)", () => {
     });
   });
 
-  it("図録の宅配関係線は見本帳の図 ID だけで見本色を不透明にする", () => {
+  it("図録の宅配関係線は表の役を読み、見本帳の図だけで不透明にする", () => {
     const css = readFileSync(join(ROOT, "apps/playground-spa/src/styles/cdl-theme.css"), "utf8");
+    const tableStart = css.indexOf('svg[data-cdl-stage][data-cdl-palette="catalog"] {');
+    const tableEnd = css.indexOf('svg[data-cdl-stage][data-cdl-palette="terminal"] {', tableStart);
     const start = css.indexOf("/* 関係図の状態線と「使う」は、7 意匠それぞれの見本色を不透明で描く。 */");
     const end = css.indexOf("/* 浮彫の見本は意味色そのものを線へ使う。", start);
+    expect(tableStart, "図録の値の表の始まり").toBeGreaterThan(-1);
+    expect(tableEnd, "図録の値の表の終わり").toBeGreaterThan(tableStart);
     expect(start, "図録の宅配関係線の規則の始まり").toBeGreaterThan(-1);
     expect(end, "図録の宅配関係線の規則の終わり").toBeGreaterThan(start);
+    const table = css.slice(tableStart, tableEnd);
     const rules = css.slice(start, end);
 
+    expect(table).toContain("--dragon-delivery-relation-state: #e8705a;");
+    expect(table).toContain("--dragon-delivery-relation-use: #4fae9a;");
     expect(rules).toContain('[data-cdl-diagram="delivery-relations-demo"]');
-    expect(rules).toContain('--delivery-relation-state: #e8705a;');
-    expect(rules).toContain('--delivery-relation-use: #4fae9a;');
+    expect(rules).toContain('--delivery-relation-state: var(--dragon-delivery-relation-state);');
+    expect(rules).toContain('--delivery-relation-use: var(--dragon-delivery-relation-use);');
     expect(rules).toContain("stroke: var(--delivery-relation-state) !important;");
     expect(rules).toContain("stroke: var(--delivery-relation-use) !important;");
     expect(rules.match(/stroke-opacity: 1 !important;/g)).toHaveLength(2);
     expect(css).not.toContain('[data-cdl-diagram="契約と荷物と配送状態の関係"]');
   });
 
-  it("電飾の関係・型は見本の三つの罫だけを描き、行の罫と縞を描かない", () => {
+  it("電飾の関係・型は表の役で三つの罫だけを描き、行の罫と縞を描かない", () => {
     const css = readFileSync(join(ROOT, "apps/playground-spa/src/styles/cdl-theme.css"), "utf8");
+    const tableStart = css.indexOf('svg[data-cdl-stage][data-cdl-palette="neon"] {');
+    const tableEnd = css.indexOf('svg[data-cdl-stage][data-cdl-palette="relief"] {', tableStart);
     const start = css.indexOf("/* 電飾の表は均一な黒地");
     const end = css.indexOf("/* 順序図:", start);
+    expect(tableStart, "電飾の値の表の始まり").toBeGreaterThan(-1);
+    expect(tableEnd, "電飾の値の表の終わり").toBeGreaterThan(tableStart);
     expect(start, "電飾の表の規則の始まり").toBeGreaterThan(-1);
     expect(end, "電飾の表の規則の終わり").toBeGreaterThan(start);
+    const table = css.slice(tableStart, tableEnd);
     const rules = css.slice(start, end);
 
+    expect(table).toContain("--dragon-delivery-cyan-frame: #00e5ff;");
+    expect(table).toContain("--dragon-delivery-violet-frame: #b26bff;");
+    expect(table).toContain("--dragon-delivery-divider-width: 1px;");
+    expect(table).toContain("--dragon-delivery-group-divider-width: 1.5px;");
     expect(rules).toContain("--delivery-neon-table-frame: var(--theme-lead);");
-    expect(rules).toContain("--delivery-neon-table-frame: #00e5ff;");
-    expect(rules).toContain("--delivery-neon-table-frame: #b26bff;");
+    expect(rules).toContain("--delivery-neon-table-frame: var(--dragon-delivery-cyan-frame);");
+    expect(rules).toContain("--delivery-neon-table-frame: var(--dragon-delivery-violet-frame);");
     expect(rules).toContain("--delivery-neon-table-frame: var(--er-own);");
     expect(rules).toContain("color-mix(in srgb, var(--delivery-neon-table-frame) 32%, transparent)");
     expect(rules).toContain("color-mix(in srgb, var(--delivery-neon-table-frame) 24%, transparent)");
-    expect(rules).toContain("color-mix(in srgb, #f3eefe 40%, transparent)");
+    expect(rules).toContain("stroke: var(--dragon-delivery-group-divider) !important;");
     expect(rules).toContain('[data-cdl-role="node-row-divider"] {\n  stroke:');
     expect(rules).toContain('[data-cdl-role="node-footer-divider"] {\n  stroke:');
     expect(rules).toContain('[data-cdl-role="node-row-group-divider"] {\n  stroke:');
-    expect(rules).toContain("stroke-width: 1px !important;");
-    expect(rules).toContain("stroke-width: 1.5px !important;");
+    expect(rules).toContain("stroke-width: var(--dragon-delivery-divider-width) !important;");
+    expect(rules).toContain("stroke-width: var(--dragon-delivery-group-divider-width) !important;");
     expect(rules).toContain("stroke-opacity: 1 !important;");
     expect(rules).toContain('[data-cdl-role="node-row-rule"] {\n  stroke: none !important;');
     expect(rules).not.toContain("node-row-stripe");

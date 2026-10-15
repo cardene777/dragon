@@ -1,6 +1,6 @@
 /**
- * 記法で書いた表と UML の関係を見分ける端の名前を固定する (#2783 / #2805)。
- * CSS と実物の定義を突き合わせ、移り変わりの図まで細くする広がりを防ぐ。
+ * 記法で書いた表と UML の関係へ線の薄さを閉じる (#2783 / #2805)。
+ * CSS は薄さの役だけを読み、対象範囲は実際に描いた関係線で確かめる。
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -16,10 +16,6 @@ import { EDITOR_SAMPLES } from "@/data/editor-samples";
 import { presetDeliveryClasses, sourceYaml__presetDeliveryClasses } from "@/topics/catalog/presets.cdl";
 import { sourceYaml__textDslStateMachine } from "@/topics/catalog/text-dsl.cdl";
 import {
-  UMLだけの端の組,
-  UMLの関係の端の組,
-  個数の端,
-  端で見分けられないUMLの関係,
   端の組,
 } from "../../../../packages/dragon/test/support/record-edges";
 
@@ -36,18 +32,6 @@ const recordの規則 = [...CSS.matchAll(/([^{}]+)\{([^{}]*)\}/gu)]
       選び方.includes('data-cdl-role="edge-line"') &&
       宣言.includes("--d-relation-edge-opacity"),
   );
-
-const 選び方の端 = (選び方: string): readonly { 端: string; 塗り?: string }[] =>
-  [
-    ...選び方.matchAll(
-      /\[data-cdl-edge-head="([^"]+)"\](?:\[data-cdl-edge-head-fill="([^"]+)"\])?/gu,
-    ),
-  ]
-    .map((一致) => ({ 端: 一致[1] ?? "", ...(一致[2] === undefined ? {} : { 塗り: 一致[2] }) }))
-    .filter(
-      (値, 位置, 全体) =>
-        全体.findIndex((候補) => 候補.端 === 値.端 && 候補.塗り === 値.塗り) === 位置,
-    );
 
 const 矢じりを書かない移り変わり = `title: "矢じりを書かない移り変わり"
 type: record
@@ -69,39 +53,8 @@ const 描いた文書 = (記法: string, 全ての線を出す = false): Documen
 };
 
 describe("record の関係に当てる線の薄さ (#2783 / #2805)", () => {
-  it("通常と光る線の規則が、個数の端と見分けられる UML の端と塗りの組を囲う", () => {
+  it("通常と光る線の規則は薄さの役を 1 つずつ読む", () => {
     expect(recordの規則, "record の線を囲う規則が通常と光る線の 2 つでない").toHaveLength(2);
-
-    const 期待する個数の端 = [...個数の端].sort();
-    const 期待するUMLの端の組 = [...UMLだけの端の組].sort();
-    const UMLの端の名前 = new Set([...UMLの関係の端の組].map((組) => 組.slice(0, 組.indexOf(":"))));
-    for (const { 選び方 } of recordの規則) {
-      const CSSの端 = 選び方の端(選び方);
-      const CSSのUMLの条件 = CSSの端.filter(({ 端 }) => UMLの端の名前.has(端));
-      const CSSが囲うUMLの端の組 = [
-        ...new Set(
-          CSSのUMLの条件.flatMap(({ 端, 塗り }) =>
-            塗り === undefined
-              ? [...UMLの関係の端の組].filter((組) => 組.startsWith(`${端}:`))
-              : [端の組(端, 塗り)],
-          ),
-        ),
-      ].sort();
-      expect(
-        CSSの端.map(({ 端 }) => 端)
-          .filter((端) => 個数の端.has(端))
-          .sort(),
-        `CSS が囲う個数の端 ${CSSの端.map(({ 端 }) => 端).join(" / ")}`,
-      ).toEqual(期待する個数の端);
-      expect(
-        CSSが囲うUMLの端の組,
-        `CSS が囲う UML の端と塗り ${CSSが囲うUMLの端の組.join(" / ")}`,
-      ).toEqual(期待するUMLの端の組);
-      expect(
-        CSSのUMLの条件.map(({ 端, 塗り }) => `${端}:${塗り ?? "*"}`).sort(),
-        `移り変わりと見分けられない UML 関係も囲っている: ${端で見分けられないUMLの関係.join(" / ")}`,
-      ).toEqual(["diamond:*", "triangle:hollow"]);
-    }
 
     const 薄さの変数 = ({ 宣言 }: (typeof recordの規則)[number]): string => {
       const 一致 = 宣言.match(/stroke-opacity:\s*var\((--d-relation-edge-opacity(?:-active)?)\)/u);

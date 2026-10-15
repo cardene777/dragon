@@ -119,12 +119,93 @@ export const MIND_SKELETON_PARTS = [
   { label: "図の題", selector: '[data-cdl-role="figure-title"]', anchor: "top-left" },
 ] as const satisfies readonly CatalogSkeletonPart[];
 
+/** 呼び出し順の骨組みを、参加者や言づての固有名に依存せずに選ぶ。 */
+export const SEQUENCE_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "動作中の帯", selector: '[data-cdl-role="sequence-band"]', anchor: "top-left" },
+  { label: "参加者の箱", selector: '[data-cdl-role="sequence-actor-box"]', anchor: "top-left" },
+  { label: "参加者名", selector: '[data-cdl-role="sequence-actor"]', anchor: "right" },
+  {
+    label: "生命線",
+    selector: '[data-cdl-role="sequence-thread"]',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  {
+    label: "区切り線",
+    selector: '[data-cdl-role="sequence-rule"]',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  { label: "言づての札", selector: '[data-cdl-role="sequence-label"]', anchor: "right" },
+  {
+    label: "言づての線",
+    selector: '[data-cdl-role="sequence-line"]',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  { label: "言づての先", selector: '[data-cdl-role="sequence-head"]', anchor: "right" },
+  { label: "凡例", selector: '[data-cdl-role="legend"]', anchor: "top-left" },
+] as const satisfies readonly CatalogSkeletonPart[];
+
+/** 構成図の骨組みを、区画や部品の固有名に依存せずに選ぶ。 */
+export const INFRASTRUCTURE_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "区画", selector: '[data-cdl-role="lane-container"]', anchor: "top-left" },
+  { label: "部品の箱", selector: '[data-cdl-role="node-body"]', anchor: "top-left" },
+  { label: "部品の絵", selector: '[data-cdl-role="node-kind-icon"]', anchor: "top-left" },
+  { label: "部品名", selector: '[data-cdl-role="node-label"]', anchor: "right" },
+  {
+    label: "脚の仕切り",
+    selector: '[data-cdl-role="node-footer-divider"]',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  { label: "部品の種類", selector: '[data-cdl-role="node-footer-label"]', anchor: "right" },
+  {
+    label: "つながりの線",
+    selector: '[data-cdl-role="edge-line"]',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  { label: "つながりの札", selector: '[data-cdl-role="edge-label-bg"]', anchor: "top" },
+  { label: "凡例", selector: '[data-cdl-role="legend"]', anchor: "top-left" },
+] as const satisfies readonly CatalogSkeletonPart[];
+
+/** 行を持つ図の骨組みを、関係図と型の図で共有できる役から選ぶ。 */
+export const RECORD_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "箱", selector: 'rect[data-cdl-role="node-body"]', anchor: "top-left" },
+  { label: "箱の題", selector: '[data-cdl-role="node-label"]', anchor: "right" },
+  { label: "行", selector: '[data-cdl-role="node-row"]', anchor: "right" },
+  {
+    label: "行の仕切り",
+    selector: ':is([data-cdl-role="node-row-divider"], [data-cdl-role="node-row-rule"], [data-cdl-role="node-row-group-divider"])',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  { label: "小見出し", selector: '[data-cdl-role="node-eyebrow"]', anchor: "right" },
+  { label: "脚の題", selector: '[data-cdl-role="node-footer-label"]', anchor: "right" },
+  {
+    label: "関係の線",
+    selector: '[data-cdl-role="edge-line"]',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  { label: "関係の札", selector: '[data-cdl-role="edge-label-bg"]', anchor: "top" },
+  { label: "端の字", selector: '[data-cdl-role="edge-end-label"]', anchor: "right" },
+  { label: "凡例", selector: '[data-cdl-role="legend"]', anchor: "top-left" },
+] as const satisfies readonly CatalogSkeletonPart[];
+
 export function catalogSkeletonPartsFor(
   type: string | null,
 ): readonly CatalogSkeletonPart[] | null {
   if (type === "flowchart") return FLOWCHART_SKELETON_PARTS;
   if (type === "tree") return TREE_SKELETON_PARTS;
   if (type === "mind") return MIND_SKELETON_PARTS;
+  if (type === "sequence") return SEQUENCE_SKELETON_PARTS;
+  if (type === "infrastructure") return INFRASTRUCTURE_SKELETON_PARTS;
+  if (type === "record") return RECORD_SKELETON_PARTS;
   return null;
 }
 
