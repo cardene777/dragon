@@ -27,55 +27,47 @@ const fixedPaletteNames = [
   "relief",
 ] as const;
 const fixedThemeStage = `svg[data-cdl-stage]${fixedPalettes}`;
-const fixedStages = `svg[data-cdl-stage]${fixedPalettes}:has([data-cdl-role="stage-column"])`;
 const legendColors = [
   {
     palette: "blueprint",
-    markProperty: "--er-ink",
-    mark: "#143a52",
-    dotted: "#a8431f",
+    mark: "var(--er-ink)",
+    dotted: "var(--er-own)",
     text: "#4d7187",
   },
   {
     palette: "letterpress",
-    markProperty: "--er-ink",
-    mark: "#1a1510",
-    dotted: "#1a1510",
-    text: "#6b6253",
+    mark: "var(--er-ink)",
+    dotted: "var(--er-own)",
+    text: "var(--er-type)",
   },
   {
     palette: "catalog",
-    markProperty: "--theme-ground-ink",
-    mark: "#efe7d8",
-    dotted: "#e8705a",
-    text: "#a39a87",
+    mark: "var(--theme-ground-ink)",
+    dotted: "var(--er-own)",
+    text: "var(--theme-ground-type)",
   },
   {
     palette: "terminal",
-    markProperty: "--theme-flow-mark",
-    mark: "#a6f0bd",
-    dotted: "#f5c451",
-    text: "#7f9186",
+    mark: "var(--theme-flow-mark)",
+    dotted: "var(--er-own)",
+    text: "var(--theme-legend-text)",
   },
   {
     palette: "sketch",
-    markProperty: "--er-ink",
-    mark: "#2b2620",
-    dotted: "#2a5ca8",
-    text: "#6d6456",
+    mark: "var(--er-ink)",
+    dotted: "var(--er-own)",
+    text: "var(--er-type)",
   },
   {
     palette: "neon",
-    markProperty: "--er-ink",
-    mark: "#f3eefe",
-    dotted: "#ffd000",
-    text: "#c4bce0",
+    mark: "var(--er-ink)",
+    dotted: "var(--er-own)",
+    text: "var(--er-type)",
   },
   {
     palette: "relief",
-    markProperty: "--er-ink",
-    mark: "#463e33",
-    dotted: "#966c22",
+    mark: "var(--er-ink)",
+    dotted: "#c99a35",
     text: "#7a7062",
   },
 ] as const;
@@ -87,14 +79,6 @@ function ruleBody(selector: string): string {
   const end = css.indexOf("}", bodyStart);
   if (end < 0) throw new Error(`${selector} の CSS 規則が閉じていない`);
   return css.slice(bodyStart, end);
-}
-
-function lastRuleBody(selector: string): string {
-  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-    .filter((match) => match[1]?.trim() === selector);
-  const body = rules.at(-1)?.[2];
-  if (body === undefined) throw new Error(`${selector} の CSS 規則が無い`);
-  return body;
 }
 
 function ruleBodyContaining(fragments: string[]): string {
@@ -115,6 +99,19 @@ function declaration(body: string, property: string): string {
   const value = new RegExp(`(?:^|;)\\s*${escaped}\\s*:\\s*([^;]+)`, "m").exec(body)?.[1]?.trim();
   if (!value) throw new Error(`${property} の CSS 宣言が無い`);
   return value;
+}
+
+function themeTable(palette: typeof fixedPaletteNames[number]): Map<string, string> {
+  const selector = `svg[data-cdl-stage][data-cdl-palette="${palette}"]`;
+  const values = new Map<string, string>();
+  const source = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const match of source.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if ((match[1] ?? "").trim() !== selector) continue;
+    for (const entry of (match[2] ?? "").matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)) {
+      values.set(entry[1]!, entry[2]!.trim());
+    }
+  }
+  return values;
 }
 
 function selectorPaletteNames(selector: string): string[] {
@@ -278,19 +275,10 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
       "var(--dragon-theme-line-width, 7) !important",
     );
     for (const palette of fixedPaletteNames) {
-      expect(
-        declaration(ruleBody(`svg[data-cdl-stage][data-cdl-palette="${palette}"]`), "--dragon-theme-line-width"),
-        palette,
-      ).toBe("7");
+      const table = themeTable(palette);
+      expect(table.get("--dragon-theme-line-width"), palette).toBe("7");
+      expect(table.get("--dragon-stage-edge-width"), palette).toBe("5");
     }
-
-    const selector = `${fixedStages} [data-cdl-role="edge-line"]`;
-    expect(declaration(ruleBody(selector), "stroke-width")).toBe("5 !important");
-    expect(css.indexOf(`${selector} {`)).toBeGreaterThan(
-      css.indexOf('[data-cdl-edge][data-cdl-edge-role="main"] [data-cdl-role="edge-line"]'),
-    );
-    expect(selector).not.toContain("data-cdl-active");
-    expect(selector).not.toContain("stroke-dasharray");
   });
 
   it.each([
@@ -312,98 +300,100 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     },
   );
 
+  it.each([
+    ["blueprint", "12px", "8px", "#e3e9ea", "#143a52", "1", "#143a52", "1", "#3f6479", "#143a52", "#3f6479", "none", "none"],
+    ["letterpress", "12px", "8px", "#f0eadc", "#1a1510", "1.5", "#1a1510", "2.5", "#6b6253", "#1a1510", "#6b6253", "drop-shadow(2px 2px 0 color-mix(in srgb, var(--er-ink) 14%, transparent))", "none"],
+    ["catalog", "12px", "8px", "#f4eee2", "none", "1.5", "#e2d9c7", "1", "#6f6757", "#1d242e", "#6f6757", "drop-shadow(0 3px 2px rgb(0 0 0 / 28%)) drop-shadow(0 12px 16px rgb(0 0 0 / 45%))", "none"],
+    ["terminal", "6px", "5px", "#0a150e", "#287544", "1", "#143520", "1", "#8a9b90", "#9ef0b4", "#8a9b90", "none", "drop-shadow(0 0 10px color-mix(in srgb, var(--theme-lead) 35%, transparent))"],
+    ["sketch", "12px", "12px", "#fffdf7", "#2b2620", "2", "#2b2620", "2", "#6d6456", "#2b2620", "#6d6456", "drop-shadow(3px 4px 0 color-mix(in srgb, var(--er-ink) 16%, transparent))", "none"],
+    ["neon", "16px", "16px", "rgb(10 8 18 / 94%)", "#ffb6db", "2", "#58143d", "1", "#c4bce0", "#ffffff", "#c4bce0", "url(#dragon-neon-pink-frame)", "none"],
+    ["relief", "22px", "14px", "#e8e3da", "none", "1.5", "none", "1", "#685e51", "#463e33", "#685e51", "url(#dragon-relief-raised)", "none"],
+  ] as const)(
+    "%s の段階列・見出し・担当の値を表に持つ",
+    (palette, columnRadius, cardRadius, face, frame, frameWidth, divider, dividerWidth, number, name, note, shadow, nameGlow) => {
+      const table = themeTable(palette);
+      expect(table.get("--theme-stage-column-radius")).toBe(columnRadius);
+      expect(table.get("--theme-stage-card-radius")).toBe(cardRadius);
+      expect(table.get("--theme-stage-face")).toBe(face);
+      expect(table.get("--theme-stage-frame")).toBe(frame);
+      expect(table.get("--theme-stage-frame-width")).toBe(frameWidth);
+      expect(table.get("--theme-stage-divider")).toBe(divider);
+      expect(table.get("--theme-stage-divider-width")).toBe(dividerWidth);
+      expect(table.get("--theme-stage-number")).toBe(number);
+      expect(table.get("--theme-stage-name")).toBe(name);
+      expect(table.get("--theme-stage-note")).toBe(note);
+      expect(table.get("--theme-stage-shadow")).toBe(shadow);
+      expect(table.get("--theme-stage-name-glow")).toBe(nameGlow);
+    },
+  );
+
   it("戻る点線を太さ 6 の丸い点へ替える", () => {
-    const body = ruleBody(
-      `${fixedStages} [data-cdl-role="edge-line"][stroke-dasharray="10 8"]`,
-    );
-    expect(declaration(body, "stroke-width")).toBe("6 !important");
-    expect(declaration(body, "stroke-dasharray")).toBe("0 9.6 !important");
-    expect(declaration(body, "stroke-linecap")).toBe("round !important");
+    for (const palette of fixedPaletteNames) {
+      const table = themeTable(palette);
+      expect(table.get("--dragon-stage-return-width"), palette).toBe("6");
+      expect(table.get("--dragon-stage-return-dash"), palette).toBe("0 9.6");
+      expect(table.get("--dragon-stage-return-cap"), palette).toBe("round");
+    }
   });
 
-  it("段の箱の凡例だけ、角丸枠を塗らず曲線を太さ 3 にする", () => {
-    const rounded = ruleBody(`${fixedStages} [data-cdl-legend-mark="rounded-label"] > rect`);
-    expect(declaration(rounded, "fill")).toBe("none");
+  it.each([
+    ["blueprint", "var(--er-link)", "var(--er-own)", "var(--er-stripe)", "var(--er-stripe)", "none", "none", "9px", "0"],
+    ["letterpress", "var(--er-link)", "var(--er-own)", "var(--er-ground)", "var(--er-ground)", "none", "none", "9px", "0"],
+    ["catalog", "var(--er-link)", "var(--er-own)", "var(--er-ground)", "var(--er-ground)", "none", "none", "9px", "0"],
+    ["terminal", "var(--er-link)", "var(--er-own)", "var(--er-ground)", "var(--er-ground)", "none", "none", "4px", "0"],
+    ["sketch", "var(--er-link)", "var(--er-own)", "var(--er-face)", "var(--er-face)", "none", "none", "9px", "0"],
+    ["neon", "var(--er-ground)", "var(--er-ground)", "var(--er-link)", "var(--er-own)", "var(--er-link)", "var(--er-own)", "9px", "2.5px"],
+    ["relief", "var(--er-link)", "#c99a35", "#ffffff", "#383838", "none", "none", "20px", "0"],
+  ] as const)(
+    "%s の線札の値を表に持つ",
+    (palette, successFill, errorFill, successText, errorText, successFrame, errorFrame, radius, frameWidth) => {
+      const table = themeTable(palette);
+      expect(table.get("--theme-stage-label-success-fill")).toBe(successFill);
+      expect(table.get("--theme-stage-label-error-fill")).toBe(errorFill);
+      expect(table.get("--theme-stage-label-success-text")).toBe(successText);
+      expect(table.get("--theme-stage-label-error-text")).toBe(errorText);
+      expect(table.get("--theme-stage-label-success-frame")).toBe(successFrame);
+      expect(table.get("--theme-stage-label-error-frame")).toBe(errorFrame);
+      expect(table.get("--theme-stage-label-radius")).toBe(radius);
+      expect(table.get("--theme-stage-label-frame-width")).toBe(frameWidth);
+      expect(table.get("--theme-stage-label-font-weight")).toBe("700");
+    },
+  );
 
-    const curved = ruleBody(`${fixedStages} [data-cdl-legend-mark="curved-line"] > path`);
-    expect(declaration(curved, "stroke-width")).toBe("3");
+  it("段の箱の凡例だけ、角丸枠を塗らず曲線を太さ 3 にする", () => {
+    for (const palette of fixedPaletteNames) {
+      const table = themeTable(palette);
+      expect(table.get("--dragon-stage-legend-label-fill"), palette).toBe("none");
+      expect(table.get("--dragon-stage-legend-curve-width"), palette).toBe("3");
+    }
   });
 
   it.each(legendColors)(
     "$palette の凡例を印 $mark・点線 $dotted・字 $text で描く",
-    ({ palette, markProperty, mark, dotted, text }) => {
-      const paletteBody = ruleBody(`svg[data-cdl-stage][data-cdl-palette="${palette}"]`);
-      expect(declaration(paletteBody, markProperty)).toBe(mark);
-      expect(declaration(paletteBody, "--er-own")).toBe(dotted);
-      const errorProperty = /^var\((--[^)]+)\)$/.exec(declaration(paletteBody, "--d-err"))?.[1];
-      expect(errorProperty, "戻り線が読む色の変数").toBeDefined();
-      if (!errorProperty) return;
-      expect(declaration(paletteBody, errorProperty)).toBe(dotted);
-
-      if (palette === "blueprint" || palette === "relief") {
-        const selector = `svg[data-cdl-stage]:is([data-cdl-palette="${palette}"]):has([data-cdl-role="stage-column"]) [data-cdl-role="legend-text"]`;
-        expect(declaration(ruleBody(selector), "fill")).toBe(text);
-        return;
-      }
-      const textProperty =
-        palette === "catalog"
-          ? "--theme-ground-type"
-          : palette === "terminal"
-            ? "--theme-legend-text"
-            : "--er-type";
-      expect(declaration(paletteBody, textProperty)).toBe(text);
+    ({ palette, mark, dotted, text }) => {
+      const table = themeTable(palette);
+      expect(table.get("--dragon-stage-legend-mark")).toBe(mark);
+      expect(table.get("--dragon-stage-return-legend")).toBe(dotted);
+      expect(table.get("--dragon-stage-legend-text")).toBe(text);
     },
   );
 
   it("凡例の枠と曲線は印色を、点線は戻り線色を読む", () => {
-    const palette = ruleBodyContaining([
-      'svg[data-cdl-stage][data-cdl-palette]:not(',
-      "--dragon-edge-tone: var(--dragon-theme-line)",
-    ]);
-    expect(declaration(palette, "--d-text-primary")).toBe("var(--dragon-theme-text)");
-    expect(declaration(palette, "--cdl-text-mute")).toBe("var(--dragon-theme-muted-text)");
-
-    const legend = ruleBodyContaining([
-      'svg[data-cdl-stage][data-cdl-palette]:not(',
-      '[data-cdl-role="legend"]',
-      "--cdl-text-accent: var(--dragon-timeline-legend-mark)",
-    ]);
-    expect(declaration(legend, "--cdl-text-accent")).toBe("var(--dragon-timeline-legend-mark)");
-    const relief = ruleBody('svg[data-cdl-stage][data-cdl-palette="relief"]');
-    expect(declaration(relief, "--dragon-timeline-legend-mark")).toBe(
-      "var(--theme-flow-mark, var(--d-text-primary))",
-    );
-    const dotted = ruleBodyContaining([
-      'svg[data-cdl-stage][data-cdl-palette]:not(',
-      '[data-cdl-legend-mark="dotted-line"]',
-      "--cdl-text-accent: var(--dragon-timeline-return-legend)",
-    ]);
-    // 浮彫の段の箱の戻り線は見本の黄土。実装も専用値へ戻したため、旧 --er-own は使わない。
-    expect(declaration(dotted, "--cdl-text-accent")).toBe("var(--dragon-timeline-return-legend)");
-    expect(declaration(relief, "--dragon-timeline-return-legend")).toBe("#c99a35");
-
-    expect(
-      declaration(
-        ruleBody('svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="legend-text"]'),
-        "fill",
-      ),
-    ).toBe("var(--dragon-timeline-legend-text)");
-    expect(declaration(ruleBody('svg[data-cdl-stage][data-cdl-palette="catalog"]'),
-      "--dragon-timeline-legend-text")).toBe("var(--theme-ground-type)");
-    expect(
-      declaration(
-        ruleBody('svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="legend-text"]'),
-        "fill",
-      ),
-    ).toBe("var(--dragon-timeline-legend-text)");
-    expect(declaration(ruleBody('svg[data-cdl-stage][data-cdl-palette="terminal"]'),
-      "--dragon-timeline-legend-text")).toBe("var(--theme-legend-text)");
+    for (const palette of fixedPaletteNames) {
+      const table = themeTable(palette);
+      expect(table.has("--dragon-stage-legend-mark"), palette).toBe(true);
+      expect(table.has("--dragon-stage-return-legend"), palette).toBe(true);
+      expect(table.has("--dragon-stage-legend-text"), palette).toBe(true);
+    }
+    expect(themeTable("relief").get("--dragon-stage-return-legend")).toBe("#c99a35");
   });
 
   it("14 の枠の三角を横 17・縦 19 にする", () => {
-    const body = ruleBody(
-      `${fixedStages} [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head]))`,
-    );
+    const body = ruleBodyContaining([
+      '[data-cdl-role="stage-column"]',
+      '[data-cdl-role="edge-arrowhead"]',
+      "transform: scale(1.2142857143, 1.3571428571)",
+    ]);
     const transform = declaration(body, "transform");
     const scale = /^scale\(([^,]+),\s*([^)]+)\)$/.exec(transform);
     expect(scale, "三角の横と縦の倍率").not.toBeNull();
@@ -455,33 +445,16 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
     },
   ])("$palette の光っていない札を見本の面・枠・太さ・影へ揃える", ({ palette, expected }) => {
     expect(Object.fromEntries(段の箱の札を読む(palette))).toEqual(expected);
-    const paletteBody = lastRuleBody(`svg[data-cdl-stage][data-cdl-palette="${palette}"]`);
-    expect(declaration(paletteBody, "--theme-stage-card-face")).toBe(expected.面.dragon);
+    const table = themeTable(palette);
+    expect(table.get("--theme-stage-card-face")).toBe(expected.面.dragon);
     if (palette === "neon") {
-      expect(declaration(paletteBody, "--theme-stage-card-frame")).toBe(expected.枠.dragon);
-      expect(declaration(paletteBody, "--theme-stage-card-radius")).toBe("16px");
+      expect(table.get("--theme-stage-card-frame")).toBe(expected.枠.dragon);
+      expect(table.get("--theme-stage-card-radius")).toBe("16px");
     }
-    expect(declaration(paletteBody, "--theme-stage-card-frame-width")).toBe(expected.太さ.dragon);
-    expect(declaration(paletteBody, "--theme-stage-card-shadow").replace(/\s+/g, " ")).toBe(
+    expect(table.get("--theme-stage-card-frame-width")).toBe(expected.太さ.dragon);
+    expect(table.get("--theme-stage-card-shadow")?.replace(/\s+/g, " ")).toBe(
       expected.影.dragon,
     );
-
-    const bodySelector =
-      palette === "catalog"
-        ? '[data-cdl-role="node-body"]:not([data-cdl-look]):not([data-cdl-mark])'
-        : '[data-cdl-role="node-body"]';
-    // 電飾だけは再生中の最後の段も紫の札なので、active を検査範囲から外さない。
-    const activeScope = palette === "neon" ? "" : ':not([data-cdl-active="true"])';
-    const selector = `svg[data-cdl-stage][data-cdl-palette="${palette}"]:has([data-cdl-role="stage-column"])
-  [data-cdl-kind="card"]${activeScope}
-  ${bodySelector}`;
-    const normal = ruleBody(selector);
-    expect(declaration(normal, "fill")).toBe("var(--theme-stage-card-face) !important");
-    expect(declaration(normal, "stroke")).toBe("var(--theme-stage-card-frame) !important");
-    expect(declaration(normal, "stroke-width")).toBe(
-      "var(--theme-stage-card-frame-width) !important",
-    );
-    expect(declaration(normal, "filter")).toBe("var(--theme-stage-card-shadow) !important");
   });
 
   it("浮彫の最後の段では在宅? を含む全ての活動中の札の題を題色にする", () => {

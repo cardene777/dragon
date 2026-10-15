@@ -497,6 +497,12 @@ svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"]
   transform-origin: 9px 5px;
 }
 
+/* 持ち越しの目印: 段の箱の三角の矢じりを見本の大きさへ合わせる */
+svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head])) {
+  transform: scale(1.2142857143, 1.3571428571);
+  transform-origin: 9px 5px;
+}
+
 /* 持ち越しの目印: 描く側の半径 12 で走る丸の芯を選ぶ */
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"] {
   fill: var(--er-line) !important;
@@ -932,6 +938,37 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --theme-stage-column-radius: 12px;
+  --theme-stage-card-radius: 8px;
+  --theme-stage-face: #e3e9ea;
+  --theme-stage-frame: #143a52;
+  --theme-stage-frame-width: 1;
+  --theme-stage-divider: #143a52;
+  --theme-stage-divider-width: 1;
+  --theme-stage-number: #3f6479;
+  --theme-stage-name: #143a52;
+  --theme-stage-name-glow: none;
+  --theme-stage-note: #3f6479;
+  --theme-stage-shadow: none;
+  --theme-stage-label-success-fill: var(--er-link);
+  --theme-stage-label-error-fill: var(--er-own);
+  --theme-stage-label-success-text: var(--er-stripe);
+  --theme-stage-label-error-text: var(--er-stripe);
+  --theme-stage-label-success-frame: none;
+  --theme-stage-label-error-frame: none;
+  --theme-stage-label-radius: 9px;
+  --theme-stage-label-frame-width: 0;
+  --theme-stage-label-font-weight: 700;
+  --dragon-stage-edge-width: 5;
+  --dragon-stage-return-width: 6;
+  --dragon-stage-return-dash: 0 9.6;
+  --dragon-stage-return-cap: round;
+  --dragon-stage-legend-mark: var(--er-ink);
+  --dragon-stage-return-legend: var(--er-own);
+  --dragon-stage-legend-text: #4d7187;
+  --dragon-stage-legend-label-fill: none;
+  --dragon-stage-legend-curve-width: 3;
+  --dragon-stage-error-line: var(--er-own);
   --dragon-timeline-axis: var(--timeline-axis);
   --dragon-timeline-axis-width: 6;
   --dragon-timeline-number-fill: var(--er-face);
@@ -1169,6 +1206,37 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --theme-stage-column-radius: 12px;
+  --theme-stage-card-radius: 8px;
+  --theme-stage-face: #f0eadc;
+  --theme-stage-frame: #1a1510;
+  --theme-stage-frame-width: 1.5;
+  --theme-stage-divider: #1a1510;
+  --theme-stage-divider-width: 2.5;
+  --theme-stage-number: #6b6253;
+  --theme-stage-name: #1a1510;
+  --theme-stage-name-glow: none;
+  --theme-stage-note: #6b6253;
+  --theme-stage-shadow: drop-shadow(2px 2px 0 color-mix(in srgb, var(--er-ink) 14%, transparent));
+  --theme-stage-label-success-fill: var(--er-link);
+  --theme-stage-label-error-fill: var(--er-own);
+  --theme-stage-label-success-text: var(--er-ground);
+  --theme-stage-label-error-text: var(--er-ground);
+  --theme-stage-label-success-frame: none;
+  --theme-stage-label-error-frame: none;
+  --theme-stage-label-radius: 9px;
+  --theme-stage-label-frame-width: 0;
+  --theme-stage-label-font-weight: 700;
+  --dragon-stage-edge-width: 5;
+  --dragon-stage-return-width: 6;
+  --dragon-stage-return-dash: 0 9.6;
+  --dragon-stage-return-cap: round;
+  --dragon-stage-legend-mark: var(--er-ink);
+  --dragon-stage-return-legend: var(--er-own);
+  --dragon-stage-legend-text: var(--er-type);
+  --dragon-stage-legend-label-fill: none;
+  --dragon-stage-legend-curve-width: 3;
+  --dragon-stage-error-line: var(--er-own);
   --dragon-timeline-axis: var(--timeline-axis);
   --dragon-timeline-axis-width: 6;
   --dragon-timeline-number-fill: var(--er-face);
@@ -1402,6 +1470,40 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --theme-stage-column-radius: 12px;
+  --theme-stage-card-radius: 8px;
+  --theme-stage-card-face: #fbf7ee;
+  --theme-stage-card-frame-width: 0;
+  --theme-stage-card-shadow: drop-shadow(0 8px 6px rgb(0 0 0 / 34%));
+  --theme-stage-face: #f4eee2;
+  --theme-stage-frame: none;
+  --theme-stage-frame-width: 1.5;
+  --theme-stage-divider: #e2d9c7;
+  --theme-stage-divider-width: 1;
+  --theme-stage-number: #6f6757;
+  --theme-stage-name: #1d242e;
+  --theme-stage-name-glow: none;
+  --theme-stage-note: #6f6757;
+  --theme-stage-shadow: drop-shadow(0 3px 2px rgb(0 0 0 / 28%)) drop-shadow(0 12px 16px rgb(0 0 0 / 45%));
+  --theme-stage-label-success-fill: var(--er-link);
+  --theme-stage-label-error-fill: var(--er-own);
+  --theme-stage-label-success-text: var(--er-ground);
+  --theme-stage-label-error-text: var(--er-ground);
+  --theme-stage-label-success-frame: none;
+  --theme-stage-label-error-frame: none;
+  --theme-stage-label-radius: 9px;
+  --theme-stage-label-frame-width: 0;
+  --theme-stage-label-font-weight: 700;
+  --dragon-stage-edge-width: 5;
+  --dragon-stage-return-width: 6;
+  --dragon-stage-return-dash: 0 9.6;
+  --dragon-stage-return-cap: round;
+  --dragon-stage-legend-mark: var(--theme-ground-ink);
+  --dragon-stage-return-legend: var(--er-own);
+  --dragon-stage-legend-text: var(--theme-ground-type);
+  --dragon-stage-legend-label-fill: none;
+  --dragon-stage-legend-curve-width: 3;
+  --dragon-stage-error-line: var(--er-own);
   --dragon-timeline-axis: var(--timeline-axis);
   --dragon-timeline-axis-width: 6;
   --dragon-timeline-number-fill: var(--er-face);
@@ -1650,6 +1752,37 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --theme-stage-column-radius: 6px;
+  --theme-stage-card-radius: 5px;
+  --theme-stage-face: #0a150e;
+  --theme-stage-frame: #287544;
+  --theme-stage-frame-width: 1;
+  --theme-stage-divider: #143520;
+  --theme-stage-divider-width: 1;
+  --theme-stage-number: #8a9b90;
+  --theme-stage-name: #9ef0b4;
+  --theme-stage-name-glow: drop-shadow(0 0 10px color-mix(in srgb, var(--theme-lead) 35%, transparent));
+  --theme-stage-note: #8a9b90;
+  --theme-stage-shadow: none;
+  --theme-stage-label-success-fill: var(--er-link);
+  --theme-stage-label-error-fill: var(--er-own);
+  --theme-stage-label-success-text: var(--er-ground);
+  --theme-stage-label-error-text: var(--er-ground);
+  --theme-stage-label-success-frame: none;
+  --theme-stage-label-error-frame: none;
+  --theme-stage-label-radius: 4px;
+  --theme-stage-label-frame-width: 0;
+  --theme-stage-label-font-weight: 700;
+  --dragon-stage-edge-width: 5;
+  --dragon-stage-return-width: 6;
+  --dragon-stage-return-dash: 0 9.6;
+  --dragon-stage-return-cap: round;
+  --dragon-stage-legend-mark: var(--theme-flow-mark);
+  --dragon-stage-return-legend: var(--er-own);
+  --dragon-stage-legend-text: var(--theme-legend-text);
+  --dragon-stage-legend-label-fill: none;
+  --dragon-stage-legend-curve-width: 3;
+  --dragon-stage-error-line: var(--er-own);
   --dragon-timeline-axis: var(--timeline-axis);
   --dragon-timeline-axis-width: 6;
   --dragon-timeline-number-fill: var(--er-face);
@@ -1888,6 +2021,37 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --theme-stage-column-radius: 12px;
+  --theme-stage-card-radius: 12px;
+  --theme-stage-face: #fffdf7;
+  --theme-stage-frame: #2b2620;
+  --theme-stage-frame-width: 2;
+  --theme-stage-divider: #2b2620;
+  --theme-stage-divider-width: 2;
+  --theme-stage-number: #6d6456;
+  --theme-stage-name: #2b2620;
+  --theme-stage-name-glow: none;
+  --theme-stage-note: #6d6456;
+  --theme-stage-shadow: drop-shadow(3px 4px 0 color-mix(in srgb, var(--er-ink) 16%, transparent));
+  --theme-stage-label-success-fill: var(--er-link);
+  --theme-stage-label-error-fill: var(--er-own);
+  --theme-stage-label-success-text: var(--er-face);
+  --theme-stage-label-error-text: var(--er-face);
+  --theme-stage-label-success-frame: none;
+  --theme-stage-label-error-frame: none;
+  --theme-stage-label-radius: 9px;
+  --theme-stage-label-frame-width: 0;
+  --theme-stage-label-font-weight: 700;
+  --dragon-stage-edge-width: 5;
+  --dragon-stage-return-width: 6;
+  --dragon-stage-return-dash: 0 9.6;
+  --dragon-stage-return-cap: round;
+  --dragon-stage-legend-mark: var(--er-ink);
+  --dragon-stage-return-legend: var(--er-own);
+  --dragon-stage-legend-text: var(--er-type);
+  --dragon-stage-legend-label-fill: none;
+  --dragon-stage-legend-curve-width: 3;
+  --dragon-stage-error-line: var(--er-own);
   --dragon-timeline-axis: var(--timeline-axis);
   --dragon-timeline-axis-width: 6;
   --dragon-timeline-number-fill: var(--er-face);
@@ -2129,6 +2293,41 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --dragon-flow-label-frame-width: 2.5px;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --theme-stage-column-radius: 16px;
+  --theme-stage-card-radius: 16px;
+  --theme-stage-card-face: rgb(10 8 18 / 94%);
+  --theme-stage-card-frame: #e4cbff;
+  --theme-stage-card-frame-width: 2;
+  --theme-stage-card-shadow: url(#dragon-neon-violet-frame);
+  --theme-stage-face: rgb(10 8 18 / 94%);
+  --theme-stage-frame: #ffb6db;
+  --theme-stage-frame-width: 2;
+  --theme-stage-divider: #58143d;
+  --theme-stage-divider-width: 1;
+  --theme-stage-number: #c4bce0;
+  --theme-stage-name: #ffffff;
+  --theme-stage-name-glow: none;
+  --theme-stage-note: #c4bce0;
+  --theme-stage-shadow: url(#dragon-neon-pink-frame);
+  --theme-stage-label-success-fill: var(--er-ground);
+  --theme-stage-label-error-fill: var(--er-ground);
+  --theme-stage-label-success-text: var(--er-link);
+  --theme-stage-label-error-text: var(--er-own);
+  --theme-stage-label-success-frame: var(--er-link);
+  --theme-stage-label-error-frame: var(--er-own);
+  --theme-stage-label-radius: 9px;
+  --theme-stage-label-frame-width: 2.5px;
+  --theme-stage-label-font-weight: 700;
+  --dragon-stage-edge-width: 5;
+  --dragon-stage-return-width: 6;
+  --dragon-stage-return-dash: 0 9.6;
+  --dragon-stage-return-cap: round;
+  --dragon-stage-legend-mark: var(--er-ink);
+  --dragon-stage-return-legend: var(--er-own);
+  --dragon-stage-legend-text: var(--er-type);
+  --dragon-stage-legend-label-fill: none;
+  --dragon-stage-legend-curve-width: 3;
+  --dragon-stage-error-line: var(--er-own);
   --dragon-timeline-axis: var(--timeline-axis);
   --dragon-timeline-axis-width: 6;
   --dragon-timeline-number-fill: var(--er-face);
@@ -2367,6 +2566,37 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --dragon-flow-label-frame-width: 0;
   --dragon-running-dot-label-backdrop: var(--er-ground);
   --dragon-running-dot-label-backdrop-width: 8;
+  --theme-stage-column-radius: 22px;
+  --theme-stage-card-radius: 14px;
+  --theme-stage-face: #e8e3da;
+  --theme-stage-frame: none;
+  --theme-stage-frame-width: 1.5;
+  --theme-stage-divider: none;
+  --theme-stage-divider-width: 1;
+  --theme-stage-number: #685e51;
+  --theme-stage-name: #463e33;
+  --theme-stage-name-glow: none;
+  --theme-stage-note: #685e51;
+  --theme-stage-shadow: url(#dragon-relief-raised);
+  --theme-stage-label-success-fill: var(--er-link);
+  --theme-stage-label-error-fill: #c99a35;
+  --theme-stage-label-success-text: #ffffff;
+  --theme-stage-label-error-text: #383838;
+  --theme-stage-label-success-frame: none;
+  --theme-stage-label-error-frame: none;
+  --theme-stage-label-radius: 20px;
+  --theme-stage-label-frame-width: 0;
+  --theme-stage-label-font-weight: 700;
+  --dragon-stage-edge-width: 5;
+  --dragon-stage-return-width: 6;
+  --dragon-stage-return-dash: 0 9.6;
+  --dragon-stage-return-cap: round;
+  --dragon-stage-legend-mark: var(--er-ink);
+  --dragon-stage-return-legend: #c99a35;
+  --dragon-stage-legend-text: #7a7062;
+  --dragon-stage-legend-label-fill: none;
+  --dragon-stage-legend-curve-width: 3;
+  --dragon-stage-error-line: #c99a35;
   --dragon-timeline-axis: var(--timeline-axis);
   --dragon-timeline-axis-width: 6;
   --dragon-timeline-number-fill: var(--er-face);
@@ -6024,28 +6254,36 @@ svg[data-cdl-stage][data-cdl-palette]:has([data-cdl-routing="metro"])
  * (`stage-note`) を別々の役で描く。 描き手は面を台の色の半分の濃さで塗り、番号と担当を
  * 地の薄 (`--cdl-text-mute`) で描くので、意匠ごとの面と字はここで決める。
  *
- * 値は意匠ごとに `--theme-stage-*` で渡す。 渡さない意匠 (生成りと青磁) は行の面で塗り、
- * 枠と区切りは枠、番号と担当は型名、名前は字で描く。 生成りと青磁は台の上で型名が 4.5 を
- * 割る組 (青磁の明 4.42) があるので、面は台ではなく行の面にする。
+ * 固定 7 意匠の値は上の表に置き、この節は部品が読む役だけを決める。生成りと青磁は従来どおり
+ * 行の面で塗り、枠と区切りは枠、番号と担当は型名、名前は字で描く。生成りと青磁は台の上で型名が
+ * 4.5 を割る組 (青磁の明 4.42) があるので、面は台ではなく行の面にする。
  *
  * 担当は札の上に載るが、描き手は札の外 (舞台の直下) に置く。 台の上の字を別に持つ図録でも
  * 札の上の型名で描けるよう、字の色は役ごとに直接当てる。
  * ───────────────────────────────────────────────────────────────────────────── */
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="stage-column"] {
-  fill: var(--theme-stage-face, var(--er-face)) !important;
+  fill: var(--er-face) !important;
   fill-opacity: 1 !important;
-  stroke: var(--theme-stage-frame, var(--er-frame)) !important;
-  stroke-width: var(--theme-stage-frame-width, 1.5) !important;
-  filter: var(--theme-stage-shadow, none);
+  stroke: var(--er-frame) !important;
+  stroke-width: 1.5 !important;
+  filter: none;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="stage-column"] {
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="stage-column"] {
+  fill: var(--theme-stage-face) !important;
+  stroke: var(--theme-stage-frame) !important;
+  stroke-width: var(--theme-stage-frame-width) !important;
+  filter: var(--theme-stage-shadow);
   rx: var(--theme-stage-column-radius) !important;
   ry: var(--theme-stage-column-radius) !important;
 }
 
 /* 描き手の札は全て rx=16。段の列がある舞台の card だけを見本の丸みに替える。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"])
   [data-cdl-kind="card"]
   [data-cdl-role="node-body"] {
   rx: var(--theme-stage-card-radius) !important;
@@ -6053,21 +6291,47 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
 }
 
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="stage-divider"] {
-  stroke: var(--theme-stage-divider, var(--er-frame)) !important;
-  stroke-width: var(--theme-stage-divider-width, 1) !important;
+  stroke: var(--er-frame) !important;
+  stroke-width: 1 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="stage-divider"] {
+  stroke: var(--theme-stage-divider) !important;
+  stroke-width: var(--theme-stage-divider-width) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="stage-number"] {
-  fill: var(--theme-stage-number, var(--er-type)) !important;
+  fill: var(--er-type) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="stage-number"] {
+  fill: var(--theme-stage-number) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="stage-name"] {
-  fill: var(--theme-stage-name, var(--er-ink)) !important;
-  filter: var(--theme-stage-name-glow, none);
+  fill: var(--er-ink) !important;
+  filter: none;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="stage-name"] {
+  fill: var(--theme-stage-name) !important;
+  filter: var(--theme-stage-name-glow);
 }
 
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="stage-note"] {
-  fill: var(--theme-stage-note, var(--er-type)) !important;
+  fill: var(--er-type) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="stage-note"] {
+  fill: var(--theme-stage-note) !important;
 }
 
 /* 前の段へ戻る線は見本の凡例どおり点線で描く。描き手は `style: dashed` だけを `10 8`、
@@ -6075,73 +6339,6 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="stage-note"] {
 svg[data-cdl-stage]:has([data-cdl-role="stage-column"]) [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {
   stroke-dasharray: 0 10 !important;
   stroke-linecap: round !important;
-}
-
-svg[data-cdl-stage][data-cdl-palette="blueprint"] {
-  --theme-stage-column-radius: 12px;
-  --theme-stage-card-radius: 8px;
-  --theme-stage-face: #e3e9ea;
-  --theme-stage-frame: #143a52;
-  --theme-stage-frame-width: 1;
-  --theme-stage-divider: #143a52;
-  --theme-stage-divider-width: 1;
-  --theme-stage-number: #3f6479;
-  --theme-stage-name: #143a52;
-  --theme-stage-note: #3f6479;
-  --theme-stage-label-success-fill: var(--er-link);
-  --theme-stage-label-error-fill: var(--er-own);
-  --theme-stage-label-success-text: var(--er-stripe);
-  --theme-stage-label-error-text: var(--er-stripe);
-  --theme-stage-label-success-frame: none;
-  --theme-stage-label-error-frame: none;
-  --theme-stage-label-radius: 9px;
-  --theme-stage-label-frame-width: 0;
-}
-
-svg[data-cdl-stage][data-cdl-palette="letterpress"] {
-  --theme-stage-column-radius: 12px;
-  --theme-stage-card-radius: 8px;
-  --theme-stage-face: #f0eadc;
-  --theme-stage-frame: #1a1510;
-  --theme-stage-frame-width: 1.5;
-  --theme-stage-divider: #1a1510;
-  --theme-stage-divider-width: 2.5;
-  --theme-stage-number: #6b6253;
-  --theme-stage-name: #1a1510;
-  --theme-stage-note: #6b6253;
-  --theme-stage-shadow: drop-shadow(2px 2px 0 color-mix(in srgb, var(--er-ink) 14%, transparent));
-  --theme-stage-label-success-fill: var(--er-link);
-  --theme-stage-label-error-fill: var(--er-own);
-  --theme-stage-label-success-text: var(--er-ground);
-  --theme-stage-label-error-text: var(--er-ground);
-  --theme-stage-label-success-frame: none;
-  --theme-stage-label-error-frame: none;
-  --theme-stage-label-radius: 9px;
-  --theme-stage-label-frame-width: 0;
-}
-
-svg[data-cdl-stage][data-cdl-palette="catalog"] {
-  --theme-stage-column-radius: 12px;
-  --theme-stage-card-radius: 8px;
-  --theme-stage-card-face: #fbf7ee;
-  --theme-stage-card-frame-width: 0;
-  --theme-stage-card-shadow: drop-shadow(0 8px 6px rgb(0 0 0 / 34%));
-  --theme-stage-face: #f4eee2;
-  --theme-stage-frame: none;
-  --theme-stage-divider: #e2d9c7;
-  --theme-stage-divider-width: 1;
-  --theme-stage-number: #6f6757;
-  --theme-stage-name: #1d242e;
-  --theme-stage-note: #6f6757;
-  --theme-stage-shadow: drop-shadow(0 3px 2px rgb(0 0 0 / 28%)) drop-shadow(0 12px 16px rgb(0 0 0 / 45%));
-  --theme-stage-label-success-fill: var(--er-link);
-  --theme-stage-label-error-fill: var(--er-own);
-  --theme-stage-label-success-text: var(--er-ground);
-  --theme-stage-label-error-text: var(--er-ground);
-  --theme-stage-label-success-frame: none;
-  --theme-stage-label-error-frame: none;
-  --theme-stage-label-radius: 9px;
-  --theme-stage-label-frame-width: 0;
 }
 
 /* 図録の通常の札は見本のクリーム紙を無縁で浮かせる。強調中の深い影と墨の枠は変えない。 */
@@ -6161,100 +6358,11 @@ svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-role="stage-column
   fill: var(--theme-stage-card-face) !important;
 }
 
-svg[data-cdl-stage][data-cdl-palette="terminal"] {
-  --theme-stage-column-radius: 6px;
-  --theme-stage-card-radius: 5px;
-  --theme-stage-face: #0a150e;
-  --theme-stage-frame: #287544;
-  --theme-stage-frame-width: 1;
-  --theme-stage-divider: #143520;
-  --theme-stage-divider-width: 1;
-  --theme-stage-number: #8a9b90;
-  --theme-stage-name: #9ef0b4;
-  --theme-stage-note: #8a9b90;
-  --theme-stage-name-glow: drop-shadow(0 0 10px color-mix(in srgb, var(--theme-lead) 35%, transparent));
-  --theme-stage-label-success-fill: var(--er-link);
-  --theme-stage-label-error-fill: var(--er-own);
-  --theme-stage-label-success-text: var(--er-ground);
-  --theme-stage-label-error-text: var(--er-ground);
-  --theme-stage-label-success-frame: none;
-  --theme-stage-label-error-frame: none;
-  --theme-stage-label-radius: 4px;
-  --theme-stage-label-frame-width: 0;
-}
-
-svg[data-cdl-stage][data-cdl-palette="sketch"] {
-  --theme-stage-column-radius: 12px;
-  --theme-stage-card-radius: 12px;
-  --theme-stage-face: #fffdf7;
-  --theme-stage-frame: #2b2620;
-  --theme-stage-frame-width: 2;
-  --theme-stage-divider: #2b2620;
-  --theme-stage-divider-width: 2;
-  --theme-stage-number: #6d6456;
-  --theme-stage-name: #2b2620;
-  --theme-stage-note: #6d6456;
-  --theme-stage-shadow: drop-shadow(3px 4px 0 color-mix(in srgb, var(--er-ink) 16%, transparent));
-  --theme-stage-label-success-fill: var(--er-link);
-  --theme-stage-label-error-fill: var(--er-own);
-  --theme-stage-label-success-text: var(--er-face);
-  --theme-stage-label-error-text: var(--er-face);
-  --theme-stage-label-success-frame: none;
-  --theme-stage-label-error-frame: none;
-  --theme-stage-label-radius: 9px;
-  --theme-stage-label-frame-width: 0;
-}
-
-svg[data-cdl-stage][data-cdl-palette="neon"] {
-  --theme-stage-column-radius: 16px;
-  --theme-stage-card-radius: 16px;
-  --theme-stage-card-face: rgb(10 8 18 / 94%);
-  --theme-stage-card-frame: #e4cbff;
-  --theme-stage-card-frame-width: 2;
-  --theme-stage-card-glow: #b26bff;
-  --theme-stage-card-shadow: url(#dragon-neon-violet-frame);
-  --theme-stage-face: rgb(10 8 18 / 94%);
-  --theme-stage-frame: #ffb6db;
-  --theme-stage-frame-width: 2;
-  --theme-stage-divider: #58143d;
-  --theme-stage-divider-width: 1;
-  --theme-stage-number: #c4bce0;
-  --theme-stage-name: #ffffff;
-  --theme-stage-note: #c4bce0;
-  --theme-stage-shadow: url(#dragon-neon-pink-frame);
-  --theme-stage-label-success-fill: var(--er-ground);
-  --theme-stage-label-error-fill: var(--er-ground);
-  --theme-stage-label-success-text: var(--er-link);
-  --theme-stage-label-error-text: var(--er-own);
-  --theme-stage-label-success-frame: var(--er-link);
-  --theme-stage-label-error-frame: var(--er-own);
-  --theme-stage-label-radius: 9px;
-  --theme-stage-label-frame-width: 2.5px;
-}
-
-svg[data-cdl-stage][data-cdl-palette="relief"] {
-  --theme-stage-column-radius: 22px;
-  --theme-stage-card-radius: 14px;
-  --theme-stage-face: #e8e3da;
-  --theme-stage-frame: none;
-  --theme-stage-divider: none;
-  --theme-stage-number: #685e51;
-  --theme-stage-name: #463e33;
-  --theme-stage-note: #685e51;
-  --theme-stage-shadow: url(#dragon-relief-raised);
-  --theme-stage-label-success-fill: var(--er-link);
-  --theme-stage-label-error-fill: #c99a35;
-  --theme-stage-label-success-text: #ffffff;
-  --theme-stage-label-error-text: #383838;
-  --theme-stage-label-success-frame: none;
-  --theme-stage-label-error-frame: none;
-  --theme-stage-label-radius: 20px;
-  --theme-stage-label-frame-width: 0;
-}
-
 /* 段の箱の分岐札だけを、見本と同じ「線の色の面に字を抜く」形にする。生成りと青磁、
-   段の列を持たない他の図種には当てない。塗りは線と同じ `--er-link` / `--er-own` を読む。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"])
+   段の列を持たない他の図種には当てない。 */
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"])
   [data-cdl-edge-label-for]:is([data-cdl-tone="success"], [data-cdl-tone="error"])
   > [data-cdl-role="edge-label-bg"] {
   stroke-width: var(--theme-stage-label-frame-width) !important;
@@ -6263,32 +6371,40 @@ svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letter
   rx: var(--theme-stage-label-radius) !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"])
   [data-cdl-edge-label-for][data-cdl-tone="success"]
   > [data-cdl-role="edge-label-bg"] {
   fill: var(--theme-stage-label-success-fill) !important;
   stroke: var(--theme-stage-label-success-frame) !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"])
   [data-cdl-edge-label-for][data-cdl-tone="error"]
   > [data-cdl-role="edge-label-bg"] {
   fill: var(--theme-stage-label-error-fill) !important;
   stroke: var(--theme-stage-label-error-frame) !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"])
   [data-cdl-edge-label-for][data-cdl-tone="success"]
   > [data-cdl-role="edge-label"] {
   fill: var(--theme-stage-label-success-text) !important;
-  font-weight: 700 !important;
+  font-weight: var(--theme-stage-label-font-weight) !important;
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"])
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"])
   [data-cdl-edge-label-for][data-cdl-tone="error"]
   > [data-cdl-role="edge-label"] {
   fill: var(--theme-stage-label-error-text) !important;
-  font-weight: 700 !important;
+  font-weight: var(--theme-stage-label-font-weight) !important;
 }
 
 /* 電飾の通常の札は、見本どおり薄紫の芯と紫の外光で桃の列から分ける。 */
@@ -6303,44 +6419,56 @@ svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-role="stage-column"])
 
 /* 固定の 7 意匠の段の箱は、意匠別の線と強調の規則より後で見本の太さへ揃える。
    生成りと青磁、段の列を持たない図は全図共通の 7 のままにする。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-line"] {
-  stroke-width: 5 !important;
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-line"] {
+  stroke-width: var(--dragon-stage-edge-width) !important;
 }
 
 /* 段の箱の凡例だけを見本の印へ寄せる。全図共通の凡例 (#2834) は変えない。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-legend-mark="rounded-label"] > rect {
-  fill: none;
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"]) [data-cdl-legend-mark="rounded-label"] > rect {
+  fill: var(--dragon-stage-legend-label-fill);
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-legend-mark="curved-line"] > path {
-  stroke-width: 3;
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"]) [data-cdl-legend-mark="curved-line"] > path {
+  stroke-width: var(--dragon-stage-legend-curve-width);
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"]):has([data-cdl-role="stage-column"]) [data-cdl-role="legend-text"] {
-  fill: #4d7187;
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"]) [data-cdl-role="legend"] {
+  --cdl-text-accent: var(--dragon-stage-legend-mark);
 }
 
-svg[data-cdl-stage]:is([data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="legend-text"] {
-  fill: #7a7062;
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"]) [data-cdl-legend-mark="dotted-line"] {
+  --cdl-text-accent: var(--dragon-stage-return-legend);
+}
+
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"]) [data-cdl-role="legend-text"] {
+  fill: var(--dragon-stage-legend-text);
 }
 
 /* 戻り線は丸い点を 9.6 ごとに置く。線の太さは主役と枝より 1 太い。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {
-  stroke-width: 6 !important;
-  stroke-dasharray: 0 9.6 !important;
-  stroke-linecap: round !important;
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {
+  stroke-width: var(--dragon-stage-return-width) !important;
+  stroke-dasharray: var(--dragon-stage-return-dash) !important;
+  stroke-linecap: var(--dragon-stage-return-cap) !important;
 }
 
 /* 浮彫の段の箱は、いいえ・戻る線・凡例の点線を見本の黄土へそろえる。 */
 svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-role="stage-column"])
   [data-cdl-tone="error"] [data-cdl-role="edge-line"] {
-  stroke: #c99a35 !important;
-}
-
-/* markerUnits=userSpaceOnUse の 14 の枠を、見本の横 17・縦 19 へ別々に拡大する。 */
-svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="stage-column"]) [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head])) {
-  transform: scale(1.2142857143, 1.3571428571);
-  transform-origin: 9px 5px;
+  stroke: var(--dragon-stage-error-line) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
