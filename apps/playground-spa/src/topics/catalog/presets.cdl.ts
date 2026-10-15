@@ -3650,7 +3650,7 @@ flow:
   - 届けに行く -> 在宅? { role: main }
   - 在宅? -> 受け取る: "はい" (success)
   - 在宅? -> 持ち戻る: "いいえ" (error)
-  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed) { side: bottom, overlay: true }
+  - 持ち戻る -> 便に積む: "翌日もう一度" (error, dashed) { overlay: true }
   - 受け取る -> 終わり (success)
 
 legend:
@@ -3714,7 +3714,7 @@ export const sourceJson__presetDeliveryFlow = `{
     { "from": "届けに行く", "to": "在宅?", "label": "", "role": "main" },
     { "from": "在宅?", "to": "受け取る", "label": "はい", "tone": "success" },
     { "from": "在宅?", "to": "持ち戻る", "label": "いいえ", "tone": "error" },
-    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed", "side": "bottom", "overlay": true },
+    { "from": "持ち戻る", "to": "便に積む", "label": "翌日もう一度", "tone": "error", "style": "dashed", "overlay": true },
     { "from": "受け取る", "to": "終わり", "label": "", "tone": "success" }
   ],
   "legend": [
