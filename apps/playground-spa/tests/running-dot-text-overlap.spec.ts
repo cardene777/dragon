@@ -364,12 +364,18 @@ test.describe("線の上を走る丸", () => {
 
   test("線のそばの数には、台と同じ色の下敷きが敷いてある", async ({ page }) => {
     await 見本を開く(page, "delivery-classes-demo");
+    await page.locator(舞台).evaluate((stage) => stage.setAttribute("data-cdl-palette", "blueprint"));
     const 数 = page.locator(端の数).first();
     await 数.waitFor({ state: "attached" });
 
     const 実 = await page.evaluate(() => {
       const s = document.querySelector("svg[data-cdl-stage]") as SVGSVGElement;
-      const 紙 = getComputedStyle(s).getPropertyValue("--er-ground").trim();
+      const 舞台の値 = getComputedStyle(s);
+      const 紙 = 舞台の値.getPropertyValue("--er-ground").trim();
+      const 下敷き = 舞台の値.getPropertyValue("--dragon-running-dot-label-backdrop").trim();
+      const 下敷き幅 = 舞台の値
+        .getPropertyValue("--dragon-running-dot-label-backdrop-width")
+        .trim();
       const 色 = (v: string) => {
         const c = document.createElement("span");
         c.style.color = v;
@@ -414,11 +420,15 @@ test.describe("線の上を走る丸", () => {
         幅: cs.strokeWidth,
         描き順: cs.paintOrder,
         紙の色: 色(紙),
+        役の色: 色(下敷き),
+        役の幅: 下敷き幅,
         隙間: 横の数,
       };
     });
 
-    expect(実.縁).toBe(実.紙の色);
+    expect(実.役の色).toBe(実.紙の色);
+    expect(実.縁).toBe(実.役の色);
+    expect(parseFloat(実.幅)).toBe(parseFloat(実.役の幅));
     // 下敷きが無いと、丸が通るたびに数が読めなくなる
     expect(parseFloat(実.幅), "下敷きが敷かれていない").toBeGreaterThan(0);
     // 下敷きは字の下に敷く。 字の上に来ると数が読めなくなる
