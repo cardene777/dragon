@@ -378,6 +378,14 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
   },
   {
     diagramId: "delivery-flow-demo",
+    axis: "clearance",
+    対象: "node:在宅 ↔ edge-label:fc-8-持ち戻る-便に積む",
+    理由:
+      "戻る線の札を見本どおり右外の縦区間へ重ねると、cdl 0.136.0 は札を縦区間の中点に置くため在宅の菱形との間は 24.2 world になる。" +
+      "縦区間の上で全ての箱から 32 以上離す直しは cdl#1228 が持ち、その版へ上げた時に消す (#2889)",
+  },
+  {
+    diagramId: "delivery-flow-demo",
     axis: "column-gap-uniform",
     対象: 'lane "荷主"',
     理由:

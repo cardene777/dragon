@@ -172,6 +172,7 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
     });
   });
 
+  const 描いた線: Array<{ step: (typeof doc.flow)[number]; from: string; to: string }> = [];
   for (const s of doc.flow) {
     const from = id一覧.get(s.from);
     const to = id一覧.get(s.to);
@@ -182,6 +183,7 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
       to,
       ...(s.label !== undefined && s.label !== "" ? { label: s.label } : {}),
     });
+    描いた線.push({ step: s, from, to });
   }
 
   const diagram = fc.build();
@@ -284,6 +286,47 @@ export function compileFlowchart(doc: DslDocument): CdlDiagram {
       if (node !== undefined) node.stack = v;
     });
   }
+
+  /*
+   * 同じ縦列で間に箱を挟んで上へ戻る線だけ、箱の右外を回す。
+   *
+   * 隣の段への戻りは描く側の直線が最短で、下へ進む線も従来の通り道を保つ。 `side` を書いた
+   * 線は書き手が辺を選んでいるため、自動の経路と辺を一つも足さない。線の色・点線・札などは
+   * この後の共通処理 (`applyEdgeInlineOptions`) が従来どおり書き写す。
+   */
+  const 対応済みの線 = new Set<string>();
+  描いた線.forEach(({ step, from: fromId, to: toId }) => {
+    const edge = diagram.edges.find(
+      (candidate) =>
+        !対応済みの線.has(candidate.id) && candidate.from === fromId && candidate.to === toId,
+    );
+    if (edge === undefined) return;
+    対応済みの線.add(edge.id);
+    if (step.side !== undefined) return;
+    const from = 箱の一覧.get(edge.from);
+    const to = 箱の一覧.get(edge.to);
+    if (
+      from === undefined ||
+      to === undefined ||
+      from.lane !== to.lane ||
+      from.stack === undefined ||
+      to.stack === undefined ||
+      to.stack >= from.stack
+    ) return;
+    const fromStack = from.stack;
+    const toStack = to.stack;
+    const 間に箱がある = diagram.nodes.some(
+      (node) =>
+        node.lane === from.lane &&
+        node.stack !== undefined &&
+        node.stack > toStack &&
+        node.stack < fromStack,
+    );
+    if (!間に箱がある) return;
+    edge.routing = "back-detour";
+    edge.fromSide = "right";
+    edge.toSide = "right";
+  });
 
   /*
    * 段を書いた図では、描画側が自分で作った段を捨てる。

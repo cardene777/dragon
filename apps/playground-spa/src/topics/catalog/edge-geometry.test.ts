@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { layout, visualValidateAll } from "@cardenelabs/cdl";
 import type { CdlDiagram } from "@cardenelabs/cdl";
+import { textDslToDiagram } from "@cardenelabs/dragon";
 import * as カタログの定義 from "./presets.cdl";
+import {
+  sourceYaml__pattern__textDslFlowchart__縦に積む,
+  sourceYaml__pattern__textDslFlowchart__複雑,
+  sourceYaml__textDslFlowchart,
+} from "./text-dsl.cdl";
 
 type 点 = { x: number; y: number };
 type 区間 = { 始点: 点; 終点: 点 };
@@ -285,5 +291,255 @@ describe("カタログの関係線の幾何 (#1600)", () => {
     expect(短い直線区間を測る("M 425 1317 L 711 1317 L 711 1289 L 751 1289")).toEqual([28]);
     expect(短い直線区間を測る("M 0 0 L 100 0 Q 114 0, 114 14 L 114 114")).toHaveLength(0);
     expect(短い直線区間を測る("M 0 0 L 100 0 L 100 100")).toHaveLength(0);
+  });
+});
+
+type 配置済みの図 = ReturnType<typeof layout>;
+type 配置済みの箱 = 配置済みの図["nodes"][number];
+
+const 流れ図の記法 = {
+  荷物を届ける流れ: カタログの定義.sourceYaml__presetDeliveryFlow,
+  経費申請の承認の簡単: sourceYaml__textDslFlowchart,
+  経費申請の承認の縦に積む: sourceYaml__pattern__textDslFlowchart__縦に積む,
+  経費申請の承認の複雑: sourceYaml__pattern__textDslFlowchart__複雑,
+} as const;
+
+type 流れ図の名前 = keyof typeof 流れ図の記法;
+type 流れ図の検査結果 = {
+  名前: 流れ図の名前;
+  図: 配置済みの図;
+  突き抜け: string[];
+  隠れた矢じり: string[];
+  輪郭から外れる端: string[];
+};
+
+const 内側の深さpx = 3;
+
+/** 角丸の Q は直線区間ではないため飛ばし、M/L で引かれた区間だけを読む。 */
+function dから直線区間を読む(d: string): 区間[] {
+  const token = d.match(/[MLQ]|-?(?:\d+\.?\d*|\.\d+)/g) ?? [];
+  const 区間列: 区間[] = [];
+  let 現在: 点 | undefined;
+  let i = 0;
+
+  while (i < token.length) {
+    const 命令 = token[i++];
+    if (命令 === "M") {
+      現在 = { x: Number(token[i++]), y: Number(token[i++]) };
+    } else if (命令 === "L") {
+      const 次 = { x: Number(token[i++]), y: Number(token[i++]) };
+      if (現在 !== undefined && (現在.x !== 次.x || 現在.y !== 次.y)) {
+        区間列.push({ 始点: 現在, 終点: 次 });
+      }
+      現在 = 次;
+    } else if (命令 === "Q") {
+      i += 2;
+      現在 = { x: Number(token[i++]), y: Number(token[i++]) };
+    }
+  }
+  return 区間列;
+}
+
+function 範囲との重なりpx(a: number, b: number, min: number, max: number): number {
+  return Math.max(0, Math.min(Math.max(a, b), max) - Math.max(Math.min(a, b), min));
+}
+
+/** 区間が箱の輪郭から `深さ` より内側を通る長さ。菱形は辺からの垂直距離で縮める。 */
+function 箱の内側を通る長さpx(区間: 区間, 箱: 配置済みの箱, 深さ: number): number {
+  const 水平 = Math.abs(区間.始点.y - 区間.終点.y) <= 許容px;
+  const 垂直 = Math.abs(区間.始点.x - 区間.終点.x) <= 許容px;
+  if (!水平 && !垂直) throw new Error(`斜めの直線区間を測れない: ${JSON.stringify(区間)}`);
+
+  const 半幅 = 箱.w / 2;
+  const 半高 = 箱.h / 2;
+  if (箱.kind === "decision") {
+    const 縮み = 1 - 深さ * Math.hypot(1 / 半幅, 1 / 半高);
+    if (縮み <= 0) return 0;
+    if (水平) {
+      const 幅 = 半幅 * (縮み - Math.abs(区間.始点.y - 箱.cy) / 半高);
+      return 幅 <= 0 ? 0 : 範囲との重なりpx(区間.始点.x, 区間.終点.x, 箱.cx - 幅, 箱.cx + 幅);
+    }
+    const 高さ = 半高 * (縮み - Math.abs(区間.始点.x - 箱.cx) / 半幅);
+    return 高さ <= 0 ? 0 : 範囲との重なりpx(区間.始点.y, 区間.終点.y, 箱.cy - 高さ, 箱.cy + 高さ);
+  }
+
+  if (水平 && 区間.始点.y > 箱.cy - 半高 + 深さ && 区間.始点.y < 箱.cy + 半高 - 深さ) {
+    return 範囲との重なりpx(
+      区間.始点.x,
+      区間.終点.x,
+      箱.cx - 半幅 + 深さ,
+      箱.cx + 半幅 - 深さ,
+    );
+  }
+  if (垂直 && 区間.始点.x > 箱.cx - 半幅 + 深さ && 区間.始点.x < 箱.cx + 半幅 - 深さ) {
+    return 範囲との重なりpx(
+      区間.始点.y,
+      区間.終点.y,
+      箱.cy - 半高 + 深さ,
+      箱.cy + 半高 - 深さ,
+    );
+  }
+  return 0;
+}
+
+function 点と線分の距離px(点: 点, a: 点, b: 点): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const 長さ2 = dx * dx + dy * dy;
+  const t = 長さ2 === 0 ? 0 : Math.max(0, Math.min(1, ((点.x - a.x) * dx + (点.y - a.y) * dy) / 長さ2));
+  return Math.hypot(点.x - (a.x + t * dx), 点.y - (a.y + t * dy));
+}
+
+function 箱の輪郭からの距離px(点: 点, 箱: 配置済みの箱): number {
+  const 半幅 = 箱.w / 2;
+  const 半高 = 箱.h / 2;
+  const 輪郭の点 = 箱.kind === "decision"
+    ? [
+        { x: 箱.cx, y: 箱.cy - 半高 },
+        { x: 箱.cx + 半幅, y: 箱.cy },
+        { x: 箱.cx, y: 箱.cy + 半高 },
+        { x: 箱.cx - 半幅, y: 箱.cy },
+      ]
+    : [
+        { x: 箱.cx - 半幅, y: 箱.cy - 半高 },
+        { x: 箱.cx + 半幅, y: 箱.cy - 半高 },
+        { x: 箱.cx + 半幅, y: 箱.cy + 半高 },
+        { x: 箱.cx - 半幅, y: 箱.cy + 半高 },
+      ];
+  return Math.min(
+    ...輪郭の点.map((a, i) => 点と線分の距離px(点, a, 輪郭の点[(i + 1) % 輪郭の点.length]!)),
+  );
+}
+
+function 流れ図を配置する(
+  名前: 流れ図の名前,
+  記法: string = 流れ図の記法[名前],
+): 配置済みの図 {
+  const 警告を黙らせる = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  try {
+    return layout(textDslToDiagram(記法));
+  } finally {
+    警告を黙らせる.mockRestore();
+  }
+}
+
+function 流れ図の骨組みを数える(
+  名前: 流れ図の名前,
+  記法: string = 流れ図の記法[名前],
+): 流れ図の検査結果 {
+  const 図 = 流れ図を配置する(名前, 記法);
+  const 箱 = new Map(図.nodes.map((node) => [node.id, node]));
+  const 突き抜け: string[] = [];
+  const 隠れた矢じり: string[] = [];
+  const 輪郭から外れる端: string[] = [];
+
+  for (const 線 of 図.edges) {
+    const 区間列 = dから直線区間を読む(線.d);
+    const 点列 = dから点列を読む(線.d);
+    if (区間列.length === 0 || 点列.length < 2) throw new Error(`${名前}:${線.id} の道筋を読めない`);
+    for (const [区間番号, 区間] of 区間列.entries()) {
+      for (const node of 図.nodes) {
+        if (箱の内側を通る長さpx(区間, node, 内側の深さpx) > 0) {
+          突き抜け.push(`${名前}:${線.id}:区間${区間番号}:${node.id}`);
+        }
+      }
+    }
+
+    const 入る箱 = 箱.get(線.to);
+    const 最後の区間 = 区間列.at(-1);
+    if (入る箱 === undefined || 最後の区間 === undefined) throw new Error(`${名前}:${線.id} の行き先を読めない`);
+    if (箱の内側を通る長さpx(最後の区間, 入る箱, 内側の深さpx) > 0) {
+      隠れた矢じり.push(`${名前}:${線.id}`);
+    }
+
+    for (const [端, node, point] of [
+      ["始点", 箱.get(線.from), 点列[0]],
+      ["終点", 入る箱, 点列.at(-1)],
+    ] as const) {
+      if (node === undefined || point === undefined) throw new Error(`${名前}:${線.id} の${端}を読めない`);
+      if (箱の輪郭からの距離px(point, node) > 内側の深さpx) {
+        輪郭から外れる端.push(`${名前}:${線.id}:${端}`);
+      }
+    }
+  }
+  return { 名前, 図, 突き抜け, 隠れた矢じり, 輪郭から外れる端 };
+}
+
+const 認める輪郭から外れる端: Readonly<Record<string, string>> = {
+  "経費申請の承認の複雑:fc-3-上長が認めるか-明細を-1-行ずつ見る:始点":
+    "cdl#1228 が直すまで残る",
+};
+
+describe("見本帳の流れ図の骨組み (#2889)", () => {
+  const 結果 = (Object.keys(流れ図の記法) as 流れ図の名前[]).map((名前) => 流れ図の骨組みを数える(名前));
+
+  it("4 枚すべてで線が箱の内側を 3px より深く通らない", () => {
+    expect(結果).toHaveLength(4);
+    const 突き抜け = 結果.flatMap((値) => 値.突き抜け);
+    expect(突き抜け, `箱を突き抜ける区間: ${突き抜け.join("、")}`).toEqual([]);
+  });
+
+  it("4 枚すべてで終点の手前の区間が入る箱の内側に無い", () => {
+    const 隠れた矢じり = 結果.flatMap((値) => 値.隠れた矢じり);
+    expect(隠れた矢じり, `箱の面に隠れる矢じり: ${隠れた矢じり.join("、")}`).toEqual([]);
+  });
+
+  it("輪郭から 3px より外れる端が cdl#1228 待ちの宣言と両方向で一致する", () => {
+    const 実測 = 結果.flatMap((値) => 値.輪郭から外れる端).sort();
+    expect(実測, `輪郭から外れる端: ${実測.join("、")}`).toEqual(Object.keys(認める輪郭から外れる端).sort());
+    expect(Object.values(認める輪郭から外れる端)).toEqual(["cdl#1228 が直すまで残る"]);
+  });
+
+  it("荷物の戻る線を両方の箱の右の縁の中ほどで結び、札を縦区間へ重ねる", () => {
+    const 配送 = 結果.find((値) => 値.名前 === "荷物を届ける流れ")!.図;
+    const 戻る線 = 配送.edges.find((線) => 線.from === "持ち戻る" && 線.to === "便に積む")!;
+    const 持ち戻る = 配送.nodes.find((箱) => 箱.id === "持ち戻る")!;
+    const 便に積む = 配送.nodes.find((箱) => 箱.id === "便に積む")!;
+    const 点列 = dから点列を読む(戻る線.d);
+    const 始点 = 点列[0]!;
+    const 終点 = 点列.at(-1)!;
+    expect(始点.x).toBeCloseTo(持ち戻る.cx + 持ち戻る.w / 2, 6);
+    expect(Math.abs(始点.y - 持ち戻る.cy)).toBeLessThanOrEqual(1);
+    expect(終点.x).toBeCloseTo(便に積む.cx + 便に積む.w / 2, 6);
+    expect(Math.abs(終点.y - 便に積む.cy)).toBeLessThanOrEqual(1);
+
+    const 札を通る縦区間 = dから直線区間を読む(戻る線.d).find(
+      ({ 始点: a, 終点: b }) =>
+        Math.abs(a.x - b.x) <= 許容px &&
+        戻る線.labelY >= Math.min(a.y, b.y) &&
+        戻る線.labelY <= Math.max(a.y, b.y),
+    );
+    expect(札を通る縦区間, "戻る線の札の高さを通る縦区間が無い").toBeDefined();
+    expect(Math.abs(戻る線.labelX - 札を通る縦区間!.始点.x)).toBeLessThanOrEqual(1);
+  });
+
+  it("間に箱の無い隣の段へ戻る線の通り道を変えない", () => {
+    const 複雑 = 結果.find((値) => 値.名前 === "経費申請の承認の複雑")!.図;
+    const 出し直す = 複雑.edges.find(
+      (線) => 線.from === "直して出し直す" && 線.to === "領収書を添えて申請する",
+    );
+    expect(出し直す?.d).toBe("M 215 439.5 L 215 279.5");
+  });
+
+  it("side を書いた戻る線には自動の戻り道と右の辺を渡さない", () => {
+    const 記法 = カタログの定義.sourceYaml__presetDeliveryFlow.replace(
+      "{ overlay: true }",
+      "{ side: bottom, overlay: true }",
+    );
+    const 図 = textDslToDiagram(記法);
+    const 戻る線 = 図.edges.find((線) => 線.from === "持ち戻る" && 線.to === "便に積む");
+    expect(戻る線).toMatchObject({ side: "bottom", overlay: true, tone: "error", style: "dashed" });
+    expect(戻る線?.routing).toBeUndefined();
+    expect(戻る線?.fromSide).toBeUndefined();
+    expect(戻る線?.toSide).toBeUndefined();
+  });
+
+  it("side: bottom を戻した配置では箱の突き抜けを見つける", () => {
+    const 記法 = カタログの定義.sourceYaml__presetDeliveryFlow.replace(
+      "{ overlay: true }",
+      "{ side: bottom, overlay: true }",
+    );
+    const 植え込み = 流れ図の骨組みを数える("荷物を届ける流れ", 記法);
+    expect(植え込み.突き抜け.length, "side: bottom を戻しても突き抜けを数えられない").toBeGreaterThan(0);
   });
 });
