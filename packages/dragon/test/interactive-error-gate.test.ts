@@ -68,7 +68,7 @@ import { at } from "./support/at";
  */
 
 /**
- * 受け入れている error の欄 (#1755)。 **今は 1 件も無い**。
+ * 受け入れている error の欄 (#1755)。
  *
  * 「今は 0 件にできない」 ことを書き残す欄で、 **消すのも増やすのも落ちる** 形にする =
  * 直ったのに書き残しが残ると、 その図だけ検知が消える。
@@ -87,7 +87,18 @@ interface 受け入れた違反 {
 
 const FIXED: Array<{ name: string; diagram: CdlDiagram; 受け入れ?: readonly 受け入れた違反[] }> = [
   { name: "interactive-timeline-drive", diagram: timelineDrive },
-  { name: "interactive-kpi-dashboard", diagram: kpiDashboard },
+  {
+    name: "interactive-kpi-dashboard",
+    diagram: kpiDashboard,
+    受け入れ: [
+      {
+        axis: "edge-node-cross",
+        理由:
+          "線が行き先の箱の内側を 106 通る。cdl 0.136.1 から発着の箱も数えるため見えた。" +
+          "cardene777/dragon#2894 で直す",
+      },
+    ],
+  },
   // stage 3 (#892) = exemplar 3 件。 いずれも「label を置く場所が足りない」 が原因で、 layout の
   // 作り替えは要らなかった。 詳細は各図の comment。
   //   - oauth-flow ... 同じ横線を通る 4 本の label の置き場所。 当初は手作業で 2 列 × 2 段に
@@ -95,7 +106,18 @@ const FIXED: Array<{ name: string; diagram: CdlDiagram; 受け入れ?: readonly 
   //     cdl#374、 dragon#968)。 lane 間隔は効かない = cdl が label 幅に合わせて自動で広げる
   //   - traffic-sankey ... 縦区間 2 本の間に挟まれた label を横へ 90 逃がす (4 → 0)
   //   - notification-flow ... 同じ高さに並んだ label を縦区間の上へ 120 逃がす (1 → 0)
-  { name: "interactive-oauth-flow", diagram: interactiveOauthFlow },
+  {
+    name: "interactive-oauth-flow",
+    diagram: interactiveOauthFlow,
+    受け入れ: [
+      {
+        axis: "edge-node-cross",
+        理由:
+          "線が行き先の箱の内側を 106 通る。cdl 0.136.1 から発着の箱も数えるため見えた。" +
+          "cardene777/dragon#2894 で直す",
+      },
+    ],
+  },
   { name: "interactive-traffic-sankey", diagram: trafficSankey },
   { name: "interactive-exemplar-notification-flow", diagram: exemplarNotificationFlow },
 ];
@@ -439,8 +461,8 @@ describe("#892 exemplar 3 件の配置を座標で固定", () => {
     // 崩れる配置は「たまたま今の文字数で成立している」 だけなので、 1 文字分の余裕を固定する。
     //
     // **基準は「いまの顔ぶれ」** (#1755)。 受け入れた error があると 0 件は 1 文字と
-    // 無関係に落ちるため、 顔ぶれの一致で見る。 受け入れが空の今は 0 件と同じ意味になり、
-    // 受け入れが増えた時も 1 文字で増える形だけを拾う。
+    // 無関係に落ちるため、 顔ぶれの一致で見る。 受け入れた error があっても、
+    // 1 文字で増える形だけを拾う。
     const 軸 = (d: CdlDiagram): string[] =>
       (visualValidateAll([d], { profile: "catalog" }).reports[0]?.violations ?? [])
         .filter((v) => v.severity === "error")

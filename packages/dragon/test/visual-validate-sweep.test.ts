@@ -109,7 +109,7 @@ function isCdlDiagram(v: unknown): v is CdlDiagram {
 // 除外は下の表が持つ。 それ以外の severity=error は全て gating する。
 
 /**
- * 落とさない組。 「線が箱を貫く」 ことが図の意図そのものである図を名指しで除く。
+ * 落とさない組。 意図した貫通か、利用者が直す課題を決めた貫通だけを名指しで除く。
  *
  * **表にした上で実物と突き合わせる** (#1730)。 元は `if` の中に 2 図を直接書いており、
  * うち `pattern-hook` は **何にも当たっていなかった**。 図が
@@ -126,7 +126,7 @@ interface 見逃す組 {
   readonly axis: string;
   /** 同じ図・軸のうち、名指しした対象だけを見逃す。無い時は軸全体。 */
   readonly 対象?: string;
-  /** なぜ意図どおりなのか */
+  /** なぜ落とさずに見逃すのか */
   readonly 理由: string;
 }
 
@@ -135,6 +135,30 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     diagramId: "pattern-passthrough",
     axis: "edge-node-cross",
     理由: "「a → router → c」 の通過を見せる図で、 router を貫くこと自体が意図",
+  },
+  ...["delivery-metro-demo", "路線図で書く荷物の届け方"].map((diagramId) => ({
+    diagramId,
+    axis: "edge-node-cross",
+    対象: 'edge "e7-在宅-持ち戻る"',
+    理由:
+      "線が行き先の箱の内側を 19 通る。cdl 0.136.1 から発着の箱も数えるため見えた。" +
+      "cardene777/dragon#2893 で直す",
+  })),
+  {
+    diagramId: "interactive-oauth-flow",
+    axis: "edge-node-cross",
+    対象: 'edge "api-client"',
+    理由:
+      "線が行き先の箱の内側を 106 通る。cdl 0.136.1 から発着の箱も数えるため見えた。" +
+      "cardene777/dragon#2894 で直す",
+  },
+  {
+    diagramId: "interactive-kpi-dashboard",
+    axis: "edge-node-cross",
+    対象: 'edge "revCard-npsCard"',
+    理由:
+      "線が行き先の箱の内側を 106 通る。cdl 0.136.1 から発着の箱も数えるため見えた。" +
+      "cardene777/dragon#2894 で直す",
   },
   ...[
     {
@@ -370,19 +394,19 @@ const 見逃す組の一覧: readonly 見逃す組[] = [
     })),
   ),
   {
+    diagramId: "経費の申請を金額と領収書で分けて振込まで追うフローチャート",
+    axis: "arrow-endpoint-anchoring",
+    対象: 'edge "fc-3-上長が認めるか-明細を-1-行ずつ見る"',
+    理由:
+      "分かれ道の空いた左下の角へ始点を割り当て、菱形の輪郭上に置く。" +
+      "検査は菱形ではなく外接矩形の内側として数えるため。菱形の形で測る直しは cardene777/cdl#1236 が持つ (#2891)",
+  },
+  {
     diagramId: "delivery-flow-demo",
     axis: "node-visibility",
     理由:
       "流れ図の始まりと終わりは字を入れる箱ではなく、見本の札幅との比から求めた直径 43 と 48 の印である。" +
       "汎用の字を持つ箱の下限 80×40 より小さくても、丸は欠けずに見える (#2835)",
-  },
-  {
-    diagramId: "delivery-flow-demo",
-    axis: "clearance",
-    対象: "node:在宅 ↔ edge-label:fc-8-持ち戻る-便に積む",
-    理由:
-      "戻る線の札を見本どおり右外の縦区間へ重ねると、cdl 0.136.0 は札を縦区間の中点に置くため在宅の菱形との間は 24.2 world になる。" +
-      "縦区間の上で全ての箱から 32 以上離す直しは cdl#1228 が持ち、その版へ上げた時に消す (#2889)",
   },
   {
     diagramId: "delivery-flow-demo",
@@ -587,7 +611,7 @@ const sources: Array<{ name: string; mod: ModuleLike }> = [
 
 describe("Visual validate sweep (Tier C-2 ... cdl engine 層 overlap gating)", () => {
   for (const { name, mod } of sources) {
-    it(`${name} ... visualValidate 全 axis error 0 件 (除外は intentional 2 diagram のみ)`, () => {
+    it(`${name} ... visualValidate 全 axis error 0 件 (除外は見逃す組の一覧と一致)`, () => {
       const diagrams = collectDiagrams(mod, name);
       expect(diagrams.length).toBeGreaterThan(0);
       const report = visualValidateAll(diagrams, { profile: "catalog" });
