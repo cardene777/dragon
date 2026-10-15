@@ -491,6 +491,36 @@ marker:has(> [data-cdl-role="edge-arrowhead"]) {
   display: none !important;
 }
 
+/* 持ち越しの目印: 流れ図の三角の矢じりを見本の大きさへ合わせる */
+svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head])) {
+  transform: scale(1.2142857143, 1.3571428571);
+  transform-origin: 9px 5px;
+}
+
+/* 持ち越しの目印: 描く側の半径 12 で走る丸の芯を選ぶ */
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"] {
+  fill: var(--er-line) !important;
+  stroke: var(--er-ground) !important;
+  stroke-width: 3.5px;
+  filter: drop-shadow(0 0 6px var(--er-line));
+}
+
+/* 持ち越しの目印: 描く側の半径 28 で走る丸の外の波を選ぶ */
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="28"] {
+  fill: none !important;
+  stroke: var(--er-line) !important;
+  filter: blur(1.2px);
+  animation: running-dot-wave-outer 1.4s linear infinite;
+}
+
+/* 持ち越しの目印: 描く側の半径 18 で走る丸の内の波を選ぶ */
+svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"] {
+  fill: none !important;
+  stroke: var(--er-line) !important;
+  filter: blur(0.6px);
+  animation: running-dot-wave-inner 1.4s linear infinite -0.7s;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * 区画
  * ───────────────────────────────────────────────────────────────────────────── */
@@ -839,6 +869,50 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --dragon-theme-timeline-number-line-effect: none;
   --dragon-theme-box-text-effect: none;
   --dragon-theme-tag-effect: none;
+  --dragon-flow-main: #143a52;
+  --dragon-flow-mark: #143a52;
+  --dragon-flow-return-legend: var(--er-own);
+  --dragon-flow-lane-divider-dash: 22 7 5 7;
+  --dragon-flow-edge-width: 5;
+  --dragon-flow-return-width: 6;
+  --dragon-flow-return-dash: 0 9.6;
+  --dragon-flow-return-cap: round;
+  --dragon-flow-end-radius: 19px;
+  --dragon-flow-end-frame-width: 3.5;
+  --dragon-flow-end-core-radius: 10px;
+  --dragon-flow-decision-fill: var(--er-face);
+  --dragon-flow-decision-frame: #143a52;
+  --dragon-flow-decision-frame-width: 1.5;
+  --dragon-flow-decision-font-size: 26px;
+  --dragon-flow-decision-font-weight: 700;
+  --dragon-flow-label-success-fill: #1f7a6b;
+  --dragon-flow-label-error-fill: #a8431f;
+  --dragon-flow-label-success-text: #e3e9ea;
+  --dragon-flow-label-error-text: #e3e9ea;
+  --dragon-flow-label-success-frame: none;
+  --dragon-flow-label-error-frame: none;
+  --dragon-flow-label-radius: 9px;
+  --dragon-flow-label-frame-width: 0;
+  --dragon-running-dot-label-backdrop: var(--er-ground);
+  --dragon-running-dot-label-backdrop-width: 8;
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #ebf0f0;
+  --theme-timeline-label-error-text: #e3e9ea;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
   --theme-lead: #143a52;
   --theme-mind-branch-3: #a8431f;
   --theme-mind-branch-4: #4d7187;
@@ -1003,6 +1077,51 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --dragon-theme-timeline-number-line-effect: none;
   --dragon-theme-box-text-effect: none;
   --dragon-theme-tag-effect: none;
+  --dragon-flow-main: #c8431f;
+  --dragon-flow-mark: #1a1510;
+  --dragon-flow-return-legend: var(--er-own);
+  --dragon-flow-lane-divider-dash: 6 8;
+  --dragon-flow-edge-width: 5;
+  --dragon-flow-return-width: 6;
+  --dragon-flow-return-dash: 0 9.6;
+  --dragon-flow-return-cap: round;
+  --dragon-flow-end-radius: 19px;
+  --dragon-flow-end-frame-width: 3.5;
+  --dragon-flow-end-core-radius: 10px;
+  --dragon-flow-decision-fill: none;
+  --dragon-flow-decision-frame: var(--er-frame);
+  --dragon-flow-decision-frame-width: 2;
+  --dragon-flow-decision-font-size: 26px;
+  --dragon-flow-decision-font-weight: 700;
+  --dragon-flow-label-success-fill: #1a1510;
+  --dragon-flow-label-error-fill: #1a1510;
+  --dragon-flow-label-success-text: #f0eadc;
+  --dragon-flow-label-error-text: #f0eadc;
+  --dragon-flow-label-success-frame: none;
+  --dragon-flow-label-error-frame: none;
+  --dragon-flow-label-radius: 9px;
+  --dragon-flow-label-frame-width: 0;
+  --dragon-running-dot-label-backdrop: var(--er-ground);
+  --dragon-running-dot-label-backdrop-width: 8;
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #f0eadc;
+  --theme-timeline-label-error-text: #f0eadc;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+  --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-mind-branch-3: #1a1510;
   --theme-mind-branch-4: #6b6253;
   --theme-journey-axis-label: #6b6253;
@@ -1162,6 +1281,50 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --dragon-theme-timeline-number-line-effect: none;
   --dragon-theme-box-text-effect: none;
   --dragon-theme-tag-effect: none;
+  --dragon-flow-main: #dca443;
+  --dragon-flow-mark: #efe7d8;
+  --dragon-flow-return-legend: var(--er-own);
+  --dragon-flow-lane-divider-dash: 6 8;
+  --dragon-flow-edge-width: 5;
+  --dragon-flow-return-width: 6;
+  --dragon-flow-return-dash: 0 9.6;
+  --dragon-flow-return-cap: round;
+  --dragon-flow-end-radius: 19px;
+  --dragon-flow-end-frame-width: 3.5;
+  --dragon-flow-end-core-radius: 10px;
+  --dragon-flow-decision-fill: var(--er-face);
+  --dragon-flow-decision-frame: none;
+  --dragon-flow-decision-frame-width: 0;
+  --dragon-flow-decision-font-size: 26px;
+  --dragon-flow-decision-font-weight: 700;
+  --dragon-flow-label-success-fill: #4fae9a;
+  --dragon-flow-label-error-fill: #e8705a;
+  --dragon-flow-label-success-text: #1b222c;
+  --dragon-flow-label-error-text: #1b222c;
+  --dragon-flow-label-success-frame: none;
+  --dragon-flow-label-error-frame: none;
+  --dragon-flow-label-radius: 9px;
+  --dragon-flow-label-frame-width: 0;
+  --dragon-running-dot-label-backdrop: var(--er-ground);
+  --dragon-running-dot-label-backdrop-width: 8;
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #1b222c;
+  --theme-timeline-label-error-text: #1b222c;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
   --theme-mind-branch-3: #e8705a;
   --theme-mind-branch-4: #6f6757;
   --theme-journey-axis-label: #6f6757;
@@ -1337,6 +1500,51 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
     0 0 4px color-mix(in srgb, var(--theme-lead) 35%, transparent)
   );
   --dragon-theme-tag-effect: none;
+  --dragon-flow-main: #4ade80;
+  --dragon-flow-mark: #a6f0bd;
+  --dragon-flow-return-legend: var(--er-own);
+  --dragon-flow-lane-divider-dash: 3 7;
+  --dragon-flow-edge-width: 5;
+  --dragon-flow-return-width: 6;
+  --dragon-flow-return-dash: 0 9.6;
+  --dragon-flow-return-cap: round;
+  --dragon-flow-end-radius: 19px;
+  --dragon-flow-end-frame-width: 3.5;
+  --dragon-flow-end-core-radius: 10px;
+  --dragon-flow-decision-fill: var(--er-face);
+  --dragon-flow-decision-frame: var(--er-frame);
+  --dragon-flow-decision-frame-width: 1.75;
+  --dragon-flow-decision-font-size: 26px;
+  --dragon-flow-decision-font-weight: 700;
+  --dragon-flow-label-success-fill: #c792ea;
+  --dragon-flow-label-error-fill: #f5c451;
+  --dragon-flow-label-success-text: #03110a;
+  --dragon-flow-label-error-text: #03110a;
+  --dragon-flow-label-success-frame: none;
+  --dragon-flow-label-error-frame: none;
+  --dragon-flow-label-radius: 4px;
+  --dragon-flow-label-frame-width: 0;
+  --dragon-running-dot-label-backdrop: var(--er-ground);
+  --dragon-running-dot-label-backdrop-width: 8;
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #03110a;
+  --theme-timeline-label-error-text: #03110a;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 4px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+  --cdl-flowchart-lane-heading-name-size: 25px;
   --theme-mind-branch-3: #f5c451;
   --theme-mind-branch-4: #8a9b90;
   --theme-journey-axis-label: #8a9b90;
@@ -1501,6 +1709,51 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --dragon-theme-timeline-number-line-effect: none;
   --dragon-theme-box-text-effect: none;
   --dragon-theme-tag-effect: none;
+  --dragon-flow-main: #d2491f;
+  --dragon-flow-mark: #2b2620;
+  --dragon-flow-return-legend: var(--er-own);
+  --dragon-flow-lane-divider-dash: 6 8;
+  --dragon-flow-edge-width: 5;
+  --dragon-flow-return-width: 6;
+  --dragon-flow-return-dash: 0 9.6;
+  --dragon-flow-return-cap: round;
+  --dragon-flow-end-radius: 19px;
+  --dragon-flow-end-frame-width: 3.5;
+  --dragon-flow-end-core-radius: 10px;
+  --dragon-flow-decision-fill: var(--er-face);
+  --dragon-flow-decision-frame: #2b2620;
+  --dragon-flow-decision-frame-width: 2.5;
+  --dragon-flow-decision-font-size: 26px;
+  --dragon-flow-decision-font-weight: 700;
+  --dragon-flow-label-success-fill: #2f7d4f;
+  --dragon-flow-label-error-fill: #2a5ca8;
+  --dragon-flow-label-success-text: #fffdf7;
+  --dragon-flow-label-error-text: #fffdf7;
+  --dragon-flow-label-success-frame: none;
+  --dragon-flow-label-error-frame: none;
+  --dragon-flow-label-radius: 9px;
+  --dragon-flow-label-frame-width: 0;
+  --dragon-running-dot-label-backdrop: var(--er-ground);
+  --dragon-running-dot-label-backdrop-width: 8;
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: var(--er-own);
+  --theme-timeline-label-success-text: #fffdf7;
+  --theme-timeline-label-error-text: #fffdf7;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+  --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-mind-branch-3: #2a5ca8;
   --theme-mind-branch-4: #6d6456;
   --theme-journey-axis-label: #6d6456;
@@ -1668,6 +1921,51 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --dragon-theme-box-text-effect: drop-shadow(0 0 5px var(--theme-lead))
     drop-shadow(0 0 12px color-mix(in srgb, var(--theme-lead) 60%, transparent));
   --dragon-theme-tag-effect: none;
+  --dragon-flow-main: #ff2e97;
+  --dragon-flow-mark: #f3eefe;
+  --dragon-flow-return-legend: var(--er-own);
+  --dragon-flow-lane-divider-dash: 6 8;
+  --dragon-flow-edge-width: 5;
+  --dragon-flow-return-width: 6;
+  --dragon-flow-return-dash: 0 9.6;
+  --dragon-flow-return-cap: round;
+  --dragon-flow-end-radius: 19px;
+  --dragon-flow-end-frame-width: 3.5;
+  --dragon-flow-end-core-radius: 10px;
+  --dragon-flow-decision-fill: var(--er-face);
+  --dragon-flow-decision-frame: #00e5ff;
+  --dragon-flow-decision-frame-width: 3;
+  --dragon-flow-decision-font-size: 26px;
+  --dragon-flow-decision-font-weight: 700;
+  --dragon-flow-label-success-fill: #07060c;
+  --dragon-flow-label-error-fill: #07060c;
+  --dragon-flow-label-success-text: #00e5ff;
+  --dragon-flow-label-error-text: #ffd000;
+  --dragon-flow-label-success-frame: #00e5ff;
+  --dragon-flow-label-error-frame: #ffd000;
+  --dragon-flow-label-radius: 9px;
+  --dragon-flow-label-frame-width: 2.5px;
+  --dragon-running-dot-label-backdrop: var(--er-ground);
+  --dragon-running-dot-label-backdrop-width: 8;
+  --theme-timeline-label-success-fill: var(--er-ground);
+  --theme-timeline-label-error-fill: var(--er-ground);
+  --theme-timeline-label-success-text: var(--er-link);
+  --theme-timeline-label-error-text: var(--er-own);
+  --theme-timeline-label-success-frame: var(--er-link);
+  --theme-timeline-label-error-frame: var(--er-own);
+  --theme-timeline-label-radius: 9px;
+  --theme-timeline-label-frame-width: 2.5px;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
+  --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-mind-branch-3: #ffd000;
   --theme-mind-branch-4: #c4bce0;
   --theme-journey-axis-label: #c4bce0;
@@ -1831,6 +2129,50 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --dragon-theme-timeline-number-line-effect: none;
   --dragon-theme-box-text-effect: none;
   --dragon-theme-tag-effect: url(#dragon-relief-raised-sm);
+  --dragon-flow-main: #c4573c;
+  --dragon-flow-mark: #463e33;
+  --dragon-flow-return-legend: #c99a35;
+  --dragon-flow-lane-divider-dash: 6 8;
+  --dragon-flow-edge-width: 5;
+  --dragon-flow-return-width: 6;
+  --dragon-flow-return-dash: 0 9.6;
+  --dragon-flow-return-cap: round;
+  --dragon-flow-end-radius: 19px;
+  --dragon-flow-end-frame-width: 3.5;
+  --dragon-flow-end-core-radius: 10px;
+  --dragon-flow-decision-fill: var(--er-face);
+  --dragon-flow-decision-frame: none;
+  --dragon-flow-decision-frame-width: 0;
+  --dragon-flow-decision-font-size: 26px;
+  --dragon-flow-decision-font-weight: 700;
+  --dragon-flow-label-success-fill: #2f7a6e;
+  --dragon-flow-label-error-fill: #c99a35;
+  --dragon-flow-label-success-text: #ffffff;
+  --dragon-flow-label-error-text: #ffffff;
+  --dragon-flow-label-success-frame: none;
+  --dragon-flow-label-error-frame: none;
+  --dragon-flow-label-radius: 20px;
+  --dragon-flow-label-frame-width: 0;
+  --dragon-running-dot-label-backdrop: var(--er-ground);
+  --dragon-running-dot-label-backdrop-width: 8;
+  --theme-timeline-label-success-fill: var(--er-link);
+  --theme-timeline-label-error-fill: #c99a35;
+  --theme-timeline-label-success-text: #ffffff;
+  --theme-timeline-label-error-text: #383838;
+  --theme-timeline-label-success-frame: none;
+  --theme-timeline-label-error-frame: none;
+  --theme-timeline-label-radius: 20px;
+  --theme-timeline-label-frame-width: 0;
+  --theme-timeline-label-height: 40px;
+  --theme-timeline-label-font-size: 21px;
+  --theme-timeline-label-font-weight: 700;
+  --theme-timeline-yes-width: 6px;
+  --theme-timeline-no-width: 5px;
+  --theme-timeline-return-width: 6px;
+  --theme-timeline-arrow-scale-x: 1.2142857143;
+  --theme-timeline-arrow-scale-y: 1.3571428571;
+  --theme-timeline-small-arrow-scale-x: 1.7;
+  --theme-timeline-small-arrow-scale-y: 1.9;
   --theme-mind-branch-3: #c99a35;
   --theme-mind-branch-4: #7a7062;
   --theme-journey-axis-label: #685e51;
@@ -1932,391 +2274,124 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 固定 7 意匠の流れ図。見本 (`流れ-*.html`) の線・印・分岐札だけを図種で限定して読む。
+ * 役を持つ意匠の流れ図。見本 (`流れ-*.html`) の線・印・分岐札だけを図種で限定して読む。
  * 全図共通の線幅 7 (#1598) と、生成り・青磁の規則には触れない。
  * ───────────────────────────────────────────────────────────────────────────── */
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="blueprint"] {
-  --theme-flow-main: #143a52;
-  --theme-flow-mark-fixed: #143a52;
-  --theme-flow-label-success-fill: #1f7a6b;
-  --theme-flow-label-error-fill: #a8431f;
-  --theme-flow-label-success-text: #e3e9ea;
-  --theme-flow-label-error-text: #e3e9ea;
-  --theme-flow-label-success-frame: none;
-  --theme-flow-label-error-frame: none;
-  --theme-flow-label-radius: 9px;
-  --theme-flow-label-frame-width: 0;
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="edge-line"] {
+  stroke-width: var(--dragon-flow-edge-width) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="letterpress"] {
-  --cdl-flowchart-lane-heading-name-weight: 800;
-  --theme-flow-main: #c8431f;
-  --theme-flow-mark-fixed: #1a1510;
-  --theme-flow-label-success-fill: #1a1510;
-  --theme-flow-label-error-fill: #1a1510;
-  --theme-flow-label-success-text: #f0eadc;
-  --theme-flow-label-error-text: #f0eadc;
-  --theme-flow-label-success-frame: none;
-  --theme-flow-label-error-frame: none;
-  --theme-flow-label-radius: 9px;
-  --theme-flow-label-frame-width: 0;
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="flowchart-lane-divider"] {
+  stroke-dasharray: var(--dragon-flow-lane-divider-dash) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="catalog"] {
-  --theme-flow-main: #dca443;
-  --theme-flow-mark-fixed: #efe7d8;
-  --theme-flow-label-success-fill: #4fae9a;
-  --theme-flow-label-error-fill: #e8705a;
-  --theme-flow-label-success-text: #1b222c;
-  --theme-flow-label-error-text: #1b222c;
-  --theme-flow-label-success-frame: none;
-  --theme-flow-label-error-frame: none;
-  --theme-flow-label-radius: 9px;
-  --theme-flow-label-frame-width: 0;
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {
+  stroke-width: var(--dragon-flow-return-width) !important;
+  stroke-dasharray: var(--dragon-flow-return-dash) !important;
+  stroke-linecap: var(--dragon-flow-return-cap) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="terminal"] {
-  --cdl-flowchart-lane-heading-name-size: 25px;
-  --theme-flow-main: #4ade80;
-  --theme-flow-mark-fixed: #a6f0bd;
-  --theme-flow-label-success-fill: #c792ea;
-  --theme-flow-label-error-fill: #f5c451;
-  --theme-flow-label-success-text: #03110a;
-  --theme-flow-label-error-text: #03110a;
-  --theme-flow-label-success-frame: none;
-  --theme-flow-label-error-frame: none;
-  --theme-flow-label-radius: 4px;
-  --theme-flow-label-frame-width: 0;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="sketch"] {
-  --cdl-flowchart-lane-heading-name-weight: 800;
-  --theme-flow-main: #d2491f;
-  --theme-flow-mark-fixed: #2b2620;
-  --theme-flow-label-success-fill: #2f7d4f;
-  --theme-flow-label-error-fill: #2a5ca8;
-  --theme-flow-label-success-text: #fffdf7;
-  --theme-flow-label-error-text: #fffdf7;
-  --theme-flow-label-success-frame: none;
-  --theme-flow-label-error-frame: none;
-  --theme-flow-label-radius: 9px;
-  --theme-flow-label-frame-width: 0;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="neon"] {
-  --cdl-flowchart-lane-heading-name-weight: 800;
-  --theme-flow-main: #ff2e97;
-  --theme-flow-mark-fixed: #f3eefe;
-  --theme-flow-label-success-fill: #07060c;
-  --theme-flow-label-error-fill: #07060c;
-  --theme-flow-label-success-text: #00e5ff;
-  --theme-flow-label-error-text: #ffd000;
-  --theme-flow-label-success-frame: #00e5ff;
-  --theme-flow-label-error-frame: #ffd000;
-  --theme-flow-label-radius: 9px;
-  --theme-flow-label-frame-width: 2.5px;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="relief"] {
-  --theme-flow-main: #c4573c;
-  --theme-flow-mark-fixed: #463e33;
-  --theme-flow-label-success-fill: #2f7a6e;
-  --theme-flow-label-error-fill: #c99a35;
-  --theme-flow-label-success-text: #ffffff;
-  --theme-flow-label-error-text: #ffffff;
-  --theme-flow-label-success-frame: none;
-  --theme-flow-label-error-frame: none;
-  --theme-flow-label-radius: 20px;
-  --theme-flow-label-frame-width: 0;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="edge-line"] {
-  stroke-width: 5 !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="flowchart-lane-divider"] {
-  stroke-dasharray: 6 8 !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="blueprint"] [data-cdl-role="flowchart-lane-divider"] {
-  stroke-dasharray: 22 7 5 7 !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="terminal"] [data-cdl-role="flowchart-lane-divider"] {
-  stroke-dasharray: 3 7 !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="edge-line"][stroke-dasharray="10 8"] {
-  stroke-width: 6 !important;
-  stroke-dasharray: 0 9.6 !important;
-  stroke-linecap: round !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-edge][data-cdl-edge-role="main"]
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-edge][data-cdl-edge-role="main"]
   [data-cdl-role="edge-line"] {
-  stroke: var(--theme-flow-main) !important;
+  stroke: var(--dragon-flow-main) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [id^="cdl-arrow-accent"] {
-  --dragon-edge-tone: var(--theme-flow-main);
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [id^="cdl-arrow-accent"] {
+  --dragon-edge-tone: var(--dragon-flow-main);
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head])) {
-  transform: scale(1.2142857143, 1.3571428571);
-  transform-origin: 9px 5px;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-kind="mark-end"]
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-kind="mark-end"]
   [data-cdl-role="node-body"] {
-  r: 19px;
-  fill: var(--er-ground) !important;
-  stroke: var(--theme-flow-mark-fixed) !important;
-  stroke-width: 3.5 !important;
+  r: var(--dragon-flow-end-radius);
+  fill: var(--dragon-theme-ground) !important;
+  stroke: var(--dragon-flow-mark) !important;
+  stroke-width: var(--dragon-flow-end-frame-width) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-kind="mark-end"]
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-kind="mark-end"]
   [data-cdl-role="node-inner"] {
-  r: 10px;
-  fill: var(--theme-flow-mark-fixed) !important;
+  r: var(--dragon-flow-end-core-radius);
+  fill: var(--dragon-flow-mark) !important;
 }
 
-/* 分かれ道の面は共通の `--er-face` が見本と一致する。面・枠・太さのうち違う値だけを上書きする。 */
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="blueprint"]
+/* 分かれ道は、面・枠・太さを意匠名ではなく役から読む。 */
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  )
   [data-cdl-kind="decision"]:not([data-cdl-active="true"])
   [data-cdl-role="node-body"]
   > path {
-  stroke: #143a52 !important;
-  stroke-width: 1.5 !important;
+  fill: var(--dragon-flow-decision-fill) !important;
+  stroke: var(--dragon-flow-decision-frame) !important;
+  stroke-width: var(--dragon-flow-decision-frame-width) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="letterpress"]
-  [data-cdl-kind="decision"]:not([data-cdl-active="true"])
-  [data-cdl-role="node-body"]
-  > path {
-  fill: none !important;
-  stroke-width: 2 !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="catalog"]
-  [data-cdl-kind="decision"]:not([data-cdl-active="true"])
-  [data-cdl-role="node-body"]
-  > path {
-  stroke: none !important;
-  stroke-width: 0 !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="sketch"]
-  [data-cdl-kind="decision"]:not([data-cdl-active="true"])
-  [data-cdl-role="node-body"]
-  > path {
-  stroke: #2b2620 !important;
-  stroke-width: 2.5 !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="neon"]
-  [data-cdl-kind="decision"]:not([data-cdl-active="true"])
-  [data-cdl-role="node-body"]
-  > path {
-  stroke: #00e5ff !important;
-  stroke-width: 3 !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette="relief"]
-  [data-cdl-kind="decision"]:not([data-cdl-active="true"])
-  [data-cdl-role="node-body"]
-  > path {
-  stroke: none !important;
-  stroke-width: 0 !important;
-}
-
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-kind="decision"]
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-kind="decision"]
   [data-cdl-role="node-label"] {
-  font-size: 26px !important;
-  font-weight: 700 !important;
+  font-size: var(--dragon-flow-decision-font-size) !important;
+  font-weight: var(--dragon-flow-decision-font-weight) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-edge-label-for]:is([data-cdl-tone="success"], [data-cdl-tone="error"])
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-edge-label-for]:is([data-cdl-tone="success"], [data-cdl-tone="error"])
   > [data-cdl-role="edge-label-bg"] {
-  stroke-width: var(--theme-flow-label-frame-width) !important;
-  rx: var(--theme-flow-label-radius) !important;
-  ry: var(--theme-flow-label-radius) !important;
+  stroke-width: var(--dragon-flow-label-frame-width) !important;
+  rx: var(--dragon-flow-label-radius) !important;
+  ry: var(--dragon-flow-label-radius) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-edge-label-for][data-cdl-tone="success"]
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-edge-label-for][data-cdl-tone="success"]
   > [data-cdl-role="edge-label-bg"] {
-  fill: var(--theme-flow-label-success-fill) !important;
-  stroke: var(--theme-flow-label-success-frame) !important;
+  fill: var(--dragon-flow-label-success-fill) !important;
+  stroke: var(--dragon-flow-label-success-frame) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-edge-label-for][data-cdl-tone="error"]
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-edge-label-for][data-cdl-tone="error"]
   > [data-cdl-role="edge-label-bg"] {
-  fill: var(--theme-flow-label-error-fill) !important;
-  stroke: var(--theme-flow-label-error-frame) !important;
+  fill: var(--dragon-flow-label-error-fill) !important;
+  stroke: var(--dragon-flow-label-error-frame) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-edge-label-for][data-cdl-tone="success"]
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-edge-label-for][data-cdl-tone="success"]
   > [data-cdl-role="edge-label"] {
-  fill: var(--theme-flow-label-success-text) !important;
-  font-weight: 700 !important;
+  fill: var(--dragon-flow-label-success-text) !important;
+  font-weight: var(--dragon-flow-decision-font-weight) !important;
 }
 
-svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-edge-label-for][data-cdl-tone="error"]
+svg[data-cdl-stage][data-cdl-type="flowchart"][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-edge-label-for][data-cdl-tone="error"]
   > [data-cdl-role="edge-label"] {
-  fill: var(--theme-flow-label-error-text) !important;
-  font-weight: 700 !important;
-}
-
-/* 時間軸の線の札は、固定 7 意匠の見本が持つ 2 色を success / error の口として渡す。
-   palette 名を列挙するのは生成りと青磁の札を従来値のまま保ち、他の図種へ値を流さないため。 */
-svg[data-cdl-stage][data-cdl-palette="blueprint"]:has([data-cdl-role="timeline-axis"]) {
-  --theme-timeline-label-success-fill: var(--er-link);
-  --theme-timeline-label-error-fill: var(--er-own);
-  /* 見本 #e3e9ea は #1f7a6b 上で 4.22:1。白側へ最小限寄せた #ebf0f0 は 4.50:1。 */
-  --theme-timeline-label-success-text: #ebf0f0;
-  --theme-timeline-label-error-text: #e3e9ea;
-  --theme-timeline-label-success-frame: none;
-  --theme-timeline-label-error-frame: none;
-  --theme-timeline-label-radius: 9px;
-  --theme-timeline-label-frame-width: 0;
-  --theme-timeline-label-height: 40px;
-  --theme-timeline-label-font-size: 21px;
-  --theme-timeline-label-font-weight: 700;
-  --theme-timeline-yes-width: 6px;
-  --theme-timeline-no-width: 5px;
-  --theme-timeline-return-width: 6px;
-  --theme-timeline-arrow-scale-x: 1.2142857143;
-  --theme-timeline-arrow-scale-y: 1.3571428571;
-  --theme-timeline-small-arrow-scale-x: 1.7;
-  --theme-timeline-small-arrow-scale-y: 1.9;
-}
-
-svg[data-cdl-stage][data-cdl-palette="letterpress"]:has([data-cdl-role="timeline-axis"]) {
-  --theme-timeline-label-success-fill: var(--er-link);
-  --theme-timeline-label-error-fill: var(--er-own);
-  --theme-timeline-label-success-text: #f0eadc;
-  --theme-timeline-label-error-text: #f0eadc;
-  --theme-timeline-label-success-frame: none;
-  --theme-timeline-label-error-frame: none;
-  --theme-timeline-label-radius: 9px;
-  --theme-timeline-label-frame-width: 0;
-  --theme-timeline-label-height: 40px;
-  --theme-timeline-label-font-size: 21px;
-  --theme-timeline-label-font-weight: 700;
-  --theme-timeline-yes-width: 6px;
-  --theme-timeline-no-width: 5px;
-  --theme-timeline-return-width: 6px;
-  --theme-timeline-arrow-scale-x: 1.2142857143;
-  --theme-timeline-arrow-scale-y: 1.3571428571;
-  --theme-timeline-small-arrow-scale-x: 1.7;
-  --theme-timeline-small-arrow-scale-y: 1.9;
-}
-
-svg[data-cdl-stage][data-cdl-palette="catalog"]:has([data-cdl-role="timeline-axis"]) {
-  --theme-timeline-label-success-fill: var(--er-link);
-  --theme-timeline-label-error-fill: var(--er-own);
-  --theme-timeline-label-success-text: #1b222c;
-  --theme-timeline-label-error-text: #1b222c;
-  --theme-timeline-label-success-frame: none;
-  --theme-timeline-label-error-frame: none;
-  --theme-timeline-label-radius: 9px;
-  --theme-timeline-label-frame-width: 0;
-  --theme-timeline-label-height: 40px;
-  --theme-timeline-label-font-size: 21px;
-  --theme-timeline-label-font-weight: 700;
-  --theme-timeline-yes-width: 6px;
-  --theme-timeline-no-width: 5px;
-  --theme-timeline-return-width: 6px;
-  --theme-timeline-arrow-scale-x: 1.2142857143;
-  --theme-timeline-arrow-scale-y: 1.3571428571;
-  --theme-timeline-small-arrow-scale-x: 1.7;
-  --theme-timeline-small-arrow-scale-y: 1.9;
-}
-
-svg[data-cdl-stage][data-cdl-palette="terminal"]:has([data-cdl-role="timeline-axis"]) {
-  --theme-timeline-label-success-fill: var(--er-link);
-  --theme-timeline-label-error-fill: var(--er-own);
-  --theme-timeline-label-success-text: #03110a;
-  --theme-timeline-label-error-text: #03110a;
-  --theme-timeline-label-success-frame: none;
-  --theme-timeline-label-error-frame: none;
-  --theme-timeline-label-radius: 4px;
-  --theme-timeline-label-frame-width: 0;
-  --theme-timeline-label-height: 40px;
-  --theme-timeline-label-font-size: 21px;
-  --theme-timeline-label-font-weight: 700;
-  --theme-timeline-yes-width: 6px;
-  --theme-timeline-no-width: 5px;
-  --theme-timeline-return-width: 6px;
-  --theme-timeline-arrow-scale-x: 1.2142857143;
-  --theme-timeline-arrow-scale-y: 1.3571428571;
-  --theme-timeline-small-arrow-scale-x: 1.7;
-  --theme-timeline-small-arrow-scale-y: 1.9;
-}
-
-svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-role="timeline-axis"]) {
-  --theme-timeline-label-success-fill: var(--er-link);
-  --theme-timeline-label-error-fill: var(--er-own);
-  --theme-timeline-label-success-text: #fffdf7;
-  --theme-timeline-label-error-text: #fffdf7;
-  --theme-timeline-label-success-frame: none;
-  --theme-timeline-label-error-frame: none;
-  --theme-timeline-label-radius: 9px;
-  --theme-timeline-label-frame-width: 0;
-  --theme-timeline-label-height: 40px;
-  --theme-timeline-label-font-size: 21px;
-  --theme-timeline-label-font-weight: 700;
-  --theme-timeline-yes-width: 6px;
-  --theme-timeline-no-width: 5px;
-  --theme-timeline-return-width: 6px;
-  --theme-timeline-arrow-scale-x: 1.2142857143;
-  --theme-timeline-arrow-scale-y: 1.3571428571;
-  --theme-timeline-small-arrow-scale-x: 1.7;
-  --theme-timeline-small-arrow-scale-y: 1.9;
-}
-
-svg[data-cdl-stage][data-cdl-palette="neon"]:has([data-cdl-role="timeline-axis"]) {
-  --theme-timeline-label-success-fill: var(--er-ground);
-  --theme-timeline-label-error-fill: var(--er-ground);
-  --theme-timeline-label-success-text: var(--er-link);
-  --theme-timeline-label-error-text: var(--er-own);
-  --theme-timeline-label-success-frame: var(--er-link);
-  --theme-timeline-label-error-frame: var(--er-own);
-  --theme-timeline-label-radius: 9px;
-  --theme-timeline-label-frame-width: 2.5px;
-  --theme-timeline-label-height: 40px;
-  --theme-timeline-label-font-size: 21px;
-  --theme-timeline-label-font-weight: 700;
-  --theme-timeline-yes-width: 6px;
-  --theme-timeline-no-width: 5px;
-  --theme-timeline-return-width: 6px;
-  --theme-timeline-arrow-scale-x: 1.2142857143;
-  --theme-timeline-arrow-scale-y: 1.3571428571;
-  --theme-timeline-small-arrow-scale-x: 1.7;
-  --theme-timeline-small-arrow-scale-y: 1.9;
+  fill: var(--dragon-flow-label-error-text) !important;
+  font-weight: var(--dragon-flow-decision-font-weight) !important;
 }
 
 svg[data-cdl-stage][data-cdl-palette="relief"]:has([data-cdl-role="timeline-axis"]) {
   /* 全図用の三 #966c22 は白字との対比用。時間軸は見本の線と面 #c99a35 を同じ口から使う。 */
-  --er-own: #c99a35;
-  --theme-timeline-label-success-fill: var(--er-link);
-  --theme-timeline-label-error-fill: var(--er-own);
-  --theme-timeline-label-success-text: #ffffff;
-  /* 見本 #ffffff は #c99a35 上で 2.57:1。黒側へ最小限寄せた #383838 は 4.55:1。 */
-  --theme-timeline-label-error-text: #383838;
-  --theme-timeline-label-success-frame: none;
-  --theme-timeline-label-error-frame: none;
-  --theme-timeline-label-radius: 20px;
-  --theme-timeline-label-frame-width: 0;
-  --theme-timeline-label-height: 40px;
-  --theme-timeline-label-font-size: 21px;
-  --theme-timeline-label-font-weight: 700;
-  --theme-timeline-yes-width: 6px;
-  --theme-timeline-no-width: 5px;
-  --theme-timeline-return-width: 6px;
-  --theme-timeline-arrow-scale-x: 1.2142857143;
-  --theme-timeline-arrow-scale-y: 1.3571428571;
-  --theme-timeline-small-arrow-scale-x: 1.7;
-  --theme-timeline-small-arrow-scale-y: 1.9;
+  --er-own: var(--dragon-flow-return-legend);
 }
 
 /*
@@ -4623,13 +4698,6 @@ svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="chart-bar"]:not([
    **拾い方は描く側が描く `r` に結び付いている**。 描く側が芯を 11 から 12 に上げた
    (`@cardenelabs/cdl` 0.121.0) ので、`circle[r="11"]` では 1 件も当たらず、色も縁も影も
    外れて線と同じ色の丸に戻る。 版を上げる時はこの数字を必ず合わせる。 */
-svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"] {
-  fill: var(--er-line) !important;
-  stroke: var(--er-ground) !important;
-  stroke-width: 3.5px;
-  filter: drop-shadow(0 0 6px var(--er-line));
-}
-
 /* 外の 2 枚を、半径の伸びる輪にする。 伸びるほど細くなるので、外へ消えていく波になる。
    2 枚は半周ずらして、波が途切れずに続くようにする。
 
@@ -4644,20 +4712,6 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"]
    | 20 と 14 の塗った円 + 下敷き 16 (#2537) | 0% | 3.6% |
 
    塗った円を輪に替えるので、同じ半径でも覆う面は狭くなる。 */
-svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="28"] {
-  fill: none !important;
-  stroke: var(--er-line) !important;
-  filter: blur(1.2px);
-  animation: running-dot-wave-outer 1.4s linear infinite;
-}
-
-svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"] {
-  fill: none !important;
-  stroke: var(--er-line) !important;
-  filter: blur(0.6px);
-  animation: running-dot-wave-inner 1.4s linear infinite -0.7s;
-}
-
 /* 線の両端に付く数に、紙の色の下敷きを敷く。
    描く側は `--cdl-label-bg` (縞の色) の 4 幅で縁取っているが、この数が乗っているのは
    箱と箱の間の **台** で、縞ではない。 4 幅では差が出ないので見えていなかった。
@@ -4672,6 +4726,13 @@ svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"]
 svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-end-label"] {
   stroke: var(--er-ground) !important;
   stroke-width: 8 !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="edge-end-label"] {
+  stroke: var(--dragon-running-dot-label-backdrop) !important;
+  stroke-width: var(--dragon-running-dot-label-backdrop-width) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

@@ -80,6 +80,50 @@ const fixedThemeRoles = [
   "--dragon-theme-timeline-number-line-effect",
   "--dragon-theme-box-text-effect",
   "--dragon-theme-tag-effect",
+  "--dragon-flow-main",
+  "--dragon-flow-mark",
+  "--dragon-flow-return-legend",
+  "--dragon-flow-lane-divider-dash",
+  "--dragon-flow-edge-width",
+  "--dragon-flow-return-width",
+  "--dragon-flow-return-dash",
+  "--dragon-flow-return-cap",
+  "--dragon-flow-end-radius",
+  "--dragon-flow-end-frame-width",
+  "--dragon-flow-end-core-radius",
+  "--dragon-flow-decision-fill",
+  "--dragon-flow-decision-frame",
+  "--dragon-flow-decision-frame-width",
+  "--dragon-flow-decision-font-size",
+  "--dragon-flow-decision-font-weight",
+  "--dragon-flow-label-success-fill",
+  "--dragon-flow-label-error-fill",
+  "--dragon-flow-label-success-text",
+  "--dragon-flow-label-error-text",
+  "--dragon-flow-label-success-frame",
+  "--dragon-flow-label-error-frame",
+  "--dragon-flow-label-radius",
+  "--dragon-flow-label-frame-width",
+  "--dragon-running-dot-label-backdrop",
+  "--dragon-running-dot-label-backdrop-width",
+  "--theme-timeline-label-success-fill",
+  "--theme-timeline-label-error-fill",
+  "--theme-timeline-label-success-text",
+  "--theme-timeline-label-error-text",
+  "--theme-timeline-label-success-frame",
+  "--theme-timeline-label-error-frame",
+  "--theme-timeline-label-radius",
+  "--theme-timeline-label-frame-width",
+  "--theme-timeline-label-height",
+  "--theme-timeline-label-font-size",
+  "--theme-timeline-label-font-weight",
+  "--theme-timeline-yes-width",
+  "--theme-timeline-no-width",
+  "--theme-timeline-return-width",
+  "--theme-timeline-arrow-scale-x",
+  "--theme-timeline-arrow-scale-y",
+  "--theme-timeline-small-arrow-scale-x",
+  "--theme-timeline-small-arrow-scale-y",
 ] as const;
 
 // 生成りと青磁は共通部品の規則から外す色だけの意匠なので、現在の変数の塊が宣言する役だけを契約にする。
@@ -119,6 +163,50 @@ function declarations(body: string): Map<string, string> {
 
 function normalized(value: string): string {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function sectionAfter(heading: string): string {
+  const headingAt = css.indexOf(heading);
+  if (headingAt < 0) throw new Error(`節の見出しが無い: ${heading}`);
+  const bodyAt = css.indexOf("*/", headingAt) + 2;
+  const endAt = css.indexOf("/* ─────────────────", bodyAt);
+  return css.slice(bodyAt, endAt < 0 ? css.length : endAt);
+}
+
+function exactRule(source: string): { selector: string; body: string } {
+  const rules = flatRules(source);
+  expect(rules).toHaveLength(1);
+  return { selector: normalized(rules[0]!.selector), body: normalized(rules[0]!.body) };
+}
+
+function directStyleValues(source: string): string[] {
+  const fixedThemeName = new RegExp(`\\[data-cdl-palette="(?:${fixedThemes.join("|")})"\\]`);
+  const colorProperty = /^(?:fill|stroke|color|background(?:-color)?|border(?:-[a-z]+)?-color|outline-color|text-decoration-color)$/i;
+  const colorRole = /(?:^|-)(?:fill|stroke|color|ink|ground|face|frame|text|mark|main|link|own|accent|backdrop)$/i;
+  const widthOrCornerProperty = /(?:^|-)(?:width|radius|rx|ry|r)$/i;
+  const colorFunctionOrHex = /(?:#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix)\()/i;
+  const direct: string[] = [];
+
+  for (const rule of flatRules(source)) {
+    if (!fixedThemeName.test(rule.selector)) continue;
+    for (const match of withoutComments(rule.body).matchAll(/(^|;)\s*([a-z-]+)\s*:\s*([^;]+)/gi)) {
+      const property = match[2]!.trim();
+      const value = match[3]!.replace(/\s*!important\s*$/i, "").trim();
+      const isDirectColor = !/\bvar\(/i.test(value) &&
+        (colorFunctionOrHex.test(value) ||
+          ((colorProperty.test(property) || colorRole.test(property)) &&
+            /^[a-z]+$/i.test(value) &&
+            !/^(?:none|transparent|currentcolor|inherit|initial|unset|revert)$/i.test(value)));
+      const isDirectWidthOrCorner = widthOrCornerProperty.test(property) &&
+        !/\bvar\(/i.test(value) &&
+        /(?:^|\s)-?(?:\d*\.)?\d+(?:[a-z%]+)?(?:\s|$)/i.test(value);
+      const isDirectShadow = /(?:url\(#|drop-shadow\()/i.test(value);
+      if (isDirectColor || isDirectWidthOrCorner || isDirectShadow) {
+        direct.push(`${normalized(rule.selector)} { ${property}: ${value} }`);
+      }
+    }
+  }
+  return direct;
 }
 
 function tableDeclarations(theme: typeof themes[number]): Map<string, string> {
@@ -232,10 +320,12 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
 
   it("共通規則が読む役は対象 7 意匠の全表に在り、不足は 0 件", () => {
     const readers = [...flatRules(css), ...flatRules(motionCss)].filter(({ selector, body }) =>
-      selector.includes("[data-cdl-palette]:not(") && /var\(--dragon-theme-[a-z0-9-]+/i.test(body));
+      selector.includes("[data-cdl-palette]:not(") &&
+      /var\(--dragon-(?:theme|flow|running-dot)-[a-z0-9-]+/i.test(body));
     const roles = new Set(
       readers.flatMap(({ body }) =>
-        [...body.matchAll(/var\((--dragon-theme-[a-z0-9-]+)/gi)].map((match) => match[1]!)),
+        [...body.matchAll(/var\((--dragon-(?:theme|flow|running-dot)-[a-z0-9-]+)/gi)]
+          .map((match) => match[1]!)),
     );
     const missing: string[] = [];
     for (const rule of readers) {
@@ -254,6 +344,14 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(readers.length).toBeGreaterThan(0);
     expect(roles.size).toBeGreaterThan(0);
     expect(missing).toEqual([]);
+  });
+
+  it("走る丸の字の下敷きは 7 意匠とも台の色・幅 8 を表に持つ", () => {
+    for (const theme of fixedThemes) {
+      const table = tableDeclarations(theme);
+      expect(table.get("--dragon-running-dot-label-backdrop"), theme).toBe("var(--er-ground)");
+      expect(table.get("--dragon-running-dot-label-backdrop-width"), theme).toBe("8");
+    }
   });
 
   it("共通規則は外す 3 配色を除き意匠名を 0 件持つ", () => {
@@ -278,20 +376,80 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     expect(parseCssRules(css.slice(bodyStart, end), "diagram-only-section").rules).toHaveLength(0);
   });
 
-  it("持ち越し 3 件を含み、消す・動かす・半径で選ぶ規則は基準 41 件を超えない", () => {
+  it("持ち越し 7 件を同じ選択子と宣言で持ち、危険な規則は基準 41 件を超えない", () => {
     const carryoverMarkers = css.match(/\/\* 持ち越しの目印:/g) ?? [];
-    expect(carryoverMarkers).toHaveLength(3);
-    expect(css).toMatch(/\[data-cdl-role="edge-arrowhead"\]:is\([\s\S]*?transform:\s*scale\(2\)/);
-    expect(css).toMatch(/\[data-cdl-role="edge-arrowhead"\]\[data-cdl-edge-head="crow"\][\s\S]*?transform:\s*scale\(2\)/);
-    expect(css).toMatch(/\[data-cdl-role="edge-glow"\]\s*\{\s*display:\s*none\s*!important/);
+    expect(carryoverMarkers).toHaveLength(7);
+
+    const actual = flatRules(css).map((rule) => ({
+      selector: normalized(rule.selector),
+      body: normalized(rule.body),
+    }));
+    const expected = [
+      `[data-cdl-role="edge-arrowhead"]:is(
+        [data-cdl-edge-head="triangle"],
+        [data-cdl-edge-head="diamond"],
+        [data-cdl-edge-head="open"],
+        :not([data-cdl-edge-head])
+      ) { transform: scale(2); transform-origin: 9px 5px; }`,
+      `[data-cdl-role="edge-arrowhead"][data-cdl-edge-head="crow"] {
+        transform: scale(2); transform-origin: 10px 5px;
+      }`,
+      `[data-cdl-role="edge-glow"] { display: none !important; }`,
+      `svg[data-cdl-stage][data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]) [data-cdl-role="edge-arrowhead"]:is([data-cdl-edge-head="triangle"], :not([data-cdl-edge-head])) {
+        transform: scale(1.2142857143, 1.3571428571); transform-origin: 9px 5px;
+      }`,
+      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="12"] {
+        fill: var(--er-line) !important; stroke: var(--er-ground) !important;
+        stroke-width: 3.5px; filter: drop-shadow(0 0 6px var(--er-line));
+      }`,
+      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="28"] {
+        fill: none !important; stroke: var(--er-line) !important; filter: blur(1.2px);
+        animation: running-dot-wave-outer 1.4s linear infinite;
+      }`,
+      `svg[data-cdl-stage][data-cdl-palette] [data-cdl-role="edge-flow"] circle[r="18"] {
+        fill: none !important; stroke: var(--er-line) !important; filter: blur(0.6px);
+        animation: running-dot-wave-inner 1.4s linear infinite -0.7s;
+      }`,
+    ].map(exactRule);
+    for (const rule of expected) expect(actual).toContainEqual(rule);
 
     // 注釈を除いた全ての宣言 block を 1 規則とする。keyframes の from/to も各 1 規則に含め、
     // display:none、transform、translate の宣言か、r/rx/ry 属性値で選ぶ選択子を持つ和集合を数える。
     const risky = flatRules(css).filter(({ selector, body }) =>
       /(?:^|;)\s*(?:display\s*:\s*none|transform\s*:|translate\s*:)/m.test(body) ||
       /\[(?:r|rx|ry)\s*[*^$|~]?=/i.test(selector));
-    expect(risky.length).toBeGreaterThanOrEqual(3);
+    expect(risky.length).toBeGreaterThanOrEqual(7);
     expect(risky.length).toBeLessThanOrEqual(41);
+  });
+
+  it("流れ図と走る丸の意匠名付き規則に直書きの色・太さ・角・影は 0 件", () => {
+    const flow = sectionAfter(" * 役を持つ意匠の流れ図。");
+    const runningDot = sectionAfter(" * 線の上を走る丸 (#2537 / #2770)");
+    const direct = [...directStyleValues(flow), ...directStyleValues(runningDot)];
+    console.log(`#2875 の 2 節に残る直書きの色・太さ・角・影: ${direct.length} 件`);
+    expect(direct).toEqual([]);
+  });
+
+  it("持ち越し 4 件を移しても競合規則との前後関係は変わらない", () => {
+    const rules = flatRules(css);
+    const flowTransform = rules.findIndex(({ selector }) =>
+      selector.includes('[data-cdl-type="flowchart"]:is([data-cdl-palette="blueprint"]'));
+    const globalTransform = rules.findIndex(({ selector }) =>
+      normalized(selector).startsWith('[data-cdl-role="edge-arrowhead"]:is('));
+    const stageTransform = rules.findIndex(({ selector }) => selector.includes('[data-cdl-role="stage-column"]'));
+    const timelineTransform = rules.findIndex(({ selector }) =>
+      selector.includes('[data-cdl-role="timeline-axis"]') && selector.includes("marker:not("));
+    const radiusRules = rules.filter(({ selector }) =>
+      /\[data-cdl-role="edge-flow"\] circle\[r="(?:12|18|28)"\]/.test(selector));
+
+    // 移動前も、全図の scale(2) より後、舞台・時間軸の上書きより前だった。
+    expect(globalTransform).toBeGreaterThanOrEqual(0);
+    expect(flowTransform).toBeGreaterThan(globalTransform);
+    expect(stageTransform).toBeGreaterThan(flowTransform);
+    expect(timelineTransform).toBeGreaterThan(flowTransform);
+    // 半径で選ぶ円には同じ半径を選ぶ競合規則が無い。
+    expect(radiusRules.map(({ selector }) => selector.match(/circle\[r="(\d+)"\]/)?.[1]).sort())
+      .toEqual(["12", "18", "28"]);
   });
 
   it("表の filter ID は全て定義済みで、元から無い ID は 0 件", () => {
