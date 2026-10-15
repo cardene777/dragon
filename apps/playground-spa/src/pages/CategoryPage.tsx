@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { CdlDiagramView, layout } from "@cardenelabs/cdl";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, Maximize2, Search, X } from "lucide-react";
 import { CATEGORIES, categoryLabel, categoryDesc } from "@/lib/catalog";
+import { useCatalogSkeleton } from "@/lib/catalog-skeleton";
+import { CatalogSkeletonParts } from "@/components/CatalogSkeletonParts";
 import {
   loadPartsItems,
   選んだ見本,
@@ -97,6 +99,9 @@ type SourceTab = "yaml" | "json";
 
 /** プレビューの表示切替 (図 / コード) */
 type PreviewTab = "diagram" | "source";
+
+/** 図の台で見比べる内容。 */
+type 図の見せ方 = "design" | "skeleton" | "side-by-side";
 
 /** copy-to-clipboard button (2 秒間 チェック表示) */
 function CopyButton({ text }: { text: string }): React.ReactElement {
@@ -269,11 +274,15 @@ export function CategoryPage(): React.ReactElement {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewTab, setPreviewTab] = useState<PreviewTab>("diagram");
+  const [図の見せ方, set図の見せ方] = useState<図の見せ方>("design");
   // 見せ方 7 つ (速さ / 描き方 / 配色 / 折れ線 / 円 / 傾き / パターン) は
   // 見ている項目が決まってから持つ (下の `見せ方の状態`、#2022)
   // シーンの表示は engine が入れ物へ書く属性を読むため、要素そのものが要る (#1239)
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
+  const [skeletonStageEl, setSkeletonStageEl] = useState<HTMLElement | null>(null);
   const [modalStageEl, setModalStageEl] = useState<HTMLElement | null>(null);
+  useCatalogSkeleton(stageEl, 図の見せ方 === "skeleton");
+  useCatalogSkeleton(skeletonStageEl, 図の見せ方 === "side-by-side");
 
   const displayName = (item: CatalogItem): string => itemName(item.title, locale);
 
@@ -720,6 +729,9 @@ export function CategoryPage(): React.ReactElement {
                   {/*
                     パターンは図とコードの中身を一緒に入れ替えるため、表示を選ぶタブと同じ列に置く
                     (#2867)。 他の見せ方と混ぜると、押した時に中身まで替わる操作を見分けられない。
+
+                    「見せ方」は図の何を見せるかの切替なので、図を選んでいる間だけこの列に置く。
+                    選択肢の帯から外すことで、帯を 2 行に収める約束にも含めない。
                   */}
                   {パターンの並び.length > 0 && (
                     <div className="catalog-pattern-controls">
@@ -742,6 +754,37 @@ export function CategoryPage(): React.ReactElement {
                           ))}
                         </select>
                       </span>
+                    </div>
+                  )}
+                  {!showSource && (
+                    <div className="catalog-view-switch">
+                      <span className="catalog-view-label" aria-hidden="true">
+                        {isJa ? "見せ方" : "View"}
+                      </span>
+                      <div
+                        className="catalog-view-options"
+                        role="radiogroup"
+                        aria-label={isJa ? "図の見せ方" : "Diagram view"}
+                      >
+                        {(
+                          [
+                            ["design", isJa ? "意匠" : "Design"],
+                            ["skeleton", isJa ? "骨組み" : "Skeleton"],
+                            ["side-by-side", isJa ? "並べる" : "Side by side"],
+                          ] as const
+                        ).map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={図の見せ方 === value}
+                            className={`catalog-view-button ${図の見せ方 === value ? "is-active" : ""}`}
+                            onClick={() => set図の見せ方(value)}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -950,53 +993,89 @@ export function CategoryPage(): React.ReactElement {
                   )}
                 </div>
                 <div
-                  className="catalog-preview-stage"
+                  className={`catalog-preview-diagram-row ${図の見せ方 === "side-by-side" ? "is-side-by-side" : ""}`}
                   hidden={showSource}
-                  ref={setStageEl}
-                  data-cdl-zoom={並びで指定した幅 === undefined ? undefined : "on"}
-                  data-cdl-pannable={並びの操作.動かせる ? "" : undefined}
-                  data-cdl-panning={並びの操作.移動中 ? "" : undefined}
-                  style={
-                    並びで指定した幅 === undefined
-                      ? undefined
-                      : ({ "--cdl-zoom-width": `${並びで指定した幅}px` } as React.CSSProperties)
-                  }
                 >
-                  {/*
-                    `keepMounted` を渡す (#1236)。 渡さないと `hidden` にした瞬間に box が消えて
-                    「見えない」 と判定され、図が外れる = 上のコメントが言う「どちらも DOM に残す」
-                    が破れて、切り替えるたびに描き直しになる。
-                  */}
-                  <InViewMount
-                    keepMounted
-                    className="catalog-preview-stage-inner"
-                    placeholder={<div className="catalog-preview-loading">{isJa ? "読み込み中…" : "Loading…"}</div>}
+                  {図の見せ方 === "side-by-side" && (
+                    <div className="catalog-preview-stage" hidden={showSource} ref={setSkeletonStageEl}>
+                      <InViewMount
+                        keepMounted
+                        className="catalog-preview-stage-inner"
+                        placeholder={
+                          <div className="catalog-preview-loading">
+                            {isJa ? "読み込み中…" : "Loading…"}
+                          </div>
+                        }
+                      >
+                        {createElement(CdlDiagramView, {
+                          key: "skeleton::" + currentItem.id + "::" + (パターン ?? ""),
+                          hideMiniPhaseIndicator: true,
+                          diagram: 図 ?? 見本?.diagram ?? currentItem.diagram,
+                          hideHeader: true,
+                          interactiveHandlers: CATALOG_HANDLERS,
+                        })}
+                      </InViewMount>
+                    </div>
+                  )}
+                  <div
+                    className="catalog-preview-stage"
+                    hidden={showSource}
+                    ref={setStageEl}
+                    data-cdl-zoom={並びで指定した幅 === undefined ? undefined : "on"}
+                    data-cdl-pannable={並びの操作.動かせる ? "" : undefined}
+                    data-cdl-panning={並びの操作.移動中 ? "" : undefined}
+                    style={
+                      並びで指定した幅 === undefined
+                        ? undefined
+                        : ({ "--cdl-zoom-width": `${並びで指定した幅}px` } as React.CSSProperties)
+                    }
                   >
                     {/*
-                      項目とパターンの組が変わった時だけ作り直す (#1969)。 描画側の入力の部品は既定値
-                      (時間の速さの番号など) を作った時にしか読まないので、使い回すと前の図の値が残る。
-                      速さや配色の切替では作り直さない = 動いている段を巻き戻さない
+                      `keepMounted` を渡す (#1236)。 渡さないと `hidden` にした瞬間に box が消えて
+                      「見えない」 と判定され、図が外れる = 上のコメントが言う「どちらも DOM に残す」
+                      が破れて、切り替えるたびに描き直しになる。
                     */}
-                    <CdlDiagramView
-                      key={currentItem.id + "::" + (パターン ?? "")}
-                      hideMiniPhaseIndicator
-                      diagram={図 ?? 見本?.diagram ?? currentItem.diagram}
-                      hideHeader
-                      interactiveHandlers={CATALOG_HANDLERS}
+                    <InViewMount
+                      keepMounted
+                      className="catalog-preview-stage-inner"
+                      placeholder={
+                        <div className="catalog-preview-loading">
+                          {isJa ? "読み込み中…" : "Loading…"}
+                        </div>
+                      }
+                    >
+                      {/*
+                        項目とパターンの組が変わった時だけ作り直す (#1969)。 並べる時だけは左右を
+                        同時に描き始めるため、右の図も `pair` の鍵で作り直す。
+                      */}
+                      <CdlDiagramView
+                        key={(図の見せ方 === "side-by-side" ? "pair" : "single") + "::" + currentItem.id + "::" + (パターン ?? "")}
+                        hideMiniPhaseIndicator
+                        diagram={図 ?? 見本?.diagram ?? currentItem.diagram}
+                        hideHeader
+                        interactiveHandlers={CATALOG_HANDLERS}
+                      />
+                    </InViewMount>
+                    {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
+                    <PhaseChrome
+                      stage={stageEl}
+                      phases={(図 ?? 見本?.diagram ?? currentItem.diagram).phases}
+                      align="right"
                     />
-                  </InViewMount>
-                  {/* 設計 (`03 カタログの分類`) は札を右上に描いている (#1239) */}
-                  <PhaseChrome
-                    stage={stageEl}
-                    phases={(図 ?? 見本?.diagram ?? currentItem.diagram).phases}
-                    align="right"
-                  />
+                  </div>
                 </div>
                 {/* 段の説明は枠の外に置く (#2609)。 中に入れると図の描画領域を削る */}
                 {!showSource && (
                   <PhaseNote
                     stage={stageEl}
                     phases={(図 ?? 見本?.diagram ?? currentItem.diagram).phases}
+                  />
+                )}
+                {!showSource && 図の見せ方 !== "design" && (
+                  <CatalogSkeletonParts
+                    skeletonStage={図の見せ方 === "side-by-side" ? skeletonStageEl : stageEl}
+                    designStage={stageEl}
+                    refreshKey={currentItem.id + "::" + (パターン ?? "") + "::" + 押されている配色}
                   />
                 )}
                 <SourceTabs item={見本 ?? currentItem} hidden={!showSource} 速さ={速さ} 描き方={描き方} />
