@@ -78,6 +78,8 @@ const TEXT_BACKGROUNDS = ["ground", "face", "stripe"] as const;
 const CARD_TEXT_BACKGROUNDS = ["face", "stripe"] as const;
 const FIXED_TIMELINE_STAGE_SELECTOR = 'svg[data-cdl-stage][data-cdl-palette]:not( :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"]) ):has([data-cdl-role="timeline-axis"])';
 const CARRYOVER_TIMELINE_STAGE_SELECTOR = 'svg[data-cdl-stage]:is([data-cdl-palette="blueprint"], [data-cdl-palette="letterpress"], [data-cdl-palette="catalog"], [data-cdl-palette="terminal"], [data-cdl-palette="sketch"], [data-cdl-palette="neon"], [data-cdl-palette="relief"]):has([data-cdl-role="timeline-axis"])';
+const FIXED_GANTT_SELECTOR = 'svg[data-cdl-stage][data-cdl-palette]:not( :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"]) ) [data-cdl-role="gantt-bar"]';
+const FIXED_FUNNEL_SELECTOR = 'svg[data-cdl-stage][data-cdl-palette]:not( :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"]) ) [data-cdl-role="funnel-stage"]';
 const LABEL_TONES = {
   accent: { note: "one", role: "line" },
   info: { note: "one", role: "line" },
@@ -349,17 +351,10 @@ function resolvedCssPaint(declarations: Map<string, string>, body: string, prope
   return resolveCssColor(declarations, cssVariableName(value));
 }
 
-function cssGanttOverrides(cssText: string, themeName: string): Map<number, string> {
-  const selector = `svg[data-cdl-stage][data-cdl-palette="${themeName}"] [data-cdl-role="gantt-bar"]`;
-  const overrides = new Map<number, string>();
-  for (const body of cssRuleBodies(cssText, selector)) {
-    for (const declaration of body.matchAll(/--cdl-chart-([1-6])\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) {
-      const series = Number(declaration[1]);
-      if (overrides.has(series)) throw new Error(`${themeName} の日程の帯の系列 ${series} が複数ある`);
-      overrides.set(series, declaration[2]!.toLowerCase());
-    }
-  }
-  return overrides;
+function cssGanttSeries(cssText: string, themeName: string): string[] {
+  const declarations = cssFixedThemeDeclarations(cssText, themeName);
+  return Array.from({ length: 6 }, (_, index) =>
+    resolveCssColor(declarations, `dragon-gantt-series-${index + 1}`));
 }
 
 function compareGanttCss(
@@ -367,29 +362,27 @@ function compareGanttCss(
   expected: Map<DslTheme, ThemeToneSeries>,
 ): string[] {
   const failures: string[] = [];
+  const charts = readFixedThemeChartSeries();
   for (const [name, style] of expected) {
-    const actualOverrides = cssGanttOverrides(cssText, name);
+    const chart = charts.get(name);
+    if (!chart) throw new Error(`${name} の図表の系列色を意匠帳から読めない`);
+    const actualColors = cssGanttSeries(cssText, name);
+    const expectedColors = themeGanttSeriesColors(chart, style);
     for (let series = 1; series <= 6; series += 1) {
-      const actual = actualOverrides.get(series);
-      const want = style.ganttOverrides.get(series);
+      const actual = actualColors[series - 1];
+      const want = expectedColors[series - 1];
       if (actual !== want) {
-        failures.push(`${name} 日程の帯 ${series}: 意匠帳 ${want ?? "上書きなし"} / CSS ${actual ?? "上書きなし"}`);
+        failures.push(`${name} 日程の帯 ${series}: 意匠帳 ${want} / CSS ${actual}`);
       }
     }
 
-    const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
-    const owner = cssRuleBody(cssText, `${stage} [data-cdl-role="gantt-owner"]`, "fill");
-    const actualOwner = resolvedCssPaint(cssFixedThemeDeclarations(cssText, name), owner, "fill");
+    const declarations = cssFixedThemeDeclarations(cssText, name);
+    const actualOwner = resolveCssColor(declarations, "dragon-gantt-owner-text");
     if (actualOwner !== style.ganttOwnerColor) {
       failures.push(`${name} 担当の字: 意匠帳 ${style.ganttOwnerColor} / CSS ${actualOwner}`);
     }
     if (style.ganttSecondaryOwnerColor !== undefined) {
-      const secondary = cssRuleBody(
-        cssText,
-        `${stage} g:has(> [data-cdl-role="gantt-bar"]:not([data-cdl-emphasis="primary"])) > [data-cdl-role="gantt-owner"]`,
-        "fill",
-      );
-      const actualSecondary = resolvedCssPaint(cssFixedThemeDeclarations(cssText, name), secondary, "fill");
+      const actualSecondary = resolveCssColor(declarations, "dragon-gantt-secondary-owner-text");
       if (actualSecondary !== style.ganttSecondaryOwnerColor) {
         failures.push(`${name} 通常帯の担当の字: 意匠帳 ${style.ganttSecondaryOwnerColor} / CSS ${actualSecondary}`);
       }
@@ -400,6 +393,7 @@ function compareGanttCss(
       style.ganttFrameWhiteRatio !== undefined
     ) {
       // 電飾の見本は平塗りでなく、18% の面と明るい枠を別々の役割として指定する。
+      const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
       const bar = cssRuleBody(cssText, `${stage} [data-cdl-role="gantt-bar"][data-cdl-tone]`, "fill");
       const fill = cssDeclaration(bar, "fill").replace(/\s+/g, " ");
       const stroke = cssDeclaration(bar, "stroke").replace(/\s+/g, " ");
@@ -1015,33 +1009,22 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
     }
   });
 
-  it("固定 7 意匠の日程の棒と漏斗の段は色みを系列色へ向けて濃さ 1 で塗る", () => {
+  it("固定 7 意匠の日程の棒と漏斗の段は表の系列色と濃さを読む", () => {
     const expected = readFixedThemeToneSeries();
-    const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-    const rules = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].filter((match) => {
-      const selector = match[1] ?? "";
-      return selector.includes('[data-cdl-role="gantt-bar"]') &&
-        selector.includes('[data-cdl-role="funnel-stage"]');
-    });
     expect(expected.size).toBe(7);
-    expect(rules.length, "日程の棒と漏斗の段の共通規則は 1 か所に寄せる").toBe(1);
-    const rule = rules[0];
-    if (!rule) return;
-
-    const selector = rule[1] ?? "";
-    const body = rule[2] ?? "";
-    const actualNames = new Set(
-      [...selector.matchAll(/\[data-cdl-palette="([^"]+)"\]/g)]
-        .flatMap((match) => match[1] ? [match[1]] : []),
-    );
-    expect([...actualNames].sort(), "共通規則の固定意匠の名前").toEqual([...expected.keys()].sort());
+    const gantt = cssRuleBodyContaining(cssText, [FIXED_GANTT_SELECTOR]);
+    const funnel = cssRuleBodyContaining(cssText, [FIXED_FUNNEL_SELECTOR]);
     const representative = expected.values().next().value;
     if (!representative) throw new Error("日程の棒と漏斗の段を意匠帳から読めない");
     for (const tone of THEME_TONES) {
-      expect(cssDeclaration(body, `--cdl-tone-${tone}`), tone)
-        .toBe(`var(--cdl-chart-${representative.seriesByTone[tone]})`);
+      const series = representative.seriesByTone[tone];
+      expect(cssDeclaration(gantt, `--cdl-tone-${tone}`), `日程の ${tone}`)
+        .toBe(`var(--dragon-gantt-series-${series})`);
+      expect(cssDeclaration(funnel, `--cdl-tone-${tone}`), `漏斗の ${tone}`)
+        .toBe(`var(--dragon-funnel-series-${series})`);
     }
-    expect(Number(cssDeclaration(body, "fill-opacity"))).toBe(representative.opacity);
+    expect(cssDeclaration(gantt, "fill-opacity")).toBe("var(--dragon-schedule-opacity)");
+    expect(cssDeclaration(funnel, "fill-opacity")).toBe("var(--dragon-schedule-opacity)");
   });
 
   it("固定 7 意匠の日程の帯と担当の字は意匠帳どおりの対比を保つ", () => {

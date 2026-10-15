@@ -1016,6 +1016,21 @@ svg[data-cdl-stage][data-cdl-palette="blueprint"] {
   --theme-timeline-arrow-scale-y: 1.3571428571;
   --theme-timeline-small-arrow-scale-x: 1.7;
   --theme-timeline-small-arrow-scale-y: 1.9;
+  --dragon-gantt-series-1: var(--cdl-chart-1);
+  --dragon-gantt-series-2: #1e7567;
+  --dragon-gantt-series-3: var(--cdl-chart-3);
+  --dragon-gantt-series-4: #82641d;
+  --dragon-gantt-series-5: var(--cdl-chart-5);
+  --dragon-gantt-series-6: #556b79;
+  --dragon-funnel-series-1: var(--cdl-chart-1);
+  --dragon-funnel-series-2: var(--cdl-chart-2);
+  --dragon-funnel-series-3: var(--cdl-chart-3);
+  --dragon-funnel-series-4: var(--cdl-chart-4);
+  --dragon-funnel-series-5: var(--cdl-chart-5);
+  --dragon-funnel-series-6: var(--cdl-chart-6);
+  --dragon-schedule-opacity: 1;
+  --dragon-gantt-owner-text: var(--er-face);
+  --dragon-gantt-secondary-owner-text: var(--er-face);
   --theme-lead: #143a52;
   --theme-mind-branch-3: #a8431f;
   --theme-mind-branch-4: #4d7187;
@@ -1284,6 +1299,21 @@ svg[data-cdl-stage][data-cdl-palette="letterpress"] {
   --theme-timeline-arrow-scale-y: 1.3571428571;
   --theme-timeline-small-arrow-scale-x: 1.7;
   --theme-timeline-small-arrow-scale-y: 1.9;
+  --dragon-gantt-series-1: #bc3f1d;
+  --dragon-gantt-series-2: var(--cdl-chart-2);
+  --dragon-gantt-series-3: var(--cdl-chart-3);
+  --dragon-gantt-series-4: #71695b;
+  --dragon-gantt-series-5: var(--cdl-chart-5);
+  --dragon-gantt-series-6: #985a43;
+  --dragon-funnel-series-1: var(--cdl-chart-1);
+  --dragon-funnel-series-2: var(--cdl-chart-2);
+  --dragon-funnel-series-3: var(--cdl-chart-3);
+  --dragon-funnel-series-4: var(--cdl-chart-4);
+  --dragon-funnel-series-5: var(--cdl-chart-5);
+  --dragon-funnel-series-6: var(--cdl-chart-6);
+  --dragon-schedule-opacity: 1;
+  --dragon-gantt-owner-text: var(--er-face);
+  --dragon-gantt-secondary-owner-text: var(--er-face);
   --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-mind-branch-3: #1a1510;
   --theme-mind-branch-4: #6b6253;
@@ -1551,6 +1581,21 @@ svg[data-cdl-stage][data-cdl-palette="catalog"] {
   --theme-timeline-arrow-scale-y: 1.3571428571;
   --theme-timeline-small-arrow-scale-x: 1.7;
   --theme-timeline-small-arrow-scale-y: 1.9;
+  --dragon-gantt-series-1: var(--cdl-chart-1);
+  --dragon-gantt-series-2: var(--cdl-chart-2);
+  --dragon-gantt-series-3: var(--cdl-chart-3);
+  --dragon-gantt-series-4: var(--cdl-chart-4);
+  --dragon-gantt-series-5: #669480;
+  --dragon-gantt-series-6: #b57c6a;
+  --dragon-funnel-series-1: var(--cdl-chart-1);
+  --dragon-funnel-series-2: var(--cdl-chart-2);
+  --dragon-funnel-series-3: var(--cdl-chart-3);
+  --dragon-funnel-series-4: var(--cdl-chart-4);
+  --dragon-funnel-series-5: var(--cdl-chart-5);
+  --dragon-funnel-series-6: var(--cdl-chart-6);
+  --dragon-schedule-opacity: 1;
+  --dragon-gantt-owner-text: var(--er-ink);
+  --dragon-gantt-secondary-owner-text: var(--er-ink);
   --theme-mind-branch-3: #e8705a;
   --theme-mind-branch-4: #6f6757;
   --theme-journey-axis-label: #6f6757;
@@ -1830,6 +1875,21 @@ svg[data-cdl-stage][data-cdl-palette="terminal"] {
   --theme-timeline-arrow-scale-y: 1.3571428571;
   --theme-timeline-small-arrow-scale-x: 1.7;
   --theme-timeline-small-arrow-scale-y: 1.9;
+  --dragon-gantt-series-1: var(--cdl-chart-1);
+  --dragon-gantt-series-2: var(--cdl-chart-2);
+  --dragon-gantt-series-3: var(--cdl-chart-3);
+  --dragon-gantt-series-4: var(--cdl-chart-4);
+  --dragon-gantt-series-5: var(--cdl-chart-5);
+  --dragon-gantt-series-6: var(--cdl-chart-6);
+  --dragon-funnel-series-1: var(--cdl-chart-1);
+  --dragon-funnel-series-2: var(--cdl-chart-2);
+  --dragon-funnel-series-3: var(--cdl-chart-3);
+  --dragon-funnel-series-4: var(--cdl-chart-4);
+  --dragon-funnel-series-5: var(--cdl-chart-5);
+  --dragon-funnel-series-6: var(--cdl-chart-6);
+  --dragon-schedule-opacity: 1;
+  --dragon-gantt-owner-text: var(--er-face);
+  --dragon-gantt-secondary-owner-text: var(--er-face);
   --cdl-flowchart-lane-heading-name-size: 25px;
   --theme-mind-branch-3: #f5c451;
   --theme-mind-branch-4: #8a9b90;
@@ -2099,6 +2159,21 @@ svg[data-cdl-stage][data-cdl-palette="sketch"] {
   --theme-timeline-arrow-scale-y: 1.3571428571;
   --theme-timeline-small-arrow-scale-x: 1.7;
   --theme-timeline-small-arrow-scale-y: 1.9;
+  --dragon-gantt-series-1: #ce481e;
+  --dragon-gantt-series-2: var(--cdl-chart-2);
+  --dragon-gantt-series-3: var(--cdl-chart-3);
+  --dragon-gantt-series-4: var(--cdl-chart-4);
+  --dragon-gantt-series-5: var(--cdl-chart-5);
+  --dragon-gantt-series-6: var(--cdl-chart-6);
+  --dragon-funnel-series-1: var(--cdl-chart-1);
+  --dragon-funnel-series-2: var(--cdl-chart-2);
+  --dragon-funnel-series-3: var(--cdl-chart-3);
+  --dragon-funnel-series-4: var(--cdl-chart-4);
+  --dragon-funnel-series-5: var(--cdl-chart-5);
+  --dragon-funnel-series-6: var(--cdl-chart-6);
+  --dragon-schedule-opacity: 1;
+  --dragon-gantt-owner-text: var(--er-face);
+  --dragon-gantt-secondary-owner-text: var(--er-ink);
   --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-mind-branch-3: #2a5ca8;
   --theme-mind-branch-4: #6d6456;
@@ -2376,6 +2451,21 @@ svg[data-cdl-stage][data-cdl-palette="neon"] {
   --theme-timeline-arrow-scale-y: 1.3571428571;
   --theme-timeline-small-arrow-scale-x: 1.7;
   --theme-timeline-small-arrow-scale-y: 1.9;
+  --dragon-gantt-series-1: var(--cdl-chart-1);
+  --dragon-gantt-series-2: var(--cdl-chart-2);
+  --dragon-gantt-series-3: var(--cdl-chart-3);
+  --dragon-gantt-series-4: var(--cdl-chart-4);
+  --dragon-gantt-series-5: var(--cdl-chart-5);
+  --dragon-gantt-series-6: var(--cdl-chart-6);
+  --dragon-funnel-series-1: var(--cdl-chart-1);
+  --dragon-funnel-series-2: var(--cdl-chart-2);
+  --dragon-funnel-series-3: var(--cdl-chart-3);
+  --dragon-funnel-series-4: var(--cdl-chart-4);
+  --dragon-funnel-series-5: var(--cdl-chart-5);
+  --dragon-funnel-series-6: var(--cdl-chart-6);
+  --dragon-schedule-opacity: 1;
+  --dragon-gantt-owner-text: var(--er-ink);
+  --dragon-gantt-secondary-owner-text: var(--er-ink);
   --cdl-flowchart-lane-heading-name-weight: 800;
   --theme-mind-branch-3: #ffd000;
   --theme-mind-branch-4: #c4bce0;
@@ -2644,6 +2734,21 @@ svg[data-cdl-stage][data-cdl-palette="relief"] {
   --theme-timeline-arrow-scale-y: 1.3571428571;
   --theme-timeline-small-arrow-scale-x: 1.7;
   --theme-timeline-small-arrow-scale-y: 1.9;
+  --dragon-gantt-series-1: #c2553b;
+  --dragon-gantt-series-2: var(--cdl-chart-2);
+  --dragon-gantt-series-3: var(--cdl-chart-3);
+  --dragon-gantt-series-4: #807567;
+  --dragon-gantt-series-5: var(--cdl-chart-5);
+  --dragon-gantt-series-6: var(--cdl-chart-6);
+  --dragon-funnel-series-1: var(--cdl-chart-1);
+  --dragon-funnel-series-2: var(--cdl-chart-2);
+  --dragon-funnel-series-3: var(--cdl-chart-3);
+  --dragon-funnel-series-4: var(--cdl-chart-4);
+  --dragon-funnel-series-5: var(--cdl-chart-5);
+  --dragon-funnel-series-6: var(--cdl-chart-6);
+  --dragon-schedule-opacity: 1;
+  --dragon-gantt-owner-text: var(--relief-tag-ink);
+  --dragon-gantt-secondary-owner-text: var(--relief-tag-ink);
   --theme-mind-branch-3: #c99a35;
   --theme-mind-branch-4: #7a7062;
   --theme-journey-axis-label: #685e51;
@@ -4044,35 +4149,34 @@ svg[data-cdl-stage][data-cdl-palette]:not(:where([data-cdl-palette="site-colours
  * 固定の意匠の日程の棒と漏斗の段 (#2801)
  *
  * 固定の意匠の共通の流し先は `--cdl-tone-accent` などを枠の色へ向けるため、浮彫と手描きでは
- * 日程の棒と漏斗の段まで墨で塗られていた。描き手が要素の表示属性で読む色みを、要素自身で
- * 図表の系列色へ戻す。accent / teal / success / warning / info / error は系列 1 / 2 / 3 / 4 / 5 / 6。
+ * 日程の棒と漏斗の段まで墨で塗られていた。描き手が要素の表示属性で読む色みを、表に置いた
+ * 日程と漏斗それぞれの系列色へ戻す。
  *
  * 値の正は各意匠帳の「日程の棒と漏斗の段」で、`theme-matches-note.test.ts` が突き合わせる。
- * CSS から固定かどうかは読めないため名前を並べる。固定の意匠を足す時は、上の箱の枠の規則と
- * 同じくここにも名前を足す。生成りと青磁は明暗の意匠なので入れない。
- * `edge-label-contrast.test.ts` が selector を `,` で割って読むため、括弧の中には `,` を置かない。
+ * 生成りと青磁は描き手の系列色と濃さを保つ。
  * ───────────────────────────────────────────────────────────────────────────── */
-svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-bar"],
-svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="funnel-stage"],
-svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="gantt-bar"],
-svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="funnel-stage"],
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="gantt-bar"],
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="funnel-stage"],
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="gantt-bar"],
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="funnel-stage"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-bar"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="funnel-stage"],
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="gantt-bar"],
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="funnel-stage"],
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="gantt-bar"],
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="funnel-stage"] {
-  --cdl-tone-accent: var(--cdl-chart-1);
-  --cdl-tone-teal: var(--cdl-chart-2);
-  --cdl-tone-success: var(--cdl-chart-3);
-  --cdl-tone-warning: var(--cdl-chart-4);
-  --cdl-tone-info: var(--cdl-chart-5);
-  --cdl-tone-error: var(--cdl-chart-6);
-  fill-opacity: 1 !important;
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="gantt-bar"] {
+  --cdl-tone-accent: var(--dragon-gantt-series-1);
+  --cdl-tone-teal: var(--dragon-gantt-series-2);
+  --cdl-tone-success: var(--dragon-gantt-series-3);
+  --cdl-tone-warning: var(--dragon-gantt-series-4);
+  --cdl-tone-info: var(--dragon-gantt-series-5);
+  --cdl-tone-error: var(--dragon-gantt-series-6);
+  fill-opacity: var(--dragon-schedule-opacity) !important;
+}
+
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="funnel-stage"] {
+  --cdl-tone-accent: var(--dragon-funnel-series-1);
+  --cdl-tone-teal: var(--dragon-funnel-series-2);
+  --cdl-tone-success: var(--dragon-funnel-series-3);
+  --cdl-tone-warning: var(--dragon-funnel-series-4);
+  --cdl-tone-info: var(--dragon-funnel-series-5);
+  --cdl-tone-error: var(--dragon-funnel-series-6);
+  fill-opacity: var(--dragon-schedule-opacity) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -4084,56 +4188,17 @@ svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="funnel-stage"] {
  *
  * 値の正は各意匠帳の「日程の棒と漏斗の段」で、`theme-matches-note.test.ts` が突き合わせる。
  * ───────────────────────────────────────────────────────────────────────────── */
-svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-bar"] {
-  --cdl-chart-2: #1e7567;
-  --cdl-chart-4: #82641d;
-  --cdl-chart-6: #556b79;
-}
-
-svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="gantt-bar"] {
-  --cdl-chart-1: #bc3f1d;
-  --cdl-chart-4: #71695b;
-  --cdl-chart-6: #985a43;
-}
-
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="gantt-bar"] {
-  --cdl-chart-5: #669480;
-  --cdl-chart-6: #b57c6a;
-}
-
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-bar"] {
-  --cdl-chart-1: #ce481e;
-}
-
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="gantt-bar"] {
-  --cdl-chart-1: #c2553b;
-  --cdl-chart-4: #807567;
-}
-
-svg[data-cdl-stage][data-cdl-palette="blueprint"] [data-cdl-role="gantt-owner"],
-svg[data-cdl-stage][data-cdl-palette="letterpress"] [data-cdl-role="gantt-owner"],
-svg[data-cdl-stage][data-cdl-palette="terminal"] [data-cdl-role="gantt-owner"],
-svg[data-cdl-stage][data-cdl-palette="sketch"] [data-cdl-role="gantt-owner"] {
-  fill: var(--er-face) !important;
-}
-
-svg[data-cdl-stage][data-cdl-palette="catalog"] [data-cdl-role="gantt-owner"] {
-  fill: var(--er-ink) !important;
-}
-
-svg[data-cdl-stage][data-cdl-palette="neon"] [data-cdl-role="gantt-owner"] {
-  fill: var(--er-ink) !important;
-}
-
-svg[data-cdl-stage][data-cdl-palette="relief"] [data-cdl-role="gantt-owner"] {
-  fill: var(--relief-tag-ink) !important;
+svg[data-cdl-stage][data-cdl-palette]:not(
+    :where([data-cdl-palette="site-colours"], [data-cdl-palette="kinari"], [data-cdl-palette="celadon"])
+  ) [data-cdl-role="gantt-owner"] {
+  fill: var(--dragon-gantt-owner-text) !important;
 }
 
 /* 手描きの通常帯は淡い斜線なので、面色の字ではなく墨で 4.5:1 を保つ。 */
 svg[data-cdl-stage][data-cdl-palette="sketch"]
   g:has(> [data-cdl-role="gantt-bar"]:not([data-cdl-emphasis="primary"]))
   > [data-cdl-role="gantt-owner"] {
-  fill: var(--er-ink) !important;
+  fill: var(--dragon-gantt-secondary-owner-text) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
