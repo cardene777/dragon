@@ -284,6 +284,23 @@ function resolveCssColor(
 }
 
 /** selector の 1 つが完全に一致する規則の本文を全て返す。0 件も返す。 */
+function splitCssSelectorList(selectorList: string): string[] {
+  const selectors: string[] = [];
+  let start = 0;
+  let depth = 0;
+  for (let index = 0; index < selectorList.length; index += 1) {
+    const character = selectorList[index];
+    if (character === "(" || character === "[") depth += 1;
+    if (character === ")" || character === "]") depth -= 1;
+    if (character === "," && depth === 0) {
+      selectors.push(selectorList.slice(start, index));
+      start = index + 1;
+    }
+  }
+  selectors.push(selectorList.slice(start));
+  return selectors;
+}
+
 function cssRuleBodies(cssText: string, exactSelector: string, requiredProperty?: string): string[] {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
   const normalizedExactSelector = exactSelector.replace(/\s+/g, " ").trim();
@@ -291,7 +308,8 @@ function cssRuleBodies(cssText: string, exactSelector: string, requiredProperty?
     ? undefined
     : new RegExp(`(?:^|;)\\s*${requiredProperty.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`, "m");
   return [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
-    const selectors = (match[1] ?? "").split(",").map((selector) => selector.replace(/\s+/g, " ").trim());
+    const selectors = splitCssSelectorList(match[1] ?? "")
+      .map((selector) => selector.replace(/\s+/g, " ").trim());
     const body = match[2] ?? "";
     const hasRequiredProperty = property === undefined || property.test(body);
     return selectors.includes(normalizedExactSelector) && hasRequiredProperty ? [body] : [];
@@ -341,8 +359,21 @@ function cssVariableName(value: string): string {
   return name;
 }
 
+function resolvedCssValue(
+  declarations: Map<string, string>,
+  value: string,
+  seen = new Set<string>(),
+): string {
+  const name = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1];
+  if (name === undefined) return value;
+  if (seen.has(name)) throw new Error(`--${name} の参照が循環している`);
+  const next = declarations.get(name);
+  if (next === undefined) throw new Error(`--${name} が無い`);
+  return resolvedCssValue(declarations, next, new Set([...seen, name]));
+}
+
 function resolvedCssPaint(declarations: Map<string, string>, body: string, property: string): string {
-  const value = cssDeclaration(body, property).toLowerCase();
+  const value = resolvedCssValue(declarations, cssDeclaration(body, property).toLowerCase());
   if (value === "none") return value;
   const pattern = /^url\(["']?(#[a-z0-9-]+)["']?\)$/.exec(value)?.[1];
   if (pattern) return `url(${pattern})`;
@@ -396,14 +427,17 @@ function compareGanttCss(
       const stage = `svg[data-cdl-stage][data-cdl-palette="${name}"]`;
       const bar = cssRuleBody(cssText, `${stage} [data-cdl-role="gantt-bar"][data-cdl-tone]`, "fill");
       const fill = cssDeclaration(bar, "fill").replace(/\s+/g, " ");
-      const stroke = cssDeclaration(bar, "stroke").replace(/\s+/g, " ");
+      const stroke = resolvedCssValue(
+        declarations,
+        cssDeclaration(bar, "stroke").replace(/\s+/g, " "),
+      );
       const surface = style.ganttSurfaceOpacity * 100;
       const series = style.ganttFrameSeriesRatio * 100;
       const white = style.ganttFrameWhiteRatio * 100;
       if (fill !== `color-mix(in srgb, currentColor ${surface}%, var(--theme-neon-chart-ground))`) {
         failures.push(`${name} 日程の帯の面: 意匠帳 ${surface}% / CSS ${fill}`);
       }
-      if (stroke !== `color-mix(in srgb, currentColor ${series}%, white ${white}%)`) {
+      if (stroke !== `color-mix(in srgb, currentcolor ${series}%, white ${white}%)`) {
         failures.push(`${name} 日程の帯の枠: 意匠帳 ${series}%・白 ${white}% / CSS ${stroke}`);
       }
     }
@@ -711,10 +745,14 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       '[data-cdl-role="metro-lane-guide"]',
     ]) {
       expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
-        .toBe("url(#dragon-metro-neon-glow)");
+        .toBe("var(--dragon-chart-glow-effect)");
     }
+    expect(cssFixedThemeDeclarations(cssText, "neon").get("dragon-chart-glow-effect"))
+      .toBe("url(#dragon-metro-neon-glow)");
     const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
     expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
+      .toBe("var(--dragon-metro-label-effect)");
+    expect(cssFixedThemeDeclarations(cssText, "neon").get("dragon-metro-label-effect"))
       .toBe("url(#dragon-metro-neon-glow-label)");
     for (const translated of ['[data-cdl-role="mark-start"]', '[data-cdl-role="mark-end"]']) {
       expect(cssRuleBodies(cssText, `${stage} ${translated}`, "filter"), translated).toEqual([]);
@@ -753,10 +791,14 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
       '[data-cdl-role="metro-lane-guide"]',
     ]) {
       expect(cssDeclaration(cssRuleBody(cssText, `${stage} ${part}`, "filter"), "filter"), part)
-        .toBe("url(#dragon-metro-terminal-glow)");
+        .toBe("var(--dragon-chart-glow-effect)");
     }
+    expect(cssFixedThemeDeclarations(cssText, "terminal").get("dragon-chart-glow-effect"))
+      .toBe("url(#dragon-metro-terminal-glow)");
     const label = `${stage} [data-cdl-edge-label-for][data-cdl-tone]`;
     expect(cssDeclaration(cssRuleBody(cssText, label, "filter"), "filter"))
+      .toBe("var(--dragon-metro-label-effect)");
+    expect(cssFixedThemeDeclarations(cssText, "terminal").get("dragon-metro-label-effect"))
       .toBe("url(#dragon-metro-terminal-glow-label)");
     for (const translated of ['[data-cdl-role="mark-start"]', '[data-cdl-role="mark-end"]']) {
       expect(cssRuleBodies(cssText, `${stage} ${translated}`, "filter"), translated).toEqual([]);
@@ -1012,8 +1054,8 @@ describe("意匠帳と CSS の値が一致する (#2790)", () => {
   it("固定 7 意匠の日程の棒と漏斗の段は表の系列色と濃さを読む", () => {
     const expected = readFixedThemeToneSeries();
     expect(expected.size).toBe(7);
-    const gantt = cssRuleBodyContaining(cssText, [FIXED_GANTT_SELECTOR]);
-    const funnel = cssRuleBodyContaining(cssText, [FIXED_FUNNEL_SELECTOR]);
+    const gantt = cssRuleBody(cssText, FIXED_GANTT_SELECTOR, "--cdl-tone-accent");
+    const funnel = cssRuleBody(cssText, FIXED_FUNNEL_SELECTOR, "--cdl-tone-accent");
     const representative = expected.values().next().value;
     if (!representative) throw new Error("日程の棒と漏斗の段を意匠帳から読めない");
     for (const tone of THEME_TONES) {

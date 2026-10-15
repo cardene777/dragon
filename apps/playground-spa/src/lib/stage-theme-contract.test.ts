@@ -407,11 +407,16 @@ describe("固定の 7 意匠の段の箱を見本の線で描く (#2831)", () =>
       'svg[data-cdl-stage][data-cdl-palette="sketch"]:has([data-cdl-role="stage-column"]) [data-cdl-kind="card"] [data-cdl-role="node-body"]',
     );
     expect(declaration(body, "filter")).toBe("none !important");
-    expect(declaration(body, "fill")).toBe("#fffdf7 !important");
-    expect(declaration(body, "stroke")).toBe("#2b2620 !important");
-    expect(declaration(body, "stroke-width")).toBe("2px !important");
-    expect(declaration(body, "rx")).toBe("13px !important");
-    expect(declaration(body, "ry")).toBe("13px !important");
+    expect(declaration(body, "fill")).toBe("var(--theme-stage-face) !important");
+    expect(declaration(body, "stroke")).toBe("var(--theme-stage-frame) !important");
+    expect(declaration(body, "stroke-width")).toBe("var(--theme-stage-frame-width) !important");
+    expect(declaration(body, "rx")).toBe("var(--dragon-stage-detail-card-radius) !important");
+    expect(declaration(body, "ry")).toBe("var(--dragon-stage-detail-card-radius) !important");
+    const table = themeTable("sketch");
+    expect(table.get("--theme-stage-face")).toBe("#fffdf7");
+    expect(table.get("--theme-stage-frame")).toBe("#2b2620");
+    expect(table.get("--theme-stage-frame-width")).toBe("2");
+    expect(table.get("--dragon-stage-detail-card-radius")).toBe("13px");
     expect(body).not.toContain("drop-shadow");
   });
 

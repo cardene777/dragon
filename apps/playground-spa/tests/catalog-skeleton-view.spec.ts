@@ -77,3 +77,21 @@ test("骨組みの地は画面の明暗に追従する", async ({ page }) => {
 
   expect(dark.background).not.toBe(light.background);
 });
+
+for (const [見本, 部品] of [
+  ["営業所の階層", ["札", "枝"]],
+  ["再配達を減らす", ["中心", "枝"]],
+] as const) {
+  test(`${見本}の骨組みに部品の表を出す`, async ({ page }) => {
+    await page.goto("catalog/charts", { waitUntil: "networkidle" });
+    await page.waitForSelector(".catalog-list-item", { timeout: 15000 });
+    await 一覧の行(page, 見本).click();
+    await page.getByRole("radio", { name: "骨組み", exact: true }).click();
+
+    const 表 = page.locator(".catalog-skeleton-parts table");
+    await expect(表.locator("tbody tr").first()).toBeVisible();
+    for (const 名前 of 部品) {
+      await expect(表.getByRole("rowheader", { name: 名前, exact: true })).toBeVisible();
+    }
+  });
+}

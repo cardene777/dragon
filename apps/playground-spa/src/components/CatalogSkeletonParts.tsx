@@ -3,18 +3,23 @@ import { createPortal } from "react-dom";
 
 import {
   CATALOG_SKELETON_KIND,
-  FLOWCHART_SKELETON_PARTS,
   avoidCatalogSkeletonBadgeOverlaps,
   catalogSkeletonLineBadgePoint,
   catalogSkeletonPartBadgeTarget,
   catalogSkeletonPartTarget,
+  catalogSkeletonPartsFor,
   type CatalogSkeletonBadge,
   type CatalogSkeletonPart,
   type CatalogSkeletonProperty,
 } from "@/lib/catalog-skeleton-parts";
 
 type PartValue = { kind: string; value: string };
-type PartRow = { number: number; part: CatalogSkeletonPart; values: PartValue[] };
+type PartRow = {
+  number: number;
+  part: CatalogSkeletonPart;
+  values: PartValue[];
+  showsBadge: boolean;
+};
 type Snapshot = { diagramType: string | null; rows: PartRow[]; badges: CatalogSkeletonBadge[] };
 
 const EMPTY_SNAPSHOT: Snapshot = { diagramType: null, rows: [], badges: [] };
@@ -141,23 +146,28 @@ export function readSnapshot(skeletonStage: HTMLElement, designStage: HTMLElemen
 
   try {
     const rules = documentStyleRules();
-    const rows = FLOWCHART_SKELETON_PARTS.flatMap((part, index) => {
+    const diagramType = designSvg.getAttribute("data-cdl-type");
+    const parts = catalogSkeletonPartsFor(diagramType);
+    const unmeasuredRows = (parts ?? []).flatMap((part, index) => {
       if (!catalogSkeletonPartTarget(designSvg, part)) return [];
       const values = computedPartValues(designSvg, part, rules);
       return [{ number: index + 1, part, values: values.length > 0 ? values : [{ kind: "—", value: "—" }] }];
     });
-    const badgeCandidates = rows.flatMap(({ number, part }) => {
+    const measuredRows = unmeasuredRows.map((row) => {
+      const { number, part } = row;
       const target = catalogSkeletonPartBadgeTarget(skeletonSvg, part);
       const badge = target ? badgePosition(skeletonStage, target, part, number) : null;
-      return badge ? [badge] : [];
+      return { row: { ...row, showsBadge: badge !== null }, badge };
     });
+    const rows = measuredRows.map(({ row }) => row);
+    const badgeCandidates = measuredRows.flatMap(({ badge }) => (badge ? [badge] : []));
     const stageBox = skeletonStage.getBoundingClientRect();
     const badges = avoidCatalogSkeletonBadgeOverlaps(badgeCandidates, {
       width: stageBox.width,
       height: stageBox.height,
     });
     return {
-      diagramType: designSvg.getAttribute("data-cdl-type"),
+      diagramType,
       rows,
       badges,
     };
@@ -170,16 +180,35 @@ export function readSnapshot(skeletonStage: HTMLElement, designStage: HTMLElemen
   }
 }
 
-function colorHex(value: string): string | null {
+function hexadecimalColor(channels: readonly number[]): string {
+  return `#${channels
+    .map((channel) => Math.round(channel).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+export function colorHex(value: string): string | null {
   if (/^#[\da-f]{6}$/i.test(value)) return value.toLowerCase();
+  const srgb = value.match(/^color\(\s*srgb\s+(.+)\)$/i);
+  if (srgb) {
+    const [channelsText, opacityText] = srgb[1]!.split(/\s*\/\s*/, 2);
+    const channels = channelsText?.trim().split(/\s+/).map(Number);
+    const opacity = opacityText === undefined ? undefined : Number(opacityText);
+    if (
+      channels?.length !== 3 ||
+      channels.some((channel) => !Number.isFinite(channel) || channel < 0 || channel > 1) ||
+      (opacity !== undefined && (!Number.isFinite(opacity) || opacity < 0 || opacity > 1))
+    ) {
+      return null;
+    }
+    const hex = hexadecimalColor(channels.map((channel) => channel * 255));
+    return opacity !== undefined && opacity < 1 ? `${hex} (濃さ ${opacity})` : hex;
+  }
+
   const match = value.match(/^rgba?\(([^)]+)\)$/i);
   if (!match) return null;
   const numbers = match[1]?.match(/[\d.]+/g)?.map(Number);
   if (!numbers || numbers.length < 3) return null;
-  const hex = `#${numbers
-    .slice(0, 3)
-    .map((number) => Math.round(number).toString(16).padStart(2, "0"))
-    .join("")}`;
+  const hex = hexadecimalColor(numbers.slice(0, 3));
   return numbers[3] !== undefined && numbers[3] < 1 ? `${hex} (濃さ ${numbers[3]})` : hex;
 }
 
@@ -292,7 +321,7 @@ export function CatalogSkeletonParts({
     skeletonStage,
   );
 
-  if (snapshot.diagramType !== "flowchart") {
+  if (catalogSkeletonPartsFor(snapshot.diagramType) === null) {
     return (
       <section className="catalog-skeleton-parts" aria-label="骨組みの部品と、表が決めるもの">
         <p>この図の部品の一覧は、図ごとの作り直しで足す</p>
@@ -315,7 +344,7 @@ export function CatalogSkeletonParts({
             </tr>
           </thead>
           <tbody>
-            {snapshot.rows.flatMap(({ number, part, values }) =>
+            {snapshot.rows.flatMap(({ number, part, values, showsBadge }) =>
               values.map(({ kind, value }, index) => (
                 <tr
                   key={`${number}-${kind}`}
@@ -329,10 +358,15 @@ export function CatalogSkeletonParts({
                   {index === 0 && (
                     <>
                       <td rowSpan={values.length} className="catalog-skeleton-number">
-                        <span>{number}</span>
+                        <span className={showsBadge ? undefined : "is-unplaced"}>{number}</span>
                       </td>
                       <th rowSpan={values.length} scope="rowgroup">
                         {part.label}
+                        {!showsBadge && (
+                          <small className="catalog-skeleton-unplaced-note">
+                            骨組みの上に出ない
+                          </small>
+                        )}
                       </th>
                     </>
                   )}

@@ -44,6 +44,15 @@ function declaration(body: string, property: string): string {
   return value;
 }
 
+function tableDeclaration(palette: string, property: string): string {
+  const table = rules.find(({ selector, body }) =>
+    selector === `svg[data-cdl-stage][data-cdl-palette="${palette}"]` &&
+    body.includes("--dragon-theme-ground:"),
+  );
+  if (table === undefined) throw new Error(`${palette} の意匠表が無い`);
+  return declaration(table.body, property);
+}
+
 describe("#2854 3 段目 l の意匠補正", () => {
   it("名前の字体を意匠ごとの Noto Sans JP に保ち、値だけ同梱 mono にする", () => {
     for (const palette of ["blueprint", "letterpress", "catalog", "sketch", "neon", "relief"] as const) {
@@ -68,7 +77,10 @@ describe("#2854 3 段目 l の意匠補正", () => {
       ':has([data-cdl-role="figure-head"])',
       '> [data-cdl-frame]',
     );
-    expect(declaration(headedSurface.body, "filter")).toBe("url(#dragon-relief-figure-frame) !important");
+    expect(declaration(headedSurface.body, "filter")).toBe("var(--dragon-chart-frame-effect) !important");
+    expect(tableDeclaration("relief", "--dragon-chart-frame-effect")).toBe(
+      "url(#dragon-relief-figure-frame)",
+    );
     expect(headedSurface.body).not.toMatch(/(?:^|;)\s*(?:width|height|transform)\s*:/mu);
 
     const headedFilters = rules.filter(({ selector, body }) =>
@@ -150,7 +162,10 @@ describe("#2854 3 段目 l の意匠補正", () => {
       '[data-cdl-role="node-body"]',
     );
     expect(declaration(sketchTimelineCard.body, "filter")).toBe(
-      "drop-shadow(3px 4px 0 rgb(43 38 32 / 16%)) !important",
+      "var(--dragon-stage-detail-card-effect) !important",
+    );
+    expect(tableDeclaration("sketch", "--dragon-stage-detail-card-effect")).toBe(
+      "drop-shadow(3px 4px 0 rgb(43 38 32 / 16%))",
     );
     expect(sketchTimelineCard.body).not.toContain("dragon-sketch-wobble");
 
@@ -165,14 +180,21 @@ describe("#2854 3 段目 l の意匠補正", () => {
     expect(declaration(catalogCard.body, "filter")).toContain("--theme-stage-card-shadow");
 
     // 端末の分かれ道は見本の 50% 枠 1.5。実装の専用規則と同じ値を固定する。
-    for (const [palette, width] of [["blueprint", "1.5px"], ["letterpress", "2px"], ["sketch", "2.5px"], ["terminal", "1.5px"]] as const) {
+    for (const [palette, width] of [["blueprint", "1.5"], ["letterpress", "2"], ["sketch", "2.5"], ["terminal", "1.5"]] as const) {
       const decision = lastRule(`[data-cdl-palette="${palette}"]`, '[data-cdl-kind="decision"]', '> path');
-      expect(declaration(decision.body, "stroke-width"), palette).toBe(`${width} !important`);
+      expect(declaration(decision.body, "stroke-width"), palette).toBe(
+        "var(--dragon-chart-decision-frame-width) !important",
+      );
+      expect(tableDeclaration(palette, "--dragon-chart-decision-frame-width"), palette).toBe(`${width}px`);
       if (palette !== "blueprint") expect(declaration(decision.body, "filter"), palette).toBe("none !important");
     }
     const catalogDecision = lastRule('[data-cdl-palette="catalog"]', '[data-cdl-kind="decision"]', '> path');
-    expect(declaration(catalogDecision.body, "stroke")).toBe("none !important");
-    expect(declaration(catalogDecision.body, "stroke-width")).toBe("0 !important");
+    expect(declaration(catalogDecision.body, "stroke")).toBe("var(--dragon-chart-decision-frame) !important");
+    expect(declaration(catalogDecision.body, "stroke-width")).toBe(
+      "var(--dragon-chart-decision-frame-width) !important",
+    );
+    expect(tableDeclaration("catalog", "--dragon-chart-decision-frame")).toBe("none");
+    expect(tableDeclaration("catalog", "--dragon-chart-decision-frame-width")).toBe("0");
     expect(declaration(catalogDecision.body, "filter")).toBe("none !important");
   });
 

@@ -139,6 +139,36 @@ type FilteredGeometry = {
 
 const doms = new Map<string, JSDOM>();
 
+function cssWithResolvedFilterRoles(palette: Palette): string {
+  const withoutComments = css.replace(/\/\*[\s\S]*?\*\//gu, "");
+  const selector = `svg[data-cdl-stage][data-cdl-palette="${palette}"]`;
+  const table = [...withoutComments.matchAll(/([^{}]*)\{([^{}]*)\}/gu)].find((match) =>
+    (match[1] ?? "").replace(/\s+/gu, " ").trim() === selector &&
+    (match[2] ?? "").includes("--dragon-theme-ground:"),
+  )?.[2];
+  if (table === undefined) throw new Error(`${palette} の意匠表が無い`);
+  const declarations = new Map(
+    [...table.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/giu)].map((match) => [
+      match[1]!,
+      match[2]!.replace(/\s+/gu, " ").trim(),
+    ]),
+  );
+  const resolve = (role: string, seen = new Set<string>()): string | undefined => {
+    if (seen.has(role)) throw new Error(`${role} の参照が循環している`);
+    const value = declarations.get(role);
+    if (value === undefined) return undefined;
+    const next = /^var\((--[a-z0-9-]+)\)$/iu.exec(value)?.[1];
+    return next === undefined ? value : resolve(next, new Set([...seen, role]));
+  };
+  return css.replace(
+    /(filter\s*:\s*)var\((--[a-z0-9-]+)\)/giu,
+    (whole, prefix: string, role: string) => {
+      const value = resolve(role);
+      return value === undefined ? whole : `${prefix}${value}`;
+    },
+  );
+}
+
 function domFor(palette: Palette, name: keyof typeof diagrams): JSDOM {
   const key = `${palette}/${name}`;
   const cached = doms.get(key);
@@ -148,7 +178,7 @@ function domFor(palette: Palette, name: keyof typeof diagrams): JSDOM {
   const markup = renderToStaticMarkup(
     <CdlDiagramView diagram={diagram} hideHeader focusPhaseId={focusPhaseId} />,
   );
-  const dom = new JSDOM(`<style>${css}</style>${markup}`, {
+  const dom = new JSDOM(`<style>${cssWithResolvedFilterRoles(palette)}</style>${markup}`, {
     url: "https://catalog.test/",
   });
   doms.set(key, dom);

@@ -481,6 +481,23 @@
   position: absolute;
 }
 
+.catalog-skeleton-number span.is-unplaced {
+  box-sizing: border-box;
+  border: 2px solid var(--catalog-skeleton-mark);
+  background: transparent;
+  color: var(--catalog-skeleton-mark);
+  line-height: 20px;
+  box-shadow: none;
+}
+
+.catalog-skeleton-unplaced-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--catalog-skeleton-text-secondary);
+  font-size: 10px;
+  font-weight: 400;
+}
+
 .catalog-skeleton-parts {
   padding: 20px 22px 24px;
   border-top: 1px solid var(--catalog-skeleton-border);
@@ -773,6 +790,7 @@
 
 .catalog-view-button {
   flex: 0 0 auto;
+  min-height: 24px;
   padding: 3px 7px;
   border: none;
   border-radius: 4px;

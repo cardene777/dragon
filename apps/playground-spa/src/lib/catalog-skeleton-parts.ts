@@ -75,6 +75,59 @@ export const FLOWCHART_SKELETON_PARTS = [
   { label: "凡例", selector: '[data-cdl-role="legend"]', anchor: "top-left" },
 ] as const satisfies readonly CatalogSkeletonPart[];
 
+/** 階層図の骨組みを、特定の見本の札や枝の名前に依存せずに選ぶ。 */
+export const TREE_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "札", selector: '[data-cdl-role="tree-node"]', anchor: "top-left" },
+  { label: "札の題", selector: '[data-cdl-role="tree-node-title"]', anchor: "right" },
+  { label: "札の副題", selector: '[data-cdl-role="tree-node-subtitle"]', anchor: "right" },
+  {
+    label: "枝",
+    selector: '[data-cdl-role="tree-edge"]',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  { label: "枝の矢じり", selector: '[data-cdl-role="tree-edge-head"]', anchor: "right" },
+  { label: "図の題", selector: '[data-cdl-role="figure-title"]', anchor: "top-left" },
+  {
+    label: "図の種類の札",
+    selector: '[data-cdl-role="figure-kind-label"]',
+    anchor: "top-left",
+  },
+] as const satisfies readonly CatalogSkeletonPart[];
+
+/** マインドマップの骨組みを、特定の見本の中心や枝の名前に依存せずに選ぶ。 */
+export const MIND_SKELETON_PARTS = [
+  { label: "地", selector: ":scope", anchor: "fixed" },
+  { label: "中心", selector: '[data-cdl-role="mind-root"]', anchor: "top-left" },
+  { label: "中心の題", selector: '[data-cdl-role="mind-root-title"]', anchor: "right" },
+  {
+    label: "枝",
+    selector: '[data-cdl-role="mind-edge"]',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  { label: "箱", selector: '[data-cdl-role="mind-box"]', anchor: "top-left" },
+  { label: "箱の題", selector: '[data-cdl-role="mind-box-title"]', anchor: "right" },
+  { label: "葉の題", selector: '[data-cdl-role="mind-leaf-title"]', anchor: "right" },
+  {
+    label: "葉の下線",
+    selector: '[data-cdl-role="mind-leaf-underline"]',
+    anchor: "center",
+    badgeTarget: "longest",
+  },
+  { label: "図の題", selector: '[data-cdl-role="figure-title"]', anchor: "top-left" },
+] as const satisfies readonly CatalogSkeletonPart[];
+
+export function catalogSkeletonPartsFor(
+  type: string | null,
+): readonly CatalogSkeletonPart[] | null {
+  if (type === "flowchart") return FLOWCHART_SKELETON_PARTS;
+  if (type === "tree") return TREE_SKELETON_PARTS;
+  if (type === "mind") return MIND_SKELETON_PARTS;
+  return null;
+}
+
 /** CSS の性質を、表が決めるものの名前へ直す。 */
 export const CATALOG_SKELETON_KIND = {
   fill: "面の色",
@@ -131,14 +184,23 @@ function completedLength(element: SVGElement): number {
   return geometry.getTotalLength?.call(geometry) ?? 0;
 }
 
-/** 番号は通常の最初の部品へ置き、線だけは短い起点を避けて最長の線へ置く。 */
+function hasVisibleBounds(element: SVGElement): boolean {
+  const box = element.getBoundingClientRect();
+  return box.width > 0 || box.height > 0;
+}
+
+/** 番号は大きさのある最初の部品へ置き、線だけはその中で最長の線へ置く。 */
 export function catalogSkeletonPartBadgeTarget(
   svg: SVGSVGElement,
   part: CatalogSkeletonPart,
 ): SVGElement | null {
-  if (part.badgeTarget !== "longest") return catalogSkeletonPartTarget(svg, part);
+  const targets = (
+    part.selector === ":scope"
+      ? [svg]
+      : Array.from(svg.querySelectorAll<SVGElement>(part.selector))
+  ).filter(hasVisibleBounds);
+  if (part.badgeTarget !== "longest") return targets[0] ?? null;
 
-  const targets = Array.from(svg.querySelectorAll<SVGElement>(part.selector));
   let longest = targets[0] ?? null;
   let longestLength = longest ? completedLength(longest) : 0;
   for (const target of targets.slice(1)) {
@@ -215,6 +277,17 @@ function badgeFits(badge: CatalogSkeletonBadge, bounds: CatalogSkeletonBadgeBoun
   );
 }
 
+function containBadge(
+  badge: CatalogSkeletonBadge,
+  bounds: CatalogSkeletonBadgeBounds,
+): CatalogSkeletonBadge {
+  return {
+    ...badge,
+    left: Math.min(Math.max(badge.left, 0), Math.max(bounds.width - BADGE_SIZE, 0)),
+    top: Math.min(Math.max(badge.top, 0), Math.max(bounds.height - BADGE_SIZE, 0)),
+  };
+}
+
 /** 小さい番号から置き、重なる丸だけを台の内側にある最初の候補へずらす。 */
 export function avoidCatalogSkeletonBadgeOverlaps(
   badges: readonly CatalogSkeletonBadge[],
@@ -222,8 +295,9 @@ export function avoidCatalogSkeletonBadgeOverlaps(
 ): CatalogSkeletonBadge[] {
   const placed: CatalogSkeletonBadge[] = [];
   for (const badge of [...badges].sort((a, b) => a.number - b.number)) {
-    if (!badgesOverlap(badge, placed)) {
-      placed.push({ ...badge });
+    const contained = containBadge(badge, bounds);
+    if (!badgesOverlap(contained, placed)) {
+      placed.push(contained);
       continue;
     }
 
@@ -231,9 +305,9 @@ export function avoidCatalogSkeletonBadgeOverlaps(
     for (const radius of [26, 52]) {
       for (const [dx, dy] of BADGE_OFFSETS) {
         const candidate = {
-          ...badge,
-          left: badge.left + dx * radius,
-          top: badge.top + dy * radius,
+          ...contained,
+          left: contained.left + dx * radius,
+          top: contained.top + dy * radius,
         };
         if (badgeFits(candidate, bounds) && !badgesOverlap(candidate, placed)) {
           moved = candidate;
@@ -242,7 +316,7 @@ export function avoidCatalogSkeletonBadgeOverlaps(
       }
       if (moved) break;
     }
-    placed.push(moved ?? { ...badge });
+    placed.push(moved ?? contained);
   }
   return placed;
 }
