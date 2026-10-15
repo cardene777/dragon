@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
+import { act, cleanup, render } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CdlDiagramView, layout, type CdlDiagram } from "@cardenelabs/cdl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { readSnapshot } from "@/components/CatalogSkeletonParts";
+import {
+  CatalogSkeletonParts,
+  colorHex,
+  readSnapshot,
+} from "@/components/CatalogSkeletonParts";
 import { presetDeliveryFlow } from "@/topics/catalog/presets.cdl";
 import {
   pattern__textDslFlowchart__縦に積む,
@@ -12,10 +17,13 @@ import {
 } from "@/topics/catalog/text-dsl.cdl";
 import {
   FLOWCHART_SKELETON_PARTS,
+  MIND_SKELETON_PARTS,
+  TREE_SKELETON_PARTS,
   avoidCatalogSkeletonBadgeOverlaps,
   catalogSkeletonLineBadgePoint,
   catalogSkeletonPartBadgeTarget,
   catalogSkeletonPartTarget,
+  catalogSkeletonPartsFor,
 } from "./catalog-skeleton-parts";
 
 const 流れ図 = [
@@ -84,6 +92,20 @@ function SVGの長さを補う(長さ: Readonly<Record<string, number>>): () => 
   };
 }
 
+function 矩形(left: number, top: number, width: number, height: number): DOMRect {
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON: () => ({}),
+  };
+}
+
 function 線の番号地点を測る(札の位置?: { x: number; y: number }): { x: number; y: number } | null {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   const 札の属性 = 札の位置
@@ -109,7 +131,9 @@ function 線の番号地点を測る(札の位置?: { x: number; y: number }): {
 }
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   document.head.querySelector("[data-test-catalog-skeleton-style]")?.remove();
   document.body.replaceChildren();
 });
@@ -176,6 +200,8 @@ describe("見本帳の流れ図で骨組みの部品を選ぶ", () => {
     const part = FLOWCHART_SKELETON_PARTS.find(({ label }) => label === "主な流れの線");
     if (!part) throw new Error("主な流れの線の定義が無い");
     const lines = Array.from(svg.querySelectorAll<SVGElement>(part.selector));
+    vi.spyOn(lines[0]!, "getBoundingClientRect").mockReturnValue(矩形(0, 0, 200, 1));
+    vi.spyOn(lines[1]!, "getBoundingClientRect").mockReturnValue(矩形(0, 0, 100, 1));
     const 元へ戻す = SVGの長さを補う({
       "M 0 0 L 10 0": 10,
       "M 0 0 L 80 0": 80,
@@ -184,6 +210,32 @@ describe("見本帳の流れ図で骨組みの部品を選ぶ", () => {
     });
     try {
       expect(catalogSkeletonPartBadgeTarget(svg, part)).toBe(lines[0]);
+    } finally {
+      元へ戻す();
+    }
+  });
+
+  it("最も長い線を選ぶ時も、大きさ 0 の線は候補から外す", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.innerHTML = `
+      <g data-cdl-edge data-cdl-from="start" data-cdl-to="hidden" data-cdl-path-d="M 0 0 L 300 0">
+        <path data-cdl-role="edge-line" d="M 0 0 L 300 0"></path>
+      </g>
+      <g data-cdl-edge data-cdl-from="start" data-cdl-to="visible" data-cdl-path-d="M 0 0 L 100 0">
+        <path data-cdl-role="edge-line" d="M 0 0 L 100 0"></path>
+      </g>
+    `;
+    const part = FLOWCHART_SKELETON_PARTS.find(({ label }) => label === "主な流れの線");
+    if (!part) throw new Error("主な流れの線の定義が無い");
+    const lines = Array.from(svg.querySelectorAll<SVGElement>(part.selector));
+    vi.spyOn(lines[0]!, "getBoundingClientRect").mockReturnValue(矩形(0, 0, 0, 0));
+    vi.spyOn(lines[1]!, "getBoundingClientRect").mockReturnValue(矩形(0, 0, 100, 1));
+    const 元へ戻す = SVGの長さを補う({
+      "M 0 0 L 100 0": 100,
+      "M 0 0 L 300 0": 300,
+    });
+    try {
+      expect(catalogSkeletonPartBadgeTarget(svg, part)).toBe(lines[1]);
     } finally {
       元へ戻す();
     }
@@ -266,6 +318,118 @@ describe("見本帳の流れ図で骨組みの部品を選ぶ", () => {
   });
 });
 
+describe("階層図とマインドマップで骨組みの部品を選ぶ", () => {
+  it("階層図の各部品を役から選ぶ", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.innerHTML = `
+      <g data-cdl-role="tree-node">
+        <text data-cdl-role="tree-node-title"></text>
+        <text data-cdl-role="tree-node-subtitle"></text>
+      </g>
+      <path data-cdl-role="tree-edge"></path>
+      <path data-cdl-role="tree-edge-head"></path>
+      <text data-cdl-role="figure-title"></text>
+      <text data-cdl-role="figure-kind-label"></text>
+    `;
+
+    expect(
+      TREE_SKELETON_PARTS.map((part) => [part.label, catalogSkeletonPartTarget(svg, part)]),
+    ).toEqual(TREE_SKELETON_PARTS.map((part) => [part.label, expect.any(SVGElement)]));
+  });
+
+  it("マインドマップの各部品を役から選ぶ", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.innerHTML = `
+      <g data-cdl-role="mind-root"><text data-cdl-role="mind-root-title"></text></g>
+      <path data-cdl-role="mind-edge"></path>
+      <g data-cdl-role="mind-box"><text data-cdl-role="mind-box-title"></text></g>
+      <text data-cdl-role="mind-leaf-title"></text>
+      <path data-cdl-role="mind-leaf-underline"></path>
+      <text data-cdl-role="figure-title"></text>
+    `;
+
+    expect(
+      MIND_SKELETON_PARTS.map((part) => [part.label, catalogSkeletonPartTarget(svg, part)]),
+    ).toEqual(MIND_SKELETON_PARTS.map((part) => [part.label, expect.any(SVGElement)]));
+  });
+
+  it("図の種類に対応する一覧だけを返す", () => {
+    expect(catalogSkeletonPartsFor("flowchart")).toBe(FLOWCHART_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("tree")).toBe(TREE_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("mind")).toBe(MIND_SKELETON_PARTS);
+    expect(catalogSkeletonPartsFor("sequence")).toBeNull();
+    expect(catalogSkeletonPartsFor(null)).toBeNull();
+  });
+
+  it("大きさ 0 の候補を飛ばして、画面に大きさのある候補を番号の対象にする", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.innerHTML = `
+      <path data-cdl-role="tree-edge-head"></path>
+      <path data-cdl-role="tree-edge-head"></path>
+    `;
+    const part = TREE_SKELETON_PARTS.find(({ label }) => label === "枝の矢じり");
+    if (!part) throw new Error("枝の矢じりの定義が無い");
+    const heads = Array.from(svg.querySelectorAll<SVGElement>(part.selector));
+    vi.spyOn(heads[0]!, "getBoundingClientRect").mockReturnValue(矩形(0, 0, 0, 0));
+    vi.spyOn(heads[1]!, "getBoundingClientRect").mockReturnValue(矩形(20, 30, 8, 4));
+
+    expect(catalogSkeletonPartBadgeTarget(svg, part)).toBe(heads[1]);
+  });
+
+  it("大きさ 0 の要素しかない部品は丸を出さず、表の番号を白抜きにする", () => {
+    class 大きさの見張り {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+    let frame: FrameRequestCallback | null = null;
+    vi.stubGlobal("ResizeObserver", 大きさの見張り);
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      frame = callback;
+      return 1;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+
+    const stageMarkup = `
+      <svg data-cdl-stage data-cdl-type="tree">
+        <path data-cdl-role="tree-edge-head"></path>
+      </svg>
+    `;
+    const skeletonStage = document.createElement("div");
+    skeletonStage.innerHTML = stageMarkup;
+    const designStage = document.createElement("div");
+    designStage.innerHTML = stageMarkup;
+    document.body.append(skeletonStage, designStage);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: Element,
+    ) {
+      if (this.getAttribute("data-cdl-role") === "tree-edge-head") return 矩形(20, 30, 0, 0);
+      return 矩形(0, 0, 200, 200);
+    });
+
+    const { container } = render(
+      <CatalogSkeletonParts
+        skeletonStage={skeletonStage}
+        designStage={designStage}
+        refreshKey="tree-zero-size"
+      />,
+    );
+    act(() => frame?.(0));
+
+    const row = Array.from(container.querySelectorAll("tbody tr")).find((candidate) =>
+      candidate.textContent?.includes("枝の矢じり"),
+    );
+    const number = row?.querySelector(".catalog-skeleton-number span");
+    expect(number?.classList.contains("is-unplaced")).toBe(true);
+    expect(row?.textContent).toContain("骨組みの上に出ない");
+    expect(
+      Array.from(skeletonStage.querySelectorAll(".catalog-skeleton-badge")).some(
+        (badge) => badge.textContent === "6",
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("骨組みの番号の重なりを避ける", () => {
   const 台 = { width: 200, height: 200 };
 
@@ -306,5 +470,30 @@ describe("骨組みの番号の重なりを避ける", () => {
     expect(avoidCatalogSkeletonBadgeOverlaps(丸, 台)).toEqual(
       avoidCatalogSkeletonBadgeOverlaps(丸, 台),
     );
+  });
+
+  it("台の外で求めた丸を、半径 12px が台に収まる位置へ直す", () => {
+    expect(
+      avoidCatalogSkeletonBadgeOverlaps(
+        [
+          { number: 1, left: -483, top: -565 },
+          { number: 2, left: 423, top: 352 },
+        ],
+        台,
+      ),
+    ).toEqual([
+      { number: 1, left: 0, top: 0 },
+      { number: 2, left: 176, top: 176 },
+    ]);
+  });
+});
+
+describe("表へ出す色を 16 進数へ直す", () => {
+  it("color(srgb) の各色を 0〜255 に写す", () => {
+    expect(colorHex("color(srgb 1 0.713137 0.857255)")).toBe("#ffb6db");
+  });
+
+  it("color(srgb) の濃さを今の表示の形で残す", () => {
+    expect(colorHex("color(srgb 0 0 0 / 0.5)")).toBe("#000000 (濃さ 0.5)");
   });
 });
