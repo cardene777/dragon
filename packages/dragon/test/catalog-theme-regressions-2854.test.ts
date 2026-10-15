@@ -887,7 +887,7 @@ describe("#2854 6段目の階層図とマインドマップ", () => {
       body.includes("rx: 16px !important") &&
       body.includes("ry: 16px !important"));
     const stagePalette = rules.find(({ selector, body }) =>
-      selector.trim() === 'svg[data-cdl-stage][data-cdl-palette="neon"]' &&
+      selector.includes('svg[data-cdl-stage][data-cdl-palette="neon"]') &&
       body.includes("--theme-stage-card-shadow: url(#dragon-neon-violet-frame)") &&
       body.includes("--theme-stage-shadow: url(#dragon-neon-pink-frame)") &&
       body.includes("--theme-stage-card-radius: 16px") &&

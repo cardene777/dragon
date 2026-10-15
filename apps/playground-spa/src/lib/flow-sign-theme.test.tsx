@@ -145,13 +145,18 @@ function cssValue(body: string, property: string): string {
   return value.trim().replace(/\s*!important$/, "");
 }
 
-function cssRuleBodyContaining(fragments: string[], property: string): string {
+function cssRuleBodyContaining(
+  fragments: string[],
+  property: string,
+  excludedFragments: string[] = [],
+): string {
   const css = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
   const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const bodies = [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].flatMap((match) => {
     const selector = (match[1] ?? "").replace(/\s+/g, " ").trim();
     const body = match[2] ?? "";
     return fragments.every((fragment) => selector.includes(fragment)) &&
+      excludedFragments.every((fragment) => !selector.includes(fragment)) &&
       new RegExp(`(?:^|;)\\s*${escaped}\\s*:`).test(body)
       ? [body]
       : [];
@@ -249,6 +254,7 @@ describe("流れの凡例と始まり・終わりの印 (#2834)", () => {
     const legend = cssRuleBodyContaining(
       ['svg[data-cdl-stage][data-cdl-palette]:not(', '[data-cdl-role="legend"]'],
       "--cdl-text-accent",
+      [':has([data-cdl-role="stage-column"])'],
     );
     expect(cssValue(legend, "--cdl-text-accent")).toBe("var(--dragon-timeline-legend-mark)");
     expect(tableDeclarations("terminal").get("--dragon-timeline-legend-mark")).toBe(fallback);
