@@ -184,6 +184,21 @@ const fixedThemeRoles = [
   "--theme-timeline-arrow-scale-y",
   "--theme-timeline-small-arrow-scale-x",
   "--theme-timeline-small-arrow-scale-y",
+  "--dragon-gantt-series-1",
+  "--dragon-gantt-series-2",
+  "--dragon-gantt-series-3",
+  "--dragon-gantt-series-4",
+  "--dragon-gantt-series-5",
+  "--dragon-gantt-series-6",
+  "--dragon-funnel-series-1",
+  "--dragon-funnel-series-2",
+  "--dragon-funnel-series-3",
+  "--dragon-funnel-series-4",
+  "--dragon-funnel-series-5",
+  "--dragon-funnel-series-6",
+  "--dragon-schedule-opacity",
+  "--dragon-gantt-owner-text",
+  "--dragon-gantt-secondary-owner-text",
 ] as const;
 
 // 生成りと青磁は共通部品の規則から外す色だけの意匠なので、現在の変数の塊が宣言する役だけを契約にする。
@@ -381,10 +396,10 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
   it("共通規則が読む役は対象 7 意匠の全表に在り、不足は 0 件", () => {
     const readers = [...flatRules(css), ...flatRules(motionCss)].filter(({ selector, body }) =>
       selector.includes("[data-cdl-palette]:not(") &&
-      /var\(--(?:dragon-(?:theme|flow|running-dot|stage|timeline)|theme-stage)-[a-z0-9-]+/i.test(body));
+      /var\(--(?:dragon-(?:theme|flow|running-dot|stage|timeline|gantt|funnel|schedule)|theme-stage)-[a-z0-9-]+/i.test(body));
     const roles = new Set(
       readers.flatMap(({ body }) =>
-        [...body.matchAll(/var\((--(?:dragon-(?:theme|flow|running-dot|stage|timeline)|theme-stage)-[a-z0-9-]+)/gi)]
+        [...body.matchAll(/var\((--(?:dragon-(?:theme|flow|running-dot|stage|timeline|gantt|funnel|schedule)|theme-stage)-[a-z0-9-]+)/gi)]
           .map((match) => match[1]!)),
     );
     const missing: string[] = [];
@@ -440,6 +455,22 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     const read = new Set(
       flatRules(css).flatMap(({ body }) =>
         [...body.matchAll(/var\((--(?:dragon-stage|theme-stage)-[a-z0-9-]+)/gi)]
+          .map((match) => match[1]!),
+      ),
+    );
+    expect([...declared].filter((role) => !read.has(role))).toEqual([]);
+  });
+
+  it("日程と漏斗の表に置いた全役は規則から少なくとも 1 回読まれる", () => {
+    const declared = new Set(
+      fixedThemes.flatMap((theme) =>
+        [...tableDeclarations(theme).keys()].filter((role) =>
+          /^--dragon-(?:gantt|funnel|schedule)-/.test(role)),
+      ),
+    );
+    const read = new Set(
+      flatRules(css).flatMap(({ body }) =>
+        [...body.matchAll(/var\((--dragon-(?:gantt|funnel|schedule)-[a-z0-9-]+)/gi)]
           .map((match) => match[1]!),
       ),
     );
@@ -555,6 +586,20 @@ describe("意匠の値表と共通規則の契約 (#2874)", () => {
     const direct = directStyleValues(stage);
     console.log(`#2877 の段の箱の節に残る直書きの色・太さ・角・影: ${direct.length} 件`);
     expect(direct).toEqual([]);
+  });
+
+  it("日程の 2 節の意匠名付き規則に直書きの色・太さ・角・影は 0 件で、持ち越し対象も 0 件", () => {
+    const schedule = [
+      sectionAfter(" * 固定の意匠の日程の棒と漏斗の段 (#2801)"),
+      sectionAfter(" * 日程の帯と帯の上の担当の字 (#2826)"),
+    ];
+    const direct = schedule.flatMap(directStyleValues);
+    const risky = schedule.flatMap((source) => flatRules(source)).filter(({ selector, body }) =>
+      /(?:^|;)\s*(?:display\s*:\s*none|transform\s*:|translate\s*:)/m.test(body) ||
+      /\[(?:r|rx|ry)\s*[*^$|~]?=/i.test(selector));
+    console.log(`#2878 の 2 節に残る直書きの色・太さ・角・影: ${direct.length} 件、持ち越し対象: ${risky.length} 件`);
+    expect(direct).toEqual([]);
+    expect(risky).toEqual([]);
   });
 
   it("持ち越し 10 件を移しても競合規則との前後関係は変わらない", () => {
