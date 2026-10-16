@@ -32,6 +32,7 @@ describe("見本帳の段階ごとの箱 (#2797)", () => {
       columnGap: 64,
       backDetourTopGap: 34,
       backDetourSideGap: 58,
+      backDetourTargetInset: 60,
     });
   });
 

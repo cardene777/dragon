@@ -121,7 +121,7 @@ export const FORMS: Section[] = [
         note: "図面の意匠で使う箱の高さ",
         noteEn: "Node height for the blueprint theme",
       },
-      { code: 'stageLayout: {"columnWidths":{"受付":360},"columnGap":64,"backDetourTopGap":34,"backDetourSideGap":58}', note: "段の列と戻る線の寸法", noteEn: "Stage columns and back-detour sizing" },
+      { code: 'stageLayout: {"columnWidths":{"受付":360},"columnGap":64,"backDetourTopGap":34,"backDetourSideGap":58,"backDetourTargetInset":60}', note: "段の列と戻る線の寸法", noteEn: "Stage columns and back-detour sizing" },
       { code: 'terminalDecoration: {"windowControls":true,"cursor":true,"rowOrdinal":true}', note: "端末意匠の飾り", noteEn: "Terminal-theme decorations" },
       { code: "cornerForm: theme-variants", note: "意匠で矩形札の角を選ぶ", noteEn: "Theme-selectable rectangular corners" },
       { code: 'figureKindLabel: {"text":"tree · 階層図"}', note: "図の種類札", noteEn: "Figure kind label" },

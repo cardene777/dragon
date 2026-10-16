@@ -2992,7 +2992,8 @@
         },
         "columnGap": { "type": "number", "minimum": 0 },
         "backDetourTopGap": { "type": "number", "minimum": 0 },
-        "backDetourSideGap": { "type": "number", "minimum": 0 }
+        "backDetourSideGap": { "type": "number", "minimum": 0 },
+        "backDetourTargetInset": { "type": "number", "minimum": 0 }
       }
     },
     "reveal": {

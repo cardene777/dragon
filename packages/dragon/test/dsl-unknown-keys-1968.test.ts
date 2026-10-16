@@ -260,7 +260,7 @@ const 見本の表: Record<最上位, 綴り違いの見本[] | 項目名を持�
   ganttSize: [新しい複合欄の見本("ganttSize", "tickCont", "tickCount", 6)],
   quadrantLabelPosition: { 項目名を持たない理由: "四象限の区画名の位置の語を 1 つ書く欄" },
   quadrantSize: [新しい複合欄の見本("quadrantSize", "plotSzie", "plotSize", 325)],
-  stageLayout: [新しい複合欄の見本("stageLayout", "columnGpa", "columnGap", 64)],
+  stageLayout: [新しい複合欄の見本("stageLayout", "targetInest", "backDetourTargetInset", 60)],
   theme: { 項目名を持たない理由: "意匠の語を 1 つ書く欄" },
   legend: [
     見本(

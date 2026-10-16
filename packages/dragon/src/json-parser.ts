@@ -2925,7 +2925,7 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
     ganttSize: ["taskLabelFontSize", "taskLabelAlign", "taskLabelX", "tickFontSize", "tickCount", "barThickness", "milestoneFontSize", "milestoneRadius", "dependencyStrokeWidth", "taskColumnWidth", "timelinePaddingRight"],
     quadrantSize: ["plotOffset", "plotSize", "pointRadius", "pointFontSize", "pointLabelGap", "quadrantFontSize", "axisFontSize"],
     legendOffset: ["x", "y"],
-    stageLayout: ["columnWidths", "columnGap", "backDetourTopGap", "backDetourSideGap"],
+    stageLayout: ["columnWidths", "columnGap", "backDetourTopGap", "backDetourSideGap", "backDetourTargetInset"],
   } as const;
   const objects = Object.fromEntries(Object.entries(specs).map(([name, keys]) => [name, closedObject(name as keyof typeof specs, keys)])) as Record<keyof typeof specs, Record<string, unknown> | undefined>;
   const positiveKeys: Partial<Record<keyof typeof specs, readonly string[]>> = {
@@ -2945,7 +2945,7 @@ function validateChartPresentationFields(j: Record<string, unknown>, errors: Jso
     chartBarSize: ["cornerRadius"], chartLineSize: ["tickGap", "periodY"], chartPieSize: ["tableRowGap", "tablePaddingInline", "centerX"], chartWaffleSize: ["gridLeft"], chartSlopeSize: ["leftAxisX", "labelAxisGap"],
     chartStackedLayout: ["legendColumnGap", "segmentGap"], chartGaugeSize: ["plotTop"],
     ganttSize: ["taskLabelX", "taskColumnWidth", "timelinePaddingRight"], quadrantSize: ["pointLabelGap"],
-    stageLayout: ["columnGap", "backDetourTopGap", "backDetourSideGap"],
+    stageLayout: ["columnGap", "backDetourTopGap", "backDetourSideGap", "backDetourTargetInset"],
   };
   for (const [name, object] of Object.entries(objects) as [keyof typeof specs, Record<string, unknown> | undefined][]) {
     if (object === undefined) continue;

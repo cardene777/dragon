@@ -239,6 +239,14 @@ export function 意匠の字の測り方(theme: DslTheme): "monospace" | undefin
   return theme === "terminal" ? "monospace" : undefined;
 }
 
+/** 意匠と節から、見本に合わせた円の区画間の弧の長さを引く (#2871)。 */
+export function 意匠の円の区画の間(
+  theme: DslTheme,
+  node: Pick<CdlNode, "kind">,
+): number | undefined {
+  return theme === "neon" && node.kind === "chart-pie" ? 3 : undefined;
+}
+
 /** `barCornerRadii` が効く棒を描く節か。 */
 export function 棒を描く節か(
   node: Pick<CdlNode, "kind" | "funnelForm">,

@@ -50,6 +50,7 @@ export {
   LEGEND_MARK_ALIAS,
   resolveLegendMark,
   意匠の字の測り方,
+  意匠の円の区画の間,
   棒を描く節か,
   意匠の棒の角,
 } from "./keywords";

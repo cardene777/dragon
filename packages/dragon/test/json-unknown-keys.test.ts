@@ -204,7 +204,7 @@ const 正しい値: Record<階層, Record<string, unknown>> = {
         edges: {},
       },
     },
-    stageLayout: { columnWidths: { 受付: 360 }, columnGap: 64 },
+    stageLayout: { columnWidths: { 受付: 360 }, columnGap: 64, backDetourTargetInset: 60 },
   },
   actor: {
     name: "A",
