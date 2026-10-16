@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { readThemeRoleTable, resolveThemeRole } from "./theme-role-table-test-helpers";
+
 import { readFlowchartDecisionStyles } from "../../tests/helpers/theme-notes";
 
 const css = readFileSync(
@@ -165,15 +167,6 @@ const palettes = [
   },
 ] as const;
 
-function declarations(body: string): Map<string, string> {
-  return new Map(
-    [...body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)].map((match) => [
-      match[1]!,
-      match[2]!.trim(),
-    ]),
-  );
-}
-
 function flatRules(source: string): Array<{ selector: string; body: string }> {
   return [...source.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(
     (match) => ({ selector: (match[1] ?? "").trim(), body: match[2] ?? "" }),
@@ -181,18 +174,11 @@ function flatRules(source: string): Array<{ selector: string; body: string }> {
 }
 
 function tableDeclarations(palette: string): Map<string, string> {
-  const selector = `svg[data-cdl-stage][data-cdl-palette="${palette}"]`;
-  const rule = flatRules(css).find(
-    (candidate) => candidate.selector.trim() === selector,
-  );
-  if (!rule) throw new Error(`${palette} の意匠表が無い`);
-  return declarations(rule.body);
+  return readThemeRoleTable(css, palette).light;
 }
 
 function resolvedRole(table: Map<string, string>, role: string): string | undefined {
-  const value = table.get(role);
-  const reference = /^var\((--[a-z0-9-]+)\)$/i.exec(value ?? "")?.[1];
-  return reference ? resolvedRole(table, reference) : value;
+  return resolveThemeRole(table, role);
 }
 
 describe("固定の 7 意匠の流れ図を値の表から描く (#2875)", () => {

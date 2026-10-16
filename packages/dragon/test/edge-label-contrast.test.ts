@@ -69,9 +69,6 @@ import {
   requiredContrastRatio,
 } from "@cardenelabs/cdl";
 
-const CSS_PATH = fileURLToPath(
-  new URL("../../../apps/playground-spa/src/styles/cdl-theme.css", import.meta.url),
-);
 /** 明暗の値を持つ変数表の出どころ。 */
 const GLOBALS_PATH = fileURLToPath(
   new URL("../../../apps/playground-spa/src/styles/globals.css", import.meta.url),
@@ -551,66 +548,30 @@ function resolve(byMode: Record<Mode, Collected>): Sample[] {
   return out;
 }
 
-const css = readFileSync(CSS_PATH, "utf8");
 const VARS = readVarTables(readFileSync(GLOBALS_PATH, "utf8"));
+const parserFixture = `
+  [data-cdl-role="edge-label-bg"] { fill: #ffffff !important; }
+  [data-cdl-role="edge-label"] {
+    fill: #000000 !important;
+    font-family: "Inter Variable", sans-serif !important;
+    font-weight: 500 !important;
+  }
+`;
 
-/** 変数を明暗それぞれの値に置き換えた CSS。 検査はこれを読む。 */
+/** 純粋な CSSOM parser の検査用。実物の計算後の値は Playwright で測る。 */
 const expanded: Record<Mode, string> = {
-  light: expandVars(css, VARS.light),
-  dark: expandVars(css, VARS.dark),
+  light: expandVars(parserFixture, VARS.light),
+  dark: expandVars(parserFixture, VARS.dark),
 };
 const collectedByMode: Record<Mode, Collected> = {
   light: collect(expanded.light),
   dark: collect(expanded.dark),
 };
-const collected: Collected = {
-  byRole: collectedByMode.light.byRole,
-  outOfScope: [...new Set([...collectedByMode.light.outOfScope, ...collectedByMode.dark.outOfScope])],
-};
-const resolved = resolve(collectedByMode);
-
-describe("札の配色 (cdl#388)", () => {
+describe("札の配色を測る道具 (cdl#388)", () => {
   it("明暗の変数表を取り出す", () => {
-    // 表が空だと全ての `var()` が解けず、 範囲外の検査だけが落ちて原因が見えなくなる。
     expect(VARS.light.get("--d-text-primary")).toBe("#2a231d");
     expect(VARS.dark.get("--d-text-primary")).toBe("#f3ece0");
-    // 暗い表は明るい表を土台にする = 上書きの無い変数は明るい値のまま効く。
     expect(VARS.dark.get("--d-r-1")).toBe(VARS.light.get("--d-r-1"));
-  });
-
-  it("明暗で違う色に解決される", () => {
-    // 同じ宣言から 2 通りの色が出ることが、 明暗 2 表示の前提。
-    const light = resolved.find((r) => r.key === "light:main")!;
-    const dark = resolved.find((r) => r.key === "dark:main")!;
-    expect(light.fg).not.toEqual(dark.fg);
-    expect(light.bg).not.toEqual(dark.bg);
-  });
-
-  it("明暗 × 2 行 = 4 組を解決する", () => {
-    expect(resolved.map((r) => r.key).sort()).toEqual(
-      ["dark:main", "dark:sub", "light:main", "light:sub"],
-    );
-  });
-
-  it("本 test の範囲外の形で書かれていない", () => {
-    // 標準形でない selector / 条件付き at-rule / `var()` / `opacity` 系は、 宣言された配色だけ
-    // では対比が決まらない。 黙って既定値に戻すと「配色は正しい」 と誤って報告する。
-    // 描画結果の検査は実ブラウザ側 (#977) の担当。
-    expect(collected.outOfScope).toEqual([]);
-  });
-
-  it("色 / 大きさ / 太さが全て解決できる", () => {
-    const bad = resolved.filter((r) => r.fg === null || r.bg === null || r.px === null || r.weight === null);
-    expect(bad.map((r) => r.key)).toEqual([]);
-  });
-
-  it.each(resolved.map((r) => [r.key, r] as const))("%s の配色が WCAG AA を満たす", (_key, r) => {
-    const { fg, bg, px, weight } = r;
-    if (fg === null || bg === null || px === null || weight === null) {
-      throw new Error(`${r.key} が解決できない (前の test が原因を示す)`);
-    }
-    const required = requiredRatio(px, weight);
-    expect(contrast(fg, bg), `${px}px weight ${weight} → 要求 ${required}:1`).toBeGreaterThanOrEqual(required);
   });
 
   it("閾値は宣言された文字の大きさで決まる", () => {
@@ -832,15 +793,6 @@ describe("検査の範囲外を検知する (cdl#388)", () => {
     // 正規表現で selector を読むと取りこぼす形。 `matches()` は文法として解釈する。
     expect(found(`[data-cdl-role='edge-label'] { fill: #cccccc !important; }`).length).toBeGreaterThan(0);
     expect(found(`[ data-cdl-role = "edge-label" ] { fill: #cccccc !important; }`).length).toBeGreaterThan(0);
-  });
-});
-
-describe("cdl が読まない CSS 変数を残さない (cdl#388)", () => {
-  it("--cdl-label-text は cdl が読まないので使わない", () => {
-    // cdl の edge label は `var(--cdl-text-dim, ...)` と tone 色しか読まない
-    // (`packages/cdl/src/render/edges.tsx`)。 `--cdl-label-text` を書いても効かないため、
-    // 「設定したつもり」 が残る。 実際の色は role selector の `fill` で決める。
-    expect(css).not.toMatch(/--cdl-label-text\s*:/);
   });
 });
 

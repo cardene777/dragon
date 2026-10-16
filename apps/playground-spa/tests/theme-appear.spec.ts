@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-
 import { test, expect } from "@playwright/test";
 
 import { 記法をURLに載せる } from "./box-and-edge-figure";
@@ -12,22 +9,15 @@ import {
   themeEdgeAppearCounts as edgeCounts,
 } from "./helpers/theme-appear-capture";
 import { readThemeNotes, type ThemeNote } from "./helpers/theme-notes";
+import { readCdlThemeRoleTable } from "../src/lib/theme-role-table-test-helpers";
 
 const fixedThemes = (): Array<Extract<ThemeNote, { mode: "fixed" }>> =>
   [...readThemeNotes().values()].filter(
     (note): note is Extract<ThemeNote, { mode: "fixed" }> => note.mode === "fixed",
   );
 
-const css = readFileSync(
-  fileURLToPath(new URL("../src/styles/cdl-theme.css", import.meta.url)),
-  "utf8",
-).replace(/\/\*[\s\S]*?\*\//g, "");
-
 const edgeAppearingThemes = (): Array<Extract<ThemeNote, { mode: "fixed" }>> =>
-  fixedThemes().filter((note) =>
-    [...css.matchAll(/([^{}]*)\{([^{}]*)\}/g)].some((block) =>
-      (block[1] ?? "").trim() === `svg[data-cdl-stage][data-cdl-palette="${note.name}"]` &&
-      /--theme-edge-appear\s*:/.test(block[2] ?? "")));
+  fixedThemes().filter((note) => readCdlThemeRoleTable(note.name).light.has("--theme-edge-appear"));
 
 
 for (const note of fixedThemes()) {
