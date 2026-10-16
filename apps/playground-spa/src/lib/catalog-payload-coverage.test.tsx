@@ -337,6 +337,7 @@ const 節の欄の扱い = {
   figureKindLabel: "記法",
   figureInset: "記法",
   chartBarShape: "記法",
+  barCornerRadii: "意匠",
   chartWaffleSize: "記法",
   // 横軸の尺を固定する配置の指定。帯や目盛りという新しい役割は増やさない。
   ganttAxisMax: "置き場所",

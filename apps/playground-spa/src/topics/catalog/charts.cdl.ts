@@ -1131,10 +1131,11 @@ export const pattern__shipperFeelingJourney__5つの気持ち = textDslToDiagram
 // ============================================================
 // 7. 枝分かれで広げる
 // ============================================================
+// 見本では種別の字の上端から葉「置き配」の上端まで 25.4、枝「置き場所」の箱の上端まで 74、葉の左端まで 155。ずらす前は 1.6・49・135 で、x 20・y 24.5 で 25.6・73.5・155 になり、どれも 1 以内に入る。
 export const sourceYaml__redeliveryIdeasMind = `title: "再配達を減らす"
 type: mind
 mindForm: outline
-mindSize: {"root":{"width":330,"height":61.891,"fontSize":29},"branch":{"width":220,"height":62.891,"fontSize":29},"leaf":{"fontSize":23},"rootBranchGap":155,"branchLeafGap":70,"branchRowGap":290,"branchRowOffset":10,"leafRowGap":92,"leafRowOffset":6}
+mindSize: {"contentOffset":{"x":20,"y":24.5},"root":{"width":330,"height":61.891,"fontSize":29},"branch":{"width":220,"height":62.891,"fontSize":29},"leaf":{"fontSize":23},"rootBranchGap":155,"branchLeafGap":70,"branchRowGap":290,"branchRowOffset":10,"leafRowGap":92,"leafRowOffset":6}
 figureKindLabel: {"text":"mind · マインドマップ"}
 terminalDecoration: {"windowControls":true,"cursor":true}
 cornerForm: theme-variants
@@ -1183,6 +1184,7 @@ export const sourceJson__redeliveryIdeasMind = `{
   "type": "mind",
   "mindForm": "outline",
   "mindSize": {
+    "contentOffset": { "x": 20, "y": 24.5 },
     "root": { "width": 330, "height": 61.891, "fontSize": 29 },
     "branch": { "width": 220, "height": 62.891, "fontSize": 29 },
     "leaf": { "fontSize": 23 },

@@ -3731,10 +3731,12 @@ export const sourceJson__presetDeliveryFlow = `{
   ]
 }`;
 
+// 見本の段箱では矢じりの先から札の縁まで 7 意匠とも 2 で、現状は 1.4 食い込むため隙間を 2 にする。
 export const sourceYaml__presetDeliveryStages = `
 title: "荷物を届ける段階"
 type: swimlane
 shape: stages
+edgeEndGap: 2
 legendFontSize: 21
 viewport: { width: 1800, height: 1048.118 }
 stageLayout: {"columnWidths":{"申し込み":300,"受付":360,"配送":400,"結果":420},"columnGap":64,"backDetourTopGap":34,"backDetourSideGap":58}
@@ -3811,6 +3813,7 @@ export const sourceJson__presetDeliveryStages = `{
   "title": "荷物を届ける段階",
   "type": "swimlane",
   "shape": "stages",
+  "edgeEndGap": 2,
   "legendFontSize": 21,
   "viewport": { "width": 1800, "height": 1048.118 },
   "stageLayout": { "columnWidths": { "申し込み": 300, "受付": 360, "配送": 400, "結果": 420 }, "columnGap": 64, "backDetourTopGap": 34, "backDetourSideGap": 58 },
@@ -4029,11 +4032,15 @@ export const sourceJson__presetDeliveryMetro = `{
 }`;
 
 // ─── swimlane + timeline (番号付きの時間軸) ─────
+// 見本の時間軸では矢じりの先から札の縁まで 7 意匠とも 2 で、現状は 1.4 食い込むため隙間を 2 にする。
+// 凡例は見本の地の左端から 68、現状は contentOffsetX の分を含め 320 なので x を -252、y は現状の 0 にする。
 export const sourceYaml__presetDeliveryTimeline = `
 title: "荷物を届ける順番"
 type: swimlane
 shape: timeline
+edgeEndGap: 2
 legendFontSize: 21
+legendOffset: {"x":-252,"y":0}
 viewport: { width: 1800, contentOffsetX: 250 }
 
 lanes:
@@ -4094,7 +4101,9 @@ export const sourceJson__presetDeliveryTimeline = `{
   "title": "荷物を届ける順番",
   "type": "swimlane",
   "shape": "timeline",
+  "edgeEndGap": 2,
   "legendFontSize": 21,
+  "legendOffset": { "x": -252, "y": 0 },
   "viewport": { "width": 1800, "contentOffsetX": 250 },
   "lanes": {
     "shipper": { "label": "荷主" },

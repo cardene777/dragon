@@ -104,6 +104,8 @@ import {
   resolveShape,
   shapesForDiagramType,
   意匠の字の測り方,
+  棒を描く節か,
+  意匠の棒の角,
   type DslShape,
 } from "./keywords";
 import { pointsOutside, stripExternalPaint } from "./color";
@@ -583,6 +585,7 @@ export function compileToCdl(doc: DslDocument, opts?: CompileToCdlOpts): CdlDiag
   }
   if (doc.legendFontSize !== undefined) merged.legendFontSize = doc.legendFontSize;
   if (doc.legendOffset !== undefined) merged.legendOffset = doc.legendOffset;
+  if (doc.edgeEndGap !== undefined) merged.edgeEndGap = doc.edgeEndGap;
   if (doc.stageHeaders !== undefined) {
     (merged as CdlDiagram & { stageHeaders?: DslDocument["stageHeaders"] }).stageHeaders =
       doc.stageHeaders;
@@ -688,6 +691,7 @@ function cdlの未指定欄を外す(diagram: CdlDiagram): void {
     if (node.figureInset === undefined) delete node.figureInset;
     if (node.chartBarSize === undefined) delete node.chartBarSize;
     if (node.chartBarShape === undefined) delete node.chartBarShape;
+    if (node.barCornerRadii === undefined) delete node.barCornerRadii;
     if (node.chartLineSize === undefined) delete node.chartLineSize;
     if (node.chartPieSize === undefined) delete node.chartPieSize;
     if (node.chartWaffleSize === undefined) delete node.chartWaffleSize;
@@ -789,6 +793,10 @@ function 配色と縞を当てる(diagram: CdlDiagram, doc: DslDocument): void {
   const 字の測り方 = 意匠の字の測り方(配色);
   if (字の測り方 !== undefined) diagram.textMetrics = 字の測り方;
   for (const node of diagram.nodes) {
+    if (棒を描く節か(node)) {
+      const 棒の角 = 意匠の棒の角(配色, node);
+      if (棒の角 !== undefined) node.barCornerRadii = 棒の角;
+    }
     if (配色 === "relief" && doc.figureInset?.holdsContent === true && node.figureInset !== undefined) {
       node.figureInset.holdsContent = true;
       const leftInset = node.figureInset.left ?? 18;

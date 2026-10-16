@@ -126,6 +126,7 @@ const TREE_SIZE_KEYS = [
   "levelGap",
 ] as const;
 const MIND_SIZE_KEYS = [
+  "contentOffset",
   "root",
   "branch",
   "leaf",
@@ -528,6 +529,7 @@ export const TOP_LEVEL_KEYS = [
   "legend",
   "legendOffset",
   "legendFontSize",
+  "edgeEndGap",
   "stageHeaders",
   "layoutByTheme",
 ] as const;
@@ -964,6 +966,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
   const legend: CdlLegendItem[] = [];
   let legendOffset: DslDocument["legendOffset"];
   let legendFontSize: number | undefined;
+  let edgeEndGap: DslDocument["edgeEndGap"];
   let stageHeaders: DslDocument["stageHeaders"];
   let layoutByTheme: DslDocument["layoutByTheme"];
 
@@ -1155,6 +1158,20 @@ export function parseTextDslV05(src: string): V05ParseResult {
           line: line.no,
           message: `legendFontSize が読めません: "${head.value ?? ""}"`,
           hint: "0 より大きい数を書く",
+        });
+      }
+      i += 1;
+      continue;
+    }
+    if (head.key === "edgeEndGap") {
+      const written = (head.value ?? "").trim();
+      const value = Number(written);
+      if (written !== "" && Number.isFinite(value) && value >= 0) edgeEndGap = value;
+      else {
+        errors.push({
+          line: line.no,
+          message: `edgeEndGap が読めません: "${head.value ?? ""}"`,
+          hint: "0 以上の数を書く",
         });
       }
       i += 1;
@@ -2281,6 +2298,7 @@ export function parseTextDslV05(src: string): V05ParseResult {
       ...(legend.length > 0 ? { legend } : {}),
       ...(legendOffset !== undefined ? { legendOffset } : {}),
       ...(legendFontSize !== undefined ? { legendFontSize } : {}),
+      ...(edgeEndGap !== undefined ? { edgeEndGap } : {}),
       ...(stageHeaders !== undefined ? { stageHeaders } : {}),
       ...(layoutByTheme !== undefined ? { layoutByTheme } : {}),
       ...(theme !== null && palette !== null
@@ -6091,6 +6109,25 @@ function 放射の寸法を読む(
     return false;
   }
   let invalid = 図表の知らない項目を知らせる(value, MIND_SIZE_KEYS, "mindSize", line, errors);
+  const contentOffset = value.contentOffset;
+  if (contentOffset !== undefined) {
+    if (!objectか(contentOffset)) invalid = true;
+    else {
+      invalid =
+        図表の知らない項目を知らせる(
+          contentOffset,
+          ["x", "y"],
+          "mindSize.contentOffset",
+          line,
+          errors,
+        ) || invalid;
+      for (const key of ["x", "y"] as const) {
+        if (typeof contentOffset[key] !== "number" || !Number.isFinite(contentOffset[key])) {
+          invalid = true;
+        }
+      }
+    }
+  }
   for (const [key, allowed] of [
     ["root", ["width", "height", "fontSize"]],
     ["branch", ["width", "height", "fontSize"]],

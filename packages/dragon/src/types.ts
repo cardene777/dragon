@@ -252,6 +252,8 @@ export type DslDocument = {
   legend?: CdlLegendItem[];
   /** 図全体の凡例の位置を既定位置からずらす。 */
   legendOffset?: NonNullable<CdlDiagram["legendOffset"]>;
+  /** 線の両端と発着する箱の縁との隙間。 */
+  edgeEndGap?: NonNullable<CdlDiagram["edgeEndGap"]>;
   /** 順序図の参加者を枠で囲む。 */
   sequenceActorForm?: "box";
   /** 順序図の段へ種類印と種類名を添える。 */

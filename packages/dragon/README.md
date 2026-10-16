@@ -103,7 +103,7 @@ flow:
 | `treeEdgeTone` | 木の枝色の付け方 (`accent` / `depth`) |
 | `treeEdgeHead` | 木の枝先の形 (`none` / `triangle`) |
 | `mindForm` | 放射の箱の見せ方 (`filled` / `outline`) |
-| `mindSize` | 放射の中心・枝・葉の札と字、中心から枝・枝から葉・各行の間隔とずらし (`{ root?, branch?, leaf?, rootBranchGap?, branchLeafGap?, branchRowGap?, branchRowOffset?, leafRowGap?, leafRowOffset? }`) |
+| `mindSize` | 放射の中心・枝・葉の位置・札・字、中心から枝・枝から葉・各行の間隔とずらし (`{ contentOffset?: { x, y }, root?, branch?, leaf?, rootBranchGap?, branchLeafGap?, branchRowGap?, branchRowOffset?, leafRowGap?, leafRowOffset? }`) |
 | `journeyForm` | ジャーニーの段の見せ方 (`bands` / `rules`) |
 | `journeyLineForm` | ジャーニーの点を結ぶ線 (`curve` / `straight`) |
 | `journeyLabels` | ジャーニーの 5 段の名前 (`{ delighted, happy, neutral, frustrated, angry }`) |
@@ -138,6 +138,7 @@ flow:
 | `legend`    | 図の下へ置く凡例。 `凡例:` とも書ける。 印付きは `{ mark, text, tone?, lineStyle? }`、注記は `{ text, align?, lead? }`。和名なら `{ 印, 説明 }`。 印の種類は下の節を参照 |
 | `legendFontSize` | 凡例の字の大きさ |
 | `legendOffset` | 図全体の凡例の位置をずらす (`{ x?, y? }`) |
+| `edgeEndGap` | 線の両端と発着する箱の縁との隙間 (0 以上) |
 | `stageHeaders` | `shape: stages` の見出し寸法を意匠名ごとに書く (`leftPad` / `topPad` / `numberSize` / `gap` / `nameSize` / `bottomPad`) |
 | `stageLayout` | `shape: stages` の列幅・列間・戻る線の迂回寸法 (`columnWidths` / `columnGap` / `backDetourTopGap` / `backDetourSideGap`) |
 | `layoutByTheme` | 意匠名ごとに表の箱の高さ・固定高さ・中心 y (`h` / `posH` / `posY`)・`rowLayout` / `rowStripe` と線の固定端点・`waypoints`・札のずらしをまとめて上書きする |

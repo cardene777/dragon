@@ -342,3 +342,65 @@ flow: []
     }
   });
 });
+
+describe("棒の角の意匠切替 (#2863)", () => {
+  const 棒 = (theme?: string) => textDslToDiagram(`title: 見本
+type: chart
+shape: bar
+${theme === undefined ? "" : `theme: ${theme}\n`}actors:
+  - A: "80"
+  - B: "20"
+flow:
+  - A -> B
+`);
+
+  it("意匠を替えると角を替え、同じ意匠では元の object を返す", () => {
+    const 図録 = 棒("catalog");
+    const 電飾 = 図の配色を変える(図録, "neon");
+    expect(電飾.nodes[0]?.barCornerRadii).toEqual({
+      topLeft: 10,
+      topRight: 10,
+      bottomRight: 3,
+      bottomLeft: 3,
+    });
+    expect(図の配色を変える(電飾, "neon")).toBe(電飾);
+  });
+
+  it.each(["kinari", "celadon", 画面の色] as const)("%s へ替えると角の key を外す", (theme) => {
+    const next = 図の配色を変える(棒("neon"), theme);
+    expect(Object.hasOwn(next.nodes[0] ?? {}, "barCornerRadii")).toBe(false);
+  });
+
+  it("意匠なしの棒へ角を足し、選択を触らない時は元の object を返す", () => {
+    const 元 = 棒();
+    expect(図の配色を変える(元, null)).toBe(元);
+    expect(図の配色を変える(元, "catalog").nodes[0]?.barCornerRadii).toEqual({
+      topLeft: 4,
+      topRight: 4,
+      bottomRight: 0,
+      bottomLeft: 0,
+    });
+  });
+
+  it("棒を描かない漏斗の角は触らない", () => {
+    const funnel = textDslToDiagram(`title: 見本
+type: funnel
+actors:
+  - A: "80"
+  - B: "20"
+flow:
+  - A -> B
+`);
+    const 元の節 = funnel.nodes[0];
+    if (元の節 === undefined) throw new Error("漏斗の節が無い");
+    元の節.barCornerRadii = { topLeft: 1, topRight: 2, bottomRight: 3, bottomLeft: 4 };
+    const next = 図の配色を変える(funnel, "neon");
+    expect(next.nodes[0]).toBe(元の節);
+    expect(next.nodes[0]?.barCornerRadii).toEqual({
+      topLeft: 1,
+      topRight: 2,
+      bottomRight: 3,
+      bottomLeft: 4,
+    });
+  });
+});

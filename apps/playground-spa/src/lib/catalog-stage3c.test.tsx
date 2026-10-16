@@ -428,6 +428,7 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
     expect(node(diagram).mindForm).toBe("outline");
     expect(node(diagram)).toMatchObject({
       mindSize: {
+        contentOffset: { x: 20, y: 24.5 },
         root: { width: 330, height: 61.891, fontSize: 29 },
         branch: { width: 220, height: 62.891, fontSize: 29 },
         leaf: { fontSize: 23 },
@@ -450,11 +451,15 @@ describe("宅配の見本へ 3 段目 c の値を当てる (#2854)", () => {
       h: 392,
       treeSize: node(Charts.deliveryOfficeTree).treeSize,
     });
-    expect(node(Charts.pattern__redeliveryIdeasMind__説明つき)).toMatchObject({
+    const 説明つき放射 = node(Charts.pattern__redeliveryIdeasMind__説明つき);
+    const 共通の放射寸法 = { ...node(Charts.redeliveryIdeasMind).mindSize };
+    delete 共通の放射寸法.contentOffset;
+    expect(説明つき放射).toMatchObject({
       w: 1680,
       h: 470,
-      mindSize: node(Charts.redeliveryIdeasMind).mindSize,
+      mindSize: 共通の放射寸法,
     });
+    expect(Object.hasOwn(説明つき放射.mindSize ?? {}, "contentOffset")).toBe(false);
 
     const markup = render(Charts.pattern__redeliveryIdeasMind__説明つき, true);
     expect(markup).toContain("受け取りやすくする");
